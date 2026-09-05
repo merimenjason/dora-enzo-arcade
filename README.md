@@ -1,8 +1,10 @@
-# ChinChin · Dustbound
+# ChinChin · Bounce / Burrow
 
-An isometric browser action RPG starring White and Grey, based on the two real chinchillas. Lead one while the other follows and fights automatically. Both are visible in a shared 3D view. Explore endless procedurally generated floors, earn shared party XP, and build separate skill trees for White and Grey. A Great Sweeper guardian appears every third floor.
+A browser ball-bouncing roguelite starring White and Grey, the two chinchillas. Aim volleys into advancing dust enemies, ricochet off the pit walls, collect upgrades, and fuse elemental balls. Both fluffy 3D chinchillas are visible at the bottom of the arena.
 
-## Run locally
+The earlier isometric RPG, including procedural floors and mystic skill trees, remains at `/adventure`. Its instructions are in [docs/dustbound-rpg.md](docs/dustbound-rpg.md).
+
+## Play locally
 
 Requires Node.js 22.13+ and a desktop browser with WebGL 2.
 
@@ -11,39 +13,34 @@ npm ci
 npm run dev
 ```
 
-Open the printed localhost URL and select **Enter the den**. No pointer lock is needed.
-
-## Controls
+Open the printed localhost URL. Select **Into the burrow**. Auto-fire starts enabled.
 
 | Action | Control |
 | --- | --- |
-| Move / pursue and attack | Left click floor / enemy; hold to steer |
-| Move directly | WASD or arrow keys |
-| Switch hero | Tab; 1 for White, 2 for Grey |
-| Target nearest enemy | R |
-| Seed volley / whirling paws | Right click or F |
-| Dodge | Space |
-| Shared bond burst | Q, costs 50 bond |
-| Enter cleared chamber's passage | Approach arch and press E |
-| Skill trees (pauses combat) | K |
-| Pause | Escape or P |
+| Aim | Mouse |
+| Move the pair | WASD or arrow keys |
+| Fire with auto-fire disabled | Hold left click |
+| Double Trouble burst | Q or Space; costs 50 bond |
+| Fusion lab | F or the on-screen button |
+| Pause | Esc or P |
 
-White uses ranged seeds; Grey fights in melee. Successful hits build shared bond. Green loot restores shared courage. Each cleared floor offers a boon and a full heal. Levels grant one shared skill point, +12 courage, and +7% base damage. You start with one point. Both heroes share XP, while skill points can be invested across either tree:
+Both chinchillas cycle through up to four equipped ball types. Balls rebound from enemies and walls. Intercept a returning ball with either chinchilla to send it back with 8% more damage, up to three returns. Balls expire, and missed returns drop out of the pit.
 
-- White: Stillness (immobilizing seeds → damage against sealed enemies → an area seal) or Dustcraft (taunting dust decoy → longer life and more courage → explosion on expiration or destruction).
-- Grey: Paw Stances (Boulder Paw → Reed Fang → Rooted Tail) or Spirit Form (Stonefur transformation → improved protection → healing when the form ends).
+Defeats award XP and bond. Leveling pauses the action for a choice of three upgrades. Each ball can reach level 5. Enemies that breach the red line cost 12 courage; a boss breach ends the run. Survive 12 waves and defeat the Dustbreaker, then descend with the same build into a harder pit. Losing or starting a fresh run resets the build; progress is not saved across reloads.
 
-Equip one learned stance in the skill tree. Boulder Paw hits harder but slower; Reed Fang extends melee reach; Rooted Tail cleaves and protects the party while Grey leads. White’s learned seals and decoy trigger through the existing volley (right click / F). Grey’s learned Stonefur form triggers through whirling paws (right click / F). The decoy has a 10-second recharge; Stonefur has a 12-second recharge, separate from the basic special-ability cooldown. No extra combat keys or combo mechanics are required.
+## Ball fusion
 
-The dust decoy has its own courage, attracts visible enemies within seven steps, absorbs projectiles, and disappears when its courage or duration runs out. Guardians resist half of seal duration. Stonefur visibly enlarges Grey and empowers his melee; its damage reduction applies while Grey leads. Temporary forms and decoys reset between floors.
+Both ingredients must be at least level 2. Fusion consumes the two ingredients, creates a level 1 evolved ball, and frees one collection slot.
 
-Skills have rank caps, parent prerequisites, and level gates. Leveling restores courage. Running out of courage resets the current floor while keeping levels and skill choices; each enemy grants XP only once per floor to prevent retry farming. Progress persists throughout the current adventure, not across page reloads. A new adventure starts a fresh build and random seed.
+| Ingredients | Result | Effect |
+| --- | --- | --- |
+| Seedshot + Riverstone | Acorn Meteor | Heavy hits and area explosions |
+| Snowpea + Embernut | Steam Bloom | Slows and burns groups |
+| Static Puff + Sporeball | Spore Tempest | Poisoned lightning jumps through three nearby enemies |
 
-Each floor generates dividing walls, doorways, cover, names, and enemy placements. The simulation, minimap, and scene share the same generated geometry. Floors are deterministic for a seed and depth; retries preserve the layout. Guardians do not end the descent. The camera widens when the pair separates, and walls fade when they obscure a hero.
+The fusion lab pauses combat. Six base ball types, three evolved types, damage/fire-rate/multiball upgrades, and courage upgrades offer different builds.
 
-Sound, fur detail, shadows, and camera zoom can be adjusted in the interface. This edition is single-player with an AI companion and is separate from the earlier 2D, side-view 3D, and FPS games.
-
-## Validate
+## Validation
 
 ```sh
 npm run typecheck
@@ -51,16 +48,15 @@ npm test
 npm run build
 ```
 
-The deterministic simulation tests cover obstacle navigation, companion combat, attacks and cooldowns, projectile cover, healing, pause/reset, 600 generated-floor connectivity checks, skill prerequisites and combat effects, and three four-floor runs using normal combat commands. They do not test browser rendering or visual UI behavior.
+Tests exercise wall and enemy collisions, paw rebounds, elemental effects, fusion requirements, upgrade gating, pause, breach loss, boss victory, and a complete pit run using normal firing and upgrade commands. The retained RPG also has its original tests. Tests do not inspect browser rendering.
 
 ## Source
 
-- `lib/arpg-game.ts`: movement, pathfinding, combat, loot, and progression.
-- `lib/dungeon.ts`: seeded procedural floor generation.
-- `lib/skills.ts`: skill trees, ranks, descriptions, and prerequisites.
-- `lib/arpg-scene.ts`: Three.js isometric dungeon, enemies, effects, and camera.
+- `app/page.tsx`: ball-mode interface, menus, controls, and sound.
+- `lib/pit-game.ts`: deterministic simulation, projectiles, waves, upgrades, and fusion.
+- `lib/pit-scene.ts`: Three.js pit, chinchillas, enemies, and effects.
 - `lib/chinchilla.ts`: chinchilla meshes and geometric fur.
-- `app/page.tsx`: input, HUD, menus, and audio.
-- `app/globals.css`: interface styling.
+- `app/adventure/page.tsx`: retained Dustbound RPG.
+- `app/globals.css`: shared and mode-specific styles.
 
-The Sites deployment uses Vinext and the generated Cloudflare Worker build. `npm run build` produces `dist/`; `.openai/hosting.json` identifies this separate hosted edition.
+The artwork includes the supplied photo of the original chinchillas. The game uses original chinchilla names and mechanics inspired by the bouncing-ball roguelite format. The current Sites deployment uses Vinext and a generated Cloudflare Worker; `npm run build` creates `dist/`.
