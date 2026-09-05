@@ -30,8 +30,12 @@ Open the printed localhost URL and select **Enter the den**. No pointer lock is 
 
 White uses ranged seeds; Grey fights in melee. Successful hits build shared bond. Green loot restores shared courage. Each cleared floor offers a boon and a full heal. Levels grant one shared skill point, +12 courage, and +7% base damage. You start with one point. Both heroes share XP, while skill points can be invested across either tree:
 
-- White: Marksmanship (damage → attack speed → extra volley seeds) or Mooncraft (cooldown → freezing seeds → nova).
-- Grey: Ravager (damage → cleaving attacks → cyclone) or Guardian (damage reduction → courage → cheaper healing team burst).
+- White: Stillness (immobilizing seeds → damage against sealed enemies → an area seal) or Dustcraft (taunting dust decoy → longer life and more courage → explosion on expiration or destruction).
+- Grey: Paw Stances (Boulder Paw → Reed Fang → Rooted Tail) or Spirit Form (Stonefur transformation → improved protection → healing when the form ends).
+
+Equip one learned stance in the skill tree. Boulder Paw hits harder but slower; Reed Fang extends melee reach; Rooted Tail cleaves and protects the party while Grey leads. White’s learned seals and decoy trigger through the existing volley (right click / F). Grey’s learned Stonefur form triggers through whirling paws (right click / F). The decoy has a 10-second recharge; Stonefur has a 12-second recharge, separate from the basic special-ability cooldown. No extra combat keys or combo mechanics are required.
+
+The dust decoy has its own courage, attracts visible enemies within seven steps, absorbs projectiles, and disappears when its courage or duration runs out. Guardians resist half of seal duration. Stonefur visibly enlarges Grey and empowers his melee; its damage reduction applies while Grey leads. Temporary forms and decoys reset between floors.
 
 Skills have rank caps, parent prerequisites, and level gates. Leveling restores courage. Running out of courage resets the current floor while keeping levels and skill choices; each enemy grants XP only once per floor to prevent retry farming. Progress persists throughout the current adventure, not across page reloads. A new adventure starts a fresh build and random seed.
 
