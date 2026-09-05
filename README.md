@@ -13,7 +13,11 @@ npm ci
 npm run dev
 ```
 
-Open the printed localhost URL. Select **Into the burrow**. Auto-fire starts enabled.
+Open the printed localhost URL. Choose a starting pair, then select **Into the burrow**. Auto-fire starts enabled.
+
+- Classic pair: Seedshot + Riverstone.
+- Burrow breakers: Burrow Drill + Split Acorn.
+- Moon gardeners: Vampire Spore + Gustball.
 
 | Action | Control |
 | --- | --- |
@@ -37,8 +41,23 @@ Both ingredients must be at least level 2. Fusion consumes the two ingredients, 
 | Seedshot + Riverstone | Acorn Meteor | Heavy hits and area explosions |
 | Snowpea + Embernut | Steam Bloom | Slows and burns groups |
 | Static Puff + Sporeball | Spore Tempest | Poisoned lightning jumps through three nearby enemies |
+| Burrow Drill + Split Acorn | Quillstorm | Four penetrations and four drilling fragments |
+| Vampire Spore + Gustball | Moonwhirl | Life-steal and area knockback |
 
-The fusion lab pauses combat. Six base ball types, three evolved types, damage/fire-rate/multiball upgrades, and courage upgrades offer different builds.
+The fusion lab pauses combat. Ten base weapon types, five evolved types, damage/fire-rate/multiball upgrades, and courage upgrades offer different builds.
+
+## Expanded arsenal
+
+Use **Browse all 15 weapons** to inspect base weapons, evolved forms, equipped ranks, and fusion recipes.
+
+- Burrow Drill passes through two enemies before bouncing. Each enemy can be hit once per drill projectile.
+- Split Acorn splits into two half-damage fragments on its first hit. Fragments never split recursively.
+- Vampire Spore restores 12% of actual direct damage as courage, capped at maximum courage.
+- Gustball pushes enemies back; guardians resist most knockback.
+- Quillstorm combines piercing with four smaller drilling fragments.
+- Moonwhirl restores 18% of direct damage and knocks back/damages nearby enemies.
+
+Projectiles and fragments share a 180-ball cap. Base weapons appear as level-up rewards; fused forms require their recipe. Starting pairs provide immediate access to the new mechanics.
 
 ## Validation
 
