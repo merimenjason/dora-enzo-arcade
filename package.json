@@ -11,7 +11,7 @@
     "start": "wrangler dev --config dist/server/wrangler.json",
     "lint": "oxlint",
     "format": "oxfmt",
-    "test": "tsc lib/arpg-game.ts lib/pit-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/arpg.mjs && node tests/pit.mjs",
+    "test": "tsc lib/arpg-game.ts lib/pit-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/arpg.mjs && node tests/survival.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
