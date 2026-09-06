@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {KartGame,CIRCUIT,LAPS,trackPoint} from '../.checks/kart-game.js';
+const input={gas:true,brake:false,steer:0,drift:false};
+const tick=(g,t,i=input)=>{for(let n=0;n<Math.ceil(t*120);n++)g.step(1/120,i)};
+const fresh=()=>{const g=new KartGame();g.start();tick(g,3.1);return g};
+const countdown=new KartGame();countdown.start();tick(countdown,1);countdown.pause();const left=countdown.countdown;tick(countdown,1);assert.equal(countdown.countdown,left);countdown.pause();tick(countdown,2.1);assert.equal(countdown.state,'racing');
+const drive=fresh();tick(drive,3);assert(drive.speed>20);const s=drive.s;drive.pause();tick(drive,2);assert.equal(drive.s,s);drive.pause();tick(drive,1,{...input,gas:false,brake:true});assert(drive.speed<3);
+const drift=fresh();tick(drift,2);tick(drift,.8,{...input,steer:1,drift:true});assert(drift.drift>.65);drift.step(1/120,input);assert(drift.boost>1);assert.equal(drift.drift,0);
+const dirt=fresh();dirt.lane=8;tick(dirt,3);assert(dirt.speed<=11);tick(dirt,3,{...input,steer:1});assert.equal(dirt.lane,9);
+const pickup=fresh();pickup.s=29.99;pickup.speed=20;pickup.step(1/120,input);assert.equal(pickup.item,'boost');assert(pickup.useItem());assert.equal(pickup.item,null);assert(pickup.boost>0);assert(!pickup.useItem());
+const freeze=fresh();freeze.item='frost';freeze.rivals[0].s=freeze.s+1;assert(freeze.useItem());assert(freeze.rivals.some(r=>r.slow===3));freeze.item='dust';freeze.s=50;freeze.rivals.forEach(r=>r.s=35);assert(freeze.useItem());assert(freeze.rivals.every(r=>r.slow===3));
+const save=fresh();save.item='frost';save.rivals.forEach(r=>r.s=save.s-10);assert(!save.useItem());assert.equal(save.item,'frost');
+const pad=fresh();pad.s=64.99;pad.lane=3;pad.speed=20;pad.step(1/120,input);assert(pad.boost>0);
+const lap=fresh();lap.s=CIRCUIT-.01;lap.speed=20;lap.step(1/120,input);assert.equal(lap.lap,2);
+const race=fresh();for(let i=0;i<120*60&&race.state!=='finished';i++){if(race.item)race.useItem();race.step(1/120,input)}assert.equal(race.state,'finished');assert.equal(race.s,CIRCUIT*LAPS);assert(race.finishPlace>=1&&race.finishPlace<=5);console.log(`Complete race: ${race.finishTime.toFixed(1)}s, place ${race.finishPlace}/5.`);const time=race.time;tick(race,1);assert.equal(race.time,time);
+for(let s=0;s<720;s+=7){const p=trackPoint(s,3);assert(Number.isFinite(p.x));assert(Math.abs(Math.hypot(p.tx,p.tz)-1)<1e-9)}const a=trackPoint(0),b=trackPoint(CIRCUIT);assert(Math.hypot(a.x-b.x,a.z-b.z)<1e-9);
+console.log('Passed countdown/pause, acceleration/brakes, drift boost, off-road penalty, pickups, all items, boost strip, laps, closed track and complete race.');
