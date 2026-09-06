@@ -18,6 +18,10 @@ export function weaponIcons(){const icons={} as Record<OrbKind,T.Group>;
  if(kind==='gale'||kind==='moonwhirl'){for(let i=0;i<3;i++){const arc=add(new T.TorusGeometry(.13+i*.07,.03,5,18,Math.PI*1.5),main,0,0,0,1,1,1);arc.rotation.x=Math.PI/2;arc.rotation.z=i*2}if(kind==='moonwhirl'){add(rock,light,0,.02,0,.09,.13,.09);for(const x of [-.15,.15])add(cone,light,x,0,.26,.055,.2,.06).rotation.x=Math.PI/2}}
  if(kind==='steam'){add(rock,main,0,0,-.15,.18,.18,.23);for(const [x,z]of [[-.18,.12],[0,.22],[.18,.12]])add(sphere,light,x,0,z,.15,.10,.16)}
  if(kind==='shrapnel'){add(rock,dark,0,0,0,.15,.15,.15);for(let i=0;i<5;i++){const a=i*Math.PI*2/5;const q=add(cone,main,Math.sin(a)*.18,0,Math.cos(a)*.18,.065,.37,.065);q.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),new T.Vector3(Math.sin(a),0,Math.cos(a)))}}
+ if(kind==='boomerang'||kind==='windscythe'){for(const sign of [-1,1]){const blade=add(box,main,sign*.15,0,0,.13,.07,.49);blade.rotation.y=sign*.65;add(rock,light,sign*.29,0,-.18,.08,.05,.13)}if(kind==='windscythe'){const arc=add(new T.TorusGeometry(.35,.045,6,24,Math.PI*1.6),light,0,0,0,1,1,1);arc.rotation.x=Math.PI/2}}
+ if(kind==='thorn'){add(cone,main,0,0,-.07,.15,.7,.12).rotation.x=-Math.PI/2;for(const sign of [-1,1]){const leaf=add(sphere,dark,sign*.13,0,.17,.18,.04,.08);leaf.rotation.y=sign*.6}add(rock,light,0,.05,.07,.075,.04,.13)}
+ if(kind==='bramble'){const ring=add(new T.TorusGeometry(.22,.055,6,16),dark,0,0,0,1,1,1);ring.rotation.x=Math.PI/2;for(let i=0;i<7;i++){const a=i*Math.PI*2/7;const spike=add(cone,main,Math.sin(a)*.24,0,Math.cos(a)*.24,.075,.28,.075);spike.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),new T.Vector3(Math.sin(a),.4,Math.cos(a)).normalize())}add(rock,light,0,0,0,.1,.1,.1)}
+ if(kind==='sunburst'){add(rock,main,0,0,0,.2,.21,.2);for(const x of [-.2,.2])for(const z of [-.2,.2])add(box,dark,x,0,z,.045,.4,.045);for(const y of [-.2,.2]){add(box,light,0,y,0,.47,.045,.47)}add(cone,light,0,.04,0,.1,.37,.1);const handle=add(new T.TorusGeometry(.12,.025,5,12),dark,0,.3,0,1,1,1);handle.rotation.y=Math.PI/2}
  icons[kind]=g;
  }return icons;
 }

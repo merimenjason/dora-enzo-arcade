@@ -1,6 +1,6 @@
-# ChinChin · Bounce / Burrow
+# Chin x Pit
 
-A browser ball-bouncing roguelite starring White and Grey, the two chinchillas. Aim volleys into advancing fox, owl, and snake enemies, ricochet off the pit walls, collect upgrades, and fuse elemental balls. Both fluffy 3D chinchillas are visible at the bottom of the arena.
+A browser ball-bouncing roguelite starring Dora and Enzo, the two chinchillas. Aim volleys into advancing fox, owl, and snake enemies, ricochet off the pit walls, collect upgrades, and fuse elemental balls. Both fluffy 3D chinchillas are free to move throughout the battlefield.
 
 The earlier isometric RPG, including procedural floors and mystic skill trees, remains at `/adventure`. Its instructions are in [docs/dustbound-rpg.md](docs/dustbound-rpg.md).
 
@@ -43,12 +43,15 @@ Both ingredients must be at least level 2. Fusion consumes the two ingredients, 
 | Static Puff + Sporeball | Spore Tempest | Poisoned lightning jumps through three nearby enemies |
 | Burrow Drill + Split Acorn | Quillstorm | Four penetrations and four drilling fragments |
 | Vampire Spore + Gustball | Moonwhirl | Life-steal and area knockback |
+| Willow Boomerang + Gustball | Wind Scythe | Returning blade, splash damage and knockback |
+| Rose Thorn + Sporeball | Bramble Crown | Spreading bleed and slow |
+| Embernut + Static Puff | Sunburst Lantern | Burning explosion and lightning arcs |
 
-The fusion lab pauses combat. Ten base weapon types, five evolved types, damage/fire-rate/multiball upgrades, and courage upgrades offer different builds.
+The fusion lab pauses combat. Twelve base weapon types, eight evolved types, damage/fire-rate/multiball upgrades, and courage upgrades offer different builds.
 
 ## Expanded arsenal
 
-Use **Browse all 15 weapons** to inspect base weapons, evolved forms, equipped ranks, and fusion recipes.
+Use **Browse all 20 weapons** to inspect base weapons, evolved forms, equipped ranks, and fusion recipes.
 
 - Burrow Drill passes through two enemies before bouncing. Each enemy can be hit once per drill projectile.
 - Split Acorn splits into two half-damage fragments on its first hit. Fragments never split recursively.
@@ -85,3 +88,16 @@ Enemy icons use stylized 3D foxes, owls, and snakes; the boss is a cougar. The a
 Enemy health numbers are hidden in Bounce / Burrow. Predators use full animal silhouettes (legs, ears, wings, beaks, curved bodies, and tails). Weapon projectiles use distinct multipart 3D designs: seeds, rocks, snowflakes, lightning, mushrooms, acorns, drill bits, quills, and swirling gusts. These are visual changes; weapon effects and enemy collision sizes stay the same.
 
 The pair can move across the full battlefield and aim in any direction. Level-up screens suggest compatible fusion recipes, prioritize a useful ingredient upgrade, and let you perform a ready fusion without consuming your upgrade choice. Choices refresh after fusion so consumed ingredients do not leave stale upgrade cards.
+
+## Passive items
+
+Level-up choices include a passive item while any item remains below rank 3. Passives occupy no weapon slots and carry into deeper pits. New runs reset them.
+
+- Pebble Locket: 15% less damage from regular breaches per rank; boss breaches remain fatal.
+- Pocket Sundial: 1 second more projectile lifetime per rank.
+- Silk Slippers: 12% faster movement per rank.
+- Friendship Ribbon: 2 extra bond per defeat per rank.
+- Lucky Clover: 15% extra defeat XP per rank.
+- Healing Hay: recover 0.4 courage per second per rank during combat.
+
+Willow Boomerang curves back toward the pair after 1.2 seconds. Rose Thorn inflicts a four-second bleed. All five new projectile types have distinct 3D silhouettes.
