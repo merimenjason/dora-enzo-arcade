@@ -83,3 +83,5 @@ The artwork includes the supplied photo of the original chinchillas. The game us
 Enemy icons use stylized 3D foxes, owls, and snakes; the boss is a cougar. The aiming guide extends to the first pit wall (up to 24 world units), instead of the former short four-unit segment. Enemy collision sizes and combat balance are unchanged.
 
 Enemy health numbers are hidden in Bounce / Burrow. Predators use full animal silhouettes (legs, ears, wings, beaks, curved bodies, and tails). Weapon projectiles use distinct multipart 3D designs: seeds, rocks, snowflakes, lightning, mushrooms, acorns, drill bits, quills, and swirling gusts. These are visual changes; weapon effects and enemy collision sizes stay the same.
+
+The pair can move across the full battlefield and aim in any direction. Level-up screens suggest compatible fusion recipes, prioritize a useful ingredient upgrade, and let you perform a ready fusion without consuming your upgrade choice. Choices refresh after fusion so consumed ingredients do not leave stale upgrade cards.
