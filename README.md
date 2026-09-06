@@ -1,30 +1,28 @@
-# Chin x Pit — Night Survivors
+# Chin x Pit · Border Hop
 
-A 3D survival roguelite starring Dora (white) and Enzo (grey), two fluffy chinchillas who move together. Foxes, owls and snakes pursue them from every direction. Survive three minutes, then defeat the Mountain Cougar to reach dawn. Continue into harder nights with the same build.
+A Flappy Bird-style browser game starring Dora and Enzo, a white and a grey chinchilla flying together on paper wings. Cross a stylized desert landscape, pass 20 striped checkpoint gaps, and arrive at the Welcome to the USA gate.
 
-## Run
+## Run locally
 
-Requires Node.js 22.13+ and a desktop browser with WebGL 2.
+Requires Node.js 22.13+ and a browser supporting Canvas 2D.
 
 ```sh
 npm ci
 npm run dev
 ```
 
-## Controls and progression
+## Play
 
-- WASD / arrow keys: move both chinchillas. The camera follows them.
-- All equipped weapons automatically target nearby predators.
-- Q / Space: protective dust blast, costing 50 bond earned from defeats.
-- F: pause and open the fusion lab.
-- P / Esc: pause or resume.
-- Move near green XP gems to attract and collect them. Level-ups pause combat for three choices.
+- Click **Let’s flap** to begin.
+- Space, Up, W, or tap/click the game canvas lifts both chinchillas.
+- Release to descend. Both chinchillas must clear the checkpoint columns.
+- Hitting a column, the ground, or the ceiling ends the flight.
+- A point is awarded only after both friends fully clear a checkpoint.
+- P, Escape, or the pause button pauses/resumes. Switching away pauses the game.
+- Clear 20 checkpoints to win. **Fly again** generates another flight.
+- Session best lasts until the page is refreshed.
 
-Contact with predators damages shared courage, with a short grace period between hits. Enemy health is hidden. There are no breach lines or ricochet requirements. Weapons include Hayseed Volley, Pumice Pebble, Burrow Claw, Acorn Scatter, Willow Chew and Rosehip Thorn. Dust Bath is an area aura; Moon Dust evolves it into an aura with healing. Other effects include burn, poison, bleeding, slow, chain damage and splitting shots.
-
-Equip up to four weapons, each upgradeable to rank 5. There are twelve base weapons and eight evolved forms. Compatible ingredients at rank 2 can be fused; fusion consumes them and frees one slot. The level-up screen suggests ingredients and lets you perform ready fusions without using your reward choice.
-
-Six passive items stack to rank 3 without using weapon slots: Pebble Locket reduces contact damage; Pocket Sundial extends projectile lifetime; Silk Slippers improve speed; Friendship Ribbon increases bond; Lucky Clover improves XP drops; Healing Hay regenerates courage. Builds carry into harder nights but reset on a new run or reload.
+The previous survival game is retained at `/survival`, with its instructions in `docs/night-survivors.md`. The original RPG remains at `/adventure`.
 
 ## Validation
 
@@ -34,19 +32,14 @@ npm test
 npm run build
 ```
 
-Tests cover predator pursuit, automatic attacks, XP collection, contact grace periods and armor, aura range, all eight evolutions, level-up pause, boss victory, next-night progression and a complete bounded survival simulation. The original RPG at `/adventure` retains its separate procedural-floor and combat tests. `tests/pit.mjs` documents the previous ball-mode rules and is not part of the current suite.
+Flappy tests check gravity, shared flaps, front and rear collisions, pause, scoring, and three complete 20-checkpoint flights. The retained survival and RPG modes also have simulation tests. These checks do not inspect browser rendering.
 
 ## Source
 
-- `app/page.tsx`: survival interface and controls.
-- `lib/pit-game.ts`: survival simulation, weapons, XP, evolution and spawning.
-- `lib/pit-scene.ts`: arena, following camera and 3D rendering.
-- `lib/pit-predators.ts`: animal miniatures.
-- `lib/pit-weapons.ts`: distinct weapon miniatures.
-- `lib/pit-passives.ts`: passive item definitions.
-- `lib/chinchilla.ts`: fluffy chinchilla meshes.
-- `tests/survival.mjs`: simulation checks.
+- `app/page.tsx`: Border Hop interface and input.
+- `lib/flappy-game.ts`: flight physics, collisions, checkpoint generation and scoring.
+- `lib/flappy-scene.ts`: canvas desert landscape, checkpoints and chinchilla artwork.
+- `app/survival/page.tsx`: retained survival game.
+- `app/adventure/page.tsx`: retained RPG.
 
-Includes the supplied photograph of Dora and Enzo. This uses Vinext and a Cloudflare Worker; `npm run build` creates `dist/`. GitHub source upload alone does not deploy the game to GitHub Pages.
-
-The arena is a dry Andean plateau with mottled rocky ground, scattered scree, sparse golden tussock grasses, outer rock outcrops, and layered mountain ridges with pale summit caps. Terrain detail is decorative and does not alter movement or combat. `lib/andes-landscape.ts` builds this landscape with shared geometry and instanced ground details.
+This uses Vinext and a Cloudflare Worker. `npm run build` creates `dist/`; uploading source to GitHub alone does not deploy it to GitHub Pages.
