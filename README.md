@@ -48,3 +48,5 @@ Tests cover predator pursuit, automatic attacks, XP collection, contact grace pe
 - `tests/survival.mjs`: simulation checks.
 
 Includes the supplied photograph of Dora and Enzo. This uses Vinext and a Cloudflare Worker; `npm run build` creates `dist/`. GitHub source upload alone does not deploy the game to GitHub Pages.
+
+The arena is a dry Andean plateau with mottled rocky ground, scattered scree, sparse golden tussock grasses, outer rock outcrops, and layered mountain ridges with pale summit caps. Terrain detail is decorative and does not alter movement or combat. `lib/andes-landscape.ts` builds this landscape with shared geometry and instanced ground details.

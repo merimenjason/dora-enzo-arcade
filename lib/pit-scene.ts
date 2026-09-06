@@ -1,13 +1,13 @@
 import * as T from 'three';
+import {addAndesLandscape} from './andes-landscape';
 import {createChinchilla,animateChinchilla} from './chinchilla';
 import {PitGame} from './pit-game';
 import {weaponIcons} from './pit-weapons';
 import {predatorIcon,predatorKind,type Predator} from './pit-predators';
 export class PitScene{
- scene=new T.Scene();camera=new T.OrthographicCamera(-9,9,13,-13,.1,80);renderer:T.WebGLRenderer;heroes=[createChinchilla(true),createChinchilla(false)];weaponTemplates=weaponIcons();ballPool:T.Group[]=[];brickPool:T.Group[]=[];fxPool:T.Mesh[]=[];gemPool:T.Mesh[]=[];line:T.Line;ray=new T.Raycaster();plane=new T.Plane(new T.Vector3(0,1,0),0);
- constructor(public canvas:HTMLCanvasElement){this.renderer=new T.WebGLRenderer({canvas,antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=T.PCFShadowMap;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.scene.background=new T.Color('#151a24');this.scene.add(new T.HemisphereLight(0xc9e8ed,0x4e3740,2.4));const key=new T.DirectionalLight(0xffe0b4,3);key.position.set(-5,15,6);key.castShadow=true;key.shadow.mapSize.set(1024,1024);Object.assign(key.shadow.camera,{left:-12,right:12,top:16,bottom:-16});this.scene.add(key);
- this.box(0,-.35,0,60,.5,60,0x333e38);const grid=new T.GridHelper(60,30,0x526451,0x425447);grid.position.y=-.085;this.scene.add(grid);
- for(const x of [-29,29])this.box(x,.3,0,.6,1,60,0x786458);for(const z of [-29,29])this.box(0,.3,z,60,1,.6,0x786458);
+ scene=new T.Scene();camera=new T.OrthographicCamera(-9,9,13,-13,.1,200);renderer:T.WebGLRenderer;heroes=[createChinchilla(true),createChinchilla(false)];weaponTemplates=weaponIcons();ballPool:T.Group[]=[];brickPool:T.Group[]=[];fxPool:T.Mesh[]=[];gemPool:T.Mesh[]=[];line:T.Line;ray=new T.Raycaster();plane=new T.Plane(new T.Vector3(0,1,0),0);
+ constructor(public canvas:HTMLCanvasElement){this.renderer=new T.WebGLRenderer({canvas,antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=T.PCFShadowMap;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.scene.add(new T.HemisphereLight(0xc3d4e7,0x766047,2.1));const key=new T.DirectionalLight(0xffe2ba,2.7);key.position.set(-5,15,6);key.castShadow=true;key.shadow.mapSize.set(1024,1024);Object.assign(key.shadow.camera,{left:-12,right:12,top:16,bottom:-16});this.scene.add(key);
+ addAndesLandscape(this.scene);
  const gemGeo=new T.OctahedronGeometry(.16),gemMat=new T.MeshStandardMaterial({color:0x93edc8,emissive:0x46ba9b,emissiveIntensity:.7});for(let i=0;i<160;i++){const m=new T.Mesh(gemGeo,gemMat);this.scene.add(m);this.gemPool.push(m)}
  this.heroes.forEach(h=>{this.scene.add(h.root);h.root.scale.setScalar(.9);h.fur.forEach(f=>f.geometry.setDrawRange(0,Math.floor(f.geometry.getAttribute('position').count/8)*4))});
  for(let i=0;i<180;i++){const m=new T.Group();this.scene.add(m);this.ballPool.push(m)}
