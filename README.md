@@ -81,3 +81,5 @@ Tests exercise wall and enemy collisions, paw rebounds, elemental effects, fusio
 The artwork includes the supplied photo of the original chinchillas. The game uses original chinchilla names and mechanics inspired by the bouncing-ball roguelite format. The current Sites deployment uses Vinext and a generated Cloudflare Worker; `npm run build` creates `dist/`.
 
 Enemy icons use stylized 3D foxes, owls, and snakes; the boss is a cougar. The aiming guide extends to the first pit wall (up to 24 world units), instead of the former short four-unit segment. Enemy collision sizes and combat balance are unchanged.
+
+Enemy health numbers are hidden in Bounce / Burrow. Predators use full animal silhouettes (legs, ears, wings, beaks, curved bodies, and tails). Weapon projectiles use distinct multipart 3D designs: seeds, rocks, snowflakes, lightning, mushrooms, acorns, drill bits, quills, and swirling gusts. These are visual changes; weapon effects and enemy collision sizes stay the same.
