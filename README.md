@@ -1,6 +1,6 @@
 # ChinChin · Bounce / Burrow
 
-A browser ball-bouncing roguelite starring White and Grey, the two chinchillas. Aim volleys into advancing dust enemies, ricochet off the pit walls, collect upgrades, and fuse elemental balls. Both fluffy 3D chinchillas are visible at the bottom of the arena.
+A browser ball-bouncing roguelite starring White and Grey, the two chinchillas. Aim volleys into advancing fox, owl, and snake enemies, ricochet off the pit walls, collect upgrades, and fuse elemental balls. Both fluffy 3D chinchillas are visible at the bottom of the arena.
 
 The earlier isometric RPG, including procedural floors and mystic skill trees, remains at `/adventure`. Its instructions are in [docs/dustbound-rpg.md](docs/dustbound-rpg.md).
 
@@ -30,7 +30,7 @@ Open the printed localhost URL. Choose a starting pair, then select **Into the b
 
 Both chinchillas cycle through up to four equipped ball types. Balls rebound from enemies and walls. Intercept a returning ball with either chinchilla to send it back with 8% more damage, up to three returns. Balls expire, and missed returns drop out of the pit.
 
-Defeats award XP and bond. Leveling pauses the action for a choice of three upgrades. Each ball can reach level 5. Enemies that breach the red line cost 12 courage; a boss breach ends the run. Survive 12 waves and defeat the Dustbreaker, then descend with the same build into a harder pit. Losing or starting a fresh run resets the build; progress is not saved across reloads.
+Defeats award XP and bond. Leveling pauses the action for a choice of three upgrades. Each ball can reach level 5. Enemies that breach the red line cost 12 courage; a boss breach ends the run. Survive 12 waves and defeat the Mountain Cougar, then descend with the same build into a harder pit. Losing or starting a fresh run resets the build; progress is not saved across reloads.
 
 ## Ball fusion
 
@@ -79,3 +79,5 @@ Tests exercise wall and enemy collisions, paw rebounds, elemental effects, fusio
 - `app/globals.css`: shared and mode-specific styles.
 
 The artwork includes the supplied photo of the original chinchillas. The game uses original chinchilla names and mechanics inspired by the bouncing-ball roguelite format. The current Sites deployment uses Vinext and a generated Cloudflare Worker; `npm run build` creates `dist/`.
+
+Enemy icons use stylized 3D foxes, owls, and snakes; the boss is a cougar. The aiming guide extends to the first pit wall (up to 24 world units), instead of the former short four-unit segment. Enemy collision sizes and combat balance are unchanged.
