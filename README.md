@@ -20,7 +20,10 @@ npm run dev
 - A point is awarded only after both friends fully clear a checkpoint.
 - P, Escape, or the pause button pauses/resumes. Switching away pauses the game.
 - Clear 20 checkpoints to win. **Fly again** generates another flight.
-- Session best lasts until the page is refreshed.
+- Each checkpoint awards 100 points. Earn a **Perfect Pair** bonus of 50 points when both characters cross within 30 logical pixels of the gap center.
+- A brief collision freeze identifies who clipped the obstacle. After 0.55 seconds, Space or tapping the result screen starts a fresh flight.
+- Best points are saved locally in this browser, when storage is available.
+- The Sound button enables short synthesized flap, checkpoint, bonus and collision sounds. Sound starts off.
 
 The previous survival game is retained at `/survival`, with its instructions in `docs/night-survivors.md`. The original RPG remains at `/adventure`.
 
@@ -32,7 +35,7 @@ npm test
 npm run build
 ```
 
-Flappy tests check gravity, shared flaps, front and rear collisions, pause, scoring, and three complete 20-checkpoint flights. The retained survival and RPG modes also have simulation tests. These checks do not inspect browser rendering.
+Flappy tests check gravity, shared flaps, front and rear collisions, collision attribution, retry cooldown, pause, two-character center bonuses, scoring, and three complete 20-checkpoint flights. The retained survival and RPG modes also have simulation tests. These checks do not inspect browser rendering.
 
 ## Source
 
