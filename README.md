@@ -15,10 +15,12 @@ npm run dev
 
 - A / D or left / right arrows: move.
 - Space, W or up arrow: jump.
-- J: jab. K: kick. L: special (35 power). Fireballs also accept down, down-forward, forward + J within a short input window, relative to the opponent. Use S, S+D, D+J when facing right; mirror with A when facing left.
+- J: jab. K: kick. L: special (35 power). U: rising attack (20 power, grounded only). O: super (100 power, grounded only). Fireballs also accept down, down-forward, forward + J within a short input window, relative to the opponent. Use S, S+D, D+J when facing right; mirror with A when facing left.
 - I, S or down arrow: block while grounded.
 - P / Escape: pause. Losing window focus also pauses.
 - On-screen buttons support touch; optional sound is enabled with the header toggle.
+
+Story mode plays seven chapters, from the dusty loft to the golden podium, with narration before and after each rival. Arcade mode is the classic ladder. Rising attacks also accept the dragon-punch motion (forward, down, down-forward + J). Supers fire a staggered barrage unique to each fighter.
 
 Choose any fighter from the roster at any time to return to selection and reset the arcade run. The header also provides Character Select. Press Start Arcade to confirm. Beat six rivals in the arcade ladder. Each match is first to two round wins; rounds last 60 seconds. Tied rounds do not award a win. Guarding reduces damage, attacks build power, and special projectiles can be jumped over. A defeated player can rematch or change character. Progress is session-only.
 

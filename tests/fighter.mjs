@@ -17,3 +17,40 @@ const expired=fresh();tick(expired,.05,{move:0,down:true});tick(expired,.7);tick
 for(const {id} of ROSTER){const special=fresh();special.pick(id);special.start();special.intro=0;special.ai=false;assert(special.attack(0,'special'));tick(special,.15);assert.equal(special.shots.length,id==='owl'?3:1);assert(special.shots.every(s=>s.kind===id));if(id==='snake')assert(special.shots[0].y<.4)}
 const tape=fresh();tape.pick('agent');tape.start();tape.intro=0;tape.ai=false;tape.attack(0,'special');tick(tape,.8);assert(tape.fighters[1].slow>0);tick(tape,1.5);assert.equal(tape.fighters[1].slow,0);
 console.log('Selection from all screens, all special projectiles, mirrored motion inputs, input expiry and tape slow/recovery passed.');
+
+// Rising attacks, supers and story mode.
+const risers=await import('../.checks/fighter-game.js');
+const {RISERS,SUPERS,STORY,SPECIAL_COST,RISING_COST,SUPER_COST}=risers;
+assert.deepEqual([SPECIAL_COST,RISING_COST,SUPER_COST],[35,20,100]);
+for(const {id} of ROSTER){
+ const g=fresh();g.pick(id);g.start();g.intro=0;g.ai=false;
+ g.fighters[0].meter=20;g.fighters[0].x=0;g.fighters[1].x=1.4;assert(g.attack(0,'rising'),id+' rising costs 20');
+ assert.equal(g.fighters[0].meter,0);assert(g.fighters[0].vy>7,'rising lifts the fighter');
+ tick(g,.2);assert(g.fighters[1].hp<100,'rising connects up close');
+ assert(g.fighters[0].y>0,'rising leaves the ground');
+ const air=fresh();air.pick(id);air.start();air.intro=0;air.ai=false;air.fighters[0].meter=100;air.fighters[0].y=1.2;
+ assert(!air.attack(0,'rising'),'rising is grounded only');assert(!air.attack(0,'super'),'super is grounded only');
+ const s=fresh();s.pick(id);s.start();s.intro=0;s.ai=false;s.fighters[0].meter=100;
+ assert(s.attack(0,'super'));assert.equal(s.fighters[0].meter,0);tick(s,.15);
+ assert.equal(s.shots.length,SUPERS[id].hits,id+' super fires every projectile');
+ assert(s.shots.some(x=>x.delay>0),'super projectiles are staggered');
+ tick(s,2.2);assert(s.fighters[1].hp<70,'super chips a big chunk');
+}
+const noMeter=fresh();noMeter.fighters[0].meter=19;assert(!noMeter.attack(0,'rising'));noMeter.fighters[0].meter=99;assert(!noMeter.attack(0,'super'));
+for(const direction of [1,-1]){const dp=fresh();dp.fighters[0].x=-3*direction;dp.fighters[1].x=3*direction;dp.fighters[0].facing=direction;dp.fighters[0].meter=100;
+ tick(dp,.05,{move:direction});tick(dp,.05,{move:0,down:true,block:true});tick(dp,.05,{move:direction,down:true,block:true});
+ dp.step(1/120,{move:direction,down:true,jab:true});assert.equal(dp.fighters[0].attack,'rising','dragon punch motion triggers the rising attack')}
+const story=fresh();story.pick('dora');story.start('story');
+assert.equal(story.state,'story');assert.equal(story.mode,'story');assert.equal(story.beat.chapter,1);
+assert.equal(story.beat.place,STORY[story.rivals[0]].place);
+story.advance();assert.equal(story.state,'fight');
+for(let chapter=0;chapter<6;chapter++){
+ for(let r=0;r<2;r++){story.intro=0;story.fighters[1].hp=0;story.step(1/120);if(r===0)story.next()}
+ story.next();assert.equal(story.state,'story');assert.equal(story.beat.title,'CHAPTER CLEARED');
+ story.advance();
+ if(chapter<5){assert.equal(story.state,'story');assert.equal(story.beat.chapter,chapter+2);story.advance();assert.equal(story.state,'fight')}
+}
+assert.equal(story.state,'champion');
+const lost=fresh();lost.pick('enzo');lost.start('story');lost.advance();lost.intro=0;lost.fighters[0].hp=0;lost.step(1/120);lost.next();lost.intro=0;lost.fighters[0].hp=0;lost.step(1/120);
+assert.equal(lost.state,'match');lost.next();assert.equal(lost.state,'fight');assert.equal(lost.opponent,0,'losing repeats the same chapter');
+console.log('Passed rising attacks, dragon punch motion, seven supers, meter costs and the seven-chapter story mode.');
