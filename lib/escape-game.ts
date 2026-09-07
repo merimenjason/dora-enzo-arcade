@@ -10,7 +10,7 @@ export const PLATFORMS=[
  {id:'right',x:2.8,z:-1.2,w:2,d:2,y:2.05},
  {id:'feeder',x:3,z:1.2,w:2,d:2,y:1.35},
 ];
-export const PAIR_RADIUS=.58, PAIR_HEIGHT=.78, JUMP_SPEED=5.9;
+export const PAIR_RADIUS=.7, PAIR_HEIGHT=1, JUMP_SPEED=5.9;
 // Props stay out of the landing pads; collision volumes match their solid sides.
 export const CAGE_PROPS=[
  {x:-3,z:2.7,w:2.5,d:1.5,bottom:.65,top:2.15},

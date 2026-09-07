@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {EscapeGame,TARGETS,BLOCKS,within,occluded,PLATFORMS} from '../.checks/escape-game.js';
+import {EscapeGame,TARGETS,BLOCKS,within,occluded,PLATFORMS,PAIR_HEIGHT} from '../.checks/escape-game.js';
 const fresh=()=>{const g=new EscapeGame();g.start();return g};
 const tick=(g,t,input)=>{for(let i=0;i<t*120;i++)g.step(1/120,input)};
 const travel=(g,x,z,sneak=false)=>{for(let i=0;i<120*25&&g.active&&Math.hypot(g.x-x,g.z-z)>.08;i++){const dx=x-g.x,dz=z-g.z,d=Math.hypot(dx,dz);g.step(1/120,{x:dx/d,z:dz/d,sneak})}assert(g.active,'route stays undetected');assert(Math.hypot(g.x-x,g.z-z)<.1,'target reachable')};
@@ -14,7 +14,7 @@ const puff=fresh();assert(!puff.distract());puff.phase='room';puff.x=-8;puff.z=-
 const pause=fresh();pause.pause();tick(pause,1);assert.equal(pause.time,0);pause.pause();assert(pause.jump());tick(pause,.1);assert(pause.y>0);tick(pause,1);assert.equal(pause.y,0);
 console.log('Passed puzzle order/range, full route, cabinet collisions, sight direction/occlusion, hiding, capture/retry, decoys, pause and hops.');
 
-const underside=fresh();underside.x=-.6;underside.z=-3.1;underside.y=1.4;underside.vy=5;let peak=underside.y;for(let i=0;i<120;i++){underside.step(1/120);peak=Math.max(peak,underside.y)}assert(peak+.78<=2.62+.001,'head stops beneath solid shelf');
+const underside=fresh();underside.x=-.6;underside.z=-3.1;underside.y=1.4;underside.vy=5;let peak=underside.y;for(let i=0;i<120;i++){underside.step(1/120);peak=Math.max(peak,underside.y)}assert(peak+PAIR_HEIGHT<=2.62+.001,'head stops beneath solid shelf');
 const wall=fresh();wall.x=-1;wall.z=1;tick(wall,.6,{x:-1,z:0,sneak:false});assert(wall.x>-1.23,'shelf side stops grounded movement');
 const feeder=fresh();feeder.x=.8;feeder.z=1.65;hop(feeder,3,1.2,1.35);feeder.stick=true;feeder.clip=true;assert(feeder.interact(),'pink hay feeder reachable directly from floor');
 console.log('Solid shelf sides/undersides and direct hay-feeder jump passed.');
