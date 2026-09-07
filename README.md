@@ -20,6 +20,8 @@ npm run dev
 - Z / X, right-drag, or camera buttons: orbit. Right-drag vertically adjusts camera elevation.
 - Scroll or + / − camera buttons: zoom. C / Reset view restores the camera.
 - Q: throw a dust decoy four steps in the direction you last moved. Two uses per room attempt. Nearby guards turn toward it for 2.6 seconds.
+- V: toggle cardboard camouflage in the room. A stationary box hides the pair at a distance; movement or inspection within 0.8 units reveals them. Moving in the box is slower.
+- F: pocket dust disables the nearest unobstructed guard within 4 units for 4 seconds. Two charges per room attempt; misses do not consume a charge.
 - R: switch leader. Enzo rolls the blue tunnel; Dora squeezes into the upper gap and hay feeder.
 - H: hide in or leave the hay feeder while standing on its shelf.
 - B: a brief dust-roll animation; movement pauses during the roll.
@@ -29,9 +31,9 @@ npm run dev
 
 ## Escape route
 
-Jump to the lower shelf with Enzo leading, roll the blue tunnel with E, then collect the loose chew stick with E. Switch to Dora with R. Climb the staggered shelves to retrieve a latch clip on the upper ledge. Cross to the right-hand feeder shelf and retrieve the toy key, then descend to the wire door. Each interaction requires landing near the objective at its height. In the room, press E at the desk and remain still for two seconds to collect the exit card and reach the green door together. The cage includes wooden shelves, silver wire mesh, feeding trays, a blue tunnel, a pink hay feeder a water bottle, a log shelter, a litter tray, a fan grille, an adjacent cabinet and translucent side panel based on the supplied photos. Metal-edged shelves use the same geometry dimensions as their landing surfaces. Near-side cage walls fade according to the camera angle. Wood grain, perspective, soft shadows and ground shadows provide depth.
+Jump to the lower shelf with Enzo leading, roll the blue tunnel with E, then collect the loose chew stick with E. Switch to Dora with R. Climb the staggered shelves to retrieve a latch clip on the upper ledge. Cross to the right-hand feeder shelf and retrieve the toy key, then descend to the wire door. Each interaction requires landing near the objective at its height. In the room, press E at the desk and remain still for two seconds to collect the exit card then use E at the covered terminal to download intel for three uninterrupted seconds before reaching the green door together. The cage includes wooden shelves, silver wire mesh, feeding trays, a blue tunnel, a pink hay feeder a water bottle, a log shelter, a litter tray, a fan grille, an adjacent cabinet and translucent side panel based on the supplied photos. Metal-edged shelves use the same geometry dimensions as their landing surfaces. Near-side cage walls fade according to the camera angle. Wood grain, perspective, soft shadows and ground shadows provide depth.
 
-Three ICE agents patrol the room. Their vision cones increase the alert meter while they see the pair. Cabinets block sight; covered tables conceal sneaking chinchillas except at very close range. Alert decreases out of sight. Patrols speed up after the card is collected. A full alert meter causes capture. Retry restarts at the opened cage, resets the patrols, exit card and decoys, and retains the completed cage puzzles. Nothing is saved between reloads.
+Three ICE agents patrol the room. Their vision cones increase the alert meter while they see the pair. Cabinets block sight; covered tables conceal sneaking chinchillas except at very close range. Alert decreases out of sight. Patrols speed up after the card is collected. Guards investigate their last sighting for three seconds before returning to patrol; stunned guards cannot move or detect the pair. A live radar displays cover, guards, heading, the pair and current objective. A full alert meter causes capture. Retry restarts at the opened cage, resets the patrols, exit card, intel, box and both gadget supplies, and retains the completed cage puzzles. Nothing is saved between reloads.
 
 ## Earlier games
 
