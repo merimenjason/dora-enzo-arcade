@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {FighterGame,ROSTER} from '../.checks/fighter-game.js';
+const fresh=()=>{const g=new FighterGame();g.start();g.intro=0;g.ai=false;return g};
+const tick=(g,t,a={move:0},b={move:0})=>{for(let i=0;i<t*120;i++)g.step(1/120,a,b)};
+const hit=fresh();hit.fighters[0].x=0;hit.fighters[1].x=1.5;assert(hit.attack(0,'jab'));tick(hit,.3);assert.equal(hit.fighters[1].hp,93);tick(hit,.2);assert.equal(hit.fighters[1].hp,93,'one hit per attack');
+const guard=fresh();guard.fighters[0].x=0;guard.fighters[1].x=1.5;guard.attack(0,'kick');tick(guard,.3,{move:0},{move:0,block:true});assert(guard.fighters[1].hp>98,'block reduces damage');
+const shot=fresh();shot.fighters[0].meter=34;assert(!shot.attack(0,'special'));shot.fighters[0].meter=50;assert(shot.attack(0,'special'));assert.equal(shot.fighters[0].meter,15);tick(shot,1);assert(shot.fighters[1].hp<100,'projectile connects at range');
+const jump=fresh();jump.fighters[0].vy=7.2;tick(jump,.2);assert(jump.fighters[0].y>0);tick(jump,1);assert.equal(jump.fighters[0].y,0);const before=jump.time;jump.pause();tick(jump,2);assert.equal(jump.time,before);
+const rounds=fresh();rounds.fighters[1].hp=0;rounds.step(1/120);assert.equal(rounds.state,'round');assert.equal(rounds.wins[0],1);rounds.next();assert.equal(rounds.round,2);assert.equal(rounds.fighters[1].hp,100);rounds.intro=0;rounds.fighters[1].hp=0;rounds.step(1/120);assert.equal(rounds.state,'match');rounds.next();assert.equal(rounds.opponent,1);assert.equal(rounds.round,1);assert.deepEqual(rounds.wins,[0,0]);
+const draw=fresh();draw.time=.001;draw.step(1/120);assert.equal(draw.result,2);assert.deepEqual(draw.wins,[0,0]);
+let wins=0;for(const id of ROSTER.map(r=>r.id)){const g=new FighterGame();g.pick(id);g.start();for(let i=0;i<120*70&&g.active;i++){const [p,r]=g.fighters,d=Math.abs(r.x-p.x);g.step(1/120,{move:d>1.7?Math.sign(r.x-p.x):0,jab:d<1.85,kick:d>=1.85&&d<2.3,special:d>=2.3&&p.meter>=35});for(const f of g.fighters){assert(Number.isFinite(f.x));assert(f.hp>=0&&f.hp<=100);assert(f.meter>=0&&f.meter<=100)}}assert(['round','match'].includes(g.state));if(g.result===0)wins++;console.log(`${id}: ${g.message}, ${g.fighters.map(f=>Math.round(f.hp)).join(' / ')} HP`)}assert(wins>0,'CPU is beatable');
+const ladder=fresh();for(let match=0;match<6;match++){for(let r=0;r<2;r++){ladder.intro=0;ladder.fighters[1].hp=0;ladder.step(1/120);if(r===0)ladder.next()}ladder.next()}assert.equal(ladder.state,'champion');
+console.log('Passed strikes, guard damage, specials, jumps, pause, rounds, draws, seven AI matchups and arcade ladder.');
