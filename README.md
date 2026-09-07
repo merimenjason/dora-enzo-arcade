@@ -26,6 +26,17 @@ Story mode follows a chinchilla leaving the Andes to chase American citizenship:
 
 Choose any fighter from the roster at any time to return to selection and reset the arcade run. The header also provides Character Select. Press Start Arcade to confirm. Beat six rivals in the arcade ladder. Each match is first to two round wins; rounds last 60 seconds. Tied rounds do not award a win. Guarding reduces damage, attacks build power, and special projectiles can be jumped over. A defeated player can rematch or change character. Progress is session-only.
 
+## Dust & Documents (/checkpoint)
+
+A document-inspection game in the spirit of Papers, Please. Dora works the booth window and Enzo reads the rulebook over her shoulder across seven shifts.
+
+- Each shift opens with a briefing: the day's rules, the quota and Enzo's commentary.
+- Compare the entry permit against the traveler card and the booth scale. Eight kinds of violation appear: expired permits, closed regions, mismatched names, missing permits, missing seals, padded weights, barred species and suspended purposes.
+- A: approve, D: deny, X: detain a denied violator, Enter: next in line.
+- Correct calls pay 5 credits, citations cost 7, detentions pay 1, and rent climbs every shift (17 on day 1, 35 on day 7). Run out of credits and the booth closes.
+- Rules escalate: permits from day 1, closed regions from day 2, the scale from day 3, species bans from day 4, seals from day 5 and suspended transit from day 6.
+- Three endings depend on the credits you finish the week with.
+
 ## Validation
 
 ```sh

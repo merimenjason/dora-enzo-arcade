@@ -11,7 +11,7 @@
     "start": "wrangler dev --config dist/server/wrangler.json",
     "lint": "oxlint",
     "format": "oxfmt",
-    "test": "tsc lib/arpg-game.ts lib/pit-game.ts lib/flappy-game.ts lib/kart-game.ts lib/soccer-game.ts lib/escape-game.ts lib/fighter-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/arpg.mjs && node tests/survival.mjs && node tests/flappy.mjs && node tests/kart.mjs && node tests/soccer.mjs && node tests/escape.mjs && node tests/fighter.mjs",
+    "test": "tsc lib/arpg-game.ts lib/pit-game.ts lib/flappy-game.ts lib/kart-game.ts lib/soccer-game.ts lib/escape-game.ts lib/fighter-game.ts lib/checkpoint-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/arpg.mjs && node tests/survival.mjs && node tests/flappy.mjs && node tests/kart.mjs && node tests/soccer.mjs && node tests/escape.mjs && node tests/fighter.mjs && node tests/checkpoint.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
