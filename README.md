@@ -1,10 +1,10 @@
-# Chin x Pit · Fluffball Cup
+# Enzo and Dora Escapes from ICE
 
-A top-down arcade soccer game with Dora’s Sky Squad (blue, player-controlled) against Enzo’s Ember FC (orange, AI). Each team has three outfield chinchillas and an automatic goalkeeper. Matches last 90 seconds of play, with a short kickoff pause after goals.
+A tense, nonviolent isometric 3D stealth escape. Enzo (grey) and Dora (white) move as one pair. Solve puzzles in a cage inspired by their actual photographs, then sneak through a guarded room to freedom.
 
-## Run locally
+## Run
 
-Requires Node.js 22.13+ and Canvas 2D.
+Requires Node.js 22.13+ and a browser supporting WebGL 2.
 
 ```sh
 npm ci
@@ -13,25 +13,29 @@ npm run dev
 
 ## Controls
 
-- WASD / arrows: move the selected player.
-- Shift: sprint while stamina is available; stamina recovers when not sprinting.
-- Mouse: aim shots. The default aim is the opposing goal on the right.
-- J: pass to a nearby teammate.
-- K / Space: shoot when the selected player possesses the ball.
-- Tab: switch to the teammate closest to the ball, excluding the current player and goalkeeper.
-- P / Escape: pause or resume.
-- Touch buttons provide movement, sprint, pass, shoot and switching.
+- WASD / arrows: move the pair relative to the isometric view.
+- E: interact with the nearby objective, marked by a gold ring.
+- Shift: sneak. Under a blue-tinted table, sneaking hides the pair.
+- Space: hop.
+- Q: throw a dust decoy four steps in the direction you last moved. Three uses per room attempt. Nearby guards turn toward it for 3.5 seconds.
+- P / Escape: pause/resume. Switching away also pauses.
+- On-screen controls support movement, sneaking, interaction, hops and decoys.
 
-Control automatically switches to a blue outfield teammate receiving or winning the ball. Moving into an opposing ball carrier tackles, with a brief possession protection period. Goalkeepers defend and distribute automatically. Balls rebound from the boundaries outside the goals for continuous arcade play; there are no fouls, offside or throw-ins. Dora’s side attacks right throughout the match. Full time shows the winner or a draw.
+## Escape route
+
+Search the blue tunnel for a chew stick, use it to open the pink hideout and retrieve a toy key, then unlock the wire door. In the room, collect the exit card from the desk and reach the green door together. The cage includes wooden shelves, silver wire mesh, feeding trays, a blue tunnel, a pink hideout and a water bottle based on the supplied photos.
+
+Two ICE agents patrol the room. Their vision cones increase the alert meter while they see the pair. Cabinets block sight; covered tables conceal sneaking chinchillas except at very close range. Alert decreases out of sight. A full alert meter causes capture. Retry restarts at the opened cage, resets the patrols, exit card and decoys, and retains the completed cage puzzles. Nothing is saved between reloads.
 
 ## Earlier games
 
-- `/kart`: Pawprint Grand Prix. See `docs/pawprint-grand-prix.md`.
-- `/hop`: Border Hop. See `docs/border-hop.md`.
-- `/survival`: Night Survivors. See `docs/night-survivors.md`.
+- `/soccer`: Fluffball Cup. See `docs/fluffball-cup.md`.
+- `/kart`: Pawprint Grand Prix.
+- `/hop`: Border Hop.
+- `/survival`: Night Survivors.
 - `/adventure`: original RPG.
 
-## Validation and source
+## Validation
 
 ```sh
 npm run typecheck
@@ -39,6 +43,6 @@ npm test
 npm run build
 ```
 
-`lib/soccer-game.ts` contains movement, possession, AI, shots, goals and match timing. `lib/soccer-scene.ts` renders the pitch, teams, ball and aim guide. `app/page.tsx` contains UI and controls. Tests exercise sprinting, pause, passing, shooting, scoring at both goals, kickoffs, rebounds, tackling, switching and a full match; earlier modes retain their simulation tests. No browser rendering tests are included.
+`lib/escape-game.ts` implements puzzles, collision, sight, hiding, decoys and checkpoints. `lib/escape-scene.ts` renders the cage and room with Three.js. `tests/escape.mjs` covers puzzle ordering/range, an entire playable escape route, collisions, view direction, sight occlusion, hiding, capture/retry, decoys, pause and hops. Earlier modes retain their tests. No browser rendering tests are included.
 
-The project uses Vinext and a Cloudflare Worker; uploading source to GitHub does not automatically deploy it to GitHub Pages.
+The project uses Vinext and a Cloudflare Worker. GitHub source upload does not automatically deploy to GitHub Pages.

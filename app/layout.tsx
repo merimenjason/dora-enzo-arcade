@@ -1,4 +1,4 @@
 import type { Metadata } from 'next';
 import './globals.css';
-export const metadata:Metadata={title:'Chin x Pit · Fluffball Cup',description:'Dora and Enzo captain opposing chinchilla soccer teams. Pass, shoot, sprint and compete in a ninety-second Fluffball Cup match.'};
+export const metadata:Metadata={title:'Enzo and Dora Escapes from ICE',description:'Help Enzo and Dora solve their cage puzzles and sneak together past ICE patrols in an isometric 3D escape adventure.'};
 export default function RootLayout({children}:Readonly<{children:React.ReactNode}>){return <html lang="en"><body>{children}</body></html>}
