@@ -46,7 +46,7 @@ assert.equal(story.beat.place,STORY[story.rivals[0]].place);
 story.advance();assert.equal(story.state,'fight');
 for(let chapter=0;chapter<6;chapter++){
  for(let r=0;r<2;r++){story.intro=0;story.fighters[1].hp=0;story.step(1/120);if(r===0)story.next()}
- story.next();assert.equal(story.state,'story');assert.equal(story.beat.title,'CHAPTER CLEARED');
+ story.next();assert.equal(story.state,'story');assert.equal(story.beat.title,chapter===5?'OATH TAKEN':'CHAPTER CLEARED');
  story.advance();
  if(chapter<5){assert.equal(story.state,'story');assert.equal(story.beat.chapter,chapter+2);story.advance();assert.equal(story.state,'fight')}
 }
@@ -76,3 +76,18 @@ tr.setDummy('fight');solo(tr,3);assert(tr.state==='fight','fighting dummy keeps 
 const back=new FighterGame();back.pick('owl');back.start('training');back.start('arcade');
 assert.equal(back.mode,'arcade');assert.equal(back.time,60);
 console.log('Passed training mode: no timer, healing dummy, infinite power, four dummy behaviours and combo tracking.');
+
+// The citizenship journey runs south to north in a fixed order.
+const {STORY_ORDER,STORY_INTRO,STORY_END}=risers;
+assert.deepEqual(STORY_ORDER,['dora','enzo','fox','snake','owl','agent','trump']);
+const road=new FighterGame();road.pick('dora');road.start('story');
+assert.deepEqual(road.rivals,STORY_ORDER.filter(id=>id!=='dora'),'story skips your own fighter but keeps the route order');
+assert.equal(road.rivals[road.rivals.length-1],'trump','the naturalization hearing is last');
+assert(road.beat.text.startsWith(STORY_INTRO),'chapter one opens with the premise');
+assert.equal(road.beat.title,'CHAPTER 1 OF 6');
+for(let chapter=0;chapter<6;chapter++){road.advance();assert.equal(road.state,'fight');for(let r=0;r<2;r++){road.intro=0;road.fighters[1].hp=0;road.step(1/120);if(r===0)road.next()}road.next();if(chapter<5){road.advance();assert.equal(road.beat.title,`CHAPTER ${chapter+2} OF 6`)}}
+assert.equal(road.beat.title,'OATH TAKEN');assert(road.beat.text.endsWith(STORY_END),'the finale grants citizenship');
+road.advance();assert.equal(road.state,'champion');
+const arcade=new FighterGame();arcade.pick('dora');arcade.start('arcade');
+assert.equal(arcade.rivals.length,6,'arcade still fights every other fighter');
+console.log('Passed the south-to-north citizenship route, fixed rival order and the oath ending.');

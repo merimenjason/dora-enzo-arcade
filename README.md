@@ -22,7 +22,7 @@ npm run dev
 
 Training mode gives infinite power, no round timer, a self-healing dummy and a live combo-damage readout. Set the dummy to stand, block, jump or fight back, and press Reset to clear the counters.
 
-Story mode plays seven chapters, from the dusty loft to the golden podium, with narration before and after each rival. Arcade mode is the classic ladder. Rising attacks also accept the dragon-punch motion (forward, down, down-forward + J). Supers fire a staggered barrage unique to each fighter.
+Story mode follows a chinchilla leaving the Andes to chase American citizenship: the burrow in Chile, the Antofagasta docks, the Atacama crossing, the Darien Gap, the Rio Grande at midnight, an ICE checkpoint and finally the naturalization podium. Rivals appear in that fixed south-to-north order, with narration before and after each chapter. Arcade mode is the classic ladder. Rising attacks also accept the dragon-punch motion (forward, down, down-forward + J). Supers fire a staggered barrage unique to each fighter.
 
 Choose any fighter from the roster at any time to return to selection and reset the arcade run. The header also provides Character Select. Press Start Arcade to confirm. Beat six rivals in the arcade ladder. Each match is first to two round wins; rounds last 60 seconds. Tied rounds do not award a win. Guarding reduces damage, attacks build power, and special projectiles can be jumped over. A defeated player can rematch or change character. Progress is session-only.
 

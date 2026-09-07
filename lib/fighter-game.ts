@@ -16,13 +16,16 @@ export const SUPERS:Record<FighterId,{name:string;damage:number;hits:number;spee
  dora:{name:'Andean Bloom',damage:11,hits:4,speed:7.5,radius:.5,description:'Four dust blossoms bloom across the arena.'},enzo:{name:'Thunder Chorus',damage:13,hits:4,speed:9,radius:.36,description:'A rolling barrage of thunder bolts.'},fox:{name:'Ember Hunt',damage:10,hits:5,speed:11,radius:.3,description:'Five ember darts in a blistering rush.'},owl:{name:'Moonlit Gale',damage:9,hits:6,speed:8,radius:.26,description:'A storm of feathers at every height.'},snake:{name:'Venom Flood',damage:12,hits:4,speed:7.4,radius:.34,description:'Overlapping low venom waves.'},agent:{name:'Full Audit',damage:11,hits:4,speed:8,radius:.42,description:'Stacked red tape that keeps the target slowed.'},trump:{name:'Gold Rush',damage:15,hits:3,speed:5.4,radius:.62,description:'Three huge golden waves that crowd the screen.'}};
 export type StoryBeat={chapter:number;place:string;title:string;text:string};
 export const STORY:Record<FighterId,{place:string;before:string;after:string}>={
- dora:{place:'THE DUSTY LOFT',before:'Dora blocks the loft stairs. Nobody leaves the burrow without a bout.',after:'Dora dusts herself off and points at the night market below.'},
- enzo:{place:'THE HAY VAULT',before:'Enzo has been chewing the vault cable all week. He wants a warm-up.',after:'Enzo grins through singed whiskers and hands over the vault key.'},
- fox:{place:'CANYON RIDGE',before:'An Andean fox guards the ridge road, hungry and very patient.',after:'The fox bows, beaten but delighted, and howls the way forward.'},
- owl:{place:'THE BELL TOWER',before:'The night owl rules the tower and hates uninvited climbers.',after:'The owl drops a single feather. Consider it a travel pass.'},
- snake:{place:'SALT FLAT MOON',before:'A viper coils across the salt flats, tasting the air for trespassers.',after:'The viper uncoils and slides aside, hissing something like respect.'},
- agent:{place:'THE CHECKPOINT',before:'An ICE agent demands papers no chinchilla has ever owned.',after:'The paperwork scatters into the wind. The barrier lifts.'},
- trump:{place:'THE GOLDEN PODIUM',before:'The final boss holds the fluff trophy and the microphone.',after:'The podium cracks. The trophy is finally yours.'}};
+ dora:{place:'THE BURROW, CHILE',before:'Dora has read the citizenship handbook twice and thinks the whole plan is nonsense. Convince her the hard way.',after:'Dora stuffs the handbook into your bag. "Fine. But I am coming with you."'},
+ enzo:{place:'ANTOFAGASTA DOCKS',before:'Enzo runs the cargo crates north. Passage costs one honest bout.',after:'Enzo waves you aboard a crate marked ALPACA WOOL. Next stop: north.'},
+ fox:{place:'ATACAMA CROSSING',before:'An Andean fox has claimed the only path out of the desert, and he charges a toll in fur.',after:'The fox lets you pass and points at the highway lights. Paperwork is still ahead.'},
+ snake:{place:'DARIEN GAP',before:'A viper owns the jungle route where the road ends. She does not accept documents.',after:'The viper slides aside. The jungle opens onto a long road north.'},
+ owl:{place:'RIO GRANDE, MIDNIGHT',before:'A night owl watches the river and decides who crosses quietly and who does not.',after:'The owl drops a feather in the water. Cross now, little one, while it is dark.'},
+ agent:{place:'THE ICE CHECKPOINT',before:'An ICE agent wants papers a chinchilla has never been allowed to hold. This one will not be talked down.',after:'The detention file blows off the desk. Someone stamps your form by accident. You keep walking.'},
+ trump:{place:'THE NATURALIZATION PODIUM',before:'The final hearing. The man behind the gold microphone says your kind does not belong here. The oath is on the table behind him.',after:'The podium cracks. You take the oath yourself, in a small squeaky voice, and nobody stops you.'}};
+export const STORY_ORDER:FighterId[]=['dora','enzo','fox','snake','owl','agent','trump'];
+export const STORY_INTRO='A chinchilla leaves the Andes with a folded application, a dream of citizenship, and absolutely no lawyer. Seven fights stand between the burrow and the oath.';
+export const STORY_END='The certificate is stamped, the fur is filthy, and the trophy says CITIZEN. Somewhere south, an old burrow gets a very long letter.';
 export type Input={move:number;down?:boolean;jump?:boolean;block?:boolean;jab?:boolean;kick?:boolean;special?:boolean;rising?:boolean;super?:boolean};
 export type Attack='jab'|'kick'|'special'|'rising'|'super';
 export type Body={id:FighterId;x:number;y:number;vy:number;hp:number;meter:number;facing:number;block:boolean;stun:number;cooldown:number;attack:Attack|null;attackTime:number;hit:boolean;flash:number;combo:number;comboTime:number;slow:number;rising:number};
@@ -33,7 +36,7 @@ export const SPECIAL_COST=35,RISING_COST=20,SUPER_COST=100;
 export class FighterGame{
  motionStage=0;motionTime=0;riseStage=0;riseTime=0;notice='';noticeTime=0;mode:'arcade'|'story'|'training'='arcade';beat:StoryBeat|null=null;dummy:'stand'|'block'|'jump'|'fight'='stand';training={damage:0,best:0,hits:0,bestCombo:0};
  state:'select'|'story'|'fight'|'paused'|'round'|'match'|'champion'='select';selected:FighterId='dora';opponent=0;round=1;wins=[0,0];time=60;fighters:[Body,Body]=[body('dora',-3,1),body('fox',3,-1)];shots:Shot[]=[];message='CHOOSE YOUR FIGHTER';ai=true;aiClock=0;seed=17;intro=1.2;result:0|1|2=2;impact=0;
- get rivals(){return ROSTER.filter(r=>r.id!==this.selected).map(r=>r.id)}
+ get rivals(){return (this.mode==='story'?STORY_ORDER:ROSTER.map(r=>r.id)).filter(id=>id!==this.selected)}
  get active(){return this.state==='fight'}
  pick(id:FighterId){this.state='select';this.selected=id;this.opponent=0;this.round=1;this.wins=[0,0];this.time=60;this.shots=[];this.motionStage=0;this.motionTime=0;this.riseStage=0;this.riseTime=0;this.notice='';this.noticeTime=0;this.beat=null;this.fighters=[body(id,-3,1),body(this.rivals[0],3,-1)]}
  start(mode:'arcade'|'story'|'training'='arcade'){this.mode=mode;this.opponent=0;this.round=1;this.wins=[0,0];this.training={damage:0,best:0,hits:0,bestCombo:0};if(mode==='story'){this.showBeat('before')}else{this.beat=null;this.resetRound()}}
@@ -42,8 +45,8 @@ export class FighterGame{
  setDummy(d:'stand'|'block'|'jump'|'fight'){this.dummy=d}
  resetTraining(){this.training={damage:0,best:0,hits:0,bestCombo:0};this.resetRound()}
  showBeat(phase:'before'|'after'){const rival=this.rivals[Math.min(this.opponent,this.rivals.length-1)],chapter=STORY[rival],me=ROSTER.find(r=>r.id===this.selected)!;
-  this.beat={chapter:this.opponent+1,place:chapter.place,title:phase==='before'?`CHAPTER ${this.opponent+1}`:'CHAPTER CLEARED',text:phase==='before'?chapter.before:`${chapter.after} ${me.name} presses on.`};this.state='story';this.shots=[]}
- advance(){if(this.state!=='story')return;if(this.beat?.title==='CHAPTER CLEARED'){if(this.opponent>=this.rivals.length-1){this.state='champion';this.beat=null;return}this.opponent++;this.round=1;this.wins=[0,0];this.showBeat('before');return}this.resetRound()}
+  const last=this.opponent>=this.rivals.length-1;this.beat={chapter:this.opponent+1,place:chapter.place,title:phase==='before'?`CHAPTER ${this.opponent+1} OF ${this.rivals.length}`:last?'OATH TAKEN':'CHAPTER CLEARED',text:phase==='before'?(this.opponent===0?`${STORY_INTRO} ${chapter.before}`:chapter.before):last?`${chapter.after} ${STORY_END}`:`${chapter.after} ${me.name} presses on.`};this.state='story';this.shots=[]}
+ advance(){if(this.state!=='story')return;if(this.beat?.title==='CHAPTER CLEARED'||this.beat?.title==='OATH TAKEN'){if(this.opponent>=this.rivals.length-1){this.state='champion';this.beat=null;return}this.opponent++;this.round=1;this.wins=[0,0];this.showBeat('before');return}this.resetRound()}
  resetRound(){this.fighters=[body(this.selected,-3,1),body(this.rivals[this.opponent],3,-1)];this.shots=[];this.motionStage=0;this.motionTime=0;this.riseStage=0;this.riseTime=0;this.notice='';this.noticeTime=0;this.time=60;this.intro=this.mode==='training'?.4:1.2;this.aiClock=.6;this.state='fight';this.message=this.mode==='training'?'TRAINING':`ROUND ${this.round}`;this.impact=0;if(this.mode==='training'){this.fighters[0].meter=100;this.fighters[1].meter=100}}
  next(){if(this.state==='round'){this.round++;this.resetRound()}else if(this.state==='match'){if(this.wins[0]===2){if(this.mode==='story'){this.showBeat('after');return}if(this.opponent===this.rivals.length-1){this.state='champion';return}this.opponent++;this.round=1;this.wins=[0,0];this.resetRound()}else{this.round=1;this.wins=[0,0];this.resetRound()}}}
  pause(){if(this.state==='fight')this.state='paused';else if(this.state==='paused')this.state='fight'}
