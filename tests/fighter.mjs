@@ -54,3 +54,25 @@ assert.equal(story.state,'champion');
 const lost=fresh();lost.pick('enzo');lost.start('story');lost.advance();lost.intro=0;lost.fighters[0].hp=0;lost.step(1/120);lost.next();lost.intro=0;lost.fighters[0].hp=0;lost.step(1/120);
 assert.equal(lost.state,'match');lost.next();assert.equal(lost.state,'fight');assert.equal(lost.opponent,0,'losing repeats the same chapter');
 console.log('Passed rising attacks, dragon punch motion, seven supers, meter costs and the seven-chapter story mode.');
+
+// Training mode.
+const solo=(g,t,a={move:0})=>{for(let i=0;i<t*120;i++)g.step(1/120,a)};
+const tr=new FighterGame();tr.pick('dora');tr.start('training');tr.intro=0;
+assert.equal(tr.mode,'training');assert.equal(tr.state,'fight');assert.equal(tr.fighters[0].meter,100);
+const clock=tr.time;solo(tr,3);assert.equal(tr.time,clock,'training has no round timer');
+tr.fighters[1].hp=1;tr.step(1/120);assert.equal(tr.fighters[1].hp,100,'dummy heals instead of losing');
+assert.equal(tr.state,'fight','training never ends a round');
+tr.fighters[0].hp=5;tr.step(1/120);assert.equal(tr.fighters[0].hp,100,'player is topped up too');
+tr.fighters[0].meter=0;tr.step(1/120);assert.equal(tr.fighters[0].meter,100,'power stays full');
+tr.fighters[0].x=0;tr.fighters[1].x=1.5;tr.attack(0,'jab');solo(tr,.3);
+assert(tr.training.hits>0&&tr.training.damage>0,'combo damage is measured');
+const peak=tr.training.best;assert(peak>0);solo(tr,1.5);assert.equal(tr.training.damage,0,'the combo counter drops when the combo ends');
+assert.equal(tr.training.best,peak,'best combo damage is kept');
+tr.resetTraining();assert.deepEqual(tr.training,{damage:0,best:0,hits:0,bestCombo:0});
+tr.intro=0;tr.setDummy('block');tr.fighters[0].x=0;tr.fighters[1].x=1.5;tr.attack(0,'kick');solo(tr,.4);
+assert(tr.fighters[1].hp>95,'blocking dummy guards');
+tr.setDummy('jump');solo(tr,.5);assert(tr.fighters[1].y>0,'jumping dummy hops');
+tr.setDummy('fight');solo(tr,3);assert(tr.state==='fight','fighting dummy keeps training running');
+const back=new FighterGame();back.pick('owl');back.start('training');back.start('arcade');
+assert.equal(back.mode,'arcade');assert.equal(back.time,60);
+console.log('Passed training mode: no timer, healing dummy, infinite power, four dummy behaviours and combo tracking.');
