@@ -1,9 +1,9 @@
 import * as T from 'three';
 let seed=7;
 function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}
-export type Chinchilla={root:T.Group;body:T.Group;head:T.Group;ears:T.Group[];feet:T.Mesh[];tail:T.Group;fur:T.LineSegments[]};
+export type Chinchilla={root:T.Group;body:T.Group;head:T.Group;ears:T.Group[];feet:T.Mesh[];limbs:T.Mesh[];tail:T.Group;fur:T.LineSegments[]};
 export function createChinchilla(white:boolean):Chinchilla{
- const root=new T.Group(),body=new T.Group(),head=new T.Group(),tail=new T.Group();root.add(body);const fur:T.LineSegments[]=[],feet:T.Mesh[]=[],ears:T.Group[]=[];
+ const root=new T.Group(),body=new T.Group(),head=new T.Group(),tail=new T.Group();root.add(body);const fur:T.LineSegments[]=[],feet:T.Mesh[]=[],limbs:T.Mesh[]=[],ears:T.Group[]=[];
  const coat=new T.MeshStandardMaterial({color:white?0xece5d9:0x53525a,roughness:.99});const pale=new T.MeshStandardMaterial({color:white?0xf2eadd:0x9b98a0,roughness:1});const skin=new T.MeshStandardMaterial({color:white?0xc99184:0x8a7073,roughness:.78});
  const sphere=new T.SphereGeometry(1,28,22);
  function ball(parent:T.Object3D,pos:number[],scale:number[],mat:T.Material){const m=new T.Mesh(sphere,mat);m.position.set(...pos as [number,number,number]);m.scale.set(...scale as [number,number,number]);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
@@ -16,10 +16,17 @@ export function createChinchilla(white:boolean):Chinchilla{
  const eyeMat=new T.MeshPhysicalMaterial({color:0x080609,roughness:.12,clearcoat:1,clearcoatRoughness:.08});
  for(const side of [-1,1]){const eye=ball(head,[.206,.071,.265*side],[.09,.105,.053],eyeMat);eye.rotation.y=side*.35;ball(head,[.224,.107,.309*side],[.018,.024,.008],new T.MeshBasicMaterial({color:0xf6eee6}));
  const ear=new T.Group();ear.position.set(-.025, .30,side*.225);ear.rotation.z=side===1?.16:-.20;head.add(ear);ball(ear,[0,.20,0],[.205,.265,.075],coat);ball(ear,[.012,.218,.061],[.17,.225,.023],skin);ball(ear,[.01,.17,.077],[.11,.145,.012],new T.MeshStandardMaterial({color:white?0xdca99a:0xa48886,roughness:.85}));fuzz(ear,[0,.20,0],[.205,.265,.075],1500,.012);ears.push(ear);
- for(const x of [-.40,.40]){const foot=ball(body,[x,.071,side*.28],[x<0?.25:.16,.065,.105],skin);feet.push(foot);for(let j=0;j<3;j++)ball(foot,[.5,0,(j-1)*.29],[.43,.51,.18],skin)}
- ball(body,[.40,.23,side*.28],[.085,.185,.09],coat);fuzz(body,[.40,.23,side*.28],[.085,.185,.09],700,.035);
+ for(const x of [-.40,.40]){
+ const hind=x<0,foot=new T.Mesh(sphere.clone().scale(hind?.16:.085,.042,hind?.065:.055),skin);foot.position.set(x,.071,side*.28);foot.castShadow=true;body.add(foot);feet.push(foot);
+ // Keep toe geometry in body units rather than inheriting the palm's scale.
+ for(let j=0;j<4;j++){const length=(j===0||j===3)?.06:.085,z=(j-1.5)*.03;const toe=ball(foot,[hind?.13:.075,-.006,z],[length,.022,.018],skin);toe.rotation.y=(j-1.5)*-.1;ball(foot,[(hind?.13:.075)+length*.9,-.003,z],[.018,.009,.009],new T.MeshStandardMaterial({color:white?0xd5c9b8:0xa59c8e,roughness:.7}))}
+ ball(foot,[hind?-.07:-.02,.025,0],[hind?.09:.055,.04,hind?.065:.052],coat);
+ const limb=new T.Mesh(new T.CylinderGeometry(hind?.095:.067,hind?.065:.045,1,12),coat);limb.castShadow=true;body.add(limb);limbs.push(limb);
+ }
  const whiskerMat=new T.LineBasicMaterial({color:white?0xeae3d4:0xb1a9b2,transparent:true,opacity:.65});for(let j=0;j<6;j++){const start=new T.Vector3(.34,-.13,.12*side);const end=new T.Vector3(.55+(j%3)*.09,-.25+j*.046,side*(.50+j*.042));const mid=start.clone().lerp(end,.5);mid.y+=.025;const curve=new T.QuadraticBezierCurve3(start,mid,end);head.add(new T.Line(new T.BufferGeometry().setFromPoints(curve.getPoints(10)),whiskerMat));}}
  body.add(tail);tail.position.set(-.5,.32,-.15);const curve=new T.CatmullRomCurve3([new T.Vector3(0,0,0),new T.Vector3(-.5,.18,0),new T.Vector3(-.72,.64,.02),new T.Vector3(-.58,.88,.05),new T.Vector3(-.35,.85,.08)]);const tm=new T.Mesh(new T.TubeGeometry(curve,30,.095,10,false),coat);tail.add(tm);tm.castShadow=true;for(let i=0;i<12;i++){const v=curve.getPoint(i/11),r=.13*(1-i/20);fuzz(tail,v.toArray(),[r,r,r],600,.095)}
- root.userData.white=white;return {root,body,head,ears,feet,tail,fur};
+ root.userData.white=white;const result={root,body,head,ears,feet,limbs,tail,fur};poseChinchillaPaws(result);return result;
 }
-export function animateChinchilla(p:Chinchilla,time:number,speed:number,ground:boolean,face:number,celebrate=false){const stride=Math.sin(time*14),moving=Math.abs(speed)>.05;p.root.rotation.y=T.MathUtils.lerp(p.root.rotation.y,face<0?Math.PI:0,.19);p.body.position.y=moving&&ground?Math.abs(stride)*.07:Math.sin(time*2)*.012;p.body.rotation.z=!ground?-.055: moving?stride*.025:0;p.head.rotation.z=Math.sin(time*1.1)*.025;p.tail.rotation.x=Math.sin(time*2.4)*.075;p.tail.rotation.z=(moving?Math.sin(time*6):Math.sin(time*1.7))*.065;p.ears.forEach((e,i)=>e.rotation.x=Math.sin(time*1.2+i)*.025+(Math.sin(time*3+i)> .993?.06:0));p.feet.forEach((f,i)=>{f.position.y=.071+(moving&&ground?Math.max(0,Math.sin(time*14+i*Math.PI))*.10:0)});if(celebrate)p.body.position.y=Math.abs(Math.sin(time*2.8))*.12;}
+export function animateChinchilla(p:Chinchilla,time:number,speed:number,ground:boolean,face:number,celebrate=false){const stride=Math.sin(time*14),moving=Math.abs(speed)>.05;p.root.rotation.y=T.MathUtils.lerp(p.root.rotation.y,face<0?Math.PI:0,.19);p.body.position.y=moving&&ground?Math.abs(stride)*.07:Math.sin(time*2)*.012;p.body.rotation.z=!ground?-.055: moving?stride*.025:0;p.head.rotation.z=Math.sin(time*1.1)*.025;p.tail.rotation.x=Math.sin(time*2.4)*.075;p.tail.rotation.z=(moving?Math.sin(time*6):Math.sin(time*1.7))*.065;p.ears.forEach((e,i)=>e.rotation.x=Math.sin(time*1.2+i)*.025+(Math.sin(time*3+i)> .993?.06:0));p.feet.forEach((f,i)=>{f.position.y=.071+(moving&&ground?Math.max(0,Math.sin(time*14+i*Math.PI))*.10:0)});if(celebrate)p.body.position.y=Math.abs(Math.sin(time*2.8))*.12;poseChinchillaPaws(p);}
+
+export function poseChinchillaPaws(p:Chinchilla){p.feet.forEach((foot,i)=>{const side=i<2?-1:1,hind=i%2===0,start=new T.Vector3(hind?-.4:.38,hind?.3:.34,side*.28),end=foot.position.clone().add(new T.Vector3(-.025,.035,0)),delta=end.clone().sub(start),limb=p.limbs[i];limb.position.copy(start).add(end).multiplyScalar(.5);limb.scale.y=delta.length();limb.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),delta.normalize())})}
