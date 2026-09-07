@@ -28,7 +28,9 @@ Choose any fighter from the roster at any time to return to selection and reset 
 
 ## Dust & Documents (/checkpoint)
 
-A document-inspection game in the spirit of Papers, Please. Dora works the booth window and Enzo reads the rulebook over her shoulder across seven shifts.
+A document-inspection game in the spirit of Papers, Please, rendered in 3D. A lit border booth sits in the Andes at night: Dora leans over the paperwork at the window, Enzo works behind her, and each traveler walks up the queue line to be judged. The permit, the traveler card, the seal and the two stamps are physical objects on the sill, and the booth scale stands outside the window.
+
+Approving a traveler slams the green stamp, raises the gate arm and lets them walk through. Denying one slams the red stamp, keeps the gate down, flashes the lamp red, shakes the camera and sends them back down the queue. A missing permit leaves an empty desk and a missing seal removes the gold disc, so violations are visible in the world as well as on the documents.
 
 - Each shift opens with a briefing: the day's rules, the quota and Enzo's commentary.
 - Compare the entry permit against the traveler card and the booth scale. Eight kinds of violation appear: expired permits, closed regions, mismatched names, missing permits, missing seals, padded weights, barred species and suspended purposes.
@@ -42,6 +44,7 @@ A document-inspection game in the spirit of Papers, Please. Dora works the booth
 ```sh
 npm run typecheck
 npm test
+npm run test:e2e   # optional: drives both games in a real browser (needs `npm i -D playwright`)
 npm run build
 ```
 

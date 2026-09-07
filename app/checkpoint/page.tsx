@@ -2,18 +2,33 @@
 import {useEffect,useRef,useState} from 'react';
 import {CheckpointGame,FLAG_TEXT,PAY_PER_TRAVELER,FINE,rentFor,type Flag} from '../../lib/checkpoint-game';
 import {EscapeSound} from '../../lib/escape-sound';
+import type {CheckpointScene} from '../../lib/checkpoint-scene';
 
 export default function Checkpoint(){
  const game=useRef(new CheckpointGame(Math.floor(Date.now()/86400000))),audio=useRef<EscapeSound|null>(null);
+ const canvas=useRef<HTMLCanvasElement>(null),scene=useRef<CheckpointScene|null>(null),[ready,setReady]=useState(false),[boothError,setBoothError]=useState('');
  const [,setVersion]=useState(0),[sound,setSound]=useState(false),[open,setOpen]=useState(true);
  const g=game.current,refresh=()=>setVersion(v=>v+1);
  async function toggleSound(){audio.current??=new EscapeSound();setSound(await audio.current.toggle())}
  function begin(){g.begin();audio.current?.play('interact');refresh()}
- function decide(approve:boolean){g.decide(approve);audio.current?.play('interact');refresh()}
+ function decide(approve:boolean){g.decide(approve);scene.current?.judge(approve);audio.current?.play('interact');refresh()}
  function detain(){g.detain();audio.current?.play('interact');refresh()}
- function next(){g.nextTraveler();refresh()}
+ function next(){g.nextTraveler();if(g.state==='shift')scene.current?.arrive(g.traveler.papers.species);refresh()}
  function nextDay(){g.nextDay();refresh()}
  function restart(){game.current=new CheckpointGame(Math.floor(Math.random()*100000));refresh()}
+ const booth=g.state==='shift';
+ useEffect(()=>{if(!booth)return;let dead=false,raf=0,last=0;const resize=()=>scene.current?.resize();
+  import('../../lib/checkpoint-scene').then(({CheckpointScene})=>{
+   if(dead||!canvas.current)return;
+   try{
+    scene.current=new CheckpointScene(canvas.current);setReady(true);
+    scene.current.arrive(game.current.traveler.papers.species);
+    const loop=(now:number)=>{const dt=last?Math.min(.05,(now-last)/1000):0;last=now;
+     scene.current!.render(game.current,now/1000,dt);raf=requestAnimationFrame(loop)};
+    raf=requestAnimationFrame(loop);window.addEventListener('resize',resize);
+   }catch{setBoothError('Enable hardware acceleration to see the booth.')}
+  }).catch(()=>setBoothError('The booth could not load. Please refresh.'));
+  return ()=>{dead=true;cancelAnimationFrame(raf);scene.current?.dispose();window.removeEventListener('resize',resize);scene.current=null;setReady(false)}},[booth]);
  useEffect(()=>{const key=(e:KeyboardEvent)=>{
   if((e.target as HTMLElement).closest('button,a,input'))return;const k=e.key.toLowerCase();
   if(g.state==='briefing'&&(k==='enter'||k===' ')){e.preventDefault();begin();return}
@@ -45,12 +60,14 @@ export default function Checkpoint(){
    <button className="cp-primary" onClick={begin}>OPEN THE BOOTH →</button></section>}
 
   {g.state==='shift'&&<section className="cp-booth">
-   <div className="cp-window">
-    <div className="cp-traveler">
-     <div className="cp-face" data-species={p.species} aria-hidden="true"><i/><i/></div>
-     <div><strong>{p.name}</strong><small>{p.species} · seeking {p.purpose}</small>
-      <p className="cp-line">&ldquo;{t.line}&rdquo;</p></div></div>
-    <div className="cp-scale"><span>BOOTH SCALE</span><b>{p.weight} g</b></div>
+   <div className="cp-view">
+    <canvas ref={canvas} aria-label={`Border booth: Dora inspects a ${p.species} named ${p.name} at the window`}/>
+    <div className="cp-nameplate"><strong>{p.name}</strong><small>{p.species} · seeking {p.purpose}</small></div>
+    <p className="cp-speech">&ldquo;{t.line}&rdquo;</p>
+    <div className="cp-readout"><span>BOOTH SCALE</span><b>{p.weight} g</b></div>
+    {!ready&&!boothError&&<div className="cp-loading">OPENING THE BOOTH…</div>}
+    {boothError&&<div className="cp-loading">{boothError}</div>}
+    {v&&<div className={v.approved?'cp-stampmark ok':'cp-stampmark no'}>{v.approved?'APPROVED':'DENIED'}</div>}
    </div>
 
    <div className="cp-desk">
