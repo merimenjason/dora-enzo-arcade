@@ -42,10 +42,10 @@ export default function Checkpoint(){
  const shown=(f:Flag)=>!!v&&v.flags.includes(f);
 
  return <main className="cp-shell">
-  <header className="cp-header"><a href="/">DUST &amp; DOCUMENTS</a>
+  <header className="cp-header"><span>DUST &amp; DOCUMENTS</span>
    <div><span>DAY {g.day.day} / {g.lastDay}</span><span>{g.credits} CREDITS</span>
     <button onClick={toggleSound} aria-pressed={sound}>{sound?'SOUND ON':'SOUND OFF'}</button>
-    <a href="/">PAW FIGHTER ↗</a></div></header>
+    <a href="/">← MAIN ARCADE</a></div></header>
 
   <div className="cp-title"><div><span>NORTH REPUBLIC BORDER · BOOTH 9</span>
    <h1>Dora inspects.<br/><em>Enzo stamps.</em></h1></div>

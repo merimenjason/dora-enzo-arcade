@@ -105,7 +105,7 @@ export default function CheckpointRemake() {
   return (
     <main className="rm-shell">
       <header className="rm-header">
-        <Link href="/">← ARCADE</Link>
+        <Link href="/">← MAIN ARCADE</Link>
         <Link className="rm-wordmark" href="/checkpoint-remake">
           DUST <i>&</i> DOCUMENTS
         </Link>
