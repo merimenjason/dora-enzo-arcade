@@ -5,6 +5,7 @@ const GAMES=[
  {href:'/checkpoint',title:'Dust & Documents',tag:'INSPECTION',blurb:'Seven shifts in an Andean border booth. Read the day\u2019s rules, check every permit, decide who walks through the gate.',color:'#8fd0a5',art:'🛂'},
  {href:'/escape',title:'Spy Escape',tag:'STEALTH',blurb:'Slip past patrols, grab the gadgets and break both chinchillas out of detention.',color:'#7fa6e8',art:'🕵️'},
  {href:'/adventure',title:'Bounce / Burrow',tag:'ACTION RPG',blurb:'An endless procedural dungeon. Level up, spend skill points in two branching trees, beat the guardians.',color:'#c58ee0',art:'⚔️'},
+ {href:'/chin-x-pit',title:'Chin x Pit · Classic',tag:'BALL-BOUNCING',blurb:'Aim bouncing balls, catch returning ricochets and fuse your collection. Clear twelve waves and descend with Dora and Enzo.',color:'#dab982',art:'🔮'},
  {href:'/survival',title:'Chin x Pit · Night Survivors',tag:'SURVIVAL',blurb:'Gather XP, grow your arsenal and hold off the predators of the pit for as long as you can.',color:'#e0796f',art:'🌙'},
  {href:'/kart',title:'Pawprint Grand Prix',tag:'RACING',blurb:'Three laps, five racers, drifts and items. Hold the line and take the checkered flag.',color:'#f0cd6b',art:'🏁'},
  {href:'/soccer',title:'Fluffball Cup',tag:'SPORTS',blurb:'Dora\u2019s Sky Squad against Enzo\u2019s Ember FC. Four a side, ninety seconds, bragging rights forever.',color:'#7fd0b8',art:'⚽'},
@@ -15,8 +16,8 @@ export default function Arcade(){
   <header className="arcade-header"><span>CHIN <em>x</em> PIT</span><a href="/fighter">START WITH PAW FIGHTER II →</a></header>
   <section className="arcade-hero">
    <p className="arcade-eyebrow">DORA &amp; ENZO · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Nine ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, nine cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <h1>Small paws.<br/><em>Ten ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, ten cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <nav className="arcade-grid" aria-label="Choose a game">
    {GAMES.map((game,i)=><a key={game.href} href={game.href} className="arcade-card" style={{'--game-color':game.color} as React.CSSProperties}>

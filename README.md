@@ -2,6 +2,12 @@
 
 An original side-view arcade fighting game starring Dora (white chinchilla) and Enzo (grey chinchilla). Seven playable fighters include an Andean fox, owl, viper, ICE agent and a playful Donald Trump caricature. Three.js renders the arena and characters; a standalone deterministic game engine handles combat.
 
+## Chin x Pit · Classic (/chin-x-pit)
+
+The arcade now has ten games. The original ball-bouncing Chin x Pit is restored separately from Night Survivors at `/survival`. Aim with the mouse, move both chinchillas with WASD/arrows, and catch returning balls for stronger ricochets. Auto-fire is enabled by default, or toggle it off and hold left click. Q/Space triggers Double Trouble, F opens the fusion lab, and P/Escape pauses. Clear twelve waves, defeat the Dustbreaker and descend with your build. Three starting kits, twenty weapons, eight fusions and six passive items are preserved. Use **MAIN ARCADE** to return to the menu.
+
+Restoration provenance and validation: [classic restoration evidence](docs/classic-pit-restoration.md).
+
 ## Run
 
 Use Node 22.13 or newer:

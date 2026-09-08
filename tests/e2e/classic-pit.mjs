@@ -1,0 +1,61 @@
+import assert from 'node:assert/strict';
+import { mkdir } from 'node:fs/promises';
+import { chromium } from 'playwright';
+const base = process.env.BASE_URL || 'http://localhost:3000';
+const dir = process.env.JCODE_SCRATCH_DIR || '.checks';
+await mkdir(dir, {recursive:true});
+const browser = await chromium.launch();
+const page = await browser.newPage({viewport:{width:1440,height:1100}});
+page.setDefaultTimeout(30000);
+const errors=[];
+page.on('pageerror', e=>errors.push(e.message));
+try {
+ await page.goto(base);
+ assert.equal(await page.locator('.arcade-card').count(),10);
+ await page.getByRole('link',{name:/Chin x Pit · Classic/}).click();
+ await page.getByRole('button',{name:'Into the burrow',exact:true}).waitFor({state:'visible'});
+ await page.waitForFunction(()=>!document.querySelector('.classic-pit-primary')?.disabled);
+ assert.equal(await page.locator('.classic-pit-kits button').count(),3);
+ await page.getByRole('button',{name:/Browse all 20 weapons/}).click();
+ assert.equal(await page.locator('.classic-pit-catalog article').count(),20);
+ await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'Into the burrow',exact:true}).click();
+ await page.waitForSelector('.classic-pit-intro',{state:'hidden'});
+ const canvas=page.locator('canvas');
+ const box=await canvas.boundingBox();
+ assert(box && box.width>300 && box.height>500,'actual WebGL canvas is laid out');
+ await page.getByRole('switch',{name:'Auto-fire'}).click();
+ assert.equal(await page.getByRole('switch',{name:'Auto-fire'}).getAttribute('aria-checked'),'false');
+ await page.mouse.move(box.x+box.width*.5,box.y+box.height*.35);
+ await page.mouse.down();
+ await page.waitForFunction(()=>Number(document.querySelector('.classic-pit-score > span')?.firstChild?.textContent?.replaceAll(',',''))>0);
+ await page.mouse.up();
+ console.log('PASS manual pointer aiming and held-click ball launch produce combat score:',await page.locator('.classic-pit-score').innerText());
+ await page.keyboard.down('d');await page.waitForTimeout(300);await page.keyboard.up('d');
+ await page.keyboard.press('p');
+ await page.getByRole('button',{name:'Keep bouncing'}).waitFor();
+ await page.getByRole('button',{name:'Keep bouncing'}).click();
+ await page.getByRole('switch',{name:'Auto-fire'}).click();
+ // Play through real frames and choose earned upgrades without altering game state.
+ const deadline=Date.now()+45000;
+ while(Date.now()<deadline){
+  const choices=page.locator('.classic-pit-choice');
+  if(await choices.count())await choices.first().click();
+  if(/WAVE ([2-9]|1[0-2]) \/ 12/.test(await page.locator('.classic-pit-topline').innerText()))break;
+  await page.waitForTimeout(250);
+ }
+ assert.match(await page.locator('.classic-pit-topline').innerText(),/WAVE ([2-9]|1[0-2]) \/ 12/);
+ await page.keyboard.press('f');
+ await page.getByRole('dialog').waitFor();
+ assert.equal(await page.locator('.classic-pit-recipe').count(),8);
+ await page.keyboard.press('Escape');
+ await page.locator('.classic-pit-stage').screenshot({path:`${dir}/classic-pit-playing.png`});
+ console.log('PASS live wave progression, movement input, pause/resume, 20 weapons and eight fusion recipes');
+ await page.getByRole('link',{name:/MAIN ARCADE/}).click();
+ assert.equal(await page.locator('.arcade-card').count(),10);
+ await page.getByRole('link',{name:/Night Survivors/}).click();
+ await page.waitForSelector('.pit-stage canvas');
+ assert.equal(await page.locator('.classic-pit-stage').count(),0);
+ assert.deepEqual(errors,[]);
+ console.log('PASS classic → arcade → unchanged survival, no browser runtime errors');
+} finally {await browser.close();}
