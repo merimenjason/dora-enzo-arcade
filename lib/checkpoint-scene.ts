@@ -73,15 +73,14 @@ export class CheckpointScene{
   // Dora at the window, Enzo working behind her. The chinchilla model faces +X and
   // animateChinchilla owns root.rotation.y, so each one sits in a rig group that
   // turns them to face the window (-Z) without being fought by the animation.
-  this.doraRig=new T.Group();this.doraRig.position.set(-.05,.78,1.85);this.doraRig.rotation.y=Math.PI/2+.12;
+  this.doraRig=new T.Group();this.doraRig.position.set(-.35,.78,1.85);this.doraRig.rotation.y=Math.PI/2+.12;
   this.doraRig.scale.setScalar(.82);this.scene.add(this.doraRig);
   this.dora=createChinchilla(true);this.doraRig.add(this.dora.root);
-  this.box(this.scene,-.05,.73,2.2,1.9,.12,1.4,0x554a58);                 // Dora's step behind the counter
+  this.box(this.scene,.15,.73,2.2,3,.12,1.4,0x554a58);                    // shared step behind the counter
 
-  this.enzoRig=new T.Group();this.enzoRig.position.set(1.3,.7,3.1);this.enzoRig.rotation.y=Math.PI/2+1.0;
-  this.enzoRig.scale.setScalar(.52);this.scene.add(this.enzoRig);
+  this.enzoRig=new T.Group();this.enzoRig.position.set(1.0,.78,1.9);this.enzoRig.rotation.y=Math.PI/2+.1;
+  this.enzoRig.scale.setScalar(.74);this.scene.add(this.enzoRig);
   this.enzo=createChinchilla(false);this.enzoRig.add(this.enzo.root);
-  this.box(this.scene,1.3,.65,3.1,1.1,.12,1.0,0x554a58);                 // Enzo's step
 
   this.scene.add(this.traveler);this.resize();
  }
@@ -150,7 +149,7 @@ export class CheckpointScene{
   this.dora.feet.forEach((paw,i)=>{if(i%2===1){paw.position.set(.42,.28+Math.sin(t*3+i)*.05,(i<2?-1:1)*.22);paw.rotation.z=-.4}});
   poseChinchillaPaws(this.dora);
   animateChinchilla(this.enzo,t*.8,6,true,1,false);
-  this.enzo.body.rotation.z=.12+Math.sin(t*1.1)*.06;poseChinchillaPaws(this.enzo);
+  this.enzo.body.rotation.z=-.1+Math.sin(t*1.1)*.06;poseChinchillaPaws(this.enzo);
   // The permit reflects the actual papers: no permit means an empty desk, no seal means no gold disc.
   this.permit.visible=p.hasPermit;this.seal.visible=p.hasPermit&&p.sealed;
   const bad=g.verdict&&!g.verdict.correct;
