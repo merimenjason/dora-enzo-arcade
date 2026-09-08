@@ -136,11 +136,25 @@ export class CheckpointScene{
   const ease=1-Math.pow(1-this.walk,3);
   if(this.travelerBody){
    this.travelerBody.position.set(.3,0,-6.2+ease*5.2);this.travelerBody.scale.setScalar(.72);
-   this.travelerBody.rotation.y=-Math.PI/2+.18;   // turn to face the window and the inspectors
-   const stepping=this.walk<1;
+   // Facing: the body model looks along +X, so -PI/2 turns it toward the booth window.
+   // Waiting in line and being inspected they face the inspectors; on a verdict they
+   // turn on the spot and walk off, +X through the gate or back down the queue.
+   let facing=-Math.PI/2+.18,stepping=this.walk<1;
+   if(this.verdict==='approved'){
+    // Turn to the gate, wait for the arm to lift, then walk through it and away.
+    const turn=Math.min(1,this.verdictTime/.45),go=Math.max(0,this.verdictTime-.55);
+    facing=(-Math.PI/2+.18)*(1-turn);            // 0 rad = walking toward the gate at +X
+    this.travelerBody.position.x+=Math.min(6,go*1.5);
+    stepping=go>0&&go*1.5<6;
+   }else if(this.verdict==='denied'){
+    const turn=Math.min(1,this.verdictTime/.4);
+    facing=(-Math.PI/2+.18)+turn*(Math.PI/2+.18+Math.PI/2); // turn away, back down the line
+    const go=Math.max(0,this.verdictTime-.45);
+    this.travelerBody.position.z-=Math.min(6,go*2.6);
+    stepping=go>0;
+   }
+   this.travelerBody.rotation.y=facing;
    this.travelerBody.position.y=stepping?Math.abs(Math.sin(t*9))*.09:Math.sin(t*2)*.02;
-   if(this.verdict==='approved')this.travelerBody.position.x+=Math.min(4.5,this.verdictTime*2.8);
-   if(this.verdict==='denied')this.travelerBody.position.z-=Math.min(6,this.verdictTime*2.6);
   }
   if(this.verdict!=='none')this.verdictTime+=dt;
   // Dora leans over the documents; Enzo shuffles paperwork behind her.
