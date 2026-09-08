@@ -39,3 +39,6 @@ next-env.d.ts
 
 /.checks/
 *.tsbuildinfo
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
