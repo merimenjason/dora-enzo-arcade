@@ -70,15 +70,22 @@ export class CheckpointScene{
   const moon=new T.Mesh(new T.SphereGeometry(1.5,22,14),new T.MeshBasicMaterial({color:0xd7c6a4}));
   moon.position.set(-13,11,10);this.scene.add(moon);
 
-  // Dora at the window, Enzo working behind her.
-  this.dora=createChinchilla(true);this.dora.root.position.set(-.72,.62,1.95);this.dora.root.rotation.y=0;
-  this.dora.root.scale.setScalar(.7);this.scene.add(this.dora.root);
-  this.enzo=createChinchilla(false);this.enzo.root.position.set(1.1,.6,2.9);this.enzo.root.rotation.y=-.5;
-  this.enzo.root.scale.setScalar(.6);this.scene.add(this.enzo.root);
+  // Dora at the window, Enzo working behind her. The chinchilla model faces +X and
+  // animateChinchilla owns root.rotation.y, so each one sits in a rig group that
+  // turns them to face the window (-Z) without being fought by the animation.
+  this.doraRig=new T.Group();this.doraRig.position.set(-.7,.8,2.35);this.doraRig.rotation.y=Math.PI/2;
+  this.doraRig.scale.setScalar(.7);this.scene.add(this.doraRig);
+  this.dora=createChinchilla(true);this.doraRig.add(this.dora.root);
+  this.box(this.scene,-.7,.75,2.5,1.7,.12,1.1,0x554a58);                 // Dora's step behind the counter
+
+  this.enzoRig=new T.Group();this.enzoRig.position.set(1.25,.76,2.9);this.enzoRig.rotation.y=Math.PI/2+.7;
+  this.enzoRig.scale.setScalar(.6);this.scene.add(this.enzoRig);
+  this.enzo=createChinchilla(false);this.enzoRig.add(this.enzo.root);
+  this.box(this.scene,1.25,.71,2.9,1.1,.12,1.0,0x554a58);                 // Enzo's step
 
   this.scene.add(this.traveler);this.resize();
  }
- permit:T.Mesh;card:T.Mesh;seal:T.Mesh;scaleTop:T.Mesh;denyStamp:T.Group;
+ permit:T.Mesh;card:T.Mesh;seal:T.Mesh;scaleTop:T.Mesh;denyStamp:T.Group;doraRig:T.Group;enzoRig:T.Group;
  box(root:T.Object3D,x:number,y:number,z:number,w:number,h:number,d:number,color:number){
   const m=new T.Mesh(new T.BoxGeometry(w,h,d),new T.MeshStandardMaterial({color,roughness:.85}));
   m.position.set(x,y,z);root.add(m);return m}
