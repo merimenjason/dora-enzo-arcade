@@ -2,6 +2,7 @@ import * as T from 'three';
 import {createChinchilla,animateChinchilla,poseChinchillaPaws,type Chinchilla} from './chinchilla';
 import type {CheckpointGame,Species} from './checkpoint-game';
 
+const EXIT_Z=-1.55;   // lane the approved traveler uses to leave through the gate
 const SPECIES_COLOR:Record<Species,number>={chinchilla:0xb8adbb,viscacha:0xc9bfa7,fox:0xd08b52,owl:0xbfb0d8,viper:0xa9bf72};
 
 // A small border booth rendered in 3D: Dora inspects at the window, Enzo works
@@ -11,7 +12,7 @@ export class CheckpointScene{
  dora:Chinchilla;enzo:Chinchilla;
  traveler=new T.Group();travelerBody:T.Group|null=null;species:Species|null=null;
  stamp=new T.Group();lamp:T.Mesh;gate:T.Group=new T.Group();
- walk=0;verdict:'none'|'approved'|'denied'=('none');verdictTime=0;stampTime=0;shake=0;queue:T.Group[]=[];
+ walk=0;exitWalk=0;exitLane=0;verdict:'none'|'approved'|'denied'=('none');verdictTime=0;stampTime=0;shake=0;queue:T.Group[]=[];
  constructor(public canvas:HTMLCanvasElement){
   this.renderer=new T.WebGLRenderer({canvas,antialias:true});
   this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
@@ -53,8 +54,8 @@ export class CheckpointScene{
   // Gate arm across the queue.
   this.box(this.gate,0,0,-1.2,.12,.12,2.4,0xd9d2c4);
   for(let i=0;i<3;i++)this.box(this.gate,0,.001,-.45-i*.8,.14,.14,.4,0xb2554c);
-  this.gate.position.set(2.2,1.0,.4);this.scene.add(this.gate);
-  this.box(this.scene,2.25,.5,.4,.16,1,.16,0x54505c);
+  this.gate.position.set(2.2,1.25,.4);this.scene.add(this.gate);
+  this.box(this.scene,2.25,.62,.4,.16,1.25,.16,0x54505c);
 
   // Lamp over the window.
   this.lamp=new T.Mesh(new T.SphereGeometry(.2,14,10),new T.MeshBasicMaterial({color:0xffd489}));
@@ -121,7 +122,7 @@ export class CheckpointScene{
   this.traveler.add(g);this.travelerBody=g;this.species=species;
  }
  // Called when a new traveler steps up: they walk in from the queue.
- arrive(species:Species){this.buildTraveler(species);this.walk=0;this.verdict='none';this.verdictTime=0}
+ arrive(species:Species){this.buildTraveler(species);this.walk=0;this.verdict='none';this.verdictTime=0;this.exitWalk=0;this.exitLane=0}
  judge(approved:boolean){this.verdict=approved?'approved':'denied';this.verdictTime=0;this.stampTime=.5;if(!approved)this.shake=.35}
  resize(){const w=this.canvas.clientWidth,h=this.canvas.clientHeight;if(!w||!h)return;
   this.renderer.setSize(w,h,false);this.camera.aspect=w/h;
@@ -141,11 +142,17 @@ export class CheckpointScene{
    // turn on the spot and walk off, +X through the gate or back down the queue.
    let facing=-Math.PI/2+.18,stepping=this.walk<1;
    if(this.verdict==='approved'){
-    // Turn to the gate, wait for the arm to lift, then walk through it and away.
-    const turn=Math.min(1,this.verdictTime/.45),go=Math.max(0,this.verdictTime-.55);
+    // Turn to the gate, wait until the arm is actually clear, then walk through.
+    // The exit lane sits at z = EXIT_Z: past the weighing scale (z >= -.98) and
+    // under the barrier, so nothing is walked through.
+    const turn=Math.min(1,this.verdictTime/.45);
     facing=(-Math.PI/2+.18)*(1-turn);            // 0 rad = walking toward the gate at +X
-    this.travelerBody.position.x+=Math.min(6,go*1.5);
-    stepping=go>0&&go*1.5<6;
+    const clear=this.gate.rotation.x>1.15;       // barrier is up out of head height
+    if(clear)this.exitWalk+=dt*1.6;
+    this.exitLane=Math.min(1,this.exitLane+dt*2.2);   // sidestep into the lane before setting off
+    this.travelerBody.position.z+=(EXIT_Z-this.travelerBody.position.z)*this.exitLane;
+    this.travelerBody.position.x+=Math.min(6,this.exitWalk);
+    stepping=clear&&this.exitWalk<6;
    }else if(this.verdict==='denied'){
     const turn=Math.min(1,this.verdictTime/.4);
     facing=(-Math.PI/2+.18)+turn*(Math.PI/2+.18+Math.PI/2); // turn away, back down the line
