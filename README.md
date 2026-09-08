@@ -1,6 +1,6 @@
-# Paw Fighter II
+# Chin x Pit Arcade
 
-An original side-view arcade fighting game starring Dora (white chinchilla) and Enzo (grey chinchilla). Seven playable fighters include an Andean fox, owl, viper, ICE agent and a playful Donald Trump caricature. Three.js renders the arena and characters; a standalone deterministic game engine handles combat.
+A collection of ten original browser games starring Dora (white chinchilla) and Enzo (grey chinchilla). The arcade includes ball-bouncing and survival roguelites, a fighting game, two document-inspection editions, stealth, racing, soccer, flight and an action RPG. Three.js renders the 3D games; standalone deterministic engines handle gameplay.
 
 ## Chin x Pit · Classic (/chin-x-pit)
 
@@ -16,6 +16,19 @@ Use Node 22.13 or newer:
 npm ci
 npm run dev
 ```
+
+Open `http://localhost:3000` for the main arcade. Individual games are available at:
+
+- `/chin-x-pit`: Chin x Pit Classic, the original ball-bouncing roguelite.
+- `/survival`: Chin x Pit · Night Survivors.
+- `/fighter`: Paw Fighter II.
+- `/checkpoint-remake`: Dust & Documents: Remake.
+- `/checkpoint`: original Dust & Documents.
+- `/escape`: Spy Escape.
+- `/adventure`: Bounce / Burrow.
+- `/kart`: Pawprint Grand Prix.
+- `/soccer`: Fluffball Cup.
+- `/hop`: Border Hop.
 
 ## Controls
 
@@ -54,7 +67,7 @@ npm run test:e2e   # optional: drives both games in a real browser (needs `npm i
 npm run build
 ```
 
-`tests/fighter.mjs` covers hit timing, blocking, special costs/projectiles, jumps, pause, round resets, draws, AI matchups for all seven fighters and full ladder progression. No browser rendering tests are included.
+The deterministic suites cover all game engines. Playwright browser tests exercise the main arcade, Chin x Pit Classic, Dust & Documents and Paw Fighter II. Run `npm run dev` before `npm run test:e2e`.
 
 ## Preserved games
 
