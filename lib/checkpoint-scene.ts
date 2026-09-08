@@ -73,15 +73,15 @@ export class CheckpointScene{
   // Dora at the window, Enzo working behind her. The chinchilla model faces +X and
   // animateChinchilla owns root.rotation.y, so each one sits in a rig group that
   // turns them to face the window (-Z) without being fought by the animation.
-  this.doraRig=new T.Group();this.doraRig.position.set(-.7,.8,2.35);this.doraRig.rotation.y=Math.PI/2;
-  this.doraRig.scale.setScalar(.7);this.scene.add(this.doraRig);
+  this.doraRig=new T.Group();this.doraRig.position.set(-.05,.78,1.85);this.doraRig.rotation.y=Math.PI/2+.12;
+  this.doraRig.scale.setScalar(.82);this.scene.add(this.doraRig);
   this.dora=createChinchilla(true);this.doraRig.add(this.dora.root);
-  this.box(this.scene,-.7,.75,2.5,1.7,.12,1.1,0x554a58);                 // Dora's step behind the counter
+  this.box(this.scene,-.05,.73,2.2,1.9,.12,1.4,0x554a58);                 // Dora's step behind the counter
 
-  this.enzoRig=new T.Group();this.enzoRig.position.set(1.25,.76,2.9);this.enzoRig.rotation.y=Math.PI/2+.7;
-  this.enzoRig.scale.setScalar(.6);this.scene.add(this.enzoRig);
+  this.enzoRig=new T.Group();this.enzoRig.position.set(1.3,.7,3.1);this.enzoRig.rotation.y=Math.PI/2+1.0;
+  this.enzoRig.scale.setScalar(.52);this.scene.add(this.enzoRig);
   this.enzo=createChinchilla(false);this.enzoRig.add(this.enzo.root);
-  this.box(this.scene,1.25,.71,2.9,1.1,.12,1.0,0x554a58);                 // Enzo's step
+  this.box(this.scene,1.3,.65,3.1,1.1,.12,1.0,0x554a58);                 // Enzo's step
 
   this.scene.add(this.traveler);this.resize();
  }
@@ -137,7 +137,7 @@ export class CheckpointScene{
   const ease=1-Math.pow(1-this.walk,3);
   if(this.travelerBody){
    this.travelerBody.position.set(.3,0,-6.2+ease*5.2);this.travelerBody.scale.setScalar(.72);
-   this.travelerBody.rotation.y=-.35;
+   this.travelerBody.rotation.y=-Math.PI/2+.18;   // turn to face the window and the inspectors
    const stepping=this.walk<1;
    this.travelerBody.position.y=stepping?Math.abs(Math.sin(t*9))*.09:Math.sin(t*2)*.02;
    if(this.verdict==='approved')this.travelerBody.position.x+=Math.min(4.5,this.verdictTime*2.8);
