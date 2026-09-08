@@ -120,3 +120,121 @@ assert.equal(routePose(false, 20).z, -6);
 console.log(
   'PASS remake: all species and verdicts, evidence, idempotency, clocks, budgets, full week, bankruptcy, collision-safe routes.',
 );
+
+// E2: All eight evidence reasons and exact accounting, without relying on a random fault mix.
+const faultSetters = {
+  permit: (p) => {
+    p.hasPermit = false;
+  },
+  name: (p) => {
+    p.permitName = 'ANOTHER NAME';
+  },
+  region: (p) => {
+    p.permitRegion = p.region === 'SALT FLATS' ? 'HAY VALLEY' : 'SALT FLATS';
+  },
+  expired: (p) => {
+    p.expires = 0;
+  },
+  weight: (p) => {
+    p.statedWeight = p.weight + 16;
+  },
+  seal: (p) => {
+    p.sealed = false;
+  },
+  species: (p, d) => {
+    p.species = d.bannedSpecies[0];
+  },
+  purpose: (p) => {
+    p.purpose = 'transit';
+  },
+};
+for (const [flag, plant] of Object.entries(faultSetters)) {
+  const e = new RemakeGame();
+  e.day = makeDay(7);
+  e.traveler = makeTraveler(e.day, new Rng(17), true);
+  plant(e.traveler.papers, e.day);
+  e.begin();
+  e.toggle(flag);
+  const initialCredits = e.credits;
+  const v = e.decide(false);
+  assert(v.correct, flag);
+  assert.deepEqual(v.flags, [flag]);
+  assert.equal(e.credits, initialCredits + 6);
+  assert.equal(e.total, 1);
+  assert.equal(e.correctTotal, 1);
+  assert.equal(e.citations, 0);
+  assert.equal(e.log.length, 1);
+  assert(e.log[0].includes('returned · +6 credits'));
+  const chosen = [...e.selected];
+  e.toggle(flag);
+  assert.deepEqual(e.selected, chosen, 'cannot edit evidence after judgment');
+  assert.equal(e.decide(false), null);
+  assert.equal(e.credits, initialCredits + 6);
+}
+const mixed = new RemakeGame();
+mixed.begin();
+mixed.traveler = makeTraveler(mixed.day, new Rng(17), true);
+mixed.traveler.papers.expires = 0;
+mixed.toggle('expired');
+mixed.toggle('name');
+assert(
+  !mixed.decide(false).correct,
+  'one invalid reason invalidates mixed submission',
+);
+assert.equal(mixed.credits, 21);
+assert.equal(mixed.citations, 1);
+assert.equal(mixed.accuracy, 0);
+assert(mixed.log[0].includes('−3 credits'));
+const early = new RemakeGame();
+early.toggle('name');
+assert.deepEqual(early.selected, []);
+assert.equal(early.decide(true), null);
+early.tick(200);
+early.nextDay();
+assert.equal(early.state, 'briefing');
+assert(!early.settle('basic'));
+early.begin(true);
+early.tick(2);
+early.begin(false);
+assert(early.timed);
+assert.equal(early.remaining, 148, 'repeat begin cannot reset timer');
+early.toggle('name');
+early.toggle('name');
+assert.deepEqual(early.selected, []);
+const edges = new RemakeGame();
+edges.begin();
+edges.end();
+edges.credits = 3;
+assert(!edges.settle('warm'));
+assert.equal(edges.credits, 3);
+assert(edges.settle('basic'));
+assert.equal(edges.credits, 0);
+assert.equal(edges.bonus, 0);
+edges.nextDay();
+assert.equal(
+  edges.state,
+  'briefing',
+  'zero savings after paid supper may continue',
+);
+assert.equal(week.total, 55);
+assert.equal(week.credits, 151);
+assert.equal(week.ending, 'A little further north.');
+assert.equal(broke.ending, 'The lights go out.');
+for (const approved of [true, false])
+  for (let t = 0.001; t < 8; t += 0.01) {
+    const previous = routePose(approved, t - 0.001),
+      pose = routePose(approved, t);
+    const dx = pose.x - previous.x,
+      dz = pose.z - previous.z,
+      d = Math.hypot(dx, dz);
+    if (pose.walking && d > 0.00001)
+      assert(
+        (dx * Math.sin(pose.heading) + dz * Math.cos(pose.heading)) / d > 0.99,
+        'walk direction follows facing, never sideways',
+      );
+    if (!pose.walking && pose.heading !== previous.heading)
+      assert(d < 0.00001, 'turns occur in place');
+  }
+console.log(
+  'PASS E2: all eight fault reasons, exact +6/−3 accounting/logs, mixed-reason rejection, phase guards, meal affordability boundary, 55-case/151-credit ending, facing-aligned walks.',
+);
