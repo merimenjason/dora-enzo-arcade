@@ -1,6 +1,7 @@
 // The arcade front door: every game Dora and Enzo star in, in one place.
 const GAMES=[
  {href:'/fighter',title:'Paw Fighter II',tag:'FIGHTING',blurb:'Seven fighters, six rivals, one champion. Arcade, story and training modes with fireballs, risers and supers.',color:'#e0a35c',art:'🥊'},
+ {href:'/checkpoint-remake',title:'Dust & Documents: Remake',tag:'NEW · INSPECTION',blurb:'A reimagined mountain crossing. Compare documents, justify denials, choose supper and keep Dora and Enzo’s booth open.',color:'#c2cda2',art:'📜'},
  {href:'/checkpoint',title:'Dust & Documents',tag:'INSPECTION',blurb:'Seven shifts in an Andean border booth. Read the day\u2019s rules, check every permit, decide who walks through the gate.',color:'#8fd0a5',art:'🛂'},
  {href:'/escape',title:'Spy Escape',tag:'STEALTH',blurb:'Slip past patrols, grab the gadgets and break both chinchillas out of detention.',color:'#7fa6e8',art:'🕵️'},
  {href:'/adventure',title:'Bounce / Burrow',tag:'ACTION RPG',blurb:'An endless procedural dungeon. Level up, spend skill points in two branching trees, beat the guardians.',color:'#c58ee0',art:'⚔️'},
@@ -14,8 +15,8 @@ export default function Arcade(){
   <header className="arcade-header"><span>CHIN <em>x</em> PIT</span><a href="/fighter">START WITH PAW FIGHTER II →</a></header>
   <section className="arcade-hero">
    <p className="arcade-eyebrow">DORA &amp; ENZO · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Eight whole games.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, eight cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <h1>Small paws.<br/><em>Nine ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, nine cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <nav className="arcade-grid" aria-label="Choose a game">
    {GAMES.map((game,i)=><a key={game.href} href={game.href} className="arcade-card" style={{'--game-color':game.color} as React.CSSProperties}>
