@@ -109,3 +109,16 @@ Local artifacts generated under `JCODE_SCRATCH_DIR` (not committed binary assets
 - `remake-approved-gate.png`: separate deterministic scene capture showing the arm upright and the traveler in the exit lane. This is a scene capture, not a screenshot claimed to be taken during a full UI week.
 
 The first three are reproducible from W. The approved-gate capture was inspected during implementation. No frame-rate benchmark, physical weighing animation, save-data persistence, audio, Safari/Firefox run, continuous swept-volume proof, exhaustive screen-reader audit or OS-background-resume test is claimed. The scale is verified UI measurement data. Scene geometry assertions sample actual production geometry at fixed intervals. Full animated-week coverage remains outside the completed run; fallback full-week coverage is explicit above.
+
+## Whole-result rerun and outcome (11:33 UTC)
+
+Coordinator reran the entire command block above sequentially with fail-fast enabled against commit `aebadc2`. Task `107214as4e` exited 0 on 2026-09-08 at 11:33 UTC. This supersedes earlier worker-only execution evidence: typecheck, baseline engine suite, production build, E1/E2, W/V1/V2/V3 and B1–B6 all passed together on the completed result. Original source and dependency diff checks were empty; worktree was clean before this evidence entry. Every executable row above is backed by this run. Historical process rows R01/R04/R08/R10 remain transcript checks, not replayable game tests. Visual aesthetic judgments remain subjective.
+
+Concrete improvements demonstrated, not just inferred from appearance:
+
+- The reported clipping/facing problem now has measured acceptance evidence: both inspectors face the traveler, remain separated across eight animation phases, and all five traveler species complete both routes without sampled scale/counter/post/arm overlap. Moving route segments align with facing and gate passage occurs with arm above 1.4 radians.
+- Inspection is now interactive rather than a bare approve/deny choice: all eight document-field controls toggle matching evidence; denial without evidence is blocked and unsupported reasons receive citations. All 55 UI cases in fallback mode were decided correctly from rendered documents/rules.
+- Timing and budget choices have observable consequences: warm supper charges 7 credits and yields a 170-second next shift; hay charges 3; unaffordable meals lead to the rendered bankruptcy ending. A perfect seven-day fallback UI run ends at 55 decisions, 100% accuracy and 151 credits, while five incorrect calls produce the distinct bankruptcy ending. Both restart flows restore the initial game.
+- Original edition still loads a real WebGL booth, accepts a verdict and advances to its next case. The remake works when WebGL is unavailable or its scene download fails, and has no horizontal overflow at 390-pixel width.
+
+These checks establish the requested functional improvements. They do not establish that players find the remake more fun, prove continuous collision freedom, or replace the explicitly unperformed full animated-week and real OS-suspension tests.
