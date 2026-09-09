@@ -33,12 +33,12 @@ try {
   await p.goto(url);
   assert.equal(
     await p.locator('.arcade-card').count(),
-    10,
-    'arcade has ten cabinets',
+    11,
+    'arcade has eleven cabinets',
   );
   assert(
     (await p.locator('.arcade-hero').textContent()).includes(
-      'Ten ways to play.',
+      'Eleven ways to play.',
     ),
   );
   assert.equal(await p.locator('a[href="/checkpoint-remake"]').count(), 1);

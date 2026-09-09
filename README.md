@@ -1,12 +1,12 @@
 # Dora & Enzo's Arcade
 
-A collection of ten original browser games starring Dora (white chinchilla) and Enzo (grey chinchilla). The arcade includes ball-bouncing and survival roguelites, a fighting game, two document-inspection editions, stealth, racing, soccer, flight and an action RPG. Three.js renders the 3D games; standalone deterministic engines handle gameplay.
+A collection of eleven original browser games starring Dora (white chinchilla) and Enzo (grey chinchilla). The arcade includes ball-bouncing and survival roguelites, a fighting game, two document-inspection editions, stealth, racing, soccer, flight and an action RPG. Three.js renders the 3D games; standalone deterministic engines handle gameplay.
 
 **Chin x Pit** remains the sub-brand for the pit-diving pair: Classic at `/chin-x-pit` and Night Survivors at `/survival`.
 
 ## Chin x Pit · Classic (/chin-x-pit)
 
-The arcade now has ten games. The original ball-bouncing Chin x Pit is restored separately from Night Survivors at `/survival`. Aim with the mouse, move both chinchillas with WASD/arrows, and catch returning balls for stronger ricochets. Auto-fire is enabled by default, or toggle it off and hold left click. Q/Space triggers Double Trouble, F opens the fusion lab, and P/Escape pauses. Clear twelve waves, defeat the Dustbreaker and descend with your build. Three starting kits, twenty weapons, eight fusions and six passive items are preserved. Use **MAIN ARCADE** to return to the menu.
+The arcade now has eleven games. The original ball-bouncing Chin x Pit is restored separately from Night Survivors at `/survival`. Aim with the mouse, move both chinchillas with WASD/arrows, and catch returning balls for stronger ricochets. Auto-fire is enabled by default, or toggle it off and hold left click. Q/Space triggers Double Trouble, F opens the fusion lab, and P/Escape pauses. Clear twelve waves, defeat the Dustbreaker and descend with your build. Three starting kits, twenty weapons, eight fusions and six passive items are preserved. Use **MAIN ARCADE** to return to the menu.
 
 Restoration provenance and validation: [classic restoration evidence](docs/classic-pit-restoration.md).
 
@@ -93,3 +93,14 @@ This project uses vinext and the existing Sites hosting configuration. GitHub st
 - Donald Trump — Golden Tweet: large, slow, powerful energy wave.
 
 Every special costs 35 power. The selected move is displayed on its roster card, and an on-screen callout confirms activation or insufficient power.
+
+## Dust Bath Dash (`/dust-bath`)
+
+Dora (white) and Enzo (grey) run a gentle dust-bath spa. Select a waiting customer, then an empty bath. Hold **SCRUB** with touch, mouse, Space or Enter and release in the striped sweet spot (about 1.3 seconds) to earn up to 12 coins. Too short needs another try. Too long makes the guest sneeze and splash occupied neighboring baths, reducing their tips. Enzo’s treats restore patience and remove one splash. His refill replenishes six dust scoops and three treats after three seconds.
+
+- **Two-minute shifts:** keep guests happy before their patience runs out, then review your results.
+- **Untimed cozy mode:** no timer, no departures. Close the spa whenever you want to shop.
+- **Between shifts:** buy cloud towels (30 coins, wider sweet spot and less neighboring mess), a golden scoop (40 coins, one-second refills), and fern decor (25 coins, extra patience). Coins and upgrades carry between shifts during this page visit, not after reload.
+- **Accessible controls:** native keyboard buttons, visible focus, labeled pressure/patience meters, text feedback, reduced-motion support, and optional two-tap scrubbing without holding. Pause and the guide stop simulation. Switching tabs or leaving the window automatically pauses and cancels a held scrub.
+- **Navigation:** MAIN ARCADE returns to all eleven cabinets. Existing game names are unchanged.
+- **Verification:** `npm run test:dust-bath` runs the deterministic engine suite. With the dev server on port 3000 and Playwright available, `node tests/e2e/dust-bath.mjs` checks keyboard/pointer/touch gameplay, splash recovery, supplies, pause, cozy shopping, shift completion and responsive navigation.

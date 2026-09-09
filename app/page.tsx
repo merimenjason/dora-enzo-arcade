@@ -10,14 +10,15 @@ const GAMES=[
  {href:'/kart',title:'Pawprint Grand Prix',tag:'RACING',blurb:'Three laps, five racers, drifts and items. Hold the line and take the checkered flag.',color:'#f0cd6b',art:'🏁'},
  {href:'/soccer',title:'Fluffball Cup',tag:'SPORTS',blurb:'Dora\u2019s Sky Squad against Enzo\u2019s Ember FC. Four a side, ninety seconds, bragging rights forever.',color:'#7fd0b8',art:'⚽'},
  {href:'/hop',title:'Border Hop',tag:'ARCADE',blurb:'Flap through twenty desert checkpoint gaps and get both friends to the welcome gate.',color:'#e8a9c4',art:'🪶'},
+ {href:'/dust-bath',title:'Dust Bath Dash',tag:'NEW · COZY SPA',blurb:'Run a tiny chinchilla spa. Seat fluffy guests, time the perfect dust bath and grow your happy place. Two-minute shifts or untimed cozy mode.',color:'#b5c69d',art:'☁️'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span><a href="/fighter">START WITH PAW FIGHTER II →</a></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">TEN ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Ten ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, ten cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">ELEVEN ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Eleven ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, eleven cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <nav className="arcade-grid" aria-label="Choose a game">
    {GAMES.map((game,i)=><a key={game.href} href={game.href} className="arcade-card" style={{'--game-color':game.color} as React.CSSProperties}>
