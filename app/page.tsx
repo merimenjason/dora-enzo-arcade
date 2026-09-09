@@ -13,9 +13,9 @@ const GAMES=[
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
-  <header className="arcade-header"><span>CHIN <em>x</em> PIT</span><a href="/fighter">START WITH PAW FIGHTER II →</a></header>
+  <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span><a href="/fighter">START WITH PAW FIGHTER II →</a></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">DORA &amp; ENZO · THE ANDES AND EVERYTHING AFTER</p>
+   <p className="arcade-eyebrow">TEN ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
    <h1>Small paws.<br/><em>Ten ways to play.</em></h1>
    <p className="arcade-lede">One roster of chinchillas, ten cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>

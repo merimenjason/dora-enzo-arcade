@@ -1,6 +1,8 @@
-# Chin x Pit Arcade
+# Dora & Enzo's Arcade
 
 A collection of ten original browser games starring Dora (white chinchilla) and Enzo (grey chinchilla). The arcade includes ball-bouncing and survival roguelites, a fighting game, two document-inspection editions, stealth, racing, soccer, flight and an action RPG. Three.js renders the 3D games; standalone deterministic engines handle gameplay.
+
+**Chin x Pit** remains the sub-brand for the pit-diving pair: Classic at `/chin-x-pit` and Night Survivors at `/survival`.
 
 ## Chin x Pit · Classic (/chin-x-pit)
 

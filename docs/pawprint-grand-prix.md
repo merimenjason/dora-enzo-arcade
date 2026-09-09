@@ -1,4 +1,4 @@
-# Chin x Pit · Pawprint Grand Prix
+# Dora & Enzo's Arcade · Pawprint Grand Prix
 
 An arcade 3D kart racer starring Dora and Enzo in a shared kart. Race Copper Fox, Night Owl, Sly Snake and Mountain Cougar over three laps of Dust Valley Circuit.
 

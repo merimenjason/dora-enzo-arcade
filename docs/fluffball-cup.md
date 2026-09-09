@@ -1,4 +1,4 @@
-# Chin x Pit · Fluffball Cup
+# Dora & Enzo's Arcade · Fluffball Cup
 
 A top-down arcade soccer game with Dora’s Sky Squad (blue, player-controlled) against Enzo’s Ember FC (orange, AI). Each team has three outfield chinchillas and an automatic goalkeeper. Matches last 90 seconds of play, with a short kickoff pause after goals.
 

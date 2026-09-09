@@ -1,4 +1,4 @@
-# Chin x Pit · Border Hop
+# Dora & Enzo's Arcade · Border Hop
 
 A Flappy Bird-style browser game starring Dora and Enzo, a white and a grey chinchilla flying together on paper wings. Cross a stylized desert landscape, pass 20 striped checkpoint gaps, and arrive at the Welcome to the USA gate.
 
