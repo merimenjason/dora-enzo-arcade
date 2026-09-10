@@ -118,3 +118,11 @@ The twelfth standalone cabinet is a responsive, pixel-styled cutaway of Juniper 
 - **Tests:** `npm run test:mountain-retreat`, `node tests/e2e/mountain-retreat.mjs` (running server and locally available Playwright), plus the shared engine, typecheck and build suites.
 
 Requirement-level checks and known limitations: [Mountain Retreat validation](docs/mountain-retreat-validation.md).
+
+## Contributing and CI
+
+GitHub Actions runs `npm ci`, `npm run typecheck`, `npm test` and `npm run build` on every push and pull request (`.github/workflows/ci.yml`). The browser suites in `tests/e2e/` need a running dev server and a local Playwright install, so they are run manually rather than in CI.
+
+## License
+
+Released under the [MIT License](LICENSE).
