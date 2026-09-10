@@ -1,3 +1,14 @@
+## Documenting games
+
+Every game in the arcade menu (`GAMES` in `app/page.tsx`) must be documented in `README.md` in the same shape as the existing ones. Adding, renaming, reordering or removing a game means updating, in the same change:
+
+- the game count in the README's first sentence;
+- the row in the README **Games** table (`| NN | Title | \`/route\` | Genre |`);
+- a `### NN · Title (\`/route\`)` section under **Game guides** with **Play:**, **Controls:**, **Tests:** and **Docs:** paragraphs, in arcade-menu order;
+- the other hardcoded counts listed in the README's **Adding a game** checklist.
+
+`npm test` runs `tests/readme.mjs`, which fails when the README and `GAMES` disagree. Describe controls and numbers from the game's code or its `docs/` file, not from memory.
+
 <!-- graft:start -->
 ## Graft — repo context graph
 
