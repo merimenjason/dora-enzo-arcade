@@ -36,3 +36,11 @@ Implemented 2026-09-10 as cabinet 12 at `/mountain-retreat`. No existing game pa
 ## Limitations
 
 Single lodge, no audio, cloud sync, account, cross-device persistence or cross-tab conflict resolution. Use one open tab. Local wall-clock time is trusted, so manually changing the device clock or editing the save is not anti-cheat protected. Storage denial allows play but cannot retain progress. Resource counters cap at one billion and supplies at 120. Browser coverage is Chromium desktop/mobile emulation, not physical-device Safari or Firefox testing. Offline tests use controlled timestamps, not an eight-hour wall-clock soak. Global `npm run lint` fails in existing helper scripts, UI components and older games; these unrelated files were not altered.
+
+## Readability and theme update (2026-09-10)
+
+Mountain Retreat now offers a route-scoped Light / Dark / System selector. System follows live device preferences and is the default. A separate `mountain-retreat-theme` browser preference preserves the choice without modifying game saves. Storage denial still allows in-memory theme changes. Other games are not themed by these selectors.
+
+Guide paragraphs are explicitly 18px with 1.8 line-height, 28px headings and bounded line lengths. Supporting control descriptions are 14px, main controls 16px, and room labels 12px. Mobile cards reflow rather than shrinking the text. White Dora and grey Enzo retain authored pixel colors.
+
+`node tests/e2e/mountain-retreat-theme.mjs` checks measured guide contrast (light 8.16:1, dark 9.96:1), selected and disabled button-label contrast >=4.5:1, font sizes, 320/390/768/1440 widths, remembered theme, live System changes, explicit overrides, denied storage, route isolation and zero page errors. Screenshots are in `.checks/mountain-retreat/theme-*.png`. This is focused contrast and Chromium layout testing, not a complete WCAG certification. Existing lodge gameplay e2e and all 12 engine cases also pass, alongside typecheck, scoped lint and production build (existing warnings unchanged).

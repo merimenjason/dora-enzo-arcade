@@ -43,6 +43,24 @@ function Chin({
 export default function MountainRetreat() {
   const game = useRef<RetreatState>(freshRetreat());
   const [ready, setReady] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('mountain-retreat-theme');
+      if (saved === 'light' || saved === 'dark' || saved === 'system')
+        setTheme(saved);
+    } catch {
+      /* Theme switching still works without storage. */
+    }
+  }, []);
+  const changeTheme = (value: 'light' | 'dark' | 'system') => {
+    setTheme(value);
+    try {
+      localStorage.setItem('mountain-retreat-theme', value);
+    } catch {
+      /* Optional preference. */
+    }
+  };
   const [, render] = useState(0);
   const [notice, setNotice] = useState('A little lodge. A very big welcome.');
   const [storage, setStorage] = useState('Loading local journal…');
@@ -112,12 +130,26 @@ export default function MountainRetreat() {
   const busy = !!s.activity;
   const open = s.rooms.filter(Boolean).length;
   return (
-    <main className="mr-shell">
+    <main className="mr-shell" data-theme={theme}>
       <header className="mr-top">
         {/* Full navigation disposes this standalone simulation, matching arcade conventions. */}
         {/* oxlint-disable-next-line next/no-html-link-for-pages */}
         <a href="/">← MAIN ARCADE</a>
         <span>THE ANDES · 2,840 M</span>
+        <label className="mr-theme">
+          Theme
+          <select
+            aria-label="Color theme"
+            value={theme}
+            onChange={(e) =>
+              changeTheme(e.target.value as 'light' | 'dark' | 'system')
+            }
+          >
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </label>
         <button onClick={() => setGuide(!guide)} aria-expanded={guide}>
           Field guide {guide ? '−' : '+'}
         </button>
