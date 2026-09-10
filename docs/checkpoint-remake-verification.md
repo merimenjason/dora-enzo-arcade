@@ -2,7 +2,7 @@
 
 ## Scope and evidence quality
 
-Audit date: **2026-09-08**. Implementation commit: **`79cfe44`**. This follow-up changes tests and documentation only. The product remains `/checkpoint-remake`, with `/checkpoint` preserved.
+Audit date: **08-09-2026**. Implementation commit: **`79cfe44`**. This follow-up changes tests and documentation only. The product remains `/checkpoint-remake`, with `/checkpoint` preserved.
 
 Each row maps a request or changed public behavior to a specific observation, not just an aggregate test count. The evidence labels below distinguish actual UI workflows, controlled fixtures, geometric sampling and source/process checks.
 
@@ -19,7 +19,7 @@ Each row maps a request or changed public behavior to a specific observation, no
 
 | ID | Requirement | Concrete check and observed result |
 |---|---|---|
-| R01 | Implement first using GPT-6 Astra | Coordinator tool-transcript evidence, confirmed by coordinator on 2026-09-08: `swarm list_models` at 06:48:58 UTC reported coordinator `gpt-6-astra` and availability via `openai-oauth`. Worker spawn at 06:49:38 explicitly set `model: "gpt-6-astra"`, `effort: "low"`, label `Checkpoint remake`, and returned worker session `session_poodle_1788850178640_5e6d8feaddb60a5e`. **Routing selection verified**, not independent attestation of model internals. |
+| R01 | Implement first using GPT-6 Astra | Coordinator tool-transcript evidence, confirmed by coordinator on 08-09-2026: `swarm list_models` at 06:48:58 UTC reported coordinator `gpt-6-astra` and availability via `openai-oauth`. Worker spawn at 06:49:38 explicitly set `model: "gpt-6-astra"`, `effort: "low"`, label `Checkpoint remake`, and returned worker session `session_poodle_1788850178640_5e6d8feaddb60a5e`. **Routing selection verified**, not independent attestation of model internals. |
 | R02 | Substantial isolated remake at `/checkpoint-remake` | W follows the arcade link, waits for `.rm-brief`, opens the booth and completes a shift. B2 reaches the successful ending through this route. Observed new page, stylesheet, engine and scene in `79cfe44`. |
 | R03 | Preserve playable `/checkpoint` | S: `git diff 79cfe44^ 79cfe44 -- app/checkpoint/page.tsx lib/checkpoint-game.ts lib/checkpoint-scene.ts tests/checkpoint.mjs` is empty. Baseline `npm test` passes. V3 follows the original-edition link, loads its WebGL canvas, makes a judgment and advances to `1 / 5 processed`. |
 | R04 | Read existing page, engine, scene and tests before implementation | Session tool transcript read `app/checkpoint/page.tsx`, `lib/checkpoint-game.ts`, `lib/checkpoint-scene.ts`, `tests/checkpoint.mjs` and `lib/chinchilla.ts` before writing remake files. Existing tests were rerun successfully. |
@@ -88,7 +88,7 @@ node tests/e2e/checkpoint-remake.mjs
 node tests/e2e/checkpoint-remake-behavior.mjs
 ```
 
-Observed on 2026-09-08:
+Observed on 08-09-2026:
 
 - Typecheck: exit 0.
 - Existing full engine suite: exit 0, including original checkpoint tests.
@@ -112,7 +112,7 @@ The first three are reproducible from W. The approved-gate capture was inspected
 
 ## Whole-result rerun and outcome (11:33 UTC)
 
-Coordinator reran the entire command block above sequentially with fail-fast enabled against commit `aebadc2`. Task `107214as4e` exited 0 on 2026-09-08 at 11:33 UTC. This supersedes earlier worker-only execution evidence: typecheck, baseline engine suite, production build, E1/E2, W/V1/V2/V3 and B1–B6 all passed together on the completed result. Original source and dependency diff checks were empty; worktree was clean before this evidence entry. Every executable row above is backed by this run. Historical process rows R01/R04/R08/R10 remain transcript checks, not replayable game tests. Visual aesthetic judgments remain subjective.
+Coordinator reran the entire command block above sequentially with fail-fast enabled against commit `aebadc2`. Task `107214as4e` exited 0 on 08-09-2026 at 11:33 UTC. This supersedes earlier worker-only execution evidence: typecheck, baseline engine suite, production build, E1/E2, W/V1/V2/V3 and B1–B6 all passed together on the completed result. Original source and dependency diff checks were empty; worktree was clean before this evidence entry. Every executable row above is backed by this run. Historical process rows R01/R04/R08/R10 remain transcript checks, not replayable game tests. Visual aesthetic judgments remain subjective.
 
 Concrete improvements demonstrated, not just inferred from appearance:
 

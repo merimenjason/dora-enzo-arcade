@@ -2,7 +2,7 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## 2026-09-11
+## 11-09-2026
 
 ### Added
 
@@ -19,7 +19,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - This changelog, covering every change since the first commit, plus a rule in `AGENTS.md` that asks agents to add an entry with each change.
 
-## 2026-09-10
+## 10-09-2026
 
 ### Added
 
@@ -35,7 +35,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - Recorded exactly which older browser tests were re-run for the Mountain Retreat launch, and their limitations.
 
-## 2026-09-09
+## 09-09-2026
 
 ### Added
 
@@ -50,7 +50,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 - The survival game's arcade entry is named Chin x Pit again.
 - The repository was prepared for GitHub downloads, and the site description corrected to ten games.
 
-## 2026-09-08
+## 08-09-2026
 
 ### Added
 
@@ -62,7 +62,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - Booth staging: Dora and Enzo stand side by side at the window instead of clipping through the desk, and travelers turn to face Dora. Approved travelers now walk through the gate along a clear exit lane, without clipping the scale or barrier.
 
-## 2026-09-07
+## 07-09-2026
 
 ### Added
 
@@ -76,7 +76,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 - **Spy Escape:** cage collisions, the jump to the hay feeder, overlapping shelf surfaces, and shelves not fading together. Dora and Enzo were enlarged, with collision sizes to match.
 - **Paw Fighter II:** character selection, and articulated chinchilla feet instead of glove-like paws.
 
-## 2026-09-06
+## 06-09-2026
 
 ### Added
 

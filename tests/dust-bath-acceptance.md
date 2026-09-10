@@ -1,6 +1,6 @@
 # Dust Bath Dash acceptance record
 
-Verified 2026-09-09 on the existing local dev server at port 3000, Chromium desktop and mobile emulation. No production-only test hooks or game-state injection are used in the browser suite. This records the depth-and-polish overhaul that replaced the single hold-release loop.
+Verified 09-09-2026 on the existing local dev server at port 3000, Chromium desktop and mobile emulation. No production-only test hooks or game-state injection are used in the browser suite. This records the depth-and-polish overhaul that replaced the single hold-release loop.
 
 | Requirement | Concrete evidence | Result |
 | --- | --- | --- |

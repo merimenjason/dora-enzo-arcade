@@ -12,7 +12,7 @@ Restored from `6acbb9795049fb437fbae4decbb705abcf0b1546`, verified as the exact 
 - Historical `tests/pit.mjs` is preserved as `tests/classic-pit.mjs`, changing only the isolated module imports. It runs in `npm test` alongside the existing baseline suite.
 - Arcade has ten distinct cards, including Classic and Night Survivors. Navigation and checkpoint-remake menu expectations now require ten.
 
-## Observed validation (2026-09-09, +08:00)
+## Observed validation (09-09-2026, +08:00)
 
 | Check | Evidence |
 | --- | --- |

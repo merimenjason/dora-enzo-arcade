@@ -1,6 +1,6 @@
 # Mountain Retreat acceptance record
 
-Implemented 2026-09-10 as cabinet 12 at `/mountain-retreat`. No existing game page, engine, style or asset was edited. Shared navigation, metadata, package scripts, README and navigation-count assertions were updated.
+Implemented 10-09-2026 as cabinet 12 at `/mountain-retreat`. No existing game page, engine, style or asset was edited. Shared navigation, metadata, package scripts, README and navigation-count assertions were updated.
 
 ## Requirement to evidence
 
@@ -37,7 +37,7 @@ Implemented 2026-09-10 as cabinet 12 at `/mountain-retreat`. No existing game pa
 
 Single lodge, no audio, cloud sync, account, cross-device persistence or cross-tab conflict resolution. Use one open tab. Local wall-clock time is trusted, so manually changing the device clock or editing the save is not anti-cheat protected. Storage denial allows play but cannot retain progress. Resource counters cap at one billion and supplies at 120. Browser coverage is Chromium desktop/mobile emulation, not physical-device Safari or Firefox testing. Offline tests use controlled timestamps, not an eight-hour wall-clock soak. Global `npm run lint` fails in existing helper scripts, UI components and older games; these unrelated files were not altered.
 
-## Readability and theme update (2026-09-10)
+## Readability and theme update (10-09-2026)
 
 Mountain Retreat now offers a route-scoped Light / Dark / System selector. System follows live device preferences and is the default. A separate `mountain-retreat-theme` browser preference preserves the choice without modifying game saves. Storage denial still allows in-memory theme changes. Other games are not themed by these selectors.
 
@@ -45,7 +45,7 @@ Guide paragraphs are explicitly 18px with 1.8 line-height, 28px headings and bou
 
 `node tests/e2e/mountain-retreat-theme.mjs` checks measured guide contrast (light 8.16:1, dark 9.96:1), selected and disabled button-label contrast >=4.5:1, font sizes, 320/390/768/1440 widths, remembered theme, live System changes, explicit overrides, denied storage, route isolation and zero page errors. Screenshots are in `.checks/mountain-retreat/theme-*.png`. This is focused contrast and Chromium layout testing, not a complete WCAG certification. Existing lodge gameplay e2e and all 12 engine cases also pass, alongside typecheck, scoped lint and production build (existing warnings unchanged).
 
-## Walking hosts and visiting guests (2026-09-11)
+## Walking hosts and visiting guests (11-09-2026)
 
 Dora and Enzo now tour the open rooms instead of standing still. `hostStop` in the engine picks each host's room from `elapsed`: Dora stops 8 seconds per room (hearth → suite → bath → kitchen), Enzo 12 seconds (kitchen → bath → hearth → suite), skipping rooms that aren't open. Because `elapsed` stops during expeditions and festivals, the hosts freeze with production. Moving between rooms side by side is a 1.4-second walk. Moving between floors is a hop: straight up or down when the rooms share a column, otherwise a walk and then a hop. The sprite faces the direction of travel.
 
