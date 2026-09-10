@@ -1,12 +1,12 @@
 # Dora & Enzo's Arcade
 
-A collection of eleven original browser games starring Dora (white chinchilla) and Enzo (grey chinchilla). The arcade includes ball-bouncing and survival roguelites, a fighting game, two document-inspection editions, stealth, racing, soccer, flight and an action RPG. Three.js renders the 3D games; standalone deterministic engines handle gameplay.
+A collection of twelve original browser games starring Dora (white chinchilla) and Enzo (grey chinchilla). The arcade includes ball-bouncing and survival roguelites, a fighting game, two document-inspection editions, stealth, racing, soccer, flight and an action RPG. Three.js renders the 3D games; standalone deterministic engines handle gameplay.
 
 **Chin x Pit** remains the sub-brand for the pit-diving pair: Classic at `/chin-x-pit` and Night Survivors at `/survival`.
 
 ## Chin x Pit · Classic (/chin-x-pit)
 
-The arcade now has eleven games. The original ball-bouncing Chin x Pit is restored separately from Night Survivors at `/survival`. Aim with the mouse, move both chinchillas with WASD/arrows, and catch returning balls for stronger ricochets. Auto-fire is enabled by default, or toggle it off and hold left click. Q/Space triggers Double Trouble, F opens the fusion lab, and P/Escape pauses. Clear twelve waves, defeat the Dustbreaker and descend with your build. Three starting kits, twenty weapons, eight fusions and six passive items are preserved. Use **MAIN ARCADE** to return to the menu.
+The arcade now has twelve games. The original ball-bouncing Chin x Pit is restored separately from Night Survivors at `/survival`. Aim with the mouse, move both chinchillas with WASD/arrows, and catch returning balls for stronger ricochets. Auto-fire is enabled by default, or toggle it off and hold left click. Q/Space triggers Double Trouble, F opens the fusion lab, and P/Escape pauses. Clear twelve waves, defeat the Dustbreaker and descend with your build. Three starting kits, twenty weapons, eight fusions and six passive items are preserved. Use **MAIN ARCADE** to return to the menu.
 
 Restoration provenance and validation: [classic restoration evidence](docs/classic-pit-restoration.md).
 
@@ -31,6 +31,8 @@ Open `http://localhost:3000` for the main arcade. Individual games are available
 - `/kart`: Pawprint Grand Prix.
 - `/soccer`: Fluffball Cup.
 - `/hop`: Border Hop.
+- `/dust-bath`: Dust Bath Dash.
+- `/mountain-retreat`: Dora & Enzo’s Mountain Retreat.
 
 ## Controls
 
@@ -102,5 +104,17 @@ Dora (white) and Enzo (grey) run a gentle dust-bath spa. Select a waiting custom
 - **Untimed cozy mode:** no timer, no departures. Close the spa whenever you want to shop.
 - **Between shifts:** buy cloud towels (30 coins, wider sweet spot and less neighboring mess), a golden scoop (40 coins, one-second refills), and fern decor (25 coins, extra patience). Coins and upgrades carry between shifts during this page visit, not after reload.
 - **Accessible controls:** native keyboard buttons, visible focus, labeled pressure/patience meters, text feedback, reduced-motion support, and optional two-tap scrubbing without holding. Pause and the guide stop simulation. Switching tabs or leaving the window automatically pauses and cancels a held scrub.
-- **Navigation:** MAIN ARCADE returns to all eleven cabinets. Existing game names are unchanged.
+- **Navigation:** MAIN ARCADE returns to all twelve cabinets. Existing game names are unchanged.
 - **Verification:** `npm run test:dust-bath` runs the deterministic engine suite. With the dev server on port 3000 and Playwright available, `node tests/e2e/dust-bath.mjs` checks keyboard/pointer/touch gameplay, splash recovery, supplies, pause, cozy shopping, shift completion and responsive navigation.
+
+## Dora & Enzo’s Mountain Retreat (`/mountain-retreat`)
+
+The twelfth standalone cabinet is a responsive, pixel-styled cutaway of Juniper Lodge. White Dora handles hospitality and grey Enzo supplies, with equally prominent portraits, allocations and animated in-world sprites. Open the kitchen, suite and alpine bath, then improve all four rooms to level 3.
+
+- **5–10 minute visits:** supplies feed automatic guest visits, which earn hearts and tips. Welcome serves every 6 seconds, comfort every 10 seconds for triple hearts. Gathering sustains the lodge; crafting trades supply throughput for 50% higher tips.
+- **Shared outings:** a 45-second expedition costs 12 supplies and returns 48 supplies plus 35 tips. A 60-second festival costs 12 hearts and 20 supplies and returns 110 tips plus 24 hearts. Both pause all normal production, including the room-work clock. Remaining elapsed time resumes production after completion.
+- **Local journal:** versioned, strictly validated saves use only `dora-enzo-mountain-retreat-v1`. SSR never reads storage. Malformed saves start fresh, blocked storage permits in-memory play, future timestamps earn nothing, and offline simulation is capped at eight hours. No account, network service, purchase or reset of another game’s save. Use one tab, as cross-tab conflict resolution is not implemented.
+- **Accessibility:** native keyboard/touch buttons, selected-state announcements, visible focus, activity progress, live event feedback and reduced-motion support. The field guide explains the economy.
+- **Tests:** `npm run test:mountain-retreat`, `node tests/e2e/mountain-retreat.mjs` (running server and locally available Playwright), plus the shared engine, typecheck and build suites.
+
+Requirement-level checks and known limitations: [Mountain Retreat validation](docs/mountain-retreat-validation.md).
