@@ -9,6 +9,10 @@ Every game in the arcade menu (`GAMES` in `app/page.tsx`) must be documented in 
 
 `npm test` runs `tests/readme.mjs`, which fails when the README and `GAMES` disagree. Describe controls and numbers from the game's code or its `docs/` file, not from memory.
 
+## Changelog
+
+Every user-visible change (new games or features, gameplay or balance changes, fixes, deployment or tooling changes) gets an entry in `CHANGELOG.md` in the same commit. Add it under today's date heading (`## YYYY-MM-DD`, newest first; create the heading if missing) in the **Added**, **Changed**, **Fixed** or **Documentation** subsection. Write for players, naming the game in bold, and fold several commits for one feature into one entry. Internal refactors and test-only changes don't need an entry.
+
 <!-- graft:start -->
 ## Graft — repo context graph
 
