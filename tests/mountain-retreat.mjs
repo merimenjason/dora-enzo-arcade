@@ -6,6 +6,8 @@ import {
   upgradeRoom,
   parseRetreat,
   restoreRetreat,
+  hostStop,
+  visitPeriod,
   OFFLINE_CAP,
 } from '../.checks/mountain-retreat-game.js';
 let count = 0;
@@ -181,5 +183,39 @@ test('resource bounds and hostile time input', () => {
   assert.equal(s.coins, 1e9);
   assert.equal(s.hearts, 1e9);
   assert.ok(parseRetreat(JSON.stringify(s)));
+});
+test('hosts tour only open rooms on the simulation clock', () => {
+  const s = freshRetreat();
+  for (const host of ['dora', 'enzo'])
+    assert.deepEqual(hostStop(s, host), { room: 0, from: 0, walking: false });
+  s.rooms = [1, 1, 0, 0];
+  assert.equal(hostStop(s, 'enzo').room, 1);
+  s.elapsed = 8;
+  assert.deepEqual(hostStop(s, 'dora'), { room: 1, from: 0, walking: true });
+  s.elapsed = 10;
+  assert.equal(hostStop(s, 'dora').walking, false);
+  s.rooms = [3, 3, 3, 3];
+  const seen = new Set();
+  for (let t = 0; t < 32; t += 8) {
+    s.elapsed = t;
+    const stop = hostStop(s, 'dora');
+    assert.ok(s.rooms[stop.room] > 0);
+    seen.add(stop.room);
+  }
+  assert.equal(seen.size, 4);
+  const away = freshRetreat();
+  away.rooms = [1, 1, 1, 1];
+  away.supplies = 120;
+  advanceRetreat(away, 7);
+  assert.ok(startActivity(away, 'expedition'));
+  const before = hostStop(away, 'enzo');
+  advanceRetreat(away, 30);
+  assert.deepEqual(hostStop(away, 'enzo'), before);
+});
+test('guest visit period follows Dora’s duty', () => {
+  const s = freshRetreat();
+  assert.equal(visitPeriod(s), 6);
+  s.dora = 'comfort';
+  assert.equal(visitPeriod(s), 10);
 });
 console.log(`${count} Mountain Retreat deterministic tests passed.`);

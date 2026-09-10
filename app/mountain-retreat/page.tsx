@@ -5,15 +5,48 @@ import { useEffect, useRef, useState } from 'react';
 import {
   advanceRetreat,
   freshRetreat,
+  hostStop,
   restoreRetreat,
   ROOMS,
   roomCost,
   SAVE_KEY,
   startActivity,
   upgradeRoom,
+  visitPeriod,
   type RetreatState,
 } from '@/lib/mountain-retreat-game';
 import './retreat.css';
+// Cutaway order: upper floor (suite, bath), then ground floor (hearth, kitchen).
+const SLOT = [2, 3, 0, 1];
+const place = (room: number) => {
+  const slot = SLOT.indexOf(room);
+  return { col: slot % 2, row: slot < 2 ? 1 : 0 };
+};
+const COATS = ['beige', 'velvet', 'violet', 'ebony', 'sapphire'];
+function Fur() {
+  return (
+    <>
+      <i className="ear left" />
+      <i className="ear right" />
+      <i className="tail" />
+      <i className="body" />
+      <i className="face" />
+      <i className="eyes" />
+      <i className="nose" />
+      <i className="apron" />
+    </>
+  );
+}
+function Visitor({ coat }: { coat: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`mr-chin small guest ${COATS[coat % COATS.length]}`}
+    >
+      <Fur />
+    </span>
+  );
+}
 function Chin({
   name,
   small = false,
@@ -29,19 +62,14 @@ function Chin({
       aria-label={`${name}, ${name === 'Dora' ? 'white' : 'grey'} chinchilla`}
       className={`mr-chin ${name.toLowerCase()} ${small ? 'small' : ''}`}
     >
-      <i className="ear left" />
-      <i className="ear right" />
-      <i className="tail" />
-      <i className="body" />
-      <i className="face" />
-      <i className="eyes" />
-      <i className="nose" />
-      <i className="apron" />
+      <Fur />
     </span>
   );
 }
 export default function MountainRetreat() {
   const game = useRef<RetreatState>(freshRetreat());
+  // Last successful guest visit this session, so visitors only appear when one really happened.
+  const visit = useRef({ served: 0, at: -1 });
   const [ready, setReady] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
   useEffect(() => {
@@ -87,6 +115,7 @@ export default function MountainRetreat() {
     } catch {
       game.current = freshRetreat(now);
     }
+    visit.current = { served: game.current.served, at: -1 };
     setReady(true);
     persist();
     render((n) => n + 1);
@@ -99,6 +128,12 @@ export default function MountainRetreat() {
       if (seconds) {
         const was = game.current.activity?.kind;
         advanceRetreat(game.current, seconds);
+        const g = game.current;
+        if (g.served > visit.current.served)
+          visit.current = {
+            served: g.served,
+            at: g.elapsed - (g.elapsed % visitPeriod(g)),
+          };
         game.current.savedAt =
           current -
           (seconds < 28800 ? (current - game.current.savedAt) % 1000 : 0);
@@ -129,6 +164,11 @@ export default function MountainRetreat() {
   };
   const busy = !!s.activity;
   const open = s.rooms.filter(Boolean).length;
+  const period = visitPeriod(s);
+  const since = visit.current.at < 0 ? -1 : s.elapsed - visit.current.at;
+  const staying = !busy && since >= 0 && since < period;
+  const arriving =
+    !busy && s.elapsed % period >= period - 3 && s.supplies >= open;
   return (
     <main className="mr-shell" data-theme={theme}>
       <header className="mr-top">
@@ -220,7 +260,15 @@ export default function MountainRetreat() {
         >
           <div className="mr-scene-caption">
             <span>01 / JUNIPER LODGE</span>
-            <span>{busy ? '◌ BOTH HOSTS AWAY' : '● THE KETTLE IS ON'}</span>
+            <span data-testid="scene-status">
+              {busy
+                ? '◌ BOTH HOSTS AWAY'
+                : staying
+                  ? `● ${open} ${open === 1 ? 'GUEST' : 'GUESTS'} STAYING`
+                  : arriving
+                    ? '● GUESTS ON THE PATH'
+                    : '● THE KETTLE IS ON'}
+            </span>
           </div>
           <div className={`mr-landscape ${busy ? 'away' : ''}`}>
             <div className="mr-sun" />
@@ -236,7 +284,7 @@ export default function MountainRetreat() {
                 <i className="mr-smoke" />
               </div>
               <div className="mr-rooms">
-                {[2, 3, 0, 1].map((i) => (
+                {SLOT.map((i) => (
                   <div
                     key={i}
                     className={`mr-room room-${i} ${s.rooms[i] ? 'unlocked' : 'locked'}`}
@@ -261,19 +309,15 @@ export default function MountainRetreat() {
                         <span className="mr-level">
                           {'★'.repeat(s.rooms[i])}
                         </span>
-                        {!busy && i === 0 && (
-                          <div className="mr-host dora-host">
-                            <Chin name="Dora" small />
-                            <span>Dora · {s.dora}</span>
-                          </div>
+                        {staying && (
+                          <span
+                            key={visit.current.served}
+                            className={`mr-visitor${since === period - 1 ? ' leaving' : ''}`}
+                          >
+                            <Visitor coat={visit.current.served + i} />
+                            <span className="mr-guest">♥</span>
+                          </span>
                         )}
-                        {!busy && i === (s.rooms[1] ? 1 : 0) && (
-                          <div className="mr-host enzo-host">
-                            <Chin name="Enzo" small />
-                            <span>Enzo · {s.enzo}</span>
-                          </div>
-                        )}
-                        {!busy && <span className="mr-guest">♥</span>}
                       </>
                     ) : (
                       <>
@@ -289,12 +333,55 @@ export default function MountainRetreat() {
                     )}
                   </div>
                 ))}
+                {ready &&
+                  !busy &&
+                  (['dora', 'enzo'] as const).map((host) => {
+                    const stop = hostStop(s, host);
+                    const to = place(stop.room);
+                    const from = place(stop.from);
+                    const motion = !stop.walking
+                      ? ''
+                      : to.col === from.col
+                        ? ' walking climbing'
+                        : to.col < from.col
+                          ? ' walking facing-left'
+                          : ' walking';
+                    const name = host === 'dora' ? 'Dora' : 'Enzo';
+                    return (
+                      <div
+                        key={host}
+                        data-room={stop.room}
+                        className={`mr-host ${host}-host${motion}`}
+                        style={
+                          { '--col': to.col, '--row': to.row } as React.CSSProperties
+                        }
+                      >
+                        <Chin name={name} small />
+                        <span>
+                          {name} · {s[host]}
+                        </span>
+                      </div>
+                    );
+                  })}
               </div>
               <div className="mr-foundation">
                 EST. TODAY · STAY A LITTLE LONGER
               </div>
             </div>
             <div className="mr-path" />
+            {arriving && (
+              <div
+                className="mr-arrivals"
+                key={Math.floor(s.elapsed / period)}
+                aria-hidden="true"
+              >
+                {Array.from({ length: open }, (_, n) => (
+                  <span key={n} style={{ '--n': n } as React.CSSProperties}>
+                    <Visitor coat={s.served + open + n} />
+                  </span>
+                ))}
+              </div>
+            )}
             {busy && (
               <div className="mr-trail-hosts">
                 <Chin name="Dora" small />

@@ -80,6 +80,25 @@ export function startActivity(s: RetreatState, kind: Activity): boolean {
   } else return false;
   return true;
 }
+export type Host = 'dora' | 'enzo';
+export const HOST_STOP_SECONDS = { dora: 8, enzo: 12 } as const;
+export const WALK_SECONDS = 2;
+const TOURS = { dora: [0, 2, 3, 1], enzo: [1, 3, 0, 2] } as const;
+export const visitPeriod = (s: RetreatState) =>
+  s.dora === 'welcome' ? 6 : 10;
+/** Where a host stands. Driven by `elapsed`, so hosts freeze when outings pause production. */
+export function hostStop(s: RetreatState, host: Host) {
+  const tour = TOURS[host].filter((i) => s.rooms[i] > 0);
+  const period = HOST_STOP_SECONDS[host];
+  const k = Math.floor(s.elapsed / period);
+  const room = tour[k % tour.length];
+  const from = tour[(k + tour.length - 1) % tour.length];
+  return {
+    room,
+    from,
+    walking: room !== from && s.elapsed % period < WALK_SECONDS,
+  };
+}
 /** Both hosts leave normal work for activities. Rewards arrive exactly once. */
 export function advanceRetreat(s: RetreatState, seconds: number): void {
   if (!Number.isFinite(seconds) || seconds <= 0) return;
@@ -105,7 +124,7 @@ export function advanceRetreat(s: RetreatState, seconds: number): void {
     s.elapsed = (s.elapsed + 1) % 999999990;
     if (s.elapsed % (s.enzo === 'gather' ? 3 : 6) === 0)
       s.supplies = Math.min(120, s.supplies + (s.enzo === 'gather' ? 2 : 1));
-    if (s.elapsed % (s.dora === 'welcome' ? 6 : 10) === 0) {
+    if (s.elapsed % visitPeriod(s) === 0) {
       const rooms = s.rooms.filter(Boolean).length;
       if (s.supplies >= rooms) {
         s.supplies -= rooms;

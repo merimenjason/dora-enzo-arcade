@@ -284,6 +284,7 @@
   letter-spacing: 5px;
 }
 .mr-rooms {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
   border: 8px solid #72543c;
@@ -550,9 +551,16 @@
   margin-left: -14px;
   margin-right: -14px;
 }
+/* Hosts sit on a layer over the 2×2 room grid (7px gaps, 10px floors): --col/--row pick the room, --spot the point across it. */
 .mr-host {
   position: absolute;
-  bottom: 7px;
+  z-index: 4;
+  left: calc(var(--col, 0) * (50% + 3.5px) + var(--spot) * (50% - 3.5px));
+  bottom: calc(17px + var(--row, 0) * (50% + 3.5px));
+  transform: translateX(-50%);
+  transition:
+    left 1.4s steps(14),
+    bottom 0.5s steps(4) 1.3s;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -566,19 +574,87 @@
   white-space: nowrap;
 }
 .mr-host.dora-host {
-  left: 27%;
+  --spot: 0.46;
 }
 .mr-host.enzo-host {
-  right: 4%;
+  --spot: 0.8;
   animation-delay: 0.8s;
+}
+.mr-host.walking .mr-chin {
+  animation: mr-step 0.4s steps(2) infinite;
+}
+.mr-host.climbing {
+  transition: bottom 0.9s steps(6);
+}
+.mr-host.facing-left .mr-chin {
+  scale: -1 1;
+}
+.mr-visitor {
+  position: absolute;
+  left: -4px;
+  bottom: 24px;
+  z-index: 2;
+  animation: mr-arrive 0.6s steps(3) both;
+}
+.mr-visitor.leaving {
+  animation: mr-leave 0.9s steps(3) both;
 }
 .mr-guest {
   position: absolute;
-  right: 30%;
-  top: 35px;
+  left: 30px;
+  top: -12px;
   font-size: 15px;
   color: #ad6156;
   animation: mr-heart 3s steps(5) infinite;
+}
+.mr-chin.guest.beige {
+  --fur: #ead7b5;
+  --shade: #cdb48c;
+  --coat: #7b9bb8;
+}
+.mr-chin.guest.velvet {
+  --fur: #7d7f84;
+  --shade: #4f5156;
+  --coat: #d69a5b;
+}
+.mr-chin.guest.violet {
+  --fur: #c3b8cf;
+  --shade: #9d91ad;
+  --coat: #7fa37a;
+}
+.mr-chin.guest.ebony {
+  --fur: #6e625a;
+  --shade: #4e443e;
+  --coat: #e2c06a;
+}
+.mr-chin.guest.sapphire {
+  --fur: #b3c0cc;
+  --shade: #8e9daa;
+  --coat: #b0607a;
+}
+.mr-chin.guest .apron {
+  top: 50px;
+  bottom: auto;
+  left: 22px;
+  width: 34px;
+  height: 6px;
+  border-top: 0;
+}
+.mr-arrivals {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+.mr-arrivals > span {
+  position: absolute;
+  left: calc(44% + var(--n) * 4%);
+  bottom: 38px;
+  animation: mr-path-walk 2.4s steps(12) both;
+  animation-delay: calc(var(--n) * 0.25s);
+}
+.mr-arrivals .mr-chin {
+  animation: mr-step 0.4s steps(2) infinite;
 }
 .mr-trail-hosts {
   position: absolute;
@@ -851,6 +927,39 @@
     opacity: 0;
   }
 }
+@keyframes mr-step {
+  50% {
+    translate: 0 -3px;
+  }
+}
+@keyframes mr-arrive {
+  from {
+    translate: 26px 0;
+    opacity: 0;
+  }
+}
+@keyframes mr-leave {
+  to {
+    translate: -20px 0;
+    opacity: 0;
+  }
+}
+@keyframes mr-path-walk {
+  0% {
+    left: 66%;
+    bottom: -40px;
+    opacity: 0;
+  }
+  15%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    left: calc(44% + var(--n) * 4%);
+    bottom: 38px;
+    opacity: 0;
+  }
+}
 @media (min-width: 1441px) {
   body:has(.mr-shell) {
     background: #f7f4e9;
@@ -1007,10 +1116,10 @@
     font-size: 6px;
   }
   .mr-host.dora-host {
-    left: 20%;
+    --spot: 0.5;
   }
   .mr-host.enzo-host {
-    right: 0;
+    --spot: 0.84;
   }
   .mr-furniture {
     left: 6px;

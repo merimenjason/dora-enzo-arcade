@@ -200,7 +200,7 @@ Each fighter's special (35 power) is shown on its roster card, and an on-screen 
 
 ### 12 · Dora & Enzo’s Mountain Retreat (`/mountain-retreat`)
 
-**Play:** A responsive, pixel-styled idle game set in a cutaway of Juniper Lodge. Dora handles hospitality and Enzo handles supplies. Open the kitchen, suite and alpine bath, then raise all four rooms to level 3, which takes 5 to 10 minutes. Supplies feed automatic guest visits, which earn hearts and tips. Welcome serves a guest every 6 seconds. Comfort serves every 10 seconds for triple hearts. Gathering keeps the lodge supplied, while crafting trades supply for 50% higher tips. There are two shared outings, and both pause normal production:
+**Play:** A responsive, pixel-styled idle game set in a cutaway of Juniper Lodge. Dora handles hospitality and Enzo handles supplies. Open the kitchen, suite and alpine bath, then raise all four rooms to level 3, which takes 5 to 10 minutes. Supplies feed automatic guest visits, which earn hearts and tips. Dora and Enzo walk between the open rooms, and before each visit one visiting chinchilla per open room walks up the path and settles in. Welcome serves a guest every 6 seconds. Comfort serves every 10 seconds for triple hearts. Gathering keeps the lodge supplied, while crafting trades supply for 50% higher tips. There are two shared outings, and both pause normal production:
 
 - Expedition: 45 seconds. Costs 12 supplies and returns 48 supplies plus 35 tips.
 - Festival: 60 seconds. Costs 12 hearts and 20 supplies and returns 110 tips plus 24 hearts.
@@ -212,7 +212,7 @@ Progress is saved locally under `dora-enzo-mountain-retreat-v1`, with offline pr
 - Native keyboard and touch buttons with visible focus and selected-state announcements.
 - The field guide explains the economy. Reduced motion is respected.
 
-**Tests:** `npm run test:mountain-retreat` (also in `npm test`). Browser: `tests/e2e/mountain-retreat.mjs` and `tests/e2e/mountain-retreat-theme.mjs`.
+**Tests:** `npm run test:mountain-retreat` (also in `npm test`). Browser: `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs` and `tests/e2e/mountain-retreat-scene.mjs`.
 
 **Docs:** [Mountain Retreat validation and known limitations](docs/mountain-retreat-validation.md).
 
