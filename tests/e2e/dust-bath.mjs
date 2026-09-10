@@ -10,13 +10,22 @@ try {
     reducedMotion: 'reduce',
   });
   page.on('pageerror', (e) => errors.push(e.message));
+  // The saved coins/upgrades load in a mount effect, which also enables the
+  // start buttons. Waiting for "enabled" (not merely "attached") guarantees the
+  // restore has been applied before any coin assertion reads the UI.
+  const openSpaReady = async (pg) => {
+    await pg
+      .getByRole('button', { name: /Open spa/ })
+      .and(pg.locator('button:not([disabled])'))
+      .waitFor();
+  };
   await page.clock.install();
   await page.goto(`${base}/dust-bath`);
-  await page.getByRole('button', { name: /Open spa/ }).waitFor();
+  await openSpaReady(page);
   // Start from a clean save so coin/upgrade assertions are deterministic.
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole('button', { name: /Open spa/ }).waitFor();
+  await openSpaReady(page);
   assert.equal(await page.locator('.db-welcome li').count(), 4);
   assert.equal(
     await page
@@ -181,7 +190,7 @@ try {
   // --- Persistence: reload keeps coins and upgrades (localStorage) ---
   const coinsBefore = await page.getByTestId('coins').textContent();
   await page.reload();
-  await page.getByRole('button', { name: /Open spa/ }).waitFor();
+  await openSpaReady(page);
   assert.equal(await page.getByTestId('coins').textContent(), coinsBefore);
   assert.equal(
     await page.getByRole('button', { name: '✓ Installed', exact: true }).count(),

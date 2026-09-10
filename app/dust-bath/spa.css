@@ -1222,3 +1222,14 @@
 .db-welcome > div > p:not(.db-eyebrow):not(.db-note) {
   color: #5b6b5d;
 }
+
+/* Dora presides over her lounge; her portrait sits beside the station label. */
+.db-dora {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.db-dora .db-chin {
+  width: 40px;
+  flex: none;
+}

@@ -42,6 +42,9 @@ function Chin({
   mood?: 'calm' | 'happy' | 'bliss' | 'worried';
   vip?: boolean;
 }) {
+  // Gradient ids must be unique per coat. Sharing one id makes every portrait
+  // reuse the first chinchilla's fill, which rendered Enzo in Dora's white.
+  const gid = `db-body-${color}-${belly}`.replace(/[^a-zA-Z0-9-]/g, '');
   return (
     <svg
       className={`db-chin db-mood-${mood}`}
@@ -49,7 +52,7 @@ function Chin({
       aria-hidden="true"
     >
       <defs>
-        <radialGradient id="db-body" cx="50%" cy="38%" r="70%">
+        <radialGradient id={gid} cx="50%" cy="38%" r="70%">
           <stop offset="0%" stopColor={belly} />
           <stop offset="72%" stopColor={color} />
           <stop offset="100%" stopColor={color} />
@@ -90,7 +93,7 @@ function Chin({
         cy="86"
         rx="45"
         ry="38"
-        fill="url(#db-body)"
+        fill={`url(#${gid})`}
         stroke="#5f574f"
         strokeWidth="2"
       />
@@ -100,7 +103,7 @@ function Chin({
         cy="62"
         rx="41"
         ry="35"
-        fill="url(#db-body)"
+        fill={`url(#${gid})`}
         stroke="#5f574f"
         strokeWidth="2"
       />
@@ -495,7 +498,10 @@ export default function DustBath() {
             <h2>
               02 <span>The dust-bath lounge</span>
             </h2>
-            <small>DORA’S STATION</small>
+            <div className="db-dora">
+              <Chin color="#f4f1ec" belly="#ffffff" mood="happy" />
+              <small>DORA’S STATION</small>
+            </div>
           </div>
           <div className={`db-baths cols-${g.baths.length}`}>
             {g.baths.map((b, i) => (
@@ -655,7 +661,7 @@ export default function DustBath() {
             Two-tap scrubbing (no holding)
           </label>
           <div className="db-enzo">
-            <Chin color="#9aa6ad" belly="#e8ecee" />
+            <Chin color="#7c878f" belly="#c9d2d7" mood="calm" />
             <div>
               <b>Enzo’s supply corner</b>
               <small>Always happy to lend a paw.</small>
