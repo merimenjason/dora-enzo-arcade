@@ -29,6 +29,7 @@ Implemented 2026-09-10 as cabinet 12 at `/mountain-retreat`. No existing game pa
 - `node tests/e2e/mountain-retreat.mjs`: passed in Chromium, including all visible room unlocks and reduced-motion checks.
 - Scoped `oxlint` for the new page/layout, engine and test files: zero errors or warnings. Explicit documented exceptions preserve the repository's imperative-engine rendering and full-navigation convention and represent CSS pixel artwork accessibly.
 - Existing browser regressions: Classic and all twelve navigation routes passed. Fighter independently completed with no browser errors. The aggregate `npm run test:e2e` was stopped after approximately five minutes in the unchanged legacy checkpoint scenario, whose last output was `docs: 2 | permit rows: 0`. No full aggregate-browser pass is claimed.
+- Dust Bath independently passed desktop gameplay and cozy-mode checks. Its stale card-count/headline expectations were fixed, and those exact return-navigation assertions passed a focused browser replay. A superseded full rerun was stopped because it had loaded the old headline assertion. Full spa mobile/shift coverage is not claimed for this change. No regression processes remain running.
 - `git diff --check`: passed.
 - `graft build`: refreshed local ignored graph cache.
 
