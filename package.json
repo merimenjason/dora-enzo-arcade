@@ -9,6 +9,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "wrangler dev --config dist/server/wrangler.json",
+    "deploy": "wrangler deploy --config dist/server/wrangler.json --name dora-enzo-arcade --domain chinchillas.jason.engineering",
     "lint": "oxlint",
     "format": "oxfmt",
     "test": "tsc lib/mountain-retreat-game.ts lib/dust-bath-game.ts lib/classic-pit-game.ts lib/arpg-game.ts lib/pit-game.ts lib/flappy-game.ts lib/kart-game.ts lib/soccer-game.ts lib/escape-game.ts lib/fighter-game.ts lib/checkpoint-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/classic-pit.mjs && node tests/arpg.mjs && node tests/survival.mjs && node tests/flappy.mjs && node tests/kart.mjs && node tests/soccer.mjs && node tests/escape.mjs && node tests/fighter.mjs && node tests/checkpoint.mjs && node tests/dust-bath.mjs && node tests/mountain-retreat.mjs && node tests/readme.mjs",

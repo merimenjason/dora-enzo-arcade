@@ -236,11 +236,22 @@ npm run test:e2e   # optional; needs `npm run dev` running and `npm i -D playwri
 
 ## Deployment
 
-`npm run build` (vinext) produces a Cloudflare Worker in `dist/`: the server code in `dist/server/` and the static assets in `dist/client/`. Every game runs in the browser, so the Worker needs no database, storage or secrets. GitHub Pages cannot serve this build as-is.
+The arcade is live at **https://chinchillas.jason.engineering**. It runs on Cloudflare Workers as a Worker named `dora-enzo-arcade`.
 
-### Deploy to Cloudflare Workers
+`npm run build` (vinext) produces the Worker in `dist/`: the server code in `dist/server/` and the static assets in `dist/client/`. Every game runs in the browser, so the Worker needs no database, storage or app secrets. GitHub Pages cannot serve this build as-is.
 
-You need a free [Cloudflare account](https://dash.cloudflare.com/sign-up). Wrangler, Cloudflare's CLI, is already a dev dependency.
+### Automatic deploys
+
+Every push to `main` deploys automatically. The `deploy` job in `.github/workflows/ci.yml` runs after the typecheck, tests and build pass, then rebuilds and runs `npm run deploy`. Pull requests and pushes to other branches are checked but never deployed. Deploys run one at a time, in push order, and each replaces the live version.
+
+The job needs two repository secrets, under **Settings → Secrets and variables → Actions**:
+
+- `CLOUDFLARE_ACCOUNT_ID`: the ID of the Cloudflare account that owns the Worker.
+- `CLOUDFLARE_API_TOKEN`: a Cloudflare API token. Create it in the Cloudflare dashboard under **My Profile → API Tokens → Create Token** with the **Edit Cloudflare Workers** template, limited to that account and the `jason.engineering` zone. Store it with `gh secret set CLOUDFLARE_API_TOKEN`, which prompts for the value so it stays out of your shell history.
+
+### Manual deploys
+
+Wrangler, Cloudflare's CLI, is already a dev dependency.
 
 1. Install dependencies and build:
 
@@ -264,14 +275,12 @@ You need a free [Cloudflare account](https://dash.cloudflare.com/sign-up). Wrang
 4. Deploy:
 
    ```sh
-   npx wrangler deploy --config dist/server/wrangler.json --name dora-enzo-arcade
+   npm run deploy
    ```
 
-   Wrangler prints the live URL, `https://dora-enzo-arcade.<your-subdomain>.workers.dev`. On your first deploy it asks you to choose that `workers.dev` subdomain. `--name` sets the Worker's name; without it, the Worker is named `sites-project` after `package.json`.
+`npm run deploy` uploads `dist/` to the `dora-enzo-arcade` Worker and attaches `chinchillas.jason.engineering` as its custom domain. On the first deploy, Wrangler creates the DNS record and HTTPS certificate. The domain must be a zone on the same Cloudflare account. To deploy somewhere else, change `--name` and `--domain` in the `deploy` script in `package.json`.
 
-To ship changes, run `npm run build` and the same `wrangler deploy` command again. Each deploy replaces the live version. To check the upload without publishing, add `--dry-run` to the deploy command; it needs no login. The current build uploads about 1.8 MB (about 514 KB gzipped).
-
-To use your own domain, open the Worker in the Cloudflare dashboard and add it under **Settings → Domains & Routes**. The domain must be on your Cloudflare account.
+To check the upload without publishing, run `npx wrangler deploy --config dist/server/wrangler.json --dry-run`; it needs no login. The current build uploads about 1.8 MB (about 514 KB gzipped).
 
 ### OpenAI Sites
 
@@ -279,7 +288,7 @@ The project was originally hosted on OpenAI Sites, linked by `.openai/hosting.js
 
 ## Contributing and CI
 
-GitHub Actions runs `npm ci`, `npm run typecheck`, `npm test` and `npm run build` on every push and pull request (`.github/workflows/ci.yml`). The browser suites in `tests/e2e/` need a running dev server and a local Playwright install, so they are run manually rather than in CI.
+GitHub Actions runs `npm ci`, `npm run typecheck`, `npm test` and `npm run build` on every push and pull request (`.github/workflows/ci.yml`). Pushes to `main` that pass are then deployed (see **Automatic deploys** above). The browser suites in `tests/e2e/` need a running dev server and a local Playwright install, so they are run manually rather than in CI.
 
 ## License
 
