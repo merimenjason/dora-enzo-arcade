@@ -202,7 +202,7 @@ Each fighter's special (35 power) is shown on its roster card, and an on-screen 
 
 **Play:** A responsive, pixel-styled idle game set in a cutaway of Juniper Lodge. Dora handles hospitality and Enzo handles supplies. Open the kitchen, suite and alpine bath, then raise all four rooms to level 3, which takes 5 to 10 minutes. Supplies feed automatic guest visits, which earn hearts and tips. Dora and Enzo walk between the open rooms, and before each visit one visiting chinchilla per open room walks up the path and settles in. Welcome serves a guest every 6 seconds. Comfort serves every 10 seconds for triple hearts. Enzo delivers supplies every 2 seconds: Gather brings 3, while Craft with care brings 1 but earns 50% higher tips and turns 2 supplies into an oat cake or herbal soap every 6 seconds.
 
-Every visit has a featured guest with a wish: a room, sometimes an oat cake or herbal soap, and sometimes Extra comfort. A guest book shows who is coming next. Granted wishes earn bonus tips, hearts and reputation. Unmet wishes cost 1 reputation, and guests turned away for lack of supplies cost 3. Every 20 reputation adds a star (up to 5), which unlocks new guest types and bigger tips. At level 3 each room picks one of two specialties. Regulars Pip, Mochi and Luna return every fifth visit and send postcards at friendship 3, 6 and 10, and every featured guest fills a coat album. Seasons change every 6 minutes of lodge time and night falls every 2 minutes, each with its own bonus. Stargazers only come at night, and winter closes the summit.
+Every visit has a featured guest with a wish: a room, sometimes an oat cake or herbal soap, and sometimes Extra comfort. A guest book shows who is coming next. Granted wishes earn bonus tips, hearts and reputation. Unmet wishes cost 1 reputation, and guests turned away for lack of supplies cost 3. Every 20 reputation adds a star (up to 5), which unlocks new guest types and bigger tips. At level 3 each room picks one of two specialties. Regulars Pip, Mochi and Luna return every fifth visit and send postcards at friendship 3, 6 and 10, and every featured guest fills a coat album. Seasons change every 6 minutes of lodge time and night falls every 2 minutes, each with its own bonus. Stargazers only come at night, and winter closes the summit. A ? beside tips, hearts, supplies and the rating breaks each number down. A countdown ring shows the next guest arriving, and a season strip shows the time until the next season and until nightfall. Each visit shows its rewards floating over the room and marks coats that are new to the album. After time away, a summary lists what happened. Soft synthesized sound is available and off by default.
 
 All outings pause normal production:
 
@@ -216,9 +216,10 @@ Progress is saved locally under `dora-enzo-mountain-retreat-v1` (save format ver
 **Controls:**
 
 - Native keyboard and touch buttons with visible focus and selected-state announcements.
-- The field guide explains the economy. Reduced motion is respected.
+- Keys 1–4 set the hosts' duties: 1 Welcome, 2 Extra comfort, 3 Gather, 4 Craft with care. They are ignored while a form control has focus.
+- The field guide explains the economy, and each ? opens a breakdown that works with touch, keyboard and screen readers. Reduced motion is respected.
 
-**Tests:** `npm run test:mountain-retreat` (also in `npm test`). Browser: `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/mountain-retreat-scene.mjs` and `tests/e2e/mountain-retreat-depth.mjs`.
+**Tests:** `npm run test:mountain-retreat` (also in `npm test`). Browser: `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/mountain-retreat-scene.mjs`, `tests/e2e/mountain-retreat-depth.mjs` and `tests/e2e/mountain-retreat-ux.mjs`.
 
 **Docs:** [Mountain Retreat validation and known limitations](docs/mountain-retreat-validation.md).
 

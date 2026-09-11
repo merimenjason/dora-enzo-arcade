@@ -235,11 +235,73 @@ export const visitPeriod = (s: RetreatState) =>
 export const SUPPLY_SECONDS = 2;
 export const RECIPE_SECONDS = 6;
 export const RECIPE_COST = 2;
-/** Supplies per delivery (every SUPPLY_SECONDS). */
-export const supplyRate = (s: RetreatState) =>
-  (s.enzo === 'gather' ? 3 : 1) +
-  (season(s.elapsed) === 'spring' ? 1 : 0) +
-  (s.perks[1] === 1 ? 1 : 0);
+/** A labelled share of a reward, so the UI can explain every number. */
+export interface Part {
+  label: string;
+  value: number;
+}
+export const total = (parts: Part[]) => parts.reduce((a, p) => a + p.value, 0);
+const shown = (parts: Part[]) => parts.filter((p) => p.value > 0);
+/** Where each supply delivery (every SUPPLY_SECONDS) comes from. */
+export const supplyParts = (s: RetreatState, elapsed = s.elapsed): Part[] =>
+  shown([
+    s.enzo === 'gather'
+      ? { label: 'Enzo gathering', value: 3 }
+      : { label: 'Enzo crafting', value: 1 },
+    { label: 'Spring blossoms', value: season(elapsed) === 'spring' ? 1 : 0 },
+    { label: 'Larder', value: s.perks[1] === 1 ? 1 : 0 },
+  ]);
+export const supplyRate = (s: RetreatState) => total(supplyParts(s));
+/** Tips and hearts a visit at `elapsed` pays before the featured guest's wish. */
+export function visitRewards(s: RetreatState, elapsed = s.elapsed) {
+  const rooms = s.rooms.filter(Boolean).length;
+  const quality = s.rooms.reduce((a, b) => a + b, 0);
+  const craft = s.enzo === 'craft';
+  const comfort = s.dora === 'comfort';
+  const when = season(elapsed);
+  return {
+    tips: shown([
+      { label: `Room levels (${quality} × ${craft ? 3 : 2}${craft ? ', crafted' : ''})`, value: quality * (craft ? 3 : 2) },
+      { label: `${rating(s)}-star rating (${rooms} rooms × ${rating(s) - 1})`, value: rooms * (rating(s) - 1) },
+      { label: 'Decorations', value: s.decor },
+      { label: 'Tea stall', value: s.perks[0] === 1 ? 3 : 0 },
+      { label: 'Autumn harvest', value: when === 'autumn' ? rooms : 0 },
+    ]),
+    hearts: shown([
+      { label: `${comfort ? 'Extra comfort' : 'Welcome'} (${rooms} rooms × ${comfort ? 3 : 1})`, value: rooms * (comfort ? 3 : 1) },
+      { label: 'Feather beds', value: comfort && s.perks[2] === 1 ? rooms : 0 },
+      { label: 'Telescope at night', value: isNight(elapsed) && s.perks[2] === 0 ? rooms : 0 },
+      { label: 'Winter coziness', value: when === 'winter' ? rooms : 0 },
+    ]),
+  };
+}
+export const WISH_TIPS = 4;
+export const ITEM_TIPS = 10;
+export const WISH_HEARTS = 2;
+const bits = (mask: number) => {
+  let n = 0;
+  for (let m = mask; m; m &= m - 1) n++;
+  return n;
+};
+/** What changed between two saves of the same lodge, for the welcome-back summary. */
+export function awaySummary(before: RetreatState, after: RetreatState) {
+  return {
+    visits: after.visits - before.visits,
+    tips: after.coins - before.coins,
+    hearts: after.hearts - before.hearts,
+    reputation: after.reputation - before.reputation,
+    supplies: after.supplies - before.supplies,
+    oatcakes: after.pantry.oatcake - before.pantry.oatcake,
+    soap: after.pantry.soap - before.pantry.soap,
+    postcards: after.friends.reduce(
+      (n, f, i) => n + POSTCARDS.filter((p) => p.at <= f && p.at > before.friends[i]).length,
+      0,
+    ),
+    coats: after.album.reduce((n, mask, i) => n + bits(mask & ~before.album[i]), 0),
+    outings:
+      after.expeditions + after.festivals - before.expeditions - before.festivals,
+  };
+}
 /** Which item Enzo's next recipe makes: alternates between the open workshops. */
 export function recipeAt(s: RetreatState, elapsed: number): Item | null {
   const kinds = (['oatcake', 'soap'] as const).filter((k) => s.rooms[ITEMS[k].room] > 0);
@@ -306,31 +368,19 @@ function visit(s: RetreatState) {
     return;
   }
   s.supplies -= rooms;
-  const when = season(s.elapsed);
-  const night = isNight(s.elapsed);
-  const comfort = s.dora === 'comfort';
-  const quality = s.rooms.reduce((a, b) => a + b, 0);
-  let tips =
-    quality * (s.enzo === 'craft' ? 3 : 2) +
-    rooms * (rating(s) - 1) +
-    s.decor +
-    (s.perks[0] === 1 ? 3 : 0) +
-    (when === 'autumn' ? rooms : 0);
-  let hearts =
-    rooms * (comfort ? 3 : 1) +
-    (comfort && s.perks[2] === 1 ? rooms : 0) +
-    (night && s.perks[2] === 0 ? rooms : 0) +
-    (when === 'winter' ? rooms : 0);
+  const rewards = visitRewards(s);
+  let tips = total(rewards.tips);
+  let hearts = total(rewards.hearts);
   let postcard = -1;
   const happy = canGrant(s, who.guest);
   if (happy) {
     const item = GUESTS[who.guest].item;
     if (item) {
       s.pantry[item]--;
-      tips += 10;
+      tips += ITEM_TIPS;
     }
-    tips += 4;
-    hearts += 2;
+    tips += WISH_TIPS;
+    hearts += WISH_HEARTS;
     s.reputation = Math.min(100, s.reputation + 1 + (s.perks[0] === 0 ? 1 : 0));
     if (who.regular >= 0 && s.friends[who.regular] < FRIENDSHIP_CAP) {
       const f = ++s.friends[who.regular];

@@ -1733,6 +1733,226 @@ body:has(.mr-shell[data-theme='dark']) {
   background: #e2c06a;
 }
 
+/* Explanations, welcome-back summary, countdown ring, floaters and the season strip. */
+.mr-wallet > div {
+  position: relative;
+}
+.mr-why summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  font: 15px ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: var(--ink);
+  background: var(--paper);
+}
+.mr-why summary::-webkit-details-marker {
+  display: none;
+}
+.mr-why[open] summary {
+  background: var(--selected);
+}
+.mr-wallet .mr-why summary {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+.mr-why-panel {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+}
+.mr-shell .mr-why-panel p {
+  font: 14px/1.5 Georgia, 'Times New Roman', serif;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+.mr-why-panel ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px;
+}
+.mr-why-panel li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px dotted var(--line);
+}
+.mr-wallet .mr-why-panel span,
+.mr-why-panel b {
+  font: 13px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+.mr-why-panel b {
+  white-space: nowrap;
+}
+.mr-away {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  background: var(--raised);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+.mr-away h2 {
+  font-size: 22px;
+  font-weight: normal;
+  margin: 0 0 10px;
+}
+.mr-away ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+}
+.mr-away li {
+  font-size: 15px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.mr-shell .mr-away p {
+  color: var(--ink);
+}
+.mr-ring {
+  position: relative;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--accent) calc(var(--p, 0) * 1turn),
+    var(--line) 0
+  );
+}
+.mr-ring::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: var(--surface);
+}
+.mr-ring > .mr-chin {
+  position: relative;
+}
+.mr-guest-book .mr-new-coat {
+  display: inline-block;
+  font: bold 13px ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: #5b3417;
+  background: #f5dfb6;
+  padding: 2px 8px;
+}
+.mr-float,
+.mr-sparkle {
+  position: absolute;
+  z-index: 6;
+  white-space: nowrap;
+  pointer-events: none;
+  font: bold 11px ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: #5b3417;
+}
+.mr-float {
+  left: -2px;
+  top: -30px;
+  background: #fff6dd;
+  border: 1px solid #b9a77b;
+  padding: 1px 5px;
+  animation: mr-float 1.8s steps(9) both;
+}
+.mr-sparkle {
+  left: 34px;
+  top: 2px;
+  background: #f6d98c;
+  padding: 0 4px;
+}
+.mr-visitor.new-coat .mr-chin {
+  filter: drop-shadow(0 0 5px #f6d98c);
+}
+@keyframes mr-float {
+  from {
+    translate: 0 8px;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  to {
+    translate: 0 -10px;
+    opacity: 0;
+  }
+}
+.mr-seasons {
+  padding: 12px 16px 16px;
+  background: var(--raised);
+  border-top: 1px solid var(--line);
+}
+.mr-year {
+  position: relative;
+  margin-bottom: 8px;
+}
+.mr-year ol {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--line);
+}
+.mr-year li {
+  padding: 6px 2px;
+  text-align: center;
+  font: 12px ui-monospace, SFMono-Regular, Consolas, monospace;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.mr-year li + li {
+  border-left: 1px solid var(--line);
+}
+.mr-year li[aria-current] {
+  background: var(--selected);
+  color: var(--ink);
+  font-weight: bold;
+}
+.mr-year > i {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  left: calc(var(--p, 0) * 100%);
+  width: 3px;
+  background: var(--accent);
+}
+.mr-shell .mr-seasons p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.mr-host-card kbd {
+  font: 11px ui-monospace, SFMono-Regular, Consolas, monospace;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  padding: 0 5px;
+  margin-left: 4px;
+  color: var(--muted);
+}
+@media (max-width: 480px) {
+  .mr-ring {
+    width: 72px;
+    height: 72px;
+  }
+}
+
 /* Seasons and nightfall tint the artwork; the lodge interiors stay readable. */
 .mr-landscape {
   transition: background 1.5s;

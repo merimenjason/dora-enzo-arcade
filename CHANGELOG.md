@@ -6,6 +6,14 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Mountain Retreat:** easier to read at a glance.
+  - A **?** beside tips, hearts, supplies and the rating shows exactly where each number comes from.
+  - A countdown ring shows when the next guest arrives.
+  - A season strip shows the time until the next season and until nightfall.
+  - Each guest visit shows its rewards floating over the room, and coats that are new to the album are highlighted.
+  - A "while you were away" summary appears when you come back.
+  - Keys 1–4 set Dora's and Enzo's duties.
+  - Optional soft sound (off by default).
 - **Mountain Retreat:** more depth.
   - **Guest wishes and reputation:** every visit has a featured guest with a wish (a room, sometimes an oat cake or herbal soap, sometimes Extra comfort). Granting wishes earns reputation, and a one-to-five-star rating unlocks new guests and bigger tips. Unmet wishes and turned-away guests cost reputation. A guest book shows who is coming next and how the last guest left.
   - **Specialties:** each room picks one of two specialties at level 3.

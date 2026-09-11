@@ -21,6 +21,15 @@ import {
   VISCACHA,
   SUPPLY_CAP,
   OFFLINE_CAP,
+  total,
+  visitRewards,
+  supplyParts,
+  awaySummary,
+  WISH_TIPS,
+  ITEM_TIPS,
+  WISH_HEARTS,
+  GUESTS,
+  POSTCARDS,
 } from '../.checks/mountain-retreat-game.js';
 let count = 0;
 const test = (name, fn) => {
@@ -491,5 +500,72 @@ test('guest visit period follows Dora’s duty', () => {
   assert.equal(visitPeriod(s), 6);
   s.dora = 'comfort';
   assert.equal(visitPeriod(s), 10);
+});
+test('reward breakdowns match what a visit pays', () => {
+  const s = Object.assign(freshRetreat(), {
+    rooms: [3, 2, 3, 1],
+    perks: [1, -1, 1, -1],
+    decor: 2,
+    reputation: 45,
+    dora: 'comfort',
+    enzo: 'craft',
+    supplies: 150,
+    elapsed: 714,
+  });
+  const r = visitRewards(s, 720);
+  assert.deepEqual(
+    r.tips.map((p) => p.label.split(' (')[0]),
+    ['Room levels', '3-star rating', 'Decorations', 'Tea stall', 'Autumn harvest'],
+  );
+  assert.deepEqual(r.hearts.map((p) => p.label.split(' (')[0]), ['Extra comfort', 'Feather beds']);
+  advanceRetreat(s, 6);
+  const happy = s.last.outcome === 'happy';
+  const extra = happy
+    ? WISH_TIPS +
+      (GUESTS[s.last.guest].item ? ITEM_TIPS : 0) +
+      (s.last.postcard >= 0 ? POSTCARDS[s.last.postcard].tips : 0)
+    : 0;
+  assert.equal(s.last.tips, total(r.tips) + extra);
+  assert.equal(s.last.hearts, total(r.hearts) + (happy ? WISH_HEARTS : 0));
+  const fresh = freshRetreat();
+  assert.deepEqual(supplyParts(fresh), [
+    { label: 'Enzo gathering', value: 3 },
+    { label: 'Spring blossoms', value: 1 },
+  ]);
+});
+test('welcome-back summary counts what changed', () => {
+  const before = freshRetreat();
+  before.friends = [2, 5, 9];
+  before.album = [1, 0, 0, 0, 0, 0, 0];
+  const after = structuredClone(before);
+  Object.assign(after, {
+    visits: 40,
+    coins: before.coins + 300,
+    hearts: 90,
+    reputation: 12,
+    supplies: 5,
+    friends: [3, 6, 10],
+    album: [3, 0, 4, 0, 0, 0, 0],
+    expeditions: 1,
+    festivals: 1,
+  });
+  after.pantry.soap = 2;
+  assert.deepEqual(awaySummary(before, after), {
+    visits: 40,
+    tips: 300,
+    hearts: 90,
+    reputation: 12,
+    supplies: -13,
+    oatcakes: 0,
+    soap: 2,
+    postcards: 3,
+    coats: 2,
+    outings: 2,
+  });
+  const real = structuredClone(before);
+  advanceRetreat(real, 600);
+  const summary = awaySummary(before, real);
+  assert.equal(summary.visits, real.visits);
+  assert.equal(summary.tips, real.coins - before.coins);
 });
 console.log(`${count} Mountain Retreat deterministic tests passed.`);
