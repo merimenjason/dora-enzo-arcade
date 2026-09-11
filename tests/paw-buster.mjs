@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { PawBusterGame, buildStage, parseProgress, saveProgress, unlocked, weaponsFor, maxHp, freshProgress, STAGES, MAVERICKS, TILE, ROWS, PHYS, CHARGE, NO_INPUT, HERO } from '../.checks/paw-buster-game.js';
+import { PawBusterGame, buildStage, partsOf, parseProgress, saveProgress, unlocked, weaponsFor, maxHp, freshProgress, changesFor, inputMask, unmask, encodeRun, decodeRun, STAGES, MAVERICKS, SUB_STAGES, RUSH, TILE, ROWS, PHYS, CHARGE, CRUSH_PERIOD, NO_INPUT, HERO } from '../.checks/paw-buster-game.js';
 
 const DT = 1 / 120;
 const hold = (g, input, seconds) => { for (let i = 0; i < Math.round(seconds / DT); i++) g.step(DT, { ...NO_INPUT, ...input }); };
@@ -15,21 +15,33 @@ const flat = (g) => {
 let cases = 0;
 const test = (name, fn) => { fn(); cases++; };
 
-test('every stage builds with a start, checkpoints, an arena and passable geometry', () => {
+test('every stage builds with a start, checkpoints, an arena or teleporter and passable geometry', () => {
   for (const s of STAGES) {
-    const m = buildStage(s.id);
-    assert.equal(m.tiles.length, m.cols * ROWS);
-    assert.ok(m.checkpoints.length >= 2, `${s.id} checkpoints`);
-    assert.ok(m.arena > 40 && m.cols === m.arena + 32, `${s.id} arena is one screen at the end`);
-    const top = (c) => { for (let r = 0; r < ROWS; r++) if (m.tiles[c * ROWS + r]) return ROWS - r; return 0; };
-    let pit = 0;
-    for (let c = 0; c < m.arena; c++) {
-      if (top(c) === 0) { pit++; continue; }
-      assert.ok(pit <= 3 || pit === 5 || [...Array(pit)].some((_, i) => m.tiles.slice((c - pit + i) * ROWS, (c - pit + i + 1) * ROWS).some((t) => t)), `${s.id} pit before column ${c} is ${pit} wide with no ledge`);
-      pit = 0;
+    const parts = partsOf(s.id);
+    let tanks = 0, subs = 0;
+    for (let part = 0; part < parts; part++) {
+      const m = buildStage(s.id, part), last = part === parts - 1;
+      assert.equal(m.tiles.length, m.cols * ROWS);
+      assert.ok(m.checkpoints.length >= 2, `${s.id} sector ${part + 1} checkpoints`);
+      if (last) assert.ok(m.arena > 40 && m.cols === m.arena + 32 && m.exit < 0, `${s.id} arena is one screen at the end`);
+      else assert.ok(m.exit > 40 && m.cols === m.exit + 7 && m.arena < 0, `${s.id} sector ${part + 1} ends in a teleporter`);
+      const top = (c) => { for (let r = 0; r < ROWS; r++) if (m.tiles[c * ROWS + r]) return ROWS - r; return 0; };
+      let pit = 0;
+      for (let c = 0; c < (last ? m.arena : m.exit); c++) {
+        if (top(c) === 0) { pit++; continue; }
+        const from = c - pit;
+        const ledge = [...Array(pit)].some((_, i) => m.tiles.slice((from + i) * ROWS, (from + i + 1) * ROWS).some((t) => t));
+        const platform = m.platforms.some((p) => p.x < c * TILE && p.x + p.w > from * TILE);
+        assert.ok(pit <= 3 || pit === 5 || ledge || platform, `${s.id} pit before column ${c} is ${pit} wide with no ledge or platform`);
+        pit = 0;
+      }
+      tanks += m.items.filter((i) => i.kind === 'tank').length;
+      subs += m.items.filter((i) => i.kind === 'sub').length;
     }
-    assert.ok(m.items.filter((i) => i.kind === 'tank').length === (s.id === 'citadel' ? 0 : 1), `${s.id} heart tanks`);
+    assert.equal(tanks, s.id === 'citadel' ? 0 : 1, `${s.id} heart tanks`);
+    assert.equal(subs, SUB_STAGES.includes(s.id) ? 1 : 0, `${s.id} sub-tanks`);
   }
+  assert.equal(partsOf('citadel'), 3);
 });
 
 test('running, jumping and variable jump height', () => {
@@ -189,8 +201,10 @@ test('reaching the arena seals the gate and starts the boss intro', () => {
   assert.ok(Math.abs(g.camX - m.arena * TILE) < 1, 'camera locked to the arena');
 });
 
-const toBoss = (stage, progress) => {
+const toBoss = (stage, progress, setup = () => {}) => {
   const g = play(stage, progress);
+  setup(g);
+  if (partsOf(stage) > 1) { g.enterPart(partsOf(stage) - 1); hold(g, {}, 1.3); }
   Object.assign(g.player, { x: (g.map.arena + 2) * TILE, y: (ROWS - 3) * TILE - HERO.h, vy: 0 });
   g.enemies = [];
   hold(g, {}, 2.4);
@@ -314,6 +328,240 @@ test('a rolling Quartz Armadillo deflects shots, except Volt Spark, which knocks
   assert.notEqual(b.move, 'roll');
 });
 
+const all = () => ({ ...freshProgress(), cleared: [...MAVERICKS] });
+const pellet = (b, dmg = 2) => ({ x: b.x + b.w / 2, y: b.y + b.h / 2, vx: 0, vy: 0, r: 6, dmg, kind: 'pellet', hero: false, life: 3, pierce: false, hits: [], grav: 0, weapon: null });
+const foe = (kind, x, y, hp) => ({ id: 900 + Math.round(x), kind, x, y, w: 24, h: 20, vx: 0, vy: 0, hp, face: -1, t: 0, flash: 0, slash: -1, x0: x, y0: y, mode: 0, alive: true, ground: true });
+
+test('sub-tanks are found once, fill from spare health and heal on demand', () => {
+  const g = play('cloud');
+  const sub = g.items.find((i) => i.kind === 'sub');
+  Object.assign(g.player, { x: sub.x - 10, y: sub.y - 15 });
+  g.step(DT, NO_INPUT);
+  assert.deepEqual([g.progress.subs, g.progress.subFill], [['cloud'], [0]]);
+  assert.ok(g.events.includes('sub'));
+  flat(g);
+  g.items.push({ kind: 'hp', x: g.player.x + 10, y: g.player.y + 15, vy: 0, gone: false });
+  g.step(DT, NO_INPUT);
+  assert.deepEqual(g.progress.subFill, [6], 'spare health goes into the sub-tank');
+  g.hurt(10, 0);
+  assert.equal(g.useSub(0), true);
+  assert.equal(g.hp.dora, g.max - 4);
+  assert.deepEqual(g.progress.subFill, [0]);
+  assert.equal(g.useSub(0), false, 'an empty tank does nothing');
+  assert.equal(new PawBusterGame('cloud', g.progress).items.filter((i) => i.kind === 'sub').length, 0);
+});
+
+test('Dash Boots give one air dash per jump; the Saber Crest turns a dashing slash into a dash slash', () => {
+  const noBoots = flat(play());
+  noBoots.step(DT, { ...NO_INPUT, jump: true });
+  hold(noBoots, { jump: true }, 0.15);
+  noBoots.step(DT, { ...NO_INPUT, jump: true, dash: true });
+  assert.equal(noBoots.player.adT, 0, 'no air dash without the boots');
+  const g = flat(play('snowcap', { ...freshProgress(), parts: ['boots', 'saber'] }));
+  g.step(DT, { ...NO_INPUT, jump: true });
+  hold(g, { jump: true }, 0.15);
+  const x0 = g.player.x, y0 = g.player.y;
+  hold(g, { jump: true, dash: true, right: true }, 0.2);
+  assert.ok(g.player.adT > 0 && Math.abs(g.player.y - y0) < 1 && g.player.x - x0 > 0.2 * PHYS.dash * 0.9, 'a flat, fast air dash');
+  hold(g, { jump: true, right: true }, 0.05);
+  g.step(DT, { ...NO_INPUT, jump: true, dash: true });
+  assert.equal(g.player.adT, 0, 'one air dash per jump');
+  hold(g, {}, 1);
+  tap(g, 'swap');
+  hold(g, {}, 2.1);
+  assert.equal(g.hero, 'enzo');
+  g.enemies = [foe('turret', g.player.x + 40, g.player.y, 20)];
+  g.step(DT, { ...NO_INPUT, right: true, dash: true });
+  g.step(DT, { ...NO_INPUT, right: true, dash: true, fire: true });
+  hold(g, { right: true, dash: true }, 0.05);
+  assert.ok(g.player.dashSlash, 'a dash slash');
+  assert.equal(g.enemies[0].hp, 15);
+});
+
+test('charged special weapons cost double and change shape', () => {
+  const g = flat(play('snowcap', all()));
+  const charge = (w) => {
+    g.weapon = g.weapons.indexOf(w); g.shots = []; hold(g, {}, 0.5);
+    hold(g, { fire: true }, CHARGE.full + 0.05);
+    const before = g.energy[w];
+    g.shots = [];
+    g.step(DT, NO_INPUT);
+    return { kinds: g.shots.map((s) => s.kind).join(), spent: before - g.energy[w] };
+  };
+  assert.deepEqual(charge('frost'), { kinds: 'icewall', spent: 4 });
+  const wall = g.shots[0];
+  g.shots.push(pellet({ x: wall.x - 6, y: wall.y - 6, w: 12, h: 12 }));
+  g.step(DT, NO_INPUT);
+  assert.ok(!g.shots.some((s) => s.kind === 'pellet'), 'the ice wall blocks shots');
+  assert.deepEqual(charge('gale'), { kinds: 'tornado', spent: 4 });
+  assert.deepEqual(charge('ember'), { kinds: 'pillar,pillar,pillar,pillar', spent: 4 });
+  assert.deepEqual(charge('quartz'), { kinds: 'quartz,quartz,quartz,quartz,quartz,quartz', spent: 4 });
+  assert.deepEqual(charge('volt'), { kinds: 'volt,volt,volt', spent: 4 });
+  assert.deepEqual(charge('bubble'), { kinds: 'bubble', spent: 4 });
+  assert.equal(g.shots[0].r, 22);
+  g.energy.frost = 3;
+  assert.deepEqual(charge('frost'), { kinds: '', spent: 0 }, 'not enough energy for a charged shot');
+});
+
+test('beating one maverick changes another stage', () => {
+  const pits = (g) => { let n = 0; for (let c = 0; c < g.map.arena; c++) if (!g.tiles[c * ROWS + ROWS - 1]) n++; return n; };
+  assert.ok(pits(new PawBusterGame('lake')) > 10);
+  const frozen = new PawBusterGame('lake', { ...freshProgress(), cleared: ['snowcap'] });
+  assert.equal(pits(frozen), 0, 'the Frost Fox freezes the lake');
+  assert.ok(frozen.tiles.includes(5));
+  assert.ok(new PawBusterGame('caldera').tiles.includes(2));
+  assert.ok(!new PawBusterGame('caldera', { ...freshProgress(), cleared: ['lake'] }).tiles.includes(2), 'the Tide Toad cools the spikes');
+  const bats = (g) => g.enemies.filter((e) => e.kind === 'bat').length;
+  assert.ok(bats(new PawBusterGame('salt')) > 0);
+  assert.equal(bats(new PawBusterGame('salt', { ...freshProgress(), cleared: ['cloud'] })), 0, 'no bats once the Storm Owl is gone');
+  assert.equal(changesFor({ ...freshProgress(), cleared: [...MAVERICKS] }, 'lake').length, 1);
+});
+
+test('big hits pause the action briefly without eating presses', () => {
+  const g = flat(play());
+  g.enemies = [foe('beetle', g.player.x + 40, g.player.y + 10, 1)];
+  tap(g, 'fire');
+  for (let i = 0; i < 30 && g.freeze <= 0; i++) g.step(DT, NO_INPUT);
+  assert.ok(g.freeze > 0 && g.kills === 1, 'a kill starts a hit-stop');
+  const x = g.player.x;
+  g.step(DT, { ...NO_INPUT, right: true, jump: true });
+  g.step(DT, NO_INPUT);
+  assert.equal(g.player.x, x, 'nothing moves during the hit-stop');
+  for (let i = 0; i < 12 && g.freeze > 0; i++) g.step(DT, NO_INPUT);
+  g.step(DT, NO_INPUT);
+  assert.ok(g.player.vy < 0, 'the jump pressed during the hit-stop still happens');
+});
+
+test('the citadel runs through three sectors, then every maverick and the Kingpin', () => {
+  const g = play('citadel', all());
+  assert.ok(g.status.startsWith('Cougar Citadel · Sector 1 · Dora in play'));
+  g.enemies = [];
+  Object.assign(g.player, { x: (g.map.exit + 2) * TILE + 5, y: (ROWS - 3) * TILE - HERO.h, vy: 0 });
+  g.hp.dora = 5;
+  g.step(DT, NO_INPUT);
+  assert.equal(g.part, 1);
+  assert.equal(g.hp.dora, 5, 'health carries into the next sector');
+  assert.equal(g.banner.text, 'SECTOR 2');
+  g.enterPart(2);
+  hold(g, {}, 1.3);
+  Object.assign(g.player, { x: (g.map.arena + 2) * TILE, y: (ROWS - 3) * TILE - HERO.h, vy: 0 });
+  g.enemies = [];
+  const kinds = [];
+  for (let i = 0; i < RUSH.length; i++) {
+    for (let t = 0; t < 120 * 5 && (!g.boss || g.state !== 'play'); t++) { g.hp.dora = g.hp.enzo = g.max; g.step(DT, NO_INPUT); }
+    const b = g.boss;
+    kinds.push(b.kind);
+    assert.equal(b.max, b.kind === 'cougar' ? 44 : 16);
+    Object.assign(b, { hp: 1, hidden: false, inv: 0, move: 'idle', t: 0 });
+    g.shots.push({ x: b.x + b.w / 2, y: b.y + b.h / 2, vx: 0, vy: 0, r: 8, dmg: 1, kind: 'lemon', hero: true, life: 1, pierce: false, hits: [], grav: 0, weapon: 'buster' });
+    g.step(DT, NO_INPUT);
+    assert.equal(g.state, 'clearing', `${b.kind} down`);
+    hold(g, {}, i < RUSH.length - 1 ? 1.3 : 2.6);
+  }
+  assert.deepEqual(kinds, RUSH);
+  assert.equal(g.state, 'clear');
+  assert.ok(g.victory);
+});
+
+test('the Kingpin turns to the mavericks’ moves below half health', () => {
+  const g = toBoss('citadel', all(), (x) => { x.rush = RUSH.length - 1; });
+  const b = g.boss;
+  assert.equal(b.kind, 'cougar');
+  b.hp = b.max / 2 + 1;
+  g.shots.push({ x: b.x + b.w / 2, y: b.y + b.h / 2, vx: 0, vy: 0, r: 8, dmg: 1, kind: 'lemon', hero: true, life: 1, pierce: false, hits: [], grav: 0, weapon: 'buster' });
+  g.step(DT, NO_INPUT);
+  assert.ok(b.phase2);
+  assert.equal(g.banner.text, 'KINGPIN ENRAGED');
+  const moves = new Set();
+  for (let i = 0; i < 120 * 20 && g.state === 'play'; i++) { g.hp.dora = g.hp.enzo = g.max; g.step(DT, NO_INPUT); moves.add(b.move); }
+  assert.ok(['storm', 'bolt', 'crystals'].every((m) => moves.has(m)), `phase 2 used ${[...moves].join(', ')}`);
+});
+
+test('conveyors and platforms carry the heroes, and crushers hurt', () => {
+  const g = play('citadel', all());
+  g.enterPart(1);
+  hold(g, {}, 1.3);
+  g.enemies = [];
+  const belt = [...Array(g.map.cols).keys()].find((c) => g.tiles[c * ROWS + ROWS - 3] === 3);
+  const crushers = g.crushers;
+  g.crushers = [];
+  Object.assign(g.player, { x: belt * TILE + 2, y: (ROWS - 3) * TILE - HERO.h, vx: 0, vy: 0, ground: true });
+  const x0 = g.player.x;
+  hold(g, {}, 0.5);
+  assert.ok(g.player.x - x0 > 30, 'the belt carries Dora');
+  const pl = g.platforms[0];
+  Object.assign(g.player, { x: pl.x + pl.w / 2 - 10, y: pl.y - HERO.h - 2, vy: 0, ground: false });
+  hold(g, {}, 0.3);
+  assert.equal(g.player.ride, 0);
+  const off = g.player.x - pl.x;
+  hold(g, {}, 0.6);
+  assert.ok(Math.abs(g.player.x - pl.x - off) < 1.5 && Math.abs(g.player.y + HERO.h - pl.y) < 1, 'Dora rides the platform');
+  g.crushers = crushers;
+  const c = crushers.find((k) => g.tiles[Math.floor(k.x / TILE) * ROWS + Math.floor(k.spec.bottom / TILE)] === 1);
+  Object.assign(g.player, { x: c.x + 20, y: c.spec.bottom - HERO.h, vx: 0, vy: 0, ride: -1, invT: 0 });
+  const hp = g.hp.dora;
+  for (let i = 0; i < 120 * CRUSH_PERIOD && g.hp.dora === hp; i++) { g.player.x = c.x + 20; g.step(DT, NO_INPUT); }
+  assert.ok(g.hp.dora < hp, 'the crusher hurts');
+});
+
+test('co-op puts both heroes on screen with their own controls', () => {
+  const g = new PawBusterGame('snowcap', freshProgress(), { coop: true });
+  hold(g, {}, 1.3);
+  assert.equal(g.state, 'play');
+  flat(g);
+  const d = g.bodies.dora, e = g.bodies.enzo;
+  assert.notEqual(d, e);
+  Object.assign(e, { x: d.x + 60, y: d.y, vx: 0, vy: 0, ground: true });
+  const d0 = d.x, e0 = e.x;
+  for (let i = 0; i < 60; i++) g.step(DT, { ...NO_INPUT, right: true }, { ...NO_INPUT, left: true });
+  assert.ok(d.x > d0 + 40 && e.x < e0 - 40, 'each player moves their own hero');
+  g.step(DT, { ...NO_INPUT, fire: true }, { ...NO_INPUT, fire: true });
+  assert.ok(g.shots.some((s) => s.kind === 'lemon') && e.slashT > 0, 'Dora fires and Enzo slashes');
+  g.step(DT, { ...NO_INPUT, swap: true });
+  assert.ok(g.bodies.dora !== g.bodies.enzo && g.player.tagT === 0, 'no tagging in co-op');
+  hold(g, {}, 1.2);
+  g.hp.enzo = 1;
+  g.shots.push(pellet(e));
+  g.step(DT, NO_INPUT);
+  assert.ok(e.down && g.state === 'play', 'Enzo is down, Dora plays on');
+  assert.deepEqual(g.living, ['dora']);
+  d.x = g.map.checkpoints[g.checkpoint + 1].x;
+  g.step(DT, NO_INPUT);
+  assert.ok(!e.down && g.hp.enzo === Math.ceil(g.max / 2), 'a checkpoint brings Enzo back');
+  hold(g, {}, 1.6);
+  g.hp.dora = g.hp.enzo = 1;
+  g.shots.push(pellet(d), pellet(e));
+  g.step(DT, NO_INPUT);
+  assert.equal(g.state, 'lost');
+});
+
+test('easy mode halves damage and pits cost nothing', () => {
+  const g = new PawBusterGame('snowcap', freshProgress(), { easy: true });
+  hold(g, {}, 1.3);
+  flat(g);
+  g.hurt(5, 0);
+  assert.equal(g.hp.dora, g.max - 3);
+  hold(g, {}, 1.2);
+  for (let c = 11; c < 30; c++) for (let r = 0; r < ROWS; r++) g.tiles[c * ROWS + r] = 0;
+  g.events = [];
+  for (let i = 0; i < 120 * 3 && !g.events.includes('fall'); i++) g.step(DT, { ...NO_INPUT, right: true });
+  assert.ok(g.events.includes('fall'));
+  assert.equal(g.hp.dora, g.max - 3);
+});
+
+test('a recorded run replays exactly from its encoded inputs', () => {
+  const masks = [], g = new PawBusterGame('cloud');
+  for (let i = 0; i < 120 * 10; i++) { const input = { ...NO_INPUT, right: true, jump: i % 50 < 30, fire: i % 20 === 0, dash: i % 90 < 40 }; masks.push(inputMask(input)); g.step(DT, input); }
+  const code = encodeRun(masks);
+  assert.deepEqual(decodeRun(code), masks);
+  assert.ok(code.length < masks.length, `compact (${code.length} characters for ${masks.length} steps)`);
+  const r = new PawBusterGame('cloud');
+  for (const m of decodeRun(code)) r.step(DT, unmask(m));
+  assert.deepEqual([r.player.x, r.player.y, r.hp, r.kills], [g.player.x, g.player.y, g.hp, g.kills]);
+  assert.deepEqual(decodeRun('zz.1'), []);
+  assert.deepEqual(decodeRun(''), []);
+});
+
 test('heart tanks raise both heroes’ maximum health once', () => {
   const g = play();
   const tank = g.items.find((i) => i.kind === 'tank');
@@ -343,8 +591,10 @@ test('bosses run their patterns without leaving the arena, and hurt the heroes',
 });
 
 test('progress saves round-trip and the citadel opens after three mavericks', () => {
-  const p = { cleared: ['snowcap', 'cloud'], tanks: ['cloud'], best: { snowcap: 91.2 } };
+  const p = { cleared: ['snowcap', 'cloud'], tanks: ['cloud'], best: { snowcap: 91.2 }, subs: ['cloud'], subFill: [5], parts: ['boots'], found: ['snowcap'] };
   assert.deepEqual(parseProgress(saveProgress(p)), p);
+  assert.deepEqual(parseProgress('{"version":1,"cleared":["snowcap"],"tanks":["snowcap"],"best":{"snowcap":80}}'), { ...freshProgress(), cleared: ['snowcap'], tanks: ['snowcap'], best: { snowcap: 80 } }, 'version 1 saves upgrade');
+  assert.deepEqual(parseProgress('{"version":2,"cleared":[],"tanks":[],"best":{},"subs":["snowcap","lake"],"subFill":[99],"parts":["jetpack","saber"],"found":["moon"]}'), { ...freshProgress(), subs: ['lake'], subFill: [16], parts: ['saber'] });
   assert.deepEqual(parseProgress('{"version":1,"cleared":["moon",3],"tanks":["citadel"],"best":{"cloud":-1}}'), freshProgress());
   assert.deepEqual(parseProgress('not json'), freshProgress());
   assert.deepEqual(parseProgress(null), freshProgress());
@@ -352,7 +602,7 @@ test('progress saves round-trip and the citadel opens after three mavericks', ()
   assert.equal(unlocked({ ...p, cleared: ['snowcap', 'cloud', 'caldera'] }, 'citadel'), false, 'three mavericks are no longer enough');
   assert.equal(unlocked({ ...p, cleared: [...MAVERICKS] }, 'citadel'), true);
   assert.equal(unlocked({ ...p, cleared: ['snowcap', 'cloud', 'caldera', 'citadel'] }, 'citadel'), true, 'a citadel already beaten stays open');
-  assert.deepEqual(parseProgress(saveProgress({ cleared: ['mines', 'lake'], tanks: ['salt'], best: { lake: 70 } })), { cleared: ['mines', 'lake'], tanks: ['salt'], best: { lake: 70 } });
+  assert.deepEqual(parseProgress(saveProgress({ ...freshProgress(), cleared: ['mines', 'lake'], tanks: ['salt'], best: { lake: 70 } })), { ...freshProgress(), cleared: ['mines', 'lake'], tanks: ['salt'], best: { lake: 70 } });
 });
 
 test('runs are deterministic', () => {
@@ -360,4 +610,4 @@ test('runs are deterministic', () => {
   assert.equal(run(), run());
 });
 
-console.log(`Paw Buster X: ${cases} cases passed (stages, movement, dash jump, wall climb, charge shot, tag team, saber deflect, damage and defeat, pits and spikes, drops, boss door, weaknesses, clear, weapons, quartz orbit, volt homing, bubbles, hoppers, armadillo roll, heart tanks, boss patterns, saves, determinism).`);
+console.log(`Paw Buster X: ${cases} cases passed (stages, movement, dash jump, wall climb, charge shot, tag team, saber deflect, damage and defeat, pits and spikes, drops, boss door, weaknesses, clear, weapons, quartz orbit, volt homing, bubbles, hoppers, armadillo roll, sub-tanks, armour parts, charged specials, stage changes, hit-stop, citadel sectors and boss rush, Kingpin phase 2, conveyors, platforms and crushers, co-op, easy mode, ghost replays, heart tanks, boss patterns, saves, determinism).`);

@@ -31,7 +31,7 @@ try {
   // Stage buttons enable once the page is interactive; only the citadel stays locked.
   await page.waitForFunction(() => !document.querySelector('[data-testid="stage-snowcap"]').disabled);
   assert.ok(await page.getByTestId('stage-citadel').isDisabled(), 'citadel starts locked');
-  assert.match(await page.getByTestId('summary').textContent(), /Heart tanks 0\/6 · Max health 16 · Weapons: Paw Buster$/);
+  assert.match(await page.getByTestId('summary').textContent(), /Heart tanks 0\/6 · Sub-tanks 0\/4 · Max health 16 · Weapons: Paw Buster$/);
   await page.screenshot({ path: '.checks/paw-buster/select.png' });
 
   await page.getByTestId('stage-snowcap').click();
@@ -72,7 +72,7 @@ try {
   await page.reload();
   await page.getByTestId('stage-snowcap').waitFor();
   await page.waitForFunction(() => !document.querySelector('[data-testid="stage-citadel"]').disabled);
-  assert.match(await page.getByTestId('summary').textContent(), /Heart tanks 2\/6 · Max health 20 · Weapons: Paw Buster, Frost Shard, Gale Feather, Ember Coil, Quartz Orbit, Volt Spark, Bubble Burst/);
+  assert.match(await page.getByTestId('summary').textContent(), /Heart tanks 2\/6 · Sub-tanks 0\/4 · Max health 20 · Weapons: Paw Buster, Frost Shard, Gale Feather, Ember Coil, Quartz Orbit, Volt Spark, Bubble Burst/);
   assert.match(await page.getByTestId('stage-snowcap').textContent(), /Cleared · best 1:23\.4 · ♥ tank · Frost Shard/);
   await page.screenshot({ path: '.checks/paw-buster/select-all.png' });
   await page.getByTestId('stage-citadel').click();
@@ -80,7 +80,7 @@ try {
   await page.keyboard.press('KeyE');
   await page.waitForTimeout(200);
   assert.equal(await attr(page, 'weapon'), 'frost', 'E selects the next weapon');
-  assert.match(await page.getByTestId('status').textContent(), /Cougar Citadel · Dora in play · Dora 20\/20/);
+  assert.match(await page.getByTestId('status').textContent(), /Cougar Citadel · Sector 1 · Dora in play · Dora 20\/20/);
   await page.getByRole('button', { name: 'Stage select' }).first().click();
   // Each new stage starts and draws its maverick's room.
   for (const [id, name] of [['mines', 'Crystal Mines'], ['salt', 'Salt Flats'], ['lake', 'Titicaca Falls']]) {
@@ -91,6 +91,34 @@ try {
     await page.getByRole('button', { name: 'Stage select' }).first().click();
     await page.getByTestId(`stage-${id}`).waitFor();
   }
+  // Remap fire to F, then play two-player co-op: player 2 moves Enzo with the arrow keys.
+  await page.getByText('Customise keys').click();
+  await page.getByTestId('bind-fire').click();
+  await page.keyboard.press('KeyF');
+  assert.equal(await page.getByTestId('keys-fire').textContent(), 'F');
+  await page.getByTestId('opt-coop').check();
+  await page.reload();
+  await page.getByTestId('stage-snowcap').waitFor();
+  await page.waitForFunction(() => !document.querySelector('[data-testid="stage-snowcap"]').disabled);
+  assert.ok(await page.getByTestId('opt-coop').isChecked(), 'options are saved');
+  await page.getByText('Customise keys').click();
+  assert.equal(await page.getByTestId('keys-fire').textContent(), 'F', 'key bindings are saved');
+  await page.getByTestId('stage-snowcap').click();
+  await waitState(page, 'play');
+  assert.match(await page.getByTestId('status').textContent(), /^Snowcap Ridge · Co-op · Dora 20\/20 · Enzo 20\/20/);
+  const cx = Number(await attr(page, 'x'));
+  await page.keyboard.down('ArrowRight');
+  await page.waitForTimeout(700);
+  await page.keyboard.up('ArrowRight');
+  await page.waitForTimeout(200);
+  assert.equal(await attr(page, 'hero'), 'enzo', 'Enzo runs ahead and leads');
+  assert.ok(Number(await attr(page, 'x')) > cx + 60, 'player 2 moves Enzo');
+  await page.screenshot({ path: '.checks/paw-buster/coop.png' });
+  await page.keyboard.press('KeyP');
+  await waitState(page, 'paused');
+  await page.screenshot({ path: '.checks/paw-buster/pause.png' });
+  await page.getByRole('button', { name: 'Stage select' }).first().click();
+  await page.getByTestId('opt-coop').uncheck();
   await page.close();
 
   // Phones get the touch pad and no sideways scrolling.
@@ -111,7 +139,7 @@ try {
   await phone.close();
 
   assert.deepEqual(errors, []);
-  console.log('Paw Buster X: arcade card, stage select, six mavericks, lock, play, movement, tag, pause, saved progress, citadel, weapon switch, touch pad, phone layout.');
+  console.log('Paw Buster X: arcade card, stage select, six mavericks, lock, play, movement, tag, pause, saved progress, citadel, weapon switch, key remap, co-op, saved options, touch pad, phone layout.');
 } finally {
   await browser.close();
 }

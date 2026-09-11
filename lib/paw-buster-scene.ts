@@ -1,5 +1,5 @@
 // Canvas 2D art for Paw Buster X: flat pixel-style shapes, no image assets.
-import { TILE, ROWS, VIEW_W, VIEW_H, WEAPONS, ENERGY, TAG_TIME, type PawBusterGame, type StageId, type BossKind, type HeroId, type Enemy, type Shot } from './paw-buster-game';
+import { TILE, ROWS, VIEW_W, VIEW_H, WEAPONS, ENERGY, TAG_TIME, HEROES, bossInfo, type PawBusterGame, type StageId, type BossKind, type HeroId, type Enemy, type Shot, type Player } from './paw-buster-game';
 
 type Theme = { sky: [string, string]; far: string; near: string; ground: string; dark: string; top: string; spike: string; accent: string };
 export const THEMES: Record<StageId, Theme> = {
@@ -57,6 +57,22 @@ function tiles(c: CanvasRenderingContext2D, g: PawBusterGame) {
       const k = g.tile(col, r);
       if (!k) continue;
       const x = col * TILE - cam, y = r * TILE, open = !g.tile(col, r - 1);
+      if (k === 3 || k === 4) {
+        // Conveyor belt: rollers under moving chevrons.
+        c.fillStyle = '#3a3f52'; c.fillRect(x, y, TILE, TILE);
+        c.fillStyle = '#6a7188'; c.fillRect(x, y, TILE, 8);
+        c.fillStyle = '#ffd46a';
+        const off = ((g.clock * 90 * (k === 3 ? 1 : -1)) % 15 + 15) % 15;
+        for (let i = -1; i < 2; i++) { const cx = x + i * 15 + off; c.beginPath(); if (k === 3) { c.moveTo(cx, y + 1); c.lineTo(cx + 5, y + 4); c.lineTo(cx, y + 7); } else { c.moveTo(cx + 5, y + 1); c.lineTo(cx, y + 4); c.lineTo(cx + 5, y + 7); } c.fill(); }
+        c.fillStyle = '#23273a'; for (const rx of [8, 22]) circle(c, x + rx, y + 18, 5);
+        continue;
+      }
+      if (k === 5) {
+        c.fillStyle = '#bfe9ff'; c.fillRect(x, y, TILE, TILE);
+        c.fillStyle = '#e8f8ff'; c.fillRect(x + 4, y + 4, 10, 3); c.fillRect(x + 16, y + 16, 8, 2);
+        c.fillStyle = '#9fd4f0'; c.fillRect(x, y + TILE - 3, TILE, 3);
+        continue;
+      }
       if (k === 2) {
         c.fillStyle = t.ground;
         c.fillRect(x, y + TILE / 2, TILE, TILE / 2);
@@ -80,9 +96,18 @@ function tiles(c: CanvasRenderingContext2D, g: PawBusterGame) {
       }
     }
   }
+  // The sector teleporter: a glowing doorway at the end of the sector.
+  if (g.map.exit > 0) {
+    const ex = (g.map.exit + 3) * TILE - cam, fy = (ROWS - 3) * TILE;
+    if (ex > -60 && ex < VIEW_W + 60) {
+      c.fillStyle = '#c9ced9'; c.fillRect(ex - 26, fy - 96, 8, 96); c.fillRect(ex + 18, fy - 96, 8, 96); c.fillRect(ex - 26, fy - 104, 52, 10);
+      c.fillStyle = `rgba(127,214,255,${0.35 + Math.sin(g.clock * 6) * 0.15})`; c.fillRect(ex - 18, fy - 94, 36, 94);
+      c.fillStyle = '#e8f8ff'; for (let i = 0; i < 4; i++) c.fillRect(ex - 14 + i * 9, fy - ((g.clock * 80 + i * 23) % 90), 3, 8);
+    }
+  }
   // The boss gate, drawn as a shutter across the arena entrance.
   const gx = g.map.arena * TILE - cam;
-  if (gx > -TILE && gx < VIEW_W) {
+  if (g.map.arena > 0 && gx > -TILE && gx < VIEW_W) {
     c.fillStyle = g.fight ? '#c9ced9' : '#c9ced955';
     for (let y = 0; y < (ROWS - 3) * TILE; y += 12) c.fillRect(gx + 2, y, TILE - 4, 8);
     c.fillStyle = '#e05a4a';
@@ -91,8 +116,12 @@ function tiles(c: CanvasRenderingContext2D, g: PawBusterGame) {
 }
 
 /** A chinchilla in armour, drawn around its feet (0,0), facing right. Dora wears blue, Enzo red. */
-export function drawHero(c: CanvasRenderingContext2D, hero: HeroId, opts: { run?: number; air?: boolean; dash?: boolean; slide?: boolean; slash?: number; charge?: number; aim?: boolean } = {}) {
-  const dora = hero === 'dora', fur = dora ? '#f4efe6' : '#8d8a93', furDark = dora ? '#d8d0c3' : '#6c6972', armor = dora ? '#3b7be0' : '#d24a3c', armorDark = dora ? '#2a58a8' : '#9c2f26';
+/** Darken a #rrggbb colour by `k` (0 to 1). */
+const shade = (hex: string, k: number) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - k)).toString(16).padStart(2, '0')).join('');
+export function drawHero(c: CanvasRenderingContext2D, hero: HeroId, opts: { run?: number; air?: boolean; dash?: boolean; slide?: boolean; slash?: number; charge?: number; aim?: boolean; tint?: string } = {}) {
+  // With a special weapon equipped the armour takes on that weapon's colour.
+  const dora = hero === 'dora', fur = dora ? '#f4efe6' : '#8d8a93', furDark = dora ? '#d8d0c3' : '#6c6972';
+  const armor = opts.tint ? shade(opts.tint, 0.15) : dora ? '#3b7be0' : '#d24a3c', armorDark = opts.tint ? shade(opts.tint, 0.45) : dora ? '#2a58a8' : '#9c2f26';
   const bob = opts.run ? Math.abs(Math.sin(opts.run * 14)) * 2 : 0, stride = opts.run ? Math.sin(opts.run * 14) * 4 : 0;
   c.save();
   if (opts.dash) c.rotate(0.14);
@@ -320,6 +349,9 @@ function shot(c: CanvasRenderingContext2D, s: Shot, cam: number, time: number) {
     case 'bolt': c.strokeStyle = '#fff27a'; c.lineWidth = 5; c.beginPath(); c.moveTo(0, -60); c.lineTo(-8, -40); c.lineTo(6, -24); c.lineTo(-6, -8); c.lineTo(4, 12); c.stroke(); c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke(); break;
     case 'spark': c.fillStyle = '#fff27a'; circle(c, 0, 0, 6 + Math.sin(time * 40) * 1.5); c.fillStyle = '#fff'; circle(c, 0, 0, 3); break;
     case 'tongue': c.fillStyle = '#e05a7a'; c.fillRect(-Math.sign(s.vx) * 40, -2, 40 * Math.sign(s.vx), 4); circle(c, 0, 0, 7); break;
+    case 'icewall': c.fillStyle = '#bfe9ffcc'; rr(c, -14, -22, 28, 44, 4); c.fillStyle = '#e8f8ff'; c.fillRect(-9, -16, 5, 28); c.fillRect(2, -18, 3, 14); c.strokeStyle = '#7fc8f0'; c.lineWidth = 2; c.strokeRect(-14, -22, 28, 44); break;
+    case 'tornado': for (let i = 0; i < 5; i++) { c.fillStyle = i % 2 ? '#cfeeb4aa' : '#e8f8dcaa'; ellipse(c, Math.sin(time * 20 + i) * 4, -16 + i * 8, 20 - i * 3, 4); } break;
+    case 'pillar': c.fillStyle = '#ff7a2acc'; ellipse(c, 0, 0, 12, 14); c.fillStyle = '#ffe07a'; ellipse(c, Math.sin(time * 30 + s.y) * 2, 0, 6, 9); break;
     case 'claw': c.strokeStyle = '#ffd46a'; c.lineWidth = 3; for (const o of [-6, 0, 6]) { c.beginPath(); c.arc(-Math.sign(s.vx) * 4, o, 9, -1, 1); c.stroke(); } break;
   }
   c.restore();
@@ -337,12 +369,28 @@ function bar(c: CanvasRenderingContext2D, x: number, y: number, value: number, m
   if (label) { c.fillStyle = '#10141e'; rr(c, x - 3, y + h + 4, width + 6, 16, 3); c.fillStyle = '#fff'; c.font = 'bold 11px ui-monospace, monospace'; c.textAlign = 'center'; c.fillText(label, x + width / 2, y + h + 16); }
 }
 
-export function drawStage(c: CanvasRenderingContext2D, g: PawBusterGame, time: number) {
-  const cam = Math.round(g.camX), p = g.player;
+export type Ghost = { hero: HeroId; body: Player; part: number };
+export function drawStage(c: CanvasRenderingContext2D, g: PawBusterGame, time: number, ghost: Ghost | null = null) {
+  const cam = Math.round(g.camX);
   c.save();
   if (g.shake > 0) c.translate(Math.sin(time * 90) * 4 * g.shake * 5, Math.cos(time * 70) * 3 * g.shake * 5);
   backdrop(c, g.stage.id, cam, time);
   tiles(c, g);
+  for (const pl of g.platforms) {
+    const x = pl.x - cam;
+    if (x > VIEW_W || x + pl.w < 0) continue;
+    c.fillStyle = '#8b93ad'; rr(c, x, pl.y, pl.w, pl.h, 3);
+    c.fillStyle = '#ffd46a'; for (let i = 6; i < pl.w - 4; i += 14) c.fillRect(x + i, pl.y + 2, 6, 3);
+    c.fillStyle = '#4a5270'; c.fillRect(x + 4, pl.y + pl.h, pl.w - 8, 3);
+  }
+  for (const cr of g.crushers) {
+    const x = cr.x - cam;
+    if (x > VIEW_W || x + cr.w < 0) continue;
+    c.fillStyle = '#5c6378'; c.fillRect(x + cr.w / 2 - 6, 0, 12, cr.bottom - 40);
+    c.fillStyle = '#3a3f52'; rr(c, x, cr.bottom - 44, cr.w, 44, 4);
+    c.fillStyle = '#e0303088'; for (let i = 0; i < cr.w; i += 12) c.fillRect(x + i, cr.bottom - 8, 6, 8);
+    c.fillStyle = '#ffd46a'; c.fillRect(x + 6, cr.bottom - 36, cr.w - 12, 4);
+  }
   // Checkpoint flags.
   g.map.checkpoints.forEach((cp, i) => {
     const x = cp.x - cam;
@@ -354,6 +402,13 @@ export function drawStage(c: CanvasRenderingContext2D, g: PawBusterGame, time: n
   for (const it of g.items) {
     const x = it.x - cam, y = it.y + Math.sin(time * 4 + it.x) * (it.kind === 'tank' ? 3 : 0);
     if (it.kind === 'tank') { c.fillStyle = '#ffffff55'; circle(c, x, y, 14 + Math.sin(time * 5) * 2); c.fillStyle = '#e8465a'; c.beginPath(); c.moveTo(x, y + 9); c.bezierCurveTo(x - 14, y - 2, x - 7, y - 12, x, y - 5); c.bezierCurveTo(x + 7, y - 12, x + 14, y - 2, x, y + 9); c.fill(); }
+    else if (it.kind === 'sub') { c.fillStyle = '#ffffff44'; circle(c, x, y, 14 + Math.sin(time * 5) * 2); c.fillStyle = '#3b7be0'; rr(c, x - 8, y - 11, 16, 22, 4); c.fillStyle = '#7fd6ff'; c.fillRect(x - 5, y - 4, 10, 12); c.fillStyle = '#fff'; c.font = 'bold 10px ui-monospace, monospace'; c.textAlign = 'center'; c.fillText('S', x, y - 3); }
+    else if (it.kind === 'boots' || it.kind === 'saber') {
+      c.fillStyle = '#ffd46a55'; circle(c, x, y, 16 + Math.sin(time * 5) * 2);
+      c.fillStyle = '#c9ced9'; rr(c, x - 12, y - 12, 24, 24, 5);
+      if (it.kind === 'boots') { c.fillStyle = '#3b7be0'; rr(c, x - 8, y - 6, 7, 12, 2); rr(c, x + 1, y - 6, 7, 12, 2); c.fillStyle = '#7fd6ff'; c.fillRect(x - 9, y + 4, 18, 3); }
+      else { c.strokeStyle = '#7dffb0'; c.lineWidth = 3; c.beginPath(); c.moveTo(x - 7, y + 7); c.lineTo(x + 7, y - 7); c.stroke(); c.fillStyle = '#d24a3c'; c.fillRect(x - 9, y + 3, 7, 4); }
+    }
     else if (it.kind === 'hp') { c.fillStyle = '#fff'; rr(c, x - 7, y - 6, 14, 12, 3); c.fillStyle = '#e8465a'; c.fillRect(x - 1.5, y - 4, 3, 8); c.fillRect(x - 4, y - 1.5, 8, 3); }
     else { c.fillStyle = '#7fd6ff'; rr(c, x - 6, y - 7, 12, 14, 3); c.fillStyle = '#fff'; c.fillRect(x - 3, y - 4, 6, 2); }
   }
@@ -379,15 +434,27 @@ export function drawStage(c: CanvasRenderingContext2D, g: PawBusterGame, time: n
     }
   }
   for (const s of g.shots) shot(c, s, cam, time);
-  // The active hero; blinks while invulnerable.
-  if (!(p.invT > 0 && p.invT < 90 && Math.floor(time * 20) % 2 === 0)) {
+  // The best-time ghost, a translucent copy of the recorded run.
+  if (ghost && ghost.part === g.part) {
+    c.save();
+    c.globalAlpha = 0.35;
+    c.translate(Math.round(ghost.body.x - cam + ghost.body.w / 2), Math.round(ghost.body.y + ghost.body.h));
+    c.scale(ghost.body.face, 1);
+    drawHero(c, ghost.hero, { run: ghost.body.runT, air: !ghost.body.ground, dash: ghost.body.dashT > 0 || ghost.body.adT > 0, tint: '#c9ced9' });
+    c.restore();
+  }
+  // The heroes in play (one in single play, both in co-op); each blinks while invulnerable.
+  for (const h of g.coop ? HEROES.filter((x) => !g.bodies[x].down) : [g.hero]) {
+    const p = g.bodies[h];
+    if (p.invT > 0 && p.invT < 90 && Math.floor(time * 20) % 2 === 0) continue;
     c.save();
     c.translate(Math.round(p.x - cam + p.w / 2), Math.round(p.y + p.h));
     c.scale(p.face, 1);
-    const charge = g.hero === 'dora' && g.weaponId === 'buster' ? g.chargeLevel : 0;
-    if (charge) { c.strokeStyle = charge === 2 ? (Math.floor(time * 16) % 2 ? '#b6ff7a' : '#7fd6ff') : '#7fd6ff'; c.lineWidth = 2; c.globalAlpha = 0.7; c.beginPath(); c.ellipse(0, -17, 18 + Math.sin(time * 25) * 3, 24, 0, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1; }
+    const w = g.weaponFor(h), level = g.levelOf(p), charge = h === 'dora' && w === 'buster' ? level : w !== 'buster' ? level : 0;
+    if (charge) { const col = w === 'buster' ? '#7fd6ff' : WEAPONS[w].color; c.strokeStyle = charge === 2 ? (Math.floor(time * 16) % 2 ? '#b6ff7a' : col) : col; c.lineWidth = 2; c.globalAlpha = 0.7; c.beginPath(); c.ellipse(0, -17, 18 + Math.sin(time * 25) * 3, 24, 0, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1; }
     if (p.tagT > 0) { c.fillStyle = `rgba(255,212,106,${p.tagT / TAG_TIME * 0.35})`; ellipse(c, 0, -17, 22, 26); }
-    drawHero(c, g.hero, { run: p.runT, air: !p.ground, dash: p.dashT > 0, slide: !!p.slide, slash: p.slashT > 0 ? p.combo : undefined, charge });
+    if (p.adT > 0) { c.fillStyle = '#7fd6ff55'; ellipse(c, -18, -15, 14, 6); }
+    drawHero(c, h, { run: p.runT, air: !p.ground, dash: p.dashT > 0 || p.adT > 0, slide: !!p.slide, slash: p.slashT > 0 ? (p.dashSlash ? 2 : p.combo) : undefined, charge: h === 'dora' && w === 'buster' ? charge : 0, tint: w === 'buster' ? undefined : WEAPONS[w].color });
     c.restore();
   }
   for (const e of g.effects) {
@@ -404,28 +471,51 @@ export function drawStage(c: CanvasRenderingContext2D, g: PawBusterGame, time: n
 }
 
 function hud(c: CanvasRenderingContext2D, g: PawBusterGame, time: number) {
-  const other = g.partner;
-  bar(c, 22, 40, g.hp[g.hero], g.max, g.hero === 'dora' ? '#7fd6ff' : '#ff9a8a', 14, g.hero === 'dora' ? 'D' : 'E');
-  c.globalAlpha = 0.65;
-  bar(c, 46, 40, g.hp[other], g.max, other === 'dora' ? '#7fd6ff' : '#ff9a8a', 8, other === 'dora' ? 'D' : 'E');
-  c.globalAlpha = 1;
-  const w = g.weaponId;
-  if (w !== 'buster') bar(c, 66, 40, g.energy[w], ENERGY, WEAPONS[w].color, 10);
-  c.font = 'bold 12px ui-monospace, monospace';
-  c.textAlign = 'left';
-  c.fillStyle = '#10141ecc'; rr(c, 16, 12, 196, 20, 4);
-  c.fillStyle = WEAPONS[w].color;
-  c.fillText(`${w === 'buster' && g.hero === 'enzo' ? 'WHISKER SABER' : WEAPONS[w].name.toUpperCase()}`, 24, 26);
+  const label = (h: HeroId) => { const w = g.weaponFor(h); return w === 'buster' && h === 'enzo' ? 'WHISKER SABER' : WEAPONS[w].name.toUpperCase(); };
+  // bar() centres its label, so set the text style after the bars are drawn.
+  const text = () => { c.font = 'bold 12px ui-monospace, monospace'; c.textAlign = 'left'; };
+  if (g.coop) {
+    // Co-op: a full bar, weapon and energy for each hero.
+    HEROES.forEach((h, i) => {
+      const x = 22 + i * 60, w = g.weaponFor(h);
+      c.globalAlpha = g.bodies[h].down ? 0.35 : 1;
+      bar(c, x, 40, g.hp[h], g.max, h === 'dora' ? '#7fd6ff' : '#ff9a8a', 14, h === 'dora' ? 'D' : 'E');
+      if (w !== 'buster') bar(c, x + 22, 40, g.energy[w], ENERGY, WEAPONS[w].color, 10);
+      c.globalAlpha = 1;
+    });
+    text();
+    c.fillStyle = '#10141ecc'; rr(c, 16, 12, 330, 20, 4);
+    c.fillStyle = WEAPONS[g.weaponFor('dora')].color; c.fillText(`D ${label('dora')}`, 24, 26);
+    c.fillStyle = WEAPONS[g.weaponFor('enzo')].color; c.fillText(`E ${label('enzo')}`, 186, 26);
+  } else {
+    const other = g.partner;
+    bar(c, 22, 40, g.hp[g.hero], g.max, g.hero === 'dora' ? '#7fd6ff' : '#ff9a8a', 14, g.hero === 'dora' ? 'D' : 'E');
+    c.globalAlpha = 0.65;
+    bar(c, 46, 40, g.hp[other], g.max, other === 'dora' ? '#7fd6ff' : '#ff9a8a', 8, other === 'dora' ? 'D' : 'E');
+    c.globalAlpha = 1;
+    const w = g.weaponId;
+    if (w !== 'buster') bar(c, 66, 40, g.energy[w], ENERGY, WEAPONS[w].color, 10);
+    text();
+    c.fillStyle = '#10141ecc'; rr(c, 16, 12, 196, 20, 4);
+    c.fillStyle = WEAPONS[w].color;
+    c.fillText(label(g.hero), 24, 26);
+  }
   const m = Math.floor(g.time / 60), s = Math.floor(g.time % 60);
   c.textAlign = 'right';
   c.fillStyle = '#10141ecc'; rr(c, VIEW_W - 120, 12, 104, 20, 4);
   c.fillStyle = '#fff';
   c.fillText(`${m}:${String(s).padStart(2, '0')}`, VIEW_W - 26, 26);
-  if (g.player.tagT > 0) { c.textAlign = 'left'; c.fillStyle = '#ffd46a'; c.fillText('TAG STRIKE ×1.5', 222, 26); }
+  if (!g.coop && g.player.tagT > 0) { c.textAlign = 'left'; c.fillStyle = '#ffd46a'; c.fillText('TAG STRIKE ×1.5', 222, 26); }
   const b = g.boss;
   if (b) {
-    const fill = g.state === 'boss' ? b.max * Math.min(1, 1 - g.introT / 2.2) : b.hp;
+    const fill = g.state === 'boss' ? b.max * Math.min(1, 1 - g.introT / g.introMax) : b.hp;
     bar(c, VIEW_W - 38, 40, fill, b.max, '#ffcf5a', 14, '☠');
+    // The boss's name, and its weakness once you've found it.
+    const info = bossInfo(b.kind), known = info.weakness && g.progress.found.includes(info.id);
+    c.textAlign = 'right';
+    c.fillStyle = '#10141ecc'; rr(c, VIEW_W - 290, 40, 240, known ? 36 : 20, 4);
+    c.fillStyle = '#ffcf5a'; c.fillText(info.bossName.toUpperCase(), VIEW_W - 58, 54);
+    if (known) { c.fillStyle = WEAPONS[info.weakness!].color; c.fillText(`WEAK: ${WEAPONS[info.weakness!].name.toUpperCase()}`, VIEW_W - 58, 70); }
   }
   if (g.banner.t > 0 && g.banner.text) {
     const alpha = Math.min(1, g.banner.t * 3);

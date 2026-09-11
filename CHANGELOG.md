@@ -6,6 +6,19 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Paw Buster X:** co-op, gamepads, charged weapons, a three-sector citadel and more.
+  - **Co-op:** two players, with Enzo on the arrow keys or a gamepad. Dora and Enzo are on screen together, and a fallen player comes back at the next checkpoint.
+  - **Gamepads:** full controller support.
+  - **Key remapping:** move any action to any key from the stage select.
+  - **Options:** music for every stage and boss fight (plays while sound is on), and an easy mode with half damage and no pit damage.
+  - **Best-time ghost:** your fastest clean run is saved and replays as a ghost for you to race.
+  - **Charged special weapons:** hold fire with any maverick weapon for a stronger version: an ice wall, a tornado, a pillar of fire, a crystal burst, three homing sparks or a giant bubble. Special weapons also tint the heroes' armour.
+  - **Sub-tanks:** four of them store spare health to drink from the pause screen.
+  - **Armour parts:** the Dash Boots add an air dash, and the Saber Crest gives Enzo a dash slash.
+  - **Stages change** after certain bosses fall: the lake freezes over, the caldera's spikes cool, and the Salt Flats lose their bats.
+  - **Weaknesses:** once found, they show on the boss's health bar and on the pause screen.
+  - **Hit-stop:** a brief freeze makes big hits land harder.
+  - **Cougar Citadel:** now three sectors with conveyor belts, crushers and moving platforms, ending in a rematch with all six mavericks before the Cougar Kingpin. Below half health, the Kingpin starts using the mavericks' moves.
 - **Paw Buster X:** three new maverick stages, each with its own boss and weapon. Crystal Mines has low tunnels and the Quartz Armadillo, which rolls through your shots; beating it gives Quartz Orbit, a ring of crystals that blocks enemy shots. On the Salt Flats, the Volt Vicuña calls down lightning and gives Volt Spark, a shot that homes in on enemies. Titicaca Falls has hopping frogs and the Tide Toad, which gives Bubble Burst. There are three more heart tanks, so maximum health can reach 28. The Cougar Citadel now opens after all six mavericks; saves that already beat the citadel keep it open.
 - **Paw Buster X:** T fires, Y dashes and U tags your partner in, as easier-to-reach alternatives to the existing keys.
 - **Paw Buster X**, the thirteenth cabinet: a Mega Man X-style action platformer. Dora charges a paw buster, Enzo swings a whisker saber that cuts enemy shots, and the two tag in and out for bonus damage. Dash, dash-jump and wall-jump through three maverick stages (Frost Fox, Storm Owl and Magma Snake), win each boss’s weapon to use against the next, collect heart tanks, then storm the Cougar Citadel. Progress and best times save in the browser, and touch screens get an on-screen pad.
