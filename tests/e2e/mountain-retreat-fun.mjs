@@ -37,6 +37,8 @@ const lodge = {
   catchReadyAt: 0,
 };
 const browser = await chromium.launch();
+// The lodge's controls live in tabs; open one before using what is inside it.
+const tab = (p, name) => p.getByRole('tab', { name: new RegExp(`^${name}`) }).click();
 const errors = [];
 const open = async (save, options = {}) => {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, ...options });
@@ -70,8 +72,10 @@ try {
 
   // Goals: opening every room is met on the first tick, with a keepsake and a notice.
   await page.clock.runFor(1000);
+  await tab(page, 'Goals');
   assert.match(await page.getByTestId('goal-0').getAttribute('class'), /done/);
   assert.match(await notice(page), /Goal complete: Every room open/);
+  await tab(page, 'Hosts');
   assert.equal(await page.getByTestId('keepsakes').locator('i').count(), 1);
   assert.equal(await page.getByTestId('lodge-title').textContent(), 'MOUNTAIN HUT');
 
@@ -103,11 +107,14 @@ try {
   await page.keyboard.press('Escape');
 
   // Mini-games: stop the pour dead centre, then catch two petals.
+  await tab(page, 'Fun');
   await page.getByRole('button', { name: 'Pour tea ↗' }).click();
   await page.clock.runFor(560);
   await page.getByRole('button', { name: 'Stop pouring' }).click();
   assert.match(await notice(page), /Goal complete: Perfect pour/);
+  await tab(page, 'Goals');
   assert.match(await page.getByTestId('goal-8').getAttribute('class'), /done/);
+  await tab(page, 'Fun');
   assert.match(await page.getByRole('button', { name: /Kettle warming · 60s/ }).textContent(), /60s/);
   await page.getByRole('button', { name: 'Catch the petals ↗' }).click();
   await page.clock.runFor(1000);
@@ -122,12 +129,14 @@ try {
 
   // Scrapbook: a snap redraws the lodge, captions are editable and survive a reload.
   await page.getByTestId('snap').click();
+  await tab(page, 'Scrapbook');
   const photo = page.getByTestId('photo');
   assert.equal(await photo.count(), 1);
   assert.ok((await photo.locator('.mr-photo-scene .mr-chin').count()) >= 2);
   await photo.getByLabel('Photo caption').fill('Tea with Luna');
   await page.reload();
   await page.locator('fieldset:not([disabled])').first().waitFor();
+  await tab(page, 'Scrapbook');
   assert.equal(await page.getByTestId('photo').getByLabel('Photo caption').inputValue(), 'Tea with Luna');
   await page.screenshot({ path: '.checks/mountain-retreat/fun-desktop.png', fullPage: true });
   await page.getByTestId('photo').getByRole('button', { name: 'Remove photo' }).click();
@@ -151,6 +160,7 @@ try {
   await lost.getByRole('button', { name: /Rescue the hiker/ }).click();
   assert.match(await lost.locator('.mr-trail-hosts.rescue').textContent(), /Rescuing a lost hiker/);
   await lost.clock.runFor(20000);
+  await tab(lost, 'Goals');
   assert.match(await lost.getByTestId('goal-7').getAttribute('class'), /done/);
   assert.equal(await lost.getByTestId('event').count(), 0);
   await lost.close();

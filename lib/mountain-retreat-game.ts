@@ -92,6 +92,13 @@ export const EVENT_EVERY = 180;
 export const EVENT_AT = 90;
 const EVENT_ROLL: (EventKind | null)[] = [null, 'storm', 'musician', 'lost'];
 export const FESTIVAL = { seconds: 60, hearts: 12, supplies: 20, tips: 110, reward: 24 } as const;
+/** Each season hosts its own festival, with one twist on the usual reward. */
+export const SEASON_FESTIVALS = {
+  spring: { name: 'Blossom fair', detail: 'Picnic baskets for everyone: also 2 oat cakes and 2 herbal soaps for the pantry.' },
+  summer: { name: 'Midsummer lanterns', detail: 'Summer crowds: tips and hearts are half as much again.' },
+  autumn: { name: 'Harvest feast', detail: 'Neighbours bring the harvest: also +40 supplies.' },
+  winter: { name: 'Snow-lantern night', detail: 'The coziest night of the year: +10 reputation instead of 5.' },
+} as const;
 export const DAY_SECONDS = 120;
 export const NIGHT_FROM = 80;
 export const SEASON_SECONDS = 360;
@@ -118,7 +125,7 @@ export interface VisitLog extends GuestVisit {
   postcard: number;
 }
 export interface RetreatState {
-  version: 3;
+  version: 4;
   savedAt: number;
   coins: number;
   hearts: number;
@@ -151,11 +158,21 @@ export interface RetreatState {
   /** Lodge seconds (`elapsed`) when each mini-game can be played again. */
   teaReadyAt: number;
   catchReadyAt: number;
+  xp: { dora: number; enzo: number };
+  /** Chosen skill per level tier (levels 2–5): -1 until picked. */
+  skills: { dora: number[]; enzo: number[] };
+  /** Today's wish list: `day` picks the three requests; progress is per request. */
+  daily: { day: number; progress: number[]; claimed: boolean };
+  /** Story steps finished per regular (0–3), and progress on the current step. */
+  quests: number[];
+  questProgress: number[];
+  /** Seasons (bitmask, spring = 1) that have hosted a festival. */
+  festivalSeasons: number;
 }
 const cap = (n: number) => Math.min(1e9, n);
 export function freshRetreat(now = 0): RetreatState {
   return {
-    version: 3,
+    version: 4,
     savedAt: now,
     coins: 25,
     hearts: 0,
@@ -183,6 +200,12 @@ export function freshRetreat(now = 0): RetreatState {
     perfectPours: 0,
     teaReadyAt: 0,
     catchReadyAt: 0,
+    xp: { dora: 0, enzo: 0 },
+    skills: { dora: [-1, -1, -1, -1], enzo: [-1, -1, -1, -1] },
+    daily: { day: 0, progress: [0, 0, 0], claimed: false },
+    quests: [0, 0, 0],
+    questProgress: [0, 0, 0],
+    festivalSeasons: 0,
   };
 }
 /** 1–5 stars, one per 20 reputation. */
@@ -225,7 +248,9 @@ export function choosePerk(s: RetreatState, i: number, perk: number): boolean {
 }
 export const activitySeconds = (s: RetreatState, kind: Activity, trail: Trail = 'juniper') => {
   const base = kind === 'festival' ? FESTIVAL.seconds : TRAILS[trail].seconds;
-  return s.perks[3] === 0 ? base - Math.floor(base / 4) : base;
+  const springs = s.perks[3] === 0 ? base - Math.floor(base / 4) : base;
+  // Trail sense: Enzo knows the shortcuts.
+  return kind === 'expedition' && hasSkill(s, 'enzo', 1, 0) ? Math.max(5, springs - 5) : springs;
 };
 /** Why a trail is closed right now, or null when it can be walked. */
 export function trailClosed(s: RetreatState, trail: Trail): string | null {
@@ -255,11 +280,20 @@ export function startActivity(
   } else return false;
   return true;
 }
-/** Festival rewards; summer crowds are half as big again. */
-export const festivalReward = (s: RetreatState) =>
-  season(s.elapsed) === 'summer'
-    ? { tips: FESTIVAL.tips * 1.5, hearts: FESTIVAL.reward * 1.5 }
-    : { tips: FESTIVAL.tips, hearts: FESTIVAL.reward };
+/** This season's festival and what it pays; Dora's Festival host skill adds 50 tips. */
+export function festivalReward(s: RetreatState) {
+  const when = season(s.elapsed);
+  const summer = when === 'summer';
+  return {
+    name: SEASON_FESTIVALS[when].name,
+    detail: SEASON_FESTIVALS[when].detail,
+    tips: (summer ? FESTIVAL.tips * 1.5 : FESTIVAL.tips) + (hasSkill(s, 'dora', 2, 1) ? 50 : 0),
+    hearts: summer ? FESTIVAL.reward * 1.5 : FESTIVAL.reward,
+    supplies: when === 'autumn' ? 40 : 0,
+    items: when === 'spring' ? 2 : 0,
+    reputation: when === 'winter' ? 10 : 5,
+  };
+}
 export type Host = 'dora' | 'enzo';
 export const HOST_STOP_SECONDS = { dora: 8, enzo: 12 } as const;
 export const WALK_SECONDS = 2;
@@ -284,6 +318,7 @@ export const supplyParts = (s: RetreatState, elapsed = s.elapsed): Part[] =>
       : { label: 'Enzo crafting', value: 1 },
     { label: 'Spring blossoms', value: season(elapsed) === 'spring' ? 1 : 0 },
     { label: 'Larder', value: s.perks[1] === 1 ? 1 : 0 },
+    { label: 'Strong back', value: hasSkill(s, 'enzo', 0, 0) ? 1 : 0 },
   ]);
 export const supplyRate = (s: RetreatState) => total(supplyParts(s));
 /** Tips and hearts a visit at `elapsed` pays before the featured guest's wish. */
@@ -300,14 +335,20 @@ export function visitRewards(s: RetreatState, elapsed = s.elapsed) {
       { label: 'Decorations', value: s.decor },
       { label: 'Tea stall', value: s.perks[0] === 1 ? 3 : 0 },
       { label: 'Autumn harvest', value: when === 'autumn' ? rooms : 0 },
+      { label: 'Tip jar', value: hasSkill(s, 'dora', 0, 1) ? 2 : 0 },
   ]);
+  const sheltered =
+    event === 'storm'
+      ? [...base, { label: 'Storm shelter (+50%)', value: Math.floor(total(base) / 2) }]
+      : base;
   return {
-    tips:
-      event === 'storm'
-        ? [...base, { label: 'Storm shelter (+50%)', value: Math.floor(total(base) / 2) }]
-        : base,
+    tips: hasSkill(s, 'dora', 3, 1)
+      ? shown([...sheltered, { label: 'Grand hostess (+10%)', value: Math.floor(total(sheltered) / 10) }])
+      : sheltered,
     hearts: shown([
       { label: `${comfort ? 'Extra comfort' : 'Welcome'} (${rooms} rooms × ${comfort ? 3 : 1})`, value: rooms * (comfort ? 3 : 1) },
+      { label: 'Warm welcome', value: !comfort && hasSkill(s, 'dora', 0, 0) ? rooms : 0 },
+      { label: 'Cozy blankets', value: comfort && hasSkill(s, 'dora', 2, 0) ? rooms : 0 },
       { label: 'Feather beds', value: comfort && s.perks[2] === 1 ? rooms : 0 },
       { label: 'Telescope at night', value: isNight(elapsed) && s.perks[2] === 0 ? rooms : 0 },
       { label: 'Winter coziness', value: when === 'winter' ? rooms : 0 },
@@ -418,31 +459,53 @@ function visit(s: RetreatState) {
     const item = GUESTS[who.guest].item;
     if (item) {
       s.pantry[item]--;
-      tips += ITEM_TIPS;
+      tips += ITEM_TIPS + (hasSkill(s, 'enzo', 2, 0) ? 5 : 0);
     }
     tips += WISH_TIPS;
     hearts += WISH_HEARTS;
-    s.reputation = Math.min(100, s.reputation + 1 + (s.perks[0] === 0 ? 1 : 0));
+    s.reputation = Math.min(
+      100,
+      s.reputation + 1 + (s.perks[0] === 0 ? 1 : 0) + (hasSkill(s, 'dora', 3, 0) ? 1 : 0),
+    );
     if (who.regular >= 0) {
-      postcard = befriend(s, who.regular);
-      if (postcard >= 0) tips += POSTCARDS[postcard].tips;
+      // Good memory: regulars gain two friendship points; a postcard either unlocks still pays.
+      for (let k = hasSkill(s, 'dora', 1, 0) ? 2 : 1; k > 0; k--) {
+        const card = befriend(s, who.regular);
+        if (card >= 0) {
+          postcard = card;
+          tips += POSTCARDS[card].tips;
+        }
+      }
     }
-  } else s.reputation = Math.max(0, s.reputation - 1);
+  } else if (!hasSkill(s, 'dora', 1, 1)) s.reputation = Math.max(0, s.reputation - 1);
   s.coins = cap(s.coins + tips);
   s.hearts = cap(s.hearts + hearts);
   s.served = cap(s.served + rooms);
+  s.xp.dora = cap(s.xp.dora + (happy ? 2 : 1));
   s.last = { ...who, outcome: happy ? 'happy' : 'plain', tips, hearts, postcard };
+  record(s, 'visit');
+  if (isNight(s.elapsed)) record(s, 'night-visit');
+  if (happy) record(s, 'wish');
+  if (who.regular >= 0) record(s, 'regular');
 }
 function finishActivity(s: RetreatState) {
   const a = s.activity!;
   if (a.kind === 'expedition') {
     const trail = TRAILS[a.trail ?? 'juniper'];
-    s.supplies = Math.min(SUPPLY_CAP, s.supplies + trail.supplies);
-    s.coins = cap(s.coins + trail.tips);
+    const keen = hasSkill(s, 'enzo', 1, 1);
+    s.supplies = Math.min(
+      SUPPLY_CAP,
+      s.supplies + trail.supplies + (keen && a.trail === 'summit' ? 20 : 0),
+    );
+    s.coins = cap(
+      s.coins + (hasSkill(s, 'enzo', 3, 0) ? Math.floor(trail.tips * 1.5) : trail.tips),
+    );
     s.expeditions = cap(s.expeditions + 1);
     if (a.trail === 'lake')
       for (const k of ['oatcake', 'soap'] as const)
-        s.pantry[k] = Math.min(PANTRY_CAP, s.pantry[k] + 1);
+        s.pantry[k] = Math.min(pantryCap(s), s.pantry[k] + (keen ? 2 : 1));
+    record(s, 'trail');
+    if (a.trail === 'lake' || a.trail === 'summit') record(s, a.trail);
     if (a.trail === 'rescue') {
       s.reputation = Math.min(100, s.reputation + 8);
       s.rescues = cap(s.rescues + 1);
@@ -458,8 +521,13 @@ function finishActivity(s: RetreatState) {
     const reward = festivalReward(s);
     s.coins = cap(s.coins + reward.tips);
     s.hearts = cap(s.hearts + reward.hearts);
-    s.reputation = Math.min(100, s.reputation + 5);
+    s.supplies = Math.min(SUPPLY_CAP, s.supplies + reward.supplies);
+    for (const k of ['oatcake', 'soap'] as const)
+      s.pantry[k] = Math.min(pantryCap(s), s.pantry[k] + reward.items);
+    s.reputation = Math.min(100, s.reputation + reward.reputation);
     s.festivals = cap(s.festivals + 1);
+    s.festivalSeasons |= 1 << SEASONS.indexOf(season(s.elapsed));
+    record(s, 'festival');
   }
   s.activity = null;
 }
@@ -485,12 +553,17 @@ export function advanceRetreat(s: RetreatState, seconds: number): void {
     }
     if (s.elapsed % SUPPLY_SECONDS === 0)
       s.supplies = Math.min(SUPPLY_CAP, s.supplies + supplyRate(s));
+    // Enzo learns from every day of work, whichever duty he has.
+    if (s.elapsed % RECIPE_SECONDS === 0) s.xp.enzo = cap(s.xp.enzo + 1);
     if (s.enzo === 'craft' && s.elapsed % RECIPE_SECONDS === 0) {
       const item = recipeAt(s, s.elapsed);
-      if (item && s.pantry[item] < PANTRY_CAP && s.supplies >= RECIPE_COST) {
-        s.supplies -= RECIPE_COST;
+      const cost = recipeCost(s);
+      if (item && s.pantry[item] < pantryCap(s) && s.supplies >= cost) {
+        s.supplies -= cost;
         const batch = (item === 'oatcake' ? s.perks[1] : s.perks[3]) === 0 ? 2 : 1;
-        s.pantry[item] = Math.min(PANTRY_CAP, s.pantry[item] + batch);
+        const made = Math.min(pantryCap(s), s.pantry[item] + batch) - s.pantry[item];
+        s.pantry[item] += made;
+        record(s, 'item', made);
       }
     }
     if (s.elapsed % visitPeriod(s) === 0) visit(s);
@@ -522,6 +595,7 @@ export const GOALS: readonly {
   { name: 'Master planner', detail: 'Choose all four specialties', keepsake: 'Brass plaque', tips: 100, done: (s) => s.perks.every((p) => p >= 0) },
   { name: 'Mountain hero', detail: 'Rescue a lost hiker', keepsake: 'Rescue lantern', tips: 60, done: (s) => s.rescues > 0 },
   { name: 'Perfect pour', detail: 'Pour a perfect cup of tea', keepsake: 'Teapot trophy', tips: 40, done: (s) => s.perfectPours > 0 },
+  { name: 'Festival calendar', detail: 'Host a festival in every season', keepsake: 'Seasons wreath', tips: 120, done: (s) => s.festivalSeasons === 15 },
 ];
 /** Marks newly met goals, pays their tips, and returns their indices. */
 export function checkGoals(s: RetreatState): number[] {
@@ -537,7 +611,7 @@ export function checkGoals(s: RetreatState): number[] {
 }
 export function lodgeTitle(s: RetreatState) {
   const n = bits(s.goals);
-  return n >= 9
+  return n >= GOALS.length
     ? 'Legend of the Andes'
     : n >= 6
       ? 'Famous retreat'
@@ -571,11 +645,14 @@ export function offerTreat(s: RetreatState, room: number, item: Item): boolean {
   let tips: number = TREAT.tips;
   const last = s.last!;
   // A treat for the regular in their own room counts as a friendly visit.
-  if (last.regular >= 0 && GUESTS[last.guest].room === room) {
-    const postcard = befriend(s, last.regular);
+  const regular = last.regular >= 0 && GUESTS[last.guest].room === room ? last.regular : -1;
+  if (regular >= 0) {
+    const postcard = befriend(s, regular);
     if (postcard >= 0) tips += POSTCARDS[postcard].tips;
   }
   s.coins = cap(s.coins + tips);
+  record(s, 'treat');
+  if (regular >= 0) record(s, `treat-${regular}` as Deed);
   checkGoals(s);
   return true;
 }
@@ -597,7 +674,9 @@ export function pourTea(s: RetreatState, accuracy: number): Pour | null {
   s.coins = cap(s.coins + TEA_REWARDS[grade].tips);
   s.hearts = cap(s.hearts + TEA_REWARDS[grade].hearts);
   if (grade === 'perfect') s.perfectPours = cap(s.perfectPours + 1);
-  s.teaReadyAt = s.elapsed + TEA_COOLDOWN;
+  s.teaReadyAt = s.elapsed + (hasSkill(s, 'enzo', 3, 1) ? TEA_COOLDOWN / 2 : TEA_COOLDOWN);
+  record(s, 'tea');
+  if (grade === 'perfect') record(s, 'tea-perfect');
   checkGoals(s);
   return grade;
 }
@@ -606,8 +685,172 @@ export function catchReward(s: RetreatState, caught: number): number | null {
   if (!catchReady(s) || !Number.isFinite(caught)) return null;
   const tips = Math.max(0, Math.min(CATCH_CAP, Math.floor(caught)));
   s.coins = cap(s.coins + tips);
-  s.catchReadyAt = s.elapsed + CATCH_COOLDOWN;
+  s.catchReadyAt = s.elapsed + (hasSkill(s, 'enzo', 3, 1) ? CATCH_COOLDOWN / 2 : CATCH_COOLDOWN);
+  record(s, 'catch', tips);
   return tips;
+}
+/** Skills unlock one tier per level from level 2; each tier offers two choices. */
+export const SKILL_XP = [0, 30, 90, 180, 300] as const;
+export const hostLevel = (xp: number) => SKILL_XP.filter((t) => xp >= t).length;
+export const SKILLS = {
+  dora: [
+    [
+      { name: 'Warm welcome', detail: 'Welcome visits earn +1 heart per room' },
+      { name: 'Tip jar', detail: '+2 tips on every guest visit' },
+    ],
+    [
+      { name: 'Good memory', detail: 'Regulars gain two friendship points per happy visit' },
+      { name: 'Kind words', detail: 'Unmet wishes no longer cost reputation' },
+    ],
+    [
+      { name: 'Cozy blankets', detail: 'Extra comfort visits earn +1 heart per room' },
+      { name: 'Festival host', detail: 'Festivals pay +50 tips' },
+    ],
+    [
+      { name: 'Beloved host', detail: 'Granted wishes earn +1 extra reputation' },
+      { name: 'Grand hostess', detail: '+10% tips on every guest visit' },
+    ],
+  ],
+  enzo: [
+    [
+      { name: 'Strong back', detail: '+1 supply on every delivery' },
+      { name: 'Quick hands', detail: 'Recipes cost 1 supply instead of 2' },
+    ],
+    [
+      { name: 'Trail sense', detail: 'Trail outings finish 5 seconds sooner' },
+      { name: 'Keen eye', detail: 'Lake trips find double treats; summit trips +20 supplies' },
+    ],
+    [
+      { name: 'Master baker', detail: 'Wishes that use an item pay +5 tips' },
+      { name: 'Big pantry', detail: 'The pantry holds 15 of each item' },
+    ],
+    [
+      { name: 'Mountain guide', detail: 'Trail outings pay +50% tips' },
+      { name: 'Tinkerer', detail: 'Mini-games are ready twice as often' },
+    ],
+  ],
+} as const;
+export function hasSkill(s: RetreatState, host: Host, tier: number, pick: number) {
+  return s.skills[host][tier] === pick;
+}
+/** Skill tiers a host has unlocked but not yet chosen. */
+export const skillPoints = (s: RetreatState, host: Host) =>
+  s.skills[host].filter((p, t) => p === -1 && hostLevel(s.xp[host]) >= t + 2).length;
+export function chooseSkill(s: RetreatState, host: Host, tier: number, pick: number): boolean {
+  if (
+    (host !== 'dora' && host !== 'enzo') ||
+    !Number.isInteger(tier) ||
+    tier < 0 ||
+    tier >= SKILLS[host].length ||
+    (pick !== 0 && pick !== 1) ||
+    s.skills[host][tier] !== -1 ||
+    hostLevel(s.xp[host]) < tier + 2
+  )
+    return false;
+  s.skills[host][tier] = pick;
+  checkGoals(s);
+  return true;
+}
+export const PANTRY_MAX = 15;
+export const pantryCap = (s: RetreatState) => (hasSkill(s, 'enzo', 2, 1) ? PANTRY_MAX : PANTRY_CAP);
+export const recipeCost = (s: RetreatState) => (hasSkill(s, 'enzo', 0, 1) ? 1 : RECIPE_COST);
+/** Things the player does, counted toward the daily wish list and regulars' stories. */
+export type Deed =
+  | 'visit'
+  | 'wish'
+  | 'item'
+  | 'treat'
+  | 'trail'
+  | 'lake'
+  | 'summit'
+  | 'festival'
+  | 'tea'
+  | 'tea-perfect'
+  | 'catch'
+  | 'regular'
+  | 'night-visit'
+  | 'treat-0'
+  | 'treat-1'
+  | 'treat-2';
+export const DAILY: readonly { deed: Deed; n: number; text: string }[] = [
+  { deed: 'visit', n: 15, text: 'Welcome 15 guests' },
+  { deed: 'wish', n: 6, text: 'Grant 6 wishes' },
+  { deed: 'item', n: 6, text: 'Bake or make 6 pantry items' },
+  { deed: 'treat', n: 3, text: 'Offer 3 treats' },
+  { deed: 'trail', n: 2, text: 'Finish 2 trail outings' },
+  { deed: 'festival', n: 1, text: 'Host a festival' },
+  { deed: 'tea', n: 2, text: 'Pour 2 cups of tea' },
+  { deed: 'catch', n: 10, text: 'Catch 10 things in the weather' },
+  { deed: 'regular', n: 1, text: 'Welcome a regular' },
+];
+export const DAILY_REWARD = { tips: 100, hearts: 10, reputation: 3 } as const;
+/** The three DAILY requests for calendar day `day`: the same for every player that day. */
+export const dailyList = (day: number) =>
+  DAILY.map((_, i) => i)
+    .sort((x, y) => mix(day * 16 + x) - mix(day * 16 + y))
+    .slice(0, 3);
+export const dailyDone = (s: RetreatState) =>
+  dailyList(s.daily.day).every((d, k) => s.daily.progress[k] >= DAILY[d].n);
+/** Moves the wish list to `day` (days since 1970 in local time); a new day starts a fresh list. */
+export function startDay(s: RetreatState, day: number): boolean {
+  if (!Number.isSafeInteger(day) || day < 0 || s.daily.day === day) return false;
+  s.daily = { day, progress: [0, 0, 0], claimed: false };
+  return true;
+}
+export function claimDaily(s: RetreatState): boolean {
+  if (s.daily.claimed || !dailyDone(s)) return false;
+  s.daily.claimed = true;
+  s.coins = cap(s.coins + DAILY_REWARD.tips);
+  s.hearts = cap(s.hearts + DAILY_REWARD.hearts);
+  s.reputation = Math.min(100, s.reputation + DAILY_REWARD.reputation);
+  checkGoals(s);
+  return true;
+}
+/** Three story steps per regular (Pip, Mochi, Luna), unlocked at friendship 3, 6 and 10. */
+export const QUESTS: readonly (readonly {
+  at: number;
+  text: string;
+  need: Deed;
+  n: number;
+  tips: number;
+  hearts: number;
+  reputation: number;
+}[])[] = [
+  [
+    { at: 3, text: 'Pip wants to see Glass lake. Take a lake trip.', need: 'lake', n: 1, tips: 40, hearts: 0, reputation: 0 },
+    { at: 6, text: 'Pip’s paws are sore from the trail. Offer Pip a treat while they stay.', need: 'treat-0', n: 1, tips: 0, hearts: 20, reputation: 0 },
+    { at: 10, text: 'Climb the Condor summit together, just as Pip always dreamed.', need: 'summit', n: 1, tips: 120, hearts: 0, reputation: 10 },
+  ],
+  [
+    { at: 3, text: 'Mochi wants to taste Enzo’s baking. Make 4 pantry items.', need: 'item', n: 4, tips: 40, hearts: 0, reputation: 0 },
+    { at: 6, text: 'Help Mochi cater a festival.', need: 'festival', n: 1, tips: 0, hearts: 20, reputation: 0 },
+    { at: 10, text: 'Share a perfect cup of tea with Mochi.', need: 'tea-perfect', n: 1, tips: 120, hearts: 0, reputation: 10 },
+  ],
+  [
+    { at: 3, text: 'Luna wants company after dark. Welcome 5 guests at night.', need: 'night-visit', n: 5, tips: 40, hearts: 0, reputation: 0 },
+    { at: 6, text: 'Offer Luna a treat under the stars.', need: 'treat-2', n: 1, tips: 0, hearts: 20, reputation: 0 },
+    { at: 10, text: 'Luna will name a star after the lodge. Grant 10 wishes.', need: 'wish', n: 10, tips: 120, hearts: 0, reputation: 10 },
+  ],
+];
+/** Counts a deed toward today's wish list and any regular's story step waiting on it. */
+function record(s: RetreatState, deed: Deed, n = 1) {
+  if (n <= 0) return;
+  dailyList(s.daily.day).forEach((d, k) => {
+    if (DAILY[d].deed === deed)
+      s.daily.progress[k] = Math.min(DAILY[d].n, s.daily.progress[k] + n);
+  });
+  QUESTS.forEach((steps, r) => {
+    const step = steps[s.quests[r]];
+    if (!step || s.friends[r] < step.at || step.need !== deed) return;
+    s.questProgress[r] += n;
+    if (s.questProgress[r] >= step.n) {
+      s.quests[r]++;
+      s.questProgress[r] = 0;
+      s.coins = cap(s.coins + step.tips);
+      s.hearts = cap(s.hearts + step.hearts);
+      s.reputation = Math.min(100, s.reputation + step.reputation);
+    }
+  });
 }
 const NAMES = ['Quilla', 'Inti', 'Nube', 'Suri', 'Kusi', 'Paqo', 'Rumi', 'Wayra', 'Chaska', 'Killa', 'Amaru', 'Sumaq', 'Tika', 'Yaku', 'Mayu', 'Nina', 'Kallpa', 'Ayni', 'Pacha', 'Illa', 'Tupa', 'Urpi', 'Sisa', 'Qori'];
 const HOMES = ['Pisaq', 'Chivay', 'Sorata', 'Tilcara', 'Purmamarca', 'Humahuaca', 'Cabanaconde', 'Ollantaytambo', 'Maras', 'Copacabana', 'San Pedro', 'Uyuni'];
@@ -661,7 +904,7 @@ export function parseRetreat(raw: string | null): RetreatState | null {
     const s = JSON.parse(raw);
     if (
       !s ||
-      (s.version !== 1 && s.version !== 2 && s.version !== 3) ||
+      ![1, 2, 3, 4].includes(s.version) ||
       !integer(s.savedAt, 8640000000000000) ||
       !integer(s.coins) ||
       !integer(s.hearts) ||
@@ -691,9 +934,32 @@ export function parseRetreat(raw: string | null): RetreatState | null {
         }
       : s;
     // Version-3 additions; older journals start them fresh.
-    const later = s.version === 3 ? s : freshRetreat();
+    const later = s.version >= 3 ? s : freshRetreat();
+    // Version-4 additions (skills, wish list, stories, festival seasons).
+    const v4 = s.version === 4 ? s : freshRetreat();
+    const skillList = (v: unknown, xp: number) =>
+      Array.isArray(v) &&
+      v.length === 4 &&
+      v.every((p, t) => p === -1 || ((p === 0 || p === 1) && hostLevel(xp) >= t + 2));
     if (
-      s.version === 3 &&
+      s.version === 4 &&
+      (!s.xp ||
+        !integer(s.xp.dora) ||
+        !integer(s.xp.enzo) ||
+        !s.skills ||
+        !skillList(s.skills.dora, s.xp.dora) ||
+        !skillList(s.skills.enzo, s.xp.enzo) ||
+        !s.daily ||
+        !integer(s.daily.day) ||
+        !list(s.daily.progress, 3, 1000) ||
+        typeof s.daily.claimed !== 'boolean' ||
+        !list(s.quests, REGULARS.length, 3) ||
+        !list(s.questProgress, REGULARS.length, 1000) ||
+        !integer(s.festivalSeasons, 15))
+    )
+      return null;
+    if (
+      s.version >= 3 &&
       (!s.treat ||
         !integer(s.treat.visit) ||
         !integer(s.treat.rooms, 15) ||
@@ -717,8 +983,8 @@ export function parseRetreat(raw: string | null): RetreatState | null {
         s.perks.length !== 4 ||
         !s.perks.every((p: unknown, i: number) => p === -1 || ((p === 0 || p === 1) && s.rooms[i] === 3)) ||
         !s.pantry ||
-        !integer(s.pantry.oatcake, PANTRY_CAP) ||
-        !integer(s.pantry.soap, PANTRY_CAP) ||
+        !integer(s.pantry.oatcake, PANTRY_MAX) ||
+        !integer(s.pantry.soap, PANTRY_MAX) ||
         !list(s.album, GUESTS.length, (1 << COATS.length) - 1) ||
         !list(s.friends, REGULARS.length, FRIENDSHIP_CAP) ||
         !integer(s.decor, DECOR_CAP) ||
@@ -736,7 +1002,7 @@ export function parseRetreat(raw: string | null): RetreatState | null {
     )
       return null;
     return {
-      version: 3,
+      version: 4,
       savedAt: s.savedAt,
       coins: s.coins,
       hearts: s.hearts,
@@ -766,6 +1032,12 @@ export function parseRetreat(raw: string | null): RetreatState | null {
       perfectPours: later.perfectPours,
       teaReadyAt: later.teaReadyAt,
       catchReadyAt: later.catchReadyAt,
+      xp: { dora: v4.xp.dora, enzo: v4.xp.enzo },
+      skills: { dora: [...v4.skills.dora], enzo: [...v4.skills.enzo] },
+      daily: { day: v4.daily.day, progress: [...v4.daily.progress], claimed: v4.daily.claimed },
+      quests: [...v4.quests],
+      questProgress: [...v4.questProgress],
+      festivalSeasons: v4.festivalSeasons,
     };
   } catch {
     return null;

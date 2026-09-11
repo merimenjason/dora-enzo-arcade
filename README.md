@@ -206,23 +206,26 @@ Every visit has a featured guest with a wish: a room, sometimes an oat cake or h
 
 Every guest you see can be clicked to open a profile: a name, home village, bio, wish, friendship and album status. The guest in a room can be offered an oat cake or herbal soap once per visit, for +3 hearts and +2 tips; a treat for a regular also adds friendship. Nine lodge goals (such as reaching 3 stars, hosting 3 festivals or rescuing a lost hiker) each pay tips once, leave a keepsake by the lodge and raise its title, from Mountain hut up to Legend of the Andes. Every 3 minutes of lodge time a surprise may arrive: a storm (+50% tips and +1 heart per room), a travelling musician (+2 hearts per room), or a lost hiker to rescue on a 20-second outing for +40 tips and +8 reputation. Two optional mini-games pay small bonuses: pouring tea into the gold band (up to +25 tips, once a lodge minute) and catching the season's weather (+1 tip each, up to 15, every 90 lodge seconds). A camera snaps the scene into a scrapbook of up to 12 photos with editable captions.
 
+On screens at least 1024×640 the game fits one screen without scrolling. The lodge scene is on the left, and seven tabs on the right hold everything else: Hosts, Rooms, Trips, Fun, Guests, Goals and Scrapbook. A dot marks a tab with something waiting. Narrower screens keep a scrolling page with the same tabs. Dora learns from every guest and Enzo from every day of work. At levels 2 to 5 each picks one of two skills, such as Tip jar, Kind words, Strong back or Tinkerer. The Goals tab has a daily wish list of three requests, the same for every player on a given day; finishing all three pays +100 tips, +10 hearts and +3 reputation once. Pip, Mochi and Luna each have a three-part story that unlocks at friendship 3, 6 and 10. Each season hosts its own festival: the Blossom fair (stocks the pantry), Midsummer lanterns (half as much again), the Harvest feast (+40 supplies) and the Snow-lantern night (+10 reputation). A tenth lodge goal rewards hosting all four.
+
 All outings pause normal production:
 
 - Glass lake: 25 seconds. Costs 5 supplies and returns 18 supplies, 12 tips, an oat cake and a herbal soap.
 - Juniper trail: 45 seconds. Costs 12 supplies and returns 48 supplies plus 35 tips.
 - Condor summit (2 stars, not in winter): 90 seconds. Costs 30 supplies and returns 60 supplies, 90 tips, 10 hearts and a lodge decoration worth +1 tip per visit.
-- Festival: 60 seconds. Costs 12 hearts and 20 supplies and returns 110 tips, 24 hearts and 5 reputation, or half as much again in summer.
+- Festival: 60 seconds. Costs 12 hearts and 20 supplies and returns 110 tips, 24 hearts and 5 reputation, plus the season's twist: 2 oat cakes and 2 soaps in spring, half as much again in summer, +40 supplies in autumn, or 10 reputation instead of 5 in winter.
 
-Progress is saved locally under `dora-enzo-mountain-retreat-v1` (save format version 3; older journals upgrade automatically). The scrapbook is stored separately under `mountain-retreat-scrapbook`, with offline progress capped at eight hours. Malformed saves start fresh. The light/dark theme choice is stored separately under `mountain-retreat-theme`. There is no account and no network service. Play in one tab, because cross-tab conflicts are not resolved.
+Progress is saved locally under `dora-enzo-mountain-retreat-v1` (save format version 4; older journals upgrade automatically). The scrapbook is stored separately under `mountain-retreat-scrapbook`, with offline progress capped at eight hours. Malformed saves start fresh. The light/dark theme choice is stored separately under `mountain-retreat-theme`. There is no account and no network service. Play in one tab, because cross-tab conflicts are not resolved.
 
 **Controls:**
 
 - Native keyboard and touch buttons with visible focus and selected-state announcements.
+- Tabs switch the side panel. With a tab focused, the arrow keys, Home and End move between tabs.
 - Click or tap any guest to open their profile. Escape or "Close profile" closes it and returns focus to the guest.
 - Keys 1–4 set the hosts' duties: 1 Welcome, 2 Extra comfort, 3 Gather, 4 Craft with care. They are ignored while a form control has focus.
 - The field guide explains the economy, and each ? opens a breakdown that works with touch, keyboard and screen readers. Reduced motion is respected.
 
-**Tests:** `npm run test:mountain-retreat` (also in `npm test`). Browser: `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/mountain-retreat-scene.mjs`, `tests/e2e/mountain-retreat-depth.mjs`, `tests/e2e/mountain-retreat-ux.mjs`, `tests/e2e/mountain-retreat-scenery.mjs` and `tests/e2e/mountain-retreat-fun.mjs`.
+**Tests:** `npm run test:mountain-retreat` (also in `npm test`). Browser: `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/mountain-retreat-scene.mjs`, `tests/e2e/mountain-retreat-depth.mjs`, `tests/e2e/mountain-retreat-ux.mjs`, `tests/e2e/mountain-retreat-scenery.mjs`, `tests/e2e/mountain-retreat-fun.mjs` and `tests/e2e/mountain-retreat-layout.mjs`.
 
 **Docs:** [Mountain Retreat validation and known limitations](docs/mountain-retreat-validation.md).
 

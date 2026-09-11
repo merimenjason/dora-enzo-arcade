@@ -13,6 +13,8 @@ try {
   page.on('pageerror', (e) => errors.push(e.message));
   await page.clock.install({ time: new Date('2026-09-10T00:00:00Z') });
   await page.goto(`${base}/mountain-retreat`);
+  // The lodge's controls live in tabs; open one before using what is inside it.
+  const tab = (p, name) => p.getByRole('tab', { name: new RegExp(`^${name}`) }).click();
   const ready = async (p) => {
     await p
       .getByRole('button', { name: /Extra comfort/ })
@@ -36,6 +38,7 @@ try {
     2,
   );
   await page.clock.runFor(90000);
+  await tab(page, 'Rooms');
   await page
     .getByRole('button', { name: 'Open room · 55 tips', exact: true })
     .click();
@@ -43,6 +46,7 @@ try {
     await page.getByTestId('room-1').getAttribute('class'),
     /unlocked/,
   );
+  await tab(page, 'Hosts');
   await page.getByRole('button', { name: /Extra comfort/ }).focus();
   await page.keyboard.press('Enter');
   assert.equal(
@@ -53,15 +57,18 @@ try {
   );
   await page.getByRole('button', { name: /Craft with care/ }).click();
   await page.clock.runFor(10000);
+  await tab(page, 'Trips');
   await page.getByRole('button', { name: /Take an expedition/ }).click();
   const tips = Number(await page.getByTestId('tips').textContent());
   await page.clock.runFor(44000);
   assert.equal(Number(await page.getByTestId('tips').textContent()), tips);
+  await tab(page, 'Hosts');
   assert.ok(
     await page.getByRole('button', { name: /Extra comfort/ }).isDisabled(),
   );
   await page.clock.runFor(1000);
   assert.equal(Number(await page.getByTestId('tips').textContent()), tips + 35);
+  await tab(page, 'Trips');
   await page.getByRole('button', { name: /Host a festival/ }).click();
   const beforeFestival = Number(await page.getByTestId('tips').textContent());
   await page.clock.runFor(60000);
@@ -96,6 +103,7 @@ try {
   await page.reload();
   await ready(page);
   assert.equal(await page.getByTestId('tips').textContent(), offlineTips);
+  await tab(page, 'Rooms');
   await page
     .getByRole('button', { name: 'Open room · 120 tips', exact: true })
     .click();
@@ -192,6 +200,7 @@ try {
     await blocked.locator('.mr-footer').textContent(),
     /Storage unavailable/,
   );
+  await tab(blocked, 'Trips');
   await blocked.getByRole('button', { name: /Take an expedition/ }).click();
   assert.ok(
     await blocked

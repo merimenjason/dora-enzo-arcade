@@ -40,6 +40,17 @@ import {
   CATCH_COOLDOWN,
   CATCH_CAP,
   guestIdentity,
+  chooseSkill,
+  hostLevel,
+  skillPoints,
+  dailyList,
+  startDay,
+  claimDaily,
+  DAILY,
+  QUESTS,
+  TRAILS,
+  pantryCap,
+  recipeCost,
 } from '../.checks/mountain-retreat-game.js';
 let count = 0;
 const test = (name, fn) => {
@@ -302,7 +313,10 @@ test('festival costs, pause, summer bonus and exact rewards', () => {
   assert.equal(s.festivals, 1);
   assert.equal(s.elapsed, 0);
   s.elapsed = 400;
-  assert.deepEqual(festivalReward(s), { tips: 165, hearts: 36 });
+  const summer = festivalReward(s);
+  assert.equal(summer.name, 'Midsummer lanterns');
+  assert.equal(summer.tips, 165);
+  assert.equal(summer.hearts, 36);
 });
 test('seasons and days follow the simulation clock', () => {
   assert.deepEqual(
@@ -358,7 +372,7 @@ test('version-1 journals upgrade to version 2', () => {
     expeditions: 2,
   };
   const s = parseRetreat(JSON.stringify(v1));
-  assert.equal(s.version, 3);
+  assert.equal(s.version, 4);
   assert.deepEqual(s.activity, { kind: 'expedition', remaining: 30, trail: 'juniper' });
   assert.deepEqual(s.perks, [-1, -1, -1, -1]);
   assert.deepEqual(s.pantry, { oatcake: 0, soap: 0 });
@@ -375,7 +389,20 @@ test('strict malformed save rejection', () => {
   for (const raw of ['{', 'null', '[]', '{}', 'x'.repeat(10001)])
     assert.equal(parseRetreat(raw), null);
   for (const [key, values] of Object.entries({
-    version: [0, 4, '3'],
+    version: [0, 5, '4'],
+    xp: [null, { dora: -1, enzo: 0 }],
+    skills: [
+      { dora: [0, -1, -1, -1], enzo: [-1, -1, -1, -1] },
+      { dora: [-1, -1, -1], enzo: [-1, -1, -1, -1] },
+    ],
+    daily: [
+      null,
+      { day: 0, progress: [0, 0], claimed: false },
+      { day: 0, progress: [0, 0, 0], claimed: 'no' },
+    ],
+    quests: [[4, 0, 0]],
+    questProgress: [[-1, 0, 0]],
+    festivalSeasons: [16],
     treat: [null, { visit: 0, rooms: 16 }, { visit: -1, rooms: 0 }],
     goals: [1 << GOALS.length, -1],
     event: [{}, { kind: 'toString', remaining: 1 }, { kind: 'storm', remaining: 41 }, { kind: 'storm', remaining: 0 }],
@@ -398,7 +425,7 @@ test('strict malformed save rejection', () => {
     enzo: ['anything'],
     visits: [-1, undefined],
     reputation: [101, -1],
-    pantry: [null, { oatcake: 10, soap: 0 }, { oatcake: 0 }],
+    pantry: [null, { oatcake: 16, soap: 0 }, { oatcake: 0 }],
     album: [[0, 0, 0], [0, 0, 0, 0, 0, 0, 32], null],
     friends: [[11, 0, 0], [0, 0]],
     decor: [7],
@@ -592,7 +619,7 @@ test('version-2 journals upgrade to version 3', () => {
     delete v2[k];
   v2.coins = 77;
   const s = parseRetreat(JSON.stringify(v2));
-  assert.equal(s.version, 3);
+  assert.equal(s.version, 4);
   assert.equal(s.coins, 77);
   assert.deepEqual(s.treat, { visit: 0, rooms: 0 });
   assert.equal(s.event, null);
@@ -703,5 +730,120 @@ test('every guest gets a stable identity', () => {
   assert.equal(guestIdentity(7, 3, 0).name, 'Pip');
   const names = new Set(Array.from({ length: 40 }, (_, i) => guestIdentity(i, 0).name));
   assert.ok(names.size > 10);
+});
+test('version-3 journals upgrade to version 4', () => {
+  const v3 = freshRetreat();
+  v3.version = 3;
+  for (const k of ['xp', 'skills', 'daily', 'quests', 'questProgress', 'festivalSeasons']) delete v3[k];
+  v3.goals = 5;
+  const s = parseRetreat(JSON.stringify(v3));
+  assert.equal(s.version, 4);
+  assert.equal(s.goals, 5);
+  assert.deepEqual(s.xp, { dora: 0, enzo: 0 });
+  assert.deepEqual(s.quests, [0, 0, 0]);
+  assert.deepEqual(parseRetreat(JSON.stringify(s)), s);
+});
+test('host skills: levels from work, one permanent choice per tier', () => {
+  assert.deepEqual([0, 29, 30, 90, 180, 300, 5000].map(hostLevel), [1, 1, 2, 3, 4, 5, 5]);
+  const s = freshRetreat();
+  assert.equal(chooseSkill(s, 'dora', 0, 1), false, 'still level 1');
+  advanceRetreat(s, 60);
+  assert.equal(s.xp.enzo, 10, 'Enzo learns every 6 seconds of work');
+  assert.equal(s.xp.dora, 20, 'Dora learns from every guest, more from granted wishes');
+  s.xp.dora = 30;
+  assert.equal(skillPoints(s, 'dora'), 1);
+  assert.equal(chooseSkill(s, 'dora', 1, 0), false, 'tier 2 needs level 3');
+  for (const bad of [2, -1]) assert.equal(chooseSkill(s, 'dora', 0, bad), false);
+  assert.equal(chooseSkill(s, 'cat', 0, 0), false);
+  assert.ok(chooseSkill(s, 'dora', 0, 1));
+  assert.equal(chooseSkill(s, 'dora', 0, 0), false, 'a skill is permanent');
+  assert.equal(skillPoints(s, 'dora'), 0);
+  assert.ok(visitRewards(s).tips.some((p) => p.label === 'Tip jar'));
+  const e = freshRetreat();
+  e.xp.enzo = 300;
+  const rate = supplyRate(e);
+  assert.ok(chooseSkill(e, 'enzo', 0, 0));
+  assert.equal(supplyRate(e), rate + 1, 'Strong back');
+  assert.equal(recipeCost(e), 2);
+  assert.ok(chooseSkill(e, 'enzo', 2, 1));
+  assert.equal(pantryCap(e), 15, 'Big pantry');
+  assert.ok(chooseSkill(e, 'enzo', 1, 0));
+  assert.equal(activitySeconds(e, 'expedition', 'juniper'), 40, 'Trail sense');
+  assert.equal(activitySeconds(e, 'festival'), 60, 'festivals are not trails');
+  assert.ok(chooseSkill(e, 'enzo', 3, 1));
+  assert.equal(pourTea(e, 1), 'perfect');
+  assert.equal(e.teaReadyAt, e.elapsed + TEA_COOLDOWN / 2, 'Tinkerer');
+  assert.deepEqual(parseRetreat(JSON.stringify(e)), e);
+  const q = freshRetreat();
+  q.xp.enzo = 30;
+  chooseSkill(q, 'enzo', 0, 1);
+  assert.equal(recipeCost(q), 1, 'Quick hands');
+});
+test('daily wish list: three requests a day, claimed once', () => {
+  assert.deepEqual(dailyList(20340), dailyList(20340));
+  assert.equal(new Set(dailyList(20340)).size, 3);
+  const week = new Set(Array.from({ length: 7 }, (_, i) => dailyList(20340 + i).join()));
+  assert.ok(week.size > 1, 'the list changes from day to day');
+  const s = freshRetreat();
+  assert.ok(startDay(s, 20340));
+  assert.equal(startDay(s, 20340), false);
+  assert.equal(startDay(s, -1), false);
+  assert.equal(claimDaily(s), false, 'not finished');
+  s.daily.progress = dailyList(20340).map((d) => DAILY[d].n);
+  const coins = s.coins;
+  assert.ok(claimDaily(s));
+  assert.equal(s.coins, coins + 100);
+  assert.equal(claimDaily(s), false, 'claimed once');
+  assert.ok(startDay(s, 20341));
+  assert.deepEqual(s.daily, { day: 20341, progress: [0, 0, 0], claimed: false });
+  let day = 0;
+  while (!dailyList(day).some((d) => DAILY[d].deed === 'visit')) day++;
+  const t = freshRetreat();
+  startDay(t, day);
+  advanceRetreat(t, 60);
+  const k = dailyList(day).findIndex((d) => DAILY[d].deed === 'visit');
+  assert.equal(t.daily.progress[k], 10, 'each welcomed guest counts');
+});
+test('regulars’ stories unlock with friendship and pay once per step', () => {
+  const s = freshRetreat();
+  s.rooms = [1, 1, 1, 1];
+  s.supplies = 200;
+  assert.ok(startActivity(s, 'expedition', 'lake'));
+  advanceRetreat(s, 25);
+  assert.equal(s.quests[0], 0, 'Pip’s story waits for friendship 3');
+  s.friends[0] = 3;
+  const coins = s.coins;
+  assert.ok(startActivity(s, 'expedition', 'lake'));
+  advanceRetreat(s, 25);
+  assert.equal(s.quests[0], 1);
+  assert.equal(s.coins, coins + TRAILS.lake.tips + QUESTS[0][0].tips);
+  s.friends[2] = 3;
+  s.elapsed = 80;
+  advanceRetreat(s, 30);
+  assert.equal(s.quests[2], 1, 'five guests welcomed after dark');
+  assert.equal(s.questProgress[2], 0);
+});
+test('each season hosts its own festival', () => {
+  assert.deepEqual(
+    [0, 360, 720, 1080].map((elapsed) => festivalReward(Object.assign(freshRetreat(), { elapsed })).name),
+    ['Blossom fair', 'Midsummer lanterns', 'Harvest feast', 'Snow-lantern night'],
+  );
+  const fest = (elapsed) => {
+    const s = Object.assign(freshRetreat(), { elapsed, hearts: 12, supplies: 20 });
+    assert.ok(startActivity(s, 'festival'));
+    advanceRetreat(s, 60);
+    return s;
+  };
+  assert.deepEqual(fest(0).pantry, { oatcake: 2, soap: 2 }, 'Blossom fair');
+  const autumn = fest(720);
+  assert.equal(autumn.supplies, 40, 'Harvest feast');
+  assert.equal(autumn.festivalSeasons, 4);
+  assert.equal(fest(1080).reputation, 10, 'Snow-lantern night');
+  const all = Object.assign(freshRetreat(), { festivalSeasons: 15 });
+  checkGoals(all);
+  assert.ok(all.goals & (1 << 9), 'Festival calendar');
+  const host = Object.assign(freshRetreat(), { xp: { dora: 180, enzo: 0 } });
+  assert.ok(chooseSkill(host, 'dora', 2, 1));
+  assert.equal(festivalReward(host).tips, 160, 'Festival host');
 });
 console.log(`${count} Mountain Retreat deterministic tests passed.`);

@@ -29,6 +29,8 @@ const lodge = {
   last: null,
 };
 const browser = await chromium.launch();
+// The lodge's controls live in tabs; open one before using what is inside it.
+const tab = (p, name) => p.getByRole('tab', { name: new RegExp(`^${name}`) }).click();
 const errors = [];
 const open = async (options, save) => {
   const page = await browser.newPage(options);
@@ -59,6 +61,7 @@ try {
   assert.match(await page.getByTestId('landscape').getAttribute('class'), /season-spring night/);
 
   // Level-3 rooms offer two specialties; picking one is permanent.
+  await tab(page, 'Rooms');
   assert.equal(await page.locator('.mr-perk-choice button').count(), 8);
   await page.getByRole('button', { name: /Tea stall/ }).click();
   assert.match(await text('perk-0'), /Tea stall/);
@@ -66,6 +69,7 @@ try {
   assert.match(await page.locator('.mr-notice').textContent(), /Hearth & tea: Tea stall/);
 
   // Three trails; the lake stocks the pantry.
+  await tab(page, 'Trips');
   for (const name of [/Paddle to the lake/, /Take an expedition/, /Climb the summit/])
     assert.ok(await page.getByRole('button', { name }).isEnabled());
   await page.getByRole('button', { name: /Paddle to the lake/ }).click();
@@ -73,17 +77,20 @@ try {
   assert.match(await page.locator('.mr-activity').textContent(), /Glass lake · 25s remaining/);
   await page.clock.runFor(25000);
   assert.match(await page.locator('.mr-notice').textContent(), /Home from Glass lake/);
+  await tab(page, 'Hosts');
   assert.match(await text('pantry'), /1 oat cake · ❀ 1 herbal soap/);
 
   // Guests keep coming: the guest book reports the last one and the album fills.
   await page.clock.runFor(12000);
   assert.match(await text('last-guest'), /^Last: /);
+  await tab(page, 'Guests');
   assert.ok(Number((await page.locator('.mr-album .mr-section-title > span').textContent()).match(/(\d+) \//)[1]) >= 1);
   assert.equal(await page.getByRole('progressbar', { name: /Friendship with/ }).count(), 3);
   assert.equal(await page.getByRole('heading', { name: 'Everyone who stayed.' }).count(), 1);
-  assert.equal(await page.getByRole('img', { name: /chinchilla/ }).count(), 4, 'album and guest book art stay decorative');
+  // Only the two scene hosts: Dora's and Enzo's portraits live in the Hosts tab, and album art is decorative.
+  assert.equal(await page.getByRole('img', { name: /chinchilla/ }).count(), 2, 'album art stays decorative');
   const saved = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), key);
-  assert.equal(saved.version, 3);
+  assert.equal(saved.version, 4);
   assert.equal(saved.perks[0], 1);
   await page.screenshot({ path: '.checks/mountain-retreat/depth-desktop.png', fullPage: true });
   await page.close();
@@ -91,6 +98,7 @@ try {
   // Winter closes the summit.
   const winter = await open({ viewport: { width: 1440, height: 1100 }, reducedMotion: 'reduce' }, { ...lodge, elapsed: 1080 });
   assert.match(await winter.getByTestId('season').textContent(), /WINTER/);
+  await tab(winter, 'Trips');
   assert.ok(await winter.getByRole('button', { name: /Climb the summit/ }).isDisabled());
   assert.match(await winter.locator('.trail-summit').textContent(), /Snowed in until spring/);
   await winter.close();
@@ -114,8 +122,9 @@ try {
   const old = await open({ viewport: { width: 1440, height: 1100 }, reducedMotion: 'reduce' }, v1);
   assert.doesNotMatch(await old.locator('.mr-notice').textContent(), /Unreadable/);
   assert.equal(await old.getByTestId('tips').textContent(), '30');
+  await tab(old, 'Trips');
   assert.match(await old.locator('.trail-summit').textContent(), /Needs a 2-star lodge/);
-  assert.equal((await old.evaluate((k) => JSON.parse(localStorage.getItem(k)), key)).version, 3);
+  assert.equal((await old.evaluate((k) => JSON.parse(localStorage.getItem(k)), key)).version, 4);
   await old.close();
 
   for (const width of [320, 390, 768]) {

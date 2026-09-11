@@ -109,6 +109,7 @@ try {
   assert.doesNotMatch(across, /climbing|facing-left/);
   await until('Enzo leaving the kitchen', async () => (await room('enzo')) === '3');
 
+  await page.getByRole('tab', { name: /^Trips/ }).click();
   await page.getByRole('button', { name: /Take an expedition/ }).click();
   assert.equal(await page.locator('.mr-host').count(), 0);
   assert.equal(await page.locator('.mr-visitor, .mr-arrivals').count(), 0);

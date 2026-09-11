@@ -12,8 +12,14 @@ import {
   CATCH_COOLDOWN,
   catchReady,
   catchReward,
+  chooseSkill,
   choosePerk,
+  claimDaily,
   COATS as COAT_NAMES,
+  DAILY,
+  DAILY_REWARD,
+  dailyDone,
+  dailyList,
   DAY_SECONDS,
   DECOR_CAP,
   EVENT_EVERY,
@@ -27,6 +33,7 @@ import {
   guestIdentity,
   guestPool,
   HOST_STOP_SECONDS,
+  hostLevel,
   hostStop,
   isNight,
   ITEM_TIPS,
@@ -35,14 +42,15 @@ import {
   nextVisitAt,
   NIGHT_FROM,
   offerTreat,
-  PANTRY_CAP,
+  pantryCap,
   parseRetreat,
   PERKS,
   POSTCARDS,
   pourTea,
+  QUESTS,
   rating,
-  RECIPE_COST,
   RECIPE_SECONDS,
+  recipeCost,
   REGULARS,
   restoreRetreat,
   ROOMS,
@@ -51,7 +59,11 @@ import {
   season,
   SEASON_SECONDS,
   SEASONS,
+  SKILL_XP,
+  SKILLS,
+  skillPoints,
   startActivity,
+  startDay,
   SUPPLY_CAP,
   SUPPLY_SECONDS,
   supplyParts,
@@ -72,6 +84,7 @@ import {
   WISH_TIPS,
   type EventKind,
   type GuestVisit,
+  type Host,
   type Part,
   type RetreatState,
   type Season,
@@ -102,7 +115,21 @@ const CATCHABLE = {
 } as const;
 type Weather = keyof typeof CATCHABLE;
 /** One keepsake glyph per GOALS entry. */
-const KEEPSAKE_ICON = ['▭', '♨', '⚑', '⌖', '▣', '▦', '◈', '✧', '◒'];
+const KEEPSAKE_ICON = ['▭', '♨', '⚑', '⌖', '▣', '▦', '◈', '✧', '◒', '❁'];
+/** The side panel's tabs, in order; only the active one is rendered. */
+const TABS = [
+  { id: 'hosts', label: 'Hosts' },
+  { id: 'rooms', label: 'Rooms' },
+  { id: 'trips', label: 'Trips' },
+  { id: 'fun', label: 'Fun' },
+  { id: 'guests', label: 'Guests' },
+  { id: 'goals', label: 'Goals' },
+  { id: 'scrapbook', label: 'Scrapbook' },
+] as const;
+type Tab = (typeof TABS)[number]['id'];
+/** Local calendar day number (days since 1970), for the daily wish list. */
+const today = () =>
+  Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
 /** Guests who aren't featured get identities keyed by visit and room, so arrivals match who then stays. */
 const fillerSeed = (visits: number, room: number) => 100000 + visits * 4 + room;
 interface ProfileTarget {
@@ -213,6 +240,14 @@ const wishText = (guest: number) => {
 const mmss = (sec: number) =>
   `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
+const rewardText = (r: { tips: number; hearts: number; reputation: number }) =>
+  [
+    r.tips && `+${r.tips} tips`,
+    r.hearts && `+${r.hearts} hearts`,
+    r.reputation && `+${r.reputation} reputation`,
+  ]
+    .filter(Boolean)
+    .join(', ');
 const SHORTCUTS: Record<string, (s: RetreatState) => void> = {
   '1': (s) => {
     s.dora = 'welcome';
@@ -508,6 +543,7 @@ export default function MountainRetreat() {
   const [notice, setNotice] = useState('A little lodge. A very big welcome.');
   const [storage, setStorage] = useState('Loading local journal…');
   const [guide, setGuide] = useState(false);
+  const [tab, setTab] = useState<Tab>('hosts');
   const [away, setAway] = useState<
     (ReturnType<typeof awaySummary> & { minutes: number }) | null
   >(null);
@@ -595,15 +631,40 @@ export default function MountainRetreat() {
       setStorage('Storage unavailable · progress lasts this visit only');
     }
   };
-  const announceGoals = (before: number) => {
+  /** Tells the player about goals, story steps, level-ups and a finished wish list since `before`. */
+  const announce = (before: RetreatState) => {
     const g = game.current;
-    const won = GOALS.filter((_, i) => g.goals & (1 << i) && !(before & (1 << i)));
-    if (!won.length) return;
-    setNotice(
-      `Goal complete: ${won.map((w) => w.name).join(', ')}! Keepsake: ${won.map((w) => w.keepsake.toLowerCase()).join(', ')} (+${won.reduce((a, w) => a + w.tips, 0)} tips).`,
-    );
-    markMoment(`Goal complete: ${won[0].name}`);
-    if (soundOn.current) playCue('return');
+    const won = GOALS.filter((_, i) => g.goals & (1 << i) && !(before.goals & (1 << i)));
+    if (won.length) {
+      setNotice(
+        `Goal complete: ${won.map((w) => w.name).join(', ')}! Keepsake: ${won.map((w) => w.keepsake.toLowerCase()).join(', ')} (+${won.reduce((a, w) => a + w.tips, 0)} tips).`,
+      );
+      markMoment(`Goal complete: ${won[0].name}`);
+      if (soundOn.current) playCue('return');
+    }
+    REGULARS.forEach((r, i) => {
+      if (g.quests[i] <= before.quests[i]) return;
+      setNotice(
+        `${r.name}’s story, part ${g.quests[i]} of 3: done! ${rewardText(QUESTS[i][g.quests[i] - 1])}.`,
+      );
+      markMoment(`${r.name}’s story, part ${g.quests[i]}`);
+      if (soundOn.current) playCue('return');
+    });
+    (['dora', 'enzo'] as const).forEach((h) => {
+      const level = hostLevel(g.xp[h]);
+      if (level <= hostLevel(before.xp[h])) return;
+      const name = h === 'dora' ? 'Dora' : 'Enzo';
+      setNotice(`${name} reached level ${level}! Choose a new skill in the Hosts tab.`);
+      markMoment(`${name} reaches level ${level}`);
+      if (soundOn.current) playCue('coat');
+    });
+    if (
+      g.daily.day === before.daily.day &&
+      !g.daily.claimed &&
+      dailyDone(g) &&
+      !dailyDone(before)
+    )
+      setNotice('Today’s wish list is complete! Claim the reward in the Goals tab.');
   };
   useEffect(() => {
     const now = Date.now();
@@ -627,6 +688,7 @@ export default function MountainRetreat() {
     } catch {
       game.current = freshRetreat(now);
     }
+    startDay(game.current, today());
     visit.current = { visits: game.current.visits, at: -1 };
     setReady(true);
     persist();
@@ -642,6 +704,8 @@ export default function MountainRetreat() {
         const before = structuredClone(game.current);
         advanceRetreat(game.current, seconds);
         const g = game.current;
+        if (startDay(g, today()))
+          setNotice('A new day at the lodge: three fresh wishes are on the list.');
         const changed = awaySummary(before, g);
         if (g.event && g.event.kind !== before.event?.kind) {
           setNotice(`${EVENTS[g.event.kind].name}! ${EVENTS[g.event.kind].detail}`);
@@ -700,18 +764,18 @@ export default function MountainRetreat() {
           const reward = festivalReward(g);
           setNotice(
             was.kind === 'festival'
-              ? `Lanterns, laughter, full hearts! +${reward.tips} tips, +${reward.hearts} hearts and +5 reputation.`
+              ? `${reward.name}: lanterns, laughter, full hearts! +${reward.tips} tips, +${reward.hearts} hearts and +${reward.reputation} reputation.`
               : TRAIL_COPY[was.trail ?? 'juniper'].done,
           );
           markMoment(
             was.kind === 'festival'
-              ? `A ${season(g.elapsed)} lantern festival`
+              ? `The ${reward.name}`
               : was.trail === 'rescue'
                 ? 'The lost hiker, safe at last'
                 : `Home from ${TRAILS[was.trail ?? 'juniper'].name}`,
           );
         }
-        announceGoals(before.goals);
+        announce(before);
         persist();
         render((n) => n + 1);
       }
@@ -727,9 +791,9 @@ export default function MountainRetreat() {
   }, []);
   const s = game.current;
   const act = (fn: () => void) => {
-    const goals = game.current.goals;
+    const before = structuredClone(game.current);
     fn();
-    announceGoals(goals);
+    announce(before);
     persist();
     render((n) => n + 1);
   };
@@ -761,6 +825,24 @@ export default function MountainRetreat() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+  // Arrow keys, Home and End move between tabs, as in a native tab strip.
+  const onTabKey = (e: React.KeyboardEvent) => {
+    const i = TABS.findIndex((t) => t.id === tab);
+    const next =
+      e.key === 'ArrowRight'
+        ? (i + 1) % TABS.length
+        : e.key === 'ArrowLeft'
+          ? (i + TABS.length - 1) % TABS.length
+          : e.key === 'Home'
+            ? 0
+            : e.key === 'End'
+              ? TABS.length - 1
+              : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    setTab(TABS[next].id);
+    document.getElementById(`mr-tab-${TABS[next].id}`)?.focus();
+  };
   const open = s.rooms.filter(Boolean).length;
   const period = visitPeriod(s);
   const since = visit.current.at < 0 ? -1 : s.elapsed - visit.current.at;
@@ -786,7 +868,7 @@ export default function MountainRetreat() {
   const netSupplies = Math.round(
     (60 / SUPPLY_SECONDS) * supplyRate(s) -
       (60 / period) * open -
-      (recipes ? (60 / RECIPE_SECONDS) * RECIPE_COST : 0),
+      (recipes ? (60 / RECIPE_SECONDS) * recipeCost(s) : 0),
   );
   const ring = busy ? 0 : 1 - (nextVisitAt(s) - s.elapsed) / period;
   const freshCoat = (s.album[next.guest] & (1 << next.coat)) === 0;
@@ -808,6 +890,7 @@ export default function MountainRetreat() {
   const openRooms = SLOT.filter((i) => s.rooms[i] > 0);
   const nextRoom = GUESTS[next.guest].room;
   const arrivalRooms = [nextRoom, ...openRooms.filter((i) => i !== nextRoom)];
+  const fest = festivalReward(s);
   const stayTarget = (i: number): ProfileTarget =>
     s.last && featuredRoom === i
       ? { seed: s.visits - 1, guest: s.last.guest, coat: s.last.coat, regular: s.last.regular, where: 'room', room: i, visit: s.visits, featured: true }
@@ -924,13 +1007,80 @@ export default function MountainRetreat() {
         ] as [number, string][]
       ).filter(([n]) => n !== 0)
     : [];
+  const todays = dailyList(s.daily.day);
+  // A dot on a tab means something there is waiting for the player.
+  const waiting: Record<Tab, boolean> = {
+    hosts: skillPoints(s, 'dora') + skillPoints(s, 'enzo') > 0,
+    rooms: s.rooms.some((r, i) => r === 3 && s.perks[i] < 0),
+    trips: false,
+    fun: false,
+    guests: false,
+    goals: dailyDone(s) && !s.daily.claimed,
+    scrapbook: false,
+  };
+  const skillBlock = (host: Host) => {
+    const name = host === 'dora' ? 'Dora' : 'Enzo';
+    const xp = s.xp[host];
+    const level = hostLevel(xp);
+    const maxed = level >= SKILL_XP.length;
+    const tier = s.skills[host].findIndex((p, t) => p === -1 && level >= t + 2);
+    return (
+      <div className="mr-skills" data-testid={`skills-${host}`}>
+        <p className="mr-level-line">
+          Level {level}
+          {maxed ? ' · master host' : ` · ${xp} / ${SKILL_XP[level]} xp`}
+          {host === 'dora' ? ' · learns from every guest' : ' · learns from every day of work'}
+        </p>
+        <progress
+          aria-label={`${name}’s experience`}
+          max={maxed ? 1 : SKILL_XP[level] - SKILL_XP[level - 1]}
+          value={maxed ? 1 : xp - SKILL_XP[level - 1]}
+        />
+        {s.skills[host].some((p) => p >= 0) && (
+          <p className="mr-skill-chips">
+            {s.skills[host].map(
+              (p, t) =>
+                p >= 0 && (
+                  <span key={t} title={SKILLS[host][t][p].detail}>
+                    ✓ {SKILLS[host][t][p].name}
+                  </span>
+                ),
+            )}
+          </p>
+        )}
+        {tier >= 0 ? (
+          <fieldset className="mr-skill-choice">
+            <legend>{name} learned something new. Choose a skill:</legend>
+            {SKILLS[host][tier].map((skill, p) => (
+              <button
+                key={skill.name}
+                onClick={() =>
+                  act(() => {
+                    if (chooseSkill(game.current, host, tier, p))
+                      setNotice(`${name} learned ${skill.name}: ${skill.detail}.`);
+                  })
+                }
+              >
+                {skill.name}
+                <small>{skill.detail}</small>
+              </button>
+            ))}
+          </fieldset>
+        ) : (
+          !maxed && <p className="mr-next-skill">Next skill at level {level + 1}.</p>
+        )}
+      </div>
+    );
+  };
   return (
     <main className="mr-shell" data-theme={theme}>
       <header className="mr-top">
         {/* Full navigation disposes this standalone simulation, matching arcade conventions. */}
         {/* oxlint-disable-next-line next/no-html-link-for-pages */}
         <a href="/">← MAIN ARCADE</a>
-        <span>THE ANDES · 2,840 M</span>
+        <h1 className="mr-brand">
+          Dora & Enzo’s <b>Mountain Retreat</b>
+        </h1>
         <label className="mr-theme">
           Theme
           <select
@@ -952,83 +1102,6 @@ export default function MountainRetreat() {
           Field guide {guide ? '−' : '+'}
         </button>
       </header>
-      <section className="mr-heading">
-        <div>
-          <p className="mr-kicker">DORA & ENZO’S</p>
-          <h1>
-            Mountain Retreat<span>A soft place to land.</span>
-          </h1>
-        </div>
-        <p className="mr-intro">
-          Make tea. Make friends. Make a little home
-          <br />
-          above the clouds.
-        </p>
-      </section>
-      {guide && (
-        <aside className="mr-guide">
-          <h2>Your first 5–10 minutes</h2>
-          <p>
-            Enzo brings supplies every 2 seconds. Dora uses one supply per open
-            room to welcome guests, earning hearts and tips automatically. Spend
-            tips to open rooms and improve them to level 3, then choose one of
-            two specialties for each room.
-          </p>
-          <p>
-            Shortcuts: press 1 for Welcome, 2 for Extra comfort, 3 for Gather
-            and 4 for Craft with care. Open the ? beside a number to see
-            exactly where it comes from. Sound is off until you switch it on.
-          </p>
-          <p>
-            Click any guest to see their profile, and offer the guest in a room
-            an oat cake or herbal soap once per visit. Lodge goals pay tips and
-            leave keepsakes. Every few minutes a surprise may arrive: a storm, a
-            travelling musician, or a lost hiker to rescue. Pour tea and catch
-            the weather for a few bonus tips, and snap photos for the scrapbook.
-          </p>
-          <p>
-            Every visit has a featured guest with a wish: a room, sometimes an
-            oat cake or herbal soap, and sometimes Extra comfort. Granting it
-            earns bonus tips, hearts and reputation. Leaving it unmet costs 1
-            reputation, and turning guests away for lack of supplies costs 3.
-            Every 20 reputation adds a star, which brings new guests and bigger
-            tips. Set Enzo to craft to fill the pantry, and check the guest
-            book to see who is coming next.
-          </p>
-          <p>
-            Regulars Pip, Mochi and Luna return every fifth visit and send
-            postcards as your friendship grows. Seasons change every 6 minutes
-            of lodge time and nights come every 2: stargazers only visit at
-            night, and the summit is snowed in over winter.
-          </p>
-          <p>
-            Both hosts stop ALL normal work on outings. Rewards arrive on
-            return. The lodge keeps working while you are away, up to 8 hours.
-            There are no accounts or purchases. Your journal stays in this
-            browser. A second open tab has its own simulation, so play in one
-            tab.
-          </p>
-        </aside>
-      )}
-      {away && (
-        <aside
-          className="mr-away"
-          data-testid="away-summary"
-          aria-labelledby="mr-away-title"
-        >
-          <h2 id="mr-away-title">While you were away · {away.minutes} min</h2>
-          {awayLines.length ? (
-            <ul>
-              {awayLines.map(([, text]) => (
-                <li key={text}>{text}</li>
-              ))}
-            </ul>
-          ) : (
-            <p>The lodge rested quietly.</p>
-          )}
-          <button onClick={() => setAway(null)}>Back to the lodge</button>
-        </aside>
-      )}
       <section className="mr-wallet" aria-label="Lodge resources">
         <div>
           <span>✦ TIPS</span>
@@ -1054,8 +1127,7 @@ export default function MountainRetreat() {
             <Parts parts={rewards.hearts} unit="♥" />
             <p>
               A granted wish adds +{WISH_HEARTS}. A festival costs{' '}
-              {FESTIVAL.hearts} and returns {festivalReward(s).hearts}; the
-              summit brings 10.
+              {FESTIVAL.hearts} and returns {fest.hearts}; the summit brings 10.
             </p>
           </Why>
         </div>
@@ -1075,7 +1147,7 @@ export default function MountainRetreat() {
               Each visit uses {open} (one per open room) every {period}{' '}
               seconds
               {recipes
-                ? `, and Enzo’s recipes use ${RECIPE_COST} every ${RECIPE_SECONDS} seconds while the pantry has room`
+                ? `, and Enzo’s recipes use ${recipeCost(s)} every ${RECIPE_SECONDS} seconds while the pantry has room`
                 : ''}
               . About {signed(netSupplies)} per minute.
             </p>
@@ -1112,7 +1184,11 @@ export default function MountainRetreat() {
               </li>
               <li>
                 <span>Festival</span>
-                <b>+5</b>
+                <b>+{fest.reputation}</b>
+              </li>
+              <li>
+                <span>Daily wish list</span>
+                <b>+{DAILY_REWARD.reputation}</b>
               </li>
               <li>
                 <span>Unmet wish</span>
@@ -1144,18 +1220,46 @@ export default function MountainRetreat() {
                 {night ? '☾ NIGHT' : '☼ DAY'}
               </span>
             </span>
-            <span data-testid="scene-status">
-              {busy
-                ? '◌ BOTH HOSTS AWAY'
-                : turnedAway
-                  ? '✕ A GUEST WAS TURNED AWAY'
-                  : staying
-                    ? `● ${open} ${open === 1 ? 'GUEST' : 'GUESTS'} STAYING`
-                    : arriving
-                      ? '● GUESTS ON THE PATH'
-                      : '● THE KETTLE IS ON'}
+            <span className="mr-caption-end">
+              <span data-testid="scene-status">
+                {busy
+                  ? '◌ BOTH HOSTS AWAY'
+                  : turnedAway
+                    ? '✕ A GUEST WAS TURNED AWAY'
+                    : staying
+                      ? `● ${open} ${open === 1 ? 'GUEST' : 'GUESTS'} STAYING`
+                      : arriving
+                        ? '● GUESTS ON THE PATH'
+                        : '● THE KETTLE IS ON'}
+              </span>
+              <button
+                className={`mr-snap${s.elapsed < moment.current.until ? ' suggest' : ''}`}
+                data-testid="snap"
+                onClick={snap}
+              >
+                ◉ Snap a photo
+              </button>
             </span>
           </div>
+          {away && (
+            <aside
+              className="mr-away"
+              data-testid="away-summary"
+              aria-labelledby="mr-away-title"
+            >
+              <h2 id="mr-away-title">While you were away · {away.minutes} min</h2>
+              {awayLines.length ? (
+                <ul>
+                  {awayLines.map(([, text]) => (
+                    <li key={text}>{text}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p>The lodge rested quietly.</p>
+              )}
+              <button onClick={() => setAway(null)}>Back to the lodge</button>
+            </aside>
+          )}
           <div
             className={`mr-landscape season-${when}${night ? ' night' : ''}${busy ? ' away' : ''}${s.event?.kind === 'storm' ? ' storm' : ''}`}
             data-testid="landscape"
@@ -1465,7 +1569,7 @@ export default function MountainRetreat() {
                 <Chin name="Enzo" small />
                 <span>
                   {s.activity?.kind === 'festival'
-                    ? 'Hosting the lantern festival'
+                    ? `Hosting the ${fest.name}`
                     : s.activity?.trail === 'rescue'
                       ? 'Rescuing a lost hiker'
                       : `Exploring ${TRAILS[s.activity?.trail ?? 'juniper'].name}`}
@@ -1505,7 +1609,7 @@ export default function MountainRetreat() {
                   <p>
                     Friendship {s.friends[profile.regular]} / {FRIENDSHIP_CAP} ·{' '}
                     {POSTCARDS.filter((p) => s.friends[profile.regular] >= p.at).length}{' '}
-                    postcards
+                    postcards · story {Math.min(3, s.quests[profile.regular] + 1)} of 3
                   </p>
                 )}
                 <p>
@@ -1543,21 +1647,6 @@ export default function MountainRetreat() {
               </div>
             </dialog>
           )}
-          <div className="mr-scene-foot">
-            <span>Two friends. One shared dream.</span>
-            <button
-              className={`mr-snap${s.elapsed < moment.current.until ? ' suggest' : ''}`}
-              data-testid="snap"
-              onClick={snap}
-            >
-              ◉ Snap a photo
-            </button>
-            <span>
-              ✦ {s.festivals} festivals · {s.expeditions} trails · {s.decor} /{' '}
-              {DECOR_CAP} decorations
-              {s.decor ? ` (${TROPHIES.slice(0, s.decor).join(', ')})` : ''}
-            </span>
-          </div>
           <div className="mr-seasons" data-testid="season-timeline">
             <div className="mr-year">
               <ol aria-label="Seasons">
@@ -1584,12 +1673,9 @@ export default function MountainRetreat() {
               {busy ? ' · lodge time pauses while the hosts are away' : ''}
             </p>
           </div>
+          <output className="mr-notice">✉ {notice}</output>
         </section>
-        <aside className="mr-host-panel">
-          <div className="mr-section-title">
-            <span>THE HEART OF THE HOUSE</span>
-            <h2>Better, together.</h2>
-          </div>
+        <div className="mr-side">
           {s.event && (
             <article
               className={`mr-event ${s.event.kind}`}
@@ -1625,512 +1711,665 @@ export default function MountainRetreat() {
               )}
             </article>
           )}
-          <article
-            className={`mr-guest-book ${grantable ? 'ok' : 'warn'}`}
-            data-testid="next-guest"
-            aria-live="polite"
+          <div className="mr-tabs" role="tablist" aria-label="Lodge panels">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                id={`mr-tab-${t.id}`}
+                role="tab"
+                aria-selected={tab === t.id}
+                aria-controls="mr-tabpanel"
+                tabIndex={tab === t.id ? 0 : -1}
+                onClick={() => setTab(t.id)}
+                onKeyDown={onTabKey}
+              >
+                {t.label}
+                {waiting[t.id] && (
+                  <>
+                    <b aria-hidden="true">●</b>
+                    <span className="mr-sr"> (something new)</span>
+                  </>
+                )}
+              </button>
+            ))}
+          </div>
+          <div
+            className="mr-tab-body"
+            id="mr-tabpanel"
+            role="tabpanel"
+            aria-labelledby={`mr-tab-${tab}`}
+            tabIndex={0}
           >
-            <span
-              className="mr-ring"
-              data-testid="visit-ring"
-              style={{ '--p': ring } as React.CSSProperties}
-            >
-              <GuestButton target={nextTarget('next')} onOpen={openProfile}>
-                <Visitor coat={next.coat} kind={next.guest} />
-              </GuestButton>
-            </span>
-            <div>
-              {freshCoat && (
-                <p className="mr-new-coat" data-testid="new-coat">
-                  ✧ New coat for the album
+            {guide && (
+              <aside className="mr-guide">
+                <h2>Your first 5–10 minutes</h2>
+                <p>
+                  Enzo brings supplies every 2 seconds. Dora uses one supply per
+                  open room to welcome guests, earning hearts and tips
+                  automatically. Spend tips to open rooms and improve them to
+                  level 3, then choose one of two specialties for each room.
                 </p>
-              )}
-              <h3>
-                Next guest{' '}
-                <span>
-                  {busy
-                    ? 'AFTER THE OUTING'
-                    : `IN ${nextVisitAt(s) - s.elapsed}S`}
-                </span>
-              </h3>
-              <p>
-                {guestName(next)}
-                {next.regular >= 0 ? ' (a regular)' : ''} hopes for{' '}
-                {wishText(next.guest)}.
-              </p>
-              <p className="mr-wish">
-                {grantable
-                  ? '✓ Their wish can be granted.'
-                  : nextGuest.comfort && s.dora !== 'comfort'
-                    ? '✕ Switch Dora to Extra comfort.'
-                    : `✕ No ${ITEMS[nextGuest.item ?? 'oatcake'].name} in the pantry. Set Enzo to Craft with care.`}
-              </p>
-              {s.last && (
-                <p className="mr-last" data-testid="last-guest">
-                  Last: {guestName(s.last)}{' '}
-                  {s.last.outcome === 'happy'
-                    ? `left happy · +${s.last.tips} tips, +${s.last.hearts} ♥`
-                    : s.last.outcome === 'plain'
-                      ? `stayed, but their wish was unmet · −1 reputation`
-                      : 'was turned away, with no supplies to spare · −3 reputation'}
+                <p>
+                  Shortcuts: press 1 for Welcome, 2 for Extra comfort, 3 for
+                  Gather and 4 for Craft with care. Open the ? beside a number to
+                  see exactly where it comes from. Arrow keys move between the
+                  tabs. Sound is off until you switch it on.
                 </p>
-              )}
-            </div>
-          </article>
-          <article className="mr-host-card">
-            <Chin name="Dora" />
-            <div>
-              <h3>
-                Dora <span>HOSPITALITY</span>
-              </h3>
-              <p>“Every guest deserves a warm hello.”</p>
-            </div>
-            <fieldset disabled={!ready || busy}>
-              <legend>Dora’s attention</legend>
-              <button
-                aria-pressed={s.dora === 'welcome'}
-                aria-keyshortcuts="1"
-                onClick={() =>
-                  act(() => {
-                    s.dora = 'welcome';
-                  })
-                }
-              >
-                Welcome <kbd aria-hidden="true">1</kbd>
-                <small>Guests every 6s · 1 ♥ / room</small>
-              </button>
-              <button
-                aria-pressed={s.dora === 'comfort'}
-                aria-keyshortcuts="2"
-                onClick={() =>
-                  act(() => {
-                    s.dora = 'comfort';
-                  })
-                }
-              >
-                Extra comfort <kbd aria-hidden="true">2</kbd>
-                <small>Guests every 10s · 3 ♥ / room</small>
-              </button>
-            </fieldset>
-          </article>
-          <article className="mr-host-card">
-            <Chin name="Enzo" />
-            <div>
-              <h3>
-                Enzo <span>SUPPLIES</span>
-              </h3>
-              <p>“I brought a little extra. Just in case.”</p>
-            </div>
-            <fieldset disabled={!ready || busy}>
-              <legend>Enzo’s attention</legend>
-              <button
-                aria-pressed={s.enzo === 'gather'}
-                aria-keyshortcuts="3"
-                onClick={() =>
-                  act(() => {
-                    s.enzo = 'gather';
-                  })
-                }
-              >
-                Gather <kbd aria-hidden="true">3</kbd>
-                <small>+3 supplies / 2s · 2 tips / level</small>
-              </button>
-              <button
-                aria-pressed={s.enzo === 'craft'}
-                aria-keyshortcuts="4"
-                onClick={() =>
-                  act(() => {
-                    s.enzo = 'craft';
-                  })
-                }
-              >
-                Craft with care <kbd aria-hidden="true">4</kbd>
-                <small>+1 supply / 2s · 3 tips / level · bakes & makes soap</small>
-              </button>
-            </fieldset>
-            <p className="mr-pantry" data-testid="pantry">
-              Pantry: {ITEM_ICON.oatcake} {s.pantry.oatcake} oat{' '}
-              {s.pantry.oatcake === 1 ? 'cake' : 'cakes'} ·{' '}
-              {ITEM_ICON.soap} {s.pantry.soap} herbal soap
-              <small>
-                {' '}
-                (up to {PANTRY_CAP} each
-                {s.rooms[1] || s.rooms[3]
-                  ? ''
-                  : '; open the kitchen or bath to start recipes'}
-                )
-              </small>
-            </p>
-          </article>
-          <p className="mr-stock-note">
-            {busy
-              ? 'Both friends are making memories. Room production is paused.'
-              : s.supplies < open
-                ? 'Low supplies. Let Enzo gather, or bring supplies back from a trail.'
-                : when === 'spring'
-                  ? 'Spring blossoms: +1 supply on every delivery.'
-                  : when === 'summer'
-                    ? 'Summer: festivals pay half as much again.'
-                    : when === 'autumn'
-                      ? 'Autumn harvest: +1 tip per room on every visit.'
-                      : 'Winter: cozy guests give +1 heart per room, but the summit is snowed in.'}
-          </p>
-        </aside>
-      </div>
-      <output className="mr-notice">✉ {notice}</output>
-      <section className="mr-improvements">
-        <div className="mr-section-title">
-          <span>SMALL CHANGES, WARMER STAYS</span>
-          <h2>Room to grow.</h2>
-          <p>
-            Open rooms in order. Each level adds tips to every guest visit. At
-            level 3, choose a specialty.
-          </p>
-        </div>
-        <div className="mr-upgrades">
-          {ROOMS.map((room, i) => (
-            <article key={room.name}>
-              <span className="mr-card-number">
-                0{i + 1}{' '}
-                <span>
-                  {s.rooms[i] ? `LEVEL ${s.rooms[i]} / 3` : 'NOT YET OPEN'}
-                </span>
-              </span>
-              <h3>{room.name}</h3>
-              <p>{room.detail}</p>
-              {s.rooms[i] < 3 ? (
-                <button
-                  disabled={
-                    !ready ||
-                    busy ||
-                    s.coins < roomCost(s, i) ||
-                    (i > 0 && !s.rooms[i - 1])
-                  }
-                  onClick={() =>
-                    act(() => {
-                      if (upgradeRoom(s, i))
-                        setNotice(
-                          s.rooms[i] === 3
-                            ? `${room.name} is lovely as can be. Choose its specialty!`
-                            : `${room.name} ${s.rooms[i] === 1 ? 'is open. Come on in!' : 'feels even cozier.'}`,
-                        );
-                    })
-                  }
+                <p>
+                  Dora and Enzo learn from their work. Each new level unlocks a
+                  choice of two skills in the Hosts tab. The Goals tab has a new
+                  wish list every day, and regulars Pip, Mochi and Luna each have a
+                  three-part story that unlocks as your friendship grows.
+                </p>
+                <p>
+                  Click any guest to see their profile, and offer the guest in a
+                  room an oat cake or herbal soap once per visit. Lodge goals pay
+                  tips and leave keepsakes. Every few minutes a surprise may
+                  arrive: a storm, a travelling musician, or a lost hiker to
+                  rescue. Each season hosts its own festival.
+                </p>
+                <p>
+                  Every visit has a featured guest with a wish: a room, sometimes
+                  an oat cake or herbal soap, and sometimes Extra comfort.
+                  Granting it earns bonus tips, hearts and reputation. Leaving it
+                  unmet costs 1 reputation, and turning guests away for lack of
+                  supplies costs 3. Every 20 reputation adds a star.
+                </p>
+                <p>
+                  Both hosts stop ALL normal work on outings. Rewards arrive on
+                  return. The lodge keeps working while you are away, up to 8
+                  hours. There are no accounts or purchases. Your journal stays in
+                  this browser. A second open tab has its own simulation, so play
+                  in one tab.
+                </p>
+              </aside>
+            )}
+            {tab === 'hosts' && (
+              <div className="mr-host-panel">
+                <div className="mr-section-title">
+                  <span>THE HEART OF THE HOUSE</span>
+                  <h2>Better, together.</h2>
+                </div>
+                <article
+                  className={`mr-guest-book ${grantable ? 'ok' : 'warn'}`}
+                  data-testid="next-guest"
+                  aria-live="polite"
                 >
-                  {`${s.rooms[i] ? 'Improve' : 'Open room'} · ${roomCost(s, i)} tips`}
-                </button>
-              ) : s.perks[i] >= 0 ? (
-                <p className="mr-perk" data-testid={`perk-${i}`}>
-                  ✓ {PERKS[i][s.perks[i]].name}
-                  <small>{PERKS[i][s.perks[i]].detail}</small>
-                </p>
-              ) : (
-                <fieldset className="mr-perk-choice">
-                  <legend className="mr-sr">{room.name} specialty</legend>
-                  {PERKS[i].map((perk, p) => (
+                  <span
+                    className="mr-ring"
+                    data-testid="visit-ring"
+                    style={{ '--p': ring } as React.CSSProperties}
+                  >
+                    <GuestButton target={nextTarget('next')} onOpen={openProfile}>
+                      <Visitor coat={next.coat} kind={next.guest} />
+                    </GuestButton>
+                  </span>
+                  <div>
+                    {freshCoat && (
+                      <p className="mr-new-coat" data-testid="new-coat">
+                        ✧ New coat for the album
+                      </p>
+                    )}
+                    <h3>
+                      Next guest{' '}
+                      <span>
+                        {busy
+                          ? 'AFTER THE OUTING'
+                          : `IN ${nextVisitAt(s) - s.elapsed}S`}
+                      </span>
+                    </h3>
+                    <p>
+                      {guestName(next)}
+                      {next.regular >= 0 ? ' (a regular)' : ''} hopes for{' '}
+                      {wishText(next.guest)}.
+                    </p>
+                    <p className="mr-wish">
+                      {grantable
+                        ? '✓ Their wish can be granted.'
+                        : nextGuest.comfort && s.dora !== 'comfort'
+                          ? '✕ Switch Dora to Extra comfort.'
+                          : `✕ No ${ITEMS[nextGuest.item ?? 'oatcake'].name} in the pantry. Set Enzo to Craft with care.`}
+                    </p>
+                    {s.last && (
+                      <p className="mr-last" data-testid="last-guest">
+                        Last: {guestName(s.last)}{' '}
+                        {s.last.outcome === 'happy'
+                          ? `left happy · +${s.last.tips} tips, +${s.last.hearts} ♥`
+                          : s.last.outcome === 'plain'
+                            ? `stayed, but their wish was unmet · −1 reputation`
+                            : 'was turned away, with no supplies to spare · −3 reputation'}
+                      </p>
+                    )}
+                  </div>
+                </article>
+                <article className="mr-host-card">
+                  <Chin name="Dora" />
+                  <div>
+                    <h3>
+                      Dora <span>HOSPITALITY</span>
+                    </h3>
+                    <p>“Every guest deserves a warm hello.”</p>
+                  </div>
+                  <fieldset disabled={!ready || busy}>
+                    <legend>Dora’s attention</legend>
                     <button
-                      key={perk.name}
-                      disabled={!ready || busy}
+                      aria-pressed={s.dora === 'welcome'}
+                      aria-keyshortcuts="1"
                       onClick={() =>
                         act(() => {
-                          if (choosePerk(s, i, p))
-                            setNotice(`${room.name}: ${perk.name}. ${perk.detail}.`);
+                          s.dora = 'welcome';
                         })
                       }
                     >
-                      {perk.name}
-                      <small>{perk.detail}</small>
+                      Welcome <kbd aria-hidden="true">1</kbd>
+                      <small>Guests every 6s · 1 ♥ / room</small>
                     </button>
-                  ))}
-                </fieldset>
-              )}
-            </article>
-          ))}
-        </div>
-      </section>
-      <section className="mr-outings">
-        <div className="mr-section-title">
-          <span>STEP OUT OF THE EVERYDAY</span>
-          <h2>Memories are made outside.</h2>
-          <p>Both hosts go together. Normal work pauses until they return.</p>
-        </div>
-        <div className="mr-outing-grid">
-          {TRAIL_ORDER.map((id) => {
-            const trail = TRAILS[id];
-            const copy = TRAIL_COPY[id];
-            const closed = trailClosed(s, id);
-            return (
-              <article key={id} className={`trail-${id}`}>
-                <span className="mr-outing-art">{copy.art}</span>
-                <div>
-                  <h3>{trail.name}</h3>
-                  <p>
-                    {activitySeconds(s, 'expedition', id)} seconds · costs{' '}
-                    {trail.cost} supplies
-                    <br />
-                    Bring home {trail.supplies} supplies + {trail.tips} tips.{' '}
-                    {copy.finds}
+                    <button
+                      aria-pressed={s.dora === 'comfort'}
+                      aria-keyshortcuts="2"
+                      onClick={() =>
+                        act(() => {
+                          s.dora = 'comfort';
+                        })
+                      }
+                    >
+                      Extra comfort <kbd aria-hidden="true">2</kbd>
+                      <small>Guests every 10s · 3 ♥ / room</small>
+                    </button>
+                  </fieldset>
+                  {skillBlock('dora')}
+                </article>
+                <article className="mr-host-card">
+                  <Chin name="Enzo" />
+                  <div>
+                    <h3>
+                      Enzo <span>SUPPLIES</span>
+                    </h3>
+                    <p>“I brought a little extra. Just in case.”</p>
+                  </div>
+                  <fieldset disabled={!ready || busy}>
+                    <legend>Enzo’s attention</legend>
+                    <button
+                      aria-pressed={s.enzo === 'gather'}
+                      aria-keyshortcuts="3"
+                      onClick={() =>
+                        act(() => {
+                          s.enzo = 'gather';
+                        })
+                      }
+                    >
+                      Gather <kbd aria-hidden="true">3</kbd>
+                      <small>+3 supplies / 2s · 2 tips / level</small>
+                    </button>
+                    <button
+                      aria-pressed={s.enzo === 'craft'}
+                      aria-keyshortcuts="4"
+                      onClick={() =>
+                        act(() => {
+                          s.enzo = 'craft';
+                        })
+                      }
+                    >
+                      Craft with care <kbd aria-hidden="true">4</kbd>
+                      <small>+1 supply / 2s · 3 tips / level · bakes & makes soap</small>
+                    </button>
+                  </fieldset>
+                  <p className="mr-pantry" data-testid="pantry">
+                    Pantry: {ITEM_ICON.oatcake} {s.pantry.oatcake} oat{' '}
+                    {s.pantry.oatcake === 1 ? 'cake' : 'cakes'} ·{' '}
+                    {ITEM_ICON.soap} {s.pantry.soap} herbal soap
+                    <small>
+                      {' '}
+                      (up to {pantryCap(s)} each
+                      {s.rooms[1] || s.rooms[3]
+                        ? ''
+                        : '; open the kitchen or bath to start recipes'}
+                      )
+                    </small>
                   </p>
-                  {closed && <p className="mr-closed">✕ {closed}</p>}
+                  {skillBlock('enzo')}
+                </article>
+                <p className="mr-stock-note">
+                  {busy
+                    ? 'Both friends are making memories. Room production is paused.'
+                    : s.supplies < open
+                      ? 'Low supplies. Let Enzo gather, or bring supplies back from a trail.'
+                      : when === 'spring'
+                        ? 'Spring blossoms: +1 supply on every delivery.'
+                        : when === 'summer'
+                          ? 'Summer: festivals pay half as much again.'
+                          : when === 'autumn'
+                            ? 'Autumn harvest: +1 tip per room on every visit.'
+                            : 'Winter: cozy guests give +1 heart per room, but the summit is snowed in.'}
+                </p>
+              </div>
+            )}
+            {tab === 'rooms' && (
+              <section className="mr-improvements" aria-labelledby="mr-rooms-title">
+                <div className="mr-section-title">
+                  <span>SMALL CHANGES, WARMER STAYS</span>
+                  <h2 id="mr-rooms-title">Room to grow.</h2>
+                  <p>
+                    Open rooms in order. Each level adds tips to every guest
+                    visit. At level 3, choose a specialty.
+                  </p>
+                </div>
+                <div className="mr-upgrades">
+                  {ROOMS.map((room, i) => (
+                    <article key={room.name}>
+                      <span className="mr-card-number">
+                        0{i + 1}{' '}
+                        <span>
+                          {s.rooms[i] ? `LEVEL ${s.rooms[i]} / 3` : 'NOT YET OPEN'}
+                        </span>
+                      </span>
+                      <h3>{room.name}</h3>
+                      <p>{room.detail}</p>
+                      {s.rooms[i] < 3 ? (
+                        <button
+                          disabled={
+                            !ready ||
+                            busy ||
+                            s.coins < roomCost(s, i) ||
+                            (i > 0 && !s.rooms[i - 1])
+                          }
+                          onClick={() =>
+                            act(() => {
+                              if (upgradeRoom(s, i))
+                                setNotice(
+                                  s.rooms[i] === 3
+                                    ? `${room.name} is lovely as can be. Choose its specialty!`
+                                    : `${room.name} ${s.rooms[i] === 1 ? 'is open. Come on in!' : 'feels even cozier.'}`,
+                                );
+                            })
+                          }
+                        >
+                          {`${s.rooms[i] ? 'Improve' : 'Open room'} · ${roomCost(s, i)} tips`}
+                        </button>
+                      ) : s.perks[i] >= 0 ? (
+                        <p className="mr-perk" data-testid={`perk-${i}`}>
+                          ✓ {PERKS[i][s.perks[i]].name}
+                          <small>{PERKS[i][s.perks[i]].detail}</small>
+                        </p>
+                      ) : (
+                        <fieldset className="mr-perk-choice">
+                          <legend className="mr-sr">{room.name} specialty</legend>
+                          {PERKS[i].map((perk, p) => (
+                            <button
+                              key={perk.name}
+                              disabled={!ready || busy}
+                              onClick={() =>
+                                act(() => {
+                                  if (choosePerk(s, i, p))
+                                    setNotice(`${room.name}: ${perk.name}. ${perk.detail}.`);
+                                })
+                              }
+                            >
+                              {perk.name}
+                              <small>{perk.detail}</small>
+                            </button>
+                          ))}
+                        </fieldset>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+            {tab === 'trips' && (
+              <section className="mr-outings" aria-labelledby="mr-trips-title">
+                <div className="mr-section-title">
+                  <span>
+                    STEP OUT OF THE EVERYDAY · {s.festivals} festivals ·{' '}
+                    {s.expeditions} trails · {s.decor} / {DECOR_CAP} decorations
+                    {s.decor ? ` (${TROPHIES.slice(0, s.decor).join(', ')})` : ''}
+                  </span>
+                  <h2 id="mr-trips-title">Memories are made outside.</h2>
+                  <p>Both hosts go together. Normal work pauses until they return.</p>
+                </div>
+                {s.activity && (
+                  <output className="mr-activity">
+                    <strong>
+                      {s.activity.kind === 'festival'
+                        ? fest.name
+                        : TRAILS[s.activity.trail ?? 'juniper'].name}{' '}
+                      · {s.activity.remaining}s remaining
+                    </strong>
+                    <progress
+                      aria-label="Activity progress"
+                      max={activitySeconds(s, s.activity.kind, s.activity.trail ?? 'juniper')}
+                      value={
+                        activitySeconds(s, s.activity.kind, s.activity.trail ?? 'juniper') -
+                        s.activity.remaining
+                      }
+                    />
+                    <span>Hospitality & supplies paused · reward on return</span>
+                  </output>
+                )}
+                <div className="mr-outing-grid">
+                  {TRAIL_ORDER.map((id) => {
+                    const trail = TRAILS[id];
+                    const copy = TRAIL_COPY[id];
+                    const closed = trailClosed(s, id);
+                    return (
+                      <article key={id} className={`trail-${id}`}>
+                        <span className="mr-outing-art">{copy.art}</span>
+                        <div>
+                          <h3>{trail.name}</h3>
+                          <p>
+                            {activitySeconds(s, 'expedition', id)} seconds · costs{' '}
+                            {trail.cost} supplies
+                            <br />
+                            Bring home {trail.supplies} supplies + {trail.tips} tips.{' '}
+                            {copy.finds}
+                          </p>
+                          {closed && <p className="mr-closed">✕ {closed}</p>}
+                          <button
+                            disabled={!ready || busy || !!closed || s.supplies < trail.cost}
+                            onClick={() =>
+                              act(() => {
+                                if (startActivity(s, 'expedition', id))
+                                  setNotice(copy.start);
+                              })
+                            }
+                          >
+                            {copy.button}
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                  <article data-testid="festival">
+                    <span className="mr-outing-art lantern">✧</span>
+                    <div>
+                      <h3>{fest.name}</h3>
+                      <p>
+                        {activitySeconds(s, 'festival')} seconds · costs{' '}
+                        {FESTIVAL.hearts} hearts + {FESTIVAL.supplies} supplies
+                        <br />
+                        Celebrate for {fest.tips} tips + {fest.hearts} hearts +{' '}
+                        {fest.reputation} reputation. {fest.detail}
+                      </p>
+                      <button
+                        disabled={
+                          !ready ||
+                          busy ||
+                          s.hearts < FESTIVAL.hearts ||
+                          s.supplies < FESTIVAL.supplies
+                        }
+                        onClick={() =>
+                          act(() => {
+                            if (startActivity(s, 'festival'))
+                              setNotice(
+                                `The whole mountain is invited. The ${fest.name} has begun!`,
+                              );
+                          })
+                        }
+                      >
+                        Host a festival ↗
+                      </button>
+                    </div>
+                  </article>
+                </div>
+              </section>
+            )}
+            {tab === 'fun' && (
+              <section className="mr-games" aria-labelledby="mr-games-title">
+                <div className="mr-section-title">
+                  <span>LITTLE PLEASURES</span>
+                  <h2 id="mr-games-title">A moment for yourself.</h2>
+                  <p>
+                    Quick optional bonuses. They pause during outings and rest
+                    between rounds in lodge time.
+                  </p>
+                </div>
+                <div className="mr-game-grid">
+                  <article>
+                    <h3>Pour the perfect cup</h3>
+                    <p>
+                      Stop the pour in the gold band. Perfect: +
+                      {TEA_REWARDS.perfect.tips} tips and +{TEA_REWARDS.perfect.hearts}{' '}
+                      ♥ · good: +{TEA_REWARDS.good.tips} · spill: +
+                      {TEA_REWARDS.spill.tips}. Once every {TEA_COOLDOWN} lodge
+                      seconds.
+                    </p>
+                    <TeaGame
+                      ready={ready && teaReady(s)}
+                      wait={Math.max(0, s.teaReadyAt - s.elapsed)}
+                      onPour={onPour}
+                    />
+                  </article>
+                  <article>
+                    <h3>Catch the {weather}</h3>
+                    <p>
+                      Tap as many as you can in 8 seconds: +1 tip each, up to{' '}
+                      {CATCH_CAP}. Once every {CATCH_COOLDOWN} lodge seconds.
+                    </p>
+                    <CatchGame
+                      ready={ready && catchReady(s)}
+                      wait={Math.max(0, s.catchReadyAt - s.elapsed)}
+                      weather={weather}
+                      onDone={onCatch}
+                    />
+                  </article>
+                </div>
+              </section>
+            )}
+            {tab === 'guests' && (
+              <section className="mr-album" aria-labelledby="mr-album-title">
+                <div className="mr-section-title">
+                  <span>
+                    GUEST ALBUM · {albumSeen} / {GUESTS.length * COAT_NAMES.length}{' '}
+                    COATS
+                  </span>
+                  <h2 id="mr-album-title">Everyone who stayed.</h2>
+                  <p>
+                    Regulars return every fifth visit, send postcards at 3, 6 and
+                    10 friendship, and share a three-part story as you get closer.
+                  </p>
+                </div>
+                <div className="mr-regulars">
+                  {REGULARS.map((r, i) => {
+                    const cards = POSTCARDS.filter((p) => s.friends[i] >= p.at).length;
+                    const waitingRoom = !s.rooms[GUESTS[r.guest].room];
+                    const step = QUESTS[i][s.quests[i]];
+                    return (
+                      <article key={r.name} data-testid={`regular-${i}`}>
+                        <GuestButton
+                          target={{ seed: -1 - i, guest: r.guest, coat: r.coat, regular: i, where: 'album', room: GUESTS[r.guest].room, visit: s.visits, featured: false }}
+                          onOpen={openProfile}
+                        >
+                          <Visitor coat={r.coat} kind={r.guest} />
+                        </GuestButton>
+                        <div>
+                          <h3>
+                            {r.name} <span>{GUESTS[r.guest].name.toUpperCase()}</span>
+                          </h3>
+                          <progress
+                            aria-label={`Friendship with ${r.name}`}
+                            max={FRIENDSHIP_CAP}
+                            value={s.friends[i]}
+                          />
+                          <p>
+                            {s.friends[i]} / {FRIENDSHIP_CAP} friendship ·{' '}
+                            {'✉'.repeat(cards)}
+                            {'·'.repeat(POSTCARDS.length - cards)} postcards
+                            {waitingRoom
+                              ? ` · visits once the ${ROOMS[GUESTS[r.guest].room].name} opens`
+                              : ''}
+                          </p>
+                          <p className="mr-quest" data-testid={`quest-${i}`}>
+                            {!step
+                              ? '★ Story complete. Thank you, friend!'
+                              : s.friends[i] < step.at
+                                ? `Story ${s.quests[i] + 1} of 3 unlocks at ${step.at} friendship.`
+                                : `Story ${s.quests[i] + 1} of 3: ${step.text} (${s.questProgress[i]} / ${step.n}) · ${rewardText(step)}`}
+                          </p>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+                <div className="mr-album-grid">
+                  {GUESTS.map((g, i) => (
+                    <article key={g.id}>
+                      <h3>{g.name}</h3>
+                      <p>
+                        {i === VISCACHA
+                          ? 'Only spotted from the Condor summit'
+                          : `${stars(g.stars).slice(0, g.stars)} · ${ROOMS[g.room].name}${g.item ? ` · ${ITEM_ICON[g.item]} ${ITEMS[g.item].name}` : ''}${g.night ? ' · night' : ''}${g.comfort ? ' · Extra comfort' : ''}`}
+                      </p>
+                      <ul aria-label={`${g.name} coats`}>
+                        {COATS.map((coat, k) => {
+                          const seen = (s.album[i] & (1 << k)) > 0;
+                          return (
+                            <li
+                              key={coat}
+                              className={`mr-swatch ${coat}${seen ? ' seen' : ''}`}
+                              title={seen ? COAT_NAMES[k] : 'Not seen yet'}
+                            >
+                              <span className="mr-sr">
+                                {seen ? COAT_NAMES[k] : 'not seen yet'}
+                              </span>
+                              {seen ? '' : '?'}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+            {tab === 'goals' && (
+              <>
+                <section className="mr-daily" aria-labelledby="mr-daily-title">
+                  <div className="mr-section-title">
+                    <span>TODAY’S WISH LIST</span>
+                    <h2 id="mr-daily-title">Three little favours.</h2>
+                    <p>
+                      A new list every day. Finish all three for{' '}
+                      {rewardText(DAILY_REWARD)}.
+                    </p>
+                  </div>
+                  <ol className="mr-daily-list">
+                    {todays.map((d, k) => {
+                      const done = s.daily.progress[k] >= DAILY[d].n;
+                      return (
+                        <li key={d} className={done ? 'done' : ''} data-testid={`daily-${k}`}>
+                          <span>
+                            {done ? '✓ ' : ''}
+                            {DAILY[d].text}
+                          </span>
+                          <b>
+                            {Math.min(s.daily.progress[k], DAILY[d].n)} / {DAILY[d].n}
+                          </b>
+                          <progress
+                            aria-label={DAILY[d].text}
+                            max={DAILY[d].n}
+                            value={Math.min(s.daily.progress[k], DAILY[d].n)}
+                          />
+                        </li>
+                      );
+                    })}
+                  </ol>
                   <button
-                    disabled={!ready || busy || !!closed || s.supplies < trail.cost}
+                    className="mr-claim"
+                    disabled={!ready || s.daily.claimed || !dailyDone(s)}
                     onClick={() =>
                       act(() => {
-                        if (startActivity(s, 'expedition', id))
-                          setNotice(copy.start);
+                        if (claimDaily(game.current))
+                          setNotice(`Wish list complete! ${rewardText(DAILY_REWARD)}.`);
                       })
                     }
                   >
-                    {copy.button}
+                    {s.daily.claimed ? 'Claimed for today ✓' : 'Claim the wish list reward'}
                   </button>
-                </div>
-              </article>
-            );
-          })}
-          <article>
-            <span className="mr-outing-art lantern">✧</span>
-            <div>
-              <h3>A thousand little lanterns</h3>
-              <p>
-                {activitySeconds(s, 'festival')} seconds · costs{' '}
-                {FESTIVAL.hearts} hearts + {FESTIVAL.supplies} supplies
-                <br />
-                Celebrate for {festivalReward(s).tips} tips +{' '}
-                {festivalReward(s).hearts} hearts + 5 reputation.
-                {when === 'summer' ? ' Summer crowds: half as much again!' : ''}
-              </p>
-              <button
-                disabled={
-                  !ready ||
-                  busy ||
-                  s.hearts < FESTIVAL.hearts ||
-                  s.supplies < FESTIVAL.supplies
-                }
-                onClick={() =>
-                  act(() => {
-                    if (startActivity(s, 'festival'))
-                      setNotice(
-                        'The whole mountain is invited. Your lantern festival has begun!',
+                </section>
+                <section className="mr-goals" aria-labelledby="mr-goals-title">
+                  <div className="mr-section-title">
+                    <span>
+                      LODGE GOALS · {GOALS.filter((_, i) => s.goals & (1 << i)).length} /{' '}
+                      {GOALS.length} · {lodgeTitle(s).toUpperCase()}
+                    </span>
+                    <h2 id="mr-goals-title">Something to aim for.</h2>
+                    <p>
+                      Each goal pays tips once and leaves a keepsake by the lodge.
+                      Meet more goals to raise the lodge’s title.
+                    </p>
+                  </div>
+                  <ol className="mr-goal-list">
+                    {GOALS.map((g, i) => {
+                      const met = (s.goals & (1 << i)) > 0;
+                      return (
+                        <li key={g.name} className={met ? 'done' : ''} data-testid={`goal-${i}`}>
+                          <b aria-hidden="true">{met ? KEEPSAKE_ICON[i] : '?'}</b>
+                          <div>
+                            <h3>
+                              {met ? '✓ ' : ''}
+                              {g.name}
+                            </h3>
+                            <p>
+                              {g.detail} · +{g.tips} tips ·{' '}
+                              {met ? g.keepsake : 'a keepsake'}
+                            </p>
+                          </div>
+                        </li>
                       );
-                  })
-                }
-              >
-                Host a festival ↗
-              </button>
-            </div>
-          </article>
-        </div>
-        {s.activity && (
-          <output className="mr-activity">
-            <strong>
-              {s.activity.kind === 'festival'
-                ? 'Lantern festival'
-                : TRAILS[s.activity.trail ?? 'juniper'].name}{' '}
-              · {s.activity.remaining}s remaining
-            </strong>
-            <progress
-              aria-label="Activity progress"
-              max={activitySeconds(s, s.activity.kind, s.activity.trail ?? 'juniper')}
-              value={
-                activitySeconds(s, s.activity.kind, s.activity.trail ?? 'juniper') -
-                s.activity.remaining
-              }
-            />
-            <span>Hospitality & supplies paused · reward on return</span>
-          </output>
-        )}
-      </section>
-      <section className="mr-games" aria-labelledby="mr-games-title">
-        <div className="mr-section-title">
-          <span>LITTLE PLEASURES</span>
-          <h2 id="mr-games-title">A moment for yourself.</h2>
-          <p>
-            Quick optional bonuses. They pause during outings and rest between
-            rounds in lodge time.
-          </p>
-        </div>
-        <div className="mr-game-grid">
-          <article>
-            <h3>Pour the perfect cup</h3>
-            <p>
-              Stop the pour in the gold band. Perfect: +{TEA_REWARDS.perfect.tips}{' '}
-              tips and +{TEA_REWARDS.perfect.hearts} ♥ · good: +
-              {TEA_REWARDS.good.tips} · spill: +{TEA_REWARDS.spill.tips}. Once every{' '}
-              {TEA_COOLDOWN} lodge seconds.
-            </p>
-            <TeaGame
-              ready={ready && teaReady(s)}
-              wait={Math.max(0, s.teaReadyAt - s.elapsed)}
-              onPour={onPour}
-            />
-          </article>
-          <article>
-            <h3>Catch the {weather}</h3>
-            <p>
-              Tap as many as you can in 8 seconds: +1 tip each, up to {CATCH_CAP}.
-              Once every {CATCH_COOLDOWN} lodge seconds.
-            </p>
-            <CatchGame
-              ready={ready && catchReady(s)}
-              wait={Math.max(0, s.catchReadyAt - s.elapsed)}
-              weather={weather}
-              onDone={onCatch}
-            />
-          </article>
-        </div>
-      </section>
-      <section className="mr-album" aria-labelledby="mr-album-title">
-        <div className="mr-section-title">
-          <span>
-            GUEST ALBUM · {albumSeen} / {GUESTS.length * COAT_NAMES.length}{' '}
-            COATS
-          </span>
-          <h2 id="mr-album-title">Everyone who stayed.</h2>
-          <p>
-            Each featured guest adds their coat to the album. Regulars return
-            every fifth visit and send a postcard at 3, 6 and 10 friendship.
-          </p>
-        </div>
-        <div className="mr-regulars">
-          {REGULARS.map((r, i) => {
-            const cards = POSTCARDS.filter((p) => s.friends[i] >= p.at).length;
-            const waiting = !s.rooms[GUESTS[r.guest].room];
-            return (
-              <article key={r.name} data-testid={`regular-${i}`}>
-                <GuestButton
-                  target={{ seed: -1 - i, guest: r.guest, coat: r.coat, regular: i, where: 'album', room: GUESTS[r.guest].room, visit: s.visits, featured: false }}
-                  onOpen={openProfile}
-                >
-                  <Visitor coat={r.coat} kind={r.guest} />
-                </GuestButton>
-                <div>
-                  <h3>
-                    {r.name} <span>{GUESTS[r.guest].name.toUpperCase()}</span>
-                  </h3>
-                  <progress
-                    aria-label={`Friendship with ${r.name}`}
-                    max={FRIENDSHIP_CAP}
-                    value={s.friends[i]}
-                  />
+                    })}
+                  </ol>
+                </section>
+              </>
+            )}
+            {tab === 'scrapbook' && (
+              <section className="mr-scrapbook" aria-labelledby="mr-scrapbook-title">
+                <div className="mr-section-title">
+                  <span>
+                    SCRAPBOOK · {photos.length} / {PHOTO_CAP} PHOTOS
+                  </span>
+                  <h2 id="mr-scrapbook-title">Moments worth keeping.</h2>
                   <p>
-                    {s.friends[i]} / {FRIENDSHIP_CAP} friendship ·{' '}
-                    {'✉'.repeat(cards)}
-                    {'·'.repeat(POSTCARDS.length - cards)} postcards
-                    {waiting
-                      ? ` · visits once the ${ROOMS[GUESTS[r.guest].room].name} opens`
-                      : ''}
+                    Use ◉ Snap a photo above the lodge. It glows after a memorable
+                    moment. The newest {PHOTO_CAP} photos are kept on this device.
                   </p>
                 </div>
-              </article>
-            );
-          })}
-        </div>
-        <div className="mr-album-grid">
-          {GUESTS.map((g, i) => (
-            <article key={g.id}>
-              <h3>{g.name}</h3>
-              <p>
-                {i === VISCACHA
-                  ? 'Only spotted from the Condor summit'
-                  : `${stars(g.stars).slice(0, g.stars)} · ${ROOMS[g.room].name}${g.item ? ` · ${ITEM_ICON[g.item]} ${ITEMS[g.item].name}` : ''}${g.night ? ' · night' : ''}${g.comfort ? ' · Extra comfort' : ''}`}
-              </p>
-              <ul aria-label={`${g.name} coats`}>
-                {COATS.map((coat, k) => {
-                  const seen = (s.album[i] & (1 << k)) > 0;
-                  return (
-                    <li
-                      key={coat}
-                      className={`mr-swatch ${coat}${seen ? ' seen' : ''}`}
-                      title={seen ? COAT_NAMES[k] : 'Not seen yet'}
-                    >
-                      <span className="mr-sr">
-                        {seen ? COAT_NAMES[k] : 'not seen yet'}
-                      </span>
-                      {seen ? '' : '?'}
-                    </li>
-                  );
-                })}
-              </ul>
-            </article>
-          ))}
-        </div>
-      </section>
-      <section className="mr-goals" aria-labelledby="mr-goals-title">
-        <div className="mr-section-title">
-          <span>
-            LODGE GOALS · {GOALS.filter((_, i) => s.goals & (1 << i)).length} /{' '}
-            {GOALS.length} · {lodgeTitle(s).toUpperCase()}
-          </span>
-          <h2 id="mr-goals-title">Something to aim for.</h2>
-          <p>
-            Each goal pays tips once and leaves a keepsake by the lodge. Meet more
-            goals to raise the lodge’s title.
-          </p>
-        </div>
-        <ol className="mr-goal-list">
-          {GOALS.map((g, i) => {
-            const met = (s.goals & (1 << i)) > 0;
-            return (
-              <li key={g.name} className={met ? 'done' : ''} data-testid={`goal-${i}`}>
-                <b aria-hidden="true">{met ? KEEPSAKE_ICON[i] : '?'}</b>
-                <div>
-                  <h3>
-                    {met ? '✓ ' : ''}
-                    {g.name}
-                  </h3>
-                  <p>
-                    {g.detail} · +{g.tips} tips · {met ? g.keepsake : 'a keepsake'}
-                  </p>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      </section>
-      <section className="mr-scrapbook" aria-labelledby="mr-scrapbook-title">
-        <div className="mr-section-title">
-          <span>
-            SCRAPBOOK · {photos.length} / {PHOTO_CAP} PHOTOS
-          </span>
-          <h2 id="mr-scrapbook-title">Moments worth keeping.</h2>
-          <p>
-            Use ◉ Snap a photo under the lodge. It glows after a memorable
-            moment. The newest {PHOTO_CAP} photos are kept on this device.
-          </p>
-        </div>
-        {photos.length ? (
-          <div className="mr-photo-grid">
-            {photos.map((photo, n) => (
-              <figure key={photo.at + '-' + n} className="mr-photo" data-testid="photo">
-                <PhotoScene photo={photo} />
-                <figcaption>
-                  <input
-                    aria-label="Photo caption"
-                    maxLength={120}
-                    value={photo.caption}
-                    onChange={(e) =>
-                      savePhotos(
-                        photos.map((p, m) =>
-                          m === n ? { ...p, caption: e.target.value } : p,
-                        ),
-                      )
-                    }
-                  />
-                  <small>
-                    {new Date(photo.at).toLocaleDateString()} · {photo.season}
-                    {photo.night ? ' night' : ''}
-                  </small>
-                  <button onClick={() => savePhotos(photos.filter((_, m) => m !== n))}>
-                    Remove photo
-                  </button>
-                </figcaption>
-              </figure>
-            ))}
+                {photos.length ? (
+                  <div className="mr-photo-grid">
+                    {photos.map((photo, n) => (
+                      <figure key={photo.at + '-' + n} className="mr-photo" data-testid="photo">
+                        <PhotoScene photo={photo} />
+                        <figcaption>
+                          <input
+                            aria-label="Photo caption"
+                            maxLength={120}
+                            value={photo.caption}
+                            onChange={(e) =>
+                              savePhotos(
+                                photos.map((p, m) =>
+                                  m === n ? { ...p, caption: e.target.value } : p,
+                                ),
+                              )
+                            }
+                          />
+                          <small>
+                            {new Date(photo.at).toLocaleDateString()} · {photo.season}
+                            {photo.night ? ' night' : ''}
+                          </small>
+                          <button onClick={() => savePhotos(photos.filter((_, m) => m !== n))}>
+                            Remove photo
+                          </button>
+                        </figcaption>
+                      </figure>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mr-empty">No photos yet.</p>
+                )}
+              </section>
+            )}
           </div>
-        ) : (
-          <p className="mr-empty">No photos yet.</p>
-        )}
-      </section>
+        </div>
+      </div>
       <footer className="mr-footer">
         <span>{storage}</span>
         <span>5–10 minute visits · 8-hour offline cap · no accounts</span>

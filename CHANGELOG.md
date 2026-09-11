@@ -6,6 +6,13 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Mountain Retreat:** fits one screen, and adds skills, a daily wish list, stories and seasonal festivals.
+  - On laptop and desktop screens the whole game fits one screen: the lodge on the left, and seven tabs for hosts, rooms, trips, fun, guests, goals and the scrapbook. Only the tab panel scrolls, and the lodge art scales down to fit shorter screens. Phones keep a scrolling page with the same tabs.
+  - **Host skills:** Dora and Enzo level up from their work, choosing one of two skills at each level from 2 to 5.
+  - **Daily wish list:** three new requests every day, with a reward for finishing all three.
+  - **Stories:** Pip, Mochi and Luna each have a three-part story that unlocks as your friendship grows.
+  - **Seasonal festivals:** a different festival each season, and a new goal for hosting all four.
+  - Existing journals upgrade automatically to the new save format.
 - **Arcade favicon:** pixel Dora and Enzo on the arcade navy, replacing the unused "Cc" placeholder. There is also an Apple touch icon. The site now links the icons, so they finally show in browser tabs and bookmarks.
 - **Mountain Retreat:** guest profiles, goals, surprises, mini-games and a scrapbook.
   - Click any guest to see their name, home village, bio, wish and friendship. The guest in a room can be offered an oat cake or herbal soap once per visit, for extra hearts; regulars also gain friendship.

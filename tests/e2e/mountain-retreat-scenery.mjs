@@ -85,6 +85,7 @@ try {
   await panel(day, 'day');
 
   // Outings each get their own backdrop.
+  await day.getByRole('tab', { name: /^Trips/ }).click();
   await day.getByRole('button', { name: /Paddle to the lake/ }).click();
   assert.ok(await day.locator('.mr-trail-hosts.lake .mr-outing-prop').isVisible());
   await panel(day, 'lake');
