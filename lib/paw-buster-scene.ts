@@ -6,6 +6,9 @@ export const THEMES: Record<StageId, Theme> = {
   snowcap: { sky: ['#7fa9dc', '#dcecff'], far: '#b9cde6', near: '#8aa3c4', ground: '#617391', dark: '#4a5874', top: '#f4f8ff', spike: '#bfe9ff', accent: '#ffffff' },
   cloud: { sky: ['#8cc6b0', '#e6f2d8'], far: '#8cb89a', near: '#5f8c6c', ground: '#5b4a3a', dark: '#453729', top: '#7fbf5a', spike: '#3b5a2c', accent: '#f3fbe8' },
   caldera: { sky: ['#2c1420', '#c8553a'], far: '#62302c', near: '#43201f', ground: '#3b2f33', dark: '#2a2125', top: '#ff8a3d', spike: '#ffb347', accent: '#ffd08a' },
+  mines: { sky: ['#140f24', '#3a2c52'], far: '#2a2140', near: '#221a34', ground: '#4a3d5c', dark: '#3a2f4a', top: '#b48ad8', spike: '#e3a8ff', accent: '#e3a8ff' },
+  salt: { sky: ['#6fb7ff', '#fff6e0'], far: '#c9b8d8', near: '#a89cc0', ground: '#d9d2c4', dark: '#c6bdac', top: '#ffffff', spike: '#9aa3b8', accent: '#fff27a' },
+  lake: { sky: ['#4a8fb8', '#cfeef0'], far: '#5f9a8c', near: '#3f7a6a', ground: '#6b5a3c', dark: '#56482f', top: '#c9b36a', spike: '#2f5a4a', accent: '#8fe0ff' },
   citadel: { sky: ['#10152b', '#46507a'], far: '#2c3456', near: '#1f2542', ground: '#5c6378', dark: '#444a5c', top: '#c9ced9', spike: '#dfe3ea', accent: '#ffd46a' },
 };
 const rr = (c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => { c.beginPath(); c.roundRect(x, y, w, h, r); c.fill(); };
@@ -35,6 +38,15 @@ function backdrop(c: CanvasRenderingContext2D, id: StageId, cam: number, time: n
   if (id === 'snowcap') { c.fillStyle = '#ffffffaa'; for (let i = 0; i < 40; i++) { const x = ((i * 137 + time * 30) % (VIEW_W + 40)) - 20, y = (i * 71 + time * (40 + (i % 5) * 9)) % VIEW_H; circle(c, x, y, 1.5 + (i % 3)); } }
   if (id === 'cloud') { c.fillStyle = '#ffffff55'; for (let i = 0; i < 5; i++) { const x = ((i * 260 - cam * 0.25 + time * 12) % (VIEW_W + 300)) - 150; ellipse(c, x, 90 + (i % 3) * 50, 120, 22); } }
   if (id === 'caldera') { c.fillStyle = '#ffb34799'; for (let i = 0; i < 26; i++) { const x = (i * 97 - cam * 0.5) % VIEW_W, y = VIEW_H - ((i * 53 + time * 50) % VIEW_H); circle(c, (x + VIEW_W) % VIEW_W, y, 1.5); } }
+  if (id === 'mines') { for (let i = 0; i < 18; i++) { const x = ((i * 173 - cam * 0.3) % (VIEW_W + 60) + VIEW_W + 60) % (VIEW_W + 60) - 30, y = 120 + (i * 83) % 300; c.fillStyle = (i + Math.floor(time * 3)) % 5 ? '#b48ad866' : '#f3dcffcc'; c.beginPath(); c.moveTo(x, y - 12); c.lineTo(x + 6, y); c.lineTo(x, y + 12); c.lineTo(x - 6, y); c.fill(); } }
+  if (id === 'salt') { c.fillStyle = '#fff8d8'; circle(c, 800, 80, 40); c.fillStyle = '#ffffff44'; for (let i = 0; i < 6; i++) c.fillRect(0, 430 + i * 14 + Math.sin(time * 3 + i) * 3, VIEW_W, 2); }
+  if (id === 'lake') {
+    c.fillStyle = '#ffffff55';
+    for (let i = 0; i < 3; i++) { const x = ((i * 380 - cam * 0.35) % (VIEW_W + 200) + VIEW_W + 200) % (VIEW_W + 200) - 100; c.fillRect(x, 200, 26, 200); for (let j = 0; j < 6; j++) c.fillRect(x + 4, 200 + ((j * 40 + time * 120) % 200), 18, 6); }
+    // The lake fills the bottom of every pit.
+    c.fillStyle = '#2f7fb8cc'; c.fillRect(0, VIEW_H - 22, VIEW_W, 22);
+    c.fillStyle = '#bfefff99'; for (let x = -((cam * 0.9 + time * 30) % 40); x < VIEW_W; x += 40) c.fillRect(x, VIEW_H - 22, 18, 3);
+  }
   if (id === 'citadel') { c.fillStyle = '#fff6'; for (let i = 0; i < 50; i++) circle(c, (i * 191) % VIEW_W, (i * 67) % 240, (i + Math.floor(time * 2)) % 7 ? 1 : 1.8); c.fillStyle = '#ffd46a'; for (let i = 0; i < 14; i++) { const x = ((i * 150 - cam * 0.35) % (VIEW_W + 150) + VIEW_W + 150) % (VIEW_W + 150) - 75; c.fillRect(x, 330 + (i % 3) * 14, 6, 9); } }
 }
 
@@ -57,12 +69,14 @@ function tiles(c: CanvasRenderingContext2D, g: PawBusterGame) {
       c.fillStyle = '#0000001a';
       c.fillRect(x, y + TILE - 3, TILE, 3);
       if (g.stage.id === 'citadel') { c.fillStyle = '#ffffff22'; c.fillRect(x + 3, y + 3, 4, 4); c.fillRect(x + TILE - 7, y + 3, 4, 4); }
+      if (g.stage.id === 'mines' && (col * 5 + r * 7) % 9 === 0) { c.fillStyle = '#e3a8ffaa'; c.beginPath(); c.moveTo(x + 15, y + 6); c.lineTo(x + 21, y + 15); c.lineTo(x + 15, y + 24); c.lineTo(x + 9, y + 15); c.fill(); }
       if (g.stage.id === 'caldera' && (col * 7 + r * 3) % 5 === 0) { c.fillStyle = '#ff6a2a88'; c.fillRect(x + 8, y + 12, 12, 2); c.fillRect(x + 14, y + 12, 2, 9); }
       if (open) {
         c.fillStyle = t.top;
         c.fillRect(x, y, TILE, 6);
         if (g.stage.id === 'snowcap') { c.fillRect(x + 4, y + 6, 6, 3); c.fillRect(x + 18, y + 6, 8, 2); }
         if (g.stage.id === 'cloud') { c.fillRect(x + 6, y - 3, 3, 3); c.fillRect(x + 20, y - 4, 3, 4); }
+        if (g.stage.id === 'lake') { c.fillStyle = '#7a9a4a'; c.fillRect(x + 5, y - 8, 2, 8); c.fillRect(x + 12, y - 11, 2, 11); c.fillRect(x + 22, y - 7, 2, 7); }
       }
     }
   }
@@ -175,6 +189,12 @@ function enemy(c: CanvasRenderingContext2D, e: Enemy, g: PawBusterGame, cam: num
     c.beginPath(); c.moveTo(2, -10); c.lineTo(16, -14 - flap); c.lineTo(10, -4); c.fill();
     c.fillStyle = '#7a58a0'; ellipse(c, 0, -9, 7, 8);
     c.fillStyle = '#ffd24a'; circle(c, 3, -11, 1.8);
+  } else if (e.kind === 'hopper') {
+    const air = !e.ground;
+    c.fillStyle = '#3f8a4a'; ellipse(c, 0, -8, 11, air ? 9 : 7);
+    c.fillStyle = '#2d6a36'; rr(c, -12, air ? -4 : -3, 7, 3, 1); rr(c, 5, air ? -4 : -3, 7, 3, 1);
+    c.fillStyle = '#b8e07a'; ellipse(c, 2, -5, 7, 3);
+    c.fillStyle = '#fff'; circle(c, 4, -15, 3.2); c.fillStyle = '#000'; circle(c, 5, -15, 1.6);
   } else {
     c.fillStyle = '#6d6a64'; rr(c, -13, -20, 26, 20, 3);
     c.fillStyle = '#8b877e'; rr(c, -11, -28, 22, 12, 5);
@@ -184,7 +204,7 @@ function enemy(c: CanvasRenderingContext2D, e: Enemy, g: PawBusterGame, cam: num
 }
 
 /** The four mavericks, drawn around their feet (0,0), facing right. Also used for stage-select portraits. */
-export function drawBoss(c: CanvasRenderingContext2D, kind: BossKind, time: number, state: { move?: string; hidden?: boolean } = {}) {
+export function drawBoss(c: CanvasRenderingContext2D, kind: BossKind, time: number, state: { move?: string; hidden?: boolean; t?: number } = {}) {
   c.save();
   if (kind === 'fox') {
     c.fillStyle = '#e8f3ff';
@@ -221,6 +241,45 @@ export function drawBoss(c: CanvasRenderingContext2D, kind: BossKind, time: numb
     c.fillStyle = '#ffe26a'; circle(c, 30, -18, 2.6); c.fillStyle = '#111'; c.fillRect(30, -20, 1.5, 4);
     c.fillStyle = '#fff'; c.beginPath(); c.moveTo(32, -8); c.lineTo(34, -2); c.lineTo(36, -8); c.fill();
     c.strokeStyle = '#ff3a5a'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(37, -12); c.lineTo(44, -12 + Math.sin(time * 20) * 2); c.stroke();
+  } else if (kind === 'armadillo') {
+    if (state.move === 'roll' && (state.t ?? 0) >= 0.4) {
+      // Curled into a spinning ball of armour plates.
+      c.translate(0, -18); c.rotate(time * 14);
+      c.fillStyle = '#7a6a8c'; circle(c, 0, 0, 18);
+      c.strokeStyle = '#e3a8ff'; c.lineWidth = 3; for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(0, 0, 18, i * 2.1, i * 2.1 + 1); c.stroke(); }
+      c.fillStyle = '#b48ad8'; circle(c, 0, 0, 6);
+    } else {
+      c.fillStyle = '#6a5a78'; c.beginPath(); c.moveTo(-26, -8); c.lineTo(-38, -4); c.lineTo(-26, -2); c.fill();
+      c.fillStyle = '#7a6a8c'; c.beginPath(); c.arc(-4, -8, 24, Math.PI, 0); c.fill();
+      c.fillStyle = '#9a88ac'; for (const a of [-16, -6, 4, 14]) c.fillRect(-4 + a - 2, -30 + Math.abs(a) * 0.35, 4, 22 - Math.abs(a) * 0.35);
+      c.fillStyle = '#e3a8ff'; for (const a of [-14, 0, 12]) { c.beginPath(); c.moveTo(-4 + a, -40); c.lineTo(-4 + a + 5, -30); c.lineTo(-4 + a - 5, -30); c.fill(); }
+      c.fillStyle = '#c2a88a'; ellipse(c, 22, -12, 10, 7);
+      c.fillStyle = '#9a88ac'; c.beginPath(); c.moveTo(16, -18); c.lineTo(18, -26); c.lineTo(22, -18); c.fill();
+      c.fillStyle = '#111'; circle(c, 25, -14, 1.8); c.fillStyle = '#6a4a3a'; circle(c, 31, -11, 1.8);
+      c.fillStyle = '#5a4a68'; for (const lx of [-20, -8, 4, 14]) c.fillRect(lx, -8, 6, 8);
+    }
+  } else if (kind === 'vicuna') {
+    const run = state.move === 'dash' ? Math.sin(time * 30) * 4 : 0;
+    c.fillStyle = '#b8864a'; for (const lx of [-14, -6, 6, 14]) c.fillRect(lx - 2 + (lx % 4 ? run : -run), -18, 4, 18);
+    c.fillStyle = '#e0b070'; ellipse(c, 0, -22, 20, 10);
+    c.fillStyle = '#fff4e0'; ellipse(c, 2, -18, 12, 5);
+    c.fillStyle = '#e0b070'; rr(c, 12, -46, 8, 24, 4);
+    c.fillStyle = '#e8bd80'; ellipse(c, 20, -46, 9, 6);
+    c.fillStyle = '#b8864a'; c.beginPath(); c.moveTo(14, -50); c.lineTo(15, -58); c.lineTo(18, -51); c.fill();
+    c.fillStyle = '#111'; circle(c, 22, -48, 1.8);
+    c.fillStyle = '#fff27a'; c.beginPath(); c.moveTo(-4, -32); c.lineTo(2, -32); c.lineTo(-2, -26); c.lineTo(3, -26); c.lineTo(-5, -18); c.lineTo(-2, -24); c.lineTo(-7, -24); c.fill();
+    c.fillStyle = '#e0b070'; c.beginPath(); c.moveTo(-18, -26); c.quadraticCurveTo(-26, -32, -24, -20); c.fill();
+    if (state.move === 'storm' || state.move === 'bolt') { c.strokeStyle = '#fff27a'; c.lineWidth = 2; c.beginPath(); for (let i = 0; i < 5; i++) c.lineTo(Math.cos(time * 20 + i) * 26, -24 + Math.sin(time * 17 + i * 2) * 20); c.stroke(); }
+  } else if (kind === 'toad') {
+    const puff = state.move === 'bubbles' ? 3 + Math.sin(time * 20) * 2 : 0;
+    c.fillStyle = '#3f7a5a'; ellipse(c, -18, -5, 12, 5); ellipse(c, 16, -4, 10, 4);
+    c.fillStyle = '#4f9a6a'; ellipse(c, 0, -16, 28, 16);
+    c.fillStyle = '#d8e8a0'; ellipse(c, 8, -8 + puff * 0.2, 16 + puff, 8 + puff);
+    c.fillStyle = '#6ab87a'; for (const sx of [-14, -2, -20]) circle(c, sx, -24, 3);
+    c.fillStyle = '#4f9a6a'; circle(c, 10, -30, 8); circle(c, 24, -28, 7);
+    c.fillStyle = '#ffe26a'; circle(c, 11, -31, 5); circle(c, 25, -29, 4.5);
+    c.fillStyle = '#111'; c.fillRect(8, -32, 6, 2); c.fillRect(22, -30, 6, 2);
+    c.strokeStyle = '#2d5a40'; c.lineWidth = 2; c.beginPath(); c.moveTo(14, -16); c.quadraticCurveTo(24, -12, 30, -18); c.stroke();
   } else {
     c.fillStyle = '#6a4b2e';
     c.beginPath(); c.moveTo(-24, -20); c.quadraticCurveTo(-44, -18 + Math.sin(time * 4) * 6, -40, -40); c.lineTo(-36, -40); c.quadraticCurveTo(-38, -22, -22, -14); c.fill();
@@ -253,6 +312,14 @@ function shot(c: CanvasRenderingContext2D, s: Shot, cam: number, time: number) {
     case 'feather': c.rotate(Math.atan2(s.vy, s.vx)); c.fillStyle = '#d4d7e2'; ellipse(c, 0, 0, 9, 3); break;
     case 'fire': c.fillStyle = '#ff7a2a'; circle(c, 0, 0, 7); c.fillStyle = '#ffe07a'; circle(c, 0, 0, 3.5); break;
     case 'wave': c.fillStyle = '#e6f3ffcc'; c.beginPath(); c.moveTo(-10, 10); c.lineTo(0, -12 + Math.sin(time * 30) * 2); c.lineTo(10, 10); c.fill(); break;
+    case 'quartz': c.rotate(time * 6); c.fillStyle = WEAPONS.quartz.color; c.beginPath(); c.moveTo(0, -10); c.lineTo(7, 0); c.lineTo(0, 10); c.lineTo(-7, 0); c.fill(); c.fillStyle = '#fff'; c.fillRect(-1, -6, 2, 6); break;
+    case 'volt': c.strokeStyle = WEAPONS.volt.color; c.lineWidth = 3; c.beginPath(); c.moveTo(-9, 0); c.lineTo(-3, -6); c.lineTo(2, 4); c.lineTo(9, -3); c.stroke(); c.fillStyle = '#fff'; circle(c, 0, 0, 3); break;
+    case 'bubble': case 'foam': c.fillStyle = s.kind === 'bubble' ? '#8fe0ff55' : '#d8f4ff55'; circle(c, 0, 0, s.r); c.strokeStyle = s.kind === 'bubble' ? WEAPONS.bubble.color : '#e8faff'; c.lineWidth = 2; c.stroke(); c.fillStyle = '#fff'; circle(c, -s.r * 0.35, -s.r * 0.35, s.r * 0.25); break;
+    case 'crystal': c.rotate(time * 10); c.fillStyle = '#e3a8ff'; c.beginPath(); c.moveTo(0, -8); c.lineTo(5, 0); c.lineTo(0, 8); c.lineTo(-5, 0); c.fill(); break;
+    case 'rock': c.fillStyle = '#6a5a78'; circle(c, 0, 0, 11); c.fillStyle = '#9a88ac'; circle(c, -3, -3, 4); break;
+    case 'bolt': c.strokeStyle = '#fff27a'; c.lineWidth = 5; c.beginPath(); c.moveTo(0, -60); c.lineTo(-8, -40); c.lineTo(6, -24); c.lineTo(-6, -8); c.lineTo(4, 12); c.stroke(); c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke(); break;
+    case 'spark': c.fillStyle = '#fff27a'; circle(c, 0, 0, 6 + Math.sin(time * 40) * 1.5); c.fillStyle = '#fff'; circle(c, 0, 0, 3); break;
+    case 'tongue': c.fillStyle = '#e05a7a'; c.fillRect(-Math.sign(s.vx) * 40, -2, 40 * Math.sign(s.vx), 4); circle(c, 0, 0, 7); break;
     case 'claw': c.strokeStyle = '#ffd46a'; c.lineWidth = 3; for (const o of [-6, 0, 6]) { c.beginPath(); c.arc(-Math.sign(s.vx) * 4, o, 9, -1, 1); c.stroke(); } break;
   }
   c.restore();
@@ -294,6 +361,11 @@ export function drawStage(c: CanvasRenderingContext2D, g: PawBusterGame, time: n
   const b = g.boss;
   if (b) {
     if (b.kind === 'snake' && b.hidden && b.t > 0.45) { c.fillStyle = `rgba(255,120,40,${0.35 + Math.sin(time * 30) * 0.2})`; c.fillRect(b.x - cam, (ROWS - 3) * TILE - 8, b.w, 8); }
+    if (b.move === 'storm' && b.fired === 1) {
+      c.fillStyle = Math.floor(time * 12) % 2 ? '#fff27a55' : '#fff27a22';
+      const left = (g.map.arena + 1) * TILE + 14, right = (g.map.arena + 31) * TILE - 14;
+      for (const o of [-110, 0, 110]) c.fillRect(Math.max(left, Math.min(right, b.tx + o)) - cam - 12, 0, 24, (ROWS - 3) * TILE);
+    }
     const blink = b.inv > 0 && Math.floor(time * 40) % 2 === 0;
     if (!(g.state === 'clearing' && Math.floor(b.deathT * 12) % 2)) {
       c.save();

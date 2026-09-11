@@ -27,11 +27,11 @@ try {
   await menu.close();
 
   const page = await open({ viewport: { width: 1280, height: 720 } });
-  assert.equal(await page.locator('.pb-stage').count(), 4);
+  assert.equal(await page.locator('.pb-stage').count(), 7);
   // Stage buttons enable once the page is interactive; only the citadel stays locked.
   await page.waitForFunction(() => !document.querySelector('[data-testid="stage-snowcap"]').disabled);
   assert.ok(await page.getByTestId('stage-citadel').isDisabled(), 'citadel starts locked');
-  assert.match(await page.getByTestId('summary').textContent(), /Heart tanks 0\/3 · Max health 16 · Weapons: Paw Buster$/);
+  assert.match(await page.getByTestId('summary').textContent(), /Heart tanks 0\/6 · Max health 16 · Weapons: Paw Buster$/);
   await page.screenshot({ path: '.checks/paw-buster/select.png' });
 
   await page.getByTestId('stage-snowcap').click();
@@ -67,19 +67,30 @@ try {
   await page.getByRole('button', { name: 'Stage select' }).first().click();
   await page.getByTestId('stage-snowcap').waitFor();
 
-  // Three cleared mavericks open the citadel and fill the arsenal.
-  await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ version: 1, cleared: ['snowcap', 'cloud', 'caldera'], tanks: ['snowcap', 'cloud'], best: { snowcap: 83.4 } })), key);
+  // Six cleared mavericks open the citadel and fill the arsenal.
+  await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ version: 1, cleared: ['snowcap', 'cloud', 'caldera', 'mines', 'salt', 'lake'], tanks: ['snowcap', 'cloud'], best: { snowcap: 83.4 } })), key);
   await page.reload();
   await page.getByTestId('stage-snowcap').waitFor();
   await page.waitForFunction(() => !document.querySelector('[data-testid="stage-citadel"]').disabled);
-  assert.match(await page.getByTestId('summary').textContent(), /Heart tanks 2\/3 · Max health 20 · Weapons: Paw Buster, Frost Shard, Gale Feather, Ember Coil/);
+  assert.match(await page.getByTestId('summary').textContent(), /Heart tanks 2\/6 · Max health 20 · Weapons: Paw Buster, Frost Shard, Gale Feather, Ember Coil, Quartz Orbit, Volt Spark, Bubble Burst/);
   assert.match(await page.getByTestId('stage-snowcap').textContent(), /Cleared · best 1:23\.4 · ♥ tank · Frost Shard/);
+  await page.screenshot({ path: '.checks/paw-buster/select-all.png' });
   await page.getByTestId('stage-citadel').click();
   await waitState(page, 'play');
   await page.keyboard.press('KeyE');
   await page.waitForTimeout(200);
   assert.equal(await attr(page, 'weapon'), 'frost', 'E selects the next weapon');
   assert.match(await page.getByTestId('status').textContent(), /Cougar Citadel · Dora in play · Dora 20\/20/);
+  await page.getByRole('button', { name: 'Stage select' }).first().click();
+  // Each new stage starts and draws its maverick's room.
+  for (const [id, name] of [['mines', 'Crystal Mines'], ['salt', 'Salt Flats'], ['lake', 'Titicaca Falls']]) {
+    await page.getByTestId(`stage-${id}`).click();
+    await waitState(page, 'play');
+    assert.match(await page.getByTestId('status').textContent(), new RegExp(`^${name} · Dora in play`));
+    await page.screenshot({ path: `.checks/paw-buster/${id}.png` });
+    await page.getByRole('button', { name: 'Stage select' }).first().click();
+    await page.getByTestId(`stage-${id}`).waitFor();
+  }
   await page.close();
 
   // Phones get the touch pad and no sideways scrolling.
@@ -100,7 +111,7 @@ try {
   await phone.close();
 
   assert.deepEqual(errors, []);
-  console.log('Paw Buster X: arcade card, stage select, lock, play, movement, tag, pause, saved progress, citadel, weapon switch, touch pad, phone layout.');
+  console.log('Paw Buster X: arcade card, stage select, six mavericks, lock, play, movement, tag, pause, saved progress, citadel, weapon switch, touch pad, phone layout.');
 } finally {
   await browser.close();
 }

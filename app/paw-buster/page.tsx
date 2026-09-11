@@ -161,7 +161,7 @@ export default function PawBuster() {
             <div>
               <p className="pb-eyebrow">A MEGA MAN X-STYLE ACTION PLATFORMER</p>
               <h1 id="pb-select-title">Paw Buster X</h1>
-              <p className="pb-lede">Three mavericks have taken the Andes. <b>Dora</b> charges her paw buster, <b>Enzo</b> swings his whisker saber, and the two tag in and out. Beat a maverick to take its weapon, then find the boss it’s weak to.</p>
+              <p className="pb-lede">Six mavericks have taken the Andes. <b>Dora</b> charges her paw buster, <b>Enzo</b> swings his whisker saber, and the two tag in and out. Beat a maverick to take its weapon, then find the boss it’s weak to.</p>
             </div>
           </div>
           <h2 className="pb-section">Choose a stage</h2>
@@ -173,7 +173,7 @@ export default function PawBuster() {
                   <Sprite boss={s.boss} />
                   <strong>{s.bossName}</strong>
                   <span>{s.name}</span>
-                  <small>{!open ? '🔒 Defeat the three mavericks to open' : s.blurb}</small>
+                  <small>{!open ? '🔒 Defeat all six mavericks to open' : s.blurb}</small>
                   <em>
                     {done ? `✓ Cleared${best ? ` · best ${clock(best)}` : ''}` : open ? 'Not yet cleared' : 'Locked'}
                     {progress.tanks.includes(s.id) && ' · ♥ tank'}
@@ -184,7 +184,7 @@ export default function PawBuster() {
             })}
           </div>
           <div className="pb-summary">
-            <p data-testid="summary">♥ Heart tanks {tanks}/3 · Max health {maxHp(progress)} · Weapons: {arsenal.map((w) => WEAPONS[w].name).join(', ')}{clearedAll && progress.cleared.includes('citadel') ? ' · The Andes are safe!' : ''}</p>
+            <p data-testid="summary">♥ Heart tanks {tanks}/{MAVERICKS.length} · Max health {maxHp(progress)} · Weapons: {arsenal.map((w) => WEAPONS[w].name).join(', ')}{clearedAll && progress.cleared.includes('citadel') ? ' · The Andes are safe!' : ''}</p>
             <button type="button" className="pb-reset" disabled={!progress.cleared.length && !tanks} onClick={() => { if (confirmReset) { persist(freshProgress()); setConfirmReset(false); } else setConfirmReset(true); }}>{confirmReset ? 'Press again to erase progress' : 'Reset progress'}</button>
           </div>
           <Controls />

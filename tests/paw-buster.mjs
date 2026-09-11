@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { PawBusterGame, buildStage, parseProgress, saveProgress, unlocked, weaponsFor, maxHp, freshProgress, STAGES, TILE, ROWS, PHYS, CHARGE, NO_INPUT, HERO } from '../.checks/paw-buster-game.js';
+import { PawBusterGame, buildStage, parseProgress, saveProgress, unlocked, weaponsFor, maxHp, freshProgress, STAGES, MAVERICKS, TILE, ROWS, PHYS, CHARGE, NO_INPUT, HERO } from '../.checks/paw-buster-game.js';
 
 const DT = 1 / 120;
 const hold = (g, input, seconds) => { for (let i = 0; i < Math.round(seconds / DT); i++) g.step(DT, { ...NO_INPUT, ...input }); };
@@ -198,8 +198,11 @@ const toBoss = (stage, progress) => {
   return g;
 };
 test('each maverick is weak to one weapon, which does triple damage and flinches it', () => {
-  const all = { cleared: ['snowcap', 'cloud', 'caldera'], tanks: [], best: {} };
-  for (const s of STAGES.filter((s) => s.weakness)) {
+  const all = { cleared: [...MAVERICKS], tanks: [], best: {} };
+  const weak = STAGES.filter((s) => s.weakness);
+  assert.equal(weak.length, 6);
+  assert.deepEqual(new Set(weak.map((s) => s.weakness)), new Set(weak.map((s) => s.weapon)), 'every maverick weapon counters another maverick');
+  for (const s of weak) {
     const g = toBoss(s.id, all);
     const b = g.boss;
     g.weapon = g.weapons.indexOf(s.weakness);
@@ -245,6 +248,72 @@ test('special weapons spend energy and behave differently', () => {
   assert.equal(g.shots.length, 0, 'no energy, no shot');
 });
 
+test('quartz orbit circles and blocks, volt spark homes, bubbles float up', () => {
+  const g = flat(play('snowcap', { cleared: [...MAVERICKS], tanks: [], best: {} }));
+  g.weapon = g.weapons.indexOf('quartz');
+  tap(g, 'fire');
+  const orbs = g.shots.filter((s) => s.kind === 'quartz');
+  assert.equal(orbs.length, 3);
+  hold(g, {}, 0.4);
+  tap(g, 'fire');
+  assert.equal(g.shots.filter((s) => s.kind === 'quartz').length, 3, 'one ring at a time');
+  const cx = g.player.x + g.player.w / 2, cy = g.player.y + g.player.h / 2;
+  for (const s of orbs) assert.ok(Math.abs(Math.hypot(s.x - cx, s.y - cy) - 34) < 1, 'crystals orbit the hero');
+  const o = orbs[0];
+  g.shots.push({ x: o.x, y: o.y, vx: 0, vy: 0, r: 6, dmg: 2, kind: 'pellet', hero: false, life: 3, pierce: false, hits: [], grav: 0, weapon: null });
+  g.step(DT, NO_INPUT);
+  assert.ok(!g.shots.some((s) => s.kind === 'pellet') && g.events.includes('deflect'));
+  assert.equal(g.hp.dora, g.max);
+  hold(g, {}, 3);
+  assert.equal(g.shots.filter((s) => s.kind === 'quartz').length, 0, 'the ring fades after 3 seconds');
+
+  g.weapon = g.weapons.indexOf('volt');
+  g.enemies = [{ id: 7, kind: 'bat', x: g.player.x + 200, y: g.player.y - 120, w: 24, h: 18, vx: 0, vy: 0, hp: 9, face: -1, t: 0, flash: 0, slash: -1, x0: g.player.x + 200, y0: g.player.y - 120, mode: 0, alive: true, ground: false }];
+  tap(g, 'fire');
+  hold(g, {}, 0.2);
+  assert.ok(g.shots.find((s) => s.kind === 'volt').vy < -50, 'the spark curves up toward the bat');
+  hold(g, {}, 0.8);
+  assert.ok(g.enemies[0].hp < 9, 'the spark found its target');
+
+  g.enemies = []; g.shots = [];
+  g.weapon = g.weapons.indexOf('bubble');
+  hold(g, {}, 0.4);
+  tap(g, 'fire');
+  const y0 = g.shots.map((s) => s.y);
+  hold(g, {}, 0.5);
+  assert.equal(g.shots.length, 2);
+  g.shots.forEach((s, i) => assert.ok(s.y < y0[i] - 20, 'bubbles rise'));
+});
+
+test('hoppers hop toward the heroes but not off ledges', () => {
+  const g = flat(play());
+  g.enemies = [{ id: 5, kind: 'hopper', x: g.player.x + 200, y: g.player.y + 12, w: 22, h: 18, vx: 0, vy: 0, hp: 3, face: -1, t: 0, flash: 0, slash: -1, x0: 0, y0: 0, mode: 0, alive: true, ground: false }];
+  const x0 = g.enemies[0].x;
+  let rose = false;
+  for (let i = 0; i < 120 * 2.2; i++) { g.step(DT, NO_INPUT); rose ||= g.enemies[0].y < g.player.y - 20; g.hp.dora = g.max; }
+  assert.ok(rose && g.enemies[0].x < x0 - 40, 'hopped toward Dora');
+  // With a pit ahead it stays put.
+  flat(g);
+  for (let c = 13; c < 20; c++) for (let r = 0; r < ROWS; r++) g.tiles[c * ROWS + r] = 0;
+  g.enemies = [{ id: 6, kind: 'hopper', x: 20 * TILE + 4, y: (ROWS - 3) * TILE - 18, w: 22, h: 18, vx: 0, vy: 0, hp: 3, face: -1, t: 0, flash: 0, slash: -1, x0: 0, y0: 0, mode: 0, alive: true, ground: true }];
+  hold(g, {}, 3);
+  assert.equal(g.enemies.length, 1);
+  assert.ok(Math.abs(g.enemies[0].x - (20 * TILE + 4)) < 1);
+});
+
+test('a rolling Quartz Armadillo deflects shots, except Volt Spark, which knocks it out of the roll', () => {
+  const g = toBoss('mines');
+  const b = g.boss;
+  Object.assign(b, { move: 'roll', t: 1, fired: 0 });
+  const hitWith = (kind, weapon) => { b.inv = 0; g.shots.push({ x: b.x + b.w / 2, y: b.y + b.h / 2, vx: 0, vy: 0, r: 8, dmg: 2, kind, hero: true, life: 1, pierce: false, hits: [], grav: 0, weapon }); g.step(DT, NO_INPUT); };
+  hitWith('lemon', 'buster');
+  assert.equal(b.hp, b.max, 'the buster bounces off');
+  assert.ok(g.events.includes('deflect'));
+  hitWith('volt', 'volt');
+  assert.equal(b.max - b.hp, 6);
+  assert.notEqual(b.move, 'roll');
+});
+
 test('heart tanks raise both heroes’ maximum health once', () => {
   const g = play();
   const tank = g.items.find((i) => i.kind === 'tank');
@@ -280,7 +349,10 @@ test('progress saves round-trip and the citadel opens after three mavericks', ()
   assert.deepEqual(parseProgress('not json'), freshProgress());
   assert.deepEqual(parseProgress(null), freshProgress());
   assert.equal(unlocked(p, 'citadel'), false);
-  assert.equal(unlocked({ ...p, cleared: ['snowcap', 'cloud', 'caldera'] }, 'citadel'), true);
+  assert.equal(unlocked({ ...p, cleared: ['snowcap', 'cloud', 'caldera'] }, 'citadel'), false, 'three mavericks are no longer enough');
+  assert.equal(unlocked({ ...p, cleared: [...MAVERICKS] }, 'citadel'), true);
+  assert.equal(unlocked({ ...p, cleared: ['snowcap', 'cloud', 'caldera', 'citadel'] }, 'citadel'), true, 'a citadel already beaten stays open');
+  assert.deepEqual(parseProgress(saveProgress({ cleared: ['mines', 'lake'], tanks: ['salt'], best: { lake: 70 } })), { cleared: ['mines', 'lake'], tanks: ['salt'], best: { lake: 70 } });
 });
 
 test('runs are deterministic', () => {
@@ -288,4 +360,4 @@ test('runs are deterministic', () => {
   assert.equal(run(), run());
 });
 
-console.log(`Paw Buster X: ${cases} cases passed (stages, movement, dash jump, wall climb, charge shot, tag team, saber deflect, damage and defeat, pits and spikes, drops, boss door, weaknesses, clear, weapons, heart tanks, boss patterns, saves, determinism).`);
+console.log(`Paw Buster X: ${cases} cases passed (stages, movement, dash jump, wall climb, charge shot, tag team, saber deflect, damage and defeat, pits and spikes, drops, boss door, weaknesses, clear, weapons, quartz orbit, volt homing, bubbles, hoppers, armadillo roll, heart tanks, boss patterns, saves, determinism).`);

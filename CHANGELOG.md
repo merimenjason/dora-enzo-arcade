@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Paw Buster X:** three new maverick stages, each with its own boss and weapon. Crystal Mines has low tunnels and the Quartz Armadillo, which rolls through your shots; beating it gives Quartz Orbit, a ring of crystals that blocks enemy shots. On the Salt Flats, the Volt Vicuña calls down lightning and gives Volt Spark, a shot that homes in on enemies. Titicaca Falls has hopping frogs and the Tide Toad, which gives Bubble Burst. There are three more heart tanks, so maximum health can reach 28. The Cougar Citadel now opens after all six mavericks; saves that already beat the citadel keep it open.
 - **Paw Buster X:** T fires, Y dashes and U tags your partner in, as easier-to-reach alternatives to the existing keys.
 - **Paw Buster X**, the thirteenth cabinet: a Mega Man X-style action platformer. Dora charges a paw buster, Enzo swings a whisker saber that cuts enemy shots, and the two tag in and out for bonus damage. Dash, dash-jump and wall-jump through three maverick stages (Frost Fox, Storm Owl and Magma Snake), win each boss’s weapon to use against the next, collect heart tanks, then storm the Cougar Citadel. Progress and best times save in the browser, and touch screens get an on-screen pad.
 - **Mountain Retreat:** fits one screen, and adds skills, a daily wish list, stories and seasonal festivals.

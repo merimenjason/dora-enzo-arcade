@@ -39,6 +39,9 @@
 .stage-snowcap .pb-sprite { background: linear-gradient(#7fa9dc, #dcecff); }
 .stage-cloud .pb-sprite { background: linear-gradient(#8cc6b0, #e6f2d8); }
 .stage-caldera .pb-sprite { background: linear-gradient(#2c1420, #c8553a); }
+.stage-mines .pb-sprite { background: linear-gradient(#140f24, #3a2c52); }
+.stage-salt .pb-sprite { background: linear-gradient(#6fb7ff, #fff6e0); }
+.stage-lake .pb-sprite { background: linear-gradient(#4a8fb8, #cfeef0); }
 .stage-citadel .pb-sprite { background: linear-gradient(#10152b, #46507a); }
 .pb-stage .pb-sprite { border-radius: 10px; width: 128px; max-width: 100%; height: auto; margin-bottom: 6px; }
 .pb-summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 12px; background: #151b2e; }

@@ -12,7 +12,7 @@ const GAMES=[
  {href:'/hop',title:'Border Hop',tag:'ARCADE',blurb:'Flap through twenty desert checkpoint gaps and get both friends to the welcome gate.',color:'#e8a9c4',art:'🪶'},
  {href:'/dust-bath',title:'Dust Bath Dash',tag:'NEW · COZY SPA',blurb:'Run a tiny chinchilla spa. Seat fluffy guests, time the perfect dust bath and grow your happy place. Two-minute shifts or untimed cozy mode.',color:'#b5c69d',art:'☁️'},
  {href:'/mountain-retreat',title:"Dora & Enzo’s Mountain Retreat",tag:'NEW · IDLE LODGE',blurb:'A soft place above the clouds. Welcome guests, gather supplies and grow a pixel-perfect mountain lodge, together.',color:'#a5bd91',art:'🏔️'},
- {href:'/paw-buster',title:'Paw Buster X',tag:'NEW · ACTION PLATFORMER',blurb:'Dash, wall-jump and charge your buster through three maverick stages, then storm the Cougar Citadel. Tag between Dora\u2019s buster and Enzo\u2019s saber.',color:'#7fd6ff',art:'🤖'},
+ {href:'/paw-buster',title:'Paw Buster X',tag:'NEW · ACTION PLATFORMER',blurb:'Dash, wall-jump and charge your buster through six maverick stages, then storm the Cougar Citadel. Tag between Dora\u2019s buster and Enzo\u2019s saber.',color:'#7fd6ff',art:'🤖'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">

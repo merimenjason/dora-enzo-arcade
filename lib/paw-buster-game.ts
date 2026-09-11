@@ -5,14 +5,15 @@ export const TILE = 30, ROWS = 18, VIEW_W = 960, VIEW_H = 540;
 export const PHYS = { run: 170, dash: 340, dashTime: 0.4, jump: 520, wallJump: 470, kick: 0.12, gravity: 1500, maxFall: 600, slide: 110, cut: -200 };
 export const HERO = { hp: 16, tank: 2, w: 20, h: 30 };
 export const CHARGE = { mid: 0.55, full: 1.4 };
+export const VOLT_SPEED = 380;
 export const ENERGY = 28, WEAPON_COST = 2, PIT_DAMAGE = 6, SPIKE_DAMAGE = 6, TAG_TIME = 2, TAG_BONUS = 1.5, WEAKNESS = 3;
 
-export type StageId = 'snowcap' | 'cloud' | 'caldera' | 'citadel';
-export type WeaponId = 'buster' | 'frost' | 'gale' | 'ember';
+export type StageId = 'snowcap' | 'cloud' | 'caldera' | 'mines' | 'salt' | 'lake' | 'citadel';
+export type WeaponId = 'buster' | 'frost' | 'gale' | 'ember' | 'quartz' | 'volt' | 'bubble';
 export type HeroId = 'dora' | 'enzo';
-export type BossKind = 'fox' | 'owl' | 'snake' | 'cougar';
-export type EnemyKind = 'beetle' | 'bat' | 'turret';
-export type ShotKind = 'lemon' | 'mid' | 'full' | 'frost' | 'gale' | 'ember' | 'pellet' | 'shard' | 'feather' | 'fire' | 'wave' | 'claw';
+export type BossKind = 'fox' | 'owl' | 'snake' | 'armadillo' | 'vicuna' | 'toad' | 'cougar';
+export type EnemyKind = 'beetle' | 'bat' | 'turret' | 'hopper';
+export type ShotKind = 'lemon' | 'mid' | 'full' | 'frost' | 'gale' | 'ember' | 'pellet' | 'shard' | 'feather' | 'fire' | 'wave' | 'claw' | 'quartz' | 'volt' | 'bubble' | 'crystal' | 'rock' | 'bolt' | 'spark' | 'tongue' | 'foam';
 export type Input = { left: boolean; right: boolean; jump: boolean; fire: boolean; dash: boolean; swap: boolean; prev: boolean; next: boolean };
 export const NO_INPUT: Input = { left: false, right: false, jump: false, fire: false, dash: false, swap: false, prev: false, next: false };
 
@@ -21,20 +22,29 @@ export const WEAPONS: Record<WeaponId, { name: string; from: StageId | null; col
   frost: { name: 'Frost Shard', from: 'snowcap', color: '#9fe3ff', detail: 'A fast ice shard that pierces every enemy in a line.' },
   gale: { name: 'Gale Feather', from: 'cloud', color: '#cfeeb4', detail: 'Three feathers in a fan.' },
   ember: { name: 'Ember Coil', from: 'caldera', color: '#ff9a4a', detail: 'A fireball that drops and rolls along the ground.' },
+  quartz: { name: 'Quartz Orbit', from: 'mines', color: '#e3a8ff', detail: 'Three crystals circle you for 3 seconds, blocking enemy shots and grinding anything they touch.' },
+  volt: { name: 'Volt Spark', from: 'salt', color: '#fff27a', detail: 'A spark that curves toward the nearest enemy.' },
+  bubble: { name: 'Bubble Burst', from: 'lake', color: '#8fe0ff', detail: 'Two big bubbles that float upward and pass through enemies.' },
 };
 export const STAGES: { id: StageId; name: string; boss: BossKind; bossName: string; weapon: WeaponId | null; weakness: WeaponId | null; blurb: string }[] = [
   { id: 'snowcap', name: 'Snowcap Ridge', boss: 'fox', bossName: 'Frost Fox', weapon: 'frost', weakness: 'ember', blurb: 'Icy ledges and a fox who never stops running.' },
   { id: 'cloud', name: 'Cloud Forest', boss: 'owl', bossName: 'Storm Owl', weapon: 'gale', weakness: 'frost', blurb: 'Misty treetops, swooping bats and a storm on silent wings.' },
   { id: 'caldera', name: 'Ember Caldera', boss: 'snake', bossName: 'Magma Snake', weapon: 'ember', weakness: 'gale', blurb: 'Lava rock, spitting turrets and a snake beneath the stone.' },
-  { id: 'citadel', name: 'Cougar Citadel', boss: 'cougar', bossName: 'Cougar Kingpin', weapon: null, weakness: null, blurb: 'The final fortress. Opens once the three mavericks fall.' },
+  { id: 'mines', name: 'Crystal Mines', boss: 'armadillo', bossName: 'Quartz Armadillo', weapon: 'quartz', weakness: 'volt', blurb: 'Low tunnels, glittering walls and an armadillo who rolls through shots.' },
+  { id: 'salt', name: 'Salt Flats', boss: 'vicuna', bossName: 'Volt Vicuña', weapon: 'volt', weakness: 'bubble', blurb: 'Blinding white plains, wide gaps and a vicuña who calls down lightning.' },
+  { id: 'lake', name: 'Titicaca Falls', boss: 'toad', bossName: 'Tide Toad', weapon: 'bubble', weakness: 'quartz', blurb: 'Reed islands, hopping frogs and a giant toad with a long tongue.' },
+  { id: 'citadel', name: 'Cougar Citadel', boss: 'cougar', bossName: 'Cougar Kingpin', weapon: null, weakness: null, blurb: 'The final fortress. Opens once all six mavericks fall.' },
 ];
-export const MAVERICKS: StageId[] = ['snowcap', 'cloud', 'caldera'];
-const BOSS_HP: Record<BossKind, number> = { fox: 32, owl: 32, snake: 32, cougar: 44 };
-const BOSS_SIZE: Record<BossKind, [number, number]> = { fox: [52, 40], owl: [46, 42], snake: [62, 24], cougar: [56, 44] };
+export const MAVERICKS: StageId[] = ['snowcap', 'cloud', 'caldera', 'mines', 'salt', 'lake'];
+const BOSS_HP: Record<BossKind, number> = { fox: 32, owl: 32, snake: 32, armadillo: 32, vicuna: 32, toad: 32, cougar: 44 };
+const BOSS_SIZE: Record<BossKind, [number, number]> = { fox: [52, 40], owl: [46, 42], snake: [62, 24], armadillo: [54, 36], vicuna: [50, 48], toad: [56, 34], cougar: [56, 44] };
 const PATTERNS: Record<BossKind, string[]> = {
   fox: ['shards', 'dash', 'leap', 'shards', 'leap', 'dash'],
   owl: ['hover', 'swoop', 'gust', 'swoop', 'hover', 'gust'],
   snake: ['spit', 'lunge', 'burrow', 'spit', 'burrow', 'lunge'],
+  armadillo: ['crystals', 'roll', 'leap', 'crystals', 'quake', 'roll'],
+  vicuna: ['bolt', 'dash', 'storm', 'leap', 'bolt', 'storm'],
+  toad: ['bubbles', 'hop', 'tongue', 'leap', 'bubbles', 'hop', 'tongue'],
   cougar: ['pounce', 'claw', 'dash', 'roar', 'claw', 'pounce', 'dash'],
 };
 
@@ -56,8 +66,9 @@ export function parseProgress(raw: string | null): Progress {
   }
 }
 export const saveProgress = (p: Progress) => JSON.stringify({ version: 1, ...p });
-export const unlocked = (p: Progress, id: StageId) => id !== 'citadel' || MAVERICKS.every((s) => p.cleared.includes(s));
-export const weaponsFor = (p: Progress): WeaponId[] => (['buster', 'frost', 'gale', 'ember'] as WeaponId[]).filter((w) => w === 'buster' || p.cleared.includes(WEAPONS[w].from!));
+// A citadel already beaten stays open for saves made before the last three mavericks arrived.
+export const unlocked = (p: Progress, id: StageId) => id !== 'citadel' || p.cleared.includes('citadel') || MAVERICKS.every((s) => p.cleared.includes(s));
+export const weaponsFor = (p: Progress): WeaponId[] => (Object.keys(WEAPONS) as WeaponId[]).filter((w) => w === 'buster' || p.cleared.includes(WEAPONS[w].from!));
 export const maxHp = (p: Progress) => HERO.hp + HERO.tank * p.tanks.length;
 
 // ---------- stage maps ----------
@@ -91,6 +102,8 @@ class Builder {
   item(kind: ItemKind, back = 0, above = 0) { this.items.push({ kind, ...this.at(back, above) }); return this; }
   checkpoint(back = 0) { this.checkpoints.push(this.at(back, 0)); return this; }
   begin(back: number) { this.start = this.at(back, 0); return this; }
+  /** A rock ceiling `depth` tiles deep over the last `back` columns. */
+  ceiling(back: number, depth: number) { for (let i = this.x - back; i < this.x; i++) for (let r = 0; r < depth; r++) this.cols[i][r] = 1; return this; }
   /** A one-screen boss room: a gate column that seals behind the heroes, 30 columns of floor and a full-height far wall. */
   arena() { this.arenaCol = this.x; this.run(31, 3); this.cols.push(Array<number>(ROWS).fill(1)); return this; }
   done(): StageMap {
@@ -140,6 +153,38 @@ const BUILDS: Record<StageId, (b: Builder) => Builder> = {
     .run(7, 10).enemy('bat', 3, 3)
     .run(6, 4).item('ammo', 4).item('hp', 2).checkpoint(1)
     .run(3, 3).arena(),
+  mines: (b) => b.run(10, 4).begin(7).enemy('beetle', 1)
+    .run(6, 4).ceiling(6, 7).enemy('beetle', 2)
+    .pit(3).run(5, 5).enemy('turret', 1)
+    .run(4, 7).ceiling(4, 5).spikes(3).run(5, 7).checkpoint(3).item('hp', 1)
+    .run(3, 12).item('tank', 1)
+    .run(6, 6).enemy('bat', 2, 3).enemy('beetle', 4)
+    .pit(5).run(6, 6).ceiling(6, 6).enemy('turret', 1)
+    .spikes(2).run(5, 6).enemy('beetle', 1)
+    .run(6, 4).item('ammo', 4).item('hp', 2).checkpoint(1)
+    .run(3, 3).arena(),
+  salt: (b) => b.run(12, 3).begin(9).enemy('beetle', 1)
+    .pit(5).run(8, 3).enemy('turret', 1).enemy('bat', 5, 4)
+    .pit(5).run(4, 3).spikes(3).run(6, 3).checkpoint(3)
+    .run(3, 5).run(3, 7).item('hp', 1).enemy('turret', 1)
+    .pit(9).ledge(6, 3, 6)
+    .run(6, 5).enemy('hopper', 2)
+    .run(2, 11).item('tank', 1)
+    .run(8, 4).enemy('beetle', 2).enemy('bat', 5, 5)
+    .pit(5).run(6, 4).enemy('turret', 1)
+    .run(6, 4).item('ammo', 4).item('hp', 2).checkpoint(1)
+    .run(3, 3).arena(),
+  lake: (b) => b.run(10, 3).begin(7).enemy('hopper', 1)
+    .pit(3).run(6, 3).enemy('hopper', 2)
+    .run(4, 5).run(4, 7).enemy('turret', 1)
+    .pit(10).ledge(8, 2, 6).ledge(5, 2, 8).ledge(2, 2, 6)
+    .run(6, 6).checkpoint(3).item('hp', 1).enemy('hopper', 4)
+    .spikes(3).run(5, 6).enemy('bat', 2, 4)
+    .run(3, 12).item('tank', 1)
+    .run(6, 5).enemy('hopper', 1).enemy('hopper', 4)
+    .pit(5).run(5, 5).enemy('turret', 1)
+    .run(6, 4).item('ammo', 4).item('hp', 2).checkpoint(1)
+    .run(3, 3).arena(),
   citadel: (b) => b.run(10, 3).begin(7).enemy('beetle', 1)
     .run(4, 5).enemy('turret', 1).spikes(3).run(5, 5).enemy('bat', 2, 4)
     .run(6, 11).enemy('turret', 1)
@@ -154,7 +199,7 @@ export function buildStage(id: StageId): StageMap { return BUILDS[id](new Builde
 
 // ---------- live state ----------
 export type Player = { x: number; y: number; w: number; h: number; vx: number; vy: number; face: 1 | -1; ground: boolean; slide: 0 | 1 | -1; dashT: number; airDash: boolean; kickT: number; kickDir: number; hurtT: number; invT: number; charge: number; slashT: number; slashCd: number; slashId: number; combo: number; shotCd: number; fireBuf: number; swapCd: number; tagT: number; runT: number; safe: { x: number; y: number } };
-export type Shot = { x: number; y: number; vx: number; vy: number; r: number; dmg: number; kind: ShotKind; hero: boolean; life: number; pierce: boolean; hits: number[]; grav: number; weapon: WeaponId | null };
+export type Shot = { x: number; y: number; vx: number; vy: number; r: number; dmg: number; kind: ShotKind; hero: boolean; life: number; pierce: boolean; hits: number[]; grav: number; weapon: WeaponId | null; orbit?: number };
 export type Enemy = { id: number; kind: EnemyKind; x: number; y: number; w: number; h: number; vx: number; vy: number; hp: number; face: number; t: number; flash: number; slash: number; x0: number; y0: number; mode: 0 | 1 | 2; alive: boolean; ground: boolean };
 export type Boss = { kind: BossKind; x: number; y: number; w: number; h: number; vx: number; vy: number; hp: number; max: number; face: 1 | -1; move: string; t: number; cycle: number; inv: number; flinch: number; ground: boolean; hidden: boolean; tx: number; ty: number; fired: number; slash: number; deathT: number };
 export type Item = { kind: ItemKind; x: number; y: number; vy: number; gone: boolean };
@@ -162,7 +207,9 @@ export type Effect = { x: number; y: number; t: number; kind: 'spark' | 'boom' |
 export type State = 'ready' | 'play' | 'paused' | 'boss' | 'clearing' | 'clear' | 'lost';
 type Body = { x: number; y: number; w: number; h: number };
 const overlap = (a: Body, b: Body) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-const ENEMY: Record<EnemyKind, { w: number; h: number; hp: number }> = { beetle: { w: 24, h: 20, hp: 3 }, bat: { w: 24, h: 18, hp: 2 }, turret: { w: 26, h: 28, hp: 4 } };
+const ENEMY: Record<EnemyKind, { w: number; h: number; hp: number }> = { beetle: { w: 24, h: 20, hp: 3 }, bat: { w: 24, h: 18, hp: 2 }, turret: { w: 26, h: 28, hp: 4 }, hopper: { w: 22, h: 18, hp: 3 } };
+const SHOT_R: Partial<Record<ShotKind, number>> = { wave: 10, claw: 11, bolt: 14, rock: 11, foam: 10, crystal: 7, tongue: 8 };
+const fullEnergy = () => Object.fromEntries(Object.keys(WEAPONS).map((w) => [w, ENERGY])) as Record<WeaponId, number>;
 
 export class PawBusterGame {
   readonly stage: (typeof STAGES)[number];
@@ -182,7 +229,7 @@ export class PawBusterGame {
   hp: Record<HeroId, number> = { dora: 0, enzo: 0 };
   max = HERO.hp;
   weapon = 0;
-  energy: Record<WeaponId, number> = { buster: ENERGY, frost: ENERGY, gale: ENERGY, ember: ENERGY };
+  energy: Record<WeaponId, number> = fullEnergy();
   player!: Player;
   enemies: Enemy[] = [];
   boss: Boss | null = null;
@@ -216,7 +263,7 @@ export class PawBusterGame {
     this.max = maxHp(this.progress);
     this.hp = { dora: this.max, enzo: this.max };
     this.hero = 'dora';
-    this.energy = { buster: ENERGY, frost: ENERGY, gale: ENERGY, ember: ENERGY };
+    this.energy = fullEnergy();
     this.enemies = this.map.spawns.map((s) => this.spawnEnemy(s.kind, s.x, s.y));
     this.items = this.map.items.filter((i) => i.kind !== 'tank' || !this.progress.tanks.includes(this.stage.id)).map((i) => ({ ...i, y: i.y - 14, vy: 0, gone: false }));
     const at = this.checkpoint >= 0 ? this.map.checkpoints[this.checkpoint] : this.map.start;
@@ -378,7 +425,9 @@ export class PawBusterGame {
     // A press during a cooldown is buffered briefly and fires as soon as it can, so mashing never drops a shot.
     if (edge.fire) p.fireBuf = 0.2;
     if (w !== 'buster') {
-      if (p.fireBuf > 0 && p.shotCd <= 0 && this.energy[w] >= WEAPON_COST) {
+      // Only one ring of orbiting crystals at a time.
+      const busy = w === 'quartz' && this.shots.some((s) => s.kind === 'quartz');
+      if (p.fireBuf > 0 && p.shotCd <= 0 && !busy && this.energy[w] >= WEAPON_COST) {
         p.fireBuf = 0;
         this.energy[w] -= WEAPON_COST;
         p.shotCd = 0.3;
@@ -386,6 +435,9 @@ export class PawBusterGame {
         if (w === 'frost') shot(p.face * 480, 0, 'frost', 2, { pierce: true });
         if (w === 'gale') for (const a of [-0.35, 0, 0.35]) shot(Math.cos(a) * p.face * 360, Math.sin(a) * 360, 'gale', 1.5);
         if (w === 'ember') shot(p.face * 230, -160, 'ember', 2, { grav: 900, life: 3 });
+        if (w === 'quartz') for (let i = 0; i < 3; i++) shot(0, 0, 'quartz', 1, { pierce: true, r: 9, life: 3, orbit: (i * Math.PI * 2) / 3 });
+        if (w === 'volt') shot(p.face * VOLT_SPEED, 0, 'volt', 2, { life: 2 });
+        if (w === 'bubble') for (const vy of [-40, -140]) shot(p.face * 220, vy, 'bubble', 2, { pierce: true, r: 11, grav: -60, life: 2.2 });
         this.events.push('special');
       }
       return;
@@ -457,6 +509,17 @@ export class PawBusterGame {
         const ahead = e.face > 0 ? e.x + e.w + 2 : e.x - 2;
         if (hit.hitX || (e.ground && !this.solid(ahead, e.y + e.h + 4))) e.face = -e.face;
         if (e.y > ROWS * TILE) e.alive = false;
+      } else if (e.kind === 'hopper') {
+        // Sits, then hops toward the heroes, but never off a ledge it can see.
+        e.vy = Math.min(PHYS.maxFall, e.vy + PHYS.gravity * dt);
+        const hit = this.move(e, e.vx * dt, e.vy * dt);
+        e.ground = hit.hitY > 0;
+        if (hit.hitX) e.vx = -e.vx;
+        if (e.ground) {
+          e.vy = 0; e.vx = 0; e.face = px > ex ? 1 : -1;
+          if (e.t > 1.3 && Math.abs(px - ex) < 360 && this.solid(ex + e.face * 60, e.y + e.h + 4)) { e.t = 0; e.vy = -430; e.vx = e.face * 110; }
+        }
+        if (e.y > ROWS * TILE) e.alive = false;
       } else if (e.kind === 'bat') {
         if (e.mode === 0) {
           e.x = e.x0 + Math.sin(e.t * 1.3) * 26;
@@ -482,7 +545,7 @@ export class PawBusterGame {
     this.enemies = this.enemies.filter((e) => e.alive);
   }
   private enemyShot(x: number, y: number, vx: number, vy: number, kind: ShotKind, dmg: number, extra: Partial<Shot> = {}) {
-    this.shots.push({ x, y, vx, vy, r: kind === 'wave' ? 10 : kind === 'claw' ? 11 : 6, dmg, kind, hero: false, life: 4, pierce: false, hits: [], grav: 0, weapon: null, ...extra });
+    this.shots.push({ x, y, vx, vy, r: SHOT_R[kind] ?? 6, dmg, kind, hero: false, life: 4, pierce: false, hits: [], grav: 0, weapon: null, ...extra });
   }
   private damageEnemy(e: Enemy, dmg: number) {
     e.hp -= dmg * (this.player.tagT > 0 ? TAG_BONUS : 1);
@@ -540,6 +603,8 @@ export class PawBusterGame {
     const rage = b.hp < b.max / 2 ? 1.25 : 1;
     b.t += dt * rage;
     const toward = (px > bx ? 1 : -1) as 1 | -1;
+    const clampX = (x: number) => Math.max(left + 14, Math.min(right - 14, x));
+    const stormColumns = (x: number) => [-110, 0, 110].map((o) => clampX(x + o));
     const next = () => { const pat = PATTERNS[b.kind]; b.cycle++; b.move = pat[b.cycle % pat.length]; b.t = 0; b.fired = 0; b.face = toward; };
     const leap = (vy: number) => {
       if (b.fired === 0) { b.vy = -vy; b.vx = Math.max(-320, Math.min(320, (px - bx) / 0.85)); b.ground = false; b.fired = 1; b.t = 0.001; }
@@ -611,6 +676,56 @@ export class PawBusterGame {
         if ((b.t > 0.3 && b.fired === 0) || (b.t > 0.75 && b.fired === 1)) { this.enemyShot(bx + b.face * 24, floor - (b.fired ? 62 : 14), b.face * 330, 0, 'claw', 3); b.fired++; this.events.push('slash'); }
         if (b.t > 1.2) this.rest(b);
         break;
+      case 'crystals':
+        if (b.t > 0.35 && !b.fired) { b.fired = 1; for (const v of [160, 260, 360]) this.enemyShot(bx, b.y, b.face * v, -520, 'crystal', 3, { grav: 1000 }); this.events.push('enemy-shot'); }
+        if (b.t > 1) this.rest(b);
+        break;
+      case 'roll':
+        // Curled up, the armadillo shrugs off everything but its weakness; it bounces off the walls three times.
+        if (b.t < 0.4) { b.vx = 0; break; }
+        b.vx = b.face * 400 * rage;
+        if (b.t > 3.2) this.rest(b);
+        break;
+      case 'quake':
+        b.vx = 0;
+        if (b.t > 0.4 && !b.fired) {
+          b.fired = 1; this.shake = 0.4; this.events.push('stomp');
+          for (const o of [-120, 0, 120]) this.enemyShot(clampX(px + o), -20 - Math.abs(o) * 0.4, 0, 0, 'rock', 3, { grav: 700, life: 3 });
+        }
+        if (b.t > 1.3) this.rest(b);
+        break;
+      case 'bolt':
+        if (b.fired < 2 && b.t > 0.3 + b.fired * 0.35) {
+          b.fired++;
+          const a = Math.atan2(py - (b.y + 14), px - bx);
+          this.enemyShot(bx + b.face * 22, b.y + 14, Math.cos(a) * 380, Math.sin(a) * 380, 'spark', 3);
+          this.events.push('enemy-shot');
+        }
+        if (b.t > 1.1) this.rest(b);
+        break;
+      case 'storm':
+        // Marks three columns around the heroes, then lightning strikes them.
+        b.vx = 0;
+        if (!b.fired) { b.fired = 1; b.tx = px; this.events.push('charge1'); }
+        if (b.fired === 1 && b.t > 0.9) { b.fired = 2; this.shake = 0.25; this.events.push('stomp'); for (const x of stormColumns(b.tx)) this.enemyShot(x, -40, 0, 900, 'bolt', 3, { life: 1 }); }
+        if (b.t > 1.5) this.rest(b);
+        break;
+      case 'hop':
+        // Three short hops toward the heroes.
+        if (b.ground) b.vx = 0;
+        if (b.fired < 3) { if (b.ground && b.t > 0.2) { b.face = toward; b.vy = -380; b.vx = toward * 150 * rage; b.ground = false; b.fired++; b.t = 0; } }
+        else if (b.ground) this.rest(b);
+        break;
+      case 'tongue':
+        b.vx = 0;
+        if (b.t > 0.45 && !b.fired) { b.fired = 1; this.enemyShot(bx + b.face * 26, b.y + 12, b.face * 520, 0, 'tongue', 3, { life: 0.5 }); this.events.push('slash'); }
+        if (b.t > 1) this.rest(b);
+        break;
+      case 'bubbles':
+        b.vx = 0;
+        if (b.fired < 4 && b.t > 0.3 * (b.fired + 1)) { b.fired++; this.enemyShot(bx + b.face * 20, b.y + 8, b.face * (120 + b.fired * 30), -30 * b.fired, 'foam', 2, { grav: -40, life: 4 }); this.events.push('enemy-shot'); }
+        if (b.t > 1.8) this.rest(b);
+        break;
       case 'roar':
         b.vx = 0;
         if (b.t > 0.5 && !b.fired) {
@@ -624,10 +739,15 @@ export class PawBusterGame {
     if (b.move !== 'burrow') b.hidden = false;
     hit = physics();
     if (hit.hitX && (b.move === 'dash' || b.move === 'lunge')) { b.face = -b.face as 1 | -1; this.shake = 0.15; this.rest(b); }
+    if (hit.hitX && b.move === 'roll') { b.face = -b.face as 1 | -1; this.shake = 0.15; b.fired++; if (b.fired >= 3) this.rest(b); }
   }
+  /** A rolling armadillo deflects everything except its weakness. */
+  guarded(b: Boss, weapon: WeaponId | null) { return b.move === 'roll' && b.t >= 0.4 && weapon !== this.stage.weakness; }
   private damageBoss(b: Boss, dmg: number, weapon: WeaponId | null) {
     if (b.inv > 0 || b.hidden || this.state !== 'play') return false;
+    if (this.guarded(b, weapon)) { this.fx(b.x + b.w / 2, b.y + b.h / 2, 'spark'); this.events.push('deflect'); return false; }
     const weak = weapon !== null && weapon === this.stage.weakness;
+    if (weak && b.move === 'roll') this.rest(b);
     b.hp -= dmg * (weak ? WEAKNESS : 1) * (this.player.tagT > 0 ? TAG_BONUS : 1);
     b.inv = 0.1;
     this.fx(b.x + b.w / 2, b.y + b.h / 2, 'spark');
@@ -655,8 +775,19 @@ export class PawBusterGame {
   // ----- shots, items, contact -----
   private updateShots(dt: number) {
     const alive: Shot[] = [];
+    const p = this.player;
     for (const s of this.shots) {
       s.life -= dt;
+      if (s.orbit !== undefined) {
+        // Quartz crystals circle the active hero and may hit the same foe again every half second.
+        s.orbit += dt * 7;
+        s.x = p.x + p.w / 2 + Math.cos(s.orbit) * 34;
+        s.y = p.y + p.h / 2 + Math.sin(s.orbit) * 34;
+        if (Math.floor(s.life * 2) !== Math.floor((s.life + dt) * 2)) s.hits = [];
+        if (s.life > 0) alive.push(s);
+        continue;
+      }
+      if (s.kind === 'volt') this.home(s, dt);
       s.vy += s.grav * dt;
       s.x += s.vx * dt;
       if (s.life <= 0 || this.solid(s.x, s.y)) continue;
@@ -667,6 +798,18 @@ export class PawBusterGame {
       alive.push(s);
     }
     this.shots = alive;
+  }
+  /** Turn a volt spark toward the nearest enemy or boss within reach. */
+  private home(s: Shot, dt: number) {
+    const b = this.boss, targets: Body[] = this.enemies.filter((e) => e.alive);
+    if (b && !b.hidden && this.state === 'play') targets.push(b);
+    let best: Body | null = null, reach = 420;
+    for (const t of targets) { const d = Math.hypot(t.x + t.w / 2 - s.x, t.y + t.h / 2 - s.y); if (d < reach) { reach = d; best = t; } }
+    if (!best) return;
+    const cur = Math.atan2(s.vy, s.vx), want = Math.atan2(best.y + best.h / 2 - s.y, best.x + best.w / 2 - s.x);
+    const turn = Math.atan2(Math.sin(want - cur), Math.cos(want - cur)), a = cur + Math.max(-4 * dt, Math.min(4 * dt, turn));
+    s.vx = Math.cos(a) * VOLT_SPEED;
+    s.vy = Math.sin(a) * VOLT_SPEED;
   }
   private updateItems(dt: number) {
     const p = this.player;
@@ -704,6 +847,7 @@ export class PawBusterGame {
   }
   private hits() {
     const p = this.player, saber = this.saberBox, b = this.boss;
+    const orbs = this.shots.filter((s) => s.kind === 'quartz').map((s) => ({ x: s.x - s.r, y: s.y - s.r, w: s.r * 2, h: s.r * 2 }));
     for (const s of this.shots) {
       if (s.life <= 0) continue;
       const box = { x: s.x - s.r, y: s.y - s.r, w: s.r * 2, h: s.r * 2 };
@@ -715,9 +859,10 @@ export class PawBusterGame {
           if (!s.pierce) { s.life = 0; break; }
         }
         if (s.life > 0 && b && !s.hits.includes(-1) && overlap(box, b) && this.damageBoss(b, s.dmg, s.weapon)) { s.hits.push(-1); if (!s.pierce) s.life = 0; }
-        else if (s.life > 0 && b && !b.hidden && b.inv > 0 && overlap(box, b) && !s.pierce && this.state === 'play') s.life = 0;
+        else if (s.life > 0 && b && !b.hidden && (b.inv > 0 || this.guarded(b, s.weapon)) && overlap(box, b) && !s.pierce && s.orbit === undefined && this.state === 'play') s.life = 0;
       } else {
-        if (saber && s.kind !== 'wave' && overlap(box, saber)) { s.life = 0; this.fx(s.x, s.y, 'spark'); this.events.push('deflect'); continue; }
+        const cuttable = s.kind !== 'wave' && s.kind !== 'bolt';
+        if (cuttable && ((saber && overlap(box, saber)) || orbs.some((o) => overlap(box, o)))) { s.life = 0; this.fx(s.x, s.y, 'spark'); this.events.push('deflect'); continue; }
         if (overlap(box, p)) { this.hurt(s.dmg, s.x); if (s.kind !== 'wave') s.life = 0; }
       }
     }
