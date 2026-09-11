@@ -94,8 +94,12 @@ test('Dora charges her buster through two levels', () => {
   g.shots = [];
   g.step(DT, NO_INPUT);
   assert.deepEqual(g.shots.map((s) => [s.kind, s.dmg, s.pierce]), [['full', 4, true]]);
-  for (let i = 0; i < 6; i++) { tap(g, 'fire'); hold(g, {}, 0.1); }
-  assert.ok(g.shots.filter((s) => s.kind === 'lemon').length <= 3, 'three lemons at most');
+  // Tapping fire ten times a second fires every time.
+  hold(g, {}, 1);
+  g.events = [];
+  for (let i = 0; i < 240; i++) g.step(DT, { ...NO_INPUT, fire: i % 12 < 6 });
+  const fired = g.events.filter((e) => e === 'shot').length;
+  assert.ok(fired >= 18, `20 taps fired ${fired} shots`);
 });
 
 test('tagging Enzo in swaps weapons, adds a tag strike and his saber cuts enemy shots', () => {

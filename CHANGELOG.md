@@ -56,6 +56,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - GitHub Actions updated to v5 to clear the Node 20 deprecation warning.
 
+### Fixed
+
+- **Paw Buster X:** mashing fire no longer drops shots. A press during the short cooldown between shots now fires as soon as it ends, and buster shots fly faster, with up to eight on screen instead of three. Enzo’s saber and the special weapons buffer presses the same way.
+
 ### Documentation
 
 - This changelog, covering every change since the first commit, plus a rule in `AGENTS.md` that asks agents to add an entry with each change.

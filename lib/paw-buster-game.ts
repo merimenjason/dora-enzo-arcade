@@ -153,7 +153,7 @@ const BUILDS: Record<StageId, (b: Builder) => Builder> = {
 export function buildStage(id: StageId): StageMap { return BUILDS[id](new Builder()).done(); }
 
 // ---------- live state ----------
-export type Player = { x: number; y: number; w: number; h: number; vx: number; vy: number; face: 1 | -1; ground: boolean; slide: 0 | 1 | -1; dashT: number; airDash: boolean; kickT: number; kickDir: number; hurtT: number; invT: number; charge: number; slashT: number; slashCd: number; slashId: number; combo: number; shotCd: number; swapCd: number; tagT: number; runT: number; safe: { x: number; y: number } };
+export type Player = { x: number; y: number; w: number; h: number; vx: number; vy: number; face: 1 | -1; ground: boolean; slide: 0 | 1 | -1; dashT: number; airDash: boolean; kickT: number; kickDir: number; hurtT: number; invT: number; charge: number; slashT: number; slashCd: number; slashId: number; combo: number; shotCd: number; fireBuf: number; swapCd: number; tagT: number; runT: number; safe: { x: number; y: number } };
 export type Shot = { x: number; y: number; vx: number; vy: number; r: number; dmg: number; kind: ShotKind; hero: boolean; life: number; pierce: boolean; hits: number[]; grav: number; weapon: WeaponId | null };
 export type Enemy = { id: number; kind: EnemyKind; x: number; y: number; w: number; h: number; vx: number; vy: number; hp: number; face: number; t: number; flash: number; slash: number; x0: number; y0: number; mode: 0 | 1 | 2; alive: boolean; ground: boolean };
 export type Boss = { kind: BossKind; x: number; y: number; w: number; h: number; vx: number; vy: number; hp: number; max: number; face: 1 | -1; move: string; t: number; cycle: number; inv: number; flinch: number; ground: boolean; hidden: boolean; tx: number; ty: number; fired: number; slash: number; deathT: number };
@@ -220,7 +220,7 @@ export class PawBusterGame {
     this.enemies = this.map.spawns.map((s) => this.spawnEnemy(s.kind, s.x, s.y));
     this.items = this.map.items.filter((i) => i.kind !== 'tank' || !this.progress.tanks.includes(this.stage.id)).map((i) => ({ ...i, y: i.y - 14, vy: 0, gone: false }));
     const at = this.checkpoint >= 0 ? this.map.checkpoints[this.checkpoint] : this.map.start;
-    this.player = { x: at.x - HERO.w / 2, y: at.y - HERO.h, w: HERO.w, h: HERO.h, vx: 0, vy: 0, face: 1, ground: true, slide: 0, dashT: 0, airDash: false, kickT: 0, kickDir: 0, hurtT: 0, invT: 0, charge: 0, slashT: 0, slashCd: 0, slashId: 0, combo: 0, shotCd: 0, swapCd: 0, tagT: 0, runT: 0, safe: { x: at.x - HERO.w / 2, y: at.y - HERO.h } };
+    this.player = { x: at.x - HERO.w / 2, y: at.y - HERO.h, w: HERO.w, h: HERO.h, vx: 0, vy: 0, face: 1, ground: true, slide: 0, dashT: 0, airDash: false, kickT: 0, kickDir: 0, hurtT: 0, invT: 0, charge: 0, slashT: 0, slashCd: 0, slashId: 0, combo: 0, shotCd: 0, fireBuf: 0, swapCd: 0, tagT: 0, runT: 0, safe: { x: at.x - HERO.w / 2, y: at.y - HERO.h } };
     this.boss = null;
     this.fight = false;
     this.shots = [];
@@ -323,6 +323,7 @@ export class PawBusterGame {
     const p = this.player, dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
     p.invT = Math.max(0, p.invT - dt);
     p.shotCd = Math.max(0, p.shotCd - dt);
+    p.fireBuf = Math.max(0, p.fireBuf - dt);
     p.slashCd = Math.max(0, p.slashCd - dt);
     p.slashT = Math.max(0, p.slashT - dt);
     p.swapCd = Math.max(0, p.swapCd - dt);
@@ -374,8 +375,11 @@ export class PawBusterGame {
 
   private attack(dt: number, input: Input, edge: Input, released: boolean) {
     const p = this.player, w = this.weaponId, mx = p.x + p.w / 2 + p.face * 16, my = p.y + 12;
+    // A press during a cooldown is buffered briefly and fires as soon as it can, so mashing never drops a shot.
+    if (edge.fire) p.fireBuf = 0.2;
     if (w !== 'buster') {
-      if (edge.fire && p.shotCd <= 0 && this.energy[w] >= WEAPON_COST) {
+      if (p.fireBuf > 0 && p.shotCd <= 0 && this.energy[w] >= WEAPON_COST) {
+        p.fireBuf = 0;
         this.energy[w] -= WEAPON_COST;
         p.shotCd = 0.3;
         const shot = (vx: number, vy: number, kind: ShotKind, dmg: number, extra: Partial<Shot> = {}) => this.shots.push({ x: mx, y: my, vx, vy, r: 8, dmg, kind, hero: true, life: 2.5, pierce: false, hits: [], grav: 0, weapon: w, ...extra });
@@ -387,11 +391,12 @@ export class PawBusterGame {
       return;
     }
     if (this.hero === 'enzo') {
-      if (edge.fire && p.slashCd <= 0) { p.slashT = 0.16; p.slashCd = 0.3; p.slashId++; p.combo = (p.combo + 1) % 3; this.events.push('slash'); }
+      if (p.fireBuf > 0 && p.slashCd <= 0) { p.fireBuf = 0; p.slashT = 0.16; p.slashCd = 0.3; p.slashId++; p.combo = (p.combo + 1) % 3; this.events.push('slash'); }
       return;
     }
     const lemons = this.shots.filter((s) => s.kind === 'lemon').length;
-    if (edge.fire && p.shotCd <= 0 && lemons < 3) { this.shots.push({ x: mx, y: my, vx: p.face * 420, vy: 0, r: 5, dmg: 1, kind: 'lemon', hero: true, life: 1.4, pierce: false, hits: [], grav: 0, weapon: 'buster' }); p.shotCd = 0.12; this.events.push('shot'); }
+    // Fast, short-lived shots and a generous cap, so tapping as fast as you can always fires.
+    if (p.fireBuf > 0 && p.shotCd <= 0 && lemons < 8) { p.fireBuf = 0; this.shots.push({ x: mx, y: my, vx: p.face * 640, vy: 0, r: 5, dmg: 1, kind: 'lemon', hero: true, life: 0.9, pierce: false, hits: [], grav: 0, weapon: 'buster' }); p.shotCd = 0.1; this.events.push('shot'); }
     if (input.fire) {
       const before = this.chargeLevel;
       p.charge += dt;
