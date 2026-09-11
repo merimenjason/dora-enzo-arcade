@@ -239,8 +239,8 @@ Pick any of three maverick stages: Snowcap Ridge (Frost Fox), Cloud Forest (Stor
 **Controls:**
 
 - ← → or A D: move. Space, K or Z: jump (hold for height; jump against a wall to wall-jump).
-- J or X: fire (Dora: hold to charge; Enzo: slash). L, C or Shift: dash (hold while jumping to dash-jump).
-- V or I: tag your partner in. Q / E: switch weapon. P / Esc: pause. Enter retries after a defeat.
+- T, J or X: fire (Dora: hold to charge; Enzo: slash). Y, L, C or Shift: dash (hold while jumping to dash-jump).
+- U, V or I: tag your partner in. T, Y and U sit together above the WASD keys, so the left hand can move while the right hand fires, dashes and tags; or move with A and D and use T, Y and U with the right hand. Q / E: switch weapon. P / Esc: pause. Enter retries after a defeat.
 - Touch screens and narrow windows get an on-screen pad. Sound is optional and off by default.
 
 **Tests:** `npm run test:paw-buster` (also in `npm test`). Browser: `tests/e2e/paw-buster.mjs`.

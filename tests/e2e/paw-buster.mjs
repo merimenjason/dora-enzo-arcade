@@ -52,10 +52,11 @@ try {
   await page.waitForTimeout(200);
   assert.ok(Number(await attr(page, 'x')) > x0 + 60, 'ArrowRight moves Dora');
   await page.keyboard.press('Space');
-  await page.keyboard.press('KeyX');
-  await page.keyboard.press('KeyV');
+  await page.keyboard.press('KeyT');
+  await page.keyboard.press('KeyY');
+  await page.keyboard.press('KeyU');
   await page.waitForTimeout(200);
-  assert.equal(await attr(page, 'hero'), 'enzo', 'V tags Enzo in');
+  assert.equal(await attr(page, 'hero'), 'enzo', 'U tags Enzo in');
   await page.screenshot({ path: '.checks/paw-buster/stage.png' });
 
   await page.keyboard.press('KeyP');

@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Paw Buster X:** T fires, Y dashes and U tags your partner in, as easier-to-reach alternatives to the existing keys.
 - **Paw Buster X**, the thirteenth cabinet: a Mega Man X-style action platformer. Dora charges a paw buster, Enzo swings a whisker saber that cuts enemy shots, and the two tag in and out for bonus damage. Dash, dash-jump and wall-jump through three maverick stages (Frost Fox, Storm Owl and Magma Snake), win each boss’s weapon to use against the next, collect heart tanks, then storm the Cougar Citadel. Progress and best times save in the browser, and touch screens get an on-screen pad.
 - **Mountain Retreat:** fits one screen, and adds skills, a daily wish list, stories and seasonal festivals.
   - On laptop and desktop screens the whole game fits one screen: the lodge on the left, and seven tabs for hosts, rooms, trips, fun, guests, goals and the scrapbook. Only the tab panel scrolls, and the lodge art scales down to fit shorter screens. Phones keep a scrolling page with the same tabs.

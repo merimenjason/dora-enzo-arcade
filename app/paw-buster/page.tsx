@@ -9,9 +9,9 @@ import './paw-buster.css';
 const KEYS: Record<string, keyof Input> = {
   ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
   Space: 'jump', KeyK: 'jump', KeyZ: 'jump',
-  KeyJ: 'fire', KeyX: 'fire',
-  KeyL: 'dash', KeyC: 'dash', ShiftLeft: 'dash', ShiftRight: 'dash',
-  KeyV: 'swap', KeyI: 'swap', KeyQ: 'prev', KeyE: 'next',
+  KeyT: 'fire', KeyJ: 'fire', KeyX: 'fire',
+  KeyY: 'dash', KeyL: 'dash', KeyC: 'dash', ShiftLeft: 'dash', ShiftRight: 'dash',
+  KeyU: 'swap', KeyV: 'swap', KeyI: 'swap', KeyQ: 'prev', KeyE: 'next',
 };
 const PAD: { key: keyof Input; label: string; name: string }[] = [
   { key: 'left', label: '◀', name: 'Move left' }, { key: 'right', label: '▶', name: 'Move right' },
@@ -194,7 +194,7 @@ export default function PawBuster() {
       {g && stage && (
         <section className="pb-board" aria-label="Paw Buster X game">
           <div className="pb-canvas-wrap" data-testid="board" data-state={g.state} data-hero={g.hero} data-x={Math.round(g.player.x)} data-weapon={g.weaponId}>
-            <canvas ref={canvas} width={VIEW_W} height={VIEW_H} tabIndex={0} aria-label={`${stage.name}. Move with arrows or A and D, jump with Space, K or Z, fire with J or X, dash with L, C or Shift, tag with V or I.`} />
+            <canvas ref={canvas} width={VIEW_W} height={VIEW_H} tabIndex={0} aria-label={`${stage.name}. Move with arrows or A and D, jump with Space, K or Z, fire with T, J or X, dash with Y, L, C or Shift, tag with U, V or I.`} />
             {(g.state === 'paused' || g.state === 'lost' || g.state === 'clear' || error) && (
               <div className="pb-overlay">
                 <div>
@@ -250,9 +250,9 @@ function Controls() {
     <dl className="pb-controls">
       <div><dt><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd></dt><dd>Move</dd></div>
       <div><dt><kbd>Space</kbd> / <kbd>K</kbd> / <kbd>Z</kbd></dt><dd>Jump; hold for height. Jump against a wall to wall-jump.</dd></div>
-      <div><dt><kbd>J</kbd> / <kbd>X</kbd></dt><dd>Fire. Dora: hold to charge. Enzo: saber slash.</dd></div>
-      <div><dt><kbd>L</kbd> / <kbd>C</kbd> / <kbd>Shift</kbd></dt><dd>Dash; hold while jumping to dash-jump.</dd></div>
-      <div><dt><kbd>V</kbd> / <kbd>I</kbd></dt><dd>Tag your partner in (tag strike: ×1.5 damage for 2 s)</dd></div>
+      <div><dt><kbd>T</kbd> / <kbd>J</kbd> / <kbd>X</kbd></dt><dd>Fire. Dora: hold to charge. Enzo: saber slash.</dd></div>
+      <div><dt><kbd>Y</kbd> / <kbd>L</kbd> / <kbd>C</kbd> / <kbd>Shift</kbd></dt><dd>Dash; hold while jumping to dash-jump.</dd></div>
+      <div><dt><kbd>U</kbd> / <kbd>V</kbd> / <kbd>I</kbd></dt><dd>Tag your partner in (tag strike: ×1.5 damage for 2 s)</dd></div>
       <div><dt><kbd>Q</kbd> / <kbd>E</kbd></dt><dd>Switch weapon</dd></div>
       <div><dt><kbd>P</kbd> / <kbd>Esc</kbd></dt><dd>Pause</dd></div>
     </dl>
