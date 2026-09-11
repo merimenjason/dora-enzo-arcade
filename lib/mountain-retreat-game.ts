@@ -73,12 +73,24 @@ export const POSTCARDS = [
   { at: 6, tips: 40 },
   { at: 10, tips: 80 },
 ] as const;
-export type Trail = 'lake' | 'juniper' | 'summit';
+export type Trail = 'lake' | 'juniper' | 'summit' | 'rescue';
 export const TRAILS = {
   lake: { name: 'Glass lake', seconds: 25, cost: 5, supplies: 18, tips: 12, stars: 1 },
   juniper: { name: 'Juniper trail', seconds: 45, cost: 12, supplies: 48, tips: 35, stars: 1 },
   summit: { name: 'Condor summit', seconds: 90, cost: 30, supplies: 60, tips: 90, stars: 2 },
+  // Only open while a lost-hiker event is running.
+  rescue: { name: 'Lost hiker rescue', seconds: 20, cost: 6, supplies: 0, tips: 40, stars: 1 },
 } as const;
+export type EventKind = 'storm' | 'musician' | 'lost';
+export const EVENTS = {
+  storm: { name: 'Mountain storm', seconds: 40, detail: 'Guests shelter inside: +50% tips and +1 heart per room on every visit.' },
+  musician: { name: 'Travelling musician', seconds: 30, detail: 'Music fills the lodge: +2 hearts per room on every visit.' },
+  lost: { name: 'Lost hiker', seconds: 60, detail: 'Someone is lost on the Juniper trail. Send Dora and Enzo to help before they wander off.' },
+} as const;
+/** A surprise may start every EVENT_EVERY lodge seconds, at EVENT_AT past the mark. */
+export const EVENT_EVERY = 180;
+export const EVENT_AT = 90;
+const EVENT_ROLL: (EventKind | null)[] = [null, 'storm', 'musician', 'lost'];
 export const FESTIVAL = { seconds: 60, hearts: 12, supplies: 20, tips: 110, reward: 24 } as const;
 export const DAY_SECONDS = 120;
 export const NIGHT_FROM = 80;
@@ -106,7 +118,7 @@ export interface VisitLog extends GuestVisit {
   postcard: number;
 }
 export interface RetreatState {
-  version: 2;
+  version: 3;
   savedAt: number;
   coins: number;
   hearts: number;
@@ -129,11 +141,21 @@ export interface RetreatState {
   festivals: number;
   expeditions: number;
   last: VisitLog | null;
+  /** Rooms (bitmask) whose guest has had a treat during visit number `visit`. */
+  treat: { visit: number; rooms: number };
+  /** Completed GOALS (bitmask). */
+  goals: number;
+  event: { kind: EventKind; remaining: number } | null;
+  rescues: number;
+  perfectPours: number;
+  /** Lodge seconds (`elapsed`) when each mini-game can be played again. */
+  teaReadyAt: number;
+  catchReadyAt: number;
 }
 const cap = (n: number) => Math.min(1e9, n);
 export function freshRetreat(now = 0): RetreatState {
   return {
-    version: 2,
+    version: 3,
     savedAt: now,
     coins: 25,
     hearts: 0,
@@ -154,6 +176,13 @@ export function freshRetreat(now = 0): RetreatState {
     festivals: 0,
     expeditions: 0,
     last: null,
+    treat: { visit: 0, rooms: 0 },
+    goals: 0,
+    event: null,
+    rescues: 0,
+    perfectPours: 0,
+    teaReadyAt: 0,
+    catchReadyAt: 0,
   };
 }
 /** 1–5 stars, one per 20 reputation. */
@@ -176,6 +205,7 @@ export function upgradeRoom(s: RetreatState, i: number): boolean {
   if (s.coins < cost) return false;
   s.coins -= cost;
   s.rooms[i]++;
+  checkGoals(s);
   return true;
 }
 export function choosePerk(s: RetreatState, i: number, perk: number): boolean {
@@ -190,6 +220,7 @@ export function choosePerk(s: RetreatState, i: number, perk: number): boolean {
   )
     return false;
   s.perks[i] = perk;
+  checkGoals(s);
   return true;
 }
 export const activitySeconds = (s: RetreatState, kind: Activity, trail: Trail = 'juniper') => {
@@ -198,6 +229,8 @@ export const activitySeconds = (s: RetreatState, kind: Activity, trail: Trail = 
 };
 /** Why a trail is closed right now, or null when it can be walked. */
 export function trailClosed(s: RetreatState, trail: Trail): string | null {
+  if (trail === 'rescue')
+    return s.event?.kind === 'lost' ? null : 'No one is lost right now';
   if (rating(s) < TRAILS[trail].stars) return `Needs a ${TRAILS[trail].stars}-star lodge`;
   if (trail === 'summit' && season(s.elapsed) === 'winter') return 'Snowed in until spring';
   return null;
@@ -213,6 +246,7 @@ export function startActivity(
     if (s.supplies < TRAILS[trail].cost) return false;
     s.supplies -= TRAILS[trail].cost;
     s.activity = { kind, remaining: activitySeconds(s, kind, trail), trail };
+    if (trail === 'rescue') s.event = null;
   } else if (kind === 'festival') {
     if (s.hearts < FESTIVAL.hearts || s.supplies < FESTIVAL.supplies) return false;
     s.hearts -= FESTIVAL.hearts;
@@ -259,19 +293,26 @@ export function visitRewards(s: RetreatState, elapsed = s.elapsed) {
   const craft = s.enzo === 'craft';
   const comfort = s.dora === 'comfort';
   const when = season(elapsed);
-  return {
-    tips: shown([
+  const event = s.event?.kind;
+  const base = shown([
       { label: `Room levels (${quality} × ${craft ? 3 : 2}${craft ? ', crafted' : ''})`, value: quality * (craft ? 3 : 2) },
       { label: `${rating(s)}-star rating (${rooms} rooms × ${rating(s) - 1})`, value: rooms * (rating(s) - 1) },
       { label: 'Decorations', value: s.decor },
       { label: 'Tea stall', value: s.perks[0] === 1 ? 3 : 0 },
       { label: 'Autumn harvest', value: when === 'autumn' ? rooms : 0 },
-    ]),
+  ]);
+  return {
+    tips:
+      event === 'storm'
+        ? [...base, { label: 'Storm shelter (+50%)', value: Math.floor(total(base) / 2) }]
+        : base,
     hearts: shown([
       { label: `${comfort ? 'Extra comfort' : 'Welcome'} (${rooms} rooms × ${comfort ? 3 : 1})`, value: rooms * (comfort ? 3 : 1) },
       { label: 'Feather beds', value: comfort && s.perks[2] === 1 ? rooms : 0 },
       { label: 'Telescope at night', value: isNight(elapsed) && s.perks[2] === 0 ? rooms : 0 },
       { label: 'Winter coziness', value: when === 'winter' ? rooms : 0 },
+      { label: 'Storm shelter', value: event === 'storm' ? rooms : 0 },
+      { label: 'Travelling musician', value: event === 'musician' ? rooms * 2 : 0 },
     ]),
   };
 }
@@ -382,9 +423,8 @@ function visit(s: RetreatState) {
     tips += WISH_TIPS;
     hearts += WISH_HEARTS;
     s.reputation = Math.min(100, s.reputation + 1 + (s.perks[0] === 0 ? 1 : 0));
-    if (who.regular >= 0 && s.friends[who.regular] < FRIENDSHIP_CAP) {
-      const f = ++s.friends[who.regular];
-      postcard = POSTCARDS.findIndex((p) => p.at === f);
+    if (who.regular >= 0) {
+      postcard = befriend(s, who.regular);
       if (postcard >= 0) tips += POSTCARDS[postcard].tips;
     }
   } else s.reputation = Math.max(0, s.reputation - 1);
@@ -403,6 +443,12 @@ function finishActivity(s: RetreatState) {
     if (a.trail === 'lake')
       for (const k of ['oatcake', 'soap'] as const)
         s.pantry[k] = Math.min(PANTRY_CAP, s.pantry[k] + 1);
+    if (a.trail === 'rescue') {
+      s.reputation = Math.min(100, s.reputation + 8);
+      s.rescues = cap(s.rescues + 1);
+      // The rescued hiker poses for the album.
+      s.album[3] |= 1 << (s.rescues % COATS.length);
+    }
     if (a.trail === 'summit') {
       s.decor = Math.min(DECOR_CAP, s.decor + 1);
       s.album[VISCACHA] |= 1 << (s.expeditions % COATS.length);
@@ -424,11 +470,19 @@ export function advanceRetreat(s: RetreatState, seconds: number): void {
   for (let t = 0; t < ticks; t++) {
     if (s.activity) {
       s.activity.remaining--;
-      if (s.activity.remaining <= 0) finishActivity(s);
+      if (s.activity.remaining <= 0) {
+        finishActivity(s);
+        checkGoals(s);
+      }
       continue;
     }
     // Wrap at a multiple of every period (supplies, recipes, visits, host tours, days, seasons).
     s.elapsed = (s.elapsed + 1) % 999999360;
+    if (s.event && --s.event.remaining <= 0) s.event = null;
+    if (!s.event && s.elapsed % EVENT_EVERY === EVENT_AT) {
+      const kind = EVENT_ROLL[mix(Math.floor(s.elapsed / EVENT_EVERY) + 11) % EVENT_ROLL.length];
+      if (kind) s.event = { kind, remaining: EVENTS[kind].seconds };
+    }
     if (s.elapsed % SUPPLY_SECONDS === 0)
       s.supplies = Math.min(SUPPLY_CAP, s.supplies + supplyRate(s));
     if (s.enzo === 'craft' && s.elapsed % RECIPE_SECONDS === 0) {
@@ -440,7 +494,141 @@ export function advanceRetreat(s: RetreatState, seconds: number): void {
       }
     }
     if (s.elapsed % visitPeriod(s) === 0) visit(s);
+    checkGoals(s);
   }
+}
+/** Raises a regular's friendship by one; returns the POSTCARDS index this unlocks, or -1. */
+function befriend(s: RetreatState, regular: number) {
+  if (s.friends[regular] >= FRIENDSHIP_CAP) return -1;
+  const f = ++s.friends[regular];
+  return POSTCARDS.findIndex((p) => p.at === f);
+}
+export const albumCount = (s: RetreatState) =>
+  s.album.reduce((n, mask) => n + bits(mask), 0);
+/** Lodge goals: each pays tips once and leaves a keepsake in the scene. */
+export const GOALS: readonly {
+  name: string;
+  detail: string;
+  keepsake: string;
+  tips: number;
+  done: (s: RetreatState) => boolean;
+}[] = [
+  { name: 'Every room open', detail: 'Open all four rooms', keepsake: 'Welcome mat', tips: 40, done: (s) => s.rooms.every((r) => r > 0) },
+  { name: 'Three-star lodge', detail: 'Reach a 3-star rating', keepsake: 'Golden kettle', tips: 60, done: (s) => rating(s) >= 3 },
+  { name: 'Festival season', detail: 'Host 3 festivals', keepsake: 'Festival banner', tips: 80, done: (s) => s.festivals >= 3 },
+  { name: 'Trail regular', detail: 'Finish 5 trail outings', keepsake: 'Hiker’s map', tips: 60, done: (s) => s.expeditions >= 5 },
+  { name: 'Coat collector', detail: 'Collect 10 coats in the album', keepsake: 'Portrait wall', tips: 80, done: (s) => albumCount(s) >= 10 },
+  { name: 'Best friends', detail: 'Reach 10 friendship with a regular', keepsake: 'Friendship quilt', tips: 100, done: (s) => s.friends.some((f) => f >= FRIENDSHIP_CAP) },
+  { name: 'Master planner', detail: 'Choose all four specialties', keepsake: 'Brass plaque', tips: 100, done: (s) => s.perks.every((p) => p >= 0) },
+  { name: 'Mountain hero', detail: 'Rescue a lost hiker', keepsake: 'Rescue lantern', tips: 60, done: (s) => s.rescues > 0 },
+  { name: 'Perfect pour', detail: 'Pour a perfect cup of tea', keepsake: 'Teapot trophy', tips: 40, done: (s) => s.perfectPours > 0 },
+];
+/** Marks newly met goals, pays their tips, and returns their indices. */
+export function checkGoals(s: RetreatState): number[] {
+  const won: number[] = [];
+  GOALS.forEach((g, i) => {
+    if (!(s.goals & (1 << i)) && g.done(s)) {
+      s.goals |= 1 << i;
+      s.coins = cap(s.coins + g.tips);
+      won.push(i);
+    }
+  });
+  return won;
+}
+export function lodgeTitle(s: RetreatState) {
+  const n = bits(s.goals);
+  return n >= 9
+    ? 'Legend of the Andes'
+    : n >= 6
+      ? 'Famous retreat'
+      : n >= 4
+        ? 'Beloved lodge'
+        : n >= 2
+          ? 'Cozy inn'
+          : 'Mountain hut';
+}
+export const TREAT = { hearts: 3, tips: 2 } as const;
+/** Whether the guest staying in `room` since the latest visit can still be offered a treat. */
+export function canTreat(s: RetreatState, room: number) {
+  return (
+    !s.activity &&
+    !!s.last &&
+    s.last.outcome !== 'away' &&
+    Number.isInteger(room) &&
+    room >= 0 &&
+    room < ROOMS.length &&
+    s.rooms[room] > 0 &&
+    !(s.treat.visit === s.visits && s.treat.rooms & (1 << room))
+  );
+}
+export function offerTreat(s: RetreatState, room: number, item: Item): boolean {
+  if ((item !== 'oatcake' && item !== 'soap') || !canTreat(s, room) || s.pantry[item] < 1)
+    return false;
+  if (s.treat.visit !== s.visits) s.treat = { visit: s.visits, rooms: 0 };
+  s.treat.rooms |= 1 << room;
+  s.pantry[item]--;
+  s.hearts = cap(s.hearts + TREAT.hearts);
+  let tips: number = TREAT.tips;
+  const last = s.last!;
+  // A treat for the regular in their own room counts as a friendly visit.
+  if (last.regular >= 0 && GUESTS[last.guest].room === room) {
+    const postcard = befriend(s, last.regular);
+    if (postcard >= 0) tips += POSTCARDS[postcard].tips;
+  }
+  s.coins = cap(s.coins + tips);
+  checkGoals(s);
+  return true;
+}
+export const TEA_COOLDOWN = 60;
+export const CATCH_COOLDOWN = 90;
+export const CATCH_CAP = 15;
+export const TEA_REWARDS = {
+  perfect: { tips: 25, hearts: 3 },
+  good: { tips: 12, hearts: 1 },
+  spill: { tips: 2, hearts: 0 },
+} as const;
+export type Pour = keyof typeof TEA_REWARDS;
+export const teaReady = (s: RetreatState) => !s.activity && s.elapsed >= s.teaReadyAt;
+export const catchReady = (s: RetreatState) => !s.activity && s.elapsed >= s.catchReadyAt;
+/** Grades a pour from the player's timing (0–1, 1 = dead centre) and pays once per cooldown. */
+export function pourTea(s: RetreatState, accuracy: number): Pour | null {
+  if (!teaReady(s) || !Number.isFinite(accuracy)) return null;
+  const grade: Pour = accuracy >= 0.9 ? 'perfect' : accuracy >= 0.6 ? 'good' : 'spill';
+  s.coins = cap(s.coins + TEA_REWARDS[grade].tips);
+  s.hearts = cap(s.hearts + TEA_REWARDS[grade].hearts);
+  if (grade === 'perfect') s.perfectPours = cap(s.perfectPours + 1);
+  s.teaReadyAt = s.elapsed + TEA_COOLDOWN;
+  checkGoals(s);
+  return grade;
+}
+/** Pays a tip per caught petal (or flake, leaf, butterfly), up to CATCH_CAP, once per cooldown. */
+export function catchReward(s: RetreatState, caught: number): number | null {
+  if (!catchReady(s) || !Number.isFinite(caught)) return null;
+  const tips = Math.max(0, Math.min(CATCH_CAP, Math.floor(caught)));
+  s.coins = cap(s.coins + tips);
+  s.catchReadyAt = s.elapsed + CATCH_COOLDOWN;
+  return tips;
+}
+const NAMES = ['Quilla', 'Inti', 'Nube', 'Suri', 'Kusi', 'Paqo', 'Rumi', 'Wayra', 'Chaska', 'Killa', 'Amaru', 'Sumaq', 'Tika', 'Yaku', 'Mayu', 'Nina', 'Kallpa', 'Ayni', 'Pacha', 'Illa', 'Tupa', 'Urpi', 'Sisa', 'Qori'];
+const HOMES = ['Pisaq', 'Chivay', 'Sorata', 'Tilcara', 'Purmamarca', 'Humahuaca', 'Cabanaconde', 'Ollantaytambo', 'Maras', 'Copacabana', 'San Pedro', 'Uyuni'];
+const BIOS: Record<string, readonly string[]> = {
+  traveler: ['Has a postcard from every valley but this one.', 'Travels light: one scarf, three snacks.', 'Collects ticket stubs and good naps.'],
+  baker: ['Can smell an oat cake from two peaks away.', 'Rates every lodge by its crumbs.', 'Once baked a cake shaped like a llama.'],
+  stargazer: ['Knows every star by a nickname.', 'Sleeps all day and counts comets all night.', 'Carries a telescope older than the lodge.'],
+  hiker: ['Walked here with blisters and a big smile.', 'Has climbed every hill except the stairs.', 'Always first up the trail at dawn.'],
+  painter: ['Paints the mountains a new colour each visit.', 'Has dust-bath sand in every brush.', 'Came to capture the light on the roof.'],
+  duchess: ['Expects the good towels, and tips like it.', 'Travels with three trunks and a tiny tiara.', 'Rumoured to own a whole valley of hay.'],
+  viscacha: ['A shy cousin from the high rocks.', 'Came down to sunbathe and stayed for the snacks.', 'Only visits when the summit is kind.'],
+};
+/** A stable made-up identity for any guest the player sees, so every guest can have a profile. */
+export function guestIdentity(seed: number, guest: number, regular = -1) {
+  const h = mix(seed * 31 + guest);
+  const g = GUESTS[guest];
+  return {
+    name: regular >= 0 ? REGULARS[regular].name : NAMES[h % NAMES.length],
+    home: HOMES[(h >>> 5) % HOMES.length],
+    bio: BIOS[g.id][(h >>> 11) % BIOS[g.id].length],
+  };
 }
 const integer = (v: unknown, max = 1e9): v is number =>
   typeof v === 'number' && Number.isSafeInteger(v) && v >= 0 && v <= max;
@@ -473,7 +661,7 @@ export function parseRetreat(raw: string | null): RetreatState | null {
     const s = JSON.parse(raw);
     if (
       !s ||
-      (s.version !== 1 && s.version !== 2) ||
+      (s.version !== 1 && s.version !== 2 && s.version !== 3) ||
       !integer(s.savedAt, 8640000000000000) ||
       !integer(s.coins) ||
       !integer(s.hearts) ||
@@ -502,6 +690,25 @@ export function parseRetreat(raw: string | null): RetreatState | null {
           activity: s.activity && { ...s.activity, trail: s.activity.kind === 'expedition' ? 'juniper' : null },
         }
       : s;
+    // Version-3 additions; older journals start them fresh.
+    const later = s.version === 3 ? s : freshRetreat();
+    if (
+      s.version === 3 &&
+      (!s.treat ||
+        !integer(s.treat.visit) ||
+        !integer(s.treat.rooms, 15) ||
+        !integer(s.goals, (1 << GOALS.length) - 1) ||
+        !integer(s.rescues) ||
+        !integer(s.perfectPours) ||
+        !integer(s.teaReadyAt) ||
+        !integer(s.catchReadyAt) ||
+        (s.event !== null &&
+          (!s.event ||
+            !Object.hasOwn(EVENTS, s.event.kind) ||
+            !integer(s.event.remaining, EVENTS[s.event.kind as EventKind].seconds) ||
+            s.event.remaining < 1)))
+    )
+      return null;
     if (
       !v1 &&
       (!integer(s.visits) ||
@@ -529,7 +736,7 @@ export function parseRetreat(raw: string | null): RetreatState | null {
     )
       return null;
     return {
-      version: 2,
+      version: 3,
       savedAt: s.savedAt,
       coins: s.coins,
       hearts: s.hearts,
@@ -550,6 +757,15 @@ export function parseRetreat(raw: string | null): RetreatState | null {
       festivals: s.festivals,
       expeditions: s.expeditions,
       last: extra.last ? { ...extra.last } : null,
+      treat: { visit: later.treat.visit, rooms: later.treat.rooms },
+      goals: later.goals,
+      event: later.event
+        ? { kind: later.event.kind, remaining: later.event.remaining }
+        : null,
+      rescues: later.rescues,
+      perfectPours: later.perfectPours,
+      teaReadyAt: later.teaReadyAt,
+      catchReadyAt: later.catchReadyAt,
     };
   } catch {
     return null;

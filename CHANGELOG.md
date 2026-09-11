@@ -6,6 +6,14 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Arcade favicon:** pixel Dora and Enzo on the arcade navy, replacing the unused "Cc" placeholder. There is also an Apple touch icon. The site now links the icons, so they finally show in browser tabs and bookmarks.
+- **Mountain Retreat:** guest profiles, goals, surprises, mini-games and a scrapbook.
+  - Click any guest to see their name, home village, bio, wish and friendship. The guest in a room can be offered an oat cake or herbal soap once per visit, for extra hearts; regulars also gain friendship.
+  - Nine lodge goals each pay tips once, leave a keepsake by the lodge, and raise its title from Mountain hut to Legend of the Andes.
+  - Surprise events: mountain storms, a travelling musician, and lost hikers to rescue.
+  - Two optional mini-games: pour the perfect cup of tea, and catch the season's weather.
+  - A scrapbook: snap the lodge into up to 12 photos with editable captions.
+  - Existing journals upgrade automatically to the new save format.
 - **Mountain Retreat:** more distinctive guests and a livelier scene.
   - Each guest type wears its own accessory: a traveler's straw hat and suitcase, a hiker's backpack and walking stick, a pastry fan's chef hat, a stargazer's nightcap and telescope, a painter's beret and brush, a duchess's tiara and pearls.
   - Arriving guests show their wish in a bubble. Regulars wear name tags. Happy guests hop, guests turned away walk off down the path, and guests doze at night.

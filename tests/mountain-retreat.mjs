@@ -30,6 +30,16 @@ import {
   WISH_HEARTS,
   GUESTS,
   POSTCARDS,
+  offerTreat,
+  checkGoals,
+  lodgeTitle,
+  GOALS,
+  pourTea,
+  catchReward,
+  TEA_COOLDOWN,
+  CATCH_COOLDOWN,
+  CATCH_CAP,
+  guestIdentity,
 } from '../.checks/mountain-retreat-game.js';
 let count = 0;
 const test = (name, fn) => {
@@ -348,7 +358,7 @@ test('version-1 journals upgrade to version 2', () => {
     expeditions: 2,
   };
   const s = parseRetreat(JSON.stringify(v1));
-  assert.equal(s.version, 2);
+  assert.equal(s.version, 3);
   assert.deepEqual(s.activity, { kind: 'expedition', remaining: 30, trail: 'juniper' });
   assert.deepEqual(s.perks, [-1, -1, -1, -1]);
   assert.deepEqual(s.pantry, { oatcake: 0, soap: 0 });
@@ -365,7 +375,14 @@ test('strict malformed save rejection', () => {
   for (const raw of ['{', 'null', '[]', '{}', 'x'.repeat(10001)])
     assert.equal(parseRetreat(raw), null);
   for (const [key, values] of Object.entries({
-    version: [0, 3, '2'],
+    version: [0, 4, '3'],
+    treat: [null, { visit: 0, rooms: 16 }, { visit: -1, rooms: 0 }],
+    goals: [1 << GOALS.length, -1],
+    event: [{}, { kind: 'toString', remaining: 1 }, { kind: 'storm', remaining: 41 }, { kind: 'storm', remaining: 0 }],
+    rescues: [-1],
+    perfectPours: [1.5],
+    teaReadyAt: ['0'],
+    catchReadyAt: [null],
     savedAt: [-1, 1.5, '100', null, 9e15],
     coins: [-1, 1.1, '20', null, 1e10],
     hearts: [-1],
@@ -441,7 +458,7 @@ test('all rooms reachable and finished in a normal 5–10 minute visit', () => {
     for (let i = 1; i < 4; i++)
       if (!s.rooms[i] && upgradeRoom(s, i)) unlock.push(sec);
   }
-  assert.deepEqual(unlock, [30, 162, 306]);
+  assert.deepEqual(unlock, [30, 162, 264]);
   const greedy = freshRetreat();
   let finished = 0;
   for (let sec = 1; sec <= 600 && !finished; sec++) {
@@ -567,5 +584,124 @@ test('welcome-back summary counts what changed', () => {
   const summary = awaySummary(before, real);
   assert.equal(summary.visits, real.visits);
   assert.equal(summary.tips, real.coins - before.coins);
+});
+test('version-2 journals upgrade to version 3', () => {
+  const v2 = freshRetreat();
+  v2.version = 2;
+  for (const k of ['treat', 'goals', 'event', 'rescues', 'perfectPours', 'teaReadyAt', 'catchReadyAt'])
+    delete v2[k];
+  v2.coins = 77;
+  const s = parseRetreat(JSON.stringify(v2));
+  assert.equal(s.version, 3);
+  assert.equal(s.coins, 77);
+  assert.deepEqual(s.treat, { visit: 0, rooms: 0 });
+  assert.equal(s.event, null);
+  assert.equal(s.goals, 0);
+  assert.deepEqual(parseRetreat(JSON.stringify(s)), s);
+});
+test('treats: once per room per visit, from the pantry, befriending regulars', () => {
+  const s = freshRetreat();
+  s.rooms = [1, 1, 1, 1];
+  s.supplies = 100;
+  s.pantry = { oatcake: 2, soap: 1 };
+  assert.equal(offerTreat(s, 0, 'oatcake'), false, 'no guest yet');
+  // Visit 4 is Pip, who stays in the bath and uses the soap.
+  s.visits = 4;
+  s.elapsed = 5;
+  advanceRetreat(s, 1);
+  assert.equal(s.last.regular, 0);
+  const hearts = s.hearts,
+    coins = s.coins,
+    friends = s.friends[0];
+  assert.ok(offerTreat(s, 3, 'oatcake'));
+  assert.equal(s.hearts, hearts + 3);
+  assert.equal(s.coins, coins + 2);
+  assert.equal(s.friends[0], friends + 1, 'a treat for a regular counts as friendship');
+  assert.equal(offerTreat(s, 3, 'oatcake'), false, 'once per room per visit');
+  assert.ok(offerTreat(s, 0, 'oatcake'));
+  assert.equal(offerTreat(s, 1, 'oatcake'), false, 'pantry empty');
+  assert.equal(offerTreat(s, 1, 'toString'), false);
+  assert.equal(offerTreat(s, 9, 'soap'), false);
+  advanceRetreat(s, 6);
+  s.pantry.oatcake = 1;
+  assert.ok(offerTreat(s, 3, 'oatcake'), 'a new visit brings a new guest');
+});
+test('lodge goals pay once and name the lodge', () => {
+  const s = freshRetreat();
+  assert.equal(lodgeTitle(s), 'Mountain hut');
+  s.rooms = [1, 1, 1, 1];
+  s.reputation = 45;
+  const coins = s.coins;
+  assert.deepEqual(checkGoals(s), [0, 1]);
+  assert.equal(s.coins, coins + GOALS[0].tips + GOALS[1].tips);
+  assert.deepEqual(checkGoals(s), [], 'each goal pays once');
+  assert.equal(lodgeTitle(s), 'Cozy inn');
+  s.reputation = 0;
+  checkGoals(s);
+  assert.equal(s.goals & 2, 2, 'a met goal stays met');
+  s.goals = (1 << GOALS.length) - 1;
+  assert.equal(lodgeTitle(s), 'Legend of the Andes');
+  const up = freshRetreat();
+  up.coins = 10000;
+  for (let i = 1; i < 4; i++) upgradeRoom(up, i);
+  assert.equal(up.goals & 1, 1, 'upgrades check goals');
+});
+test('surprise events: storms, musicians and a lost hiker to rescue', () => {
+  const s = freshRetreat();
+  s.rooms = [1, 1, 1, 1];
+  s.supplies = 200;
+  advanceRetreat(s, 269);
+  assert.equal(s.event, null);
+  advanceRetreat(s, 1);
+  assert.deepEqual(s.event, { kind: 'storm', remaining: 40 });
+  const storm = visitRewards(s);
+  assert.ok(storm.tips.some((p) => p.label.startsWith('Storm shelter')));
+  assert.ok(storm.hearts.some((p) => p.label === 'Storm shelter'));
+  advanceRetreat(s, 40);
+  assert.equal(s.event, null);
+  advanceRetreat(s, 450 - s.elapsed);
+  assert.equal(s.event.kind, 'musician');
+  assert.equal(visitRewards(s).hearts.find((p) => p.label === 'Travelling musician').value, 8);
+  advanceRetreat(s, 630 - s.elapsed);
+  assert.equal(s.event.kind, 'lost');
+  assert.equal(trailClosed(s, 'rescue'), null);
+  const rep = s.reputation;
+  assert.ok(startActivity(s, 'expedition', 'rescue'));
+  assert.equal(s.event, null, 'the hosts set off at once');
+  advanceRetreat(s, 20);
+  assert.equal(s.rescues, 1);
+  assert.equal(s.reputation, Math.min(100, rep + 8));
+  assert.ok(s.goals & (1 << 7), 'Mountain hero');
+  assert.equal(trailClosed(s, 'rescue'), 'No one is lost right now');
+  assert.equal(startActivity(s, 'expedition', 'rescue'), false);
+});
+test('mini-games pay once per cooldown', () => {
+  const s = freshRetreat();
+  assert.equal(pourTea(s, 0.95), 'perfect');
+  assert.equal(s.coins, 25 + 25 + GOALS[8].tips, 'perfect pour plus the Perfect pour goal');
+  assert.equal(s.perfectPours, 1);
+  assert.equal(pourTea(s, 1), null, 'kettle still warming');
+  s.elapsed = TEA_COOLDOWN;
+  assert.equal(pourTea(s, 0.7), 'good');
+  s.elapsed = 2 * TEA_COOLDOWN;
+  assert.equal(pourTea(s, 0.1), 'spill');
+  s.elapsed = 3 * TEA_COOLDOWN;
+  assert.equal(pourTea(s, NaN), null);
+  const c = freshRetreat();
+  assert.equal(catchReward(c, 40), CATCH_CAP);
+  assert.equal(catchReward(c, 3), null);
+  c.elapsed = CATCH_COOLDOWN;
+  assert.equal(catchReward(c, -2), 0);
+  c.elapsed = 2 * CATCH_COOLDOWN;
+  assert.ok(startActivity(c, 'expedition'));
+  assert.equal(catchReward(c, 5), null, 'not while the hosts are away');
+});
+test('every guest gets a stable identity', () => {
+  assert.deepEqual(guestIdentity(42, 3), guestIdentity(42, 3));
+  const who = guestIdentity(42, 3);
+  assert.ok(who.name && who.home && who.bio);
+  assert.equal(guestIdentity(7, 3, 0).name, 'Pip');
+  const names = new Set(Array.from({ length: 40 }, (_, i) => guestIdentity(i, 0).name));
+  assert.ok(names.size > 10);
 });
 console.log(`${count} Mountain Retreat deterministic tests passed.`);

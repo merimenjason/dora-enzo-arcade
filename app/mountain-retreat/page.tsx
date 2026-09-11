@@ -7,27 +7,39 @@ import {
   advanceRetreat,
   awaySummary,
   canGrant,
+  canTreat,
+  CATCH_CAP,
+  CATCH_COOLDOWN,
+  catchReady,
+  catchReward,
   choosePerk,
   COATS as COAT_NAMES,
   DAY_SECONDS,
   DECOR_CAP,
+  EVENT_EVERY,
+  EVENTS,
   FESTIVAL,
   festivalReward,
   freshRetreat,
   FRIENDSHIP_CAP,
+  GOALS,
   GUESTS,
+  guestIdentity,
   guestPool,
   HOST_STOP_SECONDS,
   hostStop,
   isNight,
   ITEM_TIPS,
   ITEMS,
+  lodgeTitle,
   nextVisitAt,
   NIGHT_FROM,
+  offerTreat,
   PANTRY_CAP,
   parseRetreat,
   PERKS,
   POSTCARDS,
+  pourTea,
   rating,
   RECIPE_COST,
   RECIPE_SECONDS,
@@ -44,9 +56,13 @@ import {
   SUPPLY_SECONDS,
   supplyParts,
   supplyRate,
+  TEA_COOLDOWN,
+  TEA_REWARDS,
+  teaReady,
   total,
   trailClosed,
   TRAILS,
+  TREAT,
   upcomingGuest,
   upgradeRoom,
   VISCACHA,
@@ -54,9 +70,11 @@ import {
   visitRewards,
   WISH_HEARTS,
   WISH_TIPS,
+  type EventKind,
   type GuestVisit,
   type Part,
   type RetreatState,
+  type Season,
   type Trail,
 } from '@/lib/mountain-retreat-game';
 import { enableSound, playCue } from './sound';
@@ -75,6 +93,80 @@ const ROOM_ICON = ['♨', '▥', '☾', '≈'];
 /** Summit finds, in the order they arrive. */
 const TROPHIES = ['pennant', 'wind chime', 'lantern', 'garden gnome', 'flower box', 'weathervane'];
 const WEATHER = { spring: 'petals', summer: 'butterflies', autumn: 'leaves', winter: 'snow' } as const;
+const CATCHABLE = {
+  petals: 'petal',
+  butterflies: 'butterfly',
+  leaves: 'leaf',
+  snow: 'snowflake',
+  rain: 'raindrop',
+} as const;
+type Weather = keyof typeof CATCHABLE;
+/** One keepsake glyph per GOALS entry. */
+const KEEPSAKE_ICON = ['▭', '♨', '⚑', '⌖', '▣', '▦', '◈', '✧', '◒'];
+/** Guests who aren't featured get identities keyed by visit and room, so arrivals match who then stays. */
+const fillerSeed = (visits: number, room: number) => 100000 + visits * 4 + room;
+interface ProfileTarget {
+  seed: number;
+  guest: number;
+  coat: number;
+  regular: number;
+  where: 'room' | 'path' | 'next' | 'roof' | 'viscacha' | 'leaving' | 'album' | 'musician';
+  room: number;
+  /** `visits` when the profile was opened, to tell whether the guest has since moved on. */
+  visit: number;
+  featured: boolean;
+}
+/** Scrapbook photos store what was on screen, and are redrawn in miniature. */
+interface Photo {
+  at: number;
+  caption: string;
+  season: Season;
+  night: boolean;
+  event: EventKind | null;
+  rooms: number[];
+  perks: number[];
+  guests: { room: number; coat: number; kind: number }[];
+  hosts: number[];
+}
+const PHOTO_KEY = 'mountain-retreat-scrapbook';
+const PHOTO_CAP = 12;
+const isRoom = (n: unknown) => Number.isInteger(n) && (n as number) >= 0 && (n as number) < 4;
+function validPhoto(p: unknown): p is Photo {
+  const x = p as Photo;
+  return (
+    !!x &&
+    typeof x.at === 'number' &&
+    typeof x.caption === 'string' &&
+    x.caption.length <= 120 &&
+    SEASONS.includes(x.season) &&
+    typeof x.night === 'boolean' &&
+    (x.event === null || Object.hasOwn(EVENTS, x.event)) &&
+    Array.isArray(x.rooms) &&
+    x.rooms.length === 4 &&
+    x.rooms.every((r) => Number.isInteger(r)) &&
+    Array.isArray(x.perks) &&
+    x.perks.length === 4 &&
+    x.perks.every((r) => Number.isInteger(r)) &&
+    Array.isArray(x.guests) &&
+    x.guests.every(
+      (g) =>
+        !!g &&
+        isRoom(g.room) &&
+        Number.isInteger(g.coat) &&
+        g.coat >= 0 &&
+        Number.isInteger(g.kind) &&
+        g.kind >= 0 &&
+        g.kind < GUESTS.length,
+    ) &&
+    Array.isArray(x.hosts) &&
+    x.hosts.every(isRoom)
+  );
+}
+/** Tea meter position (0–1) at `ms` into a pour: a 1.6-second back-and-forth sweep. */
+const meter = (ms: number) => {
+  const u = (ms % 1600) / 1600;
+  return u < 0.5 ? u * 2 : 2 - u * 2;
+};
 const wishIcon = (guest: number) => {
   const g = GUESTS[guest];
   return `${g.comfort ? '♛' : ''}${g.item ? ITEM_ICON[g.item] : ROOM_ICON[g.room]}`;
@@ -100,6 +192,13 @@ const TRAIL_COPY = {
     finds: 'Finds a lodge decoration (+1 tip per visit, up to 6), 10 hearts and a viscacha for the album.',
     start: 'Warm scarves on. The condors are waiting!',
     done: 'Summit reached! +60 supplies, +90 tips, 10 hearts and a new decoration for the lodge.',
+  },
+  rescue: {
+    art: '✚',
+    button: 'Rescue the hiker ↗',
+    finds: 'Reputation +8 and a grateful hiker for the album.',
+    start: 'Dora grabs the lantern, Enzo the blanket. Hold on, little hiker!',
+    done: 'The lost hiker is safe and warm! +40 tips and +8 reputation.',
   },
 } as const;
 const stars = (n: number) => '★'.repeat(n) + '☆'.repeat(5 - n);
@@ -204,6 +303,184 @@ function Chin({
     </span>
   );
 }
+function GuestButton({
+  target,
+  onOpen,
+  children,
+}: {
+  target: ProfileTarget;
+  onOpen: (t: ProfileTarget, el: HTMLElement) => void;
+  children: React.ReactNode;
+}) {
+  const who = guestIdentity(target.seed, target.guest, target.regular);
+  return (
+    <button
+      type="button"
+      className="mr-guest-btn"
+      aria-label={`${who.name} the ${GUESTS[target.guest].name.toLowerCase()}: open profile`}
+      onClick={(e) => onOpen(target, e.currentTarget)}
+    >
+      {children}
+    </button>
+  );
+}
+function PhotoScene({ photo }: { photo: Photo }) {
+  return (
+    <div
+      className={`mr-photo-scene season-${photo.season}${photo.night ? ' night' : ''}${photo.event === 'storm' ? ' storm' : ''}`}
+      aria-hidden="true"
+    >
+      <div className="mr-photo-lodge">
+        {SLOT.map((i) => (
+          <div key={i} className={`mr-photo-room${photo.rooms[i] ? '' : ' locked'}`}>
+            {photo.perks[i] >= 0 && (
+              <i className={`mr-perk-art perk-${i}-${photo.perks[i]}`}>
+                <b />
+                <b />
+                <b />
+              </i>
+            )}
+            {photo.guests
+              .filter((g) => g.room === i)
+              .map((g) => (
+                <Visitor key={`${g.room}-${g.coat}`} coat={g.coat} kind={g.kind} />
+              ))}
+            {photo.hosts.map(
+              (room, h) =>
+                room === i && (
+                  <span key={h} className={`mr-chin small ${h ? 'enzo' : 'dora'}`}>
+                    <Fur />
+                  </span>
+                ),
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+function TeaGame({
+  ready,
+  wait,
+  onPour,
+}: {
+  ready: boolean;
+  wait: number;
+  onPour: (accuracy: number) => void;
+}) {
+  const [start, setStart] = useState<number | null>(null);
+  const [pos, setPos] = useState(0);
+  // Only this card re-renders every frame while the tea is pouring.
+  useEffect(() => {
+    if (start === null) return;
+    let frame = 0;
+    const tick = () => {
+      setPos(meter(performance.now() - start));
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [start]);
+  if (start === null)
+    return (
+      <button
+        disabled={!ready}
+        onClick={() => {
+          setPos(0);
+          setStart(performance.now());
+        }}
+      >
+        {ready ? 'Pour tea ↗' : `Kettle warming · ${wait}s`}
+      </button>
+    );
+  return (
+    <>
+      <div className="mr-meter" aria-hidden="true">
+        <i className="good" />
+        <i className="perfect" />
+        <i className="mark" style={{ left: `${pos * 100}%` }} />
+      </div>
+      <button
+        onClick={() => {
+          const p = meter(performance.now() - start);
+          setStart(null);
+          onPour(Math.max(0, 1 - Math.abs(p - 0.7) / 0.3));
+        }}
+      >
+        Stop pouring
+      </button>
+    </>
+  );
+}
+function CatchGame({
+  ready,
+  wait,
+  weather,
+  onDone,
+}: {
+  ready: boolean;
+  wait: number;
+  weather: Weather;
+  onDone: (caught: number) => void;
+}) {
+  const [running, setRunning] = useState(false);
+  const [items, setItems] = useState<{ id: number; x: number }[]>([]);
+  const [caught, setCaught] = useState(0);
+  const count = useRef(0);
+  const done = useRef(onDone);
+  done.current = onDone;
+  useEffect(() => {
+    if (!running) return;
+    let id = 0;
+    const spawn = setInterval(() => {
+      const n = ++id;
+      setItems((list) => [...list, { id: n, x: 5 + Math.random() * 85 }]);
+      setTimeout(() => setItems((list) => list.filter((it) => it.id !== n)), 2400);
+    }, 450);
+    const end = setTimeout(() => {
+      clearInterval(spawn);
+      setRunning(false);
+      setItems([]);
+      done.current(count.current);
+    }, 8000);
+    return () => {
+      clearInterval(spawn);
+      clearTimeout(end);
+    };
+  }, [running]);
+  if (!running)
+    return (
+      <button
+        disabled={!ready}
+        onClick={() => {
+          count.current = 0;
+          setCaught(0);
+          setRunning(true);
+        }}
+      >
+        {ready ? `Catch the ${weather} ↗` : `Resting · ${wait}s`}
+      </button>
+    );
+  return (
+    <div className={`mr-catch ${weather}`} data-testid="catch-field">
+      <span className="mr-catch-count">{caught} caught</span>
+      {items.map((it) => (
+        <button
+          key={it.id}
+          type="button"
+          className="mr-catch-item"
+          aria-label={`Catch a ${CATCHABLE[weather]}`}
+          style={{ left: `${it.x}%` }}
+          onClick={() => {
+            count.current++;
+            setCaught(count.current);
+            setItems((list) => list.filter((x) => x.id !== it.id));
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 export default function MountainRetreat() {
   const game = useRef<RetreatState>(freshRetreat());
   // Last guest visit this session, so visitors only appear when one really happened.
@@ -240,6 +517,42 @@ export default function MountainRetreat() {
   const newCoat = useRef(-1);
   // Lodge second until which the viscacha lingers after a summit trip.
   const viscachaUntil = useRef(-1);
+  const [profile, setProfile] = useState<ProfileTarget | null>(null);
+  const profileHeading = useRef<HTMLHeadingElement>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  const openProfile = (target: ProfileTarget, el: HTMLElement) => {
+    opener.current = el;
+    setProfile(target);
+  };
+  const closeProfile = () => {
+    setProfile(null);
+    opener.current?.focus();
+  };
+  useEffect(() => {
+    if (profile) profileHeading.current?.focus();
+  }, [profile]);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  useEffect(() => {
+    try {
+      const list: unknown = JSON.parse(localStorage.getItem(PHOTO_KEY) ?? '[]');
+      if (Array.isArray(list)) setPhotos(list.filter(validPhoto).slice(0, PHOTO_CAP));
+    } catch {
+      /* A damaged scrapbook starts empty. */
+    }
+  }, []);
+  const savePhotos = (list: Photo[]) => {
+    setPhotos(list);
+    try {
+      localStorage.setItem(PHOTO_KEY, JSON.stringify(list));
+    } catch {
+      /* The scrapbook lasts this visit only. */
+    }
+  };
+  // The latest memorable moment; the camera suggests itself for 30 lodge seconds.
+  const moment = useRef({ caption: '', until: -1 });
+  const markMoment = (caption: string) => {
+    moment.current = { caption, until: game.current.elapsed + 30 };
+  };
   useEffect(() => {
     try {
       if (localStorage.getItem('mountain-retreat-sound') === 'on') {
@@ -282,6 +595,16 @@ export default function MountainRetreat() {
       setStorage('Storage unavailable · progress lasts this visit only');
     }
   };
+  const announceGoals = (before: number) => {
+    const g = game.current;
+    const won = GOALS.filter((_, i) => g.goals & (1 << i) && !(before & (1 << i)));
+    if (!won.length) return;
+    setNotice(
+      `Goal complete: ${won.map((w) => w.name).join(', ')}! Keepsake: ${won.map((w) => w.keepsake.toLowerCase()).join(', ')} (+${won.reduce((a, w) => a + w.tips, 0)} tips).`,
+    );
+    markMoment(`Goal complete: ${won[0].name}`);
+    if (soundOn.current) playCue('return');
+  };
   useEffect(() => {
     const now = Date.now();
     try {
@@ -320,6 +643,13 @@ export default function MountainRetreat() {
         advanceRetreat(game.current, seconds);
         const g = game.current;
         const changed = awaySummary(before, g);
+        if (g.event && g.event.kind !== before.event?.kind) {
+          setNotice(`${EVENTS[g.event.kind].name}! ${EVENTS[g.event.kind].detail}`);
+          markMoment(`${EVENTS[g.event.kind].name} at the lodge`);
+          if (soundOn.current) playCue('visit');
+        }
+        if (rating(g) > rating(before))
+          markMoment(`Juniper Lodge earns ${rating(g)} stars`);
         if (g.visits > visit.current.visits) {
           visit.current = {
             visits: g.visits,
@@ -347,6 +677,7 @@ export default function MountainRetreat() {
             setNotice(
               `A postcard from ${REGULARS[g.last.regular].name}! “Thank you for the warm welcome.” +${POSTCARDS[g.last.postcard].tips} tips.`,
             );
+            markMoment(`A postcard from ${REGULARS[g.last.regular].name}`);
             if (soundOn.current) playCue('return');
           }
         }
@@ -372,7 +703,15 @@ export default function MountainRetreat() {
               ? `Lanterns, laughter, full hearts! +${reward.tips} tips, +${reward.hearts} hearts and +5 reputation.`
               : TRAIL_COPY[was.trail ?? 'juniper'].done,
           );
+          markMoment(
+            was.kind === 'festival'
+              ? `A ${season(g.elapsed)} lantern festival`
+              : was.trail === 'rescue'
+                ? 'The lost hiker, safe at last'
+                : `Home from ${TRAILS[was.trail ?? 'juniper'].name}`,
+          );
         }
+        announceGoals(before.goals);
         persist();
         render((n) => n + 1);
       }
@@ -388,7 +727,9 @@ export default function MountainRetreat() {
   }, []);
   const s = game.current;
   const act = (fn: () => void) => {
+    const goals = game.current.goals;
     fn();
+    announceGoals(goals);
     persist();
     render((n) => n + 1);
   };
@@ -396,6 +737,10 @@ export default function MountainRetreat() {
   // Number keys 1–4 set the hosts' duties; the latest render's state is always used.
   const keys = useRef<(e: KeyboardEvent) => void>(() => {});
   keys.current = (e) => {
+    if (e.key === 'Escape' && profile) {
+      closeProfile();
+      return;
+    }
     const target = e.target as HTMLElement | null;
     const shortcut = SHORTCUTS[e.key];
     if (
@@ -459,6 +804,105 @@ export default function MountainRetreat() {
     !night &&
     (s.elapsed < viscachaUntil.current || s.elapsed % 240 < 60);
   const smoke = busy ? 0 : staying ? Math.min(3, 1 + Math.floor(open / 2)) : 1;
+  const weather: Weather = s.event?.kind === 'storm' ? 'rain' : WEATHER[when];
+  const openRooms = SLOT.filter((i) => s.rooms[i] > 0);
+  const nextRoom = GUESTS[next.guest].room;
+  const arrivalRooms = [nextRoom, ...openRooms.filter((i) => i !== nextRoom)];
+  const stayTarget = (i: number): ProfileTarget =>
+    s.last && featuredRoom === i
+      ? { seed: s.visits - 1, guest: s.last.guest, coat: s.last.coat, regular: s.last.regular, where: 'room', room: i, visit: s.visits, featured: true }
+      : { seed: fillerSeed(s.visits, i), guest: filler(i), coat: s.visits + i, regular: -1, where: 'room', room: i, visit: s.visits, featured: false };
+  const nextTarget = (where: 'path' | 'next'): ProfileTarget => ({
+    seed: s.visits,
+    guest: next.guest,
+    coat: next.coat,
+    regular: next.regular,
+    where,
+    room: nextRoom,
+    visit: s.visits,
+    featured: true,
+  });
+  const snap = () => {
+    const g = game.current;
+    const photo: Photo = {
+      at: Date.now(),
+      caption:
+        g.elapsed < moment.current.until
+          ? moment.current.caption
+          : `A ${when} ${night ? 'night' : 'day'} at Juniper Lodge`,
+      season: when,
+      night,
+      event: g.event?.kind ?? null,
+      rooms: [...g.rooms],
+      perks: [...g.perks],
+      guests:
+        staying && g.last
+          ? openRooms.map((i) => {
+              const t = stayTarget(i);
+              return { room: i, coat: t.coat % COATS.length, kind: t.guest };
+            })
+          : [],
+      hosts: busy ? [] : [hostStop(g, 'dora').room, hostStop(g, 'enzo').room],
+    };
+    moment.current.until = -1;
+    savePhotos([photo, ...photos].slice(0, PHOTO_CAP));
+    setNotice(`Snap! “${photo.caption}” is in the scrapbook.`);
+  };
+  const onPour = (accuracy: number) =>
+    act(() => {
+      const grade = pourTea(game.current, accuracy);
+      if (!grade) return;
+      const r = TEA_REWARDS[grade];
+      setNotice(
+        grade === 'perfect'
+          ? `A perfect pour! +${r.tips} tips and +${r.hearts} hearts.`
+          : grade === 'good'
+            ? `A lovely cup. +${r.tips} tips and +${r.hearts} heart.`
+            : `Oops, a little spill. +${r.tips} tips for trying.`,
+      );
+      if (grade === 'perfect') markMoment('A perfect cup of tea');
+    });
+  const onCatch = (caught: number) =>
+    act(() => {
+      const tips = catchReward(game.current, caught);
+      if (tips !== null) setNotice(`You caught ${caught}! +${tips} tips.`);
+    });
+  const pid = profile ? guestIdentity(profile.seed, profile.guest, profile.regular) : null;
+  const treatRoom =
+    profile && profile.where === 'room' && profile.visit === s.visits && staying
+      ? profile.room
+      : -1;
+  const profileStatus = (p: ProfileTarget) => {
+    const room = p.room >= 0 ? ROOMS[p.room].name : '';
+    const fresh = p.visit === s.visits;
+    switch (p.where) {
+      case 'room':
+        return !fresh || !staying
+          ? 'Has checked out. Safe travels!'
+          : p.featured && s.last
+            ? `Staying in the ${room}. ${s.last.outcome === 'happy' ? 'Their wish was granted ♥' : 'Their wish went unmet this time.'}`
+            : `Staying in the ${room}.`;
+      case 'path':
+      case 'next':
+        return fresh
+          ? `On the way up, hoping for ${wishText(p.guest)}.`
+          : s.visits === p.visit + 1 && s.last && s.last.outcome !== 'away'
+            ? `Checked in to the ${room}.`
+            : 'Has moved on.';
+      case 'roof':
+        return 'Counting stars on the roof tonight.';
+      case 'viscacha':
+        return 'Sunning on the mountainside. Spotted after summit trips.';
+      case 'leaving':
+        return 'Turned away with no supplies to spare. Maybe next time.';
+      case 'musician':
+        return 'Playing the charango by the door for anyone who will listen.';
+      default:
+        return s.rooms[p.room]
+          ? 'Drops by on every fifth visit.'
+          : `Will visit once the ${room} opens.`;
+    }
+  };
   const seasonLeft = SEASON_SECONDS - (s.elapsed % SEASON_SECONDS);
   const nextSeason = SEASONS[(SEASONS.indexOf(when) + 1) % SEASONS.length];
   const lightLeft = night
@@ -534,6 +978,13 @@ export default function MountainRetreat() {
             Shortcuts: press 1 for Welcome, 2 for Extra comfort, 3 for Gather
             and 4 for Craft with care. Open the ? beside a number to see
             exactly where it comes from. Sound is off until you switch it on.
+          </p>
+          <p>
+            Click any guest to see their profile, and offer the guest in a room
+            an oat cake or herbal soap once per visit. Lodge goals pay tips and
+            leave keepsakes. Every few minutes a surprise may arrive: a storm, a
+            travelling musician, or a lost hiker to rescue. Pour tea and catch
+            the weather for a few bonus tips, and snap photos for the scrapbook.
           </p>
           <p>
             Every visit has a featured guest with a wish: a room, sometimes an
@@ -687,6 +1138,7 @@ export default function MountainRetreat() {
           <div className="mr-scene-caption">
             <span>
               01 / JUNIPER LODGE ·{' '}
+              <span data-testid="lodge-title">{lodgeTitle(s).toUpperCase()}</span> ·{' '}
               <span data-testid="season">
                 {SEASON_ICON[when]} {when.toUpperCase()} ·{' '}
                 {night ? '☾ NIGHT' : '☼ DAY'}
@@ -705,7 +1157,7 @@ export default function MountainRetreat() {
             </span>
           </div>
           <div
-            className={`mr-landscape season-${when}${night ? ' night' : ''}${busy ? ' away' : ''}`}
+            className={`mr-landscape season-${when}${night ? ' night' : ''}${busy ? ' away' : ''}${s.event?.kind === 'storm' ? ' storm' : ''}`}
             data-testid="landscape"
           >
             <div className="mr-sun" />
@@ -729,8 +1181,8 @@ export default function MountainRetreat() {
                 />
               ))}
             </div>
-            <div className={`mr-weather ${WEATHER[when]}`} aria-hidden="true">
-              {Array.from({ length: when === 'summer' ? 5 : 12 }, (_, n) => (
+            <div className={`mr-weather ${weather}`} aria-hidden="true">
+              {Array.from({ length: weather === 'butterflies' ? 5 : 12 }, (_, n) => (
                 <i
                   key={n}
                   style={
@@ -744,8 +1196,13 @@ export default function MountainRetreat() {
               ))}
             </div>
             {viscacha && (
-              <div className="mr-viscacha" data-testid="viscacha" aria-hidden="true">
-                <Visitor coat={0} kind={VISCACHA} />
+              <div className="mr-viscacha" data-testid="viscacha">
+                <GuestButton
+                  target={{ seed: 300000 + s.expeditions, guest: VISCACHA, coat: 0, regular: -1, where: 'viscacha', room: -1, visit: s.visits, featured: false }}
+                  onOpen={openProfile}
+                >
+                  <Visitor coat={0} kind={VISCACHA} />
+                </GuestButton>
               </div>
             )}
             <div className="mr-lodge">
@@ -760,8 +1217,13 @@ export default function MountainRetreat() {
                 </i>
               ))}
               {night && !busy && s.rooms[2] > 0 && (
-                <div className="mr-roof-guest" aria-hidden="true">
-                  <Visitor coat={Math.floor(s.elapsed / DAY_SECONDS)} kind={2} />
+                <div className="mr-roof-guest">
+                  <GuestButton
+                    target={{ seed: 200000 + Math.floor(s.elapsed / DAY_SECONDS), guest: 2, coat: Math.floor(s.elapsed / DAY_SECONDS) % COATS.length, regular: -1, where: 'roof', room: 2, visit: s.visits, featured: false }}
+                    onOpen={openProfile}
+                  >
+                    <Visitor coat={Math.floor(s.elapsed / DAY_SECONDS)} kind={2} />
+                  </GuestButton>
                 </div>
               )}
               {/* Outside the roof, whose clip-path would hide smoke above it. */}
@@ -815,14 +1277,16 @@ export default function MountainRetreat() {
                             key={s.visits}
                             className={`mr-visitor${since === period - 1 ? ' leaving' : ''}${featuredRoom === i ? ' featured' : ''}${featuredRoom === i && newCoat.current === s.visits ? ' new-coat' : ''}${featuredRoom === i && s.last.outcome === 'happy' ? ' hop' : ''}${featuredRoom === i && s.last.regular >= 0 ? ' regular' : ''}`}
                           >
-                            <Visitor
-                              coat={
-                                featuredRoom === i
-                                  ? s.last.coat
-                                  : s.visits + i
-                              }
-                              kind={featuredRoom === i ? s.last.guest : filler(i)}
-                            />
+                            <GuestButton target={stayTarget(i)} onOpen={openProfile}>
+                              <Visitor
+                                coat={
+                                  featuredRoom === i
+                                    ? s.last.coat
+                                    : s.visits + i
+                                }
+                                kind={featuredRoom === i ? s.last.guest : filler(i)}
+                              />
+                            </GuestButton>
                             {featuredRoom === i && s.last.regular >= 0 && (
                               <b className="mr-nametag">
                                 {REGULARS[s.last.regular].name}
@@ -909,6 +1373,17 @@ export default function MountainRetreat() {
                     );
                   })}
               </div>
+              {s.goals > 0 && (
+                <div className="mr-keepsakes" data-testid="keepsakes" aria-hidden="true">
+                  {GOALS.map((g, i) =>
+                    s.goals & (1 << i) ? (
+                      <i key={g.name} title={g.keepsake}>
+                        {KEEPSAKE_ICON[i]}
+                      </i>
+                    ) : null,
+                  )}
+                </div>
+              )}
               <div className="mr-foundation">
                 EST. TODAY · STAY A LITTLE LONGER
               </div>
@@ -918,33 +1393,68 @@ export default function MountainRetreat() {
               <div
                 className="mr-arrivals"
                 key={Math.floor(s.elapsed / period)}
-                aria-hidden="true"
               >
-                {Array.from({ length: open }, (_, n) => (
+                {arrivalRooms.map((room, n) => (
                   <span
-                    key={n}
+                    key={room}
                     className={n === 0 ? 'featured' : undefined}
                     style={{ '--n': n } as React.CSSProperties}
                   >
-                    <Visitor
-                      coat={n === 0 ? next.coat : s.visits + 1 + n}
-                      kind={n === 0 ? next.guest : filler(n + 1)}
-                    />
+                    <GuestButton
+                      target={
+                        n === 0
+                          ? nextTarget('path')
+                          : { seed: fillerSeed(s.visits + 1, room), guest: filler(room + 1), coat: s.visits + 1 + room, regular: -1, where: 'path', room, visit: s.visits, featured: false }
+                      }
+                      onOpen={openProfile}
+                    >
+                      <Visitor
+                        coat={n === 0 ? next.coat : s.visits + 1 + room}
+                        kind={n === 0 ? next.guest : filler(room + 1)}
+                      />
+                    </GuestButton>
                     {n === 0 && (
-                      <b className="mr-wish-bubble">{wishIcon(next.guest)}</b>
+                      <b className="mr-wish-bubble" aria-hidden="true">
+                        {wishIcon(next.guest)}
+                      </b>
                     )}
                     {n === 0 && next.regular >= 0 && (
-                      <b className="mr-nametag">{REGULARS[next.regular].name}</b>
+                      <b className="mr-nametag" aria-hidden="true">
+                        {REGULARS[next.regular].name}
+                      </b>
                     )}
                   </span>
                 ))}
               </div>
             )}
             {turnedAway && s.last && (
-              <div className="mr-sad" key={s.visits} aria-hidden="true">
-                <Visitor coat={s.last.coat} kind={s.last.guest} />
-                <b>…</b>
+              <div className="mr-sad" key={s.visits}>
+                <GuestButton
+                  target={{ seed: s.visits - 1, guest: s.last.guest, coat: s.last.coat, regular: s.last.regular, where: 'leaving', room: GUESTS[s.last.guest].room, visit: s.visits, featured: true }}
+                  onOpen={openProfile}
+                >
+                  <Visitor coat={s.last.coat} kind={s.last.guest} />
+                </GuestButton>
+                <b aria-hidden="true">…</b>
               </div>
+            )}
+            {s.event?.kind === 'musician' && !busy && (
+              <div className="mr-musician" data-testid="musician">
+                <GuestButton
+                  target={{ seed: 400000 + Math.floor(s.elapsed / EVENT_EVERY), guest: 0, coat: 3, regular: -1, where: 'musician', room: -1, visit: s.visits, featured: false }}
+                  onOpen={openProfile}
+                >
+                  <Visitor coat={3} kind={0} />
+                </GuestButton>
+                <b className="mr-notes" aria-hidden="true">
+                  ♪ ♫
+                </b>
+              </div>
+            )}
+            {s.event?.kind === 'lost' && (
+              <b className="mr-lost-signal" aria-hidden="true">
+                !
+              </b>
             )}
             {busy && (
               <div
@@ -956,13 +1466,92 @@ export default function MountainRetreat() {
                 <span>
                   {s.activity?.kind === 'festival'
                     ? 'Hosting the lantern festival'
-                    : `Exploring ${TRAILS[s.activity?.trail ?? 'juniper'].name}`}
+                    : s.activity?.trail === 'rescue'
+                      ? 'Rescuing a lost hiker'
+                      : `Exploring ${TRAILS[s.activity?.trail ?? 'juniper'].name}`}
                 </span>
               </div>
             )}
           </div>
+          {profile && pid && (
+            // Non-modal: the lodge keeps running behind the open profile.
+            <dialog
+              open
+              className="mr-profile"
+              aria-labelledby="mr-profile-name"
+              data-testid="guest-profile"
+            >
+              <div className="mr-profile-portrait" aria-hidden="true">
+                <Visitor coat={profile.coat} kind={profile.guest} />
+              </div>
+              <div className="mr-profile-body">
+                <h3 id="mr-profile-name" tabIndex={-1} ref={profileHeading}>
+                  {pid.name} <span>{GUESTS[profile.guest].name.toUpperCase()}</span>
+                </h3>
+                <p className="mr-profile-meta">
+                  {COAT_NAMES[profile.coat % COAT_NAMES.length]} coat · from {pid.home}
+                  {profile.regular >= 0 ? ' · a regular' : ''}
+                </p>
+                <p className="mr-profile-bio">“{pid.bio}”</p>
+                <p data-testid="profile-status">{profileStatus(profile)}</p>
+                {profile.guest !== VISCACHA && (
+                  <p>
+                    {profile.featured || profile.regular >= 0
+                      ? `Hopes for ${wishText(profile.guest)}.`
+                      : `Favourite room: the ${ROOMS[GUESTS[profile.guest].room].name}.`}
+                  </p>
+                )}
+                {profile.regular >= 0 && (
+                  <p>
+                    Friendship {s.friends[profile.regular]} / {FRIENDSHIP_CAP} ·{' '}
+                    {POSTCARDS.filter((p) => s.friends[profile.regular] >= p.at).length}{' '}
+                    postcards
+                  </p>
+                )}
+                <p>
+                  {s.album[profile.guest] & (1 << (profile.coat % COAT_NAMES.length))
+                    ? '✧ This coat is in your album.'
+                    : 'Not in your album yet.'}
+                </p>
+                {treatRoom >= 0 && (
+                  <div className="mr-treats">
+                    {(['oatcake', 'soap'] as const).map((item) => (
+                      <button
+                        key={item}
+                        disabled={!canTreat(s, treatRoom) || s.pantry[item] < 1}
+                        onClick={() =>
+                          act(() => {
+                            if (offerTreat(game.current, treatRoom, item))
+                              setNotice(
+                                `${pid.name} loved the ${ITEMS[item].name}! +${TREAT.hearts} hearts.`,
+                              );
+                          })
+                        }
+                      >
+                        Offer {ITEMS[item].name} {ITEM_ICON[item]}
+                        <small>
+                          {s.pantry[item]} in the pantry · +{TREAT.hearts} ♥
+                        </small>
+                      </button>
+                    ))}
+                    {!canTreat(s, treatRoom) && <p>Already spoiled this visit.</p>}
+                  </div>
+                )}
+                <button className="mr-profile-close" onClick={closeProfile}>
+                  Close profile
+                </button>
+              </div>
+            </dialog>
+          )}
           <div className="mr-scene-foot">
             <span>Two friends. One shared dream.</span>
+            <button
+              className={`mr-snap${s.elapsed < moment.current.until ? ' suggest' : ''}`}
+              data-testid="snap"
+              onClick={snap}
+            >
+              ◉ Snap a photo
+            </button>
             <span>
               ✦ {s.festivals} festivals · {s.expeditions} trails · {s.decor} /{' '}
               {DECOR_CAP} decorations
@@ -1001,6 +1590,41 @@ export default function MountainRetreat() {
             <span>THE HEART OF THE HOUSE</span>
             <h2>Better, together.</h2>
           </div>
+          {s.event && (
+            <article
+              className={`mr-event ${s.event.kind}`}
+              data-testid="event"
+              aria-live="polite"
+            >
+              <h3>
+                {EVENTS[s.event.kind].name} <span>{s.event.remaining}s left</span>
+              </h3>
+              <p>{EVENTS[s.event.kind].detail}</p>
+              {s.event.kind === 'lost' && (
+                <button
+                  disabled={
+                    !ready ||
+                    busy ||
+                    !!trailClosed(s, 'rescue') ||
+                    s.supplies < TRAILS.rescue.cost
+                  }
+                  onClick={() =>
+                    act(() => {
+                      if (startActivity(game.current, 'expedition', 'rescue'))
+                        setNotice(TRAIL_COPY.rescue.start);
+                    })
+                  }
+                >
+                  {TRAIL_COPY.rescue.button}
+                  <small>
+                    {activitySeconds(s, 'expedition', 'rescue')}s · costs{' '}
+                    {TRAILS.rescue.cost} supplies · +{TRAILS.rescue.tips} tips, +8
+                    reputation
+                  </small>
+                </button>
+              )}
+            </article>
+          )}
           <article
             className={`mr-guest-book ${grantable ? 'ok' : 'warn'}`}
             data-testid="next-guest"
@@ -1010,9 +1634,10 @@ export default function MountainRetreat() {
               className="mr-ring"
               data-testid="visit-ring"
               style={{ '--p': ring } as React.CSSProperties}
-              aria-hidden="true"
             >
-              <Visitor coat={next.coat} kind={next.guest} />
+              <GuestButton target={nextTarget('next')} onOpen={openProfile}>
+                <Visitor coat={next.coat} kind={next.guest} />
+              </GuestButton>
             </span>
             <div>
               {freshCoat && (
@@ -1315,6 +1940,45 @@ export default function MountainRetreat() {
           </output>
         )}
       </section>
+      <section className="mr-games" aria-labelledby="mr-games-title">
+        <div className="mr-section-title">
+          <span>LITTLE PLEASURES</span>
+          <h2 id="mr-games-title">A moment for yourself.</h2>
+          <p>
+            Quick optional bonuses. They pause during outings and rest between
+            rounds in lodge time.
+          </p>
+        </div>
+        <div className="mr-game-grid">
+          <article>
+            <h3>Pour the perfect cup</h3>
+            <p>
+              Stop the pour in the gold band. Perfect: +{TEA_REWARDS.perfect.tips}{' '}
+              tips and +{TEA_REWARDS.perfect.hearts} ♥ · good: +
+              {TEA_REWARDS.good.tips} · spill: +{TEA_REWARDS.spill.tips}. Once every{' '}
+              {TEA_COOLDOWN} lodge seconds.
+            </p>
+            <TeaGame
+              ready={ready && teaReady(s)}
+              wait={Math.max(0, s.teaReadyAt - s.elapsed)}
+              onPour={onPour}
+            />
+          </article>
+          <article>
+            <h3>Catch the {weather}</h3>
+            <p>
+              Tap as many as you can in 8 seconds: +1 tip each, up to {CATCH_CAP}.
+              Once every {CATCH_COOLDOWN} lodge seconds.
+            </p>
+            <CatchGame
+              ready={ready && catchReady(s)}
+              wait={Math.max(0, s.catchReadyAt - s.elapsed)}
+              weather={weather}
+              onDone={onCatch}
+            />
+          </article>
+        </div>
+      </section>
       <section className="mr-album" aria-labelledby="mr-album-title">
         <div className="mr-section-title">
           <span>
@@ -1333,7 +1997,12 @@ export default function MountainRetreat() {
             const waiting = !s.rooms[GUESTS[r.guest].room];
             return (
               <article key={r.name} data-testid={`regular-${i}`}>
-                <Visitor coat={r.coat} kind={r.guest} />
+                <GuestButton
+                  target={{ seed: -1 - i, guest: r.guest, coat: r.coat, regular: i, where: 'album', room: GUESTS[r.guest].room, visit: s.visits, featured: false }}
+                  onOpen={openProfile}
+                >
+                  <Visitor coat={r.coat} kind={r.guest} />
+                </GuestButton>
                 <div>
                   <h3>
                     {r.name} <span>{GUESTS[r.guest].name.toUpperCase()}</span>
@@ -1385,6 +2054,82 @@ export default function MountainRetreat() {
             </article>
           ))}
         </div>
+      </section>
+      <section className="mr-goals" aria-labelledby="mr-goals-title">
+        <div className="mr-section-title">
+          <span>
+            LODGE GOALS · {GOALS.filter((_, i) => s.goals & (1 << i)).length} /{' '}
+            {GOALS.length} · {lodgeTitle(s).toUpperCase()}
+          </span>
+          <h2 id="mr-goals-title">Something to aim for.</h2>
+          <p>
+            Each goal pays tips once and leaves a keepsake by the lodge. Meet more
+            goals to raise the lodge’s title.
+          </p>
+        </div>
+        <ol className="mr-goal-list">
+          {GOALS.map((g, i) => {
+            const met = (s.goals & (1 << i)) > 0;
+            return (
+              <li key={g.name} className={met ? 'done' : ''} data-testid={`goal-${i}`}>
+                <b aria-hidden="true">{met ? KEEPSAKE_ICON[i] : '?'}</b>
+                <div>
+                  <h3>
+                    {met ? '✓ ' : ''}
+                    {g.name}
+                  </h3>
+                  <p>
+                    {g.detail} · +{g.tips} tips · {met ? g.keepsake : 'a keepsake'}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+      <section className="mr-scrapbook" aria-labelledby="mr-scrapbook-title">
+        <div className="mr-section-title">
+          <span>
+            SCRAPBOOK · {photos.length} / {PHOTO_CAP} PHOTOS
+          </span>
+          <h2 id="mr-scrapbook-title">Moments worth keeping.</h2>
+          <p>
+            Use ◉ Snap a photo under the lodge. It glows after a memorable
+            moment. The newest {PHOTO_CAP} photos are kept on this device.
+          </p>
+        </div>
+        {photos.length ? (
+          <div className="mr-photo-grid">
+            {photos.map((photo, n) => (
+              <figure key={photo.at + '-' + n} className="mr-photo" data-testid="photo">
+                <PhotoScene photo={photo} />
+                <figcaption>
+                  <input
+                    aria-label="Photo caption"
+                    maxLength={120}
+                    value={photo.caption}
+                    onChange={(e) =>
+                      savePhotos(
+                        photos.map((p, m) =>
+                          m === n ? { ...p, caption: e.target.value } : p,
+                        ),
+                      )
+                    }
+                  />
+                  <small>
+                    {new Date(photo.at).toLocaleDateString()} · {photo.season}
+                    {photo.night ? ' night' : ''}
+                  </small>
+                  <button onClick={() => savePhotos(photos.filter((_, m) => m !== n))}>
+                    Remove photo
+                  </button>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        ) : (
+          <p className="mr-empty">No photos yet.</p>
+        )}
       </section>
       <footer className="mr-footer">
         <span>{storage}</span>

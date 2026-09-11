@@ -83,7 +83,7 @@ try {
   assert.equal(await page.getByRole('heading', { name: 'Everyone who stayed.' }).count(), 1);
   assert.equal(await page.getByRole('img', { name: /chinchilla/ }).count(), 4, 'album and guest book art stay decorative');
   const saved = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), key);
-  assert.equal(saved.version, 2);
+  assert.equal(saved.version, 3);
   assert.equal(saved.perks[0], 1);
   await page.screenshot({ path: '.checks/mountain-retreat/depth-desktop.png', fullPage: true });
   await page.close();
@@ -115,7 +115,7 @@ try {
   assert.doesNotMatch(await old.locator('.mr-notice').textContent(), /Unreadable/);
   assert.equal(await old.getByTestId('tips').textContent(), '30');
   assert.match(await old.locator('.trail-summit').textContent(), /Needs a 2-star lodge/);
-  assert.equal((await old.evaluate((k) => JSON.parse(localStorage.getItem(k)), key)).version, 2);
+  assert.equal((await old.evaluate((k) => JSON.parse(localStorage.getItem(k)), key)).version, 3);
   await old.close();
 
   for (const width of [320, 390, 768]) {

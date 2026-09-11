@@ -2740,6 +2740,499 @@ body:has(.mr-shell[data-theme='dark']) {
   }
 }
 
+/* Clickable guests and their profiles. */
+.mr-shell .mr-guest-btn {
+  all: unset;
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+}
+.mr-shell .mr-guest-btn:hover:not(:disabled) {
+  background: none;
+}
+.mr-shell .mr-guest-btn:hover .mr-chin {
+  filter: drop-shadow(0 0 4px #fff1c7);
+}
+.mr-shell .mr-guest-btn:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.mr-arrivals > span {
+  pointer-events: auto;
+}
+/* A non-modal <dialog open> sitting in the scene panel's flow, not the browser's centred box. */
+.mr-profile {
+  position: static;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  border: 0;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+.mr-profile-portrait {
+  flex-shrink: 0;
+  width: 96px;
+  height: 100px;
+  display: grid;
+  place-items: end center;
+  background: var(--raised);
+  border: 1px solid var(--line);
+}
+.mr-profile-portrait .mr-chin.small {
+  transform: none;
+  margin: 0 0 6px;
+}
+.mr-profile-body {
+  min-width: 0;
+  flex: 1;
+}
+.mr-profile h3 {
+  font-size: 22px;
+  font-weight: normal;
+  margin: 0 0 4px;
+}
+.mr-profile h3 span {
+  font: 13px ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: var(--muted);
+  margin-left: 6px;
+}
+.mr-shell .mr-profile p {
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 0 0 6px;
+  color: var(--ink);
+}
+.mr-shell .mr-profile .mr-profile-bio {
+  font-style: italic;
+}
+.mr-shell .mr-profile .mr-profile-meta {
+  font: 13px ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: var(--muted);
+}
+.mr-treats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 6px;
+  margin: 8px 0;
+}
+.mr-shell .mr-treats button,
+.mr-shell .mr-profile-close,
+.mr-shell .mr-event button,
+.mr-shell .mr-game-grid button,
+.mr-shell .mr-snap,
+.mr-shell .mr-photo button {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+  font-size: 14px;
+  text-align: left;
+}
+.mr-treats small,
+.mr-event button small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+.mr-shell .mr-treats button:hover:not(:disabled),
+.mr-shell .mr-profile-close:hover:not(:disabled),
+.mr-shell .mr-event button:hover:not(:disabled),
+.mr-shell .mr-game-grid button:hover:not(:disabled),
+.mr-shell .mr-snap:hover:not(:disabled) {
+  background: var(--selected);
+}
+@media (max-width: 480px) {
+  .mr-profile {
+    gap: 10px;
+    padding: 12px;
+  }
+  .mr-profile-portrait {
+    width: 70px;
+    height: 80px;
+  }
+  .mr-profile-portrait .mr-chin.small {
+    transform: scale(0.75);
+  }
+}
+
+/* Surprise events. */
+.mr-event {
+  border: 1px solid var(--line);
+  border-left: 4px solid #5a6a8a;
+  background: var(--surface);
+  padding: 12px 14px;
+  margin: 4px 0 8px;
+}
+.mr-event.lost {
+  border-left-color: #c0443a;
+}
+.mr-event.musician {
+  border-left-color: #b8703e;
+}
+.mr-event h3 {
+  font-size: 19px;
+  font-weight: normal;
+  margin: 0 0 4px;
+}
+.mr-event h3 span {
+  font: 13px ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: var(--muted);
+  margin-left: 6px;
+}
+.mr-shell .mr-event p {
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 0 0 8px;
+  color: var(--ink);
+}
+.mr-scene-panel .mr-landscape.storm {
+  background: linear-gradient(#5d6878, #8e98a3 68%, #5f7556 68%, #53664c);
+}
+.mr-landscape.storm .mr-sun {
+  opacity: 0;
+}
+.mr-weather.rain i {
+  width: 2px;
+  height: 14px;
+  background: #cfe0ef;
+  animation-duration: 0.9s;
+}
+.mr-musician {
+  position: absolute;
+  z-index: 4;
+  left: 28%;
+  bottom: 10px;
+}
+.mr-notes {
+  position: absolute;
+  left: 34px;
+  top: -14px;
+  color: #5b3417;
+  font: bold 14px ui-monospace, SFMono-Regular, Consolas, monospace;
+  animation: mr-zzz 1.6s steps(4) infinite;
+}
+.mr-lost-signal {
+  position: absolute;
+  z-index: 2;
+  left: 12%;
+  top: 130px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  background: #c0443a;
+  color: #fff6dd;
+  font: bold 13px ui-monospace, SFMono-Regular, Consolas, monospace;
+  animation: mr-twinkle 1s steps(2) infinite;
+}
+.mr-trail-hosts.rescue {
+  background: linear-gradient(#3f4f6a 0 70%, #6d6a55 70%);
+  color: #fff6dd;
+}
+.rescue .mr-outing-prop::before {
+  left: 62%;
+  top: 22%;
+  width: 12px;
+  height: 16px;
+  background: #e2c06a;
+  box-shadow: 0 0 12px #f6d98c;
+}
+
+/* Goals and keepsakes. */
+.mr-keepsakes {
+  position: absolute;
+  z-index: 4;
+  left: 1%;
+  bottom: -24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  max-width: 34%;
+}
+.mr-keepsakes i {
+  font-style: normal;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  background: #4b3527;
+  color: #e2c06a;
+  border: 1px solid #e2c06a;
+  font: 12px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.mr-goals,
+.mr-scrapbook,
+.mr-games {
+  margin-top: 38px;
+}
+.mr-goal-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+}
+.mr-goal-list li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 12px;
+  min-width: 0;
+}
+.mr-goal-list li > b {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--line);
+  color: var(--muted);
+  font: 15px ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.mr-goal-list li.done > b {
+  background: #4b3527;
+  color: #e2c06a;
+  border: 1px solid #e2c06a;
+}
+.mr-goal-list h3 {
+  font-size: 17px;
+  font-weight: normal;
+  margin: 0 0 2px;
+}
+.mr-shell .mr-goal-list p,
+.mr-shell .mr-empty {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* Mini-games. */
+.mr-game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+.mr-game-grid article {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 18px;
+  min-width: 0;
+}
+.mr-game-grid h3 {
+  font-size: 20px;
+  font-weight: normal;
+  margin: 0 0 6px;
+}
+.mr-shell .mr-game-grid p {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+.mr-meter {
+  position: relative;
+  height: 22px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  margin-bottom: 10px;
+}
+.mr-meter i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.mr-meter .good {
+  left: 58%;
+  width: 24%;
+  background: #e2c06a66;
+}
+.mr-meter .perfect {
+  left: 67%;
+  width: 6%;
+  background: #e2c06a;
+}
+.mr-meter .mark {
+  width: 4px;
+  margin-left: -2px;
+  background: var(--ink);
+}
+.mr-catch {
+  position: relative;
+  height: 170px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: linear-gradient(#dfe8cf, #b7d2c4);
+}
+.mr-catch-count {
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  font: 13px ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: #31463d;
+}
+.mr-shell .mr-catch-item {
+  all: unset;
+  position: absolute;
+  top: -20px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  animation: mr-drop 2.4s linear forwards;
+}
+.mr-shell .mr-catch-item:focus-visible {
+  outline: 3px solid var(--focus);
+}
+.mr-catch-item::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  background: #f3b8c4;
+}
+.mr-catch.leaves .mr-catch-item::after {
+  background: #d8894f;
+}
+.mr-catch.snow .mr-catch-item::after {
+  background: #fff;
+  box-shadow: 0 0 0 1px #9fb3c0;
+}
+.mr-catch.butterflies .mr-catch-item::after {
+  background: #f2c14e;
+}
+.mr-catch.rain .mr-catch-item::after {
+  background: #7fa8c9;
+}
+@keyframes mr-drop {
+  to {
+    translate: 0 190px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mr-shell .mr-catch-item {
+    top: 40%;
+  }
+}
+
+/* Scrapbook: photos redraw a miniature of the lodge from what was saved. */
+.mr-shell .mr-snap {
+  font-size: 13px;
+  min-height: 36px;
+  padding: 6px 10px;
+}
+.mr-shell .mr-snap.suggest {
+  background: #f5dfb6;
+  color: #5b3417;
+  border-color: #b9a77b;
+}
+.mr-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+.mr-photo {
+  margin: 0;
+  background: #fffaf0;
+  padding: 10px 10px 12px;
+  border: 1px solid #d9ddcc;
+  box-shadow: 0 3px 0 #0000001a;
+  rotate: -0.6deg;
+  min-width: 0;
+}
+.mr-photo:nth-child(even) {
+  rotate: 0.8deg;
+}
+.mr-photo-scene {
+  position: relative;
+  height: 150px;
+  overflow: hidden;
+  display: grid;
+  place-items: end center;
+  background: linear-gradient(#b7d2c4, #dae4c6 70%, #90aa7a 70%);
+}
+.mr-photo-scene.season-summer {
+  background: linear-gradient(#a9d3e0, #e6e7b8 70%, #8fb06b 70%);
+}
+.mr-photo-scene.season-autumn {
+  background: linear-gradient(#cfd6c0, #ead9b2 70%, #b09a62 70%);
+}
+.mr-photo-scene.season-winter {
+  background: linear-gradient(#c5d6dd, #e4ebee 70%, #eef2f2 70%);
+}
+.mr-photo-scene.night {
+  background: linear-gradient(#27324d, #4f5a78 70%, #445a42 70%);
+}
+.mr-photo-scene.storm {
+  background: linear-gradient(#5d6878, #8e98a3 70%, #5f7556 70%);
+}
+.mr-photo-lodge {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  width: 80%;
+  margin-bottom: 10px;
+  padding: 3px;
+  background: #72543c;
+}
+.mr-photo-room {
+  position: relative;
+  height: 56px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  background: #e6c895;
+}
+.mr-photo-room.locked {
+  background: #8a9476;
+}
+.mr-photo-scene.night .mr-photo-room:not(.locked) {
+  box-shadow: inset 0 0 18px #f6c86a88;
+}
+.mr-photo-room .mr-chin.small {
+  transform: scale(0.34);
+  margin: -55px -26px 0;
+}
+.mr-photo-room .mr-perk-art {
+  transform: scale(0.6);
+  transform-origin: bottom left;
+  left: 45%;
+  bottom: 2px;
+}
+.mr-photo figcaption {
+  margin-top: 8px;
+  display: grid;
+  gap: 4px;
+}
+.mr-photo input {
+  font: 15px Georgia, 'Times New Roman', serif;
+  border: 0;
+  border-bottom: 1px dashed #b9a77b;
+  background: transparent;
+  color: #31463d;
+  padding: 2px 0;
+  width: 100%;
+  min-width: 0;
+}
+.mr-photo small {
+  font: 12px ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: #4c5c50;
+}
+.mr-shell .mr-photo button {
+  color: #31463d;
+  border-color: #b9a77b;
+  font-size: 13px;
+  min-height: 36px;
+  padding: 4px 8px;
+  justify-self: start;
+}
+
 /* Seasons and nightfall tint the artwork; the lodge interiors stay readable. */
 .mr-landscape {
   transition: background 1.5s;
