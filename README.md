@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of twelve original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of thirteen original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -22,6 +22,7 @@ Listed in arcade-menu order.
 | 10 | Border Hop | `/hop` | Arcade flyer |
 | 11 | Dust Bath Dash | `/dust-bath` | Cozy spa |
 | 12 | Dora & Enzo’s Mountain Retreat | `/mountain-retreat` | Idle lodge |
+| 13 | Paw Buster X | `/paw-buster` | Action platformer |
 
 ## Run
 
@@ -229,6 +230,23 @@ Progress is saved locally under `dora-enzo-mountain-retreat-v1` (save format ver
 
 **Docs:** [Mountain Retreat validation and known limitations](docs/mountain-retreat-validation.md).
 
+### 13 · Paw Buster X (`/paw-buster`)
+
+**Play:** A Mega Man X-style side-scrolling action platformer. Dora (blue armour) fires a paw buster that charges through two levels: a tap shot deals 1, a half charge (0.55 s) deals 2, and a full charge (1.4 s) deals 4 and pierces. Enzo (red armour) swings a whisker saber for 3 (4 on every third swing), and his swings cut enemy shots out of the air. Both heroes run, dash, dash-jump, wall-slide and wall-jump. Each has separate health (16 to start). Tag your partner in at any time for a two-second tag strike that deals ×1.5 damage; when one hero falls, the other tags in automatically, and the run ends only when both are down.
+
+Pick any of three maverick stages: Snowcap Ridge (Frost Fox), Cloud Forest (Storm Owl) or Ember Caldera (Magma Snake). Each has checkpoints, beetles, bats and turrets, pits and spikes (6 damage each; a pit puts you back on the last safe ground) and a boss room that seals behind you. Beating a maverick gives its weapon: Frost Shard pierces, Gale Feather fires a fan of three, and Ember Coil rolls along the ground (28 energy, 2 per shot). Each maverick takes triple damage, and flinches, from another maverick's weapon. Each maverick stage hides a heart tank that adds 2 to both heroes' maximum health. Clearing all three opens the Cougar Citadel and the Cougar Kingpin. Enemies drop health (+6) and weapon energy (+8). Cleared stages, heart tanks and best times are saved in this browser.
+
+**Controls:**
+
+- ← → or A D: move. Space, K or Z: jump (hold for height; jump against a wall to wall-jump).
+- J or X: fire (Dora: hold to charge; Enzo: slash). L, C or Shift: dash (hold while jumping to dash-jump).
+- V or I: tag your partner in. Q / E: switch weapon. P / Esc: pause. Enter retries after a defeat.
+- Touch screens and narrow windows get an on-screen pad. Sound is optional and off by default.
+
+**Tests:** `npm run test:paw-buster` (also in `npm test`). Browser: `tests/e2e/paw-buster.mjs`.
+
+**Docs:** This section.
+
 ## Validation
 
 ```sh
@@ -243,7 +261,7 @@ npm run test:e2e   # optional; needs `npm run dev` running and `npm i -D playwri
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, and the `/Twelve ways/` assertion in `tests/e2e/dust-bath.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, and the `/Thirteen ways/` assertion in `tests/e2e/dust-bath.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

@@ -1,0 +1,105 @@
+import assert from 'node:assert/strict';
+import { chromium } from 'playwright';
+import { mkdir } from 'node:fs/promises';
+const base = process.env.E2E_BASE_URL || 'http://localhost:3000';
+const key = 'paw-buster-x-v1';
+const browser = await chromium.launch();
+const errors = [];
+const open = async (options) => {
+  const page = await browser.newPage(options);
+  page.setDefaultTimeout(20000);
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto(`${base}/paw-buster`);
+  await page.getByTestId('stage-snowcap').waitFor();
+  return page;
+};
+const board = (p) => p.getByTestId('board');
+const attr = async (p, name) => board(p).getAttribute(`data-${name}`);
+const waitState = (p, state) => p.waitForSelector(`[data-testid="board"][data-state="${state}"]`);
+try {
+  await mkdir('.checks/paw-buster', { recursive: true });
+
+  // The arcade lists the new cabinet.
+  const menu = await browser.newPage();
+  await menu.goto(base);
+  assert.equal(await menu.locator('.arcade-card').count(), 13);
+  assert.match(await menu.locator('a.arcade-card[href="/paw-buster"]').textContent(), /Paw Buster X/);
+  await menu.close();
+
+  const page = await open({ viewport: { width: 1280, height: 720 } });
+  assert.equal(await page.locator('.pb-stage').count(), 4);
+  // Stage buttons enable once the page is interactive; only the citadel stays locked.
+  await page.waitForFunction(() => !document.querySelector('[data-testid="stage-snowcap"]').disabled);
+  assert.ok(await page.getByTestId('stage-citadel').isDisabled(), 'citadel starts locked');
+  assert.match(await page.getByTestId('summary').textContent(), /Heart tanks 0\/3 · Max health 16 · Weapons: Paw Buster$/);
+  await page.screenshot({ path: '.checks/paw-buster/select.png' });
+
+  await page.getByTestId('stage-snowcap').click();
+  await waitState(page, 'play');
+  assert.match(await page.getByTestId('status').textContent(), /Snowcap Ridge · Dora in play · Dora 16\/16 · Enzo 16\/16 · Paw Buster/);
+  // The canvas is painted, not blank.
+  const colours = await page.evaluate(() => {
+    const c = document.querySelector('.pb-canvas-wrap canvas'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data, seen = new Set();
+    for (let i = 0; i < d.length; i += 4 * 97) seen.add((d[i] << 16) | (d[i + 1] << 8) | d[i + 2]);
+    return seen.size;
+  });
+  assert.ok(colours > 20, `canvas shows ${colours} colours`);
+
+  const x0 = Number(await attr(page, 'x'));
+  await page.keyboard.down('ArrowRight');
+  await page.waitForTimeout(700);
+  await page.keyboard.up('ArrowRight');
+  await page.waitForTimeout(200);
+  assert.ok(Number(await attr(page, 'x')) > x0 + 60, 'ArrowRight moves Dora');
+  await page.keyboard.press('Space');
+  await page.keyboard.press('KeyX');
+  await page.keyboard.press('KeyV');
+  await page.waitForTimeout(200);
+  assert.equal(await attr(page, 'hero'), 'enzo', 'V tags Enzo in');
+  await page.screenshot({ path: '.checks/paw-buster/stage.png' });
+
+  await page.keyboard.press('KeyP');
+  await waitState(page, 'paused');
+  assert.equal(await page.getByRole('heading', { name: 'Take a breather.' }).count(), 1);
+  await page.getByRole('button', { name: 'Resume', exact: true }).click();
+  await waitState(page, 'play');
+  await page.getByRole('button', { name: 'Stage select' }).first().click();
+  await page.getByTestId('stage-snowcap').waitFor();
+
+  // Three cleared mavericks open the citadel and fill the arsenal.
+  await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ version: 1, cleared: ['snowcap', 'cloud', 'caldera'], tanks: ['snowcap', 'cloud'], best: { snowcap: 83.4 } })), key);
+  await page.reload();
+  await page.getByTestId('stage-snowcap').waitFor();
+  await page.waitForFunction(() => !document.querySelector('[data-testid="stage-citadel"]').disabled);
+  assert.match(await page.getByTestId('summary').textContent(), /Heart tanks 2\/3 · Max health 20 · Weapons: Paw Buster, Frost Shard, Gale Feather, Ember Coil/);
+  assert.match(await page.getByTestId('stage-snowcap').textContent(), /Cleared · best 1:23\.4 · ♥ tank · Frost Shard/);
+  await page.getByTestId('stage-citadel').click();
+  await waitState(page, 'play');
+  await page.keyboard.press('KeyE');
+  await page.waitForTimeout(200);
+  assert.equal(await attr(page, 'weapon'), 'frost', 'E selects the next weapon');
+  assert.match(await page.getByTestId('status').textContent(), /Cougar Citadel · Dora in play · Dora 20\/20/);
+  await page.close();
+
+  // Phones get the touch pad and no sideways scrolling.
+  const phone = await open({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'no overflow on the stage select');
+  await phone.getByTestId('stage-snowcap').click();
+  await waitState(phone, 'play');
+  assert.ok(await phone.locator('.pb-pad').isVisible());
+  const px = Number(await attr(phone, 'x'));
+  const right = phone.getByRole('button', { name: 'Move right' });
+  await right.dispatchEvent('pointerdown', { pointerId: 1, pointerType: 'touch', isPrimary: true });
+  await phone.waitForTimeout(600);
+  await right.dispatchEvent('pointerup', { pointerId: 1, pointerType: 'touch', isPrimary: true });
+  await phone.waitForTimeout(200);
+  assert.ok(Number(await attr(phone, 'x')) > px + 40, 'the touch pad moves Dora');
+  assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'no overflow in play');
+  await phone.screenshot({ path: '.checks/paw-buster/phone.png', fullPage: true });
+  await phone.close();
+
+  assert.deepEqual(errors, []);
+  console.log('Paw Buster X: arcade card, stage select, lock, play, movement, tag, pause, saved progress, citadel, weapon switch, touch pad, phone layout.');
+} finally {
+  await browser.close();
+}
