@@ -6,6 +6,14 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Mountain Retreat:** more distinctive guests and a livelier scene.
+  - Each guest type wears its own accessory: a traveler's straw hat and suitcase, a hiker's backpack and walking stick, a pastry fan's chef hat, a stargazer's nightcap and telescope, a painter's beret and brush, a duchess's tiara and pearls.
+  - Arriving guests show their wish in a bubble. Regulars wear name tags. Happy guests hop, guests turned away walk off down the path, and guests doze at night.
+  - Seasonal weather: spring petals, summer butterflies, autumn leaves and winter snow.
+  - Twinkling stars, glowing rooms and a stargazer on the roof at night.
+  - Art in each room for its specialty.
+  - The six summit decorations are now six different objects on the lodge: a pennant, a wind chime, a lantern, a garden gnome, a flower box and a weathervane.
+  - A backdrop for each outing, a mountain viscacha that visits after summit trips, chimney smoke that thickens as guests arrive, and guests chatting with the hosts.
 - **Mountain Retreat:** easier to read at a glance.
   - A **?** beside tips, hearts, supplies and the rating shows exactly where each number comes from.
   - A countdown ring shows when the next guest arrives.

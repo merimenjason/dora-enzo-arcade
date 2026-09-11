@@ -51,7 +51,7 @@ try {
   assert.match(await text('season'), /SPRING · ☼ DAY/);
   assert.match(await text('next-guest'), /Next guest.*hopes for the/);
   assert.match(await text('pantry'), /0 oat cakes · ❀ 0 herbal soap/);
-  assert.equal(await page.locator('.mr-bunting i').count(), 2);
+  assert.equal(await page.locator('.mr-trophy').count(), 2);
 
   // Nightfall at lodge second 80.
   await page.clock.runFor(5000);

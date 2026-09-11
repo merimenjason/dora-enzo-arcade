@@ -16,6 +16,7 @@ import {
   freshRetreat,
   FRIENDSHIP_CAP,
   GUESTS,
+  guestPool,
   HOST_STOP_SECONDS,
   hostStop,
   isNight,
@@ -70,6 +71,14 @@ const COATS = ['beige', 'velvet', 'violet', 'ebony', 'sapphire'];
 const ITEM_ICON = { oatcake: '◍', soap: '❀' } as const;
 const SEASON_ICON = { spring: '❀', summer: '☀', autumn: '❦', winter: '❄' } as const;
 const TRAIL_ORDER: Trail[] = ['lake', 'juniper', 'summit'];
+const ROOM_ICON = ['♨', '▥', '☾', '≈'];
+/** Summit finds, in the order they arrive. */
+const TROPHIES = ['pennant', 'wind chime', 'lantern', 'garden gnome', 'flower box', 'weathervane'];
+const WEATHER = { spring: 'petals', summer: 'butterflies', autumn: 'leaves', winter: 'snow' } as const;
+const wishIcon = (guest: number) => {
+  const g = GUESTS[guest];
+  return `${g.comfort ? '♛' : ''}${g.item ? ITEM_ICON[g.item] : ROOM_ICON[g.room]}`;
+};
 const TRAIL_COPY = {
   lake: {
     art: '≈',
@@ -158,13 +167,21 @@ function Fur() {
     </>
   );
 }
-function Visitor({ coat }: { coat: number }) {
+/** A visiting chinchilla; `kind` (a GUESTS index) adds that guest type's accessory. */
+function Visitor({ coat, kind = -1 }: { coat: number; kind?: number }) {
+  const id = kind >= 0 ? GUESTS[kind].id : '';
   return (
     <span
       aria-hidden="true"
-      className={`mr-chin small guest ${COATS[coat % COATS.length]}`}
+      className={`mr-chin small guest ${COATS[coat % COATS.length]}${id ? ` kind-${id}` : ''}`}
     >
       <Fur />
+      {id && (
+        <>
+          <i className="gear" />
+          <i className="gear2" />
+        </>
+      )}
     </span>
   );
 }
@@ -221,6 +238,8 @@ export default function MountainRetreat() {
   const soundOn = useRef(false);
   // Visit number whose featured guest added a new album coat, so the scene can celebrate it.
   const newCoat = useRef(-1);
+  // Lodge second until which the viscacha lingers after a summit trip.
+  const viscachaUntil = useRef(-1);
   useEffect(() => {
     try {
       if (localStorage.getItem('mountain-retreat-sound') === 'on') {
@@ -346,6 +365,7 @@ export default function MountainRetreat() {
           (seconds < 28800 ? (current - game.current.savedAt) % 1000 : 0);
         if (was && !game.current.activity) {
           if (soundOn.current) playCue('return');
+          if (was.trail === 'summit') viscachaUntil.current = g.elapsed + 60;
           const reward = festivalReward(g);
           setNotice(
             was.kind === 'festival'
@@ -425,6 +445,20 @@ export default function MountainRetreat() {
   );
   const ring = busy ? 0 : 1 - (nextVisitAt(s) - s.elapsed) / period;
   const freshCoat = (s.album[next.guest] & (1 << next.coat)) === 0;
+  // Guests who aren't featured still dress as a plausible guest type for the lodge.
+  const pool = guestPool(s);
+  const filler = (n: number) => (pool.length ? pool[(s.visits + n) % pool.length] : 0);
+  const hostRooms = busy
+    ? []
+    : (['dora', 'enzo'] as const).flatMap((h): number[] => {
+        const stop = hostStop(s, h);
+        return stop.walking ? [] : [stop.room];
+      });
+  const viscacha =
+    s.album[VISCACHA] > 0 &&
+    !night &&
+    (s.elapsed < viscachaUntil.current || s.elapsed % 240 < 60);
+  const smoke = busy ? 0 : staying ? Math.min(3, 1 + Math.floor(open / 2)) : 1;
   const seasonLeft = SEASON_SECONDS - (s.elapsed % SEASON_SECONDS);
   const nextSeason = SEASONS[(SEASONS.indexOf(when) + 1) % SEASONS.length];
   const lightLeft = night
@@ -681,17 +715,63 @@ export default function MountainRetreat() {
             <div className="mr-mountain m2" />
             <div className="mr-pine p1" />
             <div className="mr-pine p2" />
+            <div className="mr-sky-stars" aria-hidden="true">
+              {Array.from({ length: 14 }, (_, n) => (
+                <i
+                  key={n}
+                  style={
+                    {
+                      '--x': `${(n * 41 + 7) % 96}%`,
+                      '--y': `${(n * 23 + 5) % 38}%`,
+                      '--d': `${(n % 5) * 0.4}s`,
+                    } as React.CSSProperties
+                  }
+                />
+              ))}
+            </div>
+            <div className={`mr-weather ${WEATHER[when]}`} aria-hidden="true">
+              {Array.from({ length: when === 'summer' ? 5 : 12 }, (_, n) => (
+                <i
+                  key={n}
+                  style={
+                    {
+                      '--x': `${(n * 37 + 11) % 100}%`,
+                      '--d': `${-((n * 0.9) % 7)}s`,
+                      '--t': `${6 + (n % 4)}s`,
+                    } as React.CSSProperties
+                  }
+                />
+              ))}
+            </div>
+            {viscacha && (
+              <div className="mr-viscacha" data-testid="viscacha" aria-hidden="true">
+                <Visitor coat={0} kind={VISCACHA} />
+              </div>
+            )}
             <div className="mr-lodge">
-              {s.decor > 0 && (
-                <div className="mr-bunting" aria-hidden="true">
-                  {Array.from({ length: s.decor }, (_, n) => (
-                    <i key={n} />
-                  ))}
+              {TROPHIES.slice(0, s.decor).map((name, n) => (
+                <i
+                  key={name}
+                  className={`mr-trophy t${n + 1}`}
+                  title={name}
+                  aria-hidden="true"
+                >
+                  <b />
+                </i>
+              ))}
+              {night && !busy && s.rooms[2] > 0 && (
+                <div className="mr-roof-guest" aria-hidden="true">
+                  <Visitor coat={Math.floor(s.elapsed / DAY_SECONDS)} kind={2} />
                 </div>
               )}
+              {/* Outside the roof, whose clip-path would hide smoke above it. */}
+              <i className={`mr-chimney smoke-${smoke}`} aria-hidden="true">
+                <b />
+                <b />
+                <b />
+              </i>
               <div className="mr-roof">
                 <span>JUNIPER</span>
-                <i className="mr-smoke" />
               </div>
               <div className="mr-rooms">
                 {SLOT.map((i) => (
@@ -719,10 +799,21 @@ export default function MountainRetreat() {
                         <span className="mr-level">
                           {'★'.repeat(s.rooms[i])}
                         </span>
+                        {s.perks[i] >= 0 && (
+                          <i
+                            className={`mr-perk-art perk-${i}-${s.perks[i]}`}
+                            title={PERKS[i][s.perks[i]].name}
+                            aria-hidden="true"
+                          >
+                            <b />
+                            <b />
+                            <b />
+                          </i>
+                        )}
                         {staying && s.last && (
                           <span
                             key={s.visits}
-                            className={`mr-visitor${since === period - 1 ? ' leaving' : ''}${featuredRoom === i ? ' featured' : ''}${featuredRoom === i && newCoat.current === s.visits ? ' new-coat' : ''}`}
+                            className={`mr-visitor${since === period - 1 ? ' leaving' : ''}${featuredRoom === i ? ' featured' : ''}${featuredRoom === i && newCoat.current === s.visits ? ' new-coat' : ''}${featuredRoom === i && s.last.outcome === 'happy' ? ' hop' : ''}${featuredRoom === i && s.last.regular >= 0 ? ' regular' : ''}`}
                           >
                             <Visitor
                               coat={
@@ -730,7 +821,24 @@ export default function MountainRetreat() {
                                   ? s.last.coat
                                   : s.visits + i
                               }
+                              kind={featuredRoom === i ? s.last.guest : filler(i)}
                             />
+                            {featuredRoom === i && s.last.regular >= 0 && (
+                              <b className="mr-nametag">
+                                {REGULARS[s.last.regular].name}
+                              </b>
+                            )}
+                            {night ? (
+                              <span className="mr-zzz" aria-hidden="true">
+                                z
+                              </span>
+                            ) : (
+                              hostRooms.includes(i) && (
+                                <span className="mr-chat" aria-hidden="true">
+                                  {since % 2 ? '♪' : '…'}
+                                </span>
+                              )
+                            )}
                             <span
                               className={`mr-guest${featuredRoom === i && s.last.outcome === 'plain' ? ' unmet' : ''}`}
                             >
@@ -813,14 +921,36 @@ export default function MountainRetreat() {
                 aria-hidden="true"
               >
                 {Array.from({ length: open }, (_, n) => (
-                  <span key={n} style={{ '--n': n } as React.CSSProperties}>
-                    <Visitor coat={n === 0 ? next.coat : s.visits + 1 + n} />
+                  <span
+                    key={n}
+                    className={n === 0 ? 'featured' : undefined}
+                    style={{ '--n': n } as React.CSSProperties}
+                  >
+                    <Visitor
+                      coat={n === 0 ? next.coat : s.visits + 1 + n}
+                      kind={n === 0 ? next.guest : filler(n + 1)}
+                    />
+                    {n === 0 && (
+                      <b className="mr-wish-bubble">{wishIcon(next.guest)}</b>
+                    )}
+                    {n === 0 && next.regular >= 0 && (
+                      <b className="mr-nametag">{REGULARS[next.regular].name}</b>
+                    )}
                   </span>
                 ))}
               </div>
             )}
+            {turnedAway && s.last && (
+              <div className="mr-sad" key={s.visits} aria-hidden="true">
+                <Visitor coat={s.last.coat} kind={s.last.guest} />
+                <b>…</b>
+              </div>
+            )}
             {busy && (
-              <div className="mr-trail-hosts">
+              <div
+                className={`mr-trail-hosts ${s.activity?.kind === 'festival' ? 'festival' : (s.activity?.trail ?? 'juniper')}`}
+              >
+                <i className="mr-outing-prop" aria-hidden="true" />
                 <Chin name="Dora" small />
                 <Chin name="Enzo" small />
                 <span>
@@ -836,6 +966,7 @@ export default function MountainRetreat() {
             <span>
               ✦ {s.festivals} festivals · {s.expeditions} trails · {s.decor} /{' '}
               {DECOR_CAP} decorations
+              {s.decor ? ` (${TROPHIES.slice(0, s.decor).join(', ')})` : ''}
             </span>
           </div>
           <div className="mr-seasons" data-testid="season-timeline">
@@ -881,7 +1012,7 @@ export default function MountainRetreat() {
               style={{ '--p': ring } as React.CSSProperties}
               aria-hidden="true"
             >
-              <Visitor coat={next.coat} />
+              <Visitor coat={next.coat} kind={next.guest} />
             </span>
             <div>
               {freshCoat && (
@@ -1202,7 +1333,7 @@ export default function MountainRetreat() {
             const waiting = !s.rooms[GUESTS[r.guest].room];
             return (
               <article key={r.name} data-testid={`regular-${i}`}>
-                <Visitor coat={r.coat} />
+                <Visitor coat={r.coat} kind={r.guest} />
                 <div>
                   <h3>
                     {r.name} <span>{GUESTS[r.guest].name.toUpperCase()}</span>
