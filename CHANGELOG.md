@@ -6,6 +6,14 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Mountain Retreat:** more depth.
+  - **Guest wishes and reputation:** every visit has a featured guest with a wish (a room, sometimes an oat cake or herbal soap, sometimes Extra comfort). Granting wishes earns reputation, and a one-to-five-star rating unlocks new guests and bigger tips. Unmet wishes and turned-away guests cost reputation. A guest book shows who is coming next and how the last guest left.
+  - **Specialties:** each room picks one of two specialties at level 3.
+  - **Enzo's recipes:** crafting now bakes oat cakes and makes herbal soap for the pantry.
+  - **Destinations:** three expedition trails: Glass lake, the Juniper trail and the Condor summit. The summit finds decorations for the lodge.
+  - **Album and regulars:** a guest album of every guest type and coat. Named regulars (Pip, Mochi and Luna) come back and send postcards as your friendship grows.
+  - **Seasons and nights:** each has its own bonus. Stargazers visit only at night, and snow closes the summit in winter.
+  - **Saves:** existing journals upgrade automatically to the new save format.
 - **Mountain Retreat:** Dora and Enzo now walk between the open rooms. They walk between rooms side by side, hop between floors, and freeze while they're away on outings. Before each guest visit, one visiting chinchilla per open room walks up the path, then sits in its room with a heart. Guests come in five coat colours. The scene caption shows whether guests are on the path, staying, or the hosts are away. Adds a new scene browser test (`tests/e2e/mountain-retreat-scene.mjs`).
 - **Automatic deploys:** every push to `main` that passes typecheck, tests and build deploys to Cloudflare Workers at chinchillas.jason.engineering. A new `npm run deploy` script covers manual deploys.
 - **README:** a guide for all twelve games in one format (Play, Controls, Tests, Docs), deployment instructions, and a checklist for adding a game. `tests/readme.mjs` now fails `npm test` if the README drifts from the arcade menu.

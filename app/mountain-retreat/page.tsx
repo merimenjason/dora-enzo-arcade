@@ -3,17 +3,44 @@
 /* oxlint-disable react-compiler */
 import { useEffect, useRef, useState } from 'react';
 import {
+  activitySeconds,
   advanceRetreat,
+  canGrant,
+  choosePerk,
+  COATS as COAT_NAMES,
+  DECOR_CAP,
+  FESTIVAL,
+  festivalReward,
   freshRetreat,
+  FRIENDSHIP_CAP,
+  GUESTS,
   hostStop,
+  isNight,
+  ITEMS,
+  nextVisitAt,
+  PANTRY_CAP,
+  PERKS,
+  POSTCARDS,
+  rating,
+  REGULARS,
   restoreRetreat,
   ROOMS,
   roomCost,
   SAVE_KEY,
+  season,
   startActivity,
+  SUPPLY_CAP,
+  SUPPLY_SECONDS,
+  supplyRate,
+  trailClosed,
+  TRAILS,
+  upcomingGuest,
   upgradeRoom,
+  VISCACHA,
   visitPeriod,
+  type GuestVisit,
   type RetreatState,
+  type Trail,
 } from '@/lib/mountain-retreat-game';
 import './retreat.css';
 // Cutaway order: upper floor (suite, bath), then ground floor (hearth, kitchen).
@@ -23,6 +50,41 @@ const place = (room: number) => {
   return { col: slot % 2, row: slot < 2 ? 1 : 0 };
 };
 const COATS = ['beige', 'velvet', 'violet', 'ebony', 'sapphire'];
+const ITEM_ICON = { oatcake: '◍', soap: '❀' } as const;
+const SEASON_ICON = { spring: '❀', summer: '☀', autumn: '❦', winter: '❄' } as const;
+const TRAIL_ORDER: Trail[] = ['lake', 'juniper', 'summit'];
+const TRAIL_COPY = {
+  lake: {
+    art: '≈',
+    button: 'Paddle to the lake ↗',
+    finds: 'Brings home 1 oat cake and 1 herbal soap.',
+    start: 'Dora packs a picnic. Enzo checks the canoe. Back soon!',
+    done: 'Home from Glass lake! +18 supplies, +12 tips and a little picnic for the pantry.',
+  },
+  juniper: {
+    art: '↟',
+    button: 'Take an expedition ↗',
+    finds: 'The steady choice for a full supply shed.',
+    start: 'Dora packs the tea. Enzo takes the map. See you in a bit!',
+    done: 'Back from the trail! +48 supplies and +35 tips.',
+  },
+  summit: {
+    art: '▲',
+    button: 'Climb the summit ↗',
+    finds: 'Finds a lodge decoration (+1 tip per visit, up to 6), 10 hearts and a viscacha for the album.',
+    start: 'Warm scarves on. The condors are waiting!',
+    done: 'Summit reached! +60 supplies, +90 tips, 10 hearts and a new decoration for the lodge.',
+  },
+} as const;
+const stars = (n: number) => '★'.repeat(n) + '☆'.repeat(5 - n);
+const guestName = (v: GuestVisit) =>
+  v.regular >= 0
+    ? `${REGULARS[v.regular].name} the ${GUESTS[v.guest].name.toLowerCase()}`
+    : `${/^[aeiou]/.test(COAT_NAMES[v.coat]) ? 'An' : 'A'} ${COAT_NAMES[v.coat]} ${GUESTS[v.guest].name.toLowerCase()}`;
+const wishText = (guest: number) => {
+  const g = GUESTS[guest];
+  return `the ${ROOMS[g.room].name}${g.item ? ` and some ${ITEMS[g.item].name}` : ''}${g.comfort ? ', with Extra comfort' : ''}`;
+};
 function Fur() {
   return (
     <>
@@ -68,8 +130,8 @@ function Chin({
 }
 export default function MountainRetreat() {
   const game = useRef<RetreatState>(freshRetreat());
-  // Last successful guest visit this session, so visitors only appear when one really happened.
-  const visit = useRef({ served: 0, at: -1 });
+  // Last guest visit this session, so visitors only appear when one really happened.
+  const visit = useRef({ visits: 0, at: -1 });
   const [ready, setReady] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
   useEffect(() => {
@@ -115,7 +177,7 @@ export default function MountainRetreat() {
     } catch {
       game.current = freshRetreat(now);
     }
-    visit.current = { served: game.current.served, at: -1 };
+    visit.current = { visits: game.current.visits, at: -1 };
     setReady(true);
     persist();
     render((n) => n + 1);
@@ -126,23 +188,30 @@ export default function MountainRetreat() {
         Math.floor((current - game.current.savedAt) / 1000),
       );
       if (seconds) {
-        const was = game.current.activity?.kind;
+        const was = game.current.activity;
         advanceRetreat(game.current, seconds);
         const g = game.current;
-        if (g.served > visit.current.served)
+        if (g.visits > visit.current.visits) {
           visit.current = {
-            served: g.served,
+            visits: g.visits,
             at: g.elapsed - (g.elapsed % visitPeriod(g)),
           };
+          if (g.last && g.last.postcard >= 0 && g.last.regular >= 0)
+            setNotice(
+              `A postcard from ${REGULARS[g.last.regular].name}! “Thank you for the warm welcome.” +${POSTCARDS[g.last.postcard].tips} tips.`,
+            );
+        }
         game.current.savedAt =
           current -
           (seconds < 28800 ? (current - game.current.savedAt) % 1000 : 0);
-        if (was && !game.current.activity)
+        if (was && !game.current.activity) {
+          const reward = festivalReward(g);
           setNotice(
-            was === 'festival'
-              ? 'Lanterns, laughter, full hearts! +110 tips and +24 hearts.'
-              : 'Back from the trail! +48 supplies and +35 tips.',
+            was.kind === 'festival'
+              ? `Lanterns, laughter, full hearts! +${reward.tips} tips, +${reward.hearts} hearts and +5 reputation.`
+              : TRAIL_COPY[was.trail ?? 'juniper'].done,
           );
+        }
         persist();
         render((n) => n + 1);
       }
@@ -166,9 +235,23 @@ export default function MountainRetreat() {
   const open = s.rooms.filter(Boolean).length;
   const period = visitPeriod(s);
   const since = visit.current.at < 0 ? -1 : s.elapsed - visit.current.at;
-  const staying = !busy && since >= 0 && since < period;
+  const recent = !busy && since >= 0 && since < period && !!s.last;
+  const staying = recent && s.last?.outcome !== 'away';
+  const turnedAway = recent && s.last?.outcome === 'away';
   const arriving =
     !busy && s.elapsed % period >= period - 3 && s.supplies >= open;
+  const when = season(s.elapsed);
+  const night = isNight(s.elapsed);
+  const stars5 = rating(s);
+  const next = upcomingGuest(s);
+  const nextGuest = GUESTS[next.guest];
+  const grantable = canGrant(s, next.guest);
+  const featuredRoom = s.last ? GUESTS[s.last.guest].room : -1;
+  const albumSeen = s.album.reduce(
+    (n, mask) => n + COAT_NAMES.filter((_, k) => mask & (1 << k)).length,
+    0,
+  );
+  const perSecond = (supplyRate(s) / SUPPLY_SECONDS).toFixed(1);
   return (
     <main className="mr-shell" data-theme={theme}>
       <header className="mr-top">
@@ -211,17 +294,32 @@ export default function MountainRetreat() {
         <aside className="mr-guide">
           <h2>Your first 5–10 minutes</h2>
           <p>
-            Enzo produces supplies. Dora uses one supply per open room to
-            welcome guests, earning hearts and tips automatically. Spend tips to
-            open rooms and improve them to level 3. Try comfort for festival
-            hearts, or crafted supplies for bigger tips, but watch your stock.
+            Enzo brings supplies every 2 seconds. Dora uses one supply per open
+            room to welcome guests, earning hearts and tips automatically. Spend
+            tips to open rooms and improve them to level 3, then choose one of
+            two specialties for each room.
           </p>
           <p>
-            Both hosts stop ALL normal work on 45-second expeditions and
-            60-second festivals. Rewards arrive on return. The lodge keeps
-            working while you are away, up to 8 hours. There are no accounts or
-            purchases. Your journal stays in this browser. A second open tab has
-            its own simulation, so play in one tab.
+            Every visit has a featured guest with a wish: a room, sometimes an
+            oat cake or herbal soap, and sometimes Extra comfort. Granting it
+            earns bonus tips, hearts and reputation. Leaving it unmet costs 1
+            reputation, and turning guests away for lack of supplies costs 3.
+            Every 20 reputation adds a star, which brings new guests and bigger
+            tips. Set Enzo to craft to fill the pantry, and check the guest
+            book to see who is coming next.
+          </p>
+          <p>
+            Regulars Pip, Mochi and Luna return every fifth visit and send
+            postcards as your friendship grows. Seasons change every 6 minutes
+            of lodge time and nights come every 2: stargazers only visit at
+            night, and the summit is snowed in over winter.
+          </p>
+          <p>
+            Both hosts stop ALL normal work on outings. Rewards arrive on
+            return. The lodge keeps working while you are away, up to 8 hours.
+            There are no accounts or purchases. Your journal stays in this
+            browser. A second open tab has its own simulation, so play in one
+            tab.
           </p>
         </aside>
       )}
@@ -240,9 +338,9 @@ export default function MountainRetreat() {
           <span>▧ SUPPLIES</span>
           <strong data-testid="supplies">
             {s.supplies}
-            <small> / 120</small>
+            <small> / {SUPPLY_CAP}</small>
           </strong>
-          <small>Gathered with care</small>
+          <small>+{perSecond} per second</small>
         </div>
         <div>
           <span>⌂ YOUR LODGE</span>
@@ -252,6 +350,17 @@ export default function MountainRetreat() {
           </strong>
           <small>{s.served} happy guest visits</small>
         </div>
+        <div>
+          <span>✧ RATING</span>
+          <strong
+            data-testid="rating"
+            aria-label={`${stars5} of 5 stars`}
+            className="mr-stars"
+          >
+            {stars(stars5)}
+          </strong>
+          <small>{s.reputation} / 100 reputation</small>
+        </div>
       </section>
       <div className="mr-columns">
         <section
@@ -259,18 +368,29 @@ export default function MountainRetreat() {
           aria-label="Animated cutaway mountain lodge"
         >
           <div className="mr-scene-caption">
-            <span>01 / JUNIPER LODGE</span>
+            <span>
+              01 / JUNIPER LODGE ·{' '}
+              <span data-testid="season">
+                {SEASON_ICON[when]} {when.toUpperCase()} ·{' '}
+                {night ? '☾ NIGHT' : '☼ DAY'}
+              </span>
+            </span>
             <span data-testid="scene-status">
               {busy
                 ? '◌ BOTH HOSTS AWAY'
-                : staying
-                  ? `● ${open} ${open === 1 ? 'GUEST' : 'GUESTS'} STAYING`
-                  : arriving
-                    ? '● GUESTS ON THE PATH'
-                    : '● THE KETTLE IS ON'}
+                : turnedAway
+                  ? '✕ A GUEST WAS TURNED AWAY'
+                  : staying
+                    ? `● ${open} ${open === 1 ? 'GUEST' : 'GUESTS'} STAYING`
+                    : arriving
+                      ? '● GUESTS ON THE PATH'
+                      : '● THE KETTLE IS ON'}
             </span>
           </div>
-          <div className={`mr-landscape ${busy ? 'away' : ''}`}>
+          <div
+            className={`mr-landscape season-${when}${night ? ' night' : ''}${busy ? ' away' : ''}`}
+            data-testid="landscape"
+          >
             <div className="mr-sun" />
             <div className="mr-cloud c1" />
             <div className="mr-cloud c2" />
@@ -279,6 +399,13 @@ export default function MountainRetreat() {
             <div className="mr-pine p1" />
             <div className="mr-pine p2" />
             <div className="mr-lodge">
+              {s.decor > 0 && (
+                <div className="mr-bunting" aria-hidden="true">
+                  {Array.from({ length: s.decor }, (_, n) => (
+                    <i key={n} />
+                  ))}
+                </div>
+              )}
               <div className="mr-roof">
                 <span>JUNIPER</span>
                 <i className="mr-smoke" />
@@ -309,13 +436,25 @@ export default function MountainRetreat() {
                         <span className="mr-level">
                           {'★'.repeat(s.rooms[i])}
                         </span>
-                        {staying && (
+                        {staying && s.last && (
                           <span
-                            key={visit.current.served}
-                            className={`mr-visitor${since === period - 1 ? ' leaving' : ''}`}
+                            key={s.visits}
+                            className={`mr-visitor${since === period - 1 ? ' leaving' : ''}${featuredRoom === i ? ' featured' : ''}`}
                           >
-                            <Visitor coat={visit.current.served + i} />
-                            <span className="mr-guest">♥</span>
+                            <Visitor
+                              coat={
+                                featuredRoom === i
+                                  ? s.last.coat
+                                  : s.visits + i
+                              }
+                            />
+                            <span
+                              className={`mr-guest${featuredRoom === i && s.last.outcome === 'plain' ? ' unmet' : ''}`}
+                            >
+                              {featuredRoom === i && s.last.outcome === 'plain'
+                                ? '…'
+                                : '♥'}
+                            </span>
                           </span>
                         )}
                       </>
@@ -377,7 +516,7 @@ export default function MountainRetreat() {
               >
                 {Array.from({ length: open }, (_, n) => (
                   <span key={n} style={{ '--n': n } as React.CSSProperties}>
-                    <Visitor coat={s.served + open + n} />
+                    <Visitor coat={n === 0 ? next.coat : s.visits + 1 + n} />
                   </span>
                 ))}
               </div>
@@ -389,7 +528,7 @@ export default function MountainRetreat() {
                 <span>
                   {s.activity?.kind === 'festival'
                     ? 'Hosting the lantern festival'
-                    : 'Exploring Juniper trail'}
+                    : `Exploring ${TRAILS[s.activity?.trail ?? 'juniper'].name}`}
                 </span>
               </div>
             )}
@@ -397,7 +536,8 @@ export default function MountainRetreat() {
           <div className="mr-scene-foot">
             <span>Two friends. One shared dream.</span>
             <span>
-              ✦ {s.festivals} festivals · {s.expeditions} trails
+              ✦ {s.festivals} festivals · {s.expeditions} trails · {s.decor} /{' '}
+              {DECOR_CAP} decorations
             </span>
           </div>
         </section>
@@ -406,6 +546,45 @@ export default function MountainRetreat() {
             <span>THE HEART OF THE HOUSE</span>
             <h2>Better, together.</h2>
           </div>
+          <article
+            className={`mr-guest-book ${grantable ? 'ok' : 'warn'}`}
+            data-testid="next-guest"
+            aria-live="polite"
+          >
+            <Visitor coat={next.coat} />
+            <div>
+              <h3>
+                Next guest{' '}
+                <span>
+                  {busy
+                    ? 'AFTER THE OUTING'
+                    : `IN ${nextVisitAt(s) - s.elapsed}S`}
+                </span>
+              </h3>
+              <p>
+                {guestName(next)}
+                {next.regular >= 0 ? ' (a regular)' : ''} hopes for{' '}
+                {wishText(next.guest)}.
+              </p>
+              <p className="mr-wish">
+                {grantable
+                  ? '✓ Their wish can be granted.'
+                  : nextGuest.comfort && s.dora !== 'comfort'
+                    ? '✕ Switch Dora to Extra comfort.'
+                    : `✕ No ${ITEMS[nextGuest.item ?? 'oatcake'].name} in the pantry. Set Enzo to Craft with care.`}
+              </p>
+              {s.last && (
+                <p className="mr-last" data-testid="last-guest">
+                  Last: {guestName(s.last)}{' '}
+                  {s.last.outcome === 'happy'
+                    ? `left happy · +${s.last.tips} tips, +${s.last.hearts} ♥`
+                    : s.last.outcome === 'plain'
+                      ? `stayed, but their wish was unmet · −1 reputation`
+                      : 'was turned away, with no supplies to spare · −3 reputation'}
+                </p>
+              )}
+            </div>
+          </article>
           <article className="mr-host-card">
             <Chin name="Dora" />
             <div>
@@ -456,7 +635,7 @@ export default function MountainRetreat() {
                   })
                 }
               >
-                Gather<small>+2 supplies / 3s · 2 tips / level</small>
+                Gather<small>+3 supplies / 2s · 2 tips / level</small>
               </button>
               <button
                 aria-pressed={s.enzo === 'craft'}
@@ -466,16 +645,36 @@ export default function MountainRetreat() {
                   })
                 }
               >
-                Craft with care<small>+1 supply / 6s · 3 tips / level</small>
+                Craft with care
+                <small>+1 supply / 2s · 3 tips / level · bakes & makes soap</small>
               </button>
             </fieldset>
+            <p className="mr-pantry" data-testid="pantry">
+              Pantry: {ITEM_ICON.oatcake} {s.pantry.oatcake} oat{' '}
+              {s.pantry.oatcake === 1 ? 'cake' : 'cakes'} ·{' '}
+              {ITEM_ICON.soap} {s.pantry.soap} herbal soap
+              <small>
+                {' '}
+                (up to {PANTRY_CAP} each
+                {s.rooms[1] || s.rooms[3]
+                  ? ''
+                  : '; open the kitchen or bath to start recipes'}
+                )
+              </small>
+            </p>
           </article>
           <p className="mr-stock-note">
             {busy
               ? 'Both friends are making memories. Room production is paused.'
               : s.supplies < open
                 ? 'Low supplies. Let Enzo gather, or bring supplies back from a trail.'
-                : 'A balanced lodge is a happy lodge. Crafting pays more, but uses up your stock.'}
+                : when === 'spring'
+                  ? 'Spring blossoms: +1 supply on every delivery.'
+                  : when === 'summer'
+                    ? 'Summer: festivals pay half as much again.'
+                    : when === 'autumn'
+                      ? 'Autumn harvest: +1 tip per room on every visit.'
+                      : 'Winter: cozy guests give +1 heart per room, but the summit is snowed in.'}
           </p>
         </aside>
       </div>
@@ -484,7 +683,10 @@ export default function MountainRetreat() {
         <div className="mr-section-title">
           <span>SMALL CHANGES, WARMER STAYS</span>
           <h2>Room to grow.</h2>
-          <p>Open rooms in order. Each level adds tips to every guest visit.</p>
+          <p>
+            Open rooms in order. Each level adds tips to every guest visit. At
+            level 3, choose a specialty.
+          </p>
         </div>
         <div className="mr-upgrades">
           {ROOMS.map((room, i) => (
@@ -497,27 +699,52 @@ export default function MountainRetreat() {
               </span>
               <h3>{room.name}</h3>
               <p>{room.detail}</p>
-              <button
-                disabled={
-                  !ready ||
-                  busy ||
-                  s.rooms[i] >= 3 ||
-                  s.coins < roomCost(s, i) ||
-                  (i > 0 && !s.rooms[i - 1])
-                }
-                onClick={() =>
-                  act(() => {
-                    if (upgradeRoom(s, i))
-                      setNotice(
-                        `${room.name} ${s.rooms[i] === 1 ? 'is open. Come on in!' : 'feels even cozier.'}`,
-                      );
-                  })
-                }
-              >
-                {s.rooms[i] >= 3
-                  ? 'Lovely as can be ✓'
-                  : `${s.rooms[i] ? 'Improve' : 'Open room'} · ${roomCost(s, i)} tips`}
-              </button>
+              {s.rooms[i] < 3 ? (
+                <button
+                  disabled={
+                    !ready ||
+                    busy ||
+                    s.coins < roomCost(s, i) ||
+                    (i > 0 && !s.rooms[i - 1])
+                  }
+                  onClick={() =>
+                    act(() => {
+                      if (upgradeRoom(s, i))
+                        setNotice(
+                          s.rooms[i] === 3
+                            ? `${room.name} is lovely as can be. Choose its specialty!`
+                            : `${room.name} ${s.rooms[i] === 1 ? 'is open. Come on in!' : 'feels even cozier.'}`,
+                        );
+                    })
+                  }
+                >
+                  {`${s.rooms[i] ? 'Improve' : 'Open room'} · ${roomCost(s, i)} tips`}
+                </button>
+              ) : s.perks[i] >= 0 ? (
+                <p className="mr-perk" data-testid={`perk-${i}`}>
+                  ✓ {PERKS[i][s.perks[i]].name}
+                  <small>{PERKS[i][s.perks[i]].detail}</small>
+                </p>
+              ) : (
+                <fieldset className="mr-perk-choice">
+                  <legend className="mr-sr">{room.name} specialty</legend>
+                  {PERKS[i].map((perk, p) => (
+                    <button
+                      key={perk.name}
+                      disabled={!ready || busy}
+                      onClick={() =>
+                        act(() => {
+                          if (choosePerk(s, i, p))
+                            setNotice(`${room.name}: ${perk.name}. ${perk.detail}.`);
+                        })
+                      }
+                    >
+                      {perk.name}
+                      <small>{perk.detail}</small>
+                    </button>
+                  ))}
+                </fieldset>
+              )}
             </article>
           ))}
         </div>
@@ -529,41 +756,57 @@ export default function MountainRetreat() {
           <p>Both hosts go together. Normal work pauses until they return.</p>
         </div>
         <div className="mr-outing-grid">
-          <article>
-            <span className="mr-outing-art">↟</span>
-            <div>
-              <h3>The Juniper trail</h3>
-              <p>
-                45 seconds · costs 12 supplies
-                <br />
-                Bring home 48 supplies + 35 tips.
-              </p>
-              <button
-                disabled={!ready || busy || s.supplies < 12}
-                onClick={() =>
-                  act(() => {
-                    if (startActivity(s, 'expedition'))
-                      setNotice(
-                        'Dora packs the tea. Enzo takes the map. See you in 45 seconds!',
-                      );
-                  })
-                }
-              >
-                Take an expedition ↗
-              </button>
-            </div>
-          </article>
+          {TRAIL_ORDER.map((id) => {
+            const trail = TRAILS[id];
+            const copy = TRAIL_COPY[id];
+            const closed = trailClosed(s, id);
+            return (
+              <article key={id} className={`trail-${id}`}>
+                <span className="mr-outing-art">{copy.art}</span>
+                <div>
+                  <h3>{trail.name}</h3>
+                  <p>
+                    {activitySeconds(s, 'expedition', id)} seconds · costs{' '}
+                    {trail.cost} supplies
+                    <br />
+                    Bring home {trail.supplies} supplies + {trail.tips} tips.{' '}
+                    {copy.finds}
+                  </p>
+                  {closed && <p className="mr-closed">✕ {closed}</p>}
+                  <button
+                    disabled={!ready || busy || !!closed || s.supplies < trail.cost}
+                    onClick={() =>
+                      act(() => {
+                        if (startActivity(s, 'expedition', id))
+                          setNotice(copy.start);
+                      })
+                    }
+                  >
+                    {copy.button}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
           <article>
             <span className="mr-outing-art lantern">✧</span>
             <div>
               <h3>A thousand little lanterns</h3>
               <p>
-                60 seconds · costs 12 hearts + 20 supplies
+                {activitySeconds(s, 'festival')} seconds · costs{' '}
+                {FESTIVAL.hearts} hearts + {FESTIVAL.supplies} supplies
                 <br />
-                Celebrate for 110 tips + 24 hearts.
+                Celebrate for {festivalReward(s).tips} tips +{' '}
+                {festivalReward(s).hearts} hearts + 5 reputation.
+                {when === 'summer' ? ' Summer crowds: half as much again!' : ''}
               </p>
               <button
-                disabled={!ready || busy || s.hearts < 12 || s.supplies < 20}
+                disabled={
+                  !ready ||
+                  busy ||
+                  s.hearts < FESTIVAL.hearts ||
+                  s.supplies < FESTIVAL.supplies
+                }
                 onClick={() =>
                   act(() => {
                     if (startActivity(s, 'festival'))
@@ -583,20 +826,91 @@ export default function MountainRetreat() {
             <strong>
               {s.activity.kind === 'festival'
                 ? 'Lantern festival'
-                : 'Juniper expedition'}{' '}
+                : TRAILS[s.activity.trail ?? 'juniper'].name}{' '}
               · {s.activity.remaining}s remaining
             </strong>
             <progress
               aria-label="Activity progress"
-              max={s.activity.kind === 'festival' ? 60 : 45}
+              max={activitySeconds(s, s.activity.kind, s.activity.trail ?? 'juniper')}
               value={
-                (s.activity.kind === 'festival' ? 60 : 45) -
+                activitySeconds(s, s.activity.kind, s.activity.trail ?? 'juniper') -
                 s.activity.remaining
               }
             />
             <span>Hospitality & supplies paused · reward on return</span>
           </output>
         )}
+      </section>
+      <section className="mr-album" aria-labelledby="mr-album-title">
+        <div className="mr-section-title">
+          <span>
+            GUEST ALBUM · {albumSeen} / {GUESTS.length * COAT_NAMES.length}{' '}
+            COATS
+          </span>
+          <h2 id="mr-album-title">Everyone who stayed.</h2>
+          <p>
+            Each featured guest adds their coat to the album. Regulars return
+            every fifth visit and send a postcard at 3, 6 and 10 friendship.
+          </p>
+        </div>
+        <div className="mr-regulars">
+          {REGULARS.map((r, i) => {
+            const cards = POSTCARDS.filter((p) => s.friends[i] >= p.at).length;
+            const waiting = !s.rooms[GUESTS[r.guest].room];
+            return (
+              <article key={r.name} data-testid={`regular-${i}`}>
+                <Visitor coat={r.coat} />
+                <div>
+                  <h3>
+                    {r.name} <span>{GUESTS[r.guest].name.toUpperCase()}</span>
+                  </h3>
+                  <progress
+                    aria-label={`Friendship with ${r.name}`}
+                    max={FRIENDSHIP_CAP}
+                    value={s.friends[i]}
+                  />
+                  <p>
+                    {s.friends[i]} / {FRIENDSHIP_CAP} friendship ·{' '}
+                    {'✉'.repeat(cards)}
+                    {'·'.repeat(POSTCARDS.length - cards)} postcards
+                    {waiting
+                      ? ` · visits once the ${ROOMS[GUESTS[r.guest].room].name} opens`
+                      : ''}
+                  </p>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+        <div className="mr-album-grid">
+          {GUESTS.map((g, i) => (
+            <article key={g.id}>
+              <h3>{g.name}</h3>
+              <p>
+                {i === VISCACHA
+                  ? 'Only spotted from the Condor summit'
+                  : `${stars(g.stars).slice(0, g.stars)} · ${ROOMS[g.room].name}${g.item ? ` · ${ITEM_ICON[g.item]} ${ITEMS[g.item].name}` : ''}${g.night ? ' · night' : ''}${g.comfort ? ' · Extra comfort' : ''}`}
+              </p>
+              <ul aria-label={`${g.name} coats`}>
+                {COATS.map((coat, k) => {
+                  const seen = (s.album[i] & (1 << k)) > 0;
+                  return (
+                    <li
+                      key={coat}
+                      className={`mr-swatch ${coat}${seen ? ' seen' : ''}`}
+                      title={seen ? COAT_NAMES[k] : 'Not seen yet'}
+                    >
+                      <span className="mr-sr">
+                        {seen ? COAT_NAMES[k] : 'not seen yet'}
+                      </span>
+                      {seen ? '' : '?'}
+                    </li>
+                  );
+                })}
+              </ul>
+            </article>
+          ))}
+        </div>
       </section>
       <footer className="mr-footer">
         <span>{storage}</span>
