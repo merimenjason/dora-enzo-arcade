@@ -2,8 +2,8 @@
 import { Hollow, W, H, BUILDINGS, BOARD, FACE, BUGS, NEIGHBOURS, type Terrain, type Season } from './dusty-hollow-game';
 
 /** Every world pixel is drawn PIXEL screen pixels wide, so the village reads as pixel art. */
-export const PIXEL = 3;
-export const TILE = 45;
+export const PIXEL = 2;
+export const TILE = 44;
 export const VIEW_W = 960;
 export const VIEW_H = 600;
 /** The low-resolution buffer the world is painted into before it is blown up. */
