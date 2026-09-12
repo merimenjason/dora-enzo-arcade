@@ -307,10 +307,21 @@ export class HollowScene {
       c.beginPath(); c.moveTo(px + 5, py + h); c.lineTo(px + w / 2, py + 4); c.lineTo(px + w - 5, py + h); c.closePath(); c.fill();
       this.stroke(1.4);
     }
-    if (b.id === 'home' && g.homeLevel >= 2) {
+    // What you put in the burrow shows from the street: the stove earns a smoking
+    // chimney, the paper lamp a warmer window.
+    const stove = b.id === 'home' && g.furniture.some((p) => p.id === 'stove');
+    const lamp = b.id === 'home' && g.furniture.some((p) => p.id === 'lamp');
+    if (b.id === 'home' && (g.homeLevel >= 2 || stove)) {
       c.fillStyle = shade(roof, 0.2);
       c.beginPath(); c.roundRect(px + w - 24, py - 4, 9, 18, 2); c.fill();
       this.stroke(1.2);
+      if (stove) for (let i = 0; i < 4; i++) {
+        const t = ((this.time * 0.32 + i * 0.25) % 1);
+        c.fillStyle = `rgba(236,230,220,${0.42 * (1 - t)})`;
+        c.beginPath();
+        c.arc(px + w - 19.5 + Math.sin(t * 5 + i) * 7, py - 6 - t * 40, 3.5 + t * 8, 0, Math.PI * 2);
+        c.fill();
+      }
     }
     const dx = b.door[0] * TILE + 8;
     c.fillStyle = '#5a3a22';
@@ -320,12 +331,12 @@ export class HollowScene {
     c.beginPath(); c.arc(dx + TILE - 22, py + h - 13, 1.8, 0, Math.PI * 2); c.fill();
     const lit = g.isNight && (b.id === 'shop' ? g.shopOpen : true);
     for (const wx of [px + 9, px + w - 22]) {
-      c.fillStyle = lit ? '#ffd27a' : trim;
+      c.fillStyle = lit ? (lamp ? '#ffe0a0' : '#ffd27a') : trim;
       c.beginPath(); c.roundRect(wx, py + h * 0.52, 13, 13, 2); c.fill();
       this.stroke(1.2);
       if (lit) {
-        c.fillStyle = 'rgba(255,210,122,0.22)';
-        c.beginPath(); c.arc(wx + 6, py + h * 0.52 + 6, 16, 0, Math.PI * 2); c.fill();
+        c.fillStyle = lamp ? 'rgba(255,222,150,0.34)' : 'rgba(255,210,122,0.22)';
+        c.beginPath(); c.arc(wx + 6, py + h * 0.52 + 6, lamp ? 26 : 16, 0, Math.PI * 2); c.fill();
       }
     }
     if (owner && g.isBirthday(owner.id)) for (const [bx, col] of [[px + 7, '#f4a3c4'], [px + w - 7, '#5b8de6']] as const) {

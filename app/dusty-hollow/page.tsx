@@ -7,6 +7,7 @@ import {
   type Save, type SaveV1, type Tool, type Item, type Species, type Placed,
 } from '../../lib/dusty-hollow-game';
 import { HollowScene } from '../../lib/dusty-hollow-scene';
+import { drawRoom, roomCaption, tileRect, ROOM } from '../../lib/dusty-hollow-room';
 import { HollowSound } from './sound';
 import './hollow.css';
 
@@ -33,6 +34,9 @@ export default function DustyHollow() {
   const keys = useRef<Set<string>>(new Set());
   const touch = useRef({ dx: 0, dy: 0, hold: false, sneak: false });
   const sound = useRef<HollowSound | null>(null);
+  const room = useRef<HTMLCanvasElement>(null);
+  /** The room is painted in the animation loop, which cannot see React state. */
+  const held = useRef<{ pocket?: number; placed?: Placed } | null>(null);
   const [screen, setScreen] = useState<'title' | 'play'>('title');
   const [hasSave, setHasSave] = useState(false);
   const [audible, setAudible] = useState(false);
@@ -43,6 +47,7 @@ export default function DustyHollow() {
   const [, setTick] = useState(0);
 
   useEffect(() => { setHasSave(!!readSave()); setLevels(readSettings()); }, []);
+  useEffect(() => { held.current = picked; }, [picked]);
 
   const cue = (kind: string) => sound.current?.cue(kind);
   const persist = () => { const g = game.current; if (g) try { localStorage.setItem(SAVE_KEY, JSON.stringify(g.save())); } catch { /* storage blocked */ } };
@@ -106,6 +111,7 @@ export default function DustyHollow() {
       g.step(dt, { dx, dy, run: k.has('ShiftLeft') || k.has('ShiftRight'), hold, sneak });
       if (g.event) { cue(g.event); g.event = ''; }
       sc.draw(g, dt);
+      if (g.screen === 'home' && room.current) drawRoom(room.current, g, held.current, now / 1000);
       sound.current?.update(dt, g.hour, g.weather, g.y > H - 8, g.season);
       if (now - uiAt > 120) { uiAt = now; setTick((t) => t + 1); }
       if (now - saveAt > 3000) { saveAt = now; persist(); }
@@ -302,13 +308,17 @@ export default function DustyHollow() {
             <div className="dh-panel" aria-label="Your burrow">
               <h2>{g.houseName} <small>{g.furniture.length} of {cols * rows} tiles furnished · Vito rates it “{g.homeRating}” ({g.roomScore.toLocaleString()} pts)</small></h2>
               {g.visitor && <p className="dh-visitor"><b>{g.visitor.name}</b> followed you in: “{g.visitor.line}”</p>}
-              <div className="dh-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+              <div className="dh-room">
+                <canvas ref={room} width={ROOM.w} height={ROOM.h} aria-label="Inside your burrow" />
                 {Array.from({ length: cols * rows }, (_, i) => {
                   const x = i % cols, y = Math.floor(i / cols), here = g.furnitureAt(x, y);
                   const name = here ? FURNITURE.find((f) => f.id === here.id)!.name : '';
-                  return <button key={i} className={`${here ? 'filled' : ''}${picked?.placed === here && here ? ' picked' : ''}`} onClick={() => clickRoom(x, y)} title={here ? `${name}: click to pick up, or click another tile to move it` : pickedPocket ? `Place the ${pickedPocket.name.toLowerCase()} here` : 'Empty floor'}>{here ? <>{FURN_ICON[here.id]}<br />{name}</> : pickedPocket || picked?.placed ? '·' : ''}</button>;
+                  const r = tileRect(cols, rows, x, y);
+                  const at = { left: `${(r.x / ROOM.w) * 100}%`, top: `${(r.y / ROOM.h) * 100}%`, width: `${(r.w / ROOM.w) * 100}%`, height: `${(r.h / ROOM.h) * 100}%` };
+                  return <button key={i} style={at} className={picked?.placed === here && here ? 'picked' : ''} onClick={() => clickRoom(x, y)} title={here ? `${name}: click to pick up, or click another tile to move it` : pickedPocket ? `Place the ${pickedPocket.name.toLowerCase()} here` : 'Empty floor'}><span>{here ? name : ''}</span></button>;
                 })}
               </div>
+              <p className="dh-muted dh-caption">{roomCaption(g)}</p>
               <div className="dh-panel-grid">
                 <section>
                   <h3>Furniture in your pockets</h3>

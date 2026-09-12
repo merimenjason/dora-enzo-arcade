@@ -2,6 +2,14 @@
 
 A cozy village-life game: Dora and Enzo move into a seaside Andean hollow together. Rules live in `lib/dusty-hollow-game.ts` (deterministic, no DOM), the Canvas 2D view in `lib/dusty-hollow-scene.ts`, procedural sound in `app/dusty-hollow/sound.ts`, and the page in `app/dusty-hollow/`. Numbers below come from the engine's constants.
 
+## The burrow interior
+
+`lib/dusty-hollow-room.ts` draws the inside of the burrow on its own canvas, in the same hand as the village. `ROOM` and `tileRect(cols, rows, x, y)` are the single source of truth for where a floor tile is: the page lays a grid of transparent buttons over the canvas, positioned as percentages of those same rectangles, so the clicking and the painting can never drift apart. The room is repainted in the page's animation loop, which is what lets the stove flicker and the lamp glow; because that loop cannot see React state, the held item is mirrored into a ref.
+
+The shell changes with `homeLevel`: a tent gets sloping canvas walls, a burrow plaster and a beam. The window shows the same sky the village is under, including stars and a moon at night and rain running down it in the wet. `piece()` draws each of the sixteen furniture kinds from boxes and paths measured in hundredths of a tile, so the same art fits every room size. Placed furniture is drawn back row first, and a piece being carried is faded and lifted. The lamp and the stove paint light pools onto the floor under the furniture, and an unlit room reads cold and blue at night, so lighting the place is worth doing.
+
+What is inside shows outside: `building()` in the village scene gives the burrow a smoking chimney when a stove is placed and a wider, warmer window glow when the paper lamp is.
+
 ## The pair
 
 `hero` is whichever chinchilla you are steering; `companion` is the `friend` villager, which is the other one. `swap()` trades the two: it flips `hero`, exchanges positions and facings, and renames and recolours the companion, so `heroName` and `friendName` follow along. `escort` (default true, saved) makes `moveVillagers()` hand the companion to `follow()` instead of the neighbour wander: they walk to a point 1.5 tiles behind the hero at `WALK`, break into `RUN` beyond 2.6 tiles and teleport there beyond 9, so they never get stranded and never stand on the tile you face. `out(v)` is true for any resident during waking hours and for an escorting companion at any hour, which is what `villagerNear()` and the scene use, so you can talk to your companion after dark. `park()` in the tests switches `escort` off to hold the village still.

@@ -253,11 +253,23 @@
 .dh-peek span { opacity: 0.7; }
 .dh-festival { position: absolute; top: 44px; left: 10px; background: #8a4b7ae6; color: #fff; border-radius: 10px; padding: 6px 10px; font-size: 12px; pointer-events: none; max-width: 260px; }
 .dh-festival b { display: block; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
-.dh-grid { display: grid; gap: 6px; padding: 12px; border-radius: 10px; background: repeating-linear-gradient(90deg, #d9b98a 0 26px, #cfae7e 26px 52px); border: 4px solid #8f5a34; }
-.dh-grid button { aspect-ratio: 1; border: 1px dashed #8f5a3466; background: #fffaf033; border-radius: 6px; font-size: 12px; line-height: 1.2; padding: 4px; color: #34302a; }
-.dh-grid button.filled { border: 1px solid #8f5a34; background: #fffaf0; font-weight: 600; }
-.dh-grid button.picked { outline: 3px solid #8a4b7a; }
-.dh-grid button:hover { background: #fffaf0aa; }
+/* The burrow interior: a painted canvas with invisible hit targets over the floor. */
+.dh-room { position: relative; border-radius: 10px; overflow: hidden; border: 4px solid #8f5a34; line-height: 0; flex: 0 0 auto; width: min(100%, 560px); margin: 0 auto; }
+.dh-room canvas { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; }
+.dh-room button {
+  position: absolute;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  padding: 0;
+  transition: background 0.12s ease, box-shadow 0.12s ease;
+}
+.dh-room button span { position: absolute; inset: auto 0 2px; font: 600 10px Arial; color: #fffaf0; text-shadow: 0 1px 3px #000a; opacity: 0; transition: opacity 0.12s ease; line-height: 1.2; }
+.dh-room button:hover { background: rgba(255,246,225,0.12); box-shadow: inset 0 0 0 2px rgba(255,246,225,0.55); }
+.dh-room button:hover span { opacity: 1; }
+.dh-room button:focus-visible { outline: 3px solid #8a4b7a; outline-offset: -3px; }
+.dh-room button.picked { box-shadow: inset 0 0 0 3px #8a4b7a; }
+.dh-caption { margin-top: -4px !important; }
 .dh-notices { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .dh-notices li { background: #fff; border: 1px solid #d8ccb3; border-radius: 8px; padding: 10px 12px; font-size: 14px; line-height: 1.5; }
 .dh-notices li:first-child { border-color: #8a4b7a; }

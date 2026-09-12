@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 13-09-2026
+
+### Changed
+
+- **Dusty Hollow:** the burrow is now a room you look into rather than a grid of labels. Canvas walls in the tent and plaster once you upgrade, a window showing the same sky, weather and stars as outside, floorboards, and every piece of furniture drawn in place. The paper lamp throws a pool of light that is brightest at night and the pebble stove burns away in the corner, so an unlit room feels cold and lighting it feels like something. Both show from the street as well: the stove earns a smoking chimney and the lamp a warmer window.
+
 ## 12-09-2026
 
 ### Added
