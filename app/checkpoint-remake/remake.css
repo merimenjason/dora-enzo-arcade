@@ -546,6 +546,10 @@
   font: 12px/1.9 monospace;
 }
 .rm-footer {
+  /* app/globals.css paints bare `footer` grey for the arcade's dark shell, and an
+     element selector beats inheritance, so --ink never reached this footer or the
+     span and link inside it. Take the colour back. */
+  color: var(--ink);
   border-top: 1px solid var(--ink);
   padding: 25px 0 35px;
   display: flex;

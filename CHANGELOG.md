@@ -17,6 +17,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 ### Fixed
 
 - **Dusty Hollow:** what the neighbours say is readable again. Every paragraph in the game, conversations included, was being painted pale grey on cream by a site-wide rule meant for the arcade's dark menu, so dialogue was very nearly invisible. The shop, museum, notice board and burrow panels, the sidebar notes and the footer were all faded by the same rule and are now crisp too, in both the day and night palettes.
+- **Dust & Documents: Remake:** the footer line under the booth is readable again. The same site-wide rule that faded the Dusty Hollow dialogue was painting the remake's footer pale grey on cream, so the title, the closing line and the link back to the original were nearly invisible.
 
 ## 12-09-2026
 
