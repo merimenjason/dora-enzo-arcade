@@ -43,6 +43,8 @@ export class HollowScene {
     this.buffer.height = BUF_H;
     this.c = this.buffer.getContext('2d')!;
   }
+  /** Nothing to free: the 2D view owns no GPU resources. Kept so the page can swap views blindly. */
+  dispose() { /* no-op */ }
   /** Queue world-space text; pixellating letters would only make them unreadable. */
   private label(text: string, x: number, y: number, font: string, color: string, align: CanvasTextAlign = 'center') {
     this.labels.push({ text, x, y, font, color, align });
@@ -75,7 +77,7 @@ export class HollowScene {
     for (const r of g.rocks) sprites.push({ y: r.y + 0.4, draw: () => this.rock(r.x, r.y, r.hits) });
     for (const s of g.snowmen) sprites.push({ y: s.y + 0.5, draw: () => this.snowman(s.x, s.y) });
     for (const v of g.residents) if (g.out(v)) sprites.push({ y: v.y, draw: () => this.critter(v.x, v.y, SPECIES_BODY[v.species] ?? v.color, v.species, v.facing, false, v.name, g.requests.some((r) => r.villager === v.id && !r.done), undefined, g.isBirthday(v.id)) });
-    sprites.push({ y: g.y, draw: () => this.critter(g.x, g.y, SPECIES_BODY[g.hero], g.hero, g.facing, g.moving, '', false, g.tool, false, g.sneaking) });
+    sprites.push({ y: g.y, draw: () => this.critter(g.x, g.y, SPECIES_BODY[g.hero], g.hero, g.facing, g.moving, `${g.heroName} (you)`, false, g.tool, false, g.sneaking) });
     sprites.sort((a, b) => a.y - b.y).forEach((s) => s.draw());
     for (const b of g.bugs) this.bug(b.x, b.y, b.id, b.fleeing);
     if (g.fishing) this.fishing(g);
@@ -434,7 +436,7 @@ export class HollowScene {
       c.beginPath(); c.arc(hx + dx * 10, hyy - 12, tool === 'net' ? 7 : 4, 0, Math.PI * 2); c.fill();
     }
     if (birthday) { c.fillStyle = '#f0cd6b'; c.beginPath(); c.moveTo(px - 7, hy - 8); c.lineTo(px, hy - 24); c.lineTo(px + 7, hy - 8); c.closePath(); c.fill(); }
-    if (label) this.label(label, px, hy - (EARED.includes(species) || birthday ? 22 : 16), 'bold 10px Arial', '#ffffffdd');
+    if (label) this.label(label, px, hy - (EARED.includes(species) || birthday ? 22 : 16), 'bold 10px Arial', label.endsWith('(you)') ? '#ffe08a' : '#ffffffdd');
     if (wants) this.label('…', px + 14, hy - 12, 'bold 14px Arial', '#ffd94a');
   }
   private weather(g: Hollow) {

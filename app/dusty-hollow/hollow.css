@@ -309,3 +309,38 @@
 .dh-actions { display: flex; align-items: flex-end; gap: 10px; }
 .dh-sneak { width: 46px; height: 46px; border-radius: 50%; border: 1px solid #ffffff55; background: #34302acc; color: #fff; font-size: 20px; }
 .dh-sneak.on { background: #5f8a4acc; border-color: #fff; }
+
+/* Voxel 3D prototype: the canvas is a WebGL view, so its overlays live in the DOM */
+.dh-stage3d canvas { image-rendering: auto; }
+.dh-reel3d {
+  position: absolute;
+  left: 50%;
+  bottom: 74px;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: auto 240px;
+  gap: 5px 10px;
+  align-items: center;
+  background: #34302ae6;
+  color: #fffaf0;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font: 700 11px Arial;
+  pointer-events: none;
+}
+.dh-reel3d i { display: block; height: 10px; background: #5a5550; border-radius: 5px; overflow: hidden; }
+.dh-reel3d i b { display: block; height: 100%; background: #7fd0b8; }
+.dh-reel3d i:nth-of-type(2) b { background: #8cc06a; }
+.dh-reel3d i.warm b { background: #f0cd6b; }
+.dh-reel3d i.hot b { background: #e0392f; }
+.dh-reel3d em { grid-column: 1 / -1; text-align: center; font: 400 10px Arial; opacity: 0.85; }
+.dh-card3d {
+  position: absolute;
+  inset: 40% 0 auto;
+  background: #34302ad9;
+  color: #fffaf0;
+  text-align: center;
+  padding: 18px 0;
+  font: 700 40px Georgia, serif;
+  pointer-events: none;
+}

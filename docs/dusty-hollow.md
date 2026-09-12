@@ -1,6 +1,14 @@
 # Dusty Hollow
 
-A cozy village-life game: Dora and Enzo move into a seaside Andean hollow together. Rules live in `lib/dusty-hollow-game.ts` (deterministic, no DOM), the Canvas 2D view in `lib/dusty-hollow-scene.ts`, procedural sound in `app/dusty-hollow/sound.ts`, and the page in `app/dusty-hollow/`. Numbers below come from the engine's constants.
+A cozy village-life game: Dora and Enzo move into a seaside Andean hollow together. Rules live in `lib/dusty-hollow-game.ts` (deterministic, no DOM), the Canvas 2D view in `lib/dusty-hollow-scene.ts`, an optional voxel view in `lib/dusty-hollow-3d.ts`, procedural sound in `app/dusty-hollow/sound.ts`, and the page in `app/dusty-hollow/`. Numbers below come from the engine's constants.
+
+## The two views
+
+The page keeps a `view` setting (`2d` or `3d`) in `dusty-hollow-settings` and builds either `HollowScene` or `HollowScene3D`; both expose `draw(g, dt)` and `dispose()`, so the render loop does not care which it holds. The `<canvas>` is keyed on the view so React hands over a fresh element, because a canvas can never change context type once it has one. The 2D `dispose()` is a no-op; the 3D one frees geometries, materials, textures and the WebGL context.
+
+`HollowScene3D` is a prototype. It builds the world from boxes: the fixed terrain is one `InstancedMesh` of 768 capped boxes coloured per tile and rebuilt only when the season turns, with water as a second instanced mesh whose tiles bob each frame. Buildings, the board and rocks are built once; trees and the day's scatter (flowers, fossils, shells, snowballs, snowmen) are rebuilt only when a signature string of their contents changes; critters are pooled by id and rebuilt only when a name or species changes. Roof pyramids bake their 45 degree turn into the geometry, since rotating the mesh instead shears the base as soon as x and z scale apart. Names hang in the world as `CanvasTexture` sprites. The camera is fixed: it trails the hero from above and behind and never rotates, so the movement keys keep meaning what they mean. The renderer sets `preserveDrawingBuffer` so photo mode still captures a frame.
+
+Not yet converted: particle effects, reaction pops, weather, shooting stars, balloons and the fishing line. The reel bar and season title card are rendered as DOM in 3D instead of on the canvas.
 
 ## The pair
 

@@ -7,6 +7,7 @@ import {
   type Save, type SaveV1, type Tool, type Item, type Species, type Placed,
 } from '../../lib/dusty-hollow-game';
 import { HollowScene } from '../../lib/dusty-hollow-scene';
+import { HollowScene3D } from '../../lib/dusty-hollow-3d';
 import { HollowSound } from './sound';
 import './hollow.css';
 
@@ -22,27 +23,29 @@ const FURN_ICON: Record<string, string> = { bed: '🛏️', tub: '🛁', table: 
 function readSave(): Save | SaveV1 | null {
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) ?? 'null'); return s && (s.v === 1 || s.v === 2 || s.v === 3) ? s : null; } catch { return null; }
 }
-function readSettings(): { music: number; effects: number } {
-  try { const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}'); return { music: Number(s.music ?? 0.5), effects: Number(s.effects ?? 0.7) }; } catch { return { music: 0.5, effects: 0.7 }; }
+function readSettings(): { music: number; effects: number; view: View } {
+  try { const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}'); return { music: Number(s.music ?? 0.5), effects: Number(s.effects ?? 0.7), view: s.view === '3d' ? '3d' : '2d' }; } catch { return { music: 0.5, effects: 0.7, view: '2d' }; }
 }
+type View = '2d' | '3d';
 
 export default function DustyHollow() {
   const canvas = useRef<HTMLCanvasElement>(null);
   const game = useRef<Hollow | null>(null);
-  const scene = useRef<HollowScene | null>(null);
+  const scene = useRef<HollowScene | HollowScene3D | null>(null);
   const keys = useRef<Set<string>>(new Set());
   const touch = useRef({ dx: 0, dy: 0, hold: false, sneak: false });
   const sound = useRef<HollowSound | null>(null);
   const [screen, setScreen] = useState<'title' | 'play'>('title');
   const [hasSave, setHasSave] = useState(false);
   const [audible, setAudible] = useState(false);
-  const [levels, setLevels] = useState({ music: 0.5, effects: 0.7 });
+  const [levels, setLevels] = useState({ music: 0.5, effects: 0.7, view: '2d' as View });
   const [passport, setPassport] = useState(false);
   const [photo, setPhoto] = useState(false);
   const [picked, setPicked] = useState<{ pocket?: number; placed?: Placed } | null>(null);
   const [, setTick] = useState(0);
 
   useEffect(() => { setHasSave(!!readSave()); setLevels(readSettings()); }, []);
+  const view = levels.view;
 
   const cue = (kind: string) => sound.current?.cue(kind);
   const persist = () => { const g = game.current; if (g) try { localStorage.setItem(SAVE_KEY, JSON.stringify(g.save())); } catch { /* storage blocked */ } };
@@ -53,8 +56,8 @@ export default function DustyHollow() {
     sound.current.setLevels(levels.music, levels.effects);
     setAudible(true);
   };
-  const setLevel = (key: 'music' | 'effects', value: number) => {
-    const next = { ...levels, [key]: value };
+  const setLevel = (key: 'music' | 'effects', value: number) => saveSettings({ ...levels, [key]: value });
+  const saveSettings = (next: typeof levels) => {
     setLevels(next);
     sound.current?.setLevels(next.music, next.effects);
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); } catch { /* storage blocked */ }
@@ -86,7 +89,7 @@ export default function DustyHollow() {
   // Game loop.
   useEffect(() => {
     if (screen !== 'play' || !canvas.current) return;
-    scene.current = new HollowScene(canvas.current);
+    scene.current = view === '3d' ? new HollowScene3D(canvas.current) : new HollowScene(canvas.current);
     let last = performance.now(), raf = 0, uiAt = 0, saveAt = 0;
     canvas.current.focus();
     const loop = (now: number) => {
@@ -112,8 +115,8 @@ export default function DustyHollow() {
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
-    return () => { cancelAnimationFrame(raf); persist(); };
-  }, [screen]);
+    return () => { cancelAnimationFrame(raf); persist(); scene.current?.dispose(); scene.current = null; };
+  }, [screen, view]);
 
   const bump = () => { const g = game.current; if (g?.event) { cue(g.event); g.event = ''; } setTick((t) => t + 1); };
   const act = () => { const g = game.current; if (!g || g.screen !== 'world') return; g.interact(); bump(); };
@@ -199,8 +202,8 @@ export default function DustyHollow() {
         </div>
       </header>
       <div className="dh-layout">
-        <section className="dh-stage" aria-label="Dusty Hollow village">
-          <canvas ref={canvas} tabIndex={0} aria-label="The village. Move with WASD or arrows, hold Shift to run, Space to use the selected tool or talk." onPointerDown={() => canvas.current?.focus()} />
+        <section className={`dh-stage${view === '3d' ? ' dh-stage3d' : ''}`} aria-label="Dusty Hollow village">
+          <canvas key={view} ref={canvas} tabIndex={0} aria-label="The village. Move with WASD or arrows, hold Shift to run, Space to use the selected tool or talk." onPointerDown={() => canvas.current?.focus()} />
           <div className="dh-hud">
             <span>{SEASON_ICON[g.season]} Day {g.day} · {g.season[0].toUpperCase() + g.season.slice(1)}{g.live ? ' · live' : ''}</span>
             <span>{g.clockText} {WEATHER_ICON[g.weather]}{g.isSale ? ' · SALE' : ''}</span>
@@ -218,6 +221,14 @@ export default function DustyHollow() {
             <div className="dh-festival"><b>{g.festival === 'tourney' ? 'Fishing Tourney' : 'Bug-Off'} today</b>You are {['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'][you]} with {board[you].score.toLocaleString()} · leader {board[0].name} {board[0].score.toLocaleString()}</div>
           ); })()}
           {g.festival === 'snowday' && g.screen === 'world' && <div className="dh-festival"><b>Snowman Day</b>{g.snowballs.length} snowball{g.snowballs.length === 1 ? '' : 's'} left to roll</div>}
+          {view === '3d' && g.fishing?.phase === 'reel' && (
+            <div className="dh-reel3d" aria-label="Reeling">
+              <span>REEL</span><i><b style={{ width: `${Math.min(100, g.fishing.progress * 100)}%` }} /></i>
+              <span>LINE</span><i className={g.fishing.tension > 0.75 ? 'hot' : g.fishing.tension > 0.5 ? 'warm' : ''}><b style={{ width: `${Math.min(100, g.fishing.tension * 100)}%` }} /></i>
+              <em>{g.fishing.tension > 0.75 ? 'Let go!' : 'Hold to reel'}</em>
+            </div>
+          )}
+          {view === '3d' && g.splash && <div className="dh-card3d">{g.splash.text}</div>}
           {g.message && !g.dialog && <div className="dh-toast">{g.message}</div>}
           {g.summary && g.screen === 'world' && !g.dialog && (
             <div className="dh-summary" aria-label="Day summary">
@@ -389,6 +400,7 @@ export default function DustyHollow() {
           </div>
           <div className="dh-card">
             <h3>Settings</h3>
+            <label className="dh-live"><input type="checkbox" checked={view === '3d'} onChange={(e) => saveSettings({ ...levels, view: e.target.checked ? '3d' : '2d' })} /> Voxel 3D view (prototype: no particle effects, weather or shooting stars yet)</label>
             <label className="dh-live"><input type="checkbox" checked={g.escort} onChange={(e) => { g.escort = e.target.checked; persist(); bump(); }} /> {g.friendName} walks with you (off, they keep neighbour hours like everyone else)</label>
             <label className="dh-live"><input type="checkbox" checked={g.live} onChange={(e) => { g.setLive(e.target.checked); persist(); bump(); }} /> Live clock: the hollow follows your real time and calendar (Andean seasons)</label>
             <div className="dh-sliders">
