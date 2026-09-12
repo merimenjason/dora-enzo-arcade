@@ -161,8 +161,8 @@ test('fish respect season, time of day and habitat', () => {
   g.setTool('rod');
   const catchOne = (x, y, facing, hour, day) => {
     g.pockets = []; setHour(g, hour); g.day = day; stand(g, x, y, facing);
-    for (let tries = 0; tries < 6 && !g.pockets.length; tries++) fishOnce(g);
-    return g.pockets[0];
+    for (let tries = 0; tries < 6 && !g.pockets.some((p) => p.kind === 'fish'); tries++) fishOnce(g);
+    return g.pockets.find((p) => p.kind === 'fish');
   };
   for (let i = 0; i < 12; i++) {
     const f = catchOne(10, H - 4, 2, 12, 1);
