@@ -1,22 +1,22 @@
 # Dusty Hollow
 
-A cozy village-life game: Dora and Enzo move into a seaside Andean hollow together. Rules live in `lib/dusty-hollow-game.ts` (deterministic, no DOM), the Canvas 2D view in `lib/dusty-hollow-scene.ts`, an optional voxel view in `lib/dusty-hollow-3d.ts`, procedural sound in `app/dusty-hollow/sound.ts`, and the page in `app/dusty-hollow/`. Numbers below come from the engine's constants.
-
-## The two views
-
-The page keeps a `view` setting (`2d` or `3d`) in `dusty-hollow-settings` and builds either `HollowScene` or `HollowScene3D`; both expose `draw(g, dt)` and `dispose()`, so the render loop does not care which it holds. The `<canvas>` is keyed on the view so React hands over a fresh element, because a canvas can never change context type once it has one. The 2D `dispose()` is a no-op; the 3D one frees geometries, materials, textures and the WebGL context.
-
-`HollowScene3D` is a prototype. It builds the world from boxes: the fixed terrain is one `InstancedMesh` of 768 capped boxes coloured per tile and rebuilt only when the season turns, with water as a second instanced mesh whose tiles bob each frame. Buildings, the board and rocks are built once; trees and the day's scatter (flowers, fossils, shells, snowballs, snowmen) are rebuilt only when a signature string of their contents changes; critters are pooled by id and rebuilt only when a name or species changes. Roof pyramids bake their 45 degree turn into the geometry, since rotating the mesh instead shears the base as soon as x and z scale apart. Names hang in the world as `CanvasTexture` sprites. The camera is fixed: it trails the hero from above and behind and never rotates, so the movement keys keep meaning what they mean. The renderer sets `preserveDrawingBuffer` so photo mode still captures a frame.
-
-Not yet converted: particle effects, reaction pops, weather, shooting stars, balloons and the fishing line. The reel bar and season title card are rendered as DOM in 3D instead of on the canvas.
+A cozy village-life game: Dora and Enzo move into a seaside Andean hollow together. Rules live in `lib/dusty-hollow-game.ts` (deterministic, no DOM), the Canvas 2D view in `lib/dusty-hollow-scene.ts`, procedural sound in `app/dusty-hollow/sound.ts`, and the page in `app/dusty-hollow/`. Numbers below come from the engine's constants.
 
 ## The pair
 
 `hero` is whichever chinchilla you are steering; `companion` is the `friend` villager, which is the other one. `swap()` trades the two: it flips `hero`, exchanges positions and facings, and renames and recolours the companion, so `heroName` and `friendName` follow along. `escort` (default true, saved) makes `moveVillagers()` hand the companion to `follow()` instead of the neighbour wander: they walk to a point 1.5 tiles behind the hero at `WALK`, break into `RUN` beyond 2.6 tiles and teleport there beyond 9, so they never get stranded and never stand on the tile you face. `out(v)` is true for any resident during waking hours and for an escorting companion at any hour, which is what `villagerNear()` and the scene use, so you can talk to your companion after dark. `park()` in the tests switches `escort` off to hold the village still.
 
-## Pixel rendering
+## Art direction
 
-`HollowScene` paints the world into an offscreen `BUF_W` × `BUF_H` (480 × 300) buffer with the context scaled by `1 / PIXEL` (`PIXEL` = 2), so the existing drawing code keeps its logical coordinates. `TILE` is 44, an even number, so a tile is exactly 22 buffer pixels, and the camera is snapped to multiples of `PIXEL` to stop the grid crawling. `PIXEL` is the one knob for how chunky the village looks; it has to divide `TILE`, `VIEW_W` and `VIEW_H` evenly or the grid crawls as the camera moves. The buffer is then blitted to the visible 960 × 600 canvas with `imageSmoothingEnabled = false`. Text would be illegible at a third scale, so world-space labels are queued through `label()` during the paint and drawn afterwards on the full-resolution canvas under the same camera translate; the reel bar and season title card draw straight onto it. One visible canvas means photo mode's `toBlob` still captures everything.
+`HollowScene` draws straight onto the visible 960 × 600 canvas. Everything it paints follows five rules, kept in one place at the top of the file so a new sprite cannot drift:
+
+- **One palette.** `GROUND`, `TERRAIN`, `TREE` and `HOUSE` hold `[base, shade, highlight]` triples; sprites call `shade(hex, t, toward)` to mix rather than inventing a colour.
+- **One light,** from the upper left (`LIGHT`). Every ground shadow goes through `drop()`, so they all fall the same way and at the same softness.
+- **Paper grain,** not a checkerboard. `makeGrain()` bakes a 128 px tile of faint light and dark specks once, and one `fillRect` lays it over the whole visible ground after the tiles and before anything standing on it. Per-tile colour varies by a few percent from `hash(x, y)`, which is far too little to read as a grid.
+- **Feathered joins.** `seam()` paints a 5 px band of the neighbouring terrain's colour at 30% along any edge where the terrain changes, plus a darker lip where land meets water. Wider than that and every path grows a pale rectangle around it, which is the tile grid all over again.
+- **Ink outlines.** `stroke()` puts a soft brown line around anything standing up, so it lifts off the ground; `INK_SOFT` is the lighter version for small or pale things.
+
+`grade()` finishes the frame with a warm overlay wash and a soft vignette. World-space text is queued through `label()` while painting and drawn last, over the night tint, the weather and the grade, so it never dims; each label gets a dark outline so it reads against grass or roof alike. `hash(x, y, salt)` gives every tile a stable random value, which is what keeps a tree's canopy lobes and a tile's grass tufts the same shape from frame to frame.
 
 ## Clock
 

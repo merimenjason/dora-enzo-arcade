@@ -6,10 +6,9 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
-- **Dusty Hollow:** a voxel 3D view, as a prototype. Settings switches the village from pixel art to a world built out of boxes, with a camera that trails whoever you are steering. Ground, water, houses, trees, rocks, flowers, fossils, shells, snow, bugs and every villager are there, along with the sky changing through the day; particle effects, weather and shooting stars are not converted yet, so the pixel view stays the default.
+- **Dusty Hollow:** a new look. The pixel and voxel experiments are gone, replaced by a soft storybook village: one palette throughout, one light so every shadow falls the same way, paper grain over the ground in place of the checkerboard, soft joins where grass meets path, sand and water, shallow water near the shore, ink outlines so trees and houses lift off the grass, roofs with a lit and a shaded face and a shadow under the eaves, and a warm wash and vignette over the whole frame.
 - **Dusty Hollow:** both chinchillas now wear name tags, and the one you are steering is marked “(you)” in amber. Previously the one you controlled was the only villager without a label.
-- **Dusty Hollow:** the hollow is now pixel art, and Dora and Enzo live there together.
-  - **A pixel-art village.** The whole world is drawn at half resolution and blown up with hard edges, so tiles, buildings, chinchillas, bugs and weather are all made of chunky pixels, while faces and small details stay readable. Labels and the reel bar are sharp on top.
+- **Dusty Hollow:** Dora and Enzo live in the hollow together.
   - **Both chinchillas, no more choosing.** Dora and Enzo move in together and share the burrow. You steer one and the other walks a step behind; press X (or the swap button on touch) and they trade places, so either is playable at any moment. They are around at night when the neighbours have gone in, and Settings can send them off to keep neighbour hours instead.
 - **Dusty Hollow:** a third round of improvements.
   - **A jackpot for every festival:** one Golden Dorado in the spring river, one Hercules Beetle under the summer trees, one Great Zúngaro in the autumn river and one Titicaca Water Frog in the winter pond, each worth 9,000 to 12,000 raisins. They surface only on that season's festival day, only one is going, and the notice board says when someone has landed it.
