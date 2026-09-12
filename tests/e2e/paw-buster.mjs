@@ -31,7 +31,7 @@ try {
   // Stage buttons enable once the page is interactive; only the citadel stays locked.
   await page.waitForFunction(() => !document.querySelector('[data-testid="stage-snowcap"]').disabled);
   assert.ok(await page.getByTestId('stage-citadel').isDisabled(), 'citadel starts locked');
-  assert.match(await page.getByTestId('summary').textContent(), /Heart tanks 0\/6 · Sub-tanks 0\/4 · Max health 16 · Weapons: Paw Buster$/);
+  assert.match(await page.getByTestId('summary').textContent(), /Heart tanks 0\/6 · Sub-tanks 0\/4 · Armour 0\/5 · Max health 16 · Weapons: Paw Buster$/);
   await page.screenshot({ path: '.checks/paw-buster/select.png' });
 
   await page.getByTestId('stage-snowcap').click();
@@ -72,7 +72,7 @@ try {
   await page.reload();
   await page.getByTestId('stage-snowcap').waitFor();
   await page.waitForFunction(() => !document.querySelector('[data-testid="stage-citadel"]').disabled);
-  assert.match(await page.getByTestId('summary').textContent(), /Heart tanks 2\/6 · Sub-tanks 0\/4 · Max health 20 · Weapons: Paw Buster, Frost Shard, Gale Feather, Ember Coil, Quartz Orbit, Volt Spark, Bubble Burst/);
+  assert.match(await page.getByTestId('summary').textContent(), /Heart tanks 2\/6 · Sub-tanks 0\/4 · Armour 0\/5 · Max health 20 · Weapons: Paw Buster, Frost Shard, Gale Feather, Ember Coil, Quartz Orbit, Volt Spark, Bubble Burst/);
   assert.match(await page.getByTestId('stage-snowcap').textContent(), /Cleared · best 1:23\.4 · ♥ tank · Frost Shard/);
   await page.screenshot({ path: '.checks/paw-buster/select-all.png' });
   await page.getByTestId('stage-citadel').click();
@@ -119,6 +119,61 @@ try {
   await page.screenshot({ path: '.checks/paw-buster/pause.png' });
   await page.getByRole('button', { name: 'Stage select' }).first().click();
   await page.getByTestId('opt-coop').uncheck();
+
+  // Hard mode waits for the citadel; save slots and save codes are on the saves panel.
+  assert.ok(await page.getByTestId('opt-hard').isDisabled(), 'hard mode is locked until the citadel falls');
+  await page.getByText('Saves and records').click();
+  const saveCode = await page.getByTestId('save-code').inputValue();
+  assert.match(saveCode, /^PBX3-/);
+  assert.match(await page.getByTestId('stats').textContent(), /Slot 1 · 6\/7 stages cleared/);
+  await page.getByTestId('slot-2').click();
+  assert.match(await page.getByTestId('summary').textContent(), /Heart tanks 0\/6/, 'slot 2 starts empty');
+  await page.getByTestId('load-code').fill(saveCode);
+  await page.getByRole('button', { name: 'Load' }).click();
+  assert.match(await page.getByTestId('summary').textContent(), /Heart tanks 2\/6/, 'the save code loads into slot 2');
+  await page.getByTestId('slot-1').click();
+
+  // The boss gallery refights one boss on its own.
+  await page.getByText('Boss gallery').click();
+  await page.getByTestId('gallery-snowcap').click();
+  await waitState(page, 'boss');
+  assert.match(await page.getByTestId('status').textContent(), /Snowcap Ridge · Boss gallery/);
+  await page.screenshot({ path: '.checks/paw-buster/gallery.png' });
+  await page.getByRole('button', { name: 'Stage select' }).first().click();
+
+  // A recorded ghost replays alongside the run.
+  await page.evaluate(() => localStorage.setItem('paw-buster-x-ghosts', JSON.stringify({ snowcap: { time: 99, difficulty: 'normal', progress: {}, run: '2.zz' } })));
+  await page.reload();
+  await page.getByTestId('stage-snowcap').waitFor();
+  await page.waitForFunction(() => !document.querySelector('[data-testid="stage-snowcap"]').disabled);
+  assert.match(await page.getByTestId('stage-snowcap').textContent(), /👻 ghost/);
+  await page.getByTestId('stage-snowcap').click();
+  await waitState(page, 'play');
+  const ghost0 = Number(await attr(page, 'ghost'));
+  await page.waitForTimeout(900);
+  assert.ok(Number(await attr(page, 'ghost')) > ghost0 + 60, 'the ghost runs its recorded route');
+  await page.getByRole('button', { name: 'Stage select' }).first().click();
+
+  // A gamepad drives the hero and Start pauses.
+  const pad = await browser.newPage();
+  await pad.addInitScript(() => {
+    window.__pad = { id: 'test', index: 0, connected: true, mapping: 'standard', timestamp: 0, axes: [0, 0], buttons: [...Array(17)].map(() => ({ pressed: false, touched: false, value: 0 })) };
+    navigator.getGamepads = () => [window.__pad];
+  });
+  await pad.goto(`${base}/paw-buster`);
+  await pad.getByTestId('stage-snowcap').waitFor();
+  await pad.waitForFunction(() => !document.querySelector('[data-testid="stage-snowcap"]').disabled);
+  await pad.getByTestId('stage-snowcap').click();
+  await waitState(pad, 'play');
+  const gx = Number(await attr(pad, 'x'));
+  await pad.evaluate(() => { window.__pad.buttons[15].pressed = true; });
+  await pad.waitForTimeout(700);
+  await pad.evaluate(() => { window.__pad.buttons[15].pressed = false; });
+  await pad.waitForTimeout(200);
+  assert.ok(Number(await attr(pad, 'x')) > gx + 60, 'the d-pad moves Dora');
+  await pad.evaluate(() => { window.__pad.buttons[9].pressed = true; });
+  await waitState(pad, 'paused');
+  await pad.close();
   await page.close();
 
   // Phones get the touch pad and no sideways scrolling.
@@ -139,7 +194,7 @@ try {
   await phone.close();
 
   assert.deepEqual(errors, []);
-  console.log('Paw Buster X: arcade card, stage select, six mavericks, lock, play, movement, tag, pause, saved progress, citadel, weapon switch, key remap, co-op, saved options, touch pad, phone layout.');
+  console.log('Paw Buster X: arcade card, stage select, six mavericks, lock, play, movement, tag, pause, saved progress, citadel, weapon switch, key remap, co-op, saved options, hard-mode lock, save slots and save codes, boss gallery, ghost replay, gamepad, touch pad, phone layout.');
 } finally {
   await browser.close();
 }

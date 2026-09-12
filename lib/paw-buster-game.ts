@@ -4,19 +4,24 @@
 export const TILE = 30, ROWS = 18, VIEW_W = 960, VIEW_H = 540;
 export const PHYS = { run: 170, dash: 340, dashTime: 0.4, airDash: 0.3, jump: 520, wallJump: 470, kick: 0.12, gravity: 1500, maxFall: 600, slide: 110, cut: -200 };
 export const HERO = { hp: 16, tank: 2, w: 20, h: 30 };
-export const CHARGE = { mid: 0.55, full: 1.4 };
+/** Buster charge levels in seconds held; the third needs the Arm Cannon. */
+export const CHARGE = { mid: 0.55, full: 1.4, giga: 2.4 };
 export const VOLT_SPEED = 380;
 export const ENERGY = 28, WEAPON_COST = 2, PIT_DAMAGE = 6, SPIKE_DAMAGE = 6, TAG_TIME = 2, TAG_BONUS = 1.5, WEAKNESS = 3;
 export const SUB_CAP = 16, RUSH_HP = 16, CRUSH_DAMAGE = 4, CRUSH_PERIOD = 2.6, CRUSH_LIFT = 150, BELT = 90, HITSTOP = 0.05;
+/** Seconds a co-op hero must stand by a fallen partner to revive them; hard mode's health multiplier; waterfall float speed. */
+export const REVIVE = 2, HARD_HP = 1.5, FLOAT = 210, GUARDIAN_HP = 20;
 
 export type StageId = 'snowcap' | 'cloud' | 'caldera' | 'mines' | 'salt' | 'lake' | 'citadel';
 export type WeaponId = 'buster' | 'frost' | 'gale' | 'ember' | 'quartz' | 'volt' | 'bubble';
 export type HeroId = 'dora' | 'enzo';
 export type BossKind = 'fox' | 'owl' | 'snake' | 'armadillo' | 'vicuna' | 'toad' | 'cougar';
-export type EnemyKind = 'beetle' | 'bat' | 'turret' | 'hopper';
-export type PartId = 'boots' | 'saber';
-export type ShotKind = 'lemon' | 'mid' | 'full' | 'frost' | 'gale' | 'ember' | 'quartz' | 'volt' | 'bubble' | 'icewall' | 'tornado' | 'pillar'
-  | 'pellet' | 'shard' | 'feather' | 'fire' | 'wave' | 'claw' | 'crystal' | 'rock' | 'bolt' | 'spark' | 'tongue' | 'foam';
+export type EnemyKind = 'beetle' | 'bat' | 'turret' | 'hopper' | 'ceiling' | 'shield' | 'bomber' | 'guardian';
+export type PartId = 'boots' | 'saber' | 'helmet' | 'armor' | 'arm';
+export type Rank = 'S' | 'A' | 'B' | 'C';
+export type BadgeId = 'untouched' | 'buster' | 'nosub' | 'hard';
+export type ShotKind = 'lemon' | 'mid' | 'full' | 'giga' | 'frost' | 'gale' | 'ember' | 'quartz' | 'volt' | 'bubble' | 'icewall' | 'tornado' | 'pillar'
+  | 'pellet' | 'shard' | 'feather' | 'fire' | 'wave' | 'claw' | 'crystal' | 'rock' | 'bolt' | 'spark' | 'tongue' | 'foam' | 'bomb';
 export type Input = { left: boolean; right: boolean; jump: boolean; fire: boolean; dash: boolean; swap: boolean; prev: boolean; next: boolean };
 export const NO_INPUT: Input = { left: false, right: false, jump: false, fire: false, dash: false, swap: false, prev: false, next: false };
 export const HEROES: HeroId[] = ['dora', 'enzo'];
@@ -33,7 +38,39 @@ export const WEAPONS: Record<WeaponId, { name: string; from: StageId | null; col
 export const PARTS: Record<PartId, { name: string; from: StageId; detail: string }> = {
   boots: { name: 'Dash Boots', from: 'salt', detail: 'Press dash in mid-air for one air dash per jump.' },
   saber: { name: 'Saber Crest', from: 'mines', detail: 'Enzo’s slash while dashing becomes a 5-damage dash slash with longer reach.' },
+  helmet: { name: 'Scout Helmet', from: 'cloud', detail: 'Hidden walls show as outlines, and arrows at the screen edge point to items you haven’t found yet.' },
+  armor: { name: 'Body Armour', from: 'caldera', detail: 'Hits do a quarter less damage and no longer knock you back.' },
+  arm: { name: 'Arm Cannon', from: 'snowcap', detail: 'Keep holding Dora’s buster past a full charge for a 6-damage spiral shot.' },
 };
+/** How to reach each capsule: the upgrades sit behind walls that a later weapon opens. */
+export const CAPSULE_HINTS: Partial<Record<PartId, string>> = {
+  helmet: 'Float up the Cloud Forest waterfall with Bubble Burst: hold jump in the falling water.',
+  armor: 'A crystal wall in Ember Caldera shatters under Quartz Orbit.',
+  arm: 'A dead power door on Snowcap Ridge opens to a Volt Spark.',
+};
+/** Challenges, shown as badges on each stage card. */
+export const BADGES: Record<BadgeId, { name: string; icon: string; detail: string }> = {
+  untouched: { name: 'Untouched', icon: '🛡', detail: 'Beat the boss without taking a hit in its room.' },
+  buster: { name: 'Buster only', icon: '🍋', detail: 'Clear the stage without firing a special weapon.' },
+  nosub: { name: 'Dry tanks', icon: '🚫', detail: 'Beat the Kingpin without drinking from a sub-tank.' },
+  hard: { name: 'Hard clear', icon: '🔥', detail: 'Clear the stage on hard mode.' },
+};
+export const badgesFor = (id: StageId): BadgeId[] => (id === 'citadel' ? ['untouched', 'buster', 'nosub', 'hard'] : ['untouched', 'buster', 'hard']);
+/** Target times in seconds for a gold, silver and bronze medal. */
+export const TARGETS: Record<StageId, [number, number, number]> = {
+  snowcap: [95, 130, 180], cloud: [100, 135, 185], caldera: [95, 130, 180], mines: [100, 135, 185], salt: [100, 135, 185], lake: [100, 135, 185], citadel: [330, 420, 540],
+};
+export const medalFor = (id: StageId, time: number) => { const [g, s, b] = TARGETS[id]; return time <= g ? 3 : time <= s ? 2 : time <= b ? 1 : 0; };
+export const MEDALS = ['', 'Bronze', 'Silver', 'Gold'];
+/** A stage rank from 0 to 8 points: up to 3 for the time medal, 3 for taking little damage and 2 for clearing out the enemies. */
+export function rankFor(id: StageId, time: number, damage: number, kills: number, total: number): Rank {
+  const pts = medalFor(id, time) + (damage === 0 ? 3 : damage <= 8 ? 2 : damage <= 20 ? 1 : 0) + (total && kills / total >= 0.8 ? 2 : total && kills / total >= 0.5 ? 1 : 0);
+  return pts >= 7 ? 'S' : pts >= 5 ? 'A' : pts >= 3 ? 'B' : 'C';
+}
+const RANKS: Rank[] = ['C', 'B', 'A', 'S'];
+export const betterRank = (a: Rank | undefined, b: Rank) => (!a || RANKS.indexOf(b) > RANKS.indexOf(a) ? b : a);
+/** Each stage's mid-boss. */
+export const GUARDIANS: Record<StageId, string> = { snowcap: 'Snow Golem', cloud: 'Thorn Mantis', caldera: 'Slag Crab', mines: 'Drill Mole', salt: 'Salt Golem', lake: 'Reed Crab', citadel: 'Gate Sentinel' };
 export const STAGES: { id: StageId; name: string; boss: BossKind; bossName: string; weapon: WeaponId | null; weakness: WeaponId | null; blurb: string }[] = [
   { id: 'snowcap', name: 'Snowcap Ridge', boss: 'fox', bossName: 'Frost Fox', weapon: 'frost', weakness: 'ember', blurb: 'Icy ledges and a fox who never stops running.' },
   { id: 'cloud', name: 'Cloud Forest', boss: 'owl', bossName: 'Storm Owl', weapon: 'gale', weakness: 'frost', blurb: 'Misty treetops, swooping bats and a storm on silent wings.' },
@@ -71,36 +108,69 @@ export const CHANGES: { stage: StageId; by: StageId; effect: 'freeze' | 'cool' |
 ];
 
 // ---------- progress ----------
-export type Progress = { cleared: StageId[]; tanks: StageId[]; best: Partial<Record<StageId, number>>; subs: StageId[]; subFill: number[]; parts: PartId[]; found: StageId[] };
+export type Progress = {
+  cleared: StageId[]; tanks: StageId[]; best: Partial<Record<StageId, number>>; subs: StageId[]; subFill: number[]; parts: PartId[]; found: StageId[];
+  ranks: Partial<Record<StageId, Rank>>; medals: Partial<Record<StageId, number>>; badges: string[]; bossBest: Partial<Record<StageId, number>>; deaths: number; playTime: number;
+};
 export const SAVE_KEY = 'paw-buster-x-v1';
-export const freshProgress = (): Progress => ({ cleared: [], tanks: [], best: {}, subs: [], subFill: [], parts: [], found: [] });
+export const freshProgress = (): Progress => ({ cleared: [], tanks: [], best: {}, subs: [], subFill: [], parts: [], found: [], ranks: {}, medals: {}, badges: [], bossBest: {}, deaths: 0, playTime: 0 });
+export const copyProgress = (p: Progress): Progress => structuredClone(p);
 const isStage = (v: unknown): v is StageId => STAGES.some((s) => s.id === v);
-const isPart = (v: unknown): v is PartId => v === 'boots' || v === 'saber';
+const isPart = (v: unknown): v is PartId => typeof v === 'string' && v in PARTS;
+const isBadge = (v: unknown): v is string => typeof v === 'string' && /^[a-z]+:[a-z]+$/.test(v) && isStage(v.split(':')[0]) && badgesFor(v.split(':')[0] as StageId).includes(v.split(':')[1] as BadgeId);
 const list = <T>(a: unknown, ok: (x: unknown) => x is T): T[] => (Array.isArray(a) ? [...new Set(a.filter(ok))] : []);
-/** Reads version 2 saves and upgrades version 1 (cleared stages, heart tanks and best times only). */
+const count = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : 0);
+function times(v: unknown, ok: (t: number) => boolean) {
+  const out: Partial<Record<StageId, number>> = {};
+  if (v && typeof v === 'object') for (const [k, t] of Object.entries(v)) if (isStage(k) && typeof t === 'number' && Number.isFinite(t) && ok(t)) out[k] = t;
+  return out;
+}
+/** Reads version 3 saves and upgrades versions 1 (cleared stages, heart tanks and best times) and 2 (plus collectibles). */
 export function parseProgress(raw: string | null): Progress {
   if (!raw) return freshProgress();
   try {
     const v = JSON.parse(raw);
-    if (!v || typeof v !== 'object' || (v.version !== 1 && v.version !== 2) || !Array.isArray(v.cleared) || !Array.isArray(v.tanks) || typeof v.best !== 'object' || !v.best) return freshProgress();
-    const best: Progress['best'] = {};
-    for (const [k, t] of Object.entries(v.best)) if (isStage(k) && typeof t === 'number' && Number.isFinite(t) && t > 0) best[k] = t;
+    if (!v || typeof v !== 'object' || ![1, 2, 3].includes(v.version) || !Array.isArray(v.cleared) || !Array.isArray(v.tanks) || typeof v.best !== 'object' || !v.best) return freshProgress();
     const subs = list(v.subs, (s): s is StageId => isStage(s) && SUB_STAGES.includes(s));
     const fill: unknown[] = Array.isArray(v.subFill) ? v.subFill : [];
+    const ranks: Progress['ranks'] = {};
+    if (v.ranks && typeof v.ranks === 'object') for (const [k, r] of Object.entries(v.ranks)) if (isStage(k) && RANKS.includes(r as Rank)) ranks[k] = r as Rank;
     return {
       cleared: list(v.cleared, isStage),
       tanks: list(v.tanks, (s): s is StageId => isStage(s) && s !== 'citadel'),
-      best,
+      best: times(v.best, (t) => t > 0),
       subs,
       subFill: subs.map((_, i) => { const f = fill[i]; return typeof f === 'number' && Number.isFinite(f) ? Math.max(0, Math.min(SUB_CAP, f)) : 0; }),
       parts: list(v.parts, isPart),
       found: list(v.found, isStage),
+      ranks,
+      medals: times(v.medals, (m) => Number.isInteger(m) && m >= 1 && m <= 3),
+      badges: list(v.badges, isBadge),
+      bossBest: times(v.bossBest, (t) => t > 0),
+      deaths: Math.floor(count(v.deaths)),
+      playTime: count(v.playTime),
     };
   } catch {
     return freshProgress();
   }
 }
-export const saveProgress = (p: Progress) => JSON.stringify({ version: 2, ...p });
+export const saveProgress = (p: Progress) => JSON.stringify({ version: 3, ...p });
+/** A save code to carry progress to another browser: a prefix and the save, base64 encoded. */
+const CODE = 'PBX3-';
+export const exportCode = (p: Progress) => CODE + btoa(saveProgress(p)).replace(/=+$/, '');
+/** Reads a save code; null when it isn't one. */
+export function importCode(code: string): Progress | null {
+  const s = code.replace(/\s+/g, '');
+  if (!s.startsWith(CODE)) return null;
+  try {
+    const raw = atob(s.slice(CODE.length));
+    const v = JSON.parse(raw);
+    if (!v || typeof v !== 'object' || ![1, 2, 3].includes(v.version) || !Array.isArray(v.cleared)) return null;
+    return parseProgress(raw);
+  } catch {
+    return null;
+  }
+}
 // A citadel already beaten stays open for saves made before the last three mavericks arrived.
 export const unlocked = (p: Progress, id: StageId) => id !== 'citadel' || p.cleared.includes('citadel') || MAVERICKS.every((s) => p.cleared.includes(s));
 export const weaponsFor = (p: Progress): WeaponId[] => (Object.keys(WEAPONS) as WeaponId[]).filter((w) => w === 'buster' || p.cleared.includes(WEAPONS[w].from!));
@@ -109,13 +179,23 @@ export const changesFor = (p: Progress, id: StageId) => CHANGES.filter((c) => c.
 
 // ---------- stage maps ----------
 type Spawn = { kind: EnemyKind; x: number; y: number };
-export type ItemKind = 'hp' | 'ammo' | 'tank' | 'sub' | 'boots' | 'saber';
+export type ItemKind = 'hp' | 'ammo' | 'tank' | 'sub' | PartId;
+export const isPartItem = (k: ItemKind): k is PartId => k in PARTS;
 /** Items that hang in place instead of falling. */
-const FIXED: ItemKind[] = ['tank', 'sub', 'boots', 'saber'];
+const FIXED = (k: ItemKind) => k === 'tank' || k === 'sub' || isPartItem(k);
+/** Items that stay found once collected: shown by the Scout Helmet's arrows. */
+export const KEEPSAKE = FIXED;
 export type PlatformSpec = { x: number; y: number; w: number; ax: number; ay: number; period: number };
 export type CrusherSpec = { x: number; w: number; bottom: number; phase: number };
-/** Tiles: 0 air, 1 rock, 2 spikes, 3 conveyor moving right, 4 conveyor moving left, 5 ice. */
-export type StageMap = { cols: number; tiles: Uint8Array; spawns: Spawn[]; items: { kind: ItemKind; x: number; y: number }[]; checkpoints: { x: number; y: number }[]; start: { x: number; y: number }; arena: number; exit: number; platforms: PlatformSpec[]; crushers: CrusherSpec[] };
+/**
+ * Tiles: 0 air, 1 rock, 2 spikes, 3 conveyor moving right, 4 conveyor moving left, 5 ice,
+ * 6 crystal wall (Quartz Orbit shatters it), 7 power door (a Volt Spark opens it), 8 hidden wall (looks solid, but isn't).
+ */
+export const T = { air: 0, rock: 1, spike: 2, beltR: 3, beltL: 4, ice: 5, crystal: 6, door: 7, hidden: 8 } as const;
+export const isSolid = (t: number) => t !== T.air && t !== T.hidden;
+/** Which weapon opens each breakable tile. */
+export const OPENS: Partial<Record<number, WeaponId>> = { [T.crystal]: 'quartz', [T.door]: 'volt' };
+export type StageMap = { cols: number; tiles: Uint8Array; spawns: Spawn[]; items: { kind: ItemKind; x: number; y: number }[]; checkpoints: { x: number; y: number }[]; start: { x: number; y: number }; arena: number; exit: number; platforms: PlatformSpec[]; crushers: CrusherSpec[]; falls: { x: number; w: number }[] };
 class Builder {
   cols: number[][] = [];
   spawns: Spawn[] = [];
@@ -123,6 +203,7 @@ class Builder {
   checkpoints: StageMap['checkpoints'] = [];
   platforms: PlatformSpec[] = [];
   crushers: CrusherSpec[] = [];
+  falls: StageMap['falls'] = [];
   start = { x: 0, y: 0 };
   arenaCol = -1;
   exitCol = -1;
@@ -146,7 +227,36 @@ class Builder {
   platform(back: number, len: number, height: number, ax = 0, ay = 0, period = 3) { this.platforms.push({ x: (this.x - back) * TILE, y: (ROWS - height) * TILE, w: len * TILE, ax: ax * TILE, ay: ay * TILE, period }); return this; }
   /** A two-column piston that slams down onto the floor `back` columns behind the cursor. */
   crusher(back: number, phase = 0) { const c = this.x - back; this.crushers.push({ x: c * TILE, w: 2 * TILE, bottom: this.top(c), phase }); return this; }
-  private top(c: number) { const r = this.cols[c].findIndex((t) => t); return (r < 0 ? ROWS : r) * TILE; }
+  private top(c: number) { const r = this.cols[c].findIndex((t) => isSolid(t)); return (r < 0 ? ROWS : r) * TILE; }
+  /**
+   * A two-tile-high room carved into the last `back` columns (which must be taller than `floor`),
+   * its floor `floor` tiles up and `len` columns deep, entered from the left through a `door`:
+   * a hidden wall, a crystal wall or a power door. The loot sits inside.
+   */
+  vault(back: number, len: number, floor: number, door: number, loot: ItemKind[]) {
+    const c0 = this.x - back;
+    for (let i = 0; i < len; i++) for (let r = ROWS - floor - 2; r < ROWS - floor; r++) this.cols[c0 + i][r] = i === 0 ? door : T.air;
+    loot.forEach((kind, i) => this.items.push({ kind, x: (c0 + 1 + (i % (len - 1))) * TILE + TILE / 2, y: (ROWS - floor) * TILE }));
+    return this;
+  }
+  /**
+   * A hidden room just under the surface of the last `back` columns: the surface tile of its first
+   * column looks like rock but isn't, so you drop through it, and a jump gets you back out. Unlike a
+   * vault it leaves the wall face solid, so it never swallows a wall-jump climb.
+   */
+  stash(back: number, len: number, top: number, loot: ItemKind[]) {
+    const c0 = this.x - back, surface = ROWS - top;
+    // One row deep, so a jump from inside clears the surface again, and the way in is the far end,
+    // so heroes land on solid ground first and can run out of it.
+    for (let i = 0; i < len; i++) this.cols[c0 + i][surface + 1] = T.air;
+    this.cols[c0 + len - 1][surface] = T.hidden;
+    loot.forEach((kind, i) => this.items.push({ kind, x: (c0 + (i % len)) * TILE + TILE / 2, y: (surface + 2) * TILE }));
+    return this;
+  }
+  /** A waterfall over the last `back` columns for `len` columns: Bubble Burst lets you float up it. */
+  waterfall(back: number, len: number) { this.falls.push({ x: (this.x - back) * TILE, w: len * TILE }); return this; }
+  /** A floating item `above` tiles over the ground at `back` columns behind the cursor, or at an exact height. */
+  itemAt(kind: ItemKind, back: number, height: number) { this.items.push({ kind, x: (this.x - 1 - back) * TILE + TILE / 2, y: (ROWS - height) * TILE }); return this; }
   private at(back: number, above: number) { const c = this.x - 1 - back; return { x: c * TILE + TILE / 2, y: this.top(c) - above * TILE }; }
   enemy(kind: EnemyKind, back = 0, above = 0) { this.spawns.push({ kind, ...this.at(back, above) }); return this; }
   item(kind: ItemKind, back = 0, above = 0) { this.items.push({ kind, ...this.at(back, above) }); return this; }
@@ -161,79 +271,90 @@ class Builder {
   done(): StageMap {
     const tiles = new Uint8Array(this.x * ROWS);
     this.cols.forEach((c, i) => c.forEach((t, r) => (tiles[i * ROWS + r] = t)));
-    return { cols: this.x, tiles, spawns: this.spawns, items: this.items, checkpoints: this.checkpoints, start: this.start, arena: this.arenaCol, exit: this.exitCol, platforms: this.platforms, crushers: this.crushers };
+    return { cols: this.x, tiles, spawns: this.spawns, items: this.items, checkpoints: this.checkpoints, start: this.start, arena: this.arenaCol, exit: this.exitCol, platforms: this.platforms, crushers: this.crushers, falls: this.falls };
   }
 }
 // Rises of two tiles or less can be jumped; taller faces are wall-jump climbs. Plain pits are three
 // tiles at most; five-tile pits need a dash jump; wider ones have ledges or moving platforms.
 const BUILDS: Record<StageId, ((b: Builder) => Builder)[]> = {
+  // Each maverick stage has a mid-boss guardian on a long flat stretch, and a vault: a hidden wall
+  // (the Scout Helmet shows it), or a crystal wall or power door that a later weapon opens.
   snowcap: [(b) => b.run(12, 3).begin(9).enemy('beetle', 1)
     .run(6, 5).run(5, 5).enemy('beetle', 1)
     .pit(3)
-    .run(8, 5).enemy('turret', 2).item('hp', 6)
+    .run(8, 5).enemy('turret', 2).enemy('shield', 5).item('hp', 6)
     .run(5, 7).spikes(3)
     .run(6, 7).checkpoint(4).enemy('bat', 1, 4)
     .run(8, 12).run(6, 12).enemy('beetle', 2)
     .run(4, 8).run(6, 4)
+    // A trench most heroes dash-jump straight over; at the bottom of it, a dead power door.
+    .run(3, 1).run(8, 4).vault(8, 5, 1, T.door, ['arm'])
+    .run(12, 4).enemy('guardian', 2)
     .pit(7).ledge(5, 3, 5)
     .run(5, 4).enemy('turret', 1)
     .run(2, 10).item('tank', 1)
-    .run(8, 4).enemy('beetle', 3).enemy('bat', 5, 4)
+    .run(8, 4).enemy('beetle', 3).enemy('bomber', 5, 6)
     .pit(5)
     .run(8, 4).item('hp', 5).checkpoint(2)
     .run(3, 3).arena()],
   cloud: [(b) => b.run(10, 3).begin(7).enemy('bat', 1, 4)
     .pit(3).run(6, 4).enemy('beetle', 1)
     .pit(9).ledge(7, 2, 6).ledge(4, 2, 8)
-    .run(6, 6).enemy('turret', 1).enemy('bat', 4, 5)
+    .run(6, 6).enemy('turret', 1).enemy('ceiling', 4, 5)
     .run(4, 8).spikes(2).run(5, 8).checkpoint(3)
     .run(3, 14).item('tank', 1)
-    .run(6, 5).enemy('bat', 2, 3).enemy('bat', 5, 6)
+    .run(6, 5).enemy('bat', 2, 3).enemy('bomber', 5, 6)
     .pit(10).ledge(8, 2, 5).ledge(5, 2, 7).ledge(2, 2, 5).item('sub', 4, 1)
-    .run(7, 5).enemy('beetle', 2).item('ammo', 5)
+    .run(12, 5).enemy('guardian', 2).item('ammo', 9)
+    .run(10, 5).waterfall(9, 2).ledge(7, 4, 14).itemAt('helmet', 5, 14)
     .run(5, 7).enemy('turret', 1)
     .run(6, 4).item('hp', 3).checkpoint(1)
     .run(3, 3).arena()],
   caldera: [(b) => b.run(10, 4).begin(7).enemy('turret', 1)
     .spikes(3).run(5, 4).enemy('beetle', 1)
     .run(5, 6).pit(3).run(4, 6).enemy('turret', 1)
-    .spikes(4).ledge(3, 2, 9).item('sub', 2, 1)
-    .run(6, 6).checkpoint(3).item('hp', 1)
+    .spikes(4).ledge(3, 2, 8).item('sub', 2, 1)
+    .run(6, 6).checkpoint(3).item('hp', 1).enemy('ceiling', 4, 5)
+    .run(12, 6).enemy('guardian', 2)
     .run(3, 11).item('tank', 1)
-    .run(5, 5).enemy('beetle', 2).enemy('bat', 4, 5)
+    .run(5, 5).enemy('shield', 2).enemy('bat', 4, 5)
     .pit(5).run(4, 5).spikes(2).run(6, 5).enemy('turret', 1)
+    // Down in the trench, a crystal wall.
+    .run(3, 1).run(8, 5).vault(8, 5, 1, T.crystal, ['armor'])
     .run(7, 10).enemy('bat', 3, 3)
     .run(6, 4).item('ammo', 4).item('hp', 2).checkpoint(1)
     .run(3, 3).arena()],
   mines: [(b) => b.run(10, 4).begin(7).enemy('beetle', 1)
-    .run(6, 4).ceiling(6, 7).enemy('beetle', 2)
+    .run(6, 4).ceiling(6, 7).enemy('ceiling', 3, 6)
     .pit(3).run(5, 5).enemy('turret', 1).item('sub', 3, 3)
     .run(4, 7).ceiling(4, 5).spikes(3).run(5, 7).checkpoint(3).item('hp', 1).item('saber', 1, 2)
     .run(3, 12).item('tank', 1)
-    .run(6, 6).enemy('bat', 2, 3).enemy('beetle', 4)
+    .run(12, 6).enemy('guardian', 2).enemy('bat', 8, 3)
+    .run(5, 10).stash(5, 3, 10, ['hp', 'ammo'])
     .pit(5).run(6, 6).ceiling(6, 6).enemy('turret', 1)
-    .spikes(2).run(5, 6).enemy('beetle', 1)
+    .spikes(2).run(5, 6).enemy('shield', 1)
     .run(6, 4).item('ammo', 4).item('hp', 2).checkpoint(1)
     .run(3, 3).arena()],
   salt: [(b) => b.run(12, 3).begin(9).enemy('beetle', 1)
-    .pit(5).run(8, 3).enemy('turret', 1).enemy('bat', 5, 4)
-    .pit(5).run(4, 3).spikes(3).run(6, 3).checkpoint(3)
+    .pit(5).run(8, 3).enemy('turret', 1).enemy('bat', 5, 4).enemy('bomber', 3, 7)
+    .pit(5).run(4, 3).spikes(3).run(12, 3).checkpoint(9).enemy('guardian', 2)
     .run(3, 5).run(3, 7).item('hp', 1).enemy('turret', 1)
     .pit(9).ledge(6, 3, 6).item('boots', 4, 1)
     .run(6, 5).enemy('hopper', 2)
+    .run(4, 8).stash(4, 3, 8, ['hp', 'ammo'])
     .run(2, 11).item('tank', 1)
-    .run(8, 4).enemy('beetle', 2).enemy('bat', 5, 5)
+    .run(8, 4).enemy('shield', 2).enemy('bat', 5, 5)
     .pit(5).run(6, 4).enemy('turret', 1)
     .run(6, 4).item('ammo', 4).item('hp', 2).checkpoint(1)
     .run(3, 3).arena()],
   lake: [(b) => b.run(10, 3).begin(7).enemy('hopper', 1)
     .pit(3).run(6, 3).enemy('hopper', 2)
-    .run(4, 5).run(4, 7).enemy('turret', 1)
+    .run(4, 5).run(4, 7).enemy('turret', 1).enemy('ceiling', 2, 6)
     .pit(10).ledge(8, 2, 6).ledge(5, 2, 8).ledge(2, 2, 6).item('sub', 4, 1)
     .run(6, 6).checkpoint(3).item('hp', 1).enemy('hopper', 4)
-    .spikes(3).run(5, 6).enemy('bat', 2, 4)
-    .run(3, 12).item('tank', 1)
-    .run(6, 5).enemy('hopper', 1).enemy('hopper', 4)
+    .spikes(3).run(5, 6).enemy('bomber', 2, 6)
+    .run(3, 12).item('tank', 1).stash(3, 2, 12, ['hp', 'ammo'])
+    .run(12, 5).enemy('guardian', 2).enemy('hopper', 9)
     .pit(5).run(5, 5).enemy('turret', 1)
     .run(6, 4).item('ammo', 4).item('hp', 2).checkpoint(1)
     .run(3, 3).arena()],
@@ -241,11 +362,11 @@ const BUILDS: Record<StageId, ((b: Builder) => Builder)[]> = {
     // Sector 1: the outer wall.
     (b) => b.run(10, 3).begin(7).enemy('beetle', 1)
       .run(4, 5).enemy('turret', 1).spikes(3).run(5, 5).enemy('bat', 2, 4)
-      .run(6, 11).enemy('turret', 1)
+      .run(6, 11).stash(6, 3, 11, ['hp', 'ammo']).enemy('turret', 1)
       .run(4, 7).pit(5).run(5, 7).enemy('beetle', 1).checkpoint(4).item('hp', 3)
       .spikes(4).run(4, 7).enemy('bat', 1, 4)
       .pit(10).ledge(8, 2, 6).ledge(5, 2, 9).ledge(2, 2, 6)
-      .run(5, 4).enemy('turret', 1).run(4, 9).run(4, 4).enemy('beetle', 1)
+      .run(5, 4).enemy('turret', 1).run(4, 9).run(4, 4).enemy('shield', 1)
       .run(6, 4).item('ammo', 4).item('hp', 2).checkpoint(1)
       .run(3, 3).exit(),
     // Sector 2: the conveyor works, with belts, crushers and moving platforms.
@@ -255,10 +376,11 @@ const BUILDS: Record<StageId, ((b: Builder) => Builder)[]> = {
       .conveyor(8, -1).crusher(6).crusher(3, 1.3)
       .pit(8).platform(6, 3, 5, 2, 0, 3)
       .run(6, 4).checkpoint(3).item('hp', 1)
+      .run(12, 4).enemy('guardian', 2)
       .run(4, 4).crusher(3, 0.8)
       .pit(6).platform(4, 2, 4, 0, 3, 2.6)
       .run(5, 6).enemy('turret', 1)
-      .conveyor(6, 1).enemy('bat', 2, 4)
+      .conveyor(6, 1).enemy('bomber', 2, 6)
       .run(4, 4).item('ammo', 1)
       .pit(10).platform(8, 2, 5, 1.5, 0, 2.4).platform(4, 2, 6, 1.5, 0, 2.4)
       .run(6, 4).item('hp', 2).checkpoint(1)
@@ -268,7 +390,7 @@ const BUILDS: Record<StageId, ((b: Builder) => Builder)[]> = {
       .pit(6).platform(4, 2, 4, 0, 2, 2.2)
       .run(6, 4).checkpoint(4).crusher(2)
       .conveyor(6, -1).crusher(3, 1.3)
-      .run(4, 4).enemy('turret', 1)
+      .run(4, 4).enemy('turret', 1).enemy('ceiling', 2, 6)
       .run(5, 4).item('hp', 2).item('ammo', 3).checkpoint(1)
       .run(3, 3).arena(),
   ],
@@ -301,30 +423,58 @@ export function decodeRun(s: string): number[] {
   return out;
 }
 export function buildStage(id: StageId, part = 0): StageMap { return BUILDS[id][part](new Builder()).done(); }
+/** The boss gallery's map: a step of floor, then the boss room, with the heroes already inside the door. */
+function galleryMap(): StageMap {
+  const b = new Builder().run(2, 3).arena();
+  b.start = { x: (b.arenaCol + 2) * TILE + TILE / 2, y: (ROWS - 3) * TILE };
+  return b.done();
+}
+/** A looping showcase for the weapon-get screen: Dora on flat ground, firing at two sturdy dummies. */
+export function weaponDemo(weapon: WeaponId) {
+  const from = WEAPONS[weapon].from;
+  const g = new PawBusterGame('snowcap', { ...freshProgress(), cleared: from ? [from] : [] });
+  for (let c = 0; c < g.map.cols; c++) for (let r = 0; r < ROWS; r++) g.tiles[c * ROWS + r] = r >= ROWS - 3 ? T.rock : T.air;
+  g.tilesRev++;
+  g.items = [];
+  g.weapon = Math.max(0, g.weapons.indexOf(weapon));
+  const y = (ROWS - 3) * TILE;
+  g.enemies = [13, 19].map((c, i) => ({ id: 9000 + i, kind: 'turret', x: c * TILE, y: y - 28, w: 26, h: 28, vx: 0, vy: 0, hp: 1e9, face: -1, t: -1e9, flash: 0, slash: -1, x0: c * TILE, y0: y - 28, mode: 0, alive: true, ground: true }));
+  for (let i = 0; i < 150; i++) g.step(1 / 120);
+  Object.assign(g.player, { x: 4 * TILE, y: y - HERO.h, vx: 0, vy: 0, face: 1 });
+  return g;
+}
+/** The demo's buttons `t` seconds into its 3.4-second loop: two taps, then a full charge. */
+export const demoInput = (t: number): Input => { const k = t % 3.4; return { ...NO_INPUT, fire: k < 0.05 || (k > 0.4 && k < 0.45) || (k > 0.9 && k < 1 + CHARGE.full) }; };
 
 // ---------- live state ----------
-export type Player = { x: number; y: number; w: number; h: number; vx: number; vy: number; face: 1 | -1; ground: boolean; slide: 0 | 1 | -1; dashT: number; airDash: boolean; adT: number; adUsed: boolean; kickT: number; kickDir: number; hurtT: number; invT: number; charge: number; slashT: number; slashCd: number; slashId: number; combo: number; dashSlash: boolean; shotCd: number; fireBuf: number; swapCd: number; tagT: number; runT: number; ride: number; down: boolean; safe: { x: number; y: number } };
+export type Player = { x: number; y: number; w: number; h: number; vx: number; vy: number; face: 1 | -1; ground: boolean; slide: 0 | 1 | -1; dashT: number; airDash: boolean; adT: number; adUsed: boolean; kickT: number; kickDir: number; hurtT: number; invT: number; charge: number; slashT: number; slashCd: number; slashId: number; combo: number; dashSlash: boolean; shotCd: number; fireBuf: number; swapCd: number; tagT: number; runT: number; ride: number; down: boolean; reviveT: number; safe: { x: number; y: number } };
 export type Shot = { x: number; y: number; vx: number; vy: number; r: number; dmg: number; kind: ShotKind; hero: boolean; life: number; pierce: boolean; hits: number[]; grav: number; weapon: WeaponId | null; orbit?: number; rehit?: number; block?: boolean; owner?: HeroId };
-export type Enemy = { id: number; kind: EnemyKind; x: number; y: number; w: number; h: number; vx: number; vy: number; hp: number; face: number; t: number; flash: number; slash: number; x0: number; y0: number; mode: 0 | 1 | 2; alive: boolean; ground: boolean };
+export type Enemy = { id: number; kind: EnemyKind; x: number; y: number; w: number; h: number; vx: number; vy: number; hp: number; face: number; t: number; flash: number; slash: number; x0: number; y0: number; mode: 0 | 1 | 2; alive: boolean; ground: boolean; cycle?: number };
 export type Boss = { kind: BossKind; x: number; y: number; w: number; h: number; vx: number; vy: number; hp: number; max: number; face: 1 | -1; move: string; t: number; cycle: number; inv: number; flinch: number; ground: boolean; hidden: boolean; tx: number; ty: number; fired: number; slash: number; deathT: number; phase2: boolean };
 export type Item = { kind: ItemKind; x: number; y: number; vy: number; gone: boolean };
-export type Effect = { x: number; y: number; t: number; kind: 'spark' | 'boom' | 'dust' | 'heal' };
+export type Effect = { x: number; y: number; t: number; kind: 'spark' | 'boom' | 'dust' | 'heal' | 'debris'; vx?: number; vy?: number; color?: string };
 export type Platform = { x: number; y: number; w: number; h: number; dx: number; dy: number; spec: PlatformSpec };
 export type Crusher = { x: number; w: number; bottom: number; spec: CrusherSpec };
 export type State = 'ready' | 'play' | 'paused' | 'boss' | 'clearing' | 'clear' | 'lost';
-export type GameOptions = { easy?: boolean; coop?: boolean };
+/** `gallery` refights the stage's boss on its own, for a best time. */
+export type GameOptions = { easy?: boolean; hard?: boolean; coop?: boolean; gallery?: boolean };
 type Body = { x: number; y: number; w: number; h: number };
 const overlap = (a: Body, b: Body) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 const shotBox = (s: Shot): Body => ({ x: s.x - s.r, y: s.y - s.r, w: s.r * 2, h: s.r * 2 });
-const ENEMY: Record<EnemyKind, { w: number; h: number; hp: number }> = { beetle: { w: 24, h: 20, hp: 3 }, bat: { w: 24, h: 18, hp: 2 }, turret: { w: 26, h: 28, hp: 4 }, hopper: { w: 22, h: 18, hp: 3 } };
-const SHOT_R: Partial<Record<ShotKind, number>> = { wave: 10, claw: 11, bolt: 14, rock: 11, foam: 10, crystal: 7, tongue: 8 };
+const ENEMY: Record<EnemyKind, { w: number; h: number; hp: number }> = {
+  beetle: { w: 24, h: 20, hp: 3 }, bat: { w: 24, h: 18, hp: 2 }, turret: { w: 26, h: 28, hp: 4 }, hopper: { w: 22, h: 18, hp: 3 },
+  ceiling: { w: 26, h: 24, hp: 4 }, shield: { w: 24, h: 28, hp: 4 }, bomber: { w: 28, h: 18, hp: 3 }, guardian: { w: 46, h: 44, hp: GUARDIAN_HP },
+};
+const SHOT_R: Partial<Record<ShotKind, number>> = { wave: 10, claw: 11, bolt: 14, rock: 11, foam: 10, crystal: 7, tongue: 8, bomb: 8 };
 const fullEnergy = () => Object.fromEntries(Object.keys(WEAPONS).map((w) => [w, ENERGY])) as Record<WeaponId, number>;
 const orInput = (a: Input, b: Input) => { for (const k of Object.keys(a) as (keyof Input)[]) a[k] ||= b[k]; };
 
 export class PawBusterGame {
   readonly stage: (typeof STAGES)[number];
   readonly easy: boolean;
+  readonly hard: boolean;
   readonly coop: boolean;
+  readonly gallery: boolean;
   map!: StageMap;
   part = 0;
   progress: Progress;
@@ -366,6 +516,19 @@ export class PawBusterGame {
   /** Which boss of the citadel's rush is up; kept across retries. */
   rush = 0;
   retries = 0;
+  /** Health lost this run, and in the current boss room: for the rank and the Untouched badge. */
+  damage = 0;
+  bossDamage = 0;
+  usedSpecial = false;
+  usedSub = false;
+  /** Enemies in the whole stage, for the rank's clear-out score. */
+  enemyTotal = 0;
+  rank: Rank | null = null;
+  medal = 0;
+  /** Badges first earned by this clear. */
+  earned: BadgeId[] = [];
+  /** Bumped whenever the tile grid changes, so the renderer knows to redraw its cached tiles. */
+  tilesRev = 0;
   private prev: Record<HeroId, Input> = { dora: { ...NO_INPUT }, enzo: { ...NO_INPUT } };
   private pending: Record<HeroId, { edge: Input; released: boolean }> = { dora: { edge: { ...NO_INPUT }, released: false }, enzo: { edge: { ...NO_INPUT }, released: false } };
   private serial = 0;
@@ -374,9 +537,12 @@ export class PawBusterGame {
   constructor(stage: StageId, progress: Partial<Progress> = freshProgress(), options: GameOptions = {}) {
     this.stage = STAGES.find((s) => s.id === stage)!;
     this.easy = !!options.easy;
+    this.hard = !!options.hard && !this.easy;
     this.coop = !!options.coop;
-    const p = { ...freshProgress(), ...progress };
-    this.progress = { cleared: [...p.cleared], tanks: [...p.tanks], best: { ...p.best }, subs: [...p.subs], subFill: [...p.subFill], parts: [...p.parts], found: [...p.found] };
+    this.gallery = !!options.gallery;
+    this.progress = copyProgress({ ...freshProgress(), ...progress });
+    const calm = changesFor(this.progress, stage).some((c) => c.effect === 'calm');
+    this.enemyTotal = this.gallery ? 0 : [...Array(partsOf(stage)).keys()].reduce((n, part) => n + buildStage(stage, part).spawns.filter((s) => !(calm && s.kind === 'bat')).length, 0);
     this.load();
   }
   get weapons() { return weaponsFor(this.progress); }
@@ -385,9 +551,12 @@ export class PawBusterGame {
   get weaponId(): WeaponId { return this.weaponFor(this.hero); }
   weaponFor(h: HeroId): WeaponId { return this.weapons[this.weaponOf[h]] ?? 'buster'; }
   get partner(): HeroId { return this.hero === 'dora' ? 'enzo' : 'dora'; }
-  get victory() { return this.state === 'clear' && this.stage.id === 'citadel'; }
+  get victory() { return this.state === 'clear' && this.stage.id === 'citadel' && !this.gallery; }
   get lastPart() { return this.part === partsOf(this.stage.id) - 1; }
-  get rushing() { return this.stage.id === 'citadel' && this.lastPart; }
+  get rushing() { return this.stage.id === 'citadel' && this.lastPart && !this.gallery; }
+  get guardianMax() { return Math.ceil(GUARDIAN_HP * (this.hard ? HARD_HP : 1)); }
+  /** Dora with the Arm Cannon, holding a buster charge past the third level. */
+  gigaFor(h: HeroId) { return h === 'dora' && this.weaponFor(h) === 'buster' && this.has('arm') && this.bodies[h].charge >= CHARGE.giga; }
   /** Heroes still on their feet: both in co-op until one falls, otherwise the one in control. */
   get living(): HeroId[] { return this.coop ? HEROES.filter((h) => !this.bodies[h].down) : [this.hero]; }
   levelOf(p: Player) { return p.charge >= CHARGE.full ? 2 : p.charge >= CHARGE.mid ? 1 : 0; }
@@ -403,11 +572,11 @@ export class PawBusterGame {
 
   private body(x: number, y: number): Player {
     const at = { x: x - HERO.w / 2, y: y - HERO.h };
-    return { ...at, w: HERO.w, h: HERO.h, vx: 0, vy: 0, face: 1, ground: true, slide: 0, dashT: 0, airDash: false, adT: 0, adUsed: false, kickT: 0, kickDir: 0, hurtT: 0, invT: 0, charge: 0, slashT: 0, slashCd: 0, slashId: 0, combo: 0, dashSlash: false, shotCd: 0, fireBuf: 0, swapCd: 0, tagT: 0, runT: 0, ride: -1, down: false, safe: { ...at } };
+    return { ...at, w: HERO.w, h: HERO.h, vx: 0, vy: 0, face: 1, ground: true, slide: 0, dashT: 0, airDash: false, adT: 0, adUsed: false, kickT: 0, kickDir: 0, hurtT: 0, invT: 0, charge: 0, slashT: 0, slashCd: 0, slashId: 0, combo: 0, dashSlash: false, shotCd: 0, fireBuf: 0, swapCd: 0, tagT: 0, runT: 0, ride: -1, down: false, reviveT: 0, safe: { ...at } };
   }
   private collected(kind: ItemKind) {
     const id = this.stage.id, p = this.progress;
-    return (kind === 'tank' && p.tanks.includes(id)) || (kind === 'sub' && p.subs.includes(id)) || ((kind === 'boots' || kind === 'saber') && p.parts.includes(kind));
+    return (kind === 'tank' && p.tanks.includes(id)) || (kind === 'sub' && p.subs.includes(id)) || (isPartItem(kind) && p.parts.includes(kind));
   }
   /**
    * (Re)build the current sector and put the heroes at the last checkpoint reached. A fresh load
@@ -415,9 +584,10 @@ export class PawBusterGame {
    */
   private load(fresh = true) {
     const id = this.stage.id;
-    this.map = buildStage(id, this.part);
+    this.map = this.gallery ? galleryMap() : buildStage(id, this.part);
     this.tiles = this.map.tiles.slice();
-    const changes = changesFor(this.progress, id).map((c) => c.effect);
+    this.tilesRev++;
+    const changes = this.gallery ? [] : changesFor(this.progress, id).map((c) => c.effect);
     if (changes.includes('freeze')) this.freezePits();
     if (changes.includes('cool')) this.tiles.forEach((t, i) => { if (t === 2) this.tiles[i] = 1; });
     if (fresh) {
@@ -479,6 +649,7 @@ export class PawBusterGame {
     const used = Math.min(fill, this.max - this.hp[h]);
     this.hp[h] += used;
     this.progress.subFill[i] -= used;
+    this.usedSub = true;
     this.fx(this.bodies[h].x + HERO.w / 2, this.bodies[h].y + HERO.h / 2, 'heal');
     this.events.push('subuse');
     return true;
@@ -486,7 +657,7 @@ export class PawBusterGame {
   private say(text: string) { this.banner = { text, t: 1.6 }; }
   private spawnEnemy(kind: EnemyKind, x: number, y: number): Enemy {
     const d = ENEMY[kind];
-    return { id: this.serial++, kind, x: x - d.w / 2, y: y - d.h, w: d.w, h: d.h, vx: 0, vy: 0, hp: d.hp, face: -1, t: 0, flash: 0, slash: -1, x0: x - d.w / 2, y0: y - d.h, mode: 0, alive: true, ground: false };
+    return { id: this.serial++, kind, x: x - d.w / 2, y: y - d.h, w: d.w, h: d.h, vx: 0, vy: 0, hp: Math.ceil(d.hp * (this.hard ? HARD_HP : 1)), face: -1, t: 0, flash: 0, slash: -1, x0: x - d.w / 2, y0: y - d.h, mode: 0, alive: true, ground: false };
   }
 
   // ----- world -----
@@ -495,7 +666,7 @@ export class PawBusterGame {
     if (r >= ROWS) return 0;
     return this.tiles[c * ROWS + Math.max(0, r)];
   }
-  solid(x: number, y: number) { return this.tile(Math.floor(x / TILE), Math.floor(y / TILE)) !== 0; }
+  solid(x: number, y: number) { return isSolid(this.tile(Math.floor(x / TILE), Math.floor(y / TILE))); }
   /** Move a box through the tile grid one axis at a time; reports what it ran into. */
   private move(b: Body, dx: number, dy: number) {
     let hitX = 0, hitY = 0, spike = false;
@@ -504,7 +675,7 @@ export class PawBusterGame {
       const c = Math.floor((dx > 0 ? b.x + b.w - 0.001 : b.x) / TILE);
       for (let r = Math.floor(b.y / TILE); r <= Math.floor((b.y + b.h - 0.001) / TILE); r++) {
         const t = this.tile(c, r);
-        if (!t) continue;
+        if (!isSolid(t)) continue;
         spike ||= t === 2;
         b.x = dx > 0 ? c * TILE - b.w : (c + 1) * TILE;
         hitX = Math.sign(dx);
@@ -516,7 +687,7 @@ export class PawBusterGame {
       const r = Math.floor((dy > 0 ? b.y + b.h - 0.001 : b.y) / TILE);
       for (let c = Math.floor(b.x / TILE); c <= Math.floor((b.x + b.w - 0.001) / TILE); c++) {
         const t = this.tile(c, r);
-        if (!t) continue;
+        if (!isSolid(t)) continue;
         spike ||= t === 2;
         b.y = dy > 0 ? r * TILE - b.h : (r + 1) * TILE;
         hitY = Math.sign(dy);
@@ -527,7 +698,7 @@ export class PawBusterGame {
   }
   private touchingWall(b: Body, side: number) {
     const c = Math.floor((side > 0 ? b.x + b.w + 1 : b.x - 1) / TILE);
-    for (let r = Math.floor((b.y + 4) / TILE); r <= Math.floor((b.y + b.h - 4) / TILE); r++) if (this.tile(c, r) === 1) return true;
+    for (let r = Math.floor((b.y + 4) / TILE); r <= Math.floor((b.y + b.h - 4) / TILE); r++) { const t = this.tile(c, r); if (t === T.rock || t === T.crystal || t === T.door) return true; }
     return false;
   }
   private cameraTarget() {
@@ -559,14 +730,17 @@ export class PawBusterGame {
     this.clock += dt;
     this.banner.t = Math.max(0, this.banner.t - dt);
     this.shake = Math.max(0, this.shake - dt);
-    for (const e of this.effects) e.t += dt;
-    this.effects = this.effects.filter((e) => e.t < 0.5);
+    for (const e of this.effects) {
+      e.t += dt;
+      if (e.vx !== undefined && e.vy !== undefined) { e.x += e.vx * dt; e.vy += 900 * dt; e.y += e.vy * dt; }
+    }
+    this.effects = this.effects.filter((e) => e.t < (e.kind === 'debris' ? 1.2 : 0.5));
     if (this.state === 'lost' || this.state === 'clear') { this.endT += dt; return; }
     if (this.freeze > 0) { this.freeze -= dt; return; }
     if (this.state === 'ready') { this.readyT -= dt; if (this.readyT <= 0) this.state = 'play'; }
     if (this.state === 'boss') { this.introT -= dt; if (this.introT <= 0) { this.state = 'play'; this.say('GO!'); } }
     const control = this.state === 'play';
-    if (control) this.time += dt;
+    if (control) { this.time += dt; this.progress.playTime += dt; }
     this.moveHazards();
     const part = this.part;
     for (const h of this.living) {
@@ -576,7 +750,7 @@ export class PawBusterGame {
       // updatePlayer can end the run or carry the heroes to the next sector.
       if ((this.state as State) === 'lost' || this.part !== part) return;
     }
-    if (this.coop) this.tether();
+    if (this.coop) { this.revive(dt); this.tether(); }
     this.use(this.leader());
     this.updateEnemies(dt);
     this.updateBoss(dt);
@@ -595,6 +769,21 @@ export class PawBusterGame {
     const gap = VIEW_W - 120;
     if (b.x - a.x > gap) b.x = a.x + gap;
     else if (a.x - b.x > gap) a.x = b.x + gap;
+  }
+  /** A co-op hero who stands by a fallen partner for REVIVE seconds brings them back with half health. */
+  private revive(dt: number) {
+    for (const h of HEROES) {
+      const d = this.bodies[h], helper = this.bodies[h === 'dora' ? 'enzo' : 'dora'];
+      if (!d.down) continue;
+      const near = !helper.down && Math.abs(helper.x - d.x) < 44 && Math.abs(helper.y - d.y) < 44;
+      d.reviveT = near ? d.reviveT + dt : Math.max(0, d.reviveT - dt);
+      if (d.reviveT < REVIVE) continue;
+      Object.assign(d, { down: false, reviveT: 0, invT: 1.5, hurtT: 0, vx: 0, vy: 0 });
+      this.hp[h] = Math.ceil(this.max / 2);
+      this.fx(d.x + d.w / 2, d.y + d.h / 2, 'heal');
+      this.say(`${h.toUpperCase()} IS BACK`);
+      this.events.push('revive');
+    }
   }
   private moveHazards() {
     for (const pl of this.platforms) {
@@ -655,6 +844,8 @@ export class PawBusterGame {
     }
     if (p.adT > 0) p.vy = 0;
     else p.vy = Math.min(PHYS.maxFall, p.vy + PHYS.gravity * dt);
+    // In a waterfall, Bubble Burst carries the hero upward while jump is held.
+    if (input.jump && this.weaponId === 'bubble' && this.map.falls.some((f) => p.x + p.w > f.x && p.x < f.x + f.w)) { p.vy = p.y > 16 ? -FLOAT : 0; p.ground = false; p.ride = -1; }
     p.slide = 0;
     if (!p.ground && dir && p.vy > 0 && p.kickT <= 0 && this.touchingWall(p, dir)) { p.vy = Math.min(p.vy, PHYS.slide); p.slide = dir as 1 | -1; p.face = -dir as 1 | -1; }
     const wind = this.wind && this.state === 'play' ? this.wind : 0;
@@ -668,6 +859,8 @@ export class PawBusterGame {
     if (hit.hitY > 0 || p.ride >= 0) { if (!p.ground && fall > 300) this.fx(p.x + p.w / 2, p.y + p.h, 'dust'); p.ground = true; p.vy = 0; }
     else { if (hit.hitY < 0) p.vy = 0; p.ground = false; }
     if (p.ground && p.ride < 0 && !this.move({ ...p }, 0, 1).hitY) p.ground = false;
+    // A guardian blocks the way until it falls.
+    for (const e of this.enemies) if (e.kind === 'guardian' && e.alive && this.awake(e) && p.x + p.w > e.x && p.x < e.x + e.w) p.x = p.x + p.w / 2 < e.x + e.w / 2 ? e.x - p.w : e.x + e.w;
     p.runT = p.ground && p.vx ? p.runT + dt : 0;
     if (hit.spike) { this.hurt(SPIKE_DAMAGE, p.x + p.w / 2 - p.face, true); p.vy = -380; p.ground = false; }
     else if (p.ground && p.ride < 0 && !this.fight) p.safe = { x: p.x, y: p.y };
@@ -709,7 +902,8 @@ export class PawBusterGame {
         if (w === 'quartz') for (let i = 0; i < 3; i++) shot(0, 0, 'quartz', 1, { pierce: true, r: 9, life: 3, orbit: (i * Math.PI * 2) / 3, rehit: 0.5 });
         if (w === 'volt') shot(p.face * VOLT_SPEED, 0, 'volt', 2, { life: 2 });
         if (w === 'bubble') for (const vy of [-40, -140]) shot(p.face * 220, vy, 'bubble', 2, { pierce: true, r: 11, grav: -60, life: 2.2 });
-        this.events.push('special');
+        this.usedSpecial = true;
+        this.events.push(`special-${w}`);
       }
     } else if (this.hero === 'enzo') {
       if (p.fireBuf > 0 && p.slashCd <= 0) {
@@ -725,14 +919,16 @@ export class PawBusterGame {
     }
     // Hold fire to charge: Dora's buster, or either hero's special weapon.
     if (input.fire) {
-      const before = this.levelOf(p);
+      const before = this.levelOf(p), giga = this.gigaFor(this.hero);
       p.charge += dt;
       const now = this.levelOf(p);
       if (now > before) this.events.push(now === 2 ? 'charge2' : 'charge1');
+      if (!giga && this.gigaFor(this.hero)) this.events.push('charge3');
     } else if (released) {
       const lvl = this.levelOf(p);
-      if (w === 'buster' && lvl) { shot(p.face * 460, 0, lvl === 2 ? 'full' : 'mid', lvl === 2 ? 4 : 2, { r: lvl === 2 ? 14 : 9, life: 1.6, pierce: lvl === 2 }); this.events.push(lvl === 2 ? 'blast' : 'shot'); }
-      else if (w !== 'buster' && lvl === 2 && this.energy[w] >= WEAPON_COST * 2) { this.energy[w] -= WEAPON_COST * 2; this.chargedSpecial(w, mx, shot); this.events.push('blast'); }
+      if (this.gigaFor(this.hero)) { shot(p.face * 420, 0, 'giga', 6, { r: 18, life: 1.8, pierce: true }); this.events.push('giga'); }
+      else if (w === 'buster' && lvl) { shot(p.face * 460, 0, lvl === 2 ? 'full' : 'mid', lvl === 2 ? 4 : 2, { r: lvl === 2 ? 14 : 9, life: 1.6, pierce: lvl === 2 }); this.events.push(lvl === 2 ? 'blast' : 'shot'); }
+      else if (w !== 'buster' && lvl === 2 && this.energy[w] >= WEAPON_COST * 2) { this.energy[w] -= WEAPON_COST * 2; this.chargedSpecial(w, mx, shot); this.usedSpecial = true; this.events.push(`charged-${w}`); }
       p.charge = 0;
     }
   }
@@ -763,12 +959,18 @@ export class PawBusterGame {
     const p = this.player;
     if (this.state === 'clearing' || this.state === 'clear' || this.state === 'lost' || p.down) return;
     if (p.invT > 0 && !force) return;
+    const armor = this.has('armor');
     if (this.easy) dmg = Math.ceil(dmg / 2);
-    this.hp[this.hero] = Math.max(0, this.hp[this.hero] - dmg);
+    if (armor) dmg = Math.ceil(dmg * 0.75);
+    const lost = Math.min(this.hp[this.hero], dmg);
+    this.hp[this.hero] -= lost;
+    this.damage += lost;
+    if (this.fight) this.bossDamage += lost;
     p.invT = 1;
-    p.hurtT = hazard ? 0 : 0.3;
+    // Body Armour takes the knockback out of a hit.
+    p.hurtT = hazard || armor ? 0 : 0.3;
     p.face = fromX > p.x + p.w / 2 ? 1 : -1;
-    if (!hazard) p.vy = -220;
+    if (!hazard && !armor) p.vy = -220;
     p.charge = 0;
     p.dashT = 0;
     p.adT = 0;
@@ -777,16 +979,17 @@ export class PawBusterGame {
     if (this.hp[this.hero] > 0) return;
     this.events.push('down');
     if (this.coop) {
-      // A fallen co-op hero sits out until the other reaches a checkpoint.
-      p.down = true;
+      // A fallen co-op hero waits on the last safe ground: the partner can stand by them to revive them, or reach a checkpoint.
       this.fx(p.x + p.w / 2, p.y + p.h / 2, 'boom');
-      if (HEROES.every((h) => this.bodies[h].down)) { this.state = 'lost'; this.endT = 0; this.events.push('lost'); }
+      Object.assign(p, { down: true, reviveT: 0, x: p.safe.x, y: p.safe.y, vx: 0, vy: 0, ride: -1 });
+      if (HEROES.every((h) => this.bodies[h].down)) this.lose();
       else this.say(`${this.hero.toUpperCase()} IS DOWN`);
       return;
     }
     if (this.hp[this.partner] > 0) this.swap(true);
-    else { this.state = 'lost'; this.endT = 0; this.events.push('lost'); }
+    else this.lose();
   }
+  private lose() { this.state = 'lost'; this.endT = 0; this.progress.deaths++; this.events.push('lost'); }
 
   // ----- enemies -----
   private awake(b: Body) { return b.x + b.w > this.camX - 60 && b.x < this.camX + VIEW_W + 60; }
@@ -830,6 +1033,28 @@ export class PawBusterGame {
           else { e.x += (dx / d) * 90 * dt; e.y += (dy / d) * 90 * dt; }
         }
         e.face = px > ex ? 1 : -1;
+      } else if (e.kind === 'ceiling') {
+        // Hangs on a chain and drops a shot on anyone passing underneath.
+        e.face = px > ex ? 1 : -1;
+        if (e.t > 1.6 && Math.abs(px - ex) < 150 && py > ey) { e.t = 0; this.enemyShot(ex, e.y + e.h, (px - ex) * 0.6, 240, 'pellet', 2); this.events.push('enemy-shot'); }
+      } else if (e.kind === 'shield') {
+        // Walks at the heroes behind a shield, turning to face them only now and then.
+        e.vy = Math.min(PHYS.maxFall, e.vy + PHYS.gravity * dt);
+        if (e.t > 1.2) { e.t = 0; e.face = px > ex ? 1 : -1; }
+        const ahead = e.face > 0 ? e.x + e.w + 2 : e.x - 2;
+        const hit = this.move(e, (e.ground && this.solid(ahead, e.y + e.h + 4) && Math.abs(px - ex) > 20 ? e.face * 45 : 0) * dt, e.vy * dt);
+        e.ground = hit.hitY > 0;
+        if (e.ground) e.vy = 0;
+        if (e.y > ROWS * TILE) e.alive = false;
+      } else if (e.kind === 'bomber') {
+        // Patrols high up and drops a bomb when it passes over a hero.
+        e.x += e.face * 110 * dt;
+        if (Math.abs(e.x - e.x0) > 200) { e.x = e.x0 + Math.sign(e.x - e.x0) * 200; e.face = -e.face; }
+        e.y = e.y0 + Math.sin(this.clock * 2 + e.id) * 6;
+        if (e.mode === 0 && Math.abs(px - ex) < 24 && py > ey) { e.mode = 1; e.t = 0; this.enemyShot(ex, e.y + e.h, e.face * 40, 0, 'bomb', 3, { grav: 900 }); this.events.push('enemy-shot'); }
+        if (e.mode === 1 && e.t > 1.4) e.mode = 0;
+      } else if (e.kind === 'guardian') {
+        this.updateGuardian(e, dt, px, py);
       } else {
         e.face = px > ex ? 1 : -1;
         if (e.t > 2.2) {
@@ -839,6 +1064,34 @@ export class PawBusterGame {
       }
     }
     this.enemies = this.enemies.filter((e) => e.alive);
+  }
+  /** A mid-boss: paces its ground, then alternates a spread of shots with a leap that sends out shock waves. */
+  private updateGuardian(e: Enemy, dt: number, px: number, py: number) {
+    const ex = e.x + e.w / 2, ey = e.y + e.h / 2, floor = e.y + e.h;
+    e.vy = Math.min(PHYS.maxFall, e.vy + PHYS.gravity * dt);
+    if (e.mode === 0) {
+      e.face = px > ex ? 1 : -1;
+      e.vx = Math.sign(e.x0 + Math.sin(this.clock * 1.5) * 50 - e.x) * 40;
+      if (e.t > (this.hard ? 1.5 : 2.1) && e.ground) {
+        e.t = 0; e.cycle = (e.cycle ?? 0) + 1; e.mode = e.cycle % 2 ? 1 : 2;
+        if (e.mode === 2) { e.vy = -520; e.vx = Math.max(-150, Math.min(150, (px - ex) * 0.8)); e.ground = false; this.events.push('jump'); }
+      }
+    } else if (e.mode === 1) {
+      e.vx = 0;
+      if (e.t >= 0.35 && e.t - dt < 0.35) {
+        const a = Math.atan2(py - ey, px - ex);
+        for (const d of [-0.3, 0, 0.3]) this.enemyShot(ex, ey - 6, Math.cos(a + d) * 240, Math.sin(a + d) * 240, 'pellet', 3);
+        this.events.push('enemy-shot');
+      }
+      if (e.t > 0.9) { e.mode = 0; e.t = 0; }
+    } else if (e.ground && e.t > 0.2) {
+      e.vx = 0; e.mode = 0; e.t = 0; this.shake = Math.max(this.shake, 0.25); this.events.push('stomp');
+      for (const s of [-1, 1]) this.enemyShot(ex, floor - 10, s * 230, 0, 'wave', 3);
+    }
+    const hit = this.move(e, e.vx * dt, e.vy * dt);
+    e.x = Math.max(e.x0 - 90, Math.min(e.x0 + 90, e.x));
+    e.ground = hit.hitY > 0;
+    if (e.ground || hit.hitY < 0) e.vy = 0;
   }
   private enemyShot(x: number, y: number, vx: number, vy: number, kind: ShotKind, dmg: number, extra: Partial<Shot> = {}) {
     this.shots.push({ x, y, vx, vy, r: SHOT_R[kind] ?? 6, dmg, kind, hero: false, life: 4, pierce: false, hits: [], grav: 0, weapon: null, ...extra });
@@ -852,14 +1105,32 @@ export class PawBusterGame {
     this.kills++;
     this.freeze = HITSTOP;
     this.fx(e.x + e.w / 2, e.y + e.h / 2, 'boom');
+    this.debris(e.x + e.w / 2, e.y + e.h / 2, e.kind === 'guardian' ? 18 : 6, e.kind === 'guardian' ? '#ffd46a' : '#c9ced9');
     this.events.push('kill');
+    if (e.kind === 'guardian') {
+      this.shake = 0.45;
+      this.say(`${GUARDIANS[this.stage.id].toUpperCase()} DOWN`);
+      this.events.push('guardian-down');
+      for (const [kind, dx] of [['hp', -12], ['ammo', 12]] as const) this.items.push({ kind, x: e.x + e.w / 2 + dx, y: e.y, vy: -200, gone: false });
+      return;
+    }
     const drop: ItemKind | null = this.kills % 5 === 0 ? 'ammo' : this.kills % 3 === 0 ? 'hp' : null;
     if (drop) this.items.push({ kind: drop, x: e.x + e.w / 2, y: e.y, vy: -160, gone: false });
+  }
+
+  /** Deterministic bits of wreckage flying out from a point. */
+  private debris(x: number, y: number, n: number, color: string) {
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + n, v = 120 + ((i * 53) % 5) * 45;
+      this.effects.push({ x, y, t: 0, kind: 'debris', vx: Math.cos(a) * v, vy: Math.sin(a) * v - 200, color });
+    }
   }
 
   // ----- boss -----
   private startFight() {
     this.fight = true;
+    this.bossDamage = 0;
+    this.tilesRev++;
     for (let r = 0; r < ROWS; r++) this.tiles[this.map.arena * ROWS + r] = 1;
     // In co-op a partner still outside is pulled in before the gate shuts.
     for (const h of this.living) {
@@ -873,14 +1144,21 @@ export class PawBusterGame {
   }
   private spawnBoss(kind: BossKind, intro: number) {
     const [w, h] = BOSS_SIZE[kind], floor = (ROWS - 3) * TILE, x = (this.map.arena + 24) * TILE;
-    const hp = this.rushing && kind !== 'cougar' ? RUSH_HP : BOSS_HP[kind];
+    const hp = Math.ceil((this.rushing && kind !== 'cougar' ? RUSH_HP : BOSS_HP[kind]) * (this.hard ? HARD_HP : 1));
     this.boss = { kind, x, y: kind === 'owl' ? 120 : floor - h, w, h, vx: 0, vy: 0, hp, max: hp, face: -1, move: 'idle', t: 0, cycle: -1, inv: 0, flinch: 0, ground: kind !== 'owl', hidden: false, tx: 0, ty: 0, fired: 0, slash: -1, deathT: 0, phase2: false };
     this.state = 'boss';
     this.introT = this.introMax = intro;
     this.say(this.rushing && this.rush > 0 ? bossInfo(kind).bossName.toUpperCase() : 'WARNING');
     this.events.push('warning');
   }
-  private rest(b: Boss) { b.move = 'idle'; b.t = 0; b.fired = 0; b.vx = 0; }
+  private rest(b: Boss) {
+    b.move = 'idle'; b.t = 0; b.fired = 0; b.vx = 0;
+    // Hard mode: every move ends with an aimed three-way volley.
+    if (this.hard && this.state === 'play' && b.hp > 0 && !b.hidden) {
+      const p = this.player, bx = b.x + b.w / 2, by = b.y + b.h / 2, a = Math.atan2(p.y + p.h / 2 - by, p.x + p.w / 2 - bx);
+      for (const d of [-0.25, 0, 0.25]) this.enemyShot(bx, by, Math.cos(a + d) * 230, Math.sin(a + d) * 230, 'pellet', 2);
+    }
+  }
   private updateBoss(dt: number) {
     const b = this.boss;
     if (!b) return;
@@ -911,7 +1189,7 @@ export class PawBusterGame {
     };
     if (b.flinch > 0) { b.flinch -= dt; b.vx = 0; if (flying) b.vy = 0; physics(); return; }
     if (this.state !== 'play') { b.vx = 0; physics(); return; }
-    const rage = b.hp < b.max / 2 ? 1.25 : 1;
+    const rage = (b.hp < b.max / 2 ? 1.25 : 1) * (this.hard ? 1.2 : 1);
     b.t += dt * rage;
     const toward = (px > bx ? 1 : -1) as 1 | -1;
     const clampX = (x: number) => Math.max(left + 14, Math.min(right - 14, x));
@@ -1072,7 +1350,8 @@ export class PawBusterGame {
       this.say('KINGPIN ENRAGED'); this.events.push('roar');
     }
     if (b.hp <= 0) {
-      b.hp = 0; this.state = 'clearing'; b.deathT = 0; b.vx = 0; this.wind = 0;
+      b.hp = 0; this.state = 'clearing'; b.deathT = 0; b.vx = 0; this.wind = 0; this.shake = 0.6;
+      this.debris(b.x + b.w / 2, b.y + b.h / 2, 28, '#ffd46a');
       this.shots = []; this.enemies = [];
       for (const h of HEROES) this.bodies[h].invT = 99;
       this.events.push('boss-down');
@@ -1080,15 +1359,36 @@ export class PawBusterGame {
     return true;
   }
   private finish() {
-    const id = this.stage.id;
-    if (!this.progress.cleared.includes(id)) this.progress.cleared.push(id);
-    const best = this.progress.best[id];
-    this.newBest = best === undefined || this.time < best;
-    if (this.newBest) this.progress.best[id] = Math.round(this.time * 10) / 10;
+    const id = this.stage.id, pr = this.progress;
     this.state = 'clear';
     this.endT = 0;
+    if (this.gallery) {
+      // Gallery refights only keep a best time.
+      const best = pr.bossBest[id];
+      this.newBest = best === undefined || this.time < best;
+      if (this.newBest) pr.bossBest[id] = Math.round(this.time * 10) / 10;
+      this.say('BOSS DOWN');
+      this.events.push('clear');
+      return;
+    }
+    if (!pr.cleared.includes(id)) pr.cleared.push(id);
+    const best = pr.best[id];
+    this.newBest = best === undefined || this.time < best;
+    if (this.newBest) pr.best[id] = Math.round(this.time * 10) / 10;
+    this.medal = medalFor(id, this.time);
+    this.rank = rankFor(id, this.time, this.damage, Math.min(this.kills, this.enemyTotal), this.enemyTotal);
+    pr.ranks[id] = betterRank(pr.ranks[id], this.rank);
+    if (this.medal > (pr.medals[id] ?? 0)) pr.medals[id] = this.medal;
+    const won: BadgeId[] = [];
+    if (this.bossDamage === 0) won.push('untouched');
+    if (!this.usedSpecial) won.push('buster');
+    if (id === 'citadel' && !this.usedSub) won.push('nosub');
+    if (this.hard) won.push('hard');
+    this.earned = won.filter((b) => !pr.badges.includes(`${id}:${b}`));
+    pr.badges.push(...this.earned.map((b) => `${id}:${b}`));
     this.say(this.stage.weapon ? `WEAPON GET: ${WEAPONS[this.stage.weapon].name.toUpperCase()}` : 'MISSION COMPLETE');
     this.events.push('clear');
+    if (this.earned.length) this.events.push('badge');
   }
 
   // ----- shots, items, contact -----
@@ -1104,20 +1404,47 @@ export class PawBusterGame {
         s.orbit += dt * 7;
         s.x = o.x + o.w / 2 + Math.cos(s.orbit) * 34;
         s.y = o.y + o.h / 2 + Math.sin(s.orbit) * 34;
+        // Orbiting crystals pass through walls, shattering any crystal wall they touch.
+        this.impact(s);
         if (s.life > 0) alive.push(s);
         continue;
       }
       if (s.kind === 'volt') this.home(s, dt);
       s.vy += s.grav * dt;
       s.x += s.vx * dt;
-      if (s.life <= 0 || this.solid(s.x, s.y)) continue;
+      if (s.life <= 0) continue;
+      if (this.solid(s.x, s.y)) { this.impact(s); continue; }
       s.y += s.vy * dt;
       if (s.kind === 'ember' && s.vy > 0 && this.solid(s.x, s.y + s.r)) { s.y = Math.floor((s.y + s.r) / TILE) * TILE - s.r; s.vy = 0; s.vx = Math.sign(s.vx) * 260; }
-      else if (this.solid(s.x, s.y)) continue;
+      else if (this.solid(s.x, s.y)) { this.impact(s); continue; }
       if (s.x < this.camX - 40 || s.x > this.camX + VIEW_W + 40 || s.y > ROWS * TILE + 40 || s.y < -80) continue;
       alive.push(s);
     }
     this.shots = alive;
+  }
+  /** A shot meets the level: the right weapon opens a crystal wall or power door, and bombs burst into shock waves. */
+  private impact(s: Shot) {
+    const c = Math.floor(s.x / TILE), r = Math.floor(s.y / TILE), t = this.tile(c, r);
+    if (s.hero && OPENS[t] !== undefined && OPENS[t] === s.weapon) this.open(c, r, t);
+    if (s.kind === 'bomb') {
+      this.fx(s.x, s.y, 'boom');
+      this.shake = Math.max(this.shake, 0.1);
+      for (const d of [-1, 1]) this.enemyShot(s.x, r * TILE - 10, d * 220, 0, 'wave', 2, { life: 0.5 });
+    }
+  }
+  /** Clear every connected tile of one breakable kind. */
+  private open(c: number, r: number, t: number) {
+    const todo: [number, number][] = [[c, r]];
+    while (todo.length) {
+      const [x, y] = todo.pop()!;
+      if (x < 0 || x >= this.map.cols || y < 0 || y >= ROWS || this.tiles[x * ROWS + y] !== t) continue;
+      this.tiles[x * ROWS + y] = T.air;
+      this.fx(x * TILE + TILE / 2, y * TILE + TILE / 2, 'boom');
+      todo.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+    }
+    this.tilesRev++;
+    this.shake = Math.max(this.shake, 0.2);
+    this.events.push('break');
   }
   /** Turn a volt spark toward the nearest enemy or boss within reach. */
   private home(s: Shot, dt: number) {
@@ -1133,7 +1460,7 @@ export class PawBusterGame {
   }
   private updateItems(dt: number) {
     for (const it of this.items) {
-      if (it.gone || FIXED.includes(it.kind)) continue;
+      if (it.gone || FIXED(it.kind)) continue;
       it.vy = Math.min(PHYS.maxFall, it.vy + PHYS.gravity * dt);
       const box = { x: it.x - 7, y: it.y - 7, w: 14, h: 14 };
       const hit = this.move(box, 0, it.vy * dt);
@@ -1172,7 +1499,7 @@ export class PawBusterGame {
       this.events.push('tank');
     }
     if (kind === 'sub' && !pr.subs.includes(id)) { pr.subs.push(id); pr.subFill.push(0); this.say('SUB-TANK'); this.events.push('sub'); }
-    if ((kind === 'boots' || kind === 'saber') && !pr.parts.includes(kind)) { pr.parts.push(kind); this.say(PARTS[kind].name.toUpperCase()); this.events.push('part'); }
+    if (isPartItem(kind) && !pr.parts.includes(kind)) { pr.parts.push(kind); this.say(PARTS[kind].name.toUpperCase()); this.events.push('part'); }
   }
   /** The saber's reach: a box in front of Enzo while a swing is live, longer for a dash slash. */
   get saberBox(): Body | null {
@@ -1189,6 +1516,12 @@ export class PawBusterGame {
       for (const e of this.enemies) {
         if (!e.alive || s.hits.includes(e.id) || !overlap(box, e)) continue;
         s.hits.push(e.id);
+        // A shield stops weak shots from the front: hit it from behind, or with a charged shot.
+        if (e.kind === 'shield' && (s.x - (e.x + e.w / 2)) * e.face > 0 && s.dmg < 4) {
+          this.fx(s.x, s.y, 'spark'); this.events.push('deflect');
+          if (!s.pierce) { s.life = 0; break; }
+          continue;
+        }
         this.damageEnemy(e, s.dmg);
         if (!s.pierce) { s.life = 0; break; }
       }
@@ -1213,7 +1546,7 @@ export class PawBusterGame {
         for (const e of this.enemies) if (e.alive && e.slash !== p.slashId && overlap(saber, e)) { e.slash = p.slashId; this.damageEnemy(e, dmg); }
         if (b && b.slash !== p.slashId && overlap(saber, b) && this.damageBoss(b, dmg, 'buster')) b.slash = p.slashId;
       }
-      for (const e of this.enemies) if (e.alive && overlap(p, e)) this.hurt(3, e.x + e.w / 2);
+      for (const e of this.enemies) if (e.alive && overlap(p, e)) this.hurt(e.kind === 'guardian' ? 4 : 3, e.x + e.w / 2);
       if (b && !b.hidden && this.state === 'play' && overlap(p, b)) this.hurt(4, b.x + b.w / 2);
       for (const c of this.crushers) if (overlap(p, { x: c.x + 3, y: 0, w: c.w - 6, h: c.bottom })) this.hurt(CRUSH_DAMAGE, c.x + c.w / 2);
     }
@@ -1224,7 +1557,7 @@ export class PawBusterGame {
   get status() {
     const s = this.stage, hp = (h: HeroId) => `${h === 'dora' ? 'Dora' : 'Enzo'} ${Math.ceil(this.hp[h])}/${this.max}`;
     const who = this.coop ? 'Co-op' : `${this.hero === 'dora' ? 'Dora' : 'Enzo'} in play`;
-    const sector = partsOf(s.id) > 1 ? ` · Sector ${this.part + 1}` : '';
+    const sector = this.gallery ? ' · Boss gallery' : partsOf(s.id) > 1 ? ` · Sector ${this.part + 1}` : '';
     const boss = this.boss ? ` · ${bossInfo(this.boss.kind).bossName} ${Math.ceil(this.boss.hp)}/${this.boss.max}` : '';
     return `${s.name}${sector} · ${who} · ${hp('dora')} · ${hp('enzo')} · ${WEAPONS[this.weaponId].name}${boss}`;
   }

@@ -1,5 +1,5 @@
 // Canvas 2D art for Paw Buster X: flat pixel-style shapes, no image assets.
-import { TILE, ROWS, VIEW_W, VIEW_H, WEAPONS, ENERGY, TAG_TIME, HEROES, bossInfo, type PawBusterGame, type StageId, type BossKind, type HeroId, type Enemy, type Shot, type Player } from './paw-buster-game';
+import { TILE, ROWS, VIEW_W, VIEW_H, WEAPONS, ENERGY, TAG_TIME, HEROES, REVIVE, GUARDIANS, T, bossInfo, isSolid, isPartItem, KEEPSAKE, type PawBusterGame, type StageId, type BossKind, type HeroId, type Enemy, type Shot, type Player, type Boss, type ItemKind } from './paw-buster-game';
 
 type Theme = { sky: [string, string]; far: string; near: string; ground: string; dark: string; top: string; spike: string; accent: string };
 export const THEMES: Record<StageId, Theme> = {
@@ -50,30 +50,84 @@ function backdrop(c: CanvasRenderingContext2D, id: StageId, cam: number, time: n
   if (id === 'citadel') { c.fillStyle = '#fff6'; for (let i = 0; i < 50; i++) circle(c, (i * 191) % VIEW_W, (i * 67) % 240, (i + Math.floor(time * 2)) % 7 ? 1 : 1.8); c.fillStyle = '#ffd46a'; for (let i = 0; i < 14; i++) { const x = ((i * 150 - cam * 0.35) % (VIEW_W + 150) + VIEW_W + 150) % (VIEW_W + 150) - 75; c.fillRect(x, 330 + (i % 3) * 14, 6, 9); } }
 }
 
-function tiles(c: CanvasRenderingContext2D, g: PawBusterGame) {
-  const t = THEMES[g.stage.id], cam = Math.round(g.camX), c0 = Math.floor(cam / TILE), c1 = c0 + Math.ceil(VIEW_W / TILE) + 1;
+// The tile grid only changes when a sector loads, a gate shuts or a wall breaks, so it is drawn once
+// into an offscreen canvas the width of the whole sector and copied to the screen each frame.
+const tileCache = new WeakMap<PawBusterGame, { canvas: HTMLCanvasElement; key: string }>();
+function tileLayer(g: PawBusterGame) {
+  const key = `${g.tilesRev}:${g.has('helmet') ? 1 : 0}`, hit = tileCache.get(g);
+  if (hit && hit.key === key) return hit.canvas;
+  const canvas = hit?.canvas ?? document.createElement('canvas');
+  canvas.width = g.map.cols * TILE;
+  canvas.height = VIEW_H;
+  const c = canvas.getContext('2d');
+  if (c) staticTiles(c, g);
+  tileCache.set(g, { canvas, key });
+  return canvas;
+}
+
+function tiles(c: CanvasRenderingContext2D, g: PawBusterGame, time: number) {
+  const cam = Math.round(g.camX), c0 = Math.floor(cam / TILE), c1 = c0 + Math.ceil(VIEW_W / TILE) + 1;
+  // Waterfalls pour behind the rock.
+  for (const f of g.map.falls) {
+    const x = f.x - cam;
+    if (x > VIEW_W || x + f.w < 0) continue;
+    const col = Math.floor((f.x + f.w / 2) / TILE);
+    let top = ROWS;
+    for (let r = 0; r < ROWS; r++) if (isSolid(g.tile(col, r))) { top = r; break; }
+    const h = top * TILE;
+    c.fillStyle = '#7fc8f0aa'; c.fillRect(x, 0, f.w, h);
+    c.fillStyle = '#e8f8ffcc';
+    for (let i = 0; i < 9; i++) c.fillRect(x + 4 + ((i * 13) % (f.w - 8)), ((time * 260 + i * 67) % (h + 40)) - 40, 3, 26);
+    c.fillStyle = '#ffffffaa'; ellipse(c, x + f.w / 2, h - 3, f.w / 2 + 8, 6);
+  }
+  c.drawImage(tileLayer(g), cam, 0, VIEW_W, VIEW_H, 0, 0, VIEW_W, VIEW_H);
+  // Conveyor belts are animated, so they are drawn live: rollers under moving chevrons.
   for (let col = c0; col <= c1 && col < g.map.cols; col++) {
     for (let r = 0; r < ROWS; r++) {
       const k = g.tile(col, r);
-      if (!k) continue;
-      const x = col * TILE - cam, y = r * TILE, open = !g.tile(col, r - 1);
-      if (k === 3 || k === 4) {
-        // Conveyor belt: rollers under moving chevrons.
-        c.fillStyle = '#3a3f52'; c.fillRect(x, y, TILE, TILE);
-        c.fillStyle = '#6a7188'; c.fillRect(x, y, TILE, 8);
-        c.fillStyle = '#ffd46a';
-        const off = ((g.clock * 90 * (k === 3 ? 1 : -1)) % 15 + 15) % 15;
-        for (let i = -1; i < 2; i++) { const cx = x + i * 15 + off; c.beginPath(); if (k === 3) { c.moveTo(cx, y + 1); c.lineTo(cx + 5, y + 4); c.lineTo(cx, y + 7); } else { c.moveTo(cx + 5, y + 1); c.lineTo(cx, y + 4); c.lineTo(cx + 5, y + 7); } c.fill(); }
-        c.fillStyle = '#23273a'; for (const rx of [8, 22]) circle(c, x + rx, y + 18, 5);
+      if (k !== T.beltR && k !== T.beltL) continue;
+      const x = col * TILE - cam, y = r * TILE;
+      c.fillStyle = '#3a3f52'; c.fillRect(x, y, TILE, TILE);
+      c.fillStyle = '#6a7188'; c.fillRect(x, y, TILE, 8);
+      c.fillStyle = '#ffd46a';
+      const off = ((g.clock * 90 * (k === T.beltR ? 1 : -1)) % 15 + 15) % 15;
+      for (let i = -1; i < 2; i++) { const cx = x + i * 15 + off; c.beginPath(); if (k === T.beltR) { c.moveTo(cx, y + 1); c.lineTo(cx + 5, y + 4); c.lineTo(cx, y + 7); } else { c.moveTo(cx + 5, y + 1); c.lineTo(cx, y + 4); c.lineTo(cx + 5, y + 7); } c.fill(); }
+      c.fillStyle = '#23273a'; for (const rx of [8, 22]) circle(c, x + rx, y + 18, 5);
+    }
+  }
+  gates(c, g, cam);
+}
+
+function staticTiles(c: CanvasRenderingContext2D, g: PawBusterGame) {
+  const t = THEMES[g.stage.id], helmet = g.has('helmet');
+  for (let col = 0; col < g.map.cols; col++) {
+    for (let r = 0; r < ROWS; r++) {
+      const k = g.tile(col, r);
+      if (!k || k === T.beltR || k === T.beltL) continue;
+      const x = col * TILE, y = r * TILE, open = !g.tile(col, r - 1);
+      if (k === T.crystal) {
+        // A crystal wall: Quartz Orbit shatters it.
+        c.fillStyle = '#5a3f7a'; c.fillRect(x, y, TILE, TILE);
+        c.fillStyle = '#e3a8ff';
+        for (const [cx, cy, s] of [[9, 10, 7], [21, 19, 8], [10, 24, 4]]) { c.beginPath(); c.moveTo(x + cx, y + cy - s); c.lineTo(x + cx + s * 0.6, y + cy); c.lineTo(x + cx, y + cy + s); c.lineTo(x + cx - s * 0.6, y + cy); c.fill(); }
+        c.fillStyle = '#f7ecff'; c.fillRect(x + 8, y + 5, 2, 5); c.fillRect(x + 20, y + 13, 2, 5);
         continue;
       }
-      if (k === 5) {
+      if (k === T.door) {
+        // A dead power door: a Volt Spark brings it to life, and it opens.
+        c.fillStyle = '#4a5270'; c.fillRect(x, y, TILE, TILE);
+        c.fillStyle = '#2c3346'; c.fillRect(x + 3, y + 3, TILE - 6, TILE - 6);
+        c.fillStyle = '#fff27a';
+        c.beginPath(); c.moveTo(x + 17, y + 5); c.lineTo(x + 10, y + 16); c.lineTo(x + 15, y + 16); c.lineTo(x + 12, y + 25); c.lineTo(x + 20, y + 13); c.lineTo(x + 15, y + 13); c.fill();
+        continue;
+      }
+      if (k === T.ice) {
         c.fillStyle = '#bfe9ff'; c.fillRect(x, y, TILE, TILE);
         c.fillStyle = '#e8f8ff'; c.fillRect(x + 4, y + 4, 10, 3); c.fillRect(x + 16, y + 16, 8, 2);
         c.fillStyle = '#9fd4f0'; c.fillRect(x, y + TILE - 3, TILE, 3);
         continue;
       }
-      if (k === 2) {
+      if (k === T.spike) {
         c.fillStyle = t.ground;
         c.fillRect(x, y + TILE / 2, TILE, TILE / 2);
         c.fillStyle = t.spike;
@@ -94,8 +148,13 @@ function tiles(c: CanvasRenderingContext2D, g: PawBusterGame) {
         if (g.stage.id === 'cloud') { c.fillRect(x + 6, y - 3, 3, 3); c.fillRect(x + 20, y - 4, 3, 4); }
         if (g.stage.id === 'lake') { c.fillStyle = '#7a9a4a'; c.fillRect(x + 5, y - 8, 2, 8); c.fillRect(x + 12, y - 11, 2, 11); c.fillRect(x + 22, y - 7, 2, 7); }
       }
+      // A hidden wall looks like rock; the Scout Helmet outlines it.
+      if (k === T.hidden && helmet) { c.strokeStyle = '#7fd6ff'; c.lineWidth = 2; c.setLineDash([5, 4]); c.strokeRect(x + 2, y + 2, TILE - 4, TILE - 4); c.setLineDash([]); }
     }
   }
+}
+
+function gates(c: CanvasRenderingContext2D, g: PawBusterGame, cam: number) {
   // The sector teleporter: a glowing doorway at the end of the sector.
   if (g.map.exit > 0) {
     const ex = (g.map.exit + 3) * TILE - cam, fy = (ROWS - 3) * TILE;
@@ -218,6 +277,39 @@ function enemy(c: CanvasRenderingContext2D, e: Enemy, g: PawBusterGame, cam: num
     c.beginPath(); c.moveTo(2, -10); c.lineTo(16, -14 - flap); c.lineTo(10, -4); c.fill();
     c.fillStyle = '#7a58a0'; ellipse(c, 0, -9, 7, 8);
     c.fillStyle = '#ffd24a'; circle(c, 3, -11, 1.8);
+  } else if (e.kind === 'ceiling') {
+    // A turret hanging on a chain from the top of the screen.
+    c.fillStyle = '#8b877e';
+    for (let y = -e.h - 4; y > -(e.y + e.h) - 8; y -= 9) c.fillRect(-2, y - 6, 4, 6);
+    c.fillStyle = '#6d6a64'; rr(c, -13, -24, 26, 12, 4);
+    c.fillStyle = '#8b877e'; c.beginPath(); c.arc(0, -12, 12, 0, Math.PI); c.fill();
+    c.fillStyle = '#fff'; circle(c, 0, -6, 4); c.fillStyle = '#d84a3a'; circle(c, 0, -5, 2.2);
+  } else if (e.kind === 'shield') {
+    const step = e.ground ? Math.sin(g.clock * 10) * 1.5 : 0;
+    c.fillStyle = '#3a3f52'; c.fillRect(-8, -6 + step, 5, 6); c.fillRect(2, -6 - step, 5, 6);
+    c.fillStyle = '#5c6378'; rr(c, -11, -25, 18, 20, 5);
+    c.fillStyle = '#ffd46a'; circle(c, 1, -19, 2.4);
+    // The shield, always on the side it faces.
+    c.fillStyle = '#9aa3b8'; rr(c, 7, -29, 8, 27, 3);
+    c.fillStyle = '#e8ecf6'; c.fillRect(9, -25, 3, 19);
+  } else if (e.kind === 'bomber') {
+    const spin = Math.abs(Math.sin(g.clock * 40));
+    c.fillStyle = '#c9ced9'; c.fillRect(-13 * spin, -21, 26 * spin + 1, 2); c.fillRect(-1, -20, 2, 5);
+    c.fillStyle = '#7a6a8c'; ellipse(c, 0, -9, 14, 8);
+    c.fillStyle = '#9a88ac'; ellipse(c, -3, -12, 7, 3);
+    c.fillStyle = '#ffd24a'; circle(c, 7, -10, 2.5);
+    if (e.mode === 0) { c.fillStyle = '#3a3f52'; circle(c, 0, -1, 4); }
+  } else if (e.kind === 'guardian') {
+    // Each stage's mid-boss, a big armoured brute in the stage's colours.
+    const t = THEMES[g.stage.id], air = !e.ground;
+    c.fillStyle = t.dark; rr(c, -18, -12, 13, 12, 3); rr(c, 5, -12, 13, 12, 3);
+    c.fillStyle = t.ground; rr(c, -22, -41, 44, 31, 9);
+    c.strokeStyle = '#10141e'; c.lineWidth = 2; c.strokeRect(-14, -34, 20, 16);
+    c.fillStyle = t.top; rr(c, -22, -45, 44, 9, 4);
+    c.fillStyle = t.accent; rr(c, 7, -36, 14, 8, 3);
+    c.fillStyle = '#e05a4a'; circle(c, 16, -32, 2.6);
+    c.fillStyle = t.dark; rr(c, -31, air ? -40 : -34, 9, 20, 3); rr(c, 21, air ? -42 : -31, 10, 17, 3);
+    if (e.mode === 1) { c.fillStyle = '#ffd46a'; circle(c, 30, -24, 4 + Math.sin(g.clock * 30) * 1.5); }
   } else if (e.kind === 'hopper') {
     const air = !e.ground;
     c.fillStyle = '#3f8a4a'; ellipse(c, 0, -8, 11, air ? 9 : 7);
@@ -333,6 +425,8 @@ function shot(c: CanvasRenderingContext2D, s: Shot, cam: number, time: number) {
     case 'lemon': c.fillStyle = '#ffe27a'; ellipse(c, 0, 0, 6, 4); break;
     case 'mid': c.fillStyle = '#7fd6ff'; ellipse(c, 0, 0, 11, 8); c.fillStyle = '#e8f8ff'; ellipse(c, 2 * Math.sign(s.vx), 0, 5, 4); break;
     case 'full': c.fillStyle = (Math.floor(time * 20) % 2 ? '#b6ff7a' : '#7fd6ff'); c.beginPath(); c.arc(-Math.sign(s.vx) * 6, 0, 16, -1.3, 1.3); c.fill(); c.fillStyle = '#f4ffe8'; ellipse(c, 0, 0, 8, 6); break;
+    case 'giga': c.rotate(time * 14); ['#e3a8ff', '#7fd6ff', '#b6ff7a'].forEach((col, i) => { c.fillStyle = col; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 20 - i * 5, i * 2.1, i * 2.1 + 3.4); c.fill(); }); c.fillStyle = '#fff'; circle(c, 0, 0, 5); break;
+    case 'bomb': c.fillStyle = '#3a3f52'; circle(c, 0, 0, 7); c.fillStyle = '#8b93ad'; c.fillRect(-1, -11, 2, 4); if (Math.floor(time * 16) % 2) { c.fillStyle = '#ff5a4a'; circle(c, 0, -12, 2.2); } break;
     case 'frost': c.fillStyle = WEAPONS.frost.color; c.beginPath(); c.moveTo(12 * Math.sign(s.vx), 0); c.lineTo(0, -6); c.lineTo(-10 * Math.sign(s.vx), 0); c.lineTo(0, 6); c.fill(); break;
     case 'gale': c.rotate(Math.atan2(s.vy, s.vx)); c.fillStyle = WEAPONS.gale.color; ellipse(c, 0, 0, 10, 3.5); c.fillStyle = '#7aa860'; c.fillRect(-10, -0.5, 18, 1); break;
     case 'ember': c.fillStyle = '#ff5a2a88'; circle(c, -Math.sign(s.vx) * 7, 0, 7); c.fillStyle = WEAPONS.ember.color; circle(c, 0, 0, 8); c.fillStyle = '#fff2b0'; circle(c, 1, -1, 3.5); break;
@@ -369,13 +463,46 @@ function bar(c: CanvasRenderingContext2D, x: number, y: number, value: number, m
   if (label) { c.fillStyle = '#10141e'; rr(c, x - 3, y + h + 4, width + 6, 16, 3); c.fillStyle = '#fff'; c.font = 'bold 11px ui-monospace, monospace'; c.textAlign = 'center'; c.fillText(label, x + width / 2, y + h + 16); }
 }
 
+/** An armour capsule's contents, drawn around (x, y). */
+function partIcon(c: CanvasRenderingContext2D, kind: ItemKind, x: number, y: number) {
+  if (kind === 'boots') { c.fillStyle = '#3b7be0'; rr(c, x - 8, y - 6, 7, 12, 2); rr(c, x + 1, y - 6, 7, 12, 2); c.fillStyle = '#7fd6ff'; c.fillRect(x - 9, y + 4, 18, 3); }
+  else if (kind === 'saber') { c.strokeStyle = '#7dffb0'; c.lineWidth = 3; c.beginPath(); c.moveTo(x - 7, y + 7); c.lineTo(x + 7, y - 7); c.stroke(); c.fillStyle = '#d24a3c'; c.fillRect(x - 9, y + 3, 7, 4); }
+  else if (kind === 'helmet') { c.fillStyle = '#3b7be0'; c.beginPath(); c.arc(x, y + 3, 9, Math.PI, 0); c.fill(); c.fillStyle = '#7fd6ff'; c.fillRect(x - 6, y + 1, 12, 3); c.fillStyle = '#e04a4a'; circle(c, x, y - 4, 2); }
+  else if (kind === 'armor') { c.fillStyle = '#3b7be0'; rr(c, x - 9, y - 8, 18, 16, 4); c.fillStyle = '#ffd46a'; c.fillRect(x - 2, y - 6, 4, 12); c.fillStyle = '#ffffff66'; c.fillRect(x - 7, y - 6, 4, 3); }
+  else if (kind === 'arm') { c.fillStyle = '#3b7be0'; rr(c, x - 10, y - 5, 16, 10, 3); c.fillStyle = '#1a2a44'; circle(c, x + 7, y, 4); c.fillStyle = '#e3a8ff'; circle(c, x + 7, y, 2); }
+}
+
+/** The boss's title card, which slides in over the lower part of the screen during its intro. */
+function introCard(c: CanvasRenderingContext2D, g: PawBusterGame, b: Boss, time: number) {
+  const info = bossInfo(b.kind), known = info.weakness && g.progress.found.includes(info.id);
+  const k = Math.min(1, (g.introMax - g.introT) / 0.35), x = -VIEW_W * (1 - k) ** 2, y = 372;
+  c.save();
+  c.globalAlpha = Math.min(1, g.introT * 4);
+  c.fillStyle = '#10141ee8'; c.fillRect(x, y, VIEW_W, 100);
+  c.fillStyle = '#ffd46a'; c.fillRect(x, y, VIEW_W, 3); c.fillRect(x, y + 97, VIEW_W, 3);
+  c.fillStyle = THEMES[info.id].sky[1]; circle(c, x + 150, y + 50, 42);
+  c.save(); c.beginPath(); c.arc(x + 150, y + 50, 42, 0, Math.PI * 2); c.clip();
+  c.translate(x + 150, y + 82); c.scale(1.2, 1.2); drawBoss(c, b.kind, time, { move: 'idle' });
+  c.restore();
+  c.textAlign = 'left';
+  c.fillStyle = '#ffd46a'; c.font = 'bold 12px ui-monospace, monospace';
+  c.fillText(g.rushing ? `REMATCH ${g.rush + 1} OF 7` : g.gallery ? 'BOSS GALLERY' : info.name.toUpperCase(), x + 220, y + 30);
+  c.fillStyle = '#fff'; c.font = 'bold 34px ui-monospace, monospace';
+  c.fillText(info.bossName.toUpperCase(), x + 220, y + 66);
+  c.font = 'bold 12px ui-monospace, monospace';
+  c.fillStyle = known ? WEAPONS[info.weakness!].color : '#a9b2c8';
+  c.fillText(info.weakness ? (known ? `WEAK TO ${WEAPONS[info.weakness].name.toUpperCase()}` : 'WEAKNESS: ???') : 'NO KNOWN WEAKNESS', x + 220, y + 86);
+  c.restore();
+}
+
 export type Ghost = { hero: HeroId; body: Player; part: number };
-export function drawStage(c: CanvasRenderingContext2D, g: PawBusterGame, time: number, ghost: Ghost | null = null) {
+export type DrawOptions = { shake?: boolean };
+export function drawStage(c: CanvasRenderingContext2D, g: PawBusterGame, time: number, ghost: Ghost | null = null, opts: DrawOptions = {}) {
   const cam = Math.round(g.camX);
   c.save();
-  if (g.shake > 0) c.translate(Math.sin(time * 90) * 4 * g.shake * 5, Math.cos(time * 70) * 3 * g.shake * 5);
+  if (g.shake > 0 && opts.shake !== false) c.translate(Math.sin(time * 90) * 4 * g.shake * 5, Math.cos(time * 70) * 3 * g.shake * 5);
   backdrop(c, g.stage.id, cam, time);
-  tiles(c, g);
+  tiles(c, g, time);
   for (const pl of g.platforms) {
     const x = pl.x - cam;
     if (x > VIEW_W || x + pl.w < 0) continue;
@@ -403,11 +530,12 @@ export function drawStage(c: CanvasRenderingContext2D, g: PawBusterGame, time: n
     const x = it.x - cam, y = it.y + Math.sin(time * 4 + it.x) * (it.kind === 'tank' ? 3 : 0);
     if (it.kind === 'tank') { c.fillStyle = '#ffffff55'; circle(c, x, y, 14 + Math.sin(time * 5) * 2); c.fillStyle = '#e8465a'; c.beginPath(); c.moveTo(x, y + 9); c.bezierCurveTo(x - 14, y - 2, x - 7, y - 12, x, y - 5); c.bezierCurveTo(x + 7, y - 12, x + 14, y - 2, x, y + 9); c.fill(); }
     else if (it.kind === 'sub') { c.fillStyle = '#ffffff44'; circle(c, x, y, 14 + Math.sin(time * 5) * 2); c.fillStyle = '#3b7be0'; rr(c, x - 8, y - 11, 16, 22, 4); c.fillStyle = '#7fd6ff'; c.fillRect(x - 5, y - 4, 10, 12); c.fillStyle = '#fff'; c.font = 'bold 10px ui-monospace, monospace'; c.textAlign = 'center'; c.fillText('S', x, y - 3); }
-    else if (it.kind === 'boots' || it.kind === 'saber') {
-      c.fillStyle = '#ffd46a55'; circle(c, x, y, 16 + Math.sin(time * 5) * 2);
-      c.fillStyle = '#c9ced9'; rr(c, x - 12, y - 12, 24, 24, 5);
-      if (it.kind === 'boots') { c.fillStyle = '#3b7be0'; rr(c, x - 8, y - 6, 7, 12, 2); rr(c, x + 1, y - 6, 7, 12, 2); c.fillStyle = '#7fd6ff'; c.fillRect(x - 9, y + 4, 18, 3); }
-      else { c.strokeStyle = '#7dffb0'; c.lineWidth = 3; c.beginPath(); c.moveTo(x - 7, y + 7); c.lineTo(x + 7, y - 7); c.stroke(); c.fillStyle = '#d24a3c'; c.fillRect(x - 9, y + 3, 7, 4); }
+    else if (isPartItem(it.kind)) {
+      // An armour capsule: a glowing pod with the part inside.
+      c.fillStyle = '#ffd46a55'; circle(c, x, y, 17 + Math.sin(time * 5) * 2);
+      c.fillStyle = '#c9ced9'; rr(c, x - 13, y - 14, 26, 28, 7);
+      c.fillStyle = '#7fd6ff55'; rr(c, x - 10, y - 11, 20, 22, 5);
+      partIcon(c, it.kind, x, y);
     }
     else if (it.kind === 'hp') { c.fillStyle = '#fff'; rr(c, x - 7, y - 6, 14, 12, 3); c.fillStyle = '#e8465a'; c.fillRect(x - 1.5, y - 4, 3, 8); c.fillRect(x - 4, y - 1.5, 8, 3); }
     else { c.fillStyle = '#7fd6ff'; rr(c, x - 6, y - 7, 12, 14, 3); c.fillStyle = '#fff'; c.fillRect(x - 3, y - 4, 6, 2); }
@@ -443,6 +571,18 @@ export function drawStage(c: CanvasRenderingContext2D, g: PawBusterGame, time: n
     drawHero(c, ghost.hero, { run: ghost.body.runT, air: !ghost.body.ground, dash: ghost.body.dashT > 0 || ghost.body.adT > 0, tint: '#c9ced9' });
     c.restore();
   }
+  // A fallen co-op hero lies where they fell, with a ring that fills as the partner revives them.
+  if (g.coop) for (const h of HEROES) {
+    const p = g.bodies[h];
+    if (!p.down) continue;
+    c.save();
+    c.translate(Math.round(p.x - cam + p.w / 2), Math.round(p.y + p.h));
+    c.save(); c.globalAlpha = 0.6; c.translate(-14, -4); c.rotate(-Math.PI / 2); drawHero(c, h, { tint: '#8b93ad' }); c.restore();
+    c.strokeStyle = '#10141e88'; c.lineWidth = 4; c.beginPath(); c.arc(0, -34, 12, 0, Math.PI * 2); c.stroke();
+    c.strokeStyle = '#7dffb0'; c.beginPath(); c.arc(0, -34, 12, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * p.reviveT) / REVIVE); c.stroke();
+    c.fillStyle = '#fff'; c.font = 'bold 10px ui-monospace, monospace'; c.textAlign = 'center'; c.fillText('HELP', 0, -52 + Math.sin(time * 5) * 2);
+    c.restore();
+  }
   // The heroes in play (one in single play, both in co-op); each blinks while invulnerable.
   for (const h of g.coop ? HEROES.filter((x) => !g.bodies[x].down) : [g.hero]) {
     const p = g.bodies[h];
@@ -451,15 +591,21 @@ export function drawStage(c: CanvasRenderingContext2D, g: PawBusterGame, time: n
     c.translate(Math.round(p.x - cam + p.w / 2), Math.round(p.y + p.h));
     c.scale(p.face, 1);
     const w = g.weaponFor(h), level = g.levelOf(p), charge = h === 'dora' && w === 'buster' ? level : w !== 'buster' ? level : 0;
-    if (charge) { const col = w === 'buster' ? '#7fd6ff' : WEAPONS[w].color; c.strokeStyle = charge === 2 ? (Math.floor(time * 16) % 2 ? '#b6ff7a' : col) : col; c.lineWidth = 2; c.globalAlpha = 0.7; c.beginPath(); c.ellipse(0, -17, 18 + Math.sin(time * 25) * 3, 24, 0, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1; }
+    if (charge) {
+      // The Arm Cannon's third level turns the charge ring violet.
+      const col = g.gigaFor(h) ? '#e3a8ff' : w === 'buster' ? '#7fd6ff' : WEAPONS[w].color;
+      c.strokeStyle = charge === 2 ? (Math.floor(time * 16) % 2 ? '#b6ff7a' : col) : col; c.lineWidth = g.gigaFor(h) ? 3 : 2; c.globalAlpha = 0.7;
+      c.beginPath(); c.ellipse(0, -17, 18 + Math.sin(time * 25) * 3, 24, 0, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
+    }
     if (p.tagT > 0) { c.fillStyle = `rgba(255,212,106,${p.tagT / TAG_TIME * 0.35})`; ellipse(c, 0, -17, 22, 26); }
     if (p.adT > 0) { c.fillStyle = '#7fd6ff55'; ellipse(c, -18, -15, 14, 6); }
     drawHero(c, h, { run: p.runT, air: !p.ground, dash: p.dashT > 0 || p.adT > 0, slide: !!p.slide, slash: p.slashT > 0 ? (p.dashSlash ? 2 : p.combo) : undefined, charge: h === 'dora' && w === 'buster' ? charge : 0, tint: w === 'buster' ? undefined : WEAPONS[w].color });
     c.restore();
   }
   for (const e of g.effects) {
-    const x = e.x - cam, k = e.t / 0.5;
+    const x = e.x - cam, k = e.t / (e.kind === 'debris' ? 1.2 : 0.5);
     c.globalAlpha = 1 - k;
+    if (e.kind === 'debris') { c.fillStyle = e.color ?? '#fff'; c.save(); c.translate(x, e.y); c.rotate(e.t * 9); c.fillRect(-3, -3, 6, 6); c.restore(); }
     if (e.kind === 'boom') { c.fillStyle = '#ffd46a'; circle(c, x, e.y, 6 + k * 20); c.fillStyle = '#fff'; circle(c, x, e.y, 3 + k * 8); }
     if (e.kind === 'spark') { c.fillStyle = '#fff'; for (let i = 0; i < 4; i++) circle(c, x + Math.cos(i * 1.6) * k * 16, e.y + Math.sin(i * 1.6) * k * 16, 2); }
     if (e.kind === 'dust') { c.fillStyle = '#e8e0d0'; circle(c, x - k * 12, e.y - 3, 4 * (1 - k) + 2); circle(c, x + k * 12, e.y - 3, 4 * (1 - k) + 2); }
@@ -468,6 +614,51 @@ export function drawStage(c: CanvasRenderingContext2D, g: PawBusterGame, time: n
   }
   c.restore();
   hud(c, g, time);
+}
+
+/**
+ * The ending: Dora and Enzo walk home across the Andes at sunset while the story lines fade in
+ * one by one, then the credits roll. `t` is seconds since it began.
+ */
+export const ENDING_STORY = 18, ENDING_LENGTH = 40;
+export function drawEnding(c: CanvasRenderingContext2D, t: number, story: string[], credits: string[]) {
+  const sky = c.createLinearGradient(0, 0, 0, VIEW_H), dusk = Math.min(1, t / ENDING_LENGTH);
+  sky.addColorStop(0, dusk > 0.5 ? '#1a1030' : '#2c1a4a');
+  sky.addColorStop(0.55, '#e0785a');
+  sky.addColorStop(1, '#ffd08a');
+  c.fillStyle = sky; c.fillRect(0, 0, VIEW_W, VIEW_H);
+  c.fillStyle = '#fff2c0'; circle(c, 700, 300 + dusk * 120, 58);
+  c.fillStyle = '#ffffff88'; for (let i = 0; i < 40; i++) if (dusk > (i % 10) / 12) circle(c, (i * 191) % VIEW_W, (i * 67) % 200, 1.3);
+  for (const [speed, base, amp, color] of [[8, 330, 120, '#5a3a5a'], [22, 400, 70, '#3a2640']] as const) {
+    c.fillStyle = color; c.beginPath(); c.moveTo(0, VIEW_H);
+    for (let x = -40; x <= VIEW_W + 40; x += 40) { const k = (x + t * speed) / 120; c.lineTo(x, base - Math.abs(Math.sin(k)) * amp - Math.sin(k * 2.3) * 14); }
+    c.lineTo(VIEW_W, VIEW_H); c.fill();
+  }
+  c.fillStyle = '#2a1c30'; c.fillRect(0, 450, VIEW_W, 90);
+  c.fillStyle = '#3a2840'; for (let x = -((t * 60) % 60); x < VIEW_W; x += 60) c.fillRect(x, 452, 30, 4);
+  for (const [h, x] of [['dora', 400], ['enzo', 452]] as const) { c.save(); c.translate(x, 450); c.scale(1.6, 1.6); drawHero(c, h, { run: t + (h === 'enzo' ? 0.2 : 0) }); c.restore(); }
+  c.textAlign = 'center';
+  if (t < ENDING_STORY) {
+    story.forEach((line, i) => {
+      const a = Math.max(0, Math.min(1, (t - i * 3.5) / 0.8)) * Math.min(1, (ENDING_STORY - t) / 1);
+      if (a <= 0) return;
+      c.globalAlpha = a; c.fillStyle = '#10141e'; c.font = 'bold 22px ui-monospace, monospace'; c.fillText(line, VIEW_W / 2 + 2, 72 + i * 36);
+      c.fillStyle = '#fff'; c.fillText(line, VIEW_W / 2, 70 + i * 36);
+    });
+  } else {
+    // The credits roll up from the bottom.
+    const y0 = VIEW_H - (t - ENDING_STORY) * 42;
+    c.fillStyle = '#10141e99'; c.fillRect(VIEW_W / 2 - 260, 0, 520, 440);
+    credits.forEach((line, i) => {
+      const y = y0 + i * 34;
+      if (y < -20 || y > 440) return;
+      c.globalAlpha = Math.min(1, y / 60, (440 - y) / 60);
+      const head = line === line.toUpperCase();
+      c.fillStyle = head ? '#ffd46a' : '#fff'; c.font = `bold ${head ? 14 : 20}px ui-monospace, monospace`;
+      c.fillText(line, VIEW_W / 2, y);
+    });
+  }
+  c.globalAlpha = 1;
 }
 
 function hud(c: CanvasRenderingContext2D, g: PawBusterGame, time: number) {
@@ -516,6 +707,25 @@ function hud(c: CanvasRenderingContext2D, g: PawBusterGame, time: number) {
     c.fillStyle = '#10141ecc'; rr(c, VIEW_W - 290, 40, 240, known ? 36 : 20, 4);
     c.fillStyle = '#ffcf5a'; c.fillText(info.bossName.toUpperCase(), VIEW_W - 58, 54);
     if (known) { c.fillStyle = WEAPONS[info.weakness!].color; c.fillText(`WEAK: ${WEAPONS[info.weakness!].name.toUpperCase()}`, VIEW_W - 58, 70); }
+    if (g.state === 'boss') introCard(c, g, b, time);
+  }
+  // A mid-boss guardian on screen gets a health bar of its own.
+  const guard = !b && g.enemies.find((e) => e.kind === 'guardian' && e.alive && e.x + e.w > g.camX && e.x < g.camX + VIEW_W);
+  if (guard) {
+    bar(c, VIEW_W - 38, 40, Math.max(0, guard.hp), g.guardianMax, '#ff9a4a', 14, '!');
+    text();
+    c.textAlign = 'right';
+    c.fillStyle = '#10141ecc'; rr(c, VIEW_W - 250, 40, 200, 20, 4);
+    c.fillStyle = '#ff9a4a'; c.fillText(GUARDIANS[g.stage.id].toUpperCase(), VIEW_W - 58, 54);
+  }
+  // The Scout Helmet's arrows point to collectibles off screen.
+  if (g.has('helmet')) {
+    for (const it of g.items) {
+      if (!KEEPSAKE(it.kind) || (it.x > g.camX && it.x < g.camX + VIEW_W)) continue;
+      const right = it.x > g.camX, ax = right ? VIEW_W - 12 : 12, ay = Math.max(100, Math.min(VIEW_H - 30, it.y)), pulse = Math.sin(time * 6) * 2;
+      c.fillStyle = it.kind === 'tank' ? '#e8465a' : it.kind === 'sub' ? '#7fd6ff' : '#ffd46a';
+      c.beginPath(); c.moveTo(ax + (right ? 6 : -6) + (right ? pulse : -pulse), ay); c.lineTo(ax - (right ? 6 : -6), ay - 9); c.lineTo(ax - (right ? 6 : -6), ay + 9); c.fill();
+    }
   }
   if (g.banner.t > 0 && g.banner.text) {
     const alpha = Math.min(1, g.banner.t * 3);

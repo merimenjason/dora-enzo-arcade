@@ -2,6 +2,25 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 12-09-2026
+
+### Added
+
+- **Paw Buster X:** three more armour parts, weapon-locked walls, mid-bosses, ranks, challenges, hard mode, a boss gallery and an ending.
+  - **Three new armour capsules,** each behind a wall only a later weapon opens, so cleared stages are worth revisiting: the **Scout Helmet** up the Cloud Forest waterfall (float it with Bubble Burst) outlines hidden walls and points arrows at items you haven't found; **Body Armour** behind a crystal wall in Ember Caldera (Quartz Orbit shatters it) takes a quarter off every hit and all of its knockback; and the **Arm Cannon** behind a dead power door on Snowcap Ridge (a Volt Spark opens it) gives Dora a third charge level, a 6-damage spiral shot. The last two are at the bottom of trenches most heroes jump straight over. Four stages also hide small stashes under a patch of ground that looks solid but isn't: drop through it and jump back out.
+  - **Mid-bosses:** a guardian blocks the way halfway through every stage, with a three-way volley and a shock-wave leap.
+  - **Three new enemies:** ceiling turrets on chains, shielded walkers that must be hit from behind or with a charged shot, and bombers that drop bombs bursting into shock waves.
+  - **Ranks and medals:** every clear is graded S to C from your time, the damage you took and the enemies you cleared, and each stage shows gold, silver and bronze target times.
+  - **Challenges:** four badges per stage — beat the boss untouched, clear a stage with the buster only, beat the Kingpin without a sub-tank, and clear on hard.
+  - **Hard mode,** unlocked by beating the citadel: tougher enemies and bosses, faster patterns and an extra volley after every boss move.
+  - **Boss gallery:** refight any boss you've beaten, on its own, for a best time.
+  - **An ending:** beating the Cougar Kingpin sends Dora and Enzo home at sunset, with credits and your run's totals.
+  - **Save slots and save codes:** three slots, and a code that copies a slot to another browser.
+  - **Sound and feel:** a sound of its own for every special weapon, separate sound-effect and music volume sliders, a screen-shake switch, flying wreckage when bosses and enemies burst, and a boss title card at the start of each fight.
+  - **Co-op:** stand beside a fallen partner for two seconds to bring them back, instead of waiting for a checkpoint.
+  - The weapon-get screen now demonstrates the weapon you just won.
+  - Ember Caldera's sub-tank ledge is one tile lower, so it can be reached with a plain jump.
+
 ## 11-09-2026
 
 ### Added

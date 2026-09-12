@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { PawBusterGame, buildStage, partsOf, parseProgress, saveProgress, unlocked, weaponsFor, maxHp, freshProgress, changesFor, inputMask, unmask, encodeRun, decodeRun, STAGES, MAVERICKS, SUB_STAGES, RUSH, TILE, ROWS, PHYS, CHARGE, CRUSH_PERIOD, NO_INPUT, HERO } from '../.checks/paw-buster-game.js';
+import { PawBusterGame, buildStage, partsOf, parseProgress, saveProgress, exportCode, importCode, unlocked, weaponsFor, maxHp, freshProgress, changesFor, inputMask, unmask, encodeRun, decodeRun, rankFor, medalFor, weaponDemo, demoInput, STAGES, MAVERICKS, SUB_STAGES, RUSH, TILE, ROWS, PHYS, CHARGE, CRUSH_PERIOD, NO_INPUT, HERO, T, TARGETS, REVIVE, HARD_HP, GUARDIAN_HP } from '../.checks/paw-buster-game.js';
 
 const DT = 1 / 120;
 const hold = (g, input, seconds) => { for (let i = 0; i < Math.round(seconds / DT); i++) g.step(DT, { ...NO_INPUT, ...input }); };
@@ -591,8 +591,12 @@ test('bosses run their patterns without leaving the arena, and hurt the heroes',
 });
 
 test('progress saves round-trip and the citadel opens after three mavericks', () => {
-  const p = { cleared: ['snowcap', 'cloud'], tanks: ['cloud'], best: { snowcap: 91.2 }, subs: ['cloud'], subFill: [5], parts: ['boots'], found: ['snowcap'] };
+  const p = { ...freshProgress(), cleared: ['snowcap', 'cloud'], tanks: ['cloud'], best: { snowcap: 91.2 }, subs: ['cloud'], subFill: [5], parts: ['boots', 'arm'], found: ['snowcap'], ranks: { snowcap: 'A' }, medals: { snowcap: 2 }, badges: ['snowcap:buster', 'citadel:nosub'], bossBest: { cloud: 40.5 }, deaths: 3, playTime: 612.5 };
   assert.deepEqual(parseProgress(saveProgress(p)), p);
+  assert.deepEqual(parseProgress('{"version":3,"cleared":[],"tanks":[],"best":{},"ranks":{"snowcap":"Z","cloud":"S"},"medals":{"cloud":4,"lake":3},"badges":["snowcap:nosub","moon:buster","lake:hard"],"deaths":-2}'), { ...freshProgress(), ranks: { cloud: 'S' }, medals: { lake: 3 }, badges: ['lake:hard'] }, 'bad version 3 fields are dropped');
+  assert.deepEqual(importCode(exportCode(p)), p, 'save codes round-trip');
+  assert.equal(importCode('hello'), null);
+  assert.equal(importCode('PBX3-!!!'), null);
   assert.deepEqual(parseProgress('{"version":1,"cleared":["snowcap"],"tanks":["snowcap"],"best":{"snowcap":80}}'), { ...freshProgress(), cleared: ['snowcap'], tanks: ['snowcap'], best: { snowcap: 80 } }, 'version 1 saves upgrade');
   assert.deepEqual(parseProgress('{"version":2,"cleared":[],"tanks":[],"best":{},"subs":["snowcap","lake"],"subFill":[99],"parts":["jetpack","saber"],"found":["moon"]}'), { ...freshProgress(), subs: ['lake'], subFill: [16], parts: ['saber'] });
   assert.deepEqual(parseProgress('{"version":1,"cleared":["moon",3],"tanks":["citadel"],"best":{"cloud":-1}}'), freshProgress());
@@ -610,4 +614,218 @@ test('runs are deterministic', () => {
   assert.equal(run(), run());
 });
 
-console.log(`Paw Buster X: ${cases} cases passed (stages, movement, dash jump, wall climb, charge shot, tag team, saber deflect, damage and defeat, pits and spikes, drops, boss door, weaknesses, clear, weapons, quartz orbit, volt homing, bubbles, hoppers, armadillo roll, sub-tanks, armour parts, charged specials, stage changes, hit-stop, citadel sectors and boss rush, Kingpin phase 2, conveyors, platforms and crushers, co-op, easy mode, ghost replays, heart tanks, boss patterns, saves, determinism).`);
+const killBoss = (g) => {
+  const b = g.boss;
+  Object.assign(b, { hp: 1, hidden: false, inv: 0 });
+  g.shots.push({ x: b.x + b.w / 2, y: b.y + b.h / 2, vx: 0, vy: 0, r: 8, dmg: 1, kind: 'lemon', hero: true, life: 1, pierce: false, hits: [], grav: 0, weapon: 'buster' });
+  g.step(DT, NO_INPUT);
+  hold(g, {}, 2.6);
+};
+
+test('the new armour capsules sit behind walls that a later weapon opens', () => {
+  for (const [part, stage, door] of [['arm', 'snowcap', T.door], ['armor', 'caldera', T.crystal], ['helmet', 'cloud', null]]) {
+    const m = buildStage(stage), it = m.items.find((i) => i.kind === part);
+    assert.ok(it, `${part} is in ${stage}`);
+    const c = Math.floor(it.x / TILE);
+    const walled = [...Array(5).keys()].some((k) => m.tiles.slice((c - k) * ROWS, (c - k + 1) * ROWS).includes(door));
+    if (door) assert.ok(walled, `${part} is behind its wall`);
+  }
+  const falls = buildStage('cloud').falls;
+  assert.equal(falls.length, 1, 'Cloud Forest has a waterfall');
+  for (const s of ['mines', 'salt', 'lake']) assert.ok(buildStage(s).tiles.includes(T.hidden), `${s} hides a stash behind a hidden wall`);
+});
+
+test('Quartz Orbit shatters crystal walls and Volt Spark opens power doors', () => {
+  const g = flat(play('snowcap', all()));
+  const r = ROWS - 4, wall = (t) => { flat(g); g.shots = []; for (const y of [r, r - 1]) g.tiles[14 * ROWS + y] = t; hold(g, {}, 0.4); };
+  const fire = (w) => { g.weapon = g.weapons.indexOf(w); tap(g, 'fire'); hold(g, {}, 0.8); };
+  wall(T.crystal);
+  fire('volt');
+  assert.equal(g.tiles[14 * ROWS + r], T.crystal, 'a spark does nothing to crystal');
+  g.weapon = g.weapons.indexOf('quartz');
+  tap(g, 'fire');
+  hold(g, { right: true }, 1);
+  assert.deepEqual([g.tiles[14 * ROWS + r], g.tiles[14 * ROWS + r - 1]], [T.air, T.air], 'the orbit shatters the whole wall');
+  assert.ok(g.events.includes('break'));
+  wall(T.door);
+  fire('buster');
+  assert.equal(g.tiles[14 * ROWS + r], T.door, 'the buster does nothing to a door');
+  fire('volt');
+  assert.equal(g.tiles[14 * ROWS + r], T.air, 'a spark opens the door');
+});
+
+test('hidden walls let heroes through, and Bubble Burst floats up waterfalls', () => {
+  const g = flat(play('cloud', all()));
+  for (let r = 0; r < ROWS - 3; r++) g.tiles[14 * ROWS + r] = T.hidden;
+  hold(g, { right: true }, 1);
+  assert.ok(g.player.x > 15 * TILE, 'walked through a hidden wall');
+  flat(g);
+  Object.assign(g.player, { x: g.map.falls[0].x + 10 });
+  const y0 = g.player.y;
+  hold(g, { jump: true }, 1.2);
+  assert.ok(Math.abs(g.player.y - y0) < 1, 'an ordinary jump with the buster');
+  g.weapon = g.weapons.indexOf('bubble');
+  hold(g, {}, 0.3);
+  hold(g, { jump: true }, 1.5);
+  assert.ok(g.player.y < y0 - 250, `Bubble Burst floated ${Math.round(y0 - g.player.y)}px up the falls`);
+});
+
+test('the Arm Cannon adds a third buster level and Body Armour softens hits', () => {
+  const g = flat(play('snowcap', { ...freshProgress(), parts: ['arm', 'armor'] }));
+  hold(g, { fire: true }, CHARGE.giga + 0.05);
+  assert.ok(g.events.includes('charge3'));
+  g.shots = [];
+  g.step(DT, NO_INPUT);
+  assert.deepEqual(g.shots.map((s) => [s.kind, s.dmg, s.pierce]), [['giga', 6, true]]);
+  const plain = flat(play());
+  hold(plain, { fire: true }, CHARGE.giga + 0.05);
+  plain.shots = [];
+  plain.step(DT, NO_INPUT);
+  assert.equal(plain.shots[0].kind, 'full', 'no third level without the Arm Cannon');
+  g.hurt(8, g.player.x + 100);
+  assert.deepEqual([g.hp.dora, g.player.hurtT, g.damage], [g.max - 6, 0, 6], 'a quarter less damage and no knockback');
+});
+
+test('shields block shots from the front; ceiling turrets and bombers drop shots from above', () => {
+  const g = flat(play());
+  const front = { ...foe('shield', g.player.x + 70, g.player.y + 2, 4), h: 28 };
+  g.enemies = [front];
+  tap(g, 'fire');
+  hold(g, {}, 0.2);
+  assert.equal(front.hp, 4, 'blocked from the front');
+  assert.ok(g.events.includes('deflect'));
+  // Charge out of its reach (a hit would cost the charge), then put one back in front and let go.
+  g.enemies = [];
+  hold(g, { fire: true }, CHARGE.full + 0.05);
+  const charged = { ...foe('shield', g.player.x + 70, g.player.y + 2, 4), h: 28 };
+  g.enemies = [charged];
+  g.step(DT, NO_INPUT);
+  hold(g, {}, 0.3);
+  assert.ok(!charged.alive, 'a charged shot breaks through');
+  flat(g);
+  const back = { ...foe('shield', g.player.x - 70, g.player.y + 2, 4), h: 28, face: -1 };
+  g.enemies = [back];
+  g.step(DT, { ...NO_INPUT, left: true });
+  hold(g, {}, 0.3);
+  tap(g, 'fire');
+  hold(g, {}, 0.2);
+  assert.ok(back.hp < 4, 'hit from behind');
+  flat(g);
+  g.shots = [];
+  g.enemies = [{ ...foe('ceiling', g.player.x - 2, g.player.y - 120, 4), h: 24, t: 1.7 }];
+  g.step(DT, NO_INPUT);
+  assert.ok(g.shots.some((s) => !s.hero && s.kind === 'pellet' && s.vy > 0), 'the ceiling turret fires down');
+  flat(g);
+  g.shots = [];
+  g.enemies = [{ ...foe('bomber', g.player.x, g.player.y - 150, 3), h: 18, face: 1 }];
+  let waves = false;
+  for (let i = 0; i < 120 * 1.5; i++) { g.hp.dora = g.max; g.step(DT, NO_INPUT); waves ||= g.shots.some((s) => s.kind === 'wave'); }
+  assert.ok(waves, 'the bomb bursts into shock waves');
+});
+
+test('each stage has a guardian mid-boss that blocks the way until it falls', () => {
+  for (const s of STAGES) {
+    const n = [...Array(partsOf(s.id)).keys()].flatMap((p) => buildStage(s.id, p).spawns).filter((e) => e.kind === 'guardian').length;
+    assert.equal(n, 1, `${s.id} has one guardian`);
+  }
+  const g = flat(play());
+  const gd = { ...foe('guardian', g.player.x + 120, g.player.y - 14, GUARDIAN_HP), w: 46, h: 44 };
+  g.enemies = [gd];
+  const items = g.items.length;
+  for (let i = 0; i < 120 * 3; i++) { g.hp.dora = g.max; g.step(DT, { ...NO_INPUT, right: true }); assert.ok(g.player.x + g.player.w / 2 < gd.x + gd.w / 2, 'no way past'); }
+  gd.hp = 1;
+  hold(g, {}, 0.1);
+  tap(g, 'fire');
+  hold(g, {}, 0.3);
+  assert.ok(!gd.alive && g.events.includes('guardian-down'));
+  assert.equal(g.items.length, items + 2, 'it drops health and energy');
+  assert.equal(new PawBusterGame('snowcap', freshProgress(), { hard: true }).guardianMax, Math.ceil(GUARDIAN_HP * HARD_HP));
+});
+
+test('a clear earns a rank, a medal and badges, and keeps the best of each', () => {
+  assert.equal(rankFor('snowcap', TARGETS.snowcap[0], 0, 10, 10), 'S');
+  assert.equal(rankFor('snowcap', TARGETS.snowcap[2] + 1, 30, 0, 10), 'C');
+  assert.deepEqual([1, 2, 3].map((i) => medalFor('snowcap', TARGETS.snowcap[3 - i])), [1, 2, 3]);
+  assert.equal(medalFor('snowcap', TARGETS.snowcap[2] + 1), 0);
+  const g = toBoss('snowcap');
+  assert.ok(g.enemyTotal >= 8, `the stage counts its ${g.enemyTotal} enemies`);
+  g.time = 60;
+  g.kills = g.enemyTotal;
+  killBoss(g);
+  assert.equal(g.state, 'clear');
+  assert.deepEqual([g.rank, g.medal, g.progress.ranks.snowcap, g.progress.medals.snowcap], ['S', 3, 'S', 3]);
+  assert.deepEqual(g.earned, ['untouched', 'buster']);
+  assert.ok(g.events.includes('badge'));
+  const h = toBoss('snowcap', g.progress);
+  h.usedSpecial = true;
+  h.hurt(4, 0);
+  h.time = 500;
+  killBoss(h);
+  assert.equal(h.rank, 'C');
+  assert.deepEqual([h.progress.ranks.snowcap, h.progress.medals.snowcap, h.earned], ['S', 3, []], 'a worse run keeps the better records');
+  assert.deepEqual(h.progress.badges, ['snowcap:untouched', 'snowcap:buster']);
+});
+
+test('hard mode toughens enemies and bosses, and the boss gallery refights one boss', () => {
+  const hard = new PawBusterGame('snowcap', freshProgress(), { hard: true });
+  assert.equal(hard.enemies[0].hp, Math.ceil(3 * HARD_HP));
+  assert.equal(new PawBusterGame('snowcap', freshProgress(), { hard: true, easy: true }).hard, false, 'easy mode wins');
+  hold(hard, {}, 1.3);
+  Object.assign(hard.player, { x: (hard.map.arena + 2) * TILE, y: (ROWS - 3) * TILE - HERO.h, vy: 0 });
+  hard.enemies = [];
+  hold(hard, {}, 2.4);
+  assert.equal(hard.boss.max, Math.ceil(32 * HARD_HP));
+  Object.assign(hard.boss, { move: 'shards', t: 0.95, fired: 1 });
+  hard.shots = [];
+  hard.step(DT, NO_INPUT);
+  assert.equal(hard.shots.filter((s) => s.kind === 'pellet').length, 3, 'an extra volley after each move');
+  killBoss(hard);
+  assert.ok(hard.progress.badges.includes('snowcap:hard'));
+
+  const gal = new PawBusterGame('cloud', { ...freshProgress(), cleared: ['cloud'] }, { gallery: true });
+  hold(gal, {}, 0.1);
+  assert.deepEqual([gal.state, gal.boss.kind], ['boss', 'owl']);
+  assert.ok(gal.status.includes('Boss gallery'));
+  hold(gal, {}, 2.3);
+  gal.time = 40;
+  killBoss(gal);
+  assert.equal(gal.state, 'clear');
+  assert.deepEqual([gal.progress.bossBest.cloud, gal.progress.best.cloud, gal.rank, gal.victory], [40, undefined, null, false]);
+  const kingpin = new PawBusterGame('citadel', all(), { gallery: true });
+  hold(kingpin, {}, 0.1);
+  assert.deepEqual([kingpin.boss.kind, kingpin.boss.max], ['cougar', 44], 'the citadel gallery is the Kingpin alone');
+});
+
+test('a co-op hero revives a fallen partner by standing beside them', () => {
+  const g = new PawBusterGame('snowcap', freshProgress(), { coop: true });
+  hold(g, {}, 1.3);
+  flat(g);
+  const d = g.bodies.dora, e = g.bodies.enzo;
+  Object.assign(e, { x: d.x + 200, y: d.y, vx: 0, vy: 0, ground: true });
+  hold(g, {}, 1.2);
+  g.hp.enzo = 1;
+  g.shots.push(pellet(e));
+  g.step(DT, NO_INPUT);
+  assert.ok(e.down);
+  d.x = e.x - 20;
+  hold(g, {}, REVIVE - 0.2);
+  assert.ok(e.down && e.reviveT > 1, 'not yet');
+  hold(g, {}, 0.4);
+  assert.ok(!e.down && g.hp.enzo === Math.ceil(g.max / 2) && g.events.includes('revive'), 'Enzo is back');
+});
+
+test('stats, the weapon showcase and deaths', () => {
+  const g = flat(play());
+  const t0 = g.progress.playTime;
+  hold(g, {}, 1);
+  assert.ok(Math.abs(g.progress.playTime - t0 - 1) < 0.02, 'play time counts up');
+  g.hurt(99, 0); hold(g, {}, 1.6); g.hurt(99, 0);
+  assert.deepEqual([g.state, g.progress.deaths], ['lost', 1]);
+  const demo = weaponDemo('volt');
+  assert.deepEqual([demo.weaponId, demo.state], ['volt', 'play']);
+  for (let i = 0; i < 120 * 3.4; i++) { demo.step(DT, demoInput(i * DT)); demo.energy.volt = 28; }
+  assert.ok(demo.events.includes('special-volt') && demo.events.includes('charged-volt'), 'the demo taps and charges');
+  assert.ok(demo.enemies.every((e) => e.alive), 'the dummies never fall');
+});
+
+console.log(`Paw Buster X: ${cases} cases passed (stages, movement, dash jump, wall climb, charge shot, tag team, saber deflect, damage and defeat, pits and spikes, drops, boss door, weaknesses, clear, weapons, quartz orbit, volt homing, bubbles, hoppers, armadillo roll, sub-tanks, armour parts, charged specials, stage changes, hit-stop, citadel sectors and boss rush, Kingpin phase 2, conveyors, platforms and crushers, co-op, easy mode, ghost replays, heart tanks, boss patterns, saves and save codes, determinism, capsules, breakable walls, hidden walls and waterfalls, Arm Cannon and Body Armour, new enemies, guardians, ranks and badges, hard mode and the boss gallery, co-op revives, stats and the weapon showcase).`);
