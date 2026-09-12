@@ -57,7 +57,7 @@ export type Kind = 'fish' | 'bug' | 'fossil' | 'fruit' | 'flower' | 'seed' | 'fu
 export type Facing = 0 | 1 | 2 | 3; // up, right, down, left
 export const FACE: [number, number][] = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 
-export type Species = { id: string; name: string; price: number; habitat?: Habitat | 'grass' | 'tree' | 'flower' | 'water'; time: TimeOfDay; seasons: Season[]; rarity: number; rain?: boolean; blurb: string };
+export type Species = { id: string; name: string; price: number; habitat?: Habitat | 'grass' | 'tree' | 'flower' | 'water'; time: TimeOfDay; seasons: Season[]; rarity: number; rain?: boolean; festival?: boolean; blurb: string };
 export const FISH: Species[] = [
   { id: 'trout', name: 'Rainbow Trout', price: 300, habitat: 'river', time: 'any', seasons: ['spring', 'summer', 'autumn', 'winter'], rarity: 5, blurb: 'Loves cold, quick water.' },
   { id: 'catfish', name: 'Andean Catfish', price: 800, habitat: 'river', time: 'night', seasons: ['spring', 'summer', 'autumn'], rarity: 2, blurb: 'Whiskers first, questions later.' },
@@ -74,6 +74,9 @@ export const FISH: Species[] = [
   { id: 'squid', name: 'Humboldt Squid', price: 1500, habitat: 'sea', time: 'night', seasons: ['spring', 'summer', 'autumn', 'winter'], rarity: 2, blurb: 'Rises with the dark.' },
   { id: 'ray', name: 'Manta Ray', price: 3000, habitat: 'sea', time: 'day', seasons: ['summer'], rarity: 1, blurb: 'A kite under the waves.' },
   { id: 'tuna', name: 'Yellowfin Tuna', price: 7000, habitat: 'sea', time: 'any', seasons: ['summer', 'winter'], rarity: 1, blurb: 'The one everyone talks about.' },
+  { id: 'dorado', name: 'Golden Dorado', price: 9000, habitat: 'river', time: 'any', seasons: ['spring'], rarity: 1, festival: true, blurb: 'Surfaces once a year, on tourney day.' },
+  { id: 'zungaro', name: 'Great Zúngaro', price: 12000, habitat: 'river', time: 'any', seasons: ['autumn'], rarity: 1, festival: true, blurb: 'The catfish the whole hollow tells stories about.' },
+  { id: 'titicaca', name: 'Titicaca Water Frog', price: 10000, habitat: 'pond', time: 'any', seasons: ['winter'], rarity: 1, festival: true, blurb: 'Comes up through the ice on Snowman Day.' },
 ];
 export const BUGS: Species[] = [
   { id: 'butterfly', name: 'Common Butterfly', price: 160, habitat: 'flower', time: 'day', seasons: ['spring', 'summer'], rarity: 5, blurb: 'Drifts from bloom to bloom.' },
@@ -90,7 +93,15 @@ export const BUGS: Species[] = [
   { id: 'snail', name: 'Snail', price: 250, habitat: 'flower', time: 'any', seasons: ['spring', 'summer', 'autumn'], rarity: 4, rain: true, blurb: 'Comes out only when it rains.' },
   { id: 'wintermoth', name: 'Winter Moth', price: 600, habitat: 'tree', time: 'night', seasons: ['winter'], rarity: 2, blurb: 'Flies when nothing else dares.' },
   { id: 'snowflea', name: 'Snow Flea', price: 350, habitat: 'grass', time: 'day', seasons: ['winter'], rarity: 4, blurb: 'A speck of pepper on the snow.' },
+  { id: 'hercules', name: 'Hercules Beetle', price: 11000, habitat: 'tree', time: 'any', seasons: ['summer'], rarity: 1, festival: true, blurb: 'Shows itself only on Bug-Off day.' },
 ];
+/** The jackpot species that surfaces only on each season's festival day. */
+export const JACKPOTS: Record<Season, Species> = {
+  spring: FISH.find((f) => f.id === 'dorado')!,
+  summer: BUGS.find((b) => b.id === 'hercules')!,
+  autumn: FISH.find((f) => f.id === 'zungaro')!,
+  winter: FISH.find((f) => f.id === 'titicaca')!,
+};
 export const FOSSILS: Species[] = [
   { id: 'ammonite', name: 'Ammonite', price: 1100, time: 'any', seasons: [], rarity: 5, blurb: 'A spiral from an ancient sea.' },
   { id: 'trilobite', name: 'Trilobite', price: 1300, time: 'any', seasons: [], rarity: 5, blurb: 'Older than the mountains.' },
@@ -137,6 +148,12 @@ export const FURNITURE: Furniture[] = [
   { id: 'poncho', name: 'Woven Poncho', price: 900, shop: true, set: 'Andean' },
   { id: 'quena', name: 'Quena Flute Stand', price: 650, shop: true, set: 'Andean' },
   { id: 'trophy', name: 'Festival Trophy', price: 4000, shop: false },
+  { id: 'photo-pia', name: 'Photo of Pia', price: 2000, shop: false },
+  { id: 'photo-rodri', name: 'Photo of Rodri', price: 2000, shop: false },
+  { id: 'photo-vivi', name: 'Photo of Vivi', price: 2000, shop: false },
+  { id: 'photo-tato', name: 'Photo of Tato', price: 2000, shop: false },
+  { id: 'photo-lupe', name: 'Photo of Lupe', price: 2000, shop: false },
+  { id: 'photo-nico', name: 'Photo of Nico', price: 2000, shop: false },
   { id: 'plaque-fish', name: 'Aquarium Plaque', price: 3000, shop: false },
   { id: 'plaque-bug', name: 'Insect Hall Plaque', price: 3000, shop: false },
   { id: 'plaque-fossil', name: 'Fossil Gallery Plaque', price: 3000, shop: false },
@@ -155,7 +172,7 @@ export type Spot = { x: number; y: number };
 export type Shell = Spot & { id: string };
 export type Bug = { id: string; x: number; y: number; vx: number; vy: number; life: number; shy: boolean; fleeing: boolean };
 export type Building = { id: string; name: string; x: number; y: number; w: number; h: number; door: [number, number] };
-export type VillagerDef = { id: string; name: string; species: string; likes: Kind; color: string; home: string; lines: string[]; arrives?: number };
+export type VillagerDef = { id: string; name: string; species: string; likes: Kind; color: string; home: string; lines: string[]; arrives?: number; story?: string };
 export type Villager = VillagerDef & { x: number; y: number; tx: number; ty: number; wait: number; facing: Facing };
 /** Where a villager likes to be at each part of the day. */
 export type Haunt = { x: number; y: number; name: string };
@@ -175,12 +192,12 @@ export type Peek = { target: string; hint: string };
 
 export const HERO_NAMES: Record<Hero, string> = { dora: 'Dora', enzo: 'Enzo' };
 export const NEIGHBOURS: VillagerDef[] = [
-  { id: 'pia', name: 'Pia', species: 'flamingo', likes: 'fish', color: '#f39ab5', home: 'house-pia', lines: ['The sea is loud today. I like it.', 'Have you tried standing on one leg? Very restful.', 'Pink is not a phase, it is a lifestyle.'] },
-  { id: 'rodri', name: 'Rodri', species: 'fox', likes: 'fruit', color: '#d9873c', home: 'house-rodri', lines: ['Fruit off the tree beats anything from a shop.', 'Heard a rumour there’s a beetle worth two thousand raisins. Don’t tell Tato.', 'The bridge creaks. I like to think it’s saying hello.'] },
-  { id: 'vivi', name: 'Vivi', species: 'viscacha', likes: 'flower', color: '#b7a58c', home: 'house-vivi', lines: ['We viscachas are basically cousins. Long-lost, fluffy cousins.', 'A watered flower is a promise to tomorrow.', 'Sunbathing counts as exercise if you mean it.'] },
-  { id: 'tato', name: 'Tato', species: 'condor', likes: 'bug', color: '#4a4750', home: 'house-tato', lines: ['From up high the whole hollow looks like a quilt.', 'Bugs are just very small birds. Don’t look that up.', 'The museum owl owes me a favour. Long story.'] },
-  { id: 'lupe', name: 'Lupe', species: 'llama', likes: 'fruit', color: '#e8dcc2', home: 'house-lupe', lines: ['I heard the hollow was getting lively, so here I am.', 'Nothing beats a pear. Nothing. I have thought about this.', 'I hum when I walk. Sorry in advance.'], arrives: 4 },
-  { id: 'nico', name: 'Nico', species: 'cat', likes: 'fish', color: '#8a7f73', home: 'house-nico', lines: ['An Andean cat, yes. Rare. Please don’t make it weird.', 'The river at dawn is the best restaurant in town.', 'I nap on the museum steps. Bubo pretends not to see.'], arrives: 8 },
+  { id: 'pia', name: 'Pia', species: 'flamingo', likes: 'fish', color: '#f39ab5', home: 'house-pia', lines: ['The sea is loud today. I like it.', 'Have you tried standing on one leg? Very restful.', 'Pink is not a phase, it is a lifestyle.'], story: 'You’ve heard me talk about the sea all year, so here’s the truth of it: I flew here from a salt lake that dried up, and I promised myself I’d never live anywhere I couldn’t hear water. Then you turned up and made the whole hollow feel less like somewhere I landed and more like somewhere I chose. Keep this photo of me. Stand it in your burrow so I’m in the room even when I’m at the beach.' },
+  { id: 'rodri', name: 'Rodri', species: 'fox', likes: 'fruit', color: '#d9873c', home: 'house-rodri', lines: ['Fruit off the tree beats anything from a shop.', 'Heard a rumour there’s a beetle worth two thousand raisins. Don’t tell Tato.', 'The bridge creaks. I like to think it’s saying hello.'], story: 'Right. The bridge. I told you it creaks a hello, and that’s because I built it — badly, twenty years ago, before there was a street here at all. Everyone else had moved on to the coast. I stayed because I liked the trees. Took this long for someone to make staying feel clever instead of stubborn. Take this photo of me, and don’t you dare sell it to Vito.' },
+  { id: 'vivi', name: 'Vivi', species: 'viscacha', likes: 'flower', color: '#b7a58c', home: 'house-vivi', lines: ['We viscachas are basically cousins. Long-lost, fluffy cousins.', 'A watered flower is a promise to tomorrow.', 'Sunbathing counts as exercise if you mean it.'], story: 'Long-lost fluffy cousins, I always say. Here’s the part I leave out: I came to the hollow the winter after my burrow collapsed, with a pot of red seeds and nothing else. Every flower on this hillside came out of that pot, and half of them came out of it because you carried the watering can. That’s a lot of promises to tomorrow. Have a photo of me for the wall.' },
+  { id: 'tato', name: 'Tato', species: 'condor', likes: 'bug', color: '#4a4750', home: 'house-tato', lines: ['From up high the whole hollow looks like a quilt.', 'Bugs are just very small birds. Don’t look that up.', 'The museum owl owes me a favour. Long story.'], story: 'From up high the hollow looks like a quilt, I said. What I never said is that I used to just pass over it. Condors don’t settle. I circled this valley for three years before I put a house on the ridge, and I still don’t entirely know why, except that someone down here kept waving. Take this photo. Hang it where you can see the sky from.' },
+  { id: 'lupe', name: 'Lupe', species: 'llama', likes: 'fruit', color: '#e8dcc2', home: 'house-lupe', lines: ['I heard the hollow was getting lively, so here I am.', 'Nothing beats a pear. Nothing. I have thought about this.', 'I hum when I walk. Sorry in advance.'], arrives: 4, story: 'I hum when I walk, and now you know what I’m humming: a song my grandmother sang on the salt road, walking cargo over the pass. I came here because the hollow was getting lively, and I stayed because being somewhere lively is not the same as being somewhere wanted. You managed both. This photo is of me mid-hum, which is the only honest kind.' },
+  { id: 'nico', name: 'Nico', species: 'cat', likes: 'fish', color: '#8a7f73', home: 'house-nico', lines: ['An Andean cat, yes. Rare. Please don’t make it weird.', 'The river at dawn is the best restaurant in town.', 'I nap on the museum steps. Bubo pretends not to see.'], arrives: 8, story: 'An Andean cat, yes, rare, don’t make it weird — and the reason I say that first is so nobody gets to say it before me. There were fewer than a hundred of us in these mountains when I was born. I nap on the museum steps because Bubo keeps a case ready for my kind and I like that it stays empty. You never once made it weird. Keep this photo of me.' },
 ];
 /** Day of the 16-day year each villager celebrates. */
 export const BIRTHDAYS: Record<string, number> = { pia: 2, lupe: 4, friend: 5, rodri: 6, vivi: 10, nico: 12, tato: 14 };
@@ -216,7 +233,7 @@ export type Save = {
   donated: string[]; friendship: Record<string, number>; talked: string[]; requests: Request[]; goals: string[]; gifts: Record<string, string[]>;
   trees: Tree[]; flowers: Flower[]; rocks: Rock[]; fossils: Spot[]; shells: Shell[]; snowballs: Spot[]; snowmen: Spot[];
   stats: Hollow['stats']; caught: string[]; today: { fish: number; bugs: number }; wished: boolean; live: boolean; liveKey: string; arrived: string[];
-  wingsDone?: string[]; setsDone?: string[]; sunny?: number; balloonDone?: boolean; visits?: string[]; log?: Hollow['log'];
+  wingsDone?: string[]; setsDone?: string[]; sunny?: number; balloonDone?: boolean; visits?: string[]; log?: Hollow['log']; keepsakes?: string[]; jackpotTaken?: boolean;
 };
 export type SaveV1 = Omit<Save, 'v' | 'furniture'> & { v: 1; furniture: string[] };
 
@@ -304,10 +321,10 @@ export class Hollow {
   villagers: Villager[] = [];
   effects: Effect[] = [];
   reaction: { icon: string; age: number } | null = null;
-  stats = { fish: 0, bugs: 0, fossils: 0, fruit: 0, hybrids: 0, sold: 0, days: 1, festivals: 0, wishes: 0, snowmen: 0, balloons: 0, visits: 0 };
+  stats = { fish: 0, bugs: 0, fossils: 0, fruit: 0, hybrids: 0, sold: 0, days: 1, festivals: 0, wishes: 0, snowmen: 0, balloons: 0, visits: 0, keepsakes: 0 };
   today = { fish: 0, bugs: 0 };
   /** Today's tally for the bedtime summary. */
-  log = { fish: 0, bugs: 0, fruit: 0, fossils: 0, shells: 0, earned: 0, hearts: 0 };
+  log: { fish: number; bugs: number; fruit: number; fossils: number; shells: number; earned: number; hearts: number; best: { name: string; price: number } | null } = { fish: 0, bugs: 0, fruit: 0, fossils: 0, shells: 0, earned: 0, hearts: 0, best: null };
   /** Last night's summary, shown until dismissed. */
   summary: Summary | null = null;
   /** Season title card: text and seconds left. */
@@ -317,6 +334,10 @@ export class Hollow {
   sunny = 0;
   wingsDone: string[] = [];
   setsDone: string[] = [];
+  /** Neighbours who have handed over their Best-friend keepsake. */
+  keepsakes: string[] = [];
+  /** Set once the day's jackpot has been landed; it shows itself only the once. */
+  jackpotTaken = false;
   /** Neighbours who dropped by the burrow today. */
   visits: string[] = [];
   visitor: { id: string; name: string; line: string } | null = null;
@@ -544,8 +565,9 @@ export class Hollow {
     this.balloonDone = false;
     this.fishing = null;
     this.snaps = 0;
+    this.jackpotTaken = false;
     this.today = { fish: 0, bugs: 0 };
-    this.log = { fish: 0, bugs: 0, fruit: 0, fossils: 0, shells: 0, earned: 0, hearts: 0 };
+    this.log = { fish: 0, bugs: 0, fruit: 0, fossils: 0, shells: 0, earned: 0, hearts: 0, best: null };
     if (this.season !== seasonWas) { const name = this.season[0].toUpperCase() + this.season.slice(1); this.splash = { text: `${name} in Dusty Hollow`, age: 4 }; this.event = 'season'; }
     for (const t of this.trees) { if (t.grown && this.day >= t.grown) { t.grown = 0; if (t.golden) this.say(`The ${t.fruit} sapling grew in overnight, and its leaves shine gold!`); } if (!t.grown) t.count = 3; }
     for (const r of this.rocks) r.hits = 0;
@@ -574,6 +596,7 @@ export class Hollow {
     if (l.fish || l.bugs) lines.push(`Caught ${[l.fish ? n(l.fish, 'fish', 'fish') : '', l.bugs ? n(l.bugs, 'bug') : ''].filter(Boolean).join(' and ')}.`);
     if (l.fruit || l.shells) lines.push(`Gathered ${[l.fruit ? n(l.fruit, 'fruit', 'fruit') : '', l.shells ? n(l.shells, 'shell') : ''].filter(Boolean).join(' and ')}.`);
     if (l.fossils) lines.push(`Dug up ${n(l.fossils, 'fossil')}.`);
+    if (l.best) lines.push(`Best find: ${/^[AEIOU]/.test(l.best.name) ? 'an' : 'a'} ${l.best.name}, worth ${l.best.price.toLocaleString()}.`);
     if (l.earned) lines.push(`Earned ${l.earned.toLocaleString()} raisins.`);
     if (l.hearts) lines.push(`Friendship grew by ${n(l.hearts, 'heart')}.`);
     if (!lines.length) lines.push('A quiet day. Those count too.');
@@ -581,6 +604,8 @@ export class Hollow {
   }
   /** Raisins that came in today, for the summary. */
   earn(n: number) { this.raisins += n; this.log.earned += n; }
+  /** Remember the day's most valuable find for the bedtime card. */
+  private note(item: Item) { const price = this.valueOf(item); if (!this.log.best || price > this.log.best.price) this.log.best = { name: item.name, price }; }
   /** Raise friendship, capped, and count the hearts gained today. */
   befriend(id: string, n: number) {
     const was = this.friendship[id] ?? 0;
@@ -682,6 +707,7 @@ export class Hollow {
     if (f === 'tourney') out.push('Fishing Tourney today! Every fish you land counts by value until midnight. Trophy and 3,000 raisins for the top haul.');
     if (f === 'bugoff') out.push('Summer Bug-Off today! Every bug you net counts by value until midnight. Trophy and 3,000 raisins for the top score.');
     if (f === 'snowday') out.push(`Snowman Day! Three snowballs are lying about the hollow. Roll each into a snowman with bare paws for ${SNOWMAN_PRIZE} raisins.`);
+    if (f) { const j = JACKPOTS[this.season]; out.push(this.jackpotTaken ? `The ${j.name} has been landed. That is the last anyone will see of it until next ${this.season}.` : `${this.caught.includes(j.id) ? `The ${j.name} is up again today` : `They say a ${j.name} shows itself today, and only today`} — one of them, ${j.habitat === 'tree' ? 'under the trees' : `in the ${j.habitat}`}, worth ${j.price.toLocaleString()} raisins to whoever lands it first.`); }
     const next = DAYS_PER_SEASON - 1 - this.dayOfSeason;
     if (next > 0) out.push(`${this.season === 'summer' ? 'Bug-Off' : this.season === 'winter' ? 'Snowman Day' : 'Fishing Tourney'} in ${next} day${next > 1 ? 's' : ''}.`);
     for (const v of this.residents) if (this.isBirthday(v.id)) out.push(`It’s ${v.name}’s birthday today! A gift will mean a lot.`);
@@ -708,6 +734,7 @@ export class Hollow {
 
   // ---- wildlife -----------------------------------------------------------
   private active(s: Species) {
+    if (s.festival && (!this.festival || this.jackpotTaken)) return false;
     if (s.seasons.length && !s.seasons.includes(this.season)) return false;
     if (s.time === 'day' && this.isNight) return false;
     if (s.time === 'night' && !this.isNight) return false;
@@ -921,7 +948,7 @@ export class Hollow {
     if (tree.grown) return this.tell(`A sapling. It fruits on day ${tree.grown}.`);
     this.fx('leaf', tree.x + 0.5, tree.y + 0.3, this.season === 'autumn' ? '#d98a3c' : '#4f9a4a');
     if (!tree.count) return this.tell('No fruit today. Try tomorrow.');
-    if (this.addItem(this.itemFor('fruit', tree.golden ? GOLDEN_FRUIT : tree.fruit))) { tree.count--; this.stats.fruit++; this.log.fruit++; this.event = 'shake'; this.fx('fruit', tree.x + 0.5, tree.y + 0.4, tree.golden ? GOLDEN_FRUIT : tree.fruit); this.react('♪'); return this.tell(tree.golden ? `A golden ${tree.fruit} fell, heavy and glowing. ${tree.count} left today.` : `Shook loose ${tree.count ? 'an' : 'the last'} ${tree.fruit}.`); }
+    if (this.addItem(this.itemFor('fruit', tree.golden ? GOLDEN_FRUIT : tree.fruit))) { tree.count--; this.stats.fruit++; this.log.fruit++; this.note(this.pockets[this.pockets.length - 1]); this.event = 'shake'; this.fx('fruit', tree.x + 0.5, tree.y + 0.4, tree.golden ? GOLDEN_FRUIT : tree.fruit); this.react('♪'); return this.tell(tree.golden ? `A golden ${tree.fruit} fell, heavy and glowing. ${tree.count} left today.` : `Shook loose ${tree.count ? 'an' : 'the last'} ${tree.fruit}.`); }
     return this.message;
   }
   private hitRock(rock: Rock) {
@@ -949,6 +976,7 @@ export class Hollow {
     this.bugs.splice(this.bugs.indexOf(bug), 1);
     this.stats.bugs++;
     this.log.bugs++;
+    this.note(item);
     this.today.bugs += item.price;
     this.record(bug.id);
     this.event = 'catch';
@@ -960,6 +988,7 @@ export class Hollow {
     if (!this.addItem(this.itemFor('shell', shell.id))) return this.message;
     this.shells.splice(this.shells.indexOf(shell), 1);
     this.log.shells++;
+    this.note(this.pockets[this.pockets.length - 1]);
     this.event = 'shake';
     return this.tell(`Picked up a ${SHELLS.find((s) => s.id === shell.id)!.name.toLowerCase()}.`);
   }
@@ -1025,6 +1054,7 @@ export class Hollow {
     if (!this.addItem(item)) return this.message;
     this.stats.fish++;
     this.log.fish++;
+    this.note(item);
     this.today.fish += item.price;
     this.record(f.species);
     this.snaps = 0;
@@ -1057,7 +1087,10 @@ export class Hollow {
     this.trees.push({ x, y, fruit: item.id as Fruit, count: 0, grown: this.day + SAPLING_DAYS, golden });
     return this.tell(`Planted ${item.id === NATIVE_FRUIT ? 'an' : 'a'} ${item.id} sapling. It fruits in ${SAPLING_DAYS} days.`);
   }
-  private record(id: string) { if (!this.caught.includes(id)) this.caught.push(id); }
+  private record(id: string) {
+    if (!this.caught.includes(id)) this.caught.push(id);
+    if ([...FISH, ...BUGS].some((s) => s.id === id && s.festival)) this.jackpotTaken = true;
+  }
 
   // ---- buildings ----------------------------------------------------------
   private enter(b: Building) {
@@ -1157,6 +1190,7 @@ export class Hollow {
     delete p.hidden;
     this.stats.fossils++;
     this.record(real.id);
+    this.note(p);
     this.event = 'reveal';
     this.react('!');
     const left = this.unassessed;
@@ -1242,6 +1276,17 @@ export class Hollow {
     const req = this.requests.find((r) => r.villager === v.id && !r.done);
     const last = this.gifts[v.id]?.[0];
     let line = v.id === 'friend' ? this.friendLine() : this.pick(v.lines);
+    const keepsake = v.story && (this.friendship[v.id] ?? 0) >= FRIEND_MAX && !this.keepsakes.includes(v.id);
+    if (keepsake && this.full) line = `I’ve something for you, and no room in those pockets of yours. Come back when you’ve a slot free.`;
+    else if (keepsake) {
+      this.keepsakes.push(v.id);
+      this.pockets.push(this.itemFor('furniture', `photo-${v.id}`));
+      this.stats.keepsakes++;
+      this.react('♥');
+      this.dialog = { speaker: v.name, text: v.story!, options: [{ label: 'Thank you', action: 'close' }] };
+      this.event = 'goal';
+      return '';
+    }
     if (this.isBirthday(v.id)) line = `It’s my birthday today! ${line}`;
     else if (last && this.rng() < 0.3) line = `Still have that ${last} you gave me. ${line}`;
     if (req) line += ` Oh, and I’ve been wanting a ${req.kind} all day.`;
@@ -1327,7 +1372,7 @@ export class Hollow {
       donated: [...this.donated], friendship: { ...this.friendship }, talked: [...this.talked], requests: this.requests.map((r) => ({ ...r })), goals: [...this.goals], gifts: Object.fromEntries(Object.entries(this.gifts).map(([k, v]) => [k, [...v]])),
       trees: this.trees.map((t) => ({ ...t })), flowers: this.flowers.map((f) => ({ ...f })), rocks: this.rocks.map((r) => ({ ...r })), fossils: this.fossils.map((f) => ({ ...f })), shells: this.shells.map((s) => ({ ...s })), snowballs: this.snowballs.map((s) => ({ ...s })), snowmen: this.snowmen.map((s) => ({ ...s })),
       stats: { ...this.stats }, caught: [...this.caught], today: { ...this.today }, wished: this.wished, live: this.live, liveKey: this.liveKey, arrived: [...this.arrived],
-      wingsDone: [...this.wingsDone], setsDone: [...this.setsDone], sunny: this.sunny, balloonDone: this.balloonDone, visits: [...this.visits], log: { ...this.log },
+      wingsDone: [...this.wingsDone], setsDone: [...this.setsDone], sunny: this.sunny, balloonDone: this.balloonDone, visits: [...this.visits], log: { ...this.log }, keepsakes: [...this.keepsakes], jackpotTaken: this.jackpotTaken,
     };
   }
   static load(raw: Save | SaveV1): Hollow {
@@ -1341,7 +1386,7 @@ export class Hollow {
       requests: s.requests.map((r) => ({ ...r })), goals: [...s.goals], gifts: s.gifts ?? {}, trees: s.trees.map((t) => ({ ...t })), flowers: s.flowers.map((f) => ({ ...f })), rocks: s.rocks.map((r) => ({ ...r })),
       fossils: s.fossils.map((f) => ({ ...f })), shells: (s.shells ?? g.shells).map((x) => ({ ...x })), snowballs: (s.snowballs ?? []).map((x) => ({ ...x })), snowmen: (s.snowmen ?? []).map((x) => ({ ...x })),
       stats: { ...g.stats, ...s.stats }, caught: [...s.caught], today: s.today ? { ...s.today } : { fish: 0, bugs: 0 }, wished: !!s.wished, live: !!s.live, liveKey: s.liveKey ?? '', arrived: [...(s.arrived ?? [])],
-      wingsDone: [...(s.wingsDone ?? [])], setsDone: [...(s.setsDone ?? [])], sunny: s.sunny ?? 0, balloonDone: !!s.balloonDone, visits: [...(s.visits ?? [])], log: { ...g.log, ...s.log },
+      wingsDone: [...(s.wingsDone ?? [])], setsDone: [...(s.setsDone ?? [])], sunny: s.sunny ?? 0, balloonDone: !!s.balloonDone, visits: [...(s.visits ?? [])], log: { ...g.log, ...s.log }, keepsakes: [...(s.keepsakes ?? [])], jackpotTaken: !!s.jackpotTaken,
     });
     if (raw.v === 1) for (const v of NEIGHBOURS) if (v.arrives && g.goals.length >= v.arrives && !g.arrived.includes(v.id)) g.arrived.push(v.id);
     g.screen = 'world';

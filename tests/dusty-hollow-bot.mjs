@@ -1,7 +1,9 @@
 // A playtest bot for Dusty Hollow: plays a full 16-day year through the engine to
 // prove the loan ladder is finishable and every species is catchable in its window.
 import assert from 'node:assert/strict';
-import { Hollow, FISH, BUGS, FOSSILS, LOANS, DAY, H, BUILDINGS, MAX_BUGS } from '../.checks/dusty-hollow-game.js';
+import { Hollow, FISH, BUGS, FOSSILS, LOANS, DAY, H, BUILDINGS, MAX_BUGS, SEASONS, DAYS_PER_SEASON } from '../.checks/dusty-hollow-game.js';
+/** The first day of a season, or its festival day for species that only surface then. */
+const dayFor = (season, festival) => SEASONS.indexOf(season) * DAYS_PER_SEASON + (festival ? DAYS_PER_SEASON : 1);
 
 const setHour = (g, h) => { g.clock = (h / 24) * DAY; };
 const stand = (g, x, y, facing) => { g.x = x + 0.5; g.y = y + 0.5; g.facing = facing; };
@@ -31,8 +33,10 @@ function payLoan(g) { const door = BUILDINGS.find((b) => b.id === 'friend').door
   const seen = new Set();
   for (const s of FISH) {
     const season = s.seasons[0];
-    g.day = ['spring', 'summer', 'autumn', 'winter'].indexOf(season) * 4 + 1;
-    for (let attempt = 0; attempt < 400 && !seen.has(s.id); attempt++) {
+    g.day = dayFor(season, s.festival);
+    for (let attempt = 0; attempt < 600 && !seen.has(s.id); attempt++) {
+      g.day = dayFor(season, s.festival);
+      g.jackpotTaken = false;
       setHour(g, s.time === 'night' ? 22 : 12);
       const id = fish(g, s.habitat);
       if (id) seen.add(id);
@@ -51,12 +55,14 @@ function payLoan(g) { const door = BUILDINGS.find((b) => b.id === 'friend').door
   for (const s of BUGS) {
     // Pick a day in one of its seasons with the right weather for rain-only bugs, looking up to four years ahead.
     const candidates = [];
-    for (let year = 0; year < 4; year++) for (const season of s.seasons) for (let i = 1; i <= 4; i++) candidates.push(year * 16 + ['spring', 'summer', 'autumn', 'winter'].indexOf(season) * 4 + i);
+    for (let year = 0; year < 4; year++) for (const season of s.seasons) for (let i = 1; i <= 4; i++) { if (s.festival && i !== DAYS_PER_SEASON) continue; candidates.push(year * 16 + SEASONS.indexOf(season) * 4 + i); }
     const day = candidates.find((d) => { g.day = d; return !!s.rain === (g.weather !== 'clear'); });
     assert.ok(day, `no ${s.rain ? 'rainy' : 'clear'} day found for the ${s.name}`);
     g.day = day;
     const season = g.season;
-    for (let attempt = 0; attempt < 600 && !seen.has(s.id); attempt++) {
+    for (let attempt = 0; attempt < 900 && !seen.has(s.id); attempt++) {
+      g.day = day;
+      g.jackpotTaken = false;
       setHour(g, s.time === 'night' ? 21 : 12);
       g.bugs = [];
       g.bugTimer = 0;

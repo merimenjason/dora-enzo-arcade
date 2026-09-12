@@ -6,6 +6,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Dusty Hollow:** a third round of improvements.
+  - **A jackpot for every festival:** one Golden Dorado in the spring river, one Hercules Beetle under the summer trees, one Great Zúngaro in the autumn river and one Titicaca Water Frog in the winter pond, each worth 9,000 to 12,000 raisins. They surface only on that season's festival day, only one is going, and the notice board says when someone has landed it.
+  - **Best friends open up:** reach ten hearts with a neighbour and they tell you where they came from and give you a framed photo of themselves for the burrow.
+  - **The day summary names your best find,** so the one that mattered is not buried in the totals.
 - **Dusty Hollow:** a second round of improvements.
   - **Neighbours keep a schedule:** mornings near home, afternoons at a favourite spot (Pia by the sea, Rodri in the orchard, Vivi in the flower meadow, Tato on the cliff path) and evenings on the street. The board and the Neighbours card say where everyone is.
   - **Home visits:** neighbours who are Friends or better sometimes follow you into the burrow and comment on the room.

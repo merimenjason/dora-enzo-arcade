@@ -17,7 +17,7 @@ const TOOL_ICON: Record<Tool, string> = { hands: '🐾', net: '🥅', rod: '🎣
 const KIND_ICON: Record<Item['kind'], string> = { fish: '🐟', bug: '🐛', fossil: '🦴', fruit: '🍎', flower: '🌸', seed: '🌱', furniture: '🪑', shell: '🐚' };
 const WEATHER_ICON = { clear: '☀️', rain: '🌧️', snow: '❄️' };
 const SEASON_ICON = { spring: '🌷', summer: '☀️', autumn: '🍂', winter: '❄️' };
-const FURN_ICON: Record<string, string> = { bed: '🛏️', tub: '🛁', table: '🪑', rug: '🧶', shelf: '📚', lamp: '🏮', stove: '🔥', cactus: '🌵', hammock: '🪢', chart: '🗺️', poncho: '🧣', quena: '🎶', trophy: '🏆', 'plaque-fish': '🏅', 'plaque-bug': '🏅', 'plaque-fossil': '🏅' };
+const FURN_ICON: Record<string, string> = { bed: '🛏️', tub: '🛁', table: '🪑', rug: '🧶', shelf: '📚', lamp: '🏮', stove: '🔥', cactus: '🌵', hammock: '🪢', chart: '🗺️', poncho: '🧣', quena: '🎶', trophy: '🏆', 'plaque-fish': '🏅', 'plaque-bug': '🏅', 'plaque-fossil': '🏅', 'photo-pia': '🖼️', 'photo-rodri': '🖼️', 'photo-vivi': '🖼️', 'photo-tato': '🖼️', 'photo-lupe': '🖼️', 'photo-nico': '🖼️' };
 
 function readSave(): Save | SaveV1 | null {
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) ?? 'null'); return s && (s.v === 1 || s.v === 2 || s.v === 3) ? s : null; } catch { return null; }
@@ -328,7 +328,7 @@ export default function DustyHollow() {
           )}
           {passport && (
             <div className="dh-panel dh-passport" aria-label="Passport">
-              <h2>Passport <small>{g.heroName} · day {g.day} · {g.stats.sold.toLocaleString()} raisins earned · {g.stats.festivals} festival{g.stats.festivals === 1 ? '' : 's'} placed · {g.stats.balloons} balloon{g.stats.balloons === 1 ? '' : 's'} · {g.stats.visits} visit{g.stats.visits === 1 ? '' : 's'}</small></h2>
+              <h2>Passport <small>{g.heroName} · day {g.day} · {g.stats.sold.toLocaleString()} raisins earned · {g.stats.festivals} festival{g.stats.festivals === 1 ? '' : 's'} placed · {g.stats.balloons} balloon{g.stats.balloons === 1 ? '' : 's'} · {g.stats.visits} visit{g.stats.visits === 1 ? '' : 's'} · {g.keepsakes.length} keepsake{g.keepsakes.length === 1 ? '' : 's'}</small></h2>
               <div className="dh-panel-grid dh-three">
                 {[['Fish', FISH], ['Bugs', BUGS], ['Fossils', FOSSILS]].map(([name, list]) => (
                   <section key={name as string}>
@@ -382,7 +382,7 @@ export default function DustyHollow() {
             <h3>Neighbours <small>{g.residents.length} in town</small></h3>
             {g.residents.map((v) => {
               const req = g.requests.find((r) => r.villager === v.id);
-              return <p key={v.id}><i style={{ background: v.color }} /> <b>{v.name}</b>{g.isBirthday(v.id) && ' 🎂'} <small>{FRIEND_TITLES[g.friendship[v.id] ?? 0]}{g.friendship[v.id] > 0 && ` · ${'♥'.repeat(Math.min(5, Math.ceil(g.friendship[v.id] / 2)))}`} · {g.villagersOut ? g.whereabouts(v.id) : 'asleep'}</small>{req && !req.done && <em> wants a {req.kind}</em>}</p>;
+              return <p key={v.id}><i style={{ background: v.color }} /> <b>{v.name}</b>{g.isBirthday(v.id) && ' 🎂'} <small>{FRIEND_TITLES[g.friendship[v.id] ?? 0]}{g.friendship[v.id] > 0 && ` · ${'♥'.repeat(Math.min(5, Math.ceil(g.friendship[v.id] / 2)))}`} · {g.villagersOut ? g.whereabouts(v.id) : 'asleep'}</small>{g.keepsakes.includes(v.id) && ' 🖼️'}{req && !req.done && <em> wants a {req.kind}</em>}</p>;
             })}
           </div>
           <div className="dh-card">

@@ -3,7 +3,7 @@ import {
   Hollow, W, H, DAY, POCKETS, LOANS, HOME_GRID, BITE_WINDOW, ROCK_HITS, ROCK_DROPS, FOSSILS_PER_DAY, SHELLS_PER_DAY, SAPLING_DAYS, SHOP_OPEN,
   FISH, BUGS, FOSSILS, FURNITURE, GOALS, BUILDINGS, NEIGHBOURS, BIRTHDAYS, STREET_Y, TOOL_PRICES, FRUIT_PRICE, FLOWER_PRICE, HYBRIDS, WAKE, BEDTIME,
   FESTIVAL_PRIZES, SNOWMAN_PRIZE, SNOWBALLS, WISH_PRIZE, BIRTHDAY_BONUS, makeTerrain,
-  SNEAK, WING_REWARD, SET_BONUS, BALLOON_PRIZE, GOLDEN_FRUIT, VISIT_FRIENDSHIP, HAUNTS, WINGS, SETS, DAYS_PER_SEASON,
+  SNEAK, WING_REWARD, SET_BONUS, BALLOON_PRIZE, GOLDEN_FRUIT, VISIT_FRIENDSHIP, HAUNTS, WINGS, SETS, DAYS_PER_SEASON, JACKPOTS, FRIEND_MAX, SEASONS,
 } from '../.checks/dusty-hollow-game.js';
 
 let checks = 0;
@@ -178,7 +178,7 @@ test('fish respect season, time of day and habitat', () => {
     assert.equal(s.habitat, 'pond');
     assert.notEqual(s.time, 'day');
   }
-  assert.equal(FISH.length, 15);
+  assert.equal(FISH.length, 18);
   assert.ok(FISH.some((f) => f.seasons.length === 1 && f.seasons[0] === 'autumn' && f.rarity === 1), 'autumn has a rare fish');
 });
 
@@ -218,7 +218,7 @@ test('bugs spawn for the season and time, flee from runners, and the net catches
   assert.ok(g.bugs[1].fleeing, 'a shy bug flees a walker within a tile');
   // Winter has its own bugs.
   assert.ok(BUGS.filter((b) => b.seasons.includes('winter')).length >= 3);
-  assert.equal(BUGS.length, 14);
+  assert.equal(BUGS.length, 15);
   ticks(g, 200);
   assert.ok(g.bugs.length <= 6);
   sleep(g);
@@ -713,7 +713,7 @@ test('save and load round-trip, including a v1 save', () => {
   assert.deepEqual(h.save(), g.save(), 'saving again gives the same data');
   const v1 = { ...s, v: 1, furniture: ['bed', 'rug', 'lamp'], homeLevel: 1, goals: ['a', 'b', 'c', 'd'] };
   delete v1.shells; delete v1.snowballs; delete v1.snowmen; delete v1.gifts; delete v1.today; delete v1.wished; delete v1.live; delete v1.liveKey; delete v1.arrived;
-  delete v1.wingsDone; delete v1.setsDone; delete v1.sunny; delete v1.balloonDone; delete v1.visits; delete v1.log;
+  delete v1.wingsDone; delete v1.setsDone; delete v1.sunny; delete v1.balloonDone; delete v1.visits; delete v1.log; delete v1.keepsakes; delete v1.jackpotTaken;
   const old = Hollow.load(v1);
   assert.deepEqual(old.furniture, [{ id: 'bed', x: 0, y: 0 }, { id: 'rug', x: 1, y: 0 }, { id: 'lamp', x: 2, y: 0 }], 'v1 furniture lands on the grid');
   assert.deepEqual(old.arrived, ['lupe'], 'v1 saves with enough goals get their arrivals');
@@ -1013,8 +1013,9 @@ test('sleeping shows a summary of the day', () => {
   g.befriend('pia', 2);
   sleep(g);
   assert.equal(g.summary.day, 1);
-  assert.deepEqual(g.summary.lines, ['Gathered 2 fruit.', `Earned ${Math.round(100 * new Hollow('dora', 7).fruitRate) * 2 + 100} raisins.`, 'Friendship grew by 2 hearts.']);
-  assert.deepEqual(g.log, { fish: 0, bugs: 0, fruit: 0, fossils: 0, shells: 0, earned: 0, hearts: 0 }, 'the tally resets');
+  const apple = Math.round(100 * new Hollow('dora', 7).fruitRate);
+  assert.deepEqual(g.summary.lines, ['Gathered 2 fruit.', `Best find: an Apple, worth ${apple}.`, `Earned ${apple * 2 + 100} raisins.`, 'Friendship grew by 2 hearts.']);
+  assert.deepEqual(g.log, { fish: 0, bugs: 0, fruit: 0, fossils: 0, shells: 0, earned: 0, hearts: 0, best: null }, 'the tally resets');
   sleep(g);
   assert.deepEqual(g.summary.lines, ['A quiet day. Those count too.']);
 });
@@ -1034,6 +1035,95 @@ test('the pocket warning and the season title card', () => {
   assert.equal(g.splash, null);
   sleep(g);
   assert.equal(g.splash, null, 'only on the first day of a season');
+});
+
+test('each season hides a jackpot species that only surfaces on festival day', () => {
+  const g = fresh();
+  assert.deepEqual(SEASONS.map((s) => JACKPOTS[s].id), ['dorado', 'hercules', 'zungaro', 'titicaca']);
+  for (const s of SEASONS) {
+    const j = JACKPOTS[s];
+    assert.ok(j.festival && j.rarity === 1 && j.seasons.length === 1 && j.seasons[0] === s, `${j.name} is a one-season festival rarity`);
+    assert.ok(j.price >= 9000, `${j.name} is worth more than anything else`);
+    assert.ok(FISH.includes(j) || BUGS.includes(j));
+  }
+  // The spring dorado is in the river, but only on tourney day.
+  g.setTool('rod');
+  g.day = 1;
+  assert.equal(g.festival, null);
+  for (let i = 0; i < 40; i++) { g.pockets = []; setHour(g, 12); stand(g, 17, 5, 1); fishOnce(g); assert.notEqual(g.pockets[0]?.id, 'dorado'); }
+  g.day = 4;
+  assert.equal(g.festival, 'tourney');
+  let caught = false;
+  for (let i = 0; i < 200 && !caught; i++) { g.pockets = []; setHour(g, 12); stand(g, 17, 5, 1); fishOnce(g); caught = g.pockets[0]?.id === 'dorado'; }
+  assert.ok(caught, 'the dorado turns up on tourney day');
+  assert.equal(g.pockets[0].price, 9000);
+  assert.ok(g.today.fish >= 9000, 'it counts toward the tourney');
+  assert.ok(g.jackpotTaken);
+  assert.ok(g.notices.some((n) => /Golden Dorado has been landed/.test(n)), 'the board says it is gone');
+  for (let i = 0; i < 60; i++) { g.pockets = []; setHour(g, 12); stand(g, 17, 5, 1); fishOnce(g); assert.notEqual(g.pockets[0]?.id, 'dorado', 'only one a year'); }
+  sleep(g);
+  assert.ok(!g.jackpotTaken, 'the next festival brings a new one');
+  // The summer beetle waits for the Bug-Off. Reset the day each sweep, since the clock keeps running.
+  const sweep = (day) => { g.day = day; setHour(g, 12); g.bugs = []; g.bugTimer = 0; ticks(g, 12); return g.bugs.some((b) => b.id === 'hercules'); };
+  for (let i = 0; i < 60; i++) assert.ok(!sweep(5), 'no beetle on an ordinary summer day');
+  g.day = 8;
+  assert.equal(g.festival, 'bugoff');
+  let seen = false;
+  for (let i = 0; i < 400 && !seen; i++) seen = sweep(8);
+  assert.ok(seen, 'the Hercules Beetle shows up on Bug-Off day');
+});
+
+test('a Best friend hands over a keepsake photo and their story, once', () => {
+  const g = fresh();
+  setHour(g, 12);
+  const pia = g.villagers.find((v) => v.id === 'pia');
+  pia.x = 5.5; pia.y = 11.5;
+  stand(g, 4.5, 11, 1);
+  g.friendship.pia = 4;
+  g.interact();
+  assert.match(g.dialog.text, /sea|leg|Pink/, 'an ordinary line below Best friend');
+  g.choose(g.dialog.options.length - 1);
+  assert.equal(g.friendship.pia, 5, 'the first chat of the day tops her up');
+  assert.deepEqual(g.keepsakes, []);
+  // At Best friend with full pockets, she holds the keepsake back.
+  g.friendship.pia = FRIEND_MAX;
+  for (let i = 0; i < POCKETS; i++) g.pockets.push(g.itemFor('fruit', 'apple'));
+  g.interact();
+  assert.match(g.dialog.text, /no room in those pockets/);
+  assert.deepEqual(g.keepsakes, []);
+  g.choose(0);
+  g.pockets = [];
+  g.interact();
+  assert.match(g.dialog.text, /salt lake that dried up/, 'her story');
+  assert.deepEqual(g.dialog.options, [{ label: 'Thank you', action: 'close' }]);
+  assert.deepEqual(g.keepsakes, ['pia']);
+  assert.equal(g.stats.keepsakes, 1);
+  assert.equal(g.pockets[0].id, 'photo-pia');
+  assert.equal(g.pockets[0].kind, 'furniture');
+  assert.equal(g.event, 'goal');
+  g.choose(0);
+  g.interact();
+  assert.doesNotMatch(g.dialog.text, /salt lake/, 'she only tells it once');
+  assert.equal(g.pockets.length, 1);
+  for (const v of NEIGHBOURS) assert.ok(v.story && v.story.length > 200, `${v.name} has a story`);
+  assert.ok(!g.villagers.find((v) => v.id === 'friend').story, 'the friend chinchilla has no keepsake');
+  assert.ok(NEIGHBOURS.every((v) => FURNITURE.some((f) => f.id === `photo-${v.id}` && !f.shop)), 'a photo exists for each');
+  g.homeLevel = 3; g.screen = 'home';
+  assert.match(g.place(0, 0, 0), /Placed the photo of pia/);
+});
+
+test('the day summary names the best find', () => {
+  const g = fresh();
+  g.pockets.push(g.itemFor('fish', 'trout'));
+  g.log.fish = 1;
+  const tree = g.trees[0];
+  stand(g, tree.x, tree.y + 1, 0);
+  g.interact();
+  g.screen = 'museum';
+  g.pockets.push(g.unknownFossil('egg'));
+  g.assess();
+  sleep(g);
+  assert.ok(g.summary.lines.some((l) => l === 'Best find: a Dinosaur Egg, worth 5,000.'), g.summary.lines.join(' | '));
 });
 
 console.log(`Dusty Hollow: ${checks} checks passed.`);

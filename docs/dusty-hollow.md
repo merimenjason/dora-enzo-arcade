@@ -12,7 +12,7 @@ A cozy village-life game: Dora or Enzo moves into a seaside Andean hollow and th
 - `weatherOn(day)` is the same hash for any day, so `forecast` (tomorrow) can go on the board. A wish can set `sunny` to a day that is then forced clear.
 - `period` splits the day into morning (before 12), afternoon (12–17) and evening (17–22) for villager schedules.
 - When the season changes on `newDay()`, `splash` holds a title card ("Summer in Dusty Hollow") for 4 s and the `season` cue fires; the sound module also transposes the pad by `SEASON_KEY`.
-- `newDay()` first builds `summary` from `log` (today's fish, bugs, fruit, shells, fossils, raisins earned via `earn()` and hearts gained via `befriend()`), then resets the log. The page shows the card until dismissed.
+- `newDay()` first builds `summary` from `log` (today's fish, bugs, fruit, shells, fossils, raisins earned via `earn()`, hearts gained via `befriend()`, and `best`, the day's most valuable single find as recorded by `note()` on every catch, shake, shell and fossil reveal), then resets the log. The page shows the card until dismissed.
 - Midnight or `sleep()` (only from inside the burrow) runs `newDay()`: the festival settles, fruit regrows, rocks reset, `FOSSILS_PER_DAY` = 3 fossils and `SHELLS_PER_DAY` = 3 shells are laid out, watered flowers breed, bugs and snowmen clear, wishes pay out and every resident draws a new request.
 - **Live mode.** `setLive(true)` / `syncLive(date)` set the clock from the real time of day, take the season from the real month (southern hemisphere: December to February is summer), and run `newDay()` when the calendar date changes. `sleep()` is refused in live mode.
 
@@ -39,6 +39,10 @@ Effects (`fx`) and reactions (`react`) are cosmetic lists the engine ages and th
 
 Moving cancels a cast before the reel phase. Landed fish add their value to `today.fish` for the tourney. Landing a size-3 fish adds the friend's shout to the message; `snaps` counts consecutive broken lines and the third carries the friend's advice to ease off.
 
+## Jackpots
+
+`JACKPOTS` names one species per season with `festival: true`: the Golden Dorado (spring river, 9,000), Hercules Beetle (summer trees, 11,000), Great Zúngaro (autumn river, 12,000) and Titicaca Water Frog (winter pond, 10,000). `active()` refuses a festival species unless `this.festival` is set and `jackpotTaken` is false, so exactly one can be taken per festival day; `record()` sets the flag and `newDay()` clears it. The board announces the day's jackpot and switches to a "has been landed" line afterwards. They count toward the tourney and bug-off like anything else.
+
 ## Bugs
 
 Up to `MAX_BUGS` = 6 at once, spawning every 4 to 8 s from the species active for the season, time and rain, on their habitat (grass, under a tree, on a flower, over water). Species with `rarity` ≤ 2 are `shy`. A bug within 1.3 tiles of a running hero (2.4 for shy bugs), or within 1.0 tile of a walking hero if shy, starts `fleeing`: it flies straight away for about 1.4 s, cannot be netted and then despawns. Sneaking (`input.sneak`, speed `SNEAK` = 1.2, cancels running) halves the shy radius to 0.5 and never scares ordinary bugs, and the net reaches 1.1 tiles, so a stalked stag beetle can be netted. Netting adds the value to `today.bugs`.
@@ -63,6 +67,8 @@ Up to `MAX_BUGS` = 6 at once, spawning every 4 to 8 s from the species active fo
 | Furniture set | `SET_BONUS` = 1,000 once when three pieces of a set stand in the room |
 | Balloon | `BALLOON_PRIZE` = 500 or an unowned shop piece |
 | Home visit | +1 friendship for the guest |
+| Festival jackpot | 9,000 to 12,000, once per festival day |
+| Best-friend keepsake | a `photo-<id>` furniture piece worth 2,000, once per neighbour |
 
 Vito sells the shovel (600) and watering can (400), seeds (80 each) and a daily `stock` of three furniture pieces shuffled from the twelve shop-listed `FURNITURE` by seed and day; the Festival Trophy and the plaques are never stocked. Each shop piece belongs to a `set` (Cabin: bed, table, shelf, stove; Seaside: tub, rug, hammock, chart; Andean: lamp, cactus, poncho, quena). `saleDayOf(day)` picks one of the first three days of each season by seed; on that day `isSale` pins `fruitRate` at 1.5 and `saleItem` (one piece of the stock, by `dayHash(5)`) costs half via `priceOf()`. The board announces the sale the day before.
 
@@ -81,6 +87,8 @@ The loan ladder `LOANS` = 4,800 → 19,800 → 49,800 moves the burrow through `
 `NEIGHBOURS` are Pia (flamingo, likes fish), Rodri (fox, fruit), Vivi (viscacha, flowers), Tato (condor, bugs), and two late arrivals: Lupe (llama, fruit) once 4 goals are done and Nico (Andean cat, fish) at 8. `residents` are the villagers currently in town; the friend chinchilla is a fifth who never asks for anything. Each wanders one tile at a time along walkable ground during waking hours, but keeps a schedule: `HAUNTS[id][period]` names a spot for the morning, afternoon and evening, and a villager more than 2.5 tiles from it walks that way (2.2 tiles/s, choosing a closing direction 80% of the time) before pottering around it. `whereabouts(id, period?)` returns the spot's name for the board and the Neighbours card.
 
 Entering the burrow while villagers are out gives a 35% chance that one resident with friendship ≥ `VISIT_FRIENDSHIP` = 6 who has not visited today (`visits`) follows you in: `visitor` holds their name and a line about the room (empty, a complete set, or a piece they like), they gain +1 friendship and `stats.visits` counts it. `exit()` clears the visitor.
+
+At `FRIEND_MAX` a neighbour with a `story` who is not yet in `keepsakes` replaces their usual line with it and hands over `photo-<id>`, counted in `stats.keepsakes`; with full pockets they hold it back and say so.
 
 Friendship runs 0 to `FRIEND_MAX` = 10 with `FRIEND_TITLES` from Stranger to Best friend: the first chat each day is +1, a gift +1 (+3 for their liked kind, 0 if the same item id is in their last three `gifts`), a delivered request +3, and `BIRTHDAY_BONUS` = 5 on top of either on their birthday. Villagers mention their most recent gift about 30% of the time. `BIRTHDAYS` places each one on a fixed day of the 16-day year.
 
@@ -104,7 +112,7 @@ On clear summer nights from 20:00, `sky()` streaks a shooting star (`star` count
 
 ## Saves
 
-`save()` returns a v3 `Save` with the seed, RNG state, clock, position, money, loan, tools, pockets, placed furniture, museum, friendship, gift memory, requests, goals, arrivals, trees (with `golden`), flowers, rocks, fossils, shells, snowballs, snowmen, stats, the caught list, today's festival totals, the wish flag, live-mode fields, completed wings and sets, the `sunny` day, the balloon flag, today's visits and the day log. `Hollow.load()` also accepts v1 and v2 saves, laying a v1 furniture list onto the room grid, admitting any arrivals its goals already earned and defaulting the newer fields. The page writes it to `localStorage` under `dusty-hollow-save-v1` every 3 seconds and on quit; music and effects levels live under `dusty-hollow-settings`.
+`save()` returns a v3 `Save` with the seed, RNG state, clock, position, money, loan, tools, pockets, placed furniture, museum, friendship, gift memory, requests, goals, arrivals, trees (with `golden`), flowers, rocks, fossils, shells, snowballs, snowmen, stats, the caught list, today's festival totals, the wish flag, live-mode fields, completed wings and sets, the `sunny` day, the balloon and jackpot flags, today's visits, the keepsakes handed over and the day log. `Hollow.load()` also accepts v1 and v2 saves, laying a v1 furniture list onto the room grid, admitting any arrivals its goals already earned and defaulting the newer fields. The page writes it to `localStorage` under `dusty-hollow-save-v1` every 3 seconds and on quit; music and effects levels live under `dusty-hollow-settings`.
 
 ## Page extras
 
