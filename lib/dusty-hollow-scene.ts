@@ -159,7 +159,7 @@ export class HollowScene {
     const flying = ['butterfly', 'swallowtail', 'bee', 'firefly', 'dragonfly', 'moth'].includes(id);
     c.fillStyle = BUG_COLOR[id] ?? '#333';
     if (flying) {
-      const f = Math.sin(this.time * 18) * 3;
+      const f = Math.abs(Math.sin(this.time * 18)) * 3;
       c.beginPath(); c.ellipse(px - 4, py, 4, 2.5 + f, -0.5, 0, Math.PI * 2); c.fill();
       c.beginPath(); c.ellipse(px + 4, py, 4, 2.5 + f, 0.5, 0, Math.PI * 2); c.fill();
       c.fillStyle = '#2a2420';
