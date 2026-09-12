@@ -3,7 +3,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Hollow, FISH, BUGS, FOSSILS, FURNITURE, GOALS, BASE_COLORS, TOOL_PRICES, TOOL_NAMES, SEED_PRICE, FRIEND_TITLES, POCKETS, SHOP_OPEN, SHOP_CLOSE, HERO_NAMES, H, BIRTHDAYS, HOME_GRID,
+  Hollow, FISH, BUGS, FOSSILS, FURNITURE, GOALS, BASE_COLORS, TOOL_PRICES, TOOL_NAMES, SEED_PRICE, FRIEND_TITLES, POCKETS, SHOP_OPEN, SHOP_CLOSE, HERO_NAMES, H, BIRTHDAYS, HOME_GRID, WINGS, SETS,
   type Hero, type Save, type SaveV1, type Tool, type Item, type Species, type Placed,
 } from '../../lib/dusty-hollow-game';
 import { HollowScene } from '../../lib/dusty-hollow-scene';
@@ -17,10 +17,10 @@ const TOOL_ICON: Record<Tool, string> = { hands: '🐾', net: '🥅', rod: '🎣
 const KIND_ICON: Record<Item['kind'], string> = { fish: '🐟', bug: '🐛', fossil: '🦴', fruit: '🍎', flower: '🌸', seed: '🌱', furniture: '🪑', shell: '🐚' };
 const WEATHER_ICON = { clear: '☀️', rain: '🌧️', snow: '❄️' };
 const SEASON_ICON = { spring: '🌷', summer: '☀️', autumn: '🍂', winter: '❄️' };
-const FURN_ICON: Record<string, string> = { bed: '🛏️', tub: '🛁', table: '🪑', rug: '🧶', shelf: '📚', lamp: '🏮', stove: '🔥', cactus: '🌵', trophy: '🏆' };
+const FURN_ICON: Record<string, string> = { bed: '🛏️', tub: '🛁', table: '🪑', rug: '🧶', shelf: '📚', lamp: '🏮', stove: '🔥', cactus: '🌵', hammock: '🪢', chart: '🗺️', poncho: '🧣', quena: '🎶', trophy: '🏆', 'plaque-fish': '🏅', 'plaque-bug': '🏅', 'plaque-fossil': '🏅' };
 
 function readSave(): Save | SaveV1 | null {
-  try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) ?? 'null'); return s && (s.v === 1 || s.v === 2) ? s : null; } catch { return null; }
+  try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) ?? 'null'); return s && (s.v === 1 || s.v === 2 || s.v === 3) ? s : null; } catch { return null; }
 }
 function readSettings(): { music: number; effects: number } {
   try { const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}'); return { music: Number(s.music ?? 0.5), effects: Number(s.effects ?? 0.7) }; } catch { return { music: 0.5, effects: 0.7 }; }
@@ -31,13 +31,14 @@ export default function DustyHollow() {
   const game = useRef<Hollow | null>(null);
   const scene = useRef<HollowScene | null>(null);
   const keys = useRef<Set<string>>(new Set());
-  const touch = useRef({ dx: 0, dy: 0, hold: false });
+  const touch = useRef({ dx: 0, dy: 0, hold: false, sneak: false });
   const sound = useRef<HollowSound | null>(null);
   const [screen, setScreen] = useState<'title' | 'play'>('title');
   const [hasSave, setHasSave] = useState(false);
   const [audible, setAudible] = useState(false);
   const [levels, setLevels] = useState({ music: 0.5, effects: 0.7 });
   const [passport, setPassport] = useState(false);
+  const [photo, setPhoto] = useState(false);
   const [picked, setPicked] = useState<{ pocket?: number; placed?: Placed } | null>(null);
   const [, setTick] = useState(0);
 
@@ -68,7 +69,19 @@ export default function DustyHollow() {
     persist();
     setHasSave(true);
   };
-  const quit = () => { persist(); game.current = null; setScreen('title'); setPassport(false); setPicked(null); };
+  const quit = () => { persist(); game.current = null; setScreen('title'); setPassport(false); setPhoto(false); setPicked(null); };
+  /** Save the current frame as a PNG in the browser's downloads. */
+  const snapshot = () => {
+    const g = game.current, cv = canvas.current;
+    if (!g || !cv) return;
+    cv.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = `dusty-hollow-day-${g.day}-${g.clockText.replace(':', '')}.png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+  };
 
   // Game loop.
   useEffect(() => {
@@ -88,11 +101,12 @@ export default function DustyHollow() {
       if (k.has('ArrowUp') || k.has('KeyW')) dy -= 1;
       if (k.has('ArrowDown') || k.has('KeyS')) dy += 1;
       const hold = touch.current.hold || k.has('Space') || k.has('KeyE') || k.has('Enter');
+      const sneak = touch.current.sneak || k.has('ControlLeft') || k.has('ControlRight') || k.has('KeyC');
       if (g.live) g.syncLive(new Date());
-      g.step(dt, { dx, dy, run: k.has('ShiftLeft') || k.has('ShiftRight'), hold });
+      g.step(dt, { dx, dy, run: k.has('ShiftLeft') || k.has('ShiftRight'), hold, sneak });
       if (g.event) { cue(g.event); g.event = ''; }
       sc.draw(g, dt);
-      sound.current?.update(dt, g.hour, g.weather, g.y > H - 8);
+      sound.current?.update(dt, g.hour, g.weather, g.y > H - 8, g.season);
       if (now - uiAt > 120) { uiAt = now; setTick((t) => t + 1); }
       if (now - saveAt > 3000) { saveAt = now; persist(); }
       raf = requestAnimationFrame(loop);
@@ -111,7 +125,8 @@ export default function DustyHollow() {
       if (!g) return;
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      if (e.code === 'Escape') { e.preventDefault(); if (passport) setPassport(false); else if (g.dialog) g.dialog = null; else if (g.screen !== 'world') { g.exit(); setPicked(null); } bump(); return; }
+      if (e.code === 'Escape') { e.preventDefault(); if (photo) setPhoto(false); else if (passport) setPassport(false); else if (g.summary) g.summary = null; else if (g.dialog) g.dialog = null; else if (g.screen !== 'world') { g.exit(); setPicked(null); } bump(); return; }
+      if (g.summary && !g.dialog && (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyE')) { e.preventDefault(); g.summary = null; bump(); return; }
       if (g.dialog) {
         const n = ['Digit1', 'Digit2', 'Digit3'].indexOf(e.code);
         if (n >= 0 && g.dialog.options[n]) { g.choose(n); bump(); }
@@ -127,6 +142,7 @@ export default function DustyHollow() {
       if (e.code === 'Tab') { e.preventDefault(); g.cycleTool(); bump(); }
       if (e.code === 'KeyP') setPassport((p) => !p);
       if (e.code === 'KeyO') { g.sortPockets(); bump(); }
+      if (e.code === 'KeyF' && !e.repeat) setPhoto((p) => !p);
     };
     const up = (e: KeyboardEvent) => keys.current.delete(e.code);
     const blur = () => keys.current.clear();
@@ -134,7 +150,7 @@ export default function DustyHollow() {
     window.addEventListener('keyup', up);
     window.addEventListener('blur', blur);
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur); };
-  }, [screen, passport]);
+  }, [screen, passport, photo]);
 
   const g = game.current;
   const night = !!g && g.isNight;
@@ -172,12 +188,13 @@ export default function DustyHollow() {
   };
 
   return (
-    <main className={`dh-shell${night ? ' dh-night' : ''}`}>
+    <main className={`dh-shell${night ? ' dh-night' : ''}${photo ? ' dh-photo' : ''}`}>
       <header className="dh-header">
         <a href="/">← MAIN ARCADE <span>DUSTY HOLLOW</span></a>
         <div>
           <button onClick={toggleSound} aria-pressed={audible}>{audible ? 'Sound on' : 'Sound off'}</button>
           <button onClick={() => setPassport((p) => !p)} aria-pressed={passport}>Passport · P</button>
+          <button onClick={() => setPhoto((p) => !p)} aria-pressed={photo}>Photo · F</button>
           <button onClick={quit}>Save &amp; quit</button>
         </div>
       </header>
@@ -186,14 +203,28 @@ export default function DustyHollow() {
           <canvas ref={canvas} tabIndex={0} aria-label="The village. Move with WASD or arrows, hold Shift to run, Space to use the selected tool or talk." onPointerDown={() => canvas.current?.focus()} />
           <div className="dh-hud">
             <span>{SEASON_ICON[g.season]} Day {g.day} · {g.season[0].toUpperCase() + g.season.slice(1)}{g.live ? ' · live' : ''}</span>
-            <span>{g.clockText} {WEATHER_ICON[g.weather]}</span>
+            <span>{g.clockText} {WEATHER_ICON[g.weather]}{g.isSale ? ' · SALE' : ''}</span>
+            <span className={`dh-pocketcount${g.pocketWarning ? ' warn' : ''}`}>👜 {g.pockets.length}/{POCKETS}</span>
             <span className="dh-raisins">🍇 {g.raisins.toLocaleString()}</span>
           </div>
+          {photo && (
+            <div className="dh-photobar">
+              <button onClick={snapshot}>Save photo (PNG)</button>
+              <button onClick={() => setPhoto(false)}>Leave photo mode · F</button>
+            </div>
+          )}
           {g.festival && g.festival !== 'snowday' && g.screen === 'world' && (() => { const board = g.festivalBoard; const you = board.findIndex((r) => r.you); return (
             <div className="dh-festival"><b>{g.festival === 'tourney' ? 'Fishing Tourney' : 'Bug-Off'} today</b>You are {['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'][you]} with {board[you].score.toLocaleString()} · leader {board[0].name} {board[0].score.toLocaleString()}</div>
           ); })()}
           {g.festival === 'snowday' && g.screen === 'world' && <div className="dh-festival"><b>Snowman Day</b>{g.snowballs.length} snowball{g.snowballs.length === 1 ? '' : 's'} left to roll</div>}
           {g.message && !g.dialog && <div className="dh-toast">{g.message}</div>}
+          {g.summary && g.screen === 'world' && !g.dialog && (
+            <div className="dh-summary" aria-label="Day summary">
+              <strong>Day {g.summary.day} in Dusty Hollow</strong>
+              <ul>{g.summary.lines.map((l) => <li key={l}>{l}</li>)}</ul>
+              <button onClick={() => { g.summary = null; bump(); }}>Good night · Space</button>
+            </div>
+          )}
           {g.dialog && (
             <div className="dh-dialog" aria-label={`${g.dialog.speaker} says`}>
               <strong>{g.dialog.speaker}</strong>
@@ -203,13 +234,14 @@ export default function DustyHollow() {
           )}
           {g.screen === 'shop' && (
             <div className="dh-panel" aria-label="Vito’s Emporium">
-              <h2>Vito’s Emporium <small>open {SHOP_OPEN}:00–{SHOP_CLOSE}:00 · fruit paying {Math.round(g.fruitRate * 100)}% today</small></h2>
+              <h2>Vito’s Emporium <small>open {SHOP_OPEN}:00–{SHOP_CLOSE}:00 · fruit paying {Math.round(g.fruitRate * 100)}% today{g.isSale ? ' · SALE DAY' : ''}</small></h2>
+              {g.isSale && <p className="dh-sale">Sale day! Fruit pays 150% and the {g.saleItem?.name.toLowerCase()} is half price.</p>}
               <div className="dh-panel-grid">
                 <section>
                   <h3>For sale</h3>
                   {(Object.keys(TOOL_PRICES) as Tool[]).map((t) => <button key={t} disabled={g.tools.includes(t) || g.raisins < TOOL_PRICES[t]!} onClick={() => { g.buy(t); bump(); }}>{TOOL_ICON[t]} {TOOL_NAMES[t]} <b>{g.tools.includes(t) ? 'owned' : TOOL_PRICES[t]}</b></button>)}
                   {BASE_COLORS.map((c) => <button key={c} disabled={g.raisins < SEED_PRICE || g.full} onClick={() => { g.buy(c); bump(); }}>🌱 {c[0].toUpperCase() + c.slice(1)} seeds <b>{SEED_PRICE}</b></button>)}
-                  {g.stock.map((f) => { const owned = g.furniture.some((p) => p.id === f.id) || g.pockets.some((p) => p.kind === 'furniture' && p.id === f.id); return <button key={f.id} disabled={g.raisins < f.price || g.full || owned} onClick={() => { g.buy(f.id); bump(); }}>{FURN_ICON[f.id]} {f.name} <b>{owned ? 'owned' : f.price}</b></button>; })}
+                  {g.stock.map((f) => { const owned = g.furniture.some((p) => p.id === f.id) || g.pockets.some((p) => p.kind === 'furniture' && p.id === f.id); const price = g.priceOf(f); return <button key={f.id} disabled={g.raisins < price || g.full || owned} onClick={() => { g.buy(f.id); bump(); }}>{FURN_ICON[f.id]} {f.name} <small>{f.set} set</small> <b>{owned ? 'owned' : price < f.price ? `${price} (was ${f.price})` : price}</b></button>; })}
                 </section>
                 <section>
                   <h3>Sell from your pockets</h3>
@@ -227,14 +259,20 @@ export default function DustyHollow() {
               <div className="dh-panel-grid">
                 <section>
                   <h3>Assess and donate</h3>
-                  {g.pockets.some((p) => p.id === 'unknown') && <button className="dh-strong" onClick={() => { g.assess(); bump(); }}>Ask Bubo to assess {g.pockets.filter((p) => p.id === 'unknown').length} fossil{g.pockets.filter((p) => p.id === 'unknown').length > 1 ? 's' : ''}</button>}
+                  {g.unassessed > 0 && <button className="dh-strong" onClick={() => { g.assess(); bump(); }}>Ask Bubo to assess the next fossil ({g.unassessed} waiting)</button>}
                   {!g.pockets.some((p) => ['fish', 'bug', 'fossil'].includes(p.kind)) && <p className="dh-muted">Bring fish, bugs or fossils.</p>}
                   {g.pockets.map((p, i) => ['fish', 'bug', 'fossil'].includes(p.kind) && p.id !== 'unknown' ? <button key={i} disabled={g.donated.includes(p.id)} onClick={() => { g.donate(i); bump(); }}>{KIND_ICON[p.kind]} {p.name} <b>{g.donated.includes(p.id) ? 'displayed' : 'donate'}</b></button> : null)}
                 </section>
                 <section>
                   <h3>Wings</h3>
-                  {[['Aquarium', FISH], ['Insect hall', BUGS], ['Fossil gallery', FOSSILS]].map(([name, list]) => <p key={name as string}><b>{name as string}</b> {(list as Species[]).filter((s) => g.donated.includes(s.id)).length}/{(list as Species[]).length}</p>)}
-                  <p className="dh-muted">Bubo the curator identifies anything you dig up, and hoots approvingly at every new arrival.</p>
+                  {WINGS.map((w) => { const have = w.list.filter((s) => g.donated.includes(s.id)).length; return (
+                    <div key={w.id} className="dh-wing">
+                      <p><b>{w.name}</b> {have}/{w.list.length}{g.wingsDone.includes(w.id) && ' · plaque awarded'}</p>
+                      <div className="dh-bar"><i style={{ width: `${(have / w.list.length) * 100}%` }} /></div>
+                      <div className="dh-wall">{w.list.map((s) => <span key={s.id} className={g.donated.includes(s.id) ? 'on' : ''} title={g.donated.includes(s.id) ? s.name : 'Not yet displayed'}>{g.donated.includes(s.id) ? KIND_ICON[w.id] : '?'}</span>)}</div>
+                    </div>
+                  ); })}
+                  <p className="dh-muted">Complete a wing and Bubo hands over 3,000 raisins and a plaque for your burrow.</p>
                 </section>
               </div>
               <button className="dh-leave" onClick={() => { g.exit(); bump(); }}>Leave · Esc</button>
@@ -261,7 +299,8 @@ export default function DustyHollow() {
           )}
           {g.screen === 'home' && (
             <div className="dh-panel" aria-label="Your burrow">
-              <h2>{g.heroName}’s {g.homeName} <small>{g.furniture.length} of {cols * rows} tiles furnished</small></h2>
+              <h2>{g.heroName}’s {g.homeName} <small>{g.furniture.length} of {cols * rows} tiles furnished · Vito rates it “{g.homeRating}” ({g.roomScore.toLocaleString()} pts)</small></h2>
+              {g.visitor && <p className="dh-visitor"><b>{g.visitor.name}</b> followed you in: “{g.visitor.line}”</p>}
               <div className="dh-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
                 {Array.from({ length: cols * rows }, (_, i) => {
                   const x = i % cols, y = Math.floor(i / cols), here = g.furnitureAt(x, y);
@@ -274,6 +313,7 @@ export default function DustyHollow() {
                   <h3>Furniture in your pockets</h3>
                   {g.pockets.map((p, i) => p.kind === 'furniture' ? <button key={i} className={picked?.pocket === i ? 'dh-strong' : ''} onClick={() => { setPicked(picked?.pocket === i ? null : { pocket: i }); }}>{FURN_ICON[p.id]} {p.name} <b>{picked?.pocket === i ? 'click a tile' : 'place'}</b></button> : null)}
                   {!g.pockets.some((p) => p.kind === 'furniture') && <p className="dh-muted">No furniture in your pockets. Vito sells three pieces a day.</p>}
+                  <p className="dh-muted">Sets: {SETS.map((set) => `${set} ${g.setCount(set)}/${FURNITURE.filter((f) => f.set === set).length}`).join(' · ')}. Three matching pieces earn a 1,000-raisin bonus and a better rating.</p>
                   {picked?.placed && <p className="dh-muted">Click an empty tile to move the {FURNITURE.find((f) => f.id === picked.placed!.id)!.name.toLowerCase()}, or click it again to pick it up.</p>}
                 </section>
                 <section>
@@ -288,7 +328,7 @@ export default function DustyHollow() {
           )}
           {passport && (
             <div className="dh-panel dh-passport" aria-label="Passport">
-              <h2>Passport <small>{g.heroName} · day {g.day} · {g.stats.sold.toLocaleString()} raisins earned · {g.stats.festivals} festival{g.stats.festivals === 1 ? '' : 's'} placed</small></h2>
+              <h2>Passport <small>{g.heroName} · day {g.day} · {g.stats.sold.toLocaleString()} raisins earned · {g.stats.festivals} festival{g.stats.festivals === 1 ? '' : 's'} placed · {g.stats.balloons} balloon{g.stats.balloons === 1 ? '' : 's'} · {g.stats.visits} visit{g.stats.visits === 1 ? '' : 's'}</small></h2>
               <div className="dh-panel-grid dh-three">
                 {[['Fish', FISH], ['Bugs', BUGS], ['Fossils', FOSSILS]].map(([name, list]) => (
                   <section key={name as string}>
@@ -306,9 +346,12 @@ export default function DustyHollow() {
                 <button key={l as string} onPointerDown={(e) => { e.preventDefault(); touch.current.dx = dx as number; touch.current.dy = dy as number; }} onPointerUp={() => { touch.current.dx = 0; touch.current.dy = 0; }} onPointerLeave={() => { touch.current.dx = 0; touch.current.dy = 0; }} onPointerCancel={() => { touch.current.dx = 0; touch.current.dy = 0; }} aria-label={`Move ${l}`}>{l as string}</button>
               ))}
             </div>
-            <button className="dh-act" onPointerDown={(e) => { e.preventDefault(); touch.current.hold = true; act(); }} onPointerUp={() => { touch.current.hold = false; }} onPointerLeave={() => { touch.current.hold = false; }} onPointerCancel={() => { touch.current.hold = false; }} aria-label="Use tool or talk; hold to reel">●</button>
+            <div className="dh-actions">
+              <button className={`dh-sneak${touch.current.sneak ? ' on' : ''}`} onPointerDown={(e) => { e.preventDefault(); touch.current.sneak = !touch.current.sneak; bump(); }} aria-pressed={touch.current.sneak} aria-label="Toggle sneaking">🤫</button>
+              <button className="dh-act" onPointerDown={(e) => { e.preventDefault(); touch.current.hold = true; act(); }} onPointerUp={() => { touch.current.hold = false; }} onPointerLeave={() => { touch.current.hold = false; }} onPointerCancel={() => { touch.current.hold = false; }} aria-label="Use tool or talk; hold to reel">●</button>
+            </div>
           </div>
-          <div className="dh-peek"><span><b>{peek.target}</b>{peek.hint ? ` · ${peek.hint}` : ''}</span><span>{TOOL_ICON[g.tool]} {TOOL_NAMES[g.tool]}</span></div>
+          <div className="dh-peek"><span><b>{peek.target}</b>{peek.hint ? ` · ${peek.hint}` : ''}{g.sneaking ? ' · sneaking' : ''}</span><span>{g.pocketWarning && <em>{g.pocketWarning} · </em>}{TOOL_ICON[g.tool]} {TOOL_NAMES[g.tool]}</span></div>
         </section>
         <aside className="dh-side">
           <div className="dh-card dh-tools">
@@ -339,7 +382,7 @@ export default function DustyHollow() {
             <h3>Neighbours <small>{g.residents.length} in town</small></h3>
             {g.residents.map((v) => {
               const req = g.requests.find((r) => r.villager === v.id);
-              return <p key={v.id}><i style={{ background: v.color }} /> <b>{v.name}</b>{g.isBirthday(v.id) && ' 🎂'} <small>{FRIEND_TITLES[g.friendship[v.id] ?? 0]}{g.friendship[v.id] > 0 && ` · ${'♥'.repeat(Math.min(5, Math.ceil(g.friendship[v.id] / 2)))}`}</small>{req && !req.done && <em> wants a {req.kind}</em>}</p>;
+              return <p key={v.id}><i style={{ background: v.color }} /> <b>{v.name}</b>{g.isBirthday(v.id) && ' 🎂'} <small>{FRIEND_TITLES[g.friendship[v.id] ?? 0]}{g.friendship[v.id] > 0 && ` · ${'♥'.repeat(Math.min(5, Math.ceil(g.friendship[v.id] / 2)))}`} · {g.villagersOut ? g.whereabouts(v.id) : 'asleep'}</small>{req && !req.done && <em> wants a {req.kind}</em>}</p>;
             })}
           </div>
           <div className="dh-card">
@@ -350,7 +393,7 @@ export default function DustyHollow() {
               <span>Effects</span><input type="range" min={0} max={1} step={0.05} value={levels.effects} onChange={(e) => setLevel('effects', Number(e.target.value))} aria-label="Effects volume" />
             </div>
           </div>
-          <p className="dh-help">WASD / arrows move, Shift runs (bugs notice runners). Space or E uses the tool in front of you, talks, shakes trees, reads the board or enters doors; hold it to reel a hooked fish. Digits pick a reply. O sorts pockets. Days last six minutes; sleep at home to skip to morning.</p>
+          <p className="dh-help">WASD / arrows move, Shift runs (bugs notice runners), C or Ctrl sneaks up on shy bugs. Space or E uses the tool in front of you, talks, shakes trees, reads the board, enters doors or throws a fruit at a passing balloon; hold it to reel a hooked fish. Digits pick a reply. O sorts pockets, F is photo mode. Days last six minutes; sleep at home to skip to morning.</p>
         </aside>
       </div>
       <footer className="dh-foot"><span>{HERO_NAMES[g.hero]} in Dusty Hollow · autosaves in this browser</span></footer>

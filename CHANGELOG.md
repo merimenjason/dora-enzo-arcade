@@ -6,6 +6,23 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Dusty Hollow:** a second round of improvements.
+  - **Neighbours keep a schedule:** mornings near home, afternoons at a favourite spot (Pia by the sea, Rodri in the orchard, Vivi in the flower meadow, Tato on the cliff path) and evenings on the street. The board and the Neighbours card say where everyone is.
+  - **Home visits:** neighbours who are Friends or better sometimes follow you into the burrow and comment on the room.
+  - **The friend chips in** from the bank when you land a big fish, and offers advice after three snapped lines.
+  - **Weather forecast** on the notice board, and wishes can now clear the sky.
+  - **Museum wings pay out:** completing the aquarium, insect hall or fossil gallery earns 3,000 raisins and a plaque for your burrow, and the museum shows a wall of what is on display.
+  - **Furniture sets and a Home Rating:** twelve shop pieces in Cabin, Seaside and Andean sets (four new: rope hammock, sea chart, woven poncho, quena stand). Three matching pieces pay a 1,000-raisin bonus, and Vito rates your room on the board every morning.
+  - **Golden trees:** about one planted foreign sapling in eight grows in gold and drops fruit worth 1,500 each.
+  - **Vito’s sale day** once a season, announced the day before: fruit pays 150% and one piece of furniture is half price.
+  - **Sneaking** with C or Ctrl (a toggle on touch screens): slow, but shy bugs like the stag beetle let you get twice as close.
+  - **Fossil reveals one at a time,** with Bubo saying what each is worth and whether the museum already has one.
+  - **Five kinds of wish:** raisins, a foreign fruit, a piece of furniture, a hollow that likes you more, or a clear sky.
+  - **Balloon presents** drift over on some clear afternoons; throw a fruit or shell as one passes for furniture or 500 raisins.
+  - **A day summary** when you sleep: catches, gathering, raisins earned and friendship gained.
+  - **Pocket warning:** the counter turns amber with three or fewer pockets free.
+  - **Season title cards** on the first morning of each season, and the music changes key with the season.
+  - **Photo mode** (F): hides the interface and saves the view as a PNG.
 - **Dusty Hollow:** reeling is easier: the reel winds faster, fish pull less, and the line relaxes quicker when you let go, so small fish land in about a second and only the big ones need the line eased.
 - **Dusty Hollow:** a first round of improvements, the same day.
   - **A real fishing minigame:** a shadow shows the size of the fish, nibbles dip the bobber before the real tug, and once hooked you hold to reel and let go when the line strains. Big fish fight back and snap careless lines.

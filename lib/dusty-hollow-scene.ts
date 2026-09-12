@@ -7,7 +7,7 @@ export const VIEW_H = 600;
 
 const GRASS: Record<Season, [string, string]> = { spring: ['#86bb66', '#82b762'], summer: ['#78b356', '#74af52'], autumn: ['#b4a558', '#afa054'], winter: ['#e4eaed', '#e0e7ea'] };
 const TREE: Record<Season, [string, string]> = { spring: ['#4f9a4a', '#3f8140'], summer: ['#3f8f43', '#357a39'], autumn: ['#d98a3c', '#b96a2c'], winter: ['#7c8b80', '#657468'] };
-const FRUIT_COLOR: Record<string, string> = { apple: '#e04c3a', pear: '#c9d35a', peach: '#f2a36c', cherry: '#b8203a', orange: '#f09a2c' };
+const FRUIT_COLOR: Record<string, string> = { apple: '#e04c3a', pear: '#c9d35a', peach: '#f2a36c', cherry: '#b8203a', orange: '#f09a2c', golden: '#ffd94a' };
 const FLOWER_COLOR: Record<string, string> = { red: '#e2413c', yellow: '#f2d54a', white: '#fbf8f0', orange: '#f28c2c', pink: '#f4a3c4', purple: '#9a6cd6', blue: '#5b8de6' };
 const BUG_COLOR: Record<string, string> = { butterfly: '#f0c04a', swallowtail: '#3f3a4a', bee: '#f2b830', ladybug: '#e0392f', grasshopper: '#6fbf4a', cricket: '#5a4a3a', firefly: '#f6f08a', dragonfly: '#5fc1d9', cicada: '#8a6f4a', moth: '#cbbfa5', stag: '#2f2a2a', snail: '#b89c6a', wintermoth: '#e8e4d8', snowflea: '#3a3a44' };
 const FLYING = ['butterfly', 'swallowtail', 'bee', 'firefly', 'dragonfly', 'moth', 'wintermoth'];
@@ -46,21 +46,53 @@ export class HollowScene {
     for (const b of BUILDINGS) this.building(g, b);
     this.board();
     const sprites: { y: number; draw: () => void }[] = [];
-    for (const t of g.trees) sprites.push({ y: t.y + 0.5, draw: () => this.tree(g, t.x, t.y, t.fruit, t.count, t.grown > 0) });
+    for (const t of g.trees) sprites.push({ y: t.y + 0.5, draw: () => this.tree(g, t.x, t.y, t.fruit, t.count, t.grown > 0, !!t.golden) });
     for (const r of g.rocks) sprites.push({ y: r.y + 0.4, draw: () => this.rock(r.x, r.y, r.hits) });
     for (const s of g.snowmen) sprites.push({ y: s.y + 0.5, draw: () => this.snowman(s.x, s.y) });
     if (g.villagersOut) for (const v of g.residents) sprites.push({ y: v.y, draw: () => this.critter(v.x, v.y, SPECIES_BODY[v.species] ?? v.color, v.species, v.facing, false, v.name, g.requests.some((r) => r.villager === v.id && !r.done), undefined, g.isBirthday(v.id)) });
-    sprites.push({ y: g.y, draw: () => this.critter(g.x, g.y, SPECIES_BODY[g.hero], g.hero, g.facing, g.moving, '', false, g.tool) });
+    sprites.push({ y: g.y, draw: () => this.critter(g.x, g.y, SPECIES_BODY[g.hero], g.hero, g.facing, g.moving, '', false, g.tool, false, g.sneaking) });
     sprites.sort((a, b) => a.y - b.y).forEach((s) => s.draw());
     for (const b of g.bugs) this.bug(b.x, b.y, b.id, b.fleeing);
     if (g.fishing) this.fishing(g);
     for (const e of g.effects) this.effect(e.kind, e.x, e.y, e.age, e.color);
     if (g.reaction) this.reaction(g.x, g.y, g.reaction.icon, g.reaction.age);
+    if (g.balloon) this.balloon(g.balloon.x, g.balloon.y, g.balloonInReach);
     c.setTransform(1, 0, 0, 1, 0, 0);
     this.weather(g);
     this.light(g);
     if (g.star > 0) this.shootingStar(g.star);
     if (g.fishing?.phase === 'reel') this.reelBar(g.fishing.progress, g.fishing.tension);
+    if (g.splash) this.titleCard(g.splash.text, g.splash.age);
+  }
+  /** A present under a balloon, drifting a few tiles above the ground; its shadow shows where it is. */
+  private balloon(x: number, y: number, near: boolean) {
+    const c = this.c, px = x * TILE, py = y * TILE - 70 + Math.sin(this.time * 1.5) * 4;
+    c.fillStyle = '#00000018';
+    c.beginPath(); c.ellipse(px, y * TILE + 14, 12, 4, 0, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = '#5a3a22'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(px - 6, py + 18); c.lineTo(px, py + 30); c.lineTo(px + 6, py + 18); c.stroke();
+    c.fillStyle = '#f0cd6b';
+    c.fillRect(px - 8, py + 30, 16, 14);
+    c.fillStyle = '#e2413c';
+    c.fillRect(px - 1.5, py + 30, 3, 14); c.fillRect(px - 8, py + 35, 16, 3);
+    c.fillStyle = near ? '#f4a3c4' : '#e8748e';
+    c.beginPath(); c.ellipse(px, py, 14, 17, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#ffffff66';
+    c.beginPath(); c.ellipse(px - 5, py - 6, 4, 6, -0.4, 0, Math.PI * 2); c.fill();
+    if (near) { c.fillStyle = '#fff'; c.font = 'bold 12px Arial'; c.textAlign = 'center'; c.fillText('throw!', px, py - 24); }
+  }
+  /** The season title card: a soft band across the middle that fades in and out. */
+  private titleCard(text: string, left: number) {
+    const c = this.c, a = Math.min(1, left, (4 - left) * 2);
+    c.globalAlpha = a * 0.85;
+    c.fillStyle = '#34302a';
+    c.fillRect(0, VIEW_H / 2 - 44, VIEW_W, 88);
+    c.globalAlpha = a;
+    c.fillStyle = '#fffaf0';
+    c.font = 'bold 40px Georgia, serif';
+    c.textAlign = 'center';
+    c.fillText(text, VIEW_W / 2, VIEW_H / 2 + 14);
+    c.globalAlpha = 1;
   }
 
   private tile(g: Hollow, x: number, y: number) {
@@ -143,20 +175,21 @@ export class HollowScene {
     c.fillStyle = '#fffaf0';
     c.fillRect(px - 12, py - 16, 10, 7); c.fillRect(px + 1, py - 15, 10, 9); c.fillRect(px - 11, py - 7, 12, 6);
   }
-  private tree(g: Hollow, x: number, y: number, fruit: string, count: number, sapling: boolean) {
+  private tree(g: Hollow, x: number, y: number, fruit: string, count: number, sapling: boolean, golden = false) {
     const c = this.c, px = x * TILE + TILE / 2, py = y * TILE + TILE / 2, s = g.season;
+    if (golden && !sapling) { c.fillStyle = '#ffd94a33'; c.beginPath(); c.arc(px, py - 6, 26 + Math.sin(this.time * 2) * 2, 0, Math.PI * 2); c.fill(); }
     c.fillStyle = '#00000022';
     c.beginPath(); c.ellipse(px, py + 16, 14, 5, 0, 0, Math.PI * 2); c.fill();
     c.fillStyle = '#7a4d2b';
     c.fillRect(px - 4, py, 8, sapling ? 10 : 18);
     const r = sapling ? 9 : 18;
-    c.fillStyle = TREE[s][1];
+    c.fillStyle = golden && !sapling ? '#c9a227' : TREE[s][1];
     c.beginPath(); c.arc(px, py - 4, r, 0, Math.PI * 2); c.fill();
-    c.fillStyle = TREE[s][0];
+    c.fillStyle = golden && !sapling ? '#e8c34a' : TREE[s][0];
     c.beginPath(); c.arc(px - 4, py - 9, r * 0.75, 0, Math.PI * 2); c.fill();
     if (s === 'winter' && !sapling) { c.fillStyle = '#ffffffaa'; c.beginPath(); c.arc(px - 2, py - 14, r * 0.6, Math.PI, 0); c.fill(); }
     if (!sapling && count > 0) {
-      c.fillStyle = FRUIT_COLOR[fruit] ?? '#e04c3a';
+      c.fillStyle = golden ? FRUIT_COLOR.golden : FRUIT_COLOR[fruit] ?? '#e04c3a';
       const spots = [[-9, -4], [6, -10], [8, 2]];
       for (let i = 0; i < count; i++) { c.beginPath(); c.arc(px + spots[i][0], py + spots[i][1], 3.5, 0, Math.PI * 2); c.fill(); }
     }
@@ -294,6 +327,11 @@ export class HollowScene {
     } else if (kind === 'puff' || kind === 'snow') {
       c.fillStyle = color;
       for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 + 0.4; c.beginPath(); c.arc(px + Math.cos(a) * (6 + t * 18), py + Math.sin(a) * (6 + t * 18), 5 * (1 - t) + 1, 0, Math.PI * 2); c.fill(); }
+    } else if (kind === 'present') {
+      c.fillStyle = color;
+      c.fillRect(px - 7, py - 60 + t * 62, 14, 12);
+      c.fillStyle = '#e2413c';
+      c.fillRect(px - 1.5, py - 60 + t * 62, 3, 12);
     } else if (kind === 'sparkle') {
       c.fillStyle = color;
       for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2 + t * 3; const d = 8 + t * 16; this.star4(px + Math.cos(a) * d, py - t * 12 + Math.sin(a) * d * 0.5, 4 * (1 - t) + 1); }
@@ -322,8 +360,8 @@ export class HollowScene {
     this.star4(x, y, 6);
   }
   /** A chinchilla, or one of the neighbours, drawn from a few soft shapes. */
-  private critter(x: number, y: number, body: string, species: string, facing: number, moving: boolean, label: string, wants: boolean, tool?: string, birthday = false) {
-    const c = this.c, px = x * TILE, py = y * TILE, bob = moving ? Math.abs(Math.sin(this.time * 12)) * 3 : 0;
+  private critter(x: number, y: number, body: string, species: string, facing: number, moving: boolean, label: string, wants: boolean, tool?: string, birthday = false, sneaking = false) {
+    const c = this.c, px = x * TILE, py = y * TILE + (sneaking ? 5 : 0), bob = moving ? Math.abs(Math.sin(this.time * (sneaking ? 6 : 12))) * (sneaking ? 1.5 : 3) : 0;
     c.fillStyle = '#00000022';
     c.beginPath(); c.ellipse(px, py + 14, 12, 4, 0, 0, Math.PI * 2); c.fill();
     const tall = species === 'flamingo' || species === 'condor' || species === 'llama';

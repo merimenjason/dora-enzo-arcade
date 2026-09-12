@@ -23,7 +23,12 @@ const CUES: Record<string, [number, number, OscillatorType][]> = {
   flee: [[880, 0.05, 'sine'], [660, 0.08, 'sine']],
   star: [[1568, 0.15, 'sine'], [2093, 0.3, 'sine']],
   swap: [[500, 0.05, 'square']],
+  pop: [[900, 0.05, 'square'], [1400, 0.08, 'triangle'], [1046, 0.2, 'triangle']],
+  reveal: [[392, 0.12, 'triangle'], [392, 0.12, 'triangle'], [659, 0.35, 'triangle']],
+  season: [[523, 0.2, 'sine'], [659, 0.2, 'sine'], [784, 0.2, 'sine'], [1046, 0.6, 'sine']],
 };
+/** Each season plays the pad in its own key: up a tone for summer, down for autumn, lower still for winter. */
+const SEASON_KEY: Record<string, number> = { spring: 1, summer: 1.122, autumn: 0.943, winter: 0.841 };
 
 export class HollowSound {
   private ctx: AudioContext | null = null;
@@ -36,6 +41,7 @@ export class HollowSound {
   private sea: GainNode | null = null;
   private music = 0.5;
   private effects = 0.7;
+  private key = 1;
 
   start() {
     if (this.ctx) { void this.ctx.resume(); return; }
@@ -90,10 +96,11 @@ export class HollowSound {
     return gain;
   }
   /** Called every frame with the game's state. */
-  update(dt: number, hour: number, weather: 'clear' | 'rain' | 'snow', nearSea: boolean) {
+  update(dt: number, hour: number, weather: 'clear' | 'rain' | 'snow', nearSea: boolean, season = 'spring') {
     if (!this.ctx || this.ctx.state !== 'running') return;
     const mood: Mood = hour >= 6 && hour < 17 ? 'day' : hour >= 17 && hour < 20 ? 'evening' : 'night';
-    if (mood !== this.mood) { this.mood = mood; this.padChord = 0; this.setChord(); }
+    const key = SEASON_KEY[season] ?? 1;
+    if (mood !== this.mood || key !== this.key) { this.mood = mood; this.key = key; this.padChord = 0; this.setChord(); }
     this.padTimer -= dt;
     if (this.padTimer <= 0) { this.padChord = (this.padChord + 1) % 4; this.setChord(); }
     const t = this.ctx.currentTime;
@@ -105,7 +112,7 @@ export class HollowSound {
     const chord = CHORDS[this.mood][this.padChord];
     const t = this.ctx.currentTime;
     this.pad.forEach((p, i) => {
-      p.osc.frequency.setTargetAtTime(chord[i] / 2, t, first ? 0 : 0.8);
+      p.osc.frequency.setTargetAtTime((chord[i] * this.key) / 2, t, first ? 0 : 0.8);
       p.gain.gain.setTargetAtTime(this.padLevel() * (i === 0 ? 1.2 : 0.8), t, 1.2);
     });
     this.padTimer = 5 + Math.random() * 3;

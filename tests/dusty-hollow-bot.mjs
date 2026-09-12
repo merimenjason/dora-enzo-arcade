@@ -21,6 +21,7 @@ function fish(g, habitat) {
   return g.pockets.length > before ? g.pockets[g.pockets.length - 1].id : null;
 }
 function sellAll(g) { g.screen = 'shop'; g.sellAll(); g.screen = 'world'; }
+function assessAll(g) { g.screen = 'museum'; while (g.unassessed) g.assess(); g.screen = 'world'; }
 function payLoan(g) { const door = BUILDINGS.find((b) => b.id === 'friend').door; stand(g, door[0], door[1], 0); g.interact(); if (g.dialog) g.choose(0); }
 
 // ---- 1. Every fish is catchable in its listed window --------------------------
@@ -92,9 +93,9 @@ function payLoan(g) { const door = BUILDINGS.find((b) => b.id === 'friend').door
     for (let i = 0; g.hour < 21.5 && g.hour >= 8; i++) {
       fish(g, i % 2 ? 'river' : 'sea');
       if (g.fishing) g.fishing = null;
-      if (g.full) { g.screen = 'museum'; g.assess(); g.screen = 'world'; sellAll(g); }
+      if (g.full) { assessAll(g); sellAll(g); }
     }
-    g.screen = 'museum'; g.assess(); g.screen = 'world';
+    assessAll(g);
     sellAll(g);
     // Evening: buy the shovel when affordable, pay the loan.
     if (g.hour >= 22 || g.hour < 8) setHour(g, 21.8);
@@ -122,7 +123,7 @@ function payLoan(g) { const door = BUILDINGS.find((b) => b.id === 'friend').door
   for (let day = 1; day <= 16; day++) {
     setHour(g, 9);
     for (const f of g.fossils.slice()) { stand(g, f.x, f.y + 1, 0); g.interact(); }
-    g.screen = 'museum'; g.assess(); for (const p of g.pockets.slice()) if (p.kind === 'fossil') fossilKinds.add(p.id); g.screen = 'world';
+    assessAll(g); for (const p of g.pockets.slice()) if (p.kind === 'fossil') fossilKinds.add(p.id);
     if (g.festival === 'tourney') { setHour(g, 12); for (let i = 0; i < 6; i++) fish(g, 'sea'); }
     if (g.festival === 'snowday') { g.setTool('hands'); for (const s of g.snowballs.slice()) { stand(g, s.x, s.y + 1, 0); g.interact(); } assert.equal(g.stats.snowmen, 3); }
     if (g.festival) festivals++;
