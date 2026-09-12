@@ -16,9 +16,9 @@ export const HOME_NAMES = ['Tent', 'Cozy Burrow', 'Roomy Burrow', 'Grand Burrow'
 /** Room size in tiles per home level: [columns, rows]. */
 export const HOME_GRID: [number, number][] = [[3, 2], [4, 2], [4, 3], [5, 3]];
 export const BITE_WINDOW = 0.9;
-export const REEL_SPEED = 0.45;
-export const REEL_SLIP = 0.2;
-export const TENSION_RELAX = 0.8;
+export const REEL_SPEED = 0.7;
+export const REEL_SLIP = 0.12;
+export const TENSION_RELAX = 1.3;
 export const ROCK_HITS = 4;
 export const ROCK_DROPS = [25, 50, 75, 100];
 export const FOSSILS_PER_DAY = 3;
@@ -795,7 +795,7 @@ export class Hollow {
     const s = this.weighted(FISH.filter((f) => f.habitat === habitat && this.active(f)));
     if (!s) return this.tell('Nothing seems to be swimming here right now.');
     const size: 1 | 2 | 3 = s.price < 300 ? 1 : s.price < 1500 ? 2 : 3;
-    const fight = size === 1 ? 0.35 : size === 2 ? 0.55 : 0.8;
+    const fight = size === 1 ? 0.22 : size === 2 ? 0.34 : 0.48;
     this.fishing = { x, y, species: s.id, size, fight, phase: 'wait', timer: (rainy ? 1 : 2) + this.rng() * (rainy ? 3 : 5), nibbles: Math.floor(this.rng() * 3), progress: 0, tension: 0 };
     this.event = 'cast';
     this.fx('splash', x + 0.5, y + 0.5, '#ffffff');
@@ -819,7 +819,7 @@ export class Hollow {
     } else {
       if (hold) { f.progress += REEL_SPEED * dt; f.tension += f.fight * dt; }
       else { f.progress -= REEL_SLIP * dt; f.tension -= TENSION_RELAX * dt; }
-      if (this.rng() < dt * 0.9) f.tension += f.fight * 0.12;
+      if (this.rng() < dt * 0.7) f.tension += f.fight * 0.1;
       f.tension = Math.max(0, f.tension);
       if (f.tension >= 1) { this.fishing = null; this.say('Snap! The line broke.'); this.event = 'miss'; this.react('💦'); }
       else if (f.progress <= 0) { this.fishing = null; this.say('It slipped the hook.'); this.event = 'miss'; }
@@ -831,7 +831,7 @@ export class Hollow {
     if (f.phase === 'reel') return '';
     if (f.phase !== 'bite') { this.fishing = null; this.event = 'miss'; return this.tell(f.phase === 'nibble' ? 'Just a nibble. You spooked it.' : 'Too early. Nothing on the line.'); }
     f.phase = 'reel';
-    f.progress = 0.25;
+    f.progress = 0.3;
     f.tension = 0;
     this.event = 'hook';
     return this.tell('Hooked! Hold to reel, let go when the line strains.');

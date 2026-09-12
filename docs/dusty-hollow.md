@@ -26,12 +26,12 @@ Effects (`fx`) and reactions (`react`) are cosmetic lists the engine ages and th
 
 ## Fishing
 
-`cast()` picks the species up front from the fish whose `habitat`, `seasons` and `time` match, weighted by `rarity`, and derives `size` (1 under 300 raisins, 2 under 1,500, 3 above) and `fight` (0.35, 0.55, 0.8). The scene draws a shadow scaled by size. Phases:
+`cast()` picks the species up front from the fish whose `habitat`, `seasons` and `time` match, weighted by `rarity`, and derives `size` (1 under 300 raisins, 2 under 1,500, 3 above) and `fight` (0.22, 0.34, 0.48). The scene draws a shadow scaled by size. Phases:
 
 1. **wait**: a timer of 2 to 7 s (1 to 4 s in rain). Pressing loses the cast.
 2. **nibble** (0 to 2 of them): the bobber dips for 0.4 s, then waits 0.8 to 2.4 s more. Pressing spooks the fish.
 3. **bite**: `BITE_WINDOW` = 0.9 s to press and hook. Missing it loses the fish.
-4. **reel**: while the button is held, progress rises by `REEL_SPEED` = 0.45/s and tension by `fight`/s; released, progress falls by `REEL_SLIP` = 0.2/s and tension by `TENSION_RELAX` = 0.8/s. Random tugs add `fight × 0.12`. Tension at 1 snaps the line, progress at 0 slips the hook, progress at 1 lands the fish.
+4. **reel**: while the button is held, progress rises by `REEL_SPEED` = 0.7/s and tension by `fight`/s; released, progress falls by `REEL_SLIP` = 0.12/s and tension by `TENSION_RELAX` = 1.3/s. Random tugs add `fight × 0.1`. A small fish lands in about a second of holding; a big one needs the line eased once or twice. Tension at 1 snaps the line, progress at 0 slips the hook, progress at 1 lands the fish.
 
 Moving cancels a cast before the reel phase. Landed fish add their value to `today.fish` for the tourney.
 

@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Dusty Hollow:** reeling is easier: the reel winds faster, fish pull less, and the line relaxes quicker when you let go, so small fish land in about a second and only the big ones need the line eased.
 - **Dusty Hollow:** a first round of improvements, the same day.
   - **A real fishing minigame:** a shadow shows the size of the fish, nibbles dip the bobber before the real tug, and once hooked you hold to reel and let go when the line strains. Big fish fight back and snap careless lines.
   - **Bugs notice you:** run near one and it flies off; the rare ones flee even from a walker who gets too close.
