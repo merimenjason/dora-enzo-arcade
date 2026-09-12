@@ -245,3 +245,29 @@
 @media (hover: none) and (pointer: coarse) {
   .dh-touch { display: flex; }
 }
+
+/* Facing line, room grid, board, festival strip */
+.dh-peek { display: flex; justify-content: space-between; gap: 10px; padding: 8px 14px; font-size: 13px; background: var(--card); border-top: 1px solid var(--line); }
+.dh-peek b { color: var(--moss); }
+.dh-peek span { opacity: 0.7; }
+.dh-festival { position: absolute; top: 44px; left: 10px; background: #8a4b7ae6; color: #fff; border-radius: 10px; padding: 6px 10px; font-size: 12px; pointer-events: none; max-width: 260px; }
+.dh-festival b { display: block; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
+.dh-grid { display: grid; gap: 6px; padding: 12px; border-radius: 10px; background: repeating-linear-gradient(90deg, #d9b98a 0 26px, #cfae7e 26px 52px); border: 4px solid #8f5a34; }
+.dh-grid button { aspect-ratio: 1; border: 1px dashed #8f5a3466; background: #fffaf033; border-radius: 6px; font-size: 12px; line-height: 1.2; padding: 4px; color: #34302a; }
+.dh-grid button.filled { border: 1px solid #8f5a34; background: #fffaf0; font-weight: 600; }
+.dh-grid button.picked { outline: 3px solid #8a4b7a; }
+.dh-grid button:hover { background: #fffaf0aa; }
+.dh-notices { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.dh-notices li { background: #fff; border: 1px solid #d8ccb3; border-radius: 8px; padding: 10px 12px; font-size: 14px; line-height: 1.5; }
+.dh-notices li:first-child { border-color: #8a4b7a; }
+.dh-standings { list-style: none; margin: 0; padding: 0; font-size: 14px; }
+.dh-standings li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #d8ccb355; }
+.dh-standings li.you { font-weight: 700; color: #8a4b7a; }
+.dh-pocket-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.dh-pocket-actions button { border: 1px solid var(--line); background: var(--paper); border-radius: 6px; padding: 5px 9px; font-size: 12px; }
+.dh-pockets button.pinned::after { content: '📌'; position: absolute; right: 1px; top: 0; font-size: 9px; }
+.dh-pockets button { position: relative; }
+.dh-live { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.dh-live input { accent-color: var(--moss); }
+.dh-sliders { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: center; font-size: 12px; margin-top: 8px; }
+.dh-sliders input { width: 100%; accent-color: var(--moss); }

@@ -1,5 +1,5 @@
 // Canvas 2D view of Dusty Hollow: a soft top-down village that follows the hero.
-import { Hollow, W, H, BUILDINGS, FACE, BUGS, type Terrain, type Season } from './dusty-hollow-game';
+import { Hollow, W, H, BUILDINGS, BOARD, FACE, BUGS, NEIGHBOURS, type Terrain, type Season } from './dusty-hollow-game';
 
 export const TILE = 44;
 export const VIEW_W = 960;
@@ -9,8 +9,10 @@ const GRASS: Record<Season, [string, string]> = { spring: ['#86bb66', '#82b762']
 const TREE: Record<Season, [string, string]> = { spring: ['#4f9a4a', '#3f8140'], summer: ['#3f8f43', '#357a39'], autumn: ['#d98a3c', '#b96a2c'], winter: ['#7c8b80', '#657468'] };
 const FRUIT_COLOR: Record<string, string> = { apple: '#e04c3a', pear: '#c9d35a', peach: '#f2a36c', cherry: '#b8203a', orange: '#f09a2c' };
 const FLOWER_COLOR: Record<string, string> = { red: '#e2413c', yellow: '#f2d54a', white: '#fbf8f0', orange: '#f28c2c', pink: '#f4a3c4', purple: '#9a6cd6', blue: '#5b8de6' };
-const BUG_COLOR: Record<string, string> = { butterfly: '#f0c04a', swallowtail: '#3f3a4a', bee: '#f2b830', ladybug: '#e0392f', grasshopper: '#6fbf4a', cricket: '#5a4a3a', firefly: '#f6f08a', dragonfly: '#5fc1d9', cicada: '#8a6f4a', moth: '#cbbfa5', stag: '#2f2a2a', snail: '#b89c6a' };
-const SPECIES_BODY: Record<string, string> = { dora: '#f2ede4', enzo: '#8e8f98', flamingo: '#f39ab5', fox: '#d9873c', viscacha: '#b7a58c', condor: '#4a4750' };
+const BUG_COLOR: Record<string, string> = { butterfly: '#f0c04a', swallowtail: '#3f3a4a', bee: '#f2b830', ladybug: '#e0392f', grasshopper: '#6fbf4a', cricket: '#5a4a3a', firefly: '#f6f08a', dragonfly: '#5fc1d9', cicada: '#8a6f4a', moth: '#cbbfa5', stag: '#2f2a2a', snail: '#b89c6a', wintermoth: '#e8e4d8', snowflea: '#3a3a44' };
+const FLYING = ['butterfly', 'swallowtail', 'bee', 'firefly', 'dragonfly', 'moth', 'wintermoth'];
+const SPECIES_BODY: Record<string, string> = { dora: '#f2ede4', enzo: '#8e8f98', flamingo: '#f39ab5', fox: '#d9873c', viscacha: '#b7a58c', condor: '#4a4750', llama: '#e8dcc2', cat: '#8a7f73' };
+const EARED = ['dora', 'enzo', 'viscacha', 'cat', 'llama'];
 
 export type Camera = { x: number; y: number };
 
@@ -38,19 +40,27 @@ export class HollowScene {
     const x1 = Math.min(W, x0 + Math.ceil(VIEW_W / TILE) + 1), y1 = Math.min(H, y0 + Math.ceil(VIEW_H / TILE) + 1);
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) this.tile(g, x, y);
     for (const f of g.fossils) this.fossil(f.x, f.y);
+    for (const s of g.shells) this.shell(s.x, s.y, s.id);
     for (const f of g.flowers) this.flower(f.x, f.y, f.color, f.watered);
+    for (const s of g.snowballs) this.snowball(s.x, s.y);
     for (const b of BUILDINGS) this.building(g, b);
+    this.board();
     const sprites: { y: number; draw: () => void }[] = [];
     for (const t of g.trees) sprites.push({ y: t.y + 0.5, draw: () => this.tree(g, t.x, t.y, t.fruit, t.count, t.grown > 0) });
     for (const r of g.rocks) sprites.push({ y: r.y + 0.4, draw: () => this.rock(r.x, r.y, r.hits) });
-    if (g.villagersOut) for (const v of g.villagers) sprites.push({ y: v.y, draw: () => this.critter(v.x, v.y, SPECIES_BODY[v.species] ?? v.color, v.species, v.facing, false, v.name, g.requests.some((r) => r.villager === v.id && !r.done)) });
+    for (const s of g.snowmen) sprites.push({ y: s.y + 0.5, draw: () => this.snowman(s.x, s.y) });
+    if (g.villagersOut) for (const v of g.residents) sprites.push({ y: v.y, draw: () => this.critter(v.x, v.y, SPECIES_BODY[v.species] ?? v.color, v.species, v.facing, false, v.name, g.requests.some((r) => r.villager === v.id && !r.done), undefined, g.isBirthday(v.id)) });
     sprites.push({ y: g.y, draw: () => this.critter(g.x, g.y, SPECIES_BODY[g.hero], g.hero, g.facing, g.moving, '', false, g.tool) });
     sprites.sort((a, b) => a.y - b.y).forEach((s) => s.draw());
-    for (const b of g.bugs) this.bug(b.x, b.y, b.id);
-    if (g.fishing) this.bobber(g.fishing.x, g.fishing.y, g.fishing.bite > 0);
+    for (const b of g.bugs) this.bug(b.x, b.y, b.id, b.fleeing);
+    if (g.fishing) this.fishing(g);
+    for (const e of g.effects) this.effect(e.kind, e.x, e.y, e.age, e.color);
+    if (g.reaction) this.reaction(g.x, g.y, g.reaction.icon, g.reaction.age);
     c.setTransform(1, 0, 0, 1, 0, 0);
     this.weather(g);
     this.light(g);
+    if (g.star > 0) this.shootingStar(g.star);
+    if (g.fishing?.phase === 'reel') this.reelBar(g.fishing.progress, g.fishing.tension);
   }
 
   private tile(g: Hollow, x: number, y: number) {
@@ -68,6 +78,7 @@ export class HollowScene {
       c.fillStyle = '#ffffff33';
       c.fillRect(px + 8 + w, py + 14 + ((x * 7) % 12), 14, 2);
       c.fillRect(px + 24 - w, py + 30 - ((y * 5) % 10), 10, 2);
+      if (y === H - 3) { c.fillStyle = '#ffffff66'; c.fillRect(px, py + 2 + Math.sin(this.time * 1.5 + x) * 2, TILE, 3); }
     } else if (t === 'bridge') {
       c.fillStyle = '#7d5429';
       for (let i = 0; i < 4; i++) c.fillRect(px, py + i * 11 + 4, TILE, 2);
@@ -83,6 +94,16 @@ export class HollowScene {
   }
   private building(g: Hollow, b: (typeof BUILDINGS)[number]) {
     const c = this.c, px = b.x * TILE, py = b.y * TILE, w = b.w * TILE, h = b.h * TILE;
+    const owner = NEIGHBOURS.find((v) => v.home === b.id);
+    if (owner?.arrives && !g.arrived.includes(owner.id)) {
+      c.fillStyle = '#c9b48a55';
+      c.fillRect(px, py, w, h);
+      c.strokeStyle = '#8f5a34'; c.lineWidth = 2; c.setLineDash([6, 6]); c.strokeRect(px + 2, py + 2, w - 4, h - 4); c.setLineDash([]);
+      c.fillStyle = '#f6e6c8'; c.fillRect(px + w / 2 - 22, py + h / 2 - 10, 44, 18);
+      c.fillStyle = '#7a4d2b'; c.fillRect(px + w / 2 - 2, py + h / 2 + 8, 4, 12);
+      c.fillStyle = '#2b2118'; c.font = 'bold 9px Arial'; c.textAlign = 'center'; c.fillText('FOR SALE', px + w / 2, py + h / 2 + 3);
+      return;
+    }
     const palette: Record<string, [string, string, string]> = { home: ['#c98a5a', '#8f5a34', '#f6e6c8'], friend: ['#b98d64', '#7c5a3c', '#f4dcbb'], shop: ['#d76f5c', '#8b3d31', '#f7dfc8'], museum: ['#8d9aa8', '#4f5b68', '#e9eef2'] };
     const [wall, roof, trim] = palette[b.id] ?? ['#c9a37a', '#7f6446', '#f2e6d0'];
     c.fillStyle = '#00000022';
@@ -98,7 +119,7 @@ export class HollowScene {
     c.fill();
     if (b.id === 'home' && g.homeLevel > 0) { c.fillStyle = trim; c.fillRect(px + 6, py + h * 0.42, w - 12, 4); }
     if (b.id === 'home' && g.homeLevel === 0) { c.fillStyle = '#e8c56d'; c.beginPath(); c.moveTo(px + 4, py + h); c.lineTo(px + w / 2, py + 6); c.lineTo(px + w - 4, py + h); c.closePath(); c.fill(); }
-    // door and windows
+    if (b.id === 'home' && g.homeLevel >= 2) { c.fillStyle = '#7a4d2b'; c.fillRect(px + w - 22, py - 2, 8, 16); }
     const dx = b.door[0] * TILE + 8;
     c.fillStyle = '#5a3a22';
     c.fillRect(dx, py + h - 26, TILE - 16, 26);
@@ -107,10 +128,20 @@ export class HollowScene {
     c.fillRect(px + w - 20, py + h * 0.5, 12, 12);
     const lit = g.isNight && (b.id === 'shop' ? g.shopOpen : true);
     if (lit) { c.fillStyle = '#ffd27a'; c.fillRect(px + 9, py + h * 0.5 + 1, 10, 10); c.fillRect(px + w - 19, py + h * 0.5 + 1, 10, 10); }
+    if (owner && g.isBirthday(owner.id)) { c.fillStyle = '#f4a3c4'; c.beginPath(); c.arc(px + 6, py + h * 0.38, 5, 0, Math.PI * 2); c.fill(); c.fillStyle = '#5b8de6'; c.beginPath(); c.arc(px + w - 6, py + h * 0.38, 5, 0, Math.PI * 2); c.fill(); }
     c.fillStyle = '#2b2118';
     c.font = 'bold 11px Arial';
     c.textAlign = 'center';
     c.fillText(b.id === 'home' ? `${g.heroName}’s ${g.homeName}` : b.name, px + w / 2, py + h * 0.35 + 14);
+  }
+  private board() {
+    const c = this.c, px = BOARD.x * TILE + TILE / 2, py = BOARD.y * TILE + TILE / 2;
+    c.fillStyle = '#7a4d2b';
+    c.fillRect(px - 3, py - 2, 6, 20);
+    c.fillStyle = '#b98d64';
+    c.fillRect(px - 16, py - 20, 32, 22);
+    c.fillStyle = '#fffaf0';
+    c.fillRect(px - 12, py - 16, 10, 7); c.fillRect(px + 1, py - 15, 10, 9); c.fillRect(px - 11, py - 7, 12, 6);
   }
   private tree(g: Hollow, x: number, y: number, fruit: string, count: number, sapling: boolean) {
     const c = this.c, px = x * TILE + TILE / 2, py = y * TILE + TILE / 2, s = g.season;
@@ -123,6 +154,7 @@ export class HollowScene {
     c.beginPath(); c.arc(px, py - 4, r, 0, Math.PI * 2); c.fill();
     c.fillStyle = TREE[s][0];
     c.beginPath(); c.arc(px - 4, py - 9, r * 0.75, 0, Math.PI * 2); c.fill();
+    if (s === 'winter' && !sapling) { c.fillStyle = '#ffffffaa'; c.beginPath(); c.arc(px - 2, py - 14, r * 0.6, Math.PI, 0); c.fill(); }
     if (!sapling && count > 0) {
       c.fillStyle = FRUIT_COLOR[fruit] ?? '#e04c3a';
       const spots = [[-9, -4], [6, -10], [8, 2]];
@@ -137,6 +169,24 @@ export class HollowScene {
     c.beginPath(); c.ellipse(px, py + 2, 15, 12, 0, 0, Math.PI * 2); c.fill();
     c.fillStyle = '#b3ada3';
     c.beginPath(); c.ellipse(px - 4, py - 3, 7, 5, 0, 0, Math.PI * 2); c.fill();
+  }
+  private snowball(x: number, y: number) {
+    const c = this.c, px = x * TILE + TILE / 2, py = y * TILE + TILE / 2;
+    c.fillStyle = '#00000018'; c.beginPath(); c.ellipse(px, py + 10, 10, 4, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#fbfdff'; c.beginPath(); c.arc(px, py + 2, 9, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#dbe6ee'; c.beginPath(); c.arc(px + 3, py + 5, 4, 0, Math.PI * 2); c.fill();
+  }
+  private snowman(x: number, y: number) {
+    const c = this.c, px = x * TILE + TILE / 2, py = y * TILE + TILE / 2;
+    c.fillStyle = '#00000022'; c.beginPath(); c.ellipse(px, py + 16, 14, 5, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#fbfdff';
+    c.beginPath(); c.arc(px, py + 4, 13, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(px, py - 14, 9, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#2a2420';
+    c.beginPath(); c.arc(px - 3, py - 16, 1.5, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(px + 3, py - 16, 1.5, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#f09a2c'; c.beginPath(); c.moveTo(px, py - 13); c.lineTo(px + 9, py - 11); c.lineTo(px, py - 10); c.fill();
+    c.fillStyle = '#e04c3a'; c.fillRect(px - 8, py - 6, 16, 3);
   }
   private flower(x: number, y: number, color: string, watered: boolean) {
     const c = this.c, px = x * TILE + TILE / 2, py = y * TILE + TILE / 2;
@@ -154,9 +204,18 @@ export class HollowScene {
     c.lineWidth = 2;
     c.beginPath(); c.moveTo(px - 10, py - 4); c.lineTo(px - 2, py + 2); c.lineTo(px + 6, py - 6); c.moveTo(px - 2, py + 2); c.lineTo(px + 2, py + 10); c.stroke();
   }
-  private bug(x: number, y: number, id: string) {
-    const c = this.c, px = x * TILE, py = y * TILE + Math.sin(this.time * 6 + x) * 2;
-    const flying = ['butterfly', 'swallowtail', 'bee', 'firefly', 'dragonfly', 'moth'].includes(id);
+  private shell(x: number, y: number, id: string) {
+    const c = this.c, px = x * TILE + TILE / 2, py = y * TILE + TILE / 2;
+    c.fillStyle = id === 'conch' ? '#f2b8a0' : id === 'sanddollar' ? '#efe3c2' : '#fbf5e6';
+    c.beginPath();
+    if (id === 'sanddollar') c.arc(px, py, 6, 0, Math.PI * 2);
+    else { c.moveTo(px - 7, py + 4); c.quadraticCurveTo(px, py - 10, px + 7, py + 4); c.closePath(); }
+    c.fill();
+    c.strokeStyle = '#c9a37a'; c.lineWidth = 1; c.stroke();
+  }
+  private bug(x: number, y: number, id: string, fleeing: boolean) {
+    const c = this.c, px = x * TILE, py = y * TILE + Math.sin(this.time * 6 + x) * 2 - (fleeing ? 10 : 0);
+    const flying = FLYING.includes(id) || fleeing;
     c.fillStyle = BUG_COLOR[id] ?? '#333';
     if (flying) {
       const f = Math.abs(Math.sin(this.time * 18)) * 3;
@@ -170,38 +229,120 @@ export class HollowScene {
       c.beginPath(); c.arc(px + 4, py, 2, 0, Math.PI * 2); c.fill();
     }
     if (id === 'firefly') { c.fillStyle = '#f6f08a55'; c.beginPath(); c.arc(px, py, 9, 0, Math.PI * 2); c.fill(); }
+    if (fleeing) return;
     const name = BUGS.find((b) => b.id === id)?.name ?? id;
     c.fillStyle = '#ffffffcc';
     c.font = '9px Arial';
     c.textAlign = 'center';
     c.fillText(name, px, py - 8);
   }
-  private bobber(x: number, y: number, biting: boolean) {
-    const c = this.c, px = x * TILE + TILE / 2, py = y * TILE + TILE / 2 + (biting ? 5 : Math.sin(this.time * 3) * 2);
+  private fishing(g: Hollow) {
+    const f = g.fishing!;
+    const c = this.c, px = f.x * TILE + TILE / 2, py = f.y * TILE + TILE / 2;
+    const biting = f.phase === 'bite', nibbling = f.phase === 'nibble', reeling = f.phase === 'reel';
+    // The shadow hints at the size of what is down there.
+    const drift = reeling ? 0 : Math.sin(this.time * 1.2) * 6;
+    c.fillStyle = '#1d3f5a66';
+    c.beginPath(); c.ellipse(px + drift + (reeling ? 0 : 10), py + 8, 6 + f.size * 4, 3 + f.size * 1.5, 0.2, 0, Math.PI * 2); c.fill();
+    const by = py + (biting ? 6 : nibbling ? 3 : Math.sin(this.time * 3) * 2);
     c.strokeStyle = '#ffffffaa';
-    c.beginPath(); c.arc(px, py, biting ? 14 : 9 + Math.sin(this.time * 2) * 2, 0, Math.PI * 2); c.stroke();
-    c.fillStyle = biting ? '#ffdd55' : '#e0392f';
-    c.beginPath(); c.arc(px, py, 5, 0, Math.PI * 2); c.fill();
+    c.lineWidth = 1.5;
+    c.beginPath(); c.arc(px, by, biting ? 14 : nibbling ? 11 : 9 + Math.sin(this.time * 2) * 2, 0, Math.PI * 2); c.stroke();
+    if (!reeling) {
+      c.fillStyle = biting ? '#ffdd55' : '#e0392f';
+      c.beginPath(); c.arc(px, by, 5, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#fff';
+      c.beginPath(); c.arc(px, by - 2, 2, 0, Math.PI * 2); c.fill();
+    }
+    if (biting) { c.fillStyle = '#fff'; c.font = 'bold 16px Arial'; c.textAlign = 'center'; c.fillText('!', px, py - 16); }
+    // Line from the hero's rod tip.
+    const [dx, dy] = FACE[g.facing];
+    c.strokeStyle = '#ffffffcc';
+    c.lineWidth = 1;
+    c.beginPath(); c.moveTo(g.x * TILE + dx * 24, g.y * TILE - 12 + dy * 8); c.lineTo(px, by - 4); c.stroke();
+  }
+  private reelBar(progress: number, tension: number) {
+    const c = this.c, w = 260, x = VIEW_W / 2 - w / 2, y = VIEW_H - 78;
+    c.fillStyle = '#34302ae6';
+    c.beginPath(); c.roundRect(x - 12, y - 12, w + 24, 62, 10); c.fill();
+    c.fillStyle = '#fffaf0'; c.font = 'bold 11px Arial'; c.textAlign = 'left';
+    c.fillText('REEL', x, y);
+    c.fillText('LINE', x, y + 28);
+    c.fillStyle = '#5a5550'; c.fillRect(x + 40, y - 9, w - 40, 10); c.fillRect(x + 40, y + 19, w - 40, 10);
+    c.fillStyle = '#7fd0b8'; c.fillRect(x + 40, y - 9, (w - 40) * Math.min(1, progress), 10);
+    c.fillStyle = tension > 0.75 ? '#e0392f' : tension > 0.5 ? '#f0cd6b' : '#8cc06a'; c.fillRect(x + 40, y + 19, (w - 40) * Math.min(1, tension), 10);
+    c.fillStyle = '#fffaf0'; c.font = '10px Arial'; c.textAlign = 'center';
+    c.fillText(tension > 0.75 ? 'Let go!' : 'Hold to reel', x + w / 2 + 20, y + 44);
+  }
+  private effect(kind: string, x: number, y: number, age: number, color: string) {
+    const c = this.c, px = x * TILE, py = y * TILE, t = age / 0.9;
+    c.globalAlpha = 1 - t;
+    if (kind === 'fruit') {
+      c.fillStyle = FRUIT_COLOR[color] ?? color;
+      for (let i = 0; i < 3; i++) { const ox = (i - 1) * 14, oy = -10 + t * 34 + Math.abs(Math.sin(t * Math.PI * 2 + i)) * -8; c.beginPath(); c.arc(px + ox, py + oy, 4, 0, Math.PI * 2); c.fill(); }
+    } else if (kind === 'leaf') {
+      c.fillStyle = color;
+      for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; c.beginPath(); c.ellipse(px + Math.cos(a) * (10 + t * 22), py - 10 + Math.sin(a) * (6 + t * 14) + t * 10, 4, 2, a, 0, Math.PI * 2); c.fill(); }
+    } else if (kind === 'dirt') {
+      c.fillStyle = color;
+      for (let i = 0; i < 7; i++) { const a = -Math.PI * (0.2 + (i / 7) * 0.6); const d = t * 26; c.beginPath(); c.arc(px + Math.cos(a) * d, py + Math.sin(a) * d + t * t * 30, 3, 0, Math.PI * 2); c.fill(); }
+    } else if (kind === 'splash') {
+      c.strokeStyle = color; c.lineWidth = 2;
+      c.beginPath(); c.ellipse(px, py, 4 + t * 20, 2 + t * 9, 0, 0, Math.PI * 2); c.stroke();
+      c.fillStyle = color;
+      for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; c.beginPath(); c.arc(px + Math.cos(a) * 10 * t, py - 12 * Math.sin(t * Math.PI) + Math.sin(a) * 5 * t, 2, 0, Math.PI * 2); c.fill(); }
+    } else if (kind === 'puff' || kind === 'snow') {
+      c.fillStyle = color;
+      for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 + 0.4; c.beginPath(); c.arc(px + Math.cos(a) * (6 + t * 18), py + Math.sin(a) * (6 + t * 18), 5 * (1 - t) + 1, 0, Math.PI * 2); c.fill(); }
+    } else if (kind === 'sparkle') {
+      c.fillStyle = color;
+      for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2 + t * 3; const d = 8 + t * 16; this.star4(px + Math.cos(a) * d, py - t * 12 + Math.sin(a) * d * 0.5, 4 * (1 - t) + 1); }
+    }
+    c.globalAlpha = 1;
+  }
+  private star4(x: number, y: number, r: number) {
+    const c = this.c;
+    c.beginPath(); c.moveTo(x, y - r); c.lineTo(x + r * 0.3, y - r * 0.3); c.lineTo(x + r, y); c.lineTo(x + r * 0.3, y + r * 0.3); c.lineTo(x, y + r); c.lineTo(x - r * 0.3, y + r * 0.3); c.lineTo(x - r, y); c.lineTo(x - r * 0.3, y - r * 0.3); c.closePath(); c.fill();
+  }
+  private reaction(x: number, y: number, icon: string, age: number) {
+    const c = this.c, px = x * TILE + 16, py = y * TILE - 40 - Math.min(1, age * 3) * 8;
+    c.globalAlpha = age < 0.9 ? 1 : 1 - (age - 0.9) / 0.3;
+    c.fillStyle = '#fffaf0'; c.beginPath(); c.roundRect(px - 12, py - 12, 24, 24, 8); c.fill();
+    c.fillStyle = icon === '♥' ? '#e2413c' : icon === '★' ? '#f0cd6b' : icon === '💦' ? '#5da2cf' : '#34302a';
+    c.font = 'bold 15px Arial'; c.textAlign = 'center';
+    c.fillText(icon === '💦' ? '~' : icon, px, py + 5);
+    c.globalAlpha = 1;
+  }
+  private shootingStar(left: number) {
+    const c = this.c, t = 1 - left / 3;
+    const x = VIEW_W * (0.15 + t * 0.7), y = 30 + t * 90;
+    c.strokeStyle = '#fff8'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(x - 60, y - 30); c.lineTo(x, y); c.stroke();
     c.fillStyle = '#fff';
-    c.beginPath(); c.arc(px, py - 2, 2, 0, Math.PI * 2); c.fill();
-    if (biting) { c.fillStyle = '#fff'; c.font = 'bold 14px Arial'; c.textAlign = 'center'; c.fillText('!', px, py - 14); }
+    this.star4(x, y, 6);
   }
   /** A chinchilla, or one of the neighbours, drawn from a few soft shapes. */
-  private critter(x: number, y: number, body: string, species: string, facing: number, moving: boolean, label: string, wants: boolean, tool?: string) {
+  private critter(x: number, y: number, body: string, species: string, facing: number, moving: boolean, label: string, wants: boolean, tool?: string, birthday = false) {
     const c = this.c, px = x * TILE, py = y * TILE, bob = moving ? Math.abs(Math.sin(this.time * 12)) * 3 : 0;
     c.fillStyle = '#00000022';
     c.beginPath(); c.ellipse(px, py + 14, 12, 4, 0, 0, Math.PI * 2); c.fill();
-    const tall = species === 'flamingo' || species === 'condor';
+    const tall = species === 'flamingo' || species === 'condor' || species === 'llama';
     c.fillStyle = body;
     c.beginPath(); c.ellipse(px, py + 2 - bob, 12, tall ? 15 : 12, 0, 0, Math.PI * 2); c.fill();
     c.beginPath(); c.arc(px, py - 10 - bob - (tall ? 6 : 0), 10, 0, Math.PI * 2); c.fill();
     const hy = py - 10 - bob - (tall ? 6 : 0);
-    if (species === 'dora' || species === 'enzo' || species === 'viscacha') {
-      c.beginPath(); c.ellipse(px - 8, hy - 8, 5, 7, -0.3, 0, Math.PI * 2); c.fill();
-      c.beginPath(); c.ellipse(px + 8, hy - 8, 5, 7, 0.3, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#f2b8c0';
-      c.beginPath(); c.ellipse(px - 8, hy - 8, 2.5, 4, -0.3, 0, Math.PI * 2); c.fill();
-      c.beginPath(); c.ellipse(px + 8, hy - 8, 2.5, 4, 0.3, 0, Math.PI * 2); c.fill();
+    if (EARED.includes(species)) {
+      const pointy = species === 'cat' || species === 'llama';
+      if (pointy) {
+        c.beginPath(); c.moveTo(px - 10, hy - 2); c.lineTo(px - 7, hy - 16); c.lineTo(px - 1, hy - 7); c.fill();
+        c.beginPath(); c.moveTo(px + 10, hy - 2); c.lineTo(px + 7, hy - 16); c.lineTo(px + 1, hy - 7); c.fill();
+      } else {
+        c.beginPath(); c.ellipse(px - 8, hy - 8, 5, 7, -0.3, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.ellipse(px + 8, hy - 8, 5, 7, 0.3, 0, Math.PI * 2); c.fill();
+        c.fillStyle = '#f2b8c0';
+        c.beginPath(); c.ellipse(px - 8, hy - 8, 2.5, 4, -0.3, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.ellipse(px + 8, hy - 8, 2.5, 4, 0.3, 0, Math.PI * 2); c.fill();
+      }
     } else if (species === 'fox') {
       c.beginPath(); c.moveTo(px - 10, hy - 4); c.lineTo(px - 7, hy - 16); c.lineTo(px - 2, hy - 6); c.fill();
       c.beginPath(); c.moveTo(px + 10, hy - 4); c.lineTo(px + 7, hy - 16); c.lineTo(px + 2, hy - 6); c.fill();
@@ -209,6 +350,7 @@ export class HollowScene {
       c.fillStyle = species === 'flamingo' ? '#3a2a2a' : '#e8b04a';
       c.beginPath(); c.moveTo(px + (facing === 3 ? -8 : 8), hy + 1); c.lineTo(px + (facing === 3 ? -16 : 16), hy + 4); c.lineTo(px + (facing === 3 ? -8 : 8), hy + 5); c.fill();
     }
+    if (species === 'cat') { c.fillStyle = '#5a5049'; c.fillRect(px - 9, hy + 2, 18, 2); }
     if (facing !== 0) {
       c.fillStyle = '#2a2420';
       const ex = facing === 1 ? 4 : facing === 3 ? -4 : 0;
@@ -224,11 +366,12 @@ export class HollowScene {
       c.fillStyle = tool === 'net' ? '#ffffff88' : tool === 'shovel' ? '#9a948b' : tool === 'can' ? '#5da2cf' : '#e0392f';
       c.beginPath(); c.arc(hx + dx * 10, hyy - 12, tool === 'net' ? 7 : 4, 0, Math.PI * 2); c.fill();
     }
+    if (birthday) { c.fillStyle = '#f0cd6b'; c.beginPath(); c.moveTo(px - 7, hy - 8); c.lineTo(px, hy - 24); c.lineTo(px + 7, hy - 8); c.closePath(); c.fill(); }
     if (label) {
       c.fillStyle = '#ffffffdd';
       c.font = 'bold 10px Arial';
       c.textAlign = 'center';
-      c.fillText(label, px, hy - (species === 'dora' || species === 'enzo' || species === 'viscacha' ? 20 : 16));
+      c.fillText(label, px, hy - (EARED.includes(species) || birthday ? 22 : 16));
     }
     if (wants) { c.fillStyle = '#ffd94a'; c.font = 'bold 14px Arial'; c.textAlign = 'center'; c.fillText('…', px + 14, hy - 12); }
   }

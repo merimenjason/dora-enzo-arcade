@@ -6,6 +6,21 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Dusty Hollow:** a first round of improvements, the same day.
+  - **A real fishing minigame:** a shadow shows the size of the fish, nibbles dip the bobber before the real tug, and once hooked you hold to reel and let go when the line strains. Big fish fight back and snap careless lines.
+  - **Bugs notice you:** run near one and it flies off; the rare ones flee even from a walker who gets too close.
+  - **Animations and reactions:** tumbling fruit, dirt spray, splashes, net puffs, sparkles from rocks and a little pop over your head when something happens.
+  - **Music and ambience:** an ambient pad that shifts from day to evening to night, rain and sea loops, and separate music and effects sliders.
+  - **A room to decorate:** furniture goes on a grid that grows with the burrow, and can be moved or picked up again.
+  - **Fossil assessment:** finds come up unidentified until Bubo at the museum names them.
+  - **A notice board** by the street with the day's festival or countdown, birthdays, the fruit market, who is visiting whom and the weather.
+  - **Festivals:** a Fishing Tourney in spring and autumn, a summer Bug-Off scored against the neighbours with prizes and a trophy, and Snowman Day in winter.
+  - **Birthdays** for every neighbour, when a gift means a great deal more.
+  - **Vito's fruit market** pays a different rate each day, so an orchard of foreign fruit is worth timing.
+  - **Neighbours remember** your last three gifts, shrug at repeats and sometimes mention what you gave them.
+  - **Two new neighbours,** Lupe the llama and Nico the Andean cat, move into empty plots as goals on the list are met.
+  - **More to find:** a rare autumn pejerrey, winter moths and snow fleas, shells on the beach every day, and shooting stars on clear summer nights to wish on.
+  - **Quality of life:** a live-clock option that follows your real time and Andean calendar, a line under the map saying what you face and what the button will do, tools that swap in automatically when you own the right one, and pockets you can pin and sort.
 - **Dusty Hollow:** a new cozy village-life game, the arcade's fifteenth. Play as Dora or Enzo and move into a little seaside hollow; the other chinchilla runs Burrow Works next door, holds your house loan and keeps a list of eleven things to try.
   - **Fishing, bugs and fossils:** cast into the river, pond or sea and reel on the tug; net butterflies, beetles and fireflies by season and time of day; dig up three fossils a morning once you own a shovel. Fourteen fish, twelve bugs and eight fossils fill the museum one donation at a time.
   - **Trees, rocks and flowers:** shake three apples a day from every tree, knock raisins out of money rocks, and water neighbouring flowers to breed orange, pink, purple and blue hybrids overnight. Plant foreign fruit to grow new trees.
