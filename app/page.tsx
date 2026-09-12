@@ -13,14 +13,15 @@ const GAMES=[
  {href:'/dust-bath',title:'Dust Bath Dash',tag:'NEW · COZY SPA',blurb:'Run a tiny chinchilla spa. Seat fluffy guests, time the perfect dust bath and grow your happy place. Two-minute shifts or untimed cozy mode.',color:'#b5c69d',art:'☁️'},
  {href:'/mountain-retreat',title:"Dora & Enzo’s Mountain Retreat",tag:'NEW · IDLE LODGE',blurb:'A soft place above the clouds. Welcome guests, gather supplies and grow a pixel-perfect mountain lodge, together.',color:'#a5bd91',art:'🏔️'},
  {href:'/paw-buster',title:'Paw Buster X',tag:'NEW · ACTION PLATFORMER',blurb:'Dash, wall-jump and charge your buster through six maverick stages, then storm the Cougar Citadel. Tag between Dora\u2019s buster and Enzo\u2019s saber.',color:'#7fd6ff',art:'🤖'},
+ {href:'/burrow-town',title:'Burrow Town',tag:'NEW · CITY BUILDER',blurb:'A cozy 3D valley builder. Lay roads, dig burrows, plant hay and keep both Dora and Enzo happy across five Andean valleys.',color:'#9ec27a',art:'🏘️'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span><a href="/fighter">START WITH PAW FIGHTER II →</a></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">THIRTEEN ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Thirteen ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, thirteen cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">FOURTEEN ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Fourteen ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, fourteen cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <nav className="arcade-grid" aria-label="Choose a game">
    {GAMES.map((game,i)=><a key={game.href} href={game.href} className="arcade-card" style={{'--game-color':game.color} as React.CSSProperties}>

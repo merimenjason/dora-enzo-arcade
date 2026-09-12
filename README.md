@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of thirteen original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of fourteen original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -23,6 +23,7 @@ Listed in arcade-menu order.
 | 11 | Dust Bath Dash | `/dust-bath` | Cozy spa |
 | 12 | Dora & Enzo’s Mountain Retreat | `/mountain-retreat` | Idle lodge |
 | 13 | Paw Buster X | `/paw-buster` | Action platformer |
+| 14 | Burrow Town | `/burrow-town` | City builder |
 
 ## Run
 
@@ -262,6 +263,27 @@ Options on the stage select: a difficulty of easy (half damage, and pits don't h
 
 **Docs:** This section.
 
+### 14 · Burrow Town (`/burrow-town`)
+
+**Play:** A cozy 3D city builder on a 16×12 tile Andean valley, rendered with Three.js. Every valley starts with one plaza in the middle and 120 hay, the only currency. A building only works when it is linked: it must touch a road that leads back to a plaza, or sit beside a plaza itself. Anything unlinked shows a red marker and earns nothing, and unlinked homes empty out. Roads cost 4 hay, bridges over the river cost 12, and roads cannot cross rock. Terrain is grass, terrace, rock and river: terraces grow more hay, rock takes only quarries and watchtowers, and nothing builds on water.
+
+The simulation ticks every 2 seconds. Hay farms earn 3 a tick (4 on a terrace, +1 beside the river), quarries 2, workshops 4 with a linked quarry (1 without) and markets 1 for every 3 residents within 4 tiles, up to 8. Each resident eats 0.2 hay a tick; when the hay runs out and income cannot cover it, homes only fill to half. Burrows hold 4 residents and big burrows 10. Each home has a comfort score from 0 to 4: one point for each kind of amenity in range (dust bath within 3 tiles, garden within 2, plaza within 4, watchtower within 5), minus one for a quarry or workshop within 2 tiles. Comfort sets how full a home gets (40 %, 60 %, 80 % then 100 % from comfort 0 to 3) and residents move in one per tick. Town happiness is the average comfort of occupied homes, with 3 counting as 100.
+
+Dora and Enzo are your two advisors. Three wishes are open at any time, drawn so both advisors are always asking for something. Dora asks for homes, dust baths in range, gardens, happiness, residents, big burrows and quiet; Enzo asks for quarries, farms, stored hay, income, markets, workshops, roads, watchtowers and terrace farms. Targets grow with the valley number. Granting a wish pays 15 or 20 approval and the same amount of hay. Approval unlocks buildings: Dora gives gardens at 25, big burrows at 50 and extra plazas (which root their own road network) at 75; Enzo gives markets at 25, workshops at 50 and watchtowers at 75. Clearing a tile refunds half its cost; the last plaza cannot be cleared.
+
+Five campaign valleys unlock in order, each with a population goal and an approval both advisors must reach: Meadow Hollow (20 residents, 25), Silver Creek (40, 40), Terrace Steps (60, 50), Condor Shelf (90, 60) and Lake Titicaca Shore (120, 75). Meeting the goal completes the valley and offers the next; you can also stay and keep building. The Open Valley sandbox has no goal. A day lasts 2 minutes, with lamps on plazas, watchtowers and occupied burrows lighting up after dusk, and Dora, Enzo and the residents wander the roads. Progress and the current valley are saved in this browser every few seconds; starting a valley replaces the current save.
+
+**Controls:**
+
+- Click or tap a tile to use the selected tool. A green ghost means it fits, red means it doesn't, and the tile card at the bottom left says why. Road and Clear paint while you drag with the mouse.
+- Tools: 1 burrow, 2 hay farm, 3 dust bath, 4 garden, 5 big burrow, 6 plaza, 7 quarry, 8 market, 9 workshop, 0 watchtower, R road, X clear. Escape returns to the road tool.
+- Camera: drag, WASD or arrows to pan; right-drag, Q and E to rotate; scroll, pinch, + and − to zoom. The ⌂ button resets the view. On-screen buttons cover pan, rotate and zoom for touch.
+- Space or P pauses. Sound can be toggled from the header. The Valleys button returns to the valley menu and keeps the save.
+
+**Tests:** `npm run test:burrow-town` (also in `npm test`) compiles `lib/burrow-town-game.ts` and runs `tests/burrow-town.mjs`: terrain generation for every valley, starting state, road and bridge costs, terrain rules, plaza connectivity and disconnection, farm income and upkeep, comfort and occupancy, terrace and riverside yields, workshop and market yields, approval unlocks, wish completion and replacement, demolition refunds, second plazas, pause, winning, the sandbox and save round-trips.
+
+**Docs:** [`docs/burrow-town.md`](docs/burrow-town.md).
+
 ## Validation
 
 ```sh
@@ -276,7 +298,7 @@ npm run test:e2e   # optional; needs `npm run dev` running and `npm i -D playwri
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, and the `/Thirteen ways/` assertion in `tests/e2e/dust-bath.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fourteen ways/` assertion in `tests/e2e/dust-bath.mjs`, and the 14-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs` and `tests/e2e/paw-buster.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
