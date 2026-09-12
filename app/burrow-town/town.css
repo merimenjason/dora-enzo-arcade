@@ -602,3 +602,113 @@
     padding: 18px;
   }
 }
+
+/* Speed buttons in the header. */
+.bt-speeds {
+  display: inline-flex;
+  gap: 3px;
+  margin: 0 2px;
+}
+.bt-speeds button {
+  min-width: 34px;
+  padding: 6px 6px;
+}
+.bt-speeds button.on {
+  background: var(--gold);
+  color: #2f2a1e;
+  border-color: var(--gold);
+}
+
+/* The countdown to the next simulation tick, under the day readout. */
+.bt-tickbar {
+  margin-top: 5px;
+  height: 3px;
+  border-radius: 2px;
+  background: #2f3a2c22;
+  overflow: hidden;
+}
+.bt-tickbar em {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+}
+
+/* Save slots on the menu. */
+.bt-slots {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0 10px;
+  flex-wrap: wrap;
+}
+.bt-slots button {
+  flex: 1 1 140px;
+  text-align: left;
+  padding: 8px 11px;
+  border-radius: 9px;
+  border: 1px solid #ffffff33;
+  background: #2f3a2c99;
+  color: #f3ecdd;
+}
+.bt-slots button.on {
+  border-color: var(--gold);
+  background: #47533fdd;
+}
+.bt-slots small {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 1.6px;
+  color: var(--gold);
+  font-weight: 700;
+}
+.bt-slots span {
+  font-size: 12px;
+}
+
+/* Legend for the data overlays. */
+.bt-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  background: #fffaf0ee;
+  color: #2f3a2c;
+  border-radius: 9px;
+  padding: 8px 12px;
+  font-size: 11px;
+  max-width: 260px;
+  box-shadow: 0 4px 14px #1e2a1e22;
+  pointer-events: none;
+}
+.bt-legend b {
+  display: block;
+  font: bold 12px Georgia, serif;
+  margin-bottom: 3px;
+}
+.bt-legend i {
+  display: inline-block;
+  width: 13px;
+  height: 9px;
+  border-radius: 2px;
+  margin: 0 4px 0 7px;
+  vertical-align: -1px;
+}
+.bt-legend i:first-of-type {
+  margin-left: 0;
+}
+.bt-legend i.lo {
+  background: #c4442f;
+}
+.bt-legend i.hi {
+  background: #4fbf5f;
+}
+.bt-legend i.ok {
+  background: #4fbf6a;
+}
+.bt-legend i.bad {
+  background: #dd5b48;
+}
+.bt-legend i.hay {
+  background: #f0c14b;
+}
+.bt-legend i.stone {
+  background: #6fa8dc;
+}

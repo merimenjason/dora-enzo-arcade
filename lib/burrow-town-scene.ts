@@ -45,8 +45,13 @@ const M = {
   metal: mat(0x6e7378, { metalness: 0.4, roughness: 0.5 }),
   ghostOk: new T.MeshBasicMaterial({ color: 0x8be08a, transparent: true, opacity: 0.45, depthWrite: false }),
   ghostBad: new T.MeshBasicMaterial({ color: 0xe0705f, transparent: true, opacity: 0.45, depthWrite: false }),
+  ruin: mat(0x9a9086),
+  ruinDark: mat(0x6f665e),
   flowers: [mat(0xf28cb0), mat(0xf7d15c), mat(0xffffff), mat(0xb79ae0)],
 };
+/** Grass colours by season, so a dry day reads at a glance. */
+const GREEN = { grass: new T.Color(0x8fb56a), grassDark: new T.Color(0x7ea45c), terrace: new T.Color(0xa9c07a) };
+const STRAW = { grass: new T.Color(0xbcb06a), grassDark: new T.Color(0xa89c5c), terrace: new T.Color(0xc8bf7e) };
 const G = {
   box: new T.BoxGeometry(1, 1, 1),
   sphere: new T.SphereGeometry(1, 16, 12),
@@ -122,7 +127,7 @@ function roadMesh(mask: number, bridge: boolean, h: number): T.Group {
 }
 
 /** Build the model for a building on a tile. Occupied homes get a lit door. */
-function buildingMesh(id: BuildingId, t: Tile, h: number): T.Group {
+function buildingMesh(id: BuildingId, t: Tile, h: number, ruin = false): T.Group {
   const g = new T.Group();
   g.position.y = h;
   const lamps: T.Mesh[] = [];
@@ -229,6 +234,15 @@ function buildingMesh(id: BuildingId, t: Tile, h: number): T.Group {
       for (let i = 0; i < 6; i++) part(gear, G.box, M.metal, [Math.cos((i / 6) * Math.PI * 2) * 1.15, Math.sin((i / 6) * Math.PI * 2) * 1.15, 0], [0.3, 0.3, 1]);
       break;
     }
+    case 'silo': {
+      part(g, G.cyl, M.stoneDark, [0, 0.04, 0], [0.32, 0.08, 0.32]);
+      part(g, G.cyl, M.woodLight, [0, 0.36, 0], [0.28, 0.62, 0.28]);
+      for (const y of [0.16, 0.36, 0.56]) part(g, G.cyl, M.wood, [0, y, 0], [0.3, 0.035, 0.3]);
+      part(g, G.cone, M.clay, [0, 0.78, 0], [0.34, 0.24, 0.34]);
+      part(g, G.box, M.door, [0, 0.18, 0.29], [0.14, 0.24, 0.02]);
+      part(g, G.box, M.hay, [0.36, 0.08, -0.24], [0.22, 0.16, 0.22]);
+      break;
+    }
     case 'watchtower': {
       part(g, G.cyl, M.stoneDark, [0, 0.08, 0], [0.3, 0.16, 0.3]);
       part(g, G.cyl, M.stone, [0, 0.5, 0], [0.2, 0.7, 0.22]);
@@ -239,10 +253,25 @@ function buildingMesh(id: BuildingId, t: Tile, h: number): T.Group {
       break;
     }
   }
+  if (ruin) {
+    // A derelict building: weathered grey, sunk and leaning, with nothing lit.
+    g.traverse((o) => {
+      if (o instanceof T.Mesh) o.material = rnd() < 0.5 ? M.ruin : M.ruinDark;
+    });
+    g.scale.set(0.88, 0.55, 0.88);
+    g.rotation.z = (rnd() - 0.5) * 0.16;
+    g.rotation.x = (rnd() - 0.5) * 0.12;
+    part(g, G.cyl, M.wood, [0.34, 0.3, 0.3], [0.02, 0.6, 0.02], [0, 0, 0.4]);
+    lamps.length = 0;
+  }
   g.userData.lamps = lamps;
-  g.userData.home = HOUSING.includes(id);
+  g.userData.home = HOUSING.includes(id) && !ruin;
+  g.userData.ruin = ruin;
   return g;
 }
+
+export type Overlay = 'none' | 'comfort' | 'links' | 'income';
+export const OVERLAYS: Overlay[] = ['none', 'comfort', 'links', 'income'];
 
 type Walker = { chin: Chinchilla; pivot: T.Group; from: T.Vector3; to: T.Vector3; tile: [number, number]; progress: number; speed: number; pause: number };
 type Mini = { root: T.Group; from: T.Vector3; to: T.Vector3; tile: [number, number]; progress: number; pause: number };
@@ -265,6 +294,10 @@ export class BurrowTownScene {
   private lights: T.PointLight[] = [];
   private walkers: Walker[] = [];
   private minis: Mini[] = [];
+  /** Which data layer is painted over the valley, if any. */
+  overlay: Overlay = 'none';
+  private plates: T.Mesh[] = [];
+  private overlayGroup = new T.Group();
   private pickPlane = new T.Plane(new T.Vector3(0, 1, 0), -HEIGHT.grass);
   private ray = new T.Raycaster();
   private sky = { day: new T.Color('#bfe0f2'), dusk: new T.Color('#f0b98a'), night: new T.Color('#233350') };
@@ -445,17 +478,17 @@ export class BurrowTownScene {
           this.roads.set(i, { key: rkey, group });
         } else this.roads.delete(i);
       }
-      const bkey = t.b ? `${t.b}|${t.res > 0 ? 1 : 0}|${t.linked ? 1 : 0}` : '';
+      const bkey = t.b ? `${t.b}|${t.res > 0 ? 1 : 0}|${t.linked ? 1 : 0}|${t.ruin ? 1 : 0}` : '';
       const b = this.built.get(i);
       if ((b?.key ?? '') !== bkey) {
         if (b) this.scene.remove(b.group);
         if (bkey) {
           seed = i * 31 + 7;
-          const group = buildingMesh(t.b!, t, h);
+          const group = buildingMesh(t.b!, t, h, t.ruin);
           group.position.set(p.x, h, p.z);
           group.rotation.y = t.b === 'plaza' ? 0 : ((i * 7919) % 4) * (Math.PI / 2);
           group.userData.lit = t.res > 0 || !HOUSING.includes(t.b!);
-          if (!t.linked && t.b !== 'plaza') {
+          if (!t.linked && t.b !== 'plaza' && !t.ruin) {
             // A bobbing marker over anything the roads have not reached yet.
             const flag = part(group, G.cone, M.cloth, [0, 1.15, 0], [0.09, 0.16, 0.09], [Math.PI, 0, 0]);
             flag.userData.puff = 0;
@@ -465,6 +498,51 @@ export class BurrowTownScene {
           this.built.set(i, { key: bkey, group, born: b ? now : 0 });
         } else this.built.delete(i);
       }
+    }
+  }
+
+  setOverlay(mode: Overlay) {
+    this.overlay = mode;
+  }
+  /** Paint one data layer over the tiles: desirability, what the roads reach, or what earns. */
+  private syncOverlay(g: BurrowTown) {
+    if (this.overlay === 'none') {
+      this.overlayGroup.visible = false;
+      return;
+    }
+    if (!this.plates.length) {
+      const geo = new T.PlaneGeometry(TILE * 0.94, TILE * 0.94);
+      for (let i = 0; i < W * H; i++) {
+        const m = new T.Mesh(geo, new T.MeshBasicMaterial({ transparent: true, depthWrite: false }));
+        m.rotation.x = -Math.PI / 2;
+        this.overlayGroup.add(m);
+        this.plates.push(m);
+      }
+      this.scene.add(this.overlayGroup);
+    }
+    this.overlayGroup.visible = true;
+    const c = new T.Color();
+    for (const t of g.tiles) {
+      const plate = this.plates[t.y * W + t.x];
+      const p = world(t.x, t.y);
+      plate.position.set(p.x, HEIGHT[t.t] + 0.05, p.z);
+      const m = plate.material as T.MeshBasicMaterial;
+      let opacity = 0.55;
+      if (this.overlay === 'comfort') {
+        if (t.t === 'river') opacity = 0;
+        else c.setHSL(0.02 + Math.max(0, Math.min(1, t.desire / 4)) * 0.3, 0.8, 0.48);
+      } else if (this.overlay === 'links') {
+        if (!t.b && !t.road) opacity = 0;
+        else c.set(t.linked ? 0x4fbf6a : 0xdd5b48);
+      } else {
+        const earn = t.yield + t.stoneYield * 2;
+        if (!earn) opacity = t.b && !t.ruin ? 0.18 : 0;
+        else c.set(t.stoneYield ? 0x6fa8dc : 0xf0c14b);
+        if (earn) opacity = 0.35 + Math.min(0.5, earn / 10);
+      }
+      m.opacity = opacity;
+      m.color.copy(c);
+      plate.visible = opacity > 0;
     }
   }
 
@@ -552,6 +630,12 @@ export class BurrowTownScene {
     const dt = this.clock ? Math.min(0.1, t - this.clock) : 0;
     this.clock = t;
     this.sync(g, t);
+    this.syncOverlay(g);
+    // A dry day bleaches the grass; it fades back overnight.
+    const straw = g.dry ? 1 : 0;
+    M.grass.color.lerpColors(GREEN.grass, STRAW.grass, straw);
+    M.grassDark.color.lerpColors(GREEN.grassDark, STRAW.grassDark, straw);
+    M.terrace.color.lerpColors(GREEN.terrace, STRAW.terrace, straw);
     // Day-night: daylight 0..0.5 is day, 0.5..1 is dusk into night and dawn.
     const d = g.daylight;
     const night = d < 0.5 ? 0 : d < 0.62 ? (d - 0.5) / 0.12 : d < 0.88 ? 1 : 1 - (d - 0.88) / 0.12;
