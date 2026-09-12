@@ -42,3 +42,6 @@ next-env.d.ts
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 /graft/
+
+# Scratch browser scripts used while checking a game by hand
+tests/e2e/.tmp/
