@@ -1,0 +1,14 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch();
+const page = await browser.newContext().then((c) => c.newPage());
+const errors = [];
+page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+await page.goto('https://chinchillas.jason.engineering/dusty-hollow', { waitUntil: 'networkidle' });
+await page.getByRole('button', { name: 'Play as Dora and Enzo' }).click();
+await page.waitForSelector('canvas');
+await page.locator('canvas').focus();
+await page.waitForTimeout(1500);
+const voxelGone = await page.getByText('Voxel 3D view').count();
+await page.locator('canvas').screenshot({ path: '/tmp/live-story.png' });
+console.log(JSON.stringify({ errors, voxelToggleStillThere: voxelGone }));
+await browser.close();

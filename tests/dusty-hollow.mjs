@@ -3,7 +3,7 @@ import {
   Hollow, W, H, DAY, POCKETS, LOANS, HOME_GRID, BITE_WINDOW, ROCK_HITS, ROCK_DROPS, FOSSILS_PER_DAY, SHELLS_PER_DAY, SAPLING_DAYS, SHOP_OPEN,
   FISH, BUGS, FOSSILS, FURNITURE, GOALS, BUILDINGS, NEIGHBOURS, BIRTHDAYS, STREET_Y, TOOL_PRICES, FRUIT_PRICE, FLOWER_PRICE, HYBRIDS, WAKE, BEDTIME,
   FESTIVAL_PRIZES, SNOWMAN_PRIZE, SNOWBALLS, WISH_PRIZE, BIRTHDAY_BONUS, makeTerrain,
-  SNEAK, WING_REWARD, SET_BONUS, BALLOON_PRIZE, GOLDEN_FRUIT, VISIT_FRIENDSHIP, HAUNTS, WINGS, SETS, DAYS_PER_SEASON, JACKPOTS, FRIEND_MAX, SEASONS,
+  SNEAK, WING_REWARD, SET_BONUS, BALLOON_PRIZE, GOLDEN_FRUIT, VISIT_FRIENDSHIP, HAUNTS, WINGS, SETS, DAYS_PER_SEASON, JACKPOTS, FRIEND_MAX, SEASONS, CEREMONY_LINES, TOOL_NAMES,
 } from '../.checks/dusty-hollow-game.js';
 
 let checks = 0;
@@ -1174,6 +1174,144 @@ test('Dora and Enzo move in together, one following and either playable', () => 
   assert.equal(h.escort, false);
   assert.equal(h.hero, 'dora');
   assert.equal(h.companion.name, 'Enzo');
+});
+
+test('the trowel paves the hollow, and only your own paving lifts again', () => {
+  const g = fresh();
+  assert.equal(TOOL_NAMES.trowel, 'Trowel');
+  assert.equal(g.tools.includes('trowel'), false, 'it has to be bought');
+  g.screen = 'shop'; g.raisins = TOOL_PRICES.trowel;
+  assert.match(g.buy('trowel'), /Bought trowel/);
+  g.exit();
+  g.setTool('trowel');
+  // Find a clear patch of grass away from everything.
+  let spot = null;
+  for (let y = 2; y < H - 6 && !spot; y++) for (let x = 2; x < W - 2 && !spot; x++) if (g.pavable(x, y) && g.pavable(x, y + 1)) spot = [x, y];
+  assert.ok(spot, 'there is grass to pave');
+  const [px, py] = spot;
+  stand(g, px, py + 1, 0);
+  assert.equal(g.peek().hint, 'Lay paving');
+  assert.match(g.interact(), /Laid a path stone/);
+  assert.equal(g.tileAt(px, py), 'path');
+  assert.equal(g.originalAt(px, py), 'grass', 'the map underneath is untouched');
+  assert.ok(g.paved(px, py));
+  assert.equal(g.stats.paved, 1);
+  assert.ok(!g.pavable(px, py), 'no paving the same tile twice');
+  assert.equal(g.peek().hint, 'Lift it back to grass');
+  assert.match(g.interact(), /Lifted the stone/);
+  assert.equal(g.tileAt(px, py), 'grass');
+  assert.ok(!g.paved(px, py));
+  // The village's own street is not yours to lift.
+  stand(g, 12, STREET_Y + 1, 0);
+  assert.equal(g.tileAt(12, STREET_Y), 'path');
+  assert.ok(!g.paved(12, STREET_Y), 'the street was always there');
+  // Paving is walkable and survives a save.
+  g.interact();
+  stand(g, px, py + 1, 0);
+  g.interact();
+  const h = Hollow.load(JSON.parse(JSON.stringify(g.save())));
+  assert.equal(h.tileAt(px, py), 'path');
+  assert.deepEqual(h.edits, g.edits);
+  assert.ok(!h.solid(px, py), 'you can walk on your own path');
+});
+
+test('the trowel digs a tree up to move it, but never a golden one', () => {
+  const g = fresh();
+  g.tools.push('trowel');
+  g.setTool('trowel');
+  const tree = g.trees.find((t) => !t.grown);
+  const was = g.trees.length;
+  stand(g, tree.x, tree.y + 1, 0);
+  assert.match(g.peek().hint, /Dig it up to replant/);
+  assert.match(g.interact(), /Dug up the apple tree/);
+  assert.equal(g.trees.length, was - 1);
+  assert.equal(g.pockets[0].id, 'apple');
+  assert.ok(!g.solid(tree.x, tree.y), 'the ground is free again');
+  // Replant it somewhere else with the shovel; it costs the sapling days.
+  g.tools.push('shovel'); g.setTool('shovel'); g.select(0);
+  let spot = null;
+  for (let y = 2; y < H - 6 && !spot; y++) for (let x = 2; x < W - 2 && !spot; x++) if (g.freeGrass(x, y) && !g.solid(x, y + 1)) spot = [x, y];
+  stand(g, spot[0], spot[1] + 1, 0);
+  assert.match(g.interact(), /Planted an apple sapling/);
+  assert.equal(g.trees.length, was);
+  assert.ok(g.treeAt(spot[0], spot[1]).grown > 0);
+  const golden = { x: 1, y: 1, fruit: 'pear', count: 3, grown: 0, golden: true };
+  g.trees.push(golden);
+  g.setTool('trowel');
+  stand(g, 1, 2, 0);
+  assert.match(g.peek().hint, /Too precious/);
+  assert.match(g.interact(), /Far too precious to move/);
+  assert.ok(g.trees.includes(golden));
+});
+
+test('furniture can stand out in the hollow, and comes back when you lift it', () => {
+  const g = fresh();
+  g.tools.push('trowel');
+  g.setTool('trowel');
+  g.pockets.push(g.itemFor('furniture', 'lamp'));
+  g.select(0);
+  let spot = null;
+  for (let y = 2; y < H - 6 && !spot; y++) for (let x = 2; x < W - 2 && !spot; x++) if (g.freeGrass(x, y) && !g.solid(x, y + 1)) spot = [x, y];
+  const [px, py] = spot;
+  stand(g, px, py + 1, 0);
+  assert.match(g.peek().hint, /Stand the paper lamp here/);
+  assert.match(g.interact(), /Stood the paper lamp out in the hollow/);
+  assert.deepEqual(g.outdoor, [{ id: 'lamp', x: px, y: py }]);
+  assert.equal(g.pockets.length, 0);
+  assert.ok(g.solid(px, py), 'you cannot walk through it');
+  assert.equal(g.peek().target, 'Paper Lamp');
+  assert.ok(g.roomScore > 0, 'it counts toward Vito’s rating');
+  assert.match(g.interact(), /Took the paper lamp back/);
+  assert.deepEqual(g.outdoor, []);
+  assert.equal(g.pockets[0].id, 'lamp');
+  assert.ok(!g.solid(px, py));
+  g.select(0);
+  g.interact();
+  const h = Hollow.load(JSON.parse(JSON.stringify(g.save())));
+  assert.deepEqual(h.outdoor, [{ id: 'lamp', x: px, y: py }]);
+});
+
+test('the hollow gets an ending once the list, the museum and the neighbours are done', () => {
+  const g = fresh();
+  setHour(g, 19);
+  assert.ok(!g.finaleReady);
+  for (const goal of GOALS) if (!g.goals.includes(goal.id)) g.goals.push(goal.id);
+  g.checkGoals();
+  assert.ok(g.arrived.includes('lupe') && g.arrived.includes('nico'), 'the late arrivals count too');
+  assert.ok(!g.finaleReady, 'the museum still has gaps');
+  for (const sp of [...FISH, ...BUGS, ...FOSSILS]) g.donated.push(sp.id);
+  assert.ok(!g.finaleReady, 'and not everyone is a Best friend yet');
+  for (const v of g.residents) g.friendship[v.id] = FRIEND_MAX;
+  assert.ok(g.finaleReady);
+  // Too early in the day for lanterns.
+  setHour(g, 12);
+  ticks(g, 1);
+  assert.equal(g.ceremony, null);
+  setHour(g, 19);
+  g.step(0.1);
+  assert.deepEqual(g.ceremony, { t: 0, line: 0 }, 'the ceremony starts on the step that notices');
+  assert.equal(g.message, CEREMONY_LINES[0]);
+  // The village gathers round rather than wandering off.
+  const far = g.residents.map((v) => Math.hypot(v.x - g.x, v.y - g.y));
+  ticks(g, 4);
+  assert.ok(g.residents.every((v, i) => Math.hypot(v.x - g.x, v.y - g.y) <= Math.max(2.6, far[i])), 'everyone closes in');
+  // Step in small beats so the closing line can be caught before it fades.
+  const spoken = new Set();
+  let closing = '';
+  for (let i = 0; i < 1500 && !g.ended; i++) {
+    if (g.ceremony) spoken.add(g.ceremony.line);
+    g.step(0.1);
+    if (g.ended && !closing) closing = g.message;
+  }
+  assert.equal(g.ceremony, null);
+  assert.ok(g.ended);
+  assert.equal(spoken.size, CEREMONY_LINES.length, 'every line of the script is spoken');
+  assert.equal(g.stats.ending, g.day);
+  assert.match(closing, /The hollow is home/);
+  // It happens once, and it survives a save.
+  ticks(g, 30);
+  assert.equal(g.ceremony, null);
+  assert.ok(Hollow.load(JSON.parse(JSON.stringify(g.save()))).ended);
 });
 
 console.log(`Dusty Hollow: ${checks} checks passed.`);

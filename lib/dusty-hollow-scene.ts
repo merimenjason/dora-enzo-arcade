@@ -8,6 +8,7 @@
 //   * a soft ink outline on anything that stands up, so it lifts off the grass;
 //   * a warm grade and vignette over the finished frame.
 import { Hollow, W, H, BUILDINGS, BOARD, FACE, BUGS, NEIGHBOURS, type Terrain, type Season } from './dusty-hollow-game';
+import { piece } from './dusty-hollow-room';
 
 export const TILE = 44;
 export const VIEW_W = 960;
@@ -153,6 +154,7 @@ export class HollowScene {
     for (const t of g.trees) sprites.push({ y: t.y + 0.5, draw: () => this.tree(g, t.x, t.y, t.fruit, t.count, t.grown > 0, !!t.golden) });
     for (const r of g.rocks) sprites.push({ y: r.y + 0.4, draw: () => this.rock(r.x, r.y, r.hits) });
     for (const s of g.snowmen) sprites.push({ y: s.y + 0.5, draw: () => this.snowman(s.x, s.y) });
+    for (const p of g.outdoor) sprites.push({ y: p.y + 0.5, draw: () => this.outdoorPiece(p.id, p.x, p.y) });
     for (const v of g.residents) if (g.out(v)) sprites.push({ y: v.y, draw: () => this.critter(v.x, v.y, SPECIES_BODY[v.species] ?? v.color, v.species, v.facing, false, v.name, g.requests.some((r) => r.villager === v.id && !r.done), undefined, g.isBirthday(v.id)) });
     sprites.push({ y: g.y, draw: () => this.critter(g.x, g.y, SPECIES_BODY[g.hero], g.hero, g.facing, g.moving, `${g.heroName} (you)`, false, g.tool, false, g.sneaking) });
     sprites.sort((a, b) => a.y - b.y).forEach((s) => s.draw());
@@ -162,6 +164,7 @@ export class HollowScene {
     if (g.reaction) this.reaction(g.x, g.y, g.reaction.icon, g.reaction.age);
     if (g.balloon) this.balloon(g.balloon.x, g.balloon.y, g.balloonInReach);
     c.restore();
+    if (g.ceremony || (g.ended && g.isNight)) this.lanterns();
     this.weather(g);
     this.light(g);
     if (g.star > 0) this.shootingStar(g.star);
@@ -345,6 +348,31 @@ export class HollowScene {
       this.stroke(1);
     }
     this.label(b.id === 'home' ? g.houseName : b.name, px + w / 2, wallTop + 17, 'bold 11px Arial', '#fff4e0');
+  }
+  /** A piece of furniture standing out in the hollow, drawn by the burrow's own hand. */
+  private outdoorPiece(id: string, x: number, y: number) {
+    const px = x * TILE + TILE / 2, base = y * TILE + TILE * 0.86;
+    this.drop(px, base + 2, 15, 5, 0.2);
+    piece(this.c, id, px, base, TILE * 0.92, (w, col) => this.stroke(w, col), this.time);
+  }
+  /** Paper lanterns going up over the hollow while the village says goodnight. */
+  private lanterns() {
+    const c = this.c;
+    for (let i = 0; i < 22; i++) {
+      const t = ((this.time * 0.055 + i * 0.137) % 1);
+      const lx = ((i * 149) % VIEW_W) + Math.sin(this.time * 0.6 + i) * 16;
+      const ly = VIEW_H - t * (VIEW_H + 80) + 40;
+      const a = Math.min(1, t * 5) * (1 - t * 0.65);
+      c.globalAlpha = a * 0.34;
+      c.fillStyle = '#ffca70';
+      c.beginPath(); c.arc(lx, ly, 17, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = a;
+      c.fillStyle = '#ffdd97';
+      c.beginPath(); c.roundRect(lx - 5, ly - 7, 10, 14, 3); c.fill();
+      c.fillStyle = '#e2954a';
+      c.fillRect(lx - 5, ly + 5, 10, 2);
+      c.globalAlpha = 1;
+    }
   }
   private board() {
     const c = this.c, px = BOARD.x * TILE + TILE / 2, py = BOARD.y * TILE + TILE / 2;

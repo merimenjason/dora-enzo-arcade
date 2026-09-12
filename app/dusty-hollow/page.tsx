@@ -13,8 +13,8 @@ import './hollow.css';
 
 const SAVE_KEY = 'dusty-hollow-save-v1';
 const SETTINGS_KEY = 'dusty-hollow-settings';
-const TOOL_ORDER: Tool[] = ['hands', 'net', 'rod', 'shovel', 'can'];
-const TOOL_ICON: Record<Tool, string> = { hands: '🐾', net: '🥅', rod: '🎣', shovel: '⛏️', can: '🚿' };
+const TOOL_ORDER: Tool[] = ['hands', 'net', 'rod', 'shovel', 'can', 'trowel'];
+const TOOL_ICON: Record<Tool, string> = { hands: '🐾', net: '🥅', rod: '🎣', shovel: '⛏️', can: '🚿', trowel: '🧱' };
 const KIND_ICON: Record<Item['kind'], string> = { fish: '🐟', bug: '🐛', fossil: '🦴', fruit: '🍎', flower: '🌸', seed: '🌱', furniture: '🪑', shell: '🐚' };
 const WEATHER_ICON = { clear: '☀️', rain: '🌧️', snow: '❄️' };
 const SEASON_ICON = { spring: '🌷', summer: '☀️', autumn: '🍂', winter: '❄️' };
@@ -35,6 +35,7 @@ export default function DustyHollow() {
   const touch = useRef({ dx: 0, dy: 0, hold: false, sneak: false });
   const sound = useRef<HollowSound | null>(null);
   const room = useRef<HTMLCanvasElement>(null);
+  const endSeen = useRef(false);
   /** The room is painted in the animation loop, which cannot see React state. */
   const held = useRef<{ pocket?: number; placed?: Placed } | null>(null);
   const [screen, setScreen] = useState<'title' | 'play'>('title');
@@ -43,6 +44,8 @@ export default function DustyHollow() {
   const [levels, setLevels] = useState({ music: 0.5, effects: 0.7 });
   const [passport, setPassport] = useState(false);
   const [photo, setPhoto] = useState(false);
+  /** The closing card, shown once the hollow is finished until it is waved away. */
+  const [farewell, setFarewell] = useState(false);
   const [picked, setPicked] = useState<{ pocket?: number; placed?: Placed } | null>(null);
   const [, setTick] = useState(0);
 
@@ -74,7 +77,7 @@ export default function DustyHollow() {
     persist();
     setHasSave(true);
   };
-  const quit = () => { persist(); game.current = null; setScreen('title'); setPassport(false); setPhoto(false); setPicked(null); };
+  const quit = () => { persist(); game.current = null; setScreen('title'); setPassport(false); setPhoto(false); setPicked(null); setFarewell(false); endSeen.current = false; };
   /** Save the current frame as a PNG in the browser's downloads. */
   const snapshot = () => {
     const g = game.current, cv = canvas.current;
@@ -110,6 +113,7 @@ export default function DustyHollow() {
       if (g.live) g.syncLive(new Date());
       g.step(dt, { dx, dy, run: k.has('ShiftLeft') || k.has('ShiftRight'), hold, sneak });
       if (g.event) { cue(g.event); g.event = ''; }
+      if (g.ended && !endSeen.current) { endSeen.current = true; setFarewell(true); }
       sc.draw(g, dt);
       if (g.screen === 'home' && room.current) drawRoom(room.current, g, held.current, now / 1000);
       sound.current?.update(dt, g.hour, g.weather, g.y > H - 8, g.season);
@@ -131,7 +135,7 @@ export default function DustyHollow() {
       if (!g) return;
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      if (e.code === 'Escape') { e.preventDefault(); if (photo) setPhoto(false); else if (passport) setPassport(false); else if (g.summary) g.summary = null; else if (g.dialog) g.dialog = null; else if (g.screen !== 'world') { g.exit(); setPicked(null); } bump(); return; }
+      if (e.code === 'Escape') { e.preventDefault(); if (farewell) setFarewell(false); else if (photo) setPhoto(false); else if (passport) setPassport(false); else if (g.summary) g.summary = null; else if (g.dialog) g.dialog = null; else if (g.screen !== 'world') { g.exit(); setPicked(null); } bump(); return; }
       if (g.summary && !g.dialog && (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyE')) { e.preventDefault(); g.summary = null; bump(); return; }
       if (g.dialog) {
         const n = ['Digit1', 'Digit2', 'Digit3'].indexOf(e.code);
@@ -143,7 +147,7 @@ export default function DustyHollow() {
       if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(e.code)) e.preventDefault();
       keys.current.add(e.code);
       if ((e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyE') && !e.repeat) act();
-      const t = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].indexOf(e.code);
+      const t = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'].indexOf(e.code);
       if (t >= 0) { g.setTool(TOOL_ORDER[t]); bump(); }
       if (e.code === 'Tab') { e.preventDefault(); g.cycleTool(); bump(); }
       if (e.code === 'KeyP') setPassport((p) => !p);
@@ -157,7 +161,7 @@ export default function DustyHollow() {
     window.addEventListener('keyup', up);
     window.addEventListener('blur', blur);
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur); };
-  }, [screen, passport, photo]);
+  }, [screen, passport, photo, farewell]);
 
   const g = game.current;
   const night = !!g && g.isNight;
@@ -324,7 +328,7 @@ export default function DustyHollow() {
                   <h3>Furniture in your pockets</h3>
                   {g.pockets.map((p, i) => p.kind === 'furniture' ? <button key={i} className={picked?.pocket === i ? 'dh-strong' : ''} onClick={() => { setPicked(picked?.pocket === i ? null : { pocket: i }); }}>{FURN_ICON[p.id]} {p.name} <b>{picked?.pocket === i ? 'click a tile' : 'place'}</b></button> : null)}
                   {!g.pockets.some((p) => p.kind === 'furniture') && <p className="dh-muted">No furniture in your pockets. Vito sells three pieces a day.</p>}
-                  <p className="dh-muted">Sets: {SETS.map((set) => `${set} ${g.setCount(set)}/${FURNITURE.filter((f) => f.set === set).length}`).join(' · ')}. Three matching pieces earn a 1,000-raisin bonus and a better rating.</p>
+      <p className="dh-muted">Sets: {SETS.map((set) => `${set} ${g.setCount(set)}/${FURNITURE.filter((f) => f.set === set).length}`).join(' · ')}. Three matching pieces earn a 1,000-raisin bonus and a better rating. With the trowel in hand you can stand furniture outside too.</p>
                   {picked?.placed && <p className="dh-muted">Click an empty tile to move the {FURNITURE.find((f) => f.id === picked.placed!.id)!.name.toLowerCase()}, or click it again to pick it up.</p>}
                 </section>
                 <section>
@@ -335,6 +339,17 @@ export default function DustyHollow() {
                 </section>
               </div>
               <button className="dh-leave" onClick={() => { g.exit(); setPicked(null); bump(); }}>Step outside · Esc</button>
+            </div>
+          )}
+          {farewell && (
+            <div className="dh-panel dh-farewell" aria-label="The hollow is home">
+              <h2>The hollow is home</h2>
+              <p>Every case in the museum is full, every name on {g.friendName}’s list is ticked, and there is not a neighbour left who would call you anything but a Best friend. The lanterns are still going up over the sea.</p>
+              <div className="dh-tally">
+                {([['Days here', g.stats.days], ['Species found', g.caught.length], ['Museum', `${g.donated.length}/${g.museumTotal}`], ['Raisins earned', g.stats.sold.toLocaleString()], ['Festivals placed', g.stats.festivals], ['Keepsakes', g.keepsakes.length], ['Wishes granted', g.stats.wishes], ['Paths laid', g.stats.paved]] as const).map(([k, v]) => <p key={k}><b>{v}</b><small>{k}</small></p>)}
+              </div>
+              <p className="dh-muted">Nothing stops here. The seasons keep turning, the fish keep biting, and the hollow is yours to potter about in for as long as you like.</p>
+              <button className="dh-leave" onClick={() => setFarewell(false)}>Stay a while longer · Esc</button>
             </div>
           )}
           {passport && (
@@ -406,7 +421,7 @@ export default function DustyHollow() {
               <span>Effects</span><input type="range" min={0} max={1} step={0.05} value={levels.effects} onChange={(e) => setLevel('effects', Number(e.target.value))} aria-label="Effects volume" />
             </div>
           </div>
-          <p className="dh-help">WASD / arrows move, Shift runs (bugs notice runners), C or Ctrl sneaks up on shy bugs, X swaps between Dora and Enzo. Space or E uses the tool in front of you, talks, shakes trees, reads the board, enters doors or throws a fruit at a passing balloon; hold it to reel a hooked fish. Digits pick a reply. O sorts pockets, F is photo mode. Days last six minutes; sleep at home to skip to morning.</p>
+          <p className="dh-help">WASD / arrows move, Shift runs (bugs notice runners), C or Ctrl sneaks up on shy bugs, X swaps between Dora and Enzo. The trowel lays paving, digs trees up to move them and stands furniture out in the hollow. Space or E uses the tool in front of you, talks, shakes trees, reads the board, enters doors or throws a fruit at a passing balloon; hold it to reel a hooked fish. Digits pick a reply. O sorts pockets, F is photo mode. Days last six minutes; sleep at home to skip to morning.</p>
         </aside>
       </div>
       <footer className="dh-foot"><span>Dora and Enzo in Dusty Hollow · steering {HERO_NAMES[g.hero]} · autosaves in this browser</span></footer>

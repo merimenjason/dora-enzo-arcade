@@ -2,6 +2,18 @@
 
 A cozy village-life game: Dora and Enzo move into a seaside Andean hollow together. Rules live in `lib/dusty-hollow-game.ts` (deterministic, no DOM), the Canvas 2D view in `lib/dusty-hollow-scene.ts`, procedural sound in `app/dusty-hollow/sound.ts`, and the page in `app/dusty-hollow/`. Numbers below come from the engine's constants.
 
+## Shaping the hollow
+
+The map itself is still the fixed `makeTerrain()`; what the player changes lives in `edits`, a sparse record keyed `"x,y"` that `tileAt()` consults first. `originalAt()` reads past it, which is how `paved()` tells your own stones from the village's street: only a tile that is `path` in `edits` and `grass` underneath can be lifted. `pavable()` is deliberately looser than `freeGrass()`, since paving right up to your own door is the point.
+
+The Trowel (`TOOL_PRICES.trowel`) holds every landscaping verb, and `interact()` branches on what it faces: a tree becomes `digTree()`, which returns the tree's fruit so replanting costs the usual `SAPLING_DAYS` (a golden tree refuses); your own paving becomes `unpave()`; grass with a furniture item selected becomes `standOutside()`; plain grass becomes `pave()`.
+
+`outdoor` holds furniture standing in the hollow, in world tile coordinates. Those tiles are `solid()`, and placement goes through `freeGrass()` so nothing can be dropped on the street or across a doorway. The village scene draws them with `piece()` imported from the room module, so a lamp looks the same on the grass as it does on the floorboards. `roomScore` counts what is outside as well as in, plus fifteen points a paving stone.
+
+## The ending
+
+`finaleReady` is true once every goal is ticked, `donated` covers all 41 species and every resident is at `FRIEND_MAX`. The next time the hero is outdoors between 18:00 and 21:00, `startCeremony()` runs: `moveVillagers()` hands every resident to `gather()`, which walks them into a ring around the hero, and `runCeremony()` speaks one line of `CEREMONY_LINES` every six seconds. When the script runs out, `ended` is set for good, `stats.ending` records the day and the page shows a closing tally. The scene floats lanterns up the screen during the ceremony and on any night afterwards. Nothing else stops: the day still rolls over, the seasons still turn.
+
 ## The burrow interior
 
 `lib/dusty-hollow-room.ts` draws the inside of the burrow on its own canvas, in the same hand as the village. `ROOM` and `tileRect(cols, rows, x, y)` are the single source of truth for where a floor tile is: the page lays a grid of transparent buttons over the canvas, positioned as percentages of those same rectangles, so the clicking and the painting can never drift apart. The room is repainted in the page's animation loop, which is what lets the stove flicker and the lamp glow; because that loop cannot see React state, the held item is mirrored into a ref.
@@ -133,6 +145,10 @@ On clear summer nights from 20:00, `sky()` streaks a shooting star (`star` count
 ## Flowers
 
 `breedFlowers()` runs every new day. Each watered flower with a watered four-neighbour has a 45% chance to spawn a new flower on an adjacent free grass tile, taking a `HYBRIDS` colour half the time when the parents' pair is listed (red+yellow → orange, red+white → pink, white+yellow → purple, white+white → blue), otherwise one parent's colour. Watering wears off overnight.
+
+## Music
+
+`MELODY` holds one phrase per season as `[semitones above the root, beats]` pairs, pentatonic so it never fights the pad, and `melody()` steps through it in `update()`. Beats lengthen from day to evening to night; at night the tune drops an octave, skips every other note and rests longer between passes, and rain pulls the gain down. `SEASON_KEY` transposes both the tune and the pad, so spring and winter are the same music in different rooms.
 
 ## Saves
 

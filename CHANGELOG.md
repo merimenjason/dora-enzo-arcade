@@ -4,6 +4,12 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 13-09-2026
 
+### Added
+
+- **Dusty Hollow:** the hollow is yours to shape. The new Trowel from Vito's lays your own paths anywhere on the grass and lifts them again, digs a whole tree up so you can replant it where you want it, and stands furniture out in the open air, drawn exactly as it is indoors. Paving, moved trees and everything outside are saved with the village, and it all counts toward Vito's rating of the place.
+- **Dusty Hollow:** the game has an ending. Tick every goal, fill all 41 museum cases and make a Best friend of every neighbour, and at dusk the whole village comes up the street with lanterns to say its piece. Nothing stops afterwards: the seasons keep turning and the hollow is still there to potter about in.
+- **Dusty Hollow:** real music. The hollow now has a tune, one phrase for each season, played over the old ambient pad. At night it drops an octave, thins out and rests longer between passes, and rain softens it.
+
 ### Changed
 
 - **Dusty Hollow:** the burrow is now a room you look into rather than a grid of labels. Canvas walls in the tent and plaster once you upgrade, a window showing the same sky, weather and stars as outside, floorboards, and every piece of furniture drawn in place. The paper lamp throws a pool of light that is brightest at night and the pebble stove burns away in the corner, so an unlit room feels cold and lighting it feels like something. Both show from the street as well: the stove earns a smoking chimney and the lamp a warmer window.

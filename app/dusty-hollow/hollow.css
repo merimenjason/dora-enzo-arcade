@@ -198,7 +198,7 @@
 .dh-card p { margin: 6px 0 0; font-size: 14px; line-height: 1.5; }
 .dh-card p b { color: var(--berry); }
 .dh-night .dh-card p b { color: #e2b3d4; }
-.dh-tools > div { display: flex; gap: 6px; }
+.dh-tools > div { display: flex; gap: 6px; flex-wrap: wrap; }
 .dh-tools button {
   position: relative;
   width: 46px;
@@ -321,3 +321,13 @@
 .dh-actions { display: flex; align-items: flex-end; gap: 10px; }
 .dh-sneak { width: 46px; height: 46px; border-radius: 50%; border: 1px solid #ffffff55; background: #34302acc; color: #fff; font-size: 20px; }
 .dh-sneak.on { background: #5f8a4acc; border-color: #fff; }
+
+/* The closing card */
+.dh-farewell { text-align: center; justify-content: center; gap: 16px; }
+.dh-farewell h2 { font-size: 34px; }
+.dh-farewell p { max-width: 620px; margin: 0 auto; font-size: 15px; line-height: 1.7; }
+.dh-tally { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; max-width: 640px; margin: 0 auto; }
+.dh-tally p { display: flex; flex-direction: column; gap: 2px; }
+.dh-tally b { font: 700 22px Georgia, serif; color: #8a4b7a; }
+.dh-tally small { font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; opacity: 0.6; }
+@media (max-width: 980px) { .dh-tally { grid-template-columns: repeat(2, 1fr); } }

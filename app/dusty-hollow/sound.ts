@@ -29,6 +29,16 @@ const CUES: Record<string, [number, number, OscillatorType][]> = {
 };
 /** Each season plays the pad in its own key: up a tone for summer, down for autumn, lower still for winter. */
 const SEASON_KEY: Record<string, number> = { spring: 1, summer: 1.122, autumn: 0.943, winter: 0.841 };
+/** The hollow's tune, one phrase per season, as [semitones above the key's root, beats].
+ *  A null note is a rest. Everything is pentatonic, so it never argues with the pad. */
+const MELODY: Record<string, [number | null, number][]> = {
+  spring: [[12, 1], [14, 1], [16, 2], [14, 1], [12, 1], [9, 2], [7, 1], [9, 1], [12, 2], [null, 2], [16, 1], [14, 1], [12, 2], [9, 1], [7, 1], [4, 3], [null, 3]],
+  summer: [[16, 1], [16, 1], [14, 1], [16, 1], [19, 2], [16, 2], [14, 1], [12, 1], [14, 2], [null, 1], [12, 1], [9, 1], [12, 1], [14, 2], [16, 3], [null, 3]],
+  autumn: [[9, 2], [7, 1], [4, 2], [7, 1], [9, 3], [null, 1], [12, 2], [9, 1], [7, 2], [4, 1], [2, 3], [null, 2], [7, 1], [9, 1], [7, 2], [4, 4], [null, 3]],
+  winter: [[19, 3], [16, 2], [null, 1], [14, 3], [12, 2], [null, 2], [16, 2], [19, 4], [null, 2], [12, 2], [9, 4], [null, 4]],
+};
+const ROOT = 261.63;
+const step = (semitones: number) => Math.pow(2, semitones / 12);
 
 export class HollowSound {
   private ctx: AudioContext | null = null;
@@ -42,6 +52,11 @@ export class HollowSound {
   private music = 0.5;
   private effects = 0.7;
   private key = 1;
+  private tune: [number | null, number][] = MELODY.spring;
+  private note = 0;
+  private noteTimer = 0;
+  /** Seconds of quiet between one pass of the phrase and the next. */
+  private restTimer = 0;
 
   start() {
     if (this.ctx) { void this.ctx.resume(); return; }
@@ -103,9 +118,43 @@ export class HollowSound {
     if (mood !== this.mood || key !== this.key) { this.mood = mood; this.key = key; this.padChord = 0; this.setChord(); }
     this.padTimer -= dt;
     if (this.padTimer <= 0) { this.padChord = (this.padChord + 1) % 4; this.setChord(); }
+    this.tune = MELODY[season] ?? MELODY.spring;
+    this.melody(dt, mood, weather);
     const t = this.ctx.currentTime;
     this.rain?.gain.setTargetAtTime(weather === 'rain' ? 0.12 * this.music : 0, t, 1.5);
     this.sea?.gain.setTargetAtTime(nearSea ? 0.16 * this.music : 0.03 * this.music, t, 2);
+  }
+  /** Play the season's phrase over the pad: slower and an octave down at night,
+   *  softer in the rain, then a long rest before it comes round again. */
+  private melody(dt: number, mood: Mood, weather: 'clear' | 'rain' | 'snow') {
+    if (!this.ctx || this.music <= 0.001) return;
+    if (this.restTimer > 0) { this.restTimer -= dt; return; }
+    this.noteTimer -= dt;
+    if (this.noteTimer > 0) return;
+    const night = mood === 'night';
+    const beat = night ? 0.62 : mood === 'evening' ? 0.52 : 0.44;
+    const [semi, beats] = this.tune[this.note % this.tune.length];
+    this.noteTimer = beats * beat;
+    this.note++;
+    if (this.note % this.tune.length === 0) this.restTimer = night ? 14 : 8;
+    if (semi === null) return;
+    // At night the tune drops an octave and skips half its notes, so it thins out.
+    if (night && this.note % 2 === 0) return;
+    const freq = ROOT * this.key * step(semi) * (night ? 0.5 : 1);
+    const c = this.ctx, t = c.currentTime, len = beats * beat * 0.92;
+    const osc = c.createOscillator(), env = c.createGain(), vib = c.createOscillator(), vibGain = c.createGain();
+    osc.type = night ? 'sine' : 'triangle';
+    osc.frequency.value = freq;
+    vib.frequency.value = 5.2;
+    vibGain.gain.value = freq * 0.004;
+    vib.connect(vibGain).connect(osc.frequency);
+    const peak = 0.055 * this.music * (weather === 'clear' ? 1 : 0.7) * (night ? 0.75 : 1);
+    env.gain.setValueAtTime(0.0001, t);
+    env.gain.exponentialRampToValueAtTime(peak, t + 0.06);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    osc.connect(env).connect(this.master!);
+    osc.start(t); osc.stop(t + len + 0.05);
+    vib.start(t); vib.stop(t + len + 0.05);
   }
   private setChord(first = false) {
     if (!this.ctx) return;

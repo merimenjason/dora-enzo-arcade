@@ -192,10 +192,11 @@ export function drawRoom(canvas: HTMLCanvasElement, g: Hollow, picked: { pocket?
   }
 }
 
-type Stroke = (width?: number, color?: string) => void;
+export type Stroke = (width?: number, color?: string) => void;
 
-/** One piece of furniture, standing on (cx, base), scaled to fit a tile of size s. */
-function piece(c: CanvasRenderingContext2D, id: string, cx: number, base: number, s: number, stroke: Stroke, time: number) {
+/** One piece of furniture, standing on (cx, base), scaled to fit a tile of size s.
+ *  Exported so a piece left out in the hollow is drawn by exactly the same hand. */
+export function piece(c: CanvasRenderingContext2D, id: string, cx: number, base: number, s: number, stroke: Stroke, time: number) {
   const u = s / 100; // every measurement below is in hundredths of a tile
   const box = (x: number, y: number, w: number, h: number, fill: string, radius = 3 * u) => {
     c.fillStyle = fill;

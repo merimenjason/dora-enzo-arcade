@@ -52,7 +52,7 @@ export type Terrain = 'grass' | 'path' | 'water' | 'sand' | 'cliff' | 'bridge';
 export type Habitat = 'river' | 'pond' | 'sea';
 export type TimeOfDay = 'day' | 'night' | 'any';
 export type Hero = 'dora' | 'enzo';
-export type Tool = 'hands' | 'net' | 'rod' | 'shovel' | 'can';
+export type Tool = 'hands' | 'net' | 'rod' | 'shovel' | 'can' | 'trowel';
 export type Kind = 'fish' | 'bug' | 'fossil' | 'fruit' | 'flower' | 'seed' | 'furniture' | 'shell';
 export type Facing = 0 | 1 | 2 | 3; // up, right, down, left
 export const FACE: [number, number][] = [[0, -1], [1, 0], [0, 1], [-1, 0]];
@@ -129,8 +129,8 @@ export const BASE_COLORS: FlowerColor[] = ['red', 'yellow', 'white'];
 export const HYBRIDS: Record<string, FlowerColor> = { 'red+yellow': 'orange', 'red+white': 'pink', 'white+yellow': 'purple', 'white+white': 'blue' };
 export const FLOWER_PRICE = { base: 40, hybrid: 400 };
 export const SEED_PRICE = 80;
-export const TOOL_PRICES: Partial<Record<Tool, number>> = { shovel: 600, can: 400 };
-export const TOOL_NAMES: Record<Tool, string> = { hands: 'Bare paws', net: 'Bug net', rod: 'Fishing rod', shovel: 'Shovel', can: 'Watering can' };
+export const TOOL_PRICES: Partial<Record<Tool, number>> = { shovel: 600, can: 400, trowel: 2400 };
+export const TOOL_NAMES: Record<Tool, string> = { hands: 'Bare paws', net: 'Bug net', rod: 'Fishing rod', shovel: 'Shovel', can: 'Watering can', trowel: 'Trowel' };
 export type FurnitureSet = 'Cabin' | 'Seaside' | 'Andean';
 export const SETS: FurnitureSet[] = ['Cabin', 'Seaside', 'Andean'];
 export type Furniture = { id: string; name: string; price: number; shop: boolean; set?: FurnitureSet };
@@ -213,6 +213,15 @@ export const HAUNTS: Record<string, Record<Period, Haunt>> = {
 };
 const FRIEND_LINES = ['Morning! Did you see the mist on the river?', 'Bring me anything you find, I want to see it all.', 'The hollow feels more like home every day you’re here.', 'Pay the loan when you can. No rush. Well, a little rush.'];
 
+/** The closing ceremony, once the list is done, the museum is full and everyone is a Best friend. */
+export const CEREMONY_LINES = [
+  'Lanterns come up the street one by one. The whole hollow is walking your way.',
+  'Bubo: Hoo. Forty-one cases, and not one of them empty. I have nothing left to catalogue, and I could not be happier about it.',
+  'Vito: I have sold you a shovel, a watering can, a trowel and most of a house. Tonight everything is on the house. Do not get used to it.',
+  'Pia: When I got here the street was quiet by seven. Listen to it now.',
+  'Tato: From up high tonight, the hollow is all lit windows. Every one of them is someone you know.',
+  'The lanterns go up over the sea. Nobody says anything for a while, and nobody needs to.',
+];
 export const GOALS: Goal[] = [
   { id: 'fish', text: 'Catch a fish', reward: 200, test: (g) => g.stats.fish > 0 },
   { id: 'bug', text: 'Catch a bug', reward: 200, test: (g) => g.stats.bugs > 0 },
@@ -234,6 +243,7 @@ export type Save = {
   trees: Tree[]; flowers: Flower[]; rocks: Rock[]; fossils: Spot[]; shells: Shell[]; snowballs: Spot[]; snowmen: Spot[];
   stats: Hollow['stats']; caught: string[]; today: { fish: number; bugs: number }; wished: boolean; live: boolean; liveKey: string; arrived: string[];
   wingsDone?: string[]; setsDone?: string[]; sunny?: number; balloonDone?: boolean; visits?: string[]; log?: Hollow['log']; keepsakes?: string[]; jackpotTaken?: boolean; escort?: boolean;
+  edits?: Record<string, Terrain>; outdoor?: Placed[]; ended?: boolean;
 };
 export type SaveV1 = Omit<Save, 'v' | 'furniture'> & { v: 1; furniture: string[] };
 
@@ -321,7 +331,7 @@ export class Hollow {
   villagers: Villager[] = [];
   effects: Effect[] = [];
   reaction: { icon: string; age: number } | null = null;
-  stats = { fish: 0, bugs: 0, fossils: 0, fruit: 0, hybrids: 0, sold: 0, days: 1, festivals: 0, wishes: 0, snowmen: 0, balloons: 0, visits: 0, keepsakes: 0 };
+  stats = { fish: 0, bugs: 0, fossils: 0, fruit: 0, hybrids: 0, sold: 0, days: 1, festivals: 0, wishes: 0, snowmen: 0, balloons: 0, visits: 0, keepsakes: 0, paved: 0, ending: 0 };
   today = { fish: 0, bugs: 0 };
   /** Today's tally for the bedtime summary. */
   log: { fish: number; bugs: number; fruit: number; fossils: number; shells: number; earned: number; hearts: number; best: { name: string; price: number } | null } = { fish: 0, bugs: 0, fruit: 0, fossils: 0, shells: 0, earned: 0, hearts: 0, best: null };
@@ -340,6 +350,13 @@ export class Hollow {
   jackpotTaken = false;
   /** Whether the other chinchilla walks with you. Off, they keep their own schedule like any neighbour. */
   escort = true;
+  /** Tiles the player has paved or lifted, keyed "x,y". The rest of the map is fixed. */
+  edits: Record<string, Terrain> = {};
+  /** Furniture standing out in the hollow rather than in the burrow. */
+  outdoor: Placed[] = [];
+  /** The closing ceremony while it plays, then `ended` for good. */
+  ceremony: { t: number; line: number } | null = null;
+  ended = false;
   /** Neighbours who dropped by the burrow today. */
   visits: string[] = [];
   visitor: { id: string; name: string; line: string } | null = null;
@@ -414,8 +431,8 @@ export class Hollow {
   whereabouts(id: string, period?: Period) { return this.haunt(id, period).name; }
   /** Vito's score for the room: placed furniture value plus a bonus for every set of three or more. */
   get roomScore() {
-    const value = this.furniture.reduce((sum, p) => sum + (FURNITURE.find((f) => f.id === p.id)?.price ?? 0), 0);
-    return Math.round(value / 4) + this.completeSets.length * 1000;
+    const value = [...this.furniture, ...this.outdoor].reduce((sum, p) => sum + (FURNITURE.find((f) => f.id === p.id)?.price ?? 0), 0);
+    return Math.round(value / 4) + this.completeSets.length * 1000 + this.stats.paved * 15;
   }
   get homeRating() { return HOME_RATINGS.find(([max]) => this.roomScore < max)![1]; }
   /** Sets with three or more pieces standing in the room. */
@@ -462,7 +479,19 @@ export class Hollow {
   /** Sale value at Vito's, with the day's fruit market applied. */
   valueOf(item: Item) { return item.kind === 'fruit' ? Math.round(item.price * this.fruitRate) : item.price; }
 
-  tileAt(x: number, y: number): Terrain { return x < 0 || y < 0 || x >= W || y >= H ? 'cliff' : this.terrain[y * W + x]; }
+  tileAt(x: number, y: number): Terrain {
+    if (x < 0 || y < 0 || x >= W || y >= H) return 'cliff';
+    return this.edits[`${x},${y}`] ?? this.terrain[y * W + x];
+  }
+  /** The map as it was laid out, ignoring anything the player has paved. */
+  originalAt(x: number, y: number): Terrain { return x < 0 || y < 0 || x >= W || y >= H ? 'cliff' : this.terrain[y * W + x]; }
+  outdoorAt(x: number, y: number) { return this.outdoor.find((p) => p.x === x && p.y === y); }
+  /** Grass the player may pave: anything clear, including right up to their own door. */
+  pavable(x: number, y: number) {
+    return this.tileAt(x, y) === 'grass' && !this.solid(x, y) && !this.flowerAt(x, y) && !this.fossilAt(x, y) && !this.snowballAt(x, y) && !this.doorAt(x, y);
+  }
+  /** Paving the player laid, which is the only paving they can lift again. */
+  paved(x: number, y: number) { return this.edits[`${x},${y}`] === 'path' && this.originalAt(x, y) === 'grass'; }
   buildingAt(x: number, y: number) { return BUILDINGS.find((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h); }
   treeAt(x: number, y: number) { return this.trees.find((t) => t.x === x && t.y === y); }
   rockAt(x: number, y: number) { return this.rocks.find((r) => r.x === x && r.y === y); }
@@ -476,7 +505,7 @@ export class Hollow {
   /** Anything a walker cannot stand on. */
   solid(x: number, y: number) {
     const t = this.tileAt(x, y);
-    return t === 'cliff' || t === 'water' || !!this.buildingAt(x, y) || !!this.treeAt(x, y) || !!this.rockAt(x, y) || this.isBoard(x, y) || !!this.snowmanAt(x, y);
+    return t === 'cliff' || t === 'water' || !!this.buildingAt(x, y) || !!this.treeAt(x, y) || !!this.rockAt(x, y) || this.isBoard(x, y) || !!this.snowmanAt(x, y) || !!this.outdoorAt(x, y);
   }
   /** Plain grass with nothing standing on it. */
   freeGrass(x: number, y: number) {
@@ -528,6 +557,8 @@ export class Hollow {
     }
     this.checkGoals();
     if (this.screen !== 'world') return;
+    if (this.ceremony) this.runCeremony(dt);
+    else if (!this.ended && !this.dialog && this.finaleReady && this.hour >= 18 && this.hour < 21) this.startCeremony();
     this.moving = !!(input.dx || input.dy) && !this.dialog;
     this.sneaking = !!input.sneak && !this.dialog;
     this.running = input.run && this.moving && !this.sneaking;
@@ -698,6 +729,45 @@ export class Hollow {
     if (this.starTimer <= 0) { this.starTimer = 12 + this.rng() * 14; this.star = 3; this.event = 'star'; }
   }
 
+  // ---- the ending ---------------------------------------------------------
+  /** Everything on the list done, every case filled, and nobody left to befriend. */
+  get finaleReady() {
+    return this.goals.length >= GOALS.length && this.donated.length >= this.museumTotal && this.residents.every((v) => (this.friendship[v.id] ?? 0) >= FRIEND_MAX);
+  }
+  private startCeremony() {
+    this.ceremony = { t: 0, line: 0 };
+    this.event = 'goal';
+    this.say(CEREMONY_LINES[0]);
+  }
+  /** Walk a villager to their place in the ring, ignoring their usual wandering. */
+  private gather(v: Villager, dt: number, index: number, total: number) {
+    const a = (index / Math.max(1, total)) * Math.PI * 2;
+    const tx = this.x + Math.cos(a) * 2.4, ty = this.y + Math.sin(a) * 2.4;
+    const dx = tx - v.x, dy = ty - v.y, d = Math.hypot(dx, dy);
+    v.tx = v.x; v.ty = v.y;
+    if (d < 0.25) { v.facing = (Math.abs(this.x - v.x) >= Math.abs(this.y - v.y) ? (this.x > v.x ? 1 : 3) : this.y > v.y ? 2 : 0) as Facing; return; }
+    const sp = Math.min(d, 2 * dt);
+    const nx = v.x + (dx / d) * sp, ny = v.y + (dy / d) * sp;
+    if (!this.solid(Math.floor(nx), Math.floor(v.y))) v.x = nx;
+    if (!this.solid(Math.floor(v.x), Math.floor(ny))) v.y = ny;
+  }
+  private runCeremony(dt: number) {
+    const cer = this.ceremony!;
+    cer.t += dt;
+    const crowd = this.residents;
+    crowd.forEach((v, i) => this.gather(v, dt, i, crowd.length));
+    if (cer.t < 6) return;
+    cer.t = 0;
+    cer.line++;
+    if (cer.line < CEREMONY_LINES.length) { this.say(CEREMONY_LINES[cer.line]); this.event = 'talk'; return; }
+    this.ceremony = null;
+    this.ended = true;
+    this.stats.ending = this.day;
+    this.event = 'goal';
+    this.react('♥');
+    this.say(`Day ${this.day}. The hollow is home, and it was always going to take exactly this long.`);
+  }
+
   // ---- festivals and notices ----------------------------------------------
   /** Standings for today's tourney or bug-off; rivals climb through the day toward a fixed target. */
   get festivalBoard(): { name: string; score: number; you: boolean }[] {
@@ -814,6 +884,7 @@ export class Hollow {
     return null;
   }
   private moveVillagers(dt: number) {
+    if (this.ceremony) return;
     for (const v of this.residents) {
       if (v.id === 'friend' && this.escort) { this.follow(v, dt); continue; }
       if (!this.villagersOut) continue;
@@ -886,8 +957,10 @@ export class Hollow {
     const door = this.doorAt(Math.floor(this.x), Math.floor(this.y));
     if (door && this.facing === 0) return { target: door.id === 'home' ? this.houseName : door.name, hint: door.id === 'shop' && !this.shopOpen ? `Closed until ${SHOP_OPEN}:00` : 'Enter' };
     if (this.isBoard(fx, fy)) return { target: 'Notice board', hint: 'Read' };
+    const outside = this.outdoorAt(fx, fy);
+    if (outside) return { target: FURNITURE.find((f) => f.id === outside.id)!.name, hint: 'Pick it up' };
     const tree = this.treeAt(fx, fy);
-    if (tree) return { target: tree.grown ? `${tree.fruit[0].toUpperCase() + tree.fruit.slice(1)} sapling` : tree.golden ? 'Golden tree' : `${tree.fruit[0].toUpperCase() + tree.fruit.slice(1)} tree`, hint: tree.grown ? `Fruits on day ${tree.grown}` : tree.count ? `Shake (${tree.count} left)` : 'Bare until tomorrow' };
+    if (tree) return { target: tree.grown ? `${tree.fruit[0].toUpperCase() + tree.fruit.slice(1)} sapling` : tree.golden ? 'Golden tree' : `${tree.fruit[0].toUpperCase() + tree.fruit.slice(1)} tree`, hint: this.tool === 'trowel' ? (tree.golden ? 'Too precious to move' : 'Dig it up to replant') : tree.grown ? `Fruits on day ${tree.grown}` : tree.count ? `Shake (${tree.count} left)` : 'Bare until tomorrow' };
     const rock = this.rockAt(fx, fy);
     if (rock) return { target: 'Rock', hint: this.tools.includes('shovel') ? (rock.hits >= ROCK_HITS ? 'Spent for today' : 'Hit with the shovel') : 'Needs a shovel' };
     if (this.snowmanAt(fx, fy)) return { target: 'Snowman', hint: 'Looking good' };
@@ -903,6 +976,12 @@ export class Hollow {
     if (flower) return { target: `${flower.color[0].toUpperCase() + flower.color.slice(1)} flower${flower.watered ? ' (watered)' : ''}`, hint: this.tool === 'can' ? 'Water' : this.tool === 'hands' ? 'Pick' : 'Pick bare-pawed or water with the can' };
     if (this.balloonInReach) { const s = this.pockets[this.selected]; return { target: 'A balloon overhead', hint: s && (s.kind === 'fruit' || s.kind === 'shell') ? `Throw the ${s.name.toLowerCase()}` : 'Select a fruit or shell to throw' }; }
     if (this.star > 0) return { target: 'A shooting star', hint: this.wished ? 'Already wished tonight' : 'Make a wish' };
+    if (this.tool === 'trowel') {
+      const sel = this.pockets[this.selected];
+      if (this.paved(fx, fy)) return { target: 'Your paving', hint: 'Lift it back to grass' };
+      if (sel?.kind === 'furniture' && this.freeGrass(fx, fy)) return { target: 'Grass', hint: `Stand the ${sel.name.toLowerCase()} here` };
+      if (this.pavable(fx, fy)) return { target: 'Grass', hint: 'Lay paving' };
+    }
     if (this.tool === 'shovel' && this.freeGrass(fx, fy)) { const s = this.pockets[this.selected]; return { target: 'Grass', hint: s && (s.kind === 'seed' || s.kind === 'fruit') ? `Plant ${s.name.toLowerCase()}` : 'Select seeds or fruit to plant' }; }
     return { target: this.tileAt(fx, fy) === 'sand' ? 'Sand' : 'Grass', hint: '' };
   }
@@ -918,8 +997,10 @@ export class Hollow {
     const door = this.doorAt(Math.floor(this.x), Math.floor(this.y));
     if (door && this.facing === 0) return this.enter(door);
     if (this.isBoard(fx, fy)) { this.screen = 'board'; return this.tell('The notice board.'); }
+    const outside = this.outdoorAt(fx, fy);
+    if (outside) return this.liftOutside(outside);
     const tree = this.treeAt(fx, fy);
-    if (tree) return this.shake(tree);
+    if (tree) return this.tool === 'trowel' ? this.digTree(tree) : this.shake(tree);
     const rock = this.rockAt(fx, fy);
     if (rock) return this.need('shovel') ? this.hitRock(rock) : this.tell('A hard rock. A shovel might knock something loose.');
     const snowball = this.snowballAt(fx, fy);
@@ -937,6 +1018,12 @@ export class Hollow {
       if (this.tool === 'can') { flower.watered = true; this.event = 'water'; this.fx('splash', fx + 0.5, fy + 0.5, '#5da2cf'); return this.tell('Watered. Watered neighbours may breed overnight.'); }
       if (this.tool === 'hands') { const item = this.itemFor('flower', flower.color); if (this.addItem(item)) { this.flowers.splice(this.flowers.indexOf(flower), 1); this.event = 'shake'; this.fx('puff', fx + 0.5, fy + 0.5, '#f7e06a'); return this.tell(`Picked a ${item.name.toLowerCase()}.`); } return this.message; }
       return this.tell(`A ${flower.color} flower. Pick it bare-pawed or water it.`);
+    }
+    if (this.tool === 'trowel') {
+      const sel = this.pockets[this.selected];
+      if (this.paved(fx, fy)) return this.unpave(fx, fy);
+      if (sel?.kind === 'furniture' && this.freeGrass(fx, fy)) return this.standOutside(fx, fy);
+      if (this.pavable(fx, fy)) return this.pave(fx, fy);
     }
     if (this.tool === 'shovel' && this.freeGrass(fx, fy)) return this.plant(fx, fy);
     if (this.balloonInReach) return this.throwAtBalloon();
@@ -1126,6 +1213,46 @@ export class Hollow {
     const golden = item.id !== NATIVE_FRUIT && this.rng() < GOLDEN_CHANCE;
     this.trees.push({ x, y, fruit: item.id as Fruit, count: 0, grown: this.day + SAPLING_DAYS, golden });
     return this.tell(`Planted ${item.id === NATIVE_FRUIT ? 'an' : 'a'} ${item.id} sapling. It fruits in ${SAPLING_DAYS} days.`);
+  }
+  /** Lay a path tile of your own. Only grass you could walk on becomes paving. */
+  private pave(x: number, y: number) {
+    this.edits[`${x},${y}`] = 'path';
+    this.stats.paved++;
+    this.event = 'dig';
+    this.fx('dirt', x + 0.5, y + 0.5, '#c9b48a');
+    return this.tell('Laid a path stone.');
+  }
+  private unpave(x: number, y: number) {
+    delete this.edits[`${x},${y}`];
+    this.event = 'dig';
+    this.fx('dirt', x + 0.5, y + 0.5, '#7a5a3a');
+    return this.tell('Lifted the stone. The grass will come back.');
+  }
+  /** Dig a tree up to move it. You get its fruit back, so replanting costs you the days. */
+  private digTree(tree: Tree) {
+    if (tree.golden) return this.tell('A golden tree. Far too precious to move.');
+    if (!this.addItem(this.itemFor('fruit', tree.fruit))) return this.message;
+    this.trees.splice(this.trees.indexOf(tree), 1);
+    this.event = 'dig';
+    this.fx('dirt', tree.x + 0.5, tree.y + 0.5, '#7a5a3a');
+    this.fx('leaf', tree.x + 0.5, tree.y + 0.3, '#4f9a4a');
+    return this.tell(`Dug up the ${tree.fruit} tree. Plant the ${tree.fruit} again wherever you like.`);
+  }
+  /** Stand a piece of furniture out in the hollow. */
+  private standOutside(x: number, y: number) {
+    const item = this.pockets[this.selected];
+    if (!item || item.kind !== 'furniture') return this.tell('Select a piece of furniture to stand here.');
+    this.removeAt(this.selected);
+    this.outdoor.push({ id: item.id, x, y });
+    this.event = 'dig';
+    return this.tell(`Stood the ${item.name.toLowerCase()} out in the hollow.`);
+  }
+  private liftOutside(p: Placed) {
+    const name = FURNITURE.find((f) => f.id === p.id)!.name;
+    if (!this.addItem(this.itemFor('furniture', p.id))) return this.message;
+    this.outdoor.splice(this.outdoor.indexOf(p), 1);
+    this.event = 'shake';
+    return this.tell(`Took the ${name.toLowerCase()} back.`);
   }
   private record(id: string) {
     if (!this.caught.includes(id)) this.caught.push(id);
@@ -1413,6 +1540,7 @@ export class Hollow {
       trees: this.trees.map((t) => ({ ...t })), flowers: this.flowers.map((f) => ({ ...f })), rocks: this.rocks.map((r) => ({ ...r })), fossils: this.fossils.map((f) => ({ ...f })), shells: this.shells.map((s) => ({ ...s })), snowballs: this.snowballs.map((s) => ({ ...s })), snowmen: this.snowmen.map((s) => ({ ...s })),
       stats: { ...this.stats }, caught: [...this.caught], today: { ...this.today }, wished: this.wished, live: this.live, liveKey: this.liveKey, arrived: [...this.arrived],
       wingsDone: [...this.wingsDone], setsDone: [...this.setsDone], sunny: this.sunny, balloonDone: this.balloonDone, visits: [...this.visits], log: { ...this.log }, keepsakes: [...this.keepsakes], jackpotTaken: this.jackpotTaken, escort: this.escort,
+      edits: { ...this.edits }, outdoor: this.outdoor.map((p) => ({ ...p })), ended: this.ended,
     };
   }
   static load(raw: Save | SaveV1): Hollow {
@@ -1427,6 +1555,7 @@ export class Hollow {
       fossils: s.fossils.map((f) => ({ ...f })), shells: (s.shells ?? g.shells).map((x) => ({ ...x })), snowballs: (s.snowballs ?? []).map((x) => ({ ...x })), snowmen: (s.snowmen ?? []).map((x) => ({ ...x })),
       stats: { ...g.stats, ...s.stats }, caught: [...s.caught], today: s.today ? { ...s.today } : { fish: 0, bugs: 0 }, wished: !!s.wished, live: !!s.live, liveKey: s.liveKey ?? '', arrived: [...(s.arrived ?? [])],
       wingsDone: [...(s.wingsDone ?? [])], setsDone: [...(s.setsDone ?? [])], sunny: s.sunny ?? 0, balloonDone: !!s.balloonDone, visits: [...(s.visits ?? [])], log: { ...g.log, ...s.log }, keepsakes: [...(s.keepsakes ?? [])], jackpotTaken: !!s.jackpotTaken, escort: s.escort ?? true,
+      edits: { ...s.edits }, outdoor: (s.outdoor ?? []).map((p) => ({ ...p })), ended: !!s.ended,
     });
     if (raw.v === 1) for (const v of NEIGHBOURS) if (v.arrives && g.goals.length >= v.arrives && !g.arrived.includes(v.id)) g.arrived.push(v.id);
     g.screen = 'world';
