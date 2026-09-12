@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of fourteen original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of fifteen original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -24,6 +24,7 @@ Listed in arcade-menu order.
 | 12 | Dora & Enzo’s Mountain Retreat | `/mountain-retreat` | Idle lodge |
 | 13 | Paw Buster X | `/paw-buster` | Action platformer |
 | 14 | Burrow Town | `/burrow-town` | City builder |
+| 15 | Dusty Hollow | `/dusty-hollow` | Village life |
 
 ## Run
 
@@ -288,6 +289,23 @@ Seven valleys unlock in order, each with a population goal and an approval both 
 
 **Docs:** [`docs/burrow-town.md`](docs/burrow-town.md).
 
+### 15 · Dusty Hollow (`/dusty-hollow`)
+
+**Play:** A cozy top-down village-life game on a fixed 32×24 tile seaside hollow, drawn with Canvas 2D. Pick Dora or Enzo; the other runs Burrow Works next door, holds your house loan and keeps a list of eleven things to try, each paying raisins when you first do it. A day lasts 6 minutes of real time, seasons change every 4 days, and roughly one day in four is rainy (snowy in winter). Fruit trees drop 3 apples a day; foreign fruit (pear, peach, cherry, orange) comes from neighbours and sells for 500 instead of 100, and planting a fruit with the shovel grows a new tree in 3 days. Four money rocks pay 25, 50, 75 and 100 raisins for four shovel hits a day. Three fossils are buried each morning. Fishing: cast into the river, pond or sea, wait for the tug, and press again within 0.9 s; the 14 fish depend on the water, the season and day or night, from a 100-raisin pond frog to a 7,000-raisin tuna. The 12 bugs spawn by season, time and habitat (grass, trees, flowers, water), up to six at once; snails only come out in the rain. Flowers can be picked bare-pawed, or watered so that two watered neighbours may breed overnight: red and yellow can make orange, red and white pink, white and yellow purple, and white and white blue, and hybrids sell for 400 instead of 40.
+
+Vito’s Emporium (open 8:00 to 22:00) buys anything and sells the shovel (600) and watering can (400), red, yellow and white seeds (80) and three rotating pieces of furniture a day. The museum takes one of each of the 34 species. Your pockets hold 20 things. Four neighbours (Pia the flamingo, Rodri the fox, Vivi the viscacha and Tato the condor) wander the paths from 7:00 to 22:00, each with a favourite kind of gift and a daily request; the first chat of the day is +1 friendship, a gift +1 or +3 if it is their favourite, a delivered request +3 plus 300 raisins or a foreign fruit. The loan runs 4,800 for the tent, 19,800 for the Cozy Burrow and 49,800 for the Roomy Burrow, paid in any amounts at Burrow Works; each payoff moves you up and makes room for 2, 4, 6 then 8 pieces of furniture. Sleeping at home skips to 7:00 the next morning. The game autosaves in this browser every few seconds.
+
+**Controls:**
+
+- WASD or arrows: move. Shift: run. Space, E or Enter: use the selected tool on the tile in front of you, talk to a neighbour in front of you, shake a tree or enter a door when facing it.
+- 1–5 or Tab: choose bare paws, net, rod, shovel or watering can (the last two must be bought). Click a pocket to select an item for gifting or planting.
+- In a conversation, 1–3 pick a reply and Space takes the last one. Escape closes conversations, leaves the shop, museum or burrow and closes the passport. P opens the passport of everything caught.
+- On-screen arrows and an action button appear on touch screens and narrow windows. Sound can be toggled from the header, and Save & quit returns to the title screen.
+
+**Tests:** `npm run test:dusty-hollow` (also in `npm test`) compiles `lib/dusty-hollow-game.ts` and runs `tests/dusty-hollow.mjs`: 21 checks covering the fixed map and bridge, walking, running and collisions, the clock, seasons and deterministic weather, fruit trees, casting, biting and reeling, fish filtered by habitat, season and time, bug spawning and netting, money rocks, fossils and museum donations, flower watering, breeding and hybrids, planting seeds and saplings, pocket limits, the shop’s hours, prices and daily stock, furniture and sleeping, the loan ladder, neighbour chats, gifts, requests and friendship, wandering and bedtime, goal rewards, save round-trips and deterministic replays.
+
+**Docs:** [`docs/dusty-hollow.md`](docs/dusty-hollow.md).
+
 ## Validation
 
 ```sh
@@ -302,7 +320,7 @@ npm run test:e2e   # optional; needs `npm run dev` running and `npm i -D playwri
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fourteen ways/` assertion in `tests/e2e/dust-bath.mjs`, and the 14-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs` and `tests/e2e/paw-buster.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fifteen ways/` assertion in `tests/e2e/dust-bath.mjs`, and the 15-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs` and `tests/e2e/paw-buster.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

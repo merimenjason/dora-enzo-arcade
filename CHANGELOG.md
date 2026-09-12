@@ -6,6 +6,12 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Dusty Hollow:** a new cozy village-life game, the arcade's fifteenth. Play as Dora or Enzo and move into a little seaside hollow; the other chinchilla runs Burrow Works next door, holds your house loan and keeps a list of eleven things to try.
+  - **Fishing, bugs and fossils:** cast into the river, pond or sea and reel on the tug; net butterflies, beetles and fireflies by season and time of day; dig up three fossils a morning once you own a shovel. Fourteen fish, twelve bugs and eight fossils fill the museum one donation at a time.
+  - **Trees, rocks and flowers:** shake three apples a day from every tree, knock raisins out of money rocks, and water neighbouring flowers to breed orange, pink, purple and blue hybrids overnight. Plant foreign fruit to grow new trees.
+  - **Neighbours:** Pia the flamingo, Rodri the fox, Vivi the viscacha and Tato the condor wander the paths by day, each with a favourite gift and a daily request that pays raisins or a foreign fruit.
+  - **Vito's Emporium** buys everything and sells tools, seeds and three rotating pieces of furniture a day; the burrow grows from a tent to a Grand Burrow as each loan is paid.
+  - Six-minute days, four seasons, rain and snow, lit windows after dusk, a passport of everything you've caught, touch controls and browser autosaves.
 - **Burrow Town:** a new cozy 3D city builder, the arcade's fourteenth game. Lay roads out from the plaza, dig burrows, plant hay farms and dust baths on a tiled Andean valley, and keep both advisors happy: Dora asks for comfort, gardens and quiet, Enzo for hay, roads and workshops, and each granted wish raises that advisor's approval and unlocks their buildings.
   - **Seven valleys and a sandbox,** unlocking in order, each wanting more residents and more approval than the last. **Old Orchard** is scattered with derelict buildings that rebuild for half price, and **Canyon Split**'s river runs bank to bank, so nothing on the far side works until you bridge it.
   - **Two things to manage.** Hay feeds everyone and the granary only holds so much before the surplus spills, so a growing town needs silos. Stone comes only from quarries on rock and pays for the bigger buildings, and a workshop mills it into hay only while a quarry within carting distance keeps it supplied.
