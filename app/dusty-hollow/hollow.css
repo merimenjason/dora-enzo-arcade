@@ -70,6 +70,7 @@
 }
 .dh-primary.dh-dora { background: #d8cbb8; color: #34302a; border-bottom-color: #a7967d; }
 .dh-primary.dh-enzo { background: #6f707a; border-bottom-color: #43444c; }
+.dh-primary.dh-pair { background: #52535e; color: #fff; border-bottom-color: #33343c; box-shadow: inset 12px 0 0 #d8cbb8; padding-left: 34px; }
 .dh-note { font-size: 13px !important; opacity: 0.65 !important; margin-top: 22px; }
 
 /* Play */
@@ -82,7 +83,7 @@
   background: #7fb35f;
   box-shadow: 0 16px 40px #0002;
 }
-.dh-stage canvas { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; outline: none; touch-action: none; image-rendering: auto; }
+.dh-stage canvas { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; outline: none; touch-action: none; image-rendering: pixelated; }
 .dh-hud {
   position: absolute;
   top: 10px;

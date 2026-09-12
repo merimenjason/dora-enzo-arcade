@@ -6,6 +6,9 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Dusty Hollow:** the hollow is now pixel art, and Dora and Enzo live there together.
+  - **A pixel-art village.** The whole world is drawn at a third of the resolution and blown up with hard edges, so tiles, buildings, chinchillas, bugs and weather are all made of chunky pixels. Labels and the reel bar stay sharp on top so everything is still readable.
+  - **Both chinchillas, no more choosing.** Dora and Enzo move in together and share the burrow. You steer one and the other walks a step behind; press X (or the swap button on touch) and they trade places, so either is playable at any moment. They are around at night when the neighbours have gone in, and Settings can send them off to keep neighbour hours instead.
 - **Dusty Hollow:** a third round of improvements.
   - **A jackpot for every festival:** one Golden Dorado in the spring river, one Hercules Beetle under the summer trees, one Great Zúngaro in the autumn river and one Titicaca Water Frog in the winter pond, each worth 9,000 to 12,000 raisins. They surface only on that season's festival day, only one is going, and the notice board says when someone has landed it.
   - **Best friends open up:** reach ten hearts with a neighbour and they tell you where they came from and give you a framed photo of themselves for the burrow.

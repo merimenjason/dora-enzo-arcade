@@ -233,7 +233,7 @@ export type Save = {
   donated: string[]; friendship: Record<string, number>; talked: string[]; requests: Request[]; goals: string[]; gifts: Record<string, string[]>;
   trees: Tree[]; flowers: Flower[]; rocks: Rock[]; fossils: Spot[]; shells: Shell[]; snowballs: Spot[]; snowmen: Spot[];
   stats: Hollow['stats']; caught: string[]; today: { fish: number; bugs: number }; wished: boolean; live: boolean; liveKey: string; arrived: string[];
-  wingsDone?: string[]; setsDone?: string[]; sunny?: number; balloonDone?: boolean; visits?: string[]; log?: Hollow['log']; keepsakes?: string[]; jackpotTaken?: boolean;
+  wingsDone?: string[]; setsDone?: string[]; sunny?: number; balloonDone?: boolean; visits?: string[]; log?: Hollow['log']; keepsakes?: string[]; jackpotTaken?: boolean; escort?: boolean;
 };
 export type SaveV1 = Omit<Save, 'v' | 'furniture'> & { v: 1; furniture: string[] };
 
@@ -338,6 +338,8 @@ export class Hollow {
   keepsakes: string[] = [];
   /** Set once the day's jackpot has been landed; it shows itself only the once. */
   jackpotTaken = false;
+  /** Whether the other chinchilla walks with you. Off, they keep their own schedule like any neighbour. */
+  escort = true;
   /** Neighbours who dropped by the burrow today. */
   visits: string[] = [];
   visitor: { id: string; name: string; line: string } | null = null;
@@ -426,6 +428,8 @@ export class Hollow {
   get shopOpen() { return this.hour >= SHOP_OPEN && this.hour < SHOP_CLOSE; }
   get museumTotal() { return FISH.length + BUGS.length + FOSSILS.length; }
   get homeName() { return HOME_NAMES[this.homeLevel]; }
+  /** The burrow belongs to both of them, whoever is being steered. */
+  get houseName() { return `${HERO_NAMES.dora} and ${HERO_NAMES.enzo}’s ${this.homeName}`; }
   get roomSize() { return HOME_GRID[this.homeLevel]; }
   get clockText() { const h = Math.floor(this.hour), m = Math.floor((this.hour - h) * 60); return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`; }
   /** Vito's fruit price multiplier for the day, 0.7 to 1.5 in steps of 0.05. */
@@ -438,6 +442,23 @@ export class Hollow {
   /** Villagers who currently live in the hollow; late arrivals move in as goals are met. */
   get residents() { return this.villagers.filter((v) => !v.arrives || this.arrived.includes(v.id)); }
   isBirthday(id: string) { return BIRTHDAYS[id] === this.dayOfYear; }
+  /** The other chinchilla: the one you are not currently steering. */
+  get companion() { return this.villagers.find((v) => v.id === 'friend') ?? null; }
+  /** Hand control to the other chinchilla; they trade places. */
+  swap(): string {
+    const c = this.companion;
+    if (!c) return '';
+    const [hx, hy, hf] = [this.x, this.y, this.facing];
+    this.hero = this.hero === 'dora' ? 'enzo' : 'dora';
+    this.x = c.x; this.y = c.y; this.facing = c.facing;
+    c.x = c.tx = hx; c.y = c.ty = hy; c.facing = hf;
+    c.name = this.friendName;
+    c.species = this.hero === 'dora' ? 'enzo' : 'dora';
+    c.color = this.hero === 'dora' ? '#8e8f98' : '#f2ede4';
+    this.fishing = null;
+    this.event = 'swap';
+    return this.tell(`${this.heroName} takes the lead. ${this.friendName} falls in behind.`);
+  }
   /** Sale value at Vito's, with the day's fruit market applied. */
   valueOf(item: Item) { return item.kind === 'fruit' ? Math.round(item.price * this.fruitRate) : item.price; }
 
@@ -489,6 +510,9 @@ export class Hollow {
       const y = b.door[1] === 19 ? 19 : STREET_Y;
       return { ...v, x: b.door[0] + 0.5, y: y + 0.5, tx: b.door[0] + 0.5, ty: y + 0.5, wait: 1, facing: 2 as Facing };
     });
+    // The two chinchillas moved in together, so the companion starts at your shoulder.
+    const c = this.companion!;
+    c.x = c.tx = this.x - 1; c.y = c.ty = this.y;
   }
 
   // ---- time -------------------------------------------------------------
@@ -790,8 +814,9 @@ export class Hollow {
     return null;
   }
   private moveVillagers(dt: number) {
-    if (!this.villagersOut) return;
     for (const v of this.residents) {
+      if (v.id === 'friend' && this.escort) { this.follow(v, dt); continue; }
+      if (!this.villagersOut) continue;
       const dx = v.tx - v.x, dy = v.ty - v.y, d = Math.hypot(dx, dy);
       if (d < 0.05) {
         v.wait -= dt;
@@ -859,7 +884,7 @@ export class Hollow {
     const v = this.villagerNear();
     if (v) return { target: v.name, hint: this.isBirthday(v.id) ? 'It’s their birthday! Talk or give a gift' : 'Talk' };
     const door = this.doorAt(Math.floor(this.x), Math.floor(this.y));
-    if (door && this.facing === 0) return { target: door.id === 'home' ? `${this.heroName}’s ${this.homeName}` : door.name, hint: door.id === 'shop' && !this.shopOpen ? `Closed until ${SHOP_OPEN}:00` : 'Enter' };
+    if (door && this.facing === 0) return { target: door.id === 'home' ? this.houseName : door.name, hint: door.id === 'shop' && !this.shopOpen ? `Closed until ${SHOP_OPEN}:00` : 'Enter' };
     if (this.isBoard(fx, fy)) return { target: 'Notice board', hint: 'Read' };
     const tree = this.treeAt(fx, fy);
     if (tree) return { target: tree.grown ? `${tree.fruit[0].toUpperCase() + tree.fruit.slice(1)} sapling` : tree.golden ? 'Golden tree' : `${tree.fruit[0].toUpperCase() + tree.fruit.slice(1)} tree`, hint: tree.grown ? `Fruits on day ${tree.grown}` : tree.count ? `Shake (${tree.count} left)` : 'Bare until tomorrow' };
@@ -938,9 +963,24 @@ export class Hollow {
   }
   private tell(text: string) { this.say(text); return text; }
   villagerNear() {
-    if (!this.villagersOut) return null;
     const [dx, dy] = FACE[this.facing];
-    return this.residents.find((v) => Math.hypot(v.x - (this.x + dx * 0.8), v.y - (this.y + dy * 0.8)) < 0.8) ?? null;
+    return this.residents.find((v) => (this.villagersOut || (v.id === 'friend' && this.escort)) && Math.hypot(v.x - (this.x + dx * 0.8), v.y - (this.y + dy * 0.8)) < 0.8) ?? null;
+  }
+  /** True while the companion is out walking with you rather than keeping neighbour hours. */
+  out(v: Villager) { return this.villagersOut || (v.id === 'friend' && this.escort); }
+  /** Walk the companion to a spot just behind the hero, so they never block what you are facing. */
+  private follow(v: Villager, dt: number) {
+    const [fx, fy] = FACE[this.facing];
+    const tx = this.x - fx * 1.5, ty = this.y - fy * 1.5;
+    const dx = tx - v.x, dy = ty - v.y, d = Math.hypot(dx, dy);
+    if (d > 9) { v.x = v.tx = tx; v.y = v.ty = ty; return; }
+    if (d < 0.3) return;
+    v.facing = (Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 1 : 3) : dy > 0 ? 2 : 0) as Facing;
+    const sp = Math.min(d, (d > 2.6 ? RUN : WALK) * dt);
+    const nx = v.x + (dx / d) * sp, ny = v.y + (dy / d) * sp;
+    if (!this.solid(Math.floor(nx), Math.floor(v.y))) v.x = nx;
+    if (!this.solid(Math.floor(v.x), Math.floor(ny))) v.y = ny;
+    v.tx = v.x; v.ty = v.y;
   }
   private bugNear(fx: number, fy: number) { return this.bugs.find((b) => !b.fleeing && Math.hypot(b.x - (fx + 0.5), b.y - (fy + 0.5)) < 1.1) ?? null; }
 
@@ -1372,7 +1412,7 @@ export class Hollow {
       donated: [...this.donated], friendship: { ...this.friendship }, talked: [...this.talked], requests: this.requests.map((r) => ({ ...r })), goals: [...this.goals], gifts: Object.fromEntries(Object.entries(this.gifts).map(([k, v]) => [k, [...v]])),
       trees: this.trees.map((t) => ({ ...t })), flowers: this.flowers.map((f) => ({ ...f })), rocks: this.rocks.map((r) => ({ ...r })), fossils: this.fossils.map((f) => ({ ...f })), shells: this.shells.map((s) => ({ ...s })), snowballs: this.snowballs.map((s) => ({ ...s })), snowmen: this.snowmen.map((s) => ({ ...s })),
       stats: { ...this.stats }, caught: [...this.caught], today: { ...this.today }, wished: this.wished, live: this.live, liveKey: this.liveKey, arrived: [...this.arrived],
-      wingsDone: [...this.wingsDone], setsDone: [...this.setsDone], sunny: this.sunny, balloonDone: this.balloonDone, visits: [...this.visits], log: { ...this.log }, keepsakes: [...this.keepsakes], jackpotTaken: this.jackpotTaken,
+      wingsDone: [...this.wingsDone], setsDone: [...this.setsDone], sunny: this.sunny, balloonDone: this.balloonDone, visits: [...this.visits], log: { ...this.log }, keepsakes: [...this.keepsakes], jackpotTaken: this.jackpotTaken, escort: this.escort,
     };
   }
   static load(raw: Save | SaveV1): Hollow {
@@ -1386,7 +1426,7 @@ export class Hollow {
       requests: s.requests.map((r) => ({ ...r })), goals: [...s.goals], gifts: s.gifts ?? {}, trees: s.trees.map((t) => ({ ...t })), flowers: s.flowers.map((f) => ({ ...f })), rocks: s.rocks.map((r) => ({ ...r })),
       fossils: s.fossils.map((f) => ({ ...f })), shells: (s.shells ?? g.shells).map((x) => ({ ...x })), snowballs: (s.snowballs ?? []).map((x) => ({ ...x })), snowmen: (s.snowmen ?? []).map((x) => ({ ...x })),
       stats: { ...g.stats, ...s.stats }, caught: [...s.caught], today: s.today ? { ...s.today } : { fish: 0, bugs: 0 }, wished: !!s.wished, live: !!s.live, liveKey: s.liveKey ?? '', arrived: [...(s.arrived ?? [])],
-      wingsDone: [...(s.wingsDone ?? [])], setsDone: [...(s.setsDone ?? [])], sunny: s.sunny ?? 0, balloonDone: !!s.balloonDone, visits: [...(s.visits ?? [])], log: { ...g.log, ...s.log }, keepsakes: [...(s.keepsakes ?? [])], jackpotTaken: !!s.jackpotTaken,
+      wingsDone: [...(s.wingsDone ?? [])], setsDone: [...(s.setsDone ?? [])], sunny: s.sunny ?? 0, balloonDone: !!s.balloonDone, visits: [...(s.visits ?? [])], log: { ...g.log, ...s.log }, keepsakes: [...(s.keepsakes ?? [])], jackpotTaken: !!s.jackpotTaken, escort: s.escort ?? true,
     });
     if (raw.v === 1) for (const v of NEIGHBOURS) if (v.arrives && g.goals.length >= v.arrives && !g.arrived.includes(v.id)) g.arrived.push(v.id);
     g.screen = 'world';

@@ -8,7 +8,7 @@ const dayFor = (season, festival) => SEASONS.indexOf(season) * DAYS_PER_SEASON +
 const setHour = (g, h) => { g.clock = (h / 24) * DAY; };
 const stand = (g, x, y, facing) => { g.x = x + 0.5; g.y = y + 0.5; g.facing = facing; };
 const SPOTS = { river: [17, 5, 1], pond: [5, 3, 1], sea: [10, H - 4, 2] };
-const park = (g) => g.villagers.forEach((v) => { v.x = v.tx = -5; v.y = v.ty = -5; });
+const park = (g) => { g.escort = false; g.villagers.forEach((v) => { v.x = v.tx = -5; v.y = v.ty = -5; }); };
 
 /** Cast, hook on the bite and reel with a sensible rhythm. Returns the fish id or null. */
 function fish(g, habitat) {

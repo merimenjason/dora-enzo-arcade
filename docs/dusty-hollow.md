@@ -1,6 +1,14 @@
 # Dusty Hollow
 
-A cozy village-life game: Dora or Enzo moves into a seaside Andean hollow and the other chinchilla runs Burrow Works next door. Rules live in `lib/dusty-hollow-game.ts` (deterministic, no DOM), the Canvas 2D view in `lib/dusty-hollow-scene.ts`, procedural sound in `app/dusty-hollow/sound.ts`, and the page in `app/dusty-hollow/`. Numbers below come from the engine's constants.
+A cozy village-life game: Dora and Enzo move into a seaside Andean hollow together. Rules live in `lib/dusty-hollow-game.ts` (deterministic, no DOM), the Canvas 2D view in `lib/dusty-hollow-scene.ts`, procedural sound in `app/dusty-hollow/sound.ts`, and the page in `app/dusty-hollow/`. Numbers below come from the engine's constants.
+
+## The pair
+
+`hero` is whichever chinchilla you are steering; `companion` is the `friend` villager, which is the other one. `swap()` trades the two: it flips `hero`, exchanges positions and facings, and renames and recolours the companion, so `heroName` and `friendName` follow along. `escort` (default true, saved) makes `moveVillagers()` hand the companion to `follow()` instead of the neighbour wander: they walk to a point 1.5 tiles behind the hero at `WALK`, break into `RUN` beyond 2.6 tiles and teleport there beyond 9, so they never get stranded and never stand on the tile you face. `out(v)` is true for any resident during waking hours and for an escorting companion at any hour, which is what `villagerNear()` and the scene use, so you can talk to your companion after dark. `park()` in the tests switches `escort` off to hold the village still.
+
+## Pixel rendering
+
+`HollowScene` paints the world into an offscreen `BUF_W` × `BUF_H` (320 × 200) buffer with the context scaled by `1 / PIXEL` (`PIXEL` = 3), so the existing drawing code keeps its logical coordinates. `TILE` is 45 so a tile is exactly 15 buffer pixels, and the camera is snapped to multiples of `PIXEL` to stop the grid crawling. The buffer is then blitted to the visible 960 × 600 canvas with `imageSmoothingEnabled = false`. Text would be illegible at a third scale, so world-space labels are queued through `label()` during the paint and drawn afterwards on the full-resolution canvas under the same camera translate; the reel bar and season title card draw straight onto it. One visible canvas means photo mode's `toBlob` still captures everything.
 
 ## Clock
 
@@ -84,7 +92,7 @@ The loan ladder `LOANS` = 4,800 → 19,800 → 49,800 moves the burrow through `
 
 ## Neighbours and friendship
 
-`NEIGHBOURS` are Pia (flamingo, likes fish), Rodri (fox, fruit), Vivi (viscacha, flowers), Tato (condor, bugs), and two late arrivals: Lupe (llama, fruit) once 4 goals are done and Nico (Andean cat, fish) at 8. `residents` are the villagers currently in town; the friend chinchilla is a fifth who never asks for anything. Each wanders one tile at a time along walkable ground during waking hours, but keeps a schedule: `HAUNTS[id][period]` names a spot for the morning, afternoon and evening, and a villager more than 2.5 tiles from it walks that way (2.2 tiles/s, choosing a closing direction 80% of the time) before pottering around it. `whereabouts(id, period?)` returns the spot's name for the board and the Neighbours card.
+`NEIGHBOURS` are Pia (flamingo, likes fish), Rodri (fox, fruit), Vivi (viscacha, flowers), Tato (condor, bugs), and two late arrivals: Lupe (llama, fruit) once 4 goals are done and Nico (Andean cat, fish) at 8. `residents` are the villagers currently in town; the companion chinchilla is one of them and never asks for anything. Each wanders one tile at a time along walkable ground during waking hours, but keeps a schedule: `HAUNTS[id][period]` names a spot for the morning, afternoon and evening, and a villager more than 2.5 tiles from it walks that way (2.2 tiles/s, choosing a closing direction 80% of the time) before pottering around it. `whereabouts(id, period?)` returns the spot's name for the board and the Neighbours card.
 
 Entering the burrow while villagers are out gives a 35% chance that one resident with friendship ≥ `VISIT_FRIENDSHIP` = 6 who has not visited today (`visits`) follows you in: `visitor` holds their name and a line about the room (empty, a complete set, or a piece they like), they gain +1 friendship and `stats.visits` counts it. `exit()` clears the visitor.
 
@@ -112,7 +120,7 @@ On clear summer nights from 20:00, `sky()` streaks a shooting star (`star` count
 
 ## Saves
 
-`save()` returns a v3 `Save` with the seed, RNG state, clock, position, money, loan, tools, pockets, placed furniture, museum, friendship, gift memory, requests, goals, arrivals, trees (with `golden`), flowers, rocks, fossils, shells, snowballs, snowmen, stats, the caught list, today's festival totals, the wish flag, live-mode fields, completed wings and sets, the `sunny` day, the balloon and jackpot flags, today's visits, the keepsakes handed over and the day log. `Hollow.load()` also accepts v1 and v2 saves, laying a v1 furniture list onto the room grid, admitting any arrivals its goals already earned and defaulting the newer fields. The page writes it to `localStorage` under `dusty-hollow-save-v1` every 3 seconds and on quit; music and effects levels live under `dusty-hollow-settings`.
+`save()` returns a v3 `Save` with the seed, RNG state, clock, position, money, loan, tools, pockets, placed furniture, museum, friendship, gift memory, requests, goals, arrivals, trees (with `golden`), flowers, rocks, fossils, shells, snowballs, snowmen, stats, the caught list, today's festival totals, the wish flag, live-mode fields, completed wings and sets, the escort setting, the `sunny` day, the balloon and jackpot flags, today's visits, the keepsakes handed over and the day log. `Hollow.load()` also accepts v1 and v2 saves, laying a v1 furniture list onto the room grid, admitting any arrivals its goals already earned and defaulting the newer fields. The page writes it to `localStorage` under `dusty-hollow-save-v1` every 3 seconds and on quit; music and effects levels live under `dusty-hollow-settings`.
 
 ## Page extras
 

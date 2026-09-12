@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Hollow, FISH, BUGS, FOSSILS, FURNITURE, GOALS, BASE_COLORS, TOOL_PRICES, TOOL_NAMES, SEED_PRICE, FRIEND_TITLES, POCKETS, SHOP_OPEN, SHOP_CLOSE, HERO_NAMES, H, BIRTHDAYS, HOME_GRID, WINGS, SETS,
-  type Hero, type Save, type SaveV1, type Tool, type Item, type Species, type Placed,
+  type Save, type SaveV1, type Tool, type Item, type Species, type Placed,
 } from '../../lib/dusty-hollow-game';
 import { HollowScene } from '../../lib/dusty-hollow-scene';
 import { HollowSound } from './sound';
@@ -60,10 +60,10 @@ export default function DustyHollow() {
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); } catch { /* storage blocked */ }
   };
 
-  const start = (hero: Hero | null) => {
-    const saved = hero ? null : readSave();
-    game.current = saved ? Hollow.load(saved) : new Hollow(hero ?? 'dora', 7 + Math.floor(Math.random() * 1000));
-    if (!saved) game.current.say(`Welcome to Dusty Hollow, ${game.current.heroName}. ${game.current.friendName} is waiting at Burrow Works, and the notice board is by the street.`);
+  const start = (fresh: boolean) => {
+    const saved = fresh ? null : readSave();
+    game.current = saved ? Hollow.load(saved) : new Hollow('dora', 7 + Math.floor(Math.random() * 1000));
+    if (!saved) game.current.say(`Dora and Enzo have moved into Dusty Hollow together. You steer ${game.current.heroName}; press X to take over ${game.current.friendName}. The notice board is by the street.`);
     if (game.current.live) game.current.syncLive(new Date());
     setScreen('play');
     persist();
@@ -143,6 +143,7 @@ export default function DustyHollow() {
       if (e.code === 'KeyP') setPassport((p) => !p);
       if (e.code === 'KeyO') { g.sortPockets(); bump(); }
       if (e.code === 'KeyF' && !e.repeat) setPhoto((p) => !p);
+      if (e.code === 'KeyX' && !e.repeat && g.screen === 'world') { g.swap(); bump(); }
     };
     const up = (e: KeyboardEvent) => keys.current.delete(e.code);
     const blur = () => keys.current.clear();
@@ -162,13 +163,12 @@ export default function DustyHollow() {
         <section className="dh-hero">
           <p className="dh-eyebrow">A VILLAGE-LIFE GAME · NO GOAL BUT A GOOD DAY</p>
           <h1>Dusty Hollow</h1>
-          <p>Move into a little Andean hollow by the sea. Fish the river, chase bugs, dig fossils, shake fruit from the trees and get to know the neighbours. Days pass in six minutes, seasons turn, festivals come round, and the loan on your burrow gets paid whenever you feel like it.</p>
+          <p>Dora and Enzo move into a little Andean hollow by the sea, together. Fish the river, chase bugs, dig fossils, shake fruit from the trees and get to know the neighbours, swapping between the two chinchillas whenever you like. Days pass in six minutes, seasons turn, festivals come round, and the loan on your burrow gets paid whenever you feel like it.</p>
           <div className="dh-choose">
-            {hasSave && <button className="dh-primary" onClick={() => start(null)}>Continue</button>}
-            <button className="dh-primary dh-dora" onClick={() => start('dora')}>{hasSave ? 'New village as Dora' : 'Play as Dora'}</button>
-            <button className="dh-primary dh-enzo" onClick={() => start('enzo')}>{hasSave ? 'New village as Enzo' : 'Play as Enzo'}</button>
+            {hasSave && <button className="dh-primary" onClick={() => start(false)}>Continue</button>}
+            <button className="dh-primary dh-pair" onClick={() => start(true)}>{hasSave ? 'Start a new village' : 'Play as Dora and Enzo'}</button>
           </div>
-          <p className="dh-note">Whoever you don’t pick runs Burrow Works next door and keeps a list of things to try. Starting a new village replaces the saved one.</p>
+          <p className="dh-note">Both chinchillas move in together. You steer one and the other walks with you; press X at any time to swap, or send them off to keep their own hours in Settings. Starting a new village replaces the saved one.</p>
         </section>
       </main>
     );
@@ -205,6 +205,7 @@ export default function DustyHollow() {
             <span>{SEASON_ICON[g.season]} Day {g.day} · {g.season[0].toUpperCase() + g.season.slice(1)}{g.live ? ' · live' : ''}</span>
             <span>{g.clockText} {WEATHER_ICON[g.weather]}{g.isSale ? ' · SALE' : ''}</span>
             <span className={`dh-pocketcount${g.pocketWarning ? ' warn' : ''}`}>👜 {g.pockets.length}/{POCKETS}</span>
+            <span>🐭 {g.heroName}</span>
             <span className="dh-raisins">🍇 {g.raisins.toLocaleString()}</span>
           </div>
           {photo && (
@@ -299,7 +300,7 @@ export default function DustyHollow() {
           )}
           {g.screen === 'home' && (
             <div className="dh-panel" aria-label="Your burrow">
-              <h2>{g.heroName}’s {g.homeName} <small>{g.furniture.length} of {cols * rows} tiles furnished · Vito rates it “{g.homeRating}” ({g.roomScore.toLocaleString()} pts)</small></h2>
+              <h2>{g.houseName} <small>{g.furniture.length} of {cols * rows} tiles furnished · Vito rates it “{g.homeRating}” ({g.roomScore.toLocaleString()} pts)</small></h2>
               {g.visitor && <p className="dh-visitor"><b>{g.visitor.name}</b> followed you in: “{g.visitor.line}”</p>}
               <div className="dh-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
                 {Array.from({ length: cols * rows }, (_, i) => {
@@ -347,6 +348,7 @@ export default function DustyHollow() {
               ))}
             </div>
             <div className="dh-actions">
+              <button className="dh-sneak" onPointerDown={(e) => { e.preventDefault(); g.swap(); bump(); }} aria-label={`Swap to ${g.friendName}`}>🔁</button>
               <button className={`dh-sneak${touch.current.sneak ? ' on' : ''}`} onPointerDown={(e) => { e.preventDefault(); touch.current.sneak = !touch.current.sneak; bump(); }} aria-pressed={touch.current.sneak} aria-label="Toggle sneaking">🤫</button>
               <button className="dh-act" onPointerDown={(e) => { e.preventDefault(); touch.current.hold = true; act(); }} onPointerUp={() => { touch.current.hold = false; }} onPointerLeave={() => { touch.current.hold = false; }} onPointerCancel={() => { touch.current.hold = false; }} aria-label="Use tool or talk; hold to reel">●</button>
             </div>
@@ -382,21 +384,22 @@ export default function DustyHollow() {
             <h3>Neighbours <small>{g.residents.length} in town</small></h3>
             {g.residents.map((v) => {
               const req = g.requests.find((r) => r.villager === v.id);
-              return <p key={v.id}><i style={{ background: v.color }} /> <b>{v.name}</b>{g.isBirthday(v.id) && ' 🎂'} <small>{FRIEND_TITLES[g.friendship[v.id] ?? 0]}{g.friendship[v.id] > 0 && ` · ${'♥'.repeat(Math.min(5, Math.ceil(g.friendship[v.id] / 2)))}`} · {g.villagersOut ? g.whereabouts(v.id) : 'asleep'}</small>{g.keepsakes.includes(v.id) && ' 🖼️'}{req && !req.done && <em> wants a {req.kind}</em>}</p>;
+              return <p key={v.id}><i style={{ background: v.color }} /> <b>{v.name}</b>{g.isBirthday(v.id) && ' 🎂'} <small>{FRIEND_TITLES[g.friendship[v.id] ?? 0]}{g.friendship[v.id] > 0 && ` · ${'♥'.repeat(Math.min(5, Math.ceil(g.friendship[v.id] / 2)))}`} · {v.id === 'friend' && g.escort ? 'walking with you' : g.villagersOut ? g.whereabouts(v.id) : 'asleep'}</small>{g.keepsakes.includes(v.id) && ' 🖼️'}{req && !req.done && <em> wants a {req.kind}</em>}</p>;
             })}
           </div>
           <div className="dh-card">
             <h3>Settings</h3>
+            <label className="dh-live"><input type="checkbox" checked={g.escort} onChange={(e) => { g.escort = e.target.checked; persist(); bump(); }} /> {g.friendName} walks with you (off, they keep neighbour hours like everyone else)</label>
             <label className="dh-live"><input type="checkbox" checked={g.live} onChange={(e) => { g.setLive(e.target.checked); persist(); bump(); }} /> Live clock: the hollow follows your real time and calendar (Andean seasons)</label>
             <div className="dh-sliders">
               <span>Music</span><input type="range" min={0} max={1} step={0.05} value={levels.music} onChange={(e) => setLevel('music', Number(e.target.value))} aria-label="Music volume" />
               <span>Effects</span><input type="range" min={0} max={1} step={0.05} value={levels.effects} onChange={(e) => setLevel('effects', Number(e.target.value))} aria-label="Effects volume" />
             </div>
           </div>
-          <p className="dh-help">WASD / arrows move, Shift runs (bugs notice runners), C or Ctrl sneaks up on shy bugs. Space or E uses the tool in front of you, talks, shakes trees, reads the board, enters doors or throws a fruit at a passing balloon; hold it to reel a hooked fish. Digits pick a reply. O sorts pockets, F is photo mode. Days last six minutes; sleep at home to skip to morning.</p>
+          <p className="dh-help">WASD / arrows move, Shift runs (bugs notice runners), C or Ctrl sneaks up on shy bugs, X swaps between Dora and Enzo. Space or E uses the tool in front of you, talks, shakes trees, reads the board, enters doors or throws a fruit at a passing balloon; hold it to reel a hooked fish. Digits pick a reply. O sorts pockets, F is photo mode. Days last six minutes; sleep at home to skip to morning.</p>
         </aside>
       </div>
-      <footer className="dh-foot"><span>{HERO_NAMES[g.hero]} in Dusty Hollow · autosaves in this browser</span></footer>
+      <footer className="dh-foot"><span>Dora and Enzo in Dusty Hollow · steering {HERO_NAMES[g.hero]} · autosaves in this browser</span></footer>
     </main>
   );
 }

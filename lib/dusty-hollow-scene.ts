@@ -1,9 +1,14 @@
 // Canvas 2D view of Dusty Hollow: a soft top-down village that follows the hero.
 import { Hollow, W, H, BUILDINGS, BOARD, FACE, BUGS, NEIGHBOURS, type Terrain, type Season } from './dusty-hollow-game';
 
-export const TILE = 44;
+/** Every world pixel is drawn PIXEL screen pixels wide, so the village reads as pixel art. */
+export const PIXEL = 3;
+export const TILE = 45;
 export const VIEW_W = 960;
 export const VIEW_H = 600;
+/** The low-resolution buffer the world is painted into before it is blown up. */
+export const BUF_W = VIEW_W / PIXEL;
+export const BUF_H = VIEW_H / PIXEL;
 
 const GRASS: Record<Season, [string, string]> = { spring: ['#86bb66', '#82b762'], summer: ['#78b356', '#74af52'], autumn: ['#b4a558', '#afa054'], winter: ['#e4eaed', '#e0e7ea'] };
 const TREE: Record<Season, [string, string]> = { spring: ['#4f9a4a', '#3f8140'], summer: ['#3f8f43', '#357a39'], autumn: ['#d98a3c', '#b96a2c'], winter: ['#7c8b80', '#657468'] };
@@ -16,14 +21,31 @@ const EARED = ['dora', 'enzo', 'viscacha', 'cat', 'llama'];
 
 export type Camera = { x: number; y: number };
 
+type Label = { text: string; x: number; y: number; font: string; color: string; align: CanvasTextAlign };
+
 export class HollowScene {
+  /** The low-resolution world buffer everything but text is painted into. */
   c: CanvasRenderingContext2D;
+  /** The visible canvas: the upscaled world, then crisp text on top. */
+  out: CanvasRenderingContext2D;
+  buffer: HTMLCanvasElement;
   cam: Camera = { x: 0, y: 0 };
   time = 0;
+  /** World-space text, collected while painting and drawn at full resolution after the blit. */
+  private labels: Label[] = [];
   constructor(canvas: HTMLCanvasElement) {
     canvas.width = VIEW_W;
     canvas.height = VIEW_H;
-    this.c = canvas.getContext('2d')!;
+    this.out = canvas.getContext('2d')!;
+    this.out.imageSmoothingEnabled = false;
+    this.buffer = document.createElement('canvas');
+    this.buffer.width = BUF_W;
+    this.buffer.height = BUF_H;
+    this.c = this.buffer.getContext('2d')!;
+  }
+  /** Queue world-space text; pixellating letters would only make them unreadable. */
+  private label(text: string, x: number, y: number, font: string, color: string, align: CanvasTextAlign = 'center') {
+    this.labels.push({ text, x, y, font, color, align });
   }
 
   draw(g: Hollow, dt: number) {
@@ -33,9 +55,12 @@ export class HollowScene {
     const ty = Math.max(0, Math.min(H * TILE - VIEW_H, g.y * TILE - VIEW_H / 2));
     this.cam.x += (tx - this.cam.x) * Math.min(1, dt * 6);
     this.cam.y += (ty - this.cam.y) * Math.min(1, dt * 6);
-    c.setTransform(1, 0, 0, 1, 0, 0);
+    // Snap the camera to whole screen pixels so the pixel grid never crawls.
+    const camX = Math.round(this.cam.x / PIXEL) * PIXEL, camY = Math.round(this.cam.y / PIXEL) * PIXEL;
+    this.labels.length = 0;
+    c.setTransform(1 / PIXEL, 0, 0, 1 / PIXEL, 0, 0);
     c.clearRect(0, 0, VIEW_W, VIEW_H);
-    c.translate(-Math.round(this.cam.x), -Math.round(this.cam.y));
+    c.translate(-camX, -camY);
     const x0 = Math.floor(this.cam.x / TILE), y0 = Math.floor(this.cam.y / TILE);
     const x1 = Math.min(W, x0 + Math.ceil(VIEW_W / TILE) + 1), y1 = Math.min(H, y0 + Math.ceil(VIEW_H / TILE) + 1);
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) this.tile(g, x, y);
@@ -49,7 +74,7 @@ export class HollowScene {
     for (const t of g.trees) sprites.push({ y: t.y + 0.5, draw: () => this.tree(g, t.x, t.y, t.fruit, t.count, t.grown > 0, !!t.golden) });
     for (const r of g.rocks) sprites.push({ y: r.y + 0.4, draw: () => this.rock(r.x, r.y, r.hits) });
     for (const s of g.snowmen) sprites.push({ y: s.y + 0.5, draw: () => this.snowman(s.x, s.y) });
-    if (g.villagersOut) for (const v of g.residents) sprites.push({ y: v.y, draw: () => this.critter(v.x, v.y, SPECIES_BODY[v.species] ?? v.color, v.species, v.facing, false, v.name, g.requests.some((r) => r.villager === v.id && !r.done), undefined, g.isBirthday(v.id)) });
+    for (const v of g.residents) if (g.out(v)) sprites.push({ y: v.y, draw: () => this.critter(v.x, v.y, SPECIES_BODY[v.species] ?? v.color, v.species, v.facing, false, v.name, g.requests.some((r) => r.villager === v.id && !r.done), undefined, g.isBirthday(v.id)) });
     sprites.push({ y: g.y, draw: () => this.critter(g.x, g.y, SPECIES_BODY[g.hero], g.hero, g.facing, g.moving, '', false, g.tool, false, g.sneaking) });
     sprites.sort((a, b) => a.y - b.y).forEach((s) => s.draw());
     for (const b of g.bugs) this.bug(b.x, b.y, b.id, b.fleeing);
@@ -57,10 +82,23 @@ export class HollowScene {
     for (const e of g.effects) this.effect(e.kind, e.x, e.y, e.age, e.color);
     if (g.reaction) this.reaction(g.x, g.y, g.reaction.icon, g.reaction.age);
     if (g.balloon) this.balloon(g.balloon.x, g.balloon.y, g.balloonInReach);
-    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.setTransform(1 / PIXEL, 0, 0, 1 / PIXEL, 0, 0);
     this.weather(g);
     this.light(g);
     if (g.star > 0) this.shootingStar(g.star);
+    // Blow the world up with hard edges, then lay crisp text over it.
+    const o = this.out;
+    o.setTransform(1, 0, 0, 1, 0, 0);
+    o.clearRect(0, 0, VIEW_W, VIEW_H);
+    o.imageSmoothingEnabled = false;
+    o.drawImage(this.buffer, 0, 0, BUF_W, BUF_H, 0, 0, VIEW_W, VIEW_H);
+    o.save();
+    o.translate(-camX, -camY);
+    for (const l of this.labels) {
+      o.font = l.font; o.textAlign = l.align; o.fillStyle = l.color;
+      o.fillText(l.text, l.x, l.y);
+    }
+    o.restore();
     if (g.fishing?.phase === 'reel') this.reelBar(g.fishing.progress, g.fishing.tension);
     if (g.splash) this.titleCard(g.splash.text, g.splash.age);
   }
@@ -79,11 +117,11 @@ export class HollowScene {
     c.beginPath(); c.ellipse(px, py, 14, 17, 0, 0, Math.PI * 2); c.fill();
     c.fillStyle = '#ffffff66';
     c.beginPath(); c.ellipse(px - 5, py - 6, 4, 6, -0.4, 0, Math.PI * 2); c.fill();
-    if (near) { c.fillStyle = '#fff'; c.font = 'bold 12px Arial'; c.textAlign = 'center'; c.fillText('throw!', px, py - 24); }
+    if (near) this.label('throw!', px, py - 24, 'bold 12px Arial', '#fff');
   }
   /** The season title card: a soft band across the middle that fades in and out. */
   private titleCard(text: string, left: number) {
-    const c = this.c, a = Math.min(1, left, (4 - left) * 2);
+    const c = this.out, a = Math.min(1, left, (4 - left) * 2);
     c.globalAlpha = a * 0.85;
     c.fillStyle = '#34302a';
     c.fillRect(0, VIEW_H / 2 - 44, VIEW_W, 88);
@@ -133,7 +171,7 @@ export class HollowScene {
       c.strokeStyle = '#8f5a34'; c.lineWidth = 2; c.setLineDash([6, 6]); c.strokeRect(px + 2, py + 2, w - 4, h - 4); c.setLineDash([]);
       c.fillStyle = '#f6e6c8'; c.fillRect(px + w / 2 - 22, py + h / 2 - 10, 44, 18);
       c.fillStyle = '#7a4d2b'; c.fillRect(px + w / 2 - 2, py + h / 2 + 8, 4, 12);
-      c.fillStyle = '#2b2118'; c.font = 'bold 9px Arial'; c.textAlign = 'center'; c.fillText('FOR SALE', px + w / 2, py + h / 2 + 3);
+      this.label('FOR SALE', px + w / 2, py + h / 2 + 3, 'bold 9px Arial', '#2b2118');
       return;
     }
     const palette: Record<string, [string, string, string]> = { home: ['#c98a5a', '#8f5a34', '#f6e6c8'], friend: ['#b98d64', '#7c5a3c', '#f4dcbb'], shop: ['#d76f5c', '#8b3d31', '#f7dfc8'], museum: ['#8d9aa8', '#4f5b68', '#e9eef2'] };
@@ -161,10 +199,7 @@ export class HollowScene {
     const lit = g.isNight && (b.id === 'shop' ? g.shopOpen : true);
     if (lit) { c.fillStyle = '#ffd27a'; c.fillRect(px + 9, py + h * 0.5 + 1, 10, 10); c.fillRect(px + w - 19, py + h * 0.5 + 1, 10, 10); }
     if (owner && g.isBirthday(owner.id)) { c.fillStyle = '#f4a3c4'; c.beginPath(); c.arc(px + 6, py + h * 0.38, 5, 0, Math.PI * 2); c.fill(); c.fillStyle = '#5b8de6'; c.beginPath(); c.arc(px + w - 6, py + h * 0.38, 5, 0, Math.PI * 2); c.fill(); }
-    c.fillStyle = '#2b2118';
-    c.font = 'bold 11px Arial';
-    c.textAlign = 'center';
-    c.fillText(b.id === 'home' ? `${g.heroName}’s ${g.homeName}` : b.name, px + w / 2, py + h * 0.35 + 14);
+    this.label(b.id === 'home' ? g.houseName : b.name, px + w / 2, py + h * 0.35 + 14, 'bold 11px Arial', '#2b2118');
   }
   private board() {
     const c = this.c, px = BOARD.x * TILE + TILE / 2, py = BOARD.y * TILE + TILE / 2;
@@ -263,11 +298,7 @@ export class HollowScene {
     }
     if (id === 'firefly') { c.fillStyle = '#f6f08a55'; c.beginPath(); c.arc(px, py, 9, 0, Math.PI * 2); c.fill(); }
     if (fleeing) return;
-    const name = BUGS.find((b) => b.id === id)?.name ?? id;
-    c.fillStyle = '#ffffffcc';
-    c.font = '9px Arial';
-    c.textAlign = 'center';
-    c.fillText(name, px, py - 8);
+    this.label(BUGS.find((b) => b.id === id)?.name ?? id, px, py - 8, '9px Arial', '#ffffffdd');
   }
   private fishing(g: Hollow) {
     const f = g.fishing!;
@@ -287,7 +318,7 @@ export class HollowScene {
       c.fillStyle = '#fff';
       c.beginPath(); c.arc(px, by - 2, 2, 0, Math.PI * 2); c.fill();
     }
-    if (biting) { c.fillStyle = '#fff'; c.font = 'bold 16px Arial'; c.textAlign = 'center'; c.fillText('!', px, py - 16); }
+    if (biting) this.label('!', px, py - 16, 'bold 16px Arial', '#fff');
     // Line from the hero's rod tip.
     const [dx, dy] = FACE[g.facing];
     c.strokeStyle = '#ffffffcc';
@@ -295,7 +326,7 @@ export class HollowScene {
     c.beginPath(); c.moveTo(g.x * TILE + dx * 24, g.y * TILE - 12 + dy * 8); c.lineTo(px, by - 4); c.stroke();
   }
   private reelBar(progress: number, tension: number) {
-    const c = this.c, w = 260, x = VIEW_W / 2 - w / 2, y = VIEW_H - 78;
+    const c = this.out, w = 260, x = VIEW_W / 2 - w / 2, y = VIEW_H - 78;
     c.fillStyle = '#34302ae6';
     c.beginPath(); c.roundRect(x - 12, y - 12, w + 24, 62, 10); c.fill();
     c.fillStyle = '#fffaf0'; c.font = 'bold 11px Arial'; c.textAlign = 'left';
@@ -346,10 +377,8 @@ export class HollowScene {
     const c = this.c, px = x * TILE + 16, py = y * TILE - 40 - Math.min(1, age * 3) * 8;
     c.globalAlpha = age < 0.9 ? 1 : 1 - (age - 0.9) / 0.3;
     c.fillStyle = '#fffaf0'; c.beginPath(); c.roundRect(px - 12, py - 12, 24, 24, 8); c.fill();
-    c.fillStyle = icon === '♥' ? '#e2413c' : icon === '★' ? '#f0cd6b' : icon === '💦' ? '#5da2cf' : '#34302a';
-    c.font = 'bold 15px Arial'; c.textAlign = 'center';
-    c.fillText(icon === '💦' ? '~' : icon, px, py + 5);
     c.globalAlpha = 1;
+    this.label(icon === '💦' ? '~' : icon, px, py + 5, 'bold 15px Arial', icon === '♥' ? '#e2413c' : icon === '★' ? '#f0cd6b' : icon === '💦' ? '#5da2cf' : '#34302a');
   }
   private shootingStar(left: number) {
     const c = this.c, t = 1 - left / 3;
@@ -405,13 +434,8 @@ export class HollowScene {
       c.beginPath(); c.arc(hx + dx * 10, hyy - 12, tool === 'net' ? 7 : 4, 0, Math.PI * 2); c.fill();
     }
     if (birthday) { c.fillStyle = '#f0cd6b'; c.beginPath(); c.moveTo(px - 7, hy - 8); c.lineTo(px, hy - 24); c.lineTo(px + 7, hy - 8); c.closePath(); c.fill(); }
-    if (label) {
-      c.fillStyle = '#ffffffdd';
-      c.font = 'bold 10px Arial';
-      c.textAlign = 'center';
-      c.fillText(label, px, hy - (EARED.includes(species) || birthday ? 22 : 16));
-    }
-    if (wants) { c.fillStyle = '#ffd94a'; c.font = 'bold 14px Arial'; c.textAlign = 'center'; c.fillText('…', px + 14, hy - 12); }
+    if (label) this.label(label, px, hy - (EARED.includes(species) || birthday ? 22 : 16), 'bold 10px Arial', '#ffffffdd');
+    if (wants) this.label('…', px + 14, hy - 12, 'bold 14px Arial', '#ffd94a');
   }
   private weather(g: Hollow) {
     const c = this.c, w = g.weather;

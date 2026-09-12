@@ -14,7 +14,7 @@ const GAMES=[
  {href:'/mountain-retreat',title:"Dora & Enzo’s Mountain Retreat",tag:'NEW · IDLE LODGE',blurb:'A soft place above the clouds. Welcome guests, gather supplies and grow a pixel-perfect mountain lodge, together.',color:'#a5bd91',art:'🏔️'},
  {href:'/paw-buster',title:'Paw Buster X',tag:'NEW · ACTION PLATFORMER',blurb:'Dash, wall-jump and charge your buster through six maverick stages, then storm the Cougar Citadel. Tag between Dora\u2019s buster and Enzo\u2019s saber.',color:'#7fd6ff',art:'🤖'},
  {href:'/burrow-town',title:'Burrow Town',tag:'CITY BUILDER',blurb:'A cozy 3D valley builder. Lay roads, dig burrows, plant hay and keep both Dora and Enzo happy across five Andean valleys.',color:'#9ec27a',art:'🏘️'},
- {href:'/dusty-hollow',title:'Dusty Hollow',tag:'NEW · VILLAGE LIFE',blurb:'Move into a seaside Andean hollow. Fish, catch bugs, dig fossils, shake fruit trees, befriend the neighbours and pay off your burrow, one six-minute day at a time.',color:'#c98ab8',art:'🎣'},
+ {href:'/dusty-hollow',title:'Dusty Hollow',tag:'NEW · VILLAGE LIFE',blurb:'Dora and Enzo move into a seaside Andean hollow together. Fish, catch bugs, dig fossils, shake fruit trees, befriend the neighbours and pay off your burrow, one six-minute day at a time, in chunky pixel art.',color:'#c98ab8',art:'🎣'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">

@@ -14,7 +14,7 @@ const setHour = (g, h) => { g.clock = (h / 24) * DAY; };
 /** Stand the hero on a tile facing a direction. */
 const stand = (g, x, y, facing) => { g.x = x + 0.5; g.y = y + 0.5; g.facing = facing; };
 const by = (id) => BUILDINGS.find((b) => b.id === id);
-const park = (g) => g.villagers.forEach((v) => { v.x = v.tx = -5; v.y = v.ty = -5; });
+const park = (g) => { g.escort = false; g.villagers.forEach((v) => { v.x = v.tx = -5; v.y = v.ty = -5; }); };
 const fresh = () => { const g = new Hollow('dora', 7); park(g); return g; };
 const sleep = (g) => { g.screen = 'home'; g.sleep(); g.screen = 'world'; };
 /** Cast, wait for the bite, hook and reel with a gentle rhythm until the fish lands or escapes. */
@@ -530,6 +530,7 @@ test('late arrivals move in as goals are met', () => {
 
 test('villagers wander by day and stay home at night', () => {
   const g = new Hollow('dora', 7);
+  g.escort = false;
   setHour(g, 12);
   const start = g.residents.map((v) => [v.x, v.y]);
   ticks(g, 30);
@@ -734,6 +735,7 @@ test('the same seed and inputs replay identically', () => {
 
 test('villagers keep a schedule and head for their haunts', () => {
   const g = new Hollow('dora', 7);
+  g.escort = false;
   assert.equal(g.haunt('pia', 'afternoon').name, 'by the sea');
   assert.equal(g.whereabouts('tato', 'afternoon'), 'on the north cliff path');
   for (const v of g.villagers) assert.ok(HAUNTS[v.id], `${v.id} has a schedule`);
@@ -1124,6 +1126,54 @@ test('the day summary names the best find', () => {
   g.assess();
   sleep(g);
   assert.ok(g.summary.lines.some((l) => l === 'Best find: a Dinosaur Egg, worth 5,000.'), g.summary.lines.join(' | '));
+});
+
+test('Dora and Enzo move in together, one following and either playable', () => {
+  const g = new Hollow('dora', 7);
+  assert.equal(g.hero, 'dora');
+  assert.equal(g.heroName, 'Dora');
+  const c = g.companion;
+  assert.equal(c.id, 'friend');
+  assert.equal(c.name, 'Enzo');
+  assert.equal(c.species, 'enzo');
+  assert.ok(Math.hypot(c.x - g.x, c.y - g.y) < 1.5, 'they start side by side, not at Burrow Works');
+  assert.ok(g.escort, 'the companion walks with you by default');
+  // Walking away pulls them along, and they settle behind you rather than in your way.
+  stand(g, 8, 12, 1);
+  ticks(g, 8);
+  assert.ok(Math.hypot(c.x - g.x, c.y - g.y) < 2.2, `the companion keeps up (${c.x.toFixed(1)}, ${c.y.toFixed(1)})`);
+  const [fx, fy] = [Math.floor(g.x + 0.9), Math.floor(g.y)];
+  assert.ok(Math.floor(c.x) !== fx || Math.floor(c.y) !== fy, 'and never stands on the tile you face');
+  // Swapping trades places and names.
+  const [hx, hy, cx, cy] = [g.x, g.y, c.x, c.y];
+  assert.match(g.swap(), /Enzo takes the lead/);
+  assert.equal(g.hero, 'enzo');
+  assert.equal(g.heroName, 'Enzo');
+  assert.equal(g.friendName, 'Dora');
+  assert.equal(g.companion.name, 'Dora');
+  assert.equal(g.companion.species, 'dora');
+  assert.ok(Math.abs(g.x - cx) < 0.001 && Math.abs(g.y - cy) < 0.001, 'you step into their shoes');
+  assert.ok(Math.abs(g.companion.x - hx) < 0.001 && Math.abs(g.companion.y - hy) < 0.001);
+  assert.equal(g.event, 'swap');
+  g.swap();
+  assert.equal(g.hero, 'dora');
+  // They are around at night, when the neighbours are not.
+  setHour(g, 23);
+  assert.ok(!g.villagersOut);
+  g.companion.x = g.x + 0.8; g.companion.y = g.y;
+  g.facing = 1;
+  assert.equal(g.villagerNear()?.id, 'friend', 'you can still talk to your companion after dark');
+  assert.ok(g.out(g.companion) && !g.out(g.villagers.find((v) => v.id === 'pia')));
+  // Turning the escort off puts them back on neighbour hours.
+  g.escort = false;
+  assert.equal(g.villagerNear(), null);
+  const away = { x: g.companion.x, y: g.companion.y };
+  ticks(g, 5);
+  assert.deepEqual({ x: g.companion.x, y: g.companion.y }, away, 'off-escort and after bedtime, they stay put');
+  const h = Hollow.load(JSON.parse(JSON.stringify(g.save())));
+  assert.equal(h.escort, false);
+  assert.equal(h.hero, 'dora');
+  assert.equal(h.companion.name, 'Enzo');
 });
 
 console.log(`Dusty Hollow: ${checks} checks passed.`);
