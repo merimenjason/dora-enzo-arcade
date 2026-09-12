@@ -40,6 +40,10 @@
 }
 .dh-header > div { display: flex; gap: 8px; }
 .dh-shell button { font: inherit; cursor: pointer; color: inherit; }
+/* app/globals.css paints bare `p` and `footer` for the arcade's dark shell, and an
+   element selector beats inheritance, so those rules were greying out every
+   paragraph in this game, dialogue included. Hand the colour back to the panel. */
+.dh-shell p, .dh-shell footer { color: inherit; }
 .dh-header button {
   border: 1px solid var(--line);
   background: var(--card);

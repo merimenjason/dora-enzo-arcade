@@ -14,6 +14,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Dusty Hollow:** the burrow is now a room you look into rather than a grid of labels. Canvas walls in the tent and plaster once you upgrade, a window showing the same sky, weather and stars as outside, floorboards, and every piece of furniture drawn in place. The paper lamp throws a pool of light that is brightest at night and the pebble stove burns away in the corner, so an unlit room feels cold and lighting it feels like something. Both show from the street as well: the stove earns a smoking chimney and the lamp a warmer window.
 
+### Fixed
+
+- **Dusty Hollow:** what the neighbours say is readable again. Every paragraph in the game, conversations included, was being painted pale grey on cream by a site-wide rule meant for the arcade's dark menu, so dialogue was very nearly invisible. The shop, museum, notice board and burrow panels, the sidebar notes and the footer were all faded by the same rule and are now crisp too, in both the day and night palettes.
+
 ## 12-09-2026
 
 ### Added
