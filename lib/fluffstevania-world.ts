@@ -3,7 +3,7 @@
 // world coordinates, so walking off one room's edge simply lands in the room next door.
 
 export const COLS = 24, ROWS = 14, TILE = 16;
-export type AreaId = 'approach' | 'hall' | 'cellar' | 'belfry' | 'catacombs' | 'library';
+export type AreaId = 'approach' | 'hall' | 'cellar' | 'belfry' | 'catacombs' | 'library' | 'clock';
 export const AREAS: Record<AreaId, { name: string; color: string }> = {
   approach: { name: 'Moonlit Approach', color: '#6f8fd8' },
   hall: { name: 'Entrance Hall', color: '#b07fd8' },
@@ -11,6 +11,7 @@ export const AREAS: Record<AreaId, { name: string; color: string }> = {
   belfry: { name: 'Owl Belfry', color: '#7fd8b8' },
   catacombs: { name: 'Pantry Catacombs', color: '#9fd878' },
   library: { name: 'Count Culpeo’s Library', color: '#e07888' },
+  clock: { name: 'The Clock Tower', color: '#e8d25a' },
 };
 
 /**
@@ -18,18 +19,19 @@ export const AREAS: Record<AreaId, { name: string; color: string }> = {
  * `G` a boss gate (shut during the fight), `D` a sealed door (open once the room's `opens` flag is set), `|` an iron
  * grate (a wall to everything but a hero in Mist Form). Things
  * placed on the map: `S` dust-bath shrine (saves and heals), `$` Pip's shop, `i` candle, `n` sign, `H` Wolfberry
- * Leaf (max HP up), `R` relic, `I` item, `U` sub-weapon, `O` boss, the familiars waiting to be befriended
- * (`P` Pudding, `Z` Zippy's cage, `Y` Mochi), and enemies `b` bat, `m` dust moth, `k` shell beetle,
- * `x` bone mouse, `a` armadillo guard, `r` pantry rat, `g` jar ghost, `p` cellar spider, `v` flying tome, `q` ink
- * quill, `j` ink blot. `1`, `2` and `3` are the bookshelves of a room's puzzle: striking the one numbered `puzzle`
- * sets the room's `opens` flag.
+ * Leaf (max HP up), `R` relic, `I` item, `U` sub-weapon, `T` spell scroll (the room's `spell`), `W` Nutmeg's pocket
+ * watch, `O` boss, the familiars waiting to be befriended (`P` Pudding, `Z` Zippy's cage, `Y` Mochi, `C` Nutmeg), and
+ * enemies `b` bat, `m` dust moth, `k` shell beetle, `x` bone mouse, `a` armadillo guard, `r` pantry rat, `g` jar
+ * ghost, `p` cellar spider, `v` flying tome, `q` ink quill, `j` ink blot, `c` clockwork mouse, `u` cuckoo, `t` spring
+ * toad. `1`, `2` and `3` are the bookshelves of a room's puzzle: striking the one numbered `puzzle` sets the room's
+ * `opens` flag.
  */
 export type Room = {
   id: string; area: AreaId; mx: number; my: number; w: number; h: number; rows: string[];
-  notes?: string[]; items?: string[]; relic?: RelicId; boss?: BossId; opens?: string; sub?: SubId; puzzle?: 1 | 2 | 3;
+  notes?: string[]; items?: string[]; relic?: RelicId; boss?: BossId; opens?: string; sub?: SubId; puzzle?: 1 | 2 | 3; spell?: SpellId;
 };
-export type RelicId = 'dash' | 'hop' | 'mist';
-export type BossId = 'owl' | 'rat' | 'fox';
+export type RelicId = 'dash' | 'hop' | 'mist' | 'climb';
+export type BossId = 'owl' | 'rat' | 'fox' | 'cat';
 
 type Pen = {
   fill: (c0: number, r0: number, c1: number, r1: number, ch?: string) => void;
@@ -298,10 +300,105 @@ export const ROOMS: Room[] = [
 
   room('balcony', 'library', 27, 1, 1, 1, (p) => {
     p.box(); p.fill(0, 12, 23, 13); p.fill(0, 0, 23, 3);
-    p.fill(0, 9, 0, 11, '.');
+    p.fill(0, 9, 0, 11, '.'); p.fill(23, 9, 23, 11, '.');
     p.fill(19, 5, 21, 11, 'D');
     p.put(8, 11, 'S'); p.put(15, 11, 'n'); p.put(4, 8, 'i'); p.put(13, 8, 'i');
-  }, { notes: ['The stair beyond climbs to the Clock Tower, where Count Culpeo fled. The door is locked from above, and this chapter of Fluffstevania is still being written. Check back soon!'] }),
+  }, { opens: 'boss:fox', notes: ['The stair beyond climbs to the Clock Tower, where Count Culpeo fled. The door was bolted by the Count himself, and swung open the moment he turned to bats.'] }),
+
+  // ─── Chapter IV: the Clock Tower ──────────────────────────────────────────
+  // The tower climbs above the rest of the castle, so its upper rooms sit on negative map rows.
+  room('gear-hall', 'clock', 28, 1, 2, 1, (p) => {
+    p.box(); p.fill(0, 0, 47, 1); p.fill(0, 12, 47, 13);
+    p.fill(0, 9, 0, 11, '.'); p.fill(47, 9, 47, 11, '.');
+    p.fill(14, 10, 17, 11); p.put(22, 8, '======'); p.fill(30, 10, 33, 11); p.put(38, 8, '=====');
+    p.put(3, 11, 'n');
+    p.put(8, 8, 'i'); p.put(20, 6, 'i'); p.put(34, 7, 'i'); p.put(44, 8, 'i');
+    p.put(10, 11, 'c'); p.put(26, 11, 'c'); p.put(40, 11, 't'); p.put(24, 4, 'u'); p.put(18, 3, 'b');
+  }, { notes: ['THE CLOCK TOWER. Mind the gears. The Management is not responsible for chinchillas wound into the works.'] }),
+
+  room('clock-shaft', 'clock', 30, -2, 1, 4, (p) => {
+    p.box(); p.fill(0, 0, 3, 55); p.fill(20, 0, 23, 55); p.fill(0, 0, 23, 1); p.fill(0, 54, 23, 55);
+    p.fill(0, 51, 3, 53, '.');          // in from the gear hall, at the bottom
+    p.fill(20, 51, 23, 53, '.');        // lower right, to the cuckoo gallery
+    p.fill(20, 37, 23, 39, '.'); p.fill(14, 40, 19, 41);   // a landing and a door to the claw vault
+    p.put(10, 50, '======'); p.put(5, 46, '======'); p.put(7, 43, '======');
+    // Above the landing the shaft rises sheer for thirteen tiles: only claws that cling to the walls climb it.
+    p.put(12, 26, '========'); p.put(4, 22, '======'); p.put(12, 18, '======'); p.put(5, 14, '======');
+    p.fill(20, 9, 23, 11, '.'); p.put(14, 12, '======');   // the top landing, out to the clockworks
+    p.put(8, 49, 'i'); p.put(16, 36, 'i'); p.put(6, 30, 'i'); p.put(15, 20, 'i'); p.put(8, 10, 'i');
+    p.put(12, 47, 'm'); p.put(10, 34, 'b'); p.put(4, 31, 'u'); p.put(19, 24, 'u'); p.put(14, 6, 'b');
+  }),
+
+  room('claw-vault', 'clock', 31, 0, 1, 1, (p) => {
+    p.box(); p.fill(0, 12, 23, 13); p.fill(0, 0, 23, 3);
+    p.fill(0, 9, 0, 11, '.');
+    p.fill(10, 11, 13, 11); p.put(11, 10, 'R');
+    p.put(5, 8, 'i'); p.put(18, 8, 'i'); p.put(18, 11, 't');
+  }, { relic: 'climb' }),
+
+  room('cuckoo-gallery', 'clock', 31, 1, 1, 2, (p) => {
+    p.box(); p.fill(0, 26, 23, 27);
+    p.fill(0, 9, 0, 11, '.');           // in from the shaft
+    p.fill(1, 12, 7, 12);               // the walkway, and a drop to the floor below
+    p.fill(12, 0, 12, 20);              // a wall of clock cases down to the lower floor
+    p.put(2, 22, '======'); p.put(6, 18, '======'); p.put(2, 14, '=====');   // the way back up to the walkway
+    // Pocket watch high on a shelf to the right, twenty-two tiles above the floor: only claws that cling reach it.
+    p.fill(16, 4, 22, 4); p.put(18, 3, 'W'); p.put(21, 3, 'H');
+    p.put(5, 8, 'i'); p.put(18, 10, 'i'); p.put(8, 24, 'i'); p.put(20, 22, 'i');
+    p.put(13, 8, 'u'); p.put(22, 15, 'u'); p.put(18, 25, 't'); p.put(6, 25, 'c'); p.put(17, 18, 'b');
+  }),
+
+  room('clockworks', 'clock', 31, -2, 2, 1, (p) => {
+    p.box(); p.fill(0, 0, 47, 1); p.fill(0, 12, 47, 13);
+    p.fill(0, 9, 0, 11, '.'); p.fill(47, 9, 47, 11, '.');
+    p.put(8, 8, '======'); p.fill(18, 9, 21, 11); p.put(26, 7, '======'); p.fill(34, 10, 37, 11);
+    p.put(28, 6, 'U'); p.put(10, 7, 'I');
+    p.put(42, 11, 'C');
+    p.put(4, 8, 'i'); p.put(16, 6, 'i'); p.put(31, 5, 'i'); p.put(44, 7, 'i');
+    p.put(12, 11, 'c'); p.put(30, 11, 't'); p.put(24, 4, 'u'); p.put(40, 4, 'b');
+  }, { items: ['tea'], sub: 'cog' }),
+
+  room('save-clock', 'clock', 33, -2, 1, 1, (p) => {
+    p.box(); p.fill(0, 12, 23, 13); p.fill(0, 0, 23, 3);
+    p.fill(0, 9, 0, 11, '.'); p.fill(23, 9, 23, 11, '.');
+    p.put(6, 11, 'S'); p.put(16, 11, '$'); p.put(3, 8, 'i'); p.put(20, 8, 'i');
+  }),
+
+  room('pendulum-hall', 'clock', 34, -2, 2, 1, (p) => {
+    p.box(); p.fill(0, 0, 47, 1); p.fill(0, 12, 47, 13);
+    p.fill(0, 9, 0, 11, '.'); p.fill(47, 9, 47, 11, '.');
+    p.fill(10, 12, 14, 12, '^'); p.fill(28, 12, 33, 12, '^');
+    p.put(9, 8, '======='); p.put(27, 8, '========'); p.put(18, 6, '=====');
+    p.put(20, 5, 'T');
+    p.fill(38, 4, 40, 11); p.put(39, 3, 'I');   // the cuirass on top of a clock case
+    p.put(5, 8, 'i'); p.put(22, 4, 'i'); p.put(32, 6, 'i'); p.put(44, 8, 'i');
+    p.put(20, 11, 't'); p.put(44, 11, 'c'); p.put(4, 11, 'c'); p.put(26, 3, 'u'); p.put(36, 5, 'v');
+  }, { items: ['cuirass'], spell: 'boulder' }),
+
+  room('winding-stair', 'clock', 36, -4, 1, 3, (p) => {
+    p.box(); p.fill(0, 0, 23, 1); p.fill(0, 40, 23, 41);
+    p.fill(0, 37, 0, 39, '.');          // in from the pendulum hall
+    p.fill(23, 9, 23, 11, '.'); p.fill(16, 12, 23, 13);    // the top landing, out to the clock face
+    p.put(6, 36, '======='); p.put(13, 32, '======='); p.put(5, 28, '======='); p.put(12, 24, '======='); p.put(4, 20, '======='); p.put(11, 16, '=======');
+    p.put(1, 26, '==='); p.put(2, 25, 'T');   // a scroll tucked in a niche
+    p.put(18, 38, 'i'); p.put(3, 30, 'i'); p.put(20, 22, 'i'); p.put(6, 14, 'i'); p.put(19, 8, 'i');
+    p.put(14, 30, 'v'); p.put(1, 12, 'u'); p.put(22, 27, 'u'); p.put(10, 6, 'b'); p.put(16, 19, 'm');
+  }, { spell: 'petals' }),
+
+  room('clockface', 'clock', 37, -4, 2, 1, (p) => {
+    p.box(); p.fill(0, 12, 47, 13); p.fill(0, 0, 47, 2);
+    p.fill(0, 9, 0, 11, '.'); p.fill(47, 9, 47, 11, '.');
+    p.fill(1, 9, 1, 11, 'G'); p.fill(46, 9, 46, 11, 'G');
+    p.put(8, 8, '====='); p.put(35, 8, '=====');
+    p.put(24, 4, 'O');
+  }, { boss: 'cat' }),
+
+  room('clock-top', 'clock', 39, -4, 1, 1, (p) => {
+    p.box(); p.fill(0, 12, 23, 13); p.fill(0, 0, 23, 3);
+    p.fill(0, 9, 0, 11, '.');
+    p.fill(17, 4, 20, 11, 'D');
+    p.put(8, 11, 'S'); p.put(13, 11, 'n'); p.put(4, 8, 'i'); p.put(12, 7, 'i');
+  }, { notes: ['A hatch to the roof, where the Golden Wolfberry glows and Count Culpeo waits. It is bolted from above, and the last chapter of Fluffstevania is still being written. Check back soon!'] }),
 
   room('larder', 'catacombs', 11, 3, 3, 1, (p) => {
     p.box(); p.fill(0, 0, 71, 1); p.fill(0, 12, 71, 13);
@@ -353,6 +450,7 @@ export const GEAR: Record<string, Gear> = {
   scarf: { name: 'Wool Scarf', slot: 'armor', def: 2, text: 'Knitted by Grandpa Pebble. Warm and a little protective.' },
   cape: { name: 'Moth Cape', slot: 'armor', def: 5, text: 'Dusty moth wings stitched into a cape.' },
   helm: { name: 'Thimble Helm', slot: 'armor', def: 8, text: 'A silver thimble worn as a helmet. Surprisingly sturdy.' },
+  cuirass: { name: 'Clockwork Cuirass', slot: 'armor', def: 12, text: 'Brass plates on springs that tick softly. The sturdiest thing in the castle.' },
   bell: { name: 'Silver Bell', slot: 'acc', lck: 8, text: 'Jingles when luck is near. More drops and critical hits.' },
   shell: { name: 'Beetle Shell', slot: 'acc', def: 3, text: 'A polished shell worn as a shield charm.' },
   ring: { name: 'Raisin Ring', slot: 'acc', def: 2, lck: 6, text: 'A dried raisin set in brass. Lucky, and a little chewy.' },
@@ -368,31 +466,37 @@ export const RELICS: Record<RelicId, { name: string; text: string }> = {
   dash: { name: 'Dust Dash', text: 'Burst forward in a puff of dust, even once in mid-air. Dash then jump to leap far.' },
   hop: { name: 'Cloud Hop', text: 'Jump once more in mid-air, off a puff of dust.' },
   mist: { name: 'Mist Form', text: 'Walk into an iron grate to become a wisp of dust and drift through the bars.' },
+  climb: { name: 'Wall Cling', text: 'Push against a wall in mid-air to cling and slide, then jump to kick off it. Kick back and forth to climb.' },
 };
 // ─── Sub-weapons, spells and familiars ────────────────────────────────────
 
 /** Thrown with ↑ + attack; each throw costs seeds. */
-export type SubId = 'seed' | 'spread' | 'acorn' | 'pumpkin';
+export type SubId = 'seed' | 'spread' | 'acorn' | 'pumpkin' | 'cog';
 export const SUBS: Record<SubId, { name: string; cost: number; text: string }> = {
   seed: { name: 'Sunflower Seed', cost: 1, text: 'One seed lobbed in an arc. It breaks cracked walls too.' },
   spread: { name: 'Seed Spread', cost: 2, text: 'Three seeds fanned out at once.' },
   acorn: { name: 'Boomerang Acorn', cost: 2, text: 'Flies out, hits everything on the way, and comes back.' },
   pumpkin: { name: 'Pumpkin Flask', cost: 3, text: 'Bursts where it lands into a row of little flames.' },
+  cog: { name: 'Clockwork Cog', cost: 3, text: 'Drops to the floor and rolls along it, through foes and back off walls.' },
 };
-export type SpellId = 'whirlwind' | 'quake';
+export type SpellId = 'whirlwind' | 'quake' | 'petals' | 'boulder';
 /**
  * Spells cost Dust. `motion` is in numpad notation relative to the way the hero faces (2 down, 3 down-forward,
- * 6 forward), finished with attack. Each hero learns theirs at `level`.
+ * 6 forward), finished with attack. Each hero learns their first spell at `level`; the second is read from a scroll
+ * found in the Clock Tower (`scroll`), and ↓ + the spell button casts it.
  */
-export const SPELLS: Record<SpellId, { hero: HeroId; name: string; cost: number; motion: number[]; keys: string; level: number; text: string }> = {
+export const SPELLS: Record<SpellId, { hero: HeroId; name: string; cost: number; motion: number[]; keys: string; level?: number; scroll?: string; text: string }> = {
   whirlwind: { hero: 'dora', name: 'Whirlwind', cost: 12, motion: [2, 3, 6], keys: '↓ ↘ → + attack', level: 3, text: 'A spinning column of dust that drifts forward, hitting again and again.' },
   quake: { hero: 'enzo', name: 'Burrow Quake', cost: 15, motion: [6, 2, 3], keys: '→ ↓ ↘ + attack', level: 4, text: 'Enzo pounds the floor, sending a quake both ways that throws foes into the air.' },
+  petals: { hero: 'dora', name: 'Petal Ward', cost: 14, motion: [6, 3, 2], keys: '→ ↘ ↓ + attack', scroll: 'high in the winding stair', text: 'Six petals whirl around Dora for four seconds, cutting foes and knocking shots out of the air.' },
+  boulder: { hero: 'enzo', name: 'Boulder Roll', cost: 16, motion: [6, 3, 2], keys: '→ ↘ ↓ + attack', scroll: 'in the pendulum hall', text: 'Enzo curls into a ball and bowls forward, flattening everything and bouncing back off walls.' },
 };
-export type PalId = 'zippy' | 'pudding' | 'mochi';
+export type PalId = 'zippy' | 'pudding' | 'mochi' | 'nutmeg';
 export const PALS: Record<PalId, { name: string; kind: string; role: string; where: string }> = {
   zippy: { name: 'Zippy', kind: 'Sugar glider', role: 'Glides at nearby foes and nips them.', where: 'Locked in a cage on the belfry stair.' },
   pudding: { name: 'Pudding', kind: 'Guinea pig', role: 'Squeaks and heals the lead when they are badly hurt.', where: 'Lost and hungry in the Hay Cellar.' },
   mochi: { name: 'Mochi', kind: 'Capybara', role: 'Bonks away shots aimed at the lead and sniffs out cracked walls.', where: 'Soaking by the shrine in the catacombs.' },
+  nutmeg: { name: 'Nutmeg', kind: 'Chipmunk', role: 'Gathers up dropped loot and sometimes digs up extra raisins.', where: 'Lost her pocket watch in the Clock Tower.' },
 };
 /** What the Bestiary says about each foe once you've defeated one. */
 export const LORE: Record<string, { weak: string; line: string }> = {
@@ -410,6 +514,10 @@ export const LORE: Record<string, { weak: string; line: string }> = {
   quill: { weak: 'Jump the ink, close in while it dips.', line: 'Writes the Count’s letters. The handwriting is terrible.' },
   ink: { weak: 'Back off as it gathers, hit it after it lands.', line: 'A spilt inkwell that decided to keep going.' },
   culpeo: { weak: 'Strike as he reappears; jump his fireballs.', line: 'An old fox of very old blood, and the master of the castle.' },
+  mouse: { weak: 'Hit it while its key spins, or after it zooms.', line: 'Wound up every morning by the Count. Never quite unwinds.' },
+  cuckoo: { weak: 'Strike the moment it pops out.', line: 'Announces the hour, and the half hour, and whenever it likes.' },
+  toad: { weak: 'Step under the hop, strike as it lands.', line: 'A coiled spring with opinions about personal space.' },
+  ticktock: { weak: 'Hit her while she’s dizzy from a dive.', line: 'The Count’s clockwork cat. She keeps perfect time, and grudges.' },
 };
 /** Pip's stall in the catacombs. `seeds` is a bundle of ten sunflower seeds. */
 export const SHOP: { id: string; price: number }[] = [
@@ -420,7 +528,7 @@ export const itemName = (id: string) => (id === 'seeds' ? 'Sunflower Seeds ×10'
 
 // ─── Story ────────────────────────────────────────────────────────────────
 
-export type Speaker = HeroId | 'owl' | 'rat' | 'fox' | 'pip' | 'sign' | PalId;
+export type Speaker = HeroId | 'owl' | 'rat' | 'fox' | 'cat' | 'pip' | 'sign' | PalId;
 export type Line = { who: Speaker; text: string };
 export const SCRIPTS: Record<string, Line[]> = {
   intro: [
@@ -522,6 +630,48 @@ export const SCRIPTS: Record<string, Line[]> = {
     { who: 'enzo', text: 'Why does everyone in this castle want to eat us?' },
     { who: 'dora', text: 'Because we’re adorable. And the Golden Wolfberry is getting closer. Come on.' },
   ],
+  clock: [
+    { who: 'enzo', text: 'Tick. Tock. Tick. Tock. It’s like being inside a giant pocket watch.' },
+    { who: 'dora', text: 'The Count’s up at the very top. Every gear in here is turning something. Let’s find out what.' },
+  ],
+  climb: [
+    { who: 'sign', text: 'You found the Wall Cling! Jump at a wall and hold toward it to cling and slide. Press jump to kick off, then steer back to the wall and kick again to climb.' },
+    { who: 'enzo', text: 'Claws out. That sheer shaft is just a very tall wall now.' },
+  ],
+  nutmegAsk: [
+    { who: 'nutmeg', text: 'Oh! Oh no, oh no. I dropped Grandpa’s pocket watch and a cuckoo knocked it up onto a shelf in the gallery. Way, way up.' },
+    { who: 'dora', text: 'The cuckoo gallery, near the bottom of the tower? We’ll keep an eye out.' },
+  ],
+  nutmegJoin: [
+    { who: 'nutmeg', text: 'My watch! Still ticking! You two are the best. I’m coming with you. I’m very good at finding things. Mostly snacks.' },
+    { who: 'sign', text: 'Nutmeg the chipmunk joins you! Choose who comes along from the Familiars tab in the menu.' },
+  ],
+  pipClock: [
+    { who: 'pip', text: 'Customers! You found my second stall. The view up here is lovely, and the rent is a single raisin.' },
+    { who: 'enzo', text: 'How did you get up here before us?' },
+    { who: 'pip', text: 'Trade secret. Mostly the stairs.' },
+  ],
+  petals: [
+    { who: 'sign', text: 'Dora reads a scroll of Petal Ward! → ↘ ↓ + attack, or ↓ + F, to set six petals whirling around her.' },
+    { who: 'dora', text: 'Pretty, and pointy. My favourite kind of spell.' },
+  ],
+  boulder: [
+    { who: 'sign', text: 'Enzo reads a scroll of Boulder Roll! → ↘ ↓ + attack, or ↓ + F, to curl up and bowl through everything.' },
+    { who: 'enzo', text: 'I’ve been training for this my whole life. It’s just rolling.' },
+  ],
+  cat: [
+    { who: 'cat', text: 'Tick. Tock. Two chinchillas, eleven minutes late. The Count said you would come.' },
+    { who: 'dora', text: 'A clockwork cat? Let us through. We only want the Wolfberry.' },
+    { who: 'cat', text: 'Everyone wants something. I want to wind you up and watch you run down. Purrrr.' },
+    { who: 'enzo', text: 'I don’t like the way she said “wind”.' },
+  ],
+  catDown: [
+    { who: 'cat', text: 'My spring... my gears... I have run... down... The Count waits on the roof. He has... the berry...' },
+    { who: 'enzo', text: 'She dropped a leaf. And there’s a shrine past her. Up is the only way left.' },
+    { who: 'dora', text: 'The Golden Wolfberry is right above us, Enzo. Almost there.' },
+  ],
 };
 /** Scripts that play the first time the heroes enter a room. */
-export const ROOM_SCRIPTS: Record<string, string> = { path: 'intro', hall: 'hall', cellar: 'cellar', 'crypt-stair': 'crypt', 'save-crypt': 'pip', larder: 'larder', reading: 'library' };
+export const ROOM_SCRIPTS: Record<string, string> = {
+  path: 'intro', hall: 'hall', cellar: 'cellar', 'crypt-stair': 'crypt', 'save-crypt': 'pip', larder: 'larder', reading: 'library', 'gear-hall': 'clock', 'save-clock': 'pipClock',
+};

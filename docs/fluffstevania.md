@@ -5,7 +5,7 @@ A Symphony of the Night-style castle explorer starring Dora and Enzo. Route: `/f
 ## Files
 
 - `lib/fluffstevania-world.ts`: the map (every room drawn with a small pen of `fill` and `put` calls), gear, food, relics, Pip's shop list and the story lines.
-- `lib/fluffstevania-game.ts`: the deterministic engine, with physics, combat, the tag, enemies, both bosses, pickups, shrines, the shop, saves and the menu actions.
+- `lib/fluffstevania-game.ts`: the deterministic engine, with physics, combat, the tag, enemies, the four bosses, pickups, shrines, the shop, saves and the menu actions.
 - `lib/fluffstevania-scene.ts`: Canvas 2D drawing (see **Graphics** below).
 - `lib/fluffstevania-music.ts`: the synthesised music (see **Music** below).
 - `app/fluffstevania/page.tsx`: the title screen, game loop, dialogue box, menu, shop, game-over and chapter cards, touch pad and saving. `fluffstevania.css` loads the Cinzel and Cormorant Garamond faces from Google Fonts; the canvas uses them once they arrive and Georgia until then.
@@ -13,7 +13,7 @@ A Symphony of the Night-style castle explorer starring Dora and Enzo. Route: `/f
 
 ## The map
 
-Every map cell is one screen of 24×14 tiles of 16 pixels (384×224, drawn at 3×). A room covers a rectangle of cells, and its tiles sit at fixed world coordinates. There are no door objects: the engine looks up whichever room covers a tile, so walking off one room's edge lands in the next. Off the map counts as wall. Side doors are three tiles tall with the floor at row 12 of that screen.
+Every map cell is one screen of 24×14 tiles of 16 pixels (384×224, drawn at 3×). A room covers a rectangle of cells, and its tiles sit at fixed world coordinates. The Clock Tower climbs above the rest of the castle, so its upper rooms sit on negative map rows. There are no door objects: the engine looks up whichever room covers a tile, so walking off one room's edge lands in the next. Off the map counts as wall. Side doors are three tiles tall with the floor at row 12 of that screen.
 
 Tiles:
 
@@ -24,7 +24,7 @@ Tiles:
 | `^` | Spikes. Standing on them costs 12 before defence and bounces you up. |
 | `%` | Cracked wall. Any hit breaks the whole connected section; it's saved as a flag. |
 | `G` | Boss gate. Shut only while a fight is on. |
-| `D` | Sealed door. It opens for good once its room's `opens` flag is set (`sealed` opens on `boss:owl`; the library door stays shut). |
+| `D` | Sealed door. It opens for good once its room's `opens` flag is set (`sealed` opens on `boss:owl`, `library` on `boss:rat`, the archive's hidden door on `puzzle:archive` and the balcony's on `boss:fox`). The hatch in `clock-top` has no flag and stays shut. |
 
 Markers, which become objects when you enter the room:
 
@@ -37,9 +37,15 @@ Markers, which become objects when you enter the room:
 | `H` | Wolfberry Leaf |
 | `R` | Relic |
 | `I` | Item (from the room's `items` list, in reading order) |
+| `U` | The room's sub-weapon (`sub`) |
+| `T` | A spell scroll: reading it teaches the room's `spell` |
+| `W` | Nutmeg's pocket watch (sets the `watch` flag) |
 | `O` | Boss |
 | `b` `m` `k` `x` `a` | Bat, moth, beetle, bone mouse, armadillo |
 | `r` `g` `p` | Pantry rat, jar ghost, cellar spider |
+| `v` `q` `j` | Flying tome, ink quill, ink blot |
+| `c` `u` `t` | Clockwork mouse, cuckoo, spring toad |
+| `P` `Z` `Y` `C` | Familiars waiting to be befriended: Pudding, Zippy's cage, Mochi, Nutmeg |
 
 Enemies and candles come back every time you enter a room. Items, leaves, relics, broken walls and beaten bosses are remembered as flags.
 
@@ -97,6 +103,29 @@ Beating Count Culpeo ends chapter III.
 
 Markers `1`, `2` and `3` are puzzle bookcases (`Shelf`). A room with `puzzle: n` and `opens: 'flag'` opens its sealed doors when shelf `n` is struck by a swing or a tag tumble, and the right book is then drawn pulled out. A wrong shelf spawns an awake Flying Tome and can't be struck again for 0.8 s.
 
+## Chapter IV: the Clock Tower
+
+Ten rooms on 20 cells, all in the `clock` area, beyond the balcony door (`opens: 'boss:fox'`). Brass-and-stone walls with round windows onto the night sky high above the castle, gears turning behind the stonework, and a ticking music-box theme.
+
+- `gear-hall` (2 screens): clockwork mice, a spring toad and a cuckoo.
+- `clock-shaft` (1×4): the tower's great shaft. Ledges every four tiles climb from the gear hall to a landing with a door to the claw vault. Above the landing the shaft rises sheer for thirteen tiles, so only the Wall Cling climbs on to the ledges above and the top landing (a ledge you can jump up through), out to the clockworks. A door at the bottom right leads to the cuckoo gallery.
+- `claw-vault`: the **Wall Cling** on a pedestal.
+- `cuckoo-gallery` (1×2): a walkway with a drop to the floor below, and a wall of clock cases down the middle. The pocket watch and a Wolfberry Leaf sit on a shelf 22 tiles above the lower floor, so only claws that cling reach them.
+- `clockworks` (2 screens): the **Clockwork Cog** on a high shelf, a flask of Timothy Tea, and Nutmeg.
+- `save-clock`: a shrine and Pip's second stall.
+- `pendulum-hall` (2 screens): two spike pits, a great pendulum swinging behind the room, Enzo's **Boulder Roll** scroll, and the **Clockwork Cuirass** (armour, DEF +12) on top of a clock case.
+- `winding-stair` (1×3): ledges every four tiles up to the clock face, and Dora's **Petal Ward** scroll in a niche.
+- `clockface` (2 screens): Tick-Tock the Clockwork Cat, behind the moonlit back of the great clock face.
+- `clock-top`: a shrine and the hatch to the roof, bolted from above for now.
+
+Beating Tick-Tock ends chapter IV.
+
+### The Wall Cling
+
+With the relic, a hero in mid-air who holds toward a wall (not spikes or a grate) while falling, or rising slower than 60 px/s, clings to it (`clinging`, `body.cling`). The slide down is capped at 70 px/s (`CLING_FALL`), dust scrapes off the claws, and landing on a ledge or floor ends it. Jump while clinging, or within 0.1 s of letting go, kicks off: 440 px/s up (`WALL_JUMP_V`) and 170 px/s away for 0.16 s (`WALL_KICK_V`, `KICK_T`), after which you steer again. A kick gives back the air dash and the Cloud Hop, and steering back to the same wall and kicking again climbs about four tiles a kick.
+
+The reachability model counts any open spot beside a wall as one a hero can cling to, and treats a kick from it like a jump.
+
 ## Heroes
 
 The leader has the physics body; the partner follows the leader's path 22 pixels behind. They share one level, and each has their own HP and three gear slots. XP to the next level is `round(10 × level^1.7)`.
@@ -141,6 +170,10 @@ Spells are cast with the motion plus attack (numpad directions relative to facin
 | --- | --- | --- | --- | --- | --- |
 | Whirlwind | Dora | Level 3 | ↓ ↘ → | 12 | A tornado drifting forward at 120 px/s for 1.6 s, hitting each foe every 0.25 s for `0.7 × ATK + 3`. |
 | Burrow Quake | Enzo | Level 4 | → ↓ ↘ | 15 | Two quakes at 210 px/s for 0.9 s, `1.4 × ATK + 6` each, throwing foes up. |
+| Petal Ward | Dora | Scroll in the winding stair | → ↘ ↓ | 14 | Six petals orbit Dora for 4 s (`PETAL_T`), each hitting foes for `0.5 × ATK + 4` every 0.3 s and knocking away any enemy shot they touch except shockwaves, flames and chimes. |
+| Boulder Roll | Enzo | Scroll in the pendulum hall | → ↘ ↓ | 16 | Enzo rolls forward at 300 px/s for 0.7 s (`ROLL_V`, `ROLL_T`), untouchable, hitting everything in his path for `1.3 × ATK + 8` every 0.25 s and throwing foes up. He bounces back off walls. |
+
+F (or RT, or the pad's SPELL) casts the lead's first spell; with ↓ held it casts their second, once they've read its scroll. Scrolls are remembered as `spell:<id>` flags.
 
 Sub-weapons are thrown with ↑ + attack and cost seeds. You ready one from the Magic tab, and a new one is readied as you find it.
 
@@ -150,6 +183,7 @@ Sub-weapons are thrown with ↑ + attack and cost seeds. You ready one from the 
 | Seed Spread | 2 | cellar shelf | Three seeds fanned upward, `5 + 2 × level` each |
 | Boomerang Acorn | 2 | high on the belfry stair (Cloud Hop) | Out at 300 px/s, pulled back at 520 px/s², goes through foes, `8 + 2.2 × level` (again on the way back) |
 | Pumpkin Flask | 3 | larder shelf | Bursts on a wall, floor or foe into five flames on the floor below for 1.4 s, `6 + 1.6 × level` every 0.4 s |
+| Clockwork Cog | 3 | high shelf in the clockworks | Drops to the floor, then rolls along it at 230 px/s for up to 2.6 s, through foes (`10 + 2.4 × level`, again every 0.3 s), bouncing back off walls |
 
 ### Familiars
 
@@ -160,6 +194,7 @@ A familiar joins through a small quest. The first to join comes along at once, a
 | Pudding (guinea pig), `P` in the cellar | Talk to her with a Hay Cake in the bag. | When the lead is below 40% HP, heals `6 + 3 × level`, then waits `max(5, 12 − 0.6 × level)` s. |
 | Zippy (sugar glider), `Z` cage on the belfry stair | Three hits break the cage. | Rides on the lead's shoulder. Glides at the nearest foe within 150 px at 250 px/s for `3 + 2 × level`, every `max(0.6, 1.5 − 0.08 × level)` s. |
 | Mochi (capybara), `Y` by the catacomb shrine | Talk to her after beating the Rat King. | Knocks away one enemy shot within 40 px of the lead (not shockwaves), then waits `max(2, 7 − 0.45 × level)` s. Also gives away cracked walls. |
+| Nutmeg (chipmunk), `C` in the clockworks | Find her pocket watch (`W`, high in the cuckoo gallery) and talk to her. | Fetches loose raisins, seeds, Dust and food within `60 + 8 × level` px to the lead. When a foe falls there's a `15 + 3 × level` % chance she digs up 3 more raisins. |
 
 ### Rests, respawns and warps
 
@@ -214,6 +249,9 @@ Movement:
 | Flying Tome | 38 | 16 | 2 | 22 | Rests shut until you come within 140 px, then flaps after you. After 1.6 s, within 110 px, it gathers for 0.3 s and snaps forward at 200 px/s for 0.35 s. |
 | Ink Quill | 30 | 14 | 1 | 20 | Hovers about its post and every 2.4 s, within 230 px, flicks a blot of ink (12) at you at 170 px/s. |
 | Ink Blot | 50 | 17 | 4 | 26 | Oozes along at 28 px/s. Within 80 px it gathers for 0.35 s and springs at you (140 px/s across, 340 px/s up), then rests for 0.7 s. |
+| Clockwork Mouse | 44 | 18 | 5 | 28 | Trundles at 30 px/s. Within 160 px its key spins for 0.5 s, then it zooms at 260 px/s for 0.8 s, bouncing back off walls and ledges, then rests for 0.9 s. |
+| Cuckoo | 40 | 16 | 3 | 26 | Shut in its clock, where it can't hurt or be hurt (`foeHidden`). Within 200 px it pops out every 2.6 s for 1.3 s and spits a note (14) at you at 150 px/s. |
+| Spring Toad | 60 | 20 | 5 | 32 | Sits on its spring. Every 1.3 s within 220 px it leaps at you (420 px/s up and 130 across; 520 up and 90 across within 90 px), then rests where it lands. |
 
 Candles drop:
 
@@ -250,9 +288,20 @@ Candles drop:
 
 A simple bot beats him at level 9 in about 47 s, taking 8 hits; at level 11 in about 53 s.
 
+**Tick-Tock the Clockwork Cat:** 1,900 HP, DEF 12, contact 28, 900 XP. She prowls the floor toward the lead and picks one of these without repeating it three times:
+
+- **Pounce:** a crouch, then a leap to where you stand, landing with two floor shockwaves (14 each).
+- **Cogs:** she bowls an iron cog (14) that rolls along the floor and bounces back off the walls. In phase two a second one bounces along in arcs.
+- **Wall dive:** she sprints to the nearer wall, runs up it, clings there for 0.5 s and dives at the lead at 420 px/s. The landing leaves her dizzy for 0.9 s, when she takes 1.25× damage.
+- **Chime** (phase two only): she rings the bell on her collar. A low ring (15) rolls out both ways along the floor, to jump over, then a high one to stay down under.
+- At half HP she speeds up by 1.25× and lets two clockwork mice loose.
+- She drops a Wolfberry Leaf.
+
+The same simple bot with the starting weapons beats her at level 11 in about 40 s, taking 7 hits, and at level 13 in about 31 s. With the Wolfberry Fan and Heavy Tome it takes 18 to 26 s.
+
 ## Pip's shop
 
-Stand at the stall and press ↑. The world waits while it is open. Escape or Leave closes it.
+Pip keeps a stall by the catacomb shrine and a second one by the Clock Tower shrine. Stand at either and press ↑. The world waits while it is open. Escape or Leave closes it.
 
 | Item | Raisins |
 | --- | --- |
@@ -275,6 +324,8 @@ Everything is Canvas 2D in the 384×224 view, scaled up by the page.
   - Cellar: barrel vaults, barrel and hay stacks, beams and hanging herbs.
   - Belfry: the sky through great arches, clock gears, ropes, and the bell in the boss room.
   - Catacombs: burial niches, shelves of glowing jars, pillars, cobwebs and coffins. The throne room has the cheese throne.
+  - Library: bookcases, moonlit windows, reading lamps and busts. The study has the Count's portrait and a fireplace.
+  - Clock Tower: the night sky over the castle far below, a wall of round brass-framed windows and pipes, and great still gears. On top of those, `drawClockwork` paints live gears turning in meshed pairs, a great pendulum swinging behind the pendulum hall, and in Tick-Tock's room the moonlit clock face with its hands creeping round.
 - **Tiles:** a room's stonework is painted once, at the screen's resolution, into a cache. The cache is redrawn when a wall breaks, a gate shuts or a door opens.
   - Blocks are bevelled, with cracks, moss, carved skulls in the catacombs, grass caps outside, stalactites and roots underneath, and soft shadows where air meets stone.
   - Ledges are wood with iron brackets, or stone with corbels.
@@ -290,13 +341,14 @@ Everything is Canvas 2D in the 384×224 view, scaled up by the page.
 - **Heroes:** the lead squashes for 0.14 s on landing and stretches while rising fast. Dashing sheds tufts of fur. Worn armour shows: the Wool Scarf's tails fly out behind, the Moth Cape is a pair of moth wings on the back, and the Thimble Helm sits on the crown. The scarf and cape stream back further at speed.
 - **Level up:** a column of light pours down on the lead with motes rising through it and a gold LEVEL UP.
 - **Pickups:** everything bobs once it has settled, and dropped things glint now and then. Relics, sub-weapons and Wolfberry Leaves have a halo with two sets of slowly turning rays.
-- **Foreground:** each area has a 1152-pixel strip of dark silhouettes that scrolls at 1.35× the camera's speed in front of everything: a tree with ivy and grass outside, a column, chandelier chain and webs in the hall, a beam, a hook and barrels in the cellar, bell ropes and a great cog in the belfry, and stalactites, bones and webs in the catacombs.
+- **Foreground:** each area has a 1152-pixel strip of dark silhouettes that scrolls at 1.35× the camera's speed in front of everything: a tree with ivy and grass outside, a column, chandelier chain and webs in the hall, a beam, a hook and barrels in the cellar, bell ropes and a great cog in the belfry, stalactites, bones and webs in the catacombs, and a great cog, chains and a girder in the Clock Tower.
 - **Weather and air:**
   - Rain runs down the hall's stained-glass windows. About every 7.3 s lightning flashes through them twice and the whole room flickers.
   - In the hall and belfry, slanted shafts of light with dust drifting in them.
   - In the cellar and catacombs, water drips from the ceilings and splashes on the floor below.
   - The existing mist drifts along the approach and catacomb floors.
-- **Colour grading:** a soft-light wash per area over everything but the HUD: cold blue on the approach, warm candlelight in the hall and cellar, pale blue in the belfry and a sickly green in the catacombs.
+- **Colour grading:** a soft-light wash per area over everything but the HUD: cold blue on the approach, warm candlelight in the hall and cellar, pale blue in the belfry, a sickly green in the catacombs, rose in the library and brass in the Clock Tower.
+- **Clock Tower moves:** a clinging hero turns to look out from the wall, with claw scratches and sparks where they scrape. Boulder Roll draws Enzo curled up and tumbling inside a violet ring, with afterimages. Petal Ward's petals glow pink as they circle Dora.
 - **Room transitions:** entering a room sweeps a dark curtain with a gold edge off the screen in the direction of travel, over 0.34 s.
 - **Boss intro:** as a fight begins, a black band crosses the screen with the boss's title in italics ("Warden of the Belfry", "Tyrant of the Larder") and the name slams in with a shake and a flash.
 - **Afterimages:** a hero who is dashing, lunging or tumbling in a tag leaves tinted copies behind: violet for Dora, blue for Enzo.
@@ -315,7 +367,7 @@ Everything is Canvas 2D in the 384×224 view, scaled up by the page.
 
 ## Adding a chapter
 
-1. Add rooms to `ROOMS` on free cells. For a new area, extend `AreaId`, `AREAS`, `THEMES` and `layersFor` in the scene.
+1. Add rooms to `ROOMS` on free cells (negative map rows are fine). For a new area, extend `AreaId`, `AREAS`, `THEMES`, `GRADE`, `layersFor` and `foreground` in the scene, and add a song to `SONGS` in the music.
 2. Add relics to `RelicId` and `RELICS`, then gate the new rooms with geometry the relic crosses.
 3. Extend the reachability model in `tests/fluffstevania.mjs` with the relic's reach, and assert what each relic unlocks.
-4. Add the boss to `BossId`, `BOSSES`, a step function beside `owlStep` and `ratStep`, and a drawing. `bossDown` plays `<boss>Down` and shows the chapter card, and the page's `CHAPTERS` holds each card's text. Give the next sealed door's room an `opens` flag.
+4. Add the boss to `BossId`, `BOSSES`, `BOSS_KILLS`, `BOSS_CHAPTER`, a step function beside `owlStep`, `ratStep`, `foxStep` and `catStep`, a drawing and a `BOSS_TITLE`. `bossDown` plays `<boss>Down` and shows the chapter card, and the page's `CHAPTERS` holds each card's text; mark the newest card `last`. Give the next sealed door's room an `opens` flag.

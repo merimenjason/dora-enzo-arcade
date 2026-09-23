@@ -25,7 +25,7 @@ const PAD: { key: keyof Input; label: string; name: string }[] = [
   { key: 'left', label: '◀', name: 'Move left' }, { key: 'right', label: '▶', name: 'Move right' },
   { key: 'up', label: '▲', name: 'Up: read signs, and with attack throw a seed' }, { key: 'down', label: '▼', name: 'Down: drop through ledges with jump' },
   { key: 'tag', label: 'TAG', name: 'Tag your partner in' }, { key: 'dash', label: 'DASH', name: 'Dust Dash' },
-  { key: 'spell', label: 'SPELL', name: 'Cast the lead’s spell' }, { key: 'duo', label: 'DUO', name: 'Duo Strike, when the meter is full' },
+  { key: 'spell', label: 'SPELL', name: 'Cast the lead’s spell (hold down for their second)' }, { key: 'duo', label: 'DUO', name: 'Duo Strike, when the meter is full' },
   { key: 'attack', label: 'HIT', name: 'Attack' }, { key: 'jump', label: 'JUMP', name: 'Jump' },
 ];
 const CUES: Record<string, [number, number, OscillatorType, number]> = {
@@ -44,13 +44,15 @@ const CUES: Record<string, [number, number, OscillatorType, number]> = {
   screech: [1400, 500, 'sawtooth', 0.4], feathers: [900, 600, 'triangle', 0.12], quake: [90, 40, 'sawtooth', 0.4], bossdie: [400, 50, 'sawtooth', 1.4],
   victory: [523, 1046, 'triangle', 1], down: [400, 100, 'triangle', 0.6], dead: [300, 60, 'triangle', 1.2], gate: [120, 80, 'square', 0.4],
   throw: [500, 700, 'triangle', 0.06], lunge: [200, 400, 'sawtooth', 0.15], flap: [300, 500, 'sine', 0.05], eat: [600, 900, 'sine', 0.2],
+  walljump: [500, 900, 'square', 0.08], cling: [1400, 1000, 'triangle', 0.05], zip: [800, 2000, 'square', 0.18], boing: [200, 700, 'sine', 0.2],
+  cuckoo: [1320, 1050, 'sine', 0.25], meow: [700, 450, 'triangle', 0.5], chime: [1760, 1720, 'sine', 0.6],
 };
 const fmt = (t: number) => `${Math.floor(t / 3600)}:${String(Math.floor((t / 60) % 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const NAMES: Record<HeroId, string> = { dora: 'Dora', enzo: 'Enzo' };
 const SPEAKERS: Record<Line['who'], { name: string; face?: string }> = {
   dora: { name: 'Dora' }, enzo: { name: 'Enzo' }, owl: { name: 'Duke Hootsworth', face: '🦉' },
-  rat: { name: 'Gnawdrick the Rat King', face: '🐀' }, fox: { name: 'Count Culpeo', face: '🦊' }, pip: { name: 'Pip', face: '🐹' }, sign: { name: '', face: '📜' },
-  zippy: { name: 'Zippy' }, pudding: { name: 'Pudding' }, mochi: { name: 'Mochi' },
+  rat: { name: 'Gnawdrick the Rat King', face: '🐀' }, fox: { name: 'Count Culpeo', face: '🦊' }, cat: { name: 'Tick-Tock', face: '🐈' }, pip: { name: 'Pip', face: '🐹' }, sign: { name: '', face: '📜' },
+  zippy: { name: 'Zippy' }, pudding: { name: 'Pudding' }, mochi: { name: 'Mochi' }, nutmeg: { name: 'Nutmeg' },
 };
 const STYLE_NOTE = { fan: 'wide sweeps and gusts; hold attack to spin', claws: 'lunging swipes', club: 'heavy lunging swings' };
 const DIFFS: Difficulty[] = ['easy', 'normal', 'hard'];
@@ -58,8 +60,11 @@ const shrineName = (id: string) => { const r = ROOMS.find((x) => x.id === id); r
 const CHAPTERS: Record<number, { title: string; text: string; last: boolean }> = {
   1: { title: 'The Owl Belfry falls quiet', text: 'The sealed door beyond the belfry stands open. Below it wait the Pantry Catacombs.', last: false },
   2: { title: 'The Rat King is dethroned', text: 'The key to Count Culpeo’s Library was under the cheese throne all along. The library door beyond the chimney stands open.', last: false },
-  3: { title: 'Count Culpeo flees', text: 'The Count has fled to his Clock Tower with the Golden Wolfberry. The rest of Fluffstevania is still being written; your save will carry on into the next chapter.', last: true },
+  3: { title: 'Count Culpeo flees', text: 'The Count has fled to his Clock Tower with the Golden Wolfberry. The door beyond the balcony stands open, and the tower climbs into the night.', last: false },
+  4: { title: 'Tick-Tock runs down', text: 'The clockwork cat is still, and only the roof remains, where Count Culpeo waits with the Golden Wolfberry. The last chapter of Fluffstevania is still being written; your save will carry on into it.', last: true },
 };
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
+const SPELL_FACE: Record<SpellId, string> = { whirlwind: '🌪️', quake: '🪨', petals: '🌸', boulder: '🥎' };
 
 function readSave(): Save | null { try { return parseSave(localStorage.getItem(SAVE_KEY)); } catch { return null; } }
 function writeSave(s: Save) { try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch {} }
@@ -98,7 +103,7 @@ export default function Fluffstevania() {
         Grandpa Pebble swears the <b>Golden Wolfberry</b> grows at the top of the castle on the mountain: one berry that never runs out of snacks.
         Dora and Enzo head in together. Explore a castle that opens up as you find relics, level up, collect gear, and <b>tag</b> between
         Dora&rsquo;s sweeping Dust Fan and Enzo&rsquo;s lunging claws. The one tagging in tumbles through anything in the way. Chain combos, cast spells,
-        throw sub-weapons, unleash a Duo Strike together, and befriend a sugar glider, a guinea pig and a capybara along the way.
+        throw sub-weapons, unleash a Duo Strike together, and befriend a sugar glider, a guinea pig, a capybara and a chipmunk along the way.
       </p>
       <div className="fv-row fv-start">
         {save && <button className="fv-go" onClick={() => setMode({ kind: 'play', save, key: Date.now() })} data-testid="continue">
@@ -118,11 +123,11 @@ export default function Fluffstevania() {
     <section className="fv-howto" aria-label="How to play">
       <div><h2>Move</h2><p><b>← →</b> or <b>A D</b> walk · <b>Space</b>, <b>Z</b> or <b>K</b> jump (hold for height) · <b>↓ + jump</b> drops through ledges</p></div>
       <div><h2>Fight</h2><p><b>X</b> or <b>J</b> attack, three in a row for a combo · Dora: <b>hold X</b> and let go to spin · <b>↑ + attack</b> throws your sub-weapon · <b>C</b> or <b>E</b> tags your partner in · <b>C + X</b> or <b>V</b> Duo Strike when the meter is full</p></div>
-      <div><h2>Magic</h2><p>Dora learns <b>Whirlwind</b> (<b>↓ ↘ → + X</b>) and Enzo <b>Burrow Quake</b> (<b>→ ↓ ↘ + X</b>); <b>F</b> casts without the motion. Spells use Dust, which trickles back and drops from candles.</p></div>
-      <div><h2>Explore</h2><p><b>↑</b> reads signs and shops · <b>Shift</b> or <b>L</b> Dust Dash, and <b>jump in mid-air</b> for the Cloud Hop, once you find them · <b>Esc</b>, <b>Enter</b> or <b>M</b> opens the menu and map</p></div>
+      <div><h2>Magic</h2><p>Dora learns <b>Whirlwind</b> (<b>↓ ↘ → + X</b>) and Enzo <b>Burrow Quake</b> (<b>→ ↓ ↘ + X</b>); <b>F</b> casts without the motion. Scrolls in the Clock Tower teach each a second spell (<b>→ ↘ ↓ + X</b>, or <b>↓ + F</b>). Spells use Dust, which trickles back and drops from candles.</p></div>
+      <div><h2>Explore</h2><p><b>↑</b> reads signs and shops · <b>Shift</b> or <b>L</b> Dust Dash, <b>jump in mid-air</b> for the Cloud Hop, and <b>hold toward a wall</b> in mid-air to cling and <b>jump</b> to kick off it, once you find them · <b>Esc</b>, <b>Enter</b> or <b>M</b> opens the menu and map</p></div>
       <div><h2>Rest</h2><p>Walk into a golden <b>dust-bath shrine</b> to heal both heroes and save. Candles hide seeds and raisins; cracked walls hide secrets. Pip the hamster sells supplies for raisins.</p></div>
     </section>
-    <p className="fv-foot">Chapters I and II of the castle are open: the Moonlit Approach, Entrance Hall, Hay Cellar, Owl Belfry and the Pantry Catacombs. More of Fluffstevania is on the way.</p>
+    <p className="fv-foot">Four chapters of the castle are open: the Moonlit Approach, Entrance Hall, Hay Cellar and Owl Belfry, the Pantry Catacombs, Count Culpeo&rsquo;s Library and the Clock Tower. The roof, and the Golden Wolfberry, are on the way.</p>
   </main>;
 }
 
@@ -275,12 +280,12 @@ function Play({ start, sound, onSound, music, onMusic, onSaved, onContinue, onTi
         </div>
       </section>}
       {g.state === 'chapter' && <section className="fv-overlay" data-testid="chapter">
-        <p className="fv-eyebrow">CHAPTER {g.chapter === 1 ? 'I' : 'II'} CLEARED</p>
+        <p className="fv-eyebrow">CHAPTER {ROMAN[g.chapter] ?? g.chapter} CLEARED</p>
         <strong>{CHAPTERS[g.chapter]?.title}</strong>
         <p>Level {g.level} · {g.completion}% of the castle explored · {g.raisins} raisins · {fmt(g.time)}</p>
         <p>{CHAPTERS[g.chapter]?.text}</p>
         <div className="fv-row">
-          <button className="fv-go" onClick={() => g.resume()}>{CHAPTERS[g.chapter]?.last ? 'Keep exploring' : `Onward to Chapter ${['', 'I', 'II', 'III', 'IV'][g.chapter + 1] ?? g.chapter + 1}`}</button>
+          <button className="fv-go" onClick={() => g.resume()}>{CHAPTERS[g.chapter]?.last ? 'Keep exploring' : `Onward to Chapter ${ROMAN[g.chapter + 1] ?? g.chapter + 1}`}</button>
           <button onClick={onTitle}>Title</button>
         </div>
       </section>}
@@ -292,7 +297,7 @@ function Play({ start, sound, onSound, music, onMusic, onSaved, onContinue, onTi
         onContextMenu={(e) => e.preventDefault()}>{b.label}</button>)}
       <button className="fv-pad-menu" aria-label="Open the menu" onClick={() => openMenu(!menu)}>MENU</button>
     </div>
-    <p className="fv-keys"><b>Keys:</b> ← → move · Space/Z jump (again in mid-air to hop) · X attack (hold to spin as Dora) · ↑+X sub-weapon · F spell · C tag · C+X or V Duo Strike · Shift dash · ↓+jump drop · ↑ read, talk, shop or warp · Esc menu. A gamepad works too.</p>
+    <p className="fv-keys"><b>Keys:</b> ← → move · Space/Z jump (again in mid-air to hop; toward a wall to cling, jump to kick off) · X attack (hold to spin as Dora) · ↑+X sub-weapon · F spell, ↓+F second spell · C tag · C+X or V Duo Strike · Shift dash · ↓+jump drop · ↑ read, talk, shop or warp · Esc menu. A gamepad works too.</p>
   </main>;
 }
 
@@ -365,10 +370,10 @@ function Menu({ g, tab, onTab, onClose, onTitle }: { g: FluffstevaniaGame; tab: 
         <SubIcon id={id} /><span><b>{SUBS[id].name}</b><small>{SUBS[id].cost} seed{SUBS[id].cost > 1 ? 's' : ''} · {SUBS[id].text}</small></span>
         <button disabled={g.sub === id} onClick={() => { g.setSub(id); bump((n) => n + 1); }} data-testid={`sub-${id}`}>{g.sub === id ? 'Ready' : 'Ready it'}</button>
       </div>)}
-      <h4 className="fv-subhead">Spells <small>Dust {g.mp} / {g.maxMp}; F casts the lead’s spell</small></h4>
-      {(Object.keys(SPELLS) as SpellId[]).map((id) => { const sp = SPELLS[id], known = g.level >= sp.level; return <div key={id} className="fv-gear">
-        <span className="fv-food" aria-hidden="true">{id === 'whirlwind' ? '🌪️' : '🪨'}</span>
-        <span><b>{known ? sp.name : '???'} <small>· {NAMES[sp.hero]}</small></b><small>{known ? `${sp.keys} · ${sp.cost} Dust · ${sp.text}` : `${NAMES[sp.hero]} learns this at level ${sp.level}.`}</small></span>
+      <h4 className="fv-subhead">Spells <small>Dust {g.mp} / {g.maxMp}; F casts the lead’s first spell, ↓ + F their second</small></h4>
+      {(Object.keys(SPELLS) as SpellId[]).map((id) => { const sp = SPELLS[id], known = g.knows(id); return <div key={id} className="fv-gear" data-testid={`spell-${id}`}>
+        <span className="fv-food" aria-hidden="true">{known ? SPELL_FACE[id] : '?'}</span>
+        <span><b>{known ? sp.name : '???'} <small>· {NAMES[sp.hero]}</small></b><small>{known ? `${sp.keys}${sp.scroll ? ' or ↓ + F' : ''} · ${sp.cost} Dust · ${sp.text}` : sp.level ? `${NAMES[sp.hero]} learns this at level ${sp.level}.` : `A scroll ${sp.scroll}, somewhere in the Clock Tower.`}</small></span>
       </div>; })}
       <h4 className="fv-subhead">Duo Strike <small>{Math.round((g.duo / DUO_MAX) * 100)}% charged</small></h4>
       <p className="fv-small">Landing hits fills the meter. When it’s full, press tag and attack together (or V) and both heroes streak across the screen, striking every foe in view.</p>

@@ -82,7 +82,7 @@
 .fv-dialog strong { display: block; color: var(--gold); font: 700 14px var(--display); letter-spacing: 2px; }
 .fv-dialog p { margin: 4px 0 2px; font-size: 19px; line-height: 1.35; }
 .fv-dialog small { font: 11px ui-monospace, monospace; color: var(--muted); }
-.fv-who-owl, .fv-who-rat { box-shadow: 0 0 0 3px #140a14, 0 0 0 4px #e08040; }
+.fv-who-owl, .fv-who-rat, .fv-who-fox, .fv-who-cat { box-shadow: 0 0 0 3px #140a14, 0 0 0 4px #e08040; }
 .fv-who-sign { box-shadow: 0 0 0 3px #140a14, 0 0 0 4px #b8a070; }
 
 .fv-overlay { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 10px; text-align: center; background: rgba(10, 4, 14, 0.82); padding: 12px; }

@@ -132,6 +132,24 @@ try {
   assert.ok(await page.getByTestId('map-scroll').evaluate((el) => el.scrollLeft > 0), 'the map scrolls to the library');
   await page.setViewportSize({ width: 1280, height: 900 });
 
+  // A save high in the Clock Tower loads there: Pip's second stall, and a scroll spell known from the Magic tab.
+  const tower = { ...library, room: 'save-clock', x: 33 * 384 + 12 * 16 + 8, y: -2 * 224 + 12 * 16, level: 15, relics: ['dash', 'hop', 'mist', 'climb'],
+    flags: [...library.flags, 'boss:fox', 'script:clock', 'script:pipClock', 'spell:petals'] };
+  await page.goto(`${base}/fluffstevania`);
+  await page.evaluate((s) => localStorage.setItem('fluffstevania-v1', JSON.stringify(s)), tower);
+  await page.reload();
+  await ready(page);
+  await page.getByTestId('continue').click();
+  await board(page).waitFor();
+  assert.equal(await data(page, 'room'), 'save-clock');
+  await page.keyboard.press('Escape');
+  await page.getByRole('tab', { name: 'Magic' }).click();
+  assert.match(await page.getByTestId('spell-petals').textContent(), /Petal Ward/);
+  assert.match(await page.getByTestId('spell-boulder').textContent(), /\?\?\?/, 'Boulder Roll is still to be found');
+  await page.getByRole('tab', { name: 'Status' }).click();
+  assert.match(await page.getByTestId('menu').textContent(), /Wall Cling/);
+  await page.getByRole('button', { name: 'Resume' }).first().click();
+
   // Phones get the pad and no sideways scroll.
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
   phone.on('pageerror', (e) => errors.push(e.message));
@@ -142,7 +160,7 @@ try {
   assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'no sideways scroll on a phone');
 
   assert.deepEqual(errors, []);
-  console.log('PASS Fluffstevania browser: difficulty, story, walking, attack, tag, drawn castle, pausing menu with every tab and the map legend, continue from an older save, equipping a fan, the Magic tab and Bestiary, Pip’s shop, warping between shrines, the music toggle, a library save and the scrolling map, phone layout.');
+  console.log('PASS Fluffstevania browser: difficulty, story, walking, attack, tag, drawn castle, pausing menu with every tab and the map legend, continue from an older save, equipping a fan, the Magic tab and Bestiary, Pip’s shop, warping between shrines, the music toggle, a library save and the scrolling map, a Clock Tower save with a scroll spell and the Wall Cling, phone layout.');
 } finally {
   await browser.close();
 }

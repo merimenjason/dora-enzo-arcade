@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   FluffstevaniaGame, ROOMS, COLS, ROWS, TILE, NO_INPUT, FOES, OWL, RAT, rawTile, roomAt, roomById, isSolid, parseSave, freshSave, xpToNext,
   TOTAL_CELLS, DASH_T, SHOP, GHOST_ON, GHOST_OFF, DIFFICULTY, CHARGE_T, SPIN, DUO_MAX, SPELLS, SUBS, maxMp, palXpToNext, BURN_T,
+  BOSSES, CLING_FALL, ROLL_T, PETAL_T, foeHidden, roomRect,
 } from '../.checks/fluffstevania-game.js';
 
 const DT = 1 / 120;
@@ -48,14 +49,18 @@ test('every opening on a side or floor edge leads into another room', () => {
 
 // A coarse movement model over the whole map: walk, fall, drop through ledges and jump (4 tiles up, a few across).
 // The Dust Dash stretches the jump across and the Cloud Hop doubles its height. Cracked walls count as open because
-// any attack breaks them. Sealed doors open once their flag is set: the owl (`ab.owl`) or the Rat King (`ab.rat`)
-// beaten, or the archive's shelf puzzle solved (`ab.puzzle`). Iron grates let a hero through only with Mist Form.
-let ab = { dash: false, hop: false, owl: false, rat: false, mist: false, puzzle: false };
-const OPENED = { 'boss:owl': 'owl', 'boss:rat': 'rat', 'puzzle:archive': 'puzzle' };
+// any attack breaks them. Sealed doors open once their flag is set: the owl (`ab.owl`), the Rat King (`ab.rat`) or
+// Count Culpeo (`ab.fox`) beaten, or the archive's shelf puzzle solved (`ab.puzzle`). Iron grates let a hero through
+// only with Mist Form. With the Wall Cling (`ab.climb`) a hero can cling to any spot beside a wall, and a kick off it
+// works like a jump.
+let ab = { dash: false, hop: false, owl: false, rat: false, mist: false, puzzle: false, fox: false, climb: false };
+const OPENED = { 'boss:owl': 'owl', 'boss:rat': 'rat', 'puzzle:archive': 'puzzle', 'boss:fox': 'fox' };
 const door = (c, r) => rawTile(c, r) === 'D' && !ab[OPENED[roomAt(Math.floor(c / COLS), Math.floor(r / ROWS))?.opens]];
 const open = (c, r) => { const ch = rawTile(c, r); return !(ch === '#' || ch === '^' || door(c, r) || (ch === '|' && !ab.mist)); };
 const floorAt = (c, r) => { const ch = rawTile(c, r); return ch === '#' || ch === '=' || ch === '%' || ch === '|' || door(c, r); };
 const standable = (c, r) => open(c, r) && open(c, r - 1) && floorAt(c, r + 1);
+const grips = (c, r) => { const ch = rawTile(c, r); return ch === '#' || ch === '%' || door(c, r); };
+const clingable = (c, r) => ab.climb && open(c, r) && open(c, r - 1) && ((grips(c - 1, r) && grips(c - 1, r - 1)) || (grips(c + 1, r) && grips(c + 1, r - 1)));
 const key = (c, r) => `${c},${r}`;
 function land(c, r) {
   for (let y = r; y < r + 80; y++) {
@@ -71,6 +76,7 @@ function moves(c, r) {
     if (open(c + s, r) && open(c + s, r - 1)) { const l = land(c + s, r); if (l) out.push(l); }
   }
   if (rawTile(c, r + 1) === '=') { const l = land(c, r + 2); if (l) out.push(l); }
+  if (!standable(c, r)) { const l = land(c, r); if (l) out.push(l); }   // let go of a wall and drop
   for (let k = 1; k <= (ab.hop ? 7 : 4); k++) {
     if (!open(c, r - k) || !open(c, r - k - 1)) break;
     const reach = k > 4 ? 3 : ab.dash ? (k <= 2 ? 10 : 7) : k <= 2 ? 5 : 3;
@@ -78,13 +84,15 @@ function moves(c, r) {
       const x = c + s * d, y = r - k;
       if (!open(x, y) || !open(x, y - 1)) break;
       const l = land(x, y); if (l) out.push(l);
+      if (clingable(x, y)) out.push([x, y]);
     }
     if (standable(c, r - k)) out.push([c, r - k]);
+    if (clingable(c, r - k)) out.push([c, r - k]);
   }
   return out;
 }
 function explore(abilities) {
-  ab = { dash: false, hop: false, owl: false, rat: false, mist: false, puzzle: false, ...abilities };
+  ab = { dash: false, hop: false, owl: false, rat: false, mist: false, puzzle: false, fox: false, climb: false, ...abilities };
   const start = [5, 2 * ROWS + 11], seen = new Map([[key(...start), start]]), queue = [start], edges = new Map();
   while (queue.length) {
     const [c, r] = queue.shift(), from = key(c, r);
@@ -138,6 +146,7 @@ test('the library door waits for the Rat King, the tower for Mist Form and the r
   assert.ok(!seen.has(spotOf('reading', 'H')), 'the reading nook needs Mist Form');
   rooms = roomsIn(explore({ dash: true, hop: true, owl: true, rat: true, mist: true }).seen);
   for (const id of ['tower', 'study', 'balcony']) assert.ok(rooms.has(id), id);
+  for (const r of ROOMS) if (r.area === 'clock') assert.ok(!rooms.has(r.id), `${r.id} should wait for Count Culpeo`);
   assert.ok(roomsIn(explore({ dash: true, hop: true, owl: true, rat: true, puzzle: true }).seen).has('reliquary'));
 });
 
@@ -153,11 +162,24 @@ test('sub-weapons and familiars sit where they can be reached at the right time'
   assert.ok(seen.has(spotOf('save-crypt', 'Y')), 'Mochi soaks by the catacomb shrine');
 });
 
+test('the Clock Tower opens once the Count flees; its sheer shaft, the pocket watch and the top need the Wall Cling', () => {
+  const before = { dash: true, hop: true, owl: true, rat: true, mist: true, puzzle: true, fox: true };
+  const { seen } = explore(before), rooms = roomsIn(seen);
+  for (const id of ['gear-hall', 'clock-shaft', 'claw-vault', 'cuckoo-gallery']) assert.ok(rooms.has(id), id);
+  for (const id of ['clockworks', 'save-clock', 'pendulum-hall', 'winding-stair', 'clockface', 'clock-top']) assert.ok(!rooms.has(id), `${id} should need the Wall Cling`);
+  assert.ok(seen.has(spotOf('claw-vault', 'R')), 'the Wall Cling pedestal');
+  assert.ok(!seen.has(spotOf('cuckoo-gallery', 'W')), 'the pocket watch needs the Wall Cling');
+  assert.ok(!seen.has(spotOf('cuckoo-gallery', 'H')), 'so does the gallery leaf');
+  const climbed = roomsIn(explore({ ...before, climb: true }).seen);
+  for (const r of ROOMS) if (r.area === 'clock') assert.ok(climbed.has(r.id), r.id);
+});
+
 test('with every relic every room is reachable and every spot can get back to the start', () => {
-  const { seen, edges, start } = explore({ dash: true, hop: true, owl: true, rat: true, mist: true, puzzle: true });
+  const { seen, edges, start } = explore({ dash: true, hop: true, owl: true, rat: true, mist: true, puzzle: true, fox: true, climb: true });
   const rooms = roomsIn(seen);
   for (const r of ROOMS) assert.ok(rooms.has(r.id), r.id);
-  for (const [room, ch] of [['jam-vault', 'I'], ['jam-vault', 'H'], ['ossuary', 'H'], ['stair', 'U'], ['reading', 'H'], ['reliquary', 'I'], ['scriptorium', 'I'], ['mist-vault', 'R']]) assert.ok(seen.has(spotOf(room, ch)), `${room} ${ch}`);
+  for (const [room, ch] of [['jam-vault', 'I'], ['jam-vault', 'H'], ['ossuary', 'H'], ['stair', 'U'], ['reading', 'H'], ['reliquary', 'I'], ['scriptorium', 'I'], ['mist-vault', 'R'],
+    ['cuckoo-gallery', 'W'], ['cuckoo-gallery', 'H'], ['clockworks', 'U'], ['clockworks', 'C'], ['pendulum-hall', 'T'], ['pendulum-hall', 'I'], ['winding-stair', 'T']]) assert.ok(seen.has(spotOf(room, ch)), `${room} ${ch}`);
   const back = new Set([start]), queue = [start];
   while (queue.length) for (const k of edges.get(queue.shift()) ?? []) if (!back.has(k)) { back.add(k); queue.push(k); }
   const stuck = [...seen.keys()].filter((k) => !back.has(k));
@@ -747,6 +769,236 @@ test('Count Culpeo: fireballs, vanishing, a cape sweep, swoops, bats and fire pi
   assert.equal(g.chapter, 3);
 });
 
+// ─── Chapter IV: the Clock Tower ───────────────────────────────────────────
+
+const chapter4 = () => {
+  const g = chapter3();
+  for (const f of ['boss:fox', 'script:clock', 'script:pipClock']) g.flags.add(f);
+  g.relics.add('mist'); g.level = 16;
+  g.hp.dora = g.stats('dora').maxHp; g.hp.enzo = g.stats('enzo').maxHp; g.mp = g.maxMp;
+  return g;
+};
+/** Feet y of a hero standing on world row r of a room. */
+const floorY = (roomId, r) => (roomById(roomId).my * ROWS + r + 1) * TILE;
+
+test('the balcony door to the Clock Tower opens once Count Culpeo flees', () => {
+  const g = fresh();
+  const room = roomById('balcony'), c = room.mx * COLS + 20, r = room.my * ROWS + 10;
+  assert.ok(isSolid(g.tile(c, r)));
+  g.flags.add('boss:fox');
+  assert.ok(!isSolid(g.tile(c, r)));
+});
+
+test('the Wall Cling: without it a wall is just a wall; with it she clings, slides slowly and kicks her way up the sheer shaft', () => {
+  const g = chapter4();
+  place(g, 'clock-shaft', 19, 33);
+  g.enemies = []; g.body.ground = false; g.body.coyote = 0;
+  run(g, { right: true }, 0.3);
+  assert.ok(!g.clinging && g.body.vy > CLING_FALL * 2, 'no relic: she just falls past the wall');
+  g.relics.add('climb');
+  place(g, 'clock-shaft', 19, 33);
+  g.enemies = []; g.events.length = 0;
+  run(g, { right: true }, 0.4);
+  assert.ok(g.clinging, 'she grips the wall');
+  assert.ok(g.body.vy <= CLING_FALL + 0.01, 'and slides down it slowly');
+  assert.ok(g.events.includes('cling'));
+  // Kick off, steer back to the wall, and kick again until she stands on the ledge high above the landing.
+  let hold = 0, prev = false, kicks = 0;
+  for (let i = 0; i < 120 * 20; i++) {
+    let jump = false;
+    if (hold > 0) { hold -= DT; jump = true; } else if ((g.clinging || g.body.ground) && !prev) { hold = 0.3; jump = true; }
+    g.events.length = 0;
+    g.step(DT, { ...NO_INPUT, right: true, jump });
+    if (g.events.includes('walljump')) kicks++;
+    prev = jump;
+    if (g.body.ground && g.body.y <= floorY('clock-shaft', 25) + 1) break;
+  }
+  assert.ok(kicks >= 2, `kicked off the wall ${kicks} times`);
+  assert.ok(g.body.ground && g.body.y <= floorY('clock-shaft', 25) + 1, 'up on the ledge above the sheer climb');
+  // Spikes and grates can't be clung to.
+  place(g, 'scriptorium', 42, 7);
+  g.enemies = [];
+  run(g, { right: true }, 0.3);
+  assert.ok(!g.clinging, 'no grip on an iron grate');
+});
+
+test('clock tower foes: clockwork mice zoom, cuckoos hide in their clocks and spit notes, spring toads hop', () => {
+  const g = chapter4();
+  place(g, 'gear-hall', 24, 11);
+  g.enemies = [];
+  g.hp.dora = g.hp.enzo = 9999;
+  const mouse = g.spawn('mouse', g.body.x + 70, g.body.y);
+  const cuckoo = g.spawn('cuckoo', g.body.x - 60, g.body.y - 50);
+  const toad = g.spawn('toad', g.body.x - 120, g.body.y);
+  assert.ok(foeHidden(cuckoo), 'the cuckoo starts shut in its clock');
+  const states = { mouse: new Set(), toad: new Set() };
+  let noted = false, hopped = false, out = false;
+  for (let i = 0; i < 120 * 7; i++) {
+    g.step(DT, NO_INPUT); g.body.invT = 0.5;
+    states.mouse.add(mouse.state); states.toad.add(toad.state);
+    noted ||= g.shots.some((s) => s.kind === 'note');
+    hopped ||= toad.vy < -300;
+    out ||= !foeHidden(cuckoo);
+  }
+  assert.ok(states.mouse.has('wind') && states.mouse.has('lunge'), 'the mouse winds up and zooms');
+  assert.ok(out && noted, 'the cuckoo pops out and spits a note');
+  assert.ok(hopped && states.toad.has('rest'), 'the toad springs and lands');
+  // A cuckoo in its clock can't be struck.
+  cuckoo.state = 'idle'; cuckoo.stateT = 0;
+  const hp = cuckoo.hp;
+  g.body.x = cuckoo.x - 20; g.body.y = cuckoo.y + 8; g.body.face = 1; g.body.attackT = 0; g.body.comboT = 9;
+  g.step(DT, { ...NO_INPUT, attack: true }); run(g, {}, 0.2);
+  assert.equal(cuckoo.hp, hp, 'safe inside its clock');
+});
+
+test('Tick-Tock the Clockwork Cat: pounces, cogs, a wall dive that leaves her dizzy, chimes and mice, and the end of chapter four', () => {
+  const g = chapter4();
+  g.relics.add('climb');
+  place(g, 'clockface', 6, 11);
+  skipTalk(g);
+  assert.ok(g.fight && g.boss && g.boss.kind === 'cat');
+  g.hp.dora = g.hp.enzo = 9999;
+  const moves = new Set();
+  let cogs = false, clung = false;
+  for (let i = 0; i < 120 * 40; i++) {
+    g.step(DT, NO_INPUT);
+    moves.add(g.boss.move);
+    cogs ||= g.shots.some((s) => s.kind === 'cog');
+    if (g.boss.move === 'cling') clung ||= g.boss.y < roomRect(g.room).y + 6 * TILE;
+  }
+  for (const m of ['crouch', 'pounce', 'cogs', 'dash', 'climb', 'cling', 'dive', 'dizzy']) assert.ok(moves.has(m), `uses ${m}`);
+  assert.ok(!moves.has('chime'), 'no chimes before half health on Normal');
+  assert.ok(cogs, 'bowls cogs');
+  assert.ok(clung, 'clings high on the wall');
+  assert.ok(g.hp.dora + g.hp.enzo < 9999 * 2, 'she lands hits');
+  g.boss.move = 'dizzy'; g.boss.t = 0;
+  const before = g.boss.hp; g.hitBoss(100, 0);
+  assert.equal(before - g.boss.hp, Math.round(100 * 1.25) - BOSSES.cat.def, 'a dizzy cat takes extra');
+  g.boss.move = 'prowl'; g.boss.t = 0;
+  g.boss.hp = g.boss.max / 2 - 1; g.hitBoss(1, 0);
+  g.step(DT, NO_INPUT);
+  assert.ok(g.boss.phase2);
+  assert.equal(g.enemies.filter((e) => e.kind === 'mouse' && !e.dead).length, 2, 'her mice are let loose');
+  moves.clear();
+  const chimes = new Set();
+  for (let i = 0; i < 120 * 30; i++) { g.step(DT, NO_INPUT); moves.add(g.boss.move); for (const s of g.shots) if (s.kind === 'chime') chimes.add(Math.round(s.y)); }
+  assert.ok(moves.has('chime'), 'rings her bell at half health');
+  assert.ok(chimes.size >= 2, 'a low chime and a high one');
+  g.boss.hp = 1; g.hitBoss(50, 0);
+  run(g, {}, 2.2);
+  assert.ok(g.flags.has('boss:cat'));
+  assert.equal(g.kills.ticktock, 1);
+  assert.equal(g.dialog.lines[0].who, 'cat');
+  skipTalk(g);
+  assert.equal(g.state, 'chapter');
+  assert.equal(g.chapter, 4);
+});
+
+test('spell scrolls: Boulder Roll and Petal Ward are read from scrolls and cast with ↓ + spell or a motion', () => {
+  const g = chapter4();
+  g.relics.add('climb');
+  g.leader = 'enzo';
+  assert.deepEqual(g.spellsOf('enzo'), ['quake']);
+  place(g, 'pendulum-hall', 20, 5);
+  run(g, {}, 0.5);
+  assert.equal(g.dialog?.lines[0].who, 'sign', 'the scroll is read out');
+  skipTalk(g);
+  assert.ok(g.knows('boulder') && g.flags.has('spell:boulder'));
+  assert.deepEqual(g.spellsOf('enzo'), ['quake', 'boulder']);
+  // Boulder Roll: Enzo bowls forward through a beetle without a scratch, and bounces back off a door.
+  place(g, 'gear-hall', 22, 11);
+  g.enemies = []; g.mp = g.maxMp; g.body.face = 1;
+  const beetle = g.spawn('beetle', g.body.x + 60, g.body.y); beetle.hp = 999;
+  const x0 = g.body.x, hp = g.hp.enzo, mp = g.mp;
+  g.step(DT, { ...NO_INPUT, down: true, spell: true });
+  assert.ok(g.body.rollT > 0 && g.shots.some((s) => s.kind === 'boulder'), 'he curls up and rolls');
+  assert.equal(g.mp, mp - SPELLS.boulder.cost);
+  run(g, {}, 0.4);
+  assert.ok(g.body.x - x0 > 80, 'rolled a good way');
+  assert.ok(beetle.hp < 999 && g.hp.enzo === hp, 'flattened the beetle, unhurt');
+  run(g, {}, 0.5);
+  place(g, 'clock-top', 15, 11);
+  g.enemies = []; g.mp = g.maxMp; g.body.face = 1;
+  g.step(DT, { ...NO_INPUT, down: true, spell: true });
+  run(g, {}, ROLL_T);
+  assert.equal(g.body.face, -1, 'bounced back off the hatch');
+  // Motions work too: → ↘ ↓ + attack.
+  run(g, {}, 0.3); g.mp = g.maxMp; g.shots = [];
+  g.step(DT, { ...NO_INPUT, right: true }); g.step(DT, { ...NO_INPUT, right: true, down: true }); g.step(DT, { ...NO_INPUT, down: true });
+  g.step(DT, { ...NO_INPUT, down: true, attack: true });
+  assert.ok(g.body.rollT > 0, 'Boulder Roll by motion');
+  run(g, {}, 1);
+  // Petal Ward: six petals whirl round Dora and knock a bone out of the air.
+  g.leader = 'dora'; g.flags.add('spell:petals');
+  place(g, 'gear-hall', 22, 11);
+  g.enemies = []; g.mp = g.maxMp; g.shots = [];
+  tap(g, 'spell');
+  assert.ok(g.shots.some((s) => s.kind === 'wind'), 'the plain spell button is still Whirlwind');
+  run(g, {}, 1); g.shots = []; g.mp = g.maxMp;
+  g.step(DT, { ...NO_INPUT, down: true, spell: true });
+  assert.equal(g.shots.filter((s) => s.kind === 'petal').length, 6);
+  run(g, {}, 0.2);
+  g.body.invT = 0;
+  const bone = { kind: 'bone', x: g.body.x + 60, y: g.body.y - 12, vx: -140, vy: 0, grav: 0, r: 5, dmg: 9, hero: false, life: 2, spin: 0 };
+  g.shots.push(bone);
+  const dora = g.hp.dora;
+  run(g, {}, 0.6);
+  assert.ok(bone.life <= 0 && g.hp.dora === dora, 'the petals knocked the bone away');
+  run(g, {}, PETAL_T);
+  assert.equal(g.shots.filter((s) => s.kind === 'petal').length, 0, 'the petals fade');
+  const back = new FluffstevaniaGame(parseSave(JSON.stringify(g.snapshot())));
+  assert.ok(back.knows('petals') && back.knows('boulder'), 'scrolls stay read');
+});
+
+test('the Clockwork Cog drops to the floor, rolls along it through foes and bounces back off walls', () => {
+  const g = chapter4();
+  place(g, 'clockworks', 28, 6);
+  run(g, {}, 0.5);
+  assert.ok(g.subs.has('cog') && g.sub === 'cog', 'found on the high shelf');
+  place(g, 'gear-hall', 22, 11);
+  g.enemies = []; g.seeds = 10; g.body.face = -1;
+  const mouse = g.spawn('mouse', g.body.x - 60, g.body.y); mouse.hp = 999;
+  g.step(DT, { ...NO_INPUT, up: true, attack: true });
+  assert.equal(g.seeds, 10 - SUBS.cog.cost);
+  const cog = g.shots.find((s) => s.kind === 'cog');
+  let rolled = false, bounced = false;
+  for (let i = 0; i < 240 && cog.life > 0; i++) { g.step(DT, NO_INPUT); rolled ||= cog.vy === 0 && Math.abs(cog.vx) === 230; bounced ||= cog.vx > 0; }
+  assert.ok(rolled, 'rolls along the floor');
+  assert.ok(bounced, 'and back off the wall');
+  assert.ok(mouse.hp < 999, 'through the mouse');
+});
+
+test('Nutmeg joins for her pocket watch, then fetches loose loot and digs up raisins', () => {
+  const g = chapter4();
+  g.relics.add('climb');
+  place(g, 'clockworks', 42, 11);
+  g.enemies = [];
+  assert.equal(g.prompt, 'TALK');
+  tap(g, 'up');
+  assert.equal(g.dialog.lines[0].who, 'nutmeg'); skipTalk(g);
+  assert.ok(!g.pals.nutmeg, 'not without her watch');
+  place(g, 'cuckoo-gallery', 18, 3);
+  g.enemies = [];
+  run(g, {}, 0.5);
+  assert.ok(g.flags.has('watch'), 'the watch was on the high shelf');
+  place(g, 'clockworks', 42, 11);
+  g.enemies = [];
+  tap(g, 'up'); skipTalk(g);
+  assert.ok(g.pals.nutmeg && g.pal === 'nutmeg', 'Nutmeg joins');
+  place(g, 'gear-hall', 22, 11);
+  g.enemies = [];
+  const raisins = g.raisins;
+  g['drop']('raisin', 'raisin', 3, g.body.x + 60, g.body.y - 20);
+  run(g, {}, 1.2);
+  assert.equal(g.raisins, raisins + 3, 'she brought the raisins over');
+  g.pals.nutmeg.level = 10;
+  let found = 0;
+  for (let i = 0; i < 20; i++) { const e = g.spawn('beetle', g.body.x + 200, g.body.y); g['hitFoe'](e, 999, g.body.x, true, 0); if (g.pops.some((p) => p.text === 'FOUND!')) found++; g.pops = []; }
+  assert.ok(found > 0, `she dug up raisins ${found} times in 20`);
+  const back = new FluffstevaniaGame(parseSave(JSON.stringify(g.snapshot())));
+  assert.equal(back.pal, 'nutmeg'); assert.ok(back.has('climb') && back.flags.has('watch'));
+});
+
 // ─── Round three: difficulty, combos, the fan, Duo Strike, magic, familiars ───
 
 test('difficulty scales foes, Easy heals at doorways and Hard bosses start fierce', () => {
@@ -1044,4 +1296,4 @@ test('the same inputs always play out the same way', () => {
   assert.equal(play(), play());
 });
 
-console.log(`PASS Fluffstevania: ${passed} checks covering the map, reachability, movement, combat and combos, the fan, Duo Strike, spells, sub-weapons, tagging, saves, difficulty, respawns, warps, familiars, the shop, the foes and all three bosses, the library's grates and shelf puzzle, and the effects that feed the renderer.`);
+console.log(`PASS Fluffstevania: ${passed} checks covering the map, reachability, movement, combat and combos, the fan, Duo Strike, spells, sub-weapons, tagging, saves, difficulty, respawns, warps, familiars, the shop, the foes and all four bosses, the library's grates and shelf puzzle, the Clock Tower's Wall Cling, spell scrolls and Clockwork Cog, Nutmeg, and the effects that feed the renderer.`);

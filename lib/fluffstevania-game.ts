@@ -66,6 +66,10 @@ export const STYLES: Record<WeaponStyle, { reach: number; h: number; windup: num
 
 export const G = 1400, JUMP_V = 470, JUMP_CUT = 150, MAX_FALL = 480;
 export const DASH_V = 340, DASH_T = 0.24, DASH_JUMP_V = 290, HOP_V = 420;
+/** Wall Cling: the slowest a clinging hero slides, and the kick off a wall (up, away, and how long the away lasts). */
+export const CLING_FALL = 70, WALL_JUMP_V = 440, WALL_KICK_V = 170, KICK_T = 0.16;
+/** Boulder Roll: how long Enzo bowls along and how fast. Petal Ward: how long the petals whirl. */
+export const ROLL_T = 0.7, ROLL_V = 300, PETAL_T = 4;
 /** Attack pressed within COMBO_T of a swing ending chains the next hit; the third hit is a finisher. */
 export const COMBO_T = 0.22, FINISHER_MULT = 1.5;
 /** Dora holds attack this long, then lets go, for the fan's whirlwind spin. */
@@ -81,13 +85,15 @@ type Body = {
   hurtT: number; invT: number; dropT: number; run: number; subCd: number; hopped: boolean; lungeStop: boolean;
   /** 0, 1 or 2: which hit of the combo string this swing is. */
   combo: number; comboT: number; charge: number; spin: boolean; castT: number;
+  /** The wall being clung to (-1 left, 1 right, 0 none); `clingT` lets a kick land just after letting go; `kickT` is the push away. */
+  cling: number; clingT: number; clingDir: number; kickT: number; kickDir: number; rollT: number;
 };
 export type Tag = { t: number; hero: HeroId; sx: number; sy: number; hits: Set<number> };
 export type Follower = { x: number; y: number; face: 1 | -1; air: boolean; moving: boolean; run: number };
 
 // ─── Enemies ──────────────────────────────────────────────────────────────
 
-export type FoeKind = 'bat' | 'moth' | 'beetle' | 'bone' | 'armadillo' | 'rat' | 'ghost' | 'spider' | 'book' | 'quill' | 'ink';
+export type FoeKind = 'bat' | 'moth' | 'beetle' | 'bone' | 'armadillo' | 'rat' | 'ghost' | 'spider' | 'book' | 'quill' | 'ink' | 'mouse' | 'cuckoo' | 'toad';
 export const FOES: Record<FoeKind, { name: string; hp: number; atk: number; def: number; xp: number; w: number; h: number; raisins: number; drop?: [string, number]; fly?: boolean }> = {
   bat: { name: 'Cave Bat', hp: 10, atk: 7, def: 0, xp: 3, w: 14, h: 10, raisins: 2, drop: ['berry', 0.06], fly: true },
   moth: { name: 'Dust Moth', hp: 14, atk: 8, def: 0, xp: 4, w: 16, h: 14, raisins: 2, drop: ['cape', 0.05], fly: true },
@@ -100,13 +106,20 @@ export const FOES: Record<FoeKind, { name: string; hp: number; atk: number; def:
   book: { name: 'Flying Tome', hp: 38, atk: 16, def: 2, xp: 22, w: 16, h: 12, raisins: 8, drop: ['tea', 0.06], fly: true },
   quill: { name: 'Ink Quill', hp: 30, atk: 14, def: 1, xp: 20, w: 10, h: 18, raisins: 7, drop: ['ring', 0.03], fly: true },
   ink: { name: 'Ink Blot', hp: 50, atk: 17, def: 4, xp: 26, w: 18, h: 12, raisins: 9, drop: ['cake', 0.08] },
+  mouse: { name: 'Clockwork Mouse', hp: 44, atk: 18, def: 5, xp: 28, w: 16, h: 11, raisins: 9, drop: ['tea', 0.06] },
+  cuckoo: { name: 'Cuckoo', hp: 40, atk: 16, def: 3, xp: 26, w: 14, h: 14, raisins: 8, drop: ['ring', 0.04], fly: true },
+  toad: { name: 'Spring Toad', hp: 60, atk: 20, def: 5, xp: 32, w: 18, h: 14, raisins: 10, drop: ['cake', 0.08] },
 };
-const FOE_CHARS: Record<string, FoeKind> = { b: 'bat', m: 'moth', k: 'beetle', x: 'bone', a: 'armadillo', r: 'rat', g: 'ghost', p: 'spider', v: 'book', q: 'quill', j: 'ink' };
+const FOE_CHARS: Record<string, FoeKind> = { b: 'bat', m: 'moth', k: 'beetle', x: 'bone', a: 'armadillo', r: 'rat', g: 'ghost', p: 'spider', v: 'book', q: 'quill', j: 'ink', c: 'mouse', u: 'cuckoo', t: 'toad' };
 /** A jar ghost is solid for GHOST_ON seconds, then fades out (can't hurt or be hurt) for GHOST_OFF. */
 export const GHOST_ON = 2.4, GHOST_OFF = 1.4;
 /** How long a defeated foe takes to burn away. */
 export const BURN_T = 0.45;
 export const ghostFaded = (e: Enemy) => e.kind === 'ghost' && e.t % (GHOST_ON + GHOST_OFF) > GHOST_ON;
+/** A cuckoo pops out of its clock every CUCKOO_WAIT seconds (while you're near) for CUCKOO_OUT. */
+export const CUCKOO_WAIT = 2.6, CUCKOO_OUT = 1.3;
+/** Foes that can neither hurt nor be hurt just now: a faded jar ghost, or a cuckoo shut inside its clock. */
+export const foeHidden = (e: Enemy) => ghostFaded(e) || (e.kind === 'cuckoo' && e.state === 'idle');
 export type Enemy = {
   /** Which map marker it came from, so a defeated one stays down. Summoned foes have none. */
   key?: string;
@@ -119,16 +132,20 @@ export const BOSSES: Record<BossId, { name: string; hp: number; atk: number; def
   owl: { name: 'Duke Hootsworth', hp: 260, atk: 12, def: 3, xp: 120, w: 36, h: 30 },
   rat: { name: 'Gnawdrick the Rat King', hp: 560, atk: 18, def: 6, xp: 320, w: 46, h: 34 },
   fox: { name: 'Count Culpeo', hp: 980, atk: 24, def: 8, xp: 600, w: 26, h: 44 },
+  cat: { name: 'Tick-Tock the Clockwork Cat', hp: 1900, atk: 28, def: 12, xp: 900, w: 40, h: 26 },
 };
 /** What each boss is filed under in the Bestiary. */
-export const BOSS_KILLS: Record<BossId, string> = { owl: 'owl', rat: 'rat_king', fox: 'culpeo' };
+export const BOSS_KILLS: Record<BossId, string> = { owl: 'owl', rat: 'rat_king', fox: 'culpeo', cat: 'ticktock' };
+/** The chapter each boss ends. */
+const BOSS_CHAPTER: Record<BossId, number> = { owl: 1, rat: 2, fox: 3, cat: 4 };
 export const OWL = BOSSES.owl, RAT = BOSSES.rat;
 export type OwlMove = 'enter' | 'hover' | 'feathers' | 'rise' | 'swoop' | 'track' | 'drop' | 'rest' | 'dying';
 export type RatMove = 'enter' | 'idle' | 'wind' | 'charge' | 'stunned' | 'crouch' | 'leap' | 'cheese' | 'dying';
 export type FoxMove = 'enter' | 'float' | 'fire' | 'vanish' | 'appear' | 'lunge' | 'swoop' | 'pillars' | 'dying';
+export type CatMove = 'enter' | 'prowl' | 'crouch' | 'pounce' | 'cogs' | 'dash' | 'climb' | 'cling' | 'dive' | 'dizzy' | 'chime' | 'dying';
 /** A boss. (x, y) is the middle of its body. */
 export type Boss = {
-  kind: BossId; x: number; y: number; vx: number; vy: number; hp: number; max: number; move: OwlMove | RatMove | FoxMove;
+  kind: BossId; x: number; y: number; vx: number; vy: number; hp: number; max: number; move: OwlMove | RatMove | FoxMove | CatMove;
   t: number; face: 1 | -1; flash: number; phase2: boolean; summoned: boolean; sx: number; ex: number; side: number; last: string[]; hitId: number;
 };
 
@@ -137,13 +154,20 @@ export type Boss = {
  * `ax` pulls the Boomerang Acorn back.
  */
 export type Shot = {
-  kind: 'seed' | 'bone' | 'feather' | 'wave' | 'cheese' | 'rock' | 'gust' | 'acorn' | 'pumpkin' | 'flame' | 'wind' | 'quake' | 'fire' | 'ink';
+  kind: 'seed' | 'bone' | 'feather' | 'wave' | 'cheese' | 'rock' | 'gust' | 'acorn' | 'pumpkin' | 'flame' | 'wind' | 'quake' | 'fire' | 'ink'
+    | 'cog' | 'note' | 'chime' | 'petal' | 'boulder';
   x: number; y: number; vx: number; vy: number; grav: number; r: number; dmg: number; hero: boolean; life: number; spin: number;
   pierce?: boolean; hits?: Map<number, number>; rehit?: number; ax?: number; launch?: boolean; t?: number;
   /** A finisher's shot (big numbers), or a spell's (a bigger look too). */
   heavy?: boolean; spell?: boolean;
+  /** Where a Petal Ward petal sits in its orbit. */
+  phase?: number;
 };
-export type Pickup = { kind: 'raisin' | 'seeds' | 'food' | 'gear' | 'leaf' | 'relic' | 'dust' | 'sub'; id: string; amount: number; x: number; y: number; vy: number; t: number; flag?: string; fixed: boolean };
+/** `spell` is a scroll that teaches a spell; `key` is Nutmeg's pocket watch. Nutmeg `pull`s loose loot to the lead. */
+export type Pickup = {
+  kind: 'raisin' | 'seeds' | 'food' | 'gear' | 'leaf' | 'relic' | 'dust' | 'sub' | 'spell' | 'key'; id: string; amount: number; x: number; y: number; vy: number; t: number;
+  flag?: string; fixed: boolean; pull?: boolean;
+};
 /** Zippy's cage on the belfry stair: three hits break it. */
 export type Cage = { x: number; y: number; hp: number; flash: number };
 /** The familiar travelling with the heroes. */
@@ -169,6 +193,7 @@ const ASH: Record<FoeKind, string[]> = {
   bat: ['#4e3a60', '#8a70a8'], moth: ['#c8b8a0', '#f0e8d8'], beetle: ['#3a7088', '#1e3a48'], bone: ['#e8e2d0', '#a8a090'],
   armadillo: ['#a88a68', '#6a5040'], rat: ['#8a7a70', '#c8b0a0'], ghost: ['#9ff0c8', '#e8fff4'], spider: ['#4a3a4a', '#a06080'],
   book: ['#8a2a3a', '#f0e6d0'], quill: ['#f4f0e8', '#1a1a30'], ink: ['#1a1830', '#4a4870'],
+  mouse: ['#c8a050', '#6a6a78'], cuckoo: ['#8a5a30', '#e8d8b0'], toad: ['#6a9a48', '#d8c060'],
 };
 
 export type Equip = Record<Slot, string | null>;
@@ -287,7 +312,7 @@ export class FluffstevaniaGame {
     this.body = {
       x: save.x, y: save.y, vx: 0, vy: 0, face: 1, ground: false, coyote: 0, jumpBuf: 0, dashT: 0, dashCd: 0, airDash: false, dashJump: false,
       attackT: 0, attackId: 0, attackHero: this.leader, hurtT: 0, invT: 0, dropT: 0, run: 0, subCd: 0, hopped: false, lungeStop: false,
-      combo: 0, comboT: 9, charge: 0, spin: false, castT: 0,
+      combo: 0, comboT: 9, charge: 0, spin: false, castT: 0, cling: 0, clingT: 0, clingDir: 0, kickT: 0, kickDir: 0, rollT: 0,
     };
     this.room = roomById(save.room);
     this.follower = { x: save.x - FOLLOW, y: save.y, face: 1, air: false, moving: false, run: 0 };
@@ -317,8 +342,14 @@ export class FluffstevaniaGame {
   }
   get partner() { return other(this.leader); }
   get maxMp() { return maxMp(this.level); }
-  /** The lead's spell, once they're high enough level to know it. */
-  spellOf(h: HeroId): SpellId | null { const id = (Object.keys(SPELLS) as SpellId[]).find((k) => SPELLS[k].hero === h)!; return this.level >= SPELLS[id].level ? id : null; }
+  /** Whether a spell is known: the first of each hero's comes with a level, the second from a scroll. */
+  knows(id: SpellId) { const sp = SPELLS[id]; return sp.level ? this.level >= sp.level : this.flags.has(`spell:${id}`); }
+  /** A hero's first spell, once they're high enough level to know it. */
+  spellOf(h: HeroId): SpellId | null { const id = (Object.keys(SPELLS) as SpellId[]).find((k) => SPELLS[k].hero === h)!; return this.knows(id) ? id : null; }
+  /** Every spell a hero knows, first spell first. */
+  spellsOf(h: HeroId) { return (Object.keys(SPELLS) as SpellId[]).filter((k) => SPELLS[k].hero === h && this.knows(k)); }
+  /** The lead is clinging to a wall with the Wall Cling. */
+  get clinging() { return this.body.cling !== 0; }
   has(r: RelicId) { return this.relics.has(r); }
   /** The lead is part-way through an iron grate in Mist Form, and is drawn as a wisp of dust. */
   get misting() { return this.has('mist') && this.inGrate(this.body.x, this.body.y); }
@@ -428,6 +459,8 @@ export class FluffstevaniaGame {
         if (id && !this.flags.has(flag)) this.pickups.push({ kind: GEAR[id] ? 'gear' : 'food', id, amount: 1, x, y: y - 4, vy: 0, t: 0, flag, fixed: true });
       } else if (ch === 'H' && !this.flags.has(`leaf:${room.id}`)) this.pickups.push({ kind: 'leaf', id: 'leaf', amount: 1, x, y: y - 4, vy: 0, t: 0, flag: `leaf:${room.id}`, fixed: true });
       else if (ch === 'R' && room.relic && !this.relics.has(room.relic)) this.pickups.push({ kind: 'relic', id: room.relic, amount: 1, x, y: y - 6, vy: 0, t: 0, flag: `relic:${room.relic}`, fixed: true });
+      else if (ch === 'T' && room.spell && !this.flags.has(`spell:${room.spell}`)) this.pickups.push({ kind: 'spell', id: room.spell, amount: 1, x, y: y - 4, vy: 0, t: 0, flag: `spell:${room.spell}`, fixed: true });
+      else if (ch === 'W' && !this.flags.has('watch')) this.pickups.push({ kind: 'key', id: 'watch', amount: 1, x, y: y - 4, vy: 0, t: 0, flag: 'watch', fixed: true });
     }
     if (!first && prevArea !== room.area) this.banner = { text: AREAS[room.area].name, t: 2.4 };
     if (first) this.banner = { text: AREAS[room.area].name, t: 2.4 };
@@ -556,6 +589,13 @@ export class FluffstevaniaGame {
         b.dashT -= dt; b.vx = b.face * DASH_V; b.vy = 0;
         if (this.time % 0.05 < dt) this.fx.push({ kind: 'dust', x: b.x - b.face * 6, y: b.y - 3, t: 0, vx: -b.face * 30, vy: -10 });
         if (b.dashT <= 0) b.dashCd = 0.12;
+      } else if (b.rollT > 0) {
+        // Boulder Roll: Enzo bowls along, and nothing touches him.
+        b.rollT -= dt; b.vx = b.face * ROLL_V; b.invT = Math.max(b.invT, 0.05);
+        if (b.ground && this.time % 0.04 < dt) this.fx.push({ kind: 'dust', x: b.x - b.face * 8, y: b.y - 2, t: 0, vx: -b.face * 40, vy: -18 });
+      } else if (b.kickT > 0) {
+        // Just after a wall kick the hero is pushed away from the wall.
+        b.kickT -= dt; b.vx = b.kickDir * WALL_KICK_V;
       } else if (b.castT > 0 && b.ground) {
         b.vx = 0;
       } else if (b.attackT > 0 && b.ground) {
@@ -568,9 +608,9 @@ export class FluffstevaniaGame {
         b.vx = dir * speed;
         if (dir && b.attackT <= 0) b.face = dir as 1 | -1;
       }
-      if (pressed('dash') && this.has('dash') && b.dashCd <= 0 && b.dashT <= 0 && (b.ground || !b.airDash)) {
+      if (pressed('dash') && this.has('dash') && b.dashCd <= 0 && b.dashT <= 0 && b.rollT <= 0 && (b.ground || !b.airDash)) {
         if (dir) b.face = dir as 1 | -1;
-        b.dashT = DASH_T; b.attackT = 0; if (!b.ground) b.airDash = true;
+        b.dashT = DASH_T; b.attackT = 0; b.kickT = 0; if (!b.ground) b.airDash = true;
         this.events.push('dash');
         for (let i = 0; i < 4; i++) this.fx.push({ kind: 'dust', x: b.x, y: b.y - 4, t: -i * 0.03, vx: -b.face * (40 + i * 20), vy: -20 + i * 8 });
         // A puff of loose fur flies off behind.
@@ -581,6 +621,12 @@ export class FluffstevaniaGame {
         b.dashJump = b.dashT > 0 || b.dashCd > 0.06;
         b.vy = -JUMP_V; b.ground = false; b.coyote = 0; b.jumpBuf = 0; b.dashT = 0;
         this.events.push('jump');
+      } else if (b.jumpBuf > 0 && !b.ground && b.clingT > 0) {
+        // A wall kick: up and away from the wall, which also gives back the air dash and the Cloud Hop.
+        b.vy = -WALL_JUMP_V; b.kickDir = -b.clingDir; b.kickT = KICK_T; b.face = b.kickDir as 1 | -1; b.vx = b.kickDir * WALL_KICK_V;
+        b.jumpBuf = 0; b.dashT = 0; b.clingT = 0; b.cling = 0; b.hopped = false; b.airDash = false; b.dashJump = false;
+        this.events.push('walljump');
+        for (let i = 0; i < 4; i++) this.fx.push({ kind: 'dust', x: b.x - b.kickDir * 7, y: b.y - 6 - i * 3, t: -i * 0.02, vx: -b.kickDir * (20 + i * 12), vy: -10 + i * 6 });
       } else if (b.jumpBuf > 0 && !b.ground && this.has('hop') && !b.hopped) {
         // The Cloud Hop: a second jump off a puff of dust.
         b.vy = -HOP_V; b.hopped = true; b.jumpBuf = 0; b.dashT = 0;
@@ -591,7 +637,13 @@ export class FluffstevaniaGame {
       if (!input.jump && b.vy < -JUMP_CUT && b.dashT <= 0) b.vy = -JUMP_CUT;
       this.attackInput(input, pressed, dir, dt);
     }
-    if (b.dashT <= 0 && !(this.tag && this.tag.t >= TAG_ARC)) b.vy = Math.min(b.vy + G * dt, MAX_FALL);
+    // Wall Cling: pushing into a wall in mid-air grips it, and the slide down it is slow.
+    const cling = !this.tag && b.hurtT <= 0 && b.rollT <= 0 && b.dashT <= 0 && !b.ground && dir !== 0 && b.vy > -60 && this.has('climb') && this.wallBeside(dir);
+    if (cling && !b.cling) this.events.push('cling');
+    b.cling = cling ? dir : 0;
+    if (cling) { b.clingT = 0.1; b.clingDir = dir; b.kickT = 0; } else b.clingT = Math.max(0, b.clingT - dt);
+    if (b.dashT <= 0 && !(this.tag && this.tag.t >= TAG_ARC)) b.vy = Math.min(b.vy + G * dt, cling ? CLING_FALL : MAX_FALL);
+    if (cling && b.vy > 20 && Math.floor(this.time * 16) !== Math.floor((this.time - dt) * 16)) this.fx.push({ kind: 'dust', x: b.x + dir * 6, y: b.y - 4, t: 0, vx: -dir * 15, vy: -15 });
     const wasGround = b.ground;
     const hit = this.move(b, HERO_W, HERO_H, dt, b.dropT <= 0, this.has('mist'));
     // Drifting through a grate: puffs of dust, and a whoosh as the heroes go to mist.
@@ -607,11 +659,23 @@ export class FluffstevaniaGame {
       else { if (b.ground) b.coyote = 0.08; b.ground = false; b.coyote = Math.max(0, b.coyote - dt); }
     }
     if (hit.x && b.dashT > 0) b.dashT = 0;
+    // A rolling boulder bounces back off walls.
+    if (hit.x && b.rollT > 0) { b.face = -b.face as 1 | -1; this.shake = Math.max(this.shake, 0.15); this.events.push('clink'); }
+    if (hit.down) b.kickT = 0;
     if (b.ground && Math.abs(b.vx) > 1) b.run += Math.abs(b.vx) * dt * 0.12;
     // Spikes bite anything standing on them.
     if (b.ground && this.tile(Math.floor(b.x / TILE), Math.floor(b.y / TILE + 0.01)) === '^') this.hurtHero(12, b.x + b.face, true);
   }
 
+  /** Whether there's a wall the hero can cling to right beside them, on side `dir`. Spikes and grates don't count. */
+  private wallBeside(dir: number) {
+    const b = this.body, c = Math.floor((b.x + dir * (HERO_W / 2 + 1)) / TILE);
+    for (const y of [b.y - 14, b.y - 5]) {
+      const ch = this.tile(c, Math.floor(y / TILE));
+      if (!isSolid(ch) || ch === '^' || ch === '|') return false;
+    }
+    return true;
+  }
   /** Which way the stick points, in numpad notation relative to the way the lead faces (5 is neutral). */
   private motionCode(input: Input, dir: number) {
     const fwd = dir * this.body.face;
@@ -626,9 +690,13 @@ export class FluffstevaniaGame {
     const b = this.body, w = this.weaponOf(this.leader);
     const code = this.motionCode(input, dir);
     if (code !== this.lastCode) { if (code !== 5) { this.motion.push({ code, t: this.time }); if (this.motion.length > 6) this.motion.shift(); } this.lastCode = code; }
-    const spell = this.spellOf(this.leader);
-    if (spell && b.attackT <= 0 && b.castT <= 0 && (pressed('spell') || (pressed('attack') && this.motionMatches(SPELLS[spell].motion)))) { this.cast(spell); return; }
-    if (pressed('spell') && !spell) { this.say(`${this.leader === 'dora' ? 'Dora' : 'Enzo'} learns a spell at level ${SPELLS[this.leader === 'dora' ? 'whirlwind' : 'quake'].level}.`); return; }
+    // The spell button casts the lead's first spell, or with ↓ held their second; a motion and attack casts either.
+    const spells = this.spellsOf(this.leader);
+    const byMotion = pressed('attack') ? spells.find((id) => this.motionMatches(SPELLS[id].motion)) : undefined;
+    const byButton = pressed('spell') ? (input.down && spells.length > 1 ? spells[1] : spells[0]) : undefined;
+    const spell = byMotion ?? byButton;
+    if (spell && b.attackT <= 0 && b.castT <= 0 && b.rollT <= 0) { this.cast(spell); return; }
+    if (pressed('spell') && !spells.length) { this.say(`${this.leader === 'dora' ? 'Dora' : 'Enzo'} learns a spell at level ${SPELLS[this.leader === 'dora' ? 'whirlwind' : 'quake'].level}.`); return; }
     // Dora's fan: hold attack after a swing, then let go, for a whirlwind spin.
     if (w.style === 'fan' && input.attack && b.attackT <= 0 && !input.up) b.charge += dt;
     else if (!input.attack) {
@@ -669,6 +737,7 @@ export class FluffstevaniaGame {
     if (this.sub === 'seed') this.heroShot('seed', x, y, f * 200 + b.vx * 0.3, -240, 4, 6 + lv * 2, 2, { grav: 800 });
     else if (this.sub === 'spread') for (const vy of [-250, -170, -90]) this.heroShot('seed', x, y, f * 230 + b.vx * 0.3, vy, 4, 5 + lv * 2, 2, { grav: 800 });
     else if (this.sub === 'acorn') this.heroShot('acorn', x, b.y - 12, f * 300, 0, 6, 8 + lv * 2.2, 1.6, { ax: -f * 520, pierce: true, rehit: 0.35 });
+    else if (this.sub === 'cog') this.heroShot('cog', x, b.y - 10, f * 150, -120, 6, 10 + lv * 2.4, 2.6, { grav: 900, pierce: true, rehit: 0.3 });
     else this.heroShot('pumpkin', x, y, f * 150 + b.vx * 0.3, -280, 5, 0, 3, { grav: 800 });
     this.events.push('seed');
   }
@@ -690,7 +759,13 @@ export class FluffstevaniaGame {
     this.mp -= sp.cost; b.castT = 0.4; b.attackT = 0; b.combo = 0; b.charge = 0;
     const atk = this.stats(this.leader).atk;
     if (id === 'whirlwind') this.heroShot('wind', b.x + b.face * 16, b.y - 14, b.face * 120, 0, 12, atk * 0.7 + 3, 1.6, { pierce: true, rehit: 0.25, spell: true });
-    else {
+    else if (id === 'petals') {
+      this.shots = this.shots.filter((s) => s.kind !== 'petal');
+      for (let i = 0; i < 6; i++) this.heroShot('petal', b.x, b.y - 12, 0, 0, 6, atk * 0.5 + 4, PETAL_T, { pierce: true, rehit: 0.3, spell: true, phase: (i * Math.PI) / 3 });
+    } else if (id === 'boulder') {
+      b.castT = 0; b.rollT = ROLL_T;
+      this.heroShot('boulder', b.x, b.y - 9, 0, 0, 11, atk * 1.3 + 8, ROLL_T, { pierce: true, rehit: 0.25, spell: true, launch: true });
+    } else {
       for (const d of [-1, 1]) this.heroShot('quake', b.x + d * 10, b.y - 6, d * 210, 0, 8, atk * 1.4 + 6, 0.9, { pierce: true, launch: true, spell: true });
       this.shake = 0.4;
       // Grit rains from the ceiling.
@@ -708,7 +783,7 @@ export class FluffstevaniaGame {
   /** Both heroes dash across the screen together, striking every foe in view. */
   private startDuo() {
     const b = this.body;
-    this.duo = 0; this.duoT = 0; b.attackT = 0; b.charge = 0; b.dashT = 0;
+    this.duo = 0; this.duoT = 0; b.attackT = 0; b.charge = 0; b.dashT = 0; b.rollT = 0;
     b.invT = Math.max(b.invT, DUO_T + 0.4);
     this.events.push('duo'); this.shake = 0.3;
   }
@@ -735,7 +810,7 @@ export class FluffstevaniaGame {
     if (this.hp[next] <= 0) { if (!forced) this.say(`${next === 'dora' ? 'Dora' : 'Enzo'} needs a dust bath before tagging back in.`); return false; }
     this.tag = { t: 0, hero: next, sx: this.follower.x, sy: this.follower.y, hits: new Set() };
     this.leader = next; this.tagCd = TAG_CD;
-    b.attackT = 0; b.dashT = 0; b.hurtT = 0; b.invT = Math.max(b.invT, TAG_T);
+    b.attackT = 0; b.dashT = 0; b.hurtT = 0; b.rollT = 0; b.kickT = 0; b.invT = Math.max(b.invT, TAG_T);
     if (!b.ground) b.vy = Math.min(b.vy, -120);
     this.trail = [{ x: b.x, y: b.y, face: b.face, air: !b.ground }];
     this.follower = { ...this.follower, x: b.x, y: b.y };
@@ -807,7 +882,7 @@ export class FluffstevaniaGame {
     // Enzo's third swipe is an uppercut that throws foes into the air.
     const launch = finisher && w.style === 'claws';
     for (const e of this.enemies) {
-      if (e.dead || ghostFaded(e)) continue;
+      if (e.dead || foeHidden(e)) continue;
       const eb = this.foeBox(e);
       if (box && e.hitId !== b.attackId && overlap(box, eb)) {
         e.hitId = b.attackId;
@@ -911,7 +986,7 @@ export class FluffstevaniaGame {
     this.events.push(crit ? 'crit' : 'hit');
     if (!pierce) this.hitstop = crit ? 0.08 : 0.05;
     if (!f.fly) { e.vx = Math.sign(e.x - fromX || 1) * (launch ? 60 : 90); e.vy = launch ? -330 : -90; e.ground = false; }
-    else { e.x += Math.sign(e.x - fromX || 1) * 6; }
+    else if (e.kind !== 'cuckoo') { e.x += Math.sign(e.x - fromX || 1) * 6; }
     if (e.kind === 'spider' && e.state !== 'rest') { e.state = 'rest'; e.stateT = 0; }
     if (e.hp <= 0) this.killFoe(e);
     return true;
@@ -936,6 +1011,13 @@ export class FluffstevaniaGame {
     for (let i = 0; i < Math.ceil(f.raisins / 3); i++) this.drop('raisin', 'raisin', Math.min(3, f.raisins - i * 3), e.x, e.y - f.h / 2);
     const luck = this.stats(this.leader).lck;
     if (f.drop && this.rand() < f.drop[1] * (1 + luck / 25)) this.drop(GEAR[f.drop[0]] ? 'gear' : 'food', f.drop[0], 1, e.x, e.y - f.h / 2);
+    // Nutmeg sometimes digs up a few more raisins where a foe fell.
+    const nut = this.pal === 'nutmeg' ? this.pals.nutmeg! : null;
+    if (nut && this.rand() < (15 + 3 * nut.level) / 100) {
+      this.drop('raisin', 'raisin', 3, e.x, e.y - f.h / 2);
+      this.pops.push({ x: e.x, y: e.y - f.h - 12, text: 'FOUND!', t: 0, color: '#f0c890' });
+      this.palBody.act = 0.5; this.events.push('nip');
+    }
   }
   private drop(kind: Pickup['kind'], id: string, amount: number, x: number, y: number) {
     this.pickups.push({ kind, id, amount, x: x + (this.rand() - 0.5) * 10, y, vy: -150 - this.rand() * 60, t: 0, fixed: false });
@@ -1040,6 +1122,17 @@ export class FluffstevaniaGame {
           }
           if (e.stateT > 0.6) { e.state = 'idle'; e.stateT = 0; }
         } else if (e.stateT > 2.4 && dist < 230) { e.state = 'throw'; e.stateT = 0; }
+      } else if (e.kind === 'cuckoo') {
+        // Shut in its clock on the wall, it pops out every little while you're near and spits a note at you.
+        e.face = dx > 0 ? 1 : -1;
+        if (e.state === 'idle') { if (e.stateT > CUCKOO_WAIT && dist < 200) { e.state = 'awake'; e.stateT = 0; this.events.push('cuckoo'); } }
+        else {
+          if (e.stateT > 0.35 && e.stateT - dt <= 0.35) {
+            const a = Math.atan2(dy, dx);
+            this.shots.push({ kind: 'note', x: e.x + e.face * 6, y: e.y - FOES.cuckoo.h / 2, vx: Math.cos(a) * 150, vy: Math.sin(a) * 150, grav: 0, r: 4, dmg: 14, hero: false, life: 2.5, spin: 0 });
+          }
+          if (e.stateT > CUCKOO_OUT) { e.state = 'idle'; e.stateT = 0; }
+        }
       } else if (e.kind === 'spider') {
         // Hangs on a thread, drops when you pass underneath, then climbs back up.
         const reel = (dy2: number, speed: number) => { e.y += clamp(dy2, -speed * dt, speed * dt); };
@@ -1053,7 +1146,25 @@ export class FluffstevaniaGame {
         e.face = dx > 0 ? 1 : -1;
       } else {
         const f = FOES[e.kind];
-        let speed = e.kind === 'beetle' ? 38 : e.kind === 'bone' ? 22 : e.kind === 'rat' ? 34 : e.kind === 'ink' ? 28 : 20;
+        let speed = e.kind === 'beetle' ? 38 : e.kind === 'bone' ? 22 : e.kind === 'rat' ? 34 : e.kind === 'ink' ? 28 : e.kind === 'mouse' ? 30 : 20;
+        if (e.kind === 'mouse') {
+          // Trundles about, then its key spins, and it zooms off, bouncing back off walls and ledges.
+          if (e.state === 'wind') { speed = 0; if (e.stateT > 0.5) { e.state = 'lunge'; e.stateT = 0; this.events.push('zip'); } }
+          else if (e.state === 'lunge') { speed = 260; if (e.stateT > 0.8) { e.state = 'rest'; e.stateT = 0; } }
+          else if (e.state === 'rest') { speed = 0; if (e.stateT > 0.9) { e.state = 'idle'; e.stateT = 0; } }
+          else if (e.stateT > 1.4 && Math.abs(dx) < 160 && Math.abs(dy) < 40 && e.ground) { e.state = 'wind'; e.stateT = 0; e.face = dx > 0 ? 1 : -1; }
+        }
+        if (e.kind === 'toad') {
+          // Sits, then springs at you in a high arc: higher still when you're close.
+          speed = 0;
+          if (e.state === 'lunge' && e.ground && e.stateT > 0.1) { e.state = 'rest'; e.stateT = 0; this.events.push('squish'); }
+          else if (e.state !== 'lunge' && e.ground && e.stateT > 1.3 && Math.abs(dx) < 220 && Math.abs(dy) < 90) {
+            const close = Math.abs(dx) < 90;
+            e.face = dx > 0 ? 1 : -1; e.state = 'lunge'; e.stateT = 0;
+            e.vy = close ? -520 : -420; e.vx = e.face * (close ? 90 : 130); e.ground = false;
+            this.events.push('boing');
+          }
+        }
         if (e.kind === 'ink') {
           // Oozes along, gathers itself up, and springs at you.
           if (e.state === 'wind') { speed = 0; if (e.stateT > 0.35) { e.state = 'lunge'; e.stateT = 0; e.vy = -340; e.vx = e.face * 140; e.ground = false; this.events.push('squish'); } }
@@ -1100,7 +1211,7 @@ export class FluffstevaniaGame {
         const rr = roomRect(this.room);
         if (e.y > rr.y + rr.h + 40) e.dead = 1;
       }
-      if (!ghostFaded(e) && overlap(me, this.foeBox(e))) this.hurtHero(FOES[e.kind].atk, e.x);
+      if (!foeHidden(e) && overlap(me, this.foeBox(e))) this.hurtHero(FOES[e.kind].atk, e.x);
     }
     this.enemies = this.enemies.filter((e) => !e.dead || e.dead < BURN_T);
   }
@@ -1130,7 +1241,7 @@ export class FluffstevaniaGame {
     const o = this.boss;
     if (!o) return;
     o.t += dt; o.flash = Math.max(0, o.flash - dt);
-    if (o.kind === 'owl') this.owlStep(o, dt, rr); else if (o.kind === 'rat') this.ratStep(o, dt, rr); else this.foxStep(o, dt, rr);
+    if (o.kind === 'owl') this.owlStep(o, dt, rr); else if (o.kind === 'rat') this.ratStep(o, dt, rr); else if (o.kind === 'fox') this.foxStep(o, dt, rr); else this.catStep(o, dt, rr);
     if (o.move === 'dying') {
       if (Math.floor(o.t * 10) !== Math.floor((o.t - dt) * 10)) this.fx.push({ kind: 'boom', x: o.x + (this.rand() - 0.5) * 40, y: o.y + (this.rand() - 0.5) * 30, t: 0, vx: 0, vy: 0 });
       if (o.t > 2) this.bossDown();
@@ -1143,11 +1254,12 @@ export class FluffstevaniaGame {
         o.summoned = true;
         const left = rr.x + 40, right = rr.x + rr.w - 40;
         for (const x of [left, right]) {
-          const e = o.kind === 'rat' ? this.spawn('rat', x, rr.y + 12 * TILE) : this.spawn('bat', x, rr.y + 60);
-          e.state = o.kind === 'rat' ? 'idle' : 'awake'; e.face = x < o.x ? 1 : -1;
+          const walker = o.kind === 'rat' || o.kind === 'cat';
+          const e = walker ? this.spawn(o.kind === 'rat' ? 'rat' : 'mouse', x, rr.y + 12 * TILE) : this.spawn('bat', x, rr.y + 60);
+          e.state = walker ? 'idle' : 'awake'; e.face = x < o.x ? 1 : -1;
         }
       }
-      this.say(o.kind === 'owl' ? 'Duke Hootsworth ruffles up in a fury!' : o.kind === 'rat' ? 'Gnawdrick gnashes his teeth and calls his rats!' : 'Count Culpeo’s eyes blaze. His bats pour from the shadows!');
+      this.say({ owl: 'Duke Hootsworth ruffles up in a fury!', rat: 'Gnawdrick gnashes his teeth and calls his rats!', fox: 'Count Culpeo’s eyes blaze. His bats pour from the shadows!', cat: 'Tick-Tock winds herself tighter and lets loose her mice!' }[o.kind]);
       this.events.push('screech');
     }
     if (this.bossOpen(o)) {
@@ -1322,6 +1434,92 @@ export class FluffstevaniaGame {
         break;
     }
   }
+  /**
+   * Tick-Tock the Clockwork Cat prowls the floor. She pounces with a shockwave landing, bowls cogs that bounce off the
+   * walls, and runs up a wall to cling there and dive at the heroes, which leaves her dizzy. At half HP she lets two
+   * clockwork mice loose and rings her bell: a low chime to jump, then a high one to stay down for.
+   */
+  private catStep(o: Boss, dt: number, rr: Box) {
+    const b = this.body, k = BOSSES.cat;
+    const floor = rr.y + 12 * TILE, ground = floor - k.h / 2, left = rr.x + 2 * TILE + k.w / 2, right = rr.x + rr.w - 2 * TILE - k.w / 2;
+    const go = (move: CatMove) => { o.move = move; o.t = 0; };
+    const hard = this.difficulty === 'hard', fierce = o.phase2 || hard, fast = (o.phase2 ? 1.25 : 1) * (hard ? 1.1 : 1);
+    const land = () => { o.vy = Math.min(o.vy + G * dt, 700); o.y += o.vy * dt; if (o.y >= ground) { o.y = ground; o.vy = 0; return true; } return false; };
+    const toward = () => { o.face = b.x > o.x ? 1 : -1; };
+    switch (o.move as CatMove) {
+      case 'enter':
+        if (o.t < 0.6) o.y = rr.y - 30;
+        else if (land()) { this.shake = 0.4; this.events.push('quake'); go('prowl'); this.events.push('meow'); }
+        break;
+      case 'prowl':
+        toward();
+        if (Math.abs(b.x - o.x) > 70) o.x = clamp(o.x + o.face * 70 * fast * dt, left, right);
+        if (o.t > 0.65 / fast) {
+          const pick = this.pickMove(o, fierce ? ['pounce', 'cogs', 'dash', 'chime'] : ['pounce', 'cogs', 'dash']);
+          go(pick === 'pounce' ? 'crouch' : pick as CatMove);
+          if (pick === 'dash') o.face = o.x < rr.x + rr.w / 2 ? -1 : 1;
+        }
+        break;
+      case 'crouch':
+        toward();
+        if (o.t > 0.4 / fast) { o.vx = (clamp(b.x, left, right) - o.x) / 0.7; o.vy = -520; go('pounce'); this.events.push('jump'); }
+        break;
+      case 'pounce':
+        o.x = clamp(o.x + o.vx * dt, left, right);
+        if (land() && o.t > 0.1) { this.waves(o.x, floor, 20, 14); go('prowl'); }
+        break;
+      case 'cogs':
+        toward();
+        if (o.t > 0.4 && o.t - dt <= 0.4) {
+          this.shots.push({ kind: 'cog', x: o.x + o.face * 22, y: floor - 8, vx: o.face * 170, vy: 0, grav: 0, r: 7, dmg: 14, hero: false, life: 4.5, spin: 0 });
+          if (fierce) this.shots.push({ kind: 'cog', x: o.x + o.face * 16, y: o.y - 16, vx: o.face * 120, vy: -380, grav: 900, r: 7, dmg: 14, hero: false, life: 4.5, spin: 0 });
+          this.events.push('throw');
+        }
+        if (o.t > 0.9) go('prowl');
+        break;
+      case 'dash': {
+        // She sprints for the nearer wall…
+        const wall = o.face > 0 ? right : left;
+        o.x += o.face * 280 * fast * dt;
+        if (Math.floor(o.t * 20) !== Math.floor((o.t - dt) * 20)) this.fx.push({ kind: 'dust', x: o.x - o.face * 16, y: floor - 2, t: 0, vx: -o.face * 40, vy: -20 });
+        if ((o.x - wall) * o.face >= 0) { o.x = wall; go('climb'); this.events.push('cling'); }
+        break;
+      }
+      case 'climb':
+        // …runs straight up it…
+        o.y -= 240 * fast * dt;
+        if (o.y <= rr.y + 5 * TILE) { o.y = rr.y + 5 * TILE; go('cling'); }
+        break;
+      case 'cling':
+        // …clings there with her eyes on the heroes, then dives.
+        if (o.t > 0.5 / fast) {
+          const tx = clamp(b.x, left, right), d = Math.hypot(tx - o.x, ground - o.y) || 1;
+          o.vx = ((tx - o.x) / d) * 420 * fast; o.vy = ((ground - o.y) / d) * 420 * fast;
+          o.face = o.vx > 0 ? 1 : -1; go('dive'); this.events.push('screech');
+        }
+        break;
+      case 'dive':
+        o.x = clamp(o.x + o.vx * dt, left, right); o.y += o.vy * dt;
+        if (o.y >= ground) { o.y = ground; this.shake = 0.4; this.events.push('quake'); go('dizzy'); }
+        break;
+      case 'dizzy':
+        if (o.t > 0.9) go('prowl');
+        break;
+      case 'chime':
+        // She rings the bell on her collar: a low ring to jump, then a high one to stay down under.
+        if ((o.t > 0.4 && o.t - dt <= 0.4) || (o.t > 0.9 && o.t - dt <= 0.9)) {
+          const y = o.t < 0.6 ? floor - 7 : floor - 40;
+          for (const d of [-1, 1]) this.shots.push({ kind: 'chime', x: o.x + d * 14, y, vx: d * 190, vy: 0, grav: 0, r: 8, dmg: 15, hero: false, life: 2.5, spin: 0 });
+          this.events.push('chime');
+        }
+        if (o.t > 1.4) go('prowl');
+        break;
+      case 'dying':
+        o.y = ground + Math.sin(o.t * 40) * 1;
+        if (Math.floor(o.t * 8) !== Math.floor((o.t - dt) * 8)) this.fx.push({ kind: 'rubble', x: o.x, y: o.y - 8, t: 0, vx: (this.rand() - 0.5) * 140, vy: -100 - this.rand() * 80 });
+        break;
+    }
+  }
   /** Two shockwaves running out along the floor from x. */
   private waves(x: number, floor: number, gap: number, dmg: number) {
     for (const d of [-1, 1]) this.shots.push({ kind: 'wave', x: x + d * gap, y: floor - 6, vx: d * 190, vy: 0, grav: 0, r: 7, dmg, hero: false, life: 2.2, spin: 0 });
@@ -1402,8 +1600,8 @@ export class FluffstevaniaGame {
   hitBoss(raw: number, lck: number) {
     const o = this.boss!, k = BOSSES[o.kind];
     const crit = this.rand() * 100 < lck;
-    // A stunned Rat King takes extra.
-    const open = o.kind === 'rat' && o.move === 'stunned' ? 1.25 : 1;
+    // A stunned Rat King and a dizzy Tick-Tock take extra.
+    const open = (o.kind === 'rat' && o.move === 'stunned') || (o.kind === 'cat' && o.move === 'dizzy') ? 1.25 : 1;
     const dmg = Math.max(1, Math.round(raw * open * (crit ? 1.5 : 1) - k.def));
     o.hp = Math.max(0, o.hp - dmg); o.flash = 0.12;
     this.pops.push({ x: o.x, y: o.y - k.h / 2 - 6, text: String(dmg), t: 0, color: crit || this.heavy ? '#ffd35a' : '#ffffff', big: this.heavy });
@@ -1419,11 +1617,11 @@ export class FluffstevaniaGame {
     this.kills[BOSS_KILLS[o.kind]] = (this.kills[BOSS_KILLS[o.kind]] ?? 0) + 1;
     this.gainXp(BOSSES[o.kind].xp);
     this.pickups.push({ kind: 'leaf', id: 'leaf', amount: 1, x: o.x, y: o.y, vy: -120, t: 0, flag: `leaf:${o.kind}`, fixed: false });
-    for (let i = 0; i < 24; i++) this.fx.push({ kind: 'ash', x: o.x + (this.rand() - 0.5) * 40, y: o.y + (this.rand() - 0.5) * 30, t: -this.rand() * 0.3, vx: (this.rand() - 0.5) * 60, vy: -20 - this.rand() * 40, color: o.kind === 'owl' ? '#c8b088' : o.kind === 'rat' ? '#d8c070' : '#3a1020' });
+    for (let i = 0; i < 24; i++) this.fx.push({ kind: 'ash', x: o.x + (this.rand() - 0.5) * 40, y: o.y + (this.rand() - 0.5) * 30, t: -this.rand() * 0.3, vx: (this.rand() - 0.5) * 60, vy: -20 - this.rand() * 40, color: { owl: '#c8b088', rat: '#d8c070', fox: '#3a1020', cat: '#c8a050' }[o.kind] });
     this.events.push('victory');
     // A beaten boss is saved at once, so falling later never brings them back.
     this.saved = this.snapshot();
-    this.talk(`${o.kind}Down`, `chapter${{ owl: 1, rat: 2, fox: 3 }[o.kind]}`);
+    this.talk(`${o.kind}Down`, `chapter${BOSS_CHAPTER[o.kind]}`);
   }
 
   private shotStep(dt: number) {
@@ -1432,6 +1630,9 @@ export class FluffstevaniaGame {
     for (const s of this.shots) {
       s.life -= dt; s.vy += s.grav * dt; s.vx += (s.ax ?? 0) * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.spin += dt * 12;
       if (s.t !== undefined) s.t += dt;
+      // Petals whirl round the lead; the boulder is Enzo himself, rolling.
+      if (s.kind === 'petal') { const a = s.phase! + s.t! * 4.2; s.x = b.x + Math.cos(a) * 26; s.y = b.y - 12 + Math.sin(a) * 18; }
+      if (s.kind === 'boulder') { s.x = b.x; s.y = b.y - 9; if (b.rollT <= 0 || this.leader !== 'enzo') s.life = 0; }
       const box = { x: s.x - s.r, y: s.y - s.r, w: s.r * 2, h: s.r * 2 };
       if (s.kind === 'quake' && Math.floor((s.t! - dt) / 0.05) !== Math.floor(s.t! / 0.05)) {
         // The shockwave kicks up shards of stone and dust behind it.
@@ -1444,6 +1645,16 @@ export class FluffstevaniaGame {
         // Cheese wheels roll along the floor and bounce back off walls; lobbed ones bounce along.
         if (isSolid(this.tile(Math.floor((s.x + Math.sign(s.vx) * (s.r + 1)) / TILE), Math.floor(s.y / TILE)))) { s.vx = -s.vx; s.x += s.vx * dt * 2; }
         if (s.vy > 0 && this.solidAt(s.x, s.y + s.r)) { s.y = Math.floor((s.y + s.r) / TILE) * TILE - s.r; s.vy = s.grav ? -Math.max(200, s.vy * 0.75) : 0; }
+      } else if (s.kind === 'cog') {
+        // Cogs roll along the floor and bounce back off walls; a thrown one drops to the floor and rolls from there.
+        if (isSolid(this.tile(Math.floor((s.x + Math.sign(s.vx) * (s.r + 1)) / TILE), Math.floor(s.y / TILE)))) { s.vx = -s.vx; s.x += s.vx * dt * 2; }
+        if (s.vy > 0 && this.solidAt(s.x, s.y + s.r)) {
+          s.y = Math.floor((s.y + s.r) / TILE) * TILE - s.r;
+          s.vy = !s.hero && s.grav ? -Math.max(200, s.vy * 0.75) : 0;
+          if (s.hero) s.vx = Math.sign(s.vx || 1) * 230;
+        }
+      } else if (s.kind === 'petal' || s.kind === 'boulder' || s.kind === 'chime') {
+        // These pass through walls: petals orbit, the boulder is Enzo, and a chime is sound.
       } else if (s.kind === 'acorn') {
         // Back in the lead's paws once it has turned around.
         if (Math.sign(s.vx) === Math.sign(s.ax ?? 0) && Math.abs(s.x - b.x) < 10 && Math.abs(s.y - b.y + 12) < 20) s.life = 0;
@@ -1466,7 +1677,7 @@ export class FluffstevaniaGame {
           return true;
         };
         for (const e of this.enemies) {
-          if (e.dead || ghostFaded(e) || !overlap(box, this.foeBox(e))) continue;
+          if (e.dead || foeHidden(e) || !overlap(box, this.foeBox(e))) continue;
           if (s.kind === 'pumpkin') { bursts.push([s.x, s.y]); s.life = 0; break; }
           if (!strike(e.id)) continue;
           // Gusts of dust are stopped by shields like a swing is; everything else gets past.
@@ -1485,7 +1696,15 @@ export class FluffstevaniaGame {
         }
         const cage = this.cage;
         if (s.life > 0 && cage && cage.flash <= 0 && overlap(box, { x: cage.x - 8, y: cage.y - 18, w: 16, h: 18 })) { this.hitCage(); if (!s.pierce) s.life = 0; }
-      } else if (overlap(box, me)) { this.hurtHero(s.dmg, s.x - s.vx); if (s.kind !== 'wave' && s.kind !== 'cheese') s.life = 0; }
+      } else if (overlap(box, me)) { this.hurtHero(s.dmg, s.x - s.vx); if (s.kind !== 'wave' && s.kind !== 'cheese' && s.kind !== 'cog' && s.kind !== 'chime') s.life = 0; }
+    }
+    // Petal Ward knocks shots out of the air (not shockwaves, flames or chimes).
+    for (const p of this.shots) {
+      if (p.kind !== 'petal' || p.life <= 0) continue;
+      for (const s of this.shots) {
+        if (s.hero || s.life <= 0 || s.kind === 'wave' || s.kind === 'flame' || s.kind === 'chime') continue;
+        if (Math.hypot(s.x - p.x, s.y - p.y) < p.r + s.r) { s.life = 0; this.fx.push({ kind: 'clink', x: s.x, y: s.y, t: 0, vx: 0, vy: 0 }); this.events.push('clink'); }
+      }
     }
     this.shots = this.shots.filter((s) => s.life > 0);
     for (const [x, y] of bursts) this.burst(x, y);
@@ -1514,7 +1733,11 @@ export class FluffstevaniaGame {
     const b = this.body, me = { x: b.x - 10, y: b.y - HERO_H - 4, w: 20, h: HERO_H + 8 };
     for (const p of this.pickups) {
       p.t += dt;
-      if (!p.fixed) {
+      if (p.pull) {
+        // Nutmeg is fetching it.
+        const dx = b.x - p.x, dy = b.y - 10 - p.y, d = Math.hypot(dx, dy) || 1, step = Math.min(d, 260 * dt);
+        p.x += (dx / d) * step; p.y += (dy / d) * step;
+      } else if (!p.fixed) {
         const o = { x: p.x, y: p.y, vx: 0, vy: p.vy };
         o.vy = Math.min(o.vy + G * 0.7 * dt, MAX_FALL);
         this.move(o, 6, 6, dt, true);
@@ -1550,6 +1773,13 @@ export class FluffstevaniaGame {
         this.events.push('relic');
         this.talk(p.id);
         break;
+      case 'spell':
+        this.events.push('relic');
+        this.talk(p.id);
+        break;
+      case 'key':
+        this.say('Found a brass pocket watch! It’s still ticking. Someone must be missing it.', 3.4); this.events.push('item');
+        break;
     }
   }
   /** Shrines and signs under the leader's feet. */
@@ -1574,13 +1804,14 @@ export class FluffstevaniaGame {
     }
     this.sign = -1; this.stall = false; this.npc = null;
     const near = (ch: string) => here === ch || rawTile(c - 1, r) === ch || rawTile(c + 1, r) === ch;
-    for (const [ch, id] of [['P', 'pudding'], ['Y', 'mochi']] as const) {
+    for (const [ch, id] of [['P', 'pudding'], ['Y', 'mochi'], ['C', 'nutmeg']] as const) {
       if (!near(ch) || this.pals[id]) continue;
       this.npc = id;
       if (!pressed('up')) continue;
       if (id === 'pudding') { if (this.bag.cake) { this.bag.cake--; if (!this.bag.cake) delete this.bag.cake; this.join('pudding', 'puddingJoin'); } else this.talk('puddingHungry'); }
-      else if (this.flags.has('boss:rat')) this.join('mochi', 'mochiJoin');
-      else this.talk('mochiWait');
+      else if (id === 'mochi') { if (this.flags.has('boss:rat')) this.join('mochi', 'mochiJoin'); else this.talk('mochiWait'); }
+      else if (this.flags.has('watch')) this.join('nutmeg', 'nutmegJoin');
+      else this.talk('nutmegAsk');
     }
     if (here === 'n') {
       const room = this.room, rc = c - room.mx * COLS, rr = r - room.my * ROWS;
@@ -1642,10 +1873,10 @@ export class FluffstevaniaGame {
     const ease = (tx: number, ty: number, k: number) => { p.x += (tx - p.x) * Math.min(1, k * dt); p.y += (ty - p.y) * Math.min(1, k * dt); };
     if (id === 'zippy') {
       // Zippy rides on the lead's shoulder and glides at anything close.
-      let tgt = p.target >= 0 ? this.enemies.find((e) => e.id === p.target && !e.dead && !ghostFaded(e)) : undefined;
+      let tgt = p.target >= 0 ? this.enemies.find((e) => e.id === p.target && !e.dead && !foeHidden(e)) : undefined;
       if (!tgt && p.cd <= 0) {
         let best = 150;
-        for (const e of this.enemies) { if (e.dead || ghostFaded(e)) continue; const d = Math.hypot(e.x - b.x, e.y - b.y); if (d < best) { best = d; tgt = e; } }
+        for (const e of this.enemies) { if (e.dead || foeHidden(e)) continue; const d = Math.hypot(e.x - b.x, e.y - b.y); if (d < best) { best = d; tgt = e; } }
         p.target = tgt ? tgt.id : -1;
       }
       if (!tgt || Math.hypot(b.x - p.x, b.y - p.y) > 220) { p.target = -1; ease(b.x - b.face * 10, b.y - 30 + Math.sin(p.t * 4) * 3, 6); p.face = b.face; return; }
@@ -1660,7 +1891,7 @@ export class FluffstevaniaGame {
       }
       return;
     }
-    // Pudding and Mochi trot along behind the partner.
+    // Pudding, Mochi and Nutmeg trot along behind the partner.
     const tx = f.x - b.face * (id === 'mochi' ? 30 : 24);
     ease(tx, f.y, 6);
     if (Math.abs(tx - p.x) > 0.5) p.face = tx > p.x ? 1 : -1;
@@ -1672,6 +1903,14 @@ export class FluffstevaniaGame {
         this.pops.push({ x: b.x, y: b.y - 30, text: `+${heal}`, t: 0, color: '#8cf0a0' });
         this.events.push('squeak');
         p.cd = Math.max(5, 12 - lv * 0.6); p.act = 0.6;
+      }
+    }
+    if (id === 'nutmeg') {
+      // Nutmeg scampers after loose loot within reach and brings it to the lead.
+      const reach = 60 + lv * 8;
+      for (const q of this.pickups) {
+        if (q.pull || q.fixed || q.flag || q.t < 0.3 || (q.kind !== 'raisin' && q.kind !== 'seeds' && q.kind !== 'dust' && q.kind !== 'food')) continue;
+        if (Math.hypot(q.x - b.x, q.y - b.y) < reach) { q.pull = true; p.act = 0.3; }
       }
     }
     if (id === 'mochi' && p.cd <= 0) {
