@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 23-09-2026
+
+### Added
+
+- **Fluff Forge:** a new cabinet, the arcade's sixteenth. Build your own side-scrolling course from 19 parts (ground, stone, ice, cloud ledges, drifting clouds, cactus spikes, bricks, raisin, clover and feather blocks, raisins, springs, beetles, frogs, bats, prickles, checkpoints, a start and a goal flag) in one of four themes, then run it as Dora, who jumps higher, or Enzo, who runs faster, and tag between them with C. Clovers let you break bricks and take a hit; the condor feather adds a jump in the air and a slow fall. Clear your own course from the start to unlock a share code a friend can paste in to play it. Four starter courses are included, and courses and best times are kept in your browser.
+
 ## 13-09-2026
 
 ### Added

@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of fifteen original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of sixteen original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -25,6 +25,7 @@ Listed in arcade-menu order.
 | 13 | Paw Buster X | `/paw-buster` | Action platformer |
 | 14 | Burrow Town | `/burrow-town` | City builder |
 | 15 | Dusty Hollow | `/dusty-hollow` | Village life |
+| 16 | Fluff Forge | `/fluff-forge` | Course maker platformer |
 
 ## Run
 
@@ -314,6 +315,29 @@ The loan runs 4,800 for the tent, 19,800 for the Cozy Burrow and 49,800 for the 
 
 **Docs:** [`docs/dusty-hollow.md`](docs/dusty-hollow.md).
 
+### 16 · Fluff Forge (`/fluff-forge`)
+
+**Play:** A Mario Maker-style course builder, drawn in Canvas 2D. Build a side-scrolling course on a grid 15 tiles tall and 25 to 240 tiles wide, then run it as Dora or Enzo. Dora jumps higher (her held jump rises about three and a half blocks) and Enzo runs faster (155 pixels a second at a run against her 135); press C at any time to tag the other one in. Jumps go higher the longer you hold the button and the faster you are running, and a jump still counts for a moment after you step off a ledge.
+
+There are 19 parts in five groups. **Terrain:** ground, stone, ice (slow to speed up and slow to stop), cloud ledges you jump up through and stand on (hold down to drop through), drifting clouds three tiles wide that swing 40 pixels each way every 4 seconds and carry you, and cactus spikes that hurt from any side. **Blocks:** adobe bricks, raisin blocks, clover blocks and feather blocks, all bumped from below; a bump also flips any enemy standing on top. **Items:** raisins and springs (a spring throws you about four and a half tiles, much higher if you hold jump as you land). **Enemies:** beetles walk and turn at walls, frogs hop toward you every 1.1 seconds, bats chase you once you are within about ten tiles, and prickles walk, turn at ledges too and cannot be stomped. Stomping bounces you up, higher with jump held. **Markers:** one start, one goal flag and any number of checkpoints.
+
+A clover makes you big: bricks break when you bump them and a hit shrinks you back with 1.5 seconds of safety instead of ending the try. A condor feather does the same and adds one extra jump in the air, and holding jump while falling floats you down. A second hit, spikes while small, a pit or the timer (100 to 500 seconds, set per course) ends the try: the course resets and you start again from the last checkpoint touched, keeping the raisins you had there. Clearing a course shows your time, raisins and number of tries.
+
+Four starter courses show what the parts can do: Dora’s First Hop (meadow), Salt Flat Sprint (salt flats), Night Cave Crawl (cave) and Snowcap Summit (snow). Best times are kept for starters and your own courses.
+
+**Making and sharing:** the editor has a parts palette, a title, theme, timer and width, undo and redo, and saves every change in this browser. Terrain paints as you drag; enemies and markers go down one per click, and placing a start or goal moves the old one. **Test play** runs the course from its start; **Test from here** starts at the left edge of the view for practice and never counts. Like Mario Maker, a course has to be cleared from its start by its maker before it can be shared: the first clear of each version unlocks a **Share** button with a code beginning `FLUFF-`, and any edit locks it again until you clear the new version. The code carries the whole course, so nothing is uploaded. Paste a friend’s code under **Play a friend’s course** to play it, or save it to your courses to edit it.
+
+**Controls:**
+
+- ← → or A D: move. Space, Z, W or ↑: jump (hold for height). Shift or X: run. ↓ or S: drop through a cloud ledge. C: tag Dora or Enzo in. P or Escape: pause. R: restart the course.
+- Gamepad: d-pad or left stick to move, A jump, X or B run, Y tag, down to drop through.
+- On touch screens and narrow windows an on-screen pad has move, drop, tag, run and jump.
+- Editor: click or drag on the course to place the selected part; right-click erases (or pick the eraser). Scroll with the slider under the course, ← → or A D (hold Shift for bigger steps) or the mouse wheel. Ctrl+Z undoes, Ctrl+Shift+Z or Ctrl+Y redoes.
+
+**Tests:** `npm run test:fluff-forge` (also in `npm test`) compiles `lib/fluff-forge-game.ts` and runs `tests/fluff-forge.mjs`: 22 checks covering the parts list, the starter courses, share codes (round trips, whitespace, unicode titles and every kind of broken code), painting with one start and one goal, resizing, walking and running speeds and each hero’s jump, variable jumps and coyote time, bumping raisin blocks and bricks, clovers, hits and restarts, stomping each enemy, bumping enemies off blocks, walkers turning at walls and ledges, cloud ledges, springs, spikes, ice, drifting clouds, the feather, checkpoints, pits and the timer, clearing and tagging, and independent clones. `npm run bot:fluff-forge` (also in `npm test`) runs a search over the real engine to prove every starter course can be cleared by both heroes without dying. Browser: `tests/e2e/fluff-forge.mjs` plays a starter, builds a course, test-plays it, checks the clear check unlocks a share code that survives a reload and relocks on an edit, imports the code and drives the touch pad on a phone-sized screen.
+
+**Docs:** [`docs/fluff-forge.md`](docs/fluff-forge.md).
+
 ## Validation
 
 ```sh
@@ -328,7 +352,7 @@ npm run test:e2e   # optional; needs `npm run dev` running and `npm i -D playwri
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fifteen ways/` assertion in `tests/e2e/dust-bath.mjs`, and the 15-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs` and `tests/e2e/paw-buster.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Sixteen ways/` assertion in `tests/e2e/dust-bath.mjs`, the 16-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/paw-buster.mjs` and `tests/e2e/fluff-forge.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

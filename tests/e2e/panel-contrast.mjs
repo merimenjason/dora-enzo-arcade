@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const ROUTES = ['', 'fighter', 'checkpoint-remake', 'checkpoint', 'escape', 'adventure', 'chin-x-pit',
-  'survival', 'kart', 'soccer', 'hop', 'dust-bath', 'mountain-retreat', 'paw-buster', 'burrow-town', 'dusty-hollow'];
+  'survival', 'kart', 'soccer', 'hop', 'dust-bath', 'mountain-retreat', 'paw-buster', 'burrow-town', 'dusty-hollow', 'fluff-forge'];
 // The two colours app/globals.css hands to bare `p` and `footer`.
 const GLOBAL = ['rgb(210, 213, 212)', 'rgb(137, 158, 170)'];
 

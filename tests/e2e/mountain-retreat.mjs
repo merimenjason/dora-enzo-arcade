@@ -135,7 +135,7 @@ try {
     fullPage: true,
   });
   await page.getByRole('link', { name: /MAIN ARCADE/ }).click();
-  assert.equal(await page.locator('.arcade-card').count(), 15);
+  assert.equal(await page.locator('.arcade-card').count(), 16);
   await page.locator('a[href="/mountain-retreat"]').click();
   await ready(page);
   await page.evaluate((k) => localStorage.setItem(k, '{"savedAt":"bad"}'), key);
@@ -209,7 +209,7 @@ try {
   );
   assert.deepEqual(errors, []);
   console.log(
-    'PASS Mountain Retreat browser: idle income, unlock, keyboard allocations, expedition/festival pauses and rewards, persistence, offline cap/no double claim, malformed/blocked storage, unrelated save preservation, 15-card navigation, 320/390/768 responsive widths, touch and reduced motion.',
+    'PASS Mountain Retreat browser: idle income, unlock, keyboard allocations, expedition/festival pauses and rewards, persistence, offline cap/no double claim, malformed/blocked storage, unrelated save preservation, 16-card navigation, 320/390/768 responsive widths, touch and reduced motion.',
   );
 } finally {
   await browser.close();
