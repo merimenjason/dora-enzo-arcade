@@ -9,6 +9,7 @@
 //   * a warm grade and vignette over the finished frame.
 import { Hollow, W, H, BUILDINGS, BOARD, FACE, BUGS, NEIGHBOURS, type Terrain, type Season } from './dusty-hollow-game';
 import { piece } from './dusty-hollow-room';
+import { drawChinchilla } from './chinchilla-art';
 
 export const TILE = 44;
 export const VIEW_W = 960;
@@ -73,6 +74,8 @@ export class HollowScene {
   c: CanvasRenderingContext2D;
   cam: Camera = { x: 0, y: 0 };
   time = 0;
+  /** Which way Dora and Enzo last faced left or right. */
+  private sides = new Map<string, 1 | -1>();
   /** World-space text, collected while painting and drawn last so night never dims it. */
   private labels: Label[] = [];
   /** A tile of paper grain, laid over the ground to break up the flat fills. */
@@ -565,65 +568,73 @@ export class HollowScene {
     if (fleeing) return;
     this.label(BUGS.find((b) => b.id === id)?.name ?? id, px, py - 9, '9px Arial', '#fff6e2');
   }
-  /** A chinchilla, or one of the neighbours, drawn from a few soft shapes. */
+  /** Dora, Enzo or one of the neighbours; neighbours are drawn from a few soft shapes. */
   private critter(x: number, y: number, body: string, species: string, facing: number, moving: boolean, label: string, wants: boolean, tool?: string, birthday = false, sneaking = false) {
     const c = this.c, px = x * TILE, py = y * TILE + (sneaking ? 5 : 0), bob = moving ? Math.abs(Math.sin(this.time * (sneaking ? 6 : 12))) * (sneaking ? 1.5 : 3) : 0;
     this.drop(px, py + 14, 12, 4.5, 0.2);
     const tall = species === 'flamingo' || species === 'condor' || species === 'llama';
     const hy = py - 10 - bob - (tall ? 6 : 0);
-    c.fillStyle = body;
-    c.beginPath(); c.ellipse(px, py + 2 - bob, 12, tall ? 15 : 12, 0, 0, Math.PI * 2); c.fill();
-    this.stroke(1.5);
-    // A paler belly and a lit shoulder give the blob some roundness.
-    c.save(); c.clip();
-    c.fillStyle = shade(body, 0.16, '#ffffff');
-    c.beginPath(); c.ellipse(px - 4, py - 3 - bob, 8, tall ? 9 : 7, -0.4, 0, Math.PI * 2); c.fill();
-    c.fillStyle = shade(body, 0.14);
-    c.beginPath(); c.ellipse(px + 8, py + 8 - bob, 8, 8, 0, 0, Math.PI * 2); c.fill();
-    c.restore();
-    c.fillStyle = body;
-    c.beginPath(); c.arc(px, hy, 10, 0, Math.PI * 2); c.fill();
-    this.stroke(1.5);
-    if (EARED.includes(species)) {
-      const pointy = species === 'cat' || species === 'llama';
-      c.fillStyle = body;
-      c.beginPath();
-      if (pointy) {
-        c.moveTo(px - 10, hy - 2); c.lineTo(px - 7, hy - 16); c.lineTo(px - 1, hy - 7);
-        c.moveTo(px + 10, hy - 2); c.lineTo(px + 7, hy - 16); c.lineTo(px + 1, hy - 7);
-      } else {
-        c.moveTo(px - 3, hy - 8); c.ellipse(px - 8, hy - 8, 5, 7.5, -0.3, 0, Math.PI * 2);
-        c.moveTo(px + 13, hy - 8); c.ellipse(px + 8, hy - 8, 5, 7.5, 0.3, 0, Math.PI * 2);
-      }
-      c.fill();
-      this.stroke(1.4);
-      if (!pointy) {
-        c.fillStyle = '#f2b8c0';
-        c.beginPath(); c.ellipse(px - 8, hy - 8, 2.5, 4.2, -0.3, 0, Math.PI * 2); c.fill();
-        c.beginPath(); c.ellipse(px + 8, hy - 8, 2.5, 4.2, 0.3, 0, Math.PI * 2); c.fill();
-      }
-    } else if (species === 'fox') {
-      c.fillStyle = body;
-      c.beginPath();
-      c.moveTo(px - 10, hy - 4); c.lineTo(px - 7, hy - 16); c.lineTo(px - 2, hy - 6);
-      c.moveTo(px + 10, hy - 4); c.lineTo(px + 7, hy - 16); c.lineTo(px + 2, hy - 6);
-      c.fill();
-      this.stroke(1.4);
+    const chin = species === 'dora' || species === 'enzo';
+    if (chin) {
+      // Dora and Enzo are the shared side-on drawing; walking up or down they keep facing the way they last went.
+      if (facing === 1 || facing === 3) this.sides.set(species, facing === 1 ? 1 : -1);
+      const hat = birthday ? (d: CanvasRenderingContext2D, b: number) => { d.fillStyle = '#f0cd6b'; d.beginPath(); d.moveTo(1, -26 + b); d.lineTo(4, -36 + b); d.lineTo(7, -26 + b); d.closePath(); d.fill(); } : undefined;
+      drawChinchilla(c, species, px, py + 14, { face: this.sides.get(species) ?? 1, h: 34, time: this.time + (species === 'enzo' ? 1.7 : 0), run: this.time * (sneaking ? 12 : 26), moving, decorate: hat });
     } else {
-      c.fillStyle = species === 'flamingo' ? '#3a2a2a' : '#e8b04a';
-      const bx = facing === 3 ? -1 : 1;
-      c.beginPath(); c.moveTo(px + bx * 8, hy + 1); c.lineTo(px + bx * 17, hy + 4); c.lineTo(px + bx * 8, hy + 5.5); c.closePath(); c.fill();
-      this.stroke(1.1);
-    }
-    if (species === 'cat') { c.fillStyle = 'rgba(90,80,73,0.8)'; c.beginPath(); c.roundRect(px - 9, hy + 2, 18, 2.4, 1); c.fill(); }
-    if (facing !== 0) {
-      const ex = facing === 1 ? 4 : facing === 3 ? -4 : 0;
-      c.fillStyle = '#2a2420';
-      c.beginPath(); c.ellipse(px - 4 + ex, hy - 1, 1.9, 2.2, 0, 0, Math.PI * 2); c.fill();
-      c.beginPath(); c.ellipse(px + 4 + ex, hy - 1, 1.9, 2.2, 0, 0, Math.PI * 2); c.fill();
-      c.fillStyle = 'rgba(255,255,255,0.85)';
-      c.beginPath(); c.arc(px - 4.7 + ex, hy - 1.9, 0.7, 0, Math.PI * 2); c.fill();
-      c.beginPath(); c.arc(px + 3.3 + ex, hy - 1.9, 0.7, 0, Math.PI * 2); c.fill();
+      c.fillStyle = body;
+      c.beginPath(); c.ellipse(px, py + 2 - bob, 12, tall ? 15 : 12, 0, 0, Math.PI * 2); c.fill();
+      this.stroke(1.5);
+      // A paler belly and a lit shoulder give the blob some roundness.
+      c.save(); c.clip();
+      c.fillStyle = shade(body, 0.16, '#ffffff');
+      c.beginPath(); c.ellipse(px - 4, py - 3 - bob, 8, tall ? 9 : 7, -0.4, 0, Math.PI * 2); c.fill();
+      c.fillStyle = shade(body, 0.14);
+      c.beginPath(); c.ellipse(px + 8, py + 8 - bob, 8, 8, 0, 0, Math.PI * 2); c.fill();
+      c.restore();
+      c.fillStyle = body;
+      c.beginPath(); c.arc(px, hy, 10, 0, Math.PI * 2); c.fill();
+      this.stroke(1.5);
+      if (EARED.includes(species)) {
+        const pointy = species === 'cat' || species === 'llama';
+        c.fillStyle = body;
+        c.beginPath();
+        if (pointy) {
+          c.moveTo(px - 10, hy - 2); c.lineTo(px - 7, hy - 16); c.lineTo(px - 1, hy - 7);
+          c.moveTo(px + 10, hy - 2); c.lineTo(px + 7, hy - 16); c.lineTo(px + 1, hy - 7);
+        } else {
+          c.moveTo(px - 3, hy - 8); c.ellipse(px - 8, hy - 8, 5, 7.5, -0.3, 0, Math.PI * 2);
+          c.moveTo(px + 13, hy - 8); c.ellipse(px + 8, hy - 8, 5, 7.5, 0.3, 0, Math.PI * 2);
+        }
+        c.fill();
+        this.stroke(1.4);
+        if (!pointy) {
+          c.fillStyle = '#f2b8c0';
+          c.beginPath(); c.ellipse(px - 8, hy - 8, 2.5, 4.2, -0.3, 0, Math.PI * 2); c.fill();
+          c.beginPath(); c.ellipse(px + 8, hy - 8, 2.5, 4.2, 0.3, 0, Math.PI * 2); c.fill();
+        }
+      } else if (species === 'fox') {
+        c.fillStyle = body;
+        c.beginPath();
+        c.moveTo(px - 10, hy - 4); c.lineTo(px - 7, hy - 16); c.lineTo(px - 2, hy - 6);
+        c.moveTo(px + 10, hy - 4); c.lineTo(px + 7, hy - 16); c.lineTo(px + 2, hy - 6);
+        c.fill();
+        this.stroke(1.4);
+      } else {
+        c.fillStyle = species === 'flamingo' ? '#3a2a2a' : '#e8b04a';
+        const bx = facing === 3 ? -1 : 1;
+        c.beginPath(); c.moveTo(px + bx * 8, hy + 1); c.lineTo(px + bx * 17, hy + 4); c.lineTo(px + bx * 8, hy + 5.5); c.closePath(); c.fill();
+        this.stroke(1.1);
+      }
+      if (species === 'cat') { c.fillStyle = 'rgba(90,80,73,0.8)'; c.beginPath(); c.roundRect(px - 9, hy + 2, 18, 2.4, 1); c.fill(); }
+      if (facing !== 0) {
+        const ex = facing === 1 ? 4 : facing === 3 ? -4 : 0;
+        c.fillStyle = '#2a2420';
+        c.beginPath(); c.ellipse(px - 4 + ex, hy - 1, 1.9, 2.2, 0, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.ellipse(px + 4 + ex, hy - 1, 1.9, 2.2, 0, 0, Math.PI * 2); c.fill();
+        c.fillStyle = 'rgba(255,255,255,0.85)';
+        c.beginPath(); c.arc(px - 4.7 + ex, hy - 1.9, 0.7, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.arc(px + 3.3 + ex, hy - 1.9, 0.7, 0, Math.PI * 2); c.fill();
+      }
     }
     if (tool && tool !== 'hands') {
       const [dx, dy] = FACE[facing];
@@ -637,12 +648,12 @@ export class HollowScene {
       c.beginPath(); c.arc(hx + dx * 10, hyy - 12, tool === 'net' ? 7 : 4, 0, Math.PI * 2); c.fill();
       this.stroke(1.2);
     }
-    if (birthday) {
+    if (birthday && !chin) {
       c.fillStyle = '#f0cd6b';
       c.beginPath(); c.moveTo(px - 7, hy - 8); c.lineTo(px, hy - 24); c.lineTo(px + 7, hy - 8); c.closePath(); c.fill();
       this.stroke(1.2);
     }
-    if (label) this.label(label, px, hy - (EARED.includes(species) || birthday ? 22 : 16), 'bold 10px Arial', label.endsWith('(you)') ? '#ffe08a' : '#fff6e2');
+    if (label) this.label(label, px, hy - (chin && birthday ? 30 : EARED.includes(species) || birthday ? 22 : 16), 'bold 10px Arial', label.endsWith('(you)') ? '#ffe08a' : '#fff6e2');
     if (wants) this.label('…', px + 15, hy - 12, 'bold 14px Arial', '#ffd94a');
   }
 

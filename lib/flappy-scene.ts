@@ -1,4 +1,5 @@
 import {FLIGHT,FlappyGame} from './flappy-game';
+import {drawChinchilla} from './chinchilla-art';
 const W=FLIGHT.width,H=FLIGHT.height;
 export function drawFlight(c:CanvasRenderingContext2D,g:FlappyGame,t:number){
  c.clearRect(0,0,W,H);const sky=c.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#719eb4');sky.addColorStop(.66,'#eed4ad');sky.addColorStop(1,'#d6a478');c.fillStyle=sky;c.fillRect(0,0,W,H);
@@ -17,13 +18,14 @@ export function drawFlight(c:CanvasRenderingContext2D,g:FlappyGame,t:number){
  if(g.flapTime>0){const progress=1-g.flapTime/.23;c.save();c.globalAlpha=1-progress;for(const x of FLIGHT.x)for(let i=0;i<5;i++){c.fillStyle='#fff5df';c.beginPath();c.ellipse(x-30-progress*40-i*6,g.y+12+Math.sin(i*2)*progress*20,3+progress*3,2,0,0,Math.PI*2);c.fill()}c.restore()}
  if(g.perfectTime>0){c.save();c.globalAlpha=Math.min(1,g.perfectTime*3);c.fillStyle='#fff3c2';c.strokeStyle='#76562f';c.lineWidth=4;c.font='bold 25px Georgia';c.textAlign='center';c.strokeText('✦ PERFECT PAIR +50',450,88);c.fillText('✦ PERFECT PAIR +50',450,88);for(let i=0;i<8;i++){const a=i*Math.PI/4,r=(1.25-g.perfectTime)*70;c.fillText('·',450+Math.cos(a)*r,88+Math.sin(a)*r)}c.restore()}
  if(g.state==='lost'){c.fillStyle=`rgba(198,79,54,${Math.max(0,.22-g.endTime*.5)})`;c.fillRect(0,0,W,H);c.strokeStyle='#fff4ce';c.lineWidth=3;for(const [i,x]of FLIGHT.x.entries())if(g.hitHero<0||g.hitHero===i){c.beginPath();c.arc(x,g.y,33,0,Math.PI*2);c.stroke()}c.fillStyle='#fff0c8';c.font='bold 15px system-ui';c.textAlign='center';c.fillText(g.hitHero<0?'Watch the '+g.hitReason:(g.hitHero===0?'Dora':'Enzo')+' clipped the checkpoint',250,Math.max(55,g.y-47))}
- for(let i=1;i>=0;i--)chinchilla(c,FLIGHT.x[i],g.state==='ready'?g.y+Math.sin(t*2)*7:g.y,i===0,g.vy,g.flapTime>0||g.state==='ready',t);
+ // Enzo flies behind Dora but is drawn over her tail so both faces show.
+ for(let i=0;i<2;i++)chinchilla(c,FLIGHT.x[i],g.state==='ready'?g.y+Math.sin(t*2)*7:g.y,i===0,g.vy,g.flapTime>0||g.state==='ready',t);
 }
-function chinchilla(c:CanvasRenderingContext2D,x:number,y:number,white:boolean,vy:number,flap:boolean,t:number){c.save();c.translate(x,y);c.rotate(Math.max(-.27,Math.min(.45,vy/1000)));const coat=white?'#f4efe4':'#737a83',shade=white?'#d3cbbf':'#505a66';
+function chinchilla(c:CanvasRenderingContext2D,x:number,y:number,white:boolean,vy:number,flap:boolean,t:number){c.save();c.translate(x,y);c.rotate(Math.max(-.27,Math.min(.45,vy/1000)));
  const ellipse=(x:number,y:number,rx:number,ry:number,color:string,angle=0)=>{c.fillStyle=color;c.beginPath();c.ellipse(x,y,rx,ry,angle,0,Math.PI*2);c.fill()};
- ellipse(-29,10,24,10,shade,-.5);ellipse(-43,5,12,10,coat,-.7);
- // Little paper wings make the shared flap visible.
- ellipse(-6,flap?-23:0,10,23,'#fff0cf',flap?-.8:.9);c.strokeStyle='#c9b48e';c.lineWidth=1;c.beginPath();c.moveTo(-7,0);c.lineTo(-16,flap?-35:-8);c.stroke();
- ellipse(0,1,25,21,shade);ellipse(1,-1,24,21,coat);for(let j=0;j<12;j++){const a=j*Math.PI/6;ellipse(Math.cos(a)*21,Math.sin(a)*17,5,4,coat)}
- ellipse(7,-24,9,17,coat,-.2);ellipse(8,-25,5,12,white?'#d6aa9f':'#b49b99',-.2);ellipse(24,-17,8,14,coat,.55);ellipse(25,-18,4,9,'#c3a29a',.55);ellipse(19,1,13,14,coat);ellipse(22,-4,3.7,4,'#222c35');ellipse(23,-5,1.2,1.3,'#fff');ellipse(32,4,3,2,'#a77d78');ellipse(8,20,8,3,'#c09b91');c.strokeStyle=white?'#9b9187':'#bec3c6';c.lineWidth=.8;for(let j=0;j<3;j++){c.beginPath();c.moveTo(28,7);c.lineTo(43,2+j*5);c.stroke()}
- c.fillStyle=white?'#648e88':'#bd7959';c.fillRect(-15,4,12,12);c.fillStyle='#f7e7b8';c.font='bold 8px system-ui';c.textAlign='center';c.fillText(white?'D':'E',-9,13);c.restore();}
+ // Little paper wings make the shared flap visible: the far one behind the body, the near one over it.
+ const wing=(dx:number,alpha:number)=>{c.globalAlpha=alpha;ellipse(dx,flap?-30:-8,10,23,'#fff0cf',flap?-.8:.9);c.strokeStyle='#c9b48e';c.lineWidth=1;c.beginPath();c.moveTo(dx-1,-8);c.lineTo(dx-10,flap?-42:-16);c.stroke();c.globalAlpha=1};
+ wing(-2,1);
+ // Dora and Enzo from the shared side-on drawing, mid-hop, each holding up a passport.
+ drawChinchilla(c,white?'dora':'enzo',0,24,{face:1,h:48,time:t+(white?0:1.3),air:true,decorate:(d,bob)=>{d.fillStyle=white?'#648e88':'#bd7959';d.fillRect(9.5,-7+bob,5,6.5);d.fillStyle='#f7e7b8';d.font='bold 4px system-ui';d.textAlign='center';d.fillText(white?'D':'E',12,-2.3+bob)}});
+ wing(-8,.85);c.restore();}

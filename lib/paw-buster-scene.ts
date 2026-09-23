@@ -174,9 +174,9 @@ function gates(c: CanvasRenderingContext2D, g: PawBusterGame, cam: number) {
   }
 }
 
-/** A chinchilla in armour, drawn around its feet (0,0), facing right. Dora wears blue, Enzo red. */
 /** Darken a #rrggbb colour by `k` (0 to 1). */
 const shade = (hex: string, k: number) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - k)).toString(16).padStart(2, '0')).join('');
+/** A chinchilla in armour, drawn around its feet (0,0), facing right. Dora wears blue, Enzo red. */
 export function drawHero(c: CanvasRenderingContext2D, hero: HeroId, opts: { run?: number; air?: boolean; dash?: boolean; slide?: boolean; slash?: number; charge?: number; aim?: boolean; tint?: string } = {}) {
   // With a special weapon equipped the armour takes on that weapon's colour.
   const dora = hero === 'dora', fur = dora ? '#f4efe6' : '#8d8a93', furDark = dora ? '#d8d0c3' : '#6c6972';
@@ -184,10 +184,22 @@ export function drawHero(c: CanvasRenderingContext2D, hero: HeroId, opts: { run?
   const bob = opts.run ? Math.abs(Math.sin(opts.run * 14)) * 2 : 0, stride = opts.run ? Math.sin(opts.run * 14) * 4 : 0;
   c.save();
   if (opts.dash) c.rotate(0.14);
-  // Tail: Dora's is a round puff, Enzo's a long banner like a flowing ponytail.
+  // Tail: a big plume that sweeps back and curls up over the back, as in Fluff Forge. It streams out when
+  // running and lifts in the air. Circles along a curve, flat like the rest of the armour art.
+  const wag = Math.sin((opts.run ?? 0) * 10) * 1.5;
+  const tp = opts.run ? [[-7, -10], [-20, -9], [-30, -26], [-22, -34]] : opts.air ? [[-7, -10], [-20, -12], [-27, -36], [-17, -38]] : [[-7, -10], [-20, -8], [-26, -34], [-16, -37]];
+  tp[3][0] += wag; tp[2][0] += wag * 0.6;
+  const tail: [number, number, number][] = [];
+  for (let i = 0; i <= 16; i++) {
+    const u = i / 16, a = (1 - u) ** 3, b = 3 * u * (1 - u) ** 2, d = 3 * u * u * (1 - u), e = u ** 3;
+    tail.push([a * tp[0][0] + b * tp[1][0] + d * tp[2][0] + e * tp[3][0], a * tp[0][1] + b * tp[1][1] + d * tp[2][1] + e * tp[3][1] - bob, 2.6 + 2.4 * Math.sin(Math.PI * (0.08 + 0.8 * u))]);
+  }
+  c.fillStyle = dora ? furDark : '#56535c';
+  for (const [x, y, r] of tail) circle(c, x - 0.7, y, r + 0.8);
   c.fillStyle = fur;
-  if (dora) ellipse(c, -13, -12 - bob, 8, 7);
-  else { c.beginPath(); c.moveTo(-8, -24); c.quadraticCurveTo(-26, -26 + Math.sin((opts.run ?? 0) * 10) * 3, -30, -8); c.quadraticCurveTo(-20, -14, -8, -14); c.fill(); }
+  for (const [x, y, r] of tail) circle(c, x, y, r);
+  c.fillStyle = dora ? '#fffdf8' : '#9d9aa4';
+  for (const [x, y, r] of tail.slice(3, 14)) circle(c, x + r * 0.2, y + r * 0.15, r * 0.55);
   // Boots.
   c.fillStyle = armorDark;
   rr(c, -9 + (opts.air ? -2 : stride), -6, 9, 6, 2);
@@ -218,16 +230,22 @@ export function drawHero(c: CanvasRenderingContext2D, hero: HeroId, opts: { run?
   c.fillStyle = dora ? '#e04a4a' : '#7dffb0';
   circle(c, 9, hy - 5, 2);
   if (!dora) { c.fillStyle = armor; c.beginPath(); c.moveTo(-2, hy - 8); c.lineTo(-12, hy - 14); c.lineTo(-4, hy - 4); c.fill(); }
-  c.fillStyle = '#111';
+  // Dora's eyes are ruby, Enzo's black.
+  c.fillStyle = dora ? '#8e1f33' : '#111';
   circle(c, 8, hy + 1, 2);
+  if (dora) { c.fillStyle = '#3b0913'; circle(c, 8.2, hy + 1.2, 1.1); }
   c.fillStyle = '#fff';
   circle(c, 8.6, hy + 0.3, 0.7);
   c.fillStyle = '#c98a8a';
   circle(c, 12, hy + 4, 1.4);
-  c.strokeStyle = dora ? '#bbb4a8' : '#c7c2cc';
-  c.lineWidth = 0.8;
+  // Long fine whiskers fanning from the whisker pad and drooping past the chin.
+  c.strokeStyle = dora ? '#ffffff' : '#e4e1e8';
+  c.lineWidth = 0.6;
   c.beginPath();
-  c.moveTo(11, hy + 4); c.lineTo(18, hy + 2); c.moveTo(11, hy + 5); c.lineTo(18, hy + 6);
+  for (const [a, len] of [[-0.2, 11], [0.1, 12], [0.4, 11], [0.7, 9], [1, 7.5]]) {
+    const dx = Math.cos(a), dy = Math.sin(a);
+    c.moveTo(11, hy + 4); c.quadraticCurveTo(11 + dx * len * 0.6, hy + 4 + dy * len * 0.6, 11 + dx * len, hy + 4 + dy * len + len * 0.2);
+  }
   c.stroke();
   // Dora's arm cannon, or Enzo's saber hilt and swing.
   if (dora) {

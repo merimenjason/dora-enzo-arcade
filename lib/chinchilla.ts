@@ -13,7 +13,8 @@ export function createChinchilla(white:boolean):Chinchilla{
  head.position.set(.43,.94,0);body.add(head);ball(head,[0,0,0],[.38,.38,.32],coat);fuzz(head,[0,0,0],[.38,.38,.32],11000,.045);
  ball(head,[.27,-.13,.005],[.23,.15,.205],pale);fuzz(head,[.27,-.13,.005],[.23,.15,.205],2400,.025,true);
  const noseMat=new T.MeshStandardMaterial({color:white?0xb8807e:0x4a3b41,roughness:.55});ball(head,[.477,-.13,0],[.045,.033,.055],noseMat);
- const eyeMat=new T.MeshPhysicalMaterial({color:0x080609,roughness:.12,clearcoat:1,clearcoatRoughness:.08});
+ // Dora's eyes are ruby, as in the 2D games; Enzo's are black.
+ const eyeMat=new T.MeshPhysicalMaterial({color:white?0x5a0f1f:0x080609,roughness:.12,clearcoat:1,clearcoatRoughness:.08});
  for(const side of [-1,1]){const eye=ball(head,[.206,.071,.265*side],[.09,.105,.053],eyeMat);eye.rotation.y=side*.35;ball(head,[.224,.107,.309*side],[.018,.024,.008],new T.MeshBasicMaterial({color:0xf6eee6}));
  const ear=new T.Group();ear.position.set(-.025, .30,side*.225);ear.rotation.z=side===1?.16:-.20;head.add(ear);ball(ear,[0,.20,0],[.205,.265,.075],coat);ball(ear,[.012,.218,.061],[.17,.225,.023],skin);ball(ear,[.01,.17,.077],[.11,.145,.012],new T.MeshStandardMaterial({color:white?0xdca99a:0xa48886,roughness:.85}));fuzz(ear,[0,.20,0],[.205,.265,.075],1500,.012);ears.push(ear);
  for(const x of [-.40,.40]){

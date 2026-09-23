@@ -163,15 +163,15 @@ Each fighter's special (35 power) is shown on its roster card, and an on-screen 
 
 ### 09 · Fluffball Cup (`/soccer`)
 
-**Play:** Top-down arcade soccer. You control Dora's Sky Squad (blue) against Enzo's Ember FC (orange, AI). Each team has three outfield chinchillas and an automatic goalkeeper. Matches last 90 seconds of play. Control follows the blue player receiving or winning the ball, and running into the ball carrier tackles. Balls rebound off the boundaries, with no fouls, offside or throw-ins.
+**Play:** Top-down arcade soccer, four a side. You control Dora's Sky Squad (blue) and pick a mode on the title screen. **The cup** is three knockout rounds: Viscacha United, then Degu Dynamo, then Enzo's Ember FC in the final. Each rival is sharper than the last: faster chasers who read your run, a second defender covering the shot, and a keeper who dives quicker. A cup match level after 90 seconds goes to golden goal. **A friendly** is one 90-second match against Ember FC that can end in a draw. Control follows the blue player receiving or winning the ball, and running into the ball carrier tackles. Keepers dive at shots on target, so long shots get saved and the far corner from close in is the way to score. Passes that arrive and tackles you win fill the Fluff meter; a full meter buys a **Cloud Chip**, a lofted shot that sails over everyone, keeper included. Enzo now and then bursts forward with an **Ember Dash**. Balls rebound off the touchlines, and a shot over the bar is a goal kick; there are no fouls, offside or throw-ins. Full time shows shots and possession, and the page remembers cups won and the furthest round reached.
 
 **Controls:**
 
 - WASD / arrows: move. Shift: sprint while stamina lasts. Mouse: aim shots.
-- J: pass. K / Space: shoot. Tab: switch to the teammate nearest the ball.
-- P / Escape: pause. Touch buttons cover movement, sprint, pass, shoot and switching.
+- J: pass. K / Space: shoot. L: Cloud Chip (with a full Fluff meter). Tab: switch to the teammate nearest the ball.
+- P / Escape: pause. Touch buttons cover movement, sprint, pass, shoot, chip and switching.
 
-**Tests:** `tests/soccer.mjs` (in `npm test`).
+**Tests:** `tests/soccer.mjs` (in `npm test`). Browser: `tests/e2e/fluffball-cup.mjs`.
 
 **Docs:** [Fluffball Cup guide](docs/fluffball-cup.md).
 
@@ -334,7 +334,7 @@ Four starter courses show what the parts can do: Dora’s First Hop (meadow), Sa
 - On touch screens and narrow windows an on-screen pad has move, drop, tag, run and jump.
 - Editor: click or drag on the course to place the selected part; right-click erases (or pick the eraser). Scroll with the slider under the course, ← → or A D (hold Shift for bigger steps) or the mouse wheel. Ctrl+Z undoes, Ctrl+Shift+Z or Ctrl+Y redoes.
 
-**Tests:** `npm run test:fluff-forge` (also in `npm test`) compiles `lib/fluff-forge-game.ts` and runs `tests/fluff-forge.mjs`: 22 checks covering the parts list, the starter courses, share codes (round trips, whitespace, unicode titles and every kind of broken code), painting with one start and one goal, resizing, walking and running speeds and each hero’s jump, variable jumps and coyote time, bumping raisin blocks and bricks, clovers, hits and restarts, stomping each enemy, bumping enemies off blocks, walkers turning at walls and ledges, cloud ledges, springs, spikes, ice, drifting clouds, the feather, checkpoints, pits and the timer, clearing and tagging, and independent clones. `npm run bot:fluff-forge` (also in `npm test`) runs a search over the real engine to prove every starter course can be cleared by both heroes without dying. Browser: `tests/e2e/fluff-forge.mjs` plays a starter, builds a course, test-plays it, checks the clear check unlocks a share code that survives a reload and relocks on an edit, imports the code and drives the touch pad on a phone-sized screen.
+**Tests:** `npm run test:fluff-forge` (also in `npm test`) compiles `lib/fluff-forge-game.ts` and runs `tests/fluff-forge.mjs`: 24 checks covering the parts list, the starter courses, share codes (round trips, whitespace, unicode titles and every kind of broken code), painting with one start and one goal, resizing, walking and running speeds and each hero’s jump, variable jumps and coyote time, bumping raisin blocks and bricks, clovers, hits and restarts, stomping each enemy, bumping enemies off blocks, walkers turning at walls and ledges, cloud ledges, springs, spikes, ice, drifting clouds, the feather, checkpoints, pits and the timer, clearing and tagging, the tag scene and dust and sparkle effects, and independent clones. `npm run bot:fluff-forge` (also in `npm test`) runs a search over the real engine to prove every starter course can be cleared by both heroes without dying. Browser: `tests/e2e/fluff-forge.mjs` plays a starter, builds a course, test-plays it, checks the clear check unlocks a share code that survives a reload and relocks on an edit, imports the code and drives the touch pad on a phone-sized screen.
 
 **Docs:** [`docs/fluff-forge.md`](docs/fluff-forge.md).
 

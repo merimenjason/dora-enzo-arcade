@@ -36,6 +36,8 @@ What is inside shows outside: `building()` in the village scene gives the burrow
 - **Feathered joins.** `seam()` paints a 5 px band of the neighbouring terrain's colour at 30% along any edge where the terrain changes, plus a darker lip where land meets water. Wider than that and every path grows a pale rectangle around it, which is the tile grid all over again.
 - **Ink outlines.** `stroke()` puts a soft brown line around anything standing up, so it lifts off the ground; `INK_SOFT` is the lighter version for small or pale things.
 
+Dora and Enzo are drawn with the shared side-on drawing in `lib/chinchilla-art.ts` (the neighbours keep their soft blob shapes). They face left or right, keeping the side they last faced while walking up or down, and a birthday hat sits on the head through the drawing's `decorate` hook.
+
 `grade()` finishes the frame with a warm overlay wash and a soft vignette. World-space text is queued through `label()` while painting and drawn last, over the night tint, the weather and the grade, so it never dims; each label gets a dark outline so it reads against grass or roof alike. `hash(x, y, salt)` gives every tile a stable random value, which is what keeps a tree's canopy lobes and a tile's grass tufts the same shape from frame to frame.
 
 ## Clock

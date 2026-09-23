@@ -4,13 +4,18 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 23-09-2026
 
-### Changed
-
-- **Fluff Forge:** Dora and Enzo are redrawn from photos of the real pair: Dora with her peach-pink ears and ruby eyes, Enzo with his darker wavy back and white chest. Their tails and long, fine whiskers follow the painted pair in ChinChin · Snack Heist: each tail is a big fluffy plume that curls up over the back, white for Dora and streaky grey for Enzo. Tagging is now a little scene: your partner dashes in, the two boop noses and the other runs off, without stopping play. Every theme has more to look at (hills and trees, salt mesas, cave crystals, pine forests), the ground, blocks, enemies, items and flags are more detailed, running and landing kick up dust, raisins sparkle when taken, a course clear throws confetti, and the HUD shows who's playing in a portrait.
-
 ### Added
 
+- **Fluffball Cup:** a three-round cup. Beat Viscacha United and Degu Dynamo to face Enzo's Ember FC in the final, with golden goal if a cup match is level at full time. Passes and tackles fill a Fluff meter that buys a Cloud Chip, a lofted shot over everyone's heads, and Enzo now bursts forward with an Ember Dash. Full time shows shots and possession, and the page remembers cups won. The friendly against Enzo is still one click away.
 - **Fluff Forge:** a new cabinet, the arcade's sixteenth. Build your own side-scrolling course from 19 parts (ground, stone, ice, cloud ledges, drifting clouds, cactus spikes, bricks, raisin, clover and feather blocks, raisins, springs, beetles, frogs, bats, prickles, checkpoints, a start and a goal flag) in one of four themes, then run it as Dora, who jumps higher, or Enzo, who runs faster, and tag between them with C. Clovers let you break bricks and take a hit; the condor feather adds a jump in the air and a slow fall. Clear your own course from the start to unlock a share code a friend can paste in to play it. Four starter courses are included, and courses and best times are kept in your browser.
+
+### Changed
+
+- **Fluffball Cup:** a new look. The players are the detailed Dora and Enzo from Fluff Forge in numbered team vests, with teammates and rivals in their own coats. There's a stand of cheering fans, textured grass, nets that ripple after a goal, corner flags, confetti and a ball you can see rise and fall. Keepers now dive at shots on target and each rival defends more sharply than the last, so get close and go for the far corner.
+- **Border Hop**, **Dust Bath Dash**, **Dusty Hollow:** Dora and Enzo are now the detailed Fluff Forge pair, with curled plume tails, long fine whiskers and Dora's ruby eyes.
+- **Paw Buster X:** Dora and Enzo's armoured sprites get big curled plume tails, fanned whiskers and ruby eyes for Dora.
+- **Paw Fighter II**, **Dust & Documents**, **Dust & Documents: Remake**, **Spy Escape**, **Bounce / Burrow**, **Chin x Pit · Classic**, **Chin x Pit · Night Survivors**, **Pawprint Grand Prix**, **Burrow Town:** Dora's eyes are ruby, matching the rest of the arcade.
+- **Fluff Forge:** Dora and Enzo are redrawn from photos of the real pair: Dora with her peach-pink ears and ruby eyes, Enzo with his darker wavy back and white chest. Their tails and long, fine whiskers follow the painted pair in ChinChin · Snack Heist: each tail is a big fluffy plume that curls up over the back, white for Dora and streaky grey for Enzo. Tagging is now a little scene: your partner dashes in, the two boop noses and the other runs off, without stopping play. Every theme has more to look at (hills and trees, salt mesas, cave crystals, pine forests), the ground, blocks, enemies, items and flags are more detailed, running and landing kick up dust, raisins sparkle when taken, a course clear throws confetti, and the HUD shows who's playing in a portrait.
 
 ## 13-09-2026
 

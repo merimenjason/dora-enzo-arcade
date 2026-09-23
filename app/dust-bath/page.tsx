@@ -14,6 +14,7 @@ import {
   type Grain,
   type Upgrade,
 } from '../../lib/dust-bath-game';
+import { ChinchillaPortrait } from '../../components/chinchilla-portrait';
 import './spa.css';
 
 const SAVE_KEY = 'dust-bath-save-v2';
@@ -300,8 +301,8 @@ export default function DustBath() {
           </p>
         </div>
         <div className="db-brand">
-          <Chin color="#f4f0e6" belly="#ffffff" mood="happy" />
-          <Chin color="#9aa6ad" belly="#e8ecee" mood="happy" />
+          <ChinchillaPortrait id="dora" className="db-chin" />
+          <ChinchillaPortrait id="enzo" face={-1} className="db-chin" />
           <span>DORA · ENZO</span>
         </div>
       </section>
@@ -499,7 +500,7 @@ export default function DustBath() {
               02 <span>The dust-bath lounge</span>
             </h2>
             <div className="db-dora">
-              <Chin color="#f4f1ec" belly="#ffffff" mood="happy" />
+              <ChinchillaPortrait id="dora" className="db-chin" />
               <small>DORA’S STATION</small>
             </div>
           </div>
@@ -661,7 +662,7 @@ export default function DustBath() {
             Two-tap scrubbing (no holding)
           </label>
           <div className="db-enzo">
-            <Chin color="#7c878f" belly="#c9d2d7" mood="calm" />
+            <ChinchillaPortrait id="enzo" className="db-chin" />
             <div>
               <b>Enzo’s supply corner</b>
               <small>Always happy to lend a paw.</small>

@@ -41,7 +41,7 @@ Flappy tests check gravity, shared flaps, front and rear collisions, collision a
 
 - `app/page.tsx`: Border Hop interface and input.
 - `lib/flappy-game.ts`: flight physics, collisions, checkpoint generation and scoring.
-- `lib/flappy-scene.ts`: canvas desert landscape, checkpoints and chinchilla artwork.
+- `lib/flappy-scene.ts`: canvas desert landscape, checkpoints and chinchilla artwork. Dora and Enzo are the shared side-on drawing from `lib/chinchilla-art.ts` in its mid-air pose, with paper wings and a passport each; Enzo is drawn over Dora's tail so both faces show.
 - `app/survival/page.tsx`: retained survival game.
 - `app/adventure/page.tsx`: retained RPG.
 
