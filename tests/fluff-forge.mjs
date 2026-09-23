@@ -287,6 +287,31 @@ test('reaching the goal clears the course with a result; tag swaps hero', () => 
   assert.ok(g.result.time > 1 && g.result.time < 3);
 });
 
+test('a tag leaves a note for the swap animation without changing play', () => {
+  const g = settle(new FluffForgeGame(flat()));
+  const x = g.hero.x;
+  g.step(DT, { ...NO_INPUT, swap: true });
+  assert.equal(g.tag.from, 'dora');
+  assert.ok(Math.abs(g.tag.x - (x + g.hero.w / 2)) < 1 && g.tag.air === false);
+  assert.equal(g.clone().tag.from, 'dora', 'clones carry the tag');
+  hold(g, {}, 1.1);
+  assert.equal(g.tag, null, 'the note clears after a second');
+  assert.equal(g.hero.x, x, 'tagging never moves the hero');
+});
+
+test('running kicks up dust and a raisin sparkles when taken', () => {
+  const g = settle(new FluffForgeGame(flat((p) => p.put(8, G, 'o'))));
+  let dust = false, sparkle = false;
+  for (let i = 0; i < 120; i++) {
+    g.step(DT, { ...NO_INPUT, right: true, run: true });
+    dust ||= g.fx.some((f) => f.kind === 'dust');
+    sparkle ||= g.fx.some((f) => f.kind === 'sparkle');
+  }
+  assert.ok(dust, 'dust from quick feet');
+  assert.equal(g.raisins, 1);
+  assert.ok(sparkle, 'a sparkle where the raisin was');
+});
+
 test('clones step independently of the original', () => {
   const g = settle(new FluffForgeGame(STARTERS[0]));
   const c = g.clone();

@@ -36,7 +36,7 @@
 
 .ff-intro { display: flex; gap: 24px; align-items: center; padding: 24px 0 8px; }
 .ff-heroes { display: flex; flex-shrink: 0; }
-.ff-hero-art { width: 96px; height: 96px; }
+.ff-hero-art { width: 132px; height: 96px; }
 .ff-eyebrow { font: 700 12px ui-monospace, monospace; letter-spacing: 2px; color: var(--gold) !important; margin: 0; }
 .ff-intro h1 { font: 800 46px/1.05 ui-monospace, monospace; margin: 8px 0; background: linear-gradient(#fff4e0, #f29b6b); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .ff-lede { color: var(--muted) !important; max-width: 660px; line-height: 1.6; margin: 0; }

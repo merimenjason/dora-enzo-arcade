@@ -58,7 +58,9 @@ export type EnemyKind = 'beetle' | 'frog' | 'bat' | 'prickle';
 export type Enemy = { kind: EnemyKind; x: number; y: number; w: number; h: number; vx: number; vy: number; dir: 1 | -1; t: number; home: number; awake: boolean; ground: boolean; dead: number; flip: boolean };
 export type Item = { kind: 'clover' | 'feather'; x: number; y: number; vx: number; vy: number; rise: number; t: number; dir: 1 | -1 };
 export type Lift = { cx: number; y: number; x: number; w: number; dx: number };
-export type Fx = { kind: 'brick' | 'raisin' | 'poof' | 'stomp' | 'grow'; x: number; y: number; age: number };
+export type Fx = { kind: 'brick' | 'raisin' | 'poof' | 'stomp' | 'grow' | 'dust' | 'sparkle'; x: number; y: number; age: number };
+/** A tag in progress, for drawing only: who left, and where the hero stood when they swapped. */
+export type Tag = { t: number; from: HeroId; x: number; y: number; face: 1 | -1; air: boolean };
 export type Flag = { x: number; y: number; taken: boolean };
 export type State = 'play' | 'dying' | 'clear';
 export type Result = { time: number; raisins: number; deaths: number };
@@ -84,6 +86,7 @@ export class FluffForgeGame {
   items: Item[] = [];
   lifts: Lift[] = [];
   fx: Fx[] = [];
+  tag: Tag | null = null;
   flags: Flag[] = [];
   goal = { x: 0, y: 0 };
   start = { x: 0, y: 0 };
@@ -119,7 +122,7 @@ export class FluffForgeGame {
   private build() {
     const { tiles, cols } = this.course;
     this.tiles = tiles.split('');
-    this.enemies = []; this.items = []; this.lifts = []; this.fx = [];
+    this.enemies = []; this.items = []; this.lifts = []; this.fx = []; this.tag = null;
     this.bumps.clear(); this.springs.clear();
     const firstBuild = this.flags.length === 0;
     for (let c = 0; c < cols; c++) for (let r = 0; r < ROWS; r++) {
@@ -172,6 +175,7 @@ export class FluffForgeGame {
     }
     for (const f of this.fx) f.age += dt;
     this.fx = this.fx.filter((f) => f.age < 0.7);
+    if (this.tag && (this.tag.t += dt) > 1) this.tag = null;
     this.liftStep();
     if (this.state === 'dying') {
       this.stateT += dt;
@@ -184,11 +188,20 @@ export class FluffForgeGame {
       h.vx = 60; h.face = 1;
       this.moveHero(dt, NO_INPUT);
     } else {
-      if (pressed('swap')) { this.heroId = this.heroId === 'dora' ? 'enzo' : 'dora'; this.events.push('swap'); }
+      const h = this.hero;
+      if (pressed('swap')) {
+        this.tag = { t: 0, from: this.heroId, x: h.x + h.w / 2, y: h.y + h.h, face: h.face, air: !h.ground };
+        this.heroId = this.heroId === 'dora' ? 'enzo' : 'dora';
+        this.events.push('swap');
+      }
       this.clock -= dt;
       this.elapsed += dt;
+      const wasGround = h.ground, stride = Math.floor(h.run / 40);
       this.control(dt, input, pressed('jump'));
+      const fall = h.vy;
       this.moveHero(dt, input);
+      // Dust from a hard landing and from quick feet.
+      if (h.ground && (!wasGround && fall > 200 || Math.abs(h.vx) > 110 && Math.floor(h.run / 40) !== stride)) this.fx.push({ kind: 'dust', x: h.x + h.w / 2 - h.face * 4, y: h.y + h.h, age: 0 });
       this.enemyStep(dt);
       this.itemStep(dt);
       this.touch(input);
@@ -422,7 +435,7 @@ export class FluffForgeGame {
     const h = this.hero;
     for (let c = Math.floor(h.x / TILE); c <= Math.floor((h.x + h.w - 0.01) / TILE); c++) {
       for (let r = Math.floor(h.y / TILE); r <= Math.floor((h.y + h.h - 0.01) / TILE); r++) {
-        if (this.tile(c, r) === 'o') { this.tiles[index(c, r)] = '.'; this.raisins++; this.events.push('raisin'); }
+        if (this.tile(c, r) === 'o') { this.tiles[index(c, r)] = '.'; this.raisins++; this.fx.push({ kind: 'sparkle', x: c * TILE + 8, y: r * TILE + 8, age: 0 }); this.events.push('raisin'); }
       }
     }
     // Spikes hurt from any side: check the ring of tiles just outside the hero.
@@ -497,6 +510,7 @@ export class FluffForgeGame {
     g.items = this.items.map((i) => ({ ...i }));
     g.lifts = this.lifts.map((l) => ({ ...l }));
     g.fx = this.fx.map((f) => ({ ...f }));
+    g.tag = this.tag ? { ...this.tag } : null;
     g.flags = this.flags.map((f) => ({ ...f }));
     g.checkpoint = this.checkpoint ? g.flags[this.flags.indexOf(this.checkpoint)] : null;
     g.bumps = new Map(this.bumps);

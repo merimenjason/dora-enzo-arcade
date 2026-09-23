@@ -97,9 +97,9 @@ function Hero({ id }: { id: HeroId }) {
     const c = ref.current?.getContext('2d');
     if (!c) return;
     c.setTransform(4, 0, 0, 4, 0, 0);
-    chinchilla(c, id, id === 'dora' ? 15 : 17, 30.5, { face: id === 'dora' ? 1 : -1, h: 22, time: 0 });
+    chinchilla(c, id, id === 'dora' ? 25 : 19, 30.5, { face: id === 'dora' ? 1 : -1, h: 22, time: 0 });
   }, [id]);
-  return <canvas ref={ref} width={128} height={128} aria-hidden="true" className="ff-hero-art" />;
+  return <canvas ref={ref} width={176} height={128} aria-hidden="true" className="ff-hero-art" />;
 }
 
 export default function FluffForge() {

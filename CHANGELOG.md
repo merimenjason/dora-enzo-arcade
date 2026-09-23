@@ -4,6 +4,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 23-09-2026
 
+### Changed
+
+- **Fluff Forge:** Dora and Enzo are redrawn from photos of the real pair: Dora with her peach-pink ears, ruby eyes and sweeping white tail, Enzo with his darker wavy back, white chest and bushy brush of a tail. Tagging is now a little scene: your partner dashes in, the two boop noses and the other runs off, without stopping play. Every theme has more to look at (hills and trees, salt mesas, cave crystals, pine forests), the ground, blocks, enemies, items and flags are more detailed, running and landing kick up dust, raisins sparkle when taken, a course clear throws confetti, and the HUD shows who's playing in a portrait.
+
 ### Added
 
 - **Fluff Forge:** a new cabinet, the arcade's sixteenth. Build your own side-scrolling course from 19 parts (ground, stone, ice, cloud ledges, drifting clouds, cactus spikes, bricks, raisin, clover and feather blocks, raisins, springs, beetles, frogs, bats, prickles, checkpoints, a start and a goal flag) in one of four themes, then run it as Dora, who jumps higher, or Enzo, who runs faster, and tag between them with C. Clovers let you break bricks and take a hit; the condor feather adds a jump in the air and a slow fall. Clear your own course from the start to unlock a share code a friend can paste in to play it. Four starter courses are included, and courses and best times are kept in your browser.
