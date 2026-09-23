@@ -3,11 +3,11 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import {
-  FluffstevaniaGame, VIEW_W, VIEW_H, NO_INPUT, GEAR, FOOD, RELICS, SHOP, SUBS, SPELLS, PALS, LORE, FOES, BOSSES, AREAS, ROOMS, DIFFICULTY, DUO_MAX,
+  FluffstevaniaGame, VIEW_W, VIEW_H, NO_INPUT, GEAR, FOOD, RELICS, SHOP, SUBS, SPELLS, PALS, LORE, FOES, BOSSES, BOSS_KILLS, AREAS, ROOMS, DIFFICULTY, DUO_MAX,
   parseSave, freshSave, xpToNext, itemName, palXpToNext,
-  type Input, type Save, type HeroId, type Slot, type Line, type Difficulty, type PalId, type SubId, type SpellId,
+  type Input, type Save, type HeroId, type Slot, type Line, type Difficulty, type PalId, type BossId, type SubId, type SpellId,
 } from '../../lib/fluffstevania-game';
-import { drawGame, drawMap, gearIcon, subIcon, drawPal, drawFoeIcon, mapIcon, MAP_LEGEND, type MapMark } from '../../lib/fluffstevania-scene';
+import { drawGame, drawMap, mapLayout, gearIcon, subIcon, drawPal, drawFoeIcon, mapIcon, MAP_LEGEND, type MapMark } from '../../lib/fluffstevania-scene';
 import { Music } from '../../lib/fluffstevania-music';
 import { ChinchillaPortrait } from '../../components/chinchilla-portrait';
 import './fluffstevania.css';
@@ -32,6 +32,7 @@ const CUES: Record<string, [number, number, OscillatorType, number]> = {
   jump: [380, 620, 'square', 0.07], dash: [220, 90, 'sawtooth', 0.14], thrust: [1500, 600, 'triangle', 0.08], swipe: [1200, 500, 'triangle', 0.06],
   hop: [600, 1100, 'sine', 0.1], squeak: [1800, 2400, 'square', 0.06], roar: [160, 70, 'sawtooth', 0.6], drop: [900, 300, 'sine', 0.12],
   buy: [880, 1760, 'square', 0.12], shop: [660, 990, 'triangle', 0.15], orb: [1500, 2300, 'sine', 0.05],
+  mist: [900, 300, 'sine', 0.3], snap: [700, 1400, 'square', 0.06], squish: [260, 120, 'sine', 0.15], fire: [500, 180, 'sawtooth', 0.22], laugh: [300, 520, 'triangle', 0.4],
   fan: [1100, 700, 'triangle', 0.08], finisher: [700, 1500, 'square', 0.14], spin: [400, 1200, 'triangle', 0.3], spell: [300, 1200, 'sine', 0.4],
   fizzle: [300, 150, 'square', 0.15], burst: [220, 80, 'sawtooth', 0.3], duo: [300, 1800, 'square', 0.6], duoready: [880, 1320, 'triangle', 0.3],
   nip: [1600, 1200, 'square', 0.05], bonk: [500, 300, 'square', 0.1], secret: [1320, 1760, 'sine', 0.5], dust: [1000, 1500, 'sine', 0.12], warp: [200, 1600, 'sine', 0.6],
@@ -48,7 +49,7 @@ const fmt = (t: number) => `${Math.floor(t / 3600)}:${String(Math.floor((t / 60)
 const NAMES: Record<HeroId, string> = { dora: 'Dora', enzo: 'Enzo' };
 const SPEAKERS: Record<Line['who'], { name: string; face?: string }> = {
   dora: { name: 'Dora' }, enzo: { name: 'Enzo' }, owl: { name: 'Duke Hootsworth', face: '🦉' },
-  rat: { name: 'Gnawdrick the Rat King', face: '🐀' }, pip: { name: 'Pip', face: '🐹' }, sign: { name: '', face: '📜' },
+  rat: { name: 'Gnawdrick the Rat King', face: '🐀' }, fox: { name: 'Count Culpeo', face: '🦊' }, pip: { name: 'Pip', face: '🐹' }, sign: { name: '', face: '📜' },
   zippy: { name: 'Zippy' }, pudding: { name: 'Pudding' }, mochi: { name: 'Mochi' },
 };
 const STYLE_NOTE = { fan: 'wide sweeps and gusts; hold attack to spin', claws: 'lunging swipes', club: 'heavy lunging swings' };
@@ -56,7 +57,8 @@ const DIFFS: Difficulty[] = ['easy', 'normal', 'hard'];
 const shrineName = (id: string) => { const r = ROOMS.find((x) => x.id === id); return r ? `${AREAS[r.area].name} shrine` : id; };
 const CHAPTERS: Record<number, { title: string; text: string; last: boolean }> = {
   1: { title: 'The Owl Belfry falls quiet', text: 'The sealed door beyond the belfry stands open. Below it wait the Pantry Catacombs.', last: false },
-  2: { title: 'The Rat King is dethroned', text: 'Count Culpeo’s Library, and the rest of Fluffstevania, are still being written. Your save will carry on into the next chapter.', last: true },
+  2: { title: 'The Rat King is dethroned', text: 'The key to Count Culpeo’s Library was under the cheese throne all along. The library door beyond the chimney stands open.', last: false },
+  3: { title: 'Count Culpeo flees', text: 'The Count has fled to his Clock Tower with the Golden Wolfberry. The rest of Fluffstevania is still being written; your save will carry on into the next chapter.', last: true },
 };
 
 function readSave(): Save | null { try { return parseSave(localStorage.getItem(SAVE_KEY)); } catch { return null; } }
@@ -278,7 +280,7 @@ function Play({ start, sound, onSound, music, onMusic, onSaved, onContinue, onTi
         <p>Level {g.level} · {g.completion}% of the castle explored · {g.raisins} raisins · {fmt(g.time)}</p>
         <p>{CHAPTERS[g.chapter]?.text}</p>
         <div className="fv-row">
-          <button className="fv-go" onClick={() => g.resume()}>{CHAPTERS[g.chapter]?.last ? 'Keep exploring' : 'Onward to Chapter II'}</button>
+          <button className="fv-go" onClick={() => g.resume()}>{CHAPTERS[g.chapter]?.last ? 'Keep exploring' : `Onward to Chapter ${['', 'I', 'II', 'III', 'IV'][g.chapter + 1] ?? g.chapter + 1}`}</button>
           <button onClick={onTitle}>Title</button>
         </div>
       </section>}
@@ -298,17 +300,21 @@ function Menu({ g, tab, onTab, onClose, onTitle }: { g: FluffstevaniaGame; tab: 
   const [, bump] = useState(0);
   const [who, setWho] = useState<HeroId>(g.leader);
   const map = useRef<HTMLCanvasElement>(null);
+  const layout = mapLayout(g);
   useEffect(() => {
     if (tab !== 'map') return;
+    // The map is wider than the menu: start it scrolled to where the heroes are.
+    const box = map.current?.parentElement;
+    if (box) box.scrollLeft = layout.focus * box.scrollWidth - box.clientWidth / 2;
     let raf = 0;
     const draw = (now: number) => {
       const c = map.current?.getContext('2d');
-      if (c) { c.setTransform(2, 0, 0, 2, 0, 0); drawMap(c, g, 640, 230, now / 1000); }
+      if (c) { c.setTransform(2, 0, 0, 2, 0, 0); drawMap(c, g, layout.w, layout.h, now / 1000); }
       raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [tab, g]);
+  }, [tab, g, layout.w, layout.h, layout.focus]);
   const tabs: [Tab, string][] = [['status', 'Status'], ['equip', 'Equip'], ['magic', 'Magic'], ['items', 'Items'], ['pals', 'Familiars'], ['bestiary', 'Bestiary'], ['map', 'Map']];
   const bag = Object.entries(g.bag);
   return <section className="fv-menu" aria-label="Menu" data-testid="menu">
@@ -377,7 +383,7 @@ function Menu({ g, tab, onTab, onClose, onTitle }: { g: FluffstevaniaGame; tab: 
       <p className="fv-small">One familiar comes along at a time. They grow as you win fights together.</p>
     </div>}
     {tab === 'bestiary' && <div className="fv-bestiary">
-      {Object.keys(LORE).map((k) => { const n = g.kills[k] ?? 0, boss = k === 'owl' || k === 'rat_king', st = boss ? BOSSES[k === 'owl' ? 'owl' : 'rat'] : FOES[k as keyof typeof FOES];
+      {Object.keys(LORE).map((k) => { const n = g.kills[k] ?? 0, bossId = (Object.keys(BOSS_KILLS) as BossId[]).find((b) => BOSS_KILLS[b] === k), st = bossId ? BOSSES[bossId] : FOES[k as keyof typeof FOES];
         return <article key={k} className={`fv-beast ${n ? '' : 'unknown'}`} data-testid={`beast-${k}`}>
           <FoeIcon kind={k} known={n > 0} />
           <div><b>{n ? st.name : '???'}</b>
@@ -393,7 +399,9 @@ function Menu({ g, tab, onTab, onClose, onTitle }: { g: FluffstevaniaGame; tab: 
       </div>)}
     </div>}
     {tab === 'map' && <div className="fv-map">
-      <canvas ref={map} width={1280} height={460} aria-label={`Castle map, ${g.completion}% explored`} />
+      <div className="fv-map-scroll" data-testid="map-scroll">
+        <canvas ref={map} width={layout.w * 2} height={layout.h * 2} style={{ width: layout.w, height: layout.h }} aria-label={`Castle map, ${g.completion}% explored`} />
+      </div>
       <p className="fv-small">{g.completion}% explored · rooms are coloured by area</p>
       <ul className="fv-legend" data-testid="map-legend">
         {MAP_LEGEND.map(([kind, label]) => <li key={kind}><MapIcon kind={kind} />{label}</li>)}

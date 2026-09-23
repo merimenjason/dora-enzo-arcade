@@ -68,9 +68,34 @@ Nine rooms on 17 cells, all in the `catacombs` area:
 - `jam-vault`: the Wolfberry Fan and a Wolfberry Leaf on a ledge six tiles above the last one.
 - `chimney` (1×2): the climb from the shrine to the throne room.
 - `throne` (2 screens): Gnawdrick the Rat King.
-- `library`: a locked door and the sign where the story pauses for now.
+- `library`: the library door, which opens once the Rat King is beaten (`opens: 'boss:rat'`). The room itself belongs to the `library` area.
 
 Beating the Rat King ends chapter II.
+
+## Chapter III: Count Culpeo's Library
+
+Ten rooms beyond the library door on 17 cells, all in the `library` area. It has bookcases, moonlit windows, reading lamps and busts in the scenery, red wood-panelled stone, and its own waltz.
+
+- `reading` (3 screens): the reading room. A hole in the floor drops into the stacks. A reading nook high on the right holds a Wolfberry Leaf behind an iron grate, so only Mist Form gets in.
+- `stacks` (1×2): a shaft of shelves down to the Mist Form vault (lower left) and the archive (lower right). Ledges every four tiles lead back up, and the last jump out through the hole needs the Cloud Hop.
+- `mist-vault`: Mist Form on a pedestal.
+- `archive` (2 screens): the shelf puzzle. The sign says the Count reads the book bound in the colour of his eyes, which is red, so shelf II. Striking it sets `puzzle:archive` and opens the door to the reliquary. Striking I or III sends a Flying Tome off the shelf at you.
+- `reliquary`: the Heavy Tome (Enzo's club: ATK 24, reach +6) and a Wolfberry Leaf.
+- `save-library`: a shrine.
+- `scriptorium` (2 screens): a flask of Timothy Tea on a high ledge. At the far end an iron grate bars the way to the tower.
+- `tower` (1×2): the climb down to the Count's study, with ledges every four tiles.
+- `study` (2 screens): Count Culpeo, below his own portrait and beside a fireplace.
+- `balcony`: a shrine, and a locked door to the Clock Tower, where the story pauses for now.
+
+Beating Count Culpeo ends chapter III.
+
+### Iron grates and Mist Form
+
+`|` is an iron grate. It is solid to everything, except that a hero with **Mist Form** moves through it (`move(…, mist)`). While the lead's box overlaps a grate (`misting`), both heroes are drawn as swirling wisps of dust in their afterimage colours, dust puffs trail behind, and a `mist` sound plays.
+
+### Shelf puzzles
+
+Markers `1`, `2` and `3` are puzzle bookcases (`Shelf`). A room with `puzzle: n` and `opens: 'flag'` opens its sealed doors when shelf `n` is struck by a swing or a tag tumble, and the right book is then drawn pulled out. A wrong shelf spawns an awake Flying Tome and can't be struck again for 0.8 s.
 
 ## Heroes
 
@@ -186,6 +211,9 @@ Movement:
 | Pantry Rat | 30 | 13 | 2 | 14 | Scurries about. Within 150 px it bristles for 0.35 s, charges at 230 px/s for up to 0.55 s (stopping at walls and ledges), then rests for 0.6 s. |
 | Jar Ghost | 34 | 14 | 0 | 18 | Drifts after you inside 220 px. It is solid for 2.4 s, then faded for 1.4 s, when it can neither hurt nor be hurt. |
 | Cellar Spider | 26 | 12 | 1 | 13 | Hangs on a thread and drops at 280 px/s when you pass within 26 px underneath, then climbs back up. A hit sends it back up. |
+| Flying Tome | 38 | 16 | 2 | 22 | Rests shut until you come within 140 px, then flaps after you. After 1.6 s, within 110 px, it gathers for 0.3 s and snaps forward at 200 px/s for 0.35 s. |
+| Ink Quill | 30 | 14 | 1 | 20 | Hovers about its post and every 2.4 s, within 230 px, flicks a blot of ink (12) at you at 170 px/s. |
+| Ink Blot | 50 | 17 | 4 | 26 | Oozes along at 28 px/s. Within 80 px it gathers for 0.35 s and springs at you (140 px/s across, 340 px/s up), then rests for 0.7 s. |
 
 Candles drop:
 
@@ -209,6 +237,18 @@ Candles drop:
 - **Cheese:** he bowls a wheel of cheese (12) that rolls along the floor and bounces back off the walls. In phase two a second wheel bounces along in arcs.
 - At half HP he speeds up by 1.25× and calls two pantry rats.
 - He drops a Wolfberry Leaf.
+
+**Count Culpeo:** 980 HP, DEF 8, contact 24, 600 XP. He floats just off the floor about 90 px from the lead and picks one of these without repeating it three times:
+
+- **Fireballs:** 3 fireballs (18 each) fanned at you at 185 px/s. In phase two it's 5, twice.
+- **Vanish:** he bursts into bats. After 0.2 s he can't be hit. He reappears 60 px behind the lead, then sweeps his cape along the floor at 330 px/s.
+- **Swoop:** he rises to one side and dips across the room to the other.
+- **Fire pillars** (phase two only): the floor glows under the lead and 64 px either side, then fire roars up there for 1.1 s (16).
+- At half HP he speeds up by 1.25× and calls two bats.
+- He can't be hit while arriving, while vanished, in the first 0.15 s of reappearing, or while dying.
+- He drops a Wolfberry Leaf. Beaten, he flees as bats to his Clock Tower.
+
+A simple bot beats him at level 9 in about 47 s, taking 8 hits; at level 11 in about 53 s.
 
 ## Pip's shop
 
@@ -267,7 +307,7 @@ Everything is Canvas 2D in the 384×224 view, scaled up by the page.
   - familiars, until befriended;
   - sealed doors, until they open;
   - where you are.
-  The full map also names each explored area in the middle of its rooms, nudging names apart where they'd overlap.
+  The full map also names each explored area in the middle of its rooms, nudging names apart where they'd overlap. It is drawn at 40 px per screen (`mapLayout`) inside a frame that scrolls sideways, opening scrolled to where the heroes are.
 
 ## Saves
 

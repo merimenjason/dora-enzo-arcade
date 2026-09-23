@@ -4,8 +4,8 @@
 // Everything is drawn in the 384×224 view; the page scales it up.
 import { drawChinchilla, type ChinId } from './chinchilla-art';
 import {
-  FluffstevaniaGame, VIEW_W, VIEW_H, TILE, COLS, ROWS, ROOMS, AREAS, FOES, BOSSES, GEAR, FOOD, TAG_ARC, TAG_T, TAG_CD, FX_LIFE, BURN_T, CHARGE_T, DUO_MAX, DUO_T, SUBS,
-  isSolid, rawTile, roomRect, ghostFaded, type Enemy, type Boss, type Shot, type Pickup, type AreaId, type HeroId, type Room, type FoeKind, type PalId, type SubId,
+  FluffstevaniaGame, VIEW_W, VIEW_H, TILE, COLS, ROWS, ROOMS, AREAS, FOES, BOSSES, GEAR, FOOD, TAG_ARC, TAG_T, TAG_CD, FX_LIFE, BURN_T, BOSS_KILLS, CHARGE_T, DUO_MAX, DUO_T, SUBS,
+  isSolid, rawTile, roomRect, ghostFaded, type Enemy, type Boss, type BossId, type Shot, type Pickup, type AreaId, type HeroId, type Room, type FoeKind, type PalId, type SubId,
 } from './fluffstevania-game';
 
 type C = CanvasRenderingContext2D;
@@ -24,6 +24,7 @@ const THEMES: Record<AreaId, Theme> = {
   hall: { brick: '#4b3e5e', brickHi: '#6e5d86', brickLo: '#2c2340', mortar: '#1b1428', ledge: '#6a5a7e', ledgeHi: '#9888b0', accent: '#b04055', dark: [12, 4, 22, 0.46], wood: false },
   cellar: { brick: '#5e4632', brickHi: '#86664a', brickLo: '#38281a', mortar: '#1f150c', ledge: '#7a5634', ledgeHi: '#a8804e', accent: '#d8a040', dark: [18, 8, 0, 0.5], wood: true, moss: '#5a6a2e' },
   belfry: { brick: '#3e5058', brickHi: '#5e7680', brickLo: '#243238', mortar: '#131c20', ledge: '#5a4a3a', ledgeHi: '#86705a', accent: '#7fd8b8', dark: [4, 12, 22, 0.36], wood: true },
+  library: { brick: '#4a2c30', brickHi: '#6e4448', brickLo: '#2a161a', mortar: '#180a0e', ledge: '#6a4028', ledgeHi: '#a06a40', accent: '#d8b060', dark: [16, 6, 12, 0.5], wood: true },
   catacombs: { brick: '#46504a', brickHi: '#66746a', brickLo: '#262e2a', mortar: '#121814', ledge: '#5e6458', ledgeHi: '#8a927e', accent: '#9fd878', dark: [4, 12, 8, 0.6], wood: false, moss: '#3e6a36' },
 };
 
@@ -60,11 +61,11 @@ function canvas(w = LW, h = LH) { const cv = document.createElement('canvas'); c
 const wrap = (draw: (dx: number) => void) => { draw(0); draw(-LW); draw(LW); };
 
 function layersFor(area: AreaId, roomId: string): Layer[] {
-  const key = roomId === 'belfry' || roomId === 'throne' ? `${area}:${roomId}` : area;
+  const key = roomId === 'belfry' || roomId === 'throne' || roomId === 'study' ? `${area}:${roomId}` : area;
   const hit = layerCache.get(key);
   if (hit) return hit;
   const made = area === 'approach' ? approachLayers() : area === 'hall' ? hallLayers() : area === 'cellar' ? cellarLayers()
-    : area === 'belfry' ? belfryLayers(roomId === 'belfry') : catacombLayers(roomId === 'throne');
+    : area === 'belfry' ? belfryLayers(roomId === 'belfry') : area === 'library' ? libraryLayers(roomId === 'study') : catacombLayers(roomId === 'throne');
   layerCache.set(key, made);
   return made;
 }
@@ -415,6 +416,91 @@ function cobweb(c: C, x: number, y: number, r: number, sx: 1 | -1, alpha: number
     c.stroke();
   }
 }
+/** A bookcase from floor to ceiling, packed with spines of every height. */
+function bookcase(c: C, x: number, y: number, w: number, h: number, dim: number, seed: number) {
+  const spines = ['#6a1c28', '#243a6a', '#2a5a30', '#7a5a20', '#4a2a5a', '#7a3a1a', '#1e4a4a', '#5a1a3a'];
+  c.fillStyle = shade('#3a2012', dim); c.fillRect(x - 4, y - 6, w + 8, h + 6);
+  c.fillStyle = shade('#120808', dim); c.fillRect(x, y, w, h);
+  for (let sy = y; sy < y + h - 20; sy += 30) {
+    let bx = x + 1;
+    while (bx < x + w - 3) {
+      const n = hash(bx + seed, sy), bw = 3 + Math.floor(n * 4), bh = 17 + Math.floor(hash(sy, bx) * 9);
+      if (n > 0.93) { bx += bw + 2; continue; }
+      c.fillStyle = shade(spines[Math.floor(hash(bx, sy + seed) * spines.length)], dim * (0.7 + n * 0.5));
+      if (n > 0.86) { c.save(); c.translate(bx, sy + 26); c.rotate(-0.25); c.fillRect(0, -bh, bw, bh); c.restore(); bx += bw + 3; continue; }
+      c.fillRect(bx, sy + 26 - bh, bw, bh);
+      c.fillStyle = `rgba(240,200,120,${0.25 * dim})`; c.fillRect(bx, sy + 26 - bh + 3, bw, 0.8); c.fillRect(bx, sy + 23, bw, 0.8);
+      bx += bw + 0.6;
+    }
+    c.fillStyle = shade('#4a2a16', dim); c.fillRect(x - 2, sy + 26, w + 4, 4);
+    c.fillStyle = shade('#6a4020', dim); c.fillRect(x - 2, sy + 26, w + 4, 1);
+  }
+}
+function libraryLayers(study: boolean): Layer[] {
+  const far = layer(0.08, 0.06, (c) => {
+    const g = c.createLinearGradient(0, 0, 0, LH);
+    g.addColorStop(0, '#12060c'); g.addColorStop(1, '#22101a');
+    c.fillStyle = g; c.fillRect(0, 0, LW, LH);
+    // A wall of bookcases, three storeys high, with a gallery rail between them.
+    for (let x = 6; x < LW; x += 96) bookcase(c, x, 20, 84, LH - 20, 0.45, 1);
+    for (const y of [104, 208]) { c.fillStyle = '#1a0c08'; c.fillRect(0, y, LW, 5); c.fillStyle = 'rgba(200,150,90,0.15)'; for (let x = 0; x < LW; x += 8) c.fillRect(x, y - 10, 1.2, 10); c.fillRect(0, y - 10, LW, 1.2); }
+  });
+  const mid = layer(0.25, 0.12, (c) => {
+    if (study) {
+      // The Count's portrait in a gilt frame, between red curtains.
+      for (const x of [140, 140 + 384]) {
+        c.fillStyle = '#6a1020'; c.beginPath(); c.moveTo(x - 60, 10); c.quadraticCurveTo(x - 40, 140, x - 64, 300); c.lineTo(x - 90, 300); c.lineTo(x - 90, 10); c.fill();
+        c.beginPath(); c.moveTo(x + 150, 10); c.quadraticCurveTo(x + 130, 140, x + 154, 300); c.lineTo(x + 180, 300); c.lineTo(x + 180, 10); c.fill();
+        c.fillStyle = '#b08a3a'; c.fillRect(x - 10, 50, 110, 140); c.fillStyle = '#e0c060'; c.fillRect(x - 6, 54, 102, 132);
+        c.fillStyle = '#1a0a12'; c.fillRect(x, 60, 90, 120);
+        // The fox in the painting: a black cape, a fox's head and two red eyes.
+        c.fillStyle = '#2a0e18'; c.beginPath(); c.moveTo(x + 10, 180); c.lineTo(x + 45, 110); c.lineTo(x + 80, 180); c.fill();
+        c.fillStyle = '#b8601e'; ellipse(c, x + 45, 100, 14, 12); c.fill();
+        c.beginPath(); c.moveTo(x + 33, 94); c.lineTo(x + 30, 72); c.lineTo(x + 42, 90); c.fill(); c.beginPath(); c.moveTo(x + 57, 94); c.lineTo(x + 60, 72); c.lineTo(x + 48, 90); c.fill();
+        c.fillStyle = '#f0e6d8'; ellipse(c, x + 45, 108, 7, 5); c.fill();
+        c.fillStyle = '#ff3040'; ellipse(c, x + 39, 98, 2, 1.4); c.fill(); ellipse(c, x + 51, 98, 2, 1.4); c.fill();
+      }
+      return;
+    }
+    // Tall arched windows full of moonlight, with rolling ladders leaning on the shelves between.
+    for (const x of [60, 316, 572]) {
+      c.fillStyle = '#2a1a22'; archPath(c, x - 6, 30, 72, 200); c.fill();
+      const gl = c.createLinearGradient(0, 30, 0, 230); gl.addColorStop(0, '#34507a'); gl.addColorStop(1, '#1a2438');
+      c.fillStyle = gl; archPath(c, x, 36, 60, 194); c.fill();
+      c.strokeStyle = '#140a10'; c.lineWidth = 2; c.beginPath(); c.moveTo(x + 30, 40); c.lineTo(x + 30, 230); for (const y of [80, 130, 180]) { c.moveTo(x, y); c.lineTo(x + 60, y); } c.stroke();
+      c.fillStyle = 'rgba(220,235,255,0.5)'; ellipse(c, x + 42, 70, 8, 8); c.fill();
+      c.strokeStyle = '#3a2210'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(x + 150, 40); c.lineTo(x + 176, 300); c.moveTo(x + 166, 40); c.lineTo(x + 192, 300); c.stroke();
+      c.lineWidth = 1.5; for (let i = 0; i < 12; i++) { const t = 50 + i * 21; c.beginPath(); c.moveTo(x + 150 + (t - 40) * 0.1, t); c.lineTo(x + 166 + (t - 40) * 0.1, t); c.stroke(); }
+    }
+  });
+  const near = layer(0.5, 0.22, (c) => {
+    for (const x of [90, 90 + 384]) {
+      column(c, x, 30, 0, LH, '#3a2430');
+      if (study) {
+        // A fireplace glowing in the dark.
+        const fx = x + 190;
+        c.fillStyle = '#2a1a1a'; c.fillRect(fx - 50, LH - 120, 100, 120); c.fillStyle = '#4a3030'; c.fillRect(fx - 58, LH - 128, 116, 10);
+        c.fillStyle = '#0a0404'; archPath(c, fx - 32, LH - 100, 64, 100); c.fill();
+        const fire = c.createRadialGradient(fx, LH - 10, 2, fx, LH - 20, 50); fire.addColorStop(0, 'rgba(255,200,90,0.9)'); fire.addColorStop(0.4, 'rgba(230,90,30,0.5)'); fire.addColorStop(1, 'rgba(120,20,10,0)');
+        c.fillStyle = fire; c.fillRect(fx - 50, LH - 100, 100, 100);
+        continue;
+      }
+      // A bust on a plinth and a reading lamp with a green glass shade.
+      const bx = x + 130;
+      c.fillStyle = '#2e2028'; c.fillRect(bx - 12, LH - 90, 24, 90); c.fillStyle = '#48343e'; c.fillRect(bx - 15, LH - 94, 30, 6);
+      c.fillStyle = '#5a4a52'; ellipse(c, bx, LH - 110, 10, 12); c.fill(); c.fillRect(bx - 12, LH - 100, 24, 8);
+      c.beginPath(); c.moveTo(bx - 6, LH - 118); c.lineTo(bx - 8, LH - 130); c.lineTo(bx - 1, LH - 121); c.fill(); c.beginPath(); c.moveTo(bx + 6, LH - 118); c.lineTo(bx + 8, LH - 130); c.lineTo(bx + 1, LH - 121); c.fill();
+      const lx = x + 250;
+      c.fillStyle = '#2a1a10'; c.fillRect(lx - 30, LH - 60, 60, 6); c.fillRect(lx - 26, LH - 54, 4, 54); c.fillRect(lx + 22, LH - 54, 4, 54);
+      c.fillStyle = '#6a5020'; c.fillRect(lx - 1, LH - 80, 2, 20);
+      const glow = c.createRadialGradient(lx, LH - 78, 0, lx, LH - 78, 40); glow.addColorStop(0, 'rgba(160,240,160,0.35)'); glow.addColorStop(1, 'rgba(160,240,160,0)');
+      c.fillStyle = glow; c.fillRect(lx - 40, LH - 118, 80, 80);
+      c.fillStyle = '#2a7a40'; c.beginPath(); c.moveTo(lx - 10, LH - 78); c.lineTo(lx - 5, LH - 88); c.lineTo(lx + 5, LH - 88); c.lineTo(lx + 10, LH - 78); c.fill();
+      for (let i = 0; i < 3; i++) { c.fillStyle = ['#6a1c28', '#243a6a', '#7a5a20'][i]; c.fillRect(lx + 8 + i * 5, LH - 72 + i, 4, 12 - i); }
+    }
+  });
+  return [far, mid, near];
+}
 function catacombLayers(throne: boolean): Layer[] {
   const far = layer(0.08, 0.06, (c) => {
     const g = c.createLinearGradient(0, 0, 0, LH);
@@ -577,10 +663,23 @@ function paintTiles(c: C, g: FluffstevaniaGame, room: Room) {
       }
       c.fillStyle = '#3a3040'; c.fillRect(x, y + 6, TILE, 2.5);
       if (!isSolid(g.tile(cc, r + 1)) || g.tile(cc, r + 1) !== 'G') { c.fillStyle = '#8a8098'; for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(x + 2 + i * 5, y + TILE); c.lineTo(x + 3.2 + i * 5, y + TILE + 3); c.lineTo(x + 4.4 + i * 5, y + TILE); c.fill(); } }
-    } else if (ch === 'D' && rawTile(cc - 1, r) !== 'D' && rawTile(cc, r - 1) !== 'D') {
-      sealedDoor(c, x, y, false);
     } else if (rawTile(cc, r) === 'D' && rawTile(cc - 1, r) !== 'D' && rawTile(cc, r - 1) !== 'D') {
-      sealedDoor(c, x, y, true);
+      // A door is drawn once, from its top-left tile, to the size of its run of D tiles.
+      let w = 1, h = 1;
+      while (rawTile(cc + w, r) === 'D') w++;
+      while (rawTile(cc, r + h) === 'D') h++;
+      sealedDoor(c, x, y, w * TILE, h * TILE, ch !== 'D');
+    } else if (ch === '|') {
+      // An iron grate: square bars with rivets, crossbars at the top and bottom of the run.
+      for (let i = 0; i < 3; i++) {
+        const gr = c.createLinearGradient(x + 2 + i * 5, 0, x + 4.6 + i * 5, 0);
+        gr.addColorStop(0, '#1e1a22'); gr.addColorStop(0.5, '#7a7488'); gr.addColorStop(1, '#1e1a22');
+        c.fillStyle = gr; c.fillRect(x + 2 + i * 5, y, 2.6, TILE);
+      }
+      c.fillStyle = '#34303c'; c.fillRect(x, y + 7, TILE, 2);
+      if (rawTile(cc, r - 1) !== '|') { c.fillStyle = '#4a4454'; c.fillRect(x - 1, y, TILE + 2, 3); }
+      if (rawTile(cc, r + 1) !== '|') { c.fillStyle = '#4a4454'; c.fillRect(x - 1, y + TILE - 3, TILE + 2, 3); }
+      c.fillStyle = '#9a94a8'; for (let i = 0; i < 3; i++) { ellipse(c, x + 3.3 + i * 5, y + 8, 0.7, 0.7); c.fill(); }
     } else if (ch === 'n') {
       c.fillStyle = '#3a2418'; c.fillRect(x + 7, y + 4, 2, 12);
       c.fillStyle = '#7a5438'; c.fillRect(x + 1, y + 1, 14, 8);
@@ -674,10 +773,13 @@ function decorate(c: C, g: FluffstevaniaGame, x: number, y: number, cc: number, 
     if (area === 'catacombs') { skull(c, x + 6, y + 13, 0.6, '#9a9e86'); c.strokeStyle = '#8a8e76'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(x + 9, y + 15.5); c.lineTo(x + 15, y + 14); c.stroke(); }
     else if (area === 'cellar') { c.fillStyle = '#b89040'; for (let i = 0; i < 6; i++) c.fillRect(x + 2 + i * 2, y + 13 - hash(i, cc) * 3, 0.8, 3 + hash(i, cc) * 3); }
     else if (area === 'hall') { c.fillStyle = 'rgba(160,40,60,0.6)'; c.fillRect(x, y + 15, TILE, 1); }
+    else if (area === 'library') {
+      // A little stack of books on the floor.
+      for (let i = 0; i < 3; i++) { c.fillStyle = ['#6a1c28', '#243a6a', '#7a5a20'][(i + Math.floor(n * 10)) % 3]; c.fillRect(x + 3 + i * 0.8, y + 13 - i * 2.4, 10 - i, 2.2); }
+    }
   }
 }
-function sealedDoor(c: C, x: number, y: number, open: boolean) {
-  const w = 64, h = 96;
+function sealedDoor(c: C, x: number, y: number, w: number, h: number, open: boolean) {
   c.fillStyle = '#2e2436'; archPath(c, x - 6, y - 2, w + 12, h + 2); c.fill();
   c.fillStyle = '#4a3c56'; archPath(c, x - 3, y + 1, w + 6, h - 1); c.fill();
   c.fillStyle = '#0a0608'; archPath(c, x + 1, y + 5, w - 2, h - 5); c.fill();
@@ -693,12 +795,13 @@ function sealedDoor(c: C, x: number, y: number, open: boolean) {
   wood.addColorStop(0, '#3e2614'); wood.addColorStop(0.5, '#6a4426'); wood.addColorStop(1, '#3e2614');
   c.fillStyle = wood; archPath(c, x + 3, y + 7, w - 6, h - 7); c.fill();
   c.strokeStyle = '#2a1a0e'; c.lineWidth = 1;
-  for (let i = 1; i < 4; i++) { c.beginPath(); c.moveTo(x + 3 + i * 14.5, y + 12); c.lineTo(x + 3 + i * 14.5, y + h); c.stroke(); }
-  c.fillStyle = '#4a4450'; c.fillRect(x + 3, y + 36, w - 6, 5); c.fillRect(x + 3, y + 70, w - 6, 5);
-  c.fillStyle = '#7a7480'; for (let i = 0; i < 6; i++) { ellipse(c, x + 8 + i * 10, y + 38.5, 1.2, 1.2); c.fill(); ellipse(c, x + 8 + i * 10, y + 72.5, 1.2, 1.2); c.fill(); }
-  c.fillStyle = '#8a7a50'; ellipse(c, x + w / 2, y + 56, 8, 8); c.fill();
-  c.fillStyle = '#e8c860'; ellipse(c, x + w / 2, y + 56, 4, 5); c.fill();
-  c.fillStyle = '#1a1008'; c.fillRect(x + w / 2 - 1, y + 56, 2, 4);
+  for (let px = x + 17.5; px < x + w - 6; px += 14.5) { c.beginPath(); c.moveTo(px, y + 12); c.lineTo(px, y + h); c.stroke(); }
+  const b1 = y + h * 0.38, b2 = y + h * 0.73, lock = y + h * 0.58, r = Math.min(8, w / 5);
+  c.fillStyle = '#4a4450'; c.fillRect(x + 3, b1, w - 6, 5); c.fillRect(x + 3, b2, w - 6, 5);
+  c.fillStyle = '#7a7480'; for (let rx = x + 8; rx < x + w - 5; rx += 10) { ellipse(c, rx, b1 + 2.5, 1.2, 1.2); c.fill(); ellipse(c, rx, b2 + 2.5, 1.2, 1.2); c.fill(); }
+  c.fillStyle = '#8a7a50'; ellipse(c, x + w / 2, lock, r, r); c.fill();
+  c.fillStyle = '#e8c860'; ellipse(c, x + w / 2, lock, r / 2, r * 0.62); c.fill();
+  c.fillStyle = '#1a1008'; c.fillRect(x + w / 2 - 1, lock, 2, r / 2);
 }
 
 // ─── Things in the room ───────────────────────────────────────────────────
@@ -726,6 +829,29 @@ function candle(c: C, g: FluffstevaniaGame, k: { x: number; y: number; c: number
   const f = Math.sin(time * 14 + x) * 0.6;
   c.fillStyle = '#ff9a30'; ellipse(c, x + f * 0.4, y - 11.5, 2.4, 4); c.fill();
   c.fillStyle = '#fff2b0'; ellipse(c, x + f * 0.3, y - 11, 1, 2); c.fill();
+}
+/** A puzzle bookcase, numbered in gold. Each has one book standing out in its colour; the right one slides out once pulled. */
+const SHELF_BOOK = ['', '#3060c0', '#c02838', '#309048'];
+function drawShelf(c: C, g: FluffstevaniaGame, sh: { x: number; y: number; n: number; flash: number }) {
+  const x = sh.x, y = sh.y, solved = !!g.room.opens && g.flags.has(g.room.opens) && sh.n === g.room.puzzle;
+  c.save();
+  c.fillStyle = '#3a2012'; c.fillRect(x - 12, y - 34, 24, 34);
+  c.fillStyle = '#140808'; c.fillRect(x - 10, y - 30, 20, 29);
+  for (const sy of [y - 30, y - 20, y - 10]) {
+    let bx = x - 9.5;
+    while (bx < x + 8) { const n = hash(Math.round(bx * 3) + sh.n, sy), bw = 1.6 + n * 1.6; c.fillStyle = shade(['#6a1c28', '#243a6a', '#2a5a30', '#7a5a20', '#4a2a5a'][Math.floor(n * 5)], 0.7); c.fillRect(bx, sy + 1.5 + n * 2, bw, 8 - n * 2); bx += bw + 0.4; }
+    c.fillStyle = '#4a2a16'; c.fillRect(x - 11, sy + 9.5, 22, 1.4);
+  }
+  // The book that matters, sticking out (or pulled right out once the door's open).
+  c.fillStyle = SHELF_BOOK[sh.n];
+  if (solved) { c.save(); c.translate(x + 2, y - 11); c.rotate(-0.5); c.fillRect(0, -9, 3.4, 9); c.restore(); }
+  else c.fillRect(x - 1, y - 20.5, 3.4, 9.5);
+  c.fillStyle = '#e0c060'; c.fillRect(x - 1, y - 19, 3.4, 0.8);
+  // A gold plaque with the shelf's number on top.
+  c.fillStyle = '#b08a3a'; c.fillRect(x - 6, y - 40, 12, 6); c.fillStyle = '#f0d890';
+  c.font = `700 5px ${DISPLAY}`; c.textAlign = 'center'; c.fillText(['', 'I', 'II', 'III'][sh.n], x, y - 35.4);
+  if (sh.flash > 0) { c.fillStyle = `rgba(255,255,255,${sh.flash * 0.5})`; c.fillRect(x - 12, y - 34, 24, 34); }
+  c.restore();
 }
 function shrine(c: C, x: number, y: number, time: number) {
   c.fillStyle = '#4a3a58'; c.fillRect(x - 12, y - 2, 24, 2); c.fillRect(x - 10, y - 4, 20, 2);
@@ -820,6 +946,15 @@ function drawPickup(c: C, p: Pickup, time: number) {
     }
     case 'sub': subIcon(c, p.id as SubId, x, y, 1.1); break;
     case 'relic': {
+      if (p.id === 'mist') {
+        // Mist Form: a violet wisp that curls around itself.
+        for (let i = 0; i < 7; i++) {
+          const a = time * 2.5 + i * 0.9, r = 2 + i * 0.9;
+          c.fillStyle = `rgba(${200 - i * 10},${170 - i * 8},255,${0.8 - i * 0.09})`; ellipse(c, x + Math.cos(a) * r, y + Math.sin(a) * r * 0.8, 2.6 - i * 0.2, 2.6 - i * 0.2); c.fill();
+        }
+        c.fillStyle = '#ffffff'; ellipse(c, x, y, 1.6, 1.6); c.fill();
+        break;
+      }
       const hop = p.id === 'hop';
       c.fillStyle = hop ? '#f0f8ff' : '#e8f4ff'; ellipse(c, x, y, 5, 5); c.fill();
       for (let i = 0; i < 6; i++) {
@@ -1169,6 +1304,61 @@ function drawEnemy(c: C, g: FluffstevaniaGame | null, e: Enemy, time: number) {
       c.fillStyle = '#ff3050'; for (const dx of [-1.6, -0.5, 0.5, 1.6]) c.fillRect(dx - 0.4, -2.8 - Math.abs(dx) * 0.3, 0.8, 0.8);
       break;
     }
+    case 'book': {
+      // A tome with teeth: shut and still until it wakes, then flapping its covers like wings.
+      c.scale(e.face, 1); c.translate(0, -6);
+      const shut = e.state === 'idle', bite = e.state === 'wind' || e.state === 'lunge';
+      const open = shut ? 0.08 : bite ? 0.25 + Math.abs(Math.sin(time * 30)) * 0.2 : 0.5 + Math.sin(time * 14 + e.id) * 0.45;
+      if (e.state === 'lunge') c.rotate(Math.atan2(e.vy, Math.abs(e.vx) || 1) * 0.6);
+      for (const sgn of [-1, 1]) {
+        c.save(); c.rotate(sgn * open);
+        c.fillStyle = col('#f0e6d0'); c.fillRect(-1, sgn > 0 ? 0 : -5, 9, 5);
+        c.fillStyle = col('#7a2230'); c.fillRect(-1, sgn > 0 ? 4.5 : -6.5, 10, 2);
+        c.fillStyle = '#d8b060'; c.fillRect(7.5, sgn > 0 ? 4.5 : -6.5, 1.5, 2);
+        c.restore();
+      }
+      c.fillStyle = col('#5a1420'); c.fillRect(-2.5, -3, 2.5, 6);
+      if (!shut) {
+        c.fillStyle = '#ffffff'; for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(3 + i * 2, -0.6); c.lineTo(4 + i * 2, 1.2); c.lineTo(5 + i * 2, -0.6); c.fill(); }
+        c.fillStyle = '#ff3040'; c.fillRect(-2, -1.5, 1.2, 1.2);
+        c.strokeStyle = col('#c02030'); c.lineWidth = 0.8; c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(-4, 4 + Math.sin(time * 8) * 2, -7, 3); c.stroke();
+      }
+      break;
+    }
+    case 'quill': {
+      // A white quill hovering nib-down, with a baleful eye and a drop of ink at the tip.
+      c.scale(e.face, 1);
+      const throwing = e.state === 'throw';
+      c.rotate(throwing ? 0.9 * Math.min(1, e.stateT * 6) - (e.stateT > 0.25 ? 0.8 : 0) : 0.35 + Math.sin(time * 3 + e.id) * 0.1);
+      c.fillStyle = col('#f4f0e8'); ellipse(c, 0, -11, 3.4, 8, 0); c.fill();
+      c.strokeStyle = col('#c8c0b0'); c.lineWidth = 0.4;
+      for (let i = 0; i < 6; i++) { c.beginPath(); c.moveTo(0, -17 + i * 2.2); c.lineTo(-3, -15 + i * 2.2); c.moveTo(0, -17 + i * 2.2); c.lineTo(3, -15 + i * 2.2); c.stroke(); }
+      c.strokeStyle = col('#8a8070'); c.lineWidth = 0.7; c.beginPath(); c.moveTo(0, -19); c.lineTo(0, -2); c.stroke();
+      c.fillStyle = col('#1a1a30'); c.beginPath(); c.moveTo(-1.2, -3); c.lineTo(1.2, -3); c.lineTo(0, 1); c.fill();
+      c.fillStyle = '#2a2850'; ellipse(c, 0, 1.6 + Math.abs(Math.sin(time * 2)) * 1, 0.9, 1.2); c.fill();
+      c.fillStyle = '#ff3040'; ellipse(c, 0.8, -12, 1.1, 0.8); c.fill();
+      break;
+    }
+    case 'ink': {
+      // A spill of ink that gathers itself up and springs; glossy, with two white eyes.
+      c.scale(e.face, 1);
+      const gather = e.state === 'wind' ? 1 - Math.min(1, e.stateT / 0.35) * 0.35 : 1, air = e.state === 'lunge' && !e.ground;
+      const sx = air ? 0.8 : 1 / gather, sy = air ? 1.25 : gather;
+      c.scale(sx, sy);
+      c.fillStyle = col('#16142a');
+      c.beginPath();
+      for (let i = 0; i <= 16; i++) {
+        const a = Math.PI + (i / 16) * Math.PI, wob = Math.sin(time * 6 + i * 1.7 + e.id) * 0.8;
+        c.lineTo(Math.cos(a) * (9 + wob), -Math.sin(-a) * (11 + wob) * 0.9);
+      }
+      c.closePath(); c.fill();
+      c.fillRect(-10, -1.5, 20, 1.5);
+      for (const dx of [-7, 2, 8]) { c.beginPath(); ellipse(c, dx, 0, 2.2, 1); c.fill(); }
+      c.fillStyle = 'rgba(160,160,230,0.45)'; ellipse(c, -3, -7, 2.4, 1.2, -0.4); c.fill();
+      c.fillStyle = '#ffffff'; ellipse(c, 2, -5.5, 1.8, 2); c.fill(); ellipse(c, 6, -5.2, 1.5, 1.8); c.fill();
+      c.fillStyle = '#0a0a14'; ellipse(c, 2.6, -5.2, 0.8, 1); c.fill(); ellipse(c, 6.4, -5, 0.7, 0.9); c.fill();
+      break;
+    }
   }
   c.restore();
   c.globalAlpha = 1;
@@ -1178,11 +1368,12 @@ function drawEnemy(c: C, g: FluffstevaniaGame | null, e: Enemy, time: number) {
 export function drawFoeIcon(c: C, kind: string, w: number, h: number, time: number) {
   c.clearRect(0, 0, w, h);
   c.save();
-  if (kind === 'owl' || kind === 'rat_king') {
-    const k = kind === 'owl' ? 'owl' : 'rat', s = Math.min(w, h) / 70;
+  const bossKind = (Object.keys(BOSS_KILLS) as BossId[]).find((b) => BOSS_KILLS[b] === kind);
+  if (bossKind) {
+    const k = bossKind, s = Math.min(w, h) / 70;
     c.translate(w / 2, h / 2); c.scale(s, s);
-    const boss = { kind: k, x: 0, y: 0, vx: 0, vy: 0, hp: 1, max: 1, move: k === 'owl' ? 'hover' : 'idle', t: 0, face: 1, flash: 0, phase2: false, summoned: false, sx: 0, ex: 0, side: 1, last: [], hitId: -1 } as Boss;
-    (k === 'owl' ? drawOwl : drawRatKing)(c, boss, time);
+    const boss = { kind: k, x: 0, y: 0, vx: 0, vy: 0, hp: 1, max: 1, move: k === 'owl' ? 'hover' : k === 'rat' ? 'idle' : 'float', t: 9, face: 1, flash: 0, phase2: false, summoned: false, sx: 0, ex: 0, side: 1, last: [], hitId: -1 } as Boss;
+    drawBoss(c, boss, time);
   } else {
     const f = FOES[kind as FoeKind], s = Math.min(w, h) / 30;
     c.translate(w / 2, h / 2 + (f.h * s) / 2); c.scale(s, s);
@@ -1192,6 +1383,75 @@ export function drawFoeIcon(c: C, kind: string, w: number, h: number, time: numb
   c.restore();
 }
 
+function drawBoss(c: C, o: Boss, time: number) {
+  if (o.kind === 'owl') drawOwl(c, o, time); else if (o.kind === 'rat') drawRatKing(c, o, time); else drawFox(c, o, time);
+}
+/** How solid Count Culpeo looks: he gathers out of bats, bursts back into them, and fades away when beaten. */
+function foxAlpha(o: Boss) {
+  if (o.move === 'enter') return Math.min(1, o.t / 1.2);
+  if (o.move === 'vanish') return Math.max(0, 1 - o.t / 0.2);
+  if (o.move === 'appear') return Math.min(1, o.t / 0.35);
+  if (o.move === 'dying') return Math.max(0, 1 - o.t / 2);
+  return 1;
+}
+/** Count Culpeo: a tall fox in a high-collared black cape lined with red, with a bushy tail and burning eyes. */
+function drawFox(c: C, o: Boss, time: number) {
+  const a = foxAlpha(o);
+  if (a <= 0) return;
+  const white = o.flash > 0 && Math.floor(time * 30) % 2 === 0, col = (s: string) => (white ? '#ffffff' : s);
+  const moving = o.move === 'lunge' && o.t > 0.3 || o.move === 'swoop', cast = o.move === 'fire' || o.move === 'pillars';
+  const stream = moving ? 1 : 0, flut = Math.sin(time * (moving ? 18 : 3)) * (moving ? 2 : 1);
+  c.save(); c.globalAlpha = a; c.translate(o.x, o.y); c.scale(o.face, 1);
+  if (o.move === 'swoop') c.rotate(0.2);
+  // A red aura while he's casting.
+  if (cast) { const gl = c.createRadialGradient(0, -4, 2, 0, -4, 30); gl.addColorStop(0, 'rgba(255,60,40,0.25)'); gl.addColorStop(1, 'rgba(255,60,40,0)'); c.fillStyle = gl; ellipse(c, 0, -4, 30, 30); c.fill(); }
+  // The tail, curling out from under the cape.
+  c.fillStyle = col('#c8601e'); c.beginPath(); c.moveTo(-4, 12); c.quadraticCurveTo(-22 - stream * 6, 14 + flut, -24 - stream * 8, 0 + flut); c.quadraticCurveTo(-16, 4, -2, 6); c.fill();
+  c.fillStyle = col('#f4ece0'); ellipse(c, -23 - stream * 8, 1 + flut, 3.6, 3, 0.8); c.fill();
+  // The cape: black outside, red within, streaming back when he moves.
+  c.fillStyle = col('#8a1024');
+  c.beginPath(); c.moveTo(-3, -12); c.quadraticCurveTo(-14 - stream * 10, 4, -18 - stream * 14, 21 + flut); c.lineTo(8, 21); c.lineTo(6, -10); c.fill();
+  c.fillStyle = col('#140810');
+  c.beginPath(); c.moveTo(-3, -13); c.quadraticCurveTo(-12 - stream * 10, 4, -15 - stream * 14, 22 + flut); c.lineTo(-6, 22); c.quadraticCurveTo(-4, 6, 2, -10); c.fill();
+  // Legs and polished shoes.
+  const step = o.move === 'lunge' && o.t > 0.3 ? Math.sin(time * 30) * 3 : 0;
+  c.fillStyle = col('#1e1420'); c.fillRect(-2 + step, 8, 3.4, 13); c.fillRect(3 - step, 8, 3.4, 13);
+  c.fillStyle = col('#0a0608'); ellipse(c, 0.5 + step, 21, 3.4, 1.4); c.fill(); ellipse(c, 5.5 - step, 21, 3.4, 1.4); c.fill();
+  // A dark suit, a red waistcoat and a white jabot.
+  c.fillStyle = col('#2a1a2a'); ellipse(c, 2, 0, 7, 11); c.fill();
+  c.fillStyle = col('#7a1428'); c.fillRect(2, -6, 4, 12);
+  c.fillStyle = col('#f4ece0'); c.beginPath(); c.moveTo(3, -10); c.lineTo(8, -7); c.lineTo(5, -2); c.lineTo(3, -4); c.fill();
+  c.fillStyle = '#d8b060'; ellipse(c, 4, 1, 0.8, 0.8); c.fill(); ellipse(c, 4, 4, 0.8, 0.8); c.fill();
+  // His arm: raised with a flame in his paw while casting, otherwise tucked in.
+  c.strokeStyle = col('#2a1a2a'); c.lineWidth = 3.4; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(3, -7);
+  if (cast) c.lineTo(12, -16); else if (o.move === 'lunge') c.lineTo(13, -2); else c.lineTo(8, 2);
+  c.stroke(); c.lineCap = 'butt';
+  const px = cast ? 13 : o.move === 'lunge' ? 14 : 9, py = cast ? -17.5 : o.move === 'lunge' ? -2 : 3;
+  c.fillStyle = col('#c8601e'); ellipse(c, px, py, 2, 1.8); c.fill();
+  if (cast) {
+    const f = 1 + Math.sin(time * 20) * 0.2;
+    c.fillStyle = 'rgba(255,120,40,0.9)'; ellipse(c, px + 1, py - 4, 3 * f, 4.5 * f); c.fill();
+    c.fillStyle = 'rgba(255,240,170,0.95)'; ellipse(c, px + 1, py - 3, 1.4 * f, 2.4 * f); c.fill();
+  }
+  // The high collar, stiff points rising behind the head.
+  c.fillStyle = col('#140810'); c.beginPath(); c.moveTo(-6, -8); c.lineTo(-10, -28); c.lineTo(-2, -16); c.lineTo(2, -26); c.lineTo(4, -12); c.fill();
+  c.fillStyle = col('#8a1024'); c.beginPath(); c.moveTo(-5, -9); c.lineTo(-8.5, -25); c.lineTo(-2.5, -15); c.fill();
+  // The fox's head.
+  c.fillStyle = col('#c8601e');
+  c.beginPath(); c.moveTo(-2, -18); c.lineTo(-1, -30); c.lineTo(4, -21); c.fill();
+  c.beginPath(); c.moveTo(4, -20); c.lineTo(8, -31); c.lineTo(10, -19); c.fill();
+  c.fillStyle = col('#2a1008'); c.beginPath(); c.moveTo(-1.4, -26); c.lineTo(-1, -30); c.lineTo(1, -26.5); c.fill(); c.beginPath(); c.moveTo(7, -27); c.lineTo(8, -31); c.lineTo(9, -26.5); c.fill();
+  c.fillStyle = col('#d8702a'); ellipse(c, 4, -17, 7, 6); c.fill();
+  c.beginPath(); c.moveTo(8, -20); c.quadraticCurveTo(14, -18, 17, -15); c.lineTo(9, -12); c.fill();
+  c.fillStyle = col('#f4ece0'); c.beginPath(); c.moveTo(4, -14); c.quadraticCurveTo(10, -12, 16.5, -14.5); c.quadraticCurveTo(10, -9, 3, -11); c.fill();
+  c.fillStyle = col('#140810'); ellipse(c, 16.8, -15.2, 1.3, 1); c.fill();
+  // Burning red eyes under a sharp brow.
+  c.fillStyle = '#ff2838'; c.beginPath(); c.moveTo(7, -19); c.lineTo(11, -19.6); c.lineTo(10, -17.6); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(255,60,60,0.35)'; ellipse(c, 9, -18.6, 4, 2.4); c.fill();
+  c.strokeStyle = col('#5a2008'); c.lineWidth = 0.9; c.beginPath(); c.moveTo(6.5, -20.5); c.lineTo(11.5, -21); c.stroke();
+  c.restore();
+}
 function drawOwl(c: C, o: Boss, time: number) {
   const white = o.flash > 0 && Math.floor(time * 30) % 2 === 0, col = (s: string) => (white ? '#ffffff' : s);
   const flying = o.move !== 'rest';
@@ -1369,6 +1629,20 @@ function drawShot(c: C, s: Shot) {
     c.strokeStyle = `rgba(255,236,170,${0.5 * k})`; c.lineWidth = 1;
     c.beginPath(); c.arc(-9, 6, 8, -1.1, -0.05); c.stroke();
     c.lineCap = 'butt';
+  } else if (s.kind === 'fire') {
+    // A fireball with a white-hot heart and a tail of flame streaming behind.
+    const a = Math.atan2(s.vy, s.vx);
+    c.rotate(a);
+    const tail = c.createLinearGradient(-16, 0, 0, 0);
+    tail.addColorStop(0, 'rgba(255,80,20,0)'); tail.addColorStop(1, 'rgba(255,120,40,0.85)');
+    c.fillStyle = tail; c.beginPath(); c.moveTo(-16 + Math.sin(s.spin * 3) * 2, 0); c.quadraticCurveTo(-6, -5, 0, -4.5); c.lineTo(0, 4.5); c.quadraticCurveTo(-6, 5, -16 + Math.sin(s.spin * 3) * 2, 0); c.fill();
+    c.fillStyle = '#ff6a28'; ellipse(c, 0, 0, 5, 4.6); c.fill();
+    c.fillStyle = '#ffd070'; ellipse(c, 1, 0, 3, 2.8); c.fill();
+    c.fillStyle = '#fffbe8'; ellipse(c, 1.5, 0, 1.4, 1.3); c.fill();
+  } else if (s.kind === 'ink') {
+    c.fillStyle = 'rgba(30,28,60,0.5)'; ellipse(c, -s.vx * 0.03, -s.vy * 0.03, 2.4, 2.4); c.fill();
+    c.fillStyle = '#16142a'; ellipse(c, 0, 0, 3.6, 3.4); c.fill();
+    c.fillStyle = 'rgba(170,170,240,0.6)'; ellipse(c, -1, -1.2, 1.2, 0.8); c.fill();
   } else if (s.kind === 'rock') {
     c.rotate(s.spin);
     c.fillStyle = '#5a5a60'; c.beginPath(); c.moveTo(-5, -2); c.lineTo(-1, -5); c.lineTo(4, -3); c.lineTo(5, 2); c.lineTo(0, 5); c.lineTo(-4, 3); c.fill();
@@ -1540,6 +1814,19 @@ function wearArmor(c: C, id: string, bob: number, time: number, speed: number, a
   }
 }
 
+/** A hero in Mist Form: a swirl of dust in their afterimage colour, drifting between the bars. */
+function mistWisp(c: C, id: HeroId, x: number, y: number, time: number) {
+  c.save(); c.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 9; i++) {
+    const a = time * 3 + i * 0.7, r = 3 + (i % 3) * 3;
+    const px = x + Math.cos(a) * r, py = y - 10 + Math.sin(a * 1.3) * r * 0.8 - (i % 4);
+    const gr = c.createRadialGradient(px, py, 0, px, py, 6);
+    gr.addColorStop(0, rgba(GHOST_TINT[id], 0.35)); gr.addColorStop(1, rgba(GHOST_TINT[id], 0));
+    c.fillStyle = gr; ellipse(c, px, py, 6, 6); c.fill();
+  }
+  c.fillStyle = 'rgba(255,250,240,0.6)'; for (let i = 0; i < 6; i++) { const a = time * 5 + i; c.fillRect(x + Math.cos(a) * 7, y - 10 + Math.sin(a * 1.4) * 8, 1, 1); }
+  c.restore();
+}
 let landAir = false, landAt = -1;
 function drawHeroes(c: C, g: FluffstevaniaGame, time: number) {
   const b = g.body, f = g.follower, partner = g.partner;
@@ -1559,7 +1846,8 @@ function drawHeroes(c: C, g: FluffstevaniaGame, time: number) {
   }
   if (g.duoT >= 0) return;
   const armor = (h: HeroId) => g.equipped[h].armor;
-  if (g.hp[partner] > 0 && !(g.tag && g.tag.t < TAG_ARC)) hero(c, partner, f.x, f.y, f.face, time + 0.7, { run: f.run, moving: f.moving, air: f.air, alpha: 0.95, armor: armor(partner), vx: f.moving ? 100 : 0 });
+  if (g.hp[partner] > 0 && g.has('mist') && g.inGrate(f.x, f.y)) mistWisp(c, partner, f.x, f.y, time + 0.7);
+  else if (g.hp[partner] > 0 && !(g.tag && g.tag.t < TAG_ARC)) hero(c, partner, f.x, f.y, f.face, time + 0.7, { run: f.run, moving: f.moving, air: f.air, alpha: 0.95, armor: armor(partner), vx: f.moving ? 100 : 0 });
   else if (g.hp[partner] > 0 && g.tag) hero(c, partner, b.x - b.face * 4, b.y - Math.sin((g.tag.t / TAG_ARC) * Math.PI) * 8, b.face, time, { air: true, armor: armor(partner) });
   if (tp && g.tag) {
     const spin = g.tag.t * 26 * b.face;
@@ -1579,6 +1867,7 @@ function drawHeroes(c: C, g: FluffstevaniaGame, time: number) {
     }
     return;
   }
+  if (g.misting) { mistWisp(c, g.leader, b.x, b.y, time); weaponArc(c, g); return; }
   const flicker = b.invT > 0 && Math.floor(time * 20) % 2 === 0 && !lunging;
   const moving = Math.abs(b.vx) > 1 && b.ground;
   // Squash on landing, stretch on the way up.
@@ -1803,6 +2092,7 @@ function gatherLights(g: FluffstevaniaGame, time: number): Light[] {
   if (g.boss) out.push({ x: g.boss.x, y: g.boss.y, r: 60, a: 0.35 });
   for (const s of g.shots) {
     if (s.kind === 'flame') out.push({ x: s.x, y: s.y, r: 30, a: 0.8, tint: '#ff9040' });
+    else if (s.kind === 'fire') out.push({ x: s.x, y: s.y, r: 36, a: 0.9, tint: '#ff7030' });
     else if (s.kind === 'wind') out.push({ x: s.x, y: s.y, r: 34, a: 0.4 });
     else if (s.kind === 'quake' && s.hero) out.push({ x: s.x, y: s.y, r: s.spell ? 46 : 34, a: 0.8, tint: s.spell ? '#d0a8ff' : '#ffd070' });
   }
@@ -2093,6 +2383,13 @@ function minimap(c: C, g: FluffstevaniaGame, x0: number, y0: number, time: numbe
   if (Math.floor(time * 3) % 2 === 0) { c.fillStyle = '#ffffff'; c.fillRect(x0 + 3 * cw + 3, y0 + 2 * ch + 2, 3, 2); }
 }
 
+/** The map's size in CSS pixels at a readable 40 px per screen, and how far across it (0–1) the heroes are. */
+export function mapLayout(g: FluffstevaniaGame) {
+  const minX = Math.min(...ROOMS.map((r) => r.mx)), maxX = Math.max(...ROOMS.map((r) => r.mx + r.w));
+  const minY = Math.min(...ROOMS.map((r) => r.my)), maxY = Math.max(...ROOMS.map((r) => r.my + r.h));
+  const cell = 40;
+  return { w: (maxX - minX) * cell + 24, h: Math.round((maxY - minY) * cell * 0.66) + 40, focus: (g.body.x / VIEW_W - minX) / (maxX - minX) };
+}
 /** The full castle map for the pause menu: rooms in their area's colour, area names, and icons for what's where. */
 export function drawMap(c: C, g: FluffstevaniaGame, w: number, h: number, time: number) {
   c.fillStyle = '#0c0714'; c.fillRect(0, 0, w, h);
@@ -2194,6 +2491,14 @@ function foreground(area: AreaId) {
     const cx = 520, cy = VIEW_H + 10;
     c.beginPath(); for (let i = 0; i < 24; i++) { const a = (i / 24) * Math.PI * 2, r = i % 2 ? 40 : 46; c.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); } c.closePath(); c.fill();
     c.fillRect(980, 0, 172, 8);
+  } else if (area === 'library') {
+    // The end of a bookcase, a lamp on a long chain, a ladder and a toppled pile of books.
+    c.fillRect(380, 0, 22, VIEW_H); for (let y = 20; y < VIEW_H; y += 36) c.fillRect(372, y, 38, 4);
+    chain(760, 50); c.beginPath(); c.moveTo(752, 52); c.lineTo(768, 52); c.lineTo(764, 64); c.lineTo(756, 64); c.closePath(); c.fill();
+    c.lineWidth = 3; c.beginPath(); c.moveTo(980, VIEW_H); c.lineTo(1010, 60); c.moveTo(996, VIEW_H); c.lineTo(1026, 60); c.stroke();
+    c.lineWidth = 2; for (let i = 0; i < 8; i++) { const t = VIEW_H - 16 - i * 20; const off = (VIEW_H - t) * 0.18; c.beginPath(); c.moveTo(980 + off, t); c.lineTo(996 + off, t); c.stroke(); }
+    for (let i = 0; i < 5; i++) c.fillRect(120 + i * 3, VIEW_H - 6 - i * 5, 30 - i * 3, 5);
+    web(40, 1);
   } else {
     // Stalactites drip from the top, bones heap at the bottom, and webs hang in the corners.
     for (let x = 10; x < FW - 20; x += 24) { if (hash(x, 4) < 0.45) continue; const h = 8 + hash(x, 6) * 22; c.beginPath(); c.moveTo(x, 0); c.lineTo(x + 5 + hash(x, 7) * 4, h); c.lineTo(x + 12, 0); c.fill(); }
@@ -2240,7 +2545,7 @@ function drawShafts(c: C, g: FluffstevaniaGame, time: number) {
   c.save(); c.globalCompositeOperation = 'lighter';
   const span = VIEW_W + 240;
   for (let i = 0; i < 2; i++) {
-    const x0 = mod(-g.cam.x * 0.8 + i * 260 + 60, span) - 120, tint = g.room.area === 'belfry' ? '190,230,255' : '255,225,170';
+    const x0 = mod(-g.cam.x * 0.8 + i * 260 + 60, span) - 120, tint = g.room.area === 'belfry' || g.room.area === 'library' ? '190,215,255' : '255,225,170';
     const gr = c.createLinearGradient(0, 0, 0, VIEW_H);
     gr.addColorStop(0, `rgba(${tint},0.13)`); gr.addColorStop(1, `rgba(${tint},0)`);
     c.fillStyle = gr; c.beginPath(); c.moveTo(x0, 0); c.lineTo(x0 + 30, 0); c.lineTo(x0 + 120, VIEW_H); c.lineTo(x0 + 70, VIEW_H); c.closePath(); c.fill();
@@ -2255,7 +2560,7 @@ function drawShafts(c: C, g: FluffstevaniaGame, time: number) {
 
 /** Colour grading: each area gets its own cast over everything but the HUD. */
 const GRADE: Record<AreaId, [string, number]> = {
-  approach: ['#3050b8', 0.32], hall: ['#e0a060', 0.22], cellar: ['#d08030', 0.22], belfry: ['#60a0c8', 0.2], catacombs: ['#58b868', 0.3],
+  approach: ['#3050b8', 0.32], hall: ['#e0a060', 0.22], cellar: ['#d08030', 0.22], belfry: ['#60a0c8', 0.2], catacombs: ['#58b868', 0.3], library: ['#c86070', 0.2],
 };
 
 /** A curtain wipe between rooms: it sweeps off the way the heroes are heading, trimmed with gold. */
@@ -2291,7 +2596,7 @@ function drawWipe(c: C, g: FluffstevaniaGame, time: number) {
 }
 
 /** Boss titles for the intro card. */
-const BOSS_TITLE: Record<string, string> = { owl: 'Warden of the Belfry', rat: 'Tyrant of the Larder' };
+const BOSS_TITLE: Record<string, string> = { owl: 'Warden of the Belfry', rat: 'Tyrant of the Larder', fox: 'Master of the Castle' };
 let introBoss: Boss | null = null, introAt = 0;
 /** The boss's name slams onto a black band across the screen as the fight begins. */
 function drawBossIntro(c: C, g: FluffstevaniaGame, time: number) {
@@ -2372,14 +2677,15 @@ export function drawGame(c: C, g: FluffstevaniaGame, time: number) {
   }
   if (g.cage) drawCage(c, g.cage.x, g.cage.y, g.cage.hp, g.cage.flash, time);
   for (const e of g.enemies) if (e.dead) burnAway(c, g, e, time); else drawEnemy(c, g, e, time);
-  if (g.boss) (g.boss.kind === 'owl' ? drawOwl : drawRatKing)(c, g.boss, time);
+  if (g.boss) drawBoss(c, g.boss, time);
+  for (const sh of g.shelves) drawShelf(c, g, sh);
   drawHeroes(c, g, time);
   for (const s of g.shots) drawShot(c, s);
   drawDustFx(c, g);
   if (area === 'cellar' || area === 'catacombs') drawDrips(c, g, time);
   c.restore();
   drawLighting(c, g, time);
-  if (area === 'hall' || area === 'belfry') drawShafts(c, g, time);
+  if (area === 'hall' || area === 'belfry' || area === 'library') drawShafts(c, g, time);
   c.save(); c.translate(tx, ty); drawGlowFx(c, g); c.restore();
   drawForeground(c, g);
   if (area === 'hall' && lightning(time) > 0) { c.fillStyle = `rgba(190,205,255,${0.08 * lightning(time)})`; c.fillRect(0, 0, VIEW_W, VIEW_H); }

@@ -37,6 +37,12 @@ const SONGS: Record<Theme, Song> = {
     lead: [0, _, _, _, 1, _, _, _, 0, _, 6, _, 4, _, _, _, 2, _, _, _, 3, _, 2, _, 1, _, _, _, 0, _, _, _],
     bass: [0, 0, 1, 1, 5, 5, 4, 4], pad: [[0, 2, 4], [1, 3, 5], [5, 7, 9], [4, 6, 8]],
   },
+  // A haunted harpsichord waltz among the books.
+  library: {
+    bpm: 108, root: 185, wave: 'square', leadGain: 0.26,
+    lead: [4, _, _, 7, _, 6, 4, _, _, 2, _, 3, 4, _, _, _, 5, _, _, 4, _, 2, 1, _, _, 2, _, 4, 0, _, _, _],
+    bass: [0, 4, 3, 4, 5, 2, 4, 4], pad: [[0, 2, 4], [3, 5, 7], [5, 7, 9], [4, 6, 8]],
+  },
   // Fast and furious.
   boss: {
     bpm: 156, root: 164.8, wave: 'sawtooth', leadGain: 0.22,

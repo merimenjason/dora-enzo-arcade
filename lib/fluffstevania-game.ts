@@ -36,7 +36,8 @@ export function rawTile(c: number, r: number): string {
   if (!room) return '#';
   return room.rows[r - room.my * ROWS][c - room.mx * COLS];
 }
-export const isSolid = (ch: string) => ch === '#' || ch === '%' || ch === 'G' || ch === 'D' || ch === '^';
+const isSolidTile = (ch: string) => ch === '#' || ch === '%' || ch === 'G' || ch === 'D' || ch === '^' || ch === '|';
+export const isSolid = isSolidTile;
 export const roomRect = (r: Room) => ({ x: r.mx * VIEW_W, y: r.my * VIEW_H, w: r.w * VIEW_W, h: r.h * VIEW_H });
 
 // ─── Heroes ───────────────────────────────────────────────────────────────
@@ -86,7 +87,7 @@ export type Follower = { x: number; y: number; face: 1 | -1; air: boolean; movin
 
 // ─── Enemies ──────────────────────────────────────────────────────────────
 
-export type FoeKind = 'bat' | 'moth' | 'beetle' | 'bone' | 'armadillo' | 'rat' | 'ghost' | 'spider';
+export type FoeKind = 'bat' | 'moth' | 'beetle' | 'bone' | 'armadillo' | 'rat' | 'ghost' | 'spider' | 'book' | 'quill' | 'ink';
 export const FOES: Record<FoeKind, { name: string; hp: number; atk: number; def: number; xp: number; w: number; h: number; raisins: number; drop?: [string, number]; fly?: boolean }> = {
   bat: { name: 'Cave Bat', hp: 10, atk: 7, def: 0, xp: 3, w: 14, h: 10, raisins: 2, drop: ['berry', 0.06], fly: true },
   moth: { name: 'Dust Moth', hp: 14, atk: 8, def: 0, xp: 4, w: 16, h: 14, raisins: 2, drop: ['cape', 0.05], fly: true },
@@ -96,8 +97,11 @@ export const FOES: Record<FoeKind, { name: string; hp: number; atk: number; def:
   rat: { name: 'Pantry Rat', hp: 30, atk: 13, def: 2, xp: 14, w: 18, h: 11, raisins: 6, drop: ['cake', 0.08] },
   ghost: { name: 'Jar Ghost', hp: 34, atk: 14, def: 0, xp: 18, w: 16, h: 18, raisins: 7, drop: ['tea', 0.08], fly: true },
   spider: { name: 'Cellar Spider', hp: 26, atk: 12, def: 1, xp: 13, w: 14, h: 12, raisins: 5, drop: ['ring', 0.03], fly: true },
+  book: { name: 'Flying Tome', hp: 38, atk: 16, def: 2, xp: 22, w: 16, h: 12, raisins: 8, drop: ['tea', 0.06], fly: true },
+  quill: { name: 'Ink Quill', hp: 30, atk: 14, def: 1, xp: 20, w: 10, h: 18, raisins: 7, drop: ['ring', 0.03], fly: true },
+  ink: { name: 'Ink Blot', hp: 50, atk: 17, def: 4, xp: 26, w: 18, h: 12, raisins: 9, drop: ['cake', 0.08] },
 };
-const FOE_CHARS: Record<string, FoeKind> = { b: 'bat', m: 'moth', k: 'beetle', x: 'bone', a: 'armadillo', r: 'rat', g: 'ghost', p: 'spider' };
+const FOE_CHARS: Record<string, FoeKind> = { b: 'bat', m: 'moth', k: 'beetle', x: 'bone', a: 'armadillo', r: 'rat', g: 'ghost', p: 'spider', v: 'book', q: 'quill', j: 'ink' };
 /** A jar ghost is solid for GHOST_ON seconds, then fades out (can't hurt or be hurt) for GHOST_OFF. */
 export const GHOST_ON = 2.4, GHOST_OFF = 1.4;
 /** How long a defeated foe takes to burn away. */
@@ -114,13 +118,17 @@ export type Enemy = {
 export const BOSSES: Record<BossId, { name: string; hp: number; atk: number; def: number; xp: number; w: number; h: number }> = {
   owl: { name: 'Duke Hootsworth', hp: 260, atk: 12, def: 3, xp: 120, w: 36, h: 30 },
   rat: { name: 'Gnawdrick the Rat King', hp: 560, atk: 18, def: 6, xp: 320, w: 46, h: 34 },
+  fox: { name: 'Count Culpeo', hp: 980, atk: 24, def: 8, xp: 600, w: 26, h: 44 },
 };
+/** What each boss is filed under in the Bestiary. */
+export const BOSS_KILLS: Record<BossId, string> = { owl: 'owl', rat: 'rat_king', fox: 'culpeo' };
 export const OWL = BOSSES.owl, RAT = BOSSES.rat;
 export type OwlMove = 'enter' | 'hover' | 'feathers' | 'rise' | 'swoop' | 'track' | 'drop' | 'rest' | 'dying';
 export type RatMove = 'enter' | 'idle' | 'wind' | 'charge' | 'stunned' | 'crouch' | 'leap' | 'cheese' | 'dying';
+export type FoxMove = 'enter' | 'float' | 'fire' | 'vanish' | 'appear' | 'lunge' | 'swoop' | 'pillars' | 'dying';
 /** A boss. (x, y) is the middle of its body. */
 export type Boss = {
-  kind: BossId; x: number; y: number; vx: number; vy: number; hp: number; max: number; move: OwlMove | RatMove;
+  kind: BossId; x: number; y: number; vx: number; vy: number; hp: number; max: number; move: OwlMove | RatMove | FoxMove;
   t: number; face: 1 | -1; flash: number; phase2: boolean; summoned: boolean; sx: number; ex: number; side: number; last: string[]; hitId: number;
 };
 
@@ -129,7 +137,7 @@ export type Boss = {
  * `ax` pulls the Boomerang Acorn back.
  */
 export type Shot = {
-  kind: 'seed' | 'bone' | 'feather' | 'wave' | 'cheese' | 'rock' | 'gust' | 'acorn' | 'pumpkin' | 'flame' | 'wind' | 'quake';
+  kind: 'seed' | 'bone' | 'feather' | 'wave' | 'cheese' | 'rock' | 'gust' | 'acorn' | 'pumpkin' | 'flame' | 'wind' | 'quake' | 'fire' | 'ink';
   x: number; y: number; vx: number; vy: number; grav: number; r: number; dmg: number; hero: boolean; life: number; spin: number;
   pierce?: boolean; hits?: Map<number, number>; rehit?: number; ax?: number; launch?: boolean; t?: number;
   /** A finisher's shot (big numbers), or a spell's (a bigger look too). */
@@ -141,6 +149,8 @@ export type Cage = { x: number; y: number; hp: number; flash: number };
 /** The familiar travelling with the heroes. */
 export type PalBody = { x: number; y: number; face: 1 | -1; cd: number; act: number; target: number; t: number };
 export type Candle = { x: number; y: number; alive: boolean; c: number; r: number };
+/** One of the bookshelves in a room's puzzle, numbered 1–3. `flash` shows a strike and stops another for a moment. */
+export type Shelf = { x: number; y: number; n: number; flash: number };
 /** A damage number; `big` ones (finishers, spells, the Duo Strike) show larger and in gold. */
 export type Pop = { x: number; y: number; text: string; t: number; color: string; big?: boolean };
 /** A mote of Dust flying out of a defeated foe and into the lead, worth `mp`. */
@@ -158,6 +168,7 @@ export const FX_LIFE: Record<Fx['kind'], number> = { dust: 0.5, spark: 0.35, poo
 const ASH: Record<FoeKind, string[]> = {
   bat: ['#4e3a60', '#8a70a8'], moth: ['#c8b8a0', '#f0e8d8'], beetle: ['#3a7088', '#1e3a48'], bone: ['#e8e2d0', '#a8a090'],
   armadillo: ['#a88a68', '#6a5040'], rat: ['#8a7a70', '#c8b0a0'], ghost: ['#9ff0c8', '#e8fff4'], spider: ['#4a3a4a', '#a06080'],
+  book: ['#8a2a3a', '#f0e6d0'], quill: ['#f4f0e8', '#1a1a30'], ink: ['#1a1830', '#4a4870'],
 };
 
 export type Equip = Record<Slot, string | null>;
@@ -230,7 +241,7 @@ export class FluffstevaniaGame {
   warp = false;
   body: Body; room: Room; follower: Follower; trail: { x: number; y: number; face: 1 | -1; air: boolean }[] = [];
   tag: Tag | null = null; tagCd = 0;
-  enemies: Enemy[] = []; boss: Boss | null = null; fight = false; shots: Shot[] = []; pickups: Pickup[] = []; candles: Candle[] = [];
+  enemies: Enemy[] = []; boss: Boss | null = null; fight = false; shots: Shot[] = []; pickups: Pickup[] = []; candles: Candle[] = []; shelves: Shelf[] = [];
   pops: Pop[] = []; fx: Fx[] = []; orbs: Orb[] = [];
   state: 'play' | 'dead' | 'chapter' = 'play';
   /** The chapter just finished, while `state` is 'chapter'. */
@@ -259,6 +270,7 @@ export class FluffstevaniaGame {
   private mpT = 0;
   private chimed = new Set<string>();
   private chimeT = 0;
+  private wasMist = false;
   /** The blow being dealt is a big one (a finisher, spell, tag or Duo Strike), for the damage numbers. */
   private heavy = false;
 
@@ -308,6 +320,14 @@ export class FluffstevaniaGame {
   /** The lead's spell, once they're high enough level to know it. */
   spellOf(h: HeroId): SpellId | null { const id = (Object.keys(SPELLS) as SpellId[]).find((k) => SPELLS[k].hero === h)!; return this.level >= SPELLS[id].level ? id : null; }
   has(r: RelicId) { return this.relics.has(r); }
+  /** The lead is part-way through an iron grate in Mist Form, and is drawn as a wisp of dust. */
+  get misting() { return this.has('mist') && this.inGrate(this.body.x, this.body.y); }
+  /** Whether a hero-sized box with its feet at (x, y) overlaps a grate. */
+  inGrate(x: number, y: number) {
+    for (let c = Math.floor((x - HERO_W / 2 - 2) / TILE); c <= Math.floor((x + HERO_W / 2 + 2) / TILE); c++)
+      for (let r = Math.floor((y - HERO_H) / TILE); r <= Math.floor((y - 1) / TILE); r++) if (rawTile(c, r) === '|') return true;
+    return false;
+  }
   get completion() { return Math.round((this.visited.size / TOTAL_CELLS) * 100); }
 
   private rand() {
@@ -336,8 +356,10 @@ export class FluffstevaniaGame {
    * Move a box whose feet are at (x, y). Ledges (`=`) only catch things falling onto them from above.
    * Returns which sides hit something.
    */
-  private move(o: { x: number; y: number; vx: number; vy: number }, w: number, h: number, dt: number, ledges: boolean) {
+  private move(o: { x: number; y: number; vx: number; vy: number }, w: number, h: number, dt: number, ledges: boolean, mist = false) {
     const hit = { x: false, down: false, up: false };
+    // In Mist Form a hero drifts through iron grates as if they weren't there.
+    const isSolid = mist ? (ch: string) => ch !== '|' && isSolidTile(ch) : isSolidTile;
     const hw = w / 2;
     o.x += o.vx * dt;
     const top = Math.floor((o.y - h + 0.01) / TILE), bot = Math.floor((o.y - 0.01) / TILE);
@@ -389,7 +411,7 @@ export class FluffstevaniaGame {
     // Leaving an area lets its foes return; within an area they stay down until a rest.
     if (!first && prevArea !== room.area) this.slain.clear();
     this.room = room;
-    this.enemies = []; this.shots = []; this.candles = []; this.boss = null; this.fight = false;
+    this.enemies = []; this.shots = []; this.candles = []; this.shelves = []; this.boss = null; this.fight = false;
     this.pickups = []; this.cage = null; this.chimed.clear(); this.orbs = [];
     let item = 0;
     const rx = room.mx * COLS, ry = room.my * ROWS;
@@ -400,6 +422,7 @@ export class FluffstevaniaGame {
       else if (ch === 'Z' && !this.pals.zippy) this.cage = { x, y, hp: 3, flash: 0 };
       else if (ch === 'U' && room.sub && !this.subs.has(room.sub)) this.pickups.push({ kind: 'sub', id: room.sub, amount: 1, x, y: y - 4, vy: 0, t: 0, flag: `sub:${room.sub}`, fixed: true });
       else if (ch === 'i') this.candles.push({ x, y: wr * TILE + 12, alive: true, c: wc, r: wr });
+      else if (ch === '1' || ch === '2' || ch === '3') this.shelves.push({ x, y, n: Number(ch), flash: 0 });
       else if (ch === 'I') {
         const id = room.items?.[item++], flag = `item:${room.id}:${item - 1}`;
         if (id && !this.flags.has(flag)) this.pickups.push({ kind: GEAR[id] ? 'gear' : 'food', id, amount: 1, x, y: y - 4, vy: 0, t: 0, flag, fixed: true });
@@ -570,7 +593,12 @@ export class FluffstevaniaGame {
     }
     if (b.dashT <= 0 && !(this.tag && this.tag.t >= TAG_ARC)) b.vy = Math.min(b.vy + G * dt, MAX_FALL);
     const wasGround = b.ground;
-    const hit = this.move(b, HERO_W, HERO_H, dt, b.dropT <= 0);
+    const hit = this.move(b, HERO_W, HERO_H, dt, b.dropT <= 0, this.has('mist'));
+    // Drifting through a grate: puffs of dust, and a whoosh as the heroes go to mist.
+    const misting = this.misting;
+    if (misting && !this.wasMist) this.events.push('mist');
+    if (misting && Math.floor(this.time * 20) !== Math.floor((this.time - dt) * 20)) this.fx.push({ kind: 'dust', x: b.x + (this.rand() - 0.5) * 12, y: b.y - this.rand() * 18, t: 0, vx: (this.rand() - 0.5) * 30, vy: -20 });
+    this.wasMist = misting;
     if (hit.down) {
       if (!wasGround && b.vy === 0) this.fx.push({ kind: 'dust', x: b.x, y: b.y, t: 0.2, vx: 0, vy: -8 });
       b.ground = true; b.airDash = false; b.dashJump = false; b.hopped = false; b.coyote = 0.08;
@@ -692,7 +720,7 @@ export class FluffstevaniaGame {
       const dmg = (this.stats('dora').atk + this.stats('enzo').atk) * 1.2 + 10, lck = this.stats(this.leader).lck;
       this.heavy = true;
       for (const e of this.enemies) if (!e.dead && overlap(view, this.foeBox(e))) this.hitFoe(e, dmg, e.x - 1, true, lck, true);
-      if (this.boss && this.boss.move !== 'dying' && this.boss.move !== 'enter' && overlap(view, this.bossBox(this.boss))) this.hitBoss(dmg, lck);
+      if (this.boss && this.bossOpen(this.boss) && overlap(view, this.bossBox(this.boss))) this.hitBoss(dmg, lck);
       this.heavy = false;
       for (const c of this.candles) if (c.alive && overlap(view, { x: c.x - 4, y: c.y - 12, w: 8, h: 14 })) this.snuff(c);
       this.shake = 0.5; this.hitstop = 0.12; this.events.push('crit');
@@ -788,7 +816,7 @@ export class FluffstevaniaGame {
       if (tagBox && tagger && !this.tag!.hits.has(e.id) && overlap(tagBox, eb)) { this.tag!.hits.add(e.id); this.heavy = true; this.hitFoe(e, tagger.atk * 1.6 + 4, tp!.x, true, tagger.lck); this.gainDuo(10); this.heavy = finisher || b.spin; }
     }
     const boss = this.boss;
-    if (boss && boss.move !== 'dying' && boss.move !== 'enter') {
+    if (boss && this.bossOpen(boss)) {
       const bb = this.bossBox(boss);
       if (box && boss.hitId !== b.attackId && overlap(box, bb)) { boss.hitId = b.attackId; this.hitBoss(me.atk * mult, me.lck); landed(); this.hitstop = 0.04; this.gainDuo(5); }
       if (tagBox && tagger && !this.tag!.hits.has(-1) && overlap(tagBox, bb)) { this.tag!.hits.add(-1); this.heavy = true; this.hitBoss(tagger.atk * 1.6 + 4, tagger.lck); this.gainDuo(8); }
@@ -805,7 +833,28 @@ export class FluffstevaniaGame {
       const cb = { x: c.x - 4, y: c.y - 12, w: 8, h: 14 };
       if ((box && overlap(box, cb)) || (tagBox && overlap(tagBox, cb))) this.snuff(c);
     }
+    for (const sh of this.shelves) {
+      sh.flash = Math.max(0, sh.flash - 1 / 120);
+      const sb = { x: sh.x - 10, y: sh.y - 30, w: 20, h: 30 };
+      if (sh.flash <= 0 && ((box && overlap(box, sb)) || (tagBox && overlap(tagBox, sb)))) this.pullShelf(sh);
+    }
     for (const hb of [box, tagBox]) if (hb) this.breakWalls(hb);
+  }
+  /** Striking a puzzle shelf: the right one opens the room's hidden door; a wrong one sends a book flying at you. */
+  private pullShelf(sh: Shelf) {
+    const room = this.room, flag = room.opens;
+    sh.flash = 0.8;
+    if (!flag || !room.puzzle) return;
+    if (this.flags.has(flag)) { this.events.push('clink'); return; }
+    if (sh.n === room.puzzle) {
+      this.flags.add(flag); this.events.push('secret'); this.shake = 0.3;
+      this.say('A book slides out with a click, and somewhere a door grinds open!', 3.2);
+    } else {
+      const e = this.spawn('book', sh.x, sh.y - 30);
+      e.state = 'awake';
+      this.events.push('snap');
+      this.say('Wrong book! It flaps off the shelf and bites.');
+    }
   }
   private breakWalls(hb: Box) {
     for (let c = Math.floor(hb.x / TILE); c <= Math.floor((hb.x + hb.w) / TILE); c++)
@@ -966,6 +1015,31 @@ export class FluffstevaniaGame {
         // Drifts after you, fading in and out of sight.
         if (dist < 220) { e.x += clamp(dx / 40, -1, 1) * 40 * dt; e.y += clamp(dy / 40, -1, 1) * 30 * dt; e.face = dx > 0 ? 1 : -1; }
         e.y += Math.sin(e.t * 2.4) * 14 * dt;
+      } else if (e.kind === 'book') {
+        // Rests shut on the air until you come near, then flaps after you and snaps forward, pages first.
+        if (e.state === 'idle') { e.y = e.hy + Math.sin(e.t * 2) * 2; if (dist < 140) { e.state = 'awake'; e.stateT = 0; this.events.push('flap'); } }
+        else if (e.state === 'awake') {
+          e.face = dx > 0 ? 1 : -1;
+          e.x += clamp(dx / 60, -1, 1) * 55 * dt; e.y += clamp((dy + Math.sin(e.t * 5) * 14) / 40, -1, 1) * 50 * dt;
+          if (e.stateT > 1.6 && dist < 110) { e.state = 'wind'; e.stateT = 0; e.vx = dx / (dist || 1); e.vy = dy / (dist || 1); }
+        } else if (e.state === 'wind') { if (e.stateT > 0.3) { e.state = 'lunge'; e.stateT = 0; this.events.push('snap'); } }
+        else if (e.state === 'lunge') {
+          e.x += e.vx * 200 * dt; e.y += e.vy * 200 * dt;
+          if (e.stateT > 0.35 || this.solidAt(e.x, e.y - 6)) { e.state = 'rest'; e.stateT = 0; }
+        } else if (e.stateT > 0.5) { e.state = 'awake'; e.stateT = 0; }
+      } else if (e.kind === 'quill') {
+        // Hovers about its post and flicks blots of ink at you.
+        e.face = dx > 0 ? 1 : -1;
+        const tx = e.hx + Math.sin(e.t * 0.9) * 24, ty = e.hy + Math.sin(e.t * 2.2) * 8;
+        e.x += clamp(tx - e.x, -40 * dt, 40 * dt); e.y += clamp(ty - e.y, -40 * dt, 40 * dt);
+        if (e.state === 'throw') {
+          if (e.stateT > 0.25 && e.stateT - dt <= 0.25) {
+            const a = Math.atan2(dy, dx);
+            this.shots.push({ kind: 'ink', x: e.x, y: e.y - FOES.quill.h / 2, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, grav: 0, r: 4, dmg: 12, hero: false, life: 2.5, spin: 0 });
+            this.events.push('throw');
+          }
+          if (e.stateT > 0.6) { e.state = 'idle'; e.stateT = 0; }
+        } else if (e.stateT > 2.4 && dist < 230) { e.state = 'throw'; e.stateT = 0; }
       } else if (e.kind === 'spider') {
         // Hangs on a thread, drops when you pass underneath, then climbs back up.
         const reel = (dy2: number, speed: number) => { e.y += clamp(dy2, -speed * dt, speed * dt); };
@@ -979,7 +1053,14 @@ export class FluffstevaniaGame {
         e.face = dx > 0 ? 1 : -1;
       } else {
         const f = FOES[e.kind];
-        let speed = e.kind === 'beetle' ? 38 : e.kind === 'bone' ? 22 : e.kind === 'rat' ? 34 : 20;
+        let speed = e.kind === 'beetle' ? 38 : e.kind === 'bone' ? 22 : e.kind === 'rat' ? 34 : e.kind === 'ink' ? 28 : 20;
+        if (e.kind === 'ink') {
+          // Oozes along, gathers itself up, and springs at you.
+          if (e.state === 'wind') { speed = 0; if (e.stateT > 0.35) { e.state = 'lunge'; e.stateT = 0; e.vy = -340; e.vx = e.face * 140; e.ground = false; this.events.push('squish'); } }
+          else if (e.state === 'lunge') { speed = 140; if (e.ground && e.stateT > 0.1) { e.state = 'rest'; e.stateT = 0; } }
+          else if (e.state === 'rest') { speed = 0; if (e.stateT > 0.7) { e.state = 'idle'; e.stateT = 0; } }
+          else if (e.stateT > 1.2 && Math.abs(dx) < 80 && Math.abs(dy) < 40 && e.ground) { e.state = 'wind'; e.stateT = 0; e.face = dx > 0 ? 1 : -1; }
+        }
         if (e.kind === 'rat') {
           // Scurries about, then spots you, bristles and charges.
           if (e.state === 'wind') { speed = 0; if (e.stateT > 0.35) { e.state = 'lunge'; e.stateT = 0; this.events.push('squeak'); } }
@@ -1025,6 +1106,12 @@ export class FluffstevaniaGame {
   }
 
   // ─── Bosses ─────────────────────────────────────────────────────────────
+  /** Whether the boss can be hit (and hurts on contact): not while arriving, dying, or vanished into mist. */
+  bossOpen(o: Boss) {
+    if (o.move === 'enter' || o.move === 'dying') return false;
+    if (o.kind === 'fox') return !(o.move === 'vanish' && o.t > 0.2) && !(o.move === 'appear' && o.t < 0.15);
+    return true;
+  }
   bossBox(o: Boss): Box { const k = BOSSES[o.kind]; return { x: o.x - k.w / 2, y: o.y - k.h / 2, w: k.w, h: k.h }; }
   private bossStep(dt: number) {
     const room = this.room, kind = room.boss;
@@ -1043,7 +1130,7 @@ export class FluffstevaniaGame {
     const o = this.boss;
     if (!o) return;
     o.t += dt; o.flash = Math.max(0, o.flash - dt);
-    if (o.kind === 'owl') this.owlStep(o, dt, rr); else this.ratStep(o, dt, rr);
+    if (o.kind === 'owl') this.owlStep(o, dt, rr); else if (o.kind === 'rat') this.ratStep(o, dt, rr); else this.foxStep(o, dt, rr);
     if (o.move === 'dying') {
       if (Math.floor(o.t * 10) !== Math.floor((o.t - dt) * 10)) this.fx.push({ kind: 'boom', x: o.x + (this.rand() - 0.5) * 40, y: o.y + (this.rand() - 0.5) * 30, t: 0, vx: 0, vy: 0 });
       if (o.t > 2) this.bossDown();
@@ -1056,14 +1143,14 @@ export class FluffstevaniaGame {
         o.summoned = true;
         const left = rr.x + 40, right = rr.x + rr.w - 40;
         for (const x of [left, right]) {
-          const e = o.kind === 'owl' ? this.spawn('bat', x, rr.y + 60) : this.spawn('rat', x, rr.y + 12 * TILE);
-          e.state = o.kind === 'owl' ? 'awake' : 'idle'; e.face = x < o.x ? 1 : -1;
+          const e = o.kind === 'rat' ? this.spawn('rat', x, rr.y + 12 * TILE) : this.spawn('bat', x, rr.y + 60);
+          e.state = o.kind === 'rat' ? 'idle' : 'awake'; e.face = x < o.x ? 1 : -1;
         }
       }
-      this.say(o.kind === 'owl' ? 'Duke Hootsworth ruffles up in a fury!' : 'Gnawdrick gnashes his teeth and calls his rats!');
+      this.say(o.kind === 'owl' ? 'Duke Hootsworth ruffles up in a fury!' : o.kind === 'rat' ? 'Gnawdrick gnashes his teeth and calls his rats!' : 'Count Culpeo’s eyes blaze. His bats pour from the shadows!');
       this.events.push('screech');
     }
-    if (o.move !== 'enter') {
+    if (this.bossOpen(o)) {
       const me = { x: b.x - HERO_W / 2, y: b.y - HERO_H, w: HERO_W, h: HERO_H };
       if (overlap(me, { x: o.x - k.w / 2 + 4, y: o.y - k.h / 2 + 4, w: k.w - 8, h: k.h - 8 })) this.hurtHero(k.atk, o.x);
     }
@@ -1140,6 +1227,98 @@ export class FluffstevaniaGame {
       case 'dying':
         if (Math.floor(o.t * 6) !== Math.floor((o.t - dt) * 6)) this.fx.push({ kind: 'feather', x: o.x, y: o.y, t: 0, vx: (this.rand() - 0.5) * 160, vy: -120 * this.rand() });
         o.y += 20 * dt;
+        break;
+    }
+  }
+  /**
+   * Count Culpeo floats just off the floor. He throws fans of fireballs, bursts into bats and reappears behind the
+   * lead to sweep his cape along the floor, and swoops across the room. At half HP he calls his bats, throws twice as
+   * often and raises pillars of fire where the heroes stand. He can only be hit while he's solid.
+   */
+  private foxStep(o: Boss, dt: number, rr: Box) {
+    const b = this.body, k = BOSSES.fox;
+    const floor = rr.y + 12 * TILE, ground = floor - k.h / 2, left = rr.x + 3 * TILE, right = rr.x + rr.w - 3 * TILE, top = rr.y + 70;
+    const go = (move: FoxMove) => { o.move = move; o.t = 0; };
+    const toward = (tx: number, ty: number, r: number) => { o.x += (tx - o.x) * Math.min(1, r * dt); o.y += (ty - o.y) * Math.min(1, r * dt); };
+    const hard = this.difficulty === 'hard', fierce = o.phase2 || hard, fast = (o.phase2 ? 1.25 : 1) * (hard ? 1.1 : 1);
+    const bats = (n: number) => { for (let i = 0; i < n; i++) this.fx.push({ kind: 'poof', x: o.x + (this.rand() - 0.5) * 30, y: o.y + (this.rand() - 0.5) * 36, t: -this.rand() * 0.2, vx: 0, vy: 0 }); };
+    if (o.move !== 'lunge' && o.move !== 'swoop' && o.move !== 'dying') o.face = b.x > o.x ? 1 : -1;
+    switch (o.move as FoxMove) {
+      case 'enter':
+        // He gathers out of a swirl of bats in the middle of the room.
+        if (o.t <= dt * 1.5) { o.x = rr.x + rr.w / 2; o.y = ground - 6; }
+        if (o.t < 1 && Math.floor(o.t * 12) !== Math.floor((o.t - dt) * 12)) bats(1);
+        if (o.t > 1.4) { go('float'); this.events.push('laugh'); }
+        break;
+      case 'float': {
+        // Drifts to a wary distance from the lead, just off the floor.
+        const want = clamp(b.x - Math.sign(b.x - o.x || 1) * 90, left, right);
+        toward(want, ground - 6 + Math.sin(this.time * 2.5) * 4, 1.5);
+        if (o.t > 0.7 / fast) {
+          const pick = this.pickMove(o, fierce ? ['fire', 'vanish', 'swoop', 'pillars'] : ['fire', 'vanish', 'swoop']) as FoxMove;
+          if (pick === 'swoop') { o.sx = o.x < rr.x + rr.w / 2 ? left : right; o.ex = o.sx === left ? right : left; }
+          go(pick);
+        }
+        break;
+      }
+      case 'fire': {
+        toward(o.x, ground - 14, 3);
+        const volley = (at: number) => {
+          if (o.t < at || o.t - dt >= at) return;
+          const n = fierce ? 5 : 3, aim = Math.atan2(b.y - 12 - (o.y - 8), b.x - o.x);
+          for (let i = 0; i < n; i++) {
+            const a = aim + (i - (n - 1) / 2) * 0.2;
+            this.shots.push({ kind: 'fire', x: o.x + o.face * 10, y: o.y - 8, vx: Math.cos(a) * 185, vy: Math.sin(a) * 185, grav: 0, r: 5, dmg: 18, hero: false, life: 3, spin: 0 });
+          }
+          this.events.push('fire');
+        };
+        volley(0.45 / fast);
+        if (fierce) volley(0.95 / fast);
+        if (o.t > (fierce ? 1.3 : 0.9) / fast) go('float');
+        break;
+      }
+      case 'vanish':
+        // He bursts into bats…
+        if (o.t >= 0.2 && o.t - dt < 0.2) { bats(8); this.events.push('flap'); }
+        if (o.t > 0.7 / fast) { o.x = clamp(b.x - b.face * 60, left, right); o.y = ground; o.face = b.x > o.x ? 1 : -1; bats(6); go('appear'); }
+        break;
+      case 'appear':
+        // …and gathers again behind the lead.
+        if (o.t > 0.35) go('lunge');
+        break;
+      case 'lunge':
+        // A sweep of the cape along the floor.
+        if (o.t > 0.3) {
+          o.x = clamp(o.x + o.face * 330 * fast * dt, left, right);
+          if (Math.floor(o.t * 20) !== Math.floor((o.t - dt) * 20)) this.fx.push({ kind: 'dust', x: o.x - o.face * 14, y: floor - 2, t: 0, vx: -o.face * 40, vy: -20 });
+        }
+        if (o.t > 0.8) go('float');
+        break;
+      case 'swoop': {
+        if (o.t < 0.4) { toward(o.sx, top, 6); break; }
+        const u = Math.min(1, (o.t - 0.4) / (1.3 / fast));
+        o.face = o.ex > o.sx ? 1 : -1;
+        o.x = o.sx + (o.ex - o.sx) * u;
+        o.y = top + (ground - top) * Math.sin(Math.PI * u);
+        if (u >= 1) go('float');
+        break;
+      }
+      case 'pillars': {
+        // He raises a paw; the floor glows under the heroes and either side, then fire roars up.
+        toward(o.x, top + 20, 2);
+        if (o.t <= dt * 1.5) o.sx = b.x;
+        const spots = [-64, 0, 64].map((d) => clamp(o.sx + d, left, right));
+        if (o.t < 0.7 && Math.floor(o.t * 16) !== Math.floor((o.t - dt) * 16)) for (const x of spots) this.fx.push({ kind: 'ember', x: x + (this.rand() - 0.5) * 12, y: floor - 2, t: 0, vx: 0, vy: -40 });
+        if (o.t >= 0.7 && o.t - dt < 0.7) {
+          for (const x of spots) for (const d of [-6, 6]) this.shots.push({ kind: 'flame', x: x + d, y: floor - 6, vx: 0, vy: 0, grav: 0, r: 6, dmg: 16, hero: false, life: 1.1, spin: 0 });
+          this.events.push('burst');
+        }
+        if (o.t > 1.6) go('float');
+        break;
+      }
+      case 'dying':
+        o.y -= 12 * dt;
+        if (Math.floor(o.t * 8) !== Math.floor((o.t - dt) * 8)) bats(2);
         break;
     }
   }
@@ -1237,14 +1416,14 @@ export class FluffstevaniaGame {
     this.flags.add(`boss:${o.kind}`);
     this.fight = false;
     this.boss = null;
-    this.kills[o.kind === 'rat' ? 'rat_king' : 'owl'] = (this.kills[o.kind === 'rat' ? 'rat_king' : 'owl'] ?? 0) + 1;
+    this.kills[BOSS_KILLS[o.kind]] = (this.kills[BOSS_KILLS[o.kind]] ?? 0) + 1;
     this.gainXp(BOSSES[o.kind].xp);
     this.pickups.push({ kind: 'leaf', id: 'leaf', amount: 1, x: o.x, y: o.y, vy: -120, t: 0, flag: `leaf:${o.kind}`, fixed: false });
-    for (let i = 0; i < 24; i++) this.fx.push({ kind: 'ash', x: o.x + (this.rand() - 0.5) * 40, y: o.y + (this.rand() - 0.5) * 30, t: -this.rand() * 0.3, vx: (this.rand() - 0.5) * 60, vy: -20 - this.rand() * 40, color: o.kind === 'owl' ? '#c8b088' : '#d8c070' });
+    for (let i = 0; i < 24; i++) this.fx.push({ kind: 'ash', x: o.x + (this.rand() - 0.5) * 40, y: o.y + (this.rand() - 0.5) * 30, t: -this.rand() * 0.3, vx: (this.rand() - 0.5) * 60, vy: -20 - this.rand() * 40, color: o.kind === 'owl' ? '#c8b088' : o.kind === 'rat' ? '#d8c070' : '#3a1020' });
     this.events.push('victory');
     // A beaten boss is saved at once, so falling later never brings them back.
     this.saved = this.snapshot();
-    this.talk(`${o.kind}Down`, `chapter${o.kind === 'owl' ? 1 : 2}`);
+    this.talk(`${o.kind}Down`, `chapter${{ owl: 1, rat: 2, fox: 3 }[o.kind]}`);
   }
 
   private shotStep(dt: number) {
@@ -1300,7 +1479,7 @@ export class FluffstevaniaGame {
         }
         for (const c of this.candles) if (s.life > 0 && c.alive && overlap(box, { x: c.x - 4, y: c.y - 12, w: 8, h: 14 })) { this.snuff(c); if (!s.pierce) s.life = 0; }
         const o = this.boss;
-        if (s.life > 0 && o && o.move !== 'dying' && o.move !== 'enter' && overlap(box, this.bossBox(o))) {
+        if (s.life > 0 && o && this.bossOpen(o) && overlap(box, this.bossBox(o))) {
           if (s.kind === 'pumpkin') { bursts.push([s.x, s.y]); s.life = 0; }
           else if (strike(-1)) { this.heavy = !!(s.heavy || s.spell); this.hitBoss(s.dmg, 0); this.heavy = false; this.gainDuo(2); }
         }

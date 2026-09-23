@@ -3,29 +3,33 @@
 // world coordinates, so walking off one room's edge simply lands in the room next door.
 
 export const COLS = 24, ROWS = 14, TILE = 16;
-export type AreaId = 'approach' | 'hall' | 'cellar' | 'belfry' | 'catacombs';
+export type AreaId = 'approach' | 'hall' | 'cellar' | 'belfry' | 'catacombs' | 'library';
 export const AREAS: Record<AreaId, { name: string; color: string }> = {
   approach: { name: 'Moonlit Approach', color: '#6f8fd8' },
   hall: { name: 'Entrance Hall', color: '#b07fd8' },
   cellar: { name: 'Hay Cellar', color: '#d8a86f' },
   belfry: { name: 'Owl Belfry', color: '#7fd8b8' },
   catacombs: { name: 'Pantry Catacombs', color: '#9fd878' },
+  library: { name: 'Count Culpeo’s Library', color: '#e07888' },
 };
 
 /**
  * Tiles: `#` wall, `=` ledge you can jump up through, `^` spikes, `%` a cracked wall that breaks when hit,
- * `G` a boss gate (shut during the fight), `D` a sealed door (open once the room's `opens` flag is set). Things
+ * `G` a boss gate (shut during the fight), `D` a sealed door (open once the room's `opens` flag is set), `|` an iron
+ * grate (a wall to everything but a hero in Mist Form). Things
  * placed on the map: `S` dust-bath shrine (saves and heals), `$` Pip's shop, `i` candle, `n` sign, `H` Wolfberry
  * Leaf (max HP up), `R` relic, `I` item, `U` sub-weapon, `O` boss, the familiars waiting to be befriended
  * (`P` Pudding, `Z` Zippy's cage, `Y` Mochi), and enemies `b` bat, `m` dust moth, `k` shell beetle,
- * `x` bone mouse, `a` armadillo guard, `r` pantry rat, `g` jar ghost, `p` cellar spider.
+ * `x` bone mouse, `a` armadillo guard, `r` pantry rat, `g` jar ghost, `p` cellar spider, `v` flying tome, `q` ink
+ * quill, `j` ink blot. `1`, `2` and `3` are the bookshelves of a room's puzzle: striking the one numbered `puzzle`
+ * sets the room's `opens` flag.
  */
 export type Room = {
   id: string; area: AreaId; mx: number; my: number; w: number; h: number; rows: string[];
-  notes?: string[]; items?: string[]; relic?: RelicId; boss?: BossId; opens?: string; sub?: SubId;
+  notes?: string[]; items?: string[]; relic?: RelicId; boss?: BossId; opens?: string; sub?: SubId; puzzle?: 1 | 2 | 3;
 };
-export type RelicId = 'dash' | 'hop';
-export type BossId = 'owl' | 'rat';
+export type RelicId = 'dash' | 'hop' | 'mist';
+export type BossId = 'owl' | 'rat' | 'fox';
 
 type Pen = {
   fill: (c0: number, r0: number, c1: number, r1: number, ch?: string) => void;
@@ -119,7 +123,8 @@ export const ROOMS: Room[] = [
     p.fill(23, 9, 23, 11, '.');         // up to the second shrine
     p.fill(16, 12, 23, 12);
     p.put(11, 21, '====='); p.put(5, 17, '====='); p.put(11, 13, '====');
-    p.put(6, 6, '====='); p.put(8, 5, 'U');   // seven tiles up: a Cloud Hop reward p.put(18, 20, 'i'); p.put(3, 14, 'i'); p.put(19, 9, 'i');
+    p.put(6, 6, '====='); p.put(8, 5, 'U');   // seven tiles up: a Cloud Hop reward
+    p.put(18, 20, 'i'); p.put(3, 14, 'i'); p.put(19, 9, 'i');
     p.put(19, 11, 'Z');
     p.put(8, 3, 'b'); p.put(15, 16, 'm'); p.put(20, 24, 'k');
   }, { sub: 'acorn' }),
@@ -196,12 +201,107 @@ export const ROOMS: Room[] = [
     p.put(24, 4, 'O');
   }, { boss: 'rat' }),
 
-  room('library', 'catacombs', 17, 0, 1, 1, (p) => {
+  room('library', 'library', 17, 0, 1, 1, (p) => {
+    p.box(); p.fill(0, 12, 23, 13); p.fill(0, 0, 23, 3);
+    p.fill(0, 9, 0, 11, '.'); p.fill(23, 9, 23, 11, '.');
+    p.fill(17, 4, 20, 11, 'D');
+    p.put(13, 11, 'n'); p.put(8, 8, 'i');
+  }, { opens: 'boss:rat', notes: ['COUNT CULPEO’S LIBRARY. No crumbs. No chinchillas. The lock answers only to the Rat King, who keeps the key under his throne.'] }),
+
+  // ─── Chapter III: Count Culpeo's Library ──────────────────────────────────
+  room('reading', 'library', 18, 0, 3, 1, (p) => {
+    p.box(); p.fill(0, 0, 71, 1); p.fill(0, 12, 71, 13);
+    p.fill(0, 9, 0, 11, '.'); p.fill(71, 9, 71, 11, '.');
+    p.fill(30, 12, 33, 13, '.');        // a hole down into the stacks
+    p.put(10, 8, '======'); p.put(20, 9, '====='); p.put(38, 8, '======');
+    // A reading nook high on the right, behind an iron grate: only Mist Form slips in.
+    p.put(48, 9, '====='); p.put(53, 7, '=====');
+    p.fill(59, 2, 59, 6, '|'); p.fill(59, 7, 70, 7);
+    p.put(65, 6, 'H');
+    p.put(4, 11, 'n');
+    p.put(6, 8, 'i'); p.put(24, 7, 'i'); p.put(44, 8, 'i'); p.put(64, 10, 'i');
+    p.put(14, 5, 'v'); p.put(40, 4, 'v'); p.put(27, 4, 'q'); p.put(12, 11, 'j'); p.put(52, 11, 'j');
+  }, { notes: ['READING ROOM. Silence, please. The books here have not been fed.'] }),
+
+  room('stacks', 'library', 19, 1, 1, 2, (p) => {
+    p.box(); p.fill(0, 0, 1, 27); p.fill(22, 0, 23, 27); p.fill(0, 26, 23, 27);
+    p.fill(6, 0, 9, 0, '.');            // up into the reading room
+    p.fill(0, 23, 1, 25, '.');          // lower left, to the Mist Form vault
+    p.fill(22, 23, 23, 25, '.');        // lower right, to the archive
+    p.put(4, 3, '========'); p.put(10, 6, '=========='); p.put(4, 10, '=========='); p.put(10, 14, '==========');
+    p.put(4, 18, '=========='); p.put(10, 22, '==========');
+    p.put(18, 5, 'i'); p.put(3, 13, 'i'); p.put(19, 20, 'i');
+    p.put(8, 8, 'v'); p.put(16, 17, 'v'); p.put(18, 11, 'q'); p.put(14, 25, 'j');
+  }),
+
+  room('mist-vault', 'library', 18, 2, 1, 1, (p) => {
+    p.box(); p.fill(0, 12, 23, 13); p.fill(0, 0, 23, 3);
+    p.fill(23, 9, 23, 11, '.');
+    p.fill(8, 11, 11, 11); p.put(9, 10, 'R');
+    p.put(4, 8, 'i'); p.put(15, 8, 'i'); p.put(17, 11, 'j');
+  }, { relic: 'mist' }),
+
+  room('archive', 'library', 20, 2, 2, 1, (p) => {
+    p.box(); p.fill(0, 0, 47, 2); p.fill(0, 12, 47, 13);
+    p.fill(0, 9, 0, 11, '.'); p.fill(47, 9, 47, 11, '.');
+    // Three shelves: the sign says which book the Count reads. The right one opens the hidden door.
+    p.put(12, 11, '1'); p.put(20, 11, '2'); p.put(28, 11, '3');
+    p.fill(41, 3, 42, 11, 'D');
+    p.put(5, 11, 'n');
+    p.put(24, 8, '======');
+    p.put(8, 8, 'i'); p.put(24, 6, 'i'); p.put(36, 8, 'i');
+    p.put(16, 5, 'v'); p.put(34, 4, 'v'); p.put(30, 4, 'q'); p.put(36, 11, 'j');
+  }, { opens: 'puzzle:archive', puzzle: 2, notes: ['THE COUNT’S ARCHIVE. He reads one book, over and over: the one bound the colour of his eyes. Pull it, and mind the others; they bite.'] }),
+
+  room('reliquary', 'library', 22, 2, 1, 1, (p) => {
     p.box(); p.fill(0, 12, 23, 13); p.fill(0, 0, 23, 3);
     p.fill(0, 9, 0, 11, '.');
-    p.fill(17, 6, 20, 11, 'D');
-    p.put(13, 11, 'n'); p.put(8, 8, 'i');
-  }, { notes: ['COUNT CULPEO’S LIBRARY. No crumbs. No chinchillas. The door is locked from the other side, and this chapter of Fluffstevania is still being written. Check back soon!'] }),
+    p.fill(9, 11, 14, 11); p.put(10, 10, 'I'); p.put(13, 10, 'H');
+    p.put(5, 8, 'i'); p.put(18, 8, 'i');
+  }, { items: ['tome'] }),
+
+  room('save-library', 'library', 21, 0, 1, 1, (p) => {
+    p.box(); p.fill(0, 12, 23, 13); p.fill(0, 0, 23, 3);
+    p.fill(0, 9, 0, 11, '.'); p.fill(23, 9, 23, 11, '.');
+    p.put(11, 11, 'S'); p.put(5, 8, 'i'); p.put(18, 8, 'i');
+  }),
+
+  room('scriptorium', 'library', 22, 0, 2, 1, (p) => {
+    p.box(); p.fill(0, 0, 47, 1); p.fill(0, 12, 47, 13);
+    p.fill(0, 9, 0, 11, '.'); p.fill(47, 9, 47, 11, '.');
+    p.put(8, 8, '====='); p.put(14, 5, '======'); p.put(30, 8, '=====');
+    p.put(16, 4, 'I');
+    // The way on to the Count's tower is barred by an iron grate.
+    p.fill(44, 2, 45, 8); p.fill(44, 9, 45, 11, '|');
+    p.put(40, 11, 'n');
+    p.put(4, 8, 'i'); p.put(14, 7, 'i'); p.put(26, 6, 'i'); p.put(36, 8, 'i');
+    p.put(12, 4, 'q'); p.put(33, 4, 'q'); p.put(22, 11, 'j'); p.put(28, 3, 'v');
+  }, { items: ['tea'], notes: ['An iron grate, bolted shut. Beyond it the Count’s tower climbs into the dark. Only a wisp of dust could slip between these bars.'] }),
+
+  room('tower', 'library', 24, 0, 1, 2, (p) => {
+    p.box(); p.fill(0, 0, 23, 1); p.fill(0, 0, 1, 27); p.fill(22, 0, 23, 27); p.fill(0, 26, 23, 27);
+    p.fill(0, 9, 1, 11, '.');           // in from the scriptorium
+    p.fill(0, 12, 8, 13);               // the landing
+    p.fill(22, 23, 23, 25, '.');        // down at the bottom, out to the study
+    p.put(10, 14, '========'); p.put(4, 18, '========'); p.put(12, 22, '========');
+    p.put(5, 8, 'i'); p.put(18, 12, 'i'); p.put(3, 22, 'i');
+    p.put(14, 6, 'b'); p.put(16, 17, 'v'); p.put(6, 21, 'q');
+  }),
+
+  room('study', 'library', 25, 1, 2, 1, (p) => {
+    p.box(); p.fill(0, 12, 47, 13); p.fill(0, 0, 47, 2);
+    p.fill(0, 9, 0, 11, '.'); p.fill(47, 9, 47, 11, '.');
+    p.fill(1, 9, 1, 11, 'G'); p.fill(46, 9, 46, 11, 'G');
+    p.put(8, 8, '====='); p.put(35, 8, '=====');
+    p.put(24, 4, 'O');
+  }, { boss: 'fox' }),
+
+  room('balcony', 'library', 27, 1, 1, 1, (p) => {
+    p.box(); p.fill(0, 12, 23, 13); p.fill(0, 0, 23, 3);
+    p.fill(0, 9, 0, 11, '.');
+    p.fill(19, 5, 21, 11, 'D');
+    p.put(8, 11, 'S'); p.put(15, 11, 'n'); p.put(4, 8, 'i'); p.put(13, 8, 'i');
+  }, { notes: ['The stair beyond climbs to the Clock Tower, where Count Culpeo fled. The door is locked from above, and this chapter of Fluffstevania is still being written. Check back soon!'] }),
 
   room('larder', 'catacombs', 11, 3, 3, 1, (p) => {
     p.box(); p.fill(0, 0, 71, 1); p.fill(0, 12, 71, 13);
@@ -249,6 +349,7 @@ export const GEAR: Record<string, Gear> = {
   ironclaws: { name: 'Iron Claws', slot: 'weapon', hero: 'enzo', style: 'claws', atk: 10, reach: 4, text: 'Pip’s finest paw guards. Quick lunging swipes that really sting.' },
   acorn: { name: 'Acorn Cudgel', slot: 'weapon', hero: 'enzo', style: 'club', atk: 9, text: 'A hard acorn on a stick. Slow, heavy swings.' },
   pin: { name: 'Rolling Pin', slot: 'weapon', hero: 'enzo', style: 'club', atk: 16, reach: 4, text: 'A marble rolling pin from the larder. Heavy, and very flattening.' },
+  tome: { name: 'Heavy Tome', slot: 'weapon', hero: 'enzo', style: 'club', atk: 24, reach: 6, text: 'The Count’s favourite book, bound in red. Enzo has never read it, but he swings it beautifully.' },
   scarf: { name: 'Wool Scarf', slot: 'armor', def: 2, text: 'Knitted by Grandpa Pebble. Warm and a little protective.' },
   cape: { name: 'Moth Cape', slot: 'armor', def: 5, text: 'Dusty moth wings stitched into a cape.' },
   helm: { name: 'Thimble Helm', slot: 'armor', def: 8, text: 'A silver thimble worn as a helmet. Surprisingly sturdy.' },
@@ -266,6 +367,7 @@ export const FOOD: Record<string, { name: string; heal: number; text: string }> 
 export const RELICS: Record<RelicId, { name: string; text: string }> = {
   dash: { name: 'Dust Dash', text: 'Burst forward in a puff of dust, even once in mid-air. Dash then jump to leap far.' },
   hop: { name: 'Cloud Hop', text: 'Jump once more in mid-air, off a puff of dust.' },
+  mist: { name: 'Mist Form', text: 'Walk into an iron grate to become a wisp of dust and drift through the bars.' },
 };
 // ─── Sub-weapons, spells and familiars ────────────────────────────────────
 
@@ -304,6 +406,10 @@ export const LORE: Record<string, { weak: string; line: string }> = {
   spider: { weak: 'Stand aside as it drops, then strike.', line: 'Knits the cobwebs. Very proud of the corners.' },
   owl: { weak: 'Jump the swoop, hit him when he lands.', line: 'A duke of the belfry who has never once rung the bell.' },
   rat_king: { weak: 'Hit him while he is dizzy from a charge.', line: 'Sits on a throne of cheese and does not share.' },
+  book: { weak: 'Sidestep the snap, then strike its spine.', line: 'A dictionary with opinions. Most of them are bites.' },
+  quill: { weak: 'Jump the ink, close in while it dips.', line: 'Writes the Count’s letters. The handwriting is terrible.' },
+  ink: { weak: 'Back off as it gathers, hit it after it lands.', line: 'A spilt inkwell that decided to keep going.' },
+  culpeo: { weak: 'Strike as he reappears; jump his fireballs.', line: 'An old fox of very old blood, and the master of the castle.' },
 };
 /** Pip's stall in the catacombs. `seeds` is a bundle of ten sunflower seeds. */
 export const SHOP: { id: string; price: number }[] = [
@@ -314,7 +420,7 @@ export const itemName = (id: string) => (id === 'seeds' ? 'Sunflower Seeds ×10'
 
 // ─── Story ────────────────────────────────────────────────────────────────
 
-export type Speaker = HeroId | 'owl' | 'rat' | 'pip' | 'sign' | PalId;
+export type Speaker = HeroId | 'owl' | 'rat' | 'fox' | 'pip' | 'sign' | PalId;
 export type Line = { who: Speaker; text: string };
 export const SCRIPTS: Record<string, Line[]> = {
   intro: [
@@ -390,6 +496,27 @@ export const SCRIPTS: Record<string, Line[]> = {
     { who: 'rat', text: 'Nobody passes through. Everybody gets NIBBLED.' },
     { who: 'enzo', text: 'Okay. Now I’m offended.' },
   ],
+  library: [
+    { who: 'dora', text: 'Books. Floor to ceiling. And every one of them is... breathing?' },
+    { who: 'enzo', text: 'That one just licked its pages at me.' },
+    { who: 'dora', text: 'The Count must be close. Keep your paws off the shelves.' },
+  ],
+  mist: [
+    { who: 'sign', text: 'You found Mist Form! Walk into an iron grate and you’ll puff into a wisp of dust and drift right through.' },
+    { who: 'enzo', text: 'That grate in the scriptorium. The one in front of the tower.' },
+  ],
+  fox: [
+    { who: 'fox', text: 'Well, well. Dust in my library. I did so wonder who had been rattling my Rat King.' },
+    { who: 'dora', text: 'You’re Count Culpeo. We’ve come for the Golden Wolfberry.' },
+    { who: 'fox', text: 'Everyone comes for the Wolfberry. I keep their dust baths as souvenirs. Shall we begin?' },
+    { who: 'enzo', text: 'He has our dust baths?! Dora, get him.' },
+  ],
+  foxDown: [
+    { who: 'fox', text: 'Enough! You fight well, for snacks. But this was only a taste.' },
+    { who: 'fox', text: 'The Wolfberry waits atop my Clock Tower. Come and take it, if you dare climb.' },
+    { who: 'dora', text: 'He turned into bats! Get back here!' },
+    { who: 'enzo', text: 'He dropped something shiny. And there’s a shrine out on the balcony. I need a dust bath.' },
+  ],
   ratDown: [
     { who: 'rat', text: 'My cheese... my throne... Fine! Go on to the Count’s library. He’ll swallow you in one bite.' },
     { who: 'enzo', text: 'Why does everyone in this castle want to eat us?' },
@@ -397,4 +524,4 @@ export const SCRIPTS: Record<string, Line[]> = {
   ],
 };
 /** Scripts that play the first time the heroes enter a room. */
-export const ROOM_SCRIPTS: Record<string, string> = { path: 'intro', hall: 'hall', cellar: 'cellar', 'crypt-stair': 'crypt', 'save-crypt': 'pip', larder: 'larder' };
+export const ROOM_SCRIPTS: Record<string, string> = { path: 'intro', hall: 'hall', cellar: 'cellar', 'crypt-stair': 'crypt', 'save-crypt': 'pip', larder: 'larder', reading: 'library' };

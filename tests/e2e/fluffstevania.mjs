@@ -116,6 +116,22 @@ try {
   await page.getByTestId('music').click();
   assert.equal(await page.getByTestId('music').getAttribute('aria-pressed'), 'false');
 
+  // A save in Count Culpeo's Library loads there, and the map opens scrolled across to it.
+  const library = { ...crypt, room: 'save-library', x: 21 * 384 + 11 * 16 + 8, y: 12 * 16, level: 11, relics: ['dash', 'hop'], flags: [...crypt.flags, 'boss:rat', 'script:library'] };
+  await page.goto(`${base}/fluffstevania`);
+  await page.evaluate((s) => localStorage.setItem('fluffstevania-v1', JSON.stringify(s)), library);
+  await page.reload();
+  await ready(page);
+  await page.getByTestId('continue').click();
+  await board(page).waitFor();
+  assert.equal(await data(page, 'room'), 'save-library');
+  await page.keyboard.press('Escape');
+  await page.getByRole('tab', { name: 'Map' }).click();
+  await page.setViewportSize({ width: 700, height: 900 });
+  await page.getByRole('tab', { name: 'Status' }).click(); await page.getByRole('tab', { name: 'Map' }).click();
+  assert.ok(await page.getByTestId('map-scroll').evaluate((el) => el.scrollLeft > 0), 'the map scrolls to the library');
+  await page.setViewportSize({ width: 1280, height: 900 });
+
   // Phones get the pad and no sideways scroll.
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
   phone.on('pageerror', (e) => errors.push(e.message));
@@ -126,7 +142,7 @@ try {
   assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'no sideways scroll on a phone');
 
   assert.deepEqual(errors, []);
-  console.log('PASS Fluffstevania browser: difficulty, story, walking, attack, tag, drawn castle, pausing menu with every tab and the map legend, continue from an older save, equipping a fan, the Magic tab and Bestiary, Pip’s shop, warping between shrines, the music toggle, phone layout.');
+  console.log('PASS Fluffstevania browser: difficulty, story, walking, attack, tag, drawn castle, pausing menu with every tab and the map legend, continue from an older save, equipping a fan, the Magic tab and Bestiary, Pip’s shop, warping between shrines, the music toggle, a library save and the scrolling map, phone layout.');
 } finally {
   await browser.close();
 }

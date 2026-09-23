@@ -116,7 +116,8 @@
 .fv-gear small { color: var(--muted); font-size: 15px; }
 .fv-icon { width: 32px; height: 32px; flex-shrink: 0; }
 .fv-shell .fv-gear > .fv-food { flex: 0 0 32px; display: block; width: 32px; text-align: center; font-size: 22px; }
-.fv-map > canvas { display: block; width: 100%; max-width: 640px; height: auto; margin: 0 auto; border: 1px solid var(--line); border-radius: 4px; }
+.fv-map-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: 4px; background: #0c0714; }
+.fv-map-scroll canvas { display: block; }
 .fv-map p { text-align: center; }
 .fv-legend { list-style: none; margin: 8px auto 0; padding: 0; max-width: 640px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 12px; }
 .fv-legend li { display: flex; align-items: center; gap: 6px; font-size: 16px; }
