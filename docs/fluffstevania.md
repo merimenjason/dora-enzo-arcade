@@ -7,6 +7,7 @@ A Symphony of the Night-style castle explorer starring Dora and Enzo. Route: `/f
 - `lib/fluffstevania-world.ts`: the map (every room drawn with a small pen of `fill` and `put` calls), gear, food, relics, Pip's shop list and the story lines.
 - `lib/fluffstevania-game.ts`: the deterministic engine, with physics, combat, the tag, enemies, both bosses, pickups, shrines, the shop, saves and the menu actions.
 - `lib/fluffstevania-scene.ts`: Canvas 2D drawing (see **Graphics** below).
+- `lib/fluffstevania-music.ts`: the synthesised music (see **Music** below).
 - `app/fluffstevania/page.tsx`: the title screen, game loop, dialogue box, menu, shop, game-over and chapter cards, touch pad and saving. `fluffstevania.css` loads the Cinzel and Cormorant Garamond faces from Google Fonts; the canvas uses them once they arrive and Georgia until then.
 - `tests/fluffstevania.mjs` and `tests/e2e/fluffstevania.mjs`.
 
@@ -48,7 +49,7 @@ Twelve rooms on 22 cells:
 
 - **Moonlit Approach:** `path` (2 screens) and `gate`.
 - **Entrance Hall:** `hall` (3×2), with a staircase of ledges up to a broken gallery, and `save-hall`.
-- **Hay Cellar:** `shaft` (1×2), `cellar` (3 screens), `relic` (the Dust Dash) and `secret`, which sits behind a cracked wall and holds the Acorn Cudgel and Moonlit Sabre.
+- **Hay Cellar:** `shaft` (1×2), `cellar` (3 screens), `relic` (the Dust Dash) and `secret`, which sits behind a cracked wall and holds the Acorn Cudgel and Moonlit Fan. The cellar also has the Seed Spread on a shelf and Pudding the guinea pig.
 - **Owl Belfry:** `stair` (1×2), `save-belfry`, `belfry` (the boss) and `sealed`.
 
 The gallery gap is 9 tiles wide. A running jump covers about 6. A jump and an air dash, or a dash into a jump, covers 10 or more.
@@ -64,7 +65,7 @@ Nine rooms on 17 cells, all in the `catacombs` area:
 - `save-crypt`: a shrine and Pip's stall. Its ceiling opens into the chimney, but the first ledge is seven tiles up. One jump rises about 5 tiles and the Cloud Hop adds about 4 more, so only the hop reaches it.
 - `larder` (3 screens): ledges climb back up to the ossuary hole. The Rolling Pin sits on a shelf.
 - `hop-vault`: the Cloud Hop on a pedestal past a 9-tile spike trench that needs the Dust Dash.
-- `jam-vault`: the Wolfberry Blade and a Wolfberry Leaf on a ledge six tiles above the last one.
+- `jam-vault`: the Wolfberry Fan and a Wolfberry Leaf on a ledge six tiles above the last one.
 - `chimney` (1×2): the climb from the shrine to the throne room.
 - `throne` (2 screens): Gnawdrick the Rat King.
 - `library`: a locked door and the sign where the story pauses for now.
@@ -84,18 +85,78 @@ Weapon styles:
 
 | Style | Reach | Wind-up / active / total (s) | Damage × ATK | Lunge (px/s) |
 | --- | --- | --- | --- | --- |
-| Rapier (Dora) | 40 | 0.05 / 0.1 / 0.28 | 1 | 60 |
+| Fan (Dora) | 34 (24 tall) | 0.05 / 0.1 / 0.3 | 1 | 40 |
 | Claws (Enzo) | 28 | 0.03 / 0.1 / 0.22 | 0.75 | 190 |
 | Club (Enzo) | 30 | 0.12 / 0.1 / 0.42 | 1.3 | 100 |
 
-Reach is measured from 4 pixels in front of the hero's middle, and gear can add to it (Moonlit Sabre +6, Wolfberry Blade +10, Iron Claws +4, Rolling Pin +4).
+Reach is measured from 4 pixels in front of the hero's middle, and gear can add to it (Moonlit Fan +6, Wolfberry Fan +10, Iron Claws +4, Rolling Pin +4).
 
 - **Lunge:** a ground attack carries the hero forward at the lunge speed through the wind-up and live frames. It stops when it connects with something, including a shield, and it never carries anyone off a ledge. A connecting lunge gives 0.15 s of safety so it doesn't run into the foe's body. Enzo's claws cover about 20 pixels this way.
 - **In the air:** an attack keeps your momentum.
 - **Damage:** `ATK × multiplier − foe DEF`, at least 1. Luck is the percentage chance of a 1.5× critical, and it also raises drop rates.
 - **Hitstop:** a melee hit on a foe freezes the world for 0.05 s (0.08 s on a critical); a hit on a boss freezes it for 0.04 s. Tag tumbles and seeds don't.
 
-Older saves are updated when they load: the Ribbon Whip becomes the Dust Rapier and the Bramble Whip becomes the Moonlit Sabre.
+Older saves are updated when they load. The Ribbon Whip and Dust Rapier become the Dust Fan, the Bramble Whip and Moonlit Sabre become the Moonlit Fan, and the Wolfberry Blade becomes the Wolfberry Fan. Saves without the newer fields start on Normal with full Dust, the seed as their only sub-weapon and no familiars.
+
+### Combos, the fan and the Duo Strike
+
+- **Combo:** pressing attack in a swing's recovery, or within 0.22 s of it ending, chains the next hit. The third hit is a finisher that does 1.5× damage. With the fan it blows a big gust that goes through foes; with claws it uppercuts foes 330 px/s into the air; with a club it sends two short quakes along the floor.
+- **Gusts:** every fan sweep blows a gust ahead at the start of its live frames: 260 px/s for 0.35 s, half ATK. Shields stop gusts as they stop swings.
+- **Spin:** Dora holds attack after a swing for 0.55 s and lets go. She whirls for 0.5 s, hitting 38 px either side twice, at 2× ATK.
+- **Duo meter:** fills from damaging hits: melee +7, tag tumbles +10, boss melee +5, boss tags +8, shots +3 (+2 on a boss). It's full at 100.
+- **Duo Strike:** press tag and attack together, or V, Q or LT. It lasts 1 s, during which the world holds still and the heroes are invincible. At 0.55 s every foe, boss and candle in view takes `(Dora's ATK + Enzo's ATK) × 1.2 + 10`, and the frame freezes for 0.12 s.
+
+### Dust, spells and sub-weapons
+
+**Dust** is `30 + 2 per level`. It refills 1 every 1.2 s, and by 8 from the dust orbs candles sometimes drop.
+
+Spells are cast with the motion plus attack (numpad directions relative to facing, all within 0.5 s) or with F, RT or the pad's SPELL.
+
+| Spell | Hero | Learnt at | Motion | Dust | Effect |
+| --- | --- | --- | --- | --- | --- |
+| Whirlwind | Dora | Level 3 | ↓ ↘ → | 12 | A tornado drifting forward at 120 px/s for 1.6 s, hitting each foe every 0.25 s for `0.7 × ATK + 3`. |
+| Burrow Quake | Enzo | Level 4 | → ↓ ↘ | 15 | Two quakes at 210 px/s for 0.9 s, `1.4 × ATK + 6` each, throwing foes up. |
+
+Sub-weapons are thrown with ↑ + attack and cost seeds. You ready one from the Magic tab, and a new one is readied as you find it.
+
+| Sub-weapon | Seeds | Where | Effect |
+| --- | --- | --- | --- |
+| Sunflower Seed | 1 | from the start | An arc, `6 + 2 × level`; breaks cracked walls |
+| Seed Spread | 2 | cellar shelf | Three seeds fanned upward, `5 + 2 × level` each |
+| Boomerang Acorn | 2 | high on the belfry stair (Cloud Hop) | Out at 300 px/s, pulled back at 520 px/s², goes through foes, `8 + 2.2 × level` (again on the way back) |
+| Pumpkin Flask | 3 | larder shelf | Bursts on a wall, floor or foe into five flames on the floor below for 1.4 s, `6 + 1.6 × level` every 0.4 s |
+
+### Familiars
+
+A familiar joins through a small quest. The first to join comes along at once, and after that you choose from the Familiars tab. Only the one travelling with you gains XP: as much as the heroes do, needing `round(15 × level^1.5)` per level, up to level 10.
+
+| Familiar | Quest | What they do |
+| --- | --- | --- |
+| Pudding (guinea pig), `P` in the cellar | Talk to her with a Hay Cake in the bag. | When the lead is below 40% HP, heals `6 + 3 × level`, then waits `max(5, 12 − 0.6 × level)` s. |
+| Zippy (sugar glider), `Z` cage on the belfry stair | Three hits break the cage. | Rides on the lead's shoulder. Glides at the nearest foe within 150 px at 250 px/s for `3 + 2 × level`, every `max(0.6, 1.5 − 0.08 × level)` s. |
+| Mochi (capybara), `Y` by the catacomb shrine | Talk to her after beating the Rat King. | Knocks away one enemy shot within 40 px of the lead (not shockwaves), then waits `max(2, 7 − 0.45 × level)` s. Also gives away cracked walls. |
+
+### Rests, respawns and warps
+
+- **Respawns:** a defeated foe from a map marker stays down until you rest at a shrine or enter a different area. Foes a boss summons don't count.
+- **Warps:** a shrine is remembered once you touch it. With two or more, ↑ at a shrine opens the list and you step out of any other.
+- **Bosses:** a boss is saved the moment it falls. If its Wolfberry Leaf wasn't picked up, it waits in the room.
+- **Secrets:** with the Silver Bell worn by either hero, or Mochi along, the first cracked wall within 5 tiles of the lead in each room sparkles and chimes.
+- **Bestiary:** counts every kind of foe and each boss you defeat. It shows a silhouette until the first one falls, then the name, stats, weakness and a line of lore from `LORE`.
+
+### Difficulty
+
+Each new game picks a difficulty, and it's kept in the save.
+
+| | Foe HP | Foe damage | Doorways | Bosses |
+| --- | --- | --- | --- | --- |
+| Easy | 0.7× | 0.6× | Heal 15% of max HP on every room change | As Normal |
+| Normal | 1× | 1× | — | Phase two at half HP |
+| Hard | 1.5× | 1.5× | — | Phase-two moves from the start (the owl's dive and 2 more feathers; the Rat King's extra rocks and bouncing wheel), 1.1× faster |
+
+### Music
+
+`lib/fluffstevania-music.ts` synthesises a two-bar loop for each area and one for bosses: a lead, a bass line on the eighths and a chord pad in harmonic minor, scheduled ahead with Web Audio. The page switches themes as you change area or a boss appears. Its on/off setting is kept under `fluffstevania-v1-music`.
 
 Movement:
 
@@ -185,7 +246,7 @@ Everything is Canvas 2D in the 384×224 view, scaled up by the page.
 
 ## Saves
 
-`localStorage` key `fluffstevania-v1` holds the `Save` object. It's written only at shrines and loaded with `parseSave`, which rejects unknown rooms, drops unknown items and clamps HP to the maximum. A new game doesn't touch the save until its first shrine. Sound on or off is kept under `fluffstevania-v1-sound`.
+`localStorage` key `fluffstevania-v1` holds the `Save` object: position, level, HP, gear, bag, relics, flags, visited cells, raisins, seeds, time, leaves, difficulty, Dust, sub-weapons, familiars and Bestiary kills. It's written at shrines and when a boss falls, and loaded with `parseSave`, which rejects unknown rooms, drops unknown items, renames old weapons and clamps HP and Dust to the maximum. A new game doesn't touch the save until its first shrine. Sound on or off is kept under `fluffstevania-v1-sound`.
 
 ## Adding a chapter
 

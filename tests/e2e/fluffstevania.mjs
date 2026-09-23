@@ -16,7 +16,9 @@ try {
   await page.reload();
   await ready(page);
 
-  // A new game opens with the story; jump advances it.
+  // Pick Hard, then a new game opens with the story; jump advances it.
+  await page.getByTestId('diff-hard').click();
+  assert.equal(await page.getByTestId('diff-hard').getAttribute('aria-pressed'), 'true');
   await page.getByTestId('new-game').click();
   await page.getByTestId('dialog').waitFor();
   assert.match(await page.getByTestId('dialog').textContent(), /Golden Wolfberry/);
@@ -45,14 +47,15 @@ try {
   await page.keyboard.press('Escape');
   await page.getByTestId('menu').waitFor();
   const frozen = await data(page, 'x');
-  for (const tab of ['Equip', 'Items', 'Map', 'Status']) await page.getByRole('tab', { name: tab }).click();
+  for (const tab of ['Equip', 'Magic', 'Items', 'Familiars', 'Bestiary', 'Map', 'Status']) await page.getByRole('tab', { name: tab }).click();
+  assert.match(await page.getByTestId('menu').textContent(), /Hard/, 'the difficulty shows on Status');
   assert.match(await page.getByTestId('menu').textContent(), /Level 1/);
   await page.waitForTimeout(300);
   assert.equal(await data(page, 'x'), frozen, 'paused behind the menu');
   await page.getByRole('button', { name: 'Resume' }).first().click();
   await page.getByTestId('menu').waitFor({ state: 'detached' });
 
-  // Continue from an older shrine save (from when Dora had whips), then equip found gear.
+  // Continue from an older shrine save (from when Dora had whips), then equip found gear and ready a sub-weapon.
   const save = { v: 1, room: 'save-hall', x: 6 * 384 + 136, y: 2 * 224 + 192, level: 3, xp: 0, hp: { dora: 60, enzo: 80 }, leader: 'dora',
     equip: { dora: { weapon: 'ribbon', armor: null, acc: null }, enzo: { weapon: 'claws', armor: 'scarf', acc: null } }, bag: { bramble: 1 },
     relics: ['dash'], flags: ['script:intro'], visited: ['6,2'], raisins: 5, seeds: 10, time: 60, leaves: 0 };
@@ -66,8 +69,12 @@ try {
   assert.equal(await data(page, 'level'), '3');
   await page.getByTestId('menu-button').click();
   await page.getByRole('tab', { name: 'Equip' }).click();
-  await page.getByTestId('equip-sabre').click();
-  assert.match(await page.getByTestId('menu').textContent(), /Moonlit Sabre/);
+  await page.getByTestId('equip-moonfan').click();
+  assert.match(await page.getByTestId('menu').textContent(), /Moonlit Fan/);
+  await page.getByRole('tab', { name: 'Magic' }).click();
+  assert.match(await page.getByTestId('menu').textContent(), /Sunflower Seed/);
+  await page.getByRole('tab', { name: 'Bestiary' }).click();
+  assert.match(await page.getByTestId('beast-bat').textContent(), /\?\?\?/, 'nothing defeated in that old save');
   await page.getByTestId('menu-button').click();
   await page.getByTestId('menu').waitFor({ state: 'detached' });
 
@@ -88,6 +95,23 @@ try {
   await page.keyboard.press('Escape');
   await page.getByTestId('shop').waitFor({ state: 'detached' });
 
+  // Two shrines found: the catacomb shrine offers a warp back to the hall.
+  const warp = { ...crypt, x: 14 * 384 + 5 * 16 + 8, flags: [...crypt.flags, 'shrine:save-hall', 'shrine:save-crypt'] };
+  await page.goto(`${base}/fluffstevania`);
+  await page.evaluate((s) => localStorage.setItem('fluffstevania-v1', JSON.stringify(s)), warp);
+  await page.reload();
+  await ready(page);
+  await page.getByTestId('continue').click();
+  await board(page).waitFor();
+  await page.waitForTimeout(300);
+  await page.keyboard.press('ArrowUp');
+  await page.getByTestId('warp').waitFor();
+  await page.getByTestId('warp-save-hall').click();
+  await page.getByTestId('warp').waitFor({ state: 'detached' });
+  assert.equal(await data(page, 'room'), 'save-hall');
+  await page.getByTestId('music').click();
+  assert.equal(await page.getByTestId('music').getAttribute('aria-pressed'), 'false');
+
   // Phones get the pad and no sideways scroll.
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
   phone.on('pageerror', (e) => errors.push(e.message));
@@ -98,7 +122,7 @@ try {
   assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'no sideways scroll on a phone');
 
   assert.deepEqual(errors, []);
-  console.log('PASS Fluffstevania browser: story, walking, attack, tag, drawn castle, pausing menu with every tab, continue from an older save, equipping a sword, Pip’s shop, phone layout.');
+  console.log('PASS Fluffstevania browser: difficulty, story, walking, attack, tag, drawn castle, pausing menu with every tab, continue from an older save, equipping a fan, the Magic tab and Bestiary, Pip’s shop, warping between shrines, the music toggle, phone layout.');
 } finally {
   await browser.close();
 }

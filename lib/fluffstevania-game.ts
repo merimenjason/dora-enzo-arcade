@@ -2,17 +2,26 @@
 // out the same way, so the tests drive this engine directly. Positions are world pixels; heroes and walking
 // enemies stand with their feet at (x, y).
 import {
-  ROOMS, COLS, ROWS, TILE, START, GEAR, FOOD, RELICS, SCRIPTS, ROOM_SCRIPTS, AREAS, SHOP, RENAMED, itemName,
-  type Room, type HeroId, type Slot, type Line, type RelicId, type WeaponStyle, type AreaId, type BossId,
+  ROOMS, COLS, ROWS, TILE, START, GEAR, FOOD, RELICS, SCRIPTS, ROOM_SCRIPTS, AREAS, SHOP, RENAMED, SUBS, SPELLS, PALS, LORE, itemName,
+  type Room, type HeroId, type Slot, type Line, type RelicId, type WeaponStyle, type AreaId, type BossId, type SubId, type SpellId, type PalId,
 } from './fluffstevania-world.js';
 
-export { ROOMS, COLS, ROWS, TILE, GEAR, FOOD, RELICS, AREAS, SCRIPTS, SHOP, itemName };
-export type { Room, HeroId, Slot, Line, RelicId, AreaId, BossId, WeaponStyle };
+export { ROOMS, COLS, ROWS, TILE, GEAR, FOOD, RELICS, AREAS, SCRIPTS, SHOP, SUBS, SPELLS, PALS, LORE, itemName };
+export type { Room, HeroId, Slot, Line, RelicId, AreaId, BossId, WeaponStyle, SubId, SpellId, PalId };
 export const VIEW_W = COLS * TILE, VIEW_H = ROWS * TILE;
 export const SCREEN_W = VIEW_W, SCREEN_H = VIEW_H;
 
-export type Input = { left: boolean; right: boolean; up: boolean; down: boolean; jump: boolean; attack: boolean; dash: boolean; tag: boolean };
-export const NO_INPUT: Input = { left: false, right: false, up: false, down: false, jump: false, attack: false, dash: false, tag: false };
+/** `spell` casts the lead's spell without the motion; `duo` is the tag-team finisher (tag + attack together works too). */
+export type Input = { left: boolean; right: boolean; up: boolean; down: boolean; jump: boolean; attack: boolean; dash: boolean; tag: boolean; spell: boolean; duo: boolean };
+export const NO_INPUT: Input = { left: false, right: false, up: false, down: false, jump: false, attack: false, dash: false, tag: false, spell: false, duo: false };
+
+export type Difficulty = 'easy' | 'normal' | 'hard';
+/** Foes' HP and damage are scaled; Easy heals a little at every doorway; Hard bosses use their fiercest moves from the start. */
+export const DIFFICULTY: Record<Difficulty, { name: string; foeHp: number; foeAtk: number; doorHeal: number; text: string }> = {
+  easy: { name: 'Easy', foeHp: 0.7, foeAtk: 0.6, doorHeal: 0.15, text: 'Gentler foes, and every doorway heals a little.' },
+  normal: { name: 'Normal', foeHp: 1, foeAtk: 1, doorHeal: 0, text: 'The castle as it was built.' },
+  hard: { name: 'Hard', foeHp: 1.5, foeAtk: 1.5, doorHeal: 0, text: 'Tougher foes, and bosses fight all-out from the start.' },
+};
 
 // ─── The map ──────────────────────────────────────────────────────────────
 
@@ -49,19 +58,28 @@ export const LEAF_HP = 10;
  * swing carries the hero forward at `lunge` px/s through the wind-up and the live frames, stopping when it connects.
  */
 export const STYLES: Record<WeaponStyle, { reach: number; h: number; windup: number; active: number; total: number; mult: number; lunge: number }> = {
-  rapier: { reach: 40, h: 8, windup: 0.05, active: 0.1, total: 0.28, mult: 1, lunge: 60 },
+  fan: { reach: 34, h: 24, windup: 0.05, active: 0.1, total: 0.3, mult: 1, lunge: 40 },
   claws: { reach: 28, h: 18, windup: 0.03, active: 0.1, total: 0.22, mult: 0.75, lunge: 190 },
   club: { reach: 30, h: 20, windup: 0.12, active: 0.1, total: 0.42, mult: 1.3, lunge: 100 },
 };
 
 export const G = 1400, JUMP_V = 470, JUMP_CUT = 150, MAX_FALL = 480;
 export const DASH_V = 340, DASH_T = 0.24, DASH_JUMP_V = 290, HOP_V = 420;
+/** Attack pressed within COMBO_T of a swing ending chains the next hit; the third hit is a finisher. */
+export const COMBO_T = 0.22, FINISHER_MULT = 1.5;
+/** Dora holds attack this long, then lets go, for the fan's whirlwind spin. */
+export const CHARGE_T = 0.55, SPIN = { total: 0.5, active: [0.05, 0.4] as const, reach: 38, mult: 2 };
+export const DUO_MAX = 100, DUO_T = 1;
+export const maxMp = (level: number) => 30 + 2 * (level - 1);
+export const palXpToNext = (level: number) => Math.round(15 * level ** 1.5);
 export const HERO_W = 12, HERO_H = 20, TAG_T = 0.44, TAG_ARC = 0.2, TAG_CD = 1, FOLLOW = 22;
 
 type Body = {
   x: number; y: number; vx: number; vy: number; face: 1 | -1; ground: boolean; coyote: number; jumpBuf: number;
   dashT: number; dashCd: number; airDash: boolean; dashJump: boolean; attackT: number; attackId: number; attackHero: HeroId;
   hurtT: number; invT: number; dropT: number; run: number; subCd: number; hopped: boolean; lungeStop: boolean;
+  /** 0, 1 or 2: which hit of the combo string this swing is. */
+  combo: number; comboT: number; charge: number; spin: boolean; castT: number;
 };
 export type Tag = { t: number; hero: HeroId; sx: number; sy: number; hits: Set<number> };
 export type Follower = { x: number; y: number; face: 1 | -1; air: boolean; moving: boolean; run: number };
@@ -84,6 +102,8 @@ const FOE_CHARS: Record<string, FoeKind> = { b: 'bat', m: 'moth', k: 'beetle', x
 export const GHOST_ON = 2.4, GHOST_OFF = 1.4;
 export const ghostFaded = (e: Enemy) => e.kind === 'ghost' && e.t % (GHOST_ON + GHOST_OFF) > GHOST_ON;
 export type Enemy = {
+  /** Which map marker it came from, so a defeated one stays down. Summoned foes have none. */
+  key?: string;
   id: number; kind: FoeKind; x: number; y: number; vx: number; vy: number; hp: number; face: 1 | -1; t: number;
   state: 'idle' | 'awake' | 'wind' | 'lunge' | 'rest' | 'throw'; stateT: number; flash: number; hx: number; hy: number;
   ground: boolean; hitId: number; dead: number;
@@ -102,8 +122,20 @@ export type Boss = {
   t: number; face: 1 | -1; flash: number; phase2: boolean; summoned: boolean; sx: number; ex: number; side: number; last: string[]; hitId: number;
 };
 
-export type Shot = { kind: 'seed' | 'bone' | 'feather' | 'wave' | 'cheese' | 'rock'; x: number; y: number; vx: number; vy: number; grav: number; r: number; dmg: number; hero: boolean; life: number; spin: number };
-export type Pickup = { kind: 'raisin' | 'seeds' | 'food' | 'gear' | 'leaf' | 'relic'; id: string; amount: number; x: number; y: number; vy: number; t: number; flag?: string; fixed: boolean };
+/**
+ * A projectile. Hero shots that `pierce` hit each foe once (or again every `rehit` seconds) instead of stopping.
+ * `ax` pulls the Boomerang Acorn back.
+ */
+export type Shot = {
+  kind: 'seed' | 'bone' | 'feather' | 'wave' | 'cheese' | 'rock' | 'gust' | 'acorn' | 'pumpkin' | 'flame' | 'wind' | 'quake';
+  x: number; y: number; vx: number; vy: number; grav: number; r: number; dmg: number; hero: boolean; life: number; spin: number;
+  pierce?: boolean; hits?: Map<number, number>; rehit?: number; ax?: number; launch?: boolean; t?: number;
+};
+export type Pickup = { kind: 'raisin' | 'seeds' | 'food' | 'gear' | 'leaf' | 'relic' | 'dust' | 'sub'; id: string; amount: number; x: number; y: number; vy: number; t: number; flag?: string; fixed: boolean };
+/** Zippy's cage on the belfry stair: three hits break it. */
+export type Cage = { x: number; y: number; hp: number; flash: number };
+/** The familiar travelling with the heroes. */
+export type PalBody = { x: number; y: number; face: 1 | -1; cd: number; act: number; target: number; t: number };
 export type Candle = { x: number; y: number; alive: boolean; c: number; r: number };
 export type Pop = { x: number; y: number; text: string; t: number; color: string };
 export type Fx = {
@@ -123,11 +155,14 @@ export type Save = {
   v: 1; room: string; x: number; y: number; level: number; xp: number; hp: Record<HeroId, number>; leader: HeroId;
   equip: Record<HeroId, Equip>; bag: Record<string, number>; relics: RelicId[]; flags: string[]; visited: string[];
   raisins: number; seeds: number; time: number; leaves: number;
+  difficulty: Difficulty; mp: number; subs: SubId[]; sub: SubId; pals: Partial<Record<PalId, { level: number; xp: number }>>; pal: PalId | null;
+  kills: Record<string, number>;
 };
-export const freshSave = (): Save => ({
+export const freshSave = (difficulty: Difficulty = 'normal'): Save => ({
   v: 1, room: START.room, x: START.x, y: START.y, level: 1, xp: 0, hp: { dora: BASE.dora.hp, enzo: BASE.enzo.hp }, leader: 'dora',
-  equip: { dora: { weapon: 'rapier', armor: null, acc: null }, enzo: { weapon: 'claws', armor: 'scarf', acc: null } },
+  equip: { dora: { weapon: 'fan', armor: null, acc: null }, enzo: { weapon: 'claws', armor: 'scarf', acc: null } },
   bag: {}, relics: [], flags: [], visited: [], raisins: 0, seeds: 10, time: 0, leaves: 0,
+  difficulty, mp: maxMp(1), subs: ['seed'], sub: 'seed', pals: {}, pal: null, kills: {},
 });
 /** A save read back from storage, or null when it doesn't look like one. */
 export function parseSave(raw: string | null): Save | null {
@@ -143,11 +178,23 @@ export function parseSave(raw: string | null): Save | null {
     };
     const bag: Record<string, number> = {};
     for (const [old, n] of Object.entries(v.bag ?? {})) { const k = renamed(old)!; if ((GEAR[k] || FOOD[k]) && typeof n === 'number' && n > 0) bag[k] = (bag[k] ?? 0) + Math.floor(n); }
+    const subs = strs(v.subs).filter((x): x is SubId => x in SUBS);
+    if (!subs.includes('seed')) subs.unshift('seed');
+    const pals: Save['pals'] = {};
+    for (const id of Object.keys(PALS) as PalId[]) {
+      const p = v.pals?.[id];
+      if (p && typeof p === 'object') pals[id] = { level: Math.max(1, Math.min(10, Math.floor(num(p.level, 1)))), xp: Math.max(0, num(p.xp, 0)) };
+    }
+    const kills: Record<string, number> = {};
+    for (const [k, n] of Object.entries(v.kills ?? {})) if (k in LORE && typeof n === 'number' && n > 0) kills[k] = Math.floor(n);
+    const level = Math.max(1, Math.floor(num(v.level, 1)));
     return {
-      v: 1, room: v.room, x: num(v.x, f.x), y: num(v.y, f.y), level: Math.max(1, Math.floor(num(v.level, 1))), xp: Math.max(0, num(v.xp, 0)),
+      v: 1, room: v.room, x: num(v.x, f.x), y: num(v.y, f.y), level, xp: Math.max(0, num(v.xp, 0)),
       hp: { dora: num(v.hp?.dora, f.hp.dora), enzo: num(v.hp?.enzo, f.hp.enzo) }, leader: v.leader === 'enzo' ? 'enzo' : 'dora',
       equip: { dora: eq('dora'), enzo: eq('enzo') }, bag, relics: strs(v.relics).filter((r): r is RelicId => r in RELICS),
       flags: strs(v.flags), visited: strs(v.visited), raisins: num(v.raisins, 0), seeds: num(v.seeds, 10), time: num(v.time, 0), leaves: num(v.leaves, 0),
+      difficulty: v.difficulty in DIFFICULTY ? v.difficulty : 'normal', mp: Math.max(0, Math.min(maxMp(level), num(v.mp, maxMp(level)))),
+      subs, sub: subs.includes(v.sub) ? v.sub : 'seed', pals, pal: typeof v.pal === 'string' && v.pal in pals ? v.pal : null, kills,
     };
   } catch { return null; }
 }
@@ -161,6 +208,16 @@ export class FluffstevaniaGame {
   level: number; xp: number; hp: Record<HeroId, number>; leader: HeroId; equipped: Record<HeroId, Equip>;
   bag: Record<string, number>; relics: Set<RelicId>; flags: Set<string>; visited: Set<string>;
   raisins: number; seeds: number; time: number; leaves: number;
+  difficulty: Difficulty; mp: number; subs: Set<SubId>; sub: SubId; pals: Partial<Record<PalId, { level: number; xp: number }>>; pal: PalId | null;
+  kills: Record<string, number>;
+  /** The tag-team meter; full at DUO_MAX. `duoT` runs while the finisher plays. */
+  duo = 0; duoT = -1;
+  palBody: PalBody = { x: 0, y: 0, face: 1, cd: 0, act: 0, target: -1, t: 0 };
+  cage: Cage | null = null;
+  /** Foes defeated since the last rest or change of area, by marker; they stay down until then. */
+  slain = new Set<string>();
+  /** The shrine warp list is open. */
+  warp = false;
   body: Body; room: Room; follower: Follower; trail: { x: number; y: number; face: 1 | -1; air: boolean }[] = [];
   tag: Tag | null = null; tagCd = 0;
   enemies: Enemy[] = []; boss: Boss | null = null; fight = false; shots: Shot[] = []; pickups: Pickup[] = []; candles: Candle[] = [];
@@ -186,21 +243,31 @@ export class FluffstevaniaGame {
   private atShrine = false;
   private sign = -1;
   private stall = false;
+  private npc: PalId | null = null;
+  private motion: { code: number; t: number }[] = [];
+  private lastCode = 5;
+  private mpT = 0;
+  private chimed = new Set<string>();
+  private chimeT = 0;
 
   constructor(save: Save = freshSave()) {
     this.level = save.level; this.xp = save.xp; this.hp = { ...save.hp }; this.leader = save.leader;
     this.equipped = { dora: { ...save.equip.dora }, enzo: { ...save.equip.enzo } }; this.bag = { ...save.bag };
     this.relics = new Set(save.relics); this.flags = new Set(save.flags); this.visited = new Set(save.visited);
     this.raisins = save.raisins; this.seeds = save.seeds; this.time = save.time; this.leaves = save.leaves;
+    this.difficulty = save.difficulty ?? 'normal'; this.mp = save.mp ?? maxMp(save.level); this.subs = new Set(save.subs ?? ['seed']); this.sub = save.sub ?? 'seed';
+    this.pals = Object.fromEntries(Object.entries(save.pals ?? {}).map(([k, v]) => [k, { ...v }])); this.pal = save.pal ?? null; this.kills = { ...save.kills };
     for (const h of ['dora', 'enzo'] as HeroId[]) this.hp[h] = Math.max(0, Math.min(Math.round(this.hp[h]), this.stats(h).maxHp));
     if (this.hp[this.leader] <= 0) this.leader = other(this.leader);
     if (this.hp[this.leader] <= 0) { this.hp.dora = this.stats('dora').maxHp; this.hp.enzo = this.stats('enzo').maxHp; }
     this.body = {
       x: save.x, y: save.y, vx: 0, vy: 0, face: 1, ground: false, coyote: 0, jumpBuf: 0, dashT: 0, dashCd: 0, airDash: false, dashJump: false,
       attackT: 0, attackId: 0, attackHero: this.leader, hurtT: 0, invT: 0, dropT: 0, run: 0, subCd: 0, hopped: false, lungeStop: false,
+      combo: 0, comboT: 9, charge: 0, spin: false, castT: 0,
     };
     this.room = roomById(save.room);
     this.follower = { x: save.x - FOLLOW, y: save.y, face: 1, air: false, moving: false, run: 0 };
+    this.palBody = { x: save.x - FOLLOW - 12, y: save.y - 20, face: 1, cd: 0, act: 0, target: -1, t: 0 };
     this.enter(this.room, true);
     this.resetTrail();
     this.snapCamera();
@@ -221,10 +288,13 @@ export class FluffstevaniaGame {
   }
   weaponOf(h: HeroId) {
     const id = this.equipped[h].weapon, gear = id ? GEAR[id] : null;
-    const style = gear?.style ?? (h === 'dora' ? 'rapier' : 'claws');
+    const style = gear?.style ?? (h === 'dora' ? 'fan' : 'claws');
     return { style, ...STYLES[style], reach: STYLES[style].reach + (gear?.reach ?? 0) };
   }
   get partner() { return other(this.leader); }
+  get maxMp() { return maxMp(this.level); }
+  /** The lead's spell, once they're high enough level to know it. */
+  spellOf(h: HeroId): SpellId | null { const id = (Object.keys(SPELLS) as SpellId[]).find((k) => SPELLS[k].hero === h)!; return this.level >= SPELLS[id].level ? id : null; }
   has(r: RelicId) { return this.relics.has(r); }
   get completion() { return Math.round((this.visited.size / TOTAL_CELLS) * 100); }
 
@@ -304,15 +374,19 @@ export class FluffstevaniaGame {
   // ─── Rooms ──────────────────────────────────────────────────────────────
   private enter(room: Room, first = false) {
     const prevArea = this.room?.area;
+    // Leaving an area lets its foes return; within an area they stay down until a rest.
+    if (!first && prevArea !== room.area) this.slain.clear();
     this.room = room;
     this.enemies = []; this.shots = []; this.candles = []; this.boss = null; this.fight = false;
-    this.pickups = [];
+    this.pickups = []; this.cage = null; this.chimed.clear();
     let item = 0;
     const rx = room.mx * COLS, ry = room.my * ROWS;
     for (let r = 0; r < room.rows.length; r++) for (let c = 0; c < room.rows[r].length; c++) {
       const ch = room.rows[r][c], wc = rx + c, wr = ry + r, x = (wc + 0.5) * TILE, y = (wr + 1) * TILE;
-      const kind = FOE_CHARS[ch];
-      if (kind) this.spawn(kind, x, kind === 'bat' ? wr * TILE + FOES.bat.h + 2 : y);
+      const kind = FOE_CHARS[ch], key = `${room.id}:${c},${r}`;
+      if (kind) { if (!this.slain.has(key)) this.spawn(kind, x, kind === 'bat' ? wr * TILE + FOES.bat.h + 2 : y).key = key; }
+      else if (ch === 'Z' && !this.pals.zippy) this.cage = { x, y, hp: 3, flash: 0 };
+      else if (ch === 'U' && room.sub && !this.subs.has(room.sub)) this.pickups.push({ kind: 'sub', id: room.sub, amount: 1, x, y: y - 4, vy: 0, t: 0, flag: `sub:${room.sub}`, fixed: true });
       else if (ch === 'i') this.candles.push({ x, y: wr * TILE + 12, alive: true, c: wc, r: wr });
       else if (ch === 'I') {
         const id = room.items?.[item++], flag = `item:${room.id}:${item - 1}`;
@@ -322,13 +396,20 @@ export class FluffstevaniaGame {
     }
     if (!first && prevArea !== room.area) this.banner = { text: AREAS[room.area].name, t: 2.4 };
     if (first) this.banner = { text: AREAS[room.area].name, t: 2.4 };
+    const heal = DIFFICULTY[this.difficulty].doorHeal;
+    if (!first && heal) for (const h of ['dora', 'enzo'] as HeroId[]) if (this.hp[h] > 0) this.hp[h] = Math.min(this.stats(h).maxHp, this.hp[h] + Math.ceil(this.stats(h).maxHp * heal));
+    // A boss's leaf waits in their room if it wasn't picked up before the game was saved.
+    if (room.boss && this.flags.has(`boss:${room.boss}`) && !this.flags.has(`leaf:${room.boss}`)) {
+      const rr = roomRect(room);
+      this.pickups.push({ kind: 'leaf', id: 'leaf', amount: 1, x: rr.x + rr.w / 2, y: rr.y + 12 * TILE - 4, vy: 0, t: 0, flag: `leaf:${room.boss}`, fixed: true });
+    }
     const script = ROOM_SCRIPTS[room.id];
     if (script && !this.flags.has(`script:${script}`)) { this.flags.add(`script:${script}`); this.talk(script); }
     this.atShrine = true; this.sign = -1;
   }
   private spawn(kind: FoeKind, x: number, y: number) {
     const f = FOES[kind];
-    const e: Enemy = { id: this.nextId++, kind, x, y, vx: 0, vy: 0, hp: f.hp, face: -1, t: this.rand() * 3, state: 'idle', stateT: 0, flash: 0, hx: x, hy: y, ground: false, hitId: -1, dead: 0 };
+    const e: Enemy = { id: this.nextId++, kind, x, y, vx: 0, vy: 0, hp: Math.round(f.hp * DIFFICULTY[this.difficulty].foeHp), face: -1, t: this.rand() * 3, state: 'idle', stateT: 0, flash: 0, hx: x, hy: y, ground: false, hitId: -1, dead: 0 };
     this.enemies.push(e);
     return e;
   }
@@ -364,7 +445,7 @@ export class FluffstevaniaGame {
       this.prev = { ...input };
       return;
     }
-    if (this.state !== 'play' || this.shop) { this.prev = { ...input }; return; }
+    if (this.state !== 'play' || this.shop || this.warp) { this.prev = { ...input }; return; }
     // Hitstop freezes the world for a moment. Presses made meanwhile still count afterwards.
     if (this.hitstop > 0) { this.hitstop = Math.max(0, this.hitstop - dt); return; }
     this.time += dt;
@@ -372,6 +453,9 @@ export class FluffstevaniaGame {
     if (this.banner && (this.banner.t -= dt) <= 0) this.banner = null;
     this.shake = Math.max(0, this.shake - dt);
     this.tagCd = Math.max(0, this.tagCd - dt);
+    for (this.mpT += dt; this.mpT >= 1.2; this.mpT -= 1.2) this.mp = Math.min(this.maxMp, this.mp + 1);
+    // The tag-team finisher plays out while the rest of the world holds still.
+    if (this.duoT >= 0) { this.duoStep(dt); this.particles(dt); this.prev = { ...input }; return; }
 
     this.control(dt, input, pressed);
     this.roomCheck();
@@ -381,7 +465,13 @@ export class FluffstevaniaGame {
     this.bossStep(dt);
     this.shotStep(dt);
     this.pickupStep(dt);
+    this.palStep(dt);
     this.touchStep(pressed);
+    this.secretStep(dt);
+    this.particles(dt);
+    this.prev = { ...input };
+  }
+  private particles(dt: number) {
     for (const p of this.pops) { p.t += dt; p.y -= 22 * dt; }
     this.pops = this.pops.filter((p) => p.t < 0.9);
     for (const f of this.fx) {
@@ -397,13 +487,20 @@ export class FluffstevaniaGame {
     const tx = clamp(b.x + b.face * 24 - VIEW_W / 2, r.x, r.x + r.w - VIEW_W), ty = clamp(b.y - 12 - VIEW_H / 2, r.y, r.y + r.h - VIEW_H);
     this.cam.x += (tx - this.cam.x) * Math.min(1, dt * 8);
     this.cam.y += (ty - this.cam.y) * Math.min(1, dt * 8);
-    this.prev = { ...input };
   }
 
   private control(dt: number, input: Input, pressed: (k: keyof Input) => boolean) {
     const b = this.body, me = this.stats(this.leader);
     b.invT = Math.max(0, b.invT - dt); b.dashCd = Math.max(0, b.dashCd - dt); b.subCd = Math.max(0, b.subCd - dt); b.dropT = Math.max(0, b.dropT - dt);
-    if (b.attackT > 0) b.attackT = Math.max(0, b.attackT - dt);
+    if (b.attackT > 0) {
+      const w = this.weaponOf(b.attackHero), before = b.attackT;
+      b.attackT = Math.max(0, b.attackT - dt);
+      // The spin hits twice.
+      if (b.spin && SPIN.total - before < 0.22 && SPIN.total - b.attackT >= 0.22) b.attackId++;
+      if (!b.spin && w.style === 'fan' && w.total - before < w.windup && w.total - b.attackT >= w.windup) this.gust();
+      if (b.attackT <= 0) { b.comboT = 0; b.spin = false; }
+    } else b.comboT += dt;
+    b.castT = Math.max(0, b.castT - dt);
     const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
     if (pressed('jump')) b.jumpBuf = 0.1; else b.jumpBuf = Math.max(0, b.jumpBuf - dt);
 
@@ -414,15 +511,19 @@ export class FluffstevaniaGame {
     } else if (b.hurtT > 0) {
       b.hurtT -= dt;
     } else {
-      if (pressed('tag')) this.doTag(false);
+      const duo = this.duo >= DUO_MAX && this.hp[this.partner] > 0 && (pressed('duo') || (pressed('tag') && input.attack) || (pressed('attack') && input.tag));
+      if (duo) { this.startDuo(); return; }
+      if (pressed('tag') && !duo) this.doTag(false);
       if (b.dashT > 0) {
         b.dashT -= dt; b.vx = b.face * DASH_V; b.vy = 0;
         if (this.time % 0.05 < dt) this.fx.push({ kind: 'dust', x: b.x - b.face * 6, y: b.y - 3, t: 0, vx: -b.face * 30, vy: -10 });
         if (b.dashT <= 0) b.dashCd = 0.12;
+      } else if (b.castT > 0 && b.ground) {
+        b.vx = 0;
       } else if (b.attackT > 0 && b.ground) {
         // A ground swing roots you, except for the lunge that carries you into it.
         const w = this.weaponOf(b.attackHero), into = w.total - b.attackT;
-        const lunging = w.lunge > 0 && !b.lungeStop && into < w.windup + w.active && this.supported(b.x + b.face * 8, b.y, 4);
+        const lunging = !b.spin && w.lunge > 0 && !b.lungeStop && into < w.windup + w.active && this.supported(b.x + b.face * 8, b.y, 4);
         b.vx = lunging ? b.face * w.lunge : 0;
       } else {
         const speed = b.dashJump && !b.ground ? DASH_JUMP_V : me.speed;
@@ -448,15 +549,7 @@ export class FluffstevaniaGame {
         for (let i = 0; i < 5; i++) this.fx.push({ kind: 'dust', x: b.x + (i - 2) * 4, y: b.y, t: 0, vx: (i - 2) * 30, vy: 30 });
       }
       if (!input.jump && b.vy < -JUMP_CUT && b.dashT <= 0) b.vy = -JUMP_CUT;
-      if (pressed('attack') && b.attackT <= 0) {
-        if (input.up && this.seeds > 0 && b.subCd <= 0) this.throwSeed();
-        else {
-          const w = this.weaponOf(this.leader);
-          b.attackT = w.total; b.attackId++; b.attackHero = this.leader; b.dashT = 0; b.lungeStop = false;
-          if (dir) b.face = dir as 1 | -1;
-          this.events.push(w.style === 'rapier' ? 'thrust' : w.style === 'club' ? 'club' : 'swipe');
-        }
-      }
+      this.attackInput(input, pressed, dir, dt);
     }
     if (b.dashT <= 0 && !(this.tag && this.tag.t >= TAG_ARC)) b.vy = Math.min(b.vy + G * dt, MAX_FALL);
     const wasGround = b.ground;
@@ -474,11 +567,113 @@ export class FluffstevaniaGame {
     if (b.ground && this.tile(Math.floor(b.x / TILE), Math.floor(b.y / TILE + 0.01)) === '^') this.hurtHero(12, b.x + b.face, true);
   }
 
-  private throwSeed() {
-    const b = this.body;
-    this.seeds--; b.subCd = 0.35;
-    this.shots.push({ kind: 'seed', x: b.x + b.face * 6, y: b.y - 14, vx: b.face * 200 + b.vx * 0.3, vy: -240, grav: 800, r: 4, dmg: 6 + this.level * 2, hero: true, life: 2, spin: 0 });
+  /** Which way the stick points, in numpad notation relative to the way the lead faces (5 is neutral). */
+  private motionCode(input: Input, dir: number) {
+    const fwd = dir * this.body.face;
+    return input.down ? (fwd > 0 ? 3 : fwd < 0 ? 1 : 2) : input.up ? 8 : fwd > 0 ? 6 : fwd < 0 ? 4 : 5;
+  }
+  /** Whether the last few directions pressed, within half a second, spell out `seq`. */
+  private motionMatches(seq: number[]) {
+    const recent = this.motion.filter((m) => m.t >= this.time - 0.5).map((m) => m.code);
+    return recent.length >= seq.length && seq.every((code, i) => recent[recent.length - seq.length + i] === code);
+  }
+  private attackInput(input: Input, pressed: (k: keyof Input) => boolean, dir: number, dt: number) {
+    const b = this.body, w = this.weaponOf(this.leader);
+    const code = this.motionCode(input, dir);
+    if (code !== this.lastCode) { if (code !== 5) { this.motion.push({ code, t: this.time }); if (this.motion.length > 6) this.motion.shift(); } this.lastCode = code; }
+    const spell = this.spellOf(this.leader);
+    if (spell && b.attackT <= 0 && b.castT <= 0 && (pressed('spell') || (pressed('attack') && this.motionMatches(SPELLS[spell].motion)))) { this.cast(spell); return; }
+    if (pressed('spell') && !spell) { this.say(`${this.leader === 'dora' ? 'Dora' : 'Enzo'} learns a spell at level ${SPELLS[this.leader === 'dora' ? 'whirlwind' : 'quake'].level}.`); return; }
+    // Dora's fan: hold attack after a swing, then let go, for a whirlwind spin.
+    if (w.style === 'fan' && input.attack && b.attackT <= 0 && !input.up) b.charge += dt;
+    else if (!input.attack) {
+      if (b.charge >= CHARGE_T && b.attackT <= 0 && w.style === 'fan') {
+        b.attackT = SPIN.total; b.spin = true; b.attackId++; b.attackHero = this.leader; b.combo = 0; b.lungeStop = true;
+        this.events.push('spin');
+      }
+      b.charge = 0;
+    }
+    if (!pressed('attack')) return;
+    const into = w.total - b.attackT;
+    const recovering = b.attackT > 0 && !b.spin && b.attackHero === this.leader && into >= w.windup + w.active;
+    if (b.attackT > 0 && !recovering) return;
+    if (input.up && b.attackT <= 0) { if (b.subCd <= 0) this.throwSub(); return; }
+    b.combo = (recovering || b.comboT < COMBO_T) && b.combo < 2 ? b.combo + 1 : 0;
+    b.attackT = w.total; b.attackId++; b.attackHero = this.leader; b.dashT = 0; b.lungeStop = false; b.spin = false; b.charge = 0;
+    if (dir) b.face = dir as 1 | -1;
+    this.events.push(b.combo === 2 ? 'finisher' : w.style === 'fan' ? 'fan' : w.style === 'club' ? 'club' : 'swipe');
+    if (b.combo === 2 && w.style === 'club') for (const d of [-1, 1]) this.heroShot('quake', b.x + d * 12, b.y - 6, d * 170, 0, 7, this.stats(this.leader).atk * 0.8, 0.45, { pierce: true, launch: true });
+  }
+  /** A hero projectile. */
+  private heroShot(kind: Shot['kind'], x: number, y: number, vx: number, vy: number, r: number, dmg: number, life: number, extra: Partial<Shot> = {}) {
+    const s: Shot = { kind, x, y, vx, vy, grav: 0, r, dmg, hero: true, life, spin: 0, t: 0, ...extra };
+    if (s.pierce) s.hits = new Map();
+    this.shots.push(s);
+    return s;
+  }
+  /** Each fan sweep blows a little gust of dust ahead; the combo's third sweep blows a big one that goes through foes. */
+  private gust() {
+    const b = this.body, atk = this.stats(b.attackHero).atk, big = b.combo === 2;
+    this.heroShot('gust', b.x + b.face * 14, b.y - 13, b.face * (big ? 300 : 260), 0, big ? 9 : 5, atk * (big ? 0.9 : 0.5), big ? 0.6 : 0.35, big ? { pierce: true } : {});
+  }
+  private throwSub() {
+    const b = this.body, sub = SUBS[this.sub], lv = this.level, f = b.face;
+    if (this.seeds < sub.cost) { this.say(`Not enough seeds for the ${sub.name}.`); b.subCd = 0.3; return; }
+    this.seeds -= sub.cost; b.subCd = 0.35;
+    const x = b.x + f * 6, y = b.y - 14;
+    if (this.sub === 'seed') this.heroShot('seed', x, y, f * 200 + b.vx * 0.3, -240, 4, 6 + lv * 2, 2, { grav: 800 });
+    else if (this.sub === 'spread') for (const vy of [-250, -170, -90]) this.heroShot('seed', x, y, f * 230 + b.vx * 0.3, vy, 4, 5 + lv * 2, 2, { grav: 800 });
+    else if (this.sub === 'acorn') this.heroShot('acorn', x, b.y - 12, f * 300, 0, 6, 8 + lv * 2.2, 1.6, { ax: -f * 520, pierce: true, rehit: 0.35 });
+    else this.heroShot('pumpkin', x, y, f * 150 + b.vx * 0.3, -280, 5, 0, 3, { grav: 800 });
     this.events.push('seed');
+  }
+  /** The Pumpkin Flask bursts into a row of flames on the floor below where it broke. */
+  private burst(x: number, y: number) {
+    let floor = Math.floor(y / TILE);
+    while (floor < Math.floor(y / TILE) + 6 && !isSolid(this.tile(Math.floor(x / TILE), floor))) floor++;
+    for (let i = -2; i <= 2; i++) {
+      const fx = x + i * 11;
+      if (isSolid(this.tile(Math.floor(fx / TILE), floor - 1))) continue;
+      this.heroShot('flame', fx, floor * TILE - 6, 0, 0, 6, 6 + this.level * 1.6, 1.4, { pierce: true, rehit: 0.4 });
+    }
+    this.events.push('burst');
+  }
+  private cast(id: SpellId) {
+    const sp = SPELLS[id], b = this.body;
+    this.motion = [];
+    if (this.mp < sp.cost) { this.say(`Not enough Dust for ${sp.name}.`); this.events.push('fizzle'); return; }
+    this.mp -= sp.cost; b.castT = 0.4; b.attackT = 0; b.combo = 0; b.charge = 0;
+    const atk = this.stats(this.leader).atk;
+    if (id === 'whirlwind') this.heroShot('wind', b.x + b.face * 16, b.y - 14, b.face * 120, 0, 12, atk * 0.7 + 3, 1.6, { pierce: true, rehit: 0.25 });
+    else { for (const d of [-1, 1]) this.heroShot('quake', b.x + d * 10, b.y - 6, d * 210, 0, 8, atk * 1.4 + 6, 0.9, { pierce: true, launch: true }); this.shake = 0.4; }
+    this.events.push('spell');
+    for (let i = 0; i < 8; i++) this.fx.push({ kind: 'star', x: b.x, y: b.y - 14, t: -i * 0.02, vx: Math.cos(i) * 40, vy: Math.sin(i) * 40 });
+  }
+  /** Fill the tag-team meter. */
+  private gainDuo(n: number) {
+    if (this.hp[this.partner] <= 0 || this.duo >= DUO_MAX) return;
+    this.duo = Math.min(DUO_MAX, this.duo + n);
+    if (this.duo >= DUO_MAX) { this.say('Duo Strike ready! Press tag and attack together.'); this.events.push('duoready'); }
+  }
+  /** Both heroes dash across the screen together, striking every foe in view. */
+  private startDuo() {
+    const b = this.body;
+    this.duo = 0; this.duoT = 0; b.attackT = 0; b.charge = 0; b.dashT = 0;
+    b.invT = Math.max(b.invT, DUO_T + 0.4);
+    this.events.push('duo'); this.shake = 0.3;
+  }
+  private duoStep(dt: number) {
+    const before = this.duoT;
+    this.duoT += dt;
+    if (before < 0.55 && this.duoT >= 0.55) {
+      const view = { x: this.cam.x, y: this.cam.y, w: VIEW_W, h: VIEW_H };
+      const dmg = (this.stats('dora').atk + this.stats('enzo').atk) * 1.2 + 10, lck = this.stats(this.leader).lck;
+      for (const e of this.enemies) if (!e.dead && overlap(view, this.foeBox(e))) this.hitFoe(e, dmg, e.x - 1, true, lck, true);
+      if (this.boss && this.boss.move !== 'dying' && this.boss.move !== 'enter' && overlap(view, this.bossBox(this.boss))) this.hitBoss(dmg, lck);
+      for (const c of this.candles) if (c.alive && overlap(view, { x: c.x - 4, y: c.y - 12, w: 8, h: 14 })) this.snuff(c);
+      this.shake = 0.5; this.hitstop = 0.12; this.events.push('crit');
+    }
+    if (this.duoT >= DUO_T) this.duoT = -1;
   }
 
   /** Swap heroes. The one coming in tumbles from behind to the front, hurting anything on the way. */
@@ -536,6 +731,10 @@ export class FluffstevaniaGame {
   attackBox(): Box | null {
     const b = this.body;
     if (b.attackT <= 0) return null;
+    if (b.spin) {
+      const into = SPIN.total - b.attackT;
+      return into < SPIN.active[0] || into > SPIN.active[1] ? null : { x: b.x - SPIN.reach, y: b.y - 28, w: SPIN.reach * 2, h: 30 };
+    }
     const w = this.weaponOf(b.attackHero), into = w.total - b.attackT;
     if (into < w.windup || into > w.windup + w.active) return null;
     const x = b.face > 0 ? b.x + 4 : b.x - 4 - w.reach;
@@ -550,17 +749,30 @@ export class FluffstevaniaGame {
       b.lungeStop = true; b.invT = Math.max(b.invT, 0.15);
       this.fx.push({ kind: 'slash', x: box!.x + box!.w / 2, y: box!.y + box!.h / 2, t: 0, vx: b.face, vy: 0 });
     };
+    const w = this.weaponOf(b.attackHero), finisher = b.combo === 2 && !b.spin;
+    const mult = b.spin ? SPIN.mult : w.mult * (finisher ? FINISHER_MULT : 1);
+    // Enzo's third swipe is an uppercut that throws foes into the air.
+    const launch = finisher && w.style === 'claws';
     for (const e of this.enemies) {
       if (e.dead || ghostFaded(e)) continue;
       const eb = this.foeBox(e);
-      if (box && e.hitId !== b.attackId && overlap(box, eb)) { e.hitId = b.attackId; if (this.hitFoe(e, me.atk * this.weaponOf(b.attackHero).mult, b.x, false, me.lck)) landed(); else b.lungeStop = true; }
-      if (tagBox && tagger && !this.tag!.hits.has(e.id) && overlap(tagBox, eb)) { this.tag!.hits.add(e.id); this.hitFoe(e, tagger.atk * 1.6 + 4, tp!.x, true, tagger.lck); }
+      if (box && e.hitId !== b.attackId && overlap(box, eb)) {
+        e.hitId = b.attackId;
+        if (this.hitFoe(e, me.atk * mult, b.x, false, me.lck, launch)) { landed(); this.gainDuo(7); } else b.lungeStop = true;
+      }
+      if (tagBox && tagger && !this.tag!.hits.has(e.id) && overlap(tagBox, eb)) { this.tag!.hits.add(e.id); this.hitFoe(e, tagger.atk * 1.6 + 4, tp!.x, true, tagger.lck); this.gainDuo(10); }
     }
     const boss = this.boss;
     if (boss && boss.move !== 'dying' && boss.move !== 'enter') {
       const bb = this.bossBox(boss);
-      if (box && boss.hitId !== b.attackId && overlap(box, bb)) { boss.hitId = b.attackId; this.hitBoss(me.atk * this.weaponOf(b.attackHero).mult, me.lck); landed(); this.hitstop = 0.04; }
-      if (tagBox && tagger && !this.tag!.hits.has(-1) && overlap(tagBox, bb)) { this.tag!.hits.add(-1); this.hitBoss(tagger.atk * 1.6 + 4, tagger.lck); }
+      if (box && boss.hitId !== b.attackId && overlap(box, bb)) { boss.hitId = b.attackId; this.hitBoss(me.atk * mult, me.lck); landed(); this.hitstop = 0.04; this.gainDuo(5); }
+      if (tagBox && tagger && !this.tag!.hits.has(-1) && overlap(tagBox, bb)) { this.tag!.hits.add(-1); this.hitBoss(tagger.atk * 1.6 + 4, tagger.lck); this.gainDuo(8); }
+    }
+    const cage = this.cage;
+    if (cage) {
+      cage.flash = Math.max(0, cage.flash - 1 / 120);
+      const cb = { x: cage.x - 8, y: cage.y - 18, w: 16, h: 18 };
+      if ((box && overlap(box, cb) && cage.flash <= 0) || (tagBox && overlap(tagBox, cb) && cage.flash <= 0)) this.hitCage();
     }
     for (const c of this.candles) {
       if (!c.alive) continue;
@@ -591,7 +803,24 @@ export class FluffstevaniaGame {
     return e.kind === 'armadillo' && e.state !== 'rest' && Math.sign(fromX - e.x) === e.face;
   }
   /** Returns whether the blow did damage (a shield turns it aside). Melee blows (not `pierce`) freeze the frame briefly. */
-  private hitFoe(e: Enemy, raw: number, fromX: number, pierce: boolean, lck: number) {
+  private hitCage() {
+    const cage = this.cage!;
+    cage.hp--; cage.flash = 0.3;
+    this.events.push('clink');
+    this.fx.push({ kind: 'clink', x: cage.x, y: cage.y - 10, t: 0, vx: 0, vy: 0 });
+    if (cage.hp > 0) return;
+    for (let i = 0; i < 6; i++) this.fx.push({ kind: 'rubble', x: cage.x, y: cage.y - 10, t: 0, vx: (this.rand() - 0.5) * 140, vy: -80 - this.rand() * 100 });
+    this.cage = null;
+    this.join('zippy', 'zippyFree');
+  }
+  /** A familiar joins; the first one to join comes along straight away. */
+  private join(id: PalId, script: string) {
+    this.pals[id] = { level: 1, xp: 0 };
+    if (!this.pal) this.setPal(id);
+    this.events.push('relic');
+    this.talk(script);
+  }
+  private hitFoe(e: Enemy, raw: number, fromX: number, pierce: boolean, lck: number, launch = false) {
     const f = FOES[e.kind];
     if (!pierce && this.guarded(e, fromX)) {
       this.fx.push({ kind: 'clink', x: e.x + e.face * 10, y: e.y - 10, t: 0, vx: 0, vy: 0 });
@@ -606,7 +835,7 @@ export class FluffstevaniaGame {
     this.fx.push({ kind: 'spark', x: e.x, y: e.y - f.h / 2, t: 0, vx: 0, vy: 0 });
     this.events.push(crit ? 'crit' : 'hit');
     if (!pierce) this.hitstop = crit ? 0.08 : 0.05;
-    if (!f.fly) { e.vx = Math.sign(e.x - fromX || 1) * 90; e.vy = -90; e.ground = false; }
+    if (!f.fly) { e.vx = Math.sign(e.x - fromX || 1) * (launch ? 60 : 90); e.vy = launch ? -330 : -90; e.ground = false; }
     else { e.x += Math.sign(e.x - fromX || 1) * 6; }
     if (e.kind === 'spider' && e.state !== 'rest') { e.state = 'rest'; e.stateT = 0; }
     if (e.hp <= 0) this.killFoe(e);
@@ -616,6 +845,8 @@ export class FluffstevaniaGame {
     const f = FOES[e.kind];
     e.dead = 1;
     this.events.push('kill');
+    this.kills[e.kind] = (this.kills[e.kind] ?? 0) + 1;
+    if (e.key) this.slain.add(e.key);
     this.fx.push({ kind: 'poof', x: e.x, y: e.y - f.h / 2, t: 0, vx: 0, vy: 0 });
     // The foe crumbles into dust that drifts up.
     for (let i = 0; i < 16; i++) {
@@ -634,18 +865,26 @@ export class FluffstevaniaGame {
     this.events.push('candle');
     this.fx.push({ kind: 'flame', x: c.x, y: c.y - 10, t: 0, vx: 0, vy: -20 });
     const roll = this.rand();
-    if (roll < 0.5) this.drop('seeds', 'seeds', roll < 0.12 ? 5 : 1, c.x, c.y - 8);
-    else if (roll < 0.85) this.drop('raisin', 'raisin', roll < 0.6 ? 5 : 1, c.x, c.y - 8);
-    else if (roll < 0.93) this.drop('food', 'berry', 1, c.x, c.y - 8);
+    if (roll < 0.4) this.drop('seeds', 'seeds', roll < 0.1 ? 5 : 1, c.x, c.y - 8);
+    else if (roll < 0.7) this.drop('raisin', 'raisin', roll < 0.48 ? 5 : 1, c.x, c.y - 8);
+    else if (roll < 0.87) this.drop('dust', 'dust', 8, c.x, c.y - 8);
+    else if (roll < 0.94) this.drop('food', 'berry', 1, c.x, c.y - 8);
   }
   gainXp(n: number) {
     this.xp += n;
+    const pal = this.pal ? this.pals[this.pal] : null;
+    if (pal && pal.level < 10) {
+      pal.xp += n;
+      while (pal.level < 10 && pal.xp >= palXpToNext(pal.level)) { pal.xp -= palXpToNext(pal.level); pal.level++; this.say(`${PALS[this.pal!].name} grows to level ${pal.level}!`); }
+    }
     while (this.xp >= xpToNext(this.level)) {
       this.xp -= xpToNext(this.level);
       const before = { dora: this.stats('dora').maxHp, enzo: this.stats('enzo').maxHp };
       this.level++;
       for (const h of ['dora', 'enzo'] as HeroId[]) if (this.hp[h] > 0) this.hp[h] += this.stats(h).maxHp - before[h];
-      this.say(`Level up! Dora and Enzo reach level ${this.level}.`);
+      this.mp = Math.min(this.maxMp, this.mp + 2);
+      const learnt = (Object.keys(SPELLS) as SpellId[]).find((k) => SPELLS[k].level === this.level);
+      this.say(learnt ? `${SPELLS[learnt].hero === 'dora' ? 'Dora' : 'Enzo'} learns ${SPELLS[learnt].name}! ${SPELLS[learnt].keys}` : `Level up! Dora and Enzo reach level ${this.level}.`, learnt ? 4 : 2.6);
       this.events.push('level');
       this.fx.push({ kind: 'star', x: this.body.x, y: this.body.y - 24, t: 0, vx: 0, vy: -30 });
     }
@@ -654,8 +893,8 @@ export class FluffstevaniaGame {
   /** Damage the leader. Knocks them back and gives a moment of safety; at 0 HP the partner takes over. */
   hurtHero(raw: number, fromX: number, hazard = false) {
     const b = this.body;
-    if (b.invT > 0 || this.tag || this.state !== 'play') return;
-    const dmg = Math.max(1, Math.round(raw - this.stats(this.leader).def));
+    if (b.invT > 0 || this.tag || this.state !== 'play' || this.duoT >= 0) return;
+    const dmg = Math.max(1, Math.round(raw * DIFFICULTY[this.difficulty].foeAtk - this.stats(this.leader).def));
     this.hp[this.leader] = Math.max(0, this.hp[this.leader] - dmg);
     this.pops.push({ x: b.x, y: b.y - 26, text: String(dmg), t: 0, color: '#ff7a7a' });
     this.events.push('hurt'); this.shake = 0.15;
@@ -764,8 +1003,8 @@ export class FluffstevaniaGame {
         this.fight = true;
         this.events.push('gate');
         if (!this.flags.has(`script:${kind}`)) { this.flags.add(`script:${kind}`); this.talk(kind); }
-        const k = BOSSES[kind];
-        this.boss = { kind, x: rr.x + rr.w / 2, y: rr.y - 30, vx: 0, vy: 0, hp: k.hp, max: k.hp, move: 'enter', t: 0, face: -1, flash: 0, phase2: false, summoned: false, sx: 0, ex: 0, side: 1, last: [], hitId: -1 };
+        const k = BOSSES[kind], hp = Math.round(k.hp * DIFFICULTY[this.difficulty].foeHp);
+        this.boss = { kind, x: rr.x + rr.w / 2, y: rr.y - 30, vx: 0, vy: 0, hp, max: hp, move: 'enter', t: 0, face: -1, flash: 0, phase2: false, summoned: false, sx: 0, ex: 0, side: 1, last: [], hitId: -1 };
       }
       return;
     }
@@ -809,7 +1048,8 @@ export class FluffstevaniaGame {
     const go = (move: OwlMove) => { o.move = move; o.t = 0; };
     const toward = (tx: number, ty: number, k: number) => { o.x += (tx - o.x) * Math.min(1, k * dt); o.y += (ty - o.y) * Math.min(1, k * dt); };
     if (o.move !== 'dying' && o.move !== 'swoop') o.face = b.x > o.x ? 1 : -1;
-    const speed = o.phase2 ? 1.3 : 1;
+    const hard = this.difficulty === 'hard', fierce = o.phase2 || hard;
+    const speed = (o.phase2 ? 1.3 : 1) * (hard ? 1.1 : 1);
     switch (o.move as OwlMove) {
       case 'enter':
         toward(rr.x + rr.w / 2, top + 10, 3);
@@ -819,7 +1059,7 @@ export class FluffstevaniaGame {
         const hx = o.side > 0 ? right - 50 : left + 50;
         toward(hx, top + Math.sin(this.time * 3) * 8, 3);
         if (o.t > 0.8 / speed) {
-          const pick = this.pickMove(o, o.phase2 ? ['feathers', 'swoop', 'dive'] : ['feathers', 'swoop']);
+          const pick = this.pickMove(o, fierce ? ['feathers', 'swoop', 'dive'] : ['feathers', 'swoop']);
           if (pick === 'feathers') go('feathers');
           else if (pick === 'swoop') { o.sx = o.side > 0 ? right : left; o.ex = o.side > 0 ? left : right; go('rise'); }
           else go('track');
@@ -829,7 +1069,7 @@ export class FluffstevaniaGame {
       case 'feathers':
         toward(o.x, top, 2);
         if (o.t > 0.5 / speed && o.t - dt <= 0.5 / speed) {
-          const n = o.phase2 ? 5 : 3, aim = Math.atan2(b.y - 12 - o.y, b.x - o.x);
+          const n = (o.phase2 ? 5 : 3) + (hard ? 2 : 0), aim = Math.atan2(b.y - 12 - o.y, b.x - o.x);
           for (let i = 0; i < n; i++) {
             const a = aim + (i - (n - 1) / 2) * 0.22;
             this.shots.push({ kind: 'feather', x: o.x, y: o.y, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, grav: 0, r: 5, dmg: 9, hero: false, life: 3, spin: a });
@@ -884,7 +1124,8 @@ export class FluffstevaniaGame {
     const b = this.body, k = RAT;
     const floor = rr.y + 12 * TILE, left = rr.x + 2 * TILE + k.w / 2, right = rr.x + rr.w - 2 * TILE - k.w / 2, ground = floor - k.h / 2;
     const go = (move: RatMove) => { o.move = move; o.t = 0; };
-    const fast = o.phase2 ? 1.25 : 1;
+    const hard = this.difficulty === 'hard', fierce = o.phase2 || hard;
+    const fast = (o.phase2 ? 1.25 : 1) * (hard ? 1.1 : 1);
     const land = () => { o.vy = Math.min(o.vy + G * dt, 700); o.y += o.vy * dt; if (o.y >= ground) { o.y = ground; o.vy = 0; return true; } return false; };
     switch (o.move as RatMove) {
       case 'enter':
@@ -910,7 +1151,7 @@ export class FluffstevaniaGame {
           o.x = wall; go('stunned');
           this.shake = 0.5; this.events.push('quake');
           // The crash shakes rocks loose from the ceiling.
-          const n = o.phase2 ? 6 : 4;
+          const n = fierce ? 6 : 4;
           for (let i = 0; i < n; i++) {
             const x = rr.x + 3 * TILE + this.rand() * (rr.w - 6 * TILE);
             this.shots.push({ kind: 'rock', x, y: rr.y + 3 * TILE + 4, vx: 0, vy: 0, grav: 500 + this.rand() * 300, r: 5, dmg: 12, hero: false, life: 3, spin: this.rand() * 6 });
@@ -937,7 +1178,7 @@ export class FluffstevaniaGame {
         o.face = b.x > o.x ? 1 : -1;
         if (o.t > 0.45 && o.t - dt <= 0.45) {
           this.shots.push({ kind: 'cheese', x: o.x + o.face * 26, y: floor - 8, vx: o.face * 150, vy: 0, grav: 0, r: 8, dmg: 12, hero: false, life: 4.5, spin: 0 });
-          if (o.phase2) this.shots.push({ kind: 'cheese', x: o.x + o.face * 20, y: o.y - 20, vx: o.face * 110, vy: -380, grav: 900, r: 8, dmg: 12, hero: false, life: 4.5, spin: 0 });
+          if (fierce) this.shots.push({ kind: 'cheese', x: o.x + o.face * 20, y: o.y - 20, vx: o.face * 110, vy: -380, grav: 900, r: 8, dmg: 12, hero: false, life: 4.5, spin: 0 });
           this.events.push('throw');
         }
         if (o.t > 0.9) go('idle');
@@ -964,39 +1205,71 @@ export class FluffstevaniaGame {
     this.flags.add(`boss:${o.kind}`);
     this.fight = false;
     this.boss = null;
+    this.kills[o.kind === 'rat' ? 'rat_king' : 'owl'] = (this.kills[o.kind === 'rat' ? 'rat_king' : 'owl'] ?? 0) + 1;
     this.gainXp(BOSSES[o.kind].xp);
     this.pickups.push({ kind: 'leaf', id: 'leaf', amount: 1, x: o.x, y: o.y, vy: -120, t: 0, flag: `leaf:${o.kind}`, fixed: false });
     for (let i = 0; i < 24; i++) this.fx.push({ kind: 'ash', x: o.x + (this.rand() - 0.5) * 40, y: o.y + (this.rand() - 0.5) * 30, t: -this.rand() * 0.3, vx: (this.rand() - 0.5) * 60, vy: -20 - this.rand() * 40, color: o.kind === 'owl' ? '#c8b088' : '#d8c070' });
     this.events.push('victory');
+    // A beaten boss is saved at once, so falling later never brings them back.
+    this.saved = this.snapshot();
     this.talk(`${o.kind}Down`, `chapter${o.kind === 'owl' ? 1 : 2}`);
   }
 
   private shotStep(dt: number) {
     const b = this.body, me = { x: b.x - HERO_W / 2, y: b.y - HERO_H, w: HERO_W, h: HERO_H };
+    const bursts: [number, number][] = [];
     for (const s of this.shots) {
-      s.life -= dt; s.vy += s.grav * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.spin += dt * 12;
+      s.life -= dt; s.vy += s.grav * dt; s.vx += (s.ax ?? 0) * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.spin += dt * 12;
+      if (s.t !== undefined) s.t += dt;
       const box = { x: s.x - s.r, y: s.y - s.r, w: s.r * 2, h: s.r * 2 };
-      if (s.kind === 'wave') {
+      if (s.kind === 'wave' || s.kind === 'quake') {
         if (isSolid(this.tile(Math.floor((s.x + Math.sign(s.vx) * 6) / TILE), Math.floor((s.y - 2) / TILE)))) s.life = 0;
       } else if (s.kind === 'cheese') {
         // Cheese wheels roll along the floor and bounce back off walls; lobbed ones bounce along.
         if (isSolid(this.tile(Math.floor((s.x + Math.sign(s.vx) * (s.r + 1)) / TILE), Math.floor(s.y / TILE)))) { s.vx = -s.vx; s.x += s.vx * dt * 2; }
         if (s.vy > 0 && this.solidAt(s.x, s.y + s.r)) { s.y = Math.floor((s.y + s.r) / TILE) * TILE - s.r; s.vy = s.grav ? -Math.max(200, s.vy * 0.75) : 0; }
-      } else if (this.solidAt(s.x, s.y)) {
+      } else if (s.kind === 'acorn') {
+        // Back in the lead's paws once it has turned around.
+        if (Math.sign(s.vx) === Math.sign(s.ax ?? 0) && Math.abs(s.x - b.x) < 10 && Math.abs(s.y - b.y + 12) < 20) s.life = 0;
+        if (this.solidAt(s.x, s.y)) { this.breakWalls(box); s.life = 0; this.fx.push({ kind: 'spark', x: s.x, y: s.y, t: 0.2, vx: 0, vy: 0 }); }
+      } else if (s.kind !== 'flame' && this.solidAt(s.x, s.y)) {
         if (s.kind === 'rock') for (let i = 0; i < 3; i++) this.fx.push({ kind: 'rubble', x: s.x, y: s.y - 2, t: 0.3, vx: (this.rand() - 0.5) * 100, vy: -60 - this.rand() * 80 });
         if (s.hero) this.breakWalls(box);
+        if (s.kind === 'pumpkin') bursts.push([s.x, s.y - 4]);
         s.life = 0;
         this.fx.push({ kind: 'spark', x: s.x, y: s.y, t: 0.2, vx: 0, vy: 0 });
       }
       if (s.life <= 0) continue;
       if (s.hero) {
-        for (const e of this.enemies) if (!e.dead && !ghostFaded(e) && overlap(box, this.foeBox(e))) { this.hitFoe(e, s.dmg, s.x - s.vx, true, 0); s.life = 0; break; }
-        for (const c of this.candles) if (s.life > 0 && c.alive && overlap(box, { x: c.x - 4, y: c.y - 12, w: 8, h: 14 })) { this.snuff(c); s.life = 0; }
+        // Piercing shots hit each foe once, or again every `rehit` seconds.
+        const strike = (id: number) => {
+          if (!s.pierce) { s.life = 0; return true; }
+          const next = s.hits!.get(id);
+          if (next !== undefined && s.t! < next) return false;
+          s.hits!.set(id, s.rehit ? s.t! + s.rehit : Infinity);
+          return true;
+        };
+        for (const e of this.enemies) {
+          if (e.dead || ghostFaded(e) || !overlap(box, this.foeBox(e))) continue;
+          if (s.kind === 'pumpkin') { bursts.push([s.x, s.y]); s.life = 0; break; }
+          if (!strike(e.id)) continue;
+          // Gusts of dust are stopped by shields like a swing is; everything else gets past.
+          if (this.hitFoe(e, s.dmg, s.x - s.vx, s.kind !== 'gust', 0, s.launch)) this.gainDuo(3);
+          else s.life = 0;
+          if (s.life <= 0) break;
+        }
+        for (const c of this.candles) if (s.life > 0 && c.alive && overlap(box, { x: c.x - 4, y: c.y - 12, w: 8, h: 14 })) { this.snuff(c); if (!s.pierce) s.life = 0; }
         const o = this.boss;
-        if (s.life > 0 && o && o.move !== 'dying' && o.move !== 'enter' && overlap(box, this.bossBox(o))) { this.hitBoss(s.dmg, 0); s.life = 0; }
+        if (s.life > 0 && o && o.move !== 'dying' && o.move !== 'enter' && overlap(box, this.bossBox(o))) {
+          if (s.kind === 'pumpkin') { bursts.push([s.x, s.y]); s.life = 0; }
+          else if (strike(-1)) { this.hitBoss(s.dmg, 0); this.gainDuo(2); }
+        }
+        const cage = this.cage;
+        if (s.life > 0 && cage && cage.flash <= 0 && overlap(box, { x: cage.x - 8, y: cage.y - 18, w: 16, h: 18 })) { this.hitCage(); if (!s.pierce) s.life = 0; }
       } else if (overlap(box, me)) { this.hurtHero(s.dmg, s.x - s.vx); if (s.kind !== 'wave' && s.kind !== 'cheese') s.life = 0; }
     }
     this.shots = this.shots.filter((s) => s.life > 0);
+    for (const [x, y] of bursts) this.burst(x, y);
   }
 
   private pickupStep(dt: number) {
@@ -1022,6 +1295,11 @@ export class FluffstevaniaGame {
     switch (p.kind) {
       case 'raisin': this.raisins += amount; this.events.push('raisin'); break;
       case 'seeds': this.seeds = Math.min(99, this.seeds + amount); this.events.push('seedpick'); break;
+      case 'dust': this.mp = Math.min(this.maxMp, this.mp + amount); this.events.push('dust'); break;
+      case 'sub':
+        this.subs.add(p.id as SubId); this.sub = p.id as SubId;
+        this.say(`Found the ${SUBS[p.id as SubId].name}! ↑ + attack throws it. Switch sub-weapons in the menu.`, 4); this.events.push('item');
+        break;
       case 'food': add(p.id); this.say(`Found a ${FOOD[p.id].name}!`); this.events.push('item'); break;
       case 'gear': add(p.id); this.say(`Found the ${GEAR[p.id].name}! Equip it from the menu.`); this.events.push('item'); break;
       case 'leaf':
@@ -1041,8 +1319,11 @@ export class FluffstevaniaGame {
     const b = this.body, c = Math.floor(b.x / TILE), r = Math.floor((b.y - 1) / TILE);
     const here = rawTile(c, r);
     if (here === 'S') {
+      this.flags.add(`shrine:${this.room.id}`);
+      if (pressed('up') && this.shrines().length > 1) { this.warp = true; this.events.push('shop'); }
       if (!this.atShrine) {
         this.atShrine = true;
+        this.slain.clear();
         this.hp.dora = this.stats('dora').maxHp; this.hp.enzo = this.stats('enzo').maxHp;
         this.saved = this.snapshot();
         this.events.push('save');
@@ -1053,7 +1334,16 @@ export class FluffstevaniaGame {
       // Stepping well clear of the shrine arms it again.
       this.atShrine = false;
     }
-    this.sign = -1; this.stall = false;
+    this.sign = -1; this.stall = false; this.npc = null;
+    const near = (ch: string) => here === ch || rawTile(c - 1, r) === ch || rawTile(c + 1, r) === ch;
+    for (const [ch, id] of [['P', 'pudding'], ['Y', 'mochi']] as const) {
+      if (!near(ch) || this.pals[id]) continue;
+      this.npc = id;
+      if (!pressed('up')) continue;
+      if (id === 'pudding') { if (this.bag.cake) { this.bag.cake--; if (!this.bag.cake) delete this.bag.cake; this.join('pudding', 'puddingJoin'); } else this.talk('puddingHungry'); }
+      else if (this.flags.has('boss:rat')) this.join('mochi', 'mochiJoin');
+      else this.talk('mochiWait');
+    }
     if (here === 'n') {
       const room = this.room, rc = c - room.mx * COLS, rr = r - room.my * ROWS;
       let n = 0;
@@ -1068,7 +1358,111 @@ export class FluffstevaniaGame {
     }
   }
   /** What pressing up would do where the leader stands, so the page can show a prompt. */
-  get prompt(): 'READ' | 'SHOP' | null { return this.sign >= 0 ? 'READ' : this.stall ? 'SHOP' : null; }
+  get prompt(): 'READ' | 'SHOP' | 'TALK' | 'WARP' | null {
+    if (this.sign >= 0) return 'READ';
+    if (this.stall) return 'SHOP';
+    if (this.npc) return 'TALK';
+    const b = this.body;
+    return rawTile(Math.floor(b.x / TILE), Math.floor((b.y - 1) / TILE)) === 'S' && this.shrines().length > 1 ? 'WARP' : null;
+  }
+  /** The familiar waiting to be befriended where the lead stands, if any. */
+  get npcHere() { return this.npc; }
+  /** Every shrine room found so far. */
+  shrines() { return ROOMS.filter((r) => this.flags.has(`shrine:${r.id}`)).map((r) => r.id); }
+  /** Step out at another shrine. */
+  warpTo(id: string) {
+    const room = ROOMS.find((r) => r.id === id);
+    if (!room || !this.flags.has(`shrine:${id}`)) return false;
+    const r = room.rows.findIndex((row) => row.includes('S')), c = room.rows[r].indexOf('S');
+    const b = this.body;
+    b.x = (room.mx * COLS + c + 0.5) * TILE; b.y = (room.my * ROWS + r + 1) * TILE; b.vx = 0; b.vy = 0; b.dashT = 0; b.attackT = 0;
+    this.warp = false;
+    if (room !== this.room) this.enter(room);
+    this.atShrine = true;
+    this.resetTrail(); this.snapCamera();
+    this.palBody.x = b.x - b.face * 30; this.palBody.y = b.y - 20;
+    this.events.push('warp');
+    return true;
+  }
+  closeWarp() { this.warp = false; }
+  /** Bring a befriended familiar along, or none. */
+  setPal(id: PalId | null) {
+    if (id && !this.pals[id]) return false;
+    this.pal = id;
+    const b = this.body;
+    this.palBody = { x: b.x - b.face * 30, y: b.y - 20, face: b.face, cd: 1, act: 0, target: -1, t: 0 };
+    return true;
+  }
+  setSub(id: SubId) { if (!this.subs.has(id)) return false; this.sub = id; return true; }
+
+  // ─── Familiars and secrets ──────────────────────────────────────────────
+  private palStep(dt: number) {
+    const id = this.pal;
+    if (!id) return;
+    const p = this.palBody, b = this.body, f = this.follower, lv = this.pals[id]!.level;
+    p.t += dt; p.cd = Math.max(0, p.cd - dt); p.act = Math.max(0, p.act - dt);
+    const ease = (tx: number, ty: number, k: number) => { p.x += (tx - p.x) * Math.min(1, k * dt); p.y += (ty - p.y) * Math.min(1, k * dt); };
+    if (id === 'zippy') {
+      // Zippy rides on the lead's shoulder and glides at anything close.
+      let tgt = p.target >= 0 ? this.enemies.find((e) => e.id === p.target && !e.dead && !ghostFaded(e)) : undefined;
+      if (!tgt && p.cd <= 0) {
+        let best = 150;
+        for (const e of this.enemies) { if (e.dead || ghostFaded(e)) continue; const d = Math.hypot(e.x - b.x, e.y - b.y); if (d < best) { best = d; tgt = e; } }
+        p.target = tgt ? tgt.id : -1;
+      }
+      if (!tgt || Math.hypot(b.x - p.x, b.y - p.y) > 220) { p.target = -1; ease(b.x - b.face * 10, b.y - 30 + Math.sin(p.t * 4) * 3, 6); p.face = b.face; return; }
+      const tx = tgt.x, ty = tgt.y - FOES[tgt.kind].h / 2, dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy);
+      p.face = dx > 0 ? 1 : -1;
+      const step = Math.min(d, 250 * dt);
+      p.x += (dx / (d || 1)) * step; p.y += (dy / (d || 1)) * step;
+      if (d < 8) {
+        this.hitFoe(tgt, 3 + lv * 2, p.x, true, 0);
+        this.events.push('nip');
+        p.cd = Math.max(0.6, 1.5 - lv * 0.08); p.target = -1; p.act = 0.25;
+      }
+      return;
+    }
+    // Pudding and Mochi trot along behind the partner.
+    const tx = f.x - b.face * (id === 'mochi' ? 30 : 24);
+    ease(tx, f.y, 6);
+    if (Math.abs(tx - p.x) > 0.5) p.face = tx > p.x ? 1 : -1;
+    if (id === 'pudding' && p.cd <= 0) {
+      const h = this.leader, max = this.stats(h).maxHp;
+      if (this.hp[h] > 0 && this.hp[h] < max * 0.4) {
+        const heal = Math.min(max - this.hp[h], 6 + lv * 3);
+        this.hp[h] += heal;
+        this.pops.push({ x: b.x, y: b.y - 30, text: `+${heal}`, t: 0, color: '#8cf0a0' });
+        this.events.push('squeak');
+        p.cd = Math.max(5, 12 - lv * 0.6); p.act = 0.6;
+      }
+    }
+    if (id === 'mochi' && p.cd <= 0) {
+      const shot = this.shots.find((s) => !s.hero && s.kind !== 'wave' && Math.hypot(s.x - b.x, s.y - (b.y - 10)) < 40);
+      if (shot) {
+        shot.life = 0;
+        this.fx.push({ kind: 'clink', x: shot.x, y: shot.y, t: 0, vx: 0, vy: 0 });
+        this.pops.push({ x: shot.x, y: shot.y - 6, text: 'BONK', t: 0, color: '#f0c890' });
+        this.events.push('bonk');
+        p.cd = Math.max(2, 7 - lv * 0.45); p.act = 0.4;
+      }
+    }
+  }
+  /** With the Silver Bell worn, or Mochi along, a cracked wall nearby gives itself away once per visit. */
+  private secretStep(dt: number) {
+    if ((this.chimeT -= dt) > 0) return;
+    this.chimeT = 0.4;
+    const bell = this.equipped.dora.acc === 'bell' || this.equipped.enzo.acc === 'bell';
+    if (!bell && this.pal !== 'mochi') return;
+    const b = this.body, bc = Math.floor(b.x / TILE), br = Math.floor((b.y - 10) / TILE);
+    for (let r = br - 5; r <= br + 5; r++) for (let c = bc - 5; c <= bc + 5; c++) {
+      if (this.tile(c, r) !== '%' || this.chimed.has(this.room.id)) continue;
+      this.chimed.add(this.room.id);
+      this.events.push('secret');
+      for (let i = 0; i < 6; i++) this.fx.push({ kind: 'star', x: (c + 0.5) * TILE, y: (r + 0.5) * TILE, t: -i * 0.1, vx: 0, vy: -10 });
+      this.say(bell ? 'The Silver Bell jingles. Something is hidden close by.' : 'Mochi sniffs at the wall. Something is hidden close by.');
+      return;
+    }
+  }
   get atSign() { return this.sign >= 0; }
   /** Buy from Pip's stall. Returns whether the raisins changed hands. */
   buy(id: string) {
@@ -1116,6 +1510,8 @@ export class FluffstevaniaGame {
       equip: { dora: { ...this.equipped.dora }, enzo: { ...this.equipped.enzo } }, bag: { ...this.bag }, relics: [...this.relics],
       flags: [...this.flags], visited: [...this.visited],
       raisins: this.raisins, seeds: this.seeds, time: this.time, leaves: this.leaves,
+      difficulty: this.difficulty, mp: this.mp, subs: [...this.subs], sub: this.sub,
+      pals: Object.fromEntries(Object.entries(this.pals).map(([k, v]) => [k, { ...v }])), pal: this.pal, kills: { ...this.kills },
     };
   }
 }

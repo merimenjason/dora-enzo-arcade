@@ -343,19 +343,37 @@ Four starter courses show what the parts can do: Dora’s First Hop (meadow), Sa
 
 **Play:** A Symphony of the Night-style castle explorer, drawn in Canvas 2D with the same Dora and Enzo as Fluff Forge. Grandpa Pebble says the Golden Wolfberry, a berry that never runs out of snacks, grows at the top of the castle on the mountain, and the two go in together. The castle is one connected map of rooms, each one or more screens of 24×14 tiles; walking off an edge takes you into the next room, and a minimap and a full map in the menu fill in as you explore. Two chapters are open: chapter I is the Moonlit Approach, Entrance Hall, Hay Cellar and Owl Belfry, and chapter II is the Pantry Catacombs behind the belfry's sealed door, 21 rooms over 39 map screens. Every area has three layers of parallax scenery (moonlit graveyards, stained-glass windows, barrel vaults, clockwork, shelves of glowing jars), candlelight that cuts through the dark, and afterimages when a hero dashes or lunges.
 
-You control one hero while the other follows a step behind. Press C to **tag**: the partner tumbles from behind to the front in a spinning ball that hurts anything on its path (1.6× their attack plus 4, and it gets past an armadillo’s shield), then carries on as the lead. Tags have a one-second cooldown. Dora thrusts a **Dust Rapier** that reaches 40 pixels ahead (140 px/s walk). Enzo **lunges** into quick 28-pixel claw swipes (124 px/s walk, more HP and defence): each swipe carries him forward, stops when it connects, and won’t take him off a ledge. Each has their own HP; when the lead is worn out the partner takes over automatically and the worn-out one can’t tag back in until a rest. Both worn out sends you back to the last save. Up + attack throws a sunflower seed in an arc (costs one seed).
+You control one hero while the other follows a step behind. Press C to **tag**: the partner tumbles from behind to the front in a spinning ball that hurts anything on its path (1.6× their attack plus 4, and it gets past an armadillo’s shield), then carries on as the lead. Tags have a one-second cooldown. Dora sweeps a **Dust Fan** (34-pixel reach, 140 px/s walk): every sweep blows a small gust of dust ahead, and holding attack then letting go spins her in a whirlwind that hits both sides for double damage. Enzo **lunges** into quick 28-pixel claw swipes (124 px/s walk, more HP and defence): each swipe carries him forward, stops when it connects, and won’t take him off a ledge. Pressing attack again as a swing ends chains a **three-hit combo**, and the third hit does 1.5× damage: Dora’s blows a big gust that goes through foes, Enzo’s claws uppercut foes into the air, and a club slams out little quakes. Each hero has their own HP; when the lead is worn out the partner takes over automatically and the worn-out one can’t tag back in until a rest. Both worn out sends you back to the last save.
 
-Chapter I has cave bats that wake and chase, dust moths that drift after you, shell beetles, bone mice that lob bones, and armadillo guards whose shield blocks hits from the front until a lunge leaves them open. The catacombs add pantry rats that bristle and charge, jar ghosts that fade out of reach, and cellar spiders that drop on their threads. Every hit freezes the frame for an instant and shows its damage; your luck gives a chance of a 1.5× critical, and defeated foes crumble into dust. Foes give XP (one shared level for both, with more HP, attack and defence each level) and drop raisins and sometimes gear or food. Candles hide seeds, raisins and wolfberries. Gear goes in three slots per hero (weapon, armour, accessory): the Moonlit Sabre and Wolfberry Blade for Dora; the Acorn Cudgel, Rolling Pin and Iron Claws for Enzo; the Wool Scarf, Moth Cape, Thimble Helm, Silver Bell, Beetle Shell and Raisin Ring. Hay Cakes heal 40, wolfberries 20 and Timothy Tea 80 from the Items menu. Wolfberry Leaves raise both heroes’ max HP by 10. Pip the hamster keeps a stall in the catacombs that sells food, seeds, the Thimble Helm, Raisin Ring and Iron Claws for raisins.
+Landing hits fills a **Duo meter**. When it’s full, tag and attack together (or V) set off a **Duo Strike**: both heroes streak across the screen and strike every foe in view. Spells run on **Dust**, which trickles back over time and drops from candles. Dora learns **Whirlwind** at level 3 (↓ ↘ → + attack), a drifting tornado that hits again and again. Enzo learns **Burrow Quake** at level 4 (→ ↓ ↘ + attack), quakes both ways that throw foes up. F casts either without the motion. Up + attack throws the readied **sub-weapon**, paid for in seeds:
 
-The **Dust Dash** relic in the cellar lets you burst forward, once in mid-air, and dashing into a jump carries you far; it is the only way across the broken gallery in the Entrance Hall. The **Cloud Hop** relic in the catacombs is a second jump in mid-air, and it reaches the chimney up to the Rat King and two high treasures. Cracked walls crumble when hit and hide a Wolfberry Leaf and a secret room. Golden **dust-bath shrines** heal and revive both heroes and save the game in this browser. At the top of the belfry stair waits **Duke Hootsworth**, a great horned owl (260 HP) who throws feather volleys and swoops low across the room; at half health he summons two bats and adds a dive that sends shockwaves along the floor. Beating him ends chapter I and opens the sealed door. At the top of the catacomb chimney sits **Gnawdrick the Rat King** (560 HP) on his cheese throne. He charges wall to wall, stunning himself and shaking rocks from the ceiling; he leaps at you and lands with shockwaves; and he bowls wheels of cheese. At half health he calls two rats and bowls a bouncing wheel too. Beating him ends chapter II; you can keep exploring afterwards.
+- a sunflower seed;
+- the **Seed Spread**, three seeds at once, found in the cellar;
+- the **Boomerang Acorn**, which flies out and back through foes, high on the belfry stair;
+- the **Pumpkin Flask**, which bursts into a row of flames, in the larder.
+
+Choose between them and read up on spells in the menu’s Magic tab. A difficulty is picked for each new game: Easy softens foes and heals a little at every doorway, and Hard makes foes 1.5× tougher and has bosses fight all-out from the start.
+
+Chapter I has cave bats that wake and chase, dust moths that drift after you, shell beetles, bone mice that lob bones, and armadillo guards whose shield blocks hits from the front until a lunge leaves them open. The catacombs add pantry rats that bristle and charge, jar ghosts that fade out of reach, and cellar spiders that drop on their threads. Every hit freezes the frame for an instant and shows its damage; your luck gives a chance of a 1.5× critical, and defeated foes crumble into dust. Foes give XP (one shared level for both, with more HP, attack and defence each level) and drop raisins and sometimes gear or food. Candles hide seeds, raisins and wolfberries. Gear goes in three slots per hero (weapon, armour, accessory): the Moonlit Fan and Wolfberry Fan for Dora; the Acorn Cudgel, Rolling Pin and Iron Claws for Enzo; the Wool Scarf, Moth Cape, Thimble Helm, Silver Bell, Beetle Shell and Raisin Ring. Hay Cakes heal 40, wolfberries 20 and Timothy Tea 80 from the Items menu. Wolfberry Leaves raise both heroes’ max HP by 10. Pip the hamster keeps a stall in the catacombs that sells food, seeds, the Thimble Helm, Raisin Ring and Iron Claws for raisins. Defeated foes stay down until you rest at a shrine or move to another area, and the **Bestiary** tab records each kind you’ve beaten with its stats, weakness and a line of lore.
+
+Three **familiars** can be befriended, and one comes along at a time, levelling up as you win fights:
+
+- **Pudding the guinea pig** is lost and hungry in the Hay Cellar. Bring her a Hay Cake and she’ll heal the lead when they’re badly hurt.
+- **Zippy the sugar glider** is locked in a cage on the belfry stair. Break it and he glides at nearby foes and nips them.
+- **Mochi the capybara** soaks by the catacomb shrine, too worried about the rats to relax. Once the Rat King falls she joins, bonking away shots aimed at the lead and sniffing out cracked walls.
+
+The **Dust Dash** relic in the cellar lets you burst forward, once in mid-air, and dashing into a jump carries you far; it is the only way across the broken gallery in the Entrance Hall. The **Cloud Hop** relic in the catacombs is a second jump in mid-air, and it reaches the chimney up to the Rat King and two high treasures. Cracked walls crumble when hit and hide a Wolfberry Leaf and a secret room. Golden **dust-bath shrines** heal and revive both heroes and save the game in this browser, and once you’ve found two, pressing up at one warps you to another. Bosses are saved the moment they fall, so they never come back. Each area has its own synthesised music, and bosses have a theme of their own. At the top of the belfry stair waits **Duke Hootsworth**, a great horned owl (260 HP) who throws feather volleys and swoops low across the room; at half health he summons two bats and adds a dive that sends shockwaves along the floor. Beating him ends chapter I and opens the sealed door. At the top of the catacomb chimney sits **Gnawdrick the Rat King** (560 HP) on his cheese throne. He charges wall to wall, stunning himself and shaking rocks from the ceiling; he leaps at you and lands with shockwaves; and he bowls wheels of cheese. At half health he calls two rats and bowls a bouncing wheel too. Beating him ends chapter II; you can keep exploring afterwards.
 
 **Controls:**
 
-- ← → or A D: walk. Space, Z or K: jump (hold for height; again in mid-air with the Cloud Hop). ↓ + jump: drop through a ledge. X or J: attack. ↑ + attack: throw a seed. ↑: read a sign or shop at Pip’s stall. C or E: tag. Shift or L: Dust Dash. Escape, Enter, M, P or Tab: open or close the menu (Status, Equip, Items, Map), or leave the shop.
-- Gamepad: d-pad or left stick to move, A jump, X attack, B or RB dash, Y or LB tag.
-- On touch screens and narrow windows an on-screen pad has move, up, down, tag, dash, attack, jump and menu.
+- ← → or A D: walk. Space, Z or K: jump (hold for height; again in mid-air with the Cloud Hop). ↓ + jump: drop through a ledge.
+- X or J: attack (tap again for a combo; as Dora, hold and let go to spin). ↑ + attack: throw the sub-weapon. F: cast the lead’s spell (or use its motion + attack). C or E: tag. C + X, V or Q: Duo Strike. Shift or L: Dust Dash.
+- ↑: read a sign, talk, shop at Pip’s stall, or warp at a shrine. Escape, Enter, M, P or Tab: open or close the menu (Status, Equip, Magic, Items, Familiars, Bestiary, Map), or leave the shop or warp list.
+- The title screen picks Easy, Normal or Hard for a new game. Sound and Music each have their own toggle.
+- Gamepad: d-pad or left stick to move, A jump, X attack, B or RB dash, Y or LB tag, RT spell, LT Duo Strike.
+- On touch screens and narrow windows an on-screen pad has move, up, down, spell, Duo, tag, dash, attack, jump and menu.
 
-**Tests:** `npm run test:fluffstevania` (also in `npm test`) compiles `lib/fluffstevania-game.ts` and runs `tests/fluffstevania.mjs`: 28 checks. They cover:
+**Tests:** `npm run test:fluffstevania` (also in `npm test`) compiles `lib/fluffstevania-game.ts` and runs `tests/fluffstevania.mjs`: 40 checks. They cover:
 
 - the room grid, and that every doorway leads somewhere;
 - a reachability search over the whole map proving the belfry needs the Dust Dash, the catacombs need the owl beaten, and the Rat King and the high treasures need the Cloud Hop, and that every spot can get back to the start;
@@ -363,12 +381,24 @@ The **Dust Dash** relic in the cellar lets you burst forward, once in mid-air, a
 - the opening story, walking, jumping and the follower, attacks, damage numbers, XP and levels;
 - Enzo’s lunge and how it stops at a hit and at a ledge;
 - tagging and the tag tumble, the Dust Dash, getting hurt and the worn-out swap;
-- shrines, saves, loading, and older saves swapping the whips for swords;
+- shrines, saves, loading, and older saves swapping the old whips and swords for fans;
 - cracked walls and the Wolfberry Leaf, candles and seeds, the armadillo’s shield, gear and food;
 - Pip’s shop, rats, ghosts and spiders;
-- both boss fights from gates to defeat and the chapter endings, and deterministic replays.
+- both boss fights from gates to defeat and the chapter endings;
+- difficulty scaling, doorway healing on Easy and fierce bosses on Hard;
+- foes staying down until a rest or a change of area, and bosses saved as they fall;
+- combos and finishers, the fan’s gusts and spin, the Duo Strike;
+- Dust, both spells and their motions, and all four sub-weapons;
+- shrine warps, all three familiar quests and what each familiar does, the Bestiary count, and the Silver Bell’s chime;
+- deterministic replays.
 
-Browser: `tests/e2e/fluffstevania.mjs` starts a new game, reads the opening story, walks and attacks, tags, opens every menu tab, continues from a save, equips a sword, buys from Pip and checks a phone-sized screen.
+Browser: `tests/e2e/fluffstevania.mjs`:
+
+- picks Hard and starts a new game, reads the opening story, walks and attacks, and tags;
+- opens every menu tab;
+- continues from an older save and equips a fan;
+- buys from Pip, warps between shrines and toggles the music;
+- checks a phone-sized screen.
 
 **Docs:** [`docs/fluffstevania.md`](docs/fluffstevania.md).
 

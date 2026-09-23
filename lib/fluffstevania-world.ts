@@ -16,12 +16,13 @@ export const AREAS: Record<AreaId, { name: string; color: string }> = {
  * Tiles: `#` wall, `=` ledge you can jump up through, `^` spikes, `%` a cracked wall that breaks when hit,
  * `G` a boss gate (shut during the fight), `D` a sealed door (open once the room's `opens` flag is set). Things
  * placed on the map: `S` dust-bath shrine (saves and heals), `$` Pip's shop, `i` candle, `n` sign, `H` Wolfberry
- * Leaf (max HP up), `R` relic, `I` item, `O` boss, and enemies `b` bat, `m` dust moth, `k` shell beetle,
+ * Leaf (max HP up), `R` relic, `I` item, `U` sub-weapon, `O` boss, the familiars waiting to be befriended
+ * (`P` Pudding, `Z` Zippy's cage, `Y` Mochi), and enemies `b` bat, `m` dust moth, `k` shell beetle,
  * `x` bone mouse, `a` armadillo guard, `r` pantry rat, `g` jar ghost, `p` cellar spider.
  */
 export type Room = {
   id: string; area: AreaId; mx: number; my: number; w: number; h: number; rows: string[];
-  notes?: string[]; items?: string[]; relic?: RelicId; boss?: BossId; opens?: string;
+  notes?: string[]; items?: string[]; relic?: RelicId; boss?: BossId; opens?: string; sub?: SubId;
 };
 export type RelicId = 'dash' | 'hop';
 export type BossId = 'owl' | 'rat';
@@ -95,10 +96,10 @@ export const ROOMS: Room[] = [
     p.box(); p.fill(0, 0, 71, 1); p.fill(0, 12, 71, 13);
     p.fill(0, 9, 0, 11, '.'); p.fill(71, 9, 71, 11, '.');
     p.fill(60, 10, 62, 11); p.fill(45, 12, 48, 12, '^'); p.fill(28, 10, 33, 11); p.fill(30, 8, 31, 9);
-    p.put(50, 8, '======'); p.put(52, 7, 'I'); p.put(18, 8, '=====');
+    p.put(50, 8, '======'); p.put(52, 7, 'I'); p.put(18, 8, '====='); p.put(20, 7, 'U'); p.put(56, 11, 'P');
     p.put(8, 8, 'i'); p.put(20, 6, 'i'); p.put(38, 7, 'i'); p.put(66, 8, 'i');
     p.put(40, 11, 'x'); p.put(24, 11, 'k'); p.put(14, 11, 'a'); p.put(55, 3, 'b'); p.put(10, 4, 'm');
-  }, { items: ['cake'] }),
+  }, { items: ['cake'], sub: 'spread' }),
 
   room('relic', 'cellar', 0, 4, 1, 1, (p) => {
     p.box(); p.fill(23, 9, 23, 11, '.'); p.fill(0, 12, 23, 13);
@@ -110,7 +111,7 @@ export const ROOMS: Room[] = [
     p.box(); p.fill(0, 12, 23, 13); p.fill(0, 0, 23, 5); p.fill(19, 0, 23, 13);
     p.fill(0, 9, 0, 11, '.');
     p.put(9, 11, 'I'); p.put(14, 11, 'I'); p.put(11, 8, 'i');
-  }, { items: ['acorn', 'sabre'] }),
+  }, { items: ['acorn', 'moonfan'] }),
 
   room('stair', 'belfry', 6, 0, 1, 2, (p) => {
     p.box(); p.fill(0, 25, 23, 27); p.fill(0, 0, 23, 1);
@@ -118,9 +119,10 @@ export const ROOMS: Room[] = [
     p.fill(23, 9, 23, 11, '.');         // up to the second shrine
     p.fill(16, 12, 23, 12);
     p.put(11, 21, '====='); p.put(5, 17, '====='); p.put(11, 13, '====');
-    p.put(4, 5, '===='); p.put(18, 20, 'i'); p.put(3, 14, 'i'); p.put(19, 9, 'i');
+    p.put(6, 6, '====='); p.put(8, 5, 'U');   // seven tiles up: a Cloud Hop reward p.put(18, 20, 'i'); p.put(3, 14, 'i'); p.put(19, 9, 'i');
+    p.put(19, 11, 'Z');
     p.put(8, 3, 'b'); p.put(15, 16, 'm'); p.put(20, 24, 'k');
-  }),
+  }, { sub: 'acorn' }),
 
   room('save-belfry', 'belfry', 7, 0, 1, 1, (p) => {
     p.box(); p.fill(0, 12, 23, 13); p.fill(0, 0, 23, 4);
@@ -173,7 +175,7 @@ export const ROOMS: Room[] = [
     p.fill(9, 0, 14, 1, '.');           // up the chimney
     p.put(9, 5, '======');              // seven tiles up: only a Cloud Hop reaches it
     p.put(10, 1, '====');
-    p.put(5, 11, 'S'); p.put(18, 11, '$'); p.put(3, 8, 'i'); p.put(21, 8, 'i');
+    p.put(5, 11, 'S'); p.put(18, 11, '$'); p.put(2, 11, 'Y'); p.put(3, 8, 'i'); p.put(21, 8, 'i');
   }),
 
   room('chimney', 'catacombs', 14, 0, 1, 2, (p) => {
@@ -208,10 +210,10 @@ export const ROOMS: Room[] = [
     p.put(27, 9, '====='); p.put(31, 5, '=====');
     p.put(8, 8, '======'); p.put(46, 8, '======'); p.put(53, 5, '=====');
     p.fill(38, 12, 41, 12, '^');
-    p.put(55, 4, 'I');
+    p.put(55, 4, 'I'); p.put(10, 7, 'U');
     p.put(4, 8, 'i'); p.put(22, 7, 'i'); p.put(44, 6, 'i'); p.put(66, 8, 'i');
     p.put(12, 2, 'p'); p.put(40, 2, 'p'); p.put(62, 2, 'p'); p.put(20, 11, 'r'); p.put(50, 11, 'r'); p.put(36, 6, 'g'); p.put(64, 11, 'x');
-  }, { items: ['pin'] }),
+  }, { items: ['pin'], sub: 'pumpkin' }),
 
   room('hop-vault', 'catacombs', 10, 3, 1, 1, (p) => {
     p.box(); p.fill(0, 12, 23, 13); p.fill(0, 0, 23, 2);
@@ -228,7 +230,7 @@ export const ROOMS: Room[] = [
     p.put(8, 3, '=========');           // …then six more tiles: only a Cloud Hop gets there
     p.put(10, 2, 'I'); p.put(14, 2, 'H');
     p.put(20, 8, 'i'); p.put(5, 5, 'i'); p.put(18, 6, 'g'); p.put(12, 7, 'p');
-  }, { items: ['wolfblade'] }),
+  }, { items: ['wolffan'] }),
 ];
 
 export const START = { room: 'path', x: 5 * TILE, y: (2 * ROWS + 12) * TILE };
@@ -237,12 +239,12 @@ export const START = { room: 'path', x: 5 * TILE, y: (2 * ROWS + 12) * TILE };
 
 export type HeroId = 'dora' | 'enzo';
 export type Slot = 'weapon' | 'armor' | 'acc';
-export type WeaponStyle = 'rapier' | 'claws' | 'club';
+export type WeaponStyle = 'fan' | 'claws' | 'club';
 export type Gear = { name: string; slot: Slot; hero?: HeroId; style?: WeaponStyle; atk?: number; def?: number; lck?: number; reach?: number; text: string };
 export const GEAR: Record<string, Gear> = {
-  rapier: { name: 'Dust Rapier', slot: 'weapon', hero: 'dora', style: 'rapier', atk: 3, text: 'A slim blade Dora thrusts fast and far.' },
-  sabre: { name: 'Moonlit Sabre', slot: 'weapon', hero: 'dora', style: 'rapier', atk: 8, reach: 6, text: 'A silver sabre that glints like the moon. Longer and sharper.' },
-  wolfblade: { name: 'Wolfberry Blade', slot: 'weapon', hero: 'dora', style: 'rapier', atk: 15, reach: 10, text: 'A crimson blade with a golden berry set in the hilt. The finest sword in the castle.' },
+  fan: { name: 'Dust Fan', slot: 'weapon', hero: 'dora', style: 'fan', atk: 3, text: 'A folding silk fan. Wide sweeps that blow a gust of dust; hold attack for a whirlwind spin.' },
+  moonfan: { name: 'Moonlit Fan', slot: 'weapon', hero: 'dora', style: 'fan', atk: 8, reach: 6, text: 'Silver ribs and midnight silk. Wider sweeps and stronger gusts.' },
+  wolffan: { name: 'Wolfberry Fan', slot: 'weapon', hero: 'dora', style: 'fan', atk: 15, reach: 10, text: 'Crimson silk painted with golden berries. The finest fan in the castle.' },
   claws: { name: 'Scrappy Claws', slot: 'weapon', hero: 'enzo', style: 'claws', atk: 2, text: 'Enzo’s own two paws. He lunges in with quick swipes.' },
   ironclaws: { name: 'Iron Claws', slot: 'weapon', hero: 'enzo', style: 'claws', atk: 10, reach: 4, text: 'Pip’s finest paw guards. Quick lunging swipes that really sting.' },
   acorn: { name: 'Acorn Cudgel', slot: 'weapon', hero: 'enzo', style: 'club', atk: 9, text: 'A hard acorn on a stick. Slow, heavy swings.' },
@@ -255,7 +257,7 @@ export const GEAR: Record<string, Gear> = {
   ring: { name: 'Raisin Ring', slot: 'acc', def: 2, lck: 6, text: 'A dried raisin set in brass. Lucky, and a little chewy.' },
 };
 /** Gear from older saves that has since been replaced. */
-export const RENAMED: Record<string, string> = { ribbon: 'rapier', bramble: 'sabre' };
+export const RENAMED: Record<string, string> = { ribbon: 'fan', bramble: 'moonfan', rapier: 'fan', sabre: 'moonfan', wolfblade: 'wolffan' };
 export const FOOD: Record<string, { name: string; heal: number; text: string }> = {
   cake: { name: 'Hay Cake', heal: 40, text: 'Pressed hay and a raisin on top. Heals 40 HP.' },
   berry: { name: 'Wolfberry', heal: 20, text: 'An ordinary red wolfberry. Heals 20 HP.' },
@@ -264,6 +266,44 @@ export const FOOD: Record<string, { name: string; heal: number; text: string }> 
 export const RELICS: Record<RelicId, { name: string; text: string }> = {
   dash: { name: 'Dust Dash', text: 'Burst forward in a puff of dust, even once in mid-air. Dash then jump to leap far.' },
   hop: { name: 'Cloud Hop', text: 'Jump once more in mid-air, off a puff of dust.' },
+};
+// ─── Sub-weapons, spells and familiars ────────────────────────────────────
+
+/** Thrown with ↑ + attack; each throw costs seeds. */
+export type SubId = 'seed' | 'spread' | 'acorn' | 'pumpkin';
+export const SUBS: Record<SubId, { name: string; cost: number; text: string }> = {
+  seed: { name: 'Sunflower Seed', cost: 1, text: 'One seed lobbed in an arc. It breaks cracked walls too.' },
+  spread: { name: 'Seed Spread', cost: 2, text: 'Three seeds fanned out at once.' },
+  acorn: { name: 'Boomerang Acorn', cost: 2, text: 'Flies out, hits everything on the way, and comes back.' },
+  pumpkin: { name: 'Pumpkin Flask', cost: 3, text: 'Bursts where it lands into a row of little flames.' },
+};
+export type SpellId = 'whirlwind' | 'quake';
+/**
+ * Spells cost Dust. `motion` is in numpad notation relative to the way the hero faces (2 down, 3 down-forward,
+ * 6 forward), finished with attack. Each hero learns theirs at `level`.
+ */
+export const SPELLS: Record<SpellId, { hero: HeroId; name: string; cost: number; motion: number[]; keys: string; level: number; text: string }> = {
+  whirlwind: { hero: 'dora', name: 'Whirlwind', cost: 12, motion: [2, 3, 6], keys: '↓ ↘ → + attack', level: 3, text: 'A spinning column of dust that drifts forward, hitting again and again.' },
+  quake: { hero: 'enzo', name: 'Burrow Quake', cost: 15, motion: [6, 2, 3], keys: '→ ↓ ↘ + attack', level: 4, text: 'Enzo pounds the floor, sending a quake both ways that throws foes into the air.' },
+};
+export type PalId = 'zippy' | 'pudding' | 'mochi';
+export const PALS: Record<PalId, { name: string; kind: string; role: string; where: string }> = {
+  zippy: { name: 'Zippy', kind: 'Sugar glider', role: 'Glides at nearby foes and nips them.', where: 'Locked in a cage on the belfry stair.' },
+  pudding: { name: 'Pudding', kind: 'Guinea pig', role: 'Squeaks and heals the lead when they are badly hurt.', where: 'Lost and hungry in the Hay Cellar.' },
+  mochi: { name: 'Mochi', kind: 'Capybara', role: 'Bonks away shots aimed at the lead and sniffs out cracked walls.', where: 'Soaking by the shrine in the catacombs.' },
+};
+/** What the Bestiary says about each foe once you've defeated one. */
+export const LORE: Record<string, { weak: string; line: string }> = {
+  bat: { weak: 'Anything. They are very small.', line: 'Hangs upside down to save on stairs.' },
+  moth: { weak: 'Gusts of dust.', line: 'Drawn to candlelight, and to Dora’s fan, which it thinks is a lamp.' },
+  beetle: { weak: 'Hits from any side.', line: 'Polishes its shell every morning. Never skips.' },
+  bone: { weak: 'Get close; bones fly in an arc.', line: 'A mouse who took the phrase “skin and bones” too far.' },
+  armadillo: { weak: 'Hits from behind, tag tumbles, or right after its lunge.', line: 'Guards the hall for the Count. Paid in grubs.' },
+  rat: { weak: 'Jump its charge and hit it while it pants.', line: 'Loyal to Gnawdrick, mostly for the cheese.' },
+  ghost: { weak: 'Strike while it glows; wait while it fades.', line: 'Haunts a jar of pickles. Nobody knows why.' },
+  spider: { weak: 'Stand aside as it drops, then strike.', line: 'Knits the cobwebs. Very proud of the corners.' },
+  owl: { weak: 'Jump the swoop, hit him when he lands.', line: 'A duke of the belfry who has never once rung the bell.' },
+  rat_king: { weak: 'Hit him while he is dizzy from a charge.', line: 'Sits on a throne of cheese and does not share.' },
 };
 /** Pip's stall in the catacombs. `seeds` is a bundle of ten sunflower seeds. */
 export const SHOP: { id: string; price: number }[] = [
@@ -274,7 +314,7 @@ export const itemName = (id: string) => (id === 'seeds' ? 'Sunflower Seeds ×10'
 
 // ─── Story ────────────────────────────────────────────────────────────────
 
-export type Speaker = HeroId | 'owl' | 'rat' | 'pip' | 'sign';
+export type Speaker = HeroId | 'owl' | 'rat' | 'pip' | 'sign' | PalId;
 export type Line = { who: Speaker; text: string };
 export const SCRIPTS: Record<string, Line[]> = {
   intro: [
@@ -322,6 +362,27 @@ export const SCRIPTS: Record<string, Line[]> = {
   hop: [
     { who: 'sign', text: 'You found the Cloud Hop! Press jump again in mid-air to hop off a puff of dust.' },
     { who: 'enzo', text: 'That ledge up in Pip’s shrine room. We can reach it now.' },
+  ],
+  puddingHungry: [
+    { who: 'pudding', text: 'Wheek! Wheek! I got lost looking for hay and now I’m sooo hungry. Do you have anything with hay in it?' },
+    { who: 'enzo', text: 'There was a Hay Cake up on a shelf in here somewhere.' },
+  ],
+  puddingJoin: [
+    { who: 'pudding', text: 'A Hay Cake! Wheeeek! Thank you! I’m coming with you. If you get hurt, I’ll squeak until you feel better.' },
+    { who: 'sign', text: 'Pudding the guinea pig joins you! Choose who comes along from the Familiars tab in the menu.' },
+  ],
+  zippyFree: [
+    { who: 'zippy', text: 'Free! Free! The owl locked me up for being too zoomy. Can I zoom with you? I bite bad guys!' },
+    { who: 'dora', text: 'You can zoom with us.' },
+    { who: 'sign', text: 'Zippy the sugar glider joins you! Choose who comes along from the Familiars tab in the menu.' },
+  ],
+  mochiWait: [
+    { who: 'mochi', text: 'Mmm. Hello. I would come along, but the Rat King’s gang keeps stealing my yuzu. I cannot relax until they stop.' },
+    { who: 'dora', text: 'The Rat King is up the chimney, right? We’ll have a word.' },
+  ],
+  mochiJoin: [
+    { who: 'mochi', text: 'The rats have gone quiet. You did that? Mmm. Then I shall come. I will stand in front of things that hurt.' },
+    { who: 'sign', text: 'Mochi the capybara joins you! Choose who comes along from the Familiars tab in the menu.' },
   ],
   rat: [
     { who: 'rat', text: 'Chinchillas?! In MY pantry? Every crumb down here belongs to Gnawdrick, King of the Rats!' },

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   FluffstevaniaGame, ROOMS, COLS, ROWS, TILE, NO_INPUT, FOES, OWL, RAT, rawTile, roomAt, roomById, isSolid, parseSave, freshSave, xpToNext,
-  TOTAL_CELLS, DASH_T, SHOP, GHOST_ON, GHOST_OFF,
+  TOTAL_CELLS, DASH_T, SHOP, GHOST_ON, GHOST_OFF, DIFFICULTY, CHARGE_T, SPIN, DUO_MAX, SPELLS, SUBS, maxMp, palXpToNext,
 } from '../.checks/fluffstevania-game.js';
 
 const DT = 1 / 120;
@@ -122,11 +122,23 @@ test('in the catacombs the Cloud Hop is reachable, but the Rat King and the high
   assert.ok(!seen.has(spotOf('ossuary', 'H')), 'the ossuary leaf needs the Cloud Hop');
 });
 
+test('sub-weapons and familiars sit where they can be reached at the right time', () => {
+  let { seen } = explore({});
+  assert.ok(seen.has(spotOf('cellar', 'U')), 'the Seed Spread is an early find');
+  assert.ok(seen.has(spotOf('cellar', 'P')), 'Pudding is in the cellar');
+  ({ seen } = explore({ dash: true }));
+  assert.ok(seen.has(spotOf('stair', 'Z')), 'Zippy’s cage is on the belfry stair');
+  assert.ok(!seen.has(spotOf('stair', 'U')), 'the Boomerang Acorn waits for the Cloud Hop');
+  ({ seen } = explore({ dash: true, owl: true }));
+  assert.ok(seen.has(spotOf('larder', 'U')), 'the Pumpkin Flask is in the larder');
+  assert.ok(seen.has(spotOf('save-crypt', 'Y')), 'Mochi soaks by the catacomb shrine');
+});
+
 test('with every relic every room is reachable and every spot can get back to the start', () => {
   const { seen, edges, start } = explore({ dash: true, hop: true, owl: true });
   const rooms = roomsIn(seen);
   for (const r of ROOMS) assert.ok(rooms.has(r.id), r.id);
-  for (const [room, ch] of [['jam-vault', 'I'], ['jam-vault', 'H'], ['ossuary', 'H']]) assert.ok(seen.has(spotOf(room, ch)), `${room} ${ch}`);
+  for (const [room, ch] of [['jam-vault', 'I'], ['jam-vault', 'H'], ['ossuary', 'H'], ['stair', 'U']]) assert.ok(seen.has(spotOf(room, ch)), `${room} ${ch}`);
   const back = new Set([start]), queue = [start];
   while (queue.length) for (const k of edges.get(queue.shift()) ?? []) if (!back.has(k)) { back.add(k); queue.push(k); }
   const stuck = [...seen.keys()].filter((k) => !back.has(k));
@@ -179,7 +191,7 @@ test('attacks hurt enemies, pop damage numbers, and kills give XP and levels', (
   run(g, {}, 0.05);
   tap(g, 'attack');
   run(g, {}, 0.4);
-  assert.ok(e.hp < FOES.beetle.hp, 'the rapier reaches the beetle');
+  assert.ok(e.hp < FOES.beetle.hp, 'the fan reaches the beetle');
   assert.ok(g.pops.length > 0, 'a damage number pops');
   e.hp = 1; e.x = g.body.x + 28; e.y = g.body.y; e.face = 1; e.vx = 0; e.vy = 0; g.body.invT = 0;
   tap(g, 'attack');
@@ -467,13 +479,13 @@ test('gear changes stats and only fits the right hero; food heals', () => {
   assert.equal(g.bag.cake, undefined);
 });
 
-test('older saves swap the whips for swords', () => {
+test('older saves swap the whips and swords for fans', () => {
   const old = { ...freshSave(), equip: { dora: { weapon: 'ribbon', armor: null, acc: null }, enzo: { weapon: 'claws', armor: 'scarf', acc: null } }, bag: { bramble: 1, cake: 1 } };
   const s = parseSave(JSON.stringify(old));
-  assert.equal(s.equip.dora.weapon, 'rapier');
-  assert.equal(s.bag.sabre, 1);
+  assert.equal(s.equip.dora.weapon, 'fan');
+  assert.equal(s.bag.moonfan, 1);
   assert.equal(s.bag.bramble, undefined);
-  assert.equal(new FluffstevaniaGame(s).weaponOf('dora').style, 'rapier');
+  assert.equal(new FluffstevaniaGame(s).weaponOf('dora').style, 'fan');
 });
 
 test('Pip’s stall sells for raisins and pauses the world', () => {
@@ -603,9 +615,253 @@ test('Gnawdrick the Rat King: charges, leaps, bowls cheese, calls rats, and ends
   assert.equal(g.chapter, 2);
 });
 
+
+// ─── Round three: difficulty, combos, the fan, Duo Strike, magic, familiars ───
+
+test('difficulty scales foes, Easy heals at doorways and Hard bosses start fierce', () => {
+  for (const d of ['easy', 'normal', 'hard']) {
+    const g = new FluffstevaniaGame(freshSave(d)); skipTalk(g);
+    const e = g.spawn('beetle', 0, 0);
+    assert.equal(e.hp, Math.round(FOES.beetle.hp * DIFFICULTY[d].foeHp), d);
+    g.body.invT = 0;
+    g.hurtHero(20, g.body.x + 5);
+    assert.equal(g.stats('dora').maxHp - g.hp.dora, Math.max(1, Math.round(20 * DIFFICULTY[d].foeAtk - g.stats('dora').def)), `${d} damage`);
+  }
+  const easy = new FluffstevaniaGame(freshSave('easy')); skipTalk(easy);
+  easy.hp.dora = 10;
+  run(easy, { right: true }, 3.5);
+  assert.equal(easy.room.id, 'path');
+  place(easy, 'gate', 2, 11);
+  assert.ok(easy.hp.dora > 10, 'a doorway healed Dora');
+  const hard = new FluffstevaniaGame(freshSave('hard')); skipTalk(hard);
+  place(hard, 'belfry', 5, 11); skipTalk(hard);
+  hard.hp.dora = hard.hp.enzo = 9999;
+  const moves = new Set();
+  for (let i = 0; i < 120 * 30; i++) { hard.step(DT, NO_INPUT); moves.add(hard.boss.move); }
+  assert.ok(!hard.boss.phase2 && moves.has('drop'), 'the owl dives before half health on Hard');
+  assert.equal(parseSave(JSON.stringify(hard.snapshot())).difficulty, 'hard');
+});
+
+test('defeated foes stay down until a rest or a change of area', () => {
+  const g = fresh();
+  place(g, 'path', 16, 11);
+  const beetle = g.enemies.find((e) => e.kind === 'beetle');
+  beetle.hp = 1; beetle.x = g.body.x + 24; beetle.face = 1;
+  tap(g, 'attack'); run(g, {}, 0.6);
+  assert.equal(g.kills.beetle, 1, 'counted for the Bestiary');
+  place(g, 'gate', 2, 11); place(g, 'path', 40, 11);
+  assert.ok(!g.enemies.some((e) => e.kind === 'beetle'), 'still gone after coming back');
+  place(g, 'hall', 4, 24); place(g, 'gate', 20, 11); place(g, 'path', 40, 11);
+  assert.ok(g.enemies.some((e) => e.kind === 'beetle'), 'back after a trip to another area');
+  const beetles = () => g.enemies.filter((e) => e.kind === 'beetle' && !e.dead).length;
+  place(g, 'cellar', 30, 7);
+  const before = beetles();
+  const b2 = g.enemies.find((e) => e.kind === 'beetle'); b2.hp = 0; b2.dead = 1; g.slain.add(b2.key);
+  place(g, 'shaft', 10, 25); place(g, 'cellar', 30, 7);
+  assert.equal(beetles(), before - 1, 'the same area keeps it down');
+  place(g, 'save-hall', 4, 11); run(g, { right: true }, 0.6);
+  assert.equal(g.slain.size, 0, 'a rest at a shrine brings everything back');
+});
+
+test('bosses are saved the moment they fall', () => {
+  const g = fresh();
+  g.relics.add('dash');
+  place(g, 'belfry', 5, 11); skipTalk(g);
+  g.boss.hp = 1; g.hitBoss(50, 0);
+  run(g, {}, 2.2);
+  assert.ok(g.saved && g.saved.flags.includes('boss:owl'), 'saved with the owl beaten');
+  const again = new FluffstevaniaGame(parseSave(JSON.stringify(g.saved)));
+  assert.ok(!again.fight && !again.boss, 'no second fight after loading');
+  assert.ok(again.pickups.some((p) => p.kind === 'leaf'), 'the unclaimed leaf waits in the room');
+});
+
+test('attacks chain into a three-hit combo whose finisher hits harder, and Enzo’s launches', () => {
+  const g = fresh();
+  place(g, 'path', 34, 11);
+  g.enemies = [];
+  const e = g.spawn('beetle', g.body.x + 26, g.body.y); e.hp = 999; e.face = 1;
+  const combos = [];
+  for (let i = 0; i < 3; i++) { tap(g, 'attack'); combos.push(g.body.combo); run(g, {}, 0.22); e.x = g.body.x + 26; e.vx = 0; }
+  assert.deepEqual(combos, [0, 1, 2]);
+  run(g, {}, 0.6);
+  tap(g, 'attack');
+  assert.equal(g.body.combo, 0, 'a pause starts the string again');
+  run(g, {}, 0.5);
+  g.enemies = []; g.leader = 'enzo';
+  const f = g.spawn('bone', g.body.x + 26, g.body.y); f.hp = 999; f.face = 1;
+  let launched = false;
+  for (let i = 0; i < 3; i++) { tap(g, 'attack'); for (let k = 0; k < 26; k++) { g.step(DT, NO_INPUT); if (f.vy < -250) launched = true; } f.x = g.body.x + 26; }
+  assert.ok(launched, 'the third swipe throws the foe up');
+});
+
+test('Dora’s fan blows gusts and, held and released, spins to hit both sides', () => {
+  const g = fresh();
+  place(g, 'path', 34, 11);
+  g.enemies = [];
+  tap(g, 'attack');
+  run(g, {}, 0.1);
+  assert.ok(g.shots.some((s) => s.kind === 'gust' && s.hero), 'a gust of dust flies out');
+  run(g, {}, 0.6);
+  const front = g.spawn('bone', g.body.x + 20, g.body.y), back = g.spawn('bone', g.body.x - 20, g.body.y);
+  front.hp = back.hp = 999; front.face = back.face = 1; g.body.invT = 99;
+  run(g, { attack: true }, 0.3 + CHARGE_T + 0.1);
+  g.step(DT, NO_INPUT);
+  assert.ok(g.body.spin, 'the spin starts on release');
+  run(g, {}, SPIN.total);
+  assert.ok(front.hp < 999 && back.hp < 999, 'both sides were hit');
+});
+
+test('the Duo Strike fills from hits and strikes everything in view', () => {
+  const g = fresh();
+  place(g, 'path', 34, 11);
+  g.enemies = [];
+  const near = g.spawn('beetle', g.body.x + 60, g.body.y), far = g.spawn('beetle', g.body.x + 150, g.body.y);
+  near.hp = far.hp = 999;
+  g.duo = DUO_MAX - 1;
+  tap(g, 'duo');
+  assert.equal(g.duoT, -1, 'not ready yet');
+  g.duo = DUO_MAX; g.body.attackT = 0;
+  g.step(DT, { ...NO_INPUT, tag: true, attack: true });
+  assert.ok(g.duoT >= 0 && g.duo === 0, 'tag and attack together set it off');
+  assert.equal(g.leader, 'dora', 'no ordinary tag');
+  run(g, {}, 1.2);
+  assert.ok(near.hp < 999 && far.hp < 999, 'every foe on screen was hit');
+  assert.equal(g.duoT, -1);
+  const h = fresh(); place(h, 'path', 34, 11); h.enemies = [];
+  const e = h.spawn('beetle', h.body.x + 26, h.body.y); e.hp = 999; e.face = 1;
+  for (let i = 0; i < 6; i++) { h.body.attackT = 0; h.body.comboT = 9; tap(h, 'attack'); run(h, {}, 0.4); e.x = h.body.x + 26; }
+  assert.ok(h.duo > 0, 'hits fill the meter');
+});
+
+test('spells cost Dust and are cast with a motion or the spell button', () => {
+  const g = fresh();
+  place(g, 'path', 34, 11);
+  g.enemies = [];
+  tap(g, 'spell');
+  assert.ok(!g.shots.some((s) => s.kind === 'wind'), 'Dora doesn’t know Whirlwind at level 1');
+  g.gainXp(xpToNext(1) + xpToNext(2));
+  assert.equal(g.spellOf('dora'), 'whirlwind');
+  const mp = g.mp;
+  // ↓, ↓→, → then attack.
+  g.step(DT, { ...NO_INPUT, down: true }); g.step(DT, { ...NO_INPUT, down: true, right: true }); g.step(DT, { ...NO_INPUT, right: true });
+  g.step(DT, { ...NO_INPUT, right: true, attack: true });
+  assert.ok(g.shots.some((s) => s.kind === 'wind'), 'Whirlwind');
+  assert.equal(g.mp, mp - SPELLS.whirlwind.cost);
+  run(g, {}, 0.6);
+  g.mp = 3; g.shots = [];
+  tap(g, 'spell');
+  assert.ok(!g.shots.some((s) => s.kind === 'wind'), 'not enough Dust');
+  run(g, {}, 3.7);
+  assert.ok(g.mp >= 6, 'Dust trickles back');
+  g.gainXp(xpToNext(3));
+  g.leader = 'enzo'; g.mp = maxMp(g.level);
+  tap(g, 'spell');
+  assert.equal(g.shots.filter((s) => s.kind === 'quake').length, 2, 'Burrow Quake runs both ways');
+});
+
+test('sub-weapons: the spread, the boomerang acorn and the pumpkin flask', () => {
+  const g = fresh();
+  place(g, 'cellar', 17, 11);
+  run(g, { jump: true, right: true }, 0.25); run(g, {}, 0.8);
+  assert.ok(g.subs.has('spread') && g.sub === 'spread', 'the Seed Spread was on the shelf');
+  place(g, 'path', 34, 11); g.enemies = []; g.seeds = 10;
+  g.step(DT, { ...NO_INPUT, up: true, attack: true });
+  assert.equal(g.shots.filter((s) => s.kind === 'seed').length, 3);
+  assert.equal(g.seeds, 10 - SUBS.spread.cost);
+  run(g, {}, 2);
+  g.subs.add('acorn'); assert.ok(g.setSub('acorn')); g.shots = [];
+  const e = g.spawn('beetle', g.body.x + 50, g.body.y); e.hp = 999;
+  g.step(DT, { ...NO_INPUT, up: true, attack: true });
+  let out = 0;
+  for (let i = 0; i < 200 && g.shots.length; i++) { g.step(DT, NO_INPUT); out = Math.max(out, g.shots[0]?.x - g.body.x || 0); }
+  assert.ok(out > 60 && g.shots.length === 0, 'the acorn flew out and came back');
+  assert.ok(999 - e.hp > 0, 'and hit on the way');
+  g.enemies = []; g.subs.add('pumpkin'); g.setSub('pumpkin'); g.body.subCd = 0;
+  g.step(DT, { ...NO_INPUT, up: true, attack: true });
+  run(g, {}, 0.8);
+  assert.ok(g.shots.filter((s) => s.kind === 'flame').length >= 3, 'the flask burst into flames');
+  assert.equal(g.setSub('nothing'), false);
+});
+
+test('shrines you have found can warp you to one another', () => {
+  const g = fresh();
+  place(g, 'save-hall', 4, 11); run(g, { right: true }, 0.6);
+  assert.equal(g.prompt, null, 'one shrine is nowhere to go');
+  g.relics.add('dash');
+  place(g, 'save-belfry', 8, 11); run(g, { right: true }, 0.4);
+  assert.equal(g.prompt, 'WARP');
+  tap(g, 'up');
+  assert.ok(g.warp);
+  assert.deepEqual(g.shrines(), ['save-hall', 'save-belfry']);
+  assert.ok(g.warpTo('save-hall'));
+  assert.equal(g.room.id, 'save-hall');
+  assert.equal(g.warp, false);
+  assert.equal(g.warpTo('save-crypt'), false, 'not found yet');
+});
+
+test('familiars: Pudding for a Hay Cake, Zippy out of the cage, Mochi once the Rat King falls', () => {
+  const g = fresh();
+  place(g, 'cellar', 56, 11);
+  assert.equal(g.prompt, 'TALK');
+  tap(g, 'up');
+  assert.equal(g.dialog.lines[0].who, 'pudding'); skipTalk(g);
+  assert.ok(!g.pals.pudding, 'hungry, not joining yet');
+  g.bag.cake = 1;
+  tap(g, 'up'); skipTalk(g);
+  assert.ok(g.pals.pudding && g.pal === 'pudding' && !g.bag.cake, 'Pudding joins for the cake');
+  // Pudding heals the lead when they are badly hurt.
+  g.enemies = []; g.hp.dora = 5; g.palBody.cd = 0;
+  run(g, {}, 0.2);
+  assert.ok(g.hp.dora > 5, 'squeak, heal');
+  g.relics.add('dash');
+  place(g, 'stair', 17, 11);
+  assert.ok(g.cage);
+  g.enemies = []; g.body.face = 1;
+  for (let i = 0; i < 3; i++) { g.body.x = g.cage.x - 24; g.body.attackT = 0; g.body.comboT = 9; tap(g, 'attack'); run(g, {}, 0.45); if (!g.cage) break; }
+  assert.equal(g.cage, null, 'three hits break the cage');
+  skipTalk(g);
+  assert.ok(g.pals.zippy);
+  assert.ok(g.setPal('zippy'));
+  // Zippy glides at a nearby foe.
+  const bat = g.spawn('beetle', g.body.x + 60, g.body.y); bat.hp = 999; g.palBody.cd = 0; g.body.invT = 99;
+  run(g, {}, 1.5);
+  assert.ok(bat.hp < 999, 'Zippy nipped it');
+  g.flags.add('boss:owl'); g.flags.add('script:pip');
+  place(g, 'save-crypt', 2, 11);
+  tap(g, 'up'); assert.equal(g.dialog.lines[0].who, 'mochi'); skipTalk(g);
+  assert.ok(!g.pals.mochi);
+  g.flags.add('boss:rat');
+  tap(g, 'up'); skipTalk(g);
+  assert.ok(g.pals.mochi && g.setPal('mochi'));
+  // Mochi bonks away a shot heading for the lead.
+  g.palBody.cd = 0; g.body.invT = 0;
+  g.shots.push({ kind: 'bone', x: g.body.x + 30, y: g.body.y - 10, vx: -120, vy: 0, grav: 0, r: 5, dmg: 9, hero: false, life: 2, spin: 0 });
+  const hp = g.hp.dora;
+  run(g, {}, 0.4);
+  assert.equal(g.hp.dora, hp, 'BONK');
+  // Familiars level up with you.
+  g.gainXp(palXpToNext(1) + 1);
+  assert.equal(g.pals.mochi.level, 2);
+  const back = new FluffstevaniaGame(parseSave(JSON.stringify(g.snapshot())));
+  assert.equal(back.pal, 'mochi'); assert.equal(back.pals.mochi.level, 2); assert.ok(back.pals.zippy && back.pals.pudding);
+  assert.ok(!back.cage || back.room.id !== 'stair');
+});
+
+test('the Silver Bell gives away a nearby cracked wall', () => {
+  const g = fresh();
+  g.equipped.dora.acc = 'bell';
+  place(g, 'hall', 12, 21);
+  run(g, {}, 0.5);
+  assert.ok(!g.events.includes('secret'), 'too far away');
+  g.events.length = 0;
+  place(g, 'hall', 8, 13);
+  run(g, {}, 0.5);
+  assert.ok(g.events.includes('secret'), 'jingle');
+});
+
 test('the same inputs always play out the same way', () => {
   const play = () => { const g = fresh(); for (let i = 0; i < 1200; i++) g.step(DT, { ...NO_INPUT, right: i % 200 < 150, jump: i % 90 < 30, attack: i % 40 === 0 }); return JSON.stringify([g.body.x, g.body.y, g.hp, g.xp, g.raisins]); };
   assert.equal(play(), play());
 });
 
-console.log(`PASS Fluffstevania: ${passed} checks covering the map, reachability with each relic, movement, the lunge and Cloud Hop, combat, tagging, saves, secrets, gear, Pip's shop, the catacomb foes, the owl and the Rat King.`);
+console.log(`PASS Fluffstevania: ${passed} checks covering the map, reachability, movement, combat and combos, the fan, Duo Strike, spells, sub-weapons, tagging, saves, difficulty, respawns, warps, familiars, the shop, the foes and both bosses.`);
