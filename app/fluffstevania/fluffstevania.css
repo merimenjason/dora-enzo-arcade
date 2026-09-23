@@ -1,3 +1,6 @@
+/* The gothic faces for the page and the canvas lettering; Georgia stands in until they load. */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&display=swap');
+
 .fv-shell {
   --ink: #f4ead8;
   --muted: #bfb0cc;
@@ -12,12 +15,15 @@
   background: radial-gradient(120% 70% at 50% -10%, #3a1e3e 0%, #150c1c 55%, #0b060f 100%);
   color: var(--ink);
   padding: 16px max(16px, calc((100vw - 1180px) / 2)) 32px;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --display: 'Cinzel', Georgia, serif;
+  /* An ornate frame: a dark gold line, a gap, and a bright gold line. */
+  --frame: 0 0 0 1px #6a4a20, 0 0 0 3px #140a14, 0 0 0 4px #c8a050;
 }
 /* app/globals.css colours bare p and footer for the arcade menu; hand the colour back to this page. */
 .fv-shell p, .fv-shell footer { color: inherit; }
-.fv-shell h1, .fv-shell h2, .fv-shell h3, .fv-shell h4 { font-family: inherit; letter-spacing: 0; margin: 0; }
-.fv-shell button { font: inherit; color: var(--ink); cursor: pointer; border-radius: 4px; border: 1px solid var(--line); background: var(--panel); padding: 8px 14px; }
+.fv-shell h1, .fv-shell h2, .fv-shell h3, .fv-shell h4 { font-family: var(--display); letter-spacing: 1px; margin: 0; }
+.fv-shell button { font: 600 15px var(--display); letter-spacing: 1px; color: var(--ink); cursor: pointer; border-radius: 2px; border: 1px solid #6a4a58; background: linear-gradient(#2a1c36, #180f20); padding: 8px 14px; }
 .fv-shell button:hover:not(:disabled) { border-color: var(--gold); }
 .fv-shell button:disabled { opacity: 0.45; cursor: default; }
 .fv-shell button:focus-visible, .fv-shell a:focus-visible, .fv-shell canvas:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
@@ -29,56 +35,56 @@
 
 .fv-shell .fv-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
 .fv-back { color: var(--ink); text-decoration: none; font: 700 14px ui-monospace, monospace; letter-spacing: 1px; }
-.fv-brand { font: 700 16px Georgia, serif; letter-spacing: 4px; color: var(--gold); }
+.fv-brand { font: 700 16px var(--display); letter-spacing: 4px; color: var(--gold); }
 
 .fv-hero { text-align: center; padding: 28px 0 8px; }
 .fv-duo { display: flex; justify-content: center; gap: 0; margin-bottom: -6px; }
 .fv-duo-art { width: 150px; height: 120px; }
-.fv-eyebrow { font: 700 12px ui-monospace, monospace; letter-spacing: 3px; color: var(--gold) !important; margin: 0; }
-.fv-hero h1 { font: 700 58px/1 Georgia, serif; margin: 10px 0 14px; letter-spacing: 1px; background: linear-gradient(#fff6de, #e8c46a 55%, #a8743a); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: 0 0 40px rgba(232, 196, 106, 0.15); }
-.fv-hero h1 span { display: block; font: italic 400 22px/1.4 Georgia, serif; letter-spacing: 6px; margin-top: 6px; background: linear-gradient(#e8d8f0, #b890c8); -webkit-background-clip: text; background-clip: text; }
-.fv-lede { color: var(--muted) !important; max-width: 700px; margin: 0 auto; line-height: 1.7; font-size: 16px; }
+.fv-eyebrow { font: 700 12px var(--display); letter-spacing: 4px; color: var(--gold) !important; margin: 0; }
+.fv-hero h1 { font: 900 60px/1 var(--display); margin: 10px 0 14px; letter-spacing: 2px; background: linear-gradient(#fff6de, #e8c46a 55%, #a8743a); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: 0 0 40px rgba(232, 196, 106, 0.15); }
+.fv-hero h1 span { display: block; font: italic 500 26px/1.4 'Cormorant Garamond', Georgia, serif; letter-spacing: 6px; margin-top: 6px; background: linear-gradient(#e8d8f0, #b890c8); -webkit-background-clip: text; background-clip: text; }
+.fv-lede { color: var(--muted) !important; max-width: 700px; margin: 0 auto; line-height: 1.6; font-size: 19px; }
 .fv-lede b { color: var(--ink); }
 .fv-start { justify-content: center; margin-top: 22px; }
 .fv-shell .fv-start button { padding: 12px 26px; font-size: 17px; display: grid; gap: 2px; }
 .fv-start small { font-size: 12px; opacity: 0.8; font-weight: 400; }
 .fv-note { margin: 10px 0 0; font-size: 13px; color: var(--muted) !important; }
 .fv-howto { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin-top: 30px; }
-.fv-howto > div { padding: 14px 16px; border: 1px solid var(--line); border-radius: 6px; background: linear-gradient(#1e1428, #150e1c); }
+.fv-howto > div { padding: 14px 16px; border: none; border-radius: 1px; background: linear-gradient(#1e1428, #150e1c); box-shadow: var(--frame); margin: 4px; }
 .fv-howto h2 { font-size: 15px; color: var(--gold); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
-.fv-howto p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--muted) !important; }
+.fv-howto p { margin: 0; font-size: 17px; line-height: 1.5; color: var(--muted) !important; }
 .fv-howto b { color: var(--ink); font-family: ui-monospace, monospace; font-size: 13px; }
 .fv-shell .fv-foot { margin-top: 24px; font-size: 13px; color: var(--muted); text-align: center; }
 
-.fv-stage { position: relative; margin: 12px auto 0; border: 2px solid #5a3a3a; border-radius: 6px; overflow: hidden; background: #000; width: min(100%, calc((100dvh - 170px) * 12 / 7)); min-width: min(100%, 320px); box-shadow: 0 0 0 4px #1a0e14, 0 10px 40px rgba(0, 0, 0, 0.6); }
+.fv-stage { position: relative; margin: 14px auto 0; border: 1px solid #6a4a20; border-radius: 1px; overflow: hidden; background: #000; width: min(100%, calc((100dvh - 176px) * 12 / 7)); min-width: min(100%, 320px); box-shadow: 0 0 0 3px #140a14, 0 0 0 4px #c8a050, 0 0 0 7px #1a0e14, 0 10px 40px rgba(0, 0, 0, 0.6); }
 .fv-stage > canvas { display: block; width: 100%; height: auto; aspect-ratio: 12 / 7; touch-action: none; }
 
-.fv-dialog { position: absolute; left: 3%; right: 3%; bottom: 4%; display: flex; gap: 14px; align-items: center; padding: 12px 16px; background: linear-gradient(rgba(20, 10, 28, 0.94), rgba(12, 6, 18, 0.94)); border: 2px solid var(--gold); border-radius: 6px; box-shadow: 0 0 0 3px #1a0e14; }
-.fv-face { flex-shrink: 0; width: 84px; height: 68px; border: 1px solid var(--line); border-radius: 4px; background: #2a1c38; display: grid; place-items: center; overflow: hidden; }
+.fv-dialog { position: absolute; left: 3%; right: 3%; bottom: 4%; display: flex; gap: 14px; align-items: center; padding: 12px 16px; background: linear-gradient(rgba(24, 12, 32, 0.95), rgba(10, 4, 16, 0.95)); border: 1px solid #6a4a20; border-radius: 1px; box-shadow: 0 0 0 3px #140a14, 0 0 0 4px #c8a050; }
+.fv-face { flex-shrink: 0; width: 84px; height: 68px; border: 1px solid #c8a050; border-radius: 1px; background: radial-gradient(#3a2448, #140a1c); display: grid; place-items: center; overflow: hidden; }
 .fv-face span { font-size: 40px; }
 .fv-face-art { width: 84px; height: 68px; }
-.fv-dialog strong { display: block; color: var(--gold); font-size: 15px; letter-spacing: 1px; }
-.fv-dialog p { margin: 4px 0 2px; font-size: 16px; line-height: 1.45; }
+.fv-dialog strong { display: block; color: var(--gold); font: 700 14px var(--display); letter-spacing: 2px; }
+.fv-dialog p { margin: 4px 0 2px; font-size: 19px; line-height: 1.35; }
 .fv-dialog small { font: 11px ui-monospace, monospace; color: var(--muted); }
-.fv-who-owl { border-color: #e08040; }
-.fv-who-sign { border-color: #b8a070; }
+.fv-who-owl, .fv-who-rat { box-shadow: 0 0 0 3px #140a14, 0 0 0 4px #e08040; }
+.fv-who-sign { box-shadow: 0 0 0 3px #140a14, 0 0 0 4px #b8a070; }
 
 .fv-overlay { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 10px; text-align: center; background: rgba(10, 4, 14, 0.82); padding: 12px; }
-.fv-overlay strong { font: 700 34px Georgia, serif; color: var(--gold); }
-.fv-overlay p { margin: 0; font-size: 15px; max-width: 460px; line-height: 1.5; }
+.fv-overlay strong { font: 700 34px var(--display); color: var(--gold); letter-spacing: 1px; }
+.fv-overlay p { margin: 0; font-size: 18px; max-width: 480px; line-height: 1.45; }
 
-.fv-menu { position: absolute; inset: 0; overflow: auto; background: rgba(10, 4, 14, 0.94); padding: 14px 18px; }
+.fv-menu { position: absolute; inset: 0; overflow: auto; background: radial-gradient(120% 90% at 50% 0%, rgba(40, 18, 44, 0.96), rgba(8, 3, 12, 0.97)); padding: 14px 18px; }
 .fv-tabs { display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 12px; }
 .fv-shell .fv-tabs button.on, .fv-shell .fv-equip .fv-row button.on { border-color: var(--gold); background: #3a2238; color: var(--gold); }
 .fv-shell .fv-tabs .fv-close { margin-left: auto; }
 .fv-status { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.fv-card { display: flex; gap: 10px; align-items: center; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2); }
-.fv-card.lead { border-color: var(--gold); }
+.fv-card { display: flex; gap: 10px; align-items: center; padding: 10px; border: 1px solid #4a3040; border-radius: 1px; background: linear-gradient(#1c1224, #120a18); margin: 3px; }
+.fv-card.lead { border-color: #6a4a20; box-shadow: 0 0 0 2px #140a14, 0 0 0 3px #c8a050; }
 .fv-card-art { width: 110px; height: 88px; flex-shrink: 0; }
 .fv-card h3 { font-size: 20px; color: var(--gold); }
 .fv-card h3 small { font: 11px ui-monospace, monospace; color: var(--muted); letter-spacing: 1px; margin-left: 6px; }
 .fv-card p { margin: 4px 0; }
-.fv-card dl { display: grid; grid-template-columns: repeat(3, auto 1fr); gap: 2px 8px; margin: 4px 0; font: 13px ui-monospace, monospace; }
+.fv-card dl { display: grid; grid-template-columns: repeat(3, auto 1fr); gap: 2px 8px; margin: 4px 0; font: 700 13px var(--display); }
 .fv-card dt { color: var(--muted); }
 .fv-card dd { margin: 0; }
 .fv-facts { grid-column: 1 / -1; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; }
@@ -86,20 +92,28 @@
 .fv-shell .fv-link { background: none; border: none; padding: 0; color: var(--gold); text-decoration: underline; font-size: 12px; }
 .fv-equip, .fv-items { display: grid; gap: 10px; }
 .fv-slot { display: grid; gap: 6px; }
-.fv-slot h4 { font: 700 12px ui-monospace, monospace; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); }
-.fv-gear { display: flex; gap: 10px; align-items: center; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2); }
+.fv-slot h4 { font: 700 12px var(--display); letter-spacing: 3px; text-transform: uppercase; color: var(--gold); }
+.fv-gear { display: flex; gap: 10px; align-items: center; padding: 6px 10px; border: 1px solid #3e2a48; border-radius: 1px; background: linear-gradient(90deg, #1c1224, #120a18); }
+.fv-gear b { font-family: var(--display); font-size: 14px; letter-spacing: 1px; }
 .fv-gear.on { border-color: #7a5a3a; }
 .fv-gear > span { display: grid; flex: 1; }
-.fv-gear small { color: var(--muted); font-size: 12px; }
+.fv-gear small { color: var(--muted); font-size: 15px; }
 .fv-icon { width: 32px; height: 32px; flex-shrink: 0; }
-.fv-food { width: 32px; text-align: center; font-size: 22px; }
+.fv-shell .fv-gear > .fv-food { flex: 0 0 32px; display: block; width: 32px; text-align: center; font-size: 22px; }
 .fv-map canvas { display: block; width: 100%; max-width: 640px; height: auto; margin: 0 auto; border: 1px solid var(--line); border-radius: 4px; }
 .fv-map p { text-align: center; }
 
+.fv-shop-head { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 12px; }
+.fv-shop-head > div { flex: 1; min-width: 180px; }
+.fv-shop-head h3 { color: var(--gold); font-size: 20px; }
+.fv-shop-head p { margin: 2px 0 0; font-size: 17px; font-style: italic; }
+.fv-shop-face { font-size: 40px; width: 58px; height: 58px; display: grid; place-items: center; background: radial-gradient(#3a2448, #140a1c); box-shadow: 0 0 0 1px #6a4a20, 0 0 0 3px #140a14, 0 0 0 4px #c8a050; }
+.fv-shell .fv-purse { margin: 0; font: 700 15px var(--display); color: #e8b0d0; }
+.fv-shell .fv-shop .fv-gear button { min-width: 72px; font-weight: 700; color: var(--gold); }
 .fv-keys { margin: 12px auto 0; font-size: 13px; color: var(--muted) !important; text-align: center; max-width: 820px; line-height: 1.5; font-family: ui-sans-serif, system-ui, sans-serif; }
 .fv-keys b { color: var(--ink); }
 .fv-pad { display: none; grid-template-columns: repeat(9, 1fr); gap: 6px; margin-top: 10px; user-select: none; -webkit-user-select: none; }
-.fv-shell .fv-pad button { touch-action: none; padding: 14px 0; font: 700 13px ui-monospace, monospace; border-radius: 10px; }
+.fv-shell .fv-pad button { touch-action: none; padding: 14px 0; font: 700 13px var(--display); border-radius: 10px; }
 .fv-shell .fv-pad button:active { background: var(--blood); }
 @media (pointer: coarse), (max-width: 800px) {
   .fv-pad { display: grid; }
@@ -127,6 +141,14 @@
   .fv-dialog p { font-size: 13px; }
   .fv-dialog small { display: none; }
   .fv-status { grid-template-columns: 1fr; }
+  .fv-menu { padding: 8px 10px; }
+  .fv-shop-face { display: none; }
+  .fv-shop-head { gap: 6px 10px; padding-bottom: 6px; margin-bottom: 6px; }
+  .fv-shop-head > div { flex-basis: 100%; }
+  .fv-shop-head h3 { font-size: 15px; }
+  .fv-shop-head p { font-size: 14px; }
+  .fv-shell .fv-shop-head .fv-close { margin-left: auto; padding: 4px 10px; }
+  .fv-gear small { font-size: 13px; }
   .fv-overlay strong { font-size: 22px; }
   .fv-overlay p { font-size: 13px; }
 }

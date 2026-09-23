@@ -16,7 +16,7 @@ const GAMES=[
  {href:'/burrow-town',title:'Burrow Town',tag:'CITY BUILDER',blurb:'A cozy 3D valley builder. Lay roads, dig burrows, plant hay and keep both Dora and Enzo happy across five Andean valleys.',color:'#9ec27a',art:'🏘️'},
  {href:'/dusty-hollow',title:'Dusty Hollow',tag:'NEW · VILLAGE LIFE',blurb:'Dora and Enzo move into a seaside Andean hollow together. Fish, catch bugs, dig fossils, shake fruit trees, befriend the neighbours and pay off your burrow, one six-minute day at a time, in chunky pixel art.',color:'#c98ab8',art:'🎣'},
  {href:'/fluff-forge',title:'Fluff Forge',tag:'NEW · COURSE MAKER',blurb:'Build your own platformer course from bricks, clouds, springs, beetles and bats, then run it as Dora or Enzo. Clear it to share a code with friends.',color:'#f29b6b',art:'🧱'},
- {href:'/fluffstevania',title:'Fluffstevania: Symphony of the Dust',tag:'NEW · METROIDVANIA',blurb:'Dora and Enzo explore a haunted mountain castle for the Golden Wolfberry. Tag between them, level up, find relics and gear, and face the owl in the belfry.',color:'#c8a0e8',art:'🦇'},
+ {href:'/fluffstevania',title:'Fluffstevania: Symphony of the Dust',tag:'NEW · METROIDVANIA',blurb:'Dora and Enzo explore a haunted mountain castle for the Golden Wolfberry. Tag between them, level up, find relics and gear, and face the owl and the Rat King.',color:'#c8a0e8',art:'🦇'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">

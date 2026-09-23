@@ -52,7 +52,7 @@ try {
   await page.getByRole('button', { name: 'Resume' }).first().click();
   await page.getByTestId('menu').waitFor({ state: 'detached' });
 
-  // Continue from a shrine save, then equip found gear.
+  // Continue from an older shrine save (from when Dora had whips), then equip found gear.
   const save = { v: 1, room: 'save-hall', x: 6 * 384 + 136, y: 2 * 224 + 192, level: 3, xp: 0, hp: { dora: 60, enzo: 80 }, leader: 'dora',
     equip: { dora: { weapon: 'ribbon', armor: null, acc: null }, enzo: { weapon: 'claws', armor: 'scarf', acc: null } }, bag: { bramble: 1 },
     relics: ['dash'], flags: ['script:intro'], visited: ['6,2'], raisins: 5, seeds: 10, time: 60, leaves: 0 };
@@ -66,8 +66,27 @@ try {
   assert.equal(await data(page, 'level'), '3');
   await page.getByTestId('menu-button').click();
   await page.getByRole('tab', { name: 'Equip' }).click();
-  await page.getByTestId('equip-bramble').click();
-  assert.match(await page.getByTestId('menu').textContent(), /Bramble Whip/);
+  await page.getByTestId('equip-sabre').click();
+  assert.match(await page.getByTestId('menu').textContent(), /Moonlit Sabre/);
+  await page.getByTestId('menu-button').click();
+  await page.getByTestId('menu').waitFor({ state: 'detached' });
+
+  // Pip's stall in the catacombs sells for raisins.
+  const crypt = { ...save, room: 'save-crypt', x: 14 * 384 + 18 * 16 + 8, y: 2 * 224 + 192, raisins: 30, flags: ['script:intro', 'boss:owl', 'script:pip'] };
+  await page.goto(`${base}/fluffstevania`);
+  await page.evaluate((s) => localStorage.setItem('fluffstevania-v1', JSON.stringify(s)), crypt);
+  await page.reload();
+  await ready(page);
+  await page.getByTestId('continue').click();
+  await board(page).waitFor();
+  await page.waitForTimeout(300);
+  await page.keyboard.press('ArrowUp');
+  await page.getByTestId('shop').waitFor();
+  assert.ok(await page.getByTestId('buy-ring').isDisabled(), 'the ring costs too much');
+  await page.getByTestId('buy-cake').click();
+  assert.match(await page.getByTestId('shop').textContent(), /6 raisins/);
+  await page.keyboard.press('Escape');
+  await page.getByTestId('shop').waitFor({ state: 'detached' });
 
   // Phones get the pad and no sideways scroll.
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
@@ -79,7 +98,7 @@ try {
   assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'no sideways scroll on a phone');
 
   assert.deepEqual(errors, []);
-  console.log('PASS Fluffstevania browser: story, walking, attack, tag, drawn castle, pausing menu with every tab, continue from a save, equipping, phone layout.');
+  console.log('PASS Fluffstevania browser: story, walking, attack, tag, drawn castle, pausing menu with every tab, continue from an older save, equipping a sword, Pip’s shop, phone layout.');
 } finally {
   await browser.close();
 }

@@ -3,8 +3,8 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import {
-  FluffstevaniaGame, VIEW_W, VIEW_H, NO_INPUT, GEAR, FOOD, RELICS, parseSave, xpToNext,
-  type Input, type Save, type HeroId, type Slot,
+  FluffstevaniaGame, VIEW_W, VIEW_H, NO_INPUT, GEAR, FOOD, RELICS, SHOP, parseSave, xpToNext, itemName,
+  type Input, type Save, type HeroId, type Slot, type Line,
 } from '../../lib/fluffstevania-game';
 import { drawGame, drawMap, gearIcon } from '../../lib/fluffstevania-scene';
 import { ChinchillaPortrait } from '../../components/chinchilla-portrait';
@@ -26,7 +26,9 @@ const PAD: { key: keyof Input; label: string; name: string }[] = [
   { key: 'attack', label: 'HIT', name: 'Attack' }, { key: 'jump', label: 'JUMP', name: 'Jump' },
 ];
 const CUES: Record<string, [number, number, OscillatorType, number]> = {
-  jump: [380, 620, 'square', 0.07], dash: [220, 90, 'sawtooth', 0.14], whip: [900, 300, 'triangle', 0.1], swipe: [1200, 500, 'triangle', 0.06],
+  jump: [380, 620, 'square', 0.07], dash: [220, 90, 'sawtooth', 0.14], thrust: [1500, 600, 'triangle', 0.08], swipe: [1200, 500, 'triangle', 0.06],
+  hop: [600, 1100, 'sine', 0.1], squeak: [1800, 2400, 'square', 0.06], roar: [160, 70, 'sawtooth', 0.6], drop: [900, 300, 'sine', 0.12],
+  buy: [880, 1760, 'square', 0.12], shop: [660, 990, 'triangle', 0.15],
   club: [240, 110, 'square', 0.12], hit: [300, 120, 'square', 0.08], crit: [700, 1400, 'square', 0.12], clink: [1800, 1500, 'triangle', 0.1],
   kill: [500, 80, 'triangle', 0.25], hurt: [240, 70, 'sawtooth', 0.22], candle: [1000, 1400, 'sine', 0.08], raisin: [1300, 1700, 'square', 0.05],
   seedpick: [900, 1200, 'square', 0.05], item: [520, 1040, 'triangle', 0.3], leaf: [440, 1320, 'triangle', 0.5], relic: [330, 1320, 'sine', 0.9],
@@ -38,6 +40,15 @@ const CUES: Record<string, [number, number, OscillatorType, number]> = {
 };
 const fmt = (t: number) => `${Math.floor(t / 3600)}:${String(Math.floor((t / 60) % 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const NAMES: Record<HeroId, string> = { dora: 'Dora', enzo: 'Enzo' };
+const SPEAKERS: Record<Line['who'], { name: string; face?: string }> = {
+  dora: { name: 'Dora' }, enzo: { name: 'Enzo' }, owl: { name: 'Duke Hootsworth', face: '🦉' },
+  rat: { name: 'Gnawdrick the Rat King', face: '🐀' }, pip: { name: 'Pip', face: '🐹' }, sign: { name: '', face: '📜' },
+};
+const STYLE_NOTE = { rapier: 'swift, far-reaching thrusts', claws: 'lunging swipes', club: 'heavy lunging swings' };
+const CHAPTERS: Record<number, { title: string; text: string; last: boolean }> = {
+  1: { title: 'The Owl Belfry falls quiet', text: 'The sealed door beyond the belfry stands open. Below it wait the Pantry Catacombs.', last: false },
+  2: { title: 'The Rat King is dethroned', text: 'Count Culpeo’s Library, and the rest of Fluffstevania, are still being written. Your save will carry on into the next chapter.', last: true },
+};
 
 function readSave(): Save | null { try { return parseSave(localStorage.getItem(SAVE_KEY)); } catch { return null; } }
 function writeSave(s: Save) { try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch {} }
@@ -48,7 +59,12 @@ export default function Fluffstevania() {
   const [save, setSave] = useState<Save | null>(null);
   const [sound, setSound] = useState(true);
   const [ready, setReady] = useState(false);
-  useEffect(() => { setSave(readSave()); setSound(readSound()); setReady(true); }, []);
+  useEffect(() => {
+    setSave(readSave()); setSound(readSound()); setReady(true);
+    // The canvas draws its gothic lettering once these arrive.
+    document.fonts?.load('700 12px Cinzel').catch(() => {});
+    document.fonts?.load('700 12px "Cormorant Garamond"').catch(() => {});
+  }, []);
   const toggleSound = (on: boolean) => { setSound(on); try { localStorage.setItem(`${SAVE_KEY}-sound`, on ? 'on' : 'off'); } catch {} };
   if (mode.kind === 'play') return <Play key={mode.key} start={mode.save} sound={sound} onSound={toggleSound}
     onSaved={(s) => { writeSave(s); setSave(s); }}
@@ -66,7 +82,7 @@ export default function Fluffstevania() {
       <p className="fv-lede">
         Grandpa Pebble swears the <b>Golden Wolfberry</b> grows at the top of the castle on the mountain: one berry that never runs out of snacks.
         Dora and Enzo head in together. Explore a castle that opens up as you find relics, level up, collect gear, and <b>tag</b> between
-        Dora&rsquo;s long ribbon whip and Enzo&rsquo;s quick claws. The one tagging in tumbles through anything in the way.
+        Dora&rsquo;s far-reaching Dust Rapier and Enzo&rsquo;s lunging claws. The one tagging in tumbles through anything in the way.
       </p>
       <div className="fv-row fv-start">
         {save && <button className="fv-go" onClick={() => setMode({ kind: 'play', save, key: Date.now() })} data-testid="continue">
@@ -81,10 +97,10 @@ export default function Fluffstevania() {
     <section className="fv-howto" aria-label="How to play">
       <div><h2>Move</h2><p><b>← →</b> or <b>A D</b> walk · <b>Space</b>, <b>Z</b> or <b>K</b> jump (hold for height) · <b>↓ + jump</b> drops through ledges</p></div>
       <div><h2>Fight</h2><p><b>X</b> or <b>J</b> attack · <b>↑ + attack</b> throws a sunflower seed · <b>C</b> or <b>E</b> tags your partner in with a tumble attack</p></div>
-      <div><h2>Explore</h2><p><b>↑</b> reads signs · <b>Shift</b> or <b>L</b> Dust Dash, once you find it · <b>Esc</b>, <b>Enter</b> or <b>M</b> opens the menu and map</p></div>
-      <div><h2>Rest</h2><p>Walk into a golden <b>dust-bath shrine</b> to heal both heroes and save. Candles hide seeds and raisins; cracked walls hide secrets.</p></div>
+      <div><h2>Explore</h2><p><b>↑</b> reads signs and shops · <b>Shift</b> or <b>L</b> Dust Dash, and <b>jump in mid-air</b> for the Cloud Hop, once you find them · <b>Esc</b>, <b>Enter</b> or <b>M</b> opens the menu and map</p></div>
+      <div><h2>Rest</h2><p>Walk into a golden <b>dust-bath shrine</b> to heal both heroes and save. Candles hide seeds and raisins; cracked walls hide secrets. Pip the hamster sells supplies for raisins.</p></div>
     </section>
-    <p className="fv-foot">Chapter I of the castle is open: the Moonlit Approach, Entrance Hall, Hay Cellar and Owl Belfry. More of Fluffstevania is on the way.</p>
+    <p className="fv-foot">Chapters I and II of the castle are open: the Moonlit Approach, Entrance Hall, Hay Cellar, Owl Belfry and the Pantry Catacombs. More of Fluffstevania is on the way.</p>
   </main>;
 }
 
@@ -113,7 +129,7 @@ function Play({ start, sound, onSound, onSaved, onContinue, onTitle }: {
 
   const openMenu = (on: boolean) => {
     const gm = game.current;
-    if (on && (gm.state !== 'play' || gm.dialog)) return;
+    if (on && (gm.state !== 'play' || gm.dialog || gm.shop)) return;
     setMenu(on ? 'status' : null);
     keys.current = { ...NO_INPUT };
   };
@@ -163,9 +179,13 @@ function Play({ start, sound, onSound, onSaved, onContinue, onTitle }: {
       if (!a) return;
       const target = e.target as HTMLElement | null;
       if (menuRef.current && a !== 'menu') return;
-      if (target?.tagName === 'BUTTON' && (e.code === 'Space' || e.code === 'Enter') && (menuRef.current || game.current.state !== 'play')) return;
+      const gm = game.current;
+      if (target?.tagName === 'BUTTON' && (e.code === 'Space' || e.code === 'Enter') && (menuRef.current || gm.shop || gm.state !== 'play')) return;
       e.preventDefault();
-      if (a === 'menu') { if (on && !e.repeat) openMenu(!menuRef.current); return; }
+      if (a === 'menu') {
+        if (on && !e.repeat) { if (gm.shop) { gm.closeShop(); keys.current = { ...NO_INPUT }; } else openMenu(!menuRef.current); }
+        return;
+      }
       keys.current[a] = on;
       if (on) latch.current[a] = true;
     };
@@ -190,15 +210,16 @@ function Play({ start, sound, onSound, onSaved, onContinue, onTitle }: {
         data-testid="board" data-room={g.room.id} data-leader={g.leader} data-state={g.state} data-x={Math.round(g.body.x)} data-level={g.level} />
       {line && <div className={`fv-dialog fv-who-${line.who}`} data-testid="dialog">
         <div className="fv-face" aria-hidden="true">
-          {line.who === 'dora' || line.who === 'enzo' ? <ChinchillaPortrait id={line.who} className="fv-face-art" /> : <span>{line.who === 'owl' ? '🦉' : '📜'}</span>}
+          {line.who === 'dora' || line.who === 'enzo' ? <ChinchillaPortrait id={line.who} className="fv-face-art" /> : <span>{SPEAKERS[line.who].face}</span>}
         </div>
         <div>
-          <strong>{line.who === 'owl' ? 'Duke Hootsworth' : line.who === 'sign' ? '' : NAMES[line.who]}</strong>
+          <strong>{SPEAKERS[line.who].name}</strong>
           <p>{line.text}</p>
           <small>Jump or attack to continue</small>
         </div>
       </div>}
       {menu && <Menu g={g} tab={menu} onTab={setMenu} onClose={() => openMenu(false)} onTitle={onTitle} />}
+      {g.shop && <Shop g={g} onClose={() => { g.closeShop(); keys.current = { ...NO_INPUT }; }} />}
       {g.state === 'dead' && <section className="fv-overlay" data-testid="game-over">
         <strong>Worn out</strong>
         <p>Dora and Enzo curl up in a fluffy heap. They wake at the last dust-bath shrine.</p>
@@ -208,12 +229,12 @@ function Play({ start, sound, onSound, onSaved, onContinue, onTitle }: {
         </div>
       </section>}
       {g.state === 'chapter' && <section className="fv-overlay" data-testid="chapter">
-        <p className="fv-eyebrow">CHAPTER I CLEARED</p>
-        <strong>The Owl Belfry falls quiet</strong>
+        <p className="fv-eyebrow">CHAPTER {g.chapter === 1 ? 'I' : 'II'} CLEARED</p>
+        <strong>{CHAPTERS[g.chapter]?.title}</strong>
         <p>Level {g.level} · {g.completion}% of the castle explored · {g.raisins} raisins · {fmt(g.time)}</p>
-        <p>The Pantry Catacombs, and the rest of Fluffstevania, are still being dug out. Your save will carry on into the next chapter.</p>
+        <p>{CHAPTERS[g.chapter]?.text}</p>
         <div className="fv-row">
-          <button className="fv-go" onClick={() => g.resume()}>Keep exploring</button>
+          <button className="fv-go" onClick={() => g.resume()}>{CHAPTERS[g.chapter]?.last ? 'Keep exploring' : 'Onward to Chapter II'}</button>
           <button onClick={onTitle}>Title</button>
         </div>
       </section>}
@@ -225,7 +246,7 @@ function Play({ start, sound, onSound, onSaved, onContinue, onTitle }: {
         onContextMenu={(e) => e.preventDefault()}>{b.label}</button>)}
       <button className="fv-pad-menu" aria-label="Open the menu" onClick={() => openMenu(!menu)}>MENU</button>
     </div>
-    <p className="fv-keys"><b>Keys:</b> ← → move · Space/Z jump · X attack · ↑+X seed · C tag · Shift dash · ↓+jump drop · ↑ read · Esc menu. A gamepad works too.</p>
+    <p className="fv-keys"><b>Keys:</b> ← → move · Space/Z jump (again in mid-air to hop) · X attack · ↑+X seed · C tag · Shift dash · ↓+jump drop · ↑ read or shop · Esc menu. A gamepad works too.</p>
   </main>;
 }
 
@@ -256,7 +277,7 @@ function Menu({ g, tab, onTab, onClose, onTitle }: { g: FluffstevaniaGame; tab: 
             <h3>{NAMES[h]} {g.leader === h && <small>leading</small>}</h3>
             <p className={g.hp[h] <= 0 ? 'fv-warn' : ''}>HP {g.hp[h]} / {s.maxHp}{g.hp[h] <= 0 ? ' · resting' : ''}</p>
             <dl><dt>ATK</dt><dd>{s.atk}</dd><dt>DEF</dt><dd>{s.def}</dd><dt>LCK</dt><dd>{s.lck}</dd></dl>
-            <p className="fv-small">{GEAR[g.equipped[h].weapon ?? '']?.name ?? '—'} · {w.style === 'whip' ? 'long reach' : w.style === 'claws' ? 'quick swipes' : 'heavy swings'}</p>
+            <p className="fv-small">{GEAR[g.equipped[h].weapon ?? '']?.name ?? '—'} · {STYLE_NOTE[w.style]}</p>
           </div>
         </article>;
       })}
@@ -287,7 +308,7 @@ function Menu({ g, tab, onTab, onClose, onTitle }: { g: FluffstevaniaGame; tab: 
     {tab === 'items' && <div className="fv-items">
       {bag.length === 0 && <p>The bag is empty. Candles and defeated foes drop things.</p>}
       {bag.map(([id, n]) => <div key={id} className="fv-gear">
-        {GEAR[id] ? <GearIcon id={id} /> : <span className="fv-food" aria-hidden="true">{id === 'cake' ? '🍰' : '🍒'}</span>}
+        <GearIcon id={id} />
         <span><b>{GEAR[id]?.name ?? FOOD[id]?.name} ×{n}</b><small>{GEAR[id]?.text ?? FOOD[id]?.text}</small></span>
         {FOOD[id] && (['dora', 'enzo'] as HeroId[]).map((h) => <button key={h} disabled={g.hp[h] >= g.stats(h).maxHp} onClick={() => { g.eat(id, h); bump((k) => k + 1); }}>Feed {NAMES[h]}</button>)}
       </div>)}
@@ -296,6 +317,30 @@ function Menu({ g, tab, onTab, onClose, onTitle }: { g: FluffstevaniaGame; tab: 
       <canvas ref={map} width={640} height={300} aria-label={`Castle map, ${g.completion}% explored`} />
       <p className="fv-small">{g.completion}% explored · red rooms are dust-bath shrines · gold rooms hold a guardian · you are the blinking dot</p>
     </div>}
+  </section>;
+}
+function Shop({ g, onClose }: { g: FluffstevaniaGame; onClose: () => void }) {
+  const [, bump] = useState(0);
+  const [said, setSaid] = useState('Snacks, shinies and seeds. Raisins only, no credit!');
+  const buy = (id: string, price: number) => {
+    if (g.buy(id)) setSaid(`Pleasure doing business! That’s ${price} raisins.`);
+    else setSaid(g.raisins < price ? 'Not enough raisins, friend. Come back richer!' : 'You can’t carry any more of those.');
+    bump((n) => n + 1);
+  };
+  return <section className="fv-menu fv-shop" aria-label="Pip's shop" data-testid="shop">
+    <header className="fv-shop-head">
+      <span className="fv-shop-face" aria-hidden="true">🐹</span>
+      <div><h3>Pip&rsquo;s Stall</h3><p>{said}</p></div>
+      <p className="fv-purse"><b>{g.raisins}</b> raisins</p>
+      <button className="fv-close" onClick={onClose} data-testid="shop-close">Leave</button>
+    </header>
+    <div className="fv-items">
+      {SHOP.map(({ id, price }) => <div key={id} className="fv-gear">
+        {id === 'seeds' ? <span className="fv-food" aria-hidden="true">🌻</span> : <GearIcon id={id} />}
+        <span><b>{itemName(id)}</b><small>{id === 'seeds' ? `Ten more seeds to throw with ↑ + attack. You carry ${g.seeds}.` : GEAR[id] ? `${gearLine(id)} · ${GEAR[id].text}` : FOOD[id].text}{g.bag[id] ? ` · ${g.bag[id]} in the bag` : ''}</small></span>
+        <button onClick={() => buy(id, price)} disabled={g.raisins < price} data-testid={`buy-${id}`}>{price} ◆</button>
+      </div>)}
+    </div>
   </section>;
 }
 const gearLine = (id: string) => { const g = GEAR[id]; return [g.atk && `ATK +${g.atk}`, g.def && `DEF +${g.def}`, g.lck && `LCK +${g.lck}`, g.hero && `${NAMES[g.hero]} only`].filter(Boolean).join(' · '); };
