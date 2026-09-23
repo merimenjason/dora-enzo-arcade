@@ -6,7 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
-- **Fluff Forge:** Dora and Enzo are redrawn from photos of the real pair: Dora with her peach-pink ears, ruby eyes and sweeping white tail, Enzo with his darker wavy back, white chest and bushy brush of a tail. Tagging is now a little scene: your partner dashes in, the two boop noses and the other runs off, without stopping play. Every theme has more to look at (hills and trees, salt mesas, cave crystals, pine forests), the ground, blocks, enemies, items and flags are more detailed, running and landing kick up dust, raisins sparkle when taken, a course clear throws confetti, and the HUD shows who's playing in a portrait.
+- **Fluff Forge:** Dora and Enzo are redrawn from photos of the real pair: Dora with her peach-pink ears and ruby eyes, Enzo with his darker wavy back and white chest. Their tails and long, fine whiskers follow the painted pair in ChinChin · Snack Heist: each tail is a big fluffy plume that curls up over the back, white for Dora and streaky grey for Enzo. Tagging is now a little scene: your partner dashes in, the two boop noses and the other runs off, without stopping play. Every theme has more to look at (hills and trees, salt mesas, cave crystals, pine forests), the ground, blocks, enemies, items and flags are more detailed, running and landing kick up dust, raisins sparkle when taken, a course clear throws confetti, and the HUD shows who's playing in a portrait.
 
 ### Added
 

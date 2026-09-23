@@ -13,24 +13,25 @@ export const PALETTES: Record<ThemeId, Palette> = {
 type Coat = {
   fur: string; back: string; face: string; shade: string; belly: string; line: string; texture: string;
   ear: string; earIn: string; earLine: string; vein: string; foot: string; toe: string;
-  eye: string; pupil: string; nose: string; whisker: string; whiskerLight: string; blush: string;
-  tail: string; tailTip: string; tailLine: string; brush: boolean;
+  eye: string; pupil: string; nose: string; whisker: string; whiskerAlt: string; blush: string;
+  tail: string; tailOuter: string; tailInner: string; tailLine: string; streaks: boolean;
 };
-// Drawn from public/art/dora.jpeg, enzo.jpeg and the-original-duo.jpg.
-// Dora: white, peach-pink ears you can almost see through, ruby eyes, pink toes, a smooth tail that sweeps out and curls up.
-// Enzo: standard grey with a darker wavy back, a paler face, a white chest and a big dark bottlebrush tail.
+// Drawn from public/art/dora.jpeg, enzo.jpeg and the-original-duo.jpg; tails and whiskers follow the painted pair in
+// ChinChin · Snack Heist (github.com/merimenjason/dora-enzo-chatgpt-arcade).
+// Dora: white, peach-pink ears you can almost see through, ruby eyes, pink toes and a smooth white plume of a tail.
+// Enzo: standard grey with a darker wavy back, a paler face, a white chest and a bushy streaked grey plume.
 const COATS: Record<HeroId, Coat> = {
   dora: {
     fur: '#fbf8f3', back: '#f0eae0', face: '#fefcf9', shade: '#e2d8cb', belly: '#ffffff', line: '#6e5d57', texture: '#e5dccf',
     ear: '#f7cfbd', earIn: '#efab98', earLine: '#b88375', vein: '#e0907f', foot: '#f4c6bd', toe: '#c98a82',
-    eye: '#8e1f33', pupil: '#3b0913', nose: '#eb9ea2', whisker: '#cfc5b9', whiskerLight: '#ffffff', blush: 'rgba(240, 150, 150, 0.3)',
-    tail: '#f8f4ec', tailTip: '#e4dacb', tailLine: '#6e5d57', brush: false,
+    eye: '#8e1f33', pupil: '#3b0913', nose: '#eb9ea2', whisker: '#ffffff', whiskerAlt: '#ddd3c6', blush: 'rgba(240, 150, 150, 0.3)',
+    tail: '#f8f4ec', tailOuter: '#ffffff', tailInner: '#e4dacb', tailLine: '#8f7f76', streaks: false,
   },
   enzo: {
     fur: '#75737d', back: '#4c4a54', face: '#8f8d98', shade: '#5c5a64', belly: '#e8e4e6', line: '#232128', texture: '#4f4d57',
     ear: '#77727e', earIn: '#a8929a', earLine: '#35323b', vein: '#8b7580', foot: '#bca8aa', toe: '#7e6d71',
-    eye: '#0e0c12', pupil: '#000000', nose: '#a48f96', whisker: '#1d1b21', whiskerLight: '#dddbe2', blush: 'rgba(200, 140, 150, 0.18)',
-    tail: '#35333b', tailTip: '#77757f', tailLine: '#1b1a1f', brush: true,
+    eye: '#0e0c12', pupil: '#000000', nose: '#a48f96', whisker: '#f4f2f6', whiskerAlt: '#26242b', blush: 'rgba(200, 140, 150, 0.18)',
+    tail: '#7a7882', tailOuter: '#56545d', tailInner: '#a4a2ac', tailLine: '#26242b', streaks: true,
   },
 };
 
@@ -574,6 +575,10 @@ export function chinchilla(c: CanvasRenderingContext2D, id: HeroId, x: number, b
   blob([oval(hindX - 2, -1.4, 3.8, 1.4, air ? 0.5 : 0)], k.toe, k.line, 1.1);
   blob([oval(frontX - 2.5, air ? -6.5 : -1.3, 2, 1.1)], k.toe, k.line, 1);
 
+  // Far-side whiskers poke out from behind the muzzle, so draw them before the head covers their roots.
+  const whisk = Math.sin(t * 5) * 0.4;
+  whiskers(c, k, 12.8, -10.9 + bob, [[-0.3, 9], [0, 9.5], [0.3, 8.5]], whisk, moving, 0.5);
+
   // Body, haunch, chest, head, muzzle and cheek fluff share one outline.
   c.save(); c.translate(0, -6); c.rotate(lean); c.translate(0, 6);
   const coat = c.createLinearGradient(0, -19 + bob, 0, 0);
@@ -635,13 +640,8 @@ export function chinchilla(c: CanvasRenderingContext2D, id: HeroId, x: number, b
   c.fillStyle = k.nose; ellipse(c, 13.7, -11.4 + bob - twitch, 1, 0.75, 0.3); c.fill();
   c.strokeStyle = k.line; c.lineWidth = 0.35; c.beginPath();
   c.moveTo(13.6, -10.6 + bob); c.lineTo(13.4, -9.8 + bob); c.quadraticCurveTo(12.8, -9.2 + bob, 12.2, -9.6 + bob); c.stroke();
-  // Long whiskers, fanned and gently swaying.
-  const whisk = Math.sin(t * 5) * 0.4;
-  c.lineWidth = 0.3;
-  for (const [i, [wx, wy]] of ([[22, -14.5], [23, -11.6], [22.4, -8.6], [20.6, -6]] as const).entries()) {
-    c.strokeStyle = i % 2 ? k.whiskerLight : k.whisker;
-    c.beginPath(); c.moveTo(12.4, -10.8 + bob); c.quadraticCurveTo(16.5, wy + bob + 0.3 - whisk * 0.5, wx, wy + bob + whisk); c.stroke();
-  }
+  // Long fine whiskers fanning from the whisker pad and drooping down and back past the chin.
+  whiskers(c, k, 12, -10.3 + bob, [[-0.18, 11], [0.05, 11.5], [0.28, 10.5], [0.5, 9.5], [0.75, 8], [1, 6.5]], whisk, moving, 1);
 
   if (o.power === 'clover') { c.save(); c.translate(1.5, -29 + bob); c.scale(0.5, 0.5); clover(c, 0, 0); c.restore(); }
   if (o.power === 'feather') { c.save(); c.translate(0.5, -28 + bob); c.scale(0.6, 0.6); feather(c, 0, 0); c.restore(); }
@@ -649,61 +649,75 @@ export function chinchilla(c: CanvasRenderingContext2D, id: HeroId, x: number, b
 }
 
 /**
- * The tail, as circles along a curve from the rump. Dora's is smooth and even, sweeping out and curling up;
- * Enzo's is a bottlebrush that swells toward the end, with lighter hair tips.
+ * A fan of whiskers from one root, each `[angle, length]` (angle 0 points straight ahead, positive droops down).
+ * They curve down under their own weight, sway, and flare wider when running. A faint dark underline keeps the
+ * white ones readable against a pale sky.
+ */
+function whiskers(c: CanvasRenderingContext2D, k: Coat, x: number, y: number, fan: [number, number][], sway: number, moving: boolean, alpha: number) {
+  const spread = moving ? 1.25 : 1;
+  c.save();
+  c.globalAlpha = alpha; c.lineCap = 'round';
+  for (const pass of [0, 1]) {
+    for (const [i, [a0, len]] of fan.entries()) {
+      const a = a0 * spread + sway * 0.04 * (i + 1), jx = -(i % 3) * 0.5 - i * 0.12, jy = i * 0.28;
+      const dx = Math.cos(a), dy = Math.sin(a);
+      const ex = x + jx + dx * len, ey = y + jy + dy * len + len * 0.2 + sway * 0.3;
+      c.strokeStyle = pass ? (i % 3 === 1 ? k.whiskerAlt : k.whisker) : 'rgba(40, 30, 45, 0.22)';
+      c.lineWidth = pass ? 0.28 : 0.55;
+      c.beginPath(); c.moveTo(x + jx, y + jy); c.quadraticCurveTo(x + jx + dx * len * 0.6, y + jy + dy * len * 0.6 - len * 0.04, ex, ey); c.stroke();
+    }
+  }
+  c.restore();
+}
+
+/**
+ * The tail: a big plume that sweeps back from the rump, rises about as high as the ears and curls forward over the
+ * back, laid out as circles along a cubic curve, with a smooth edge and fur combed toward the tip. Dora's is smooth and
+ * white with a cream inner curve; Enzo's is grey, darker along the outside and paler inside, with fine streaks.
  */
 function tail(c: CanvasRenderingContext2D, k: Coat, t: number, bob: number, moving: boolean, air: boolean) {
-  const wag = Math.sin(t * (moving ? 9 : 2.2)) * (moving ? 1 : 0.6);
-  const p0 = [-10, -5 + bob * 0.5];
-  const p1 = k.brush ? [-18, -0.5] : [-18, 0.5];
-  const p2 = k.brush ? [-22 + wag * 0.4, -8 + wag] : [-21.5 + wag * 0.5, -11 + wag * 0.6];
-  if (moving) { p2[0] -= 2; p2[1] += 3; }
-  if (air) { p2[1] -= 3; p1[1] -= 1; }
-  const n = 14, pts: [number, number, number, number, number][] = [];
+  const wag = Math.sin(t * (moving ? 9 : 2.2)) * (moving ? 1.2 : 0.7);
+  // Rest pose, streaming back when running, lifted in the air.
+  const ctrl = moving ? [[-10, -4.5], [-22, -5], [-29, -20], [-20, -25]]
+    : air ? [[-10, -4.5], [-21, -6], [-26, -28], [-14, -26]]
+    : [[-10, -4.5], [-21, -4], [-23, -27], [-11.5, -22]];
+  ctrl[2][0] += wag * 0.8; ctrl[3][0] += wag; ctrl[3][1] += wag * 0.4;
+  const n = 22, pts: [number, number, number, number, number][] = [];
   for (let i = 0; i <= n; i++) {
-    const u = i / n, a = (1 - u) * (1 - u), b = 2 * u * (1 - u), d = u * u;
-    const px = a * p0[0] + b * p1[0] + d * p2[0], py = a * p0[1] + b * p1[1] + d * p2[1];
-    // Tangent, for the normal the hairs stick out along.
-    const tx = 2 * (1 - u) * (p1[0] - p0[0]) + 2 * u * (p2[0] - p1[0]), ty = 2 * (1 - u) * (p1[1] - p0[1]) + 2 * u * (p2[1] - p1[1]);
+    const u = i / n, a = (1 - u) ** 3, b = 3 * u * (1 - u) ** 2, d = 3 * u * u * (1 - u), e = u ** 3;
+    const px = a * ctrl[0][0] + b * ctrl[1][0] + d * ctrl[2][0] + e * ctrl[3][0];
+    const py = a * ctrl[0][1] + b * ctrl[1][1] + d * ctrl[2][1] + e * ctrl[3][1] + bob;
+    // Tangent, for the normal; (nx, ny) points into the curl, toward the body.
+    const tx = 3 * (1 - u) ** 2 * (ctrl[1][0] - ctrl[0][0]) + 6 * u * (1 - u) * (ctrl[2][0] - ctrl[1][0]) + 3 * u * u * (ctrl[3][0] - ctrl[2][0]);
+    const ty = 3 * (1 - u) ** 2 * (ctrl[1][1] - ctrl[0][1]) + 6 * u * (1 - u) * (ctrl[2][1] - ctrl[1][1]) + 3 * u * u * (ctrl[3][1] - ctrl[2][1]);
     const len = Math.hypot(tx, ty) || 1;
-    const r = k.brush ? 1.8 + 3 * Math.sin(Math.PI * (0.15 + 0.75 * u)) : 3 - 0.9 * u + 0.6 * Math.sin(Math.PI * u);
+    const r = (k.streaks ? 2.3 : 2.2) + (k.streaks ? 2.7 : 2.4) * Math.sin(Math.PI * (0.08 + 0.8 * u));
     pts.push([px, py, r, -ty / len, tx / len]);
   }
   // A soft halo of loose fur, then the outline and the fill.
-  c.fillStyle = k.brush ? 'rgba(120, 118, 130, 0.35)' : 'rgba(255, 255, 255, 0.5)';
+  c.fillStyle = k.streaks ? 'rgba(120, 118, 130, 0.3)' : 'rgba(255, 255, 255, 0.45)';
   for (const [px, py, r] of pts) { ellipse(c, px, py, r + 1.1, r + 1.1); c.fill(); }
-  c.lineWidth = 1.5; c.strokeStyle = k.tailLine;
+  // A lighter outline than the body's, so the plume reads as soft.
+  c.lineWidth = 1.1; c.strokeStyle = k.tailLine;
   for (const [px, py, r] of pts) { ellipse(c, px, py, r, r); c.stroke(); }
   c.fillStyle = k.tail;
   for (const [px, py, r] of pts) { ellipse(c, px, py, r, r); c.fill(); }
-  if (k.brush) {
-    // Bristles, dark and light, fanning out along both sides and off the end.
-    c.lineWidth = 0.45;
-    for (const [i, [px, py, r, nx, ny]] of pts.entries()) {
-      if (i < 4 || i % 2) continue;
-      for (const side of [-1, 1]) {
-        c.strokeStyle = k.tailTip;
-        c.beginPath(); c.moveTo(px + nx * side * r * 0.6, py + ny * side * r * 0.6); c.lineTo(px + nx * side * (r + 0.9) - ny * 0.6, py + ny * side * (r + 0.9) + nx * 0.6); c.stroke();
-      }
-    }
-    const [ex, ey] = pts[n];
-    c.strokeStyle = k.tailTip;
-    c.beginPath(); for (let a = -0.6; a <= 0.6; a += 0.4) { c.moveTo(ex, ey); c.lineTo(ex - 2.2 * Math.cos(a + 0.5), ey - 2.2 * Math.sin(a + 0.5)); } c.stroke();
-    c.fillStyle = 'rgba(140, 138, 150, 0.35)';
-    for (const [px, py, r] of pts.slice(4)) { ellipse(c, px - 0.4, py - r * 0.35, r * 0.5, r * 0.3); c.fill(); }
-  } else {
-    // A cream shadow along the underside and soft wisps at the tip.
-    c.fillStyle = k.tailTip;
-    for (const [px, py, r, nx, ny] of pts.slice(2)) { ellipse(c, px - nx * r * 0.45, py - ny * r * 0.45, r * 0.5, r * 0.45); c.fill(); }
-    // Soft wisps along the outer edge and off the tip.
-    c.strokeStyle = k.tailLine; c.lineWidth = 0.4; c.beginPath();
-    for (const [i, [px, py, r, nx, ny]] of pts.entries()) {
-      if (i < 5 || i % 3) continue;
-      c.moveTo(px + nx * r * 0.9, py + ny * r * 0.9); c.lineTo(px + nx * (r + 1) - ny * 0.8, py + ny * (r + 1) + nx * 0.8);
-    }
-    const [ex, ey] = pts[n];
-    c.moveTo(ex - 1, ey - 2); c.lineTo(ex - 1.8, ey - 3.6); c.moveTo(ex + 0.6, ey - 2.4); c.lineTo(ex + 0.8, ey - 4); c.stroke();
+  // Shading: the outer edge (lit on Dora, darker on Enzo) and the inner curve, blended in softly.
+  c.save();
+  c.globalAlpha = 0.55; c.fillStyle = k.tailOuter;
+  for (const [px, py, r, nx, ny] of pts.slice(1)) { ellipse(c, px - nx * r * 0.4, py - ny * r * 0.4, r * 0.55, r * 0.55); c.fill(); }
+  c.globalAlpha = 0.45; c.fillStyle = k.tailInner;
+  for (const [px, py, r, nx, ny] of pts.slice(2)) { ellipse(c, px + nx * r * 0.45, py + ny * r * 0.45, r * 0.5, r * 0.5); c.fill(); }
+  // Long fur combed toward the tip.
+  c.lineCap = 'round'; c.lineWidth = k.streaks ? 0.4 : 0.3; c.globalAlpha = k.streaks ? 0.75 : 0.6;
+  for (const [i, [px, py, r, nx, ny]] of pts.entries()) {
+    if (i < 2 || i > n - 3 || i % 3 === 2) continue;
+    const tx = ny, ty = -nx, off = ((i * 7) % 5 - 2) / 2.5;
+    c.strokeStyle = k.streaks ? (i % 2 ? k.tailOuter : k.tailInner) : k.tailInner;
+    const sx = px + nx * r * off * 0.6, sy = py + ny * r * off * 0.6;
+    c.beginPath(); c.moveTo(sx, sy); c.quadraticCurveTo(sx + tx * 1.5, sy + ty * 1.5, sx + tx * 3 + nx * off * 0.5, sy + ty * 3 + ny * off * 0.5); c.stroke();
   }
+  c.restore();
 }
 
 function enemy(c: CanvasRenderingContext2D, kind: Enemy['kind'], x: number, y: number, w: number, h: number, dir: number, time: number, squashed: boolean, air = false) {
