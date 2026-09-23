@@ -11,7 +11,7 @@ const errors=[];
 page.on('pageerror', e=>errors.push(e.message));
 try {
  await page.goto(base);
- assert.equal(await page.locator('.arcade-card').count(),16);
+ assert.equal(await page.locator('.arcade-card').count(),17);
  await page.getByRole('link',{name:/Chin x Pit · Classic/}).click();
  await page.getByRole('button',{name:'Into the burrow',exact:true}).waitFor({state:'visible'});
  await page.waitForFunction(()=>!document.querySelector('.classic-pit-primary')?.disabled);
@@ -52,7 +52,7 @@ try {
  await page.locator('.classic-pit-stage').screenshot({path:`${dir}/classic-pit-playing.png`});
  console.log('PASS live wave progression, movement input, pause/resume, 20 weapons and eight fusion recipes');
  await page.getByRole('link',{name:/MAIN ARCADE/}).click();
- assert.equal(await page.locator('.arcade-card').count(),16);
+ assert.equal(await page.locator('.arcade-card').count(),17);
  await page.getByRole('link',{name:/Night Survivors/}).click();
  await page.waitForSelector('.pit-stage canvas');
  assert.equal(await page.locator('.classic-pit-stage').count(),0);

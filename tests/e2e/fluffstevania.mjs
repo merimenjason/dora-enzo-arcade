@@ -1,0 +1,85 @@
+import assert from 'node:assert/strict';
+import { chromium } from 'playwright';
+const base = process.env.E2E_BASE_URL || 'http://localhost:3000';
+const browser = await chromium.launch();
+const errors = [];
+const board = (p) => p.getByTestId('board');
+const data = (p, k) => board(p).getAttribute(`data-${k}`);
+// The title sets data-ready once React has hydrated and the buttons work.
+const ready = (p) => p.locator('.fv-title[data-ready=true]').waitFor();
+try {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  page.setDefaultTimeout(20000);
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto(`${base}/fluffstevania`);
+  await page.evaluate(() => localStorage.removeItem('fluffstevania-v1'));
+  await page.reload();
+  await ready(page);
+
+  // A new game opens with the story; jump advances it.
+  await page.getByTestId('new-game').click();
+  await page.getByTestId('dialog').waitFor();
+  assert.match(await page.getByTestId('dialog').textContent(), /Golden Wolfberry/);
+  for (let i = 0; i < 4; i++) { await page.keyboard.press('z'); await page.waitForTimeout(80); }
+  await page.getByTestId('dialog').waitFor({ state: 'detached' });
+  assert.equal(await data(page, 'room'), 'path');
+
+  // Walk, swing, tag.
+  const x = Number(await data(page, 'x'));
+  await page.keyboard.down('ArrowRight'); await page.waitForTimeout(700); await page.keyboard.up('ArrowRight');
+  assert.ok(Number(await data(page, 'x')) > x + 50, 'Dora walks right');
+  await page.keyboard.press('x');
+  await page.keyboard.press('c');
+  await page.waitForTimeout(100);
+  assert.equal(await data(page, 'leader'), 'enzo');
+
+  // The castle is drawn with plenty of colour.
+  const colours = await page.evaluate(() => {
+    const c = document.querySelector('[data-testid=board]'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data, seen = new Set();
+    for (let i = 0; i < d.length; i += 4 * 61) seen.add((d[i] << 16) | (d[i + 1] << 8) | d[i + 2]);
+    return seen.size;
+  });
+  assert.ok(colours > 300, `the view shows ${colours} colours`);
+
+  // The menu pauses and has every tab.
+  await page.keyboard.press('Escape');
+  await page.getByTestId('menu').waitFor();
+  const frozen = await data(page, 'x');
+  for (const tab of ['Equip', 'Items', 'Map', 'Status']) await page.getByRole('tab', { name: tab }).click();
+  assert.match(await page.getByTestId('menu').textContent(), /Level 1/);
+  await page.waitForTimeout(300);
+  assert.equal(await data(page, 'x'), frozen, 'paused behind the menu');
+  await page.getByRole('button', { name: 'Resume' }).first().click();
+  await page.getByTestId('menu').waitFor({ state: 'detached' });
+
+  // Continue from a shrine save, then equip found gear.
+  const save = { v: 1, room: 'save-hall', x: 6 * 384 + 136, y: 2 * 224 + 192, level: 3, xp: 0, hp: { dora: 60, enzo: 80 }, leader: 'dora',
+    equip: { dora: { weapon: 'ribbon', armor: null, acc: null }, enzo: { weapon: 'claws', armor: 'scarf', acc: null } }, bag: { bramble: 1 },
+    relics: ['dash'], flags: ['script:intro'], visited: ['6,2'], raisins: 5, seeds: 10, time: 60, leaves: 0 };
+  await page.goto(`${base}/fluffstevania`);
+  await page.evaluate((s) => localStorage.setItem('fluffstevania-v1', JSON.stringify(s)), save);
+  await page.reload();
+  await ready(page);
+  await page.getByTestId('continue').click();
+  await board(page).waitFor();
+  assert.equal(await data(page, 'room'), 'save-hall');
+  assert.equal(await data(page, 'level'), '3');
+  await page.getByTestId('menu-button').click();
+  await page.getByRole('tab', { name: 'Equip' }).click();
+  await page.getByTestId('equip-bramble').click();
+  assert.match(await page.getByTestId('menu').textContent(), /Bramble Whip/);
+
+  // Phones get the pad and no sideways scroll.
+  const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  phone.on('pageerror', (e) => errors.push(e.message));
+  await phone.goto(`${base}/fluffstevania`);
+  await ready(phone);
+  await phone.getByTestId('new-game').click();
+  await phone.getByRole('button', { name: 'Jump', exact: true }).waitFor();
+  assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'no sideways scroll on a phone');
+
+  assert.deepEqual(errors, []);
+  console.log('PASS Fluffstevania browser: story, walking, attack, tag, drawn castle, pausing menu with every tab, continue from a save, equipping, phone layout.');
+} finally {
+  await browser.close();
+}

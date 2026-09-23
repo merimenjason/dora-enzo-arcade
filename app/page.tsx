@@ -16,14 +16,15 @@ const GAMES=[
  {href:'/burrow-town',title:'Burrow Town',tag:'CITY BUILDER',blurb:'A cozy 3D valley builder. Lay roads, dig burrows, plant hay and keep both Dora and Enzo happy across five Andean valleys.',color:'#9ec27a',art:'🏘️'},
  {href:'/dusty-hollow',title:'Dusty Hollow',tag:'NEW · VILLAGE LIFE',blurb:'Dora and Enzo move into a seaside Andean hollow together. Fish, catch bugs, dig fossils, shake fruit trees, befriend the neighbours and pay off your burrow, one six-minute day at a time, in chunky pixel art.',color:'#c98ab8',art:'🎣'},
  {href:'/fluff-forge',title:'Fluff Forge',tag:'NEW · COURSE MAKER',blurb:'Build your own platformer course from bricks, clouds, springs, beetles and bats, then run it as Dora or Enzo. Clear it to share a code with friends.',color:'#f29b6b',art:'🧱'},
+ {href:'/fluffstevania',title:'Fluffstevania: Symphony of the Dust',tag:'NEW · METROIDVANIA',blurb:'Dora and Enzo explore a haunted mountain castle for the Golden Wolfberry. Tag between them, level up, find relics and gear, and face the owl in the belfry.',color:'#c8a0e8',art:'🦇'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
-  <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span><a href="/fighter">START WITH PAW FIGHTER II →</a></header>
+  <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">SIXTEEN ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Sixteen ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, sixteen cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">SEVENTEEN ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Seventeen ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, seventeen cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <nav className="arcade-grid" aria-label="Choose a game">
    {GAMES.map((game,i)=><a key={game.href} href={game.href} className="arcade-card" style={{'--game-color':game.color} as React.CSSProperties}>

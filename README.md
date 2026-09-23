@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of sixteen original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of seventeen original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -26,6 +26,7 @@ Listed in arcade-menu order.
 | 14 | Burrow Town | `/burrow-town` | City builder |
 | 15 | Dusty Hollow | `/dusty-hollow` | Village life |
 | 16 | Fluff Forge | `/fluff-forge` | Course maker platformer |
+| 17 | Fluffstevania: Symphony of the Dust | `/fluffstevania` | Metroidvania action RPG |
 
 ## Run
 
@@ -338,6 +339,26 @@ Four starter courses show what the parts can do: Dora’s First Hop (meadow), Sa
 
 **Docs:** [`docs/fluff-forge.md`](docs/fluff-forge.md).
 
+### 17 · Fluffstevania: Symphony of the Dust (`/fluffstevania`)
+
+**Play:** A Symphony of the Night-style castle explorer, drawn in Canvas 2D with the same Dora and Enzo as Fluff Forge. Grandpa Pebble says the Golden Wolfberry, a berry that never runs out of snacks, grows at the top of the castle on the mountain, and the two go in together. The castle is one connected map of rooms, each one or more screens of 24×14 tiles; walking off an edge takes you into the next room, and a minimap and a full map in the menu fill in as you explore. Chapter I is open: the Moonlit Approach, Entrance Hall, Hay Cellar and Owl Belfry, 12 rooms over 22 map screens.
+
+You control one hero while the other follows a step behind. Press C to **tag**: the partner tumbles from behind to the front in a spinning ball that hurts anything on its path (1.6× their attack plus 4, and it gets past an armadillo’s shield), then carries on as the lead. Tags have a one-second cooldown. Dora swings a long ribbon whip (42-pixel reach, 140 px/s walk); Enzo swipes quick short claws (20-pixel reach, 124 px/s walk, more HP and defence). Each has their own HP; when the lead is worn out the partner takes over automatically and the worn-out one can’t tag back in until a rest. Both worn out sends you back to the last save. Up + attack throws a sunflower seed in an arc (costs one seed).
+
+Five kinds of foe live in chapter I: cave bats that wake and chase, dust moths that drift after you, shell beetles, bone mice that lob bones, and armadillo guards whose shield blocks hits from the front until a lunge leaves them open. Every hit shows its damage; your luck gives a chance of a 1.5× critical. Foes give XP (one shared level for both, with more HP, attack and defence each level) and drop raisins and sometimes gear or food. Candles hide seeds, raisins and wolfberries. Gear goes in three slots per hero (weapon, armour, accessory): the Bramble Whip for Dora, the Acorn Cudgel for Enzo (slow, heavy swings), the Wool Scarf, Moth Cape, Silver Bell and Beetle Shell. Hay Cakes heal 40 and wolfberries 20 from the Items menu. Wolfberry Leaves raise both heroes’ max HP by 10.
+
+The **Dust Dash** relic in the cellar lets you burst forward, once in mid-air, and dashing into a jump carries you far; it is the only way across the broken gallery in the Entrance Hall. Cracked walls crumble when hit and hide a Wolfberry Leaf and a secret room. Golden **dust-bath shrines** heal and revive both heroes and save the game in this browser. At the top of the belfry stair waits **Duke Hootsworth**, a great horned owl (260 HP) who throws feather volleys and swoops low across the room; at half health he summons two bats and adds a dive that sends shockwaves along the floor. Beating him opens the way to the sealed door of the Pantry Catacombs, where chapter I ends; you can keep exploring afterwards.
+
+**Controls:**
+
+- ← → or A D: walk. Space, Z or K: jump (hold for height). ↓ + jump: drop through a ledge. X or J: attack. ↑ + attack: throw a seed. ↑: read a sign. C or E: tag. Shift or L: Dust Dash. Escape, Enter, M, P or Tab: open or close the menu (Status, Equip, Items, Map).
+- Gamepad: d-pad or left stick to move, A jump, X attack, B or RB dash, Y or LB tag.
+- On touch screens and narrow windows an on-screen pad has move, up, down, tag, dash, attack, jump and menu.
+
+**Tests:** `npm run test:fluffstevania` (also in `npm test`) compiles `lib/fluffstevania-game.ts` and runs `tests/fluffstevania.mjs`: 19 checks covering the room grid and that every doorway leads somewhere, a reachability search over the whole map proving the belfry needs the Dust Dash and that every spot can get back to the start, the broken gallery with real physics (a running jump falls short, a jump and air dash clear it), the opening story, walking, jumping and the follower, attacks, damage numbers, XP and levels, tagging and the tag tumble, the Dust Dash and its single air dash, getting hurt and the worn-out swap, shrines, saves and loading, cracked walls and the Wolfberry Leaf, candles and seeds, the armadillo’s shield, gear and food, the owl fight from gates to defeat, the chapter ending, and deterministic replays. Browser: `tests/e2e/fluffstevania.mjs` starts a new game, reads the opening story, walks and attacks, tags, opens every menu tab, continues from a save and checks a phone-sized screen.
+
+**Docs:** [`docs/fluffstevania.md`](docs/fluffstevania.md).
+
 ## Validation
 
 ```sh
@@ -352,7 +373,7 @@ npm run test:e2e   # optional; needs `npm run dev` running and `npm i -D playwri
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Sixteen ways/` assertion in `tests/e2e/dust-bath.mjs`, the 16-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/paw-buster.mjs` and `tests/e2e/fluff-forge.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Seventeen ways/` assertion in `tests/e2e/dust-bath.mjs`, the 17-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/paw-buster.mjs` and `tests/e2e/fluff-forge.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
