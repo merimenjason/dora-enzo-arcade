@@ -100,6 +100,8 @@ export const FOES: Record<FoeKind, { name: string; hp: number; atk: number; def:
 const FOE_CHARS: Record<string, FoeKind> = { b: 'bat', m: 'moth', k: 'beetle', x: 'bone', a: 'armadillo', r: 'rat', g: 'ghost', p: 'spider' };
 /** A jar ghost is solid for GHOST_ON seconds, then fades out (can't hurt or be hurt) for GHOST_OFF. */
 export const GHOST_ON = 2.4, GHOST_OFF = 1.4;
+/** How long a defeated foe takes to burn away. */
+export const BURN_T = 0.45;
 export const ghostFaded = (e: Enemy) => e.kind === 'ghost' && e.t % (GHOST_ON + GHOST_OFF) > GHOST_ON;
 export type Enemy = {
   /** Which map marker it came from, so a defeated one stays down. Summoned foes have none. */
@@ -130,6 +132,8 @@ export type Shot = {
   kind: 'seed' | 'bone' | 'feather' | 'wave' | 'cheese' | 'rock' | 'gust' | 'acorn' | 'pumpkin' | 'flame' | 'wind' | 'quake';
   x: number; y: number; vx: number; vy: number; grav: number; r: number; dmg: number; hero: boolean; life: number; spin: number;
   pierce?: boolean; hits?: Map<number, number>; rehit?: number; ax?: number; launch?: boolean; t?: number;
+  /** A finisher's shot (big numbers), or a spell's (a bigger look too). */
+  heavy?: boolean; spell?: boolean;
 };
 export type Pickup = { kind: 'raisin' | 'seeds' | 'food' | 'gear' | 'leaf' | 'relic' | 'dust' | 'sub'; id: string; amount: number; x: number; y: number; vy: number; t: number; flag?: string; fixed: boolean };
 /** Zippy's cage on the belfry stair: three hits break it. */
@@ -137,13 +141,19 @@ export type Cage = { x: number; y: number; hp: number; flash: number };
 /** The familiar travelling with the heroes. */
 export type PalBody = { x: number; y: number; face: 1 | -1; cd: number; act: number; target: number; t: number };
 export type Candle = { x: number; y: number; alive: boolean; c: number; r: number };
-export type Pop = { x: number; y: number; text: string; t: number; color: string };
+/** A damage number; `big` ones (finishers, spells, the Duo Strike) show larger and in gold. */
+export type Pop = { x: number; y: number; text: string; t: number; color: string; big?: boolean };
+/** A mote of Dust flying out of a defeated foe and into the lead, worth `mp`. */
+export type Orb = { x: number; y: number; vx: number; vy: number; t: number; mp: number };
 export type Fx = {
-  kind: 'dust' | 'spark' | 'poof' | 'clink' | 'flame' | 'rubble' | 'boom' | 'feather' | 'star' | 'ash' | 'slash' | 'hop';
+  kind: 'dust' | 'spark' | 'poof' | 'clink' | 'flame' | 'rubble' | 'boom' | 'feather' | 'star' | 'ash' | 'slash' | 'hop'
+    | 'shard' | 'fur' | 'claw' | 'pillar' | 'ember';
   x: number; y: number; t: number; vx: number; vy: number; color?: string;
 };
 /** How long each effect lives, in seconds. */
-export const FX_LIFE: Record<Fx['kind'], number> = { dust: 0.5, spark: 0.35, poof: 0.5, clink: 0.35, flame: 0.5, rubble: 0.9, boom: 0.6, feather: 0.5, star: 0.5, ash: 0.9, slash: 0.2, hop: 0.35 };
+export const FX_LIFE: Record<Fx['kind'], number> = { dust: 0.5, spark: 0.35, poof: 0.5, clink: 0.35, flame: 0.5, rubble: 0.9, boom: 0.6, feather: 0.5, star: 0.5, ash: 0.9, slash: 0.2, hop: 0.35,
+  shard: 0.55, fur: 0.45, claw: 0.3, pillar: 1.5, ember: 0.8,
+};
 /** The colours an enemy crumbles into when defeated. */
 const ASH: Record<FoeKind, string[]> = {
   bat: ['#4e3a60', '#8a70a8'], moth: ['#c8b8a0', '#f0e8d8'], beetle: ['#3a7088', '#1e3a48'], bone: ['#e8e2d0', '#a8a090'],
@@ -221,7 +231,7 @@ export class FluffstevaniaGame {
   body: Body; room: Room; follower: Follower; trail: { x: number; y: number; face: 1 | -1; air: boolean }[] = [];
   tag: Tag | null = null; tagCd = 0;
   enemies: Enemy[] = []; boss: Boss | null = null; fight = false; shots: Shot[] = []; pickups: Pickup[] = []; candles: Candle[] = [];
-  pops: Pop[] = []; fx: Fx[] = [];
+  pops: Pop[] = []; fx: Fx[] = []; orbs: Orb[] = [];
   state: 'play' | 'dead' | 'chapter' = 'play';
   /** The chapter just finished, while `state` is 'chapter'. */
   chapter = 0;
@@ -249,6 +259,8 @@ export class FluffstevaniaGame {
   private mpT = 0;
   private chimed = new Set<string>();
   private chimeT = 0;
+  /** The blow being dealt is a big one (a finisher, spell, tag or Duo Strike), for the damage numbers. */
+  private heavy = false;
 
   constructor(save: Save = freshSave()) {
     this.level = save.level; this.xp = save.xp; this.hp = { ...save.hp }; this.leader = save.leader;
@@ -378,7 +390,7 @@ export class FluffstevaniaGame {
     if (!first && prevArea !== room.area) this.slain.clear();
     this.room = room;
     this.enemies = []; this.shots = []; this.candles = []; this.boss = null; this.fight = false;
-    this.pickups = []; this.cage = null; this.chimed.clear();
+    this.pickups = []; this.cage = null; this.chimed.clear(); this.orbs = [];
     let item = 0;
     const rx = room.mx * COLS, ry = room.my * ROWS;
     for (let r = 0; r < room.rows.length; r++) for (let c = 0; c < room.rows[r].length; c++) {
@@ -476,10 +488,13 @@ export class FluffstevaniaGame {
     this.pops = this.pops.filter((p) => p.t < 0.9);
     for (const f of this.fx) {
       f.t += dt; f.x += f.vx * dt; f.y += f.vy * dt;
-      if (f.kind === 'rubble' || f.kind === 'feather') f.vy += 500 * dt;
+      if (f.kind === 'rubble' || f.kind === 'feather' || f.kind === 'shard') f.vy += 500 * dt;
+      if (f.kind === 'fur') { f.vy += 40 * dt; f.vx *= 1 - dt * 3; }
+      if (f.kind === 'ember') f.vx += Math.sin(f.t * 9 + f.x) * 30 * dt;
       if (f.kind === 'ash') { f.vy -= 60 * dt; f.vx *= 1 - dt * 2; }
     }
     this.fx = this.fx.filter((f) => f.t < FX_LIFE[f.kind]);
+    this.orbStep(dt);
     // Mark the map cell the leader stands in, and ease the camera after them.
     const b = this.body;
     this.visited.add(`${Math.floor(b.x / VIEW_W)},${Math.floor((b.y - 10) / VIEW_H)}`);
@@ -535,6 +550,8 @@ export class FluffstevaniaGame {
         b.dashT = DASH_T; b.attackT = 0; if (!b.ground) b.airDash = true;
         this.events.push('dash');
         for (let i = 0; i < 4; i++) this.fx.push({ kind: 'dust', x: b.x, y: b.y - 4, t: -i * 0.03, vx: -b.face * (40 + i * 20), vy: -20 + i * 8 });
+        // A puff of loose fur flies off behind.
+        for (let i = 0; i < 6; i++) this.fx.push({ kind: 'fur', x: b.x - b.face * 6, y: b.y - 8 - this.rand() * 10, t: -i * 0.02, vx: -b.face * (30 + this.rand() * 50), vy: -20 - this.rand() * 30, color: this.leader });
       }
       if (b.jumpBuf > 0 && input.down && this.onLedge()) { b.jumpBuf = 0; b.dropT = 0.2; b.y += 2; b.ground = false; }
       else if (b.jumpBuf > 0 && (b.ground || b.coyote > 0)) {
@@ -602,7 +619,7 @@ export class FluffstevaniaGame {
     b.attackT = w.total; b.attackId++; b.attackHero = this.leader; b.dashT = 0; b.lungeStop = false; b.spin = false; b.charge = 0;
     if (dir) b.face = dir as 1 | -1;
     this.events.push(b.combo === 2 ? 'finisher' : w.style === 'fan' ? 'fan' : w.style === 'club' ? 'club' : 'swipe');
-    if (b.combo === 2 && w.style === 'club') for (const d of [-1, 1]) this.heroShot('quake', b.x + d * 12, b.y - 6, d * 170, 0, 7, this.stats(this.leader).atk * 0.8, 0.45, { pierce: true, launch: true });
+    if (b.combo === 2 && w.style === 'club') for (const d of [-1, 1]) this.heroShot('quake', b.x + d * 12, b.y - 6, d * 170, 0, 7, this.stats(this.leader).atk * 0.8, 0.45, { pierce: true, launch: true, heavy: true });
   }
   /** A hero projectile. */
   private heroShot(kind: Shot['kind'], x: number, y: number, vx: number, vy: number, r: number, dmg: number, life: number, extra: Partial<Shot> = {}) {
@@ -614,7 +631,7 @@ export class FluffstevaniaGame {
   /** Each fan sweep blows a little gust of dust ahead; the combo's third sweep blows a big one that goes through foes. */
   private gust() {
     const b = this.body, atk = this.stats(b.attackHero).atk, big = b.combo === 2;
-    this.heroShot('gust', b.x + b.face * 14, b.y - 13, b.face * (big ? 300 : 260), 0, big ? 9 : 5, atk * (big ? 0.9 : 0.5), big ? 0.6 : 0.35, big ? { pierce: true } : {});
+    this.heroShot('gust', b.x + b.face * 14, b.y - 13, b.face * (big ? 300 : 260), 0, big ? 9 : 5, atk * (big ? 0.9 : 0.5), big ? 0.6 : 0.35, big ? { pierce: true, heavy: true } : {});
   }
   private throwSub() {
     const b = this.body, sub = SUBS[this.sub], lv = this.level, f = b.face;
@@ -644,8 +661,13 @@ export class FluffstevaniaGame {
     if (this.mp < sp.cost) { this.say(`Not enough Dust for ${sp.name}.`); this.events.push('fizzle'); return; }
     this.mp -= sp.cost; b.castT = 0.4; b.attackT = 0; b.combo = 0; b.charge = 0;
     const atk = this.stats(this.leader).atk;
-    if (id === 'whirlwind') this.heroShot('wind', b.x + b.face * 16, b.y - 14, b.face * 120, 0, 12, atk * 0.7 + 3, 1.6, { pierce: true, rehit: 0.25 });
-    else { for (const d of [-1, 1]) this.heroShot('quake', b.x + d * 10, b.y - 6, d * 210, 0, 8, atk * 1.4 + 6, 0.9, { pierce: true, launch: true }); this.shake = 0.4; }
+    if (id === 'whirlwind') this.heroShot('wind', b.x + b.face * 16, b.y - 14, b.face * 120, 0, 12, atk * 0.7 + 3, 1.6, { pierce: true, rehit: 0.25, spell: true });
+    else {
+      for (const d of [-1, 1]) this.heroShot('quake', b.x + d * 10, b.y - 6, d * 210, 0, 8, atk * 1.4 + 6, 0.9, { pierce: true, launch: true, spell: true });
+      this.shake = 0.4;
+      // Grit rains from the ceiling.
+      for (let i = 0; i < 14; i++) this.fx.push({ kind: 'rubble', x: this.cam.x + this.rand() * VIEW_W, y: this.cam.y + 2, t: -this.rand() * 0.4, vx: (this.rand() - 0.5) * 20, vy: 40 + this.rand() * 60 });
+    }
     this.events.push('spell');
     for (let i = 0; i < 8; i++) this.fx.push({ kind: 'star', x: b.x, y: b.y - 14, t: -i * 0.02, vx: Math.cos(i) * 40, vy: Math.sin(i) * 40 });
   }
@@ -668,8 +690,10 @@ export class FluffstevaniaGame {
     if (before < 0.55 && this.duoT >= 0.55) {
       const view = { x: this.cam.x, y: this.cam.y, w: VIEW_W, h: VIEW_H };
       const dmg = (this.stats('dora').atk + this.stats('enzo').atk) * 1.2 + 10, lck = this.stats(this.leader).lck;
+      this.heavy = true;
       for (const e of this.enemies) if (!e.dead && overlap(view, this.foeBox(e))) this.hitFoe(e, dmg, e.x - 1, true, lck, true);
       if (this.boss && this.boss.move !== 'dying' && this.boss.move !== 'enter' && overlap(view, this.bossBox(this.boss))) this.hitBoss(dmg, lck);
+      this.heavy = false;
       for (const c of this.candles) if (c.alive && overlap(view, { x: c.x - 4, y: c.y - 12, w: 8, h: 14 })) this.snuff(c);
       this.shake = 0.5; this.hitstop = 0.12; this.events.push('crit');
     }
@@ -747,9 +771,10 @@ export class FluffstevaniaGame {
     const landed = () => {
       // A lunge stops where it connects, with a sliver of safety so it doesn't run into the foe's body.
       b.lungeStop = true; b.invT = Math.max(b.invT, 0.15);
-      this.fx.push({ kind: 'slash', x: box!.x + box!.w / 2, y: box!.y + box!.h / 2, t: 0, vx: b.face, vy: 0 });
+      this.fx.push({ kind: w.style === 'claws' ? 'claw' : 'slash', x: box!.x + box!.w / 2, y: box!.y + box!.h / 2, t: 0, vx: b.face, vy: finisher ? 1 : 0 });
     };
     const w = this.weaponOf(b.attackHero), finisher = b.combo === 2 && !b.spin;
+    this.heavy = finisher || b.spin;
     const mult = b.spin ? SPIN.mult : w.mult * (finisher ? FINISHER_MULT : 1);
     // Enzo's third swipe is an uppercut that throws foes into the air.
     const launch = finisher && w.style === 'claws';
@@ -760,14 +785,15 @@ export class FluffstevaniaGame {
         e.hitId = b.attackId;
         if (this.hitFoe(e, me.atk * mult, b.x, false, me.lck, launch)) { landed(); this.gainDuo(7); } else b.lungeStop = true;
       }
-      if (tagBox && tagger && !this.tag!.hits.has(e.id) && overlap(tagBox, eb)) { this.tag!.hits.add(e.id); this.hitFoe(e, tagger.atk * 1.6 + 4, tp!.x, true, tagger.lck); this.gainDuo(10); }
+      if (tagBox && tagger && !this.tag!.hits.has(e.id) && overlap(tagBox, eb)) { this.tag!.hits.add(e.id); this.heavy = true; this.hitFoe(e, tagger.atk * 1.6 + 4, tp!.x, true, tagger.lck); this.gainDuo(10); this.heavy = finisher || b.spin; }
     }
     const boss = this.boss;
     if (boss && boss.move !== 'dying' && boss.move !== 'enter') {
       const bb = this.bossBox(boss);
       if (box && boss.hitId !== b.attackId && overlap(box, bb)) { boss.hitId = b.attackId; this.hitBoss(me.atk * mult, me.lck); landed(); this.hitstop = 0.04; this.gainDuo(5); }
-      if (tagBox && tagger && !this.tag!.hits.has(-1) && overlap(tagBox, bb)) { this.tag!.hits.add(-1); this.hitBoss(tagger.atk * 1.6 + 4, tagger.lck); this.gainDuo(8); }
+      if (tagBox && tagger && !this.tag!.hits.has(-1) && overlap(tagBox, bb)) { this.tag!.hits.add(-1); this.heavy = true; this.hitBoss(tagger.atk * 1.6 + 4, tagger.lck); this.gainDuo(8); }
     }
+    this.heavy = false;
     const cage = this.cage;
     if (cage) {
       cage.flash = Math.max(0, cage.flash - 1 / 120);
@@ -831,8 +857,8 @@ export class FluffstevaniaGame {
     const crit = this.rand() * 100 < lck;
     const dmg = Math.max(1, Math.round(raw * (crit ? 1.5 : 1) - f.def));
     e.hp -= dmg; e.flash = 0.15;
-    this.pops.push({ x: e.x, y: e.y - f.h - 4, text: String(dmg), t: 0, color: crit ? '#ffd35a' : '#ffffff' });
-    this.fx.push({ kind: 'spark', x: e.x, y: e.y - f.h / 2, t: 0, vx: 0, vy: 0 });
+    this.pops.push({ x: e.x, y: e.y - f.h - 4, text: String(dmg), t: 0, color: crit || this.heavy ? '#ffd35a' : '#ffffff', big: this.heavy });
+    this.fx.push({ kind: 'spark', x: e.x, y: e.y - f.h / 2, t: 0, vx: Math.sign(e.x - fromX) || 1, vy: 0 });
     this.events.push(crit ? 'crit' : 'hit');
     if (!pierce) this.hitstop = crit ? 0.08 : 0.05;
     if (!f.fly) { e.vx = Math.sign(e.x - fromX || 1) * (launch ? 60 : 90); e.vy = launch ? -330 : -90; e.ground = false; }
@@ -843,7 +869,8 @@ export class FluffstevaniaGame {
   }
   private killFoe(e: Enemy) {
     const f = FOES[e.kind];
-    e.dead = 1;
+    // `dead` counts up while the body burns away (drawn by the scene), then it's gone.
+    e.dead = 1e-3;
     this.events.push('kill');
     this.kills[e.kind] = (this.kills[e.kind] ?? 0) + 1;
     if (e.key) this.slain.add(e.key);
@@ -852,6 +879,10 @@ export class FluffstevaniaGame {
     for (let i = 0; i < 16; i++) {
       this.fx.push({ kind: 'ash', x: e.x + (this.rand() - 0.5) * f.w, y: e.y - this.rand() * f.h, t: -this.rand() * 0.15, vx: (this.rand() - 0.5) * 50, vy: -10 - this.rand() * 30, color: ASH[e.kind][i % 2] });
     }
+    // As it burns away, embers rise from it.
+    for (let i = 0; i < 8; i++) this.fx.push({ kind: 'ember', x: e.x + (this.rand() - 0.5) * f.w, y: e.y - this.rand() * f.h, t: -0.05 - this.rand() * 0.3, vx: (this.rand() - 0.5) * 20, vy: -30 - this.rand() * 40 });
+    // Motes of Dust fly out and home in on the lead, each topping up the Dust meter.
+    for (let i = 0; i < 2; i++) this.orbs.push({ x: e.x, y: e.y - f.h / 2, vx: (this.rand() - 0.5) * 160, vy: -80 - this.rand() * 80, t: 0, mp: f.hp >= 30 ? 2 : 1 });
     this.gainXp(f.xp);
     for (let i = 0; i < Math.ceil(f.raisins / 3); i++) this.drop('raisin', 'raisin', Math.min(3, f.raisins - i * 3), e.x, e.y - f.h / 2);
     const luck = this.stats(this.leader).lck;
@@ -887,6 +918,7 @@ export class FluffstevaniaGame {
       this.say(learnt ? `${SPELLS[learnt].hero === 'dora' ? 'Dora' : 'Enzo'} learns ${SPELLS[learnt].name}! ${SPELLS[learnt].keys}` : `Level up! Dora and Enzo reach level ${this.level}.`, learnt ? 4 : 2.6);
       this.events.push('level');
       this.fx.push({ kind: 'star', x: this.body.x, y: this.body.y - 24, t: 0, vx: 0, vy: -30 });
+      this.fx.push({ kind: 'pillar', x: this.body.x, y: this.body.y, t: 0, vx: 0, vy: 0 });
     }
   }
 
@@ -989,7 +1021,7 @@ export class FluffstevaniaGame {
       }
       if (!ghostFaded(e) && overlap(me, this.foeBox(e))) this.hurtHero(FOES[e.kind].atk, e.x);
     }
-    this.enemies = this.enemies.filter((e) => !e.dead || e.dead < 0.4);
+    this.enemies = this.enemies.filter((e) => !e.dead || e.dead < BURN_T);
   }
 
   // ─── Bosses ─────────────────────────────────────────────────────────────
@@ -1195,10 +1227,10 @@ export class FluffstevaniaGame {
     const open = o.kind === 'rat' && o.move === 'stunned' ? 1.25 : 1;
     const dmg = Math.max(1, Math.round(raw * open * (crit ? 1.5 : 1) - k.def));
     o.hp = Math.max(0, o.hp - dmg); o.flash = 0.12;
-    this.pops.push({ x: o.x, y: o.y - k.h / 2 - 6, text: String(dmg), t: 0, color: crit ? '#ffd35a' : '#ffffff' });
-    this.fx.push({ kind: 'spark', x: o.x, y: o.y, t: 0, vx: 0, vy: 0 });
+    this.pops.push({ x: o.x, y: o.y - k.h / 2 - 6, text: String(dmg), t: 0, color: crit || this.heavy ? '#ffd35a' : '#ffffff', big: this.heavy });
+    this.fx.push({ kind: 'spark', x: o.x, y: o.y, t: 0, vx: Math.sign(o.x - this.body.x) || 1, vy: 0 });
     this.events.push(crit ? 'crit' : 'hit');
-    if (o.hp <= 0) { o.move = 'dying'; o.t = 0; this.shots = this.shots.filter((s) => s.hero); this.events.push('bossdie'); this.enemies.forEach((e) => (e.dead = e.dead || 1)); }
+    if (o.hp <= 0) { o.move = 'dying'; o.t = 0; this.shots = this.shots.filter((s) => s.hero); this.events.push('bossdie'); this.enemies.forEach((e) => (e.dead = e.dead || 1e-3)); }
   }
   private bossDown() {
     const o = this.boss!;
@@ -1222,6 +1254,11 @@ export class FluffstevaniaGame {
       s.life -= dt; s.vy += s.grav * dt; s.vx += (s.ax ?? 0) * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.spin += dt * 12;
       if (s.t !== undefined) s.t += dt;
       const box = { x: s.x - s.r, y: s.y - s.r, w: s.r * 2, h: s.r * 2 };
+      if (s.kind === 'quake' && Math.floor((s.t! - dt) / 0.05) !== Math.floor(s.t! / 0.05)) {
+        // The shockwave kicks up shards of stone and dust behind it.
+        this.fx.push({ kind: 'shard', x: s.x - Math.sign(s.vx) * 4, y: s.y + 6, t: 0, vx: -s.vx * 0.1 + (this.rand() - 0.5) * 40, vy: -120 - this.rand() * (s.spell ? 120 : 60) });
+        this.fx.push({ kind: 'dust', x: s.x - Math.sign(s.vx) * 8, y: s.y + 5, t: 0, vx: -s.vx * 0.15, vy: -10 });
+      }
       if (s.kind === 'wave' || s.kind === 'quake') {
         if (isSolid(this.tile(Math.floor((s.x + Math.sign(s.vx) * 6) / TILE), Math.floor((s.y - 2) / TILE)))) s.life = 0;
       } else if (s.kind === 'cheese') {
@@ -1254,7 +1291,10 @@ export class FluffstevaniaGame {
           if (s.kind === 'pumpkin') { bursts.push([s.x, s.y]); s.life = 0; break; }
           if (!strike(e.id)) continue;
           // Gusts of dust are stopped by shields like a swing is; everything else gets past.
-          if (this.hitFoe(e, s.dmg, s.x - s.vx, s.kind !== 'gust', 0, s.launch)) this.gainDuo(3);
+          this.heavy = !!(s.heavy || s.spell);
+          const hurt = this.hitFoe(e, s.dmg, s.x - s.vx, s.kind !== 'gust', 0, s.launch);
+          this.heavy = false;
+          if (hurt) this.gainDuo(3);
           else s.life = 0;
           if (s.life <= 0) break;
         }
@@ -1262,7 +1302,7 @@ export class FluffstevaniaGame {
         const o = this.boss;
         if (s.life > 0 && o && o.move !== 'dying' && o.move !== 'enter' && overlap(box, this.bossBox(o))) {
           if (s.kind === 'pumpkin') { bursts.push([s.x, s.y]); s.life = 0; }
-          else if (strike(-1)) { this.hitBoss(s.dmg, 0); this.gainDuo(2); }
+          else if (strike(-1)) { this.heavy = !!(s.heavy || s.spell); this.hitBoss(s.dmg, 0); this.heavy = false; this.gainDuo(2); }
         }
         const cage = this.cage;
         if (s.life > 0 && cage && cage.flash <= 0 && overlap(box, { x: cage.x - 8, y: cage.y - 18, w: 16, h: 18 })) { this.hitCage(); if (!s.pierce) s.life = 0; }
@@ -1272,6 +1312,25 @@ export class FluffstevaniaGame {
     for (const [x, y] of bursts) this.burst(x, y);
   }
 
+  /** Dust motes burst out, then home in on the lead; each one caught restores a little Dust. */
+  private orbStep(dt: number) {
+    const b = this.body, tx = b.x, ty = b.y - 12;
+    for (const o of this.orbs) {
+      o.t += dt;
+      if (o.t < 0.3) { o.vx *= 1 - dt * 4; o.vy += 200 * dt; }
+      else {
+        const dx = tx - o.x, dy = ty - o.y, d = Math.hypot(dx, dy) || 1, speed = 160 + o.t * 500;
+        o.vx += (dx / d * speed - o.vx) * Math.min(1, dt * 10); o.vy += (dy / d * speed - o.vy) * Math.min(1, dt * 10);
+      }
+      o.x += o.vx * dt; o.y += o.vy * dt;
+      if ((o.t > 0.3 && Math.hypot(tx - o.x, ty - o.y) < 10) || o.t > 2.5) {
+        o.t = -1;
+        this.mp = Math.min(this.maxMp, this.mp + o.mp);
+        this.events.push('orb');
+      }
+    }
+    this.orbs = this.orbs.filter((o) => o.t >= 0);
+  }
   private pickupStep(dt: number) {
     const b = this.body, me = { x: b.x - 10, y: b.y - HERO_H - 4, w: 20, h: HERO_H + 8 };
     for (const p of this.pickups) {

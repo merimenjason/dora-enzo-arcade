@@ -4,7 +4,7 @@
 // Everything is drawn in the 384×224 view; the page scales it up.
 import { drawChinchilla, type ChinId } from './chinchilla-art';
 import {
-  FluffstevaniaGame, VIEW_W, VIEW_H, TILE, COLS, ROWS, ROOMS, AREAS, FOES, BOSSES, GEAR, FOOD, TAG_ARC, TAG_T, TAG_CD, FX_LIFE, CHARGE_T, DUO_MAX, DUO_T, SUBS,
+  FluffstevaniaGame, VIEW_W, VIEW_H, TILE, COLS, ROWS, ROOMS, AREAS, FOES, BOSSES, GEAR, FOOD, TAG_ARC, TAG_T, TAG_CD, FX_LIFE, BURN_T, CHARGE_T, DUO_MAX, DUO_T, SUBS,
   isSolid, rawTile, roomRect, ghostFaded, type Enemy, type Boss, type Shot, type Pickup, type AreaId, type HeroId, type Room, type FoeKind, type PalId, type SubId,
 } from './fluffstevania-game';
 
@@ -52,7 +52,8 @@ const mod = (a: number, n: number) => ((a % n) + n) % n;
 // seamlessly as the camera travels; `f` is how fast it scrolls with the camera, `fy` the same vertically.
 
 const LW = VIEW_W * 2, LH = VIEW_H + 96;
-type Layer = { cv: HTMLCanvasElement; f: number; fy: number };
+/** `windows` are the stained-glass arches painted on a layer, where rain and lightning show through. */
+type Layer = { cv: HTMLCanvasElement; f: number; fy: number; windows?: { x: number; y: number; w: number; h: number }[] };
 const layerCache = new Map<string, Layer[]>();
 function canvas(w = LW, h = LH) { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; return cv; }
 /** Draw something at x and again one layer-width either side, so it wraps across the seam. */
@@ -249,10 +250,13 @@ function hallLayers(): Layer[] {
         c.fillStyle = 'rgba(120,100,170,0.08)'; c.fillRect(x + 4, 120, 10, LH);
       }
     }),
-    layer(0.25, 0.12, (c) => {
-      for (let i = 0; i < 3; i++) stainedWindow(c, 40 + i * 256, 34, i * 2);
-      for (let i = 0; i < 3; i++) banner(c, 170 + i * 256, 60, 120, '#7a1c30');
-    }),
+    {
+      ...layer(0.25, 0.12, (c) => {
+        for (let i = 0; i < 3; i++) stainedWindow(c, 40 + i * 256, 34, i * 2);
+        for (let i = 0; i < 3; i++) banner(c, 170 + i * 256, 60, 120, '#7a1c30');
+      }),
+      windows: [0, 1, 2].map((i) => ({ x: 40 + i * 256, y: 36, w: 70, h: 190 })),
+    },
     layer(0.5, 0.22, (c) => {
       for (const x of [110, 110 + 384]) {
         column(c, x, 34, 0, LH, '#3a2e4c');
@@ -479,7 +483,9 @@ function catacombLayers(throne: boolean): Layer[] {
   return [far, shelves, near];
 }
 
-function drawLayers(c: C, g: FluffstevaniaGame) {
+/** The storm outside: lightning flashes a couple of times every several seconds. */
+const lightning = (time: number) => { const u = time % 7.3; return u < 0.07 ? 1 : u > 0.16 && u < 0.24 ? 0.7 : u < 0.6 ? Math.max(0, 0.25 - (u - 0.24)) : 0; };
+function drawLayers(c: C, g: FluffstevaniaGame, time: number) {
   const rr = roomRect(g.room);
   // How far down a tall room the camera is; a one-screen room shows the lower part of each layer.
   const p = rr.h > VIEW_H ? (g.cam.y - rr.y) / (rr.h - VIEW_H) : 1;
@@ -488,6 +494,21 @@ function drawLayers(c: C, g: FluffstevaniaGame) {
     const oy = Math.round(-(LH - VIEW_H) * (0.5 + (p - 0.5) * Math.min(1, L.fy * 5)));
     c.drawImage(L.cv, ox, oy);
     c.drawImage(L.cv, ox + LW, oy);
+    for (const w of L.windows ?? []) for (const dx of [ox, ox + LW]) {
+      const wx = w.x + dx, wy = w.y + oy;
+      if (wx > VIEW_W || wx + w.w < 0) continue;
+      // Rain streaks down the glass, and lightning lights it up from outside.
+      c.save(); archPath(c, wx, wy, w.w, w.h); c.clip();
+      c.strokeStyle = 'rgba(190,210,255,0.28)'; c.lineWidth = 0.6; c.beginPath();
+      for (let i = 0; i < 26; i++) {
+        const rx = wx + hash(i, 3) * w.w, ry = wy + ((hash(i, 9) * w.h + time * (160 + hash(i, 5) * 80)) % w.h);
+        c.moveTo(rx, ry); c.lineTo(rx - 1.5, ry + 7);
+      }
+      c.stroke();
+      const flash = lightning(time);
+      if (flash > 0) { c.globalCompositeOperation = 'lighter'; c.fillStyle = `rgba(200,215,255,${0.55 * flash})`; c.fillRect(wx, wy, w.w, w.h); }
+      c.restore();
+    }
   }
 }
 
@@ -744,7 +765,28 @@ function stall(c: C, x: number, y: number, time: number) {
 }
 
 function drawPickup(c: C, p: Pickup, time: number) {
-  const bob = p.fixed ? Math.sin(time * 3 + p.x) * 2 : 0, x = p.x, y = p.y - 5 + bob;
+  // Everything bobs once it has settled; dropped things bob a little less.
+  const bob = p.fixed ? Math.sin(time * 3 + p.x) * 2 : p.t > 0.8 ? Math.sin(time * 4 + p.x) * 1.2 - 1 : 0, x = p.x, y = p.y - 5 + bob;
+  if (p.kind === 'relic' || p.kind === 'sub' || p.kind === 'leaf') {
+    // A halo with slowly turning rays of light behind the treasures that matter.
+    const R = p.kind === 'relic' ? 26 : 18, tint = p.kind === 'relic' ? '200,230,255' : p.kind === 'leaf' ? '220,255,170' : '255,230,160';
+    c.save(); c.translate(x, y); c.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 8; i++) {
+      const a = time * 0.6 + (i * Math.PI) / 4, a2 = -time * 0.4 + (i * Math.PI) / 4 + 0.4;
+      for (const [ang, len, al] of [[a, R, 0.22], [a2, R * 0.7, 0.14]] as const) {
+        const gr = c.createLinearGradient(0, 0, Math.cos(ang) * len, Math.sin(ang) * len);
+        gr.addColorStop(0, `rgba(${tint},${al})`); gr.addColorStop(1, `rgba(${tint},0)`);
+        c.fillStyle = gr; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, len, ang - 0.09, ang + 0.09); c.fill();
+      }
+    }
+    c.strokeStyle = `rgba(${tint},${0.35 + Math.sin(time * 3) * 0.15})`; c.lineWidth = 0.8; ellipse(c, 0, 0, R * 0.42, R * 0.42); c.stroke();
+    c.restore();
+  }
+  if (!p.fixed && p.t > 0.8 && Math.floor(time * 3 + p.x * 0.37) % 4 === 0) {
+    // A glint now and then on dropped things too.
+    const tw = (time * 3 + p.x * 0.37) % 1;
+    c.fillStyle = `rgba(255,255,255,${1 - tw})`; c.fillRect(x + 2, y - 5, 0.8, 3); c.fillRect(x + 1.1, y - 4.1, 2.6, 0.8);
+  }
   if (p.fixed || p.kind === 'leaf' || p.kind === 'gear' || p.kind === 'relic') {
     const glow = c.createRadialGradient(x, y, 1, x, y, 16);
     glow.addColorStop(0, p.kind === 'relic' ? 'rgba(200,230,255,0.7)' : 'rgba(255,230,140,0.5)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
@@ -960,6 +1002,32 @@ function drawCage(c: C, x: number, y: number, hp: number, flash: number, time: n
 }
 
 // ─── Creatures ────────────────────────────────────────────────────────────
+
+/**
+ * A defeated foe burns away like in Symphony of the Night: it flares white-hot, cools to orange, and crumbles from
+ * the feet up in a pattern of cinders.
+ */
+let burnCv: HTMLCanvasElement | null = null;
+function burnAway(c: C, g: FluffstevaniaGame, e: Enemy, time: number) {
+  const k = Math.min(1, e.dead / BURN_T), S = 3, W = 64, H = 64, f = FOES[e.kind];
+  burnCv ??= canvas(W * S, H * S);
+  const b = burnCv.getContext('2d')!;
+  b.setTransform(1, 0, 0, 1, 0, 0); b.globalCompositeOperation = 'source-over'; b.clearRect(0, 0, W * S, H * S);
+  b.setTransform(S, 0, 0, S, (W / 2 - e.x) * S, (H * 0.75 - e.y) * S);
+  drawEnemy(b, g, { ...e, dead: 0, flash: 0 }, time);
+  b.setTransform(1, 0, 0, 1, 0, 0);
+  b.globalCompositeOperation = 'source-atop';
+  b.fillStyle = k < 0.25 ? `rgba(255,250,235,${0.9 - k})` : `rgba(255,${Math.round(170 - k * 90)},${Math.round(70 - k * 50)},${0.55 + k * 0.4})`;
+  b.fillRect(0, 0, W * S, H * S);
+  b.globalCompositeOperation = 'destination-out'; b.fillStyle = '#000';
+  const top = H * 0.75 - f.h - 4, cell = 2;
+  for (let y = 0; y < H; y += cell) {
+    const up = Math.max(0, Math.min(1, (H * 0.75 - y) / (f.h + 6)));
+    for (let x = 0; x < W; x += cell) if (y >= top - 12 && hash(x + e.id * 7, y) * 0.5 + up * 0.7 < k * 1.25) b.fillRect(x * S, y * S, cell * S, cell * S);
+  }
+  b.globalCompositeOperation = 'source-over';
+  c.drawImage(burnCv, e.x - W / 2, e.y - H * 0.75, W, H);
+}
 
 function drawEnemy(c: C, g: FluffstevaniaGame | null, e: Enemy, time: number) {
   const f = FOES[e.kind], white = e.flash > 0, col = (s: string) => (white ? '#ffffff' : s);
@@ -1247,10 +1315,17 @@ function drawShot(c: C, s: Shot) {
     for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(-4 - i * 3, 0, s.r - i * 1.4, -1.1, 1.1); c.stroke(); }
     c.fillStyle = `rgba(240,225,205,${0.35 * k})`; ellipse(c, -2, 0, s.r * 1.2, s.r * 0.8); c.fill();
   } else if (s.kind === 'acorn') {
+    // A glossy acorn with a cross-hatched cap, whirling inside a motion blur.
+    c.strokeStyle = 'rgba(255,236,200,0.35)'; c.lineWidth = 2.4; c.beginPath(); c.arc(0, 0, 7.5, s.spin * 1.5, s.spin * 1.5 + 2.4); c.stroke();
+    c.strokeStyle = 'rgba(255,236,200,0.15)'; c.lineWidth = 1.5; c.beginPath(); c.arc(0, 0, 7.5, s.spin * 1.5 + Math.PI, s.spin * 1.5 + Math.PI + 1.6); c.stroke();
     c.rotate(s.spin * 1.5);
-    c.fillStyle = '#a86a30'; ellipse(c, 0, 1.5, 3.6, 4); c.fill();
-    c.fillStyle = '#6a4020'; ellipse(c, 0, -1.6, 4.4, 2.2); c.fill();
-    c.strokeStyle = 'rgba(255,240,200,0.5)'; c.lineWidth = 1; c.beginPath(); c.arc(0, 0, 7, 0, 2); c.stroke();
+    c.fillStyle = '#c07a34'; c.beginPath(); c.moveTo(-3.8, -1); c.quadraticCurveTo(-4, 4.2, 0, 6); c.quadraticCurveTo(4, 4.2, 3.8, -1); c.fill();
+    c.fillStyle = 'rgba(255,230,190,0.75)'; ellipse(c, -1.4, 1.8, 0.9, 2, -0.2); c.fill();
+    c.fillStyle = '#6a4020'; ellipse(c, 0, -1.4, 4.6, 2.4); c.fill();
+    c.strokeStyle = '#8a5a30'; c.lineWidth = 0.4; c.beginPath();
+    for (let i = -3; i <= 3; i += 2) { c.moveTo(i - 1, -3.2); c.lineTo(i + 1, 0.4); c.moveTo(i + 1, -3.2); c.lineTo(i - 1, 0.4); }
+    c.stroke();
+    c.fillStyle = '#4a2c14'; c.fillRect(-0.5, -5.2, 1, 2);
   } else if (s.kind === 'pumpkin') {
     c.rotate(s.spin * 0.5);
     subIcon(c, 'pumpkin', 0, 0, 1);
@@ -1266,9 +1341,34 @@ function drawShot(c: C, s: Shot) {
       c.beginPath(); c.ellipse(Math.sin(a) * 1.5, yy, rr, rr * 0.3, 0, a % (Math.PI * 2), a % (Math.PI * 2) + 4.4); c.stroke();
     }
   } else if (s.kind === 'quake') {
-    c.scale(Math.sign(s.vx) || 1, 1);
-    c.fillStyle = '#6a5a48'; for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(-8 + i * 5, 6); c.lineTo(-6 + i * 5, -4 - i * 2); c.lineTo(-3 + i * 5, 6); c.fill(); }
-    c.fillStyle = 'rgba(230,210,180,0.6)'; ellipse(c, 0, 5, 9, 2.5); c.fill();
+    // A shockwave racing along the floor: a bright crescent of force with slabs of stone heaving up at its front.
+    // Enzo's Quake spell is bigger and rimmed with violet.
+    const big = !!s.spell, k = Math.min(1, s.life * (big ? 2.5 : 5)), sz = big ? 1.45 : 1;
+    c.scale((Math.sign(s.vx) || 1) * sz, sz); c.translate(0, 6 / sz - 6);
+    const hot = big ? '200,160,255' : '255,196,90';
+    const glow = c.createRadialGradient(0, 4, 0, 0, 4, 18);
+    glow.addColorStop(0, `rgba(${hot},${0.5 * k})`); glow.addColorStop(1, `rgba(${hot},0)`);
+    c.fillStyle = glow; ellipse(c, -4, 4, 18, 10); c.fill();
+    // A glowing crack left along the floor behind it.
+    const crack = c.createLinearGradient(-40, 0, 0, 0);
+    crack.addColorStop(0, `rgba(${hot},0)`); crack.addColorStop(1, `rgba(255,240,200,${0.95 * k})`);
+    c.strokeStyle = crack; c.lineWidth = 1.3; c.beginPath(); c.moveTo(-40, 6);
+    for (let x = -34; x <= 0; x += 6) c.lineTo(x, 6 - (Math.floor(x / 6) % 2 ? 1.2 : -0.2));
+    c.stroke();
+    // Slabs of floor heave up behind the wave and settle.
+    for (let i = 0; i < 3; i++) {
+      const h = (3.5 + i * 2) * (0.6 + 0.4 * Math.abs(Math.sin(s.spin * 0.8 + i * 1.7))) * k, x = -13 + i * 4.5;
+      c.fillStyle = '#7c7a88'; c.beginPath(); c.moveTo(x - 2.4, 6); c.lineTo(x - 1.4, 6 - h); c.lineTo(x + 1.2, 5.2 - h); c.lineTo(x + 2.4, 6); c.fill();
+      c.fillStyle = '#c4c2d0'; c.beginPath(); c.moveTo(x - 1.4, 6 - h); c.lineTo(x + 1.2, 5.2 - h); c.lineTo(x + 0.6, 6.4 - h); c.lineTo(x - 1, 7 - h); c.fill();
+    }
+    // The wave itself: a bright arc of force rolling forward, like a ripple through the stone.
+    for (const [r, wdt, col] of [[13, 4.5, `rgba(${hot},${0.55 * k})`], [12, 2, `rgba(255,236,170,${0.95 * k})`], [11.2, 0.8, `rgba(255,255,255,${k})`]] as const) {
+      c.strokeStyle = col; c.lineWidth = wdt; c.lineCap = 'round';
+      c.beginPath(); c.arc(-6, 6, r, -1.25, -0.02); c.stroke();
+    }
+    c.strokeStyle = `rgba(255,236,170,${0.5 * k})`; c.lineWidth = 1;
+    c.beginPath(); c.arc(-9, 6, 8, -1.1, -0.05); c.stroke();
+    c.lineCap = 'butt';
   } else if (s.kind === 'rock') {
     c.rotate(s.spin);
     c.fillStyle = '#5a5a60'; c.beginPath(); c.moveTo(-5, -2); c.lineTo(-1, -5); c.lineTo(4, -3); c.lineTo(5, 2); c.lineTo(0, 5); c.lineTo(-4, 3); c.fill();
@@ -1311,6 +1411,15 @@ function weaponArc(c: C, g: FluffstevaniaGame) {
       if (into >= w.windup && u < 0.85) {
         c.fillStyle = rgba(k.trail, 0.4 * (1 - u));
         c.beginPath(); c.arc(0, 0, w.reach * (big ? 1.05 : 0.9), Math.min(from, ang), Math.max(from, ang)); c.arc(0, 0, w.reach * 0.35, Math.max(from, ang), Math.min(from, ang), true); c.fill();
+        c.strokeStyle = rgba(k.edge, 0.8 * (1 - u)); c.lineWidth = 1;
+        c.beginPath(); c.arc(0, 0, w.reach * (big ? 1.05 : 0.9), Math.min(from, ang), Math.max(from, ang)); c.stroke();
+        // Each fan leaves its own sparkle along the rim: petals, moonlit stars, or wolfberry embers.
+        for (let i = 0; i < 5; i++) {
+          const a = from + (ang - from) * (i / 4), r = w.reach * (big ? 1.05 : 0.9) + Math.sin(i * 2.7) * 3, px = Math.cos(a) * r, py = Math.sin(a) * r, al = (1 - u) * (0.5 + i / 8);
+          if (id === 'moonfan') { c.fillStyle = `rgba(235,242,255,${al})`; star(c, px, py, 1.6); }
+          else if (id === 'wolffan') { c.fillStyle = `rgba(255,${150 + i * 15},70,${al})`; ellipse(c, px, py - (1 - u) * 3, 1.2, 1.2); c.fill(); }
+          else { c.fillStyle = `rgba(255,200,225,${al})`; ellipse(c, px, py, 1.8, 1, a + i); c.fill(); }
+        }
       }
       c.rotate(ang);
       fanShape(c, id, r, into < w.windup ? 1 : 2.4);
@@ -1327,7 +1436,14 @@ function weaponArc(c: C, g: FluffstevaniaGame) {
     }
   } else {
     const a = into < w.windup ? -2.2 : -2.2 + Math.min(1, (into - w.windup) / w.active) * 2.8;
-    if (live) { c.strokeStyle = 'rgba(255,240,200,0.5)'; c.lineWidth = 5; c.beginPath(); c.arc(0, 0, w.reach * 0.8, a - 1.2, a); c.stroke(); }
+    if (live || (into > w.windup && u < 0.7)) {
+      // A heavy smear behind the club head, with speed lines.
+      const fade = live ? 1 : Math.max(0, 1 - (u - 0.5) * 4), gr = c.createRadialGradient(0, 0, w.reach * 0.3, 0, 0, w.reach * 0.95);
+      gr.addColorStop(0, 'rgba(255,236,200,0)'); gr.addColorStop(0.6, `rgba(255,220,150,${0.45 * fade})`); gr.addColorStop(1, `rgba(255,252,240,${0.95 * fade})`);
+      c.fillStyle = gr; c.beginPath(); c.arc(0, 0, w.reach * 0.95, a - 1.3, a); c.arc(0, 0, w.reach * 0.3, a, a - 1.3, true); c.fill();
+      c.strokeStyle = `rgba(255,255,255,${0.6 * fade})`; c.lineWidth = 0.6;
+      for (let i = 0; i < 3; i++) { const r = w.reach * (0.55 + i * 0.16); c.beginPath(); c.arc(0, 0, r, a - 0.9 + i * 0.15, a - 0.1); c.stroke(); }
+    }
     c.rotate(a);
     if (id === 'pin') {
       c.fillStyle = '#6a4020'; c.fillRect(0, -1, 8, 2); c.fillRect(w.reach * 0.8 + 6, -1, 5, 2);
@@ -1369,12 +1485,62 @@ function drawGhosts(c: C, now: number) {
   c.globalAlpha = 1;
 }
 
-function hero(c: C, id: HeroId, x: number, y: number, face: 1 | -1, time: number, o: { run?: number; moving?: boolean; air?: boolean; alpha?: number }) {
+type HeroLook = { run?: number; moving?: boolean; air?: boolean; alpha?: number; armor?: string | null; sx?: number; sy?: number; vx?: number };
+function hero(c: C, id: HeroId, x: number, y: number, face: 1 | -1, time: number, o: HeroLook) {
   c.globalAlpha = o.alpha ?? 1;
-  drawChinchilla(c, id as ChinId, x, y, { face, h: HERO_DRAW_H, time, run: o.run, moving: o.moving, air: o.air, blink: Math.floor(time * 0.6 + (id === 'dora' ? 0 : 0.5)) % 7 === 0 && time % 1.7 < 0.12 });
+  const sx = o.sx ?? 1, sy = o.sy ?? 1;
+  if (sx !== 1 || sy !== 1) { c.save(); c.translate(x, y); c.scale(sx, sy); c.translate(-x, -y); }
+  const decorate = o.armor ? (d: C, bob: number) => wearArmor(d, o.armor!, bob, time, Math.min(1, Math.abs(o.vx ?? 0) / 120), !!o.air) : undefined;
+  drawChinchilla(c, id as ChinId, x, y, { face, h: HERO_DRAW_H, time, run: o.run, moving: o.moving, air: o.air, decorate, blink: Math.floor(time * 0.6 + (id === 'dora' ? 0 : 0.5)) % 7 === 0 && time % 1.7 < 0.12 });
+  if (sx !== 1 || sy !== 1) c.restore();
   c.globalAlpha = 1;
 }
+/**
+ * Worn armour, drawn in the chinchilla's 24-unit frame (feet at 0, facing +x, head at about (7, -13)). `speed` 0–1
+ * streams the Scarf's tails and the Cape back further.
+ */
+function wearArmor(c: C, id: string, bob: number, time: number, speed: number, air: boolean) {
+  const flap = Math.sin(time * (6 + speed * 8)) * (0.6 + speed), lift = air ? -2 : 0;
+  if (id === 'scarf') {
+    // A knitted red scarf round the neck, its two tails flying out behind.
+    for (const [dy, len] of [[0, 1], [1.4, 0.8]] as const) {
+      c.fillStyle = dy ? '#a8202c' : '#c83040';
+      c.beginPath(); c.moveTo(1, -8 + bob + dy);
+      c.quadraticCurveTo(-4 - speed * 3, -8 + bob + dy + flap + lift, -8 * len - speed * 6, -6 + bob + dy + flap * 1.6 + lift - speed * 2);
+      c.lineTo(-8 * len - speed * 6 + 0.4, -4 + bob + dy + flap * 1.6 + lift - speed * 2);
+      c.quadraticCurveTo(-4 - speed * 3, -6 + bob + dy + flap + lift, 1, -6 + bob + dy); c.fill();
+    }
+    c.fillStyle = '#d83848'; c.beginPath(); c.roundRect(0.5, -10 + bob, 9.5, 3.4, 1.4); c.fill();
+    c.strokeStyle = '#f0c8a0'; c.lineWidth = 0.35; c.beginPath();
+    for (let i = 0; i < 4; i++) { c.moveTo(2 + i * 2.2, -9.8 + bob); c.lineTo(2 + i * 2.2, -6.8 + bob); }
+    c.stroke();
+  } else if (id === 'cape') {
+    // A cape of dusty moth wings pinned at the shoulders: two soft wings fanning back over the back, with eye spots,
+    // that ripple and stream out as they run.
+    const sweep = speed * 0.35 + (air ? 0.25 : 0);
+    for (const [rot, len, wid, tint] of [[-0.6 - sweep, 14, 6, '#a89070'], [-0.1 - sweep * 0.6, 12.5, 5, '#c0a882']] as const) {
+      c.save(); c.translate(-1, -15.5 + bob); c.rotate(Math.PI + rot + flap * 0.06);
+      c.fillStyle = tint; c.strokeStyle = '#5a4630'; c.lineWidth = 0.5;
+      c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(len * 0.5, -wid, len, -wid * 0.3); c.quadraticCurveTo(len * 0.8, wid * 0.8, 0, 0.8); c.closePath(); c.fill(); c.stroke();
+      c.strokeStyle = 'rgba(90,70,48,0.6)'; c.lineWidth = 0.3; c.beginPath(); c.moveTo(0.5, 0); c.lineTo(len * 0.8, -wid * 0.2); c.moveTo(len * 0.4, -wid * 0.5); c.lineTo(len * 0.6, wid * 0.3); c.stroke();
+      c.fillStyle = '#f0e0c0'; ellipse(c, len * 0.62, -wid * 0.1, 1.5, 1.2); c.fill();
+      c.fillStyle = '#3a2a1a'; ellipse(c, len * 0.62, -wid * 0.1, 0.7, 0.6); c.fill();
+      c.restore();
+    }
+    c.fillStyle = '#d8b860'; ellipse(c, -0.8, -15.5 + bob, 1.2, 1.2); c.fill();
+  } else if (id === 'helm') {
+    // A silver thimble on the crown, between the ears, with a dimpled pattern.
+    const gr = c.createLinearGradient(3, 0, 11, 0);
+    gr.addColorStop(0, '#9898a8'); gr.addColorStop(0.45, '#f4f4fa'); gr.addColorStop(1, '#8a8a9a');
+    c.fillStyle = gr; c.strokeStyle = '#4a4a58'; c.lineWidth = 0.5;
+    c.beginPath(); c.moveTo(3.2, -16.4 + bob); c.lineTo(4, -21.5 + bob); c.quadraticCurveTo(7.2, -24 + bob, 10.4, -21.5 + bob); c.lineTo(11.2, -16.4 + bob); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = '#b8b8c8'; c.fillRect(2.8, -17.4 + bob, 8.8, 1.4);
+    c.fillStyle = 'rgba(70,70,90,0.5)';
+    for (let r = 0; r < 3; r++) for (let i = 0; i < 4 - (r === 0 ? 1 : 0); i++) { ellipse(c, 5 + i * 1.6 + (r % 2) * 0.8, -19.6 - r * 1.3 + bob, 0.35, 0.35); c.fill(); }
+  }
+}
 
+let landAir = false, landAt = -1;
 function drawHeroes(c: C, g: FluffstevaniaGame, time: number) {
   const b = g.body, f = g.follower, partner = g.partner;
   const tp = g.tagPoint();
@@ -1392,8 +1558,9 @@ function drawHeroes(c: C, g: FluffstevaniaGame, time: number) {
     drawPal(c, g.pal, p.x, p.y, p.face, time, p.act, g.pal === 'zippy' && p.target >= 0);
   }
   if (g.duoT >= 0) return;
-  if (g.hp[partner] > 0 && !(g.tag && g.tag.t < TAG_ARC)) hero(c, partner, f.x, f.y, f.face, time + 0.7, { run: f.run, moving: f.moving, air: f.air, alpha: 0.95 });
-  else if (g.hp[partner] > 0 && g.tag) hero(c, partner, b.x - b.face * 4, b.y - Math.sin((g.tag.t / TAG_ARC) * Math.PI) * 8, b.face, time, { air: true });
+  const armor = (h: HeroId) => g.equipped[h].armor;
+  if (g.hp[partner] > 0 && !(g.tag && g.tag.t < TAG_ARC)) hero(c, partner, f.x, f.y, f.face, time + 0.7, { run: f.run, moving: f.moving, air: f.air, alpha: 0.95, armor: armor(partner), vx: f.moving ? 100 : 0 });
+  else if (g.hp[partner] > 0 && g.tag) hero(c, partner, b.x - b.face * 4, b.y - Math.sin((g.tag.t / TAG_ARC) * Math.PI) * 8, b.face, time, { air: true, armor: armor(partner) });
   if (tp && g.tag) {
     const spin = g.tag.t * 26 * b.face;
     c.save(); c.translate(tp.x, tp.y); c.rotate(spin);
@@ -1414,7 +1581,12 @@ function drawHeroes(c: C, g: FluffstevaniaGame, time: number) {
   }
   const flicker = b.invT > 0 && Math.floor(time * 20) % 2 === 0 && !lunging;
   const moving = Math.abs(b.vx) > 1 && b.ground;
-  hero(c, g.leader, b.x, b.y, b.face, time, { run: b.run, moving, air: !b.ground, alpha: flicker ? 0.35 : 1 });
+  // Squash on landing, stretch on the way up.
+  if (b.ground && landAir) landAt = time;
+  landAir = !b.ground;
+  const land = Math.max(0, 1 - (time - landAt) / 0.14), rise = !b.ground && b.vy < -120 ? Math.min(1, -b.vy / 500) : 0;
+  const sq = land * 0.16 - rise * 0.1;
+  hero(c, g.leader, b.x, b.y, b.face, time, { run: b.run, moving, air: !b.ground, alpha: flicker ? 0.35 : 1, armor: armor(g.leader), vx: b.vx, sx: 1 + sq, sy: 1 - sq });
   if (b.charge > 0.12 && b.attackT <= 0) {
     // Charging the fan: dust gathers, and sparkles once the spin is ready.
     const k = Math.min(1, b.charge / CHARGE_T), ready = k >= 1;
@@ -1426,6 +1598,17 @@ function drawHeroes(c: C, g: FluffstevaniaGame, time: number) {
   if (b.castT > 0) {
     c.strokeStyle = `rgba(200,170,255,${b.castT * 2})`; c.lineWidth = 1.5;
     ellipse(c, b.x, b.y - 1, 16 * (1.2 - b.castT), 4 * (1.2 - b.castT)); c.stroke();
+    if (g.leader === 'enzo') {
+      // Quake: a rune circle glows on the floor under Enzo.
+      const a = Math.min(1, b.castT * 3), r = 22;
+      c.save(); c.translate(b.x, b.y); c.scale(1, 0.28); c.rotate(time * 1.5);
+      c.strokeStyle = `rgba(220,190,255,${a})`; c.lineWidth = 2.4;
+      ellipse(c, 0, 0, r, r); c.stroke(); ellipse(c, 0, 0, r * 0.7, r * 0.7); c.stroke();
+      c.beginPath(); for (let i = 0; i < 6; i++) { const t = (i * Math.PI * 2) / 6; c.lineTo(Math.cos(t * 2) * r * 0.7, Math.sin(t * 2) * r * 0.7); } c.closePath(); c.stroke();
+      c.fillStyle = `rgba(255,236,255,${a})`;
+      for (let i = 0; i < 8; i++) { const t = (i * Math.PI) / 4; c.fillRect(Math.cos(t) * r * 0.85 - 1.2, Math.sin(t) * r * 0.85 - 1.2, 2.4, 2.4); }
+      c.restore();
+    }
   }
   weaponArc(c, g);
 }
@@ -1467,6 +1650,23 @@ function drawDustFx(c: C, g: FluffstevaniaGame) {
       case 'rubble': c.fillStyle = `rgba(110,100,120,${1 - k})`; c.fillRect(f.x - 1.5, f.y - 1.5, 3, 3); break;
       case 'feather': c.fillStyle = `rgba(138,112,80,${1 - k})`; ellipse(c, f.x, f.y, 4, 1.5, f.t * 8); c.fill(); break;
       case 'ash': c.fillStyle = f.color ?? '#aaa'; c.globalAlpha = Math.max(0, 1 - k); c.fillRect(f.x - 1, f.y - 1, 1.6 + (1 - k), 1.6 + (1 - k)); c.globalAlpha = 1; break;
+      case 'shard': {
+        // An angular chip of stone tumbling back down.
+        c.save(); c.translate(f.x, f.y); c.rotate(f.t * 14 * Math.sign(f.vx || 1)); c.globalAlpha = Math.min(1, (1 - k) * 2);
+        c.fillStyle = '#6e6c7a'; c.beginPath(); c.moveTo(-2.2, -1); c.lineTo(0, -2.4); c.lineTo(2.4, -0.4); c.lineTo(0.6, 2); c.lineTo(-1.8, 1.4); c.fill();
+        c.fillStyle = '#b8b6c6'; c.beginPath(); c.moveTo(-2.2, -1); c.lineTo(0, -2.4); c.lineTo(0.8, -0.6); c.fill();
+        c.restore();
+        break;
+      }
+      case 'fur': {
+        // A tuft of loose fur, curling as it drifts.
+        const pale = f.color === 'dora';
+        c.save(); c.translate(f.x, f.y); c.rotate(f.t * 6); c.globalAlpha = 0.9 * (1 - k);
+        c.strokeStyle = pale ? '#fbf8f3' : '#9a98a4'; c.lineWidth = 0.9; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(-2, 0); c.quadraticCurveTo(0, -2, 2, 0); c.moveTo(-1.5, 1); c.quadraticCurveTo(0.5, -0.5, 2.2, 1.4); c.stroke();
+        c.restore();
+        break;
+      }
     }
   }
 }
@@ -1477,9 +1677,54 @@ function drawGlowFx(c: C, g: FluffstevaniaGame) {
     const k = f.t / FX_LIFE[f.kind];
     switch (f.kind) {
       case 'spark': {
+        // A white-hot core, then gold streaks spraying the way the blow travelled (all round if it had no direction).
         c.fillStyle = `rgba(255,255,255,${0.9 - k})`; ellipse(c, f.x, f.y, 5 * (1 - k) + 1, 5 * (1 - k) + 1); c.fill();
-        c.strokeStyle = `rgba(255,240,180,${1 - k})`; c.lineWidth = 1.3;
-        for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3 + 0.3, r = 3 + k * 14; c.beginPath(); c.moveTo(f.x + Math.cos(a) * r * 0.4, f.y + Math.sin(a) * r * 0.4); c.lineTo(f.x + Math.cos(a) * r, f.y + Math.sin(a) * r); c.stroke(); }
+        const d = f.vx;
+        c.lineCap = 'round';
+        for (let i = 0; i < 7; i++) {
+          const spread = d ? (hash(i, Math.round(f.x)) - 0.5) * 1.6 : i * 0.9, a = d ? (d > 0 ? 0 : Math.PI) + spread : spread;
+          const len = d ? 8 + hash(Math.round(f.y), i) * 14 : 10, r0 = 2 + k * len * 0.9, r1 = 2 + k * len * 0.9 + (1 - k) * 6 + 2;
+          c.strokeStyle = i % 2 ? `rgba(255,255,255,${1 - k})` : `rgba(255,214,110,${1 - k})`; c.lineWidth = 1.4 * (1 - k) + 0.4;
+          c.beginPath(); c.moveTo(f.x + Math.cos(a) * r0, f.y + Math.sin(a) * r0); c.lineTo(f.x + Math.cos(a) * r1, f.y + Math.sin(a) * r1); c.stroke();
+        }
+        c.lineCap = 'butt';
+        break;
+      }
+      case 'claw': {
+        // Three raking claw marks hang in the air a moment; a finisher's are gold.
+        c.save(); c.translate(f.x, f.y); c.scale(f.vx || 1, 1); c.rotate(-0.9);
+        const gold = f.vy > 0;
+        for (let i = -1; i <= 1; i++) {
+          const len = 11 + (i === 0 ? 3 : 0);
+          c.fillStyle = gold ? `rgba(255,220,120,${1 - k})` : `rgba(215,235,255,${1 - k})`;
+          c.beginPath(); c.moveTo(-len, i * 3.6); c.quadraticCurveTo(0, i * 3.6 - 2 * (1 - k), len, i * 3.6 + 1); c.quadraticCurveTo(0, i * 3.6 + 0.6, -len, i * 3.6); c.fill();
+        }
+        c.restore();
+        break;
+      }
+      case 'ember': {
+        const a = Math.max(0, 1 - k);
+        c.fillStyle = `rgba(255,${Math.round(200 - k * 120)},${Math.round(90 - k * 60)},${a})`; c.fillRect(f.x - 0.8, f.y - 0.8, 1.6, 1.6);
+        c.fillStyle = `rgba(255,150,60,${a * 0.3})`; ellipse(c, f.x, f.y, 2.6, 2.6); c.fill();
+        break;
+      }
+      case 'pillar': {
+        // Level up: a column of light pours down on the heroes and motes stream up through it.
+        const a = k < 0.15 ? k / 0.15 : Math.max(0, 1 - (k - 0.15) / 0.85), wdt = 14 + Math.sin(k * 20) * 1.5;
+        const gr = c.createLinearGradient(f.x - wdt, 0, f.x + wdt, 0);
+        gr.addColorStop(0, 'rgba(255,240,180,0)'); gr.addColorStop(0.5, `rgba(255,248,215,${0.5 * a})`); gr.addColorStop(1, 'rgba(255,240,180,0)');
+        c.fillStyle = gr; c.fillRect(f.x - wdt, g.cam.y - 10, wdt * 2, f.y - g.cam.y + 12);
+        c.strokeStyle = `rgba(255,236,160,${0.8 * a})`; c.lineWidth = 1; ellipse(c, f.x, f.y, 14 + k * 10, 3 + k * 2); c.stroke();
+        for (let i = 0; i < 10; i++) {
+          const u = (k * 1.6 + i / 10) % 1;
+          c.fillStyle = `rgba(255,255,230,${a * (1 - u)})`; c.fillRect(f.x + Math.sin(i * 2.3 + k * 8) * 9, f.y - u * 90, 1.4, 1.4);
+        }
+        c.globalAlpha = a; c.font = `900 11px ${DISPLAY}`; c.textAlign = 'center';
+        const ty = f.y - 40 - Math.min(1, k * 4) * 10;
+        c.lineWidth = 3; c.strokeStyle = '#2a1030'; c.strokeText('LEVEL UP', f.x, ty);
+        const tg = c.createLinearGradient(0, ty - 10, 0, ty); tg.addColorStop(0, '#fffbe0'); tg.addColorStop(1, '#e8b040');
+        c.fillStyle = tg; c.fillText('LEVEL UP', f.x, ty);
+        c.globalAlpha = 1;
         break;
       }
       case 'slash': {
@@ -1509,14 +1754,31 @@ function drawGlowFx(c: C, g: FluffstevaniaGame) {
         break;
     }
   }
+  // Dust motes on their way to the lead, with little tails.
+  for (const o of g.orbs) {
+    const tail = Math.min(1, Math.hypot(o.vx, o.vy) / 300) * 8, d = Math.hypot(o.vx, o.vy) || 1;
+    const gr = c.createLinearGradient(o.x, o.y, o.x - (o.vx / d) * tail, o.y - (o.vy / d) * tail);
+    gr.addColorStop(0, 'rgba(210,190,255,0.8)'); gr.addColorStop(1, 'rgba(140,100,240,0)');
+    c.strokeStyle = gr; c.lineWidth = 2; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(o.x, o.y); c.lineTo(o.x - (o.vx / d) * tail, o.y - (o.vy / d) * tail); c.stroke(); c.lineCap = 'butt';
+    const glow = c.createRadialGradient(o.x, o.y, 0, o.x, o.y, 4);
+    glow.addColorStop(0, '#ffffff'); glow.addColorStop(0.5, 'rgba(200,170,255,0.9)'); glow.addColorStop(1, 'rgba(140,100,240,0)');
+    c.fillStyle = glow; ellipse(c, o.x, o.y, 4, 4); c.fill();
+  }
   c.textAlign = 'center';
   for (const p of g.pops) {
-    // Numbers pop in large, settle, then fade.
-    const grow = p.t < 0.08 ? 1.6 - p.t * 7.5 : 1, crit = p.color === '#ffd35a', size = (crit ? 11 : 9) * grow;
+    // Numbers pop in large, bounce once as they settle, then fade. Big blows show bigger and in gold.
+    const grow = p.t < 0.08 ? 1.6 - p.t * 7.5 : 1, crit = p.color === '#ffd35a', size = (p.big ? 13 : crit ? 11 : 9) * grow;
+    const hop = p.t < 0.4 ? Math.abs(Math.sin((p.t / 0.4) * Math.PI * 1.5)) * (1 - p.t / 0.4) * 6 : 0;
     c.globalAlpha = Math.min(1, (0.9 - p.t) * 4);
     c.font = `900 ${size.toFixed(1)}px ${DISPLAY}`;
-    c.lineWidth = 3; c.strokeStyle = '#140818'; c.strokeText(p.text, p.x, p.y);
-    c.fillStyle = p.color; c.fillText(p.text, p.x, p.y);
+    c.lineWidth = p.big ? 3.6 : 3; c.strokeStyle = '#140818'; c.strokeText(p.text, p.x, p.y - hop);
+    if (p.big) {
+      const gr = c.createLinearGradient(0, p.y - hop - size, 0, p.y - hop);
+      gr.addColorStop(0, '#fffbe0'); gr.addColorStop(1, '#e8a030');
+      c.fillStyle = gr;
+    } else c.fillStyle = p.color;
+    c.fillText(p.text, p.x, p.y - hop);
   }
   c.globalAlpha = 1;
 }
@@ -1539,7 +1801,14 @@ function gatherLights(g: FluffstevaniaGame, time: number): Light[] {
   for (const e of g.enemies) if (e.kind === 'ghost' && !e.dead && !ghostFaded(e)) out.push({ x: e.x, y: e.y - 14, r: 40, a: 0.7, tint: '#90ffc0' });
   for (const f of g.fx) if ((f.kind === 'boom' || f.kind === 'flame' || f.kind === 'spark') && f.t >= 0) out.push({ x: f.x, y: f.y, r: f.kind === 'spark' ? 26 : 40, a: 1 - f.t / FX_LIFE[f.kind], tint: '#ffc080' });
   if (g.boss) out.push({ x: g.boss.x, y: g.boss.y, r: 60, a: 0.35 });
-  for (const s of g.shots) if (s.kind === 'flame') out.push({ x: s.x, y: s.y, r: 30, a: 0.8, tint: '#ff9040' }); else if (s.kind === 'wind') out.push({ x: s.x, y: s.y, r: 34, a: 0.4 });
+  for (const s of g.shots) {
+    if (s.kind === 'flame') out.push({ x: s.x, y: s.y, r: 30, a: 0.8, tint: '#ff9040' });
+    else if (s.kind === 'wind') out.push({ x: s.x, y: s.y, r: 34, a: 0.4 });
+    else if (s.kind === 'quake' && s.hero) out.push({ x: s.x, y: s.y, r: s.spell ? 46 : 34, a: 0.8, tint: s.spell ? '#d0a8ff' : '#ffd070' });
+  }
+  for (const o of g.orbs) out.push({ x: o.x, y: o.y, r: 16, a: 0.6, tint: '#b890ff' });
+  for (const e of g.enemies) if (e.dead) out.push({ x: e.x, y: e.y - FOES[e.kind].h / 2, r: 34, a: 1 - e.dead / BURN_T, tint: '#ff9a40' });
+  for (const f of g.fx) if (f.kind === 'pillar' && f.t >= 0) out.push({ x: f.x, y: f.y - 30, r: 90, a: 1 - f.t / FX_LIFE.pillar, tint: '#fff0b0' });
   if (g.pal) out.push({ x: g.palBody.x, y: g.palBody.y - 6, r: 26, a: 0.35 });
   return out;
 }
@@ -1613,6 +1882,7 @@ function portrait(c: C, id: HeroId, x: number, y: number, r: number, time: numbe
   c.restore();
 }
 
+let trailBoss: Boss | null = null, trailHp = 0, trailHold = 0, trailT = 0;
 function drawHud(c: C, g: FluffstevaniaGame, time: number) {
   const lead = g.leader, part = g.partner, ls = g.stats(lead), ps = g.stats(part);
   frame(c, 4, 4, 150, 40);
@@ -1645,11 +1915,21 @@ function drawHud(c: C, g: FluffstevaniaGame, time: number) {
   minimap(c, g, VIEW_W - 72, 7, time);
   if (g.boss) {
     const o = g.boss, k = BOSSES[o.kind], w = 220, x = (VIEW_W - w) / 2, y = VIEW_H - 15;
-    frame(c, x - 10, y - 13, w + 20, 23);
+    // The bar drains in two steps: the lost health lingers pale for a moment, then slides away.
+    if (trailBoss !== o) { trailBoss = o; trailHp = o.hp; trailHold = 0; }
+    const dt = Math.min(0.1, Math.max(0, time - trailT)); trailT = time;
+    if (o.hp < trailHp) { trailHold += dt; if (trailHold > 0.5) trailHp = Math.max(o.hp, trailHp - o.max * 0.5 * dt); } else { trailHp = o.hp; trailHold = 0; }
+    frame(c, x - 16, y - 13, w + 32, 24);
     c.font = `700 7px ${DISPLAY}`; c.textAlign = 'center'; c.fillStyle = '#f0c8a0'; c.fillText(k.name.toUpperCase(), VIEW_W / 2, y - 3);
-    bar(c, x, y + 1, w, 4, o.hp, o.max, o.phase2 ? '#ff7050' : '#e0a050', o.phase2 ? '#901810' : '#8a4a10');
-    c.fillStyle = '#e8e0d0';
-    skull(c, x - 5, y + 2, 0.55, '#e8e0d0'); skull(c, x + w + 5, y + 2, 0.55, '#e8e0d0');
+    bar(c, x, y + 1, w, 5, o.hp, o.max, o.phase2 ? '#ff7050' : '#e0a050', o.phase2 ? '#901810' : '#8a4a10');
+    if (trailHp > o.hp) { c.fillStyle = 'rgba(255,240,220,0.75)'; c.fillRect(x + (w * o.hp) / o.max, y + 1, (w * (trailHp - o.hp)) / o.max, 5); }
+    // Notches every tenth, and a diamond at half where the second phase begins.
+    c.fillStyle = 'rgba(20,8,14,0.6)'; for (let i = 1; i < 10; i++) c.fillRect(x + (w * i) / 10 - 0.3, y + 1, 0.6, 5);
+    c.fillStyle = o.phase2 ? '#ff9070' : '#f0d080'; c.beginPath(); c.moveTo(x + w / 2, y - 1.5); c.lineTo(x + w / 2 + 2.5, y + 1); c.lineTo(x + w / 2, y + 3.5); c.lineTo(x + w / 2 - 2.5, y + 1); c.fill();
+    // Spiked end caps with a skull at each end.
+    c.fillStyle = '#e0bc68';
+    for (const [ex, d] of [[x - 2, -1], [x + w + 2, 1]] as const) { c.beginPath(); c.moveTo(ex, y - 0.5); c.lineTo(ex + d * 5, y + 3.5); c.lineTo(ex, y + 7.5); c.fill(); }
+    skull(c, x - 10, y + 3.5, 0.55, '#e8e0d0'); skull(c, x + w + 10, y + 3.5, 0.55, '#e8e0d0');
   }
   if (g.banner) {
     const a = Math.min(1, g.banner.t * 1.5, (2.4 - g.banner.t) * 3);
@@ -1684,17 +1964,116 @@ function drawHud(c: C, g: FluffstevaniaGame, time: number) {
   }
 }
 
-const isSave = (room: Room) => room.rows.some((row) => row.includes('S'));
+/** Everything the maps mark. */
+export type MapMark = 'you' | 'shrine' | 'shop' | 'boss' | 'bossDown' | 'relic' | 'item' | 'sub' | 'leaf' | 'pal' | 'lock';
+export const MAP_LEGEND: [MapMark, string][] = [
+  ['you', 'You are here'], ['shrine', 'Dust-bath shrine'], ['shop', "Pip's stall"], ['boss', 'Guardian'], ['bossDown', 'Guardian beaten'],
+  ['relic', 'Relic'], ['item', 'Treasure'], ['sub', 'Sub-weapon'], ['leaf', 'Wolfberry Leaf'], ['pal', 'Familiar'], ['lock', 'Sealed door'],
+];
+/** A map icon centred on (x, y), about 10·s pixels across. */
+export function mapIcon(c: C, kind: MapMark, x: number, y: number, s: number, time = 0) {
+  c.save(); c.translate(x, y); c.scale(s, s);
+  const outline = () => { c.lineWidth = 1.6; c.strokeStyle = '#0c0714'; c.stroke(); };
+  switch (kind) {
+    case 'you': {
+      const k = (time * 1.5) % 1;
+      c.strokeStyle = `rgba(255,255,255,${1 - k})`; c.lineWidth = 1; ellipse(c, 0, 0, 3 + k * 4, 3 + k * 4); c.stroke();
+      ellipse(c, 0, 0, 3, 3); outline(); c.fillStyle = '#ffffff'; c.fill();
+      c.fillStyle = '#e04860'; ellipse(c, 0, 0, 1.3, 1.3); c.fill();
+      break;
+    }
+    case 'shrine':
+      // A steaming dust-bath bowl.
+      c.beginPath(); c.moveTo(-4.5, -0.5); c.quadraticCurveTo(0, 6, 4.5, -0.5); c.closePath(); outline(); c.fillStyle = '#f0c860'; c.fill();
+      c.fillStyle = '#fff4d0'; c.fillRect(-4.5, -1.4, 9, 1.4);
+      c.fillStyle = 'rgba(255,248,230,0.9)'; ellipse(c, -1.5, -3.2, 1.4, 1.1); c.fill(); ellipse(c, 1.4, -4.4, 1.2, 1); c.fill();
+      break;
+    case 'shop':
+      // Pip's coin bag.
+      c.beginPath(); c.moveTo(-2, -3); c.quadraticCurveTo(-5, 1, -3.6, 4); c.lineTo(3.6, 4); c.quadraticCurveTo(5, 1, 2, -3); c.closePath(); outline(); c.fillStyle = '#b08050'; c.fill();
+      c.fillStyle = '#7a5030'; c.fillRect(-2.4, -3.6, 4.8, 1.2);
+      c.fillStyle = '#ffd860'; ellipse(c, 0, 1.2, 1.8, 1.8); c.fill(); c.fillStyle = '#b08020'; c.fillRect(-0.3, 0, 0.6, 2.4);
+      break;
+    case 'boss': case 'bossDown': {
+      ellipse(c, 0, -0.5, 4.6, 4.2); outline();
+      skull(c, 0, -1, 0.85, kind === 'boss' ? '#f4ead8' : '#8a8494');
+      if (kind === 'bossDown') { c.strokeStyle = '#e03040'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(-4, -4.5); c.lineTo(4, 3.5); c.moveTo(4, -4.5); c.lineTo(-4, 3.5); c.stroke(); }
+      break;
+    }
+    case 'relic': {
+      c.strokeStyle = 'rgba(200,230,255,0.9)'; c.lineWidth = 0.7;
+      for (let i = 0; i < 8; i++) { const a = (i * Math.PI) / 4 + time * 0.8; c.beginPath(); c.moveTo(Math.cos(a) * 3.2, Math.sin(a) * 3.2); c.lineTo(Math.cos(a) * 5, Math.sin(a) * 5); c.stroke(); }
+      ellipse(c, 0, 0, 2.8, 2.8); outline(); c.fillStyle = '#e8f4ff'; c.fill();
+      c.fillStyle = '#80b8f0'; ellipse(c, -0.8, -0.8, 1.2, 1.2); c.fill();
+      break;
+    }
+    case 'item':
+      // A little treasure chest.
+      c.beginPath(); c.rect(-4, -2, 8, 5.5); outline(); c.fillStyle = '#9a6030'; c.fill();
+      c.beginPath(); c.moveTo(-4, -2); c.quadraticCurveTo(0, -5.5, 4, -2); c.closePath(); outline(); c.fillStyle = '#b87838'; c.fill();
+      c.fillStyle = '#f0c850'; c.fillRect(-4, -1.6, 8, 1); c.fillRect(-0.8, -1.2, 1.6, 2);
+      break;
+    case 'sub':
+      // An acorn, for the sub-weapons.
+      c.beginPath(); c.moveTo(-3, -0.5); c.quadraticCurveTo(-3, 3.4, 0, 4.6); c.quadraticCurveTo(3, 3.4, 3, -0.5); c.closePath(); outline(); c.fillStyle = '#d08a40'; c.fill();
+      ellipse(c, 0, -1, 3.8, 2); outline(); c.fillStyle = '#6a4020'; c.fill();
+      c.fillStyle = '#4a2c14'; c.fillRect(-0.4, -4.4, 0.8, 1.8);
+      break;
+    case 'leaf':
+      ellipse(c, 0, 0, 2.8, 4.6, 0.5); outline(); c.fillStyle = '#8ac048'; c.fill();
+      c.fillStyle = '#e8d060'; ellipse(c, -0.4, -0.4, 1.2, 3, 0.5); c.fill();
+      break;
+    case 'pal':
+      // A paw print.
+      ellipse(c, 0, 1.5, 2.6, 2.2); outline(); c.fillStyle = '#f0b0c8'; c.fill();
+      for (const [px, py] of [[-2.8, -1.6], [-1, -3.4], [1, -3.4], [2.8, -1.6]]) { ellipse(c, px, py, 1.1, 1.3); outline(); c.fillStyle = '#f0b0c8'; c.fill(); }
+      break;
+    case 'lock':
+      c.beginPath(); c.arc(0, -1.4, 2.2, Math.PI, 0); c.lineWidth = 2.6; c.strokeStyle = '#0c0714'; c.stroke(); c.lineWidth = 1.1; c.strokeStyle = '#c8c8d8'; c.stroke();
+      c.beginPath(); c.rect(-3.2, -1.4, 6.4, 5); outline(); c.fillStyle = '#e0b040'; c.fill();
+      c.fillStyle = '#3a2410'; ellipse(c, 0, 0.6, 0.8, 0.8); c.fill(); c.fillRect(-0.3, 0.8, 0.6, 1.6);
+      break;
+  }
+  c.restore();
+}
+
+/**
+ * The marks in a room for the map, each at its place in map cells (fractional), only where the cell it sits in has
+ * been visited. Treasure disappears once taken, familiars once befriended, seals once broken.
+ */
+function roomMarks(g: FluffstevaniaGame, room: Room) {
+  const out: { kind: MapMark; mx: number; my: number }[] = [];
+  let item = 0, lockDone = false;
+  for (let r = 0; r < room.rows.length; r++) for (let cc = 0; cc < room.rows[r].length; cc++) {
+    const ch = room.rows[r][cc], mx = room.mx + cc / COLS, my = room.my + (r + 0.5) / ROWS;
+    if (!g.visited.has(`${Math.floor(mx)},${Math.floor(my)}`)) { if (ch === 'I') item++; continue; }
+    let kind: MapMark | null = null;
+    if (ch === 'S') kind = 'shrine';
+    else if (ch === '$') kind = 'shop';
+    else if (ch === 'O' && room.boss) kind = g.flags.has(`boss:${room.boss}`) ? 'bossDown' : 'boss';
+    else if (ch === 'R' && room.relic && !g.relics.has(room.relic)) kind = 'relic';
+    else if (ch === 'I') { if (room.items?.[item] && !g.flags.has(`item:${room.id}:${item}`)) kind = 'item'; item++; }
+    else if (ch === 'U' && room.sub && !g.subs.has(room.sub)) kind = 'sub';
+    else if (ch === 'H' && !g.flags.has(`leaf:${room.id}`)) kind = 'leaf';
+    else if ((ch === 'P' && !g.pals.pudding) || (ch === 'Z' && !g.pals.zippy) || (ch === 'Y' && !g.pals.mochi)) kind = 'pal';
+    else if (ch === 'D' && !lockDone && !(room.opens && g.flags.has(room.opens))) { kind = 'lock'; lockDone = true; }
+    if (kind) out.push({ kind, mx, my });
+  }
+  return out;
+}
+
 function minimap(c: C, g: FluffstevaniaGame, x0: number, y0: number, time: number) {
   const cw = 9, ch = 6, span = 7, spanY = 5;
   const bx = Math.floor(g.body.x / VIEW_W), by = Math.floor((g.body.y - 10) / VIEW_H);
   frame(c, x0 - 4, y0 - 4, cw * span + 8, ch * spanY + 8);
+  const seen = new Set<Room>();
   for (let dy = 0; dy < spanY; dy++) for (let dx = 0; dx < span; dx++) {
     const mx = bx - 3 + dx, my = by - 2 + dy;
     const room = ROOMS.find((r) => mx >= r.mx && mx < r.mx + r.w && my >= r.my && my < r.my + r.h);
     if (!room || !g.visited.has(`${mx},${my}`)) continue;
+    seen.add(room);
     const px = x0 + dx * cw, py = y0 + dy * ch;
-    c.fillStyle = isSave(room) ? '#b03040' : room.boss ? '#806020' : '#2a4a8a';
+    c.fillStyle = room === g.room ? shade(AREAS[room.area].color, 0.75) : shade(AREAS[room.area].color, 0.5);
     c.fillRect(px, py, cw, ch);
     c.strokeStyle = '#d8e0f0'; c.lineWidth = 0.6;
     c.beginPath();
@@ -1704,21 +2083,31 @@ function minimap(c: C, g: FluffstevaniaGame, x0: number, y0: number, time: numbe
     if (my === room.my + room.h - 1) { c.moveTo(px, py + ch - 0.3); c.lineTo(px + cw, py + ch - 0.3); }
     c.stroke();
   }
+  // Tiny icons for what's nearby, clipped to the frame.
+  c.save(); c.beginPath(); c.rect(x0, y0, cw * span, ch * spanY); c.clip();
+  for (const room of seen) for (const m of roomMarks(g, room)) {
+    const px = x0 + (m.mx - (bx - 3)) * cw, py = y0 + (m.my - (by - 2)) * ch;
+    mapIcon(c, m.kind, Math.min(Math.max(px, x0 + (Math.floor(m.mx) - bx + 3) * cw + 2.5), x0 + (Math.floor(m.mx) - bx + 4) * cw - 2.5), py, 0.42);
+  }
+  c.restore();
   if (Math.floor(time * 3) % 2 === 0) { c.fillStyle = '#ffffff'; c.fillRect(x0 + 3 * cw + 3, y0 + 2 * ch + 2, 3, 2); }
 }
 
-/** The full castle map for the pause menu. */
+/** The full castle map for the pause menu: rooms in their area's colour, area names, and icons for what's where. */
 export function drawMap(c: C, g: FluffstevaniaGame, w: number, h: number, time: number) {
   c.fillStyle = '#0c0714'; c.fillRect(0, 0, w, h);
   const minX = Math.min(...ROOMS.map((r) => r.mx)), maxX = Math.max(...ROOMS.map((r) => r.mx + r.w));
   const minY = Math.min(...ROOMS.map((r) => r.my)), maxY = Math.max(...ROOMS.map((r) => r.my + r.h));
-  const cell = Math.floor(Math.min((w - 20) / (maxX - minX), (h - 20) / (maxY - minY) / 0.62)), ch = Math.round(cell * 0.62);
+  const cell = Math.floor(Math.min((w - 20) / (maxX - minX), (h - 20) / (maxY - minY) / 0.66)), ch = Math.round(cell * 0.66);
   const ox = (w - cell * (maxX - minX)) / 2, oy = (h - ch * (maxY - minY)) / 2;
+  const at = (mx: number, my: number) => [ox + (mx - minX) * cell, oy + (my - minY) * ch] as const;
+  const areaCells = new Map<AreaId, [number, number][]>();
   for (const room of ROOMS) for (let dy = 0; dy < room.h; dy++) for (let dx = 0; dx < room.w; dx++) {
     const mx = room.mx + dx, my = room.my + dy;
     if (!g.visited.has(`${mx},${my}`)) continue;
-    const px = ox + (mx - minX) * cell, py = oy + (my - minY) * ch;
-    const fill = isSave(room) ? '#a02838' : room.boss ? '#7a5a18' : room.rows.some((row) => row.includes('$')) ? '#2a7a50' : shade(AREAS[room.area].color, 0.45);
+    const list = areaCells.get(room.area) ?? []; list.push([mx, my]); areaCells.set(room.area, list);
+    const [px, py] = at(mx, my);
+    const fill = shade(AREAS[room.area].color, room === g.room ? 0.62 : 0.42);
     c.fillStyle = fill;
     c.fillRect(px, py, cell, ch);
     c.strokeStyle = '#e8ecf8'; c.lineWidth = 2;
@@ -1734,8 +2123,209 @@ export function drawMap(c: C, g: FluffstevaniaGame, w: number, h: number, time: 
     if (dx === 0 && !isSolid(rawTile(tc, tr + 10))) c.fillRect(px, py + ch * 0.35, 3, ch * 0.3);
     if (dx === room.w - 1 && !isSolid(rawTile(tc + COLS - 1, tr + 10))) c.fillRect(px + cell - 3, py + ch * 0.35, 3, ch * 0.3);
   }
-  const bx = g.body.x / VIEW_W - minX, by = (g.body.y - 10) / VIEW_H - minY;
-  if (Math.floor(time * 3) % 2 === 0) { c.fillStyle = '#ffffff'; ellipse(c, ox + bx * cell, oy + by * ch, 3, 3); c.fill(); }
+  // Area names in the middle of each explored region, nudged apart where they'd overlap.
+  c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `700 ${Math.max(8, Math.round(cell * 0.26))}px ${DISPLAY}`;
+  const placed: { x: number; y: number; w: number }[] = [];
+  for (const [area, cells] of areaCells) {
+    const cx = cells.reduce((s, [x]) => s + x + 0.5, 0) / cells.length, cy = cells.reduce((s, [, y]) => s + y + 0.5, 0) / cells.length;
+    const name = AREAS[area].name.toUpperCase(), tw = c.measureText(name).width + 6;
+    const [px, py0] = at(cx, cy);
+    let py = py0;
+    for (let tries = 0; tries < 8 && placed.some((p) => Math.abs(p.x - px) < (p.w + tw) / 2 && Math.abs(p.y - py) < 11); tries++) py += tries % 2 ? 12 * (tries + 1) : -12 * (tries + 1);
+    placed.push({ x: px, y: py, w: tw });
+    c.lineWidth = 3; c.strokeStyle = 'rgba(12,7,20,0.95)'; c.strokeText(name, px, py);
+    c.fillStyle = shade(AREAS[area].color, 1.3); c.fillText(name, px, py);
+  }
+  c.textBaseline = 'alphabetic';
+  const s = Math.max(0.9, cell / 30);
+  for (const room of ROOMS) for (const m of roomMarks(g, room)) {
+    const [px, py] = at(m.mx, m.my), left = at(Math.floor(m.mx), 0)[0];
+    mapIcon(c, m.kind, Math.min(Math.max(px, left + 6 * s), left + cell - 6 * s), py, s, time);
+  }
+  const [yx, yy] = at(g.body.x / VIEW_W, (g.body.y - 10) / VIEW_H);
+  mapIcon(c, 'you', yx, yy, s, time);
+}
+
+// ─── Atmosphere ───────────────────────────────────────────────────────────
+
+/**
+ * The foreground: dark silhouettes (pillars, chains, roots, cobwebs, stalactites) that slide past in front of the
+ * camera faster than the room does, for depth. They stay thin and sparse so they never hide a fight for long.
+ */
+const FW = VIEW_W * 3;
+const fgCache = new Map<AreaId, HTMLCanvasElement>();
+function foreground(area: AreaId) {
+  const hit = fgCache.get(area);
+  if (hit) return hit;
+  const cv = canvas(FW, VIEW_H), c = cv.getContext('2d')!, ink = '#06030a';
+  c.fillStyle = ink; c.strokeStyle = ink;
+  const chain = (x: number, len: number) => {
+    c.lineWidth = 1.2;
+    for (let y = 0; y < len; y += 5) { ellipse(c, x, y + 2.5, y % 10 ? 1.2 : 2, 2.6); c.stroke(); }
+  };
+  const web = (x: number, flip: 1 | -1) => {
+    c.lineWidth = 0.6;
+    for (let i = 0; i < 5; i++) { const a = (i / 4) * (Math.PI / 2); c.beginPath(); c.moveTo(x, 0); c.lineTo(x + flip * Math.cos(a) * 34, Math.sin(a) * 34); c.stroke(); }
+    for (let r = 8; r <= 32; r += 8) { c.beginPath(); for (let i = 0; i <= 4; i++) { const a = (i / 4) * (Math.PI / 2); const px = x + flip * Math.cos(a) * r, py = Math.sin(a) * r; if (i) c.quadraticCurveTo(x + flip * Math.cos(a - 0.2) * r * 0.85, Math.sin(a - 0.2) * r * 0.85, px, py); else c.moveTo(px, py); } c.stroke(); }
+  };
+  const tufts = (x0: number, x1: number) => {
+    for (let x = x0; x < x1; x += 3) { const h = 6 + hash(x, 1) * 10; c.beginPath(); c.moveTo(x - 2, VIEW_H); c.quadraticCurveTo(x + 1, VIEW_H - h * 0.6, x + (hash(x, 2) - 0.5) * 6, VIEW_H - h); c.lineTo(x + 2, VIEW_H); c.fill(); }
+  };
+  if (area === 'approach') {
+    // A gnarled tree trunk with a branch, hanging ivy and tall grass.
+    c.beginPath(); c.moveTo(250, 0); c.lineTo(268, 0); c.quadraticCurveTo(262, 120, 272, VIEW_H); c.lineTo(244, VIEW_H); c.quadraticCurveTo(256, 120, 250, 0); c.fill();
+    c.lineWidth = 5; c.beginPath(); c.moveTo(262, 40); c.quadraticCurveTo(300, 30, 340, 10); c.stroke();
+    for (const x of [620, 660, 940]) { c.lineWidth = 1; c.beginPath(); c.moveTo(x, 0); c.quadraticCurveTo(x + 6, 30, x - 2, 44 + hash(x, 0) * 20); c.stroke(); for (let y = 8; y < 44; y += 7) { ellipse(c, x + 2, y, 2.4, 1.4, 0.6); c.fill(); } }
+    tufts(40, 180); tufts(520, 700); tufts(880, 1100);
+  } else if (area === 'hall') {
+    // A carved column, a chandelier chain and a web in the corner of an arch.
+    c.fillRect(420, 0, 20, VIEW_H); c.fillRect(414, 0, 32, 10); c.fillRect(414, VIEW_H - 12, 32, 12);
+    chain(880, 56); c.beginPath(); c.moveTo(866, 60); c.quadraticCurveTo(880, 70, 894, 60); c.lineTo(880, 54); c.closePath(); c.fill();
+    web(40, 1); web(1110, -1);
+  } else if (area === 'cellar') {
+    // A beam overhead, a meat hook, and barrels along the bottom.
+    c.fillRect(640, 0, 300, 9);
+    chain(300, 44); c.lineWidth = 1.6; c.beginPath(); c.arc(300, 50, 4, 0, Math.PI); c.stroke();
+    for (const x of [120, 760, 1020]) { ellipse(c, x, VIEW_H + 4, 18, 16); c.fill(); }
+    web(660, 1);
+  } else if (area === 'belfry') {
+    // Bell ropes and a great cog turning at the bottom corner (it's still, but reads as machinery).
+    for (const x of [200, 760]) { c.lineWidth = 2; c.beginPath(); c.moveTo(x, 0); c.quadraticCurveTo(x + 4, VIEW_H * 0.5, x - 2, VIEW_H); c.stroke(); }
+    const cx = 520, cy = VIEW_H + 10;
+    c.beginPath(); for (let i = 0; i < 24; i++) { const a = (i / 24) * Math.PI * 2, r = i % 2 ? 40 : 46; c.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); } c.closePath(); c.fill();
+    c.fillRect(980, 0, 172, 8);
+  } else {
+    // Stalactites drip from the top, bones heap at the bottom, and webs hang in the corners.
+    for (let x = 10; x < FW - 20; x += 24) { if (hash(x, 4) < 0.45) continue; const h = 8 + hash(x, 6) * 22; c.beginPath(); c.moveTo(x, 0); c.lineTo(x + 5 + hash(x, 7) * 4, h); c.lineTo(x + 12, 0); c.fill(); }
+    for (const x of [300, 820]) { for (let i = 0; i < 7; i++) { ellipse(c, x + i * 7 - 20, VIEW_H - 2 - (i % 3) * 3, 6, 2.2, (i - 3) * 0.3); c.fill(); } skull(c, x, VIEW_H - 8, 1.1, ink); }
+    web(560, 1); web(1080, -1);
+  }
+  fgCache.set(area, cv);
+  return cv;
+}
+function drawForeground(c: C, g: FluffstevaniaGame) {
+  const cv = foreground(g.room.area), ox = Math.round(-mod(g.cam.x * 1.35, FW));
+  c.globalAlpha = 0.92;
+  c.drawImage(cv, ox, 0, FW, VIEW_H); c.drawImage(cv, ox + FW, 0, FW, VIEW_H);
+  c.globalAlpha = 1;
+}
+
+/** Water dripping from the ceiling in the cellar and catacombs, splashing where it lands. World coordinates. */
+function drawDrips(c: C, g: FluffstevaniaGame, time: number) {
+  const first = Math.floor(g.cam.x / 70);
+  for (let col = first; col < first + 7; col++) {
+    if (hash(col, 11) < 0.45) continue;
+    const x = col * 70 + 10 + hash(col, 12) * 50, tc = Math.floor(x / TILE);
+    let r = Math.floor(g.cam.y / TILE);
+    const last = r + ROWS;
+    while (r < last && !isSolid(g.tile(tc, r))) r++;
+    while (r < last && isSolid(g.tile(tc, r))) r++;
+    const top = r * TILE;
+    while (r < last && !isSolid(g.tile(tc, r))) r++;
+    if (r >= last) continue;
+    const floor = r * TILE, period = 2 + hash(col, 13) * 2.5, u = ((time + hash(col, 14) * 9) % period) / period;
+    const fall = Math.min(1, u / 0.6), y = top + 1 + (floor - top) * fall * fall;
+    if (u < 0.6) {
+      c.fillStyle = 'rgba(170,210,230,0.75)'; ellipse(c, x, y + 2, 0.9, fall > 0.05 ? 2 : 1.2); c.fill();
+    } else if (u < 0.8) {
+      const k = (u - 0.6) / 0.2;
+      c.strokeStyle = `rgba(170,210,230,${0.7 * (1 - k)})`; c.lineWidth = 0.6; ellipse(c, x, floor - 0.5, 1 + k * 6, 0.6 + k * 1.2); c.stroke();
+      c.fillStyle = `rgba(190,225,240,${0.8 * (1 - k)})`; c.fillRect(x - 2 - k * 3, floor - 2 - k * 4 + k * k * 5, 1, 1); c.fillRect(x + 1 + k * 3, floor - 2 - k * 4 + k * k * 5, 1, 1);
+    }
+  }
+}
+
+/** Slanted shafts of light through high windows, with dust drifting in them (the hall and the belfry). */
+function drawShafts(c: C, g: FluffstevaniaGame, time: number) {
+  c.save(); c.globalCompositeOperation = 'lighter';
+  const span = VIEW_W + 240;
+  for (let i = 0; i < 2; i++) {
+    const x0 = mod(-g.cam.x * 0.8 + i * 260 + 60, span) - 120, tint = g.room.area === 'belfry' ? '190,230,255' : '255,225,170';
+    const gr = c.createLinearGradient(0, 0, 0, VIEW_H);
+    gr.addColorStop(0, `rgba(${tint},0.13)`); gr.addColorStop(1, `rgba(${tint},0)`);
+    c.fillStyle = gr; c.beginPath(); c.moveTo(x0, 0); c.lineTo(x0 + 30, 0); c.lineTo(x0 + 120, VIEW_H); c.lineTo(x0 + 70, VIEW_H); c.closePath(); c.fill();
+    for (let m = 0; m < 12; m++) {
+      const v = (hash(m, i) + time * (0.02 + hash(i, m) * 0.03)) % 1, along = hash(m + 5, i);
+      const y = v * VIEW_H, x = x0 + 15 + along * 30 + (y / VIEW_H) * 72 + Math.sin(time + m) * 3;
+      c.fillStyle = `rgba(${tint},${0.5 * (1 - v)})`; c.fillRect(x, y, 1, 1);
+    }
+  }
+  c.restore();
+}
+
+/** Colour grading: each area gets its own cast over everything but the HUD. */
+const GRADE: Record<AreaId, [string, number]> = {
+  approach: ['#3050b8', 0.32], hall: ['#e0a060', 0.22], cellar: ['#d08030', 0.22], belfry: ['#60a0c8', 0.2], catacombs: ['#58b868', 0.3],
+};
+
+/** A curtain wipe between rooms: it sweeps off the way the heroes are heading, trimmed with gold. */
+let wipeRoom = '', wipeAt = -9, wipeDir: [number, number] = [1, 0];
+function drawWipe(c: C, g: FluffstevaniaGame, time: number) {
+  if (g.room.id !== wipeRoom) {
+    const prev = ROOMS.find((r) => r.id === wipeRoom);
+    if (prev) {
+      wipeAt = time;
+      const dx = g.room.mx + g.room.w / 2 - (prev.mx + prev.w / 2), dy = g.room.my + g.room.h / 2 - (prev.my + prev.h / 2);
+      wipeDir = Math.abs(dx) >= Math.abs(dy) ? [Math.sign(dx) || 1, 0] : [0, Math.sign(dy) || 1];
+    }
+    wipeRoom = g.room.id;
+  }
+  const t = (time - wipeAt) / 0.34;
+  if (t >= 1 || t < 0) return;
+  const e = 1 - (1 - t) * (1 - t) * (1 - t), [dx, dy] = wipeDir;
+  c.save();
+  if (dx) {
+    // Heading right, the curtain draws away to the left, revealing the new room from the right.
+    const w = VIEW_W * (1 - e), x = dx > 0 ? 0 : VIEW_W - w, edge = dx > 0 ? x + w : x;
+    c.fillStyle = '#07030c'; c.fillRect(x, 0, w, VIEW_H);
+    const gr = c.createLinearGradient(edge, 0, edge + (dx > 0 ? 18 : -18), 0);
+    gr.addColorStop(0, 'rgba(7,3,12,0.8)'); gr.addColorStop(1, 'rgba(7,3,12,0)');
+    c.fillStyle = gr; c.fillRect(dx > 0 ? edge : edge - 18, 0, 18, VIEW_H);
+    c.fillStyle = '#e0bc68'; c.fillRect(edge - 0.5, 0, 1, VIEW_H);
+  } else {
+    const h = VIEW_H * (1 - e), y = dy > 0 ? 0 : VIEW_H - h, edge = dy > 0 ? y + h : y;
+    c.fillStyle = '#07030c'; c.fillRect(0, y, VIEW_W, h);
+    c.fillStyle = '#e0bc68'; c.fillRect(0, edge - 0.5, VIEW_W, 1);
+  }
+  c.restore();
+}
+
+/** Boss titles for the intro card. */
+const BOSS_TITLE: Record<string, string> = { owl: 'Warden of the Belfry', rat: 'Tyrant of the Larder' };
+let introBoss: Boss | null = null, introAt = 0;
+/** The boss's name slams onto a black band across the screen as the fight begins. */
+function drawBossIntro(c: C, g: FluffstevaniaGame, time: number) {
+  if (!g.boss || g.boss.move === 'dying') { if (!g.boss) introBoss = null; return; }
+  if (g.boss !== introBoss) { introBoss = g.boss; introAt = time; }
+  const t = time - introAt, T = 2.8;
+  if (t > T) return;
+  const cy = 96, fade = Math.min(1, t * 5, (T - t) * 2.5), slam = Math.min(1, Math.max(0, (t - 0.25) / 0.16));
+  c.save(); c.globalAlpha = fade;
+  const band = c.createLinearGradient(0, cy - 26, 0, cy + 22);
+  band.addColorStop(0, 'rgba(6,2,10,0)'); band.addColorStop(0.25, 'rgba(6,2,10,0.85)'); band.addColorStop(0.75, 'rgba(6,2,10,0.85)'); band.addColorStop(1, 'rgba(6,2,10,0)');
+  const shake = t > 0.41 && t < 0.55 ? Math.sin(t * 120) * 2 : 0;
+  c.translate(shake, 0);
+  c.fillStyle = band; c.fillRect(0, cy - 26, VIEW_W, 48);
+  c.strokeStyle = '#a07830'; c.lineWidth = 0.6;
+  const reach = Math.min(1, t * 3) * 150;
+  for (const y of [cy - 18, cy + 14]) { c.beginPath(); c.moveTo(VIEW_W / 2 - reach, y); c.lineTo(VIEW_W / 2 + reach, y); c.stroke(); }
+  c.textAlign = 'center';
+  c.font = `italic 600 8px ${BOOK}`; c.fillStyle = '#c8b0d8'; c.fillText(`— ${BOSS_TITLE[g.boss.kind] ?? ''} —`, VIEW_W / 2, cy - 8);
+  if (slam > 0) {
+    const sc = 1 + (1 - slam) * 1.4;
+    c.save(); c.translate(VIEW_W / 2, cy + 8); c.scale(sc, sc); c.globalAlpha = fade * slam;
+    const name = BOSSES[g.boss.kind].name.toUpperCase();
+    c.font = `900 15px ${DISPLAY}`; c.lineWidth = 4; c.strokeStyle = '#1a0610'; c.strokeText(name, 0, 0);
+    const gr = c.createLinearGradient(0, -13, 0, 1); gr.addColorStop(0, '#fff0c8'); gr.addColorStop(0.6, '#e89040'); gr.addColorStop(1, '#a02818');
+    c.fillStyle = gr; c.fillText(name, 0, 0);
+    c.restore();
+    if (t > 0.41 && t < 0.6) {
+      // A flash of light as it lands.
+      const k = (t - 0.41) / 0.19;
+      c.globalCompositeOperation = 'lighter'; c.fillStyle = `rgba(255,220,160,${0.5 * (1 - k)})`; c.fillRect(0, cy - 18, VIEW_W, 32);
+    }
+  }
+  c.restore();
 }
 
 // ─── The frame ────────────────────────────────────────────────────────────
@@ -1743,7 +2333,7 @@ export function drawMap(c: C, g: FluffstevaniaGame, w: number, h: number, time: 
 export function drawGame(c: C, g: FluffstevaniaGame, time: number) {
   const area = g.room.area, rr = roomRect(g.room);
   const scale = c.getTransform().a || 1;
-  drawLayers(c, g);
+  drawLayers(c, g, time);
   const sx = g.shake > 0 ? Math.sin(time * 90) * 2 : 0, sy = g.shake > 0 ? Math.cos(time * 70) * 1.5 : 0;
   const tx = Math.round(-g.cam.x + sx), ty = Math.round(-g.cam.y + sy);
   c.save();
@@ -1781,14 +2371,18 @@ export function drawGame(c: C, g: FluffstevaniaGame, time: number) {
     } else drawPal(c, 'pudding', x, y, -1, time, Math.sin(time * 2) > 0.8 ? 0.2 : 0);
   }
   if (g.cage) drawCage(c, g.cage.x, g.cage.y, g.cage.hp, g.cage.flash, time);
-  for (const e of g.enemies) drawEnemy(c, g, e, time);
+  for (const e of g.enemies) if (e.dead) burnAway(c, g, e, time); else drawEnemy(c, g, e, time);
   if (g.boss) (g.boss.kind === 'owl' ? drawOwl : drawRatKing)(c, g.boss, time);
   drawHeroes(c, g, time);
   for (const s of g.shots) drawShot(c, s);
   drawDustFx(c, g);
+  if (area === 'cellar' || area === 'catacombs') drawDrips(c, g, time);
   c.restore();
   drawLighting(c, g, time);
+  if (area === 'hall' || area === 'belfry') drawShafts(c, g, time);
   c.save(); c.translate(tx, ty); drawGlowFx(c, g); c.restore();
+  drawForeground(c, g);
+  if (area === 'hall' && lightning(time) > 0) { c.fillStyle = `rgba(190,205,255,${0.08 * lightning(time)})`; c.fillRect(0, 0, VIEW_W, VIEW_H); }
   if (g.duoT >= 0) drawDuo(c, g, time);
   // Air: a vignette everywhere, and drifting mist outside.
   const vig = c.createRadialGradient(VIEW_W / 2, VIEW_H / 2, VIEW_H * 0.4, VIEW_W / 2, VIEW_H / 2, VIEW_W * 0.68);
@@ -1798,5 +2392,9 @@ export function drawGame(c: C, g: FluffstevaniaGame, time: number) {
     c.fillStyle = area === 'approach' ? 'rgba(180,170,230,0.06)' : 'rgba(150,220,170,0.05)';
     for (let i = 0; i < 3; i++) { ellipse(c, ((time * (8 + i * 4) + i * 140) % (VIEW_W + 200)) - 100, VIEW_H - 26 - i * 10, 90, 6); c.fill(); }
   }
+  const [grade, amount] = GRADE[area];
+  c.save(); c.globalCompositeOperation = 'soft-light'; c.globalAlpha = amount; c.fillStyle = grade; c.fillRect(0, 0, VIEW_W, VIEW_H); c.restore();
+  drawWipe(c, g, time);
+  drawBossIntro(c, g, time);
   drawHud(c, g, time);
 }

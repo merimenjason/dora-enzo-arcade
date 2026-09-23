@@ -48,6 +48,10 @@ try {
   await page.getByTestId('menu').waitFor();
   const frozen = await data(page, 'x');
   for (const tab of ['Equip', 'Magic', 'Items', 'Familiars', 'Bestiary', 'Map', 'Status']) await page.getByRole('tab', { name: tab }).click();
+  await page.getByRole('tab', { name: 'Map' }).click();
+  assert.equal(await page.getByTestId('map-legend').locator('li').count(), 11, 'the map legend lists every icon');
+  assert.match(await page.getByTestId('map-legend').textContent(), /Pip’s stall|Pip's stall/);
+  await page.getByRole('tab', { name: 'Status' }).click();
   assert.match(await page.getByTestId('menu').textContent(), /Hard/, 'the difficulty shows on Status');
   assert.match(await page.getByTestId('menu').textContent(), /Level 1/);
   await page.waitForTimeout(300);
@@ -122,7 +126,7 @@ try {
   assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'no sideways scroll on a phone');
 
   assert.deepEqual(errors, []);
-  console.log('PASS Fluffstevania browser: difficulty, story, walking, attack, tag, drawn castle, pausing menu with every tab, continue from an older save, equipping a fan, the Magic tab and Bestiary, Pip’s shop, warping between shrines, the music toggle, phone layout.');
+  console.log('PASS Fluffstevania browser: difficulty, story, walking, attack, tag, drawn castle, pausing menu with every tab and the map legend, continue from an older save, equipping a fan, the Magic tab and Bestiary, Pip’s shop, warping between shrines, the music toggle, phone layout.');
 } finally {
   await browser.close();
 }

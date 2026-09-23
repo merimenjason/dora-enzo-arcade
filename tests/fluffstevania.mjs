@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   FluffstevaniaGame, ROOMS, COLS, ROWS, TILE, NO_INPUT, FOES, OWL, RAT, rawTile, roomAt, roomById, isSolid, parseSave, freshSave, xpToNext,
-  TOTAL_CELLS, DASH_T, SHOP, GHOST_ON, GHOST_OFF, DIFFICULTY, CHARGE_T, SPIN, DUO_MAX, SPELLS, SUBS, maxMp, palXpToNext,
+  TOTAL_CELLS, DASH_T, SHOP, GHOST_ON, GHOST_OFF, DIFFICULTY, CHARGE_T, SPIN, DUO_MAX, SPELLS, SUBS, maxMp, palXpToNext, BURN_T,
 } from '../.checks/fluffstevania-game.js';
 
 const DT = 1 / 120;
@@ -859,9 +859,58 @@ test('the Silver Bell gives away a nearby cracked wall', () => {
   assert.ok(g.events.includes('secret'), 'jingle');
 });
 
+test('a defeated foe burns away, and its Dust motes fly into the lead and top up the Dust meter', () => {
+  const g = fresh();
+  g.enemies = [];
+  const e = g['spawn']('bone', g.body.x + 40, g.body.y);
+  g.mp = 0;
+  g['hitFoe'](e, 999, g.body.x, true, 0);
+  assert.ok(e.dead > 0 && g.enemies.includes(e), 'still there, burning');
+  assert.equal(g.orbs.length, 2);
+  run(g, {}, BURN_T + 0.05);
+  assert.ok(!g.enemies.includes(e), 'burnt away');
+  run(g, {}, 2);
+  assert.equal(g.orbs.length, 0);
+  assert.equal(g.events.filter((ev) => ev === 'orb').length, 2, 'both motes caught');
+  assert.ok(g.mp >= 2, 'each mote restores Dust');
+});
+
+test('finishers, spells and the Duo Strike show big damage numbers; plain hits do not', () => {
+  const g = fresh();
+  g.enemies = [];
+  const e = g['spawn']('armadillo', g.body.x + 30, g.body.y);
+  e.face = -1; e.hp = 9999;
+  g['hitFoe'](e, 20, g.body.x + 60, true, 0);
+  assert.ok(!g.pops.at(-1).big);
+  g.level = 6; g.leader = 'enzo'; g.mp = 99;
+  g['cast']('quake');
+  assert.ok(g.shots.every((s) => s.kind !== 'quake' || s.spell), 'the Quake spell is marked as a spell');
+  run(g, {}, 0.3);
+  assert.ok(g.pops.some((p) => p.big && p.color === '#ffd35a'), 'the spell hit big and gold');
+});
+
+test('levelling up raises a pillar of light, and dashing sheds fur', () => {
+  const g = fresh();
+  g.gainXp(xpToNext(1));
+  assert.ok(g.fx.some((f) => f.kind === 'pillar'));
+  g.relics.add('dash');
+  run(g, {}, 0.3);
+  tap(g, 'dash');
+  assert.ok(g.fx.some((f) => f.kind === 'fur'));
+});
+
+test("Enzo's club finisher sends out shockwaves that throw up stone shards", () => {
+  const g = fresh();
+  g.leader = 'enzo'; g.equipped.enzo.weapon = 'acorn';
+  for (let i = 0; i < 3; i++) { tap(g, 'attack'); run(g, {}, 0.25); }
+  const waves = g.shots.filter((s) => s.kind === 'quake');
+  assert.ok(waves.length > 0 || g.fx.some((f) => f.kind === 'shard'), 'a shockwave went out');
+  assert.ok(g.fx.some((f) => f.kind === 'shard'));
+});
+
 test('the same inputs always play out the same way', () => {
   const play = () => { const g = fresh(); for (let i = 0; i < 1200; i++) g.step(DT, { ...NO_INPUT, right: i % 200 < 150, jump: i % 90 < 30, attack: i % 40 === 0 }); return JSON.stringify([g.body.x, g.body.y, g.hp, g.xp, g.raisins]); };
   assert.equal(play(), play());
 });
 
-console.log(`PASS Fluffstevania: ${passed} checks covering the map, reachability, movement, combat and combos, the fan, Duo Strike, spells, sub-weapons, tagging, saves, difficulty, respawns, warps, familiars, the shop, the foes and both bosses.`);
+console.log(`PASS Fluffstevania: ${passed} checks covering the map, reachability, movement, combat and combos, the fan, Duo Strike, spells, sub-weapons, tagging, saves, difficulty, respawns, warps, familiars, the shop, the foes and both bosses, and the effects that feed the renderer.`);

@@ -100,7 +100,7 @@ Older saves are updated when they load. The Ribbon Whip and Dust Rapier become t
 
 ### Combos, the fan and the Duo Strike
 
-- **Combo:** pressing attack in a swing's recovery, or within 0.22 s of it ending, chains the next hit. The third hit is a finisher that does 1.5× damage. With the fan it blows a big gust that goes through foes; with claws it uppercuts foes 330 px/s into the air; with a club it sends two short quakes along the floor.
+- **Combo:** pressing attack in a swing's recovery, or within 0.22 s of it ending, chains the next hit. The third hit is a finisher that does 1.5× damage. With the fan it blows a big gust that goes through foes; with claws it uppercuts foes 330 px/s into the air; with a club it sends two short shockwaves along the floor (170 px/s for 0.45 s, `0.8 × ATK`), throwing up stone shards.
 - **Gusts:** every fan sweep blows a gust ahead at the start of its live frames: 260 px/s for 0.35 s, half ATK. Shields stop gusts as they stop swings.
 - **Spin:** Dora holds attack after a swing for 0.55 s and lets go. She whirls for 0.5 s, hitting 38 px either side twice, at 2× ATK.
 - **Duo meter:** fills from damaging hits: melee +7, tag tumbles +10, boss melee +5, boss tags +8, shots +3 (+2 on a boss). It's full at 100.
@@ -108,7 +108,7 @@ Older saves are updated when they load. The Ribbon Whip and Dust Rapier become t
 
 ### Dust, spells and sub-weapons
 
-**Dust** is `30 + 2 per level`. It refills 1 every 1.2 s, and by 8 from the dust orbs candles sometimes drop.
+**Dust** is `30 + 2 per level`. It refills 1 every 1.2 s, and by 8 from the dust orbs candles sometimes drop. Every defeated foe also gives off two Dust motes that burst out, then home in on the lead after 0.3 s (or are caught automatically after 2.5 s). Each is worth 1 Dust, or 2 from foes with 30 HP or more.
 
 Spells are cast with the motion plus attack (numpad directions relative to facing, all within 0.5 s) or with F, RT or the pad's SPELL.
 
@@ -240,9 +240,34 @@ Everything is Canvas 2D in the 384×224 view, scaled up by the page.
   - Ledges are wood with iron brackets, or stone with corbels.
   - Chains, cobwebs, bones and hay are scattered deterministically.
 - **Lighting:** a darkness layer in each area's colour is cut away around lights, then a warm glow is added on top. Lights come from candles, shrines, Pip's lantern, both heroes, treasures, jar ghosts, bursts and the boss.
-- **Combat effects:** sparks, slash streaks and damage numbers are drawn above the darkness. Numbers pop in large and criticals are bigger and gold. Defeated foes crumble into drifting ash in their own colours.
+- **Combat effects:** these are drawn above the darkness.
+  - Hit sparks: a white core with gold streaks spraying the way the blow travelled.
+  - Slashes: a streak where each swing lands. Enzo's claws leave three claw marks instead, gold on a finisher.
+  - Damage numbers: they pop in large and bounce once. Criticals are gold; finishers, spin attacks, tags, spells and the Duo Strike (`Pop.big`) are bigger again, with a gold gradient.
+  - Burning away: a defeated foe lingers for `BURN_T` (0.45 s). It flashes white-hot, cools to orange and crumbles from the feet up in cinders, with embers rising, ash in its own colours and an orange light. Its Dust motes fly into the lead with violet tails.
+- **Weapon trails:** each fan leaves its own sparkle along the rim of its sweep: petals for the Dust Fan, stars for the Moonlit Fan and embers for the Wolfberry Fan. Claws rake three streaks. Clubs leave a heavy gradient smear with speed lines.
+- **Shockwaves:** Enzo's club finisher and Burrow Quake are drawn as an arc of force rolling along the floor. Slabs heave up behind the arc, a glowing crack trails it, stone shards fly (`shard` effects) and the wave lights the room. The finisher's wave is gold; the spell's is bigger and violet, and a rune circle turns on the floor under Enzo as he casts.
+- **Heroes:** the lead squashes for 0.14 s on landing and stretches while rising fast. Dashing sheds tufts of fur. Worn armour shows: the Wool Scarf's tails fly out behind, the Moth Cape is a pair of moth wings on the back, and the Thimble Helm sits on the crown. The scarf and cape stream back further at speed.
+- **Level up:** a column of light pours down on the lead with motes rising through it and a gold LEVEL UP.
+- **Pickups:** everything bobs once it has settled, and dropped things glint now and then. Relics, sub-weapons and Wolfberry Leaves have a halo with two sets of slowly turning rays.
+- **Foreground:** each area has a 1152-pixel strip of dark silhouettes that scrolls at 1.35× the camera's speed in front of everything: a tree with ivy and grass outside, a column, chandelier chain and webs in the hall, a beam, a hook and barrels in the cellar, bell ropes and a great cog in the belfry, and stalactites, bones and webs in the catacombs.
+- **Weather and air:**
+  - Rain runs down the hall's stained-glass windows. About every 7.3 s lightning flashes through them twice and the whole room flickers.
+  - In the hall and belfry, slanted shafts of light with dust drifting in them.
+  - In the cellar and catacombs, water drips from the ceilings and splashes on the floor below.
+  - The existing mist drifts along the approach and catacomb floors.
+- **Colour grading:** a soft-light wash per area over everything but the HUD: cold blue on the approach, warm candlelight in the hall and cellar, pale blue in the belfry and a sickly green in the catacombs.
+- **Room transitions:** entering a room sweeps a dark curtain with a gold edge off the screen in the direction of travel, over 0.34 s.
+- **Boss intro:** as a fight begins, a black band crosses the screen with the boss's title in italics ("Warden of the Belfry", "Tyrant of the Larder") and the name slams in with a shake and a flash.
 - **Afterimages:** a hero who is dashing, lunging or tumbling in a tag leaves tinted copies behind: violet for Dora, blue for Enzo.
-- **HUD:** gold double-bordered panels with corner diamonds, an ornate ring around the leader's portrait, a gold-framed HP bar, the partner's tag ring, the minimap, and a boss bar with skulls. Area names appear as a banner with flourishes.
+- **HUD:** gold double-bordered panels with corner diamonds, an ornate ring around the leader's portrait, a gold-framed HP bar, the partner's tag ring and the minimap. Area names appear as a banner with flourishes. The boss bar has notches every tenth, a diamond at half health where the second phase starts, spiked end caps and skulls, and lost health lingers pale for 0.5 s before draining away.
+- **Maps:** rooms are coloured by area; the room you're in is brighter. `roomMarks` lists what a room shows, only where its map cell has been visited, and the same `mapIcon` drawings appear on the minimap, the full map and the Map tab's legend:
+  - dust-bath shrines, Pip's stall, and guardians, crossed out once beaten;
+  - relics, treasure, sub-weapons and Wolfberry Leaves, until taken;
+  - familiars, until befriended;
+  - sealed doors, until they open;
+  - where you are.
+  The full map also names each explored area in the middle of its rooms, nudging names apart where they'd overlap.
 
 ## Saves
 

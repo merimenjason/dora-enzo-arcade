@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 24-09-2026
+
+### Changed
+
+- **Fluffstevania: Symphony of the Dust:** a big graphics pass. Enzo's club finisher and Burrow Quake are now shockwaves: a gold arc of force (violet and bigger for the spell, with a rune circle under Enzo) that rolls along the floor, heaving up stone slabs and leaving a glowing crack. The Boomerang Acorn is a glossy spinning acorn. Hits spray gold sparks the way the blow went, Enzo's claws leave claw marks, and each fan leaves its own sparkle trail: petals, moonlit stars or wolfberry embers. Damage numbers bounce, and finishers, spells and the Duo Strike show big gold ones. Defeated foes burn away into embers like in Symphony of the Night and give off Dust motes that fly into the lead and top up the Dust meter. Heroes squash when they land, shed fur when they dash, and wear their armour: the Wool Scarf flies out behind, the Moth Cape is a pair of moth wings, and the Thimble Helm sits on their head. Levelling up brings down a pillar of light. Pickups bob and glint, and relics glow inside a halo of turning rays. Every area has dark foreground silhouettes sliding past and its own colour grade. Rain and lightning show through the hall's stained glass, light shafts fall through the hall and belfry, and water drips in the cellar and catacombs. Rooms change with a curtain wipe, bosses arrive with a title card, and the boss bar is ornate, with lost health draining away. The map colours rooms by area, names each area, and marks shrines, Pip's stall, guardians (crossed out once beaten), untaken treasure, relics, sub-weapons and leaves, familiars and sealed doors, with a legend. The minimap shows the same icons. Pip's stall no longer shows up as a red shrine room.
+
 ## 23-09-2026
 
 ### Added

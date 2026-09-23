@@ -7,7 +7,7 @@ import {
   parseSave, freshSave, xpToNext, itemName, palXpToNext,
   type Input, type Save, type HeroId, type Slot, type Line, type Difficulty, type PalId, type SubId, type SpellId,
 } from '../../lib/fluffstevania-game';
-import { drawGame, drawMap, gearIcon, subIcon, drawPal, drawFoeIcon } from '../../lib/fluffstevania-scene';
+import { drawGame, drawMap, gearIcon, subIcon, drawPal, drawFoeIcon, mapIcon, MAP_LEGEND, type MapMark } from '../../lib/fluffstevania-scene';
 import { Music } from '../../lib/fluffstevania-music';
 import { ChinchillaPortrait } from '../../components/chinchilla-portrait';
 import './fluffstevania.css';
@@ -31,7 +31,7 @@ const PAD: { key: keyof Input; label: string; name: string }[] = [
 const CUES: Record<string, [number, number, OscillatorType, number]> = {
   jump: [380, 620, 'square', 0.07], dash: [220, 90, 'sawtooth', 0.14], thrust: [1500, 600, 'triangle', 0.08], swipe: [1200, 500, 'triangle', 0.06],
   hop: [600, 1100, 'sine', 0.1], squeak: [1800, 2400, 'square', 0.06], roar: [160, 70, 'sawtooth', 0.6], drop: [900, 300, 'sine', 0.12],
-  buy: [880, 1760, 'square', 0.12], shop: [660, 990, 'triangle', 0.15],
+  buy: [880, 1760, 'square', 0.12], shop: [660, 990, 'triangle', 0.15], orb: [1500, 2300, 'sine', 0.05],
   fan: [1100, 700, 'triangle', 0.08], finisher: [700, 1500, 'square', 0.14], spin: [400, 1200, 'triangle', 0.3], spell: [300, 1200, 'sine', 0.4],
   fizzle: [300, 150, 'square', 0.15], burst: [220, 80, 'sawtooth', 0.3], duo: [300, 1800, 'square', 0.6], duoready: [880, 1320, 'triangle', 0.3],
   nip: [1600, 1200, 'square', 0.05], bonk: [500, 300, 'square', 0.1], secret: [1320, 1760, 'sine', 0.5], dust: [1000, 1500, 'sine', 0.12], warp: [200, 1600, 'sine', 0.6],
@@ -301,7 +301,11 @@ function Menu({ g, tab, onTab, onClose, onTitle }: { g: FluffstevaniaGame; tab: 
   useEffect(() => {
     if (tab !== 'map') return;
     let raf = 0;
-    const draw = (now: number) => { const c = map.current?.getContext('2d'); if (c) drawMap(c, g, 640, 300, now / 1000); raf = requestAnimationFrame(draw); };
+    const draw = (now: number) => {
+      const c = map.current?.getContext('2d');
+      if (c) { c.setTransform(2, 0, 0, 2, 0, 0); drawMap(c, g, 640, 230, now / 1000); }
+      raf = requestAnimationFrame(draw);
+    };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
   }, [tab, g]);
@@ -389,8 +393,11 @@ function Menu({ g, tab, onTab, onClose, onTitle }: { g: FluffstevaniaGame; tab: 
       </div>)}
     </div>}
     {tab === 'map' && <div className="fv-map">
-      <canvas ref={map} width={640} height={300} aria-label={`Castle map, ${g.completion}% explored`} />
-      <p className="fv-small">{g.completion}% explored · red rooms are dust-bath shrines · gold rooms hold a guardian · you are the blinking dot</p>
+      <canvas ref={map} width={1280} height={460} aria-label={`Castle map, ${g.completion}% explored`} />
+      <p className="fv-small">{g.completion}% explored · rooms are coloured by area</p>
+      <ul className="fv-legend" data-testid="map-legend">
+        {MAP_LEGEND.map(([kind, label]) => <li key={kind}><MapIcon kind={kind} />{label}</li>)}
+      </ul>
     </div>}
   </section>;
 }
@@ -419,6 +426,11 @@ function Shop({ g, onClose }: { g: FluffstevaniaGame; onClose: () => void }) {
   </section>;
 }
 const gearLine = (id: string) => { const g = GEAR[id]; return [g.atk && `ATK +${g.atk}`, g.def && `DEF +${g.def}`, g.lck && `LCK +${g.lck}`, g.hero && `${NAMES[g.hero]} only`].filter(Boolean).join(' · '); };
+function MapIcon({ kind }: { kind: MapMark }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => { const c = ref.current?.getContext('2d'); if (!c) return; c.clearRect(0, 0, 36, 36); mapIcon(c, kind, 18, 18, 2.6, 0.3); }, [kind]);
+  return <canvas ref={ref} width={36} height={36} className="fv-legend-icon" aria-hidden="true" />;
+}
 function SubIcon({ id }: { id: SubId }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => { const c = ref.current?.getContext('2d'); if (!c) return; c.clearRect(0, 0, 40, 40); subIcon(c, id, 20, 20, 2.6); }, [id]);
