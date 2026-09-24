@@ -3,7 +3,7 @@
 // world coordinates, so walking off one room's edge simply lands in the room next door.
 
 export const COLS = 24, ROWS = 14, TILE = 16;
-export type AreaId = 'approach' | 'hall' | 'cellar' | 'belfry' | 'catacombs' | 'library' | 'clock';
+export type AreaId = 'approach' | 'hall' | 'cellar' | 'belfry' | 'catacombs' | 'library' | 'clock' | 'roof';
 export const AREAS: Record<AreaId, { name: string; color: string }> = {
   approach: { name: 'Moonlit Approach', color: '#6f8fd8' },
   hall: { name: 'Entrance Hall', color: '#b07fd8' },
@@ -12,6 +12,7 @@ export const AREAS: Record<AreaId, { name: string; color: string }> = {
   catacombs: { name: 'Pantry Catacombs', color: '#9fd878' },
   library: { name: 'Count Culpeo’s Library', color: '#e07888' },
   clock: { name: 'The Clock Tower', color: '#e8d25a' },
+  roof: { name: 'The Moonlit Roof', color: '#b8c4ff' },
 };
 
 /**
@@ -20,10 +21,10 @@ export const AREAS: Record<AreaId, { name: string; color: string }> = {
  * grate (a wall to everything but a hero in Dust Form). Things
  * placed on the map: `S` dust-bath shrine (saves and heals), `$` Pip's shop, `i` candle, `n` sign, `H` Wolfberry
  * Leaf (max HP up), `R` relic, `I` item, `U` sub-weapon, `T` spell scroll (the room's `spell`), `W` Nutmeg's pocket
- * watch, `O` boss, the familiars waiting to be befriended (`P` Pudding, `Z` Zippy's cage, `Y` Mochi, `C` Nutmeg), and
+ * watch, `X` the Golden Wolfberry, `O` boss, the familiars waiting to be befriended (`P` Pudding, `Z` Zippy's cage, `Y` Mochi, `C` Nutmeg), and
  * enemies `b` bat, `m` dust moth, `k` shell beetle, `x` bone mouse, `a` armadillo guard, `r` pantry rat, `g` jar
  * ghost, `p` cellar spider, `v` flying tome, `q` ink quill, `j` ink blot, `c` clockwork mouse, `u` cuckoo, `t` spring
- * toad. `1`, `2` and `3` are the bookshelves of a room's puzzle: striking the one numbered `puzzle` sets the room's
+ * toad, `o` gargoyle, `w` storm crow. `1`, `2` and `3` are the bookshelves of a room's puzzle: striking the one numbered `puzzle` sets the room's
  * `opens` flag.
  */
 export type Room = {
@@ -31,7 +32,7 @@ export type Room = {
   notes?: string[]; items?: string[]; relic?: RelicId; boss?: BossId; opens?: string; sub?: SubId; puzzle?: 1 | 2 | 3; spell?: SpellId;
 };
 export type RelicId = 'dash' | 'hop' | 'dustform' | 'climb';
-export type BossId = 'owl' | 'rat' | 'fox' | 'cat';
+export type BossId = 'owl' | 'rat' | 'fox' | 'cat' | 'night';
 
 type Pen = {
   fill: (c0: number, r0: number, c1: number, r1: number, ch?: string) => void;
@@ -395,10 +396,72 @@ export const ROOMS: Room[] = [
 
   room('clock-top', 'clock', 39, -4, 1, 1, (p) => {
     p.box(); p.fill(0, 12, 23, 13); p.fill(0, 0, 23, 3);
-    p.fill(0, 9, 0, 11, '.');
+    p.fill(0, 9, 0, 11, '.'); p.fill(23, 9, 23, 11, '.');
     p.fill(17, 4, 20, 11, 'D');
     p.put(8, 11, 'S'); p.put(13, 11, 'n'); p.put(4, 8, 'i'); p.put(12, 7, 'i');
-  }, { notes: ['A hatch to the roof, where the Golden Wolfberry glows and Count Culpeo waits. It is bolted from above, and the last chapter of Fluffstevania is still being written. Check back soon!'] }),
+  }, { opens: 'boss:cat', notes: ['The door to the roof stair. Tick-Tock kept its key wound into her spring. Beyond, the Golden Wolfberry glows, and Count Culpeo waits.'] }),
+
+  // ─── Chapter V: the Moonlit Roof ──────────────────────────────────────────
+  // Out on the rooftops under a stormy full moon. The slates and the summit are open to the sky.
+  room('roof-stair', 'roof', 40, -5, 1, 2, (p) => {
+    p.box(); p.fill(0, 26, 23, 27);
+    p.fill(0, 23, 0, 25, '.');          // in from the clock tower's top
+    p.fill(23, 9, 23, 11, '.'); p.put(15, 12, '========');   // the top landing, out onto the slates
+    p.put(5, 22, '======'); p.put(12, 18, '======'); p.put(5, 14, '======');
+    p.put(3, 20, 'i'); p.put(19, 16, 'i'); p.put(9, 8, 'i');
+    p.put(16, 25, 'o'); p.put(10, 5, 'b'); p.put(18, 20, 'w');
+  }),
+
+  room('slates', 'roof', 41, -5, 3, 1, (p) => {
+    p.fill(0, 12, 71, 13);
+    p.fill(0, 9, 0, 11, '.');
+    // Chimneys to hop between, and one great stack whose top only claws that cling reach, up into the gargoyle roost.
+    p.fill(12, 9, 14, 11); p.fill(22, 7, 24, 11); p.fill(34, 2, 36, 11); p.fill(52, 8, 54, 11);
+    p.put(44, 8, '======'); p.put(60, 7, '=====');
+    p.put(4, 11, 'n');
+    p.put(13, 8, 'o'); p.put(53, 7, 'o'); p.put(18, 3, 'w'); p.put(46, 2, 'w'); p.put(64, 4, 'w'); p.put(28, 11, 'o');
+    p.put(8, 8, 'i'); p.put(40, 6, 'i'); p.put(66, 8, 'i');
+  }, { notes: ['THE ROOF OF FLUFFSTEVANIA. Mind the gargoyles: they are only pretending to be statues.'] }),
+
+  room('roost', 'roof', 42, -6, 2, 1, (p) => {
+    p.box(); p.fill(0, 0, 47, 1);
+    p.fill(8, 13, 14, 13, '.');         // the chimney pokes up through the floor here
+    p.put(18, 9, '======'); p.put(28, 6, '======'); p.put(38, 9, '======');
+    p.put(20, 8, 'I'); p.put(40, 8, 'I'); p.put(30, 5, 'H');
+    p.put(4, 8, 'i'); p.put(24, 4, 'i'); p.put(44, 7, 'i');
+    p.put(22, 11, 'o'); p.put(34, 11, 'o'); p.put(30, 3, 'w');
+  }, { items: ['starfan', 'maul'] }),
+
+  room('save-roof', 'roof', 44, -5, 1, 1, (p) => {
+    p.box(); p.fill(0, 12, 23, 13); p.fill(0, 0, 23, 3);
+    p.fill(0, 9, 0, 11, '.'); p.fill(23, 9, 23, 11, '.');
+    p.put(6, 11, 'S'); p.put(16, 11, '$'); p.put(3, 8, 'i'); p.put(20, 8, 'i');
+  }),
+
+  room('spire', 'roof', 45, -7, 1, 3, (p) => {
+    p.box(); p.fill(0, 40, 23, 41);
+    p.fill(0, 37, 0, 39, '.');          // in from the rooftop shrine
+    p.fill(23, 9, 23, 11, '.'); p.put(15, 12, '========');   // out to the summit
+    p.put(6, 36, '======'); p.put(12, 32, '======');
+    // Twelve sheer tiles up the spire's inner wall, then ledges to the top.
+    p.put(4, 20, '======'); p.put(12, 16, '======');
+    p.put(3, 38, 'i'); p.put(19, 30, 'i'); p.put(3, 24, 'i'); p.put(19, 14, 'i');
+    p.put(8, 35, 'o'); p.put(15, 31, 'o'); p.put(11, 26, 'w'); p.put(6, 19, 'o'); p.put(14, 6, 'w');
+  }),
+
+  room('summit', 'roof', 46, -7, 2, 1, (p) => {
+    p.fill(0, 12, 47, 13); p.fill(0, 0, 0, 11); p.fill(47, 0, 47, 11);
+    p.fill(0, 9, 0, 11, '.'); p.fill(47, 9, 47, 11, '.');
+    p.fill(1, 9, 1, 11, 'G'); p.fill(46, 9, 46, 11, 'G');
+    p.put(8, 8, '====='); p.put(35, 8, '=====');
+    p.put(24, 4, 'O');
+  }, { boss: 'night' }),
+
+  room('garden', 'roof', 48, -7, 1, 1, (p) => {
+    p.fill(0, 12, 23, 13); p.fill(23, 0, 23, 11); p.fill(0, 0, 0, 8);
+    p.fill(16, 10, 20, 11); p.put(18, 9, 'X');   // the Golden Wolfberry, on its bush on a little terrace
+    p.put(6, 11, 'S'); p.put(11, 11, 'n'); p.put(3, 7, 'i'); p.put(21, 6, 'i');
+  }, { notes: ['A garden on the very top of the castle, where the Golden Wolfberry grows. Take one. It never runs out.'] }),
 
   room('larder', 'catacombs', 11, 3, 3, 1, (p) => {
     p.box(); p.fill(0, 0, 71, 1); p.fill(0, 12, 71, 13);
@@ -451,6 +514,9 @@ export const GEAR: Record<string, Gear> = {
   cape: { name: 'Moth Cape', slot: 'armor', def: 5, text: 'Dusty moth wings stitched into a cape.' },
   helm: { name: 'Thimble Helm', slot: 'armor', def: 8, text: 'A silver thimble worn as a helmet. Surprisingly sturdy.' },
   cuirass: { name: 'Clockwork Cuirass', slot: 'armor', def: 12, text: 'Brass plates on springs that tick softly. The sturdiest thing in the castle.' },
+  starfan: { name: 'Celestial Fan', slot: 'weapon', hero: 'dora', style: 'fan', atk: 22, reach: 12, text: 'Pale gold silk stitched with constellations. Its sweeps trail shooting stars.' },
+  maul: { name: 'Gargoyle Maul', slot: 'weapon', hero: 'enzo', style: 'club', atk: 32, reach: 8, text: 'A gargoyle’s stone head on an iron haft. It still scowls. Enzo scowls back.' },
+  goldberry: { name: 'Golden Wolfberry', slot: 'acc', atk: 5, def: 5, lck: 10, text: 'The berry that never runs out of snacks. It glows, and makes everything feel a little luckier.' },
   bell: { name: 'Silver Bell', slot: 'acc', lck: 8, text: 'Jingles when luck is near. More drops and critical hits.' },
   shell: { name: 'Beetle Shell', slot: 'acc', def: 3, text: 'A polished shell worn as a shield charm.' },
   ring: { name: 'Raisin Ring', slot: 'acc', def: 2, lck: 6, text: 'A dried raisin set in brass. Lucky, and a little chewy.' },
@@ -521,6 +587,9 @@ export const LORE: Record<string, { weak: string; line: string }> = {
   cuckoo: { weak: 'Strike the moment it pops out.', line: 'Announces the hour, and the half hour, and whenever it likes.' },
   toad: { weak: 'Step under the hop, strike as it lands.', line: 'A coiled spring with opinions about personal space.' },
   ticktock: { weak: 'Hit her while she’s dizzy from a dive.', line: 'The Count’s clockwork cat. She keeps perfect time, and grudges.' },
+  gargoyle: { weak: 'Wait until it wakes, then strike as it swoops back to its perch.', line: 'Carved to scare off pigeons. It took the job very seriously.' },
+  crow: { weak: 'Sidestep the swoop and hit it as it climbs away.', line: 'Rides the storm winds and steals shiny things. Mostly buttons.' },
+  nightfox: { weak: 'Dodge the lightning; strike his wings when he swoops low.', line: 'Count Culpeo unbound, a great winged fox of the night. The Wolfberry kept him young, and very, very hungry.' },
 };
 /** Pip's stall in the catacombs. `seeds` is a bundle of ten sunflower seeds. */
 export const SHOP: { id: string; price: number }[] = [
@@ -673,8 +742,37 @@ export const SCRIPTS: Record<string, Line[]> = {
     { who: 'enzo', text: 'She dropped a leaf. And there’s a shrine past her. Up is the only way left.' },
     { who: 'dora', text: 'The Golden Wolfberry is right above us, Enzo. Almost there.' },
   ],
+  roof: [
+    { who: 'enzo', text: 'Whoa. We’re on top of the whole castle. I can see Grandpa Pebble’s burrow from here. I think.' },
+    { who: 'dora', text: 'And a storm rolling in. Keep low, keep moving. The Count is up at the summit.' },
+  ],
+  pipRoof: [
+    { who: 'pip', text: 'Last stop before the summit! Snacks for the big fight. Everything must go. Mostly because it’s windy.' },
+    { who: 'dora', text: 'Pip, you are everywhere.' },
+    { who: 'pip', text: 'A good shopkeeper goes where the customers are.' },
+  ],
+  night: [
+    { who: 'fox', text: 'So. The snacks climbed my whole castle. Hootsworth, Gnawdrick, Tick-Tock... all of them, bested by fluff.' },
+    { who: 'dora', text: 'It’s over, Count. Give up the Golden Wolfberry.' },
+    { who: 'fox', text: 'Give it up? That berry has kept me young for three hundred years. Let me show you what it has made of me.' },
+    { who: 'enzo', text: 'Dora, why is he getting bigger?' },
+  ],
+  nightDown: [
+    { who: 'fox', text: 'No... no! Three hundred years... undone by two dust-bathing chinchillas...' },
+    { who: 'fox', text: 'Take the berry, then. But remember: it never runs out. Share it... or it will change you as it changed me...' },
+    { who: 'dora', text: 'He’s gone. Just a little old fox asleep on the roof.' },
+    { who: 'enzo', text: 'And the garden’s right there. Dora. The Golden Wolfberry.' },
+  ],
+  ending: [
+    { who: 'sign', text: 'You found the Golden Wolfberry! It glows warm in your paws, and it never runs out.' },
+    { who: 'enzo', text: 'It’s real. Unlimited snacks. Un-lim-i-ted.' },
+    { who: 'dora', text: 'For Grandpa Pebble, for Pip, for Pudding and Zippy and Mochi and Nutmeg... and for the Count too. He can have some if he says sorry.' },
+    { who: 'enzo', text: 'Can we go home now? I need the longest dust bath in history.' },
+    { who: 'dora', text: 'Race you to the bottom.' },
+  ],
 };
 /** Scripts that play the first time the heroes enter a room. */
 export const ROOM_SCRIPTS: Record<string, string> = {
   path: 'intro', hall: 'hall', cellar: 'cellar', 'crypt-stair': 'crypt', 'save-crypt': 'pip', larder: 'larder', reading: 'library', 'gear-hall': 'clock', 'save-clock': 'pipClock',
+  slates: 'roof', 'save-roof': 'pipRoof',
 };

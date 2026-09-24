@@ -40,11 +40,13 @@ Markers, which become objects when you enter the room:
 | `U` | The room's sub-weapon (`sub`) |
 | `T` | A spell scroll: reading it teaches the room's `spell` |
 | `W` | Nutmeg's pocket watch (sets the `watch` flag) |
+| `X` | The Golden Wolfberry (sets the `wolfberry` flag) |
 | `O` | Boss |
 | `b` `m` `k` `x` `a` | Bat, moth, beetle, bone mouse, armadillo |
 | `r` `g` `p` | Pantry rat, jar ghost, cellar spider |
 | `v` `q` `j` | Flying tome, ink quill, ink blot |
 | `c` `u` `t` | Clockwork mouse, cuckoo, spring toad |
+| `o` `w` | Gargoyle, storm crow |
 | `P` `Z` `Y` `C` | Familiars waiting to be befriended: Pudding, Zippy's cage, Mochi, Nutmeg |
 
 Enemies and candles come back every time you enter a room. Items, leaves, relics, broken walls and beaten bosses are remembered as flags.
@@ -118,7 +120,21 @@ Ten rooms on 20 cells, all in the `clock` area, beyond the balcony door (`opens:
 - `clockface` (2 screens): Tick-Tock the Clockwork Cat, behind the moonlit back of the great clock face.
 - `clock-top`: a shrine and the hatch to the roof, bolted from above for now.
 
-Beating Tick-Tock ends chapter IV.
+Beating Tick-Tock ends chapter IV and opens the `clock-top` door to the roof stair (`opens: 'boss:cat'`).
+
+## Chapter V: the Moonlit Roof
+
+Seven rooms on 14 cells, all in the `roof` area: out on the castle's rooftops in a storm under a full moon, with rain, lightning, a stormy theme and its own scenery. The slates, the summit and the garden are open to the sky; above the rooms counts as solid, so nobody flies off the top. The map's side-edge test lets the roof, like the approach, be open above its doorways.
+
+- `roof-stair` (1×2): ledges up from the clock tower to the slates.
+- `slates` (3 screens): the rooftop, with chimneys to hop between, gargoyles on their perches and storm crows overhead. The great chimney in the middle rises ten tiles, so only the Wall Cling gets to its top, and from there up through a hole into the roost.
+- `roost` (2 screens): the gargoyle roost above the slates, with the **Celestial Fan** (Dora: ATK +22, reach +12), the **Gargoyle Maul** (Enzo's club: ATK +32, reach +8) and a Wolfberry Leaf.
+- `save-roof`: a shrine and Pip's last stall.
+- `spire` (1×3): ledges and twelve sheer tiles of wall to climb up to the summit.
+- `summit` (2 screens): Count Culpeo, the Night Fox.
+- `garden`: a shrine and the Golden Wolfberry on its terrace.
+
+Beating the Night Fox ends chapter V. Picking the Golden Wolfberry heals both heroes, saves at once, puts the **Golden Wolfberry** accessory (ATK +5, DEF +5, LCK +10) in the bag and plays the `ending` lines; when they finish the game's `state` becomes `'ending'` and the page shows the credits (level, time, how much was explored, foes bested, friends made and difficulty) with its own gentle theme. Keep exploring (`resume`) goes back to playing. The title screen marks a save with the berry found.
 
 ### The Wall Cling
 
@@ -216,6 +232,8 @@ Each new game picks a difficulty, and it's kept in the save.
 
 ### Music
 
+Each area has its own loop, and so do bosses (the Night Fox has a grander one of his own) and the ending.
+
 `lib/fluffstevania-music.ts` synthesises a two-bar loop for each area and one for bosses: a lead, a bass line on the eighths and a chord pad in harmonic minor, scheduled ahead with Web Audio. The page switches themes as you change area or a boss appears. Its on/off setting is kept under `fluffstevania-v1-music`.
 
 Movement:
@@ -251,6 +269,8 @@ Movement:
 | Ink Blot | 50 | 17 | 4 | 26 | Oozes along at 28 px/s. Within 80 px it gathers for 0.35 s and springs at you (140 px/s across, 340 px/s up), then rests for 0.7 s. |
 | Clockwork Mouse | 44 | 18 | 5 | 28 | Trundles at 30 px/s. Within 160 px its key spins for 0.5 s, then it zooms at 260 px/s for 0.8 s, bouncing back off walls and ledges, then rests for 0.9 s. |
 | Cuckoo | 40 | 16 | 3 | 26 | Shut in its clock, where it can't hurt or be hurt (`foeHidden`). Within 200 px it pops out every 2.6 s for 1.3 s and spits a note (14) at you at 150 px/s. |
+| Gargoyle | 72 | 24 | 8 | 42 | Stone on its perch, where it can't hurt or be hurt (`foeHidden`). Within 110 px it wakes, stalks you through the air at 80 px/s, and after 1.2 s within 120 px gathers for 0.3 s and dives at 240 px/s for 0.5 s. After 3.5 s awake, or a dive, it flies home at 100 px/s and turns back to stone. |
+| Storm Crow | 46 | 21 | 3 | 36 | Waits on the wind until you come within 220 px, then circles 80 px above you. Every 2.2 s within 200 px it gathers for 0.25 s, swoops at you at 260 px/s for 0.6 s, and climbs back. |
 | Spring Toad | 60 | 20 | 5 | 32 | Sits on its spring. Every 1.3 s within 220 px it leaps at you (420 px/s up and 130 across; 520 up and 90 across within 90 px), then rests where it lands. |
 
 Candles drop:
@@ -297,11 +317,22 @@ A simple bot beats him at level 9 in about 47 s, taking 8 hits; at level 11 in a
 - At half HP she speeds up by 1.25× and lets two clockwork mice loose.
 - She drops a Wolfberry Leaf.
 
-The same simple bot with the starting weapons beats her at level 11 in about 40 s, taking 7 hits, and at level 13 in about 31 s. With the Wolfberry Fan and Heavy Tome it takes 18 to 26 s.
+**Count Culpeo, the Night Fox:** 2,600 HP, DEF 14, contact 30, 2,000 XP. On the summit the Count fights as in his study, but all-out from the start and 1.1× faster, and adds **lightning**: three spots on the roof glow around the lead, then bolts strike each in turn (20; two stacked hitboxes from the floor up, which Petal Ward and Mochi can't stop). At half HP he stops, bites the Golden Wolfberry and transforms for 2.4 s (he can't be hit), calling two bats. As the **Night Fox** (64 × 40, `NIGHT_BEAST`) he picks one of these without repeating it three times:
+
+- **Soar:** between moves he hovers high on the far side from the lead.
+- **Fire breath:** a stream of fireballs (20) from his mouth, sweeping along the roof from under him to the far side.
+- **Dive:** a great swoop low across the roof, then he lands to catch his breath for 1.3 s, when he takes 1.25× damage.
+- **Falling stars:** seven stars (22) glow on the roof, one where the lead stands, then fall.
+
+On Hard the Night Fox is 1.15× faster. He drops a Wolfberry Leaf.
+
+A simple bot that only fights from the ground beats him at level 20 in about 70 s with the Wolfberry Fan and Heavy Tome, and in about two minutes at levels 16 to 18.
+
+The same simple bot with the starting weapons beats Tick-Tock at level 11 in about 40 s, taking 7 hits, and at level 13 in about 31 s. With the Wolfberry Fan and Heavy Tome it takes 18 to 26 s.
 
 ## Pip's shop
 
-Pip keeps a stall by the catacomb shrine and a second one by the Clock Tower shrine. Stand at either and press ↑. The world waits while it is open. Escape or Leave closes it.
+Pip keeps a stall by the catacomb shrine, a second by the Clock Tower shrine and a third by the rooftop shrine. Stand at either and press ↑. The world waits while it is open. Escape or Leave closes it.
 
 | Item | Raisins |
 | --- | --- |
@@ -325,6 +356,7 @@ Everything is Canvas 2D in the 384×224 view, scaled up by the page.
   - Belfry: the sky through great arches, clock gears, ropes, and the bell in the boss room.
   - Catacombs: burial niches, shelves of glowing jars, pillars, cobwebs and coffins. The throne room has the cheese throne.
   - Library: bookcases, moonlit windows, reading lamps and busts. The study has the Count's portrait and a fireplace.
+  - Moonlit Roof: a stormy sky with a full moon (huge behind the summit and garden) and storm clouds, the mountains and the lit valley far below, and the castle's spires with a chinchilla weathervane. `drawStorm` adds two layers of slanting rain, wind-blown leaves and lightning flashes, brighter when the Count calls a bolt down. Rain puddles catch the moon on the slates.
   - Clock Tower: the night sky over the castle far below, a wall of round brass-framed windows and pipes, and great still gears. On top of those, `drawClockwork` paints live gears turning in meshed pairs, a great pendulum swinging behind the pendulum hall, and in Tick-Tock's room the moonlit clock face with its hands creeping round.
 - **Tiles:** a room's stonework is painted once, at the screen's resolution, into a cache. The cache is redrawn when a wall breaks, a gate shuts or a door opens.
   - Blocks are bevelled, with cracks, moss, carved skulls in the catacombs, grass caps outside, stalactites and roots underneath, and soft shadows where air meets stone.
@@ -339,6 +371,7 @@ Everything is Canvas 2D in the 384×224 view, scaled up by the page.
 - **Weapons:** each weapon looks different, in the menu, in paw and mid-swing.
   - The Dust Fan is pale pink paper on bamboo ribs painted with cherry blossoms. The Moonlit Fan is midnight silk on silver ribs with a crescent moon, stars and a silver tassel. The Wolfberry Fan is crimson on black lacquer with a scalloped gold edge, clusters of golden berries and a red tassel. Each leaves its own sparkle along the rim of its sweep: petals, stars or embers.
   - Scrappy Claws are Enzo's own paw, raking warm cream streaks. The Iron Claws are a riveted steel gauntlet with three blades, raking cold steel-blue streaks with sparks.
+  - The Celestial Fan is pale gold silk stitched with a blue constellation and a gold star, trailing shooting stars. The Gargoyle Maul is a scowling horned stone head with glowing violet eyes on an iron haft, with a violet smear.
   - Clubs leave a heavy smear with speed lines: gold for the Acorn Cudgel, flour-white (with puffs of flour) for the Rolling Pin, and crimson (with loose pages) for the Heavy Tome, which is drawn as a red leather book with gold corners and a clasp.
   - Slash marks where a blow lands take the weapon's colour (`SLASH_TINT`), and claw marks are cream or steel.
   - Out of a swing the weapon is carried (`carryWeapon`): Dora holds her fan folded in her front paw, the Iron Claws sit on Enzo's paw, and his clubs are strapped across his back.
@@ -353,6 +386,8 @@ Everything is Canvas 2D in the 384×224 view, scaled up by the page.
   - In the cellar and catacombs, water drips from the ceilings and splashes on the floor below.
   - The existing mist drifts along the approach and catacomb floors.
 - **Colour grading:** a soft-light wash per area over everything but the HUD: cold blue on the approach, warm candlelight in the hall and cellar, pale blue in the belfry, a sickly green in the catacombs, rose in the library and brass in the Clock Tower.
+- **Speakers:** every portrait in the dialog box is drawn from the character's sprite: Dora and Enzo's portraits, the familiars (`drawPal`), and for the bosses, Pip and signs `drawSpeaker`, a close-up of the owl, the Rat King, Count Culpeo and Tick-Tock's heads, Pip as he appears behind his stall, or a wooden signboard. Pip's shop shows the same Pip.
+- **The Night Fox:** in his own shape the Count wears a violet storm aura. While he transforms he swells and fades into the winged fox, with violet light crackling round him. The Night Fox has ribbed, torn bat wings, a russet brush tipped with violet flame, a mane of violet fire, red eyes and fangs; his mouth glows while he breathes fire, and his wings fold when he lands. Lightning is a jagged fork from the storm to the roof; falling stars trail gold. The spots where either will strike glow blue-white or gold first.
 - **Clock Tower moves:** a clinging hero turns to look out from the wall, with claw scratches and sparks where they scrape. Boulder Roll draws Enzo curled up and tumbling inside a violet ring, with afterimages. Petal Ward's petals glow pink as they circle Dora.
 - **Room transitions:** entering a room sweeps a dark curtain with a gold edge off the screen in the direction of travel, over 0.34 s.
 - **Boss intro:** as a fight begins, a black band crosses the screen with the boss's title in italics ("Warden of the Belfry", "Tyrant of the Larder") and the name slams in with a shake and a flash.

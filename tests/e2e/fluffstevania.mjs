@@ -156,6 +156,37 @@ try {
   assert.match(await page.getByTestId('menu').textContent(), /Wall Cling/);
   await page.getByRole('button', { name: 'Resume' }).first().click();
 
+  // The Count speaks with his own portrait, drawn from his sprite, on the summit.
+  const roofFlags = [...tower.flags, 'boss:cat', 'script:roof', 'script:pipRoof'];
+  const summit = { ...tower, room: 'summit', x: 46 * 384 + 6 * 16 + 8, y: -7 * 224 + 12 * 16, level: 20, flags: roofFlags };
+  await page.goto(`${base}/fluffstevania`);
+  await page.evaluate((s) => localStorage.setItem('fluffstevania-v1', JSON.stringify(s)), summit);
+  await page.reload();
+  await ready(page);
+  await page.getByTestId('continue').click();
+  await page.getByTestId('dialog').waitFor();
+  assert.match(await page.getByTestId('dialog').textContent(), /Count Culpeo/);
+  assert.equal(await page.getByTestId('face-fox').count(), 1, 'a drawn portrait, not an emoji');
+
+  // In the rooftop garden the Golden Wolfberry ends the story; mashing through the last lines doesn't skip the credits.
+  const garden = { ...summit, room: 'garden', x: 48 * 384 + 12 * 16 + 8, flags: [...roofFlags, 'boss:night'] };
+  await page.goto(`${base}/fluffstevania`);
+  await page.evaluate((s) => localStorage.setItem('fluffstevania-v1', JSON.stringify(s)), garden);
+  await page.reload();
+  await ready(page);
+  await page.getByTestId('continue').click();
+  await board(page).waitFor();
+  await page.waitForTimeout(500);
+  await page.keyboard.down('ArrowRight'); await page.keyboard.down('z'); await page.waitForTimeout(300); await page.keyboard.up('z'); await page.waitForTimeout(700); await page.keyboard.up('ArrowRight');
+  await page.getByTestId('dialog').waitFor();
+  for (let i = 0; i < 8; i++) { await page.keyboard.press('x'); await page.waitForTimeout(90); }
+  await page.getByTestId('ending').waitFor();
+  assert.match(await page.getByTestId('ending').textContent(), /Golden Wolfberry/);
+  await page.waitForTimeout(800);
+  await page.keyboard.press('x');
+  await page.getByTestId('ending').waitFor({ state: 'detached' });
+  assert.equal(await data(page, 'state'), 'play', 'keep exploring');
+
   // Phones get the pad and no sideways scroll.
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
   phone.on('pageerror', (e) => errors.push(e.message));
@@ -166,7 +197,7 @@ try {
   assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'no sideways scroll on a phone');
 
   assert.deepEqual(errors, []);
-  console.log('PASS Fluffstevania browser: difficulty, story, walking, attack, tag, drawn castle, pausing menu with every tab and the map legend, arrow keys walking the tabs, continue from an older save, equipping a fan, the Magic tab and Bestiary, Pip’s shop (bought with the keys), warping between shrines, the music toggle, a library save and the scrolling map, a Clock Tower save with a scroll spell and the Wall Cling, phone layout.');
+  console.log('PASS Fluffstevania browser: difficulty, story, walking, attack, tag, drawn castle, pausing menu with every tab and the map legend, arrow keys walking the tabs, continue from an older save, equipping a fan, the Magic tab and Bestiary, Pip’s shop (bought with the keys), warping between shrines, the music toggle, a library save and the scrolling map, a Clock Tower save with a scroll spell and the Wall Cling, the Count’s drawn portrait, the Golden Wolfberry and the credits, phone layout.');
 } finally {
   await browser.close();
 }

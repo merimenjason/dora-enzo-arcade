@@ -3,7 +3,7 @@
 // degrees of a harmonic minor scale over the theme's root; 7 and up climb into the next octave.
 import type { AreaId } from './fluffstevania-world';
 
-export type Theme = AreaId | 'boss';
+export type Theme = AreaId | 'boss' | 'final' | 'ending';
 type Song = { bpm: number; root: number; lead: (number | null)[]; bass: number[]; pad: number[][]; wave: OscillatorType; leadGain: number };
 const _ = null;
 const SONGS: Record<Theme, Song> = {
@@ -48,6 +48,24 @@ const SONGS: Record<Theme, Song> = {
     bpm: 120, root: 207.7, wave: 'triangle', leadGain: 0.45,
     lead: [7, _, 4, _, 7, _, 4, _, 8, _, 5, _, 8, _, 5, _, 9, 8, 7, _, 6, _, 4, _, 5, _, 4, _, 2, _, _, _],
     bass: [0, 4, 0, 4, 3, 5, 4, 4], pad: [[0, 2, 4], [3, 5, 7], [5, 7, 9], [4, 6, 8]],
+  },
+  // Out on the roof in the storm: a big, driving minor theme.
+  roof: {
+    bpm: 116, root: 146.8, wave: 'square', leadGain: 0.3,
+    lead: [0, _, 4, _, 7, _, 6, 4, 5, _, 4, _, 2, _, _, _, 0, _, 4, _, 9, _, 8, _, 7, 6, 5, 4, 3, _, 2, _],
+    bass: [0, 0, 5, 5, 3, 3, 4, 4], pad: [[0, 2, 4], [5, 7, 9], [3, 5, 7], [4, 6, 8]],
+  },
+  // The Night Fox: the boss theme's fury, lower and grander.
+  final: {
+    bpm: 168, root: 130.8, wave: 'sawtooth', leadGain: 0.22,
+    lead: [7, 0, 7, 0, 8, 0, 7, 0, 6, 0, 4, 5, 6, 7, 9, 7, 7, 0, 7, 0, 11, 0, 10, 9, 8, 7, 6, 5, 4, _, 7, _],
+    bass: [0, 0, 5, 5, 3, 3, 4, 4], pad: [[0, 2, 4], [5, 7, 9], [3, 5, 7], [4, 6, 8]],
+  },
+  // The ending: the approach's wistful tune, in no hurry at all.
+  ending: {
+    bpm: 72, root: 220, wave: 'triangle', leadGain: 0.55,
+    lead: [4, _, _, 2, 3, _, 2, _, 0, _, _, _, 4, 5, 7, _, 9, _, _, 7, 8, _, 7, _, 4, _, 2, 3, 4, _, _, _],
+    bass: [0, 0, 5, 5, 3, 3, 4, 4], pad: [[0, 2, 4], [5, 7, 9], [3, 5, 7], [4, 6, 8]],
   },
   // Fast and furious.
   boss: {

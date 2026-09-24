@@ -27,6 +27,7 @@ const THEMES: Record<AreaId, Theme> = {
   library: { brick: '#4a2c30', brickHi: '#6e4448', brickLo: '#2a161a', mortar: '#180a0e', ledge: '#6a4028', ledgeHi: '#a06a40', accent: '#d8b060', dark: [16, 6, 12, 0.5], wood: true },
   catacombs: { brick: '#46504a', brickHi: '#66746a', brickLo: '#262e2a', mortar: '#121814', ledge: '#5e6458', ledgeHi: '#8a927e', accent: '#9fd878', dark: [4, 12, 8, 0.6], wood: false, moss: '#3e6a36' },
   clock: { brick: '#4e4640', brickHi: '#746858', brickLo: '#2a2420', mortar: '#15110e', ledge: '#9a7430', ledgeHi: '#e8c060', accent: '#e8c860', dark: [10, 8, 20, 0.44], wood: false },
+  roof: { brick: '#3e4658', brickHi: '#5e6a84', brickLo: '#20263a', mortar: '#121624', ledge: '#4e3a2c', ledgeHi: '#7e6248', accent: '#b8c4ff', dark: [8, 10, 30, 0.3], wood: true, moss: '#3e5a4a' },
 };
 
 const hash = (a: number, b: number) => { let h = (a * 374761393 + b * 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
@@ -62,11 +63,11 @@ function canvas(w = LW, h = LH) { const cv = document.createElement('canvas'); c
 const wrap = (draw: (dx: number) => void) => { draw(0); draw(-LW); draw(LW); };
 
 function layersFor(area: AreaId, roomId: string): Layer[] {
-  const key = roomId === 'belfry' || roomId === 'throne' || roomId === 'study' ? `${area}:${roomId}` : area;
+  const key = roomId === 'belfry' || roomId === 'throne' || roomId === 'study' || roomId === 'summit' || roomId === 'garden' ? `${area}:${roomId}` : area;
   const hit = layerCache.get(key);
   if (hit) return hit;
   const made = area === 'approach' ? approachLayers() : area === 'hall' ? hallLayers() : area === 'cellar' ? cellarLayers()
-    : area === 'belfry' ? belfryLayers(roomId === 'belfry') : area === 'library' ? libraryLayers(roomId === 'study') : area === 'clock' ? clockLayers() : catacombLayers(roomId === 'throne');
+    : area === 'belfry' ? belfryLayers(roomId === 'belfry') : area === 'library' ? libraryLayers(roomId === 'study') : area === 'clock' ? clockLayers() : area === 'roof' ? roofLayers(roomId === 'summit' || roomId === 'garden') : catacombLayers(roomId === 'throne');
   layerCache.set(key, made);
   return made;
 }
@@ -546,6 +547,41 @@ function clockLayers(): Layer[] {
   });
   return [sky, wall, near];
 }
+/**
+ * The Moonlit Roof: a stormy sky with a great full moon, the mountains and the valley far below, the castle's own
+ * spires and towers rising round the rooftops, and crenellations and weathervanes up close. At the summit and in the
+ * garden the moon hangs huge behind everything.
+ */
+function roofLayers(summit: boolean): Layer[] {
+  const sky = layer(0.02, 0.04, (c) => {
+    const g = c.createLinearGradient(0, 0, 0, LH);
+    g.addColorStop(0, '#0a0c24'); g.addColorStop(0.5, '#1c2250'); g.addColorStop(1, '#3a3a70');
+    c.fillStyle = g; c.fillRect(0, 0, LW, LH);
+    stars(c, 200, LH * 0.6, 51);
+    moon(c, summit ? 384 : 560, summit ? 120 : 80, summit ? 70 : 34, '#fff4dc');
+    // Storm clouds rolling over, lit from behind by the moon.
+    clouds(c, 40, 'rgba(40,44,80,0.8)', 61); clouds(c, 90, 'rgba(60,64,110,0.5)', 71); clouds(c, 200, 'rgba(30,34,70,0.7)', 81);
+  });
+  const far = layer(0.1, 0.08, (c) => {
+    ridge(c, LH - 70, [[2, 26], [5, 12], [11, 5]], '#1a1c3a');
+    ridge(c, LH - 40, [[3, 18], [7, 8]], '#12142c');
+    // Lights in the valley far below, and Grandpa Pebble's burrow among them.
+    for (let i = 0; i < 40; i++) { c.fillStyle = `rgba(255,${200 + Math.floor(hash(i, 2) * 40)},120,${0.4 + hash(i, 3) * 0.4})`; c.fillRect(hash(i, 4) * LW, LH - 30 + hash(i, 5) * 26, 1.4, 1.4); }
+  });
+  const near = layer(0.35, 0.18, (c) => {
+    // The castle's own spires and turrets around the rooftops.
+    for (const [x, w, h] of [[60, 34, 200], [220, 22, 150], [470, 40, 230], [640, 26, 170]] as const) {
+      c.fillStyle = '#10142a'; c.fillRect(x - w / 2, LH - h, w, h);
+      c.beginPath(); c.moveTo(x - w / 2 - 6, LH - h); c.lineTo(x, LH - h - w * 1.9); c.lineTo(x + w / 2 + 6, LH - h); c.fill();
+      c.fillRect(x - 0.6, LH - h - w * 1.9 - 12, 1.2, 12);
+      c.fillStyle = 'rgba(255,210,120,0.55)'; for (let y = LH - h + 20; y < LH - 20; y += 34) if (hash(x, y) > 0.4) { c.fillRect(x - 2.5, y, 5, 8); c.beginPath(); c.arc(x, y, 2.5, Math.PI, 0); c.fill(); }
+    }
+    // A weathervane shaped like a chinchilla, on the nearest spire.
+    c.strokeStyle = '#10142a'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(470, LH - 306); c.lineTo(470, LH - 330); c.stroke();
+    c.fillStyle = '#10142a'; ellipse(c, 476, LH - 330, 8, 4); c.fill(); ellipse(c, 482, LH - 334, 3, 3); c.fill(); ellipse(c, 466, LH - 333, 4, 5); c.fill();
+  });
+  return [sky, far, near];
+}
 function catacombLayers(throne: boolean): Layer[] {
   const far = layer(0.08, 0.06, (c) => {
     const g = c.createLinearGradient(0, 0, 0, LH);
@@ -822,6 +858,10 @@ function decorate(c: C, g: FluffstevaniaGame, x: number, y: number, cc: number, 
       // A dropped cog and a screw or two.
       gearShape(c, x + 5 + n * 6, y + 14.4, 2.4, 7, n * 6, '#8a6a2c');
       c.fillStyle = '#6a6a74'; c.fillRect(x + 12, y + 15, 2, 1);
+    } else if (area === 'roof') {
+      // A rain puddle on the slates, catching the moon.
+      c.fillStyle = 'rgba(150,170,230,0.35)'; ellipse(c, x + 8, y + 15.2, 5 + n * 3, 0.9); c.fill();
+      c.fillStyle = 'rgba(255,250,220,0.5)'; c.fillRect(x + 6, y + 15, 2, 0.5);
     } else if (area === 'library') {
       // A little stack of books on the floor.
       for (let i = 0; i < 3; i++) { c.fillStyle = ['#6a1c28', '#243a6a', '#7a5a20'][(i + Math.floor(n * 10)) % 3]; c.fillRect(x + 3 + i * 0.8, y + 13 - i * 2.4, 10 - i, 2.2); }
@@ -918,19 +958,22 @@ function shrine(c: C, x: number, y: number, time: number) {
     c.fillStyle = `rgba(255,240,200,${0.85 - ((time * 12 + i * 7) % 26) / 30})`; c.fillRect(px, py, 1.3, 1.3);
   }
 }
+/** Pip the hamster, round and orange, bobbing; (x, y) is the middle of his body. */
+function drawPip(c: C, x: number, y: number, time: number) {
+  const bob = Math.sin(time * 3) * 0.8;
+  c.fillStyle = '#e0a060'; ellipse(c, x, y + bob, 9, 8); c.fill();
+  c.fillStyle = '#fff4e0'; ellipse(c, x, y + 3 + bob, 6, 5); c.fill();
+  c.fillStyle = '#e0a060'; ellipse(c, x - 6, y - 7 + bob, 2.6, 2.6); c.fill(); ellipse(c, x + 6, y - 7 + bob, 2.6, 2.6); c.fill();
+  c.fillStyle = '#f0b0b0'; ellipse(c, x - 6, y - 7 + bob, 1.3, 1.3); c.fill(); ellipse(c, x + 6, y - 7 + bob, 1.3, 1.3); c.fill();
+  c.fillStyle = '#1a1010'; ellipse(c, x - 3, y - 2 + bob, 1.1, 1.3); c.fill(); ellipse(c, x + 3, y - 2 + bob, 1.1, 1.3); c.fill();
+  c.fillStyle = '#e07080'; ellipse(c, x, y + 0.5 + bob, 1, 0.8); c.fill();
+}
 /** Pip the hamster's stall. */
 function stall(c: C, x: number, y: number, time: number) {
   c.fillStyle = '#4a2e18'; c.fillRect(x - 22, y - 30, 3, 30); c.fillRect(x + 19, y - 30, 3, 30);
   for (let i = 0; i < 6; i++) { c.fillStyle = i % 2 ? '#f0e0c0' : '#b02a3a'; c.beginPath(); c.moveTo(x - 25 + i * 8.4, y - 30); c.lineTo(x - 25 + (i + 1) * 8.4, y - 30); c.lineTo(x - 25 + (i + 1) * 8.4, y - 26); c.quadraticCurveTo(x - 25 + (i + 0.5) * 8.4, y - 23, x - 25 + i * 8.4, y - 26); c.fill(); }
   c.fillStyle = '#6a4424'; c.fillRect(x - 26, y - 33, 52, 3);
-  // Pip, round and orange, bobbing behind the counter.
-  const bob = Math.sin(time * 3) * 0.8;
-  c.fillStyle = '#e0a060'; ellipse(c, x + 2, y - 15 + bob, 9, 8); c.fill();
-  c.fillStyle = '#fff4e0'; ellipse(c, x + 2, y - 12 + bob, 6, 5); c.fill();
-  c.fillStyle = '#e0a060'; ellipse(c, x - 4, y - 22 + bob, 2.6, 2.6); c.fill(); ellipse(c, x + 8, y - 22 + bob, 2.6, 2.6); c.fill();
-  c.fillStyle = '#f0b0b0'; ellipse(c, x - 4, y - 22 + bob, 1.3, 1.3); c.fill(); ellipse(c, x + 8, y - 22 + bob, 1.3, 1.3); c.fill();
-  c.fillStyle = '#1a1010'; ellipse(c, x - 1, y - 17 + bob, 1.1, 1.3); c.fill(); ellipse(c, x + 5, y - 17 + bob, 1.1, 1.3); c.fill();
-  c.fillStyle = '#e07080'; ellipse(c, x + 2, y - 14.5 + bob, 1, 0.8); c.fill();
+  drawPip(c, x + 2, y - 15, time);
   c.fillStyle = '#6a3a1a'; c.fillRect(x - 24, y - 9, 48, 9); c.fillStyle = '#8a5a30'; c.fillRect(x - 24, y - 9, 48, 2);
   jar(c, x - 16, y - 9, 6, 8, '#d04060', true); jar(c, x + 16, y - 9, 6, 9, '#7fd060', true);
   c.fillStyle = '#e8c050'; ellipse(c, x - 7, y - 11, 3, 2); c.fill();
@@ -942,9 +985,9 @@ function stall(c: C, x: number, y: number, time: number) {
 function drawPickup(c: C, p: Pickup, time: number) {
   // Everything bobs once it has settled; dropped things bob a little less.
   const bob = p.fixed ? Math.sin(time * 3 + p.x) * 2 : p.t > 0.8 ? Math.sin(time * 4 + p.x) * 1.2 - 1 : 0, x = p.x, y = p.y - 5 + bob;
-  if (p.kind === 'relic' || p.kind === 'sub' || p.kind === 'leaf' || p.kind === 'spell') {
+  if (p.kind === 'relic' || p.kind === 'sub' || p.kind === 'leaf' || p.kind === 'spell' || p.kind === 'goal') {
     // A halo with slowly turning rays of light behind the treasures that matter.
-    const R = p.kind === 'relic' || p.kind === 'spell' ? 26 : 18, tint = p.kind === 'relic' ? '200,230,255' : p.kind === 'leaf' ? '220,255,170' : p.kind === 'spell' ? '240,190,255' : '255,230,160';
+    const R = p.kind === 'relic' || p.kind === 'spell' || p.kind === 'goal' ? 26 : 18, tint = p.kind === 'goal' ? '255,220,120' : p.kind === 'relic' ? '200,230,255' : p.kind === 'leaf' ? '220,255,170' : p.kind === 'spell' ? '240,190,255' : '255,230,160';
     c.save(); c.translate(x, y); c.globalCompositeOperation = 'lighter';
     for (let i = 0; i < 8; i++) {
       const a = time * 0.6 + (i * Math.PI) / 4, a2 = -time * 0.4 + (i * Math.PI) / 4 + 0.4;
@@ -1003,6 +1046,21 @@ function drawPickup(c: C, p: Pickup, time: number) {
       c.fillStyle = p.id === 'petals' ? '#e05890' : '#6a5ad0'; c.fillRect(-1, -2.8, 2, 5.6);
       c.restore();
       c.fillStyle = `rgba(255,220,255,${0.5 + Math.sin(time * 6) * 0.4})`; star(c, x + 5, y - 5, 1.6);
+      break;
+    }
+    case 'goal': {
+      // The Golden Wolfberry: a big golden berry glowing on its sprig, with sparkles circling.
+      const pulse = 1 + Math.sin(time * 3) * 0.08;
+      c.save(); c.globalCompositeOperation = 'lighter';
+      const halo = c.createRadialGradient(x, y, 2, x, y, 30 * pulse); halo.addColorStop(0, 'rgba(255,230,120,0.6)'); halo.addColorStop(1, 'rgba(255,200,80,0)');
+      c.fillStyle = halo; ellipse(c, x, y, 30 * pulse, 30 * pulse); c.fill();
+      c.restore();
+      c.strokeStyle = '#4a7a2a'; c.lineWidth = 1; c.beginPath(); c.moveTo(x, y - 5); c.quadraticCurveTo(x + 2, y - 10, x + 5, y - 11); c.stroke();
+      c.fillStyle = '#6aa040'; ellipse(c, x + 4, y - 9, 3.4, 1.6, -0.5); c.fill();
+      const gr = c.createRadialGradient(x - 2, y - 2, 0.5, x, y, 6); gr.addColorStop(0, '#fffbe0'); gr.addColorStop(0.4, '#ffd24a'); gr.addColorStop(1, '#c08010');
+      c.fillStyle = gr; ellipse(c, x, y, 5 * pulse, 6 * pulse); c.fill();
+      c.fillStyle = '#ffffff'; ellipse(c, x - 1.6, y - 2.4, 1.2, 1.6); c.fill();
+      for (let i = 0; i < 5; i++) { const a = time * 2 + i * 1.26; c.fillStyle = `rgba(255,245,200,${0.6 + Math.sin(time * 5 + i) * 0.4})`; star(c, x + Math.cos(a) * 12, y + Math.sin(a) * 9, 1.4); }
       break;
     }
     case 'key': {
@@ -1074,6 +1132,7 @@ const FANS: Record<string, { silk: string; edge: string; rib: string; motif: str
   fan: { silk: '#f8d0e0', edge: '#d8789c', rib: '#c8964e', motif: '#ffffff', trail: '#ffd0e4' },
   moonfan: { silk: '#232664', edge: '#c8d4ff', rib: '#d8dce8', motif: '#f4f0c8', trail: '#c0d0ff', tassel: '#c8d4ff' },
   wolffan: { silk: '#a01830', edge: '#f0c050', rib: '#1a0a08', motif: '#f0c050', trail: '#ff8090', tassel: '#d02838' },
+  starfan: { silk: '#f6ecc8', edge: '#e8b830', rib: '#b08820', motif: '#3a4a9a', trail: '#fff0a0', tassel: '#e8b830' },
 };
 /** A folding fan opened `open` radians wide, pointing along +x from its pivot at (0, 0). */
 function fanShape(c: C, id: string, r: number, open: number) {
@@ -1095,7 +1154,13 @@ function fanShape(c: C, id: string, r: number, open: number) {
     c.beginPath(); c.arc(0, 0, r, p0, p1); c.arc(0, 0, r * 0.3, p1, p0, true); c.fill();
   }
   const at = (u: number, d: number) => { const a = a0 + open * u; return [Math.cos(a) * r * d, Math.sin(a) * r * d] as const; };
-  if (id === 'moonfan') {
+  if (id === 'starfan') {
+    // A constellation stitched in deep blue thread, with a gold star at its heart.
+    const pts = [[0.15, 0.7], [0.32, 0.86], [0.5, 0.62], [0.68, 0.84], [0.85, 0.66]].map(([u, d]) => at(u, d));
+    c.strokeStyle = k.motif; c.lineWidth = r * 0.03; c.beginPath(); pts.forEach(([px, py], i) => (i ? c.lineTo(px, py) : c.moveTo(px, py))); c.stroke();
+    c.fillStyle = k.motif; for (const [px, py] of pts) { ellipse(c, px, py, r * 0.045, r * 0.045); c.fill(); }
+    const [cx, cy] = at(0.5, 0.62); c.fillStyle = '#e8b830'; star(c, cx, cy, r * 0.11);
+  } else if (id === 'moonfan') {
     // A crescent moon in the middle and stars scattered about.
     const [mx, my] = at(0.5, 0.66);
     c.fillStyle = k.motif; ellipse(c, mx, my, r * 0.17, r * 0.17); c.fill();
@@ -1152,6 +1217,21 @@ function paw(c: C, s: number) {
   for (let i = -1; i <= 1; i++) { c.beginPath(); c.moveTo(2.8, i * 1.8 - 0.5); c.quadraticCurveTo(5, i * 2 - 0.6, 6.2, i * 2.2 + 0.4); c.lineTo(2.8, i * 1.8 + 0.6); c.fill(); }
   c.restore();
 }
+/** The Gargoyle Maul: a scowling stone gargoyle head on an iron haft `len` long. Points along +x. */
+function maul(c: C, len: number, s: number) {
+  c.save(); c.scale(s, s);
+  c.strokeStyle = '#3a3a48'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, 0); c.lineTo(len - 4, 0); c.stroke();
+  c.fillStyle = '#5a5a68'; c.fillRect(len * 0.3, -1.4, 2, 2.8);
+  const hx = len;
+  const gr = c.createLinearGradient(hx - 6, -7, hx + 6, 7); gr.addColorStop(0, '#a8a8b8'); gr.addColorStop(1, '#4e4e5e');
+  c.fillStyle = gr; c.beginPath(); c.roundRect(hx - 6, -7, 12, 14, 3); c.fill();
+  // Horns, a heavy brow, glowing eyes and a snarl of fangs.
+  c.fillStyle = '#6e6e7e'; c.beginPath(); c.moveTo(hx - 5, -6); c.lineTo(hx - 8, -11); c.lineTo(hx - 2, -7); c.fill(); c.beginPath(); c.moveTo(hx - 5, 6); c.lineTo(hx - 8, 11); c.lineTo(hx - 2, 7); c.fill();
+  c.fillStyle = '#34343e'; c.fillRect(hx - 1, -5, 1.4, 10);
+  c.fillStyle = '#b8a0ff'; ellipse(c, hx + 2, -2.6, 1.1, 0.9); c.fill(); ellipse(c, hx + 2, 2.6, 1.1, 0.9); c.fill();
+  c.fillStyle = '#f0f0f4'; for (const dy of [-1.2, 0, 1.2]) { c.beginPath(); c.moveTo(hx + 5, dy - 0.6); c.lineTo(hx + 6.6, dy); c.lineTo(hx + 5, dy + 0.6); c.fill(); }
+  c.restore();
+}
 /** The Heavy Tome, swung by its spine: red leather, gold corners and clasp, cream page edges. Points along +x. */
 function tome(c: C, len: number, w: number) {
   c.fillStyle = '#f0e6d0'; c.fillRect(2, -w / 2 + 1, len, w - 2);
@@ -1175,6 +1255,13 @@ export function gearIcon(c: C, id: string, x: number, y: number, s: number) {
     c.rotate(-0.8); c.translate(-1.5, 0); paw(c, 1.1);
   } else if (id === 'tome') {
     c.rotate(-0.2); c.translate(-6, 0); tome(c, 10, 12);
+  } else if (id === 'maul') {
+    c.rotate(-0.8); c.translate(-7, 0); maul(c, 10, 0.75);
+  } else if (id === 'goldberry') {
+    const gr = c.createRadialGradient(-1, -1, 0.5, 0, 0, 5); gr.addColorStop(0, '#fffbe0'); gr.addColorStop(0.5, '#ffd24a'); gr.addColorStop(1, '#c08010');
+    c.fillStyle = gr; ellipse(c, 0, 1, 4, 4.6); c.fill();
+    c.fillStyle = '#6aa040'; ellipse(c, 2.6, -4, 2.6, 1.2, -0.5); c.fill();
+    c.fillStyle = '#ffffff'; ellipse(c, -1.2, -0.8, 0.9, 1.2); c.fill();
   } else if (id === 'pin') {
     c.rotate(-0.6);
     c.fillStyle = '#6a4020'; c.fillRect(-8, -0.8, 3, 1.6); c.fillRect(5, -0.8, 3, 1.6);
@@ -1592,6 +1679,41 @@ function drawEnemy(c: C, g: FluffstevaniaGame | null, e: Enemy, time: number) {
       }
       break;
     }
+    case 'gargoyle': {
+      // A horned stone gargoyle. Asleep it's a grey statue crouched on its perch; awake its wings spread and its eyes burn.
+      c.scale(e.face, 1);
+      const stone = e.state === 'idle', flap = stone ? 0 : Math.sin(time * 14 + e.id);
+      const body = col(stone ? '#7a7a88' : '#6a6a7c'), dark = col(stone ? '#54545e' : '#44445a');
+      for (const sgn of [-1, 1]) {
+        c.fillStyle = dark; c.beginPath(); c.moveTo(-2, -10);
+        c.quadraticCurveTo(-8 - (stone ? 0 : 4), -18 - flap * 5 * sgn * 0.3 - (stone ? 0 : 6), -14 - (stone ? -4 : 4), -8 - flap * 4);
+        c.lineTo(-10 + (stone ? 4 : 0), -6); c.lineTo(-6, -8); c.closePath(); c.fill();
+      }
+      c.fillStyle = body; ellipse(c, 0, -7, 7, 6.4); c.fill();
+      c.fillStyle = dark; c.fillRect(-5, -2, 3, 2); c.fillRect(2, -2, 3, 2);
+      c.fillStyle = body; ellipse(c, 5, -13, 5, 4.4); c.fill();
+      c.fillStyle = dark; c.beginPath(); c.moveTo(2, -16); c.lineTo(0, -21); c.lineTo(4, -17); c.fill(); c.beginPath(); c.moveTo(6, -16.6); c.lineTo(7, -21.4); c.lineTo(8.4, -16); c.fill();
+      c.fillStyle = col('#f0f0f4'); c.beginPath(); c.moveTo(8, -11); c.lineTo(9, -9); c.lineTo(10, -11); c.fill();
+      c.fillStyle = stone ? '#3a3a44' : '#b8a0ff'; ellipse(c, 7, -13.6, 1.1, 0.9); c.fill();
+      if (!stone) { c.fillStyle = 'rgba(184,160,255,0.35)'; ellipse(c, 7, -13.6, 3, 2.2); c.fill(); }
+      if (stone) { c.strokeStyle = 'rgba(30,30,40,0.5)'; c.lineWidth = 0.4; c.beginPath(); c.moveTo(-3, -11); c.lineTo(-1, -7); c.lineTo(-3, -4); c.stroke(); }
+      break;
+    }
+    case 'crow': {
+      // A black storm crow with a crooked beak, beating its wings; folded back into a dart as it swoops.
+      c.scale(e.face, 1);
+      const dive = e.state === 'lunge', flap = dive ? -0.8 : Math.sin(time * 16 + e.id);
+      if (dive) c.rotate(Math.atan2(e.vy, Math.abs(e.vx) || 1) * 0.7);
+      c.fillStyle = col('#1a1a2a');
+      for (const sgn of [-1, 1]) { c.beginPath(); c.moveTo(-2, -6); c.quadraticCurveTo(-4, -6 - flap * 10 * sgn * 0.5 - 6, -12, -5 - flap * 6); c.lineTo(-6, -3); c.closePath(); c.fill(); }
+      ellipse(c, 0, -5, 7, 3.6); c.fill();
+      c.beginPath(); c.moveTo(-6, -5); c.lineTo(-12, -7); c.lineTo(-11, -3); c.fill();
+      ellipse(c, 6, -7, 3.2, 3); c.fill();
+      c.fillStyle = col('#3a3a4a'); ellipse(c, -1, -6, 4, 1.4); c.fill();
+      c.fillStyle = '#d8b040'; c.beginPath(); c.moveTo(8.6, -7.6); c.lineTo(12.6, -6.4); c.lineTo(8.6, -5.6); c.fill();
+      c.fillStyle = '#ffe070'; ellipse(c, 7, -7.8, 0.9, 0.9); c.fill();
+      break;
+    }
     case 'toad': {
       // A warty green toad riding a brass spring that coils as it sits and stretches as it leaps.
       c.scale(e.face, 1);
@@ -1616,15 +1738,45 @@ function drawEnemy(c: C, g: FluffstevaniaGame | null, e: Enemy, time: number) {
   c.globalAlpha = 1;
 }
 
+/**
+ * A close-up of whoever is speaking, for the dialog box and Pip's shop, drawn from their sprite in the game so the
+ * portrait matches: the bosses' heads, Pip behind his counter, or a wooden signboard.
+ */
+export function drawSpeaker(c: C, who: string, w: number, h: number, time: number) {
+  c.clearRect(0, 0, w, h);
+  c.save();
+  const bosses: Record<string, { kind: BossId; move: string; head: [number, number]; s: number }> = {
+    owl: { kind: 'owl', move: 'hover', head: [0, -8], s: 1.9 },
+    rat: { kind: 'rat', move: 'idle', head: [18, -8], s: 1.9 },
+    fox: { kind: 'fox', move: 'float', head: [7, -18], s: 2.2 },
+    cat: { kind: 'cat', move: 'prowl', head: [18, -6], s: 2.3 },
+  };
+  const b = bosses[who];
+  if (b) {
+    c.translate(w / 2, h / 2 + 3); c.scale((h / 68) * b.s, (h / 68) * b.s); c.translate(-b.head[0], -b.head[1]);
+    drawBoss(c, { kind: b.kind, x: 0, y: 0, vx: 0, vy: 0, hp: 1, max: 1, move: b.move, t: 9, face: 1, flash: 0, phase2: false, summoned: false, sx: 0, ex: 0, side: 1, last: [], hitId: -1 } as Boss, time);
+  } else if (who === 'pip') {
+    c.translate(w / 2, h / 2 + 4); c.scale(h / 26, h / 26);
+    drawPip(c, 0, 0, time);
+  } else {
+    // A signboard like the ones in the castle.
+    c.translate(w / 2, h / 2); c.scale(h / 22, h / 22);
+    c.fillStyle = '#3a2418'; c.fillRect(-1, -2, 2, 12);
+    c.fillStyle = '#7a5438'; c.fillRect(-8, -8, 16, 9);
+    c.fillStyle = '#9a7050'; c.fillRect(-8, -8, 16, 1.5);
+    c.fillStyle = '#4a2e1c'; c.fillRect(-6, -5, 12, 0.8); c.fillRect(-6, -3, 9, 0.8); c.fillRect(-6, -1, 11, 0.8);
+  }
+  c.restore();
+}
 /** One foe (or boss) posed for the Bestiary, centred in a w × h box. */
 export function drawFoeIcon(c: C, kind: string, w: number, h: number, time: number) {
   c.clearRect(0, 0, w, h);
   c.save();
   const bossKind = (Object.keys(BOSS_KILLS) as BossId[]).find((b) => BOSS_KILLS[b] === kind);
   if (bossKind) {
-    const k = bossKind, s = Math.min(w, h) / 70;
+    const k = bossKind, s = Math.min(w, h) / (k === 'night' ? 105 : 70);
     c.translate(w / 2, h / 2); c.scale(s, s);
-    const boss = { kind: k, x: 0, y: 0, vx: 0, vy: 0, hp: 1, max: 1, move: { owl: 'hover', rat: 'idle', fox: 'float', cat: 'prowl' }[k], t: 9, face: 1, flash: 0, phase2: false, summoned: false, sx: 0, ex: 0, side: 1, last: [], hitId: -1 } as Boss;
+    const boss = { kind: k, x: 0, y: 0, vx: 0, vy: 0, hp: 1, max: 1, move: { owl: 'hover', rat: 'idle', fox: 'float', cat: 'prowl', night: 'soar' }[k], t: 9, face: 1, flash: 0, phase2: k === 'night', summoned: false, sx: 0, ex: 0, side: 1, last: [], hitId: -1 } as Boss;
     drawBoss(c, boss, time);
   } else {
     const f = FOES[kind as FoeKind], s = Math.min(w, h) / 30;
@@ -1636,7 +1788,78 @@ export function drawFoeIcon(c: C, kind: string, w: number, h: number, time: numb
 }
 
 function drawBoss(c: C, o: Boss, time: number) {
-  if (o.kind === 'owl') drawOwl(c, o, time); else if (o.kind === 'rat') drawRatKing(c, o, time); else if (o.kind === 'fox') drawFox(c, o, time); else drawCat(c, o, time);
+  if (o.kind === 'owl') drawOwl(c, o, time); else if (o.kind === 'rat') drawRatKing(c, o, time); else if (o.kind === 'fox') drawFox(c, o, time);
+  else if (o.kind === 'cat') drawCat(c, o, time); else drawNight(c, o, time);
+}
+/**
+ * The final boss. In his own shape he's the Count, wreathed in a violet storm aura; while he transforms he swells and
+ * fades into the Night Fox, which then takes his place.
+ */
+function drawNight(c: C, o: Boss, time: number) {
+  if (!o.phase2) {
+    const gl = c.createRadialGradient(o.x, o.y - 4, 4, o.x, o.y - 4, 40);
+    gl.addColorStop(0, 'rgba(150,120,255,0.3)'); gl.addColorStop(1, 'rgba(150,120,255,0)');
+    c.fillStyle = gl; ellipse(c, o.x, o.y - 4, 40, 40); c.fill();
+    drawFox(c, o, time);
+    return;
+  }
+  if (o.move === 'transform') {
+    const u = Math.min(1, o.t / 2.4);
+    c.save(); c.globalAlpha = Math.max(0, 1 - u * 1.6); c.translate(o.x, o.y); c.scale(1 + u * 1.2, 1 + u * 1.2); c.translate(-o.x, -o.y);
+    drawFox(c, { ...o, move: 'fire' }, time);
+    c.restore();
+    c.save(); c.globalAlpha = Math.min(1, Math.max(0, (u - 0.35) / 0.65)); drawNightFox(c, o, time); c.restore();
+    // Bolts of violet light crackle round him while he changes.
+    c.strokeStyle = `rgba(200,180,255,${0.8 - u * 0.4})`; c.lineWidth = 1.2;
+    for (let i = 0; i < 4; i++) { const a = time * 7 + i * 1.6; c.beginPath(); c.moveTo(o.x, o.y); c.lineTo(o.x + Math.cos(a) * 24, o.y + Math.sin(a) * 20); c.lineTo(o.x + Math.cos(a + 0.3) * 44, o.y + Math.sin(a + 0.3) * 36); c.stroke(); }
+    return;
+  }
+  drawNightFox(c, o, time);
+}
+/** The Night Fox: a great black-and-russet winged fox with bat wings, a mane of violet flame and burning eyes. (x, y) is his middle. */
+function drawNightFox(c: C, o: Boss, time: number) {
+  const white = o.flash > 0 && Math.floor(time * 30) % 2 === 0, col = (s: string) => (white ? '#ffffff' : s);
+  const m = o.move as string, perch = m === 'perch', breath = m === 'breath' && o.t > 0.3 && o.t < 1.5;
+  if (m === 'dying') c.globalAlpha = Math.max(0, 1 - o.t / 2.2);
+  const flap = perch ? -0.9 : Math.sin(time * (m === 'dive' ? 7 : 5)) ;
+  c.save(); c.translate(o.x, o.y); c.scale(o.face, 1);
+  if (m === 'dive') c.rotate(0.18);
+  // Bat wings, ribbed and torn at the edges.
+  for (const sgn of [-1, 1]) {
+    c.save(); c.scale(1, 1); c.translate(-4, -8);
+    const tipY = -30 * (perch ? 0.3 : 1) - flap * 16 * (sgn > 0 ? 1 : 0.8), back = sgn > 0 ? -1 : 1;
+    c.fillStyle = col(sgn > 0 ? '#1a1024' : '#241632');
+    c.beginPath(); c.moveTo(0, 0);
+    c.quadraticCurveTo(back * 14, tipY - 6, back * 40, tipY);
+    c.lineTo(back * 34, tipY + 12); c.lineTo(back * 30, tipY + 8); c.lineTo(back * 24, tipY + 18); c.lineTo(back * 18, tipY + 14); c.lineTo(back * 10, tipY + 22);
+    c.quadraticCurveTo(back * 4, 8, 0, 6); c.fill();
+    c.strokeStyle = col('#4a2e60'); c.lineWidth = 1;
+    for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(0, 0); c.lineTo(back * (18 + i * 10), tipY + 6 + i * 5); c.stroke(); }
+    c.restore();
+  }
+  // Tail, a great russet brush tipped with violet flame.
+  c.fillStyle = col('#a84a18'); c.beginPath(); c.moveTo(-18, 6); c.quadraticCurveTo(-40, 14 + flap * 3, -44, -4); c.quadraticCurveTo(-30, 2, -16, 0); c.fill();
+  c.fillStyle = 'rgba(190,150,255,0.85)'; ellipse(c, -44, -5, 4, 5 + Math.sin(time * 12)); c.fill();
+  // Body, legs and claws.
+  c.fillStyle = col('#2a1a24'); ellipse(c, 0, 4, 22, 13); c.fill();
+  c.fillStyle = col('#8a3a16'); ellipse(c, 6, 8, 12, 8); c.fill();
+  c.fillStyle = col('#1a1018'); for (const lx of [-12, 12]) { c.fillRect(lx - 2.5, 12, 5, perch ? 8 : 5); c.fillStyle = '#f0e8e0'; for (let i = 0; i < 3; i++) c.fillRect(lx - 2 + i * 1.8, perch ? 19 : 16, 0.8, 2); c.fillStyle = col('#1a1018'); }
+  // The mane of violet fire and the head.
+  for (let i = 0; i < 6; i++) { const a = -1.9 + i * 0.35, fl = Math.sin(time * 10 + i) * 2; c.fillStyle = `rgba(${170 + i * 10},${120 + i * 10},255,0.8)`; c.beginPath(); c.moveTo(14 + Math.cos(a) * 8, -8 + Math.sin(a) * 8); c.lineTo(14 + Math.cos(a) * (18 + fl), -8 + Math.sin(a) * (18 + fl)); c.lineTo(14 + Math.cos(a + 0.2) * 9, -8 + Math.sin(a + 0.2) * 9); c.fill(); }
+  c.fillStyle = col('#b8541e'); ellipse(c, 20, -10, 11, 9); c.fill();
+  c.beginPath(); c.moveTo(26, -12); c.quadraticCurveTo(36, -10, 40, breath ? -4 : -6); c.lineTo(28, -2); c.fill();
+  c.fillStyle = col('#f4ece0'); c.beginPath(); c.moveTo(22, -5); c.quadraticCurveTo(32, -3, 39, breath ? -2 : -5); c.quadraticCurveTo(30, 2, 20, -1); c.fill();
+  for (const [ex, tip] of [[14, 8], [22, 24]] as const) { c.fillStyle = col('#b8541e'); c.beginPath(); c.moveTo(ex - 3, -16); c.lineTo(tip, -32); c.lineTo(ex + 4, -17); c.fill(); c.fillStyle = col('#2a1008'); c.beginPath(); c.moveTo(ex - 1, -17); c.lineTo(tip, -29); c.lineTo(ex + 2, -17.6); c.fill(); }
+  c.fillStyle = '#ff2838'; c.beginPath(); c.moveTo(22, -14); c.lineTo(29, -15); c.lineTo(27, -12); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(255,60,60,0.4)'; ellipse(c, 25, -13.4, 6, 3.4); c.fill();
+  c.fillStyle = '#140810'; ellipse(c, 40, -6, 1.6, 1.2); c.fill();
+  if (breath) {
+    const gl = c.createRadialGradient(40, -3, 0, 40, -3, 14); gl.addColorStop(0, 'rgba(255,230,140,0.9)'); gl.addColorStop(1, 'rgba(255,100,40,0)');
+    c.fillStyle = gl; ellipse(c, 40, -3, 14, 10); c.fill();
+  }
+  c.fillStyle = '#f0f0f4'; for (const dx of [30, 34]) { c.beginPath(); c.moveTo(dx, -2); c.lineTo(dx + 1, 1.4); c.lineTo(dx + 2, -2); c.fill(); }
+  c.restore();
+  c.globalAlpha = 1;
 }
 /**
  * Tick-Tock the Clockwork Cat: a sleek grey tabby with brass joints, a wind-up key turning in her back and a bell on
@@ -1730,7 +1953,7 @@ function drawFox(c: C, o: Boss, time: number) {
   const a = foxAlpha(o);
   if (a <= 0) return;
   const white = o.flash > 0 && Math.floor(time * 30) % 2 === 0, col = (s: string) => (white ? '#ffffff' : s);
-  const moving = o.move === 'lunge' && o.t > 0.3 || o.move === 'swoop', cast = o.move === 'fire' || o.move === 'pillars';
+  const moving = o.move === 'lunge' && o.t > 0.3 || o.move === 'swoop', cast = o.move === 'fire' || o.move === 'pillars' || o.move === 'bolts';
   const stream = moving ? 1 : 0, flut = Math.sin(time * (moving ? 18 : 3)) * (moving ? 2 : 1);
   c.save(); c.globalAlpha = a; c.translate(o.x, o.y); c.scale(o.face, 1);
   if (o.move === 'swoop') c.rotate(0.2);
@@ -1996,6 +2219,18 @@ function drawShot(c: C, s: Shot) {
     const gr = c.createLinearGradient(-4, 0, 4, 0); gr.addColorStop(0, `rgba(255,190,220,${k})`); gr.addColorStop(1, `rgba(230,90,150,${k})`);
     c.fillStyle = gr; c.beginPath(); c.moveTo(-5, 0); c.quadraticCurveTo(0, -4, 5, 0); c.quadraticCurveTo(0, 3, -5, 0); c.fill();
     c.strokeStyle = `rgba(255,255,255,${0.7 * k})`; c.lineWidth = 0.5; c.beginPath(); c.moveTo(-4, 0); c.lineTo(4, 0); c.stroke();
+  } else if (s.kind === 'bolt') {
+    // A jagged fork of lightning from the storm to the roof.
+    const k = Math.min(1, s.life * 4);
+    c.strokeStyle = `rgba(200,220,255,${0.5 * k})`; c.lineWidth = 6; c.lineCap = 'round';
+    const path = () => { c.beginPath(); c.moveTo(0, -260); for (let y = -240; y <= 12; y += 20) c.lineTo((hash(Math.round(s.x), y) - 0.5) * 16, y); c.stroke(); };
+    path(); c.strokeStyle = `rgba(255,255,255,${k})`; c.lineWidth = 2; path(); c.lineCap = 'butt';
+  } else if (s.kind === 'meteor') {
+    // A falling star with a long golden tail.
+    const a = Math.atan2(s.vy, s.vx); c.rotate(a);
+    const tail = c.createLinearGradient(-26, 0, 0, 0); tail.addColorStop(0, 'rgba(255,220,120,0)'); tail.addColorStop(1, 'rgba(255,240,180,0.9)');
+    c.fillStyle = tail; c.beginPath(); c.moveTo(-26, 0); c.lineTo(0, -4); c.lineTo(0, 4); c.fill();
+    c.fillStyle = '#fff6d0'; star(c, 0, 0, 6);
   } else if (s.kind === 'boulder') {
     // Drawn as Enzo himself, curled up and rolling.
   } else if (s.kind === 'rock') {
@@ -2046,6 +2281,7 @@ function weaponArc(c: C, g: FluffstevaniaGame) {
         for (let i = 0; i < 5; i++) {
           const a = from + (ang - from) * (i / 4), r = w.reach * (big ? 1.05 : 0.9) + Math.sin(i * 2.7) * 3, px = Math.cos(a) * r, py = Math.sin(a) * r, al = (1 - u) * (0.5 + i / 8);
           if (id === 'moonfan') { c.fillStyle = `rgba(235,242,255,${al})`; star(c, px, py, 1.6); }
+          else if (id === 'starfan') { c.fillStyle = `rgba(255,240,160,${al})`; star(c, px, py, 2.2); c.fillStyle = `rgba(255,250,220,${al * 0.6})`; c.fillRect(px - Math.cos(a) * 5, py - Math.sin(a) * 5, 1, 1); }
           else if (id === 'wolffan') { c.fillStyle = `rgba(255,${150 + i * 15},70,${al})`; ellipse(c, px, py - (1 - u) * 3, 1.2, 1.2); c.fill(); }
           else { c.fillStyle = `rgba(255,200,225,${al})`; ellipse(c, px, py, 1.8, 1, a + i); c.fill(); }
         }
@@ -2079,7 +2315,7 @@ function weaponArc(c: C, g: FluffstevaniaGame) {
     if (live || (into > w.windup && u < 0.7)) {
       // A heavy smear behind the club head, with speed lines: acorn gold, flour-white for the pin, crimson for the tome.
       const fade = live ? 1 : Math.max(0, 1 - (u - 0.5) * 4), gr = c.createRadialGradient(0, 0, w.reach * 0.3, 0, 0, w.reach * 0.95);
-      const tint = id === 'tome' ? '230,70,90' : id === 'pin' ? '240,240,250' : '255,210,130';
+      const tint = id === 'tome' ? '230,70,90' : id === 'pin' ? '240,240,250' : id === 'maul' ? '170,160,210' : '255,210,130';
       gr.addColorStop(0, `rgba(${tint},0)`); gr.addColorStop(0.6, `rgba(${tint},${0.45 * fade})`); gr.addColorStop(1, `rgba(255,252,240,${0.95 * fade})`);
       c.fillStyle = gr; c.beginPath(); c.arc(0, 0, w.reach * 0.95, a - 1.3, a); c.arc(0, 0, w.reach * 0.3, a, a - 1.3, true); c.fill();
       c.strokeStyle = `rgba(255,255,255,${0.6 * fade})`; c.lineWidth = 0.6;
@@ -2105,6 +2341,8 @@ function weaponArc(c: C, g: FluffstevaniaGame) {
     } else if (id === 'tome') {
       c.strokeStyle = '#5a1018'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(0, 0); c.lineTo(6, 0); c.stroke();
       c.translate(5, 0); tome(c, w.reach * 0.8, 11);
+    } else if (id === 'maul') {
+      maul(c, w.reach * 0.85, 1);
     } else {
       c.strokeStyle = '#6a4020'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, 0); c.lineTo(w.reach * 0.75, 0); c.stroke();
       c.fillStyle = '#a06a30'; ellipse(c, w.reach * 0.8, 0, 5, 4.4); c.fill();
@@ -2169,6 +2407,9 @@ function carryWeapon(c: C, id: string, bob: number, time: number) {
   } else if (id === 'ironclaws') {
     c.translate(8.4, -3 + bob * 0.5); c.rotate(-0.25);
     gauntlet(c, 0.75);
+  } else if (id === 'maul') {
+    c.translate(-9, -13 + bob); c.rotate(-0.75);
+    maul(c, 13, 0.8);
   } else if (id === 'tome') {
     c.translate(-9, -15.5 + bob); c.rotate(-0.5);
     c.fillStyle = '#5a3a1a'; c.fillRect(-2, 3.4, 16, 1.2);
@@ -2406,7 +2647,7 @@ function drawDustFx(c: C, g: FluffstevaniaGame) {
   }
 }
 /** The colour of each weapon's slash mark. */
-const SLASH_TINT: Record<string, string> = { fan: '255,190,220', moonfan: '170,195,255', wolffan: '255,120,90', acorn: '255,200,110', pin: '235,235,245', tome: '240,70,90' };
+const SLASH_TINT: Record<string, string> = { fan: '255,190,220', moonfan: '170,195,255', wolffan: '255,120,90', starfan: '255,236,140', acorn: '255,200,110', pin: '235,235,245', tome: '240,70,90', maul: '180,160,240' };
 /** Bright effects drawn over the darkness: sparks, slashes, bursts, stars and damage numbers. */
 function drawGlowFx(c: C, g: FluffstevaniaGame) {
   for (const f of g.fx) {
@@ -2440,7 +2681,9 @@ function drawGlowFx(c: C, g: FluffstevaniaGame) {
         break;
       }
       case 'ember': {
-        const a = Math.max(0, 1 - k);
+        // Embers are orange; the glow where lightning or a falling star will strike is blue-white or gold.
+        const a = Math.max(0, 1 - k), tint = f.color === 'bolt' ? '200,220,255' : f.color === 'star' ? '255,230,140' : '';
+        if (tint) { c.fillStyle = `rgba(${tint},${a})`; c.fillRect(f.x - 1, f.y - 1, 2, 2); c.fillStyle = `rgba(${tint},${a * 0.35})`; ellipse(c, f.x, f.y, 6, 2.4); c.fill(); break; }
         c.fillStyle = `rgba(255,${Math.round(200 - k * 120)},${Math.round(90 - k * 60)},${a})`; c.fillRect(f.x - 0.8, f.y - 0.8, 1.6, 1.6);
         c.fillStyle = `rgba(255,150,60,${a * 0.3})`; ellipse(c, f.x, f.y, 2.6, 2.6); c.fill();
         break;
@@ -2548,6 +2791,8 @@ function gatherLights(g: FluffstevaniaGame, time: number): Light[] {
     else if (s.kind === 'wind') out.push({ x: s.x, y: s.y, r: 34, a: 0.4 });
     else if (s.kind === 'quake' && s.hero) out.push({ x: s.x, y: s.y, r: s.spell ? 46 : 34, a: 0.8, tint: s.spell ? '#d0a8ff' : '#ffd070' });
     else if (s.kind === 'petal') out.push({ x: s.x, y: s.y, r: 22, a: 0.5, tint: '#ff90c8' });
+    else if (s.kind === 'bolt') out.push({ x: s.x, y: s.y, r: 70, a: 1, tint: '#c8d8ff' });
+    else if (s.kind === 'meteor') out.push({ x: s.x, y: s.y, r: 34, a: 0.9, tint: '#ffe090' });
     else if (s.kind === 'chime') out.push({ x: s.x, y: s.y, r: 30, a: 0.6, tint: '#ffe090' });
     else if (s.kind === 'note') out.push({ x: s.x, y: s.y, r: 18, a: 0.4, tint: '#ffe0a0' });
   }
@@ -2798,6 +3043,7 @@ function roomMarks(g: FluffstevaniaGame, room: Room) {
     else if (ch === '$') kind = 'shop';
     else if (ch === 'O' && room.boss) kind = g.flags.has(`boss:${room.boss}`) ? 'bossDown' : 'boss';
     else if (ch === 'R' && room.relic && !g.relics.has(room.relic)) kind = 'relic';
+    else if (ch === 'X' && !g.flags.has('wolfberry')) kind = 'relic';
     else if (ch === 'I') { if (room.items?.[item] && !g.flags.has(`item:${room.id}:${item}`)) kind = 'item'; item++; }
     else if (ch === 'U' && room.sub && !g.subs.has(room.sub)) kind = 'sub';
     else if (ch === 'H' && !g.flags.has(`leaf:${room.id}`)) kind = 'leaf';
@@ -2948,6 +3194,11 @@ function foreground(area: AreaId) {
     const cx = 520, cy = VIEW_H + 10;
     c.beginPath(); for (let i = 0; i < 24; i++) { const a = (i / 24) * Math.PI * 2, r = i % 2 ? 40 : 46; c.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); } c.closePath(); c.fill();
     c.fillRect(980, 0, 172, 8);
+  } else if (area === 'roof') {
+    // Crenellations along the bottom, a weathervane, and a gargoyle's silhouette on a corner.
+    for (let x = 0; x < FW; x += 180) { if (hash(x, 8) < 0.4) continue; for (let i = 0; i < 4; i++) c.fillRect(x + i * 16, VIEW_H - 14, 10, 14); c.fillRect(x - 4, VIEW_H - 6, 70, 6); }
+    c.fillRect(640, 0, 3, 50); c.beginPath(); c.moveTo(620, 20); c.lineTo(664, 20); c.lineTo(660, 16); c.lineTo(660, 24); c.lineTo(664, 20); c.stroke(); c.lineWidth = 2; c.beginPath(); c.moveTo(620, 20); c.lineTo(664, 20); c.stroke();
+    ellipse(c, 1000, VIEW_H - 18, 14, 10); c.fill(); c.beginPath(); c.moveTo(990, VIEW_H - 24); c.lineTo(984, VIEW_H - 38); c.lineTo(996, VIEW_H - 27); c.fill(); c.beginPath(); c.moveTo(1006, VIEW_H - 26); c.quadraticCurveTo(1030, VIEW_H - 50, 1040, VIEW_H - 20); c.lineTo(1010, VIEW_H - 14); c.fill();
   } else if (area === 'clock') {
     // A great cog rising from the bottom, chains from above, and a girder across a corner.
     const cx = 300, cy = VIEW_H + 20;
@@ -3021,10 +3272,32 @@ function drawShafts(c: C, g: FluffstevaniaGame, time: number) {
   c.restore();
 }
 
+/**
+ * The storm on the roof: rain slanting across the view in two layers, lightning flashing now and then (and whenever
+ * the Count calls a bolt down), and wind-blown leaves.
+ */
+function drawStorm(c: C, g: FluffstevaniaGame, time: number) {
+  c.save();
+  for (const [n, speed, len, alpha] of [[70, 380, 7, 0.22], [40, 520, 11, 0.35]] as const) {
+    c.strokeStyle = `rgba(190,205,255,${alpha})`; c.lineWidth = 0.7; c.beginPath();
+    for (let i = 0; i < n; i++) {
+      const x = mod(hash(i, n) * (VIEW_W + 60) - g.cam.x * 0.2 + time * speed * 0.3, VIEW_W + 60) - 30, y = mod(hash(n, i) * VIEW_H + time * speed, VIEW_H + 20) - 10;
+      c.moveTo(x, y); c.lineTo(x - len * 0.35, y + len);
+    }
+    c.stroke();
+  }
+  for (let i = 0; i < 5; i++) {
+    const x = mod(hash(i, 7) * VIEW_W - time * 90, VIEW_W + 20) - 10, y = mod(hash(7, i) * VIEW_H + Math.sin(time * 2 + i) * 20 + time * 30, VIEW_H);
+    c.fillStyle = 'rgba(150,120,80,0.7)'; ellipse(c, x, y, 2, 1, time * 4 + i); c.fill();
+  }
+  const bolt = g.shots.some((s) => s.kind === 'bolt') ? 1 : 0, flash = Math.max(lightning(time + 3.1) * 0.7, bolt);
+  if (flash > 0) { c.fillStyle = `rgba(200,215,255,${0.14 * flash})`; c.fillRect(0, 0, VIEW_W, VIEW_H); }
+  c.restore();
+}
 /** Colour grading: each area gets its own cast over everything but the HUD. */
 const GRADE: Record<AreaId, [string, number]> = {
   approach: ['#3050b8', 0.32], hall: ['#e0a060', 0.22], cellar: ['#d08030', 0.22], belfry: ['#60a0c8', 0.2], catacombs: ['#58b868', 0.3], library: ['#c86070', 0.2],
-  clock: ['#d8b050', 0.2],
+  clock: ['#d8b050', 0.2], roof: ['#5068c8', 0.26],
 };
 
 /** A curtain wipe between rooms: it sweeps off the way the heroes are heading, trimmed with gold. */
@@ -3060,7 +3333,7 @@ function drawWipe(c: C, g: FluffstevaniaGame, time: number) {
 }
 
 /** Boss titles for the intro card. */
-const BOSS_TITLE: Record<string, string> = { owl: 'Warden of the Belfry', rat: 'Tyrant of the Larder', fox: 'Master of the Castle', cat: 'Keeper of the Clock' };
+const BOSS_TITLE: Record<string, string> = { owl: 'Warden of the Belfry', rat: 'Tyrant of the Larder', fox: 'Master of the Castle', cat: 'Keeper of the Clock', night: 'Lord of Fluffstevania' };
 let introBoss: Boss | null = null, introAt = 0;
 /** The boss's name slams onto a black band across the screen as the fight begins. */
 function drawBossIntro(c: C, g: FluffstevaniaGame, time: number) {
@@ -3203,6 +3476,7 @@ export function drawGame(c: C, g: FluffstevaniaGame, time: number) {
   c.save(); c.translate(tx, ty); drawGlowFx(c, g); c.restore();
   drawForeground(c, g);
   if (area === 'hall' && lightning(time) > 0) { c.fillStyle = `rgba(190,205,255,${0.08 * lightning(time)})`; c.fillRect(0, 0, VIEW_W, VIEW_H); }
+  if (area === 'roof') drawStorm(c, g, time);
   if (g.duoT >= 0) drawDuo(c, g, time);
   // Air: a vignette everywhere, and drifting mist outside.
   const vig = c.createRadialGradient(VIEW_W / 2, VIEW_H / 2, VIEW_H * 0.4, VIEW_W / 2, VIEW_H / 2, VIEW_W * 0.68);

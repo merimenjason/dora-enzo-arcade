@@ -7,7 +7,7 @@ import {
   parseSave, freshSave, xpToNext, itemName, palXpToNext,
   type Input, type Save, type HeroId, type Slot, type Line, type Difficulty, type PalId, type BossId, type SubId, type SpellId,
 } from '../../lib/fluffstevania-game';
-import { drawGame, drawMap, mapLayout, gearIcon, subIcon, drawPal, drawFoeIcon, mapIcon, MAP_LEGEND, type MapMark } from '../../lib/fluffstevania-scene';
+import { drawGame, drawMap, mapLayout, gearIcon, subIcon, drawPal, drawFoeIcon, drawSpeaker, mapIcon, MAP_LEGEND, type MapMark } from '../../lib/fluffstevania-scene';
 import { Music } from '../../lib/fluffstevania-music';
 import { ChinchillaPortrait } from '../../components/chinchilla-portrait';
 import './fluffstevania.css';
@@ -46,12 +46,14 @@ const CUES: Record<string, [number, number, OscillatorType, number]> = {
   throw: [500, 700, 'triangle', 0.06], lunge: [200, 400, 'sawtooth', 0.15], flap: [300, 500, 'sine', 0.05], eat: [600, 900, 'sine', 0.2],
   walljump: [500, 900, 'square', 0.08], cling: [1400, 1000, 'triangle', 0.05], zip: [800, 2000, 'square', 0.18], boing: [200, 700, 'sine', 0.2],
   cuckoo: [1320, 1050, 'sine', 0.25], meow: [700, 450, 'triangle', 0.5], chime: [1760, 1720, 'sine', 0.6],
+  thunder: [80, 30, 'sawtooth', 0.8], stone: [180, 90, 'square', 0.25], caw: [900, 500, 'sawtooth', 0.18], howl: [300, 700, 'triangle', 0.9],
 };
 const fmt = (t: number) => `${Math.floor(t / 3600)}:${String(Math.floor((t / 60) % 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const NAMES: Record<HeroId, string> = { dora: 'Dora', enzo: 'Enzo' };
-const SPEAKERS: Record<Line['who'], { name: string; face?: string }> = {
-  dora: { name: 'Dora' }, enzo: { name: 'Enzo' }, owl: { name: 'Duke Hootsworth', face: '🦉' },
-  rat: { name: 'Gnawdrick the Rat King', face: '🐀' }, fox: { name: 'Count Culpeo', face: '🦊' }, cat: { name: 'Tick-Tock', face: '🐈' }, pip: { name: 'Pip', face: '🐹' }, sign: { name: '', face: '📜' },
+/** Everyone who talks. Their portraits are drawn from their sprites in the game (`SpeakerFace`, `PalFace`, `ChinchillaPortrait`). */
+const SPEAKERS: Record<Line['who'], { name: string }> = {
+  dora: { name: 'Dora' }, enzo: { name: 'Enzo' }, owl: { name: 'Duke Hootsworth' },
+  rat: { name: 'Gnawdrick the Rat King' }, fox: { name: 'Count Culpeo' }, cat: { name: 'Tick-Tock' }, pip: { name: 'Pip' }, sign: { name: '' },
   zippy: { name: 'Zippy' }, pudding: { name: 'Pudding' }, mochi: { name: 'Mochi' }, nutmeg: { name: 'Nutmeg' },
 };
 const STYLE_NOTE = { fan: 'wide sweeps and gusts; hold attack to spin', claws: 'lunging swipes', club: 'heavy lunging swings' };
@@ -61,7 +63,8 @@ const CHAPTERS: Record<number, { title: string; text: string; last: boolean }> =
   1: { title: 'The Owl Belfry falls quiet', text: 'The sealed door beyond the belfry stands open. Below it wait the Pantry Catacombs.', last: false },
   2: { title: 'The Rat King is dethroned', text: 'The key to Count Culpeo’s Library was under the cheese throne all along. The library door beyond the chimney stands open.', last: false },
   3: { title: 'Count Culpeo flees', text: 'The Count has fled to his Clock Tower with the Golden Wolfberry. The door beyond the balcony stands open, and the tower climbs into the night.', last: false },
-  4: { title: 'Tick-Tock runs down', text: 'The clockwork cat is still, and only the roof remains, where Count Culpeo waits with the Golden Wolfberry. The last chapter of Fluffstevania is still being written; your save will carry on into it.', last: true },
+  4: { title: 'Tick-Tock runs down', text: 'The clockwork cat is still, and the door to the roof stair stands open. Up there, under the storm, Count Culpeo waits with the Golden Wolfberry.', last: false },
+  5: { title: 'The Night Fox falls', text: 'The storm breaks, and the Count is just a little old fox asleep on the roof. In the garden beyond the summit, something glows gold.', last: true },
 };
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
 const SPELL_FACE: Record<SpellId, string> = { whirlwind: '🌪️', quake: '🪨', petals: '🌸', boulder: '🥎' };
@@ -103,11 +106,11 @@ export default function Fluffstevania() {
         Grandpa Pebble swears the <b>Golden Wolfberry</b> grows at the top of the castle on the mountain: one berry that never runs out of snacks.
         Dora and Enzo head in together. Explore a castle that opens up as you find relics, level up, collect gear, and <b>tag</b> between
         Dora&rsquo;s sweeping Dust Fan and Enzo&rsquo;s lunging claws. The one tagging in tumbles through anything in the way. Chain combos, cast spells,
-        throw sub-weapons, unleash a Duo Strike together, and befriend a sugar glider, a guinea pig, a capybara and a chipmunk along the way.
+        throw sub-weapons, unleash a Duo Strike together, and befriend a sugar glider, a guinea pig, a capybara and a chipmunk on the way to the roof.
       </p>
       <div className="fv-row fv-start">
         {save && <button className="fv-go" onClick={() => setMode({ kind: 'play', save, key: Date.now() })} data-testid="continue">
-          Continue <small>Lv {save.level} · {DIFFICULTY[save.difficulty].name} · {fmt(save.time)}</small>
+          Continue <small>Lv {save.level} · {DIFFICULTY[save.difficulty].name} · {fmt(save.time)}{save.flags.includes('wolfberry') ? ' · ✦ Wolfberry found' : ''}</small>
         </button>}
         <button className={save ? '' : 'fv-go'} onClick={() => setMode({ kind: 'play', save: freshSave(diff), key: Date.now() })} data-testid="new-game">
           {save ? 'New game' : 'Begin →'}
@@ -127,7 +130,7 @@ export default function Fluffstevania() {
       <div><h2>Explore</h2><p><b>↑</b> reads signs and shops · <b>Shift</b> or <b>L</b> Dust Dash, <b>jump in mid-air</b> for the Cloud Hop, and <b>hold toward a wall</b> in mid-air to cling and <b>jump</b> to kick off it, once you find them · <b>Esc</b>, <b>Enter</b> or <b>M</b> opens the menu and map</p></div>
       <div><h2>Rest</h2><p>Walk into a golden <b>dust-bath shrine</b> to heal both heroes and save. Candles hide seeds and raisins; cracked walls hide secrets. Pip the hamster sells supplies for raisins.</p></div>
     </section>
-    <p className="fv-foot">Four chapters of the castle are open: the Moonlit Approach, Entrance Hall, Hay Cellar and Owl Belfry, the Pantry Catacombs, Count Culpeo&rsquo;s Library and the Clock Tower. The roof, and the Golden Wolfberry, are on the way.</p>
+    <p className="fv-foot">Five chapters, from the Moonlit Approach through the Pantry Catacombs, Count Culpeo&rsquo;s Library and the Clock Tower to the Moonlit Roof, where the Golden Wolfberry grows.</p>
   </main>;
 }
 
@@ -198,7 +201,7 @@ function Play({ start, sound, onSound, music, onMusic, onSaved, onContinue, onTi
       if (musicRef.current) {
         try { audio.current ??= new AudioContext(); band.current ??= new Music(audio.current); } catch {}
         if (audio.current?.state === 'suspended') audio.current.resume().catch(() => {});
-        band.current?.play(gm.state === 'dead' ? null : gm.boss ? 'boss' : gm.room.area);
+        band.current?.play(gm.state === 'dead' ? null : gm.state === 'ending' ? 'ending' : gm.boss ? (gm.boss.kind === 'night' ? 'final' : 'boss') : gm.room.area);
       } else band.current?.play(null);
       if (gm.saved && gm.saved !== savedRef.current) { savedRef.current = gm.saved; onSavedRef.current(gm.saved); }
       const c = canvas.current?.getContext('2d');
@@ -264,7 +267,7 @@ function Play({ start, sound, onSound, music, onMusic, onSaved, onContinue, onTi
       {line && <div className={`fv-dialog fv-who-${line.who}`} data-testid="dialog">
         <div className="fv-face" aria-hidden="true">
           {line.who === 'dora' || line.who === 'enzo' ? <ChinchillaPortrait id={line.who} className="fv-face-art" />
-            : line.who in PALS ? <PalFace id={line.who as PalId} /> : <span>{SPEAKERS[line.who].face}</span>}
+            : line.who in PALS ? <PalFace id={line.who as PalId} /> : <SpeakerFace who={line.who} />}
         </div>
         <div>
           <strong>{SPEAKERS[line.who].name}</strong>
@@ -287,6 +290,24 @@ function Play({ start, sound, onSound, music, onMusic, onSaved, onContinue, onTi
         <p>Dora and Enzo curl up in a fluffy heap. They wake at the last dust-bath shrine.</p>
         <div className="fv-row">
           <button className="fv-go" onClick={onContinue}>Continue</button>
+          <button onClick={onTitle}>Title</button>
+        </div>
+      </section>}
+      {g.state === 'ending' && <section className="fv-overlay fv-ending" data-testid="ending" data-nav>
+        <p className="fv-eyebrow">THE END</p>
+        <strong>The Golden Wolfberry</strong>
+        <p>Dora and Enzo climbed the whole of Fluffstevania, from the moonlit path to the roof, and brought home a berry that never runs out of snacks.</p>
+        <dl className="fv-credits">
+          <dt>Level</dt><dd>{g.level}</dd>
+          <dt>Time</dt><dd>{fmt(g.time)}</dd>
+          <dt>Explored</dt><dd>{g.completion}%</dd>
+          <dt>Foes bested</dt><dd>{Object.entries(g.kills).filter(([k]) => !(Object.values(BOSS_KILLS) as string[]).includes(k)).reduce((n, [, v]) => n + v, 0)}</dd>
+          <dt>Friends made</dt><dd>{Object.keys(g.pals).length} of {Object.keys(PALS).length}</dd>
+          <dt>Difficulty</dt><dd>{DIFFICULTY[g.difficulty].name}</dd>
+        </dl>
+        <p className="fv-small">Starring Dora and Enzo, with Pip, Pudding, Zippy, Mochi and Nutmeg, and Duke Hootsworth, Gnawdrick, Count Culpeo and Tick-Tock as themselves. The Golden Wolfberry is in your bag: wear it as an accessory. The castle is still yours to explore.</p>
+        <div className="fv-row">
+          <button className="fv-go" onClick={() => g.resume()}>Keep exploring</button>
           <button onClick={onTitle}>Title</button>
         </div>
       </section>}
@@ -435,7 +456,7 @@ function Shop({ g, onClose }: { g: FluffstevaniaGame; onClose: () => void }) {
   };
   return <section className="fv-menu fv-shop" aria-label="Pip's shop" data-testid="shop" data-nav>
     <header className="fv-shop-head">
-      <span className="fv-shop-face" aria-hidden="true">🐹</span>
+      <SpeakerFace who="pip" className="fv-shop-face" />
       <div><h3>Pip&rsquo;s Stall</h3><p>{said}</p></div>
       <p className="fv-purse"><b>{g.raisins}</b> raisins</p>
       <button className="fv-close" onClick={onClose} data-testid="shop-close">Leave</button>
@@ -463,6 +484,8 @@ function focusDefault(panel: HTMLElement) {
 /** Move focus to the nearest button that way, weighing sideways distance heavily so lists and rows feel natural. Tabs open as they're reached. */
 function moveFocus(panel: HTMLElement, dir: 'left' | 'right' | 'up' | 'down') {
   const cur = document.activeElement as HTMLElement | null, items = navItems(panel);
+  // Steering with the arrows is deliberate, so the panel is ready for a pick straight away.
+  if (!panel.dataset.navAt) panel.dataset.navAt = String(performance.now() - 1000);
   if (!cur || !items.includes(cur as HTMLButtonElement)) { focusDefault(panel); return; }
   const r = cur.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
   let best: HTMLButtonElement | null = null, score = Infinity;
@@ -479,8 +502,14 @@ function moveFocus(panel: HTMLElement, dir: 'left' | 'right' | 'up' | 'down') {
   best.focus();
   if (best.getAttribute('role') === 'tab') best.click();
 }
-/** Press the focused button; the first press on a panel only picks a button, so a mashed key can't skip a card. */
+/**
+ * Press the focused button. The first press on a panel only picks a button, and picks are ignored for a moment after
+ * that, so mashing through the last lines of a dialog can't skip a chapter card or the credits.
+ */
 function choose(panel: HTMLElement) {
+  const now = performance.now(), since = Number(panel.dataset.navAt ?? 0);
+  if (!since) { panel.dataset.navAt = String(now); if (!panel.contains(document.activeElement)) focusDefault(panel); return; }
+  if (now - since < 700) return;
   const cur = document.activeElement as HTMLElement | null;
   if (cur && cur.tagName === 'BUTTON' && panel.contains(cur)) cur.click(); else focusDefault(panel);
 }
@@ -494,6 +523,21 @@ function SubIcon({ id }: { id: SubId }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => { const c = ref.current?.getContext('2d'); if (!c) return; c.clearRect(0, 0, 40, 40); subIcon(c, id, 20, 20, 2.6); }, [id]);
   return <canvas ref={ref} width={40} height={40} className="fv-icon" aria-hidden="true" />;
+}
+/** A speaker's portrait drawn from their in-game sprite, gently animated: the bosses, Pip, or a signboard. */
+function SpeakerFace({ who, className = 'fv-face-art' }: { who: string; className?: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    let raf = 0;
+    const draw = (now: number) => {
+      const c = ref.current?.getContext('2d');
+      if (c) { c.setTransform(1, 0, 0, 1, 0, 0); drawSpeaker(c, who, 84, 68, now / 1000); }
+      raf = requestAnimationFrame(draw);
+    };
+    raf = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(raf);
+  }, [who]);
+  return <canvas ref={ref} width={84} height={68} className={className} aria-hidden="true" data-testid={`face-${who}`} />;
 }
 /** A familiar's portrait, drawn on a small canvas and gently animated. */
 function PalFace({ id, small }: { id: PalId; small?: boolean }) {

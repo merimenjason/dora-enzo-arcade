@@ -4,12 +4,9 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 24-09-2026
 
-### Changed
-
-- **Fluffstevania: Symphony of the Dust:** **Mist Form** is now **Dust Form**, to suit the chinchillas: at an iron grate the heroes crumble into a swirl of sandy bath dust and sift through the bars. Saves with Mist Form carry over as Dust Form.
-- **Fluffstevania: Symphony of the Dust:** every weapon now looks different. The Dust Fan is pink paper with cherry blossoms, the Moonlit Fan midnight silk with a crescent moon and a silver tassel, and the Wolfberry Fan crimson with a scalloped gold edge and golden berries. Enzo swipes with his bare paws or a steel gauntlet with blades, and his clubs are a cudgel, a marble rolling pin that puffs flour, and the Heavy Tome, which now actually looks like a red leather book instead of the cudgel. Heroes carry their weapon when they aren't swinging it, with the fan in Dora's paw and clubs strapped to Enzo's back, and slash marks take each weapon's colour. The menu icons match.
-
 ### Added
+
+- **Fluffstevania: Symphony of the Dust:** chapter V, **the Moonlit Roof**, the last chapter. Beating Tick-Tock opens the door to the roof: seven rooms out on the castle's rooftops in a storm, with rain, lightning and a full moon. Gargoyles sleep as stone until you come close, then dive at you and fly home to their perches; storm crows circle and swoop. A great chimney only the Wall Cling climbs leads up to a gargoyle roost with two new weapons, the **Celestial Fan** for Dora and the **Gargoyle Maul** for Enzo. Pip has one last stall. At the summit **Count Culpeo** fights for the last time, calling lightning down on the roof, until he bites the Golden Wolfberry and becomes the **Night Fox**, a great winged fox who breathes fire along the roof, swoops low, and brings down falling stars. In the garden beyond, the **Golden Wolfberry** ends the story with the credits, and you can wear it as an accessory and keep exploring. The roof and the final fight have their own music, and so do the credits.
 
 - **Fluffstevania: Symphony of the Dust:** the menu, Pip's shop, the shrine warp list and the game-over and chapter cards can be steered with the keys you move with. The arrow keys (or WASD) move between buttons, tabs open as you reach them, and Z, X or Space picks. The first press on a card only highlights a button, so mashing through a boss's last words won't skip the chapter card.
 
@@ -18,6 +15,11 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 - **Fluffstevania: Symphony of the Dust:** chapter III, **Count Culpeo’s Library**. Beating the Rat King unlocks the library door beyond the chimney, opening ten new rooms: a reading room, a shaft of shelves, an archive, a scriptorium, a tower and the Count’s study. It has flying tomes that snap at you, ink quills that flick ink, and ink blots that gather themselves up and spring. A bookshelf puzzle in the archive hides the Heavy Tome, a new club for Enzo, and the **Mist Form** relic turns the heroes into a wisp of dust that drifts through iron grates. That's the way into the Count’s tower, and into a reading nook with a Wolfberry Leaf. **Count Culpeo**, a fox in a vampire’s cape, arrives out of a swirl of bats. He throws fans of fireballs, vanishes to reappear behind you and sweep his cape along the floor, swoops across his study, and at half health calls his bats and raises pillars of fire. The library has its own scenery, shrine and music, and the Bestiary has four new entries.
 
 ### Changed
+
+- **Fluffstevania: Symphony of the Dust:** everyone who talks now has a portrait drawn from how they really look in the game. The emoji faces for Duke Hootsworth, the Rat King, Count Culpeo, Tick-Tock and Pip are gone (the Rat King's crown, the Count's cape and Tick-Tock's brass joints and bell now show), signs show a wooden signboard, and Pip's shop shows the same Pip as his stall. The keyboard menus also wait a moment before a card or the credits accept a pick, so mashing through a dialog won't skip them.
+
+- **Fluffstevania: Symphony of the Dust:** **Mist Form** is now **Dust Form**, to suit the chinchillas: at an iron grate the heroes crumble into a swirl of sandy bath dust and sift through the bars. Saves with Mist Form carry over as Dust Form.
+- **Fluffstevania: Symphony of the Dust:** every weapon now looks different. The Dust Fan is pink paper with cherry blossoms, the Moonlit Fan midnight silk with a crescent moon and a silver tassel, and the Wolfberry Fan crimson with a scalloped gold edge and golden berries. Enzo swipes with his bare paws or a steel gauntlet with blades, and his clubs are a cudgel, a marble rolling pin that puffs flour, and the Heavy Tome, which now actually looks like a red leather book instead of the cudgel. Heroes carry their weapon when they aren't swinging it, with the fan in Dora's paw and clubs strapped to Enzo's back, and slash marks take each weapon's colour. The menu icons match.
 
 - **Fluffstevania: Symphony of the Dust:** the map is now drawn at a fixed, readable size and scrolls sideways, opening on where you are. The belfry stair’s three missing candles are lit again.
 

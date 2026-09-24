@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {
   FluffstevaniaGame, ROOMS, COLS, ROWS, TILE, NO_INPUT, FOES, OWL, RAT, rawTile, roomAt, roomById, isSolid, parseSave, freshSave, xpToNext,
   TOTAL_CELLS, DASH_T, SHOP, GHOST_ON, GHOST_OFF, DIFFICULTY, CHARGE_T, SPIN, DUO_MAX, SPELLS, SUBS, maxMp, palXpToNext, BURN_T,
-  BOSSES, CLING_FALL, ROLL_T, PETAL_T, foeHidden, roomRect,
+  BOSSES, CLING_FALL, ROLL_T, PETAL_T, foeHidden, roomRect, NIGHT_BEAST, GEAR,
 } from '../.checks/fluffstevania-game.js';
 
 const DT = 1 / 120;
@@ -41,7 +41,7 @@ test('every opening on a side or floor edge leads into another room', () => {
     for (let x = c0; x <= c1; x++) edges.push([x, r1, 0, 1]);
     for (const [x, y, dx, dy] of edges) {
       if (isSolid(rawTile(x, y))) continue;
-      if (r.area === 'approach' && dy === 0 && y < r0 + 9) continue; // open sky over the approach
+      if ((r.area === 'approach' || r.area === 'roof') && dy === 0 && y < r0 + 9) continue; // open sky over the approach and the roof
       assert.ok(roomAt(Math.floor((x + dx) / COLS), Math.floor((y + dy) / ROWS)), `${r.id} opens at ${x},${y} onto nothing`);
     }
   }
@@ -53,8 +53,8 @@ test('every opening on a side or floor edge leads into another room', () => {
 // Count Culpeo (`ab.fox`) beaten, or the archive's shelf puzzle solved (`ab.puzzle`). Iron grates let a hero through
 // only with Dust Form. With the Wall Cling (`ab.climb`) a hero can cling to any spot beside a wall, and a kick off it
 // works like a jump.
-let ab = { dash: false, hop: false, owl: false, rat: false, dustform: false, puzzle: false, fox: false, climb: false };
-const OPENED = { 'boss:owl': 'owl', 'boss:rat': 'rat', 'puzzle:archive': 'puzzle', 'boss:fox': 'fox' };
+let ab = { dash: false, hop: false, owl: false, rat: false, dustform: false, puzzle: false, fox: false, climb: false, cat: false };
+const OPENED = { 'boss:owl': 'owl', 'boss:rat': 'rat', 'puzzle:archive': 'puzzle', 'boss:fox': 'fox', 'boss:cat': 'cat' };
 const door = (c, r) => rawTile(c, r) === 'D' && !ab[OPENED[roomAt(Math.floor(c / COLS), Math.floor(r / ROWS))?.opens]];
 const open = (c, r) => { const ch = rawTile(c, r); return !(ch === '#' || ch === '^' || door(c, r) || (ch === '|' && !ab.dustform)); };
 const floorAt = (c, r) => { const ch = rawTile(c, r); return ch === '#' || ch === '=' || ch === '%' || ch === '|' || door(c, r); };
@@ -92,7 +92,7 @@ function moves(c, r) {
   return out;
 }
 function explore(abilities) {
-  ab = { dash: false, hop: false, owl: false, rat: false, dustform: false, puzzle: false, fox: false, climb: false, ...abilities };
+  ab = { dash: false, hop: false, owl: false, rat: false, dustform: false, puzzle: false, fox: false, climb: false, cat: false, ...abilities };
   const start = [5, 2 * ROWS + 11], seen = new Map([[key(...start), start]]), queue = [start], edges = new Map();
   while (queue.length) {
     const [c, r] = queue.shift(), from = key(c, r);
@@ -172,10 +172,29 @@ test('the Clock Tower opens once the Count flees; its sheer shaft, the pocket wa
   assert.ok(!seen.has(spotOf('cuckoo-gallery', 'H')), 'so does the gallery leaf');
   const climbed = roomsIn(explore({ ...before, climb: true }).seen);
   for (const r of ROOMS) if (r.area === 'clock') assert.ok(climbed.has(r.id), r.id);
+  for (const r of ROOMS) if (r.area === 'roof') assert.ok(!climbed.has(r.id), `${r.id} should wait for Tick-Tock`);
+});
+
+test('the roof opens once Tick-Tock runs down; the gargoyle roost is up a chimney only claws climb', () => {
+  const all = { dash: true, hop: true, owl: true, rat: true, dustform: true, puzzle: true, fox: true, climb: true, cat: true };
+  const { seen } = explore(all), rooms = roomsIn(seen);
+  for (const r of ROOMS) if (r.area === 'roof') assert.ok(rooms.has(r.id), r.id);
+  for (const ch of ['I', 'H']) assert.ok(seen.has(spotOf('roost', ch)), `roost ${ch}`);
+  assert.ok(seen.has(spotOf('garden', 'X')), 'the Golden Wolfberry');
+  // Without claws, the great chimney's top (and the roost above it) is out of reach even from the slates.
+  const slates = roomById('slates'), top = key(slates.mx * COLS + 35, slates.my * ROWS + 1);
+  assert.ok(seen.has(top), 'claws reach the top of the great chimney');
+  ab.climb = false;
+  const floor = slates.my * ROWS + 11, queue = [];
+  for (let c = slates.mx * COLS; c < (slates.mx + slates.w) * COLS; c++) if (standable(c, floor)) queue.push([c, floor]);
+  const reach = new Set(queue.map(([c, r]) => key(c, r)));
+  while (queue.length) { const [c, r] = queue.shift(); for (const [x, y] of moves(c, r)) { const k2 = key(x, y); if (!reach.has(k2)) { reach.add(k2); queue.push([x, y]); } } }
+  assert.ok(!reach.has(top), 'no claws, no chimney top');
+  assert.ok(![...reach].some((k2) => { const [c, r] = k2.split(',').map(Number); return roomAt(Math.floor(c / COLS), Math.floor(r / ROWS))?.id === 'roost'; }), 'no claws, no roost');
 });
 
 test('with every relic every room is reachable and every spot can get back to the start', () => {
-  const { seen, edges, start } = explore({ dash: true, hop: true, owl: true, rat: true, dustform: true, puzzle: true, fox: true, climb: true });
+  const { seen, edges, start } = explore({ dash: true, hop: true, owl: true, rat: true, dustform: true, puzzle: true, fox: true, climb: true, cat: true });
   const rooms = roomsIn(seen);
   for (const r of ROOMS) assert.ok(rooms.has(r.id), r.id);
   for (const [room, ch] of [['jam-vault', 'I'], ['jam-vault', 'H'], ['ossuary', 'H'], ['stair', 'U'], ['reading', 'H'], ['reliquary', 'I'], ['scriptorium', 'I'], ['dust-vault', 'R'],
@@ -1008,6 +1027,101 @@ test('Nutmeg joins for her pocket watch, then fetches loose loot and digs up rai
   assert.equal(back.pal, 'nutmeg'); assert.ok(back.has('climb') && back.flags.has('watch'));
 });
 
+// ─── Chapter V: the Moonlit Roof ───────────────────────────────────────────
+
+const chapter5 = () => {
+  const g = chapter4();
+  for (const f of ['boss:cat', 'script:roof', 'script:pipRoof']) g.flags.add(f);
+  g.relics.add('climb'); g.level = 20;
+  g.hp.dora = g.stats('dora').maxHp; g.hp.enzo = g.stats('enzo').maxHp; g.mp = g.maxMp;
+  return g;
+};
+
+test('the clock tower door to the roof opens once Tick-Tock runs down', () => {
+  const g = fresh();
+  const room = roomById('clock-top'), c = room.mx * COLS + 18, r = room.my * ROWS + 10;
+  assert.ok(isSolid(g.tile(c, r)));
+  g.flags.add('boss:cat');
+  assert.ok(!isSolid(g.tile(c, r)));
+});
+
+test('roof foes: gargoyles sleep as stone, wake, dive and fly home; storm crows circle and swoop', () => {
+  const g = chapter5();
+  place(g, 'slates', 30, 11);
+  g.enemies = [];
+  g.hp.dora = g.hp.enzo = 9999;
+  const garg = g.spawn('gargoyle', g.body.x + 60, g.body.y - 30); garg.hx = garg.x; garg.hy = garg.y;
+  const crow = g.spawn('crow', g.body.x - 90, g.body.y - 90); crow.hx = crow.x; crow.hy = crow.y;
+  assert.ok(foeHidden(garg), 'the gargoyle starts as stone');
+  const states = { garg: new Set(), crow: new Set() };
+  let home = false;
+  for (let i = 0; i < 120 * 10; i++) {
+    g.step(DT, NO_INPUT); g.body.invT = 0.5;
+    states.garg.add(garg.state); states.crow.add(crow.state);
+    if (states.garg.has('lunge') && garg.state === 'idle') home = true;
+    if (i === 120 * 5) { g.body.x -= 200; }   // walk off so the gargoyle goes home
+  }
+  for (const st of ['awake', 'wind', 'lunge', 'rest']) assert.ok(states.garg.has(st), `gargoyle ${st}`);
+  assert.ok(home, 'back on its perch as stone');
+  assert.ok(states.crow.has('lunge') && states.crow.has('rest'), 'the crow swoops and climbs');
+});
+
+test('the Night Fox: the Count fights all-out with lightning, grows wings at half health, and falls to end chapter five', () => {
+  const g = chapter5();
+  place(g, 'summit', 6, 11);
+  skipTalk(g);
+  assert.ok(g.fight && g.boss && g.boss.kind === 'night');
+  g.hp.dora = g.hp.enzo = 9999;
+  const moves = new Set();
+  let bolts = false;
+  for (let i = 0; i < 120 * 40; i++) { g.step(DT, NO_INPUT); moves.add(g.boss.move); bolts ||= g.shots.some((s) => s.kind === 'bolt'); }
+  for (const m of ['fire', 'vanish', 'swoop', 'pillars', 'bolts']) assert.ok(moves.has(m), `the Count uses ${m}`);
+  assert.ok(bolts, 'lightning strikes the roof');
+  assert.deepEqual(g.bossBox(g.boss).w, BOSSES.night.w, 'still fox-sized');
+  g.boss.move = 'float'; g.boss.t = 0;
+  g.boss.hp = g.boss.max / 2 - 1; g.hitBoss(1, 0);
+  g.step(DT, NO_INPUT);
+  assert.ok(g.boss.phase2 && g.boss.move === 'transform', 'he transforms');
+  assert.ok(!g.bossOpen(g.boss), 'and can’t be hit while he does');
+  assert.equal(g.bossBox(g.boss).w, NIGHT_BEAST.w, 'now a great winged fox');
+  moves.clear();
+  let meteors = false, breath = 0;
+  for (let i = 0; i < 120 * 40; i++) { g.step(DT, NO_INPUT); moves.add(g.boss.move); meteors ||= g.shots.some((s) => s.kind === 'meteor'); if (g.boss.move === 'breath') breath = Math.max(breath, g.shots.filter((s) => s.kind === 'fire').length); }
+  for (const m of ['soar', 'breath', 'dive', 'perch', 'meteors']) assert.ok(moves.has(m), `the Night Fox uses ${m}`);
+  assert.ok(meteors, 'stars fall');
+  assert.ok(breath >= 5, 'a stream of fire');
+  g.boss.move = 'soar'; g.boss.t = 0; g.boss.hp = 1; g.hitBoss(60, 0);
+  run(g, {}, 2.2);
+  assert.ok(g.flags.has('boss:night'));
+  assert.equal(g.kills.nightfox, 1);
+  assert.equal(g.dialog.lines[0].who, 'fox');
+  skipTalk(g);
+  assert.equal(g.state, 'chapter');
+  assert.equal(g.chapter, 5);
+});
+
+test('the Golden Wolfberry: picking it ends the story, heals, saves, gives the accessory, and you can play on', () => {
+  const g = chapter5();
+  g.flags.add('boss:night');
+  place(g, 'garden', 12, 11);
+  g.enemies = []; g.hp.dora = 1;
+  run(g, { right: true }, 0.3); run(g, { right: true, jump: true }, 0.4); run(g, { right: true }, 0.6);
+  assert.ok(g.flags.has('wolfberry'), 'picked');
+  assert.equal(g.dialog.lines[0].text.includes('Golden Wolfberry'), true);
+  assert.equal(g.hp.dora, g.stats('dora').maxHp, 'healed');
+  assert.ok(g.saved && g.saved.flags.includes('wolfberry'), 'saved at once');
+  skipTalk(g);
+  assert.equal(g.state, 'ending');
+  g.resume();
+  assert.equal(g.state, 'play');
+  g.equipped.dora.acc = null;
+  const lck = g.stats('dora').lck;
+  assert.ok(g.equip('dora', 'acc', 'goldberry'), 'the Golden Wolfberry is an accessory');
+  assert.equal(g.stats('dora').lck, lck + GEAR.goldberry.lck, 'its luck applies');
+  place(g, 'garden', 12, 11);
+  assert.ok(!g.pickups.some((p) => p.kind === 'goal'), 'only one berry to pick');
+});
+
 // ─── Round three: difficulty, combos, the fan, Duo Strike, magic, familiars ───
 
 test('difficulty scales foes, Easy heals at doorways and Hard bosses start fierce', () => {
@@ -1305,4 +1419,4 @@ test('the same inputs always play out the same way', () => {
   assert.equal(play(), play());
 });
 
-console.log(`PASS Fluffstevania: ${passed} checks covering the map, reachability, movement, combat and combos, the fan, Duo Strike, spells, sub-weapons, tagging, saves, difficulty, respawns, warps, familiars, the shop, the foes and all four bosses, the library's grates and shelf puzzle, the Clock Tower's Wall Cling, spell scrolls and Clockwork Cog, Nutmeg, and the effects that feed the renderer.`);
+console.log(`PASS Fluffstevania: ${passed} checks covering the map, reachability, movement, combat and combos, the fan, Duo Strike, spells, sub-weapons, tagging, saves, difficulty, respawns, warps, familiars, the shop, the foes and all five bosses, the roof and the ending, the library's grates and shelf puzzle, the Clock Tower's Wall Cling, spell scrolls and Clockwork Cog, Nutmeg, and the effects that feed the renderer.`);
