@@ -47,6 +47,11 @@ try {
   await page.keyboard.press('Escape');
   await page.getByTestId('menu').waitFor();
   const frozen = await data(page, 'x');
+  // The arrow keys walk the tabs.
+  await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
+  assert.equal(await page.getByRole('tab', { name: 'Equip' }).getAttribute('aria-selected'), 'true', 'arrows move along the tabs');
+  await page.keyboard.press('ArrowLeft');
+  assert.equal(await page.getByRole('tab', { name: 'Status' }).getAttribute('aria-selected'), 'true');
   for (const tab of ['Equip', 'Magic', 'Items', 'Familiars', 'Bestiary', 'Map', 'Status']) await page.getByRole('tab', { name: tab }).click();
   await page.getByRole('tab', { name: 'Map' }).click();
   assert.equal(await page.getByTestId('map-legend').locator('li').count(), 11, 'the map legend lists every icon');
@@ -94,7 +99,8 @@ try {
   await page.keyboard.press('ArrowUp');
   await page.getByTestId('shop').waitFor();
   assert.ok(await page.getByTestId('buy-ring').isDisabled(), 'the ring costs too much');
-  await page.getByTestId('buy-cake').click();
+  // Buy with the keys: down to the berries, down to the cake, Z to buy.
+  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('z');
   assert.match(await page.getByTestId('shop').textContent(), /6 raisins/);
   await page.keyboard.press('Escape');
   await page.getByTestId('shop').waitFor({ state: 'detached' });
@@ -133,7 +139,7 @@ try {
   await page.setViewportSize({ width: 1280, height: 900 });
 
   // A save high in the Clock Tower loads there: Pip's second stall, and a scroll spell known from the Magic tab.
-  const tower = { ...library, room: 'save-clock', x: 33 * 384 + 12 * 16 + 8, y: -2 * 224 + 12 * 16, level: 15, relics: ['dash', 'hop', 'mist', 'climb'],
+  const tower = { ...library, room: 'save-clock', x: 33 * 384 + 12 * 16 + 8, y: -2 * 224 + 12 * 16, level: 15, relics: ['dash', 'hop', 'dustform', 'climb'],
     flags: [...library.flags, 'boss:fox', 'script:clock', 'script:pipClock', 'spell:petals'] };
   await page.goto(`${base}/fluffstevania`);
   await page.evaluate((s) => localStorage.setItem('fluffstevania-v1', JSON.stringify(s)), tower);
@@ -160,7 +166,7 @@ try {
   assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'no sideways scroll on a phone');
 
   assert.deepEqual(errors, []);
-  console.log('PASS Fluffstevania browser: difficulty, story, walking, attack, tag, drawn castle, pausing menu with every tab and the map legend, continue from an older save, equipping a fan, the Magic tab and Bestiary, Pip’s shop, warping between shrines, the music toggle, a library save and the scrolling map, a Clock Tower save with a scroll spell and the Wall Cling, phone layout.');
+  console.log('PASS Fluffstevania browser: difficulty, story, walking, attack, tag, drawn castle, pausing menu with every tab and the map legend, arrow keys walking the tabs, continue from an older save, equipping a fan, the Magic tab and Bestiary, Pip’s shop (bought with the keys), warping between shrines, the music toggle, a library save and the scrolling map, a Clock Tower save with a scroll spell and the Wall Cling, phone layout.');
 } finally {
   await browser.close();
 }

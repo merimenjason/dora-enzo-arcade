@@ -17,7 +17,7 @@ export const AREAS: Record<AreaId, { name: string; color: string }> = {
 /**
  * Tiles: `#` wall, `=` ledge you can jump up through, `^` spikes, `%` a cracked wall that breaks when hit,
  * `G` a boss gate (shut during the fight), `D` a sealed door (open once the room's `opens` flag is set), `|` an iron
- * grate (a wall to everything but a hero in Mist Form). Things
+ * grate (a wall to everything but a hero in Dust Form). Things
  * placed on the map: `S` dust-bath shrine (saves and heals), `$` Pip's shop, `i` candle, `n` sign, `H` Wolfberry
  * Leaf (max HP up), `R` relic, `I` item, `U` sub-weapon, `T` spell scroll (the room's `spell`), `W` Nutmeg's pocket
  * watch, `O` boss, the familiars waiting to be befriended (`P` Pudding, `Z` Zippy's cage, `Y` Mochi, `C` Nutmeg), and
@@ -30,7 +30,7 @@ export type Room = {
   id: string; area: AreaId; mx: number; my: number; w: number; h: number; rows: string[];
   notes?: string[]; items?: string[]; relic?: RelicId; boss?: BossId; opens?: string; sub?: SubId; puzzle?: 1 | 2 | 3; spell?: SpellId;
 };
-export type RelicId = 'dash' | 'hop' | 'mist' | 'climb';
+export type RelicId = 'dash' | 'hop' | 'dustform' | 'climb';
 export type BossId = 'owl' | 'rat' | 'fox' | 'cat';
 
 type Pen = {
@@ -216,7 +216,7 @@ export const ROOMS: Room[] = [
     p.fill(0, 9, 0, 11, '.'); p.fill(71, 9, 71, 11, '.');
     p.fill(30, 12, 33, 13, '.');        // a hole down into the stacks
     p.put(10, 8, '======'); p.put(20, 9, '====='); p.put(38, 8, '======');
-    // A reading nook high on the right, behind an iron grate: only Mist Form slips in.
+    // A reading nook high on the right, behind an iron grate: only Dust Form slips in.
     p.put(48, 9, '====='); p.put(53, 7, '=====');
     p.fill(59, 2, 59, 6, '|'); p.fill(59, 7, 70, 7);
     p.put(65, 6, 'H');
@@ -228,7 +228,7 @@ export const ROOMS: Room[] = [
   room('stacks', 'library', 19, 1, 1, 2, (p) => {
     p.box(); p.fill(0, 0, 1, 27); p.fill(22, 0, 23, 27); p.fill(0, 26, 23, 27);
     p.fill(6, 0, 9, 0, '.');            // up into the reading room
-    p.fill(0, 23, 1, 25, '.');          // lower left, to the Mist Form vault
+    p.fill(0, 23, 1, 25, '.');          // lower left, to the Dust Form vault
     p.fill(22, 23, 23, 25, '.');        // lower right, to the archive
     p.put(4, 3, '========'); p.put(10, 6, '=========='); p.put(4, 10, '=========='); p.put(10, 14, '==========');
     p.put(4, 18, '=========='); p.put(10, 22, '==========');
@@ -236,12 +236,12 @@ export const ROOMS: Room[] = [
     p.put(8, 8, 'v'); p.put(16, 17, 'v'); p.put(18, 11, 'q'); p.put(14, 25, 'j');
   }),
 
-  room('mist-vault', 'library', 18, 2, 1, 1, (p) => {
+  room('dust-vault', 'library', 18, 2, 1, 1, (p) => {
     p.box(); p.fill(0, 12, 23, 13); p.fill(0, 0, 23, 3);
     p.fill(23, 9, 23, 11, '.');
     p.fill(8, 11, 11, 11); p.put(9, 10, 'R');
     p.put(4, 8, 'i'); p.put(15, 8, 'i'); p.put(17, 11, 'j');
-  }, { relic: 'mist' }),
+  }, { relic: 'dustform' }),
 
   room('archive', 'library', 20, 2, 2, 1, (p) => {
     p.box(); p.fill(0, 0, 47, 2); p.fill(0, 12, 47, 13);
@@ -457,6 +457,9 @@ export const GEAR: Record<string, Gear> = {
 };
 /** Gear from older saves that has since been replaced. */
 export const RENAMED: Record<string, string> = { ribbon: 'fan', bramble: 'moonfan', rapier: 'fan', sabre: 'moonfan', wolfblade: 'wolffan' };
+/** Relics and rooms from older saves that have since been renamed (Mist Form became Dust Form). */
+export const RENAMED_RELICS: Record<string, string> = { mist: 'dustform' };
+export const RENAMED_ROOMS: Record<string, string> = { 'mist-vault': 'dust-vault' };
 export const FOOD: Record<string, { name: string; heal: number; text: string }> = {
   cake: { name: 'Hay Cake', heal: 40, text: 'Pressed hay and a raisin on top. Heals 40 HP.' },
   berry: { name: 'Wolfberry', heal: 20, text: 'An ordinary red wolfberry. Heals 20 HP.' },
@@ -465,7 +468,7 @@ export const FOOD: Record<string, { name: string; heal: number; text: string }> 
 export const RELICS: Record<RelicId, { name: string; text: string }> = {
   dash: { name: 'Dust Dash', text: 'Burst forward in a puff of dust, even once in mid-air. Dash then jump to leap far.' },
   hop: { name: 'Cloud Hop', text: 'Jump once more in mid-air, off a puff of dust.' },
-  mist: { name: 'Mist Form', text: 'Walk into an iron grate to become a wisp of dust and drift through the bars.' },
+  dustform: { name: 'Dust Form', text: 'Walk into an iron grate to crumble into a swirl of dust and sift through the bars, the way a chinchilla’s dust bath gets everywhere.' },
   climb: { name: 'Wall Cling', text: 'Push against a wall in mid-air to cling and slide, then jump to kick off it. Kick back and forth to climb.' },
 };
 // ─── Sub-weapons, spells and familiars ────────────────────────────────────
@@ -609,8 +612,8 @@ export const SCRIPTS: Record<string, Line[]> = {
     { who: 'enzo', text: 'That one just licked its pages at me.' },
     { who: 'dora', text: 'The Count must be close. Keep your paws off the shelves.' },
   ],
-  mist: [
-    { who: 'sign', text: 'You found Mist Form! Walk into an iron grate and you’ll puff into a wisp of dust and drift right through.' },
+  dustform: [
+    { who: 'sign', text: 'You found Dust Form! Walk into an iron grate and you’ll crumble into a swirl of dust and sift right through the bars.' },
     { who: 'enzo', text: 'That grate in the scriptorium. The one in front of the tower.' },
   ],
   fox: [

@@ -32,7 +32,7 @@ const CUES: Record<string, [number, number, OscillatorType, number]> = {
   jump: [380, 620, 'square', 0.07], dash: [220, 90, 'sawtooth', 0.14], thrust: [1500, 600, 'triangle', 0.08], swipe: [1200, 500, 'triangle', 0.06],
   hop: [600, 1100, 'sine', 0.1], squeak: [1800, 2400, 'square', 0.06], roar: [160, 70, 'sawtooth', 0.6], drop: [900, 300, 'sine', 0.12],
   buy: [880, 1760, 'square', 0.12], shop: [660, 990, 'triangle', 0.15], orb: [1500, 2300, 'sine', 0.05],
-  mist: [900, 300, 'sine', 0.3], snap: [700, 1400, 'square', 0.06], squish: [260, 120, 'sine', 0.15], fire: [500, 180, 'sawtooth', 0.22], laugh: [300, 520, 'triangle', 0.4],
+  dustform: [900, 300, 'sine', 0.3], snap: [700, 1400, 'square', 0.06], squish: [260, 120, 'sine', 0.15], fire: [500, 180, 'sawtooth', 0.22], laugh: [300, 520, 'triangle', 0.4],
   fan: [1100, 700, 'triangle', 0.08], finisher: [700, 1500, 'square', 0.14], spin: [400, 1200, 'triangle', 0.3], spell: [300, 1200, 'sine', 0.4],
   fizzle: [300, 150, 'square', 0.15], burst: [220, 80, 'sawtooth', 0.3], duo: [300, 1800, 'square', 0.6], duoready: [880, 1320, 'triangle', 0.3],
   nip: [1600, 1200, 'square', 0.05], bonk: [500, 300, 'square', 0.1], secret: [1320, 1760, 'sine', 0.5], dust: [1000, 1500, 'sine', 0.12], warp: [200, 1600, 'sine', 0.6],
@@ -216,6 +216,17 @@ function Play({ start, sound, onSound, music, onMusic, onSaved, onContinue, onTi
       const a = KEYS[e.code];
       if (!a) return;
       const target = e.target as HTMLElement | null;
+      // An open menu, shop, warp list or card takes the directions and the jump and attack keys.
+      const panel = navPanel();
+      if (panel && (a === 'left' || a === 'right' || a === 'up' || a === 'down' || a === 'jump' || a === 'attack')) {
+        keys.current[a] = false;
+        if (!on) return;
+        const native = target?.tagName === 'BUTTON' && (e.code === 'Space' || e.code === 'Enter');
+        if (native) return;
+        e.preventDefault();
+        if (a === 'jump' || a === 'attack') { if (!e.repeat) choose(panel); } else moveFocus(panel, a);
+        return;
+      }
       if (menuRef.current && a !== 'menu') return;
       const gm = game.current;
       if (target?.tagName === 'BUTTON' && (e.code === 'Space' || e.code === 'Enter') && (menuRef.current || gm.shop || gm.warp || gm.state !== 'play')) return;
@@ -263,7 +274,7 @@ function Play({ start, sound, onSound, music, onMusic, onSaved, onContinue, onTi
       </div>}
       {menu && <Menu g={g} tab={menu} onTab={setMenu} onClose={() => openMenu(false)} onTitle={onTitle} />}
       {g.shop && <Shop g={g} onClose={() => { g.closeShop(); keys.current = { ...NO_INPUT }; }} />}
-      {g.warp && <section className="fv-menu fv-warp" aria-label="Warp to a shrine" data-testid="warp">
+      {g.warp && <section className="fv-menu fv-warp" aria-label="Warp to a shrine" data-testid="warp" data-nav>
         <header className="fv-shop-head"><div><h3>Dust-bath shrines</h3><p>Step into one bath and out of another.</p></div>
           <button className="fv-close" onClick={() => { g.closeWarp(); keys.current = { ...NO_INPUT }; }}>Stay</button></header>
         <div className="fv-items">
@@ -271,7 +282,7 @@ function Play({ start, sound, onSound, music, onMusic, onSaved, onContinue, onTi
             {shrineName(id)}{id === g.room.id ? ' · you are here' : ''}</button>)}
         </div>
       </section>}
-      {g.state === 'dead' && <section className="fv-overlay" data-testid="game-over">
+      {g.state === 'dead' && <section className="fv-overlay" data-testid="game-over" data-nav>
         <strong>Worn out</strong>
         <p>Dora and Enzo curl up in a fluffy heap. They wake at the last dust-bath shrine.</p>
         <div className="fv-row">
@@ -279,7 +290,7 @@ function Play({ start, sound, onSound, music, onMusic, onSaved, onContinue, onTi
           <button onClick={onTitle}>Title</button>
         </div>
       </section>}
-      {g.state === 'chapter' && <section className="fv-overlay" data-testid="chapter">
+      {g.state === 'chapter' && <section className="fv-overlay" data-testid="chapter" data-nav>
         <p className="fv-eyebrow">CHAPTER {ROMAN[g.chapter] ?? g.chapter} CLEARED</p>
         <strong>{CHAPTERS[g.chapter]?.title}</strong>
         <p>Level {g.level} · {g.completion}% of the castle explored · {g.raisins} raisins · {fmt(g.time)}</p>
@@ -297,7 +308,7 @@ function Play({ start, sound, onSound, music, onMusic, onSaved, onContinue, onTi
         onContextMenu={(e) => e.preventDefault()}>{b.label}</button>)}
       <button className="fv-pad-menu" aria-label="Open the menu" onClick={() => openMenu(!menu)}>MENU</button>
     </div>
-    <p className="fv-keys"><b>Keys:</b> ← → move · Space/Z jump (again in mid-air to hop; toward a wall to cling, jump to kick off) · X attack (hold to spin as Dora) · ↑+X sub-weapon · F spell, ↓+F second spell · C tag · C+X or V Duo Strike · Shift dash · ↓+jump drop · ↑ read, talk, shop or warp · Esc menu. A gamepad works too.</p>
+    <p className="fv-keys"><b>Keys:</b> ← → move · Space/Z jump (again in mid-air to hop; toward a wall to cling, jump to kick off) · X attack (hold to spin as Dora) · ↑+X sub-weapon · F spell, ↓+F second spell · C tag · C+X or V Duo Strike · Shift dash · ↓+jump drop · ↑ read, talk, shop or warp · Esc menu. In menus, the arrows move and Z, X or Space chooses. A gamepad works too.</p>
   </main>;
 }
 
@@ -322,7 +333,7 @@ function Menu({ g, tab, onTab, onClose, onTitle }: { g: FluffstevaniaGame; tab: 
   }, [tab, g, layout.w, layout.h, layout.focus]);
   const tabs: [Tab, string][] = [['status', 'Status'], ['equip', 'Equip'], ['magic', 'Magic'], ['items', 'Items'], ['pals', 'Familiars'], ['bestiary', 'Bestiary'], ['map', 'Map']];
   const bag = Object.entries(g.bag);
-  return <section className="fv-menu" aria-label="Menu" data-testid="menu">
+  return <section className="fv-menu" aria-label="Menu" data-testid="menu" data-nav>
     <div className="fv-tabs" role="tablist">
       {tabs.map(([id, name]) => <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'on' : ''} onClick={() => onTab(id)}>{name}</button>)}
       <button className="fv-close" onClick={onClose}>Resume</button>
@@ -422,7 +433,7 @@ function Shop({ g, onClose }: { g: FluffstevaniaGame; onClose: () => void }) {
     else setSaid(g.raisins < price ? 'Not enough raisins, friend. Come back richer!' : 'You can’t carry any more of those.');
     bump((n) => n + 1);
   };
-  return <section className="fv-menu fv-shop" aria-label="Pip's shop" data-testid="shop">
+  return <section className="fv-menu fv-shop" aria-label="Pip's shop" data-testid="shop" data-nav>
     <header className="fv-shop-head">
       <span className="fv-shop-face" aria-hidden="true">🐹</span>
       <div><h3>Pip&rsquo;s Stall</h3><p>{said}</p></div>
@@ -437,6 +448,41 @@ function Shop({ g, onClose }: { g: FluffstevaniaGame; onClose: () => void }) {
       </div>)}
     </div>
   </section>;
+}
+/** The open panel the keyboard steers (the menu, shop, warp list or a card), if any; the last one is on top. */
+function navPanel() {
+  const all = document.querySelectorAll<HTMLElement>('[data-nav]');
+  return all.length ? all[all.length - 1] : null;
+}
+const navItems = (panel: HTMLElement) => [...panel.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')].filter((el) => el.offsetParent !== null);
+/** Where focus lands when the keys first reach a panel: the open tab, the main button, or the first that isn't a close button. */
+function focusDefault(panel: HTMLElement) {
+  const items = navItems(panel);
+  (items.find((el) => el.getAttribute('aria-selected') === 'true') ?? items.find((el) => el.classList.contains('fv-go')) ?? items.find((el) => !el.classList.contains('fv-close')) ?? items[0])?.focus();
+}
+/** Move focus to the nearest button that way, weighing sideways distance heavily so lists and rows feel natural. Tabs open as they're reached. */
+function moveFocus(panel: HTMLElement, dir: 'left' | 'right' | 'up' | 'down') {
+  const cur = document.activeElement as HTMLElement | null, items = navItems(panel);
+  if (!cur || !items.includes(cur as HTMLButtonElement)) { focusDefault(panel); return; }
+  const r = cur.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  let best: HTMLButtonElement | null = null, score = Infinity;
+  for (const el of items) {
+    if (el === cur) continue;
+    const q = el.getBoundingClientRect(), x = q.left + q.width / 2, y = q.top + q.height / 2;
+    const ahead = dir === 'left' ? cx - x : dir === 'right' ? x - cx : dir === 'up' ? cy - y : y - cy;
+    const aside = dir === 'left' || dir === 'right' ? Math.abs(y - cy) : Math.abs(x - cx);
+    if (ahead <= 1) continue;
+    const s = ahead + aside * 3;
+    if (s < score) { score = s; best = el; }
+  }
+  if (!best) return;
+  best.focus();
+  if (best.getAttribute('role') === 'tab') best.click();
+}
+/** Press the focused button; the first press on a panel only picks a button, so a mashed key can't skip a card. */
+function choose(panel: HTMLElement) {
+  const cur = document.activeElement as HTMLElement | null;
+  if (cur && cur.tagName === 'BUTTON' && panel.contains(cur)) cur.click(); else focusDefault(panel);
 }
 const gearLine = (id: string) => { const g = GEAR[id]; return [g.atk && `ATK +${g.atk}`, g.def && `DEF +${g.def}`, g.lck && `LCK +${g.lck}`, g.hero && `${NAMES[g.hero]} only`].filter(Boolean).join(' · '); };
 function MapIcon({ kind }: { kind: MapMark }) {

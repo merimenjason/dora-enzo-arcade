@@ -2,7 +2,7 @@
 // out the same way, so the tests drive this engine directly. Positions are world pixels; heroes and walking
 // enemies stand with their feet at (x, y).
 import {
-  ROOMS, COLS, ROWS, TILE, START, GEAR, FOOD, RELICS, SCRIPTS, ROOM_SCRIPTS, AREAS, SHOP, RENAMED, SUBS, SPELLS, PALS, LORE, itemName,
+  ROOMS, COLS, ROWS, TILE, START, GEAR, FOOD, RELICS, SCRIPTS, ROOM_SCRIPTS, AREAS, SHOP, RENAMED, RENAMED_RELICS, RENAMED_ROOMS, SUBS, SPELLS, PALS, LORE, itemName,
   type Room, type HeroId, type Slot, type Line, type RelicId, type WeaponStyle, type AreaId, type BossId, type SubId, type SpellId, type PalId,
 } from './fluffstevania-world.js';
 
@@ -214,6 +214,7 @@ export const freshSave = (difficulty: Difficulty = 'normal'): Save => ({
 export function parseSave(raw: string | null): Save | null {
   try {
     const v = JSON.parse(raw ?? 'null');
+    if (v && typeof v.room === 'string') v.room = RENAMED_ROOMS[v.room] ?? v.room;
     if (!v || v.v !== 1 || typeof v.room !== 'string' || !ROOMS.some((r) => r.id === v.room)) return null;
     const f = freshSave(), num = (x: unknown, d: number) => (typeof x === 'number' && Number.isFinite(x) ? x : d);
     const strs = (a: unknown) => (Array.isArray(a) ? a.filter((s): s is string => typeof s === 'string') : []);
@@ -237,7 +238,7 @@ export function parseSave(raw: string | null): Save | null {
     return {
       v: 1, room: v.room, x: num(v.x, f.x), y: num(v.y, f.y), level, xp: Math.max(0, num(v.xp, 0)),
       hp: { dora: num(v.hp?.dora, f.hp.dora), enzo: num(v.hp?.enzo, f.hp.enzo) }, leader: v.leader === 'enzo' ? 'enzo' : 'dora',
-      equip: { dora: eq('dora'), enzo: eq('enzo') }, bag, relics: strs(v.relics).filter((r): r is RelicId => r in RELICS),
+      equip: { dora: eq('dora'), enzo: eq('enzo') }, bag, relics: strs(v.relics).map((r) => RENAMED_RELICS[r] ?? r).filter((r): r is RelicId => r in RELICS),
       flags: strs(v.flags), visited: strs(v.visited), raisins: num(v.raisins, 0), seeds: num(v.seeds, 10), time: num(v.time, 0), leaves: num(v.leaves, 0),
       difficulty: v.difficulty in DIFFICULTY ? v.difficulty : 'normal', mp: Math.max(0, Math.min(maxMp(level), num(v.mp, maxMp(level)))),
       subs, sub: subs.includes(v.sub) ? v.sub : 'seed', pals, pal: typeof v.pal === 'string' && v.pal in pals ? v.pal : null, kills,
@@ -295,7 +296,7 @@ export class FluffstevaniaGame {
   private mpT = 0;
   private chimed = new Set<string>();
   private chimeT = 0;
-  private wasMist = false;
+  private wasDust = false;
   /** The blow being dealt is a big one (a finisher, spell, tag or Duo Strike), for the damage numbers. */
   private heavy = false;
 
@@ -351,8 +352,8 @@ export class FluffstevaniaGame {
   /** The lead is clinging to a wall with the Wall Cling. */
   get clinging() { return this.body.cling !== 0; }
   has(r: RelicId) { return this.relics.has(r); }
-  /** The lead is part-way through an iron grate in Mist Form, and is drawn as a wisp of dust. */
-  get misting() { return this.has('mist') && this.inGrate(this.body.x, this.body.y); }
+  /** The lead is part-way through an iron grate in Dust Form, and is drawn as a swirl of dust. */
+  get sifting() { return this.has('dustform') && this.inGrate(this.body.x, this.body.y); }
   /** Whether a hero-sized box with its feet at (x, y) overlaps a grate. */
   inGrate(x: number, y: number) {
     for (let c = Math.floor((x - HERO_W / 2 - 2) / TILE); c <= Math.floor((x + HERO_W / 2 + 2) / TILE); c++)
@@ -387,10 +388,10 @@ export class FluffstevaniaGame {
    * Move a box whose feet are at (x, y). Ledges (`=`) only catch things falling onto them from above.
    * Returns which sides hit something.
    */
-  private move(o: { x: number; y: number; vx: number; vy: number }, w: number, h: number, dt: number, ledges: boolean, mist = false) {
+  private move(o: { x: number; y: number; vx: number; vy: number }, w: number, h: number, dt: number, ledges: boolean, dust = false) {
     const hit = { x: false, down: false, up: false };
-    // In Mist Form a hero drifts through iron grates as if they weren't there.
-    const isSolid = mist ? (ch: string) => ch !== '|' && isSolidTile(ch) : isSolidTile;
+    // In Dust Form a hero sifts through iron grates as if they weren't there.
+    const isSolid = dust ? (ch: string) => ch !== '|' && isSolidTile(ch) : isSolidTile;
     const hw = w / 2;
     o.x += o.vx * dt;
     const top = Math.floor((o.y - h + 0.01) / TILE), bot = Math.floor((o.y - 0.01) / TILE);
@@ -645,12 +646,12 @@ export class FluffstevaniaGame {
     if (b.dashT <= 0 && !(this.tag && this.tag.t >= TAG_ARC)) b.vy = Math.min(b.vy + G * dt, cling ? CLING_FALL : MAX_FALL);
     if (cling && b.vy > 20 && Math.floor(this.time * 16) !== Math.floor((this.time - dt) * 16)) this.fx.push({ kind: 'dust', x: b.x + dir * 6, y: b.y - 4, t: 0, vx: -dir * 15, vy: -15 });
     const wasGround = b.ground;
-    const hit = this.move(b, HERO_W, HERO_H, dt, b.dropT <= 0, this.has('mist'));
-    // Drifting through a grate: puffs of dust, and a whoosh as the heroes go to mist.
-    const misting = this.misting;
-    if (misting && !this.wasMist) this.events.push('mist');
-    if (misting && Math.floor(this.time * 20) !== Math.floor((this.time - dt) * 20)) this.fx.push({ kind: 'dust', x: b.x + (this.rand() - 0.5) * 12, y: b.y - this.rand() * 18, t: 0, vx: (this.rand() - 0.5) * 30, vy: -20 });
-    this.wasMist = misting;
+    const hit = this.move(b, HERO_W, HERO_H, dt, b.dropT <= 0, this.has('dustform'));
+    // Sifting through a grate: puffs of dust, and a whoosh as the heroes crumble to dust.
+    const sifting = this.sifting;
+    if (sifting && !this.wasDust) this.events.push('dustform');
+    if (sifting && Math.floor(this.time * 20) !== Math.floor((this.time - dt) * 20)) this.fx.push({ kind: 'dust', x: b.x + (this.rand() - 0.5) * 12, y: b.y - this.rand() * 18, t: 0, vx: (this.rand() - 0.5) * 30, vy: -20 });
+    this.wasDust = sifting;
     if (hit.down) {
       if (!wasGround && b.vy === 0) this.fx.push({ kind: 'dust', x: b.x, y: b.y, t: 0.2, vx: 0, vy: -8 });
       b.ground = true; b.airDash = false; b.dashJump = false; b.hopped = false; b.coyote = 0.08;
@@ -874,7 +875,7 @@ export class FluffstevaniaGame {
     const landed = () => {
       // A lunge stops where it connects, with a sliver of safety so it doesn't run into the foe's body.
       b.lungeStop = true; b.invT = Math.max(b.invT, 0.15);
-      this.fx.push({ kind: w.style === 'claws' ? 'claw' : 'slash', x: box!.x + box!.w / 2, y: box!.y + box!.h / 2, t: 0, vx: b.face, vy: finisher ? 1 : 0 });
+      this.fx.push({ kind: w.style === 'claws' ? 'claw' : 'slash', x: box!.x + box!.w / 2, y: box!.y + box!.h / 2, t: 0, vx: b.face, vy: finisher ? 1 : 0, color: this.equipped[b.attackHero].weapon ?? undefined });
     };
     const w = this.weaponOf(b.attackHero), finisher = b.combo === 2 && !b.spin;
     this.heavy = finisher || b.spin;
@@ -1217,7 +1218,7 @@ export class FluffstevaniaGame {
   }
 
   // ─── Bosses ─────────────────────────────────────────────────────────────
-  /** Whether the boss can be hit (and hurts on contact): not while arriving, dying, or vanished into mist. */
+  /** Whether the boss can be hit (and hurts on contact): not while arriving, dying, or vanished into bats. */
   bossOpen(o: Boss) {
     if (o.move === 'enter' || o.move === 'dying') return false;
     if (o.kind === 'fox') return !(o.move === 'vanish' && o.t > 0.2) && !(o.move === 'appear' && o.t < 0.15);

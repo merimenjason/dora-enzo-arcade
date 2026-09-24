@@ -51,12 +51,12 @@ test('every opening on a side or floor edge leads into another room', () => {
 // The Dust Dash stretches the jump across and the Cloud Hop doubles its height. Cracked walls count as open because
 // any attack breaks them. Sealed doors open once their flag is set: the owl (`ab.owl`), the Rat King (`ab.rat`) or
 // Count Culpeo (`ab.fox`) beaten, or the archive's shelf puzzle solved (`ab.puzzle`). Iron grates let a hero through
-// only with Mist Form. With the Wall Cling (`ab.climb`) a hero can cling to any spot beside a wall, and a kick off it
+// only with Dust Form. With the Wall Cling (`ab.climb`) a hero can cling to any spot beside a wall, and a kick off it
 // works like a jump.
-let ab = { dash: false, hop: false, owl: false, rat: false, mist: false, puzzle: false, fox: false, climb: false };
+let ab = { dash: false, hop: false, owl: false, rat: false, dustform: false, puzzle: false, fox: false, climb: false };
 const OPENED = { 'boss:owl': 'owl', 'boss:rat': 'rat', 'puzzle:archive': 'puzzle', 'boss:fox': 'fox' };
 const door = (c, r) => rawTile(c, r) === 'D' && !ab[OPENED[roomAt(Math.floor(c / COLS), Math.floor(r / ROWS))?.opens]];
-const open = (c, r) => { const ch = rawTile(c, r); return !(ch === '#' || ch === '^' || door(c, r) || (ch === '|' && !ab.mist)); };
+const open = (c, r) => { const ch = rawTile(c, r); return !(ch === '#' || ch === '^' || door(c, r) || (ch === '|' && !ab.dustform)); };
 const floorAt = (c, r) => { const ch = rawTile(c, r); return ch === '#' || ch === '=' || ch === '%' || ch === '|' || door(c, r); };
 const standable = (c, r) => open(c, r) && open(c, r - 1) && floorAt(c, r + 1);
 const grips = (c, r) => { const ch = rawTile(c, r); return ch === '#' || ch === '%' || door(c, r); };
@@ -92,7 +92,7 @@ function moves(c, r) {
   return out;
 }
 function explore(abilities) {
-  ab = { dash: false, hop: false, owl: false, rat: false, mist: false, puzzle: false, fox: false, climb: false, ...abilities };
+  ab = { dash: false, hop: false, owl: false, rat: false, dustform: false, puzzle: false, fox: false, climb: false, ...abilities };
   const start = [5, 2 * ROWS + 11], seen = new Map([[key(...start), start]]), queue = [start], edges = new Map();
   while (queue.length) {
     const [c, r] = queue.shift(), from = key(c, r);
@@ -132,19 +132,19 @@ test('in the catacombs the Cloud Hop is reachable, but the Rat King and the high
   assert.ok(!seen.has(spotOf('ossuary', 'H')), 'the ossuary leaf needs the Cloud Hop');
 });
 
-test('the library door waits for the Rat King, the tower for Mist Form and the reliquary for the shelf puzzle', () => {
+test('the library door waits for the Rat King, the tower for Dust Form and the reliquary for the shelf puzzle', () => {
   const library = ROOMS.filter((r) => r.area === 'library' && r.id !== 'library').map((r) => r.id);
   let rooms = roomsIn(explore({ dash: true, hop: true, owl: true }).seen);
   assert.ok(rooms.has('library'), 'the locked door is reachable');
   for (const id of library) assert.ok(!rooms.has(id), `${id} should be behind the library door`);
   const { seen } = explore({ dash: true, hop: true, owl: true, rat: true });
   rooms = roomsIn(seen);
-  for (const id of ['reading', 'stacks', 'mist-vault', 'archive', 'save-library', 'scriptorium']) assert.ok(rooms.has(id), id);
-  for (const id of ['tower', 'study', 'balcony']) assert.ok(!rooms.has(id), `${id} should need Mist Form`);
+  for (const id of ['reading', 'stacks', 'dust-vault', 'archive', 'save-library', 'scriptorium']) assert.ok(rooms.has(id), id);
+  for (const id of ['tower', 'study', 'balcony']) assert.ok(!rooms.has(id), `${id} should need Dust Form`);
   assert.ok(!rooms.has('reliquary'), 'the reliquary needs the puzzle');
-  assert.ok(seen.has(spotOf('mist-vault', 'R')), 'the Mist Form pedestal');
-  assert.ok(!seen.has(spotOf('reading', 'H')), 'the reading nook needs Mist Form');
-  rooms = roomsIn(explore({ dash: true, hop: true, owl: true, rat: true, mist: true }).seen);
+  assert.ok(seen.has(spotOf('dust-vault', 'R')), 'the Dust Form pedestal');
+  assert.ok(!seen.has(spotOf('reading', 'H')), 'the reading nook needs Dust Form');
+  rooms = roomsIn(explore({ dash: true, hop: true, owl: true, rat: true, dustform: true }).seen);
   for (const id of ['tower', 'study', 'balcony']) assert.ok(rooms.has(id), id);
   for (const r of ROOMS) if (r.area === 'clock') assert.ok(!rooms.has(r.id), `${r.id} should wait for Count Culpeo`);
   assert.ok(roomsIn(explore({ dash: true, hop: true, owl: true, rat: true, puzzle: true }).seen).has('reliquary'));
@@ -163,7 +163,7 @@ test('sub-weapons and familiars sit where they can be reached at the right time'
 });
 
 test('the Clock Tower opens once the Count flees; its sheer shaft, the pocket watch and the top need the Wall Cling', () => {
-  const before = { dash: true, hop: true, owl: true, rat: true, mist: true, puzzle: true, fox: true };
+  const before = { dash: true, hop: true, owl: true, rat: true, dustform: true, puzzle: true, fox: true };
   const { seen } = explore(before), rooms = roomsIn(seen);
   for (const id of ['gear-hall', 'clock-shaft', 'claw-vault', 'cuckoo-gallery']) assert.ok(rooms.has(id), id);
   for (const id of ['clockworks', 'save-clock', 'pendulum-hall', 'winding-stair', 'clockface', 'clock-top']) assert.ok(!rooms.has(id), `${id} should need the Wall Cling`);
@@ -175,10 +175,10 @@ test('the Clock Tower opens once the Count flees; its sheer shaft, the pocket wa
 });
 
 test('with every relic every room is reachable and every spot can get back to the start', () => {
-  const { seen, edges, start } = explore({ dash: true, hop: true, owl: true, rat: true, mist: true, puzzle: true, fox: true, climb: true });
+  const { seen, edges, start } = explore({ dash: true, hop: true, owl: true, rat: true, dustform: true, puzzle: true, fox: true, climb: true });
   const rooms = roomsIn(seen);
   for (const r of ROOMS) assert.ok(rooms.has(r.id), r.id);
-  for (const [room, ch] of [['jam-vault', 'I'], ['jam-vault', 'H'], ['ossuary', 'H'], ['stair', 'U'], ['reading', 'H'], ['reliquary', 'I'], ['scriptorium', 'I'], ['mist-vault', 'R'],
+  for (const [room, ch] of [['jam-vault', 'I'], ['jam-vault', 'H'], ['ossuary', 'H'], ['stair', 'U'], ['reading', 'H'], ['reliquary', 'I'], ['scriptorium', 'I'], ['dust-vault', 'R'],
     ['cuckoo-gallery', 'W'], ['cuckoo-gallery', 'H'], ['clockworks', 'U'], ['clockworks', 'C'], ['pendulum-hall', 'T'], ['pendulum-hall', 'I'], ['winding-stair', 'T']]) assert.ok(seen.has(spotOf(room, ch)), `${room} ${ch}`);
   const back = new Set([start]), queue = [start];
   while (queue.length) for (const k of edges.get(queue.shift()) ?? []) if (!back.has(k)) { back.add(k); queue.push(k); }
@@ -529,6 +529,15 @@ test('older saves swap the whips and swords for fans', () => {
   assert.equal(new FluffstevaniaGame(s).weaponOf('dora').style, 'fan');
 });
 
+test('older saves turn Mist Form into Dust Form, and a save in its vault still loads', () => {
+  const old = { ...freshSave(), room: 'mist-vault', x: (18 * COLS + 5) * TILE, y: (2 * ROWS + 12) * TILE, relics: ['dash', 'hop', 'mist'] };
+  const s = parseSave(JSON.stringify(old));
+  assert.ok(s, 'the save loads');
+  assert.equal(s.room, 'dust-vault');
+  assert.deepEqual(s.relics, ['dash', 'hop', 'dustform']);
+  assert.ok(new FluffstevaniaGame(s).has('dustform'));
+});
+
 test('Pip’s stall sells for raisins and pauses the world', () => {
   const g = fresh();
   g.flags.add('boss:owl'); g.flags.add('script:pip');
@@ -675,16 +684,16 @@ test('the library door opens once the Rat King is beaten', () => {
   assert.ok(!isSolid(g.tile(c, r)));
 });
 
-test('an iron grate stops everyone, but Mist Form drifts through it', () => {
+test('an iron grate stops everyone, but Dust Form drifts through it', () => {
   const g = chapter3();
   place(g, 'scriptorium', 40, 11);
   run(g, { right: true }, 1.2);
   assert.equal(g.room.id, 'scriptorium', 'the grate holds');
-  g.relics.add('mist');
-  let misted = false;
-  for (let i = 0; i < 240 && g.room.id === 'scriptorium'; i++) { g.step(DT, { ...NO_INPUT, right: true }); misted ||= g.misting; }
-  assert.ok(misted, 'drawn as mist inside the bars');
-  assert.ok(g.events.includes('mist'));
+  g.relics.add('dustform');
+  let sifted = false;
+  for (let i = 0; i < 240 && g.room.id === 'scriptorium'; i++) { g.step(DT, { ...NO_INPUT, right: true }); sifted ||= g.sifting; }
+  assert.ok(sifted, 'drawn as dust inside the bars');
+  assert.ok(g.events.includes('dustform'));
   run(g, { right: true }, 0.5);
   assert.equal(g.room.id, 'tower');
 });
@@ -733,7 +742,7 @@ test('library foes: tomes snap, quills flick ink and ink blots spring', () => {
 
 test('Count Culpeo: fireballs, vanishing, a cape sweep, swoops, bats and fire pillars, and the end of chapter three', () => {
   const g = chapter3();
-  g.relics.add('mist');
+  g.relics.add('dustform');
   place(g, 'study', 6, 11);
   skipTalk(g);
   assert.ok(g.fight && g.boss && g.boss.kind === 'fox');
@@ -774,7 +783,7 @@ test('Count Culpeo: fireballs, vanishing, a cape sweep, swoops, bats and fire pi
 const chapter4 = () => {
   const g = chapter3();
   for (const f of ['boss:fox', 'script:clock', 'script:pipClock']) g.flags.add(f);
-  g.relics.add('mist'); g.level = 16;
+  g.relics.add('dustform'); g.level = 16;
   g.hp.dora = g.stats('dora').maxHp; g.hp.enzo = g.stats('enzo').maxHp; g.mp = g.maxMp;
   return g;
 };

@@ -1026,13 +1026,14 @@ function drawPickup(c: C, p: Pickup, time: number) {
         if (Math.floor(time * 3) % 3 === 0) { c.fillStyle = '#fff'; star(c, x + 4, y - 6, 1.8); }
         break;
       }
-      if (p.id === 'mist') {
-        // Mist Form: a violet wisp that curls around itself.
-        for (let i = 0; i < 7; i++) {
-          const a = time * 2.5 + i * 0.9, r = 2 + i * 0.9;
-          c.fillStyle = `rgba(${200 - i * 10},${170 - i * 8},255,${0.8 - i * 0.09})`; ellipse(c, x + Math.cos(a) * r, y + Math.sin(a) * r * 0.8, 2.6 - i * 0.2, 2.6 - i * 0.2); c.fill();
+      if (p.id === 'dustform') {
+        // Dust Form: a little whirl of bath dust, sandy grains spiralling round a bright heart.
+        for (let i = 0; i < 9; i++) {
+          const a = time * 2.5 + i * 0.8, r = 1.5 + i * 0.85;
+          c.fillStyle = `rgba(${240 - i * 6},${220 - i * 10},${170 - i * 12},${0.85 - i * 0.07})`; ellipse(c, x + Math.cos(a) * r, y + Math.sin(a) * r * 0.75, 2.4 - i * 0.16, 2.4 - i * 0.16); c.fill();
         }
-        c.fillStyle = '#ffffff'; ellipse(c, x, y, 1.6, 1.6); c.fill();
+        c.fillStyle = 'rgba(255,248,225,0.9)'; for (let i = 0; i < 5; i++) { const a = -time * 4 + i * 1.3; c.fillRect(x + Math.cos(a) * 7, y + Math.sin(a) * 5, 0.8, 0.8); }
+        c.fillStyle = '#fffaf0'; ellipse(c, x, y, 1.6, 1.6); c.fill();
         break;
       }
       const hop = p.id === 'hop';
@@ -1064,29 +1065,102 @@ export function foodIcon(c: C, id: string, x: number, y: number, s: number) {
   c.restore();
 }
 /** Each fan's silk, ribs and painted motif. */
-const FANS: Record<string, { silk: string; edge: string; rib: string; motif: string; trail: string }> = {
-  fan: { silk: '#f4bcd4', edge: '#d8789c', rib: '#6a4028', motif: '#ffffff', trail: '#ffd0e4' },
-  moonfan: { silk: '#2e3070', edge: '#9aa8e8', rib: '#c8ccd8', motif: '#f0f0c0', trail: '#c0d0ff' },
-  wolffan: { silk: '#a01830', edge: '#f0c050', rib: '#3a1a10', motif: '#f0c050', trail: '#ff8090' },
+/**
+ * Each fan's look. The Dust Fan is pale pink paper on bamboo with cherry blossoms; the Moonlit Fan is midnight silk
+ * on silver ribs with a crescent moon and stars and a silver tassel; the Wolfberry Fan is crimson on black lacquer with
+ * a scalloped gold edge, clusters of golden berries and a red tassel.
+ */
+const FANS: Record<string, { silk: string; edge: string; rib: string; motif: string; trail: string; tassel?: string }> = {
+  fan: { silk: '#f8d0e0', edge: '#d8789c', rib: '#c8964e', motif: '#ffffff', trail: '#ffd0e4' },
+  moonfan: { silk: '#232664', edge: '#c8d4ff', rib: '#d8dce8', motif: '#f4f0c8', trail: '#c0d0ff', tassel: '#c8d4ff' },
+  wolffan: { silk: '#a01830', edge: '#f0c050', rib: '#1a0a08', motif: '#f0c050', trail: '#ff8090', tassel: '#d02838' },
 };
 /** A folding fan opened `open` radians wide, pointing along +x from its pivot at (0, 0). */
 function fanShape(c: C, id: string, r: number, open: number) {
-  const k = FANS[id] ?? FANS.fan, a0 = -open / 2, a1 = open / 2, ribs = 7;
+  const k = FANS[id] ?? FANS.fan, a0 = -open / 2, a1 = open / 2, ribs = id === 'wolffan' ? 9 : 7, wolf = id === 'wolffan';
+  // The silk, with a scalloped rim on the Wolfberry Fan.
+  const rim = () => {
+    if (!wolf) { c.arc(0, 0, r, a0, a1); return; }
+    for (let i = 0; i < ribs; i++) {
+      const p0 = a0 + (open * i) / ribs, p1 = a0 + (open * (i + 1)) / ribs, pm = (p0 + p1) / 2;
+      c.quadraticCurveTo(Math.cos(pm) * r * 1.12, Math.sin(pm) * r * 1.12, Math.cos(p1) * r, Math.sin(p1) * r);
+    }
+  };
   c.fillStyle = k.silk;
-  c.beginPath(); c.moveTo(Math.cos(a0) * r * 0.3, Math.sin(a0) * r * 0.3); c.arc(0, 0, r, a0, a1); c.lineTo(Math.cos(a1) * r * 0.3, Math.sin(a1) * r * 0.3); c.arc(0, 0, r * 0.3, a1, a0, true); c.fill();
+  c.beginPath(); c.moveTo(Math.cos(a0) * r, Math.sin(a0) * r); rim(); c.lineTo(Math.cos(a1) * r * 0.3, Math.sin(a1) * r * 0.3); c.arc(0, 0, r * 0.3, a1, a0, true); c.closePath(); c.fill();
   // Pleats: every other panel a shade darker.
   c.fillStyle = 'rgba(0,0,0,0.12)';
   for (let i = 0; i < ribs; i += 2) {
     const p0 = a0 + (open * i) / ribs, p1 = a0 + (open * (i + 1)) / ribs;
     c.beginPath(); c.arc(0, 0, r, p0, p1); c.arc(0, 0, r * 0.3, p1, p0, true); c.fill();
   }
-  c.fillStyle = k.motif;
-  for (let i = 0; i < 3; i++) { const a = a0 + open * (0.25 + i * 0.25); ellipse(c, Math.cos(a) * r * 0.68, Math.sin(a) * r * 0.68, r * 0.08, r * 0.08); c.fill(); }
-  c.strokeStyle = k.edge; c.lineWidth = 0.9; c.beginPath(); c.arc(0, 0, r, a0, a1); c.stroke();
-  c.strokeStyle = k.rib; c.lineWidth = 0.6;
+  const at = (u: number, d: number) => { const a = a0 + open * u; return [Math.cos(a) * r * d, Math.sin(a) * r * d] as const; };
+  if (id === 'moonfan') {
+    // A crescent moon in the middle and stars scattered about.
+    const [mx, my] = at(0.5, 0.66);
+    c.fillStyle = k.motif; ellipse(c, mx, my, r * 0.17, r * 0.17); c.fill();
+    c.fillStyle = k.silk; ellipse(c, mx + r * 0.07, my - r * 0.05, r * 0.14, r * 0.14); c.fill();
+    c.fillStyle = '#ffffff';
+    for (const [u, d] of [[0.15, 0.8], [0.3, 0.5], [0.72, 0.82], [0.85, 0.55], [0.6, 0.9]]) { const [sx, sy] = at(u, d); c.fillRect(sx - 0.4, sy - 0.4, 0.8, 0.8); }
+  } else if (wolf) {
+    // Clusters of golden berries on green leaves.
+    for (const u of [0.22, 0.5, 0.78]) {
+      const [bx, by] = at(u, 0.66);
+      c.fillStyle = '#5a9a40'; ellipse(c, bx - r * 0.06, by - r * 0.06, r * 0.08, r * 0.04, 0.8); c.fill();
+      c.fillStyle = k.motif; for (const [dx, dy] of [[0, 0], [0.06, 0.04], [-0.02, 0.07]]) { ellipse(c, bx + dx * r, by + dy * r, r * 0.05, r * 0.05); c.fill(); }
+    }
+  } else {
+    // Cherry blossoms: five white petals round a pink heart.
+    for (const u of [0.25, 0.6, 0.82]) {
+      const [fx, fy] = at(u, u === 0.6 ? 0.6 : 0.75), s = r * 0.07;
+      c.fillStyle = k.motif; for (let i = 0; i < 5; i++) { const a = (i * Math.PI * 2) / 5; ellipse(c, fx + Math.cos(a) * s, fy + Math.sin(a) * s, s * 0.8, s * 0.8); c.fill(); }
+      c.fillStyle = '#e8709c'; ellipse(c, fx, fy, s * 0.5, s * 0.5); c.fill();
+    }
+  }
+  c.strokeStyle = k.edge; c.lineWidth = wolf ? 1.3 : 0.9; c.beginPath(); c.moveTo(Math.cos(a0) * r, Math.sin(a0) * r); rim(); c.stroke();
+  c.strokeStyle = k.rib; c.lineWidth = id === 'fan' ? 0.8 : 0.6;
   for (let i = 0; i <= ribs; i++) { const a = a0 + (open * i) / ribs; c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a) * r * 0.98, Math.sin(a) * r * 0.98); c.stroke(); }
+  // Thick guard sticks at each side.
+  c.lineWidth = 1.4; for (const a of [a0, a1]) { c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a) * r, Math.sin(a) * r); c.stroke(); }
   c.fillStyle = k.rib; ellipse(c, 0, 0, 1.4, 1.4); c.fill();
-  if (id === 'wolffan') { c.fillStyle = '#f0c050'; ellipse(c, 0, 0, 1, 1); c.fill(); }
+  if (k.tassel) {
+    // A tassel hanging from the pivot.
+    c.strokeStyle = k.tassel; c.lineWidth = 0.6; c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(-2, 3, -1.5, 5.5); c.stroke();
+    c.fillStyle = wolf ? '#f0c050' : '#ffffff'; ellipse(c, -1.5, 5.5, 0.9, 0.9); c.fill();
+    c.fillStyle = k.tassel; c.beginPath(); c.moveTo(-2.6, 6); c.lineTo(-0.4, 6); c.lineTo(0, 9); c.lineTo(-3, 9); c.fill();
+  }
+  if (wolf) { c.fillStyle = '#f0c050'; ellipse(c, 0, 0, 1, 1); c.fill(); }
+}
+/** The steel gauntlet of the Iron Claws: a riveted plate over the paw and three long blades. Points along +x. */
+function gauntlet(c: C, s: number) {
+  c.save(); c.scale(s, s);
+  for (let i = -1; i <= 1; i++) {
+    const gr = c.createLinearGradient(2, i * 2.4 - 1, 2, i * 2.4 + 1); gr.addColorStop(0, '#f4f8ff'); gr.addColorStop(1, '#6a7488');
+    c.fillStyle = gr; c.beginPath(); c.moveTo(2, i * 2.4 - 0.8); c.quadraticCurveTo(7, i * 2.6 - 1.6, 10, i * 3.2 - 1.6); c.lineTo(2, i * 2.4 + 0.8); c.fill();
+  }
+  c.fillStyle = '#4a5264'; c.beginPath(); c.roundRect(-4, -4, 7, 8, 1.6); c.fill();
+  c.fillStyle = '#8a94a8'; c.fillRect(-4, -4, 7, 1.4);
+  c.fillStyle = '#c8d0e0'; for (const [rx, ry] of [[-2.6, -1.4], [1.2, -1.4], [-2.6, 2], [1.2, 2]]) c.fillRect(rx, ry, 0.8, 0.8);
+  c.restore();
+}
+/** Enzo's own paw with three cream claws. Points along +x. */
+function paw(c: C, s: number) {
+  c.save(); c.scale(s, s);
+  c.fillStyle = '#9a98a4'; ellipse(c, 0, 0, 3.6, 3.2); c.fill();
+  c.fillStyle = '#e8a8b0'; ellipse(c, -0.6, 0.6, 1.4, 1.2); c.fill();
+  c.fillStyle = '#fff4e0';
+  for (let i = -1; i <= 1; i++) { c.beginPath(); c.moveTo(2.8, i * 1.8 - 0.5); c.quadraticCurveTo(5, i * 2 - 0.6, 6.2, i * 2.2 + 0.4); c.lineTo(2.8, i * 1.8 + 0.6); c.fill(); }
+  c.restore();
+}
+/** The Heavy Tome, swung by its spine: red leather, gold corners and clasp, cream page edges. Points along +x. */
+function tome(c: C, len: number, w: number) {
+  c.fillStyle = '#f0e6d0'; c.fillRect(2, -w / 2 + 1, len, w - 2);
+  c.strokeStyle = 'rgba(160,140,110,0.8)'; c.lineWidth = 0.3; for (let i = 1; i < 4; i++) { c.beginPath(); c.moveTo(3, -w / 2 + 1 + i * (w - 2) / 4); c.lineTo(len + 1, -w / 2 + 1 + i * (w - 2) / 4); c.stroke(); }
+  c.fillStyle = '#8a1c28'; c.fillRect(0, -w / 2, len + 2, 1.8); c.fillRect(0, w / 2 - 1.8, len + 2, 1.8); c.fillRect(0, -w / 2, 2.6, w);
+  c.fillStyle = '#f0c050';
+  for (const sy of [-1, 1]) { c.beginPath(); c.moveTo(len + 2, sy * w / 2); c.lineTo(len - 2, sy * w / 2); c.lineTo(len + 2, sy * (w / 2 - 3)); c.fill(); }
+  c.fillRect(len - 1, -1.2, 3.4, 2.4);
+  c.fillStyle = '#5a1018'; c.fillRect(0.5, -w / 2 + 2, 1, w - 4);
 }
 /** A small picture of a piece of gear, for pickups and the menu. */
 export function gearIcon(c: C, id: string, x: number, y: number, s: number) {
@@ -1095,10 +1169,12 @@ export function gearIcon(c: C, id: string, x: number, y: number, s: number) {
   if (g?.style === 'fan') {
     c.translate(-1, 4); c.rotate(-Math.PI / 2);
     fanShape(c, id, 8, 2.2);
+  } else if (id === 'ironclaws') {
+    c.rotate(-0.8); gauntlet(c, 0.9);
   } else if (g?.style === 'claws') {
-    c.strokeStyle = id === 'ironclaws' ? '#a8b0c0' : '#e8e0d0'; c.lineWidth = id === 'ironclaws' ? 1.6 : 1.2;
-    for (let i = -1; i <= 1; i++) { c.beginPath(); c.moveTo(-4 + i * 2, 5); c.quadraticCurveTo(i * 2, -2, 4 + i * 2, -5); c.stroke(); }
-    if (id === 'ironclaws') { c.fillStyle = '#5a6070'; c.fillRect(-6, 3, 7, 3); }
+    c.rotate(-0.8); c.translate(-1.5, 0); paw(c, 1.1);
+  } else if (id === 'tome') {
+    c.rotate(-0.2); c.translate(-6, 0); tome(c, 10, 12);
   } else if (id === 'pin') {
     c.rotate(-0.6);
     c.fillStyle = '#6a4020'; c.fillRect(-8, -0.8, 3, 1.6); c.fillRect(5, -0.8, 3, 1.6);
@@ -1983,25 +2059,52 @@ function weaponArc(c: C, g: FluffstevaniaGame) {
       // A crescent swoosh with three claw trails through it.
       c.fillStyle = `rgba(210,230,255,${0.45 * fade})`;
       c.beginPath(); c.arc(0, 0, w.reach * 0.85, -1.3, -1.3 + a * 2.5); c.arc(3, 1, w.reach * 0.6, -1.3 + a * 2.5, -1.3, true); c.fill();
-      c.strokeStyle = `rgba(255,255,255,${fade})`; c.lineWidth = 1.2;
+      const iron = id === 'ironclaws';
+      // Bare claws leave warm cream streaks; the Iron Claws cold steel ones, with sparks flying off the blades.
+      c.fillStyle = iron ? `rgba(150,180,230,${0.5 * fade})` : `rgba(255,236,205,${0.4 * fade})`;
+      c.beginPath(); c.arc(0, 0, w.reach * 0.85, -1.3, -1.3 + a * 2.5); c.arc(3, 1, w.reach * 0.6, -1.3 + a * 2.5, -1.3, true); c.fill();
+      c.strokeStyle = iron ? `rgba(235,245,255,${fade})` : `rgba(255,248,230,${fade})`; c.lineWidth = iron ? 1.5 : 1.1;
       for (let i = -1; i <= 1; i++) { c.beginPath(); c.arc(2, i * 3.4, w.reach * 0.78, -1.2 + i * 0.1, -1.2 + a * 2.3 + i * 0.1); c.stroke(); }
-      if (id === 'ironclaws') { c.strokeStyle = `rgba(160,180,210,${fade})`; c.lineWidth = 0.6; c.beginPath(); c.arc(2, 0, w.reach * 0.9, -1.2, -1.2 + a * 2.3); c.stroke(); }
+      const tip = -1.2 + a * 2.3, px = 2 + Math.cos(tip) * w.reach * 0.62, py = Math.sin(tip) * w.reach * 0.62;
+      if (iron) {
+        c.fillStyle = `rgba(200,225,255,${fade})`;
+        for (let i = 0; i < 4; i++) c.fillRect(px + Math.cos(tip + 1.6) * (3 + i * 2.4) + i, py + Math.sin(tip + 1.6) * (3 + i * 2.4) - i, 1, 1);
+      }
+      c.save(); c.translate(px, py); c.rotate(tip + Math.PI / 2 - 0.4); c.globalAlpha = Math.min(1, fade * 1.5);
+      if (iron) gauntlet(c, 1.1); else paw(c, 0.9);
+      c.restore();
     }
   } else {
     const a = into < w.windup ? -2.2 : -2.2 + Math.min(1, (into - w.windup) / w.active) * 2.8;
     if (live || (into > w.windup && u < 0.7)) {
-      // A heavy smear behind the club head, with speed lines.
+      // A heavy smear behind the club head, with speed lines: acorn gold, flour-white for the pin, crimson for the tome.
       const fade = live ? 1 : Math.max(0, 1 - (u - 0.5) * 4), gr = c.createRadialGradient(0, 0, w.reach * 0.3, 0, 0, w.reach * 0.95);
-      gr.addColorStop(0, 'rgba(255,236,200,0)'); gr.addColorStop(0.6, `rgba(255,220,150,${0.45 * fade})`); gr.addColorStop(1, `rgba(255,252,240,${0.95 * fade})`);
+      const tint = id === 'tome' ? '230,70,90' : id === 'pin' ? '240,240,250' : '255,210,130';
+      gr.addColorStop(0, `rgba(${tint},0)`); gr.addColorStop(0.6, `rgba(${tint},${0.45 * fade})`); gr.addColorStop(1, `rgba(255,252,240,${0.95 * fade})`);
       c.fillStyle = gr; c.beginPath(); c.arc(0, 0, w.reach * 0.95, a - 1.3, a); c.arc(0, 0, w.reach * 0.3, a, a - 1.3, true); c.fill();
       c.strokeStyle = `rgba(255,255,255,${0.6 * fade})`; c.lineWidth = 0.6;
       for (let i = 0; i < 3; i++) { const r = w.reach * (0.55 + i * 0.16); c.beginPath(); c.arc(0, 0, r, a - 0.9 + i * 0.15, a - 0.1); c.stroke(); }
     }
+    if (id === 'pin' && live) {
+      // Puffs of flour fly off the rolling pin.
+      c.fillStyle = 'rgba(255,255,255,0.7)';
+      for (let i = 0; i < 4; i++) { const pa = a - 0.3 - i * 0.2; ellipse(c, Math.cos(pa) * w.reach * (0.8 + i * 0.05), Math.sin(pa) * w.reach * (0.8 + i * 0.05), 1.6 + i * 0.4, 1.2 + i * 0.3); c.fill(); }
+    }
+    if (id === 'tome' && live) {
+      // Loose pages flutter out of the Heavy Tome.
+      for (let i = 0; i < 3; i++) { const pa = a - 0.5 - i * 0.35, pr = w.reach * (0.7 + i * 0.12); c.save(); c.translate(Math.cos(pa) * pr, Math.sin(pa) * pr); c.rotate(pa * 3 + i); c.fillStyle = 'rgba(245,236,215,0.85)'; c.fillRect(-1.6, -2, 3.2, 4); c.restore(); }
+    }
     c.rotate(a);
     if (id === 'pin') {
       c.fillStyle = '#6a4020'; c.fillRect(0, -1, 8, 2); c.fillRect(w.reach * 0.8 + 6, -1, 5, 2);
-      const gr = c.createLinearGradient(0, -3.5, 0, 3.5); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#9898a8');
+      c.fillStyle = '#4a2c14'; ellipse(c, 0, 0, 1.6, 1.6); c.fill(); ellipse(c, w.reach * 0.8 + 11, 0, 1.6, 1.6); c.fill();
+      const gr = c.createLinearGradient(0, -3.5, 0, 3.5); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.5, '#e8e8f0'); gr.addColorStop(1, '#9898a8');
       c.fillStyle = gr; c.fillRect(8, -3.5, w.reach * 0.8 - 2, 7);
+      // Grey veins in the marble.
+      c.strokeStyle = 'rgba(120,120,140,0.5)'; c.lineWidth = 0.4; c.beginPath(); c.moveTo(11, -3); c.quadraticCurveTo(15, 0, 19, 2.6); c.moveTo(20, -3.4); c.lineTo(24, 1); c.stroke();
+    } else if (id === 'tome') {
+      c.strokeStyle = '#5a1018'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(0, 0); c.lineTo(6, 0); c.stroke();
+      c.translate(5, 0); tome(c, w.reach * 0.8, 11);
     } else {
       c.strokeStyle = '#6a4020'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, 0); c.lineTo(w.reach * 0.75, 0); c.stroke();
       c.fillStyle = '#a06a30'; ellipse(c, w.reach * 0.8, 0, 5, 4.4); c.fill();
@@ -2038,15 +2141,50 @@ function drawGhosts(c: C, now: number) {
   c.globalAlpha = 1;
 }
 
-type HeroLook = { run?: number; moving?: boolean; air?: boolean; alpha?: number; armor?: string | null; sx?: number; sy?: number; vx?: number };
+type HeroLook = { run?: number; moving?: boolean; air?: boolean; alpha?: number; armor?: string | null; weapon?: string | null; sx?: number; sy?: number; vx?: number };
 function hero(c: C, id: HeroId, x: number, y: number, face: 1 | -1, time: number, o: HeroLook) {
   c.globalAlpha = o.alpha ?? 1;
   const sx = o.sx ?? 1, sy = o.sy ?? 1;
   if (sx !== 1 || sy !== 1) { c.save(); c.translate(x, y); c.scale(sx, sy); c.translate(-x, -y); }
-  const decorate = o.armor ? (d: C, bob: number) => wearArmor(d, o.armor!, bob, time, Math.min(1, Math.abs(o.vx ?? 0) / 120), !!o.air) : undefined;
+  const decorate = o.armor || o.weapon ? (d: C, bob: number) => {
+    if (o.weapon) carryWeapon(d, o.weapon, bob, time);
+    if (o.armor) wearArmor(d, o.armor, bob, time, Math.min(1, Math.abs(o.vx ?? 0) / 120), !!o.air);
+  } : undefined;
   drawChinchilla(c, id as ChinId, x, y, { face, h: HERO_DRAW_H, time, run: o.run, moving: o.moving, air: o.air, decorate, blink: Math.floor(time * 0.6 + (id === 'dora' ? 0 : 0.5)) % 7 === 0 && time % 1.7 < 0.12 });
   if (sx !== 1 || sy !== 1) c.restore();
   c.globalAlpha = 1;
+}
+/**
+ * The weapon a hero carries when not swinging it, in the chinchilla's 24-unit frame (feet at 0, facing +x): Dora's
+ * fan folded in her front paw, the Iron Claws as a gauntlet on Enzo's, and his clubs strapped across his back. Bare
+ * claws show nothing.
+ */
+function carryWeapon(c: C, id: string, bob: number, time: number) {
+  const g = GEAR[id];
+  if (!g) return;
+  c.save();
+  if (g.style === 'fan') {
+    c.translate(8.6, -4.5 + bob); c.rotate(-1.25 + Math.sin(time * 2) * 0.05);
+    fanShape(c, id, 7.5, 0.34);
+  } else if (id === 'ironclaws') {
+    c.translate(8.4, -3 + bob * 0.5); c.rotate(-0.25);
+    gauntlet(c, 0.75);
+  } else if (id === 'tome') {
+    c.translate(-9, -15.5 + bob); c.rotate(-0.5);
+    c.fillStyle = '#5a3a1a'; c.fillRect(-2, 3.4, 16, 1.2);
+    tome(c, 8, 8);
+  } else if (id === 'pin') {
+    c.translate(-9, -14 + bob); c.rotate(-0.55);
+    c.fillStyle = '#6a4020'; c.fillRect(-3, -0.8, 3, 1.6); c.fillRect(13, -0.8, 3, 1.6);
+    const gr = c.createLinearGradient(0, -2.4, 0, 2.4); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#9898a8');
+    c.fillStyle = gr; c.fillRect(0, -2.4, 13, 4.8);
+  } else if (g.style === 'club') {
+    c.translate(-9, -13 + bob); c.rotate(-0.7);
+    c.strokeStyle = '#6a4020'; c.lineWidth = 1.4; c.beginPath(); c.moveTo(0, 0); c.lineTo(12, 0); c.stroke();
+    c.fillStyle = '#a06a30'; ellipse(c, 13, 0, 3.2, 2.8); c.fill();
+    c.fillStyle = '#5a3a1a'; c.fillRect(12.2, -3.2, 3.8, 1.6);
+  }
+  c.restore();
 }
 /**
  * Worn armour, drawn in the chinchilla's 24-unit frame (feet at 0, facing +x, head at about (7, -13)). `speed` 0–1
@@ -2093,17 +2231,24 @@ function wearArmor(c: C, id: string, bob: number, time: number, speed: number, a
   }
 }
 
-/** A hero in Mist Form: a swirl of dust in their afterimage colour, drifting between the bars. */
-function mistWisp(c: C, id: HeroId, x: number, y: number, time: number) {
-  c.save(); c.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < 9; i++) {
-    const a = time * 3 + i * 0.7, r = 3 + (i % 3) * 3;
+/** Sandy bath-dust colours for Dust Form, with a hint of each hero's coat: Dora's pale, Enzo's grey. */
+const DUST_TINT: Record<HeroId, string[]> = { dora: ['#f0e2c4', '#e0c898', '#fff6e4'], enzo: ['#d8ccb4', '#b8ac98', '#ece4d4'] };
+/** A hero in Dust Form: a swirling cloud of bath dust sifting between the bars, grains trailing off it. */
+function dustWisp(c: C, id: HeroId, x: number, y: number, time: number) {
+  c.save();
+  const tint = DUST_TINT[id];
+  for (let i = 0; i < 11; i++) {
+    const a = time * 3 + i * 0.7, r = 2.5 + (i % 3) * 3;
     const px = x + Math.cos(a) * r, py = y - 10 + Math.sin(a * 1.3) * r * 0.8 - (i % 4);
     const gr = c.createRadialGradient(px, py, 0, px, py, 6);
-    gr.addColorStop(0, rgba(GHOST_TINT[id], 0.35)); gr.addColorStop(1, rgba(GHOST_TINT[id], 0));
+    gr.addColorStop(0, rgba(tint[i % 3], 0.55)); gr.addColorStop(1, rgba(tint[i % 3], 0));
     c.fillStyle = gr; ellipse(c, px, py, 6, 6); c.fill();
   }
-  c.fillStyle = 'rgba(255,250,240,0.6)'; for (let i = 0; i < 6; i++) { const a = time * 5 + i; c.fillRect(x + Math.cos(a) * 7, y - 10 + Math.sin(a * 1.4) * 8, 1, 1); }
+  // Grains of dust spiralling round and sifting down.
+  for (let i = 0; i < 14; i++) {
+    const a = time * 5 + i * 0.9, fall = (time * 14 + i * 5) % 16;
+    c.fillStyle = `rgba(250,236,205,${0.8 - fall / 22})`; c.fillRect(x + Math.cos(a) * (4 + (i % 4) * 2), y - 16 + Math.sin(a * 1.4) * 6 + fall, 0.9, 0.9);
+  }
   c.restore();
 }
 let landAir = false, landAt = -1;
@@ -2127,8 +2272,10 @@ function drawHeroes(c: C, g: FluffstevaniaGame, time: number) {
   }
   if (g.duoT >= 0) return;
   const armor = (h: HeroId) => g.equipped[h].armor;
-  if (g.hp[partner] > 0 && g.has('mist') && g.inGrate(f.x, f.y)) mistWisp(c, partner, f.x, f.y, time + 0.7);
-  else if (g.hp[partner] > 0 && !(g.tag && g.tag.t < TAG_ARC)) hero(c, partner, f.x, f.y, f.face, time + 0.7, { run: f.run, moving: f.moving, air: f.air, alpha: 0.95, armor: armor(partner), vx: f.moving ? 100 : 0 });
+  // The weapon shows in paw or on the back, except on the lead mid-swing (the swing draws it then).
+  const weapon = (h: HeroId) => (h === g.leader && b.attackT > 0 ? null : g.equipped[h].weapon);
+  if (g.hp[partner] > 0 && g.has('dustform') && g.inGrate(f.x, f.y)) dustWisp(c, partner, f.x, f.y, time + 0.7);
+  else if (g.hp[partner] > 0 && !(g.tag && g.tag.t < TAG_ARC)) hero(c, partner, f.x, f.y, f.face, time + 0.7, { run: f.run, moving: f.moving, air: f.air, alpha: 0.95, armor: armor(partner), weapon: weapon(partner), vx: f.moving ? 100 : 0 });
   else if (g.hp[partner] > 0 && g.tag) hero(c, partner, b.x - b.face * 4, b.y - Math.sin((g.tag.t / TAG_ARC) * Math.PI) * 8, b.face, time, { air: true, armor: armor(partner) });
   if (tp && g.tag) {
     const spin = g.tag.t * 26 * b.face;
@@ -2148,7 +2295,7 @@ function drawHeroes(c: C, g: FluffstevaniaGame, time: number) {
     }
     return;
   }
-  if (g.misting) { mistWisp(c, g.leader, b.x, b.y, time); weaponArc(c, g); return; }
+  if (g.sifting) { dustWisp(c, g.leader, b.x, b.y, time); weaponArc(c, g); return; }
   if (rolling) {
     // Boulder Roll: curled up tight, tumbling along with a ring of dust.
     c.save(); c.translate(b.x, b.y - 10); c.rotate(rollSpin);
@@ -2160,7 +2307,7 @@ function drawHeroes(c: C, g: FluffstevaniaGame, time: number) {
   if (g.clinging) {
     // Clinging to a wall: turned to look out from it, claws dug in, with sparks where they scrape.
     const d = b.cling;
-    hero(c, g.leader, b.x - d * 1, b.y, -d as 1 | -1, time, { air: true, armor: armor(g.leader), sx: 0.94, sy: 1.04 });
+    hero(c, g.leader, b.x - d * 1, b.y, -d as 1 | -1, time, { air: true, armor: armor(g.leader), weapon: weapon(g.leader), sx: 0.94, sy: 1.04 });
     if (b.vy > 20) for (let i = 0; i < 3; i++) { c.fillStyle = `rgba(255,220,140,${0.5 + Math.sin(time * 40 + i) * 0.4})`; c.fillRect(b.x + d * 6, b.y - 16 + i * 5 + ((time * 60) % 4), 1, 1); }
     c.strokeStyle = 'rgba(40,30,20,0.6)'; c.lineWidth = 0.6;
     for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(b.x + d * 6.5, b.y - 14 + i * 2); c.lineTo(b.x + d * 6.5, b.y - 22 + i * 2); c.stroke(); }
@@ -2174,7 +2321,7 @@ function drawHeroes(c: C, g: FluffstevaniaGame, time: number) {
   landAir = !b.ground;
   const land = Math.max(0, 1 - (time - landAt) / 0.14), rise = !b.ground && b.vy < -120 ? Math.min(1, -b.vy / 500) : 0;
   const sq = land * 0.16 - rise * 0.1;
-  hero(c, g.leader, b.x, b.y, b.face, time, { run: b.run, moving, air: !b.ground, alpha: flicker ? 0.35 : 1, armor: armor(g.leader), vx: b.vx, sx: 1 + sq, sy: 1 - sq });
+  hero(c, g.leader, b.x, b.y, b.face, time, { run: b.run, moving, air: !b.ground, alpha: flicker ? 0.35 : 1, armor: armor(g.leader), weapon: weapon(g.leader), vx: b.vx, sx: 1 + sq, sy: 1 - sq });
   if (b.charge > 0.12 && b.attackT <= 0) {
     // Charging the fan: dust gathers, and sparkles once the spin is ready.
     const k = Math.min(1, b.charge / CHARGE_T), ready = k >= 1;
@@ -2258,6 +2405,8 @@ function drawDustFx(c: C, g: FluffstevaniaGame) {
     }
   }
 }
+/** The colour of each weapon's slash mark. */
+const SLASH_TINT: Record<string, string> = { fan: '255,190,220', moonfan: '170,195,255', wolffan: '255,120,90', acorn: '255,200,110', pin: '235,235,245', tome: '240,70,90' };
 /** Bright effects drawn over the darkness: sparks, slashes, bursts, stars and damage numbers. */
 function drawGlowFx(c: C, g: FluffstevaniaGame) {
   for (const f of g.fx) {
@@ -2281,10 +2430,10 @@ function drawGlowFx(c: C, g: FluffstevaniaGame) {
       case 'claw': {
         // Three raking claw marks hang in the air a moment; a finisher's are gold.
         c.save(); c.translate(f.x, f.y); c.scale(f.vx || 1, 1); c.rotate(-0.9);
-        const gold = f.vy > 0;
+        const gold = f.vy > 0, tint = f.color === 'ironclaws' ? '190,215,255' : '255,240,215';
         for (let i = -1; i <= 1; i++) {
           const len = 11 + (i === 0 ? 3 : 0);
-          c.fillStyle = gold ? `rgba(255,220,120,${1 - k})` : `rgba(215,235,255,${1 - k})`;
+          c.fillStyle = gold ? `rgba(255,220,120,${1 - k})` : `rgba(${tint},${1 - k})`;
           c.beginPath(); c.moveTo(-len, i * 3.6); c.quadraticCurveTo(0, i * 3.6 - 2 * (1 - k), len, i * 3.6 + 1); c.quadraticCurveTo(0, i * 3.6 + 0.6, -len, i * 3.6); c.fill();
         }
         c.restore();
@@ -2316,7 +2465,11 @@ function drawGlowFx(c: C, g: FluffstevaniaGame) {
         break;
       }
       case 'slash': {
+        // Each weapon's slash has its own colour round a white core.
         c.save(); c.translate(f.x, f.y); c.scale(f.vx || 1, 1); c.rotate(-0.5);
+        const tint = SLASH_TINT[f.color ?? ''] ?? '255,255,255';
+        c.fillStyle = `rgba(${tint},${0.8 * (1 - k)})`;
+        c.beginPath(); c.moveTo(-14 - k * 6, 0.5); c.quadraticCurveTo(0, -5 * (1 - k), 14 + k * 6, 0.5); c.quadraticCurveTo(0, 2.4, -14 - k * 6, 0.5); c.fill();
         c.fillStyle = `rgba(255,255,255,${1 - k})`;
         c.beginPath(); c.moveTo(-12 - k * 6, 0); c.quadraticCurveTo(0, -3 * (1 - k), 12 + k * 6, 0); c.quadraticCurveTo(0, 1.2, -12 - k * 6, 0); c.fill();
         c.restore();

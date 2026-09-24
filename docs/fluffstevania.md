@@ -82,9 +82,9 @@ Beating the Rat King ends chapter II.
 
 Ten rooms beyond the library door on 17 cells, all in the `library` area. It has bookcases, moonlit windows, reading lamps and busts in the scenery, red wood-panelled stone, and its own waltz.
 
-- `reading` (3 screens): the reading room. A hole in the floor drops into the stacks. A reading nook high on the right holds a Wolfberry Leaf behind an iron grate, so only Mist Form gets in.
-- `stacks` (1×2): a shaft of shelves down to the Mist Form vault (lower left) and the archive (lower right). Ledges every four tiles lead back up, and the last jump out through the hole needs the Cloud Hop.
-- `mist-vault`: Mist Form on a pedestal.
+- `reading` (3 screens): the reading room. A hole in the floor drops into the stacks. A reading nook high on the right holds a Wolfberry Leaf behind an iron grate, so only Dust Form gets in.
+- `stacks` (1×2): a shaft of shelves down to the Dust Form vault (lower left) and the archive (lower right). Ledges every four tiles lead back up, and the last jump out through the hole needs the Cloud Hop.
+- `dust-vault`: Dust Form on a pedestal.
 - `archive` (2 screens): the shelf puzzle. The sign says the Count reads the book bound in the colour of his eyes, which is red, so shelf II. Striking it sets `puzzle:archive` and opens the door to the reliquary. Striking I or III sends a Flying Tome off the shelf at you.
 - `reliquary`: the Heavy Tome (Enzo's club: ATK 24, reach +6) and a Wolfberry Leaf.
 - `save-library`: a shrine.
@@ -95,9 +95,9 @@ Ten rooms beyond the library door on 17 cells, all in the `library` area. It has
 
 Beating Count Culpeo ends chapter III.
 
-### Iron grates and Mist Form
+### Iron grates and Dust Form
 
-`|` is an iron grate. It is solid to everything, except that a hero with **Mist Form** moves through it (`move(…, mist)`). While the lead's box overlaps a grate (`misting`), both heroes are drawn as swirling wisps of dust in their afterimage colours, dust puffs trail behind, and a `mist` sound plays.
+`|` is an iron grate. It is solid to everything, except that a hero with **Dust Form** moves through it (`move(…, dust)`). While the lead's box overlaps a grate (`sifting`), both heroes crumble into swirling clouds of sandy bath dust (pale for Dora, grey-tinged for Enzo) with grains sifting down, dust puffs trail behind, and a `dustform` sound plays. Mist Form was renamed Dust Form to suit the chinchillas: older saves swap the `mist` relic for `dustform` and the `mist-vault` room for `dust-vault` as they load (`RENAMED_RELICS`, `RENAMED_ROOMS`).
 
 ### Shelf puzzles
 
@@ -336,7 +336,12 @@ Everything is Canvas 2D in the 384×224 view, scaled up by the page.
   - Slashes: a streak where each swing lands. Enzo's claws leave three claw marks instead, gold on a finisher.
   - Damage numbers: they pop in large and bounce once. Criticals are gold; finishers, spin attacks, tags, spells and the Duo Strike (`Pop.big`) are bigger again, with a gold gradient.
   - Burning away: a defeated foe lingers for `BURN_T` (0.45 s). It flashes white-hot, cools to orange and crumbles from the feet up in cinders, with embers rising, ash in its own colours and an orange light. Its Dust motes fly into the lead with violet tails.
-- **Weapon trails:** each fan leaves its own sparkle along the rim of its sweep: petals for the Dust Fan, stars for the Moonlit Fan and embers for the Wolfberry Fan. Claws rake three streaks. Clubs leave a heavy gradient smear with speed lines.
+- **Weapons:** each weapon looks different, in the menu, in paw and mid-swing.
+  - The Dust Fan is pale pink paper on bamboo ribs painted with cherry blossoms. The Moonlit Fan is midnight silk on silver ribs with a crescent moon, stars and a silver tassel. The Wolfberry Fan is crimson on black lacquer with a scalloped gold edge, clusters of golden berries and a red tassel. Each leaves its own sparkle along the rim of its sweep: petals, stars or embers.
+  - Scrappy Claws are Enzo's own paw, raking warm cream streaks. The Iron Claws are a riveted steel gauntlet with three blades, raking cold steel-blue streaks with sparks.
+  - Clubs leave a heavy smear with speed lines: gold for the Acorn Cudgel, flour-white (with puffs of flour) for the Rolling Pin, and crimson (with loose pages) for the Heavy Tome, which is drawn as a red leather book with gold corners and a clasp.
+  - Slash marks where a blow lands take the weapon's colour (`SLASH_TINT`), and claw marks are cream or steel.
+  - Out of a swing the weapon is carried (`carryWeapon`): Dora holds her fan folded in her front paw, the Iron Claws sit on Enzo's paw, and his clubs are strapped across his back.
 - **Shockwaves:** Enzo's club finisher and Burrow Quake are drawn as an arc of force rolling along the floor. Slabs heave up behind the arc, a glowing crack trails it, stone shards fly (`shard` effects) and the wave lights the room. The finisher's wave is gold; the spell's is bigger and violet, and a rune circle turns on the floor under Enzo as he casts.
 - **Heroes:** the lead squashes for 0.14 s on landing and stretches while rising fast. Dashing sheds tufts of fur. Worn armour shows: the Wool Scarf's tails fly out behind, the Moth Cape is a pair of moth wings on the back, and the Thimble Helm sits on the crown. The scarf and cape stream back further at speed.
 - **Level up:** a column of light pours down on the lead with motes rising through it and a gold LEVEL UP.
