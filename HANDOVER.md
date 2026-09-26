@@ -9,10 +9,10 @@ Two new cabinets. The arcade now has 19 games.
 | # | Game | Route | Status |
 | --- | --- | --- | --- |
 | 18 | Chinchilla Clash | `/clash` | Merged to `main` (PR #1) and deployed |
-| 19 | Hay Maze Defence | `/hay-maze` | Merged to `main` with this handover |
+| 19 | Hay Maze Defence | `/hay-maze` | Merged to `main` (PR #2), then reworked in the style of Emberward (PR #3) |
 
 - **Chinchilla Clash** is a Clash Royale-style lane battler. It has a deck of 8 cards from 12 and bath dust instead of elixir. There are princess and king towers, double dust in the last minute, overtime and a tie-break. The trophy road has three rival chinchilla clans (beige, violet, ebony), each with its own computer opponent. Full rules: [`docs/chinchilla-clash.md`](docs/chinchilla-clash.md).
-- **Hay Maze Defence** is a maze-building tower defence. Ground predators always take the shortest open route. Every tower blocks its tile, so building bends that route, and the player can never seal it completely. Dora's Dust Puffer slows predators and the Snooze Bell stops them, while hawks fly over the maze. There are six towers, six predators, 20 waves and three maps. Full rules: [`docs/hay-maze.md`](docs/hay-maze.md).
+- **Hay Maze Defence** is a roguelite tower defence in the style of [Emberward](https://store.steampowered.com/app/2459550/Emberward/). Predators take the shortest open route to the Hearthlight. The player draws hay-bale blocks as cards (tetromino-like shapes), turns them and lays them into a maze, which can never be sealed completely. Towers stand on top of the bales or rocks. There are eight towers with elements that react with each other (chilled foes shatter under sparks, and burning foes flare under moonlight), plus relics. A run is six levels on generated meadows, with a reward after each. Full rules: [`docs/hay-maze.md`](docs/hay-maze.md).
 
 Both have README rows and guides, docs pages and changelog entries (under 26-09-2026). The hardcoded game counts are updated as listed in the README's **Adding a game** checklist.
 
@@ -27,7 +27,7 @@ Both games follow the arcade's usual split: a deterministic engine with no DOM, 
 | Page, styles, metadata | `app/clash/` | `app/hay-maze/` |
 | Engine tests (`npm test`) | `tests/chinchilla-clash.mjs` | `tests/hay-maze.mjs`, `tests/hay-maze-bot.mjs` |
 | Browser test (`npm run test:e2e`) | `tests/e2e/chinchilla-clash.mjs` | `tests/e2e/hay-maze.mjs` |
-| Save key (`localStorage`) | `chinchilla-clash-v1` | `hay-maze-v1` |
+| Save key (`localStorage`) | `chinchilla-clash-v1` | `hay-maze-v2` (the first version's `hay-maze-v1` is no longer read) |
 
 Both draw Dora, Enzo and the other chinchillas with the shared `drawChinchilla` from `lib/chinchilla-art.ts`, using `coatLike` for other coats.
 
@@ -40,11 +40,15 @@ Both draw Dora, Enzo and the other chinchillas with the shared `drawChinchilla` 
 
 ### Hay Maze Defence, briefly
 
-- Grid of 20 × 12 tiles. Maps are strings in `MAPS` (`.` grass, `#` rock, `E` entrance, `X` burrow door).
-- `field()` is a BFS from the burrow doors. Ground predators step to the neighbouring tile with fewer steps to go, and it is recomputed on every build and sell. `canBuild()` refuses a tile that would cut off an entrance or strand a predator.
-- There is no randomness at all.
-- Balance knobs: `hpScale` (health growth per wave), each map's `tough` multiplier, `START_HAY`, `WAVE_BONUS`, and the tower and enemy tables.
-- `tests/hay-maze-bot.mjs` builds a snaking maze and must win every map. It currently keeps 20, 14 and 5 raisins, and it asserts that each map is harder than the last. Rerun it after any balance change.
+- The state is split into two classes. `Run` holds what carries over: the Hearthlight, the deck, unlocked towers, relics and the reward choice. `Battle` is one level: the generated meadow (`makeLayout`), its wave plan (`planWaves`), bales, towers, hand, draw and discard piles, and hay.
+- Grid of 20 × 12 tiles. `field()` is a BFS from the burrow door round rocks and bales. Ground predators step to the neighbouring tile with fewer steps to go.
+- **Only bales block the route; towers don't** (they stand on bales or rocks). `canPlace()` refuses a piece that would cut off a way in, and bales can only be laid in the build phase.
+- Pieces are `PIECES` cells, turned by `shape()` and centred by `cellsAt()`.
+- Elements are resolved in `Battle.fire()` and `fly()`: `SHATTER` for sparks on chilled foes, and `FLARE` for moonlight on burning foes.
+- Relics change a tower's numbers in `Battle.stats()`, plus a few hooks: Hay Loft, Lucky Raisin, Old Map and Hearthstone.
+- Everything random comes from `rng(seed)`: the run's rewards from the run's seed, and each level's meadow, waves and shuffles from the seed and the level number. A seed replays a run exactly.
+- Balance knobs: `hpScale` and `toughness` (health growth, mostly within a level, because each level starts from scratch), `budget` and `COST` (wave size), `LEVEL_HAY` and `LEVEL_HAY_STEP`, `FIRST_DRAW` and `DRAW_PER_WAVE`, and the tower, enemy and relic tables. The first wave of each level has no hawks or badgers, which stops a new level from opening with a wave you can't answer yet.
+- `tests/hay-maze-bot.mjs` plays six seeded runs. It lays bales along a snaking plan to lengthen the walk, stands towers where they cover the route (and anti-air along the hawks' flight line), and picks rewards. It currently wins 4 of 6, usually with the flame well down, and `npm test` needs at least 3. Rerun it after any balance change; it takes about five seconds.
 
 ## Checking your work
 
@@ -73,6 +77,6 @@ CI (`.github/workflows/ci.yml`) runs typecheck, `npm test` and the build on ever
 
 - Neither new game has sound yet. Other cabinets have WebAudio helpers (`app/dusty-hollow/sound.ts`, `app/mountain-retreat/sound.ts`) that could be borrowed.
 - **Hay Maze on phones:** the meadow is only about 16 px a tile at phone width. Building uses tap-to-preview, then tap-again-to-build, to avoid misplacing. A zoomed or scrollable view would help more.
-- **Hay Maze:** towers have no targeting modes (they always shoot the predator furthest along), and there is no endless mode after wave 20.
+- **Hay Maze:** towers have no targeting modes (they always shoot the predator furthest along). There is no endless mode, no difficulty setting and no mid-run save; leaving the page ends the run. Emberward's multi-tile towers (archways, line shooters) and its branching region map aren't in yet, and would be natural next steps.
 - **Chinchilla Clash:** no card levels, emotes or two-player mode. The computer player never uses the pocket placement opened by a fallen tower.
-- **Balance** has only been tuned against bots. Watch real players on Moonlit Summit (Hay Maze) and Baron Ebony (Clash), the hardest of each.
+- **Balance** has only been tuned against bots. Watch real players on levels 5–6 of Hay Maze and against Baron Ebony in Clash, the hardest of each.

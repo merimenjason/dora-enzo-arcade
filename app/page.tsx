@@ -18,7 +18,7 @@ const GAMES=[
  {href:'/fluff-forge',title:'Fluff Forge',tag:'NEW · COURSE MAKER',blurb:'Build your own platformer course from bricks, clouds, springs, beetles and bats, then run it as Dora or Enzo. Clear it to share a code with friends.',color:'#f29b6b',art:'🧱'},
  {href:'/fluffstevania',title:'Fluffstevania: Symphony of the Dust',tag:'NEW · METROIDVANIA',blurb:'Dora and Enzo explore a haunted mountain castle for the Golden Wolfberry. Tag between them, level up, find relics and gear, and face the owl and the Rat King.',color:'#c8a0e8',art:'🦇'},
  {href:'/clash',title:'Chinchilla Clash',tag:'NEW · CARD BATTLER',blurb:'A Clash Royale-style lane battle. Build an eight-card deck, spend bath dust to send kits, gliders and Grandpa Pebble over the river, and topple three rival clans\u2019 towers.',color:'#ffcf4a',art:'👑'},
- {href:'/hay-maze',title:'Hay Maze Defence',tag:'NEW · TOWER DEFENCE',blurb:'Predators are after the raisin stash and always take the shortest way in. Every tower you build bends their path: stack hay bales into a maze, slow them with Dora\u2019s dust and ring the Snooze Bell.',color:'#9ed36a',art:'🌾'},
+ {href:'/hay-maze',title:'Hay Maze Defence',tag:'NEW · ROGUELITE TOWER DEFENCE',blurb:'Guard the Hearthlight through the night. Draw hay-bale blocks as cards, lay them into a winding maze, and stand ice, fire, spark and moonlight towers on top. Six levels, new meadows, relics and rewards.',color:'#ff9a4a',art:'🔥'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
