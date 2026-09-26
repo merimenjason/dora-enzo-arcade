@@ -17,7 +17,7 @@ try {
   // The arcade lists the new cabinet.
   const menu = await browser.newPage();
   await menu.goto(base);
-  assert.equal(await menu.locator('.arcade-card').count(), 19);
+  assert.equal(await menu.locator('.arcade-card').count(), 20);
   assert.match(await menu.locator('a.arcade-card[href="/clash"]').textContent(), /Chinchilla Clash/);
   await menu.close();
 
@@ -162,7 +162,7 @@ try {
   await phone.close();
 
   assert.deepEqual(errors, []);
-  console.log('PASS Chinchilla Clash browser: 19-card menu, locked arenas, deck builder limits and persistence, tap, keyboard and drag plays, the river zone, spells anywhere, pause, a king-tower victory that opens the next arena, and phone layout with touch plays.');
+  console.log('PASS Chinchilla Clash browser: 20-card menu, locked arenas, deck builder limits and persistence, tap, keyboard and drag plays, the river zone, spells anywhere, pause, a king-tower victory that opens the next arena, and phone layout with touch plays.');
 } finally {
   await browser.close();
 }

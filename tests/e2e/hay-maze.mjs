@@ -14,7 +14,7 @@ try {
   // The arcade lists the cabinet.
   const menu = await browser.newPage();
   await menu.goto(base);
-  assert.equal(await menu.locator('.arcade-card').count(), 19);
+  assert.equal(await menu.locator('.arcade-card').count(), 20);
   assert.match(await menu.locator('a.arcade-card[href="/hay-maze"]').textContent(), /Hay Maze Defence/);
   await menu.close();
 
@@ -168,7 +168,7 @@ try {
   await phone.close();
 
   assert.deepEqual(errors, []);
-  console.log('PASS Hay Maze Defence browser: 19-card menu, a run with a seven-card hand and three starter towers, laying and turning a bale, bales refused on rocks, towers only on bales and rocks, upgrade and sell, saving and continuing between waves, mid-wave and at the reward screen, starting a wave with bales held back, pause, clearing a level to a three-way reward and level 2, losing the Hearthlight, and tap-to-preview on a phone.');
+  console.log('PASS Hay Maze Defence browser: 20-card menu, a run with a seven-card hand and three starter towers, laying and turning a bale, bales refused on rocks, towers only on bales and rocks, upgrade and sell, saving and continuing between waves, mid-wave and at the reward screen, starting a wave with bales held back, pause, clearing a level to a three-way reward and level 2, losing the Hearthlight, and tap-to-preview on a phone.');
 } finally {
   await browser.close();
 }

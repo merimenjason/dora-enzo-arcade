@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of nineteen original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of twenty original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -29,6 +29,7 @@ Listed in arcade-menu order.
 | 17 | Fluffstevania: Symphony of the Dust | `/fluffstevania` | Metroidvania action RPG |
 | 18 | Chinchilla Clash | `/clash` | Card battler |
 | 19 | Hay Maze Defence | `/hay-maze` | Roguelite maze tower defence |
+| 20 | Chinchillas vs Zombies | `/chinchillas-vs-zombies` | Lane defence |
 
 ## Run
 
@@ -477,6 +478,34 @@ Browser: `tests/e2e/hay-maze.mjs` starts a run, lays and turns a bale, has a bal
 
 **Docs:** [`docs/hay-maze.md`](docs/hay-maze.md).
 
+### 20 · Chinchillas vs Zombies (`/chinchillas-vs-zombies`)
+
+**Play:** A lane defence in the style of Plants vs Zombies, drawn in Canvas 2D. Zombies shamble in from the street along the lanes of a 9 × 5 lawn towards Dora and Enzo's burrow, and you stop them by planting chinchilla defenders, one to a tile. Defenders cost **sunflower seeds**. You start each night with 75. A glowing pouch worth 25 drifts down from the sky every 7 to 10 seconds, and each Seed Gatherer finds one every 24 seconds. Click a pouch to collect it before it fades, 12 seconds after it lands. Every defender has a recharge before you can plant another of the same kind. There are seven: the **Seed Gatherer** (50 seeds), the **Pellet Flicker** (100, 25 damage every 1.3 s down its lane), **Grandpa Pebble** (50, a 4,000-health wall), the **Dust Trap** (25, ready after 14 s, then it wipes out the first zombie on its tile), **Enzo's Boulder** (150, 1,800 damage to every zombie in the 3 × 3 around it), **Dora's Frost Fan** (175, puffs that chill a zombie to half speed, bites included, for 10 s) and **Twin Flickers** (200, two pellets a volley). The shovel digs a defender up, without a refund.
+
+Six zombies: the plain **Zombie** (200 health), the faster **Flag Zombie** that leads each huge wave, the **Conehead** (370 armour on top) and **Buckethead** (1,100), the **Pogo Zombie**, which bounces over the first defender it meets and can't be hit in mid-air, and the **Brute**, 3,000 health, which flattens any defender in one smash and takes two boulders. There are eight nights. The first two use only the middle three lanes, and every other night uses all five. A night is 6 to 16 waves, 22 seconds apart. The first two waves are always plain zombies, flag waves are twice the size, the last wave brings the night's toughest zombie, and a progress bar with flags shows what's to come. Each lane has a **hay cart** that clears it the first time a zombie gets to the end. After that, a zombie at the end of the lane gets into the burrow and the night is lost. Winning a night opens the next and adds a defender to your seed bar (Grandpa Pebble, the Dust Trap, Enzo's Boulder, the Frost Fan, then Twin Flickers). The nights you've cleared are kept in this browser.
+
+**Controls:**
+
+- Pick a seed packet (or press 1–7) and click a tile on the lawn to plant. Right-click or Escape puts the packet down. S picks the shovel.
+- Click a seed pouch to collect it, or press Space to collect every pouch on the lawn.
+- The arrow keys move the cursor and Enter plants. F cycles 1×, 2× and 3× speed. P, or Escape with nothing picked, pauses. The game also pauses when the window loses focus.
+- Touch: tap a tile to preview, then tap it again to plant.
+
+**Tests:** `npm run test:cvz` (also in `npm test`) compiles `lib/cvz-game.ts` and runs `tests/cvz.mjs`:
+
+- planting rules (seeds, recharge, taken tiles, bare lanes, locked defenders, pausing), the shovel, and unlocks;
+- sky seeds, gatherers, collecting and fading;
+- shooters only firing ahead and down their own lane, Twin Flickers, armour, and the Frost Fan halving walking and biting;
+- a Dust Trap eaten before it's ready and going off once it is, the boulder's 3 × 3, the pogo's jump, and the Brute's smash;
+- hay carts clearing only their lane, then losing;
+- every night's waves (lanes, pools, flags, plain opening waves, the final zombie), winning, pausing and a deterministic replay.
+
+`npm run bot:cvz` (also in `npm test`) runs `tests/cvz-bot.mjs`, a simple gardener that collects every seed, plants gatherers at the back and shooters where the zombies are, walls in front of pogos and boulders on crowded lanes. It must win all eight nights, and doing nothing must lose.
+
+Browser: `tests/e2e/chinchillas-vs-zombies.mjs` checks the menu card and the locked nights, planting with a packet and a click, a plant refused for seeds and on a bare lane, collecting a pouch by clicking and with Space, planting with the keyboard, a recharging packet, the shovel, speed, pausing, a won night that shows the new defender and opens the next one, losing, and tap-to-preview on a phone-sized screen.
+
+**Docs:** [`docs/chinchillas-vs-zombies.md`](docs/chinchillas-vs-zombies.md).
+
 ## Validation
 
 ```sh
@@ -491,7 +520,7 @@ npm run test:e2e   # optional; needs `npm run dev` running and `npm i -D playwri
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Nineteen ways/` assertion in `tests/e2e/dust-bath.mjs`, the 19-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs` and `tests/e2e/hay-maze.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty ways/` assertion in `tests/e2e/dust-bath.mjs`, the 20-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs` and `tests/e2e/chinchillas-vs-zombies.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
