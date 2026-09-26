@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 26-09-2026
+
+### Added
+
+- **Chinchilla Clash:** a new cabinet, the arcade's eighteenth. A Clash Royale-style card battle: Dora and Enzo hold the Dust Palace, and you play cards with bath dust to send troops over the river and knock down the rival clan's two princess towers and their king. Build a deck of eight from twelve cards: the Kit Squad, Pellet Flickers, Glider Gang, Mochi the Capybara, Grandpa Pebble (who only hits towers), the river-leaping Dust Dasher, the Hay Balloon, the Hay Cannon, the Dust Bomb and Pellet Volley spells, and two hero cards only you get, **Dora, Dust Duchess** with her splashing dust puffs and **Enzo, Boulder Brawler** with his spin. Tap or drag a card onto your half of the arena, or use 1–4, the arrow keys and Enter. Dust fills twice as fast in the last minute, a level match goes to sudden-death overtime, and topping the king tower wins at once with three crowns. Beat three rival clans of beige, violet and ebony chinchillas along the trophy road, from the Salt Flat Arena to Baron Ebony on the Moonlit Summit; your deck and progress are kept in your browser.
+
 ## 24-09-2026
 
 ### Added
