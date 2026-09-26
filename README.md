@@ -450,13 +450,13 @@ Browser: `tests/e2e/chinchilla-clash.mjs` checks the menu card and locked arenas
 
 There are eight towers, each with an element. You start with three: the **Pellet Flicker** (10 hay, hits flyers too), **Dora's Frost Fan** (16, ice: chills everything nearby by 35%, up to 55%) and **Enzo's Boulder Roller** (22, splash). The other five are rewards: the **Ember Brazier** (fire: sets foes burning for 3 s, and burning ignores armour), the **Spark Wheel** (a chain of zaps that jumps to 3 foes, up to 5), the **Moon Lantern** (arcane: long-range bolts that ignore armour), the **Snooze Bell** (naps of 0.6 to 1 s) and the **Glider Nest** (flyers only). Elements react: chilled foes **shatter** for double damage from sparks, and burning foes **flare** when moonlight hits them, scorching their neighbours for half. Towers upgrade twice and sell for 70% back.
 
-A run is six levels, each on a newly generated meadow with its own rocks and ways in (from the third level a second way in may come down from the top, and always does from the fifth). Each level is five waves, and every second level ends with a lynx. You start each level with fresh bales, no towers, 70 hay (30 more each level after the first) and a hand of 7 cards from your deck of 11. After each wave you draw 3 more, and you can hold 8. Towers can go up during a wave; bales wait until it's over. Clear a level to pick one of three rewards: a new tower, a relic (12, such as Static Fur for longer chains or the Old Map for an extra card each wave), more cards for your deck, or a brighter flame. Predators that reach the Hearthlight dim it (badgers by two, the lynx by five); it starts at 20 and carries over between levels, and the run ends if it goes out. Runs played, runs won and the furthest level reached are saved in this browser.
+A run is six levels, each on a newly generated meadow with its own rocks and ways in (from the third level a second way in may come down from the top, and always does from the fifth). Each level is five waves, and every second level ends with a lynx. You start each level with fresh bales, no towers, 70 hay (30 more each level after the first) and a hand of 7 cards from your deck of 11. After each wave you draw 3 more, and you can hold 8. Towers can go up during a wave; bales wait until it's over. Clear a level to pick one of three rewards: a new tower, a relic (12, such as Static Fur for longer chains or the Old Map for an extra card each wave), more cards for your deck, or a brighter flame. Predators that reach the Hearthlight dim it (badgers by two, the lynx by five); it starts at 20 and carries over between levels, and the run ends if it goes out. The run in progress is saved in this browser whenever you're between waves or choosing a reward, so you can close the page and **Continue your run** later. Leaving mid-wave picks up from the start of that wave. Runs played, runs won and the furthest level reached are kept too.
 
 **Controls:**
 
 - Pick a card from your hand (or press 1–8) and click the meadow to lay it. R, right-click or the mouse wheel turns it. Hay Bundles and Warm Cocoa play as soon as you pick them; the Shovel digs up a bale.
 - Pick a tower from the bar (Z, X, C, V, B, N, M or comma) and click bales or rocks to build. Click a tower to see its stats, upgrade it (U) or sell it (Delete).
-- Space starts the wave. The arrow keys move the cursor and Enter places or selects. F cycles 1×, 2× and 3× speed. P pauses, and Escape cancels, or pauses when nothing is picked. On the reward screen, 1–3 pick.
+- Space starts the wave. The arrow keys move the cursor and Enter places or selects. F cycles 1×, 2× and 3× speed. P pauses, and Escape cancels, or pauses when nothing is picked. On the reward screen, 1–3 pick. **Save and leave** (in the pause menu or on the reward screen) goes back to the start screen, where **Continue your run** picks it up again.
 - Touch: tap a tile to preview, then tap it again to place.
 
 **Tests:** `npm run test:hay-maze` (also in `npm test`) compiles `lib/hay-maze-game.ts` and runs `tests/hay-maze.mjs`:
@@ -467,11 +467,13 @@ A run is six levels, each on a newly generated meadow with its own rocks and way
 - hindrance: a snaking wall of bales makes a fox take 3.7 times as long, hawks fly straight over, and no predator walks through a bale;
 - every element: chill, chains and shatter, burning through armour, moonlight through armour and flares, naps, splash and flyers;
 - relics, the item cards, drawing after each wave, the hand limit and reshuffling;
-- clearing a level to three rewards and the next level, losing the Hearthlight, winning the run, pausing, and a deterministic replay.
+- clearing a level to three rewards and the next level, losing the Hearthlight, winning the run and pausing;
+- saving mid-run: a run saved between waves, at the reward screen or mid-wave loads and carries on exactly as the original would, and broken or impossible saves are refused;
+- a deterministic replay.
 
 `npm run bot:hay-maze` (also in `npm test`) runs `tests/hay-maze-bot.mjs`, a planner that plays whole runs through the real engine: it lays bales to lengthen the walk along a snaking plan, stands towers where they reach the most of the route (and anti-air along the hawks' flight line), and picks rewards. It must win at least three of six seeded runs.
 
-Browser: `tests/e2e/hay-maze.mjs` starts a run, lays and turns a bale, has a bale refused on a rock and a tower refused on grass, builds on a bale and a rock, upgrades and sells, starts a wave with Space, pauses, clears a level to the reward screen and level 2, loses the Hearthlight, and taps to preview and place on a phone-sized screen.
+Browser: `tests/e2e/hay-maze.mjs` starts a run, lays and turns a bale, has a bale refused on a rock and a tower refused on grass, builds on a bale and a rock, upgrades and sells, reloads the page between waves, mid-wave and at the reward screen and continues the saved run each time, starts a wave with Space, pauses, clears a level to the reward screen and level 2, loses the Hearthlight (after which there's nothing to continue), and taps to preview and place on a phone-sized screen.
 
 **Docs:** [`docs/hay-maze.md`](docs/hay-maze.md).
 

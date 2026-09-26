@@ -28,6 +28,9 @@
 .hm-spacer { flex: 1; }
 .hm-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
 .hm-stats { color: var(--muted); font-size: 14px; }
+.hm-resume { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 16px; padding: 10px 12px; border-radius: 14px; background: rgba(255, 140, 60, 0.1); border: 1px solid rgba(255, 154, 74, 0.45); }
+.hm-resume span { color: var(--ink); font-size: 14px; }
+.hm-shell .hm-link { background: none; border: 0; color: var(--muted); text-decoration: underline; padding: 4px; }
 .hm-small { color: var(--muted) !important; font-size: 13px; margin: 0; }
 .hm-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; box-shadow: 0 0 6px currentColor; }
 .hm-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

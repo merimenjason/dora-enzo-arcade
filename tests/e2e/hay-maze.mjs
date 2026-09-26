@@ -79,6 +79,17 @@ try {
   assert.equal(await game(page, `r => r.battle.towerAt(${rock[0]}, ${rock[1]})`), null);
   await page.screenshot({ path: '.checks/hay-maze/build.png' });
 
+  // The run is saved: reload between waves and carry on with the same meadow, towers and hand.
+  const state = (p) => game(p, 'r => JSON.stringify([r.level, r.flame, r.battle.wave, r.battle.hay, [...r.battle.blocks], r.battle.towers.map((t) => [t.kind, t.c, t.r, t.level]), r.battle.hand, r.battle.layout.rocks])');
+  await page.waitForTimeout(400);
+  const before = await state(page);
+  await page.reload();
+  await page.waitForSelector('[data-testid="continue"]');
+  assert.match(await page.locator('.hm-resume').textContent(), /Level 1 of 6 · Clover Meadow · wave 1 of 5 next/);
+  await page.getByTestId('continue').click();
+  await page.waitForSelector('[data-testid="board"][data-phase="build"]');
+  assert.equal(await state(page), before, 'everything comes back as it was');
+
   // Start the wave with Space: bale cards wait, towers don't.
   await page.keyboard.press('Space');
   await page.waitForSelector('[data-testid="board"][data-phase="wave"]');
@@ -87,6 +98,14 @@ try {
   if (pieceSlot >= 0) assert.equal(await page.getByTestId(`card-${pieceSlot}`).isDisabled(), true);
   await page.waitForTimeout(1500);
   await page.screenshot({ path: '.checks/hay-maze/wave.png' });
+
+  // Leaving mid-wave resumes from the start of that wave.
+  await page.reload();
+  await page.getByTestId('continue').click();
+  await page.waitForSelector('[data-testid="board"][data-phase="build"]');
+  assert.equal(await state(page), before, 'back to just before wave 1');
+  await page.keyboard.press('Space');
+  await page.waitForSelector('[data-testid="board"][data-phase="wave"]');
 
   // Pause and resume.
   await page.keyboard.press('p');
@@ -102,6 +121,15 @@ try {
   await page.waitForSelector('[data-testid="reward-0"]');
   assert.equal(await page.locator('.hm-reward').count(), 3);
   await page.screenshot({ path: '.checks/hay-maze/reward.png' });
+  // The reward screen is saved too, with the same three choices.
+  const offered = await game(page, 'r => JSON.stringify(r.rewards)');
+  await page.waitForTimeout(400);
+  await page.reload();
+  await page.waitForSelector('[data-testid="continue"]');
+  assert.match(await page.locator('.hm-resume').textContent(), /choosing a reward/);
+  await page.getByTestId('continue').click();
+  await page.waitForSelector('[data-testid="reward-0"]');
+  assert.equal(await game(page, 'r => JSON.stringify(r.rewards)'), offered);
   const kind = await page.getByTestId('reward-0').getAttribute('data-kind');
   await page.getByTestId('reward-0').click();
   await page.waitForSelector('[data-testid="board"][data-level="2"][data-phase="build"]');
@@ -111,6 +139,11 @@ try {
   await game(page, 'r => { r.flame = 1; const b = r.battle; b.plan[b.wave] = [["weasel", 3, 0.3]]; b.sendWave(); for (let i = 0; i < 60 * 60 && r.state === "battle"; i++) b.update(1 / 60); }');
   await page.waitForSelector('[data-testid="board"][data-state="lost"]');
   assert.match(await page.locator('.hm-overlay').textContent(), /Hearthlight went out/);
+  // A finished run leaves nothing to continue.
+  await page.waitForTimeout(400);
+  await page.reload();
+  await page.waitForFunction(() => !document.querySelector('[data-testid="begin"]').disabled);
+  assert.equal(await page.getByTestId('continue').count(), 0);
   await page.close();
 
   // A phone: the meadow fits, and a tap previews before a second tap lays the bale.
@@ -135,7 +168,7 @@ try {
   await phone.close();
 
   assert.deepEqual(errors, []);
-  console.log('PASS Hay Maze Defence browser: 19-card menu, a run with a seven-card hand and three starter towers, laying and turning a bale, bales refused on rocks, towers only on bales and rocks, upgrade and sell, starting a wave with bales held back, pause, clearing a level to a three-way reward and level 2, losing the Hearthlight, and tap-to-preview on a phone.');
+  console.log('PASS Hay Maze Defence browser: 19-card menu, a run with a seven-card hand and three starter towers, laying and turning a bale, bales refused on rocks, towers only on bales and rocks, upgrade and sell, saving and continuing between waves, mid-wave and at the reward screen, starting a wave with bales held back, pause, clearing a level to a three-way reward and level 2, losing the Hearthlight, and tap-to-preview on a phone.');
 } finally {
   await browser.close();
 }

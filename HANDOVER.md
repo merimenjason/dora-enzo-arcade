@@ -27,7 +27,7 @@ Both games follow the arcade's usual split: a deterministic engine with no DOM, 
 | Page, styles, metadata | `app/clash/` | `app/hay-maze/` |
 | Engine tests (`npm test`) | `tests/chinchilla-clash.mjs` | `tests/hay-maze.mjs`, `tests/hay-maze-bot.mjs` |
 | Browser test (`npm run test:e2e`) | `tests/e2e/chinchilla-clash.mjs` | `tests/e2e/hay-maze.mjs` |
-| Save key (`localStorage`) | `chinchilla-clash-v1` | `hay-maze-v2` (the first version's `hay-maze-v1` is no longer read) |
+| Save keys (`localStorage`) | `chinchilla-clash-v1` | `hay-maze-v2` (stats) and `hay-maze-run-v1` (the run in progress); the first version's `hay-maze-v1` is no longer read |
 
 Both draw Dora, Enzo and the other chinchillas with the shared `drawChinchilla` from `lib/chinchilla-art.ts`, using `coatLike` for other coats.
 
@@ -77,6 +77,6 @@ CI (`.github/workflows/ci.yml`) runs typecheck, `npm test` and the build on ever
 
 - Neither new game has sound yet. Other cabinets have WebAudio helpers (`app/dusty-hollow/sound.ts`, `app/mountain-retreat/sound.ts`) that could be borrowed.
 - **Hay Maze on phones:** the meadow is only about 16 px a tile at phone width. Building uses tap-to-preview, then tap-again-to-build, to avoid misplacing. A zoomed or scrollable view would help more.
-- **Hay Maze:** towers have no targeting modes (they always shoot the predator furthest along). There is no endless mode, no difficulty setting and no mid-run save; leaving the page ends the run. Emberward's multi-tile towers (archways, line shooters) and its branching region map aren't in yet, and would be natural next steps.
+- **Hay Maze:** towers have no targeting modes (they always shoot the predator furthest along). There is no endless mode and no difficulty setting. Runs save between waves and at the reward screen (`Run.snapshot()` and `Run.load()`, key `hay-maze-run-v1`), but not mid-wave: leaving mid-wave restarts that wave. Bump `SAVE_VERSION` when the save format changes; older saves are then simply not offered. Emberward's multi-tile towers (archways, line shooters) and its branching region map aren't in yet, and would be natural next steps.
 - **Chinchilla Clash:** no card levels, emotes or two-player mode. The computer player never uses the pocket placement opened by a fallen tower.
 - **Balance** has only been tuned against bots. Watch real players on levels 5–6 of Hay Maze and against Baron Ebony in Clash, the hardest of each.

@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import {
   Run, Battle, TOWERS, ENEMIES, RELICS, PIECES, COLS, ROWS, INF, LEVELS, WAVES_PER_LEVEL, START_FLAME, LEVEL_HAY, LEVEL_HAY_STEP,
   START_DECK, START_TOWERS, FIRST_DRAW, DRAW_PER_WAVE, HAND_MAX, SHATTER, FLARE,
-  shape, cellsAt, planWaves, makeLayout, rng, hpScale, toughness, bossLevel,
+  shape, cellsAt, planWaves, makeLayout, rng, hpScale, toughness, bossLevel, SAVE_VERSION,
 } from '../.checks/hay-maze-game.js';
-import { play } from './hay-maze-bot.mjs';
+import { play, lay as botLay, spend as botSpend } from './hay-maze-bot.mjs';
 
 const run = (b, seconds, each) => { for (let i = 0; i < seconds * 60 && b.phase === 'wave'; i++) { b.update(1 / 60); each?.(b); } };
 /** A battle on a fresh run with plenty of hay and every tower. */
@@ -217,6 +217,63 @@ console.log('Passed cards.');
   const p = new Run(9).battle; p.sendWave(); p.pause(); const t = p.time; p.update(1); assert.equal(p.time, t, 'paused'); p.pause(); p.update(0.5); assert.ok(p.time > t);
 }
 console.log('Passed waves, levels, rewards, losing, winning and pausing.');
+
+// Saving mid-run: a run saved between waves, at the reward screen or mid-wave carries on exactly as if it never stopped.
+{
+  /** The bot's play, one decision at a time, until `until(run)` or the end. */
+  const advance = (r, until) => {
+    for (let guard = 0; guard < 400 && (r.state === 'battle' || r.state === 'reward') && !until(r); guard++) {
+      if (r.state === 'reward') { r.choose(0); continue; }
+      const b = r.battle;
+      botLay(b); botSpend(b); b.sendWave();
+      for (let i = 0; i < 60 * 240 && b.phase === 'wave' && !until(r); i++) { if (i % 30 === 0) botSpend(b); b.update(1 / 60); }
+    }
+    return r;
+  };
+  const summary = (r) => [r.state, r.level, r.flame, r.kills, r.waves, r.relics.join(), r.unlocked.join(), r.battle.hay, r.battle.wave, r.battle.towers.length];
+  const reload = (r) => { const data = JSON.parse(JSON.stringify(r.snapshot())); const back = Run.load(data); assert.ok(back, 'the save loads'); return back; };
+
+  // Between waves on level 2.
+  const a = advance(new Run(11), (r) => r.level === 1 && r.battle.phase === 'build' && r.battle.wave === 2);
+  assert.equal(a.battle.phase, 'build');
+  const b = reload(a);
+  assert.deepEqual(summary(b), summary(a));
+  assert.deepEqual([...b.battle.blocks], [...a.battle.blocks]); assert.deepEqual(b.battle.hand, a.battle.hand); assert.deepEqual(b.battle.drawPile, a.battle.drawPile);
+  assert.equal(b.battle.walk, a.battle.walk);
+  const later = (r) => r.level === 3;
+  advance(a, later); advance(b, later);
+  assert.deepEqual(summary(b), summary(a), 'the loaded run carries on exactly like the original');
+
+  // At the reward screen.
+  const c = advance(new Run(12), (r) => r.state === 'reward');
+  const d = reload(c);
+  assert.equal(d.state, 'reward'); assert.deepEqual(d.rewards, c.rewards); assert.equal(d.battle.phase, 'cleared');
+  c.choose(1); d.choose(1);
+  assert.deepEqual(d.battle.hand, c.battle.hand, 'the same next level'); assert.deepEqual(d.battle.layout, c.battle.layout);
+  advance(c, later); advance(d, later);
+  assert.deepEqual(summary(d), summary(c));
+
+  // Mid-wave: the save is the moment the wave was sent, so the wave starts again.
+  const e = advance(new Run(13), (r) => r.level === 0 && r.battle.phase === 'wave' && r.battle.wave === 3 && r.battle.enemies.length > 3);
+  const f = reload(e);
+  assert.equal(f.battle.phase, 'build'); assert.equal(f.battle.wave, 2, 'back to just before wave 3');
+  assert.equal(f.battle.enemies.length, 0);
+  assert.deepEqual(f.battle.towers.map((t) => [t.kind, t.c, t.r, t.level]), e.checkpoint.battle.towers.map((t) => [t.kind, t.c, t.r, t.level]));
+
+  // Nothing to keep once a run is over, and broken saves are refused.
+  const over = new Run(14); over.state = 'lost'; assert.equal(over.snapshot(), null);
+  const good = JSON.parse(JSON.stringify(new Run(15).snapshot()));
+  assert.ok(Run.load(good));
+  const bad = (mutate) => { const x = JSON.parse(JSON.stringify(good)); mutate(x); return Run.load(x); };
+  assert.equal(Run.load(null), null); assert.equal(Run.load('nonsense'), null); assert.equal(Run.load({}), null);
+  assert.equal(bad((x) => { x.v = SAVE_VERSION + 1; }), null, 'another version');
+  assert.equal(bad((x) => { x.deck.push('dragon'); }), null, 'an unknown card');
+  assert.equal(bad((x) => { x.battle.towers.push({ id: 1, kind: 'flicker', c: 5, r: 5, level: 0, spent: 10 }); x.battle.rocks = '0'.repeat(COLS * ROWS); }), null, 'a tower on bare grass');
+  assert.equal(bad((x) => { x.battle.blocks = x.battle.blocks.map((_, i) => (i % COLS === 10 ? 7 : 0)); x.battle.blockKind = x.battle.blocks.map((v) => (v ? 'mono' : null)); x.battle.rocks = '0'.repeat(COLS * ROWS); }), null, 'a sealed meadow');
+  assert.equal(bad((x) => { x.flame = 0; }), null, 'a run already lost');
+  assert.equal(bad((x) => { x.battle.hand = Array(HAND_MAX + 1).fill('mono'); }), null, 'too many cards in hand');
+}
+console.log('Passed saving and loading mid-run: between waves, at the reward screen and mid-wave, and broken saves refused.');
 
 // A whole run replays exactly.
 const a = play(2), c2 = play(2);
