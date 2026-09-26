@@ -96,13 +96,17 @@ The Flicker, Frost Fan and Boulder Roller are the starters (`START_TOWERS`). Sho
 
 ## Saves
 
-The page keeps `hay-maze-v2` in `localStorage`: runs started, runs won and the furthest level reached. A run in progress isn't saved.
+The page keeps two things in `localStorage`:
+
+- **`hay-maze-run-v1`**, the run in progress, as the JSON from `Run.snapshot()`. Between waves and on the reward screen that is the run exactly as it stands: the deck, relics, flame, the meadow, every bale and tower, the hand and both piles, and the state of both random generators (`rng().state()`), so a loaded run carries on exactly as it would have. During a wave it is the checkpoint `Battle.sendWave()` took just before the wave, so leaving mid-wave starts that wave again. The page writes it whenever it changes (checked a few times a second), and when the page is hidden or closed. A finished run removes it. `Run.load()` checks every field and returns null for a save that's broken, from another version (`SAVE_VERSION`), or impossible (a tower on bare grass, a sealed meadow, too many cards in hand), and the start screen then offers no Continue.
+- **`hay-maze-v2`**: runs started, runs won and the furthest level reached.
 
 ## Controls
 
 - Cards: 1–8 or click. R, right-click or the mouse wheel turns a bale. Items play when picked.
 - Towers: Z, X, C, V, B, N, M and comma, in the order of the crew list, or click the bar.
 - Arrow keys move the cursor; Enter places or selects. Space starts the wave. U upgrades, Delete sells. F cycles 1×, 2× and 3× speed. P pauses; Escape cancels, or pauses when nothing is picked. On the reward screen, 1–3 pick.
+- **Save and leave** in the pause menu, or on the reward screen, goes back to the start screen, where **Continue your run** picks it up again. Beginning a new run replaces the saved one.
 - Touch: the first tap on a tile previews, and a second tap on the same tile places.
 
 ## Drawing

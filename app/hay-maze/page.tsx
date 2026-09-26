@@ -11,7 +11,7 @@ import { drawMaze, drawTowerIcon, drawCritterIcon, drawCardIcon, toGrid, ELEMENT
 import { COATS, drawChinchilla } from '../../lib/chinchilla-art';
 import './hay-maze.css';
 
-const SAVE_KEY = 'hay-maze-v2', DT = 1 / 60, SCALE = 2;
+const SAVE_KEY = 'hay-maze-v2', RUN_KEY = 'hay-maze-run-v1', DT = 1 / 60, SCALE = 2;
 type Save = { runs: number; wins: number; best: number };
 const readSave = (): Save => {
   try {
@@ -20,6 +20,11 @@ const readSave = (): Save => {
   } catch { return { runs: 0, wins: 0, best: 0 }; }
 };
 const writeSave = (s: Save) => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch { /* private mode: the game still plays, it just isn't remembered */ } };
+/** The run in progress, if one was saved and still loads. */
+const readRun = (): Run | null => { try { const raw = localStorage.getItem(RUN_KEY); return raw ? Run.load(JSON.parse(raw)) : null; } catch { return null; } };
+const writeRun = (json: string | null) => { try { if (json) localStorage.setItem(RUN_KEY, json); else localStorage.removeItem(RUN_KEY); } catch { /* private mode */ } };
+type Resume = { level: number; wave: number; flame: number; maxFlame: number; reward: boolean };
+const resumeOf = (r: Run | null): Resume | null => (r ? { level: r.level, wave: r.battle.wave, flame: r.flame, maxFlame: r.maxFlame, reward: r.state === 'reward' } : null);
 
 const REFUSED: Record<Exclude<PlaceResult, 'ok'>, string> = {
   phase: 'Bales go down between waves. Towers can go up any time.',
@@ -63,6 +68,7 @@ const heroes = (c: CanvasRenderingContext2D, w: number, h: number) => {
 export default function HayMaze() {
   const [save, setSave] = useState<Save>({ runs: 0, wins: 0, best: 0 });
   const [loaded, setLoaded] = useState(false);
+  const [resume, setResume] = useState<Resume | null>(null);
   const [screen, setScreen] = useState<'home' | 'play'>('home');
   const [tool, setTool] = useState<Tool>(null);
   const [rot, setRot] = useState(0);
@@ -80,7 +86,10 @@ export default function HayMaze() {
   /** A touch tap has previewed a tile and the next tap on it places. */
   const armed = useRef(false);
 
-  useEffect(() => { setSave(readSave()); setLoaded(true); }, []);
+  useEffect(() => { setSave(readSave()); setResume(resumeOf(readRun())); setLoaded(true); }, []);
+  /** The last run JSON written, so the loop only writes when something changed. */
+  const lastWritten = useRef<string | null>(null);
+  const keep = () => { const r = run.current; if (!r) return; const snap = r.snapshot(), json = snap ? JSON.stringify(snap) : null; if (json !== lastWritten.current) { lastWritten.current = json; writeRun(json); } };
   // The browser test reads and fast-forwards the running game through this.
   useEffect(() => { (window as unknown as { __maze?: () => Run | null }).__maze = () => run.current; }, []);
 
@@ -91,15 +100,28 @@ export default function HayMaze() {
   const rotate = (by = 1) => { rotRef.current = (rotRef.current + by + 4) % 4; setRot(rotRef.current); ghostCache.current = null; };
   const setGameSpeed = (s: number) => { speedRef.current = s; setSpeed(s); };
 
-  function begin() {
-    run.current = new Run((Date.now() % 1_000_000) + 1);
+  function start(next: Run) {
+    run.current = next;
     recorded.current = null;
     chooseTool(null); choosePicked(null); setGameSpeed(1); rotRef.current = 0; setRot(0);
     cursor.current = { c: 8, r: 5, shown: false };
-    const next = { ...save, runs: save.runs + 1 }; setSave(next); writeSave(next);
+    lastWritten.current = null;
     setScreen('play');
     refresh();
   }
+  function begin() {
+    start(new Run((Date.now() % 1_000_000) + 1));
+    keep();
+    const next = { ...save, runs: save.runs + 1 }; setSave(next); writeSave(next);
+  }
+  /** Carries on the saved run: between waves, at the reward screen, or from the start of the wave it was left in. */
+  function carryOn() {
+    const saved = readRun();
+    if (!saved) { setResume(null); writeRun(null); return; }
+    start(saved);
+  }
+  /** Saves and goes back to the start screen. */
+  function leave() { keep(); setResume(resumeOf(readRun())); setScreen('home'); }
 
   /** Picks hand card `slot`. Hay bundles and cocoa play at once; bales and the shovel wait for a tile. */
   function pickCard(slot: number) {
@@ -168,13 +190,14 @@ export default function HayMaze() {
       }
       c.setTransform(SCALE, 0, 0, SCALE, 0, 0);
       drawMaze(c, b, now / 1000, ghost, b.towers.find((x) => x.id === pickedRef.current) ?? null);
-      if (now - ui > 120) { refresh(); ui = now; }
+      if (now - ui > 120) { refresh(); keep(); ui = now; }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
-    const blur = () => { const b = run.current?.battle; if (b && b.phase === 'wave' && !b.paused) { b.pause(); refresh(); } };
+    const blur = () => { const b = run.current?.battle; if (b && b.phase === 'wave' && !b.paused) { b.pause(); refresh(); } keep(); };
     window.addEventListener('blur', blur);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('blur', blur); };
+    window.addEventListener('pagehide', keep);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('blur', blur); window.removeEventListener('pagehide', keep); keep(); };
   }, [screen]);
 
   // Keyboard: 1–8 pick a card, Z X C V B N M , pick a tower, R rotates, arrows move the cursor, Enter places or
@@ -233,8 +256,13 @@ export default function HayMaze() {
             <p className="hm-eyebrow">ROGUELITE TOWER DEFENCE · BUILD THE MAZE · GUARD THE FLAME</p>
             <h1>Hay Maze Defence</h1>
             <p className="hm-lede">Night falls on the mountain and the predators come for the <b>Hearthlight</b>, the lantern that keeps Dora and Enzo’s burrow warm. They always take the shortest way to it. Draw hay-bale blocks as cards, turn them and lay them into a winding maze, then stand towers on the bales: ice, fire, sparks and moonlight that work best together. Six levels, a new meadow each time, and a reward after every one.</p>
+            {resume && <div className="hm-resume">
+              <button className="hm-go hm-big" data-testid="continue" onClick={carryOn}>Continue your run →</button>
+              <span>Level {resume.level + 1} of {LEVELS} · {regionOf(resume.level).name} · {resume.reward ? 'choosing a reward' : `wave ${resume.wave + 1} of ${WAVES_PER_LEVEL} next`} · 🔥 {resume.flame}/{resume.maxFlame}</span>
+            </div>}
             <div className="hm-row">
-              <button className="hm-go hm-big" data-testid="begin" disabled={!loaded} onClick={begin}>Begin a run →</button>
+              <button className={resume ? 'hm-big' : 'hm-go hm-big'} data-testid="begin" disabled={!loaded} onClick={begin}>{resume ? 'Begin a new run' : 'Begin a run →'}</button>
+              {resume && <span className="hm-stats">This replaces your saved run.</span>}
               <span className="hm-stats">{save.runs ? `${save.runs} run${save.runs === 1 ? '' : 's'} · ${save.wins} won · best: ${save.best >= LEVELS ? 'all six levels' : `level ${Math.max(1, save.best)}`}` : 'Your first night on the mountain.'}</span>
             </div>
           </div>
@@ -294,11 +322,12 @@ export default function HayMaze() {
       <p className="hm-eyebrow">LEVEL {r.level + 1} CLEARED · {b.kills} CAUGHT</p>
       <h2>Pick a reward</h2>
       <div className="hm-rewards">{r.rewards.map((w, i) => <RewardCard key={i} reward={w} index={i} onPick={() => choose(i)} />)}</div>
-      <p className="hm-small">Next: level {r.level + 2}, {regionOf(r.level + 1).name}{bossLevel(r.level + 1) ? ', guarded by a lynx' : ''}.</p>
+      <p className="hm-small">Next: level {r.level + 2}, {regionOf(r.level + 1).name}{bossLevel(r.level + 1) ? ', guarded by a lynx' : ''}. Your run is saved.</p>
+      <button className="hm-link" data-testid="leave" onClick={leave}>Save and leave</button>
     </>;
-  } else if (r.state === 'won') overlay = <><p className="hm-eyebrow">ALL {LEVELS} LEVELS</p><h2>The Hearthlight burns till morning!</h2><p>Dora and Enzo kept it alight with {r.flame} of {r.maxFlame} left. {r.kills} predators turned back.</p><button className="hm-go" onClick={begin}>Another run →</button><button onClick={() => setScreen('home')}>Back to the start</button></>;
-  else if (r.state === 'lost') overlay = <><p className="hm-eyebrow">LEVEL {r.level + 1} · WAVE {b.wave}</p><h2>The Hearthlight went out.</h2><p>{r.kills} predators turned back. A longer maze, and elements that work together, buy more time.</p><button className="hm-go" onClick={begin}>Try another run →</button><button onClick={() => setScreen('home')}>Back to the start</button></>;
-  else if (b.paused) overlay = <><p className="hm-eyebrow">PAUSED</p><h2>A quiet moment by the fire.</h2><button className="hm-go" onClick={() => { b.pause(); refresh(); }}>Back to the maze →</button><button onClick={() => setScreen('home')}>Leave the run</button></>;
+  } else if (r.state === 'won') overlay = <><p className="hm-eyebrow">ALL {LEVELS} LEVELS</p><h2>The Hearthlight burns till morning!</h2><p>Dora and Enzo kept it alight with {r.flame} of {r.maxFlame} left. {r.kills} predators turned back.</p><button className="hm-go" onClick={begin}>Another run →</button><button onClick={leave}>Back to the start</button></>;
+  else if (r.state === 'lost') overlay = <><p className="hm-eyebrow">LEVEL {r.level + 1} · WAVE {b.wave}</p><h2>The Hearthlight went out.</h2><p>{r.kills} predators turned back. A longer maze, and elements that work together, buy more time.</p><button className="hm-go" onClick={begin}>Try another run →</button><button onClick={leave}>Back to the start</button></>;
+  else if (b.paused) overlay = <><p className="hm-eyebrow">PAUSED</p><h2>A quiet moment by the fire.</h2><p>{b.phase === 'wave' ? `Your run is saved from the start of wave ${b.wave}.` : 'Your run is saved.'}</p><button className="hm-go" onClick={() => { b.pause(); refresh(); }}>Back to the maze →</button><button data-testid="leave" onClick={leave}>Save and leave</button></>;
   const hint = b.phase === 'build'
     ? tool?.kind === 'card' ? (isPiece(b.hand[tool.slot]) ? `Laying ${cardName(b.hand[tool.slot])}: click a spot, R or right-click turns it.` : 'Dig up a bale with no tower on it.') : tool?.kind === 'tower' ? `Building ${TOWERS[tool.tower].name}: click a bale or rock.` : 'Lay bales from your hand, stand towers on them, then start the wave.'
     : tool?.kind === 'tower' ? `Building ${TOWERS[tool.tower].name}: click a bale or rock.` : 'Towers can go up during the wave; bales wait until it’s over.';

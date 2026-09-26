@@ -9,16 +9,19 @@ export const LEVELS = 6, WAVES_PER_LEVEL = 5, START_FLAME = 20, LEVEL_HAY = 70, 
 export const HAND_MAX = 8, FIRST_DRAW = 7, DRAW_PER_WAVE = 3;
 export const INF = 1 << 30;
 
-/** mulberry32: small, fast and the same everywhere. */
-export function rng(seed: number) {
+/** mulberry32: small, fast and the same everywhere. `state()` is all it needs to carry on later: `rng(r.state())`. */
+export type Rng = (() => number) & { state: () => number };
+export function rng(seed: number): Rng {
   let a = seed >>> 0;
-  return () => {
+  const next = (() => {
     a = (a + 0x6d2b79f5) >>> 0;
     let t = a;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+  }) as Rng;
+  next.state = () => a;
+  return next;
 }
 const pick = <T,>(r: () => number, list: readonly T[]) => list[Math.floor(r() * list.length)];
 function shuffle<T>(r: () => number, list: T[]) {
@@ -213,6 +216,19 @@ export function field(layout: Layout, blocked: Set<number>) {
   return d;
 }
 
+// ---------- Saves ----------
+
+export const SAVE_VERSION = 1;
+export type BattleSave = {
+  level: number; rocks: string; entrances: [number, number][]; exits: [number, number][]; blocks: number[]; blockKind: (PieceId | null)[];
+  towers: { id: number; kind: TowerId; c: number; r: number; level: number; spent: number }[]; plan: WavePlan[]; hay: number; wave: number;
+  phase: 'build' | 'cleared'; hand: CardId[]; drawPile: CardId[]; discard: CardId[]; random: number; nextId: number; kills: number; leaked: number;
+};
+export type RunSave = {
+  v: number; seed: number; random: number; level: number; flame: number; maxFlame: number; deck: CardId[]; unlocked: TowerId[]; relics: RelicId[];
+  state: 'battle' | 'reward'; rewards: Reward[]; kills: number; waves: number; battle: BattleSave;
+};
+
 // ---------- The run ----------
 
 export type Reward = { kind: 'relic'; relic: RelicId } | { kind: 'tower'; tower: TowerId } | { kind: 'cards'; cards: CardId[] } | { kind: 'heal'; amount: number };
@@ -220,7 +236,7 @@ export type RunState = 'battle' | 'reward' | 'won' | 'lost';
 
 export class Run {
   seed: number;
-  random: () => number;
+  random: Rng;
   level = 0;
   flame = START_FLAME;
   maxFlame = START_FLAME;
@@ -232,6 +248,8 @@ export class Run {
   battle: Battle;
   kills = 0;
   waves = 0;
+  /** The run as it stood when the current wave was sent, so leaving mid-wave resumes from the start of that wave. */
+  checkpoint: RunSave | null = null;
 
   constructor(seed = 1) {
     this.seed = seed;
@@ -240,6 +258,46 @@ export class Run {
   }
 
   has(relic: RelicId) { return this.relics.includes(relic); }
+
+  // ---------- Saving ----------
+
+  /** Everything needed to carry on later, as plain JSON. Only whole moments are saved: between waves, or choosing a reward. */
+  save(): RunSave {
+    return {
+      v: SAVE_VERSION, seed: this.seed, random: this.random.state(), level: this.level, flame: this.flame, maxFlame: this.maxFlame,
+      deck: [...this.deck], unlocked: [...this.unlocked], relics: [...this.relics], state: this.state === 'reward' ? 'reward' : 'battle',
+      rewards: JSON.parse(JSON.stringify(this.rewards)) as Reward[], kills: this.kills, waves: this.waves, battle: this.battle.save(),
+    };
+  }
+  /** What to keep right now: the run between waves or at the reward screen, the start of the wave during one, nothing once it's over. */
+  snapshot(): RunSave | null {
+    if (this.state === 'won' || this.state === 'lost') return null;
+    if (this.state === 'battle' && this.battle.phase === 'wave') return this.checkpoint;
+    return this.save();
+  }
+  /** A run from `save()`, or null if the data is broken, from another version, or impossible. */
+  static load(data: unknown): Run | null {
+    try {
+      const d = data as RunSave;
+      const ints = (v: unknown, lo: number, hi: number) => Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi;
+      const list = <T,>(v: unknown, ok: (x: unknown) => x is T): v is T[] => Array.isArray(v) && v.every(ok);
+      const isCard = (x: unknown): x is CardId => typeof x === 'string' && (x in PIECES || x in ITEMS);
+      const isTower = (x: unknown): x is TowerId => typeof x === 'string' && x in TOWERS;
+      const isRelic = (x: unknown): x is RelicId => typeof x === 'string' && x in RELICS;
+      if (!d || d.v !== SAVE_VERSION || !ints(d.seed, 0, 2 ** 32) || !ints(d.random, 0, 2 ** 32) || !ints(d.level, 0, LEVELS - 1)) return null;
+      if (!ints(d.maxFlame, 1, 100) || !ints(d.flame, 1, d.maxFlame) || !ints(d.kills, 0, 1e7) || !ints(d.waves, 0, 1e4)) return null;
+      if (!list(d.deck, isCard) || !d.deck.length || !list(d.unlocked, isTower) || !list(d.relics, isRelic) || (d.state !== 'battle' && d.state !== 'reward')) return null;
+      if (!Array.isArray(d.rewards) || !d.rewards.every((w) => (w.kind === 'relic' && isRelic(w.relic)) || (w.kind === 'tower' && isTower(w.tower)) || (w.kind === 'cards' && list(w.cards, isCard)) || (w.kind === 'heal' && ints(w.amount, 1, 100)))) return null;
+      if ((d.state === 'reward') !== (d.rewards.length > 0)) return null;
+      const run = new Run(d.seed);
+      Object.assign(run, { level: d.level, flame: d.flame, maxFlame: d.maxFlame, deck: [...d.deck], unlocked: [...d.unlocked], relics: [...d.relics], state: d.state, rewards: d.rewards, kills: d.kills, waves: d.waves });
+      run.random = rng(d.random);
+      const battle = Battle.restore(run, d.battle);
+      if (!battle || battle.level !== d.level || (d.state === 'reward') !== (battle.phase === 'cleared')) return null;
+      run.battle = battle;
+      return run;
+    } catch { return null; }
+  }
 
   /** Called by the battle when its last wave is beaten. */
   cleared() {
@@ -318,7 +376,7 @@ export class Battle {
   kills = 0;
   leaked = 0;
   private nextId = 1;
-  private random: () => number;
+  private random: Rng;
 
   constructor(run: Run, level: number) {
     this.run = run;
@@ -331,6 +389,51 @@ export class Battle {
     this.drawPile = shuffle(this.random, [...run.deck]);
     this.draw(FIRST_DRAW);
     this.dist = this.field(null);
+  }
+
+  /** This level between waves (or cleared), as plain JSON. */
+  save(): BattleSave {
+    return {
+      level: this.level, rocks: this.layout.rocks.map((x) => (x ? '1' : '0')).join(''),
+      entrances: this.entrances.map(([c, r]) => [c, r] as [number, number]), exits: this.exits.map(([c, r]) => [c, r] as [number, number]),
+      blocks: [...this.blocks], blockKind: [...this.blockKind],
+      towers: this.towers.map(({ id, kind, c, r, level, spent }) => ({ id, kind, c, r, level, spent })),
+      plan: this.plan.map((w) => w.map(([k, n, g]) => [k, n, g] as [EnemyId, number, number])), hay: this.hay, wave: this.wave,
+      phase: this.phase === 'cleared' ? 'cleared' : 'build', hand: [...this.hand], drawPile: [...this.drawPile], discard: [...this.discard],
+      random: this.random.state(), nextId: this.nextId, kills: this.kills, leaked: this.leaked,
+    };
+  }
+  /** A level from `save()`, checked tile by tile; null if anything doesn't add up. */
+  static restore(run: Run, d: BattleSave): Battle | null {
+    const cell = (v: unknown) => Array.isArray(v) && v.length === 2 && Number.isInteger(v[0]) && Number.isInteger(v[1]) && inGrid(v[0], v[1]);
+    const isCard = (x: unknown) => typeof x === 'string' && (x in PIECES || x in ITEMS);
+    const n = COLS * ROWS;
+    if (!d || !Number.isInteger(d.level) || typeof d.rocks !== 'string' || !/^[01]+$/.test(d.rocks) || d.rocks.length !== n) return null;
+    if (!Array.isArray(d.entrances) || !d.entrances.every(cell) || ![2, 4].includes(d.entrances.length) || !Array.isArray(d.exits) || d.exits.length !== 2 || !d.exits.every(cell)) return null;
+    if (!Array.isArray(d.blocks) || d.blocks.length !== n || !d.blocks.every((x) => Number.isInteger(x) && x >= 0)) return null;
+    if (!Array.isArray(d.blockKind) || d.blockKind.length !== n || !d.blockKind.every((x) => x === null || (typeof x === 'string' && x in PIECES))) return null;
+    if (!Number.isFinite(d.hay) || d.hay < 0 || !Number.isInteger(d.wave) || d.wave < 0 || d.wave > WAVES_PER_LEVEL || (d.phase !== 'build' && d.phase !== 'cleared')) return null;
+    if (![d.hand, d.drawPile, d.discard].every((l) => Array.isArray(l) && l.every(isCard)) || d.hand.length > HAND_MAX) return null;
+    if (!Array.isArray(d.plan) || d.plan.length !== WAVES_PER_LEVEL || !d.plan.every((w) => Array.isArray(w) && w.every((g) => Array.isArray(g) && typeof g[0] === 'string' && g[0] in ENEMIES && Number.isInteger(g[1]) && g[1] >= 0 && Number.isFinite(g[2])))) return null;
+    if (!Number.isInteger(d.random) || !Number.isInteger(d.nextId) || !Number.isInteger(d.kills) || !Number.isInteger(d.leaked)) return null;
+    const b = new Battle(run, d.level);
+    b.layout = { rocks: d.rocks.split('').map((x) => x === '1'), entrances: d.entrances.map(([c, r]) => [c, r]), exits: d.exits.map(([c, r]) => [c, r]) };
+    b.blocks = Int32Array.from(d.blocks);
+    b.blockKind = [...d.blockKind];
+    for (let i = 0; i < n; i++) if (b.blocks[i] && (b.layout.rocks[i] || !b.blockKind[i])) return null;
+    b.towers = [];
+    for (const t of d.towers ?? []) {
+      if (!(typeof t.kind === 'string' && t.kind in TOWERS) || !cell([t.c, t.r]) || !Number.isInteger(t.level) || t.level < 0 || t.level >= TOWERS[t.kind].levels.length || !Number.isFinite(t.spent)) return null;
+      if (!(b.block(t.c, t.r) || b.rock(t.c, t.r)) || b.towerAt(t.c, t.r)) return null;
+      b.towers.push({ id: t.id, kind: t.kind, c: t.c, r: t.r, level: t.level, spent: t.spent, cool: 0, target: null, aim: 0, flash: 0 });
+    }
+    b.plan = d.plan.map((w) => w.map(([k, c, g]) => [k, c, g]));
+    Object.assign(b, { hay: d.hay, wave: d.wave, phase: d.phase, hand: [...d.hand], drawPile: [...d.drawPile], discard: [...d.discard], kills: d.kills, leaked: d.leaked });
+    b.random = rng(d.random);
+    b.nextId = d.nextId;
+    b.dist = b.field(null);
+    if (b.entrances.some(([c, r]) => b.dist[r * COLS + c] >= INF)) return null;
+    return b;
   }
 
   get entrances() { return this.layout.entrances; }
@@ -476,6 +579,7 @@ export class Battle {
 
   sendWave() {
     if (this.phase !== 'build' || this.wave >= WAVES_PER_LEVEL) return false;
+    this.run.checkpoint = this.run.save();
     this.wave++;
     this.phase = 'wave';
     let at = 0, n = 0;
