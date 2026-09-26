@@ -7,9 +7,13 @@ const errors = [];
 const lawn = (p) => p.getByTestId('lawn');
 const game = (p, fn) => p.evaluate(`(${fn})(window.__cvz())`);
 const count = async (p) => Number(await lawn(p).getAttribute('data-defenders'));
-// The canvas draws a 970 × 578 view; the lawn starts 132 px in and 64 px down, with tiles 86 × 100.
+// The canvas draws a 970 × 578 view of the lawn in perspective. onLawn() mirrors project() in lib/cvz-scene.ts: the
+// point x tiles from the burrow edge and b rows from the back, with its depth scale s.
 const at = (box, x, y) => [box.x + (x / 970) * box.width, box.y + (y / 578) * box.height];
-const tileAt = (box, row, col) => at(box, 132 + (col + 0.5) * 86, 64 + (row + 0.5) * 100);
+const onLawn = (x, b) => { const d = 9 - 0.6 * b; return { x: 520 + (7380 * (x - 4.5) * 0.0724) / d, y: -670 + 7380 / d, s: (7380 * 0.0724) / d / 86 }; };
+const tileAt = (box, row, col) => { const p = onLawn(col + 0.5, row + 0.5); return at(box, p.x, p.y); };
+// A landed seed pouch sits 20 flat pixels above its spot.
+const seedAt = (box, x, y) => { const p = onLawn(x, y); return at(box, p.x, p.y - 20 * p.s); };
 try {
   await mkdir('.checks/chinchillas-vs-zombies', { recursive: true });
 
@@ -61,7 +65,7 @@ try {
 
   // Click a seed pouch to collect it.
   const seeds0 = await game(page, 'g => { g.drops.push({ id: 9999, x: 5.5, y: 2.5, toY: 2.5, value: 25, life: 30, sky: true }); return g.seeds; }');
-  await page.mouse.click(...at(box, 132 + 5.5 * 86, 64 + 2.5 * 100));
+  await page.mouse.click(...seedAt(box, 5.5, 2.5));
   await page.waitForFunction((s) => window.__cvz().seeds === s + 25, seeds0);
   assert.ok(!(await game(page, 'g => g.drops.some((d) => d.id === 9999)')));
   // Space collects every pouch on the lawn.

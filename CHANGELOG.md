@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 27-09-2026
+
+### Changed
+
+- **Chinchillas vs Zombies:** the lawn has a new look. The nights are now really night: a moonlit lawn seen in 2.5D perspective, with stars, rooftops across the street, fog rolling in under the street lamps and fireflies over the grass. Dora and Enzo's burrow is a lit stone archway in a grassy mound, with Dora on the doorstep and Enzo on watch up top, much bigger than before. Defenders wear a neckerchief in their role's colour, zombies' eyes glow, pellets glow as they fly, and seed pouches are burlap sacks that show where they'll land.
+
 ## 26-09-2026
 
 ### Added
