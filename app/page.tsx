@@ -19,14 +19,15 @@ const GAMES=[
  {href:'/fluffstevania',title:'Fluffstevania: Symphony of the Dust',tag:'NEW · METROIDVANIA',blurb:'Dora and Enzo explore a haunted mountain castle for the Golden Wolfberry. Tag between them, level up, find relics and gear, and face the owl and the Rat King.',color:'#c8a0e8',art:'🦇'},
  {href:'/clash',title:'Chinchilla Clash',tag:'NEW · CARD BATTLER',blurb:'A Clash Royale-style lane battle. Build an eight-card deck, spend bath dust to send kits, gliders and Grandpa Pebble over the river, and topple three rival clans\u2019 towers.',color:'#ffcf4a',art:'👑'},
  {href:'/hay-maze',title:'Hay Maze Defence',tag:'NEW · ROGUELITE TOWER DEFENCE',blurb:'Guard the Hearthlight through the night. Draw hay-bale blocks as cards, lay them into a winding maze, and stand ice, fire, spark and moonlight towers on top. Six levels, new meadows, relics and rewards.',color:'#ff9a4a',art:'🔥'},
+ {href:'/chinchillas-vs-zombies',title:'Chinchillas vs Zombies',tag:'NEW · LANE DEFENCE',blurb:'Zombies are shambling up the lawn to Dora and Enzo\u2019s burrow. Collect sunflower seeds, plant chinchilla defenders in five lanes, and hold out through eight nights.',color:'#8fd45a',art:'🧟'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">NINETEEN ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Nineteen ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, nineteen cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">TWENTY ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Twenty ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, twenty cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <nav className="arcade-grid" aria-label="Choose a game">
    {GAMES.map((game,i)=><a key={game.href} href={game.href} className="arcade-card" style={{'--game-color':game.color} as React.CSSProperties}>
