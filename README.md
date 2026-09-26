@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of eighteen original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of nineteen original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -28,6 +28,7 @@ Listed in arcade-menu order.
 | 16 | Fluff Forge | `/fluff-forge` | Course maker platformer |
 | 17 | Fluffstevania: Symphony of the Dust | `/fluffstevania` | Metroidvania action RPG |
 | 18 | Chinchilla Clash | `/clash` | Card battler |
+| 19 | Hay Maze Defence | `/hay-maze` | Maze tower defence |
 
 ## Run
 
@@ -443,6 +444,36 @@ Browser: `tests/e2e/chinchilla-clash.mjs` checks the menu card and locked arenas
 
 **Docs:** [`docs/chinchilla-clash.md`](docs/chinchilla-clash.md).
 
+### 19 · Hay Maze Defence (`/hay-maze`)
+
+**Play:** A maze-building tower defence, drawn in Canvas 2D on a 20 × 12 tile meadow. Weasels, foxes, snakes, badgers, hawks and a lynx come in from the left (and, on the last map, from the top) to raid Dora and Enzo's raisin stash in the burrow on the right. Ground predators always take the shortest open way, shown as a dotted line. Every tower and hay bale blocks its tile, so building bends that line: stack them into a long, winding maze. While you are placing something, the line shows the route it would make. You can never close the way completely, or build where it would strand a predator. Hawks fly straight over the maze.
+
+There are six things to build: the **Hay Bale** (4 hay, does nothing but block), the **Pellet Flicker** (12, shoots ground and air), **Dora's Dust Puffer** (18, slows everything on the ground nearby by 40%, then 50% and 60% when upgraded), **Enzo's Boulder Roller** (25, splash damage on the ground), the **Snooze Bell** (30, Grandpa Pebble rings it and everything nearby naps for 0.6 s, up to 1 s) and the **Glider Nest** (20, flyers only). Towers other than the bale upgrade twice and sell for 70% of what you spent on them. Snakes shrug off half the dust, badgers and the lynx wear armour, and the lynx naps only half as long.
+
+You start with 80 hay and 20 raisins. Caught predators pay hay, each wave from the second on pays a bonus (9 hay for wave 2, one more each wave), and after a wave has arrived an 18-second countdown starts to the next; sending it early pays a hay for every second left. The first wave waits until you start it. A predator reaching the burrow takes a raisin (a badger two, the lynx five), and the game is lost when the raisins run out. Hold all 20 waves to win the map and open the next: Clover Meadow, Cactus Canyon (two ways in and lots of rocks) and Moonlit Summit (tougher predators, one way in from the west and one down the mountain). Wins and the most raisins kept are saved in this browser.
+
+**Controls:**
+
+- Pick a tower from the bar under the meadow (or press 1–6), then click tiles to build. Building stays on until you right-click or press Escape. Click a tower to see its stats, upgrade it (U) or sell it (Delete).
+- Keyboard: the arrow keys move the build cursor and Enter builds or selects. N or Space sends the next wave. F cycles the speed through 1×, 2× and 3×. P pauses, and Escape pauses when nothing is picked.
+- Touch: tap a tile to preview the tower and its new route, then tap it again to build.
+
+**Tests:** `npm run test:hay-maze` (also in `npm test`) compiles `lib/hay-maze-game.ts` and runs `tests/hay-maze.mjs`:
+
+- the maps, their entrances and burrow doors, and routes that reach the burrow round the rocks;
+- building costs, taken tiles, never closing the last gap, never stranding a predator, and building over flyers;
+- hindrance: a bale maze makes a fox walk nearly four times as far in time, hawks fly over it unchanged, a predator turns when a bale lands in front of it, and none ever walks through a tower; dust slows a fox by 40% and a snake less, and the bell stops a predator dead (the lynx for half as long);
+- armour, splash, and which towers can hit flyers;
+- upgrading, selling and reopening the way;
+- the first wave waiting, wave sizes, the countdown, the early-send bonus, and predators toughening each wave and on the summit;
+- raisins stolen, losing, winning, pausing and a deterministic replay.
+
+`npm run bot:hay-maze` (also in `npm test`) runs `tests/hay-maze-bot.mjs`, a planner that builds a snaking maze and plays every map through the real engine: it must win all three, at least double the walk, and keep fewer raisins on each map than the last.
+
+Browser: `tests/e2e/hay-maze.mjs` checks the menu card and locked maps, builds a row of bales with the mouse and checks the route gets longer, has the last gap refused, builds with the keyboard, upgrades and sells, starts a wave, pauses and speeds up, wins a map to open the next, loses one, and taps to preview and build on a phone-sized screen.
+
+**Docs:** [`docs/hay-maze.md`](docs/hay-maze.md).
+
 ## Validation
 
 ```sh
@@ -457,7 +488,7 @@ npm run test:e2e   # optional; needs `npm run dev` running and `npm i -D playwri
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Eighteen ways/` assertion in `tests/e2e/dust-bath.mjs`, the 18-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs` and `tests/e2e/chinchilla-clash.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Nineteen ways/` assertion in `tests/e2e/dust-bath.mjs`, the 19-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs` and `tests/e2e/hay-maze.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

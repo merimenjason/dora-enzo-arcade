@@ -1,0 +1,105 @@
+.hm-shell {
+  --ink: #f6f0e2;
+  --muted: #c2c8b0;
+  --panel: #27331f;
+  --panel-2: #1f2a19;
+  --line: #45583a;
+  --gold: #f2c94c;
+  --hay: #e8c35a;
+  min-height: 100dvh;
+  background: radial-gradient(120% 60% at 50% -10%, #3d5a33 0%, #1d2a18 55%, #141c10 100%);
+  color: var(--ink);
+  padding: 16px max(16px, calc((100vw - 1100px) / 2)) 32px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+/* app/globals.css colours bare p and footer for the arcade menu; hand the colour back to this page. */
+.hm-shell p, .hm-shell footer { color: inherit; }
+.hm-shell h1, .hm-shell h2 { font-family: inherit; letter-spacing: 0; }
+.hm-shell button { font: inherit; color: var(--ink); cursor: pointer; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); padding: 8px 14px; }
+.hm-shell button:hover:not(:disabled) { border-color: var(--gold); }
+.hm-shell button:disabled { opacity: 0.45; cursor: default; }
+.hm-shell button:focus-visible, .hm-shell a:focus-visible, .hm-shell canvas:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.hm-shell .hm-go { background: linear-gradient(#f5d36a, #d9a42c); border: 0; border-bottom: 4px solid #9a7014; color: #3a2800; font-weight: 900; letter-spacing: 0.5px; }
+.hm-shell .hm-go:hover:not(:disabled) { filter: brightness(1.08); }
+.hm-spacer { flex: 1; }
+
+.hm-shell .hm-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.hm-back { color: var(--ink); text-decoration: none; font: 700 14px ui-monospace, monospace; letter-spacing: 1px; }
+.hm-brand { font: 900 16px ui-monospace, monospace; letter-spacing: 2px; color: var(--hay); }
+
+.hm-intro { display: flex; gap: 24px; align-items: center; padding: 24px 0 8px; }
+.hm-intro canvas { flex-shrink: 0; }
+.hm-eyebrow { font: 700 12px ui-monospace, monospace; letter-spacing: 2px; color: var(--gold) !important; margin: 0; }
+.hm-intro h1 { font: 900 46px/1.05 ui-sans-serif, system-ui, sans-serif; margin: 8px 0; background: linear-gradient(#fff6d8, #f2c94c 60%, #c98a1e); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hm-lede { color: var(--muted) !important; max-width: 700px; line-height: 1.6; margin: 0; }
+.hm-lede b { color: var(--ink); }
+.hm-section { font: 700 14px ui-monospace, monospace; letter-spacing: 2px; color: var(--gold); margin: 28px 0 12px; text-transform: uppercase; }
+.hm-section small { color: var(--muted); letter-spacing: 1px; margin-left: 8px; text-transform: none; }
+
+.hm-maps { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.hm-map { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; padding: 12px; border-radius: 14px; border: 1px solid var(--line); background: linear-gradient(#2c3a24, #212c1b); }
+.hm-map canvas { border-radius: 6px; border: 2px solid var(--map-sky); }
+.hm-map div { display: flex; flex-direction: column; gap: 4px; }
+.hm-map strong { font-size: 17px; }
+.hm-map small { color: var(--muted); line-height: 1.45; }
+.hm-map em { font-style: normal; font-size: 12px; color: var(--gold); }
+.hm-map .hm-go { grid-column: 1 / -1; }
+.hm-map.locked { opacity: 0.6; }
+
+.hm-roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.hm-roster.raiders { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.hm-card { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
+.hm-card canvas { flex-shrink: 0; }
+.hm-card div { display: flex; flex-direction: column; gap: 2px; }
+.hm-card strong { font-size: 14px; }
+.hm-card small { color: var(--gold); font-size: 11px; letter-spacing: 0.5px; }
+.hm-card p { margin: 2px 0 0; color: var(--muted) !important; font-size: 13px; line-height: 1.45; }
+.hm-cost { color: var(--hay); font-weight: 700; font-size: 12px; margin-left: 4px; }
+
+.hm-help { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 28px; }
+.hm-help p { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted) !important; line-height: 1.55; font-size: 14px; }
+.hm-help b { color: var(--ink); }
+
+/* Playing: the meadow fills the width and the controls sit under it. */
+.hm-play { padding-bottom: 16px; }
+.hm-hud { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 8px; padding: 8px 14px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
+.hm-hud span { display: flex; flex-direction: column; line-height: 1.15; }
+.hm-hud small { font: 700 10px ui-monospace, monospace; letter-spacing: 1.5px; color: var(--muted); }
+.hm-hud b { font-size: 16px; }
+.hm-hud .low b { color: #ff9a8a; }
+.hm-board { position: relative; }
+.hm-board canvas { display: block; width: 100%; height: auto; border-radius: 12px; touch-action: manipulation; cursor: crosshair; background: #6f9e4d; }
+.hm-note { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); padding: 8px 14px; border-radius: 999px; background: rgba(20, 24, 16, 0.9); color: #ffd0c8; font-size: 13px; font-weight: 700; pointer-events: none; width: max-content; max-width: 90%; text-align: center; }
+.hm-overlay { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(12, 18, 10, 0.72); border-radius: 12px; padding: 16px; }
+.hm-overlay > div { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; max-width: 340px; }
+.hm-overlay h2 { margin: 0; font-size: 26px; line-height: 1.15; }
+.hm-overlay p { margin: 0; color: var(--muted) !important; line-height: 1.5; }
+.hm-overlay button { width: 100%; }
+
+.hm-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.hm-next { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.hm-next small { font: 700 10px ui-monospace, monospace; letter-spacing: 1px; color: var(--muted); }
+.hm-next span { display: flex; align-items: center; font-size: 12px; font-weight: 700; }
+.hm-next span.air { color: #a8d8ff; }
+
+.hm-palette { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.hm-shell .hm-tool { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; background: linear-gradient(#2f3d27, #232e1c); }
+.hm-shell .hm-tool.on { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); background: #3a4a2c; }
+.hm-shell .hm-tool.poor { opacity: 0.55; }
+.hm-tool span { font-size: 11px; line-height: 1.15; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.hm-tool b { font-size: 12px; color: var(--hay); }
+
+.hm-inspect { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 8px; padding: 10px 14px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--gold); }
+.hm-inspect strong small { color: var(--gold); font-weight: 600; margin-left: 4px; }
+.hm-inspect > span { color: var(--muted); font-size: 13px; }
+.hm-inspect .hm-up { color: #bfe3a0; }
+.hm-keys { margin: 8px 0 0; font-size: 12px; color: var(--muted) !important; text-align: center; }
+
+@media (max-width: 640px) {
+  .hm-intro { flex-direction: column; align-items: flex-start; }
+  .hm-intro h1 { font-size: 36px; }
+  .hm-maps { grid-template-columns: 1fr; }
+  .hm-palette { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .hm-hud { gap: 4px 12px; }
+  .hm-hud b { font-size: 14px; }
+}
