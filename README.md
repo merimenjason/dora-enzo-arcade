@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of seventeen original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of eighteen original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -27,6 +27,7 @@ Listed in arcade-menu order.
 | 15 | Dusty Hollow | `/dusty-hollow` | Village life |
 | 16 | Fluff Forge | `/fluff-forge` | Course maker platformer |
 | 17 | Fluffstevania: Symphony of the Dust | `/fluffstevania` | Metroidvania action RPG |
+| 18 | Chinchilla Clash | `/clash` | Card battler |
 
 ## Run
 
@@ -413,6 +414,35 @@ Browser: `tests/e2e/fluffstevania.mjs`:
 
 **Docs:** [`docs/fluffstevania.md`](docs/fluffstevania.md).
 
+### 18 · Chinchilla Clash (`/clash`)
+
+**Play:** A Clash Royale-style lane battler, drawn in Canvas 2D on an 18 × 32 tile arena. Dora and Enzo hold the Dust Palace at the bottom; a rival clan holds the top. Each side has two princess towers (1400 health) and a king tower (2400), which sleeps until it is hit or a princess tower falls. A river crosses the middle, and ground troops cross it on the two bridges. You play cards with **bath dust**: you start with 5, gain one every 2.8 seconds up to 10, and gain it twice as fast in the last minute. Your deck of eight cycles through a hand of four, with the next card shown beside it. Troops and buildings go on your own half, or in the enemy half of a lane whose princess tower you have knocked down; spells go anywhere. Everything takes a second to drop in.
+
+There are 12 cards. **Troops:** Kit Squad (2 dust, four fast kits), Pellet Flickers (3, two ranged shooters that hit flyers), **Dora, Dust Duchess** (5, dust puffs that splash crowds and flyers), **Enzo, Boulder Brawler** (4, a spin that hits every ground troop around him), Grandpa Pebble (5, a slow tank that only hits buildings), Dust Dasher (4, a fast tower-hitter that leaps the river), Glider Gang (3, three flying sugar gliders), Mochi the Capybara (3, a sturdy blocker) and Hay Balloon (5, flies to towers, drops bales and one last bale when popped). **Spells:** Dust Bomb (4, heavy damage in a small area, with knockback) and Pellet Volley (3, lighter damage over a wide area); towers take 35% of spell damage. **Building:** Hay Cannon (3, shoots ground troops for 30 seconds and pulls tower-hitters). Dora and Enzo are hero cards only you can play. Build a deck of any eight on the title screen.
+
+Knock down a princess tower for a crown, or the king tower for all three and an instant win. After three minutes the side with more crowns wins; if it's level, one minute of overtime follows where the next crown wins, and after that the side whose weakest tower has less health loses it. The trophy road has three arenas, each opened by beating the one before: Sandy’s Beige Brigade at the Salt Flat Arena, Duchess Velvet’s Violets in Cactus Canyon and Baron Ebony’s Night Guard on the Moonlit Summit, rival clans of beige, violet and ebony chinchillas, each with its own deck and a sharper computer player. Your deck, the arenas you've opened and your wins are kept in this browser.
+
+**Controls:**
+
+- Tap a card, then tap the arena to play it, or drag a card straight onto the arena. A ghost shows where it lands, with its range, and red tiles show where it can't go.
+- Keyboard: 1–4 pick a card, the arrow keys or WASD move the drop point, Enter or Space drops it, Escape puts the card back.
+- P or Escape (with no card picked): pause. Losing window focus also pauses.
+
+**Tests:** `npm run test:clash` (also in `npm test`) compiles `lib/chinchilla-clash-game.ts` and runs `tests/chinchilla-clash.mjs`:
+
+- the cards, deck rules and rival decks, and the set-up: towers, sleeping kings, the shuffled hand and starting dust;
+- dust filling, its cap and double dust; the deploy zone, the river, spells anywhere, and the card cycle;
+- troops waiting to deploy, crossing on a bridge without touching the water, the Dasher leaping the river and gliders flying over;
+- tower-hitters ignoring troops, stepping around blockers and being pulled by a cannon, and the cannon crumbling;
+- towers opening fire at their range, crowns, kings waking, and the pocket a fallen tower opens;
+- Dust Bomb damage, knockback and the tower share, a volley clearing kits, Dora's splash, Enzo's spin and the balloon's last bale;
+- a king-tower win, crowns at full time, overtime, the tie-break and a draw;
+- the computer defending a push, replaying exactly from a seed, and whole computer-vs-computer matches in every arena, each harder than the last.
+
+Browser: `tests/e2e/chinchilla-clash.mjs` checks the menu card and locked arenas, the deck builder's limits and that the deck survives a reload, tap, keyboard and drag plays, a troop refused on the enemy half, a spell on an enemy tower, pausing, a king-tower victory that opens the next arena, and tap plays on a phone-sized screen.
+
+**Docs:** [`docs/chinchilla-clash.md`](docs/chinchilla-clash.md).
+
 ## Validation
 
 ```sh
@@ -427,7 +457,7 @@ npm run test:e2e   # optional; needs `npm run dev` running and `npm i -D playwri
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Seventeen ways/` assertion in `tests/e2e/dust-bath.mjs`, the 17-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/paw-buster.mjs` and `tests/e2e/fluff-forge.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Eighteen ways/` assertion in `tests/e2e/dust-bath.mjs`, the 18-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs` and `tests/e2e/chinchilla-clash.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
