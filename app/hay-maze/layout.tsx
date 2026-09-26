@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: "Hay Maze Defence · Dora & Enzo's Arcade",
   description:
-    'A maze-building tower defence: predators take the shortest way to Dora and Enzo’s raisin stash, so every tower you build bends their path. Slow them with dust, send them to sleep with a bell, and hold twenty waves on three maps.',
+    'An Emberward-style roguelite tower defence: draw hay-bale blocks as cards, lay them into a maze, stand elemental towers on top, and keep the Hearthlight burning through six levels.',
 };
 export default function HayMazeLayout({ children }: { children: React.ReactNode }) {
   return children;

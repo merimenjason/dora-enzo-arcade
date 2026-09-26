@@ -28,7 +28,7 @@ Listed in arcade-menu order.
 | 16 | Fluff Forge | `/fluff-forge` | Course maker platformer |
 | 17 | Fluffstevania: Symphony of the Dust | `/fluffstevania` | Metroidvania action RPG |
 | 18 | Chinchilla Clash | `/clash` | Card battler |
-| 19 | Hay Maze Defence | `/hay-maze` | Maze tower defence |
+| 19 | Hay Maze Defence | `/hay-maze` | Roguelite maze tower defence |
 
 ## Run
 
@@ -446,31 +446,32 @@ Browser: `tests/e2e/chinchilla-clash.mjs` checks the menu card and locked arenas
 
 ### 19 · Hay Maze Defence (`/hay-maze`)
 
-**Play:** A maze-building tower defence, drawn in Canvas 2D on a 20 × 12 tile meadow. Weasels, foxes, snakes, badgers, hawks and a lynx come in from the left (and, on the last map, from the top) to raid Dora and Enzo's raisin stash in the burrow on the right. Ground predators always take the shortest open way, shown as a dotted line. Every tower and hay bale blocks its tile, so building bends that line: stack them into a long, winding maze. While you are placing something, the line shows the route it would make. You can never close the way completely, or build where it would strand a predator. Hawks fly straight over the maze.
+**Play:** A roguelite tower defence in the style of Emberward, drawn in Canvas 2D on a 20 × 12 tile meadow at nightfall. Predators come for the **Hearthlight**, the lantern that keeps Dora and Enzo's burrow warm, and always take the shortest open way to it, shown as a glowing line. You build the maze from **hay-bale blocks drawn as cards**: 11 shapes from a single bale to the tetrominoes, which you turn and lay between waves. While you place one, the line shows the route it would make, and you can never close the way completely. **Towers stand on top of bales**, or on the meadow's rocks, so the bales are both the maze and the foundations. Hawks fly straight over it all.
 
-There are six things to build: the **Hay Bale** (4 hay, does nothing but block), the **Pellet Flicker** (12, shoots ground and air), **Dora's Dust Puffer** (18, slows everything on the ground nearby by 40%, then 50% and 60% when upgraded), **Enzo's Boulder Roller** (25, splash damage on the ground), the **Snooze Bell** (30, Grandpa Pebble rings it and everything nearby naps for 0.6 s, up to 1 s) and the **Glider Nest** (20, flyers only). Towers other than the bale upgrade twice and sell for 70% of what you spent on them. Snakes shrug off half the dust, badgers and the lynx wear armour, and the lynx naps only half as long.
+There are eight towers, each with an element. You start with three: the **Pellet Flicker** (10 hay, hits flyers too), **Dora's Frost Fan** (16, ice: chills everything nearby by 35%, up to 55%) and **Enzo's Boulder Roller** (22, splash). The other five are rewards: the **Ember Brazier** (fire: sets foes burning for 3 s, and burning ignores armour), the **Spark Wheel** (a chain of zaps that jumps to 3 foes, up to 5), the **Moon Lantern** (arcane: long-range bolts that ignore armour), the **Snooze Bell** (naps of 0.6 to 1 s) and the **Glider Nest** (flyers only). Elements react: chilled foes **shatter** for double damage from sparks, and burning foes **flare** when moonlight hits them, scorching their neighbours for half. Towers upgrade twice and sell for 70% back.
 
-You start with 80 hay and 20 raisins. Caught predators pay hay, each wave from the second on pays a bonus (9 hay for wave 2, one more each wave), and after a wave has arrived an 18-second countdown starts to the next; sending it early pays a hay for every second left. The first wave waits until you start it. A predator reaching the burrow takes a raisin (a badger two, the lynx five), and the game is lost when the raisins run out. Hold all 20 waves to win the map and open the next: Clover Meadow, Cactus Canyon (two ways in and lots of rocks) and Moonlit Summit (tougher predators, one way in from the west and one down the mountain). Wins and the most raisins kept are saved in this browser.
+A run is six levels, each on a newly generated meadow with its own rocks and ways in (from the third level a second way in may come down from the top, and always does from the fifth). Each level is five waves, and every second level ends with a lynx. You start each level with fresh bales, no towers, 70 hay (30 more each level after the first) and a hand of 7 cards from your deck of 11. After each wave you draw 3 more, and you can hold 8. Towers can go up during a wave; bales wait until it's over. Clear a level to pick one of three rewards: a new tower, a relic (12, such as Static Fur for longer chains or the Old Map for an extra card each wave), more cards for your deck, or a brighter flame. Predators that reach the Hearthlight dim it (badgers by two, the lynx by five); it starts at 20 and carries over between levels, and the run ends if it goes out. Runs played, runs won and the furthest level reached are saved in this browser.
 
 **Controls:**
 
-- Pick a tower from the bar under the meadow (or press 1–6), then click tiles to build. Building stays on until you right-click or press Escape. Click a tower to see its stats, upgrade it (U) or sell it (Delete).
-- Keyboard: the arrow keys move the build cursor and Enter builds or selects. N or Space sends the next wave. F cycles the speed through 1×, 2× and 3×. P pauses, and Escape pauses when nothing is picked.
-- Touch: tap a tile to preview the tower and its new route, then tap it again to build.
+- Pick a card from your hand (or press 1–8) and click the meadow to lay it. R, right-click or the mouse wheel turns it. Hay Bundles and Warm Cocoa play as soon as you pick them; the Shovel digs up a bale.
+- Pick a tower from the bar (Z, X, C, V, B, N, M or comma) and click bales or rocks to build. Click a tower to see its stats, upgrade it (U) or sell it (Delete).
+- Space starts the wave. The arrow keys move the cursor and Enter places or selects. F cycles 1×, 2× and 3× speed. P pauses, and Escape cancels, or pauses when nothing is picked. On the reward screen, 1–3 pick.
+- Touch: tap a tile to preview, then tap it again to place.
 
 **Tests:** `npm run test:hay-maze` (also in `npm test`) compiles `lib/hay-maze-game.ts` and runs `tests/hay-maze.mjs`:
 
-- the maps, their entrances and burrow doors, and routes that reach the burrow round the rocks;
-- building costs, taken tiles, never closing the last gap, never stranding a predator, and building over flyers;
-- hindrance: a bale maze makes a fox walk nearly four times as far in time, hawks fly over it unchanged, a predator turns when a bale lands in front of it, and none ever walks through a tower; dust slows a fox by 40% and a snake less, and the bell stops a predator dead (the lynx for half as long);
-- armour, splash, and which towers can hit flyers;
-- upgrading, selling and reopening the way;
-- the first wave waiting, wave sizes, the countdown, the early-send bonus, and predators toughening each wave and on the summit;
-- raisins stolen, losing, winning, pausing and a deterministic replay.
+- pieces and turning, seeded maps and waves (light opening waves, a lynx every second level), and the gentle step from one level to the next;
+- starting a run, laying bales (never on bales, rocks, ways in or off the edge, never sealing the way, and not during a wave);
+- towers only on bales and rocks, locked towers, upgrading and selling;
+- hindrance: a snaking wall of bales makes a fox take 3.7 times as long, hawks fly straight over, and no predator walks through a bale;
+- every element: chill, chains and shatter, burning through armour, moonlight through armour and flares, naps, splash and flyers;
+- relics, the item cards, drawing after each wave, the hand limit and reshuffling;
+- clearing a level to three rewards and the next level, losing the Hearthlight, winning the run, pausing, and a deterministic replay.
 
-`npm run bot:hay-maze` (also in `npm test`) runs `tests/hay-maze-bot.mjs`, a planner that builds a snaking maze and plays every map through the real engine: it must win all three, at least double the walk, and keep fewer raisins on each map than the last.
+`npm run bot:hay-maze` (also in `npm test`) runs `tests/hay-maze-bot.mjs`, a planner that plays whole runs through the real engine: it lays bales to lengthen the walk along a snaking plan, stands towers where they reach the most of the route (and anti-air along the hawks' flight line), and picks rewards. It must win at least three of six seeded runs.
 
-Browser: `tests/e2e/hay-maze.mjs` checks the menu card and locked maps, builds a row of bales with the mouse and checks the route gets longer, has the last gap refused, builds with the keyboard, upgrades and sells, starts a wave, pauses and speeds up, wins a map to open the next, loses one, and taps to preview and build on a phone-sized screen.
+Browser: `tests/e2e/hay-maze.mjs` starts a run, lays and turns a bale, has a bale refused on a rock and a tower refused on grass, builds on a bale and a rock, upgrades and sells, starts a wave with Space, pauses, clears a level to the reward screen and level 2, loses the Hearthlight, and taps to preview and place on a phone-sized screen.
 
 **Docs:** [`docs/hay-maze.md`](docs/hay-maze.md).
 
