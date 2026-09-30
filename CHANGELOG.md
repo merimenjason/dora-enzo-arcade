@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 30-09-2026
+
+### Added
+
+- **Chinchilla Scribble** (`/scribble`), the arcade's twenty-first game: a Super Scribblenauts-style word puzzler. Write the name of a thing and it appears: ladders, bridges, boats, bombs, rain clouds, llamas, dragons and more, 177 things in all. Put any of 47 adjectives in front, as many as you like, to change them: a giant flying hay bale you can ride, a frozen campfire, a sleepy bear. Things act on each other: fire spreads and burns, water and cold put it out, rivers freeze, bombs break rock. Steer Dora while Enzo follows, or swap. Twelve puzzles across the Meadow, the Mountain and Burrow Town each hide a golden wolfberry, with up to 3 stars for solving in few words and a bonus for solving again with all-new ones. There's also a sandbox, and a word book of everything you've written. Progress is saved in your browser.
+
 ## 27-09-2026
 
 ### Changed

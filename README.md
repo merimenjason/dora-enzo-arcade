@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of twenty original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of twenty-one original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -30,6 +30,7 @@ Listed in arcade-menu order.
 | 18 | Chinchilla Clash | `/clash` | Card battler |
 | 19 | Hay Maze Defence | `/hay-maze` | Roguelite maze tower defence |
 | 20 | Chinchillas vs Zombies | `/chinchillas-vs-zombies` | Lane defence |
+| 21 | Chinchilla Scribble | `/scribble` | Word puzzle |
 
 ## Run
 
@@ -506,6 +507,31 @@ Browser: `tests/e2e/chinchillas-vs-zombies.mjs` checks the menu card and the loc
 
 **Docs:** [`docs/chinchillas-vs-zombies.md`](docs/chinchillas-vs-zombies.md).
 
+### 21 · Chinchilla Scribble (`/scribble`)
+
+**Play:** A word puzzler in the style of Super Scribblenauts, drawn in Canvas 2D. Write the name of a thing and it appears next to whichever chinchilla you're steering: a ladder to climb, a bridge to cross, a carrot for a hungry llama. The dictionary knows 177 things (356 words with plurals and synonyms), and 47 adjectives change them. Adjectives stack, so a **giant flying hay bale** is twice the size and can be ridden through the air, and a **frozen campfire** won't burn. Things act on each other: fire spreads to things that burn and burns them away after 10 seconds, water and cold put fires out, cold freezes a river solid enough to walk on, bombs and dynamite go off after 3 seconds and break rockfalls, trampolines bounce you high, and animals wander, eat and scare each other. You can have 14 of your things at once; the oldest vanishes when you make a 15th. Chinchillas can't swim, and big fires push them back. There are 12 levels across three worlds (Meadow, Mountain and Burrow Town), each with a golden wolfberry to reach: a high ledge, a river, a hungry llama in a tunnel, a campfire in a mountain pass, a rockfall, a puma on patrol, a gate that needs something heavy on its plate, Grandpa Pebble shivering in a doorway, a pitch-dark storeroom, the rooftops and a zombie guarding a haystack. Each level has a par of 1 or 2 words. Solving at or under par earns 3 stars, within two more earns 2, and anything else earns 1. Only real summons count, so a word the dictionary doesn't know costs nothing and suggests the closest one it does know. Solving a level again using only words you haven't used there before counts as a bonus solve. Solving a level opens the next, and the sandbox is always open. Stars, bonus solves and a word book of everything you've written are kept in this browser.
+
+**Controls:**
+
+- Type a word, with any adjectives in front of it, and press Enter or **Summon**.
+- Click or tap anywhere to walk, climb or fly there. A ride hovering just overhead is hopped onto on the way, and a flying ride sets you down when it arrives over solid ground.
+- Drag things with the mouse or a finger. The thing you last made or picked is outlined: Delete or Backspace removes it, and I, J, K and L nudge it.
+- ←/→ or A/D walk; ↑, W or Space jumps, climbs up or flies up; ↓ or S climbs down, flies down, or hops off a ride that's on the ground.
+- Q swaps between Dora and Enzo (the other one follows). Enter, / or T starts writing, and Escape goes back to steering. H shows a hint, R restarts the level.
+
+**Tests:** `npm run test:scribble` (also in `npm test`) compiles `lib/scribble-game.ts` and runs `tests/scribble.mjs`:
+
+- the parser: adjectives before a noun, plurals, two- and three-word nouns, did-you-mean, reserved words, and that every noun and adjective parses;
+- summoning: sizes, stacked adjectives, hovering and falling, the 14-thing limit, and that only real summons count;
+- every noun summoning and settling without trouble;
+- fire spreading and burning out, water and cold putting fires out, rivers freezing, splashing back to the bank, trampolines, the gate's weight, burns and blasts;
+- the follower keeping up and swapping who you steer;
+- 24 scripted solutions across all 12 levels (ladders, stairs, trampolines, flying rides, bridges, boats, ice, food, water, rain, tools, cages, scary animals, weights, warmth and light), and that walking alone never wins a level.
+
+Browser: `tests/e2e/scribble.mjs` checks the menu card and the locked levels, did-you-mean, clicking to walk and climb, winning with three stars and saving them, steering with the keyboard, dragging and deleting a thing, swapping to Enzo, riding a flying carpet up the cliff for two stars, the word book, the sandbox, and tap-to-walk on a phone-sized screen.
+
+**Docs:** [`docs/scribble.md`](docs/scribble.md).
+
 ## Validation
 
 ```sh
@@ -520,7 +546,7 @@ npm run test:e2e   # optional; needs `npm run dev` running and `npm i -D playwri
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty ways/` assertion in `tests/e2e/dust-bath.mjs`, the 20-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs` and `tests/e2e/chinchillas-vs-zombies.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-one ways/` assertion in `tests/e2e/dust-bath.mjs`, the 21-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs` and `tests/e2e/scribble.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
