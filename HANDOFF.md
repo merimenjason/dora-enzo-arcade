@@ -1,4 +1,4 @@
-# Handoff · 03-10-2026
+# Handoff · 04-10-2026
 
 Where Dora & Enzo's Arcade stands, how the newest games fit together, how to check your work, and what is worth doing next. For the arcade as a whole, start with [`README.md`](README.md); for how the code is laid out and the traps to avoid, [`CLAUDE.md`](CLAUDE.md); for the documentation and changelog rules, [`AGENTS.md`](AGENTS.md).
 
@@ -6,7 +6,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Current state
 
-- **21 games**, all on `main` and live at https://chinchillas.jason.engineering.
+- **21 games** on `main` and live at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was built on 04-10-2026 on the branch `feat/burrow-tactics`, which is stacked on `feat/dustbound-combat`; it is in a draft pull request and not merged.
 - The last game commit on `main` is `d0a02a6` (30-09-2026), which added Chinchilla Scribble.
 - The documentation round of 03-10-2026 is committed on the branch `docs/handoff-and-agent-guide`, which `feat/dustbound-combat` is built on; neither is merged to `main`: this file (replacing `HANDOVER.md`), the expanded `CLAUDE.md`, a README pointer, a changelog entry, and the prompt-audit edits to `AGENTS.md` and `.claude/skills/graft/SKILL.md` (see **Agent configuration**).
 - Left uncommitted in the working tree, and not reviewed in that round: `.claude/helpers/graft-hooks.cjs`, `.claude/helpers/graft-statusline.cjs`, and six added lines about reporting dollar savings in `.claude/skills/graft/SKILL.md`. All three were modified before the round began.
@@ -89,6 +89,18 @@ Game 05 (`/adventure`, titled *Dustbound* in game) was reworked on 03-10-2026, o
 - **Balance** of elites and gear has only been checked by the existing bot playthroughs (four floors on three seeds, no revivals). Deeper floors have not been played.
 - The page has no `window` test hook and there is no browser test for this game.
 
+### Burrow Tactics, briefly
+
+Game 22 (`/tactics`), turn-based tactics in the style of Into the Breach. Rules in `lib/burrow-tactics-game.ts`, drawing and animation in `lib/burrow-tactics-scene.ts`, page, styles and sounds in `app/tactics/`, tests in `tests/burrow-tactics.mjs`, the planner bot in `tests/burrow-tactics-bot.mjs`, the browser test in `tests/e2e/burrow-tactics.mjs`. Full rules: [`docs/burrow-tactics.md`](docs/burrow-tactics.md). Design notes and the build plan are under `docs/superpowers/`.
+
+- **A `Battle` is plain data.** `clone()` copies it cheaply, and previews, the forecast, the reset button, saving and the bot all work on copies. Keep every field JSON-safe.
+- **The engine does not animate.** It resolves an action or a whole predator phase at once and leaves events in `Battle.events`. The page hands them to `Stage.feed()`, which plays them and then syncs to the engine. A new kind of effect needs an event in `Ev` and a case in `Stage.anim()`.
+- **Attacks are directions.** `Unit.dir` (and `dist` for the hawk) is set by `think()`; `threat()` turns it into tiles from where the predator stands now. That is what makes pushing a predator move its attack.
+- **The only randomness after setup is in `think()` and `placeMarks()`**, both after attacks resolve, which is why `forecast()` can be exact. Keep it that way.
+- **Balance knobs:** the `HEROES` and `PREDATORS` tables, each mission's map, squad, turns, warren and arrivals in `MISSIONS`, and for the run `START_BUDGET`, `START_STEP`, `WAVE_BUDGET`, `WAVE_STEP`, `ALPHA_FROM`, `ALPHA_CHANCE` and `RUN_WARREN`.
+- **The bot** wins all ten missions and, as of 04-10-2026, 11 of the 12 seeded runs that `npm test` plays (it needs 6) and 40 of 48 over six squads. It looks one turn ahead with perfect knowledge of the coming attacks, so a person will do worse than it does. Rerun `npm run bot:tactics` after any balance change; it takes a few seconds.
+- Saves: `burrow-tactics-v1` (stars, sound) and `burrow-tactics-run-v1` (the run in progress). Test hook: `window.__tactics()` returns `{ battle, stage, run }`.
+
 ## Checking your work
 
 ```sh
@@ -102,6 +114,8 @@ npm run bot:hay-maze
 npm run test:cvz
 npm run bot:cvz
 npm run test:scribble
+npm run test:tactics
+npm run bot:tactics
 ```
 
 Browser tests need `npm run dev` running and Playwright. Playwright is **not** in `devDependencies`. Install it with `npm i -D playwright`, or link a global copy (`ln -s "$(npm root -g)/playwright" node_modules/playwright`). Then run one suite, such as `node tests/e2e/scribble.mjs`, or the whole `npm run test:e2e`. The browser tests write screenshots to `.checks/<game>/`, which git ignores.
@@ -135,4 +149,5 @@ The lists for Clash, Hay Maze and Chinchillas vs Zombies date from 26-09-2026 an
 - **Chinchilla Clash:** no card levels, emotes or two-player mode. The computer player never uses the pocket placement opened by a fallen tower.
 - **Chinchillas vs Zombies:** a night in progress isn't saved, only the nights won. There's no endless mode, no mini-games and no night-time or pool lawns. On a phone the lawn is small (tiles about 32 px); tap-to-preview keeps planting accurate.
 - **Chinchilla Scribble:** no bot plays the levels, and its limits haven't been written up.
+- **Burrow Tactics:** balance has only been tuned against the bot; nobody has played the campaign or a run by hand from start to finish. There is no choosing where chinchillas start, no difficulty setting, and a campaign mission in progress is not saved. The run offers each chinchilla only three kinds of upgrade.
 - **Balance** has only been tuned against bots. Watch real players on levels 5–6 of Hay Maze, against Baron Ebony in Clash, and on nights 7–8 of Chinchillas vs Zombies, the hardest of each.
