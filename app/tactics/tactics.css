@@ -157,6 +157,8 @@
   .bt-hero canvas { display: none; }
   .bt-shell .bt-actions button { padding: 8px 10px; font-size: 13px; }
   .bt-forecast { flex-basis: 100%; }
+  .bt-bars { top: 4px; left: 4px; right: 4px; gap: 3px; }
+  .bt-shell .bt-coach { font-size: 12px; line-height: 1.3; padding: 4px 8px; border-width: 1px; }
   /* Trim the spare sky and ground round the board so the tiles are as big as a phone allows. */
   .bt-board canvas { width: 107%; max-width: none; margin: -4% -3.5% -3.5%; }
 }
