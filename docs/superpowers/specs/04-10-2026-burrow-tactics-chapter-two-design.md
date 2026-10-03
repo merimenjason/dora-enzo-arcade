@@ -42,7 +42,7 @@ Unlocked by play: each chapter-two mission lists which of its squad know their s
 `BattleDef.goal`:
 
 - `hold` (default): last the turns.
-- `escort`: a kit (2 health, moves 2, can only groom) must reach the den tile (`BattleDef.exit`). Won the moment it arrives; lost if it is knocked out or the turns run out.
+- `escort`: a kit (2 health, moves 3, can only groom) must reach the den tile (`BattleDef.exit`). Won the moment it arrives; lost if it is knocked out or the turns run out.
 - `hunt`: knock out the marked predator before the turns run out.
 
 `BattleDef.key` marks one burrow as the nursery: if it collapses, the battle is lost (works with any goal). Predators value it more. Boss battles are `hold` with a marked boss: won when it is knocked out, or by lasting the turns.

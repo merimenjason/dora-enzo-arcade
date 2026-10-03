@@ -61,7 +61,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
   pebble: { id: 'pebble', name: 'Grandpa Pebble', hp: 5, move: 3, ability: 'toss', second: 'brace', cls: 'warden', blurb: 'Slow and sturdy. Throws hay bales to wall off a burrow or bonk a fox.' },
   mochi: { id: 'mochi', name: 'Mochi', hp: 3, move: 4, ability: 'tug', second: 'lull', cls: 'warden', blurb: 'Tugs predators out of position: into the stream, into brambles, or into each other’s way.' },
   biscuit: { id: 'biscuit', name: 'Biscuit', hp: 3, move: 4, ability: 'pounce', second: 'kick', cls: 'bruiser', blurb: 'Leaps into the middle of a pack and scatters it.' },
-  kit: { id: 'kit', name: 'The kit', hp: 2, move: 2, ability: 'groom', second: null, cls: null, blurb: 'Too small to fight. Get it home.' },
+  kit: { id: 'kit', name: 'The kit', hp: 2, move: 3, ability: 'groom', second: null, cls: null, blurb: 'Too small to fight. Get it home.' },
 };
 /** The chinchillas a squad is picked from. */
 export const HERO_IDS: HeroId[] = ['dora', 'enzo', 'pip', 'pebble', 'mochi', 'biscuit'];
@@ -118,7 +118,7 @@ export type Mark = { x: number; y: number; kind: PredId; alpha: boolean };
 export type Spawn = { turn: number; kind: PredId; x?: number; y?: number; alpha?: boolean };
 export type BattleDef = {
   name: string; region: number; turns: number; map: string[]; heroes: Tile[];
-  preds: { kind: PredId; x: number; y: number; alpha?: boolean; mark?: boolean }[]; plan: Spawn[]; boss?: boolean; seed: number;
+  preds: { kind: PredId; x: number; y: number; alpha?: boolean; mark?: boolean; hp?: number }[]; plan: Spawn[]; boss?: boolean; seed: number;
   /** `escort`: get the kit from `kit` to `exit`. `hunt`: knock out the marked predator in time. */
   goal?: Goal; kit?: Tile; exit?: Tile;
   /** The nursery: a burrow that must not fall. */
@@ -179,7 +179,7 @@ export class Battle {
       b.units.push({ id: b.nextId++, side: 'hero', kind: m.id, x, y, hp, maxHp: hp, move: d.move + m.move, power: m.power, fly: false, alpha: false, fur: b.relics.includes('fur'), skill: !!m.skill, mark: false, moved: false, acted: false, fromX: -1, fromY: -1, canUndo: false, dir: -1, dist: 0, order: 0 });
     });
     if (def.kit) b.units.push({ id: b.nextId++, side: 'hero', kind: 'kit', x: def.kit[0], y: def.kit[1], hp: HEROES.kit.hp, maxHp: HEROES.kit.hp, move: HEROES.kit.move, power: 0, fly: false, alpha: false, fur: false, skill: false, mark: false, moved: false, acted: false, fromX: -1, fromY: -1, canUndo: false, dir: -1, dist: 0, order: 0 });
-    for (const p of def.preds) { const u = b.makePred(p.kind, p.x, p.y, !!p.alpha); u.mark = !!p.mark || (b.boss && !!PREDATORS[p.kind].boss); b.units.push(u); }
+    for (const p of def.preds) { const u = b.makePred(p.kind, p.x, p.y, !!p.alpha); u.mark = !!p.mark || (b.boss && !!PREDATORS[p.kind].boss); if (p.hp) u.hp = u.maxHp = p.hp; b.units.push(u); }
     b.hunt = b.units.some((u) => u.mark);
     b.plan = def.plan.map((s) => ({ ...s }));
     if (def.deploy) { b.state = 'deploy'; return b; }
@@ -554,7 +554,11 @@ export class Battle {
           for (const [hx, hy] of this.threatFrom(u, x, y, dir, dist).hits) {
             const v = this.unitAt(hx, hy, u.id), f = this.feature[at(hx, hy)];
             if (v) gain += v.side === 'hero' ? (v.hp <= dmg ? 7 : 4) + (v.kind === 'kit' ? 3 : 0) : -5;
-            else if (f === 'burrow') gain += claimed.has(at(hx, hy)) ? 1 : at(hx, hy) === this.key ? 9 : 6;
+            else if (f === 'burrow') {
+              // A braced burrow shrugs the hit off, and a Warden beside one takes it instead.
+              const warden = this.heroes.some((h) => HEROES[h.kind as HeroId].cls === 'warden' && Math.abs(h.x - hx) + Math.abs(h.y - hy) === 1);
+              gain += this.armor[at(hx, hy)] > 0 ? 1 : warden ? 3 : claimed.has(at(hx, hy)) ? 1 : at(hx, hy) === this.key ? 9 : 6;
+            }
             else if (f === 'bale') gain += 0.5;
           }
           const score = base + (gain > 0 ? gain : gain - near * 0.3) + this.rand() * 0.2;
@@ -700,7 +704,7 @@ export const MISSIONS: Mission[] = [
     bonus: { text: 'Keep every chinchilla standing', stat: 'nodown' },
     tip: 'Whoever stands on high ground hits 1 harder, predators too. A skunk’s spray leaves a stink cloud: nobody inside it can attack.' },
   { name: 'The Lost Kit', region: 0, turns: 6, seed: 114, squad: ['pip', 'mochi', 'enzo'], warren: 3, deploy: true, skills: ['pip', 'enzo'], teaches: 'pip', goal: 'escort', kit: [7, 5], exit: [0, 3],
-    map: ['........', '.B...#..', '....~...', '...#....', '........', '.B..~~..', '........', '.B......'],
+    map: ['........', '.B...#..', '....~...', '...#....', '.....#..', '.B..~~#.', '........', '.B......'],
     heroes: [[2, 2], [2, 4], [3, 6]], preds: [{ kind: 'fox', x: 5, y: 0 }, { kind: 'fox', x: 5, y: 6 }, { kind: 'snake', x: 4, y: 7 }], plan: [{ turn: 1, kind: 'weasel', x: 5, y: 3 }, { turn: 2, kind: 'fox', x: 3, y: 2 }, { turn: 3, kind: 'fox', x: 2, y: 3 }],
     bonus: { text: 'Keep every chinchilla standing', stat: 'nodown' },
     tip: 'A kit is stranded on the far side. Walk it to the den flag. Pip’s Switcheroo swaps places with the first creature in a line, the kit included.' },
@@ -710,8 +714,8 @@ export const MISSIONS: Mission[] = [
     bonus: { text: 'Knock out 3 predators', stat: 'kills', n: 3 },
     tip: 'The burrow with the gold star is the nursery: lose it and the battle is lost. Moles tunnel under everything. Grandpa Pebble can Brace a burrow, and as a Warden he takes hits meant for burrows beside him.' },
   { name: 'The Old Badger', region: 2, turns: 5, seed: 116, squad: ['mochi', 'biscuit', 'dora'], warren: 4, deploy: true, skills: ['mochi', 'biscuit', 'dora'], teaches: 'mochi', goal: 'hunt',
-    map: ['........', '.B......', '......^.', '.B..#...', '........', '.B....^.', '...~~...', '.B......'],
-    heroes: [[2, 2], [2, 4], [2, 6]], preds: [{ kind: 'badger', x: 6, y: 4, alpha: true, mark: true }, { kind: 'fox', x: 6, y: 1 }, { kind: 'snake', x: 6, y: 6 }], plan: [{ turn: 1, kind: 'weasel', x: 7, y: 3 }, { turn: 2, kind: 'fox', x: 7, y: 0 }, { turn: 3, kind: 'owl', x: 7, y: 5 }],
+    map: ['........', '.B......', '......^.', '.B..#...', '........', '.B....^.', '...^#...', '.B......'],
+    heroes: [[2, 2], [2, 4], [2, 6]], preds: [{ kind: 'badger', x: 6, y: 4, alpha: true, mark: true, hp: 10 }, { kind: 'fox', x: 6, y: 1 }, { kind: 'snake', x: 6, y: 6 }], plan: [{ turn: 1, kind: 'weasel', x: 7, y: 3 }, { turn: 2, kind: 'fox', x: 7, y: 0 }, { turn: 3, kind: 'owl', x: 7, y: 5 }],
     bonus: { text: 'Make one predator hit another', stat: 'friendly', n: 1 },
     tip: 'Knock out the marked badger before the turns run out. Mochi’s Lullaby makes a predator forget its attack, which buys a turn to line things up.' },
   { name: 'Smoke and Stink', region: 2, turns: 5, seed: 117, squad: ['pip', 'pebble', 'enzo'], warren: 4, deploy: true, skills: ['pip', 'pebble', 'enzo'],
@@ -883,11 +887,21 @@ export function boardValue(b: Battle) {
   if (b.key >= 0 && b.armor[b.key] > 0) v += 6;
   for (const u of b.units) {
     if (u.hp <= 0) continue;
-    if (u.kind === 'kit') v += 40 + u.hp * 12 - (Math.abs(u.x - (b.exit % SIZE)) + Math.abs(u.y - Math.floor(b.exit / SIZE))) * 9;
+    if (u.kind === 'kit') v += 40 + u.hp * 12 - walkSteps(b, u.x, u.y, b.exit) * 9;
     else if (u.side === 'hero') v += 22 + u.hp * 7 + (b.marks.some((m) => m.x === u.x && m.y === u.y) && u.hp > 1 ? 5 : 0) - (b.soaked(u) ? 6 : 0) - (b.fire[u.y * SIZE + u.x] > 0 ? 4 : 0);
     else v -= (7 + u.hp * 3) * (u.mark ? 2.5 : 1);
   }
   return v;
+}
+/** How many steps it is on foot from a tile to a goal, round rocks, bales, burrows and water but ignoring creatures. */
+function walkSteps(b: Battle, x: number, y: number, goal: number) {
+  const seen = new Map<number, number>([[at(x, y), 0]]), queue = [at(x, y)];
+  for (let n = 0; n < queue.length; n++) {
+    const i = queue[n], d = seen.get(i)!;
+    if (i === goal) return d;
+    for (const [dx, dy] of DIRS) { const nx = (i % SIZE) + dx, ny = Math.floor(i / SIZE) + dy, j = at(nx, ny); if (inside(nx, ny) && !seen.has(j) && !b.solid(nx, ny) && b.terrain[j] !== 'water') { seen.set(j, d + 1); queue.push(j); } }
+  }
+  return 20;
 }
 /** The board after the predators' attacks, scored. */
 const after = (b: Battle) => { b.resolveAttacks(); return boardValue(b); };
