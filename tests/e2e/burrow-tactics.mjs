@@ -28,6 +28,8 @@ try {
   await page.reload();
   await page.waitForFunction(() => !document.querySelector('[data-testid="mission-1"]').disabled);
   assert.ok(await page.getByTestId('mission-2').isDisabled(), 'mission 2 is locked until mission 1 is won');
+  assert.equal(await page.locator('.bt-mission').count(), 18, 'ten missions and chapter two');
+  assert.ok(await page.getByTestId('mission-11').isDisabled());
   assert.equal(await page.locator('.bt-card.locked').count(), 4, 'four chinchillas still to meet');
   assert.equal(await page.getByTestId('start-run').count(), 0, 'the run is locked');
   await page.screenshot({ path: '.checks/burrow-tactics/home.png', fullPage: true });
@@ -38,6 +40,9 @@ try {
   assert.equal(await page.getByTestId('turn').textContent(), 'TURN1 / 3');
   assert.match(await page.getByTestId('forecast').textContent(), /Dora −1 · Enzo −1/, 'both foxes are about to bite');
   assert.match(await page.getByTestId('hero-dora').getAttribute('class'), /\bon\b/, 'Dora is picked first');
+  // The first mission is guided: the coach says what to do and the button to press pulses.
+  assert.match(await page.getByTestId('coach').textContent(), /press Seed Shot/);
+  assert.match(await page.getByTestId('ability').getAttribute('class'), /pulse/);
   let box = await board(page).boundingBox();
   assert.deepEqual((await unit(page, 'dora')).slice(0, 2), [3, 2]);
 
@@ -53,6 +58,7 @@ try {
   // Aim the Seed Shot at the fox: the forecast shows the result before the click.
   await page.getByTestId('ability').click();
   assert.equal(await page.getByTestId('ability').getAttribute('aria-pressed'), 'true');
+  await page.waitForFunction(() => /Click the fox to shoot/.test(document.querySelector('[data-testid="coach"]').textContent));
   await page.mouse.move(...tile(box, 4, 2));
   await page.waitForFunction(() => /AFTER THIS ACTION/.test(document.querySelector('[data-testid="forecast"]').textContent));
   assert.match(await page.getByTestId('forecast').textContent(), /Enzo −1$/, 'the pushed fox would miss Dora');
@@ -60,7 +66,15 @@ try {
   await page.mouse.click(...tile(box, 4, 2));
   await idle(page);
   assert.deepEqual((await unit(page, 'fox')).slice(0, 3), [5, 2, 2], 'the fox took 1 and was pushed back');
-  assert.equal(await page.getByTestId('hero-dora').getAttribute('data-status'), 'Done');
+  assert.equal(await page.getByTestId('hero-dora').getAttribute('data-status'), 'Can still move', 'Dora is a Scout: she acted without moving');
+  await page.waitForFunction(() => /Press Tail Whack/.test(document.querySelector('[data-testid="coach"]').textContent));
+  // The hint points at a move and a target for the chinchilla it picks, and changes nothing.
+  const beforeHint = await game(page, 't => JSON.stringify(t.battle.units)');
+  await page.getByTestId('hint').click();
+  await page.waitForSelector('[data-testid="advice"]');
+  assert.match(await page.getByTestId('advice').textContent(), /Enzo should .*Tail Whack/);
+  assert.equal(await game(page, 't => JSON.stringify(t.battle.units)'), beforeHint);
+  await page.screenshot({ path: '.checks/burrow-tactics/hint.png' });
   assert.match(await page.getByTestId('hero-enzo').getAttribute('class'), /\bon\b/, 'the next chinchilla is picked');
   await page.mouse.move(...tile(box, 5, 2));
   await page.waitForFunction(() => /Fox · 2\/3 health/.test(document.querySelector('[data-testid="info"]').textContent));
@@ -106,15 +120,51 @@ try {
   // With the campaign won, a run can be started, left and resumed where it was.
   await page.evaluate(() => localStorage.setItem('burrow-tactics-v1', JSON.stringify({ stars: Array(10).fill(3), muted: true })));
   await page.goto(`${base}/tactics`);
+  await page.waitForFunction(() => !document.querySelector('[data-testid="mission-11"]').disabled);
+  assert.ok(await page.getByTestId('mission-12').isDisabled(), 'chapter two opens one mission at a time');
+
+  // Chapter two: choose where to start, then use a second action.
+  await page.getByTestId('mission-11').click();
+  await page.waitForSelector('[data-testid="board"][data-state="deploy"]');
+  assert.equal(await page.getByTestId('coach').count(), 0, 'only the first mission is guided');
+  assert.match(await page.getByTestId('goal').textContent(), /Hold out/);
+  box = await board(page).boundingBox();
+  await page.getByTestId('hero-enzo').click();
+  await page.mouse.click(...tile(box, 3, 0));
+  await idle(page);
+  assert.deepEqual((await unit(page, 'enzo')).slice(0, 2), [3, 0], 'Enzo starts where he was put');
+  await page.mouse.click(...tile(box, 5, 0));
+  assert.deepEqual((await unit(page, 'enzo')).slice(0, 2), [3, 0], 'only the home side');
+  await page.screenshot({ path: '.checks/burrow-tactics/deploy.png' });
+  await page.getByTestId('deploy-ready').click();
+  await page.waitForSelector('[data-testid="board"][data-state="player"][data-busy="0"]');
+  assert.ok(await game(page, 't => t.battle.preds.every((u) => u.dir >= 0)'), 'the predators have picked their attacks');
+  await page.getByTestId('hero-enzo').click();
+  assert.equal(await page.getByTestId('ability-2').textContent(), 'Ground Slam2');
+  assert.equal(await page.getByTestId('ability-2').count(), 1);
+  await game(page, `t => { const b = t.battle, e = b.units.find((u) => u.kind === 'enzo'), f = b.units.find((u) => u.kind === 'fox'); Object.assign(f, { x: e.x + 1, y: e.y, hp: 3 }); t.stage.sync(b); }`);
+  await page.keyboard.press('2');
+  await page.waitForSelector('.bt-note');
+  await page.keyboard.press('Enter');
+  await idle(page);
+  assert.equal((await unit(page, 'enzo'))[4], true, 'Enzo slammed');
+  assert.equal((await unit(page, 'fox'))[2] < 3, true, 'and the fox beside him felt it');
+  await page.getByTestId('hero-dora').click();
+  assert.equal(await page.getByTestId('ability-2').count(), 0, 'Dora has not learned hers yet');
+  await page.goto(`${base}/tactics`);
   await page.waitForFunction(() => !document.querySelector('[data-testid="mission-10"]').disabled);
   assert.equal(await page.locator('.bt-card.locked').count(), 0);
   await page.getByTestId('pick-pip').click();
   assert.ok(await page.getByTestId('start-run').isDisabled(), 'a run needs three chinchillas');
   await page.getByTestId('pick-mochi').click();
+  await page.getByTestId('diff-gentle').click();
+  assert.equal(await page.getByTestId('diff-gentle').getAttribute('aria-pressed'), 'true');
   await page.getByTestId('start-run').click();
-  await page.waitForSelector('[data-testid="board"][data-state="player"]');
+  await page.waitForSelector('[data-testid="board"][data-state="deploy"]');
   assert.deepEqual(await game(page, 't => t.run.squad.map((m) => m.id)'), ['dora', 'enzo', 'mochi']);
-  assert.equal(await game(page, 't => t.battle.maxWarren'), 5);
+  assert.equal(await game(page, 't => t.battle.maxWarren'), 6, 'a gentle run has a warren of 6');
+  await page.keyboard.press('e');
+  await page.waitForSelector('[data-testid="board"][data-state="player"][data-busy="0"]');
   const seed = await game(page, 't => t.run.seed');
   await page.keyboard.press('e');
   await page.waitForSelector('[data-testid="board"][data-turn="2"][data-busy="0"]');
@@ -131,7 +181,7 @@ try {
   await page.waitForSelector('[data-testid="reward-0"]');
   assert.equal(await page.locator('.bt-rewards button').count(), 3);
   await page.getByTestId('reward-0').click();
-  await page.waitForSelector('[data-testid="board"][data-state="player"][data-turn="1"]');
+  await page.waitForSelector('[data-testid="board"][data-state="deploy"][data-turn="1"]');
   assert.equal(await game(page, 't => t.run.stage'), 1);
   await page.close();
 
@@ -160,7 +210,7 @@ try {
   await phone.close();
 
   assert.deepEqual(errors, [], 'no page errors');
-  console.log('PASS Burrow Tactics: menu, moving and undo, aiming and forecast, a won mission, keyboard, a saved run and a phone');
+  console.log('PASS Burrow Tactics: menu, the guided first mission, moving and undo, aiming and forecast, the hint, a won mission, keyboard, choosing where to start, a second action, a saved run on a chosen difficulty and a phone');
 } finally {
   await browser.close();
 }

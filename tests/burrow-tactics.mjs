@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {
-  Battle, Run, MISSIONS, HEROES, HERO_IDS, PREDATORS, ABILITIES, RELIC_IDS, SIZE, CLOUD_TURNS, RUN_WARREN, RUN_STAGES, RUN_UNLOCK,
-  member, missionBattle, makeField, stars, bonusMet, unlockedHeroes, rewardText,
+  Battle, Run, MISSIONS, HEROES, HERO_IDS, PREDATORS, ABILITIES, RELIC_IDS, CLASSES, DIFFICULTY, SIZE, CLOUD_TURNS, FIRE_TURNS, RUN_WARREN, RUN_STAGES, RUN_UNLOCK, CHAPTER_TWO,
+  member, missionBattle, makeField, stars, bonusMet, unlockedHeroes, rewardText, runBoss, hint, planTurn, doStep, goalText,
 } from '../.checks/burrow-tactics-game.js';
 import { playMission, playRun, takeTurn } from './burrow-tactics-bot.mjs';
 
@@ -12,12 +12,13 @@ const mapWith = (cells = {}) => EMPTY.map((row, y) => [...row].map((ch, x) => ce
  * A board for one rule: chinchillas and predators exactly where they are put. Predators are placed after the battle
  * is made and cannot walk (move 0) unless given a `move`, so they stay put; give one a `dir` to telegraph an attack.
  */
-function board({ cells, heroes = ['dora'], at = [[0, 0]], preds = [{ kind: 'fox', x: 7, y: 7 }], relics = [], warren = 3, turns = 4, plan = [], boss = false, squad } = {}) {
-  const b = Battle.create({ name: 'test', region: 0, turns, map: mapWith(cells), heroes: at, preds: [], plan, boss, seed: 1 }, squad ?? heroes.map(member), { warren, relics });
+function board({ cells, heroes = ['dora'], at = [[0, 0]], preds = [{ kind: 'fox', x: 7, y: 7 }], relics = [], warren = 3, turns = 4, plan = [], boss = false, squad, skill = false, ...more } = {}) {
+  const b = Battle.create({ name: 'test', region: 0, turns, map: mapWith(cells), heroes: at, preds: [], plan, boss, seed: 1, ...more }, squad ?? heroes.map((id) => member(id, skill)), { warren, relics });
   for (const p of preds) {
     const d = PREDATORS[p.kind], hp = d.hp + (p.alpha ? 2 : 0);
-    b.units.push({ id: b.nextId++, side: 'pred', kind: p.kind, x: p.x, y: p.y, hp: p.hp ?? hp, maxHp: hp, move: p.move ?? 0, power: p.alpha ? 1 : 0, fly: d.fly, alpha: !!p.alpha, fur: false, moved: false, acted: false, fromX: -1, fromY: -1, canUndo: false, dir: p.dir ?? -1, dist: p.dist ?? 2, order: b.nextId });
+    b.units.push({ id: b.nextId++, side: 'pred', kind: p.kind, x: p.x, y: p.y, hp: p.hp ?? hp, maxHp: hp, move: p.move ?? 0, power: p.alpha ? 1 : 0, fly: d.fly, alpha: !!p.alpha, fur: false, skill: false, mark: !!p.mark || (boss && !!d.boss), moved: false, acted: false, fromX: -1, fromY: -1, canUndo: false, dir: p.dir ?? -1, dist: p.dist ?? 2, order: b.nextId });
   }
+  b.hunt = b.units.some((u) => u.mark);
   return b;
 }
 const hero = (b, kind) => b.units.find((u) => u.kind === kind);
@@ -331,9 +332,194 @@ for (let i = 0; i < MISSIONS.length; i++) {
   roots.endTurn(); assert.equal(hero(roots, 'dora').hp >= 2, true); assert.equal(roots.stats.blocks, 1);
 }
 
+// ---------- Classes ----------
+{
+  // Scout: act first, then still move. Everyone else is done once they act.
+  const b = board({ at: [[0, 3], [0, 5]], heroes: ['dora', 'enzo'], preds: [{ kind: 'fox', x: 4, y: 3 }, { kind: 'fox', x: 1, y: 5 }] });
+  const d = hero(b, 'dora'), e = hero(b, 'enzo');
+  ok(b.act(d.id, 'seed', 4, 3)); assert.equal(d.moved, false);
+  assert(b.moves(d.id).length > 0, 'a Scout that has not moved may move after acting');
+  ok(b.moveHero(d.id, 0, 1)); ok(b.undoMove(d.id)); ok(b.moveHero(d.id, 0, 2)); assert.equal(b.moveHero(d.id, 0, 1), 'done');
+  ok(b.act(e.id, 'whack', 1, 5)); assert.equal(b.moves(e.id).length, 0, 'a Bruiser cannot');
+  assert.equal(HEROES.dora.cls, 'scout'); assert.equal(HEROES.kit.cls, null);
+  for (const id of HERO_IDS) assert(CLASSES[HEROES[id].cls] && HEROES[id].second, `${id} has a class and a second action`);
+}
+{
+  // Bruiser: what Enzo knocks into a rock takes 1 more. Dora's shot does not.
+  const b = board({ cells: { '3,0': '#', '3,2': '#' }, at: [[1, 0], [0, 2]], heroes: ['enzo', 'dora'], preds: [{ kind: 'badger', x: 2, y: 0 }, { kind: 'badger', x: 2, y: 2 }] });
+  ok(b.act(hero(b, 'enzo').id, 'whack', 2, 0)); assert.equal(pred(b, 0).hp, 1, '2 for the whack, 1 for the bump, 1 for heavy paws');
+  ok(b.act(hero(b, 'dora').id, 'seed', 2, 2)); assert.equal(pred(b, 1).hp, 3);
+}
+{
+  // Warden: Pebble takes the bite meant for the burrow beside him; Dora would not.
+  const b = board({ cells: { '0,1': 'B', '5,1': 'B' }, at: [[1, 1], [5, 0]], heroes: ['pebble', 'dora'], preds: [{ kind: 'fox', x: 0, y: 2, dir: N }, { kind: 'fox', x: 5, y: 2, dir: N }] });
+  assert.deepEqual(b.forecast(), { warren: 1, burrows: [[5, 1]], heroes: { [hero(b, 'pebble').id]: 1 }, downs: [], kills: 0 });
+  b.endTurn();
+  assert.equal(hero(b, 'pebble').hp, 4); assert.equal(b.feature[SIZE], 'burrow'); assert.equal(b.warren, 2); assert.equal(b.stats.guards, 1);
+  // His own side's shots are not guarded against.
+  const c = board({ cells: { '3,0': 'B' }, at: [[0, 0], [3, 1]], heroes: ['dora', 'pebble'] });
+  ok(c.act(hero(c, 'dora').id, 'seed', 3, 0)); assert.equal(c.warren, 2);
+}
+
+// ---------- Second actions ----------
+{
+  const b = board({ at: [[0, 0]], preds: [{ kind: 'fox', x: 2, y: 0 }] });
+  assert.equal(b.targets(hero(b, 'dora').id, 'pierce').length, 0, 'not known until learned');
+  assert.equal(b.act(hero(b, 'dora').id, 'pierce', 2, 0), 'target');
+  assert.deepEqual(b.abilities(hero(b, 'dora')), ['seed', 'groom']);
+}
+{
+  const b = board({ skill: true, cells: { '5,0': 'h' }, at: [[0, 0]], preds: [{ kind: 'fox', x: 2, y: 0 }, { kind: 'badger', x: 4, y: 0 }, { kind: 'fox', x: 6, y: 0 }] });
+  const d = hero(b, 'dora');
+  assert.deepEqual(b.abilities(d), ['seed', 'pierce', 'groom']);
+  ok(b.act(d.id, 'pierce', 2, 0));
+  assert.deepEqual([pred(b, 0).hp, pred(b, 0).x, pred(b, 1).hp, pred(b, 2).hp, b.feature[5]], [2, 2, 4, 3, null], 'everyone in the line takes 1, the bale stops it, nobody is pushed');
+}
+{
+  const b = board({ skill: true, heroes: ['enzo'], at: [[3, 3]], preds: [{ kind: 'fox', x: 4, y: 3 }, { kind: 'fox', x: 3, y: 2 }, { kind: 'fox', x: 6, y: 6 }] });
+  ok(b.act(hero(b, 'enzo').id, 'slam', 3, 3));
+  assert.deepEqual([pred(b, 0).x, pred(b, 0).hp, pred(b, 1).y, pred(b, 1).hp, pred(b, 2).hp], [5, 2, 1, 2, 3], 'both neighbours take 1 and are thrown outward');
+}
+{
+  const b = board({ skill: true, heroes: ['pip', 'enzo'], at: [[0, 0], [0, 4]], preds: [{ kind: 'fox', x: 5, y: 0, dir: W }] });
+  const p = hero(b, 'pip'), f = pred(b);
+  assert.deepEqual(b.targets(p.id, 'swap').map(String).sort(), ['0,4', '5,0'], 'friend or predator');
+  ok(b.act(p.id, 'swap', 5, 0));
+  assert.deepEqual([p.x, f.x, f.hp], [5, 0, 3]); assert.deepEqual(b.threat(f).hits, [], 'its bite now points off the board');
+}
+{
+  const b = board({ skill: true, cells: { '1,0': 'B' }, heroes: ['pebble'], at: [[1, 1]], preds: [{ kind: 'fox', x: 2, y: 0, dir: W }, { kind: 'fox', x: 0, y: 0, dir: E }] });
+  const p = hero(b, 'pebble');
+  assert.deepEqual(b.targets(p.id, 'brace'), [[1, 0]]);
+  ok(b.act(p.id, 'brace', 1, 0)); assert.equal(b.armor[1], 1); assert.equal(b.targets(p.id, 'brace').length, 0);
+  b.endTurn();
+  assert.deepEqual([b.warren, p.hp, b.armor[1]], [3, 4, 0], 'the brace takes the first bite and Pebble the second');
+}
+{
+  const b = board({ skill: true, heroes: ['mochi'], at: [[0, 0]], preds: [{ kind: 'badger', x: 2, y: 0, dir: W }, { kind: 'cougar', x: 0, y: 1, dir: 0 }, { kind: 'fox', x: 0, y: 5 }], turns: 9 });
+  const m = hero(b, 'mochi');
+  assert.deepEqual(b.targets(m.id, 'lull'), [[2, 0]], 'only a predator with an attack ready, in reach, and never a boss');
+  ok(b.act(m.id, 'lull', 2, 0)); assert.equal(pred(b).dir, -1); assert.deepEqual(b.threat(pred(b)).hits, []);
+}
+{
+  const b = board({ skill: true, cells: { '6,0': '#' }, heroes: ['biscuit'], at: [[0, 0], ], preds: [{ kind: 'badger', x: 1, y: 0 }, { kind: 'badger', x: 0, y: 1 }] });
+  const k = hero(b, 'biscuit');
+  ok(b.act(k.id, 'kick', 1, 0)); assert.deepEqual([pred(b).x, pred(b).hp], [4, 5], 'three tiles and no bump');
+  b.endTurn(); pred(b).x = 1; pred(b, 1).x = 5; pred(b, 1).y = 5;
+  pred(b).x = 4; k.x = 3;
+  ok(b.act(k.id, 'kick', 4, 0)); assert.deepEqual([pred(b).x, pred(b).hp], [5, 3], 'stopped by the rock: 1 for the bump and 1 for heavy paws');
+}
+
+// ---------- Ice, high ground and fire ----------
+{
+  const b = board({ cells: { '3,0': '=', '4,0': '=', '5,0': '~', '3,2': '=', '4,2': '=', '5,2': '#' }, at: [[0, 0], [0, 2]], heroes: ['dora', 'mochi'], preds: [{ kind: 'fox', x: 2, y: 0 }, { kind: 'badger', x: 2, y: 2 }] });
+  ok(b.act(hero(b, 'dora').id, 'seed', 2, 0)); assert.equal(pred(b, 0).hp, 0, 'slid across the ice into the water'); assert.equal(b.stats.drowned, 1);
+  hero(b, 'mochi').x = 1;
+  const d = hero(b, 'dora'); d.acted = false; d.x = 0; d.y = 2; hero(b, 'mochi').y = 5;
+  ok(b.act(d.id, 'seed', 2, 2)); assert.deepEqual([pred(b, 1).x, pred(b, 1).hp], [4, 3], 'slid until the rock: 1 for the seed, 1 for the bump');
+  assert(b.moves(hero(b, 'mochi').id).length > 0, 'ice can be walked on');
+}
+{
+  const b = board({ cells: { '0,0': 'n', '3,3': 'n' }, at: [[0, 0], [2, 3]], heroes: ['dora', 'enzo'], preds: [{ kind: 'badger', x: 3, y: 0 }, { kind: 'fox', x: 3, y: 3, dir: W }] });
+  ok(b.act(hero(b, 'dora').id, 'seed', 3, 0)); assert.equal(pred(b).hp, 3, 'a shot from high ground does 1 more');
+  b.endTurn(); assert.equal(hero(b, 'enzo').hp, 2, 'so does a bite');
+}
+{
+  // Stopping in fire costs 1; at the end of the predators' turn it burns whoever stands in it, spreads, and burns down.
+  const b = board({ cells: { '1,0': '*', '2,0': '^', '1,1': 'h', '3,0': '^' }, at: [[0, 0], [5, 5]], heroes: ['dora', 'enzo'], preds: [{ kind: 'fox', x: 7, y: 7 }], turns: 9 });
+  const d = hero(b, 'dora');
+  assert.equal(b.fire[1], FIRE_TURNS);
+  ok(b.moveHero(d.id, 1, 0)); assert.equal(d.hp, 2);
+  assert.equal(b.forecast().heroes[d.id], 1, 'the forecast counts the fire');
+  b.endTurn();
+  assert.equal(d.hp, 1);
+  assert.deepEqual([b.fire[1], b.fire[2], b.fire[SIZE + 1], b.feature[SIZE + 1], b.fire[3]], [FIRE_TURNS - 1, FIRE_TURNS, FIRE_TURNS, null, 0], 'it spreads to the brambles and the bale beside it, one step a turn');
+  d.x = 0; d.y = 5;
+  b.endTurn(); assert.equal(b.fire[3], FIRE_TURNS);
+  b.endTurn(); assert.equal(b.fire[1], 0, 'it burns out');
+  b.endTurn(); assert.equal(b.fire[2], 0); assert.equal(b.terrain[2], 'grass', 'burnt brambles are gone');
+  const owl = board({ cells: { '1,0': '*' }, at: [[0, 0]], preds: [{ kind: 'owl', x: 1, y: 0 }] });
+  owl.endTurn(); assert.equal(pred(owl).hp, 2, 'flyers are above it');
+}
+
+// ---------- The new predators ----------
+{
+  const b = board({ cells: { '4,0': '#', '4,1': '#', '4,2': '#', '4,3': '#', '4,4': '#', '4,5': '#', '4,6': '#', '4,7': '#', '0,3': 'B' }, at: [[0, 0]], preds: [{ kind: 'mole', x: 6, y: 3, move: 4 }, { kind: 'fox', x: 6, y: 0, move: 3 }] });
+  b.endTurn();
+  assert(pred(b, 0).x < 4, 'a mole tunnels under the wall'); assert(pred(b, 1).x > 4, 'a fox does not');
+}
+{
+  const b = board({ at: [[1, 0]], preds: [{ kind: 'skunk', x: 2, y: 0, dir: W }, { kind: 'fox', x: 7, y: 7 }] });
+  const d = hero(b, 'dora');
+  b.endTurn();
+  assert.equal(d.hp, 2); assert.equal(b.cloud[1], CLOUD_TURNS - 1, 'the spray leaves a cloud');
+  assert.equal(b.targets(d.id, 'seed').length, 0, 'nobody attacks from inside it');
+}
+{
+  const b = board({ cells: { '2,0': '~' }, heroes: ['pebble'], at: [[1, 0]], preds: [{ kind: 'bear', x: 6, y: 0, dir: W }], turns: 9, boss: true });
+  assert.deepEqual(b.threat(pred(b)).hits, [[1, 0]]);
+  b.endTurn();
+  const p = hero(b, 'pebble');
+  assert.deepEqual([p.hp, p.x, pred(b).x, pred(b).hp], [2, 0, 2, 12], 'a charge does 3 and knocks back; the bear stops in the water and does not drown');
+  assert.equal(pred(b).mark, true);
+}
+
+// ---------- Objectives ----------
+{
+  const b = board({ goal: 'escort', kit: [3, 0], exit: [0, 0], at: [[5, 5]], turns: 3 });
+  const kit = b.kit;
+  assert.equal(kit.kind, 'kit'); assert.deepEqual(b.abilities(kit), ['groom']);
+  ok(b.moveHero(kit.id, 1, 0)); assert.equal(b.state, 'player'); b.endTurn();
+  ok(b.moveHero(kit.id, 0, 0)); assert.equal(b.state, 'won', 'won the moment the kit is home');
+  const late = board({ goal: 'escort', kit: [7, 0], exit: [0, 0], at: [[5, 5]], turns: 2 });
+  late.endTurn(); late.endTurn(); assert.equal(late.state, 'lost', 'out of time');
+  const hurt = board({ goal: 'escort', kit: [3, 0], exit: [0, 0], at: [[5, 5]], preds: [{ kind: 'badger', x: 4, y: 0, dir: W }] });
+  hurt.endTurn(); assert.equal(hurt.state, 'lost', 'the kit was knocked out');
+  assert.equal(goalText(hurt), 'Get the kit to the den');
+}
+{
+  const b = board({ goal: 'hunt', at: [[0, 0]], preds: [{ kind: 'snake', x: 1, y: 0, hp: 1, mark: true }, { kind: 'fox', x: 7, y: 7 }], turns: 2 });
+  ok(b.act(hero(b, 'dora').id, 'seed', 1, 0)); assert.equal(b.state, 'won', 'the quarry is down');
+  const late = board({ goal: 'hunt', at: [[0, 0]], preds: [{ kind: 'snake', x: 5, y: 5, mark: true }], turns: 2 });
+  late.endTurn(); late.endTurn(); assert.equal(late.state, 'lost');
+}
+{
+  const b = board({ key: [0, 1], cells: { '0,1': 'B', '5,5': 'B' }, at: [[6, 6]], preds: [{ kind: 'fox', x: 0, y: 2, dir: N }, { kind: 'fox', x: 7, y: 7 }] });
+  b.endTurn(); assert.equal(b.warren, 2); assert.equal(b.state, 'lost', 'the nursery fell');
+}
+
+// ---------- Choosing where to start ----------
+{
+  const b = board({ deploy: true, cells: { '1,1': 'B', '2,2': '~' }, at: [[0, 0], [1, 0]], heroes: ['dora', 'enzo'], preds: [{ kind: 'fox', x: 3, y: 3 }] });
+  const d = hero(b, 'dora'), e = hero(b, 'enzo'), zone = b.zone().map(String);
+  assert.equal(b.state, 'deploy'); assert.equal(b.turnStart, null);
+  assert(zone.includes('0,0') && zone.includes('3,7') && !zone.includes('4,0') && !zone.includes('1,1') && !zone.includes('2,2') && !zone.includes('3,3'), 'open home-side tiles only');
+  assert.equal(b.moveHero(d.id, 0, 1), 'state'); assert.equal(b.endTurn(), 'state'); assert.equal(b.resetTurn(), 'undo');
+  assert.equal(b.place(d.id, 5, 5), 'reach');
+  ok(b.place(d.id, 3, 0)); assert.deepEqual([d.x, d.y], [3, 0]);
+  ok(b.place(d.id, 1, 0)); assert.deepEqual([d.x, e.x], [1, 3], 'placing onto a friend swaps');
+  ok(b.ready()); assert.equal(b.state, 'player'); assert.equal(b.zone().length, 0); assert.equal(b.ready(), 'state');
+  assert(b.turnStart && b.events.at(-1).t === 'phase');
+  const m = missionBattle(CHAPTER_TWO);
+  assert.equal(m.state, 'deploy'); assert(m.preds.every((u) => u.dir < 0), 'nobody has picked an attack yet');
+  m.ready(); assert(m.preds.every((u) => u.dir >= 0));
+  assert.equal(hero(m, 'enzo').skill, true); assert.equal(hero(m, 'dora').skill, false);
+}
+
+// ---------- The hint ----------
+{
+  const b = missionBattle(0), before = b.forecast(), step = hint(b);
+  assert(step && (step.move || step.act), 'there is something worth doing on turn 1');
+  assert.equal(b.events.length, 0, 'asking for a hint changes nothing');
+  for (const s of planTurn(b)) assert(doStep(b, s));
+  const after = b.forecast();
+  assert(Object.values(after.heroes).reduce((a, n) => a + n, 0) + after.warren * 3 < Object.values(before.heroes).reduce((a, n) => a + n, 0) + before.warren * 3 || b.state === 'won', 'following the plan makes the forecast better');
+  b.state = 'won'; assert.equal(hint(b), null);
+}
+
 // ---------- The campaign ----------
 {
-  assert.equal(MISSIONS.length, 10);
+  assert.equal(MISSIONS.length, 18); assert.equal(CHAPTER_TWO, 10);
   assert.deepEqual(unlockedHeroes(0), ['dora', 'enzo']);
   assert.deepEqual(unlockedHeroes(MISSIONS.length), HERO_IDS, 'the campaign unlocks everyone');
   MISSIONS.forEach((m, i) => {
@@ -341,7 +527,13 @@ for (let i = 0; i < MISSIONS.length; i++) {
     assert(m.squad.every((h) => unlockedHeroes(i).includes(h)), `${m.name}: its squad is unlocked by then`);
     const tile = (x, y) => m.map[y][x];
     for (const [x, y] of m.heroes) assert.equal(tile(x, y), '.', `${m.name}: chinchillas start on grass`);
-    for (const p of [...m.preds, ...m.plan]) assert('.^'.includes(tile(p.x, p.y)), `${m.name}: predators start on open ground`);
+    for (const p of [...m.preds, ...m.plan]) assert('.^=n'.includes(tile(p.x, p.y)), `${m.name}: predators start on open ground`);
+    assert.equal(!!m.deploy, i >= CHAPTER_TWO, `${m.name}: only chapter two lets you choose where to start`);
+    for (const h of m.skills ?? []) assert(m.squad.includes(h), `${m.name}: second actions belong to its squad`);
+    if (m.teaches) assert(m.skills.includes(m.teaches) && !MISSIONS.slice(0, i).some((o) => o.skills?.includes(m.teaches)), `${m.name}: teaches a second action nobody has used yet`);
+    if (m.key) assert.equal(tile(m.key[0], m.key[1]), 'B', `${m.name}: the nursery is a burrow`);
+    if (m.goal === 'escort') assert(tile(m.kit[0], m.kit[1]) === '.' && tile(m.exit[0], m.exit[1]) === '.', `${m.name}: the kit and the den are on grass`);
+    if (m.goal === 'hunt') assert(m.preds.some((q) => q.mark), `${m.name}: someone to hunt`);
     assert(m.plan.every((s) => s.turn < m.turns), `${m.name}: nothing arrives too late to matter`);
     assert.equal(m.map.join('').split('B').length - 1 >= m.warren, true, `${m.name}: at least as many burrows as warren`);
     const won = playMission(i);
@@ -366,7 +558,9 @@ for (let i = 0; i < MISSIONS.length; i++) {
     for (const [x, y] of f.heroes) assert.equal(tile(x, y), '.', `${label}: chinchillas on grass`);
     for (const p of f.preds) assert.equal(tile(p.x, p.y), '.', `${label}: predators on grass`);
     assert(f.preds.length >= 1 && f.plan.length >= 1, `${label}: someone to fight`);
-    assert.equal(f.preds.some((p) => p.kind === 'cougar'), stage === RUN_STAGES - 1, `${label}: the cougar is the last battle`);
+    assert.equal(f.preds.some((p) => p.kind === runBoss(seed)), stage === RUN_STAGES - 1, `${label}: the boss is the last battle`);
+    assert.equal(f.deploy, true, label);
+    if (f.key) assert.equal(tile(f.key[0], f.key[1]), 'B', `${label}: the nursery is a burrow`);
     assert(f.plan.every((s) => s.turn < f.turns), label);
   }
   assert.notDeepEqual(makeField(1, 0).map, makeField(2, 0).map);
@@ -399,7 +593,26 @@ for (let i = 0; i < MISSIONS.length; i++) {
   assert.equal(perk.squad.find((m) => m.id === w.hero)[w.perk], 1);
   const u = perk.battle.units.find((x) => x.kind === w.hero);
   if (w.perk === 'hp') assert.equal(u.maxHp, HEROES[w.hero].hp + 1); else if (w.perk === 'move') assert.equal(u.move, HEROES[w.hero].move + 1); else assert.equal(u.power, 1);
-  assert.equal(RELIC_IDS.length, 6); assert.equal(Object.keys(ABILITIES).length, 7);
+  assert.equal(RELIC_IDS.length, 6); assert.equal(Object.keys(ABILITIES).length, 13);
+  // Difficulty: the warren and the number of predators.
+  const cost = (f) => [...f.preds, ...f.plan].reduce((n, q) => n + PREDATORS[q.kind].cost + (q.alpha ? 2 : 0), 0);
+  let gentle = 0, fierce = 0;
+  for (let seed = 1; seed <= 20; seed++) { gentle += cost(makeField(seed, 3, 'gentle')); fierce += cost(makeField(seed, 3, 'fierce')); }
+  assert(fierce > gentle * 1.3, 'fierce brings more predators than gentle');
+  const easy = Run.start(4, ['dora', 'enzo', 'pip'], 'gentle');
+  assert.equal(easy.warren, DIFFICULTY.gentle.warren); assert.equal(easy.battle.maxWarren, 6); assert.equal(easy.battle.state, 'deploy');
+  assert.equal(Run.restore(easy.snapshot()).difficulty, 'gentle');
+  // Second actions come as rewards, and upgrades stop at the class's cap.
+  let offered = null;
+  for (let seed = 1; seed <= 40 && !offered; seed++) { const r = Run.start(seed, ['dora', 'enzo', 'pebble']); r.battle.state = 'won'; r.finish(); const i = r.choices.findIndex((w) => w.type === 'skill'); if (i >= 0) offered = { r, i }; }
+  assert(offered, 'a second action turns up as a reward');
+  const hero2 = offered.r.choices[offered.i].hero;
+  offered.r.pick(offered.i);
+  assert.equal(offered.r.squad.find((m) => m.id === hero2).skill, true); assert.equal(offered.r.battle.units.find((x) => x.kind === hero2).skill, true);
+  const capped = Run.start(9, ['dora', 'enzo', 'pebble']);
+  capped.squad[0].hp = CLASSES.scout.caps.hp; capped.squad[0].move = CLASSES.scout.caps.move; capped.squad[0].power = CLASSES.scout.caps.power;
+  capped.battle.state = 'won'; capped.finish();
+  assert(!capped.choices.some((w) => w.type === 'perk' && w.hero === 'dora'), 'nothing more to upgrade past the caps');
 }
 {
   // Balance: the planner should win most runs but not all of them, and a run replays exactly from its seed.
