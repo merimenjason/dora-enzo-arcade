@@ -4,6 +4,14 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 03-10-2026
 
+### Added
+
+- **Bounce / Burrow:** Diablo-style depth. From the second floor, tinted **elite** machines are tougher and carry one trait each: Swift, Armoured, or Volatile, which bursts into sparks when it falls. Machines now drop **gear** in three rarities (worn, fine and ancient) for three slots: a Seed Collar for Dora, Stone Claws for Enzo and a Dust Charm for courage. Press **I** to compare, equip or salvage what's in your bag. Press **H** to drink a **courage potion**. The buttons under the view are now a **hotbar** whose slots show their recharge. Hold the mouse button to keep attacking, and hold **Shift** to stand still and attack towards the cursor. Your adventure is now **saved in your browser**: Continue on the title screen picks up from the start of the floor you were on.
+
+### Changed
+
+- **Bounce / Burrow:** attacks are much easier to see. Enzo lunges into each blow behind a sweeping white arc, and Dora rocks back from a muzzle flash as she fires. Her seeds are long bright streaks that spark where they land. The enemy you're attacking stands in a pulsing red ring. Damage numbers are bigger and pop, hit machines flinch, and heavy hits shake the view.
+
 ### Documentation
 
 - A single `HANDOFF.md` replaces `HANDOVER.md`: where the work stands, engine notes for the four newest games, how to check your work and ideas for next time. `CLAUDE.md` is now a project guide for coding agents, and the README links to both.

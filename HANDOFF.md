@@ -8,7 +8,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 - **21 games**, all on `main` and live at https://chinchillas.jason.engineering.
 - The last game commit on `main` is `d0a02a6` (30-09-2026), which added Chinchilla Scribble.
-- The documentation round of 03-10-2026 is committed on the branch `docs/handoff-and-agent-guide`, not yet pushed or merged: this file (replacing `HANDOVER.md`), the expanded `CLAUDE.md`, a README pointer, a changelog entry, and the prompt-audit edits to `AGENTS.md` and `.claude/skills/graft/SKILL.md` (see **Agent configuration**).
+- The documentation round of 03-10-2026 is committed on the branch `docs/handoff-and-agent-guide`, which `feat/dustbound-combat` is built on; neither is merged to `main`: this file (replacing `HANDOVER.md`), the expanded `CLAUDE.md`, a README pointer, a changelog entry, and the prompt-audit edits to `AGENTS.md` and `.claude/skills/graft/SKILL.md` (see **Agent configuration**).
 - Left uncommitted in the working tree, and not reviewed in that round: `.claude/helpers/graft-hooks.cjs`, `.claude/helpers/graft-statusline.cjs`, and six added lines about reporting dollar savings in `.claude/skills/graft/SKILL.md`. All three were modified before the round began.
 
 In that round only `tests/readme.mjs` was rerun (it passes); the rest of `npm test`, the typecheck and the build were not, because no game code changed.
@@ -76,6 +76,18 @@ Clash, Hay Maze and Chinchillas vs Zombies draw Dora, Enzo and the other chinchi
 ### Chinchilla Scribble, briefly
 
 No engine notes have been written for Scribble yet. [`docs/scribble.md`](docs/scribble.md) covers the world, the words, what things do to each other, the levels, and stars and saving; the README guide lists what `tests/scribble.mjs` covers, including 24 scripted solutions across the 12 levels.
+
+### Bounce / Burrow, briefly
+
+Game 05 (`/adventure`, titled *Dustbound* in game) was reworked on 03-10-2026, on the branch `feat/dustbound-combat`, pushed but not yet merged. Rules in `lib/arpg-game.ts`, drawing in `lib/arpg-scene.ts`, page in `app/adventure/page.tsx`, styles at the end of `app/globals.css`, tests in `tests/arpg.mjs`. Full rules: [`docs/dustbound-rpg.md`](docs/dustbound-rpg.md).
+
+- **Attack visuals are cosmetic.** `Hero.swing` and `Hero.aim` are set when an attack fires and only the scene reads them; damage timing is unchanged. `Adventure.shake` drives the camera shake.
+- **Shift-attack** is `standAttack()` / `release()` and `strike()`: the leader stays put while `hold` is set.
+- **Elites** are chosen in `setup()` from a generator seeded by the floor, separate from `generateFloor`, so floor layouts for a seed did not change.
+- **Gear** is forged by `forge()` from `Adventure.roll`, a generator seeded by the run. `wear()` is the one place that moves maximum courage with gear. Critical hits only roll when gear gives a critical chance.
+- **Saving:** `snapshot()` and `Adventure.restore()`, key `dustbound-v1`. Bump `SAVE_VERSION` when the shape changes; older saves are then ignored. A restore rebuilds the floor from its start.
+- **Balance** of elites and gear has only been checked by the existing bot playthroughs (four floors on three seeds, no revivals). Deeper floors have not been played.
+- The page has no `window` test hook and there is no browser test for this game.
 
 ## Checking your work
 

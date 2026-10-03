@@ -112,16 +112,17 @@ Each fighter's special (35 power) is shown on its roster card, and an on-screen 
 
 ### 05 · Bounce / Burrow (`/adventure`)
 
-**Play:** An isometric action RPG, titled *Dustbound* in game, set across endless procedurally generated floors. Lead Dora (ranged seeds) or Enzo (melee) while the other follows and fights automatically. Shared XP levels the party. Each level gives one skill point to spend in either hero's two branching skill trees. A Great Sweeper guardian appears every third floor. Running out of courage resets the floor but keeps levels and skills. Progress lasts for the current adventure, not across reloads.
+**Play:** An isometric action RPG, titled *Dustbound* in game, set across endless procedurally generated floors. Lead Dora (ranged seeds) or Enzo (melee) while the other follows and fights automatically. Shared XP levels the party. Each level gives one skill point to spend in either hero's two branching skill trees. A Great Sweeper guardian appears every third floor. From floor 2, tinted elite machines are tougher and carry one trait each (Swift, Armoured or Volatile). Machines drop gear in three rarities for three slots, and courage potions heal on a cooldown. Running out of courage resets the floor but keeps levels, skills and gear. The adventure is saved in the browser and continues from the start of the floor you were on.
 
 **Controls:**
 
-- Left click floor / enemy: move, or pursue and attack. Hold to steer. WASD / arrows also move.
+- Left click floor / enemy: move, or pursue and attack. Hold to keep attacking whatever is under the cursor; hold Shift as well to stand still and attack towards it. WASD / arrows also move.
 - Tab: switch hero (1 for Dora, 2 for Enzo). R: target the nearest enemy.
 - Right click or F: special (Dora's seed fan, Enzo's whirling paws). Space: dodge. Q: bond burst (costs 50 bond).
+- H: courage potion (40% of courage, 8 seconds apart). I: gear and bag (pauses combat).
 - E at a cleared chamber's arch: next floor. K: skill trees (pauses combat). Escape or P: pause.
 
-**Tests:** `tests/arpg.mjs` (in `npm test`).
+**Tests:** `tests/arpg.mjs` (in `npm test`) covers floor generation and reachability, skills and stances, attack swings and Shift-attacks, elites and their traits, gear forging, equipping and salvaging, potions, saving and restoring, and bot playthroughs of four floors on three seeds.
 
 **Docs:** [Dustbound RPG guide](docs/dustbound-rpg.md). It uses the earlier hero names: White for Dora, Grey for Enzo.
 
