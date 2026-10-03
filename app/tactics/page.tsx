@@ -11,12 +11,13 @@ import { cue, setMuted } from './sound';
 import './tactics.css';
 
 const SAVE_KEY = 'burrow-tactics-v1', RUN_KEY = 'burrow-tactics-run-v1', SCALE = 2;
-type Save = { stars: number[]; muted: boolean };
-const blank = (): Save => ({ stars: MISSIONS.map(() => 0), muted: false });
+/** `best` is the most battles of a run ever won (RUN_STAGES means a run was finished). */
+type Save = { stars: number[]; muted: boolean; best: number };
+const blank = (): Save => ({ stars: MISSIONS.map(() => 0), muted: false, best: 0 });
 function readSave(): Save {
   try {
     const raw = JSON.parse(localStorage.getItem(SAVE_KEY) ?? '{}');
-    return { stars: MISSIONS.map((_, i) => Math.max(0, Math.min(3, Number(raw.stars?.[i]) || 0))), muted: !!raw.muted };
+    return { stars: MISSIONS.map((_, i) => Math.max(0, Math.min(3, Number(raw.stars?.[i]) || 0))), muted: !!raw.muted, best: Math.max(0, Math.min(RUN_STAGES, Number(raw.best) || 0)) };
   } catch { return blank(); }
 }
 const writeSave = (s: Save) => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch { /* private mode: the game still plays, progress just isn't kept */ } };
@@ -186,7 +187,12 @@ export default function BurrowTactics() {
       const i = mode.current.index, n = stars(b, MISSIONS[i]);
       result.current = n;
       if (n > save.stars[i]) { const next = { ...save, stars: save.stars.map((v, j) => (j === i ? n : v)) }; setSave(next); writeSave(next); }
-    } else if (run.current) { run.current.finish(); writeRun(run.current); setHasRun(run.current.phase === 'reward'); }
+    } else if (run.current) {
+      const r = run.current;
+      r.finish(); writeRun(r); setHasRun(r.phase === 'reward');
+      const held = r.stage + (b.state === 'won' ? 1 : 0);
+      if (held > save.best) { const next = { ...save, best: held }; setSave(next); writeSave(next); }
+    }
     refresh();
   }
   /** One line about whatever is on a tile. */
@@ -300,6 +306,13 @@ export default function BurrowTactics() {
           </div>
         </section>
 
+        <ol className="bt-how">
+          <li><b>Read the red.</b> Red tiles and arrows are what each predator will hit when you end the turn, in the order numbered on them.</li>
+          <li><b>Move, then act.</b> Each chinchilla moves once and acts once. Blue tiles are moves; orange tiles are targets.</li>
+          <li><b>Push, don’t just punch.</b> A pushed predator’s attack moves with it. Water drowns it, brambles and bumps hurt it.</li>
+          <li><b>Check the forecast.</b> The line above the board says what ending the turn now would cost. Make it say “Nothing gets through.”</li>
+        </ol>
+
         <h2 className="bt-section">Campaign <small>{total} of {MISSIONS.length * 3} stars · win a mission to open the next</small></h2>
         <div className="bt-missions">
           {MISSIONS.map((m, i) => {
@@ -315,7 +328,7 @@ export default function BurrowTactics() {
           })}
         </div>
 
-        <h2 className="bt-section">The Long Night <small>{RUN_STAGES} battles on new ground every time · warren of {RUN_WARREN} · a reward after each</small></h2>
+        <h2 className="bt-section">The Long Night <small>{RUN_STAGES} battles on new ground every time · warren of {RUN_WARREN} · a reward after each{save.best ? ` · best: ${save.best >= RUN_STAGES ? 'made it to dawn' : `${save.best} of ${RUN_STAGES} nights held`}` : ''}</small></h2>
         <div className={`bt-run${runOpen ? '' : ' locked'}`}>
           {!runOpen ? <p>Win mission {RUN_UNLOCK + 1}, <b>{MISSIONS[RUN_UNLOCK].name}</b>, to open the run.</p> : <>
             <p>Pick three chinchillas. Each battle is drawn from the run’s seed; a knocked-out chinchilla comes back with 1 less health, and the warren only mends when you choose it as a reward.</p>

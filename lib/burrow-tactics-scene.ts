@@ -418,8 +418,10 @@ export class Stage {
     c.lineCap = 'round';
     for (let j = 0; j < 7; j++) { const a = Math.sin(t * 13 + j * 1.7) * 0.3, bx = x - 15 + j * 5, by = y + ((j * 37) % 7) - 3; c.strokeStyle = j % 2 ? '#3f7a34' : '#5aa046'; c.lineWidth = 2; c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx + a * 6, by - 8, bx + a * 16, by - 15 - (j % 3) * 2); c.stroke(); }
     const by = y - 30 + Math.sin(t * 5) * 2;
-    ell(c, x, by, 8, 8); ink(c, '#e8392b', '#5a0f0a', 1.2);
-    c.fillStyle = '#fff'; c.font = 'bold 12px ui-sans-serif, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('!', x, by + 0.5);
+    // An amber paw-print badge, so it is not mistaken for the red warning over a burrow about to be hit.
+    ell(c, x, by, 8.5, 8.5); ink(c, '#f2a63a', '#5a3a0a', 1.2);
+    c.fillStyle = '#3a2408'; ell(c, x, by + 2, 3.2, 2.6); c.fill();
+    for (const [dx, dy] of [[-3.6, -1.6], [-1.3, -3.6], [1.3, -3.6], [3.6, -1.6]]) { ell(c, x + dx, by + dy, 1.2, 1.5); c.fill(); }
   }
   private drawCloud(c: C2D, x: number, y: number, i: number, t: number, n: number) {
     c.save(); c.globalAlpha = n > 1 ? 0.8 : 0.5;

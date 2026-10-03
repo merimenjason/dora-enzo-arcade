@@ -14,4 +14,4 @@ Tick a box when its step is committed.
 - [x] **8. Arcade wiring and docs.** `GAMES` card, the hardcoded counts in the README checklist, README row and guide, `docs/burrow-tactics.md`, `CHANGELOG.md`, `HANDOFF.md`, panel-contrast route list.
 - [x] **9. Browser test.** `tests/e2e/burrow-tactics.mjs`, added to `test:e2e`.
 - [x] **10. Verify and ship.** `npm run typecheck`, `npm test`, `npm run build`, browser suite; push; open a draft pull request. Do not merge.
-- [ ] **11. Iterate.** Sound, extra polish, balance passes, anything the play-through shows.
+- [x] **11. Iterate.** Sound, extra polish, balance passes, anything the play-through shows. Done on 04-10-2026: run budget raised and Grandpa Pebble's move raised to 3 after measuring the bot; info line made live; attack arrows drawn over creatures; portraits unclipped; a how-it-works strip, a best-run record and a distinct rustling-grass badge added; phone layout tightened. Five missions were played through the page with scripted mouse clicks without a mismatch.
