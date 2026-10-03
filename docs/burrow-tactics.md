@@ -98,14 +98,14 @@ A class (`CLASSES`) gives a perk that is always on, in every mission.
 
 An **alpha** has 2 more health and does 1 more damage; it has a gold rim on its health bar. A **marked** predator (`Unit.mark`, a gold crosshair by its health bar) is the one a hunt or a boss battle is about.
 
-**How they think.** In id order, each predator scores every tile it can reach with every direction (and dive distance): a burrow is worth 6 (9 for the nursery, 1 if another predator already has it), a chinchilla 4 (7 if the hit would knock it out, 3 more for the kit), a bale 0.5, and hitting another predator costs 5. Ending in brambles or fire costs 3 and in a cloud 4; high ground is worth a little. With nothing to hit, it closes on the nearest burrow or chinchilla. Ties break on the battle's seeded generator. This is the only randomness after a battle is set up, and it runs after attacks resolve, so `forecast()` is exact.
+**How they think.** In id order, each predator scores every tile it can reach with every direction (and dive distance): a burrow is worth 6 (9 for the nursery, 3 with a Warden beside it, 1 if it is braced or another predator already has it), a chinchilla 4 (7 if the hit would knock it out, 3 more for the kit), a bale 0.5, and hitting another predator costs 5. Ending in brambles or fire costs 3 and in a cloud 4; high ground is worth a little. With nothing to hit, it closes on the nearest burrow or chinchilla. Ties break on the battle's seeded generator. This is the only randomness after a battle is set up, and it runs after attacks resolve, so `forecast()` is exact.
 
 ## Objectives
 
 `BattleDef.goal`, shown under the mission title (`goalText`):
 
 - **hold** (the default): the battle is won after the last turn's predator phase, or as soon as no predators are left and none are coming.
-- **escort**: a kit (2 health, moves 2, can only groom) starts at `BattleDef.kit` and has to reach the den at `BattleDef.exit`. Won the moment it stands there; lost if the kit is knocked out or the turns run out.
+- **escort**: a kit (2 health, moves 3, can only groom) starts at `BattleDef.kit` and has to reach the den at `BattleDef.exit`. Won the moment it stands there; lost if the kit is knocked out or the turns run out.
 - **hunt**: won the moment the marked predator is knocked out; lost if the turns run out first.
 
 `BattleDef.key` makes one burrow the **nursery** (a gold star over it): if it collapses the battle is lost, whatever the objective. A **boss** battle is `hold` with a marked boss: it is won the moment the boss is knocked out, or by lasting the turns.
@@ -155,7 +155,7 @@ Missions 5, 8, 9 and 10 have a warren of 4; the rest have 3.
 | 13 | High Ground | Dora, Biscuit, Enzo | 5 | High ground, skunks | Biscuit: Drop Kick | Keep every chinchilla standing |
 | 14 | The Lost Kit | Pip, Mochi, Enzo | 6 | Escort | Pip: Switcheroo | Keep every chinchilla standing |
 | 15 | The Nursery | Grandpa Pebble, Enzo, Dora | 5 | The nursery, moles | Grandpa Pebble: Brace | Knock out 3 predators |
-| 16 | The Old Badger | Mochi, Biscuit, Dora | 5 | Hunt | Mochi: Lullaby | Make one predator hit another |
+| 16 | The Old Badger | Mochi, Biscuit, Dora | 5 | Hunt (an alpha badger with 10 health) | Mochi: Lullaby | Make one predator hit another |
 | 17 | Smoke and Stink | Pip, Grandpa Pebble, Enzo | 5 | Everything at once | | Smother 2 attacks in dust |
 | 18 | The Great Bear | Dora, Mochi, Biscuit | 6 | The Great Bear | | Knock out the Great Bear |
 
@@ -196,5 +196,5 @@ The three regions each have their own sky, mountains, grass and soil. The backdr
 ## Tests
 
 - `npm run test:tactics` (also in `npm test`): moving and undo, every action and second action, the three class perks, pushing into each kind of thing, ice, high ground and fire, every predator attack, attacks following a pushed predator, the forecast matching what then happens on every mission, previews, rustling grass, each objective, choosing where to start, the hint, reset, snapshots, relics, the campaign's maps, generated boards for 30 seeds, difficulty, and the run's rewards and saving.
-- `npm run bot:tactics`: `tests/burrow-tactics-bot.mjs` plays all eighteen missions and twelve seeded runs with the engine's planner and prints the results (`ALL=1` plays the runs on every difficulty). `npm test` needs it to win every mission with at least 2 stars and at least 6 of 12 Standard runs, and needs an idle player to lose every mission. As of 04-10-2026 it wins 9 of those 12 runs, and over 48 runs with six squads it wins 46 on Gentle, 41 on Standard and 23 on Fierce. Rerun it after any balance change.
+- `npm run bot:tactics`: `tests/burrow-tactics-bot.mjs` plays all eighteen missions and twelve seeded runs with the engine's planner and prints the results (`ALL=1` plays the runs on every difficulty). `npm test` needs it to win every mission with at least 2 stars and at least 6 of 12 Standard runs, and needs an idle player to lose every mission. As of 04-10-2026 it wins 8 of those 12 runs, and over 48 runs with six squads it wins 46 on Gentle, 42 on Standard and 24 on Fierce. Rerun it after any balance change.
 - `tests/e2e/burrow-tactics.mjs` (in `npm run test:e2e`): the page in a browser, including the guided first mission, the hint, choosing where to start and a second action.
