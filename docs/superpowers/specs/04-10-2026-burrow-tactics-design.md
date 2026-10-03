@@ -37,7 +37,7 @@ Predators raid a meadow of burrows. Every predator shows exactly what it will hi
 | Dora | 3 | 4 | **Seed Shot**: a straight line; the first thing hit takes 1 and is pushed away. |
 | Enzo | 4 | 3 | **Tail Whack**: an adjacent tile takes 2 and is pushed away. |
 | Pip | 2 | 5 | **Dust Puff**: lobbed 2 to 4 tiles in a line; a dust cloud lands there and everything next to it is pushed outward. |
-| Grandpa Pebble | 5 | 2 | **Hay Toss**: lobbed 2 to 3 tiles in a line; an empty tile gets a hay bale, an occupied one takes 1. |
+| Grandpa Pebble | 5 | 3 | **Hay Toss**: lobbed 2 to 3 tiles in a line; an empty tile gets a hay bale, an occupied one takes 1. |
 | Mochi | 3 | 4 | **Tug**: a straight line; the first unit hit is pulled next to her. |
 | Biscuit | 3 | 4 | **Pounce**: leaps 2 to 4 tiles in a line to an empty tile; everything next to the landing takes 1 and is pushed outward. |
 

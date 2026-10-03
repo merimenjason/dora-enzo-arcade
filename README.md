@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of twenty-one original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of twenty-two original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -31,6 +31,7 @@ Listed in arcade-menu order.
 | 19 | Hay Maze Defence | `/hay-maze` | Roguelite maze tower defence |
 | 20 | Chinchillas vs Zombies | `/chinchillas-vs-zombies` | Lane defence |
 | 21 | Chinchilla Scribble | `/scribble` | Word puzzle |
+| 22 | Burrow Tactics | `/tactics` | Turn-based tactics |
 
 ## Run
 
@@ -533,6 +534,33 @@ Browser: `tests/e2e/scribble.mjs` checks the menu card and the locked levels, di
 
 **Docs:** [`docs/scribble.md`](docs/scribble.md).
 
+### 22 · Burrow Tactics (`/tactics`)
+
+**Play:** Turn-based tactics in the style of Into the Breach, drawn in isometric Canvas 2D on an 8 × 8 meadow. Predators raid the warren, and every one of them shows in red what it will hit when you end the turn. Each turn your chinchillas move once and act once, and almost every action **pushes** something: a fox into the stream (it drowns), a weasel into brambles, one predator into another's line of fire. A telegraphed attack is a direction, not a tile, so pushing a predator moves its attack with it. A burrow that is hit collapses and costs 1 **warren**; at 0 warren, or with every chinchilla knocked out, the battle is lost. Hold out for the set number of turns (3 to 6) and the raid is over. New predators come up through **rustling grass**, which you can block by standing on it. Six chinchillas: Dora's Seed Shot (a line, 1 and a push), Enzo's Tail Whack (2 and a push), Pip's Dust Puff (a cloud nobody can attack from, pushing everything beside it), Grandpa Pebble's Hay Toss (a bale as a wall, or 1 to whoever is there), Mochi's Tug (pulls the first creature in a line up to her) and Biscuit's Pounce (a leap that hits and scatters everyone around the landing). Seven predators: fox, snake, owl, weasel, badger, hawk and the Mountain Cougar. While you aim, the board shows the result before you confirm it, and a forecast line says what ending the turn now would cost. The **campaign** is ten missions with up to three stars each and unlocks four of the chinchillas. Winning mission 5 opens **The Long Night**, a seeded run of seven battles on generated boards with three chinchillas of your choice, a warren of 5 that carries through, and a reward after each battle: an upgrade, one of six relics, or a warren repair. Stars and the run in progress are saved in the browser.
+
+**Controls:**
+
+- Click or tap a chinchilla to pick it, a blue tile to move, and an orange tile to act. On a touch screen an action needs a second tap to confirm.
+- Tab picks the next chinchilla. 1 arms the chinchilla's action and 2 grooms (heal 1).
+- The arrow keys move a cursor over the board and Enter or Space confirms the tile under it.
+- U or a right click undoes a move or cancels an aimed action. R resets the turn, once per battle. E ends the turn.
+- F changes the animation speed (1×, 2×, 3×). M turns sound on and off. A click, Enter or Space during an animation skips to its end.
+
+**Tests:** `npm run test:tactics` (also in `npm test`) compiles `lib/burrow-tactics-game.ts` and runs `tests/burrow-tactics.mjs`:
+
+- moving, undo and the one-move, one-action rule;
+- every action, and pushing into water, rocks, bales, burrows, brambles, other units and the edge of the board;
+- every predator attack, alphas, and attacks following a predator that has been pushed;
+- the forecast matching what then happens, on every mission;
+- rustling grass coming up and being blocked, winning, losing, the boss rule, the reset and snapshots;
+- the six relics, the ten mission maps, generated boards for 30 seeds, and the run's rewards and saving.
+
+`npm run bot:tactics` runs the planner in `tests/burrow-tactics-bot.mjs`, which tries each chinchilla's options on copies of the battle. `npm test` needs it to win all ten missions with at least 2 stars and at least 6 of 12 seeded runs, and needs an idle player to lose every mission.
+
+Browser: `tests/e2e/burrow-tactics.mjs` checks the menu card and the locked missions, picking, moving and undoing, an aimed action and its forecast, ending a turn, winning a mission and its saved stars, the keyboard, starting and resuming a run, and a phone-sized screen.
+
+**Docs:** [`docs/burrow-tactics.md`](docs/burrow-tactics.md).
+
 ## Validation
 
 ```sh
@@ -547,7 +575,7 @@ npm run test:e2e   # optional; needs `npm run dev` running and `npm i -D playwri
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-one ways/` assertion in `tests/e2e/dust-bath.mjs`, the 21-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs` and `tests/e2e/scribble.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-two ways/` assertion in `tests/e2e/dust-bath.mjs`, the 22-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs` and `tests/e2e/scribble.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

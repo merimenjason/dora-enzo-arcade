@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 04-10-2026
+
+### Added
+
+- **Burrow Tactics** (`/tactics`), game 22: turn-based tactics in the style of Into the Breach on an isometric meadow. Predators show in red what they will hit next turn, and your chinchillas win by pushing them: into the stream, into brambles, or into each other's line of fire. Six chinchillas with one action each (Seed Shot, Tail Whack, Dust Puff, Hay Toss, Tug and Pounce), seven predators up to the Mountain Cougar, a ten-mission campaign with three stars a mission, and **The Long Night**, a seeded seven-battle run with upgrades and relics. The board shows what an action will do before you confirm it, and a forecast line says what ending the turn would cost. Mouse, touch and keyboard; stars and the run in progress are saved in your browser.
+
 ## 03-10-2026
 
 ### Added
