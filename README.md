@@ -606,6 +606,8 @@ The project was originally hosted on OpenAI Sites, linked by `.openai/hosting.js
 
 GitHub Actions runs `npm ci`, `npm run typecheck`, `npm test` and `npm run build` on every push and pull request (`.github/workflows/ci.yml`). Pushes to `main` that pass are then deployed (see **Automatic deploys** above). The browser suites in `tests/e2e/` need a running dev server and a local Playwright install, so they are run manually rather than in CI.
 
+[`HANDOFF.md`](HANDOFF.md) records where the work stands, engine notes for the newest games and ideas for what to do next. [`CLAUDE.md`](CLAUDE.md) and [`AGENTS.md`](AGENTS.md) hold the project guide and house rules for coding agents.
+
 ## License
 
 Released under the [MIT License](LICENSE).

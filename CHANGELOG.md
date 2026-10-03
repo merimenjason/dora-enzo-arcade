@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 03-10-2026
+
+### Documentation
+
+- A single `HANDOFF.md` replaces `HANDOVER.md`: where the work stands, engine notes for the four newest games, how to check your work and ideas for next time. `CLAUDE.md` is now a project guide for coding agents, and the README links to both.
+
 ## 30-09-2026
 
 ### Added
