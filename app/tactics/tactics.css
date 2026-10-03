@@ -63,6 +63,10 @@
 .bt-pick small { color: var(--muted); font-size: 11px; }
 .bt-pick b { font-size: 13px; }
 .bt-run-go { display: flex; gap: 8px; flex-wrap: wrap; }
+.bt-diff { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.bt-shell .bt-diff button { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; text-align: left; padding: 8px 12px; background: var(--panel); flex: 1 1 180px; }
+.bt-shell .bt-diff button.on { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
+.bt-diff small { color: var(--muted); font-size: 12px; }
 
 .bt-roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
 .bt-card { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
@@ -73,6 +77,7 @@
 .bt-card strong span { color: var(--muted); font-size: 12px; font-weight: 400; margin-left: 4px; }
 .bt-card small { color: var(--gold); font-size: 11px; }
 .bt-card p { margin: 2px 0 0; color: var(--muted) !important; font-size: 13px; line-height: 1.45; }
+.bt-card p b { color: var(--ink); }
 
 /* Playing */
 .bt-play { padding-bottom: 16px; }
@@ -131,6 +136,14 @@
 .bt-shell .bt-act.on { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
 .bt-act small { font: 700 11px ui-monospace, monospace; padding: 1px 6px; border-radius: 5px; background: rgba(0, 0, 0, 0.3); color: var(--muted); }
 .bt-info { margin: 8px 0 0; min-height: 42px; color: var(--muted) !important; font-size: 14px; line-height: 1.5; }
+/* The guide and the hint float over the sky at the top of the board, so the board never jumps when they appear. */
+.bt-bars { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+.bt-shell .bt-coach { margin: 0; padding: 7px 12px; border-radius: 12px; background: rgba(58, 52, 19, 0.94); border: 2px solid var(--gold); color: #fff6d8; font-size: 14px; line-height: 1.4; }
+.bt-coach b { font: 700 11px ui-monospace, monospace; letter-spacing: 1.5px; color: #3a2400; background: var(--gold); border-radius: 5px; padding: 2px 6px; margin-right: 8px; vertical-align: 1px; }
+.bt-shell .bt-advice { background: rgba(18, 56, 58, 0.94); border-color: #3fe0d0; color: #dffaf6; }
+.bt-advice b { background: #3fe0d0; color: #06302c; }
+.bt-shell button.pulse { animation: bt-pulse 1s ease-in-out infinite; border-color: var(--gold); }
+@keyframes bt-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 207, 90, 0.9); } 50% { box-shadow: 0 0 0 7px rgba(255, 207, 90, 0); } }
 
 @media (max-width: 760px) {
   .bt-intro { flex-direction: column; align-items: flex-start; }

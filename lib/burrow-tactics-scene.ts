@@ -2,11 +2,11 @@
 // The engine resolves a whole action or predator turn at once and hands back a list of events; the Stage here keeps
 // its own picture of the board and plays those events one after another (walks, shots, pushes, knock-outs), so what
 // is on screen always lags the engine until the queue is empty. Chinchillas are the shared drawChinchilla.
-import { Battle, SIZE, DIRS, CLOUD_TURNS, type Unit, type Ev, type Tile, type HeroId, type PredId, type Feature, type Forecast, type Mark } from './burrow-tactics-game';
+import { Battle, SIZE, DIRS, CLOUD_TURNS, FIRE_TURNS, type Unit, type Ev, type Tile, type HeroId, type PredId, type Feature, type Forecast, type Mark, type Terrain } from './burrow-tactics-game';
 import { COATS, coatLike, drawChinchilla, type Coat } from './chinchilla-art';
 
 export const VIEW_W = 760, VIEW_H = 520;
-const TW = 44, TH = 22, OX = VIEW_W / 2, OY = 124, DEPTH = 26, INK = '#2c2430';
+const TW = 44, TH = 22, OX = VIEW_W / 2, OY = 124, DEPTH = 26, RISE = 9, INK = '#2c2430';
 type C2D = CanvasRenderingContext2D;
 /** The middle of a tile on the canvas. */
 export const tileCenter = (x: number, y: number): [number, number] => [OX + (x - y) * TW, OY + (x + y) * TH];
@@ -39,10 +39,11 @@ const COAT: Record<HeroId, Coat> = {
   pip: coatLike('dora', { ...black, fur: '#eeeaf0', back: '#dad3df', face: '#f6f3f8', shade: '#ccc4d2', texture: '#d8d0dc', tail: '#ebe6ee', tailInner: '#cfc6d6' }),
   pebble: coatLike('enzo', { fur: '#a9a7b0', back: '#8a8891', face: '#c4c2ca', shade: '#96949d', texture: '#8f8d96', tail: '#b0aeb7', tailOuter: '#8c8a94', tailInner: '#d2d0d8', bands: false }),
   mochi: coatLike('dora', { ...black, fur: '#ecd6b3', back: '#d8bc90', face: '#f4e4cb', shade: '#caa97e', texture: '#cfb48b', tail: '#e9d2ad', tailInner: '#d0b58c' }),
+  kit: coatLike('dora', { ...black, eyeR: 2 }),
   biscuit: coatLike('enzo', { fur: '#9a6a48', back: '#74492e', face: '#b58560', shade: '#80553a', texture: '#6e442b', belly: '#f1dfc8', ear: '#8a5c40', earIn: '#c79a86', tail: '#96684a', tailOuter: '#6f462d', tailInner: '#b98b68', tailLine: '#3a2418', line: '#2e1c14' }),
 };
-const SIZE_OF: Record<HeroId, number> = { dora: 40, enzo: 41, pip: 33, pebble: 45, mochi: 39, biscuit: 39 };
-const SCARF: Record<HeroId, string> = { dora: '#ffcf3e', enzo: '#e5483b', pip: '#58c06a', pebble: '#c9a23f', mochi: '#ff8fb3', biscuit: '#4a8fe8' };
+const SIZE_OF: Record<HeroId, number> = { dora: 40, enzo: 41, pip: 33, pebble: 45, mochi: 39, biscuit: 39, kit: 26 };
+const SCARF: Record<HeroId, string> = { dora: '#ffcf3e', enzo: '#e5483b', pip: '#58c06a', pebble: '#c9a23f', mochi: '#ff8fb3', biscuit: '#4a8fe8', kit: '#ffffff' };
 /** A scarf for everyone, plus Grandpa Pebble's straw hat and Pip's dust goggles. */
 const dress = (kind: HeroId) => (c: C2D, bob: number) => {
   poly(c, [1.2, -11.5 + bob, 5.6, -7.6 + bob, 4.4, -5.6 + bob, 0.2, -9.2 + bob]); ink(c, SCARF[kind], INK, 0.8);
@@ -59,6 +60,9 @@ const TINT: Record<PredId, Tint> = {
   badger: { body: '#8b8a94', dark: '#2a272e', light: '#f4f1ea', eye: '#f4f1ea' },
   hawk: { body: '#7c5a3e', dark: '#4a3526', light: '#ead9bf', eye: '#ffcf3e' },
   cougar: { body: '#c9995a', dark: '#8a6234', light: '#f5ead8', eye: '#c8e060' },
+  mole: { body: '#6b5a66', dark: '#4a3d48', light: '#e8c9c0', eye: '#16121a' },
+  skunk: { body: '#2e2a33', dark: '#1c1920', light: '#f4f1ea', eye: '#f4f1ea' },
+  bear: { body: '#7a5236', dark: '#4a2f1e', light: '#d9b892', eye: '#1a1418' },
 };
 const ALPHA: Partial<Tint> = { eye: '#ff4a3a' };
 const shade = (hex: string, k: number) => { const n = parseInt(hex.slice(1), 16), f = (v: number) => Math.max(0, Math.min(255, Math.round(v * k))); return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`; };
@@ -134,6 +138,39 @@ function predator(c: C2D, kind: PredId, p: Tint, t: number) {
     c.strokeStyle = INK; c.lineWidth = 0.8; c.beginPath(); c.moveTo(6.6, -15.8); c.lineTo(10.6, -15); c.stroke();
     poly(c, [2, -12.5, -6, -24 - flap * 1.4, 6, -15.5]); ink(c, p.dark);
     c.strokeStyle = '#f2b93b'; c.lineWidth = 1; c.beginPath(); c.moveTo(0, -5.8); c.lineTo(1, -3.4); c.moveTo(3, -5.8); c.lineTo(4.2, -3.4); c.stroke();
+  } else if (kind === 'mole') {
+    ell(c, 0, -1.5, 12, 3.6); ink(c, '#8d6a4c', '#4a3526', 1);
+    ell(c, 0, -7, 8.5, 6.2); ink(c, p.body);
+    c.fillStyle = p.light; ell(c, 2, -4.4, 5, 2); c.fill();
+    ell(c, 7.4, -8, 4.6, 3.8); ink(c, p.body);
+    poly(c, [10.6, -9.6, 15.2, -7.8, 10.8, -6.4]); ink(c, p.light, INK, 0.9);
+    c.fillStyle = '#ff8fa8'; ell(c, 15, -7.8, 1.3, 1.1); c.fill();
+    eye(8.4, -9.6, 0.8);
+    for (const fx of [-6, 6]) { poly(c, [fx - 2.6, -3, fx - 3.4, 0.6, fx - 1.2, -1.2, fx, 0.9, fx + 1.2, -1.2, fx + 3.4, 0.6, fx + 2.6, -3]); ink(c, p.light, INK, 0.8); }
+  } else if (kind === 'skunk') {
+    const wag = Math.sin(t * 3) * 0.12;
+    c.save(); c.translate(-8, -8); c.rotate(wag);
+    c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(-12, -4, -8, -17); c.quadraticCurveTo(-2, -22, 2, -15); c.quadraticCurveTo(-4, -10, 3, -2); c.closePath(); ink(c, p.body);
+    c.strokeStyle = p.light; c.lineWidth = 2.4; c.lineCap = 'round'; c.beginPath(); c.moveTo(-1, -3); c.quadraticCurveTo(-7, -8, -3, -16); c.stroke(); c.restore();
+    legs([-5, 5], 3.6, 2.6);
+    ell(c, 0, -7, 9.5, 5.4); ink(c, p.body);
+    c.strokeStyle = p.light; c.lineWidth = 2.2; c.lineCap = 'round'; c.beginPath(); c.moveTo(-8, -10); c.quadraticCurveTo(0, -13.4, 8, -11); c.stroke();
+    ell(c, 10.4, -9.4, 4.6, 4); ink(c, p.body);
+    c.strokeStyle = p.light; c.lineWidth = 1.4; c.beginPath(); c.moveTo(8.4, -12.6); c.lineTo(13.6, -9.6); c.stroke(); c.lineCap = 'butt';
+    ell(c, 8.6, -13.6, 1.5, 1.6); ink(c, p.body, INK, 0.9);
+    c.fillStyle = '#16121a'; ell(c, 14.8, -9, 1, 0.9); c.fill();
+    eye(11.4, -10.4, 1);
+  } else if (kind === 'bear') {
+    legs([-8.5, -4.5, 4, 8.5], 5.2, 4);
+    ell(c, -13, -11, 2.2, 2.2); ink(c, p.body, INK, 1);
+    ell(c, -1, -10.5, 13, 7.6); ink(c, p.body);
+    c.fillStyle = shade(p.body, 0.82); ell(c, -2, -5.6, 10, 2.8); c.fill();
+    for (const ex of [7.6, 13.6]) { ell(c, ex, -20.4, 2.4, 2.4); ink(c, p.body, INK, 1); c.fillStyle = p.dark; ell(c, ex, -20.2, 1.1, 1.1); c.fill(); }
+    ell(c, 10.6, -14.6, 6.4, 5.8); ink(c, p.body);
+    ell(c, 14.6, -12.8, 3.4, 2.7); ink(c, p.light, INK, 0.8);
+    c.fillStyle = '#2a1c18'; ell(c, 16.6, -13.6, 1.4, 1.1); c.fill();
+    eye(11.2, -16, 1.2);
+    c.strokeStyle = INK; c.lineWidth = 0.9; c.beginPath(); c.moveTo(8.8, -18.2); c.lineTo(13.2, -17.2); c.stroke();
   } else {
     const sway = Math.sin(t * 2) * 1.5;
     c.strokeStyle = INK; c.lineWidth = 4.2; c.lineCap = 'round'; c.beginPath(); c.moveTo(-11, -9); c.quadraticCurveTo(-21, -7, -20, -14 + sway); c.stroke();
@@ -150,7 +187,7 @@ function predator(c: C2D, kind: PredId, p: Tint, t: number) {
     c.lineWidth = 0.4; c.beginPath(); for (const a of [-0.2, 0.15]) { c.moveTo(15.6, -11.4); c.lineTo(20.5, -11.4 + a * 9); } c.stroke();
   }
 }
-const PRED_H: Record<PredId, number> = { fox: 37, snake: 34, owl: 38, weasel: 34, badger: 40, hawk: 40, cougar: 54 };
+const PRED_H: Record<PredId, number> = { fox: 37, snake: 34, owl: 38, weasel: 34, badger: 40, hawk: 40, cougar: 54, mole: 30, skunk: 38, bear: 58 };
 const FLY_LIFT = 17;
 function drawPredator(c: C2D, kind: PredId, alpha: boolean, x: number, y: number, face: number, t: number, scale = 1) {
   const h = PRED_H[kind] * scale;
@@ -186,12 +223,18 @@ export type Overlay = {
   selected: number; moves: Tile[]; targets: Tile[]; aim: Tile | null; hover: Tile | null; cursor: Tile | null;
   /** The battle after the action being aimed, to show its result before it is confirmed. */
   preview: Battle | null; forecast: Forecast | null;
+  /** Starting tiles while the squad is being placed. */
+  zone?: Tile[];
+  /** A suggestion to point at: who, where to move, what to aim at, and where to move afterwards. */
+  hint?: { id: number; move: Tile | null; target: Tile | null; then: Tile | null } | null;
+  /** A tile the guided first mission wants clicked. */
+  point?: Tile | null;
 };
 export const NO_OVERLAY: Overlay = { selected: 0, moves: [], targets: [], aim: null, hover: null, cursor: null, preview: null, forecast: null };
 
 export class Stage {
   sprites = new Map<number, Sprite>();
-  feature: (Feature | null)[] = []; cloud: number[] = []; marks: Mark[] = [];
+  feature: (Feature | null)[] = []; cloud: number[] = []; fire: number[] = []; terrain: Terrain[] = []; marks: Mark[] = [];
   warren = 0; turn = 1;
   queue: Anim[] = []; floats: Float[] = []; dots: Dot[] = []; shot: Shot | null = null;
   flash: Tile[] = []; banner = { text: '', t: 0 }; shake = 0; speed = 1;
@@ -203,7 +246,7 @@ export class Stage {
   get busy() { return this.queue.length > 0; }
   /** Makes the picture match the battle exactly, at once. */
   sync(b: Battle) {
-    this.feature = [...b.feature]; this.cloud = [...b.cloud]; this.marks = b.marks.map((m) => ({ ...m })); this.warren = b.warren; this.turn = b.turn;
+    this.feature = [...b.feature]; this.cloud = [...b.cloud]; this.fire = [...b.fire]; this.terrain = b.terrain; this.marks = b.marks.map((m) => ({ ...m })); this.warren = b.warren; this.turn = b.turn;
     const keep = new Map(this.sprites);
     this.sprites.clear();
     for (const u of b.units) if (u.hp > 0) this.sprites.set(u.id, { ...this.fresh(u), face: keep.get(u.id)?.face ?? (u.side === 'hero' ? 1 : -1) });
@@ -215,7 +258,9 @@ export class Stage {
   }
   private aimFace(b: Battle, u: Unit) { const s = this.sprites.get(u.id); if (s && u.dir >= 0 && u.kind !== 'cougar') s.face = DIRS[u.dir][0] - DIRS[u.dir][1] >= 0 ? 1 : -1; }
   private faceTo(s: Sprite, x: number, y: number) { const d = x - s.x - (y - s.y); if (Math.abs(d) > 0.01) s.face = d > 0 ? 1 : -1; }
-  private at(s: Sprite): [number, number] { const [x, y] = tileCenter(s.x, s.y); return [x + s.ox, y + s.oy]; }
+  /** The middle of a tile as drawn: high ground stands a little proud of the rest. */
+  private center(x: number, y: number): [number, number] { const [px, py] = tileCenter(x, y); return [px, py - (this.terrain[idx(Math.round(x), Math.round(y))] === 'hill' ? RISE : 0)]; }
+  private at(s: Sprite): [number, number] { const [x, y] = this.center(s.x, s.y); return [x + s.ox, y + s.oy]; }
   private puff(x: number, y: number, color: string, n: number, spread = 1) {
     for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, v = (20 + Math.random() * 50) * spread; this.dots.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5 - 30, life: 0, max: 0.35 + Math.random() * 0.35, r: 2 + Math.random() * 4, color }); }
   }
@@ -241,32 +286,36 @@ export class Stage {
       case 'act': {
         const s = sp(e.id);
         if (!s) return null;
-        const from = tileCenter(s.x, s.y), to = tileCenter(e.x, e.y), far = Math.hypot(e.x - s.x, e.y - s.y), lift = (p: [number, number]): [number, number] => [p[0], p[1] - 18];
+        const from = this.center(s.x, s.y), to = this.center(e.x, e.y), far = Math.hypot(e.x - s.x, e.y - s.y), lift = (p: [number, number]): [number, number] => [p[0], p[1] - 18];
         const face = () => this.faceTo(s, e.x, e.y);
         if (e.ability === 'groom') return { dur: 0.3, start: () => { this.sfx('heal'); this.puff(from[0], from[1] - 16, '#f1e3c0', 10, 0.6); } };
         if (e.ability === 'pounce') return { dur: 0.04, start: () => { face(); this.sfx('leap'); } };
-        if (e.ability === 'whack') return { dur: 0.2, start: () => { face(); this.sfx('whack'); }, tick: (k) => { const m = Math.sin(k * Math.PI) * 0.42; s.ox = (to[0] - from[0]) * m; s.oy = (to[1] - from[1]) * m; }, end: () => { s.ox = s.oy = 0; } };
-        const kind = e.ability === 'seed' ? 'seed' : e.ability === 'puff' ? 'dust' : e.ability === 'toss' ? 'bale' : 'rope';
+        if (e.ability === 'slam') return { dur: 0.24, start: () => { this.sfx('whack'); }, tick: (k) => { s.z = Math.sin(k * Math.PI) * 12; }, end: () => { s.z = 0; this.shake = 7; this.puff(from[0], from[1], '#e6d6ae', 18, 1.3); } };
+        if (e.ability === 'swap') return { dur: 0.05, start: () => { face(); this.sfx('leap'); this.puff(from[0], from[1] - 14, '#cfe9ff', 10); } };
+        if (e.ability === 'brace') return { dur: 0.26, start: () => { face(); this.sfx('thud'); this.say(to[0], to[1] - 46, 'Braced', '#ffe38a'); this.puff(to[0], to[1] - 10, '#f0cf6a', 10, 0.8); } };
+        if (e.ability === 'lull') return { dur: 0.3, start: () => { face(); this.sfx('heal'); this.puff(from[0], from[1] - 22, '#d9c8ff', 8, 0.6); } };
+        if (e.ability === 'whack' || e.ability === 'kick') return { dur: 0.2, start: () => { face(); this.sfx('whack'); }, tick: (k) => { const m = Math.sin(k * Math.PI) * 0.42; s.ox = (to[0] - from[0]) * m; s.oy = (to[1] - from[1]) * m; }, end: () => { s.ox = s.oy = 0; } };
+        const kind = e.ability === 'seed' || e.ability === 'pierce' ? 'seed' : e.ability === 'puff' ? 'dust' : e.ability === 'toss' ? 'bale' : 'rope';
         const arc = kind === 'dust' || kind === 'bale' ? 46 : 0;
         return { dur: 0.1 + far * (arc ? 0.06 : 0.035), start: () => { face(); this.sfx(kind === 'seed' ? 'shoot' : 'throw'); this.shot = { from: lift(from), to: arc ? to : lift(to), arc, kind, k: 0 }; }, tick: (k) => { if (this.shot) this.shot.k = k; }, end: () => { this.shot = null; } };
       }
       case 'attack': {
         const s = sp(e.id);
         if (!s) return null;
-        const last = e.tiles[e.tiles.length - 1], from = tileCenter(s.x, s.y);
+        const last = e.tiles[e.tiles.length - 1], from = this.center(s.x, s.y);
         const start = () => { this.flash = e.tiles; if (last) this.faceTo(s, last[0], last[1]); this.sfx(e.kind === 'snake' ? 'spit' : 'bite'); };
         if (!last) return { dur: 0.25, start, end: () => { this.flash = []; } };
-        const to = tileCenter(last[0], last[1]);
-        if (e.kind === 'owl') return { dur: 0.12, start, end: () => { this.flash = []; } };
+        const to = this.center(last[0], last[1]);
+        if (e.kind === 'owl' || e.kind === 'bear') return { dur: 0.12, start, end: () => { this.flash = []; } };
         if (e.kind === 'snake') return { dur: 0.12 + e.tiles.length * 0.04, start: () => { start(); this.shot = { from: [from[0], from[1] - 20], to: [to[0], to[1] - 16], arc: 0, kind: 'spit', k: 0 }; }, tick: (k) => { if (this.shot) this.shot.k = k; }, end: () => { this.shot = null; this.flash = []; } };
-        const reach = e.kind === 'hawk' ? 1 : e.kind === 'cougar' ? 0 : 0.45, first = tileCenter(e.tiles[0][0], e.tiles[0][1]), aim = e.kind === 'hawk' ? to : first;
+        const reach = e.kind === 'hawk' ? 1 : e.kind === 'cougar' ? 0 : 0.45, first = this.center(e.tiles[0][0], e.tiles[0][1]), aim = e.kind === 'hawk' ? to : first;
         return { dur: e.kind === 'hawk' ? 0.42 : 0.26, start, tick: (k) => {
           const m = Math.sin(k * Math.PI) * reach; s.ox = (aim[0] - from[0]) * m; s.oy = (aim[1] - from[1]) * m;
           if (e.kind === 'cougar') s.z = Math.sin(k * Math.PI) * 10; if (e.kind === 'hawk') s.z = -Math.sin(k * Math.PI) * FLY_LIFT;
         }, end: () => { s.ox = s.oy = s.z = 0; this.flash = []; } };
       }
       case 'hit': return { dur: 0.16, start: () => {
-        const [x, y] = tileCenter(e.x, e.y), s = e.id ? sp(e.id) : undefined;
+        const [x, y] = this.center(e.x, e.y), s = e.id ? sp(e.id) : undefined;
         if (e.saved) { this.say(x, y - 44, e.what === 'burrow' ? 'Door held' : 'Thick fur', '#ffe38a'); this.sfx('block'); return; }
         if (s) { s.hp = Math.max(0, s.hp - e.dmg); s.flash = 0.28; this.say(x, y - 50, `-${e.dmg}`, s.side === 'hero' ? '#ff6b5a' : '#ffffff'); this.puff(x, y - 18, s.side === 'hero' ? '#ffb0a0' : '#fff2c0', 6, 0.7); if (e.dmg >= 2) this.shake = 5; this.sfx('hit'); }
         else if (e.what === 'bale') { this.feature[idx(e.x, e.y)] = null; this.puff(x, y - 10, '#f0cf6a', 14); this.sfx('break'); }
@@ -279,12 +328,12 @@ export class Stage {
         const far = Math.hypot(e.to[0] - e.from[0], e.to[1] - e.from[1]);
         return { dur: e.leap ? 0.2 + far * 0.05 : 0.15, start: () => { if (e.leap) this.faceTo(s, e.to[0], e.to[1]); this.sfx(e.leap ? 'whoosh' : 'push'); }, tick: (k) => {
           const u = e.leap ? k : 1 - (1 - k) * (1 - k); s.x = e.from[0] + (e.to[0] - e.from[0]) * u; s.y = e.from[1] + (e.to[1] - e.from[1]) * u; s.z = e.leap && !s.fly ? Math.sin(k * Math.PI) * 26 : 0;
-        }, end: () => { [s.x, s.y] = e.to; s.z = 0; if (e.leap && !s.fly) { const [x, y] = tileCenter(s.x, s.y); this.puff(x, y, '#e6d6ae', 10); this.shake = 4; } } };
+        }, end: () => { [s.x, s.y] = e.to; s.z = 0; if (e.leap && !s.fly) { const [x, y] = this.center(s.x, s.y); this.puff(x, y, '#e6d6ae', 10); this.shake = 4; } } };
       }
       case 'bump': {
         const s = sp(e.id);
         if (!s) return null;
-        const from = tileCenter(s.x, s.y), to = tileCenter(e.x, e.y);
+        const from = this.center(s.x, s.y), to = this.center(e.x, e.y);
         return { dur: 0.14, start: () => this.sfx('bump'), tick: (k) => { const m = Math.sin(k * Math.PI) * 0.3; s.ox = (to[0] - from[0]) * m; s.oy = (to[1] - from[1]) * m; }, end: () => { s.ox = s.oy = 0; this.puff((from[0] + to[0]) / 2, (from[1] + to[1]) / 2 - 14, '#ffffff', 5, 0.5); } };
       }
       case 'ko': {
@@ -292,16 +341,21 @@ export class Stage {
         if (!s) return null;
         return { dur: 0.34, start: () => { const [x, y] = this.at(s); s.hp = 0; if (e.how === 'drown') { this.puff(x, y - 4, '#bfe6ff', 20, 1.1); this.say(x, y - 40, 'Splash!', '#bfe6ff'); this.sfx('splash'); } else { this.puff(x, y - 16, '#f1e3c0', 14); this.sfx(s.side === 'hero' ? 'down' : 'ko'); } }, tick: (k) => { s.fade = k; if (e.how === 'drown') s.z = -k * 14; }, end: () => { s.gone = true; } };
       }
-      case 'cloud': return { dur: 0.2, start: () => { this.cloud[idx(e.x, e.y)] = CLOUD_TURNS; const [x, y] = tileCenter(e.x, e.y); this.puff(x, y - 12, '#e9d9b4', 18, 1.2); this.sfx('poof'); } };
-      case 'bale': return { dur: 0.12, start: () => { this.feature[idx(e.x, e.y)] = 'bale'; const [x, y] = tileCenter(e.x, e.y); this.puff(x, y, '#f0cf6a', 8, 0.8); this.sfx('thud'); } };
+      case 'cloud': return { dur: 0.2, start: () => { this.cloud[idx(e.x, e.y)] = CLOUD_TURNS; const [x, y] = this.center(e.x, e.y); this.puff(x, y - 12, '#e9d9b4', 18, 1.2); this.sfx('poof'); } };
+      case 'bale': return { dur: 0.12, start: () => { this.feature[idx(e.x, e.y)] = 'bale'; const [x, y] = this.center(e.x, e.y); this.puff(x, y, '#f0cf6a', 8, 0.8); this.sfx('thud'); } };
       case 'heal': { const s = sp(e.id); return s ? { dur: 0.22, start: () => { s.hp = Math.min(s.maxHp, s.hp + 1); const [x, y] = this.at(s); this.say(x, y - 50, '+1', '#8ff08a'); } } : null; }
       case 'soak': { const s = sp(e.id); return s ? { dur: 0.16, start: () => { const [x, y] = this.at(s); this.puff(x, y - 4, '#bfe6ff', 12); this.say(x, y - 50, 'Soaked', '#bfe6ff'); this.sfx('splash'); } } : null; }
       case 'mark': return { dur: 0.14, start: () => { this.marks.push({ x: e.x, y: e.y, kind: 'fox', alpha: false }); this.sfx('rustle'); } };
-      case 'emerge': return { dur: 0.3, start: () => { this.marks = this.marks.filter((m) => m.x !== e.unit.x || m.y !== e.unit.y); const s = { ...this.fresh(e.unit), pop: 0 }; this.sprites.set(s.id, s); const [x, y] = tileCenter(s.x, s.y); this.puff(x, y - 6, '#b08a62', 14); this.sfx('emerge'); }, tick: (k) => { const s = sp(e.unit.id); if (s) s.pop = k; } };
-      case 'blocked': return { dur: 0.2, start: () => { const [x, y] = tileCenter(e.x, e.y); this.say(x, y - 56, 'Blocked!', '#ffe38a'); this.sfx('block'); } };
+      case 'emerge': return { dur: 0.3, start: () => { this.marks = this.marks.filter((m) => m.x !== e.unit.x || m.y !== e.unit.y); const s = { ...this.fresh(e.unit), pop: 0 }; this.sprites.set(s.id, s); const [x, y] = this.center(s.x, s.y); this.puff(x, y - 6, '#b08a62', 14); this.sfx('emerge'); }, tick: (k) => { const s = sp(e.unit.id); if (s) s.pop = k; } };
+      case 'blocked': return { dur: 0.2, start: () => { const [x, y] = this.center(e.x, e.y); this.say(x, y - 56, 'Blocked!', '#ffe38a'); this.sfx('block'); } };
       case 'intent': return { dur: 0.05, start: () => { const u = b.unit(e.id); if (u) this.aimFace(b, u); } };
       case 'fizzle': { const s = sp(e.id); return s ? { dur: 0.32, start: () => { const [x, y] = this.at(s); this.say(x, y - 50, 'Cough!', '#e9d9b4'); this.sfx('poof'); } } : null; }
       case 'phase': return { dur: e.who === 'pred' ? 0.7 : 0.55, start: () => { this.banner = { text: e.who === 'pred' ? 'Predators’ turn' : `Turn ${e.turn}`, t: 0 }; this.turn = e.turn; if (e.who === 'player') { this.cloud = [...b.cloud]; this.marks = b.marks.map((m) => ({ ...m })); } this.sfx(e.who === 'pred' ? 'growl' : 'turn'); } };
+      case 'fire': return { dur: 0.12, start: () => { this.fire[idx(e.x, e.y)] = e.on ? FIRE_TURNS : 0; const [x, y] = this.center(e.x, e.y); this.puff(x, y - 8, e.on ? '#ffb347' : '#8a8490', e.on ? 12 : 8, 0.8); if (e.on) this.sfx('poof'); } };
+      case 'guard': { const s = sp(e.id); return s ? { dur: 0.22, start: () => { const [x, y] = this.at(s); this.faceTo(s, e.x, e.y); this.say(x, y - 62, 'Stood guard', '#ffe38a'); this.sfx('block'); } } : null; }
+      case 'brace': return { dur: 0.05 };
+      case 'lull': { const s = sp(e.id); return s ? { dur: 0.3, start: () => { const [x, y] = this.at(s); this.say(x, y - 50, 'Zzz', '#d9c8ff'); } } : null; }
+      case 'place': return { dur: 0, end: () => this.sync(b) };
       case 'reset': return { dur: 0, end: () => this.sync(b) };
       case 'end': return { dur: 0.2 };
     }
@@ -327,7 +381,7 @@ export class Stage {
   /** The tile a click should count for: a creature's body counts as its tile, even where it overlaps the tile behind. */
   pick(px: number, py: number): Tile | null {
     const list = [...this.sprites.values()].filter((s) => !s.gone).sort((a, b) => b.x + b.y - (a.x + a.y));
-    for (const s of list) { const [x, y] = tileCenter(s.x, s.y), lift = s.fly ? FLY_LIFT : 0; if (Math.abs(px - x) < 15 && py < y + 6 - lift && py > y - 40 - lift) return [Math.round(s.x), Math.round(s.y)]; }
+    for (const s of list) { const [x, y] = this.center(s.x, s.y), lift = s.fly ? FLY_LIFT : 0; if (Math.abs(px - x) < 15 && py < y + 6 - lift && py > y - 40 - lift) return [Math.round(s.x), Math.round(s.y)]; }
     return tileAt(px, py);
   }
 
@@ -358,10 +412,17 @@ export class Stage {
     c.strokeStyle = 'rgba(40,24,20,0.28)'; c.lineWidth = 1;
     for (const d of [9, 17]) { c.beginPath(); c.moveTo(L[0], L[1] + d); c.lineTo(B[0], B[1] + d); c.lineTo(R[0], R[1] + d); c.stroke(); }
     for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) {
-      const [px, py] = tileCenter(x, y), i = idx(x, y), n = hash(i * 7 + b.region);
+      const [px, base] = tileCenter(x, y), i = idx(x, y), n = hash(i * 7 + b.region), hill = b.terrain[i] === 'hill', py = base - (hill ? RISE : 0);
+      if (hill) { poly(c, [px - TW, py, px, py + TH, px, base + TH, px - TW, base]); ink(c, p.soil[0], INK, 1); poly(c, [px, py + TH, px + TW, py, px + TW, base, px, base + TH]); ink(c, p.soil[1], INK, 1); }
       diamond(c, px, py);
+      if (b.terrain[i] === 'ice') {
+        ink(c, '#d9f1fb', '#8fbfd8', 1); diamond(c, px, py, 0.84); c.fillStyle = '#eefaff'; c.fill();
+        c.strokeStyle = 'rgba(255,255,255,0.95)'; c.lineWidth = 1.6; c.lineCap = 'round'; c.beginPath(); c.moveTo(px - 16 + n * 8, py + 2); c.lineTo(px - 4 + n * 8, py - 5); c.moveTo(px + 4, py + 6); c.lineTo(px + 14, py); c.stroke();
+        c.strokeStyle = 'rgba(120,170,200,0.55)'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(px - 8, py + 8 - n * 6); c.lineTo(px + 2, py + 3); c.lineTo(px + 6 + n * 8, py + 8); c.stroke();
+        continue;
+      }
       if (b.terrain[i] === 'water') { ink(c, p.water[1], shade(p.water[1], 0.7), 1); diamond(c, px, py + 2, 0.86); c.fillStyle = p.water[0]; c.fill(); continue; }
-      ink(c, p.grass[(x + y) % 2], p.edge, 1);
+      ink(c, hill ? shade(p.grass[(x + y) % 2], 1.08) : p.grass[(x + y) % 2], p.edge, 1);
       // A few blades, flowers or pebbles, the same every time for the same tile.
       c.strokeStyle = p.blade; c.lineWidth = 1.1; c.lineCap = 'round';
       for (let j = 0; j < 3; j++) { const bx = px + (hash(i * 3 + j) - 0.5) * 46, by = py + (hash(i * 5 + j) - 0.5) * 16; c.beginPath(); c.moveTo(bx, by); c.lineTo(bx - 1.5, by - 4); c.moveTo(bx + 2, by); c.lineTo(bx + 3, by - 3.5); c.stroke(); }
@@ -412,6 +473,26 @@ export class Stage {
       c.strokeStyle = '#2f5a2c'; c.lineWidth = 1; c.beginPath(); c.moveTo(bx - r * 0.5, by - r * 0.85); c.lineTo(bx - r * 0.7, by - r * 1.25); c.moveTo(bx + r * 0.5, by - r * 0.85); c.lineTo(bx + r * 0.75, by - r * 1.2); c.stroke();
       if (j % 2 === 0) { ell(c, bx, by - r, 1.9, 1.9); ink(c, '#8c3fb0', '#3a1a4a', 0.7); }
     }
+  }
+  private drawFire(c: C2D, x: number, y: number, i: number, t: number, n: number) {
+    c.fillStyle = `rgba(255,150,40,${0.22 + 0.08 * Math.sin(t * 8 + i)})`; diamond(c, x, y, 0.9); c.fill();
+    for (let j = 0; j < (n > 1 ? 4 : 2); j++) {
+      const fx = x + (hash(i * 17 + j) - 0.5) * 42, fy = y + (hash(i * 19 + j) - 0.5) * 12 + 3, h = (n > 1 ? 17 : 11) + 5 * Math.sin(t * 9 + j * 2 + i);
+      c.beginPath(); c.moveTo(fx - 5.5, fy); c.quadraticCurveTo(fx - 7, fy - h * 0.5, fx + Math.sin(t * 7 + j) * 2, fy - h); c.quadraticCurveTo(fx + 7, fy - h * 0.5, fx + 5.5, fy); c.closePath(); ink(c, '#ff8a2a', '#a8320a', 1);
+      c.beginPath(); c.moveTo(fx - 2.6, fy); c.quadraticCurveTo(fx - 3, fy - h * 0.3, fx, fy - h * 0.62); c.quadraticCurveTo(fx + 3, fy - h * 0.3, fx + 2.6, fy); c.closePath(); c.fillStyle = '#ffe066'; c.fill();
+    }
+  }
+  /** The den an escorted kit has to reach: a little doorway with a green flag. */
+  private drawDen(c: C2D, x: number, y: number, t: number) {
+    c.fillStyle = `rgba(90,220,120,${0.3 + 0.12 * Math.sin(t * 4)})`; diamond(c, x, y, 0.9); c.fill(); c.strokeStyle = '#2f9a4c'; c.lineWidth = 2.5; c.stroke();
+    c.strokeStyle = INK; c.lineWidth = 1.6; c.beginPath(); c.moveTo(x, y + 2); c.lineTo(x, y - 34); c.stroke();
+    poly(c, [x, y - 34, x + 17 + Math.sin(t * 4) * 1.5, y - 28, x, y - 22]); ink(c, '#58d06a', INK, 1.2);
+    c.fillStyle = '#ffffff'; c.font = 'bold 8px ui-sans-serif, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('DEN', x + 7.5, y - 27.6);
+  }
+  private star(c: C2D, x: number, y: number, r: number, fill: string) {
+    const pts: number[] = [];
+    for (let j = 0; j < 10; j++) { const a = -Math.PI / 2 + (j * Math.PI) / 5, k = j % 2 ? r * 0.45 : r; pts.push(x + Math.cos(a) * k, y + Math.sin(a) * k); }
+    poly(c, pts); ink(c, fill, INK, 1.2);
   }
   private drawMark(c: C2D, x: number, y: number, t: number) {
     c.fillStyle = 'rgba(90,60,40,0.4)'; diamond(c, x, y, 0.5); c.fill();
@@ -472,11 +553,12 @@ export class Stage {
     c.strokeStyle = 'rgba(255,255,255,0.6)'; c.lineWidth = 1.2; c.lineCap = 'round';
     b.terrain.forEach((tr, i) => {
       if (tr !== 'water') return;
-      const [x, y] = tileCenter(i % SIZE, Math.floor(i / SIZE)), s = Math.sin(t * 2 + i) * 5;
+      const [x, y] = this.center(i % SIZE, Math.floor(i / SIZE)), s = Math.sin(t * 2 + i) * 5;
       c.beginPath(); c.moveTo(x - 17 + s, y - 1); c.quadraticCurveTo(x - 9 + s, y - 6, x - 1 + s, y - 1); c.moveTo(x + 2 - s, y + 7); c.quadraticCurveTo(x + 9 - s, y + 2, x + 16 - s, y + 7); c.stroke();
     });
-    const tiles = (list: Tile[], k: number, fill: string, line: string, w = 2) => { for (const [x, y] of list) { const [px, py] = tileCenter(x, y); diamond(c, px, py, k); c.fillStyle = fill; c.fill(); c.strokeStyle = line; c.lineWidth = w; c.stroke(); } };
+    const tiles = (list: Tile[], k: number, fill: string, line: string, w = 2) => { for (const [x, y] of list) { const [px, py] = this.center(x, y); diamond(c, px, py, k); c.fillStyle = fill; c.fill(); c.strokeStyle = line; c.lineWidth = w; c.stroke(); } };
     if (idle) {
+      if (o.zone) tiles(o.zone, 0.86, 'rgba(90,210,120,0.28)', 'rgba(40,150,70,0.9)');
       tiles(o.moves, 0.86, 'rgba(70,150,255,0.3)', 'rgba(40,110,230,0.9)');
       // What each predator will hit: from the previewed battle while an action is being aimed.
       const pulse = 0.3 + 0.14 * Math.sin(t * 5);
@@ -484,20 +566,22 @@ export class Stage {
       tiles(o.targets, 0.84, 'rgba(255,170,40,0.26)', 'rgba(255,150,20,0.95)');
       if (o.aim) tiles([o.aim], 0.94, 'rgba(255,220,90,0.45)', '#fff2b0', 3);
     } else tiles(this.flash, 0.92, 'rgba(255,70,50,0.5)', '#ff3a2a', 2.5);
-    const ring = (tile: Tile | null, color: string, w: number, k: number) => { if (!tile) return; const [px, py] = tileCenter(tile[0], tile[1]); diamond(c, px, py, k); c.strokeStyle = color; c.lineWidth = w; c.stroke(); };
+    const ring = (tile: Tile | null, color: string, w: number, k: number) => { if (!tile) return; const [px, py] = this.center(tile[0], tile[1]); diamond(c, px, py, k); c.strokeStyle = color; c.lineWidth = w; c.stroke(); };
     const sel = this.sprites.get(o.selected);
     if (sel && idle) ring([sel.x, sel.y], '#ffd23e', 3.5, 0.95);
     ring(o.cursor, 'rgba(255,255,255,0.9)', 2.5, 0.98); ring(o.hover, 'rgba(255,255,255,0.75)', 2, 0.98);
     // Everything that stands up, back to front.
     type Thing = { d: number; draw: () => void };
-    const things: Thing[] = [], feature = idle ? show.feature : this.feature, cloud = idle ? show.cloud : this.cloud;
+    const things: Thing[] = [], feature = idle ? show.feature : this.feature, cloud = idle ? show.cloud : this.cloud, fire = idle ? show.fire : this.fire;
+    if (b.exit >= 0) { const ex = b.exit % SIZE, ey = Math.floor(b.exit / SIZE), [px, py] = this.center(ex, ey); things.push({ d: ex + ey - 0.25, draw: () => this.drawDen(c, px, py, t) }); }
     feature.forEach((f, i) => {
-      const x = i % SIZE, y = Math.floor(i / SIZE), [px, py] = tileCenter(x, y);
+      const x = i % SIZE, y = Math.floor(i / SIZE), [px, py] = this.center(x, y);
       if (b.terrain[i] === 'bramble' && !f) things.push({ d: x + y - 0.2, draw: () => this.drawBramble(c, px, py, i) });
       if (f) things.push({ d: x + y + (f === 'rubble' ? -0.3 : 0), draw: () => { if (idle && o.preview && this.feature[i] !== f) c.globalAlpha = 0.6; this.drawFeature(c, f, px, py, i, t, b.armor[i] > 0); c.globalAlpha = 1; } });
+      if (fire[i] > 0) things.push({ d: x + y + 0.1, draw: () => this.drawFire(c, px, py, i, t, fire[i]) });
       if (cloud[i] > 0) things.push({ d: x + y + 0.6, draw: () => this.drawCloud(c, px, py, i, t, cloud[i]) });
     });
-    for (const m of this.marks) things.push({ d: m.x + m.y - 0.1, draw: () => { const [px, py] = tileCenter(m.x, m.y); this.drawMark(c, px, py, t); } });
+    for (const m of this.marks) things.push({ d: m.x + m.y - 0.1, draw: () => { const [px, py] = this.center(m.x, m.y); this.drawMark(c, px, py, t); } });
     for (const s of this.sprites.values()) {
       if (s.gone) continue;
       const u = b.unit(s.id), done = s.side === 'hero' && idle && !!u && u.acted && b.state === 'player';
@@ -507,14 +591,14 @@ export class Stage {
     if (this.shot) this.drawShot(c, this.shot);
     // Attack arrows and target outlines go over the creatures, so a threat is never hidden behind its victim.
     if (idle) for (const u of show.preds) {
-      const th = show.threat(u), from = tileCenter(u.x, u.y);
+      const th = show.threat(u), from = this.center(u.x, u.y);
       c.save(); c.globalAlpha = 0.85; c.setLineDash([5, 4]); c.strokeStyle = '#ff3a2a'; c.lineWidth = 2;
-      for (const [hx, hy] of th.hits) { const [px, py] = tileCenter(hx, hy); diamond(c, px, py, 0.9); c.stroke(); }
+      for (const [hx, hy] of th.hits) { const [px, py] = this.center(hx, hy); diamond(c, px, py, 0.9); c.stroke(); }
       c.restore();
       if ((!th.hits.length && !th.path.length) || u.kind === 'cougar' || u.kind === 'badger') continue;
       const last = th.hits[0] ?? th.path[th.path.length - 1];
       c.save(); c.globalAlpha = 0.9;
-      this.arrow(c, [from, tileCenter(last[0], last[1])].map(([x, y]): [number, number] => [x, y - 4]), t, '#ff4d3d', 'rgba(60,10,10,0.55)');
+      this.arrow(c, [from, this.center(last[0], last[1])].map(([x, y]): [number, number] => [x, y - 4]), t, '#ff4d3d', 'rgba(60,10,10,0.55)');
       c.restore();
     }
     // Health, attack order and what the coming turn will cost.
@@ -524,18 +608,32 @@ export class Stage {
       const after = idle && o.preview ? o.preview.unit(s.id) : undefined, hurt = after ? Math.max(0, s.hp - after.hp) : 0;
       this.pips(c, s, x, top, hurt);
       const u = b.unit(s.id);
-      if (idle && u && u.side === 'pred' && u.order > 0 && u.dir >= 0) { ell(c, x - 17, top + 2, 7, 7); ink(c, '#3a1210', '#ff8a7a', 1.2); c.fillStyle = '#fff'; c.font = 'bold 10px ui-sans-serif, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(u.order), x - 17, top + 2.5); }
-      const cost = idle && o.forecast ? o.forecast.heroes[s.id] : 0;
+      const half = (s.maxHp * 9 - 2) / 2 + 3;
+      if (idle && u && u.side === 'pred' && u.order > 0 && u.dir >= 0) { ell(c, x - half - 6, top + 2, 7, 7); ink(c, '#3a1210', '#ff8a7a', 1.2); c.fillStyle = '#fff'; c.font = 'bold 10px ui-sans-serif, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(u.order), x - half - 6, top + 2.5); }
+      if (u?.mark) { const mx = x + half + 6, my = top + 2; ell(c, mx, my, 6.5, 6.5); ink(c, '#ffd23e', '#5a3a0a', 1.2); c.strokeStyle = '#5a3a0a'; c.lineWidth = 1.3; ell(c, mx, my, 2.6, 2.6); c.stroke(); c.beginPath(); c.moveTo(mx - 6.5, my); c.lineTo(mx - 3, my); c.moveTo(mx + 3, my); c.lineTo(mx + 6.5, my); c.moveTo(mx, my - 6.5); c.lineTo(mx, my - 3); c.moveTo(mx, my + 3); c.lineTo(mx, my + 6.5); c.stroke(); }
+      const cost = idle && o.forecast && !(u?.mark) ? o.forecast.heroes[s.id] : 0;
       if (cost) this.badge(c, x + 20, top + 2, o.forecast!.downs.includes(s.id) ? '✖' : `-${cost}`, '#e8392b');
     }
     if (idle && o.preview) for (const u of b.units) {
       const v = o.preview.unit(u.id);
       if (!v || u.hp <= 0) continue;
-      const from = tileCenter(u.x, u.y), to = tileCenter(v.x, v.y);
+      const from = this.center(u.x, u.y), to = this.center(v.x, v.y);
       if (v.x !== u.x || v.y !== u.y) this.arrow(c, [[from[0], from[1] - 10], [to[0], to[1] - 10]], t, '#ffffff', 'rgba(20,16,30,0.6)');
       if (v.hp < u.hp) this.badge(c, to[0], to[1] - 62, v.hp <= 0 ? (o.preview.terrain[idx(v.x, v.y)] === 'water' && !u.fly ? 'Splash' : 'KO') : `-${u.hp - v.hp}`, v.hp <= 0 ? '#8a2be2' : '#2c2430');
     }
-    if (idle && o.forecast) for (const [x, y] of o.forecast.burrows) { const [px, py] = tileCenter(x, y); this.badge(c, px, py - 56 + Math.sin(t * 6) * 2, '!', '#e8392b'); }
+    if (b.key >= 0 && feature[b.key] === 'burrow') { const [px, py] = this.center(b.key % SIZE, Math.floor(b.key / SIZE)); this.star(c, px + 14, py - 40 + Math.sin(t * 3) * 1.5, 8, '#ffd23e'); }
+    // A suggestion: where to go, what to aim at, and where to go afterwards.
+    if (idle && o.hint) {
+      const h = o.hint, who = this.sprites.get(h.id), glow = 0.55 + 0.45 * Math.sin(t * 7);
+      const spot = (tile: Tile, label: string, color: string) => { const [px, py] = this.center(tile[0], tile[1]); diamond(c, px, py, 0.96); c.strokeStyle = color; c.lineWidth = 2.5 + glow * 2; c.stroke(); this.badge(c, px, py - 6, label, color); };
+      let from: [number, number] | null = who ? this.center(who.x, who.y) : null;
+      const go = (tile: Tile) => { const to = this.center(tile[0], tile[1]); if (from) this.arrow(c, [[from[0], from[1] - 6], [to[0], to[1] - 6]], t, '#3fe0d0', 'rgba(10,50,60,0.6)'); from = to; };
+      if (h.move) { go(h.move); spot(h.move, 'move', '#19b8a8'); }
+      if (h.target) spot(h.target, 'aim', '#e0409a');
+      if (h.then) { go(h.then); spot(h.then, 'then move', '#19b8a8'); }
+    }
+    if (idle && o.point) { const [px, py] = this.center(o.point[0], o.point[1]), bob = Math.sin(t * 6) * 4; poly(c, [px - 9, py - 78 + bob, px + 9, py - 78 + bob, px, py - 62 + bob]); ink(c, '#ffd23e', INK, 1.5); }
+    if (idle && o.forecast) for (const [x, y] of o.forecast.burrows) { const [px, py] = this.center(x, y); this.badge(c, px, py - 56 + Math.sin(t * 6) * 2, '!', '#e8392b'); }
     for (const d of this.dots) { c.globalAlpha = 1 - d.life / d.max; c.fillStyle = d.color; ell(c, d.x, d.y, d.r, d.r); c.fill(); }
     c.globalAlpha = 1;
     c.font = 'bold 15px ui-sans-serif, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';

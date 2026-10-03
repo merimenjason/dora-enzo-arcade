@@ -21,7 +21,7 @@ const GAMES=[
  {href:'/hay-maze',title:'Hay Maze Defence',tag:'NEW · ROGUELITE TOWER DEFENCE',blurb:'Guard the Hearthlight through the night. Draw hay-bale blocks as cards, lay them into a winding maze, and stand ice, fire, spark and moonlight towers on top. Six levels, new meadows, relics and rewards.',color:'#ff9a4a',art:'🔥'},
  {href:'/chinchillas-vs-zombies',title:'Chinchillas vs Zombies',tag:'NEW · LANE DEFENCE',blurb:'Zombies are shambling up the lawn to Dora and Enzo\u2019s burrow. Collect sunflower seeds, plant chinchilla defenders in five lanes, and hold out through eight nights.',color:'#8fd45a',art:'🧟'},
  {href:'/scribble',title:'Chinchilla Scribble',tag:'NEW · WORD PUZZLE',blurb:'Write a word and it appears. Summon ladders, bridges, bombs and flying hay bales, stack adjectives, and help Dora and Enzo reach the golden wolfberry in twelve puzzles and a sandbox.',color:'#9a7ae8',art:'✏️'},
- {href:'/tactics',title:'Burrow Tactics',tag:'NEW · TURN-BASED TACTICS',blurb:'Predators show exactly what they will hit next. Move three chinchillas, push foxes into streams, brambles and each other, and keep the burrows standing through ten missions and a seven-battle run.',color:'#ffcf5a',art:'♟️'},
+ {href:'/tactics',title:'Burrow Tactics',tag:'NEW · TURN-BASED TACTICS',blurb:'Predators show exactly what they will hit next. Move three chinchillas, push foxes into streams, brambles and each other, and keep the burrows standing through eighteen missions and a seven-battle run.',color:'#ffcf5a',art:'♟️'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
