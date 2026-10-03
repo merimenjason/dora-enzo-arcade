@@ -42,7 +42,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
   dora: { id: 'dora', name: 'Dora', hp: 3, move: 4, ability: 'seed', blurb: 'A crack shot with a sunflower seed. Knocks things back from across the meadow.' },
   enzo: { id: 'enzo', name: 'Enzo', hp: 4, move: 3, ability: 'whack', blurb: 'Hits hard up close and sends predators flying.' },
   pip: { id: 'pip', name: 'Pip', hp: 2, move: 5, ability: 'puff', blurb: 'A quick kit who kicks up dust clouds. A predator in a cloud cannot attack.' },
-  pebble: { id: 'pebble', name: 'Grandpa Pebble', hp: 5, move: 2, ability: 'toss', blurb: 'Slow and sturdy. Throws hay bales to wall off a burrow or bonk a fox.' },
+  pebble: { id: 'pebble', name: 'Grandpa Pebble', hp: 5, move: 3, ability: 'toss', blurb: 'Slow and sturdy. Throws hay bales to wall off a burrow or bonk a fox.' },
   mochi: { id: 'mochi', name: 'Mochi', hp: 3, move: 4, ability: 'tug', blurb: 'Tugs predators out of position: into the stream, into brambles, or into each other’s way.' },
   biscuit: { id: 'biscuit', name: 'Biscuit', hp: 3, move: 4, ability: 'pounce', blurb: 'Leaps into the middle of a pack and scatters it.' },
 };
@@ -565,7 +565,7 @@ export const REGIONS = ['The Meadow', 'The Foothills', 'The High Pass'];
 const STAGE_REGION = [0, 0, 1, 1, 2, 2, 2];
 const POOLS: PredId[][] = [['fox', 'snake'], ['fox', 'snake', 'owl', 'weasel'], ['fox', 'snake', 'owl', 'weasel', 'badger', 'hawk']];
 /** Balance knobs for a run: the predators on the board at the start, and those that arrive each turn. */
-export const START_BUDGET = 5, START_STEP = 1, WAVE_BUDGET = 2.5, WAVE_STEP = 0.5, ALPHA_FROM = 3, ALPHA_CHANCE = 0.25;
+export const START_BUDGET = 7, START_STEP = 1, WAVE_BUDGET = 3.5, WAVE_STEP = 0.8, ALPHA_FROM = 3, ALPHA_CHANCE = 0.3;
 
 /** The board, predators and arrivals for battle `stage` (0-based) of a run. The same seed always gives the same battle. */
 export function makeField(seed: number, stage: number): BattleDef {
