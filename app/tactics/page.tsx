@@ -74,9 +74,11 @@ export default function BurrowTactics() {
 
   useEffect(() => { const s = readSave(); setSave(s); setMuted(s.muted); setHasRun(!!readRun()); setSquad(unlockedHeroes(clearedOf(s)).slice(0, 3)); setLoaded(true); }, []);
   // The browser test reads and drives the running game through this.
-  useEffect(() => { (window as unknown as { __tactics?: () => unknown }).__tactics = () => ({ battle: battle.current, stage: stage.current, run: run.current }); }, []);
+  useEffect(() => { (window as unknown as { __tactics?: () => unknown }).__tactics = () => ({ battle: battle.current, stage: stage.current, run: run.current, plan: () => (battle.current ? hint(battle.current) : null) }); }, []);
 
   const refresh = () => setTick((t) => t + 1);
+  /** The tiles a click could do something with right now, so the board can favour them over a creature standing in front. */
+  const wanted = (): Tile[] => { const b = battle.current, u = b?.unit(selRef.current), a = armRef.current; return !b || !u ? [] : b.state === 'deploy' ? b.zone() : a ? b.targets(u.id, a) : b.moves(u.id); };
   const say = (text: string) => { if (!text) return; setNote(text); window.clearTimeout(noteTimer.current); noteTimer.current = window.setTimeout(() => setNote(''), 2400); };
   const choose = (id: number) => { selRef.current = id; setSelected(id); };
   const arm = (a: AbilityId | null) => { armRef.current = a; pending.current = null; setArmed(a); version.current++; };
@@ -513,7 +515,7 @@ export default function BurrowTactics() {
         <div className="bt-title"><strong>{m ? `Mission ${mode.current.kind === 'mission' ? mode.current.index + 1 : 0}: ${m.name}` : b.name}</strong><small data-testid="goal">{r ? `Night ${r.stage + 1} of ${RUN_STAGES} · ${DIFFICULTY[r.difficulty].name} · ${goalText(b)}${r.relics.length ? ` · ${r.relics.map((id) => RELICS[id].name).join(', ')}` : ''}` : m ? `${goalText(b)} · Bonus: ${m.bonus.text}` : ''}</small></div>
         <div className="bt-stat" data-testid="turn"><small>TURN</small><b>{st.turn} / {b.turns}</b></div>
         <div className="bt-stat" data-testid="warren" aria-label={`Warren ${st.warren} of ${b.maxWarren}`}><small>WARREN</small><b className="bt-warren">{Array.from({ length: b.maxWarren }, (_, i) => <i key={i} className={i < st.warren ? 'on' : ''} />)}</b></div>
-        <div className={`bt-forecast${safe ? ' safe' : ''}${previewing ? ' preview' : ''}`} data-testid="forecast"><small>{b.state === 'deploy' ? 'BEFORE THE RAID' : previewing ? 'AFTER THIS ACTION' : 'IF YOU END THE TURN NOW'}</small><b>{b.state === 'deploy' ? 'Place your squad on the green tiles.' : forecastText || '…'}</b></div>
+        <div className={`bt-forecast${safe ? ' safe' : ''}${previewing ? ' preview' : ''}`} data-testid="forecast"><small>{b.state === 'deploy' ? 'BEFORE THE RAID' : previewing ? 'AFTER THIS ACTION' : 'IF YOU END THE TURN NOW'}</small><b title={forecastText}>{b.state === 'deploy' ? 'Place your squad on the green tiles.' : forecastText || '…'}</b></div>
       </section>
       <div className="bt-layout">
         <aside className="bt-squad" aria-label="Your chinchillas">
@@ -533,10 +535,10 @@ export default function BurrowTactics() {
             ref={canvas} width={VIEW_W * SCALE} height={VIEW_H * SCALE} tabIndex={0}
             data-testid="board" data-state={b.state} data-turn={b.turn} data-warren={b.warren} data-busy={busy ? '1' : '0'}
             aria-label="The battlefield. Tab picks a chinchilla, the arrow keys move the cursor, Enter confirms, 1 and 2 use the actions, G grooms, H gives a hint, E ends the turn."
-            onPointerMove={(e) => { const q = e.currentTarget.getBoundingClientRect(), t = st.pick(((e.clientX - q.left) / q.width) * VIEW_W, ((e.clientY - q.top) / q.height) * VIEW_H); if (String(t) !== String(hover.current)) { hover.current = e.pointerType === 'touch' ? null : t; setInfoTile(t); } }}
+            onPointerMove={(e) => { const q = e.currentTarget.getBoundingClientRect(), t = st.pick(((e.clientX - q.left) / q.width) * VIEW_W, ((e.clientY - q.top) / q.height) * VIEW_H, wanted()); if (String(t) !== String(hover.current)) { hover.current = e.pointerType === 'touch' ? null : t; setInfoTile(t); } }}
             onPointerLeave={() => { hover.current = null; }}
             onPointerDown={(e) => {
-              const q = e.currentTarget.getBoundingClientRect(), t = st.pick(((e.clientX - q.left) / q.width) * VIEW_W, ((e.clientY - q.top) / q.height) * VIEW_H);
+              const q = e.currentTarget.getBoundingClientRect(), t = st.pick(((e.clientX - q.left) / q.width) * VIEW_W, ((e.clientY - q.top) / q.height) * VIEW_H, wanted());
               if (e.button === 2) { undo(); return; }
               cursor.current = null;
               if (t) { setInfoTile(t); clickTile(t, e.pointerType === 'touch'); } else if (st.busy) { st.flush(); refresh(); }
