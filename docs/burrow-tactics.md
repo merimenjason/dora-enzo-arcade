@@ -121,7 +121,7 @@ A run (`Run`) of seven battles (`RUN_STAGES`) with three chinchillas of your cho
 
 ## Saving
 
-- `burrow-tactics-v1`: best stars for each mission, and whether sound is off.
+- `burrow-tactics-v1`: best stars for each mission, the most battles of a run ever won, and whether sound is off.
 - `burrow-tactics-run-v1`: the run in progress (`Run.snapshot()`), written after every move, action and turn, so a run resumes exactly where it was left. It is removed when the run ends.
 - A campaign mission in progress is not saved.
 
