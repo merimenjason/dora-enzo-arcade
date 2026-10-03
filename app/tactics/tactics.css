@@ -83,16 +83,17 @@
 .bt-play { padding-bottom: 16px; }
 .bt-top { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; margin: 10px 0 8px; }
 .bt-title { flex: 1 1 220px; display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; }
-.bt-title strong { font-size: 17px; }
-.bt-title small { color: var(--muted); font-size: 12px; }
+/* One line each, so a long objective or forecast never changes the height above the board and makes it jump. */
+.bt-title strong { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bt-title small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bt-stat, .bt-forecast { display: flex; flex-direction: column; justify-content: center; gap: 3px; padding: 6px 12px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
 .bt-stat small, .bt-forecast small { font: 700 10px ui-monospace, monospace; letter-spacing: 1.5px; color: var(--muted); }
 .bt-stat b { font-size: 16px; }
 .bt-warren { display: flex; gap: 4px; align-items: center; height: 20px; }
 .bt-warren i { width: 16px; height: 13px; border-radius: 9px 9px 2px 2px; background: #3d4f50; border: 1px solid #5a6f70; }
 .bt-warren i.on { background: linear-gradient(#d9a36d, #9a6a42); border-color: #5a3c26; }
-.bt-forecast { flex: 1 1 260px; border-color: var(--danger); }
-.bt-forecast b { font-size: 14px; color: var(--danger); }
+.bt-forecast { flex: 1 1 260px; min-width: 0; border-color: var(--danger); }
+.bt-forecast b { font-size: 14px; color: var(--danger); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bt-forecast.safe { border-color: var(--safe); }
 .bt-forecast.safe b { color: var(--safe); }
 .bt-forecast.preview { background: #2e3a24; }
@@ -145,6 +146,8 @@
 .bt-shell button.pulse { animation: bt-pulse 1s ease-in-out infinite; border-color: var(--gold); }
 @keyframes bt-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 207, 90, 0.9); } 50% { box-shadow: 0 0 0 7px rgba(255, 207, 90, 0); } }
 
+/* The action bar wraps to two rows on a narrow window, so the board gives up a little more height. */
+@media (max-width: 1100px) { .bt-board { max-width: max(420px, calc((100dvh - 300px) * 760 / 520)); } }
 @media (max-width: 760px) {
   .bt-intro { flex-direction: column; align-items: flex-start; }
   .bt-intro h1 { font-size: 36px; }

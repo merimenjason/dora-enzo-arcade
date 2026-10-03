@@ -203,7 +203,7 @@ export function drawHeroIcon(c: C2D, kind: HeroId, w: number, h: number) {
 export function drawPredIcon(c: C2D, kind: PredId, w: number, h: number, alpha = false) {
   c.clearRect(0, 0, w, h);
   const fly = kind === 'owl' || kind === 'hawk', k = (h * (kind === 'owl' ? 0.8 : 0.58)) / PRED_H[kind];
-  drawPredator(c, kind, alpha, w * (kind === 'owl' ? 0.5 : 0.54), h * (fly ? 1.02 : 0.9), 1, 0.6, k);
+  drawPredator(c, kind, alpha, w * (kind === 'owl' ? 0.5 : kind === 'skunk' ? 0.64 : 0.54), h * (fly ? 1.02 : 0.9), 1, 0.6, k);
 }
 
 // ---------- The stage ----------
@@ -378,11 +378,19 @@ export class Stage {
     for (const s of this.sprites.values()) s.flash = Math.max(0, s.flash - dt);
     this.shake = Math.max(0, this.shake - dt * 30); this.banner.t += dt;
   }
-  /** The tile a click should count for: a creature's body counts as its tile, even where it overlaps the tile behind. */
-  pick(px: number, py: number): Tile | null {
-    const list = [...this.sprites.values()].filter((s) => !s.gone).sort((a, b) => b.x + b.y - (a.x + a.y));
-    for (const s of list) { const [x, y] = this.center(s.x, s.y), lift = s.fly ? FLY_LIFT : 0; if (Math.abs(px - x) < 15 && py < y + 6 - lift && py > y - 40 - lift) return [Math.round(s.x), Math.round(s.y)]; }
-    return tileAt(px, py);
+  /**
+   * The tile a click should count for. A creature's body counts as its tile, even where it overlaps the tile behind;
+   * but when `prefer` lists the tiles that would do something (moves or targets), one of those wins, so a tile
+   * half hidden behind a hovering owl can still be clicked.
+   */
+  pick(px: number, py: number, prefer: Tile[] = []): Tile | null {
+    const list = [...this.sprites.values()].filter((s) => !s.gone).sort((a, b) => b.x + b.y - (a.x + a.y)), raw = tileAt(px, py);
+    const wanted = (t: Tile | null) => !!t && prefer.some((p) => p[0] === t[0] && p[1] === t[1]);
+    let body: Tile | null = null;
+    for (const s of list) { const [x, y] = this.center(s.x, s.y), lift = s.fly ? FLY_LIFT : 0; if (Math.abs(px - x) < 15 && py < y + 6 - lift && py > y - 40 - lift) { body = [Math.round(s.x), Math.round(s.y)]; break; } }
+    if (wanted(body)) return body;
+    if (wanted(raw)) return raw;
+    return body ?? raw;
   }
 
   // ----- Drawing -----
