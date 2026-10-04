@@ -579,6 +579,7 @@ Each chinchilla rides one of four **rides**, each with two shots and a **big sho
 - ← and → walk (or hold the ◀ ▶ buttons); walking the other way turns the chinchilla round. ↑ and ↓ raise and lower the barrel.
 - 1, 2 and 3 pick the shot. Q, W and E pick Double Shot, Dandelion and Burrow Hop; pressing again puts the item away.
 - **Skip turn** passes with a short wait. F changes the animation speed (1×, 2×, 3×). M turns sound on and off. A click, or Enter, during an animation skips to its end.
+- On a phone-sized screen the camera closes in on whoever's turn it is and follows each shot. Drag with two fingers to look around, and tap **Whole map** (or press Z) to see everything; **Zoom in** goes back.
 
 **Tests:** `npm run test:barrage` (also in `npm test`) compiles `lib/burrow-barrage-game.ts` and runs `tests/burrow-barrage.mjs`:
 
@@ -594,7 +595,7 @@ Each chinchilla rides one of four **rides**, each with two shots and a **big sho
 
 `npm run bot:barrage` plays computer against computer for every pairing of rides on every map and reports each ride's win rate, how often going first wins, and the ladder; it fails if any ride wins under 30% or over 70% of its matches. Set `SEEDS` for more matches per pairing.
 
-Browser: `tests/e2e/burrow-barrage.mjs` checks the menu card and the locked ladder, choosing rides, aiming with the sliders and by dragging, walking, firing and the rival's reply, the shots and items, winning a match and its saved stars, pass and play, and a phone-sized screen.
+Browser: `tests/e2e/burrow-barrage.mjs` checks the menu card and the locked ladder, choosing rides, aiming with the sliders and by dragging, walking, firing and the rival's reply, the shots and items, winning a match and its saved stars, pass and play, and a phone-sized screen with its close camera.
 
 **Docs:** [`docs/burrow-barrage.md`](docs/burrow-barrage.md).
 

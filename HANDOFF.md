@@ -110,7 +110,7 @@ Game 22 (`/tactics`), turn-based tactics in the style of Into the Breach. Rules 
 - **The engine does not animate.** `fire()` resolves the whole turn and leaves `Match.events`; `Stage.feed()` plays them, and `Stage` carves its own copy of the ground when each blast is shown.
 - **Turn order is by wait** (`Unit.delay`), not rounds: the lowest goes next.
 - **Balance knobs:** the `RIDES` and `ITEMS` tables, `AI_LEVELS`, and the constants at the top of the engine (`GRAVITY`, `SPEED`, `WIND_PULL`, `DUSK_TURN`). Small changes swing the ride win rates a long way, so rerun `npm run bot:barrage` with `SEEDS=5` after any of them.
-- **Not checked by a person:** the speed of the power bar (`CHARGE_RATE` in the page), how a shot looks in flight, and the crater sizes. On a phone the chinchillas are small because the whole map is always on screen.
+- **Not checked by a person:** the speed of the power bar (`CHARGE_RATE` in the page), how a shot looks in flight, and the crater sizes. The phone camera (`Stage.zoom`, `Stage.pan`, `Stage.toWorld`) has only been checked in a phone-sized browser window, not on a real phone.
 
 ## Checking your work
 

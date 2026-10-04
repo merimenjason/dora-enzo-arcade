@@ -11,6 +11,8 @@ import { cue, setMuted } from './sound';
 import './barrage.css';
 
 const SAVE_KEY = 'burrow-barrage-v1', SCALE = 2, WALK_RATE = 30, CHARGE_RATE = 55, THINK = 0.6;
+/** A board drawn narrower than this (a phone) gets the close camera, at this zoom. */
+const NARROW = 620, ZOOM = 2;
 type Save = { stars: number[]; muted: boolean; rides: [RideId, RideId] };
 const blank = (): Save => ({ stars: LADDER.map(() => 0), muted: false, rides: ['catapult', 'spitter'] });
 const isRide = (r: unknown): r is RideId => RIDE_IDS.includes(r as RideId);
@@ -50,10 +52,14 @@ export default function BurrowBarrage() {
   const [speed, setSpeed] = useState(1);
   const [duelMap, setDuelMap] = useState(0);
   const [guests, setGuests] = useState<[RideId, RideId]>(['digger', 'cannon']);
+  /** `narrow` is a phone-sized board; `near` is the player's choice of the close camera over the whole map. */
+  const [narrow, setNarrow] = useState(false);
+  const [near, setNear] = useState(true);
   const [, setTick] = useState(0);
   const match = useRef<Match | null>(null), stage = useRef<Stage | null>(null), mode = useRef<Mode>({ kind: 'ladder', index: 0 });
   const canvas = useRef<HTMLCanvasElement>(null);
   const shotRef = useRef(0), itemRef = useRef<ItemId | null>(null), held = useRef(new Set<string>()), charge = useRef(-1), dragging = useRef(false);
+  const narrowRef = useRef(false), nearRef = useRef(true), touches = useRef(new Map<number, [number, number]>()), before = useRef<[number, number] | null>(null);
   const recorded = useRef<Match | null>(null), result = useRef(0), noteTimer = useRef(0), tired = useRef(0);
 
   useEffect(() => { const s = readSave(); setSave(s); setMuted(s.muted); setLoaded(true); }, []);
@@ -72,7 +78,7 @@ export default function BurrowBarrage() {
   function open(m: Match) {
     match.current = m; stage.current = new Stage(m); stage.current.sfx = cue; stage.current.speed = speed;
     stage.current.feed(m.events.splice(0));
-    recorded.current = null; result.current = 0; charge.current = -1; held.current.clear();
+    recorded.current = null; result.current = 0; charge.current = -1; held.current.clear(); touches.current.clear();
     pickShot(0); pickItem(null); setScreen('match'); refresh();
   }
   const startLadder = (i: number) => { mode.current = { kind: 'ladder', index: i }; open(ladderMatch(i, save.rides, newSeed())); };
@@ -122,6 +128,7 @@ export default function BurrowBarrage() {
     pickItem(itemRef.current === i ? null : i); cue('select');
   }
   const cycleSpeed = () => { const s = speed === 1 ? 2 : speed === 2 ? 3 : 1; setSpeed(s); if (stage.current) stage.current.speed = s; };
+  const toggleNear = () => { nearRef.current = !nearRef.current; setNear(nearRef.current); };
   const toggleMute = () => { const next = { ...save, muted: !save.muted }; setSave(next); writeSave(next); setMuted(next.muted); };
   /** Records a finished match once its last animation has played. */
   function settle() {
@@ -139,13 +146,38 @@ export default function BurrowBarrage() {
   }
   /** Points the active chinchilla at a spot on the board: the direction is the angle and the distance is the power. */
   function aimAt(e: React.PointerEvent<HTMLCanvasElement>) {
-    const m = match.current;
-    if (!m || !mine()) return;
+    const m = match.current, st = stage.current;
+    if (!m || !st || !mine()) return;
     const q = e.currentTarget.getBoundingClientRect(), u = m.active;
-    const dx = ((e.clientX - q.left) / q.width) * VIEW_W - (u.x + 0.5) * CELL, dy = (u.y - UNIT_UP) * CELL - ((e.clientY - q.top) / q.height) * VIEW_H;
+    const [wx, wy] = st.toWorld(((e.clientX - q.left) / q.width) * VIEW_W, ((e.clientY - q.top) / q.height) * VIEW_H);
+    const dx = wx - (u.x + 0.5) * CELL, dy = (u.y - UNIT_UP) * CELL - wy;
     const angle = dy <= 0 ? (dx >= 0 ? MIN_ANGLE : MAX_ANGLE) : (Math.atan2(dy, dx) * 180) / Math.PI;
     aim(angle, Math.hypot(dx, dy) / 2.6);
   }
+  // One finger (or the mouse) aims. With the close camera, two fingers drag the view about instead.
+  function pointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
+    const m = match.current, st = stage.current;
+    if (!m || !st) return;
+    if (st.busy) { st.flush(m); refresh(); return; }
+    e.currentTarget.setPointerCapture(e.pointerId);
+    touches.current.set(e.pointerId, [e.clientX, e.clientY]);
+    if (touches.current.size === 1) { before.current = [m.active.angle, m.active.power]; dragging.current = true; aimAt(e); }
+    else {
+      // The first finger moved the aim before the second came down: put it back.
+      if (dragging.current && before.current) aim(before.current[0], before.current[1]);
+      dragging.current = false;
+    }
+  }
+  function pointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
+    const st = stage.current, was = touches.current.get(e.pointerId);
+    if (!st || !was) return;
+    touches.current.set(e.pointerId, [e.clientX, e.clientY]);
+    if (touches.current.size >= 2) {
+      const q = e.currentTarget.getBoundingClientRect(), k = VIEW_W / q.width / st.zoom / touches.current.size;
+      st.pan(-(e.clientX - was[0]) * k, -(e.clientY - was[1]) * k);
+    } else if (dragging.current) aimAt(e);
+  }
+  function pointerUp(e: React.PointerEvent<HTMLCanvasElement>) { touches.current.delete(e.pointerId); dragging.current = false; }
 
   // The loop: walking, charging, the computer's turns, animations and drawing.
   useEffect(() => {
@@ -157,6 +189,9 @@ export default function BurrowBarrage() {
       const m = match.current, st = stage.current;
       if (!m || !st) return;
       const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; last = now;
+      const slim = (canvas.current?.clientWidth ?? NARROW) < NARROW;
+      if (slim !== narrowRef.current) { narrowRef.current = slim; setNarrow(slim); }
+      st.zoom = slim && nearRef.current ? ZOOM : 1; st.hud = slim ? 1.8 : 1;
       st.update(dt, m);
       if (!st.busy && m.state === 'aim') {
         const level = levelOf(m.active.team);
@@ -186,7 +221,7 @@ export default function BurrowBarrage() {
     return () => cancelAnimationFrame(raf);
   }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps -- the loop reads refs
 
-  // Keyboard: ← → walk, ↑ ↓ angle, hold Space to charge and let go to fire, 1 2 3 shots, Q W E items, F speed, M sound.
+  // Keyboard: ← → walk, ↑ ↓ angle, hold Space to charge and let go to fire, 1 2 3 shots, Q W E items, F speed, M sound, Z the close camera.
   useEffect(() => {
     if (screen !== 'match') return;
     const down = (e: KeyboardEvent) => {
@@ -195,6 +230,7 @@ export default function BurrowBarrage() {
       const k = e.key.toLowerCase();
       if (k === 'f') { cycleSpeed(); return; }
       if (k === 'm') { toggleMute(); return; }
+      if (k === 'z') { toggleNear(); return; }
       if (stage.current?.busy) { if (k === 'enter') { e.preventDefault(); stage.current.flush(m); refresh(); } return; }
       if (!mine()) return;
       const u = m.active;
@@ -229,6 +265,7 @@ export default function BurrowBarrage() {
       <span className="bb-brand">BURROW BARRAGE</span>
       <span className="bb-tools">
         <button onClick={toggleMute} aria-pressed={save.muted}>{save.muted ? 'Sound off' : 'Sound on'}{playing ? ' · M' : ''}</button>
+        {playing && narrow && <button data-testid="zoom" aria-pressed={near} onClick={toggleNear}>{near ? 'Whole map' : 'Zoom in'}</button>}
         {playing && <button onClick={cycleSpeed}>{speed}× · F</button>}
         {playing && <button data-testid="menu" onClick={home}>Menu</button>}
       </span>
@@ -353,7 +390,7 @@ export default function BurrowBarrage() {
   }
   const tip = m.state === 'over' ? '' : busy ? '…' : level >= 0 ? `${u.name} is taking aim…`
     : item ? `${ITEMS[item].name}: ${ITEMS[item].blurb} Adds ${ITEMS[item].delay} to the wait.`
-      : `${def.name}: ${def.blurb} Wait ${def.delay}. Drag on the board to aim, then press Fire, or hold Space to charge and let go.`;
+      : `${def.name}: ${def.blurb} Wait ${def.delay}. ${narrow ? (near ? 'Drag to aim, then press Fire. Two fingers move the view.' : 'Drag to aim, then press Fire.') : 'Drag on the board to aim, then press Fire, or hold Space to charge and let go.'}`;
   const toDusk = DUSK_TURN - m.turn;
 
   return (
@@ -383,12 +420,9 @@ export default function BurrowBarrage() {
       <div className="bb-board">
         <canvas
           ref={canvas} width={VIEW_W * SCALE} height={VIEW_H * SCALE} tabIndex={0}
-          data-testid="board" data-state={m.state} data-turn={m.turn} data-active={m.activeId} data-busy={busy ? '1' : '0'} data-winner={m.winner}
+          data-testid="board" data-state={m.state} data-turn={m.turn} data-active={m.activeId} data-busy={busy ? '1' : '0'} data-winner={m.winner} data-zoom={narrow && near ? ZOOM : 1}
           aria-label="The battlefield. Left and right walk, up and down change the angle, hold Space to charge a shot and let go to fire, 1 to 3 pick the shot, Q W E pick an item."
-          onPointerDown={(e) => { if (st.busy) { st.flush(m); refresh(); return; } dragging.current = true; e.currentTarget.setPointerCapture(e.pointerId); aimAt(e); }}
-          onPointerMove={(e) => { if (dragging.current) aimAt(e); }}
-          onPointerUp={() => { dragging.current = false; }}
-          onPointerCancel={() => { dragging.current = false; }}
+          onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp}
         />
         {note && <output className="bb-note">{note}</output>}
         {overlay && <div className="bb-overlay"><div>{overlay}</div></div>}

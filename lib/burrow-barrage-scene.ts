@@ -95,6 +95,11 @@ export class Stage {
   sprites: Sprite[];
   wind = 0; activeId = 0; turn = 1;
   busy = false; speed = 1;
+  /** 1 shows the whole map. Above 1 the camera closes in and follows whoever's turn it is, then the shot. */
+  zoom = 1;
+  /** How much larger to draw the wind gauge and the banner, for a board shown small. */
+  hud = 1;
+  private camX = VIEW_W / 2; private camY = VIEW_H / 2; private panX = 0; private panY = 0; private snap = true;
   sfx: (name: string) => void = () => {};
   private theme: Theme; private tones: RGB[];
   private land: HTMLCanvasElement; private img: ImageData;
@@ -146,7 +151,25 @@ export class Stage {
     }
   }
 
-  feed(events: Event[]) { this.queue.push(...events); if (this.queue.length) this.busy = true; }
+  feed(events: Event[]) { this.queue.push(...events); if (this.queue.length) { this.busy = true; this.panX = this.panY = 0; } }
+  /** Slides a zoomed-in view by a drag, in view pixels; the view goes back to the action on the next turn or shot. */
+  pan(dx: number, dy: number) { this.panX += dx; this.panY += dy; }
+  /** A point on the canvas (in view pixels) as a point on the map, allowing for the camera. */
+  toWorld(px: number, py: number): [number, number] { return [(px - VIEW_W / 2) / this.zoom + this.camX, (py - VIEW_H / 2) / this.zoom + this.camY]; }
+  /** Moves the camera towards what matters now: the shot in the air, the blast, whoever is being knocked about, or whoever's turn it is. */
+  private follow(dt: number) {
+    const e = this.cur, s = e && 'id' in e && e.type !== 'turn' ? this.sprites[e.id] : this.sprites[this.activeId];
+    let [tx, ty] = [(s.x + 0.5) * CELL + this.panX, (s.y - UNIT_UP) * CELL + this.panY];
+    if (e?.type === 'shot' && e.path.length) [tx, ty] = this.ball(e);
+    else if (e?.type === 'boom') [tx, ty] = [e.x * CELL, e.y * CELL];
+    // Keep the view inside the map; at zoom 1 that pins it to the middle.
+    const hw = VIEW_W / 2 / this.zoom, hh = VIEW_H / 2 / this.zoom;
+    tx = Math.max(hw, Math.min(VIEW_W - hw, tx)); ty = Math.max(hh, Math.min(VIEW_H - hh, ty));
+    // A pan cannot push the view past the edge and then have to be dragged all the way back.
+    if (!e) { this.panX = tx - (s.x + 0.5) * CELL; this.panY = ty - (s.y - UNIT_UP) * CELL; }
+    const k = this.snap ? 1 : 1 - Math.exp(-dt * 7);
+    this.camX += (tx - this.camX) * k; this.camY += (ty - this.camY) * k; this.snap = false;
+  }
   /** Copies where everything stands from the engine. Only safe when nothing is playing. */
   sync(m: Match) {
     for (const s of this.sprites) { const u = m.units[s.id]; s.x = s.fx = s.tx = u.x; s.y = s.fy = s.ty = u.y; s.hp = u.hp; s.alive = u.alive; if (!u.alive) s.fade = 1; }
@@ -157,6 +180,7 @@ export class Stage {
     this.queue.length = 0; this.cur = null; this.busy = false;
     this.ground = m.terrain.slice(); this.paint(0, 0, W - 1, H - 1);
     this.sync(m);
+    this.panX = this.panY = 0; this.snap = true;
     // The banner may still name whoever's turn was skipped past.
     if (m.state === 'aim') { this.banner = `${m.active.name}’s turn`; this.bannerLife = 1.3; } else this.bannerLife = 0;
   }
@@ -165,7 +189,7 @@ export class Stage {
     this.cur = e; this.t = 0; this.dur = 0;
     const s = 'id' in e ? this.sprites[e.id] : null;
     if (e.type === 'turn') {
-      this.activeId = e.id; this.wind = e.wind; this.turn = e.turn;
+      this.activeId = e.id; this.wind = e.wind; this.turn = e.turn; this.panX = this.panY = 0;
       this.banner = `${m.units[e.id].name}’s turn`; this.bannerLife = 1.3; this.dur = 0.45; this.sfx('turn');
     } else if (e.type === 'shot') {
       this.dur = e.path.length / 2 / PATH_RATE; this.sfx(e.marker ? 'hop' : `launch-${e.ride}`);
@@ -225,6 +249,7 @@ export class Stage {
     }
     this.busy = !!this.cur || this.queue.length > 0;
     if (!this.busy) this.sync(m);
+    this.follow(dt);
   }
   /** Where the projectile of a shot event is right now, in view pixels. */
   private ball(e: Extract<Event, { type: 'shot' }>): [number, number] {
@@ -255,6 +280,7 @@ export class Stage {
     c.fillStyle = pit; c.fillRect(0, VIEW_H - 46, VIEW_W, 46);
 
     if (this.shake > 0) c.translate((Math.random() - 0.5) * this.shake, (Math.random() - 0.5) * this.shake);
+    c.translate(VIEW_W / 2, VIEW_H / 2); c.scale(this.zoom, this.zoom); c.translate(-this.camX, -this.camY);
     c.imageSmoothingEnabled = false;
     c.drawImage(this.land, 0, 0, VIEW_W, VIEW_H);
     c.imageSmoothingEnabled = true;
@@ -294,10 +320,16 @@ export class Stage {
     c.font = '900 15px ui-sans-serif, system-ui, sans-serif'; c.textAlign = 'center';
     for (const f of this.floats) { c.globalAlpha = Math.min(1, f.life * 2); c.lineWidth = 3; c.strokeStyle = 'rgba(18, 14, 26, 0.85)'; c.strokeText(f.text, f.x, f.y); c.fillStyle = f.color; c.fillText(f.text, f.x, f.y); }
     c.globalAlpha = 1;
+    if (o.charging >= 0) {
+      const u = m.active, x = (u.x + 0.5) * CELL, y = (u.y - 28) * CELL;
+      c.fillStyle = 'rgba(18, 14, 26, 0.8)'; c.fillRect(x - 26, y, 52, 7);
+      c.fillStyle = '#ffcf5a'; c.fillRect(x - 25, y + 1, 50 * (o.charging / 100), 5);
+    }
     c.restore();
 
     if (this.dusk) { c.fillStyle = 'rgba(40, 24, 70, 0.22)'; c.fillRect(0, 0, VIEW_W, VIEW_H); }
     // Wind gauge: the arrow's length is the wind's strength.
+    c.save(); c.translate(VIEW_W / 2, 0); c.scale(this.hud, this.hud); c.translate(-VIEW_W / 2, 0);
     const gx = VIEW_W / 2, gy = 26, len = 10 + (Math.abs(this.wind) / MAX_WIND) * 70, dir = Math.sign(this.wind);
     c.fillStyle = 'rgba(18, 14, 26, 0.72)'; c.beginPath(); c.roundRect(gx - 60, gy - 18, 120, 38, 10); c.fill();
     c.textAlign = 'center'; c.fillStyle = '#ffffff'; c.font = '900 13px ui-sans-serif, system-ui, sans-serif';
@@ -314,10 +346,6 @@ export class Stage {
       c.lineWidth = 5; c.strokeStyle = 'rgba(18, 14, 26, 0.85)'; c.strokeText(this.banner, VIEW_W / 2, 78);
       c.fillStyle = '#fff6d8'; c.fillText(this.banner, VIEW_W / 2, 78); c.globalAlpha = 1;
     }
-    if (o.charging >= 0) {
-      const u = m.active, x = (u.x + 0.5) * CELL, y = (u.y - 28) * CELL;
-      c.fillStyle = 'rgba(18, 14, 26, 0.8)'; c.fillRect(x - 26, y, 52, 7);
-      c.fillStyle = '#ffcf5a'; c.fillRect(x - 25, y + 1, 50 * (o.charging / 100), 5);
-    }
+    c.restore();
   }
 }

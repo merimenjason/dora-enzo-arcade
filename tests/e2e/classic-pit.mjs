@@ -17,7 +17,7 @@ try {
  await page.waitForFunction(()=>!document.querySelector('.classic-pit-primary')?.disabled);
  assert.equal(await page.locator('.classic-pit-kits button').count(),3);
  await page.getByRole('button',{name:/Browse all 20 weapons/}).click();
- assert.equal(await page.locator('.classic-pit-catalog article').count(),21);
+ assert.equal(await page.locator('.classic-pit-catalog article').count(),20);
  await page.keyboard.press('Escape');
  await page.getByRole('button',{name:'Into the burrow',exact:true}).click();
  await page.waitForSelector('.classic-pit-intro',{state:'hidden'});

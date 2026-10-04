@@ -77,6 +77,8 @@ try {
   assert.equal(await page.locator('[data-testid="order"] i').count(), 6);
   assert.match(await page.getByTestId('unit-0').textContent(), /Dora.*Hay Catapult · 125\/125/);
   assert.ok(await page.getByTestId('fire').isEnabled());
+  assert.equal(await page.getByTestId('board').getAttribute('data-zoom'), '1', 'a wide screen shows the whole map');
+  assert.equal(await page.getByTestId('zoom').count(), 0);
 
   // The sliders set the aim.
   await page.getByTestId('angle').fill('70');
@@ -202,6 +204,35 @@ try {
   assert.ok(small.width <= 390 && small.width >= 340, `the board fits a phone (got ${Math.round(small.width)})`);
   assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'nothing spills sideways');
   assert.ok(await phone.getByTestId('fire').isVisible());
+  // The camera closes in on whoever's turn it is, and dragging still aims where the finger points.
+  await phone.waitForSelector('[data-testid="board"][data-zoom="2"]');
+  await phone.waitForTimeout(600);
+  const who = await active(phone), cam = await game(phone, 't => t.stage.toWorld(400, 225)');
+  // Half the map's width is on screen, so near the left edge the view stops at 200.
+  assert.ok(Math.abs(cam[0] - Math.max(200, (who.x + 0.5) * 2)) < 4, `the view is on the chinchilla whose turn it is (got ${cam[0]})`);
+  const spot = (wx, wy) => [small.x + (((wx - cam[0]) * 2 + 400) / 800) * small.width, small.y + (((wy - cam[1]) * 2 + 225) / 450) * small.height];
+  const cx = (who.x + 0.5) * 2, cy = (who.y - 7) * 2;
+  await phone.mouse.move(...spot(cx + 40, cy - 40));
+  await phone.mouse.down();
+  await phone.mouse.move(...spot(cx + 70, cy - 70));
+  await phone.mouse.up();
+  const aimed = await active(phone);
+  assert.ok(Math.abs(aimed.angle - 45) <= 2, `dragging aims through the camera (got ${aimed.angle})`);
+  assert.ok(Math.abs(aimed.power - Math.round(Math.hypot(70, 70) / 2.6)) <= 2, `and sets the power by distance on the map (got ${aimed.power})`);
+  // A long shot is followed in the air.
+  await phone.getByTestId('power').fill('90');
+  await phone.getByTestId('fire').click();
+  await phone.waitForSelector('[data-testid="board"][data-busy="1"]');
+  await phone.waitForTimeout(500);
+  const chase = await game(phone, 't => t.stage.toWorld(400, 225)');
+  assert.ok(chase[0] > cam[0] + 10, 'the camera follows the shot');
+  await phone.screenshot({ path: '.checks/burrow-barrage/phone-flight.png' });
+  await phone.keyboard.press('Enter');
+  await idle(phone);
+  // The whole map is one tap away.
+  await phone.getByTestId('zoom').click();
+  assert.equal(await phone.getByTestId('board').getAttribute('data-zoom'), '1');
+  assert.match(await phone.getByTestId('zoom').textContent(), /Zoom in/);
   await phone.screenshot({ path: '.checks/burrow-barrage/phone.png' });
   await phone.close();
 
