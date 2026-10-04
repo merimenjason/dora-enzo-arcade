@@ -6,9 +6,8 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Current state
 
-- **21 games** on `main` and live at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was built on 04-10-2026 on the branch `feat/burrow-tactics`, which is stacked on `feat/dustbound-combat`; it is in a draft pull request and not merged.
-- The last game commit on `main` is `d0a02a6` (30-09-2026), which added Chinchilla Scribble.
-- The documentation round of 03-10-2026 is committed on the branch `docs/handoff-and-agent-guide`, which `feat/dustbound-combat` is built on; neither is merged to `main`: this file (replacing `HANDOVER.md`), the expanded `CLAUDE.md`, a README pointer, a changelog entry, and the prompt-audit edits to `AGENTS.md` and `.claude/skills/graft/SKILL.md` (see **Agent configuration**).
+- **23 games** on `main` and live at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
+- Game 23, **Burrow Barrage** (`/barrage`), was added on 04-10-2026. It has been tuned with its bot only and not yet played by hand; see **Burrow Barrage, briefly**.
 - Left uncommitted in the working tree, and not reviewed in that round: `.claude/helpers/graft-hooks.cjs`, `.claude/helpers/graft-statusline.cjs`, and six added lines about reporting dollar savings in `.claude/skills/graft/SKILL.md`. All three were modified before the round began.
 
 In that round only `tests/readme.mjs` was rerun (it passes); the rest of `npm test`, the typecheck and the build were not, because no game code changed.
@@ -102,6 +101,17 @@ Game 22 (`/tactics`), turn-based tactics in the style of Into the Breach. Rules 
 - **Chapter two** (added 04-10-2026, the same day): classes with a perk each (`CLASSES`), a second action per chinchilla (`Unit.skill`), ice, high ground and fire, the objectives `escort` and `hunt` and the nursery burrow (`BattleDef.goal`, `key`), the mole, skunk and Great Bear, a deployment step (`Battle.state === 'deploy'`, `zone`, `place`, `ready`), run difficulty (`DIFFICULTY`), and the guided first mission (`guide` in the page). Design: `docs/superpowers/specs/04-10-2026-burrow-tactics-chapter-two-design.md`.
 - Saves: `burrow-tactics-v1` (stars, sound, difficulty, best runs) and `burrow-tactics-run-v2` (the run in progress). Test hook: `window.__tactics()` returns `{ battle, stage, run }`.
 
+### Burrow Barrage, briefly
+
+`lib/burrow-barrage-game.ts`, `lib/burrow-barrage-scene.ts`, `app/barrage/`, `tests/burrow-barrage.mjs`, `tests/burrow-barrage-bot.mjs`, `tests/e2e/burrow-barrage.mjs`. Save key `burrow-barrage-v1`; test hook `__barrage()`. Full notes in [`docs/burrow-barrage.md`](docs/burrow-barrage.md).
+
+- **The ground is a grid of cells** (`Match.terrain`, 400 × 225). Shots carve circles out of it and units drop onto whatever is left; falling out of the bottom or being shoved off the side is a knock-out.
+- **`flight()` changes nothing**, and both the real shot and the computer's search use it. Keep it that way, so what the computer plans is what happens.
+- **The engine does not animate.** `fire()` resolves the whole turn and leaves `Match.events`; `Stage.feed()` plays them, and `Stage` carves its own copy of the ground when each blast is shown.
+- **Turn order is by wait** (`Unit.delay`), not rounds: the lowest goes next.
+- **Balance knobs:** the `RIDES` and `ITEMS` tables, `AI_LEVELS`, and the constants at the top of the engine (`GRAVITY`, `SPEED`, `WIND_PULL`, `DUSK_TURN`). Small changes swing the ride win rates a long way, so rerun `npm run bot:barrage` with `SEEDS=5` after any of them.
+- **Not checked by a person:** the speed of the power bar (`CHARGE_RATE` in the page), how a shot looks in flight, and the crater sizes. On a phone the chinchillas are small because the whole map is always on screen.
+
 ## Checking your work
 
 ```sh
@@ -117,6 +127,8 @@ npm run bot:cvz
 npm run test:scribble
 npm run test:tactics
 npm run bot:tactics
+npm run test:barrage
+npm run bot:barrage
 ```
 
 Browser tests need `npm run dev` running and Playwright. Playwright is **not** in `devDependencies`. Install it with `npm i -D playwright`, or link a global copy (`ln -s "$(npm root -g)/playwright" node_modules/playwright`). Then run one suite, such as `node tests/e2e/scribble.mjs`, or the whole `npm run test:e2e`. The browser tests write screenshots to `.checks/<game>/`, which git ignores.

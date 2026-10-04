@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-Twenty-two original browser games starring two chinchillas, served from one arcade menu at `/`. Live at https://chinchillas.jason.engineering. `README.md` has the full game list, per-game guides and the deployment guide; `HANDOFF.md` has the current state of the work.
+Twenty-three original browser games starring two chinchillas, served from one arcade menu at `/`. Live at https://chinchillas.jason.engineering. `README.md` has the full game list, per-game guides and the deployment guide; `HANDOFF.md` has the current state of the work.
 
 ## Commands
 
@@ -27,7 +27,7 @@ Each game is split three ways, and new games follow the same split:
 
 Progress is saved in `localStorage` under a versioned key per game (for example `hay-maze-run-v1`). When a save format changes, bump the version so old saves are ignored, not misread.
 
-The five newest games expose the running game on `window` (for example `window.__maze()`) for the browser tests.
+The six newest games expose the running game on `window` (for example `window.__maze()`) for the browser tests.
 
 `components/` is the stock shadcn UI kit; only a handful of pages import from it.
 

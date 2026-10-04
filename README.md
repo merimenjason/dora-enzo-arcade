@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of twenty-two original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of twenty-three original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -32,6 +32,7 @@ Listed in arcade-menu order.
 | 20 | Chinchillas vs Zombies | `/chinchillas-vs-zombies` | Lane defence |
 | 21 | Chinchilla Scribble | `/scribble` | Word puzzle |
 | 22 | Burrow Tactics | `/tactics` | Turn-based tactics |
+| 23 | Burrow Barrage | `/barrage` | Turn-based artillery |
 
 ## Run
 
@@ -563,6 +564,40 @@ Browser: `tests/e2e/burrow-tactics.mjs` checks the menu card and the locked miss
 
 **Docs:** [`docs/burrow-tactics.md`](docs/burrow-tactics.md).
 
+### 23 · Burrow Barrage (`/barrage`)
+
+**Play:** Turn-based artillery in the style of Gunbound, drawn in Canvas 2D. Two teams of two take turns: walk a little, set the **angle** and the **power**, and fire across ground that every shot digs away. **Wind** (up to 10 either way, drifting each turn) bends every shot. A blast hurts everyone in its reach, your own side included, with full damage on a direct hit falling to 35% at the edge. A chinchilla with no ground left under it falls, and one that falls through the bottom of the map or is shoved off its side is out at once; so is one at 0 health. There are no fixed rounds: every action adds to a chinchilla's **wait**, and whoever has waited least goes next, so a quick shot can earn two turns before a slow one. From turn 49 everyone loses 8 health a turn.
+
+Each chinchilla rides one of four **rides**, each with two shots and a **big shot** that takes three turns to charge. The **Hay Catapult** (125 health) throws bales that hit hard and dig wide. The **Seed Spitter** (110) fires fans of seeds and has the shortest waits. The **Tunnel Digger** (120) fires shots that tunnel through the ground before they burst, and a Sinkhole that digs a crater of 22. The **Dust Cannon** (115) has wide, soft blasts that shove whatever they reach, up to 34 cells. Every chinchilla also carries three items, once a match each: **Double Shot** fires twice, **Dandelion** heals 40 in place of a shot, and **Burrow Hop** moves you to wherever a lobbed marker lands.
+
+**The ladder** is six matches against rival pairs, one on each of the six maps (Clover Meadow, Mossy Valley, The Mound, Rope Bridge, Sky Ledges, Broken Crags), with the rivals' aim rising from Sleepy through Sharp to Deadeye. A win is worth one star, two with both Dora and Enzo still in, three with half their health left as well. **Pass and play** puts two people on one device, on any map with any rides. Stars and Dora's and Enzo's rides are saved in the browser; a match in progress is not.
+
+**Controls:**
+
+- Drag on the board to aim: the direction from your chinchilla is the angle and the distance is the power. The angle and power sliders do the same. Dots show the start of the shot's path.
+- **Fire** shoots at the power shown. Or hold Space to charge the power from 0 and let go to fire.
+- ← and → walk (or hold the ◀ ▶ buttons); walking the other way turns the chinchilla round. ↑ and ↓ raise and lower the barrel.
+- 1, 2 and 3 pick the shot. Q, W and E pick Double Shot, Dandelion and Burrow Hop; pressing again puts the item away.
+- **Skip turn** passes with a short wait. F changes the animation speed (1×, 2×, 3×). M turns sound on and off. A click, or Enter, during an animation skips to its end.
+
+**Tests:** `npm run test:barrage` (also in `npm test`) compiles `lib/burrow-barrage-game.ts` and runs `tests/burrow-barrage.mjs`:
+
+- every map starting four chinchillas on mirrored ground, and who goes first;
+- flight: power, mirrored angles, wind and shots leaving the map;
+- craters, damage falling off with distance, hurting yourself and a teammate;
+- falling when the ground is dug away, knock-outs, a draw, and shoving along the ground and off a ledge;
+- the Tunnel Digger's shot passing through a wall, the big shot's charge, and the three items;
+- walking, its limits, the aim limits, skipping, the wait-based turn order and dusk;
+- the same seed replaying the same match, and a copy playing on its own;
+- the computer's plan hitting, sparing its own side, healing, and digging towards rivals it cannot reach;
+- every ride reaching a rival from the start of every map, the stars, and a Deadeye pair winning each ladder match.
+
+`npm run bot:barrage` plays computer against computer for every pairing of rides on every map and reports each ride's win rate, how often going first wins, and the ladder; it fails if any ride wins under 30% or over 70% of its matches. Set `SEEDS` for more matches per pairing.
+
+Browser: `tests/e2e/burrow-barrage.mjs` checks the menu card and the locked ladder, choosing rides, aiming with the sliders and by dragging, walking, firing and the rival's reply, the shots and items, winning a match and its saved stars, pass and play, and a phone-sized screen.
+
+**Docs:** [`docs/burrow-barrage.md`](docs/burrow-barrage.md).
+
 ## Validation
 
 ```sh
@@ -577,7 +612,7 @@ npm run test:e2e   # optional; needs `npm run dev` running and `npm i -D playwri
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-two ways/` assertion in `tests/e2e/dust-bath.mjs`, the 22-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs` and `tests/e2e/scribble.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-three ways/` assertion in `tests/e2e/dust-bath.mjs`, the 23-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs` and `tests/e2e/burrow-barrage.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
