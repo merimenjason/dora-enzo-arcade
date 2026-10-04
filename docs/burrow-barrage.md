@@ -51,6 +51,7 @@ Six, each 400 × 225 cells and mirrored left to right: Clover Meadow (gentle hil
 - **Engine**, `lib/burrow-barrage-game.ts`. A `Match` is plain data: the ground as a `Uint8Array` of solid and empty cells, four units, the wind, and the seed. `flight()` flies a shot without changing anything, and both the real shot and the computer use it, so what the computer plans is what happens. `fire()` resolves a whole turn at once and leaves `events` for the scene.
 - **Scene**, `lib/burrow-barrage-scene.ts`. `Stage` plays the events back in order and keeps its own copy of the ground, so a crater appears when its shot lands on screen. The ground is painted a cell at a time into an off-screen canvas and drawn at twice the size.
 - **Page**, `app/barrage/page.tsx`. Input, the loop, the computer's turns, saving. The save key is `burrow-barrage-v1` (stars, sound, and Dora's and Enzo's rides). A match in progress is not saved.
+- **Camera.** When the board is drawn under 620 pixels wide (a phone), `Stage.zoom` is 2: the view centres on whoever's turn it is, follows the shot and then the blast, and can be dragged about with two fingers (`Stage.pan`). **Whole map** in the header, or Z, switches back to zoom 1. The page aims through `Stage.toWorld()`, so a drag means the same on the map at any zoom. The wind gauge and the turn banner are drawn larger on a small board (`Stage.hud`). On a wide screen the whole map is always shown.
 - **Test hook:** `window.__barrage()` returns `{ match, stage, plan }`; `plan()` is the computer's exact plan for whoever's turn it is.
 
 ### The computer
@@ -73,6 +74,5 @@ The bot fails if any ride wins under 30% or over 70% of its matches. Rerun it af
 ## Known limits
 
 - **Not played by hand.** See the note at the top.
-- **Small on a phone.** The whole map is always on screen, so on a narrow screen the chinchillas are about 12 pixels wide. There is no camera or zoom.
 - **No saving mid-match**, and no online play: the arcade has no game server.
 - **The aiming guide** shows only the start of a shot's path, wind included.
