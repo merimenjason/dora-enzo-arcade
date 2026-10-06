@@ -6,9 +6,10 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Current state
 
-- **24 games**: 23 on `main` and live at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
+- **25 games**: 23 on `main` and live at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
 - Game 23, **Burrow Barrage** (`/barrage`), was added on 04-10-2026. It has been tuned with its bot only and not yet played by hand; see **Burrow Barrage, briefly**. Its phone camera and a fix to the Chin x Pit browser test followed on the same day (PR #7).
 - Game 24, **Summit Shuffle** (`/summit`), was built on 06-10-2026: a deck-building climb in the style of Slay the Spire. It too has been balanced with its bot only; see **Summit Shuffle, briefly**. The same change moved the 2D predator drawings out of `lib/burrow-tactics-scene.ts` into a shared `lib/predator-art.ts`, which both games now use.
+- Game 25, **Poof Panic** (`/poof`), was also built on 06-10-2026: a versus falling-pair puzzler in the style of Puyo Puyo. Its rivals were set with its bot only; see **Poof Panic, briefly**.
 - Left uncommitted in the working tree, and not reviewed in that round: `.claude/helpers/graft-hooks.cjs`, `.claude/helpers/graft-statusline.cjs`, and six added lines about reporting dollar savings in `.claude/skills/graft/SKILL.md`. All three were modified before the round began.
 
 For Summit Shuffle the typecheck, `npm test`, the build and the browser suites were all rerun on 06-10-2026.
@@ -127,6 +128,16 @@ Game 22 (`/tactics`), turn-based tactics in the style of Into the Breach. Rules 
 - **The scene draws at the canvas's own size** in CSS pixels, so a phone gets full-size text; predators share the line in proportion to their size.
 - **Balance knobs:** the numbers in the cards file, the moves and health in the foes file, `HEROES`, `ALTITUDES`, `NAP`, the row weights (`WEIGHTS`) and reward odds (`offer()`). The game is sensitive: an early pair of altitude rules (12% more predator health and 10% harder hits) took the bot from about 50% to about 5%. Rerun `npm run bot:summit` after any change; `npm test` holds Base Camp between 50% and 95% for the bot.
 - **Not checked by a person:** how fast the animations feel, whether tap-to-choose then tap-to-play is comfortable, and how hard each altitude is for someone who is not the bot.
+
+### Poof Panic, briefly
+
+`lib/poof-panic-game.ts` (rules, rivals, lessons), `lib/poof-panic-scene.ts`, `app/poof/page.tsx`. [`docs/poof-panic.md`](docs/poof-panic.md) has every number.
+
+- **One tick, one input.** A `Board` advances in 60 ticks a second and takes one `Input` a tick. The page's `Pad` turns held keys and touches into those inputs; a rival's `Brain` produces the same thing, so rivals move pairs press by press like a player.
+- **The grid functions are shared.** `collapse`, `findPops`, `resolve` and `land` are used by the board, by the rivals when they weigh a placement, and by `solve`, which checks the lessons. Change a rule there and all three follow.
+- **Rivals are a row of numbers** in `RIVALS`; `harder()` makes the hard-ladder version. After changing any of them run `npm run bot:poof`, which fails if a rival stops beating the one below it. The bot is not part of `npm test`.
+- **Dust has two counters**: `incoming` while the sender's chain is still running, `pending` once it may fall. `give()` cancels against both before sending.
+- **Not yet played by hand.** How fast the pairs feel, whether the touch gestures are comfortable, and whether Mossy and Pongo are gentle enough for a first-time player are guesses from the bot's stand-in players.
 
 ## Checking your work
 

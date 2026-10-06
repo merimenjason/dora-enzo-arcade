@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of twenty-four original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of twenty-five original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -34,6 +34,7 @@ Listed in arcade-menu order.
 | 22 | Burrow Tactics | `/tactics` | Turn-based tactics |
 | 23 | Burrow Barrage | `/barrage` | Turn-based artillery |
 | 24 | Summit Shuffle | `/summit` | Deck-building climb |
+| 25 | Poof Panic | `/poof` | Versus puzzle |
 
 ## Run
 
@@ -637,6 +638,37 @@ Browser: `tests/e2e/summit-shuffle.mjs` checks the menu card, the home screen an
 
 **Docs:** [`docs/summit-shuffle.md`](docs/summit-shuffle.md).
 
+### 25 · Poof Panic (`/poof`)
+
+**Play:** A versus falling-pair puzzler in the style of Puyo Puyo, drawn in Canvas 2D. Pairs of fluff balls fall into a well 6 columns wide and 12 rows tall. Four or more of one colour that touch pop, whatever sat on top falls, and a pop caused by that fall is the next link of a **chain**. A link scores 10 points a ball times its bonuses, and the chain bonus grows fast: four balls are 40 points, the second link of a chain 320, the third 640. Every 70 points become one **dust clump** for your rival. Your own pops cancel dust waiting above your board before they send any. Dust lands after a pair that popped nothing, 30 clumps at most at a time, and clears when something pops beside it. Emptying your whole board is a **clean sweep**, worth 30 extra clumps on your next pop. A round is lost when the cell marked ✕ at the top of the third column fills. Both boards are dealt the same pairs.
+
+The **rival ladder** is six predators, each match first to two rounds: Mossy the Mole, Pongo the Skunk, Whip the Weasel, Brock the Badger, Professor Hoot the Owl and Sierra the Cougar, from one who pops whatever turns up to one who plans two pairs ahead and builds four-chains. Climbing it with a chinchilla opens the **hard ladder** for that chinchilla. **Free match** replays any rival you have reached. **Endless** has no rival: the pairs fall faster every 12 placed, and from level 4 each new level blows dust in. **Chain lessons** are twelve set boards that teach stairs, sandwiches, digging out dust and the clean sweep, up to a five-chain. Dora and Enzo differ in how the odd clumps of their dust land: Dora's scatter over different columns, Enzo's land side by side in a heap. The climb in progress, records and finished lessons are kept in the browser.
+
+**Controls:**
+
+- ← and → (or A and D) move the pair; hold to keep moving. ↓ (or S) drops it faster. Space drops it to the floor.
+- ↑, X or W turn the pair to the right; Z or Q turn it to the left. In a gap one column wide, two quick presses swap the two balls.
+- P or Esc pauses. G shows or hides the landing guide. M turns sound on and off. Enter presses the main button on a card. R restarts a lesson.
+- Touch: drag sideways to move, tap the right half of the board to turn right and the left half to turn left, pull down to drop faster, flick down to drop to the floor.
+
+**Tests:** `npm run test:poof` (also in `npm test`) compiles `lib/poof-panic-game.ts` and runs `tests/poof-panic.mjs`:
+
+- the bag: a seed dealing the same pairs, three colours in the first two pairs;
+- the grid: what pops and what does not, the hidden row, dust beside a pop, falling, and the points for chains, colours and group sizes;
+- moving a pair: walls, turning off walls and the floor, the swap in a narrow gap, soft drop, the lock delay, and pairs that wait in lessons;
+- splitting, a three-chain going off link by link, and the events it reports;
+- dust: held until a chain ends, cancelling, 30 at a time, sprinkles and heaps, the clean sweep, cheaper clumps after 96 seconds, and topping out;
+- keys: auto-repeat, the newer key winning, and a tap shorter than a tick;
+- rivals: each quicker and tidier than the last, a seed replaying a round exactly, and the cougar putting pairs where it planned and building a four-chain;
+- endless levels and dust;
+- all twelve lessons solved by search and then played through a real board.
+
+`npm run bot:poof` plays three stand-in players against every rival and each rival against the one below it, and fails if a rival does not beat the one below it at least half the time or a round never ends. Set `RUNS` for more rounds, `HARD=1` for the hard ladder and `TRIAL=1` to print without checking.
+
+Browser: `tests/e2e/poof-panic.mjs` checks the menu card, the home screen, moving, turning and dropping by keyboard, pausing, a whole match played on fast forward, losing a match, carrying a climb on, free matches, the top of the ladder and the hard ladder opening, endless and its record, two lessons with a miss and a hint, and dragging, tapping and flicking on a phone-sized screen.
+
+**Docs:** [`docs/poof-panic.md`](docs/poof-panic.md).
+
 ## Validation
 
 ```sh
@@ -651,7 +683,7 @@ npm run test:e2e   # optional; needs `npm run dev` running and `npm i -D playwri
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-four ways/` assertion in `tests/e2e/dust-bath.mjs`, the 24-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs` and `tests/e2e/summit-shuffle.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-five ways/` assertion in `tests/e2e/dust-bath.mjs`, the 25-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs` and `tests/e2e/poof-panic.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

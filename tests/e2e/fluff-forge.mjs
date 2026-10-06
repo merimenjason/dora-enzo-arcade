@@ -12,7 +12,7 @@ try {
   // The arcade lists the new cabinet.
   const menu = await browser.newPage();
   await menu.goto(base);
-  assert.equal(await menu.locator('.arcade-card').count(), 24);
+  assert.equal(await menu.locator('.arcade-card').count(), 25);
   assert.match(await menu.locator('a.arcade-card[href="/fluff-forge"]').textContent(), /Fluff Forge/);
   await menu.close();
 
