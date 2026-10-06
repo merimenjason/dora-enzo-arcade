@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 06-10-2026
+
+### Added
+
+- **Summit Shuffle** (`/summit`), game 24: a deck-building climb in the style of Slay the Spire. Dora or Enzo sets out with ten plain cards and climbs three stretches of mountain, choosing a route through fights, alpha predators, rest burrows, treat stalls, hidden stashes and chance meetings to a guardian at the top of each. Every predator shows what it will do next. Fights are played with a hand of five cards and three energy: attacks, Fluff that soaks up damage, and statuses such as Zoomies, Exposed, Winded and Burrs. There are 48 cards to find, each with an upgrade, 30 trinkets, 27 predators and eight chance meetings. Dora's Ruby Bell opens every fight with extra cards and energy; Enzo's Grey Scarf mends him after each one. Reaching the summit opens the next of six altitudes for that chinchilla. Climbs are saved after every choice, and a card book records what you have seen. On a phone the hand becomes five small cards across.
+
 ## 04-10-2026
 
 ### Added

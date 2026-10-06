@@ -1,4 +1,4 @@
-# Handoff · 04-10-2026
+# Handoff · 06-10-2026
 
 Where Dora & Enzo's Arcade stands, how the newest games fit together, how to check your work, and what is worth doing next. For the arcade as a whole, start with [`README.md`](README.md); for how the code is laid out and the traps to avoid, [`CLAUDE.md`](CLAUDE.md); for the documentation and changelog rules, [`AGENTS.md`](AGENTS.md).
 
@@ -6,11 +6,12 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Current state
 
-- **23 games** on `main` and live at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
-- Game 23, **Burrow Barrage** (`/barrage`), was added on 04-10-2026. It has been tuned with its bot only and not yet played by hand; see **Burrow Barrage, briefly**.
+- **24 games**: 23 on `main` and live at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
+- Game 23, **Burrow Barrage** (`/barrage`), was added on 04-10-2026. It has been tuned with its bot only and not yet played by hand; see **Burrow Barrage, briefly**. Its phone camera and a fix to the Chin x Pit browser test followed on the same day (PR #7).
+- Game 24, **Summit Shuffle** (`/summit`), was built on 06-10-2026: a deck-building climb in the style of Slay the Spire. It too has been balanced with its bot only; see **Summit Shuffle, briefly**. The same change moved the 2D predator drawings out of `lib/burrow-tactics-scene.ts` into a shared `lib/predator-art.ts`, which both games now use.
 - Left uncommitted in the working tree, and not reviewed in that round: `.claude/helpers/graft-hooks.cjs`, `.claude/helpers/graft-statusline.cjs`, and six added lines about reporting dollar savings in `.claude/skills/graft/SKILL.md`. All three were modified before the round began.
 
-In that round only `tests/readme.mjs` was rerun (it passes); the rest of `npm test`, the typecheck and the build were not, because no game code changed.
+For Summit Shuffle the typecheck, `npm test`, the build and the browser suites were all rerun on 06-10-2026.
 
 ## What shipped recently
 
@@ -112,6 +113,21 @@ Game 22 (`/tactics`), turn-based tactics in the style of Into the Breach. Rules 
 - **Balance knobs:** the `RIDES` and `ITEMS` tables, `AI_LEVELS`, and the constants at the top of the engine (`GRAVITY`, `SPEED`, `WIND_PULL`, `DUSK_TURN`). Small changes swing the ride win rates a long way, so rerun `npm run bot:barrage` with `SEEDS=5` after any of them.
 - **Not checked by a person:** the speed of the power bar (`CHARGE_RATE` in the page), how a shot looks in flight, and the crater sizes. The phone camera (`Stage.zoom`, `Stage.pan`, `Stage.toWorld`) has only been checked in a phone-sized browser window, not on a real phone.
 
+### Summit Shuffle, briefly
+
+`lib/summit-shuffle-game.ts` (rules), `lib/summit-shuffle-cards.ts` (cards, trinkets, statuses), `lib/summit-shuffle-foes.ts` (predators and encounters), `lib/summit-shuffle-scene.ts`, `app/summit/`, `tests/summit-shuffle.mjs`, `tests/summit-shuffle-bot.mjs`, `tests/e2e/summit-shuffle.mjs`. Save key `summit-shuffle-v1`; test hook `__summit()`. Full notes and every table in [`docs/summit-shuffle.md`](docs/summit-shuffle.md).
+
+- **A climb is one `Run` of plain data**: three stretches of six rows of stops and a guardian, 21 stops. `run.save()` and `Run.load()` round-trip it. Saved during a fight, it gives the moment before the fight, and loading walks back into the same fight.
+- **Three seeded streams** live in the run (`rng.map`, `rng.loot`, `rng.fight`), so nothing outside it affects a climb.
+- **Cards ask, the engine does.** A card's `play` calls the `Ops` interface (`hit`, `fluff`, `hex`, `buff`, `draw` and so on), which `Run` implements. Adding a card is one `add(...)` or `aimed(...)` line in the cards file, plus a number in the bot's `WANT` table.
+- **Predators are data.** Each has a table of moves and a `next` function that picks one; the engine turns the picked move into the intent on screen. Special behaviour keeps notes in the foe's `mem` (the dozing owl, the old fox's kits, the cougar's fury).
+- **Timed statuses on the chinchilla count down at the start of its turn**, and land one higher when a predator applies them, so the number shown is the turns still to be felt. On predators they count down at the end of the predator's turn.
+- **`run.clone()` copies everything but the maps.** The bot searches on clones; an earlier version shared the deck and trinkets, and fights won inside the search handed the real run their rewards.
+- **The finished fight stays on the run** (`run.fight`) until the stop is left, so the scene can still draw its last moments. `textOf()` and the page check `run.phase`, not `run.fight`, to know whether a fight is on.
+- **The scene draws at the canvas's own size** in CSS pixels, so a phone gets full-size text; predators share the line in proportion to their size.
+- **Balance knobs:** the numbers in the cards file, the moves and health in the foes file, `HEROES`, `ALTITUDES`, `NAP`, the row weights (`WEIGHTS`) and reward odds (`offer()`). The game is sensitive: an early pair of altitude rules (12% more predator health and 10% harder hits) took the bot from about 50% to about 5%. Rerun `npm run bot:summit` after any change; `npm test` holds Base Camp between 50% and 95% for the bot.
+- **Not checked by a person:** how fast the animations feel, whether tap-to-choose then tap-to-play is comfortable, and how hard each altitude is for someone who is not the bot.
+
 ## Checking your work
 
 ```sh
@@ -129,6 +145,8 @@ npm run test:tactics
 npm run bot:tactics
 npm run test:barrage
 npm run bot:barrage
+npm run test:summit
+npm run bot:summit
 ```
 
 Browser tests need `npm run dev` running and Playwright. Playwright is **not** in `devDependencies`. Install it with `npm i -D playwright`, or link a global copy (`ln -s "$(npm root -g)/playwright" node_modules/playwright`). Then run one suite, such as `node tests/e2e/scribble.mjs`, or the whole `npm run test:e2e`. The browser tests write screenshots to `.checks/<game>/`, which git ignores.
@@ -163,4 +181,5 @@ The lists for Clash, Hay Maze and Chinchillas vs Zombies date from 26-09-2026 an
 - **Chinchillas vs Zombies:** a night in progress isn't saved, only the nights won. There's no endless mode, no mini-games and no night-time or pool lawns. On a phone the lawn is small (tiles about 32 px); tap-to-preview keeps planting accurate.
 - **Chinchilla Scribble:** no bot plays the levels, and its limits haven't been written up.
 - **Burrow Tactics:** balance has only been tuned against the bot; nobody has played the campaign or a run by hand from start to finish. A campaign mission in progress is not saved. The hint looks one turn ahead only.
+- **Summit Shuffle:** balanced against the bot only. Both chinchillas use one card pool; a second pool, one-use treats, and more chance meetings are the obvious next additions. The bot plans one turn at a time, so cards that need setting up (Belly Flop, Puff Up, Sore Spot) score badly in its trials and may be stronger in a person's hands than their numbers suggest.
 - **Balance** has only been tuned against bots. Watch real players on levels 5–6 of Hay Maze, against Baron Ebony in Clash, and on nights 7–8 of Chinchillas vs Zombies, the hardest of each.

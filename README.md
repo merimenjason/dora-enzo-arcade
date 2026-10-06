@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of twenty-three original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of twenty-four original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -33,6 +33,7 @@ Listed in arcade-menu order.
 | 21 | Chinchilla Scribble | `/scribble` | Word puzzle |
 | 22 | Burrow Tactics | `/tactics` | Turn-based tactics |
 | 23 | Burrow Barrage | `/barrage` | Turn-based artillery |
+| 24 | Summit Shuffle | `/summit` | Deck-building climb |
 
 ## Run
 
@@ -599,6 +600,43 @@ Browser: `tests/e2e/burrow-barrage.mjs` checks the menu card and the locked ladd
 
 **Docs:** [`docs/burrow-barrage.md`](docs/burrow-barrage.md).
 
+### 24 · Summit Shuffle (`/summit`)
+
+**Play:** A deck-building climb in the style of Slay the Spire, drawn in Canvas 2D. Dora or Enzo sets out with 80 health and ten plain cards (five Nips, four Fluff Ups and a Dust Kick) and climbs three stretches of mountain: The Foothills, The Cliffs and The Snowline. Each stretch is a trail map of six rows of stops with a **guardian** at the top, 21 stops in all, and you choose your own route through it. Fights give seeds and a choice of one card from three; **alphas** are harder fights that also give a trinket; **rest burrows** heal 30% of your health or upgrade a card; **treat stalls** sell cards and trinkets and will take a card out of your deck; a **hidden stash** is a free trinket; and **something on the trail** is one of eight chance meetings.
+
+In a fight you draw 5 cards and have 3 energy each turn. Every predator shows what it will do next, with its damage worked out. **Fluff** soaks up damage until your next turn. **Zoomies** add to every hit, **Exposed** creatures take half as much again, **Winded** ones hit a quarter less, and **Burrs** wear a predator down at the start of each of its turns. There are 48 cards to find (18 common, 20 uncommon, 10 rare), each with an upgraded version, and 30 trinkets. The two chinchillas share the cards and differ by one trinket: Dora's **Ruby Bell** gives two more cards and one more energy on the first turn of every fight, and Enzo's **Grey Scarf** heals 5 after every fight.
+
+Reaching the summit opens the next of six **altitudes** for that chinchilla, each adding a rule: tougher predators, harder hits, thinner healing, a Fright in your deck, tougher guardians. A climb is saved after every choice; a climb left in the middle of a fight comes back at the start of that fight. Records, the cards and trinkets you have seen, and the climb in progress are kept in the browser.
+
+**Controls:**
+
+- Tap or click a card to choose it and read its rules as they stand; tap it again to play it. A card aimed at one predator is played on the marked foe, or on whichever predator you tap.
+- With no card chosen, tap a predator or your chinchilla to read its health, intent and statuses.
+- **End turn** hands over to the predators. Tap the board, or press Enter, to skip their animations.
+- 1 to 9 and 0 choose a card; pressing the number again, or Enter, plays it. ← and → change the foe. E ends the turn. Esc puts a card back.
+- **Draw**, **Discard** and **Deck** show the piles. F changes the animation speed (1×, 2×, 3×). M turns sound on and off.
+- On the trail, tap an open stop to walk to it.
+
+**Tests:** `npm run test:summit` (also in `npm test`) compiles `lib/summit-shuffle-game.ts` and runs `tests/summit-shuffle.mjs`:
+
+- the data: every card's text matching its numbers, every upgrade changing something, and every predator only ever picking a move it has;
+- a seed replaying a climb exactly;
+- the trail over 60 seeds: no dead ends, no crossing trails, a burrow before every guardian, and an alpha, a stall and a meeting on every stretch;
+- hitting, Fluff, and Exposed, Winded, Zoomies, Thick Fur, Matted and Burrs, with intents that match what then happens;
+- some thirty cards one by one, the cards nobody wants, the hand limit and the reshuffle;
+- predators: the fox's crouch and pounce, the thieving vizcacha, the dozing owl, the old fox's kits and the cougar's fury;
+- twenty-odd trinkets;
+- rewards, alphas, guardians, both endings, rest burrows, treat stalls and every option of every meeting;
+- saving, including walking back into the same fight, and a copy playing on without touching the original;
+- the six altitudes;
+- the bot reaching the summit from Base Camp between 50% and 95% of the time with each chinchilla, with Altitude 5 at least 20 points harder.
+
+`npm run bot:summit` climbs every altitude with both chinchillas and reports how often each reaches the summit, where climbs end, and how each card and trinket does. Set `RUNS` and `LEVELS` for more, `FIGHTS=1` for a line per fight, and `TRIAL=1` to measure each card by itself.
+
+Browser: `tests/e2e/summit-shuffle.mjs` checks the menu card, the home screen and its locked altitudes, the trail, choosing and playing cards by tap, on a predator and by keyboard, the piles, the predators' turn, saving in the middle of a fight, the reward, a burrow, a stall, a meeting, a guardian's trinkets, both endings and the saved record, a whole 21-stop climb through the page, and a phone-sized screen.
+
+**Docs:** [`docs/summit-shuffle.md`](docs/summit-shuffle.md).
+
 ## Validation
 
 ```sh
@@ -613,7 +651,7 @@ npm run test:e2e   # optional; needs `npm run dev` running and `npm i -D playwri
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-three ways/` assertion in `tests/e2e/dust-bath.mjs`, the 23-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs` and `tests/e2e/burrow-barrage.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-four ways/` assertion in `tests/e2e/dust-bath.mjs`, the 24-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs` and `tests/e2e/summit-shuffle.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
