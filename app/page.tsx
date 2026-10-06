@@ -23,14 +23,15 @@ const GAMES=[
  {href:'/scribble',title:'Chinchilla Scribble',tag:'NEW · WORD PUZZLE',blurb:'Write a word and it appears. Summon ladders, bridges, bombs and flying hay bales, stack adjectives, and help Dora and Enzo reach the golden wolfberry in twelve puzzles and a sandbox.',color:'#9a7ae8',art:'✏️'},
  {href:'/tactics',title:'Burrow Tactics',tag:'NEW · TURN-BASED TACTICS',blurb:'Predators show exactly what they will hit next. Move three chinchillas, push foxes into streams, brambles and each other, and keep the burrows standing through eighteen missions and a seven-battle run.',color:'#ffcf5a',art:'♟️'},
  {href:'/barrage',title:'Burrow Barrage',tag:'NEW · TURN-BASED ARTILLERY',blurb:'Two against two, one shot at a time. Set the angle and the power, mind the wind, and dig the ground out from under the other pair. Four rides, six maps, a ladder of rivals and pass-and-play for two.',color:'#b99cff',art:'🎯'},
+ {href:'/summit',title:'Summit Shuffle',tag:'NEW · DECK-BUILDING CLIMB',blurb:'Ten plain cards and a mountain to climb. Read what every predator will do next, play your hand, add a card after each fight, and pick your trail past alphas, burrows and treat stalls to the Cougar of the Summit.',color:'#7fc4e8',art:'🏔️'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">TWENTY-THREE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Twenty-three ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, twenty-three cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">TWENTY-FOUR ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Twenty-four ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, twenty-four cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <nav className="arcade-grid" aria-label="Choose a game">
    {GAMES.map((game,i)=><a key={game.href} href={game.href} className="arcade-card" style={{'--game-color':game.color} as React.CSSProperties}>
