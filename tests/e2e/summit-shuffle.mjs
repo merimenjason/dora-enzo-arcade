@@ -71,6 +71,11 @@ try {
   await page.waitForSelector('[data-testid="map"]');
   let t = await top(page);
   assert.deepEqual([t.phase, t.hp, t.stop, t.act, t.deck], ['map', 80, 0, 0, 10]);
+  // A stop says what it is when the mouse rests on it, open or not.
+  await page.locator('.ss-stop:has(.ss-node.k-boss)').hover();
+  await page.getByTestId('peek').waitFor();
+  assert.match(await page.getByTestId('peek').textContent(), /Guardian: Russet, the Old Fox.*Beat it to finish this stretch\..*Not in reach/s);
+  await page.mouse.move(5, 5);
   const open = page.locator('.ss-node.open');
   assert.ok((await open.count()) >= 2);
   for (const type of await open.evaluateAll((els) => els.map((e) => e.dataset.type))) assert.equal(type, 'fight');
@@ -87,6 +92,30 @@ try {
   assert.match(await page.getByTestId('info').textContent(), /predators will hit for|No attack is coming/);
   await page.waitForTimeout(600);
   await page.screenshot({ path: '.checks/summit-shuffle/fight.png' });
+
+  // Resting the mouse on a card shows a big copy with its words explained and what an upgrade would do.
+  const shown = await game(page, 't => t.run.fight.hand.findIndex((c) => c.id === "nip")');
+  assert.equal(await page.getByTestId('peek').count(), 0);
+  await page.getByTestId(`hand-${shown}`).hover();
+  const peek = page.getByTestId('peek');
+  await peek.waitFor();
+  assert.equal(await peek.getAttribute('data-card'), 'nip');
+  assert.match(await peek.textContent(), /Nip.*Deal 6 damage\..*Numbers as they stand against .*Upgraded.*Deal 9 damage\./s);
+  const [big, small, view] = [await peek.locator('.ss-card').boundingBox(), await page.getByTestId(`hand-${shown}`).boundingBox(), page.viewportSize()];
+  assert.ok(big.width > small.width * 1.4, 'the copy is a good deal bigger than the card in hand');
+  const whole = await peek.boundingBox();
+  assert.ok(whole.x >= 0 && whole.y >= 0 && whole.x + whole.width <= view.width && whole.y + whole.height <= view.height, 'the note stays on the screen');
+  // So does a predator, with what it will do next, and a trinket.
+  const over = await page.evaluate(() => { const t = window.__summit(), cv = document.querySelector('[data-testid="board"]'), q = cv.getBoundingClientRect(), b = t.stage.boxOf(0, q.width, q.height, t.run); return [q.left + b.x + b.w / 2, q.top + b.y + b.h * 0.6]; });
+  await page.mouse.move(over[0], over[1]);
+  await page.waitForFunction(() => document.querySelector('[data-testid="peek"].k-note'));
+  const foeName = await game(page, 't => t.run.fight.foes[0].name');
+  assert.match(await peek.textContent(), new RegExp(`${foeName}.*health.*Next: `, 's'));
+  await page.getByTestId('trinket-bell').hover();
+  await page.waitForFunction(() => /Ruby Bell/.test(document.querySelector('[data-testid="peek"]')?.textContent ?? ''));
+  assert.match(await peek.textContent(), /On the first turn of every fight, draw 2 more cards/);
+  await page.mouse.move(5, 5);
+  await page.waitForFunction(() => !document.querySelector('[data-testid="peek"]'));
 
   // One tap chooses a card and shows its rules; a second plays it.
   const nip = await game(page, 't => t.run.fight.hand.findIndex((c) => c.id === "nip")');
@@ -128,7 +157,12 @@ try {
   assert.equal(await page.locator('.ss-sheet').count(), 0);
   await page.getByTestId('deck').click();
   assert.equal(await page.locator('.ss-sheet .ss-card').count(), 10);
+  // A card in a list explains the words on it too.
+  await page.locator('.ss-sheet [data-card="dustkick"]').hover();
+  await peek.waitFor();
+  assert.match(await peek.textContent(), /Dust Kick.*Deal 8 damage\. Apply 2 Exposed\..*Exposed.*half as much again.*Upgraded.*Deal 10 damage\. Apply 3 Exposed\./s);
   await page.getByTestId('sheet-close').click();
+  assert.equal(await peek.count(), 0, 'a press puts the note away');
 
   // E ends the turn: the predators move, and a new hand of five is drawn with three energy.
   const hpBefore = (await top(page)).hp;
@@ -316,6 +350,16 @@ try {
   assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'the fight fits a phone');
   const board = await phone.getByTestId('board').boundingBox();
   assert.ok(board.width > 350 && board.height >= 230);
+  // Holding a finger on a card shows the big copy; letting go puts it away without choosing or playing the card.
+  const held = await phone.getByTestId('hand-1').boundingBox(), touch = await phone.context().newCDPSession(phone);
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: held.x + held.width / 2, y: held.y + held.height / 2 }] });
+  await phone.getByTestId('peek').waitFor();
+  const shownCard = await phone.getByTestId('peek').boundingBox();
+  assert.ok(shownCard.x >= 0 && shownCard.x + shownCard.width <= 390, 'the big copy fits across a phone');
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await phone.waitForFunction(() => !document.querySelector('[data-testid="peek"]'));
+  assert.equal(await phone.locator('.ss-hand .ss-card.on').count(), 0);
+  assert.equal(await phone.getByTestId('hand').getAttribute('data-count'), '5');
   await phone.getByTestId('hand-0').tap();
   assert.match(await phone.getByTestId('info').textContent(), /Tap the card again to play it|Tap a foe/);
   await phone.getByTestId('hand-0').tap();

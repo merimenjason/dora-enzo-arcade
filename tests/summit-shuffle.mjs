@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   Run, CARDS, CARD_IDS, POOL, STARTER_DECK, TRINKETS, TRINKET_IDS, STATUS, FOES, FOE_IDS, ACTS, HEROES, HERO_IDS, ALTITUDES, EVENT_IDS,
-  ENERGY, HAND, MAX_HAND, ROWS, LANES, STOPS, REMOVE_PRICE, REMOVE_STEP, costOf, describe, valsOf, canUpgrade,
+  ENERGY, HAND, MAX_HAND, ROWS, LANES, STOPS, REMOVE_PRICE, REMOVE_STEP, costOf, describe, valsOf, canUpgrade, GLOSSARY, glossFor,
 } from '../.checks/summit-shuffle-game.js';
 import { climb, fightTurn } from './summit-shuffle-bot.mjs';
 
@@ -486,5 +486,22 @@ for (let seed = 1; seed <= 60; seed++) {
     assert.ok(top[i] >= 0.03 && top[i] <= base[i] - 0.2, `Altitude 5 is much harder for ${HEROES[h].name} but not hopeless (${Math.round(top[i] * 100)}%)`);
   }
   assert.ok(Math.abs(base[0] - base[1]) <= 0.2, 'neither chinchilla is far ahead of the other');
+}
+
+// ---------- The words the hover notes explain ----------
+{
+  assert.deepEqual(glossFor('Deal 8 damage. Apply 2 Exposed.').map((g) => g.name), ['Exposed']);
+  assert.deepEqual(glossFor('Gain 6 Fluff and 2 Bristle.').map((g) => g.name), ['Fluff', 'Bristle'], 'in the order the words come up');
+  assert.deepEqual(glossFor('Cannot be played.', 'Thorn'), [], 'a card is not explained by its own name');
+  assert.deepEqual(glossFor('puts 2 Thorns in your draw pile').map((g) => g.name), ['Thorn'], 'plurals count');
+  assert.equal(new Set(GLOSSARY.map((g) => g.name)).size, GLOSSARY.length);
+  // Every status a card can name in its text has an entry, so no card leaves a word unexplained.
+  const named = ['zoomies', 'fur', 'bristle', 'burrs', 'exposed', 'winded', 'matted'];
+  for (const id of named) assert.ok(GLOSSARY.some((g) => g.name === STATUS[id].name), `${STATUS[id].name} is in the glossary`);
+  for (const id of CARD_IDS) for (const up of [false, true]) {
+    const text = describe({ id, up });
+    for (const st of named) if (new RegExp(`\\b${STATUS[st].name}\\b`).test(text) && CARDS[id].name !== STATUS[st].name) assert.ok(glossFor(text, CARDS[id].name).some((g) => g.name === STATUS[st].name), `${id} explains ${STATUS[st].name}`);
+    if (CARDS[id].exhaust) assert.ok(/Exhaust/.test(text), `${id} says it exhausts`);
+  }
 }
 console.log('Summit Shuffle engine checks passed.');
