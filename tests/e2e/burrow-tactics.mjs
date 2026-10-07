@@ -38,6 +38,12 @@ try {
   await page.getByTestId('mission-1').click();
   await page.waitForSelector('[data-testid="board"][data-state="player"]');
   assert.equal(await page.getByTestId('turn').textContent(), 'TURN1 / 3');
+  // Resting the mouse on it explains it.
+  await page.locator('[data-testid="ability"]').scrollIntoViewIfNeeded(); await page.mouse.move(2, 2); await page.waitForTimeout(150);
+  await page.locator('[data-testid="ability"]').hover();
+  assert.match(await page.getByTestId('hover-note').textContent(), /Seed Shot.*Damage1/, 'an action says what it does');
+  await page.mouse.move(2, 2);
+  await page.waitForFunction(() => !document.querySelector('[data-testid="hover-note"]'));
   assert.match(await page.getByTestId('forecast').textContent(), /Dora −1 · Enzo −1/, 'both foxes are about to bite');
   assert.match(await page.getByTestId('hero-dora').getAttribute('class'), /\bon\b/, 'Dora is picked first');
   // The first mission is guided: the coach says what to do and the button to press pulses.

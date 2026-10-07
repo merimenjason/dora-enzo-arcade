@@ -63,6 +63,12 @@ try {
   await page.mouse.click(...tileAt(box, 2, 2), { button: 'right' });
   assert.equal(await page.getByTestId('packet-flicker').getAttribute('aria-pressed'), 'false');
 
+  // Resting the mouse on it explains it.
+  await page.locator('[data-testid="packet-flicker"]').scrollIntoViewIfNeeded(); await page.mouse.move(2, 2); await page.waitForTimeout(150);
+  await page.locator('[data-testid="packet-flicker"]').hover();
+  assert.match(await page.getByTestId('hover-note').textContent(), /Pellet Flicker100 seeds · Shooter.*Damage25/, 'a packet says what its defender does');
+  await page.mouse.move(2, 2);
+  await page.waitForFunction(() => !document.querySelector('[data-testid="hover-note"]'));
   // Click a seed pouch to collect it.
   const seeds0 = await game(page, 'g => { g.drops.push({ id: 9999, x: 5.5, y: 2.5, toY: 2.5, value: 25, life: 30, sky: true }); return g.seeds; }');
   await page.mouse.click(...seedAt(box, 5.5, 2.5));

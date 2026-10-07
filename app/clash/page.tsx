@@ -2,6 +2,7 @@
 /* oxlint-disable next/no-html-link-for-pages -- Match the arcade's hard navigation so leaving always tears down the game loop. */
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { useHoverNote, type Note } from '../../components/hover-note';
 import {
   ClashGame, CARDS, CARD_IDS, DEFAULT_DECK, DECK_SIZE, HEROES, RIVALS, MAX_DUST, W, H,
   validDeck, averageCost, type CardId, type PlayResult,
@@ -57,7 +58,27 @@ const Crowns = ({ n, side }: { n: number; side: 0 | 1 }) => (
   </span>
 );
 
+const SPEED_WORD = (v: number) => (v >= 2 ? 'Very fast' : v >= 1.5 ? 'Fast' : v >= 1 ? 'Medium' : v > 0 ? 'Slow' : 'Stays put');
+const AIMS_AT = { ground: 'Ground only', all: 'Ground and air', buildings: 'Towers and buildings' } as const;
+/** Everything a card does, for the note shown while the mouse rests on it. */
+function cardNote(id: CardId): Note {
+  const card = CARDS[id], s = card.stats, sp = card.spell, lines: Note['lines'] = [];
+  const kind = card.kind === 'spell' ? 'Spell' : card.kind === 'building' ? 'Building' : `${card.count && card.count > 1 ? `${card.count} × ` : ''}${s!.air ? 'flying troop' : 'troop'}`;
+  if (sp) return { title: card.name, sub: `${card.cost} dust · ${kind}`, body: card.blurb, stats: [['Damage', String(sp.dmg)], ['Reach', `${sp.radius} tiles`], ...(sp.knock ? [['Knocks back', `${sp.knock} tiles`] as [string, string]] : [])], lines: [{ label: 'Hits', text: 'everything in the circle, flyers too. Towers take less.' }] };
+  if (s!.splash) lines.push({ label: 'Splash', text: s!.selfSplash ? `hits everything within ${s!.splash} tiles of itself.` : `each hit also lands on everything within ${s!.splash} tiles of the target.` });
+  if (s!.jumps) lines.push({ label: 'Leaps', text: 'jumps the river instead of walking to a bridge.' });
+  if (s!.air) lines.push({ label: 'Flies', text: 'crosses the river anywhere, and only troops that hit air can touch it.' });
+  if (s!.deathDmg) lines.push({ label: 'Last bale', text: `deals ${s!.deathDmg} around it when it is popped.` });
+  if (s!.lifetime) lines.push({ label: 'Lasts', text: `${s!.lifetime} seconds, then it falls apart.` });
+  return {
+    title: card.name, sub: `${card.cost} dust · ${kind}${HEROES.includes(id) ? ' · hero' : ''}`, body: card.blurb,
+    stats: [['Health', String(s!.hp)], ['Damage', String(s!.dmg)], ['Every', `${s!.rate} s`], ['Range', s!.range < 1 ? 'Melee' : `${s!.range} tiles`], ['Speed', SPEED_WORD(s!.speed)], ['Aims at', AIMS_AT[s!.targets]]],
+    lines,
+  };
+}
+
 export default function ChinchillaClash() {
+  const hover = useHoverNote();
   const [save, setSave] = useState<Save>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [screen, setScreen] = useState<'home' | 'battle'>('home');
@@ -254,7 +275,7 @@ export default function ChinchillaClash() {
           {CARD_IDS.map((id) => {
             const card = CARDS[id], on = deck.includes(id);
             return (
-              <button key={id} className={`cc-pick${on ? ' on' : ''}`} aria-pressed={on} data-testid={`card-${id}`} onClick={() => toggleCard(id)}>
+              <button key={id} className={`cc-pick${on ? ' on' : ''}`} aria-pressed={on} data-testid={`card-${id}`} onClick={() => toggleCard(id)} {...hover.tip(() => cardNote(id))}>
                 <span className="cc-cost">{card.cost}</span>
                 <CardArt id={id} w={96} h={72} />
                 <strong>{card.name}</strong>
@@ -271,6 +292,7 @@ export default function ChinchillaClash() {
           <p><b>Push a lane.</b> Troops walk to the nearest bridge, fight whatever they meet, then go for towers. Grandpa Pebble, the Dust Dasher and the Hay Balloon only hit buildings.</p>
           <p><b>Win crowns.</b> Each princess tower is a crown; the king tower is all three. Most crowns after three minutes wins. Level? Overtime, where the next crown wins.</p>
         </section>
+        {hover.view}
       </main>
     );
   }
@@ -326,7 +348,7 @@ export default function ChinchillaClash() {
               <button
                 key={`${slot}-${id}`} className={`cc-card${selected === slot ? ' on' : ''}${afford ? '' : ' poor'}`} data-testid={`hand-${slot}`} data-card={id}
                 aria-pressed={selected === slot} aria-label={`${slot + 1}: ${card.name}, ${card.cost} dust`}
-                onPointerDown={(e) => { if (e.button !== 0 || g.state !== 'playing') return; drag.current = { slot, over: false }; }}
+                {...hover.tip(() => cardNote(id), { onPointerDown: (e) => { if (e.button !== 0 || g.state !== 'playing') return; drag.current = { slot, over: false }; } })}
                 onClick={() => { if (swallowClick.current) { swallowClick.current = false; return; } if (g.state === 'playing') choose(selected === slot ? null : slot); }}
               >
                 <CardArt id={id} w={64} h={58} />
@@ -342,6 +364,7 @@ export default function ChinchillaClash() {
         </div>
         <p className="cc-keys">Tap or drag a card onto your half · 1–4 pick · arrows move · Enter drops · P pauses</p>
       </div>
+      {hover.view}
     </main>
   );
 }

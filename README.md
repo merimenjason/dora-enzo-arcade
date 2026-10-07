@@ -435,6 +435,7 @@ Knock down a princess tower for a crown, or the king tower for all three and an 
 - Tap a card, then tap the arena to play it, or drag a card straight onto the arena. A ghost shows where it lands, with its range, and red tiles show where it can't go.
 - Keyboard: 1–4 pick a card, the arrow keys or WASD move the drop point, Enter or Space drops it, Escape puts the card back.
 - P or Escape (with no card picked): pause. Losing window focus also pauses.
+- Rest the mouse on a card, in the deck builder or in your hand, for its health, damage, speed, range and what it aims at. On a touch screen, hold a finger on it.
 
 **Tests:** `npm run test:clash` (also in `npm test`) compiles `lib/chinchilla-clash-game.ts` and runs `tests/chinchilla-clash.mjs`:
 
@@ -465,6 +466,7 @@ A run is six levels, each on a newly generated meadow with its own rocks and way
 - Pick a tower from the bar (Z, X, C, V, B, N, M or comma) and click bales or rocks to build. Click a tower to see its stats, upgrade it (U) or sell it (Delete).
 - Space starts the wave. The arrow keys move the cursor and Enter places or selects. F cycles 1×, 2× and 3× speed. P pauses, and Escape cancels, or pauses when nothing is picked. On the reward screen, 1–3 pick. **Save and leave** (in the pause menu or on the reward screen) goes back to the start screen, where **Continue your run** picks it up again.
 - Touch: tap a tile to preview, then tap it again to place.
+- Rest the mouse on a tower button, a card in your hand or a relic for a note on what it does, with this run's relics counted in a tower's numbers. On a touch screen, hold a finger on it.
 
 **Tests:** `npm run test:hay-maze` (also in `npm test`) compiles `lib/hay-maze-game.ts` and runs `tests/hay-maze.mjs`:
 
@@ -496,6 +498,7 @@ Six zombies: the plain **Zombie** (200 health), the faster **Flag Zombie** that 
 - Click a seed pouch to collect it, or press Space to collect every pouch on the lawn.
 - The arrow keys move the cursor and Enter plants. F cycles 1×, 2× and 3× speed. P, or Escape with nothing picked, pauses. The game also pauses when the window loses focus.
 - Touch: tap a tile to preview, then tap it again to plant.
+- Rest the mouse on a seed packet for the defender's health, damage and recharge. On a touch screen, hold a finger on it.
 
 **Tests:** `npm run test:cvz` (also in `npm test`) compiles `lib/cvz-game.ts` and runs `tests/cvz.mjs`:
 
@@ -549,6 +552,7 @@ Browser: `tests/e2e/scribble.mjs` checks the menu card and the locked levels, di
 - The arrow keys move a cursor over the board and Enter or Space confirms the tile under it.
 - U or a right click undoes a move or cancels an aimed action. R resets the turn, once per battle. E ends the turn.
 - F changes the animation speed (1×, 2×, 3×). M turns sound on and off. A click, Enter or Space during an animation skips to its end.
+- Rest the mouse on an action button or a chinchilla in the squad panel for a note on its aim, reach, damage and class. On a touch screen, hold a finger on it.
 
 **Tests:** `npm run test:tactics` (also in `npm test`) compiles `lib/burrow-tactics-game.ts` and runs `tests/burrow-tactics.mjs`:
 
@@ -605,7 +609,7 @@ Browser: `tests/e2e/burrow-barrage.mjs` checks the menu card and the locked ladd
 
 **Play:** A deck-building climb in the style of Slay the Spire, drawn in Canvas 2D. Dora or Enzo sets out with 80 health and ten plain cards (five Nips, four Fluff Ups and a Dust Kick) and climbs three stretches of mountain: The Foothills, The Cliffs and The Snowline. Each stretch is a trail map of six rows of stops with a **guardian** at the top, 21 stops in all, and you choose your own route through it. Fights give seeds and a choice of one card from three; **alphas** are harder fights that also give a trinket; **rest burrows** heal 30% of your health or upgrade a card; **treat stalls** sell cards and trinkets and will take a card out of your deck; a **hidden stash** is a free trinket; and **something on the trail** is one of eight chance meetings.
 
-In a fight you draw 5 cards and have 3 energy each turn. Every predator shows what it will do next, with its damage worked out. **Fluff** soaks up damage until your next turn. **Zoomies** add to every hit, **Exposed** creatures take half as much again, **Winded** ones hit a quarter less, and **Burrs** wear a predator down at the start of each of its turns. There are 48 cards to find (18 common, 20 uncommon, 10 rare), each with an upgraded version, and 30 trinkets. The two chinchillas share the cards and differ by one trinket: Dora's **Ruby Bell** gives two more cards and one more energy on the first turn of every fight, and Enzo's **Grey Scarf** heals 5 after every fight.
+In a fight you draw 5 cards and have 3 energy each turn. Every predator shows what it will do next, with its damage worked out. **Fluff** soaks up damage until your next turn. **Zoomies** add to every hit, **Exposed** creatures take half as much again, **Winded** ones hit a quarter less, and **Burrs** wear a predator down at the start of each of its turns. There are 64 cards to find (24 common, 26 uncommon, 14 rare), each with an upgraded version, and 30 trinkets. 25 cards turn up for either chinchilla, 20 are Dora's own (quick hits, Exposed, playing card after card) and 19 are Enzo's own (Burrs, Bristle, heavy paws, lots of Fluff). They start with the same deck and one trinket each: Dora's **Ruby Bell** gives two more cards and one more energy on the first turn of every fight, and Enzo's **Grey Scarf** heals 5 after every fight.
 
 Reaching the summit opens the next of six **altitudes** for that chinchilla, each adding a rule: tougher predators, harder hits, thinner healing, a Fright in your deck, tougher guardians. A climb is saved after every choice; a climb left in the middle of a fight comes back at the start of that fight. Records, the cards and trinkets you have seen, and the climb in progress are kept in the browser.
 

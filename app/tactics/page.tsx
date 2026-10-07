@@ -2,6 +2,7 @@
 /* oxlint-disable next/no-html-link-for-pages -- Match the arcade's hard navigation so leaving always tears down the game loop. */
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { useHoverNote, type Note } from '../../components/hover-note';
 import {
   Battle, Run, MISSIONS, HEROES, PREDATORS, PRED_IDS, HERO_IDS, ABILITIES, RELICS, REGIONS, CLASSES, DIFFICULTY, DIFFICULTY_IDS, RUN_STAGES, RUN_UNLOCK, CHAPTER_TWO, SIZE,
   missionBattle, stars, bonusMet, unlockedHeroes, rewardText, goalText, hint, bestStep, type HeroId, type PredId, type AbilityId, type Tile, type Forecast, type Difficulty, type Mission,
@@ -62,7 +63,25 @@ type Mode = { kind: 'mission'; index: number } | { kind: 'run' };
 /** One step of the guided first mission: what to say, and the button or tile to point at. */
 type Coach = { text: string; button?: string; point?: Tile };
 
+const AIM_WORD = { line: 'A straight line', melee: 'The next tile', lob: 'Lobbed over anything', self: 'On the spot' } as const;
+/** What an action does, for the note shown while the mouse rests on its button. */
+function abilityNote(id: AbilityId): Note {
+  const a = ABILITIES[id], stats: [string, string][] = [['Aim', AIM_WORD[a.aim]]];
+  if (a.aim !== 'self') stats.push(['Reach', a.min === a.max ? `${a.max} ${a.max === 1 ? 'tile' : 'tiles'}` : a.max >= SIZE ? 'Any distance' : `${a.min} to ${a.max} tiles`]);
+  if (a.dmg) stats.push(['Damage', String(a.dmg)]);
+  return { title: a.name, body: a.blurb, stats, foot: 'Orange tiles show where it can go. Each chinchilla acts once a turn.' };
+}
+function heroNote(kind: HeroId, hp: number, maxHp: number, status: string): Note {
+  const d = HEROES[kind], cls = d.cls ? CLASSES[d.cls] : null;
+  return {
+    title: d.name, sub: `${cls ? `${cls.name} · ` : ''}${status}`, body: d.blurb,
+    stats: [['Health', `${Math.max(0, hp)} of ${maxHp}`], ['Moves', `${d.move} tiles`], ['Action', ABILITIES[d.ability].name]],
+    lines: cls ? [{ label: cls.perk, text: cls.blurb }] : [],
+  };
+}
+
 export default function BurrowTactics() {
+  const notes = useHoverNote();
   const [save, setSave] = useState<Save>(blank);
   const [loaded, setLoaded] = useState(false);
   const [screen, setScreen] = useState<'home' | 'battle'>('home');
@@ -470,6 +489,7 @@ export default function BurrowTactics() {
             );
           })}
         </div>
+        {notes.view}
       </main>
     );
   }
@@ -541,7 +561,7 @@ export default function BurrowTactics() {
             const d = HEROES[u.kind as HeroId], sp = st.sprites.get(u.id), hp = sp ? sp.hp : 0;
             const status = hp <= 0 ? 'Knocked out' : b.state === 'deploy' ? 'Placing' : u.acted ? (u.moved ? 'Done' : 'Can still move') : b.soaked(u) ? 'Soaked' : b.cloud[u.y * SIZE + u.x] > 0 ? 'In dust' : u.moved ? 'Moved' : 'Ready';
             return (
-              <button key={u.id} title={d.cls ? `${CLASSES[d.cls].name} · ${CLASSES[d.cls].perk}: ${CLASSES[d.cls].blurb}` : d.blurb} className={`bt-hero${selected === u.id ? ' on' : ''}${hp <= 0 || (u.acted && u.moved) ? ' dim' : ''}`} data-testid={`hero-${u.kind}`} data-status={status} disabled={hp <= 0} onClick={() => select(u.id)}>
+              <button key={u.id} {...notes.tip(() => heroNote(u.kind as HeroId, hp, u.maxHp, status))} className={`bt-hero${selected === u.id ? ' on' : ''}${hp <= 0 || (u.acted && u.moved) ? ' dim' : ''}`} data-testid={`hero-${u.kind}`} data-status={status} disabled={hp <= 0} onClick={() => select(u.id)}>
                 <Icon draw={heroIcon(u.kind as HeroId)} w={46} h={46} id={u.kind} />
                 <span><strong>{d.name}</strong><span className="bt-pips">{Array.from({ length: u.maxHp }, (_, i) => <i key={i} className={i < hp ? 'on' : ''} />)}</span><small>{d.cls ? `${CLASSES[d.cls].name} · ` : ''}{status}</small></span>
               </button>
@@ -572,8 +592,8 @@ export default function BurrowTactics() {
         </div>
       </div>
       <div className="bt-actions">
-        {acts.map((id, n) => <button key={id} className={`bt-act${armed === id ? ' on' : ''}${n === 0 && coach?.button === 'ability' ? ' pulse' : ''}`} data-testid={n === 0 ? 'ability' : 'ability-2'} disabled={!canAct} aria-pressed={armed === id} title={ABILITIES[id].blurb} onClick={() => fire(id)}><b>{ABILITIES[id].name}</b><small>{n + 1}</small></button>)}
-        <button className="bt-act" data-testid="groom" disabled={!canAct} title={ABILITIES.groom.blurb} onClick={() => fire('groom')}><b>Groom +1</b><small>G</small></button>
+        {acts.map((id, n) => <button key={id} className={`bt-act${armed === id ? ' on' : ''}${n === 0 && coach?.button === 'ability' ? ' pulse' : ''}`} data-testid={n === 0 ? 'ability' : 'ability-2'} disabled={!canAct} aria-pressed={armed === id} onClick={() => fire(id)} {...notes.tip(() => abilityNote(id))}><b>{ABILITIES[id].name}</b><small>{n + 1}</small></button>)}
+        <button className="bt-act" data-testid="groom" disabled={!canAct} onClick={() => fire('groom')} {...notes.tip(() => abilityNote('groom'))}><b>Groom +1</b><small>G</small></button>
         <button data-testid="undo" disabled={busy || !sel || !(armed || (sel.moved && sel.canUndo))} onClick={undo}>Undo · U</button>
         <button data-testid="reset" disabled={busy || b.resetLeft <= 0 || b.state !== 'player'} onClick={resetTurn}>Reset turn · R</button>
         <button data-testid="hint" disabled={busy || b.state !== 'player'} onClick={showHint}>Hint · H</button>
@@ -586,6 +606,7 @@ export default function BurrowTactics() {
           : <button className={`bt-go${coach?.button === 'end-turn' ? ' pulse' : ''}`} data-testid="end-turn" disabled={busy || b.state !== 'player'} onClick={endTurn}>End turn{waiting ? ` (${waiting} still ready)` : ''} · E</button>}
       </div>
       <p className="bt-info" data-testid="info">{describe(infoTile) || tip}</p>
+      {notes.view}
     </main>
   );
 }

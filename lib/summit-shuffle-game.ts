@@ -6,7 +6,7 @@
 // streams held in the run itself, so a seed replays a climb exactly and a saved run carries on as if it never stopped.
 // A whole card or a whole predator turn is resolved at once; `events` lists what happened, in order, for the scene
 // to play back. Cards, trinkets and statuses are data in summit-shuffle-cards.ts, predators in summit-shuffle-foes.ts.
-import { CARDS, POOL, STARTER_DECK, STATUS, TRINKETS, TRINKET_IDS, TIMED, costOf, valsOf, canUpgrade, describe, nameOf, type Card, type Ops, type StatusId, type Statuses } from './summit-shuffle-cards.js';
+import { CARDS, poolFor, STARTER_DECK, STATUS, TRINKETS, TRINKET_IDS, TIMED, costOf, valsOf, canUpgrade, describe, nameOf, type Card, type Ops, type StatusId, type Statuses } from './summit-shuffle-cards.js';
 import { FOES, ACTS, type Move } from './summit-shuffle-foes.js';
 export * from './summit-shuffle-cards.js';
 export * from './summit-shuffle-foes.js';
@@ -15,9 +15,9 @@ export const ENERGY = 3, HAND = 5, MAX_HAND = 10, ROWS = 6, LANES = 4, MAX_FOES 
 export const NAP = 0.3, THIN_NAP = 0.25, REMOVE_PRICE = 75, REMOVE_STEP = 25;
 
 export type HeroId = 'dora' | 'enzo';
-export const HEROES: Record<HeroId, { name: string; hp: number; trinket: string; blurb: string }> = {
-  dora: { name: 'Dora', hp: 80, trinket: 'bell', blurb: 'Quick off the mark: her Ruby Bell gives her two more cards and one more energy to open every fight with.' },
-  enzo: { name: 'Enzo', hp: 80, trinket: 'scarf', blurb: 'Hard to wear down: his Grey Scarf mends 5 health after every fight.' },
+export const HEROES: Record<HeroId, { name: string; hp: number; trinket: string; blurb: string; cards: string }> = {
+  dora: { name: 'Dora', hp: 80, trinket: 'bell', blurb: 'Quick off the mark: her Ruby Bell gives her two more cards and one more energy to open every fight with.', cards: 'Her own cards are quick ones: many small hits, Exposed, and rewards for playing card after card.' },
+  enzo: { name: 'Enzo', hp: 80, trinket: 'scarf', blurb: 'Hard to wear down: his Grey Scarf mends 5 health after every fight.', cards: 'His own cards are sturdy ones: Burrs, Bristle, heavy paws and a great deal of Fluff.' },
 };
 export const HERO_IDS: HeroId[] = ['dora', 'enzo'];
 
@@ -308,7 +308,7 @@ export class Run {
   remove(uid: number): boolean { const i = this.deck.findIndex((x) => x.uid === uid); if (i < 0 || this.deck.length <= 1) return false; this.deck.splice(i, 1); return true; }
   /** Heals up to `n` and returns how much was mended. */
   mend(n: number): number { const got = Math.max(0, Math.min(this.maxHp - this.hp, n)); this.hp += got; return got; }
-  randomCard(rarity: 'common' | 'uncommon' | 'rare', not: string[] = []): string { return this.one('loot', POOL.filter((id) => CARDS[id].rarity === rarity && !not.includes(id))); }
+  randomCard(rarity: 'common' | 'uncommon' | 'rare', not: string[] = []): string { return this.one('loot', poolFor(this.hero).filter((id) => CARDS[id].rarity === rarity && !not.includes(id))); }
   /** A trinket nobody has yet, added to the bag, or null (and 50 seeds) once they have all been found. */
   findTrinket(): string | null {
     const left = TRINKET_IDS.filter((t) => TRINKETS[t].tier === 'common' && !this.has(t));

@@ -180,6 +180,7 @@ function Peek({ shown }: { shown: Shown | null }) {
           <div className="ss-peek-notes">
             {tip.aimed && <p className="ss-peek-aim">Numbers as they stand against <b>{tip.aimed}</b>.</p>}
             {notes.map(line)}
+            {CARDS[tip.card.id].who && <p className="ss-peek-who">Only {HEROES[CARDS[tip.card.id].who!].name} finds this card on a climb.</p>}
             {better && <p className="ss-peek-up"><span aria-hidden="true">✨</span><b>Upgraded</b> {costOf(better) !== costOf(tip.card) ? `Costs ${costOf(better)}. ` : ''}{describe(better)}</p>}
           </div>
         )}
@@ -489,7 +490,7 @@ export default function SummitShuffle() {
             return (
               <button key={h} className={`ss-hero${hero === h ? ' on' : ''}`} aria-pressed={hero === h} data-testid={`hero-${h}`} onClick={() => chooseHero(h)}>
                 <Portrait hero={h} size={84} />
-                <span><strong>{HEROES[h].name}</strong><small>{HEROES[h].hp} health · {t.icon} {t.name}</small><em>{t.text}</em>
+                <span><strong>{HEROES[h].name}</strong><small>{HEROES[h].hp} health · {t.icon} {t.name}</small><em>{t.text}</em><em>{HEROES[h].cards}</em>
                   <i>{b.runs ? `${b.wins} of ${plural(b.runs, 'climb')} reached the summit · ${b.cleared >= 0 ? `highest: ${ALTITUDES[b.cleared].name}` : `furthest: stop ${b.far} of ${STOPS}`}` : 'Not climbed yet'}</i></span>
               </button>
             );
@@ -518,9 +519,14 @@ export default function SummitShuffle() {
 
         <details className="ss-fold">
         <summary className="ss-section">The card book <small>{foundCards} of {POOL.length} seen on your climbs</small></summary>
-        <div className="ss-grid ss-book">
-          {POOL.map((id) => (save.cards.includes(id) ? <CardView key={id} card={{ id, up: false }} /> : <div key={id} className="ss-card ss-unknown" aria-label="A card you have not seen yet"><strong>?</strong><em>{CARDS[id].rarity}</em></div>))}
-        </div>
+        {([undefined, ...HERO_IDS] as const).map((who) => { const ids = POOL.filter((id) => CARDS[id].who === who); return (
+          <div key={who ?? 'both'} data-testid={`book-${who ?? 'both'}`}>
+            <h3 className="ss-book-head">{who ? `${HEROES[who].name}’s own` : 'Found by both'} <small>{ids.filter((id) => save.cards.includes(id)).length} of {ids.length}</small></h3>
+            <div className="ss-grid ss-book">
+              {ids.map((id) => (save.cards.includes(id) ? <CardView key={id} card={{ id, up: false }} /> : <div key={id} className="ss-card ss-unknown" aria-label="A card you have not seen yet"><strong>?</strong><em>{CARDS[id].rarity}</em></div>))}
+            </div>
+          </div>
+        ); })}
         </details>
         <details className="ss-fold">
         <summary className="ss-section">Trinkets <small>{commonTrinkets.filter((t) => save.trinkets.includes(t)).length} of {commonTrinkets.length} found</small></summary>

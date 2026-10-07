@@ -59,7 +59,11 @@ try {
   assert.equal(await page.locator('.ss-levels button').count(), 6);
   assert.ok(await page.getByTestId('level-0').isEnabled());
   assert.ok(await page.getByTestId('level-1').isDisabled(), 'Altitude 1 is locked until the summit is reached');
-  assert.match(await page.locator('.ss-fold summary').first().textContent(), /0 of 48 seen/);
+  assert.match(await page.locator('.ss-fold summary').first().textContent(), /0 of 64 seen/);
+  // The card book is in three parts: the cards both find, then each chinchilla's own.
+  assert.match(await page.getByTestId('book-both').locator('h3').textContent(), /Found by both 0 of 25/);
+  assert.match(await page.getByTestId('book-dora').locator('h3').textContent(), /Dora’s own 0 of 20/);
+  assert.match(await page.getByTestId('book-enzo').locator('h3').textContent(), /Enzo’s own 0 of 19/);
   assert.equal(await page.getByTestId('resume').count(), 0);
   await page.getByTestId('hero-enzo').click();
   assert.equal(await page.getByTestId('hero-enzo').getAttribute('aria-pressed'), 'true');
@@ -101,6 +105,7 @@ try {
   await peek.waitFor();
   assert.equal(await peek.getAttribute('data-card'), 'nip');
   assert.match(await peek.textContent(), /Nip.*Deal 6 damage\..*Numbers as they stand against .*Upgraded.*Deal 9 damage\./s);
+  await page.waitForTimeout(300); // let the hand finish moving before measuring; without this the check failed about half the time
   const [big, small, view] = [await peek.locator('.ss-card').boundingBox(), await page.getByTestId(`hand-${shown}`).boundingBox(), page.viewportSize()];
   assert.ok(big.width > small.width * 1.4, 'the copy is a good deal bigger than the card in hand');
   const whole = await peek.boundingBox();
@@ -214,7 +219,7 @@ try {
   assert.equal((await top(page)).stop, 1);
   // The card book has started to fill in.
   await page.getByTestId('menu').click();
-  assert.match(await page.locator('.ss-fold summary').first().textContent(), /[3-9] of 48 seen/);
+  assert.match(await page.locator('.ss-fold summary').first().textContent(), /[3-9] of 64 seen/);
   assert.match(await page.locator('.ss-resume').textContent(), /Dora is on the mountain.*stop 1 of 21/s);
 
   // A rest burrow: grooming upgrades a card of your choice.

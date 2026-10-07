@@ -40,7 +40,7 @@ The first row of every stretch is fights, the second is fights and meetings, and
 
 ## Cards
 
-48 cards can be found, in three rarities, plus the three kinds you start with. Ordinary fights offer mostly commons; a rare becomes a little more likely each time a common is offered, until one turns up. After the first stretch some offered cards arrive already upgraded.
+64 cards can be found, in three rarities, plus the three kinds you start with. 25 of them turn up for either chinchilla; 20 are **Dora's own** (quick ones: many small hits, Exposed, and rewards for playing card after card) and 19 are **Enzo's own** (sturdy ones: Burrs, Bristle, heavy paws and a great deal of Fluff). So Dora draws from 45 cards and Enzo from 44, and the card book is laid out in those three parts. `poolFor(who)` in the cards file gives a chinchilla's pool; a card's `who` says whose it is. Cards granted by name (a copy made at a chance meeting, say) ignore this. Ordinary fights offer mostly commons; a rare becomes a little more likely each time a common is offered, until one turns up. After the first stretch some offered cards arrive already upgraded.
 
 ### Starting cards
 
@@ -52,66 +52,82 @@ The first row of every stretch is fights, the second is fights and meetings, and
 
 ### Common
 
-| Card | Type | Cost | What it does | Upgraded |
-| --- | --- | --- | --- | --- |
-| Pounce | Attack | 1 | Deal 8 damage. Draw 1 card. | Deal 11 damage. Draw 1 card. |
-| Double Kick | Attack | 1 | Deal 5 damage twice. | Deal 7 damage twice. |
-| Tail Whip | Attack | 1 | Deal 8 damage to ALL foes. | Deal 11 damage to ALL foes. |
-| Bowl Over | Attack | 2 | Deal 11 damage. Apply 1 Winded. | Deal 14 damage. Apply 2 Winded. |
-| Quick Nip | Attack | 0 | Deal 4 damage. | Deal 7 damage. |
-| Hay Toss | Attack | 1 | Gain 5 Fluff. Deal 5 damage. | Gain 7 Fluff. Deal 7 damage. |
-| Burr Fling | Attack | 1 | Deal 5 damage. Apply 4 Burrs. | Deal 7 damage. Apply 5 Burrs. |
-| Follow Up | Attack | 1 | Deal 6 damage. If the foe is Exposed, gain 1 energy and draw 1 card. | Deal 9 damage. If the foe is Exposed, gain 1 energy and draw 1 card. |
-| Flurry | Attack | 1 | Deal 3 damage once for every card played this turn, this one included. | Deal 4 damage once for every card played this turn, this one included. |
-| Shake It Off | Skill | 1 | Gain 7 Fluff. Draw 1 card. | Gain 10 Fluff. Draw 1 card. |
-| Dust Bath | Skill | 1 | Gain 7 Fluff. Shake off Exposed, Winded and Matted. | Gain 10 Fluff. Shake off Exposed, Winded and Matted. |
-| Popcorn | Skill | 0 | Draw 2 cards. | Draw 3 cards. |
-| Dust Cloud | Skill | 1 | Apply 2 Winded to ALL foes. | Apply 3 Winded to ALL foes. |
-| Burr Patch | Skill | 1 | Apply 6 Burrs. | Apply 8 Burrs. |
-| Squeak | Skill | 0 | Apply 1 Exposed. Draw 1 card. | Apply 2 Exposed. Draw 1 card. |
-| Wind Up | Skill | 0 | Gain 2 Zoomies until the end of this turn. | Gain 4 Zoomies until the end of this turn. |
-| Scamper | Skill | 1 | Gain 3 Fluff once for every card played this turn, this one included. | Gain 4 Fluff once for every card played this turn, this one included. |
-| Prickly Curl | Skill | 1 | Gain 6 Fluff and 2 Bristle. | Gain 8 Fluff and 3 Bristle. |
+| Card | Type | Cost | Found by | What it does | Upgraded |
+| --- | --- | --- | --- | --- | --- |
+| Pounce | Attack | 1 | Both | Deal 8 damage. Draw 1 card. | Deal 11 damage. Draw 1 card. |
+| Double Kick | Attack | 1 | Both | Deal 5 damage twice. | Deal 7 damage twice. |
+| Tail Whip | Attack | 1 | Both | Deal 8 damage to ALL foes. | Deal 11 damage to ALL foes. |
+| Bowl Over | Attack | 2 | Both | Deal 11 damage. Apply 1 Winded. | Deal 14 damage. Apply 2 Winded. |
+| Quick Nip | Attack | 0 | Both | Deal 4 damage. | Deal 7 damage. |
+| Hay Toss | Attack | 1 | Both | Gain 5 Fluff. Deal 5 damage. | Gain 7 Fluff. Deal 7 damage. |
+| Shake It Off | Skill | 1 | Both | Gain 7 Fluff. Draw 1 card. | Gain 10 Fluff. Draw 1 card. |
+| Dust Bath | Skill | 1 | Both | Gain 7 Fluff. Shake off Exposed, Winded and Matted. | Gain 10 Fluff. Shake off Exposed, Winded and Matted. |
+| Popcorn | Skill | 0 | Both | Draw 2 cards. | Draw 3 cards. |
+| Dust Cloud | Skill | 1 | Both | Apply 2 Winded to ALL foes. | Apply 3 Winded to ALL foes. |
+| Squeak | Skill | 0 | Both | Apply 1 Exposed. Draw 1 card. | Apply 2 Exposed. Draw 1 card. |
+| Follow Up | Attack | 1 | Dora | Deal 6 damage. If the foe is Exposed, gain 1 energy and draw 1 card. | Deal 9 damage. If the foe is Exposed, gain 1 energy and draw 1 card. |
+| Flurry | Attack | 1 | Dora | Deal 3 damage once for every card played this turn, this one included. | Deal 4 damage once for every card played this turn, this one included. |
+| Wind Up | Skill | 0 | Dora | Gain 2 Zoomies until the end of this turn. | Gain 4 Zoomies until the end of this turn. |
+| Scamper | Skill | 1 | Dora | Gain 3 Fluff once for every card played this turn, this one included. | Gain 4 Fluff once for every card played this turn, this one included. |
+| Hopscotch | Attack | 1 | Dora | Deal 6 damage. Deal it again if you have already played a card this turn. | Deal 8 damage. Deal it again if you have already played a card this turn. |
+| Ear Flick | Attack | 0 | Dora | Deal 3 damage. Gain 1 Zoomies until the end of this turn. | Deal 5 damage. Gain 1 Zoomies until the end of this turn. |
+| Sidestep | Skill | 1 | Dora | Gain 6 Fluff. Apply 1 Exposed. | Gain 9 Fluff. Apply 1 Exposed. |
+| Burr Fling | Attack | 1 | Enzo | Deal 5 damage. Apply 4 Burrs. | Deal 7 damage. Apply 5 Burrs. |
+| Burr Patch | Skill | 1 | Enzo | Apply 6 Burrs. | Apply 8 Burrs. |
+| Prickly Curl | Skill | 1 | Enzo | Gain 6 Fluff and 2 Bristle. | Gain 8 Fluff and 3 Bristle. |
+| Thump | Attack | 1 | Enzo | Deal 10 damage. | Deal 13 damage. |
+| Hunker Down | Skill | 1 | Enzo | Gain 10 Fluff. | Gain 13 Fluff. |
+| Burr Bite | Attack | 1 | Enzo | Deal 6 damage. Apply 2 Burrs to ALL foes. | Deal 8 damage. Apply 3 Burrs to ALL foes. |
 
 ### Uncommon
 
-| Card | Type | Cost | What it does | Upgraded |
-| --- | --- | --- | --- | --- |
-| Full Pelt | Attack | 2 | Deal 16 damage. Zoomies count 3 times for this card. | Deal 16 damage. Zoomies count 5 times for this card. |
-| Belly Flop | Attack | 1 | Deal damage equal to your Fluff. | Costs 0. |
-| Zoom Around | Attack | X | Spend all your energy. Deal 6 damage to ALL foes once for each energy spent. | Spend all your energy. Deal 9 damage to ALL foes once for each energy spent. |
-| Ambush | Attack | 1 | Deal 8 damage. Deal it twice if this is the first card you play this turn. | Deal 11 damage. Deal it twice if this is the first card you play this turn. |
-| Drumming Feet | Attack | 1 | Deal 3 damage 3 times. | Deal 4 damage 3 times. |
-| Gnaw Through | Attack | 2 | Remove the foe’s Fluff, then deal 14 damage. | Remove the foe’s Fluff, then deal 18 damage. |
-| Burr Storm | Attack | 2 | Deal 6 damage and apply 5 Burrs to ALL foes. | Deal 8 damage and apply 7 Burrs to ALL foes. |
-| Sore Spot | Attack | 1 | Deal 8 damage, then as much again as the foe has Burrs. | Deal 11 damage, then as much again as the foe has Burrs. |
-| Puff Up | Skill | 1 | Double your Fluff. | Costs 0. |
-| Tangle | Skill | 1 | Apply 3 Burrs, then double the foe’s Burrs. Exhaust. | Apply 5 Burrs, then double the foe’s Burrs. Exhaust. |
-| Alarm Bark | Skill | 1 | Apply 1 Exposed and 2 Winded. | Apply 2 Exposed and 3 Winded. |
-| Groom | Skill | 1 | Heal 5 health. Exhaust. | Heal 8 health. Exhaust. |
-| Cheek Stash | Skill | 1 | Gain 6 Fluff. Next turn, gain 1 more energy. | Gain 9 Fluff. Next turn, gain 1 more energy. |
-| Dust Devil | Skill | 1 | Gain 5 Fluff. Apply 1 Exposed to ALL foes. | Gain 8 Fluff. Apply 1 Exposed to ALL foes. |
-| Winter Coat | Power | 1 | Gain 2 Thick Fur. | Gain 3 Thick Fur. |
-| The Zoomies | Power | 1 | Gain 2 Zoomies. | Gain 3 Zoomies. |
-| Sticky Coat | Power | 1 | At the start of your turn, apply 2 Burrs to ALL foes. | At the start of your turn, apply 3 Burrs to ALL foes. |
-| Cosy Nest | Power | 1 | At the end of your turn, gain 3 Fluff. | At the end of your turn, gain 4 Fluff. |
-| Light Feet | Power | 2 | Whenever you play a card, gain 1 Fluff. | Costs 1. |
-| Bramble Coat | Power | 1 | Gain 4 Bristle. | Gain 6 Bristle. |
+| Card | Type | Cost | Found by | What it does | Upgraded |
+| --- | --- | --- | --- | --- | --- |
+| Zoom Around | Attack | X | Both | Spend all your energy. Deal 6 damage to ALL foes once for each energy spent. | Spend all your energy. Deal 9 damage to ALL foes once for each energy spent. |
+| Drumming Feet | Attack | 1 | Both | Deal 3 damage 3 times. | Deal 4 damage 3 times. |
+| Gnaw Through | Attack | 2 | Both | Remove the foe’s Fluff, then deal 14 damage. | Remove the foe’s Fluff, then deal 18 damage. |
+| Groom | Skill | 1 | Both | Heal 5 health. Exhaust. | Heal 8 health. Exhaust. |
+| Cheek Stash | Skill | 1 | Both | Gain 6 Fluff. Next turn, gain 1 more energy. | Gain 9 Fluff. Next turn, gain 1 more energy. |
+| Winter Coat | Power | 1 | Both | Gain 2 Thick Fur. | Gain 3 Thick Fur. |
+| The Zoomies | Power | 1 | Both | Gain 2 Zoomies. | Gain 3 Zoomies. |
+| Cosy Nest | Power | 1 | Both | At the end of your turn, gain 3 Fluff. | At the end of your turn, gain 4 Fluff. |
+| Full Pelt | Attack | 2 | Dora | Deal 16 damage. Zoomies count 3 times for this card. | Deal 16 damage. Zoomies count 5 times for this card. |
+| Ambush | Attack | 1 | Dora | Deal 8 damage. Deal it twice if this is the first card you play this turn. | Deal 11 damage. Deal it twice if this is the first card you play this turn. |
+| Alarm Bark | Skill | 1 | Dora | Apply 1 Exposed and 2 Winded. | Apply 2 Exposed and 3 Winded. |
+| Dust Devil | Skill | 1 | Dora | Gain 5 Fluff. Apply 1 Exposed to ALL foes. | Gain 8 Fluff. Apply 1 Exposed to ALL foes. |
+| Light Feet | Power | 2 | Dora | Whenever you play a card, gain 1 Fluff. | Costs 1. |
+| Pinpoint | Attack | 1 | Dora | Deal 7 damage. Deal it again if the foe is Exposed. | Deal 10 damage. Deal it again if the foe is Exposed. |
+| Whirligig | Attack | 2 | Dora | Deal 4 damage to ALL foes once for every card played this turn, this one included. | Deal 5 damage to ALL foes once for every card played this turn, this one included. |
+| Second Wind | Skill | 0 | Dora | Gain 1 energy. Draw 1 card. Exhaust. | Gain 1 energy. Draw 2 cards. Exhaust. |
+| Belly Flop | Attack | 1 | Enzo | Deal damage equal to your Fluff. | Costs 0. |
+| Burr Storm | Attack | 2 | Enzo | Deal 6 damage and apply 5 Burrs to ALL foes. | Deal 8 damage and apply 7 Burrs to ALL foes. |
+| Sore Spot | Attack | 1 | Enzo | Deal 8 damage, then as much again as the foe has Burrs. | Deal 11 damage, then as much again as the foe has Burrs. |
+| Puff Up | Skill | 1 | Enzo | Double your Fluff. | Costs 0. |
+| Tangle | Skill | 1 | Enzo | Apply 3 Burrs, then double the foe’s Burrs. Exhaust. | Apply 5 Burrs, then double the foe’s Burrs. Exhaust. |
+| Sticky Coat | Power | 1 | Enzo | At the start of your turn, apply 2 Burrs to ALL foes. | At the start of your turn, apply 3 Burrs to ALL foes. |
+| Bramble Coat | Power | 1 | Enzo | Gain 4 Bristle. | Gain 6 Bristle. |
+| Quill Burst | Attack | 1 | Enzo | Deal 5 damage to ALL foes. Gain 2 Bristle. | Deal 7 damage to ALL foes. Gain 3 Bristle. |
+| Padding | Skill | 2 | Enzo | Gain 14 Fluff. Draw 1 card. | Gain 18 Fluff. Draw 1 card. |
+| Burr Roll | Skill | 1 | Enzo | Apply 6 Burrs and 1 Winded. | Apply 8 Burrs and 1 Winded. |
 
 ### Rare
 
-| Card | Type | Cost | What it does | Upgraded |
-| --- | --- | --- | --- | --- |
-| Feast | Attack | 2 | Deal 12 damage. If that knocks the foe out, raise your max health by 3. Exhaust. | Deal 16 damage. If that knocks the foe out, raise your max health by 4. Exhaust. |
-| Fur Slip | Skill | 2 | The next hit that would cost you health costs none. Exhaust. | Costs 1. |
-| Endless Zoomies | Power | 3 | At the start of your turn, gain 2 Zoomies. | Costs 2. |
-| Deep Burrow | Power | 2 | Your Fluff no longer falls away at the start of your turn. | Costs 1. |
-| Avalanche | Attack | 3 | Deal 28 damage to ALL foes. | Deal 36 damage to ALL foes. |
-| Stampede | Attack | 2 | Deal 6 damage to a random foe 4 times. | Deal 6 damage to a random foe 5 times. |
-| Raisin | Skill | 0 | Gain 1 energy. Draw 2 cards. Exhaust. | Gain 2 energy. Draw 2 cards. Exhaust. |
-| Snow Den | Skill | 2 | Gain 24 Fluff. Exhaust. | Gain 30 Fluff. Exhaust. |
-| Encore | Skill | 1 | Your next attack this turn is played twice. | Costs 0. |
-| Bright Eyed | Power | 1 | Draw 1 more card every turn. | Costs 0. |
+| Card | Type | Cost | Found by | What it does | Upgraded |
+| --- | --- | --- | --- | --- | --- |
+| Feast | Attack | 2 | Both | Deal 12 damage. If that knocks the foe out, raise your max health by 3. Exhaust. | Deal 16 damage. If that knocks the foe out, raise your max health by 4. Exhaust. |
+| Fur Slip | Skill | 2 | Both | The next hit that would cost you health costs none. Exhaust. | Costs 1. |
+| Avalanche | Attack | 3 | Both | Deal 28 damage to ALL foes. | Deal 36 damage to ALL foes. |
+| Stampede | Attack | 2 | Both | Deal 6 damage to a random foe 4 times. | Deal 6 damage to a random foe 5 times. |
+| Raisin | Skill | 0 | Both | Gain 1 energy. Draw 2 cards. Exhaust. | Gain 2 energy. Draw 2 cards. Exhaust. |
+| Snow Den | Skill | 2 | Both | Gain 24 Fluff. Exhaust. | Gain 30 Fluff. Exhaust. |
+| Endless Zoomies | Power | 3 | Dora | At the start of your turn, gain 2 Zoomies. | Costs 2. |
+| Encore | Skill | 1 | Dora | Your next attack this turn is played twice. | Costs 0. |
+| Bright Eyed | Power | 1 | Dora | Draw 1 more card every turn. | Costs 0. |
+| A Thousand Nips | Attack | 2 | Dora | Deal 3 damage 6 times. | Deal 4 damage 6 times. |
+| Spotlight | Skill | 1 | Dora | Apply 3 Exposed to ALL foes. Exhaust. | Apply 4 Exposed to ALL foes. Exhaust. |
+| Deep Burrow | Power | 2 | Enzo | Your Fluff no longer falls away at the start of your turn. | Costs 1. |
+| Earthshaker | Attack | 2 | Enzo | Deal 10 damage and apply 1 Winded to ALL foes. | Deal 14 damage and apply 2 Winded to ALL foes. |
+| Iron Hide | Power | 2 | Enzo | Gain 2 Thick Fur and 2 Bristle. | Gain 3 Thick Fur and 3 Bristle. |
 
 ### Cards nobody wants
 
@@ -293,16 +309,18 @@ Reaching the summit with a chinchilla opens the next altitude for that chinchill
 
 ## Balance
 
-`npm run bot:summit` climbs with a bot. In a fight it tries the orders it could play its hand in on copies of the run, lets the predators answer, and keeps the turn that leaves it best off. Between fights it follows simple rules. On 06-10-2026, over 500 climbs per chinchilla per altitude, it reached the summit:
+`npm run bot:summit` climbs with a bot. In a fight it tries the orders it could play its hand in on copies of the run, lets the predators answer, and keeps the turn that leaves it best off. Between fights it follows simple rules. On 07-10-2026, after the cards were split between the two chinchillas, over 500 climbs per chinchilla per altitude, it reached the summit:
 
 | Altitude | Dora | Enzo |
 | --- | --- | --- |
-| Base Camp | 79% | 82% |
-| Altitude 1 | 68% | 68% |
-| Altitude 2 | 57% | 52% |
-| Altitude 3 | 46% | 40% |
-| Altitude 4 | 32% | 31% |
-| Altitude 5 | 14% | 17% |
+| Base Camp | 78% | 78% |
+| Altitude 1 | 71% | 69% |
+| Altitude 2 | 54% | 54% |
+| Altitude 3 | 44% | 38% |
+| Altitude 4 | 35% | 32% |
+| Altitude 5 | 14% | 14% |
+
+Before the split, on 06-10-2026, the same trial gave 79%, 68%, 57%, 46%, 32% and 14% for Dora and 82%, 68%, 52%, 40%, 31% and 17% for Enzo. The sixteen new cards have only the bot's guessed wants (`WANT` in the bot) behind them and have not been through a card trial.
 
 - A Base Camp climb took the bot about 55 turns over about 13 fights.
 - Averaged by encounter, ordinary fights lasted 2 to 6 turns and cost 2 to 25 health; alphas 5 to 6 turns and 17 to 27 health; guardians 8 to 10 turns and 30 to 33 health.
@@ -315,6 +333,6 @@ Reaching the summit with a chinchilla opens the next altitude for that chinchill
 ## Known limits
 
 - **Not played by hand.** See the note at the top.
-- **One card pool** for both chinchillas; only the starting trinket differs.
+- **The starting deck is the same** for both chinchillas; they differ by their trinket and by the cards they find.
 - **No potions or one-use items**, and no way to look at a trinket's count-downs (the Running Wheel's third turn, for example) other than counting turns.
 - **The bot is a one-turn planner.** It does not save cards for later or build its deck around a plan, so a person who does should find Base Camp easier than its numbers suggest.

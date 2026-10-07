@@ -2,10 +2,11 @@
 /* oxlint-disable next/no-html-link-for-pages -- Match the arcade's hard navigation so leaving always tears down the game loop. */
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { useHoverNote, type Note } from '../../components/hover-note';
 import {
   Run, TOWERS, TOWER_IDS, ENEMIES, RELICS, ITEMS, LEVELS, WAVES_PER_LEVEL, COLS, ROWS, START_TOWERS, SHATTER, FLARE,
-  isPiece, cardName, regionOf, bossLevel,
-  type TowerId, type Tower, type EnemyId, type PlaceResult, type CardId, type Reward,
+  isPiece, cardName, regionOf, bossLevel, PIECES,
+  type TowerId, type Tower, type EnemyId, type PlaceResult, type CardId, type Reward, type Battle, type Level,
 } from '../../lib/hay-maze-game';
 import { drawMaze, drawTowerIcon, drawCritterIcon, drawCardIcon, toGrid, ELEMENT_COLOR, VIEW_W, VIEW_H, type Ghost } from '../../lib/hay-maze-scene';
 import { COATS, drawChinchilla } from '../../lib/chinchilla-art';
@@ -65,7 +66,36 @@ const heroes = (c: CanvasRenderingContext2D, w: number, h: number) => {
   drawChinchilla(c, COATS.enzo, w * 0.78, h * 0.92, { face: -1, h: h * 0.46, time: 1.8 });
 };
 
+const HITS_WORD = { ground: 'Ground only', air: 'Flyers only', both: 'Ground and flyers' } as const;
+const round = (v: number) => String(Math.round(v * 10) / 10);
+/** What a tower's level does beyond damage, range and speed. */
+function towerExtras(lv: Level): Note['lines'] {
+  const out: NonNullable<Note['lines']> = [];
+  if (lv.slow) out.push({ label: 'Chill', text: `slows everything in reach by ${Math.round(lv.slow * 100)}%.` });
+  if (lv.splash) out.push({ label: 'Splash', text: `each boulder hits everything within ${round(lv.splash)} tiles of where it lands.` });
+  if (lv.burn) out.push({ label: 'Burn', text: `sets foes alight for ${round(lv.burn)} a second. Burn ignores armour.` });
+  if (lv.chains) out.push({ label: 'Chain', text: `jumps to ${lv.chains} foes. Chilled foes take ${SHATTER} times as much.` });
+  if (lv.stun) out.push({ label: 'Nap', text: `everything in reach sleeps for ${round(lv.stun)} s.` });
+  return out;
+}
+/** A tower as it would be built right now, with this run's relics counted, for the note on its button. */
+function towerNote(b: Battle, id: TowerId): Note {
+  const t = TOWERS[id], lv = b.stats(id, 0), top = t.levels[t.levels.length - 1];
+  return {
+    title: t.name, sub: `${t.cost} hay · ${t.element === 'plain' ? 'no element' : t.element}`, body: t.blurb,
+    stats: [['Damage', round(lv.dmg)], ['Range', `${round(lv.range)} tiles`], ['Every', `${round(lv.rate)} s`], ['Hits', HITS_WORD[t.hits]]],
+    lines: [...(towerExtras(lv) ?? []), { label: 'Upgrades', text: `twice, for ${t.upgrades.join(' and ')} hay, up to ${top.dmg} damage and ${top.range} tiles.` }],
+    foot: 'Stands on a bale or a rock, never on bare grass.',
+  };
+}
+function cardNote(id: CardId): Note {
+  if (!isPiece(id)) return { title: ITEMS[id].name, sub: 'Item · used at once', body: ITEMS[id].blurb };
+  const n = PIECES[id].cells.length;
+  return { title: PIECES[id].name, sub: `${n} ${n === 1 ? 'bale' : 'bales'}`, body: 'Bales block the predators’ way and give towers somewhere to stand. Turn the shape with R before you lay it.', foot: 'The meadow must always leave one way through to the Hearthlight.' };
+}
+
 export default function HayMaze() {
+  const hover = useHoverNote();
   const [save, setSave] = useState<Save>({ runs: 0, wins: 0, best: 0 });
   const [loaded, setLoaded] = useState(false);
   const [resume, setResume] = useState<Resume | null>(null);
@@ -308,6 +338,7 @@ export default function HayMaze() {
             );
           })}
         </div>
+        {hover.view}
       </main>
     );
   }
@@ -342,7 +373,7 @@ export default function HayMaze() {
         <span data-testid="flame" className={`hm-flame${flameFrac <= 0.3 ? ' low' : ''}`}><small>HEARTHLIGHT</small><b>🔥 {r.flame}/{r.maxFlame}</b><i><em style={{ width: `${flameFrac * 100}%` }} /></i></span>
         <span data-testid="hay"><small>HAY</small><b>🌾 {b.hay}</b></span>
         <span><small>THEIR WALK</small><b>{b.walk} tiles</b></span>
-        {r.relics.length > 0 && <span className="hm-relics"><small>RELICS</small><b>{r.relics.map((x) => <abbr key={x} title={`${RELICS[x].name}: ${RELICS[x].blurb}`}>{RELICS[x].icon}</abbr>)}</b></span>}
+        {r.relics.length > 0 && <span className="hm-relics"><small>RELICS</small><b>{r.relics.map((x) => <abbr key={x} data-testid={`relic-${x}`} {...hover.tip(() => ({ icon: RELICS[x].icon, title: RELICS[x].name, sub: 'Relic · lasts the whole run', body: RELICS[x].blurb }))}>{RELICS[x].icon}</abbr>)}</b></span>}
       </div>
       <div className="hm-board">
         <canvas
@@ -385,7 +416,7 @@ export default function HayMaze() {
         {b.hand.map((id, slot) => {
           const on = tool?.kind === 'card' && tool.slot === slot;
           return (
-            <button key={`${slot}-${id}`} data-testid={`card-${slot}`} data-card={id} className={`hm-cardbtn${on ? ' on' : ''}${isPiece(id) ? '' : ' item'}`} aria-pressed={on} disabled={isPiece(id) && b.phase !== 'build'} onClick={() => pickCard(slot)}>
+            <button key={`${slot}-${id}`} data-testid={`card-${slot}`} data-card={id} className={`hm-cardbtn${on ? ' on' : ''}${isPiece(id) ? '' : ' item'}`} aria-pressed={on} disabled={isPiece(id) && b.phase !== 'build'} onClick={() => pickCard(slot)} {...hover.tip(() => cardNote(id))}>
               <Icon draw={cardIcon(id, on ? rot : 0)} w={52} h={44} />
               <span>{slot + 1} · {cardName(id)}</span>
             </button>
@@ -399,7 +430,7 @@ export default function HayMaze() {
           if (!open) return null;
           const on = tool?.kind === 'tower' && tool.tower === id;
           return (
-            <button key={id} data-testid={`build-${id}`} className={`hm-tool${on ? ' on' : ''}${b.hay < t.cost ? ' poor' : ''}`} aria-pressed={on} onClick={() => { pickTower(id); canvas.current?.focus(); }}>
+            <button key={id} data-testid={`build-${id}`} className={`hm-tool${on ? ' on' : ''}${b.hay < t.cost ? ' poor' : ''}`} aria-pressed={on} onClick={() => { pickTower(id); canvas.current?.focus(); }} {...hover.tip(() => towerNote(b, id))}>
               <Icon draw={towerIcon(id)} w={44} h={42} />
               <span><i className="hm-dot" style={{ background: ELEMENT_COLOR[t.element] }} />{t.name.replace(/^(Dora|Enzo)’s /, '')}</span>
               <b>🌾 {t.cost} · {TOWER_KEYS[i].toUpperCase()}</b>
@@ -417,6 +448,7 @@ export default function HayMaze() {
         </section>
       ) : <p className="hm-keys">{hint} 1–8 cards · Z–, towers · R turn · arrows + Enter place · Space wave · F speed · P pause</p>}
       <span className="hm-sr" aria-live="polite">{picked === null ? '' : 'Tower selected.'}</span>
+      {hover.view}
     </main>
   );
 }

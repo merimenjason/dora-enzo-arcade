@@ -82,17 +82,27 @@ export type Overlay = { guide: number[] | null; charging: number };
 
 function rideBody(c: C2D, ride: RideId, x: number, feet: number, team: number) {
   const [body, edge] = RIDE_COLOR[ride];
-  c.lineWidth = 1.5; c.strokeStyle = edge; c.fillStyle = body;
-  c.beginPath(); c.roundRect(x - 12, feet - 10, 24, 7, 3); c.fill(); c.stroke();
-  c.fillStyle = TEAM[team]; c.fillRect(x - 10, feet - 9, 20, 2);
-  for (const dx of [-7, 7]) { c.fillStyle = '#3a2f2a'; c.beginPath(); c.arc(x + dx, feet - 3, 3.2, 0, 7); c.fill(); c.fillStyle = '#c9b9a0'; c.beginPath(); c.arc(x + dx, feet - 3, 1.2, 0, 7); c.fill(); }
+  c.fillStyle = 'rgba(20, 16, 40, 0.25)'; c.beginPath(); c.ellipse(x, feet + 0.4, 14, 2.4, 0, 0, 7); c.fill();
+  // The cart: lit along the top, planked, with the team's stripe and a brass corner on each end.
+  const wood = c.createLinearGradient(0, feet - 10.5, 0, feet - 3); wood.addColorStop(0, blend(body, '#ffffff', 0.4)); wood.addColorStop(0.45, body); wood.addColorStop(1, blend(body, edge, 0.6));
+  c.lineWidth = 1.5; c.strokeStyle = edge; c.fillStyle = wood;
+  c.beginPath(); c.roundRect(x - 12.5, feet - 10.5, 25, 7.5, 3); c.fill(); c.stroke();
+  c.strokeStyle = blend(body, edge, 0.5); c.lineWidth = 0.6; c.beginPath(); for (const dx of [-6, 0, 6]) { c.moveTo(x + dx, feet - 7.4); c.lineTo(x + dx, feet - 3.6); } c.stroke();
+  c.fillStyle = TEAM[team]; c.fillRect(x - 10.5, feet - 9.4, 21, 2.2); c.fillStyle = 'rgba(255, 255, 255, 0.45)'; c.fillRect(x - 10.5, feet - 9.4, 21, 0.7);
+  for (const dx of [-7, 7]) {
+    c.fillStyle = '#2c2420'; c.beginPath(); c.arc(x + dx, feet - 3, 3.5, 0, 7); c.fill();
+    c.strokeStyle = '#8a7a66'; c.lineWidth = 0.7; c.beginPath(); for (let a = 0; a < 3; a++) { const r = a * 1.047 + x * 0.25; c.moveTo(x + dx - Math.cos(r) * 2.6, feet - 3 - Math.sin(r) * 2.6); c.lineTo(x + dx + Math.cos(r) * 2.6, feet - 3 + Math.sin(r) * 2.6); } c.stroke();
+    c.fillStyle = '#e2d2b6'; c.beginPath(); c.arc(x + dx, feet - 3, 1.2, 0, 7); c.fill();
+    c.strokeStyle = 'rgba(255, 255, 255, 0.35)'; c.lineWidth = 0.7; c.beginPath(); c.arc(x + dx, feet - 3, 3, 3.6, 5.2); c.stroke();
+  }
 }
 /** The weapon, swung to the aiming angle. */
 function rideArm(c: C2D, ride: RideId, x: number, y: number, angle: number) {
   const [body, edge] = RIDE_COLOR[ride];
   c.save(); c.translate(x, y); c.rotate((-angle * Math.PI) / 180);
-  c.strokeStyle = edge; c.fillStyle = body; c.lineWidth = 1.5; c.lineCap = 'round';
-  if (ride === 'catapult') { c.lineWidth = 3; c.beginPath(); c.moveTo(0, 0); c.lineTo(13, 0); c.stroke(); c.fillStyle = '#f0d46a'; c.fillRect(11, -3.5, 6, 7); c.strokeRect(11, -3.5, 6, 7); }
+  const metal = c.createLinearGradient(0, -5, 0, 5); metal.addColorStop(0, blend(body, '#ffffff', 0.45)); metal.addColorStop(0.5, body); metal.addColorStop(1, blend(body, edge, 0.55));
+  c.strokeStyle = edge; c.fillStyle = metal; c.lineWidth = 1.5; c.lineCap = 'round';
+  if (ride === 'catapult') { c.lineWidth = 3; c.beginPath(); c.moveTo(0, 0); c.lineTo(13, 0); c.stroke(); c.strokeStyle = blend(body, '#ffffff', 0.35); c.lineWidth = 1; c.beginPath(); c.moveTo(1, -0.8); c.lineTo(12, -0.8); c.stroke(); c.strokeStyle = edge; c.lineWidth = 1.2; c.fillStyle = '#f0d46a'; c.fillRect(11, -3.5, 6, 7); c.strokeRect(11, -3.5, 6, 7); c.fillStyle = '#fff1b0'; c.fillRect(11.6, -2.9, 4.8, 1.6); c.beginPath(); c.moveTo(11, 0.4); c.lineTo(17, 0.4); c.stroke(); }
   else if (ride === 'spitter') { c.beginPath(); c.roundRect(0, -2.5, 16, 5, 2); c.fill(); c.stroke(); c.fillStyle = edge; c.fillRect(13, -3.5, 3, 7); }
   else if (ride === 'digger') { c.beginPath(); c.moveTo(0, -4); c.lineTo(9, -4); c.lineTo(18, 0); c.lineTo(9, 4); c.lineTo(0, 4); c.closePath(); c.fill(); c.stroke(); c.beginPath(); c.moveTo(9, -4); c.lineTo(9, 4); c.stroke(); }
   else { c.beginPath(); c.moveTo(0, -3); c.lineTo(11, -3); c.lineTo(17, -6.5); c.lineTo(17, 6.5); c.lineTo(11, 3); c.lineTo(0, 3); c.closePath(); c.fill(); c.stroke(); }
@@ -116,7 +126,7 @@ function drawBall(c: C2D, ride: RideId, shot: number, marker: boolean, x: number
   if (marker) { c.fillStyle = '#ff8fc0'; c.strokeStyle = '#8a2a58'; c.lineWidth = 1.2; c.beginPath(); c.arc(0, 0, 3.5, 0, 7); c.fill(); c.stroke(); c.restore(); return; }
   const big = shot === 1 || (ride === 'digger' && shot === 2) ? 1.25 : 1;
   c.scale(big, big); c.lineWidth = 1.2;
-  if (ride === 'catapult') { c.rotate(spin * 6); c.fillStyle = '#f0d46a'; c.strokeStyle = '#9a7420'; c.fillRect(-4, -4, 8, 8); c.strokeRect(-4, -4, 8, 8); c.beginPath(); c.moveTo(-4, 0); c.lineTo(4, 0); c.stroke(); }
+  if (ride === 'catapult') { c.rotate(spin * 6); c.fillStyle = '#f0d46a'; c.strokeStyle = '#9a7420'; c.fillRect(-4, -4, 8, 8); c.fillStyle = '#fff1b0'; c.fillRect(-4, -4, 8, 2.4); c.fillStyle = 'rgba(120, 80, 10, 0.3)'; c.fillRect(-4, 2, 8, 2); c.strokeRect(-4, -4, 8, 8); c.beginPath(); c.moveTo(-4, 0); c.lineTo(4, 0); c.moveTo(-1.5, -4); c.lineTo(-1.5, 4); c.moveTo(1.5, -4); c.lineTo(1.5, 4); c.stroke(); }
   else if (ride === 'spitter') { c.rotate(spin * 9); c.fillStyle = '#7a4c22'; c.beginPath(); c.ellipse(0, 0, 3.4, 2, 0, 0, 7); c.fill(); c.fillStyle = '#c99a5c'; c.beginPath(); c.ellipse(-0.6, -0.5, 1.4, 0.7, 0, 0, 7); c.fill(); }
   else if (ride === 'digger') { c.rotate(spin * 14); c.fillStyle = '#8b93a6'; c.strokeStyle = '#3c4354'; c.beginPath(); c.moveTo(5, 0); c.lineTo(-3, -3.5); c.lineTo(-3, 3.5); c.closePath(); c.fill(); c.stroke(); }
   else { c.fillStyle = 'rgba(240, 228, 205, 0.9)'; c.beginPath(); c.arc(0, 0, 4.5, 0, 7); c.arc(3, -2, 3, 0, 7); c.arc(-3, 1.5, 3, 0, 7); c.fill(); }
