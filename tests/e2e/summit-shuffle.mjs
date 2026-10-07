@@ -105,9 +105,10 @@ try {
   await peek.waitFor();
   assert.equal(await peek.getAttribute('data-card'), 'nip');
   assert.match(await peek.textContent(), /Nip.*Deal 6 damage\..*Numbers as they stand against .*Upgraded.*Deal 9 damage\./s);
-  await page.waitForTimeout(300); // let the hand finish moving before measuring; without this the check failed about half the time
-  const [big, small, view] = [await peek.locator('.ss-card').boundingBox(), await page.getByTestId(`hand-${shown}`).boundingBox(), page.viewportSize()];
-  assert.ok(big.width > small.width * 1.4, 'the copy is a good deal bigger than the card in hand');
+  // Layout widths, not boxes on screen: a card in hand is fanned at an angle until the mouse straightens it, so its
+  // box on screen is wider than the card by an amount that depends on where it sits in the hand.
+  const view = page.viewportSize(), wide = (loc) => loc.evaluate((el) => el.offsetWidth);
+  assert.ok(await wide(peek.locator('.ss-card')) > await wide(page.getByTestId(`hand-${shown}`)) * 1.4, 'the copy is a good deal bigger than the card in hand');
   const whole = await peek.boundingBox();
   assert.ok(whole.x >= 0 && whole.y >= 0 && whole.x + whole.width <= view.width && whole.y + whole.height <= view.height, 'the note stays on the screen');
   // So does a predator, with what it will do next, and a trinket.

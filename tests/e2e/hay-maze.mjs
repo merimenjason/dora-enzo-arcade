@@ -33,6 +33,13 @@ try {
   assert.equal(await page.locator('.hm-tool').count(), 3, 'only the starter towers');
   const box = await board(page).boundingBox();
 
+  // Sound can be turned off, and the choice is kept.
+  assert.equal(await page.getByTestId('mute').getAttribute('aria-pressed'), 'false');
+  await page.getByTestId('mute').click();
+  assert.equal(await page.getByTestId('mute').getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.evaluate((k) => localStorage.getItem(k), 'hay-maze-sound-v1'), 'off');
+  await page.getByTestId('mute').click();
+  assert.equal(await page.evaluate((k) => localStorage.getItem(k), 'hay-maze-sound-v1'), 'on');
   // Resting the mouse on it explains it.
   await page.locator('[data-testid="build-flicker"]').scrollIntoViewIfNeeded(); await page.mouse.move(2, 2); await page.waitForTimeout(150);
   await page.locator('[data-testid="build-flicker"]').hover();

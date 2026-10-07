@@ -122,3 +122,4 @@
 @media (prefers-reduced-motion: reduce) {
   .cc-shell .cc-card { transition: none; }
 }
+.cc-tools { display: flex; gap: 8px; align-items: center; }

@@ -4,6 +4,7 @@
 import { W, H, GROUND, CHIN_H, LIGHT_REACH, type Game, type Ent, type Terrain, type Chin } from './scribble-game.js';
 import { ART, INK, LW, light, dark, type Look } from './scribble-art.js';
 import { COATS, coatLike, drawChinchilla, type Coat } from './chinchilla-art.js';
+import { fitDraw } from './art-fit';
 
 export const VIEW_W = W, VIEW_H = H;
 type C = CanvasRenderingContext2D;
@@ -532,7 +533,7 @@ export function drawWorld(c: C, g: Game, t: number, k: number, focus: number | n
 /** Dora and Enzo together, for the title card. */
 export function drawHeroes(c: C, w: number, h: number, t: number) {
   c.clearRect(0, 0, w, h);
-  drawChinchilla(c, COATS.enzo, w * 0.62, h * 0.9, { face: -1, h: h * 0.5, time: t + 1.7 });
-  drawChinchilla(c, COATS.dora, w * 0.36, h * 0.94, { face: 1, h: h * 0.52, time: t });
+  fitDraw(c, 'chin-dora', 2, h * 0.06, w * 0.5 - 5, h * 0.9, (q) => drawChinchilla(q, COATS.dora, 0, 0, { face: 1, h: 40, time: t }));
+  fitDraw(c, 'chin-enzo', w * 0.5 + 3, h * 0.06, w * 0.5 - 5, h * 0.9, (q) => drawChinchilla(q, COATS.enzo, 0, 0, { face: 1, h: 40, time: t }), -1);
   void dark;
 }

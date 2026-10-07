@@ -3,6 +3,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useHoverNote, type Note } from '../../components/hover-note';
+import { sound } from './sound';
 import {
   ClashGame, CARDS, CARD_IDS, DEFAULT_DECK, DECK_SIZE, HEROES, RIVALS, MAX_DUST, W, H,
   validDeck, averageCost, type CardId, type PlayResult,
@@ -95,8 +96,12 @@ export default function ChinchillaClash() {
   const swallowClick = useRef(false);
   const recorded = useRef<ClashGame | null>(null);
   const noteTimer = useRef(0);
+  const [quiet, setQuiet] = useState(false);
+  /** Effects already heard: the engine keeps each on its list for as long as it is drawn. */
+  const heard = useRef(new WeakSet<object>());
 
-  useEffect(() => { const s = readSave(); setSave(s); setDeck(s.deck); setLoaded(true); }, []);
+  useEffect(() => { const s = readSave(); setSave(s); setDeck(s.deck); setQuiet(sound.muted()); setLoaded(true); }, []);
+  const mute = () => { const m = !sound.muted(); sound.setMuted(m); setQuiet(m); };
   useEffect(() => { selectedRef.current = selected; }, [selected]);
   // The browser test reads and fast-forwards the running battle through this.
   useEffect(() => { (window as unknown as { __clash?: () => ClashGame | null }).__clash = () => game.current; }, []);
@@ -118,6 +123,7 @@ export default function ChinchillaClash() {
     if (!g) return false;
     const result = g.play(0, slot, x, y);
     if (result === 'ok') { choose(null); setTick((t) => t + 1); return true; }
+    sound.cue('no');
     if (REFUSED[result]) say(REFUSED[result]);
     return false;
   }
@@ -139,7 +145,17 @@ export default function ChinchillaClash() {
       if (!g) return;
       acc += last ? Math.min(0.1, (now - last) / 1000) : 0; last = now;
       while (acc >= DT) { g.step(DT); acc -= DT; }
-      g.events.splice(0);
+      for (const e of g.events.splice(0)) {
+        if (e.type === 'play') sound.cue(e.side === 0 ? 'deploy' : 'rival');
+        else if (e.type === 'crown') sound.cue(e.side === 0 ? 'crown' : 'lost', 0, 1, 0.3);
+        else if (e.type === 'double' || e.type === 'overtime') sound.cue('horn');
+        else if (e.type === 'over') sound.cue(g.winner === 0 ? 'win' : g.winner === null ? 'draw' : 'lose');
+      }
+      for (const e of g.effects) {
+        if (heard.current.has(e)) continue;
+        heard.current.add(e);
+        if (e.kind === 'spark') sound.cue('hit', 0, 0.8, 0.07); else if (e.kind === 'spin') sound.cue('spin', 0, 1, 0.1); else if (e.kind === 'poof') sound.cue('poof', 0, 0.8, 0.09); else if (e.kind === 'boom') sound.cue('boom', 0, 1, 0.12);
+      }
       const slot = selectedRef.current, card = slot === null ? null : g.hands[0][slot];
       const ghost: Ghost = card && cursor.current.shown ? { card, x: cursor.current.x, y: cursor.current.y, ok: g.canPlace(0, card, cursor.current.x, cursor.current.y) && g.dust[0] >= CARDS[card].cost } : null;
       c.setTransform(SCALE, 0, 0, SCALE, 0, 0);
@@ -160,12 +176,13 @@ export default function ChinchillaClash() {
       const g = game.current;
       if (!g || (e.target as HTMLElement).closest('input,textarea')) return;
       const k = e.key.toLowerCase();
+      if (k === 'm') { mute(); return; }
       if (k === 'p' || (k === 'escape' && selectedRef.current === null)) { e.preventDefault(); if (g.state !== 'over') { g.pause(); setTick((t) => t + 1); } return; }
       if (g.state !== 'playing') return;
       if (k === 'escape') { choose(null); return; }
       if (['1', '2', '3', '4'].includes(k)) {
         const slot = Number(k) - 1, at = cursor.current;
-        choose(selectedRef.current === slot ? null : slot);
+        choose(selectedRef.current === slot ? null : slot); sound.cue('pick');
         // Start the drop point somewhere the card can go, in front of the king tower.
         cursor.current = g.canPlace(0, g.hands[0][slot], at.x, at.y) ? { ...at, shown: true } : { x: W / 2 + 0.5, y: 21.5, shown: true };
         return;
@@ -230,9 +247,10 @@ export default function ChinchillaClash() {
     <header className="cc-header">
       <a className="cc-back" href="/">← MAIN ARCADE</a>
       <span className="cc-brand">CHINCHILLA CLASH</span>
-      {screen === 'battle' && g ? (
-        <button onClick={() => { g.pause(); setTick((t) => t + 1); }} disabled={g.state === 'over'}>{g.state === 'paused' ? 'Resume' : 'Pause'} · P</button>
-      ) : <span />}
+      <span className="cc-tools">
+        {screen === 'battle' && g && <button onClick={() => { g.pause(); setTick((t) => t + 1); }} disabled={g.state === 'over'}>{g.state === 'paused' ? 'Resume' : 'Pause'} · P</button>}
+        <button data-testid="mute" onClick={mute} aria-label={quiet ? 'Turn sound on' : 'Turn sound off'} aria-pressed={quiet}>{quiet ? '🔇' : '🔊'}</button>
+      </span>
     </header>
   );
 
@@ -242,7 +260,7 @@ export default function ChinchillaClash() {
       <main className="cc-shell">
         {header}
         <section className="cc-intro">
-          <Portrait draw={heroesArt} w={170} h={110} />
+          <Portrait draw={heroesArt} w={236} h={104} />
           <div>
             <p className="cc-eyebrow">A CARD BATTLER · TWO LANES · THREE TOWERS</p>
             <h1>Chinchilla Clash</h1>

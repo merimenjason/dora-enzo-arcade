@@ -32,7 +32,7 @@
 .bb-shell .bb-tools button { padding: 4px 10px; font-size: 13px; }
 
 .bb-intro { display: flex; gap: 24px; align-items: center; padding: 24px 0 8px; }
-.bb-intro-art { display: flex; flex-shrink: 0; padding: 6px 10px 0; border-radius: 16px; background: linear-gradient(#7cc6f2, #e8f6df 72%, #86d15f 72%); border: 2px solid var(--line); }
+.bb-intro-art { display: flex; gap: 10px; flex-shrink: 0; padding: 6px 10px 0; border-radius: 16px; background: linear-gradient(#7cc6f2, #e8f6df 72%, #86d15f 72%); border: 2px solid var(--line); }
 .bb-eyebrow { font: 700 12px ui-monospace, monospace; letter-spacing: 2px; color: var(--gold) !important; margin: 0; }
 .bb-intro h1 { font: 900 48px/1.05 ui-sans-serif, system-ui, sans-serif; margin: 8px 0; background: linear-gradient(#fff6d8, #ffcf5a 55%, #ff9a76); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .bb-lede { color: var(--muted) !important; max-width: 720px; line-height: 1.6; margin: 0; }

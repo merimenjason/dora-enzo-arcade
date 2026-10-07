@@ -6,7 +6,9 @@ import { useHoverNote, type Note } from '../../components/hover-note';
 import { Game, DEFENDERS, ZOMBIES, LEVELS, ROWS, COLS, unlockedBy, type DefenderId, type ZombieId, type PlantResult } from '../../lib/cvz-game';
 import { drawLawn, drawDefenderIcon, drawZombieIcon, drawShovelIcon, zombie, toTile, seedPx, VIEW_W, VIEW_H, type Ghost } from '../../lib/cvz-scene';
 import { COATS, drawChinchilla } from '../../lib/chinchilla-art';
+import { fitDraw } from '../../lib/art-fit';
 import './cvz.css';
+import { sound } from './sound';
 
 const SAVE_KEY = 'chinchillas-vs-zombies-v1', NIGHT_KEY = 'chinchillas-vs-zombies-night-v1', DT = 1 / 60, SCALE = 2;
 const readCleared = () => { try { return Math.max(0, Math.min(LEVELS.length, Number(JSON.parse(localStorage.getItem(SAVE_KEY) ?? '{}').cleared) || 0)); } catch { return 0; } };
@@ -39,11 +41,10 @@ const defIcon = (kind: DefenderId) => (c: CanvasRenderingContext2D, w: number, h
 const zombieIcon = (kind: ZombieId) => (c: CanvasRenderingContext2D, w: number, h: number) => drawZombieIcon(c, kind, w, h);
 const heroes = (c: CanvasRenderingContext2D, w: number, h: number) => {
   c.clearRect(0, 0, w, h);
-  drawChinchilla(c, COATS.enzo, w * 0.5, h * 0.8, { face: 1, h: h * 0.46, time: 1.8 });
-  drawChinchilla(c, COATS.dora, w * 0.3, h * 0.97, { face: 1, h: h * 0.46, time: 0.3 });
-  c.save(); c.translate(w * 0.84, h * 0.95); c.scale(0.6, 0.6);
-  zombie(c, 'cone', 0, 0, { step: 1, armor: 1, maxArmor: 1 });
-  c.restore();
+  // Three in a row, each in its own space: the two of them, and what is coming up the lawn.
+  fitDraw(c, 'chin-dora', 2, h * 0.2, w * 0.36, h * 0.76, (q) => drawChinchilla(q, COATS.dora, 0, 0, { face: 1, h: 40, time: 0.3 }));
+  fitDraw(c, 'chin-enzo', w * 0.38, h * 0.2, w * 0.36, h * 0.76, (q) => drawChinchilla(q, COATS.enzo, 0, 0, { face: 1, h: 40, time: 0.3 }));
+  fitDraw(c, 'cvz-cone', w * 0.78, h * 0.04, w * 0.2, h * 0.92, (q) => zombie(q, 'cone', 0, 0, { step: 1, armor: 1, maxArmor: 1 }));
 };
 
 const KIND_WORD = { producer: 'Finds seeds', shooter: 'Shooter', wall: 'Wall', mine: 'Trap', bomb: 'One use' } as const;
@@ -78,7 +79,11 @@ export default function ChinchillasVsZombies() {
   const armed = useRef(false);
 
   const [kept, setKept] = useState(-1);
-  useEffect(() => { setCleared(readCleared()); setKept(readNight()?.level ?? -1); setLoaded(true); }, []);
+  const [quiet, setQuiet] = useState(false);
+  /** Effects already heard: the engine keeps each on its list for as long as it is drawn. */
+  const heard = useRef(new WeakSet<object>());
+  const mute = () => { const m = !sound.muted(); sound.setMuted(m); setQuiet(m); };
+  useEffect(() => { setCleared(readCleared()); setKept(readNight()?.level ?? -1); setQuiet(sound.muted()); setLoaded(true); }, []);
   // The browser test reads and fast-forwards the running game through this.
   useEffect(() => { (window as unknown as { __cvz?: () => Game | null }).__cvz = () => game.current; }, []);
 
@@ -139,7 +144,16 @@ export default function ChinchillasVsZombies() {
       if (!g) return;
       acc += last ? Math.min(0.1, (now - last) / 1000) * speedRef.current : 0; last = now;
       while (acc >= DT) { g.update(DT); acc -= DT; }
-      g.events.splice(0);
+      for (const e of g.events.splice(0)) {
+        if (e.type === 'boom') continue; // heard through its effect, which knows a trap from a boulder
+        if (e.type === 'kill') sound.cue('kill', 0, 0.9, 0.08); else if (e.type === 'collect') sound.cue('collect', 0, 1, 0.04); else sound.cue(e.type);
+      }
+      for (const f of g.effects) {
+        if (heard.current.has(f)) continue;
+        heard.current.add(f);
+        if (f.kind === 'hit') sound.cue('hit', 0, 0.8, 0.09); else if (f.kind === 'chill') sound.cue('chill', 0, 1, 0.12);
+        else if (f.kind === 'boom' || f.kind === 'dust' || f.kind === 'smash') sound.cue(f.kind, 0, 1, 0.12);
+      }
       const t = toolRef.current, at = cursor.current;
       let ghost: Ghost = null;
       if (t && at.shown && at.row >= 0 && at.row < ROWS && at.col >= 0 && at.col < COLS) ghost = { kind: t, row: at.row, col: at.col, ok: t === 'shovel' ? !!g.at(at.row, at.col) : g.canPlant(t, at.row, at.col) === 'ok' };
@@ -163,6 +177,7 @@ export default function ChinchillasVsZombies() {
       const g = game.current;
       if (!g || (e.target as HTMLElement).closest('input,textarea')) return;
       const k = e.key.toLowerCase(), onButton = !!(e.target as HTMLElement).closest('button,a');
+      if (k === 'm') { mute(); return; }
       if (k === 'p' || (k === 'escape' && !toolRef.current)) { if (g.state === 'playing' || g.state === 'paused') { g.pause(); refresh(); } return; }
       if (g.state !== 'playing') return;
       if (k === 'escape') { choose(null); return; }
@@ -190,7 +205,7 @@ export default function ChinchillasVsZombies() {
     <header className="cz-header">
       <a className="cz-back" href="/">← MAIN ARCADE</a>
       <span className="cz-brand">CHINCHILLAS VS ZOMBIES</span>
-      <span />
+      <button className="cz-mute" data-testid="mute" onClick={mute} aria-label={quiet ? 'Turn sound on' : 'Turn sound off'} aria-pressed={quiet}>{quiet ? '🔇' : '🔊'}</button>
     </header>
   );
 
@@ -200,7 +215,7 @@ export default function ChinchillasVsZombies() {
       <main className="cz-shell">
         {header}
         <section className="cz-intro">
-          <Icon draw={heroes} w={150} h={100} />
+          <Icon draw={heroes} w={236} h={104} />
           <div>
             <p className="cz-eyebrow">LANE DEFENCE · EIGHT NIGHTS · ONE BURROW</p>
             <h1>Chinchillas vs Zombies</h1>

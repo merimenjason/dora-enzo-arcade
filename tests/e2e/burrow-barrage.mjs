@@ -60,6 +60,12 @@ try {
   assert.equal(await page.getByTestId('dora-catapult').getAttribute('aria-pressed'), 'true');
 
   // A ride choice is kept.
+  // Resting the mouse on a ride says what it carries.
+  await page.getByTestId('dora-digger').scrollIntoViewIfNeeded(); await page.mouse.move(2, 2); await page.waitForTimeout(150);
+  await page.getByTestId('dora-digger').hover();
+  assert.match(await page.getByTestId('hover-note').textContent(), /Tunnel Digger.*Health120.*Mole Shot.*big shot/s, 'a ride says what it is and what it fires');
+  await page.mouse.move(2, 2);
+  await page.waitForFunction(() => !document.querySelector('[data-testid="hover-note"]'));
   await page.getByTestId('dora-digger').click();
   await page.reload();
   await page.waitForFunction(() => !document.querySelector('[data-testid="ladder-1"]').disabled);
@@ -112,6 +118,12 @@ try {
   assert.equal((await active(page)).angle, u.angle - 1, 'up raises the barrel whichever way it faces');
 
   // The big shot is not charged yet, and an item changes what the button does.
+  // So does a shot, with its numbers and how far the big one has charged.
+  await page.getByTestId('shot-1').scrollIntoViewIfNeeded(); await page.mouse.move(2, 2); await page.waitForTimeout(150);
+  await page.getByTestId('shot-1').hover();
+  assert.match(await page.getByTestId('hover-note').textContent(), /key 1.*Hurt\d+.*Blast\d+.*Wait\d+/s, 'a shot says what it does');
+  await page.mouse.move(2, 2);
+  await page.waitForFunction(() => !document.querySelector('[data-testid="hover-note"]'));
   await page.getByTestId('shot-3').click();
   assert.match(await page.locator('.bb-note').textContent(), /needs 3 more turns/);
   await page.keyboard.press('w');

@@ -2,6 +2,7 @@
 // own copy of the ground, so a crater appears when its shot lands on screen and not the moment the engine works it out.
 import { W, H, UNIT_UP, MAX_WIND, PATH_RATE, type Match, type Event, type RideId } from './burrow-barrage-game';
 import { coatLike, drawChinchilla, type Coat } from './chinchilla-art';
+import { fitDraw } from './art-fit';
 
 export const CELL = 2, VIEW_W = W * CELL, VIEW_H = H * CELL;
 type C2D = CanvasRenderingContext2D;
@@ -117,9 +118,7 @@ function drawUnit(c: C2D, coat: string, ride: RideId, team: number, x: number, f
 /** A chinchilla on its ride, for the menu. */
 export function drawRideIcon(c: C2D, coat: string, ride: RideId, team: number, w: number, h: number) {
   c.clearRect(0, 0, w, h);
-  c.save(); c.translate(w / 2, h * 0.9); c.scale(w / 44, w / 44);
-  drawUnit(c, coat, ride, team, 0, 0, team === 0 ? 40 : 140, 0.4);
-  c.restore();
+  fitDraw(c, `ride-${coat}-${ride}-${team}`, 1, 1, w - 2, h - 2, (q) => drawUnit(q, coat, ride, team, 0, 0, team === 0 ? 40 : 140, 0.4));
 }
 function drawBall(c: C2D, ride: RideId, shot: number, marker: boolean, x: number, y: number, spin: number) {
   c.save(); c.translate(x, y);
@@ -151,6 +150,8 @@ export class Stage {
   private land: HTMLCanvasElement; private img: ImageData; private back: HTMLCanvasElement | null = null; private backKey = '';
   private queue: Event[] = []; private cur: Event | null = null; private t = 0; private dur = 0;
   private sparks: Spark[] = []; private floats: Float[] = [];
+  /** Smoke that hangs over a crater and drifts with the wind after the flash has gone. */
+  private smoke: { x: number; y: number; vx: number; vy: number; r: number; life: number; max: number }[] = [];
   private shake = 0; private banner = ''; private bannerLife = 0; private dusk = 0;
 
   constructor(m: Match) {
@@ -254,6 +255,7 @@ export class Stage {
       this.dig(e.circles);
       const x = e.x * CELL, y = e.y * CELL;
       this.burst(x, y, 10 + e.crater * 2, [this.theme.soil, this.theme.deep, this.theme.grass, '#fff2c4'], 60 + e.crater * 6);
+      for (let i = 0; i < 6 + Math.floor(e.crater / 3); i++) { const a = Math.random() * Math.PI * 2, d = Math.random() * e.crater * CELL * 0.7, life = 0.9 + Math.random() * 0.9; this.smoke.push({ x: x + Math.cos(a) * d, y: y + Math.sin(a) * d * 0.6, vx: (Math.random() - 0.5) * 14, vy: -14 - Math.random() * 18, r: (0.35 + Math.random() * 0.4) * e.crater * CELL, life, max: life }); }
       this.shake = Math.min(9, 2 + e.crater * 0.35); this.dur = 0.26; this.sfx(e.crater >= 14 ? 'boom-big' : 'boom');
     } else if (e.type === 'hurt' && s) {
       s.hp = e.hp; s.flash = 0.3; this.dur = 0.04;
@@ -285,6 +287,8 @@ export class Stage {
     dt = Math.min(dt, 0.1);
     for (const p of this.sparks) { p.life -= dt; p.vy += 260 * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
     this.sparks = this.sparks.filter((p) => p.life > 0);
+    for (const m of this.smoke) { m.life -= dt; m.x += m.vx * dt; m.y += m.vy * dt; m.vy *= 1 - dt * 0.8; m.r += dt * 6; }
+    this.smoke = this.smoke.filter((m) => m.life > 0);
     for (const f of this.floats) { f.life -= dt; f.y -= 22 * dt; }
     this.floats = this.floats.filter((f) => f.life > 0);
     this.shake = Math.max(0, this.shake - dt * 22); this.bannerLife = Math.max(0, this.bannerLife - dt);
@@ -371,10 +375,22 @@ export class Stage {
     }
     const e = this.cur;
     if (e?.type === 'shot' && e.path.length) { const [x, y] = this.ball(e); drawBall(c, e.ride, e.shot, e.marker, x, y, this.t); }
+    for (const m of this.smoke) {
+      const k = m.life / m.max;
+      c.globalAlpha = 0.34 * Math.min(1, k * 2.2); c.fillStyle = '#4a4450'; c.beginPath(); c.arc(m.x, m.y + m.r * 0.2, m.r, 0, 7); c.fill();
+      c.globalAlpha = 0.4 * Math.min(1, k * 2.2); c.fillStyle = '#d9d2c6'; c.beginPath(); c.arc(m.x - m.r * 0.15, m.y - m.r * 0.15, m.r * 0.8, 0, 7); c.fill();
+    }
+    c.globalAlpha = 1;
     if (e?.type === 'boom') {
-      const k = this.dur ? this.t / this.dur : 1;
-      c.globalAlpha = 1 - k; c.fillStyle = '#fff6d0'; c.beginPath(); c.arc(e.x * CELL, e.y * CELL, (e.crater + (e.blast - e.crater) * k * 0.6) * CELL, 0, 7); c.fill();
-      c.strokeStyle = '#ffffff'; c.lineWidth = 2; c.beginPath(); c.arc(e.x * CELL, e.y * CELL, (e.crater + e.blast * k) * CELL, 0, 7); c.stroke(); c.globalAlpha = 1;
+      // The blast itself: a white flash, a fireball that cools as it swells, and a shock ring out to where it hurts.
+      const k = this.dur ? this.t / this.dur : 1, x = e.x * CELL, y = e.y * CELL, out = 1 - (1 - k) * (1 - k), rr = (e.crater + (e.blast - e.crater) * out * 0.6) * CELL;
+      if (k < 0.3) { c.globalAlpha = 1 - k / 0.3; c.fillStyle = '#ffffff'; c.beginPath(); c.arc(x, y, e.crater * CELL * (0.8 + k), 0, 7); c.fill(); }
+      const ball = c.createRadialGradient(x, y, 0, x, y, Math.max(1, rr));
+      ball.addColorStop(0, `rgba(255, 252, 226, ${0.95 * (1 - k)})`); ball.addColorStop(0.5, `rgba(255, 196, 96, ${0.75 * (1 - k)})`); ball.addColorStop(1, 'rgba(232, 104, 48, 0)');
+      c.globalAlpha = 1; c.fillStyle = ball; c.beginPath(); c.arc(x, y, rr, 0, 7); c.fill();
+      c.globalAlpha = 1 - k; c.strokeStyle = '#ffffff'; c.lineWidth = 3.5 * (1 - k) + 0.8; c.beginPath(); c.arc(x, y, (e.crater + e.blast * out) * CELL, 0, 7); c.stroke();
+      c.globalAlpha = 0.5 * (1 - k); c.strokeStyle = '#ffd98a'; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, (e.crater + e.blast * out * 0.7) * CELL, 0, 7); c.stroke();
+      c.globalAlpha = 1;
     }
     for (const p of this.sparks) { c.globalAlpha = Math.max(0, p.life / p.max); c.fillStyle = p.color; c.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size); }
     c.globalAlpha = 1;

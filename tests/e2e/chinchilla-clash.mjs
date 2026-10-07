@@ -49,6 +49,13 @@ try {
   await page.getByTestId('battle-beige').click();
   await page.waitForSelector('[data-testid="arena"][data-state="playing"]');
   await game(page, 'g => { g.ai = [null, null]; }');
+  // Sound can be turned off, and the choice is kept.
+  assert.equal(await page.getByTestId('mute').getAttribute('aria-pressed'), 'false');
+  await page.getByTestId('mute').click();
+  assert.equal(await page.getByTestId('mute').getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.evaluate((k) => localStorage.getItem(k), 'chinchilla-clash-sound-v1'), 'off');
+  await page.getByTestId('mute').click();
+  assert.equal(await page.evaluate((k) => localStorage.getItem(k), 'chinchilla-clash-sound-v1'), 'on');
   // Resting the mouse on it explains it.
   await page.locator('[data-testid="hand-0"]').scrollIntoViewIfNeeded(); await page.mouse.move(2, 2); await page.waitForTimeout(150);
   await page.locator('[data-testid="hand-0"]').hover();

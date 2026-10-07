@@ -35,7 +35,7 @@
 
 /* Home */
 .ss-intro { display: flex; gap: 24px; align-items: center; padding: 24px 0 8px; }
-.ss-intro-art { display: flex; flex-shrink: 0; padding: 8px 10px 0; border-radius: 16px; background: linear-gradient(#8fd0f0, #f6e9c4 70%, #a9c25e 70%); border: 2px solid var(--line); }
+.ss-intro-art { display: flex; gap: 8px; flex-shrink: 0; padding: 8px 10px 0; border-radius: 16px; background: linear-gradient(#8fd0f0, #f6e9c4 70%, #a9c25e 70%); border: 2px solid var(--line); }
 .ss-eyebrow { font: 700 12px ui-monospace, monospace; letter-spacing: 2px; color: var(--gold) !important; margin: 0; }
 .ss-intro h1 { font: 900 48px/1.05 ui-sans-serif, system-ui, sans-serif; margin: 8px 0; background: linear-gradient(#ffffff, #ffe9a8 50%, #ffb46a); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .ss-lede { color: var(--muted) !important; max-width: 740px; line-height: 1.6; margin: 0; }

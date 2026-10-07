@@ -75,8 +75,8 @@ The first row of every stretch is fights, the second is fights and meetings, and
 | Burr Fling | Attack | 1 | Enzo | Deal 5 damage. Apply 4 Burrs. | Deal 7 damage. Apply 5 Burrs. |
 | Burr Patch | Skill | 1 | Enzo | Apply 6 Burrs. | Apply 8 Burrs. |
 | Prickly Curl | Skill | 1 | Enzo | Gain 6 Fluff and 2 Bristle. | Gain 8 Fluff and 3 Bristle. |
-| Thump | Attack | 1 | Enzo | Deal 10 damage. | Deal 13 damage. |
-| Hunker Down | Skill | 1 | Enzo | Gain 10 Fluff. | Gain 13 Fluff. |
+| Thump | Attack | 1 | Enzo | Deal 11 damage. | Deal 14 damage. |
+| Hunker Down | Skill | 1 | Enzo | Gain 9 Fluff. | Gain 12 Fluff. |
 | Burr Bite | Attack | 1 | Enzo | Deal 6 damage. Apply 2 Burrs to ALL foes. | Deal 8 damage. Apply 3 Burrs to ALL foes. |
 
 ### Uncommon
@@ -97,7 +97,7 @@ The first row of every stretch is fights, the second is fights and meetings, and
 | Dust Devil | Skill | 1 | Dora | Gain 5 Fluff. Apply 1 Exposed to ALL foes. | Gain 8 Fluff. Apply 1 Exposed to ALL foes. |
 | Light Feet | Power | 2 | Dora | Whenever you play a card, gain 1 Fluff. | Costs 1. |
 | Pinpoint | Attack | 1 | Dora | Deal 7 damage. Deal it again if the foe is Exposed. | Deal 10 damage. Deal it again if the foe is Exposed. |
-| Whirligig | Attack | 2 | Dora | Deal 4 damage to ALL foes once for every card played this turn, this one included. | Deal 5 damage to ALL foes once for every card played this turn, this one included. |
+| Whirligig | Attack | 2 | Dora | Deal 5 damage to ALL foes once for every card played this turn, this one included. | Deal 6 damage to ALL foes once for every card played this turn, this one included. |
 | Second Wind | Skill | 0 | Dora | Gain 1 energy. Draw 1 card. Exhaust. | Gain 1 energy. Draw 2 cards. Exhaust. |
 | Belly Flop | Attack | 1 | Enzo | Deal damage equal to your Fluff. | Costs 0. |
 | Burr Storm | Attack | 2 | Enzo | Deal 6 damage and apply 5 Burrs to ALL foes. | Deal 8 damage and apply 7 Burrs to ALL foes. |
@@ -108,7 +108,7 @@ The first row of every stretch is fights, the second is fights and meetings, and
 | Bramble Coat | Power | 1 | Enzo | Gain 4 Bristle. | Gain 6 Bristle. |
 | Quill Burst | Attack | 1 | Enzo | Deal 5 damage to ALL foes. Gain 2 Bristle. | Deal 7 damage to ALL foes. Gain 3 Bristle. |
 | Padding | Skill | 2 | Enzo | Gain 14 Fluff. Draw 1 card. | Gain 18 Fluff. Draw 1 card. |
-| Burr Roll | Skill | 1 | Enzo | Apply 6 Burrs and 1 Winded. | Apply 8 Burrs and 1 Winded. |
+| Burr Roll | Skill | 1 | Enzo | Apply 4 Burrs and 1 Winded. | Apply 6 Burrs and 1 Winded. |
 
 ### Rare
 
@@ -124,7 +124,7 @@ The first row of every stretch is fights, the second is fights and meetings, and
 | Encore | Skill | 1 | Dora | Your next attack this turn is played twice. | Costs 0. |
 | Bright Eyed | Power | 1 | Dora | Draw 1 more card every turn. | Costs 0. |
 | A Thousand Nips | Attack | 2 | Dora | Deal 3 damage 6 times. | Deal 4 damage 6 times. |
-| Spotlight | Skill | 1 | Dora | Apply 3 Exposed to ALL foes. Exhaust. | Apply 4 Exposed to ALL foes. Exhaust. |
+| Spotlight | Skill | 0 | Dora | Apply 3 Exposed to ALL foes. Exhaust. | Apply 4 Exposed to ALL foes. Exhaust. |
 | Deep Burrow | Power | 2 | Enzo | Your Fluff no longer falls away at the start of your turn. | Costs 1. |
 | Earthshaker | Attack | 2 | Enzo | Deal 10 damage and apply 1 Winded to ALL foes. | Deal 14 damage and apply 2 Winded to ALL foes. |
 | Iron Hide | Power | 2 | Enzo | Gain 2 Thick Fur and 2 Bristle. | Gain 3 Thick Fur and 3 Bristle. |
@@ -313,12 +313,12 @@ Reaching the summit with a chinchilla opens the next altitude for that chinchill
 
 | Altitude | Dora | Enzo |
 | --- | --- | --- |
-| Base Camp | 78% | 78% |
-| Altitude 1 | 71% | 69% |
-| Altitude 2 | 54% | 54% |
-| Altitude 3 | 44% | 38% |
-| Altitude 4 | 35% | 32% |
-| Altitude 5 | 14% | 14% |
+| Base Camp | 80% | 77% |
+| Altitude 1 | 71% | 68% |
+| Altitude 2 | 59% | 52% |
+| Altitude 3 | 46% | 41% |
+| Altitude 4 | 35% | 31% |
+| Altitude 5 | 13% | 12% |
 
 Before the split, on 06-10-2026, the same trial gave 79%, 68%, 57%, 46%, 32% and 14% for Dora and 82%, 68%, 52%, 40%, 31% and 17% for Enzo. The sixteen new cards have only the bot's guessed wants (`WANT` in the bot) behind them and have not been through a card trial.
 
@@ -326,7 +326,7 @@ Before the split, on 06-10-2026, the same trial gave 79%, 68%, 57%, 46%, 32% and
 - Averaged by encounter, ordinary fights lasted 2 to 6 turns and cost 2 to 25 health; alphas 5 to 6 turns and 17 to 27 health; guardians 8 to 10 turns and 30 to 33 health.
 - Climbs that failed ended at a guardian about five times in six, spread fairly evenly over the three.
 - `FIGHTS=1` adds a line per fight; `RUNS` and `LEVELS` set how many climbs and which altitudes.
-- `TRIAL=1 npm run bot:summit` measures each card by putting one copy in the deck from the first stop. In the last full trial, at Altitude 1 with a baseline of 70%, the best card added 14 points and the worst took away 7; Light Feet, Burr Storm and Sore Spot were adjusted afterwards. The cards that scored below zero (Belly Flop, Puff Up, Sore Spot) need other cards to work, which the bot does not plan for.
+- `TRIAL=1 npm run bot:summit` measures each card by putting one copy in the deck from the first stop. A card only one chinchilla finds is tried by that chinchilla alone and measured against that chinchilla's own baseline; `CARDS=thump,hunker` tries just those. In the last full trial (07-10-2026, 300 climbs a card at Altitude 1, baselines Dora 72% and Enzo 66%) the best card added 23 points and the worst took away 5. Five of the sixteen newest cards were adjusted afterwards: Burr Roll (6 Burrs down to 4) and Hunker Down (10 Fluff down to 9) were too good, and Spotlight (now free), Whirligig and Thump (a point more each) too weak; on a second trial of those they added between 3 and 15. With 300 climbs a card, a difference of five points either way is within the noise. Belly Flop, the one card still below zero, needs Fluff from other cards, which the bot does not plan for.
 
 `npm test` fails if either chinchilla reaches the summit from Base Camp in under 50% or over 95% of 80 climbs, if Altitude 5 is not at least 20 points harder, or if the two chinchillas are more than 20 points apart. Rerun the bot after changing any number on a card, a predator or a trinket.
 

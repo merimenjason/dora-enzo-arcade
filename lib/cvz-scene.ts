@@ -3,6 +3,7 @@
 // cartoon zombies with glowing eyes shambling in from a foggy street, pellets, seed pouches to click, and effects.
 import { Game, DEFENDERS, ZOMBIES, ROWS, COLS, type DefenderId, type ZombieId, type Defender, type Zombie, type Seed, type Effect } from './cvz-game';
 import { COATS, coatLike, drawChinchilla, type Coat } from './chinchilla-art';
+import { fitDraw } from './art-fit';
 
 export const VIEW_W = 970, VIEW_H = 578;
 /** Flat-view tile size: everything is drawn at this size, then scaled by its depth. */
@@ -391,24 +392,54 @@ const performanceTime = () => (typeof performance === 'undefined' ? 0 : performa
 /** An effect, drawn at the flat size around (0, 0) on the ground; the caller moves and scales it into place. */
 function effect(c: CanvasRenderingContext2D, e: Effect) {
   const p = e.t / e.max, x = 0, y = 0, r = e.r * TW;
+  const fade = 1 - p, out = 1 - (1 - p) * (1 - p) * (1 - p), rnd = (n: number) => { const v = Math.sin((n + e.x * 13 + e.y * 7) * 127.1) * 43758.5453; return v - Math.floor(v); };
   if (e.kind === 'boom') {
-    c.globalAlpha = 1 - p;
-    ellipse(c, x, y, r * (0.4 + p * 0.7), r * 0.6 * (0.4 + p * 0.7), 'rgba(200, 170, 130, 0.6)');
-    for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; ellipse(c, x + Math.cos(a) * r * p, y + Math.sin(a) * r * p * 0.6, 8 * (1 - p) + 2, 6 * (1 - p) + 2, '#8f8778'); }
+    // Enzo's boulder coming down: scorched turf, a flash, a ring along the ground, clods of earth and grass, dust.
+    c.globalAlpha = 0.35 * fade; ellipse(c, x, y + 3, r * 0.8, r * 0.34, '#1c1408');
+    if (p < 0.18) { c.globalAlpha = 1 - p / 0.18; ellipse(c, x, y - 8, r * (0.45 + p * 1.6), r * (0.28 + p), '#fffbe6'); }
+    c.globalAlpha = fade; c.strokeStyle = '#fff4d8'; c.lineWidth = 5 * fade + 1; c.beginPath(); c.ellipse(x, y, r * (0.25 + out * 0.85), r * (0.25 + out * 0.85) * 0.42, 0, 0, Math.PI * 2); c.stroke();
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2 + rnd(i), d = r * out * (0.5 + rnd(i + 20) * 0.7), up = Math.sin(p * Math.PI) * r * (0.2 + rnd(i + 40) * 0.4), sz = 3 + rnd(i + 60) * 5;
+      c.fillStyle = i % 3 === 0 ? '#5a8a34' : i % 3 === 1 ? '#6b4a2a' : '#8f8778'; c.fillRect(x + Math.cos(a) * d - sz / 2, y + Math.sin(a) * d * 0.42 - up - sz / 2, sz, sz);
+    }
+    for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2 + rnd(i + 5), d = r * (0.25 + out * 0.75), sz = r * 0.2 * (1 - p * 0.3); c.globalAlpha = 0.5 * fade; ellipse(c, x + Math.cos(a) * d, y - 6 + Math.sin(a) * d * 0.42 - p * 18, sz, sz * 0.75, '#cfc3ad'); }
     c.globalAlpha = 1;
   } else if (e.kind === 'dust') {
-    c.globalAlpha = 0.8 * (1 - p);
-    for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2; ellipse(c, x + Math.cos(a) * r * p, y - 20 + Math.sin(a) * r * p * 0.5, 16 * (1 - p * 0.3), 11, '#efe3cf'); }
+    // A dust trap going off: clouds with shaded undersides rolling out and up, and grit flying past them.
+    for (let i = 0; i < 11; i++) {
+      const a = (i / 11) * Math.PI * 2 + rnd(i), d = r * (0.2 + out * (0.6 + rnd(i + 9) * 0.5)), px = x + Math.cos(a) * d, py = y - 18 + Math.sin(a) * d * 0.45 - out * 14, sz = (13 + rnd(i + 3) * 8) * (1 - p * 0.3);
+      c.globalAlpha = 0.45 * fade; ellipse(c, px, py + sz * 0.3, sz, sz * 0.72, '#b9a688');
+      c.globalAlpha = 0.85 * fade; ellipse(c, px, py, sz * 0.95, sz * 0.7, '#efe3cf'); ellipse(c, px - sz * 0.25, py - sz * 0.22, sz * 0.45, sz * 0.32, '#fffaf0');
+    }
+    c.globalAlpha = fade; c.fillStyle = '#d8c6a4';
+    for (let i = 0; i < 10; i++) { const a = rnd(i + 30) * Math.PI * 2, d = r * (0.3 + out * 1.3 * rnd(i + 50)); c.fillRect(x + Math.cos(a) * d - 1.5, y - 18 + Math.sin(a) * d * 0.45 - out * 30 * rnd(i + 70), 3, 3); }
     c.globalAlpha = 1;
   } else if (e.kind === 'splat') {
-    c.globalAlpha = 1 - p;
-    for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 + e.x; ellipse(c, x + Math.cos(a) * 16 * p, y - 20 + Math.sin(a) * 8 * p, 6, 4, '#8fbf4a'); }
+    // A zombie coming apart: green goo thrown in an arc, a puddle left behind, and a button or two.
+    c.globalAlpha = 0.5 * fade; ellipse(c, x, y, 14 + out * 8, 5 + out * 2, '#5f8f2c');
+    for (let i = 0; i < 9; i++) {
+      const a = Math.PI + (i / 8) * Math.PI + (rnd(i) - 0.5) * 0.4, d = (10 + rnd(i + 10) * 20) * out, up = Math.sin(p * Math.PI) * (12 + rnd(i + 20) * 20), sz = 3 + rnd(i + 30) * 4;
+      c.globalAlpha = fade; ellipse(c, x + Math.cos(a) * d, y - 22 + Math.sin(a) * d * 0.4 - up + p * p * 26, sz, sz * 0.85, i % 3 ? '#8fbf4a' : '#b9dd72');
+    }
+    c.globalAlpha = fade; ellipse(c, x + out * 12, y - 26 - Math.sin(p * Math.PI) * 18 + p * p * 30, 2.2, 2.2, '#2b2440');
     c.globalAlpha = 1;
   } else if (e.kind === 'hit' || e.kind === 'chill') {
-    c.strokeStyle = e.kind === 'chill' ? `rgba(190, 235, 255, ${1 - p})` : `rgba(255, 246, 192, ${1 - p})`; c.lineWidth = 2;
-    for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; c.beginPath(); c.moveTo(x + Math.cos(a) * 3, y - 34 + Math.sin(a) * 3); c.lineTo(x + Math.cos(a) * 9, y - 34 + Math.sin(a) * 9); c.stroke(); }
+    // A pellet landing: a pop, a ring and rays; a cold one throws flakes instead of sparks.
+    const cold = e.kind === 'chill', hy = y - 34;
+    c.globalAlpha = fade; ellipse(c, x, hy, 4.5 * (1 - p * 0.6), 4.5 * (1 - p * 0.6), '#ffffff');
+    c.strokeStyle = cold ? 'rgba(170, 225, 255, 0.85)' : 'rgba(255, 226, 150, 0.85)'; c.lineWidth = 1.6; c.beginPath(); c.arc(x, hy, 4 + p * 11, 0, Math.PI * 2); c.stroke();
+    c.strokeStyle = cold ? '#dff4ff' : '#fff6c0'; c.lineCap = 'round';
+    for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2 + rnd(1) * 3, far = (i % 2 ? 6 : 12) * (0.4 + p * 0.9); c.lineWidth = i % 2 ? 1.6 : 2.4; c.beginPath(); c.moveTo(x + Math.cos(a) * (3 + p * 4), hy + Math.sin(a) * (3 + p * 4)); c.lineTo(x + Math.cos(a) * (4 + far), hy + Math.sin(a) * (4 + far)); c.stroke(); }
+    if (cold) { c.fillStyle = '#ffffff'; for (let i = 0; i < 5; i++) { const a = rnd(i + 8) * Math.PI * 2, d = 6 + out * 14; c.fillRect(x + Math.cos(a) * d - 1.2, hy + Math.sin(a) * d + p * 8 - 1.2, 2.4, 2.4); } }
+    c.lineCap = 'butt'; c.globalAlpha = 1;
   } else if (e.kind === 'smash') {
-    c.strokeStyle = `rgba(90, 60, 30, ${1 - p})`; c.lineWidth = 3; c.beginPath(); c.ellipse(x, y, r * p, r * p * 0.3, 0, 0, Math.PI * 2); c.stroke();
+    // The brute's club: the ground jumps, cracks run out, and dirt flies.
+    c.globalAlpha = fade; c.strokeStyle = '#3a2814'; c.lineWidth = 4 * fade + 1; c.beginPath(); c.ellipse(x, y, r * (0.2 + out * 0.8), r * (0.2 + out * 0.8) * 0.3, 0, 0, Math.PI * 2); c.stroke();
+    c.lineWidth = 2; c.lineCap = 'round';
+    for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 + rnd(i), d = r * 0.7 * out; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a) * d * 0.5 + (rnd(i + 3) - 0.5) * 6, y + Math.sin(a) * d * 0.15); c.lineTo(x + Math.cos(a) * d, y + Math.sin(a) * d * 0.3); c.stroke(); }
+    c.lineCap = 'butt';
+    for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2 + rnd(i + 11), d = r * out * (0.4 + rnd(i + 14) * 0.6), up = Math.sin(p * Math.PI) * (14 + rnd(i + 17) * 22), sz = 3 + rnd(i + 19) * 4; c.fillStyle = i % 2 ? '#6b4a2a' : '#5a8a34'; c.fillRect(x + Math.cos(a) * d - sz / 2, y + Math.sin(a) * d * 0.3 - up - sz / 2, sz, sz); }
+    c.globalAlpha = 1;
   } else {
     c.font = 'bold 15px Arial'; c.textAlign = 'center';
     c.lineWidth = 3; c.strokeStyle = `rgba(80, 50, 0, ${1 - p})`; c.strokeText(`+${e.value}`, x, y - 30 - p * 26);
@@ -508,10 +539,7 @@ function drawZombie(c: CanvasRenderingContext2D, z: Zombie) {
 
 export function drawDefenderIcon(c: CanvasRenderingContext2D, kind: DefenderId, w: number, h: number, time = 0) {
   c.clearRect(0, 0, w, h);
-  const k = Math.min(w / 70, h / 80);
-  c.save(); c.translate(w / 2, h - 6); c.scale(k, k);
-  defender(c, kind, 0, 0, { time, armed: 0, ghost: true });
-  c.restore();
+  fitDraw(c, `cvz-${kind}`, 2, 2, w - 4, h - 4, (q) => defender(q, kind, 0, 0, { time, armed: 0, ghost: true }));
 }
 export function drawShovelIcon(c: CanvasRenderingContext2D, w: number, h: number) {
   c.clearRect(0, 0, w, h);

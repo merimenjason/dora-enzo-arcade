@@ -8,6 +8,7 @@ import {
   type TowerId, type Tower, type Enemy, type Effect, type Shot, type PieceId, type CardId, type Element,
 } from './hay-maze-game';
 import { COATS, coatLike, drawChinchilla, type Coat } from './chinchilla-art';
+import { fitDraw } from './art-fit';
 import { predator, TINT, type PredKind, type Tint } from './predator-art';
 
 export const TILE = 32, OX = 26, OY = 24, LIFT = 7, VIEW_W = OX + COLS * TILE + 74, VIEW_H = OY + ROWS * TILE + 16;
@@ -398,19 +399,52 @@ function effect(c: CanvasRenderingContext2D, f: Effect) {
     }
     c.restore();
   } else if (f.kind === 'shatter') {
-    for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; c.fillStyle = `rgba(210, 245, 255, ${1 - p})`; c.beginPath(); const px = x + Math.cos(a) * 14 * p, py = y - 6 + Math.sin(a) * 10 * p; c.moveTo(px, py - 3); c.lineTo(px + 2, py); c.lineTo(px, py + 3); c.lineTo(px - 2, py); c.fill(); }
+    // Ice breaking: a cold flash, then shards that spin outward and fall.
+    const fade = 1 - p;
+    glow(c, x, y - 6, 16 * (0.6 + p), 'rgba(200, 240, 255, 1)', 0.6 * fade);
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2 + f.x, d = (10 + hash(i + f.x * 3) * 12) * p, px = x + Math.cos(a) * d, py = y - 6 + Math.sin(a) * d * 0.7 + p * p * 8, sz = 2 + hash(i + 5) * 2.4, rot = a + p * 5;
+      c.save(); c.translate(px, py); c.rotate(rot); c.globalAlpha = fade;
+      c.fillStyle = i % 2 ? '#d6f3ff' : '#ffffff'; c.beginPath(); c.moveTo(0, -sz * 1.4); c.lineTo(sz * 0.7, 0); c.lineTo(0, sz * 1.4); c.lineTo(-sz * 0.7, 0); c.fill();
+      c.fillStyle = 'rgba(120, 190, 235, 0.7)'; c.beginPath(); c.moveTo(0, -sz * 1.4); c.lineTo(sz * 0.7, 0); c.lineTo(0, 0); c.fill();
+      c.restore();
+    }
+    c.globalAlpha = 1;
   } else if (f.kind === 'flare') {
     glow(c, x, y - 6, r * (0.5 + p), 'rgba(230, 120, 255, 1)', 0.8 * (1 - p));
     glow(c, x, y - 6, r * 0.6, 'rgba(255, 170, 60, 1)', 0.7 * (1 - p));
-  } else if (f.kind === 'boom' || f.kind === 'place') {
-    c.globalAlpha = 1 - p;
-    c.strokeStyle = '#fff4d8'; c.lineWidth = 2.5; c.beginPath(); c.arc(x, y, r * (0.3 + p * 0.7), 0, Math.PI * 2); c.stroke();
-    for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2; ellipse(c, x + Math.cos(a) * r * p, y + Math.sin(a) * r * p * 0.7, 3 * (1 - p) + 1, 2 * (1 - p) + 1, f.kind === 'place' ? '#e8cf8a' : '#b8a88e'); }
+  } else if (f.kind === 'boom') {
+    // A boulder landing: a flash, a ring racing out along the ground, clods thrown up, dust left hanging.
+    const fade = 1 - p, out = 1 - (1 - p) * (1 - p) * (1 - p);
+    c.globalAlpha = 0.3 * fade; ellipse(c, x, y + 2, r * 0.8, r * 0.48, '#20140c');
+    if (p < 0.2) glow(c, x, y - 4, r * (0.7 + p * 2), 'rgba(255, 246, 214, 1)', 0.9 * (1 - p / 0.2));
+    c.globalAlpha = fade; c.strokeStyle = '#fff4d8'; c.lineWidth = 3 * fade + 0.6; c.beginPath(); c.ellipse(x, y, r * (0.25 + out * 0.8), r * (0.25 + out * 0.8) * 0.66, 0, 0, Math.PI * 2); c.stroke();
+    for (let i = 0; i < 11; i++) {
+      const a = (i / 11) * Math.PI * 2 + f.x, d = r * out * (0.6 + hash(i + f.y * 5) * 0.6), up = Math.sin(p * Math.PI) * r * (0.45 + hash(i + 9) * 0.7), sz = 1.4 + hash(i + 3) * 2.2;
+      c.fillStyle = i % 3 ? '#7c7468' : '#b8ae9c'; c.fillRect(x + Math.cos(a) * d - sz / 2, y + Math.sin(a) * d * 0.66 - up - sz / 2, sz, sz);
+    }
+    for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2 + f.y, d = r * (0.25 + out * 0.7), sz = r * 0.24 * (1 - p * 0.3); c.globalAlpha = 0.45 * fade; ellipse(c, x + Math.cos(a) * d, y + Math.sin(a) * d * 0.66 - p * 7, sz, sz * 0.75, '#cfc3ad'); }
     c.globalAlpha = 1;
+  } else if (f.kind === 'place') {
+    // A bale dropped into place: a soft thump of straw and dust.
+    const fade = 1 - p, out = 1 - (1 - p) * (1 - p);
+    c.globalAlpha = fade; c.strokeStyle = '#fff0c4'; c.lineWidth = 2; c.beginPath(); c.ellipse(x, y, r * (0.3 + out * 0.6), r * (0.3 + out * 0.6) * 0.66, 0, 0, Math.PI * 2); c.stroke();
+    for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 + f.x, d = r * (0.3 + out * 0.6), sz = 4 * (1 - p * 0.4); c.globalAlpha = 0.5 * fade; ellipse(c, x + Math.cos(a) * d, y + Math.sin(a) * d * 0.66 - p * 4, sz, sz * 0.7, '#e8dcbc'); }
+    c.globalAlpha = fade; c.strokeStyle = '#e8c860'; c.lineWidth = 1.2; c.lineCap = 'round';
+    for (let i = 0; i < 7; i++) { const a = hash(i + f.x * 9) * Math.PI * 2, d = r * out * (0.5 + hash(i + 4) * 0.6), px = x + Math.cos(a) * d, py = y + Math.sin(a) * d * 0.66 - Math.sin(p * Math.PI) * 10, tilt = a + p * 4; c.beginPath(); c.moveTo(px - Math.cos(tilt) * 2.5, py - Math.sin(tilt) * 2.5); c.lineTo(px + Math.cos(tilt) * 2.5, py + Math.sin(tilt) * 2.5); c.stroke(); }
+    c.lineCap = 'butt'; c.globalAlpha = 1;
   } else if (f.kind === 'hit') {
-    c.strokeStyle = `rgba(255, 246, 192, ${1 - p})`; c.lineWidth = 1.5;
-    for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2; c.beginPath(); c.moveTo(x + Math.cos(a) * 2, y - 6 + Math.sin(a) * 2); c.lineTo(x + Math.cos(a) * 6, y - 6 + Math.sin(a) * 6); c.stroke(); }
+    // A pellet landing: a white pop, a ring and rays of two lengths.
+    const fade = 1 - p, hy = y - 6;
+    c.globalAlpha = fade; ellipse(c, x, hy, 2.8 * (1 - p * 0.6), 2.8 * (1 - p * 0.6), '#ffffff');
+    c.strokeStyle = 'rgba(255, 226, 150, 0.8)'; c.lineWidth = 1.1; c.beginPath(); c.arc(x, hy, 2.5 + p * 7, 0, Math.PI * 2); c.stroke();
+    c.strokeStyle = '#fff6c0'; c.lineCap = 'round';
+    for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2 + f.x * 2, far = (i % 2 ? 4 : 8) * (0.4 + p * 0.9); c.lineWidth = i % 2 ? 1.1 : 1.6; c.beginPath(); c.moveTo(x + Math.cos(a) * (2 + p * 3), hy + Math.sin(a) * (2 + p * 3)); c.lineTo(x + Math.cos(a) * (3 + far), hy + Math.sin(a) * (3 + far)); c.stroke(); }
+    c.lineCap = 'butt'; c.globalAlpha = 1;
   } else {
+    // A raider caught leaves a puff of dust behind; one that gets through makes the lantern flinch.
+    if (f.kind === 'coin' && f.value) { const out = 1 - (1 - p) * (1 - p); for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 + f.x * 4, d = 4 + out * 11, sz = 4.5 * (1 - p * 0.5); c.globalAlpha = 0.6 * (1 - p); ellipse(c, x + Math.cos(a) * d, y - 5 + Math.sin(a) * d * 0.6 - p * 6, sz, sz * 0.8, i % 2 ? '#f2e8d4' : '#d8cab0'); } c.globalAlpha = 1; }
+    if (f.kind === 'leak') glow(c, x, y - 6, r * (1 + p * 1.5), 'rgba(255, 90, 60, 1)', 0.7 * (1 - p));
     const text = f.kind === 'coin' ? (f.value ? `+${f.value}` : '★') : `−${f.value} 🔥`;
     c.font = 'bold 11px Arial'; c.textAlign = 'center';
     c.lineWidth = 3; c.strokeStyle = `rgba(30, 20, 20, ${1 - p})`; c.strokeText(text, x, y - 14 - p * 16);
@@ -485,7 +519,7 @@ function rangeRing(c: CanvasRenderingContext2D, col: number, r: number, range: n
 
 export function drawTowerIcon(c: CanvasRenderingContext2D, kind: TowerId, w: number, h: number, time = 0) {
   c.clearRect(0, 0, w, h);
-  tower(c, kind, w / 2, h * 0.62, { level: 0, time });
+  fitDraw(c, `maze-${kind}`, 1, 1, w - 2, h - 2, (q) => tower(q, kind, 0, 0, { level: 0, time }));
 }
 export function drawCritterIcon(c: CanvasRenderingContext2D, kind: Enemy['kind'], w: number, h: number) {
   c.clearRect(0, 0, w, h);

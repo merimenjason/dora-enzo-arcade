@@ -12,6 +12,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Summit Shuffle**: Dora and Enzo now find different cards. Sixteen are new, eight each: Dora's are quick ones such as Hopscotch, Pinpoint and A Thousand Nips, and Enzo's are sturdy ones such as Thump, Quill Burst and Iron Hide. The card book shows the cards both find and each chinchilla's own.
 - **Chinchilla Clash**, **Hay Maze Defence**, **Chinchillas vs Zombies** and **Burrow Tactics**: rest the mouse on a card, tower, relic, seed packet, action or chinchilla for a note with its numbers and what it does. On a phone, hold a finger on it.
+- **Chinchilla Clash**, **Hay Maze Defence** and **Chinchillas vs Zombies** have sound for the first time: cards and towers going down, hits, blasts, towers falling, waves arriving, seeds collected, and a short tune for a win or a loss. A speaker button at the top turns it off and remembers your choice; M does the same in Clash and Zombies.
+- **Burrow Barrage**: rest the mouse on a ride, a shot, an item or a chinchilla's panel for a note with its numbers (hurt, blast, crater, shove and wait, and how far the big shot has charged). On a phone, hold a finger on it.
 
 ### Changed
 
@@ -24,10 +26,15 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 - **Summit Shuffle**: 23 of the cards that used to turn up for both chinchillas now belong to one of them (Burr and Bristle cards to Enzo, Exposed and many-card cards to Dora). Climbs are about as hard as before.
 - New drawings for what stands on the repainted boards. **Hay Maze Defence**'s predators are the arcade's redrawn animals. **Chinchilla Clash** has stone towers with brickwork, a doorway and battlements you can stand behind, and a shaded capybara and gliders. **Chinchillas vs Zombies**' zombies catch the moonlight. **Burrow Barrage**'s carts have planks, spoked wheels and a shadow.
 
+- New hit effects in the five repainted games. **Chinchilla Clash**: hits flash and throw rays, dust rolls out in shaded clouds, blasts have a fireball, a shock ring, flying clods and scorched ground, and the arena shakes when a tower falls. **Hay Maze Defence**: boulders land with a flash and thrown stones, frozen predators shatter into spinning shards, bales drop in a puff of straw, and a caught predator leaves dust behind. **Chinchillas vs Zombies**: Enzo's boulder throws up turf, the dust trap billows, zombies come apart in an arc of goo, and the brute's club cracks the ground. **Burrow Tactics**: a star where a chinchilla lands a blow, claw marks where a predator does, and a ring when a burrow falls. **Burrow Barrage**: each blast is a fireball with a shock ring, and smoke hangs over the crater afterwards.
+- **Summit Shuffle**: five of the new cards were retuned after trying each one over 300 climbs. Burr Roll applies 4 Burrs (6 when upgraded), down from 6 (8), and Hunker Down gives 9 Fluff (12), down from 10 (13). Spotlight now costs nothing, Whirligig deals 5 (6) a card and Thump deals 11 (14).
+
 ### Fixed
 
 - **Poof Panic**: the rival's portrait on the card before a match, and the portraits on the cards after one, sat on top of the name and the text beneath. They now sit above them.
 - **Summit Shuffle**: Dora's and Enzo's portraits were cut off at the tail on the home screen and beside the health bar. The whole chinchilla now fits.
+- **Poof Panic**: during a match your chinchilla and the rival stood on top of each other and over the edges of the boards, worst with the mole, skunk and cougar. Each now has its own half of the space between the boards and is sized to fit it, on wide screens and on phones.
+- Portraits that overlapped or were cut off on the front pages of **Burrow Tactics**, **Chinchilla Clash**, **Hay Maze Defence**, **Chinchillas vs Zombies**, **Burrow Barrage**, **Summit Shuffle**, **Chinchilla Scribble**, **Fluff Forge** and **Fluffstevania** now stand side by side with all of each animal showing. The same goes for the small pictures of chinchillas and predators in Burrow Tactics, Clash's cards, Hay Maze's towers, the Zombies seed packets and Barrage's rides, which often lost a tail or an ear at the edge.
 
 ## 06-10-2026
 
