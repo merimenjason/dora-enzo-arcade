@@ -3,6 +3,7 @@
 import { W, VISIBLE, SPAWN_X, DUST, type Board, type Ev, type HeroId, type Rival } from './poof-panic-game';
 import { COATS, drawChinchilla } from './chinchilla-art';
 import { predator, tintOf, type PredKind } from './predator-art';
+import { fit, span } from './art-fit';
 
 type C2D = CanvasRenderingContext2D;
 type Look = 'rest' | 'wide' | 'worry' | 'blink';
@@ -97,11 +98,14 @@ function ball(c: C2D, dpr: number, x: number, y: number, cell: number, colour: n
 }
 /** A single fluff ball for the page's own pictures. */
 export function drawPoof(c: C2D, colour: number, size: number, look: Look = 'rest') { c.save(); c.translate(size / 2, size / 2 + size * 0.04); paintBall(c, size * 0.86, colour, look); c.restore(); }
+const heroSpan = (hero: HeroId) => span(`chin-${hero}`, (q) => drawChinchilla(q, COATS[hero], 0, 0, { face: 1, h: 24, time: 0.4 }));
+const foeSpan = (kind: PredKind, hard: boolean) => span(`pred-${kind}`, (q) => predator(q, kind, tintOf(kind, hard), 0.4));
 export function drawRival(c: C2D, kind: string, w: number, h: number, hard = false) {
-  c.save(); c.clearRect(0, 0, w, h); c.translate(w * 0.46, h * 0.93); const k = h / 26; c.scale(k, k); c.lineJoin = 'round';
+  const at = fit(foeSpan(kind as PredKind, hard), w, h, h * 0.05);
+  c.save(); c.clearRect(0, 0, w, h); c.translate(at.x, at.y); c.scale(at.k, at.k); c.lineJoin = 'round';
   predator(c, kind as PredKind, tintOf(kind as PredKind, hard), 0.4); c.restore();
 }
-export function drawHero(c: C2D, hero: HeroId, w: number, h: number) { c.clearRect(0, 0, w, h); drawChinchilla(c, COATS[hero], w * 0.58, h * 0.95, { face: 1, h: h * 0.62, time: 0.4 }); }
+export function drawHero(c: C2D, hero: HeroId, w: number, h: number) { const at = fit(heroSpan(hero), w, h, h * 0.05); c.clearRect(0, 0, w, h); drawChinchilla(c, COATS[hero], at.x, at.y, { face: 1, h: at.k * 24, time: 0.4 }); }
 
 type Bit = { x: number; y: number; vx: number; vy: number; age: number; life: number; r: number; colour: string; wait: number; star?: boolean };
 type Pop = { x: number; y: number; text: string; age: number; life: number; size: number; colour: string };
@@ -337,20 +341,28 @@ export class Stage {
     if (two) { ball(c, dpr, x + s * 1.85, y + s * 1.45, s * 0.66, two[1]); ball(c, dpr, x + s * 1.85, y + s * 2.1, s * 0.66, two[0]); }
   }
   private text(c: C2D, s: string, x: number, y: number, px: number, colour: string, align: CanvasTextAlign = 'center', weight = 800) { c.font = `${weight} ${px}px ${FONT}`; c.textAlign = align; c.textBaseline = 'middle'; c.fillStyle = colour; c.fillText(s, x, y); }
+  /** A name that shrinks until it fits. */
+  private fit(c: C2D, s: string, x: number, y: number, px: number, room: number, colour: string) { c.font = `800 ${px}px ${FONT}`; this.text(c, s, x, y, Math.min(px, px * room / Math.max(1, c.measureText(s).width)), colour); }
   private pips(c: C2D, x: number, y: number, n: number, r: number, colour: string, dir: number) {
     for (let i = 0; i < 2; i++) { c.beginPath(); c.arc(x + dir * i * r * 2.7, y, r, 0, TAU); c.fillStyle = i < n ? colour : 'rgba(255,255,255,0.14)'; c.fill(); c.strokeStyle = 'rgba(0,0,0,0.35)'; c.lineWidth = 1; c.stroke(); }
   }
   private mood(side: number, b: Board) { return { glad: this.joy[side] > 0, scared: b.grid[(VISIBLE - 4) * W + SPAWN_X] !== 0 || b.pending >= 12 }; }
-  private hero(c: C2D, v: View, x: number, base: number, px: number, t: number) {
-    const m = this.mood(0, v.a), hop = m.glad ? Math.abs(Math.sin(this.joy[0] * 9)) * px * 0.16 : 0;
-    drawChinchilla(c, COATS[v.hero], x, base - hop, { face: 1, h: px, time: t, dizzy: v.a.lost || (m.scared && !m.glad), air: hop > px * 0.05 });
+  /** The chinchilla, standing in the middle of a slot `room` wide and no taller than `px`. */
+  private hero(c: C2D, v: View, mid: number, base: number, px: number, room: number, t: number) {
+    const sp = heroSpan(v.hero);
+    const k = Math.min(px / 24, room / (sp.x1 - sp.x0)), size = k * 24;
+    const m = this.mood(0, v.a), hop = m.glad ? Math.abs(Math.sin(this.joy[0] * 9)) * size * 0.16 : 0;
+    drawChinchilla(c, COATS[v.hero], mid - k * (sp.x0 + sp.x1) / 2, base - hop, { face: 1, h: size, time: t, dizzy: v.a.lost || (m.scared && !m.glad), air: hop > size * 0.05 });
   }
-  private foe(c: C2D, v: View, x: number, base: number, px: number, t: number) {
+  /** The rival, facing the chinchilla, fitted to its slot the same way. */
+  private foe(c: C2D, v: View, mid: number, base: number, px: number, room: number, t: number) {
     if (!v.rival || !v.b) return;
-    const m = this.mood(1, v.b), hop = m.glad ? Math.abs(Math.sin(this.joy[1] * 9)) * px * 0.14 : 0, lost = v.b.lost;
-    c.save(); c.translate(x + (m.scared && !lost ? Math.sin(t * 40) * px * 0.012 : 0), base - hop); c.scale(-px / 24, px / 24); c.lineJoin = 'round';
+    const kind = v.rival.kind as PredKind, tint = tintOf(kind, !!v.hard), sp = foeSpan(kind, !!v.hard);
+    const k = Math.min(px / 24, room / (sp.x1 - sp.x0), (px * 1.25) / sp.top), size = k * 24;
+    const m = this.mood(1, v.b), hop = m.glad ? Math.abs(Math.sin(this.joy[1] * 9)) * size * 0.14 : 0, lost = v.b.lost;
+    c.save(); c.translate(mid + k * (sp.x0 + sp.x1) / 2 + (m.scared && !lost ? Math.sin(t * 40) * size * 0.012 : 0), base - hop); c.scale(-k, k); c.lineJoin = 'round';
     if (lost) { c.translate(0, -2); c.rotate(-0.5); }
-    predator(c, v.rival.kind as PredKind, tintOf(v.rival.kind as PredKind, !!v.hard), t); c.restore();
+    predator(c, kind, tint, t); c.restore();
   }
 
   /** Wide screens: everything that is not a board lives between the two of them (or beside the one). */
@@ -369,16 +381,18 @@ export class Stage {
       this.text(c, `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`, cx, y + cell * 2.3, cell * 0.4, secs >= 96 ? '#ff9a8a' : '#e9d8ff');
       if (secs >= 96) this.text(c, 'dust is getting cheaper', cx, y + cell * 2.75, cell * 0.24, '#ff9a8a', 'center', 700);
       const base = p.y + p.h - cell * 0.5;
-      this.hero(c, v, p.x + cell * 1.45, base, cell * 1.75, t);
-      this.foe(c, v, p.x + p.w - cell * 1.3, base, cell * 1.9, t);
-      this.text(c, name, p.x + cell * 1.3, base + cell * 0.32, cell * 0.36, '#fff');
-      this.text(c, v.rival.name, p.x + p.w - cell * 1.3, base + cell * 0.32, cell * 0.36, '#ffc9d2');
+      // Half the panel each, with air between them and the boards.
+      const room = p.w / 2 - cell * 0.5, lx = p.x + p.w * 0.25 + cell * 0.1, rx = p.x + p.w * 0.75 - cell * 0.1;
+      this.hero(c, v, lx, base, cell * 1.75, room, t);
+      this.foe(c, v, rx, base, cell * 1.9, room, t);
+      this.fit(c, name, lx, base + cell * 0.32, cell * 0.36, room, '#fff');
+      this.fit(c, v.rival.name, rx, base + cell * 0.32, cell * 0.36, room, '#ffc9d2');
       return;
     }
     this.pairs(c, dpr, v.a, p.x + cell * 0.6, p.y, cell * 1.05);
     let y = p.y + cell * 3.8;
     for (const [label, value] of v.stats ?? []) { this.text(c, label, p.x + cell * 0.7, y, cell * 0.3, '#cbb9e6', 'left'); this.text(c, value, p.x + cell * 0.7, y + cell * 0.55, cell * 0.56, '#fff', 'left', 900); y += cell * 1.35; }
-    this.hero(c, v, p.x + cell * 2.9, p.y + p.h - cell * 0.2, cell * 2.2, t);
+    this.hero(c, v, p.x + p.w / 2 + cell * 0.2, p.y + p.h - cell * 0.2, cell * 2.2, p.w - cell * 0.9, t);
   }
   /** Phones: a column down the right with the next pairs, the rival's board in small, and the scores. */
   private sidePanel(c: C2D, dpr: number, v: View, t: number) {
@@ -393,11 +407,11 @@ export class Stage {
       this.text(c, v.rival.name, cx, b.y + b.cell * VISIBLE + Math.max(11, b.cell * 1.2), Math.max(10, Math.min(13, p.w * 0.11)), '#ffc9d2');
       if (v.result) this.title(c, cx, b.y + b.cell * 5, v.result[1], Math.max(12, b.cell * 1.5), v.result[1] === 'Win!' ? '#ffe27a' : '#cfc6da');
       const foot = this.lay.foot, base = a.y + cell * VISIBLE + foot + cell * 0.1;
-      if (foot) { this.hero(c, v, a.x + cell * 2.2, base, foot * 0.62, t); this.foe(c, v, a.x + cell * 4.6, base, foot * 0.66, t); }
+      if (foot) { const room = cell * W / 2 - cell * 0.3; this.hero(c, v, a.x + cell * W * 0.25, base, foot * 0.62, room, t); this.foe(c, v, a.x + cell * W * 0.75, base, foot * 0.66, room, t); }
       return;
     }
     let y = p.y + s * 4.6;
     for (const [label, value] of v.stats ?? []) { this.text(c, label, cx, y, Math.max(9, cell * 0.3), '#cbb9e6'); this.text(c, value, cx, y + cell * 0.55, Math.min(cell * 0.56, p.w * 0.2), '#fff', 'center', 900); y += cell * 1.4; }
-    this.hero(c, v, cx, p.y + p.h, Math.min(p.w * 0.8, cell * 3), t);
+    this.hero(c, v, cx, p.y + p.h, Math.min(p.w * 0.8, cell * 3), p.w - 6, t);
   }
 }

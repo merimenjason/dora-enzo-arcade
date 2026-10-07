@@ -9,6 +9,7 @@ import {
 } from '../../lib/fluff-forge-game';
 import { drawEditor, drawGame, drawIcon, chinchilla } from '../../lib/fluff-forge-scene';
 import './fluff-forge.css';
+import { fitDraw } from '../../lib/art-fit';
 
 const SCALE = 2, DT = 1 / 120;
 const SAVE_KEY = 'fluff-forge-v1';
@@ -97,7 +98,8 @@ function Hero({ id }: { id: HeroId }) {
     const c = ref.current?.getContext('2d');
     if (!c) return;
     c.setTransform(4, 0, 0, 4, 0, 0);
-    chinchilla(c, id, id === 'dora' ? 29 : 21, 30.5, { face: id === 'dora' ? 1 : -1, h: 22, time: 0 });
+    c.clearRect(0, 0, 50, 32);
+    fitDraw(c, `forge-${id}`, 1.5, 1, 47, 30, (q) => chinchilla(q, id, 0, 0, { face: 1, h: 22, time: 0 }), id === 'dora' ? 1 : -1);
   }, [id]);
   return <canvas ref={ref} width={200} height={128} aria-hidden="true" className="ff-hero-art" />;
 }

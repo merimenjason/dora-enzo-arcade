@@ -10,7 +10,9 @@ import {
 } from '../../lib/hay-maze-game';
 import { drawMaze, drawTowerIcon, drawCritterIcon, drawCardIcon, toGrid, ELEMENT_COLOR, VIEW_W, VIEW_H, type Ghost } from '../../lib/hay-maze-scene';
 import { COATS, drawChinchilla } from '../../lib/chinchilla-art';
+import { fitDraw } from '../../lib/art-fit';
 import './hay-maze.css';
+import { sound } from './sound';
 
 const SAVE_KEY = 'hay-maze-v2', RUN_KEY = 'hay-maze-run-v1', DT = 1 / 60, SCALE = 2;
 type Save = { runs: number; wins: number; best: number };
@@ -62,8 +64,9 @@ const heroes = (c: CanvasRenderingContext2D, w: number, h: number) => {
   c.fillStyle = g; c.fillRect(0, 0, w, h);
   c.fillStyle = '#6b6560'; c.beginPath(); c.moveTo(w / 2 - 10, h * 0.7); c.lineTo(w / 2 + 10, h * 0.7); c.lineTo(w / 2 + 6, h * 0.84); c.lineTo(w / 2 - 6, h * 0.84); c.closePath(); c.fill();
   for (const [k, col] of [[1, '#ff7a2a'], [0.66, '#ffb347'], [0.36, '#fff2b0']] as [number, string][]) { c.fillStyle = col; c.beginPath(); c.moveTo(w / 2 - 8 * k, h * 0.7); c.quadraticCurveTo(w / 2 - 6 * k, h * 0.7 - 26 * k, w / 2, h * 0.7 - 34 * k); c.quadraticCurveTo(w / 2 + 6 * k, h * 0.7 - 26 * k, w / 2 + 8 * k, h * 0.7); c.fill(); }
-  drawChinchilla(c, COATS.dora, w * 0.24, h * 0.92, { face: 1, h: h * 0.42, time: 0.3 });
-  drawChinchilla(c, COATS.enzo, w * 0.78, h * 0.92, { face: -1, h: h * 0.46, time: 1.8 });
+  // One either side of the lantern, each fitted to its own half so neither is cut off.
+  fitDraw(c, 'chin-dora', 2, h * 0.3, w * 0.4 - 2, h * 0.64, (q) => drawChinchilla(q, COATS.dora, 0, 0, { face: 1, h: 40, time: 0.3 }));
+  fitDraw(c, 'chin-enzo', w * 0.6, h * 0.3, w * 0.4 - 2, h * 0.64, (q) => drawChinchilla(q, COATS.enzo, 0, 0, { face: 1, h: 40, time: 0.3 }), -1);
 };
 
 const HITS_WORD = { ground: 'Ground only', air: 'Flyers only', both: 'Ground and flyers' } as const;
@@ -98,6 +101,10 @@ export default function HayMaze() {
   const hover = useHoverNote();
   const [save, setSave] = useState<Save>({ runs: 0, wins: 0, best: 0 });
   const [loaded, setLoaded] = useState(false);
+  const [quiet, setQuiet] = useState(false);
+  /** Effects already heard: the engine keeps each on its list for as long as it is drawn. */
+  const heard = useRef(new WeakSet<object>());
+  const mute = () => { const m = !sound.muted(); sound.setMuted(m); setQuiet(m); };
   const [resume, setResume] = useState<Resume | null>(null);
   const [screen, setScreen] = useState<'home' | 'play'>('home');
   const [tool, setTool] = useState<Tool>(null);
@@ -116,7 +123,7 @@ export default function HayMaze() {
   /** A touch tap has previewed a tile and the next tap on it places. */
   const armed = useRef(false);
 
-  useEffect(() => { setSave(readSave()); setResume(resumeOf(readRun())); setLoaded(true); }, []);
+  useEffect(() => { setSave(readSave()); setResume(resumeOf(readRun())); setQuiet(sound.muted()); setLoaded(true); }, []);
   /** The last run JSON written, so the loop only writes when something changed. */
   const lastWritten = useRef<string | null>(null);
   const keep = () => { const r = run.current; if (!r) return; const snap = r.snapshot(), json = snap ? JSON.stringify(snap) : null; if (json !== lastWritten.current) { lastWritten.current = json; writeRun(json); } };
@@ -203,7 +210,15 @@ export default function HayMaze() {
       const b = r.battle;
       acc += last ? Math.min(0.1, (now - last) / 1000) * speedRef.current : 0; last = now;
       while (acc >= DT) { b.update(DT); acc -= DT; }
-      b.events.splice(0);
+      for (const e of b.events.splice(0)) {
+        if (e.type === 'kill') sound.cue('kill', 0, 0.9, 0.06); else if (e.type === 'leak') sound.cue('leak', 0, 1, 0.2); else sound.cue(e.type);
+      }
+      for (const f of b.effects) {
+        if (heard.current.has(f)) continue;
+        heard.current.add(f);
+        if (f.kind === 'hit') sound.cue('hit', 0, 0.8, 0.08); else if (f.kind === 'ring') sound.cue('bell', 0, 1, 0.3);
+        else if (f.kind === 'boom' || f.kind === 'chill' || f.kind === 'flame' || f.kind === 'zap' || f.kind === 'shatter' || f.kind === 'flare') sound.cue(f.kind, 0, 0.9, 0.12);
+      }
       const t = toolRef.current, at = cursor.current;
       let ghost: Ghost = null;
       if (t && at.shown && b.inGrid(at.c, at.r)) {
@@ -273,7 +288,7 @@ export default function HayMaze() {
     <header className="hm-header">
       <a className="hm-back" href="/">← MAIN ARCADE</a>
       <span className="hm-brand">HAY MAZE DEFENCE</span>
-      <span />
+      <button className="hm-mute" data-testid="mute" onClick={mute} aria-label={quiet ? 'Turn sound on' : 'Turn sound off'} aria-pressed={quiet}>{quiet ? '🔇' : '🔊'}</button>
     </header>
   );
 
@@ -282,7 +297,7 @@ export default function HayMaze() {
       <main className="hm-shell">
         {header}
         <section className="hm-intro">
-          <Icon draw={heroes} w={150} h={110} />
+          <Icon draw={heroes} w={230} h={116} />
           <div>
             <p className="hm-eyebrow">ROGUELITE TOWER DEFENCE · BUILD THE MAZE · GUARD THE FLAME</p>
             <h1>Hay Maze Defence</h1>

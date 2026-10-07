@@ -29,7 +29,7 @@
 .bt-brand { font: 900 16px ui-monospace, monospace; letter-spacing: 2px; color: var(--gold); }
 
 .bt-intro { display: flex; gap: 24px; align-items: center; padding: 24px 0 8px; }
-.bt-intro-art { display: flex; flex-shrink: 0; padding: 6px 10px 0; border-radius: 16px; background: linear-gradient(#8fc9ee, #dff0e0 70%, #93d06c 70%); border: 2px solid var(--line); }
+.bt-intro-art { display: flex; gap: 8px; flex-shrink: 0; padding: 6px 10px 0; border-radius: 16px; background: linear-gradient(#8fc9ee, #dff0e0 70%, #93d06c 70%); border: 2px solid var(--line); }
 .bt-intro-art canvas:last-child { transform: scaleX(-1); }
 .bt-eyebrow { font: 700 12px ui-monospace, monospace; letter-spacing: 2px; color: var(--gold) !important; margin: 0; }
 .bt-intro h1 { font: 900 48px/1.05 ui-sans-serif, system-ui, sans-serif; margin: 8px 0; background: linear-gradient(#fff6d8, #ffcf5a 55%, #8fd4c0); -webkit-background-clip: text; background-clip: text; color: transparent; }

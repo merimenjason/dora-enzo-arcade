@@ -6,6 +6,7 @@ import {
   type CardId, type Side, type Unit, type Blast, type Effect,
 } from './chinchilla-clash-game';
 import { COATS, coatLike, drawChinchilla, type Coat } from './chinchilla-art';
+import { fitDraw } from './art-fit';
 
 export const TILE = 20, VIEW_W = W * TILE, VIEW_H = H * TILE;
 export const toTiles = (px: number, py: number) => ({ x: px / TILE, y: py / TILE });
@@ -470,19 +471,41 @@ function effect(c: CanvasRenderingContext2D, e: Effect) {
     c.lineWidth = 3; c.beginPath(); c.arc(x, y, r * 0.7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - p)); c.stroke();
     c.globalAlpha = 1;
   } else if (e.kind === 'poof') {
-    c.globalAlpha = 0.7 * (1 - p);
-    for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; ellipse(c, x + Math.cos(a) * r * p, y + Math.sin(a) * r * p * 0.6, r * 0.45 * (1 - p * 0.3), r * 0.35, '#efe3cf'); }
+    // Dust rolling outward and up: each cloud has a shaded underside, and a few specks fly past them.
+    const fade = 1 - p, out = 1 - (1 - p) * (1 - p);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 + e.x * 3, d = r * (0.25 + out * (0.7 + hash(i + e.x * 7) * 0.4)), px = x + Math.cos(a) * d, py = y + Math.sin(a) * d * 0.6 - out * r * 0.35, s = r * (0.3 + hash(i * 3 + 1) * 0.22) * (1 - p * 0.35);
+      c.globalAlpha = 0.5 * fade; ellipse(c, px, py + s * 0.25, s, s * 0.78, '#b9a688');
+      c.globalAlpha = 0.85 * fade; ellipse(c, px, py, s * 0.95, s * 0.75, '#efe3cf'); ellipse(c, px - s * 0.25, py - s * 0.25, s * 0.45, s * 0.35, '#fffaf0');
+    }
+    c.globalAlpha = fade; c.fillStyle = '#d8c6a4';
+    for (let i = 0; i < 7; i++) { const a = hash(i + 20 + e.y) * Math.PI * 2, d = r * (0.4 + out * 1.5 * hash(i + 31)); c.fillRect(x + Math.cos(a) * d - 1, y + Math.sin(a) * d * 0.6 - out * r * 0.8 * hash(i + 40) - 1, 2, 2); }
     c.globalAlpha = 1;
   } else if (e.kind === 'boom') {
-    c.globalAlpha = 1 - p;
-    c.fillStyle = 'rgba(255, 220, 160, 0.35)'; c.beginPath(); c.arc(x, y, r * (0.5 + p * 0.5), 0, Math.PI * 2); c.fill();
-    c.strokeStyle = '#fff4d8'; c.lineWidth = 3; c.beginPath(); c.arc(x, y, r * (0.3 + p * 0.7), 0, Math.PI * 2); c.stroke();
-    for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2 + e.x; ellipse(c, x + Math.cos(a) * r * p, y + Math.sin(a) * r * p * 0.7, 4 * (1 - p) + 1, 3 * (1 - p) + 1, '#d9c6a8'); }
+    const fade = 1 - p, out = 1 - (1 - p) * (1 - p) * (1 - p);
+    // Scorched ground first, so everything else sits on top of it.
+    c.globalAlpha = 0.35 * fade; ellipse(c, x, y + 2, r * 0.85, r * 0.5, '#2b1c12');
+    // The flash, then a fireball that cools from white to orange as it grows.
+    if (p < 0.18) { c.globalAlpha = 1 - p / 0.18; c.fillStyle = '#fffdf0'; c.beginPath(); c.arc(x, y, r * (0.6 + p * 2), 0, Math.PI * 2); c.fill(); }
+    const ball = c.createRadialGradient(x, y - r * 0.1, 0, x, y - r * 0.1, Math.max(1, r * (0.35 + out * 0.7)));
+    ball.addColorStop(0, `rgba(255, 250, 220, ${0.9 * fade})`); ball.addColorStop(0.45, `rgba(255, 190, 90, ${0.7 * fade})`); ball.addColorStop(1, 'rgba(230, 110, 50, 0)');
+    c.globalAlpha = 1; c.fillStyle = ball; c.beginPath(); c.arc(x, y - r * 0.1, r * (0.35 + out * 0.7), 0, Math.PI * 2); c.fill();
+    c.globalAlpha = fade; c.strokeStyle = '#fff4d8'; c.lineWidth = 3.5 * fade + 0.5; c.beginPath(); c.ellipse(x, y, r * (0.3 + out * 0.85), r * (0.3 + out * 0.85) * 0.72, 0, 0, Math.PI * 2); c.stroke();
+    // Clods thrown up and falling back, and dust left behind.
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2 + e.x, d = r * out * (0.7 + hash(i + e.y * 5) * 0.6), up = Math.sin(p * Math.PI) * r * (0.5 + hash(i + 9) * 0.7), sz = 1.4 + hash(i + 3) * 2.2;
+      c.fillStyle = i % 3 ? '#8a6a48' : '#f0cd6b'; c.fillRect(x + Math.cos(a) * d - sz / 2, y + Math.sin(a) * d * 0.7 - up - sz / 2, sz, sz);
+    }
+    for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2 + e.y, d = r * (0.3 + out * 0.75), s = r * 0.26 * (1 - p * 0.3); c.globalAlpha = 0.55 * fade; ellipse(c, x + Math.cos(a) * d, y + Math.sin(a) * d * 0.7 - p * 6, s, s * 0.75, '#e6d6b8'); }
     c.globalAlpha = 1;
   } else if (e.kind === 'spark') {
-    c.strokeStyle = '#fff6c0'; c.lineWidth = 1.5; c.globalAlpha = 1 - p;
-    for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2 + p; c.beginPath(); c.moveTo(x + Math.cos(a) * 2, y + Math.sin(a) * 2); c.lineTo(x + Math.cos(a) * (4 + p * 6), y + Math.sin(a) * (4 + p * 6)); c.stroke(); }
-    c.globalAlpha = 1;
+    // A hit: a white pop, a ring, and rays of two lengths.
+    const fade = 1 - p;
+    c.globalAlpha = fade; ellipse(c, x, y, 3.2 * (1 - p * 0.6), 3.2 * (1 - p * 0.6), '#ffffff');
+    c.strokeStyle = TEAM[e.side].main; c.lineWidth = 1.2; c.globalAlpha = 0.7 * fade; c.beginPath(); c.arc(x, y, 3 + p * 8, 0, Math.PI * 2); c.stroke();
+    c.strokeStyle = '#fff6c0'; c.lineCap = 'round'; c.globalAlpha = fade;
+    for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2 + e.x * 2, far = (i % 2 ? 5 : 9) * (0.4 + p * 0.9); c.lineWidth = i % 2 ? 1.2 : 1.8; c.beginPath(); c.moveTo(x + Math.cos(a) * (2 + p * 3), y + Math.sin(a) * (2 + p * 3)); c.lineTo(x + Math.cos(a) * (3 + far), y + Math.sin(a) * (3 + far)); c.stroke(); }
+    c.lineCap = 'butt'; c.globalAlpha = 1;
   } else if (e.kind === 'spin') {
     c.strokeStyle = 'rgba(255, 250, 235, 0.8)'; c.lineWidth = 3; c.globalAlpha = 1 - p;
     c.beginPath(); c.ellipse(x, y - 6, r, r * 0.5, 0, p * 6, p * 6 + Math.PI * 1.3); c.stroke(); c.globalAlpha = 1;
@@ -499,6 +522,11 @@ export type Ghost = { card: CardId; x: number; y: number; ok: boolean } | null;
 
 export function drawClash(c: CanvasRenderingContext2D, g: ClashGame, time: number, ghost: Ghost) {
   const look = ARENAS[g.rival.id] ?? ARENAS.beige;
+  // A falling tower shakes the whole arena, and a big blast gives it a nudge.
+  let shake = 0;
+  for (const e of g.effects) { if (e.kind === 'crown' && e.t < 0.45) shake = Math.max(shake, 5 * (1 - e.t / 0.45)); else if (e.kind === 'boom' && e.t < 0.22) shake = Math.max(shake, 1.2 * e.r * (1 - e.t / 0.22)); }
+  c.save();
+  if (shake > 0.1 && g.state === 'playing') c.translate(Math.sin(time * 91) * shake, Math.cos(time * 77) * shake * 0.7);
   arena(c, look, time);
   if (ghost) forbidden(c, g, ghost.card);
   // Rubble where towers used to be.
@@ -528,9 +556,9 @@ export function drawClash(c: CanvasRenderingContext2D, g: ClashGame, time: numbe
   }
   for (const s of g.shots) {
     const x = s.x * TILE, y = s.y * TILE;
-    if (s.kind === 'puff') { c.globalAlpha = 0.85; ellipse(c, x, y, 5, 4, '#efe0c4'); ellipse(c, x + 2, y - 2, 3, 3, '#fff8ea'); c.globalAlpha = 1; }
-    else if (s.kind === 'hay') ellipse(c, x, y, 3.5, 3.5, '#f0cd6b');
-    else ellipse(c, x, y, s.kind === 'tower' ? 2.6 : 2, s.kind === 'tower' ? 2.6 : 2, s.side === 0 ? '#7a4c24' : '#5a2a2a');
+    if (s.kind === 'puff') { c.globalAlpha = 0.3; ellipse(c, x, y, 8, 6.5, '#fff8ea'); c.globalAlpha = 0.9; ellipse(c, x, y + 0.8, 5, 4, '#cdbb9c'); ellipse(c, x, y, 5, 4, '#efe0c4'); ellipse(c, x + 2, y - 2, 3, 3, '#fff8ea'); c.globalAlpha = 1; }
+    else if (s.kind === 'hay') { c.globalAlpha = 0.3; ellipse(c, x, y, 6, 6, '#ffe9a0'); c.globalAlpha = 1; ellipse(c, x, y, 3.5, 3.5, '#d9a93e'); ellipse(c, x - 0.6, y - 0.8, 2.4, 2.2, '#f6da7c'); }
+    else { const r = s.kind === 'tower' ? 2.6 : 2; c.globalAlpha = 0.28; ellipse(c, x, y, r * 2.2, r * 2.2, TEAM[s.side].main); c.globalAlpha = 1; ellipse(c, x, y, r, r, s.side === 0 ? '#7a4c24' : '#5a2a2a'); ellipse(c, x - r * 0.3, y - r * 0.35, r * 0.4, r * 0.35, s.side === 0 ? '#c89460' : '#b06a6a'); }
   }
   for (const b of g.blasts) blast(c, b, time);
   for (const e of g.effects) effect(c, e);
@@ -544,6 +572,7 @@ export function drawClash(c: CanvasRenderingContext2D, g: ClashGame, time: numbe
     if (!card.spell && ghost.ok) { c.globalAlpha = 0.5; troop(c, g, ghost.card, 0, x, y, { face: 1, time, walk: 0, moving: false, attack: 0, variant: 0 }); }
     c.globalAlpha = 1;
   }
+  c.restore();
 }
 
 // ---------- Card art ----------
@@ -555,9 +584,8 @@ export function drawCardArt(c: CanvasRenderingContext2D, id: CardId, w: number, 
   const tint = card.kind === 'spell' ? ['#7b5fb8', '#3e2c68'] : card.kind === 'building' ? ['#c58a44', '#6a4420'] : id === 'dora' || id === 'enzo' ? ['#f0b64a', '#8a5a14'] : ['#4f9dff', '#1f4f98'];
   bg.addColorStop(0, tint[0]); bg.addColorStop(1, tint[1]);
   c.fillStyle = bg; c.fillRect(0, 0, w, h);
-  c.save();
-  const s = Math.min(w, h) / 60;
-  c.translate(w / 2, h * 0.78); c.scale(s, s);
+  // Whatever is on the card is measured and fitted, so no tail or wing runs off the edge of it.
+  fitDraw(c, `clash-card-${id}`, w * 0.07, h * 0.08, w * 0.86, h * 0.84, (c) => {
   const o = { face: 1 as const, time, walk: 0, moving: false, attack: 0, variant: 0 };
   if (id === 'kits') { for (const [dx, dy, v] of [[-6, -6, 1], [14, -6, 2], [-2, 4, 3], [16, 4, 0]]) troop(c, null, 'kits', 0, dx, dy, { ...o, variant: v }); }
   else if (id === 'flickers') { troop(c, null, 'flickers', 0, -5, -2, { ...o, variant: 1 }); troop(c, null, 'flickers', 0, 15, 2, { ...o, variant: 3 }); }
@@ -573,17 +601,18 @@ export function drawCardArt(c: CanvasRenderingContext2D, id: CardId, w: number, 
     for (let i = 0; i < 12; i++) { const x = -20 + (i % 4) * 13 + (i > 3 ? 5 : 0), y = -34 + Math.floor(i / 4) * 12; ellipse(c, x, y, 3, 3, '#a0703c'); c.strokeStyle = 'rgba(255,255,255,0.5)'; c.lineWidth = 1; c.beginPath(); c.moveTo(x - 4, y - 6); c.lineTo(x - 1, y - 2); c.stroke(); }
   } else if (id === 'mochi') { c.scale(1.2, 1.2); troop(c, null, id, 0, -2, 0, o); }
   else { const scale = id === 'pebble' ? 1.1 : 1.4; c.scale(scale, scale); troop(c, null, id, 0, -2, 0, o); }
-  c.restore();
+  });
 }
 
 export const rivalLeaderArt = (c: CanvasRenderingContext2D, rivalId: string, w: number, h: number, time = 0) => {
   const look = ARENAS[rivalId] ?? ARENAS.beige;
   const bg = c.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, look.sky); bg.addColorStop(1, look.grassB);
   c.fillStyle = bg; c.fillRect(0, 0, w, h);
-  drawChinchilla(c, rivalCoat(rivalId, 0), w * 0.42, h * 0.9, { face: -1, h: h * 0.55, time, decorate: (d, bob) => crownOn(d, bob) });
+  fitDraw(c, 'clash-leader', w * 0.06, h * 0.08, w * 0.88, h * 0.86, (q) => drawChinchilla(q, rivalCoat(rivalId, 0), 0, 0, { face: 1, h: 40, time, decorate: (d, bob) => crownOn(d, bob) }), -1);
 };
 
 export const heroesArt = (c: CanvasRenderingContext2D, w: number, h: number, time = 0) => {
-  drawChinchilla(c, COATS.dora, w * 0.36, h * 0.92, { face: 1, h: h * 0.55, time, decorate: (d, bob) => crownOn(d, bob) });
-  drawChinchilla(c, COATS.enzo, w * 0.68, h * 0.92, { face: -1, h: h * 0.58, time: time + 2, decorate: (d, bob) => crownOn(d, bob) });
+  // Facing each other, a half of the picture each.
+  fitDraw(c, 'clash-dora', 2, h * 0.06, w * 0.5 - 5, h * 0.9, (q) => drawChinchilla(q, COATS.dora, 0, 0, { face: 1, h: 40, time, decorate: (d, bob) => crownOn(d, bob) }));
+  fitDraw(c, 'clash-enzo', w * 0.5 + 3, h * 0.06, w * 0.5 - 5, h * 0.9, (q) => drawChinchilla(q, COATS.enzo, 0, 0, { face: 1, h: 40, time, decorate: (d, bob) => crownOn(d, bob) }), -1);
 };

@@ -63,6 +63,13 @@ try {
   await page.mouse.click(...tileAt(box, 2, 2), { button: 'right' });
   assert.equal(await page.getByTestId('packet-flicker').getAttribute('aria-pressed'), 'false');
 
+  // Sound can be turned off, and the choice is kept.
+  assert.equal(await page.getByTestId('mute').getAttribute('aria-pressed'), 'false');
+  await page.getByTestId('mute').click();
+  assert.equal(await page.getByTestId('mute').getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.evaluate((k) => localStorage.getItem(k), 'chinchillas-vs-zombies-sound-v1'), 'off');
+  await page.getByTestId('mute').click();
+  assert.equal(await page.evaluate((k) => localStorage.getItem(k), 'chinchillas-vs-zombies-sound-v1'), 'on');
   // Resting the mouse on it explains it.
   await page.locator('[data-testid="packet-flicker"]').scrollIntoViewIfNeeded(); await page.mouse.move(2, 2); await page.waitForTimeout(150);
   await page.locator('[data-testid="packet-flicker"]').hover();

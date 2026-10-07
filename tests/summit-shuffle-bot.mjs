@@ -13,8 +13,8 @@ const WANT = {
   bowlover: 6.2, windup: 6.2, doublekick: 5.8, brighteyed: 5.8, shakeoff: 5.8, drumfeet: 5.5, zoomaround: 5.5, quicknip: 5.5, cheekstash: 5.2, fullpelt: 5.2,
   pounce: 5.2, bramblecoat: 4.8, gnaw: 4.5, tailwhip: 4.5, sorespot: 4.5, burrstorm: 5, puffup: 3.2, bellyflop: 3.2,
   // Each chinchilla's own cards, added 07-10-2026.
-  spotlight: 8, thousandnips: 8, sidestep: 7, hopscotch: 6.5, pinpoint: 6.5, secondwind: 6.5, whirl: 6, earflick: 5.8,
-  ironhide: 8, earthshaker: 7.5, padding: 7, burrroll: 7, hunker: 6.8, quillburst: 6.8, burrbite: 6.5, thump: 6,
+  thousandnips: 8, pinpoint: 7.2, spotlight: 6.8, hopscotch: 6.5, sidestep: 6.2, whirl: 6, earflick: 5.8, secondwind: 5.5,
+  ironhide: 8.2, burrroll: 8, earthshaker: 7.8, hunker: 7.5, padding: 7.2, quillburst: 6.5, thump: 6, burrbite: 5.8,
 };
 const BOSS_PICK = ['twigs', 'suncrown', 'springwater', 'summittea', 'emptypouch', 'claws'];
 const count = (run, pred) => run.deck.filter((c) => pred(CARDS[c.id], c)).length;
@@ -160,17 +160,25 @@ export function climb(o) {
   return { run, won: run.phase === 'won', where };
 }
 
-/** The share of `runs` climbs for each chinchilla that reach the summit when one more card is in the deck from the start: how much is that card worth? */
-export function cardTrial(id, runs, level = 0) {
+/**
+ * The share of `runs` climbs that reach the summit when one more card is in the deck from the start: how much is that
+ * card worth? A card only one chinchilla finds is tried by that chinchilla alone; pass `hero` to try any card (or
+ * none, for the baseline) with one of them.
+ */
+export function cardTrial(id, runs, level = 0, hero = null) {
+  const who = hero ? [hero] : CARDS[id]?.who ? [CARDS[id].who] : HERO_IDS;
   let wins = 0, stops = 0;
-  for (const hero of HERO_IDS) for (let s = 1; s <= runs; s++) { const { run, won } = climb({ seed: s * 104729 + 17, hero, level, extra: id }); wins += won ? 1 : 0; stops += run.stats.stops; }
-  return { rate: wins / (runs * 2), stops: stops / (runs * 2) };
+  for (const h of who) for (let s = 1; s <= runs; s++) { const { run, won } = climb({ seed: s * 104729 + 17, hero: h, level, extra: id }); wins += won ? 1 : 0; stops += run.stats.stops; }
+  return { rate: wins / (runs * who.length), stops: stops / (runs * who.length) };
 }
 if (import.meta.url === `file://${process.argv[1]}` && process.env.TRIAL) {
-  const runs = Number(process.env.RUNS || 150), level = Number(process.env.LEVEL || 1), base = cardTrial('', runs, level).rate;
-  console.log(`Baseline ${Math.round(base * 100)}% at ${ALTITUDES[level].name}. Summits with one copy of a card in the deck from the first stop:`);
-  const rows = Object.keys(WANT).map((id) => ({ id, ...cardTrial(id, runs, level) })).sort((a, b) => b.rate - a.rate);
-  for (const r of rows) console.log(`  ${CARDS[r.id].name.padEnd(16)} ${CARDS[r.id].rarity.padEnd(9)} ${String(Math.round(r.rate * 100)).padStart(3)}%  ${(r.rate - base >= 0 ? '+' : '') + Math.round((r.rate - base) * 100)}  ${r.stops.toFixed(1)} stops`);
+  const runs = Number(process.env.RUNS || 150), level = Number(process.env.LEVEL || 1);
+  const base = { dora: cardTrial('', runs, level, 'dora').rate, enzo: cardTrial('', runs, level, 'enzo').rate }, pct = (n) => Math.round(n * 100);
+  const baseOf = (id) => (CARDS[id].who ? base[CARDS[id].who] : (base.dora + base.enzo) / 2);
+  console.log(`Baseline at ${ALTITUDES[level].name}: Dora ${pct(base.dora)}%, Enzo ${pct(base.enzo)}%. Summits with one copy of a card in the deck from the first stop, against the baseline of whoever can find it:`);
+  const only = process.env.CARDS ? process.env.CARDS.split(',') : Object.keys(WANT);
+  const rows = only.map((id) => ({ id, ...cardTrial(id, runs, level) })).map((r) => ({ ...r, gain: r.rate - baseOf(r.id) })).sort((a, b) => b.gain - a.gain);
+  for (const r of rows) console.log(`  ${CARDS[r.id].name.padEnd(16)} ${CARDS[r.id].rarity.padEnd(9)} ${(CARDS[r.id].who ?? 'both').padEnd(5)} ${String(pct(r.rate)).padStart(3)}%  ${(r.gain >= 0 ? '+' : '') + pct(r.gain)}  ${r.stops.toFixed(1)} stops  want ${WANT[r.id]}`);
 } else if (import.meta.url === `file://${process.argv[1]}`) {
   const runs = Number(process.env.RUNS || 60), levels = (process.env.LEVELS || '0,3,5').split(',').map(Number);
   const cards = {}, ends = {}, trinketWins = {}, log = {};

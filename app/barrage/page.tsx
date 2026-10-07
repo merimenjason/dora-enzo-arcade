@@ -8,6 +8,7 @@ import {
 } from '../../lib/burrow-barrage-game';
 import { Stage, VIEW_W, VIEW_H, CELL, drawRideIcon } from '../../lib/burrow-barrage-scene';
 import { cue, setMuted } from './sound';
+import { useHoverNote, type Note } from '../../components/hover-note';
 import './barrage.css';
 
 const SAVE_KEY = 'burrow-barrage-v1', SCALE = 2, WALK_RATE = 30, CHARGE_RATE = 55, THINK = 0.6;
@@ -42,7 +43,26 @@ const Stars = ({ n }: { n: number }) => <span className="bb-stars" aria-label={`
 /** A ladder match against the computer, or two players sharing the device. */
 type Mode = { kind: 'ladder'; index: number } | { kind: 'duel'; map: number };
 
+/** Everything a shot does, for the note shown while the mouse rests on its button. */
+function shotNote(ride: RideId, n: number, charge = -1): Note {
+  const sh = RIDES[ride].shots[n], lines: NonNullable<Note['lines']> = [];
+  if (sh.count > 1) lines.push({ label: 'Volley', text: sh.spread ? `${sh.count} at once, fanned ${sh.spread}° apart.` : `${sh.count}, one after another.` });
+  if (sh.bore) lines.push({ label: 'Tunnels', text: `bores ${sh.bore} through the ground before it bursts, so a hill is no cover.` });
+  if (n === 2) lines.push({ label: 'Big shot', text: charge < 0 ? `takes ${CHARGE_FULL} turns to charge.` : charge >= CHARGE_FULL ? 'charged and ready.' : `${charge} of ${CHARGE_FULL} turns charged.` });
+  return {
+    title: sh.name, sub: `${RIDES[ride].name} · key ${n + 1}`, body: sh.blurb,
+    stats: [['Hurt', `${sh.damage}${sh.count > 1 ? ` × ${sh.count}` : ''}`], ['Blast', String(sh.blast)], ['Crater', String(sh.crater)], ['Shove', String(sh.push)], ['Wait', String(sh.delay)]],
+    lines, foot: 'Hurt is for a direct hit; it falls away towards the edge of the blast.',
+  };
+}
+const itemNote = (i: ItemId, left: boolean, key: string): Note => ({ title: ITEMS[i].name, sub: `Once a match · key ${key}`, body: ITEMS[i].blurb, stats: [['Adds to the wait', String(ITEMS[i].delay)]], foot: left ? undefined : 'Already used this match.' });
+const rideNote = (r: RideId): Note => ({
+  title: RIDES[r].name, body: RIDES[r].blurb, stats: [['Health', String(RIDES[r].hp)], ['Walks', `${RIDES[r].move} a turn`]],
+  lines: RIDES[r].shots.map((sh, n) => ({ label: sh.name, text: `${sh.damage}${sh.count > 1 ? ` × ${sh.count}` : ''} hurt, wait ${sh.delay}${n === 2 ? ', big shot' : ''}.` })),
+});
+
 export default function BurrowBarrage() {
+  const hover = useHoverNote();
   const [save, setSave] = useState<Save>(blank);
   const [loaded, setLoaded] = useState(false);
   const [screen, setScreen] = useState<'home' | 'match'>('home');
@@ -278,7 +298,7 @@ export default function BurrowBarrage() {
       <div className="bb-pick" role="group" aria-label={`${label}’s ride`}>
         <strong>{label}</strong>
         {RIDE_IDS.map((r) => (
-          <button key={r} className={value === r ? 'on' : ''} aria-pressed={value === r} data-testid={`${id}-${r}`} onClick={() => set(r)}>
+          <button key={r} className={value === r ? 'on' : ''} aria-pressed={value === r} data-testid={`${id}-${r}`} onClick={() => set(r)} {...hover.tip(() => rideNote(r))}>
             <Icon coat={coat} ride={r} team={team} size={52} /><b>{RIDES[r].name}</b><small>♥ {RIDES[r].hp} · walks {RIDES[r].move}</small>
           </button>
         ))}
@@ -353,6 +373,7 @@ export default function BurrowBarrage() {
         <div className="bb-roster">
           {ITEM_IDS.map((i) => <div key={i} className="bb-card"><div><strong>{ITEMS[i].name}</strong><p>{ITEMS[i].blurb} <i>Adds {ITEMS[i].delay} to the wait.</i></p></div></div>)}
         </div>
+        {hover.view}
       </main>
     );
   }
@@ -410,7 +431,7 @@ export default function BurrowBarrage() {
         {m.units.map((v) => {
           const sp = st.sprites[v.id], hp = sp.alive ? sp.hp : 0;
           return (
-            <div key={v.id} className={`bb-unit t${v.team}${v.id === st.activeId && m.state === 'aim' ? ' on' : ''}${hp <= 0 ? ' out' : ''}`} data-testid={`unit-${v.id}`} data-hp={hp}>
+            <div key={v.id} className={`bb-unit t${v.team}${v.id === st.activeId && m.state === 'aim' ? ' on' : ''}${hp <= 0 ? ' out' : ''}`} data-testid={`unit-${v.id}`} data-hp={hp} {...hover.tip(() => ({ ...rideNote(v.ride), title: v.name, sub: `${RIDES[v.ride].name} · ${hp > 0 ? `${hp} of ${v.maxHp} health` : 'out'}`, foot: v.items.length ? `Still carries: ${v.items.map((i) => ITEMS[i].name).join(', ')}.` : 'Has used every item.' }))}>
               <Icon coat={v.coat} ride={v.ride} team={v.team} size={40} />
               <span><strong>{v.name}</strong><small>{hp > 0 ? `${RIDES[v.ride].name} · ${hp}/${v.maxHp}` : 'Out'}</small><span className="bb-bar"><i style={{ width: `${(hp / v.maxHp) * 100}%` }} /></span></span>
             </div>
@@ -449,14 +470,14 @@ export default function BurrowBarrage() {
       </div>
       <div className="bb-actions">
         {ride.shots.map((s, n) => (
-          <button key={s.name} className={`bb-act${shot === n && !replaced ? ' on' : ''}`} data-testid={`shot-${n + 1}`} disabled={!can || replaced} aria-pressed={shot === n} title={s.blurb} onClick={() => chooseShot(n)}>
+          <button key={s.name} className={`bb-act${shot === n && !replaced ? ' on' : ''}`} data-testid={`shot-${n + 1}`} disabled={!can || replaced} aria-pressed={shot === n} onClick={() => chooseShot(n)} {...hover.tip(() => shotNote(u.ride, n, u.charge))}>
             <b>{s.name}</b>
             {n === 2 && <span className="bb-pips" aria-label={`${u.charge} of ${CHARGE_FULL} charged`}>{Array.from({ length: CHARGE_FULL }, (_, k) => <i key={k} className={k < u.charge ? 'on' : ''} />)}</span>}
             <small>{n + 1}</small>
           </button>
         ))}
         {ITEM_IDS.map((i, n) => (
-          <button key={i} className={`bb-act bb-item${item === i ? ' on' : ''}`} data-testid={`item-${i}`} disabled={!can || !u.items.includes(i)} aria-pressed={item === i} title={ITEMS[i].blurb} onClick={() => chooseItem(i)}>
+          <button key={i} className={`bb-act bb-item${item === i ? ' on' : ''}`} data-testid={`item-${i}`} disabled={!can || !u.items.includes(i)} aria-pressed={item === i} onClick={() => chooseItem(i)} {...hover.tip(() => itemNote(i, u.items.includes(i), 'QWE'[n]))}>
             <b>{ITEMS[i].name}</b><small>{'QWE'[n]}</small>
           </button>
         ))}
@@ -464,6 +485,7 @@ export default function BurrowBarrage() {
         <button data-testid="skip" disabled={!can} onClick={skip}>Skip turn</button>
       </div>
       <p className="bb-info" data-testid="info">{tip}</p>
+      {hover.view}
     </main>
   );
 }

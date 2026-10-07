@@ -4,6 +4,7 @@
 // is on screen always lags the engine until the queue is empty. Chinchillas are the shared drawChinchilla.
 import { Battle, SIZE, DIRS, CLOUD_TURNS, FIRE_TURNS, type Unit, type Ev, type Tile, type HeroId, type PredId, type Feature, type Forecast, type Mark, type Terrain } from './burrow-tactics-game';
 import { COATS, coatLike, drawChinchilla, type Coat } from './chinchilla-art';
+import { fit, span } from './art-fit';
 import { predator, shade, tintOf } from './predator-art';
 
 export const VIEW_W = 760, VIEW_H = 520;
@@ -61,15 +62,16 @@ function drawPredator(c: C2D, kind: PredId, alpha: boolean, x: number, y: number
   predator(c, kind, tintOf(kind, alpha), t);
   c.restore();
 }
-/** A chinchilla portrait for the squad panel. */
+/** A chinchilla portrait for the squad panel, fitted so that tail, ears and hat all stay inside it. */
 export function drawHeroIcon(c: C2D, kind: HeroId, w: number, h: number) {
   c.clearRect(0, 0, w, h);
-  drawChinchilla(c, COAT[kind], w * 0.6, h * 0.94, { face: 1, h: h * 0.6 * (SIZE_OF[kind] / 41), time: 0.4, decorate: dress(kind) });
+  const at = fit(span(`tactics-${kind}`, (q) => drawChinchilla(q, COAT[kind], 0, 0, { face: 1, h: 24, time: 0.4, decorate: dress(kind) })), w, h, h * 0.06);
+  drawChinchilla(c, COAT[kind], at.x, at.y, { face: 1, h: at.k * 24, time: 0.4, decorate: dress(kind) });
 }
 export function drawPredIcon(c: C2D, kind: PredId, w: number, h: number, alpha = false) {
   c.clearRect(0, 0, w, h);
-  const fly = kind === 'owl' || kind === 'hawk', k = (h * (kind === 'owl' ? 0.8 : 0.58)) / PRED_H[kind];
-  drawPredator(c, kind, alpha, w * (kind === 'owl' ? 0.5 : kind === 'skunk' ? 0.64 : 0.54), h * (fly ? 1.02 : 0.9), 1, 0.6, k);
+  const at = fit(span(`pred-${kind}`, (q) => predator(q, kind, tintOf(kind, alpha), 0.6)), w, h, h * 0.06);
+  c.save(); c.translate(at.x, at.y); c.scale(at.k, at.k); c.lineJoin = 'round'; predator(c, kind, tintOf(kind, alpha), 0.6); c.restore();
 }
 
 // ---------- The stage ----------
@@ -103,6 +105,8 @@ export class Stage {
   feature: (Feature | null)[] = []; cloud: number[] = []; fire: number[] = []; terrain: Terrain[] = []; marks: Mark[] = [];
   warren = 0; turn = 1;
   queue: Anim[] = []; floats: Float[] = []; dots: Dot[] = []; shot: Shot | null = null;
+  /** Marks left where a blow lands: a star for a hit, claw slashes for a bite, a ring for something bigger. */
+  bursts: { x: number; y: number; life: number; max: number; kind: 'star' | 'claw' | 'ring'; color: string; r: number }[] = [];
   flash: Tile[] = []; banner = { text: '', t: 0 }; shake = 0; speed = 1;
   /** Called with a cue name as things happen, for the page's sounds. */
   sfx: (name: string) => void = () => {};
@@ -130,6 +134,7 @@ export class Stage {
   private puff(x: number, y: number, color: string, n: number, spread = 1) {
     for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, v = (20 + Math.random() * 50) * spread; this.dots.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5 - 30, life: 0, max: 0.35 + Math.random() * 0.35, r: 2 + Math.random() * 4, color }); }
   }
+  private burst(x: number, y: number, kind: 'star' | 'claw' | 'ring', color: string, r = 14) { this.bursts.push({ x, y, life: 0, max: kind === 'ring' ? 0.45 : 0.28, kind, color, r }); }
   private say(x: number, y: number, text: string, color: string) { this.floats.push({ x, y, text, color, life: 0 }); }
 
   /** Queues the engine's events to be played in order, then settles on the battle as it now stands. */
@@ -183,9 +188,9 @@ export class Stage {
       case 'hit': return { dur: 0.16, start: () => {
         const [x, y] = this.center(e.x, e.y), s = e.id ? sp(e.id) : undefined;
         if (e.saved) { this.say(x, y - 44, e.what === 'burrow' ? 'Door held' : 'Thick fur', '#ffe38a'); this.sfx('block'); return; }
-        if (s) { s.hp = Math.max(0, s.hp - e.dmg); s.flash = 0.28; this.say(x, y - 50, `-${e.dmg}`, s.side === 'hero' ? '#ff6b5a' : '#ffffff'); this.puff(x, y - 18, s.side === 'hero' ? '#ffb0a0' : '#fff2c0', 6, 0.7); if (e.dmg >= 2) this.shake = 5; this.sfx('hit'); }
+        if (s) { s.hp = Math.max(0, s.hp - e.dmg); s.flash = 0.28; this.say(x, y - 50, `-${e.dmg}`, s.side === 'hero' ? '#ff6b5a' : '#ffffff'); this.puff(x, y - 18, s.side === 'hero' ? '#ffb0a0' : '#fff2c0', 6, 0.7); this.burst(x, y - 20, s.side === 'hero' ? 'claw' : 'star', s.side === 'hero' ? '#ff8a76' : '#fff2c0', e.dmg >= 2 ? 18 : 14); if (e.dmg >= 2) this.shake = 5; this.sfx('hit'); }
         else if (e.what === 'bale') { this.feature[idx(e.x, e.y)] = null; this.puff(x, y - 10, '#f0cf6a', 14); this.sfx('break'); }
-        else if (e.what === 'burrow') { this.feature[idx(e.x, e.y)] = 'rubble'; this.warren = Math.max(0, this.warren - 1); this.puff(x, y - 8, '#b08a62', 22, 1.3); this.say(x, y - 46, 'Burrow lost', '#ff6b5a'); this.shake = 9; this.sfx('collapse'); }
+        else if (e.what === 'burrow') { this.feature[idx(e.x, e.y)] = 'rubble'; this.warren = Math.max(0, this.warren - 1); this.puff(x, y - 8, '#b08a62', 22, 1.3); this.burst(x, y - 8, 'ring', '#f0d9b0', 34); this.say(x, y - 46, 'Burrow lost', '#ff6b5a'); this.shake = 9; this.sfx('collapse'); }
         else if (e.what === 'rock') this.puff(x, y - 12, '#c9c6d2', 5, 0.6);
       } };
       case 'push': {
@@ -237,6 +242,8 @@ export class Stage {
       if (left < need) { a.t += left; a.tick?.(a.t / a.dur); break; }
       left -= Math.max(0, need); a.tick?.(1); a.end?.(); this.queue.shift();
     }
+    for (const k of this.bursts) k.life += dt;
+    this.bursts = this.bursts.filter((k) => k.life < k.max);
     for (const f of this.floats) { f.life += dt; f.y -= dt * 26; }
     this.floats = this.floats.filter((f) => f.life < 1.1);
     for (const d of this.dots) { d.life += dt; d.x += d.vx * dt; d.y += d.vy * dt; d.vy += 90 * dt; }
@@ -552,6 +559,28 @@ export class Stage {
     for (const d of this.dots) { c.globalAlpha = 1 - d.life / d.max; c.fillStyle = d.color; ell(c, d.x, d.y, d.r, d.r); c.fill(); }
     c.globalAlpha = 1;
     c.font = 'bold 15px ui-sans-serif, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    for (const k of this.bursts) {
+      const p = k.life / k.max, fade = 1 - p;
+      c.save(); c.translate(k.x, k.y); c.lineCap = 'round';
+      if (k.kind === 'ring') {
+        c.globalAlpha = fade; c.strokeStyle = k.color; c.lineWidth = 4 * fade + 1; c.beginPath(); c.ellipse(0, 0, k.r * (0.3 + p), k.r * (0.3 + p) * 0.5, 0, 0, Math.PI * 2); c.stroke();
+        c.globalAlpha = 0.4 * fade; c.lineWidth = 2; c.beginPath(); c.ellipse(0, 0, k.r * (0.1 + p * 0.7), k.r * (0.1 + p * 0.7) * 0.5, 0, 0, Math.PI * 2); c.stroke();
+      } else if (k.kind === 'claw') {
+        // Three slashes drawn quickly across, dark underneath so they read on any ground.
+        const reach = Math.min(1, p * 3);
+        for (const [w, col] of [[5, 'rgba(60,10,10,0.6)'], [2.6, k.color], [1, '#ffffff']] as [number, string][]) {
+          c.globalAlpha = fade; c.strokeStyle = col; c.lineWidth = w;
+          for (let i = -1; i <= 1; i++) { c.beginPath(); c.moveTo(-k.r * 0.7 + i * 5, -k.r * 0.7 - i * 2); c.quadraticCurveTo(i * 5 + 2, -2, (-k.r * 0.7 + i * 5) + k.r * 1.4 * reach, (-k.r * 0.7 - i * 2) + k.r * 1.5 * reach); c.stroke(); }
+        }
+      } else {
+        // A star: a white pop, a ring and rays of two lengths.
+        c.globalAlpha = fade; c.fillStyle = '#ffffff'; c.beginPath(); c.arc(0, 0, k.r * 0.34 * (1 - p * 0.6), 0, Math.PI * 2); c.fill();
+        c.strokeStyle = k.color; c.lineWidth = 1.6; c.beginPath(); c.arc(0, 0, k.r * (0.3 + p * 0.8), 0, Math.PI * 2); c.stroke();
+        for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2 + k.x, far = k.r * (i % 2 ? 0.45 : 0.85) * (0.4 + p * 0.9); c.lineWidth = i % 2 ? 1.6 : 2.6; c.beginPath(); c.moveTo(Math.cos(a) * k.r * (0.2 + p * 0.3), Math.sin(a) * k.r * (0.2 + p * 0.3)); c.lineTo(Math.cos(a) * (k.r * 0.3 + far), Math.sin(a) * (k.r * 0.3 + far)); c.stroke(); }
+      }
+      c.restore();
+    }
+    c.globalAlpha = 1;
     for (const f of this.floats) { c.globalAlpha = Math.min(1, (1.1 - f.life) * 3); c.lineWidth = 3.5; c.strokeStyle = 'rgba(20,14,28,0.85)'; c.strokeText(f.text, f.x, f.y); c.fillStyle = f.color; c.fillText(f.text, f.x, f.y); }
     c.globalAlpha = 1;
     c.restore();

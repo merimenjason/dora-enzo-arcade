@@ -29,9 +29,9 @@ function Heroes() {
     const c = ref.current?.getContext('2d');
     if (!c) return;
     c.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-    drawHeroes(c, 150, 100, 0.4);
+    drawHeroes(c, 210, 100, 0.4);
   }, []);
-  return <canvas ref={ref} width={150 * SCALE} height={100 * SCALE} style={{ width: 150, height: 100 }} aria-hidden="true" />;
+  return <canvas ref={ref} width={210 * SCALE} height={100 * SCALE} style={{ width: 210, height: 100 }} aria-hidden="true" />;
 }
 
 type Result = { stars: number; words: string[]; fresh: boolean; best: boolean };

@@ -434,7 +434,7 @@ Knock down a princess tower for a crown, or the king tower for all three and an 
 
 - Tap a card, then tap the arena to play it, or drag a card straight onto the arena. A ghost shows where it lands, with its range, and red tiles show where it can't go.
 - Keyboard: 1–4 pick a card, the arrow keys or WASD move the drop point, Enter or Space drops it, Escape puts the card back.
-- P or Escape (with no card picked): pause. Losing window focus also pauses.
+- P or Escape (with no card picked): pause. Losing window focus also pauses. M, or the speaker button, turns sound on and off.
 - Rest the mouse on a card, in the deck builder or in your hand, for its health, damage, speed, range and what it aims at. On a touch screen, hold a finger on it.
 
 **Tests:** `npm run test:clash` (also in `npm test`) compiles `lib/chinchilla-clash-game.ts` and runs `tests/chinchilla-clash.mjs`:
@@ -466,6 +466,7 @@ A run is six levels, each on a newly generated meadow with its own rocks and way
 - Pick a tower from the bar (Z, X, C, V, B, N, M or comma) and click bales or rocks to build. Click a tower to see its stats, upgrade it (U) or sell it (Delete).
 - Space starts the wave. The arrow keys move the cursor and Enter places or selects. F cycles 1×, 2× and 3× speed. P pauses, and Escape cancels, or pauses when nothing is picked. On the reward screen, 1–3 pick. **Save and leave** (in the pause menu or on the reward screen) goes back to the start screen, where **Continue your run** picks it up again.
 - Touch: tap a tile to preview, then tap it again to place.
+- The speaker button at the top turns sound on and off.
 - Rest the mouse on a tower button, a card in your hand or a relic for a note on what it does, with this run's relics counted in a tower's numbers. On a touch screen, hold a finger on it.
 
 **Tests:** `npm run test:hay-maze` (also in `npm test`) compiles `lib/hay-maze-game.ts` and runs `tests/hay-maze.mjs`:
@@ -498,6 +499,7 @@ Six zombies: the plain **Zombie** (200 health), the faster **Flag Zombie** that 
 - Click a seed pouch to collect it, or press Space to collect every pouch on the lawn.
 - The arrow keys move the cursor and Enter plants. F cycles 1×, 2× and 3× speed. P, or Escape with nothing picked, pauses. The game also pauses when the window loses focus.
 - Touch: tap a tile to preview, then tap it again to plant.
+- M, or the speaker button at the top, turns sound on and off.
 - Rest the mouse on a seed packet for the defender's health, damage and recharge. On a touch screen, hold a finger on it.
 
 **Tests:** `npm run test:cvz` (also in `npm test`) compiles `lib/cvz-game.ts` and runs `tests/cvz.mjs`:
@@ -585,6 +587,7 @@ Each chinchilla rides one of four **rides**, each with two shots and a **big sho
 - ← and → walk (or hold the ◀ ▶ buttons); walking the other way turns the chinchilla round. ↑ and ↓ raise and lower the barrel.
 - 1, 2 and 3 pick the shot. Q, W and E pick Double Shot, Dandelion and Burrow Hop; pressing again puts the item away.
 - **Skip turn** passes with a short wait. F changes the animation speed (1×, 2×, 3×). M turns sound on and off. A click, or Enter, during an animation skips to its end.
+- Rest the mouse on a ride, a shot, an item or a chinchilla's panel for a note with its numbers: hurt, blast, crater, shove and wait. On a touch screen, hold a finger on it.
 - On a phone-sized screen the camera closes in on whoever's turn it is and follows each shot. Drag with two fingers to look around, and tap **Whole map** (or press Z) to see everything; **Zoom in** goes back.
 
 **Tests:** `npm run test:barrage` (also in `npm test`) compiles `lib/burrow-barrage-game.ts` and runs `tests/burrow-barrage.mjs`:

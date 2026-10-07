@@ -8,6 +8,7 @@
 import { CARDS, FOES, STATUS, TIMED, type Run, type Ev, type Art, type CardType, type Look, type HeroId, type StatusId, type Statuses, type Intent } from './summit-shuffle-game';
 import { COATS, coatLike, drawChinchilla } from './chinchilla-art';
 import { predator, critter, type PredKind, type CritterKind } from './predator-art';
+import { fitDraw } from './art-fit';
 
 type C2D = CanvasRenderingContext2D;
 const INK = '#2c2430';
@@ -40,8 +41,8 @@ const TALL: Record<Look['shape'], number> = { fox: 1.04, snake: 0.86, owl: 1.04,
 
 export function drawHeroIcon(c: C2D, hero: HeroId, w: number, h: number) {
   c.clearRect(0, 0, w, h);
-  // The tail curls well out behind, so the body sits right of centre and small enough for the whole animal to fit.
-  drawChinchilla(c, COATS[hero], w * 0.6, h * 0.94, { face: 1, h: h * 0.6, time: 0.4 });
+  // The tail curls well out behind, so the animal is measured and fitted, not placed by eye.
+  fitDraw(c, `chin-${hero}`, w * 0.05, h * 0.08, w * 0.9, h * 0.86, (q) => drawChinchilla(q, COATS[hero], 0, 0, { face: 1, h: 40, time: 0.4 }));
 }
 export function drawFoeIcon(c: C2D, kind: string, w: number, h: number) {
   c.clearRect(0, 0, w, h);
