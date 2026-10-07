@@ -44,6 +44,9 @@ try {
   await page.getByTestId('ladder').click();
   assert.match(await page.getByTestId('card-intro').textContent(), /Mossy the Mole/);
   assert.match(await page.getByTestId('label').textContent(), /Ladder · rival 1 of 6/);
+  // The rival's portrait sits above its name, not on top of it.
+  const [face, name] = await Promise.all([page.locator('.pp-card canvas').boundingBox(), page.locator('.pp-card h2').boundingBox()]);
+  assert.ok(face.y + face.height <= name.y + 1, `the portrait ends above the name (${Math.round(face.y + face.height)} v ${Math.round(name.y)})`);
   assert.equal(await hook(page, 't => t.game.match'), null, 'nothing is dealt until Start');
   await page.keyboard.press('Enter');
   await inPlay(page);

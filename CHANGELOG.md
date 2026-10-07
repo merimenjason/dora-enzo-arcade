@@ -2,6 +2,13 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 07-10-2026
+
+### Fixed
+
+- **Poof Panic**: the rival's portrait on the card before a match, and the portraits on the cards after one, sat on top of the name and the text beneath. They now sit above them.
+- **Summit Shuffle**: Dora's and Enzo's portraits were cut off at the tail on the home screen and beside the health bar. The whole chinchilla now fits.
+
 ## 06-10-2026
 
 ### Added
