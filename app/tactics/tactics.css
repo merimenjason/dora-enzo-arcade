@@ -162,3 +162,4 @@
   /* Trim the spare sky and ground round the board so the tiles are as big as a phone allows. */
   .bt-board canvas { width: 107%; max-width: none; margin: -4% -3.5% -3.5%; }
 }
+.bt-kept { align-items: center; margin: 4px 0 14px; } .bt-kept small { color: #a9c3c0; }

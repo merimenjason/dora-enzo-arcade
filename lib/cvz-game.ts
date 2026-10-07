@@ -123,6 +123,12 @@ export type GameEvent = { type: 'plant' | 'shovel' | 'collect' | 'kill' | 'cart'
 export type PlantResult = 'ok' | 'seeds' | 'recharge' | 'taken' | 'lane' | 'locked' | 'state' | 'bounds';
 export type State = 'playing' | 'paused' | 'won' | 'lost';
 
+export const NIGHT_VERSION = 1;
+export type NightSave = {
+  v: number; level: number; seed: number; rolls: number; time: number; seeds: number; recharge: Record<DefenderId, number>; defenders: Defender[]; zombies: Zombie[]; pellets: Pellet[]; drops: Seed[];
+  carts: Cart[]; cartX: number[]; spawns: Spawn[]; total: number; kills: number; skyClock: number; nextId: number; waveSeen: number;
+};
+
 export class Game {
   level: number;
   def: LevelDef;
@@ -145,6 +151,9 @@ export class Game {
   message = '';
   messageTime = 0;
   private random: () => number;
+  private seed: number;
+  /** How many random numbers have been drawn, which is all a save needs to pick the generator up again. */
+  private rolls = 0;
   private skyClock = 6;
   private nextId = 1;
   private waveSeen = -1;
@@ -153,7 +162,9 @@ export class Game {
     this.level = Math.max(0, Math.min(LEVELS.length - 1, level));
     this.def = LEVELS[this.level];
     this.unlocked = unlockedBy(this.level);
-    this.random = rng(seed * 101 + this.level);
+    this.seed = seed;
+    const roll = rng(seed * 101 + this.level);
+    this.random = () => { this.rolls++; return roll(); };
     this.spawns = planLevel(this.level, seed);
     this.total = this.spawns.length;
     this.recharge = Object.fromEntries(DEFENDER_IDS.map((d) => [d, 0])) as Record<DefenderId, number>;
@@ -161,6 +172,32 @@ export class Game {
     for (const d of ['pebble', 'trap', 'boulder'] as DefenderId[]) this.recharge[d] = DEFENDERS[d].recharge * 0.6;
     this.carts = Array.from({ length: ROWS }, (_, r) => (this.def.rows.includes(r) ? 'ready' : 'used'));
     this.cartX = Array.from({ length: ROWS }, () => -0.55);
+  }
+
+  /** The night as plain data, to pick up later. A finished night has nothing to keep. */
+  snapshot(): NightSave | null {
+    if (this.state === 'won' || this.state === 'lost') return null;
+    return JSON.parse(JSON.stringify({
+      v: NIGHT_VERSION, level: this.level, seed: this.seed, rolls: this.rolls, time: this.time, seeds: this.seeds, recharge: this.recharge, defenders: this.defenders, zombies: this.zombies,
+      pellets: this.pellets, drops: this.drops, carts: this.carts, cartX: this.cartX, spawns: this.spawns, total: this.total, kills: this.kills, skyClock: this.skyClock, nextId: this.nextId, waveSeen: this.waveSeen,
+    })) as NightSave;
+  }
+  /** A saved night, paused where it was left; null if the save is not one this version wrote. */
+  static restore(data: unknown): Game | null {
+    try {
+      const d = data as NightSave, num = (...v: unknown[]) => v.every((n) => typeof n === 'number' && Number.isFinite(n)), list = (...v: unknown[]) => v.every(Array.isArray);
+      if (!d || d.v !== NIGHT_VERSION || !num(d.level, d.seed, d.rolls, d.time, d.seeds, d.total, d.kills, d.skyClock, d.nextId, d.waveSeen)) return null;
+      if (!Number.isInteger(d.level) || d.level < 0 || d.level >= LEVELS.length || d.rolls < 0 || !list(d.defenders, d.zombies, d.pellets, d.drops, d.carts, d.cartX, d.spawns)) return null;
+      if (d.carts.length !== ROWS || d.cartX.length !== ROWS || !DEFENDER_IDS.every((k) => num(d.recharge?.[k]))) return null;
+      if (!d.defenders.every((x) => DEFENDERS[x.kind] && num(x.id, x.row, x.col, x.hp)) || !d.zombies.every((z) => ZOMBIES[z.kind] && num(z.id, z.row, z.x, z.hp)) || !d.spawns.every((x) => ZOMBIES[x.kind] && num(x.row, x.at))) return null;
+      const g = new Game(d.level, d.seed), c = JSON.parse(JSON.stringify(d)) as NightSave;
+      // The generator's state is its seed plus a fixed step for every number drawn, so it can jump straight to where it was.
+      const roll = rng((d.seed * 101 + g.level + (d.rolls * 0x6d2b79f5) % 4294967296) % 4294967296);
+      g.random = () => { g.rolls++; return roll(); };
+      Object.assign(g, { rolls: c.rolls, time: c.time, seeds: c.seeds, recharge: c.recharge, defenders: c.defenders, zombies: c.zombies, pellets: c.pellets, drops: c.drops, carts: c.carts, cartX: c.cartX, spawns: c.spawns, total: c.total, kills: c.kills, skyClock: c.skyClock, nextId: c.nextId, waveSeen: c.waveSeen });
+      g.state = 'paused';
+      return g;
+    } catch { return null; }
   }
 
   lane(row: number) { return this.def.rows.includes(row); }

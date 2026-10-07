@@ -8,11 +8,15 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Summit Shuffle**: rest the mouse on a card for a big copy of it with every word explained (Fluff, Exposed, Burrs and the rest), the numbers as they stand against the foe it would go at, and what an upgrade would change. On a phone, hold a finger on the card. Predators, your chinchilla, trinkets, health, seeds, energy and the stops on the trail explain themselves the same way.
 
+- **Hay Maze Defence**, **Chinchillas vs Zombies** and **Burrow Tactics** now keep your place if you leave part-way. A Hay Maze wave and a Zombies night come back paused, with every predator, zombie and shot where it was, and a Burrow Tactics campaign mission comes back on the turn you left it. Each home screen offers a **Continue** button; starting afresh still works as before.
+
 ### Changed
 
 - **Summit Shuffle** has new graphics. Each stretch has a painted backdrop: a meadow under snowy peaks, cliffs at sunset, and a snowfield under the southern lights, with drifting clouds, pollen, dust or snow. Hits leave claw marks and sparks, Fluff shows as a soft dome, health bars drain, big hits shake the screen, and a won fight ends in confetti. Predators' intents are drawn badges. Cards have new frames by type and rarity, richer pictures and a shine on rare ones; the hand is fanned, playable cards glow, and a played card flies to its target. The trail is a painted mountain with a winding path, drawn icons for every kind of stop, and your chinchilla standing on the stop you have reached.
 
 - **Summit Shuffle**, **Burrow Tactics** and **Poof Panic**: every predator has been redrawn. The fox, snake, owl, weasel, badger, hawk, cougar, mole, skunk and bear, and Summit Shuffle's beetle, armadillo and lizard, are now painted with lit backs and shaded bellies, proper legs and paws, feathered wings, patterned coats and eyes that catch the light.
+
+- New graphics for five more games. **Hay Maze Defence** has a painted meadow with dark growth round its edge, firelight from the burrow, and shaded bales and rocks that cast shadows. **Chinchilla Clash** has a painted arena with dirt paths, a river with foam, stones and glints, proper plank bridges and scenery down the sides. **Burrow Barrage** has a sun or moon, snowy peaks, hills with trees, puffy clouds that still drift with the wind, and soil that darkens with depth. **Burrow Tactics** has the same sky and peaks behind its board, turf hanging over the slab's edge and light across the meadow. **Chinchillas vs Zombies** has drifting cloud, smoking chimneys, and moonlight and door-light across the lawn.
 
 ### Fixed
 

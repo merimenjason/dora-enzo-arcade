@@ -299,4 +299,22 @@ assert.ok(planLevel(7, 1).some((s) => s.kind === 'brute') && !planLevel(5, 1).so
   assert.equal(ROWS, 5);
 }
 
-console.log('Passed: planting, seeds, shooting, armour, frost, traps, boulders, pogos, brutes, hay carts, waves, winning, pause and replay.');
+// ---------- Saving a night part-way ----------
+{
+  const play = (g, from, to) => { for (let i = from; i < to; i++) { if (i % 15 === 0) tend(g); g.update(1 / 60); } };
+  const whole = new Game(4, 5), half = new Game(4, 5);
+  play(whole, 0, 60 * 150); play(half, 0, 60 * 70);
+  const kept = JSON.parse(JSON.stringify(half.snapshot())), back = Game.restore(kept);
+  assert.equal(back.state, 'paused', 'a saved night comes back paused');
+  assert.deepEqual(back.snapshot(), kept, 'and exactly as it was left');
+  back.pause(); play(back, 60 * 70, 60 * 150);
+  assert.deepEqual(back.snapshot() ?? back.state, whole.snapshot() ?? whole.state, 'a night saved and picked up plays out as if it never stopped');
+  assert.equal(back.kills, whole.kills);
+  assert.equal(Game.restore({ ...kept, v: 99 }), null, 'a save from another version is not read');
+  assert.equal(Game.restore({ ...kept, zombies: [{ kind: 'dragon' }] }), null);
+  assert.equal(Game.restore(null), null);
+  const over = new Game(0, 3); over.state = 'won';
+  assert.equal(over.snapshot(), null, 'a finished night is not kept');
+}
+
+console.log('Passed: planting, seeds, shooting, armour, frost, traps, boulders, pogos, brutes, hay carts, waves, winning, pause, replay and saving a night part-way.');

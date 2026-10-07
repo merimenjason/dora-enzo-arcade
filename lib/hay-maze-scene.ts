@@ -42,48 +42,119 @@ const glow = (c: CanvasRenderingContext2D, x: number, y: number, r: number, colo
 
 // ---------- The meadow ----------
 
-function ground(c: CanvasRenderingContext2D, b: Battle, look: Look, time: number) {
+// The meadow is painted once per level onto a canvas of its own (grass, mottling, tufts, flowers, the dark growth
+// round the edge and the firelight spilling from the burrow) and copied each frame; only what twinkles is drawn live.
+let painted: { key: string; cv: HTMLCanvasElement } | null = null;
+const GROWTH: Record<Look['deco'], [string, string, string]> = { clover: ['#27402c', '#335a34', '#44733c'], cactus: ['#5a2c22', '#7a4030', '#96583c'], star: ['#151c38', '#222c50', '#34406a'] };
+
+function paintGround(c: CanvasRenderingContext2D, b: Battle, look: Look) {
   const sky = c.createLinearGradient(0, 0, 0, VIEW_H);
   sky.addColorStop(0, look.skyTop); sky.addColorStop(1, look.skyBottom);
   c.fillStyle = sky; c.fillRect(0, 0, VIEW_W, VIEW_H);
-  // Soft two-tone grass with a little shading per tile.
+  const x0 = X(0), y0 = Y(0), w = COLS * TILE, h = ROWS * TILE, [deep, mid, lit] = GROWTH[look.deco];
+  // Growth behind the meadow: three rows of rounded clumps, darkest furthest back, with rim light on the nearest.
+  const clumps = (n: number, col: string, reach: number, size: number, seed: number) => {
+    c.fillStyle = col;
+    for (let i = 0; i < n; i++) {
+      const p = hash(i * 3.1 + seed) * (2 * w + 2 * h), r = size * (0.7 + hash(i + seed * 7) * 0.7), off = reach * (0.4 + hash(i * 1.7 + seed) * 0.6);
+      const [x, y] = p < w ? [x0 + p, y0 - off] : p < w + h ? [x0 - off, y0 + p - w] : p < 2 * w + h ? [x0 + p - w - h, y0 + h + off * 0.6] : [x0 + w + off, y0 + p - 2 * w - h];
+      ellipse(c, x, y, r, r * 0.8, col);
+    }
+  };
+  clumps(70, deep, 20, 13, 1); clumps(60, mid, 12, 10, 2); clumps(46, lit, 6, 7, 3);
+  // The grass: one wash of colour lit from the upper left, with the tiles only just told apart.
+  const wash = c.createLinearGradient(x0, y0, x0 + w, y0 + h);
+  wash.addColorStop(0, look.b); wash.addColorStop(1, look.a);
+  c.fillStyle = wash; c.fillRect(x0, y0, w, h);
+  c.save(); c.beginPath(); c.rect(x0, y0, w, h); c.clip();
+  const lightUp = c.createLinearGradient(x0, y0, x0 + w * 0.6, y0 + h);
+  lightUp.addColorStop(0, 'rgba(255, 246, 200, 0.16)'); lightUp.addColorStop(0.6, 'rgba(255, 246, 200, 0)'); lightUp.addColorStop(1, 'rgba(20, 10, 40, 0.16)');
+  c.fillStyle = lightUp; c.fillRect(x0, y0, w, h);
   for (let r = 0; r < ROWS; r++) for (let col = 0; col < COLS; col++) {
-    c.fillStyle = (r + col) % 2 ? look.a : look.b;
-    c.fillRect(X(col), Y(r), TILE, TILE);
-    c.fillStyle = `rgba(0, 0, 0, ${0.03 + hash(col * 31 + r) * 0.05})`; c.fillRect(X(col), Y(r) + TILE - 3, TILE, 3);
+    c.fillStyle = (r + col) % 2 ? 'rgba(255, 255, 255, 0.045)' : 'rgba(0, 0, 0, 0.04)';
+    c.beginPath(); c.roundRect(X(col) + 1, Y(r) + 1, TILE - 2, TILE - 2, 5); c.fill();
   }
-  c.strokeStyle = 'rgba(0, 0, 0, 0.25)'; c.lineWidth = 2; c.strokeRect(X(0) - 1, Y(0) - 1, COLS * TILE + 2, ROWS * TILE + 2);
-  for (let i = 0; i < 90; i++) {
-    const x = X(hash(i) * COLS), y = Y(hash(i + 99) * ROWS);
-    if (look.deco === 'clover') { c.strokeStyle = look.tuft; c.lineWidth = 1.2; c.beginPath(); c.moveTo(x, y); c.lineTo(x - 2, y - 5); c.moveTo(x, y); c.lineTo(x + 2, y - 4); c.stroke(); if (i % 9 === 0) ellipse(c, x + 3, y - 4, 1.8, 1.8, i % 2 ? '#f6d86a' : '#f2a6c8'); }
-    else if (look.deco === 'cactus') { c.fillStyle = look.tuft; c.fillRect(x, y, 2, 2); if (i % 11 === 0) { c.fillStyle = '#5d8f4a'; c.fillRect(x, y - 7, 3, 8); } }
-    else { c.strokeStyle = look.tuft; c.lineWidth = 1; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 1, y - 4); c.stroke(); if (i % 7 === 0) { const tw = 0.5 + 0.5 * Math.sin(time * 2 + i); ellipse(c, x, y - 8, 1 + tw * 0.6, 1 + tw * 0.6, `rgba(200, 230, 255, ${0.25 + tw * 0.3})`); } }
+  for (let i = 0; i < 70; i++) {
+    const x = x0 + hash(i * 2.3 + 5) * w, y = y0 + hash(i * 4.1 + 9) * h, r = 26 + hash(i + 40) * 46, g = c.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, i % 2 ? 'rgba(255, 250, 200, 0.07)' : 'rgba(10, 30, 20, 0.09)'); g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2);
   }
-  // Ways in: trodden gaps with red markers.
+  for (let i = 0; i < 300; i++) {
+    const x = x0 + hash(i) * w, y = y0 + hash(i + 99) * h, k = 0.7 + hash(i + 300) * 0.7;
+    if (look.deco === 'clover') {
+      c.strokeStyle = i % 3 ? look.tuft : '#86b862'; c.lineWidth = 1.1; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x - 1, y - 3 * k, x - 3 * k, y - 5 * k); c.moveTo(x, y); c.lineTo(x + 0.4, y - 6 * k); c.moveTo(x, y); c.quadraticCurveTo(x + 1, y - 3 * k, x + 3 * k, y - 4.4 * k); c.stroke();
+      if (i % 9 === 0) { const col = ['#f6d86a', '#f2a6c8', '#ffffff', '#b9a6f2'][i % 4]; for (let p = 0; p < 5; p++) ellipse(c, x + 4 + Math.cos(p * 1.257) * 1.7, y - 5 + Math.sin(p * 1.257) * 1.7, 1.1, 1.1, col); ellipse(c, x + 4, y - 5, 0.9, 0.9, '#f2b33a'); }
+      else if (i % 23 === 0) { for (const [dx, dy] of [[0, -1.6], [-1.5, 0.6], [1.5, 0.6]]) ellipse(c, x + dx, y + dy, 1.6, 1.6, '#3f7a3a'); }
+    } else if (look.deco === 'cactus') {
+      ellipse(c, x, y, 1.6 * k, 1 * k, i % 2 ? 'rgba(90, 50, 30, 0.45)' : 'rgba(255, 226, 180, 0.3)');
+      if (i % 11 === 0) { c.strokeStyle = '#3d6a36'; c.lineWidth = 3.4; c.lineCap = 'round'; c.beginPath(); c.moveTo(x, y); c.lineTo(x, y - 9); c.moveTo(x, y - 4); c.lineTo(x + 4, y - 4); c.lineTo(x + 4, y - 7); c.stroke(); c.strokeStyle = '#6aa055'; c.lineWidth = 1.4; c.beginPath(); c.moveTo(x - 0.6, y - 1); c.lineTo(x - 0.6, y - 8.6); c.stroke(); }
+      else if (i % 17 === 0) { c.strokeStyle = '#8a5a3a'; c.lineWidth = 1; c.beginPath(); c.moveTo(x - 4, y); c.lineTo(x, y - 1.5); c.lineTo(x + 5, y + 0.5); c.stroke(); }
+    } else {
+      c.strokeStyle = i % 4 ? look.tuft : '#7fa6a0'; c.lineWidth = 1; c.lineCap = 'round'; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 1, y - 4 * k); c.moveTo(x, y); c.lineTo(x - 1.6, y - 3 * k); c.stroke();
+      if (i % 6 === 0) ellipse(c, x + 6, y + 1, 3 * k, 1.3 * k, 'rgba(226, 236, 255, 0.5)');
+    }
+  }
+  c.lineCap = 'butt';
+  // Shade where the growth overhangs, and firelight spilling in from the burrow.
+  for (const [gx0, gy0, gx1, gy1, len] of [[x0, y0, x0, y0 + 26, 0], [x0, y0, x0 + 26, y0, 1], [x0, y0 + h, x0, y0 + h - 18, 0], [x0 + w, y0, x0 + w - 14, y0, 1]] as const) {
+    const g = c.createLinearGradient(gx0, gy0, gx1, gy1); g.addColorStop(0, 'rgba(8, 6, 24, 0.4)'); g.addColorStop(1, 'rgba(8, 6, 24, 0)');
+    c.fillStyle = g; if (len) c.fillRect(Math.min(gx0, gx1), y0, Math.abs(gx1 - gx0), h); else c.fillRect(x0, Math.min(gy0, gy1), w, Math.abs(gy1 - gy0));
+  }
+  const [hx, hy] = b.hearth, fire = c.createRadialGradient(X(hx), Y(hy), 10, X(hx), Y(hy), 250);
+  fire.addColorStop(0, 'rgba(255, 170, 80, 0.34)'); fire.addColorStop(0.5, 'rgba(255, 150, 70, 0.1)'); fire.addColorStop(1, 'rgba(255, 150, 70, 0)');
+  c.globalCompositeOperation = 'lighter'; c.fillStyle = fire; c.fillRect(x0, y0, w, h); c.globalCompositeOperation = 'source-over';
+  c.restore();
+  c.strokeStyle = 'rgba(10, 8, 24, 0.5)'; c.lineWidth = 2; c.strokeRect(x0 - 1, y0 - 1, w + 2, h + 2);
+  // Ways in: trodden earth fading into the grass, with red markers.
   for (const [ec, er] of b.entrances) {
-    const top = er === 0 && ec > 0;
-    c.fillStyle = 'rgba(70, 40, 20, 0.45)';
-    if (top) c.fillRect(X(ec), 0, TILE, OY); else c.fillRect(0, Y(er), OX, TILE);
+    const top = er === 0 && ec > 0, g = top ? c.createLinearGradient(0, 0, 0, Y(0) + TILE) : c.createLinearGradient(0, 0, X(0) + TILE, 0);
+    g.addColorStop(0, 'rgba(92, 58, 34, 0.9)'); g.addColorStop(0.55, 'rgba(92, 58, 34, 0.55)'); g.addColorStop(1, 'rgba(92, 58, 34, 0)');
+    c.fillStyle = g;
+    if (top) c.fillRect(X(ec), 0, TILE, OY + TILE); else c.fillRect(0, Y(er), OX + TILE, TILE);
   }
   for (let e = 0; e < b.entrances.length; e += 2) {
     const [ec, er] = b.entrances[e], top = er === 0 && ec > 0;
     c.save(); c.translate(top ? X(ec) + TILE : 12, top ? 11 : Y(er) + TILE); if (top) c.rotate(Math.PI / 2);
+    c.fillStyle = 'rgba(0, 0, 0, 0.3)'; c.beginPath(); c.moveTo(-6, -5); c.lineTo(7, 1); c.lineTo(-6, 7); c.closePath(); c.fill();
     c.fillStyle = '#e8483c'; c.beginPath(); c.moveTo(-6, -6); c.lineTo(6, 0); c.lineTo(-6, 6); c.closePath(); c.fill();
+    c.fillStyle = '#ff9a8a'; c.beginPath(); c.moveTo(-6, -6); c.lineTo(6, 0); c.lineTo(-6, -1.5); c.closePath(); c.fill();
     c.restore();
   }
 }
 
-/** A chunky block: a lit top face and a shaded front, like a stack of bales or a boulder. */
+function ground(c: CanvasRenderingContext2D, b: Battle, look: Look, time: number) {
+  const k = Math.abs(c.getTransform().a) || 1, key = `${b.region.id}|${b.level}|${k}|${b.entrances.join(';')}|${b.hearth.join(',')}`;
+  if (!painted || painted.key !== key) {
+    const cv = painted?.cv ?? document.createElement('canvas');
+    cv.width = Math.ceil(VIEW_W * k); cv.height = Math.ceil(VIEW_H * k);
+    const g = cv.getContext('2d')!; g.setTransform(k, 0, 0, k, 0, 0);
+    paintGround(g, b, look);
+    painted = { key, cv };
+  }
+  c.drawImage(painted.cv, 0, 0, VIEW_W, VIEW_H);
+  if (look.deco === 'star') for (let i = 0; i < 300; i += 7) { const x = X(hash(i) * COLS), y = Y(hash(i + 99) * ROWS), tw = 0.5 + 0.5 * Math.sin(time * 2 + i); ellipse(c, x, y - 8, 1 + tw * 0.6, 1 + tw * 0.6, `rgba(200, 230, 255, ${0.25 + tw * 0.3})`); }
+}
+
+/** A chunky block: a lit top face and a shaded front, like a stack of bales or a boulder, throwing a shadow down and to the right. */
 function cube(c: CanvasRenderingContext2D, col: number, r: number, top: string, front: string, edge: string, joined: (dc: number, dr: number) => boolean) {
-  const x = X(col), y = Y(r) - LIFT;
-  if (!joined(0, 1)) { c.fillStyle = front; c.fillRect(x, y + TILE, TILE, LIFT); c.fillStyle = 'rgba(0, 0, 0, 0.18)'; c.fillRect(x, Y(r) + TILE, TILE, 3); }
+  const x = X(col), y = Y(r) - LIFT, below = joined(0, 1), right = joined(1, 0);
+  if (!below) { const sh = c.createLinearGradient(0, Y(r) + TILE, 0, Y(r) + TILE + 9); sh.addColorStop(0, 'rgba(10, 6, 24, 0.38)'); sh.addColorStop(1, 'rgba(10, 6, 24, 0)'); c.fillStyle = sh; c.fillRect(x + (joined(-1, 0) ? 0 : 3), Y(r) + TILE, TILE + (right ? 0 : 4), 9); }
+  if (!right) { const sh = c.createLinearGradient(x + TILE, 0, x + TILE + 7, 0); sh.addColorStop(0, 'rgba(10, 6, 24, 0.3)'); sh.addColorStop(1, 'rgba(10, 6, 24, 0)'); c.fillStyle = sh; c.fillRect(x + TILE, y + 6, 7, TILE + LIFT - 6); }
+  if (!below) { const f = c.createLinearGradient(0, y + TILE, 0, y + TILE + LIFT); f.addColorStop(0, front); f.addColorStop(1, edge); c.fillStyle = f; c.fillRect(x, y + TILE, TILE, LIFT); }
   c.fillStyle = top; c.fillRect(x, y, TILE, TILE);
+  const lit = c.createLinearGradient(x, y, x + TILE, y + TILE); lit.addColorStop(0, 'rgba(255, 250, 220, 0.3)'); lit.addColorStop(0.5, 'rgba(255, 250, 220, 0)'); lit.addColorStop(1, 'rgba(30, 14, 40, 0.16)');
+  c.fillStyle = lit; c.fillRect(x, y, TILE, TILE);
   c.strokeStyle = edge; c.lineWidth = 2;
   c.beginPath();
   if (!joined(0, -1)) { c.moveTo(x, y + 1); c.lineTo(x + TILE, y + 1); }
-  if (!joined(0, 1)) { c.moveTo(x, y + TILE + LIFT - 1); c.lineTo(x + TILE, y + TILE + LIFT - 1); }
-  if (!joined(-1, 0)) { c.moveTo(x + 1, y); c.lineTo(x + 1, y + TILE + (joined(0, 1) ? 0 : LIFT)); }
-  if (!joined(1, 0)) { c.moveTo(x + TILE - 1, y); c.lineTo(x + TILE - 1, y + TILE + (joined(0, 1) ? 0 : LIFT)); }
+  if (!below) { c.moveTo(x, y + TILE + LIFT - 1); c.lineTo(x + TILE, y + TILE + LIFT - 1); }
+  if (!joined(-1, 0)) { c.moveTo(x + 1, y); c.lineTo(x + 1, y + TILE + (below ? 0 : LIFT)); }
+  if (!right) { c.moveTo(x + TILE - 1, y); c.lineTo(x + TILE - 1, y + TILE + (below ? 0 : LIFT)); }
+  c.stroke();
+  c.strokeStyle = 'rgba(255, 252, 230, 0.4)'; c.lineWidth = 1; c.beginPath();
+  if (!joined(0, -1)) { c.moveTo(x + 3, y + 2.5); c.lineTo(x + TILE - 3, y + 2.5); }
+  if (!joined(-1, 0)) { c.moveTo(x + 2.5, y + 3); c.lineTo(x + 2.5, y + TILE - 3); }
   c.stroke();
 }
 
@@ -94,8 +165,12 @@ function blocks(c: CanvasRenderingContext2D, b: Battle, look: Look, rows: number
     if (b.rock(col, r)) {
       cube(c, col, r, look.rockTop, look.rock, look.rockDark, (dc, dr) => b.inGrid(col + dc, r + dr) && b.rock(col + dc, r + dr));
       const x = X(col), y = Y(r) - LIFT;
-      c.strokeStyle = 'rgba(0, 0, 0, 0.2)'; c.lineWidth = 1; c.beginPath(); c.moveTo(x + 8, y + 10); c.lineTo(x + 14, y + 16); c.lineTo(x + 22, y + 13); c.stroke();
-      ellipse(c, x + 10, y + 8, 4, 2, 'rgba(255, 255, 255, 0.18)');
+      const n = col * 13 + r * 7;
+      c.strokeStyle = 'rgba(0, 0, 0, 0.22)'; c.lineWidth = 1; c.beginPath(); c.moveTo(x + 6 + hash(n) * 6, y + 9); c.lineTo(x + 14, y + 15 + hash(n + 1) * 4); c.lineTo(x + 23, y + 11 + hash(n + 2) * 6); c.moveTo(x + 14, y + 15 + hash(n + 1) * 4); c.lineTo(x + 12, y + 25); c.stroke();
+      ellipse(c, x + 10, y + 8, 5, 2.4, 'rgba(255, 255, 255, 0.2)');
+      for (let i = 0; i < 5; i++) ellipse(c, x + 4 + hash(n + i * 3) * 24, y + 4 + hash(n + i * 5 + 1) * 24, 0.9, 0.7, i % 2 ? 'rgba(255, 255, 255, 0.22)' : 'rgba(0, 0, 0, 0.18)');
+      if (look.deco === 'clover' && n % 3 === 0) { ellipse(c, x + 24, y + 26, 5, 3, 'rgba(84, 132, 66, 0.75)'); ellipse(c, x + 20, y + 28, 3, 2, 'rgba(110, 160, 84, 0.75)'); }
+      else if (look.deco === 'star' && n % 2 === 0) ellipse(c, x + 16, y + 7, 9, 3.4, 'rgba(236, 244, 255, 0.6)');
       continue;
     }
     const group = b.blocks[r * COLS + col];
@@ -104,8 +179,10 @@ function blocks(c: CanvasRenderingContext2D, b: Battle, look: Look, rows: number
     cube(c, col, r, top, front, edge, (dc, dr) => b.inGrid(col + dc, r + dr) && b.blocks[(r + dr) * COLS + col + dc] === group);
     // Straw texture on the top, and twine on the front.
     const x = X(col), y = Y(r) - LIFT;
-    c.strokeStyle = 'rgba(140, 100, 30, 0.35)'; c.lineWidth = 1;
-    for (let i = 0; i < 4; i++) { const sx = x + 4 + ((i * 7 + group * 3) % 24); c.beginPath(); c.moveTo(sx, y + 5); c.lineTo(sx + 3, y + TILE - 5); c.stroke(); }
+    c.lineWidth = 1;
+    for (let i = 0; i < 9; i++) { const n = col * 17 + r * 29 + i * 5, sx = x + 3 + hash(n) * 25, sy = y + 4 + hash(n + 1) * 14, len = 6 + hash(n + 2) * 9; c.strokeStyle = i % 3 ? 'rgba(140, 100, 30, 0.38)' : 'rgba(255, 244, 190, 0.5)'; c.beginPath(); c.moveTo(sx, sy); c.lineTo(sx + 2, sy + len); c.stroke(); }
+    // Twine round the bale, where it is not joined to its neighbour above.
+    c.strokeStyle = 'rgba(122, 74, 28, 0.6)'; c.lineWidth = 1.4; c.beginPath(); c.moveTo(x + 10, y + 2); c.lineTo(x + 10, y + TILE); c.moveTo(x + 22, y + 2); c.lineTo(x + 22, y + TILE); c.stroke();
     if (!(b.inGrid(col, r + 1) && b.blocks[(r + 1) * COLS + col] === group)) { c.fillStyle = '#7a4a1c'; c.fillRect(x + 9, y + TILE, 2, LIFT); c.fillRect(x + 21, y + TILE, 2, LIFT); }
   }
 }

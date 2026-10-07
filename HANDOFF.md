@@ -43,7 +43,7 @@ All four follow the arcade's usual split: a deterministic engine with no DOM, a 
 | Page, styles, metadata | `app/clash/` | `app/hay-maze/` | `app/chinchillas-vs-zombies/` | `app/scribble/` |
 | Engine tests (`npm test`) | `tests/chinchilla-clash.mjs` | `tests/hay-maze.mjs`, `tests/hay-maze-bot.mjs` | `tests/cvz.mjs`, `tests/cvz-bot.mjs` | `tests/scribble.mjs` |
 | Browser test (`npm run test:e2e`) | `tests/e2e/chinchilla-clash.mjs` | `tests/e2e/hay-maze.mjs` | `tests/e2e/chinchillas-vs-zombies.mjs` | `tests/e2e/scribble.mjs` |
-| Save keys (`localStorage`) | `chinchilla-clash-v1` | `hay-maze-v2` (stats) and `hay-maze-run-v1` (the run in progress); the first version's `hay-maze-v1` is no longer read | `chinchillas-vs-zombies-v1` (nights won) | `chinchilla-scribble-v1` |
+| Save keys (`localStorage`) | `chinchilla-clash-v1` | `hay-maze-v2` (stats) and `hay-maze-run-v1` (the run in progress); the first version's `hay-maze-v1` is no longer read | `chinchillas-vs-zombies-v1` (nights won) and `chinchillas-vs-zombies-night-v1` (the night in progress) | `chinchilla-scribble-v1` |
 | Test hook on `window` | `__clash()` | `__maze()` | `__cvz()` | `__scribble()` |
 
 Clash, Hay Maze and Chinchillas vs Zombies draw Dora, Enzo and the other chinchillas with the shared `drawChinchilla` from `lib/chinchilla-art.ts`, using `coatLike` for other coats.
@@ -101,7 +101,7 @@ Game 22 (`/tactics`), turn-based tactics in the style of Into the Breach. Rules 
 - **Balance knobs:** the `HEROES` and `PREDATORS` tables, each mission's map, squad, turns, warren and arrivals in `MISSIONS`, and for the run `START_BUDGET`, `START_STEP`, `WAVE_BUDGET`, `WAVE_STEP`, `ALPHA_FROM`, `ALPHA_CHANCE`, `RUN_WARREN` and the `DIFFICULTY` table.
 - **The planner lives in the engine** (`boardValue`, `bestStep`, `planTurn`, `hint`). The Hint button and the bot in `tests/burrow-tactics-bot.mjs` both use it. It wins all eighteen missions and, as of 04-10-2026, 8 of the 12 seeded Standard runs that `npm test` plays (it needs 6); over 48 runs with six squads it wins 46 on Gentle, 42 on Standard and 24 on Fierce. It looks one turn ahead with perfect knowledge of the coming attacks, so a person will do worse than it does. Rerun `npm run bot:tactics` (`ALL=1` for every difficulty) after any balance change; it takes a few seconds.
 - **Chapter two** (added 04-10-2026, the same day): classes with a perk each (`CLASSES`), a second action per chinchilla (`Unit.skill`), ice, high ground and fire, the objectives `escort` and `hunt` and the nursery burrow (`BattleDef.goal`, `key`), the mole, skunk and Great Bear, a deployment step (`Battle.state === 'deploy'`, `zone`, `place`, `ready`), run difficulty (`DIFFICULTY`), and the guided first mission (`guide` in the page). Design: `docs/superpowers/specs/04-10-2026-burrow-tactics-chapter-two-design.md`.
-- Saves: `burrow-tactics-v1` (stars, sound, difficulty, best runs) and `burrow-tactics-run-v2` (the run in progress). Test hook: `window.__tactics()` returns `{ battle, stage, run }`.
+- Saves: `burrow-tactics-v1` (stars, sound, difficulty, best runs) and `burrow-tactics-run-v2` (the run in progress) and `burrow-tactics-mission-v1` (a campaign mission in progress). Test hook: `window.__tactics()` returns `{ battle, stage, run }`.
 
 ### Burrow Barrage, briefly
 
@@ -185,14 +185,16 @@ The round of 03-10-2026 was spent on the Claude Code setup, not the games:
 
 ## Known limitations and ideas for next time
 
+**Graphics pass of 07-10-2026.** Chinchilla Clash, Hay Maze Defence, Burrow Tactics, Burrow Barrage and Chinchillas vs Zombies were repainted in the manner of Summit Shuffle. Clash, Hay Maze and Barrage now paint their ground or far view once onto a canvas of their own (`paintArena`, `paintGround`, `paintBackdrop`) and copy it each frame, keyed on the level and the canvas scale; anything that changes the static picture must change that key. It was judged from screenshots of a handful of screens per game, not by playing. Scratch screenshot scripts are in `tests/e2e/.tmp/` (`maze-look`, `clash-look`, `barrage-look2`, `tactics-look`; git-ignored).
+
 The lists for Clash, Hay Maze and Chinchillas vs Zombies date from 26-09-2026 and have not been re-checked against the code since.
 
 - **Sound.** Clash, Hay Maze and Chinchillas vs Zombies had none. Other cabinets have WebAudio helpers (`app/dusty-hollow/sound.ts`, `app/mountain-retreat/sound.ts`) that could be borrowed.
 - **Hay Maze on phones:** the meadow is only about 16 px a tile at phone width. Building uses tap-to-preview, then tap-again-to-build, to avoid misplacing. A zoomed or scrollable view would help more.
-- **Hay Maze:** towers have no targeting modes (they always shoot the predator furthest along). There is no endless mode and no difficulty setting. Runs save between waves and at the reward screen (`Run.snapshot()` and `Run.load()`, key `hay-maze-run-v1`), but not mid-wave: leaving mid-wave restarts that wave. Bump `SAVE_VERSION` when the save format changes; older saves are then simply not offered. Emberward's multi-tile towers (archways, line shooters) and its branching region map aren't in yet, and would be natural next steps.
+- **Hay Maze:** towers have no targeting modes (they always shoot the predator furthest along). There is no endless mode and no difficulty setting. Runs save between waves, at the reward screen and, since 07-10-2026, in the middle of a wave (`Run.snapshot()` and `Run.load()`, key `hay-maze-run-v1`); a wave comes back paused. Bump `SAVE_VERSION` when the save format changes; older saves are then simply not offered. Emberward's multi-tile towers (archways, line shooters) and its branching region map aren't in yet, and would be natural next steps.
 - **Chinchilla Clash:** no card levels, emotes or two-player mode. The computer player never uses the pocket placement opened by a fallen tower.
-- **Chinchillas vs Zombies:** a night in progress isn't saved, only the nights won. There's no endless mode, no mini-games and no night-time or pool lawns. On a phone the lawn is small (tiles about 32 px); tap-to-preview keeps planting accurate.
+- **Chinchillas vs Zombies:** a night in progress is saved since 07-10-2026 (`Game.snapshot()` and `Game.restore()`) and comes back paused. There's no endless mode, no mini-games and no night-time or pool lawns. On a phone the lawn is small (tiles about 32 px); tap-to-preview keeps planting accurate.
 - **Chinchilla Scribble:** no bot plays the levels, and its limits haven't been written up.
-- **Burrow Tactics:** balance has only been tuned against the bot; nobody has played the campaign or a run by hand from start to finish. A campaign mission in progress is not saved. The hint looks one turn ahead only.
+- **Burrow Tactics:** balance has only been tuned against the bot; nobody has played the campaign or a run by hand from start to finish. A campaign mission in progress is saved since 07-10-2026. The hint looks one turn ahead only.
 - **Summit Shuffle:** balanced against the bot only. Both chinchillas use one card pool; a second pool, one-use treats, and more chance meetings are the obvious next additions. The bot plans one turn at a time, so cards that need setting up (Belly Flop, Puff Up, Sore Spot) score badly in its trials and may be stronger in a person's hands than their numbers suggest.
 - **Balance** has only been tuned against bots. Watch real players on levels 5–6 of Hay Maze, against Baron Ebony in Clash, and on nights 7–8 of Chinchillas vs Zombies, the hardest of each.

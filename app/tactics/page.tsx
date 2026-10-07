@@ -10,7 +10,7 @@ import { Stage, VIEW_W, VIEW_H, drawHeroIcon, drawPredIcon, type Overlay } from 
 import { cue, setMuted } from './sound';
 import './tactics.css';
 
-const SAVE_KEY = 'burrow-tactics-v1', RUN_KEY = 'burrow-tactics-run-v2', SCALE = 2;
+const SAVE_KEY = 'burrow-tactics-v1', RUN_KEY = 'burrow-tactics-run-v2', MISSION_KEY = 'burrow-tactics-mission-v1', SCALE = 2;
 /** `best` is the most battles of a run ever won (RUN_STAGES means a run was finished); `dawn` lists the difficulties a run was finished on. */
 type Save = { stars: number[]; muted: boolean; best: number; difficulty: Difficulty; dawn: Difficulty[] };
 const blank = (): Save => ({ stars: MISSIONS.map(() => 0), muted: false, best: 0, difficulty: 'standard', dawn: [] });
@@ -24,6 +24,16 @@ const writeSave = (s: Save) => { try { localStorage.setItem(SAVE_KEY, JSON.strin
 function readRun(): Run | null {
   try { const raw = localStorage.getItem(RUN_KEY); return raw ? Run.restore(JSON.parse(raw)) : null; } catch { return null; }
 }
+/** A campaign mission left part-way: which one, and the battle as it stood. */
+function readMission(): { index: number; battle: Battle } | null {
+  try {
+    const raw = JSON.parse(localStorage.getItem(MISSION_KEY) ?? 'null');
+    if (!raw || !Number.isInteger(raw.index) || !MISSIONS[raw.index] || !raw.battle) return null;
+    const b = Battle.from(raw.battle);
+    return b.state === 'player' || b.state === 'deploy' ? { index: raw.index, battle: b } : null;
+  } catch { return null; }
+}
+const writeMission = (index: number, b: Battle | null) => { try { if (b && (b.state === 'player' || b.state === 'deploy')) localStorage.setItem(MISSION_KEY, JSON.stringify({ index, battle: b.snapshot() })); else localStorage.removeItem(MISSION_KEY); } catch { /* see writeSave */ } };
 const writeRun = (r: Run | null) => { try { if (r && (r.phase === 'battle' || r.phase === 'reward')) localStorage.setItem(RUN_KEY, JSON.stringify(r.snapshot())); else localStorage.removeItem(RUN_KEY); } catch { /* see writeSave */ } };
 /** How many missions in a row have been won, from the first. */
 const clearedOf = (s: Save) => { const i = s.stars.findIndex((n) => n === 0); return i < 0 ? s.stars.length : i; };
@@ -62,7 +72,7 @@ export default function BurrowTactics() {
   const [advice, setAdvice] = useState('');
   const [infoTile, setInfoTile] = useState<Tile | null>(null);
   const [squad, setSquad] = useState<HeroId[]>(['dora', 'enzo']);
-  const [hasRun, setHasRun] = useState(false);
+  const [hasRun, setHasRun] = useState(false), [kept, setKept] = useState(-1);
   const [speed, setSpeed] = useState(1);
   const [, setTick] = useState(0);
   const battle = useRef<Battle | null>(null), stage = useRef<Stage | null>(null), run = useRef<Run | null>(null), mode = useRef<Mode>({ kind: 'mission', index: 0 });
@@ -72,7 +82,7 @@ export default function BurrowTactics() {
   const tipRef = useRef<Overlay['hint']>(null), coachRef = useRef<Coach | null>(null), guided = useRef(false);
   const memo = useRef<{ key: string; overlay: Overlay }>({ key: '', overlay: { selected: 0, moves: [], targets: [], aim: null, hover: null, cursor: null, preview: null, forecast: null } });
 
-  useEffect(() => { const s = readSave(); setSave(s); setMuted(s.muted); setHasRun(!!readRun()); setSquad(unlockedHeroes(clearedOf(s)).slice(0, 3)); setLoaded(true); }, []);
+  useEffect(() => { const s = readSave(); setSave(s); setMuted(s.muted); setHasRun(!!readRun()); setKept(readMission()?.index ?? -1); setSquad(unlockedHeroes(clearedOf(s)).slice(0, 3)); setLoaded(true); }, []);
   // The browser test reads and drives the running game through this.
   useEffect(() => { (window as unknown as { __tactics?: () => unknown }).__tactics = () => ({ battle: battle.current, stage: stage.current, run: run.current, plan: () => (battle.current ? hint(battle.current) : null) }); }, []);
 
@@ -89,7 +99,12 @@ export default function BurrowTactics() {
     recorded.current = null; result.current = 0; hover.current = null; cursor.current = null; tipRef.current = null; coachRef.current = null; setAdvice('');
     choose(b.heroes[0]?.id ?? 0); arm(null); setInfoTile(null); setScreen('battle'); refresh();
   }
-  const startMission = (i: number) => { mode.current = { kind: 'mission', index: i }; run.current = null; guided.current = i === 0 && save.stars[0] === 0; open(missionBattle(i)); };
+  const startMission = (i: number) => { mode.current = { kind: 'mission', index: i }; run.current = null; guided.current = i === 0 && save.stars[0] === 0; const b = missionBattle(i); writeMission(i, b); open(b); };
+  function continueMission() {
+    const m = readMission();
+    if (!m || m.index > clearedOf(save)) return;
+    mode.current = { kind: 'mission', index: m.index }; run.current = null; guided.current = m.index === 0 && save.stars[0] === 0; open(m.battle);
+  }
   function startRun() {
     const r = Run.start((Date.now() % 100000) + 1, squad, save.difficulty);
     mode.current = { kind: 'run' }; run.current = r; writeRun(r); setHasRun(true); open(r.battle!);
@@ -99,7 +114,7 @@ export default function BurrowTactics() {
     if (!r || !r.battle) return;
     mode.current = { kind: 'run' }; run.current = r; open(r.battle);
   }
-  const home = () => { setScreen('home'); setHasRun(!!readRun()); };
+  const home = () => { setScreen('home'); setHasRun(!!readRun()); setKept(readMission()?.index ?? -1); };
 
   /** After any engine call: play its events and keep the run saved. */
   function commit() {
@@ -108,6 +123,7 @@ export default function BurrowTactics() {
     st.feed(b.events.splice(0), b);
     version.current++; tipRef.current = null; setAdvice('');
     if (run.current) writeRun(run.current);
+    else if (mode.current.kind === 'mission') writeMission(mode.current.index, b);
     refresh();
   }
   /** Arms the main action if it has anything to aim at. */
@@ -240,6 +256,7 @@ export default function BurrowTactics() {
     cue(b.state === 'won' ? 'win' : 'lose');
     if (mode.current.kind === 'mission') {
       const i = mode.current.index, n = stars(b, MISSIONS[i]);
+      writeMission(i, null);
       result.current = n;
       if (n > save.stars[i]) { const next = { ...save, stars: save.stars.map((v, j) => (j === i ? n : v)) }; setSave(next); writeSave(next); }
     } else if (run.current) {
@@ -391,6 +408,7 @@ export default function BurrowTactics() {
           <li><b>Check the forecast.</b> The line above the board says what ending the turn now would cost. Make it say “Nothing gets through.”</li>
         </ol>
 
+        {kept >= 0 && kept <= cleared && <div className="bt-run-go bt-kept"><button className="bt-go" data-testid="continue-mission" onClick={continueMission}>Continue Mission {kept + 1}: {MISSIONS[kept].name} →</button><small>You left it part-way. Picking a mission below starts it afresh.</small></div>}
         <h2 className="bt-section">Campaign <small>{total} of {MISSIONS.length * 3} stars · win a mission to open the next</small></h2>
         <div className="bt-missions">{MISSIONS.slice(0, CHAPTER_TWO).map(card)}</div>
         <h2 className="bt-section">Chapter two <small>choose where your squad starts · new ground, new predators, a second action each</small></h2>

@@ -7,8 +7,11 @@ import { drawLawn, drawDefenderIcon, drawZombieIcon, drawShovelIcon, zombie, toT
 import { COATS, drawChinchilla } from '../../lib/chinchilla-art';
 import './cvz.css';
 
-const SAVE_KEY = 'chinchillas-vs-zombies-v1', DT = 1 / 60, SCALE = 2;
+const SAVE_KEY = 'chinchillas-vs-zombies-v1', NIGHT_KEY = 'chinchillas-vs-zombies-night-v1', DT = 1 / 60, SCALE = 2;
 const readCleared = () => { try { return Math.max(0, Math.min(LEVELS.length, Number(JSON.parse(localStorage.getItem(SAVE_KEY) ?? '{}').cleared) || 0)); } catch { return 0; } };
+/** A night left part-way. It is kept while it is being played and dropped as soon as it is won or lost. */
+const readNight = (): Game | null => { try { const raw = localStorage.getItem(NIGHT_KEY); return raw ? Game.restore(JSON.parse(raw)) : null; } catch { return null; } };
+const writeNight = (g: Game | null) => { try { const d = g?.snapshot(); if (d) localStorage.setItem(NIGHT_KEY, JSON.stringify(d)); else localStorage.removeItem(NIGHT_KEY); } catch { /* see writeCleared */ } };
 const writeCleared = (n: number) => { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ cleared: n })); } catch { /* private mode: the game still plays, progress just isn't kept */ } };
 
 const REFUSED: Record<Exclude<PlantResult, 'ok'>, string> = {
@@ -59,7 +62,8 @@ export default function ChinchillasVsZombies() {
   /** A touch tap has previewed a tile and the next tap on it plants. */
   const armed = useRef(false);
 
-  useEffect(() => { setCleared(readCleared()); setLoaded(true); }, []);
+  const [kept, setKept] = useState(-1);
+  useEffect(() => { setCleared(readCleared()); setKept(readNight()?.level ?? -1); setLoaded(true); }, []);
   // The browser test reads and fast-forwards the running game through this.
   useEffect(() => { (window as unknown as { __cvz?: () => Game | null }).__cvz = () => game.current; }, []);
 
@@ -72,9 +76,19 @@ export default function ChinchillasVsZombies() {
     game.current = new Game(level, (Date.now() % 100000) + 1);
     recorded.current = null;
     choose(null); setGameSpeed(1);
+    writeNight(game.current);
     setScreen('play');
     refresh();
   }
+  function resume() {
+    const g = readNight();
+    if (!g) { setKept(-1); return; }
+    game.current = g; recorded.current = null;
+    choose(null); setGameSpeed(1);
+    setScreen('play');
+    refresh();
+  }
+  const toHome = () => { writeNight(game.current); setKept(readNight()?.level ?? -1); setScreen('home'); };
 
   function pick(t: Tool) {
     const g = game.current;
@@ -104,7 +118,7 @@ export default function ChinchillasVsZombies() {
     if (screen !== 'play') return;
     const c = canvas.current?.getContext('2d');
     if (!c) return;
-    let raf = 0, last = 0, acc = 0, ui = 0;
+    let raf = 0, last = 0, acc = 0, ui = 0, saved = 0;
     const loop = (now: number) => {
       const g = game.current;
       if (!g) return;
@@ -117,12 +131,14 @@ export default function ChinchillasVsZombies() {
       c.setTransform(SCALE, 0, 0, SCALE, 0, 0);
       drawLawn(c, g, now / 1000, ghost);
       if (now - ui > 120) { refresh(); ui = now; }
+      if (now - saved > 1500) { writeNight(g); saved = now; }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     const blur = () => { if (game.current?.state === 'playing') { game.current.pause(); refresh(); } };
-    window.addEventListener('blur', blur);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('blur', blur); };
+    const keep = () => writeNight(game.current);
+    window.addEventListener('blur', blur); window.addEventListener('pagehide', keep);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('blur', blur); window.removeEventListener('pagehide', keep); keep(); };
   }, [screen]);
 
   // Keyboard: 1–7 pick a defender, S the shovel, arrows move, Enter plants, Space collects seeds, F speed, P pause.
@@ -177,6 +193,7 @@ export default function ChinchillasVsZombies() {
           </div>
         </section>
 
+        {kept >= 0 && <div className="cz-kept"><button className="cz-go" data-testid="continue-night" onClick={resume}>Continue Night {kept + 1}: {LEVELS[kept].name} →</button><small>You left it part-way. Choosing a night below starts it afresh.</small></div>}
         <h2 className="cz-section">Choose a night <small>win one to open the next and meet a new defender</small></h2>
         <div className="cz-levels">
           {LEVELS.map((l, i) => {
@@ -224,15 +241,15 @@ export default function ChinchillasVsZombies() {
 
   const unlock = g.def.unlock;
   let overlay: React.ReactNode = null;
-  if (g.state === 'paused') overlay = <><p className="cz-eyebrow">PAUSED</p><h2>The zombies are waiting too.</h2><button className="cz-go" onClick={() => { g.pause(); refresh(); }}>Back to the lawn →</button><button onClick={() => setScreen('home')}>Choose another night</button></>;
+  if (g.state === 'paused') overlay = <><p className="cz-eyebrow">PAUSED</p><h2>The zombies are waiting too.</h2><button className="cz-go" onClick={() => { g.pause(); refresh(); }}>Back to the lawn →</button><button onClick={toHome}>Choose another night</button></>;
   else if (g.state === 'won') overlay = <>
     <p className="cz-eyebrow">NIGHT {g.level + 1} · {g.kills} ZOMBIES STOPPED</p>
     <h2>{g.level === LEVELS.length - 1 ? 'Morning! The burrow is safe.' : 'You held the lawn!'}</h2>
     {unlock && <div className="cz-unlock"><Icon draw={defIcon(unlock)} w={80} h={86} /><div><strong>New defender: {DEFENDERS[unlock].name}</strong><small>{DEFENDERS[unlock].blurb}</small></div></div>}
     {g.level + 1 < LEVELS.length && <button className="cz-go" data-testid="next-level" onClick={() => begin(g.level + 1)}>{`Night ${g.level + 2}: ${LEVELS[g.level + 1].name} →`}</button>}
-    <button onClick={() => setScreen('home')}>Choose a night</button>
+    <button onClick={toHome}>Choose a night</button>
   </>;
-  else if (g.state === 'lost') overlay = <><p className="cz-eyebrow">NIGHT {g.level + 1}</p><h2>The zombies got into the burrow!</h2><p>Dora and Enzo hid under the hay. Plant more Seed Gatherers early, and stack shooters in every lane.</p><button className="cz-go" onClick={() => begin(g.level)}>Try again →</button><button onClick={() => setScreen('home')}>Choose a night</button></>;
+  else if (g.state === 'lost') overlay = <><p className="cz-eyebrow">NIGHT {g.level + 1}</p><h2>The zombies got into the burrow!</h2><p>Dora and Enzo hid under the hay. Plant more Seed Gatherers early, and stack shooters in every lane.</p><button className="cz-go" onClick={() => begin(g.level)}>Try again →</button><button onClick={toHome}>Choose a night</button></>;
 
   return (
     <main className="cz-shell cz-play">

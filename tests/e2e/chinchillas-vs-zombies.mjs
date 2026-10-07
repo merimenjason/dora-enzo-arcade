@@ -74,6 +74,15 @@ try {
   await page.keyboard.press('Space');
   await page.waitForFunction((s) => window.__cvz().seeds >= s + 50, seeds1);
 
+  // Leaving part-way keeps the night: it comes back paused, with the same lawn and seeds.
+  const left = await game(page, 'g => JSON.stringify([g.level, g.seeds, g.defenders.map((d) => [d.kind, d.row, d.col])])');
+  await page.reload();
+  await page.getByTestId('continue-night').click();
+  await page.waitForFunction(() => window.__cvz()?.state === 'paused');
+  assert.equal(await game(page, 'g => JSON.stringify([g.level, g.seeds, g.defenders.map((d) => [d.kind, d.row, d.col])])'), left, 'the night comes back as it was left');
+  await page.keyboard.press('p');
+  await page.waitForFunction(() => window.__cvz().state === 'playing');
+
   // The keyboard: 2 picks the Flicker, the arrows move, Enter plants.
   await page.mouse.move(...tileAt(box, 2, 4));
   await page.keyboard.press('2');

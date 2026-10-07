@@ -70,61 +70,130 @@ function crown(c: CanvasRenderingContext2D, x: number, y: number, s: number, fil
 
 // ---------- The arena ----------
 
-function arena(c: CanvasRenderingContext2D, look: Arena, time: number) {
+// The ground is painted once per arena onto a canvas of its own and copied each frame; the water's ripples and
+// glints, and the night arena's fireflies, are drawn live on top.
+let painted: { key: string; cv: HTMLCanvasElement } | null = null;
+
+function paintArena(c: CanvasRenderingContext2D, look: Arena) {
+  const top = RIVER_TOP * TILE, bottom = RIVER_BOTTOM * TILE, night = look.deco === 'moon';
+  const wash = c.createLinearGradient(0, 0, VIEW_W, VIEW_H);
+  wash.addColorStop(0, look.grassA); wash.addColorStop(1, look.grassB);
+  c.fillStyle = wash; c.fillRect(0, 0, VIEW_W, VIEW_H);
+  // The tiles are only just told apart, so placing stays exact without the board looking like a chessboard.
   for (let r = 0; r < H; r++) for (let col = 0; col < W; col++) {
-    c.fillStyle = (r + col) % 2 ? look.grassA : look.grassB;
-    c.fillRect(col * TILE, r * TILE, TILE, TILE);
+    c.fillStyle = (r + col) % 2 ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.045)';
+    c.beginPath(); c.roundRect(col * TILE + 0.5, r * TILE + 0.5, TILE - 1, TILE - 1, 4); c.fill();
   }
-  // Worn paths down each lane and in front of the king towers.
-  c.fillStyle = look.path;
-  for (const bx of BRIDGES) {
-    c.globalAlpha = 0.45;
-    c.beginPath(); c.roundRect((bx - 0.9) * TILE, 5 * TILE, 1.8 * TILE, 22 * TILE, 10); c.fill();
+  for (let i = 0; i < 60; i++) {
+    const x = hash(i * 2.3 + 5) * VIEW_W, y = hash(i * 4.1 + 9) * VIEW_H, r = 22 + hash(i + 40) * 40, g = c.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, i % 2 ? 'rgba(255, 252, 200, 0.09)' : 'rgba(10, 40, 20, 0.1)'); g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2);
   }
-  c.globalAlpha = 0.35;
-  for (const y of [5.5, 26.5]) { c.beginPath(); c.roundRect(3.5 * TILE, (y - 0.6) * TILE, 11 * TILE, 1.2 * TILE, 10); c.fill(); }
-  c.globalAlpha = 1;
-  // Tufts of grass and pebbles, the same every frame.
-  for (let i = 0; i < 90; i++) {
-    const x = hash(i) * W * TILE, y = hash(i + 300) * H * TILE;
-    if (y > RIVER_TOP * TILE - 8 && y < RIVER_BOTTOM * TILE + 8) continue;
-    c.strokeStyle = 'rgba(40, 80, 30, 0.35)'; c.lineWidth = 1;
-    c.beginPath(); c.moveTo(x, y); c.lineTo(x - 2, y - 4); c.moveTo(x, y); c.lineTo(x + 1, y - 5); c.moveTo(x, y); c.lineTo(x + 3, y - 3); c.stroke();
+  // Each side's half takes a breath of its colour.
+  for (const [y0, y1, col] of [[0, top, '255, 90, 100'], [VIEW_H, bottom, '79, 157, 255']] as const) {
+    const g = c.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, `rgba(${col}, 0.13)`); g.addColorStop(1, `rgba(${col}, 0)`);
+    c.fillStyle = g; c.fillRect(0, Math.min(y0, y1), VIEW_W, Math.abs(y1 - y0));
   }
-  // The river, with banks and moving ripples.
-  const top = RIVER_TOP * TILE, bottom = RIVER_BOTTOM * TILE;
-  c.fillStyle = look.bank; c.fillRect(0, top - 3, VIEW_W, bottom - top + 6);
-  c.fillStyle = look.water; c.fillRect(0, top, VIEW_W, bottom - top);
-  c.strokeStyle = look.waterLight; c.lineWidth = 1.5; c.globalAlpha = 0.7;
-  for (let i = 0; i < 14; i++) {
-    const y = top + 6 + (i % 3) * 10, x = ((i * 53 + time * 18) % (VIEW_W + 40)) - 20;
-    c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + 6, y - 3, x + 12, y); c.stroke();
-  }
-  c.globalAlpha = 1;
-  // Wooden bridges.
-  for (const bx of BRIDGES) {
-    const x0 = (bx - BRIDGE_HALF) * TILE, w = BRIDGE_HALF * 2 * TILE;
-    c.fillStyle = 'rgba(0, 0, 0, 0.25)'; c.fillRect(x0 + 3, top - 4, w, bottom - top + 10);
-    c.fillStyle = look.plank; c.fillRect(x0, top - 6, w, bottom - top + 12);
-    c.strokeStyle = look.plankDark; c.lineWidth = 1;
-    for (let y = top - 6; y < bottom + 6; y += 6) { c.beginPath(); c.moveTo(x0, y); c.lineTo(x0 + w, y); c.stroke(); }
-    c.fillStyle = look.plankDark; c.fillRect(x0 - 2, top - 8, 3, bottom - top + 16); c.fillRect(x0 + w - 1, top - 8, 3, bottom - top + 16);
-  }
-  // Scenery along the edges for each arena.
-  for (let i = 0; i < 8; i++) {
-    const side = i % 2 ? VIEW_W - 6 : 6, y = 40 + i * 76 + (i % 2) * 20;
-    if (look.deco === 'cactus') {
-      c.fillStyle = '#4f8f4a'; c.beginPath(); c.roundRect(side - 3, y - 14, 6, 16, 3); c.fill();
-      c.beginPath(); c.roundRect(side + (i % 2 ? -8 : 3), y - 10, 5, 3, 1.5); c.fill();
-      ellipse(c, side, y - 15, 1.8, 1.8, '#f07aa8');
-    } else if (look.deco === 'salt') {
-      ellipse(c, side, y, 5, 3, '#f7f3ea'); ellipse(c, side + 2, y - 2, 3, 2, '#ffffff');
-    } else {
-      const tw = 0.5 + 0.5 * Math.sin(time * 2 + i);
-      c.fillStyle = `rgba(255, 245, 200, ${0.4 + tw * 0.5})`; c.beginPath(); c.arc(side, y, 1.5 + tw, 0, Math.PI * 2); c.fill();
+  // Worn paths down each lane and in front of the king towers: a dark rim, the earth, and a lighter crown.
+  const paths = () => { c.beginPath(); for (const bx of BRIDGES) c.roundRect((bx - 0.9) * TILE, 5 * TILE, 1.8 * TILE, 22 * TILE, 12); for (const y of [5.5, 26.5]) c.roundRect(3.5 * TILE, (y - 0.7) * TILE, 11 * TILE, 1.4 * TILE, 12); };
+  c.save(); c.globalAlpha = 0.22; c.fillStyle = '#3a2a16'; c.translate(0, 1.5); paths(); c.fill(); c.restore();
+  c.globalAlpha = 0.6; c.fillStyle = look.path; paths(); c.fill(); c.globalAlpha = 1;
+  c.save(); paths(); c.clip();
+  for (let i = 0; i < 260; i++) { const x = hash(i * 1.7 + 2) * VIEW_W, y = hash(i * 3.3 + 8) * VIEW_H; ellipse(c, x, y, 0.8 + hash(i) * 1.2, 0.6 + hash(i + 1) * 0.6, i % 2 ? 'rgba(255, 255, 255, 0.28)' : 'rgba(60, 40, 20, 0.22)'); }
+  c.restore();
+  // Tufts, flowers and each arena's own scatter.
+  for (let i = 0; i < 230; i++) {
+    const x = hash(i) * VIEW_W, y = hash(i + 300) * VIEW_H, k = 0.7 + hash(i + 600) * 0.6;
+    if (y > top - 10 && y < bottom + 10) continue;
+    c.strokeStyle = i % 3 ? 'rgba(34, 78, 30, 0.5)' : 'rgba(220, 250, 170, 0.5)'; c.lineWidth = 1; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x - 1, y - 2 * k, x - 2.4 * k, y - 4 * k); c.moveTo(x, y); c.lineTo(x + 0.4, y - 5 * k); c.moveTo(x, y); c.quadraticCurveTo(x + 1, y - 2 * k, x + 2.6 * k, y - 3.4 * k); c.stroke();
+    if (i % 8 === 0) {
+      if (look.deco === 'salt') { const col = ['#ffffff', '#ffe58a', '#ffb7d0'][i % 3]; for (let p = 0; p < 5; p++) ellipse(c, x + 4 + Math.cos(p * 1.257) * 1.5, y - 4 + Math.sin(p * 1.257) * 1.5, 1, 1, col); ellipse(c, x + 4, y - 4, 0.8, 0.8, '#f2b33a'); }
+      else if (look.deco === 'cactus') { ellipse(c, x + 4, y, 2.6, 1.5, 'rgba(120, 76, 44, 0.5)'); ellipse(c, x + 3.4, y - 0.6, 1.4, 0.8, 'rgba(255, 226, 180, 0.5)'); }
+      else ellipse(c, x + 3, y - 3, 1.3, 1.3, 'rgba(190, 220, 255, 0.55)');
     }
   }
+  c.lineCap = 'butt';
+  // The river: shaded banks, water that deepens to the middle, foam along both edges and a few stones.
+  c.fillStyle = look.bank; c.fillRect(0, top - 5, VIEW_W, bottom - top + 10);
+  c.fillStyle = 'rgba(40, 24, 10, 0.3)'; c.fillRect(0, top - 1.5, VIEW_W, 1.5); c.fillRect(0, bottom + 3.5, VIEW_W, 1.5);
+  c.fillStyle = 'rgba(255, 255, 255, 0.3)'; c.fillRect(0, top - 5, VIEW_W, 1.2);
+  const water = c.createLinearGradient(0, top, 0, bottom);
+  water.addColorStop(0, look.waterLight); water.addColorStop(0.22, look.water); water.addColorStop(0.7, look.water); water.addColorStop(1, 'rgba(20, 40, 90, 1)');
+  c.fillStyle = look.water; c.fillRect(0, top, VIEW_W, bottom - top);
+  c.globalAlpha = 0.55; c.fillStyle = water; c.fillRect(0, top, VIEW_W, bottom - top); c.globalAlpha = 1;
+  c.fillStyle = 'rgba(255, 255, 255, 0.55)';
+  for (let x = 0; x < VIEW_W; x += 7) { const r = 1.6 + hash(x) * 1.8; c.beginPath(); c.ellipse(x + hash(x + 3) * 5, top + 0.8, r * 1.5, r * 0.6, 0, 0, Math.PI * 2); c.fill(); c.beginPath(); c.ellipse(x + hash(x + 9) * 5, bottom - 0.8, r * 1.4, r * 0.5, 0, 0, Math.PI * 2); c.fill(); }
+  for (let i = 0; i < 7; i++) {
+    const x = 12 + hash(i * 9 + 4) * (VIEW_W - 24), y = top + 8 + hash(i * 5 + 1) * (bottom - top - 16), r = 3 + hash(i) * 3;
+    if (BRIDGES.some((bx) => Math.abs(x - bx * TILE) < (BRIDGE_HALF + 0.5) * TILE)) continue;
+    ellipse(c, x + 1, y + 1.6, r * 1.2, r * 0.6, 'rgba(10, 30, 70, 0.3)'); ellipse(c, x, y, r, r * 0.7, night ? '#6c7090' : '#a9a6a0'); ellipse(c, x - r * 0.25, y - r * 0.25, r * 0.5, r * 0.28, 'rgba(255, 255, 255, 0.45)');
+  }
+  // Wooden bridges: a shadow on the water, planks with their own grain, rails and nails.
+  for (const bx of BRIDGES) {
+    const x0 = (bx - BRIDGE_HALF) * TILE, w = BRIDGE_HALF * 2 * TILE, y0 = top - 7, h = bottom - top + 14;
+    c.fillStyle = 'rgba(8, 20, 50, 0.32)'; c.fillRect(x0 + 5, top, w, bottom - top);
+    const wood = c.createLinearGradient(x0, 0, x0 + w, 0); wood.addColorStop(0, look.plankDark); wood.addColorStop(0.12, look.plank); wood.addColorStop(0.88, look.plank); wood.addColorStop(1, look.plankDark);
+    c.fillStyle = wood; c.fillRect(x0, y0, w, h);
+    for (let y = y0, n = 0; y < y0 + h; y += 6, n++) {
+      c.fillStyle = n % 2 ? 'rgba(255, 240, 210, 0.1)' : 'rgba(40, 20, 0, 0.08)'; c.fillRect(x0, y, w, 6);
+      c.fillStyle = look.plankDark; c.fillRect(x0, y, w, 1);
+      c.fillStyle = 'rgba(255, 245, 220, 0.25)'; c.fillRect(x0, y + 1, w, 0.8);
+      c.fillStyle = 'rgba(30, 16, 6, 0.55)'; c.fillRect(x0 + 4, y + 2.6, 1.2, 1.2); c.fillRect(x0 + w - 5.2, y + 2.6, 1.2, 1.2);
+    }
+    for (const rx of [x0 - 2.5, x0 + w - 1]) { c.fillStyle = 'rgba(0, 0, 0, 0.25)'; c.fillRect(rx + 2, y0 - 1, 3.5, h + 4); c.fillStyle = look.plankDark; c.fillRect(rx, y0 - 2, 3.5, h + 4); c.fillStyle = 'rgba(255, 240, 210, 0.3)'; c.fillRect(rx, y0 - 2, 1, h + 4); for (const py of [y0 - 3, y0 + h - 2]) { c.fillStyle = look.plank; c.beginPath(); c.roundRect(rx - 1, py, 5.5, 5, 1.5); c.fill(); c.strokeStyle = look.plankDark; c.lineWidth = 1; c.stroke(); } }
+  }
+  // Scenery along the edges for each arena, standing a little into the field with a shadow.
+  for (let i = 0; i < 14; i++) {
+    const left = i % 2 === 0, x = left ? 5 + hash(i) * 5 : VIEW_W - 5 - hash(i) * 5, y = 26 + i * 44 + hash(i + 7) * 14;
+    if (y > top - 16 && y < bottom + 22) continue;
+    ellipse(c, x + 2, y + 2, 7, 3, 'rgba(0, 0, 0, 0.2)');
+    if (look.deco === 'cactus') {
+      c.lineCap = 'round'; c.strokeStyle = '#2f6a3a'; c.lineWidth = 6.4; c.beginPath(); c.moveTo(x, y); c.lineTo(x, y - 15); c.moveTo(x, y - 6); c.lineTo(x + (left ? 6 : -6), y - 6); c.lineTo(x + (left ? 6 : -6), y - 11); c.stroke();
+      c.strokeStyle = '#5fa255'; c.lineWidth = 3.2; c.beginPath(); c.moveTo(x - 0.8, y - 1); c.lineTo(x - 0.8, y - 14.4); c.moveTo(x + (left ? 5.4 : -6.6), y - 6.6); c.lineTo(x + (left ? 5.4 : -6.6), y - 10.6); c.stroke(); c.lineCap = 'butt';
+      ellipse(c, x, y - 17.6, 2.2, 2.2, '#f07aa8'); ellipse(c, x - 0.6, y - 18.2, 0.8, 0.8, '#ffd0e0');
+    } else if (look.deco === 'salt') {
+      for (const [dx, dy, r] of [[0, 0, 6], [4, -3, 4.4], [-4, -2, 3.6]]) { ellipse(c, x + dx, y + dy, r, r * 0.7, '#e2dccb'); ellipse(c, x + dx - r * 0.2, y + dy - r * 0.22, r * 0.72, r * 0.44, '#fffdf6'); }
+    } else {
+      c.fillStyle = '#2a2238'; c.fillRect(x - 1, y - 4, 2, 5);
+      for (const [dy, r] of [[-4, 7], [-9, 5.4], [-13.6, 3.6]]) { c.fillStyle = '#1f3a40'; c.beginPath(); c.moveTo(x - r, y + dy); c.lineTo(x, y + dy - r * 1.3); c.lineTo(x + r, y + dy); c.closePath(); c.fill(); c.fillStyle = 'rgba(190, 220, 255, 0.28)'; c.beginPath(); c.moveTo(x - r, y + dy); c.lineTo(x, y + dy - r * 1.3); c.lineTo(x - r * 0.2, y + dy); c.closePath(); c.fill(); }
+    }
+  }
+  // One light from the upper left, and the corners drawn in.
+  const light = c.createLinearGradient(0, 0, VIEW_W, VIEW_H);
+  light.addColorStop(0, night ? 'rgba(170, 200, 255, 0.14)' : 'rgba(255, 246, 200, 0.16)'); light.addColorStop(0.55, 'rgba(255, 246, 200, 0)'); light.addColorStop(1, 'rgba(20, 10, 50, 0.16)');
+  c.fillStyle = light; c.fillRect(0, 0, VIEW_W, VIEW_H);
+  const v = c.createRadialGradient(VIEW_W / 2, VIEW_H / 2, VIEW_W * 0.6, VIEW_W / 2, VIEW_H / 2, VIEW_H * 0.72);
+  v.addColorStop(0, 'rgba(0, 0, 0, 0)'); v.addColorStop(1, night ? 'rgba(6, 8, 30, 0.5)' : 'rgba(30, 20, 40, 0.3)');
+  c.fillStyle = v; c.fillRect(0, 0, VIEW_W, VIEW_H);
   c.strokeStyle = look.edge; c.lineWidth = 4; c.strokeRect(2, 2, VIEW_W - 4, VIEW_H - 4);
+  c.strokeStyle = 'rgba(0, 0, 0, 0.25)'; c.lineWidth = 1; c.strokeRect(4.5, 4.5, VIEW_W - 9, VIEW_H - 9);
+}
+
+function arena(c: CanvasRenderingContext2D, look: Arena, time: number) {
+  const k = Math.abs(c.getTransform().a) || 1, key = `${look.deco}|${k}`;
+  if (!painted || painted.key !== key) {
+    const cv = painted?.cv ?? document.createElement('canvas');
+    cv.width = Math.ceil(VIEW_W * k); cv.height = Math.ceil(VIEW_H * k);
+    const g = cv.getContext('2d')!; g.setTransform(k, 0, 0, k, 0, 0);
+    paintArena(g, look);
+    painted = { key, cv };
+  }
+  c.drawImage(painted.cv, 0, 0, VIEW_W, VIEW_H);
+  // Moving ripples and glints on the river, kept off the bridges.
+  const top = RIVER_TOP * TILE, bottom = RIVER_BOTTOM * TILE, open = (x: number) => !BRIDGES.some((bx) => Math.abs(x - bx * TILE) < (BRIDGE_HALF + 0.4) * TILE);
+  c.strokeStyle = look.waterLight; c.lineWidth = 1.5; c.lineCap = 'round';
+  for (let i = 0; i < 16; i++) {
+    const y = top + 6 + (i % 4) * ((bottom - top - 12) / 3), x = ((i * 53 + time * (14 + (i % 3) * 5)) % (VIEW_W + 40)) - 20;
+    if (!open(x + 6)) continue;
+    c.globalAlpha = 0.45 + 0.3 * Math.sin(time * 2 + i); c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + 6, y - 3, x + 12, y); c.stroke();
+  }
+  for (let i = 0; i < 10; i++) { const x = hash(i * 7 + 1) * VIEW_W, y = top + 4 + hash(i * 3 + 2) * (bottom - top - 8), tw = Math.max(0, Math.sin(time * 3 + i * 2.1)); if (open(x) && tw > 0.6) { c.globalAlpha = (tw - 0.6) * 2.2; ellipse(c, x, y, 1.6, 0.7, '#ffffff'); } }
+  c.globalAlpha = 1; c.lineCap = 'butt';
+  if (look.deco === 'moon') for (let i = 0; i < 14; i++) {
+    const x = hash(i * 5 + 3) * VIEW_W + Math.sin(time * 0.7 + i) * 8, y = hash(i * 11 + 6) * VIEW_H + Math.cos(time * 0.5 + i * 2) * 6, tw = 0.5 + 0.5 * Math.sin(time * 2 + i);
+    c.fillStyle = `rgba(255, 245, 170, ${0.25 + tw * 0.55})`; c.beginPath(); c.arc(x, y, 1 + tw * 0.7, 0, Math.PI * 2); c.fill();
+  }
 }
 
 /** Tiles where the selected card can't go, shaded red. */

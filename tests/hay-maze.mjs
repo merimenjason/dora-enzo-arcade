@@ -253,14 +253,22 @@ console.log('Passed waves, levels, rewards, losing, winning and pausing.');
   advance(c, later); advance(d, later);
   assert.deepEqual(summary(d), summary(c));
 
-  // Mid-wave: the save is the moment the wave was sent, so the wave starts again.
+  // Mid-wave: the save holds everything on the meadow, comes back paused, and plays out as if it never stopped.
   const e = advance(new Run(13), (r) => r.level === 0 && r.battle.phase === 'wave' && r.battle.wave === 3 && r.battle.enemies.length > 3);
   const f = reload(e);
-  assert.equal(f.battle.phase, 'build'); assert.equal(f.battle.wave, 2, 'back to just before wave 3');
-  assert.equal(f.battle.enemies.length, 0);
-  assert.deepEqual(f.battle.towers.map((t) => [t.kind, t.c, t.r, t.level]), e.checkpoint.battle.towers.map((t) => [t.kind, t.c, t.r, t.level]));
+  assert.equal(f.battle.phase, 'wave'); assert.equal(f.battle.wave, 3); assert.equal(f.battle.paused, true, 'a wave comes back paused');
+  assert.deepEqual(f.battle.enemies, e.battle.enemies); assert.deepEqual(f.battle.shots, e.battle.shots); assert.deepEqual(f.battle.queue, e.battle.queue);
+  assert.deepEqual(f.battle.towers.map((t) => [t.id, t.kind, t.c, t.r, t.level, t.cool, t.target]), e.battle.towers.map((t) => [t.id, t.kind, t.c, t.r, t.level, t.cool, t.target]));
+  f.battle.pause();
+  const rest = (r) => { const b = r.battle; for (let i = 0; i < 60 * 240 && b.phase === 'wave'; i++) { if (i % 30 === 0) botSpend(b); b.update(1 / 60); } };
+  rest(e); rest(f);
+  assert.deepEqual(summary(f), summary(e), 'the rest of the wave goes the same way');
+  advance(e, later); advance(f, later);
+  assert.deepEqual(summary(f), summary(e));
+  const mid = advance(new Run(16), (r) => r.battle.phase === 'wave' && r.battle.enemies.length > 1), wave = JSON.parse(JSON.stringify(mid.snapshot()));
+  assert.equal(Run.load({ ...wave, battle: { ...wave.battle, live: undefined } }), null, 'a wave with nothing on the meadow is refused');
+  assert.equal(Run.load({ ...wave, battle: { ...wave.battle, live: { ...wave.battle.live, enemies: [{ kind: 'dragon' }] } } }), null);
 
-  // Nothing to keep once a run is over, and broken saves are refused.
   const over = new Run(14); over.state = 'lost'; assert.equal(over.snapshot(), null);
   const good = JSON.parse(JSON.stringify(new Run(15).snapshot()));
   assert.ok(Run.load(good));
