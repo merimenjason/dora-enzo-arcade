@@ -40,7 +40,8 @@ const TALL: Record<Look['shape'], number> = { fox: 1, snake: 0.75, owl: 0.98, we
 
 export function drawHeroIcon(c: C2D, hero: HeroId, w: number, h: number) {
   c.clearRect(0, 0, w, h);
-  drawChinchilla(c, COATS[hero], w * 0.42, h * 0.94, { face: 1, h: h * 0.78, time: 0.4 });
+  // The tail curls well out behind, so the body sits right of centre and small enough for the whole animal to fit.
+  drawChinchilla(c, COATS[hero], w * 0.6, h * 0.94, { face: 1, h: h * 0.6, time: 0.4 });
 }
 export function drawFoeIcon(c: C2D, kind: string, w: number, h: number) {
   c.clearRect(0, 0, w, h);
