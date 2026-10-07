@@ -264,6 +264,8 @@ Reaching the summit with a chinchilla opens the next altitude for that chinchill
 - Tap or click a card to choose it: its rules, with the numbers as they stand right now, appear under the board. Tap it again to play it.
 - A card aimed at one predator is marked on a foe (the last one you aimed at, or the first still standing). Tap a predator to play the card on that one.
 - With no card chosen, tap a predator to read its intent and statuses, or tap your chinchilla to read yours.
+- Rest the mouse on a card for a note beside it: a big copy of the card, the numbers worked out against the foe it would go at (green where they are above the printed number, red where below), one line for every word on it from the glossary (`GLOSSARY` in the cards file), and what the upgraded card says. It works wherever a card is shown: the hand, rewards, the stall, the piles and the card book. On a phone, hold a finger on the card for about a third of a second; letting go puts the note away without choosing the card.
+- The same notes hang off predators (health, Fluff, the next move in words, every status with its count), your chinchilla, trinkets, health, seeds, energy and every stop on the trail. Any press, scroll or key puts a note away.
 - **End turn** hands over to the predators. Tap the board, or press Enter, to skip their animations.
 - Keyboard: 1 to 9 and 0 choose a card (press again, or Enter, to play it); ← and → change the foe; E ends the turn; Esc puts a card back or closes a list; F changes the animation speed (1×, 2×, 3×); M turns sound on and off.
 - **Draw**, **Discard** and **Deck** open the piles. The draw pile is shown in no particular order.
@@ -276,7 +278,7 @@ Reaching the summit with a chinchilla opens the next altitude for that chinchill
 | Rules: the run, the trail, fights, rewards, stalls, meetings, saving | `lib/summit-shuffle-game.ts` |
 | Cards, trinkets and statuses | `lib/summit-shuffle-cards.ts` |
 | Predators and which fight where | `lib/summit-shuffle-foes.ts` |
-| Drawing: the fight, card pictures, portraits | `lib/summit-shuffle-scene.ts` |
+| Drawing: the fight and its backdrops and effects, the painted trail, card pictures, portraits | `lib/summit-shuffle-scene.ts` |
 | Predator art shared with Burrow Tactics | `lib/predator-art.ts` |
 | Page | `app/summit/page.tsx`, `summit.css`, `sound.ts` |
 

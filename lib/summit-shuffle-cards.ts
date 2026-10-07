@@ -197,6 +197,29 @@ export function describe(c: { id: string; up: boolean }, now?: { dmg: (d: number
   return text.replace(/\{d\}/g, String(now ? now.dmg(v.d) : v.d)).replace(/\{b\}/g, String(now ? now.fluff(v.b) : v.b)).replace(/\{n\}/g, String(v.n));
 }
 
+// ---------- Words worth explaining ----------
+export type Gloss = { name: string; icon: string; text: string };
+/** The words on cards, trinkets and intents that mean something particular, each said once in plain terms. */
+export const GLOSSARY: Gloss[] = [
+  { name: 'Fluff', icon: '🛡️', text: 'Soaks up damage before health does. It falls away at the start of its owner’s next turn.' },
+  { name: 'Exposed', icon: STATUS.exposed.icon, text: 'Takes half as much again from attacks. Counts down one each turn.' },
+  { name: 'Winded', icon: STATUS.winded.icon, text: 'Its attacks deal a quarter less. Counts down one each turn.' },
+  { name: 'Matted', icon: STATUS.matted.icon, text: 'Cards give a quarter less Fluff. Counts down one each turn.' },
+  { name: 'Burrs', icon: STATUS.burrs.icon, text: 'Loses that much health at the start of its turn, straight past any Fluff. Then one burr falls off.' },
+  { name: 'Zoomies', icon: STATUS.zoomies.icon, text: 'Every attack hit deals that much more damage.' },
+  { name: 'Bristle', icon: STATUS.bristle.icon, text: 'Whoever attacks takes that much damage for each hit.' },
+  { name: 'Thick Fur', icon: STATUS.fur.icon, text: 'Cards give that much more Fluff.' },
+  { name: 'Exhaust', icon: '🌫️', text: 'Once played, it is gone until the fight is over.' },
+  { name: 'Daze', icon: '💫', text: 'A card that cannot be played and fades at the end of the turn.' },
+  { name: 'Thorn', icon: '🌿', text: 'A card that cannot be played and deals 2 damage if it is still in hand at the end of the turn.' },
+  { name: 'Mud', icon: '🟤', text: 'A card that costs 1 energy and does nothing.' },
+  { name: 'Fright', icon: '😱', text: 'A card that cannot be played and stays in the deck until something takes it out.' },
+];
+/** The glossary entries for the words a line of rules text uses, in the order they come up. `skip` is a word not to explain, such as the card's own name. */
+export function glossFor(text: string, skip = ''): Gloss[] {
+  return GLOSSARY.map((g) => ({ g, at: text.search(new RegExp(`\\b${g.name}s?\\b`)) })).filter((x) => x.at >= 0 && x.g.name !== skip).sort((a, b) => a.at - b.at).map((x) => x.g);
+}
+
 // ---------- Trinkets ----------
 export type TrinketTier = 'start' | 'common' | 'boss';
 export type TrinketDef = { id: string; name: string; tier: TrinketTier; icon: string; text: string };

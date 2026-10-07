@@ -4,6 +4,16 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 07-10-2026
 
+### Added
+
+- **Summit Shuffle**: rest the mouse on a card for a big copy of it with every word explained (Fluff, Exposed, Burrs and the rest), the numbers as they stand against the foe it would go at, and what an upgrade would change. On a phone, hold a finger on the card. Predators, your chinchilla, trinkets, health, seeds, energy and the stops on the trail explain themselves the same way.
+
+### Changed
+
+- **Summit Shuffle** has new graphics. Each stretch has a painted backdrop: a meadow under snowy peaks, cliffs at sunset, and a snowfield under the southern lights, with drifting clouds, pollen, dust or snow. Hits leave claw marks and sparks, Fluff shows as a soft dome, health bars drain, big hits shake the screen, and a won fight ends in confetti. Predators' intents are drawn badges. Cards have new frames by type and rarity, richer pictures and a shine on rare ones; the hand is fanned, playable cards glow, and a played card flies to its target. The trail is a painted mountain with a winding path, drawn icons for every kind of stop, and your chinchilla standing on the stop you have reached.
+
+- **Summit Shuffle**, **Burrow Tactics** and **Poof Panic**: every predator has been redrawn. The fox, snake, owl, weasel, badger, hawk, cougar, mole, skunk and bear, and Summit Shuffle's beetle, armadillo and lizard, are now painted with lit backs and shaded bellies, proper legs and paws, feathered wings, patterned coats and eyes that catch the light.
+
 ### Fixed
 
 - **Poof Panic**: the rival's portrait on the card before a match, and the portraits on the cards after one, sat on top of the name and the text beneath. They now sit above them.

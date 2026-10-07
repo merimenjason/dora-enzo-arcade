@@ -1,12 +1,12 @@
 /* oxlint-disable react/react-compiler -- The deterministic engine is intentionally mutable and read on each animation-driven render. */
 /* oxlint-disable next/no-html-link-for-pages -- Match the arcade's hard navigation so leaving always tears down the game loop. */
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   Run, CARDS, POOL, TRINKETS, TRINKET_IDS, STATUS, FOES, ACTS, HEROES, HERO_IDS, ALTITUDES, NODE_NAMES, STOPS, ROWS, LANES, ENERGY,
-  costOf, nameOf, describe, canUpgrade, type Card, type CardPick, type HeroId, type MapNode, type NodeType, type StatusId, type Statuses,
+  costOf, nameOf, describe, canUpgrade, glossFor, type Gloss, type Card, type CardPick, type HeroId, type MapNode, type NodeType, type StatusId, type Statuses,
 } from '../../lib/summit-shuffle-game';
-import { Stage, drawCardArt, drawHeroIcon, drawFoeIcon } from '../../lib/summit-shuffle-scene';
+import { Stage, drawCardArt, drawHeroIcon, drawFoeIcon, drawTrail } from '../../lib/summit-shuffle-scene';
 import { cue, setMuted } from './sound';
 import './summit.css';
 
@@ -29,7 +29,89 @@ const writeSave = (s: Save) => { try { localStorage.setItem(SAVE_KEY, JSON.strin
 /** The highest altitude a chinchilla may start at: one above the highest it has reached the summit on. */
 const openLevel = (r: Record1) => Math.min(ALTITUDES.length - 1, r.cleared + 1);
 const newSeed = () => (Date.now() % 1000000) + 1;
-const NODE_ICON: Record<NodeType, string> = { fight: '🐾', alpha: '🔥', rest: '💤', stall: '🍎', event: '❓', stash: '🎁', boss: '👑' };
+const STOP_TEXT: Record<NodeType, string> = {
+  fight: 'A fight with the predators of this stretch. Win it to choose a new card and pick up some seeds.',
+  alpha: 'A harder fight. Win it for a trinket as well as a card.',
+  rest: 'Nap to get health back, or groom a card to upgrade it.',
+  stall: 'Spend seeds on cards and trinkets, or pay to leave a card behind.',
+  event: 'A chance meeting. It might help, and it might cost you.',
+  stash: 'A trinket somebody hid, or seeds if there are none left to find. No fight.',
+  boss: '',
+};
+/** The picture on a stop of the trail. */
+function StopIcon({ type }: { type: NodeType }) {
+  const ink = '#2c2430', line = { stroke: ink, strokeWidth: 1.4, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      {type === 'fight' && <g {...line} fill="#6b4a3a"><ellipse cx="12" cy="15.6" rx="5.2" ry="4.2" /><ellipse cx="5.4" cy="10.4" rx="2.1" ry="2.7" /><ellipse cx="9.6" cy="6.4" rx="2.2" ry="2.9" /><ellipse cx="14.4" cy="6.4" rx="2.2" ry="2.9" /><ellipse cx="18.6" cy="10.4" rx="2.1" ry="2.7" /></g>}
+      {type === 'alpha' && <g {...line}><path d="M12 2.2c1.2 3.4 5.8 5.4 5.8 10.6a5.8 5.8 0 0 1-11.6 0c0-2.6 1.5-3.6 2.4-6 .9 1.5 1.9 1.8 3.4-4.6z" fill="#ff7a3c" /><path d="M12 10.5c.7 1.7 2.6 2.5 2.6 4.6a2.6 2.6 0 0 1-5.2 0c0-1.5 1-2 1.4-3 .4.6.7.4 1.2-1.6z" fill="#ffd45a" stroke="none" /></g>}
+      {type === 'rest' && <g {...line}><path d="M2.5 20.5C3.5 11 8 6.5 12 6.5s8.5 4.5 9.5 14z" fill="#a8793f" /><path d="M8 20.5c.3-5 2-7.5 4-7.5s3.7 2.5 4 7.500z" fill="#2a1c2e" /><path d="M15.5 2.500h3.500l-3.5 3.600h3.5" fill="none" stroke="#3a4f8a" strokeWidth="1.5" /></g>}
+      {type === 'stall' && <g {...line}><path d="M12 7.2c-2.2-1.7-6.7-.6-6.7 4.6 0 4.8 3.6 8.7 5.2 8.7.7 0 1-.4 1.5-.4s.8.4 1.5.400c1.6 0 5.2-3.9 5.2-8.7 0-5.2-4.5-6.3-6.7-4.600z" fill="#e8483c" /><path d="M12 7.200c0-2 .7-3.5 2-4.6" fill="none" /><path d="M13.2 5.200c1.2-1.8 3-2.2 4.6-1.7-.5 1.8-2.2 2.9-4.6 1.700z" fill="#6fbf4a" /><ellipse cx="8.6" cy="11.4" rx="1.3" ry="2.2" fill="#ffb3a8" stroke="none" transform="rotate(20 8.6 11.4)" /></g>}
+      {type === 'event' && <text x="12" y="18.6" textAnchor="middle" fontSize="19" fontWeight="900" fill="#b23a52" stroke={ink} strokeWidth="0.9" paintOrder="stroke" fontFamily="ui-rounded, system-ui, sans-serif">?</text>}
+      {type === 'stash' && <g {...line}><path d="M3.5 11.500h17v8.300a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z" fill="#b5742f" /><path d="M3.5 11.500c0-4 2.5-6.5 5-6.500h7c2.5 0 5 2.5 5 6.500z" fill="#d9963f" /><path d="M9 5v15.800M15 5v15.8" stroke="#7a4a1a" strokeWidth="1.1" /><rect x="10.3" y="9.8" width="3.4" height="4.4" rx="0.9" fill="#ffd45a" /></g>}
+      {type === 'boss' && <g {...line}><path d="M3.5 18.5 2.3 7.200l5.2 4 4.5-7 4.5 7 5.2-4-1.2 11.300z" fill="#ffd13d" /><rect x="3.5" y="18.5" width="17" height="2.8" rx="1" fill="#f0a020" /><circle cx="12" cy="13.6" r="1.7" fill="#e8483c" /><circle cx="7.2" cy="15" r="1.1" fill="#4aa3e8" /><circle cx="16.8" cy="15" r="1.1" fill="#4aa3e8" /></g>}
+    </svg>
+  );
+}
+/** The mountain a stretch's trail is drawn on, painted to fit whatever size the map is. */
+function TrailArt({ act }: { act: number }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const cv = ref.current;
+    if (!cv) return;
+    const paint = () => {
+      const w = cv.clientWidth, h = cv.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1), c = cv.getContext('2d');
+      if (!c || !w || !h) return;
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+      c.setTransform(dpr, 0, 0, dpr, 0, 0); drawTrail(c, w, h, act);
+    };
+    paint();
+    const watch = new ResizeObserver(paint);
+    watch.observe(cv);
+    return () => watch.disconnect();
+  }, [act]);
+  return <canvas ref={ref} className="ss-map-art" aria-hidden="true" />;
+}
+
+// ---------- Notes that pop up beside whatever the pointer is on, or under a finger held down ----------
+type Tip =
+  | { kind: 'card'; card: { id: string; up: boolean }; text: string; aimed?: string }
+  | { kind: 'note'; icon?: string; title: string; sub?: string; body?: string; notes?: Gloss[]; foot?: string };
+type Place = 'side' | 'above';
+type Box = { x: number; y: number; w: number; h: number };
+/** What is showing: where it hangs from, and how to make it. It is made afresh on every render, so its numbers stay true. */
+type Shown = { at: Box; place: Place; make: () => Tip | null };
+/** The page fills these in; anything on it may call them. */
+const peek: { show: (at: Box, make: () => Tip | null, place?: Place) => void; hide: () => void } = { show: () => {}, hide: () => {} };
+const press = { timer: 0, held: false, x: 0, y: 0 };
+const boxOf = (el: Element): Box => { const q = el.getBoundingClientRect(); return { x: q.left, y: q.top, w: q.width, h: q.height }; };
+/** Handlers that show a note while the mouse is over something, or while a finger is held on it. */
+function tipOn(make: () => Tip | null, place: Place = 'side') {
+  type E = React.PointerEvent<HTMLElement>;
+  const lift = () => { window.clearTimeout(press.timer); if (press.held) peek.hide(); };
+  return {
+    onPointerEnter: (e: E) => { if (e.pointerType === 'mouse') peek.show(boxOf(e.currentTarget), make, place); },
+    onPointerLeave: (e: E) => { if (e.pointerType === 'mouse') peek.hide(); },
+    onPointerDown: (e: E) => {
+      if (e.pointerType === 'mouse') return;
+      const el = e.currentTarget;
+      press.held = false; press.x = e.clientX; press.y = e.clientY;
+      window.clearTimeout(press.timer);
+      press.timer = window.setTimeout(() => { press.held = true; peek.show(boxOf(el), make, place); }, 380);
+    },
+    onPointerMove: (e: E) => { if (e.pointerType !== 'mouse' && !press.held && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) window.clearTimeout(press.timer); },
+    onPointerUp: lift, onPointerCancel: lift,
+    // Letting go after a long look is not a tap.
+    onClickCapture: (e: React.MouseEvent) => { if (press.held) { press.held = false; e.preventDefault(); e.stopPropagation(); } },
+    onContextMenu: (e: React.MouseEvent) => { if (press.held) e.preventDefault(); },
+  };
+}
+/** Rules text with any number that differs from the printed one picked out: more in green, less in red. */
+function Rules({ text, base }: { text: string; base?: string }) {
+  const now = text.split(/(\d+)/), was = base?.split(/(\d+)/);
+  if (!was || was.length !== now.length) return <>{text}</>;
+  return <>{now.map((part, i) => (i % 2 && part !== was[i] ? <b key={i} className={Number(part) > Number(was[i]) ? 'more' : 'less'}>{part}</b> : part))}</>;
+}
 const TYPE_NAME = { attack: 'Attack', skill: 'Skill', power: 'Power', status: 'Status', curse: 'Curse' } as const;
 
 const artCache = new Map<string, string>();
@@ -39,29 +121,79 @@ function CardArt({ id }: { id: string }) {
   useEffect(() => {
     const d = CARDS[id], key = `${d.art}|${d.type}`;
     let url = artCache.get(key);
-    if (!url) { const cv = document.createElement('canvas'); cv.width = 200; cv.height = 120; const c = cv.getContext('2d'); if (c) { drawCardArt(c, d.art, d.type, 200, 120); url = cv.toDataURL(); artCache.set(key, url); } }
+    if (!url) { const cv = document.createElement('canvas'); cv.width = 400; cv.height = 240; const c = cv.getContext('2d'); if (c) { drawCardArt(c, d.art, d.type, 400, 240); url = cv.toDataURL(); artCache.set(key, url); } }
     setSrc(url ?? '');
   }, [id]);
   // eslint-disable-next-line @next/next/no-img-element -- a data URL drawn on a canvas, nothing for the image optimiser to do
   return src ? <img className="ss-art" src={src} alt="" /> : <span className="ss-art" />;
 }
-type CardProps = { card: { id: string; up: boolean }; text?: string; onClick?: () => void; disabled?: boolean; on?: boolean; dim?: boolean; tag?: string; testid?: string; index?: number };
-function CardView({ card, text, onClick, disabled, on, dim, tag, testid, index }: CardProps) {
-  const d = CARDS[card.id], cost = costOf(card), body = (
+type CardProps = {
+  card: { id: string; up: boolean }; text?: string; onClick?: () => void; disabled?: boolean; on?: boolean; dim?: boolean; tag?: string; testid?: string; index?: number;
+  /** In a fight: the text and the foe it is worked out against, read again whenever the note is drawn. */
+  live?: () => { text: string; aimed?: string } | null;
+  /** Where the big copy hangs, and `plain` for a card that shows none (the big copy itself). */
+  place?: Place; plain?: boolean; style?: React.CSSProperties;
+};
+function CardView({ card, text, onClick, disabled, on, dim, tag, testid, index, live, place, plain, style }: CardProps) {
+  const d = CARDS[card.id], cost = costOf(card), printed = describe(card), body = (
     <>
       <span className="ss-cost" aria-label={cost === -2 ? 'cannot be played' : cost === -1 ? 'costs all your energy' : `costs ${cost} energy`}>{cost === -2 ? '–' : cost === -1 ? 'X' : cost}</span>
       <strong>{nameOf(card)}</strong>
       <CardArt id={card.id} />
       <em>{TYPE_NAME[d.type]}{d.rarity === 'uncommon' || d.rarity === 'rare' ? <span> · {d.rarity}</span> : null}</em>
-      <span className="ss-text">{text ?? describe(card)}</span>
+      <span className="ss-text"><Rules text={text ?? printed} base={printed} /></span>
       {tag && <span className="ss-tag">{tag}</span>}
       {index !== undefined && <kbd>{(index + 1) % 10}</kbd>}
     </>
   );
   const cls = `ss-card t-${d.type} r-${d.rarity}${card.up ? ' up' : ''}${on ? ' on' : ''}${dim ? ' dim' : ''}`;
+  const tips = plain ? {} : tipOn(() => { const now = live ? live() : { text: text ?? printed }; return now && { kind: 'card', card: { id: card.id, up: card.up }, ...now }; }, place);
   return onClick
-    ? <button className={cls} data-testid={testid} data-card={card.id} aria-pressed={on} aria-disabled={disabled} onClick={onClick}>{body}</button>
-    : <div className={cls} data-testid={testid} data-card={card.id}>{body}</div>;
+    ? <button className={cls} style={style} data-testid={testid} data-card={card.id} aria-pressed={on} aria-disabled={disabled} onClick={onClick} {...tips}>{body}</button>
+    : <div className={cls} style={style} data-testid={testid} data-card={card.id} {...tips}>{body}</div>;
+}
+/** The note itself: a big copy of a card with its words explained, or a few lines about something else. */
+function Peek({ shown }: { shown: Shown | null }) {
+  const ref = useRef<HTMLDivElement>(null), tip = shown ? shown.make() : null;
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || !shown) return;
+    const vw = window.innerWidth, vh = window.innerHeight, w = el.offsetWidth, h = el.offsetHeight, a = shown.at, gap = shown.place === 'above' ? 34 : 12, edge = 8;
+    let x = a.x + a.w / 2 - w / 2, y = a.y - h - gap;
+    if (shown.place === 'side' && vw >= 620) {
+      x = a.x + a.w + gap; y = a.y + a.h / 2 - h / 2;
+      if (x + w > vw - edge) x = a.x - w - gap;
+      if (x < edge) { x = a.x + a.w / 2 - w / 2; y = a.y - h - gap; }
+    }
+    if (y < edge && a.y + a.h + gap + h <= vh - edge) y = a.y + a.h + gap;
+    el.style.left = `${Math.max(edge, Math.min(vw - w - edge, x))}px`; el.style.top = `${Math.max(edge, Math.min(vh - h - edge, y))}px`;
+    el.style.visibility = 'visible';
+  });
+  if (!shown || !tip) return null;
+  const line = (g: Gloss) => <p key={g.name}><span aria-hidden="true">{g.icon}</span><b>{g.name}</b> {g.text}</p>;
+  if (tip.kind === 'card') {
+    const d = CARDS[tip.card.id], notes = glossFor(`${tip.text} ${d.exhaust ? 'Exhaust' : ''}`, d.name), better = canUpgrade(tip.card) ? { id: tip.card.id, up: true } : null;
+    return (
+      <div className="ss-peek k-card" ref={ref} role="tooltip" data-testid="peek" data-card={tip.card.id}>
+        <CardView card={tip.card} text={tip.text} plain />
+        {(notes.length > 0 || better || tip.aimed) && (
+          <div className="ss-peek-notes">
+            {tip.aimed && <p className="ss-peek-aim">Numbers as they stand against <b>{tip.aimed}</b>.</p>}
+            {notes.map(line)}
+            {better && <p className="ss-peek-up"><span aria-hidden="true">✨</span><b>Upgraded</b> {costOf(better) !== costOf(tip.card) ? `Costs ${costOf(better)}. ` : ''}{describe(better)}</p>}
+          </div>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="ss-peek k-note" ref={ref} role="tooltip" data-testid="peek">
+      <header>{tip.icon && <span aria-hidden="true">{tip.icon}</span>}<div><strong>{tip.title}</strong>{tip.sub && <small>{tip.sub}</small>}</div></header>
+      {tip.body && <p className="ss-peek-body">{tip.body}</p>}
+      {tip.notes && tip.notes.length > 0 && <div className="ss-peek-notes">{tip.notes.map(line)}</div>}
+      {tip.foot && <p className="ss-peek-foot">{tip.foot}</p>}
+    </div>
+  );
 }
 function Portrait({ hero, size }: { hero: HeroId; size: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -73,6 +205,11 @@ function FoeIcon({ kind, size }: { kind: string; size: number }) {
   useEffect(() => { const c = ref.current?.getContext('2d'); if (!c) return; c.setTransform(2, 0, 0, 2, 0, 0); drawFoeIcon(c, kind, size * 1.4, size); }, [kind, size]);
   return <canvas ref={ref} width={size * 2.8} height={size * 2} style={{ width: size * 1.4, height: size }} aria-hidden="true" />;
 }
+/** What is on a creature, one note each, with its count in the name. */
+const statusNotes = (st: Statuses): Gloss[] => (Object.keys(st) as StatusId[]).filter((id) => st[id] && id !== 'rush').map((id) => ({ name: `${STATUS[id].name}${id === 'den' ? '' : ` ${st[id]}`}`, icon: STATUS[id].icon, text: STATUS[id].text(st[id]!) }));
+/** The glossary for a line of text, less anything a status note already covers. */
+const wordsFor = (text: string, st: Statuses) => glossFor(text).filter((g) => !(Object.keys(st) as StatusId[]).some((id) => st[id] && STATUS[id].name === g.name));
+type Ghost = { key: number; card: { id: string; up: boolean }; from: Box; dx: number; dy: number };
 const statusLine = (st: Statuses) => (Object.keys(st) as StatusId[]).filter((id) => st[id] && id !== 'rush').map((id) => `${STATUS[id].icon} ${STATUS[id].name}${id === 'den' ? '' : ` ${st[id]}`}: ${STATUS[id].text(st[id]!)}`);
 
 /** A grid of cards to look through, or to choose one from. */
@@ -90,14 +227,25 @@ export default function SummitShuffle() {
   const [note, setNote] = useState('');
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [fightNo, setFightNo] = useState(0);
+  const [shown, setShown] = useState<Shown | null>(null);
+  const [ghosts, setGhosts] = useState<Ghost[]>([]);
   const [, setTick] = useState(0);
   const run = useRef<Run | null>(null), stage = useRef<Stage | null>(null), canvas = useRef<HTMLCanvasElement>(null), box = useRef<HTMLDivElement>(null);
-  const saveRef = useRef(save), selRef = useRef(-1), targetRef = useRef(-1), hoverRef = useRef(-1), noteTimer = useRef(0), settled = useRef<Run | null>(null);
+  const saveRef = useRef(save), selRef = useRef(-1), targetRef = useRef(-1), hoverRef = useRef(-1), overRef = useRef(-2), ghostNo = useRef(0), noteTimer = useRef(0), settled = useRef<Run | null>(null);
   saveRef.current = save;
 
   useEffect(() => { const s = readSave(); setSave(s); setMuted(s.muted); setLevel(openLevel(s.best[s.hero])); setLoaded(true); }, []);
   // The browser test reads and drives the running game through this.
   useEffect(() => { (window as unknown as { __summit?: () => unknown }).__summit = () => ({ run: run.current, stage: stage.current }); }, []);
+
+  // The pop-up notes: anything on the page shows one through `peek`, and any press, scroll or key puts it away.
+  useEffect(() => {
+    peek.show = (at, make, place = 'side') => setShown({ at, make, place });
+    peek.hide = () => setShown(null);
+    const away = () => { overRef.current = -2; setShown(null); };
+    window.addEventListener('pointerdown', away, true); window.addEventListener('scroll', away, true); window.addEventListener('keydown', away, true); window.addEventListener('blur', away);
+    return () => { peek.show = () => {}; peek.hide = () => {}; window.removeEventListener('pointerdown', away, true); window.removeEventListener('scroll', away, true); window.removeEventListener('keydown', away, true); window.removeEventListener('blur', away); };
+  }, []);
 
   const refresh = () => setTick((t) => t + 1);
   const say = (text: string) => { setNote(text); window.clearTimeout(noteTimer.current); noteTimer.current = window.setTimeout(() => setNote(''), 2600); };
@@ -167,8 +315,18 @@ export default function SummitShuffle() {
   function playCard(i: number, t: number) {
     const r = run.current;
     if (!r || !mine()) return;
+    const el = document.querySelector(`[data-testid="hand-${i}"]`), from = el ? boxOf(el) : null, c = r.fight?.hand[i];
     const why = r.play(i, t);
     if (why) { say(why); cue('no'); return; }
+    // A copy of the card flies from the hand to whoever it was played on.
+    const cv = canvas.current, st = stage.current;
+    if (from && c && cv && st) {
+      const q = cv.getBoundingClientRect(), d = CARDS[c.id], b = d.target || d.type !== 'attack' ? st.boxOf(d.target ? t : -1, q.width, q.height, r) : null;
+      const tx = q.left + (b ? b.x + b.w / 2 : q.width * 0.7), ty = q.top + (b ? b.y + b.h / 2 : q.height * 0.5), key = ++ghostNo.current;
+      setGhosts((g) => [...g.slice(-5), { key, card: { id: c.id, up: c.up }, from, dx: tx - (from.x + from.w / 2), dy: ty - (from.y + from.h / 2) }]);
+      window.setTimeout(() => setGhosts((g) => g.filter((x) => x.key !== key)), 700);
+    }
+    setShown(null);
     pick(-1, r.fight?.foes[t]?.alive ? t : -1);
     commit();
   }
@@ -196,10 +354,31 @@ export default function SummitShuffle() {
   function endTurn() {
     const r = run.current;
     if (!r || !mine()) return;
-    pick(-1); setLook(-2); r.endTurn(); commit();
+    setShown(null); pick(-1); setLook(-2); r.endTurn(); commit();
   }
   const skipAhead = () => { const r = run.current, st = stage.current; if (r && st?.busy) { st.flush(r); refresh(); } };
   const boardPoint = (e: React.PointerEvent<HTMLCanvasElement>) => { const q = e.currentTarget.getBoundingClientRect(), r = run.current, st = stage.current; return r && st ? st.foeAt(e.clientX - q.left, e.clientY - q.top, q.width, q.height, r) : -1; };
+  /** The note for the chinchilla (-1) or a foe: health, Fluff, what it will do next, and everything that is on it. */
+  const creatureTip = (who: number) => (): Tip | null => {
+    const r = run.current, f = r?.fight;
+    if (!r || !f) return null;
+    if (who === -1) {
+      const inc = r.phase === 'fight' ? r.incoming : 0, short = Math.max(0, inc - f.fluff);
+      return { kind: 'note', title: HEROES[r.hero].name, sub: `${Math.max(0, r.hp)}/${r.maxHp} health${f.fluff ? ` · ${f.fluff} Fluff` : ''}`, body: inc ? `The predators will hit for ${inc} this turn${short ? `, and ${short} of it gets through.` : ', and your Fluff covers it.'}` : 'No attack is coming this turn.', notes: [...statusNotes(f.st), ...(f.fluff ? wordsFor('Fluff', f.st) : [])] };
+    }
+    const x = f.foes[who];
+    if (!x?.alive) return null;
+    const next = r.phase === 'fight' && !stage.current?.waiting ? r.intentOf(who).text : '';
+    return { kind: 'note', title: x.name, sub: `${x.hp}/${x.maxHp} health${x.fluff ? ` · ${x.fluff} Fluff` : ''}`, body: next ? `Next: ${next}` : undefined, notes: [...statusNotes(x.st), ...wordsFor(`${next}${x.fluff ? ' Fluff' : ''}`, x.st)], foot: FOES[x.kind].blurb };
+  };
+  /** Hangs that note beside the creature on the board. */
+  function showCreature(who: number) {
+    const cv = canvas.current, r = run.current, b = cv && r && stage.current?.boxOf(who, cv.clientWidth, cv.clientHeight, r);
+    if (!cv || !b) return;
+    const q = cv.getBoundingClientRect();
+    peek.show({ x: q.left + b.x, y: q.top + b.y, w: b.w, h: b.h }, creatureTip(who));
+  }
+  const noteTip = (icon: string, title: string, body: string, foot?: string) => (): Tip => ({ kind: 'note', icon, title, body, notes: glossFor(body), foot });
 
   // The loop: animations and drawing, at whatever size the board is on this screen.
   useEffect(() => {
@@ -353,6 +532,7 @@ export default function SummitShuffle() {
         <div className="ss-acts">
           {ACTS.map((a, i) => <div key={a.name} className="ss-act"><FoeIcon kind={a.boss[0]} size={62} /><div><strong>{i + 1}. {a.name}</strong><p>{a.blurb} Guardian: <b>{FOES[a.boss[0]].name}</b>. {FOES[a.boss[0]].blurb}</p></div></div>)}
         </div>
+        <Peek shown={shown} />
       </main>
     );
   }
@@ -363,11 +543,11 @@ export default function SummitShuffle() {
   const topbar = (
     <section className="ss-top" data-testid="top" data-phase={r.phase} data-hp={r.hp} data-seeds={r.seeds} data-stop={r.stats.stops} data-act={r.act} data-deck={r.deck.length}>
       <Portrait hero={r.hero} size={40} />
-      <span className="ss-stat ss-hp" title="Health"><b>♥ {inFight && st ? Math.max(0, st.hero.hp) : r.hp}</b>/{r.maxHp}</span>
-      <span className="ss-stat" title="Seeds, for the treat stall">🌻 <b>{r.seeds}</b></span>
+      <span className="ss-stat ss-hp" {...tipOn(noteTip('♥', 'Health', 'When it runs out, the climb is over. Rest burrows, some cards and beating a guardian give it back.'))}><b>♥ {inFight && st ? Math.max(0, st.hero.hp) : r.hp}</b>/{r.maxHp}</span>
+      <span className="ss-stat" {...tipOn(noteTip('🌻', 'Seeds', 'Won in fights and spent at treat stalls, on cards, on trinkets and on leaving a card behind.'))}>🌻 <b>{r.seeds}</b></span>
       <span className="ss-where"><strong>{ACTS[r.act].name}</strong><small>{ALTITUDES[r.level].name} · stop {r.stats.stops} of {STOPS}</small></span>
       <span className="ss-bag" aria-label="Trinkets">
-        {r.trinkets.map((id) => <button key={id} title={`${TRINKETS[id].name}: ${TRINKETS[id].text}`} aria-label={TRINKETS[id].name} onClick={() => say(`${TRINKETS[id].name}: ${TRINKETS[id].text}`)}>{TRINKETS[id].icon}</button>)}
+        {r.trinkets.map((id) => { const make = noteTip(TRINKETS[id].icon, TRINKETS[id].name, TRINKETS[id].text, TRINKETS[id].tier === 'start' ? `${HEROES[r.hero].name}’s own trinket.` : TRINKETS[id].tier === 'boss' ? 'Taken from a guardian.' : undefined); return <button key={id} data-testid={`trinket-${id}`} aria-label={`${TRINKETS[id].name}: ${TRINKETS[id].text}`} {...tipOn(make)} onClick={(e) => peek.show(boxOf(e.currentTarget), make)}>{TRINKETS[id].icon}</button>; })}
       </span>
       <button data-testid="deck" onClick={() => setSheet({ title: `Your deck · ${plural(r.deck.length, 'card')}`, cards: r.deck.slice().sort((a, b) => CARDS[a.id].name.localeCompare(CARDS[b.id].name)) })}>Deck {r.deck.length}</button>
     </section>
@@ -390,24 +570,41 @@ export default function SummitShuffle() {
           <canvas
             ref={canvas} tabIndex={0} data-testid="board" data-turn={f.turn} data-busy={busy ? '1' : '0'} data-waiting={st.waiting ? '1' : '0'} data-foes={f.foes.filter((x) => x.alive).length}
             aria-label="The fight. Number keys choose a card, left and right choose a foe, Enter plays the card and E ends your turn."
-            onPointerDown={(e) => { if (st.waiting) { skipAhead(); return; } const t = boardPoint(e); if (t >= 0) tapFoe(t); else { const q = e.currentTarget.getBoundingClientRect(); if (e.clientX - q.left < q.width * 0.32) { setLook(-1); pick(-1); } else { setLook(-2); pick(-1); } } }}
-            onPointerMove={(e) => { const t = boardPoint(e); if (t !== hoverRef.current) { hoverRef.current = t; setHover(t); } }}
-            onPointerLeave={() => { hoverRef.current = -1; setHover(-1); }}
+            onPointerDown={(e) => {
+              if (st.waiting) { skipAhead(); return; }
+              const t = boardPoint(e), q = e.currentTarget.getBoundingClientRect(), aiming = !!f.hand[selRef.current] && CARDS[f.hand[selRef.current].id].target && mine();
+              if (t >= 0) { tapFoe(t); if (!aiming) { overRef.current = t; showCreature(t); } }
+              else if (st.heroAt(e.clientX - q.left, e.clientY - q.top, q.width, q.height, r) || e.clientX - q.left < q.width * 0.32) { setLook(-1); pick(-1); overRef.current = -1; showCreature(-1); }
+              else { setLook(-2); pick(-1); }
+            }}
+            onPointerMove={(e) => {
+              const t = boardPoint(e), q = e.currentTarget.getBoundingClientRect();
+              if (t !== hoverRef.current) { hoverRef.current = t; setHover(t); }
+              if (e.pointerType !== 'mouse') return;
+              const over = t >= 0 ? t : st.heroAt(e.clientX - q.left, e.clientY - q.top, q.width, q.height, r) ? -1 : -2;
+              if (over !== overRef.current) { overRef.current = over; if (over === -2) peek.hide(); else showCreature(over); }
+            }}
+            onPointerLeave={(e) => { hoverRef.current = -1; setHover(-1); if (e.pointerType === 'mouse') { overRef.current = -2; peek.hide(); } }}
             style={{ cursor: hover >= 0 ? 'pointer' : 'default' }}
           />
           {toast}
         </div>
         <p className="ss-info" data-testid="info">{info}</p>
         <div className="ss-bar">
-          <span className="ss-energy" data-testid="energy" data-energy={f.energy} title="Energy">{f.energy}<small>energy</small></span>
+          <span className="ss-energy" data-testid="energy" data-energy={f.energy} {...tipOn(noteTip('⚡', 'Energy', `Cards cost energy to play. You start every turn with ${ENERGY}, and none is kept from the turn before.`))}>{f.energy}<small>energy</small></span>
           <button data-testid="pile-draw" onClick={() => setSheet({ title: `Draw pile · ${f.draw.length}`, note: 'In no particular order.', cards: f.draw.slice().sort((a, b) => CARDS[a.id].name.localeCompare(CARDS[b.id].name)) })}>Draw {f.draw.length}</button>
           <button data-testid="pile-discard" onClick={() => setSheet({ title: `Discard pile · ${f.discard.length}`, cards: f.discard })}>Discard {f.discard.length}</button>
           {f.gone.length > 0 && <button onClick={() => setSheet({ title: `Exhausted · ${f.gone.length}`, note: 'Gone until the fight is over.', cards: f.gone })}>Gone {f.gone.length}</button>}
           <span className="ss-spacer" />
           <button className={`ss-go${can && !playable ? ' ss-pulse' : ''}`} data-testid="end-turn" disabled={!can} onClick={endTurn}>End turn <kbd>E</kbd></button>
         </div>
-        <div className={`ss-hand n${Math.min(10, f.hand.length)}`} data-testid="hand" data-count={f.hand.length}>
-          {f.hand.map((c, i) => <CardView key={c.uid} card={c} index={i} testid={`hand-${i}`} text={r.textOf(c, sel === i ? aim : -1)} on={sel === i} dim={!can || !!r.cannot(i, CARDS[c.id].target ? aimFor(r) : -1)} onClick={() => tapCard(i)} />)}
+        <div className="ss-hand" data-testid="hand" data-count={f.hand.length} style={{ '--lap': `${[6, 6, 6, 6, 6, 6, -6, -16, -28, -38, -48][Math.min(10, f.hand.length)]}px` } as React.CSSProperties}>
+          {f.hand.map((c, i) => {
+            const off = i - (f.hand.length - 1) / 2, wide = f.hand.length > 6;
+            /** For the big copy: the numbers against the foe the card would go at, and that foe's name. */
+            const live = () => { const now = run.current, at = now?.fight?.hand.indexOf(c) ?? -1; if (!now?.fight || at < 0) return null; const t = CARDS[c.id].target && now.phase === 'fight' ? aimFor(now) : -1; return { text: now.textOf(c, t), aimed: t >= 0 ? now.fight.foes[t].name : undefined }; };
+            return <CardView key={c.uid} card={c} index={i} testid={`hand-${i}`} text={r.textOf(c, sel === i ? aim : -1)} on={sel === i} dim={!can || !!r.cannot(i, CARDS[c.id].target ? aimFor(r) : -1)} onClick={() => tapCard(i)} live={live} place="above" style={{ '--rot': `${off * (wide ? 2 : 2.8)}deg`, '--dy': `${off * off * (wide ? 1.3 : 2.2)}px`, '--i': i } as React.CSSProperties} />;
+          })}
           {!f.hand.length && r.phase === 'fight' && <p className="ss-empty">No cards left this turn. End your turn to draw a new hand.</p>}
         </div>
       </>
@@ -418,20 +615,28 @@ export default function SummitShuffle() {
       <>
         <p className="ss-map-title"><b>Stretch {r.act + 1} of {ACTS.length}: {ACTS[r.act].name}</b><span>{ACTS[r.act].blurb} {r.at < 0 ? 'Choose where to start.' : 'Choose where to go next.'}</span></p>
         <div className={`ss-map a${r.act}`} data-testid="map">
+          <TrailArt act={r.act} />
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            {nodes.flatMap((n) => n.next.map((m) => { const to = nodes[m], done = r.walked.includes(n.id) && r.walked.includes(m), next = n.id === r.at && paths.includes(m); return <line key={`${n.id}-${m}`} x1={px(n)} y1={py(n)} x2={px(to)} y2={py(to)} className={done ? 'done' : next ? 'next' : ''} />; }))}
+            {nodes.flatMap((n) => n.next.map((m) => {
+              const to = nodes[m], done = r.walked.includes(n.id) && r.walked.includes(m), next = n.id === r.at && paths.includes(m), mid = (py(n) + py(to)) / 2, d = `M${px(n)} ${py(n)} C${px(n)} ${mid} ${px(to)} ${mid} ${px(to)} ${py(to)}`;
+              return <g key={`${n.id}-${m}`} className={done ? 'done' : next ? 'next' : ''}><path className="bed" d={d} /><path d={d} /></g>;
+            }))}
           </svg>
           {nodes.map((n) => {
-            const open = paths.includes(n.id), here = n.id === r.at, been = r.walked.includes(n.id);
+            const open = paths.includes(n.id), here = n.id === r.at, been = r.walked.includes(n.id), name = n.type === 'boss' ? `Guardian: ${FOES[ACTS[r.act].boss[0]].name}` : NODE_NAMES[n.type];
+            const make = (): Tip => ({ kind: 'note', title: name, body: n.type === 'boss' ? `${FOES[ACTS[r.act].boss[0]].blurb} Beat it to finish this stretch.` : STOP_TEXT[n.type], foot: here ? 'You are here.' : open ? 'One of your next stops.' : been ? 'You have been here.' : 'Not in reach from where you are.' });
             return (
-              <button key={n.id} className={`ss-node k-${n.type}${open ? ' open' : ''}${here ? ' here' : ''}${been ? ' been' : ''}`} style={{ left: `${px(n)}%`, top: `${py(n)}%` }} disabled={!open} data-testid={`node-${n.id}`} data-type={n.type} data-open={open ? '1' : '0'} title={n.type === 'boss' ? `Guardian: ${FOES[ACTS[r.act].boss[0]].name}` : NODE_NAMES[n.type]} aria-label={`${n.type === 'boss' ? `Guardian: ${FOES[ACTS[r.act].boss[0]].name}` : NODE_NAMES[n.type]}${here ? ', you are here' : open ? ', open' : ''}`} onClick={() => go(n.id)}>
-                <span aria-hidden="true">{NODE_ICON[n.type]}</span>
-              </button>
+              <span key={n.id} className={`ss-stop${n.type === 'boss' ? ' big' : ''}`} style={{ left: `${px(n)}%`, top: `${py(n)}%` }} {...tipOn(make)}>
+                <button className={`ss-node k-${n.type}${open ? ' open' : ''}${here ? ' here' : ''}${been ? ' been' : ''}`} disabled={!open} data-testid={`node-${n.id}`} data-type={n.type} data-open={open ? '1' : '0'} aria-label={`${name}${here ? ', you are here' : open ? ', open' : ''}`} onClick={() => go(n.id)}>
+                  <StopIcon type={n.type} />
+                </button>
+                {here && <i className="ss-marker" aria-hidden="true"><Portrait hero={r.hero} size={38} /></i>}
+              </span>
             );
           })}
           {toast}
         </div>
-        <ul className="ss-legend">{(['fight', 'alpha', 'event', 'rest', 'stall', 'stash', 'boss'] as NodeType[]).map((t) => <li key={t}><span aria-hidden="true">{NODE_ICON[t]}</span> {t === 'fight' ? 'Predators: a card' : t === 'alpha' ? 'Alpha: a trinket' : t === 'event' ? 'Something on the trail' : t === 'rest' ? 'Rest burrow' : t === 'stall' ? 'Treat stall' : t === 'stash' ? 'Hidden stash' : `Guardian: ${FOES[ACTS[r.act].boss[0]].name}`}</li>)}</ul>
+        <ul className="ss-legend">{(['fight', 'alpha', 'event', 'rest', 'stall', 'stash', 'boss'] as NodeType[]).map((t) => <li key={t}><StopIcon type={t} /> {t === 'fight' ? 'Predators: a card' : t === 'alpha' ? 'Alpha: a trinket' : t === 'event' ? 'Something on the trail' : t === 'rest' ? 'Rest burrow' : t === 'stall' ? 'Treat stall' : t === 'stash' ? 'Hidden stash' : `Guardian: ${FOES[ACTS[r.act].boss[0]].name}`}</li>)}</ul>
       </>
     );
   } else if (phase === 'reward' && r.reward) {
@@ -523,7 +728,6 @@ export default function SummitShuffle() {
       </section>
     );
   }
-  void canUpgrade;
 
   return (
     <main className={`ss-shell ss-run p-${phase}`}>
@@ -531,6 +735,8 @@ export default function SummitShuffle() {
       {topbar}
       {body}
       {sheetView}
+      {ghosts.map((g) => <div key={g.key} className={`ss-ghost${g.from.w < 100 ? ' mini' : ''}`} aria-hidden="true" style={{ left: g.from.x, top: g.from.y, '--cw': `${g.from.w}px`, '--gh': `${g.from.h}px`, '--dx': `${g.dx}px`, '--dy': `${g.dy}px` } as React.CSSProperties}><CardView card={g.card} plain /></div>)}
+      <Peek shown={shown} />
     </main>
   );
 }

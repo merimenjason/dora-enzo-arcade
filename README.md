@@ -613,6 +613,7 @@ Reaching the summit opens the next of six **altitudes** for that chinchilla, eac
 
 - Tap or click a card to choose it and read its rules as they stand; tap it again to play it. A card aimed at one predator is played on the marked foe, or on whichever predator you tap.
 - With no card chosen, tap a predator or your chinchilla to read its health, intent and statuses.
+- Rest the mouse on a card, anywhere one is shown, for a big copy of it: the numbers as they stand against the foe it would go at, a note for every word on it that means something (Fluff, Exposed, Burrs and the rest), and what an upgrade would change. On a phone, hold a finger on the card. Predators, your chinchilla, trinkets, health, seeds, energy and the stops on the trail explain themselves the same way.
 - **End turn** hands over to the predators. Tap the board, or press Enter, to skip their animations.
 - 1 to 9 and 0 choose a card; pressing the number again, or Enter, plays it. ← and → change the foe. E ends the turn. Esc puts a card back.
 - **Draw**, **Discard** and **Deck** show the piles. F changes the animation speed (1×, 2×, 3×). M turns sound on and off.
