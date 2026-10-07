@@ -49,6 +49,12 @@ try {
   await page.getByTestId('battle-beige').click();
   await page.waitForSelector('[data-testid="arena"][data-state="playing"]');
   await game(page, 'g => { g.ai = [null, null]; }');
+  // Resting the mouse on it explains it.
+  await page.locator('[data-testid="hand-0"]').scrollIntoViewIfNeeded(); await page.mouse.move(2, 2); await page.waitForTimeout(150);
+  await page.locator('[data-testid="hand-0"]').hover();
+  assert.match(await page.getByTestId('hover-note').textContent(), /dust · .*(Health|Damage)\d+/, 'a card in hand says what it costs and does');
+  await page.mouse.move(2, 2);
+  await page.waitForFunction(() => !document.querySelector('[data-testid="hover-note"]'));
   await page.waitForTimeout(300);
   const colours = await page.evaluate(() => {
     const c = document.querySelector('[data-testid="arena"]'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data, seen = new Set();

@@ -12,6 +12,9 @@ const WANT = {
   flurry: 6.8, dustdevil: 6.8, followup: 6.8, groom: 6.8, burrfling: 6.5, deepburrow: 6.5, stickycoat: 6.5, haytoss: 6.5, popcorn: 6.5, ambush: 6.2,
   bowlover: 6.2, windup: 6.2, doublekick: 5.8, brighteyed: 5.8, shakeoff: 5.8, drumfeet: 5.5, zoomaround: 5.5, quicknip: 5.5, cheekstash: 5.2, fullpelt: 5.2,
   pounce: 5.2, bramblecoat: 4.8, gnaw: 4.5, tailwhip: 4.5, sorespot: 4.5, burrstorm: 5, puffup: 3.2, bellyflop: 3.2,
+  // Each chinchilla's own cards, added 07-10-2026.
+  spotlight: 8, thousandnips: 8, sidestep: 7, hopscotch: 6.5, pinpoint: 6.5, secondwind: 6.5, whirl: 6, earflick: 5.8,
+  ironhide: 8, earthshaker: 7.5, padding: 7, burrroll: 7, hunker: 6.8, quillburst: 6.8, burrbite: 6.5, thump: 6,
 };
 const BOSS_PICK = ['twigs', 'suncrown', 'springwater', 'summittea', 'emptypouch', 'claws'];
 const count = (run, pred) => run.deck.filter((c) => pred(CARDS[c.id], c)).length;

@@ -209,27 +209,53 @@ function forbidden(c: CanvasRenderingContext2D, g: ClashGame, card: CardId) {
 
 function tower(c: CanvasRenderingContext2D, g: ClashGame, u: Unit, time: number) {
   const x = u.x * TILE, y = u.y * TILE, king = u.role === 'king', r = u.r * TILE, team = TEAM[u.side];
-  const flash = u.hit > 0 ? 0.35 : 0;
-  // Stone drum with crenellations and a coloured band.
-  ellipse(c, x + 4, y + r * 0.4, r * 1.05, r * 0.42, 'rgba(0, 0, 0, 0.16)');
-  const h = king ? 22 : 18;
-  const stone = c.createLinearGradient(x - r, 0, x + r, 0);
-  stone.addColorStop(0, '#9c9587'); stone.addColorStop(0.5, '#d8d0bf'); stone.addColorStop(1, '#8a8376');
-  c.fillStyle = stone; c.fillRect(x - r * 0.9, y - h, r * 1.8, h);
-  c.beginPath(); c.ellipse(x, y, r * 0.9, r * 0.4, 0, 0, Math.PI); c.fill();
-  c.fillStyle = team.main; c.fillRect(x - r * 0.9, y - h * 0.45, r * 1.8, 5);
-  c.strokeStyle = 'rgba(60, 50, 40, 0.35)'; c.lineWidth = 1;
-  for (let i = 0; i < 3; i++) { const yy = y - h + 6 + i * 7; c.beginPath(); c.moveTo(x - r * 0.9, yy); c.lineTo(x + r * 0.9, yy); c.stroke(); }
-  ellipse(c, x, y - h, r * 0.95, r * 0.45, '#e9e2d3');
-  ellipse(c, x, y - h, r * 0.72, r * 0.32, '#cbbfa7');
-  for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * Math.PI * 2, bx = x + Math.cos(a) * r * 0.85, by = y - h + Math.sin(a) * r * 0.4;
-    c.fillStyle = '#d8d0bf'; c.fillRect(bx - 3, by - 6, 6, 6); c.strokeStyle = '#8a8376'; c.strokeRect(bx - 3, by - 6, 6, 6);
+  const flash = u.hit > 0 ? 0.35 : 0, h = king ? 22 : 18, w = r * 0.9;
+  // A stone drum lit from the upper left: its shadow, the wall with its courses, a doorway and the team's band.
+  const cast = c.createRadialGradient(x + 7, y + r * 0.42, 0, x + 7, y + r * 0.42, r * 1.25);
+  cast.addColorStop(0, 'rgba(10, 8, 30, 0.34)'); cast.addColorStop(1, 'rgba(10, 8, 30, 0)');
+  c.save(); c.translate(x + 7, y + r * 0.42); c.scale(1, 0.42); c.translate(-(x + 7), -(y + r * 0.42)); c.fillStyle = cast; c.fillRect(x - r * 1.4, y - r, r * 2.9, r * 3); c.restore();
+  const wall = () => { c.beginPath(); c.moveTo(x - w, y - h); c.lineTo(x - w, y); c.ellipse(x, y, w, r * 0.4, 0, Math.PI, 0, true); c.lineTo(x + w, y - h); c.closePath(); };
+  const stone = c.createLinearGradient(x - w, 0, x + w, 0);
+  stone.addColorStop(0, '#a39c8c'); stone.addColorStop(0.3, '#ece5d4'); stone.addColorStop(0.62, '#c9c1ae'); stone.addColorStop(1, '#7b7467');
+  wall(); c.fillStyle = stone; c.fill();
+  c.save(); wall(); c.clip();
+  c.strokeStyle = 'rgba(70, 58, 44, 0.32)'; c.lineWidth = 0.9;
+  for (let i = 0; i < 4; i++) {
+    const yy = y - h + 5 + i * 6.5;
+    c.beginPath(); c.ellipse(x, yy, w, r * 0.4, 0, 0, Math.PI); c.stroke();
+    for (let k = 0; k < 6; k++) { const a = ((k + (i % 2) * 0.5) / 6) * Math.PI, bx = x + Math.cos(a) * w, by = yy + Math.sin(a) * r * 0.4; c.beginPath(); c.moveTo(bx, by); c.lineTo(bx, by + 6.5); c.stroke(); }
   }
+  const band = c.createLinearGradient(x - w, 0, x + w, 0); band.addColorStop(0, team.dark); band.addColorStop(0.3, team.main); band.addColorStop(1, team.dark);
+  c.strokeStyle = band; c.lineWidth = 5; c.beginPath(); c.ellipse(x, y - h * 0.5, w, r * 0.4, 0, 0, Math.PI); c.stroke();
+  c.strokeStyle = team.trim; c.lineWidth = 0.9; c.globalAlpha = 0.7; c.beginPath(); c.ellipse(x, y - h * 0.5 - 2.4, w, r * 0.4, 0, 0, Math.PI); c.stroke(); c.globalAlpha = 1;
+  const dy = y + r * 0.4 - 1;
+  c.fillStyle = '#3a2c22'; c.beginPath(); c.moveTo(x - 4.5, dy); c.lineTo(x - 4.5, dy - 8); c.arc(x, dy - 8, 4.5, Math.PI, 0); c.lineTo(x + 4.5, dy); c.fill();
+  c.fillStyle = '#7a5a3a'; c.beginPath(); c.moveTo(x - 3.2, dy); c.lineTo(x - 3.2, dy - 7.6); c.arc(x, dy - 7.6, 3.2, Math.PI, 0); c.lineTo(x + 3.2, dy); c.fill();
+  c.restore();
+  wall(); c.strokeStyle = 'rgba(60, 50, 40, 0.55)'; c.lineWidth = 1; c.stroke();
+  // The walk on top, with its far merlons behind the keepers and its near ones in front of them.
+  ellipse(c, x, y - h, r * 0.97, r * 0.46, '#f1ead9'); c.strokeStyle = 'rgba(60, 50, 40, 0.5)'; c.lineWidth = 1; c.stroke();
+  const floor = c.createRadialGradient(x - r * 0.2, y - h - r * 0.1, 1, x, y - h, r * 0.75); floor.addColorStop(0, '#d9ccb2'); floor.addColorStop(1, '#a89a80');
+  ellipse(c, x, y - h, r * 0.72, r * 0.32); c.fillStyle = floor; c.fill();
+  if (king) { c.strokeStyle = '#f2c84a'; c.lineWidth = 1.6; c.beginPath(); c.ellipse(x, y - h, r * 0.72, r * 0.32, 0, 0, Math.PI * 2); c.stroke(); }
+  const merlons = (front: boolean) => {
+    for (let i = 0; i < 8; i++) {
+      const a = ((i + 0.5) / 8) * Math.PI * 2, s = Math.sin(a);
+      if ((s >= 0) !== front) continue;
+      const bx = x + Math.cos(a) * r * 0.85, by = y - h + s * r * 0.4, g2 = c.createLinearGradient(bx - 3.5, 0, bx + 3.5, 0);
+      g2.addColorStop(0, '#efe8d8'); g2.addColorStop(1, '#a9a191');
+      c.fillStyle = g2; c.fillRect(bx - 3.5, by - 7, 7, 7.5); c.fillStyle = '#fbf6ea'; c.fillRect(bx - 3.5, by - 8.6, 7, 2);
+      c.strokeStyle = 'rgba(70, 60, 48, 0.7)'; c.lineWidth = 0.9; c.strokeRect(bx - 3.5, by - 8.6, 7, 9.1);
+    }
+  };
+  merlons(false);
   // A pennant.
   const fx = x + r * 0.7, fy = y - h - 14, wave = Math.sin(time * 4 + u.id) * 2;
-  c.strokeStyle = '#5b4632'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(fx, y - h); c.lineTo(fx, fy - 6); c.stroke();
-  c.fillStyle = team.main; c.beginPath(); c.moveTo(fx, fy - 6); c.lineTo(fx + 11, fy - 3 + wave); c.lineTo(fx, fy); c.fill();
+  c.strokeStyle = '#3d2e20'; c.lineWidth = 2.2; c.beginPath(); c.moveTo(fx, y - h); c.lineTo(fx, fy - 7); c.stroke();
+  c.strokeStyle = '#8a6a48'; c.lineWidth = 1; c.beginPath(); c.moveTo(fx - 0.3, y - h); c.lineTo(fx - 0.3, fy - 7); c.stroke();
+  ellipse(c, fx, fy - 7.6, 1.5, 1.5, '#f2c84a');
+  c.fillStyle = team.main; c.beginPath(); c.moveTo(fx, fy - 6); c.quadraticCurveTo(fx + 6, fy - 7 + wave * 0.5, fx + 12, fy - 3 + wave); c.quadraticCurveTo(fx + 6, fy - 1 + wave * 0.5, fx, fy + 1); c.fill();
+  c.fillStyle = team.dark; c.beginPath(); c.moveTo(fx, fy - 2.4); c.quadraticCurveTo(fx + 6, fy - 2.6 + wave * 0.5, fx + 12, fy - 3 + wave); c.quadraticCurveTo(fx + 6, fy - 1 + wave * 0.5, fx, fy + 1); c.fill();
   // Keepers: a pellet flicker on each princess tower, and on the king tower Dora and Enzo or the rival leader.
   const faceIn: 1 | -1 = u.x < W / 2 ? 1 : -1, base = y - h + 3;
   const asleep = king && !u.active;
@@ -246,7 +272,8 @@ function tower(c: CanvasRenderingContext2D, g: ClashGame, u: Unit, time: number)
     const z = (time * 0.8) % 1;
     c.globalAlpha = 1 - z; c.fillText('z', x + 14 + z * 6, base - 22 - z * 10); c.globalAlpha = 1;
   }
-  if (flash) { c.fillStyle = `rgba(255, 255, 255, ${flash})`; c.fillRect(x - r * 0.9, y - h, r * 1.8, h); }
+  merlons(true);
+  if (flash) { c.fillStyle = `rgba(255, 255, 255, ${flash})`; wall(); c.fill(); }
   // Health bar with the number.
   const bw = king ? 58 : 46, by = y - h - (king ? 44 : 38), frac = Math.max(0, u.hp / u.maxHp);
   c.fillStyle = 'rgba(20, 16, 28, 0.8)'; c.beginPath(); c.roundRect(x - bw / 2 - 2, by - 2, bw + 4, 11, 4); c.fill();
@@ -327,36 +354,46 @@ const scarf = (t: number) => (d: CanvasRenderingContext2D, bob: number) => {
 };
 
 function capybara(c: CanvasRenderingContext2D, x: number, y: number, face: 1 | -1, t: number, moving: boolean, walk: number, team: string) {
-  const bob = moving ? Math.abs(Math.sin(walk * 5)) * -1.5 : Math.sin(t * 2) * 0.4;
-  c.save(); c.translate(x, y); c.scale(face, 1);
-  ellipse(c, 0, 0, 13, 3, 'rgba(20, 12, 30, 0.2)');
-  c.fillStyle = '#6e4a2c';
-  for (const lx of [-8, -4, 5, 9]) { const s = moving ? Math.sin(walk * 5 + lx) * 1.5 : 0; c.fillRect(lx + s - 1.5, -6, 3.5, 6); }
-  c.strokeStyle = '#4a2f1a'; c.lineWidth = 1.2;
-  c.fillStyle = '#a5754a'; c.beginPath(); c.roundRect(-13, -20 + bob, 24, 16, 8); c.fill(); c.stroke();
-  c.fillStyle = team; c.fillRect(-4, -19 + bob, 7, 14);
-  c.fillStyle = '#a5754a'; c.beginPath(); c.roundRect(5, -24 + bob, 12, 11, 4); c.fill(); c.stroke();
-  c.fillStyle = '#8d6038'; c.beginPath(); c.roundRect(12, -21 + bob, 6, 7, 2.5); c.fill();
-  ellipse(c, 7, -24 + bob, 2, 1.6, '#7a5334');
-  ellipse(c, 11, -20.5 + bob, 1.1, 1.1, '#1d1418');
-  ellipse(c, 16.5, -18.5 + bob, 0.8, 0.6, '#3a2418');
+  const bob = moving ? Math.abs(Math.sin(walk * 5)) * -1.5 : Math.sin(t * 2) * 0.4, line = '#4a2f1a';
+  c.save(); c.translate(x, y); c.scale(face, 1); c.lineJoin = 'round';
+  ellipse(c, 0, 0, 14, 3.2, 'rgba(20, 12, 30, 0.24)');
+  const leg = (lx: number, col: string) => { const s = moving ? Math.sin(walk * 5 + lx) * 1.5 : 0; c.fillStyle = col; c.beginPath(); c.roundRect(lx + s - 2, -7, 4, 7, 1.6); c.fill(); c.strokeStyle = line; c.lineWidth = 0.8; c.stroke(); ellipse(c, lx + s + 0.6, -0.6, 2.6, 1.2, '#4a2f1a'); };
+  leg(-6, '#6a4528'); leg(7, '#6a4528');
+  const coat = c.createLinearGradient(0, -22 + bob, 0, -4 + bob); coat.addColorStop(0, '#cf9a66'); coat.addColorStop(0.5, '#a5754a'); coat.addColorStop(1, '#76502f');
+  c.beginPath(); c.moveTo(-13.5, -11 + bob); c.quadraticCurveTo(-14, -21 + bob, -4, -21.5 + bob); c.quadraticCurveTo(6, -22 + bob, 10, -17 + bob); c.quadraticCurveTo(12.5, -8 + bob, 8, -4.5 + bob); c.quadraticCurveTo(-2, -3 + bob, -10, -4.5 + bob); c.quadraticCurveTo(-13.5, -6 + bob, -13.5, -11 + bob); c.closePath();
+  c.strokeStyle = line; c.lineWidth = 1.2; c.stroke(); c.fillStyle = coat; c.fill();
+  // The team's blanket, with a pale trim.
+  c.save(); c.clip(); c.fillStyle = team; c.fillRect(-6, -23 + bob, 9, 20); c.fillStyle = 'rgba(255, 255, 255, 0.55)'; c.fillRect(-6, -23 + bob, 1.3, 20); c.fillRect(1.7, -23 + bob, 1.3, 20); c.fillStyle = 'rgba(20, 10, 40, 0.22)'; c.fillRect(-6, -9 + bob, 9, 6); c.restore();
+  leg(-9.5, '#8a5f3a'); leg(4, '#8a5f3a');
+  ellipse(c, 6.4, -24.6 + bob, 2.2, 1.9, '#7a5334'); c.strokeStyle = line; c.lineWidth = 0.8; c.stroke();
+  const head = c.createLinearGradient(0, -26 + bob, 0, -12 + bob); head.addColorStop(0, '#d3a06c'); head.addColorStop(1, '#8d6038');
+  c.beginPath(); c.moveTo(4.5, -17 + bob); c.quadraticCurveTo(4, -24.5 + bob, 9.5, -25 + bob); c.quadraticCurveTo(17, -25 + bob, 18.5, -20 + bob); c.quadraticCurveTo(19.5, -14 + bob, 15, -13 + bob); c.quadraticCurveTo(8, -12 + bob, 4.5, -17 + bob); c.closePath();
+  c.strokeStyle = line; c.lineWidth = 1.2; c.stroke(); c.fillStyle = head; c.fill();
+  c.fillStyle = '#7a5030'; c.beginPath(); c.roundRect(13.6, -21 + bob, 5.2, 7, 2.4); c.fill();
+  ellipse(c, 17.2, -19 + bob, 0.9, 0.7, '#2a1810'); c.strokeStyle = '#3a2418'; c.lineWidth = 0.6; c.beginPath(); c.moveTo(18.4, -16.4 + bob); c.quadraticCurveTo(16.4, -15.4 + bob, 14.6, -16 + bob); c.stroke();
+  ellipse(c, 11.2, -20.6 + bob, 1.25, 1.35, '#1d1418'); ellipse(c, 10.8, -21.1 + bob, 0.42, 0.42, '#ffffff');
   // Mochi keeps a little orange on her head, like a proper capybara.
-  ellipse(c, 9, -26.5 + bob, 3, 2.6, '#ff9c3a'); c.fillStyle = '#4f9a3a'; c.fillRect(8.5, -30 + bob, 1.2, 2.5);
+  ellipse(c, 9.6, -27 + bob, 3.1, 2.7, '#ff9c3a'); c.strokeStyle = '#b55a12'; c.lineWidth = 0.7; c.stroke(); ellipse(c, 8.6, -27.8 + bob, 1.1, 0.8, 'rgba(255, 240, 200, 0.7)');
+  c.fillStyle = '#4f9a3a'; c.beginPath(); c.ellipse(10.4, -30 + bob, 2, 0.9, -0.5, 0, Math.PI * 2); c.fill();
   c.restore();
 }
 
 function glider(c: CanvasRenderingContext2D, x: number, y: number, face: 1 | -1, t: number, team: string) {
-  ellipse(c, x, y + 16, 6, 2, 'rgba(20, 12, 30, 0.18)');
-  const flap = Math.sin(t * 12) * 2;
-  c.save(); c.translate(x, y); c.scale(face, 1);
-  c.fillStyle = '#b9aea6'; c.strokeStyle = '#4b3f3a'; c.lineWidth = 0.8;
-  c.beginPath(); c.moveTo(-7, -2 + flap); c.quadraticCurveTo(0, -6, 7, -2 + flap); c.lineTo(5, 3); c.quadraticCurveTo(0, 1, -5, 3); c.closePath(); c.fill(); c.stroke();
-  ellipse(c, 0, 0, 4.5, 3, '#d8cec7'); c.stroke();
-  c.fillStyle = '#4b3f3a'; c.fillRect(-1, -3, 1.4, 5);
-  ellipse(c, 4.5, -1.5, 2.6, 2.2, '#d8cec7'); ellipse(c, 5.5, -2, 0.9, 0.9, '#120c10');
-  ellipse(c, 3.5, -3.8, 1.2, 1.4, '#e8b0a8');
-  c.strokeStyle = '#6b5f58'; c.lineWidth = 1.4; c.beginPath(); c.moveTo(-4, 1); c.quadraticCurveTo(-9, 3, -11, 0); c.stroke();
-  ellipse(c, 0, 3.5, 1.6, 1, team);
+  ellipse(c, x, y + 16, 7, 2.2, 'rgba(20, 12, 30, 0.2)');
+  const flap = Math.sin(t * 12) * 2, line = '#3f3430';
+  c.save(); c.translate(x, y); c.scale(face * 1.15, 1.15); c.lineJoin = 'round';
+  // A bushy tail, the stretched membrane, then the body with its dark stripe.
+  c.strokeStyle = line; c.lineWidth = 3.6; c.lineCap = 'round'; c.beginPath(); c.moveTo(-4, 1); c.quadraticCurveTo(-9, 3.5, -12, 0.4); c.stroke();
+  c.strokeStyle = '#8d8079'; c.lineWidth = 2.4; c.stroke(); c.strokeStyle = '#3f3430'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(-10.6, 1.6); c.lineTo(-12, 0.4); c.stroke(); c.lineCap = 'butt';
+  const skin = c.createLinearGradient(0, -6, 0, 4); skin.addColorStop(0, '#d9cfc8'); skin.addColorStop(1, '#948880');
+  c.beginPath(); c.moveTo(-7.5, -2 + flap); c.quadraticCurveTo(0, -6.5, 7.5, -2 + flap); c.lineTo(5.4, 3.4); c.quadraticCurveTo(0, 1.2, -5.4, 3.4); c.closePath(); c.strokeStyle = line; c.lineWidth = 0.9; c.stroke(); c.fillStyle = skin; c.fill();
+  c.strokeStyle = 'rgba(63, 52, 48, 0.35)'; c.lineWidth = 0.5; c.beginPath(); c.moveTo(-5.6, -1.4 + flap * 0.8); c.lineTo(-3.6, 2.2); c.moveTo(5.6, -1.4 + flap * 0.8); c.lineTo(3.6, 2.2); c.stroke();
+  ellipse(c, 0, 0, 4.6, 3.1, '#e6ddd6'); c.strokeStyle = line; c.lineWidth = 0.9; c.stroke();
+  c.fillStyle = '#4b3f3a'; c.beginPath(); c.roundRect(-3.6, -1.5, 7, 1.5, 0.7); c.fill();
+  ellipse(c, 3.4, -3.9, 1.4, 1.6, '#e8b0a8'); c.stroke();
+  ellipse(c, 4.7, -1.4, 2.8, 2.4, '#efe7e0'); c.stroke();
+  ellipse(c, 5.6, -1.9, 1.05, 1.15, '#120c10'); ellipse(c, 5.3, -2.3, 0.35, 0.35, '#ffffff'); ellipse(c, 7.3, -0.8, 0.5, 0.4, '#e58aa0');
+  ellipse(c, 1.6, 2.2, 2.2, 1.1, team); c.strokeStyle = 'rgba(255, 255, 255, 0.7)'; c.lineWidth = 0.5; c.stroke();
   c.restore();
 }
 

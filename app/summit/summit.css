@@ -296,3 +296,8 @@
   .ss-book { --cw: 104px; justify-content: center; }
 }
 .ss-stat, .ss-energy { cursor: help; }
+
+/* Whose card it is, in the hover note and the card book. */
+.ss-peek-notes .ss-peek-who { border-color: #7a6cc0; color: #ddd6ff; }
+.ss-book-head { margin: 14px 0 8px; font-size: 0.95rem; color: #f3e6c0; }
+.ss-book-head small { margin-left: 6px; font-weight: 400; color: #a9a6c8; }

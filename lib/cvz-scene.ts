@@ -321,17 +321,24 @@ export function zombie(c: CanvasRenderingContext2D, kind: ZombieId, x: number, b
   c.beginPath(); c.moveTo(-2, -30); c.lineTo(-6 + sway, -2); c.moveTo(6, -30); c.lineTo(8 - sway, -2); c.stroke();
   ellipse(c, -9 + sway, -1, 7, 3.5, '#3a2c20'); ellipse(c, 5 - sway, -1, 7, 3.5, '#3a2c20');
   // Torn jacket, shirt and tie.
-  c.fillStyle = suit; c.strokeStyle = '#171226'; c.lineWidth = 1.5;
+  // The moon is behind them, up the street, so their backs catch its light and their fronts are in shade.
+  const cloth = c.createLinearGradient(-14, 0, 16, 0); cloth.addColorStop(0, suit); cloth.addColorStop(0.62, suit); cloth.addColorStop(1, o.chilled ? '#8fa6d0' : '#8a80b4');
+  c.fillStyle = cloth; c.strokeStyle = '#171226'; c.lineWidth = 1.5;
   c.beginPath(); c.moveTo(-12, -62); c.lineTo(14, -62); c.lineTo(16, -28); c.lineTo(10, -24); c.lineTo(4, -29); c.lineTo(-2, -24); c.lineTo(-14, -28); c.closePath(); c.fill(); c.stroke();
+  c.save(); c.clip(); c.fillStyle = 'rgba(8, 6, 26, 0.3)'; c.fillRect(-16, -40, 34, 18); c.fillStyle = 'rgba(8, 6, 26, 0.22)'; c.fillRect(-16, -64, 9, 42); c.restore();
   c.fillStyle = '#e8e0d0'; c.beginPath(); c.moveTo(-4, -62); c.lineTo(6, -62); c.lineTo(3, -34); c.lineTo(-2, -34); c.closePath(); c.fill();
   c.fillStyle = '#b8302a'; c.beginPath(); c.moveTo(0, -60); c.lineTo(3, -52); c.lineTo(1, -40); c.lineTo(-2, -52); c.closePath(); c.fill();
+  c.strokeStyle = '#171226'; c.lineWidth = 1.1; c.beginPath(); c.moveTo(-4, -62); c.lineTo(-7, -48); c.lineTo(-2, -34); c.moveTo(6, -62); c.lineTo(9, -48); c.lineTo(3, -34); c.stroke();
   // Arms stretched out in front (to the left), bobbing while eating.
   c.strokeStyle = suit; c.lineWidth = 7;
   c.beginPath(); c.moveTo(-8, -56); c.lineTo(-30, -52 + eat); c.moveTo(4, -54); c.lineTo(-24, -46 - eat); c.stroke();
   ellipse(c, -33, -52 + eat, 5, 4, skin); ellipse(c, -27, -46 - eat, 5, 4, skin);
   // Head.
   const hy = -76 + (o.eating ? eat * 0.6 : 0);
-  ellipse(c, -2, hy, 15, 16, skin); c.strokeStyle = skinDark; c.lineWidth = 1.5; c.stroke();
+  const face = c.createRadialGradient(4, hy - 6, 2, -2, hy, 18); face.addColorStop(0, o.chilled ? '#c4ecf6' : '#a6cf98'); face.addColorStop(0.6, skin); face.addColorStop(1, skinDark);
+  ellipse(c, -2, hy, 15, 16); c.fillStyle = face; c.fill(); c.strokeStyle = skinDark; c.lineWidth = 1.5; c.stroke();
+  c.strokeStyle = 'rgba(214, 226, 255, 0.7)'; c.lineWidth = 1.6; c.beginPath(); c.ellipse(-2, hy, 13.4, 14.4, 0, -1.2, 0.5); c.stroke();
+  c.fillStyle = skinDark; for (const [sx, sy, sr] of [[5, hy + 5, 1.6], [-13, hy + 5, 1.2], [7, hy - 9, 1]]) { c.beginPath(); c.arc(sx, sy, sr, 0, 7); c.fill(); }
   // Eyes that glow in the dark.
   c.shadowColor = o.chilled ? '#e8fbff' : '#d8ff6a'; c.shadowBlur = 10;
   ellipse(c, -9, hy - 3, 5.5, 6, o.chilled ? '#e8fbff' : '#eaff80'); ellipse(c, 2, hy - 2, 4, 4.5, o.chilled ? '#e8fbff' : '#eaff80');
@@ -343,11 +350,13 @@ export function zombie(c: CanvasRenderingContext2D, kind: ZombieId, x: number, b
   // What's on its head, while it lasts.
   const worn = (o.armor ?? 0) > 0, dented = worn && (o.armor ?? 0) < (o.maxArmor ?? 1) * 0.5;
   if (kind === 'cone' && worn) {
-    c.fillStyle = '#ff8a2a'; c.strokeStyle = '#b8561a'; c.lineWidth = 1.2;
+    const cone = c.createLinearGradient(-14, 0, 10, 0); cone.addColorStop(0, '#d9641a'); cone.addColorStop(0.6, '#ff8a2a'); cone.addColorStop(1, '#ffc27a');
+    c.fillStyle = cone; c.strokeStyle = '#b8561a'; c.lineWidth = 1.2;
     c.beginPath(); c.moveTo(-14, hy - 10); c.lineTo(10, hy - 10); c.lineTo(dented ? -4 : -2, hy - 40); c.closePath(); c.fill(); c.stroke();
     c.fillStyle = '#ffffff'; c.fillRect(-9, hy - 22, 13, 3);
   } else if (kind === 'bucket' && worn) {
-    c.fillStyle = '#a8adb6'; c.strokeStyle = '#5e626a'; c.lineWidth = 1.2;
+    const tin = c.createLinearGradient(-16, 0, 12, 0); tin.addColorStop(0, '#7c818a'); tin.addColorStop(0.55, '#a8adb6'); tin.addColorStop(0.85, '#e6eaf2'); tin.addColorStop(1, '#b4b9c2');
+    c.fillStyle = tin; c.strokeStyle = '#5e626a'; c.lineWidth = 1.2;
     c.beginPath(); c.moveTo(-16, hy - 6); c.lineTo(12, hy - 6); c.lineTo(9, hy - 28); c.lineTo(-13, hy - 28); c.closePath(); c.fill(); c.stroke();
     if (dented) { c.strokeStyle = '#6e737c'; c.beginPath(); c.moveTo(-6, hy - 22); c.lineTo(-2, hy - 16); c.lineTo(2, hy - 22); c.stroke(); }
   } else if (kind === 'flag') {

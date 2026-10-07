@@ -8,6 +8,7 @@ import {
   type TowerId, type Tower, type Enemy, type Effect, type Shot, type PieceId, type CardId, type Element,
 } from './hay-maze-game';
 import { COATS, coatLike, drawChinchilla, type Coat } from './chinchilla-art';
+import { predator, TINT, type PredKind, type Tint } from './predator-art';
 
 export const TILE = 32, OX = 26, OY = 24, LIFT = 7, VIEW_W = OX + COLS * TILE + 74, VIEW_H = OY + ROWS * TILE + 16;
 export const toGrid = (px: number, py: number) => ({ c: Math.floor((px - OX) / TILE), r: Math.floor((py - OY) / TILE) });
@@ -307,73 +308,16 @@ const heave = (flash: number) => (d: CanvasRenderingContext2D, bob: number) => {
 // ---------- Predators ----------
 
 /** A predator standing at (x, y) in pixels, facing right when `face` is 1. `k` scales it. */
+const LYNX: Tint = { body: '#b59a78', dark: '#5a4630', light: '#f2e6d2', eye: '#e8c84a' };
+/** Each predator's drawing in the arcade's shared art, and how tall it stands here in pixels. */
+const SHARED: Record<Enemy['kind'], { shape: PredKind; h: number; tint?: Tint }> = {
+  weasel: { shape: 'weasel', h: 21 }, fox: { shape: 'fox', h: 23 }, snake: { shape: 'snake', h: 20 }, badger: { shape: 'badger', h: 23 }, hawk: { shape: 'hawk', h: 24 }, lynx: { shape: 'cougar', h: 27, tint: LYNX },
+};
 export function critter(c: CanvasRenderingContext2D, kind: Enemy['kind'], x: number, y: number, face: 1 | -1, bob: number, k = 1) {
-  const step = Math.sin(bob) * 1.6;
-  c.save(); c.translate(x, y); c.scale(face * k, k);
-  c.lineJoin = 'round'; c.lineWidth = 1; c.strokeStyle = '#2a1c16';
-  if (kind === 'weasel') {
-    ellipse(c, 0, 1, 11, 2.5, 'rgba(0, 0, 0, 0.2)');
-    c.strokeStyle = '#6b4424'; c.lineWidth = 2.2; c.beginPath(); c.moveTo(-7, -4); c.quadraticCurveTo(-13, -6, -15, -2 + step * 0.5); c.stroke();
-    c.lineWidth = 1; c.strokeStyle = '#2a1c16';
-    for (const lx of [-5, 4]) { c.fillStyle = '#6b4424'; c.fillRect(lx + step * 0.6, -3, 2, 4); c.fillRect(lx + 2 - step * 0.6, -3, 2, 4); }
-    ellipse(c, 0, -5, 9, 3.4, '#8a5a30'); c.stroke();
-    ellipse(c, 1, -3.6, 6, 1.6, '#f0dcb8');
-    ellipse(c, 9, -7, 3.6, 3, '#8a5a30'); c.stroke();
-    ellipse(c, 12, -6.5, 1.8, 1.4, '#f0dcb8'); ellipse(c, 13.5, -7, 0.8, 0.8, '#1a1010');
-    ellipse(c, 9.8, -8, 0.9, 0.9, '#1a1010'); ellipse(c, 7.5, -10, 1.3, 1.3, '#8a5a30');
-  } else if (kind === 'fox') {
-    ellipse(c, 0, 1, 12, 3, 'rgba(0, 0, 0, 0.2)');
-    c.fillStyle = '#e07a2e'; c.beginPath(); c.moveTo(-7, -7); c.quadraticCurveTo(-16, -12 + step, -18, -4); c.quadraticCurveTo(-13, -3, -7, -5); c.fill(); c.stroke();
-    ellipse(c, -17, -5, 2.4, 2, '#ffffff');
-    for (const lx of [-6, 4]) { c.fillStyle = '#2a1c16'; c.fillRect(lx + step * 0.7, -4, 2, 5); c.fillRect(lx + 2 - step * 0.7, -4, 2, 5); }
-    ellipse(c, -1, -7, 9, 4.5, '#e07a2e'); c.stroke();
-    ellipse(c, 4, -5.5, 4, 2.5, '#fff4e4');
-    ellipse(c, 8, -10, 4.2, 3.8, '#e07a2e'); c.stroke();
-    c.fillStyle = '#fff4e4'; c.beginPath(); c.moveTo(9, -9); c.lineTo(15, -8.5); c.lineTo(10, -6.5); c.fill();
-    ellipse(c, 15, -8.6, 1, 1, '#1a1010'); ellipse(c, 9.5, -11, 0.9, 0.9, '#1a1010');
-    c.fillStyle = '#e07a2e'; for (const ex of [5, 8]) { c.beginPath(); c.moveTo(ex, -12); c.lineTo(ex + 1.5, -18); c.lineTo(ex + 3.5, -12.5); c.fill(); c.stroke(); }
-  } else if (kind === 'snake') {
-    c.lineCap = 'round';
-    c.strokeStyle = '#2f5a24'; c.lineWidth = 6.5; c.beginPath();
-    for (let i = 0; i <= 12; i++) { const px = -14 + i * 2.2, py = -3 + Math.sin(bob * 1.4 + i * 0.7) * 2.6; if (i) c.lineTo(px, py); else c.moveTo(px, py); }
-    c.stroke();
-    c.strokeStyle = '#5bb04a'; c.lineWidth = 4.5; c.stroke();
-    c.strokeStyle = '#d7efb0'; c.lineWidth = 1; c.setLineDash([2, 3]); c.stroke(); c.setLineDash([]);
-    const hy = -3 + Math.sin(bob * 1.4 + 12 * 0.7) * 2.6;
-    ellipse(c, 13, hy, 4, 3, '#5bb04a'); c.strokeStyle = '#2f5a24'; c.lineWidth = 1; c.stroke();
-    ellipse(c, 14, hy - 1.2, 0.9, 0.9, '#ffe16a');
-    if (Math.sin(bob * 3) > 0.3) { c.strokeStyle = '#e8483c'; c.beginPath(); c.moveTo(17, hy); c.lineTo(20, hy); c.lineTo(21, hy - 1); c.moveTo(20, hy); c.lineTo(21, hy + 1); c.stroke(); }
-  } else if (kind === 'badger') {
-    ellipse(c, 0, 1, 13, 3.4, 'rgba(0, 0, 0, 0.22)');
-    for (const lx of [-7, 4]) { c.fillStyle = '#2a2a2e'; c.fillRect(lx + step * 0.5, -4, 3, 5); c.fillRect(lx + 3 - step * 0.5, -4, 3, 5); }
-    ellipse(c, -1, -8, 11, 6, '#8d8b93'); c.stroke();
-    ellipse(c, -2, -11, 8, 2.5, '#6a6870');
-    ellipse(c, 9, -8, 5, 4.4, '#f4f2f6'); c.stroke();
-    c.fillStyle = '#1e1e22'; c.beginPath(); c.moveTo(6, -12); c.quadraticCurveTo(10, -9, 14, -7); c.lineTo(13.5, -6); c.quadraticCurveTo(9, -8, 5.5, -9); c.fill();
-    ellipse(c, 14, -7, 1.3, 1, '#1a1010'); ellipse(c, 10, -9.6, 0.8, 0.8, '#ffffff');
-  } else if (kind === 'hawk') {
-    const flap = Math.sin(bob * 2.2) * 6;
-    c.fillStyle = '#7a5230';
-    for (const side of [-1, 1]) { c.beginPath(); c.moveTo(-2, -2); c.quadraticCurveTo(-4, -2 + side * (8 + flap), -12, side * (3 + flap * 0.8) - 2); c.lineTo(4, -2); c.fill(); c.stroke(); }
-    ellipse(c, 0, -2, 8, 3.6, '#8a6038'); c.stroke();
-    ellipse(c, 1, -1, 5, 2, '#e8d8b8');
-    c.fillStyle = '#6b4424'; c.beginPath(); c.moveTo(-8, -2); c.lineTo(-14, -5); c.lineTo(-14, 1); c.closePath(); c.fill();
-    ellipse(c, 8, -3.5, 3.4, 3, '#f0e6d0'); c.stroke();
-    c.fillStyle = '#f2b02e'; c.beginPath(); c.moveTo(10.5, -4); c.lineTo(14, -2.5); c.lineTo(10.5, -2); c.fill();
-    ellipse(c, 9, -4.4, 0.8, 0.8, '#1a1010');
-  } else {
-    // The lynx: a big tawny cat with tufted ears and spots.
-    ellipse(c, 0, 1, 16, 4, 'rgba(0, 0, 0, 0.25)');
-    for (const lx of [-9, 5]) { c.fillStyle = '#b8925e'; c.fillRect(lx + step * 0.6, -6, 3.5, 7); c.fillRect(lx + 3.5 - step * 0.6, -6, 3.5, 7); }
-    ellipse(c, -1, -11, 13, 7, '#c9a46e'); c.stroke();
-    for (const [sx, sy] of [[-6, -13], [-1, -15], [3, -12], [-8, -9], [-3, -10]]) ellipse(c, sx, sy, 1.2, 1, '#7a5a34');
-    ellipse(c, -13, -12, 3, 2.2, '#c9a46e'); ellipse(c, -15, -12.5, 1.4, 1.4, '#1a1010');
-    ellipse(c, 12, -14, 6.4, 5.8, '#c9a46e'); c.stroke();
-    ellipse(c, 13.5, -11.5, 4, 2.6, '#f4e8d0');
-    c.fillStyle = '#c9a46e'; for (const ex of [8, 13]) { c.beginPath(); c.moveTo(ex, -18); c.lineTo(ex + 1.5, -24); c.lineTo(ex + 4, -18.5); c.fill(); c.stroke(); c.strokeStyle = '#1a1010'; c.beginPath(); c.moveTo(ex + 1.5, -24); c.lineTo(ex + 1.5, -27); c.stroke(); c.strokeStyle = '#2a1c16'; }
-    ellipse(c, 15, -15, 1.2, 1.2, '#2a8a4a'); ellipse(c, 15.3, -15, 0.5, 0.9, '#1a1010');
-    ellipse(c, 17.5, -12.5, 1, 0.8, '#3a2418');
-  }
+  const { shape, h, tint } = SHARED[kind], s = (h * k) / 24, air = ENEMIES[kind].air, hop = air ? 0 : Math.abs(Math.sin(bob)) * 1.2;
+  if (!air) ellipse(c, x, y + 1, h * k * 0.48, 2.6 * k, 'rgba(0, 0, 0, 0.22)');
+  c.save(); c.translate(x, y + 1 - hop); c.scale(face * s, s); c.lineJoin = 'round';
+  predator(c, shape, tint ?? TINT[shape], bob * 0.35);
   c.restore();
 }
 

@@ -2,6 +2,7 @@
 /* oxlint-disable next/no-html-link-for-pages -- Match the arcade's hard navigation so leaving always tears down the game loop. */
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { useHoverNote, type Note } from '../../components/hover-note';
 import { Game, DEFENDERS, ZOMBIES, LEVELS, ROWS, COLS, unlockedBy, type DefenderId, type ZombieId, type PlantResult } from '../../lib/cvz-game';
 import { drawLawn, drawDefenderIcon, drawZombieIcon, drawShovelIcon, zombie, toTile, seedPx, VIEW_W, VIEW_H, type Ghost } from '../../lib/cvz-scene';
 import { COATS, drawChinchilla } from '../../lib/chinchilla-art';
@@ -45,7 +46,21 @@ const heroes = (c: CanvasRenderingContext2D, w: number, h: number) => {
   c.restore();
 };
 
+const KIND_WORD = { producer: 'Finds seeds', shooter: 'Shooter', wall: 'Wall', mine: 'Trap', bomb: 'One use' } as const;
+/** Everything a defender does, for the note shown while the mouse rests on its packet. */
+function defenderNote(id: DefenderId, wait = 0): Note {
+  const d = DEFENDERS[id], stats: [string, string][] = [['Health', d.hp >= 9999 ? 'Cannot be eaten' : String(d.hp)], ['Ready again', `${d.recharge} s`]];
+  const lines: Note['lines'] = [];
+  if (d.kind === 'shooter') { stats.push(['Damage', `${d.dmg}${(d.shots ?? 1) > 1 ? ` × ${d.shots}` : ''}`], ['Every', `${d.rate} s`]); lines.push({ label: 'Aims', text: 'straight down its own lane, at the nearest zombie.' }); }
+  if (d.kind === 'producer') stats.push(['A pouch every', `${d.rate} s`], ['Worth', '25 seeds']);
+  if (d.kind === 'mine') { stats.push(['Damage', String(d.dmg)]); lines.push({ label: 'Arms', text: `in ${d.arm} seconds. Until then it is just a snack.` }); }
+  if (d.kind === 'bomb') { stats.push(['Damage', String(d.dmg)]); lines.push({ label: 'Lands', text: `after ${d.arm} second, on the 3 × 3 tiles around it.` }); }
+  if (d.slow) lines.push({ label: 'Chill', text: 'a hit zombie walks and bites at half speed for a while.' });
+  return { title: d.name, sub: `${d.cost} seeds · ${KIND_WORD[d.kind]}`, body: d.blurb, stats, lines, foot: wait > 0 ? `Ready in ${Math.ceil(wait)} s.` : undefined };
+}
+
 export default function ChinchillasVsZombies() {
+  const hover = useHoverNote();
   const [cleared, setCleared] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [screen, setScreen] = useState<'home' | 'play'>('home');
@@ -235,6 +250,7 @@ export default function ChinchillasVsZombies() {
             </div>
           ))}
         </div>
+        {hover.view}
       </main>
     );
   }
@@ -259,7 +275,7 @@ export default function ChinchillasVsZombies() {
         {g.unlocked.map((id, i) => {
           const d = DEFENDERS[id], wait = g.recharge[id] / d.recharge, poor = g.seeds < d.cost;
           return (
-            <button key={id} className={`cz-packet${tool === id ? ' on' : ''}${poor || wait > 0 ? ' dim' : ''}`} data-testid={`packet-${id}`} aria-pressed={tool === id} aria-label={`${i + 1}: ${d.name}, ${d.cost} seeds${wait > 0 ? ', recharging' : ''}`} onClick={() => { pick(id); canvas.current?.focus(); }}>
+            <button key={id} className={`cz-packet${tool === id ? ' on' : ''}${poor || wait > 0 ? ' dim' : ''}`} data-testid={`packet-${id}`} aria-pressed={tool === id} aria-label={`${i + 1}: ${d.name}, ${d.cost} seeds${wait > 0 ? ', recharging' : ''}`} onClick={() => { pick(id); canvas.current?.focus(); }} {...hover.tip(() => defenderNote(id, game.current?.recharge[id] ?? 0))}>
               <Icon draw={defIcon(id)} w={46} h={48} />
               <b>{d.cost}</b>
               {wait > 0 && <i style={{ height: `${wait * 100}%` }} />}
@@ -267,7 +283,7 @@ export default function ChinchillasVsZombies() {
             </button>
           );
         })}
-        <button className={`cz-packet cz-shovel${tool === 'shovel' ? ' on' : ''}`} data-testid="shovel" aria-pressed={tool === 'shovel'} aria-label="Shovel (S)" onClick={() => { pick('shovel'); canvas.current?.focus(); }}>
+        <button className={`cz-packet cz-shovel${tool === 'shovel' ? ' on' : ''}`} data-testid="shovel" aria-pressed={tool === 'shovel'} aria-label="Shovel (S)" onClick={() => { pick('shovel'); canvas.current?.focus(); }} {...hover.tip(() => ({ icon: '🪏', title: 'Shovel', sub: 'Free', body: 'Digs up a defender to make room for another. You get no seeds back.' }))}>
           <Icon draw={drawShovelIcon} w={46} h={48} /><small>S</small>
         </button>
       </section>
@@ -305,6 +321,7 @@ export default function ChinchillasVsZombies() {
         <button onClick={() => { g.pause(); refresh(); }} disabled={g.state === 'won' || g.state === 'lost'}>{g.state === 'paused' ? 'Resume' : 'Pause'} · P</button>
       </div>
       <p className="cz-tip">{tool === 'shovel' ? 'Click a defender to dig it up.' : tool ? `Planting ${DEFENDERS[tool].name}: click a tile on the lawn.` : `Tip: ${g.def.tip}`}</p>
+      {hover.view}
     </main>
   );
 }

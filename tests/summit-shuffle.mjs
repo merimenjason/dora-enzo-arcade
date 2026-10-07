@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {
-  Run, CARDS, CARD_IDS, POOL, STARTER_DECK, TRINKETS, TRINKET_IDS, STATUS, FOES, FOE_IDS, ACTS, HEROES, HERO_IDS, ALTITUDES, EVENT_IDS,
+  Run, CARDS, CARD_IDS, POOL, poolFor, STARTER_DECK, TRINKETS, TRINKET_IDS, STATUS, FOES, FOE_IDS, ACTS, HEROES, HERO_IDS, ALTITUDES, EVENT_IDS,
   ENERGY, HAND, MAX_HAND, ROWS, LANES, STOPS, REMOVE_PRICE, REMOVE_STEP, costOf, describe, valsOf, canUpgrade, GLOSSARY, glossFor,
 } from '../.checks/summit-shuffle-game.js';
 import { climb, fightTurn } from './summit-shuffle-bot.mjs';
@@ -27,9 +27,20 @@ const hpOf = (r, i = 0) => r.fight.foes[i].hp;
 
 // ---------- The data holds together ----------
 {
-  assert.equal(POOL.length, 48, 'forty-eight cards can be found');
-  const by = (rarity) => POOL.filter((id) => CARDS[id].rarity === rarity).length;
-  assert.deepEqual([by('common'), by('uncommon'), by('rare')], [18, 20, 10]);
+  assert.equal(POOL.length, 64, 'sixty-four cards can be found');
+  const by = (rarity, pool = POOL) => pool.filter((id) => CARDS[id].rarity === rarity).length;
+  assert.deepEqual([by('common'), by('uncommon'), by('rare')], [24, 26, 14]);
+  // Each chinchilla draws from the shared cards and their own; nobody's own card turns up for the other.
+  const dora = poolFor('dora'), enzo = poolFor('enzo'), shared = dora.filter((id) => enzo.includes(id));
+  assert.deepEqual([dora.length, enzo.length, shared.length], [45, 44, 25]);
+  assert.deepEqual(['common', 'uncommon', 'rare'].map((r) => by(r, dora)), [18, 16, 11]);
+  assert.deepEqual(['common', 'uncommon', 'rare'].map((r) => by(r, enzo)), [17, 18, 9]);
+  assert.ok(shared.every((id) => !CARDS[id].who) && dora.every((id) => CARDS[id].who !== 'enzo') && enzo.every((id) => CARDS[id].who !== 'dora'));
+  assert.ok(STARTER_DECK.every((id) => !CARDS[id].who), 'the starting deck is the same for both');
+  for (const hero of HERO_IDS) {
+    const r = Run.start({ seed: 77, hero, level: 0 }), other = hero === 'dora' ? 'enzo' : 'dora';
+    for (let i = 0; i < 400; i++) for (const rarity of ['common', 'uncommon', 'rare']) assert.notEqual(CARDS[r.randomCard(rarity)].who, other, `${hero} never finds one of ${other}'s cards`);
+  }
   assert.equal(STARTER_DECK.length, 10);
   assert.equal(TRINKET_IDS.length, 30);
   assert.equal(TRINKET_IDS.filter((t) => TRINKETS[t].tier === 'boss').length, 6);

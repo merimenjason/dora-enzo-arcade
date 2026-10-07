@@ -185,6 +185,10 @@ The round of 03-10-2026 was spent on the Claude Code setup, not the games:
 
 ## Known limitations and ideas for next time
 
+**Hover notes outside Summit Shuffle (07-10-2026).** `components/hover-note.tsx` is a small shared hook: a page calls `useHoverNote()`, spreads `tip(() => note)` on anything worth explaining (passing the element's own pointer handlers as the second argument so both run), and renders `view`. Chinchilla Clash (cards), Hay Maze Defence (towers, cards, relics), Chinchillas vs Zombies (packets) and Burrow Tactics (actions, chinchillas) use it; Burrow Barrage does not yet. Scrolling hides a note, so a browser test must scroll the thing into view before it hovers. Summit Shuffle keeps its own richer version in its page.
+
+**Units, same day.** Hay Maze's predators now come from the shared `predator-art` (its lynx is the cougar in a grey-tan tint); Clash's towers, capybara and gliders, the zombies' shading and Barrage's carts were redrawn in place.
+
 **Graphics pass of 07-10-2026.** Chinchilla Clash, Hay Maze Defence, Burrow Tactics, Burrow Barrage and Chinchillas vs Zombies were repainted in the manner of Summit Shuffle. Clash, Hay Maze and Barrage now paint their ground or far view once onto a canvas of their own (`paintArena`, `paintGround`, `paintBackdrop`) and copy it each frame, keyed on the level and the canvas scale; anything that changes the static picture must change that key. It was judged from screenshots of a handful of screens per game, not by playing. Scratch screenshot scripts are in `tests/e2e/.tmp/` (`maze-look`, `clash-look`, `barrage-look2`, `tactics-look`; git-ignored).
 
 The lists for Clash, Hay Maze and Chinchillas vs Zombies date from 26-09-2026 and have not been re-checked against the code since.
@@ -196,5 +200,5 @@ The lists for Clash, Hay Maze and Chinchillas vs Zombies date from 26-09-2026 an
 - **Chinchillas vs Zombies:** a night in progress is saved since 07-10-2026 (`Game.snapshot()` and `Game.restore()`) and comes back paused. There's no endless mode, no mini-games and no night-time or pool lawns. On a phone the lawn is small (tiles about 32 px); tap-to-preview keeps planting accurate.
 - **Chinchilla Scribble:** no bot plays the levels, and its limits haven't been written up.
 - **Burrow Tactics:** balance has only been tuned against the bot; nobody has played the campaign or a run by hand from start to finish. A campaign mission in progress is saved since 07-10-2026. The hint looks one turn ahead only.
-- **Summit Shuffle:** balanced against the bot only. Both chinchillas use one card pool; a second pool, one-use treats, and more chance meetings are the obvious next additions. The bot plans one turn at a time, so cards that need setting up (Belly Flop, Puff Up, Sore Spot) score badly in its trials and may be stronger in a person's hands than their numbers suggest.
+- **Summit Shuffle:** balanced against the bot only. Since 07-10-2026 each chinchilla has cards of their own (`who` on a card, `poolFor()`), sixteen of them new; the new ones have not been through `TRIAL=1`. One-use treats and more chance meetings are the obvious next additions. The bot plans one turn at a time, so cards that need setting up (Belly Flop, Puff Up, Sore Spot) score badly in its trials and may be stronger in a person's hands than their numbers suggest.
 - **Balance** has only been tuned against bots. Watch real players on levels 5–6 of Hay Maze, against Baron Ebony in Clash, and on nights 7–8 of Chinchillas vs Zombies, the hardest of each.

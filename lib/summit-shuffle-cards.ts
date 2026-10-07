@@ -95,8 +95,11 @@ export type CardDef = {
   fades?: boolean;
   /** Damage taken for each copy still in hand at the end of the turn. */
   sting?: number;
+  /** The one chinchilla who finds this card on a climb; cards without it turn up for both. */
+  who?: Who;
   play?: (g: Ops, v: Vals, t: number) => void;
 };
+export type Who = 'dora' | 'enzo';
 
 type Extra = Partial<Pick<CardDef, 'd' | 'b' | 'n' | 'exhaust' | 'fades' | 'sting'>>;
 const list: CardDef[] = [];
@@ -169,6 +172,35 @@ add('snowden', 'Snow Den', 'skill', 'rare', 2, 'snow', 'Gain {b} Fluff. Exhaust.
 add('encore', 'Encore', 'skill', 'rare', [1, 0], 'drum', 'Your next attack this turn is played twice.', {}, (g) => g.buff('encore', 1));
 add('brighteyed', 'Bright Eyed', 'power', 'rare', [1, 0], 'eye', 'Draw 1 more card every turn.', {}, (g) => g.buff('bright', 1));
 
+// ---------- Dora's own: quick paws, sore spots and many small hits ----------
+aimed('hopscotch', 'Hopscotch', 'attack', 'common', 1, 'jump', 'Deal {d} damage. Deal it again if you have already played a card this turn.', { d: [6, 8] }, (g, v, t) => { const again = g.playedBefore > 0; g.hit(t, v.d); if (again) g.hit(t, v.d); });
+aimed('earflick', 'Ear Flick', 'attack', 'common', 0, 'paw', 'Deal {d} damage. Gain 1 Zoomies until the end of this turn.', { d: [3, 5] }, (g, v, t) => { g.hit(t, v.d); g.buff('zoomies', 1); g.buff('rush', 1); });
+aimed('sidestep', 'Sidestep', 'skill', 'common', 1, 'zoom', 'Gain {b} Fluff. Apply 1 Exposed.', { b: [6, 9] }, (g, v, t) => { g.fluff(v.b); g.hex(t, 'exposed', 1); });
+aimed('pinpoint', 'Pinpoint', 'attack', 'uncommon', 1, 'eye', 'Deal {d} damage. Deal it again if the foe is Exposed.', { d: [7, 10] }, (g, v, t) => { const open = g.foeHas(t, 'exposed') > 0; g.hit(t, v.d); if (open) g.hit(t, v.d); });
+add('whirl', 'Whirligig', 'attack', 'uncommon', 2, 'tail', 'Deal {d} damage to ALL foes once for every card played this turn, this one included.', { d: [4, 5] }, (g, v) => { for (let i = g.playedBefore + 1; i > 0; i--) g.hitAll(v.d); });
+add('secondwind', 'Second Wind', 'skill', 'uncommon', 0, 'heart', ['Gain 1 energy. Draw 1 card. Exhaust.', 'Gain 1 energy. Draw 2 cards. Exhaust.'], { exhaust: true }, (g, v) => { g.addEnergy(1); g.draw(v.up ? 2 : 1); });
+aimed('thousandnips', 'A Thousand Nips', 'attack', 'rare', 2, 'bite', 'Deal {d} damage 6 times.', { d: [3, 4] }, (g, v, t) => { for (let i = 0; i < 6; i++) g.hit(t, v.d); });
+add('spotlight', 'Spotlight', 'skill', 'rare', 1, 'eye', 'Apply {n} Exposed to ALL foes. Exhaust.', { n: [3, 4], exhaust: true }, (g, v) => g.hexAll('exposed', v.n));
+
+// ---------- Enzo's own: a thick coat, burrs and heavy paws ----------
+aimed('thump', 'Thump', 'attack', 'common', 1, 'paw', 'Deal {d} damage.', { d: [10, 13] }, (g, v, t) => { g.hit(t, v.d); });
+add('hunker', 'Hunker Down', 'skill', 'common', 1, 'coat', 'Gain {b} Fluff.', { b: [10, 13] }, (g, v) => g.fluff(v.b));
+aimed('burrbite', 'Burr Bite', 'attack', 'common', 1, 'burr', 'Deal {d} damage. Apply {n} Burrs to ALL foes.', { d: [6, 8], n: [2, 3] }, (g, v, t) => { g.hit(t, v.d); g.hexAll('burrs', v.n); });
+add('quillburst', 'Quill Burst', 'attack', 'uncommon', 1, 'thorn', 'Deal {d} damage to ALL foes. Gain {n} Bristle.', { d: [5, 7], n: [2, 3] }, (g, v) => { g.hitAll(v.d); g.buff('bristle', v.n); });
+add('padding', 'Padding', 'skill', 'uncommon', 2, 'nest', 'Gain {b} Fluff. Draw 1 card.', { b: [14, 18] }, (g, v) => { g.fluff(v.b); g.draw(1); });
+aimed('burrroll', 'Burr Roll', 'skill', 'uncommon', 1, 'roll', 'Apply {n} Burrs and 1 Winded.', { n: [6, 8] }, (g, v, t) => { g.hex(t, 'burrs', v.n); g.hex(t, 'winded', 1); });
+add('earthshaker', 'Earthshaker', 'attack', 'rare', 2, 'rock', 'Deal {d} damage and apply {n} Winded to ALL foes.', { d: [10, 14], n: [1, 2] }, (g, v) => { g.hitAll(v.d); g.hexAll('winded', v.n); });
+add('ironhide', 'Iron Hide', 'power', 'rare', 2, 'coat', 'Gain {n} Thick Fur and {n} Bristle.', { n: [2, 3] }, (g, v) => { g.buff('fur', v.n); g.buff('bristle', v.n); });
+
+// Which of the cards above belong to one chinchilla. The rest, and everything in the starting deck, are shared.
+const ONLY: Record<Who, string[]> = {
+  dora: ['followup', 'flurry', 'windup', 'scamper', 'fullpelt', 'ambush', 'alarmbark', 'dustdevil', 'lightfeet', 'endless', 'encore', 'brighteyed',
+    'hopscotch', 'earflick', 'sidestep', 'pinpoint', 'whirl', 'secondwind', 'thousandnips', 'spotlight'],
+  enzo: ['burrfling', 'burrpatch', 'pricklycurl', 'bellyflop', 'burrstorm', 'sorespot', 'puffup', 'tangle', 'stickycoat', 'bramblecoat', 'deepburrow',
+    'thump', 'hunker', 'burrbite', 'quillburst', 'padding', 'burrroll', 'earthshaker', 'ironhide'],
+};
+for (const who of Object.keys(ONLY) as Who[]) for (const id of ONLY[who]) list.find((c) => c.id === id)!.who = who;
+
 // ---------- Cards nobody wants: predators and bad luck put them in the deck ----------
 add('daze', 'Daze', 'status', 'special', -2, 'daze', 'Cannot be played. Fades at the end of the turn.', { fades: true });
 add('thorn', 'Thorn', 'status', 'special', -2, 'thorn', 'Cannot be played. Deals 2 damage to you if it is in your hand at the end of your turn.', { sting: 2 });
@@ -179,6 +211,8 @@ export const CARDS: Record<string, CardDef> = Object.fromEntries(list.map((c) =>
 export const CARD_IDS = list.map((c) => c.id);
 /** The cards that can turn up as rewards and in the stall. */
 export const POOL = list.filter((c) => c.rarity === 'common' || c.rarity === 'uncommon' || c.rarity === 'rare').map((c) => c.id);
+/** The part of the pool one chinchilla draws from: the shared cards and their own. */
+export const poolFor = (who: Who) => POOL.filter((id) => !CARDS[id].who || CARDS[id].who === who);
 export const STARTER_DECK = ['nip', 'nip', 'nip', 'nip', 'nip', 'fluffup', 'fluffup', 'fluffup', 'fluffup', 'dustkick'];
 
 export type Card = { id: string; up: boolean; uid: number };

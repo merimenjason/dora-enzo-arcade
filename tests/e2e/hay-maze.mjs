@@ -33,6 +33,12 @@ try {
   assert.equal(await page.locator('.hm-tool').count(), 3, 'only the starter towers');
   const box = await board(page).boundingBox();
 
+  // Resting the mouse on it explains it.
+  await page.locator('[data-testid="build-flicker"]').scrollIntoViewIfNeeded(); await page.mouse.move(2, 2); await page.waitForTimeout(150);
+  await page.locator('[data-testid="build-flicker"]').hover();
+  assert.match(await page.getByTestId('hover-note').textContent(), /Pellet Flicker10 hay.*Damage9.*Upgrades ?twice/, 'a tower button says what the tower does');
+  await page.mouse.move(2, 2);
+  await page.waitForFunction(() => !document.querySelector('[data-testid="hover-note"]'));
   // Pick a bale card, turn it, and lay it where it fits.
   const slot = await game(page, 'r => r.battle.hand.findIndex((id) => id !== "shovel" && id !== "bundle" && id !== "cocoa")');
   await page.getByTestId(`card-${slot}`).click();
