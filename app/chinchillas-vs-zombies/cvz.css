@@ -94,3 +94,4 @@
   .cz-shell .cz-packet { width: 54px; }
   .cz-progress { width: 140px; }
 }
+.cz-kept { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 6px 0 4px; } .cz-kept small { color: #cfe3c2; }

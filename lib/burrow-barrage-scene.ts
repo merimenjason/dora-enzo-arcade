@@ -40,6 +40,39 @@ const THEMES: Theme[] = [
   { sky: ['#565aa4', '#ebb9a6'], far: '#8d83b4', grass: '#e6e9f2', under: '#a9afc0', soil: '#5d6072', deep: '#4a4c5c', mote: '#ffe9df' },
 ];
 const rgb = (hex: string): RGB => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+/** `a` moved `k` of the way towards `b`. */
+const blend = (a: string, b: string, k: number) => { const p = rgb(a), q = rgb(b); return `rgb(${p.map((v, i) => Math.round(v + (q[i] - v) * k)).join(',')})`; };
+const noise = (n: number) => { const v = Math.sin(n * 127.1 + 31.7) * 43758.5453; return v - Math.floor(v); };
+
+/** The far view behind a map: sky, sun or moon, a range of peaks and two lines of hills, each paler the further off it is. */
+function paintBackdrop(c: C2D, th: Theme, map: number) {
+  const night = map % THEMES.length === 5, sky = c.createLinearGradient(0, 0, 0, VIEW_H);
+  sky.addColorStop(0, blend(th.sky[0], '#1c2a6a', 0.22)); sky.addColorStop(0.35, th.sky[0]); sky.addColorStop(0.78, th.sky[1]); sky.addColorStop(1, th.sky[1]);
+  c.fillStyle = sky; c.fillRect(0, 0, VIEW_W, VIEW_H);
+  if (night) for (let i = 0; i < 90; i++) { c.fillStyle = `rgba(255, 255, 255, ${0.25 + noise(i) * 0.6})`; c.beginPath(); c.arc(noise(i + 9) * VIEW_W, noise(i + 40) * 190, 0.5 + noise(i + 70) * 0.9, 0, 7); c.fill(); }
+  const sx = VIEW_W * 0.82, sy = 62;
+  for (const [r, a] of [[170, 0.2], [80, 0.3], [42, 0.4]]) { const g = c.createRadialGradient(sx, sy, 0, sx, sy, r); g.addColorStop(0, `rgba(255, 246, 210, ${a})`); g.addColorStop(1, 'rgba(255, 246, 210, 0)'); c.fillStyle = g; c.fillRect(sx - r, sy - r, r * 2, r * 2); }
+  c.fillStyle = night ? '#f4f0ff' : '#fffbe6'; c.beginPath(); c.arc(sx, sy, 24, 0, 7); c.fill();
+  if (night) { c.fillStyle = 'rgba(160, 160, 200, 0.4)'; for (const [dx, dy, r] of [[-8, -5, 5], [7, 6, 3.4], [4, -10, 2.4]]) { c.beginPath(); c.arc(sx + dx, sy + dy, r, 0, 7); c.fill(); } }
+  // Peaks, lit from the sun's side, with snow on the tall ones.
+  const haze = th.sky[1], peak = blend(th.far, haze, 0.55), base = 300;
+  for (let i = 0; i < 9; i++) {
+    const x = -40 + i * 108 + noise(i + map * 3) * 50, h = 90 + noise(i * 2 + map) * 90, w = 90 + noise(i * 5 + map) * 70;
+    c.fillStyle = peak; c.beginPath(); c.moveTo(x - w, base); c.lineTo(x - w * 0.3, base - h * 0.62); c.lineTo(x, base - h); c.lineTo(x + w * 0.4, base - h * 0.5); c.lineTo(x + w, base); c.fill();
+    c.fillStyle = blend(peak, '#ffffff', 0.3); c.beginPath(); c.moveTo(x, base - h); c.lineTo(x + w * 0.4, base - h * 0.5); c.lineTo(x + w, base); c.lineTo(x + w * 0.2, base); c.fill();
+    if (h > 120) { c.fillStyle = 'rgba(255, 255, 255, 0.8)'; c.beginPath(); c.moveTo(x, base - h); c.lineTo(x + w * 0.16, base - h * 0.8); c.lineTo(x + w * 0.06, base - h * 0.74); c.lineTo(x - w * 0.02, base - h * 0.82); c.lineTo(x - w * 0.1, base - h * 0.76); c.lineTo(x - w * 0.14, base - h * 0.82); c.fill(); }
+  }
+  const mist = c.createLinearGradient(0, 200, 0, 310); mist.addColorStop(0, 'rgba(255, 255, 255, 0)'); mist.addColorStop(1, blend(haze, '#ffffff', 0.4)); c.fillStyle = mist; c.globalAlpha = 0.75; c.fillRect(0, 200, VIEW_W, 110); c.globalAlpha = 1;
+  // Two lines of hills in front of them, the nearer one darker and dotted with trees.
+  const ridge = (y0: number, amp: number, col: string, phase: number) => { c.fillStyle = col; c.beginPath(); c.moveTo(0, VIEW_H); for (let x = 0; x <= VIEW_W; x += 8) c.lineTo(x, y0 + amp * Math.sin(x / 97 + phase) + amp * 0.58 * Math.sin(x / 41 + phase * 2)); c.lineTo(VIEW_W, VIEW_H); c.fill(); };
+  const lineAt = (x: number, y0: number, amp: number, phase: number) => y0 + amp * Math.sin(x / 97 + phase) + amp * 0.58 * Math.sin(x / 41 + phase * 2);
+  ridge(228, 30, blend(th.far, haze, 0.38), map + 2.4);
+  ridge(250, 38, blend(th.far, haze, 0.1), map);
+  const tree = blend(th.far, '#1f3a2c', 0.4);
+  for (let i = 0; i < 70; i++) { const x = noise(i * 3 + map) * VIEW_W, y = lineAt(x, 250, 38, map) + 2 + noise(i) * 26, k = 0.6 + noise(i + 5) * 0.7; c.fillStyle = tree; c.globalAlpha = 0.55; c.beginPath(); c.moveTo(x - 4 * k, y); c.lineTo(x, y - 11 * k); c.lineTo(x + 4 * k, y); c.fill(); }
+  c.globalAlpha = 1;
+  const low = c.createLinearGradient(0, 260, 0, VIEW_H); low.addColorStop(0, 'rgba(255, 255, 255, 0)'); low.addColorStop(1, blend(haze, '#ffffff', 0.2)); c.fillStyle = low; c.globalAlpha = 0.5; c.fillRect(0, 260, VIEW_W, VIEW_H - 260); c.globalAlpha = 1;
+}
 
 type Sprite = { id: number; x: number; y: number; hp: number; alive: boolean; fade: number; flash: number; fx: number; fy: number; tx: number; ty: number };
 type Spark = { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number };
@@ -90,6 +123,9 @@ function drawBall(c: C2D, ride: RideId, shot: number, marker: boolean, x: number
   c.restore();
 }
 
+/** How many cells under the surface the soil goes on getting darker. */
+const DEEP = 14;
+
 export class Stage {
   ground: Uint8Array;
   sprites: Sprite[];
@@ -102,7 +138,7 @@ export class Stage {
   private camX = VIEW_W / 2; private camY = VIEW_H / 2; private panX = 0; private panY = 0; private snap = true;
   sfx: (name: string) => void = () => {};
   private theme: Theme; private tones: RGB[];
-  private land: HTMLCanvasElement; private img: ImageData;
+  private land: HTMLCanvasElement; private img: ImageData; private back: HTMLCanvasElement | null = null; private backKey = '';
   private queue: Event[] = []; private cur: Event | null = null; private t = 0; private dur = 0;
   private sparks: Spark[] = []; private floats: Float[] = [];
   private shake = 0; private banner = ''; private bannerLife = 0; private dusk = 0;
@@ -122,14 +158,25 @@ export class Stage {
   private paint(x0: number, y0: number, x1: number, y1: number) {
     x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0)); x1 = Math.min(W - 1, Math.ceil(x1)); y1 = Math.min(H - 1, Math.ceil(y1));
     if (x1 < x0 || y1 < y0) return;
-    const d = this.img.data, g = this.ground;
+    const d = this.img.data, g = this.ground, [grass, under, soil, deep] = this.tones;
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       const i = (y * W + x) * 4;
       if (!g[y * W + x]) { d[i + 3] = 0; continue; }
-      const open = (k: number) => y - k < 0 || !g[(y - k) * W + x];
-      const tone = open(1) ? 0 : open(2) || open(3) ? 1 : ((Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0) % 11 < 2 ? 3 : 2, [r, gr, b] = this.tones[tone];
-      const shade = tone >= 2 ? 1 - Math.min(0.22, (y / H) * 0.22) : 1;
-      d[i] = r * shade; d[i + 1] = gr * shade; d[i + 2] = b * shade; d[i + 3] = 255;
+      // How far under open air this cell is, which decides turf, the darker root layer, or soil.
+      let depth = 1; while (depth <= DEEP && y - depth >= 0 && g[(y - depth) * W + x]) depth++;
+      const n = ((Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0) % 97, wall = (x > 0 && !g[y * W + x - 1]) || (x < W - 1 && !g[y * W + x + 1]) || (y < H - 1 && !g[(y + 1) * W + x]);
+      let r: number, gr: number, b: number, k = 1;
+      if (depth === 1) { [r, gr, b] = grass; k = x % 3 === 0 ? 1.12 : 1.02; }
+      else if (depth <= 3 + (x % 5 === 0 ? 2 : x % 2)) { [r, gr, b] = under; k = depth === 2 ? 1.06 : 0.94; }
+      else {
+        // Soil darkens with depth below the surface and down the map, in wavering bands, with stones and darker clods.
+        const t = Math.min(1, (depth - 3) / (DEEP - 3)) * 0.55 + (y / H) * 0.45;
+        r = soil[0] + (deep[0] - soil[0]) * t; gr = soil[1] + (deep[1] - soil[1]) * t; b = soil[2] + (deep[2] - soil[2]) * t;
+        k = 1 + 0.05 * Math.sin(y * 0.55 + Math.sin(x * 0.045) * 3) - (y / H) * 0.14;
+        if (n < 9) k *= 0.84; else if (n > 93) k *= 1.22; else if (depth <= 6) k *= 0.9;
+      }
+      if (wall && depth > 1) k *= 0.8;
+      d[i] = Math.min(255, r * k); d[i + 1] = Math.min(255, gr * k); d[i + 2] = Math.min(255, b * k); d[i + 3] = 255;
     }
     this.land.getContext('2d')!.putImageData(this.img, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
   }
@@ -141,8 +188,8 @@ export class Stage {
       for (let y = ay; y <= by; y++) for (let x = ax; x <= bx; x++) if ((x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 <= r * r) this.ground[y * W + x] = 0;
       x0 = Math.min(x0, ax); y0 = Math.min(y0, ay); x1 = Math.max(x1, bx); y1 = Math.max(y1, by);
     }
-    // The grass line sits on the top three cells of any column, so repaint a little below the hole as well.
-    this.paint(x0, y0, x1, y1 + 4);
+    // The turf and the soil's shading depend on how far under open air a cell is, so repaint that far below the hole as well.
+    this.paint(x0 - 1, y0, x1 + 1, y1 + DEEP + 1);
   }
   private burst(x: number, y: number, n: number, colors: string[], power: number) {
     for (let i = 0; i < n; i++) {
@@ -260,19 +307,23 @@ export class Stage {
   draw(c: C2D, m: Match, time: number, o: Overlay) {
     const th = this.theme;
     c.save();
-    const sky = c.createLinearGradient(0, 0, 0, VIEW_H);
-    sky.addColorStop(0, th.sky[0]); sky.addColorStop(0.75, th.sky[1]); sky.addColorStop(1, th.sky[1]);
-    c.fillStyle = sky; c.fillRect(0, 0, VIEW_W, VIEW_H);
-    c.fillStyle = 'rgba(255, 250, 220, 0.85)'; c.beginPath(); c.arc(VIEW_W * 0.82, 62, 26, 0, 7); c.fill();
-    c.fillStyle = th.far; c.globalAlpha = 0.55;
-    c.beginPath(); c.moveTo(0, VIEW_H);
-    for (let x = 0; x <= VIEW_W; x += 16) c.lineTo(x, 250 + 38 * Math.sin(x / 97 + m.map) + 22 * Math.sin(x / 41 + m.map * 2));
-    c.lineTo(VIEW_W, VIEW_H); c.fill(); c.globalAlpha = 1;
+    const k = Math.abs(c.getTransform().a) || 1, key = `${m.map}|${k}`;
+    if (!this.back || this.backKey !== key) {
+      const cv = this.back ?? document.createElement('canvas');
+      cv.width = Math.ceil(VIEW_W * k); cv.height = Math.ceil(VIEW_H * k);
+      const g = cv.getContext('2d')!; g.setTransform(k, 0, 0, k, 0, 0);
+      paintBackdrop(g, th, m.map);
+      this.back = cv; this.backKey = key;
+    }
+    c.drawImage(this.back, 0, 0, VIEW_W, VIEW_H);
     // Clouds drift with the wind, so the sky itself says which way a shot will bend.
-    c.fillStyle = 'rgba(255, 255, 255, 0.7)';
-    for (let i = 0; i < 4; i++) {
-      const x = (((i * 233 + time * this.wind * 5) % (VIEW_W + 160)) + VIEW_W + 160) % (VIEW_W + 160) - 80, y = 40 + i * 31;
-      c.beginPath(); c.ellipse(x, y, 34, 9, 0, 0, 7); c.ellipse(x + 20, y - 6, 20, 9, 0, 0, 7); c.fill();
+    for (let i = 0; i < 5; i++) {
+      const x = (((i * 233 + time * this.wind * 5 * (0.7 + (i % 3) * 0.2)) % (VIEW_W + 200)) + VIEW_W + 200) % (VIEW_W + 200) - 100, y = 36 + i * 27, s = 0.8 + (i % 3) * 0.25;
+      for (const [fill, dy] of [['rgba(120, 140, 190, 0.28)', 3], ['rgba(255, 255, 255, 0.88)', 0]] as const) {
+        c.fillStyle = fill; c.beginPath();
+        for (const [dx, r] of [[-26, 9], [-10, 14], [8, 17], [26, 11], [40, 7]]) c.arc(x + dx * s, y + dy - r * s * 0.45, r * s, 0, 7);
+        c.rect(x - 34 * s, y + dy - 5 * s, 80 * s, 5 * s); c.fill();
+      }
     }
     // The drop under the map.
     const pit = c.createLinearGradient(0, VIEW_H - 46, 0, VIEW_H);

@@ -67,16 +67,27 @@ const DOOR = (() => { const p = project(-1.35, 2.7); return { x: p.x, y: p.y, u:
 function yard(c: CanvasRenderingContext2D, g: Game, time: number) {
   // Night sky with twinkling stars, the moon, and the rooftops across the street.
   const sky = c.createLinearGradient(0, 0, 0, 160);
-  sky.addColorStop(0, '#080a20'); sky.addColorStop(1, '#34306a');
+  sky.addColorStop(0, '#080a20'); sky.addColorStop(0.62, '#2c2a62'); sky.addColorStop(1, '#5a4a86');
   c.fillStyle = sky; c.fillRect(0, 0, VIEW_W, VIEW_H);
   for (const [i, s] of STARS.entries()) { c.globalAlpha = 0.5 + 0.5 * Math.sin(time * 1.5 + i); ellipse(c, s.x, s.y, s.r, s.r, '#ffffff'); }
   c.globalAlpha = 1;
-  glow(c, 760, 58, 64, 64, '255, 244, 214', 0.5);
-  ellipse(c, 760, 58, 24, 24, '#fff4d6'); ellipse(c, 752, 52, 4.5, 4.5, '#efe0b8'); ellipse(c, 768, 66, 3, 3, '#efe0b8');
-  c.fillStyle = '#161634';
-  for (const [x, w, h] of ROOFS) { c.beginPath(); c.moveTo(x, 150); c.lineTo(x, 150 - h * 0.5); c.lineTo(x + w / 2, 150 - h); c.lineTo(x + w, 150 - h * 0.5); c.lineTo(x + w, 150); c.fill(); }
-  c.fillStyle = '#ffd27a';
-  for (const [x, w, h] of ROOFS) c.fillRect(x + w / 2 - 4, 150 - h * 0.45, 8, 8);
+  glow(c, 760, 58, 150, 150, '200, 210, 255', 0.22); glow(c, 760, 58, 64, 64, '255, 244, 214', 0.5);
+  ellipse(c, 760, 58, 24, 24, '#fff4d6'); ellipse(c, 752, 52, 4.5, 4.5, '#efe0b8'); ellipse(c, 768, 66, 3, 3, '#efe0b8'); ellipse(c, 757, 68, 2, 2, '#efe0b8');
+  // Thin cloud drifting past the moon, and far trees and rooftops with lit windows and smoking chimneys.
+  for (let i = 0; i < 5; i++) { const x = ((i * 211 + time * (5 + i)) % (VIEW_W + 260)) - 130, y = 40 + i * 19; c.globalAlpha = 0.16; ellipse(c, x, y, 90, 7, '#c9c6f2'); ellipse(c, x + 40, y + 5, 60, 5, '#c9c6f2'); }
+  c.globalAlpha = 1;
+  c.fillStyle = '#10112c';
+  for (let i = 0; i < 26; i++) { const x = i * 36 + hash(i * 3) * 20, h = 16 + hash(i + 8) * 22; c.beginPath(); c.ellipse(x, 150 - h * 0.5, 13 + hash(i) * 8, h * 0.62, 0, 0, Math.PI * 2); c.fill(); }
+  for (const [x, w, h] of ROOFS) {
+    c.fillStyle = '#161634'; c.beginPath(); c.moveTo(x, 150); c.lineTo(x, 150 - h * 0.5); c.lineTo(x + w / 2, 150 - h); c.lineTo(x + w, 150 - h * 0.5); c.lineTo(x + w, 150); c.fill();
+    c.fillRect(x + w * 0.7, 150 - h * 0.92, 7, h * 0.3);
+    c.fillStyle = 'rgba(190, 200, 255, 0.2)'; c.beginPath(); c.moveTo(x + w / 2, 150 - h); c.lineTo(x + w, 150 - h * 0.5); c.lineTo(x + w - 4, 150 - h * 0.5 + 2); c.lineTo(x + w / 2, 150 - h + 5); c.fill();
+    for (let k = 0; k < 3; k++) { const p = ((time * 0.25 + k / 3 + x) % 1); c.globalAlpha = (1 - p) * 0.22; ellipse(c, x + w * 0.7 + 3.5 + Math.sin(p * 5 + x) * 4, 150 - h * 0.92 - p * 26, 3 + p * 6, 3 + p * 5, '#b9b6e0'); }
+    c.globalAlpha = 1;
+    glow(c, x + w / 2, 150 - h * 0.45 + 4, 16, 16, '255, 200, 110', 0.35);
+    c.fillStyle = '#ffd27a'; c.fillRect(x + w / 2 - 4, 150 - h * 0.45, 8, 8);
+    c.fillStyle = '#161634'; c.fillRect(x + w / 2 - 0.5, 150 - h * 0.45, 1, 8); c.fillRect(x + w / 2 - 4, 150 - h * 0.45 + 3.5, 8, 1);
+  }
   // The garden around the lawn, the street on the right, and the hedge along the back.
   c.fillStyle = '#173522'; c.fillRect(0, 146, VIEW_W, VIEW_H);
   floor(c, [[9.08, 0], [9.25, 0], [9.25, 5.6], [9.08, 5.6]], '#3a3c4f');
@@ -98,6 +109,14 @@ function yard(c: CanvasRenderingContext2D, g: Game, time: number) {
         c.moveTo(p.x, p.y); c.lineTo(p.x - 3 * p.s, p.y - 8 * p.s); c.moveTo(p.x, p.y); c.lineTo(p.x + 4 * p.s, p.y - 7 * p.s);
       }
       c.stroke();
+      // Lighter blades among them, and the odd night flower.
+      c.strokeStyle = '#4f9a5c'; c.lineWidth = 1.2; c.beginPath();
+      for (let col = 0; col < COLS; col++) for (let i = 0; i < 3; i++) {
+        const p = project(col + 0.1 + hash(r * 5 + col * 11 + i * 3) * 0.8, r + 0.15 + hash(col * 13 + r * 3 + i) * 0.75);
+        c.moveTo(p.x, p.y); c.lineTo(p.x + 1.5 * p.s, p.y - 7 * p.s); c.moveTo(p.x, p.y); c.lineTo(p.x - 3.5 * p.s, p.y - 5 * p.s);
+        if ((r * 7 + col * 5 + i) % 11 === 0) { c.stroke(); ellipse(c, p.x + 5 * p.s, p.y - 4 * p.s, 2.2 * p.s, 2 * p.s, (r + col) % 2 ? '#d9d2ff' : '#ffe9a8'); ellipse(c, p.x + 5 * p.s, p.y - 4 * p.s, 0.9 * p.s, 0.8 * p.s, '#f2b33a'); c.beginPath(); }
+      }
+      c.stroke();
     } else {
       c.strokeStyle = '#2a211c'; c.lineWidth = 2; c.beginPath();
       for (const b of [0.25, 0.5, 0.75]) { const a = project(0, r + b), z = project(COLS, r + b); c.moveTo(a.x, a.y); c.lineTo(z.x, z.y); }
@@ -105,8 +124,19 @@ function yard(c: CanvasRenderingContext2D, g: Game, time: number) {
     }
   }
   for (let r = 1; r < ROWS; r++) floor(c, [[0, r - 0.02], [COLS, r - 0.02], [COLS, r + 0.02], [0, r + 0.02]], 'rgba(10, 26, 16, 0.35)');
+  // Moonlight falls across the lawn from the street side, warm light from the burrow door on the other, and the nearest rows sit in shade.
+  const far0 = project(0, 0), near0 = project(0, ROWS), far1 = project(COLS, 0);
+  const across = c.createLinearGradient(near0.x, 0, far1.x + 80, 0);
+  across.addColorStop(0, 'rgba(255, 190, 110, 0.16)'); across.addColorStop(0.35, 'rgba(255, 190, 110, 0)'); across.addColorStop(0.7, 'rgba(170, 190, 255, 0)'); across.addColorStop(1, 'rgba(170, 190, 255, 0.2)');
+  floor(c, [[0, 0], [COLS, 0], [COLS, ROWS], [0, ROWS]], across);
+  const down = c.createLinearGradient(0, far0.y, 0, near0.y);
+  down.addColorStop(0, 'rgba(200, 215, 255, 0.1)'); down.addColorStop(0.5, 'rgba(0, 0, 0, 0)'); down.addColorStop(1, 'rgba(6, 6, 26, 0.22)');
+  floor(c, [[0, 0], [COLS, 0], [COLS, ROWS], [0, ROWS]], down);
   const f0 = project(0, ROWS), f1 = project(COLS, ROWS);
-  c.fillStyle = '#3b2a1c'; c.fillRect(f0.x, f0.y, f1.x - f0.x, 18);
+  const soil = c.createLinearGradient(0, f0.y, 0, f0.y + 18); soil.addColorStop(0, '#4a3524'); soil.addColorStop(1, '#22160f');
+  c.fillStyle = soil; c.fillRect(f0.x, f0.y, f1.x - f0.x, 18);
+  c.fillStyle = '#2a633f';
+  for (let x = f0.x; x < f1.x; x += 9) { const h = 3 + hash(x) * 4; c.beginPath(); c.moveTo(x, f0.y - 0.5); c.lineTo(x + 9, f0.y - 0.5); c.lineTo(x + 6.5, f0.y + h); c.lineTo(x + 4.5, f0.y + h * 0.4); c.lineTo(x + 2.5, f0.y + h); c.fill(); }
   // A gravel path for the hay carts, and the grassy mound of the burrow.
   floor(c, [[-1.05, 0], [-0.02, 0], [-0.02, 5.6], [-1.05, 5.6]], '#3a3244');
   floor(c, [[-4, 0], [-1.2, 0], [-0.9, 1.2], [-0.95, 2.6], [-0.9, 4], [-1.25, 5.6], [-4, 5.6]], '#2a5e3e');

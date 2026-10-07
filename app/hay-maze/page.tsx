@@ -166,7 +166,7 @@ export default function HayMaze() {
     if (screen !== 'play') return;
     const c = canvas.current?.getContext('2d');
     if (!c) return;
-    let raf = 0, last = 0, acc = 0, ui = 0;
+    let raf = 0, last = 0, acc = 0, ui = 0, kept = 0;
     const loop = (now: number) => {
       const r = run.current;
       if (!r) return;
@@ -190,7 +190,8 @@ export default function HayMaze() {
       }
       c.setTransform(SCALE, 0, 0, SCALE, 0, 0);
       drawMaze(c, b, now / 1000, ghost, b.towers.find((x) => x.id === pickedRef.current) ?? null);
-      if (now - ui > 120) { refresh(); keep(); ui = now; }
+      // Between waves every change is written at once; during one the meadow changes every frame, so it is written every second and a half.
+      if (now - ui > 120) { refresh(); if (run.current?.battle.phase !== 'wave' || now - kept > 1500) { keep(); kept = now; } ui = now; }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);

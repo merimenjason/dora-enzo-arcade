@@ -268,23 +268,54 @@ export class Stage {
     c.scale(k, k);
     const sky = c.createLinearGradient(0, 0, 0, VIEW_H); sky.addColorStop(0, p.sky[0]); sky.addColorStop(0.5, p.sky[1]); sky.addColorStop(1, p.sky[2]);
     c.fillStyle = sky; c.fillRect(0, 0, VIEW_W, VIEW_H);
-    // Two ranges of the Andes, then haze so the board stands clear of them.
+    // The sun, or over the high pass a moon and stars, and a few clouds lit from above.
+    const night = b.region === 2, sx = VIEW_W * 0.8, sy = 54;
+    if (night) for (let i = 0; i < 70; i++) { c.fillStyle = `rgba(255,255,255,${0.25 + hash(i * 3) * 0.6})`; ell(c, hash(i + 11) * VIEW_W, hash(i + 47) * 150, 0.5 + hash(i + 90) * 0.8, 0.5 + hash(i + 90) * 0.8); c.fill(); }
+    for (const [r, a] of [[150, 0.22], [70, 0.3], [36, 0.45]]) { const g = c.createRadialGradient(sx, sy, 0, sx, sy, r); g.addColorStop(0, `rgba(255,246,214,${a})`); g.addColorStop(1, 'rgba(255,246,214,0)'); c.fillStyle = g; c.fillRect(sx - r, sy - r, r * 2, r * 2); }
+    c.fillStyle = night ? '#f3efff' : '#fffbe8'; ell(c, sx, sy, 20, 20); c.fill();
+    if (night) { c.fillStyle = 'rgba(160,160,200,0.4)'; for (const [dx, dy, r] of [[-6, -4, 4.4], [6, 5, 3], [3, -9, 2]]) { ell(c, sx + dx, sy + dy, r, r); c.fill(); } }
+    for (let i = 0; i < 4; i++) {
+      const x = 70 + i * 210 + hash(i + b.region * 5) * 90, y = 40 + hash(i * 7 + b.region) * 60, k = 0.7 + hash(i + 3) * 0.5;
+      for (const [fill, dy] of [[night ? 'rgba(60,60,110,0.35)' : 'rgba(120,140,190,0.25)', 3], [night ? 'rgba(200,196,236,0.5)' : 'rgba(255,255,255,0.85)', 0]] as const) {
+        c.fillStyle = fill; c.beginPath(); for (const [dx, r] of [[-24, 8], [-9, 13], [8, 16], [25, 10], [38, 6]]) c.arc(x + dx * k, y + dy - r * k * 0.45, r * k, 0, 7); c.rect(x - 32 * k, y + dy - 5 * k, 76 * k, 5 * k); c.fill();
+      }
+    }
+    // Two ranges of the Andes, each peak with a lit face, then nearer hills with pines, then haze so the board stands clear of them.
     const range = (base: number, amp: number, seed: number, fill: string, snow: boolean) => {
       const pts: number[] = [0, VIEW_H, 0, base];
       for (let x = 0; x <= VIEW_W; x += 38) pts.push(x, base - amp * (0.35 + hash(seed + x) * 0.65) * (0.6 + 0.4 * Math.sin(x * 0.011 + seed)));
-      pts.push(VIEW_W, VIEW_H); c.fillStyle = fill; poly(c, pts); c.fill();
+      pts.push(VIEW_W, VIEW_H);
+      const body = c.createLinearGradient(0, base - amp, 0, base + 40); body.addColorStop(0, shade(fill, 1.06)); body.addColorStop(1, shade(fill, 0.92));
+      c.fillStyle = body; poly(c, pts); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.16)';
+      for (let i = 6; i < pts.length - 4; i += 2) { const [x0, y0, x1, y1, x2, y2] = [pts[i - 2], pts[i - 1], pts[i], pts[i + 1], pts[i + 2], pts[i + 3]]; if (y1 < y0 && y1 < y2) { poly(c, [x1, y1, x2, y2, x1 + (x2 - x1) * 0.3, y2 + (y2 - y1) * 0.5]); c.fill(); } }
       if (snow) { c.fillStyle = 'rgba(255,255,255,0.75)'; for (let i = 4; i < pts.length - 4; i += 2) { const y = pts[i + 1]; if (y < base - amp * 0.62) { poly(c, [pts[i] - 13, y + 15, pts[i], y, pts[i] + 13, y + 15, pts[i] + 5, y + 11, pts[i], y + 17, pts[i] - 6, y + 11]); c.fill(); } } }
     };
     range(190, 130, 3 + b.region, p.far, p.snow); range(238, 70, 9 + b.region, p.near, false);
+    const roll = (x: number) => 286 + 16 * Math.sin(x * 0.012 + b.region * 2) + 9 * Math.sin(x * 0.031 + b.region), hillCol = shade(p.near, 0.86);
+    c.fillStyle = hillCol; c.beginPath(); c.moveTo(0, VIEW_H); for (let x = 0; x <= VIEW_W; x += 10) c.lineTo(x, roll(x)); c.lineTo(VIEW_W, VIEW_H); c.fill();
+    for (let i = 0; i < 46; i++) {
+      const x = hash(i * 3 + b.region * 13) * VIEW_W, y = roll(x) + 3 + hash(i) * 12, k = 0.7 + hash(i + 5) * 0.7;
+      if (b.region === 1) { c.fillStyle = shade(p.near, 0.7); ell(c, x, y - 2 * k, 7 * k, 3.4 * k); c.fill(); c.fillStyle = 'rgba(255,240,210,0.25)'; ell(c, x - 1.5 * k, y - 3 * k, 4 * k, 1.6 * k); c.fill(); continue; }
+      for (const [dy, r] of [[0, 5], [-5, 4], [-9.4, 2.8]]) { c.fillStyle = shade(p.near, 0.62); poly(c, [x - r * k, y + dy * k, x, y + (dy - r * 1.5) * k, x + r * k, y + dy * k]); c.fill(); c.fillStyle = b.region === 2 ? 'rgba(236,244,255,0.5)' : 'rgba(255,255,255,0.14)'; poly(c, [x - r * k, y + dy * k, x, y + (dy - r * 1.5) * k, x - r * 0.1 * k, y + dy * k]); c.fill(); }
+    }
     const haze = c.createLinearGradient(0, 150, 0, VIEW_H); haze.addColorStop(0, 'rgba(255,255,255,0)'); haze.addColorStop(0.35, p.haze); haze.addColorStop(1, p.haze);
     c.fillStyle = haze; c.fillRect(0, 150, VIEW_W, VIEW_H);
     // The slab of earth, with strata.
     const L = [OX - SIZE * TW, OY + (SIZE - 1) * TH], B = [OX, OY + (2 * SIZE - 1) * TH], R = [OX + SIZE * TW, OY + (SIZE - 1) * TH];
     c.fillStyle = 'rgba(30,20,40,0.22)'; ell(c, OX, B[1] + DEPTH + 10, SIZE * TW * 0.92, 24); c.fill();
-    poly(c, [L[0], L[1], B[0], B[1], B[0], B[1] + DEPTH, L[0], L[1] + DEPTH]); ink(c, p.soil[0], INK, 1.6);
-    poly(c, [B[0], B[1], R[0], R[1], R[0], R[1] + DEPTH, B[0], B[1] + DEPTH]); ink(c, p.soil[1], INK, 1.6);
+    const face = (pts: number[], col: string) => { const g = c.createLinearGradient(0, B[1] - SIZE * TH, 0, B[1] + DEPTH); g.addColorStop(0, shade(col, 1.12)); g.addColorStop(1, shade(col, 0.72)); poly(c, pts); ink(c, g, INK, 1.6); };
+    face([L[0], L[1], B[0], B[1], B[0], B[1] + DEPTH, L[0], L[1] + DEPTH], p.soil[0]);
+    face([B[0], B[1], R[0], R[1], R[0], R[1] + DEPTH, B[0], B[1] + DEPTH], p.soil[1]);
     c.strokeStyle = 'rgba(40,24,20,0.28)'; c.lineWidth = 1;
     for (const d of [9, 17]) { c.beginPath(); c.moveTo(L[0], L[1] + d); c.lineTo(B[0], B[1] + d); c.lineTo(R[0], R[1] + d); c.stroke(); }
+    // Stones in the earth, and turf hanging over the edge.
+    for (let i = 0; i < 26; i++) {
+      const t = hash(i * 5 + 2), left = i % 2 === 0, x = left ? L[0] + (B[0] - L[0]) * t : B[0] + (R[0] - B[0]) * t, top = left ? L[1] + (B[1] - L[1]) * t : B[1] + (R[1] - B[1]) * t, y = top + 6 + hash(i + 9) * (DEPTH - 10), r = 1.6 + hash(i + 4) * 2.6;
+      c.fillStyle = 'rgba(30,18,16,0.3)'; ell(c, x + 0.6, y + 0.8, r, r * 0.7); c.fill(); c.fillStyle = shade(p.soil[left ? 0 : 1], 1.3); ell(c, x, y, r, r * 0.7); c.fill();
+    }
+    c.fillStyle = p.edge;
+    for (let i = 0; i <= 44; i++) { const t = i / 44, left = i % 2 === 0, x = left ? L[0] + (B[0] - L[0]) * t : B[0] + (R[0] - B[0]) * t, y = left ? L[1] + (B[1] - L[1]) * t : B[1] + (R[1] - B[1]) * t, h = 3 + hash(i * 3 + 1) * 4; poly(c, [x - 5, y - 0.5, x + 5, y - 0.5, x + 2.5, y + h, x, y + h * 0.5, x - 2.5, y + h]); c.fill(); }
     for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) {
       const [px, base] = tileCenter(x, y), i = idx(x, y), n = hash(i * 7 + b.region), hill = b.terrain[i] === 'hill', py = base - (hill ? RISE : 0);
       if (hill) { poly(c, [px - TW, py, px, py + TH, px, base + TH, px - TW, base]); ink(c, p.soil[0], INK, 1); poly(c, [px, py + TH, px + TW, py, px + TW, base, px, base + TH]); ink(c, p.soil[1], INK, 1); }
@@ -295,14 +326,24 @@ export class Stage {
         c.strokeStyle = 'rgba(120,170,200,0.55)'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(px - 8, py + 8 - n * 6); c.lineTo(px + 2, py + 3); c.lineTo(px + 6 + n * 8, py + 8); c.stroke();
         continue;
       }
-      if (b.terrain[i] === 'water') { ink(c, p.water[1], shade(p.water[1], 0.7), 1); diamond(c, px, py + 2, 0.86); c.fillStyle = p.water[0]; c.fill(); continue; }
+      if (b.terrain[i] === 'water') {
+        ink(c, p.water[1], shade(p.water[1], 0.7), 1); diamond(c, px, py + 2, 0.86); const wg = c.createLinearGradient(px - TW, py - TH, px + TW, py + TH); wg.addColorStop(0, shade(p.water[0], 1.12)); wg.addColorStop(1, p.water[1]); c.fillStyle = wg; c.fill();
+        c.strokeStyle = 'rgba(255,255,255,0.6)'; c.lineWidth = 1.2; c.lineCap = 'round'; c.beginPath(); c.moveTo(px - 12 + n * 8, py - 1); c.quadraticCurveTo(px - 7 + n * 8, py - 3.4, px - 2 + n * 8, py - 1); c.moveTo(px + 4, py + 5 - n * 3); c.quadraticCurveTo(px + 8, py + 3 - n * 3, px + 12, py + 5 - n * 3); c.stroke();
+        continue;
+      }
       ink(c, hill ? shade(p.grass[(x + y) % 2], 1.08) : p.grass[(x + y) % 2], p.edge, 1);
       // A few blades, flowers or pebbles, the same every time for the same tile.
       c.strokeStyle = p.blade; c.lineWidth = 1.1; c.lineCap = 'round';
-      for (let j = 0; j < 3; j++) { const bx = px + (hash(i * 3 + j) - 0.5) * 46, by = py + (hash(i * 5 + j) - 0.5) * 16; c.beginPath(); c.moveTo(bx, by); c.lineTo(bx - 1.5, by - 4); c.moveTo(bx + 2, by); c.lineTo(bx + 3, by - 3.5); c.stroke(); }
+      for (let j = 0; j < 6; j++) { const bx = px + (hash(i * 3 + j) - 0.5) * 46, by = py + (hash(i * 5 + j) - 0.5) * 16; if (Math.abs(bx - px) / TW + Math.abs(by - py) / TH > 0.8) continue; c.strokeStyle = j % 3 ? p.blade : shade(p.grass[0], 1.18); c.beginPath(); c.moveTo(bx, by); c.lineTo(bx - 1.5, by - 4); c.moveTo(bx + 2, by); c.lineTo(bx + 3, by - 3.5); c.moveTo(bx + 1, by); c.lineTo(bx + 0.8, by - 5); c.stroke(); }
       if (n > 0.55) { c.fillStyle = p.dots[Math.floor(n * 97) % p.dots.length]; ell(c, px + (n - 0.75) * 60, py + (hash(i) - 0.5) * 14, 1.7, 1.3); c.fill(); }
       if (b.terrain[i] === 'bramble') { c.fillStyle = 'rgba(40,60,30,0.28)'; diamond(c, px, py, 0.82); c.fill(); }
     }
+    // One light across the whole meadow: brighter at the back left, drawn in at the front right.
+    c.save(); poly(c, [L[0], L[1], OX, OY - TH - RISE, R[0], R[1], B[0], B[1]]); c.clip();
+    const lit = c.createLinearGradient(L[0], OY, R[0], B[1]); lit.addColorStop(0, 'rgba(255,248,206,0.2)'); lit.addColorStop(0.5, 'rgba(255,248,206,0)'); lit.addColorStop(1, 'rgba(30,16,60,0.16)');
+    c.fillStyle = lit; c.fillRect(L[0], OY - TH - RISE, R[0] - L[0], B[1] - OY + TH + RISE);
+    for (let i = 0; i < 26; i++) { const x = L[0] + hash(i * 2.3 + 5) * (R[0] - L[0]), y = OY + hash(i * 4.1 + 9) * (B[1] - OY), r = 30 + hash(i + 40) * 50, g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, i % 2 ? 'rgba(255,252,200,0.08)' : 'rgba(10,40,20,0.08)'); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.save(); c.translate(x, y); c.scale(1, 0.5); c.translate(-x, -y); c.fillRect(x - r, y - r, r * 2, r * 2); c.restore(); }
+    c.restore();
     this.bg = cv; this.bgKey = key;
     return cv;
   }

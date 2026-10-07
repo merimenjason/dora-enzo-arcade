@@ -219,10 +219,12 @@ export function field(layout: Layout, blocked: Set<number>) {
 // ---------- Saves ----------
 
 export const SAVE_VERSION = 1;
+/** A wave in progress: what is on the meadow and what is still to come. Saves from before waves were kept simply lack it. */
+export type WaveSave = { time: number; queue: { kind: EnemyId; at: number; entrance: number }[]; enemies: Enemy[]; shots: Shot[]; towers: { id: number; cool: number; target: number | null; aim: number }[] };
 export type BattleSave = {
   level: number; rocks: string; entrances: [number, number][]; exits: [number, number][]; blocks: number[]; blockKind: (PieceId | null)[];
   towers: { id: number; kind: TowerId; c: number; r: number; level: number; spent: number }[]; plan: WavePlan[]; hay: number; wave: number;
-  phase: 'build' | 'cleared'; hand: CardId[]; drawPile: CardId[]; discard: CardId[]; random: number; nextId: number; kills: number; leaked: number;
+  phase: 'build' | 'cleared' | 'wave'; live?: WaveSave; hand: CardId[]; drawPile: CardId[]; discard: CardId[]; random: number; nextId: number; kills: number; leaked: number;
 };
 export type RunSave = {
   v: number; seed: number; random: number; level: number; flame: number; maxFlame: number; deck: CardId[]; unlocked: TowerId[]; relics: RelicId[];
@@ -248,8 +250,6 @@ export class Run {
   battle: Battle;
   kills = 0;
   waves = 0;
-  /** The run as it stood when the current wave was sent, so leaving mid-wave resumes from the start of that wave. */
-  checkpoint: RunSave | null = null;
 
   constructor(seed = 1) {
     this.seed = seed;
@@ -261,7 +261,7 @@ export class Run {
 
   // ---------- Saving ----------
 
-  /** Everything needed to carry on later, as plain JSON. Only whole moments are saved: between waves, or choosing a reward. */
+  /** Everything needed to carry on later, as plain JSON: between waves, choosing a reward, or in the middle of a wave. */
   save(): RunSave {
     return {
       v: SAVE_VERSION, seed: this.seed, random: this.random.state(), level: this.level, flame: this.flame, maxFlame: this.maxFlame,
@@ -269,12 +269,8 @@ export class Run {
       rewards: JSON.parse(JSON.stringify(this.rewards)) as Reward[], kills: this.kills, waves: this.waves, battle: this.battle.save(),
     };
   }
-  /** What to keep right now: the run between waves or at the reward screen, the start of the wave during one, nothing once it's over. */
-  snapshot(): RunSave | null {
-    if (this.state === 'won' || this.state === 'lost') return null;
-    if (this.state === 'battle' && this.battle.phase === 'wave') return this.checkpoint;
-    return this.save();
-  }
+  /** What to keep right now: the run as it stands, or nothing once it's over. */
+  snapshot(): RunSave | null { return this.state === 'won' || this.state === 'lost' ? null : this.save(); }
   /** A run from `save()`, or null if the data is broken, from another version, or impossible. */
   static load(data: unknown): Run | null {
     try {
@@ -391,15 +387,19 @@ export class Battle {
     this.dist = this.field(null);
   }
 
-  /** This level between waves (or cleared), as plain JSON. */
+  /** This level as plain JSON: between waves, cleared, or part-way through a wave with everything on the meadow. */
   save(): BattleSave {
+    const wave: WaveSave | null = this.phase !== 'wave' ? null : {
+      time: this.time, queue: this.queue.map((q) => ({ ...q })), enemies: this.enemies.map((e) => ({ ...e, dir: [e.dir[0], e.dir[1]] as [number, number] })), shots: this.shots.map((x) => ({ ...x })),
+      towers: this.towers.map(({ id, cool, target, aim }) => ({ id, cool, target, aim })),
+    };
     return {
       level: this.level, rocks: this.layout.rocks.map((x) => (x ? '1' : '0')).join(''),
       entrances: this.entrances.map(([c, r]) => [c, r] as [number, number]), exits: this.exits.map(([c, r]) => [c, r] as [number, number]),
       blocks: [...this.blocks], blockKind: [...this.blockKind],
       towers: this.towers.map(({ id, kind, c, r, level, spent }) => ({ id, kind, c, r, level, spent })),
       plan: this.plan.map((w) => w.map(([k, n, g]) => [k, n, g] as [EnemyId, number, number])), hay: this.hay, wave: this.wave,
-      phase: this.phase === 'cleared' ? 'cleared' : 'build', hand: [...this.hand], drawPile: [...this.drawPile], discard: [...this.discard],
+      phase: this.phase === 'cleared' ? 'cleared' : wave ? 'wave' : 'build', ...(wave ? { live: wave } : {}), hand: [...this.hand], drawPile: [...this.drawPile], discard: [...this.discard],
       random: this.random.state(), nextId: this.nextId, kills: this.kills, leaked: this.leaked,
     };
   }
@@ -412,7 +412,7 @@ export class Battle {
     if (!Array.isArray(d.entrances) || !d.entrances.every(cell) || ![2, 4].includes(d.entrances.length) || !Array.isArray(d.exits) || d.exits.length !== 2 || !d.exits.every(cell)) return null;
     if (!Array.isArray(d.blocks) || d.blocks.length !== n || !d.blocks.every((x) => Number.isInteger(x) && x >= 0)) return null;
     if (!Array.isArray(d.blockKind) || d.blockKind.length !== n || !d.blockKind.every((x) => x === null || (typeof x === 'string' && x in PIECES))) return null;
-    if (!Number.isFinite(d.hay) || d.hay < 0 || !Number.isInteger(d.wave) || d.wave < 0 || d.wave > WAVES_PER_LEVEL || (d.phase !== 'build' && d.phase !== 'cleared')) return null;
+    if (!Number.isFinite(d.hay) || d.hay < 0 || !Number.isInteger(d.wave) || d.wave < 0 || d.wave > WAVES_PER_LEVEL || (d.phase !== 'build' && d.phase !== 'cleared' && d.phase !== 'wave')) return null;
     if (![d.hand, d.drawPile, d.discard].every((l) => Array.isArray(l) && l.every(isCard)) || d.hand.length > HAND_MAX) return null;
     if (!Array.isArray(d.plan) || d.plan.length !== WAVES_PER_LEVEL || !d.plan.every((w) => Array.isArray(w) && w.every((g) => Array.isArray(g) && typeof g[0] === 'string' && g[0] in ENEMIES && Number.isInteger(g[1]) && g[1] >= 0 && Number.isFinite(g[2])))) return null;
     if (!Number.isInteger(d.random) || !Number.isInteger(d.nextId) || !Number.isInteger(d.kills) || !Number.isInteger(d.leaked)) return null;
@@ -433,6 +433,20 @@ export class Battle {
     b.nextId = d.nextId;
     b.dist = b.field(null);
     if (b.entrances.some(([c, r]) => b.dist[r * COLS + c] >= INF)) return null;
+    if (d.phase === 'wave') {
+      // A wave in progress comes back paused, so nobody returns to predators already on the move.
+      const w = d.live, num = (...v: unknown[]) => v.every((x) => typeof x === 'number' && Number.isFinite(x));
+      if (!w || d.wave < 1 || !num(w.time) || ![w.queue, w.enemies, w.shots, w.towers].every(Array.isArray)) return null;
+      if (!w.queue.every((q) => q.kind in ENEMIES && num(q.at) && Number.isInteger(q.entrance) && q.entrance >= 0 && q.entrance < b.entrances.length / 2)) return null;
+      if (!w.enemies.every((e) => e.kind in ENEMIES && num(e.id, e.x, e.y, e.hp, e.maxHp, e.slow, e.slowT, e.stun, e.burn, e.burnT, e.progress, e.hit, e.bob) && e.hp > 0 && Array.isArray(e.dir) && num(e.dir[0], e.dir[1]) && Number.isInteger(e.entrance) && e.entrance >= 0 && e.entrance < b.entrances.length)) return null;
+      if (!w.shots.every((x) => num(x.id, x.x, x.y, x.sx, x.sy, x.tx, x.ty, x.speed, x.dmg, x.splash, x.t, x.total) && ['pellet', 'glider', 'boulder', 'moon'].includes(x.kind) && ['ground', 'air', 'both'].includes(x.hits))) return null;
+      b.time = w.time;
+      b.queue = w.queue.map((q) => ({ kind: q.kind, at: q.at, entrance: q.entrance }));
+      b.enemies = w.enemies.map((e) => ({ ...e, dir: [e.dir[0], e.dir[1]], face: e.face === -1 ? -1 : 1 }));
+      b.shots = w.shots.map((x) => ({ ...x }));
+      for (const t of w.towers) { const mine = b.towers.find((x) => x.id === t.id); if (!mine || !num(t.cool, t.aim)) return null; mine.cool = t.cool; mine.aim = t.aim; mine.target = typeof t.target === 'number' ? t.target : null; }
+      b.paused = true;
+    }
     return b;
   }
 
@@ -579,7 +593,6 @@ export class Battle {
 
   sendWave() {
     if (this.phase !== 'build' || this.wave >= WAVES_PER_LEVEL) return false;
-    this.run.checkpoint = this.run.save();
     this.wave++;
     this.phase = 'wave';
     let at = 0, n = 0;

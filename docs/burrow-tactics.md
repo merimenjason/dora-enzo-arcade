@@ -185,7 +185,7 @@ A run (`Run`) of seven battles (`RUN_STAGES`) with three chinchillas of your cho
 
 - `burrow-tactics-v1`: best stars for each mission, the most battles of a run ever won, the difficulties a run has been finished on, the difficulty last chosen, and whether sound is off. A save from before chapter two is read as it is, with no stars on the new missions.
 - `burrow-tactics-run-v2`: the run in progress (`Run.snapshot()`), written after every move, action and turn, so a run resumes exactly where it was left. It is removed when the run ends. (`-v1` runs, from before difficulty and second actions, are ignored.)
-- A campaign mission in progress is not saved.
+- `burrow-tactics-mission-v1`: a campaign mission in progress, as `{ index, battle }` with the battle from `Battle.snapshot()`. It is written when a mission starts and after every move, action and turn, and removed when the mission is won or lost. The home screen then offers **Continue Mission N**; picking a mission from the list starts it afresh.
 
 ## Drawing and animation
 

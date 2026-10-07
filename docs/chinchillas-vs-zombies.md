@@ -78,7 +78,7 @@ The night is won once every zombie has arrived and been stopped.
 
 ## Saves
 
-The page keeps `chinchillas-vs-zombies-v1` in `localStorage`: `{ cleared }`, the number of nights won. A night in progress isn't saved.
+The page keeps `chinchillas-vs-zombies-v1` in `localStorage`: `{ cleared }`, the number of nights won. A night in progress is kept under `chinchillas-vs-zombies-night-v1` as the JSON from `Game.snapshot()`: the lawn, the zombies, pellets, seed pouches, carts, recharges, the spawns still to come, and how many random numbers have been drawn (the generator's state is its seed plus a fixed step per draw, so `Game.restore()` jumps straight to it). The page writes it every second and a half and when the page is hidden or closed, and removes it when the night is won or lost. The home screen then offers **Continue Night N**, and the night comes back paused. `NIGHT_VERSION` guards the format.
 
 ## Controls
 

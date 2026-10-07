@@ -99,13 +99,16 @@ try {
   await page.waitForTimeout(1500);
   await page.screenshot({ path: '.checks/hay-maze/wave.png' });
 
-  // Leaving mid-wave resumes from the start of that wave.
+  // Leaving mid-wave keeps the wave: it comes back paused, with the predators where they were.
+  await page.keyboard.press('p');
+  await page.waitForSelector('[data-testid="board"][data-paused="true"]');
+  const midWave = await page.evaluate(() => { const b = window.__maze().battle; return JSON.stringify([b.wave, b.enemies.map((e) => [e.id, e.kind, e.hp, e.x, e.y]), b.queue.length]); });
   await page.reload();
   await page.getByTestId('continue').click();
-  await page.waitForSelector('[data-testid="board"][data-phase="build"]');
-  assert.equal(await state(page), before, 'back to just before wave 1');
-  await page.keyboard.press('Space');
-  await page.waitForSelector('[data-testid="board"][data-phase="wave"]');
+  await page.waitForSelector('[data-testid="board"][data-phase="wave"][data-paused="true"]');
+  assert.equal(await page.evaluate(() => { const b = window.__maze().battle; return JSON.stringify([b.wave, b.enemies.map((e) => [e.id, e.kind, e.hp, e.x, e.y]), b.queue.length]); }), midWave, 'the wave comes back as it was left');
+  await page.keyboard.press('p');
+  await page.waitForSelector('[data-testid="board"][data-phase="wave"][data-paused="false"]');
 
   // Pause and resume.
   await page.keyboard.press('p');

@@ -82,6 +82,13 @@ try {
   // End the turn: the second fox bites Enzo, then both move and aim again.
   await page.getByTestId('end-turn').click();
   await page.waitForSelector('[data-testid="board"][data-turn="2"][data-busy="0"]');
+
+  // Leaving part-way keeps the mission: the home screen offers it back exactly as it stood.
+  const keptUnits = await game(page, 't => JSON.stringify(t.battle.units)');
+  await page.reload();
+  await page.getByTestId('continue-mission').click();
+  await page.waitForSelector('[data-testid="board"][data-turn="2"][data-busy="0"]');
+  assert.equal(await game(page, 't => JSON.stringify(t.battle.units)'), keptUnits, 'the mission comes back as it was left');
   assert.equal((await unit(page, 'enzo'))[2], 3, 'Enzo was bitten');
   assert.equal(await page.getByTestId('turn').textContent(), 'TURN2 / 3');
   await page.screenshot({ path: '.checks/burrow-tactics/turn-2.png' });
