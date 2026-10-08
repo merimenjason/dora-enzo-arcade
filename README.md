@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of twenty-six original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of twenty-seven original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -36,6 +36,7 @@ Listed in arcade-menu order.
 | 24 | Summit Shuffle | `/summit` | Deck-building climb |
 | 25 | Poof Panic | `/poof` | Versus puzzle |
 | 26 | Burrow Express | `/express` | Transport puzzle |
+| 27 | Moonlight Mischief | `/moonlight` | Cozy stealth adventure |
 
 ## Run
 
@@ -694,6 +695,16 @@ The animation browser suite checks live counts, passenger hops, dry powder, paus
 
 **Docs:** [`docs/burrow-express.md`](docs/burrow-express.md).
 
+### 27 · Moonlight Mischief (`/moonlight`)
+
+**Play:** A painted moonlit village heist starring Dora and Enzo. Recover every treat, open the rescue cage with Enzo, and bring both chinchillas home before dawn. Three nights have five, six and seven treat bundles, two or three owl patrols, and time limits of 180, 165 and 150 seconds. Complete a night to unlock the next; untimed practice lets you learn with unlimited catches. Owls see within gold cones, with buildings blocking sight. Suspicion rises while seen and falls out of sight; three catches end a timed heist. Hide in hay, creep over noisy cobblestones, use dry dust to mask scent for 22 seconds, squeeze through fence gaps with Dora, or move a heavy obstacle with Enzo. Dora has a quiet dash with a four-second recharge; Enzo creates a misleading decoy rustle with an eight-second recharge. Rescue the friend, who finds the way home, then return both heroes. Earn a star for finishing, another for no catches, and another for finishing with a quarter of the night left. Heists save during play and resume paused. Dora retains her dark ruby eyes, and dust bowls contain dry powder.
+
+**Controls:** WASD or arrow keys move, Shift creeps, Q switches, Space uses the selected chinchilla's ability, and E interacts with a nearby object. Tap a path to navigate there; the village-object buttons offer the same destinations. Phones have a paw pad and a zoomable map. P / Escape pauses; M toggles sound. Focus loss pauses and clears held movement. Save & menu keeps the heist; Continue restores it paused.
+
+**Tests:** `npm run test:moonlight` (also in `npm test`) covers navigation, corner collision, abilities, rescue, hiding, dry dust, occluded sight, detection, timeout, save validation, deterministic replay and complete heists on all three nights. `npm run bot:moonlight` runs those three timed heists through legal routes and actions. `tests/e2e/moonlight.mjs` checks controls, path tapping, abilities, pause/focus loss, mid-heist saves, reduced motion, results and unlocking, asset failure recovery and four phone layouts.
+
+**Docs:** [`docs/moonlight-mischief.md`](docs/moonlight-mischief.md).
+
 ## Validation
 
 ```sh
@@ -711,7 +722,7 @@ Run `npm test` before the browser suites to generate the compiled engines they u
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-six ways/` assertion in `tests/e2e/dust-bath.mjs`, the 26-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs` and `tests/e2e/poof-panic.mjs` and `tests/e2e/burrow-express.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-seven ways/` assertion in `tests/e2e/dust-bath.mjs`, the 27-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs` and `tests/e2e/poof-panic.mjs` and `tests/e2e/burrow-express.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
