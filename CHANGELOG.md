@@ -4,6 +4,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 09-10-2026
 
+### Added
+
+- **Moonlight Mischief**: a painted moonlit village stealth adventure matching the approved mock-up. Switch between Dora’s quiet dash and fence gaps and Enzo’s distractions, obstacle pushing and rescue latch. Three nights, owl patrols with occluded vision and suspicion, noisy paths, hay hiding, dry-dust disguises, treat collection, a rescued friend, homecoming stars, untimed practice, phone controls and saved heists. Dora keeps her dark ruby eyes.
+
 ### Changed
 
 - **Burrow Express** now shows actual waiting chinchillas and exact queue counts, including empty platforms and a +N badge beyond eight visible passengers. Chinchillas breathe, blink, shuffle, board and alight; carts bounce with turning wheels. Painted platforms and lanterns, wooden sleepers, metal rails, coloured strips, direction markers and timber river crossings enrich the routes. Crowding pulses and dust-bath arrivals scatter dry powder. Pause and reduced-motion preferences settle decorative effects without changing gameplay.

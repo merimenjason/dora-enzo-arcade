@@ -135,7 +135,7 @@ try {
     fullPage: true,
   });
   await page.getByRole('link', { name: /MAIN ARCADE/ }).click();
-  assert.equal(await page.locator('.arcade-card').count(), 26);
+  assert.equal(await page.locator('.arcade-card').count(), 27);
   await page.locator('a[href="/mountain-retreat"]').click();
   await ready(page);
   await page.evaluate((k) => localStorage.setItem(k, '{"savedAt":"bad"}'), key);
