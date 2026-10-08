@@ -2,6 +2,16 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 09-10-2026
+
+### Changed
+
+- **Burrow Express** now shows actual waiting chinchillas and exact queue counts, including empty platforms and a +N badge beyond eight visible passengers. Chinchillas breathe, blink, shuffle, board and alight; carts bounce with turning wheels. Painted platforms and lanterns, wooden sleepers, metal rails, coloured strips, direction markers and timber river crossings enrich the routes. Crowding pulses and dust-bath arrivals scatter dry powder. Pause and reduced-motion preferences settle decorative effects without changing gameplay.
+
+### Fixed
+
+- **Burrow Express** dust baths contain dry matte powder; empty station artwork removes fixed passengers that could disagree with live queues. Dora retains her dark ruby eyes.
+
 ## 08-10-2026
 
 ### Added

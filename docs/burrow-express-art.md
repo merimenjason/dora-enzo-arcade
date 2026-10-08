@@ -1,13 +1,33 @@
 # Burrow Express — approved painted art
 
+## Live queues and railway art · 09-10-2026
+
+Generated with built-in imagegen, using the original station atlas or portrait as the reference, with transparent backgrounds. The original stations.png is retained as historical source; runtime uses stations-empty.png instead.
+
+- [Empty stations](../public/art/express/stations-empty.png): 3 × 2 cells, unchanged building order; no characters, dry powder only.
+- [Passengers](../public/art/express/passengers.png): 4 × 2 cells. Dora on the top row, Enzo below; idle, blink/ear twitch, shuffle and hop columns.
+- [Rail props](../public/art/express/rail-props.png): platform, lantern, trestle bridge and sleeper. The returned atlas has nonuniform regions: platform (0,0,1060,540), lantern (1060,0,476,540), bridge (0,540,880,484), sleeper (880,540,656,484). Runtime derives a bridge-deck crop; source PNGs are unchanged.
+
+### empty-stations
+
+Precisely edit this existing 3-column, 2-row transparent station sprite atlas. Keep all six buildings, their exact perspectives, scale, positions, signs, flags, foliage, wood textures, warm windows, cells and transparent padding. Remove EVERY chinchilla from EVERY station: the stone home, hay hut, dust basin, log cabin, mushroom cottage and root pantry must all be unoccupied. Repaint the vacated platforms naturally as empty wooden boards, stone steps and the existing floor. Waiting passengers will be separate live animated sprites in the actual game, so no baked-in characters can remain. Also correct the TOP-RIGHT dust bath: it is a shallow stone basin filled ONLY with matte pale grey/beige bathing POWDER with visible dry fine grains, little powder ridges and paw marks. NO WATER, no blue contents, no glossy liquid, no ripples, no splashes, no steam, no mist, no vapour and no bathers. Preserve the surrounding stone and timber fence. The other five cells are unchanged except for character removal. Keep EXACTLY the same 3x2 atlas geometry and rich painted style, output 1536x1024 PNG with genuine alpha transparency. No background, captions, grid or text.
+
+### passengers
+
+Create a production transparent animated character sprite atlas matching the exact painted Dora and Enzo in this reference portrait. Landscape 1536x1024, exactly FOUR COLUMNS and TWO ROWS, eight independent evenly spaced cells with generous transparent padding. Top row is Dora, the fluffy WHITE CHINCHILLA with dark subdued burgundy ruby irises #8e1f33, almost-black wine pupils #3b0913, round ears, short nose, pink paws and a bushy curled white tail. Bottom row is Enzo, the GREY CHINCHILLA with black eyes, darker grey fur and curled bushy grey tail. Both are seen full-body in the SAME slightly elevated three-quarter front perspective, facing a little right, with consistent proportions and body/feet anchors across cells. Columns for EACH row: 1 calm standing idle with open eyes; 2 same pose with blink and one subtly twitching ear; 3 small shuffling step with one paw lifted and a slight forward lean; 4 cheerful tiny hop with front paws raised and feet lifted. These are subtly different animation poses, NOT four redesigns or different camera angles. Painted soft detailed fur and clean dark outlines, exactly like the portrait. Keep tails and ears completely inside each cell. NO carts, scenery, buildings, captions, labels, grid, frames or props. Every pixel outside the isolated characters and tiny grounding shadows must be transparent. Do not use bright red eyes or glowing pupils. This atlas will draw actual waiting passengers and boarding/alighting animations.
+
+### rail-props
+
+Create a reusable game-prop atlas matching this exact rich painted woodland station art. Genuine transparent PNG, landscape 1536x1024, exactly TWO columns and TWO rows with four separate centred objects and generous transparent padding. TOP LEFT: an EMPTY low wooden waiting platform, a wide short weathered timber deck in slightly elevated front perspective, beautiful warm wood grain, worn plank edges, a few tiny moss/leaf details and four little corner supports; no walls or railings that would hide passengers. The deck footprint is about three times as wide as deep. No characters. TOP RIGHT: a warm golden lantern on a short dark wooden post. BOTTOM LEFT: a small wooden railway trestle bridge with planked deck and short supports, no water or landscape. BOTTOM RIGHT: one richly textured wooden railway sleeper with two little metal rail fixings, isolated horizontal object. Same cozy hand-painted materials and soft detailed outlines as the reference. No chinchillas, water, liquid, steam, captions, grid, numbers, labels, UI or background. Keep all pixels outside objects and minimal grounding shadows genuinely transparent. These props will sit under dynamically animated characters and along the actual game routes.
+
 The user approved the painted game mock-up and explicitly requested that the playable game match it. The visual layer uses authored raster artwork from that reference; do not replace it with simplified procedural cottages, triangle trees or the unrelated side-on chinchilla portrait.
 
 ## Assets
 
-Created with the built-in imagegen tool. All assets are 1536 × 1024 PNGs. The two atlases preserve genuine alpha transparency; padding is fitted at runtime without modifying the source pixels.
+Created with the built-in imagegen tool. All assets are 1536 × 1024 PNGs. The transparent atlases preserve genuine alpha transparency; padding is fitted at runtime without modifying the source pixels.
 
 - [Terrain](../public/art/express/terrain.png): rich painted woodland, roots, flowers, clearings and a winding stream. Cached as the map backdrop; Mossy Gorge and Starlit Summit add atmospheric colour washes.
-- [Station atlas](../public/art/express/stations.png): three columns, two rows: home burrow / hay market / dust baths; mountain retreat / mushroom cottage / root pantry.
+- [Historical station atlas](../public/art/express/stations.png), superseded by stations-empty.png: three columns, two rows: home burrow / hay market / dust baths; mountain retreat / mushroom cottage / root pantry.
 - [Cart atlas](../public/art/express/carts.png): three columns, two rows: empty cart / Dora / Enzo; both chinchillas / rock drill / rocky outcrop.
 - [Portrait](../public/art/express/duo.png): the painted Dora and Enzo portrait, replacing the earlier side-on drawing. Dora's eyes use dark burgundy ruby with nearly black wine pupils; Enzo's stay dark.
 
@@ -32,4 +52,3 @@ Extract and redraw small game sprites from this approved Burrow Express mock-up 
 ### duo
 
 Extract ONLY the Dora and Enzo portrait artwork from the upper RIGHT sidebar of this approved Burrow Express mock-up. Preserve the EXACT cute hand-painted characters, expressions, fluffy fur, round ears, front paws, wooden ledge, forest and mountain background. Fill a landscape portrait image approximately 3:2 with that artwork, naturally extending its background if needed. Dora is the WHITE chinchilla on the left: her eyes must be the reference's very DARK muted burgundy ruby #8e1f33 with nearly-black wine pupils #3b0913 and tiny white catchlights, subtle and natural, NOT bright red. Enzo is the GREY chinchilla on the right with black eyes. Keep their close friendly pose and the same softly painted detail. Remove all surrounding UI panels, border, heading, buttons, captions, numbers, and other game-map elements. No new text, no watermark. This must look like the very same portrait from the mock-up, not the simplified side-on cartoon chinchillas from another game.
-

@@ -1,4 +1,4 @@
-# Handoff · 08-10-2026
+# Handoff · 09-10-2026
 
 Where Dora & Enzo's Arcade stands, how the newest games fit together, how to check your work, and what is worth doing next. For the arcade as a whole, start with [`README.md`](README.md); for how the code is laid out and the traps to avoid, [`CLAUDE.md`](CLAUDE.md); for the documentation and changelog rules, [`AGENTS.md`](AGENTS.md).
 
@@ -6,7 +6,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Quality pass · 08-10-2026
 
-The four newest games received a focused quality pass on `fix/newest-games-quality-pass`. These changes are pending review until that branch is merged; merging to `main` deploys them.
+The four newest games received a focused quality pass on `fix/newest-games-quality-pass`. PR #15 is merged to main.
 
 - **Burrow Tactics** and **Burrow Barrage** bank finished battles immediately, while the result screen still waits for the animation. Leaving or reloading during a victory no longer loses stars or a run reward. A resumed Tactics reward is banked once.
 - **Burrow Barrage** releases walking, charging and board gestures between turns and on focus loss. Cancelled walking presses stop walking. Focused sliders keep their native arrow-key controls, and Space sets power to zero immediately when charging starts. Results resolved by the computer read the latest save, preserving current sound settings and earlier stars.
@@ -19,15 +19,17 @@ Validation completed with the project's locked runtime dependencies: typecheck, 
 This is a browser and regression pass, not a human balance or sound review. Real-phone gestures, animation feel, a listening pass and end-to-end human campaign/climb playtesting remain open. The eight lint findings in these four pages were reproduced on the unchanged baseline; they predate this pass.
 
 
-## Burrow Express · 08-10-2026
+## Burrow Express · 09-10-2026
 
 Game 26, `/express`, is on `feat/burrow-express` for review. It starts from the merged quality pass. It has a guided tutorial, three maps, eight-day shifts and Endless; route construction, transfers, fleet and seat upgrades, hay, rocky ground, cave-ins, mid-journey saving and touch controls. Full rules and balance numbers: [`docs/burrow-express.md`](docs/burrow-express.md).
 
-The usual split is `lib/burrow-express-game.ts`, `lib/burrow-express-scene.ts`, and `app/express/`. Checks: `npm run test:express`, `npm run bot:express`, `tests/e2e/burrow-express.mjs`. Save keys: `burrow-express-v1`, `burrow-express-run-v1`, and `burrow-express-sound-v1`. The browser hook is `window.__express()`.
+The usual split is `lib/burrow-express-game.ts`, `lib/burrow-express-scene.ts`, and `app/express/`. Checks: `npm run test:express`, `npm run bot:express`, `tests/e2e/burrow-express.mjs`, `tests/e2e/burrow-express-animation.mjs`. Save keys: `burrow-express-v1`, `burrow-express-run-v1`, and `burrow-express-sound-v1`. The browser hook is `window.__express()`.
 
 Routes and saves preserve passenger identities. The route finder ignores lines without carts and blocked tunnels. Editing parks a cart's passengers at the nearest end of its current segment before reassigning it. Dawn choices stop the engine clock. `Game.load` checks geometry, references, resources and passenger conservation before returning a saved route. Bump `v` if the saved shape changes. The game now uses the approved mock-up's painted terrain, station/cart atlases and close-up portrait, preserving Dora's dark ruby eyes. See `docs/burrow-express-art.md` for asset provenance and prompts; editing controls are in the station/tools drawer.
 
 Validation on 08-10-2026: typecheck, the complete engine/README suite, build, targeted lint, the full Burrow Express browser playthrough, arcade navigation and contrast across 27 routes passed. The planner won 9 of 12 seeded shifts, 3 of 4 per map.
+
+On 09-10-2026, live passenger groups and exact counts replaced baked-in station characters. Active art loads stations-empty.png, passengers.png and rail-props.png alongside terrain, carts and duo. Routes use sleepers, rails, coloured strips, timber crossings and directional markers. Transit events are presentation-only and excluded from v1 saves. The renderer follows passenger identities; pause/reduced motion suppress hops and freeze decoration. Dust baths contain dry powder. The focused animation suite passed with identity, simulation independence, pause, reduced motion, overflow and restored-count checks. Typecheck, targeted lint, the complete engine/README suite, production build, both Express browser suites and contrast across 27 routes passed. The planner remains at 9/12 seeded wins. These updates remain on PR #16 for review.
 
 Human balance playtesting, real-device gesture checks and listening to the cues remain open; the planner and browser playthroughs provide the first balance check. Merging the branch deploys the game.
 

@@ -225,3 +225,8 @@
   .be-play .be-fleet small { margin-bottom: 4px; }
   .be-play .be-legend { margin: 0; padding-top: 10px; }
 }
+
+.be-play .be-queue.busy { animation: be-crowding 1.6s ease-in-out infinite; }
+.be-play[data-paused="true"] .be-queue.busy { animation-play-state: paused; }
+@keyframes be-crowding { 50% { border-color: #ffe092; box-shadow: 0 0 14px #df983044; } }
+@media (prefers-reduced-motion: reduce) { .be-play .be-queue.busy { animation: none; } .be-play .be-meter i { transition: none; } }

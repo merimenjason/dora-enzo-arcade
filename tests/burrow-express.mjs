@@ -57,6 +57,20 @@ for (let map = 0; map < 3; map++) {
 }
 // Pausing halts every clock, an empty network loses, and crowding recovers after the queue is cleared.
 {
+  const g = Game.start(0, 'tutorial', 1); route(g, 0, [0, 1, 2, 3]); g.events = [];
+  g.update(1);
+  const boarded = g.events.filter((e) => e.t === 'board');
+  assert.equal(boarded.length, 4); assert.deepEqual(boarded.map((e) => e.passenger.id), g.carts[0].pax.map((p) => p.id));
+  assert.deepEqual(boarded.map((e) => e.slot), [0, 1, 2, 3]);
+  assert.ok(boarded.every((e) => e.cart === g.carts[0].id && e.station === 0 && e.from.at === 0));
+  g.events = [];
+  for (let i = 0; i < 100 && !g.events.some((e) => e.t === 'alight'); i++) g.update(.05);
+  const arrived = g.events.filter((e) => e.t === 'alight');
+  assert.ok(arrived.length > 0 && arrived.every((e) => e.delivered && e.passenger.dest === g.stations[e.station].kind));
+  assert.ok(!g.save().includes('"board"') && !g.save().includes('"alight"'), 'presentation events do not change the save schema');
+  conserve(g);
+}
+{
   const g = Game.start(0, 'challenge', 1); g.pause(true); const before = g.save(); g.update(2); assert.equal(g.save(), before);
   g.pause(false); g.passenger(0, 'hay'); for (let i = 0; i < CAPACITY; i++) g.passenger(0, 'hay');
   g.update(2); assert.ok(g.stations[0].crowd > 1); g.stations[0].queue = []; g.spawned = 0; advance(g, 2); assert.equal(g.stations[0].crowd, 0);
