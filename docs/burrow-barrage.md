@@ -75,7 +75,7 @@ The bot fails if any ride wins under 30% or over 70% of its matches. Rerun it af
 
 ## Known limits
 
-The focused browser suite, `tests/e2e/newest-quality.mjs`, checks interrupted walking, held keys across turns, keyboard slider controls and stars kept when leaving during a victory animation. It runs with the four games' main browser suites through `npm run test:e2e:newest`.
+The focused browser suite, `tests/e2e/newest-quality.mjs`, checks interrupted walking, held keys across turns, keyboard slider controls and stars kept when leaving during a victory animation. It runs with the recent games' main browser suites through `npm run test:e2e:newest`.
 
 - **Not played by hand.** See the note at the top.
 - **No saving mid-match**, and no online play: the arcade has no game server.
