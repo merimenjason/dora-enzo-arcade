@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 const browser = await chromium.launch();
 try {
- for (const route of ['chin-x-pit','fighter','escape','kart','hop','soccer','survival','adventure','checkpoint','checkpoint-remake','dust-bath','mountain-retreat','paw-buster','fluff-forge','fluffstevania']) {
+ for (const route of ['chin-x-pit','fighter','escape','kart','hop','soccer','survival','adventure','checkpoint','checkpoint-remake','dust-bath','mountain-retreat','paw-buster','fluff-forge','fluffstevania','express']) {
   const page = await browser.newPage();
   page.setDefaultTimeout(20000);
   await page.goto(`http://localhost:3000/${route}`);
@@ -11,8 +11,8 @@ try {
   assert.equal(await link.getAttribute('href'), '/');
   await link.click();
   await page.waitForSelector('.arcade-grid');
-  assert.equal(await page.locator('.arcade-card').count(), 25);
-  console.log(`PASS ${route} → main arcade (25 game cards)`);
+  assert.equal(await page.locator('.arcade-card').count(), 26);
+  console.log(`PASS ${route} → main arcade (26 game cards)`);
   await page.close();
  }
 } finally { await browser.close(); }

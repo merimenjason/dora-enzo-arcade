@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of twenty-five original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of twenty-six original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -35,6 +35,7 @@ Listed in arcade-menu order.
 | 23 | Burrow Barrage | `/barrage` | Turn-based artillery |
 | 24 | Summit Shuffle | `/summit` | Deck-building climb |
 | 25 | Poof Panic | `/poof` | Versus puzzle |
+| 26 | Burrow Express | `/express` | Transport puzzle |
 
 ## Run
 
@@ -677,6 +678,20 @@ Browser: `tests/e2e/poof-panic.mjs` checks the menu card, the home screen, movin
 
 **Docs:** [`docs/poof-panic.md`](docs/poof-panic.md).
 
+### 26 · Burrow Express (`/express`)
+
+**Play:** A transport puzzle starring Dora and Enzo. Draw coloured tunnels between homes (circles), hay markets (squares), dust baths (diamonds) and mountain retreats (triangles). Passengers use the shortest operating route, changing carts at shared stations. Three maps offer eight-day, six-minute shifts with targets of 100, 115 and 130 deliveries, or Endless until a platform overflows. A guided tutorial teaches drawing, destinations, deliveries and upgrades. Start with three lines, three four-seat carts, two rock drills and 62 hay. Each 45-second day brings an upgrade choice; new stations open until there are ten. More than eight passengers waiting for 18 seconds ends the route. Departures cost hay, hay deliveries replenish it, rocky crossings use drills, and occasional cave-ins can be cleared or routed around. Removing stops or freeing a cart preserves its passengers. The route saves as you play and resumes paused; records and tutorial completion stay in this browser. Dora uses the same dark ruby eyes as the other recent games.
+
+**Controls:**
+
+- Drag between buildings, or tap stations in order. Station buttons below the map do the same with larger targets.
+- 1–5 select a line; arrow keys select a station and Enter connects it while the map has focus. Z removes the last stop, A adds a cart, and L joins or opens a loop.
+- P / Escape pauses; F cycles game speed and M toggles sound. The game pauses on focus loss. **Reroute** pauses for planning; **Save & menu** keeps your route; **Continue your route** returns paused.
+
+**Tests:** `npm run test:express` (also in `npm test`) covers routing and transfers, resources, safe edits, passenger conservation, crowding, growth, upgrades, cave-ins, tutorial completion, snapshots, invalid saves, nine seeded shifts and Endless past day eight. `npm run bot:express` checks twelve seeded shifts across all three maps. Browser: `tests/e2e/burrow-express.mjs` plays the tutorial and a full shift through the controls, checks drag cancellation, keyboard, cart assignment, loops, edits, mid-journey saves, focus loss, cave-ins, records, losing and broken saves, and native touch drawing with four phone layouts.
+
+**Docs:** [`docs/burrow-express.md`](docs/burrow-express.md).
+
 ## Validation
 
 ```sh
@@ -684,7 +699,7 @@ npm run typecheck
 npm test
 npm run build
 npm run test:e2e   # optional; needs `npm run dev` running and `npm i -D playwright`
-npm run test:e2e:newest  # the four newest games and interrupted-input / progress regressions
+npm run test:e2e:newest  # the recent games and interrupted-input / progress regressions
 ```
 
 `npm test` compiles the game engines and runs each game's deterministic suite. It also runs `tests/readme.mjs`, which fails if the **Games** table and **Game guides** above drift from the arcade menu in `app/page.tsx`.
@@ -694,7 +709,7 @@ Run `npm test` before the browser suites to generate the compiled engines they u
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-five ways/` assertion in `tests/e2e/dust-bath.mjs`, the 25-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs` and `tests/e2e/poof-panic.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-six ways/` assertion in `tests/e2e/dust-bath.mjs`, the 26-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs` and `tests/e2e/poof-panic.mjs` and `tests/e2e/burrow-express.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

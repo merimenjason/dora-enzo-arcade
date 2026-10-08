@@ -12,11 +12,24 @@ The four newest games received a focused quality pass on `fix/newest-games-quali
 - **Burrow Barrage** releases walking, charging and board gestures between turns and on focus loss. Cancelled walking presses stop walking. Focused sliders keep their native arrow-key controls, and Space sets power to zero immediately when charging starts. Results resolved by the computer read the latest save, preserving current sound settings and earlier stars.
 - **Poof Panic** pauses matches and Endless on focus loss and clears held input and unfinished gestures. A cancelled gesture does not rotate or hard-drop a pair; ordinary taps still work after cancellation.
 - **Summit Shuffle** keeps the hand scrollable on landscape phones and narrow tablets rather than spilling sideways, and its introduction describes shared cards and each hero's own cards accurately.
-- **Repeatable checks:** `npm run test:e2e:newest` runs the four main browser suites and `tests/e2e/newest-quality.mjs`. Run `npm test` first to compile the engines and keep `npm run dev` running. The quality suite includes portrait and landscape layouts at 320 × 568, 568 × 320, 390 × 844 and 844 × 390.
+- **Repeatable checks:** `npm run test:e2e:newest` runs the four quality-pass browser suites, Burrow Express and `tests/e2e/newest-quality.mjs`. Run `npm test` first to compile the engines and keep `npm run dev` running. The quality suite includes portrait and landscape layouts at 320 × 568, 568 × 320, 390 × 844 and 844 × 390.
 
 Validation completed with the project's locked runtime dependencies: typecheck, `npm test`, the production build, all four main browser suites, all 16 quality regressions and the contrast check across 26 routes passed. Screenshots of the four phone layouts were inspected; browser checks reported no page errors.
 
 This is a browser and regression pass, not a human balance or sound review. Real-phone gestures, animation feel, a listening pass and end-to-end human campaign/climb playtesting remain open. The eight lint findings in these four pages were reproduced on the unchanged baseline; they predate this pass.
+
+
+## Burrow Express · 08-10-2026
+
+Game 26, `/express`, is on `feat/burrow-express` for review. It starts from the merged quality pass. It has a guided tutorial, three maps, eight-day shifts and Endless; route construction, transfers, fleet and seat upgrades, hay, rocky ground, cave-ins, mid-journey saving and touch controls. Full rules and balance numbers: [`docs/burrow-express.md`](docs/burrow-express.md).
+
+The usual split is `lib/burrow-express-game.ts`, `lib/burrow-express-scene.ts`, and `app/express/`. Checks: `npm run test:express`, `npm run bot:express`, `tests/e2e/burrow-express.mjs`. Save keys: `burrow-express-v1`, `burrow-express-run-v1`, and `burrow-express-sound-v1`. The browser hook is `window.__express()`.
+
+Routes and saves preserve passenger identities. The route finder ignores lines without carts and blocked tunnels. Editing parks a cart's passengers at the nearest end of its current segment before reassigning it. Dawn choices stop the engine clock. `Game.load` checks geometry, references, resources and passenger conservation before returning a saved route. Bump `v` if the saved shape changes. Dora and Enzo use the shared art, including Dora's dark ruby iris and deep wine pupil.
+
+Validation on 08-10-2026: typecheck, the complete engine/README suite, build, targeted lint, the full Burrow Express browser playthrough, arcade navigation and contrast across 27 routes passed. The planner won 9 of 12 seeded shifts, 3 of 4 per map.
+
+Human balance playtesting, real-device gesture checks and listening to the cues remain open; the planner and browser playthroughs provide the first balance check. Merging the branch deploys the game.
 
 ## Current state
 

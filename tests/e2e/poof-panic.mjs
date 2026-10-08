@@ -18,7 +18,7 @@ try {
   // The arcade lists the cabinet.
   const menu = await browser.newPage();
   await menu.goto(base);
-  assert.equal(await menu.locator('.arcade-card').count(), 25);
+  assert.equal(await menu.locator('.arcade-card').count(), 26);
   assert.match(await menu.locator('a.arcade-card[href="/poof"]').textContent(), /Poof Panic/);
   await menu.close();
 
