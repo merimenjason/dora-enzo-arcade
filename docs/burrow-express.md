@@ -18,7 +18,7 @@ All three maps are available from the start. Each begins with four stations, one
 
 ## Passengers and lines
 
-Destinations are both shapes and colours: **circle** for a home, **square** for hay, **diamond** for a dust bath, **triangle** for a retreat. The shapes under a building are its waiting passengers' destinations.
+Destinations are both shapes and colours: **circle** for a home, **square** for hay, **diamond** for a dust bath, **triangle** for a retreat. The symbols above waiting chinchillas show their destinations. Every station shows its exact live count, including zero. Platforms draw up to eight actual passengers; larger queues show a +N overflow badge.
 
 A line is an ordered list of distinct stations. Carts shuttle back and forth, or go around a loop when the ends are joined. Different lines can share stations, but the same station cannot appear twice on one line. The first cart is assigned automatically when a line gets its second station and a spare cart is available.
 
@@ -58,7 +58,9 @@ After taking an upgrade, spare carts still need to be assigned with **Add cart**
 
 ## Art, sound and saving
 
-The game uses the approved mock-up's painted woodland terrain, six station illustrations, wooden cart sprites and close-up Dora/Enzo portrait. Two transparent sprite atlases preserve the foliage, fur and wood-grain detail; the renderer draws live curved tunnels, captions, queues, crowding indicators and moving carts over them. Carts follow the visible track curves. Assets preload before play. Mossy Gorge and Starlit Summit add their own atmosphere to the cached painted backdrop.
+The game uses the approved mock-up's painted woodland terrain, six empty station illustrations, wooden cart sprites and close-up Dora/Enzo portrait, plus separate passenger and railway-prop atlases. All six active assets preload before play. The empty stations have no baked-in passengers; dust baths contain matte dry powder. Routes have wooden sleepers, metal rails, coloured line strips, timber crossings and direction markers. Carts follow the visible track curves. Mossy Gorge and Starlit Summit add their own atmosphere to the cached painted backdrop.
+
+Waiting chinchillas breathe, blink, twitch an ear and shuffle as the queue changes. Actual engine boarding and alighting events drive passenger hops; cart wheels turn, carts bounce lightly, lanterns glow and crowded platforms pulse. Dust-bath arrivals scatter dry grains. Animations follow passenger identities, never change simulation counts, and are not saved. Pausing freezes decorative motion and settles passenger hops onto the current engine state. Reduced-motion preferences suppress these effects while gameplay continues. A restored route rebuilds its live queue visuals from the saved passengers.
 
 Dora keeps her dark burgundy ruby eyes and deep wine pupils, while Enzo's eyes remain dark. The interface follows the reference: map and compact tunnel bar on the left, portrait, busiest-platform meter and painted upgrade cards on the right. **Stations & route tools** opens the extra editing controls; it begins open on phones for larger touch targets. Destination symbols remain distinct without relying on colour alone. Asset provenance and exact prompts are in [`burrow-express-art.md`](burrow-express-art.md).
 
@@ -73,6 +75,7 @@ Dora keeps her dark burgundy ruby eyes and deep wine pupils, while Enzo's eyes r
 - `app/express/`: page, styles, metadata and sound. `window.__express()` exposes `{ game, stage, fast, advance }` to single-player browser checks.
 - `npm run test:express` (also in `npm test`): construction, limits, transfers, unserved lines, seats, fuel, safe edits, tutorial completion, crowding and recovery, pause, upgrades, stations opening, cave-ins, save/replay, malformed saves, passenger conservation and nine real seeded shifts. At least six of nine must be won by the planner, and Endless must continue beyond day eight.
 - `npm run bot:express`: twelve seeded shifts across the three maps, through the player's own build and upgrade rules. At least nine must be won. Rerun after any balance change.
+- `tests/e2e/burrow-express-animation.mjs` (in both browser suites): live zero/overflow queues, passenger identity, boarding/alighting, dry powder, simulation independence, pause, reduced motion and restored counters.
 - `tests/e2e/burrow-express.mjs` (in `npm run test:e2e`): tutorial, actual drawing/cancellation, keyboard, carts and loops, route edits, saving mid-journey, focus loss, clearing a cave-in, a whole eight-day shift through the controls, records, losing, broken saves, native touch drawing and four portrait/landscape phone sizes.
 
 On 08-10-2026 the planner won 9 of 12 shifts (3 of 4 on each map); the smaller engine gate won 6 of 9. Balance is checked with this planner and browser playthroughs. Human difficulty, real-phone gesture feel and a listening pass remain useful follow-ups.

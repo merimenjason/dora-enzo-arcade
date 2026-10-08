@@ -40,7 +40,10 @@ export const UPGRADES: Record<Upgrade, { name: string; icon: string; text: strin
   speed: { name: 'Quick wheels', icon: '»', text: 'All carts travel 15% faster, up to 240.' },
   hay: { name: 'Hay hamper', icon: '✦', text: '40 hay for a busy network, up to the store limit.' },
 };
-export type Ev = { t: 'build' | 'deliver' | 'station' | 'upgrade' | 'warning' | 'won' | 'lost'; station?: number; n?: number };
+export type CueEv = { t: 'build' | 'deliver' | 'station' | 'upgrade' | 'warning' | 'won' | 'lost'; station?: number; n?: number };
+/** Transient presentation events; passenger identities and the simulation remain authoritative. Not saved. */
+export type TransitEv = { t: 'board' | 'alight'; station: number; cart: number; passenger: Passenger; slot: number; delivered: boolean; from: { at: number; to: number; progress: number } };
+export type Ev = CueEv | TransitEv;
 export type State = 'running' | 'upgrade' | 'won' | 'lost';
 export type Mode = 'challenge' | 'endless' | 'tutorial';
 const edgeKey = (a: number, b: number) => `${Math.min(a, b)}:${Math.max(a, b)}`;
@@ -73,7 +76,8 @@ export class Game {
   get dayLeft() { return Math.max(0, DAY - this.time % DAY); }
   pause(on: boolean) { this.paused = on; }
   position(c: Cart) { const a = this.stations[c.at], b = this.stations[c.to] ?? a; return { x: a.x + (b.x - a.x) * c.progress, y: a.y + (b.y - a.y) * c.progress }; }
-  private emit(t: Ev['t'], station?: number, n?: number) { this.events.push({ t, station, n }); }
+  private emit(t: CueEv['t'], station?: number, n?: number) { this.events.push({ t, station, n }); }
+  private transit(t: TransitEv['t'], c: Cart, p: Passenger, station: number, slot: number, delivered = false) { this.events.push({ t, cart: c.id, passenger: { ...p }, station, slot, delivered, from: { at: c.at, to: c.to, progress: c.progress } }); }
   /** A drill is needed where the straight tunnel crosses a rock outcrop. Already dug tunnels are shared. */
   needsDrill(a: number, b: number) {
     if (this.mode === 'tutorial' || this.bored.includes(edgeKey(a, b))) return false;
@@ -137,8 +141,8 @@ export class Game {
   }
   private returnPassengers(c: Cart, at: number) {
     for (const p of c.pax) {
-      if (p.dest === this.stations[at].kind) { this.delivered++; this.hay = Math.min(120, this.hay + (p.dest === 'hay' ? 3 : 0.5)); this.emit('deliver', at); }
-      else this.stations[at].queue.push(p);
+      if (p.dest === this.stations[at].kind) { this.transit('alight', c, p, at, 0, true); this.delivered++; this.hay = Math.min(120, this.hay + (p.dest === 'hay' ? 3 : 0.5)); this.emit('deliver', at); }
+      else { this.stations[at].queue.push(p); this.transit('alight', c, p, at, this.stations[at].queue.length - 1); }
     }
   }
   blocked(a: number, b: number) { return !!this.block && edgeKey(a, b) === edgeKey(this.block.a, this.block.b) && this.time < this.block.until; }
@@ -186,12 +190,12 @@ export class Game {
   private service(c: Cart) {
     const s = this.stations[c.at], next = this.next(c), keep: Passenger[] = [];
     for (const p of c.pax) {
-      if (p.dest === s.kind) { this.delivered++; this.hay = Math.min(120, this.hay + (p.dest === 'hay' ? 3 : 0.5)); this.emit('deliver', s.id); }
+      if (p.dest === s.kind) { this.transit('alight', c, p, s.id, 0, true); this.delivered++; this.hay = Math.min(120, this.hay + (p.dest === 'hay' ? 3 : 0.5)); this.emit('deliver', s.id); }
       else if (this.path(s.id, p.dest)?.[1] === next) keep.push(p);
-      else { s.queue.push(p); this.transfers++; }
+      else { s.queue.push(p); this.transfers++; this.transit('alight', c, p, s.id, s.queue.length - 1); }
     }
     c.pax = keep; s.queue.sort((a, b) => a.born - b.born || a.id - b.id);
-    s.queue = s.queue.filter((p) => { if (c.pax.length < this.seats && this.path(s.id, p.dest)?.[1] === next) { c.pax.push(p); return false; } return true; });
+    s.queue = s.queue.filter((p, slot) => { if (c.pax.length < this.seats && this.path(s.id, p.dest)?.[1] === next) { c.pax.push(p); this.transit('board', c, p, s.id, slot); return false; } return true; });
     c.to = next; c.progress = 0;
   }
   offers(): Upgrade[] {
@@ -236,7 +240,7 @@ export class Game {
       if (c.progress >= 1) {
         c.at = c.to; c.to = -1; c.progress = 0; c.dwell = 0.6;
         // Deliver immediately on arrival, even when there is not enough hay to depart again.
-        c.pax = c.pax.filter((p) => { if (p.dest !== this.stations[c.at].kind) return true; this.delivered++; this.hay = Math.min(120, this.hay + (p.dest === 'hay' ? 3 : 0.5)); this.emit('deliver', c.at); return false; });
+        c.pax = c.pax.filter((p) => { if (p.dest !== this.stations[c.at].kind) return true; this.transit('alight', c, p, c.at, 0, true); this.delivered++; this.hay = Math.min(120, this.hay + (p.dest === 'hay' ? 3 : 0.5)); this.emit('deliver', c.at); return false; });
       }
     }
     for (const s of this.active) {

@@ -48,7 +48,8 @@ export default function BurrowExpress() {
   function commit() {
     const g = game.current;
     if (!g) return;
-    for (const e of g.events.splice(0)) sound.cue(e.t, 0, 1, e.t === 'deliver' ? 0.25 : 0.08);
+    const events = g.events.splice(0); stage.current.feed(events, g);
+    for (const e of events) if (e.t !== 'board' && e.t !== 'alight') sound.cue(e.t, 0, 1, e.t === 'deliver' ? 0.25 : 0.08);
     if ((g.state === 'won' || g.state === 'lost') && recorded.current !== g) {
       recorded.current = g;
       const s = saveRef.current;
@@ -71,6 +72,7 @@ export default function BurrowExpress() {
   const connect = (id: number) => { pickCursor(id); act((g) => g.append(lineRef.current, id)); };
 
   useEffect(() => { const s = read(); saveRef.current = s; setSave(s); setHasRun(!!readRun()); setMuted(sound.muted()); setLoaded(true); let live = true; void loadArt().then(() => { if (live) setArtReady(true); }).catch(() => { if (live) setArtError(true); }); return () => { live = false; }; }, []);
+  useEffect(() => { const m = window.matchMedia('(prefers-reduced-motion: reduce)'), apply = () => { stage.current.motion = !m.matches; }; apply(); m.addEventListener('change', apply); return () => m.removeEventListener('change', apply); }, []);
   // Single-player browser tests can inspect state and advance the same deterministic rules.
   useEffect(() => {
     (window as unknown as { __express?: () => unknown }).__express = () => ({ game: game.current, stage: stage.current, fast: (n: number) => { fast.current = Math.max(1, Math.min(120, Math.floor(n))); }, advance: (dt: number) => { game.current?.update(dt); commit(); } });
@@ -85,6 +87,7 @@ export default function BurrowExpress() {
       const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = now;
       for (let i = 0; i < fast.current; i++) g.update(dt * rateRef.current);
       if (g.events.length) commit();
+      stage.current.update(dt, g);
       if (now - stored > 3000) { writeRun(g); stored = now; }
       if (now - ui > 200) { refresh(); ui = now; }
       const w = cv.clientWidth, h = cv.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -161,7 +164,7 @@ export default function BurrowExpress() {
   </main>;
   const l = g.lines[line], crowded = [...g.active].sort((a, b) => b.queue.length - a.queue.length)[0], editable = g.state === 'running', end = g.state === 'won' || g.state === 'lost';
   const tips = g.mode === 'tutorial' && g.tutorial < 4 ? STEPS[g.tutorial] : null;
-  return <main className="be-shell be-play">
+  return <main className="be-shell be-play" data-paused={String(g.paused || g.state !== 'running')}>
     {header}
     <div className="be-status" data-testid="status" data-state={g.state} data-paused={String(g.paused)}><span>☀ <b>DAY {g.day}</b><small>{g.mode === 'tutorial' ? 'PRACTICE' : g.mode === 'endless' ? 'ENDLESS' : `OF ${LAST_DAY}`}</small></span><span>♧ <b data-testid="delivered">{g.delivered}</b> delivered<small>{g.mode === 'challenge' ? `TARGET ${g.goal}` : 'HAPPY JOURNEYS'}</small></span><span>✦ <b>{Math.floor(g.hay)}</b> hay<small>FUELS YOUR CARTS</small></span><span>▰ <b>{g.carts.length} / {g.fleet}</b><small>{g.seats} SEATS EACH</small></span><span>⚒ <b>{g.drills}</b><small>ROCK DRILLS</small></span></div>
     <div className="be-workspace"><section className="be-network" aria-label="Transport network">
