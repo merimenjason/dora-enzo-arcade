@@ -33,7 +33,7 @@
 .mm-shell .mm-gold { background:linear-gradient(#f5d998,#d4a44f); color:#211629; border-color:#ffdda0; font-weight:bold; font-size:18px; min-height:50px; }
 .mm-shell .mm-gold:hover:not(:disabled) { background:#ffe6b1; color:#211629; }
 .mm-map { position:relative; overflow:auto; max-width:1500px; margin:auto; background:#11131d; }
-.mm-world { width:min(100%,calc((100svh - 340px)*1.5625)); min-width:320px; margin:auto; }
+.mm-world { width:min(100%,calc((100svh - 390px)*1.5625)); min-width:320px; margin:auto; }
 .mm-world canvas { display:block; width:100%; aspect-ratio:1000/640; cursor:crosshair; touch-action:pan-x pan-y; }
 .mm-world.zoom { width:200%; max-width:none; margin:0; }
 .mm-controls { max-width:1500px; margin:auto; display:flex; align-items:center; gap:24px; padding:12px 30px; background:linear-gradient(#211629,#191222); border-top:1px solid #a98b63; border-bottom:1px solid #6e5861; }
@@ -67,3 +67,23 @@
 
 .mm-overlay>dialog { position:relative; color:var(--ink); }
 .mm-note { display:block; }
+.mm-map-frame { position:relative; max-width:1500px; margin:auto; }
+.mm-map:has(.zoom) { height:clamp(240px,calc(100svh - 480px),760px); }
+.mm-play:has(.zoom) .mm-friends canvas,.mm-play:has(.zoom) .mm-friends small { display:none; }
+.mm-play:has(.zoom) .mm-friends button { padding:8px 12px; min-width:80px; }
+.mm-objectives { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:10px 24px; padding:10px 14px; background:#21182a; border-bottom:1px solid #6c5867; font:13px system-ui,sans-serif; }
+.mm-objectives [data-done="true"] { color:#b5d3a1; }
+.mm-friends meter { display:block; width:88%; height:7px; margin-top:7px; border:0; background:#493747; border-radius:4px; }
+.mm-friends meter::-webkit-meter-bar { background:#493747; border:0; border-radius:4px; }
+.mm-friends meter::-webkit-meter-optimum-value { background:#efb188; border-radius:4px; }
+.mm-friends meter::-moz-meter-bar { background:#efb188; border-radius:4px; }
+.mm-watch { display:block; min-height:12px; margin-top:4px; font:9px system-ui,sans-serif; letter-spacing:.4px; }
+.mm-shell .mm-friends button.watched { border-color:#f3a68b; animation:mm-watch 1.2s ease-in-out infinite; }
+@keyframes mm-watch { 50% { box-shadow:0 0 18px #ee8c6a66; } }
+.mm-shell[data-paused="true"] button.watched { animation-play-state:paused; }
+.mm-result-stats { display:flex; justify-content:center; gap:24px; margin:15px 0; font:11px system-ui,sans-serif; }
+.mm-result-stats span { display:grid; gap:5px; }
+.mm-result-stats b { font:22px Georgia,serif; color:#f3d493; }
+.mm-nights .mm-best { color:#dbc995; font-size:11px; }
+@media(max-width:900px) { .mm-objectives { font-size:11px; gap:8px 14px; }.mm-map-frame:has(.mm-overlay) { min-height:320px; }.mm-map:has(.zoom) { min-height:240px; }.mm-map-frame:has(.mm-overlay) .mm-map { height:320px; } }
+@media(prefers-reduced-motion:reduce) { .mm-shell .mm-friends button.watched { animation:none; } }

@@ -7,7 +7,7 @@ export type State = 'playing' | 'won' | 'lost';
 export type Hero = Point & { who: Who; face: number; hidden: boolean; dust: number; cooldown: number; dash: number; moving: boolean; home: boolean };
 export type Owl = Point & { route: Point[]; stop: number; angle: number; dwell: number; alarm: number; investigate: Point | null; curious: number; heard: number };
 export type Input = { x: number; y: number; sneak?: boolean };
-export type Event = { t: 'treat' | 'rescue' | 'dust' | 'hide' | 'dash' | 'distract' | 'push' | 'gap' | 'caught' | 'home' | 'won' | 'lost'; x: number; y: number };
+export type Event = { t: 'treat' | 'rescue' | 'dust' | 'hide' | 'dash' | 'distract' | 'push' | 'gap' | 'alert' | 'caught' | 'home' | 'won' | 'lost'; x: number; y: number };
 type Road = [number, number, number, number, number];
 export const ROADS: Road[] = [
   [160,425,225,465,32], [225,465,350,535,34], [350,535,460,560,38], [460,560,560,510,42], [560,510,700,480,40], [700,480,845,490,37], [845,490,905,600,38],
@@ -38,6 +38,7 @@ export class Game {
   heroes: Hero[]; owls: Owl[]; treats: (Point & { taken: boolean })[]; friend: Point | null = null; friendHome = false;
   target: Point | null = null; trail: Point[] = []; events: Event[] = []; note = 'Move on the paths. Q switches friends; E interacts.'; noteTime = 5;
   private friendTrail: Point[] = [];
+  private warned = new Set<Owl>();
   constructor(night = 0, mode: Mode = 'night') {
     this.night = clamp(Math.floor(night),0,2); this.mode = mode;
     this.heroes = [P(160,425),P(205,455)].map((p,i)=>({...p,who:i?'enzo':'dora',face:1,hidden:false,dust:0,cooldown:0,dash:0,moving:false,home:false}));
@@ -47,10 +48,18 @@ export class Game {
   get hero() { return this.heroes.find(h=>h.who===this.active)!; }
   get collected() { return this.treats.filter(t=>t.taken).length; }
   get left() { return Math.max(0,NIGHTS[this.night].seconds-this.time); }
-  get stars() { return this.state==='won' ? 1+Number(this.catches===0)+Number(this.time<NIGHTS[this.night].seconds*.75) : 0; }
+  get stars() { return this.state==='won'&&this.mode==='night' ? 1+Number(this.catches===0)+Number(this.time<NIGHTS[this.night].seconds*.75) : 0; }
+  attention(h:Hero) {return h.hidden||h.home?0:Math.max(0,...this.owls.filter(o=>this.visible(o,h)).map(o=>o.alarm));}
+  get objective() {
+    if(!this.started)return 'Tap a lit path or use the arrows to begin. The clock waits for you.';
+    if(this.collected<this.treats.length)return `Recover ${this.treats.length-this.collected} more treat ${this.treats.length-this.collected===1?'bundle':'bundles'}. Watch the gold vision cones.`;
+    if(!this.rescued)return 'Switch to Enzo and open the rescue cage.';
+    if(this.hero.home)return `Switch to ${this.active==='dora'?'Enzo':'Dora'} and bring your other friend home.`;
+    return 'Bring both chinchillas to the HOME door and choose Get home.';
+  }
   say(note: string) { this.note=note; this.noteTime=4; }
   private event(t: Event['t'],p: Point=this.hero) { this.events.push({t,x:p.x,y:p.y}); }
-  pause(on: boolean) { this.paused=on; this.clearMove(); this.heroes.forEach(h=>h.moving=false); }
+  pause(on: boolean) { if(this.state!=='playing')return;this.paused=on; this.clearMove(); this.heroes.forEach(h=>{h.moving=false;h.dash=0;}); }
   clearMove() { this.trail=[]; this.target=null; }
   switch() { if(this.state!=='playing')return; this.active=this.active==='dora'?'enzo':'dora';this.clearMove();this.say(this.active==='dora'?'Dora: quiet dash and narrow fence gaps.':'Enzo: distractions, heavy obstacles and the rescue latch.'); }
   walkable(p: Point, crate = true) {
@@ -85,10 +94,11 @@ export class Game {
       }
     }return [];
   }
-  go(p: Point) { if(this.paused||this.state!=='playing'||this.hero.home)return; const route=this.path(this.hero,p);if(!route.length){this.say('Choose a spot on the lit paths.');return;}this.hero.hidden=false;this.trail=route;this.target={...p};this.started=true; }
+  go(p: Point) { if(this.paused||this.state!=='playing'||this.hero.home)return; if(!finitePoint(p)){this.say('Choose a spot on the lit paths.');return;}const route=this.path(this.hero,p);if(!route.length){this.say('Choose a spot on the lit paths.');return;}this.hero.hidden=false;this.trail=route;this.target={...route.at(-1)!};this.started=true; }
   context(): { label: string; type: string; allowed: boolean } {
     const h=this.hero;
     if(h.home)return {label:'Safely home',type:'home',allowed:false};
+    if(h.hidden)return {label:'Leave hiding',type:'hide',allowed:true};
     if(dist(h,HOME)<58)return {label:this.collected===this.treats.length&&this.rescued?'Get home':'Recover every treat and rescue your friend first',type:'home',allowed:this.collected===this.treats.length&&this.rescued};
     if(!this.rescued&&dist(h,CAGE)<62)return {label:h.who==='enzo'?'Open rescue cage':'Enzo can open this latch',type:'rescue',allowed:h.who==='enzo'};
     if(!this.pushed&&dist(h,CRATE)<58)return {label:h.who==='enzo'?'Push obstacle':'Enzo can push this obstacle',type:'push',allowed:h.who==='enzo'};
@@ -98,7 +108,7 @@ export class Game {
     return {label:'Move near hay, dust or a marked object',type:'none',allowed:false};
   }
   interact() {
-    if(this.paused||this.state!=='playing')return false;const h=this.hero,c=this.context();if(!c.allowed){this.say(c.label);return false;}this.clearMove();this.started=true;
+    if(this.paused||this.state!=='playing')return false;const h=this.hero,c=this.context();if(!c.allowed){this.say(c.label);return false;}this.clearMove();h.moving=false;h.dash=0;this.started=true;
     if(c.type==='home') {h.home=true;h.hidden=false;this.event('home');this.say('Safely home! Switch to bring the other friend back.');if(this.heroes.every(p=>p.home)&&this.friendHome)this.finish(true);}
     if(c.type==='rescue') {this.rescued=true;this.friend={...CAGE};this.friendTrail=this.path(CAGE,HOME);this.event('rescue',CAGE);this.say('Your friend is free and heading home. Bring both chinchillas back.');}
     if(c.type==='push') {this.pushed=true;this.event('push',CRATE);this.say('A new shortcut is open.');}
@@ -120,11 +130,13 @@ export class Game {
     const h=this.hero;let dx=input.x,dy=input.y;
     if((dx||dy)&&!h.home){this.clearMove();h.hidden=false;}
     else if(this.trail.length&&!h.home&&!h.hidden){const p=this.trail[0];if(dist(h,p)<1)this.trail.shift();else {dx=p.x-h.x;dy=p.y-h.y;}}
+    else if(h.dash>0&&!h.home&&!h.hidden)dx=h.face;
     const len=Math.hypot(dx,dy),speed=h.dash>0?290:input.sneak?55:95;
     if(len&&!h.home&&!h.hidden){const distance=this.trail.length&&!input.x&&!input.y?Math.min(len,speed*dt):speed*dt;dx=dx/len*distance;dy=dy/len*distance;const next=P(h.x+dx,h.y+dy);if(this.walkable(next)){h.x=next.x;h.y=next.y;}else{if(this.walkable(P(h.x+dx,h.y)))h.x+=dx;if(this.walkable(P(h.x,h.y+dy)))h.y+=dy;}h.face=dx<0?-1:dx>0?1:h.face;h.moving=true;}
     if(!this.trail.length)this.target=null;
     for(const t of this.treats)for(const p of this.heroes)if(!t.taken&&!p.home&&!p.hidden&&dist(t,p)<27){t.taken=true;this.event('treat',t);this.say(`${this.collected} / ${this.treats.length} treats recovered.`);}
     for(const o of this.owls) {
+      if(o.alarm<.08)this.warned.delete(o);
       o.heard=Math.max(0,o.heard-dt);o.curious=Math.max(0,o.curious-dt);o.dwell=Math.max(0,o.dwell-dt);
       if(!o.curious)o.investigate=null;
       if(h.moving&&!input.sneak&&!h.dash&&!h.dust&&!o.curious&&!o.heard&&dist(o,h)<200&&NOISY.some(p=>dist(p,h)<p.r)){o.investigate=P(h.x,h.y);o.curious=1.4;o.heard=2.5;}
@@ -132,7 +144,7 @@ export class Game {
       if(d>3&&!o.dwell){o.angle=Math.atan2(goal.y-o.y,goal.x-o.x);if(!o.investigate){const speed=22+this.night*5;o.x+=Math.cos(o.angle)*Math.min(d,speed*dt);o.y+=Math.sin(o.angle)*Math.min(d,speed*dt);}}
       else if(!o.investigate&&!o.dwell){o.stop=(o.stop+1)%o.route.length;o.dwell=1.2;}
       const visible=this.heroes.filter(p=>!p.hidden&&!p.home&&this.visible(o,p));
-      if(visible.length){const p=visible.sort((a,b)=>dist(o,a)-dist(o,b))[0];o.alarm=Math.min(1,o.alarm+dt*(p.dust>0&&dist(o,p)>65?.12:input.sneak&&p===h?.36:.48));if(o.alarm>=1){this.catches++;p.x=p.who==='dora'?160:205;p.y=p.who==='dora'?425:455;p.dust=0;p.hidden=false;if(p===h)this.clearMove();this.owls.forEach(g=>{g.alarm=0;g.curious=1.8;g.investigate=P(p.x,p.y);});this.event('caught',p);this.say(this.mode==='practice'?'Spotted! Back to the safe path; keep practising.':`Spotted! ${Math.max(0,3-this.catches)} chances left.`);if(this.mode==='night'&&this.catches>=3)this.finish(false);}}
+      if(visible.length){const p=visible.sort((a,b)=>dist(o,a)-dist(o,b))[0];o.alarm=Math.min(1,o.alarm+dt*(p.dust>0&&dist(o,p)>65?.12:input.sneak&&p===h?.36:.48));if(!this.warned.has(o)&&o.alarm>=.28){this.warned.add(o);this.event('alert',p);this.say(`${p.who==='dora'?'Dora':'Enzo'} is being watched! Leave the cone or hide in hay.`);}if(o.alarm>=1){this.catches++;p.x=p.who==='dora'?160:205;p.y=p.who==='dora'?425:455;p.dust=0;p.dash=0;p.hidden=false;if(p===h)this.clearMove();this.owls.forEach(g=>{g.alarm=0;g.curious=1.8;g.investigate=P(p.x,p.y);});this.warned.clear();this.event('caught',p);this.say(this.mode==='practice'?'Spotted! Back to the safe path; keep practising.':`Spotted! ${Math.max(0,3-this.catches)} chances left.`);if(this.mode==='night'&&this.catches>=3){this.finish(false);break;}}}
       else o.alarm=Math.max(0,o.alarm-dt*.65);
     }
     if(this.friend&&!this.friendHome){while(this.friendTrail.length&&dist(this.friend,this.friendTrail[0])<8)this.friendTrail.shift();const p=this.friendTrail[0]??HOME,d=dist(this.friend,p);if(d){this.friend.x+=(p.x-this.friend.x)/d*Math.min(d,115*dt);this.friend.y+=(p.y-this.friend.y)/d*Math.min(d,115*dt);}if(dist(this.friend,HOME)<30){this.friendHome=true;this.friend={...HOME};}}
@@ -151,8 +163,8 @@ export class Game {
       const g=new Game(s.night,s.mode);for(const k of ['started','rescued','pushed','friendHome'])if(typeof s[k]!=='boolean')return null;
       if(!Array.isArray(s.heroes)||s.heroes.length!==2||!Array.isArray(s.owls)||s.owls.length!==g.owls.length||!Array.isArray(s.treats)||s.treats.length!==g.treats.length)return null;
       if(s.mode==='night'&&(s.catches>=3||s.time>=NIGHTS[s.night].seconds))return null;g.pushed=s.pushed;
-      for(let i=0;i<2;i++){const h=s.heroes[i];if(!finitePoint(h)||h.who!==g.heroes[i].who||!g.walkable(h)||![1,-1].includes(h.face)||['hidden','moving','home'].some(k=>typeof h[k]!=='boolean')||['dust','cooldown','dash'].some(k=>!Number.isFinite(h[k])||h[k]<0||h[k]>30)||h.home&&dist(h,HOME)>=58||h.hidden&&!HIDES.some(p=>dist(p,h)<48))return null;g.heroes[i]={...h,moving:false,dash:0};}
-      for(let i=0;i<g.owls.length;i++){const o=s.owls[i];if(!finitePoint(o)||!Number.isInteger(o.stop)||o.stop<0||o.stop>=g.owls[i].route.length||!g.walkable(o,false)||!Number.isFinite(o.angle)||Math.abs(o.angle)>Math.PI||['dwell','alarm','curious','heard'].some(k=>!Number.isFinite(o[k])||o[k]<0||o[k]>10)||o.investigate!==null&&!finitePoint(o.investigate))return null;g.owls[i]={...o,route:g.owls[i].route};}
+      for(let i=0;i<2;i++){const h=s.heroes[i];if(!finitePoint(h)||h.who!==g.heroes[i].who||!g.walkable(h)||![1,-1].includes(h.face)||['hidden','moving','home'].some(k=>typeof h[k]!=='boolean')||Object.entries({dust:22,cooldown:i?8:4,dash:.32}).some(([k,max])=>!Number.isFinite(h[k])||h[k]<0||h[k]>max)||h.home&&dist(h,HOME)>=58||h.hidden&&!HIDES.some(p=>dist(p,h)<48))return null;g.heroes[i]={...h,moving:false,dash:0};}
+      for(let i=0;i<g.owls.length;i++){const o=s.owls[i],route=g.owls[i].route;if(!finitePoint(o)||!Number.isInteger(o.stop)||o.stop<0||o.stop>=route.length||!route.some((p,j)=>segmentDistance(o,p,route[(j+1)%route.length])<=3.05)||!Number.isFinite(o.angle)||Math.abs(o.angle)>Math.PI||Object.entries({dwell:1.4,alarm:1,curious:4.5,heard:2.5}).some(([k,max])=>!Number.isFinite(o[k])||o[k]<0||o[k]>max)||o.investigate!==null&&!finitePoint(o.investigate))return null;g.owls[i]={...o,route};}
       for(let i=0;i<g.treats.length;i++){const t=s.treats[i];if(!finitePoint(t)||dist(t,g.treats[i])>.01||typeof t.taken!=='boolean')return null;g.treats[i].taken=t.taken;}
       if(s.friend!==null&&(!finitePoint(s.friend)||!g.walkable(s.friend,false))||s.rescued!==!!s.friend||s.friendHome&&(!s.rescued||dist(s.friend,HOME)>=30)||s.heroes.some((h:Hero)=>h.home)&&(!s.rescued||s.treats.some((t:{taken:boolean})=>!t.taken)))return null;
       g.started=s.started;g.time=s.time;g.active=s.active;g.catches=s.catches;g.rescued=s.rescued;g.friend=s.friend;g.friendHome=s.friendHome;if(g.friend&&!g.friendHome)g.friendTrail=g.path(g.friend,HOME);g.paused=true;g.say('Route restored. Carry on when ready.');return g;
