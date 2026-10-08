@@ -1,12 +1,26 @@
-# Handoff · 06-10-2026
+# Handoff · 08-10-2026
 
 Where Dora & Enzo's Arcade stands, how the newest games fit together, how to check your work, and what is worth doing next. For the arcade as a whole, start with [`README.md`](README.md); for how the code is laid out and the traps to avoid, [`CLAUDE.md`](CLAUDE.md); for the documentation and changelog rules, [`AGENTS.md`](AGENTS.md).
 
 This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are folded in below.
 
+## Quality pass · 08-10-2026
+
+The four newest games received a focused quality pass on `fix/newest-games-quality-pass`. These changes are pending review until that branch is merged; merging to `main` deploys them.
+
+- **Burrow Tactics** and **Burrow Barrage** bank finished battles immediately, while the result screen still waits for the animation. Leaving or reloading during a victory no longer loses stars or a run reward. A resumed Tactics reward is banked once.
+- **Burrow Barrage** releases walking, charging and board gestures between turns and on focus loss. Cancelled walking presses stop walking. Focused sliders keep their native arrow-key controls, and Space sets power to zero immediately when charging starts. Results resolved by the computer read the latest save, preserving current sound settings and earlier stars.
+- **Poof Panic** pauses matches and Endless on focus loss and clears held input and unfinished gestures. A cancelled gesture does not rotate or hard-drop a pair; ordinary taps still work after cancellation.
+- **Summit Shuffle** keeps the hand scrollable on landscape phones and narrow tablets rather than spilling sideways, and its introduction describes shared cards and each hero's own cards accurately.
+- **Repeatable checks:** `npm run test:e2e:newest` runs the four main browser suites and `tests/e2e/newest-quality.mjs`. Run `npm test` first to compile the engines and keep `npm run dev` running. The quality suite includes portrait and landscape layouts at 320 × 568, 568 × 320, 390 × 844 and 844 × 390.
+
+Validation completed with the project's locked runtime dependencies: typecheck, `npm test`, the production build, all four main browser suites, all 16 quality regressions and the contrast check across 26 routes passed. Screenshots of the four phone layouts were inspected; browser checks reported no page errors.
+
+This is a browser and regression pass, not a human balance or sound review. Real-phone gestures, animation feel, a listening pass and end-to-end human campaign/climb playtesting remain open. The eight lint findings in these four pages were reproduced on the unchanged baseline; they predate this pass.
+
 ## Current state
 
-- **25 games**: 23 on `main` and live at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
+- **25 games on `main`**; the deployed arcade is at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
 - Game 23, **Burrow Barrage** (`/barrage`), was added on 04-10-2026. It has been tuned with its bot only and not yet played by hand; see **Burrow Barrage, briefly**. Its phone camera and a fix to the Chin x Pit browser test followed on the same day (PR #7).
 - Game 24, **Summit Shuffle** (`/summit`), was built on 06-10-2026: a deck-building climb in the style of Slay the Spire. It too has been balanced with its bot only; see **Summit Shuffle, briefly**. The same change moved the 2D predator drawings out of `lib/burrow-tactics-scene.ts` into a shared `lib/predator-art.ts`, which both games now use.
 - Game 25, **Poof Panic** (`/poof`), was also built on 06-10-2026: a versus falling-pair puzzler in the style of Puyo Puyo. Its rivals were set with its bot only; see **Poof Panic, briefly**.
@@ -80,7 +94,7 @@ No engine notes have been written for Scribble yet. [`docs/scribble.md`](docs/sc
 
 ### Bounce / Burrow, briefly
 
-Game 05 (`/adventure`, titled *Dustbound* in game) was reworked on 03-10-2026, on the branch `feat/dustbound-combat`, pushed but not yet merged. Rules in `lib/arpg-game.ts`, drawing in `lib/arpg-scene.ts`, page in `app/adventure/page.tsx`, styles at the end of `app/globals.css`, tests in `tests/arpg.mjs`. Full rules: [`docs/dustbound-rpg.md`](docs/dustbound-rpg.md).
+Game 05 (`/adventure`, titled *Dustbound* in game) was reworked on 03-10-2026 on `feat/dustbound-combat`, then merged on 04-10-2026 with PR #5. Rules in `lib/arpg-game.ts`, drawing in `lib/arpg-scene.ts`, page in `app/adventure/page.tsx`, styles at the end of `app/globals.css`, tests in `tests/arpg.mjs`. Full rules: [`docs/dustbound-rpg.md`](docs/dustbound-rpg.md).
 
 - **Attack visuals are cosmetic.** `Hero.swing` and `Hero.aim` are set when an attack fires and only the scene reads them; damage timing is unchanged. `Adventure.shake` drives the camera shake.
 - **Shift-attack** is `standAttack()` / `release()` and `strike()`: the leader stays put while `hold` is set.

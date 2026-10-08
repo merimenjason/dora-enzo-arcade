@@ -183,6 +183,8 @@ A run (`Run`) of seven battles (`RUN_STAGES`) with three chinchillas of your cho
 
 ## Saving
 
+Finished battles are banked as soon as the engine decides the result, before the final animation finishes. Leaving or reloading at that point keeps the mission's stars or the run's reward; returning to a reward does not bank the battle a second time.
+
 - `burrow-tactics-v1`: best stars for each mission, the most battles of a run ever won, the difficulties a run has been finished on, the difficulty last chosen, and whether sound is off. A save from before chapter two is read as it is, with no stars on the new missions.
 - `burrow-tactics-run-v2`: the run in progress (`Run.snapshot()`), written after every move, action and turn, so a run resumes exactly where it was left. It is removed when the run ends. (`-v1` runs, from before difficulty and second actions, are ignored.)
 - `burrow-tactics-mission-v1`: a campaign mission in progress, as `{ index, battle }` with the battle from `Battle.snapshot()`. It is written when a mission starts and after every move, action and turn, and removed when the mission is won or lost. The home screen then offers **Continue Mission N**; picking a mission from the list starts it afresh.
@@ -198,3 +200,4 @@ The three regions each have their own sky, mountains, grass and soil. The backdr
 - `npm run test:tactics` (also in `npm test`): moving and undo, every action and second action, the three class perks, pushing into each kind of thing, ice, high ground and fire, every predator attack, attacks following a pushed predator, the forecast matching what then happens on every mission, previews, rustling grass, each objective, choosing where to start, the hint, reset, snapshots, relics, the campaign's maps, generated boards for 30 seeds, difficulty, and the run's rewards and saving.
 - `npm run bot:tactics`: `tests/burrow-tactics-bot.mjs` plays all eighteen missions and twelve seeded runs with the engine's planner and prints the results (`ALL=1` plays the runs on every difficulty). `npm test` needs it to win every mission with at least 2 stars and at least 6 of 12 Standard runs, and needs an idle player to lose every mission. As of 04-10-2026 it wins 8 of those 12 runs, and over 48 runs with six squads it wins 46 on Gentle, 42 on Standard and 24 on Fierce. Rerun it after any balance change.
 - `tests/e2e/burrow-tactics.mjs` (in `npm run test:e2e`): the page in a browser, including the guided first mission, the hint, choosing where to start and a second action.
+- `tests/e2e/newest-quality.mjs`: stars saved before the final animation, leaving and reloading after a victory, and run rewards saved and banked once when resumed.

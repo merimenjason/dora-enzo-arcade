@@ -656,7 +656,7 @@ The **rival ladder** is six predators, each match first to two rounds: Mossy the
 
 - ← and → (or A and D) move the pair; hold to keep moving. ↓ (or S) drops it faster. Space drops it to the floor.
 - ↑, X or W turn the pair to the right; Z or Q turn it to the left. In a gap one column wide, two quick presses swap the two balls.
-- P or Esc pauses. G shows or hides the landing guide. M turns sound on and off. Enter presses the main button on a card. R restarts a lesson.
+- P or Esc pauses. Matches and Endless also pause when the window loses focus or the tab is hidden. G shows or hides the landing guide. M turns sound on and off. Enter presses the main button on a card. R restarts a lesson.
 - Touch: drag sideways to move, tap the right half of the board to turn right and the left half to turn left, pull down to drop faster, flick down to drop to the floor.
 
 **Tests:** `npm run test:poof` (also in `npm test`) compiles `lib/poof-panic-game.ts` and runs `tests/poof-panic.mjs`:
@@ -684,9 +684,12 @@ npm run typecheck
 npm test
 npm run build
 npm run test:e2e   # optional; needs `npm run dev` running and `npm i -D playwright`
+npm run test:e2e:newest  # the four newest games and interrupted-input / progress regressions
 ```
 
 `npm test` compiles the game engines and runs each game's deterministic suite. It also runs `tests/readme.mjs`, which fails if the **Games** table and **Game guides** above drift from the arcade menu in `app/page.tsx`.
+
+Run `npm test` before the browser suites to generate the compiled engines they use. `tests/e2e/newest-quality.mjs` adds checks for cancelled Poof Panic gestures and focus-loss pausing, Barrage controls released between turns and native keyboard slider controls, and Tactics and Barrage progress saved before the final animation finishes. It also checks that a Tactics run reward is banked once when resumed and that Summit Shuffle explains its separate hero card pools.
 
 ## Adding a game
 

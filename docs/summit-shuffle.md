@@ -277,6 +277,8 @@ Reaching the summit with a chinchilla opens the next altitude for that chinchill
 
 ## Controls
 
+On a phone, the hand uses small cards and scrolls when more than five are drawn. On landscape phones and narrow tablets, full-size cards scroll inside the hand rather than widening the page. Every card remains reachable in either layout. `tests/e2e/newest-quality.mjs` checks portrait and landscape widths from 320 to 844 pixels, including scrolling the last card into view.
+
 - Tap or click a card to choose it: its rules, with the numbers as they stand right now, appear under the board. Tap it again to play it.
 - A card aimed at one predator is marked on a foe (the last one you aimed at, or the first still standing). Tap a predator to play the card on that one.
 - With no card chosen, tap a predator to read its intent and statuses, or tap your chinchilla to read yours.

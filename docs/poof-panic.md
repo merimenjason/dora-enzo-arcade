@@ -101,6 +101,8 @@ Each rival beat the one below it in 77% to 90% of rounds. Rounds against the cas
 
 ## Saving
 
+Matches and Endless pause when the window loses focus or the tab is hidden. Pausing releases held controls and unfinished gestures. A cancelled touch releases its controls without turning the pair or dropping it to the floor; lessons release input on focus loss but do not need a pause screen because their pairs wait for you.
+
 Everything is kept in `localStorage` under `poof-panic-v1`: sound, the landing guide, the chosen chinchilla, which ladders each chinchilla has climbed, the furthest rival reached, the longest chain, the endless records, the lessons done, and the climb in progress (chinchilla, ladder, rung, score, time and matches lost). A match in progress is not saved; a climb left in the middle of a match comes back at the start of that match.
 
 ## Code
@@ -108,3 +110,5 @@ Everything is kept in `localStorage` under `poof-panic-v1`: sound, the landing g
 - `lib/poof-panic-game.ts`: the rules. Grid functions (`collapse`, `findPops`, `resolve`, `land`), `Board`, `Pad` (keys and touches as one input a tick), `Brain` and `RIVALS`, `Match`, `Endless`, `Drill` and `LESSONS`, and `solve` for checking lessons.
 - `lib/poof-panic-scene.ts`: drawing. `Stage.feed` turns a board's events into particles, chain call-outs and flying dust; `Stage.draw` lays out one or two boards for wide and narrow screens.
 - `app/poof/page.tsx`: the menu, the loop (60 engine ticks a second whatever the screen does), input, saving, and the cards between rounds. `window.__poof()` gives the browser test the game, and lets it put a rival's brain on the player's side or fast-forward.
+
+`tests/e2e/newest-quality.mjs` checks cancelled gestures, a normal tap after cancellation, and focus-loss pausing with held controls released. It runs alongside `tests/e2e/poof-panic.mjs` through `npm run test:e2e:newest`.
