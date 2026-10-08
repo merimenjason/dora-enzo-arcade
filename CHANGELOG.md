@@ -10,9 +10,13 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Moonlight Mischief** now follows the selected chinchilla on a contained zoomed map, keeps keyboard movement ready after action clicks, and provides a phone creep toggle, clear objectives and attention meters/warnings for both friends. Dora can dash from a standstill; pause stops unfinished dashes. Practice opens all nights while timed unlocks remain earned. Results show elapsed time and catches, night cards show personal bests, and practice does not display stars. Fireflies, persistent decoy pawprints, rescue sparks and a visibly moved barrel enrich the painted village.
+
 - **Burrow Express** now shows actual waiting chinchillas and exact queue counts, including empty platforms and a +N badge beyond eight visible passengers. Chinchillas breathe, blink, shuffle, board and alight; carts bounce with turning wheels. Painted platforms and lanterns, wooden sleepers, metal rails, coloured strips, direction markers and timber river crossings enrich the routes. Crowding pulses and dust-bath arrivals scatter dry powder. Pause and reduced-motion preferences settle decorative effects without changing gameplay.
 
 ### Fixed
+
+- **Moonlight Mischief** accepts valid saved owl positions throughout patrol turns and crossings, so a mid-heist save does not disappear from Continue. Snapshot checks now cover complete runs and a recovery after being caught. Paused zoom views keep their dialog and controls reachable.
 
 - **Burrow Express** dust baths contain dry matte powder; empty station artwork removes fixed passengers that could disagree with live queues. Dora retains her dark ruby eyes.
 
