@@ -1,9 +1,10 @@
+/* oxlint-disable next/no-img-element -- Local authored game artwork is shared unchanged by the UI and Canvas. */
 /* oxlint-disable react/react-compiler -- The deterministic engine is intentionally mutable and read on animation frames. */
 /* oxlint-disable next/no-html-link-for-pages -- Hard navigation tears down the game's loop, as in the other arcade games. */
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Game, MAPS, WIDTH, HEIGHT, COLORS, LINE_NAMES, TYPES, KINDS, UPGRADES, DAY, LAST_DAY, CAPACITY, GRACE, type Mode, type Upgrade } from '../../lib/burrow-express-game';
-import { Stage, portrait } from '../../lib/burrow-express-scene';
+import { Stage, loadArt, graphic, type Graphic } from '../../lib/burrow-express-scene';
 import { sound } from './sound';
 import './express.css';
 
@@ -23,14 +24,18 @@ const STEPS = [
   ['Your first upgrade', 'Choose an upgrade. Extra carts help busy lines; bigger carts hold more passengers; drills let you cross rocky ground.'],
 ];
 function Duo() {
+  return <img src="/art/express/duo.png" width={600} height={400} className="be-duo" alt="Dora, a white chinchilla with dark ruby eyes, and Enzo, a grey chinchilla" />;
+}
+function ArtIcon({ id, size = 72 }: { id: Graphic; size?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => { const c = ref.current?.getContext('2d'); if (c) { c.setTransform(2, 0, 0, 2, 0, 0); portrait(c, 300, 150); } }, []);
-  return <canvas ref={ref} width={600} height={300} className="be-duo" aria-label="Dora, a white chinchilla with dark ruby eyes, and Enzo, a grey chinchilla" />;
+  useEffect(() => { let live = true; void loadArt().then(() => { if (!live) return; const c = ref.current?.getContext('2d'); if (c) { c.setTransform(2, 0, 0, 2, 0, 0); graphic(c, id, size, size); } }).catch(() => {}); return () => { live = false; }; }, [id, size]);
+  return <canvas ref={ref} width={size * 2} height={size * 2} style={{ width: size, height: size }} aria-hidden="true" />;
 }
 export default function BurrowExpress() {
   const [save, setSave] = useState<Save>(blank), [loaded, setLoaded] = useState(false), [screen, setScreen] = useState<'home' | 'play'>('home');
   const [map, setMap] = useState(0), [mode, setMode] = useState<Mode>('challenge'), [line, setLine] = useState(0), [cursor, setCursor] = useState<number | null>(null);
   const [muted, setMuted] = useState(false), [rate, setRate] = useState(1), [hasRun, setHasRun] = useState(false), [note, setNote] = useState('');
+  const [artReady, setArtReady] = useState(false), [artError, setArtError] = useState(false), [editor, setEditor] = useState(false);
   const [, setTick] = useState(0);
   const game = useRef<Game | null>(null), stage = useRef(new Stage()), canvas = useRef<HTMLCanvasElement>(null), saveRef = useRef(save), lineRef = useRef(0), cursorRef = useRef<number | null>(null), hover = useRef<number | null>(null);
   const drag = useRef<{ pointer: number; from: number; x: number; y: number; moved: boolean } | null>(null), recorded = useRef<Game | null>(null), rateRef = useRef(1), fast = useRef(1), timer = useRef(0);
@@ -54,7 +59,7 @@ export default function BurrowExpress() {
   }
   function enter(g: Game, resume = false) {
     game.current = g; if (resume) g.pause(true);
-    recorded.current = null; stage.current = new Stage(); hover.current = null; drag.current = null; pickCursor(null); lineRef.current = 0; setLine(0); setNote(''); setScreen('play'); commit();
+    recorded.current = null; stage.current = new Stage(); hover.current = null; drag.current = null; pickCursor(null); lineRef.current = 0; setLine(0); setNote(''); setEditor(window.matchMedia('(max-width: 760px)').matches); setScreen('play'); commit();
   }
   const start = (m: Mode = mode) => enter(Game.start(m === 'tutorial' ? 0 : map, m, Date.now() % 1000000 + 1));
   const resume = () => { const g = readRun(); if (g) enter(g, true); else { setHasRun(false); say('That saved route could not be resumed.'); } };
@@ -65,14 +70,14 @@ export default function BurrowExpress() {
   const act = (fn: (g: Game) => string) => { const g = game.current; if (!g) return; const why = fn(g); if (why) say(why); else { setNote(''); commit(); } };
   const connect = (id: number) => { pickCursor(id); act((g) => g.append(lineRef.current, id)); };
 
-  useEffect(() => { const s = read(); saveRef.current = s; setSave(s); setHasRun(!!readRun()); setMuted(sound.muted()); setLoaded(true); }, []);
+  useEffect(() => { const s = read(); saveRef.current = s; setSave(s); setHasRun(!!readRun()); setMuted(sound.muted()); setLoaded(true); let live = true; void loadArt().then(() => { if (live) setArtReady(true); }).catch(() => { if (live) setArtError(true); }); return () => { live = false; }; }, []);
   // Single-player browser tests can inspect state and advance the same deterministic rules.
   useEffect(() => {
     (window as unknown as { __express?: () => unknown }).__express = () => ({ game: game.current, stage: stage.current, fast: (n: number) => { fast.current = Math.max(1, Math.min(120, Math.floor(n))); }, advance: (dt: number) => { game.current?.update(dt); commit(); } });
     return () => { delete (window as unknown as { __express?: () => unknown }).__express; window.clearTimeout(timer.current); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- stable refs hold all running state
   useEffect(() => {
-    if (screen !== 'play') return;
+    if (screen !== 'play' || !artReady) return;
     const cv = canvas.current, c = cv?.getContext('2d'); if (!cv || !c) return;
     let raf = 0, last = performance.now(), ui = 0, stored = 0;
     const frame = (now: number) => {
@@ -91,7 +96,7 @@ export default function BurrowExpress() {
     const hidden = () => { if (document.hidden) away(); };
     raf = requestAnimationFrame(frame); window.addEventListener('blur', away); document.addEventListener('visibilitychange', hidden);
     return () => { cancelAnimationFrame(raf); window.removeEventListener('blur', away); document.removeEventListener('visibilitychange', hidden); };
-  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps -- animation reads refs
+  }, [screen, artReady]); // eslint-disable-line react-hooks/exhaustive-deps -- animation reads refs
   useEffect(() => {
     if (screen !== 'play') return;
     const down = (e: KeyboardEvent) => {
@@ -111,7 +116,7 @@ export default function BurrowExpress() {
         const next = g.active.filter((s) => (s.x - from.x) * dx + (s.y - from.y) * dy > 0).sort((a, b) => Math.hypot(a.x - from.x, a.y - from.y) - Math.hypot(b.x - from.x, b.y - from.y))[0];
         pickCursor(next?.id ?? from.id); return;
       }
-      if (k === 'enter' && cursorRef.current !== null && !(e.target instanceof HTMLElement && e.target.closest('button,a'))) { e.preventDefault(); connect(cursorRef.current); }
+      if (k === 'enter' && cursorRef.current !== null && !(e.target instanceof HTMLElement && e.target.closest('button,a,summary'))) { e.preventDefault(); connect(cursorRef.current); }
     };
     window.addEventListener('keydown', down); return () => window.removeEventListener('keydown', down);
   });
@@ -145,10 +150,11 @@ export default function BurrowExpress() {
   const header = <header className="be-header"><a href="/">← MAIN ARCADE</a><strong>BURROW EXPRESS</strong><div>{playing && <><button data-testid="pause" onClick={togglePause} disabled={g.state !== 'running'} aria-label={g.paused ? 'Resume the game' : 'Pause the game'}>{g.paused ? '▶' : 'Ⅱ'}</button><button onClick={cycleRate} aria-label="Change game speed">{rate}×</button><button data-testid="menu" onClick={home}>Save &amp; menu</button></>}<button onClick={toggleSound} aria-label={muted ? 'Turn sound on' : 'Turn sound off'}>{muted ? 'Sound off' : 'Sound on'}</button></div></header>;
   if (!playing) return <main className="be-shell">
     {header}
-    <section className="be-intro"><div><p className="be-eyebrow">SMALL CARTS · BIG CONNECTIONS</p><h1>Keep the warren<br/><em>moving.</em></h1><p>Draw tunnels between burrows, hay markets and dust baths. Send little carts full of chinchillas across the valley, and keep a growing warren connected.</p><div className="be-home-go"><button className="be-gold" data-testid="tutorial" disabled={!loaded} onClick={() => start('tutorial')}>{save.tutorial ? 'Play the tutorial again' : 'Learn with Dora & Enzo'}</button>{hasRun && <button data-testid="resume" onClick={resume}>Continue your route →</button>}</div></div><Duo /></section>
+    <section className="be-intro"><div><p className="be-eyebrow">SMALL CARTS · BIG CONNECTIONS</p><h1>Keep the warren<br/><em>moving.</em></h1><p>Draw tunnels between burrows, hay markets and dust baths. Send little carts full of chinchillas across the valley, and keep a growing warren connected.</p><div className="be-home-go"><button className="be-gold" data-testid="tutorial" disabled={!loaded || !artReady} onClick={() => start('tutorial')}>{save.tutorial ? 'Play the tutorial again' : 'Learn with Dora & Enzo'}</button>{hasRun && <button data-testid="resume" disabled={!artReady} onClick={resume}>Continue your route →</button>}</div></div><Duo /></section>
+    {!artReady && <output className="be-art-loading">{artError ? <>The warren artwork could not load. <button onClick={() => window.location.reload()}>Try again</button></> : 'Opening the warren…'}</output>}
     {note && <output className="be-notice">{note}</output>}
     <div className="be-maps" aria-label="Choose a landscape">{MAPS.map((m, i) => <button key={m.name} data-testid={`map-${i}`} aria-pressed={map === i} className={map === i ? 'on' : ''} onClick={() => setMap(i)}><span>{['☘', '≈', '✧'][i]}</span><strong>{m.name}</strong><small>{m.text}</small><em>{m.goal} deliveries in {LAST_DAY} days{save.records[i].wins ? ` · ${plural(save.records[i].wins, 'shift')} won` : ''}</em><i>{save.records[i].day ? `Best: ${save.records[i].delivered} delivered · day ${save.records[i].day}` : 'A fresh route awaits'}</i></button>)}</div>
-    <div className="be-start"><div className="be-modes" aria-label="Choose a mode"><button data-testid="challenge" aria-pressed={mode === 'challenge'} onClick={() => setMode('challenge')}>Eight-day shift<small>Meet the delivery target by sunset.</small></button><button data-testid="endless" aria-pressed={mode === 'endless'} onClick={() => setMode('endless')}>Endless<small>Keep growing until a platform overflows.</small></button></div><button className="be-gold" data-testid="start" disabled={!loaded} onClick={() => start()}>Start in {MAPS[map].name} →</button></div>
+    <div className="be-start"><div className="be-modes" aria-label="Choose a mode"><button data-testid="challenge" aria-pressed={mode === 'challenge'} onClick={() => setMode('challenge')}>Eight-day shift<small>Meet the delivery target by sunset.</small></button><button data-testid="endless" aria-pressed={mode === 'endless'} onClick={() => setMode('endless')}>Endless<small>Keep growing until a platform overflows.</small></button></div><button className="be-gold" data-testid="start" disabled={!loaded || !artReady} onClick={() => start()}>Start in {MAPS[map].name} →</button></div>
     {hasRun && <p className="be-subtle">Starting a new route replaces the saved one.</p>}
     <ol className="be-how"><li><b>Draw a line.</b> Drag between stations, or tap them in order. A cart starts when the second stop is connected.</li><li><b>Read the shapes.</b> Circle: home. Square: hay. Diamond: dust bath. Triangle: retreat. Passengers change carts at shared stations.</li><li><b>Make room.</b> More than {CAPACITY} waiting passengers starts an {GRACE}-second crowding clock. Pause to plan, then add carts or reroute.</li><li><b>Choose an upgrade.</b> Every {DAY}-second day brings a choice. Hay deliveries fuel carts. A cave-in lasts 20 seconds, or a drill clears it immediately.</li></ol>
     <details className="be-help"><summary>Keyboard &amp; touch controls</summary><p>1–5 select a line. Arrow keys select a station; Enter adds it. Z removes the last stop, A adds a cart, L joins a loop. P or Escape pauses. F changes speed; M toggles sound. On a phone, drag between buildings or use the station buttons below the map. The game pauses on focus loss. Your route saves as you play and returns paused.</p></details>
@@ -161,18 +167,23 @@ export default function BurrowExpress() {
     <div className="be-workspace"><section className="be-network" aria-label="Transport network">
       {tips && <div className="be-coach" data-testid="coach"><b>{tips[0]}</b><p>{tips[1]}</p></div>}
       <div className="be-map"><canvas ref={canvas} tabIndex={0} data-testid="board" aria-label="Warren map. Drag from the last station on your selected line to another station. Arrow keys select a station; Enter connects it." onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancel} onLostPointerCapture={cancel} onPointerLeave={() => { hover.current = null; }} />{g.paused && !end && g.state !== 'upgrade' && <button className="be-paused" data-testid="carry-on" onClick={togglePause}>Paused · Carry on ▶</button>}
-      {g.state === 'upgrade' && <div className="be-overlay"><section aria-label="Choose an upgrade"><small>{g.mode === 'tutorial' ? 'YOUR FIRST UPGRADE' : `DAY ${g.day} · A NEW MORNING`}</small><h2>Grow your little network.</h2><p>{g.active.length} stations · {g.delivered} happy journeys</p><div className="be-upgrades" style={{ gridTemplateColumns: `repeat(${g.offers().length}, minmax(0, 1fr))` }}>{g.offers().map((id: Upgrade) => <button key={id} data-testid={`upgrade-${id}`} onClick={() => act((x) => x.upgrade(id))}><span>{UPGRADES[id].icon}</span><b>{UPGRADES[id].name}</b><small>{UPGRADES[id].text}</small></button>)}</div></section></div>}
+      {g.state === 'upgrade' && <div className="be-overlay"><section aria-label="Choose an upgrade"><small>{g.mode === 'tutorial' ? 'YOUR FIRST UPGRADE' : `DAY ${g.day} · A NEW MORNING`}</small><h2>Grow your little network.</h2><p>{g.active.length} stations · {g.delivered} happy journeys</p><div className="be-upgrades" style={{ gridTemplateColumns: `repeat(${g.offers().length}, minmax(0, 1fr))` }}>{g.offers().map((id: Upgrade) => <button key={id} data-testid={`upgrade-${id}`} onClick={() => act((x) => x.upgrade(id))}><span>{['cart', 'line'].includes(id) ? <ArtIcon id="duo" size={60} /> : id === 'drill' ? <ArtIcon id="drill" size={60} /> : UPGRADES[id].icon}</span><b>{UPGRADES[id].name}</b><small>{UPGRADES[id].text}</small></button>)}</div></section></div>}
       {end && <div className="be-overlay" data-testid="result"><section><small>{g.mode === 'tutorial' ? 'LESSON COMPLETE' : MAPS[g.map].name.toUpperCase()}</small><h2>{g.state === 'won' ? g.mode === 'tutorial' ? 'You’re ready to roll!' : 'The warren is moving!' : 'Time for a fresh route.'}</h2><p>{g.mode === 'tutorial' ? 'Try an eight-day shift, or build an endless network. Short lines and shared transfer stations help everyone get home.' : g.reason}</p><strong className="be-result-number">{g.delivered}<small>DELIVERED · DAY {g.day}</small></strong><button className="be-gold" data-testid="again" onClick={() => enter(Game.start(g.map, g.mode === 'tutorial' ? 'challenge' : g.mode, Date.now() % 1000000 + 1))}>{g.mode === 'tutorial' ? 'Start a real shift →' : 'Try a new route →'}</button><button onClick={home}>Choose a map</button></section></div>}
       </div>
-      <div className="be-lines" aria-label="Tunnel lines">{g.lines.map((x) => <button key={x.id} data-testid={`line-${x.id}`} aria-pressed={line === x.id} onClick={() => pickLine(x.id)} style={{ '--route': COLORS[x.id] } as React.CSSProperties}><i /><span>{LINE_NAMES[x.id]}<small>{plural(x.stops.length, 'stop')} · {plural(g.carts.filter((c) => c.line === x.id).length, 'cart')}{x.loop ? ' · loop' : ''}</small></span></button>)}</div>
-      <div className="be-route-actions"><button data-testid="reroute" disabled={!editable} onClick={() => { g.pause(true); drag.current = null; say('Route paused. Remove stops from the end, then connect new ones. Carry on when you’re ready.'); commit(); }}>Reroute</button><button data-testid="remove-stop" disabled={!editable || !l.stops.length} onClick={() => act((x) => x.removeLast(line))}>Remove last stop · Z</button><button data-testid="loop" disabled={!editable || l.stops.length < 3} aria-pressed={l.loop} onClick={() => act((x) => x.loop(line))}>{l.loop ? 'Open loop' : 'Join a loop'} · L</button><button data-testid="release-cart" disabled={!editable || !g.carts.some((c) => c.line === line)} onClick={() => act((x) => x.releaseCart(line))}>Free a cart</button></div>
-      <output className="be-instruction">{note || (l.stops.length ? `Extend ${LINE_NAMES[line]} from ${g.stations[l.stops.at(-1)!].name}. Stations can be shared by several lines.` : `Draw ${LINE_NAMES[line]}: drag between two stations, or tap their buildings in order.`)}</output>
+      <div className="be-lines" aria-label="Tunnel lines"><strong className="be-lines-label">TUNNEL LINES</strong>{g.lines.map((x) => <button key={x.id} data-testid={`line-${x.id}`} aria-pressed={line === x.id} onClick={() => pickLine(x.id)} style={{ '--route': COLORS[x.id] } as React.CSSProperties}><i /><span>{LINE_NAMES[x.id]}<small>{plural(x.stops.length, 'stop')} · {plural(g.carts.filter((c) => c.line === x.id).length, 'cart')}{x.loop ? ' · loop' : ''}</small></span></button>)}<button className="be-reroute" data-testid="reroute" disabled={!editable} onClick={() => { g.pause(true); drag.current = null; setEditor(true); say('Route paused. Remove stops from the end, then connect new ones. Carry on when you’re ready.'); commit(); }}>⇄ Reroute</button></div>
+      <output className="be-instruction">{note || 'Drag between stations to draw a tunnel.'}</output>
+      <details className="be-editor" data-testid="editor" open={editor}>
+      <summary onClick={(e) => { e.preventDefault(); setEditor(!editor); }}>Stations &amp; route tools <span>{editor ? '−' : '+'}</span></summary>
+      <div className="be-route-actions"><button data-testid="remove-stop" disabled={!editable || !l.stops.length} onClick={() => act((x) => x.removeLast(line))}>Remove last stop · Z</button><button data-testid="loop" disabled={!editable || l.stops.length < 3} aria-pressed={l.loop} onClick={() => act((x) => x.loop(line))}>{l.loop ? 'Open loop' : 'Join a loop'} · L</button><button data-testid="release-cart" disabled={!editable || !g.carts.some((c) => c.line === line)} onClick={() => act((x) => x.releaseCart(line))}>Free a cart</button></div>
+
       <div className="be-stations" aria-label="Connect a station">{g.active.map((s) => <button key={s.id} data-testid={`station-${s.id}`} disabled={!editable} aria-pressed={cursor === s.id} onClick={() => connect(s.id)}><span style={{ color: TYPES[s.kind].color }}>{TYPES[s.kind].icon}</span><b>{s.name}</b><small>{s.queue.length} waiting{s.crowd > 0 ? ` · ${Math.ceil(GRACE - s.crowd)}s left` : ''}</small></button>)}</div>
+      </details>
     </section><aside className="be-sidebar"><h2>KEEP THE WARREN MOVING</h2><Duo />
       {g.block && <div className="be-warning" data-testid="cave-in"><b>Cave-in on the line</b><p>{g.stations[g.block.a].name} ↔ {g.stations[g.block.b].name}</p><small>Clears in {Math.ceil(g.block.until - g.time)}s, or use one drill.</small><button disabled={!editable || !g.drills} onClick={() => act((x) => x.repair())}>Clear cave-in ⚒</button></div>}
-      <div className={`be-queue ${crowded.queue.length >= CAPACITY ? 'busy' : ''}`}><small>BUSIEST PLATFORM</small><b>{crowded.name}</b><strong>{crowded.queue.length} / {CAPACITY}<small>waiting</small></strong><div className="be-meter"><i style={{ width: `${Math.min(100, crowded.queue.length / CAPACITY * 100)}%` }} /></div><p>{crowded.crowd > 0 ? `${Math.ceil(GRACE - crowded.crowd)} seconds to ease the crowd.` : 'Keep journeys short. A shared station lets passengers change carts.'}</p></div>
-      <div className="be-fleet"><small>{LINE_NAMES[line].toUpperCase()}</small><h3>Give them a lift.</h3><p>{g.available} spare {g.available === 1 ? 'cart' : 'carts'} · {g.seats} passengers per cart</p><button className="be-gold" data-testid="add-cart" disabled={!editable || g.available < 1 || l.stops.length < 2} onClick={() => act((x) => x.addCart(line))}>Add cart · A</button></div>
-      <div className="be-legend"><h3>Where are they going?</h3>{KINDS.map((id) => <span key={id}><i style={{ color: TYPES[id].color }}>{TYPES[id].icon}</i>{TYPES[id].name}</span>)}</div>
+      <div className={`be-queue ${crowded.queue.length >= CAPACITY ? 'busy' : ''}`}><span className="be-warning-icon">{crowded.queue.length >= CAPACITY ? '⚠' : '♧'}</span><div><b>{crowded.queue.length >= CAPACITY ? `${crowded.name} getting crowded` : crowded.name}</b><strong>{crowded.queue.length} / {CAPACITY}<small>waiting</small></strong></div><div className="be-meter"><i style={{ width: `${Math.min(100, crowded.queue.length / CAPACITY * 100)}%` }} /></div>{crowded.crowd > 0 && <p>{Math.ceil(GRACE - crowded.crowd)} seconds to ease the crowd.</p>}</div>
+      <section className="be-next-upgrades"><h3>UPGRADE</h3><div><ArtIcon id="duo" /><strong>Extra cart<small>More room for little passengers</small></strong></div><div><ArtIcon id="drill" /><strong>Rock drill<small>New tunnels through rocky ground</small></strong></div></section>
+      <div className="be-fleet"><button className="be-gold" data-testid="add-cart" disabled={!editable || g.available < 1 || l.stops.length < 2} onClick={() => act((x) => x.addCart(line))}>Add cart</button><small>{g.available} spare {g.available === 1 ? 'cart' : 'carts'} · {LINE_NAMES[line]}</small></div>
+      <details className="be-legend"><summary>Where are they going?</summary>{KINDS.map((id) => <span key={id}><i style={{ color: TYPES[id].color }}>{TYPES[id].icon}</i>{TYPES[id].name}</span>)}</details>
       {g.mode !== 'tutorial' && <div className="be-day"><span>Next morning in <b>{Math.ceil(g.dayLeft)}s</b></span><div className="be-meter"><i style={{ width: `${100 * (1 - g.dayLeft / DAY)}%` }} /></div><small>Choose an upgrade at dawn. New stations appear as the warren grows.</small></div>}
     </aside></div>
   </main>;

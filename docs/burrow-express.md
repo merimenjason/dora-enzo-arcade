@@ -50,7 +50,7 @@ After taking an upgrade, spare carts still need to be assigned with **Add cart**
 
 ## Controls
 
-- **Mouse/touch:** drag from a line's last station to another building, or tap stations in order. Start an empty line by dragging between two stations. The station buttons below the map offer the same actions and larger phone targets. A cancelled or interrupted gesture makes no connection.
+- **Mouse/touch:** open **Stations & route tools** for the station list and extra editing controls. Drag from a line's last station to another building, or tap stations in order. Start an empty line by dragging between two stations. The station buttons below the map offer the same actions and larger phone targets. A cancelled or interrupted gesture makes no connection.
 - **1–5:** pick a line. **Arrow keys:** pick a station in that direction. **Enter:** connect the chosen station while the map has focus.
 - **Z:** remove the last stop. **A:** add a cart. **L:** join/open a loop. **Free a cart** returns the last cart on that line to the spare fleet.
 - **P / Escape:** pause or carry on. Routes remain editable while paused. **F:** cycle 1×, 2× and 3×. **M:** toggle sound. Losing window focus or hiding the tab pauses the game.
@@ -58,7 +58,9 @@ After taking an upgrade, spare carts still need to be assigned with **Add cart**
 
 ## Art, sound and saving
 
-The terrain is painted once into a cached canvas, with live buildings, queues, tunnel lines, moving carts and cave-in markers. `lib/chinchilla-art.ts` draws Dora and Enzo, including Dora's established dark ruby iris (`#8e1f33`) and deep wine pupil (`#3b0913`). The portrait uses the shared measured fitting helpers so the tails remain inside their boxes. Destination symbols stay distinct without relying on colour alone.
+The game uses the approved mock-up's painted woodland terrain, six station illustrations, wooden cart sprites and close-up Dora/Enzo portrait. Two transparent sprite atlases preserve the foliage, fur and wood-grain detail; the renderer draws live curved tunnels, captions, queues, crowding indicators and moving carts over them. Carts follow the visible track curves. Assets preload before play. Mossy Gorge and Starlit Summit add their own atmosphere to the cached painted backdrop.
+
+Dora keeps her dark burgundy ruby eyes and deep wine pupils, while Enzo's eyes remain dark. The interface follows the reference: map and compact tunnel bar on the left, portrait, busiest-platform meter and painted upgrade cards on the right. **Stations & route tools** opens the extra editing controls; it begins open on phones for larger touch targets. Destination symbols remain distinct without relying on colour alone. Asset provenance and exact prompts are in [`burrow-express-art.md`](burrow-express-art.md).
 
 `app/express/sound.ts` uses the shared `makeSound` synth for tunnels, deliveries, new stations, warnings, upgrades and results. Mute is kept under `burrow-express-sound-v1`.
 

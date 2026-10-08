@@ -10,10 +10,13 @@ const point = async (p, id) => {
   const q = await p.getByTestId('board').boundingBox(), s = await hook(p, `t => t.game.stations[${id}]`);
   return [q.x + s.x / 960 * q.width, q.y + s.y / 600 * q.height];
 };
+async function tools(p) {
+  if (await p.getByTestId('editor').getAttribute('open') === null) await p.getByTestId('editor').locator('summary').click();
+}
 async function blueprint(p) {
   const info = await hook(p, 't => ({ paused: t.game.paused, loop: t.game.lines[0].loop, stops: t.game.lines[0].stops.length, open: t.game.active, drills: t.game.drills })');
   if (!info.paused) await p.keyboard.press('p');
-  await p.getByTestId('line-0').click();
+  await tools(p); await p.getByTestId('line-0').click();
   if (info.loop) await p.getByTestId('loop').click();
   for (let i = 0; i < info.stops; i++) await p.getByTestId('remove-stop').click();
   const x = info.open.reduce((n, s) => n + s.x, 0) / info.open.length, y = info.open.reduce((n, s) => n + s.y, 0) / info.open.length;
@@ -29,6 +32,20 @@ async function blueprint(p) {
 }
 try {
   await mkdir('.checks/burrow-express', { recursive: true });
+  // A cold connection must finish loading the real painted assets before a game can start.
+  const cold = await browser.newPage(); watch(cold);
+  let release, requested; const held = new Promise((r) => release = r), seen = new Promise((r) => requested = r);
+  await cold.route('**/art/express/carts.png', async (route) => { requested(); await held; await route.continue(); });
+  await cold.goto(`${base}/express`, { waitUntil: 'domcontentloaded' }); await seen;
+  assert.ok(await cold.getByTestId('start').isDisabled(), 'game cannot run behind missing artwork');
+  release(); await cold.getByTestId('start').click(); await cold.getByTestId('board').waitFor();
+  assert.ok(await cold.locator('.be-duo').evaluate((im) => im.complete && im.naturalWidth >= 1000), 'the approved-style portrait really loaded');
+  await cold.close();
+  const broken = await browser.newPage(); watch(broken);
+  await broken.route('**/art/express/carts.png', (route) => route.fulfill({ status: 404, body: '' }));
+  await broken.goto(`${base}/express`); await broken.getByText('The warren artwork could not load.', { exact: false }).waitFor();
+  assert.ok(await broken.getByTestId('start').isDisabled()); assert.ok(await broken.getByRole('button', { name: 'Try again', exact: true }).isVisible()); await broken.close();
+
   const p = await browser.newPage({ viewport: { width: 1440, height: 1050 } }); watch(p); p.setDefaultTimeout(20000);
   await p.goto(base); assert.equal(await p.locator('.arcade-card').count(), 26);
   await p.locator('a[href="/express"]').click(); await p.getByTestId('start').waitFor();
@@ -46,7 +63,7 @@ try {
   assert.deepEqual(await hook(p, 't => t.game.lines[0].stops'), [0, 1]);
   assert.equal(await hook(p, 't => t.game.carts.length'), 1);
   assert.match(await p.getByTestId('coach').textContent(), /Connect the warren/);
-  await p.getByTestId('station-2').click(); await p.getByTestId('station-3').click();
+  await tools(p); await p.getByTestId('station-2').click(); await p.getByTestId('station-3').click();
   await hook(p, 't => t.fast(60)'); await p.getByTestId('upgrade-cart').waitFor();
   await p.getByTestId('upgrade-cart').click(); await p.getByTestId('result').waitFor();
   assert.equal(await p.evaluate((k) => JSON.parse(localStorage.getItem(k)).tutorial, KEY), true);
@@ -55,9 +72,12 @@ try {
   await p.getByTestId('menu').click(); await hook(p, 't => t.fast(1)'); await p.getByTestId('map-0').click();
 
   // Keyboard selection, adding/releasing carts, loops and a safe route edit.
-  await p.getByTestId('start').click(); await p.getByTestId('board').focus();
+  await p.getByTestId('start').click(); await tools(p); await p.getByTestId('board').focus();
   await p.keyboard.press('ArrowRight'); await p.keyboard.press('Enter'); await p.keyboard.press('ArrowLeft'); await p.keyboard.press('Enter');
   assert.deepEqual(await hook(p, 't => t.game.lines[0].stops'), [1, 0]);
+  await p.keyboard.press('2'); await p.getByTestId('editor').locator('summary').focus(); await p.keyboard.press('Enter');
+  assert.deepEqual(await hook(p, 't => t.game.lines[1].stops'), [], 'Enter on the tools disclosure does not also connect a station');
+  await p.keyboard.press('1'); await tools(p); await p.getByTestId('board').focus();
   await p.keyboard.press('a'); assert.equal(await hook(p, 't => t.game.carts.length'), 2);
   await p.getByTestId('release-cart').click(); assert.equal(await hook(p, 't => t.game.carts.length'), 1);
   const q = await p.getByTestId('board').boundingBox(), s = await hook(p, 't => t.game.stations[3]');

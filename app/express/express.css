@@ -111,3 +111,117 @@
   .be-lines button { flex: 1 1 105px; padding: 8px; } .be-lines i { width: 16px; height: 16px; } .be-lines span { font-size: 11px; } .be-stations b { font-size: 12px; } .be-stations button { min-height: 48px; }
   .be-overlay { padding: 10px; } .be-overlay > section { padding: 15px; } .be-overlay h2 { font-size: 20px; } .be-upgrades { gap: 6px; margin-top: 12px; } .be-upgrades button { padding: 10px 5px; } .be-upgrades b { font-size: 12px; } .be-upgrades small { font-size: 10px; } .be-result-number { margin: 10px 0; font-size: 28px; } .be-coach { padding: 10px; }
 }
+
+/* The approved painted mock-up: full-bleed warren, compact tunnel bar and portrait/upgrade sidebar. */
+.be-shell { background: radial-gradient(ellipse at 50% -10%, #483045, #251c30 68%); font-family: 'Trebuchet MS', ui-sans-serif, system-ui, sans-serif; }
+.be-play { display: grid; grid-template-columns: minmax(0, 1fr) 340px; column-gap: 8px; padding: 0; max-width: 1800px; margin: 0 auto; }
+.be-play .be-header { grid-column: 1 / -1; margin: 0; padding: 9px 20px; min-height: 58px; background: linear-gradient(#372237, #271e2e); border-bottom: 2px solid #70516e; }
+.be-header > strong { color: #ffe3ac; font-family: 'Arial Rounded MT Bold', 'Trebuchet MS', system-ui, sans-serif; font-weight: 900; letter-spacing: 3px; font-size: clamp(24px, 2.7vw, 40px); text-shadow: 0 3px #291c31, 0 0 10px #bf935122; }
+.be-play .be-header > strong::before, .be-play .be-header > strong::after { content: '❧'; color: #82a46a; font-size: .65em; margin: 0 14px; vertical-align: middle; }
+.be-play .be-header a { font-family: inherit; font-size: 15px; letter-spacing: 1px; }
+.be-play .be-header > div { gap: 7px; }
+.be-play .be-header button { border-radius: 50%; min-width: 34px; min-height: 34px; padding: 7px; background: #2b2034; border-color: #9b7c91; }
+.be-play .be-header button[data-testid="menu"], .be-play .be-header button[aria-label^="Turn sound"] { border-radius: 10px; font-size: 11px; padding: 7px 10px; }
+.be-play .be-status { grid-column: 1; grid-row: 2; margin: 5px 0 0; min-height: 58px; gap: 30px; padding: 8px 20px; border-radius: 10px 10px 0 0; background: linear-gradient(#35263d, #2c2234); border-color: #4c384f; }
+.be-play .be-status > span { font-size: 17px; }
+.be-play .be-status b { font-size: 21px; }
+.be-play .be-status small { font-size: 8px; opacity: .8; }
+.be-play .be-workspace { display: contents; }
+.be-play .be-network { grid-column: 1; grid-row: 3; min-width: 0; align-self: start; }
+.be-play .be-map { border-radius: 0 0 7px 7px; border: 1px solid #745772; box-shadow: none; }
+.be-play .be-map > canvas { aspect-ratio: 3 / 2; min-height: 0; }
+.be-play .be-sidebar { grid-column: 2; grid-row: 2 / span 2; margin-top: 5px; display: flex; flex-direction: column; padding: 16px 15px; border-radius: 10px 0 0 10px; border-color: #806383; background: radial-gradient(ellipse at top right, #392537, #292032 60%); align-self: stretch; }
+.be-play .be-sidebar h2 { font-size: 18px; font-weight: 800; letter-spacing: .5px; margin-bottom: 14px; white-space: nowrap; }
+.be-play .be-duo { aspect-ratio: 3 / 2; object-fit: cover; border-radius: 12px; border: 2px solid #9d849d; margin: 0 0 15px; box-shadow: 0 4px 12px #130d1b66; }
+.be-play .be-queue { display: grid; grid-template-columns: 34px 1fr; gap: 7px 10px; padding: 14px; border-color: #af843c; background: linear-gradient(120deg, #4a302e, #332337); margin-bottom: 10px; }
+.be-warning-icon { color: #f6c460; font-size: 30px; line-height: 1.2; }
+.be-play .be-queue b { font-size: 16px; margin: 0 0 4px; color: #ffe3a1; }
+.be-play .be-queue strong { font-size: 19px; font-weight: 500; color: #f7dfb0; }
+.be-play .be-queue strong small { font-size: 14px; color: #eddccb; }
+.be-play .be-queue .be-meter, .be-play .be-queue p { grid-column: 1 / -1; }
+.be-play .be-meter { height: 12px; margin-top: 9px; background: #231b30; border-color: #735a76; }
+.be-play .be-meter i { background: linear-gradient(#ffd56b, #eab344); box-shadow: inset 0 1px #fff5b366; }
+.be-next-upgrades h3 { display: flex; gap: 14px; align-items: center; font-size: 22px; letter-spacing: 1px; margin: 15px 0 12px; }
+.be-next-upgrades h3::after { content: ''; flex: 1; height: 1px; background: linear-gradient(#95718a, transparent); }
+.be-next-upgrades > div { display: flex; gap: 10px; align-items: center; padding: 8px 10px; min-height: 88px; margin-bottom: 12px; border: 1px solid #765570; border-radius: 13px; background: linear-gradient(140deg, #3b2a3f, #2d2234); box-shadow: inset 0 1px #9f719822; }
+.be-next-upgrades canvas { flex-shrink: 0; }
+.be-next-upgrades strong { font-size: 21px; font-weight: 500; }
+.be-next-upgrades small { display: block; margin-top: 5px; font-size: 10px; font-weight: 400; color: #c7adbf; }
+.be-play .be-fleet { margin: 2px 0 10px; }
+.be-play .be-fleet button { margin: 0; font-size: 26px; min-height: 62px; border-radius: 12px; background: linear-gradient(#ffe38f, #f2b440); border: 1px solid #ffe5a1; border-bottom: 4px solid #a46c2c; box-shadow: inset 0 1px #fff5c6, 0 3px 8px #0d091944; }
+.be-play .be-fleet > small { display: block; text-align: center; font-size: 10px; margin-top: 8px; letter-spacing: 0; }
+.be-play .be-legend { margin-top: auto; padding-top: 10px; }
+.be-legend summary { font-size: 12px; color: #d6bdcd; cursor: pointer; }
+.be-play .be-day { margin-top: 12px; padding-top: 10px; font-size: 11px; }
+.be-play .be-day .be-meter { height: 5px; }
+.be-play .be-day small { font-size: 10px; margin-top: 6px; }
+.be-play .be-lines { padding: 11px 16px; margin: 0; gap: 12px; border-bottom: 1px solid #50384f; border-top: 2px solid #714c68; background: linear-gradient(90deg, #352235, #261d2f); align-items: center; }
+.be-lines-label { font-size: 15px; letter-spacing: .5px; color: #f6dfaf; padding-right: 16px; border-right: 1px solid #755367; }
+.be-play .be-lines button { border-color: transparent; background: transparent; padding: 4px 0; gap: 8px; border-radius: 9px; }
+.be-play .be-lines button[aria-pressed="true"] { background: transparent; border-color: transparent; }
+.be-play .be-lines i { width: 29px; height: 29px; border: 2px solid #f0d1c5; box-shadow: inset 0 0 0 2px #44735944; }
+.be-play .be-lines button[aria-pressed="true"] i { box-shadow: 0 0 0 4px #493248, inset 0 0 0 2px #44735944; outline: 1px solid #a7879b; }
+.be-play .be-lines span { font-size: 13px; font-weight: 600; }
+.be-play .be-lines small { display: none; }
+.be-play .be-lines .be-reroute { margin-left: auto; padding: 8px 16px; border: 1px solid #8c6a88; background: #312238; white-space: nowrap; }
+.be-play .be-instruction { text-align: right; margin: 0; padding: 7px 18px 9px; min-height: 0; color: #cdb6c7 !important; font-size: 12px; background: #281d30; }
+.be-editor { margin: 0; background: #2e2237; border-top: 1px solid #50384f; }
+.be-editor > summary { cursor: pointer; font-size: 12px; color: #dfcba8; padding: 10px 18px; list-style: none; }
+.be-editor > summary span { float: right; }
+.be-editor .be-route-actions { margin: 0 14px 10px; }
+.be-editor .be-stations { margin: 0 14px 14px; }
+.be-art-loading { display: block; max-width: 1180px; margin: 15px auto; color: #ead7ab; font-size: 14px; }
+.be-intro .be-duo { box-shadow: 0 8px 28px #110c2266; border-color: #ab8694; }
+@media (max-width: 1200px) and (min-width: 761px) {
+  .be-play { grid-template-columns: minmax(0, 1fr) 290px; }
+  .be-play .be-sidebar { padding: 14px 12px; }
+  .be-play .be-sidebar h2 { font-size: 15px; }
+  .be-play .be-status { gap: 18px; flex-wrap: wrap; }
+  .be-play .be-status > span { font-size: 14px; }
+  .be-play .be-status b { font-size: 17px; }
+  .be-lines-label { display: none; }
+  .be-next-upgrades strong { font-size: 18px; }
+  .be-play .be-lines { gap: 9px; padding: 10px; }
+  .be-play .be-lines i { width: 22px; height: 22px; }
+  .be-play .be-lines span { font-size: 11px; }
+  .be-play .be-lines .be-reroute { margin-left: 0; }
+}
+@media (max-width: 760px) {
+  .be-play { display: block; padding: 0; }
+  .be-play .be-header { padding: 10px; min-height: 0; }
+  .be-play .be-header > strong { font-size: 21px; letter-spacing: 1px; }
+  .be-play .be-header > strong::before, .be-play .be-header > strong::after { display: none; }
+  .be-play .be-header a { font-size: 10px; }
+  .be-play .be-header > div { flex-basis: 100%; justify-content: flex-end; }
+  .be-play .be-status { margin: 0; border-radius: 0; padding: 10px; gap: 10px 19px; }
+  .be-play .be-status > span { font-size: 13px; }
+  .be-play .be-status b { font-size: 16px; }
+  .be-play .be-network { display: block; }
+  .be-play .be-map > canvas { aspect-ratio: 3 / 2; min-height: 250px; }
+  .be-play .be-lines { padding: 10px; gap: 7px; }
+  .be-lines-label { display: none; }
+  .be-play .be-lines button { flex: 1 1 95px; padding: 5px 1px; }
+  .be-play .be-lines i { width: 20px; height: 20px; }
+  .be-play .be-lines span { font-size: 11px; }
+  .be-play .be-lines small { display: block; font-size: 8px; }
+  .be-play .be-lines .be-reroute { flex: 0 0 auto; margin: 5px 0 0 auto; padding: 7px 10px; }
+  .be-play .be-instruction { padding: 8px 12px; font-size: 11px; }
+  .be-play .be-sidebar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; padding: 14px 10px; border-radius: 10px; }
+  .be-play .be-sidebar h2 { font-size: 15px; white-space: normal; margin: 0; }
+  .be-play .be-sidebar .be-duo { margin: 0; }
+  .be-play .be-queue { display: block; margin: 0; padding: 10px; }
+  .be-play .be-queue .be-warning-icon { display: none; }
+  .be-play .be-queue b { font-size: 13px; }
+  .be-play .be-queue strong { font-size: 17px; }
+  .be-play .be-queue strong small { font-size: 12px; }
+  .be-next-upgrades { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .be-next-upgrades h3 { grid-column: 1 / -1; font-size: 17px; margin: 2px 0; }
+  .be-next-upgrades > div { display: block; text-align: center; padding: 8px; min-height: 0; margin: 0; }
+  .be-next-upgrades canvas { display: block; margin: auto; }
+  .be-next-upgrades strong { font-size: 15px; }
+  .be-next-upgrades small { font-size: 9px; }
+  .be-play .be-fleet { grid-column: 1 / -1; margin: 0; }
+  .be-play .be-fleet button { font-size: 23px; min-height: 52px; }
+  .be-play .be-fleet small { margin-bottom: 4px; }
+  .be-play .be-legend { margin: 0; padding-top: 10px; }
+}

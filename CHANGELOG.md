@@ -6,7 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
-- **Burrow Express**: draw coloured tunnels and carry chinchillas between burrows, hay markets, dust baths and mountain retreats. A guided tutorial, three maps, eight-day shifts and Endless, transfer stations, cart and tunnel upgrades, hay-powered journeys, cave-ins, phone controls and saved routes. Dora keeps her established dark ruby eyes.
+- **Burrow Express**: draw coloured tunnels and carry chinchillas between burrows, hay markets, dust baths and mountain retreats. A guided tutorial, three maps, eight-day shifts and Endless, transfer stations, cart and tunnel upgrades, hay-powered journeys, cave-ins, phone controls and saved routes. Dora keeps her established dark ruby eyes. The artwork and screen composition match the approved painted mock-up: detailed woodland terrain, cottages and bath stations, wooden carts, the close-up portrait, rounded tracks and upgrade cards.
 
 ### Fixed
 
