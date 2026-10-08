@@ -2,6 +2,19 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 08-10-2026
+
+### Fixed
+
+- **Burrow Tactics** and **Burrow Barrage** save a finished battle's stars and run rewards as soon as the result is decided, so leaving or reloading during the final animation cannot lose them.
+- **Burrow Barrage** stops held controls between turns, on focus loss, or when a walking press is cancelled. Arrow keys adjust a focused slider without walking, and Space starts charging from zero immediately. A win resolved by the computer keeps the latest sound preference and earlier stars.
+- **Poof Panic** pauses matches and Endless when the window loses focus. Cancelled touches release their controls without turning or dropping a pair, and pausing clears any unfinished gesture.
+- **Summit Shuffle** keeps a large hand inside a scrollable area on landscape phones and narrow tablets, so cards remain reachable without spilling the page sideways. The introduction correctly explains that Dora and Enzo have cards of their own as well as shared cards.
+
+### Documentation
+
+- Added a focused browser quality suite for the four newest games, including interrupted input, native slider controls and progress saved before victory animations finish. Updated the handoff with the checks completed and the remaining human playtesting work.
+
 ## 07-10-2026
 
 ### Added

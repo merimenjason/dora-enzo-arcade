@@ -42,6 +42,8 @@ Every chinchilla carries one of each, usable once a match.
 - **The ladder:** six matches against rival pairs, one on each map, opened one at a time. The rivals aim at three levels: Sleepy (off by up to 8° and 14 power), Sharp (4° and 7) and Deadeye (1° and 3). Stars: one for a win, two with both Dora and Enzo still in, three with half the pair's health left as well.
 - **Pass and play:** two people on one device. Pick a map and the rides for Pip and Mora; Dora and Enzo use the rides chosen at the top of the menu.
 
+Stars are saved as soon as a match is decided, before its final animation finishes, so leaving or reloading cannot lose a win. A result resolved on the computer's turn reads the latest save, keeping earlier stars and the current sound preference. Held walking and charging controls are released between turns and when the window loses focus. A cancelled walking press stops walking. When an angle or power slider has focus, arrow keys adjust that slider rather than walking.
+
 ## Maps
 
 Six, each 400 × 225 cells and mirrored left to right: Clover Meadow (gentle hills), Mossy Valley (high banks and a deep dip), The Mound (a hill in the middle), Rope Bridge (two cliffs and a thin bridge over a drop), Sky Ledges (floating ledges) and Broken Crags (steep ridges with two gaps).
@@ -72,6 +74,8 @@ The computer does not plan to drop a rival by digging or shoving, though its bla
 The bot fails if any ride wins under 30% or over 70% of its matches. Rerun it after changing any number in `RIDES`, `ITEMS` or the constants at the top of the engine.
 
 ## Known limits
+
+The focused browser suite, `tests/e2e/newest-quality.mjs`, checks interrupted walking, held keys across turns, keyboard slider controls and stars kept when leaving during a victory animation. It runs with the four games' main browser suites through `npm run test:e2e:newest`.
 
 - **Not played by hand.** See the note at the top.
 - **No saving mid-match**, and no online play: the arcade has no game server.

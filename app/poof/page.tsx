@@ -75,6 +75,7 @@ export default function PoofPanic() {
   const [touch, setTouch] = useState(false);
   const [, setTick] = useState(0);
   const game = useRef<Game>(idle()), stage = useRef<Stage | null>(null), pad = useRef(new Pad()), canvas = useRef<HTMLCanvasElement>(null), box = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ x: number; y: number; t: number; lastX: number; moved: boolean; soft: boolean } | null>(null);
   const saveRef = useRef(save), cardRef = useRef<Card>('none'), auto = useRef<Brain | null>(null), fast = useRef(1), climbRef = useRef<Climb | null>(null);
   saveRef.current = save;
 
@@ -89,7 +90,8 @@ export default function PoofPanic() {
 
   const refresh = () => setTick((t) => t + 1);
   const store = (next: Save) => { saveRef.current = next; setSave(next); writeSave(next); };
-  const show = (c: Card) => { cardRef.current = c; setCard(c); pad.current.clear(); };
+  const clearInput = () => { drag.current = null; pad.current.clear(); };
+  const show = (c: Card) => { cardRef.current = c; setCard(c); clearInput(); };
   const hero = save.hero;
 
   function openMatch(mode: 'ladder' | 'free', rung: number, hard: boolean) {
@@ -258,14 +260,13 @@ export default function PoofPanic() {
       else if (k === ' ') { e.preventDefault(); if (!e.repeat) pad.current.tap('plunge'); }
     };
     const up = (e: KeyboardEvent) => { const k = e.key.length === 1 ? e.key.toLowerCase() : e.key; if (HOLD[k]) pad.current.hold(HOLD[k], false); };
-    const blur = () => pad.current.clear();
+    const blur = () => { clearInput(); if (screen === 'play' && cardRef.current === 'none') { const g = game.current; if (!g.result && g.mode !== 'lesson') show('paused'); } };
     window.addEventListener('keydown', down); window.addEventListener('keyup', up); window.addEventListener('blur', blur);
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen]);
 
   // Touch and mouse: drag sideways to move, tap to turn, pull down to drop.
-  const drag = useRef<{ x: number; y: number; t: number; lastX: number; moved: boolean; soft: boolean } | null>(null);
   const cellPx = () => Math.max(18, (stage.current?.lay.a.cell ?? 30) * 0.85);
   const onDown = (e: React.PointerEvent) => { if (cardRef.current !== 'none') return; e.currentTarget.setPointerCapture(e.pointerId); drag.current = { x: e.clientX, y: e.clientY, t: performance.now(), lastX: e.clientX, moved: false, soft: false }; };
   const onMove = (e: React.PointerEvent) => {
@@ -384,7 +385,7 @@ export default function PoofPanic() {
         </div>
       )}
       <div className="pp-stage" ref={box}>
-        <canvas ref={canvas} data-testid="board" aria-label="Poof Panic board" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} />
+        <canvas ref={canvas} data-testid="board" aria-label="Poof Panic board" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={clearInput} onLostPointerCapture={() => { if (drag.current) clearInput(); }} />
         {card !== 'none' && (
           <section className="pp-card" aria-live="polite" data-testid={`card-${card}`}>
             {card === 'intro' && rival && (<>

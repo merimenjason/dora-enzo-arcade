@@ -81,12 +81,15 @@ export default function BurrowBarrage() {
   const shotRef = useRef(0), itemRef = useRef<ItemId | null>(null), held = useRef(new Set<string>()), charge = useRef(-1), dragging = useRef(false);
   const narrowRef = useRef(false), nearRef = useRef(true), touches = useRef(new Map<number, [number, number]>()), before = useRef<[number, number] | null>(null);
   const recorded = useRef<Match | null>(null), result = useRef(0), noteTimer = useRef(0), tired = useRef(0);
+  const saveRef = useRef(save);
+  saveRef.current = save;
 
-  useEffect(() => { const s = readSave(); setSave(s); setMuted(s.muted); setLoaded(true); }, []);
+  useEffect(() => { const s = readSave(); saveRef.current = s; setSave(s); setMuted(s.muted); setLoaded(true); }, []);
   // The browser test reads and drives the running game through this.
   useEffect(() => { (window as unknown as { __barrage?: () => unknown }).__barrage = () => ({ match: match.current, stage: stage.current, plan: () => match.current?.plan(2, true) ?? null }); }, []);
 
   const refresh = () => setTick((t) => t + 1);
+  const store = (next: Save) => { saveRef.current = next; setSave(next); writeSave(next); };
   const say = (text: string) => { setNote(text); window.clearTimeout(noteTimer.current); noteTimer.current = window.setTimeout(() => setNote(''), 2400); };
   const pickShot = (n: number) => { shotRef.current = n; setShot(n); };
   const pickItem = (i: ItemId | null) => { itemRef.current = i; setItem(i); };
@@ -98,20 +101,22 @@ export default function BurrowBarrage() {
   function open(m: Match) {
     match.current = m; stage.current = new Stage(m); stage.current.sfx = cue; stage.current.speed = speed;
     stage.current.feed(m.events.splice(0));
-    recorded.current = null; result.current = 0; charge.current = -1; held.current.clear(); touches.current.clear();
+    recorded.current = null; result.current = 0; releaseControls();
     pickShot(0); pickItem(null); setScreen('match'); refresh();
   }
   const startLadder = (i: number) => { mode.current = { kind: 'ladder', index: i }; open(ladderMatch(i, save.rides, newSeed())); };
   const startDuel = () => { mode.current = { kind: 'duel', map: duelMap }; open(Match.start({ map: duelMap, seed: newSeed(), rides: [save.rides, guests], names: [['Dora', 'Enzo'], ['Pip', 'Mora']], coats: [['dora', 'enzo'], ['pip', 'mora']] })); };
   const replay = () => (mode.current.kind === 'ladder' ? startLadder(mode.current.index) : startDuel());
-  const home = () => setScreen('home');
-  const setRide = (slot: number, ride: RideId) => { const rides: [RideId, RideId] = slot === 0 ? [ride, save.rides[1]] : [save.rides[0], ride]; const next = { ...save, rides }; setSave(next); writeSave(next); };
+  const home = () => { releaseControls(); setScreen('home'); };
+  const setRide = (slot: number, ride: RideId) => { const s = saveRef.current, rides: [RideId, RideId] = slot === 0 ? [ride, s.rides[1]] : [s.rides[0], ride]; store({ ...s, rides }); };
 
   /** After any engine call: play its events. */
   function commit() {
     const m = match.current, st = stage.current;
     if (!m || !st) return;
+    releaseControls();
     st.feed(m.events.splice(0));
+    if (m.state === 'over') settle();
     refresh();
   }
   function aim(angle: number, power: number) { const m = match.current; if (!m || !mine()) return; m.aim(angle, power); refresh(); }
@@ -149,18 +154,18 @@ export default function BurrowBarrage() {
   }
   const cycleSpeed = () => { const s = speed === 1 ? 2 : speed === 2 ? 3 : 1; setSpeed(s); if (stage.current) stage.current.speed = s; };
   const toggleNear = () => { nearRef.current = !nearRef.current; setNear(nearRef.current); };
-  const toggleMute = () => { const next = { ...save, muted: !save.muted }; setSave(next); writeSave(next); setMuted(next.muted); };
-  /** Records a finished match once its last animation has played. */
+  const toggleMute = () => { const s = saveRef.current, next = { ...s, muted: !s.muted }; store(next); setMuted(next.muted); };
+  /** Bank the result immediately; the result screen still waits for the last animation. */
   function settle() {
     const m = match.current;
-    if (!m || recorded.current === m) return;
+    if (!m || m.state !== 'over' || recorded.current === m) return;
     recorded.current = m;
     const duel = mode.current.kind === 'duel';
     cue(duel || m.winner === 0 ? 'win' : 'lose');
     if (mode.current.kind === 'ladder') {
-      const i = mode.current.index, n = stars(m);
+      const i = mode.current.index, n = stars(m), s = saveRef.current;
       result.current = n;
-      if (n > save.stars[i]) { const next = { ...save, stars: save.stars.map((v, j) => (j === i ? n : v)) }; setSave(next); writeSave(next); }
+      if (n > s.stars[i]) store({ ...s, stars: s.stars.map((v, j) => (j === i ? n : v)) });
     }
     refresh();
   }
@@ -198,6 +203,7 @@ export default function BurrowBarrage() {
     } else if (dragging.current) aimAt(e);
   }
   function pointerUp(e: React.PointerEvent<HTMLCanvasElement>) { touches.current.delete(e.pointerId); dragging.current = false; }
+  function releaseControls() { held.current.clear(); charge.current = -1; touches.current.clear(); dragging.current = false; before.current = null; }
 
   // The loop: walking, charging, the computer's turns, animations and drawing.
   useEffect(() => {
@@ -247,6 +253,7 @@ export default function BurrowBarrage() {
     const down = (e: KeyboardEvent) => {
       const m = match.current;
       if (!m || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
       const k = e.key.toLowerCase();
       if (k === 'f') { cycleSpeed(); return; }
       if (k === 'm') { toggleMute(); return; }
@@ -261,7 +268,7 @@ export default function BurrowBarrage() {
         e.preventDefault();
         // A focused button would fire again when the key comes back up.
         (document.activeElement as HTMLElement | null)?.blur?.();
-        if (!e.repeat && charge.current < 0) { charge.current = 0; cue('select'); }
+        if (!e.repeat && charge.current < 0) { charge.current = 0; m.aim(u.angle, 0); refresh(); cue('select'); }
         return;
       }
       if (k === '1' || k === '2' || k === '3') { chooseShot(Number(k) - 1); return; }
@@ -273,9 +280,11 @@ export default function BurrowBarrage() {
       held.current.delete(k);
       if (k === ' ' && charge.current >= 0) { e.preventDefault(); fire(); }
     };
-    const blur = () => { held.current.clear(); charge.current = -1; };
+    const blur = () => releaseControls();
+    const hide = () => { if (document.hidden) releaseControls(); };
     window.addEventListener('keydown', down); window.addEventListener('keyup', up); window.addEventListener('blur', blur);
-    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur); };
+    document.addEventListener('visibilitychange', hide);
+    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur); document.removeEventListener('visibilitychange', hide); };
   });
 
   const m = match.current, st = stage.current, playing = screen === 'match' && !!m && !!st;
@@ -450,9 +459,9 @@ export default function BurrowBarrage() {
       </div>
       <div className="bb-controls">
         <div className="bb-walk">
-          <button data-testid="walk-left" disabled={!can} aria-label="Walk left" onPointerDown={() => { held.current.add('arrowleft'); walk(-1); }} onPointerUp={() => held.current.delete('arrowleft')} onPointerLeave={() => held.current.delete('arrowleft')}>◀</button>
+          <button data-testid="walk-left" disabled={!can} aria-label="Walk left" onPointerDown={() => { held.current.add('arrowleft'); walk(-1); }} onPointerUp={() => held.current.delete('arrowleft')} onPointerCancel={() => held.current.delete('arrowleft')} onPointerLeave={() => held.current.delete('arrowleft')}>◀</button>
           <small>{Math.max(0, ride.move - u.moved)} steps</small>
-          <button data-testid="walk-right" disabled={!can} aria-label="Walk right" onPointerDown={() => { held.current.add('arrowright'); walk(1); }} onPointerUp={() => held.current.delete('arrowright')} onPointerLeave={() => held.current.delete('arrowright')}>▶</button>
+          <button data-testid="walk-right" disabled={!can} aria-label="Walk right" onPointerDown={() => { held.current.add('arrowright'); walk(1); }} onPointerUp={() => held.current.delete('arrowright')} onPointerCancel={() => held.current.delete('arrowright')} onPointerLeave={() => held.current.delete('arrowright')}>▶</button>
         </div>
         <label className="bb-slider">
           <span>Angle <b>{u.angle <= 90 ? u.angle : 180 - u.angle}° {u.angle <= 90 ? '→' : '←'}</b></span>

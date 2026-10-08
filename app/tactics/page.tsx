@@ -141,6 +141,7 @@ export default function BurrowTactics() {
     if (!b || !st) return;
     st.feed(b.events.splice(0), b);
     version.current++; tipRef.current = null; setAdvice('');
+    if (b.state === 'won' || b.state === 'lost') settle();
     if (run.current) writeRun(run.current);
     else if (mode.current.kind === 'mission') writeMission(mode.current.index, b);
     refresh();
@@ -267,7 +268,7 @@ export default function BurrowTactics() {
   }
   const cycleSpeed = () => { const s = speed === 1 ? 2 : speed === 2 ? 3 : 1; setSpeed(s); if (stage.current) stage.current.speed = s; };
   const toggleMute = () => { const next = { ...save, muted: !save.muted }; setSave(next); writeSave(next); setMuted(next.muted); };
-  /** Records a finished battle once its last animation has played. */
+  /** Bank the result immediately; the result screen still waits for the last animation. */
   function settle() {
     const b = battle.current;
     if (!b || b.state === 'player' || b.state === 'deploy' || recorded.current === b) return;

@@ -483,7 +483,7 @@ export default function SummitShuffle() {
           </section>
         )}
 
-        <h2 className="ss-section">Who climbs <small>the same cards for both; each brings a trinket of their own</small></h2>
+        <h2 className="ss-section">Who climbs <small>shared cards and cards of their own; each brings a different trinket</small></h2>
         <div className="ss-heroes">
           {HERO_IDS.map((h) => {
             const b = save.best[h], t = TRINKETS[HEROES[h].trinket];
