@@ -18,6 +18,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Pawprint Pinball**'s gold buttons (Play the Clockwork Warren, Play again, Carry on) stay gold with dark lettering under the mouse. They used to turn dark, leaving dark text on a dark button.
+
 - **Pawprint Pinball** has its walls retraced from the painted table, so the berry no longer passes over fences, stonework and lanterns or bounces off thin air, and the only way out is the slot between the flippers. The rescue targets are now brass studs you can reach on the stone wall under the burrow. The berry launches from the top of the plunger and drops in from the bridge, the ramps are entered from the pockets at either side, flipper shots are harder off the tip than beside the pivot, a raised paw holds a slow berry, and the cushions kick only when struck. A table saved before this change starts fresh.
 
 - **Chinchilla Clash** saves a win the instant the battle ends. A card drag the browser interrupts no longer drops that card on your next tap, and the clock stops when the tab is hidden or the window loses focus mid-drag.
