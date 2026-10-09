@@ -98,14 +98,14 @@ The Flicker, Frost Fan and Boulder Roller are the starters (`START_TOWERS`). Sho
 
 The page keeps two things in `localStorage`:
 
-- **`hay-maze-run-v1`**, the run in progress, as the JSON from `Run.snapshot()`. Between waves and on the reward screen that is the run exactly as it stands: the deck, relics, flame, the meadow, every bale and tower, the hand and both piles, and the state of both random generators (`rng().state()`), so a loaded run carries on exactly as it would have. During a wave the battle's part of it also carries `live` (a `WaveSave`: the predators, the shots in the air, the queue still to come and each tower's cooldown and target), and a wave loaded from it comes back paused. Saves written before waves were kept have no `live` and still load. The page writes the run whenever it changes between waves (checked a few times a second), every second and a half during a wave, and when the page is hidden or closed. A finished run removes it. `Run.load()` checks every field and returns null for a save that's broken, from another version (`SAVE_VERSION`), or impossible (a tower on bare grass, a sealed meadow, too many cards in hand), and the start screen then offers no Continue.
-- **`hay-maze-v2`**: runs started, runs won and the furthest level reached.
+- **`hay-maze-run-v1`**, the run in progress, as the JSON from `Run.snapshot()`. Between waves and on the reward screen that is the run exactly as it stands: the deck, relics, flame, the meadow, every bale and tower, the hand and both piles, and the state of both random generators (`rng().state()`), so a loaded run carries on exactly as it would have. During a wave the battle's part of it also carries `live` (a `WaveSave`: the predators, the shots in the air, the queue still to come and each tower's cooldown and target), and a wave loaded from it comes back paused. Saves written before waves were kept have no `live` and still load. The page writes the run whenever it changes between waves (checked a few times a second), every second and a half during a wave, and when the page is hidden or closed. A finished run removes it, after the result below has been written. `Run.load()` checks every field and returns null for a save that's broken, from another version (`SAVE_VERSION`), or impossible (a tower on bare grass, a sealed meadow, too many cards in hand), and the start screen then offers no Continue.
+- **`hay-maze-v2`**: runs started, runs won and the furthest level reached. The game loop writes it in the frame a run is won or lost.
 
 ## Controls
 
 - Cards: 1–8 or click. R, right-click or the mouse wheel turns a bale. Items play when picked.
 - Towers: Z, X, C, V, B, N, M and comma, in the order of the crew list, or click the bar.
-- Arrow keys move the cursor; Enter places or selects. Space starts the wave. U upgrades, Delete sells. F cycles 1×, 2× and 3× speed. P pauses; Escape cancels, or pauses when nothing is picked. On the reward screen, 1–3 pick.
+- Arrow keys move the cursor; Enter places or selects. Space starts the wave. U upgrades, Delete sells. F cycles 1×, 2× and 3× speed. P pauses; Escape cancels, or pauses when nothing is picked. A wave also pauses, and the run is saved, when the window loses focus or the tab is hidden. On the reward screen, 1–3 pick.
 - **Save and leave** in the pause menu, or on the reward screen, goes back to the start screen, where **Continue your run** picks it up again. Beginning a new run replaces the saved one.
 - Touch: the first tap on a tile previews, and a second tap on the same tile places.
 

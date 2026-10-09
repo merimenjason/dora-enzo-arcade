@@ -450,7 +450,7 @@ Knock down a princess tower for a crown, or the king tower for all three and an 
 - a king-tower win, crowns at full time, overtime, the tie-break and a draw;
 - the computer defending a push, replaying exactly from a seed, and whole computer-vs-computer matches in every arena, each harder than the last.
 
-Browser: `tests/e2e/chinchilla-clash.mjs` checks the menu card and locked arenas, the deck builder's limits and that the deck survives a reload, tap, keyboard and drag plays, a troop refused on the enemy half, a spell on an enemy tower, pausing, a king-tower victory that opens the next arena, and tap plays on a phone-sized screen.
+Browser: `tests/e2e/chinchilla-clash.mjs` checks the menu card and locked arenas, the deck builder's limits and that the deck survives a reload, tap, keyboard and drag plays, a troop refused on the enemy half, a spell on an enemy tower, pausing, a king-tower victory that opens the next arena, and tap plays on a phone-sized screen. `tests/e2e/older-quality.mjs` checks that a win is saved in the frame the battle ends, that a cancelled card drag plays nothing, that a hidden tab pauses, and layouts from 320 to 844 pixels wide.
 
 **Docs:** [`docs/chinchilla-clash.md`](docs/chinchilla-clash.md).
 
@@ -485,7 +485,7 @@ A run is six levels, each on a newly generated meadow with its own rocks and way
 
 `npm run bot:hay-maze` (also in `npm test`) runs `tests/hay-maze-bot.mjs`, a planner that plays whole runs through the real engine: it lays bales to lengthen the walk along a snaking plan, stands towers where they reach the most of the route (and anti-air along the hawks' flight line), and picks rewards. It must win at least three of six seeded runs.
 
-Browser: `tests/e2e/hay-maze.mjs` starts a run, lays and turns a bale, has a bale refused on a rock and a tower refused on grass, builds on a bale and a rock, upgrades and sells, reloads the page between waves, mid-wave and at the reward screen and continues the saved run each time, starts a wave with Space, pauses, clears a level to the reward screen and level 2, loses the Hearthlight (after which there's nothing to continue), and taps to preview and place on a phone-sized screen.
+Browser: `tests/e2e/hay-maze.mjs` starts a run, lays and turns a bale, has a bale refused on a rock and a tower refused on grass, builds on a bale and a rock, upgrades and sells, reloads the page between waves, mid-wave and at the reward screen and continues the saved run each time, starts a wave with Space, pauses, clears a level to the reward screen and level 2, loses the Hearthlight (after which there's nothing to continue), and taps to preview and place on a phone-sized screen. `tests/e2e/older-quality.mjs` checks that a finished run is saved in the frame it ends, that a hidden tab pauses the wave and keeps the run, and layouts from 320 to 844 pixels wide.
 
 **Docs:** [`docs/hay-maze.md`](docs/hay-maze.md).
 
@@ -515,7 +515,7 @@ Six zombies: the plain **Zombie** (200 health), the faster **Flag Zombie** that 
 
 `npm run bot:cvz` (also in `npm test`) runs `tests/cvz-bot.mjs`, a simple gardener that collects every seed, plants gatherers at the back and shooters where the zombies are, walls in front of pogos and boulders on crowded lanes. It must win all eight nights, and doing nothing must lose.
 
-Browser: `tests/e2e/chinchillas-vs-zombies.mjs` checks the menu card and the locked nights, planting with a packet and a click, a plant refused for seeds and on a bare lane, collecting a pouch by clicking and with Space, planting with the keyboard, reloading mid-night and continuing it, a recharging packet, the shovel, speed, pausing, a won night that shows the new defender and opens the next one, losing, and tap-to-preview on a phone-sized screen.
+Browser: `tests/e2e/chinchillas-vs-zombies.mjs` checks the menu card and the locked nights, planting with a packet and a click, a plant refused for seeds and on a bare lane, collecting a pouch by clicking and with Space, planting with the keyboard, reloading mid-night and continuing it, a recharging packet, the shovel, speed, pausing, a won night that shows the new defender and opens the next one, losing, and tap-to-preview on a phone-sized screen. `tests/e2e/older-quality.mjs` checks that a won night is saved in the frame it ends, that a hidden tab pauses the night, and layouts from 320 to 844 pixels wide.
 
 **Docs:** [`docs/chinchillas-vs-zombies.md`](docs/chinchillas-vs-zombies.md).
 
