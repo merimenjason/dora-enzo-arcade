@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Pawprint Pinball**: the Clockwork Warren, a painted woodland table matching the approved mock-up. Real rotating paw flippers, charged launches, hay bumper combos, burrow rescues, timber ramps, dry powder locks and three-ball moonberry multiball. Three-ball arcade runs, unlimited practice, nudges/tilt, ball save, phone controls, saved tables and personal bests. Dora keeps her dark ruby eyes.
+
 - **Moonlight Mischief**: a painted moonlit village stealth adventure matching the approved mock-up. Switch between Dora’s quiet dash and fence gaps and Enzo’s distractions, obstacle pushing and rescue latch. Three nights, owl patrols with occluded vision and suspicion, noisy paths, hay hiding, dry-dust disguises, treat collection, a rescued friend, homecoming stars, untimed practice, phone controls and saved heists. Dora keeps her dark ruby eyes.
 
 ### Changed

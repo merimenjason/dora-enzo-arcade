@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of twenty-seven original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of twenty-eight original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -37,6 +37,7 @@ Listed in arcade-menu order.
 | 25 | Poof Panic | `/poof` | Versus puzzle |
 | 26 | Burrow Express | `/express` | Transport puzzle |
 | 27 | Moonlight Mischief | `/moonlight` | Cozy stealth adventure |
+| 28 | Pawprint Pinball | `/pinball` | Woodland pinball |
 
 ## Run
 
@@ -705,6 +706,16 @@ The animation browser suite checks live counts, passenger hops, dry powder, paus
 
 **Docs:** [`docs/moonlight-mischief.md`](docs/moonlight-mischief.md).
 
+### 28 · Pawprint Pinball (`/pinball`)
+
+**Play:** The Clockwork Warren is a painted woodland pinball table matching the approved mock-up. Launch a golden wolfberry, use two carved paw flippers, build bumper combos and race the timber ramps. Three-ball arcade runs keep a personal best; practice gives unlimited berries. Light three burrow targets to rescue a neighbour. The left ramp crosses the bridge; the right ramp feeds a dry powder bowl and moonberry lock. Three locks release three balls with double points. Launches have seven seconds of ball save, and multiball begins with twelve. Frequent nudges tilt the table, resting the flippers for three seconds. Real rotating flipper collisions and ball-to-ball rebounds drive the play; scoring and lamp states stay live over authored artwork. Dora retains dark ruby eyes and the dust bowl stays dry. The table saves as you play and resumes paused; arcade records bank when the third ball drains.
+
+**Controls:** ← / A and → / D control the flippers. Hold Space or Launch to charge and release to launch. ↑ / N nudges. Phones support simultaneous two-thumb presses; cancelled launch presses do not fire a ball. P / Escape pauses, M toggles sound and focus loss pauses and releases every held control. Save & menu keeps the table; Continue restores it paused with launch released.
+
+**Tests:** `npm run test:pinball` (also in `npm test`) covers charge/cancel, flipper momentum, ball collisions, targets/rescue, ramps/dust/locks/multiball, ball save, drains, unlimited practice, tilt, deterministic frame subdivision, snapshot replay and 14,400 in-play snapshots across three planner runs. `npm run bot:pinball` checks eight seeded runs using legal launch/flipper controls. `tests/e2e/pinball.mjs` checks actual input, simultaneous touch and cancellation, focus/pause, saved tables, scoring and banked results, asset retry, reduced motion and four phone layouts.
+
+**Docs:** [`docs/pawprint-pinball.md`](docs/pawprint-pinball.md).
+
 ## Validation
 
 ```sh
@@ -722,7 +733,7 @@ Run `npm test` before the browser suites to generate the compiled engines they u
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-seven ways/` assertion in `tests/e2e/dust-bath.mjs`, the 27-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs` and `tests/e2e/poof-panic.mjs` and `tests/e2e/burrow-express.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-eight ways/` assertion in `tests/e2e/dust-bath.mjs`, the 28-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs` and `tests/e2e/poof-panic.mjs` and `tests/e2e/burrow-express.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
