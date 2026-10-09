@@ -1,0 +1,4 @@
+import {makeSound} from '../../lib/cue-sound';
+export const sound=makeSound('pawprint-pinball-sound-v1',{
+ launch:[{f:220,to:880,d:.25,type:'triangle',v:.025}],bumper:[{f:740,d:.06,v:.025},{f:988,d:.07,at:.04,v:.015}],sling:[{f:180,to:330,d:.1,type:'triangle',v:.025}],target:[{f:660,d:.1,v:.025}],rescue:[{f:523,d:.12,v:.025},{f:659,d:.12,at:.12,v:.025},{f:784,d:.25,at:.24,v:.025}],ramp:[{f:600,to:1100,d:.15,v:.018}],dust:[{f:1200,d:.18,noise:true,v:.01}],lock:[{f:440,d:.1,v:.02},{f:660,d:.15,at:.1,v:.02}],multiball:[{f:523,d:.15,v:.03},{f:784,d:.15,at:.15,v:.03},{f:1047,d:.3,at:.3,v:.025}],save:[{f:880,to:660,d:.15,v:.02}],drain:[{f:330,to:165,d:.25,type:'triangle',v:.025}],nudge:[{f:160,d:.08,noise:true,v:.018}],tilt:[{f:150,d:.25,type:'triangle',v:.025}],over:[{f:659,d:.12,v:.02},{f:523,d:.3,at:.14,v:.02}],
+});

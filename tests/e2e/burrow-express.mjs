@@ -47,7 +47,7 @@ try {
   assert.ok(await broken.getByTestId('start').isDisabled()); assert.ok(await broken.getByRole('button', { name: 'Try again', exact: true }).isVisible()); await broken.close();
 
   const p = await browser.newPage({ viewport: { width: 1440, height: 1050 } }); watch(p); p.setDefaultTimeout(20000);
-  await p.goto(base); assert.equal(await p.locator('.arcade-card').count(), 27);
+  await p.goto(base); assert.equal(await p.locator('.arcade-card').count(), 28);
   await p.locator('a[href="/express"]').click(); await p.getByTestId('start').waitFor();
   assert.equal(await p.locator('.be-maps button').count(), 3);
   await p.screenshot({ path: '.checks/burrow-express/home.png', fullPage: true });
