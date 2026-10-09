@@ -101,11 +101,15 @@ export default function BurrowTactics() {
   const tipRef = useRef<Overlay['hint']>(null), coachRef = useRef<Coach | null>(null), guided = useRef(false);
   const memo = useRef<{ key: string; overlay: Overlay }>({ key: '', overlay: { selected: 0, moves: [], targets: [], aim: null, hover: null, cursor: null, preview: null, forecast: null } });
 
-  useEffect(() => { const s = readSave(); setSave(s); setMuted(s.muted); setHasRun(!!readRun()); setKept(readMission()?.index ?? -1); setSquad(unlockedHeroes(clearedOf(s)).slice(0, 3)); setLoaded(true); }, []);
+  const saveRef = useRef(save);
+  saveRef.current = save;
+
+  useEffect(() => { const s = readSave(); saveRef.current = s; setSave(s); setMuted(s.muted); setHasRun(!!readRun()); setKept(readMission()?.index ?? -1); setSquad(unlockedHeroes(clearedOf(s)).slice(0, 3)); setLoaded(true); }, []);
   // The browser test reads and drives the running game through this.
   useEffect(() => { (window as unknown as { __tactics?: () => unknown }).__tactics = () => ({ battle: battle.current, stage: stage.current, run: run.current, plan: () => (battle.current ? hint(battle.current) : null) }); }, []);
 
   const refresh = () => setTick((t) => t + 1);
+  const store = (next: Save) => { saveRef.current = next; setSave(next); writeSave(next); };
   /** The tiles a click could do something with right now, so the board can favour them over a creature standing in front. */
   const wanted = (): Tile[] => { const b = battle.current, u = b?.unit(selRef.current), a = armRef.current; return !b || !u ? [] : b.state === 'deploy' ? b.zone() : a ? b.targets(u.id, a) : b.moves(u.id); };
   const say = (text: string) => { if (!text) return; setNote(text); window.clearTimeout(noteTimer.current); noteTimer.current = window.setTimeout(() => setNote(''), 2400); };
@@ -267,7 +271,7 @@ export default function BurrowTactics() {
     if (b.resetTurn() === 'ok') { arm(null); commit(); choose(b.heroes[0]?.id ?? 0); say('The turn starts over. That was your one reset.'); } else say('The reset has already been used this battle.');
   }
   const cycleSpeed = () => { const s = speed === 1 ? 2 : speed === 2 ? 3 : 1; setSpeed(s); if (stage.current) stage.current.speed = s; };
-  const toggleMute = () => { const next = { ...save, muted: !save.muted }; setSave(next); writeSave(next); setMuted(next.muted); };
+  const toggleMute = () => { const s = saveRef.current, next = { ...s, muted: !s.muted }; store(next); setMuted(next.muted); };
   /** Bank the result immediately; the result screen still waits for the last animation. */
   function settle() {
     const b = battle.current;
@@ -275,15 +279,15 @@ export default function BurrowTactics() {
     recorded.current = b;
     cue(b.state === 'won' ? 'win' : 'lose');
     if (mode.current.kind === 'mission') {
-      const i = mode.current.index, n = stars(b, MISSIONS[i]);
+      const i = mode.current.index, n = stars(b, MISSIONS[i]), s = saveRef.current;
       writeMission(i, null);
       result.current = n;
-      if (n > save.stars[i]) { const next = { ...save, stars: save.stars.map((v, j) => (j === i ? n : v)) }; setSave(next); writeSave(next); }
+      if (n > s.stars[i]) store({ ...s, stars: s.stars.map((v, j) => (j === i ? n : v)) });
     } else if (run.current) {
       const r = run.current;
       r.finish(); writeRun(r); setHasRun(r.phase === 'reward');
-      const held = r.stage + (b.state === 'won' ? 1 : 0), dawn = r.phase === 'won' && !save.dawn.includes(r.difficulty);
-      if (held > save.best || dawn) { const next = { ...save, best: Math.max(save.best, held), dawn: dawn ? [...save.dawn, r.difficulty] : save.dawn }; setSave(next); writeSave(next); }
+      const s = saveRef.current, held = r.stage + (b.state === 'won' ? 1 : 0), dawn = r.phase === 'won' && !s.dawn.includes(r.difficulty);
+      if (held > s.best || dawn) store({ ...s, best: Math.max(s.best, held), dawn: dawn ? [...s.dawn, r.difficulty] : s.dawn });
     }
     refresh();
   }
@@ -394,7 +398,7 @@ export default function BurrowTactics() {
 
   if (screen === 'home' || !b || !st) {
     const total = save.stars.reduce((s, n) => s + n, 0), runOpen = cleared > RUN_UNLOCK, diff = DIFFICULTY[save.difficulty];
-    const setDifficulty = (d: Difficulty) => { const next = { ...save, difficulty: d }; setSave(next); writeSave(next); };
+    const setDifficulty = (d: Difficulty) => store({ ...saveRef.current, difficulty: d });
     const card = (m: Mission, i: number) => {
       const openNow = i <= cleared, extra = m.goal === 'escort' ? ' · escort' : m.goal === 'hunt' ? ' · hunt' : m.key ? ' · nursery' : m.boss ? ' · boss' : '';
       return (
@@ -576,6 +580,7 @@ export default function BurrowTactics() {
             aria-label="The battlefield. Tab picks a chinchilla, the arrow keys move the cursor, Enter confirms, 1 and 2 use the actions, G grooms, H gives a hint, E ends the turn."
             onPointerMove={(e) => { const q = e.currentTarget.getBoundingClientRect(), t = st.pick(((e.clientX - q.left) / q.width) * VIEW_W, ((e.clientY - q.top) / q.height) * VIEW_H, wanted()); if (String(t) !== String(hover.current)) { hover.current = e.pointerType === 'touch' ? null : t; setInfoTile(t); } }}
             onPointerLeave={() => { hover.current = null; }}
+            onPointerCancel={() => { hover.current = null; }}
             onPointerDown={(e) => {
               const q = e.currentTarget.getBoundingClientRect(), t = st.pick(((e.clientX - q.left) / q.width) * VIEW_W, ((e.clientY - q.top) / q.height) * VIEW_H, wanted());
               if (e.button === 2) { undo(); return; }
