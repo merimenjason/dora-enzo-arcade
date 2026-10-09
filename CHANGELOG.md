@@ -12,6 +12,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Pawprint Pinball**'s plunger now draws back as you charge a launch, squashing its spring with the berry riding on the cap, and snaps forward with sparks on release. The berry turns as it rolls, cushions flash when they kick, bumpers ring, targets and ramps pulse, lit lamps breathe, a nudge rocks the table, a saved berry returns up a streak of light, multiball washes the table purple, and the lanterns flicker while fireflies drift across.
+
 - **Moonlight Mischief** now follows the selected chinchilla on a contained zoomed map, keeps keyboard movement ready after action clicks, and provides a phone creep toggle, clear objectives and attention meters/warnings for both friends. Dora can dash from a standstill; pause stops unfinished dashes. Practice opens all nights while timed unlocks remain earned. Results show elapsed time and catches, night cards show personal bests, and practice does not display stars. Fireflies, persistent decoy pawprints, rescue sparks and a visibly moved barrel enrich the painted village.
 
 - **Burrow Express** now shows actual waiting chinchillas and exact queue counts, including empty platforms and a +N badge beyond eight visible passengers. Chinchillas breathe, blink, shuffle, board and alight; carts bounce with turning wheels. Painted platforms and lanterns, wooden sleepers, metal rails, coloured strips, direction markers and timber river crossings enrich the routes. Crowding pulses and dust-bath arrivals scatter dry powder. Pause and reduced-motion preferences settle decorative effects without changing gameplay.
