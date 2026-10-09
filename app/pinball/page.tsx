@@ -6,7 +6,7 @@ import{Game,type Input,type Mode}from'../../lib/pinball-game';
 import{Stage,loadArt,portrait,graphic}from'../../lib/pinball-scene';
 import{sound}from'./sound';
 import'./pinball.css';
-const KEY='pawprint-pinball-v1',RUN='pawprint-pinball-run-v1';
+const KEY='pawprint-pinball-v1',RUN='pawprint-pinball-run-v2';
 type Save={best:number;games:number;rescues:number};const blank:Save={best:0,games:0,rescues:0};
 function read():Save{try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&['best','games','rescues'].every(k=>Number.isSafeInteger(s[k])&&s[k]>=0&&s[k]<=1e12))return s;}catch{}return {...blank};}
 function readRun(){try{return Game.load(localStorage.getItem(RUN)||'');}catch{return null;}}
