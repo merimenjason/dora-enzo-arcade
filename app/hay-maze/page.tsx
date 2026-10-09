@@ -123,7 +123,11 @@ export default function HayMaze() {
   /** A touch tap has previewed a tile and the next tap on it places. */
   const armed = useRef(false);
 
-  useEffect(() => { setSave(readSave()); setResume(resumeOf(readRun())); setQuiet(sound.muted()); setLoaded(true); }, []);
+  const saveRef = useRef(save);
+  saveRef.current = save;
+
+  useEffect(() => { const s = readSave(); saveRef.current = s; setSave(s); setResume(resumeOf(readRun())); setQuiet(sound.muted()); setLoaded(true); }, []);
+  const store = (next: Save) => { saveRef.current = next; setSave(next); writeSave(next); };
   /** The last run JSON written, so the loop only writes when something changed. */
   const lastWritten = useRef<string | null>(null);
   const keep = () => { const r = run.current; if (!r) return; const snap = r.snapshot(), json = snap ? JSON.stringify(snap) : null; if (json !== lastWritten.current) { lastWritten.current = json; writeRun(json); } };
@@ -149,7 +153,14 @@ export default function HayMaze() {
   function begin() {
     start(new Run((Date.now() % 1_000_000) + 1));
     keep();
-    const next = { ...save, runs: save.runs + 1 }; setSave(next); writeSave(next);
+    store({ ...saveRef.current, runs: saveRef.current.runs + 1 });
+  }
+  /** Bank how far a finished run got the moment it ends, before the saved run is cleared. */
+  function bank(r: Run) {
+    if ((r.state !== 'won' && r.state !== 'lost') || recorded.current === r) return;
+    recorded.current = r;
+    const s = saveRef.current, won = r.state === 'won' ? 1 : 0;
+    store({ ...s, wins: s.wins + won, best: Math.max(s.best, r.level + won) });
   }
   /** Carries on the saved run: between waves, at the reward screen, or from the start of the wave it was left in. */
   function carryOn() {
@@ -210,6 +221,7 @@ export default function HayMaze() {
       const b = r.battle;
       acc += last ? Math.min(0.1, (now - last) / 1000) * speedRef.current : 0; last = now;
       while (acc >= DT) { b.update(DT); acc -= DT; }
+      bank(r);
       for (const e of b.events.splice(0)) {
         if (e.type === 'kill') sound.cue('kill', 0, 0.9, 0.06); else if (e.type === 'leak') sound.cue('leak', 0, 1, 0.2); else sound.cue(e.type);
       }
@@ -241,9 +253,12 @@ export default function HayMaze() {
     };
     raf = requestAnimationFrame(loop);
     const blur = () => { const b = run.current?.battle; if (b && b.phase === 'wave' && !b.paused) { b.pause(); refresh(); } keep(); };
+    const hide = () => { if (document.hidden) blur(); };
     window.addEventListener('blur', blur);
     window.addEventListener('pagehide', keep);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('blur', blur); window.removeEventListener('pagehide', keep); keep(); };
+    document.addEventListener('visibilitychange', hide);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('blur', blur); window.removeEventListener('pagehide', keep); document.removeEventListener('visibilitychange', hide); keep(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the loop reads refs
   }, [screen]);
 
   // Keyboard: 1–8 pick a card, Z X C V B N M , pick a tower, R rotates, arrows move the cursor, Enter places or
@@ -277,12 +292,6 @@ export default function HayMaze() {
   });
 
   const r = run.current;
-  // Record how far the run got, once.
-  if (r && (r.state === 'won' || r.state === 'lost') && recorded.current !== r) {
-    recorded.current = r;
-    const next = { ...save, wins: save.wins + (r.state === 'won' ? 1 : 0), best: Math.max(save.best, r.level + (r.state === 'won' ? 1 : 0)) };
-    setSave(next); writeSave(next);
-  }
 
   const header = (
     <header className="hm-header">

@@ -16,6 +16,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Chinchilla Clash** saves a win the instant the battle ends. A card drag the browser interrupts no longer drops that card on your next tap, and the clock stops when the tab is hidden or the window loses focus mid-drag.
+
+- **Hay Maze Defence** and **Chinchillas vs Zombies** save a finished run or a won night the instant it ends, before the part-way save is cleared, and pause when the tab is hidden, such as when a phone switches apps.
+
 - **Moonlight Mischief** accepts valid saved owl positions throughout patrol turns and crossings, so a mid-heist save does not disappear from Continue. Snapshot checks now cover complete runs and a recovery after being caught. Paused zoom views keep their dialog and controls reachable.
 
 - **Burrow Express** dust baths contain dry matte powder; empty station artwork removes fixed passengers that could disagree with live queues. Dora retains her dark ruby eyes.

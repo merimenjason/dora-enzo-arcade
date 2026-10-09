@@ -100,7 +100,11 @@ export default function ChinchillaClash() {
   /** Effects already heard: the engine keeps each on its list for as long as it is drawn. */
   const heard = useRef(new WeakSet<object>());
 
-  useEffect(() => { const s = readSave(); setSave(s); setDeck(s.deck); setQuiet(sound.muted()); setLoaded(true); }, []);
+  const saveRef = useRef(save), deckRef = useRef(deck);
+  saveRef.current = save; deckRef.current = deck;
+
+  useEffect(() => { const s = readSave(); saveRef.current = s; setSave(s); setDeck(s.deck); setQuiet(sound.muted()); setLoaded(true); }, []);
+  const store = (next: Save) => { saveRef.current = next; setSave(next); writeSave(next); };
   const mute = () => { const m = !sound.muted(); sound.setMuted(m); setQuiet(m); };
   useEffect(() => { selectedRef.current = selected; }, [selected]);
   // The browser test reads and fast-forwards the running battle through this.
@@ -116,6 +120,20 @@ export default function ChinchillaClash() {
     cursor.current = { x: W / 2, y: 24, shown: false };
     setScreen('battle');
     setTick((t) => t + 1);
+  }
+
+  /** Bank a won battle the moment it ends; the result screen follows on the next draw. */
+  function bank(g: ClashGame) {
+    if (g.state !== 'over' || recorded.current === g) return;
+    recorded.current = g;
+    if (g.winner !== 0) return;
+    const s = saveRef.current;
+    store({ ...s, beaten: Math.max(s.beaten, g.round + 1), wins: s.wins + 1, threeCrowns: s.threeCrowns + (g.crowns[0] === 3 ? 1 : 0), deck: deckRef.current });
+  }
+  /** Stops the clock and drops a half-finished drag when the game is left for another window or tab. */
+  function away() {
+    drag.current = null; cursor.current.shown = false;
+    if (game.current?.state === 'playing') { game.current.pause(); setTick((t) => t + 1); }
   }
 
   function deploy(slot: number, x: number, y: number) {
@@ -145,6 +163,7 @@ export default function ChinchillaClash() {
       if (!g) return;
       acc += last ? Math.min(0.1, (now - last) / 1000) : 0; last = now;
       while (acc >= DT) { g.step(DT); acc -= DT; }
+      bank(g);
       for (const e of g.events.splice(0)) {
         if (e.type === 'play') sound.cue(e.side === 0 ? 'deploy' : 'rival');
         else if (e.type === 'crown') sound.cue(e.side === 0 ? 'crown' : 'lost', 0, 1, 0.3);
@@ -164,9 +183,10 @@ export default function ChinchillaClash() {
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
-    const blur = () => { if (game.current?.state === 'playing') { game.current.pause(); setTick((t) => t + 1); } };
-    window.addEventListener('blur', blur);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('blur', blur); };
+    const hide = () => { if (document.hidden) away(); };
+    window.addEventListener('blur', away); document.addEventListener('visibilitychange', hide);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('blur', away); document.removeEventListener('visibilitychange', hide); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the loop reads refs
   }, [screen]);
 
   // Keyboard: 1–4 pick a card, arrows or WASD move the drop point, Enter or Space drops it, Escape or P pauses.
@@ -221,26 +241,21 @@ export default function ChinchillaClash() {
       const at = toArena(e.clientX, e.clientY);
       if (at) deploy(d.slot, at.x, at.y);
     };
+    // A drag the browser takes over (a scroll, a system gesture) never gets its pointerup: forget it, so the next tap can't drop that card.
+    const cancel = () => { drag.current = null; };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
-    return () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointercancel', cancel);
+    return () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', cancel); };
   });
 
   const g = game.current;
-  // Record the result once per finished battle.
-  if (g && g.state === 'over' && recorded.current !== g) {
-    recorded.current = g;
-    if (g.winner === 0) {
-      const next = { ...save, beaten: Math.max(save.beaten, g.round + 1), wins: save.wins + 1, threeCrowns: save.threeCrowns + (g.crowns[0] === 3 ? 1 : 0), deck };
-      setSave(next); writeSave(next);
-    }
-  }
 
   function toggleCard(id: CardId) {
     const next = deck.includes(id) ? deck.filter((d) => d !== id) : deck.length < DECK_SIZE ? [...deck, id] : deck;
     if (next === deck && !deck.includes(id)) { say('Your deck is full. Take a card out first.'); return; }
     setDeck(next);
-    if (validDeck(next)) { const s = { ...save, deck: next }; setSave(s); writeSave(s); }
+    if (validDeck(next)) store({ ...saveRef.current, deck: next });
   }
 
   const header = (
@@ -303,7 +318,7 @@ export default function ChinchillaClash() {
             );
           })}
         </section>
-        <div className="cc-row"><button onClick={() => { setDeck(DEFAULT_DECK); const s = { ...save, deck: DEFAULT_DECK }; setSave(s); writeSave(s); }}>Reset to the starter deck</button></div>
+        <div className="cc-row"><button onClick={() => { setDeck(DEFAULT_DECK); store({ ...saveRef.current, deck: DEFAULT_DECK }); }}>Reset to the starter deck</button></div>
 
         <section className="cc-help">
           <p><b>Spend dust.</b> Dust fills by one every 2.8 seconds, up to ten. Each card costs dust. In the last minute it fills twice as fast.</p>

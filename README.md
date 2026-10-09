@@ -717,7 +717,7 @@ npm run test:e2e:newest  # the recent games and interrupted-input / progress reg
 
 `npm test` compiles the game engines and runs each game's deterministic suite. It also runs `tests/readme.mjs`, which fails if the **Games** table and **Game guides** above drift from the arcade menu in `app/page.tsx`.
 
-Run `npm test` before the browser suites to generate the compiled engines they use. `tests/e2e/newest-quality.mjs` adds checks for cancelled Poof Panic gestures and focus-loss pausing, Barrage controls released between turns and native keyboard slider controls, and Tactics and Barrage progress saved before the final animation finishes. It also checks that a Tactics run reward is banked once when resumed and that Summit Shuffle explains its separate hero card pools.
+Run `npm test` before the browser suites to generate the compiled engines they use. `tests/e2e/newest-quality.mjs` adds checks for cancelled Poof Panic gestures and focus-loss pausing, Barrage controls released between turns and native keyboard slider controls, and Tactics and Barrage progress saved before the final animation finishes. It also checks that a Tactics run reward is banked once when resumed and that Summit Shuffle explains its separate hero card pools. `tests/e2e/older-quality.mjs` does the same for Chinchilla Clash, Hay Maze Defence and Chinchillas vs Zombies: a result saved in the frame the game ends, a cancelled Clash card drag, pausing when the tab is hidden, and portrait and landscape layouts from 320 to 844 pixels wide. `npm run test:e2e:older` runs it with those three games' own suites.
 
 ## Adding a game
 

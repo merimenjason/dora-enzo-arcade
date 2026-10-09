@@ -83,7 +83,9 @@ export default function ChinchillasVsZombies() {
   /** Effects already heard: the engine keeps each on its list for as long as it is drawn. */
   const heard = useRef(new WeakSet<object>());
   const mute = () => { const m = !sound.muted(); sound.setMuted(m); setQuiet(m); };
-  useEffect(() => { setCleared(readCleared()); setKept(readNight()?.level ?? -1); setQuiet(sound.muted()); setLoaded(true); }, []);
+  const clearedRef = useRef(cleared);
+  clearedRef.current = cleared;
+  useEffect(() => { const n = readCleared(); clearedRef.current = n; setCleared(n); setKept(readNight()?.level ?? -1); setQuiet(sound.muted()); setLoaded(true); }, []);
   // The browser test reads and fast-forwards the running game through this.
   useEffect(() => { (window as unknown as { __cvz?: () => Game | null }).__cvz = () => game.current; }, []);
 
@@ -107,6 +109,13 @@ export default function ChinchillasVsZombies() {
     choose(null); setGameSpeed(1);
     setScreen('play');
     refresh();
+  }
+  /** Bank a won night the moment it ends, before the saved night is cleared. */
+  function bank(g: Game) {
+    if (g.state !== 'won' || recorded.current === g) return;
+    recorded.current = g;
+    const next = Math.max(clearedRef.current, g.level + 1);
+    clearedRef.current = next; setCleared(next); writeCleared(next);
   }
   const toHome = () => { writeNight(game.current); setKept(readNight()?.level ?? -1); setScreen('home'); };
 
@@ -144,6 +153,7 @@ export default function ChinchillasVsZombies() {
       if (!g) return;
       acc += last ? Math.min(0.1, (now - last) / 1000) * speedRef.current : 0; last = now;
       while (acc >= DT) { g.update(DT); acc -= DT; }
+      bank(g);
       for (const e of g.events.splice(0)) {
         if (e.type === 'boom') continue; // heard through its effect, which knows a trap from a boulder
         if (e.type === 'kill') sound.cue('kill', 0, 0.9, 0.08); else if (e.type === 'collect') sound.cue('collect', 0, 1, 0.04); else sound.cue(e.type);
@@ -166,8 +176,10 @@ export default function ChinchillasVsZombies() {
     raf = requestAnimationFrame(loop);
     const blur = () => { if (game.current?.state === 'playing') { game.current.pause(); refresh(); } };
     const keep = () => writeNight(game.current);
-    window.addEventListener('blur', blur); window.addEventListener('pagehide', keep);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('blur', blur); window.removeEventListener('pagehide', keep); keep(); };
+    const hide = () => { if (document.hidden) { blur(); keep(); } };
+    window.addEventListener('blur', blur); window.addEventListener('pagehide', keep); document.addEventListener('visibilitychange', hide);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('blur', blur); window.removeEventListener('pagehide', keep); document.removeEventListener('visibilitychange', hide); keep(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the loop reads refs
   }, [screen]);
 
   // Keyboard: 1–7 pick a defender, S the shovel, arrows move, Enter plants, Space collects seeds, F speed, P pause.
@@ -195,11 +207,6 @@ export default function ChinchillasVsZombies() {
   });
 
   const g = game.current;
-  if (g && g.state === 'won' && recorded.current !== g) {
-    recorded.current = g;
-    const next = Math.max(cleared, g.level + 1);
-    setCleared(next); writeCleared(next);
-  }
 
   const header = (
     <header className="cz-header">
