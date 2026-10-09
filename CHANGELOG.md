@@ -24,6 +24,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Burrow Express** dust baths contain dry matte powder; empty station artwork removes fixed passengers that could disagree with live queues. Dora retains her dark ruby eyes.
 
+### Documentation
+
+- The **Chinchilla Clash**, **Hay Maze Defence** and **Chinchillas vs Zombies** guides now say when a result is saved and that a hidden tab pauses the game, and the README and handoff list the new browser checks.
+
 ## 08-10-2026
 
 ### Added

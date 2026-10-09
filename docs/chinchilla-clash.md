@@ -79,13 +79,13 @@ With the standard `STEADY` computer playing the starter deck, the rivals win rou
 
 ## Saves
 
-The page keeps `chinchilla-clash-v1` in `localStorage`: the arenas beaten, your deck, total wins and three-crown wins. A missing or broken save falls back to the starter deck; private browsing still plays, it just isn't remembered.
+The page keeps `chinchilla-clash-v1` in `localStorage`: the arenas beaten, your deck, total wins and three-crown wins. A won battle is written in the frame the engine ends it, from inside the game loop, not on the page's next redraw. A missing or broken save falls back to the starter deck; private browsing still plays, it just isn't remembered.
 
 ## Controls
 
-- Tap a card and then the arena, or drag a card onto the arena. A ghost shows the drop point, its footprint and its range; red tiles are where it can't go.
+- Tap a card and then the arena, or drag a card onto the arena. A ghost shows the drop point, its footprint and its range; red tiles are where it can't go. A drag the browser interrupts (`pointercancel`) is forgotten, so a later tap can't drop that card.
 - 1–4 pick a card; the arrow keys or WASD move the drop point one tile; Enter or Space drops it; Escape puts it back.
-- P, or Escape with no card picked: pause. Losing window focus pauses too.
+- P, or Escape with no card picked: pause. Losing window focus or hiding the tab pauses too, and drops a drag in progress.
 
 ## Drawing
 

@@ -78,13 +78,13 @@ The night is won once every zombie has arrived and been stopped.
 
 ## Saves
 
-The page keeps `chinchillas-vs-zombies-v1` in `localStorage`: `{ cleared }`, the number of nights won. A night in progress is kept under `chinchillas-vs-zombies-night-v1` as the JSON from `Game.snapshot()`: the lawn, the zombies, pellets, seed pouches, carts, recharges, the spawns still to come, and how many random numbers have been drawn (the generator's state is its seed plus a fixed step per draw, so `Game.restore()` jumps straight to it). The page writes it every second and a half and when the page is hidden or closed, and removes it when the night is won or lost. The home screen then offers **Continue Night N**, and the night comes back paused. `NIGHT_VERSION` guards the format.
+The page keeps `chinchillas-vs-zombies-v1` in `localStorage`: `{ cleared }`, the number of nights won, written by the game loop in the frame a night is won. A night in progress is kept under `chinchillas-vs-zombies-night-v1` as the JSON from `Game.snapshot()`: the lawn, the zombies, pellets, seed pouches, carts, recharges, the spawns still to come, and how many random numbers have been drawn (the generator's state is its seed plus a fixed step per draw, so `Game.restore()` jumps straight to it). The page writes it every second and a half and when the page is hidden or closed, and removes it when the night is won or lost. The home screen then offers **Continue Night N**, and the night comes back paused. `NIGHT_VERSION` guards the format.
 
 ## Controls
 
 - Pick a seed packet (click, or 1–7 in seed-bar order) and click a tile to plant. Right-click or Escape puts it down. S picks the shovel.
 - Click a pouch to collect it, or press Space for all of them.
-- The arrow keys move the cursor and Enter plants. F cycles 1×, 2× and 3× speed. P, or Escape with nothing picked, pauses; so does the window losing focus.
+- The arrow keys move the cursor and Enter plants. F cycles 1×, 2× and 3× speed. P, or Escape with nothing picked, pauses; so does the window losing focus or the tab being hidden.
 - Touch: the first tap on a tile previews, and a second tap on the same tile plants.
 
 ## Drawing
