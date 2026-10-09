@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 10-10-2026
+
+### Documentation
+
+- The **Pawprint Pinball** guide now says where Dora and Enzo sit at each window size, and the README and handoff list the new placement check and the pinball follow-ups.
+
 ## 09-10-2026
 
 ### Added
