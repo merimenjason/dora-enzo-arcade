@@ -9,7 +9,7 @@ async function walk(p,label,to){await p.getByRole('button',{name:'Walk to '+labe
 }
 try {
  const p=await browser.newPage({viewport:{width:1536,height:1100}}),errors=[];p.on('pageerror',e=>errors.push(e.message));p.setDefaultTimeout(20000);
- await p.goto(base);assert.equal(await p.locator('.arcade-card').count(),30);await p.getByRole('link',{name:/Moonlight Mischief/}).click();
+ await p.goto(base);assert.equal(await p.locator('.arcade-card').count(),31);await p.getByRole('link',{name:/Moonlight Mischief/}).click();
  await p.getByTestId('start').click();await p.waitForFunction(()=>window.__moonlight()?.game);assert.equal((await state(p)).time,0);
  const cv=p.getByTestId('village'),r=await cv.boundingBox();await p.mouse.move(r.x+r.width*.2,r.y+r.height*.7);await p.mouse.down();await p.mouse.move(r.x+r.width*.3,r.y+r.height*.7);await p.mouse.up();assert.equal((await state(p)).time,0,'dragging the map never counts as a path tap');await p.mouse.click(r.x+r.width*.225,r.y+r.height*.465/640*1000);await p.waitForTimeout(200);assert.ok((await state(p)).time>0,'tapping a path starts navigation');
  await cv.focus();await p.keyboard.press('KeyQ');assert.equal((await state(p)).active,'enzo');await p.keyboard.press('Space');assert.ok((await state(p)).hero.cooldown>0);

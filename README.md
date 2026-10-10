@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of thirty original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of thirty-one original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -40,6 +40,7 @@ Listed in arcade-menu order.
 | 28 | Pawprint Pinball | `/pinball` | Woodland pinball |
 | 29 | Pawprint Detectives | `/detectives` | Cozy mystery adventure |
 | 30 | Frostpaw Frontier | `/frontier` | Survival builder |
+| 31 | Moonpond | `/moonpond` | Night-fishing journal |
 
 ## Run
 
@@ -765,6 +766,25 @@ Browser: `tests/e2e/frontier.mjs` checks the menu card and locked mountains, exp
 
 **Docs:** [`docs/frostpaw-frontier.md`](docs/frostpaw-frontier.md), [`art provenance`](docs/frontier-art.md).
 
+### 31 · Moonpond (`/moonpond`)
+
+**Play:** A night-fishing journal, drawn in Canvas 2D. Dora and Enzo sit on the dock with a lantern; you cast, wait for the bobber, work the reel, sketch what comes up and let it go. A night is 8 casts (up to 12 with more lantern oil) spread across dusk, moonrise, midnight and first light, under one weather (clear, mist, rain or fireflies) and a moon that moves on one phase a night.
+
+A cast has three beats. **Throw:** hold to charge, let go to throw; how far it goes decides the water it lands in (reeds, lily pads, open water, the deep channel, or the moon's reflection on a clear night). **Bite:** leave the nibbles alone and press when the bobber goes right under, within 0.6 s. **Reel:** hold to reel and let go to ease, keeping the tension gauge in its pale band; too tight for too long snaps the line, too slack and the creature slips away. Creatures fight in five ways (steady, darters, divers, heavy ones and jumpers that you must let go for), and all of them surge now and then.
+
+The journal has forty pages: thirty creatures, six curiosities and four legends. What takes the lure depends on the water, the hour, the weather, the lure (glow bead, clover knot or dust puff) and the moon, and each unfound page gives a clue. Letting a catch go earns moon shells for the bait shop: two better rods, three lines, lantern oil, two bobbers, Enzo's spyglass and the two extra lures. Three requests from the neighbours pay extra. Dora casts 15% further; Enzo has 15% longer to hook. Filling the journal plays an ending and lets you choose the weather.
+
+**Controls:**
+
+- **Space**, or hold the water or the big button: charge and throw, hook a bite, reel, and dismiss a catch.
+- **← →** or **A D** aim; touching the water aims where you touch.
+- **J** journal, **B** bait shop, **R** requests, **P** or **Escape** pause, **M** sound.
+- The game pauses when the tab is hidden or the window loses focus while a cast is out. **Save & menu** returns to the title, where **Back to the dock** picks the night up again.
+
+**Tests:** `npm run test:moonpond` (also in `npm test`) compiles `lib/moonpond-game.ts` and runs `tests/moonpond.mjs`: the forty pages and their conditions, casting and the bands of water, the moon's reflection, nibbles, bites and the hooking window, the five ways of fighting, snapped and slack lines, leaps, stars, shells, requests, the shop, a whole night, moon phases and weather, the ending, seed replay, frame subdivision, and saves including damaged journals and nights. `npm run bot:moonpond` (also in `npm test`) runs `tests/moonpond-bot.mjs`, an angler that presses only what a player can: it must fill the journal within 70 nights on eight seeds, catch every entry, never have a night without a bite, and land between 55% and 85% of casts on starter gear. `tests/e2e/moonpond.mjs` checks the menu card, a whole cast by keyboard, nibbles and each kind of loss, an interrupted touch, pausing and a hidden tab, the hold button on a phone, journal, shop and requests, dawn, reloads mid-night and at dawn, the ending, reduced motion and seven screen sizes.
+
+**Docs:** [`docs/moonpond.md`](docs/moonpond.md), [`artwork and the painted-art seam`](docs/moonpond-art.md).
+
 ## Validation
 
 ```sh
@@ -782,7 +802,7 @@ Run `npm test` before the browser suites to generate the compiled engines they u
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Thirty ways/` assertion in `tests/e2e/dust-bath.mjs`, the 30-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs` and `tests/e2e/frontier.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past thirty games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Thirty-one ways/` assertion in `tests/e2e/dust-bath.mjs`, the 31-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs` and `tests/e2e/moonpond.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past thirty-one games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
