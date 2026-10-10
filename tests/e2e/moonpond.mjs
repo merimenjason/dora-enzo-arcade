@@ -56,10 +56,17 @@ await check('a whole cast with the keyboard: throw, bite, reel, sketch', async (
   const save = await stored(page);
   assert.equal(save.profile.journal['reed-skipper'].n, 1, 'the catch is saved the moment it lands'); assert.equal(save.night.cast, 1);
   await page.keyboard.up('Space');
+  // The catch is lifted out and held up, the two friends hop, and the card pops in.
+  let seen = await page.evaluate(() => { const m = window.__moonpond(); return m.pond.inspect(m.game); });
+  assert.equal(seen.holding, 'reed-skipper'); assert.ok(seen.hop > 0, 'they hop for a catch');
+  assert.equal(await page.getByTestId('catch').evaluate((el) => getComputedStyle(el).animationName), 'mp-pop');
   const card = page.getByTestId('catch'); assert.match(await card.textContent(), /Reed Skipper/); assert.match(await card.textContent(), /New sketch/); assert.match(await card.textContent(), /8\.5 cm/);
   s = await state(page); assert.ok(s.shells > 0); assert.equal(await page.getByTestId('shells').locator('strong').textContent(), String(s.shells));
   assert.equal(await page.getByTestId('oil').locator('i[data-spent=true]').count(), 1);
   await settled(page); await page.keyboard.press('Space'); await until(page, 'ready');
+  seen = await page.evaluate(() => { const m = window.__moonpond(); return m.pond.inspect(m.game); });
+  assert.equal(seen.holding, null); assert.equal(seen.releasing, 'reed-skipper', 'let go, it dives back in');
+  await page.waitForFunction(() => { const m = window.__moonpond(); return m.pond.inspect(m.game).releasing === null; });
   await page.getByTestId('catch').waitFor({ state: 'detached' });
   assert.equal(await page.getByTestId('angler-enzo').isDisabled(), true, 'the angler is fixed after the first cast');
 });
@@ -185,6 +192,12 @@ await check('reduced motion holds the water still but the game still plays', asy
   const clock = await page.evaluate(() => window.__moonpond().pond.clock); await page.waitForTimeout(300);
   assert.equal(await page.evaluate(() => window.__moonpond().pond.clock), clock);
   await castOut(page); await page.waitForFunction(() => window.__moonpond().game.biting); await page.keyboard.down('Space'); await until(page, 'landed'); await page.keyboard.up('Space');
+  const still = await page.evaluate(() => { const m = window.__moonpond(); return m.pond.inspect(m.game); });
+  assert.equal(still.holding, 'reed-skipper', 'the catch is still shown'); assert.equal(still.fx, 0, 'with no splashes or sparks'); assert.equal(still.hop, 0);
+  assert.equal(await page.getByTestId('catch').evaluate((el) => getComputedStyle(el).animationName), 'none');
+  assert.equal(await page.getByTestId('oil').locator('i').first().evaluate((el) => getComputedStyle(el).animationName), 'none');
+  await settled(page); await page.keyboard.press('Space'); await until(page, 'ready');
+  assert.equal(await page.evaluate(() => { const m = window.__moonpond(); return m.pond.inspect(m.game).releasing; }), null);
 });
 
 for (const [width, height] of [[320, 568], [390, 844], [568, 320], [844, 390], [820, 1180], [1366, 768], [1920, 1080]]) {
