@@ -7,6 +7,8 @@ import {
   hqMaxHp, heroPower, trainCost, type BuildingId, type HeroId, type Refusal, type Res, type Terrain,
 } from '../../lib/frontier-game';
 import { drawWorld, drawBuildingIcon, drawHeroIcon, drawDenIcon, drawTitle, tileAt, camFor, VIEW, type Fx, type Cam } from '../../lib/frontier-scene';
+import { loadFrontierArt, frontierArtReady } from '../../lib/frontier-art';
+import { drawBurrowIcon, drawResourceIcon } from '../../lib/frontier-scene';
 import './frontier.css';
 import { sound } from './sound';
 
@@ -67,6 +69,9 @@ export default function FrostpawFrontier() {
   const [speed, setSpeed] = useState(1);
   const [muted, setMuted] = useState(false);
   const [note, setNote] = useState('');
+  const [artStatus, setArtStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  function loadArtwork() { setArtStatus('loading'); void loadFrontierArt().then(() => { setArtStatus('ready'); setTick(t => t + 1); }).catch(() => setArtStatus('error')); }
+  useEffect(() => { loadArtwork(); }, []);
   const [log, setLog] = useState<string[]>([]);
   const [, setTick] = useState(0);
   const game = useRef<Game | null>(null);
@@ -76,6 +81,8 @@ export default function FrostpawFrontier() {
   const cam = useRef<Cam | null>(null);
   const banked = useRef<Game | null>(null);
   const noteTimer = useRef(0);
+  const motion = useRef(true);
+  useEffect(() => { const media = matchMedia('(prefers-reduced-motion: reduce)'), sync = () => { motion.current = !media.matches; }; sync(); media.addEventListener('change', sync); return () => media.removeEventListener('change', sync); }, []);
   const hover = useRef<{ x: number; y: number } | null>(null);
   /** A touch tap has previewed this tile; the next tap on it acts. */
   const armed = useRef<string>('');
@@ -174,10 +181,10 @@ export default function FrostpawFrontier() {
       const t = toolRef.current, hv = hover.current ?? selRef.current;
       const ghost = t && hv ? { kind: t, x: hv.x, y: hv.y, ok: g.canBuild(t, hv.x, hv.y) === 'ok' } : null;
       // The camera eases out as the land grows.
-      const want = camFor(g), cm = cam.current ?? want, ease = Math.min(1, step * 3);
+      const want = camFor(g), cm = cam.current ?? want, ease = motion.current ? Math.min(1, step * 3) : 1;
       cam.current = { x: cm.x + (want.x - cm.x) * ease, y: cm.y + (want.y - cm.y) * ease, size: cm.size + (want.size - cm.size) * ease };
       c.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-      drawWorld(c, g, now / 1000, { sel: selRef.current, ghost, fx: fx.current, cam: cam.current });
+      drawWorld(c, g, motion.current ? g.time : 0, { sel: selRef.current, ghost, fx: motion.current ? fx.current : fx.current.filter(f => f.kind === 'text'), cam: cam.current });
       if (now - ui > 150) { refresh(); ui = now; }
       if (now - saved > 2000) { writeRun(g); saved = now; }
       raf = requestAnimationFrame(loop);
@@ -232,15 +239,16 @@ export default function FrostpawFrontier() {
   const header = (
     <header className="ff-header">
       <a className="ff-back" href="/">← MAIN ARCADE</a>
-      <span className="ff-brand">FROSTPAW FRONTIER</span>
+      <span className="ff-brand">❄ Frostpaw Frontier</span>
       <button className="ff-mute" onClick={mute} aria-pressed={muted} aria-label={muted ? 'Sound off (M)' : 'Sound on (M)'}>{muted ? '🔇' : '🔊'}</button>
     </header>
   );
 
   if (screen === 'home' || !g) {
     return (
-      <main className="ff-shell">
+      <main className="ff-shell" data-art-ready={frontierArtReady()}>
         {header}
+        {artStatus === 'error' && <output className="ff-art-status">Painted artwork could not load. <button onClick={loadArtwork}>Retry artwork</button></output>}
         <section className="ff-intro">
           <Icon draw={(c, w, h) => drawTitle(c, w, h, 1)} w={220} h={140} />
           <div>
@@ -304,6 +312,7 @@ export default function FrostpawFrontier() {
       const next = g.hqLevel < HQ_MAX ? HQ_COST[g.hqLevel] : null;
       panel = <>
         <h3>The Burrow · level {g.hqLevel}</h3>
+        <div className="ff-burrow-picture"><Icon draw={drawBurrowIcon} w={260} h={145} /></div>
         <div className="ff-stats">
           <span>Walls <b>{Math.ceil(g.hqHp)}/{hqMaxHp(g.hqLevel)}</b></span>
           <span>Homes <b>{g.survivors}/{g.housing}</b></span>
@@ -316,7 +325,7 @@ export default function FrostpawFrontier() {
         <ul className="ff-heroes">
           {g.heroes.map((h) => (
             <li key={h.id}>
-              <Icon draw={(c, w, hh) => drawHeroIcon(c, h.id, w, hh, h.hurt > 0)} w={40} h={34} />
+              <Icon draw={(c, w, hh) => drawHeroIcon(c, h.id, w, hh, h.hurt > 0)} w={72} h={70} />
               <div><strong>{HEROES[h.id].name} · lv {h.level}</strong><small>power {heroPower(h)}{h.hurt > 0 ? ` · hurt ${Math.ceil(h.hurt)}s` : ''}</small><small className="ff-perk">{HEROES[h.id].perk}</small></div>
               <button data-testid={`train-${h.id}`} disabled={g.canTrain(h.id) !== 'ok'} onClick={() => { g.train(h.id); refresh(); }} title={g.canTrain(h.id) === 'hq' ? 'Raise the burrow to train higher' : ''}>Train · {costText(trainCost(h))}</button>
             </li>
@@ -393,18 +402,20 @@ export default function FrostpawFrontier() {
 
   const dayLeft = g.clock;
   return (
-    <main className="ff-shell ff-play">
+    <main className="ff-shell ff-play" data-art-ready={frontierArtReady()}>
       {header}
+      {artStatus === 'error' && <output className="ff-art-status">Painted artwork could not load. You can keep playing with the simple artwork. <button onClick={loadArtwork}>Retry artwork</button></output>}
+      {artStatus === 'loading' && <output className="ff-art-status">Loading mountain artwork…</output>}
       <section className="ff-hud" aria-label="Supplies">
         <div className={`ff-day${g.night ? ' night' : ''}`}><b>{g.night ? '🌙' : '☀️'} Day {g.day}</b><small>{g.night ? `dawn in ${Math.ceil(dayLeft)}s` : `night in ${Math.ceil(dayLeft)}s`}</small></div>
-        {RES_IDS.map((k) => <div key={k} className="ff-res" data-testid={`res-${k}`}><b>{RES_ICON[k]} {Math.floor(g.stock[k])}</b><small className={inc[k] < 0 ? 'bad' : ''}>{perMin(inc[k])}</small></div>)}
+        {RES_IDS.map((k) => <div key={k} className="ff-res" data-testid={`res-${k}`}><b><Icon draw={(c,w,h) => drawResourceIcon(c,k,w,h)} w={28} h={25}/><span>{k[0].toUpperCase()+k.slice(1)} {Math.floor(g.stock[k])}</span></b><small className={inc[k] < 0 ? 'bad' : ''}>{perMin(inc[k])}</small></div>)}
         <div className="ff-res" data-testid="stamina"><b>⚡ {g.stamina}/{STAMINA_MAX}</b><small>stamina</small></div>
         <div className="ff-res"><b>🐭 {g.survivors}/{g.housing}</b><small>{g.idle} idle</small></div>
         <div className="ff-res"><b>🛡️ {def}</b><small className={raidNext > def ? 'bad' : 'ok'}>raid {g.night && g.raid ? g.raid.strength : raidNext}</small></div>
         <div className="ff-res wall"><b>🏠 {Math.ceil(g.hqHp)}</b><i style={{ width: `${(g.hqHp / hqMaxHp(g.hqLevel)) * 100}%` }} /></div>
       </section>
       <div className="ff-layout">
-        <div className="ff-board">
+        <div className="ff-map-column"><div className="ff-board">
           <canvas
             ref={canvas} width={VIEW * SCALE} height={VIEW * SCALE} tabIndex={0}
             data-testid="map" data-state={g.state} data-day={g.day} data-stamina={g.stamina}
@@ -432,16 +443,18 @@ export default function FrostpawFrontier() {
           {note && <output className="ff-note">{note}</output>}
           {overlay && <div className="ff-overlay" data-testid="overlay"><div>{overlay}</div></div>}
         </div>
-        <aside className="ff-side">
-          <div className="ff-panel" data-testid="panel">{panel}</div>
           <div className="ff-toolbar" aria-label="Buildings">
             {TOOLS.map((k, i) => (
               <button key={k} className={tool === k ? 'on' : ''} data-testid={`tool-${k}`} aria-pressed={tool === k} aria-label={`${i + 1}: ${BUILDINGS[k].name}`}
                 onClick={() => { pickTool(tool === k ? null : k); canvas.current?.focus(); }} disabled={g.hqLevel < BUILDINGS[k].hq}>
-                <Icon draw={(c, w, h) => drawBuildingIcon(c, k, w, h)} w={30} h={30} /><small>{i + 1}</small>
+                <Icon draw={(c, w, h) => drawBuildingIcon(c, k, w, h)} w={64} h={56} /><small>{i + 1}</small><span>{BUILDINGS[k].name}</span>
               </button>
             ))}
           </div>
+        </div>
+        <aside className="ff-side">
+          <div className="ff-panel" data-testid="panel">{panel}</div>
+          <section className="ff-objective"><h3>Light the Summit Beacon</h3><Icon draw={(c,w,h) => drawBuildingIcon(c,'beacon',w,h)} w={90} h={95}/><p>Explore the mountain and rescue the herd.</p><ol><li className={g.tile(g.summit.x, g.summit.y)?.f === 'beacon' ? "complete" : ""}>{g.tile(g.summit.x, g.summit.y)?.f === 'beacon' ? "✓ " : ""}Clear the cougar lair</li><li className={g.hqLevel === 4 ? "complete" : ""}>{g.hqLevel === 4 ? "✓ " : ""}Raise the burrow to level 4</li><li>Build the beacon on the summit</li></ol></section>
           <ol className="ff-log" aria-label="What happened">{log.map((l, i) => <li key={i}>{l}</li>)}</ol>
         </aside>
       </div>

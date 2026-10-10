@@ -9,6 +9,8 @@ import {
   Game, W, H, HOME, DAY, CYCLE, RAID_AT, DENS, BUILDINGS, type BuildingId, type HeroId, type DenKind, type Terrain,
 } from './frontier-game';
 
+import { painted, BUILDING_ART, HERO_ART, BEAST_ART } from './frontier-art';
+
 type C2D = CanvasRenderingContext2D;
 export const T = 48, PAD = 10, VIEW = W * T + PAD * 2;
 /** The camera: the square of tiles in view, its top-left corner and width in tiles. */
@@ -50,6 +52,13 @@ const GROUND: Record<Terrain, [string, string]> = {
 
 function ground(c: C2D, t: Terrain, x: number, y: number) {
   const px = X(x), py = Y(y), [a, b] = GROUND[t];
+  const index = { meadow: 0, grove: 1, rocks: 2, snow: 3, crag: 4 }[t];
+  c.save(); c.translate(px + T / 2, py + T / 2); c.rotate(Math.floor(hash(x, y, 71) * 4) * Math.PI / 2);
+  const texture = painted(c, 'terrain', index, -T / 2, -T / 2, T, T, true); c.restore();
+  if (texture) {
+    if (t === 'crag') painted(c, 'buildings', 9, px + 1, py + 1, T - 2, T - 2);
+    return;
+  }
   const g = c.createLinearGradient(px, py, px, py + T); g.addColorStop(0, a); g.addColorStop(1, b);
   c.fillStyle = g; c.fillRect(px, py, T, T);
   if (t === 'meadow' || t === 'grove') {
@@ -70,6 +79,7 @@ function ground(c: C2D, t: Terrain, x: number, y: number) {
 
 function trees(c: C2D, x: number, y: number, time: number) {
   const px = X(x), py = Y(y);
+  if (painted(c, 'buildings', 8, px + Math.sin(time * .7 + x) * .4, py, T, T)) return;
   const spots = [[14, 22, 10], [32, 18, 11], [24, 36, 9]];
   for (const [dx, dy, r] of spots) {
     const sway = Math.sin(time * 1.3 + x + y + dx) * 0.8;
@@ -84,6 +94,14 @@ function trees(c: C2D, x: number, y: number, time: number) {
 
 /** A building drawn in a 48 × 48 box with its top-left at (px, py). */
 export function building(c: C2D, kind: BuildingId, px: number, py: number, time: number, lit = false) {
+  if (painted(c, 'buildings', BUILDING_ART[kind], px + 1, py, T - 2, T - 1)) {
+    if (kind === 'lantern' && lit || kind === 'beacon') {
+      const radius = kind === 'beacon' ? 25 : 18, light = c.createRadialGradient(px + 24, py + 22, 1, px + 24, py + 22, radius);
+      light.addColorStop(0, `rgba(255, 210, 107, ${.35 + Math.sin(time * 7) * .05})`); light.addColorStop(1, 'rgba(255, 185, 75, 0)');
+      c.fillStyle = light; c.fillRect(px, py, T, T); ell(c, px + 24, py + 22, 2, 3 + Math.sin(time * 8) * .3, '#fff0b4');
+    }
+    return;
+  }
   if (kind === 'farm') {
     for (let r = 0; r < 3; r++) { rect(c, px + 5, py + 8 + r * 12, 38, 8, 3, r % 2 ? '#e3c25a' : '#d8b04a', '#9a7a2a'); for (let i = 0; i < 5; i++) { c.strokeStyle = '#b08a2a'; c.beginPath(); c.moveTo(px + 9 + i * 8, py + 9 + r * 12); c.lineTo(px + 9 + i * 8, py + 15 + r * 12); c.stroke(); } }
     ell(c, px + 38, py + 40, 6, 5, '#e9c860'); ell(c, px + 38, py + 37, 4, 3, '#f4dc84');
@@ -127,12 +145,15 @@ export function building(c: C2D, kind: BuildingId, px: number, py: number, time:
 
 /** A predator from the shared drawings, feet at (x, y), `h` pixels tall. */
 function beast(c: C2D, kind: DenKind | PredKind, x: number, y: number, h: number, time: number, face = 1) {
+  c.save(); c.translate(x, y); c.scale(face, 1);
+  if (painted(c, 'characters', BEAST_ART[kind as DenKind], -h * .65, -h + Math.sin(time * 5) * .5, h * 1.3, h)) { c.restore(); return; }
+  c.restore();
   c.save(); c.translate(x, y); c.scale((face * h) / 24, h / 24); predator(c, kind as PredKind, TINT[kind as PredKind], time); c.restore();
 }
 
 function den(c: C2D, kind: DenKind, x: number, y: number, time: number, power: number, squad: number) {
   const px = X(x), py = Y(y), lair = kind === 'cougar';
-  ell(c, px + 24, py + 34, 20, 11, lair ? '#4a3a32' : '#5a4630'); ell(c, px + 24, py + 36, 11, 7, '#1c140e');
+  if (!painted(c, 'buildings', 12, px, py + 2, T, T - 2)) { ell(c, px + 24, py + 34, 20, 11, lair ? '#4a3a32' : '#5a4630'); ell(c, px + 24, py + 36, 11, 7, '#1c140e'); }
   beast(c, kind, px + 22, py + 38, lair ? 30 : 22, time, -1);
   // Power badge: green when the squad can win, red when it can't.
   const ok = squad >= power;
@@ -144,6 +165,13 @@ function home(c: C2D, g: Game, time: number) {
   const px = X(HOME.x), py = Y(HOME.y);
   ell(c, px + 24, py + 40, 26, 7, 'rgba(30,20,10,0.35)');
   const lv = g.hqLevel, r = 18 + lv * 2;
+  if (painted(c, 'buildings', 7, px - 3, py - 3, T + 6, T + 4)) {
+    painted(c, 'characters', 0, px - 4, py + 29 + Math.sin(time * 2) * .3, 22, 20);
+    painted(c, 'characters', 1, px + 31, py + 28 + Math.sin(time * 2 + 1) * .3, 23, 21);
+    for (let i = 0; i < 3; i++) { const t = (time * 3 + i * 3) % 10; ell(c, px + 35 + Math.sin(time + i) * 2, py + 4 - t, 1 + t * .15, 1.4 + t * .15, `rgba(219, 226, 234, ${.22 * (1 - t / 10)})`); }
+    c.fillStyle = '#fff0bf'; c.font = 'bold 6px Georgia'; c.textAlign = 'center'; c.fillText(`Lv ${lv}`, px + 24, py + 46);
+    return;
+  }
   c.fillStyle = '#8a6a44'; c.beginPath(); c.ellipse(px + 24, py + 36, r, r * 0.8, 0, Math.PI, 0); c.closePath(); c.fill();
   c.fillStyle = '#6fa552'; c.beginPath(); c.ellipse(px + 24, py + 36 - r * 0.55, r * 0.8, r * 0.3, 0, Math.PI, 0); c.closePath(); c.fill();
   if (lv >= 3) { c.fillStyle = '#5a4630'; c.fillRect(px + 34, py + 10, 5, 10); ell(c, px + 36 + Math.sin(time) * 2, py + 6 - (time * 6) % 8, 3, 3, 'rgba(230,230,240,0.6)'); }
@@ -157,14 +185,16 @@ function home(c: C2D, g: Game, time: number) {
 function feature(c: C2D, g: Game, x: number, y: number, time: number) {
   const t = g.tile(x, y)!, px = X(x), py = Y(y);
   if (t.f === 'stray') {
-    drawChinchilla(c, SETTLER, px + 24, py + 40, { face: hash(x, y) < 0.5 ? 1 : -1, h: 18, time: time + x });
+    if (!painted(c, 'characters', 6, px + 10, py + 15 + Math.sin(time * 2 + x) * .5, 28, 26)) drawChinchilla(c, SETTLER, px + 24, py + 40, { face: hash(x, y) < 0.5 ? 1 : -1, h: 18, time: time + x });
     const bob = Math.sin(time * 4 + x) * 1.5;
     rect(c, px + 30, py + 2 + bob, 15, 13, 5, '#fff8e8', '#6e5d57'); c.fillStyle = '#6e5d57'; c.font = 'bold 10px ui-sans-serif, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('?', px + 37.5, py + 9 + bob);
   } else if ((t.f === 'den' || t.f === 'lair') && t.den) den(c, t.den, x, y, time, DENS[t.den].power, g.squadPower);
   else if (t.f === 'beacon') {
+    if (!painted(c, 'buildings', 6, px + 2, py + 1, T - 4, T - 2)) {
     c.fillStyle = '#6e6878'; c.beginPath(); c.moveTo(px + 12, py + 42); c.lineTo(px + 16, py + 26); c.lineTo(px + 32, py + 26); c.lineTo(px + 36, py + 42); c.closePath(); c.fill();
     rect(c, px + 14, py + 22, 20, 5, 2, '#8d8896');
     for (let i = 0; i < 3; i++) { c.strokeStyle = '#6b4a2a'; c.lineWidth = 2; c.beginPath(); c.moveTo(px + 18 + i * 6, py + 22); c.lineTo(px + 22 + i * 3, py + 14); c.stroke(); }
+    }
     const pulse = 0.5 + 0.5 * Math.sin(time * 3);
     c.strokeStyle = `rgba(255, 220, 120, ${0.4 + pulse * 0.5})`; c.lineWidth = 2; c.setLineDash([4, 3]); c.strokeRect(px + 3, py + 3, T - 6, T - 6); c.setLineDash([]);
   }
@@ -174,18 +204,18 @@ function feature(c: C2D, g: Game, x: number, y: number, time: number) {
 
 function fog(c: C2D, x: number, y: number, time: number, frontier: boolean) {
   const px = X(x), py = Y(y);
-  c.fillStyle = '#c7d2e2'; c.fillRect(px, py, T, T);
-  for (let i = 0; i < 4; i++) {
-    const dx = 8 + hash(x, y, i) * 32 + Math.sin(time * 0.4 + i + x) * 2, dy = 8 + hash(x, y, i + 4) * 32, r = 12 + hash(x, y, i + 8) * 8;
-    ell(c, px + dx, py + dy + 2, r, r * 0.8, 'rgba(150, 165, 190, 0.5)');
-    ell(c, px + dx, py + dy, r, r * 0.8, i % 2 ? '#eef2f8' : '#dfe6f0');
+  // The underlying cloud texture is continuous across the board; these wisps drift over its edges.
+  for (let i = 0; i < 3; i++) {
+    const dx = hash(x, y, i) * T + Math.sin(time * .25 + x + i) * 2, dy = hash(x, y, i + 4) * T;
+    const cloud = c.createRadialGradient(px + dx, py + dy, 1, px + dx, py + dy, 17);
+    cloud.addColorStop(0, 'rgba(228, 239, 249, .28)'); cloud.addColorStop(1, 'rgba(228, 239, 249, 0)');
+    c.fillStyle = cloud; c.fillRect(px - 8, py - 8, T + 16, T + 16);
   }
   if (frontier) {
-    c.strokeStyle = 'rgba(255, 255, 255, 0.9)'; c.lineWidth = 1.5; c.setLineDash([3, 3]); c.strokeRect(px + 3.5, py + 3.5, T - 7, T - 7); c.setLineDash([]);
-    // A little paw print: you can explore here.
+    c.strokeStyle = '#eed396'; c.lineWidth = 1; c.setLineDash([2, 2]); c.strokeRect(px + 5, py + 5, T - 10, T - 10); c.setLineDash([]);
     const cx = px + 24, cy = py + 26;
-    ell(c, cx, cy + 3, 5, 4, 'rgba(110, 120, 150, 0.55)');
-    for (const [dx, dy] of [[-6, -3], [-2, -7], [3, -7], [7, -3]]) ell(c, cx + dx, cy + dy, 2, 2.4, 'rgba(110, 120, 150, 0.55)');
+    ell(c, cx, cy + 2, 3.5, 3, '#f9dfa4');
+    for (const [dx, dy] of [[-4, -2], [-1.5, -5], [2, -5], [4.5, -2]]) ell(c, cx + dx, cy + dy, 1.5, 1.8, '#f9dfa4');
   }
 }
 
@@ -205,12 +235,23 @@ export function drawWorld(c: C2D, g: Game, time: number, view: View) {
 }
 
 function drawInside(c: C2D, g: Game, time: number, view: View) {
+  // One continuous sea of cloud behind the revealed terrain.
+  painted(c, 'terrain', 5, 0, 0, VIEW, VIEW, true);
   // Tiles you hold, then features, then the cloud on top.
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const t = g.tile(x, y)!;
     if (!t.seen) continue;
     ground(c, t.t, x, y);
     if (g.lit(x, y)) { c.fillStyle = 'rgba(255, 220, 120, 0.14)'; c.fillRect(X(x), Y(y), T, T); }
+  }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const t = g.tile(x, y)!; if (!t.seen) continue;
+    // Short paths connect adjacent occupied tiles; they never cross unseen land.
+    const occupied = t.f === 'home' || !!g.buildingAt(x, y);
+    if (occupied) for (const [dx, dy] of [[1, 0], [0, 1]]) {
+      const next = g.tile(x + dx, y + dy);
+      if (next?.seen && (next.f === 'home' || g.buildingAt(x + dx, y + dy))) { c.strokeStyle = '#b49c6b99'; c.lineWidth = 7; c.lineCap = 'round'; c.beginPath(); c.moveTo(X(x) + 24, Y(y) + 36); c.lineTo(X(x + dx) + 24, Y(y + dy) + 36); c.stroke(); }
+    }
   }
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const t = g.tile(x, y)!;
@@ -225,20 +266,32 @@ function drawInside(c: C2D, g: Game, time: number, view: View) {
         for (let i = 0; i < 2; i++) ell(c, X(x) + 30 + i * 4, Y(y) + 10 - ((time * 8 + i * 6) % 12), 4, 4, 'rgba(80, 80, 90, 0.45)');
       }
       const need = BUILDINGS[b.kind].workers;
+      for (let i = 0; i < b.workers; i++) painted(c, 'characters', 5, X(x) + 3 + i * 17, Y(y) + 29 + Math.sin(time * 2 + i + b.id) * .4, 15, 15);
       for (let i = 0; i < need; i++) ell(c, X(x) + T - 6 - i * 7, Y(y) + T - 5, 2.6, 2.6, i < b.workers ? '#ffe28a' : 'rgba(30, 20, 10, 0.5)');
     } else feature(c, g, x, y, time);
   }
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!g.tile(x, y)!.seen) fog(c, x, y, time, g.canExplore(x, y) === 'ok' || g.canExplore(x, y) === 'stamina');
-  // Soft edges between cloud and land.
-  c.strokeStyle = 'rgba(30, 40, 60, 0.18)'; c.lineWidth = 1;
-  for (let i = 0; i <= W; i++) { c.beginPath(); c.moveTo(X(i), Y(0)); c.lineTo(X(i), Y(H)); c.stroke(); c.beginPath(); c.moveTo(X(0), Y(i)); c.lineTo(X(W), Y(i)); c.stroke(); }
+  // Mist feathers into the edge of held land; tile contents still come exclusively from seen tiles.
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (g.tile(x, y)!.seen) {
+    const px = X(x), py = Y(y);
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+      const next = g.tile(x + dx, y + dy); if (!next || next.seen) continue;
+      const ex = px + (dx === 1 ? T : dx === -1 ? 0 : T / 2), ey = py + (dy === 1 ? T : dy === -1 ? 0 : T / 2);
+      const mist = c.createLinearGradient(ex, ey, ex - dx * 8, ey - dy * 8);
+      mist.addColorStop(0, 'rgba(206, 225, 243, .65)'); mist.addColorStop(1, 'rgba(206, 225, 243, 0)');
+      c.fillStyle = mist; c.fillRect(dx === 1 ? px + T - 8 : px, dy === 1 ? py + T - 8 : py, dx ? 8 : T, dy ? 8 : T);
+    }
+  }
+  // Tile boundaries remain visible on held land, but do not cut the cloud into boxes.
+  c.strokeStyle = 'rgba(59, 64, 46, .22)'; c.lineWidth = .6;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (g.tile(x, y)!.seen) c.strokeRect(X(x), Y(y), T, T);
 
   // Night: dark everywhere but the lanterns and the burrow door.
   const tc = g.time % CYCLE, dusk = tc < DAY - 6 ? 0 : tc < DAY ? (tc - (DAY - 6)) / 6 : tc > CYCLE - 4 ? (CYCLE - tc) / 4 : 1;
   if (dusk > 0) {
     c.save();
     c.globalAlpha = dusk;
-    c.fillStyle = 'rgba(16, 22, 52, 0.62)'; c.fillRect(0, 0, VIEW, VIEW);
+    c.fillStyle = 'rgba(16, 22, 52, 0.48)'; c.fillRect(0, 0, VIEW, VIEW);
     c.globalCompositeOperation = 'lighter';
     const glow = (x: number, y: number, r: number, a: number) => { const gr = c.createRadialGradient(x, y, 2, x, y, r); gr.addColorStop(0, `rgba(255, 200, 110, ${a})`); gr.addColorStop(1, 'rgba(255, 200, 110, 0)'); c.fillStyle = gr; c.fillRect(x - r, y - r, r * 2, r * 2); };
     glow(X(HOME.x) + 24, Y(HOME.y) + 32, 70, 0.28);
@@ -279,7 +332,7 @@ function drawInside(c: C2D, g: Game, time: number, view: View) {
   }
   if (view.sel) {
     const { x, y } = view.sel, pulse = 0.6 + 0.4 * Math.sin(time * 5);
-    c.strokeStyle = `rgba(255, 226, 120, ${pulse})`; c.lineWidth = 3; c.strokeRect(X(x) + 1.5, Y(y) + 1.5, T - 3, T - 3);
+    c.strokeStyle = `rgba(255, 226, 120, ${pulse})`; c.lineWidth = 1.3; c.strokeRect(X(x) + 1.5, Y(y) + 1.5, T - 3, T - 3);
   }
   // Floating words and bursts.
   for (const f of view.fx) {
@@ -306,15 +359,24 @@ export function drawBuildingIcon(c: C2D, kind: BuildingId, w: number, h: number)
 }
 export function drawHeroIcon(c: C2D, id: HeroId, w: number, h: number, hurt = false) {
   c.clearRect(0, 0, w, h);
-  fitDraw(c, `frontier-hero-${id}`, 0, 0, w, h, (d) => drawChinchilla(d, COAT[id], 0, 0, { face: 1, h: 24, time: 0, dizzy: false }));
+  if (!painted(c, 'characters', HERO_ART[id], 2, 2, w - 4, h - 4)) fitDraw(c, `frontier-hero-${id}`, 0, 0, w, h, (d) => drawChinchilla(d, COAT[id], 0, 0, { face: 1, h: 24, time: 0, dizzy: false }));
   if (hurt) { c.fillStyle = 'rgba(200, 40, 40, 0.85)'; c.fillRect(w - 14, 2, 12, 4); c.fillRect(w - 10, -2 + 0, 4, 12); }
 }
 export function drawDenIcon(c: C2D, kind: DenKind, w: number, h: number) {
   c.clearRect(0, 0, w, h);
-  fitDraw(c, `frontier-den-${kind}`, 2, 2, w - 4, h - 4, (d) => predator(d, kind as PredKind, TINT[kind as PredKind], 0), -1);
+  if (!painted(c, 'characters', BEAST_ART[kind], 2, 2, w - 4, h - 4)) fitDraw(c, `frontier-den-${kind}`, 2, 2, w - 4, h - 4, (d) => predator(d, kind as PredKind, TINT[kind as PredKind], 0), -1);
 }
 /** The title picture: Dora and Enzo on a snowy ridge with a lantern, the beacon far off. */
 export function drawTitle(c: C2D, w: number, h: number, time: number) {
+  if (painted(c, 'terrain', 3, 0, 0, w, h, true)) {
+    painted(c, 'terrain', 5, 0, 0, w, h * .48, true);
+    painted(c, 'buildings', 9, 0, 0, w * .34, h * .65);
+    painted(c, 'buildings', 6, w * .65, 0, w * .28, h * .6);
+    painted(c, 'buildings', 7, w * .23, h * .26, w * .54, h * .68);
+    painted(c, 'characters', 0, w * .15, h * .51, w * .3, h * .43);
+    painted(c, 'characters', 1, w * .56, h * .50, w * .3, h * .44);
+    return;
+  }
   const sky = c.createLinearGradient(0, 0, 0, h); sky.addColorStop(0, '#2a3a66'); sky.addColorStop(1, '#8aa6d0');
   c.fillStyle = sky; c.fillRect(0, 0, w, h);
   for (let i = 0; i < 18; i++) ell(c, hash(i, 1) * w, hash(i, 2) * h * 0.5, 1, 1, 'rgba(255,255,255,0.8)');
@@ -324,6 +386,9 @@ export function drawTitle(c: C2D, w: number, h: number, time: number) {
   ell(c, w * 0.78, h * 0.19, 5 * f, 6 * f, '#ffc850'); ell(c, w * 0.78, h * 0.19, 14 * f, 14 * f, 'rgba(255, 200, 80, 0.25)');
   c.fillStyle = '#eef3fa'; c.beginPath(); c.moveTo(0, h * 0.82); c.quadraticCurveTo(w * 0.5, h * 0.66, w, h * 0.84); c.lineTo(w, h); c.lineTo(0, h); c.fill();
   building(c, 'lantern', w * 0.5 - 24, h * 0.86 - 48, time, true);
-  drawChinchilla(c, COATS.dora, w * 0.3, h * 0.86, { face: 1, h: h * 0.3, time });
-  drawChinchilla(c, COATS.enzo, w * 0.7, h * 0.87, { face: -1, h: h * 0.33, time: time + 1.4 });
+  if (!painted(c, 'characters', 0, w * .12, h * .42, w * .32, h * .46)) drawChinchilla(c, COATS.dora, w * 0.3, h * 0.86, { face: 1, h: h * 0.3, time });
+  if (!painted(c, 'characters', 1, w * .57, h * .40, w * .32, h * .48)) drawChinchilla(c, COATS.enzo, w * 0.7, h * 0.87, { face: -1, h: h * 0.33, time: time + 1.4 });
 }
+
+export function drawBurrowIcon(c: C2D, w: number, h: number) { c.clearRect(0, 0, w, h); if (!painted(c, 'buildings', 7, 0, 0, w, h)) building(c, 'nest', (w - T) / 2, (h - T) / 2, 0); }
+export function drawResourceIcon(c: C2D, kind: 'hay' | 'wood' | 'stone', w: number, h: number) { c.clearRect(0, 0, w, h); painted(c, 'buildings', kind === 'hay' ? 14 : kind === 'wood' ? 15 : 3, 0, 0, w, h); }

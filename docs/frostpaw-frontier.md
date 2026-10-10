@@ -181,3 +181,11 @@ The page keeps three things in `localStorage`:
 - **Dens:** each shows its predator, drawn with the arcade's shared predator art, and a badge with its power: green when your squad can win, red when it can't.
 - **Night:** the mountain darkens except for the lantern light and the burrow door. The raiders walk in from their dens, then slink off if the raid is held. A banner shows the raid against your defence.
 - **Effects:** words float up for supplies, newcomers and damage, and bursts mark heroes and cleared dens.
+
+## Painted alpine artwork
+
+The approved mock-up is implemented using three PNG atlases in `public/art/frontier/`: square terrain textures, transparent buildings and transparent characters. `lib/frontier-art.ts` loads and caches cropped sprites; `lib/frontier-scene.ts` positions them from the live game. Worker avatars and dots reflect assigned workers. Unfuelled lanterns use unlit glass; the renderer adds flames and light only when fuel and damage state permit. Cloud and tile markers never reveal hidden terrain. Adjacent occupied tiles gain decorative paths; these do not affect movement.
+
+The UI uses solid navy surfaces, ivory text, brass borders, named building cards and larger hero portraits. Smoke, tree sway, breathing and flicker stop with reduced motion, while time-of-day and raids continue to reflect gameplay. Original vector drawings keep the game playable if an atlas request fails; use Retry artwork to load it again.
+
+`tests/e2e/frontier-art.mjs` checks loaded assets, desktop/phone/landscape layouts, touch-sized controls, pause/resume and partial asset failure followed by retry. Exact prompts, atlas indexes and the approved reference are recorded in [frontier-art.md](frontier-art.md).

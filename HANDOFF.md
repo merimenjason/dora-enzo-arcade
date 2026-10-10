@@ -60,7 +60,7 @@ Checks: npm run test:detectives and tests/e2e/detectives.mjs. The engine suite p
 
 ## Frostpaw Frontier · 10-10-2026
 
-Game 30, `/frontier`, is on `claude/chinchilla-clash-royale-game-6a8866` for review, based on main after Pawprint Detectives (PR #26). It is a tile-by-tile survival builder in the style of Tiles Survive.
+Game 30, `/frontier`, is merged on main. It is a tile-by-tile survival builder in the style of Tiles Survive.
 
 - **The loop:** a 13 × 13 mountain under cloud, explored with stamina next to held land. Survivors work farms, lodges and quarries, glow lanterns burn wood to speed up nearby workshops, and a raid comes every night. Five heroes (three found in ruins) clear predator dens, and the run is won by clearing the cougar from the summit and lighting the Summit Beacon.
 - **Maps:** three, each opening the next, with three stars by day 15, 16 or 18.
@@ -73,7 +73,7 @@ Game 30, `/frontier`, is on `claude/chinchilla-clash-royale-game-6a8866` for rev
 - **Things to know:**
   - The page's camera (`camFor` in the scene) frames the land you hold plus a ring of cloud, at least seven tiles across, so the map is readable on a phone from the start. The browser test computes the same camera to click tiles.
   - `fill()` puts idle survivors in farms first while hay income is negative. Without it the bot deadlocked with every worker in a lodge.
-  - The art is drawn in Canvas 2D (shared chinchilla and predator art), not painted PNGs like the newest games. The App Store page couldn't be reached from the build environment, so the design follows public descriptions of Tiles Survive rather than the game itself.
+  - The Canvas renderer now uses painted atlases from `public/art/frontier/`, loaded and cached by `lib/frontier-art.ts`. Alpha margins are trimmed once; the building row gutters have measured crop bounds. Original drawings remain available if artwork fails; the page offers retry. Tile coordinates, saves and rules are unchanged. Full art prompts and provenance: `docs/frontier-art.md`. `tests/e2e/frontier-art.mjs` covers layouts and failed-request recovery.
 - **Still to do:** human balance (the bot is a strong, stamina-perfect player), a listening pass, and real-device touch.
 
 ## Current state
