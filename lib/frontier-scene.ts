@@ -9,7 +9,9 @@ import {
   Game, W, H, HOME, DAY, CYCLE, RAID_AT, DENS, BUILDINGS, type BuildingId, type HeroId, type DenKind, type Terrain,
 } from './frontier-game';
 
-import { painted, BUILDING_ART, HERO_ART, BEAST_ART } from './frontier-art';
+import { painted, terrainTransition, BUILDING_ART, HERO_ART, BEAST_ART } from './frontier-art';
+
+import { settlementAt, settlementPaths, type Resident } from './frontier-life';
 
 type C2D = CanvasRenderingContext2D;
 export const T = 48, PAD = 10, VIEW = W * T + PAD * 2;
@@ -166,8 +168,6 @@ function home(c: C2D, g: Game, time: number) {
   ell(c, px + 24, py + 40, 26, 7, 'rgba(30,20,10,0.35)');
   const lv = g.hqLevel, r = 18 + lv * 2;
   if (painted(c, 'buildings', 7, px - 3, py - 3, T + 6, T + 4)) {
-    painted(c, 'characters', 0, px - 4, py + 29 + Math.sin(time * 2) * .3, 22, 20);
-    painted(c, 'characters', 1, px + 31, py + 28 + Math.sin(time * 2 + 1) * .3, 23, 21);
     for (let i = 0; i < 3; i++) { const t = (time * 3 + i * 3) % 10; ell(c, px + 35 + Math.sin(time + i) * 2, py + 4 - t, 1 + t * .15, 1.4 + t * .15, `rgba(219, 226, 234, ${.22 * (1 - t / 10)})`); }
     c.fillStyle = '#fff0bf'; c.font = 'bold 6px Georgia'; c.textAlign = 'center'; c.fillText(`Lv ${lv}`, px + 24, py + 46);
     return;
@@ -178,8 +178,6 @@ function home(c: C2D, g: Game, time: number) {
   ell(c, px + 24, py + 34, 8, 8, '#2a1a0c'); c.fillStyle = '#2a1a0c'; c.fillRect(px + 16, py + 34, 16, 4);
   if (lv >= 2) { c.strokeStyle = '#d8b36a'; c.lineWidth = 2; c.beginPath(); c.arc(px + 24, py + 34, 9, Math.PI, 0); c.stroke(); }
   if (lv >= 4) { c.fillStyle = '#c0392b'; c.fillRect(px + 10, py + 6, 2, 16); c.beginPath(); c.moveTo(px + 12, py + 6); c.lineTo(px + 20, py + 9); c.lineTo(px + 12, py + 12); c.fill(); }
-  drawChinchilla(c, COATS.dora, px + 4, py + 46, { face: 1, h: 14, time });
-  drawChinchilla(c, COATS.enzo, px + 44, py + 46, { face: -1, h: 15, time: time + 1.7 });
 }
 
 function feature(c: C2D, g: Game, x: number, y: number, time: number) {
@@ -219,10 +217,67 @@ function fog(c: C2D, x: number, y: number, time: number, frontier: boolean) {
   }
 }
 
+/** A walk cycle plus explicit work gestures, with a readable shadow and carried supply. */
+function resident(c: C2D, a: Resident, time: number) {
+  const slot = a.kind === 'hero' ? a.hero === 'dora' ? 8 : 12 : a.carrying ? 4 : 0;
+  const fallback = a.kind === 'hero' ? HERO_ART[a.hero!] : 5;
+  const lane = a.kind === 'hero' ? a.hero === 'dora' ? -5 : 5 : Number(a.id.split('-').at(-1) || 0) % 2 ? 3 : -3;
+  const x = X(a.x) + 24 + lane, y = Y(a.y) + 42;
+  const bob = a.walking ? Math.abs(Math.sin(a.phase * 1.5)) * .9 : a.working ? Math.sin(a.phase) * .5 : 0;
+  const h = a.kind === 'hero' ? 22 : 18;
+  ell(c, x, y + .6, h * .34, 2.2, 'rgba(20, 22, 19, .3)');
+  c.save(); c.translate(x, y - bob); c.scale(a.face, 1);
+  if (a.working) c.rotate(Math.sin(a.phase) * .055);
+  if (!(a.walking || a.carrying) || !painted(c, 'motion', slot + a.frame, -h * .6, -h, h * 1.2, h)) {
+    if (!painted(c, 'characters', fallback, -h * .6, -h, h * 1.2, h)) drawChinchilla(c, a.kind === 'hero' ? COAT[a.hero!] : SETTLER, 0, 0, { face: 1, h, time });
+  }
+  if (a.carrying && a.resource) {
+    if (a.resource === 'hay') { for (let i = 0; i < 5; i++) { c.strokeStyle = i % 2 ? '#eed082' : '#c89543'; c.lineWidth = .8; c.beginPath(); c.moveTo(3, -7 + i * .5); c.lineTo(7 + i * .4, -11 + i * .7); c.stroke(); } }
+    if (a.resource === 'wood') { c.strokeStyle = '#956137'; c.lineWidth = 2; c.beginPath(); c.moveTo(3, -8); c.lineTo(8, -11); c.stroke(); ell(c, 8, -11, 1.4, 1, '#d4ac6e'); }
+    if (a.resource === 'stone') { ell(c, 5, -9, 2, 1.6, '#b7c2cc'); ell(c, 7, -10, 1.4, 1, '#e2dfd4'); }
+  }
+  if (a.working && (a.building === 'lodge' || a.building === 'quarry')) {
+    const angle = Math.sin(a.phase) * .7; c.save(); c.translate(5, -8); c.rotate(angle);
+    c.strokeStyle = '#a87945'; c.lineWidth = 1; c.beginPath(); c.moveTo(0, 0); c.lineTo(4, -5); c.stroke();
+    c.strokeStyle = '#d1dae0'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(2, -5); c.lineTo(6, -5); c.stroke(); c.restore();
+  }
+  c.restore();
+}
+function workshop(c: C2D, g: Game, b: Game['buildings'][number], time: number, motion: boolean) {
+  if (!motion || b.damaged) return;
+  const x = X(b.x), y = Y(b.y), output = g.output(b), phase = (time + b.id) % 3;
+  if (output > 0 && phase < 1.6) {
+    const rise = phase * 6, alpha = (1 - phase / 1.6) * .65;
+    c.globalAlpha = alpha;
+    if (b.kind === 'farm') painted(c, 'buildings', 14, x + 33, y + 17 - rise, 9, 8);
+    else if (b.kind === 'lodge') painted(c, 'buildings', 15, x + 32, y + 17 - rise, 9, 8);
+    else if (b.kind === 'quarry') { ell(c, x + 38, y + 19 - rise, 2, 1.6, '#e3e4d8'); c.strokeStyle = '#ffe3a2'; c.lineWidth = .7; c.beginPath(); c.moveTo(x + 37, y + 14 - rise); c.lineTo(x + 40, y + 18 - rise); c.stroke(); }
+    c.globalAlpha = 1;
+  }
+  if (b.kind === 'lodge' && b.workers > 0) for (let i = 0; i < 3; i++) {
+    const p = (time * 2.5 + i * 3) % 9; ell(c, x + 25 + Math.sin(time + i) * 2, y + 15 - p, 1 + p * .16, 1.5 + p * .18, `rgba(210, 220, 228, ${.22 * (1 - p / 9)})`);
+  }
+  if (b.kind === 'tower') {
+    c.fillStyle = '#234762'; c.beginPath(); c.moveTo(x + 23, y + 25); c.quadraticCurveTo(x + 28, y + 25 + Math.sin(time * 3) * 1.3, x + 30, y + 26); c.lineTo(x + 30, y + 34); c.lineTo(x + 23, y + 33); c.fill();
+  }
+}
+function atmosphere(c: C2D, g: Game, time: number, motion: boolean) {
+  if (!motion) return;
+  // Sparse snow motes only over revealed snow; no blanket particle layer over controls or hidden terrain.
+  for (let i = 0; i < 16; i++) {
+    const x = (hash(i, 81) * VIEW + Math.sin(time * .25 + i) * 9 + VIEW) % VIEW, y = (hash(i, 82) * VIEW + time * 3) % VIEW;
+    const tx = Math.floor((x - PAD) / T), ty = Math.floor((y - PAD) / T), tile = g.tile(tx, ty);
+    if (tile?.seen && tile.t === 'snow') ell(c, x, y, .65, .65, 'rgba(244, 250, 255, .7)');
+  }
+  if (g.night) for (const b of g.buildings) if (b.kind === 'lantern' && !b.damaged && g.stock.wood > 0) for (let i = 0; i < 3; i++) {
+    const phase = time * .6 + i * 2; ell(c, X(b.x) + 24 + Math.cos(phase) * 14, Y(b.y) + 25 + Math.sin(phase * 1.3) * 9, .7, .7, `rgba(255, 214, 131, ${.4 + Math.sin(time * 2 + i) * .3})`);
+  }
+}
+
 // ---------- The whole view ----------
 
 export type Fx = { kind: 'text' | 'burst' | 'puff'; x: number; y: number; t: number; text?: string; color?: string };
-export type View = { sel: { x: number; y: number } | null; ghost: { kind: BuildingId; x: number; y: number; ok: boolean } | null; fx: Fx[]; cam?: Cam };
+export type View = { sel: { x: number; y: number } | null; ghost: { kind: BuildingId; x: number; y: number; ok: boolean } | null; fx: Fx[]; cam?: Cam; motion?: boolean };
 
 export function drawWorld(c: C2D, g: Game, time: number, view: View) {
   c.fillStyle = '#2a3446'; c.fillRect(0, 0, VIEW, VIEW);
@@ -244,14 +299,21 @@ function drawInside(c: C2D, g: Game, time: number, view: View) {
     ground(c, t.t, x, y);
     if (g.lit(x, y)) { c.fillStyle = 'rgba(255, 220, 120, 0.14)'; c.fillRect(X(x), Y(y), T, T); }
   }
+  // Feather the neighbouring material across held tile boundaries, keeping every tile selectable.
+  const terrainIndex = { meadow: 0, grove: 1, rocks: 2, snow: 3, crag: 4 };
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const t = g.tile(x, y)!; if (!t.seen) continue;
-    // Short paths connect adjacent occupied tiles; they never cross unseen land.
-    const occupied = t.f === 'home' || !!g.buildingAt(x, y);
-    if (occupied) for (const [dx, dy] of [[1, 0], [0, 1]]) {
-      const next = g.tile(x + dx, y + dy);
-      if (next?.seen && (next.f === 'home' || g.buildingAt(x + dx, y + dy))) { c.strokeStyle = '#b49c6b99'; c.lineWidth = 7; c.lineCap = 'round'; c.beginPath(); c.moveTo(X(x) + 24, Y(y) + 36); c.lineTo(X(x + dx) + 24, Y(y + dy) + 36); c.stroke(); }
-    }
+    const t = g.tile(x, y)!; if (!t.seen || t.t === 'crag') continue;
+    [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dx,dy], edge) => {
+      const next = g.tile(x + dx, y + dy); if (next?.seen && next.t !== t.t && next.t !== 'crag') terrainTransition(c, terrainIndex[next.t], edge, X(x), Y(y), T);
+    });
+  }
+  // The same safe routes drive both cobbled paths and worker journeys.
+  for (const [a, b] of settlementPaths(g)) {
+    const ax = X(a.x) + 24, ay = Y(a.y) + 37, bx = X(b.x) + 24, by = Y(b.y) + 37;
+    c.lineCap = 'round'; c.strokeStyle = '#5b4b3299'; c.lineWidth = 9; c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx, by); c.stroke();
+    c.strokeStyle = '#c5b489bb'; c.lineWidth = 6; c.stroke();
+    const length = Math.hypot(bx - ax, by - ay);
+    for (let d = 3; d < length; d += 6) { const q = d / length; ell(c, ax + (bx - ax) * q, ay + (by - ay) * q, 2.2, 1.5, '#e4d0a088'); }
   }
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const t = g.tile(x, y)!;
@@ -260,16 +322,20 @@ function drawInside(c: C2D, g: Game, time: number, view: View) {
     if (t.t === 'grove' && b?.kind !== 'lodge') trees(c, x, y, time);
     if (t.f === 'home') home(c, g, time);
     else if (b) {
+      ell(c, X(x) + 26, Y(y) + 42, 19, 5, 'rgba(21, 30, 24, .23)');
       building(c, b.kind, X(x), Y(y), time, b.kind === 'lantern' && !b.damaged && g.stock.wood > 0);
       if (b.damaged) {
         c.strokeStyle = '#2a1a10'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(X(x) + 14, Y(y) + 14); c.lineTo(X(x) + 22, Y(y) + 24); c.lineTo(X(x) + 18, Y(y) + 32); c.stroke();
         for (let i = 0; i < 2; i++) ell(c, X(x) + 30 + i * 4, Y(y) + 10 - ((time * 8 + i * 6) % 12), 4, 4, 'rgba(80, 80, 90, 0.45)');
       }
+      workshop(c, g, b, time, view.motion !== false);
       const need = BUILDINGS[b.kind].workers;
-      for (let i = 0; i < b.workers; i++) painted(c, 'characters', 5, X(x) + 3 + i * 17, Y(y) + 29 + Math.sin(time * 2 + i + b.id) * .4, 15, 15);
       for (let i = 0; i < need; i++) ell(c, X(x) + T - 6 - i * 7, Y(y) + T - 5, 2.6, 2.6, i < b.workers ? '#ffe28a' : 'rgba(30, 20, 10, 0.5)');
     } else feature(c, g, x, y, time);
   }
+  const residents = settlementAt(g, time, view.motion !== false);
+  residents.sort((a, b) => a.y - b.y).forEach(a => resident(c, a, time));
+  atmosphere(c, g, time, view.motion !== false);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!g.tile(x, y)!.seen) fog(c, x, y, time, g.canExplore(x, y) === 'ok' || g.canExplore(x, y) === 'stamina');
   // Mist feathers into the edge of held land; tile contents still come exclusively from seen tiles.
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (g.tile(x, y)!.seen) {
@@ -292,8 +358,8 @@ function drawInside(c: C2D, g: Game, time: number, view: View) {
     c.save();
     c.globalAlpha = dusk;
     c.fillStyle = 'rgba(16, 22, 52, 0.48)'; c.fillRect(0, 0, VIEW, VIEW);
-    c.globalCompositeOperation = 'lighter';
-    const glow = (x: number, y: number, r: number, a: number) => { const gr = c.createRadialGradient(x, y, 2, x, y, r); gr.addColorStop(0, `rgba(255, 200, 110, ${a})`); gr.addColorStop(1, 'rgba(255, 200, 110, 0)'); c.fillStyle = gr; c.fillRect(x - r, y - r, r * 2, r * 2); };
+    c.globalCompositeOperation = 'screen';
+    const glow = (x: number, y: number, r: number, a: number) => { const gr = c.createRadialGradient(x, y, 2, x, y, r); gr.addColorStop(0, `rgba(255, 192, 91, ${a * (1 + Math.sin(time * 5 + x) * .04)})`); gr.addColorStop(1, 'rgba(255, 200, 110, 0)'); c.fillStyle = gr; c.fillRect(x - r, y - r, r * 2, r * 2); };
     glow(X(HOME.x) + 24, Y(HOME.y) + 32, 70, 0.28);
     for (const b of g.buildings) if (b.kind === 'lantern' && !b.damaged && g.stock.wood > 0) glow(X(b.x) + 24, Y(b.y) + 14, (g.reach() + 0.5) * T, 0.22);
     for (const b of g.buildings) if (b.kind === 'beacon') glow(X(b.x) + 24, Y(b.y) + 12, 160, 0.5);
@@ -314,6 +380,7 @@ function drawInside(c: C2D, g: Game, time: number, view: View) {
       beast(c, f.kind === 'cougar' ? 'cougar' : f.kind, px, py, 18, time * 2 + i, r.done && r.held ? -face : face);
       if (!r.done || !r.held) { c.fillStyle = '#ff5a3a'; ell(c, px + face * 5, py - 14, 1.3, 1.3, '#ffdf6a'); }
     });
+    if (r.done && view.motion !== false && tc - DAY - RAID_AT < 2) { const p = Math.max(0, tc - DAY - RAID_AT); c.strokeStyle = `rgba(${r.held ? '242, 212, 132' : '245, 117, 86'}, ${.5 * (1 - p / 2)})`; c.lineWidth = 1.3; c.beginPath(); c.ellipse(home.x, home.y, 10 + p * 38, 5 + p * 20, 0, 0, Math.PI * 2); c.stroke(); }
     if (r.done) {
       const a = Math.max(0, 1 - (tc - DAY - RAID_AT) / 4);
       c.globalAlpha = a; c.font = '900 18px ui-sans-serif, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';

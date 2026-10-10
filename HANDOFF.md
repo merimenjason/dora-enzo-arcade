@@ -73,7 +73,7 @@ Game 30, `/frontier`, is merged on main. It is a tile-by-tile survival builder i
 - **Things to know:**
   - The page's camera (`camFor` in the scene) frames the land you hold plus a ring of cloud, at least seven tiles across, so the map is readable on a phone from the start. The browser test computes the same camera to click tiles.
   - `fill()` puts idle survivors in farms first while hay income is negative. Without it the bot deadlocked with every worker in a lodge.
-  - The Canvas renderer now uses painted atlases from `public/art/frontier/`, loaded and cached by `lib/frontier-art.ts`. Alpha margins are trimmed once; the building row gutters have measured crop bounds. Original drawings remain available if artwork fails; the page offers retry. Tile coordinates, saves and rules are unchanged. Full art prompts and provenance: `docs/frontier-art.md`. `tests/e2e/frontier-art.mjs` covers layouts and failed-request recovery.
+  - The Canvas renderer now uses painted atlases from `public/art/frontier/`, loaded and cached by `lib/frontier-art.ts`. `lib/frontier-life.ts` plans cached safe routes and animation cycles without changing the engine; `tests/frontier-life.mjs` checks counts, obstacles, reassignment, damage, motion and state isolation. Alpha margins are trimmed once; the building row gutters have measured crop bounds. Original drawings remain available if artwork fails; the page offers retry. Tile coordinates, saves and rules are unchanged. Full art prompts and provenance: `docs/frontier-art.md`. `tests/e2e/frontier-art.mjs` covers layouts and failed-request recovery.
 - **Still to do:** human balance (the bot is a strong, stamina-perfect player), a listening pass, and real-device touch.
 
 ## Current state

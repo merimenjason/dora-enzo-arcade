@@ -184,7 +184,7 @@ export default function FrostpawFrontier() {
       const want = camFor(g), cm = cam.current ?? want, ease = motion.current ? Math.min(1, step * 3) : 1;
       cam.current = { x: cm.x + (want.x - cm.x) * ease, y: cm.y + (want.y - cm.y) * ease, size: cm.size + (want.size - cm.size) * ease };
       c.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-      drawWorld(c, g, motion.current ? g.time : 0, { sel: selRef.current, ghost, fx: motion.current ? fx.current : fx.current.filter(f => f.kind === 'text'), cam: cam.current });
+      drawWorld(c, g, motion.current ? g.time : 0, { sel: selRef.current, ghost, fx: motion.current ? fx.current : fx.current.filter(f => f.kind === 'text'), cam: cam.current, motion: motion.current });
       if (now - ui > 150) { refresh(); ui = now; }
       if (now - saved > 2000) { writeRun(g); saved = now; }
       raf = requestAnimationFrame(loop);

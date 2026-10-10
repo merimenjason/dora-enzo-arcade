@@ -12,7 +12,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
-- **Frostpaw Frontier** now matches its painted alpine mock-up: textured terrain, detailed workshops and burrows, fluffy hero portraits, a continuous sea of cloud, warm dynamic lighting, live workers and staffing dots, and readable navy-and-brass controls. Building cards have names, the beacon objective tracks progress, and artwork can be retried without interrupting play. Decorative motion respects reduced-motion settings.
+- **Frostpaw Frontier** now matches its painted alpine mock-up: textured terrain, detailed workshops and burrows, fluffy hero portraits, a continuous sea of cloud, warm dynamic lighting, workers who walk safe cobbled paths, gather and deliver supplies, hero patrols and staffing dots, and readable navy-and-brass controls. Building cards have names, the beacon objective tracks progress, and artwork can be retried without interrupting play. Feathered terrain transitions, workshop smoke, quarry sparks, fireflies and raid ripples add life; pause and reduced motion freeze decorative animation.
 
 ### Fixed
 

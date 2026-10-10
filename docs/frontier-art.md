@@ -2,13 +2,19 @@
 
 Mode: built-in imagegen. Reference: `public/art/frontier/reference.png`, the approved alpine gameplay mock-up. The reference is documentation only; no HUD values or static settlement from it are used during play.
 
-Runtime assets: `public/art/frontier/terrain.png` (3×2 cells), `buildings.png` (4×4 cells with measured horizontal gutters at source y 268, 544 and 786), `characters.png` (4×3 cells). Generated sprite alpha is preserved; the renderer crops alpha margins and caches the result. No image post-processing was used.
+Runtime assets: `public/art/frontier/terrain.png` (3×2 cells), `buildings.png` (4×4 cells with measured horizontal gutters at source y 268, 544 and 786), `characters.png` (4×3 cells), `motion.png` (4×4 walk-cycle poses). Generated sprite alpha is preserved; the renderer crops alpha margins and caches the result. No image post-processing was used.
 
 Building indexes: farm 0, lodge 1, nest 2, quarry 3, lantern 4, tower 5, beacon 6, burrow 7, evergreens 8, crag 9, ruin 10, cache 11, cave 12, rumour stone 13, hay 14, logs 15. Character indexes: Dora 0, Enzo 1, Pebble 2, Kiki 3, Luna 4, worker 5, stray 6, weasel 7, fox 8, owl 9, badger 10, cougar 11. Terrain indexes: meadow 0, grove floor 1, rocks 2, snow 3, crag ground 4, cloud 5.
 
 The ruin, cache and rumour art is reserved for future reveal transitions: current rules collect those discoveries immediately, so the renderer does not falsely leave them on cleared land.
 
 ## Exact prompts
+
+### Living settlement animation
+
+Additional runtime asset: `public/art/frontier/motion.png`, built-in imagegen, transparent 4×4 walk-cycle atlas. Row cuts follow source y 274, 537 and 800 (1086-pixel sheet height). All frames in a row share the same alpha crop, preserving scale and foot placement through the cycle. Rows contain worker walking, worker carrying an empty basket, Dora walking and Enzo walking. The renderer adds matching hay, wood or stone to delivery baskets from the assigned workshop. `lib/frontier-life.ts` computes safe routes and activity without modifying game state.
+
+Use case: illustration-story. Production animated sprite sheet for Frostpaw Frontier, exactly 4 columns x 4 rows of 16 full-body isolated chinchilla poses on genuinely TRANSPARENT background, each equal sized cell, ample 15% margin and feet aligned at identical baseline. Reference image supplies character identities and art style. Exact painted fluffy chinchillas, fine fur, round ears, curled bushy tail, dry scarves. Every sprite faces RIGHT in side-three-quarter view, identical scale across each row and centered, no ground, no labels, no text, no gridlines or UI. ROW1 four WALK CYCLE keyframes of brown-gray worker in green scarf: left foot forward, feet under body, right foot forward, feet under body. ROW2 same worker in four walk cycle frames, both front paws holding a SMALL EMPTY wicker delivery basket, basket contains no resource (code adds hay/logs/stone). ROW3 Dora WHITE chinchilla with red scarf and DARK RUBY RED eyes deep wine red #8e1f33, near-black pupils, four walk cycle frames identical identity. ROW4 Enzo GRAY chinchilla blue scarf BLACK eyes four walk cycle frames identical identity. These are 4 sequential animation phases, not 4 unrelated poses. Slight natural body bounce, legs visibly alternate beneath fluffy body, tails shift subtly. Preserve identity of Dora and Enzo exactly. Regular equal rows and columns, leave gutters at each boundary for clean automated cropping, no overlapping sprites, no shadows, no props except row2 empty baskets, no snow on fur. High quality painted alpine storybook sprites matching source image.
 
 ### terrain
 

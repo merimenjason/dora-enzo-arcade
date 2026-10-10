@@ -16,6 +16,10 @@ try {
   await p.getByRole('button',{name:'Pause · P',exact:true}).click();await p.getByRole('button',{name:'Back to the frontier →',exact:true}).click();
   assert.equal(await p.getByTestId('map').getAttribute('data-state'),'playing');assert.deepEqual(errors,[]);await p.close();
  }
+ // Live animation changes the scene, then freezes completely when the game is paused.
+ const live=await browser.newPage({viewport:{width:1280,height:1050}});await live.goto(`${base}/frontier`);await live.waitForSelector('[data-art-ready="true"]');await live.getByTestId('map-1').click();await live.waitForTimeout(1800);
+ const first=await live.getByTestId('map').evaluate(c=>c.toDataURL());await live.waitForTimeout(350);assert.notEqual(await live.getByTestId('map').evaluate(c=>c.toDataURL()),first,'live scene animates');
+ await live.getByRole('button',{name:'Pause · P',exact:true}).click();await live.waitForTimeout(200);const paused=await live.getByTestId('map').evaluate(c=>c.toDataURL());await live.waitForTimeout(250);assert.equal(await live.getByTestId('map').evaluate(c=>c.toDataURL()),paused,'pause freezes the entire scene');await live.close();
  // Partial artwork failure must preserve playable controls and offer a successful retry.
  const p=await browser.newPage();let blocked=true;
  await p.route('**/art/frontier/buildings.png',route=>blocked?route.abort():route.continue());await p.goto(`${base}/frontier`);
@@ -23,5 +27,5 @@ try {
  await p.getByTestId('map').waitFor();assert.equal(await p.getByTestId('map').getAttribute('data-state'),'playing');
  blocked=false;await p.getByRole('button',{name:'Retry artwork'}).click();await p.waitForSelector('[data-art-ready="true"]');
  assert.equal(await p.getByRole('button',{name:'Retry artwork'}).count(),0);await p.close();
- console.log('PASS painted Frontier: atlas loading, four screen sizes, usable tools, pause/resume, playable artwork fallback and retry.');
+ console.log('PASS painted Frontier: atlas loading, four screen sizes, usable tools, walking scene, frozen pause/reduced motion, playable artwork fallback and retry.');
 }finally{await browser.close();}
