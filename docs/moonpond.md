@@ -97,7 +97,7 @@ Players who ask for reduced motion get none of it: the water, sky and weather ho
 
 - `lib/moonpond-game.ts`: the rules, with no DOM. A fixed 1/60 s step. Every bite comes from the seed, the night and the cast number, so a seed replays exactly.
 - `lib/moonpond-art.ts`: every creature and prop is drawn by name. See [`moonpond-art.md`](moonpond-art.md) for replacing the drawings with painted sheets.
-- `lib/moonpond-scene.ts`: sky, moon and phase, far bank, water, weather, dock, rod, line, bobber, shadows, the tension gauge. The chinchillas are the shared `drawChinchilla`.
+- `lib/moonpond-scene.ts`: sky, moon and phase, far bank, water, weather, dock, rod, line, bobber, shadows, the tension gauge. `Pond.watch` notices the game changing state and starts the animations that follow from it; `Pond.take` turns the engine's events into splashes, rings and bubbles; `Pond.inspect` reports what is being shown, for the browser test. The chinchillas are the shared `drawChinchilla`.
 - `app/moonpond/`: the page, sound cues and styles. `window.__moonpond()` exposes the game, the scene and the pause flag for the browser test.
 
 ## Checks
