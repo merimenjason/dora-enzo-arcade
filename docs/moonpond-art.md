@@ -4,7 +4,7 @@ Mode: built-in imagegen. Approved reference: `public/art/moonpond/reference.png`
 
 ## Runtime assets
 
-`environment.png` is an empty painted pond without a moon, creatures, dock or UI. Its source bank is mapped to the live horizon and water strips shimmer with scene time. `dock.png` is a separate transparent foreground. `heroes.png` holds Dora angler/keeper and Enzo angler/keeper, with dark ruby and black eyes respectively. `props.png` has the original six props, three lures, the moon texture and decorative rope. Individual `umbrella.png` and `velvet-crayfish.png` preserve full canopy, pole, antennae and legs.
+`environment.png` is an empty painted pond without a moon, creatures, dock or UI. Its source bank is mapped to the live horizon and water strips shimmer with scene time. `dock.png` is a separate transparent foreground. `heroes.png` holds the original Dora/Enzo seated reference poses. `fishing-heroes.png` supplies the inward-facing dock poses, and `portraits.png` supplies dedicated selection-button busts, with Dora’s dark ruby and Enzo’s black eyes. `props.png` has the original six props, three lures, the moon texture and decorative rope. Individual `umbrella.png` and `velvet-crayfish.png` preserve full canopy, pole, antennae and legs.
 
 Five `creatures-0.png` through `creatures-4.png` packs hold eight entries each, in the same forty-entry order as `SPECIES`. Colours and markings follow `LOOKS` in `lib/moonpond-art.ts`. Measured rectangles in `lib/moonpond-crops.ts` are expanded before retaining each main connected alpha silhouette and adding padding. This removes neighbouring fragments and preserves complete outlines. Generated alpha is preserved; no image post-processing tools were used.
 
@@ -13,6 +13,12 @@ Five `creatures-0.png` through `creatures-4.png` packs hold eight entries each, 
 The named `creature`/`prop` API and original drawn fallbacks remain in `lib/moonpond-art.ts`. `lib/moonpond-paint.ts` loads assets, prewarms cropped cells and exposes read-only crop QA through the browser test hook. Retry reloads only missing images and refreshes thumbnails. The moon mask/reflection, water, weather, rod, line, bobber, catch lift/release and celebrations stay live in `lib/moonpond-scene.ts`. The horizontal tension meter follows actual engine tension and line upgrades. No numerical state or controls are baked into artwork.
 
 ## Exact prompts
+
+### Dedicated character portraits
+
+Mode: built-in imagegen edit using `public/art/moonpond/heroes.png`. Output: `public/art/moonpond/portraits.png`, two transparent head-and-shoulder portraits in Dora/Enzo order. The original seated sprites are no longer cropped or stretched for the selection buttons. Generated source: `/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-32203e8b-36bc-4507-a537-488a591060ab.png`.
+
+undefined
 
 ### Fishing poses correction
 

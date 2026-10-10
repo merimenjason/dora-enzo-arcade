@@ -1,7 +1,7 @@
 import { POND_CROPS } from './moonpond-crops';
 /** Painted layers and isolated atlas cells. Rules, moon phases and animation remain live. */
-type Sheet = 'environment' | 'dock' | 'heroes' | 'fishing-heroes' | 'props' | 'umbrella' | 'velvet-crayfish' | `creatures-${number}`;
-const grids: Record<string,[number,number]> = { environment:[1,1],dock:[1,1],umbrella:[1,1],'velvet-crayfish':[1,1],heroes:[2,2],'fishing-heroes':[2,2],props:[3,4], 'creatures-0':[4,2], 'creatures-1':[4,2], 'creatures-2':[4,2], 'creatures-3':[4,2], 'creatures-4':[4,2] };
+type Sheet = 'environment' | 'dock' | 'heroes' | 'portraits' | 'fishing-heroes' | 'props' | 'umbrella' | 'velvet-crayfish' | `creatures-${number}`;
+const grids: Record<string,[number,number]> = { environment:[1,1],dock:[1,1],umbrella:[1,1],'velvet-crayfish':[1,1],heroes:[2,2],portraits:[2,1],'fishing-heroes':[2,2],props:[3,4], 'creatures-0':[4,2], 'creatures-1':[4,2], 'creatures-2':[4,2], 'creatures-3':[4,2], 'creatures-4':[4,2] };
 const images = new Map<string,HTMLImageElement>(), cells = new Map<string,HTMLCanvasElement>();
 let pending:Promise<void>|null=null, revision=0;
 export const pondPaintVersion=()=>revision;
@@ -43,12 +43,15 @@ export function pondHero(c:CanvasRenderingContext2D,who:'dora'|'enzo',angler:boo
 }
 export function pondCreature(c:CanvasRenderingContext2D,index:number,x:number,y:number,w:number,h:number){return index===27?pondSprite(c,'velvet-crayfish',0,x,y,w,h):pondSprite(c,`creatures-${Math.floor(index/8)}`,index%8,x,y,w,h);}
 
-export function pondPortrait(c:CanvasRenderingContext2D,who:'dora'|'enzo',w:number,h:number){const image=cell('heroes',who==='dora'?1:3);if(!image)return false;const size=Math.min(image.width,image.height*.62);c.drawImage(image,0,0,size,size,0,0,w,h);return true;}
+export function pondPortrait(c:CanvasRenderingContext2D,who:'dora'|'enzo',w:number,h:number){
+ // Dedicated busts keep ears and whiskers intact without stretching or cutting a seated sprite.
+ return pondSprite(c,'portraits',who==='dora'?0:1,w/2,h/2,w-8,h-6);
+}
 
 export function pondWater(c:CanvasRenderingContext2D,w:number,h:number,t:number,motion:boolean){const image=images.get('environment');if(!image||!motion)return;const sw=Math.min(image.naturalWidth,image.naturalHeight*w/h),sx=(image.naturalWidth-sw)/2;c.save();c.globalAlpha=.085;for(let i=0;i<18;i++){const a=i/18,b=(i+1)/18,sy=image.naturalHeight*(.435+.565*a),sh=image.naturalHeight*.565/18;const shift=Math.sin(t*.65+i*1.4)*w*.004*(.3+a);c.drawImage(image,sx,sy,sw,sh,shift,h*(.36+.64*a),w,h*.64*(b-a));}c.restore();}
 
 /** Read-only QA of the effective runtime silhouettes, invoked only by the browser test hook. */
-export function pondPaintStats(){const list:{name:string;width:number;height:number;edge:boolean;pixels:number}[]=[];const inspect=(sheet:Sheet,index:number,name:string)=>{const image=cell(sheet,index);if(!image)return;const d=image.getContext('2d')!.getImageData(0,0,image.width,image.height).data;let pixels=0,edge=false;for(let y=0;y<image.height;y++)for(let x=0;x<image.width;x++)if(d[(y*image.width+x)*4+3]>8){pixels++;if(x===0||y===0||x===image.width-1||y===image.height-1)edge=true;}list.push({name,width:image.width,height:image.height,edge,pixels});};for(let i=0;i<40;i++)inspect(i===27?'velvet-crayfish':`creatures-${Math.floor(i/8)}`,i===27?0:i%8,'creature-'+i);for(let i=0;i<4;i++){inspect('heroes',i,'hero-'+i);inspect('fishing-heroes',i,'fishing-hero-'+i);}for(let i=0;i<11;i++)inspect('props',i,'prop-'+i);inspect('umbrella',0,'umbrella');return list;}
+export function pondPaintStats(){const list:{name:string;width:number;height:number;edge:boolean;pixels:number}[]=[];const inspect=(sheet:Sheet,index:number,name:string)=>{const image=cell(sheet,index);if(!image)return;const d=image.getContext('2d')!.getImageData(0,0,image.width,image.height).data;let pixels=0,edge=false;for(let y=0;y<image.height;y++)for(let x=0;x<image.width;x++)if(d[(y*image.width+x)*4+3]>8){pixels++;if(x===0||y===0||x===image.width-1||y===image.height-1)edge=true;}list.push({name,width:image.width,height:image.height,edge,pixels});};for(let i=0;i<40;i++)inspect(i===27?'velvet-crayfish':`creatures-${Math.floor(i/8)}`,i===27?0:i%8,'creature-'+i);for(let i=0;i<4;i++){inspect('heroes',i,'hero-'+i);inspect('fishing-heroes',i,'fishing-hero-'+i);}for(let i=0;i<2;i++)inspect('portraits',i,'portrait-'+i);for(let i=0;i<11;i++)inspect('props',i,'prop-'+i);inspect('umbrella',0,'umbrella');return list;}
 const releasePoints=new Map<string,{x:number;y:number;onDock:boolean}>();
 /** Choose open water beside the pier, avoiding not only its planks but its posts and ropes. */
 export function pondReleasePoint(w:number,h:number){const key=w+':'+h+':'+revision,old=releasePoints.get(key);if(old)return old;const image=cell('dock',0);let x=w*.21;const y=h*.885;const occupied=(px:number)=>{if(!image)return false;const sx=Math.floor((px-w*.13)/(w*.74)*image.width),sy=Math.floor((y-h*.56)/(h*.44)*image.height);return sx>=0&&sy>=0&&sx<image.width&&sy<image.height&&image.getContext('2d')!.getImageData(sx,sy,1,1).data[3]>24;};for(let i=0;i<15&&occupied(x);i++)x-=w*.012;const point={x,y,onDock:occupied(x)};releasePoints.set(key,point);return point;}

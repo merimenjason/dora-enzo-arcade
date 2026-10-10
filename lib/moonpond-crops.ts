@@ -1,5 +1,6 @@
 /** Measured source rectangles: preserve complete fins, tails and feelers despite uneven painted atlas spacing. */
 export const POND_CROPS: Record<string, [number, number, number, number][]> = {
+  "portraits": [[44, 96, 823, 762], [858, 97, 839, 772]],
   "creatures-0": [
     [
       43,
