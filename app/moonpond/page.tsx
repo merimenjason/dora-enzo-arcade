@@ -164,7 +164,7 @@ export default function MoonpondPage() {
   const shown = page ? byId.get(page)! : null;
 
   return (
-    <main className="mp-shell mp-play" data-state={g.state} data-paused={isPaused}>
+    <main className="mp-shell mp-play" data-state={g.state} data-biting={g.biting} data-paused={isPaused}>
       <header className="mp-header">
         <a className="mp-back" href="/" onClick={store}>← ARCADE</a>
         <div className="mp-sky" data-testid="sky">
@@ -215,7 +215,7 @@ export default function MoonpondPage() {
         </section>
 
         <aside className="mp-side">
-          <div className="mp-stat" data-testid="shells"><Shell /><strong>{g.shells}</strong><span>moon shells</span></div>
+          <div className="mp-stat" data-testid="shells"><Shell /><strong key={g.shells}>{g.shells}</strong><span>moon shells</span></div>
           <fieldset className="mp-choose" aria-label="Who fishes tonight">
             {(['dora', 'enzo'] as const).map((who) => <button key={who} data-testid={`angler-${who}`} aria-pressed={g.angler === who} disabled={!fresh} onClick={() => { g.setAngler(who); store(); redraw(); }}><b>{who === 'dora' ? 'Dora' : 'Enzo'}</b><small>{who === 'dora' ? 'casts further' : 'longer to hook'}</small></button>)}
           </fieldset>
@@ -230,7 +230,7 @@ export default function MoonpondPage() {
         </aside>
 
         <div className="mp-controls">
-          <p className="mp-hint" data-testid="hint" aria-live="polite">{hint}</p>
+          <p className="mp-hint" data-testid="hint" aria-live="polite"><span key={hint}>{hint}</span></p>
           <button className="mp-act" data-testid="act" disabled={isPaused || g.state === 'dawn' || g.state === 'flying'} onPointerDown={(e) => press(e, false)} onPointerUp={(e) => lift(e)} onPointerCancel={(e) => lift(e, true)} onLostPointerCapture={(e) => lift(e)} onContextMenu={(e) => e.preventDefault()}
             onKeyDown={(e) => { if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) { e.preventDefault(); hold(); } }} onKeyUp={(e) => { if (e.code === 'Space' || e.code === 'Enter') release(); }} onBlur={release}>{act}</button>
         </div>
@@ -241,12 +241,12 @@ export default function MoonpondPage() {
           <header><h2>Pond journal</h2><p>{g.found} of {SPECIES.length} pages sketched</p><button data-testid="close" onClick={() => setPanel(null)}>Close</button></header>
           <div className="mp-pages">
             {SPECIES.map((sp, i) => { const e = g.journal[sp.id]; return (
-              <button key={sp.id} className="mp-page" data-testid={`page-${sp.id}`} data-known={!!e} data-kind={sp.kind} aria-pressed={page === sp.id} onClick={() => setPage(sp.id)}>
+              <button key={sp.id} className="mp-page" data-testid={`page-${sp.id}`} data-known={!!e} data-kind={sp.kind} aria-pressed={page === sp.id} style={{ '--i': i } as React.CSSProperties} onClick={() => setPage(sp.id)}>
                 <Thumb id={sp.id} known={!!e} size={56} /><span>{e ? sp.name : `Page ${i + 1}`}</span>{e && sp.size && <small>{stars(e.stars)}</small>}
               </button>); })}
           </div>
           {shown && (() => { const e = g.journal[shown.id]; return (
-            <div className="mp-entry" data-testid="entry">
+            <div className="mp-entry" data-testid="entry" key={shown.id}>
               <Thumb id={shown.id} known={!!e} size={104} />
               <div>
                 <h3>{e ? shown.name : '???'} <small>{shown.kind === 'legend' ? 'Legend' : shown.kind === 'curio' ? 'Curiosity' : ['', 'Common', 'Uncommon', 'Rare'][shown.rarity]}</small></h3>

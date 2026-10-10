@@ -83,6 +83,12 @@ Sketching the fortieth page plays a short ending. After that the weather for the
 - **J** journal, **B** bait shop, **R** requests, **P** or **Escape** pause, **M** sound.
 - The game pauses if the tab is hidden or the window loses focus while a cast is out, and a touch the browser interrupts cancels a charge without casting.
 
+## Animation
+
+The pond moves with the game. The rod draws back as the cast charges and whips forward on the throw, with a dotted arc and a breathing ring showing where the lure will land. The bobber wobbles as it settles, dips for nibbles and plunges with bubbles for the bite, and the chinchilla holding the lantern starts. On the reel the line hums as it tightens, a hard pull leaves a wake, the edges redden as strain builds, and a snapped line jolts the picture. A landed catch is lifted out of the water in an arc and held up over the lantern while both friends hop (a first sketch gets turning rays); let go, it dives back in and its shadow slips away. Around all that: shooting stars on clear nights, something small jumping out on the water, moths at the lantern, and at dawn a rising sun and birds. The catch card, dawn summary, journal pages, shop rows, lantern-oil flames and the Hook! button are animated in CSS.
+
+Players who ask for reduced motion get none of it: the water, sky and weather hold still, splashes and sparks are not drawn, the catch simply appears held up, and the CSS animations are switched off. The game itself plays the same.
+
 ## Saves
 
 `moonpond-v1` keeps the journal, shells, gear, lures, requests, the night number, the angler and the lure. `moonpond-night-v1` keeps the night in progress: casts used, the weather and what was caught. Both are written the moment a catch lands or a cast is lost, when anything is bought, at dawn, and when the page is hidden. A cast that was in the air, in the water or on the line when the page closed is taken again from the dock, and the same creature is waiting. A damaged journal is refused; a damaged night is dropped and the journal kept. `moonpond-sound-v1` keeps the sound switch.
@@ -98,6 +104,6 @@ Sketching the fortieth page plays a short ending. After that the weather for the
 
 - `npm run test:moonpond`: the forty pages and their conditions, casting and the bands of water, the moon's reflection, nibbles, bites and the hooking window, the five ways of fighting, snapping and slipping, leaps, stars, shells, requests, the shop, a whole night, moon phases and weather, the ending, seed replay, frame subdivision, and saves including 23 damaged journals and 9 damaged nights.
 - `npm run bot:moonpond`: an angler that presses only what a player can. It must fill the journal within 70 nights on each of eight seeds, catch every entry, and never have a night without a bite. A middling angler on starter gear must land between 55% and 85% of casts. On 10-10-2026 the eight journals took 13 to 56 nights and the starter rate was 76%.
-- `tests/e2e/moonpond.mjs`: the menu card, a whole cast by keyboard, nibbles and each kind of loss, an interrupted touch, pausing and a hidden tab, the hold button on a phone, journal, shop and requests, dawn and the next night, reloads mid-night and at dawn, the ending and chosen weather, reduced motion, and seven screen sizes.
+- `tests/e2e/moonpond.mjs`: the menu card, a whole cast by keyboard, nibbles and each kind of loss, an interrupted touch, pausing and a hidden tab, the hold button on a phone, journal, shop and requests, dawn and the next night, reloads mid-night and at dawn, the lifted catch, the hop and the dive back, the ending and chosen weather, reduced motion (no splashes, hops or CSS animation), and seven screen sizes.
 
 Not yet done: the game has been tuned with its bot and looked at in screenshots, but not played by hand by a person, and the sound has not been listened to.
