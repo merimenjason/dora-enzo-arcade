@@ -26,6 +26,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Documentation
 
+- The **Moonpond** guide in the README now describes its animations and the checks for them, and the handoff lists where its code and saves live and what to try next.
+
 - The **Pawprint Pinball** guide now says where Dora and Enzo sit at each window size, and the README and handoff list the new placement check and the pinball follow-ups.
 
 ## 09-10-2026
