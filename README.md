@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of twenty-eight original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of twenty-nine original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -38,6 +38,7 @@ Listed in arcade-menu order.
 | 26 | Burrow Express | `/express` | Transport puzzle |
 | 27 | Moonlight Mischief | `/moonlight` | Cozy stealth adventure |
 | 28 | Pawprint Pinball | `/pinball` | Woodland pinball |
+| 29 | Pawprint Detectives | `/detectives` | Cozy mystery adventure |
 
 ## Run
 
@@ -716,6 +717,16 @@ The animation browser suite checks live counts, passenger hops, dry powder, paus
 
 **Docs:** [`docs/pawprint-pinball.md`](docs/pawprint-pinball.md).
 
+### 29 · Pawprint Detectives (`/detectives`)
+
+**Play:** Three untimed mysteries in a painted autumn village: The Missing Moonberry, The Silent Festival Bell and The Vanishing Seed Parcel. Explore Bakery Square, Market Lane and Old Mill Court. Dora examines physical details; Enzo follows scents. Question Bruna the baker, Finn the clockkeeper, Milo the mill helper and Wren the gardener, then use established evidence to ask follow-up questions. Each case has seven clues and four required deductions; some witness accounts are optional context. Choose or drag two discovered notebook cards together, read their observations and select a supported conclusion. Establish all four deductions before explaining the complete case. Exactly one of 27 final answer combinations fits each mystery. Hints guide the next useful action without supplying the final answer. Solving earns a star, with one more for no unsupported conclusions and one for no hints. Unrelated comparisons and reviewing established deductions do not cost stars. Complete a case to unlock the next. Notebooks save after actions and restore paused; results bank immediately. Dora retains her dark ruby eyes.
+
+**Controls:** Click/tap a scene marker, then Examine, Follow scent or ask a question. E examines, S follows scent, T talks and Q switches detectives. Notebook cards support tap pairing and mouse drag/drop; the information button reopens their descriptions. Location tabs and the accessible clue list offer larger controls. P / Escape pauses or closes a dialog, M toggles sound, and focus loss pauses. Save & menu keeps the case; Continue restores it paused.
+
+**Tests:** `npm run test:detectives` (also in `npm test`) checks every case in forward/reverse exploration order, clue abilities and context gates, evidence requirements, witness follow-ups, duplicate reads, hints, pause, valid snapshots, malformed saves and all 27 final answer combinations per case. `tests/e2e/detectives.mjs` completes all three cases through actual controls, checking conversations, evidence drag/tap pairing, stars/unlocks, save/resume, modal focus, hints/gates, reduced motion, artwork retry and four native-touch phone layouts.
+
+**Docs:** [`docs/pawprint-detectives.md`](docs/pawprint-detectives.md).
+
 ## Validation
 
 ```sh
@@ -733,7 +744,7 @@ Run `npm test` before the browser suites to generate the compiled engines they u
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-eight ways/` assertion in `tests/e2e/dust-bath.mjs`, the 28-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs` and `tests/e2e/poof-panic.mjs` and `tests/e2e/burrow-express.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-nine ways/` assertion in `tests/e2e/dust-bath.mjs`, the 29-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs` and `tests/e2e/poof-panic.mjs` and `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs` and `tests/e2e/detectives.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
