@@ -14,6 +14,12 @@ The named `creature`/`prop` API and original drawn fallbacks remain in `lib/moon
 
 ## Exact prompts
 
+### Fishing poses correction
+
+Mode: built-in imagegen edit, using `public/art/moonpond/heroes.png` as the reference. Original portraits remain on that sheet; the scene uses `public/art/moonpond/fishing-heroes.png` with the same Dora/Enzo row and angler/keeper column order. Generated source: `/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-d8900314-16cc-4e3b-b381-3012dfc11afc.png`.
+
+Edit the reference character sheet into FOUR complete isolated chinchilla sprites, transparent background, a perfectly even 2 by 2 grid with generous empty gutters. Preserve detailed painted fur and warm lantern lighting, no clothes, no props, no text. Top row white Dora with very dark ruby red eyes; bottom row grey Enzo with black eyes. LEFT COLUMN: fishing pose seen from behind in a three-quarter rear view, body and head turned away from the viewer toward the UPPER RIGHT, looking out across the pond. Show the right-facing cheek and one eye subtly, round ears, fluffy curled tail, BOTH front paws raised forward on the RIGHT side of the body to grip a separately drawn fishing rod. RIGHT COLUMN: companion pose three-quarter rear view facing UPPER LEFT, looking into the pond and toward the angler, front paws held together on the LEFT side of body. Camera elevated slightly behind them. They must clearly face AWAY into the scene, not side-on facing the left screen edge as in the reference. All four seated full bodies, paws and tails completely contained within their own cells, same scale and foot baseline in each cell. No rod or lantern baked into image. Transparent background.
+
 ### environment
 
 Output: `public/art/moonpond/environment.png`.

@@ -167,7 +167,7 @@ export class Pond {
       for (let i = -4; i <= 4; i++) { const wob = Math.sin(t * 2.2 + i * 1.3) * rx * 0.18, len = rx * (1 - Math.abs(i) / 5.5); c.fillStyle = `rgba(250,250,255,${(0.5 - Math.abs(i) * 0.07) * bright})`; c.fillRect(p.x - len + wob, p.y + i * rx * 0.09, len * 2, Math.max(1, rx * 0.035)); }
     }
 
-    if (w > 600) { c.save(); c.font=`${Math.max(12,unit*1.6)}px Georgia`;c.textAlign='center';c.fillStyle='#d0dce9';c.shadowColor='#091421';c.shadowBlur=5;for(const [name,aim,d]of [['Reeds',-1.1,.1],['Lily pads',-.96,.3],['Open water',-.28,.54],['Deep channel',.82,.82]] as [string,number,number][]){const p=this.project(aim,d);c.fillText(name,p.x,p.y-unit*2);}c.restore(); }
+
     // Reeds on the far side of the lilies, lilies, then everything that floats.
     for (const r of this.reeds) { const p = this.project(r.aim, r.d); prop(c, 'reed', p.x, p.y - unit * 4.4 * r.size * p.s, unit * 9 * r.size * p.s, t); }
     for (const pad of this.pads) { const p = this.project(pad.aim, pad.d), bob = Math.sin(t * 1.1 + pad.turn) * 0.8; prop(c, pad.flower ? 'lily-flower' : 'lily', p.x, p.y + bob, unit * 7.5 * pad.size * p.s); }
@@ -203,15 +203,28 @@ export class Pond {
     if (g.fight && g.fight.strain > 0) { const k = Math.min(1, g.fight.strain / g.snapAfter), red = c.createRadialGradient(w / 2, h * 0.55, Math.min(w, h) * 0.3, w / 2, h * 0.55, Math.max(w, h) * 0.75); red.addColorStop(0, 'rgba(200,40,40,0)'); red.addColorStop(1, `rgba(200,40,40,${0.5 * k * (live ? 0.75 + 0.25 * Math.sin(t * 16) : 1)})`); c.fillStyle = red; c.fillRect(0, 0, w, h); }
     // Edge shade.
     const shade = c.createRadialGradient(w / 2, h * 0.55, Math.min(w, h) * 0.35, w / 2, h * 0.55, Math.max(w, h) * 0.8); shade.addColorStop(0, 'rgba(0,0,0,0)'); shade.addColorStop(1, 'rgba(2,3,12,.5)'); c.fillStyle = shade; c.fillRect(0, 0, w, h);
+    // Keep zone names above foliage and weather, with a reliable contrast backing.
+    if (w > 600) {
+      c.save(); c.font = `600 ${Math.max(13, unit * 1.6)}px Georgia`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      for (const [name, aim, d] of [['Reeds', -1.1, .1], ['Lily pads', -.96, .3], ['Open water', -.28, .54], ['Deep channel', .82, .82]] as [string, number, number][]) {
+        const p = this.project(aim, d), width = c.measureText(name).width + 24, height = Math.max(29, unit * 3.4);
+        const x = Math.max(width / 2 + 10, Math.min(w - width / 2 - 10, p.x)), y = p.y - unit * 2;
+        c.fillStyle = '#10243b'; c.strokeStyle = '#a78c58'; c.lineWidth = 1;
+        c.beginPath(); c.roundRect(x - width / 2, y - height / 2, width, height, 7); c.fill(); c.stroke();
+        c.fillStyle = '#fff4d8'; c.fillText(name, x, y);
+      }
+      c.restore();
+    }
+
   }
 
   /** Where the rod's tip is, bent towards the load on it. */
   private rod(g: Game, unit: number) {
-    const cx = this.w / 2, hand = { x: cx - unit * 21, y: this.h * 0.72 }, aim = g.bob?.aim ?? g.aim;
+    const cx = this.w / 2, hand = { x: cx - unit * 4, y: this.h * 0.74 - unit * 6.4 }, aim = g.bob?.aim ?? g.aim;
     const load = g.fight ? g.fight.tension : g.state === 'charging' ? -g.charge * 0.7 : 0, back = g.state === 'charging' ? g.charge : 0;
     // The throw whips the rod forward and it springs back.
     const whip = g.state === 'flying' ? Math.sin(Math.min(1, g.clock / 0.42) * Math.PI) : 0;
-    const tip = { x: hand.x + unit * (-9 + aim * 5 + back * 9 - whip * 5) + load * unit * 2.5, y: hand.y - unit * (23 - back * 4 - whip * 9) + Math.max(0, load) * unit * 7 };
+    const tip = { x: hand.x + unit * (7 + aim * 5 - back * 9 + whip * 5) + load * unit * 2.5, y: hand.y - unit * (23 - back * 4 - whip * 9) + Math.max(0, load) * unit * 7 };
     return { hand, tip, bend: { x: hand.x + (tip.x - hand.x) * 0.45 - Math.max(0, load) * unit * 2.4, y: hand.y + (tip.y - hand.y) * 0.62 - Math.max(0, load) * unit * 2 } };
   }
 
