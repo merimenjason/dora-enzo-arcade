@@ -10,7 +10,15 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Pawprint Detectives**: three cozy, untimed autumn-village mysteries matching the approved mock-up. Dora examines clues, Enzo follows scents, witnesses answer questions and evidence unlocks follow-ups. A painted notebook supports tap/drag clue pairing, four supported deductions and a complete final explanation for each case. Optional hints, saved investigations, stars, case unlocks, sound, reduced motion and phone controls. Dora keeps her dark ruby eyes.
 
+### Changed
+
+- **Frostpaw Frontier** now matches its painted alpine mock-up: textured terrain, detailed workshops and burrows, fluffy hero portraits, a continuous sea of cloud, warm dynamic lighting, workers who walk safe cobbled paths, gather and deliver supplies, hero patrols and staffing dots, and readable navy-and-brass controls. Building cards have names, the beacon objective tracks progress, and artwork can be retried without interrupting play. Feathered terrain transitions, workshop smoke, quarry sparks, fireflies and raid ripples add life; pause and reduced motion freeze decorative animation.
+
 ### Fixed
+
+- **Frostpaw Frontier**: enemy tails, paws and ears no longer get cut by shared sprite-sheet cells. Each predator now has its own complete painted image, species-specific sizing, transparent safety margins and a den power badge positioned clear of its silhouette.
+
+- **Frostpaw Frontier**: workers now have stable grey-brown, white, cream-beige and charcoal coats throughout walking, working and delivery. Hovering buildings shows their purpose and live staffing/output; building cards show descriptions, costs and unlock levels, including locked cards. Keyboard focus also reveals descriptions.
 
 - **Pawprint Detectives**: dialogue text now sits on a clear parchment reading panel inside the decorative notebook frame, with larger body text and comfortable spacing on desktop and phones.
 

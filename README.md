@@ -757,7 +757,13 @@ Your heroes clear a den when their combined power reaches the den's: a Weasel Ho
 
 Browser: `tests/e2e/frontier.mjs` checks the menu card and locked mountains, exploring by click (a cache) and a refused far tile, building from the panel and with the keyboard, raising the burrow, moving a worker, training Enzo, clearing a den, answering a rumour, speed, pausing, a night raid, saving and continuing, lighting the beacon (stars kept, the run cleared, the next mountain opened), losing, and tap-to-preview on a phone-sized screen.
 
-**Docs:** [`docs/frostpaw-frontier.md`](docs/frostpaw-frontier.md).
+`tests/frontier-life.mjs` also checks safe routes, live worker counts, damage, delivery cycles, reduced motion and engine state isolation. The painted alpine presentation uses separate terrain, building, character and walk-cycle atlases with stable worker coat variants; tiles, workers, lighting and fog stay driven by the live game. `tests/e2e/frontier-art.mjs` checks four layouts, tool targets, animated activity, frozen pause/reduced motion and recovery after a failed artwork request.
+
+`tests/e2e/frontier-descriptions.mjs` checks building descriptions on map/card hover and keyboard focus, including locked cards and narrow screens.
+
+`tests/e2e/frontier-enemies.mjs` checks complete enemy sprites, transparent safety margins and all five den/inspector renderings.
+
+**Docs:** [`docs/frostpaw-frontier.md`](docs/frostpaw-frontier.md), [`art provenance`](docs/frontier-art.md).
 
 ## Validation
 
