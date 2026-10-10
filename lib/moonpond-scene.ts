@@ -337,18 +337,21 @@ export class Pond {
     c.fillStyle = wood; c.beginPath(); c.moveTo(cx - half, top); c.lineTo(cx + half, top); c.lineTo(cx + wide, h + 2); c.lineTo(cx - wide, h + 2); c.closePath(); c.fill();
     c.strokeStyle = 'rgba(30,18,12,.55)'; c.lineWidth = 1.2; for (let i = 1; i < 6; i++) { const y = top + ((h - top) * i) / 6, k = (y - top) / (h - top), x = half + (wide - half) * k; c.beginPath(); c.moveTo(cx - x, y); c.lineTo(cx + x, y); c.stroke(); }
     }
-    c.fillStyle = 'rgba(255,214,140,.12)'; c.beginPath(); c.ellipse(cx + unit * 1.5, top + unit * 3.4, unit * 11, unit * 3, 0, 0, 7); c.fill();
     const size = unit * 24, base = top + unit * 10, other = g.angler === 'dora' ? 'enzo' : 'dora', busy = g.state === 'hooked' || g.state === 'charging';
-    const glow = c.createRadialGradient(cx + unit * 3, base - unit * 4, 1, cx + unit * 3, base - unit * 4, unit * 19); glow.addColorStop(0, `rgba(255, 191, 88, ${.25 + Math.sin(t * 7) * .015})`); glow.addColorStop(1, 'rgba(255, 183, 66, 0)'); c.fillStyle = glow; c.fillRect(cx - unit * 20, top - unit * 15, unit * 48, unit * 35);
+    const lantern = { x: cx, y: base - unit * 4, size: unit * 8 };
+    c.fillStyle = 'rgba(255,214,140,.12)'; c.beginPath(); c.ellipse(lantern.x, base, unit * 10, unit * 2.5, 0, 0, 7); c.fill();
+    const glow = c.createRadialGradient(lantern.x, lantern.y, 1, lantern.x, lantern.y, unit * 19); glow.addColorStop(0, `rgba(255, 191, 88, ${.25 + Math.sin(t * 7) * .015})`); glow.addColorStop(1, 'rgba(255, 183, 66, 0)'); c.fillStyle = glow; c.fillRect(cx - unit * 20, top - unit * 15, unit * 48, unit * 35);
     if (!pondHero(c, other, false, cx + unit * 12, base - this.hop(unit, false), size, t)) drawChinchilla(c, other, cx + unit * 12, base - this.hop(unit, false), { face: -1, h: size, time: t, blink: Math.sin(t * 0.7) > 0.985, air: this.hop(unit, false) > unit * 0.4 });
     // The rod, then the angler holding it.
     const { hand, tip, bend } = this.rod(g, unit);
     c.strokeStyle = '#2a1a10'; c.lineWidth = Math.max(2.4, unit * 0.62); c.lineCap = 'round'; c.beginPath(); c.moveTo(hand.x, hand.y + unit * 3.2); c.quadraticCurveTo(bend.x, bend.y, tip.x, tip.y); c.stroke();
     c.strokeStyle = '#c59a5a'; c.lineWidth = Math.max(1.2, unit * 0.3); c.stroke();
     if (!pondHero(c, g.angler, true, cx - unit * 12, base - this.hop(unit, true), size, t, busy)) drawChinchilla(c, g.angler, cx - unit * 12, base - this.hop(unit, true), { face: 1, h: size, time: t, moving: busy, run: busy ? t * 6 : 0, air: this.hop(unit, true) > unit * 0.4 });
-    prop(c, 'lantern', cx + unit * 7, base - unit * 8.5, unit * 10, this.motion ? t : 0);
+    // The lantern rests on the planks between the friends, with a contact shadow.
+    c.fillStyle = 'rgba(30,18,12,.55)'; c.beginPath(); c.ellipse(lantern.x, base, unit * 2.4, unit * .65, 0, 0, 7); c.fill();
+    prop(c, 'lantern', lantern.x, lantern.y, lantern.size, this.motion ? t : 0);
     // Moths keep the lantern company.
-    if (this.motion) for (let i = 0; i < 3; i++) { const a = t * (1.7 + i * 0.5) + i * 2.1, mx = cx + unit * 0.6 + Math.cos(a) * unit * (3 + i), my = base - unit * 3.2 + Math.sin(a * 1.6) * unit * (1.6 + i * 0.5), flutter = 0.5 + 0.5 * Math.sin(t * 30 + i); c.fillStyle = `rgba(250,240,215,${0.35 + 0.35 * flutter})`; c.beginPath(); c.ellipse(mx, my, unit * 0.45, unit * 0.2 * (0.4 + flutter), a, 0, 7); c.fill(); }
+    if (this.motion) for (let i = 0; i < 3; i++) { const a = t * (1.7 + i * 0.5) + i * 2.1, mx = lantern.x + Math.cos(a) * unit * (3 + i), my = lantern.y - unit * 2 + Math.sin(a * 1.6) * unit * (1.6 + i * 0.5), flutter = 0.5 + 0.5 * Math.sin(t * 30 + i); c.fillStyle = `rgba(250,240,215,${0.35 + 0.35 * flutter})`; c.beginPath(); c.ellipse(mx, my, unit * 0.45, unit * 0.2 * (0.4 + flutter), a, 0, 7); c.fill(); }
   }
 }
 
