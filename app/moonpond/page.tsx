@@ -47,7 +47,7 @@ function Shell() {
   return <canvas ref={ref} className="mp-shell-icon" width={36} height={36} aria-hidden="true" />;
 }
 
-function PondIcon({hero,lure}:{hero?:'dora'|'enzo';lure?:Lure}){const ref=useRef<HTMLCanvasElement>(null), art=pondPaintVersion();useEffect(()=>{const c=ref.current?.getContext('2d');if(!c)return;c.setTransform(2,0,0,2,0,0);c.clearRect(0,0,92,70);if(hero)pondPortrait(c,hero,92,70);else if(lure)pondExtra(c,lure==='glow'?'glow-bead':lure==='clover'?'clover-knot':'dust-puff',46,35,54,54);},[hero,lure,art]);return <canvas ref={ref} width={184} height={140} style={{width:92,height:70}} aria-hidden="true"/>;}
+function PondIcon({hero,lure}:{hero?:'dora'|'enzo';lure?:Lure}){const ref=useRef<HTMLCanvasElement>(null), art=pondPaintVersion();useEffect(()=>{const c=ref.current?.getContext('2d');if(!c)return;c.setTransform(2,0,0,2,0,0);c.clearRect(0,0,180,180);if(hero)pondPortrait(c,hero,180,180);else if(lure)pondExtra(c,lure==='glow'?'glow-bead':lure==='clover'?'clover-knot':'dust-puff',90,90,164,164);},[hero,lure,art]);return <canvas ref={ref} width={360} height={360} style={{width:180,height:180}} aria-hidden="true"/>;}
 
 export default function MoonpondPage() {
   const canvas = useRef<HTMLCanvasElement>(null), game = useRef<Game | null>(null), pond = useRef(new Pond());
