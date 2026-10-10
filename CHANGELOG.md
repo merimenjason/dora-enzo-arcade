@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 11-10-2026
+
+### Changed
+
+- **Moonpond** now has its painted moonlit-pond look: detailed willow banks and rippling water, a timber dock, fluffy Dora and Enzo, painted lures and all forty journal creatures. The live rod, bobber, moon phases, weather, catch celebrations and release animations remain active. A clear horizontal tension gauge follows line upgrades, the sidebar previews actual journal pages, and rainy nights shelter the dry chinchillas under an umbrella. Artwork can be retried without losing the journal; reduced motion and compact phone controls are preserved.
+
 ## 10-10-2026
 
 ### Added

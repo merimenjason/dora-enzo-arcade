@@ -107,3 +107,13 @@ Players who ask for reduced motion get none of it: the water, sky and weather ho
 - `tests/e2e/moonpond.mjs`: the menu card, a whole cast by keyboard, nibbles and each kind of loss, an interrupted touch, pausing and a hidden tab, the hold button on a phone, journal, shop and requests, dawn and the next night, reloads mid-night and at dawn, the lifted catch, the hop and the dive back, the ending and chosen weather, reduced motion (no splashes, hops or CSS animation), and seven screen sizes.
 
 Not yet done: the game has been tuned with its bot and looked at in screenshots, but not played by hand by a person, and the sound has not been listened to.
+
+## Painted graphics · 11-10-2026
+
+The pond matches the approved graphics concept using separate environment and dock layers, four seated hero poses, painted props/lures and forty illustrated journal entries. `lib/moonpond-paint.ts` loads and caches the assets. Source rectangles in `lib/moonpond-crops.ts` preserve unevenly spaced fins and feelers; each crop retains the main connected alpha silhouette to remove neighbouring fragments. Velvet Crayfish and the umbrella use individual images with complete margins. Prompt provenance and runtime indexes are in [moonpond-art.md](moonpond-art.md).
+
+The water projection keeps bobbers ahead of the dock. Ripples, wakes, stars, phase-masked moon texture, the playable moon reflection, cast whip, rod bend, bite dips, catch lift and release remain driven by the game. Moon and reflection share their horizontal position. The pier and fur stay dry; rainy nights show a shelter and leave rain outside its foreground area. The horizontal tension gauge below the scene shows the actual tension and upgraded safe band; a semantic meter and progress bar expose both readings to assistive technology.
+
+Only found pages appear by name in the sidebar preview; unknown pages use their own silhouette. No catch, oil amount, hero selection or journal counter is baked into artwork. A failed asset request leaves the original drawn art playable, and Retry artwork reloads missing files and refreshes thumbnails without changing saves. Decorative motion stops under reduced motion; the hold button remains visible at all seven tested screen sizes, with a compact layout during fights in short landscape windows.
+
+`tests/e2e/moonpond-painted.mjs` checks all forty effective creature crops, complete hero and prop outlines, visible controls beside a tall sidebar, the tension range after buying line upgrades and failed-request recovery.
