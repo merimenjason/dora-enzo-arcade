@@ -8,6 +8,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Pawprint Detectives**: three cozy, untimed autumn-village mysteries matching the approved mock-up. Dora examines clues, Enzo follows scents, witnesses answer questions and evidence unlocks follow-ups. A painted notebook supports tap/drag clue pairing, four supported deductions and a complete final explanation for each case. Optional hints, saved investigations, stars, case unlocks, sound, reduced motion and phone controls. Dora keeps her dark ruby eyes.
 
+### Fixed
+
+- **Pawprint Detectives**: dialogue text now sits on a clear parchment reading panel inside the decorative notebook frame, with larger body text and comfortable spacing on desktop and phones.
+
 ### Documentation
 
 - The **Pawprint Pinball** guide now says where Dora and Enzo sit at each window size, and the README and handoff list the new placement check and the pinball follow-ups.
