@@ -29,14 +29,15 @@ const GAMES=[
  {href:'/moonlight',title:'Moonlight Mischief',tag:'NEW · COZY STEALTH',blurb:'Sneak through a sleeping woodland village. Switch between Dora and Enzo, outwit owl patrols, recover treats and bring a friend home before dawn.',color:'#d9ba78',art:'🦉'},
  {href:'/pinball',title:'Pawprint Pinball',tag:'NEW · WOODLAND PINBALL',blurb:'Two little paw flippers, golden wolfberries and a clockwork warren. Race the burrow ramps, rescue neighbours and release moonberry multiball.',color:'#dfb86e',art:'✨'},
  {href:'/detectives',title:'Pawprint Detectives',tag:'NEW · COZY MYSTERIES',blurb:'Dora notices the details, Enzo follows the scents. Question neighbours, connect clues and explain three gentle woodland mysteries.',color:'#e7ba79',art:'🔎'},
+ {href:'/frontier',title:'Frostpaw Frontier',tag:'NEW · SURVIVAL BUILDER',blurb:'Uncover a snowy mountain tile by tile. Put chinchilla survivors to work, light glow lanterns, recruit heroes from old ruins, hold the burrow through every night raid and light the Summit Beacon.',color:'#9fc0ec',art:'🏔️'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">TWENTY-NINE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Twenty-nine ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, twenty-nine cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">THIRTY ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Thirty ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, thirty cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <nav className="arcade-grid" aria-label="Choose a game">
    {GAMES.map((game,i)=><a key={game.href} href={game.href} className="arcade-card" style={{'--game-color':game.color} as React.CSSProperties}>

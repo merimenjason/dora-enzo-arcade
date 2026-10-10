@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of twenty-nine original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of thirty original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -39,6 +39,7 @@ Listed in arcade-menu order.
 | 27 | Moonlight Mischief | `/moonlight` | Cozy stealth adventure |
 | 28 | Pawprint Pinball | `/pinball` | Woodland pinball |
 | 29 | Pawprint Detectives | `/detectives` | Cozy mystery adventure |
+| 30 | Frostpaw Frontier | `/frontier` | Survival builder |
 
 ## Run
 
@@ -727,6 +728,37 @@ The animation browser suite checks live counts, passenger hops, dry powder, paus
 
 **Docs:** [`docs/pawprint-detectives.md`](docs/pawprint-detectives.md).
 
+### 30 · Frostpaw Frontier (`/frontier`)
+
+**Play:** A survival builder in the style of Tiles Survive, drawn in Canvas 2D. Winter is coming to the Andes, and Dora and Enzo lead a band of chinchillas out of the burrow onto a 13 × 13 mountain hidden under cloud. Only the ring of tiles round the burrow is uncovered at the start, with a Hay Farm and a Twig Lodge already working. Spend **stamina** (up to 10, a point back every 5 seconds) to uncover a cloudy tile next to land you hold: 1 for most ground, 2 for snow (1 while Dora is fit), and crags and uncleared dens block the way. Under the cloud are meadows, groves, rocks, snowfields and crags, plus supply caches, lost chinchillas who move in when there's room, three ruins that each hold a hero (Grandpa Pebble, Kiki and Luna), five rumours that ask you to choose (a buried sled, a storm, an owl who trades stone for hay and more), and five predator dens.
+
+Build on the land you hold: **Hay Farms** on meadows, **Twig Lodges** on groves, **Pebble Quarries** on rocks, **Snug Nests** for three more chinchillas, **Glow Lanterns** that burn wood to light every tile within two (lit farms, lodges and quarries work half as fast again) and **Watchtowers** that add 15 to the night defence while someone keeps watch. Survivors take jobs on their own (farms first while the hay is running down) and you can move them with − and +. Everyone eats hay, and if the hay runs out for 20 seconds someone leaves. A day is 50 seconds of daylight and 16 of night, and a traveller settles at dawn if there's room and 30 hay to spare. Every night a raid comes: it grows with the days and with every den still standing, and it's held if your defence (8 for each burrow level, the watchtowers, half your fit heroes' power, plus Enzo's and Grandpa Pebble's guard) is at least as strong. If it isn't, the raiders steal hay, wood and stone, batter the burrow's walls and, if they win by 8 or more, damage a building. The run is lost if the walls fall or everyone leaves.
+
+Your heroes clear a den when their combined power reaches the den's: a Weasel Hole is 12, a Fox Den 24, an Owl Roost 36, a Badger Sett 52 and the **Cougar Lair** on the summit 80. Too weak, and they come home hurt for 30 seconds. Clearing a den pays out supplies, opens the land beyond and weakens the raids. Raise the burrow to level 4 (each level adds homes, defence and wall strength, unlocks buildings and lets heroes train a level higher), clear the cougar, and build the **Summit Beacon** where it stood to win. Three mountains, Clover Valley, Salt Flats and Frost Summit, each open the next, with three stars for lighting the beacon by day 15, 16 or 18. The run in progress and your stars are saved in this browser.
+
+**Controls:**
+
+- Click a cloudy tile next to your land to explore it. Click any tile to see it in the side panel, which offers what can be done there: build, attack a den, move workers, repair, or, on the burrow, raise it and train heroes.
+- 1–7 pick a building from the toolbar (Hay Farm, Twig Lodge, Snug Nest, Pebble Quarry, Glow Lantern, Watchtower, Summit Beacon); click a tile to build it. Right-click or Escape puts it down.
+- The arrow keys move the selection, Enter explores, attacks or builds there, H jumps to the burrow and U raises it. F cycles 1×, 2× and 3× speed, P (or Escape with nothing picked) pauses, M turns the sound off, and 1 or 2 answers a rumour. The game pauses when the window loses focus. **Save and leave** in the pause menu returns to the start screen, where **Continue your run** picks it up again.
+- Touch: tap a tile to preview, then tap it again to explore or build.
+
+**Tests:** `npm run test:frontier` (also in `npm test`) compiles `lib/frontier-game.ts` and runs `tests/frontier.mjs`:
+
+- seeded maps: the first ring uncovered, every den, ruin, stray and rumour placed, and the summit always reachable round the crags;
+- exploring next to held land only, stamina and its refill, snow and Dora, crags and dens blocking the way;
+- caches, heroes from ruins, strays waiting for a home, and every rumour's choices (time stands still while you choose);
+- building on the right ground and burrow level, raising the burrow, workers and output, lanterns and their wood, Kiki's farms, hunger, and farms first when hay runs low;
+- day and night, raids as forecast, held and broken raids (thefts, wall damage, a damaged building and its repair), losing the burrow, and defence from the burrow, towers and heroes;
+- dens won and lost, hurt heroes recovering, training and its limits, clearing the cougar and lighting the beacon, stars, travellers at dawn and pausing;
+- a mid-run save that carries on exactly as the original, a rumour kept across a save, ten kinds of broken or impossible saves refused, and a deterministic replay.
+
+`npm run bot:frontier` (also in `npm test`) runs `tests/frontier-bot.mjs`, a steady settler that explores, builds, staffs, lights, defends, trains and clears dens through the real engine. It must win every map on seed 1 and at least 10 of 12 seeded runs, and standing still must lose.
+
+Browser: `tests/e2e/frontier.mjs` checks the menu card and locked mountains, exploring by click (a cache) and a refused far tile, building from the panel and with the keyboard, raising the burrow, moving a worker, training Enzo, clearing a den, answering a rumour, speed, pausing, a night raid, saving and continuing, lighting the beacon (stars kept, the run cleared, the next mountain opened), losing, and tap-to-preview on a phone-sized screen.
+
+**Docs:** [`docs/frostpaw-frontier.md`](docs/frostpaw-frontier.md).
+
 ## Validation
 
 ```sh
@@ -744,7 +776,7 @@ Run `npm test` before the browser suites to generate the compiled engines they u
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Twenty-nine ways/` assertion in `tests/e2e/dust-bath.mjs`, the 29-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs` and `tests/e2e/poof-panic.mjs` and `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs` and `tests/e2e/detectives.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Thirty ways/` assertion in `tests/e2e/dust-bath.mjs`, the 30-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs` and `tests/e2e/frontier.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past thirty games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

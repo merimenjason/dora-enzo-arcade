@@ -58,6 +58,24 @@ Game 29, `/detectives`, is on `feat/pawprint-detectives` for review, based on ma
 
 Checks: npm run test:detectives and tests/e2e/detectives.mjs. The engine suite proves forward/reverse exploration, no clue soft locks, unique final explanations across 27 combinations per case and valid action snapshots. Validation passes: typecheck, targeted lint, complete engine/README suite, production build, arcade navigation and contrast across 30 routes. The browser suite completes all three cases through actual controls and checks drag/tap pairing, dialogue/follow-up, native touch/cancellation, saves, focus, stars/unlocks, hints, reduced motion and phone layouts. Full rules: docs/pawprint-detectives.md; exact built-in imagegen prompts and atlas regions: docs/detectives-art.md. Human mystery pacing and a listening pass remain useful follow-ups. Merging the PR deploys the game.
 
+## Frostpaw Frontier · 10-10-2026
+
+Game 30, `/frontier`, is on `claude/chinchilla-clash-royale-game-6a8866` for review, based on main after Pawprint Detectives (PR #26). It is a tile-by-tile survival builder in the style of Tiles Survive.
+
+- **The loop:** a 13 × 13 mountain under cloud, explored with stamina next to held land. Survivors work farms, lodges and quarries, glow lanterns burn wood to speed up nearby workshops, and a raid comes every night. Five heroes (three found in ruins) clear predator dens, and the run is won by clearing the cougar from the summit and lighting the Summit Beacon.
+- **Maps:** three, each opening the next, with three stars by day 15, 16 or 18.
+- **Code:** the usual split, in `lib/frontier-game.ts`, `lib/frontier-scene.ts` and `app/frontier/` (page, styles, metadata and `sound.ts` on the shared `lib/cue-sound.ts`).
+- **Saves and hook:** `frostpaw-frontier-run-v1` (the run in progress), `frostpaw-frontier-v1` (stars) and `frostpaw-frontier-sound-v1`. A saved run comes back paused, and a finished run's save is dropped the moment it ends. The browser hook is `window.__frontier()`. Full rules and every number: [`docs/frostpaw-frontier.md`](docs/frostpaw-frontier.md).
+- **Checks:** `npm run test:frontier`, `npm run bot:frontier` and `tests/e2e/frontier.mjs`.
+  - The engine suite covers maps, exploring, every rumour, building, work and food, lanterns, raids, defence, dens, training, winning and saves, including a mid-run save that carries on identically and ten kinds of refused save.
+  - The settler bot wins 12 of 12 seeded runs, between day 13 and day 21, and `npm test` needs every map on seed 1 and at least 10 overall.
+  - The browser suite plays through the controls on desktop and with phone taps.
+- **Things to know:**
+  - The page's camera (`camFor` in the scene) frames the land you hold plus a ring of cloud, at least seven tiles across, so the map is readable on a phone from the start. The browser test computes the same camera to click tiles.
+  - `fill()` puts idle survivors in farms first while hay income is negative. Without it the bot deadlocked with every worker in a lodge.
+  - The art is drawn in Canvas 2D (shared chinchilla and predator art), not painted PNGs like the newest games. The App Store page couldn't be reached from the build environment, so the design follows public descriptions of Tiles Survive rather than the game itself.
+- **Still to do:** human balance (the bot is a strong, stamina-perfect player), a listening pass, and real-device touch.
+
 ## Current state
 
 - **28 games on `main`**; the deployed arcade is at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
