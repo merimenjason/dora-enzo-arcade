@@ -76,9 +76,20 @@ Game 30, `/frontier`, is merged on main. It is a tile-by-tile survival builder i
   - The Canvas renderer now uses painted atlases from `public/art/frontier/`, loaded and cached by `lib/frontier-art.ts`. `lib/frontier-life.ts` plans cached safe routes and animation cycles without changing the engine; `tests/frontier-life.mjs` checks counts, obstacles, reassignment, damage, motion and state isolation. Alpha margins are trimmed once; the building row gutters have measured crop bounds. Original drawings remain available if artwork fails; the page offers retry. Tile coordinates, saves and rules are unchanged. Full art prompts and provenance: `docs/frontier-art.md`. `tests/e2e/frontier-art.mjs` covers layouts and failed-request recovery. Workers have four stable coat variants (`workers.png` adds white, cream and charcoal to the original grey-brown); map/card descriptions are tested in `tests/e2e/frontier-descriptions.mjs`, including keyboard focus on locked tools. Enemies use separate padded `enemy-*.png` assets so tails and paws cannot cross atlas cuts; `tests/e2e/frontier-enemies.mjs` checks safe margins and all five den icons.
 - **Still to do:** human balance (the bot is a strong, stamina-perfect player), a listening pass, and real-device touch.
 
+## Moonpond · 10-10-2026
+
+Game 31, `/moonpond`, is on the branch `feat/moonpond`. It is a night-fishing journal: cast, hook the bite, work the reel, sketch the catch and let it go.
+
+- **The loop:** 8 casts a night (12 with oil) across four hours, one weather and a moon phase that moves on each night. A cast is a charged throw into one of five waters, a bite to hook within 0.6 s, and a reel fought on a tension gauge.
+- **The journal:** forty pages (thirty creatures, six curiosities, four legends) decided by water, hour, weather, lure and moon, each with a clue. Moon shells buy rods, lines, oil, bobbers, a spyglass and two lures; three neighbour requests pay extra.
+- **Art:** drawn in Canvas 2D, asked for by name through `lib/moonpond-art.ts` so painted sheets can replace it by setting `PAINTED`. The sheet layout and prompts are in `docs/moonpond-art.md`.
+- **Input:** presses and releases are queued and fed to the engine one per frame, because a tap that began and ended between two frames, or two taps in a row, was being swallowed. Worth copying if another hold-to-act game shows the same thing.
+- **Checks:** `npm run test:moonpond`, `npm run bot:moonpond` (both in `npm test`) and `tests/e2e/moonpond.mjs`. The bot filled eight journals in 13 to 56 nights; a middling angler on starter gear landed 76% of casts.
+- **Not done:** nobody has played it by hand, the sound has not been listened to, and the reel has only been tuned against the bot and a scripted hand. The spread of 13 to 56 nights comes from weather luck on the rare pages; if it feels grindy, raise the rare weight in `WEIGHT` or let the journal's found count nudge the weather.
+
 ## Current state
 
-- **28 games on `main`**; the deployed arcade is at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
+- **30 games on `main`**, with game 31 (Moonpond) on a branch; the deployed arcade is at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
 - Game 23, **Burrow Barrage** (`/barrage`), was added on 04-10-2026. It has been tuned with its bot only and not yet played by hand; see **Burrow Barrage, briefly**. Its phone camera and a fix to the Chin x Pit browser test followed on the same day (PR #7).
 - Game 24, **Summit Shuffle** (`/summit`), was built on 06-10-2026: a deck-building climb in the style of Slay the Spire. It too has been balanced with its bot only; see **Summit Shuffle, briefly**. The same change moved the 2D predator drawings out of `lib/burrow-tactics-scene.ts` into a shared `lib/predator-art.ts`, which both games now use.
 - Game 25, **Poof Panic** (`/poof`), was also built on 06-10-2026: a versus falling-pair puzzler in the style of Puyo Puyo. Its rivals were set with its bot only; see **Poof Panic, briefly**.

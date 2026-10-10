@@ -42,7 +42,7 @@ try {
   // The arcade lists the cabinet.
   const menu = await browser.newPage();
   await menu.goto(base);
-  assert.equal(await menu.locator('.arcade-card').count(), 30);
+  assert.equal(await menu.locator('.arcade-card').count(), 31);
   assert.match(await menu.locator('a.arcade-card[href="/summit"]').textContent(), /Summit Shuffle/);
   await menu.close();
 
