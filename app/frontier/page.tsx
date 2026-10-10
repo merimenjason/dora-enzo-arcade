@@ -68,6 +68,8 @@ export default function FrostpawFrontier() {
   const [tool, setTool] = useState<BuildingId | null>(null);
   const [speed, setSpeed] = useState(1);
   const [muted, setMuted] = useState(false);
+  const [hoverTile, setHoverTile] = useState<{x:number;y:number}|null>(null);
+  const [mapFocused, setMapFocused] = useState(false);
   const [note, setNote] = useState('');
   const [artStatus, setArtStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   function loadArtwork() { setArtStatus('loading'); void loadFrontierArt().then(() => { setArtStatus('ready'); setTick(t => t + 1); }).catch(() => setArtStatus('error')); }
@@ -103,7 +105,7 @@ export default function FrostpawFrontier() {
 
   function begin(map: number, g = new Game(map, (Date.now() % 100000) + 1)) {
     game.current = g; banked.current = null; fx.current = []; cam.current = camFor(g);
-    pickTool(null); select({ ...HOME }); setGameSpeed(1); setLog([]);
+    setHoverTile(null); setMapFocused(false); pickTool(null); select({ ...HOME }); setGameSpeed(1); setLog([]);
     writeRun(g);
     setScreen('play');
     refresh();
@@ -400,6 +402,9 @@ export default function FrostpawFrontier() {
   </>;
   else if (g.state === 'lost') overlay = <><p className="ff-eyebrow">DAY {g.day}</p><h2>{g.survivors <= 0 ? 'Everyone has left the burrow.' : 'The raiders broke the burrow.'}</h2><p>Keep the hay coming, put survivors in watchtowers, and clear the dens that feed the raids.</p><button className="ff-go" onClick={() => begin(g.map)}>Try again →</button><button onClick={() => { setKept(null); setScreen('home'); }}>Choose a mountain</button></>;
 
+  const descriptionTile = hoverTile ?? (mapFocused ? sel : null);
+  const describedBuilding = descriptionTile && g.tile(descriptionTile.x, descriptionTile.y)?.seen ? g.buildingAt(descriptionTile.x, descriptionTile.y) : null;
+  const describedBurrow = descriptionTile?.x === HOME.x && descriptionTile?.y === HOME.y;
   const dayLeft = g.clock;
   return (
     <main className="ff-shell ff-play" data-art-ready={frontierArtReady()}>
@@ -419,10 +424,13 @@ export default function FrostpawFrontier() {
           <canvas
             ref={canvas} width={VIEW * SCALE} height={VIEW * SCALE} tabIndex={0}
             data-testid="map" data-state={g.state} data-day={g.day} data-stamina={g.stamina}
+            aria-describedby={describedBuilding || describedBurrow ? 'ff-map-description' : undefined}
+            onFocus={e => setMapFocused(e.currentTarget.matches(':focus-visible'))} onKeyDown={e => { if (e.key.startsWith('Arrow') || e.key === 'Enter') { setMapFocused(true); setHoverTile(null); } }} onBlur={() => setMapFocused(false)}
             aria-label="The mountain. Arrow keys move, Enter explores or attacks, 1 to 7 pick a building and Enter builds it."
-            onPointerMove={(e) => { if (e.pointerType === 'touch') return; const r = e.currentTarget.getBoundingClientRect(); const at = tileAt(((e.clientX - r.left) / r.width) * VIEW, ((e.clientY - r.top) / r.height) * VIEW, cam.current ?? undefined); hover.current = at.x >= 0 && at.y >= 0 && at.x < W && at.y < H ? at : null; }}
-            onPointerLeave={() => { hover.current = null; }}
+            onPointerMove={(e) => { if (e.pointerType === 'touch') return; const r = e.currentTarget.getBoundingClientRect(); const at = tileAt(((e.clientX - r.left) / r.width) * VIEW, ((e.clientY - r.top) / r.height) * VIEW, cam.current ?? undefined); hover.current = at.x >= 0 && at.y >= 0 && at.x < W && at.y < H ? at : null; setHoverTile(old => old?.x === hover.current?.x && old?.y === hover.current?.y ? old : hover.current); }}
+            onPointerLeave={() => { hover.current = null; setHoverTile(null); }}
             onPointerDown={(e) => {
+              setMapFocused(false);
               const gg = game.current;
               if (!gg || gg.state !== 'playing') return;
               const r = e.currentTarget.getBoundingClientRect(), at = tileAt(((e.clientX - r.left) / r.width) * VIEW, ((e.clientY - r.top) / r.height) * VIEW, cam.current ?? undefined);
@@ -440,15 +448,20 @@ export default function FrostpawFrontier() {
             }}
             onContextMenu={(e) => e.preventDefault()}
           />
+          {!overlay && (describedBuilding || describedBurrow) && <div className="ff-map-description" id="ff-map-description" role="tooltip" data-testid="building-description">
+            <strong>{describedBurrow ? `The Burrow · level ${g.hqLevel}` : BUILDINGS[describedBuilding!.kind].name}</strong>
+            <p>{describedBurrow ? 'Homes and protection for the herd. Raise the burrow to unlock workshops, grow the walls and train stronger heroes.' : BUILDINGS[describedBuilding!.kind].blurb}</p>
+            {describedBuilding && <small>{describedBuilding.damaged ? 'Damaged · repair to work again' : BUILDINGS[describedBuilding.kind].workers > 0 ? `${describedBuilding.workers}/${BUILDINGS[describedBuilding.kind].workers} workers` : describedBuilding.kind === 'lantern' ? g.stock.wood > 0 ? 'Burning wood · light is on' : 'Out of wood · light is off' : 'Built'}{BUILDINGS[describedBuilding.kind].make && !describedBuilding.damaged ? ` · ${perMin(g.output(describedBuilding))} ${BUILDINGS[describedBuilding.kind].make}` : ''}</small>}
+          </div>}
           {note && <output className="ff-note">{note}</output>}
           {overlay && <div className="ff-overlay" data-testid="overlay"><div>{overlay}</div></div>}
         </div>
           <div className="ff-toolbar" aria-label="Buildings">
             {TOOLS.map((k, i) => (
-              <button key={k} className={tool === k ? 'on' : ''} data-testid={`tool-${k}`} aria-pressed={tool === k} aria-label={`${i + 1}: ${BUILDINGS[k].name}`}
-                onClick={() => { pickTool(tool === k ? null : k); canvas.current?.focus(); }} disabled={g.hqLevel < BUILDINGS[k].hq}>
+              <div key={k} className="ff-tool-slot"><button aria-describedby={`ff-help-${k}`} className={tool === k ? 'on' : ''} data-testid={`tool-${k}`} aria-pressed={tool === k} aria-label={`${i + 1}: ${BUILDINGS[k].name}`}
+                onClick={() => { if (g.hqLevel < BUILDINGS[k].hq) return; pickTool(tool === k ? null : k); canvas.current?.focus(); }} aria-disabled={g.hqLevel < BUILDINGS[k].hq}>
                 <Icon draw={(c, w, h) => drawBuildingIcon(c, k, w, h)} w={64} h={56} /><small>{i + 1}</small><span>{BUILDINGS[k].name}</span>
-              </button>
+              </button><div className="ff-tool-help" role="tooltip" id={`ff-help-${k}`}><strong>{BUILDINGS[k].name}</strong><p>{BUILDINGS[k].blurb}</p><small>Cost: {costText(BUILDINGS[k].cost)} · Burrow level {BUILDINGS[k].hq}</small></div></div>
             ))}
           </div>
         </div>

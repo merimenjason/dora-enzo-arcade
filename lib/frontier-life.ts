@@ -1,7 +1,7 @@
 /** Presentation-only settlement activity. Never changes resources, combat, saves or elapsed game time. */
 import { Game, HOME, W, H, type BuildingId, type HeroId } from './frontier-game.js';
 export type Point = { x: number; y: number };
-export type Resident = { id: string; kind: 'worker' | 'hero' | 'idle'; hero?: HeroId; x: number; y: number; face: number; frame: number; walking: boolean; working: boolean; carrying: boolean; resource?: 'hay' | 'wood' | 'stone'; building?: BuildingId; phase: number };
+export type Resident = { id: string; kind: 'worker' | 'hero' | 'idle'; coat: number; hero?: HeroId; x: number; y: number; face: number; frame: number; walking: boolean; working: boolean; carrying: boolean; resource?: 'hay' | 'wood' | 'stone'; building?: BuildingId; phase: number };
 type Job = { id: number; kind: BuildingId; x: number; y: number; workers: number; damaged: boolean; route: Point[] };
 const cached = new WeakMap<Game, { signature: string; jobs: Job[]; patrols: Point[][] }>();
 const key = (x: number, y: number) => y * W + x;
@@ -49,15 +49,15 @@ export function settlementAt(g: Game, time: number, motion = true): Resident[] {
       else if (phase < travel + 5) working = true;
       else if (phase < travel * 2 + 5) { point = along(job.route, 1 - (phase - travel - 5) / travel); point.face *= -1; walking = true; carrying = true; }
     } else working = productive;
-    actors.push({ id: `worker-${job.id}-${i}`, kind: 'worker', ...point, frame: motion && walking ? Math.floor(time * 7 + i) % 4 : 0, walking, working: working && motion, carrying, resource: job.kind === 'farm' ? 'hay' : job.kind === 'lodge' ? 'wood' : job.kind === 'quarry' ? 'stone' : undefined, building: job.kind, phase: motion ? time * 5 + i + job.id : 0 });
+    actors.push({ id: `worker-${job.id}-${i}`, kind: 'worker', coat: (job.id * 2 + i) % 4, ...point, frame: motion && walking ? Math.floor(time * 7 + i) % 4 : 0, walking, working: working && motion, carrying, resource: job.kind === 'farm' ? 'hay' : job.kind === 'lodge' ? 'wood' : job.kind === 'quarry' ? 'stone' : undefined, building: job.kind, phase: motion ? time * 5 + i + job.id : 0 });
   }
   for (const [i, hero] of g.heroes.filter(h => h.id === 'dora' || h.id === 'enzo').entries()) {
     const route = patrols[i % 2], moving = motion && hero.hurt <= 0 && route.length > 1, phase = motion ? (time + i * 7) % 22 : 0;
     const point = moving ? along(route, phase < 9 ? phase / 9 : phase < 11 ? 1 : phase < 20 ? 1 - (phase - 11) / 9 : 0) : { ...HOME, face: 1 };
     if (phase > 11 && phase < 20) point.face *= -1;
-    actors.push({ id: hero.id, kind: 'hero', hero: hero.id, ...point, frame: moving ? Math.floor(time * 6) % 4 : 0, walking: moving && (phase < 9 || phase > 11 && phase < 20), working: false, carrying: false, phase: motion ? time * 4 + i : 0 });
+    actors.push({ id: hero.id, kind: 'hero', coat: 0, hero: hero.id, ...point, frame: moving ? Math.floor(time * 6) % 4 : 0, walking: moving && (phase < 9 || phase > 11 && phase < 20), working: false, carrying: false, phase: motion ? time * 4 + i : 0 });
   }
-  for (let i = 0; i < Math.min(6, g.idle); i++) actors.push({ id: `idle-${i}`, kind: 'idle', ...HOME, x: HOME.x + (i % 3 - 1) * .22, y: HOME.y + Math.floor(i / 3) * .15, face: i % 2 ? -1 : 1, frame: 0, walking: false, working: false, carrying: false, phase: motion ? time * 2 + i : 0 });
+  for (let i = 0; i < Math.min(6, g.idle); i++) actors.push({ id: `idle-${i}`, kind: 'idle', coat: (i + 2) % 4, ...HOME, x: HOME.x + (i % 3 - 1) * .22, y: HOME.y + Math.floor(i / 3) * .15, face: i % 2 ? -1 : 1, frame: 0, walking: false, working: false, carrying: false, phase: motion ? time * 2 + i : 0 });
   return actors;
 }
 /** Unique footpath segments used by the workers' real routes. */

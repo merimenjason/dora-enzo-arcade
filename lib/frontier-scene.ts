@@ -228,7 +228,8 @@ function resident(c: C2D, a: Resident, time: number) {
   ell(c, x, y + .6, h * .34, 2.2, 'rgba(20, 22, 19, .3)');
   c.save(); c.translate(x, y - bob); c.scale(a.face, 1);
   if (a.working) c.rotate(Math.sin(a.phase) * .055);
-  if (!(a.walking || a.carrying) || !painted(c, 'motion', slot + a.frame, -h * .6, -h, h * 1.2, h)) {
+  const variant = a.kind !== 'hero' && a.coat > 0 && painted(c, 'workers', (a.coat - 1) * 8 + (a.carrying ? 4 : 0) + (a.walking ? a.frame : 1), -h * .6, -h, h * 1.2, h);
+  if (!variant && (!(a.walking || a.carrying) || !painted(c, 'motion', slot + a.frame, -h * .6, -h, h * 1.2, h))) {
     if (!painted(c, 'characters', fallback, -h * .6, -h, h * 1.2, h)) drawChinchilla(c, a.kind === 'hero' ? COAT[a.hero!] : SETTLER, 0, 0, { face: 1, h, time });
   }
   if (a.carrying && a.resource) {

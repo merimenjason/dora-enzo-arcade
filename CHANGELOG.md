@@ -16,6 +16,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Frostpaw Frontier**: workers now have stable grey-brown, white, cream-beige and charcoal coats throughout walking, working and delivery. Hovering buildings shows their purpose and live staffing/output; building cards show descriptions, costs and unlock levels, including locked cards. Keyboard focus also reveals descriptions.
+
 - **Pawprint Detectives**: dialogue text now sits on a clear parchment reading panel inside the decorative notebook frame, with larger body text and comfortable spacing on desktop and phones.
 
 ### Documentation

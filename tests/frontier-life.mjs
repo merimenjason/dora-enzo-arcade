@@ -4,6 +4,8 @@ import {settlementRoute,settlementAt,settlementPaths} from '../.checks/frontier-
 const g=new Game(0,1),before=JSON.stringify(g.snapshot());
 const expected=g.buildings.reduce((n,b)=>n+b.workers,0);
 for(let time=0;time<80;time+=.25){const actors=settlementAt(g,time);assert.equal(actors.filter(a=>a.kind==='worker').length,expected);for(const a of actors){assert.ok(g.held(Math.round(a.x),Math.round(a.y)),'residents stay on held tiles');assert.ok(!a.carrying||a.walking);}}
+const colors=time=>Object.fromEntries(settlementAt(g,time).filter(a=>a.kind==='worker').map(a=>[a.id,a.coat]));
+assert.equal(new Set(Object.values(colors(0))).size,4,'starting workers cover all four coats');assert.ok(Object.values(colors(0)).every(n=>Number.isInteger(n)&&n>=0&&n<4),'every coat has valid artwork');assert.deepEqual(colors(0),colors(19),'coats remain stable throughout work and delivery');const loaded=Game.load(g.snapshot());assert.deepEqual(Object.fromEntries(settlementAt(loaded,20).filter(a=>a.kind==='worker').map(a=>[a.id,a.coat])),colors(0),'coats survive save/load');
 assert.equal(JSON.stringify(g.snapshot()),before,'presentation must not alter game state');
 assert.notDeepEqual(settlementAt(g,1),settlementAt(g,5),'residents move and change activity');
 assert.deepEqual(settlementAt(g,1,false),settlementAt(g,500,false),'reduced motion is stable');
