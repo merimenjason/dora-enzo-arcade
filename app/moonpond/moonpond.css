@@ -68,7 +68,7 @@
 .mp-stat strong { font-size: 26px; font-weight: 400; }
 .mp-stat span { color: var(--dim); font-size: 14px; }
 .mp-stat .mp-shell-icon { align-self: center; width: 22px; height: 22px; }
-.mp-choose { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
+.mp-choose { min-width:0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
 .mp-choose button { display: grid; gap: 2px; padding: 8px 4px; text-align: center; min-height: 52px; }
 .mp-choose b { font-weight: 400; font-size: 15px; }
 .mp-choose small { color: var(--dim); font-size: 11px; }
@@ -102,6 +102,7 @@
 .mp-goods { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .mp-goods li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
 .mp-goods li > div { flex: 1; }
+.mp-goods canvas { width:92px!important; height:92px!important; max-width:100%; }
 .mp-goods b { font-weight: 400; font-size: 18px; }
 .mp-goods small { color: var(--gold); }
 .mp-goods p { color: var(--dim); line-height: 1.45; font-size: 15px; }
@@ -185,3 +186,37 @@
 @media (prefers-reduced-motion: reduce) {
   .mp-shell *, .mp-shell *::before, .mp-shell *::after { animation: none !important; transition: none !important; }
 }
+
+/* Painted pond: solid readable interfaces frame the live scene. */
+.mp-shell { --ink:#f4e9d3; --dim:#ced3df; --gold:#e8c17b; --line:#6c7580; --panel:#101e2d; background:radial-gradient(ellipse at 50% 0%,#23324a,#0a1222 65%); }
+.mp-header { background:linear-gradient(#152334,#091322); border-bottom:1px solid #a28252; }.mp-brand { font:400 clamp(23px,2.8vw,42px)/1.1 Georgia,serif; letter-spacing:3px; text-transform:uppercase; }
+.mp-sky { font-size:13px; gap:5px 10px; }.mp-top-buttons button { background:#0d1c2b; }
+.mp-layout { max-width:1536px; grid-template-columns:minmax(0,1fr) 330px; gap:12px; }
+.mp-stage { height:min(calc(100svh - 270px),68vw); border:1px solid #a28655; border-radius:9px; box-shadow:0 6px 24px #0005; }
+.mp-shell button { border-radius:8px; background:linear-gradient(#172b3a,#0c1a2a); color:var(--ink); }.mp-shell button:hover:not(:disabled) { background:linear-gradient(#2c4150,#172b3a); border-color:#edcf93; }
+.mp-shell .mp-gold,.mp-shell .mp-act { background:linear-gradient(#f3d591,#d5a24b); color:#352413; border-color:#ba8941; box-shadow:inset 0 0 0 3px #ffecc255,0 3px 9px #0004; }
+.mp-shell .mp-gold:hover:not(:disabled),.mp-shell .mp-act:hover:not(:disabled) { background:linear-gradient(#ffe4af,#e2b764); color:#352413; }
+.mp-side { padding:12px; background:linear-gradient(135deg,#132233,#0a1424); border:1px solid #475365; border-radius:9px; gap:12px; }
+.mp-stat { background:#091625; border:0; padding:8px; }.mp-stat strong { font-size:25px; }.mp-stat .mp-shell-icon { width:36px; height:36px; }
+.mp-choose button { min-width:0; padding:8px 5px; justify-items:center; grid-template-rows:1fr auto auto; align-content:stretch; }.mp-choose button>canvas { width:100%!important; max-width:180px; height:auto!important; align-self:center; border-radius:6px; background:radial-gradient(ellipse,#8393a222,transparent 80%); }.mp-choose button[aria-pressed='true'] { border:2px solid #efc16e; box-shadow:0 0 8px #d9b56c44; }.mp-choose b { font-size:16px; }
+.mp-journal-preview header { display:flex; justify-content:space-between; gap:8px; align-items:baseline; margin-bottom:8px; }.mp-journal-preview h2 { font:23px Georgia,serif; margin:0; }.mp-journal-preview header>span { color:var(--dim); font-size:12px; white-space:nowrap; }.mp-journal-preview>div { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.mp-shell .mp-journal-preview button { display:grid; justify-items:center; min-width:0; padding:6px 4px; background:radial-gradient(ellipse at center,#fff3d7,#e8d6b0); color:#362b27; border:1px solid #c6a875; }.mp-journal-preview button>span { font:12px/1.3 Georgia,serif; margin-top:3px; }.mp-journal-preview canvas { max-width:100%; height:auto!important; }
+.mp-controls { gap:7px; }.mp-shell .mp-act { font-size:24px; border-radius:30px; min-height:56px; }.mp-hint { font-size:14px; }
+.mp-tension { width:min(100%,620px); padding:9px 18px; border-radius:16px; border:1px solid #6d7484; background:#0a1729; }.mp-tension header { display:flex; justify-content:space-between; margin-bottom:6px; font:12px Georgia,serif; text-transform:uppercase; letter-spacing:1px; }.mp-tension-track { height:14px; position:relative; border:1px solid #778697; border-radius:8px; background:linear-gradient(90deg,#da635d 0%,#45546b 6%,#45546b 94%,#da635d 100%); }
+.mp-safe { position:absolute; top:0; bottom:0; background:#ecd7a7; }.mp-tension-marker { position:absolute; top:-4px; width:6px; height:22px; background:#fff1d0; border:1px solid #473827; border-radius:3px; transform:translateX(-50%); }.mp-range-labels { display:flex; justify-content:space-between; font:10px/1.5 system-ui; color:#cdd3df; margin-top:4px; }.mp-tension progress { display:block; width:100%; height:4px; margin-top:4px; accent-color:#e7c172; }.mp-leap-hint { text-align:center; color:#ffd8a3!important; font-size:13px; margin-top:5px; }.mp-meter-native { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+.mp-art-status { display:block; padding:10px 18px; font:13px system-ui; }.mp-art-status button { margin-left:10px; }.mp-shell .mp-page,.mp-shell .mp-entry { background:radial-gradient(ellipse at center,#fff3d7,#e8d6b0); }
+.mp-title-card { background:#0c1d2ee8; border-color:#aa8853; box-shadow:0 10px 50px #0005; }
+@media(max-width:1000px) { .mp-brand { font-size:25px; letter-spacing:2px; }.mp-sky { gap:3px 6px; font-size:12px; }.mp-top-buttons button { font-size:11px; padding:6px; }.mp-layout { grid-template-columns:minmax(0,1fr) 270px; }.mp-side { padding:9px; }.mp-journal-preview h2 { font-size:20px; } }
+@media(max-width:820px) { .mp-header { gap:6px; }.mp-brand { order:-1; width:100%; text-align:center; font-size:30px; }.mp-layout { grid-template-columns:minmax(0,1fr); }.mp-stage { height:min(calc(100svh - 330px),105vw); min-height:280px; }.mp-side { grid-template-columns:1fr 1fr; }.mp-journal-preview { grid-column:1 / -1; }.mp-journal-preview>div { grid-template-columns:repeat(4,minmax(0,1fr)); }.mp-shell .mp-act { font-size:21px; }.mp-tension { padding:9px 12px; }.mp-card { max-height:none; }.mp-card canvas { max-width:30%; height:auto!important; } }
+@media(max-width:420px) { .mp-journal-preview>div { grid-template-columns:repeat(2,minmax(0,1fr)); }.mp-top-buttons button { font-size:11px; padding:6px; }.mp-side { gap:8px; padding:9px; }.mp-choose { min-width:0; grid-column:1 / -1; }.mp-choose button { min-width:0; }.mp-choose b { font-size:13px; } }
+/* Explicit stage rows keep a tall journal sidebar from pushing the fishing button below the screen. */
+.mp-layout { --pond-height:min(calc(100svh - 270px),68vw); grid-template-rows:var(--pond-height) auto; }.mp-stage { height:var(--pond-height); }
+@media(max-width:820px) { .mp-layout { --pond-height:max(280px,min(calc(100svh - 330px),105vw)); grid-template-rows:var(--pond-height) auto auto; } }
+@media(max-height:520px) and (min-width:560px) {
+ .mp-header { padding:4px 12px; gap:6px; }.mp-brand { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }.mp-sky { order:0; flex-basis:auto; font-size:10px; gap:4px; }.mp-top-buttons button { font-size:10px; padding:4px; }
+ .mp-layout { --pond-height:max(170px,calc(100svh - 126px)); grid-template-columns:minmax(0,1fr) 160px; grid-template-areas:'stage side' 'controls side'; grid-template-rows:var(--pond-height) auto; padding:6px 12px; gap:6px 10px; }.mp-stage { min-height:0; }.mp-side { display:flex; gap:5px; padding:6px; }.mp-stat { padding:3px; }.mp-stat strong { font-size:18px; }.mp-stat span { font-size:11px; }.mp-stat .mp-shell-icon { width:18px; height:18px; }.mp-choose button { min-height:34px; padding:3px; }.mp-choose button>canvas,.mp-choose small,.mp-journal-preview { display:none; }.mp-choose b { font-size:12px; }.mp-menu { display:grid; grid-template-columns:1fr; gap:4px; }.mp-menu button { min-height:28px; padding:3px 6px; font-size:12px; flex-direction:row; }.mp-hint { display:none; }.mp-shell .mp-act { min-height:40px; font-size:17px; }
+ .mp-shell[data-state='hooked'] .mp-layout { --pond-height:max(100px,calc(100svh - 210px)); }.mp-tension { padding:6px 10px; }.mp-tension-track { height:11px; }.mp-tension-marker { height:18px; }.mp-range-labels { font-size:9px; }
+}
+.mp-controls { align-self:start; }
+.mp-choose[aria-label='Who fishes tonight'] button:disabled { opacity:.86; }.mp-choose button[aria-pressed='true']:disabled { opacity:.9; }
+.mp-shell.mp-title { background:linear-gradient(#09162cd9,#061321b8),url('/art/moonpond/environment.png') center/cover; }

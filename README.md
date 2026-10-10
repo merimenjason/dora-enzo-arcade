@@ -768,7 +768,7 @@ Browser: `tests/e2e/frontier.mjs` checks the menu card and locked mountains, exp
 
 ### 31 · Moonpond (`/moonpond`)
 
-**Play:** A night-fishing journal, drawn in Canvas 2D. Dora and Enzo sit on the dock with a lantern; you cast, wait for the bobber, work the reel, sketch what comes up and let it go. A night is 8 casts (up to 12 with more lantern oil) spread across dusk, moonrise, midnight and first light, under one weather (clear, mist, rain or fireflies) and a moon that moves on one phase a night.
+**Play:** A night-fishing journal with a painted woodland pond, dock, chinchillas and forty illustrated journal entries, animated in Canvas 2D. Dora and Enzo sit on the dock with a lantern; you cast, wait for the bobber, work the reel, sketch what comes up and let it go. A night is 8 casts (up to 12 with more lantern oil) spread across dusk, moonrise, midnight and first light, under one weather (clear, mist, rain or fireflies) and a moon that moves on one phase a night.
 
 A cast has three beats. **Throw:** hold to charge, let go to throw; how far it goes decides the water it lands in (reeds, lily pads, open water, the deep channel, or the moon's reflection on a clear night). **Bite:** leave the nibbles alone and press when the bobber goes right under, within 0.6 s. **Reel:** hold to reel and let go to ease, keeping the tension gauge in its pale band; too tight for too long snaps the line, too slack and the creature slips away. Creatures fight in five ways (steady, darters, divers, heavy ones and jumpers that you must let go for), and all of them surge now and then.
 
@@ -785,7 +785,9 @@ The pond is animated throughout: the rod whips on the throw, the bobber plunges 
 
 **Tests:** `npm run test:moonpond` (also in `npm test`) compiles `lib/moonpond-game.ts` and runs `tests/moonpond.mjs`: the forty pages and their conditions, casting and the bands of water, the moon's reflection, nibbles, bites and the hooking window, the five ways of fighting, snapped and slack lines, leaps, stars, shells, requests, the shop, a whole night, moon phases and weather, the ending, seed replay, frame subdivision, and saves including damaged journals and nights. `npm run bot:moonpond` (also in `npm test`) runs `tests/moonpond-bot.mjs`, an angler that presses only what a player can: it must fill the journal within 70 nights on eight seeds, catch every entry, never have a night without a bite, and land between 55% and 85% of casts on starter gear. `tests/e2e/moonpond.mjs` checks the menu card, a whole cast by keyboard, nibbles and each kind of loss, an interrupted touch, pausing and a hidden tab, the hold button on a phone, journal, shop and requests, dawn, reloads mid-night and at dawn, the lifted catch, the hop and the dive back, the ending, reduced motion (no splashes, hops or CSS animation) and seven screen sizes.
 
-**Docs:** [`docs/moonpond.md`](docs/moonpond.md), [`artwork and the painted-art seam`](docs/moonpond-art.md).
+`tests/e2e/moonpond-painted.mjs` verifies all forty complete creature silhouettes and the hero/prop crop margins, visible fishing controls, the tension range after line upgrades, and playable artwork failure followed by retry.
+
+**Docs:** [`docs/moonpond.md`](docs/moonpond.md), [`painted artwork and exact prompts`](docs/moonpond-art.md).
 
 ## Validation
 

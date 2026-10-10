@@ -1,32 +1,17 @@
 // Moonpond's sprites. Every creature, curiosity and prop is asked for by name through `creature` and `prop`, so the
-// drawing behind a name can change without the scene knowing. Today each name is drawn in code. When PAINTED is
-// switched on and the sheets in public/art/moonpond/ exist, the same names come from those sheets instead; the
-// layout of the sheets and the prompts to paint them are in docs/moonpond-art.md.
+// drawing behind a name can change without the scene knowing. Painted cells come from moonpond-paint.ts; the
+// original drawings remain as missing-asset fallbacks. Exact prompts and crop provenance: docs/moonpond-art.md.
 import { SPECIES } from './moonpond-game';
 
 type C = CanvasRenderingContext2D;
 export type PropKey = 'bobber' | 'lily' | 'lily-flower' | 'reed' | 'lantern' | 'shell';
 export const PROPS: PropKey[] = ['bobber', 'lily', 'lily-flower', 'reed', 'lantern', 'shell'];
 
-/** Flip to true once creatures.png (8 columns by 5 rows, journal order) and props.png (6 by 1) are in place. */
-export const PAINTED = false;
-const SHEETS = { creatures: { src: '/art/moonpond/creatures.png', cols: 8, rows: 5 }, props: { src: '/art/moonpond/props.png', cols: 6, rows: 1 } } as const;
-const images: Partial<Record<keyof typeof SHEETS, HTMLImageElement>> = {};
-let loading: Promise<void> | null = null;
-/** Resolves once the art is ready to draw. Drawn art needs no loading. */
-export function loadPondArt(): Promise<void> {
-  if (!PAINTED) return Promise.resolve();
-  loading ??= Promise.all((Object.keys(SHEETS) as (keyof typeof SHEETS)[]).map((key) => new Promise<void>((done, fail) => {
-    const image = new Image(); image.onload = () => { images[key] = image; done(); }; image.onerror = () => fail(new Error(`Moonpond art missing: ${SHEETS[key].src}`)); image.src = SHEETS[key].src;
-  }))).then(() => undefined);
-  return loading;
-}
-function painted(c: C, sheet: keyof typeof SHEETS, index: number, x: number, y: number, w: number, h: number) {
-  const image = images[sheet]; if (!image) return false;
-  const { cols, rows } = SHEETS[sheet], cw = image.width / cols, ch = image.height / rows, k = Math.min(w / cw, h / ch);
-  c.drawImage(image, (index % cols) * cw, Math.floor(index / cols) * ch, cw, ch, x - (cw * k) / 2, y - (ch * k) / 2, cw * k, ch * k);
-  return true;
-}
+/** The art API remains compatible with the original drawn version when a request fails. */
+export const PAINTED = true;
+export { loadPondPainting as loadPondArt } from './moonpond-paint';
+import { pondCreature, pondSprite } from './moonpond-paint';
+function painted(c:C,sheet:'creatures'|'props',index:number,x:number,y:number,w:number,h:number){return sheet==='creatures'?pondCreature(c,index,x,y,w,h):pondSprite(c,'props',index,x,y,w,h);}
 
 // ---------- Drawn creatures ----------
 

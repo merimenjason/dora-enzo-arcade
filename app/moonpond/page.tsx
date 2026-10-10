@@ -4,10 +4,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Game, SPECIES, byId, requestText, UPGRADES, UPGRADE_IDS, LURES, LURE_COST, LURE_NAMES, WEATHERS, WEATHER_NAMES, TIME_NAMES, ZONE_NAMES, PHASE_NAMES,
-  type Lure, type Species, type UpgradeId, type Weather,
+  BAND_LOW, type Lure, type Species, type UpgradeId, type Weather,
 } from '../../lib/moonpond-game';
 import { Pond, portrait } from '../../lib/moonpond-scene';
 import { loadPondArt, prop } from '../../lib/moonpond-art';
+import { pondPaintReady, pondPaintVersion, pondPaintStats, pondPortrait, pondExtra } from '../../lib/moonpond-paint';
 import './moonpond.css';
 import { sound } from './sound';
 
@@ -36,15 +37,17 @@ const habits = (sp: Species) => [
 ].filter(Boolean).join(', ') + (sp.rarity === 1 && (sp.time || sp.weather || sp.lure) ? ' most often.' : '.');
 
 function Thumb({ id, known, size = 64 }: { id: string; known: boolean; size?: number }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => { const c = ref.current?.getContext('2d'); if (!c) return; c.setTransform(2, 0, 0, 2, 0, 0); portrait(c, id, size, size, known); }, [id, known, size]);
+  const ref = useRef<HTMLCanvasElement>(null), art = pondPaintVersion();
+  useEffect(() => { const c = ref.current?.getContext('2d'); if (!c) return; c.setTransform(2, 0, 0, 2, 0, 0); portrait(c, id, size, size, known); }, [id, known, size, art]);
   return <canvas ref={ref} width={size * 2} height={size * 2} style={{ width: size, height: size }} aria-hidden="true" />;
 }
 function Shell() {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => { const c = ref.current?.getContext('2d'); if (!c) return; c.setTransform(2, 0, 0, 2, 0, 0); c.clearRect(0, 0, 18, 18); prop(c, 'shell', 9, 9, 16); }, []);
+  const ref = useRef<HTMLCanvasElement>(null), art = pondPaintVersion();
+  useEffect(() => { const c = ref.current?.getContext('2d'); if (!c) return; c.setTransform(2, 0, 0, 2, 0, 0); c.clearRect(0, 0, 18, 18); prop(c, 'shell', 9, 9, 16); }, [art]);
   return <canvas ref={ref} className="mp-shell-icon" width={36} height={36} aria-hidden="true" />;
 }
+
+function PondIcon({hero,lure}:{hero?:'dora'|'enzo';lure?:Lure}){const ref=useRef<HTMLCanvasElement>(null), art=pondPaintVersion();useEffect(()=>{const c=ref.current?.getContext('2d');if(!c)return;c.setTransform(2,0,0,2,0,0);c.clearRect(0,0,180,180);if(hero)pondPortrait(c,hero,180,180);else if(lure)pondExtra(c,lure==='glow'?'glow-bead':lure==='clover'?'clover-knot':'dust-puff',90,90,164,164);},[hero,lure,art]);return <canvas ref={ref} width={360} height={360} style={{width:180,height:180}} aria-hidden="true"/>;}
 
 export default function MoonpondPage() {
   const canvas = useRef<HTMLCanvasElement>(null), game = useRef<Game | null>(null), pond = useRef(new Pond());
@@ -55,13 +58,15 @@ export default function MoonpondPage() {
   const hold = useCallback(() => { if (!(edges.current.at(-1) ?? keys.current.hold)) edges.current.push(true); }, []);
   const release = useCallback(() => { if (edges.current.at(-1) ?? keys.current.hold) edges.current.push(false); }, []);
   const drop = useCallback(() => { edges.current.length = 0; keys.current.hold = false; }, []);
+  const [artError, setArtError] = useState(false);
+  const retryArt = () => { setArtError(false); void loadPondArt().then(redraw).catch(() => setArtError(true)); };
   const [loaded, setLoaded] = useState(false), [kept, setKept] = useState<Game | null>(null), [playing, setPlaying] = useState(false);
   const [, setFrame] = useState(0), [panel, setPanel] = useState<Panel>(null), [page, setPage] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState(false), [muted, setMuted] = useState(false), [sure, setSure] = useState(false), [choice, setChoice] = useState<Weather | ''>('');
   const redraw = useCallback(() => setFrame((n) => n + 1), []);
   useEffect(() => { panelOpen.current = panel !== null; if (panel) drop(); }, [panel, drop]);
 
-  useEffect(() => { void loadPondArt().catch(() => {}).then(() => { setKept(read()); setMuted(sound.muted()); setLoaded(true); }); }, []);
+  useEffect(() => { void loadPondArt().catch(() => setArtError(true)).then(() => { setKept(read()); setMuted(sound.muted()); setLoaded(true); }); }, []);
   useEffect(() => { const media = matchMedia('(prefers-reduced-motion: reduce)'), sync = () => { pond.current.motion = !media.matches; }; sync(); media.addEventListener('change', sync); return () => media.removeEventListener('change', sync); }, []);
 
   const store = useCallback(() => { if (game.current) write(game.current); }, []);
@@ -74,7 +79,7 @@ export default function MoonpondPage() {
   // The loop: step the pond, bank anything that happened on the frame it happened, draw.
   useEffect(() => {
     if (!playing) return;
-    (window as unknown as { __moonpond?: () => { game: Game | null; pond: Pond; paused: boolean } }).__moonpond = () => ({ game: game.current, pond: pond.current, paused: paused.current });
+    (window as unknown as { __moonpond?: () => { game: Game | null; pond: Pond; paused: boolean } }).__moonpond = () => ({ game: game.current, pond: pond.current, paused: paused.current, art: { ready: pondPaintReady(), inspect: pondPaintStats } });
     let raf = 0, last = performance.now(), shown = '';
     const loop = (now: number) => {
       const g = game.current, cv = canvas.current, dt = Math.min(0.1, (now - last) / 1000); last = now;
@@ -93,7 +98,7 @@ export default function MoonpondPage() {
         const c = cv.getContext('2d');
         if (c && w > 0 && h > 0) pond.current.draw(c, w, h, dpr, g, blocked ? 0 : dt);
         // The HUD only re-renders when something it shows has changed.
-        const key = `${g.state}|${g.cast}|${g.shells}|${g.lure}|${g.angler}|${g.night}|${g.found}|${g.biting}|${g.fight ? Math.round(g.fight.p * 20) : ''}`;
+        const key = `${g.state}|${g.cast}|${g.shells}|${g.lure}|${g.angler}|${g.night}|${g.found}|${g.biting}|${g.fight ? Math.round(g.fight.p * 20)+':'+Math.round(g.fight.tension*100)+':'+Math.round(g.fight.strain*20)+':'+g.fight.jump+':'+g.fight.tell : ''}`;
         if (key !== shown) { shown = key; redraw(); }
       }
       raf = requestAnimationFrame(loop);
@@ -164,9 +169,10 @@ export default function MoonpondPage() {
   const shown = page ? byId.get(page)! : null;
 
   return (
-    <main className="mp-shell mp-play" data-state={g.state} data-biting={g.biting} data-paused={isPaused}>
+    <main className="mp-shell mp-play" data-art-ready={pondPaintReady()} data-state={g.state} data-biting={g.biting} data-paused={isPaused}>
       <header className="mp-header">
         <a className="mp-back" href="/" onClick={store}>← ARCADE</a>
+        <h1 className="mp-brand">Moonpond</h1>
         <div className="mp-sky" data-testid="sky">
           <strong>Night {g.night}</strong>
           <span>{PHASE_NAMES[g.phase]}</span>
@@ -180,6 +186,7 @@ export default function MoonpondPage() {
         </div>
       </header>
 
+      {artError && <output className="mp-art-status">Some artwork could not load. You can keep playing. <button onClick={retryArt}>Retry artwork</button></output>}
       <div className="mp-layout">
         <section className="mp-stage" aria-label="The pond">
           <canvas ref={canvas} data-testid="pond" tabIndex={0} aria-label="Moonpond. Hold Space to cast, press to hook a bite, hold to reel. Arrow keys aim."
@@ -217,11 +224,12 @@ export default function MoonpondPage() {
         <aside className="mp-side">
           <div className="mp-stat" data-testid="shells"><Shell /><strong key={g.shells}>{g.shells}</strong><span>moon shells</span></div>
           <fieldset className="mp-choose" aria-label="Who fishes tonight">
-            {(['dora', 'enzo'] as const).map((who) => <button key={who} data-testid={`angler-${who}`} aria-pressed={g.angler === who} disabled={!fresh} onClick={() => { g.setAngler(who); store(); redraw(); }}><b>{who === 'dora' ? 'Dora' : 'Enzo'}</b><small>{who === 'dora' ? 'casts further' : 'longer to hook'}</small></button>)}
+            {(['dora', 'enzo'] as const).map((who) => <button key={who} data-testid={`angler-${who}`} aria-pressed={g.angler === who} disabled={!fresh} onClick={() => { g.setAngler(who); store(); redraw(); }}><PondIcon hero={who}/><b>{who === 'dora' ? 'Dora' : 'Enzo'}</b><small>{who === 'dora' ? 'casts further' : 'longer to hook'}</small></button>)}
           </fieldset>
           <fieldset className="mp-choose" aria-label="Lure">
-            {LURES.map((l) => <button key={l} data-testid={`lure-${l}`} aria-pressed={g.lure === l} disabled={!g.lures.includes(l) || g.state !== 'ready'} onClick={() => { g.setLure(l); store(); redraw(); }}><b>{LURE_NAMES[l]}</b><small>{g.lures.includes(l) ? (g.lure === l ? 'on the line' : 'in the box') : 'bait shop'}</small></button>)}
+            {LURES.map((l) => <button key={l} data-testid={`lure-${l}`} aria-pressed={g.lure === l} disabled={!g.lures.includes(l) || g.state !== 'ready'} onClick={() => { g.setLure(l); store(); redraw(); }}><PondIcon lure={l}/><b>{LURE_NAMES[l]}</b><small>{g.lures.includes(l) ? (g.lure === l ? 'on the line' : 'in the box') : 'bait shop'}</small></button>)}
           </fieldset>
+          <section className="mp-journal-preview"><header><h2>Pond journal</h2><span>{g.found} / {SPECIES.length} pages</span></header><div>{[...SPECIES.filter(sp=>g.journal[sp.id]),...SPECIES.filter(sp=>!g.journal[sp.id])].slice(0,4).map(sp=><button key={sp.id} onClick={()=>{open('journal');setPage(sp.id);}}><Thumb id={sp.id} known={!!g.journal[sp.id]} size={80}/><span>{g.journal[sp.id]?sp.name:'???'}</span></button>)}</div></section>
           <div className="mp-menu">
             <button data-testid="journal" aria-expanded={panel === 'journal'} onClick={() => open('journal')}>Journal <b>{g.found}/{SPECIES.length}</b></button>
             <button data-testid="shop" aria-expanded={panel === 'shop'} onClick={() => open('shop')}>Bait shop</button>
@@ -230,6 +238,8 @@ export default function MoonpondPage() {
         </aside>
 
         <div className="mp-controls">
+          {g.fight && g.state === 'hooked' && <section className="mp-tension" data-testid="tension"><header><b>Line tension</b><span>{Math.round(g.fight.tension*100)}%</span></header><meter className="mp-meter-native" aria-label="Line tension" min={0} max={1} value={g.fight.tension} low={BAND_LOW} high={g.bandHigh} optimum={(BAND_LOW+g.bandHigh)/2}/><div className="mp-tension-track" aria-hidden="true"><i className="mp-safe" style={{left:`${BAND_LOW*100}%`,width:`${(g.bandHigh-BAND_LOW)*100}%`}}/><i className="mp-tension-marker" style={{left:`${Math.max(0,Math.min(1,g.fight.tension))*100}%`}}/></div><div className="mp-range-labels"><span>0%</span><span>{Math.round(BAND_LOW*100)}% — {Math.round(g.bandHigh*100)}% safe</span><span>100%</span></div><progress aria-label="Reeling progress" value={g.fight.p} max={1}/>{(g.fight.jump||g.fight.tell)&&<p className="mp-leap-hint">Let go for the leap!</p>}</section>}
+
           <p className="mp-hint" data-testid="hint" aria-live="polite"><span key={hint}>{hint}</span></p>
           <button className="mp-act" data-testid="act" disabled={isPaused || g.state === 'dawn' || g.state === 'flying'} onPointerDown={(e) => press(e, false)} onPointerUp={(e) => lift(e)} onPointerCancel={(e) => lift(e, true)} onLostPointerCapture={(e) => lift(e)} onContextMenu={(e) => e.preventDefault()}
             onKeyDown={(e) => { if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) { e.preventDefault(); hold(); } }} onKeyUp={(e) => { if (e.code === 'Space' || e.code === 'Enter') release(); }} onBlur={release}>{act}</button>
@@ -266,7 +276,7 @@ export default function MoonpondPage() {
               <li key={id}><div><b>{UPGRADES[id].name}</b> <small>{level}/{UPGRADES[id].costs.length}</small><p>{cost === null ? 'As good as it gets.' : UPGRADES[id].blurb[level]}</p></div>
                 <button data-testid={`buy-${id}`} disabled={cost === null || g.shells < cost || (g.state !== 'ready' && g.state !== 'dawn')} onClick={() => buy(id)}>{cost === null ? 'Owned' : `${cost} shells`}</button></li>); })}
             {LURES.filter((l) => l !== 'glow').map((l) => (
-              <li key={l}><div><b>{LURE_NAMES[l]}</b><p>{l === 'clover' ? 'A knot of fresh clover. Grazers and slow old things come for it.' : 'A pinch of bathing dust. It clouds the water and stirs the bottom-dwellers.'}</p></div>
+              <li key={l}><div><PondIcon lure={l}/><b>{LURE_NAMES[l]}</b><p>{l === 'clover' ? 'A knot of fresh clover. Grazers and slow old things come for it.' : 'A pinch of bathing dust. It clouds the water and stirs the bottom-dwellers.'}</p></div>
                 <button data-testid={`buy-${l}`} disabled={g.lures.includes(l) || g.shells < LURE_COST[l] || (g.state !== 'ready' && g.state !== 'dawn')} onClick={() => buyLure(l)}>{g.lures.includes(l) ? 'Owned' : `${LURE_COST[l]} shells`}</button></li>))}
           </ul>
         </dialog>
