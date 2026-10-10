@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Frostpaw Frontier:** a new cabinet, the arcade's thirtieth: a tile-by-tile survival builder in the style of Tiles Survive. Winter is coming to the Andes, and Dora and Enzo lead a band of chinchillas onto a mountain hidden under cloud. Spend stamina to uncover it one tile at a time and find supply caches, lost chinchillas, rumours with a choice to make, old ruins with three new heroes (Grandpa Pebble, Kiki and Luna) and predator dens. Build hay farms, twig lodges, pebble quarries, nests and watchtowers, move your chinchillas between jobs, and light glow lanterns that make nearby workshops faster but burn wood. Every night a raid comes, growing with the days and with every den left standing; hold it with your burrow, towers and heroes, or lose supplies and see buildings damaged. Train your heroes, clear the dens, beat the cougar on the summit and light the Summit Beacon. Three mountains (Clover Valley, Salt Flats and Frost Summit) with stars for a quick finish, sound, mouse, keyboard and touch controls, and a run that saves as you play so you can continue later.
+
 - **Pawprint Detectives**: three cozy, untimed autumn-village mysteries matching the approved mock-up. Dora examines clues, Enzo follows scents, witnesses answer questions and evidence unlocks follow-ups. A painted notebook supports tap/drag clue pairing, four supported deductions and a complete final explanation for each case. Optional hints, saved investigations, stars, case unlocks, sound, reduced motion and phone controls. Dora keeps her dark ruby eyes.
 
 ### Fixed
