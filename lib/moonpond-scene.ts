@@ -2,7 +2,7 @@
 // it. Drawing only. Creatures and props come from lib/moonpond-art.ts by name.
 import { drawChinchilla } from './chinchilla-art';
 import { creature, prop } from './moonpond-art';
-import { Game, rng, byId, BANDS, ZONE_NAMES, FLIGHT, FULL_MOON, MOON_RADIUS, type Event, type Time, type Zone } from './moonpond-game';
+import { Game, rng, byId, BANDS, ZONE_NAMES, FLIGHT, FULL_MOON, MOON_RADIUS, type Event, type Time } from './moonpond-game';
 
 import { pondLayer, pondHero, pondExtra, pondWater, pondReleasePoint } from './moonpond-paint';
 
@@ -203,12 +203,14 @@ export class Pond {
     if (g.fight && g.fight.strain > 0) { const k = Math.min(1, g.fight.strain / g.snapAfter), red = c.createRadialGradient(w / 2, h * 0.55, Math.min(w, h) * 0.3, w / 2, h * 0.55, Math.max(w, h) * 0.75); red.addColorStop(0, 'rgba(200,40,40,0)'); red.addColorStop(1, `rgba(200,40,40,${0.5 * k * (live ? 0.75 + 0.25 * Math.sin(t * 16) : 1)})`); c.fillStyle = red; c.fillRect(0, 0, w, h); }
     // Edge shade.
     const shade = c.createRadialGradient(w / 2, h * 0.55, Math.min(w, h) * 0.35, w / 2, h * 0.55, Math.max(w, h) * 0.8); shade.addColorStop(0, 'rgba(0,0,0,0)'); shade.addColorStop(1, 'rgba(2,3,12,.5)'); c.fillStyle = shade; c.fillRect(0, 0, w, h);
-    // Keep zone names above foliage and weather, with a reliable contrast backing.
-    if (w > 600) {
+    // Label only the current cast target or bobber, never every area at once.
+    const target = g.state === 'charging' ? { aim: g.aim, d: g.charge * g.reach }
+      : (g.state === 'waiting' || g.state === 'hooked') ? g.bob : null;
+    if (target) {
       c.save(); c.font = `600 ${Math.max(13, unit * 1.6)}px Georgia`; c.textAlign = 'center'; c.textBaseline = 'middle';
-      for (const [name, aim, d] of [['Reeds', -1.1, .1], ['Lily pads', -.96, .3], ['Open water', -.28, .54], ['Deep channel', .82, .82]] as [string, number, number][]) {
-        const p = this.project(aim, d), width = c.measureText(name).width + 24, height = Math.max(29, unit * 3.4);
-        const x = Math.max(width / 2 + 10, Math.min(w - width / 2 - 10, p.x)), y = p.y - unit * 2;
+      {
+        const name = ZONE_NAMES[g.zoneFor(target.aim, target.d)], p = this.project(target.aim, target.d), width = c.measureText(name).width + 24, height = Math.max(29, unit * 3.4);
+        const x = Math.max(width / 2 + 10, Math.min(w - width / 2 - 10, p.x)), y = Math.max(height / 2 + 10, p.y - unit * 3.5 - height / 2);
         c.fillStyle = '#10243b'; c.strokeStyle = '#a78c58'; c.lineWidth = 1;
         c.beginPath(); c.roundRect(x - width / 2, y - height / 2, width, height, 7); c.fill(); c.stroke();
         c.fillStyle = '#fff4d8'; c.fillText(name, x, y);
@@ -236,11 +238,10 @@ export class Pond {
       // How far the rod reaches, and where this cast would land.
       c.setLineDash([unit * 0.9, unit * 1.3]); c.strokeStyle = 'rgba(235,240,255,.2)'; c.lineWidth = 1.2; c.beginPath();
       for (let a = -1; a <= 1.001; a += 0.1) { const p = this.project(a, g.reach); if (a === -1) c.moveTo(p.x, p.y); else c.lineTo(p.x, p.y); } c.stroke(); c.setLineDash([]);
-      const d = g.state === 'charging' ? g.charge * g.reach : 0.02, p = this.project(g.aim, d), zone: Zone = g.zoneFor(g.aim, d);
+      const d = g.state === 'charging' ? g.charge * g.reach : 0.02, p = this.project(g.aim, d);
       if (g.state === 'charging') {
         c.strokeStyle = 'rgba(255,236,170,.9)'; c.lineWidth = 2; c.beginPath(); c.ellipse(p.x, p.y, unit * 3.2 * p.s, unit * 1.15 * p.s, 0, 0, 7); c.stroke();
         c.fillStyle = 'rgba(255,236,170,.25)'; c.fill();
-        c.font = `600 ${Math.max(12, unit * 2.3)}px Georgia, serif`; c.textAlign = 'center'; c.fillStyle = 'rgba(10,10,28,.6)'; const label = ZONE_NAMES[zone]; c.fillText(label, p.x + 1, p.y - unit * 2.6 * p.s + 1); c.fillStyle = zone === 'moon' ? '#fff7cf' : '#f3ecd6'; c.fillText(label, p.x, p.y - unit * 2.6 * p.s);
         // The arc the lure will fly, and a ring breathing where it will land.
         c.setLineDash([2, unit * 1.1]); c.lineDashOffset = -t * unit * 6; c.strokeStyle = 'rgba(255,236,170,.5)'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(tip.x, tip.y); c.quadraticCurveTo((tip.x + p.x) / 2, Math.min(tip.y, p.y) - this.h * 0.2, p.x, p.y); c.stroke(); c.setLineDash([]); c.lineDashOffset = 0;
         const breath = (t * 1.6) % 1; c.strokeStyle = `rgba(255,236,170,${0.6 * (1 - breath)})`; c.lineWidth = 1.2; c.beginPath(); c.ellipse(p.x, p.y, unit * (3.2 + 3 * breath) * p.s, unit * (1.15 + 1.1 * breath) * p.s, 0, 0, 7); c.stroke();
