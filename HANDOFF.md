@@ -78,7 +78,7 @@ Game 30, `/frontier`, is merged on main. It is a tile-by-tile survival builder i
 
 ## Moonpond · 10-10-2026
 
-Game 31, `/moonpond`, is on the branch `feat/moonpond`. It is a night-fishing journal: cast, hook the bite, work the reel, sketch the catch and let it go.
+Game 31, `/moonpond`, is merged on main (PR #30). It is a night-fishing journal: cast, hook the bite, work the reel, sketch the catch and let it go.
 
 - **The loop:** 8 casts a night (12 with oil) across four hours, one weather and a moon phase that moves on each night. A cast is a charged throw into one of five waters, a bite to hook within 0.6 s, and a reel fought on a tension gauge.
 - **The journal:** forty pages (thirty creatures, six curiosities, four legends) decided by water, hour, weather, lure and moon, each with a clue. Moon shells buy rods, lines, oil, bobbers, a spyglass and two lures; three neighbour requests pay extra.
@@ -90,7 +90,7 @@ Game 31, `/moonpond`, is on the branch `feat/moonpond`. It is a night-fishing jo
 
 ## Current state
 
-- **30 games on `main`**, with game 31 (Moonpond) on a branch; the deployed arcade is at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
+- **31 games on `main`**; the deployed arcade is at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
 - Game 23, **Burrow Barrage** (`/barrage`), was added on 04-10-2026. It has been tuned with its bot only and not yet played by hand; see **Burrow Barrage, briefly**. Its phone camera and a fix to the Chin x Pit browser test followed on the same day (PR #7).
 - Game 24, **Summit Shuffle** (`/summit`), was built on 06-10-2026: a deck-building climb in the style of Slay the Spire. It too has been balanced with its bot only; see **Summit Shuffle, briefly**. The same change moved the 2D predator drawings out of `lib/burrow-tactics-scene.ts` into a shared `lib/predator-art.ts`, which both games now use.
 - Game 25, **Poof Panic** (`/poof`), was also built on 06-10-2026: a versus falling-pair puzzler in the style of Puyo Puyo. Its rivals were set with its bot only; see **Poof Panic, briefly**.
