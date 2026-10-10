@@ -191,3 +191,7 @@ The UI uses solid navy surfaces, ivory text, brass borders, named building cards
 `tests/e2e/frontier-art.mjs` checks loaded assets, desktop/phone/landscape layouts, touch-sized controls, pause/resume and partial asset failure followed by retry. Exact prompts, atlas indexes and the approved reference are recorded in [frontier-art.md](frontier-art.md).
 
 Hover a built workshop or the burrow on the map to read its purpose and live status. Building cards show purposes, costs and burrow unlock levels on hover or keyboard focus, including locked cards. Arrow-key selection on the focused map shows the same description; phone taps keep the full existing inspector available. `tests/e2e/frontier-descriptions.mjs` checks hover, live staffing, focus, locked cards, screen bounds and unchanged gameplay.
+
+## Enemy artwork review
+
+Weasel, fox, owl, badger and cougar artwork now loads from separate `enemy-*.png` images rather than the crowded character atlas. The renderer preserves faint whiskers and a small alpha gutter when trimming, fits each full silhouette without stretching, and gives long-bodied predators extra horizontal room. Den badges stay above the animal area, clear of faces and paws. Map enemies, raid animals and inspector icons share the corrected assets. `tests/e2e/frontier-enemies.mjs` checks all five assets for transparent borders and reviews all five den/inspector renderings.

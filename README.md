@@ -761,6 +761,8 @@ Browser: `tests/e2e/frontier.mjs` checks the menu card and locked mountains, exp
 
 `tests/e2e/frontier-descriptions.mjs` checks building descriptions on map/card hover and keyboard focus, including locked cards and narrow screens.
 
+`tests/e2e/frontier-enemies.mjs` checks complete enemy sprites, transparent safety margins and all five den/inspector renderings.
+
 **Docs:** [`docs/frostpaw-frontier.md`](docs/frostpaw-frontier.md), [`art provenance`](docs/frontier-art.md).
 
 ## Validation

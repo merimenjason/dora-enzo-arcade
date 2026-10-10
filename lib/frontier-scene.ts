@@ -9,7 +9,7 @@ import {
   Game, W, H, HOME, DAY, CYCLE, RAID_AT, DENS, BUILDINGS, type BuildingId, type HeroId, type DenKind, type Terrain,
 } from './frontier-game';
 
-import { painted, terrainTransition, BUILDING_ART, HERO_ART, BEAST_ART } from './frontier-art';
+import { painted, paintedEnemy, terrainTransition, BUILDING_ART, HERO_ART } from './frontier-art';
 
 import { settlementAt, settlementPaths, type Resident } from './frontier-life';
 
@@ -148,7 +148,8 @@ export function building(c: C2D, kind: BuildingId, px: number, py: number, time:
 /** A predator from the shared drawings, feet at (x, y), `h` pixels tall. */
 function beast(c: C2D, kind: DenKind | PredKind, x: number, y: number, h: number, time: number, face = 1) {
   c.save(); c.translate(x, y); c.scale(face, 1);
-  if (painted(c, 'characters', BEAST_ART[kind as DenKind], -h * .65, -h + Math.sin(time * 5) * .5, h * 1.3, h)) { c.restore(); return; }
+  const width = h * (kind === 'weasel' || kind === 'fox' ? 2 : kind === 'cougar' ? 1.55 : 1.35);
+  if (paintedEnemy(c, kind as DenKind, -width / 2, -h + Math.sin(time * 5) * .5, width, h)) { c.restore(); return; }
   c.restore();
   c.save(); c.translate(x, y); c.scale((face * h) / 24, h / 24); predator(c, kind as PredKind, TINT[kind as PredKind], time); c.restore();
 }
@@ -156,11 +157,11 @@ function beast(c: C2D, kind: DenKind | PredKind, x: number, y: number, h: number
 function den(c: C2D, kind: DenKind, x: number, y: number, time: number, power: number, squad: number) {
   const px = X(x), py = Y(y), lair = kind === 'cougar';
   if (!painted(c, 'buildings', 12, px, py + 2, T, T - 2)) { ell(c, px + 24, py + 34, 20, 11, lair ? '#4a3a32' : '#5a4630'); ell(c, px + 24, py + 36, 11, 7, '#1c140e'); }
-  beast(c, kind, px + 22, py + 38, lair ? 30 : 22, time, -1);
+  beast(c, kind, px + 22, py + 42, lair ? 26 : 22, time, -1);
   // Power badge: green when the squad can win, red when it can't.
   const ok = squad >= power;
-  rect(c, px + 2, py + 2, 22, 13, 6, ok ? '#3f8a3a' : '#a8382e', 'rgba(0,0,0,0.4)');
-  c.fillStyle = '#fff'; c.font = 'bold 9px ui-sans-serif, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(power), px + 13, py + 9);
+  rect(c, px + 28, py + 2, 18, 11, 5, ok ? '#3f8a3a' : '#a8382e', 'rgba(0,0,0,0.4)');
+  c.fillStyle = '#fff'; c.font = 'bold 9px ui-sans-serif, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(power), px + 37, py + 7.5);
 }
 
 function home(c: C2D, g: Game, time: number) {
@@ -432,7 +433,7 @@ export function drawHeroIcon(c: C2D, id: HeroId, w: number, h: number, hurt = fa
 }
 export function drawDenIcon(c: C2D, kind: DenKind, w: number, h: number) {
   c.clearRect(0, 0, w, h);
-  if (!painted(c, 'characters', BEAST_ART[kind], 2, 2, w - 4, h - 4)) fitDraw(c, `frontier-den-${kind}`, 2, 2, w - 4, h - 4, (d) => predator(d, kind as PredKind, TINT[kind as PredKind], 0), -1);
+  if (!paintedEnemy(c, kind, 2, 2, w - 4, h - 4)) fitDraw(c, `frontier-den-${kind}`, 2, 2, w - 4, h - 4, (d) => predator(d, kind as PredKind, TINT[kind as PredKind], 0), -1);
 }
 /** The title picture: Dora and Enzo on a snowy ridge with a lantern, the beacon far off. */
 export function drawTitle(c: C2D, w: number, h: number, time: number) {

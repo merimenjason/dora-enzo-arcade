@@ -1,6 +1,7 @@
 /** Painted atlas assets. The game state remains the sole source of tiles, staffing and light. */
-type Sheet = 'terrain' | 'buildings' | 'characters' | 'motion' | 'workers';
-const grids: Record<Sheet, [number, number]> = { terrain: [3, 2], buildings: [4, 4], characters: [4, 3], motion: [4, 4], workers: [4, 6] };
+type Enemy = 'weasel' | 'fox' | 'owl' | 'badger' | 'cougar';
+type Sheet = 'terrain' | 'buildings' | 'characters' | 'motion' | 'workers' | `enemy-${Enemy}`;
+const grids: Record<Sheet, [number, number]> = { terrain: [3, 2], buildings: [4, 4], characters: [4, 3], motion: [4, 4], workers: [4, 6], 'enemy-weasel': [1, 1], 'enemy-fox': [1, 1], 'enemy-owl': [1, 1], 'enemy-badger': [1, 1], 'enemy-cougar': [1, 1] };
 const sheets = new Map<Sheet, HTMLImageElement>();
 const cells = new Map<string, HTMLCanvasElement>();
 const motionBounds = new Map<string, [number, number, number, number]>();
@@ -16,7 +17,7 @@ export function loadFrontierArt(): Promise<void> {
   }))).then(() => undefined).catch(error => { pending = null; throw error; });
   return pending;
 }
-export function frontierArtReady() { return sheets.size === 5; }
+export function frontierArtReady() { return sheets.size === Object.keys(grids).length; }
 function cell(sheet: Sheet, index: number): HTMLCanvasElement | null {
   const key = `${sheet}:${index}`, existing = cells.get(key);
   if (existing) return existing;
@@ -32,7 +33,7 @@ function cell(sheet: Sheet, index: number): HTMLCanvasElement | null {
   // Trim alpha margins once per sprite, so portraits and tiny tool icons stay legible.
   const data = context.getImageData(0, 0, w, h).data;
   let x0 = w, y0 = h, x1 = 0, y1 = 0;
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (data[(y * w + x) * 4 + 3] > 24) {
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (data[(y * w + x) * 4 + 3] > (sheet.startsWith('enemy-') ? 3 : 24)) {
     x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
   }
   if (sheet === 'motion' || sheet === 'workers') {
@@ -46,6 +47,7 @@ function cell(sheet: Sheet, index: number): HTMLCanvasElement | null {
     }
     [x0,y0,x1,y1] = bounds; // shared crop keeps scale and foot placement stable throughout a walk cycle.
   }
+  if (sheet.startsWith('enemy-')) { x0 = Math.max(0, x0 - 5); y0 = Math.max(0, y0 - 5); x1 = Math.min(w - 1, x1 + 5); y1 = Math.min(h - 1, y1 + 5); }
   if (x0 >= x1 || y0 >= y1) return null;
   const trimmed = document.createElement('canvas'); trimmed.width = x1 - x0 + 1; trimmed.height = y1 - y0 + 1;
   trimmed.getContext('2d')!.drawImage(canvas, x0, y0, trimmed.width, trimmed.height, 0, 0, trimmed.width, trimmed.height);
@@ -74,3 +76,6 @@ export function terrainTransition(c: CanvasRenderingContext2D, index: number, ed
   }
   c.drawImage(image, x, y, size, size);
 }
+
+/** Individual enemy art avoids every shared-atlas boundary. */
+export function paintedEnemy(c: CanvasRenderingContext2D, kind: Enemy, x: number, y: number, w: number, h: number) { return painted(c, `enemy-${kind}`, 0, x, y, w, h); }
