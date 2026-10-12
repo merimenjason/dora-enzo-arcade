@@ -9,7 +9,7 @@ import {
 } from '../../lib/saga-game';
 import { readyToInterrupt } from '../../lib/saga-feedback';
 import { Field, portrait } from '../../lib/saga-scene';
-import { loadSagaArt, sagaPaintVersion, sagaPaintReady, sagaPaintStats, sagaDecoration, sagaDecorationStats, RARITY_COLOR, FACTION_COLOR } from '../../lib/saga-art';
+import { loadSagaArt, sagaPaintVersion, sagaPaintReady, sagaPaintStats, sagaDecoration, sagaDecorationStats, sagaPaintError, sagaAssetStatus, subscribeSagaPainting, retrySagaPainting, RARITY_COLOR, FACTION_COLOR } from '../../lib/saga-art';
 import './saga.css';
 import { sound } from './sound';
 
@@ -56,14 +56,21 @@ export default function SagaPage() {
   useEffect(()=>{if(!skillFeedback)return;const timer=setTimeout(()=>setSkillFeedback(null),1800);return()=>clearTimeout(timer);},[skillFeedback]);
   useEffect(()=>{if(!campOpened)return;const timer=setTimeout(()=>setCampOpened(false),2400);return()=>clearTimeout(timer);},[campOpened]);
   const [artError,setArtError] = useState(false);
-  const retryArt = () => { setArtError(false); void loadSagaArt().then(redraw).catch(()=>setArtError(true)); };
+  const retryArt = () => { setArtError(false); void retrySagaPainting().then(redraw).catch(()=>setArtError(true)); };
   const [fast, setFast] = useState(false), [isAuto, setIsAuto] = useState(false);
   const redraw = useCallback(() => setFrame((n) => n + 1), []);
 
-  useEffect(() => { void loadSagaArt().catch(() => setArtError(true)).then(() => { setKept(read()); setMuted(sound.muted()); setLoaded(true); }); }, []);
+  useEffect(() => {
+    const saved=read(),keys=new Set(['land-'+Math.floor(Math.min(saved?.cleared??0,STAGES-1)/PER_CHAPTER),'hero-dora','heroes-0','portraits-0','enemies','effects']);
+    for(const id of saved?.squad??[])if(id){const index=HEROES.indexOf(heroById(id));keys.add('heroes-'+Math.floor(index/6));keys.add('portraits-'+Math.floor(index/6));}
+    const stop=subscribeSagaPainting(()=>{setArtError(sagaPaintError());redraw();});
+    setKept(saved);setMuted(sound.muted());setLoaded(true);
+    void loadSagaArt([...keys]).catch(()=>setArtError(true));
+    return stop;
+  }, [redraw]);
   useEffect(() => { const media = matchMedia('(prefers-reduced-motion: reduce)'), sync = () => { field.current.motion = !media.matches; }; sync(); media.addEventListener('change', sync); return () => media.removeEventListener('change', sync); }, []);
 
-  useEffect(() => { (window as unknown as { __saga?: () => unknown }).__saga = () => ({ game: game.current, field: field.current, paused: paused.current, speed: speed.current, auto: auto.current, refresh: redraw, art: {ready:sagaPaintReady(), inspect:sagaPaintStats, decorations:sagaDecorationStats} }); }, [redraw]);
+  useEffect(() => { (window as unknown as { __saga?: () => unknown }).__saga = () => ({ game: game.current, field: field.current, paused: paused.current, speed: speed.current, auto: auto.current, refresh: redraw, art: {ready:sagaPaintReady(), inspect:sagaPaintStats, decorations:sagaDecorationStats, loadAll:()=>loadSagaArt(), status:sagaAssetStatus} }); }, [redraw]);
   const store = useCallback(() => { if (game.current) write(game.current); }, []);
   const pause = useCallback((on: boolean) => { paused.current = on; setIsPaused(on); }, []);
   const mute = () => { const m = !sound.muted(); sound.setMuted(m); setMuted(m); };
@@ -162,6 +169,7 @@ export default function SagaPage() {
           <p className="sg-eyebrow">A hero-squad adventure</p>
           <h1>Whisker Saga</h1>
           <p className="sg-lede">Lead five heroes down the road from Clover Meadow to Hollow Keep. They fight on their own; you choose who stands where and when each skill is fired. Eighteen heroes to find, eighty stages to clear.</p>
+          {!sagaPaintReady() && !artError && <p className="sg-art-progress">Artwork is loading. You can play now.</p>}
           <div className="sg-title-row" aria-hidden="true">{['enzo', 'dora', 'pip', 'onyx', 'zephyr', 'aurora'].map((id) => <Face key={id} id={id} size={64} />)}</div>
           {kept && <button className="sg-gold" data-testid="continue" onClick={() => begin(kept)}>Carry on · {kept.complete ? `tower floor ${kept.tower + 1}` : stageDef(kept.cleared).name}, {kept.owned.length}/{HEROES.length} heroes</button>}
           {!kept && <button className="sg-gold" data-testid="start" onClick={() => begin(fresh())}>Set out</button>}

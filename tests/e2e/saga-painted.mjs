@@ -11,6 +11,7 @@ try {
   p.on('pageerror', (e) => errors.push(e.message));
   await p.goto(base + '/saga');
   await p.getByTestId('start').click();
+  await p.evaluate(()=>window.__saga().art.loadAll());
   await p.waitForSelector('[data-art-ready="true"]');
   const stats = await p.evaluate(() => window.__saga().art.inspect());
   assert.equal(stats.length, 50);

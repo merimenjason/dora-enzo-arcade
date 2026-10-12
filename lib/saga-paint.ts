@@ -15,50 +15,86 @@ for (let i = 4; i < 8; i++) grids['boss-' + i] = [1, 1];
 for (let i = 0; i < 8; i++) grids['land-' + i] = [1, 1];
 const images = new Map<string, HTMLImageElement>(),
   cells = new Map<string, HTMLCanvasElement>();
-let pending: Promise<void> | null = null,
-  revision = 0;
+const requests = new Map<string, Promise<void>>(),
+  requested = new Set<string>(),
+  failed = new Set<string>(),
+  listeners = new Set<() => void>();
+let revision = 0;
+const notify = () => {
+  for (const listener of listeners) listener();
+};
 export const sagaPaintVersion = () => revision;
-export const sagaPaintReady = () => images.size === Object.keys(grids).length;
-export function loadSagaPainting(): Promise<void> {
-  if (typeof Image === 'undefined') return Promise.resolve();
-  if (pending) return pending;
-  pending = Promise.allSettled(
-    Object.keys(grids).map(
-      (key) =>
-        new Promise<void>((resolve, reject) => {
-          if (images.has(key)) {
-            resolve();
-            return;
-          }
-          const image = new Image();
-          image.onload = () => {
-            images.set(key, image);
-            revision++;
-            resolve();
-          };
-          image.onerror = () => reject(new Error('Could not load ' + key));
-          image.src = '/art/saga/' + key + '.png';
-        }),
-    ),
-  )
-    .then((results) => {
-      if (results.some((r) => r.status === 'rejected'))
-        throw new Error('Some Saga artwork could not load');
-      for (const [key, [cols, rows]] of Object.entries(grids))
-        if (!key.startsWith('land-'))
-          for (let i = 0; i < cols * rows; i++) cell(key, i);
-    })
-    .catch((e) => {
-      pending = null;
-      throw e;
-    });
+export const sagaPaintReady = () =>
+  requested.size > 0 && [...requested].every((key) => images.has(key));
+export const sagaPaintError = () => failed.size > 0;
+export const sagaAssetStatus = () => ({
+  requested: [...requested],
+  loaded: [...images.keys()],
+  failed: [...failed],
+});
+export function subscribeSagaPainting(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+function request(key: string): Promise<void> {
+  if (images.has(key)) return Promise.resolve();
+  const existing = requests.get(key);
+  if (existing) return existing;
+  requested.add(key);
+  failed.delete(key);
+  const pending = new Promise<void>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      images.set(key, image);
+      requests.delete(key);
+      revision++;
+      notify();
+      resolve();
+    };
+    image.onerror = () => {
+      requests.delete(key);
+      failed.add(key);
+      notify();
+      reject(new Error('Could not load ' + key));
+    };
+    image.src = '/art/saga/' + key + '.png';
+  });
+  requests.set(key, pending);
+  notify();
   return pending;
 }
+function demand(key: string) {
+  if (
+    typeof Image !== 'undefined' &&
+    !images.has(key) &&
+    !requests.has(key) &&
+    !failed.has(key)
+  )
+    void request(key).catch(() => undefined);
+}
+/** Load only the requested group. Other sheets are fetched on demand by the renderer. */
+export function loadSagaPainting(
+  keys: readonly string[] = Object.keys(grids),
+): Promise<void> {
+  if (typeof Image === 'undefined') return Promise.resolve();
+  return Promise.allSettled(
+    keys.filter((key) => key in grids).map(request),
+  ).then((results) => {
+    if (results.some((r) => r.status === 'rejected'))
+      throw new Error('Some Saga artwork could not load');
+  });
+}
+export const retrySagaPainting = () => loadSagaPainting([...requested]);
 function cell(key: string, index: number) {
   const id = key + ':' + index;
   if (cells.has(id)) return cells.get(id)!;
   const image = images.get(key);
-  if (!image) return null;
+  if (!image) {
+    demand(key);
+    return null;
+  }
   const [cols, rows] = grids[key],
     fw = Math.floor(image.width / cols),
     fh = Math.floor(image.height / rows),
@@ -197,7 +233,10 @@ export function sagaLandscape(
   scroll: number,
 ) {
   const image = images.get('land-' + chapter);
-  if (!image) return false;
+  if (!image) {
+    demand('land-' + chapter);
+    return false;
+  }
   const tileW = Math.max(w, (image.width / image.height) * h),
     shift = scroll * 0.3,
     first = Math.floor(shift / tileW);

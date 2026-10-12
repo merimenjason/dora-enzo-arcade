@@ -273,3 +273,4 @@
 @media(max-width:760px) { .sg-skill-text { min-height:39px; } }
 @media(max-height:520px) and (orientation:landscape) { .sg-skill-text { min-height:0; } }
 .sg-shield-status { display:inline-block; position:relative; }.sg-shield-status svg { width:100%; height:100%; }.sg-sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0; }
+.sg-shell .sg-art-progress { color:#ded2c1; font:13px/1.4 system-ui; }
