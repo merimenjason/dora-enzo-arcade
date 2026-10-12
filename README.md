@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of thirty-one original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of thirty-two original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -41,6 +41,7 @@ Listed in arcade-menu order.
 | 29 | Pawprint Detectives | `/detectives` | Cozy mystery adventure |
 | 30 | Frostpaw Frontier | `/frontier` | Survival builder |
 | 31 | Moonpond | `/moonpond` | Night-fishing journal |
+| 32 | Whisker Saga | `/saga` | Hero-squad adventure |
 
 ## Run
 
@@ -789,6 +790,26 @@ The pond is animated throughout: the rod whips on the throw, the bobber plunges 
 
 **Docs:** [`docs/moonpond.md`](docs/moonpond.md), [`painted artwork and exact prompts`](docs/moonpond-art.md).
 
+### 32 · Whisker Saga (`/saga`)
+
+**Play:** A hero-squad adventure in the style of the squad stages of Top Heroes: Kingdom Saga, drawn in Canvas 2D. Five heroes march down a road from Clover Meadow to Hollow Keep and meet three waves of enemies a stage. They attack on their own. You choose who stands in the front row (two slots, where the hits land) and the back row (three), spend the loot, and decide when each hero's skill is fired.
+
+Skills charge as a hero lands hits. There are eight kinds: a strike that stuns, a volley over every enemy, a snipe, a freeze that stuns them all, a heal, a mend, a shield for the whole squad and a rally. Captains, bosses and hexers wind up their big moves for 1.8 s, with the ground reddening under the squad. Stun an enemy mid-wind-up and the move is lost, and the enemy is staggered for 2.5 s and takes 50% more damage for 4 s. A slam that lands hits every hero.
+
+There are eighteen heroes in three factions (Meadow, Burrow and Summit) and five roles. Dora and Enzo start; six join as the first six chapter bosses fall; ten come from summons paid for with scrolls that are only ever won in play, with a legendary guaranteed by the tenth summons. Repeats become shards that raise a hero's stars. Gold buys levels, stages drop gear in four slots and five tiers, and the forge turns three pieces into one of the next tier. Three or more heroes of one faction give the squad 10% to 25% more attack and health.
+
+Eighty stages in eight chapters, each stage worth up to three stars (cleared, nobody fell, under a minute), with three scroll chests a chapter. A camp chest fills with gold for up to four hours while you are away. Clearing the last stage opens an endless tower.
+
+**Controls:**
+
+- **1** to **5**, or tap a hero or their button: fire that hero's skill when it is charged.
+- **P** or **Escape** pause, **F** double speed, **A** auto-fire (only on stages already beaten), **M** sound.
+- The battle pauses when the tab is hidden or the window loses focus. **Retreat** leaves a battle with nothing lost. **Save & menu** returns to the title.
+
+**Tests:** `npm run test:saga` (also in `npm test`) compiles `lib/saga-game.ts` and runs `tests/saga.mjs`: the roster, levels, stars, gear and the faction bonus, stage make-up, marching and attacks, all eight kinds of skill, wind-ups, interrupts and staggering, who gets hit, losing by falling or by time, stars, loot, story heroes, summons and the guarantee, the forge, arranging the squad, chests, the tower, the camp, seed replay, and saves including damaged ones. `npm run bot:saga` (also in `npm test`) runs `tests/saga-bot.mjs`, a squad leader that does only what a player can; it must finish the campaign on eight seeds while losing some fights, show that timed stuns beat auto-fire in the same fight, and show that a squad that never spends gold stalls early. `tests/e2e/saga.mjs` drives the page with keyboard and touch: summons, a battle with an interrupt, pause and a hidden tab, double speed, a loss, the squad, forge, chests and camp, auto, a story hero joining, reloads, the tower, broken saves, reduced motion and six layouts.
+
+**Docs:** [`docs/whisker-saga.md`](docs/whisker-saga.md), [`artwork and prompts for a painted pass`](docs/saga-art.md).
+
 ## Validation
 
 ```sh
@@ -806,7 +827,7 @@ Run `npm test` before the browser suites to generate the compiled engines they u
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Thirty-one ways/` assertion in `tests/e2e/dust-bath.mjs`, the 31-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs` and `tests/e2e/moonpond.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past thirty-one games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Thirty-two ways/` assertion in `tests/e2e/dust-bath.mjs`, the 32-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs` and `tests/e2e/saga.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past thirty-two games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

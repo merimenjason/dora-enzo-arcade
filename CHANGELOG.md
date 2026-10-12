@@ -2,6 +2,16 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 13-10-2026
+
+### Added
+
+- **Whisker Saga:** a new cabinet, the arcade's thirty-second: a hero-squad adventure in the style of Top Heroes. Five heroes march from Clover Meadow to Hollow Keep and fight three waves a stage on their own, while you decide who stands in front and when each skill is fired. Stun a captain or a boss while it winds up and its slam is lost, and it reels and takes extra damage. Eighteen heroes in three factions to recruit: Dora and Enzo to begin with, six who join as chapter bosses fall, and ten from summons paid for with scrolls you can only win by playing. Gold buys levels, repeats raise stars, stages drop gear to wear and forge, and fielding three or more of one faction strengthens the whole squad. Eighty stages with three stars each, chapter chests, a camp chest that fills while you are away, and an endless tower after the last boss. Number keys, taps, pause, double speed, auto-fire on stages you have beaten, sound and local saves.
+
+### Documentation
+
+- **Whisker Saga** has its rules and numbers in `docs/whisker-saga.md` and the sheet layout and prompts for a later painted pass in `docs/saga-art.md`. The README, the handoff and the project notes now count thirty-two games.
+
 ## 11-10-2026
 
 ### Changed

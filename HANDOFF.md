@@ -1,4 +1,4 @@
-# Handoff · 10-10-2026
+# Handoff · 13-10-2026
 
 Where Dora & Enzo's Arcade stands, how the newest games fit together, how to check your work, and what is worth doing next. For the arcade as a whole, start with [`README.md`](README.md); for how the code is laid out and the traps to avoid, [`CLAUDE.md`](CLAUDE.md); for the documentation and changelog rules, [`AGENTS.md`](AGENTS.md).
 
@@ -91,9 +91,23 @@ Game 31, `/moonpond`, is merged on main (PR #30). It is a night-fishing journal:
 - **Next:** play it by hand and adjust the reel numbers at the top of `lib/moonpond-game.ts` (`BAND_LOW`, `BAND_HIGH`, `SNAP_AFTER`, `SLIP_AFTER`, `LINE_RESPONSE`, the `SURGE_` values), rerunning `npm run bot:moonpond` after any change; listen to the cues in `app/moonpond/sound.ts`; watch the animations in motion on a phone; and continue the human balance and listening pass now that the painted art is in place.
 - **Not done:** nobody has played it by hand, the sound has not been listened to, and the reel has only been tuned against the bot and a scripted hand. The spread of 13 to 56 nights comes from weather luck on the rare pages; if it feels grindy, raise the rare weight in `WEIGHT` or let the journal's found count nudge the weather.
 
+## Whisker Saga · 13-10-2026
+
+Game 32, `/saga`, is on the branch `feat/whisker-saga`. It is a hero-squad adventure modelled on the squad stages of Top Heroes: Kingdom Saga, with the kingdom building, guilds and anything online left out by choice.
+
+- **The loop:** a squad of five (two in front, three behind) marches through three waves a stage and attacks on its own. The player fires each hero's skill when it is charged. Captains, bosses and hexers wind up their big moves for 1.8 s; a stun in that window cancels the move and staggers the enemy (2.5 s stunned, 50% more damage taken for 4 s).
+- **Progress:** eighteen heroes in three factions and five roles (two to start, six from chapter bosses, ten from summons with a guarantee on the tenth), levels for gold, stars from repeat summons, four gear slots in five tiers with a forge, a faction bonus, eighty stages with three stars each, chapter chests, a camp chest that fills for four hours, and an endless tower.
+- **Code:** the usual split, in `lib/saga-game.ts` (`Battle` for one fight, `Game` for the roster and progress), `lib/saga-scene.ts` (`Field`), `lib/saga-art.ts` (heroes, enemies and backdrops by name) and `app/saga/` (page, styles, metadata and `sound.ts`).
+- **Saves and hook:** `saga-v1` and `saga-sound-v1`. The save is written on every menu action and on the frame a battle ends. A battle in progress is not saved: a reload returns to the map with nothing lost. `window.__saga()` returns the game, the field, the pause flag, the speed, the auto flag and `refresh` to redraw the menus after a test changes the game.
+- **Art:** drawn in code. Heroes are the shared chinchilla in eighteen coats with a neckerchief and a role prop. `PAINTED` in `lib/saga-art.ts` is the switch for painted sheets; the layout and prompts are in `docs/saga-art.md`.
+- **Balance:** done against `tests/saga-bot.mjs` only. Three findings shaped the numbers and are worth knowing before changing them. First, when holding a stun for a wind-up only cancelled the move, firing everything on cooldown won more fights; the stagger is what makes timing pay. Second, a slam strong enough to wipe the squad made stage 1 unwinnable for a player who never fires a skill, so slams now take roughly half a back-row hero's health. Third, gold income (`GOLD`) is the sensitive dial: 36 gave the bot 16 or more losses on some seeds and 50 gave almost none; it is at 42.
+- **Checks:** `npm run test:saga`, `npm run bot:saga` (both in `npm test`) and `tests/e2e/saga.mjs`.
+- **Next:** play it by hand, above all the first ten stages and one boss, and adjust `GOLD`, the slam `power` values in `ENEMIES` and `STAGGER` / `EXPOSED`, rerunning `npm run bot:saga` after any change; listen to the cues in `app/saga/sound.ts`; generate the painted sheets.
+- **Not done:** nobody has played it by hand and the sound has not been listened to. The eight bosses share one drawn shape with different colours and trimmings. Enemy make-up is rolled per stage, so a few stages are harder than their neighbours (the bot most often loses at stages 13, 20, 35 and 40).
+
 ## Current state
 
-- **31 games on `main`**; the deployed arcade is at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
+- **31 games on `main`**, and game 32, **Whisker Saga** (`/saga`), on `feat/whisker-saga`; the deployed arcade is at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
 - Game 23, **Burrow Barrage** (`/barrage`), was added on 04-10-2026. It has been tuned with its bot only and not yet played by hand; see **Burrow Barrage, briefly**. Its phone camera and a fix to the Chin x Pit browser test followed on the same day (PR #7).
 - Game 24, **Summit Shuffle** (`/summit`), was built on 06-10-2026: a deck-building climb in the style of Slay the Spire. It too has been balanced with its bot only; see **Summit Shuffle, briefly**. The same change moved the 2D predator drawings out of `lib/burrow-tactics-scene.ts` into a shared `lib/predator-art.ts`, which both games now use.
 - Game 25, **Poof Panic** (`/poof`), was also built on 06-10-2026: a versus falling-pair puzzler in the style of Puyo Puyo. Its rivals were set with its bot only; see **Poof Panic, briefly**.
