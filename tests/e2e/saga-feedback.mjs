@@ -53,6 +53,9 @@ try {
       g = s.game;
     g.leave();
     g.stars.fill(3);
+    for (const id of ['clover', 'flint'])
+      g.heroes[id] = { level: 1, stars: 1, shards: 0, gear: [0, 0, 0, 0] };
+    g.squad = ['dora', 'enzo', 'clover', null, 'flint'];
     g.start(9);
     const b = g.battle;
     b.wave = 2;
@@ -66,14 +69,15 @@ try {
     }
     for (const f of b.foes) {
       f.cd = 100;
-      f.d = 0.7;
+      f.d = f.boss ? 0.2 : 0.8;
     }
     const boss = b.foes.find((f) => f.boss);
-    boss.wind = 1.5;
+    boss.wind = boss.special.wind;
     boss.specialT = 100;
     s.field.reset();
     s.refresh();
   });
+  await p.getByTestId('pause').click();
   await p.waitForFunction(
     () =>
       document.querySelector('[data-testid="skill-0"]').dataset.counter ===
@@ -83,7 +87,43 @@ try {
     await p.getByTestId('skill-1').getAttribute('data-counter'),
     'false',
   );
+  await p.evaluate(() => {
+    const s = window.__saga(),
+      b = s.game.battle;
+    for (const f of b.foes) f.d = f.boss ? 1 : 0.2;
+    s.refresh();
+  });
+  await p.waitForFunction(
+    () =>
+      document.querySelector('[data-testid="skill-0"]').dataset.counter ===
+      'false',
+  );
+  assert.equal(
+    await p.getByTestId('skill-2').getAttribute('data-counter'),
+    'true',
+  );
+  assert.equal(
+    await p.getByTestId('skill-4').getAttribute('data-counter'),
+    'true',
+  );
+  await p.evaluate(() => {
+    const s = window.__saga(),
+      b = s.game.battle;
+    for (const f of b.foes) f.d = f.boss ? 0.2 : 0.8;
+    s.refresh();
+  });
+  await p.waitForFunction(
+    () =>
+      document.querySelector('[data-testid="skill-0"]').dataset.counter ===
+      'true',
+  );
+  await p.getByTestId('resume').click();
   await p.keyboard.press('1');
+  await p.waitForFunction(
+    () =>
+      document.querySelector('[data-testid="skill-0"]').dataset.ready ===
+      'false',
+  );
   await p.waitForFunction(
     () => window.__saga().game.battle.foes.find((f) => f.boss).exposed > 0,
   );
@@ -97,7 +137,13 @@ try {
   await p.waitForFunction(
     () => window.__saga().game.battle.heroes[1].shield > 0,
   );
-  assert.match(await p.getByTestId('skill-1').innerText(), /Shielded/);
+  assert.equal(
+    await p
+      .getByTestId('skill-1')
+      .getByText('Shielded', { exact: true })
+      .count(),
+    1,
+  );
   await p.evaluate(() => {
     const s = window.__saga();
     s.game.battle.heroes[0].stun = 5;

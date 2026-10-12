@@ -183,7 +183,7 @@ export class Battle {
   phase: 'march' | 'fight' | 'won' | 'lost' = 'march';
   wave = 0; time = 0; marchT = MARCH; fallen = 0;
   heroes: Unit[] = []; enemies: Unit[] = []; events: BattleEvent[] = [];
-  private acc = 0; private uid = 0; private rand: () => number;
+  private acc = 0; private pendingCast = new Set<number>(); private uid = 0; private rand: () => number;
 
   constructor(squad: (Spec | null)[], readonly def: StageDef, seed: number) {
     this.rand = rng(seed);
@@ -228,12 +228,15 @@ export class Battle {
 
   update(dt: number, input: Input = {}) {
     this.events.length = 0;
+    if (!Number.isFinite(dt) || dt < 0) return this.events;
+    // A display frame can be shorter than a combat tick. Keep valid presses until a tick consumes them.
+    for (const slot of input.cast ?? []) if (this.ready(slot)) this.pendingCast.add(slot);
     this.acc += Math.min(dt, 0.25);
-    let cast = input.cast ?? [];
     while (this.acc >= STEP) {
       this.acc -= STEP;
+      const cast = [...this.pendingCast];
+      this.pendingCast.clear();
       this.step(cast, !!input.auto);
-      cast = [];
     }
     return this.events;
   }

@@ -7,6 +7,7 @@ import {
   MAX_TIER, MERGE, MAX_STARS, FIRST_CLEAR, ODDS, PITY, CHEST_STARS, CHEST_SCROLLS, CAMP_HOURS, ENERGY, PAR, SLOTS, ROLES, TOWER_EVERY, TOWER_SCROLLS,
   type EnemyKind, type Summoned,
 } from '../../lib/saga-game';
+import { readyToInterrupt } from '../../lib/saga-feedback';
 import { Field, portrait } from '../../lib/saga-scene';
 import { loadSagaArt, sagaPaintVersion, sagaPaintReady, sagaPaintStats, sagaDecoration, sagaDecorationStats, RARITY_COLOR, FACTION_COLOR } from '../../lib/saga-art';
 import './saga.css';
@@ -176,7 +177,7 @@ export default function SagaPage() {
 
   if (view === 'battle' && g.battle) {
     const b = g.battle, def = b.def, boss = b.foes.find(u=>u.boss), over = b.phase === 'won' || b.phase === 'lost', loot = g.loot, winding = b.winding;
-    const canStop = b.heroes.some((u) => b.ready(u.slot) && ['strike', 'snipe', 'freeze'].includes(u.skill!.kind));
+    const canStop = b.heroes.some(u=>readyToInterrupt(b,u.slot));
     const hint = isPaused ? 'Paused.' : winding ? (winding.special!.kind === 'slam' ? `${winding.name} is winding up a slam. ${canStop ? 'Stun it now!' : 'Shield the squad if you can.'}` : `${winding.name} is about to heal. ${canStop ? 'Stun it to stop the spell.' : ''}`)
       : b.phase === 'march' ? 'The squad marches on.' : isAuto ? 'Auto: skills fire as soon as they charge.' : b.heroes.some((u) => b.ready(u.slot)) ? 'A skill is ready. Stuns are best saved for a wind-up.' : 'Skills charge as your heroes land hits.';
     const next = def.tower ? STAGES + g.tower : g.stage + 1, canNext = b.phase === 'won' && (def.tower ? true : next < STAGES && g.unlocked(next));
@@ -241,11 +242,11 @@ export default function SagaPage() {
           {Array.from({ length: SLOTS }, (_, slot) => {
             const u = b.heroes.find((x) => x.slot === slot);
             if (!u) return <span key={slot} className="sg-skill sg-empty"><strong>Empty slot</strong><small>Recruit in Summon</small></span>;
-            const ready = b.ready(slot), hero = heroById(u.key), counter=!!winding && ready && ['strike','snipe','freeze'].includes(hero.skill.kind), health=Math.max(0,Math.round(u.hp/u.max*100));
+            const ready = b.ready(slot), hero = heroById(u.key), counter=readyToInterrupt(b,slot), health=Math.max(0,Math.round(u.hp/u.max*100));
             return (
               <button key={slot} className="sg-skill" data-testid={`skill-${slot}`} data-ready={ready} data-dead={u.dead} data-counter={counter} data-low={health<=25} disabled={u.dead || over} onClick={() => cast(slot)}
-                aria-label={`${hero.name}: ${hero.skill.name}. ${u.dead ? 'Fallen.' : ready ? 'Ready.' : `${Math.floor(u.energy)}% charged.`} ${skillText(hero.skill)}`} title={skillText(hero.skill)}>
-                <span className="sg-skill-portrait"><Face id={u.key} size={240} card /><span className="sg-health"><meter min={0} max={u.max} value={Math.max(0,u.hp)} low={u.max*.25} high={u.max*.5} optimum={u.max} aria-label={`${hero.name} health`}/><small>HP {health}%{u.shield>0 ? ' · Shielded' : ''}</small></span></span>
+                aria-label={`${hero.name}: ${hero.skill.name}. ${u.dead ? 'Fallen.' : u.stun>0 ? 'Stunned.' : counter ? 'Ready to interrupt the wind-up.' : ready ? 'Ready.' : `${Math.floor(u.energy)}% charged.`} ${skillText(hero.skill)}`} title={skillText(hero.skill)}>
+                <span className="sg-skill-portrait"><Face id={u.key} size={240} card /><span className="sg-health"><meter min={0} max={u.max} value={Math.max(0,u.hp)} low={u.max*.25} high={u.max*.5} optimum={u.max} aria-label={`${hero.name} health`}/><small>HP {health}%{u.shield>0 && <span className="sg-shield-status"><svg viewBox="0 0 16 20" aria-hidden="true"><path d="M8 1L15 4v6c0 4-7 9-7 9S1 14 1 10V4Z"/></svg><span className="sg-sr-only">Shielded</span></span>}</small></span></span>
                 <span className="sg-skill-text"><b>{hero.skill.name}</b><small>{hero.name}<span className="sg-key"> · <kbd>{slot + 1}</kbd></span></small></span>
                 <i className="sg-meter" aria-hidden="true"><i style={{ width: `${u.dead ? 0 : (u.energy / ENERGY) * 100}%` }} /></i>
                 <span className="sg-charge-label">{u.dead ? 'Fallen' : u.stun>0 ? 'Stunned' : counter ? 'Interrupt' : ready ? 'Ready' : `${Math.floor(u.energy)}%`}</span>

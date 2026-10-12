@@ -190,3 +190,5 @@ Use case: precise-object-edit. Recompose the SIX magical effects in the SAME 3 c
 ### rewards
 
 Use case: precise-object-edit. Recompose the FOUR treasure props in the SAME 2 columns by 2 rows sheet with much more spacing. Keep each original effect/prop identity, material, colour, detail and order. REDUCE every individual object uniformly to 60% of its current size, then centre it in its individual cell. Leave at least 20% completely EMPTY transparent margin around every edge of EVERY cell. NO object, glow, particle, scroll end, lid, arrow tip or coin may touch or cross any cell boundary. Retain entire outlines, including scattered sparks and shards. The sheet is for individually cropped sprites: clean gutters are mandatory. Keep true transparent background, no grid lines or text, no labels, no environment or background.
+
+Interrupt highlights follow the actual engine targets via `lib/saga-feedback.ts`: a charged strike is eligible only when the winding enemy is nearest, while snipes and freezes can interrupt behind an escort. Compact shield badges and fixed caption heights keep the health rows aligned on phones.
