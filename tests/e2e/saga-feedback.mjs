@@ -9,6 +9,7 @@ try {
   });
   await p.goto(base + '/saga');
   await p.getByTestId('start').click();
+  await p.evaluate(()=>window.__saga().art.loadAll());
   await p.waitForSelector('[data-art-ready="true"]');
   const decorations = await p.evaluate(() => window.__saga().art.decorations());
   assert.equal(decorations.length, 10);
