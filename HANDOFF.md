@@ -101,7 +101,7 @@ Game 32, `/saga`, is merged on main (PR #33). It is a hero-squad adventure model
 - **Saves and hook:** `saga-v1` and `saga-sound-v1`. The save is written on every menu action and on the frame a battle ends. A battle in progress is not saved: a reload returns to the map with nothing lost. `window.__saga()` returns the game, the field, the pause flag, the speed, the auto flag and `refresh` to redraw the menus after a test changes the game.
 - **Art:** drawn in code. Heroes are the shared chinchilla in eighteen coats with a neckerchief and a role prop. `PAINTED` in `lib/saga-art.ts` is the switch for painted sheets; the layout and prompts are in `docs/saga-art.md`.
 - **Balance:** done against `tests/saga-bot.mjs` only. Three findings shaped the numbers and are worth knowing before changing them. First, when holding a stun for a wind-up only cancelled the move, firing everything on cooldown won more fights; the stagger is what makes timing pay. Second, a slam strong enough to wipe the squad made stage 1 unwinnable for a player who never fires a skill, so slams now take roughly half a back-row hero's health. Third, gold income (`GOLD`) is the sensitive dial: 36 gave the bot 16 or more losses on some seeds and 50 gave almost none; it is at 42.
-- **Checks:** `npm run test:saga`, `npm run bot:saga` (both in `npm test`) and `tests/e2e/saga.mjs`.
+- **Checks:** `npm run test:saga`, `npm run bot:saga` (both in `npm test`) and `tests/e2e/saga.mjs` (`npm run test:e2e:saga`), which passed three runs in a row before the merge. Set `ONLY` to part of a check's name to run just that check, for example `ONLY="the squad" node tests/e2e/saga.mjs`. Adding the game changed the card count from 31 to 32 in about twenty older browser suites; only `arcade-navigation`, `panel-contrast` and `dust-bath` were rerun afterwards.
 - **Next:** play it by hand, above all the first ten stages and one boss, and adjust `GOLD`, the slam `power` values in `ENEMIES` and `STAGGER` / `EXPOSED`, rerunning `npm run bot:saga` after any change; listen to the cues in `app/saga/sound.ts`; generate the painted sheets.
 - **Not done:** nobody has played it by hand and the sound has not been listened to. The eight bosses share one drawn shape with different colours and trimmings. Enemy make-up is rolled per stage, so a few stages are harder than their neighbours (the bot most often loses at stages 13, 20, 35 and 40).
 
@@ -261,6 +261,8 @@ npm run test:barrage
 npm run bot:barrage
 npm run test:summit
 npm run bot:summit
+npm run test:saga
+npm run bot:saga
 ```
 
 Browser tests need `npm run dev` running and Playwright. Playwright is **not** in `devDependencies`. Install it with `npm i -D playwright`, or link a global copy (`ln -s "$(npm root -g)/playwright" node_modules/playwright`). Then run one suite, such as `node tests/e2e/scribble.mjs`, or the whole `npm run test:e2e`. The browser tests write screenshots to `.checks/<game>/`, which git ignores.
@@ -306,4 +308,5 @@ The lists for Clash, Hay Maze and Chinchillas vs Zombies date from 26-09-2026 an
 - **Chinchilla Scribble:** no bot plays the levels, and its limits haven't been written up.
 - **Burrow Tactics:** balance has only been tuned against the bot; nobody has played the campaign or a run by hand from start to finish. A campaign mission in progress is saved since 07-10-2026. The hint looks one turn ahead only.
 - **Summit Shuffle:** balanced against the bot only. Since 07-10-2026 each chinchilla has cards of their own (`who` on a card, `poolFor()`), sixteen of them new; the new ones have not been through `TRIAL=1`. One-use treats and more chance meetings are the obvious next additions. The bot plans one turn at a time, so cards that need setting up (Belly Flop, Puff Up, Sore Spot) score badly in its trials and may be stronger in a person's hands than their numbers suggest.
+- **Whisker Saga:** balanced against the bot only and never played by hand. A battle in progress is not saved. The eight bosses share one drawn shape. There is no way to sell or break down spare gear at the top tier, no hero beyond the eighteen, and the kingdom building, guilds and rival players of the game it is modelled on were left out by choice. The art is drawn in code; `docs/saga-art.md` has the prompts for painted sheets.
 - **Balance** has only been tuned against bots. Watch real players on levels 5–6 of Hay Maze, against Baron Ebony in Clash, and on nights 7–8 of Chinchillas vs Zombies, the hardest of each.
