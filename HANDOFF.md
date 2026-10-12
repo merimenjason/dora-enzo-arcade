@@ -93,7 +93,7 @@ Game 31, `/moonpond`, is merged on main (PR #30). It is a night-fishing journal:
 
 ## Whisker Saga · 13-10-2026
 
-Game 32, `/saga`, is on the branch `feat/whisker-saga`. It is a hero-squad adventure modelled on the squad stages of Top Heroes: Kingdom Saga, with the kingdom building, guilds and anything online left out by choice.
+Game 32, `/saga`, is merged on main (PR #33). It is a hero-squad adventure modelled on the squad stages of Top Heroes: Kingdom Saga, with the kingdom building, guilds and anything online left out by choice.
 
 - **The loop:** a squad of five (two in front, three behind) marches through three waves a stage and attacks on its own. The player fires each hero's skill when it is charged. Captains, bosses and hexers wind up their big moves for 1.8 s; a stun in that window cancels the move and staggers the enemy (2.5 s stunned, 50% more damage taken for 4 s).
 - **Progress:** eighteen heroes in three factions and five roles (two to start, six from chapter bosses, ten from summons with a guarantee on the tenth), levels for gold, stars from repeat summons, four gear slots in five tiers with a forge, a faction bonus, eighty stages with three stars each, chapter chests, a camp chest that fills for four hours, and an endless tower.
@@ -107,7 +107,7 @@ Game 32, `/saga`, is on the branch `feat/whisker-saga`. It is a hero-squad adven
 
 ## Current state
 
-- **31 games on `main`**, and game 32, **Whisker Saga** (`/saga`), on `feat/whisker-saga`; the deployed arcade is at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
+- **32 games on `main`**; the deployed arcade is at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
 - Game 23, **Burrow Barrage** (`/barrage`), was added on 04-10-2026. It has been tuned with its bot only and not yet played by hand; see **Burrow Barrage, briefly**. Its phone camera and a fix to the Chin x Pit browser test followed on the same day (PR #7).
 - Game 24, **Summit Shuffle** (`/summit`), was built on 06-10-2026: a deck-building climb in the style of Slay the Spire. It too has been balanced with its bot only; see **Summit Shuffle, briefly**. The same change moved the 2D predator drawings out of `lib/burrow-tactics-scene.ts` into a shared `lib/predator-art.ts`, which both games now use.
 - Game 25, **Poof Panic** (`/poof`), was also built on 06-10-2026: a versus falling-pair puzzler in the style of Puyo Puyo. Its rivals were set with its bot only; see **Poof Panic, briefly**.
