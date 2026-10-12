@@ -10,7 +10,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Documentation
 
-- **Whisker Saga** has its rules and numbers in `docs/whisker-saga.md` and the sheet layout and prompts for a later painted pass in `docs/saga-art.md`. The README, the handoff and the project notes now count thirty-two games.
+- **Whisker Saga** has its rules and numbers in `docs/whisker-saga.md` and the sheet layout and prompts for a later painted pass in `docs/saga-art.md`. The README, the handoff and the project notes now count thirty-two games. The handoff also lists the game's commands, how to run one browser check on its own, which older browser suites were not rerun after the count changed, and its known limits.
 
 ## 11-10-2026
 
