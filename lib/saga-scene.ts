@@ -1,6 +1,6 @@
 // Whisker Saga's battlefield, drawn in Canvas 2D. Drawing only: it reads the battle and never changes it.
 import { ENERGY, SPAWN, heroById, type Battle, type BattleEvent, type EnemyKind, type Unit } from './saga-game';
-import { drawBackdrop, drawEnemy, drawHero, ENEMY_HEIGHT, FACTION_COLOR, RARITY_COLOR } from './saga-art';
+import { drawBackdrop, drawEnemy, drawHero, drawHeroPortrait, ENEMY_HEIGHT, FACTION_COLOR, RARITY_COLOR } from './saga-art';
 
 type Look = { x: number; y: number; lunge: number; hurt: number; hp: number; cast: number };
 type Ghost = { kind: EnemyKind; x: number; y: number; t: number };
@@ -8,7 +8,7 @@ type Fx = {
   kind: 'num' | 'shot' | 'slash' | 'ring' | 'word' | 'plus' | 'rain' | 'flake' | 'star' | 'puff' | 'up';
   x: number; y: number; tx?: number; ty?: number; t: number; life: number; text?: string; color: string; size?: number; seed?: number;
 };
-const LANES = [0.5, 0.18, 0.82, 0.02, 0.98], FRONT = [0.26, 0.76], BACK = [0.08, 0.5, 0.92];
+const LANES = [0.5, 0.18, 0.82, 0.02, 0.98];
 const ease = (x: number) => 1 - (1 - x) * (1 - x);
 
 export class Field {
@@ -18,20 +18,22 @@ export class Field {
   private looks = new Map<number, Look>(); private ghosts: Ghost[] = []; private fx: Fx[] = [];
   private w = 1; private h = 1; private chapter = 0;
 
-  private get unit() { return Math.max(40, Math.min(88, this.h * 0.17, this.w * 0.13)); }
+  private get unit() { return Math.max(30, Math.min(180, this.h * 0.31, this.w * 0.125)); }
   private get top() { return this.h * 0.56; }
-  private get bottom() { return this.h * 0.93; }
+  private get bottom() { return this.h * 0.86; }
   private lane(f: number) { return this.top + (this.bottom - this.top) * f; }
   private get backX() { return Math.max(this.w * 0.14, this.unit * 1.2); }
-  private get frontX() { return Math.max(this.w * 0.33, this.backX + this.unit * 1.55); }
+  private get frontX() { return Math.max(this.w * 0.4, this.backX + this.unit * 1.55); }
   /** Where a hero stands, by squad slot. */
   heroAt(slot: number) {
-    const front = slot < 2, f = front ? FRONT[slot] : BACK[slot - 2];
-    return { x: (front ? this.frontX : this.backX) + (f - 0.5) * this.w * 0.05, y: this.lane(f) };
+    // Two heroes in front of three: broad, readable silhouettes instead of one overlapping column.
+    const front = slot < 2;
+    return { x: front ? this.frontX - (1-slot)*this.w*.14 : this.w*(.12+(slot-2)*.145), y: this.h*(front?.83:.60) };
   }
   private enemyAt(u: Unit) {
     const step = (this.w - this.frontX - this.unit * 1.2) / (SPAWN + 0.6), f = LANES[u.slot % LANES.length];
-    return { x: this.frontX + this.unit * 0.95 + u.d * step + (f - 0.5) * this.w * 0.04, y: this.lane(f) };
+    const margin=this.unit*(u.boss?1.5:u.key==='brute'||u.key==='captain'?1:.65)+10;
+    return { x: Math.min(this.w-margin,this.frontX + this.unit * 0.95 + u.d * step + (f - 0.5) * this.w * 0.04), y: this.lane(f) };
   }
   private look(u: Unit) {
     let l = this.looks.get(u.uid);
@@ -119,7 +121,7 @@ export class Field {
     this.w = w; this.h = h; this.chapter = b.def.chapter;
     this.clock += dt;
     const t = this.clock, u = this.unit, marching = b.phase === 'march';
-    if (marching) this.scroll += dt * w * 0.3;
+    if (marching && this.motion) this.scroll += dt * w * 0.3;
     this.shake = Math.max(0, this.shake - dt * 1.6); this.flash = Math.max(0, this.flash - dt * 1.4); this.bannerT = Math.max(0, this.bannerT - dt);
     if (this.cheer) this.cheer += dt;
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -186,7 +188,7 @@ export class Field {
       c.strokeStyle = `rgba(255,214,74,${0.55 + pulse * 0.45})`; c.lineWidth = 3; c.beginPath(); c.ellipse(l.x, l.y, u * (0.44 + pulse * 0.05), u * (0.1 + pulse * 0.015), 0, 0, Math.PI * 2); c.stroke();
     }
     if (hero.dead) c.globalAlpha = 0.4;
-    drawHero(c, hero.key, x, y, u, t + hero.slot, { moving: marching && !hero.dead && this.motion, run: t * 22, swing: Math.max(l.lunge, l.cast), glow: hero.energy / ENERGY, dizzy: hero.dead });
+    drawHero(c, hero.key, x, y, u, t + hero.slot, { moving: marching && !hero.dead && this.motion, run: t * 22, swing: Math.max(l.lunge, l.cast), glow: hero.energy / ENERGY, dizzy: hero.dead, motion: this.motion });
     c.globalAlpha = 1;
     if (hero.shield > 0 && !hero.dead) { c.strokeStyle = 'rgba(143,208,255,.9)'; c.fillStyle = 'rgba(143,208,255,.18)'; c.lineWidth = 2; c.beginPath(); c.ellipse(l.x + u * 0.04, y - u * 0.45, u * 0.5, u * 0.56, 0, 0, Math.PI * 2); c.fill(); c.stroke(); }
     if (hero.haste > 0 && !hero.dead) { c.fillStyle = '#ffb04a'; c.font = `900 ${u * 0.22}px system-ui, sans-serif`; c.textAlign = 'center'; c.fillText('»', l.x - u * 0.42, y - u * 0.5); }
@@ -205,16 +207,16 @@ export class Field {
     const x = l.x - (this.motion ? ease(l.lunge) * u * 0.16 - l.hurt * u * 0.07 : 0);
     c.save();
     if (foe.exposed > 0) { c.shadowColor = '#ffe46b'; c.shadowBlur = 14; }
-    drawEnemy(c, kind, this.chapter, x, l.y, size, t + foe.uid, { wind, step: moving && this.motion ? t * 6 + foe.uid : 0 });
+    drawEnemy(c, kind, this.chapter, x, l.y, size, t + foe.uid, { wind, step: moving && this.motion ? t * 6 + foe.uid : 0, motion: this.motion });
     c.shadowBlur = 0;
     const top = l.y - tall - 12, bw = foe.boss ? u * 1.5 : kind === 'captain' || kind === 'brute' ? u * 0.95 : u * 0.66;
-    this.bar(c, l.x, top, bw, foe.boss ? 7 : 5, l.hp, '#f0604a');
+    if(!foe.boss)this.bar(c, l.x, top, bw, 5, l.hp, '#f0604a');
     if (foe.wind > 0 && foe.special) {
       const slam = foe.special.kind === 'slam';
-      this.bar(c, l.x, top - 10, bw, 6, wind, slam ? '#ffb04a' : '#8ff08a');
-      c.font = `900 ${u * 0.3}px system-ui, sans-serif`; c.textAlign = 'center'; c.lineWidth = 4; c.strokeStyle = 'rgba(30,22,44,.9)'; c.fillStyle = slam ? '#ff8a6e' : '#b8f0a8';
+      if(!foe.boss)this.bar(c, l.x, top - 10, bw, 6, wind, slam ? '#ffb04a' : '#8ff08a');
+      if(!foe.boss){c.font = `900 ${u * 0.3}px system-ui, sans-serif`; c.textAlign = 'center'; c.lineWidth = 4; c.strokeStyle = 'rgba(30,22,44,.9)'; c.fillStyle = slam ? '#ff8a6e' : '#b8f0a8';
       const bounce = this.motion ? Math.abs(Math.sin(t * 9)) * 4 : 0;
-      c.strokeText('!', l.x + bw / 2 + 10, top - 2 - bounce); c.fillText('!', l.x + bw / 2 + 10, top - 2 - bounce);
+      c.strokeText('!', l.x + bw / 2 + 10, top - 2 - bounce); c.fillText('!', l.x + bw / 2 + 10, top - 2 - bounce);}
     }
     if (foe.stun > 0) {
       c.fillStyle = '#ffe46b'; c.strokeStyle = 'rgba(30,22,44,.8)'; c.lineWidth = 1;
@@ -271,15 +273,16 @@ export class Field {
 }
 
 /** A hero's portrait for the roster, the squad slots and the skill buttons. */
-export function portrait(c: CanvasRenderingContext2D, id: string, size: number, known = true) {
+export function portrait(c: CanvasRenderingContext2D, id: string, size: number, known = true, card = false) {
   const hero = heroById(id);
   c.clearRect(0, 0, size, size);
+  if(known && card && drawHeroPortrait(c,id,size))return;
   c.save();
   c.beginPath(); c.roundRect(0, 0, size, size, size * 0.2); c.clip();
   const g = c.createLinearGradient(0, 0, 0, size);
-  g.addColorStop(0, known ? '#fff8e6' : '#4a4460'); g.addColorStop(1, known ? FACTION_COLOR[hero.faction] : '#2c2840');
+  g.addColorStop(0, known ? '#daceaa' : '#4a4460'); g.addColorStop(1, known ? '#536044' : '#2c2840');
   c.fillStyle = g; c.fillRect(0, 0, size, size);
-  drawHero(c, id, size * 0.43, size * 0.97, size * 0.92, 0.6, { silhouette: !known });
+  if (!known || !drawHeroPortrait(c,id,size)) drawHero(c, id, size * 0.43, size * 0.97, size * 0.92, 0.6, { silhouette: !known });
   c.restore();
-  if (known) { c.strokeStyle = RARITY_COLOR[hero.rarity]; c.lineWidth = Math.max(2, size * 0.06); c.beginPath(); c.roundRect(c.lineWidth / 2, c.lineWidth / 2, size - c.lineWidth, size - c.lineWidth, size * 0.18); c.stroke(); }
+  if (known) { c.strokeStyle = RARITY_COLOR[hero.rarity]; c.lineWidth = Math.max(1, size * 0.012); c.beginPath(); c.roundRect(c.lineWidth / 2, c.lineWidth / 2, size - c.lineWidth, size - c.lineWidth, size * 0.18); c.stroke(); }
 }

@@ -132,3 +132,7 @@ A save that fails any check in `Game.load` is ignored whole.
 - `lib/saga-art.ts`: heroes, enemies and backdrops by name. See [`saga-art.md`](saga-art.md).
 - `lib/saga-scene.ts`: `Field` draws a battle. `take` turns battle events into effects, `inspect` reports what is on screen for the browser tests, `slotAt` finds the hero under a tap.
 - `app/saga/`: the page, styles, metadata and sounds. `window.__saga()` returns the game, the field, the pause flag, the speed, the auto flag and a `refresh` for the menus.
+
+## Painted presentation · 13-10-2026
+
+The painted pass adds eighteen hero sprites and dedicated portraits, six enemy sprites, eight boss sprites and eight illustrated chapter landscapes. The named art API keeps code-drawn fallbacks; missing artwork can be retried without losing progress. The wider formation and larger skill cards are visual changes only. Boss health and wind-up meters read live battle state. Marching, lunges, breathing, projectiles, spells, defeats and celebrations remain animated; reduced motion removes scene movement while skills and battle rules continue. See `docs/saga-art.md` for provenance and exact prompts.

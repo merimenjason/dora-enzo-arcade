@@ -8,7 +8,7 @@ import {
   type EnemyKind, type Summoned,
 } from '../../lib/saga-game';
 import { Field, portrait } from '../../lib/saga-scene';
-import { loadSagaArt, RARITY_COLOR, FACTION_COLOR } from '../../lib/saga-art';
+import { loadSagaArt, sagaPaintVersion, sagaPaintReady, sagaPaintStats, RARITY_COLOR, FACTION_COLOR } from '../../lib/saga-art';
 import './saga.css';
 import { sound } from './sound';
 
@@ -31,9 +31,9 @@ const lineUp = (n: number) => {
   return order.filter((k) => count.has(k)).map((k) => { const c = count.get(k)!, name = k === 'boss' && !def.tower ? BOSSES[def.chapter] : ENEMIES[k].name; return c > 1 ? `${c} ${name}s` : name; }).join(', ');
 };
 
-function Face({ id, size = 56, known = true }: { id: string; size?: number; known?: boolean }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => { const c = ref.current?.getContext('2d'); if (!c) return; c.setTransform(2, 0, 0, 2, 0, 0); portrait(c, id, size, known); }, [id, size, known]);
+function Face({ id, size = 56, known = true, card = false }: { id: string; size?: number; known?: boolean; card?: boolean }) {
+  const ref = useRef<HTMLCanvasElement>(null), art = sagaPaintVersion();
+  useEffect(() => { const c = ref.current?.getContext('2d'); if (!c) return; c.setTransform(2, 0, 0, 2, 0, 0); portrait(c, id, size, known, card); }, [id, size, known, art, card]);
   return <canvas ref={ref} className="sg-face" width={size * 2} height={size * 2} style={{ width: size, height: size }} aria-hidden="true" />;
 }
 const Coin = () => <i className="sg-coin" aria-hidden="true" />;
@@ -45,13 +45,15 @@ export default function SagaPage() {
   const [loaded, setLoaded] = useState(false), [kept, setKept] = useState<Game | null>(null), [view, setView] = useState<'title' | 'hub' | 'battle'>('title');
   const [, setFrame] = useState(0), [tab, setTab] = useState<Tab>('adventure'), [chapter, setChapter] = useState(0), [stage, setStage] = useState(0), [picked, setPicked] = useState('dora');
   const [pulled, setPulled] = useState<Summoned[]>([]), [note, setNote] = useState(''), [isPaused, setIsPaused] = useState(false), [muted, setMuted] = useState(false), [sure, setSure] = useState(false);
+  const [artError,setArtError] = useState(false);
+  const retryArt = () => { setArtError(false); void loadSagaArt().then(redraw).catch(()=>setArtError(true)); };
   const [fast, setFast] = useState(false), [isAuto, setIsAuto] = useState(false);
   const redraw = useCallback(() => setFrame((n) => n + 1), []);
 
-  useEffect(() => { void loadSagaArt().catch(() => undefined).then(() => { setKept(read()); setMuted(sound.muted()); setLoaded(true); }); }, []);
+  useEffect(() => { void loadSagaArt().catch(() => setArtError(true)).then(() => { setKept(read()); setMuted(sound.muted()); setLoaded(true); }); }, []);
   useEffect(() => { const media = matchMedia('(prefers-reduced-motion: reduce)'), sync = () => { field.current.motion = !media.matches; }; sync(); media.addEventListener('change', sync); return () => media.removeEventListener('change', sync); }, []);
 
-  useEffect(() => { (window as unknown as { __saga?: () => unknown }).__saga = () => ({ game: game.current, field: field.current, paused: paused.current, speed: speed.current, auto: auto.current, refresh: redraw }); }, [redraw]);
+  useEffect(() => { (window as unknown as { __saga?: () => unknown }).__saga = () => ({ game: game.current, field: field.current, paused: paused.current, speed: speed.current, auto: auto.current, refresh: redraw, art: {ready:sagaPaintReady(), inspect:sagaPaintStats} }); }, [redraw]);
   const store = useCallback(() => { if (game.current) write(game.current); }, []);
   const pause = useCallback((on: boolean) => { paused.current = on; setIsPaused(on); }, []);
   const mute = () => { const m = !sound.muted(); sound.setMuted(m); setMuted(m); };
@@ -104,7 +106,7 @@ export default function SagaPage() {
         const c = cv.getContext('2d');
         if (c && w > 0 && h > 0) field.current.draw(c, w, h, dpr, b, paused.current ? 0 : dt * (b.phase === 'fight' || b.phase === 'march' ? speed.current : 1));
         // The HUD only re-renders when something it shows has changed.
-        const key = `${b.phase}|${b.wave}|${Math.floor(b.time)}|${b.winding?.uid ?? ''}|${b.heroes.map((u) => `${u.dead ? 'x' : Math.floor(u.energy / 5)}${b.ready(u.slot) ? 'r' : ''}`).join(',')}`;
+        const key = `${b.phase}|${b.wave}|${Math.floor(b.time)}|${b.foes.filter(u=>u.boss).map(u=>`${Math.round(u.hp/u.max*100)}:${Math.round(u.wind*10)}`).join(',')}|${b.winding?.uid ?? ''}|${b.heroes.map((u) => `${u.dead ? 'x' : Math.floor(u.energy / 5)}${b.ready(u.slot) ? 'r' : ''}`).join(',')}`;
         if (key !== shown) { shown = key; redraw(); }
       }
       raf = requestAnimationFrame(loop);
@@ -133,11 +135,13 @@ export default function SagaPage() {
     return () => window.removeEventListener('keydown', down);
   }, [view, cast, pause, toggleAuto, toggleFast]);
 
+  const artworkStatus = artError ? <aside className="sg-art-status">Some artwork could not load. Your saga is still playable. <button onClick={retryArt}>Retry artwork</button></aside> : null;
   if (!loaded) return <main className="sg-shell"><p className="sg-loading">Gathering the squad…</p></main>;
 
   if (view === 'title') {
     return (
-      <main className="sg-shell sg-title">
+      <main className="sg-shell sg-title" data-art-ready={sagaPaintReady()}>
+        {artworkStatus}
         <a className="sg-back" href="/">← MAIN ARCADE</a>
         <section className="sg-title-card">
           <p className="sg-eyebrow">A hero-squad adventure</p>
@@ -157,7 +161,7 @@ export default function SagaPage() {
   const g = game.current!;
 
   if (view === 'battle' && g.battle) {
-    const b = g.battle, def = b.def, over = b.phase === 'won' || b.phase === 'lost', loot = g.loot, winding = b.winding;
+    const b = g.battle, def = b.def, boss = b.foes.find(u=>u.boss), over = b.phase === 'won' || b.phase === 'lost', loot = g.loot, winding = b.winding;
     const canStop = b.heroes.some((u) => b.ready(u.slot) && ['strike', 'snipe', 'freeze'].includes(u.skill!.kind));
     const hint = isPaused ? 'Paused.' : winding ? (winding.special!.kind === 'slam' ? `${winding.name} is winding up a slam. ${canStop ? 'Stun it now!' : 'Shield the squad if you can.'}` : `${winding.name} is about to heal. ${canStop ? 'Stun it to stop the spell.' : ''}`)
       : b.phase === 'march' ? 'The squad marches on.' : isAuto ? 'Auto: skills fire as soon as they charge.' : b.heroes.some((u) => b.ready(u.slot)) ? 'A skill is ready. Stuns are best saved for a wind-up.' : 'Skills charge as your heroes land hits.';
@@ -166,9 +170,9 @@ export default function SagaPage() {
     const onward = () => { g.leave(); fight(next); };
     const tap = (e: React.PointerEvent<HTMLCanvasElement>) => { const box = e.currentTarget.getBoundingClientRect(), slot = field.current.slotAt(e.clientX - box.left, e.clientY - box.top); if (slot >= 0 && g.squad[slot]) cast(slot); };
     return (
-      <main className="sg-shell sg-battle" data-phase={b.phase} data-wave={b.wave} data-paused={isPaused} data-winding={!!winding}>
+      <main data-art-ready={sagaPaintReady()} className="sg-shell sg-battle" data-phase={b.phase} data-wave={b.wave} data-paused={isPaused} data-winding={!!winding}>
         <header className="sg-header">
-          <button className="sg-quiet" data-testid="retreat" onClick={leaveBattle}>{over ? '← Map' : '← Retreat'}</button>
+          <div className="sg-battle-heading"><strong>Whisker Saga</strong><button className="sg-quiet" data-testid="retreat" onClick={leaveBattle}>{over ? '← Map' : '← Retreat'}</button></div>
           <div className="sg-where" data-testid="where"><strong>{def.name}</strong><span>Wave {Math.min(b.wave + 1, def.waves.length)}/{def.waves.length}</span><span className={b.time > PAR ? 'sg-late' : ''}>{clock(b.time)}</span></div>
           <div className="sg-top-buttons">
             {g.canAuto(g.stage) && <button data-testid="auto" aria-pressed={isAuto} onClick={toggleAuto}>Auto</button>}
@@ -177,8 +181,10 @@ export default function SagaPage() {
             <button data-testid="mute" aria-pressed={muted} onClick={mute}>{muted ? 'Sound off' : 'Sound on'}</button>
           </div>
         </header>
+        {artworkStatus}
         <section className="sg-stage" aria-label="The battlefield">
           <canvas ref={canvas} data-testid="field" aria-label={`${def.name}. Your squad fights on its own. Press 1 to 5 to fire a hero's skill.`} onPointerDown={tap} onContextMenu={(e) => e.preventDefault()} />
+          {boss && <section className="sg-boss-hud" aria-label={boss.name}><strong>{boss.name}</strong><progress max={boss.max} value={boss.hp} aria-label={`${boss.name} health`}/>{boss.wind>0 && boss.special && <><span>{boss.special.kind==='slam'?'Slam':'Healing'}</span><progress className="sg-wind-meter" max={boss.special.wind} value={boss.special.wind-boss.wind} aria-label="Boss wind-up"/></>}</section>}
           <output className="sg-hint" data-testid="hint" data-alarm={!!winding && !isPaused}>{hint}</output>
           {isPaused && !over && <dialog open className="sg-card" data-testid="paused"><h2>Paused</h2><button className="sg-gold" data-testid="resume" onClick={() => pause(false)}>Resume</button><button onClick={leaveBattle}>Retreat to the map</button></dialog>}
           {b.phase === 'won' && loot && (
@@ -224,9 +230,10 @@ export default function SagaPage() {
             return (
               <button key={slot} className="sg-skill" data-testid={`skill-${slot}`} data-ready={ready} data-dead={u.dead} disabled={u.dead || over} onClick={() => cast(slot)}
                 aria-label={`${hero.name}: ${hero.skill.name}. ${u.dead ? 'Fallen.' : ready ? 'Ready.' : `${Math.floor(u.energy)}% charged.`} ${skillText(hero.skill)}`} title={skillText(hero.skill)}>
-                <Face id={u.key} size={44} />
+                <Face id={u.key} size={240} card />
                 <span className="sg-skill-text"><b>{hero.skill.name}</b><small>{hero.name}<span className="sg-key"> · <kbd>{slot + 1}</kbd></span></small></span>
                 <i className="sg-meter" aria-hidden="true"><i style={{ width: `${u.dead ? 0 : (u.energy / ENERGY) * 100}%` }} /></i>
+                <span className="sg-charge-label">{u.dead ? 'Fallen' : ready ? 'Ready' : `${Math.floor(u.energy)}%`}</span>
               </button>
             );
           })}
@@ -261,7 +268,8 @@ export default function SagaPage() {
   };
 
   return (
-    <main className="sg-shell sg-hub" data-tab={tab}>
+    <main className="sg-shell sg-hub" data-tab={tab} data-art-ready={sagaPaintReady()}>
+      {artworkStatus}
       <header className="sg-header">
         <a className="sg-back" href="/" onClick={store}>← ARCADE</a>
         <h1 className="sg-brand">Whisker Saga</h1>
