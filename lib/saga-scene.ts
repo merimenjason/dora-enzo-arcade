@@ -1,12 +1,12 @@
 // Whisker Saga's battlefield, drawn in Canvas 2D. Drawing only: it reads the battle and never changes it.
 import { ENERGY, SPAWN, heroById, type Battle, type BattleEvent, type EnemyKind, type Unit } from './saga-game';
-import { drawBackdrop, drawEnemy, drawHero, drawHeroPortrait, ENEMY_HEIGHT, FACTION_COLOR, RARITY_COLOR } from './saga-art';
+import { drawBackdrop, drawEnemy, drawHero, drawHeroPortrait, sagaDecoration, ENEMY_HEIGHT, FACTION_COLOR, RARITY_COLOR } from './saga-art';
 
 type Look = { x: number; y: number; lunge: number; hurt: number; hp: number; cast: number };
 type Ghost = { kind: EnemyKind; x: number; y: number; t: number };
 type Fx = {
-  kind: 'num' | 'shot' | 'slash' | 'ring' | 'word' | 'plus' | 'rain' | 'flake' | 'star' | 'puff' | 'up';
-  x: number; y: number; tx?: number; ty?: number; t: number; life: number; text?: string; color: string; size?: number; seed?: number;
+  kind: 'num' | 'shot' | 'slash' | 'ring' | 'word' | 'plus' | 'rain' | 'flake' | 'star' | 'puff' | 'up' | 'texture';
+  x: number; y: number; tx?: number; ty?: number; t: number; life: number; text?: string; color: string; size?: number; seed?: number; texture?: number;
 };
 const LANES = [0.5, 0.18, 0.82, 0.02, 0.98];
 const ease = (x: number) => 1 - (1 - x) * (1 - x);
@@ -14,7 +14,7 @@ const ease = (x: number) => 1 - (1 - x) * (1 - x);
 export class Field {
   /** Off when the visitor asks for reduced motion: no shake, no drifting particles, no flashes. */
   motion = true;
-  clock = 0; scroll = 0; shake = 0; flash = 0; flashColor = '#fff'; banner = ''; bannerT = 0; cheer = 0;
+  clock = 0; texturesCreated = 0; scroll = 0; shake = 0; flash = 0; flashColor = '#fff'; banner = ''; bannerT = 0; cheer = 0;
   private looks = new Map<number, Look>(); private ghosts: Ghost[] = []; private fx: Fx[] = [];
   private w = 1; private h = 1; private chapter = 0;
 
@@ -47,9 +47,9 @@ export class Field {
     for (let slot = 0; slot < 5; slot++) { const p = this.heroAt(slot); if (Math.abs(x - p.x) < this.unit * 0.55 && y < p.y + this.unit * 0.15 && y > p.y - this.unit * 1.15) return slot; }
     return -1;
   }
-  reset() { this.looks.clear(); this.ghosts = []; this.fx = []; this.shake = 0; this.flash = 0; this.banner = ''; this.bannerT = 0; this.cheer = 0; this.scroll = 0; }
+  reset() { this.looks.clear(); this.ghosts = []; this.fx = []; this.shake = 0; this.flash = 0; this.banner = ''; this.bannerT = 0; this.cheer = 0; this.scroll = 0; this.texturesCreated = 0; }
 
-  private add(f: Fx) { if (this.fx.length < 220) this.fx.push(f); }
+  private add(f: Fx) { if (this.fx.length < 220) {this.fx.push(f);if(f.kind==='texture')this.texturesCreated++;} }
   private word(x: number, y: number, text: string, color: string, size = 1, life = 1.1) { this.add({ kind: 'word', x, y, t: 0, life, text, color, size }); }
 
   /** Turn what just happened in the battle into things to see. */
@@ -62,7 +62,7 @@ export class Field {
         if (!from || !to) continue;
         const a = this.look(from), z = this.look(to), tall = to.hero ? u : u * ENEMY_HEIGHT[to.key as EnemyKind];
         a.lunge = 1; z.hurt = 1;
-        this.add({ kind: 'num', x: z.x + (Math.random() - 0.5) * u * 0.4, y: z.y - tall * 0.9, t: 0, life: 0.8, text: String(e.amount), color: e.skill ? '#ffd24a' : to.hero ? '#ff7d6e' : '#ffffff', size: e.skill ? 1.35 : 1 });
+        this.add({ kind: 'num', x: z.x + (Math.random() - 0.5) * u * 0.4, y: z.y - tall * (to.boss ? .5 : .9), t: 0, life: 0.8, text: String(e.amount), color: e.skill ? '#ffd24a' : to.hero ? '#ff7d6e' : '#ffffff', size: e.skill ? 1.35 : 1 });
         if (e.ranged && !e.skill) this.add({ kind: 'shot', x: a.x + (from.hero ? u * 0.4 : -u * 0.3), y: a.y - u * 0.45, tx: z.x, ty: z.y - tall * 0.45, t: 0, life: 0.14, color: from.hero ? '#fff6c8' : '#d6f08a' });
         else this.add({ kind: 'slash', x: z.x, y: z.y - tall * 0.45, t: 0, life: 0.2, color: e.skill ? '#ffd24a' : '#ffffff', size: e.skill ? 1.6 : 1, seed: from.hero ? 1 : -1 });
       } else if (e.type === 'heal') {
@@ -79,16 +79,19 @@ export class Field {
         this.word(a.x, a.y - u * 1.45, e.name, '#fff7d6', 1.05, 1.2);
         this.add({ kind: 'ring', x: a.x, y: a.y - u * 0.45, t: 0, life: 0.45, color: tint, size: u * 0.9 });
         if (!this.motion) continue;
+        const texture = e.kind === 'strike' ? 0 : e.kind === 'ward' ? 1 : e.kind === 'heal' || e.kind === 'mend' ? 2 : e.kind === 'volley' || e.kind === 'snipe' ? 3 : e.kind === 'freeze' ? 4 : 5;
+        this.add({kind:'texture',texture,x:a.x,y:a.y-u*.5,t:0,life:.65,size:u*1.2,color:tint});
         const foes = b.foes.map((f) => this.look(f));
+        if(texture===3 || texture===4) for(const f of foes)this.add({kind:'texture',texture,x:f.x,y:f.y-u*.5,t:-.1,life:.55,size:u,color:tint});
         if (e.kind === 'volley') for (const f of foes) for (let i = 0; i < 4; i++) this.add({ kind: 'rain', x: f.x + (Math.random() - 0.5) * u, y: f.y - u * 0.3, t: -Math.random() * 0.2, life: 0.3, color: tint });
         if (e.kind === 'freeze') { this.flash = 0.35; this.flashColor = '#bfe6ff'; for (const f of foes) for (let i = 0; i < 5; i++) this.add({ kind: 'flake', x: f.x + (Math.random() - 0.5) * u, y: f.y - Math.random() * u, t: 0, life: 0.9, color: '#e8f7ff', seed: Math.random() * 6 }); }
         if (e.kind === 'rally') for (const hh of b.alive) { const z = this.look(hh); for (let i = 0; i < 3; i++) this.add({ kind: 'up', x: z.x + (i - 1) * u * 0.22, y: z.y - u * 0.2, t: -i * 0.07, life: 0.7, color: '#ffb04a' }); }
       } else if (e.type === 'windup') {
-        const from = find(e.from); if (from) { const a = this.look(from); this.word(a.x, a.y - u * ENEMY_HEIGHT[from.key as EnemyKind] - u * 0.5, e.kind === 'slam' ? 'Winding up!' : 'Healing…', e.kind === 'slam' ? '#ff8a6e' : '#b8f0a8', 1, 1.4); }
+        const from = find(e.from); if (from && !from.boss) { const a = this.look(from); this.word(a.x, a.y - u * ENEMY_HEIGHT[from.key as EnemyKind] - u * 0.5, e.kind === 'slam' ? 'Winding up!' : 'Healing…', e.kind === 'slam' ? '#ff8a6e' : '#b8f0a8', 1, 1.4); }
       } else if (e.type === 'interrupt') {
         const from = find(e.from); if (!from) continue;
         const a = this.look(from), y = a.y - u * ENEMY_HEIGHT[from.key as EnemyKind] * 0.6;
-        this.word(a.x, y - u * 0.7, 'Interrupted!', '#ffe46b', 1.45, 1.3);
+        this.word(a.x, y - u * (from.boss ? .2 : .7), 'Interrupted!', '#ffe46b', 1.45, 1.3);
         this.shake = Math.max(this.shake, 0.25);
         if (this.motion) for (let i = 0; i < 10; i++) this.add({ kind: 'star', x: a.x, y, t: 0, life: 0.6, color: '#ffe46b', seed: i });
       } else if (e.type === 'slam') {
@@ -97,7 +100,7 @@ export class Field {
         this.shake = 0.6; this.flash = 0.4; this.flashColor = '#ff6a50';
         this.add({ kind: 'ring', x: a.x, y: a.y - u * 0.2, t: 0, life: 0.55, color: '#ff8a6e', size: this.w * 0.7 });
       } else if (e.type === 'call') {
-        const from = find(e.from); if (from) { const a = this.look(from); this.word(a.x, a.y - u * 2.6, 'Calls for help!', '#ffd9a8', 1.1, 1.4); }
+        const from = find(e.from); if (from) { const a = this.look(from); this.word(a.x, a.y - u * 1.4, 'Calls for help!', '#ffd9a8', 1.1, 1.4); }
       } else if (e.type === 'die') {
         const who = find(e.uid); if (!who) continue;
         const a = this.look(who);
@@ -113,7 +116,7 @@ export class Field {
   inspect(b: Battle) {
     return {
       heroes: b.heroes.map((u) => ({ slot: u.slot, ...this.heroAt(u.slot) })), enemies: b.foes.map((u) => ({ uid: u.uid, ...this.enemyAt(u) })),
-      fx: this.fx.length, ghosts: this.ghosts.length, shake: this.shake, flash: this.flash, banner: this.bannerT > 0 ? this.banner : '', scroll: this.scroll, cheer: this.cheer, unit: this.unit,
+      texturesCreated:this.texturesCreated, textures: this.fx.filter(f=>f.kind==='texture').length, fx: this.fx.length, ghosts: this.ghosts.length, shake: this.shake, flash: this.flash, banner: this.bannerT > 0 ? this.banner : '', scroll: this.scroll, cheer: this.cheer, unit: this.unit,
     };
   }
 
@@ -188,7 +191,7 @@ export class Field {
       c.strokeStyle = `rgba(255,214,74,${0.55 + pulse * 0.45})`; c.lineWidth = 3; c.beginPath(); c.ellipse(l.x, l.y, u * (0.44 + pulse * 0.05), u * (0.1 + pulse * 0.015), 0, 0, Math.PI * 2); c.stroke();
     }
     if (hero.dead) c.globalAlpha = 0.4;
-    drawHero(c, hero.key, x, y, u, t + hero.slot, { moving: marching && !hero.dead && this.motion, run: t * 22, swing: Math.max(l.lunge, l.cast), glow: hero.energy / ENERGY, dizzy: hero.dead, motion: this.motion });
+    drawHero(c, hero.key, x, y, u, t + hero.slot, { moving: marching && !hero.dead && this.motion, run: t * 22, swing: Math.max(l.lunge, l.cast), glow: hero.energy / ENERGY, dizzy: hero.dead, motion: this.motion && !hero.dead });
     c.globalAlpha = 1;
     if (hero.shield > 0 && !hero.dead) { c.strokeStyle = 'rgba(143,208,255,.9)'; c.fillStyle = 'rgba(143,208,255,.18)'; c.lineWidth = 2; c.beginPath(); c.ellipse(l.x + u * 0.04, y - u * 0.45, u * 0.5, u * 0.56, 0, 0, Math.PI * 2); c.fill(); c.stroke(); }
     if (hero.haste > 0 && !hero.dead) { c.fillStyle = '#ffb04a'; c.font = `900 ${u * 0.22}px system-ui, sans-serif`; c.textAlign = 'center'; c.fillText('»', l.x - u * 0.42, y - u * 0.5); }
@@ -237,7 +240,9 @@ export class Field {
       if (f.t < 0) continue;
       const p = Math.min(1, f.t / f.life), fade = 1 - p * p;
       c.save(); c.globalAlpha = Math.max(0, fade);
-      if (f.kind === 'num' || f.kind === 'word') {
+      if(f.kind==='texture'){
+        if(this.motion){const grow=.65+ease(p)*.55;c.translate(f.x,f.y);c.rotate(f.texture===0?(p-.5)*.6:f.texture===4?p*.5:0);c.globalAlpha=Math.sin(p*Math.PI)*.72;sagaDecoration(c,'effects',f.texture??0,0,0,(f.size??u)*grow);}
+      } else if (f.kind === 'num' || f.kind === 'word') {
         const size = (f.kind === 'num' ? u * 0.26 : u * 0.24) * (f.size ?? 1) * (f.kind === 'word' && this.motion ? 1 + Math.max(0, 0.25 - f.t) * 1.6 : 1);
         c.font = `900 ${Math.max(11, size)}px system-ui, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
         const y = f.y - (this.motion ? ease(p) * u * 0.45 : 0), x = Math.max(size * 2.2, Math.min(this.w - size * 2.2, f.x));

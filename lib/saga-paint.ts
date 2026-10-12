@@ -2,6 +2,8 @@ import { SAGA_CROPS } from './saga-crops';
 /** Painted artwork stays independent of the battle and save format. */
 const grids: Record<string, [number, number]> = {
   'hero-dora': [1, 1],
+  effects: [3, 2],
+  rewards: [2, 2],
   enemies: [3, 2],
   'bosses-0': [2, 2],
 };
@@ -66,15 +68,20 @@ function cell(key: string, index: number) {
       fw,
       fh,
     ];
-  const sx = Math.max(0, raw[0] - 24),
-    sy = Math.max(0, raw[1] - 24),
-    w = Math.min(image.width, raw[0] + raw[2] + 24) - sx,
-    h = Math.min(image.height, raw[1] + raw[3] + 24) - sy;
+  const pad = key === 'effects' || key === 'rewards' ? 0 : 24;
+  const sx = Math.max(0, raw[0] - pad),
+    sy = Math.max(0, raw[1] - pad),
+    w = Math.min(image.width, raw[0] + raw[2] + pad) - sx,
+    h = Math.min(image.height, raw[1] + raw[3] + pad) - sy;
   const scratch = document.createElement('canvas');
   scratch.width = w;
   scratch.height = h;
   const c = scratch.getContext('2d')!;
   c.drawImage(image, sx, sy, w, h, 0, 0, w, h);
+  if (key === 'effects' || key === 'rewards') {
+    cells.set(id, scratch);
+    return scratch;
+  }
   const data = c.getImageData(0, 0, w, h),
     p = data.data,
     seen = new Uint8Array(w * h);
@@ -209,7 +216,10 @@ export function sagaLandscape(
 /** Read-only crop diagnostics, invoked by browser QA. */
 export function sagaPaintStats() {
   return Object.entries(grids)
-    .filter(([key]) => !key.startsWith('land-'))
+    .filter(
+      ([key]) =>
+        !key.startsWith('land-') && key !== 'effects' && key !== 'rewards',
+    )
     .flatMap(([key, [cols, rows]]) =>
       Array.from({ length: cols * rows }, (_, i) => i)
         .filter((i) => key !== 'heroes-0' || i !== 0)
@@ -243,4 +253,53 @@ export function sagaPaintStats() {
           };
         }),
     );
+}
+
+/** Decorative textures preserve disconnected sparks, coins and crystal shards. */
+export function sagaDecoration(
+  c: CanvasRenderingContext2D,
+  key: 'effects' | 'rewards',
+  index: number,
+  x: number,
+  y: number,
+  w: number,
+  h = w,
+) {
+  const image = cell(key, index);
+  if (!image) return false;
+  const scale = Math.min(w / image.width, h / image.height);
+  c.drawImage(
+    image,
+    x - (image.width * scale) / 2,
+    y - (image.height * scale) / 2,
+    image.width * scale,
+    image.height * scale,
+  );
+  return true;
+}
+export function sagaDecorationStats() {
+  return ['effects', 'rewards'].flatMap((key) =>
+    Array.from({ length: key === 'effects' ? 6 : 4 }, (_, i) => {
+      const image = cell(key, i);
+      if (!image) return { name: key + ':' + i, loaded: false };
+      const p = image
+        .getContext('2d')!
+        .getImageData(0, 0, image.width, image.height).data;
+      let pixels = 0,
+        edge = false;
+      for (let y = 0; y < image.height; y++)
+        for (let x = 0; x < image.width; x++)
+          if (p[(y * image.width + x) * 4 + 3] > 8) {
+            pixels++;
+            if (
+              x === 0 ||
+              y === 0 ||
+              x === image.width - 1 ||
+              y === image.height - 1
+            )
+              edge = true;
+          }
+      return { name: key + ':' + i, loaded: true, pixels, edge };
+    }),
+  );
 }

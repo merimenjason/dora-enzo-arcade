@@ -163,3 +163,30 @@ Edit ONLY the top-left white Dora portrait's two eye irises: change purple/magen
 ### hero-dora
 
 Use case: precise-object-edit. Isolate ONLY Dora, the top-left WHITE chinchilla sword hero, from this reference sheet as ONE complete full-body standalone transparent sprite. Preserve her exact white fur, green neckerchief, sword, small leather belt pouch, proportions and right-facing pose. Change her irises to very DARK REDDISH BROWN burgundy ruby, nearly black (#401015), with subtle RED tint. Absolutely NO magenta, pink, violet or purple irises. Keep pupils black and small white eye highlights. Full tail, ears, feet, sword tip and whiskers intact. Centre this ONE figure on a true transparent background with 15% EMPTY margin all around. No other heroes, no ground, no scenery, no text, no panel, no collage or grid.
+
+## Combat-feedback artwork and animation · 13-10-2026
+
+Mode: built-in imagegen edits using the approved Saga reference. `effects.png` is a 3 × 2 sheet: golden slash, azure ward, clover heal / arrow volley, ice freeze, orange rally. `rewards.png` is 2 × 2: closed chest, open chest / coins, summoning scroll. Crops retain disconnected particles and use the generous atlas gutters instead of isolating a single component. Normal-motion skill events expand, rotate and fade these textures; reduced motion omits them. The camp chest changes state only after a successful gold claim, then returns to the closed appearance. The new artwork does not alter rewards, balance or saves.
+
+Selected sources:
+
+- `public/art/saga/effects.png`: `/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-12ed8fa3-9061-4fe5-a36e-f565a0d2a9b3.png`
+- `public/art/saga/rewards.png`: `/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-feb42351-e664-443f-a2c3-7768dbf08017.png`
+
+Exact creation and spacing prompts:
+
+### effects
+
+Use case: illustration-story. Production VFX texture sheet for Whisker Saga, matches approved painted storybook reference but NO characters. TRUE TRANSPARENT background. EXACT 3 columns by 2 rows, SIX isolated magical effects, each centred in its own cell and occupying ONLY central 60% of cell width and height, at least 20% EMPTY margin around ALL sides. Absolutely no glow, particles or shards touching other cells or image edges. No grid lines or text. Row 1: LEFT a golden curved sword slash arc with a small spark trail; CENTRE a translucent azure shield dome ring with fine warm brass rune-like accents, no letters; RIGHT a fresh green clover-shaped healing flourish surrounded by gentle gold motes. Row 2: LEFT three warm bronze arrow streaks in a fan with light golden trails, complete fletching and tips; CENTRE a luminous ice-blue six-point snowflake with tiny crystal shards; RIGHT a warm ember-orange rally sunburst with three simple upward light rays. Soft painterly luminous shading, restrained colour, attractive organic curves, airy transparent cores, no hard opaque rectangular mats. Each effect should read clearly when scaled down in an animated battle. Not icons in boxes, just isolated transparent glow textures.
+
+### rewards
+
+Use case: illustration-story. Production reward sprite sheet for Whisker Saga, matches approved painted storybook reference's warm tactile wood, leather and muted brass. True TRANSPARENT background. Exact 2 columns by 2 rows, FOUR isolated props. Each object fully contained in central 65% of its cell with large EMPTY transparent gutters. Top left: CLOSED small wooden camp treasure chest, rounded lid, muted brass hinges and latch, tiny clover carving, front three-quarter view. Top right: the SAME chest OPEN, raised complete lid and a few gold coins inside, same camera and scale. Bottom left: small neat pile of warm gold coins with a simple clover mark, one coin upright, complete outlines. Bottom right: rolled cream parchment summoning scroll with green ribbon and small brass clover seal, both scroll ends fully visible. No characters, no hands, no text, labels, UI, grid lines, backgrounds, ground or shadows. Fine painted detail, soft plum edge definition, warm golden rim light. Keep all lids, coins and scroll tips clear of every cell edge.
+
+### effects
+
+Use case: precise-object-edit. Recompose the SIX magical effects in the SAME 3 columns by 2 rows sheet with much more spacing. Keep each original effect/prop identity, material, colour, detail and order. REDUCE every individual object uniformly to 60% of its current size, then centre it in its individual cell. Leave at least 20% completely EMPTY transparent margin around every edge of EVERY cell. NO object, glow, particle, scroll end, lid, arrow tip or coin may touch or cross any cell boundary. Retain entire outlines, including scattered sparks and shards. The sheet is for individually cropped sprites: clean gutters are mandatory. Keep true transparent background, no grid lines or text, no labels, no environment or background.
+
+### rewards
+
+Use case: precise-object-edit. Recompose the FOUR treasure props in the SAME 2 columns by 2 rows sheet with much more spacing. Keep each original effect/prop identity, material, colour, detail and order. REDUCE every individual object uniformly to 60% of its current size, then centre it in its individual cell. Leave at least 20% completely EMPTY transparent margin around every edge of EVERY cell. NO object, glow, particle, scroll end, lid, arrow tip or coin may touch or cross any cell boundary. Retain entire outlines, including scattered sparks and shards. The sheet is for individually cropped sprites: clean gutters are mandatory. Keep true transparent background, no grid lines or text, no labels, no environment or background.

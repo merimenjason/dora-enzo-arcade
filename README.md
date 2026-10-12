@@ -808,7 +808,7 @@ Eighty stages in eight chapters, each stage worth up to three stars (cleared, no
 
 **Tests:** `npm run test:saga` (also in `npm test`) compiles `lib/saga-game.ts` and runs `tests/saga.mjs`: the roster, levels, stars, gear and the faction bonus, stage make-up, marching and attacks, all eight kinds of skill, wind-ups, interrupts and staggering, who gets hit, losing by falling or by time, stars, loot, story heroes, summons and the guarantee, the forge, arranging the squad, chests, the tower, the camp, seed replay, and saves including damaged ones. `npm run bot:saga` (also in `npm test`) runs `tests/saga-bot.mjs`, a squad leader that does only what a player can; it must finish the campaign on eight seeds while losing some fights, show that timed stuns beat auto-fire in the same fight, and show that a squad that never spends gold stalls early. `tests/e2e/saga.mjs` drives the page with keyboard and touch: summons, a battle with an interrupt, pause and a hidden tab, double speed, a loss, the squad, forge, chests and camp, auto, a story hero joining, reloads, the tower, broken saves, reduced motion and six layouts.
 
-`tests/e2e/saga-painted.mjs` checks fifty complete character silhouettes and portraits, all eight chapter/boss scenes, live boss meters and artwork failure/retry.
+`tests/e2e/saga-painted.mjs` checks fifty complete character silhouettes and portraits, all eight chapter/boss scenes, live boss meters and artwork failure/retry. `tests/e2e/saga-feedback.mjs` checks live hero health, early-press guidance, interrupts, painted spells, camp rewards and reduced motion.
 
 **Docs:** [`docs/whisker-saga.md`](docs/whisker-saga.md), [`artwork and prompts for a painted pass`](docs/saga-art.md).
 

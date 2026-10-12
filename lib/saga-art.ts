@@ -5,7 +5,7 @@ import { HEROES, heroById, type EnemyKind, type Faction, type Role } from './sag
 
 export const PAINTED = true;
 import { loadSagaPainting, sagaFigure, sagaPortrait, sagaLandscape } from './saga-paint';
-export { sagaPaintVersion, sagaPaintReady, sagaPaintStats } from './saga-paint';
+export { sagaPaintVersion, sagaPaintReady, sagaPaintStats, sagaDecoration, sagaDecorationStats } from './saga-paint';
 export const loadSagaArt = loadSagaPainting;
 const ENEMY_ORDER: EnemyKind[] = ['grunt', 'slinger', 'sneak', 'brute', 'hexer', 'captain'];
 
