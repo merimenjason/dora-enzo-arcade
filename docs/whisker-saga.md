@@ -132,3 +132,11 @@ A save that fails any check in `Game.load` is ignored whole.
 - `lib/saga-art.ts`: heroes, enemies and backdrops by name. See [`saga-art.md`](saga-art.md).
 - `lib/saga-scene.ts`: `Field` draws a battle. `take` turns battle events into effects, `inspect` reports what is on screen for the browser tests, `slotAt` finds the hero under a tap.
 - `app/saga/`: the page, styles, metadata and sounds. `window.__saga()` returns the game, the field, the pause flag, the speed, the auto flag and a `refresh` for the menus.
+
+## Painted presentation · 13-10-2026
+
+The painted pass adds eighteen hero sprites and dedicated portraits, six enemy sprites, eight boss sprites and eight illustrated chapter landscapes. The named art API keeps code-drawn fallbacks; missing artwork can be retried without losing progress. The wider formation and larger skill cards are visual changes only. Boss health and wind-up meters read live battle state. Marching, lunges, breathing, projectiles, spells, defeats and celebrations remain animated; reduced motion removes scene movement while skills and battle rules continue. See `docs/saga-art.md` for provenance and exact prompts.
+
+The combat-feedback pass shows hero health and active shields on the skill cards, highlights charged stuns that can interrupt a current wind-up (a strike must target the winding enemy, while snipes and freezes can reach it behind an escort), and explains early skill presses. Six painted spell textures expand and fade with real skill events; reduced motion suppresses them. The camp chest opens briefly when gold is actually collected, and painted coins and scrolls accompany the results and summoning screen. Chapter postcards use the existing landscape art. Battle balance and saves are unchanged. `tests/e2e/saga-feedback.mjs` checks these interactions and the ten new texture/prop crops.
+
+Valid skill presses are queued until the next fixed combat tick, including on 120/144/240 Hz displays; duplicate presses before that tick fire once. Invalid time deltas are ignored. This fixes dropped inputs without changing skill costs, targeting or combat balance. The Saga engine tests cover the sub-tick queue.

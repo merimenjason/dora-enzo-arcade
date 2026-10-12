@@ -4,6 +4,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 13-10-2026
 
+### Changed
+
+- **Whisker Saga** now follows its painted storybook design: eighteen heroes with individual portraits, six woodland enemies, eight distinct bosses and eight chapter landscapes. A wider squad formation keeps the larger characters visible; gold-framed skill cards show live charge and ready states, and a clear boss panel shows health and wind-up. Marching, attacks and spell effects remain animated, with reduced motion and compact phone layouts. Missing artwork can be retried while the game remains playable. Hero cards now show live health and shields, eligible stuns highlight during wind-ups, and an early skill press explains its energy or stun requirement. Painted spell effects, chapter postcards and animated camp/reward artwork make progression clearer. Interrupt guidance follows actual skill targets, and valid skill presses are kept until the next combat tick so fast clicks and high-refresh displays do not drop them.
+
 ### Added
 
 - **Whisker Saga:** a new cabinet, the arcade's thirty-second: a hero-squad adventure in the style of Top Heroes. Five heroes march from Clover Meadow to Hollow Keep and fight three waves a stage on their own, while you decide who stands in front and when each skill is fired. Stun a captain or a boss while it winds up and its slam is lost, and it reels and takes extra damage. Eighteen heroes in three factions to recruit: Dora and Enzo to begin with, six who join as chapter bosses fall, and ten from summons paid for with scrolls you can only win by playing. Gold buys levels, repeats raise stars, stages drop gear to wear and forge, and fielding three or more of one faction strengthens the whole squad. Eighty stages with three stars each, chapter chests, a camp chest that fills while you are away, and an endless tower after the last boss. Number keys, taps, pause, double speed, auto-fire on stages you have beaten, sound and local saves.

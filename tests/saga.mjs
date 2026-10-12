@@ -115,6 +115,28 @@ const win = (g, n) => { assert.ok(g.start(n), `stage ${n + 1} starts`); const b 
   near(slow.time, quick.time, 'four steps a frame is the same battle', 0.05);
 }
 
+// Skill presses survive display frames shorter than the fixed combat tick.
+{
+  for (const hz of [120, 144, 240]) {
+    const b = battle([spec('enzo', 1, { atk: 1, hp: 99999 }), spec('dora', 1, { atk: 1, hp: 99999 })], [['brute']]);
+    until(b, x => x.phase === 'fight');
+    for (const h of b.heroes) { h.energy = ENERGY; h.cd = 100; }
+    for (const f of b.foes) { f.cd = 100; f.hp = f.max = 99999; }
+    const events = [...b.update(1 / hz, { cast: [1] })];
+    assert.equal(hero(b, 1).energy, ENERGY, `${hz} Hz press waits for its combat tick`);
+    events.push(...b.update(1 / hz, { cast: [0, 1, 99] }));
+    for (let i = 0; i < 12; i++) events.push(...b.update(1 / hz));
+    assert.equal(events.filter(e => e.type === 'skill' && e.kind === 'strike').length, 1, `${hz} Hz strike fires exactly once`);
+    assert.equal(events.filter(e => e.type === 'skill' && e.kind === 'ward').length, 1, `${hz} Hz shield fires exactly once`);
+    assert.equal(hero(b, 0).energy, 0); assert.equal(hero(b, 1).energy, 0);
+    assert.ok(hero(b, 0).shield > 0, 'the second press reaches the same tick too');
+    hero(b, 1).energy = ENERGY;
+    b.update(NaN, { cast: [1] }); b.update(-1, { cast: [1] });
+    assert.equal(b.update(STEP).filter(e => e.type === 'skill').length, 0, 'invalid deltas do not enqueue a press');
+    assert.equal(hero(b, 1).energy, ENERGY, 'invalid time does not poison the battle clock');
+  }
+}
+
 // Skills: charging, casting, and what each kind does
 {
   // Energy comes from landing hits; casting spends it.

@@ -1,33 +1,13 @@
-// Whisker Saga's artwork, asked for by name. Everything is drawn in code for now; when painted sheets exist, switch
-// PAINTED on and the same calls draw from the sheets instead. docs/saga-art.md has the sheet layout and prompts.
+// Whisker Saga's painted art, asked for by name. Original code drawings remain as loading fallbacks.
+// docs/saga-art.md records the production assets, crop layout and exact imagegen prompts.
 import { coatLike, drawChinchilla, COATS, type Coat } from './chinchilla-art';
-import { HEROES, heroById, BOSSES, type EnemyKind, type Faction, type Role } from './saga-game';
+import { HEROES, heroById, type EnemyKind, type Faction, type Role } from './saga-game';
 
-export const PAINTED = false;
-const SHEETS = { heroes: '/art/saga/heroes.png', enemies: '/art/saga/enemies.png', bosses: '/art/saga/bosses.png' } as const;
-const HERO_COLS = 6, HERO_ROWS = 3, ENEMY_ORDER: EnemyKind[] = ['grunt', 'slinger', 'sneak', 'brute', 'hexer', 'captain'];
-const images: Partial<Record<keyof typeof SHEETS, HTMLImageElement>> = {};
-
-/** Loads the painted sheets. A no-op until PAINTED is switched on. */
-export function loadSagaArt(): Promise<void> {
-  if (!PAINTED || typeof Image === 'undefined') return Promise.resolve();
-  return Promise.all((Object.keys(SHEETS) as (keyof typeof SHEETS)[]).map((key) => new Promise<void>((done, fail) => {
-    const img = new Image();
-    img.onload = () => { images[key] = img; done(); };
-    img.onerror = () => fail(new Error(`Could not load ${SHEETS[key]}`));
-    img.src = SHEETS[key];
-  }))).then(() => undefined);
-}
-/** One cell of a sheet, feet on (x, base), `size` tall. False when the sheet is not there, so the caller draws by hand. */
-function cell(c: CanvasRenderingContext2D, key: keyof typeof SHEETS, col: number, row: number, cols: number, rows: number, x: number, base: number, size: number, face: 1 | -1) {
-  const img = images[key];
-  if (!PAINTED || !img) return false;
-  const w = img.width / cols, hgt = img.height / rows;
-  c.save(); c.translate(x, base); c.scale(face, 1);
-  c.drawImage(img, col * w, row * hgt, w, hgt, -size * 0.55, -size * 1.05, size * 1.1, size * 1.1);
-  c.restore();
-  return true;
-}
+export const PAINTED = true;
+import { loadSagaPainting, sagaFigure, sagaPortrait, sagaLandscape } from './saga-paint';
+export { sagaPaintVersion, sagaPaintReady, sagaPaintStats, sagaDecoration, sagaDecorationStats } from './saga-paint';
+export const loadSagaArt = loadSagaPainting;
+const ENEMY_ORDER: EnemyKind[] = ['grunt', 'slinger', 'sneak', 'brute', 'hexer', 'captain'];
 
 // ── Heroes ──────────────────────────────────────────────────────────────────
 
@@ -95,7 +75,7 @@ const carry = (role: Role, tint: string, swing: number, glow: number) => (k: Can
   k.restore();
 };
 
-export type HeroPose = { face?: 1 | -1; moving?: boolean; run?: number; swing?: number; glow?: number; dizzy?: boolean; silhouette?: boolean };
+export type HeroPose = { face?: 1 | -1; moving?: boolean; run?: number; swing?: number; glow?: number; dizzy?: boolean; silhouette?: boolean; motion?: boolean };
 
 /** A hero with their feet on (x, base), `size` pixels tall. */
 export function drawHero(c: CanvasRenderingContext2D, id: string, x: number, base: number, size: number, t: number, pose: HeroPose = {}) {
@@ -108,7 +88,8 @@ export function drawHero(c: CanvasRenderingContext2D, id: string, x: number, bas
     c.restore();
     return;
   }
-  if (cell(c, 'heroes', i % HERO_COLS, Math.floor(i / HERO_COLS), HERO_COLS, HERO_ROWS, x, base, size, face)) return;
+  const bob = pose.motion ? (pose.moving ? Math.abs(Math.sin(pose.run ?? t * 8)) * size * .035 : Math.sin(t * 2) * size * .008) : 0;
+  if (PAINTED && sagaFigure(c, id==='dora'?'hero-dora':'heroes-'+Math.floor(i/6), id==='dora'?0:i%6, x, base, size, face, pose.motion ? (pose.swing ?? 0)*.08 : 0, bob)) return;
   drawChinchilla(c, HERO_COATS[id], x, base, {
     face, h: size, time: t, moving: pose.moving, run: pose.run, dizzy: pose.dizzy,
     decorate: carry(hero.role, FACTION_COLOR[hero.faction], pose.swing ?? 0, pose.glow ?? 0),
@@ -123,13 +104,15 @@ export const CHAPTER_TINT = [
   ['#7b6a8f', '#544566', '#a898ba', '#e58f4a'], ['#8fb4d1', '#5f86a6', '#c5dcec', '#ffffff'], ['#b5553c', '#7f3324', '#de8a6c', '#ffcf5a'], ['#4d4a63', '#2e2c40', '#7d7a99', '#b48cff'],
 ];
 const INK = '#241d2b';
-export type EnemyPose = { wind?: number; hurt?: number; step?: number };
+export type EnemyPose = { wind?: number; hurt?: number; step?: number; motion?: boolean };
 
 /** An enemy facing left with its feet on (x, base). `size` is the height of a scuttler; bigger kinds scale from it. */
 export function drawEnemy(c: CanvasRenderingContext2D, kind: EnemyKind, chapter: number, x: number, base: number, size: number, t: number, pose: EnemyPose = {}) {
-  if (kind === 'boss' ? cell(c, 'bosses', chapter, 0, BOSSES.length, 1, x, base, size * 2.2, 1) : cell(c, 'enemies', ENEMY_ORDER.indexOf(kind), 0, ENEMY_ORDER.length, 1, x, base, size * (kind === 'captain' || kind === 'brute' ? 1.5 : 1), 1)) return;
+  c.save();c.fillStyle='rgba(33,22,28,.22)';c.beginPath();c.ellipse(x,base,size*(kind==='boss'?1:.45),size*.075,0,0,Math.PI*2);c.fill();c.restore();
+  const wind=pose.wind??0;
+  if(PAINTED && sagaFigure(c,kind==='boss'?(chapter<4?'bosses-0':'boss-'+chapter):'enemies',kind==='boss'?(chapter<4?chapter:0):ENEMY_ORDER.indexOf(kind),x,base,size*(kind==='boss'?2.2:kind==='captain'||kind==='brute'?1.5:1),1,pose.motion?-wind*.07:0,pose.motion?Math.abs(Math.sin(pose.step??0))*size*.025:0))return;
   const [body, shade, light, accent] = CHAPTER_TINT[chapter % CHAPTER_TINT.length];
-  const s = size, wind = pose.wind ?? 0, step = Math.sin((pose.step ?? t * 5) * 1.6), bob = Math.abs(step) * 0.03;
+  const s = size, step = Math.sin((pose.step ?? t * 5) * 1.6), bob = Math.abs(step) * 0.03;
   const el = (ex: number, ey: number, rx: number, ry: number, fill: string, rot = 0) => { c.beginPath(); c.ellipse(ex * s, ey * s, rx * s, ry * s, rot, 0, Math.PI * 2); c.fillStyle = fill; c.fill(); c.stroke(); };
   const eye = (ex: number, ey: number, r: number, angry = false) => {
     c.beginPath(); c.arc(ex * s, ey * s, r * s, 0, Math.PI * 2); c.fillStyle = '#fff'; c.fill(); c.stroke();
@@ -231,6 +214,7 @@ const hash = (n: number) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453
 
 /** The land the squad walks through. `scroll` is how far they have walked, in pixels; `horizon` is where the ground starts. */
 export function drawBackdrop(c: CanvasRenderingContext2D, chapter: number, w: number, h: number, scroll: number, t: number, horizon: number) {
+  if(PAINTED && sagaLandscape(c,chapter,w,h,scroll))return;
   const land = LANDS[chapter % LANDS.length];
   const sky = c.createLinearGradient(0, 0, 0, horizon); sky.addColorStop(0, land.sky[0]); sky.addColorStop(1, land.sky[1]);
   c.fillStyle = sky; c.fillRect(0, 0, w, horizon + 2);
@@ -265,3 +249,5 @@ export function drawBackdrop(c: CanvasRenderingContext2D, chapter: number, w: nu
     c.restore();
   }
 }
+
+export function drawHeroPortrait(c:CanvasRenderingContext2D,id:string,size:number){return PAINTED && sagaPortrait(c,HEROES.indexOf(heroById(id)),size);}
