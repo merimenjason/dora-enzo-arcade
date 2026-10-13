@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Game, HEROES, heroById, skillText, stageDef, goldFor, ENEMIES, CHAPTERS, BOSSES, STAGES, PER_CHAPTER, FACTION_NAMES, ROLE_NAMES, RARITY_NAMES, GEAR, GEAR_NAMES, GEAR_TEXT, GEAR_STEP,
-  MAX_TIER, MERGE, MAX_STARS, FIRST_CLEAR, ODDS, PITY, CHEST_STARS, CHEST_SCROLLS, CAMP_HOURS, ENERGY, PAR, SLOTS, ROLES, TOWER_EVERY, TOWER_SCROLLS,
+  TRIALS, TRIAL_START, MAX_TIER, MERGE, MAX_STARS, FIRST_CLEAR, ODDS, PITY, CHEST_STARS, CHEST_SCROLLS, CAMP_HOURS, ENERGY, PAR, SLOTS, ROLES, TOWER_EVERY, TOWER_SCROLLS,
   type EnemyKind, type Summoned,
 } from '../../lib/saga-game';
 import { readyToInterrupt } from '../../lib/saga-feedback';
@@ -18,8 +18,8 @@ const read = (): Game | null => { try { const s = localStorage.getItem(SAVE_KEY)
 const write = (g: Game) => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(g.save())); } catch { /* private mode: the saga just isn't kept */ } };
 const fresh = () => new Game((Math.random() * 0xffffffff) >>> 0, Date.now());
 
-type Tab = 'adventure' | 'squad' | 'summon' | 'forge';
-const TABS: [Tab, string][] = [['adventure', 'Adventure'], ['squad', 'Squad'], ['summon', 'Summon'], ['forge', 'Forge']];
+type Tab = 'adventure' | 'squad' | 'summon' | 'forge' | 'trials';
+const TABS: [Tab, string][] = [['adventure', 'Adventure'], ['squad', 'Squad'], ['summon', 'Summon'], ['forge', 'Forge'], ['trials', 'Trials']];
 const SLOT_NAMES = ['Front 1', 'Front 2', 'Back 1', 'Back 2', 'Back 3'];
 const fmt = (n: number) => Math.round(n).toLocaleString('en-GB');
 const stars = (n: number, of = 3) => '★'.repeat(n) + '☆'.repeat(of - n);
@@ -45,6 +45,23 @@ function RewardArt({kind,size=58}:{kind:'chest'|'open-chest'|'coins'|'scroll';si
 const Coin = () => <i className="sg-coin" aria-hidden="true" />;
 const Scroll = () => <i className="sg-scroll" aria-hidden="true" />;
 
+function GearArt({slot,tier}:{slot:number;tier:number}){
+ const ref=useRef<HTMLCanvasElement>(null),art=sagaPaintVersion();
+ useEffect(()=>{
+  const c=ref.current?.getContext('2d');if(!c)return;
+  c.setTransform(2,0,0,2,0,0);c.clearRect(0,0,48,48);
+  if(!sagaDecoration(c,tier===6?'equipment-ascendant':'equipment',slot,24,24,44)){
+   c.font='32px system-ui';c.textAlign='center';c.textBaseline='middle';
+   c.fillText(['⚔️','🛡️','🍀','🥾'][slot],24,25);
+  }
+ },[slot,tier,art]);
+ // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- The image combines a painted canvas with live tier pips.
+ return <span className="sg-gear" data-tier={tier} role="img" aria-label={`${GEAR_NAMES[slot]}, ${tier?`tier ${tier}`:'empty slot'}`} title={`${GEAR_NAMES[slot]} · ${tier?`Tier ${tier}`:'Empty slot'}`}>
+  <canvas ref={ref} width={96} height={96} aria-hidden="true"/>
+  <span className="sg-gear-pips" aria-hidden="true">{Array.from({length:MAX_TIER},(_,i)=><i key={i} data-on={i<tier}/>)}</span>
+ </span>;
+}
+
 export default function SagaPage() {
   const canvas = useRef<HTMLCanvasElement>(null), game = useRef<Game | null>(null), field = useRef(new Field());
   const paused = useRef(false), casts = useRef<number[]>([]), speed = useRef(1), auto = useRef(false);
@@ -59,6 +76,14 @@ export default function SagaPage() {
   const retryArt = () => { setArtError(false); void retrySagaPainting().then(redraw).catch(()=>setArtError(true)); };
   const [fast, setFast] = useState(false), [isAuto, setIsAuto] = useState(false);
   const redraw = useCallback(() => setFrame((n) => n + 1), []);
+
+  // Request the chosen stage's final-wave artwork while the player is still on the map.
+  useEffect(()=>{
+    if(view!=='hub')return;
+    const def=stageDef(stage),keys=['land-'+def.chapter,'enemies','effects','rewards'];
+    if(def.boss)keys.push(def.chapter<4?'bosses-0':'boss-'+def.chapter);
+    void loadSagaArt(keys).catch(()=>setArtError(true));
+  },[view,stage]);
 
   useEffect(() => {
     const saved=read(),keys=new Set(['land-'+Math.floor(Math.min(saved?.cleared??0,STAGES-1)/PER_CHAPTER),'hero-dora','heroes-0','portraits-0','enemies','effects']);
@@ -88,6 +113,8 @@ export default function SagaPage() {
   const fight = (n: number) => {
     const g = game.current!;
     if (!g.start(n)) { sound.cue('nope'); return; }
+    const def=stageDef(n);
+    void loadSagaArt(['land-'+def.chapter,'enemies','effects','rewards',...(def.boss?[def.chapter<4?'bosses-0':'boss-'+def.chapter]:[])]).catch(()=>setArtError(true));
     setSkillFeedback(null); field.current.reset(); casts.current = []; auto.current = false; setIsAuto(false); pause(false); store(); setView('battle');
   };
   const leaveBattle = () => {
@@ -170,7 +197,7 @@ export default function SagaPage() {
         <section className="sg-title-card">
           <p className="sg-eyebrow">A hero-squad adventure</p>
           <h1>Whisker Saga</h1>
-          <p className="sg-lede">Lead five heroes down the road from Clover Meadow to Hollow Keep. They fight on their own; you choose who stands where and when each skill is fired. Eighteen heroes to find, eighty stages to clear.</p>
+          <p className="sg-lede">Lead five heroes down the road from Clover Meadow to Hollow Keep. They fight on their own; you choose who stands where and when each skill is fired. Twenty heroes to find, eighty campaign stages and six hero trials to clear.</p>
           {!sagaPaintReady() && !artError && <p className="sg-art-progress">Artwork is loading. You can play now.</p>}
           <div className="sg-title-row" aria-hidden="true">{['enzo', 'dora', 'pip', 'onyx', 'zephyr', 'aurora'].map((id) => <Face key={id} id={id} size={64} />)}</div>
           {kept && <button className="sg-gold" data-testid="continue" onClick={() => begin(kept)}>Carry on · {kept.complete ? `tower floor ${kept.tower + 1}` : stageDef(kept.cleared).name}, {kept.owned.length}/{HEROES.length} heroes</button>}
@@ -190,7 +217,7 @@ export default function SagaPage() {
     const canStop = b.heroes.some(u=>readyToInterrupt(b,u.slot));
     const hint = isPaused ? 'Paused.' : winding ? (winding.special!.kind === 'slam' ? `${winding.name} is winding up a slam. ${canStop ? 'Stun it now!' : 'Shield the squad if you can.'}` : `${winding.name} is about to heal. ${canStop ? 'Stun it to stop the spell.' : ''}`)
       : b.phase === 'march' ? 'The squad marches on.' : isAuto ? 'Auto: skills fire as soon as they charge.' : b.heroes.some((u) => b.ready(u.slot)) ? 'A skill is ready. Stuns are best saved for a wind-up.' : 'Skills charge as your heroes land hits.';
-    const next = def.tower ? STAGES + g.tower : g.stage + 1, canNext = b.phase === 'won' && (def.tower ? true : next < STAGES && g.unlocked(next));
+    const next = def.trial!==undefined?TRIAL_START+def.trial+1:def.tower ? STAGES + g.tower : g.stage + 1, canNext = b.phase === 'won' && (def.trial!==undefined?def.trial+1<TRIALS.length&&g.unlocked(next):def.tower ? true : next < STAGES && g.unlocked(next));
     const again = () => { const n = g.stage; g.leave(); fight(n); };
     const onward = () => { g.leave(); fight(next); };
     const tap = (e: React.PointerEvent<HTMLCanvasElement>) => { const box = e.currentTarget.getBoundingClientRect(), slot = field.current.slotAt(e.clientX - box.left, e.clientY - box.top); if (slot >= 0 && g.squad[slot]) cast(slot); };
@@ -212,9 +239,9 @@ export default function SagaPage() {
           {boss && <section className="sg-boss-hud" aria-label={boss.name}><strong>{boss.name}</strong><progress max={boss.max} value={boss.hp} aria-label={`${boss.name} health`}/>{boss.wind>0 && boss.special && <><span>{boss.special.kind==='slam'?'Slam':'Healing'}</span><progress className="sg-wind-meter" max={boss.special.wind} value={boss.special.wind-boss.wind} aria-label="Boss wind-up"/></>}</section>}
           <output className="sg-hint" data-testid="hint" data-alarm={!!winding && !isPaused}>{hint}</output>
           {skillFeedback && !over && <output className="sg-skill-feedback" data-testid="skill-feedback">{skillFeedback.text}</output>}
-          {isPaused && !over && <dialog open className="sg-card" data-testid="paused"><h2>Paused</h2><button className="sg-gold" data-testid="resume" onClick={() => pause(false)}>Resume</button><button onClick={leaveBattle}>Retreat to the map</button></dialog>}
+          {isPaused && !over && <div className="sg-overlay"><dialog open className="sg-card" aria-label="Paused" data-testid="paused"><h2>Paused</h2><button className="sg-gold" data-testid="resume" onClick={() => pause(false)}>Resume</button><button onClick={leaveBattle}>Retreat to the map</button></dialog></div>}
           {b.phase === 'won' && loot && (
-            <dialog open className="sg-card sg-result" data-testid="won">
+            <div className="sg-overlay"><dialog open className="sg-card sg-result" aria-label="Victory" data-testid="won">
               <p className="sg-eyebrow">{def.name}</p>
               <h2>Victory</h2><RewardArt kind="coins" size={72}/>
               <p className="sg-stars" data-testid="stars" aria-label={`${loot.stars} of 3 stars`}>{stars(loot.stars)}</p>
@@ -224,19 +251,19 @@ export default function SagaPage() {
               <ul className="sg-loot" data-testid="loot">
                 <li><Coin />{fmt(loot.gold)} gold{loot.first && !def.tower ? ' (first clear)' : ''}</li>
                 {loot.scrolls > 0 && <li><Scroll />{loot.scrolls} summoning scroll{loot.scrolls > 1 ? 's' : ''}</li>}
-                {loot.gear && <li><i className="sg-gear" data-tier={loot.gear.tier} aria-hidden="true">{loot.gear.tier}</i>{GEAR_NAMES[loot.gear.slot]}, tier {loot.gear.tier}</li>}
+                {loot.gear && <li><GearArt slot={loot.gear.slot} tier={loot.gear.tier}/>{GEAR_NAMES[loot.gear.slot]}, tier {loot.gear.tier}</li>}
               </ul>
               {loot.joined && <p className="sg-joined" data-testid="joined"><Face id={loot.joined} size={52} /><span><strong>{heroById(loot.joined).name}</strong> joins the squad: {RARITY_NAMES[heroById(loot.joined).rarity].toLowerCase()} {FACTION_NAMES[heroById(loot.joined).faction]} {ROLE_NAMES[heroById(loot.joined).role].toLowerCase()}.</span></p>}
               {g.complete && g.stage === STAGES - 1 && loot.first && <p className="sg-joined">The Hollow King has fallen and the road is safe. The tower is now open on the map: one floor at a time, each harder than the last.</p>}
               <div className="sg-row">
-                {canNext && <button className="sg-gold" data-testid="next" onClick={onward}>{def.tower ? `Floor ${g.tower + 1}` : 'Next stage'}</button>}
+                {canNext && <button className="sg-gold" data-testid="next" onClick={onward}>{def.trial!==undefined?'Next trial':def.tower ? `Floor ${g.tower + 1}` : 'Next stage'}</button>}
                 {!def.tower && <button data-testid="again" onClick={again}>Fight again</button>}
                 <button className={canNext ? '' : 'sg-gold'} data-testid="to-map" onClick={leaveBattle}>Back to the map</button>
               </div>
-            </dialog>
+            </dialog></div>
           )}
           {b.phase === 'lost' && (
-            <dialog open className="sg-card sg-result" data-testid="lost">
+            <div className="sg-overlay"><dialog open className="sg-card sg-result" aria-label="Battle result" data-testid="lost">
               <p className="sg-eyebrow">{def.name}</p>
               <h2>{b.time >= 150 ? 'Out of time' : 'The squad fell back'}</h2>
               <p>{b.time >= 150 ? 'The fight ran past two and a half minutes. More attack, or a hero who can reach the enemy back line, will end it sooner.' : 'Nothing is lost. Spend gold on levels, wear better gear, put a guard in front, or save a stun for the moment an enemy winds up.'}</p>
@@ -245,7 +272,7 @@ export default function SagaPage() {
                 <button data-testid="to-squad" onClick={() => { leaveBattle(); setTab('squad'); }}>Strengthen the squad</button>
                 <button data-testid="to-map" onClick={leaveBattle}>Back to the map</button>
               </div>
-            </dialog>
+            </dialog></div>
           )}
         </section>
         <div className="sg-skills">
@@ -281,7 +308,7 @@ export default function SagaPage() {
     setPulled(out);
     const first = out.find((s) => s.fresh); if (first) setPicked(first.id);
   };
-  const hintFor = (id: string) => { const x = heroById(id); return x.from === 'story' ? `Joins when ${CHAPTERS[x.chapter!]} is cleared` : `${RARITY_NAMES[x.rarity]} summons`; };
+  const hintFor = (id: string) => { const x = heroById(id); return x.from==='trial'?`Earned in ${TRIALS.find(t=>t.join===id)?.name}`:x.from === 'story' ? `Joins when ${CHAPTERS[x.chapter!]} is cleared` : `${RARITY_NAMES[x.rarity]} summons`; };
 
   const slotButton = (slot: number) => {
     const id = g.squad[slot];
@@ -362,6 +389,20 @@ export default function SagaPage() {
         </div>
       )}
 
+      {tab==='trials'&&<div className="sg-panel sg-trials" data-testid="trials-panel">
+        <section className="sg-brief"><h2>Hero trials</h2><p>Six optional challenges. Earn Fennel and Sable, then work towards Ascendant gear. First clears award a scroll and a guaranteed piece of gear; replays award gold.</p></section>
+        <div className="sg-trial-grid">{TRIALS.map((t,i)=>{
+          const open=g.unlocked(TRIAL_START+i),done=g.trials[i]>0;
+          return <section className="sg-brief sg-trial-card" key={t.name} data-unlocked={open}>
+            <div className="sg-row">{t.join&&<Face id={t.join} size={64}/>}<div><h3>{t.name}</h3><span className="sg-rank" aria-label={`${g.trials[i]} of 3 stars`}>{stars(g.trials[i])}</span></div></div>
+            <p>{['Spread damage across the enemy line.','Protect your back row from fast sneaks.','Break the healers before the boss.','Brace against heavy front-line pressure.','Balance ranged threats with healing.','Face the Hollow King with support still standing.'][i]}</p>
+            <p className="sg-small"><b>First clear:</b> tier {t.tier} {t.tier===6?'Ascendant ':''}gear, a scroll{t.join?`, and ${heroById(t.join).name}`:''}.</p>
+            <p className="sg-small">{open?'Waiting: '+lineUp(TRIAL_START+i):`Clear ${t.unlock} campaign stages to unlock.`}</p>
+            <button className="sg-gold" data-testid={`trial-${i}`} disabled={!open} onClick={()=>fight(TRIAL_START+i)}>{open?(done?'Replay trial':'Enter trial'):`Unlocks after stage ${t.unlock}`}</button>
+          </section>;
+        })}</div>
+      </div>}
+
       {tab === 'squad' && (
         <div className="sg-panel sg-squad" data-testid="squad-panel">
           <section className="sg-formation" aria-label="Formation">
@@ -396,7 +437,7 @@ export default function SagaPage() {
               <button data-testid="star-up" disabled={!g.canStar(sel.id)} onClick={() => act(g.starUp(sel.id), 'star')}>{own.stars >= MAX_STARS ? 'Five stars' : `Raise a star · ${own.shards}/${g.starCost(sel.id)} shards`}</button>
             </div>
             <fieldset className="sg-gear-row"><legend>Gear</legend>
-              {GEAR.map((key, slot) => <span key={key} className="sg-gear-slot" data-testid={`gear-${slot}`} title={`+${Math.round(GEAR_STEP[slot] * 100)}% ${GEAR_TEXT[slot]} a tier`}><i className="sg-gear" data-tier={own.gear[slot]} aria-hidden="true">{own.gear[slot] || '–'}</i><small>{GEAR_NAMES[slot]}<br />{own.gear[slot] ? `+${Math.round(GEAR_STEP[slot] * own.gear[slot] * 100)}% ${GEAR_TEXT[slot]}` : 'empty'}</small></span>)}
+              {GEAR.map((key, slot) => <span key={key} className="sg-gear-slot" data-testid={`gear-${slot}`} title={`+${Math.round(GEAR_STEP[slot] * 100)}% ${GEAR_TEXT[slot]} a tier`}><GearArt slot={slot} tier={own.gear[slot]}/><small>{GEAR_NAMES[slot]}<br />{own.gear[slot] ? `+${Math.round(GEAR_STEP[slot] * own.gear[slot] * 100)}% ${GEAR_TEXT[slot]}` : 'empty'}</small></span>)}
               <button data-testid="equip-best" onClick={() => { const n = g.equipBest(sel.id); if (!act(n, 'equip')) setNote('Nothing better in the bag. Stages drop gear, and the forge makes three pieces into a better one.'); }}>Wear the best</button>
             </fieldset>
             <fieldset className="sg-place"><legend>Stand in</legend>
@@ -444,14 +485,14 @@ export default function SagaPage() {
             <p>Stages drop gear. {MERGE} spare pieces of one tier forge into one of the next, up to tier {MAX_TIER}. Wear gear from a hero&rsquo;s page in Squad.</p>
           </section>
           <table>
-            <thead><tr><th scope="col">Gear</th>{Array.from({ length: MAX_TIER }, (_, i) => <th key={i} scope="col">Tier {i + 1}</th>)}</tr></thead>
+            <thead><tr><th scope="col">Gear</th>{Array.from({ length: MAX_TIER }, (_, i) => <th key={i} scope="col">Tier {i + 1}{i===5&&<small>Ascendant</small>}</th>)}</tr></thead>
             <tbody>
               {GEAR.map((key, slot) => (
                 <tr key={key}>
                   <th scope="row">{GEAR_NAMES[slot]}<small>+{Math.round(GEAR_STEP[slot] * 100)}% {GEAR_TEXT[slot]} a tier</small></th>
                   {Array.from({ length: MAX_TIER }, (_, i) => {
                     const tier = i + 1, have = g.bag[slot][tier];
-                    return <td key={tier} data-testid={`bag-${slot}-${tier}`} data-have={have > 0}><i className="sg-gear" data-tier={tier} aria-hidden="true">{tier}</i><b>×{have}</b>
+                    return <td key={tier} data-testid={`bag-${slot}-${tier}`} data-have={have > 0} data-label={`Tier ${tier}`}><GearArt slot={slot} tier={tier}/><b>×{have}</b>
                       {tier < MAX_TIER && <button data-testid={`forge-${slot}-${tier}`} disabled={have < MERGE} aria-label={`Forge ${MERGE} tier ${tier} ${GEAR_NAMES[slot].toLowerCase()} into one of tier ${tier + 1}`} onClick={() => act(g.merge(slot, tier), 'forge')}>Forge</button>}</td>;
                   })}
                 </tr>

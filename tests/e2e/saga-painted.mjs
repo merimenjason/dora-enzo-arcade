@@ -14,7 +14,7 @@ try {
   await p.evaluate(()=>window.__saga().art.loadAll());
   await p.waitForSelector('[data-art-ready="true"]');
   const stats = await p.evaluate(() => window.__saga().art.inspect());
-  assert.equal(stats.length, 50);
+  assert.equal(stats.length, 54);
   assert.ok(
     stats.every((s) => s.loaded && s.pixels > 1000 && !s.edge),
     'all effective figures have complete alpha gutters',
@@ -114,7 +114,7 @@ try {
   );
   await retry.close();
   console.log(
-    'PASS painted Saga: 50 complete figures, all 18 portraits, 8 chapter/boss scenes, live boss health/wind-up and playable artwork retry.',
+    'PASS painted Saga: 54 complete figures and portraits, including Fennel and Sable, 8 chapter/boss scenes, live boss health/wind-up and playable artwork retry.',
   );
 } finally {
   await browser.close();

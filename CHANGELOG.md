@@ -6,15 +6,21 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Whisker Saga**: victory, defeat and pause cards now sit above the full game with a dimmed backdrop and scroll within the screen, keeping headings and actions clear of the battlefield edges. Boss artwork begins loading from stage selection instead of waiting until the boss appears.
+
 - **Whisker Saga**: scrolls, coins and camp chests now use individually measured crops, filling their icon space while preserving detached sparkles and clear edges. The reward sheet refreshes cached artwork to prevent older sheet fragments appearing beside the icons.
 
 ### Changed
+
+- **Whisker Saga**: equipment now shows painted sword, leather armour, clover charm and boots icons in Squad, Forge and battle rewards. Coloured frames and small tier pips replace the numbered squares; equipment bonuses and spare counts remain visible.
 
 - **Whisker Saga**: Dora, Enzo and the scuttler now keep the same painted faces, bodies and proportions throughout their animation. Reusable paws, tails, forearms and weapons move smoothly at their joints, replacing the inconsistent generated poses. Walking uses short, slower steps; paws stay horizontal on the ground and retain their planted position when stopping. The hip-to-ankle segment bends gently while the sole stays rigid, replacing the elastic leg deformation. Beetle feet now step in the correct direction and follow actual travel distance. The compact diagonal formation keeps tails behind teammates' faces; pause, reduced motion and playable artwork fallbacks remain supported. Other characters retain the existing restrained movement.
 
 - **Whisker Saga** now follows its painted storybook design: eighteen heroes with individual portraits, six woodland enemies, eight distinct bosses and eight chapter landscapes. A wider squad formation keeps the larger characters visible; gold-framed skill cards show live charge and ready states, and a clear boss panel shows health and wind-up. Marching, attacks and spell effects remain animated, with reduced motion and compact phone layouts. Missing artwork can be retried while the game remains playable. Hero cards now show live health and shields, eligible stuns highlight during wind-ups, and an early skill press explains its energy or stun requirement. Painted spell effects, chapter postcards and animated camp/reward artwork make progression clearer. Interrupt guidance follows actual skill targets, and valid skill presses are kept until the next combat tick so fast clicks and high-refresh displays do not drop them. Play is available before artwork finishes loading; the current squad and chapter take priority, while later chapters load on demand.
 
 ### Added
+
+- **Whisker Saga**: six optional hero trials, Fennel’s three-target Briar Relay and Sable’s stun-cleansing Clear Skies. Recruit both through play and earn guaranteed first-clear gear, culminating in ornate tier-six Ascendant equipment. Twenty heroes now have distinct special-move effects with gathering, impact and dissipating particles; the original campaign and tower remain intact, and existing saves migrate automatically.
 
 - **Whisker Saga:** a new cabinet, the arcade's thirty-second: a hero-squad adventure in the style of Top Heroes. Five heroes march from Clover Meadow to Hollow Keep and fight three waves a stage on their own, while you decide who stands in front and when each skill is fired. Stun a captain or a boss while it winds up and its slam is lost, and it reels and takes extra damage. Eighteen heroes in three factions to recruit: Dora and Enzo to begin with, six who join as chapter bosses fall, and ten from summons paid for with scrolls you can only win by playing. Gold buys levels, repeats raise stars, stages drop gear to wear and forge, and fielding three or more of one faction strengthens the whole squad. Eighty stages with three stars each, chapter chests, a camp chest that fills while you are away, and an endless tower after the last boss. Number keys, taps, pause, double speed, auto-fire on stages you have beaten, sound and local saves.
 

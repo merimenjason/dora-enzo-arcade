@@ -1,7 +1,7 @@
 // Whisker Saga: the rules of a hero-squad adventure. Deterministic, no DOM.
 // A battle is a seed plus the squad, the stage and the moments skills were fired, so it replays exactly.
 
-export const STEP = 1 / 60, SAVE_VERSION = 1;
+export const STEP = 1 / 60, SAVE_VERSION = 2;
 
 export const rng = (seed: number) => {
   let a = seed >>> 0;
@@ -18,9 +18,9 @@ export const rng = (seed: number) => {
 
 export type Faction = 'meadow' | 'burrow' | 'summit';
 export type Role = 'guard' | 'striker' | 'archer' | 'mage' | 'healer';
-export type SkillKind = 'strike' | 'volley' | 'snipe' | 'freeze' | 'heal' | 'mend' | 'ward' | 'rally';
+export type SkillKind = 'strike' | 'volley' | 'snipe' | 'freeze' | 'heal' | 'mend' | 'ward' | 'rally' | 'chain' | 'cleanse';
 export type Skill = { name: string; kind: SkillKind; power: number };
-export type Hero = { id: string; name: string; faction: Faction; role: Role; rarity: 1 | 2 | 3; from: 'start' | 'story' | 'summon'; chapter?: number; skill: Skill };
+export type Hero = { id: string; name: string; faction: Faction; role: Role; rarity: 1 | 2 | 3; from: 'start' | 'story' | 'summon' | 'trial'; chapter?: number; skill: Skill };
 
 export const FACTIONS: Faction[] = ['meadow', 'burrow', 'summit'];
 export const FACTION_NAMES: Record<Faction, string> = { meadow: 'Meadow', burrow: 'Burrow', summit: 'Summit' };
@@ -39,7 +39,7 @@ export const ROLES: Record<Role, { hp: number; atk: number; armor: number; inter
 const h = (id: string, name: string, faction: Faction, role: Role, rarity: 1 | 2 | 3, from: Hero['from'], skill: string, kind: SkillKind, power: number, chapter?: number): Hero =>
   ({ id, name, faction, role, rarity, from, chapter, skill: { name: skill, kind, power } });
 
-/** Eighteen heroes: two to start, six who join as chapters fall, ten who answer a summons. */
+/** Twenty heroes: two starters, six chapter recruits, ten summons and two trial recruits. */
 export const HEROES: Hero[] = [
   h('dora', 'Dora', 'meadow', 'striker', 2, 'start', 'Dandelion Dash', 'strike', 3.2),
   h('enzo', 'Enzo', 'burrow', 'guard', 2, 'start', 'Burrow Wall', 'ward', 0.28),
@@ -59,10 +59,12 @@ export const HEROES: Hero[] = [
   h('aurora', 'Aurora', 'meadow', 'archer', 3, 'summon', 'Dawn Volley', 'volley', 2),
   h('onyx', 'Onyx', 'burrow', 'striker', 3, 'summon', 'Night Pounce', 'strike', 4.6),
   h('zephyr', 'Zephyr', 'summit', 'mage', 3, 'summon', 'Blizzard', 'freeze', 1.5),
+  h('fennel', 'Fennel', 'meadow', 'mage', 2, 'trial', 'Briar Relay', 'chain', 2.4),
+  h('sable', 'Sable', 'summit', 'healer', 2, 'trial', 'Clear Skies', 'cleanse', 4),
 ];
 export const heroById = (id: string) => HEROES.find((x) => x.id === id)!;
 
-export const STUN: Record<SkillKind, number> = { strike: 2, volley: 0, snipe: 1.2, freeze: 1.6, heal: 0, mend: 0, ward: 0, rally: 0 };
+export const STUN: Record<SkillKind, number> = { strike: 2, volley: 0, snipe: 1.2, freeze: 1.6, heal: 0, mend: 0, ward: 0, rally: 0, chain: 0, cleanse: 0 };
 export const SHIELD_TIME = 6, RALLY_TIME = 6, MEND_SHIELD = 0.5;
 export const skillText = (s: Skill): string => {
   const p = Math.round(s.power * 100);
@@ -74,6 +76,8 @@ export const skillText = (s: Skill): string => {
     case 'heal': return `Heals the whole squad for ${p}% attack.`;
     case 'mend': return `Heals the most hurt hero for ${p}% attack and shields them for half as much.`;
     case 'ward': return `Shields the whole squad for ${p}% of this hero's health, for ${SHIELD_TIME} seconds.`;
+    case 'chain': return `Hits up to three enemies for ${p}%, ${Math.round(p*.75)}% and ${Math.round(p*.5)}% attack.`;
+    case 'cleanse': return `Removes stuns from the whole squad and heals the most hurt hero for ${p}% attack.`;
     case 'rally': return `The whole squad attacks ${p}% faster for ${RALLY_TIME} seconds.`;
   }
 };
@@ -83,7 +87,7 @@ export const STAR_COST = [0, 10, 20, 40, 80], DUP_SHARDS = 10;
 export const GEAR = ['weapon', 'armour', 'charm', 'boots'] as const;
 export const GEAR_NAMES = ['Weapon', 'Armour', 'Charm', 'Boots'];
 export const GEAR_TEXT = ['attack', 'health', 'skill charge', 'attack speed'];
-export const GEAR_STEP = [0.08, 0.08, 0.06, 0.04], MAX_TIER = 5, MERGE = 3;
+export const GEAR_STEP = [0.08, 0.08, 0.06, 0.04], MAX_TIER = 6, MERGE = 3;
 /** Extra attack and health for fielding three, four or five heroes of one faction. */
 export const FACTION_BONUS = [0, 0, 0, 0.1, 0.15, 0.25];
 export const LEVEL_COST = 40, LEVEL_COST_GROWTH = 1.09, BASE_CAP = 10;
@@ -126,13 +130,23 @@ export const BOSSES = ['Thornback', 'Mudmaw', 'Old Croak', 'Rattlewing', 'Grimtu
 export const PER_CHAPTER = 10, STAGES = CHAPTERS.length * PER_CHAPTER;
 export const STAGE_GROWTH = 1.06, WAVES = 3;
 export const stageMult = (n: number) => STAGE_GROWTH ** n;
+export const TRIAL_START = 10000;
+export const TRIALS = [
+  {name:'Briar Relay',unlock:10,chapter:0,tier:2,join:'fennel',waves:[['grunt','grunt','slinger'],['slinger','slinger','grunt'],['captain','slinger','grunt']]},
+  {name:'Backline Watch',unlock:20,chapter:1,tier:3,join:null,waves:[['sneak','sneak','grunt'],['slinger','sneak','sneak'],['captain','sneak','sneak']]},
+  {name:'Clear Skies',unlock:30,chapter:3,tier:3,join:'sable',waves:[['hexer','brute'],['hexer','hexer','grunt'],['boss','hexer']]},
+  {name:'Frostbound Guard',unlock:40,chapter:5,tier:4,join:null,waves:[['brute','brute'],['captain','slinger','brute'],['captain','hexer','brute']]},
+  {name:'Ember Crossfire',unlock:50,chapter:6,tier:5,join:null,waves:[['slinger','slinger','sneak'],['hexer','slinger','captain'],['boss','slinger','slinger']]},
+  {name:'The Crown Trial',unlock:60,chapter:7,tier:6,join:null,waves:[['captain','sneak','hexer'],['brute','brute','slinger'],['boss','hexer','sneak']]},
+] as const;
 /** When each kind first turns up, by chapter. */
 const FIRST: [EnemyKind, number][] = [['grunt', 0], ['slinger', 0], ['sneak', 1], ['brute', 2], ['hexer', 3]];
 
-export type StageDef = { index: number; chapter: number; number: number; boss: boolean; tower: number; name: string; waves: EnemyKind[][]; mult: number; summons: boolean };
+export type StageDef = { index: number; chapter: number; number: number; boss: boolean; tower: number; name: string; waves: EnemyKind[][]; mult: number; summons: boolean; trial?: number };
 
 /** Stage `n` from 0. Past the campaign, `n` runs on into the tower: floor 1 is stage 80. */
 export const stageDef = (n: number): StageDef => {
+  if(n>=TRIAL_START){const trial=n-TRIAL_START,t=TRIALS[trial];if(!t)throw new RangeError("Unknown hero trial");return {index:n,chapter:t.chapter,number:trial+1,boss:t.waves.some(w=>w.some(kind=>kind==='boss')),tower:0,name:t.name,waves:t.waves.map(w=>[...w]) as EnemyKind[][],mult:stageMult(t.unlock+4),summons:trial>=4,trial};}
   const tower = n >= STAGES ? n - STAGES + 1 : 0;
   const chapter = tower ? CHAPTERS.length - 1 : Math.floor(n / PER_CHAPTER), number = tower || (n % PER_CHAPTER) + 1;
   const boss = tower ? tower % 5 === 0 : number === PER_CHAPTER;
@@ -378,6 +392,8 @@ export class Battle {
         this.shield(t, u.atk * s.power * MEND_SHIELD);
         break;
       }
+      case 'chain': foes.slice(0,3).forEach((t,i)=>this.damage(u,t,s.power*(1-i*.25),true)); break;
+      case 'cleanse': {for(const a of this.alive)a.stun=0;const t=this.alive.sort((a,b)=>a.hp/a.max-b.hp/b.max||a.uid-b.uid)[0];this.heal(t,u.atk*s.power);break;}
       case 'ward': for (const a of this.alive) this.shield(a, u.max * s.power); break;
       case 'rally': for (const a of this.alive) { a.haste = s.power; a.hasteT = RALLY_TIME; } break;
     }
@@ -407,7 +423,7 @@ export type Loot = { gold: number; scrolls: number; gear: { slot: number; tier: 
 export type Summoned = { id: string; fresh: boolean; shards: number };
 export type Profile = {
   v: number; seed: number; heroes: Record<string, Owned>; squad: (string | null)[]; gold: number; scrolls: number; bag: number[][];
-  stars: number[]; chests: number[]; tower: number; battles: number; summons: number; pity: number; campAt: number;
+  stars: number[]; chests: number[]; tower: number; battles: number; summons: number; pity: number; campAt: number; trials?: number[];
 };
 
 const newOwned = (): Owned => ({ level: 1, stars: 1, shards: 0, gear: [0, 0, 0, 0] });
@@ -420,6 +436,7 @@ export class Game {
   /** `bag[slot][tier]`: spare gear pieces not worn by anyone. */
   bag: number[][] = GEAR.map(() => Array(MAX_TIER + 1).fill(0));
   stars: number[] = Array(STAGES).fill(0); chests: number[] = Array(CHAPTERS.length).fill(0);
+  trials: number[] = Array(TRIALS.length).fill(0);
   tower = 0; battles = 0; summons = 0; pity = 0;
   battle: Battle | null = null; stage = -1; loot: Loot | null = null;
 
@@ -433,9 +450,9 @@ export class Game {
   get cap() { return BASE_CAP + this.cleared + this.tower; }
   get totalStars() { return this.stars.reduce((a, b) => a + b, 0); }
   chapterStars(c: number) { return this.stars.slice(c * PER_CHAPTER, (c + 1) * PER_CHAPTER).reduce((a, b) => a + b, 0); }
-  unlocked(n: number) { return n < STAGES ? n <= this.cleared : this.complete && n === STAGES + this.tower; }
+  unlocked(n: number) { if(n>=TRIAL_START)return int(n-TRIAL_START,0,TRIALS.length-1)&&this.cleared>=TRIALS[n-TRIAL_START].unlock; return n < STAGES ? n <= this.cleared : this.complete && n === STAGES + this.tower; }
   /** Auto-fire is only offered where the stage has already been beaten. */
-  canAuto(n: number) { return n < STAGES && this.stars[n] > 0; }
+  canAuto(n: number) { if(n>=TRIAL_START)return (this.trials[n-TRIAL_START]??0)>0; return n < STAGES && this.stars[n] > 0; }
 
   // Squad
   get owned() { return HEROES.filter((x) => this.heroes[x.id]); }
@@ -575,11 +592,15 @@ export class Game {
 
   private reward(b: Battle): Loot {
     const n = this.stage, def = b.def, r = rng(this.seed ^ Math.imul(this.battles, 0xc2b2ae35)), stars = b.stars;
-    const first = def.tower ? true : this.stars[n] === 0;
-    const loot: Loot = { gold: goldFor(n) * (first ? FIRST_CLEAR : 1), scrolls: 0, gear: null, joined: null, stars, first };
+    const first = def.trial!==undefined?this.trials[def.trial]===0:def.tower ? true : this.stars[n] === 0;
+    const loot: Loot = { gold: goldFor(def.trial!==undefined?TRIALS[def.trial].unlock:n) * (first ? FIRST_CLEAR : 1), scrolls: 0, gear: null, joined: null, stars, first };
     const lucky = r() < 0.15, drop = r() < GEAR_CHANCE, slot = Math.floor(r() * GEAR.length);
     if (first || drop) loot.gear = { slot, tier: gearTier(def.chapter, lucky) };
-    if (def.tower) {
+    if(def.trial!==undefined){
+      const t=TRIALS[def.trial];this.trials[def.trial]=Math.max(this.trials[def.trial],stars);
+      loot.gear=first?{slot,tier:t.tier}:null;loot.scrolls=first?1:0;
+      if(first&&t.join&&!this.heroes[t.join]){const levels=this.squad.filter((id):id is string=>!!id).map(id=>this.heroes[id].level);this.join(t.join);this.heroes[t.join].level=Math.min(this.cap,Math.max(1,Math.floor(levels.reduce((a,b)=>a+b,0)/levels.length)));loot.joined=t.join;}
+    } else if (def.tower) {
       this.tower = def.tower;
       if (def.tower % TOWER_EVERY === 0) loot.scrolls = TOWER_SCROLLS;
     } else {
@@ -619,19 +640,21 @@ export class Game {
     return {
       v: SAVE_VERSION, seed: this.seed, heroes: JSON.parse(JSON.stringify(this.heroes)), squad: [...this.squad], gold: this.gold, scrolls: this.scrolls,
       bag: this.bag.map((row) => [...row]), stars: [...this.stars], chests: [...this.chests], tower: this.tower, battles: this.battles,
-      summons: this.summons, pity: this.pity, campAt: this.campAt,
+      summons: this.summons, pity: this.pity, campAt: this.campAt, trials:[...this.trials],
     };
   }
   /** Rebuild a saga from a save, or null if anything about it is off. */
   static load(p: unknown): Game | null {
     const s = p as Profile, big = Number.MAX_SAFE_INTEGER;
-    if (!s || typeof s !== 'object' || s.v !== SAVE_VERSION || !int(s.seed, 0, 0xffffffff)) return null;
+    if (!s || typeof s !== 'object' || (s.v !== SAVE_VERSION && s.v !== 1) || !int(s.seed, 0, 0xffffffff)) return null;
     if (!int(s.gold, 0, big) || !int(s.scrolls, 0, big) || !int(s.tower, 0, big) || !int(s.battles, 0, big) || !int(s.summons, 0, big) || !int(s.pity, 0, PITY - 1)) return null;
     if (typeof s.campAt !== 'number' || !Number.isFinite(s.campAt) || s.campAt < 0) return null;
     if (!Array.isArray(s.stars) || s.stars.length !== STAGES || !s.stars.every((x) => int(x, 0, 3))) return null;
     if (s.stars.some((x, i) => x > 0 && i > 0 && s.stars[i - 1] === 0)) return null;
     if (!Array.isArray(s.chests) || s.chests.length !== CHAPTERS.length || !s.chests.every((x) => int(x, 0, CHEST_STARS.length))) return null;
-    if (!Array.isArray(s.bag) || s.bag.length !== GEAR.length || !s.bag.every((row) => Array.isArray(row) && row.length === MAX_TIER + 1 && row.every((x) => int(x, 0, big)))) return null;
+    if (!Array.isArray(s.bag) || s.bag.length !== GEAR.length || !s.bag.every((row) => Array.isArray(row) && (row.length === MAX_TIER + 1 || (s.v === 1 && row.length === 6)) && row.every((x) => int(x, 0, big)))) return null;
+    if(s.v===2&&s.trials===undefined)return null;
+    if(s.trials!==undefined&&(!Array.isArray(s.trials)||s.trials.length!==TRIALS.length||!s.trials.every(x=>int(x,0,3))))return null;
     if (!s.heroes || typeof s.heroes !== 'object' || !s.heroes.dora || !s.heroes.enzo) return null;
     for (const [id, o] of Object.entries(s.heroes)) {
       if (!HEROES.some((x) => x.id === id) || !o || !int(o.level, 1, 9999) || !int(o.stars, 1, MAX_STARS) || !int(o.shards, 0, big)) return null;
@@ -642,7 +665,7 @@ export class Game {
     if (fielded.some((id) => typeof id !== 'string' || !s.heroes[id]) || new Set(fielded).size !== fielded.length) return null;
     const g = new Game(s.seed, s.campAt);
     g.heroes = JSON.parse(JSON.stringify(s.heroes)); g.squad = [...s.squad]; g.gold = s.gold; g.scrolls = s.scrolls;
-    g.bag = s.bag.map((row) => [...row]); g.stars = [...s.stars]; g.chests = [...s.chests];
+    g.bag = s.bag.map((row) => Array.from({length:MAX_TIER+1},(_,i)=>row[i]??0)); g.trials=s.trials?[...s.trials]:Array(TRIALS.length).fill(0); g.stars = [...s.stars]; g.chests = [...s.chests];
     g.tower = s.tower; g.battles = s.battles; g.summons = s.summons; g.pity = s.pity;
     return g;
   }

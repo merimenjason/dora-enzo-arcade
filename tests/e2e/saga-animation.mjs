@@ -16,7 +16,7 @@ const b=await chromium.launch(),base=process.env.E2E_BASE_URL||'http://localhost
  assert.ok(!requests.some(key=>key.startsWith('motion-')),'the inconsistent generated pose sheets are never requested');
  await p.getByTestId('pause').click();await p.waitForTimeout(60);const cv=p.getByTestId('field'),image=await cv.evaluate(c=>c.toDataURL());
  await p.waitForTimeout(250);assert.equal(await cv.evaluate(c=>c.toDataURL()),image,'pause freezes all rig layers');
- await p.emulateMedia({reducedMotion:'reduce'});await p.getByTestId('pause').click();
+ await p.emulateMedia({reducedMotion:'reduce'});await p.getByTestId('resume').click();
  const poses=await p.evaluate(()=>{const s=window.__saga();return s.field.inspect(s.game.battle).heroes.map(h=>h.pose)});
  assert.ok(poses.every(a=>a.near.x===0 && a.near.y===0 && a.head===0 && a.tail===0),'reduced motion holds every joint still');
  assert.deepEqual(errors,[]);await p.close();

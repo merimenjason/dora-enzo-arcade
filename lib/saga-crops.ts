@@ -1,5 +1,13 @@
 /** Measured complete connected silhouettes, including ears, weapons and tails. */
 export const SAGA_CROPS: Record<string, [number, number, number, number][]> = {
+  'heroes-3':[[114,18,655,503],[788,18,633,506],[249,521,499,494],[853,523,495,494]],
+  'equipment-ascendant':[[51,36,571,602],[655,83,572,529],[77,635,532,558],[673,691,571,503]],
+  equipment: [
+    [55, 37, 552, 582],
+    [651, 83, 578, 528],
+    [79, 625, 516, 556],
+    [674, 686, 570, 512],
+  ],
   // Complete reward silhouettes and their detached sparks, with a clear gutter.
   rewards: [
     [203, 130, 455, 344],
