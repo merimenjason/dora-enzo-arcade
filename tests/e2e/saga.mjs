@@ -313,7 +313,7 @@ for (const [width, height] of [[360, 640], [390, 844], [844, 390], [768, 1024], 
     for (let slot = 0; slot < 5; slot++) { const b = await page.getByTestId(`skill-${slot}`).boundingBox(); assert.ok(b && b.x >= 0 && b.x + b.width <= width + 1 && b.y + b.height <= height + 1 && b.height >= 38, `skill ${slot + 1} is on screen`); }
     for (const id of ['retreat', 'pause', 'speed', 'mute']) { const b = await page.getByTestId(id).boundingBox(); assert.ok(b && b.x >= 0 && b.x + b.width <= width + 1, `${id} fits`); }
     const seen = await page.evaluate(() => { const s = window.__saga(), v = s.field.inspect(s.game.battle), c = document.querySelector('[data-testid="field"]').getBoundingClientRect(); return { heroes: v.heroes, w: c.width, h: c.height, unit: v.unit }; });
-    for (const p of seen.heroes) assert.ok(p.x - seen.unit * 0.9 >= 0 && p.x < seen.w * 0.7 && p.y <= seen.h && p.y - seen.unit >= 0, `the hero in slot ${p.slot} stands inside the field`);
+    for (const p of seen.heroes) assert.ok(p.x - p.size * 0.9 >= 0 && p.x < seen.w * 0.7 && p.y <= seen.h && p.y - p.size >= 0, `the hero in slot ${p.slot} stands inside the field`);
     await page.waitForTimeout(1500); await page.screenshot({ path: `.checks/saga/battle-${width}x${height}.png` });
     await winNow(page);
     const card = await page.getByTestId('won').boundingBox();

@@ -4,8 +4,10 @@ import { coatLike, drawChinchilla, COATS, type Coat } from './chinchilla-art';
 import { HEROES, heroById, type EnemyKind, type Faction, type Role } from './saga-game';
 
 export const PAINTED = true;
+import { type SagaMotion } from './saga-animation';
+import { drawSagaHeroRig, drawSagaBeetleRig } from './saga-rig';
 import { loadSagaPainting, sagaFigure, sagaPortrait, sagaLandscape } from './saga-paint';
-export { sagaPaintVersion, sagaPaintReady, sagaPaintStats, sagaDecoration, sagaDecorationStats, sagaPaintError, sagaAssetStatus, subscribeSagaPainting, retrySagaPainting } from './saga-paint';
+export { sagaPaintVersion, sagaPaintReady, sagaPaintStats, sagaDecoration, sagaDecorationStats, sagaRigStats, sagaPaintError, sagaAssetStatus, subscribeSagaPainting, retrySagaPainting } from './saga-paint';
 export const loadSagaArt = loadSagaPainting;
 const ENEMY_ORDER: EnemyKind[] = ['grunt', 'slinger', 'sneak', 'brute', 'hexer', 'captain'];
 
@@ -75,7 +77,7 @@ const carry = (role: Role, tint: string, swing: number, glow: number) => (k: Can
   k.restore();
 };
 
-export type HeroPose = { face?: 1 | -1; moving?: boolean; run?: number; swing?: number; glow?: number; dizzy?: boolean; silhouette?: boolean; motion?: boolean };
+export type HeroPose = { animation?: SagaMotion; face?: 1 | -1; moving?: boolean; run?: number; gait?: number; lean?: number; swing?: number; glow?: number; dizzy?: boolean; silhouette?: boolean; motion?: boolean };
 
 /** A hero with their feet on (x, base), `size` pixels tall. */
 export function drawHero(c: CanvasRenderingContext2D, id: string, x: number, base: number, size: number, t: number, pose: HeroPose = {}) {
@@ -88,8 +90,13 @@ export function drawHero(c: CanvasRenderingContext2D, id: string, x: number, bas
     c.restore();
     return;
   }
-  const bob = pose.motion ? (pose.moving ? Math.abs(Math.sin(pose.run ?? t * 8)) * size * .035 : Math.sin(t * 2) * size * .008) : 0;
-  if (PAINTED && sagaFigure(c, id==='dora'?'hero-dora':'heroes-'+Math.floor(i/6), id==='dora'?0:i%6, x, base, size, face, pose.motion ? (pose.swing ?? 0)*.08 : 0, bob)) return;
+  if(PAINTED && pose.animation && (id==='dora'||id==='enzo') && drawSagaHeroRig(c,id,x,base,size,pose.animation))return;
+  const phase = pose.run ?? t * 11;
+  const gait = pose.moving && pose.motion ? (pose.gait ?? 1) : 0;
+  const bob = Math.max(0, Math.sin(phase)) ** 2 * size * .012 * gait;
+  const breath = pose.motion ? Math.sin(t * 2.4) * (1 - gait) : 0;
+  const lean = pose.motion ? (pose.lean ?? 0) + Math.sin(phase) * .008 * gait : 0;
+  if (PAINTED && sagaFigure(c, id==='dora'?'hero-dora':'heroes-'+Math.floor(i/6), id==='dora'?0:i%6, x, base, size, face, lean, bob, breath)) return;
   drawChinchilla(c, HERO_COATS[id], x, base, {
     face, h: size, time: t, moving: pose.moving, run: pose.run, dizzy: pose.dizzy,
     decorate: carry(hero.role, FACTION_COLOR[hero.faction], pose.swing ?? 0, pose.glow ?? 0),
@@ -104,13 +111,14 @@ export const CHAPTER_TINT = [
   ['#7b6a8f', '#544566', '#a898ba', '#e58f4a'], ['#8fb4d1', '#5f86a6', '#c5dcec', '#ffffff'], ['#b5553c', '#7f3324', '#de8a6c', '#ffcf5a'], ['#4d4a63', '#2e2c40', '#7d7a99', '#b48cff'],
 ];
 const INK = '#241d2b';
-export type EnemyPose = { wind?: number; hurt?: number; step?: number; motion?: boolean };
+export type EnemyPose = { animation?: SagaMotion; wind?: number; hurt?: number; step?: number; gait?: number; lean?: number; motion?: boolean };
 
 /** An enemy facing left with its feet on (x, base). `size` is the height of a scuttler; bigger kinds scale from it. */
 export function drawEnemy(c: CanvasRenderingContext2D, kind: EnemyKind, chapter: number, x: number, base: number, size: number, t: number, pose: EnemyPose = {}) {
   c.save();c.fillStyle='rgba(33,22,28,.22)';c.beginPath();c.ellipse(x,base,size*(kind==='boss'?1:.45),size*.075,0,0,Math.PI*2);c.fill();c.restore();
+  if(PAINTED && kind==='grunt' && pose.animation && drawSagaBeetleRig(c,x,base,size,pose.animation))return;
   const wind=pose.wind??0;
-  if(PAINTED && sagaFigure(c,kind==='boss'?(chapter<4?'bosses-0':'boss-'+chapter):'enemies',kind==='boss'?(chapter<4?chapter:0):ENEMY_ORDER.indexOf(kind),x,base,size*(kind==='boss'?2.2:kind==='captain'||kind==='brute'?1.5:1),1,pose.motion?-wind*.07:0,pose.motion?Math.abs(Math.sin(pose.step??0))*size*.025:0))return;
+  if(PAINTED && sagaFigure(c,kind==='boss'?(chapter<4?'bosses-0':'boss-'+chapter):'enemies',kind==='boss'?(chapter<4?chapter:0):ENEMY_ORDER.indexOf(kind),x,base,size*(kind==='boss'?2.2:kind==='captain'||kind==='brute'?1.5:1),1,pose.motion? -wind * .035 + (pose.lean ?? 0) + (pose.hurt ?? 0) * .02 : 0,pose.motion?Math.max(0,Math.sin(pose.step??0))**2*size*(kind==='boss'?.005:.01)*(pose.gait??1):0,pose.motion?Math.sin(t*1.8)*.7:0))return;
   const [body, shade, light, accent] = CHAPTER_TINT[chapter % CHAPTER_TINT.length];
   const s = size, step = Math.sin((pose.step ?? t * 5) * 1.6), bob = Math.abs(step) * 0.03;
   const el = (ex: number, ey: number, rx: number, ry: number, fill: string, rot = 0) => { c.beginPath(); c.ellipse(ex * s, ey * s, rx * s, ry * s, rot, 0, Math.PI * 2); c.fillStyle = fill; c.fill(); c.stroke(); };
