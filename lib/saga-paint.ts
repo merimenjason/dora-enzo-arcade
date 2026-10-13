@@ -1,7 +1,11 @@
 import { SAGA_CROPS } from './saga-crops';
+import { SAGA_RIG_CROPS } from './saga-rig-crops';
 /** Painted artwork stays independent of the battle and save format. */
 const grids: Record<string, [number, number]> = {
   'hero-dora': [1, 1],
+  'rig-dora': [4, 2],
+  'rig-enzo': [4, 2],
+  'rig-beetle': [4, 2],
   effects: [3, 2],
   rewards: [2, 2],
   enemies: [3, 2],
@@ -59,7 +63,7 @@ function request(key: string): Promise<void> {
       notify();
       reject(new Error('Could not load ' + key));
     };
-    image.src = '/art/saga/' + key + '.png';
+    image.src = '/art/saga/' + key + '.png' + (key.startsWith('rig-') ? '?v=stable-rig-1' : key === 'rewards' ? '?v=reward-crops-2' : '');
   });
   requests.set(key, pending);
   notify();
@@ -98,13 +102,13 @@ function cell(key: string, index: number) {
   const [cols, rows] = grids[key],
     fw = Math.floor(image.width / cols),
     fh = Math.floor(image.height / rows),
-    raw = SAGA_CROPS[key]?.[index] ?? [
+    raw = SAGA_RIG_CROPS[key]?.[index] ?? SAGA_CROPS[key]?.[index] ?? [
       (index % cols) * fw,
       Math.floor(index / cols) * fh,
       fw,
       fh,
     ];
-  const pad = key === 'effects' || key === 'rewards' ? 0 : 24;
+  const pad = key.startsWith('rig-') ? 6 : key === 'effects' || key === 'rewards' ? 0 : 24;
   const sx = Math.max(0, raw[0] - pad),
     sy = Math.max(0, raw[1] - pad),
     w = Math.min(image.width, raw[0] + raw[2] + pad) - sx,
@@ -193,13 +197,15 @@ export function sagaFigure(
   face: 1 | -1 = 1,
   lean = 0,
   bob = 0,
+  breath = 0,
 ) {
   const image = cell(key, index);
   if (!image) return false;
   const scale = height / image.height;
   c.save();
   c.translate(x, feet - bob);
-  c.scale(face, 1);
+  // Breathing changes the silhouette subtly around planted feet rather than lifting it.
+  c.scale(face * (1 - breath * .002), 1 + breath * .004);
   c.rotate(lean);
   c.drawImage(
     image,
@@ -257,7 +263,7 @@ export function sagaPaintStats() {
   return Object.entries(grids)
     .filter(
       ([key]) =>
-        !key.startsWith('land-') && key !== 'effects' && key !== 'rewards',
+        !key.startsWith('land-') && !key.startsWith('rig-') && key !== 'effects' && key !== 'rewards',
     )
     .flatMap(([key, [cols, rows]]) =>
       Array.from({ length: cols * rows }, (_, i) => i)
@@ -338,7 +344,42 @@ export function sagaDecorationStats() {
             )
               edge = true;
           }
-      return { name: key + ':' + i, loaded: true, pixels, edge };
+      return { name: key + ':' + i, loaded: true, pixels, edge, width: image.width, height: image.height };
     }),
   );
+}
+
+/** Cached painted part, with its joint kept at the requested attachment point. */
+export function sagaRigPart(c:CanvasRenderingContext2D,key:string,index:number,x:number,y:number,w:number,h:number,angle=0,px=.5,py=.5){
+  const image=cell(key,index);if(!image)return false;
+  const scale=Math.min(w/image.width,h/image.height),width=image.width*scale,height=image.height*scale;
+  c.save();c.translate(x,y);c.rotate(angle);c.drawImage(image,-width*px,-height*py,width,height);c.restore();return true;
+}
+export function sagaRigReady(key:string){if(!images.has(key)){demand(key);return false;}return true;}
+export function sagaRigStats(){
+ return ['rig-dora','rig-enzo','rig-beetle'].flatMap(key=>Array.from({length:8},(_,index)=>{
+  const image=cell(key,index);if(!image)return {name:key+':'+index,loaded:false};
+  const p=image.getContext('2d')!.getImageData(0,0,image.width,image.height).data;
+  let pixels=0,edge=false;
+  for(let y=0;y<image.height;y++)for(let x=0;x<image.width;x++)if(p[(y*image.width+x)*4+3]>8){pixels++;if(x===0||y===0||x===image.width-1||y===image.height-1)edge=true;}
+  return {name:key+':'+index,loaded:true,pixels,edge,width:image.width,height:image.height};
+ }));
+}
+
+/** A local attachment vector in the same fitted part geometry used for painting. */
+export function sagaRigVector(key:string,index:number,w:number,h:number,fromX:number,fromY:number,toX:number,toY:number){
+ const image=cell(key,index);if(!image)return {x:0,y:0};
+ const scale=Math.min(w/image.width,h/image.height);
+ return {x:(toX-fromX)*image.width*scale,y:(toY-fromY)*image.height*scale};
+}
+/** A fixed hip-to-ankle segment and a rigid horizontal sole, with no elastic strip mesh. */
+export function sagaRigLeg(c:CanvasRenderingContext2D,key:string,index:number,x:number,y:number,w:number,h:number,dx:number,dy:number){
+ const image=cell(key,index);if(!image)return false;
+ const scale=Math.min(w/image.width,h/image.height),width=image.width*scale,height=image.height*scale;
+ const cut=.72,upper=height*cut,sy=image.height*cut,left=x-width*.55,top=y-height*.96;
+ // One small affine bend connects the fixed hip to the ankle. The paw itself never shears or rotates.
+ c.save();c.transform(1,0,dx/upper,(upper+dy)/upper,left,top);
+ c.drawImage(image,0,0,image.width,sy,0,0,width,upper);c.restore();
+ c.drawImage(image,0,sy,image.width,image.height-sy,left+dx,top+upper+dy,width,height-upper);
+ return true;
 }

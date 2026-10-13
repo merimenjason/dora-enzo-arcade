@@ -9,7 +9,7 @@ import {
 } from '../../lib/saga-game';
 import { readyToInterrupt } from '../../lib/saga-feedback';
 import { Field, portrait } from '../../lib/saga-scene';
-import { loadSagaArt, sagaPaintVersion, sagaPaintReady, sagaPaintStats, sagaDecoration, sagaDecorationStats, sagaPaintError, sagaAssetStatus, subscribeSagaPainting, retrySagaPainting, RARITY_COLOR, FACTION_COLOR } from '../../lib/saga-art';
+import { loadSagaArt, sagaPaintVersion, sagaPaintReady, sagaPaintStats, sagaDecoration, sagaDecorationStats, sagaRigStats, sagaPaintError, sagaAssetStatus, subscribeSagaPainting, retrySagaPainting, RARITY_COLOR, FACTION_COLOR } from '../../lib/saga-art';
 import './saga.css';
 import { sound } from './sound';
 
@@ -69,8 +69,10 @@ export default function SagaPage() {
     return stop;
   }, [redraw]);
   useEffect(() => { const media = matchMedia('(prefers-reduced-motion: reduce)'), sync = () => { field.current.motion = !media.matches; }; sync(); media.addEventListener('change', sync); return () => media.removeEventListener('change', sync); }, []);
+  // Fast refresh can preserve refs whose class methods belong to an older scene module.
+  useEffect(()=>{if(!(field.current instanceof Field)){field.current=new Field();field.current.motion=!matchMedia('(prefers-reduced-motion: reduce)').matches;redraw();}});
 
-  useEffect(() => { (window as unknown as { __saga?: () => unknown }).__saga = () => ({ game: game.current, field: field.current, paused: paused.current, speed: speed.current, auto: auto.current, refresh: redraw, art: {ready:sagaPaintReady(), inspect:sagaPaintStats, decorations:sagaDecorationStats, loadAll:()=>loadSagaArt(), status:sagaAssetStatus} }); }, [redraw]);
+  useEffect(() => { (window as unknown as { __saga?: () => unknown }).__saga = () => ({ game: game.current, field: field.current, paused: paused.current, speed: speed.current, auto: auto.current, refresh: redraw, art: {ready:sagaPaintReady(), inspect:sagaPaintStats, decorations:sagaDecorationStats, rigs:sagaRigStats, sagaRigStats, loadAll:()=>loadSagaArt(), status:sagaAssetStatus} }); }, [redraw]);
   const store = useCallback(() => { if (game.current) write(game.current); }, []);
   const pause = useCallback((on: boolean) => { paused.current = on; setIsPaused(on); }, []);
   const mute = () => { const m = !sound.muted(); sound.setMuted(m); setMuted(m); };
@@ -193,7 +195,7 @@ export default function SagaPage() {
     const onward = () => { g.leave(); fight(next); };
     const tap = (e: React.PointerEvent<HTMLCanvasElement>) => { const box = e.currentTarget.getBoundingClientRect(), slot = field.current.slotAt(e.clientX - box.left, e.clientY - box.top); if (slot >= 0 && g.squad[slot]) cast(slot); };
     return (
-      <main data-art-ready={sagaPaintReady()} className="sg-shell sg-battle" data-phase={b.phase} data-wave={b.wave} data-paused={isPaused} data-winding={!!winding}>
+      <main data-scene-version={field.current.version} data-art-ready={sagaPaintReady()} className="sg-shell sg-battle" data-phase={b.phase} data-wave={b.wave} data-paused={isPaused} data-winding={!!winding}>
         <header className="sg-header">
           <div className="sg-battle-heading"><strong>Whisker Saga</strong><button className="sg-quiet" data-testid="retreat" onClick={leaveBattle}>{over ? '← Map' : '← Retreat'}</button></div>
           <div className="sg-where" data-testid="where"><strong>{def.name}</strong><span>Wave {Math.min(b.wave + 1, def.waves.length)}/{def.waves.length}</span><span className={b.time > PAR ? 'sg-late' : ''}>{clock(b.time)}</span></div>

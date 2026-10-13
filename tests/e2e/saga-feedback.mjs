@@ -17,6 +17,12 @@ try {
     decorations.every((s) => s.loaded && s.pixels > 100 && !s.edge),
     'spell and reward sprites stay inside their crops',
   );
+  assert.ok(
+    decorations.filter((s) => s.name.startsWith('rewards:')).every(
+      (s) => s.pixels / (s.width * s.height) > 0.4,
+    ),
+    'reward icons fill their framing without oversized empty sheet cells',
+  );
   await p.evaluate(() => {
     const s = window.__saga();
     s.game.squad = ['dora', 'enzo', null, null, null];

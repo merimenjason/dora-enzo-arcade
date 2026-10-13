@@ -4,7 +4,13 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 13-10-2026
 
+### Fixed
+
+- **Whisker Saga**: scrolls, coins and camp chests now use individually measured crops, filling their icon space while preserving detached sparkles and clear edges. The reward sheet refreshes cached artwork to prevent older sheet fragments appearing beside the icons.
+
 ### Changed
+
+- **Whisker Saga**: Dora, Enzo and the scuttler now keep the same painted faces, bodies and proportions throughout their animation. Reusable paws, tails, forearms and weapons move smoothly at their joints, replacing the inconsistent generated poses. Walking uses short, slower steps; paws stay horizontal on the ground and retain their planted position when stopping. The hip-to-ankle segment bends gently while the sole stays rigid, replacing the elastic leg deformation. Beetle feet now step in the correct direction and follow actual travel distance. The compact diagonal formation keeps tails behind teammates' faces; pause, reduced motion and playable artwork fallbacks remain supported. Other characters retain the existing restrained movement.
 
 - **Whisker Saga** now follows its painted storybook design: eighteen heroes with individual portraits, six woodland enemies, eight distinct bosses and eight chapter landscapes. A wider squad formation keeps the larger characters visible; gold-framed skill cards show live charge and ready states, and a clear boss panel shows health and wind-up. Marching, attacks and spell effects remain animated, with reduced motion and compact phone layouts. Missing artwork can be retried while the game remains playable. Hero cards now show live health and shields, eligible stuns highlight during wind-ups, and an early skill press explains its energy or stun requirement. Painted spell effects, chapter postcards and animated camp/reward artwork make progression clearer. Interrupt guidance follows actual skill targets, and valid skill presses are kept until the next combat tick so fast clicks and high-refresh displays do not drop them. Play is available before artwork finishes loading; the current squad and chapter take priority, while later chapters load on demand.
 

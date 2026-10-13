@@ -1,8 +1,9 @@
 // Whisker Saga's battlefield, drawn in Canvas 2D. Drawing only: it reads the battle and never changes it.
+import { sagaRigPose } from './saga-animation';
 import { ENERGY, SPAWN, heroById, type Battle, type BattleEvent, type EnemyKind, type Unit } from './saga-game';
 import { drawBackdrop, drawEnemy, drawHero, drawHeroPortrait, sagaDecoration, ENEMY_HEIGHT, FACTION_COLOR, RARITY_COLOR } from './saga-art';
 
-type Look = { x: number; y: number; lunge: number; hurt: number; hp: number; cast: number };
+type Look = { x: number; y: number; lunge: number; hurt: number; hp: number; cast: number; gait: number; stride: number; walking: boolean; landing: number };
 type Ghost = { kind: EnemyKind; x: number; y: number; t: number };
 type Fx = {
   kind: 'num' | 'shot' | 'slash' | 'ring' | 'word' | 'plus' | 'rain' | 'flake' | 'star' | 'puff' | 'up' | 'texture';
@@ -10,12 +11,19 @@ type Fx = {
 };
 const LANES = [0.5, 0.18, 0.82, 0.02, 0.98];
 const ease = (x: number) => 1 - (1 - x) * (1 - x);
+// A short impulse with a fast follow-through and a slower recovery, starting at rest.
+const impulse = (remaining: number) => {
+  const p = 1 - remaining;
+  return p < .2 ? Math.sin(p / .2 * Math.PI / 2) : Math.cos((p - .2) / .8 * Math.PI / 2) ** 2;
+};
 
 export class Field {
+  readonly version = 'planted-feet-v5';
   /** Off when the visitor asks for reduced motion: no shake, no drifting particles, no flashes. */
   motion = true;
   clock = 0; texturesCreated = 0; scroll = 0; shake = 0; flash = 0; flashColor = '#fff'; banner = ''; bannerT = 0; cheer = 0;
   private looks = new Map<number, Look>(); private ghosts: Ghost[] = []; private fx: Fx[] = [];
+  private travel = 0;
   private w = 1; private h = 1; private chapter = 0;
 
   private get unit() { return Math.max(30, Math.min(180, this.h * 0.31, this.w * 0.125)); }
@@ -26,9 +34,10 @@ export class Field {
   private get frontX() { return Math.max(this.w * 0.4, this.backX + this.unit * 1.55); }
   /** Where a hero stands, by squad slot. */
   heroAt(slot: number) {
-    // Two heroes in front of three: broad, readable silhouettes instead of one overlapping column.
-    const front = slot < 2;
-    return { x: front ? this.frontX - (1-slot)*this.w*.14 : this.w*(.12+(slot-2)*.145), y: this.h*(front?.83:.60) };
+    // Compact diagonal depth: draw the rear front-line hero first so its tail stays behind the foreground face.
+    const front = slot < 2, backSize = this.unit * .72;
+    return {x:front ? this.frontX - (1-slot)*this.unit*1.4 : Math.max(this.w*.08,this.unit*.75+8)+(slot-2)*backSize*1.8,
+      y:front?this.h*.84-(slot===1?this.unit*.32:0):this.h*.47};
   }
   private enemyAt(u: Unit) {
     const step = (this.w - this.frontX - this.unit * 1.2) / (SPAWN + 0.6), f = LANES[u.slot % LANES.length];
@@ -38,8 +47,7 @@ export class Field {
   private look(u: Unit) {
     let l = this.looks.get(u.uid);
     const at = u.hero ? this.heroAt(u.slot) : this.enemyAt(u);
-    if (!l) { l = { x: at.x, y: at.y, lunge: 0, hurt: 0, hp: u.hp / u.max, cast: 0 }; this.looks.set(u.uid, l); }
-    l.x = at.x; l.y = at.y;
+    if (!l) { l = { x: at.x, y: at.y, lunge: 0, hurt: 0, hp: u.hp / u.max, cast: 0, gait: 0, stride: (.3+((u.hero?u.slot:u.uid)%2)*.5)*Math.PI*2, walking: false, landing: 1 }; this.looks.set(u.uid, l); }
     return l;
   }
   /** The slot of the hero under a point on the canvas, for firing a skill by tapping the hero. */
@@ -47,7 +55,7 @@ export class Field {
     for (let slot = 0; slot < 5; slot++) { const p = this.heroAt(slot); if (Math.abs(x - p.x) < this.unit * 0.55 && y < p.y + this.unit * 0.15 && y > p.y - this.unit * 1.15) return slot; }
     return -1;
   }
-  reset() { this.looks.clear(); this.ghosts = []; this.fx = []; this.shake = 0; this.flash = 0; this.banner = ''; this.bannerT = 0; this.cheer = 0; this.scroll = 0; this.texturesCreated = 0; }
+  reset() { this.looks.clear(); this.ghosts = []; this.fx = []; this.shake = 0; this.flash = 0; this.banner = ''; this.bannerT = 0; this.cheer = 0; this.scroll = 0; this.texturesCreated = 0; this.travel = 0; }
 
   private add(f: Fx) { if (this.fx.length < 220) {this.fx.push(f);if(f.kind==='texture')this.texturesCreated++;} }
   private word(x: number, y: number, text: string, color: string, size = 1, life = 1.1) { this.add({ kind: 'word', x, y, t: 0, life, text, color, size }); }
@@ -115,22 +123,30 @@ export class Field {
   /** What the scene is showing, for the browser tests. */
   inspect(b: Battle) {
     return {
-      heroes: b.heroes.map((u) => ({ slot: u.slot, ...this.heroAt(u.slot) })), enemies: b.foes.map((u) => ({ uid: u.uid, ...this.enemyAt(u) })),
+      heroes: b.heroes.map((u) => ({ slot: u.slot, size:this.unit*(u.slot<2?1:.72), ...this.heroAt(u.slot), animation: this.heroMotion(u,b,this.look(u)), pose:sagaRigPose(this.heroMotion(u,b,this.look(u))) })), enemies: b.foes.map((u) => ({ uid: u.uid, ...this.enemyAt(u), pose:sagaRigPose(this.enemyMotion(u,this.look(u))) })),
       texturesCreated:this.texturesCreated, textures: this.fx.filter(f=>f.kind==='texture').length, fx: this.fx.length, ghosts: this.ghosts.length, shake: this.shake, flash: this.flash, banner: this.bannerT > 0 ? this.banner : '', scroll: this.scroll, cheer: this.cheer, unit: this.unit,
     };
   }
 
   draw(c: CanvasRenderingContext2D, w: number, h: number, dpr: number, b: Battle, dt: number) {
+    const resized = w !== this.w || h !== this.h;
     this.w = w; this.h = h; this.chapter = b.def.chapter;
+    if(resized)for(const unit of [...b.heroes, ...b.foes]){
+      const l = this.look(unit), at = unit.hero ? this.heroAt(unit.slot) : this.enemyAt(unit);
+      l.x = at.x; l.y = at.y;
+    }
     this.clock += dt;
     const t = this.clock, u = this.unit, marching = b.phase === 'march';
-    if (marching && this.motion) this.scroll += dt * w * 0.3;
+    const movement = this.motion ? 1 - Math.exp(-dt * 10) : 1;
+    this.travel += ((marching && this.motion ? u * .20 : 0) - this.travel) * movement;
+    if(!marching && this.travel<u*.04)this.travel=0;
+    if (this.motion) { this.scroll += dt * this.travel; }
     this.shake = Math.max(0, this.shake - dt * 1.6); this.flash = Math.max(0, this.flash - dt * 1.4); this.bannerT = Math.max(0, this.bannerT - dt);
     if (this.cheer) this.cheer += dt;
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.clearRect(0, 0, w, h);
     c.save();
-    if (this.motion && this.shake > 0) c.translate(Math.sin(t * 61) * this.shake * 9, Math.cos(t * 53) * this.shake * 6);
+    if (this.motion && this.shake > 0) c.translate(Math.sin(t * 61) * this.shake * 4, Math.cos(t * 53) * this.shake * 2);
     drawBackdrop(c, this.chapter, w, h, this.scroll, t, h * 0.46);
 
     // A slam on its way: the ground under the squad reddens as the wind-up fills.
@@ -145,11 +161,11 @@ export class Field {
     const items: Item[] = [];
     for (const g of this.ghosts) {
       g.t += dt;
-      items.push({ y: g.y, draw: () => { c.save(); c.globalAlpha = Math.max(0, 1 - g.t / 0.45); c.translate(g.x, g.y); c.scale(1 + g.t * 0.5, Math.max(0.05, 1 - g.t * 1.8)); drawEnemy(c, g.kind, this.chapter, 0, 0, u * 0.82, t); c.restore(); } });
+      items.push({ y: g.y, draw: () => { c.save(); c.globalAlpha = Math.max(0, 1 - g.t / 0.45); c.translate(g.x, g.y + (this.motion ? g.t * u * .06 : 0)); c.rotate(this.motion ? -g.t * .15 : 0); drawEnemy(c, g.kind, this.chapter, 0, 0, u * 0.82, t); c.restore(); } });
     }
     this.ghosts = this.ghosts.filter((g) => g.t < 0.45);
     for (const hero of b.heroes) {
-      const l = this.look(hero); this.settle(l, hero, dt);
+      const l = this.look(hero); this.settle(l, hero, dt, marching);
       items.push({ y: l.y, draw: () => this.hero(c, hero, l, b, t, marching) });
     }
     for (const foe of b.foes) {
@@ -170,8 +186,25 @@ export class Field {
     }
   }
 
-  private settle(l: Look, u: Unit, dt: number) {
-    l.lunge = Math.max(0, l.lunge - dt * 5); l.hurt = Math.max(0, l.hurt - dt * 4); l.cast = Math.max(0, l.cast - dt * 1.6);
+  private settle(l: Look, u: Unit, dt: number, marching = false) {
+    l.lunge = Math.max(0, l.lunge - dt / .38); l.hurt = Math.max(0, l.hurt - dt / .3); l.cast = Math.max(0, l.cast - dt / .65);
+    const at = u.hero ? this.heroAt(u.slot) : this.enemyAt(u), follow = 1 - Math.exp(-dt * 18);
+    const oldX=l.x;
+    l.x += (at.x - l.x) * follow; l.y += (at.y - l.y) * follow;
+    const travelled=Math.abs(l.x-oldX);
+    const walking = this.motion && !u.dead && u.stun <= 0 && (u.hero ? marching : u.d > u.reach && travelled>1e-4);
+    const height=u.hero?this.unit*(u.slot<2?1:.72):this.unit*.82*(u.key==='grunt'?1.15:u.boss?2.2:u.key==='brute'||u.key==='captain'?1.5:1);
+    const advance=u.hero?dt*this.travel/(height*.25)*Math.PI*2:travelled/(height*.375)*Math.PI*2;
+    if(walking){l.walking=true;l.landing=0;l.stride+=advance;}
+    else if(l.walking && this.motion && !u.dead && u.stun<=0){
+      // Follow the remaining real travel, then put the lifted paw down where it is.
+      // Advancing to a synthetic contact phase would skate the planted paw across stationary ground.
+      l.stride+=advance;l.landing=Math.min(1,l.landing+dt/.22);
+      if(l.landing>=1)l.walking=false;
+    }else{l.walking=false;l.landing=1;}
+    // Keep the last planted stance when resting; fading gait would slide both paws inward.
+    const stance = this.motion && !u.dead && u.stun<=0 ? (walking ? 1 : l.gait) : 0;
+    l.gait += (stance-l.gait)*(1-Math.exp(-dt*7));
     const hp = u.hp / u.max;
     l.hp += (hp - l.hp) * Math.min(1, dt * 9);
   }
@@ -181,17 +214,36 @@ export class Field {
     if (f > 0) { c.fillStyle = color; c.beginPath(); c.roundRect(x - w / 2, y, Math.max(hgt, w * Math.min(1, f)), hgt, hgt / 2); c.fill(); }
   }
 
+  private heroMotion(hero: Unit, b: Battle, l: Look) {
+    const motion = this.motion && !hero.dead && hero.stun <= 0;
+    const canReach = b.foes.some(f=>f.d<=hero.reach);
+    return { time:this.clock+hero.slot, motion, walking:l.walking,gait:l.gait,landing:l.landing,
+      phase:l.stride, attack:l.lunge,hurt:l.hurt,cast:hero.skill?.kind==='strike'?0:l.cast,
+      prepare:motion && b.phase==='fight' && canReach && hero.cd>0 && hero.cd<.18 ? 1-hero.cd/.18 : 0,
+      ward:hero.skill?.kind==='ward' };
+  }
+  private enemyMotion(foe: Unit,l: Look) {
+    return {time:this.clock+foe.uid,motion:this.motion && foe.stun<=0,walking:l.walking,gait:l.gait,landing:l.landing,phase:l.stride,
+      attack:l.lunge,hurt:l.hurt,prepare:foe.d<=foe.reach && foe.cd>0 && foe.cd<.18 ? 1-foe.cd/.18 : 0};
+  }
+
   private hero(c: CanvasRenderingContext2D, hero: Unit, l: Look, b: Battle, t: number, marching: boolean) {
-    const u = this.unit, ready = b.ready(hero.slot), hop = this.cheer && !hero.dead ? Math.abs(Math.sin(this.cheer * 7 + hero.slot)) * u * 0.18 : 0;
-    const x = l.x + (this.motion ? ease(l.lunge) * u * 0.16 - l.hurt * u * 0.06 : 0), y = l.y - (this.motion ? hop : 0);
+    const u = this.unit*(hero.slot<2?1:.72), ready = b.ready(hero.slot), active = this.motion && !hero.dead && hero.stun <= 0;
+    const celebrate = this.cheer ? Math.max(0, this.cheer - 1 - hero.slot * .09) : 0;
+    const hop = active && celebrate > 0 && celebrate < .95 ? Math.abs(Math.sin(celebrate * Math.PI * 2 / .95)) * u * .09 * (1 - celebrate / .95) : 0;
+    const strike = impulse(l.lunge), recoil = impulse(l.hurt), cast = impulse(l.cast);
+    const prepare = active && !marching && !hero.healer && hero.cd > 0 && hero.cd < .14 && b.foes.length > 0 ? (1 - hero.cd / .14) * .018 : 0;
+    const reach = hero.ranged || hero.healer ? .025 : .095;
+    const framed = hero.key==='dora'||hero.key==='enzo';
+    const x = l.x + (active && !framed ? strike * u * reach - recoil * u * .035 - prepare * u : 0), y = l.y - hop;
     c.save();
-    c.fillStyle = 'rgba(0,0,0,.2)'; c.beginPath(); c.ellipse(l.x, l.y, u * 0.36, u * 0.07, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = 'rgba(0,0,0,.2)'; c.beginPath(); c.ellipse(x, l.y, u * (0.36 - hop / u * .6), u * 0.07, 0, 0, Math.PI * 2); c.fill();
     if (ready) {
       const pulse = this.motion ? 0.5 + Math.sin(t * 7) * 0.5 : 1;
       c.strokeStyle = `rgba(255,214,74,${0.55 + pulse * 0.45})`; c.lineWidth = 3; c.beginPath(); c.ellipse(l.x, l.y, u * (0.44 + pulse * 0.05), u * (0.1 + pulse * 0.015), 0, 0, Math.PI * 2); c.stroke();
     }
     if (hero.dead) c.globalAlpha = 0.4;
-    drawHero(c, hero.key, x, y, u, t + hero.slot, { moving: marching && !hero.dead && this.motion, run: t * 22, swing: Math.max(l.lunge, l.cast), glow: hero.energy / ENERGY, dizzy: hero.dead, motion: this.motion && !hero.dead });
+    drawHero(c, hero.key, x, y, u, t + hero.slot, { animation:this.heroMotion(hero,b,l), moving: l.walking && active, run: l.stride, gait: l.gait, lean: -prepare + strike * .035 - recoil * .025 + cast * .012, swing: Math.max(strike, cast), glow: hero.energy / ENERGY, dizzy: hero.dead, motion: active });
     c.globalAlpha = 1;
     if (hero.shield > 0 && !hero.dead) { c.strokeStyle = 'rgba(143,208,255,.9)'; c.fillStyle = 'rgba(143,208,255,.18)'; c.lineWidth = 2; c.beginPath(); c.ellipse(l.x + u * 0.04, y - u * 0.45, u * 0.5, u * 0.56, 0, 0, Math.PI * 2); c.fill(); c.stroke(); }
     if (hero.haste > 0 && !hero.dead) { c.fillStyle = '#ffb04a'; c.font = `900 ${u * 0.22}px system-ui, sans-serif`; c.textAlign = 'center'; c.fillText('»', l.x - u * 0.42, y - u * 0.5); }
@@ -206,11 +258,11 @@ export class Field {
 
   private enemy(c: CanvasRenderingContext2D, foe: Unit, l: Look, t: number) {
     const u = this.unit, kind = foe.key as EnemyKind, tall = u * ENEMY_HEIGHT[kind], size = u * 0.82;
-    const wind = foe.wind > 0 && foe.special ? 1 - foe.wind / foe.special.wind : 0, moving = foe.d > foe.reach && foe.stun <= 0;
-    const x = l.x - (this.motion ? ease(l.lunge) * u * 0.16 - l.hurt * u * 0.07 : 0);
+    const wind = foe.wind > 0 && foe.special ? 1 - foe.wind / foe.special.wind : 0;
+    const x = l.x - (this.motion && kind!=='grunt' ? impulse(l.lunge) * u * (foe.ranged ? .025 : .08) - impulse(l.hurt) * u * .035 : 0);
     c.save();
     if (foe.exposed > 0) { c.shadowColor = '#ffe46b'; c.shadowBlur = 14; }
-    drawEnemy(c, kind, this.chapter, x, l.y, size, t + foe.uid, { wind, step: moving && this.motion ? t * 6 + foe.uid : 0, motion: this.motion });
+    drawEnemy(c, kind, this.chapter, x, l.y, size, t + foe.uid, { animation:this.enemyMotion(foe,l), wind, hurt: impulse(l.hurt), lean: impulse(l.lunge) * -.035, step: l.stride, gait: l.gait, motion: this.motion && foe.stun <= 0 });
     c.shadowBlur = 0;
     const top = l.y - tall - 12, bw = foe.boss ? u * 1.5 : kind === 'captain' || kind === 'brute' ? u * 0.95 : u * 0.66;
     if(!foe.boss)this.bar(c, l.x, top, bw, 5, l.hp, '#f0604a');
@@ -241,7 +293,14 @@ export class Field {
       const p = Math.min(1, f.t / f.life), fade = 1 - p * p;
       c.save(); c.globalAlpha = Math.max(0, fade);
       if(f.kind==='texture'){
-        if(this.motion){const grow=.65+ease(p)*.55;c.translate(f.x,f.y);c.rotate(f.texture===0?(p-.5)*.6:f.texture===4?p*.5:0);c.globalAlpha=Math.sin(p*Math.PI)*.72;sagaDecoration(c,'effects',f.texture??0,0,0,(f.size??u)*grow);}
+        if(this.motion){
+          const slash = f.texture === 0;
+          const grow = slash ? .85 + ease(p) * .25 : f.texture === 4 ? .92 + ease(p) * .08 : .95 + Math.sin(p * Math.PI) * .06;
+          c.translate(f.x,f.y);
+          if(slash)c.rotate((p-.5)*.2);
+          c.globalAlpha=Math.min(1,p/.12)*Math.min(1,(1-p)/.35)*.68;
+          sagaDecoration(c,'effects',f.texture??0,0,0,(f.size??u)*grow);
+        }
       } else if (f.kind === 'num' || f.kind === 'word') {
         const size = (f.kind === 'num' ? u * 0.26 : u * 0.24) * (f.size ?? 1) * (f.kind === 'word' && this.motion ? 1 + Math.max(0, 0.25 - f.t) * 1.6 : 1);
         c.font = `900 ${Math.max(11, size)}px system-ui, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
