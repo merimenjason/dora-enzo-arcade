@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {
-  Game, Battle, HEROES, heroById, heroSpec, specPower, skillText, stageDef, stageMult, goldFor, gearTier, rng, ROLES, ENEMIES, FACTIONS, CHAPTERS, BOSSES, STAGES,
+  Game, Battle, TRIALS, TRIAL_START, HEROES, heroById, heroSpec, specPower, skillText, stageDef, stageMult, goldFor, gearTier, rng, ROLES, ENEMIES, FACTIONS, CHAPTERS, BOSSES, STAGES,
   RARITY_MULT, LEVEL_GROWTH, STAR_STEP, MAX_STARS, STAR_COST, DUP_SHARDS, GEAR, GEAR_STEP, MAX_TIER, MERGE, FACTION_BONUS, LEVEL_COST, LEVEL_COST_GROWTH, BASE_CAP,
   ENERGY, START_ENERGY, ENERGY_HIT, STUN, STAGGER, EXPOSED, BOSS_STUN, SHIELD_TIME, RALLY_TIME, MARCH, LIMIT, PAR, MELEE_REACH, ENEMY_MELEE, ENEMY_RANGED, SUMMON_AT,
   SLOTS, START_SCROLLS, START_GOLD, FIRST_CLEAR, ODDS, PITY, CHEST_STARS, CHEST_SCROLLS, CAMP_HOURS, CAMP_RATE, TOWER_SCROLLS, TOWER_EVERY, SAVE_VERSION, STEP,
@@ -29,11 +29,11 @@ const win = (g, n) => { assert.ok(g.start(n), `stage ${n + 1} starts`); const b 
 
 // The roster
 {
-  assert.equal(HEROES.length, 18);
-  assert.equal(new Set(HEROES.map((x) => x.id)).size, 18, 'every hero has its own id');
+  assert.equal(HEROES.length, 20);
+  assert.equal(new Set(HEROES.map((x) => x.id)).size, 20, 'every hero has its own id');
   for (const f of FACTIONS) {
     const mine = HEROES.filter((x) => x.faction === f);
-    assert.equal(mine.length, 6, `${f} has six heroes`);
+    assert.equal(mine.length, f==='burrow'?6:7, `${f} roster count`);
     assert.deepEqual([...new Set(mine.map((x) => x.role))].sort(abc), Object.keys(ROLES).sort(abc), `${f} can field every role`);
   }
   assert.deepEqual(HEROES.filter((x) => x.from === 'start').map((x) => x.id), ['dora', 'enzo']);
@@ -82,7 +82,7 @@ const win = (g, n) => { assert.ok(g.start(n), `stage ${n + 1} starts`); const b 
   assert.ok(!stageDef(5).waves.flat().includes('sneak') && !stageDef(15).waves.flat().includes('brute') && !stageDef(25).waves.flat().includes('hexer'), 'new enemies wait for their chapter');
   assert.ok([10, 11, 12, 13, 14, 15].some((n) => stageDef(n).waves.flat().includes('sneak')), 'sneaks arrive in chapter two');
   assert.ok(stageDef(19).summons && !stageDef(9).summons && !stageDef(18).summons, 'every second chapter boss calls for help');
-  assert.ok(goldFor(40) > goldFor(10)); assert.equal(gearTier(0, false), 1); assert.equal(gearTier(7, true), MAX_TIER); assert.equal(gearTier(4, false), 3);
+  assert.ok(goldFor(40) > goldFor(10)); assert.equal(gearTier(0, false), 1); assert.equal(gearTier(7, true), 5); assert.equal(gearTier(4, false), 3);
 }
 
 // A battle: marching, basic attacks, and the same seed twice
@@ -450,4 +450,23 @@ const win = (g, n) => { assert.ok(g.start(n), `stage ${n + 1} starts`); const b 
   assert.ok(rng(1)() !== rng(2)());
 }
 
-console.log(`PASS Whisker Saga: ${HEROES.length} heroes in three factions, levels, stars, gear and the faction bonus, ${STAGES} stages and the tower, marching and basic attacks, eight kinds of skill, wind-ups and interrupts, targeting, stars, loot, story heroes, summons and the guarantee, the forge, squad arranging, chapter chests, the camp, saving and bad saves`);
+
+// Hero trials, new skill mechanics and version-one migration.
+{
+ const old=saga(STAGES).save();old.v=1;old.tower=7;old.bag=old.bag.map(row=>row.slice(0,6));delete old.trials;
+ const restored=Game.load(old);assert.ok(restored);assert.equal(restored.cleared,80);assert.equal(restored.tower,7);assert.equal(restored.bag[0].length,7);assert.deepEqual(restored.trials,Array(6).fill(0));
+ assert.equal(restored.save().v,2);assert.ok(restored.unlocked(STAGES+7),'old tower remains unlocked');
+ const g=saga(60,['enzo','dora','pip','bramble','flint'],65);const progress=[...g.stars];
+ assert.equal(new Game(1).start(TRIAL_START),false,'trial is gated by campaign progress');
+ for(let i=0;i<TRIALS.length;i++){
+  const before=g.scrolls;const {loot}=win(g,TRIAL_START+i);assert.equal(loot.gear.tier,TRIALS[i].tier);assert.equal(g.scrolls,before+1);assert.ok(g.trials[i]>0);assert.deepEqual(g.stars,progress);assert.equal(g.tower,0);
+  const repeat=win(g,TRIAL_START+i).loot;assert.equal(repeat.first,false);assert.equal(repeat.gear,null);assert.equal(repeat.scrolls,0);
+ }
+ assert.ok(g.heroes.fennel&&g.heroes.sable);assert.equal(g.heroes.fennel.level,65);assert.equal(g.heroes.sable.level,65);g.bag[0][5]=3;const tierSix=g.bag[0][6];assert.ok(g.merge(0,5));assert.equal(g.bag[0][6],tierSix+1);const broken=g.save();broken.trials[0]=4;assert.equal(Game.load(broken),null);assert.deepEqual(Game.load(g.save()).trials,g.trials);
+ const b=battle([spec('fennel',10),null,null,null,null],[['grunt','grunt','grunt','grunt'],['grunt'],['grunt']]);until(b,()=>b.phase==='fight');b.heroes[0].energy=100;
+ const hits=b.update(STEP,{cast:[0]}).filter(e=>e.type==='hit'&&e.skill);assert.equal(hits.length,3);assert.equal(new Set(hits.map(e=>e.to)).size,3);assert.ok(hits[0].amount>hits[1].amount&&hits[1].amount>hits[2].amount,'chain falls off');
+ const clean=battle([spec('sable',10),spec('enzo',10),null,null,null],[['grunt'],['grunt'],['grunt']]);until(clean,()=>clean.phase==='fight');clean.heroes[0].energy=100;clean.heroes[1].hp/=2;clean.heroes[1].stun=2;const hp=clean.heroes[1].hp;clean.update(STEP,{cast:[0]});assert.equal(clean.heroes[1].stun,0);assert.ok(clean.heroes[1].hp>hp);
+ console.log('PASS six trial rewards/replays, two new skills, Ascendant gear and legacy save/tower migration');
+}
+
+console.log(`PASS Whisker Saga: ${HEROES.length} heroes in three factions, levels, stars, gear and the faction bonus, ${STAGES} stages and the tower, marching and basic attacks, ten kinds of skill, wind-ups and interrupts, targeting, stars, loot, story heroes, summons and the guarantee, the forge, squad arranging, chapter chests, the camp, saving and bad saves`);

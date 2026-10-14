@@ -12,7 +12,7 @@ try {
   await p.evaluate(()=>window.__saga().art.loadAll());
   await p.waitForSelector('[data-art-ready="true"]');
   const decorations = await p.evaluate(() => window.__saga().art.decorations());
-  assert.equal(decorations.length, 10);
+  assert.equal(decorations.length, 18);
   assert.ok(
     decorations.every((s) => s.loaded && s.pixels > 100 && !s.edge),
     'spell and reward sprites stay inside their crops',
@@ -137,7 +137,7 @@ try {
   await p.waitForFunction(
     () =>
       window.__saga().field.inspect(window.__saga().game.battle)
-        .texturesCreated > 0,
+        .signaturesCreated > 0,
   );
   assert.equal(await p.getByTestId('skill-feedback').count(), 0);
   await p.getByTestId('skill-1').click();
@@ -197,13 +197,13 @@ try {
   );
   assert.equal(
     await reduced.evaluate(
-      () => window.__saga().field.inspect(window.__saga().game.battle).textures,
+      () => window.__saga().field.inspect(window.__saga().game.battle).signatures,
     ),
     0,
   );
   await reduced.close();
   console.log(
-    'PASS Saga combat feedback: live health, energy/stun guidance, eligible interrupts, painted spell animation, shield status, banked camp rewards and reduced motion.',
+    'PASS Saga combat feedback: live health, energy/stun guidance, eligible interrupts, distinct special-move effects, shield status, banked camp rewards and reduced motion.',
   );
 } finally {
   await browser.close();

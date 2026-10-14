@@ -70,7 +70,7 @@ await check('setting out: two heroes, three scrolls, and a squad of five after s
   assert.equal(Object.keys(save.heroes).length, 5, 'summons are saved at once'); assert.ok(save.squad.every(Boolean), 'and the new heroes fill the squad');
   await page.getByTestId('tab-squad').click();
   assert.equal(await page.locator('[data-testid^="hero-"][data-owned="true"]').count(), 5); assert.equal(await page.locator('[data-testid^="slot-"][data-filled="true"]').count(), 5);
-  assert.match(await page.locator('.sg-roster h3').innerText(), /5 of 18 heroes/);
+  assert.match(await page.locator('.sg-roster h3').innerText(), /5 of 20 heroes/);
   await page.getByTestId('tab-adventure').click(); assert.equal(await page.getByTestId('tip').count(), 0, 'the nudge goes once the squad is full');
 });
 
@@ -187,7 +187,7 @@ await check('the squad: levels, stars, gear, places and the faction bonus', asyn
   assert.match(await page.getByTestId('star-up').innerText(), /0\/20 shards/); assert.equal((await stored(page)).heroes.dora.stars, 2);
   // Gear from the bag.
   await page.getByTestId('equip-best').click();
-  assert.match(await page.getByTestId('gear-0').innerText(), /2[\s\S]*\+16% attack/); assert.match(await page.getByTestId('gear-1').innerText(), /1[\s\S]*\+8% health/);
+  assert.match(await page.getByTestId('gear-0').innerText(), /\+16% attack/); assert.equal(await page.getByTestId('gear-0').getByRole('img').getAttribute('aria-label'), 'Weapon, tier 2'); assert.match(await page.getByTestId('gear-1').innerText(), /\+8% health/); assert.equal(await page.getByTestId('gear-1').getByRole('img').getAttribute('aria-label'), 'Armour, tier 1');
   await page.getByTestId('equip-best').click(); assert.match(await page.getByTestId('note').innerText(), /Nothing better in the bag/);
   // Places: Dora swaps with whoever is in Back 1, then rests, then comes back through an empty slot.
   const was = await saga(page, '(g) => [...g.squad]');
@@ -217,7 +217,7 @@ await check('the forge, chapter chests and the camp chest', async (page) => {
   assert.match(await page.getByTestId('bag-0-1').innerText(), /×3/); assert.ok(await page.getByTestId('forge-3-4').isDisabled(), 'two pieces are not enough');
   await page.getByTestId('forge-0-1').click();
   assert.match(await page.getByTestId('bag-0-1').innerText(), /×0/); assert.match(await page.getByTestId('bag-0-2').innerText(), /×1/);
-  assert.equal(await page.getByTestId('forge-0-5').count(), 0, 'the top tier has no forge button');
+  assert.equal(await page.getByTestId('forge-0-6').count(), 0, 'the top tier has no forge button');
   assert.equal((await stored(page)).bag[0][2], 1);
   await page.getByTestId('tab-adventure').click();
   assert.match(await page.getByTestId('chapter-stars').innerText(), /20\/30 stars/);
@@ -264,7 +264,7 @@ await check('a beaten stage offers auto, a boss brings a story hero, and the nex
 await check('leaving and coming back, a new saga, the tower, and a broken save', async (page) => {
   await squadUp(page); await startFight(page); await winNow(page);
   await page.reload();
-  assert.match(await page.getByTestId('continue').innerText(), /Carry on · Clover Meadow 2, 5\/18 heroes/);
+  assert.match(await page.getByTestId('continue').innerText(), /Carry on · Clover Meadow 2, 5\/20 heroes/);
   await page.getByTestId('continue').click(); await page.getByTestId('adventure-panel').waitFor();
   assert.equal(await page.getByTestId('stage-1').getAttribute('aria-pressed'), 'true', 'the map opens on the next stage');
   await page.getByTestId('menu').click();

@@ -4,6 +4,10 @@ Mode: built-in imagegen. Approved concept: `public/art/saga/reference.png` (docu
 
 ## Production assets
 
+The hero-trials expansion adds Fennel and Sable, dedicated portraits and Ascendant equipment; see `docs/saga-expansion.md` for exact production prompts.
+
+Painted equipment icons now cover weapon, armour, charm and boots in Squad, Forge and battle loot. See `docs/saga-equipment-art.md` for the atlas layout, crop measurements and exact generation prompt.
+
 All files are in `public/art/saga/`. `heroes-0.png` through `heroes-2.png` use 3 columns × 2 rows and follow the eighteen-entry `HEROES` order. Dora uses `hero-dora.png` for her dark natural ruby eyes. `portraits-0.png` through `portraits-2.png` use the same order, with dedicated busts rather than cropped seated bodies. `enemies.png` is 3 × 2: Scuttler, Spitter, Sneak / Bruiser, Hexer, Captain. `bosses-0.png` is 2 × 2: Thornback, Mudmaw / Old Croak, Rattlewing. `boss-4.png` through `boss-7.png` are complete individual Grimtusk, Frostfang, Cinderclaw and Hollow King sprites. Separate files keep wings and spikes away from atlas neighbours; they supersede the original second boss sheet. `land-0.png` through `land-7.png` follow `CHAPTERS` order.
 
 `lib/saga-crops.ts` stores measured complete connected silhouettes. The cropper removes neighbouring fragments, preserves aspect ratio, adds an alpha gutter and anchors feet to the scene baseline. Generated transparency is preserved; Python only measured alpha bounds, never edited images. Portraits include full ears and whiskers. Enemy sheets share one colour scheme across chapters; bosses and landscapes are chapter-specific.

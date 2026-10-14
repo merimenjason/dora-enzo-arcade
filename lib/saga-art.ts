@@ -20,6 +20,8 @@ const tone = (base: 'dora' | 'enzo', fur: string, back: string, face: string, sh
   coatLike(base, { fur, back, face, shade, texture: shade, tail: fur, tailOuter: back, tailInner: face, ear: base === 'enzo' ? fur : COATS.dora.ear, bands: false, paleLegs: false, ...over });
 
 const HERO_COATS: Record<string, Coat> = {
+  fennel:tone('dora','#d8b689','#a88764','#edcfa4','#9b784e',dark),
+  sable:tone('enzo','#817a9b','#5b536e','#b8b3cc','#655d7d',{eye:'#50317c'}),
   dora: COATS.dora, enzo: COATS.enzo,
   pip: tone('dora', '#ecd6b2', '#d6bc92', '#f6e9d0', '#c7ab7e', dark),
   mossy: tone('enzo', '#8c6c50', '#6b4f39', '#a8896d', '#775a43', { belly: '#e9dccb' }),

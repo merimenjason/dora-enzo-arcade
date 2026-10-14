@@ -12,7 +12,7 @@ const b=await chromium.launch(),base=process.env.E2E_BASE_URL||'http://localhost
   assert.ok(data.heroes[2].y+data.heroes[0].size*.95<data.heroes[0].y,'front bodies stay clear of rear faces');
  }
  // A stopped march must complete to a contact pose before selecting idle.
- await p.setViewportSize({width:1280,height:900});await p.getByTestId('pause').click();
+ await p.setViewportSize({width:1280,height:900});await p.getByTestId('resume').click();
  await p.evaluate(()=>{const s=window.__saga(),b=s.game.battle;b.phase='march';b.marchT=5;});await p.waitForTimeout(330);
  await p.evaluate(()=>{const b=window.__saga().game.battle;b.phase='fight';for(const h of b.heroes)h.cd=100;for(const f of b.foes)f.cd=100;});
  await p.waitForFunction(()=>{const s=window.__saga();return s.field.inspect(s.game.battle).heroes.every(h=>!h.animation.walking)});

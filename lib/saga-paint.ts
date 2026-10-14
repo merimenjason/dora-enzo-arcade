@@ -8,6 +8,9 @@ const grids: Record<string, [number, number]> = {
   'rig-beetle': [4, 2],
   effects: [3, 2],
   rewards: [2, 2],
+  equipment: [2, 2],
+  'equipment-ascendant':[2,2],
+  'heroes-3':[2,2],
   enemies: [3, 2],
   'bosses-0': [2, 2],
 };
@@ -108,7 +111,7 @@ function cell(key: string, index: number) {
       fw,
       fh,
     ];
-  const pad = key.startsWith('rig-') ? 6 : key === 'effects' || key === 'rewards' ? 0 : 24;
+  const pad = key==='heroes-3'?0:key.startsWith('rig-') ? 6 : key === 'effects' || key === 'rewards' || key.startsWith('equipment') ? 0 : 24;
   const sx = Math.max(0, raw[0] - pad),
     sy = Math.max(0, raw[1] - pad),
     w = Math.min(image.width, raw[0] + raw[2] + pad) - sx,
@@ -118,7 +121,7 @@ function cell(key: string, index: number) {
   scratch.height = h;
   const c = scratch.getContext('2d')!;
   c.drawImage(image, sx, sy, w, h, 0, 0, w, h);
-  if (key === 'effects' || key === 'rewards') {
+  if (key === 'effects' || key === 'rewards' || key === 'equipment') {
     cells.set(id, scratch);
     return scratch;
   }
@@ -222,7 +225,7 @@ export function sagaPortrait(
   index: number,
   size: number,
 ) {
-  const image = cell('portraits-' + Math.floor(index / 6), index % 6);
+  const image = index>=18?cell('heroes-3',index-18+2):cell('portraits-' + Math.floor(index / 6), index % 6);
   if (!image) return false;
   const scale = Math.min((size - 8) / image.width, (size - 8) / image.height),
     w = image.width * scale,
@@ -263,7 +266,7 @@ export function sagaPaintStats() {
   return Object.entries(grids)
     .filter(
       ([key]) =>
-        !key.startsWith('land-') && !key.startsWith('rig-') && key !== 'effects' && key !== 'rewards',
+        !key.startsWith('land-') && !key.startsWith('rig-') && key !== 'effects' && key !== 'rewards' && !key.startsWith('equipment'),
     )
     .flatMap(([key, [cols, rows]]) =>
       Array.from({ length: cols * rows }, (_, i) => i)
@@ -303,7 +306,7 @@ export function sagaPaintStats() {
 /** Decorative textures preserve disconnected sparks, coins and crystal shards. */
 export function sagaDecoration(
   c: CanvasRenderingContext2D,
-  key: 'effects' | 'rewards',
+  key: 'effects' | 'rewards' | 'equipment' | 'equipment-ascendant',
   index: number,
   x: number,
   y: number,
@@ -323,7 +326,7 @@ export function sagaDecoration(
   return true;
 }
 export function sagaDecorationStats() {
-  return ['effects', 'rewards'].flatMap((key) =>
+  return ['effects', 'rewards', 'equipment', 'equipment-ascendant'].flatMap((key) =>
     Array.from({ length: key === 'effects' ? 6 : 4 }, (_, i) => {
       const image = cell(key, i);
       if (!image) return { name: key + ':' + i, loaded: false };

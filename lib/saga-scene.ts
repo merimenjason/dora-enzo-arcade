@@ -1,3 +1,4 @@
+import {drawSagaSkillFx} from './saga-skill-fx';
 // Whisker Saga's battlefield, drawn in Canvas 2D. Drawing only: it reads the battle and never changes it.
 import { sagaRigPose } from './saga-animation';
 import { ENERGY, SPAWN, heroById, type Battle, type BattleEvent, type EnemyKind, type Unit } from './saga-game';
@@ -6,7 +7,7 @@ import { drawBackdrop, drawEnemy, drawHero, drawHeroPortrait, sagaDecoration, EN
 type Look = { x: number; y: number; lunge: number; hurt: number; hp: number; cast: number; gait: number; stride: number; walking: boolean; landing: number };
 type Ghost = { kind: EnemyKind; x: number; y: number; t: number };
 type Fx = {
-  kind: 'num' | 'shot' | 'slash' | 'ring' | 'word' | 'plus' | 'rain' | 'flake' | 'star' | 'puff' | 'up' | 'texture';
+  hero?:string; skill?:import('./saga-game').SkillKind; targets?:{x:number;y:number}[]; kind: 'signature' | 'num' | 'shot' | 'slash' | 'ring' | 'word' | 'plus' | 'rain' | 'flake' | 'star' | 'puff' | 'up' | 'texture';
   x: number; y: number; tx?: number; ty?: number; t: number; life: number; text?: string; color: string; size?: number; seed?: number; texture?: number;
 };
 const LANES = [0.5, 0.18, 0.82, 0.02, 0.98];
@@ -21,7 +22,7 @@ export class Field {
   readonly version = 'planted-feet-v5';
   /** Off when the visitor asks for reduced motion: no shake, no drifting particles, no flashes. */
   motion = true;
-  clock = 0; texturesCreated = 0; scroll = 0; shake = 0; flash = 0; flashColor = '#fff'; banner = ''; bannerT = 0; cheer = 0;
+  clock = 0; signaturesCreated = 0; texturesCreated = 0; scroll = 0; shake = 0; flash = 0; flashColor = '#fff'; banner = ''; bannerT = 0; cheer = 0;
   private looks = new Map<number, Look>(); private ghosts: Ghost[] = []; private fx: Fx[] = [];
   private travel = 0;
   private w = 1; private h = 1; private chapter = 0;
@@ -55,9 +56,9 @@ export class Field {
     for (let slot = 0; slot < 5; slot++) { const p = this.heroAt(slot); if (Math.abs(x - p.x) < this.unit * 0.55 && y < p.y + this.unit * 0.15 && y > p.y - this.unit * 1.15) return slot; }
     return -1;
   }
-  reset() { this.looks.clear(); this.ghosts = []; this.fx = []; this.shake = 0; this.flash = 0; this.banner = ''; this.bannerT = 0; this.cheer = 0; this.scroll = 0; this.texturesCreated = 0; this.travel = 0; }
+  reset() { this.looks.clear(); this.ghosts = []; this.fx = []; this.shake = 0; this.flash = 0; this.banner = ''; this.bannerT = 0; this.cheer = 0; this.scroll = 0; this.texturesCreated = 0; this.signaturesCreated=0; this.travel = 0; }
 
-  private add(f: Fx) { if (this.fx.length < 220) {this.fx.push(f);if(f.kind==='texture')this.texturesCreated++;} }
+  private add(f: Fx) { if (this.fx.length < 220) {this.fx.push(f);if(f.kind==='texture')this.texturesCreated++;if(f.kind==='signature')this.signaturesCreated++;} }
   private word(x: number, y: number, text: string, color: string, size = 1, life = 1.1) { this.add({ kind: 'word', x, y, t: 0, life, text, color, size }); }
 
   /** Turn what just happened in the battle into things to see. */
@@ -87,13 +88,11 @@ export class Field {
         this.word(a.x, a.y - u * 1.45, e.name, '#fff7d6', 1.05, 1.2);
         this.add({ kind: 'ring', x: a.x, y: a.y - u * 0.45, t: 0, life: 0.45, color: tint, size: u * 0.9 });
         if (!this.motion) continue;
-        const texture = e.kind === 'strike' ? 0 : e.kind === 'ward' ? 1 : e.kind === 'heal' || e.kind === 'mend' ? 2 : e.kind === 'volley' || e.kind === 'snipe' ? 3 : e.kind === 'freeze' ? 4 : 5;
-        this.add({kind:'texture',texture,x:a.x,y:a.y-u*.5,t:0,life:.65,size:u*1.2,color:tint});
-        const foes = b.foes.map((f) => this.look(f));
-        if(texture===3 || texture===4) for(const f of foes)this.add({kind:'texture',texture,x:f.x,y:f.y-u*.5,t:-.1,life:.55,size:u,color:tint});
-        if (e.kind === 'volley') for (const f of foes) for (let i = 0; i < 4; i++) this.add({ kind: 'rain', x: f.x + (Math.random() - 0.5) * u, y: f.y - u * 0.3, t: -Math.random() * 0.2, life: 0.3, color: tint });
-        if (e.kind === 'freeze') { this.flash = 0.35; this.flashColor = '#bfe6ff'; for (const f of foes) for (let i = 0; i < 5; i++) this.add({ kind: 'flake', x: f.x + (Math.random() - 0.5) * u, y: f.y - Math.random() * u, t: 0, life: 0.9, color: '#e8f7ff', seed: Math.random() * 6 }); }
-        if (e.kind === 'rally') for (const hh of b.alive) { const z = this.look(hh); for (let i = 0; i < 3; i++) this.add({ kind: 'up', x: z.x + (i - 1) * u * 0.22, y: z.y - u * 0.2, t: -i * 0.07, life: 0.7, color: '#ffb04a' }); }
+        const hitTargets=events.flatMap(ev=>ev.type==='hit'&&ev.skill&&ev.from===e.from?[find(ev.to)]:[]).filter((t):t is Unit=>!!t);
+        const following=events.slice(events.indexOf(e)+1),nextCast=following.findIndex(ev=>ev.type==='skill'),castEvents=nextCast<0?following:following.slice(0,nextCast);
+        const mendTargets=castEvents.flatMap(ev=>ev.type==='shield'?[find(ev.to)]:[]).filter((t):t is Unit=>!!t);
+        const recipients=e.kind==='mend'?mendTargets:['heal','ward','rally','cleanse'].includes(e.kind)?b.alive:hitTargets;
+        this.add({kind:'signature',hero:from.key,skill:e.kind,x:a.x+u*.25,y:a.y-u*.5,t:0,life:1.15,color:tint,targets:recipients.map(t=>{const z=this.look(t);return{x:z.x,y:z.y-u*.5};})} as Fx);
       } else if (e.type === 'windup') {
         const from = find(e.from); if (from && !from.boss) { const a = this.look(from); this.word(a.x, a.y - u * ENEMY_HEIGHT[from.key as EnemyKind] - u * 0.5, e.kind === 'slam' ? 'Winding up!' : 'Healing…', e.kind === 'slam' ? '#ff8a6e' : '#b8f0a8', 1, 1.4); }
       } else if (e.type === 'interrupt') {
@@ -124,7 +123,7 @@ export class Field {
   inspect(b: Battle) {
     return {
       heroes: b.heroes.map((u) => ({ slot: u.slot, size:this.unit*(u.slot<2?1:.72), ...this.heroAt(u.slot), animation: this.heroMotion(u,b,this.look(u)), pose:sagaRigPose(this.heroMotion(u,b,this.look(u))) })), enemies: b.foes.map((u) => ({ uid: u.uid, ...this.enemyAt(u), pose:sagaRigPose(this.enemyMotion(u,this.look(u))) })),
-      texturesCreated:this.texturesCreated, textures: this.fx.filter(f=>f.kind==='texture').length, fx: this.fx.length, ghosts: this.ghosts.length, shake: this.shake, flash: this.flash, banner: this.bannerT > 0 ? this.banner : '', scroll: this.scroll, cheer: this.cheer, unit: this.unit,
+      signaturesCreated:this.signaturesCreated,signatures:this.fx.filter(f=>f.kind==='signature').length,texturesCreated:this.texturesCreated, textures: this.fx.filter(f=>f.kind==='texture').length, fx: this.fx.length, ghosts: this.ghosts.length, shake: this.shake, flash: this.flash, banner: this.bannerT > 0 ? this.banner : '', scroll: this.scroll, cheer: this.cheer, unit: this.unit,
     };
   }
 
@@ -292,7 +291,9 @@ export class Field {
       if (f.t < 0) continue;
       const p = Math.min(1, f.t / f.life), fade = 1 - p * p;
       c.save(); c.globalAlpha = Math.max(0, fade);
-      if(f.kind==='texture'){
+      if(f.kind==='signature'){
+        if(this.motion)drawSagaSkillFx(c,f.hero!,f.skill!,{x:f.x,y:f.y},f.targets??[],u,p);
+      }else if(f.kind==='texture'){
         if(this.motion){
           const slash = f.texture === 0;
           const grow = slash ? .85 + ease(p) * .25 : f.texture === 4 ? .92 + ease(p) * .08 : .95 + Math.sin(p * Math.PI) * .06;

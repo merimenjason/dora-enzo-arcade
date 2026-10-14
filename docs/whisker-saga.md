@@ -59,13 +59,13 @@ The bosses are Thornback, Mudmaw, Old Croak, Rattlewing, Grimtusk, Frostfang, Ci
 
 ## Heroes
 
-Eighteen, six to a faction, and each faction can field every role.
+Twenty heroes: seven Meadow, six Burrow and seven Summit, with every role available in each faction.
 
 | Faction | Guard | Striker | Archer | Mage | Healer |
 |---|---|---|---|---|---|
-| Meadow | Mossy (epic, chapter 4) | Dora (epic, start) | Clover (rare), Aurora (legendary) | Willow (epic) | Pip (rare, chapter 1) |
+| Meadow | Mossy (epic, chapter 4) | Dora (epic, start) | Clover (rare), Aurora (legendary) | Willow (epic), Fennel (epic, Briar Relay trial) | Pip (rare, chapter 1) |
 | Burrow | Enzo (epic, start) | Cinder (epic, chapter 5), Onyx (legendary) | Bramble (rare, chapter 2) | Nutmeg (rare) | Ember (epic) |
-| Summit | Pebble (rare) | Thistle (rare) | Gale (epic) | Flint (rare, chapter 3), Zephyr (legendary) | Frost (epic, chapter 6) |
+| Summit | Pebble (rare) | Thistle (rare) | Gale (epic) | Flint (rare, chapter 3), Zephyr (legendary) | Frost (epic, chapter 6), Sable (epic, Clear Skies trial) |
 
 A hero marked with a chapter joins when that chapter's boss falls. The other ten come from summons.
 
@@ -88,7 +88,7 @@ A hero marked with a chapter joins when that chapter's boss falls. The other ten
 
 ### Gear
 
-Four slots, five tiers. A first clear always drops a piece; a repeat clear drops one 35% of the time. Chapters 1 and 2 drop tier 1, and the tier rises by one every two chapters, with a 15% chance of one higher, to a top of 5.
+Four slots, six tiers. Ascendant tier 6 is earned from the Crown Trial or by forging three tier-5 items. A first clear always drops a piece; a repeat clear drops one 35% of the time. Chapters 1 and 2 drop tier 1, and the tier rises by one every two chapters, with a 15% chance of one higher, to a top of 5.
 
 | Slot | Each tier adds |
 |---|---|
@@ -122,7 +122,7 @@ A save that fails any check in `Game.load` is ignored whole.
 
 - All eight finish the 80 stages, in 80 to 120 fights, losing 0 to 20 of them and never more than 6 in a row on one stage.
 - Wins average 32 to 56 seconds.
-- They finish with 190 to 239 of the 240 stars and 17 or 18 of the 18 heroes.
+- They finish with 190 to 239 of the 240 stars and 17 or 18 of the original 18 heroes (the two trial recruits are earned separately).
 - A squad that never spends gold stops at stage 11 or 12.
 - A squad that never fires a skill wins the first four stages most of the time and loses most fights from stage 5.
 
@@ -142,3 +142,7 @@ The combat-feedback pass shows hero health and active shields on the skill cards
 Valid skill presses are queued until the next fixed combat tick, including on 120/144/240 Hz displays; duplicate presses before that tick fire once. Invalid time deltas are ignored. This fixes dropped inputs without changing skill costs, targeting or combat balance. The Saga engine tests cover the sub-tick queue.
 
 Menus and play no longer wait for the complete artwork library. The current squad/chapter load first, other sheets load when needed, and code drawings keep the game playable while images arrive. The browser loading check covers a playable battle with all image downloads held.
+
+## Hero trials expansion
+
+See `saga-expansion.md` for the six optional trials, two new heroes and skills, Ascendant equipment, special-move visual effects and version-one save migration.
