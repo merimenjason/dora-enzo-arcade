@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 15-10-2026
+
+### Added
+
+- **Ember & Clover: Midnight Kitchen**: Dora, Enzo, Pip and Ember trade adventure gear for aprons in a painted moonlit bakery. Prepare, bake and serve five recipes across twelve shifts, choose specialist chefs, ring a teamwork rush bell, earn stars and upgrade the kitchen. Untimed cozy mode, keyboard and touch controls, local progression, sound and reduced motion are included.
+
 ## 13-10-2026
 
 ### Fixed

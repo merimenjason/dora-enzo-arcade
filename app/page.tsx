@@ -31,15 +31,16 @@ const GAMES=[
  {href:'/detectives',title:'Pawprint Detectives',tag:'NEW · COZY MYSTERIES',blurb:'Dora notices the details, Enzo follows the scents. Question neighbours, connect clues and explain three gentle woodland mysteries.',color:'#e7ba79',art:'🔎'},
  {href:'/frontier',title:'Frostpaw Frontier',tag:'NEW · SURVIVAL BUILDER',blurb:'Uncover a snowy mountain tile by tile. Put chinchilla survivors to work, light glow lanterns, recruit heroes from old ruins, hold the burrow through every night raid and light the Summit Beacon.',color:'#9fc0ec',art:'🏔️'},
  {href:'/moonpond',title:'Moonpond',tag:'NEW · NIGHT-FISHING JOURNAL',blurb:'Cast from the dock under the moon, hook the bite and work the reel. Sketch forty pond creatures, each with its own hour, weather and lure, then let them go.',color:'#9db4ee',art:'🎣'},
- {href:'/saga',title:'Whisker Saga',tag:'NEW · HERO-SQUAD ADVENTURE',blurb:'Lead five heroes down eighty stages that fight on their own while you time their skills. Recruit, level and equip eighteen heroes in three factions, and stun the boss before its slam lands.',color:'#f6c95a',art:'⚔️'},
+ {href:'/saga',title:'Whisker Saga',tag:'NEW · HERO-SQUAD ADVENTURE',blurb:'Lead five heroes down eighty stages that fight on their own while you time their skills. Recruit, level and equip twenty heroes in three factions, and stun the boss before its slam lands.',color:'#f6c95a',art:'⚔️'},
+ {href:'/kitchen',title:'Ember & Clover: Midnight Kitchen',tag:'NEW · COZY KITCHEN',blurb:'Heroes by day, bakers by moonlight. Whisk, bake and serve with Dora, Enzo, Pip and Ember across twelve lantern-lit shifts, or take your time in cozy mode.',color:'#e8bb69',art:'🥐'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">THIRTY-TWO ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Thirty-two ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, thirty-two cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">THIRTY-THREE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Thirty-three ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, thirty-three cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <nav className="arcade-grid" aria-label="Choose a game">
    {GAMES.map((game,i)=><a key={game.href} href={game.href} className="arcade-card" style={{'--game-color':game.color} as React.CSSProperties}>
