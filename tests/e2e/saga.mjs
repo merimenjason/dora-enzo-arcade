@@ -66,6 +66,7 @@ await check('setting out: two heroes, three scrolls, and a squad of five after s
   await page.getByTestId('summon-10').click();
   assert.equal(await page.getByTestId('pulled').locator('li').count(), 2, 'the big button spends what is left');
   assert.ok(await page.getByTestId('summon-1').isDisabled()); assert.equal((await page.getByTestId('scrolls').innerText()).trim(), '0');
+  assert.equal((await page.getByTestId('summon-10').innerText()).trim(), 'Summon several', 'an empty batch button names no number');
   const save = await stored(page);
   assert.equal(Object.keys(save.heroes).length, 5, 'summons are saved at once'); assert.ok(save.squad.every(Boolean), 'and the new heroes fill the squad');
   await page.getByTestId('tab-squad').click();
@@ -89,6 +90,10 @@ await check('a whole battle with the keyboard: charge, fire, interrupt a wind-up
   await page.keyboard.press('2');
   await page.waitForFunction(() => window.__saga().game.battle.heroes.find((u) => u.key === 'dora').energy < 50);
   assert.ok(await battle(page, '(b) => b.foes.some((u) => u.stun > 0) || b.foes.length < b.def.waves[b.wave].length'), 'Dandelion Dash stunned or felled its target');
+  // A hurt squad with a shield sitting charged is told to use it.
+  await battle(page, '(b) => { const d = b.heroes.find((u) => u.key === "dora"); d.hp = d.max * 0.3; b.heroes.find((u) => u.key === "enzo").energy = 100; }');
+  await page.waitForFunction(() => /The squad is hurting\. Enzo can shield them\./.test(document.querySelector('[data-testid="hint"]').textContent));
+  await battle(page, '(b) => { const d = b.heroes.find((u) => u.key === "dora"); d.hp = d.max; b.heroes.find((u) => u.key === "enzo").energy = 0; }');
   // Race to the captain, then hold still and let it wind up.
   await toLastWave(page);
   await page.waitForFunction(() => { const c = window.__saga().game.battle.foes.find((u) => u.key === 'captain'); return c && c.d <= c.reach; });
@@ -109,7 +114,7 @@ await check('a whole battle with the keyboard: charge, fire, interrupt a wind-up
   assert.ok(save.stars[0] >= 1 && save.gold > 120 && save.scrolls === 1, 'the win is saved before the card is dismissed');
   await page.getByTestId('to-map').click();
   await page.getByTestId('adventure-panel').waitFor();
-  assert.ok(await page.getByTestId('stage-1').isEnabled(), 'stage two opens'); assert.equal(await page.getByTestId('stage-1').getAttribute('aria-pressed'), 'false');
+  assert.ok(await page.getByTestId('stage-1').isEnabled(), 'stage two opens'); assert.equal(await page.getByTestId('stage-1').getAttribute('aria-pressed'), 'true', 'a first clear points the map at the stage it opened');
   assert.match(await page.getByTestId('chapter-stars').innerText(), /^[123]\/30 stars/);
   assert.equal(await page.getByTestId('camp').count(), 1, 'the camp chest appears once a stage is cleared');
 });
@@ -247,6 +252,7 @@ await check('a beaten stage offers auto, a boss brings a story hero, and the nex
   await winNow(page);
   assert.doesNotMatch(await page.getByTestId('won').innerText(), /first clear/); assert.equal(await page.getByTestId('joined').count(), 0);
   await page.getByTestId('to-map').click();
+  await page.getByTestId('adventure-panel').waitFor(); assert.equal(await page.getByTestId('stage-0').getAttribute('aria-pressed'), 'true', 'a replay keeps its stage selected');
   // The chapter boss.
   await page.getByTestId('stage-9').click();
   assert.match(await page.getByTestId('brief').innerText(), /Clover Meadow 10 · Thornback[\s\S]*Thornback[\s\S]*and Pip joins you/);

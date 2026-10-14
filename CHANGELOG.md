@@ -8,6 +8,19 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Ember & Clover: Midnight Kitchen**: Dora, Enzo, Pip and Ember trade adventure gear for aprons in a painted moonlit bakery. Prepare, bake and serve five recipes across twelve shifts, choose specialist chefs, ring a teamwork rush bell, earn stars and upgrade the kitchen. Untimed cozy mode, keyboard and touch controls, local progression, sound and reduced motion are included.
 
+### Changed
+
+- **Whisker Saga**: when a hero is below half health and a heal or shield is charged, the battle hint now names the hero who can help, so support skills don't sit unused.
+
+### Fixed
+
+- **Whisker Saga**: after a first clear, going back to the map now selects the stage that just opened instead of the one you beat, so "Fight" moves you on rather than replaying. Replays still keep their stage selected.
+- **Whisker Saga**: the batch summon button no longer reads "Summon 2" when you have no scrolls.
+
+### Documentation
+
+- The handoff covers **Ember & Clover: Midnight Kitchen** and **Whisker Saga**'s hero trials and first play by hand, and the project notes count thirty-three games.
+
 ## 13-10-2026
 
 ### Fixed
