@@ -1,0 +1,137 @@
+# Acorn Hand
+
+Route `/acorn-hand`. A poker-scoring card run in the manner of Balatro: play poker hands for chips × mult, gather chinchilla charms that change the arithmetic, and beat eight antes of rising targets set by woodland rivals. The rules are in `lib/acorn-hand-game.ts` and the tables in `lib/acorn-hand-cards.ts`; every number below comes from them.
+
+## A round
+
+- The deck is 52 cards: four suits (Acorns, Clovers, Berries, Pebbles) of 2 to 10, jack, queen, king and ace. Cards can be glossed, dyed, copied and removed during a run, so the deck changes.
+- You hold 8 cards and have 4 plays and 3 discards. A play or a discard takes 1 to 5 cards; the hand refills from the draw pile afterwards.
+- The best poker hand among the played cards sets base chips and mult (raised by its level). Each card that counts adds its chips: its number, 10 for a face card, 11 for an ace. Then glosses on those cards, then each charm in order from left to right: per scoring card, per card held in hand, and finally once for the whole hand. The score is chips × mult, rounded down.
+- Only the cards that make the hand count: the pair in a pair, the top card in a high card, all five in a straight, a flush or a full house. Aces are high or low in a straight; straights do not wrap round.
+- Reach the target before the plays run out. Running out ends the run.
+
+## Hand types
+
+| Hand | Chips | Mult | Per level |
+| --- | --- | --- | --- |
+| High card | 5 | 1 | +10 chips, +1 mult |
+| Pair | 10 | 2 | +15 chips, +1 mult |
+| Two pair | 20 | 2 | +20 chips, +1 mult |
+| Three of a kind | 30 | 3 | +20 chips, +2 mult |
+| Straight | 30 | 4 | +30 chips, +3 mult |
+| Flush | 35 | 4 | +15 chips, +2 mult |
+| Full house | 40 | 4 | +25 chips, +2 mult |
+| Four of a kind | 60 | 7 | +30 chips, +3 mult |
+| Straight flush | 100 | 8 | +40 chips, +4 mult |
+| Five of a kind | 120 | 12 | +35 chips, +3 mult |
+| Flush five | 160 | 16 | +50 chips, +3 mult |
+
+Five of a kind and flush five need copied or dyed cards. Almanac pages for them only appear in the shop once you have played them.
+
+## A run
+
+- Eight antes, each a small round, a big round and a boss round. The small round's target per ante is 250, 650, 1,600, 3,500, 7,000, 12,500, 20,000 and 30,000; the big round is 1.5 times that and the boss round twice. Past ante 8 (endless) each ante is 1.8 times the last.
+- Winning pays 3, 4 or 5 nuts for the small, big or boss round, 1 for each play left, 1 for every 5 nuts held (at most 5), plus charms and gold cards. You start with 4 nuts.
+- The small and big rounds can be skipped for a free item (or 4 nuts if both item slots are full). The boss round cannot.
+- Each ante's rival is drawn so that all thirteen come round before any repeats, and never the same rule twice in a row.
+
+## The shop
+
+Between rounds: two charms, two items (almanac pages or treats), a reroll for 5 nuts that costs 1 more each time in the same shop and never shows the charms it replaced, and selling (half the price, at least 1). Commons cost 4, uncommons 6, rares 8, items 3. Charms are drawn 70% common, 25% uncommon and 5% rare, and a charm that fits the run (its suit, or the hand types you play most) is 2.5 times as likely. You hold 5 charms and 2 items. Charms can be reordered: a ×mult charm multiplies everything to its left.
+
+## Charms
+
+| Charm | Rarity (cost) | Effect |
+| --- | --- | --- |
+| Dora | Common (4) | +4 mult. |
+| Enzo | Common (4) | +40 chips. |
+| Bramble | Common (4) | Each scoring Acorn gives +3 mult. |
+| Pip | Common (4) | Each scoring Clover gives +3 mult. |
+| Mossy | Common (4) | Each scoring Berry gives +3 mult. |
+| Flint | Common (4) | Each scoring Pebble gives +3 mult. |
+| Willow | Common (4) | +8 mult if the hand contains a pair. |
+| Nutmeg | Common (4) | +10 mult if the hand contains two pair. |
+| Pebble | Common (4) | +12 mult if the hand contains three of a kind. |
+| Gale | Common (4) | +12 mult if the hand contains a straight. |
+| Thistle | Common (4) | +10 mult if the hand contains a flush. |
+| Wren | Common (4) | Each scoring 2, 3, 4 or 5 gives +4 mult. |
+| Hazel | Common (4) | Each scoring face card gives +30 chips. |
+| Robin | Common (4) | Each scoring ace gives +20 chips and +4 mult. |
+| Sorrel | Common (4) | Earn 1 nut for each face card you discard. |
+| Cashew | Common (4) | Earn 4 nuts when you win a round. |
+| Mags | Common (4) | +1 mult for every 3 nuts you hold. |
+| Burrowby | Common (4) | +25 chips for each discard you have left. |
+| Driftwood | Common (4) | +2 chips for each card left in your draw pile. |
+| Poppy | Common (4) | +15 mult if you play three or fewer cards. |
+| Ember | Uncommon (6) | ×2 mult if the hand contains a flush. |
+| Clover | Uncommon (6) | ×2 mult if the hand contains two pair. |
+| Cinder | Uncommon (6) | Gains +1 mult every time you play a hand. |
+| Frost | Uncommon (6) | Gains ×0.25 mult every time you play a straight. |
+| Onyx | Uncommon (6) | ×1.5 mult for each king held in your hand. |
+| Zephyr | Uncommon (6) | Flushes and straights can be made with four cards. |
+| Aurora | Uncommon (6) | The first scoring card scores twice. |
+| Fennel | Uncommon (6) | Scoring cards give +1, +2, +3, +4 and +5 mult in turn. |
+| Sable | Uncommon (6) | ×2 mult on the last play of a round. |
+| Bracken | Uncommon (6) | Gains +3 chips for every card you discard. |
+| Rill | Uncommon (6) | Scoring 9s and 10s score twice. |
+| Juniper | Uncommon (6) | ×1.5 mult if you play exactly four cards. |
+| Prism | Uncommon (6) | ×3 mult if the played cards hold all four suits. |
+| Sage | Uncommon (6) | The first hand you play each round goes up a level first. |
+| Lantern | Uncommon (6) | Hold one more card in your hand. |
+| Thrift | Uncommon (6) | One more discard each round. |
+| Honeycomb | Uncommon (6) | Each scoring glossed card gives +6 mult. |
+| Stag | Rare (8) | ×1.25 mult for each charm you own, this one included. |
+| Echo | Rare (8) | Copies the charm to its right. |
+| Luna | Rare (8) | Every card you play scores. |
+| Regent | Rare (8) | ×3 mult, but hold one card fewer. |
+| Comet | Rare (8) | Gains ×0.5 mult every time you beat a boss. |
+| Bloom | Rare (8) | Scoring face cards score twice. |
+| Tumble | Rare (8) | One more play each round. |
+
+## Treats
+
+Treats that change cards are used during a round with up to the stated number of cards selected. Almanac pages, Clover tea and the wishing stone can be used at any time.
+
+| Treat | Effect |
+| --- | --- |
+| Honey drop | Up to two selected cards turn honey: +30 chips when they score. |
+| Ember spice | Up to two selected cards turn ember: +4 mult when they score. |
+| Crystal dew | One selected card turns crystal: ×1.5 mult when it scores. |
+| Gold leaf | One selected card turns gold: +3 nuts if it is in your hand when you win the round. |
+| Acorn dye | Up to three selected cards become Acorns. |
+| Clover dye | Up to three selected cards become Clovers. |
+| Berry dye | Up to three selected cards become Berries. |
+| Pebble dye | Up to three selected cards become Pebbles. |
+| Mirror pond | Adds a copy of one selected card to your deck and your hand. |
+| Compost | Removes up to two selected cards from your deck for good. |
+| Sprout | Up to two selected cards go up one rank (an ace stays an ace). |
+| Clover tea | Doubles your nuts, adding at most 20. |
+| Wishing stone | A random charm, if you have room for it. |
+
+Glosses: honey +30 chips, ember +4 mult and crystal ×1.5 mult when the card scores; a gold card pays 3 nuts if it is still in your hand when the round is won.
+
+## Rivals
+
+| Rival | Rule |
+| --- | --- |
+| The Fox | Acorns score nothing. |
+| The Owl | Clovers score nothing. |
+| The Hawk | Berries score nothing. |
+| The Snake | Pebbles score nothing. |
+| The Badger | Every play must be exactly five cards. |
+| The Skunk | Your first hand is dealt face down. |
+| The Weasel | Face cards are dealt face down. |
+| The Mole | Hold one card fewer. |
+| The Bear | Only three plays this round. |
+| The Cougar | No discards this round. |
+| The Beetle | After each play or discard, draw at most three cards. |
+| The Lizard | Your most-played hand type scores half its base chips and mult. |
+| The Armadillo | A thick shell: the target is half as high again. |
+
+## Saves
+
+`acorn-hand-run-v1` holds the whole run, the round in progress included, with the random generator's state, so a reload resumes exactly; it is written after every action and cleared when a run is lost. `acorn-hand-v1` is the record: runs, wins, best ante, best hand and the charms you have met. `acorn-hand-sound-v1` is the sound setting. Both saves are validated on load, and anything malformed is ignored.
+
+## Balance
+
+Tuned against `tests/acorn-hand-bot.mjs`, which weighs every legal play, discards towards flushes and sets, and judges charms by rescoring its own recent plays with and without them. Over 200 seeds it wins about 23% of runs and loses about 2.5% in ante 1; `npm test` requires 20–45% and under 5%. A player who builds around one hand type does much better: the first run played by hand (15-10-2026) won with a two-pair build, and once a ×mult charm joined it, antes 6 to 8 were beaten with hands two to three times the target.

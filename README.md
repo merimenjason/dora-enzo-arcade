@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of thirty-three original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of thirty-four original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -43,6 +43,7 @@ Listed in arcade-menu order.
 | 31 | Moonpond | `/moonpond` | Night-fishing journal |
 | 32 | Whisker Saga | `/saga` | Hero-squad adventure |
 | 33 | Ember & Clover: Midnight Kitchen | `/kitchen` | Cozy kitchen management |
+| 34 | Acorn Hand | `/acorn-hand` | Poker-scoring card roguelite |
 
 ## Run
 
@@ -823,6 +824,16 @@ Eighty stages in eight chapters, each stage worth up to three stars (cleared, no
 
 **Docs:** [`docs/midnight-kitchen.md`](docs/midnight-kitchen.md), [`docs/kitchen-art.md`](docs/kitchen-art.md).
 
+### 34 · Acorn Hand (`/acorn-hand`)
+
+**Play:** A poker-scoring card run with Dora and Enzo. Hold eight cards from a 52-card deck in four suits (Acorns, Clovers, Berries and Pebbles) and play up to five at a time: the best poker hand among them sets a base of chips and mult, each card that counts adds its chips (number cards their value, faces 10, aces 11), and charms join in from left to right. Chips × mult is the score. Each round gives four plays and three discards to reach a target. An ante is a small round, a big round and a boss round against a woodland rival whose rule changes how you play (a suit that scores nothing, exactly five cards a play, a hand dealt face down and so on); beat the eighth boss to win, then carry on into endless antes. Between rounds the shop sells 44 chinchilla charms (five slots), almanac pages that level up a hand type and one-use treats that gloss, dye, copy or remove cards. Every five nuts kept earns one more, up to five.
+
+**Controls:** Click or tap cards to pick them. **1–8** pick by position, **Enter** plays, **D** discards, **S** sorts by rank or suit, **Esc** clears the selection and **M** changes sound. Hover a charm, an item or a glossed card (or hold it on a touch screen) to read it. Charms can be sold and reordered in the shop; ×mult charms count most at the right-hand end. The run saves after every action, a round in progress included.
+
+**Tests:** `npm run test:acorn-hand` checks hand detection with every edge case, the scoring order, every kind of charm, treat and boss rule, the shop and rerolls, the win and endless, seed replay and broken saves. `npm run bot:acorn-hand` plays 200 seeded runs and requires a win rate between 20% and 45%, under 5% of runs lost in ante 1, every boss met and beaten and nearly every charm in some winning run. `npm run test:e2e:acorn-hand` plays rounds by mouse, keyboard and touch in a browser.
+
+**Docs:** [`docs/acorn-hand.md`](docs/acorn-hand.md), [`docs/acorn-hand-art.md`](docs/acorn-hand-art.md).
+
 ## Validation
 
 ```sh
@@ -840,7 +851,7 @@ Run `npm test` before the browser suites to generate the compiled engines they u
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Thirty-three ways/` assertion in `tests/e2e/dust-bath.mjs`, the 33-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs` and `tests/e2e/saga.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past thirty-three games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Thirty-four ways/` assertion in `tests/e2e/dust-bath.mjs`, the 34-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs` and `tests/e2e/pinball.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past thirty-four games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
