@@ -27,7 +27,7 @@ Each game is split three ways, and new games follow the same split:
 
 Progress is saved in `localStorage` under a versioned key per game (for example `hay-maze-run-v1`). When a save format changes, bump the version so old saves are ignored, not misread.
 
-The twelve newest games expose the running game on `window` (for example `window.__maze()`) for the browser tests.
+Sixteen of the newer games expose the running game on `window` (for example `window.__maze()`, `window.__saga()`, `window.__acorn()`) for the browser tests; Midnight Kitchen does not. A browser test must wait for the page to hydrate before clicking: Acorn Hand marks `main[data-ready="true"]` for this.
 
 `components/` is the stock shadcn UI kit; only a handful of pages import from it.
 

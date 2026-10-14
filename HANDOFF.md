@@ -4,6 +4,51 @@ Where Dora & Enzo's Arcade stands, how the newest games fit together, how to che
 
 This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are folded in below.
 
+## Start here (fresh session, 15-10-2026)
+
+**Where things stand.** `main` is at the merge of PR #42 and is deployed: 34 games at https://chinchillas.jason.engineering. Nothing is open: no pull requests, no unmerged branches. The only local changes are three `.claude/` graft files (see **Agent configuration**), which are the user's and must stay uncommitted.
+
+**What happened in the last few sessions (13–15-10-2026), newest first:**
+
+| PR | What | Notes |
+| --- | --- | --- |
+| #42 | **Acorn Hand** (`/acorn-hand`), game 34 | Poker-scoring card run in the manner of Balatro. Built, bot-tuned, played by hand and shipped in one PR. See **Acorn Hand**. |
+| #41 | Midnight Kitchen chef matte | The four painted chefs stood in pale boxes; `public/art/kitchen/chefs.png` was re-cut with OpenCV GrabCut. |
+| #40 | Saga play-test fixes, Kitchen docs | A first clear selects the newly opened stage; a heal/shield hint; the empty summon label; `CLAUDE.md` count. |
+| #39 | **Ember & Clover: Midnight Kitchen** (`/kitchen`), game 33 | Built in another session. |
+| #38 | Saga hero trials | Six trials, Fennel and Sable (20 heroes), tier-six Ascendant gear, save version 2. Built in another session; reviewed and verified here before it merged. |
+| #35–#37 | Saga painted art, loading, animation | Built in another session. |
+| #33–#34 | **Whisker Saga** (`/saga`), game 32, and its docs | |
+
+**The way work is done here** (the user has asked for this consistently):
+
+1. Branch from `main` (`feat/…`, `fix/…`, `docs/…`). Pushing to `main` deploys, so never commit to it directly.
+2. Commit only when the user asks. Messages end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`; PR bodies end with the Claude Code line.
+3. `gh pr create`, then `gh pr checks --watch`, then `gh pr merge --rebase --delete-branch`, then fast-forward local `main` and watch the deploy run for that SHA (`gh run watch <id> --exit-status`). The user's "merge and push" means all of that.
+4. Every user-visible change gets a `CHANGELOG.md` entry in the same commit, under `## DD-MM-YYYY`. "Update the relevant md files" means README (guide, counts), `docs/<game>.md`, CHANGELOG and this file.
+5. A new game follows the README **Adding a game** checklist in full; `npm test` fails if the README and `GAMES` disagree.
+
+**Things that cost time in these sessions, so they don't again:**
+
+- **A server-rendered page is not a ready page.** A browser test that clicks a button before React hydrates does nothing and then times out. Acorn Hand sets `data-ready` on `main` after mount and its tests wait for `main[data-ready="true"]`. Copy that pattern into any new game.
+- **Chrome through the Claude-in-Chrome extension can't play real-time games here.** The window is not visible, so the tab reports `visibilityState: hidden` and `requestAnimationFrame` never fires. Play through headless Playwright instead.
+- **Don't fake the clock to slow a real-time game down.** `page.clock.install()` made Saga run about six times fast, because every frame hit the loop's 0.1 s cap. Use real time and the game's own pause key between moves.
+- **Playing a game by hand through Playwright.** `tests/e2e/.tmp/` (git-ignored) holds the scratch driver: `drive.mjs` keeps a browser open and serves `/click?sel=`, `/key?k=`, `/run?ms=`, `/eval?js=`, `/shot` on port 3999 (`URL=http://localhost:3000/<route> node tests/e2e/.tmp/drive.mjs`); `p.mjs` sends commands; `ah.mjs` prints Acorn Hand's state as text and takes actions (`c1 c2 play`, `disc`, `buyc1`, `collect`, `leave`, `start`); `go.mjs`, `st.mjs` and `t` do the same for a Saga battle, pausing at each wind-up. Stop the driver with `node tests/e2e/.tmp/p.mjs /quit`. The directory is not committed, so a fresh clone won't have it.
+- **A context-mode hook blocks `curl` and inline `fetch(` in Bash commands.** Put HTTP calls in a script file and run it with node, as `p.mjs` does.
+- **Foreground `sleep` is blocked.** Wait with `until …; do sleep N; done` in a background command, or `gh pr checks --watch`.
+- **Some failures are not yours.** `tests/e2e/moonlight.mjs` and `tests/e2e/detectives.mjs` write screenshots to a fixed macOS path (`/Users/jasonchua/...`) and fail on any other machine; `tests/e2e/burrow-express.mjs` has a touch-drag check that passes and fails on reruns. All 49 suites were run on 15-10-2026: 46 passed.
+- **Graft** is at 0.21.1 (0.22.0 available). End a reply with a graft tally only when graft was used in that turn, and never pipe graft through `head`/`tail`.
+
+**What to do next, in the order I'd do it:**
+
+1. **Play-test with real people.** Acorn Hand (does a focused build win too easily? the bot wins 23%, my hand-played run won comfortably), Whisker Saga (chapter 1 is samey and easy; trials punish idle heals and shields), Midnight Kitchen (never played by hand, no bot).
+2. **Listen to the sound** in every game from Moonpond on. Nobody has heard any of it.
+3. **Acorn Hand:** a nut sink for the late game (a sixth charm slot, booster packs or vouchers); a harder stake for players who win; drawn icons instead of emoji for items.
+4. **Whisker Saga chapter 1 variety:** a spitter-heavy stage, an early brute, a second wind-up before the boss.
+5. **Midnight Kitchen code split:** drawing lives in `app/kitchen/page.tsx` (about 700 lines); move it to `lib/kitchen-scene.ts` like every other game, and add `window.__kitchen()`.
+6. **Test hygiene:** make the moonlight and detectives screenshot paths relative (`.checks/…`), and steady the Burrow Express touch-drag check.
+7. Next new game, if wanted: the suggestions given on 15-10-2026 were physics mini-golf ("Burrow Links") and a merge-and-drop game like Suika ("Fluff Drop"); a rhythm game was ruled last because audio can't be checked here.
+
 ## Quality pass · 08-10-2026
 
 The four newest games received a focused quality pass on `fix/newest-games-quality-pass`. PR #15 is merged to main.
@@ -116,10 +161,10 @@ Game 33, `/kitchen` (**Ember & Clover: Midnight Kitchen**), is merged on main (P
 Game 32, `/saga`, is merged on main (PR #33). It is a hero-squad adventure modelled on the squad stages of Top Heroes: Kingdom Saga, with the kingdom building, guilds and anything online left out by choice.
 
 - **The loop:** a squad of five (two in front, three behind) marches through three waves a stage and attacks on its own. The player fires each hero's skill when it is charged. Captains, bosses and hexers wind up their big moves for 1.8 s; a stun in that window cancels the move and staggers the enemy (2.5 s stunned, 50% more damage taken for 4 s).
-- **Progress:** eighteen heroes in three factions and five roles (two to start, six from chapter bosses, ten from summons with a guarantee on the tenth), levels for gold, stars from repeat summons, four gear slots in five tiers with a forge, a faction bonus, eighty stages with three stars each, chapter chests, a camp chest that fills for four hours, and an endless tower.
+- **Progress:** twenty heroes in three factions and five roles (two to start, six from chapter bosses, ten from summons with a guarantee on the tenth, and Fennel and Sable from the hero trials added in PR #38), levels for gold, stars from repeat summons, four gear slots in six tiers (the sixth, Ascendant, since PR #38) with a forge, a faction bonus, eighty stages with three stars each, chapter chests, a camp chest that fills for four hours, and an endless tower.
 - **Code:** the usual split, in `lib/saga-game.ts` (`Battle` for one fight, `Game` for the roster and progress), `lib/saga-scene.ts` (`Field`), `lib/saga-art.ts` (heroes, enemies and backdrops by name) and `app/saga/` (page, styles, metadata and `sound.ts`).
 - **Saves and hook:** `saga-v1` and `saga-sound-v1`. The save is written on every menu action and on the frame a battle ends. A battle in progress is not saved: a reload returns to the map with nothing lost. `window.__saga()` returns the game, the field, the pause flag, the speed, the auto flag and `refresh` to redraw the menus after a test changes the game.
-- **Art:** the approved painted pass and combat-feedback improvements are in PR #35. Eighteen hero sprites and dedicated portraits, six enemies, eight bosses and eight landscapes live in `public/art/saga/`. `lib/saga-paint.ts` prioritizes the saved squad/current chapter and loads other sheets on demand, with lazy crops using measured silhouettes in `lib/saga-crops.ts`; original code drawings remain loading fallbacks. The field retains the battle animations and reduced motion. Large skill cards show live hero health, shields and charge; eligible interrupts follow actual targets during wind-ups and early presses explain why a skill cannot fire. Valid presses now queue until a combat tick, preventing drops on high-refresh screens. Six painted spell textures, chapter postcards and camp/reward props accompany the live animations. Hero and boss meters remain HTML. Missing assets can be retried, and pending images do not block menus or battles. Layout and exact prompts are in `docs/saga-art.md`.
+- **Art:** the approved painted pass and combat-feedback improvements are in PR #35. Eighteen hero sprites and dedicated portraits (Fennel and Sable came later, in `heroes-3.png`), six enemies, eight bosses and eight landscapes live in `public/art/saga/`. `lib/saga-paint.ts` prioritizes the saved squad/current chapter and loads other sheets on demand, with lazy crops using measured silhouettes in `lib/saga-crops.ts`; original code drawings remain loading fallbacks. The field retains the battle animations and reduced motion. Large skill cards show live hero health, shields and charge; eligible interrupts follow actual targets during wind-ups and early presses explain why a skill cannot fire. Valid presses now queue until a combat tick, preventing drops on high-refresh screens. Six painted spell textures, chapter postcards and camp/reward props accompany the live animations. Hero and boss meters remain HTML. Missing assets can be retried, and pending images do not block menus or battles. Layout and exact prompts are in `docs/saga-art.md`.
 - **Balance:** done against `tests/saga-bot.mjs` only. Three findings shaped the numbers and are worth knowing before changing them. First, when holding a stun for a wind-up only cancelled the move, firing everything on cooldown won more fights; the stagger is what makes timing pay. Second, a slam strong enough to wipe the squad made stage 1 unwinnable for a player who never fires a skill, so slams now take roughly half a back-row hero's health. Third, gold income (`GOLD`) is the sensitive dial: 36 gave the bot 16 or more losses on some seeds and 50 gave almost none; it is at 42.
 - **Checks:** `npm run test:saga`, `npm run bot:saga` (both in `npm test`) and `tests/e2e/saga.mjs` (`npm run test:e2e:saga`), which passed three runs in a row before the merge. Set `ONLY` to part of a check's name to run just that check, for example `ONLY="the squad" node tests/e2e/saga.mjs`. Adding the game changed the card count from 31 to 32 in about twenty older browser suites; only `arcade-navigation`, `panel-contrast` and `dust-bath` were rerun afterwards. The painted pass adds `tests/e2e/saga-painted.mjs` to the Saga command and has passed the full Saga suite, fifty-sprite crop checks, all eight chapter/boss scenes, live-meter and failed-art retry checks, plus the thirty-three-route text-contrast suite.
 - **Next:** play it by hand, above all the first ten stages and one boss, and adjust `GOLD`, the slam `power` values in `ENEMIES` and `STAGGER` / `EXPOSED`, rerunning `npm run bot:saga` after any change; listen to the cues in `app/saga/sound.ts`; review the painted pass in every chapter.
@@ -129,31 +174,26 @@ Game 32, `/saga`, is merged on main (PR #33). It is a hero-squad adventure model
 
 ## Current state
 
-- **34 games on `main`**; the deployed arcade is at https://chinchillas.jason.engineering. Game 22, **Burrow Tactics** (`/tactics`), was merged on 04-10-2026 (PR #5) together with the Bounce / Burrow combat work and the documentation round of 03-10-2026 it was stacked on.
-- Game 23, **Burrow Barrage** (`/barrage`), was added on 04-10-2026. It has been tuned with its bot only and not yet played by hand; see **Burrow Barrage, briefly**. Its phone camera and a fix to the Chin x Pit browser test followed on the same day (PR #7).
-- Game 24, **Summit Shuffle** (`/summit`), was built on 06-10-2026: a deck-building climb in the style of Slay the Spire. It too has been balanced with its bot only; see **Summit Shuffle, briefly**. The same change moved the 2D predator drawings out of `lib/burrow-tactics-scene.ts` into a shared `lib/predator-art.ts`, which both games now use.
-- Game 25, **Poof Panic** (`/poof`), was also built on 06-10-2026: a versus falling-pair puzzler in the style of Puyo Puyo. Its rivals were set with its bot only; see **Poof Panic, briefly**.
-- Left uncommitted in the working tree, and not reviewed in that round: `.claude/helpers/graft-hooks.cjs`, `.claude/helpers/graft-statusline.cjs`, and six added lines about reporting dollar savings in `.claude/skills/graft/SKILL.md`. All three were modified before the round began.
-
-For Summit Shuffle the typecheck, `npm test`, the build and the browser suites were all rerun on 06-10-2026.
+- **34 games on `main`**, deployed at https://chinchillas.jason.engineering. The newest are listed below; `README.md` has all 34 with guides.
+- **Played by hand:** Acorn Hand (one full run won, a second to ante 3), Whisker Saga (chapter 1, the Thornback boss and Briar Relay, 15-10-2026). Every other recent game has been balanced against its bot, or not at all (Midnight Kitchen), and nobody has listened to any game's sound.
+- **Left uncommitted in the working tree, on purpose:** `.claude/helpers/graft-hooks.cjs`, `.claude/helpers/graft-statusline.cjs` and `.claude/skills/graft/SKILL.md`. They belong to the user; don't stage them.
 
 ## What shipped recently
 
-The four newest cabinets, all merged to `main` and deployed.
+The eight newest cabinets, all merged to `main` and deployed.
 
-| # | Game | Route | Added | Notes |
+| # | Game | Route | Added | Pull requests |
 | --- | --- | --- | --- | --- |
-| 18 | Chinchilla Clash | `/clash` | 26-09-2026 | PR #1 |
-| 19 | Hay Maze Defence | `/hay-maze` | 26-09-2026 | PR #2, then reworked in the style of Emberward (PR #3); runs save between waves |
-| 20 | Chinchillas vs Zombies | `/chinchillas-vs-zombies` | 26-09-2026 | Given a moonlit 2.5D lawn on 27-09-2026 |
-| 21 | Chinchilla Scribble | `/scribble` | 30-09-2026 | |
+| 27 | Moonlight Mischief | `/moonlight` | 09-10-2026 | |
+| 28 | Pawprint Pinball | `/pinball` | 09-10-2026 | |
+| 29 | Pawprint Detectives | `/detectives` | 10-10-2026 | |
+| 30 | Frostpaw Frontier | `/frontier` | 10-10-2026 | |
+| 31 | Moonpond | `/moonpond` | 10-10-2026 | #31–#32 for docs and the painted pond |
+| 32 | Whisker Saga | `/saga` | 13-10-2026 | #33–#38, #40 |
+| 33 | Ember & Clover: Midnight Kitchen | `/kitchen` | 15-10-2026 | #39–#41 |
+| 34 | Acorn Hand | `/acorn-hand` | 15-10-2026 | #42 |
 
-- **Chinchilla Clash** is a Clash Royale-style lane battler. It has a deck of 8 cards from 12 and bath dust instead of elixir. There are princess and king towers, double dust in the last minute, overtime and a tie-break. The trophy road has three rival chinchilla clans (beige, violet, ebony), each with its own computer opponent. Full rules: [`docs/chinchilla-clash.md`](docs/chinchilla-clash.md).
-- **Hay Maze Defence** is a roguelite tower defence in the style of [Emberward](https://store.steampowered.com/app/2459550/Emberward/). Predators take the shortest open route to the Hearthlight. The player draws hay-bale blocks as cards (tetromino-like shapes), turns them and lays them into a maze, which can never be sealed completely. Towers stand on top of the bales or rocks. There are eight towers with elements that react with each other (chilled foes shatter under sparks, and burning foes flare under moonlight), plus relics. A run is six levels on generated meadows, with a reward after each. Full rules: [`docs/hay-maze.md`](docs/hay-maze.md).
-- **Chinchillas vs Zombies** is a Plants vs Zombies-style lane defence. Zombies walk the lanes of a 9 × 5 lawn towards the burrow. You plant chinchilla defenders one to a tile, paying with sunflower seeds from the sky and from Seed Gatherers. There are seven defenders and six zombies (including a pogo that jumps your first defender and a Brute that smashes defenders in one hit). Eight nights, each unlocking a defender, and a hay cart per lane that saves you once. Full rules: [`docs/chinchillas-vs-zombies.md`](docs/chinchillas-vs-zombies.md).
-- **Chinchilla Scribble** is a Scribblenauts-style word puzzler. Write the name of a thing and it appears, with adjectives in front to change it; things act on each other (fire spreads, water puts it out, rivers freeze). Twelve levels plus a sandbox and a word book. Full rules: [`docs/scribble.md`](docs/scribble.md).
-
-All four have README rows and guides, docs pages and changelog entries. The hardcoded game counts are updated as listed in the README's **Adding a game** checklist.
+Each has its own section near the top of this file. The older games' notes (Clash, Hay Maze, Chinchillas vs Zombies, Scribble, Bounce / Burrow, Burrow Tactics, Burrow Barrage, Summit Shuffle, Poof Panic) follow under **Where the code lives**.
 
 ## Where the code lives
 
@@ -285,6 +325,9 @@ npm run test:summit
 npm run bot:summit
 npm run test:saga
 npm run bot:saga
+npm run test:kitchen
+npm run test:acorn-hand
+npm run bot:acorn-hand
 ```
 
 Browser tests need `npm run dev` running and Playwright. Playwright is **not** in `devDependencies`. Install it with `npm i -D playwright`, or link a global copy (`ln -s "$(npm root -g)/playwright" node_modules/playwright`). Then run one suite, such as `node tests/e2e/scribble.mjs`, or the whole `npm run test:e2e`. The browser tests write screenshots to `.checks/<game>/`, which git ignores.
@@ -294,7 +337,7 @@ CI (`.github/workflows/ci.yml`) runs typecheck, `npm test` and the build on ever
 ## Things to know
 
 - **`tests/checkpoint-remake.mjs` is not run by `npm test`.** The file exists, but neither it nor `lib/checkpoint-remake-game.ts` is in the `test` script in `package.json`. Whether that is deliberate is not recorded anywhere.
-- **Test hooks.** The four pages above expose their running game on `window` so the browser tests can read state and fast-forward. Anyone can use them from the console. That's harmless in a single-player game, but remove them if that ever matters.
+- **Test hooks.** Sixteen pages expose their running game on `window` so the browser tests can read state and fast-forward: `__acorn`, `__barrage`, `__clash`, `__cvz`, `__detectives`, `__express`, `__frontier`, `__maze`, `__moonlight`, `__moonpond`, `__pinball`, `__poof`, `__saga`, `__scribble`, `__summit` and `__tactics`. Midnight Kitchen has none. Anyone can use them from the console. That's harmless in a single-player game, but remove them if that ever matters.
 - **Formatting.** `oxfmt --check` fails across most of the repo, old files included, so new files match the surrounding hand-formatted style instead. `oxlint` was clean for Clash, Hay Maze and Chinchillas vs Zombies when they were added; the repo has older lint errors elsewhere.
 - **The panel-contrast test** (`tests/e2e/panel-contrast.mjs`) covers the routes in its route list, the newest games included. Those pages hand text colour back to `p` elements (`color: inherit`), as the test expects.
 
@@ -305,7 +348,7 @@ The round of 03-10-2026 was spent on the Claude Code setup, not the games:
 - **Prompt audit.** Three edits were applied to the graft instructions. In `AGENTS.md`, "For ANY task here" became "For tasks about this repo's code". In `.claude/skills/graft/SKILL.md`, the line calling card spans authoritative now excepts files edited in the same turn, and two mentions of old command names were removed.
 - **One audit finding is still open.** `AGENTS.md` says to run `graft build` after big code changes; the graft skill says the tools refresh the graph themselves and `build` isn't needed after editing. Both passages came in the same commit, so someone has to decide which is right for the installed graft version and delete the other.
 - **Both graft files look tool-generated** (the `AGENTS.md` block sits between `<!-- graft:start -->` markers), so regenerating them with graft may undo the audit edits.
-- **Graft** is installed at 0.19.0, with 0.21.1 available (`npm i -g @nanonets/graft@latest`). `graft/` is git-ignored, so each checkout builds its own graph.
+- **Graft** is installed at 0.21.1, with 0.22.0 available (`npm i -g @nanonets/graft@latest`). `graft/` is git-ignored, so each checkout builds its own graph.
 - **A context-bar mod** for Claude Code was written this round. It lives outside the repo, under `~/.claude/dev-mods/`, and is not part of this project.
 
 ## Known limitations and ideas for next time
