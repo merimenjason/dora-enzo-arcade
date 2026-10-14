@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Acorn Hand**: a poker-scoring card run with Dora and Enzo. Play poker hands for chips × mult, collect 44 chinchilla charms that bend the scoring, level hand types with almanac pages, gloss and dye your cards with treats, and beat eight antes of woodland rivals whose boss rules change how you play, then keep going in endless. Runs save after every move; keyboard, mouse and touch all work.
 - **Ember & Clover: Midnight Kitchen**: Dora, Enzo, Pip and Ember trade adventure gear for aprons in a painted moonlit bakery. Prepare, bake and serve five recipes across twelve shifts, choose specialist chefs, ring a teamwork rush bell, earn stars and upgrade the kitchen. Untimed cozy mode, keyboard and touch controls, local progression, sound and reduced motion are included.
 
 ### Changed
@@ -20,6 +21,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Documentation
 
+- **Acorn Hand** has a README guide, a rules page with every hand, charm, treat and rival (`docs/acorn-hand.md`) and an art page with prompts for a later painted pass (`docs/acorn-hand-art.md`).
 - The handoff covers **Ember & Clover: Midnight Kitchen** and **Whisker Saga**'s hero trials and first play by hand, and the project notes count thirty-three games.
 
 ## 13-10-2026
