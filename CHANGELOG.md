@@ -16,6 +16,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Whisker Saga**: after a first clear, going back to the map now selects the stage that just opened instead of the one you beat, so "Fight" moves you on rather than replaying. Replays still keep their stage selected.
 - **Whisker Saga**: the batch summon button no longer reads "Summon 2" when you have no scrolls.
+- **Ember & Clover: Midnight Kitchen**: the four painted chefs no longer stand in pale boxes; the leftover background glow around each one has been cut away.
 
 ### Documentation
 

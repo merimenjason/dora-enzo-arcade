@@ -97,7 +97,8 @@ Game 33, `/kitchen` (**Ember & Clover: Midnight Kitchen**), is merged on main (P
 
 - **Code:** `lib/kitchen-game.ts` holds the rules; there is no `lib/kitchen-scene.ts`, so all the drawing lives in `app/kitchen/page.tsx` (about 700 lines), unlike the engine / scene / page split the other games follow. Saves are `midnight-kitchen-v1`, written between shifts.
 - **Checks:** `npm run test:kitchen` (in `npm test`, with 240 simulated campaigns) and `tests/e2e/kitchen.mjs`. Both passed on 15-10-2026, as did `arcade-navigation` with 33 cards.
-- **Not done:** on the title screen each painted chef sits in a pale rectangle where the sheet's background was not fully cut away. Nobody has played it by hand; there is no bot.
+- **Chef art:** `public/art/kitchen/chefs.png` was re-cut on 15-10-2026. The sheet came with a half-transparent haze and a nearly opaque warm glow around each chef, which the `.k-art` drop shadow turned into pale boxes. Each crop was separated with OpenCV GrabCut (faint pixels as background, the eroded solid body as foreground, the glow band left to the colour model), dark solid pixels next to the figure put back (GrabCut took an eye for background) and holes filled; the scratch script was `tests/e2e/.tmp/grab.py`. Repaint the sheet with a clean transparent background rather than re-cutting it again.
+- **Not done:** nobody has played it by hand; there is no bot.
 
 ## Whisker Saga · 13-10-2026
 
