@@ -118,9 +118,10 @@ export default function SagaPage() {
     setSkillFeedback(null); field.current.reset(); casts.current = []; auto.current = false; setIsAuto(false); pause(false); store(); setView('battle');
   };
   const leaveBattle = () => {
-    const g = game.current!, n = g.stage;
+    const g = game.current!, n = g.stage, opened = g.battle?.phase === 'won' && !!g.loot?.first;
     g.leave(); store(); pause(false);
-    const next = Math.min(g.cleared, STAGES - 1), show = n >= STAGES ? next : Math.min(n, STAGES - 1);
+    // A first clear points the map at the stage it just opened; a replay stays where it was.
+    const next = Math.min(g.cleared, STAGES - 1), show = n >= STAGES || opened ? next : Math.min(n, STAGES - 1);
     setChapter(Math.floor(show / PER_CHAPTER)); setStage(show); setView('hub');
   };
   const cast = useCallback((slot: number) => {
@@ -215,8 +216,11 @@ export default function SagaPage() {
   if (view === 'battle' && g.battle) {
     const b = g.battle, def = b.def, boss = b.foes.find(u=>u.boss), over = b.phase === 'won' || b.phase === 'lost', loot = g.loot, winding = b.winding;
     const canStop = b.heroes.some(u=>readyToInterrupt(b,u.slot));
+    // Heals and shields only help if they are used: point at one when the squad is low and it is sitting charged.
+    const hurt = b.alive.length > 0 && Math.min(...b.alive.map((u) => u.hp / u.max)) < 0.5;
+    const helper = hurt ? b.heroes.find((u) => b.ready(u.slot) && ['heal', 'mend', 'cleanse', 'ward'].includes(u.skill?.kind ?? '')) : undefined;
     const hint = isPaused ? 'Paused.' : winding ? (winding.special!.kind === 'slam' ? `${winding.name} is winding up a slam. ${canStop ? 'Stun it now!' : 'Shield the squad if you can.'}` : `${winding.name} is about to heal. ${canStop ? 'Stun it to stop the spell.' : ''}`)
-      : b.phase === 'march' ? 'The squad marches on.' : isAuto ? 'Auto: skills fire as soon as they charge.' : b.heroes.some((u) => b.ready(u.slot)) ? 'A skill is ready. Stuns are best saved for a wind-up.' : 'Skills charge as your heroes land hits.';
+      : b.phase === 'march' ? 'The squad marches on.' : isAuto ? 'Auto: skills fire as soon as they charge.' : helper ? `The squad is hurting. ${helper.name} can ${helper.skill!.kind === 'ward' ? 'shield them' : 'heal them'}.` : b.heroes.some((u) => b.ready(u.slot)) ? 'A skill is ready. Stuns are best saved for a wind-up.' : 'Skills charge as your heroes land hits.';
     const next = def.trial!==undefined?TRIAL_START+def.trial+1:def.tower ? STAGES + g.tower : g.stage + 1, canNext = b.phase === 'won' && (def.trial!==undefined?def.trial+1<TRIALS.length&&g.unlocked(next):def.tower ? true : next < STAGES && g.unlocked(next));
     const again = () => { const n = g.stage; g.leave(); fight(n); };
     const onward = () => { g.leave(); fight(next); };
@@ -467,7 +471,7 @@ export default function SagaPage() {
             <p className="sg-dim">Rare {Math.round(ODDS[1] * 100)}% · Epic {Math.round(ODDS[2] * 100)}% · Legendary {Math.round(ODDS[3] * 100)}%. <span data-testid="pity">A legendary is certain within {PITY - g.pity} summons.</span></p>
             <div className="sg-row">
               <button className="sg-gold sg-big" data-testid="summon-1" disabled={g.scrolls < 1} onClick={() => pull(1)}><Scroll />Summon</button>
-              <button className="sg-big" data-testid="summon-10" disabled={g.scrolls < 2} onClick={() => pull(10)}><Scroll />Summon {Math.min(10, Math.max(2, g.scrolls))}</button>
+              <button className="sg-big" data-testid="summon-10" disabled={g.scrolls < 2} onClick={() => pull(10)}><Scroll />{g.scrolls >= 2 ? `Summon ${Math.min(10, g.scrolls)}` : 'Summon several'}</button>
             </div>
           </section>
           {pulled.length > 0 && (
