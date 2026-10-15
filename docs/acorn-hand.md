@@ -161,6 +161,23 @@ Glosses: honey +30 chips, ember +4 mult and crystal ×1.5 mult when the card sco
 | The Lizard | Your most-played hand type scores half its base chips and mult. |
 | The Armadillo | A thick shell: the target is half as high again. |
 
+## Table and motion
+
+A rival sits across the table every round: the ante's boss in the boss round, and otherwise one of the other twelve rivals, picked by `tableRival` in `lib/acorn-hand-banter.ts` from the seed, the ante and the round. It never uses the run's random numbers, so seeds replay as before and a reload shows the same rival; the small and big rounds of an ante always have different rivals. Beside the rival, a pile of `ceil(10 × (1 − score ÷ target))` nuts shows what is left of the target. Dora and Enzo sit by your hand (hidden on phones).
+
+| Moment | When | What the rival does |
+| --- | --- | --- |
+| Enter | the round starts | slides in and greets you (the boss boasts) |
+| Idle | between reactions | breathes slowly |
+| Discard | you discard | leans in with a taunt |
+| Hit | a hand under a quarter of the target | flinches |
+| Big | a hand of a quarter of the target or more | recoils and yelps; the table shakes |
+| Rule | a boss rule changes a score | shows off, saying the rule |
+| Beaten | the score passes the target | slumps and concedes |
+| Gloat | the run ends in that round | bounces and gloats |
+
+Each rival has two lines per moment, said in turn, never at random. The motion lives in `app/acorn-hand/motion.ts`, on the Web Animations API: cards deal from the deck and flip, fly to the table and sweep away, charms wiggle as they score, the counters and score tick up, the hand's name crosses the table, nuts fly to the purse at cash-out, packs burst open and bought charms fly to their slots. Nothing waits for an animation: the state changes at once and only the counting of a played hand holds input, as before. The hand that wins or loses a round counts on the table before the cash-out or game-over panel. With reduced motion set, none of it runs.
+
 ## Saves
 
 `acorn-hand-run-v2` holds the whole run, the round or open pack in progress included, with the random generator's state, so a reload resumes exactly; it is written after every action and cleared when a run is lost. `acorn-hand-v1` is the record: runs, wins, best ante, best hand and the charms you have met. `acorn-hand-sound-v1` is the sound setting. Both saves are validated on load, and anything malformed is ignored. Version 2 added vouchers and packs; a version-1 run is ignored. The record keeps its own version, so it carried over.

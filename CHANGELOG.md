@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Acorn Hand** feels alive: a rival sits across the table every round, reacting to your discards and big hands and taunting in their own voice, with a pile of nuts that shrinks as you close in on the target; cards deal from the deck, flip, fly to the table and sweep away; charms wiggle as they score, the counters tick up, the hand's name crosses the table and big hands shake it; nuts fly to your purse at cash-out; packs burst open and bought charms fly to their slot. The hand that wins or loses a round now plays out on the table before the cash-out. Reduced motion turns it all off.
 - **Acorn Hand**: activated nineteen painted PNG assets for vouchers, booster packs, items, suits, court cards, forty-four charm friends, thirteen rivals, the table and title, with generation prompts and integration notes. The live game now uses the painted title, woodland table and full atlas artwork, with complete silhouettes, sharper cards and a retry option if artwork fails to load.
 
 - **Acorn Hand**: vouchers and booster packs give the nuts that pile up late in a run somewhere to go. Each ante offers one voucher that lasts the whole run: a sixth charm slot, a third item slot, an extra play, an extra discard, a bigger hand, a higher interest cap, cheaper rerolls, a third charm in the shop, bigger packs or luckier charms. Every shop also sells two booster packs of charms, almanac pages, treats or playing cards to pick from; a treat pack deals cards from your deck to use them on. The targets of antes 5 to 8 went up to match (9,000, 16,000, 25,500 and 38,000 for the small round). A run started before this change can't be continued.
@@ -25,6 +26,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Documentation
 
+- A ChatGPT handoff for clearer **Acorn Hand** suit pips and rival reaction poses.
 - **Acorn Hand**: a sheet-by-sheet image-generation handoff for a painted pass (vouchers, booster packs, item icons, suits, court cards, all 44 charms, the rivals, the table and the title) in `docs/acorn-hand-image-prompts.md`.
 - The handoff opens with a summary for picking the work up in a fresh session: where things stand, how changes are shipped, the traps that cost time, and what to do next. The project notes list which games expose a test hook.
 - **Acorn Hand** has a README guide, a rules page with every hand, charm, treat and rival (`docs/acorn-hand.md`) and an art page with prompts for a later painted pass (`docs/acorn-hand-art.md`).

@@ -227,6 +227,13 @@
 .ah-toss { position: fixed; z-index: 60; pointer-events: none; font-size: 22px; }
 .ah-bit { position: fixed; z-index: 60; pointer-events: none; width: 9px; height: 6px; border-radius: 2px; }
 
+@media (max-height: 520px) {
+  .ah-rival { grid-template-columns: 72px minmax(0, 1fr) auto; min-height: 64px; gap: 8px; padding: 0 8px; }
+  .ah-rival-art canvas { width: 72px; }
+  .ah-pile { font-size: 15px; }
+  .ah-pile span[data-size] { font-size: 15px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ah-shell *, .ah-shell *::before { animation: none !important; transition: none !important; }
 }

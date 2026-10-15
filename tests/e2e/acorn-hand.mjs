@@ -278,6 +278,12 @@ for (const [width, height] of [[360, 640], [390, 844], [844, 390], [768, 1024], 
     await page.getByTestId('new-run').click(); await page.getByTestId('pick').waitFor(); assert.ok(await fits(page), 'pick');
     await page.getByTestId('start').click(); await page.getByTestId('card-0').click(); assert.ok(await fits(page), 'table');
     const play = await page.getByTestId('play').boundingBox(); assert.ok(play.x >= 0 && play.x + play.width <= width + 1, 'the play button is on screen');
+    const seat = await page.getByTestId('rival').boundingBox(), deck = await page.getByTestId('deck-stack').boundingBox(), hand = await page.getByTestId('hand').boundingBox();
+    assert.ok(seat && seat.x >= 0 && seat.x + seat.width <= width + 1, 'the rival strip is on screen');
+    assert.ok(deck && deck.x + deck.width <= width + 1, 'the deck is on screen');
+    assert.ok(seat.y + seat.height <= hand.y + 1, 'the rival sits above the hand');
+    const overlap = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+    assert.ok(!overlap(deck, play), 'the deck does not cover the play button');
     await page.screenshot({ path: `.checks/acorn-hand/table-${width}x${height}.png` });
     await run(page, '(r) => { r.round.target = 1; }'); await page.getByTestId('play').click(); await settled(page);
     await page.getByTestId('collect').click(); await page.getByTestId('shop').waitFor(); assert.ok(await fits(page), 'shop');
