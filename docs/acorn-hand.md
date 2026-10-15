@@ -30,14 +30,47 @@ Five of a kind and flush five need copied or dyed cards. Almanac pages for them 
 
 ## A run
 
-- Eight antes, each a small round, a big round and a boss round. The small round's target per ante is 250, 650, 1,600, 3,500, 7,000, 12,500, 20,000 and 30,000; the big round is 1.5 times that and the boss round twice. Past ante 8 (endless) each ante is 1.8 times the last.
-- Winning pays 3, 4 or 5 nuts for the small, big or boss round, 1 for each play left, 1 for every 5 nuts held (at most 5), plus charms and gold cards. You start with 4 nuts.
+- Eight antes, each a small round, a big round and a boss round. The small round's target per ante is 250, 650, 1,600, 3,500, 9,000, 16,000, 25,500 and 38,000; the big round is 1.5 times that and the boss round twice. Past ante 8 (endless) each ante is 1.8 times the last.
+- Winning pays 3, 4 or 5 nuts for the small, big or boss round, 1 for each play left, 1 for every 5 nuts held (at most 5, or 10 with Squirrel Hoard), plus charms and gold cards. You start with 4 nuts.
 - The small and big rounds can be skipped for a free item (or 4 nuts if both item slots are full). The boss round cannot.
 - Each ante's rival is drawn so that all thirteen come round before any repeats, and never the same rule twice in a row.
 
 ## The shop
 
-Between rounds: two charms, two items (almanac pages or treats), a reroll for 5 nuts that costs 1 more each time in the same shop and never shows the charms it replaced, and selling (half the price, at least 1). Commons cost 4, uncommons 6, rares 8, items 3. Charms are drawn 70% common, 25% uncommon and 5% rare, and a charm that fits the run (its suit, or the hand types you play most) is 2.5 times as likely. You hold 5 charms and 2 items. Charms can be reordered: a ×mult charm multiplies everything to its left.
+Between rounds: two charms, two items (almanac pages or treats), a reroll for 5 nuts that costs 1 more each time in the same shop and never shows the charms it replaced, and selling (half the price, at least 1). Commons cost 4, uncommons 6, rares 8, items 3. Charms are drawn 70% common, 25% uncommon and 5% rare, and a charm that fits the run (its suit, or the hand types you play most) is 2.5 times as likely. You hold 5 charms and 2 items. Charms can be reordered: a ×mult charm multiplies everything to its left. Each shop also has this ante's voucher and two booster packs; a reroll changes neither.
+
+## Vouchers
+
+One voucher is on offer each ante, in every shop of that ante until it is bought; a new one is rolled when the boss is beaten. Each costs 10 nuts, lasts the rest of the run, and is never offered twice. Boss rules that set a number outright still win: the Bear's three plays, the Cougar's no discards, the Mole's one card fewer.
+
+| Voucher | Effect |
+| --- | --- |
+| Wider Shelf | +1 charm slot (6). |
+| Deep Pockets | +1 item slot (3). |
+| Haggler | Rerolls start at 3 nuts, not 5. |
+| Squirrel Hoard | Interest goes up to 10, not 5: up to 50 nuts held count. |
+| Extra Paw | +1 play each round. |
+| Spare Paw | +1 discard each round. |
+| Big Paws | +1 hand size. |
+| Bigger Stall | The shop shows 3 charms, not 2. |
+| Market Day | Every pack shows one more option. |
+| Lucky Burrow | Uncommon and rare charms are twice as likely. |
+
+## Booster packs
+
+Every shop sells two packs. A normal pack is three times as likely as a big one, and the four kinds are equally likely. Opening a pack shows its options; take what it allows or skip the rest (the nuts are spent either way).
+
+| Pack | Normal | Big |
+| --- | --- | --- |
+| Charm | pick 1 of 2 · 5 nuts | pick 1 of 4 · 7 nuts |
+| Almanac | pick 1 of 3 · 4 nuts | pick 2 of 5 · 7 nuts |
+| Treat | pick 1 of 3 · 4 nuts | pick 2 of 5 · 7 nuts |
+| Card | pick 1 of 3 · 4 nuts | pick 2 of 5 · 7 nuts |
+
+- **Charm:** charms you don't own, drawn like the shop's. Taking one needs a free slot; charms can be sold inside the pack.
+- **Almanac:** pages for different hand types, used as you take them.
+- **Treat:** different treats, used at once on cards from eight dealt from your deck for the pack.
+- **Card:** playing cards of any rank and suit, about 30% glossed; the one you take joins your deck.
 
 ## Charms
 
@@ -130,8 +163,8 @@ Glosses: honey +30 chips, ember +4 mult and crystal ×1.5 mult when the card sco
 
 ## Saves
 
-`acorn-hand-run-v1` holds the whole run, the round in progress included, with the random generator's state, so a reload resumes exactly; it is written after every action and cleared when a run is lost. `acorn-hand-v1` is the record: runs, wins, best ante, best hand and the charms you have met. `acorn-hand-sound-v1` is the sound setting. Both saves are validated on load, and anything malformed is ignored.
+`acorn-hand-run-v2` holds the whole run, the round or open pack in progress included, with the random generator's state, so a reload resumes exactly; it is written after every action and cleared when a run is lost. `acorn-hand-v1` is the record: runs, wins, best ante, best hand and the charms you have met. `acorn-hand-sound-v1` is the sound setting. Both saves are validated on load, and anything malformed is ignored. Version 2 added vouchers and packs; a version-1 run is ignored. The record keeps its own version, so it carried over.
 
 ## Balance
 
-Tuned against `tests/acorn-hand-bot.mjs`, which weighs every legal play, discards towards flushes and sets, and judges charms by rescoring its own recent plays with and without them. Over 200 seeds it wins about 23% of runs and loses about 2.5% in ante 1; `npm test` requires 20–45% and under 5%. A player who builds around one hand type does much better: the first run played by hand (15-10-2026) won with a two-pair build, and once a ×mult charm joined it, antes 6 to 8 were beaten with hands two to three times the target.
+Tuned against `tests/acorn-hand-bot.mjs`, which weighs every legal play, discards towards flushes and sets, and judges charms by rescoring its own recent plays with and without them. Since vouchers and packs (15-10-2026), over 200 seeds it wins about 33% of runs and loses about 4.5% in ante 1; `npm test` requires 20–45% and under 5%. It buys this ante's voucher when it can (Wider Shelf, Extra Paw and Big Paws first), opens charm packs with nuts to spare, almanac packs for its most-played hand, treat packs for glosses, and card packs only when rich. With them it won 49% at the old targets, so antes 5 to 8 went up from 7,000, 12,500, 20,000 and 30,000. Its median nuts left after a shop fell from about 12 to about 5 from ante 3 on. A player who builds around one hand type does much better: the first run played by hand (15-10-2026) won with a two-pair build, and once a ×mult charm joined it, antes 6 to 8 were beaten with hands two to three times the target.
