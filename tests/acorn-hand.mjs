@@ -315,6 +315,27 @@ const inShop = (seed) => { const run = new Run(seed); run.start(); run.round.tar
   assert.ok(run.skipPack()); assert.equal(run.phase, 'shop');
 }
 {
+  // No charm twice: a Wishing stone skips charms on the shelf or in an open pack, and an owned charm can't be bought or taken again.
+  for (let seed = 1; seed <= 200; seed++) {
+    const run = inShop(1000 + seed); run.shop.packs[0] = 'charm-big'; run.openPack(0); run.items = [{ kind: 'treat', id: 'wish' }];
+    const onOffer = [...run.shop.charms, ...run.pack.options].filter(Boolean);
+    assert.ok(run.useItem(0)); assert.ok(!onOffer.includes(run.charms.at(-1).id), `the Wishing stone gave a charm already on offer (seed ${1000 + seed})`);
+  }
+  const run = inShop(49); run.charms = [{ id: CHARMS[0].id, state: 0 }];
+  run.shop.charms[0] = CHARMS[0].id; assert.equal(run.buyCharm(0), false, 'an owned charm cannot be bought again');
+  run.shop.packs[0] = 'charm'; run.openPack(0); run.pack.options[0] = CHARMS[0].id;
+  assert.match(run.packWhyNot(0), /already have/); assert.equal(run.takePack(0), false);
+  assert.ok(Run.load(JSON.parse(JSON.stringify(run.save()))), 'and the run still loads');
+}
+{
+  // Compost never takes the deck below a hand, so the next round can be dealt and the run still loads.
+  const run = inShop(50); run.shop.packs[0] = 'treat'; run.openPack(0); run.pack.options = ['compost', 'tea', 'honey'];
+  run.deck = run.deck.slice(0, HAND_SIZE + 1); run.pack.dealt = run.deck.slice(0, 3).map((c) => c.id);
+  const [x, y] = run.pack.dealt;
+  assert.match(run.packWhyNot(0, [x, y]), /deck/); assert.equal(run.packWhyNot(0, [x]), null);
+  assert.ok(run.takePack(0, [x])); assert.equal(run.deck.length, HAND_SIZE); assert.ok(Run.load(JSON.parse(JSON.stringify(run.save()))));
+}
+{
   // The record meets charms seen in packs.
   const run = inShop(47); run.shop.packs[0] = 'charm'; run.openPack(0);
   const p = record(freshProfile(), run, false); assert.ok(run.pack.options.every((id) => p.seen.includes(id)), 'charms in an open pack count as met');
