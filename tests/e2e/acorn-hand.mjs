@@ -226,6 +226,26 @@ await check('the shop moves: packs burst open, bought charms fly to their slot, 
   await page.getByTestId('sell-0').click(); assert.equal(await run(page, '(r) => r.charms.length'), 0, 'selling still sells at once');
 });
 
+await check('leaving for the menu mid-count and coming back plays the next hand cleanly', async (page) => {
+  await fresh(page); await deal(page); await setHand(page);
+  for (const i of [0, 1, 4, 5, 6]) await page.getByTestId(`card-${i}`).click();
+  await page.getByTestId('play').click(); await page.waitForTimeout(250);
+  await page.getByTestId('menu').click(); await page.getByTestId('continue').click();
+  await page.getByTestId('card-0').click(); await page.getByTestId('play').click();
+  await page.waitForTimeout(3000);
+  assert.equal(await page.getByTestId('table').count(), 1, 'the page still shows the table');
+  await settled(page); assert.equal(await run(page, '(r) => r.round.plays'), 2);
+  assert.equal(await page.locator('[data-testid^="card-"]').count(), 8);
+});
+
+await check('a discard makes the rival taunt', async (page) => {
+  await fresh(page); await deal(page);
+  await page.waitForFunction(() => !document.querySelector('[data-testid="rival-say"]'), null, { timeout: 4000 });
+  await page.getByTestId('card-0').click(); await page.getByTestId('discard').click();
+  assert.equal(await page.getByTestId('rival').getAttribute('data-mood'), 'discard');
+  assert.ok((await page.getByTestId('rival-say').innerText()).trim().length > 0, 'a taunt in the bubble');
+});
+
 await check('running out of plays ends the run and records it', async (page) => {
   await fresh(page); await deal(page);
   await run(page, '(r) => { r.round.target = 10 ** 9; }');

@@ -156,9 +156,11 @@ export default function AcornHandPage() {
     if (did) { sound.cue(cue); persist(); setNote(''); } else { sound.cue('nope'); if (fail) setNote(fail); }
     refresh(); return !!did;
   };
-  const begin = (r: Run) => { runRef.current = r; setSelected([]); setAnim(null); setNote(''); setView('run'); persist(); refresh(); sound.cue('deal'); };
+  /** Drop a count in progress, its timers and anything in flight, when the run leaves the table. */
+  const stopCount = () => { timers.current.splice(0).forEach(clearTimeout); handBefore.current = null; setAnim(null); dropGhosts(); };
+  const begin = (r: Run) => { stopCount(); runRef.current = r; setSelected([]); setAnim(null); setNote(''); setView('run'); persist(); refresh(); sound.cue('deal'); };
   const newRun = () => begin(new Run((Math.random() * 0xffffffff) >>> 0));
-  const toTitle = () => { persist(); setKept(runRef.current && runRef.current.phase !== 'over' ? Run.load(runRef.current.save()) : null); setView('title'); };
+  const toTitle = () => { stopCount(); persist(); setKept(runRef.current && runRef.current.phase !== 'over' ? Run.load(runRef.current.save()) : null); setView('title'); };
   const resort = (r: Run, by = sortBy) => r.sort(by);
   const toggle = (id: number) => {
     if (anim || !(run?.phase === 'round' || (run?.phase === 'pack' && run.pack?.dealt.includes(id)))) return;
@@ -217,7 +219,7 @@ export default function AcornHandPage() {
     if (r.round!.discards <= 0) { act(false, 'nope', 'No discards left this round.'); return; }
     selected.forEach((id, i) => fly(document.querySelector(`[data-card-id="${id}"]`), 'away', { delay: i * 40, spin: 35, fade: true, drop: 140 }));
     trackCards(); sound.cue('whoosh');
-    const ok = r.discard(selected); if (ok) { resort(r); setSelected([]); }
+    const ok = r.discard(selected); if (ok) { resort(r); setSelected([]); react('discard'); }
     act(ok, 'discard', 'Those cards cannot be discarded.');
   };
   const sortHand = () => { const r = runRef.current; if (!r?.round || anim) return; const by = sortBy === 'rank' ? 'suit' : 'rank'; setSortBy(by); trackCards(); r.sort(by); sound.cue('click'); refresh(); };
