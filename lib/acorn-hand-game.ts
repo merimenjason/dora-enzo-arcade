@@ -2,13 +2,16 @@
 // and every random draw comes from the run's own generator, whose state is saved with it.
 import {
   type Card, type Suit, type Gloss, type HandId, type Ctx, type Effect, type Charm, type Item, type Boss, type BossRule,
-  HANDS, CONTAINS, CHARMS, TREATS, BOSSES, BLIND, ANTES, COST, ITEM_COST, handById, charmById, treatById, bossByRule, anteBase, cardChips, isFace,
+  HANDS, CONTAINS, CHARMS, TREATS, BOSSES, BLIND, ANTES, COST, ITEM_COST, VOUCHERS, VOUCHER_COST, voucherById, handById, charmById, treatById, bossByRule, anteBase, cardChips, isFace,
 } from './acorn-hand-cards.js';
 
 export * from './acorn-hand-cards.js';
-export const SAVE_VERSION = 1;
+/** The run save's shape; version 2 added vouchers and packs. The record has its own version, so it survives. */
+export const SAVE_VERSION = 2, PROFILE_VERSION = 1;
 export const START_NUTS = 4, HAND_SIZE = 8, PLAYS = 4, DISCARDS = 3, MAX_PLAY = 5, CHARM_SLOTS = 5, ITEM_SLOTS = 2;
 export const INTEREST_EVERY = 5, INTEREST_CAP = 5, REROLL = 5, SHOP_CHARMS = 2, SHOP_ITEMS = 2;
+/** What Squirrel Hoard raises the interest cap to, and what Haggler starts a reroll at. */
+export const HOARD_CAP = 10, HAGGLER_REROLL = 3;
 /** How often the shop offers a common, uncommon or rare charm, and how much more it likes one that fits the run. */
 export const RARITY_ODDS = [0, 0.7, 0.25, 0.05], FIT_WEIGHT = 2.5;
 export const SKIP_NUTS = 4;
@@ -159,7 +162,7 @@ export type Shop = { charms: (string | null)[]; items: (Item | null)[]; rerolls:
 export type Save = {
   v: number; seed: number; rand: number; ante: number; blind: number; phase: Phase; endless: boolean; nuts: number; nextId: number;
   deck: Card[]; levels: Record<HandId, number>; played: Record<HandId, number>; charms: Owned[]; items: Item[];
-  bosses: BossRule[]; round: Round | null; cash: Cash | null; shop: Shop | null; best: number; rounds: number;
+  bosses: BossRule[]; round: Round | null; cash: Cash | null; shop: Shop | null; vouchers: string[]; offer: string | null; best: number; rounds: number;
 };
 
 const freshLevels = () => Object.fromEntries(HANDS.map((h) => [h.id, 1])) as Record<HandId, number>;
@@ -169,13 +172,15 @@ export class Run {
   seed: number; rand: Rand; ante = 1; blind = 0; phase: Phase = 'pick'; endless = false; nuts = START_NUTS; nextId = 0;
   deck: Card[] = []; levels = freshLevels(); played = freshCounts(); charms: Owned[] = []; items: Item[] = [];
   bosses: BossRule[] = []; round: Round | null = null; cash: Cash | null = null; shop: Shop | null = null;
+  /** Vouchers owned, in the order bought, and this ante's offer (null once bought, or when all are owned). */
+  vouchers: string[] = []; offer: string | null = null;
   /** The best single hand of the run, and rounds won. */
   best = 0; rounds = 0;
 
   constructor(seed: number) {
     this.seed = seed >>> 0; this.rand = new Rand(this.seed ^ 0x5eed);
     for (let s = 0; s < 4; s++) for (let r = 2; r <= 14; r++) this.deck.push({ id: this.nextId++, rank: r, suit: s as Suit, gloss: '' });
-    this.bossFor(1);
+    this.bossFor(1); this.rollOffer();
   }
 
   // What this round is
@@ -194,9 +199,15 @@ export class Run {
   targetOf(blind = this.blind) { return Math.round(anteBase(this.ante) * BLIND[blind].scale * (blind === 2 && this.bossFor(this.ante).rule === 'shell' ? 1.5 : 1)); }
   has(rule: Charm['rule']) { return this.charms.filter((c) => charmById(c.id)!.rule === rule).length; }
   get rules(): Rules { const ff = this.has('fourFlush') > 0; return { fourFlush: ff, fourStraight: ff, splash: this.has('splash') > 0 }; }
-  get handSize() { return HAND_SIZE + this.has('handSize') - this.has('tight') - (this.boss?.rule === 'small' ? 1 : 0); }
-  get maxPlays() { return this.boss?.rule === 'plays' ? 3 : PLAYS + this.has('play'); }
-  get maxDiscards() { return this.boss?.rule === 'nodiscard' ? 0 : DISCARDS + this.has('discard'); }
+  owns(v: string) { return this.vouchers.includes(v); }
+  get handSize() { return HAND_SIZE + this.has('handSize') + (this.owns('hand') ? 1 : 0) - this.has('tight') - (this.boss?.rule === 'small' ? 1 : 0); }
+  get maxPlays() { return this.boss?.rule === 'plays' ? 3 : PLAYS + this.has('play') + (this.owns('play') ? 1 : 0); }
+  get maxDiscards() { return this.boss?.rule === 'nodiscard' ? 0 : DISCARDS + this.has('discard') + (this.owns('discard') ? 1 : 0); }
+  get charmSlots() { return CHARM_SLOTS + (this.owns('shelf') ? 1 : 0); }
+  get itemSlots() { return ITEM_SLOTS + (this.owns('pockets') ? 1 : 0); }
+  get interestCap() { return this.owns('hoard') ? HOARD_CAP : INTEREST_CAP; }
+  get shopCharms() { return SHOP_CHARMS + (this.owns('stall') ? 1 : 0); }
+  get packBonus() { return this.owns('market') ? 1 : 0; }
   /** The hand type played most this run, which the Lizard halves; none until something has been played. */
   get fame(): HandId | null { let best: HandId | null = null; for (const h of HANDS) if (this.played[h.id] > 0 && (!best || this.played[h.id] > this.played[best])) best = h.id; return best; }
   card(id: number) { return this.deck.find((c) => c.id === id)!; }
@@ -220,7 +231,7 @@ export class Run {
   skip() {
     if (this.phase !== 'pick' || this.blind === 2) return null;
     let got: Item | null = null;
-    if (this.items.length < ITEM_SLOTS) { got = this.rollItem(); this.items.push(got); } else this.nuts += SKIP_NUTS;
+    if (this.items.length < this.itemSlots) { got = this.rollItem(); this.items.push(got); } else this.nuts += SKIP_NUTS;
     this.blind++;
     return got ?? 'nuts';
   }
@@ -309,7 +320,7 @@ export class Run {
     let charms = 0;
     for (const c of this.charms) { const w = charmById(c.id)!.roundWon?.(c.state, boss); if (w) { if (w.state !== undefined) c.state = w.state; charms += w.nuts ?? 0; } }
     const gold = 3 * r.hand.filter((id) => this.card(id).gloss === 'gold').length;
-    const interest = Math.min(INTEREST_CAP, Math.floor(this.nuts / INTEREST_EVERY));
+    const interest = Math.min(this.interestCap, Math.floor(this.nuts / INTEREST_EVERY));
     const blind = BLIND[this.blind].reward, total = blind + r.plays + interest + charms + gold;
     this.cash = { blind, plays: r.plays, interest, charms, gold, total };
     this.rounds++;
@@ -320,7 +331,7 @@ export class Run {
     if (this.phase !== 'cashout' || !this.cash) return false;
     this.nuts += this.cash.total; this.cash = null; this.round = null;
     const beatFinal = this.blind === 2 && this.ante === ANTES && !this.endless;
-    if (this.blind === 2) { this.ante++; this.blind = 0; this.bossFor(this.ante); } else this.blind++;
+    if (this.blind === 2) { this.ante++; this.blind = 0; this.bossFor(this.ante); this.rollOffer(); } else this.blind++;
     if (beatFinal) { this.phase = 'victory'; return true; }
     this.openShop();
     return true;
@@ -342,8 +353,8 @@ export class Run {
   private rollCharm(taken: string[]): string | null {
     const free = CHARMS.filter((c) => !this.charms.some((o) => o.id === c.id) && !taken.includes(c.id));
     if (!free.length) return null;
-    const lean = this.leanings();
-    return this.rand.weighted(free, (c) => RARITY_ODDS[c.rarity] / CHARMS.filter((x) => x.rarity === c.rarity).length * (c.tags.some((t) => t !== 'any' && lean.has(t)) ? FIT_WEIGHT : 1)).id;
+    const lean = this.leanings(), lucky = this.owns('lucky');
+    return this.rand.weighted(free, (c) => RARITY_ODDS[c.rarity] * (lucky && c.rarity > 1 ? 2 : 1) / CHARMS.filter((x) => x.rarity === c.rarity).length * (c.tags.some((t) => t !== 'any' && lean.has(t)) ? FIT_WEIGHT : 1)).id;
   }
   private rollItem(): Item {
     if (this.rand.next() < 0.5) {
@@ -355,25 +366,25 @@ export class Run {
   }
   private stock() {
     const charms: (string | null)[] = [];
-    for (let i = 0; i < SHOP_CHARMS; i++) charms.push(this.rollCharm(charms.filter((x): x is string => !!x)));
+    for (let i = 0; i < this.shopCharms; i++) charms.push(this.rollCharm(charms.filter((x): x is string => !!x)));
     const items: (Item | null)[] = [];
     for (let i = 0; i < SHOP_ITEMS; i++) items.push(this.rollItem());
     return { charms, items };
   }
   private openShop() { this.shop = { ...this.stock(), rerolls: 0 }; this.phase = 'shop'; }
-  get rerollCost() { return REROLL + (this.shop?.rerolls ?? 0); }
+  get rerollCost() { return (this.owns('haggler') ? HAGGLER_REROLL : REROLL) + (this.shop?.rerolls ?? 0); }
   priceOf(id: string) { return COST[charmById(id)!.rarity]; }
   sellPrice(id: string) { return Math.max(1, Math.floor(this.priceOf(id) / 2)); }
   buyCharm(slot: number) {
     const id = this.shop?.charms[slot];
-    if (this.phase !== 'shop' || !id || this.charms.length >= CHARM_SLOTS || this.nuts < this.priceOf(id)) return false;
+    if (this.phase !== 'shop' || !id || this.charms.length >= this.charmSlots || this.nuts < this.priceOf(id)) return false;
     this.nuts -= this.priceOf(id); this.shop!.charms[slot] = null;
     this.charms.push({ id, state: charmById(id)!.start ?? 0 });
     return true;
   }
   buyItem(slot: number) {
     const it = this.shop?.items[slot];
-    if (this.phase !== 'shop' || !it || this.items.length >= ITEM_SLOTS || this.nuts < ITEM_COST) return false;
+    if (this.phase !== 'shop' || !it || this.items.length >= this.itemSlots || this.nuts < ITEM_COST) return false;
     this.nuts -= ITEM_COST; this.shop!.items[slot] = null; this.items.push(it);
     return true;
   }
@@ -397,10 +408,22 @@ export class Run {
     this.nuts -= this.rerollCost; const n = this.shop!.rerolls + 1, before = this.shop!.charms.filter((x): x is string => !!x);
     this.shop = { charms: [], items: this.shop!.items, rerolls: n };
     // A reroll shows charms you have not just been looking at.
-    for (let i = 0; i < SHOP_CHARMS; i++) this.shop.charms.push(this.rollCharm([...before, ...this.shop.charms.filter((x): x is string => !!x)]));
+    for (let i = 0; i < this.shopCharms; i++) this.shop.charms.push(this.rollCharm([...before, ...this.shop.charms.filter((x): x is string => !!x)]));
     return true;
   }
   leave() { if (this.phase !== 'shop') return false; this.shop = null; this.phase = 'pick'; return true; }
+  /** Buy this ante's voucher. */
+  buyVoucher() {
+    const id = this.offer;
+    if (this.phase !== 'shop' || !id || this.nuts < VOUCHER_COST) return false;
+    this.nuts -= VOUCHER_COST; this.vouchers.push(id); this.offer = null;
+    return true;
+  }
+  /** Put a voucher not yet owned on the shelf for the coming ante, or none once all are owned. */
+  private rollOffer() {
+    const free = VOUCHERS.filter((v) => !this.vouchers.includes(v.id));
+    this.offer = free.length ? this.rand.pick(free).id : null;
+  }
 
   // Items
   /** Why an item cannot be used with these cards selected, or null if it can. */
@@ -409,7 +432,7 @@ export class Run {
     if (!it) return 'There is nothing in that slot.';
     if (it.kind === 'almanac') return null;
     const t = treatById(it.id)!;
-    if (t.picks === 0) return t.id === 'wish' && this.charms.length >= CHARM_SLOTS ? 'Your charm slots are full.' : null;
+    if (t.picks === 0) return t.id === 'wish' && this.charms.length >= this.charmSlots ? 'Your charm slots are full.' : null;
     if (this.phase !== 'round') return 'Use it during a round, with cards selected.';
     if (!ids.length) return `Select ${t.picks === 1 ? 'a card' : `up to ${t.picks} cards`} first.`;
     if (ids.length > t.picks) return `Select at most ${t.picks}.`;
@@ -443,7 +466,7 @@ export class Run {
     return {
       v: SAVE_VERSION, seed: this.seed, rand: this.rand.s, ante: this.ante, blind: this.blind, phase: this.phase, endless: this.endless, nuts: this.nuts,
       nextId: this.nextId, deck: copy(this.deck), levels: { ...this.levels }, played: { ...this.played }, charms: copy(this.charms), items: copy(this.items),
-      bosses: [...this.bosses], round: copy(this.round), cash: copy(this.cash), shop: copy(this.shop), best: this.best, rounds: this.rounds,
+      bosses: [...this.bosses], round: copy(this.round), cash: copy(this.cash), shop: copy(this.shop), vouchers: [...this.vouchers], offer: this.offer, best: this.best, rounds: this.rounds,
     };
   }
   /** Rebuild a run from a save, or null if anything about it is off. */
@@ -462,10 +485,13 @@ export class Run {
       const inDeck = (id: number) => s.deck.some((c) => c.id === id);
       for (const t of [s.levels, s.played]) if (!t || HANDS.some((h) => !int(t[h.id], 0, big))) return null;
       if (HANDS.some((h) => s.levels[h.id] < 1)) return null;
-      if (!Array.isArray(s.charms) || s.charms.length > CHARM_SLOTS || s.charms.some((c) => !c || !charmById(c.id) || !num(c.state))) return null;
+      if (!Array.isArray(s.vouchers) || !s.vouchers.every((v) => typeof v === 'string' && !!voucherById(v)) || new Set(s.vouchers).size !== s.vouchers.length) return null;
+      if (s.offer !== null && (typeof s.offer !== 'string' || !voucherById(s.offer) || s.vouchers.includes(s.offer))) return null;
+      const plus = (n: number, v: string) => n + (s.vouchers.includes(v) ? 1 : 0);
+      if (!Array.isArray(s.charms) || s.charms.length > plus(CHARM_SLOTS, 'shelf') || s.charms.some((c) => !c || !charmById(c.id) || !num(c.state))) return null;
       if (new Set(s.charms.map((c) => c.id)).size !== s.charms.length) return null;
       const okItem = (it: Item | null) => !!it && ((it.kind === 'almanac' && HANDS.some((h) => h.id === it.id)) || (it.kind === 'treat' && !!treatById(it.id)));
-      if (!Array.isArray(s.items) || s.items.length > ITEM_SLOTS || !s.items.every(okItem)) return null;
+      if (!Array.isArray(s.items) || s.items.length > plus(ITEM_SLOTS, 'pockets') || !s.items.every(okItem)) return null;
       if (!Array.isArray(s.bosses) || s.bosses.length < 1 || !s.bosses.every((b) => BOSSES.some((x) => x.rule === b))) return null;
       const r = s.round;
       if ((s.phase === 'round' || s.phase === 'cashout' || s.phase === 'over') !== !!r) return null;
@@ -477,13 +503,13 @@ export class Run {
       if ((s.phase === 'cashout') !== !!s.cash) return null;
       if (s.cash && !['blind', 'plays', 'interest', 'charms', 'gold', 'total'].every((k) => int((s.cash as Record<string, unknown>)[k], 0, big))) return null;
       if ((s.phase === 'shop') !== !!s.shop) return null;
-      if (s.shop && (!Array.isArray(s.shop.charms) || !Array.isArray(s.shop.items) || !int(s.shop.rerolls, 0, big) || s.shop.charms.length > SHOP_CHARMS || s.shop.items.length > SHOP_ITEMS
+      if (s.shop && (!Array.isArray(s.shop.charms) || !Array.isArray(s.shop.items) || !int(s.shop.rerolls, 0, big) || s.shop.charms.length > plus(SHOP_CHARMS, 'stall') || s.shop.items.length > SHOP_ITEMS
         || !s.shop.charms.every((id) => id === null || !!charmById(id)) || !s.shop.items.every((it) => it === null || okItem(it)))) return null;
       const g = new Run(s.seed);
       Object.assign(g, {
         ante: s.ante, blind: s.blind, phase: s.phase, endless: s.endless, nuts: s.nuts, nextId: s.nextId, deck: JSON.parse(JSON.stringify(s.deck)),
         levels: { ...s.levels }, played: { ...s.played }, charms: JSON.parse(JSON.stringify(s.charms)), items: JSON.parse(JSON.stringify(s.items)),
-        bosses: [...s.bosses], round: JSON.parse(JSON.stringify(r)), cash: s.cash ? { ...s.cash } : null, shop: JSON.parse(JSON.stringify(s.shop)), best: s.best, rounds: s.rounds,
+        bosses: [...s.bosses], round: JSON.parse(JSON.stringify(r)), cash: s.cash ? { ...s.cash } : null, shop: JSON.parse(JSON.stringify(s.shop)), vouchers: [...s.vouchers], offer: s.offer, best: s.best, rounds: s.rounds,
       });
       g.rand.s = s.rand;
       g.bossFor(g.ante);
@@ -495,10 +521,10 @@ export class Run {
 // ── The player's record across runs ───────────────────────────────────────────
 
 export type Profile = { v: number; runs: number; wins: number; bestAnte: number; bestHand: number; seen: string[] };
-export const freshProfile = (): Profile => ({ v: SAVE_VERSION, runs: 0, wins: 0, bestAnte: 0, bestHand: 0, seen: [] });
+export const freshProfile = (): Profile => ({ v: PROFILE_VERSION, runs: 0, wins: 0, bestAnte: 0, bestHand: 0, seen: [] });
 export function loadProfile(p: unknown): Profile {
   const s = p as Profile, ok = (x: unknown) => Number.isInteger(x) && (x as number) >= 0;
-  if (!s || typeof s !== 'object' || s.v !== SAVE_VERSION || !ok(s.runs) || !ok(s.wins) || !ok(s.bestAnte) || !ok(s.bestHand) || !Array.isArray(s.seen)) return freshProfile();
+  if (!s || typeof s !== 'object' || s.v !== PROFILE_VERSION || !ok(s.runs) || !ok(s.wins) || !ok(s.bestAnte) || !ok(s.bestHand) || !Array.isArray(s.seen)) return freshProfile();
   return { ...s, seen: s.seen.filter((id) => typeof id === 'string' && !!charmById(id)) };
 }
 /** Fold a run into the record: called whenever it changes, so it is never more than a moment behind. */
