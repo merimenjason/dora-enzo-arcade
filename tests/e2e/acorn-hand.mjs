@@ -211,6 +211,21 @@ await check('a charm wiggles when it scores, the hand name crosses the table, an
   assert.equal(await page.getByTestId('score').innerText(), String((10 + 10 + 10) * (2 + 4)), 'the score lands exactly');
 });
 
+await check('the shop moves: packs burst open, bought charms fly to their slot, rerolls flip', async (page) => {
+  await fresh(page); await deal(page); await run(page, '(r) => { r.round.target = 1; }');
+  await page.getByTestId('card-0').click(); await page.getByTestId('play').click(); await settled(page);
+  await page.getByTestId('collect').click(); await page.getByTestId('shop').waitFor();
+  await run(page, '(r) => { r.nuts = 200; r.shop.packs = ["charm", "card"]; }');
+  await page.getByTestId('buy-charm-0').click();
+  await page.waitForFunction(() => document.querySelector('[data-testid="charm-0"]').getAnimations({ subtree: true }).length > 0);
+  await page.getByTestId('reroll').click();
+  await page.waitForFunction(() => document.querySelector('[data-testid="offer-charm-0"]').getAnimations({ subtree: true }).length > 0);
+  await page.getByTestId('open-pack-0').click(); await page.getByTestId('pack').waitFor();
+  await page.waitForFunction(() => document.querySelectorAll('.ah-bit').length > 0 || document.querySelector('[data-testid="pack-option-0"]').getAnimations().length > 0);
+  await page.getByTestId('skip-pack').click(); await page.getByTestId('shop').waitFor();
+  await page.getByTestId('sell-0').click(); assert.equal(await run(page, '(r) => r.charms.length'), 0, 'selling still sells at once');
+});
+
 await check('running out of plays ends the run and records it', async (page) => {
   await fresh(page); await deal(page);
   await run(page, '(r) => { r.round.target = 10 ** 9; }');
