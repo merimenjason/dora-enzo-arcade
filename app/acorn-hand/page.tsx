@@ -13,7 +13,7 @@ import { drawChinchilla } from '../../lib/chinchilla-art';
 import { fitDraw } from '../../lib/art-fit';
 import { useHoverNote } from '../../components/hover-note';
 import { tableRival, sayLine, rivalName, PITCH, type Reaction, type Said } from '../../lib/acorn-hand-banter';
-import { play, REACT, setMotion, dropGhosts, toss, boxOf } from './motion';
+import { play, REACT, setMotion, dropGhosts, toss, boxOf, remember, settle, flip, fly } from './motion';
 import { sound } from './sound';
 import './acorn-hand.css';
 
@@ -95,10 +95,24 @@ export default function AcornHandPage() {
   const scoreRef = useRef<HTMLElement>(null), chipsRef = useRef<HTMLOutputElement>(null), multRef = useRef<HTMLOutputElement>(null), totalRef = useRef<HTMLParagraphElement>(null), progressRef = useRef<HTMLProgressElement>(null);
   const rivalArt = useRef<HTMLDivElement | null>(null);
   const run = runRef.current;
-  useSyncExternalStore(subscribeAcornPainting, acornPaintVersion, () => 0);
   /** Run `fn` once, after the next render has reached the page. */
   const later = (fn: () => void) => { queued.current.push(fn); };
   useLayoutEffect(() => { const q = queued.current; queued.current = []; q.forEach((fn) => fn()); });
+  const paintVersion = useSyncExternalStore(subscribeAcornPainting, acornPaintVersion, () => 0);
+  const [backUrl, setBackUrl] = useState('');
+  useEffect(() => {
+    const cv = document.createElement('canvas'); cv.width = 150; cv.height = 210;
+    drawCard(cv.getContext('2d')!, { id: -1, rank: 2, suit: 0, gloss: '' }, 150, 210, { down: true });
+    try { setBackUrl(cv.toDataURL()); } catch { /* a tainted canvas: flips show the face only */ }
+  }, [paintVersion]);
+  /** Remember where the cards are; after the next render, glide them there and deal new ones from the deck. */
+  const trackCards = () => { const from = remember(tableRef.current); later(() => settle(tableRef.current, from, boxOf(deckRef.current), { flipNew: true })); };
+  const wasDown = useRef(new Set<number>());
+  useLayoutEffect(() => {
+    const hand = runRef.current?.round?.hand ?? [], now = new Set(hand.filter((id) => runRef.current!.hidden(id)));
+    for (const id of wasDown.current) if (!now.has(id) && hand.includes(id)) { const el = document.querySelector(`[data-card-id="${id}"]`); if (el) { flip(el); sound.cue('flip'); } }
+    wasDown.current = now;
+  });
   const seat = run && run.round ? tableRival(run.seed, run.ante, run.blind, run.bossFor(run.ante).rival) : null;
   /** The rival reacts: a motion on its portrait and, for some moments, a line in a bubble for a couple of seconds. */
   const react = (kind: Reaction) => {
@@ -150,6 +164,7 @@ export default function AcornHandPage() {
     const why = r.whyNot(selected); if (why) { act(false, 'nope', why); return; }
     const cards = selected.map((id) => ({ ...r.card(id) }));
     handBefore.current = r.round!.hand.filter((id) => !selected.includes(id));
+    trackCards();
     const s = r.play(selected)!; setSelected([]);
     if (r.phase === 'round') resort(r);
     persist();
@@ -170,6 +185,8 @@ export default function AcornHandPage() {
     timers.current.push(window.setTimeout(() => finishAnim(r, s), T + (ended ? 1700 : 900)));
   };
   const finishAnim = (r: Run, s: Score) => {
+    document.querySelectorAll('.ah-in-play').forEach((el, i) => fly(el, 'away', { delay: i * 40, spin: 20, drop: -30, duration: 360 }));
+    if (r.phase === 'round') { trackCards(); sound.cue('whoosh'); }
     setAnim(null); handBefore.current = null;
     setNote(`${handById(s.hand).name} scored ${fmt(s.total)}.`);
     if (r.phase === 'cashout') sound.cue('won'); else if (r.phase === 'over') sound.cue('lost'); else sound.cue('deal');
@@ -179,13 +196,16 @@ export default function AcornHandPage() {
     const r = runRef.current; if (!r || anim) return;
     if (!selected.length) { act(false, 'nope', 'Select the cards to throw away.'); return; }
     if (r.round!.discards <= 0) { act(false, 'nope', 'No discards left this round.'); return; }
+    selected.forEach((id, i) => fly(document.querySelector(`[data-card-id="${id}"]`), 'away', { delay: i * 40, spin: 35, fade: true, drop: 140 }));
+    trackCards(); sound.cue('whoosh');
     const ok = r.discard(selected); if (ok) { resort(r); setSelected([]); }
     act(ok, 'discard', 'Those cards cannot be discarded.');
   };
-  const sortHand = () => { const r = runRef.current; if (!r?.round || anim) return; const by = sortBy === 'rank' ? 'suit' : 'rank'; setSortBy(by); r.sort(by); sound.cue('click'); refresh(); };
+  const sortHand = () => { const r = runRef.current; if (!r?.round || anim) return; const by = sortBy === 'rank' ? 'suit' : 'rank'; setSortBy(by); trackCards(); r.sort(by); sound.cue('click'); refresh(); };
   const applyItem = (slot: number) => {
     const r = runRef.current; if (!r) return;
     const why = r.itemWhyNot(slot, selected); if (why) { act(false, 'nope', why); return; }
+    trackCards();
     const it = r.items[slot], ok = r.useItem(slot, selected);
     // Clear the selection, so the cards a treat just changed are not thrown away by the next discard.
     if (ok) { setSelected([]); setNote(`${itemName(it)} used.`); if (r.round) resort(r); }
@@ -358,7 +378,7 @@ export default function AcornHandPage() {
           <p>Target <b>{fmt(r.targetOf(i))}</b></p>
           <p className="ah-small">Win: {b.reward} nuts, +1 for each play left</p>
           {here && <div className="ah-row ah-center">
-            <button className="ah-gold" data-testid="start" onClick={() => { r.start(); resort(r); act(true, isBoss ? 'boss' : 'deal'); }}>Play</button>
+            <button className="ah-gold" data-testid="start" onClick={() => { trackCards(); r.start(); resort(r); act(true, isBoss ? 'boss' : 'deal'); sound.cue('flip'); }}>Play</button>
             {!isBoss && <button data-testid="skip" onClick={() => { const got = r.skip(); act(!!got, 'use'); setNote(got === 'nuts' ? `Skipped: your item slots are full, so ${4} nuts instead.` : got ? `Skipped for ${itemName(got)}.` : ''); }}>Skip for an item</button>}
           </div>}
           {past && <p className="ah-small">Done</p>}
@@ -381,7 +401,7 @@ export default function AcornHandPage() {
       <div className="ah-played" aria-label="Played cards" data-testid="played">
         {anim && anim.cards.map((c, i) => {
           const lit = shownStep?.card === i, scoring = anim.score.scoring.includes(i);
-          return <div key={c.id} className="ah-card ah-in-play" data-scoring={scoring} data-lit={lit}>
+          return <div key={c.id} className="ah-card ah-in-play" data-card-id={c.id} data-scoring={scoring} data-lit={lit}>
             <CardArt card={c} asleep={r.boss?.rule === `suit${c.suit}`} />
             {lit && <span className="ah-pop" data-testid="pop">{shownStep!.text}</span>}
           </div>;
@@ -392,9 +412,9 @@ export default function AcornHandPage() {
       <div className="ah-hand" data-testid="hand" style={{ '--n': shown.length } as React.CSSProperties}>
         {shown.map((id, i) => {
           const c = r.card(id), sel = selected.includes(id), down = r.hidden(id);
-          return <button key={id} className="ah-card" data-selected={sel} data-testid={`card-${i}`} aria-pressed={sel} aria-label={down ? 'A face-down card' : cardName(c)}
+          return <button key={id} className="ah-card" data-card-id={id} data-selected={sel} data-testid={`card-${i}`} aria-pressed={sel} aria-label={down ? 'A face-down card' : cardName(c)}
             onClick={() => toggle(id)} disabled={!!anim} {...(c.gloss && !down ? tip(() => ({ title: cardName(c), body: GLOSS_TEXT[c.gloss as keyof typeof GLOSS_TEXT] })) : {})}>
-            <CardArt card={c} down={down} asleep={r.boss?.rule === `suit${c.suit}`} /><kbd aria-hidden="true">{i + 1}</kbd>
+            <CardArt card={c} down={down} asleep={r.boss?.rule === `suit${c.suit}`} /><span className="ah-cardback" aria-hidden="true" /><kbd aria-hidden="true">{i + 1}</kbd>
           </button>;
         })}
       </div>
@@ -403,6 +423,9 @@ export default function AcornHandPage() {
         <button className="ah-gold" data-testid="play" disabled={!!anim || !selected.length} onClick={playHand}>Play hand</button>
         <button data-testid="discard" disabled={!!anim || !selected.length || round.discards <= 0} onClick={discard}>Discard ({round.discards})</button>
         <button data-testid="sort" disabled={!!anim} onClick={sortHand}>Sort: {sortBy}</button>
+        <div className="ah-deck" data-testid="deck-stack" ref={deckRef} aria-label={`${round.draw.length} cards left in the deck`}>
+          <Paint w={60} h={84} sig="deck" draw={(c, w, h) => drawCard(c, { id: -1, rank: 2, suit: 0, gloss: '' }, w, h, { down: true })} /><span>{round.draw.length}</span>
+        </div>
       </div>
     </section>;
   } else if (stage === 'cashout' && r.cash) {
@@ -499,7 +522,7 @@ export default function AcornHandPage() {
   }
 
   return (
-    <main className="ah-shell" data-ready={ready} data-painted-table={acornArtStatus().loaded.includes('table')} data-phase={r.phase}>
+    <main className="ah-shell" data-ready={ready} data-painted-table={acornArtStatus().loaded.includes('table')} data-phase={r.phase} style={backUrl ? { '--back': `url(${backUrl})` } as React.CSSProperties : undefined}>
       {header}
       <div className="ah-board">
         <aside className="ah-side">
