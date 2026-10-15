@@ -30,3 +30,42 @@ Keep the arcade's painted storybook look (see `docs/saga-art.md`): soft gouache,
 - **Table**: "A moss-green felt card table seen from above in a hollow-log den at night, lantern glow pooling in the centre, roots and a few acorns at the edges, wide 16:9, no cards, no text."
 
 When a painted sheet arrives, follow the Saga pattern: load it with a small loader, crop cells by measured silhouettes, and keep the drawn versions as the fallback while it loads.
+
+## Generated asset set · 15-10-2026
+
+All nineteen requested PNGs are saved in `public/art/acorn-hand/` on `feat/acorn-hand-painted-assets`. They are prepared assets; the game's current Canvas/emoji presentation has not been changed in this pass.
+
+Generation used the built-in imagegen tool, with the detailed sheet order and character lists in [`acorn-hand-image-prompts.md`](acorn-hand-image-prompts.md). The exact submitted prompts, correction attempts, references, selected source paths, native dimensions and SHA-256 hashes are recorded in [`acorn-hand-generation.json`](acorn-hand-generation.json). Selected outputs were copied byte-for-byte; no manual masks, recolouring, resizing or bitmap extraction were applied.
+
+| File | Layout | Native pixels | Format |
+| --- | --- | --- | --- |
+| `vouchers.png` | 5 × 2 | 1774 × 887 | RGBA |
+| `packs.png` | 4 × 2 | 1774 × 887 | RGBA |
+| `items.png` | 7 × 2 | 1983 × 793 | RGBA |
+| `suits.png` | 2 × 2 | 1254 × 1254 | RGBA |
+| `court.png` | 3 × 1 | 2172 × 724 | RGBA |
+| `card-back.png` | 1 × 1 | 1060 × 1484 | Opaque RGB |
+| `charms-0.png` | 3 × 2 | 1536 × 1024 | RGBA |
+| `charms-1.png` | 3 × 2 | 1536 × 1024 | RGBA |
+| `charms-2.png` | 3 × 2 | 1536 × 1024 | RGBA |
+| `charms-3.png` | 3 × 2 | 1536 × 1024 | RGBA |
+| `charms-4.png` | 3 × 2 | 1536 × 1024 | RGBA |
+| `charms-5.png` | 3 × 2 | 1536 × 1024 | RGBA |
+| `charms-6.png` | 3 × 2 | 1536 × 1024 | RGBA |
+| `charms-7.png` | 3 × 2 | 1536 × 1024 | RGBA |
+| `rivals-0.png` | 3 × 2 | 1536 × 1024 | RGBA |
+| `rivals-1.png` | 3 × 2 | 1536 × 1024 | RGBA |
+| `rival-armadillo.png` | 1 × 1 | 1254 × 1254 | RGBA |
+| `table.png` | 1 × 1 | 1672 × 940 | Opaque RGB |
+| `title.png` | 1 × 1 | 1650 × 953 | RGBA |
+
+The charms cover all 44 friends in eight 3 × 2 sheets. `charms-7.png` contains only Bloom and Tumble in the first two top-row cells. Rivals cover all thirteen species, facing left; court and charm characters face right. The title is the intentional exception: Dora faces Enzo across five acorn-only card faces. Dora retains ivory-white fur and dark ruby-burgundy eyes; Enzo has grey fur, a white chest and black eyes.
+
+### Review and integration notes
+
+- Inspected PNGs composited over a dark plum browser background, rather than interpreting the hidden RGB under transparent pixels as a visible matte. Seventeen files have real alpha channels; table and card back are opaque full-bleed artwork. All nineteen match their selected source bytes.
+- Corrections cleared voucher price stubs, increased atlas gutters, removed unrequested court props and Bloom's extra bouquet, contained long pinwheel/ribbon/water/book props, and added title margins. Card-back refinement introduced opposing acorn orientations for the reversible motif.
+- The generator's native dimensions are recorded above. The table is approximately 16:9 and the card back exactly 5:7; the renderer should scale them into the existing boxes.
+- The four unused cells in the partial charm sheet have no visible artwork, but contain isolated generator alpha noise up to 1/255. Ignore alpha ≤ 1 when measuring blank cells. Preserve real feathered fur, whiskers, detached water drops and sparkles when measuring complete silhouettes.
+- `visibleBoundsAlpha32` in the manifest is an inspection aid for the whole image, not a set of final per-character crop rectangles. Measure connected silhouettes and detached prop pieces before wiring the atlases in; do not blindly slice at nominal cell edges. Keep the original Canvas drawings as asynchronous-loading and failed-request fallbacks.
+- This asset-only pass did not modify rules, saves, gameplay, sound or the runtime loader, and does not activate the assets in the running game.
