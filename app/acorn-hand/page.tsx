@@ -13,7 +13,7 @@ import { drawChinchilla } from '../../lib/chinchilla-art';
 import { fitDraw } from '../../lib/art-fit';
 import { useHoverNote } from '../../components/hover-note';
 import { tableRival, sayLine, rivalName, PITCH, BIG_HAND, type Reaction, type Said } from '../../lib/acorn-hand-banter';
-import { play, REACT, setMotion, dropGhosts, toss, boxOf, remember, settle, flip, fly, useTicker, shake, WIGGLE, POP, PUNCH, FLARE } from './motion';
+import { play, REACT, setMotion, dropGhosts, toss, boxOf, remember, settle, flip, fly, useTicker, shake, burst, emerge, WIGGLE, POP, PUNCH, FLARE, STAMP, FLIP_IN } from './motion';
 import { sound } from './sound';
 import './acorn-hand.css';
 
@@ -107,6 +107,8 @@ export default function AcornHandPage() {
   }, [paintVersion]);
   /** Remember where the cards are; after the next render, glide them there and deal new ones from the deck. */
   const trackCards = () => { const from = remember(tableRef.current); later(() => settle(tableRef.current, from, boxOf(deckRef.current), { flipNew: true })); };
+  /** Remember where charms and items are; after the next render, glide anything that moved, such as a bought charm into its slot. */
+  const trackFly = () => { const from = remember(mainRef.current, 'data-fly'); later(() => settle(mainRef.current, from, null, { attr: 'data-fly' })); };
   const wasDown = useRef(new Set<number>());
   useLayoutEffect(() => {
     const hand = runRef.current?.round?.hand ?? [], now = new Set(hand.filter((id) => runRef.current!.hidden(id)));
@@ -232,6 +234,8 @@ export default function AcornHandPage() {
   const takeOption = (i: number) => {
     const r = runRef.current; if (!r?.pack) return;
     const why = r.packWhyNot(i, selected); if (why) { act(false, 'nope', why); return; }
+    trackFly();
+    if (packById(r.pack.id)!.kind === 'card') fly(document.querySelector(`[data-testid="pack-option-${i}"] canvas`), { x: innerWidth / 2, y: innerHeight + 40, w: 20, h: 28 }, { fade: true, duration: 500 });
     const ok = r.takePack(i, selected); if (ok) setSelected([]);
     act(ok, 'use');
   };
@@ -319,7 +323,7 @@ export default function AcornHandPage() {
   const packTip = (t: PackType) => () => ({ title: t.name, sub: packLine(t, r.packBonus), body: PACK_TEXT[t.kind], foot: `Costs ${t.cost} nuts.` });
   /** What one option in an open pack looks like. */
   const packOption = (kind: PackKind, o: string | Card) => {
-    if (kind === 'charm') { const d = charmById(o as string)!; return <><div {...tip(charmTip(d.id))}><CharmArt id={d.id} /></div><h3>{d.name}</h3><p className="ah-small">{RARITY[d.rarity]}</p><p>{d.text}</p></>; }
+    if (kind === 'charm') { const d = charmById(o as string)!; return <><div data-fly={`charm-${d.id}`} {...tip(charmTip(d.id))}><CharmArt id={d.id} /></div><h3>{d.name}</h3><p className="ah-small">{RARITY[d.rarity]}</p><p>{d.text}</p></>; }
     if (kind === 'card') { const c = o as Card; return <><CardArt card={c} /><h3>{cardName(c)}</h3>{c.gloss && <p>{GLOSS_TEXT[c.gloss as keyof typeof GLOSS_TEXT]}</p>}</>; }
     const it: Item = { kind: kind === 'almanac' ? 'almanac' : 'treat', id: o as string };
     return <><div className="ah-item-big" aria-hidden="true" {...tip(itemTip(it))}><ItemArt item={it} /></div><h3>{itemName(it)}</h3><p>{itemText(it)}</p></>;
@@ -333,11 +337,11 @@ export default function AcornHandPage() {
         if (!o) return <div key={`e${i}`} className="ah-charm ah-empty" aria-hidden="true" />;
         const d = charmById(o.id)!;
         return <div key={o.id} className="ah-charm" data-rarity={d.rarity} data-testid={`charm-${i}`}>
-          <button className="ah-charm-face" aria-label={`${d.name}: ${d.text}`} {...tip(charmTip(o.id, o))}><CharmArt id={o.id} /><span className="ah-charm-name">{d.name}</span>{d.shows && <span className="ah-charm-state">{d.shows(o.state)}</span>}</button>
+          <button className="ah-charm-face" data-fly={`charm-${o.id}`} aria-label={`${d.name}: ${d.text}`} {...tip(charmTip(o.id, o))}><CharmArt id={o.id} /><span className="ah-charm-name">{d.name}</span>{d.shows && <span className="ah-charm-state">{d.shows(o.state)}</span>}</button>
           {anim && shownStep && (shownStep.who === 'charm' || shownStep.who === 'held') && shownStep.ref === o.id && <span className="ah-pop" data-testid="pop">{shownStep.text}</span>}
           {shop && <div className="ah-charm-tools">
             <button aria-label={`Move ${d.name} left`} disabled={i === 0} onClick={() => act(r.shift(i, -1), 'click')}>◀</button>
-            <button data-testid={`sell-${i}`} onClick={() => act(r.sell(i), 'sell')}>Sell {r.sellPrice(o.id)}</button>
+            <button data-testid={`sell-${i}`} onClick={() => { fly(document.querySelector(`[data-testid="charm-${i}"] .ah-charm-face`), boxOf(purseRef.current) ?? 'away', { fade: true, duration: 520 }); act(r.sell(i), 'sell'); }}>Sell {r.sellPrice(o.id)}</button>
             <button aria-label={`Move ${d.name} right`} disabled={i === r.charms.length - 1} onClick={() => act(r.shift(i, 1), 'click')}>▶</button>
           </div>}
         </div>;
@@ -351,7 +355,7 @@ export default function AcornHandPage() {
         if (!it) return <div key={`e${i}`} className="ah-item ah-empty"><small>Empty item slot</small></div>;
         const why = r.itemWhyNot(i, selected);
         return <div key={`${it.id}-${i}`} className="ah-item" data-kind={it.kind} data-testid={`item-${i}`} {...tip(itemTip(it))}>
-          <span className="ah-item-icon" aria-hidden="true"><ItemArt item={it} /></span>
+          <span className="ah-item-icon" data-fly={`item-${it.kind}-${it.id}`} aria-hidden="true"><ItemArt item={it} /></span>
           <span className="ah-item-name">{itemName(it)}</span>
           <button data-testid={`use-${i}`} disabled={!!anim} aria-disabled={!!why} onClick={() => applyItem(i)} title={why ?? itemText(it)}>Use</button>
         </div>;
@@ -473,14 +477,14 @@ export default function AcornHandPage() {
       </div>
       <div className="ah-offers">
         {s.charms.map((id, i) => id ? <article key={`c${i}`} className="ah-offer" data-testid={`offer-charm-${i}`} data-rarity={charmById(id)!.rarity}>
-          <div {...tip(charmTip(id, undefined, r.priceOf(id)))}><CharmArt id={id} /></div>
+          <div data-fly={`charm-${id}`} {...tip(charmTip(id, undefined, r.priceOf(id)))}><CharmArt id={id} /></div>
           <h3>{charmById(id)!.name}</h3><p className="ah-small">{RARITY[charmById(id)!.rarity]}</p><p>{charmById(id)!.text}</p>
-          <button className="ah-gold" data-testid={`buy-charm-${i}`} disabled={r.nuts < r.priceOf(id) || r.charms.length >= r.charmSlots} onClick={() => act(r.buyCharm(i), 'buy')}>Buy · {r.priceOf(id)}</button>
+          <button className="ah-gold" data-testid={`buy-charm-${i}`} disabled={r.nuts < r.priceOf(id) || r.charms.length >= r.charmSlots} onClick={() => { trackFly(); act(r.buyCharm(i), 'buy'); }}>Buy · {r.priceOf(id)}</button>
         </article> : <article key={`c${i}`} className="ah-offer ah-sold"><p>Sold</p></article>)}
         {s.items.map((it, i) => it ? <article key={`i${i}`} className="ah-offer ah-offer-item" data-testid={`offer-item-${i}`} data-kind={it.kind}>
-          <div className="ah-item-big" aria-hidden="true" {...tip(itemTip(it, ITEM_COST))}><ItemArt item={it} /></div>
+          <div className="ah-item-big" data-fly={`item-${it.kind}-${it.id}`} aria-hidden="true" {...tip(itemTip(it, ITEM_COST))}><ItemArt item={it} /></div>
           <h3>{itemName(it)}</h3><p className="ah-small">{it.kind === 'almanac' ? 'Almanac page' : 'Treat'}</p><p>{itemText(it)}</p>
-          <button className="ah-gold" data-testid={`buy-item-${i}`} disabled={r.nuts < ITEM_COST || r.items.length >= r.itemSlots} onClick={() => act(r.buyItem(i), 'buy')}>Buy · {ITEM_COST}</button>
+          <button className="ah-gold" data-testid={`buy-item-${i}`} disabled={r.nuts < ITEM_COST || r.items.length >= r.itemSlots} onClick={() => { trackFly(); act(r.buyItem(i), 'buy'); }}>Buy · {ITEM_COST}</button>
         </article> : <article key={`i${i}`} className="ah-offer ah-sold"><p>Sold</p></article>)}
       </div>
       <div className="ah-offers ah-offers-extra">
@@ -488,7 +492,7 @@ export default function AcornHandPage() {
           {r.offer ? <>
             <div {...tip(voucherTip(r.offer, VOUCHER_COST))}><VoucherArt id={r.offer} /></div>
             <h3>{voucherById(r.offer)!.name}</h3><p className="ah-small">Voucher · this ante</p><p>{voucherById(r.offer)!.text}</p>
-            <button className="ah-gold" data-testid="buy-voucher" disabled={r.nuts < VOUCHER_COST} onClick={() => act(r.buyVoucher(), 'buy')}>Buy · {VOUCHER_COST}</button>
+            <button className="ah-gold" data-testid="buy-voucher" disabled={r.nuts < VOUCHER_COST} onClick={() => { act(r.buyVoucher(), 'buy'); later(() => { play(document.querySelector('[data-testid="offer-voucher"]'), STAMP, { duration: 360 }); play(document.querySelector('[data-testid="vouchers"] span:last-child'), STAMP, { duration: 360 }); }); }}>Buy · {VOUCHER_COST}</button>
           </> : <p>{r.vouchers.length >= VOUCHERS.length ? 'Every voucher is yours.' : 'Voucher bought. A new one comes after the boss.'}</p>}
         </article>
         {s.packs.map((id, i) => {
@@ -496,12 +500,16 @@ export default function AcornHandPage() {
           return t ? <article key={`p${i}`} className="ah-offer ah-offer-pack" data-testid={`offer-pack-${i}`} data-kind={t.kind}>
             <div {...tip(packTip(t))}><PackArt id={t.id} /></div>
             <h3>{t.name}</h3><p className="ah-small">{packLine(t, r.packBonus)}</p><p>{PACK_TEXT[t.kind]}</p>
-            <button className="ah-gold" data-testid={`open-pack-${i}`} disabled={r.nuts < t.cost} onClick={() => { setSelected([]); act(r.openPack(i), 'deal'); }}>Open · {t.cost}</button>
+            <button className="ah-gold" data-testid={`open-pack-${i}`} disabled={r.nuts < t.cost} onClick={(e) => {
+              const from = boxOf(e.currentTarget.closest('article')), tint = { charm: '#e9a23b', almanac: '#5aa64a', treat: '#c6405a', card: '#7a8ca8' }[t.kind];
+              setSelected([]);
+              if (act(r.openPack(i), 'deal')) { burst(from, tint); sound.cue('tear'); later(() => emerge(document.querySelectorAll('[data-testid^="pack-option-"]'), from)); }
+            }}>Open · {t.cost}</button>
           </article> : <article key={`p${i}`} className="ah-offer ah-sold"><p>Opened</p></article>;
         })}
       </div>
       <div className="ah-row ah-center">
-        <button data-testid="reroll" disabled={r.nuts < r.rerollCost} onClick={() => act(r.reroll(), 'reroll')}>New charms · {r.rerollCost}</button>
+        <button data-testid="reroll" disabled={r.nuts < r.rerollCost} onClick={() => { act(r.reroll(), 'reroll'); later(() => document.querySelectorAll('[data-testid^="offer-charm-"] canvas').forEach((c, k) => play(c, FLIP_IN, { duration: 300, delay: 80 * k }))); }}>New charms · {r.rerollCost}</button>
         <button className="ah-gold" data-testid="leave" onClick={() => act(r.leave(), 'click')}>Next round</button>
       </div>
       <details className="ah-levels"><summary>Hand levels</summary><ul>{HANDS.filter((h) => r.levels[h.id] > 1 || r.played[h.id] > 0 || !['five', 'ffive'].includes(h.id)).map((h) => <li key={h.id}><span>{h.name}</span><span>lvl {r.levels[h.id]}</span><span>{h.chips + h.upChips * (r.levels[h.id] - 1)} × {h.mult + h.upMult * (r.levels[h.id] - 1)}</span><span>played {r.played[h.id]}</span></li>)}</ul></details>
@@ -554,7 +562,7 @@ export default function AcornHandPage() {
           </section>}
           {stage === 'round' && counter}
         </aside>
-        <div className="ah-main">
+        <div className="ah-main" ref={mainRef}>
           {charmsRow(r.phase === 'shop' || r.phase === 'pick' || r.phase === 'pack')}
           {body}
           {itemsRow}
