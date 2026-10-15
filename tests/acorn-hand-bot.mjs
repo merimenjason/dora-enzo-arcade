@@ -2,7 +2,7 @@
 // something better, buy charms and items, and use them. It does peek at face-down cards, which a player cannot.
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
-import { Run, CHARMS, BOSSES, CHARM_SLOTS, MAX_PLAY, charmById, scorePlay } from '../.checks/acorn-hand-game.js';
+import { Run, CHARMS, BOSSES, VOUCHERS, VOUCHER_COST, MAX_PLAY, charmById, packById, treatById, scorePlay } from '../.checks/acorn-hand-game.js';
 
 /** Every set of one to five card ids from the hand. */
 function* subsets(ids, max = MAX_PLAY) {
@@ -85,13 +85,41 @@ export function value(run, owned) {
   return v;
 }
 const fresh = (id) => ({ id, state: charmById(id).start ?? 0 });
+/** The vouchers the bot wants most come first. */
+const VOUCHER_ORDER = ['shelf', 'play', 'hand', 'discard', 'hoard', 'stall', 'lucky', 'haggler', 'market', 'pockets'];
 
-export function shop(run) {
+/** Take what is worth taking from the open pack, then close it. */
+function takeFromPack(run) {
+  const kind = packById(run.pack.id).kind;
+  while (run.phase === 'pack') {
+    const opts = run.pack.options.map((o, i) => [o, i]).filter(([o]) => o !== null);
+    let pick = -1, ids = [];
+    if (kind === 'charm') {
+      const now = value(run, run.charms);
+      if (run.charms.length < run.charmSlots) { let top = -Infinity; for (const [id, i] of opts) { const v = value(run, [...run.charms, fresh(id)]); if (v > top) { top = v; pick = i; } } }
+      else {
+        // Full: swap out whichever charm an option beats by most, as in the shop.
+        let top = now * 1.08, swap = -1;
+        for (const [id, i] of opts) run.charms.forEach((_, k) => { const v = value(run, run.charms.map((c, j) => (j === k ? fresh(id) : c))); if (v > top) { top = v; swap = k; pick = i; } });
+        if (pick >= 0) run.sell(swap);
+      }
+    } else if (kind === 'almanac') pick = (opts.find(([h]) => h === run.fame) ?? opts[0])[1];
+    else if (kind === 'card') pick = opts[0][1];
+    else {
+      const t = opts.find(([id]) => ['honey', 'spice', 'dew', 'tea', 'wish'].includes(id));
+      if (t) { pick = t[1]; ids = [...run.pack.dealt].sort((a, b) => run.card(b).rank - run.card(a).rank).slice(0, treatById(t[0]).picks); }
+    }
+    if (pick < 0 || !run.takePack(pick, ids)) { run.skipPack(); break; }
+  }
+}
+
+export function shop(run, out = null) {
+  if (run.offer && run.nuts >= VOUCHER_COST + (VOUCHER_ORDER.indexOf(run.offer) < 3 ? 0 : 5)) run.buyVoucher();
   for (let pass = 0; pass < 6; pass++) {
     run.shop.charms.forEach((id, i) => {
       if (!id || run.nuts < run.priceOf(id)) return;
       const now = value(run, run.charms);
-      if (run.charms.length < CHARM_SLOTS) { if (value(run, [...run.charms, fresh(id)]) > now * 1.02 || run.charms.length < 2) run.buyCharm(i); return; }
+      if (run.charms.length < run.charmSlots) { if (value(run, [...run.charms, fresh(id)]) > now * 1.02 || run.charms.length < 2) run.buyCharm(i); return; }
       // Full: swap out whichever charm the new one beats by most.
       let swap = -1, top = now * 1.08;
       run.charms.forEach((_, k) => { const v = value(run, run.charms.map((c, j) => (j === k ? fresh(id) : c))); if (v > top) { top = v; swap = k; } });
@@ -103,6 +131,12 @@ export function shop(run) {
       if (want && run.nuts >= 3 + (run.ante > 2 ? 5 : 0)) run.buyItem(i);
     });
     for (let slot = run.items.length - 1; slot >= 0; slot--) if (run.items[slot].kind === 'almanac' || ['tea', 'wish'].includes(run.items[slot].id)) run.useItem(slot);
+    run.shop.packs.forEach((id, i) => {
+      if (!id) return;
+      const t = packById(id), spare = run.nuts - t.cost;
+      const want = t.kind === 'charm' ? spare >= 2 : t.kind === 'almanac' ? spare >= 0 && run.fame !== null : t.kind === 'treat' ? spare >= 4 : spare >= 20;
+      if (want && run.openPack(i)) { out?.packs.add(t.kind); if (run.phase === 'pack') takeFromPack(run); }
+    });
     if (run.nuts >= run.rerollCost + 10) run.reroll(); else break;
   }
   // ×mult charms at the end, where they multiply the most.
@@ -112,12 +146,12 @@ export function shop(run) {
 
 /** Play a whole run to the eighth boss, or until it is lost. */
 export function play(seed) {
-  const run = new Run(seed), out = { run, lostAt: null, bosses: [], bossBeaten: [], charms: new Set(), maxHand: 0 };
+  const run = new Run(seed), out = { run, lostAt: null, bosses: [], bossBeaten: [], charms: new Set(), maxHand: 0, packs: new Set() };
   for (let guard = 0; guard < 200; guard++) {
     if (run.phase === 'pick') { run.start(); if (run.boss) out.bosses.push(run.boss.rule); }
     else if (run.phase === 'round') playRound(run);
     else if (run.phase === 'cashout') { if (run.blind === 2) out.bossBeaten.push(run.boss.rule); run.collect(); }
-    else if (run.phase === 'shop') { shop(run); for (const c of run.charms) out.charms.add(c.id); }
+    else if (run.phase === 'shop') { shop(run, out); for (const c of run.charms) out.charms.add(c.id); }
     else break;
   }
   if (run.phase === 'over') out.lostAt = run.ante;
@@ -126,21 +160,24 @@ export function play(seed) {
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const N = Number(process.env.SEEDS ?? 200), seeds = Array.from({ length: N }, (_, i) => i + 1);
-  let wins = 0; const lost = {}, met = new Set(), beaten = new Set(), bought = new Set(), inWins = new Set();
+  let wins = 0; const lost = {}, met = new Set(), beaten = new Set(), bought = new Set(), inWins = new Set(), vouchers = new Set(), packs = new Set();
   for (const seed of seeds) {
     const r = play(seed);
     if (r.run.phase === 'victory') { wins++; for (const id of r.charms) inWins.add(id); } else lost[r.lostAt] = (lost[r.lostAt] ?? 0) + 1;
-    r.bosses.forEach((b) => met.add(b)); r.bossBeaten.forEach((b) => beaten.add(b)); r.charms.forEach((c) => bought.add(c));
+    r.bosses.forEach((b) => met.add(b)); r.bossBeaten.forEach((b) => beaten.add(b)); r.charms.forEach((c) => bought.add(c)); r.run.vouchers.forEach((v) => vouchers.add(v)); r.packs.forEach((k) => packs.add(k));
   }
   const rate = wins / N;
   console.log(`Acorn Hand bot: ${wins}/${N} runs won (${Math.round(rate * 100)}%); lost by ante ${Object.entries(lost).map(([a, n]) => `${a}:${n}`).join(' ')}`);
   console.log(`bosses met ${met.size}/${BOSSES.length}, beaten ${beaten.size}; charms bought ${bought.size}/${CHARMS.length}, in a winning run ${inWins.size}`);
   const never = CHARMS.filter((c) => !inWins.has(c.id)).map((c) => c.id);
   if (never.length) console.log('never in a win:', never.join(' '));
+  console.log(`vouchers bought ${vouchers.size}/${VOUCHERS.length}; pack kinds opened ${[...packs].sort().join(' ')}`);
   assert.ok(rate >= 0.2 && rate <= 0.45, `the bot wins between 20% and 45% of runs (${Math.round(rate * 100)}%)`);
   assert.ok((lost[1] ?? 0) / N < 0.05, `fewer than 5% of runs end in ante 1 (${lost[1] ?? 0})`);
   assert.equal(met.size, BOSSES.length, 'every boss turns up'); assert.equal(beaten.size, BOSSES.length, 'every boss is beaten at least once');
   assert.equal(bought.size, CHARMS.length, 'every charm is bought somewhere');
   assert.ok(inWins.size >= CHARMS.length - 3, `nearly every charm is part of some winning run (${inWins.size}/${CHARMS.length})`);
+  assert.equal(vouchers.size, VOUCHERS.length, 'every voucher is bought somewhere');
+  assert.equal(packs.size, 4, 'every kind of pack is opened');
   console.log('Acorn Hand bot: PASS');
 }

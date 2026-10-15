@@ -240,7 +240,7 @@ export const bossByRule = (r: BossRule) => BOSSES.find((b) => b.rule === r)!;
 
 export const ANTES = 8;
 /** The small round's target in each ante; the big round is 1.5 times it and the boss round twice it. */
-export const ANTE_BASE = [250, 650, 1600, 3500, 7000, 12500, 20000, 30000];
+export const ANTE_BASE = [250, 650, 1600, 3500, 9000, 16000, 25500, 38000];
 /** Past ante 8, each ante's target is this many times the last. */
 export const ENDLESS_GROWTH = 1.8;
 export const BLIND = [
