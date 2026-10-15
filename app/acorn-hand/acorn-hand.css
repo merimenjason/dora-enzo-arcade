@@ -194,3 +194,17 @@
   .ah-played { min-height: 0; }
   .ah-played:has(.ah-in-play) { min-height: 96px; }
 }
+
+/* The painted table stays behind opaque reading surfaces and live HTML controls. */
+.ah-shell[data-painted-table="true"] {
+  background: linear-gradient(rgba(16,22,18,.35), rgba(16,22,18,.62)), url('/art/acorn-hand/table.png?v=painted-1') center / cover fixed;
+}
+.ah-shell[data-painted-table="true"] .ah-title,
+.ah-shell[data-painted-table="true"] .ah-roundinfo,
+.ah-shell[data-painted-table="true"] .ah-counter,
+.ah-shell[data-painted-table="true"] .ah-blind,
+.ah-shell[data-painted-table="true"] .ah-items { background-color: rgba(18,30,23,.94); }
+.ah-shell[data-painted-table="true"] .ah-title { border: 1px solid #b2955c; border-radius: 22px; margin: 24px auto; box-shadow: 0 12px 40px #0006; }
+.ah-title-art { aspect-ratio: 26 / 15; }
+.ah-item-icon .ah-item-art { width: 44px; height: 44px; display: block; }
+.ah-item-big .ah-item-art { width: 96px; height: 96px; display: block; margin: auto; }

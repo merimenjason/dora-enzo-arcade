@@ -1,9 +1,10 @@
+import { paintAcorn } from './acorn-hand-paint';
 // Acorn Hand's pictures, drawn in Canvas 2D: card faces and backs, the four suit pips, chinchilla face cards, charm
 // portraits and the rivals who set the boss rules. Drawing only; the page decides what goes where.
 import { drawChinchilla, coatLike, type Coat } from './chinchilla-art';
 import { predator, critter, tintOf, shade, type PredKind, type CritterKind } from './predator-art';
 import { fitDraw } from './art-fit';
-import { type Card, type Charm, type Rival, type Voucher, type PackType, type PackKind, VOUCHERS, VOUCHER_COST, rankName } from './acorn-hand-cards';
+import { type Card, type Charm, type Rival, type Voucher, type PackType, type PackKind, CHARMS, TREATS, type Item, VOUCHERS, VOUCHER_COST, rankName } from './acorn-hand-cards';
 
 type C2D = CanvasRenderingContext2D;
 export const SUIT_INK = ['#7a4a1e', '#2f7a33', '#b42840', '#4d5d72'];
@@ -15,6 +16,7 @@ const rounded = (c: C2D, x: number, y: number, w: number, h: number, r: number) 
 
 /** One suit pip, centred on (x, y), `s` pixels across. */
 export function drawSuit(c: C2D, suit: number, x: number, y: number, s: number) {
+  if (paintAcorn(c, 'suits', suit, x - s / 2, y - s / 2, s, s)) return;
   c.save(); c.translate(x, y); c.scale(s / 24, s / 24); c.lineJoin = 'round'; c.lineCap = 'round';
   if (suit === 0) {
     // Acorn: a glossy nut under a cross-hatched cap and a little stalk.
@@ -59,6 +61,7 @@ const FACE_COATS: Record<number, Coat | 'dora' | 'enzo'> = {
   13: coatLike('enzo', { fur: '#9a7552', back: '#6e5236', face: '#b69171', shade: '#7d5e42', tail: '#9a7552', tailOuter: '#7d5e42', tailInner: '#c4a283', texture: '#7d5e42', bands: false }),
 };
 function faceArt(c: C2D, rank: number, suit: number, x: number, y: number, w: number, h: number) {
+  if (paintAcorn(c, 'court', rank - 11, x, y, w, h)) return;
   const coat = FACE_COATS[rank], ink = SUIT_INK[suit];
   fitDraw(c, `ah-face-${rank}-${suit}`, x, y, w, h, (q) => drawChinchilla(q, coat as Coat, 0, 0, {
     face: 1, h: 24, time: 0.4, bib: { color: ink, trim: '#fff3d6', label: rankName(rank) },
@@ -94,6 +97,9 @@ export function drawCard(c: C2D, card: Card | null, w: number, h: number, o: { d
   c.clearRect(0, 0, w, h);
   const r = w * 0.09, pad = 1;
   if (!card || o.down) {
+    c.save(); rounded(c, pad, pad, w - pad * 2, h - pad * 2, r); c.clip();
+    const painted = paintAcorn(c, 'card-back', 0, 0, 0, w, h); c.restore();
+    if (painted) return;
     rounded(c, pad, pad, w - pad * 2, h - pad * 2, r); c.fillStyle = BACK; c.fill(); c.strokeStyle = '#1e1224'; c.lineWidth = 1.5; c.stroke();
     rounded(c, w * 0.08, w * 0.08, w * 0.84, h - w * 0.16, r * 0.7); c.strokeStyle = '#c9a25a'; c.lineWidth = 1.2; c.stroke();
     c.save(); rounded(c, w * 0.08, w * 0.08, w * 0.84, h - w * 0.16, r * 0.7); c.clip(); c.globalAlpha = 0.35;
@@ -143,6 +149,8 @@ export function drawCharm(c: C2D, charm: Charm, w: number, h: number) {
   c.strokeStyle = frame; c.lineWidth = charm.rarity === 3 ? 3.5 : 2.5; c.stroke();
   const glow = c.createRadialGradient(w / 2, h * 0.55, 2, w / 2, h * 0.55, w * 0.6); glow.addColorStop(0, 'rgba(255,220,150,.28)'); glow.addColorStop(1, 'rgba(255,220,150,0)');
   c.fillStyle = glow; c.fillRect(0, 0, w, h);
+  const index = CHARMS.findIndex((v) => v.id === charm.id);
+  if (paintAcorn(c, `charms-${Math.floor(index / 6)}`, index % 6, w * 0.04, h * 0.05, w * 0.92, h * 0.8)) return;
   // A faint emblem for the charm's family: its suit, ×mult, +mult, chips or nuts.
   const suitTag = charm.tags.find((t) => /^s[0-3]$/.test(t));
   c.save(); c.globalAlpha = 0.22;
@@ -162,6 +170,11 @@ const VOUCHER_TINT = ['#c8743a', '#5f8f6a', '#b8892f', '#8a6a3c', '#a4524f', '#5
 /** A voucher: a ticket stub with a paw stamp and its price, tinted by which voucher it is. */
 export function drawVoucher(c: C2D, v: Voucher, w: number, h: number) {
   c.clearRect(0, 0, w, h);
+  const index = VOUCHERS.findIndex((vch) => vch.id === v.id);
+  if (paintAcorn(c, 'vouchers', index, 0, 0, w, h)) {
+    c.fillStyle = '#3b2819'; c.font = `700 ${Math.round(w * 0.13)}px Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(String(VOUCHER_COST), w * 0.87, h * 0.5); return;
+  }
   const tint = VOUCHER_TINT[Math.max(0, VOUCHERS.findIndex((x) => x.id === v.id)) % VOUCHER_TINT.length];
   const x = w * 0.06, y = h * 0.16, tw = w * 0.88, th = h * 0.68, notch = th * 0.14, mid = y + th / 2;
   // The ticket, with a half-round bite out of each end.
@@ -185,6 +198,8 @@ const PACK_SUIT: Record<PackKind, number> = { charm: 2, almanac: 1, treat: 0, ca
 /** A booster pack: a crimped acorn-paper packet, coloured by kind, gold-edged and banded when big. */
 export function drawPack(c: C2D, t: PackType, w: number, h: number) {
   c.clearRect(0, 0, w, h);
+  const index = ['charm', 'almanac', 'treat', 'card'].indexOf(t.kind) + (t.big ? 4 : 0);
+  if (paintAcorn(c, 'packs', index, w * 0.03, h * 0.03, w * 0.94, h * 0.94)) return;
   const [hi, lo] = PACK_TINT[t.kind], x = w * 0.14, y = h * 0.06, pw = w * 0.72, ph = h * 0.88, teeth = 7, tooth = ph * 0.04;
   c.beginPath(); c.moveTo(x, y + tooth);
   for (let i = 0; i < teeth; i++) { c.lineTo(x + (pw * (i + 0.5)) / teeth, y); c.lineTo(x + (pw * (i + 1)) / teeth, y + tooth); }
@@ -211,6 +226,17 @@ const CRITTERS: Record<string, { body: string; dark: string; light: string; eye:
 /** A rival from the woods, fitted into a `w` × `h` box. */
 export function drawRival(c: C2D, rival: Rival, w: number, h: number, t = 0.4) {
   c.clearRect(0, 0, w, h);
+  const rivals: Rival[] = ['fox', 'owl', 'hawk', 'snake', 'badger', 'skunk', 'weasel', 'mole', 'bear', 'cougar', 'beetle', 'lizard'];
+  const index = rivals.indexOf(rival);
+  if (paintAcorn(c, rival === 'armadillo' ? 'rival-armadillo' : `rivals-${Math.floor(index / 6)}`, rival === 'armadillo' ? 0 : index % 6, 0, 0, w, h)) return;
   if (CRITTERS[rival]) fitDraw(c, `ah-rival-${rival}`, 0, 0, w, h, (q) => critter(q, rival as CritterKind, CRITTERS[rival], t), -1);
   else fitDraw(c, `ah-rival-${rival}`, 0, 0, w, h, (q) => predator(q, rival as PredKind, tintOf(rival as PredKind, false), t), -1);
+}
+
+/** Shared art for all treat and almanac slots, shop offers and pack choices. */
+export function drawItem(c: C2D, item: Item, w: number, h: number) {
+  c.clearRect(0, 0, w, h);
+  const index = item.kind === 'almanac' ? 13 : TREATS.findIndex((t) => t.id === item.id);
+  if (paintAcorn(c, 'items', index, 0, 0, w, h)) return;
+  c.fillStyle = '#d6b876'; c.font = `${Math.round(h * 0.65)}px Georgia`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(item.kind === 'almanac' ? '▤' : '✦', w / 2, h / 2);
 }

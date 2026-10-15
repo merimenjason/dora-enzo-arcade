@@ -59,7 +59,7 @@
     "test:e2e:saga": "node tests/e2e/saga.mjs && node tests/e2e/saga-painted.mjs && node tests/e2e/saga-feedback.mjs && node tests/e2e/saga-loading.mjs && node tests/e2e/saga-animation.mjs && node tests/e2e/saga-formation.mjs && node tests/e2e/saga-results.mjs && node tests/e2e/saga-trials.mjs",
     "test:acorn-hand": "tsc lib/acorn-hand-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/acorn-hand.mjs",
     "bot:acorn-hand": "tsc lib/acorn-hand-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/acorn-hand-bot.mjs",
-    "test:e2e:acorn-hand": "node tests/e2e/acorn-hand.mjs",
+    "test:e2e:acorn-hand": "node tests/e2e/acorn-hand.mjs && node tests/e2e/acorn-hand-painted.mjs",
     "test:kitchen": "tsc lib/kitchen-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/kitchen.mjs",
     "test:e2e:kitchen": "node tests/e2e/kitchen.mjs"
   },

@@ -1,13 +1,14 @@
 /* oxlint-disable react/react-compiler -- The run is a mutable engine object read on each render, like the other card games. */
 /* oxlint-disable next/no-html-link-for-pages -- Match the arcade's hard navigation back to the menu. */
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Run, BLIND, ANTES, ITEM_COST, MAX_PLAY, INTEREST_EVERY, HANDS, CHARMS, GLOSS_TEXT, SUITS, VOUCHERS, VOUCHER_COST,
   charmById, handById, itemName, itemText, rankLong, voucherById, packById, loadProfile, freshProfile, record,
   type Card, type Score, type Profile, type Item, type Rival, type PackType, type PackKind,
 } from '../../lib/acorn-hand-game';
-import { drawCard, drawCharm, drawRival, drawVoucher, drawPack } from '../../lib/acorn-hand-scene';
+import { drawCard, drawCharm, drawRival, drawVoucher, drawPack, drawItem } from '../../lib/acorn-hand-scene';
+import { paintAcorn, loadAcornPainting, subscribeAcornPainting, acornPaintVersion, acornArtStatus, retryAcornPainting } from '../../lib/acorn-hand-paint';
 import { drawChinchilla } from '../../lib/chinchilla-art';
 import { fitDraw } from '../../lib/art-fit';
 import { useHoverNote } from '../../components/hover-note';
@@ -20,8 +21,6 @@ const writeJson = (key: string, v: unknown) => { try { if (v === null) localStor
 const fmt = (n: number) => Math.round(n).toLocaleString('en-GB');
 const fmtMult = (n: number) => (Number.isInteger(n) ? fmt(n) : n.toFixed(1));
 const RARITY = ['', 'Common', 'Uncommon', 'Rare'];
-const TREAT_ICON: Record<string, string> = { honey: '🍯', spice: '🌶️', dew: '💧', leaf: '🍂', dye0: '🌰', dye1: '☘️', dye2: '🍓', dye3: '🪨', mirror: '🪞', compost: '🪱', sprout: '🌱', tea: '🍵', wish: '⭐' };
-const itemIcon = (it: Item) => (it.kind === 'almanac' ? '📖' : TREAT_ICON[it.id] ?? '🍀');
 const cardName = (c: Card) => `${rankLong(c.rank)} of ${SUITS[c.suit]}${c.gloss ? `, ${c.gloss}` : ''}`;
 const PACK_TEXT: Record<PackKind, string> = {
   charm: 'Chinchilla charms: take one into a free slot.', almanac: 'Almanac pages, each used as you take it.',
@@ -34,20 +33,23 @@ type Anim = { score: Score; cards: Card[]; step: number; total: boolean };
 /** A canvas that redraws when `sig` changes. */
 function Paint({ w, h, sig, draw, className, label }: { w: number; h: number; sig: string; draw: (c: CanvasRenderingContext2D, w: number, h: number) => void; className?: string; label?: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => { const c = ref.current?.getContext('2d'); if (c) { c.setTransform(1, 0, 0, 1, 0, 0); draw(c, w, h); } }, [sig, w, h]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <canvas ref={ref} width={w} height={h} className={className} aria-hidden={label ? undefined : true} aria-label={label} role={label ? 'img' : undefined} />;
+  const version = useSyncExternalStore(subscribeAcornPainting, acornPaintVersion, () => 0);
+  useEffect(() => { const c = ref.current?.getContext('2d'); if (c) { c.setTransform(2, 0, 0, 2, 0, 0); draw(c, w, h); } }, [sig, w, h, version]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <canvas ref={ref} width={w * 2} height={h * 2} className={className} aria-hidden={label ? undefined : true} aria-label={label} role={label ? 'img' : undefined} />;
 }
 const CardArt = ({ card, down, asleep }: { card: Card; down?: boolean; asleep?: boolean }) =>
   <Paint w={150} h={210} sig={`${card.rank}-${card.suit}-${card.gloss}-${!!down}-${!!asleep}`} draw={(c, w, h) => drawCard(c, card, w, h, { down, asleep })} />;
 const CharmArt = ({ id }: { id: string }) => <Paint w={120} h={150} sig={id} draw={(c, w, h) => drawCharm(c, charmById(id)!, w, h)} />;
 const RivalArt = ({ rival }: { rival: Rival }) => <Paint w={160} h={120} sig={rival} draw={(c, w, h) => drawRival(c, rival, w, h)} />;
 const VoucherArt = ({ id }: { id: string }) => <Paint w={150} h={110} sig={id} draw={(c, w, h) => drawVoucher(c, voucherById(id)!, w, h)} />;
+const ItemArt = ({ item }: { item: Item }) => <Paint w={120} h={120} sig={`${item.kind}-${item.id}`} className="ah-item-art" draw={(c, w, h) => drawItem(c, item, w, h)} />;
 const PackArt = ({ id }: { id: string }) => <Paint w={110} h={150} sig={id} draw={(c, w, h) => drawPack(c, packById(id)!, w, h)} />;
 
 /** Dora and Enzo with a royal flush fanned out between them, for the title. */
 function TitleArt() {
   return <Paint w={520} h={300} sig="title" className="ah-title-art" draw={(c, w, h) => {
     c.clearRect(0, 0, w, h);
+    if (paintAcorn(c, 'title', 0, 0, 0, w, h)) return;
     const fan = [10, 11, 12, 13, 14];
     fan.forEach((rank, i) => {
       const off = document.createElement('canvas'); off.width = 150; off.height = 210;
@@ -68,15 +70,17 @@ export default function AcornHandPage() {
   const motion = useRef(true), timers = useRef<number[]>([]), finished = useRef(new Set<string>()), handBefore = useRef<number[] | null>(null);
   const { tip, view: noteView } = useHoverNote();
   const run = runRef.current;
+  useSyncExternalStore(subscribeAcornPainting, acornPaintVersion, () => 0);
 
   useEffect(() => {
+    loadAcornPainting('table');
     setProfile(loadProfile(readJson(PROFILE_KEY))); setKept(Run.load(readJson(RUN_KEY))); setMuted(sound.muted()); setReady(true);
     const media = matchMedia('(prefers-reduced-motion: reduce)'), sync = () => { motion.current = !media.matches; }; sync();
     media.addEventListener('change', sync);
     const pending = timers.current;
     return () => { media.removeEventListener('change', sync); pending.forEach(clearTimeout); };
   }, []);
-  useEffect(() => { (window as unknown as { __acorn?: () => unknown }).__acorn = () => ({ run: runRef.current, profile, anim, selected, refresh, motion: motion.current, pack: runRef.current?.pack ?? null, offer: runRef.current?.offer ?? null, vouchers: runRef.current?.vouchers ?? [] }); });
+  useEffect(() => { (window as unknown as { __acorn?: () => unknown }).__acorn = () => ({ art: acornArtStatus(), run: runRef.current, profile, anim, selected, refresh, motion: motion.current, pack: runRef.current?.pack ?? null, offer: runRef.current?.offer ?? null, vouchers: runRef.current?.vouchers ?? [] }); });
 
   /** Save the run and fold it into the record. A finished run is counted once and its save is cleared. */
   const persist = useCallback(() => {
@@ -180,6 +184,7 @@ export default function AcornHandPage() {
       <h1>Acorn Hand</h1>
       <div className="ah-top-right">
         {view === 'run' && run && <span className="ah-nuts" data-testid="nuts" aria-label={`${run.nuts} nuts`}>🌰 {run.nuts}</span>}
+        {acornArtStatus().failed.length > 0 && <button onClick={retryAcornPainting}>Retry artwork</button>}
         <button data-testid="mute" aria-pressed={muted} onClick={mute}>{muted ? 'Sound off' : 'Sound on'}</button>
         {view === 'run' && <button data-testid="menu" onClick={toTitle}>Menu</button>}
       </div>
@@ -188,7 +193,7 @@ export default function AcornHandPage() {
 
   if (view === 'title' || !run) {
     return (
-      <main className="ah-shell" data-ready={ready}>
+      <main className="ah-shell" data-ready={ready} data-painted-table={acornArtStatus().loaded.includes('table')}>
         {header}
         <section className="ah-title" data-testid="title">
           <TitleArt />
@@ -231,7 +236,7 @@ export default function AcornHandPage() {
     if (kind === 'charm') { const d = charmById(o as string)!; return <><div {...tip(charmTip(d.id))}><CharmArt id={d.id} /></div><h3>{d.name}</h3><p className="ah-small">{RARITY[d.rarity]}</p><p>{d.text}</p></>; }
     if (kind === 'card') { const c = o as Card; return <><CardArt card={c} /><h3>{cardName(c)}</h3>{c.gloss && <p>{GLOSS_TEXT[c.gloss as keyof typeof GLOSS_TEXT]}</p>}</>; }
     const it: Item = { kind: kind === 'almanac' ? 'almanac' : 'treat', id: o as string };
-    return <><div className="ah-item-big" aria-hidden="true" {...tip(itemTip(it))}>{itemIcon(it)}</div><h3>{itemName(it)}</h3><p>{itemText(it)}</p></>;
+    return <><div className="ah-item-big" aria-hidden="true" {...tip(itemTip(it))}><ItemArt item={it} /></div><h3>{itemName(it)}</h3><p>{itemText(it)}</p></>;
   };
 
   const charmsRow = (shop: boolean) => (
@@ -258,7 +263,7 @@ export default function AcornHandPage() {
         if (!it) return <div key={`e${i}`} className="ah-item ah-empty"><small>Empty item slot</small></div>;
         const why = r.itemWhyNot(i, selected);
         return <div key={`${it.id}-${i}`} className="ah-item" data-kind={it.kind} data-testid={`item-${i}`} {...tip(itemTip(it))}>
-          <span className="ah-item-icon" aria-hidden="true">{itemIcon(it)}</span>
+          <span className="ah-item-icon" aria-hidden="true"><ItemArt item={it} /></span>
           <span className="ah-item-name">{itemName(it)}</span>
           <button data-testid={`use-${i}`} disabled={!!anim} aria-disabled={!!why} onClick={() => applyItem(i)} title={why ?? itemText(it)}>Use</button>
         </div>;
@@ -368,7 +373,7 @@ export default function AcornHandPage() {
           <button className="ah-gold" data-testid={`buy-charm-${i}`} disabled={r.nuts < r.priceOf(id) || r.charms.length >= r.charmSlots} onClick={() => act(r.buyCharm(i), 'buy')}>Buy · {r.priceOf(id)}</button>
         </article> : <article key={`c${i}`} className="ah-offer ah-sold"><p>Sold</p></article>)}
         {s.items.map((it, i) => it ? <article key={`i${i}`} className="ah-offer ah-offer-item" data-testid={`offer-item-${i}`} data-kind={it.kind}>
-          <div className="ah-item-big" aria-hidden="true" {...tip(itemTip(it, ITEM_COST))}>{itemIcon(it)}</div>
+          <div className="ah-item-big" aria-hidden="true" {...tip(itemTip(it, ITEM_COST))}><ItemArt item={it} /></div>
           <h3>{itemName(it)}</h3><p className="ah-small">{it.kind === 'almanac' ? 'Almanac page' : 'Treat'}</p><p>{itemText(it)}</p>
           <button className="ah-gold" data-testid={`buy-item-${i}`} disabled={r.nuts < ITEM_COST || r.items.length >= r.itemSlots} onClick={() => act(r.buyItem(i), 'buy')}>Buy · {ITEM_COST}</button>
         </article> : <article key={`i${i}`} className="ah-offer ah-sold"><p>Sold</p></article>)}
@@ -434,7 +439,7 @@ export default function AcornHandPage() {
   }
 
   return (
-    <main className="ah-shell" data-ready={ready} data-phase={r.phase}>
+    <main className="ah-shell" data-ready={ready} data-painted-table={acornArtStatus().loaded.includes('table')} data-phase={r.phase}>
       {header}
       <div className="ah-board">
         <aside className="ah-side">
