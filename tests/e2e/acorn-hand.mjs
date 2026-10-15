@@ -178,6 +178,29 @@ await check('a rival sits across the table every round, says hello, and stays af
   const boss = await run(page, '(r) => r.bossFor(r.ante).rival'); assert.notEqual(big, boss);
 });
 
+await check('cards deal from the deck, fly to the table and sweep away, leaving nothing behind', async (page) => {
+  await fresh(page); await page.getByTestId('new-run').click(); await page.getByTestId('start').click();
+  await page.getByTestId('deck-stack').waitFor();
+  await page.waitForFunction(() => document.querySelector('[data-testid="card-7"]').getAnimations({ subtree: true }).length > 0);
+  await setHand(page); await page.getByTestId('card-0').click(); await page.getByTestId('card-1').click(); await page.getByTestId('play').click();
+  await page.waitForFunction(() => [...document.querySelectorAll('.ah-in-play')].some((c) => c.getAnimations().length > 0));
+  await settled(page);
+  assert.equal(await page.locator('[data-testid^="card-"]').count(), 8, 'ghost copies never count as hand cards');
+  await page.getByTestId('card-7').click(); await page.getByTestId('card-6').click(); await page.getByTestId('discard').click();
+  await page.waitForFunction(() => document.querySelectorAll('.ah-ghost').length > 0);
+  await page.waitForFunction(() => document.querySelectorAll('.ah-ghost, .ah-toss, .ah-bit').length === 0, null, { timeout: 3000 });
+  // Fast clicks during the deal still act at once.
+  await page.getByTestId('card-0').click(); await page.getByTestId('card-1').click();
+  assert.equal(await page.evaluate(() => window.__acorn().selected.length), 2);
+});
+
+await check('a blocked card back still deals and plays', async (page) => {
+  await page.route('**/art/acorn-hand/card-back.png*', (route) => route.abort());
+  await fresh(page); await deal(page);
+  await page.getByTestId('card-0').click(); await page.getByTestId('play').click(); await settled(page);
+  assert.equal(await run(page, '(r) => r.round.plays'), 3);
+});
+
 await check('running out of plays ends the run and records it', async (page) => {
   await fresh(page); await deal(page);
   await run(page, '(r) => { r.round.target = 10 ** 9; }');

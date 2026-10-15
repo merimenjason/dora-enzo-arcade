@@ -13,7 +13,7 @@ const host = () => document.querySelector('.ah-shell') ?? document.body;
 const SPRING = 'cubic-bezier(.2,1.3,.4,1)';
 
 /** Where every element carrying `attr` under `root` is now, keyed by the attribute's value. */
-export function remember(root: ParentNode | null, attr = 'data-card-id'): Map<string, Box> {
+export function remember(root: Element | null, attr = 'data-card-id'): Map<string, Box> {
   const out = new Map<string, Box>();
   if (!root || !motionOn()) return out;
   root.querySelectorAll(`[${attr}]`).forEach((el) => out.set(el.getAttribute(attr)!, box(el)));
@@ -21,7 +21,7 @@ export function remember(root: ParentNode | null, attr = 'data-card-id'): Map<st
 }
 
 /** Move each element from where it was to where it is; ones that were nowhere fly in from `origin`, if there is one. */
-export function settle(root: ParentNode | null, from: Map<string, Box>, origin: Box | null, opts: { attr?: string; flipNew?: boolean } = {}) {
+export function settle(root: Element | null, from: Map<string, Box>, origin: Box | null, opts: { attr?: string; flipNew?: boolean } = {}) {
   if (!root || !motionOn()) return;
   const attr = opts.attr ?? 'data-card-id';
   let fresh = 0;
