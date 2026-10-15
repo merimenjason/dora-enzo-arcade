@@ -179,6 +179,13 @@
   .ah-item.ah-empty small { font-size: 11px; }
   .ah-shell .ah-charm-tools button { font-size: 10px; padding: 2px; }
 }
+/* Motion: copies in flight, tossed nuts and paper bits live on top of everything and never take clicks. */
+.ah-ghost { filter: drop-shadow(0 6px 6px #0007); }
+.ah-ghost canvas { width: 100%; height: auto; display: block; }
+.ah-ghost kbd, .ah-ghost .ah-pop { display: none; }
+.ah-toss { position: fixed; z-index: 60; pointer-events: none; font-size: 22px; }
+.ah-bit { position: fixed; z-index: 60; pointer-events: none; width: 9px; height: 6px; border-radius: 2px; }
+
 @media (prefers-reduced-motion: reduce) {
   .ah-shell *, .ah-shell *::before { animation: none !important; transition: none !important; }
 }
