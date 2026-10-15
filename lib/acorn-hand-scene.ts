@@ -3,7 +3,7 @@
 import { drawChinchilla, coatLike, type Coat } from './chinchilla-art';
 import { predator, critter, tintOf, shade, type PredKind, type CritterKind } from './predator-art';
 import { fitDraw } from './art-fit';
-import { type Card, type Charm, type Rival, rankName } from './acorn-hand-cards';
+import { type Card, type Charm, type Rival, type Voucher, type PackType, type PackKind, VOUCHERS, VOUCHER_COST, rankName } from './acorn-hand-cards';
 
 type C2D = CanvasRenderingContext2D;
 export const SUIT_INK = ['#7a4a1e', '#2f7a33', '#b42840', '#4d5d72'];
@@ -156,6 +156,50 @@ export function drawCharm(c: C2D, charm: Charm, w: number, h: number) {
   const L = charm.look, fur = L.fur;
   const coat = coatLike(L.base, { fur, back: shade(fur, 0.86), face: shade(fur, 1.08), shade: shade(fur, 0.8), tail: fur, tailOuter: shade(fur, 0.84), tailInner: shade(fur, 1.12), texture: shade(fur, 0.82) });
   fitDraw(c, `ah-charm-${charm.id}`, w * 0.1, h * 0.1, w * 0.8, h * 0.68, (q) => drawChinchilla(q, coat, 0, 0, { face: 1, h: 24, time: 0.4, bib: { color: L.bib, trim: '#fff3d6', label: charm.name[0] } }));
+}
+
+const VOUCHER_TINT = ['#c8743a', '#5f8f6a', '#b8892f', '#8a6a3c', '#a4524f', '#5c7fa8', '#7a5ea0', '#c09a4a', '#4f8f8f', '#6f9a3c'];
+/** A voucher: a ticket stub with a paw stamp and its price, tinted by which voucher it is. */
+export function drawVoucher(c: C2D, v: Voucher, w: number, h: number) {
+  c.clearRect(0, 0, w, h);
+  const tint = VOUCHER_TINT[Math.max(0, VOUCHERS.findIndex((x) => x.id === v.id)) % VOUCHER_TINT.length];
+  const x = w * 0.06, y = h * 0.16, tw = w * 0.88, th = h * 0.68, notch = th * 0.14, mid = y + th / 2;
+  // The ticket, with a half-round bite out of each end.
+  c.beginPath(); c.moveTo(x, y); c.lineTo(x + tw, y);
+  c.lineTo(x + tw, mid - notch); c.arc(x + tw, mid, notch, -Math.PI / 2, Math.PI / 2, true); c.lineTo(x + tw, y + th);
+  c.lineTo(x, y + th); c.lineTo(x, mid + notch); c.arc(x, mid, notch, Math.PI / 2, -Math.PI / 2, true); c.closePath();
+  const g = c.createLinearGradient(0, y, 0, y + th); g.addColorStop(0, shade(tint, 1.15)); g.addColorStop(1, shade(tint, 0.8)); c.fillStyle = g; c.fill();
+  c.strokeStyle = '#fff3d6'; c.lineWidth = 2; c.stroke();
+  // Perforation between the ticket and its stub.
+  c.save(); c.setLineDash([3, 4]); c.strokeStyle = 'rgba(255,243,214,.7)'; c.beginPath(); c.moveTo(x + tw * 0.72, y + 4); c.lineTo(x + tw * 0.72, y + th - 4); c.stroke(); c.restore();
+  // A paw stamp: a pad and four toes.
+  const px = x + tw * 0.36, py = y + th * 0.6, s = th * 0.17;
+  c.fillStyle = 'rgba(255,243,214,.9)';
+  c.beginPath(); c.ellipse(px, py, s * 1.1, s * 0.85, 0, 0, Math.PI * 2); c.fill();
+  for (const [dx, dy] of [[-1.25, -1.15], [-0.45, -1.7], [0.45, -1.7], [1.25, -1.15]]) { c.beginPath(); c.arc(px + dx * s, py + dy * s, s * 0.42, 0, Math.PI * 2); c.fill(); }
+  c.fillStyle = '#fff3d6'; c.font = `700 ${Math.round(th * 0.3)}px Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(VOUCHER_COST), x + tw * 0.86, mid);
+}
+
+const PACK_TINT: Record<PackKind, [string, string]> = { charm: ['#7a4f8a', '#3e2648'], almanac: ['#4f7a5a', '#26402e'], treat: ['#b0603a', '#5a2c18'], card: ['#3f6390', '#1f3250'] };
+const PACK_SUIT: Record<PackKind, number> = { charm: 2, almanac: 1, treat: 0, card: 3 };
+/** A booster pack: a crimped acorn-paper packet, coloured by kind, gold-edged and banded when big. */
+export function drawPack(c: C2D, t: PackType, w: number, h: number) {
+  c.clearRect(0, 0, w, h);
+  const [hi, lo] = PACK_TINT[t.kind], x = w * 0.14, y = h * 0.06, pw = w * 0.72, ph = h * 0.88, teeth = 7, tooth = ph * 0.04;
+  c.beginPath(); c.moveTo(x, y + tooth);
+  for (let i = 0; i < teeth; i++) { c.lineTo(x + (pw * (i + 0.5)) / teeth, y); c.lineTo(x + (pw * (i + 1)) / teeth, y + tooth); }
+  c.lineTo(x + pw, y + ph - tooth);
+  for (let i = teeth - 1; i >= 0; i--) { c.lineTo(x + (pw * (i + 0.5)) / teeth, y + ph); c.lineTo(x + (pw * i) / teeth, y + ph - tooth); }
+  c.closePath();
+  const g = c.createLinearGradient(x, 0, x + pw, 0); g.addColorStop(0, lo); g.addColorStop(0.45, hi); g.addColorStop(1, lo); c.fillStyle = g; c.fill();
+  c.strokeStyle = t.big ? '#e6b84a' : '#fff3d6'; c.lineWidth = t.big ? 3 : 2; c.stroke();
+  // Crimped bands at the top and bottom.
+  c.fillStyle = 'rgba(0,0,0,.18)'; c.fillRect(x, y + tooth, pw, ph * 0.07); c.fillRect(x, y + ph - tooth - ph * 0.07, pw, ph * 0.07);
+  drawSuit(c, PACK_SUIT[t.kind], x + pw / 2, y + ph * 0.44, pw * 0.5);
+  if (t.big) {
+    c.fillStyle = '#e6b84a'; c.fillRect(x, y + ph * 0.7, pw, ph * 0.12);
+    c.fillStyle = '#3b2a14'; c.font = `900 ${Math.round(ph * 0.09)}px Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('BIG', x + pw / 2, y + ph * 0.76);
+  }
 }
 
 /** The critters' colours, as Summit Shuffle paints them. */
