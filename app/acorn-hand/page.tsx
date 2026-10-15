@@ -12,8 +12,8 @@ import { paintAcorn, loadAcornPainting, subscribeAcornPainting, acornPaintVersio
 import { drawChinchilla } from '../../lib/chinchilla-art';
 import { fitDraw } from '../../lib/art-fit';
 import { useHoverNote } from '../../components/hover-note';
-import { tableRival, sayLine, rivalName, PITCH, type Reaction, type Said } from '../../lib/acorn-hand-banter';
-import { play, REACT, setMotion, dropGhosts, toss, boxOf, remember, settle, flip, fly } from './motion';
+import { tableRival, sayLine, rivalName, PITCH, BIG_HAND, type Reaction, type Said } from '../../lib/acorn-hand-banter';
+import { play, REACT, setMotion, dropGhosts, toss, boxOf, remember, settle, flip, fly, useTicker, shake, WIGGLE, POP, PUNCH, FLARE } from './motion';
 import { sound } from './sound';
 import './acorn-hand.css';
 
@@ -123,6 +123,11 @@ export default function AcornHandPage() {
     clearTimeout(moodTimer.current);
     moodTimer.current = window.setTimeout(() => setMood((m) => ({ ...m, line: kind === 'beaten' || kind === 'gloat' ? m.line : null })), 2200);
   };
+  const liveRound = run?.round ?? null;
+  const shownScore = useTicker(liveRound ? (anim && !anim.landed ? anim.before : liveRound.score) : 0, !!anim, 450);
+  const shownChips = useTicker(anim ? anim.score.steps[anim.step].chips : 0, !!anim);
+  const shownMult = useTicker(anim ? anim.score.steps[anim.step].mult : 0, !!anim);
+  const purse = useTicker(run?.nuts ?? 0, view === 'run', 600);
   useEffect(() => { if (mood.kind !== 'idle' && mood.kind in REACT) { const [frames, opts] = REACT[mood.kind as keyof typeof REACT]; play(rivalArt.current, frames, opts); } }, [mood.n]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -175,14 +180,26 @@ export default function AcornHandPage() {
     s.steps.forEach((st, i) => timers.current.push(window.setTimeout(() => {
       setAnim((a) => (a ? { ...a, step: i } : a));
       sound.cue(st.who === 'boss' ? 'sleep' : st.text.includes('×') ? 'times' : st.text.includes('mult') ? 'mult' : 'chip', Math.min(12, i), 1, 0.02);
+      const prev = s.steps[i - 1];
+      if (prev && prev.chips !== st.chips) play(chipsRef.current, POP, { duration: 200 });
+      if (prev && prev.mult !== st.mult) play(multRef.current, st.text.includes('×') ? PUNCH : POP, { duration: st.text.includes('×') ? 360 : 200 });
+      if (st.who === 'charm' || st.who === 'held') { const k = r.charms.findIndex((o) => o.id === st.ref); play(document.querySelector(`[data-testid="charm-${k}"] .ah-charm-face`), WIGGLE, { duration: 520 }); }
+      if (st.who === 'boss') react('rule');
     }, 300 + i * per)));
     const T = 300 + s.steps.length * per + 120;
-    timers.current.push(window.setTimeout(() => { setAnim((a) => (a ? { ...a, total: true } : a)); sound.cue('total'); }, T));
+    timers.current.push(window.setTimeout(() => {
+      setAnim((a) => (a ? { ...a, total: true } : a)); sound.cue('total');
+      const share = s.total / Math.max(1, r.round!.target);
+      react(share >= BIG_HAND ? 'big' : 'hit');
+      if (share >= BIG_HAND) shake(tableRef.current, share);
+    }, T));
     timers.current.push(window.setTimeout(() => {
       setAnim((a) => (a ? { ...a, landed: true } : a));
+      fly(totalRef.current, boxOf(scoreRef.current) ?? 'away', { fade: true, duration: 420 });
+      if (r.phase === 'cashout') play(progressRef.current, FLARE, { duration: 900 });
       if (r.phase === 'cashout') react('beaten'); else if (r.phase === 'over') react('gloat');
-    }, T + 450));
-    timers.current.push(window.setTimeout(() => finishAnim(r, s), T + (ended ? 1700 : 900)));
+    }, T + 650));
+    timers.current.push(window.setTimeout(() => finishAnim(r, s), T + (ended ? 1900 : 1150)));
   };
   const finishAnim = (r: Run, s: Score) => {
     document.querySelectorAll('.ah-in-play').forEach((el, i) => fly(el, 'away', { delay: i * 40, spin: 20, drop: -30, duration: 360 }));
@@ -250,7 +267,7 @@ export default function AcornHandPage() {
       <a className="ah-back" href="/">← Arcade</a>
       <h1>Acorn Hand</h1>
       <div className="ah-top-right">
-        {view === 'run' && run && <span className="ah-nuts" data-testid="nuts" aria-label={`${run.nuts} nuts`}>🌰 {run.nuts}</span>}
+        {view === 'run' && run && <span className="ah-nuts" data-testid="nuts" ref={purseRef} aria-label={`${run.nuts} nuts`}>🌰 {fmt(purse)}</span>}
         {acornArtStatus().failed.length > 0 && <button onClick={retryAcornPainting}>Retry artwork</button>}
         <button data-testid="mute" aria-pressed={muted} onClick={mute}>{muted ? 'Sound off' : 'Sound on'}</button>
         {view === 'run' && <button data-testid="menu" onClick={toTitle}>Menu</button>}
@@ -292,7 +309,6 @@ export default function AcornHandPage() {
 
   const r = run, round = r.round, boss = r.bossFor(r.ante);
   const stage = anim ? 'round' : r.phase;
-  const shownScore = round ? (anim && !anim.landed ? anim.before : round.score) : 0;
   const pileLeft = round ? Math.max(0, Math.ceil(10 * (1 - shownScore / round.target))) : 0;
   const charmTip = (id: string, owned?: { state: number }, price?: number) => () => {
     const d = charmById(id)!;
@@ -309,6 +325,7 @@ export default function AcornHandPage() {
     return <><div className="ah-item-big" aria-hidden="true" {...tip(itemTip(it))}><ItemArt item={it} /></div><h3>{itemName(it)}</h3><p>{itemText(it)}</p></>;
   };
 
+  const shownStep = anim ? anim.score.steps[anim.step] : null;
   const charmsRow = (shop: boolean) => (
     <section className="ah-charms" aria-label="Your charms" data-testid="charms">
       {Array.from({ length: r.charmSlots }, (_, i) => {
@@ -317,6 +334,7 @@ export default function AcornHandPage() {
         const d = charmById(o.id)!;
         return <div key={o.id} className="ah-charm" data-rarity={d.rarity} data-testid={`charm-${i}`}>
           <button className="ah-charm-face" aria-label={`${d.name}: ${d.text}`} {...tip(charmTip(o.id, o))}><CharmArt id={o.id} /><span className="ah-charm-name">{d.name}</span>{d.shows && <span className="ah-charm-state">{d.shows(o.state)}</span>}</button>
+          {anim && shownStep && (shownStep.who === 'charm' || shownStep.who === 'held') && shownStep.ref === o.id && <span className="ah-pop" data-testid="pop">{shownStep.text}</span>}
           {shop && <div className="ah-charm-tools">
             <button aria-label={`Move ${d.name} left`} disabled={i === 0} onClick={() => act(r.shift(i, -1), 'click')}>◀</button>
             <button data-testid={`sell-${i}`} onClick={() => act(r.sell(i), 'sell')}>Sell {r.sellPrice(o.id)}</button>
@@ -344,16 +362,15 @@ export default function AcornHandPage() {
   // What the chips × mult box says: the counting score, else the selection's hand, else nothing yet.
   const preview = !anim && round && selected.length ? r.preview(selected) : null;
   const why = !anim && round && selected.length ? r.whyNot(selected) : null;
-  const shownStep = anim ? anim.score.steps[anim.step] : null;
   const counter = (
     <section className="ah-counter" data-testid="counter" aria-live="polite">
       <p className="ah-hand-name" data-testid="hand-name">{anim ? `${handById(anim.score.hand).name} · lvl ${anim.score.level}` : preview ? `${handById(preview.hand).name} · lvl ${preview.level}` : why ?? 'Pick up to five cards'}</p>
       <div className="ah-cm">
-        <output className="ah-chips" data-testid="chips">{anim ? fmt(shownStep!.chips) : preview ? fmt(preview.steps[0].chips) : '0'}</output>
+        <output className="ah-chips" data-testid="chips" ref={chipsRef}>{anim ? fmt(shownChips) : preview ? fmt(preview.steps[0].chips) : '0'}</output>
         <span aria-hidden="true">×</span>
-        <output className="ah-mult" data-testid="mult">{anim ? fmtMult(shownStep!.mult) : preview ? fmtMult(preview.steps[0].mult) : '0'}</output>
+        <output className="ah-mult" data-testid="mult" ref={multRef}>{anim ? fmtMult(Number.isInteger(shownStep!.mult) ? Math.round(shownMult) : Math.round(shownMult * 10) / 10) : preview ? fmtMult(preview.steps[0].mult) : '0'}</output>
       </div>
-      {anim?.total && <p className="ah-total" data-testid="hand-total">{fmt(anim.score.total)}</p>}
+      {anim?.total && !anim.landed && <p className="ah-total" data-testid="hand-total" ref={totalRef}>{fmt(anim.score.total)}</p>}
     </section>
   );
 
@@ -361,8 +378,8 @@ export default function AcornHandPage() {
     <section className="ah-roundinfo" aria-label="This round">
       <p className="ah-eyebrow">Ante {r.ante}{r.endless ? ' · endless' : ` of ${ANTES}`} · {BLIND[r.blind].name}</p>
       <div className="ah-target"><span>Target</span><strong data-testid="target">{fmt(round.target)}</strong></div>
-      <div className="ah-score"><span>Score</span><strong data-testid="score">{fmt(round.score)}</strong></div>
-      <progress max={round.target} value={Math.min(round.score, round.target)} aria-label="Score towards the target" />
+      <div className="ah-score"><span>Score</span><strong data-testid="score" ref={scoreRef}>{fmt(shownScore)}</strong></div>
+      <progress ref={progressRef} max={round.target} value={Math.min(shownScore, round.target)} aria-label="Score towards the target" />
       <div className="ah-left"><span data-testid="plays">Plays <b>{round.plays}</b></span><span data-testid="discards">Discards <b>{round.discards}</b></span><span>Deck <b>{round.draw.length}</b></span></div>
     </section>
   );
@@ -398,6 +415,7 @@ export default function AcornHandPage() {
         </div>
         <NutPile left={pileLeft} />
       </div>}
+      {anim?.total && <div className="ah-banner" data-testid="banner" aria-hidden="true">{handById(anim.score.hand).name} · lvl {anim.score.level}</div>}
       <div className="ah-played" aria-label="Played cards" data-testid="played">
         {anim && anim.cards.map((c, i) => {
           const lit = shownStep?.card === i, scoring = anim.score.scoring.includes(i);
@@ -406,7 +424,7 @@ export default function AcornHandPage() {
             {lit && <span className="ah-pop" data-testid="pop">{shownStep!.text}</span>}
           </div>;
         })}
-        {anim && shownStep && shownStep.who !== 'card' && shownStep.who !== 'hand' && <span className="ah-pop ah-pop-wide">{shownStep.who === 'boss' ? shownStep.text : `${charmById(shownStep.ref)?.name ?? ''} ${shownStep.text}`}</span>}
+        {anim && shownStep && shownStep.who === 'boss' && <span className="ah-pop ah-pop-wide">{shownStep.text}</span>}
         {!anim && note && <p className="ah-note" data-testid="note">{note}</p>}
       </div>
       <div className="ah-hand" data-testid="hand" style={{ '--n': shown.length } as React.CSSProperties}>
@@ -441,7 +459,11 @@ export default function AcornHandPage() {
         {k.charms > 0 && <li><span>Charms</span><b>+{k.charms}</b></li>}
         {k.gold > 0 && <li><span>Gold cards in hand</span><b>+{k.gold}</b></li>}
       </ul>
-      <button className="ah-gold" data-testid="collect" onClick={() => { const last = r.blind === 2 && r.ante === ANTES && !r.endless; act(r.collect(), last ? 'victory' : 'coin'); }}>Collect {k.total} nuts</button>
+      <button className="ah-gold" data-testid="collect" onClick={() => {
+        const last = r.blind === 2 && r.ante === ANTES && !r.endless, to = boxOf(purseRef.current);
+        document.querySelectorAll('.ah-cash b').forEach((b, i) => { toss('🌰', boxOf(b), to, i * 120); timers.current.push(window.setTimeout(() => sound.cue('coin', i), i * 120 + 450)); });
+        act(r.collect(), last ? 'victory' : 'coin');
+      }}>Collect {k.total} nuts</button>
     </section>;
   } else if (stage === 'shop' && r.shop) {
     const s = r.shop;
