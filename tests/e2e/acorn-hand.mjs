@@ -152,11 +152,30 @@ await check('a boss rule is shown and enforced', async (page) => {
   assert.match(await page.getByTestId('blind-2').innerText(), /The Badger[\s\S]*exactly five cards/);
   await page.getByTestId('start').click();
   assert.match(await page.getByTestId('boss-rule').innerText(), /The Badger/);
+  assert.equal(await page.getByTestId('rival').getAttribute('data-rival'), 'badger', 'the boss sits at the table');
   await page.getByTestId('card-0').click(); await page.getByTestId('card-1').click();
   assert.match(await page.getByTestId('hand-name').innerText(), /exactly five/);
   await page.getByTestId('play').click(); assert.equal(await run(page, '(r) => r.round.plays'), 4, 'two cards cannot be played');
   for (const i of [2, 3, 4]) await page.getByTestId(`card-${i}`).click();
   await page.getByTestId('play').click(); await settled(page); assert.equal(await run(page, '(r) => r.round.plays'), 3);
+});
+
+await check('a rival sits across the table every round, says hello, and stays after a reload', async (page) => {
+  await fresh(page); await deal(page);
+  const rival = page.getByTestId('rival'); await rival.waitFor();
+  const small = await rival.getAttribute('data-rival'); assert.ok(small);
+  assert.ok((await page.getByTestId('rival-say').innerText()).trim().length > 0, 'a greeting on entering');
+  assert.equal(await page.getByTestId('nut-pile').getAttribute('data-left'), '10');
+  await setHand(page); await page.getByTestId('card-0').click(); await page.getByTestId('card-1').click(); await page.getByTestId('play').click(); await settled(page);
+  assert.ok(Number(await page.getByTestId('nut-pile').getAttribute('data-left')) < 10, 'nuts leave the pile as the score grows');
+  await page.reload(); await page.locator('main[data-ready="true"]').waitFor(); await page.getByTestId('continue').click();
+  assert.equal(await page.getByTestId('rival').getAttribute('data-rival'), small, 'the same rival after a reload');
+  await run(page, '(r) => { r.round.target = 1; }'); await page.getByTestId('card-0').click(); await page.getByTestId('play').click();
+  assert.equal(await page.getByTestId('table').count(), 1, 'the winning hand counts on the table');
+  await settled(page); await page.getByTestId('cashout').waitFor();
+  await page.getByTestId('collect').click(); await page.getByTestId('leave').click(); await page.getByTestId('start').click();
+  const big = await page.getByTestId('rival').getAttribute('data-rival'); assert.notEqual(big, small, 'a new rival for the big round');
+  const boss = await run(page, '(r) => r.bossFor(r.ante).rival'); assert.notEqual(big, boss);
 });
 
 await check('running out of plays ends the run and records it', async (page) => {

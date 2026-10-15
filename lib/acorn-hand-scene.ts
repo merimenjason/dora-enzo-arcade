@@ -1,4 +1,5 @@
 import { paintAcorn } from './acorn-hand-paint';
+import { ACORN_CROPS } from './acorn-hand-crops';
 // Acorn Hand's pictures, drawn in Canvas 2D: card faces and backs, the four suit pips, chinchilla face cards, charm
 // portraits and the rivals who set the boss rules. Drawing only; the page decides what goes where.
 import { drawChinchilla, coatLike, type Coat } from './chinchilla-art';
@@ -224,11 +225,14 @@ const CRITTERS: Record<string, { body: string; dark: string; light: string; eye:
   lizard: { body: '#7fa06a', dark: '#4c6a42', light: '#dfe8b6', eye: '#ffd23e' },
 };
 /** A rival from the woods, fitted into a `w` × `h` box. */
-export function drawRival(c: C2D, rival: Rival, w: number, h: number, t = 0.4) {
+export type Pose = 'calm' | 'happy' | 'sad';
+/** A rival portrait. Happy and sad poses come from painted pose sheets once they exist; until then the calm one stands in. */
+export function drawRival(c: C2D, rival: Rival, w: number, h: number, t = 0.4, pose: Pose = 'calm') {
   c.clearRect(0, 0, w, h);
   const rivals: Rival[] = ['fox', 'owl', 'hawk', 'snake', 'badger', 'skunk', 'weasel', 'mole', 'bear', 'cougar', 'beetle', 'lizard'];
-  const index = rivals.indexOf(rival);
-  if (paintAcorn(c, rival === 'armadillo' ? 'rival-armadillo' : `rivals-${Math.floor(index / 6)}`, rival === 'armadillo' ? 0 : index % 6, 0, 0, w, h)) return;
+  const index = rivals.indexOf(rival), sheet = rival === 'armadillo' ? 'rival-armadillo' : `rivals-${Math.floor(index / 6)}`, cell = rival === 'armadillo' ? 0 : index % 6;
+  if (pose !== 'calm' && ACORN_CROPS[`${sheet}-${pose}`] && paintAcorn(c, `${sheet}-${pose}`, cell, 0, 0, w, h)) return;
+  if (paintAcorn(c, sheet, cell, 0, 0, w, h)) return;
   if (CRITTERS[rival]) fitDraw(c, `ah-rival-${rival}`, 0, 0, w, h, (q) => critter(q, rival as CritterKind, CRITTERS[rival], t), -1);
   else fitDraw(c, `ah-rival-${rival}`, 0, 0, w, h, (q) => predator(q, rival as PredKind, tintOf(rival as PredKind, false), t), -1);
 }

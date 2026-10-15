@@ -50,9 +50,28 @@
 .ah-roundinfo progress { width: 100%; height: 10px; accent-color: var(--gold); }
 .ah-left { display: flex; justify-content: space-between; font-size: 13px; color: var(--dim); }
 .ah-left b { color: var(--ink); font-size: 16px; }
-.ah-boss-mini { display: grid; grid-template-columns: 72px 1fr; gap: 8px; align-items: center; background: #3a1f2a88; border: 1px solid #b55a6a88; border-radius: 12px; padding: 6px; font-size: 13px; }
-.ah-boss-mini canvas { width: 72px; height: auto; }
-.ah-boss-mini b { display: block; color: #ffb4a8; }
+.ah-rival { display: grid; grid-template-columns: 140px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 112px; padding: 4px 8px; }
+.ah-rival-art { animation: ah-breathe 3s ease-in-out infinite; transform-origin: 50% 90%; }
+.ah-rival-art canvas { width: 140px; height: auto; display: block; }
+.ah-rival[data-mood='beaten'] .ah-rival-art { filter: grayscale(.8) brightness(.8); }
+.ah-rival-words { display: grid; gap: 6px; justify-items: start; min-width: 0; }
+.ah-rival-name { font: 700 18px Georgia, serif; color: #ffb4a8; text-shadow: 0 1px 2px #000; }
+.ah-sign { background: #3a1f2aee; border: 1px solid #b55a6a; border-radius: 10px; padding: 6px 10px; font-size: 13px; display: grid; gap: 2px; box-shadow: 0 3px 0 #0005; }
+.ah-sign b { color: #ffb4a8; font: 700 16px Georgia, serif; }
+.ah-shell .ah-say { position: relative; background: var(--paper); color: var(--paper-ink); border-radius: 14px; padding: 6px 12px; font-weight: 700; font-size: 15px; max-width: 320px; box-shadow: 0 4px 10px #0006; animation: ah-say .25s ease-out; }
+.ah-say::before { content: ''; position: absolute; left: -8px; top: 50%; border: 8px solid transparent; border-right-color: var(--paper); border-left: 0; transform: translateY(-50%); }
+.ah-pile { display: flex; flex-wrap: wrap-reverse; width: 96px; justify-content: center; gap: 0 2px; font-size: 20px; line-height: 1; }
+.ah-pile span[data-size='1'] { font-size: 16px; }
+.ah-pile span[data-size='2'] { font-size: 24px; }
+.ah-pile-n { display: none; }
+.ah-pals { display: flex; gap: 2px; margin-right: auto; }
+.ah-pals canvas { width: 56px; height: 56px; display: block; transition: transform .2s ease-out; }
+.ah-pals[data-mood='look'] canvas { transform: translateY(-4px) rotate(4deg); }
+.ah-pals[data-mood='cheer'] canvas { animation: ah-cheer .5s ease-out 2; }
+.ah-pals[data-mood='sad'] canvas { transform: translateY(6px) scale(.94); filter: saturate(.6); }
+@keyframes ah-breathe { 0%, 100% { transform: none; } 50% { transform: translateY(-3px) scale(1.015, .985); } }
+@keyframes ah-say { from { transform: scale(.7); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes ah-cheer { 0%, 100% { transform: none; } 40% { transform: translateY(-12px); } }
 
 .ah-counter { background: #0000004a; border: 1px solid #ffffff1c; border-radius: 16px; padding: 12px; display: grid; gap: 8px; text-align: center; }
 .ah-hand-name { font-weight: 800; min-height: 1.4em; }
@@ -94,7 +113,7 @@
 .ah-in-play[data-lit='true'] { transform: translateY(-14px) scale(1.06); }
 .ah-pop { position: absolute; left: 50%; top: -14px; transform: translateX(-50%); white-space: nowrap; background: #120c08e6; color: var(--gold); padding: 3px 8px; border-radius: 8px; font-weight: 800; font-size: 13px; animation: ah-pop .25s ease-out; z-index: 2; }
 .ah-pop-wide { top: auto; bottom: -6px; }
-.ah-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.ah-actions { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
 .ah-actions button { min-width: 120px; }
 
 .ah-pick { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
@@ -149,6 +168,17 @@
   .ah-offers-extra { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 560px) {
+  .ah-rival { grid-template-columns: 56px minmax(0, 1fr) auto; min-height: 56px; gap: 8px; padding: 0; }
+  .ah-rival-art canvas { width: 56px; }
+  .ah-shell .ah-say { font-size: 12px; padding: 4px 8px; }
+  .ah-sign { font-size: 11px; padding: 4px 6px; }
+  .ah-sign b, .ah-rival-name { font-size: 13px; }
+  .ah-pile { width: 40px; font-size: 13px; }
+  .ah-pile span[data-size] { font-size: 13px; }
+  .ah-pile span:not(:first-of-type) { display: none; }
+  .ah-pile-n { display: inline; font-weight: 800; margin-right: 2px; }
+  .ah-pile { flex-wrap: nowrap; align-items: center; }
+  .ah-pals { display: none; }
   .ah-top { padding: 8px 12px; gap: 8px; }
   .ah-top h1 { font-size: 18px; }
   .ah-shell .ah-top button { padding: 6px 8px; font-size: 13px; }
@@ -159,8 +189,6 @@
   .ah-roundinfo .ah-eyebrow { font-size: 9px; letter-spacing: .8px; }
   .ah-left { font-size: 11px; gap: 4px; }
   .ah-left b { font-size: 13px; }
-  .ah-boss-mini { grid-template-columns: 44px 1fr; font-size: 11px; padding: 4px; }
-  .ah-boss-mini canvas { width: 44px; }
   .ah-hand-name { font-size: 13px; }
   .ah-cm { font-size: 18px; }
   .ah-chips, .ah-mult { padding: 6px 2px; }
