@@ -4,6 +4,7 @@ import {
   INTEREST_CAP, REROLL, COST, SAVE_VERSION, PROFILE_VERSION, SHOP_CHARMS, HOARD_CAP, HAGGLER_REROLL, VOUCHERS, VOUCHER_COST, PACKS, SHOP_PACKS, PACK_DEAL, packById,
   anteBase, cardChips, charmById, voucherById, freshProfile, loadProfile, record,
 } from '../.checks/acorn-hand-game.js';
+import { BANTER, SAID, RIVALS, PITCH, BIG_HAND, tableRival, sayLine, rivalName } from '../.checks/acorn-hand-banter.js';
 
 let nextId = 1000;
 const C = (rank, suit = 0, gloss = '') => ({ id: nextId++, rank, suit, gloss });
@@ -384,6 +385,32 @@ const inShop = (seed) => { const run = new Run(seed); run.start(); run.round.tar
     assert.equal(broke((s) => { s.phase = 'shop'; }), null, 'a pack outside the pack phase');
   }
   const r = new Rand(5), seq = [r.next(), r.next()], again = new Rand(5); assert.deepEqual([again.next(), again.next()], seq);
+}
+
+// Banter and the table's rival
+{
+  assert.equal(RIVALS.length, 13); assert.deepEqual([...RIVALS].sort(), BOSSES.map((b) => b.rival).sort(), 'every boss rival can sit at the table');
+  for (const rival of RIVALS) {
+    assert.equal(typeof PITCH[rival], 'number', `${rival} has a chirp pitch`);
+    assert.match(rivalName(rival), /^The /);
+    for (const said of SAID) {
+      const lines = BANTER[rival][said];
+      assert.ok(lines.length >= 2 && lines.length <= 3, `${rival} ${said} has 2 or 3 lines`);
+      for (const l of lines) assert.ok(l.length > 0 && l.length <= 48, `${rival} ${said}: "${l}" fits a bubble`);
+    }
+  }
+  assert.equal(sayLine('fox', 'enter', 0), BANTER.fox.enter[0]); assert.equal(sayLine('fox', 'enter', BANTER.fox.enter.length), BANTER.fox.enter[0], 'lines go round in turn');
+  assert.equal(BIG_HAND, 0.25);
+  for (let seed = 1; seed < 400; seed += 7) for (let ante = 1; ante <= 9; ante++) {
+    const boss = RIVALS[(seed + ante) % RIVALS.length];
+    const small = tableRival(seed, ante, 0, boss), big = tableRival(seed, ante, 1, boss);
+    assert.notEqual(small, boss, 'the small round is never the boss'); assert.notEqual(big, boss, 'nor the big round');
+    assert.notEqual(small, big, 'the small and big rounds have different rivals');
+    assert.equal(tableRival(seed, ante, 2, boss), boss, 'the boss round is the boss');
+    assert.equal(tableRival(seed, ante, 0, boss), small, 'the same inputs give the same rival');
+  }
+  const seen = new Set(); for (let seed = 1; seed < 200; seed++) seen.add(tableRival(seed, 1, 0, 'fox'));
+  assert.equal(seen.size, 12, 'every other rival turns up');
 }
 
 console.log(`PASS Acorn Hand: ${HANDS.length} hand types, ${CHARMS.length} charms, ${TREATS.length} treats, ${BOSSES.length} rivals; scoring order, rounds, the shop, items, skips, boss rules, the win and endless, seeds and saves, vouchers and packs`);
