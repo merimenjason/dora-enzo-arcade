@@ -48,8 +48,8 @@ await check('a round by mouse: pick cards, see the hand, count the score up, dis
   assert.match(await page.getByTestId('hand-name').innerText(), /Two pair/);
   await page.getByTestId('play').click();
   await page.getByTestId('pop').first().waitFor();
-  await page.getByTestId('hand-total').waitFor();
-  assert.equal((await page.getByTestId('hand-total').innerText()).trim(), String((20 + 10 + 10 + 5 + 5) * 2), 'two pair of kings and fives: (20 + 30) × 2');
+  const total = await page.waitForFunction(() => document.querySelector('[data-testid="hand-total"]')?.textContent, null, { polling: 'raf' });
+  assert.equal((await total.jsonValue()).trim(), String((20 + 10 + 10 + 5 + 5) * 2), 'two pair of kings and fives: (20 + 30) × 2');
   await settled(page);
   assert.equal(await page.getByTestId('score').innerText(), '100'); assert.match(await page.getByTestId('plays').innerText(), /3/);
   assert.equal(await page.locator('[data-testid^="card-"]').count(), 8, 'the hand refills');
@@ -201,6 +201,16 @@ await check('a blocked card back still deals and plays', async (page) => {
   assert.equal(await run(page, '(r) => r.round.plays'), 3);
 });
 
+await check('a charm wiggles when it scores, the hand name crosses the table, and the score counts up', async (page) => {
+  await fresh(page); await deal(page); await setHand(page);
+  await run(page, '(r) => { r.charms = [{ id: "dora", state: 0 }]; }');
+  await page.getByTestId('card-0').click(); await page.getByTestId('card-1').click(); await page.getByTestId('play').click();
+  await page.waitForFunction(() => document.querySelector('[data-testid="charm-0"]').getAnimations({ subtree: true }).length > 0);
+  await page.getByTestId('banner').waitFor(); assert.match(await page.getByTestId('banner').innerText(), /Pair/);
+  await settled(page);
+  assert.equal(await page.getByTestId('score').innerText(), String((10 + 10 + 10) * (2 + 4)), 'the score lands exactly');
+});
+
 await check('running out of plays ends the run and records it', async (page) => {
   await fresh(page); await deal(page);
   await run(page, '(r) => { r.round.target = 10 ** 9; }');
@@ -242,6 +252,9 @@ await check('reduced motion scores at once', async (page) => {
   await page.getByTestId('card-0').click(); await page.getByTestId('card-1').click(); await page.getByTestId('play').click();
   assert.equal(await page.evaluate(() => window.__acorn().anim), null); assert.equal(await page.getByTestId('hand-total').count(), 0);
   assert.equal(await page.getByTestId('score').innerText(), '60');
+  assert.equal(await page.evaluate(() => document.getAnimations().length), 0, 'nothing animates, not even the rival');
+  await page.getByTestId('card-0').click(); await page.getByTestId('discard').click();
+  assert.equal(await page.evaluate(() => document.querySelectorAll('.ah-ghost').length), 0);
 }, { width: 1280, height: 860 }, { reducedMotion: 'reduce' });
 
 for (const [width, height] of [[360, 640], [390, 844], [844, 390], [768, 1024], [1280, 720], [1920, 1080]]) {
