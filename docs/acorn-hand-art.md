@@ -1,8 +1,8 @@
 # Acorn Hand · art
 
-Everything in Acorn Hand is drawn in code today, in `lib/acorn-hand-scene.ts`. This page lists what each picture is, so a painted pass can replace them one at a time without touching the rules.
+Acorn Hand uses nineteen painted PNGs through `lib/acorn-hand-paint.ts` and the Canvas scene renderer. Card ranks, scoring, gloss labels, prices and controls stay live. The original code drawings remain available while an image loads or if its request fails.
 
-## What is drawn, and where
+## Canvas API and fallback drawings
 
 | Picture | Function | Size it is drawn at | Notes |
 | --- | --- | --- | --- |
@@ -15,7 +15,7 @@ Everything in Acorn Hand is drawn in code today, in `lib/acorn-hand-scene.ts`. T
 | Rival | `drawRival` | 160 × 120 canvas | The shared predators and critters from `lib/predator-art.ts`, facing left. |
 | Title | `TitleArt` in the page | 520 × 300 canvas | Dora and Enzo either side of a royal flush of acorns, the ace gilded. |
 
-Item icons in the shop and the item slots are emoji (`itemIcon` in the page).
+Item icons use `drawItem` in shop offers, inventory slots and pack choices: thirteen painted treats and one shared almanac book. Their names and effects remain accessible HTML.
 
 ## Prompts for a painted pass
 
@@ -65,7 +65,8 @@ The charms cover all 44 friends in eight 3 × 2 sheets. `charms-7.png` contains 
 
 - Inspected PNGs composited over a dark plum browser background, rather than interpreting the hidden RGB under transparent pixels as a visible matte. Seventeen files have real alpha channels; table and card back are opaque full-bleed artwork. All nineteen match their selected source bytes.
 - Corrections cleared voucher price stubs, increased atlas gutters, removed unrequested court props and Bloom's extra bouquet, contained long pinwheel/ribbon/water/book props, and added title margins. Card-back refinement introduced opposing acorn orientations for the reversible motif.
-- The generator's native dimensions are recorded above. The table is approximately 16:9 and the card back exactly 5:7; the renderer should scale them into the existing boxes.
+- The generator's native dimensions are recorded above. The table is approximately 16:9 and the card back exactly 5:7; the renderer contains them proportionally in the existing boxes.
 - The four unused cells in the partial charm sheet have no visible artwork, but contain isolated generator alpha noise up to 1/255. Ignore alpha ≤ 1 when measuring blank cells. Preserve real feathered fur, whiskers, detached water drops and sparkles when measuring complete silhouettes.
-- `visibleBoundsAlpha32` in the manifest is an inspection aid for the whole image, not a set of final per-character crop rectangles. Measure connected silhouettes and detached prop pieces before wiring the atlases in; do not blindly slice at nominal cell edges. Keep the original Canvas drawings as asynchronous-loading and failed-request fallbacks.
-- This asset-only pass did not modify rules, saves, gameplay, sound or the runtime loader, and does not activate the assets in the running game.
+- `visibleBoundsAlpha32` in the manifest is an inspection aid for the whole image, not a set of final per-character crop rectangles. `lib/acorn-hand-crops.ts` records measured connected silhouettes and detached prop pieces rather than nominal grid slices. The original Canvas drawings remain asynchronous-loading and failed-request fallbacks.
+- The runtime integration is active: `lib/acorn-hand-paint.ts` loads sheets on demand; canvas subscribers repaint when images arrive. The page loads the table separately and uses dark reading surfaces over it. All cards draw at twice their logical resolution. Item slots, shop offers and pack choices share the same painted item renderer; pack mapping explicitly handles the interleaved data order. Failed requests expose **Retry artwork** without blocking play. Rules, saves and sound are unchanged.
+- Validation: typecheck, targeted lint, existing Acorn Hand browser suite (gameplay, saves, all pack kinds, reduced motion and six layouts), plus a painted loading/failure/retry regression. A complete gallery was visually reviewed for all 44 charms, 13 rivals, vouchers, packs and treats.
