@@ -19,6 +19,8 @@ Item icons in the shop and the item slots are emoji (`itemIcon` in the page).
 
 ## Prompts for a painted pass
 
+The full, sheet-by-sheet handoff for ChatGPT, vouchers, packs and item icons included, is [`acorn-hand-image-prompts.md`](acorn-hand-image-prompts.md). The notes below are the original short version.
+
 Keep the arcade's painted storybook look (see `docs/saga-art.md`): soft gouache, warm lantern light, clean silhouettes on a transparent background, no text in the image.
 
 - **Suit sheet**, 2 × 2 cells, transparent: "Four storybook card-suit emblems on a transparent background, each centred in its own cell: a glossy brown acorn with a cross-hatched cap and a curled stalk; a three-leaf heart-shaped clover in fresh green; a cluster of three ripe red berries under two leaves; a smooth blue-grey river pebble with a pale band and a gleam. Soft gouache, warm light from the upper left, thin dark outlines, no text."

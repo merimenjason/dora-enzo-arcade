@@ -23,6 +23,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Documentation
 
+- **Acorn Hand**: a sheet-by-sheet image-generation handoff for a painted pass (vouchers, booster packs, item icons, suits, court cards, all 44 charms, the rivals, the table and the title) in `docs/acorn-hand-image-prompts.md`.
 - The handoff opens with a summary for picking the work up in a fresh session: where things stand, how changes are shipped, the traps that cost time, and what to do next. The project notes list which games expose a test hook.
 - **Acorn Hand** has a README guide, a rules page with every hand, charm, treat and rival (`docs/acorn-hand.md`) and an art page with prompts for a later painted pass (`docs/acorn-hand-art.md`).
 - The handoff covers **Ember & Clover: Midnight Kitchen** and **Whisker Saga**'s hero trials and first play by hand, and the project notes count thirty-three games.
