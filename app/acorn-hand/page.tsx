@@ -3,18 +3,18 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Run, BLIND, ANTES, CHARM_SLOTS, ITEM_SLOTS, ITEM_COST, MAX_PLAY, INTEREST_EVERY, INTEREST_CAP, HANDS, CHARMS, GLOSS_TEXT, SUITS,
-  charmById, handById, itemName, itemText, rankLong, loadProfile, freshProfile, record,
-  type Card, type Score, type Profile, type Item, type Rival,
+  Run, BLIND, ANTES, ITEM_COST, MAX_PLAY, INTEREST_EVERY, HANDS, CHARMS, GLOSS_TEXT, SUITS, VOUCHERS, VOUCHER_COST,
+  charmById, handById, itemName, itemText, rankLong, voucherById, packById, loadProfile, freshProfile, record,
+  type Card, type Score, type Profile, type Item, type Rival, type PackType, type PackKind,
 } from '../../lib/acorn-hand-game';
-import { drawCard, drawCharm, drawRival } from '../../lib/acorn-hand-scene';
+import { drawCard, drawCharm, drawRival, drawVoucher, drawPack } from '../../lib/acorn-hand-scene';
 import { drawChinchilla } from '../../lib/chinchilla-art';
 import { fitDraw } from '../../lib/art-fit';
 import { useHoverNote } from '../../components/hover-note';
 import { sound } from './sound';
 import './acorn-hand.css';
 
-const RUN_KEY = 'acorn-hand-run-v1', PROFILE_KEY = 'acorn-hand-v1';
+const RUN_KEY = 'acorn-hand-run-v2', PROFILE_KEY = 'acorn-hand-v1';
 const readJson = (key: string): unknown => { try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : null; } catch { return null; } };
 const writeJson = (key: string, v: unknown) => { try { if (v === null) localStorage.removeItem(key); else localStorage.setItem(key, JSON.stringify(v)); } catch { /* private window: nothing is kept */ } };
 const fmt = (n: number) => Math.round(n).toLocaleString('en-GB');
@@ -23,6 +23,11 @@ const RARITY = ['', 'Common', 'Uncommon', 'Rare'];
 const TREAT_ICON: Record<string, string> = { honey: '🍯', spice: '🌶️', dew: '💧', leaf: '🍂', dye0: '🌰', dye1: '☘️', dye2: '🍓', dye3: '🪨', mirror: '🪞', compost: '🪱', sprout: '🌱', tea: '🍵', wish: '⭐' };
 const itemIcon = (it: Item) => (it.kind === 'almanac' ? '📖' : TREAT_ICON[it.id] ?? '🍀');
 const cardName = (c: Card) => `${rankLong(c.rank)} of ${SUITS[c.suit]}${c.gloss ? `, ${c.gloss}` : ''}`;
+const PACK_TEXT: Record<PackKind, string> = {
+  charm: 'Chinchilla charms: take one into a free slot.', almanac: 'Almanac pages, each used as you take it.',
+  treat: 'Treats, used at once on cards dealt from your deck.', card: 'Playing cards, some glossed, that join your deck.',
+};
+const packLine = (t: PackType, bonus: number) => `Pick ${t.picks} of ${t.shown + bonus}`;
 
 type Anim = { score: Score; cards: Card[]; step: number; total: boolean };
 
@@ -36,6 +41,8 @@ const CardArt = ({ card, down, asleep }: { card: Card; down?: boolean; asleep?: 
   <Paint w={150} h={210} sig={`${card.rank}-${card.suit}-${card.gloss}-${!!down}-${!!asleep}`} draw={(c, w, h) => drawCard(c, card, w, h, { down, asleep })} />;
 const CharmArt = ({ id }: { id: string }) => <Paint w={120} h={150} sig={id} draw={(c, w, h) => drawCharm(c, charmById(id)!, w, h)} />;
 const RivalArt = ({ rival }: { rival: Rival }) => <Paint w={160} h={120} sig={rival} draw={(c, w, h) => drawRival(c, rival, w, h)} />;
+const VoucherArt = ({ id }: { id: string }) => <Paint w={150} h={110} sig={id} draw={(c, w, h) => drawVoucher(c, voucherById(id)!, w, h)} />;
+const PackArt = ({ id }: { id: string }) => <Paint w={110} h={150} sig={id} draw={(c, w, h) => drawPack(c, packById(id)!, w, h)} />;
 
 /** Dora and Enzo with a royal flush fanned out between them, for the title. */
 function TitleArt() {
@@ -69,7 +76,7 @@ export default function AcornHandPage() {
     const pending = timers.current;
     return () => { media.removeEventListener('change', sync); pending.forEach(clearTimeout); };
   }, []);
-  useEffect(() => { (window as unknown as { __acorn?: () => unknown }).__acorn = () => ({ run: runRef.current, profile, anim, selected, refresh, motion: motion.current }); });
+  useEffect(() => { (window as unknown as { __acorn?: () => unknown }).__acorn = () => ({ run: runRef.current, profile, anim, selected, refresh, motion: motion.current, pack: runRef.current?.pack ?? null, offer: runRef.current?.offer ?? null, vouchers: runRef.current?.vouchers ?? [] }); });
 
   /** Save the run and fold it into the record. A finished run is counted once and its save is cleared. */
   const persist = useCallback(() => {
@@ -88,7 +95,7 @@ export default function AcornHandPage() {
   const toTitle = () => { persist(); setKept(runRef.current && runRef.current.phase !== 'over' ? Run.load(runRef.current.save()) : null); setView('title'); };
   const resort = (r: Run, by = sortBy) => r.sort(by);
   const toggle = (id: number) => {
-    if (anim || run?.phase !== 'round') return;
+    if (anim || !(run?.phase === 'round' || (run?.phase === 'pack' && run.pack?.dealt.includes(id)))) return;
     setSelected((s) => { if (s.includes(id)) { sound.cue('drop'); return s.filter((x) => x !== id); } if (s.length >= MAX_PLAY) { sound.cue('nope'); return s; } sound.cue('pick'); return [...s, id]; });
   };
 
@@ -133,14 +140,29 @@ export default function AcornHandPage() {
     if (ok) { setSelected([]); setNote(`${itemName(it)} used.`); if (r.round) resort(r); }
     sound.cue(ok ? 'use' : 'nope'); persist(); refresh();
   };
+  /** Take option `i` of the open pack, using the selected dealt cards for a treat. */
+  const takeOption = (i: number) => {
+    const r = runRef.current; if (!r?.pack) return;
+    const why = r.packWhyNot(i, selected); if (why) { act(false, 'nope', why); return; }
+    const ok = r.takePack(i, selected); if (ok) setSelected([]);
+    act(ok, 'use');
+  };
+  const skipPack = () => { const r = runRef.current; if (!r) return; setSelected([]); act(r.skipPack(), 'click'); };
 
-  // Keyboard: 1 to 9 pick cards, Enter plays, D discards, S sorts, Escape clears, M mutes.
+  // Keyboard: 1 to 9 pick cards, Enter plays, D discards, S sorts, Escape clears, M mutes; in a pack 1 to 9 take, S skips.
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
       if (e.key === 'm' || e.key === 'M') { const m = !sound.muted(); sound.setMuted(m); setMuted(m); return; }
-      const r = runRef.current; if (view !== 'run' || !r || r.phase !== 'round' || anim) return;
+      const r = runRef.current; if (view !== 'run' || !r || anim) return;
+      if (r.phase === 'pack') {
+        if (/^[1-9]$/.test(e.key)) { e.preventDefault(); takeOption(Number(e.key) - 1); }
+        else if (e.key === 's' || e.key === 'S') skipPack();
+        else if (e.key === 'Escape') setSelected([]);
+        return;
+      }
+      if (r.phase !== 'round') return;
       if (/^[1-9]$/.test(e.key)) { const id = r.round!.hand[Number(e.key) - 1]; if (id !== undefined) { e.preventDefault(); toggle(id); } }
       else if (e.key === 'Enter') { e.preventDefault(); playHand(); }
       else if (e.key === 'd' || e.key === 'D') discard();
@@ -182,8 +204,8 @@ export default function AcornHandPage() {
             <li><b>A round:</b> you hold eight cards. Pick up to five and play them, or throw some away to draw new ones. You have four plays and three discards to reach the target.</li>
             <li><b>Scoring:</b> the best poker hand among the cards you play sets a base of chips and mult. Each card that counts adds its chips (aces 11, faces 10), then your charms join in, left to right. Chips × mult is the score.</li>
             <li><b>A run:</b> each ante has a small round, a big round and a boss whose rule changes how you play. Beat the eighth boss to win; then keep going in endless.</li>
-            <li><b>Between rounds:</b> spend nuts on charms (five slots), almanac pages that level up a hand type, and treats that change your cards. Every five nuts you keep earns one more, up to five.</li>
-            <li><b>Keys:</b> 1 to 8 pick cards, Enter plays, D discards, S sorts by rank or suit, Esc clears, M sound. On a phone, tap. Hold a charm or item to read it.</li>
+            <li><b>Between rounds:</b> spend nuts on charms (five slots), almanac pages that level up a hand type, treats that change your cards, one voucher an ante that lasts the whole run, and booster packs to pick from. Every five nuts you keep earns one more, up to five.</li>
+            <li><b>Keys:</b> 1 to 8 pick cards, Enter plays, D discards, S sorts by rank or suit, Esc clears, M sound. In a pack, 1 to 5 take and S skips. On a phone, tap. Hold a charm or item to read it.</li>
           </ul>}
           <dl className="ah-record" data-testid="record">
             <div><dt>Runs</dt><dd>{profile.runs}</dd></div><div><dt>Wins</dt><dd>{profile.wins}</dd></div>
@@ -201,11 +223,20 @@ export default function AcornHandPage() {
     const d = charmById(id)!;
     return { title: d.name, sub: `${RARITY[d.rarity]} charm`, body: d.text, foot: [owned && d.shows ? `Now: ${d.shows(owned.state)}.` : '', price ? `Costs ${price} nuts.` : owned ? `Sells for ${r.sellPrice(id)} nuts.` : ''].filter(Boolean).join(' ') || undefined };
   };
+  const voucherTip = (id: string, price?: number) => () => { const v = voucherById(id)!; return { title: v.name, sub: 'Voucher', body: v.text, foot: price ? `Costs ${price} nuts and lasts the rest of the run.` : 'Yours for the rest of the run.' }; };
   const itemTip = (it: Item, price?: number) => () => ({ title: itemName(it), sub: it.kind === 'almanac' ? `Almanac page · ${handById(it.id as never).name} is level ${r.levels[it.id as keyof typeof r.levels]}` : 'Treat', body: itemText(it), foot: price ? `Costs ${price} nuts.` : undefined });
+  const packTip = (t: PackType) => () => ({ title: t.name, sub: packLine(t, r.packBonus), body: PACK_TEXT[t.kind], foot: `Costs ${t.cost} nuts.` });
+  /** What one option in an open pack looks like. */
+  const packOption = (kind: PackKind, o: string | Card) => {
+    if (kind === 'charm') { const d = charmById(o as string)!; return <><div {...tip(charmTip(d.id))}><CharmArt id={d.id} /></div><h3>{d.name}</h3><p className="ah-small">{RARITY[d.rarity]}</p><p>{d.text}</p></>; }
+    if (kind === 'card') { const c = o as Card; return <><CardArt card={c} /><h3>{cardName(c)}</h3>{c.gloss && <p>{GLOSS_TEXT[c.gloss as keyof typeof GLOSS_TEXT]}</p>}</>; }
+    const it: Item = { kind: kind === 'almanac' ? 'almanac' : 'treat', id: o as string };
+    return <><div className="ah-item-big" aria-hidden="true" {...tip(itemTip(it))}>{itemIcon(it)}</div><h3>{itemName(it)}</h3><p>{itemText(it)}</p></>;
+  };
 
   const charmsRow = (shop: boolean) => (
     <section className="ah-charms" aria-label="Your charms" data-testid="charms">
-      {Array.from({ length: CHARM_SLOTS }, (_, i) => {
+      {Array.from({ length: r.charmSlots }, (_, i) => {
         const o = r.charms[i];
         if (!o) return <div key={`e${i}`} className="ah-charm ah-empty" aria-hidden="true" />;
         const d = charmById(o.id)!;
@@ -222,7 +253,7 @@ export default function AcornHandPage() {
   );
   const itemsRow = (
     <section className="ah-items" aria-label="Your items" data-testid="items">
-      {Array.from({ length: ITEM_SLOTS }, (_, i) => {
+      {Array.from({ length: r.itemSlots }, (_, i) => {
         const it = r.items[i];
         if (!it) return <div key={`e${i}`} className="ah-item ah-empty"><small>Empty item slot</small></div>;
         const why = r.itemWhyNot(i, selected);
@@ -318,7 +349,7 @@ export default function AcornHandPage() {
       <ul className="ah-cash">
         <li><span>{BLIND[r.blind].name}</span><b>+{k.blind}</b></li>
         {k.plays > 0 && <li><span>Plays left ({k.plays})</span><b>+{k.plays}</b></li>}
-        {k.interest > 0 && <li><span>Interest (1 per {INTEREST_EVERY} held, at most {INTEREST_CAP})</span><b>+{k.interest}</b></li>}
+        {k.interest > 0 && <li><span>Interest (1 per {INTEREST_EVERY} held, at most {r.interestCap})</span><b>+{k.interest}</b></li>}
         {k.charms > 0 && <li><span>Charms</span><b>+{k.charms}</b></li>}
         {k.gold > 0 && <li><span>Gold cards in hand</span><b>+{k.gold}</b></li>}
       </ul>
@@ -327,24 +358,65 @@ export default function AcornHandPage() {
   } else if (r.phase === 'shop' && r.shop) {
     const s = r.shop;
     body = <section className="ah-shop" data-testid="shop">
-      <div className="ah-shop-head"><h2>The hollow-log shop</h2><p>Next: ante {r.ante}, {BLIND[r.blind].name.toLowerCase()}{r.blind === 2 ? ` against ${boss.name}` : ''}.</p></div>
+      <div className="ah-shop-head"><h2>The hollow-log shop</h2><p>Next: ante {r.ante}, {BLIND[r.blind].name.toLowerCase()}{r.blind === 2 ? ` against ${boss.name}` : ''}.</p>
+        {r.vouchers.length > 0 && <p className="ah-vouchers" data-testid="vouchers">Vouchers: {r.vouchers.map((v, i) => <span key={v} {...tip(voucherTip(v))}>{i ? ', ' : ''}{voucherById(v)!.name}</span>)}</p>}
+      </div>
       <div className="ah-offers">
         {s.charms.map((id, i) => id ? <article key={`c${i}`} className="ah-offer" data-testid={`offer-charm-${i}`} data-rarity={charmById(id)!.rarity}>
           <div {...tip(charmTip(id, undefined, r.priceOf(id)))}><CharmArt id={id} /></div>
           <h3>{charmById(id)!.name}</h3><p className="ah-small">{RARITY[charmById(id)!.rarity]}</p><p>{charmById(id)!.text}</p>
-          <button className="ah-gold" data-testid={`buy-charm-${i}`} disabled={r.nuts < r.priceOf(id) || r.charms.length >= CHARM_SLOTS} onClick={() => act(r.buyCharm(i), 'buy')}>Buy · {r.priceOf(id)}</button>
+          <button className="ah-gold" data-testid={`buy-charm-${i}`} disabled={r.nuts < r.priceOf(id) || r.charms.length >= r.charmSlots} onClick={() => act(r.buyCharm(i), 'buy')}>Buy · {r.priceOf(id)}</button>
         </article> : <article key={`c${i}`} className="ah-offer ah-sold"><p>Sold</p></article>)}
         {s.items.map((it, i) => it ? <article key={`i${i}`} className="ah-offer ah-offer-item" data-testid={`offer-item-${i}`} data-kind={it.kind}>
           <div className="ah-item-big" aria-hidden="true" {...tip(itemTip(it, ITEM_COST))}>{itemIcon(it)}</div>
           <h3>{itemName(it)}</h3><p className="ah-small">{it.kind === 'almanac' ? 'Almanac page' : 'Treat'}</p><p>{itemText(it)}</p>
-          <button className="ah-gold" data-testid={`buy-item-${i}`} disabled={r.nuts < ITEM_COST || r.items.length >= ITEM_SLOTS} onClick={() => act(r.buyItem(i), 'buy')}>Buy · {ITEM_COST}</button>
+          <button className="ah-gold" data-testid={`buy-item-${i}`} disabled={r.nuts < ITEM_COST || r.items.length >= r.itemSlots} onClick={() => act(r.buyItem(i), 'buy')}>Buy · {ITEM_COST}</button>
         </article> : <article key={`i${i}`} className="ah-offer ah-sold"><p>Sold</p></article>)}
+      </div>
+      <div className="ah-offers ah-offers-extra">
+        <article className="ah-offer ah-offer-voucher" data-testid="offer-voucher">
+          {r.offer ? <>
+            <div {...tip(voucherTip(r.offer, VOUCHER_COST))}><VoucherArt id={r.offer} /></div>
+            <h3>{voucherById(r.offer)!.name}</h3><p className="ah-small">Voucher · this ante</p><p>{voucherById(r.offer)!.text}</p>
+            <button className="ah-gold" data-testid="buy-voucher" disabled={r.nuts < VOUCHER_COST} onClick={() => act(r.buyVoucher(), 'buy')}>Buy · {VOUCHER_COST}</button>
+          </> : <p>{r.vouchers.length >= VOUCHERS.length ? 'Every voucher is yours.' : 'Voucher bought. A new one comes after the boss.'}</p>}
+        </article>
+        {s.packs.map((id, i) => {
+          const t = id ? packById(id) : undefined;
+          return t ? <article key={`p${i}`} className="ah-offer ah-offer-pack" data-testid={`offer-pack-${i}`} data-kind={t.kind}>
+            <div {...tip(packTip(t))}><PackArt id={t.id} /></div>
+            <h3>{t.name}</h3><p className="ah-small">{packLine(t, r.packBonus)}</p><p>{PACK_TEXT[t.kind]}</p>
+            <button className="ah-gold" data-testid={`open-pack-${i}`} disabled={r.nuts < t.cost} onClick={() => { setSelected([]); act(r.openPack(i), 'deal'); }}>Open · {t.cost}</button>
+          </article> : <article key={`p${i}`} className="ah-offer ah-sold"><p>Opened</p></article>;
+        })}
       </div>
       <div className="ah-row ah-center">
         <button data-testid="reroll" disabled={r.nuts < r.rerollCost} onClick={() => act(r.reroll(), 'reroll')}>New charms · {r.rerollCost}</button>
         <button className="ah-gold" data-testid="leave" onClick={() => act(r.leave(), 'click')}>Next round</button>
       </div>
       <details className="ah-levels"><summary>Hand levels</summary><ul>{HANDS.filter((h) => r.levels[h.id] > 1 || r.played[h.id] > 0 || !['five', 'ffive'].includes(h.id)).map((h) => <li key={h.id}><span>{h.name}</span><span>lvl {r.levels[h.id]}</span><span>{h.chips + h.upChips * (r.levels[h.id] - 1)} × {h.mult + h.upMult * (r.levels[h.id] - 1)}</span><span>played {r.played[h.id]}</span></li>)}</ul></details>
+    </section>;
+  } else if (r.phase === 'pack' && r.pack) {
+    const p = r.pack, t = packById(p.id)!;
+    body = <section className="ah-shop ah-pack" data-testid="pack" data-kind={t.kind}>
+      <div className="ah-shop-head"><h2>{t.name}</h2><p>{p.picks} pick{p.picks === 1 ? '' : 's'} left. {t.kind === 'treat' ? 'Select dealt cards, then use a treat on them.' : 'Take what you want, or skip the rest.'}</p></div>
+      <div className="ah-offers">
+        {p.options.map((o, i) => {
+          if (o === null) return <article key={i} className="ah-offer ah-sold"><p>Taken</p></article>;
+          const why = r.packWhyNot(i, selected);
+          return <article key={i} className="ah-offer" data-testid={`pack-option-${i}`} data-rarity={t.kind === 'charm' ? charmById(o as string)!.rarity : undefined}>
+            {packOption(t.kind, o)}
+            <button className="ah-gold" data-testid={`take-${i}`} aria-disabled={!!why} title={why ?? undefined} onClick={() => takeOption(i)}>{t.kind === 'treat' ? 'Use' : 'Take'} <kbd aria-hidden="true">{i + 1}</kbd></button>
+          </article>;
+        })}
+      </div>
+      {t.kind === 'treat' && <div className="ah-hand ah-dealt" data-testid="dealt" style={{ '--n': p.dealt.length } as React.CSSProperties}>
+        {p.dealt.map((id, i) => {
+          const c = r.card(id), sel = selected.includes(id);
+          return <button key={id} className="ah-card" data-selected={sel} data-testid={`dealt-${i}`} aria-pressed={sel} aria-label={cardName(c)} onClick={() => toggle(id)}><CardArt card={c} /></button>;
+        })}
+      </div>}
+      <div className="ah-row ah-center"><button data-testid="skip-pack" onClick={skipPack}>Skip the rest</button></div>
     </section>;
   } else if (r.phase === 'victory') {
     body = <section className="ah-card-panel" data-testid="victory">
@@ -373,7 +445,7 @@ export default function AcornHandPage() {
           {r.phase === 'round' && counter}
         </aside>
         <div className="ah-main">
-          {charmsRow(r.phase === 'shop' || r.phase === 'pick')}
+          {charmsRow(r.phase === 'shop' || r.phase === 'pick' || r.phase === 'pack')}
           {body}
           {itemsRow}
           {note && r.phase !== 'round' && <p className="ah-note" data-testid="note">{note}</p>}
