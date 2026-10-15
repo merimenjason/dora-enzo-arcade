@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {
   Run, Rand, evaluate, scorePlay, HANDS, CHARMS, TREATS, BOSSES, BLIND, ANTES, ANTE_BASE, CHARM_SLOTS, ITEM_SLOTS, HAND_SIZE, PLAYS, DISCARDS, START_NUTS,
-  INTEREST_CAP, REROLL, COST, SAVE_VERSION, anteBase, cardChips, charmById, freshProfile, loadProfile, record,
+  INTEREST_CAP, REROLL, COST, SAVE_VERSION, PROFILE_VERSION, SHOP_CHARMS, HOARD_CAP, HAGGLER_REROLL, VOUCHERS, VOUCHER_COST,
+  anteBase, cardChips, charmById, voucherById, freshProfile, loadProfile, record,
 } from '../.checks/acorn-hand-game.js';
 
 let nextId = 1000;
@@ -191,15 +192,66 @@ const setHand = (run, cards) => { run.deck.push(...cards); run.round.hand = card
   const run = new Run(21);
   for (let i = 0; i < ANTES * 3; i++) {
     if (run.phase === 'shop') run.leave();
-    run.start(); run.round.target = 1; run.play([run.round.hand[0]]); assert.ok(run.collect());
+    run.start(); run.round.target = 1; run.play(run.round.hand.slice(0, 5)); assert.ok(run.collect());
   }
   assert.equal(run.phase, 'victory'); assert.equal(run.ante, ANTES + 1);
   const p = record(record(freshProfile(), run, true), run, false);
   assert.equal(p.wins, 1, 'the record counts the win on the victory screen'); assert.equal(p.runs, 1); assert.equal(p.bestAnte, ANTES);
   assert.ok(run.goEndless()); assert.equal(run.phase, 'shop'); assert.ok(run.endless);
   assert.ok(anteBase(9) > anteBase(8)); assert.equal(anteBase(8), ANTE_BASE[7]);
-  assert.deepEqual(loadProfile({ v: SAVE_VERSION, runs: 2, wins: 1, bestAnte: 3, bestHand: 9, seen: ['dora', 'nobody'] }).seen, ['dora']);
+  assert.deepEqual(loadProfile({ v: PROFILE_VERSION, runs: 2, wins: 1, bestAnte: 3, bestHand: 9, seen: ['dora', 'nobody'] }).seen, ['dora']);
+  assert.equal(PROFILE_VERSION, 1, 'records from before vouchers still load'); assert.equal(SAVE_VERSION, 2, 'runs from before vouchers do not');
   assert.deepEqual(loadProfile('nonsense'), freshProfile());
+}
+
+// Vouchers
+const inShop = (seed) => { const run = new Run(seed); run.start(); run.round.target = 1; run.play(run.round.hand.slice(0, 5)); run.collect(); run.nuts = 200; return run; };
+{
+  assert.equal(VOUCHERS.length, 10); assert.equal(new Set(VOUCHERS.map((v) => v.id)).size, 10); assert.equal(VOUCHER_COST, 10);
+  const run = inShop(31);
+  assert.deepEqual({ slots: run.charmSlots, items: run.itemSlots, cap: run.interestCap, shop: run.shopCharms, hand: run.handSize, plays: run.maxPlays, discards: run.maxDiscards, reroll: run.rerollCost, bonus: run.packBonus },
+    { slots: CHARM_SLOTS, items: ITEM_SLOTS, cap: INTEREST_CAP, shop: SHOP_CHARMS, hand: HAND_SIZE, plays: PLAYS, discards: DISCARDS, reroll: REROLL, bonus: 0 });
+  run.vouchers = VOUCHERS.map((v) => v.id); run.offer = null;
+  assert.equal(run.charmSlots, CHARM_SLOTS + 1); assert.equal(run.itemSlots, ITEM_SLOTS + 1); assert.equal(run.interestCap, HOARD_CAP);
+  assert.equal(run.shopCharms, SHOP_CHARMS + 1); assert.equal(run.handSize, HAND_SIZE + 1); assert.equal(run.maxPlays, PLAYS + 1); assert.equal(run.maxDiscards, DISCARDS + 1);
+  assert.equal(run.rerollCost, HAGGLER_REROLL); assert.equal(run.packBonus, 1);
+  assert.ok(run.reroll()); assert.equal(run.shop.charms.length, SHOP_CHARMS + 1, 'Bigger Stall shows a third charm once rerolled');
+  const back = Run.load(JSON.parse(JSON.stringify(run.save()))); assert.ok(back, 'and a save with three shop charms loads'); assert.deepEqual(back.save(), run.save());
+  for (let i = 0; i < CHARM_SLOTS + 1; i++) run.charms.push({ id: CHARMS[i].id, state: 0 });
+  run.shop.charms[0] = CHARMS[20].id; assert.equal(run.buyCharm(0), false, 'six charms fill the wider shelf');
+  run.items = [{ kind: 'treat', id: 'tea' }, { kind: 'treat', id: 'tea' }]; run.shop.items[0] = { kind: 'treat', id: 'wish' }; assert.ok(run.buyItem(0), 'a third item fits in deep pockets');
+}
+{
+  // Boss rules that set a number outright still win.
+  const run = new Run(32); run.vouchers = ['play', 'discard', 'hand']; run.blind = 2;
+  run.bosses[0] = 'plays'; assert.equal(run.maxPlays, 3);
+  run.bosses[0] = 'nodiscard'; assert.equal(run.maxDiscards, 0);
+  run.bosses[0] = 'small'; assert.equal(run.handSize, HAND_SIZE, 'one fewer than Big Paws gives');
+}
+{
+  const run = new Run(33); run.vouchers = ['hoard']; run.nuts = 60; run.start(); run.round.target = 1; run.play(run.round.hand.slice(0, 5));
+  assert.equal(run.cash.interest, HOARD_CAP, 'Squirrel Hoard pays interest up to 10');
+  const skip = new Run(34); skip.vouchers = ['pockets']; skip.items = [{ kind: 'treat', id: 'tea' }, { kind: 'treat', id: 'tea' }];
+  assert.notEqual(skip.skip(), 'nuts', 'a skip still gives an item into the third slot'); assert.equal(skip.items.length, 3);
+}
+{
+  const share = (lucky) => { const run = new Run(35); if (lucky) run.vouchers = ['lucky']; let n = 0; for (let i = 0; i < 400; i++) if (charmById(run.rollCharm([])).rarity > 1) n++; return n / 400; };
+  assert.ok(share(true) > share(false) * 1.25, `Lucky Burrow makes uncommon and rare charms likelier (${share(false)} → ${share(true)})`);
+}
+{
+  // One voucher an ante, never one already owned.
+  const run = new Run(36); assert.ok(voucherById(run.offer), 'a voucher is on offer from the start');
+  const first = run.offer;
+  run.start(); run.round.target = 1; run.play(run.round.hand.slice(0, 5)); run.collect();
+  assert.equal(run.offer, first, 'the same voucher all ante');
+  run.nuts = 9; assert.equal(run.buyVoucher(), false, 'it costs ten nuts');
+  run.nuts = 10; assert.ok(run.buyVoucher()); assert.equal(run.nuts, 0); assert.deepEqual(run.vouchers, [first]); assert.equal(run.offer, null);
+  run.nuts = 50; assert.equal(run.buyVoucher(), false, 'one an ante');
+  run.leave(); assert.equal(run.buyVoucher(), false, 'only in the shop');
+  run.vouchers = VOUCHERS.slice(0, 9).map((v) => v.id); run.rollOffer(); assert.equal(run.offer, VOUCHERS[9].id, 'never one already owned');
+  run.vouchers.push(run.offer); run.rollOffer(); assert.equal(run.offer, null, 'none once all ten are owned');
+  const boss = new Run(37); boss.offer = null; boss.bosses = ['small']; boss.blind = 2; boss.start(); boss.round.target = 1; boss.play(boss.round.hand.slice(0, 5)); boss.collect();
+  assert.equal(boss.ante, 2); assert.ok(voucherById(boss.offer), 'beating the boss puts a new voucher on the shelf');
 }
 
 // Seeds replay, saves round-trip, broken saves are refused
@@ -222,6 +274,13 @@ const setHand = (run, cards) => { run.deck.push(...cards); run.round.hand = card
   assert.equal(bad((s) => { s.phase = 'shop'; }), null, 'a shop phase needs a shop');
   assert.equal(bad((s) => { s.bosses = ['sleepy']; }), null);
   assert.equal(bad((s) => { s.levels.pair = 0; }), null);
+  assert.equal(bad((s) => { s.vouchers = ['shelf', 'shelf']; }), null);
+  assert.equal(bad((s) => { s.vouchers = ['wings']; }), null);
+  assert.equal(bad((s) => { s.vouchers = ['pockets']; s.offer = 'pockets'; }), null, 'the offer is never one already owned');
+  assert.equal(bad((s) => { s.v = 1; }), null, 'a version-1 run is not misread');
+  const six = JSON.parse(JSON.stringify(run.save())); six.charms = CHARMS.slice(0, 6).map((c) => ({ id: c.id, state: 0 }));
+  assert.equal(Run.load(six), null, 'six charms need Wider Shelf');
+  six.vouchers = ['shelf']; if (six.offer === 'shelf') six.offer = null; assert.ok(Run.load(six), 'and load with it');
   const r = new Rand(5), seq = [r.next(), r.next()], again = new Rand(5); assert.deepEqual([again.next(), again.next()], seq);
 }
 

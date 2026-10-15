@@ -175,6 +175,25 @@ export const itemText = (it: Item) => {
 };
 export const ITEM_COST = 3;
 
+// ── Vouchers ──────────────────────────────────────────────────────────────────
+
+/** A permanent upgrade for the rest of the run. One is on offer each ante. */
+export type Voucher = { id: string; name: string; text: string };
+export const VOUCHERS: Voucher[] = [
+  { id: 'shelf', name: 'Wider Shelf', text: '+1 charm slot.' },
+  { id: 'pockets', name: 'Deep Pockets', text: '+1 item slot.' },
+  { id: 'haggler', name: 'Haggler', text: 'Rerolls start at 3 nuts, not 5.' },
+  { id: 'hoard', name: 'Squirrel Hoard', text: 'Interest goes up to 10, not 5: up to 50 nuts held count.' },
+  { id: 'play', name: 'Extra Paw', text: '+1 play each round.' },
+  { id: 'discard', name: 'Spare Paw', text: '+1 discard each round.' },
+  { id: 'hand', name: 'Big Paws', text: '+1 hand size.' },
+  { id: 'stall', name: 'Bigger Stall', text: 'The shop shows 3 charms, not 2.' },
+  { id: 'market', name: 'Market Day', text: 'Every pack shows one more option.' },
+  { id: 'lucky', name: 'Lucky Burrow', text: 'Uncommon and rare charms are twice as likely.' },
+];
+export const voucherById = (id: string) => VOUCHERS.find((v) => v.id === id);
+export const VOUCHER_COST = 10;
+
 // ── Rivals and their rules ────────────────────────────────────────────────────
 
 export type BossRule = 'suit0' | 'suit1' | 'suit2' | 'suit3' | 'five' | 'fog' | 'veil' | 'small' | 'plays' | 'nodiscard' | 'trickle' | 'fame' | 'shell';
