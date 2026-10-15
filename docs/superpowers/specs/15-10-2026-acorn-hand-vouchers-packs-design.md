@@ -60,7 +60,7 @@ New state on `Run`:
 
 A new phase, `'pack'`:
 
-- `openPack(slot)` works only in `'shop'`, with enough nuts and, for a charm pack, a free charm slot. It takes the nuts, rolls the options and (for a treat pack) deals the cards, in that order, and enters `'pack'`.
+- `openPack(slot)` works only in `'shop'`, with enough nuts; a charm pack opens even with every charm slot full, since a charm can be sold inside it. It takes the nuts, rolls the options and (for a treat pack) deals the cards, in that order, and enters `'pack'`.
 - `packWhyNot(i, ids)` says why option `i` cannot be taken with these dealt cards selected, or returns null.
 - `takePack(i, ids = [])` applies option `i`; when no picks are left, the pack closes and the phase returns to `'shop'`.
 - `skipPack()` closes the pack and returns to `'shop'`.
@@ -82,7 +82,7 @@ Every random draw comes from `this.rand`, in a fixed order, so a seed still repl
 
 ## Page (`app/acorn-hand/page.tsx`) and scene (`lib/acorn-hand-scene.ts`)
 
-- **Shop.** Under the charm and item offers, a voucher card (name, effect, **Buy · 10**, or "Bought") and two pack cards (kind, "pick 1 of 3", **Open · N**; disabled when short of nuts; a charm pack disabled with a note to sell a charm when slots are full). A line under the shop heading names the vouchers owned, with hover notes. The charm and item slot rows and every buy check read the run's getters.
+- **Shop.** Under the charm and item offers, a voucher card (name, effect, **Buy · 10**, or "Bought") and two pack cards (kind, "pick 1 of 3", **Open · N**; disabled when short of nuts). Inside a charm pack with every slot full, **Take** says to sell a charm first. A line under the shop heading names the vouchers owned, with hover notes. The charm and item slot rows and every buy check read the run's getters.
 - **Pack screen**, for `phase === 'pack'`. The options as offer cards with **Take**, the picks left and **Skip**; the charm row with its sell buttons stays visible. Card options are drawn with `drawCard`. A treat pack shows the eight dealt cards as a selectable hand below the options; select cards, then **Use** on a treat, with `packWhyNot` as the message when it can't be used. Keys: 1 to 5 take an option, S skips; taps work as in the shop.
 - **Art.** `drawVoucher` (a ticket stub with a paw stamp, tinted per voucher) and `drawPack` (a wrapped acorn-paper packet, tinted per kind, with a pip) in Canvas 2D. Shop items stay emoji.
 - The cash-out's interest line reads the run's interest cap.
