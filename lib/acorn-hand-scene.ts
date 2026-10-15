@@ -177,7 +177,7 @@ export function drawVoucher(c: C2D, v: Voucher, w: number, h: number) {
   c.fillStyle = 'rgba(255,243,214,.9)';
   c.beginPath(); c.ellipse(px, py, s * 1.1, s * 0.85, 0, 0, Math.PI * 2); c.fill();
   for (const [dx, dy] of [[-1.25, -1.15], [-0.45, -1.7], [0.45, -1.7], [1.25, -1.15]]) { c.beginPath(); c.arc(px + dx * s, py + dy * s, s * 0.42, 0, Math.PI * 2); c.fill(); }
-  c.fillStyle = '#fff3d6'; c.font = `700 ${Math.round(th * 0.3)}px Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(VOUCHER_COST), x + tw * 0.86, mid);
+  c.fillStyle = '#fff3d6'; c.font = `700 ${Math.round(th * 0.24)}px Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(VOUCHER_COST), x + tw * 0.83, mid);
 }
 
 const PACK_TINT: Record<PackKind, [string, string]> = { charm: ['#7a4f8a', '#3e2648'], almanac: ['#4f7a5a', '#26402e'], treat: ['#b0603a', '#5a2c18'], card: ['#3f6390', '#1f3250'] };

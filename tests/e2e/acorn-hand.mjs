@@ -25,7 +25,7 @@ const fresh = async (page) => { await page.goto(`${base}/acorn-hand`); await pag
 const deal = async (page) => { await page.getByTestId('new-run').click(); await page.getByTestId('pick').waitFor(); await page.getByTestId('start').click(); await page.getByTestId('hand').waitFor(); };
 const settled = (page) => page.waitForFunction(() => !window.__acorn().anim);
 const fits = (page) => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
-const stored = (page, key = 'acorn-hand-run-v1') => page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), key);
+const stored = (page, key = 'acorn-hand-run-v2') => page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), key);
 /** A known hand: two kings, two fives and four low odd cards. */
 const setHand = (page) => run(page, `(r) => { const want = [[13,0],[13,1],[5,2],[5,3],[2,0],[7,1],[9,2],[3,3]]; r.round.hand = want.map(([rank, suit]) => r.deck.find((c) => c.rank === rank && c.suit === suit).id); r.round.draw = r.round.draw.filter((id) => !r.round.hand.includes(id)); }`);
 
@@ -102,6 +102,50 @@ await check('winning a round pays out, and the shop buys, sells, rerolls and use
   assert.match(await page.getByTestId('note').innerText(), /Skipped/);
 });
 
+await check('vouchers and packs: buy a voucher, open every kind of pack, and a reload comes back inside one', async (page) => {
+  await fresh(page); await deal(page);
+  await run(page, '(r) => { r.round.target = 1; }');
+  await page.getByTestId('card-0').click(); await page.getByTestId('play').click(); await settled(page);
+  await page.getByTestId('collect').click(); await page.getByTestId('shop').waitFor();
+  await run(page, '(r) => { r.nuts = 200; r.offer = "shelf"; }');
+  await page.getByTestId('buy-voucher').click();
+  assert.deepEqual(await run(page, '(r) => r.vouchers'), ['shelf']);
+  assert.equal(await page.locator('[data-testid="charms"] > *').count(), 6, 'Wider Shelf shows a sixth slot');
+  assert.match(await page.getByTestId('vouchers').innerText(), /Wider Shelf/);
+  // A charm pack, by mouse.
+  await run(page, '(r) => { r.shop.packs = ["charm", "almanac-big"]; }');
+  await page.getByTestId('open-pack-0').click(); await page.getByTestId('pack').waitFor();
+  const want = await run(page, '(r) => r.pack.options[1]');
+  await page.getByTestId('take-1').click(); await page.getByTestId('shop').waitFor();
+  assert.equal(await run(page, '(r) => r.charms[0].id'), want);
+  // A big almanac pack, two picks by keyboard.
+  await page.getByTestId('open-pack-1').click(); await page.getByTestId('pack').waitFor();
+  const [a, b] = await run(page, '(r) => r.pack.options.slice(0, 2)');
+  await page.keyboard.press('1'); await page.keyboard.press('2'); await page.getByTestId('shop').waitFor();
+  assert.deepEqual(await run(page, `(r) => [r.levels["${a}"], r.levels["${b}"]]`), [2, 2], 'both pages are used as they are taken');
+  // A treat pack: a digit with nothing selected explains itself, then honey on two dealt cards.
+  await run(page, '(r) => { r.shop.packs = ["treat", "card"]; }');
+  await page.getByTestId('open-pack-0').click(); await page.getByTestId('dealt').waitFor();
+  await run(page, '(r) => { r.pack.options = ["honey", "tea", "mirror"]; }');
+  await page.keyboard.press('1'); assert.match(await page.getByTestId('note').innerText(), /Select/); assert.equal(await run(page, '(r) => r.phase'), 'pack');
+  const ids = await run(page, '(r) => r.pack.dealt.slice(0, 2)');
+  await page.getByTestId('dealt-0').click(); await page.getByTestId('dealt-1').click(); await page.getByTestId('take-0').click();
+  await page.getByTestId('shop').waitFor();
+  assert.deepEqual(await run(page, `(r) => ${JSON.stringify(ids)}.map((id) => r.card(id).gloss)`), ['honey', 'honey']);
+  // A card pack joins the deck.
+  const deck = await run(page, '(r) => r.deck.length');
+  await page.getByTestId('open-pack-1').click(); await page.getByTestId('pack').waitFor(); await page.getByTestId('take-0').click(); await page.getByTestId('shop').waitFor();
+  assert.equal(await run(page, '(r) => r.deck.length'), deck + 1);
+  // A reload inside a pack comes back to it; Skip leaves it.
+  await run(page, '(r) => { r.leave(); r.phase = "shop"; r.shop = { charms: [null, null], items: [null, null], packs: ["card-big", null], rerolls: 0 }; }');
+  await page.getByTestId('open-pack-0').click(); await page.getByTestId('pack').waitFor();
+  assert.equal((await stored(page)).phase, 'pack', 'the open pack is saved');
+  await page.reload(); await page.locator('main[data-ready="true"]').waitFor(); await page.getByTestId('continue').click(); await page.getByTestId('pack').waitFor();
+  assert.equal(await run(page, '(r) => r.pack.id'), 'card-big');
+  await page.getByTestId('skip-pack').click(); await page.getByTestId('shop').waitFor();
+  assert.equal(await run(page, '(r) => r.pack'), null);
+});
+
 await check('a boss rule is shown and enforced', async (page) => {
   await fresh(page); await page.getByTestId('new-run').click(); await page.getByTestId('pick').waitFor();
   await run(page, '(r) => { r.bosses[0] = "five"; r.blind = 2; }');
@@ -131,10 +175,13 @@ await check('a reload comes back to the same round, and broken saves are ignored
   const before = await run(page, '(r) => ({ hand: r.round.hand, score: r.round.score })');
   await page.reload(); await page.locator('main[data-ready="true"]').waitFor(); await page.getByTestId('continue').click(); await page.getByTestId('hand').waitFor();
   assert.deepEqual(await run(page, '(r) => ({ hand: r.round.hand, score: r.round.score })'), before);
-  await page.evaluate(() => localStorage.setItem('acorn-hand-run-v1', '{"v":1,"seed":"nope"}')); await page.reload(); await page.locator('main[data-ready="true"]').waitFor();
+  await page.evaluate(() => localStorage.setItem('acorn-hand-run-v2', '{"v":1,"seed":"nope"}')); await page.reload(); await page.locator('main[data-ready="true"]').waitFor();
   assert.equal(await page.getByTestId('continue').count(), 0);
-  await page.evaluate(() => localStorage.setItem('acorn-hand-run-v1', 'not json')); await page.reload(); await page.locator('main[data-ready="true"]').waitFor();
+  await page.evaluate(() => localStorage.setItem('acorn-hand-run-v2', 'not json')); await page.reload(); await page.locator('main[data-ready="true"]').waitFor();
   assert.equal(await page.getByTestId('continue').count(), 0);
+  await page.evaluate(() => { localStorage.removeItem('acorn-hand-run-v2'); localStorage.setItem('acorn-hand-run-v1', JSON.stringify({ v: 1, seed: 5, rand: 5, ante: 2, blind: 0, phase: 'pick' })); });
+  await page.reload(); await page.locator('main[data-ready="true"]').waitFor();
+  assert.equal(await page.getByTestId('continue').count(), 0, 'a run from before vouchers is not offered');
 });
 
 await check('beating the eighth boss wins, and endless carries on', async (page) => {
@@ -165,6 +212,9 @@ for (const [width, height] of [[360, 640], [390, 844], [844, 390], [768, 1024], 
     await run(page, '(r) => { r.round.target = 1; }'); await page.getByTestId('play').click(); await settled(page);
     await page.getByTestId('collect').click(); await page.getByTestId('shop').waitFor(); assert.ok(await fits(page), 'shop');
     await page.screenshot({ path: `.checks/acorn-hand/shop-${width}x${height}.png`, fullPage: true });
+    await run(page, '(r) => { r.nuts = 50; r.shop.packs[0] = "treat-big"; }'); await page.getByTestId('open-pack-0').click(); await page.getByTestId('pack').waitFor();
+    assert.ok(await fits(page), 'pack');
+    await page.screenshot({ path: `.checks/acorn-hand/pack-${width}x${height}.png`, fullPage: true });
   }, { width, height });
 }
 
