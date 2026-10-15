@@ -390,7 +390,7 @@ export class Run {
   sellPrice(id: string) { return Math.max(1, Math.floor(this.priceOf(id) / 2)); }
   buyCharm(slot: number) {
     const id = this.shop?.charms[slot];
-    if (this.phase !== 'shop' || !id || this.charms.length >= this.charmSlots || this.nuts < this.priceOf(id)) return false;
+    if (this.phase !== 'shop' || !id || this.charms.length >= this.charmSlots || this.charms.some((c) => c.id === id) || this.nuts < this.priceOf(id)) return false;
     this.nuts -= this.priceOf(id); this.shop!.charms[slot] = null;
     this.charms.push({ id, state: charmById(id)!.start ?? 0 });
     return true;
@@ -462,6 +462,7 @@ export class Run {
     const o = p.options[i];
     if (o === null || o === undefined) return 'That one is taken.';
     const kind = packById(p.id)!.kind;
+    if (kind === 'charm' && this.charms.some((c) => c.id === o)) return 'You already have that charm.';
     if (kind === 'charm' && this.charms.length >= this.charmSlots) return 'Your charm slots are full: sell one to make room.';
     return kind === 'treat' ? this.treatWhyNot(o as string, ids, p.dealt, 'Select cards dealt for the pack.') : null;
   }
@@ -480,6 +481,11 @@ export class Run {
   /** Leave what is left in the pack. */
   skipPack() { if (this.phase !== 'pack') return false; this.closePack(); return true; }
   private closePack() { this.pack = null; this.phase = 'shop'; }
+  /** Charms on the shelf or in an open charm pack, which a Wishing stone must not hand out as well. */
+  private onOffer(): string[] {
+    const pack = this.pack && packById(this.pack.id)!.kind === 'charm' ? this.pack.options : [];
+    return [...(this.shop?.charms ?? []), ...pack].filter((x): x is string => typeof x === 'string');
+  }
 
   // Items
   /** Why a treat cannot be used on these cards, chosen from `pool`, or null if it can. */
@@ -489,6 +495,8 @@ export class Run {
     if (!ids.length) return `Select ${t.picks === 1 ? 'a card' : `up to ${t.picks} cards`} first.`;
     if (ids.length > t.picks) return `Select at most ${t.picks}.`;
     if (ids.some((x) => !pool.includes(x))) return where;
+    // A deck smaller than a hand could not deal the next round, and would not load.
+    if (t.id === 'compost' && this.deck.length - ids.length < HAND_SIZE) return `Your deck can't go below ${HAND_SIZE} cards.`;
     return null;
   }
   /** Why an item cannot be used with these cards selected, or null if it can. */
@@ -525,7 +533,7 @@ export class Run {
         if (p) p.dealt = p.dealt.filter((x) => !ids.includes(x));
         break;
       case 'tea': this.nuts += Math.min(this.nuts, 20); break;
-      case 'wish': { const w = this.rollCharm([]); if (w) this.charms.push({ id: w, state: charmById(w)!.start ?? 0 }); break; }
+      case 'wish': { const w = this.rollCharm(this.onOffer()); if (w) this.charms.push({ id: w, state: charmById(w)!.start ?? 0 }); break; }
     }
   }
 

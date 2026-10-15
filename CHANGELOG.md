@@ -16,6 +16,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Acorn Hand**: a Wishing stone no longer hands out a charm that is also on the shelf, so you can't end up with two of the same charm, which made the run impossible to continue after a reload. Compost now stops before your deck drops below a full hand.
 - **Whisker Saga**: after a first clear, going back to the map now selects the stage that just opened instead of the one you beat, so "Fight" moves you on rather than replaying. Replays still keep their stage selected.
 - **Whisker Saga**: the batch summon button no longer reads "Summon 2" when you have no scrolls.
 - **Ember & Clover: Midnight Kitchen**: the four painted chefs no longer stand in pale boxes; the leftover background glow around each one has been cut away.
