@@ -194,6 +194,26 @@ export const VOUCHERS: Voucher[] = [
 export const voucherById = (id: string) => VOUCHERS.find((v) => v.id === id);
 export const VOUCHER_COST = 10;
 
+// ── Booster packs ─────────────────────────────────────────────────────────────
+
+export type PackKind = 'charm' | 'almanac' | 'treat' | 'card';
+export const PACK_KINDS: PackKind[] = ['charm', 'almanac', 'treat', 'card'];
+/** A pack in the shop: how many options it shows, how many you take, and its price. */
+export type PackType = { id: string; kind: PackKind; big: boolean; name: string; shown: number; picks: number; cost: number };
+export const PACKS: PackType[] = [
+  { id: 'charm', kind: 'charm', big: false, name: 'Charm pack', shown: 2, picks: 1, cost: 5 },
+  { id: 'charm-big', kind: 'charm', big: true, name: 'Big charm pack', shown: 4, picks: 1, cost: 7 },
+  { id: 'almanac', kind: 'almanac', big: false, name: 'Almanac pack', shown: 3, picks: 1, cost: 4 },
+  { id: 'almanac-big', kind: 'almanac', big: true, name: 'Big almanac pack', shown: 5, picks: 2, cost: 7 },
+  { id: 'treat', kind: 'treat', big: false, name: 'Treat pack', shown: 3, picks: 1, cost: 4 },
+  { id: 'treat-big', kind: 'treat', big: true, name: 'Big treat pack', shown: 5, picks: 2, cost: 7 },
+  { id: 'card', kind: 'card', big: false, name: 'Card pack', shown: 3, picks: 1, cost: 4 },
+  { id: 'card-big', kind: 'card', big: true, name: 'Big card pack', shown: 5, picks: 2, cost: 7 },
+];
+export const packById = (id: string) => PACKS.find((p) => p.id === id);
+/** Packs in each shop; how often one is big; cards dealt for a treat pack; how often a pack card is glossed. */
+export const SHOP_PACKS = 2, BIG_PACK_ODDS = 0.25, PACK_DEAL = 8, CARD_PACK_GLOSS = 0.3;
+
 // ── Rivals and their rules ────────────────────────────────────────────────────
 
 export type BossRule = 'suit0' | 'suit1' | 'suit2' | 'suit3' | 'five' | 'fog' | 'veil' | 'small' | 'plays' | 'nodiscard' | 'trickle' | 'fame' | 'shell';
