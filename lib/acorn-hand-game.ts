@@ -2,7 +2,7 @@
 // and every random draw comes from the run's own generator, whose state is saved with it.
 import {
   type Card, type Suit, type Gloss, type HandId, type Ctx, type Effect, type Charm, type Item, type Boss, type BossRule,
-  HANDS, CONTAINS, CHARMS, TREATS, BOSSES, BLIND, ANTES, COST, ITEM_COST, VOUCHERS, VOUCHER_COST, voucherById, handById, charmById, treatById, bossByRule, anteBase, cardChips, isFace,
+  HANDS, CONTAINS, CHARMS, TREATS, BOSSES, BLIND, ANTES, COST, ITEM_COST, VOUCHERS, VOUCHER_COST, voucherById, PACK_KINDS, SHOP_PACKS, BIG_PACK_ODDS, PACK_DEAL, CARD_PACK_GLOSS, packById, handById, charmById, treatById, bossByRule, anteBase, cardChips, isFace,
 } from './acorn-hand-cards.js';
 
 export * from './acorn-hand-cards.js';
@@ -152,18 +152,21 @@ export function scorePlay(o: {
 
 // ── A run ─────────────────────────────────────────────────────────────────────
 
-export type Phase = 'pick' | 'round' | 'cashout' | 'shop' | 'over' | 'victory';
+export type Phase = 'pick' | 'round' | 'cashout' | 'shop' | 'pack' | 'over' | 'victory';
 export type Round = {
   target: number; score: number; plays: number; discards: number; draw: number[]; hand: number[]; facedown: number[];
   firstPlay: boolean; played: number; last: Score | null; lastIds: number[];
 };
 export type Cash = { blind: number; plays: number; interest: number; charms: number; gold: number; total: number };
-export type Shop = { charms: (string | null)[]; items: (Item | null)[]; rerolls: number };
+export type Shop = { charms: (string | null)[]; items: (Item | null)[]; packs: (string | null)[]; rerolls: number };
+/** An open pack: what is in it (null once taken; cards have id -1 until taken), picks left, and the cards dealt for a treat pack. */
+export type Pack = { id: string; options: (string | Card | null)[]; picks: number; dealt: number[] };
 export type Save = {
   v: number; seed: number; rand: number; ante: number; blind: number; phase: Phase; endless: boolean; nuts: number; nextId: number;
   deck: Card[]; levels: Record<HandId, number>; played: Record<HandId, number>; charms: Owned[]; items: Item[];
-  bosses: BossRule[]; round: Round | null; cash: Cash | null; shop: Shop | null; vouchers: string[]; offer: string | null; best: number; rounds: number;
+  bosses: BossRule[]; round: Round | null; cash: Cash | null; shop: Shop | null; pack: Pack | null; vouchers: string[]; offer: string | null; best: number; rounds: number;
 };
+const GLOSSES: Gloss[] = ['', 'honey', 'ember', 'crystal', 'gold'];
 
 const freshLevels = () => Object.fromEntries(HANDS.map((h) => [h.id, 1])) as Record<HandId, number>;
 const freshCounts = () => Object.fromEntries(HANDS.map((h) => [h.id, 0])) as Record<HandId, number>;
@@ -171,7 +174,7 @@ const freshCounts = () => Object.fromEntries(HANDS.map((h) => [h.id, 0])) as Rec
 export class Run {
   seed: number; rand: Rand; ante = 1; blind = 0; phase: Phase = 'pick'; endless = false; nuts = START_NUTS; nextId = 0;
   deck: Card[] = []; levels = freshLevels(); played = freshCounts(); charms: Owned[] = []; items: Item[] = [];
-  bosses: BossRule[] = []; round: Round | null = null; cash: Cash | null = null; shop: Shop | null = null;
+  bosses: BossRule[] = []; round: Round | null = null; cash: Cash | null = null; shop: Shop | null = null; pack: Pack | null = null;
   /** Vouchers owned, in the order bought, and this ante's offer (null once bought, or when all are owned). */
   vouchers: string[] = []; offer: string | null = null;
   /** The best single hand of the run, and rounds won. */
@@ -356,20 +359,30 @@ export class Run {
     const lean = this.leanings(), lucky = this.owns('lucky');
     return this.rand.weighted(free, (c) => RARITY_ODDS[c.rarity] * (lucky && c.rarity > 1 ? 2 : 1) / CHARMS.filter((x) => x.rarity === c.rarity).length * (c.tags.some((t) => t !== 'any' && lean.has(t)) ? FIT_WEIGHT : 1)).id;
   }
+  /** An almanac page's hand: five of a kind and flush five only once played, the most-played hand four times as likely. */
+  private rollHand(taken: string[] = []): HandId {
+    const lean = this.fame;
+    const pool = HANDS.filter((h) => (h.id !== 'five' && h.id !== 'ffive' || this.played[h.id] > 0) && !taken.includes(h.id));
+    return this.rand.weighted(pool, (h) => (h.id === lean ? 4 : 1)).id;
+  }
   private rollItem(): Item {
-    if (this.rand.next() < 0.5) {
-      const lean = this.fame;
-      const pool = HANDS.filter((h) => h.id !== 'five' && h.id !== 'ffive' || this.played[h.id] > 0);
-      return { kind: 'almanac', id: this.rand.weighted(pool, (h) => (h.id === lean ? 4 : 1)).id };
-    }
+    if (this.rand.next() < 0.5) return { kind: 'almanac', id: this.rollHand() };
     return { kind: 'treat', id: this.rand.pick(TREATS).id };
   }
+  /** A playing card for a card pack: any rank and suit, glossed now and then. Its id is set when it is taken. */
+  private rollCard(): Card {
+    const rank = 2 + this.rand.int(13), suit = this.rand.int(4) as Suit;
+    return { id: -1, rank, suit, gloss: this.rand.next() < CARD_PACK_GLOSS ? this.rand.pick(GLOSSES.slice(1)) : '' };
+  }
+
   private stock() {
     const charms: (string | null)[] = [];
     for (let i = 0; i < this.shopCharms; i++) charms.push(this.rollCharm(charms.filter((x): x is string => !!x)));
     const items: (Item | null)[] = [];
     for (let i = 0; i < SHOP_ITEMS; i++) items.push(this.rollItem());
-    return { charms, items };
+    const packs: (string | null)[] = [];
+    for (let i = 0; i < SHOP_PACKS; i++) { const kind = this.rand.pick(PACK_KINDS); packs.push(this.rand.next() < BIG_PACK_ODDS ? `${kind}-big` : kind); }
+    return { charms, items, packs };
   }
   private openShop() { this.shop = { ...this.stock(), rerolls: 0 }; this.phase = 'shop'; }
   get rerollCost() { return (this.owns('haggler') ? HAGGLER_REROLL : REROLL) + (this.shop?.rerolls ?? 0); }
@@ -390,7 +403,7 @@ export class Run {
   }
   sell(index: number) {
     const c = this.charms[index];
-    if (!c || (this.phase !== 'shop' && this.phase !== 'pick' && this.phase !== 'round')) return false;
+    if (!c || (this.phase !== 'shop' && this.phase !== 'pick' && this.phase !== 'round' && this.phase !== 'pack')) return false;
     // Selling a charm that changes the hand size mid-round would leave the hand the wrong size: only between rounds.
     if (this.phase === 'round' && charmById(c.id)!.rule) return false;
     this.nuts += this.sellPrice(c.id); this.charms.splice(index, 1);
@@ -406,7 +419,7 @@ export class Run {
   reroll() {
     if (this.phase !== 'shop' || this.nuts < this.rerollCost) return false;
     this.nuts -= this.rerollCost; const n = this.shop!.rerolls + 1, before = this.shop!.charms.filter((x): x is string => !!x);
-    this.shop = { charms: [], items: this.shop!.items, rerolls: n };
+    this.shop = { charms: [], items: this.shop!.items, packs: this.shop!.packs, rerolls: n };
     // A reroll shows charms you have not just been looking at.
     for (let i = 0; i < this.shopCharms; i++) this.shop.charms.push(this.rollCharm([...before, ...this.shop.charms.filter((x): x is string => !!x)]));
     return true;
@@ -425,39 +438,95 @@ export class Run {
     this.offer = free.length ? this.rand.pick(free).id : null;
   }
 
+  // Booster packs
+  /** Open one of the shop's packs: pay, roll what is inside and, for treats, deal cards from the deck to use them on. */
+  openPack(slot: number) {
+    const id = this.shop?.packs[slot], t = id ? packById(id) : undefined;
+    if (this.phase !== 'shop' || !t || this.nuts < t.cost) return false;
+    this.nuts -= t.cost; this.shop!.packs[slot] = null;
+    const options: (string | Card | null)[] = [], names = () => options.filter((o): o is string => typeof o === 'string');
+    for (let i = 0; i < t.shown + this.packBonus; i++) {
+      const o = t.kind === 'charm' ? this.rollCharm(names()) : t.kind === 'almanac' ? this.rollHand(names())
+        : t.kind === 'treat' ? this.rand.pick(TREATS.filter((x) => !names().includes(x.id))).id : this.rollCard();
+      if (o !== null) options.push(o);
+    }
+    const dealt = t.kind === 'treat' ? this.rand.shuffle(this.deck.map((c) => c.id)).slice(0, PACK_DEAL) : [];
+    const picks = Math.min(t.picks, options.length);
+    if (picks) { this.pack = { id: t.id, options, picks, dealt }; this.phase = 'pack'; }
+    return true;
+  }
+  /** Why option `i` of the open pack cannot be taken with these dealt cards selected, or null if it can. */
+  packWhyNot(i: number, ids: number[] = []): string | null {
+    const p = this.pack;
+    if (this.phase !== 'pack' || !p) return 'No pack is open.';
+    const o = p.options[i];
+    if (o === null || o === undefined) return 'That one is taken.';
+    const kind = packById(p.id)!.kind;
+    if (kind === 'charm' && this.charms.length >= this.charmSlots) return 'Your charm slots are full: sell one to make room.';
+    return kind === 'treat' ? this.treatWhyNot(o as string, ids, p.dealt, 'Select cards dealt for the pack.') : null;
+  }
+  /** Take option `i`: a charm into a slot, a page or treat used at once, a card into the deck. The last pick closes the pack. */
+  takePack(i: number, ids: number[] = []) {
+    if (this.packWhyNot(i, ids)) return false;
+    const p = this.pack!, o = p.options[i]!, kind = packById(p.id)!.kind;
+    p.options[i] = null; p.picks--;
+    if (kind === 'charm') this.charms.push({ id: o as string, state: charmById(o as string)!.start ?? 0 });
+    else if (kind === 'almanac') this.levels[o as HandId]++;
+    else if (kind === 'card') this.deck.push({ ...(o as Card), id: this.nextId++ });
+    else this.applyTreat(o as string, ids);
+    if (p.picks <= 0 || p.options.every((x) => x === null)) this.closePack();
+    return true;
+  }
+  /** Leave what is left in the pack. */
+  skipPack() { if (this.phase !== 'pack') return false; this.closePack(); return true; }
+  private closePack() { this.pack = null; this.phase = 'shop'; }
+
   // Items
+  /** Why a treat cannot be used on these cards, chosen from `pool`, or null if it can. */
+  private treatWhyNot(id: string, ids: number[], pool: number[], where: string): string | null {
+    const t = treatById(id)!;
+    if (t.picks === 0) return t.id === 'wish' && this.charms.length >= this.charmSlots ? 'Your charm slots are full.' : null;
+    if (!ids.length) return `Select ${t.picks === 1 ? 'a card' : `up to ${t.picks} cards`} first.`;
+    if (ids.length > t.picks) return `Select at most ${t.picks}.`;
+    if (ids.some((x) => !pool.includes(x))) return where;
+    return null;
+  }
   /** Why an item cannot be used with these cards selected, or null if it can. */
   itemWhyNot(slot: number, ids: number[] = []): string | null {
     const it = this.items[slot];
     if (!it) return 'There is nothing in that slot.';
     if (it.kind === 'almanac') return null;
-    const t = treatById(it.id)!;
-    if (t.picks === 0) return t.id === 'wish' && this.charms.length >= this.charmSlots ? 'Your charm slots are full.' : null;
-    if (this.phase !== 'round') return 'Use it during a round, with cards selected.';
-    if (!ids.length) return `Select ${t.picks === 1 ? 'a card' : `up to ${t.picks} cards`} first.`;
-    if (ids.length > t.picks) return `Select at most ${t.picks}.`;
-    if (ids.some((id) => !this.round!.hand.includes(id))) return 'Select cards in your hand.';
-    return null;
+    if (treatById(it.id)!.picks > 0 && this.phase !== 'round') return 'Use it during a round, with cards selected.';
+    return this.treatWhyNot(it.id, ids, this.round?.hand ?? [], 'Select cards in your hand.');
   }
   useItem(slot: number, ids: number[] = []) {
     if (this.itemWhyNot(slot, ids)) return false;
-    const it = this.items[slot], cards = ids.map((id) => this.card(id));
+    const it = this.items[slot];
     this.items.splice(slot, 1);
     if (it.kind === 'almanac') { this.levels[it.id as HandId]++; return true; }
+    this.applyTreat(it.id, ids);
+    return true;
+  }
+  /** What a treat does to the cards chosen for it: in a round they are in the hand, in a treat pack among the dealt cards. */
+  private applyTreat(id: string, ids: number[]) {
+    const cards = ids.map((x) => this.card(x)), r = this.round, p = this.pack;
     const gloss = (g: Gloss) => cards.forEach((c) => { c.gloss = g; });
-    switch (it.id) {
+    switch (id) {
       case 'honey': gloss('honey'); break;
       case 'spice': gloss('ember'); break;
       case 'dew': gloss('crystal'); break;
       case 'leaf': gloss('gold'); break;
-      case 'dye0': case 'dye1': case 'dye2': case 'dye3': cards.forEach((c) => { c.suit = Number(it.id[3]) as Suit; }); break;
+      case 'dye0': case 'dye1': case 'dye2': case 'dye3': cards.forEach((c) => { c.suit = Number(id[3]) as Suit; }); break;
       case 'sprout': cards.forEach((c) => { c.rank = Math.min(14, c.rank + 1); }); break;
-      case 'mirror': { const c = cards[0], copy: Card = { ...c, id: this.nextId++ }; this.deck.push(copy); this.round!.hand.push(copy.id); break; }
-      case 'compost': this.deck = this.deck.filter((c) => !ids.includes(c.id)); this.round!.hand = this.round!.hand.filter((id) => !ids.includes(id)); this.fill(this.handSize); break;
+      case 'mirror': { const copy: Card = { ...cards[0], id: this.nextId++ }; this.deck.push(copy); if (r) r.hand.push(copy.id); else if (p) p.dealt.push(copy.id); break; }
+      case 'compost':
+        this.deck = this.deck.filter((c) => !ids.includes(c.id));
+        if (r) { r.hand = r.hand.filter((x) => !ids.includes(x)); this.fill(this.handSize); }
+        if (p) p.dealt = p.dealt.filter((x) => !ids.includes(x));
+        break;
       case 'tea': this.nuts += Math.min(this.nuts, 20); break;
-      case 'wish': { const id = this.rollCharm([]); if (id) this.charms.push({ id, state: charmById(id)!.start ?? 0 }); break; }
+      case 'wish': { const w = this.rollCharm([]); if (w) this.charms.push({ id: w, state: charmById(w)!.start ?? 0 }); break; }
     }
-    return true;
   }
 
   // Saving
@@ -466,7 +535,7 @@ export class Run {
     return {
       v: SAVE_VERSION, seed: this.seed, rand: this.rand.s, ante: this.ante, blind: this.blind, phase: this.phase, endless: this.endless, nuts: this.nuts,
       nextId: this.nextId, deck: copy(this.deck), levels: { ...this.levels }, played: { ...this.played }, charms: copy(this.charms), items: copy(this.items),
-      bosses: [...this.bosses], round: copy(this.round), cash: copy(this.cash), shop: copy(this.shop), vouchers: [...this.vouchers], offer: this.offer, best: this.best, rounds: this.rounds,
+      bosses: [...this.bosses], round: copy(this.round), cash: copy(this.cash), shop: copy(this.shop), pack: copy(this.pack), vouchers: [...this.vouchers], offer: this.offer, best: this.best, rounds: this.rounds,
     };
   }
   /** Rebuild a run from a save, or null if anything about it is off. */
@@ -477,10 +546,11 @@ export class Run {
     const ids = (a: unknown, ok: (x: number) => boolean) => Array.isArray(a) && a.every((x) => Number.isInteger(x) && ok(x)) && new Set(a).size === a.length;
     try {
       if (!s || typeof s !== 'object' || s.v !== SAVE_VERSION || !int(s.seed, 0, 0xffffffff) || !int(s.rand, 0, 0xffffffff)) return null;
-      if (!int(s.ante, 1, 999) || !int(s.blind, 0, 2) || !['pick', 'round', 'cashout', 'shop', 'over', 'victory'].includes(s.phase) || typeof s.endless !== 'boolean') return null;
+      if (!int(s.ante, 1, 999) || !int(s.blind, 0, 2) || !['pick', 'round', 'cashout', 'shop', 'pack', 'over', 'victory'].includes(s.phase) || typeof s.endless !== 'boolean') return null;
       if (!int(s.nuts, 0, big) || !int(s.nextId, 0, big) || !int(s.best, 0, big) || !int(s.rounds, 0, big)) return null;
       if (!Array.isArray(s.deck) || s.deck.length < 1 || s.deck.length > 500) return null;
-      for (const c of s.deck) if (!c || !int(c.id, 0, s.nextId - 1) || !int(c.rank, 2, 14) || !int(c.suit, 0, 3) || !['', 'honey', 'ember', 'crystal', 'gold'].includes(c.gloss)) return null;
+      const okCard = (c: Card) => !!c && int(c.rank, 2, 14) && int(c.suit, 0, 3) && GLOSSES.includes(c.gloss);
+      for (const c of s.deck) if (!okCard(c) || !int(c.id, 0, s.nextId - 1)) return null;
       if (new Set(s.deck.map((c) => c.id)).size !== s.deck.length) return null;
       const inDeck = (id: number) => s.deck.some((c) => c.id === id);
       for (const t of [s.levels, s.played]) if (!t || HANDS.some((h) => !int(t[h.id], 0, big))) return null;
@@ -502,14 +572,24 @@ export class Run {
       }
       if ((s.phase === 'cashout') !== !!s.cash) return null;
       if (s.cash && !['blind', 'plays', 'interest', 'charms', 'gold', 'total'].every((k) => int((s.cash as Record<string, unknown>)[k], 0, big))) return null;
-      if ((s.phase === 'shop') !== !!s.shop) return null;
-      if (s.shop && (!Array.isArray(s.shop.charms) || !Array.isArray(s.shop.items) || !int(s.shop.rerolls, 0, big) || s.shop.charms.length > plus(SHOP_CHARMS, 'stall') || s.shop.items.length > SHOP_ITEMS
+      if ((s.phase === 'shop' || s.phase === 'pack') !== !!s.shop) return null;
+      if (s.shop && (!Array.isArray(s.shop.charms) || !Array.isArray(s.shop.items) || !int(s.shop.rerolls, 0, big) || !Array.isArray(s.shop.packs) || s.shop.packs.length > SHOP_PACKS || !s.shop.packs.every((id) => id === null || (typeof id === 'string' && !!packById(id))) || s.shop.charms.length > plus(SHOP_CHARMS, 'stall') || s.shop.items.length > SHOP_ITEMS
         || !s.shop.charms.every((id) => id === null || !!charmById(id)) || !s.shop.items.every((it) => it === null || okItem(it)))) return null;
+      if ((s.phase === 'pack') !== !!s.pack) return null;
+      if (s.pack) {
+        const p = s.pack, t = typeof p.id === 'string' ? packById(p.id) : undefined;
+        if (!t || !Array.isArray(p.options) || p.options.length < 1 || p.options.length > t.shown + 1 || !int(p.picks, 1, t.picks) || !ids(p.dealt, inDeck)) return null;
+        if (t.kind !== 'treat' && p.dealt.length) return null;
+        const okOption = (o: unknown) => o === null || (t.kind === 'charm' ? typeof o === 'string' && !!charmById(o)
+          : t.kind === 'almanac' ? HANDS.some((h) => h.id === o) : t.kind === 'treat' ? typeof o === 'string' && !!treatById(o)
+          : okCard(o as Card) && (o as Card).id === -1);
+        if (!p.options.every(okOption)) return null;
+      }
       const g = new Run(s.seed);
       Object.assign(g, {
         ante: s.ante, blind: s.blind, phase: s.phase, endless: s.endless, nuts: s.nuts, nextId: s.nextId, deck: JSON.parse(JSON.stringify(s.deck)),
         levels: { ...s.levels }, played: { ...s.played }, charms: JSON.parse(JSON.stringify(s.charms)), items: JSON.parse(JSON.stringify(s.items)),
-        bosses: [...s.bosses], round: JSON.parse(JSON.stringify(r)), cash: s.cash ? { ...s.cash } : null, shop: JSON.parse(JSON.stringify(s.shop)), vouchers: [...s.vouchers], offer: s.offer, best: s.best, rounds: s.rounds,
+        bosses: [...s.bosses], round: JSON.parse(JSON.stringify(r)), cash: s.cash ? { ...s.cash } : null, shop: JSON.parse(JSON.stringify(s.shop)), pack: JSON.parse(JSON.stringify(s.pack)), vouchers: [...s.vouchers], offer: s.offer, best: s.best, rounds: s.rounds,
       });
       g.rand.s = s.rand;
       g.bossFor(g.ante);
@@ -532,6 +612,7 @@ export function record(p: Profile, run: Run, finished: boolean): Profile {
   const seen = new Set(p.seen);
   for (const c of run.charms) seen.add(c.id);
   run.shop?.charms.forEach((id) => { if (id) seen.add(id); });
+  if (run.pack && packById(run.pack.id)?.kind === 'charm') run.pack.options.forEach((id) => { if (typeof id === 'string') seen.add(id); });
   return {
     ...p, bestAnte: Math.max(p.bestAnte, run.phase === 'victory' ? ANTES : run.ante),
     bestHand: Math.max(p.bestHand, run.best), seen: [...seen], runs: p.runs + (finished ? 1 : 0), wins: p.wins + (finished && run.phase === 'victory' ? 1 : 0),

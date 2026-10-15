@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   Run, Rand, evaluate, scorePlay, HANDS, CHARMS, TREATS, BOSSES, BLIND, ANTES, ANTE_BASE, CHARM_SLOTS, ITEM_SLOTS, HAND_SIZE, PLAYS, DISCARDS, START_NUTS,
-  INTEREST_CAP, REROLL, COST, SAVE_VERSION, PROFILE_VERSION, SHOP_CHARMS, HOARD_CAP, HAGGLER_REROLL, VOUCHERS, VOUCHER_COST,
+  INTEREST_CAP, REROLL, COST, SAVE_VERSION, PROFILE_VERSION, SHOP_CHARMS, HOARD_CAP, HAGGLER_REROLL, VOUCHERS, VOUCHER_COST, PACKS, SHOP_PACKS, PACK_DEAL, packById,
   anteBase, cardChips, charmById, voucherById, freshProfile, loadProfile, record,
 } from '../.checks/acorn-hand-game.js';
 
@@ -254,6 +254,72 @@ const inShop = (seed) => { const run = new Run(seed); run.start(); run.round.tar
   assert.equal(boss.ante, 2); assert.ok(voucherById(boss.offer), 'beating the boss puts a new voucher on the shelf');
 }
 
+// Booster packs
+{
+  assert.equal(PACKS.length, 8); assert.equal(SHOP_PACKS, 2);
+  const run = inShop(41);
+  assert.equal(run.shop.packs.length, SHOP_PACKS); assert.ok(run.shop.packs.every((id) => packById(id)));
+  const packs = [...run.shop.packs]; assert.ok(run.reroll()); assert.deepEqual(run.shop.packs, packs, 'a reroll leaves the packs alone');
+  run.shop.packs[0] = 'charm-big'; const nuts = run.nuts;
+  assert.ok(run.openPack(0)); assert.equal(run.phase, 'pack'); assert.equal(run.nuts, nuts - 7); assert.equal(run.shop.packs[0], null, 'a pack opens once');
+  assert.equal(run.pack.options.length, 4); assert.equal(new Set(run.pack.options).size, 4); assert.equal(run.pack.picks, 1);
+  assert.ok(run.pack.options.every((id) => !run.charms.some((c) => c.id === id)), 'no charm you own');
+  assert.equal(run.openPack(1), false, 'one pack at a time'); assert.equal(run.leave(), false, 'the shop is not left from inside a pack');
+  assert.equal(run.reroll(), false); assert.equal(run.buyVoucher(), false);
+  const want = run.pack.options[2]; assert.ok(run.takePack(2));
+  assert.equal(run.charms.at(-1).id, want); assert.equal(run.phase, 'shop', 'the last pick closes the pack'); assert.equal(run.pack, null);
+  run.nuts = 3; run.shop.packs[1] = 'card'; assert.equal(run.openPack(1), false, 'a pack costs nuts');
+}
+{
+  const run = inShop(42); for (let i = 0; i < CHARM_SLOTS; i++) run.charms.push({ id: CHARMS[i].id, state: 0 });
+  run.shop.packs[0] = 'charm'; assert.ok(run.openPack(0), 'a charm pack opens with every slot full');
+  assert.match(run.packWhyNot(0), /sell one/); assert.equal(run.takePack(0), false);
+  assert.ok(run.sell(0), 'charms can be sold inside a pack'); assert.equal(run.packWhyNot(0), null); assert.ok(run.takePack(0));
+  run.shop.packs[1] = 'card'; assert.ok(run.openPack(1)); assert.ok(run.skipPack()); assert.equal(run.phase, 'shop'); assert.equal(run.shop.packs[1], null, 'a skipped pack is gone');
+  assert.equal(run.skipPack(), false);
+}
+{
+  const run = inShop(43); run.vouchers = ['market']; run.shop.packs[0] = 'almanac-big'; assert.ok(run.openPack(0));
+  assert.equal(run.pack.options.length, 6, 'Market Day adds an option'); assert.equal(run.pack.picks, 2, 'but not a pick');
+  assert.equal(new Set(run.pack.options).size, 6); assert.ok(!run.pack.options.includes('five') && !run.pack.options.includes('ffive'), 'no five-of-a-kind pages before one is played');
+  const [a, b] = run.pack.options; assert.ok(run.takePack(0)); assert.equal(run.levels[a], 2, 'a page is used as it is taken'); assert.equal(run.phase, 'pack');
+  assert.equal(run.takePack(0), false, 'a taken option is gone'); assert.ok(run.takePack(1)); assert.equal(run.levels[b], 2); assert.equal(run.phase, 'shop');
+}
+{
+  const run = inShop(44); run.shop.packs[0] = 'card-big'; assert.ok(run.openPack(0));
+  assert.ok(run.pack.options.every((o) => o.id === -1 && o.rank >= 2 && o.rank <= 14 && o.suit >= 0 && o.suit <= 3));
+  const deck = run.deck.length, next = run.nextId, c = run.pack.options[3];
+  assert.ok(run.takePack(3)); assert.equal(run.deck.length, deck + 1, 'a card joins the deck');
+  assert.deepEqual(run.deck.at(-1), { ...c, id: next }, 'as it was shown, with a new id'); assert.equal(run.nextId, next + 1);
+  let glossed = 0, n = 0;
+  for (let s = 0; s < 60; s++) { const r = inShop(100 + s); r.shop.packs[0] = 'card-big'; r.openPack(0); for (const o of r.pack.options) { n++; if (o.gloss) glossed++; } }
+  assert.ok(glossed / n > 0.2 && glossed / n < 0.4, `about 30% of pack cards are glossed (${glossed}/${n})`);
+}
+{
+  const run = inShop(45); run.shop.packs[0] = 'treat-big'; assert.ok(run.openPack(0));
+  assert.equal(run.pack.dealt.length, PACK_DEAL); assert.ok(run.pack.dealt.every((id) => run.deck.some((c) => c.id === id))); assert.equal(new Set(run.pack.options).size, 5);
+  run.pack.options = ['mirror', 'compost', 'honey', 'tea', 'wish']; run.pack.picks = 2;
+  const [x, y, z] = run.pack.dealt;
+  assert.match(run.packWhyNot(0, []), /Select a card/); assert.match(run.packWhyNot(0, [x, y]), /at most 1/); assert.match(run.packWhyNot(0, [-5]), /dealt/);
+  const deck = run.deck.length; assert.ok(run.takePack(0, [x]));
+  assert.equal(run.deck.length, deck + 1, 'Mirror pond copies a dealt card into the deck'); assert.equal(run.pack.dealt.length, PACK_DEAL + 1, 'and among the dealt cards');
+  assert.ok(run.takePack(1, [y, z])); assert.equal(run.deck.length, deck - 1, 'Compost removes two for good');
+  assert.ok(!run.deck.some((c) => c.id === y || c.id === z));
+  assert.equal(run.phase, 'shop', 'two picks used'); assert.equal(run.round, null);
+}
+{
+  // A Wishing stone with every charm slot full: it waits, the other treats don't, and Skip still closes the pack.
+  const run = inShop(46); for (let i = 0; i < CHARM_SLOTS; i++) run.charms.push({ id: CHARMS[i].id, state: 0 });
+  run.shop.packs[0] = 'treat'; assert.ok(run.openPack(0)); run.pack.options = ['wish', 'tea', 'honey'];
+  assert.match(run.packWhyNot(0), /slots are full/); assert.equal(run.takePack(0), false); assert.equal(run.packWhyNot(1), null);
+  assert.ok(run.skipPack()); assert.equal(run.phase, 'shop');
+}
+{
+  // The record meets charms seen in packs.
+  const run = inShop(47); run.shop.packs[0] = 'charm'; run.openPack(0);
+  const p = record(freshProfile(), run, false); assert.ok(run.pack.options.every((id) => p.seen.includes(id)), 'charms in an open pack count as met');
+}
+
 // Seeds replay, saves round-trip, broken saves are refused
 {
   const go = (seed) => { const run = new Run(seed); run.start(); run.discard(run.round.hand.slice(0, 2)); run.play(run.round.hand.slice(0, 3)); return run.save(); };
@@ -281,7 +347,22 @@ const inShop = (seed) => { const run = new Run(seed); run.start(); run.round.tar
   const six = JSON.parse(JSON.stringify(run.save())); six.charms = CHARMS.slice(0, 6).map((c) => ({ id: c.id, state: 0 }));
   assert.equal(Run.load(six), null, 'six charms need Wider Shelf');
   six.vouchers = ['shelf']; if (six.offer === 'shelf') six.offer = null; assert.ok(Run.load(six), 'and load with it');
+  {
+    const go = (seed) => { const r = inShop(seed); r.offer = 'pockets'; r.buyVoucher(); r.shop.packs[0] = 'treat'; r.openPack(0); return r; };
+    assert.deepEqual(go(51).save(), go(51).save(), 'a seed replays exactly through vouchers and packs');
+    const r = go(52), back = Run.load(JSON.parse(JSON.stringify(r.save())));
+    assert.ok(back); assert.equal(back.phase, 'pack'); assert.deepEqual(back.save(), r.save(), 'a run saved inside a pack comes back exactly');
+    const broke = (f) => { const s = JSON.parse(JSON.stringify(r.save())); f(s); return Run.load(s); };
+    assert.equal(broke((s) => { s.pack = null; }), null, 'a pack phase needs a pack');
+    assert.equal(broke((s) => { s.shop = null; }), null, 'and the shop it came from');
+    assert.equal(broke((s) => { s.pack.id = 'sack'; }), null);
+    assert.equal(broke((s) => { s.pack.options[0] = 'nothing'; }), null);
+    assert.equal(broke((s) => { s.pack.dealt.push(9999); }), null);
+    assert.equal(broke((s) => { s.pack.picks = 5; }), null);
+    assert.equal(broke((s) => { s.shop.packs = ['sack']; }), null);
+    assert.equal(broke((s) => { s.phase = 'shop'; }), null, 'a pack outside the pack phase');
+  }
   const r = new Rand(5), seq = [r.next(), r.next()], again = new Rand(5); assert.deepEqual([again.next(), again.next()], seq);
 }
 
-console.log(`PASS Acorn Hand: ${HANDS.length} hand types, ${CHARMS.length} charms, ${TREATS.length} treats, ${BOSSES.length} rivals; scoring order, rounds, the shop, items, skips, boss rules, the win and endless, seeds and saves`);
+console.log(`PASS Acorn Hand: ${HANDS.length} hand types, ${CHARMS.length} charms, ${TREATS.length} treats, ${BOSSES.length} rivals; scoring order, rounds, the shop, items, skips, boss rules, the win and endless, seeds and saves, vouchers and packs`);
