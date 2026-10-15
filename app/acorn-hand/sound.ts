@@ -20,6 +20,10 @@ export const sound = makeSound('acorn-hand-sound-v1', {
   use: [{ f: 600, to: 1200, d: 0.22, v: 0.04 }, { f: 3200, d: 0.15, noise: true, v: 0.015 }],
   boss: [{ f: 140, to: 90, d: 0.5, type: 'sawtooth', v: 0.03 }, { f: 210, to: 120, d: 0.5, type: 'triangle', v: 0.03, at: 0.05 }],
   victory: [{ f: 523, d: 0.14, v: 0.06 }, { f: 784, d: 0.14, at: 0.14, v: 0.06 }, { f: 1046, d: 0.14, at: 0.28, v: 0.06 }, { f: 1568, d: 0.7, at: 0.42, v: 0.06 }],
+  flip: [{ f: 3200, d: 0.03, noise: true, v: 0.02 }],
+  whoosh: [{ f: 900, d: 0.22, noise: true, v: 0.035 }],
+  tear: [{ f: 4000, d: 0.16, noise: true, v: 0.04 }, { f: 1200, d: 0.12, noise: true, v: 0.03, at: 0.08 }],
+  chirp: [{ f: 880, to: 1320, d: 0.07, type: 'triangle', v: 0.03 }, { f: 1100, to: 990, d: 0.06, type: 'triangle', v: 0.025, at: 0.07 }],
   click: [{ f: 900, d: 0.04, v: 0.02 }],
   nope: [{ f: 220, d: 0.12, type: 'square', v: 0.02 }],
 });
