@@ -17,6 +17,14 @@ export function loadAcornPainting(key: string) {
   image.onerror = () => { failed.add(key); revision++; listeners.forEach((fn) => fn()); };
   image.src = `/art/acorn-hand/${key}.png?v=suits-poses-2`;
 }
+/** CSS that shows one painted cell as an element's background, stretched to the element, or null until the sheet has loaded. */
+export function acornSprite(key: string, cell: number): { backgroundImage: string; backgroundSize: string; backgroundPosition: string; backgroundRepeat: string } | null {
+  loadAcornPainting(key);
+  const image = images.get(key), crop = ACORN_CROPS[key]?.[cell];
+  if (!image || !crop) return null;
+  const [sx, sy, sw, sh] = crop, W = image.naturalWidth, H = image.naturalHeight;
+  return { backgroundImage: `url("${image.src}")`, backgroundSize: `${(W / sw) * 100}% ${(H / sh) * 100}%`, backgroundPosition: `${(sx / (W - sw)) * 100}% ${(sy / (H - sh)) * 100}%`, backgroundRepeat: 'no-repeat' };
+}
 /** Contain the complete measured silhouette, never stretching or cutting off ears and props. */
 export function paintAcorn(c: CanvasRenderingContext2D, key: string, cell: number, x: number, y: number, w: number, h: number) {
   loadAcornPainting(key);

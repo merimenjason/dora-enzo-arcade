@@ -25,6 +25,23 @@ try {
   assert.equal(await page.locator('[data-testid^="card-"]').count(), 8);
   await page.getByTestId('card-0').click();
   assert.equal(await page.getByTestId('play').isEnabled(), true);
+  // Nuts and the chips and mult plaques: the emoji and plain boxes until their paintings load, then the paintings.
+  const tokens = await browser.newPage({ viewport: { width: 1280, height: 860 } });
+  tokens.on('pageerror', (error) => errors.push(error.message));
+  const tokenArt = /\/art\/acorn-hand\/(nuts|counters)\.png/;
+  await tokens.route(tokenArt, (route) => route.abort());
+  await tokens.goto(`${base}/acorn-hand`); await tokens.locator('main[data-ready="true"]').waitFor();
+  await tokens.getByTestId('new-run').click(); await tokens.getByTestId('start').click(); await tokens.getByTestId('hand').waitFor();
+  await tokens.waitForFunction(() => ['nuts', 'counters'].every((k) => window.__acorn().art.failed.includes(k)));
+  assert.match(await tokens.getByTestId('nuts').innerText(), /🌰/);
+  assert.equal(await tokens.locator('.ah-nut').count(), 0);
+  assert.equal(await tokens.locator('.ah-plaque').count(), 0);
+  await tokens.unroute(tokenArt);
+  await tokens.getByRole('button', { name: 'Retry artwork' }).click();
+  await tokens.locator('[data-testid="nuts"] .ah-nut').waitFor();
+  assert.equal(await tokens.locator('[data-testid="nut-pile"] .ah-nut').count(), 10);
+  assert.doesNotMatch(await tokens.getByTestId('nuts').innerText(), /🌰/);
+  assert.equal(await tokens.locator('[data-testid="chips"].ah-plaque, [data-testid="mult"].ah-plaque').count(), 2);
   assert.deepEqual(errors, []);
-  console.log('PASS Acorn Hand painted art: missing-image fallback, retry, asynchronous canvas redraw, painted table, phone fit and playable painted cards.');
+  console.log('PASS Acorn Hand painted art: missing-image fallback, retry, asynchronous canvas redraw, painted table, phone fit, playable painted cards, and painted nuts and plaques with their fallback.');
 } finally { await browser.close(); }

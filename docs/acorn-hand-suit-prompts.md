@@ -9,7 +9,7 @@ All ten required PNG deliverables in this document have now been generated in `p
 | Deliverable | Status |
 | --- | --- |
 | `suits.png` | Redrawn as four simple pips; equal-size square crops and cache version updated. |
-| `voucher-hoard.png`, `nuts.png`, `counters.png` | Shipped as standalone assets in PR #50; their runtime integration remains pending. |
+| `voucher-hoard.png`, `nuts.png`, `counters.png` | Shipped in PR #50 and wired into the game on 17-10-2026: Squirrel Hoard has its own crop, nuts and plaques show once loaded, with the emoji and plain boxes as fallback. |
 | `rivals-0-happy.png`, `rivals-0-sad.png` | Generated; measured crops registered with the existing pose renderer. |
 | `rivals-1-happy.png`, `rivals-1-sad.png` | Generated; measured crops registered with the existing pose renderer. |
 | `rival-armadillo-happy.png`, `rival-armadillo-sad.png` | Generated; measured crops registered with the existing pose renderer. |

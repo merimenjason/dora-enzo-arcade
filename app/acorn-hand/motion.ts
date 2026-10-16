@@ -62,10 +62,10 @@ export function fly(el: Element | null, to: Box | 'away', opts: { duration?: num
 }
 
 /** Throw a little emoji from one box to another in an arc. */
-export function toss(text: string, from: Box | null, to: Box | null, delay = 0) {
+export function toss(content: string | HTMLElement, from: Box | null, to: Box | null, delay = 0) {
   if (!from || !to || !motionOn()) return;
   const bit = document.createElement('span');
-  bit.className = 'ah-toss'; bit.textContent = text; bit.setAttribute('aria-hidden', 'true');
+  bit.className = 'ah-toss'; if (typeof content === 'string') bit.textContent = content; else bit.appendChild(content); bit.setAttribute('aria-hidden', 'true');
   bit.style.left = `${from.x + from.w / 2}px`; bit.style.top = `${from.y + from.h / 2}px`;
   host().appendChild(bit);
   const dx = to.x + to.w / 2 - (from.x + from.w / 2), dy = to.y + to.h / 2 - (from.y + from.h / 2);
