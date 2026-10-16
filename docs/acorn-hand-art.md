@@ -94,3 +94,9 @@ The seven remaining required sheets from `acorn-hand-suit-prompts.md` are genera
 Reviewed the four pips at 20, 35 and 70px in colour and greyscale, plus all 13 calm/happy/sad triplets through the actual Canvas renderer at 160 × 120px. The larger ace pip works without the optional detailed `suits-large.png`. The voucher, acorn and plaque paintings were wired in afterwards, on 17-10-2026 (see above).
 
 Validation for the suit/pose pass: typecheck, targeted oxlint, production build and the full Acorn Hand browser suite passed, including card motion, rival reactions, reduced motion, six layouts, failed-image fallback and retry. The renderer gallery reported no page errors.
+
+### Raspberry pip correction · 17-10-2026
+
+Replaced the tomato-like round berry with a compact raspberry: broad rounded lobes, a scalloped silhouette and a single small leaf. The full transparent 1254 × 1254 `suits.png` preserves the other three suits' visual designs. Connected alpha bounds were remeasured from the full sheet to avoid importing stray fragments across nominal cell edges; all four runtime frames are equal 554px squares. Only `suits` uses the new `berry-pip-3` cache version. Exact built-in imagegen prompt, input/output hashes, selected source, bounds and crops: [`acorn-hand-berry-generation.json`](acorn-hand-berry-generation.json). Reviewed through the renderer at 20/35/70px in colour and greyscale, and on desktop and phone hands containing berry cards.
+
+Validation: typecheck, targeted oxlint, production build and the full Acorn Hand browser suite passed, including six layouts, card/rival motion, saves, painted currency/plaques and image failure/retry. The desktop/phone berry-card review reported no page errors.

@@ -38,10 +38,10 @@ The suits on a printed card deck (spade, heart, club, diamond) work because each
 | --- | --- | --- | --- |
 | Top left | Acorn | `#7a4a1e` | Tall, round-bottomed nut with a wide, scalloped cap and a short straight stalk pointing straight up. Mirror-symmetric. |
 | Top right | Clover | `#2f7a33` | Three heart-shaped leaves meeting in the centre (top, lower left, lower right) and a short, thick stem straight down, like a playing-card club. Mirror-symmetric. |
-| Bottom left | Berry | `#b42840` | One plump round berry, slightly heart-shaped at the top, with a small star-shaped leafy cap and a short stalk on top. Mirror-symmetric. One berry, not a cluster. |
+| Bottom left | Berry | `#b42840` | One compact raspberry with a rounded triangular silhouette, seven or eight broad rounded lobes and one small leaf. No smooth tomato globe or star-shaped leafy crown. |
 | Bottom right | Pebble | `#4d5d72` | A smooth, upright egg-shaped stone (taller than wide, about 5 : 6), with one pale band running diagonally across it and a gleam at upper left. |
 
-The four silhouettes must be different enough to tell apart in **greyscale** at 20 px: a tall nut with a cap, a three-lobed club, a round fruit with a star on top and a plain egg.
+The four silhouettes must be different enough to tell apart in **greyscale** at 20 px: a tall nut with a cap, a three-lobed club, a scalloped raspberry and a plain egg.
 
 ### How to use this
 
@@ -65,10 +65,10 @@ The four silhouettes must be different enough to tell apart in **greyscale** at 
 > **Cells, left to right, top row then bottom row:**
 > 1. **Acorn**, warm brown `#7a4a1e` (nut a little lighter, cap a little darker): a tall nut with a rounded bottom ending in a small point, under a wide cap with a scalloped lower edge and three or four simple rows of bumps, and a short, straight, thick stalk pointing straight up. Mirror-symmetric left to right. No curl.
 > 2. **Clover**, moss green `#2f7a33`: three plump heart-shaped leaves meeting in the centre, one up, one lower left, one lower right, with a short, thick stem going straight down, shaped like a playing-card club. Mirror-symmetric. No veins.
-> 3. **Berry**, berry red `#b42840`: ONE plump, round berry, slightly heart-shaped at the top, with a small five-pointed green leafy cap and a tiny stalk on top, and one round white gleam at upper left. Mirror-symmetric. Not a cluster, not a cherry pair, not a strawberry.
+> 3. **Berry**, berry red `#b42840`: ONE compact raspberry, broad rounded shoulders and a slightly narrower rounded bottom. Use only seven or eight LARGE plump rounded lobes, a scalloped outline, one small green leaf and minimal upper-left highlights. The lobes form one aggregate fruit, not a bunch of separate berries. No large leafy star crown, thick green stalk, smooth tomato shape, tiny seeds or speckle.
 > 4. **Pebble**, slate blue-grey `#4d5d72`: a smooth upright egg-shaped river stone, taller than it is wide (about 5 wide to 6 tall), with one soft pale band running diagonally across it from lower left to upper right and a gleam at upper left. No speckle.
 >
-> The four pips must be easy to tell apart even in greyscale at 20 pixels: a nut with a cap, a three-lobed club, a round fruit with a star on top, a plain egg.
+> The four pips must be easy to tell apart even in greyscale at 20 pixels: a nut with a cap, a three-lobed club, a scalloped raspberry, a plain egg.
 
 ### Fix-up prompt
 
@@ -81,7 +81,7 @@ The four silhouettes must be different enough to tell apart in **greyscale** at 
 - [ ] **The squint test:** shrink the image so each pip is about 20 px wide (the sheet about 60 px). Each suit is still instantly recognisable, with no muddy edges.
 - [ ] **The greyscale test:** desaturate it; the four are still easy to tell apart by shape alone.
 - [ ] All four fill about the same area and sit centred in their cells; none is visibly smaller, flatter or off to one side.
-- [ ] Acorn and clover are mirror-symmetric with straight stems (acorn's up, clover's down). The berry is a single berry. The pebble is taller than wide.
+- [ ] Acorn and clover are mirror-symmetric with straight stems (acorn's up, clover's down). The berry is one raspberry with broad rounded lobes and a small leaf. The pebble is taller than wide.
 - [ ] Colours sit close to the inks: `#7a4a1e`, `#2f7a33`, `#b42840`, `#4d5d72`. Acorn brown, not orange; berry red, not pink.
 - [ ] Flat shading with one shade and one highlight; no texture, hatching or veins.
 - [ ] No text, letters, numbers, card shapes or frames.
@@ -251,3 +251,9 @@ Make one sheet per message. Attach the matching calm sheet as the reference, so 
 
 - Measure each sheet's crops from its alpha bounds into `lib/acorn-hand-crops.ts` under the keys `rivals-0-happy`, `rivals-0-sad`, `rivals-1-happy`, `rivals-1-sad`, `rival-armadillo-happy` and `rival-armadillo-sad`. `drawRival` in `lib/acorn-hand-scene.ts` looks a pose sheet up only when its crop key exists, so nothing is requested before then.
 - Check that each pose sits where the calm portrait sits, so the swap during a reaction doesn't jump; bump the cache key in `loadAcornPainting`, record the prompts in `docs/acorn-hand-art.md`, and add a **Changed** entry for **Acorn Hand** in `CHANGELOG.md`.
+
+## Berry readability correction · 17-10-2026
+
+The first simple red fruit still read as a tomato because of its smooth body and star-shaped green cap. The replacement is one compact raspberry with broad rounded lobes, a scalloped edge and a small leaf. The acorn, clover and pebble keep their established visual designs.
+
+The full `suits.png` is replaced, its connected silhouettes remeasured into equal 554px square crop frames, and only the suit-sheet cache version changes to `berry-pip-3`. Source, exact built-in imagegen prompt, alpha bounds and SHA256 are recorded in [`acorn-hand-berry-generation.json`](acorn-hand-berry-generation.json). The separate follow-up prompt mentioned in the user's Claude quote was not present in this chat or repository; this corrective prompt follows the reported tomato problem.

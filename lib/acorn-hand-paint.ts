@@ -15,7 +15,8 @@ export function loadAcornPainting(key: string) {
   const image = new Image();
   image.onload = () => { images.set(key, image); revision++; listeners.forEach((fn) => fn()); };
   image.onerror = () => { failed.add(key); revision++; listeners.forEach((fn) => fn()); };
-  image.src = `/art/acorn-hand/${key}.png?v=suits-poses-2`;
+  const version = key === 'suits' ? 'berry-pip-3' : 'suits-poses-2';
+  image.src = `/art/acorn-hand/${key}.png?v=${version}`;
 }
 /** CSS that shows one painted cell as an element's background, stretched to the element, or null until the sheet has loaded. */
 export function acornSprite(key: string, cell: number): { backgroundImage: string; backgroundSize: string; backgroundPosition: string; backgroundRepeat: string } | null {
