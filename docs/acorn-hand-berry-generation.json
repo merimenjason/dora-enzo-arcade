@@ -1,0 +1,72 @@
+{
+  "date": "17-10-2026",
+  "mode": "built-in image_gen",
+  "prompt": "Use case: precise-object-edit. Edit the attached Acorn Hand 2x2 transparent card-suit sprite sheet. CHANGE ONLY THE BOTTOM-LEFT BERRY PIP. Preserve the acorn top-left, clover top-right and upright pebble bottom-right exactly in look, silhouette, size, colour, position and spacing. Keep same SQUARE canvas, EXACT same 2columns x2rows order, transparent alpha zero background. The current smooth round red fruit with large green starcap looks like a TOMATO. Replace it with ONE stylized RASPBERRY, instantly recognizable as a woodland berry at20px. A compact rounded triangular raspberry silhouette built from ONLY SEVEN OR EIGHT LARGE plump round raspberry lobes/drupelets, broad rounded scallops along outside edge, rich deep BERRY RED #b42840, dark red outline same weight as other pips, upperleft subtle highlight and lower-right single soft shade. Wider rounded shoulders, slightly narrower rounded bottom; one small modest green leaf at its top, NO big leafy star crown, NO upright thick green tomato stalk. Broad simple lobe divisions, NO tiny seeds, speckle, intricate texture or photoreal detail. Must read as ONE aggregate raspberry fruit, NOT a bunch of separate berries, NOT grapes, NOT a tomato or strawberry. Same approx visual size as old berry and the other pips, centred in bottom-left cell. Match the other three icons' clean enamel-pin/wax-seal flat style with minimal warm shading. No drop shadow, glow, halo, paper, cards, frames, writing, text, letters, numbers or labels. Keep all three OTHER SUITS unchanged. Save full new suits.png sheet, not just berry.",
+  "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-32b2e2c6-e928-4e52-9709-32f59c009206.png",
+  "inputSha256": "0deb80066b944b7ffd08b9b6098a94d1d5bfa32fad40346efd0ae3aef5a6f62a",
+  "file": "public/art/acorn-hand/suits.png",
+  "dimensions": [
+    1254,
+    1254
+  ],
+  "alphaRange": [
+    0,
+    255
+  ],
+  "alphaZeroFraction": 0.6412373546596665,
+  "boundsAlpha12": [
+    [
+      157,
+      84,
+      408,
+      546
+    ],
+    [
+      680,
+      164,
+      473,
+      466
+    ],
+    [
+      152,
+      696,
+      420,
+      470
+    ],
+    [
+      743,
+      705,
+      359,
+      460
+    ]
+  ],
+  "crops": [
+    [
+      84,
+      80,
+      554,
+      554
+    ],
+    [
+      640,
+      120,
+      554,
+      554
+    ],
+    [
+      85,
+      654,
+      554,
+      554
+    ],
+    [
+      646,
+      658,
+      554,
+      554
+    ]
+  ],
+  "sha256": "39d6274dd0625c18ba5200292feda5718cf5738ec52ff29c082c33371e2b4a36",
+  "cacheVersion": "berry-pip-3",
+  "measurement": "Connected alpha>=12 components of at least100 pixels; full-sheet centroid assignment prevents neighbour fragments at nominal grid edges. Equal square frames with4px padding."
+}
