@@ -292,6 +292,20 @@ await check('reduced motion scores at once', async (page) => {
   assert.equal(await page.evaluate(() => document.querySelectorAll('.ah-ghost').length), 0);
 }, { width: 1280, height: 860 }, { reducedMotion: 'reduce' });
 
+await check('an old duplicate almanac shelf resumes with two different offers', async (page) => {
+  await fresh(page); await deal(page); await run(page, '(r) => { r.round.target = 1; }');
+  await page.getByTestId('card-0').click(); await page.getByTestId('play').click(); await settled(page);
+  await page.getByTestId('collect').click(); await page.getByTestId('shop').waitFor();
+  await page.evaluate(() => { const save = window.__acorn().run.save(); save.shop.items = [{ kind: 'almanac', id: 'sflush' }, { kind: 'almanac', id: 'sflush' }]; localStorage.setItem('acorn-hand-run-v2', JSON.stringify(save)); });
+  await page.reload(); await page.locator('main[data-ready="true"]').waitFor(); await page.getByTestId('continue').click();
+  await page.getByTestId('shop').waitFor();
+  const items = await page.evaluate(() => window.__acorn().run.shop.items);
+  assert.deepEqual(items[0], { kind: 'almanac', id: 'sflush' });
+  assert.equal(new Set(items.map((it) => `${it.kind}:${it.id}`)).size, 2);
+  const repaired = await stored(page); await page.reload(); await page.locator('main[data-ready="true"]').waitFor(); await page.getByTestId('continue').click();
+  assert.deepEqual(await page.evaluate(() => window.__acorn().run.shop.items), repaired.shop.items, 'the repaired offers stay the same on another reload');
+}, { width: 1280, height: 860 }, { reducedMotion: 'reduce' });
+
 for (const [width, height] of [[360, 640], [390, 844], [844, 390], [768, 1024], [1280, 720], [1920, 1080]]) {
   await check(`layout ${width}×${height}: title, rounds, the table and the shop fit`, async (page) => {
     await fresh(page); assert.ok(await fits(page), 'title');

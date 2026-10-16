@@ -37,7 +37,7 @@ Five of a kind and flush five need copied or dyed cards. Almanac pages for them 
 
 ## The shop
 
-Between rounds: two charms, two items (almanac pages or treats), a reroll for 5 nuts that costs 1 more each time in the same shop and never shows the charms it replaced, and selling (half the price, at least 1). Commons cost 4, uncommons 6, rares 8, items 3. Charms are drawn 70% common, 25% uncommon and 5% rare, and a charm that fits the run (its suit, or the hand types you play most) is 2.5 times as likely. You hold 5 charms and 2 items. Charms can be reordered: a ×mult charm multiplies everything to its left. Each shop also has this ante's voucher and two booster packs; a reroll changes neither.
+Between rounds: two charms, two distinct items (almanac pages or treats; the same page or treat cannot appear twice on one shelf), a reroll for 5 nuts that costs 1 more each time in the same shop and never shows the charms it replaced, and selling (half the price, at least 1). Commons cost 4, uncommons 6, rares 8, items 3. Charms are drawn 70% common, 25% uncommon and 5% rare, and a charm that fits the run (its suit, or the hand types you play most) is 2.5 times as likely. You hold 5 charms and 2 items. Charms can be reordered: a ×mult charm multiplies everything to its left. Each shop also has this ante's voucher and two booster packs; a reroll changes neither.
 
 ## Vouchers
 
@@ -185,3 +185,9 @@ Each rival has two lines per moment, said in turn, never at random. The motion l
 ## Balance
 
 Tuned against `tests/acorn-hand-bot.mjs`, which weighs every legal play, discards towards flushes and sets, and judges charms by rescoring its own recent plays with and without them. Since vouchers and packs (15-10-2026), over 200 seeds it wins about 33% of runs and loses about 4.5% in ante 1; `npm test` requires 20–45% and under 5%. It buys this ante's voucher when it can (Wider Shelf, Extra Paw and Big Paws first), opens charm packs with nuts to spare, almanac packs for its most-played hand, treat packs for glosses, and card packs only when rich. With them it won 49% at the old targets, so antes 5 to 8 went up from 7,000, 12,500, 20,000 and 30,000. Its median nuts left after a shop fell from about 12 to about 5 from ante 3 on. A player who builds around one hand type does much better: the first run played by hand (15-10-2026) won with a two-pair build, and once a ×mult charm joined it, antes 6 to 8 were beaten with hands two to three times the target.
+
+### Duplicate shelf repair · 17-10-2026
+
+Item slots are drawn without repeating a `(kind, id)` pair on the same shelf. Almanac selection still favours the most-played hand and keeps five-of-a-kind pages locked until played; the choice between almanac and treat stays 50/50. The same consumable can appear again in a later shop, and owned inventory may still contain multiple copies. Rerolls continue to change only charms.
+
+Version-2 saves remain valid. When an older saved shop contains two identical offers, loading keeps the first and deterministically replaces only the later duplicate. Nuts, inventory, levels, owned charms and vouchers, sold slots and an open pack's choices are preserved. The repaired shop then saves and reloads unchanged.

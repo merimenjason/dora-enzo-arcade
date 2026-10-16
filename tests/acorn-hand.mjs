@@ -207,6 +207,39 @@ const setHand = (run, cards) => { run.deck.push(...cards); run.round.hand = card
 
 // Vouchers
 const inShop = (seed) => { const run = new Run(seed); run.start(); run.round.target = 1; run.play(run.round.hand.slice(0, 5)); run.collect(); run.nuts = 200; return run; };
+
+// A shelf offers distinct items, and pre-fix duplicate shelves resume safely.
+{
+  let almanacPairs = 0, treatPairs = 0;
+  for (let seed = 0; seed < 512; seed++) {
+    const run = inShop(seed), items = run.shop.items;
+    assert.equal(new Set(items.map((it) => `${it.kind}:${it.id}`)).size, items.length, `distinct shelf items, seed ${seed}`);
+    if (items.every((it) => it.kind === 'almanac')) almanacPairs++;
+    if (items.every((it) => it.kind === 'treat')) treatPairs++;
+    const back = Run.load(run.save()); assert.ok(back); assert.deepEqual(back.save(), run.save(), 'a distinct shelf reloads without changing RNG or stock');
+    assert.ok(run.reroll()); assert.deepEqual(run.shop.items, items, 'rerolling charms leaves distinct items alone');
+  }
+  assert.ok(almanacPairs > 0 && treatPairs > 0, 'cover both same-kind item pairs');
+  for (const duplicate of [{ kind: 'almanac', id: 'sflush' }, { kind: 'treat', id: 'tea' }]) {
+    const save = inShop(950).save(); save.shop.items = [{ ...duplicate }, { ...duplicate }];
+    const before = JSON.stringify(save), loaded = Run.load(save), again = Run.load(save);
+    assert.ok(loaded); assert.ok(again);
+    assert.deepEqual(loaded.shop.items[0], duplicate, 'preserve the first offered item');
+    assert.notDeepEqual(loaded.shop.items[1], duplicate, 'replace only the duplicate offer');
+    for (const field of ['nuts', 'levels', 'items', 'charms', 'vouchers', 'offer']) assert.deepEqual(loaded[field], save[field], `preserve ${field}`);
+    assert.equal(JSON.stringify(save), before, 'loading never mutates the source save');
+    assert.deepEqual(loaded.save(), again.save(), 'migration is deterministic');
+    assert.deepEqual(Run.load(loaded.save()).save(), loaded.save(), 'the repaired shelf reloads unchanged');
+  }
+  const packRun = inShop(952); packRun.shop.packs[0] = 'almanac'; assert.ok(packRun.openPack(0));
+  const packSave = packRun.save(); packSave.shop.items = [{ kind: 'almanac', id: 'sflush' }, { kind: 'almanac', id: 'sflush' }];
+  const packBack = Run.load(packSave); assert.ok(packBack); assert.equal(packBack.phase, 'pack');
+  assert.deepEqual(packBack.pack, packSave.pack, 'repairing a shelf preserves an open pack and its choices');
+  assert.notDeepEqual(packBack.shop.items[0], packBack.shop.items[1]);
+  const save = inShop(951).save(); save.shop.items[0] = null;
+  assert.deepEqual(Run.load(save).save(), save, 'sold slots stay empty');
+}
+
 {
   assert.equal(VOUCHERS.length, 10); assert.equal(new Set(VOUCHERS.map((v) => v.id)).size, 10); assert.equal(VOUCHER_COST, 10);
   const run = inShop(31);

@@ -365,9 +365,9 @@ export class Run {
     const pool = HANDS.filter((h) => (h.id !== 'five' && h.id !== 'ffive' || this.played[h.id] > 0) && !taken.includes(h.id));
     return this.rand.weighted(pool, (h) => (h.id === lean ? 4 : 1)).id;
   }
-  private rollItem(): Item {
-    if (this.rand.next() < 0.5) return { kind: 'almanac', id: this.rollHand() };
-    return { kind: 'treat', id: this.rand.pick(TREATS).id };
+  private rollItem(taken: Item[] = []): Item {
+    if (this.rand.next() < 0.5) return { kind: 'almanac', id: this.rollHand(taken.filter((it) => it.kind === 'almanac').map((it) => it.id)) };
+    return { kind: 'treat', id: this.rand.pick(TREATS.filter((t) => !taken.some((it) => it.kind === 'treat' && it.id === t.id))).id };
   }
   /** A playing card for a card pack: any rank and suit, glossed now and then. Its id is set when it is taken. */
   private rollCard(): Card {
@@ -379,7 +379,7 @@ export class Run {
     const charms: (string | null)[] = [];
     for (let i = 0; i < this.shopCharms; i++) charms.push(this.rollCharm(charms.filter((x): x is string => !!x)));
     const items: (Item | null)[] = [];
-    for (let i = 0; i < SHOP_ITEMS; i++) items.push(this.rollItem());
+    for (let i = 0; i < SHOP_ITEMS; i++) items.push(this.rollItem(items.filter((it): it is Item => !!it)));
     const packs: (string | null)[] = [];
     for (let i = 0; i < SHOP_PACKS; i++) { const kind = this.rand.pick(PACK_KINDS); packs.push(this.rand.next() < BIG_PACK_ODDS ? `${kind}-big` : kind); }
     return { charms, items, packs };
@@ -601,6 +601,13 @@ export class Run {
       });
       g.rand.s = s.rand;
       g.bossFor(g.ante);
+      // Older saves may have two identical shelf items. Keep the first and repair only the duplicate.
+      const seen: Item[] = [];
+      if (g.shop) g.shop.items = g.shop.items.map((it) => {
+        if (!it) return null;
+        const next = seen.some((x) => x.kind === it.kind && x.id === it.id) ? g.rollItem(seen) : it;
+        seen.push(next); return next;
+      });
       return g;
     } catch { return null; }
   }
