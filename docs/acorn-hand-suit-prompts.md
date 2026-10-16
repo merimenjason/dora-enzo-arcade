@@ -1,6 +1,6 @@
 # Acorn Hand · art redo prompts for ChatGPT
 
-Written 15-10-2026, updated 16-10-2026. Focused redos of painted art from [`acorn-hand-image-prompts.md`](acorn-hand-image-prompts.md) that didn't work in the game: the four card suits, the [Squirrel Hoard voucher](#squirrel-hoard-voucher) and the [rival reaction poses](#rival-reaction-poses).
+Written 15-10-2026, updated 16-10-2026. Focused redos of painted art from [`acorn-hand-image-prompts.md`](acorn-hand-image-prompts.md) that didn't work in the game: the four card suits, the [Squirrel Hoard voucher](#squirrel-hoard-voucher), the [nuts and the chips and mult counters](#nuts-chips-and-mult) and the [rival reaction poses](#rival-reaction-poses).
 
 ## Suit pips
 
@@ -135,6 +135,81 @@ A small red squirrel with a big bushy tail, standing upright and hugging a tall,
 - Bump the cache key in `loadAcornPainting` so browsers drop the old sheet.
 - Check the shop card at desktop and phone widths: the price the game prints at the stub must not overlap the emblem.
 - Add a **Changed** entry for **Acorn Hand** in `CHANGELOG.md`.
+
+## Nuts, chips and mult
+
+Two parts of the table are still not painted, and they are on screen all the time.
+
+### What's wrong
+
+- **The nuts are an emoji, and the wrong nut.** The purse in the header, the nut pile beside the rival, the nuts that fly to the purse at cash-out and the round markers all use the 🌰 emoji. That is a *chestnut*, not an acorn, in a game called Acorn Hand. It is drawn by the phone or computer's own emoji font, so it looks different on every device, and its flat, glossy cartoon style clashes with the painted table, cards and rivals.
+- **Chips and mult are flat UI pills.** The scoring counters (chips × mult, under the hand name in the sidebar) are a plain sky-blue box and a plain red box with white numbers. They are the most-watched thing during scoring, but they look like a web form, not part of a storybook card table.
+
+### What it should look like
+
+- **The nut** is the game's own acorn: plump, warm brown, with a cross-hatched cap and a short stalk, painted like the acorns on the table art, and readable as an acorn at 16 px. Three versions at slightly different angles let the nut pile look like a heap instead of a grid.
+- **The counters** are two small painted **wooden plaques**, like the signboards on a woodland market stall: chips in a **sky-blue** enamel with a tiny stack of three blue clay chips carved at its left end, mult in a **berry-red** enamel with a small lantern flame at its right end. The rest of each plaque is a smooth plain panel, because the game prints the number on it in white. Blue and red stay, so players who know the scoring keep reading them the same way.
+
+The plaques are drawn at about 104 × 48 px on desktop and smaller on phones; the nuts at 13 to 24 px.
+
+### How to use this
+
+Two sheets, one message each, in the same ChatGPT conversation so the style matches.
+
+1. Attach `public/art/acorn-hand/table.png` and `public/art/acorn-hand/vouchers.png` as **style references**, and a screenshot of a round, so it can see the blue and red boxes and the emoji nuts being replaced.
+2. Paste **Prompt 1** and save the result as `public/art/acorn-hand/nuts.png`.
+3. Paste **Prompt 2** and save the result as `public/art/acorn-hand/counters.png`.
+4. Run the **Acceptance checklist** on each; for a failed check, reply with the **Fix-up prompt**. Then hand both back to Claude Code for the **Integration notes**.
+
+### Prompt 1 · nuts
+
+> You are painting game tokens for **Acorn Hand**, a cosy storybook poker game played by two chinchillas in a woodland. The attached images show our art style. The game currently shows its currency, nuts, as the 🌰 chestnut emoji, which is the wrong nut and clashes with the painted art. Paint our own **acorn token** to replace it.
+>
+> **Sheet:** a PNG with a truly transparent background (alpha zero), EXACTLY 3 columns × 1 row of equal square cells, one acorn centred in each cell, filling about 75% of the cell's height, nothing touching a cell edge. No text, numbers, letters, coins, frames or shadows on the ground.
+>
+> **The acorn:** a plump, round-bottomed acorn in warm golden brown with a darker cap, the cap's cross-hatched texture shown with a few bold strokes only, and a short stalk on top. Storybook gouache with warm lantern light from the upper left: one soft highlight on the nut, one shade on the lower right, a clean dark-brown outline. It must stay instantly readable as an acorn when shrunk to 16 pixels, so keep the silhouette bold and the detail simple. It must look like the acorns in the attached table painting.
+>
+> **The three cells:** the same acorn, (1) upright, (2) tilted about 15° to the left, (3) tilted about 15° to the right, so they can be heaped into a natural-looking pile. Same size, colours and lighting in all three.
+
+### Prompt 2 · chips and mult plaques
+
+> Now paint the two **scoring counters** for the same game. During scoring the game shows "chips × mult" as two boxes side by side, today a flat blue box and a flat red box (see the screenshot). Replace them with two small painted **wooden plaques**, like signboards on a woodland market stall, in the same storybook gouache style as the acorns.
+>
+> **Sheet:** a PNG with a truly transparent background (alpha zero), EXACTLY 1 column × 2 rows of equal landscape cells, each plaque centred in its cell and filling about 90% of it. Each plaque is a landscape rounded rectangle about **2.2 wide to 1 tall**, with softly rounded corners, a thin carved wooden rim in warm brown, and a slight bevel lit from the upper left. No text, numbers, letters or "×" sign anywhere.
+>
+> **Top cell, chips:** the panel inside the rim is a smooth **sky-blue enamel** (`#4fa8e8`). At its far **left** end, inside the rim, a tiny stack of three round blue clay chips, taking up no more than the left 20% of the plaque.
+>
+> **Bottom cell, mult:** the panel inside the rim is a smooth **berry-red enamel** (`#e8584a`). At its far **right** end, inside the rim, a small warm lantern flame in orange and gold, taking up no more than the right 20% of the plaque.
+>
+> On both, everything else on the panel is **plain, smooth and evenly coloured**, with only a faint soft sheen, because the game prints large white numbers there; white text must read clearly on it. The two plaques are the same size, shape, rim and lighting, a matching pair.
+
+### Fix-up prompt
+
+> Keep everything that works and change only this: _[name the failed check, for example "the flame on the mult plaque takes up a third of it: shrink it to the right-hand fifth and leave the rest plain"]_. Same grid, transparent background, no text.
+
+### Acceptance checklist
+
+**`nuts.png`**
+
+- [ ] 3 × 1, square cells, transparent background with no matte, glow or ground shadow.
+- [ ] **The squint test:** shrink it so each acorn is 16 px wide (the sheet about 48 px). Each still reads as an acorn, not a brown blob or a chestnut.
+- [ ] An acorn with a cap and a stalk, not a chestnut, hazelnut or walnut; it matches the acorns on the table art.
+- [ ] Upright, tilted left, tilted right; the same size and colours in all three.
+
+**`counters.png`**
+
+- [ ] 1 × 2, the chips plaque on top and the mult plaque below; transparent background.
+- [ ] Both plaques are landscape, about 2.2 : 1, the same size and shape.
+- [ ] Chips is sky blue with the chip stack at the far left; mult is berry red with the flame at the far right; each icon within its end fifth.
+- [ ] The rest of each panel is plain and even: the number `1,250` typed over it in bold white is easy to read.
+- [ ] No text, numbers, letters or "×".
+
+### Integration notes (for Claude Code)
+
+- Measure crops from the alpha bounds into `lib/acorn-hand-crops.ts` under `nuts` (three) and `counters` (two), and bump the cache key in `loadAcornPainting`.
+- **Nuts:** replace the 🌰 emoji with the painted acorn in the purse (`data-testid="nuts"`), the nut pile (`NutPile`, cycling the three angles across `data-size` so the heap looks natural), the round markers (`ah-blind-pip`) and the flying nuts (`toss` in `app/acorn-hand/motion.ts` takes a string today; give it an element or image). Keep the emoji as the fallback while the painted file loads or when it fails, as the other painted art does, and keep the purse's `aria-label`.
+- **Counters:** draw each plaque as the background of `.ah-chips` and `.ah-mult`, stretched to the box (`background-size: 100% 100%`), keeping the blue and red fills underneath as the fallback. Pad the number away from the icon end: chips is right-aligned, so its icon at the left is clear; mult is left-aligned, so its icon at the right is clear. Add a dark text shadow so the white digits read on the enamel. Check the POP and PUNCH animations still look right on the plaque, and check the phone layouts, where the boxes are narrower.
+- Run the layout checks and the painted suite (`npm run test:e2e:acorn-hand`), then add a **Changed** entry for **Acorn Hand** in `CHANGELOG.md`.
 
 ## Rival reaction poses
 

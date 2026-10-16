@@ -19,7 +19,7 @@ Item icons use `drawItem` in shop offers, inventory slots and pack choices: thir
 
 ## Prompts for a painted pass
 
-The full, sheet-by-sheet handoff for ChatGPT, vouchers, packs and item icons included, is [`acorn-hand-image-prompts.md`](acorn-hand-image-prompts.md). Focused redos of the suit pips, which turned to mush at card size, and of the Squirrel Hoard voucher, which showed no squirrel, and the prompts for the rivals' happy and sad reaction poses are in [`acorn-hand-suit-prompts.md`](acorn-hand-suit-prompts.md). The notes below are the original short version.
+The full, sheet-by-sheet handoff for ChatGPT, vouchers, packs and item icons included, is [`acorn-hand-image-prompts.md`](acorn-hand-image-prompts.md). Focused redos of the suit pips, which turned to mush at card size, of the Squirrel Hoard voucher, which showed no squirrel, prompts for painted nuts and chips and mult plaques to replace the 🌰 emoji and the flat counters, and the prompts for the rivals' happy and sad reaction poses are in [`acorn-hand-suit-prompts.md`](acorn-hand-suit-prompts.md). The notes below are the original short version.
 
 Keep the arcade's painted storybook look (see `docs/saga-art.md`): soft gouache, warm lantern light, clean silhouettes on a transparent background, no text in the image.
 

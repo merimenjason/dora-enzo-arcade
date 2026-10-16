@@ -7,6 +7,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 ### Documentation
 
 - **Acorn Hand**: a ChatGPT prompt to repaint the Squirrel Hoard voucher, which showed a tipped pot of acorns with no squirrel, breaking out of its ticket; the original voucher prompt is corrected to match.
+- **Acorn Hand**: ChatGPT prompts for a painted acorn to replace the 🌰 chestnut emoji used for nuts, and for painted wooden chips and mult plaques to replace the flat blue and red counters.
 
 ## 15-10-2026
 
