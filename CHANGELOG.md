@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 17-10-2026
+
+### Changed
+
+- **Acorn Hand**: nuts are painted acorns everywhere, in your purse, the pile beside the rival, the nuts that fly to the purse and the round markers, instead of the chestnut emoji; chips and mult sit on painted wooden plaques; and the Squirrel Hoard voucher shows its squirrel guarding a jar of acorns. If the paintings can't load, the old emoji and plain boxes stand in.
+
 ## 16-10-2026
 
 ### Added

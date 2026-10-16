@@ -79,6 +79,10 @@
 .ah-chips, .ah-mult { border-radius: 10px; padding: 8px 4px; color: #fff; font-variant-numeric: tabular-nums; }
 .ah-chips { background: var(--chips); text-align: right; padding-right: 10px; }
 .ah-mult { background: var(--mult); text-align: left; padding-left: 10px; }
+/* The painted plaques keep their icon end clear: chips' clay chips at the left, mult's flame at the right. */
+.ah-plaque { background-color: transparent; text-shadow: 0 1px 2px #0009, 0 0 6px #0006; }
+.ah-chips.ah-plaque { padding-left: 24%; padding-right: 10%; }
+.ah-mult.ah-plaque { padding-left: 10%; padding-right: 24%; }
 .ah-total { font: 900 34px Georgia, serif; color: var(--gold); animation: ah-pop .35s ease-out; }
 
 .ah-charms { display: grid; grid-template-columns: repeat(5, minmax(0, 112px)); gap: 8px; justify-content: center; }
@@ -225,6 +229,7 @@
 .ah-ghost canvas { width: 100%; height: auto; display: block; }
 .ah-ghost kbd, .ah-ghost .ah-pop { display: none; }
 .ah-toss { position: fixed; z-index: 60; pointer-events: none; font-size: 22px; }
+.ah-nut { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -0.2em; }
 .ah-bit { position: fixed; z-index: 60; pointer-events: none; width: 9px; height: 6px; border-radius: 2px; }
 
 @media (max-height: 520px) {
