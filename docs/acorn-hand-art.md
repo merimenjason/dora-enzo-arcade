@@ -108,3 +108,9 @@ Face-card rank and suit indices sit side by side in reserved header and footer b
 The small table companions now load Dora and Enzo from the first two cells of the existing `charms-0.png`. Their full silhouettes fit their own canvases, and Enzo is mirrored to face Dora. Dora retains her dark ruby eyes. No new PNGs are required. Canvas subscriptions repaint them after image arrival; original drawings remain loading/failed-request fallbacks. The painted browser suite blocks and retries this sheet and verifies that both companions change to their painted versions. All twelve court/suit combinations, a glossed example of each court and desktop/phone hands were visually reviewed.
 
 Validation: typecheck, targeted oxlint, production build and a complete clean Acorn Hand browser run passed, including six layouts, card/rival motion, saves, reduced motion, painted currency and the new companion retry regression.
+
+### Voucher price clearance · 17-10-2026
+
+The painted voucher price is smaller and moves inward to solid paper: the common ticket stub's price is centred at79% of canvas width, with the differently proportioned Squirrel Hoard at81%. Text width is capped so the digits stay clear of the notch and perforation. The source PNGs and measured art crops are unchanged. Deep Pockets was reviewed in desktop/phone shop cards.
+
+Validation: all ten painted voucher designs were captured through the actual shop renderer; prices were visually checked against their notches. The saved duplicate shop resumed with distinct items on desktop and phone. Typecheck, targeted lint, production build, rules tests, the200-run balance bot and a complete Acorn Hand browser rerun passed.

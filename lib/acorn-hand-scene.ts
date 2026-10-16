@@ -178,8 +178,9 @@ export function drawVoucher(c: C2D, v: Voucher, w: number, h: number) {
   const index = VOUCHERS.findIndex((vch) => vch.id === v.id);
   // Squirrel Hoard was repainted on its own sheet; the rest stay on the shared one.
   if (v.id === 'hoard' ? paintAcorn(c, 'voucher-hoard', 0, 0, 0, w, h) : paintAcorn(c, 'vouchers', index, 0, 0, w, h)) {
-    c.fillStyle = '#3b2819'; c.font = `700 ${Math.round(w * 0.13)}px Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.fillText(String(VOUCHER_COST), w * (v.id === 'hoard' ? 0.84 : 0.87), h * 0.5); return;
+    c.fillStyle = '#3b2819'; c.font = `700 ${Math.round(w * 0.1)}px Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    // The outer edge narrows at the notch: centre the price on solid paper, inward of that cutout.
+    c.fillText(String(VOUCHER_COST), w * (v.id === 'hoard' ? 0.81 : 0.79), h * 0.5, w * 0.12); return;
   }
   const tint = VOUCHER_TINT[Math.max(0, VOUCHERS.findIndex((x) => x.id === v.id)) % VOUCHER_TINT.length];
   const x = w * 0.06, y = h * 0.16, tw = w * 0.88, th = h * 0.68, notch = th * 0.14, mid = y + th / 2;
