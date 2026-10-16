@@ -42,6 +42,19 @@ try {
   assert.equal(await tokens.locator('[data-testid="nut-pile"] .ah-nut').count(), 10);
   assert.doesNotMatch(await tokens.getByTestId('nuts').innerText(), /🌰/);
   assert.equal(await tokens.locator('[data-testid="chips"].ah-plaque, [data-testid="mult"].ah-plaque').count(), 2);
+  // Table companions must repaint from their code fallback to the painted friends after a retry.
+  const pals = await browser.newPage({ viewport: { width: 1280, height: 860 } });
+  pals.on('pageerror', (error) => errors.push(error.message));
+  await pals.route('**/art/acorn-hand/charms-0.png*', (route) => route.abort());
+  await pals.goto(`${base}/acorn-hand`); await pals.locator('main[data-ready="true"]').waitFor();
+  await pals.getByTestId('new-run').click(); await pals.getByTestId('start').click();
+  await pals.waitForFunction(() => window.__acorn().art.failed.includes('charms-0'));
+  const oldPals = await pals.getByTestId('pals').locator('canvas').evaluateAll((canvases) => canvases.map((c) => c.toDataURL()));
+  assert.equal(oldPals.length, 2);
+  await pals.unroute('**/art/acorn-hand/charms-0.png*');
+  await pals.getByRole('button', { name: 'Retry artwork' }).click();
+  await pals.waitForFunction(() => window.__acorn().art.loaded.includes('charms-0'));
+  await pals.waitForFunction((before) => [...document.querySelectorAll('[data-testid="pals"] canvas')].every((c, i) => c.toDataURL() !== before[i]), oldPals);
   assert.deepEqual(errors, []);
-  console.log('PASS Acorn Hand painted art: missing-image fallback, retry, asynchronous canvas redraw, painted table, phone fit, playable painted cards, and painted nuts and plaques with their fallback.');
+  console.log('PASS Acorn Hand painted art: missing-image fallback, retry, asynchronous canvas redraw, painted table, phone fit, playable painted cards, painted nuts and plaques with their fallback, and painted Dora/Enzo companions after retry.');
 } finally { await browser.close(); }

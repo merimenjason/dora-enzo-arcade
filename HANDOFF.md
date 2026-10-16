@@ -157,6 +157,8 @@ Game 34, `/acorn-hand`, a poker-scoring card run in the manner of Balatro. Rules
 
 **Berry pip correction (17-10-2026).** The smooth round berry with a star-shaped green cap looked like a tomato. `suits.png` now uses one scalloped raspberry with broad lobes and a small leaf. All four measured frames remain equal squares (554px), and only the suit-sheet cache version is `berry-pip-3`. Exact prompt/provenance/bounds: `docs/acorn-hand-berry-generation.json`. The pip was reviewed at20px in colour/greyscale and in real desktop/phone berry hands. Previous suit-generation records remain historical; the berry-specific record describes the current sheet.
 
+**Face-card and companion cleanup (17-10-2026).** Face-card corners now place suit beside rank in dedicated header/footer bands; the portrait occupies the middle half of card height and its gloss label stays lower left. Reviewed all12J/Q/K+suit combinations including gloss. `Pal` in the Acorn Hand page now uses `charms-0` cells0/1 for painted Dora/Enzo (Enzo mirrored inward), retaining old drawings only as loading/failure fallback. The painted browser suite verifies both canvases repaint after a blocked-sheet retry. No asset files, gameplay or save formats changed.
+
 ## Midnight Kitchen · 15-10-2026
 
 Game 33, `/kitchen` (**Ember & Clover: Midnight Kitchen**), is merged on main (PR #39). Dora, Enzo, Pip and Ember run a moonlit bakery: orders move from new to prepared, baked and served, one chef a job, with twelve timed shifts, five recipes, a rush bell, upgrades and an untimed cozy mode. Rules and numbers are in [`docs/midnight-kitchen.md`](docs/midnight-kitchen.md), the painted sheets and prompts in [`docs/kitchen-art.md`](docs/kitchen-art.md).

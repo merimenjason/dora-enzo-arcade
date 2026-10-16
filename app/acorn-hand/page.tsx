@@ -92,7 +92,14 @@ function NutPile({ left }: { left: number }) {
   </div>;
 }
 function Pal({ who }: { who: 'dora' | 'enzo' }) {
-  return <Paint w={72} h={72} sig={`pal-${who}`} draw={(c, w, h) => { c.clearRect(0, 0, w, h); fitDraw(c, `ah-pal-${who}`, 0, 0, w, h, (q) => drawChinchilla(q, who, 0, 0, { face: 1, h: 24, time: who === 'dora' ? 0.4 : 0.9 }), who === 'enzo' ? -1 : 1); }} />;
+  return <Paint w={72} h={72} sig={`pal-${who}`} draw={(c, w, h) => {
+    c.clearRect(0, 0, w, h);
+    c.save();
+    if (who === 'enzo') { c.translate(w, 0); c.scale(-1, 1); }
+    const painted = paintAcorn(c, 'charms-0', who === 'dora' ? 0 : 1, 0, 0, w, h);
+    c.restore();
+    if (!painted) fitDraw(c, `ah-pal-${who}`, 0, 0, w, h, (q) => drawChinchilla(q, who, 0, 0, { face: 1, h: 24, time: who === 'dora' ? 0.4 : 0.9 }), who === 'enzo' ? -1 : 1);
+  }} />;
 }
 
 export default function AcornHandPage() {
