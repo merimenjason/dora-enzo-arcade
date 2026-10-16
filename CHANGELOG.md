@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 16-10-2026
+
+### Documentation
+
+- **Acorn Hand**: a ChatGPT prompt to repaint the Squirrel Hoard voucher, which showed a tipped pot of acorns with no squirrel, breaking out of its ticket; the original voucher prompt is corrected to match.
+
 ## 15-10-2026
 
 ### Added
