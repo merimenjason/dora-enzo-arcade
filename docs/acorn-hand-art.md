@@ -70,3 +70,17 @@ The charms cover all 44 friends in eight 3 × 2 sheets. `charms-7.png` contains 
 - `visibleBoundsAlpha32` in the manifest is an inspection aid for the whole image, not a set of final per-character crop rectangles. `lib/acorn-hand-crops.ts` records measured connected silhouettes and detached prop pieces rather than nominal grid slices. The original Canvas drawings remain asynchronous-loading and failed-request fallbacks.
 - The runtime integration is active: `lib/acorn-hand-paint.ts` loads sheets on demand; canvas subscribers repaint when images arrive. The page loads the table separately and uses dark reading surfaces over it. All cards draw at twice their logical resolution. Item slots, shop offers and pack choices share the same painted item renderer; pack mapping explicitly handles the interleaved data order. Failed requests expose **Retry artwork** without blocking play. Rules, saves and sound are unchanged.
 - Validation: typecheck, targeted lint, existing Acorn Hand browser suite (gameplay, saves, all pack kinds, reduced motion and six layouts), plus a painted loading/failure/retry regression. A complete gallery was visually reviewed for all 44 charms, 13 rivals, vouchers, packs and treats.
+
+### Replacement ticket, currency and scoring plaques · 16-10-2026
+
+Three standalone assets are ready in `public/art/acorn-hand/`, generated with built-in imagegen from `docs/acorn-hand-suit-prompts.md` and the supplied Squirrel Hoard prompt. Complete prompts, iterations, selected source files, dimensions, hashes and candidate alpha bounds are recorded in [`acorn-hand-redos-generation.json`](acorn-hand-redos-generation.json).
+
+| File | Size | Layout |
+| --- | --- | --- |
+| `voucher-hoard.png` | 1448 × 1086 | One transparent ticket: upright red squirrel hugging a terracotta acorn jar; plain right price stub. |
+| `nuts.png` | 2172 × 724 | Three equal square cells: upright acorn, tilted left, tilted right. |
+| `counters.png` | 1254 × 1254 | One column, two equal cells: blue chips plaque above red flame plaque. |
+
+All three are RGBA with alpha-zero background. The originals were copied without image processing. A dark-plum browser composite was reviewed at the ticket's 150px width, the acorns' 16px width, and 104 × 48px plaques with white `1,250` overlaid in the preview only. The delivered files have no baked text or numbers.
+
+This is an asset handoff: the voucher atlas and runtime consumers have not been changed. Use the integration notes in `acorn-hand-suit-prompts.md`; alpha-bound entries in the generation record are measurement aids, not registered runtime crops. Counter crops should share consistent padding when integrated to keep both plaques aligned. The suit redraw and rival reaction sheets are outside this three-file delivery.

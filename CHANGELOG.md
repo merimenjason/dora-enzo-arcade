@@ -4,6 +4,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 16-10-2026
 
+### Added
+
+- **Acorn Hand**: prepared a replacement Squirrel Hoard ticket showing a squirrel guarding its acorn jar, three painted acorn currency poses, and blue chips/red flame scoring plaques. These standalone assets are ready for integration; the running game is unchanged.
+
 ### Documentation
 
 - **Acorn Hand**: a ChatGPT prompt to repaint the Squirrel Hoard voucher, which showed a tipped pot of acorns with no squirrel, breaking out of its ticket; the original voucher prompt is corrected to match.

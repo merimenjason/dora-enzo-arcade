@@ -1,0 +1,147 @@
+{
+  "date": "16-10-2026",
+  "mode": "built-in image_gen",
+  "baseCommit": "811e486",
+  "prompts": [
+    {
+      "id": "hoard",
+      "prompt": "Use case: illustration-story. Asset type: Acorn Hand replacement voucher ticket, voucher-hoard.png. The reference sheet holds ten painted ticket stubs for a cosy storybook card game. Paint ONE new ticket to replace the fourth one (top row fourth from left, brown tipped-pot ticket). Match the other nine exactly in shape, size proportions, paper, painting style and upper-left warm lighting. Output ONE landscape PNG about 4:3, truly transparent background alpha zero, ticket centred with a small transparent margin all round. No text, numbers, letters, currency glyphs or printed symbols anywhere. Ticket: thick cream card stock washed in LIGHT walnut-tan, a HALF-ROUND INWARD NOTCH cut from the middle of EACH short end, dotted perforation line about three-quarters across, narrow right stub COMPLETELY PLAIN for the game to print the price. Same dark outline and soft paper texture as reference tickets. Emblem ONLY on larger left part: a small bright RED SQUIRREL with a big bushy curled tail, standing UPRIGHT, proudly hugging a tall plump TERRACOTTA CLAY JAR filled to the brim with ACORNS, a little heap of acorns crowned on top. Both upright, nothing tipped or spilling. Squirrel and jar fill most of left part's height but stay COMPLETELY WITHIN ticket edges with a clearly visible paper gap at top, bottom, left edge and before perforation. Bright orange squirrel and terracotta jar stand out against LIGHT TAN ticket. Must read at 150 pixels wide as a squirrel guarding its stash of nuts. Reference image is STYLE reference only; do not output the entire sheet or any other ticket."
+    },
+    {
+      "id": "nuts",
+      "prompt": "Use case: illustration-story. Asset type: nuts.png game currency atlas for Acorn Hand, cosy woodland storybook poker. Reference table.png and vouchers.png are STYLE and acorn subject references only. Paint our own ACORN tokens to replace a chestnut emoji. Sheet: truly transparent PNG alpha zero, EXACTLY 3 columns x 1 row of equal SQUARE cells, overall aspect 3:1, one acorn centred in EACH cell filling about 75% cell height, nothing touching any cell edge, generous transparent gutters. NO text, numbers, letters, coins, frames, ground shadows, matte or glow. Acorn: plump round-bottomed nut warm golden BROWN with a distinctly darker cross-hatched CAP and SHORT STALK on top. Crosshatching only a FEW BOLD strokes; instantly readable at 16px, bold simple silhouette. Match acorns in attached table painting. Storybook gouache, warm upper-left lantern light, one soft highlight on nut, one lower-right shade, clean dark-brown outline. The SAME acorn in three cells, LEFT TO RIGHT: (1) UPRIGHT, (2) tilted about 15 degrees LEFT, (3) tilted about 15 degrees RIGHT. Exactly same size, colours, lighting. Only the three isolated tokens, not a table scene. Equal square cells and exact 3:1 sheet ratio."
+    },
+    {
+      "id": "counters",
+      "prompt": "Use case: illustration-story. Asset type: counters.png painted scoring counter atlas for Acorn Hand cosy woodland storybook poker. Attached reference images are STYLE references only: match warm gouache brushwork and upper-left lantern lighting of the acorn tokens and voucher paper. Paint TWO matching WOODEN PLAQUES, like miniature signboards on a woodland market stall. Transparent PNG alpha ZERO, EXACTLY ONE COLUMN x TWO ROWS of equal LANDSCAPE cells; overall image about 1.1 wide to 1 tall (each cell about 2.2:1). Each plaque centred in its cell, fills about 90% of cell, generous transparent gutter. Each plaque a landscape rounded rectangle about 2.2 WIDE : 1 TALL, softly rounded corners, THIN carved warm brown wooden rim with slight bevel. Matching exact same sizes/shapes/rim/lighting. TOP CELL chips: panel smooth SKY-BLUE ENAMEL #4fa8e8. Tiny stack of THREE round BLUE CLAY CHIPS at FAR LEFT, INSIDE rim, taking up at most LEFT 20% of plaque. BOTTOM CELL mult: panel smooth BERRY-RED ENAMEL #e8584a. One small warm LANTERN FLAME orange and gold at FAR RIGHT, INSIDE rim, taking up at most RIGHT 20% of plaque. All remaining panel space COMPLETELY PLAIN smooth EVEN COLOUR with ONLY faint soft sheen so large WHITE NUMBERS can be printed at runtime and read clearly. No baked numbers; no text, letters, symbols, multiplication sign, labels or inscriptions. No additional ornaments, no hanging ropes, no supports, no drop shadows/glow/matte outside the isolated plaques. At actual rendering size104x48 pixels the numbers need most of the smooth panel; keep rims thin and icons within their end fifth."
+    },
+    {
+      "id": "counters-fix",
+      "prompt": "Use case: precise-object-edit. Correct the attached two-plaque sheet. Keep its painting style, sky blue top, berry red bottom, upper-left warm lighting and warm brown thin wooden rims. CHANGE THESE TWO FAILED REQUIREMENTS ONLY: 1. Each plaque is MUCH too wide. Make EACH plaque about 2.2 wide to 1 tall (not 4.5:1), like a 104 by 48 pixel scoring box. Output an approximately SQUARE PNG, about 1.1:1 overall, EXACTLY one column and TWO equal rows. Top blue plaque centred in upper half, bottom red plaque centred in lower half, same dimensions, with transparent gutter between and transparent margin around. Rectangles compact and deep, not long thin banners. 2. Replace the whole lantern with ONLY A SMALL SIMPLE ORANGE-GOLD FLAME SHAPE, no lantern body, metal, glass, handle or holder; flame must fit at FAR RIGHT within right fifth of red plaque, inside rim. Three blue clay chips at FAR LEFT within left fifth of BLUE plaque. Everything else is a PLAIN EVENLY COLOURED smooth enamel panel for white runtime numbers; no busy brush marks or decorations. Each icon occupies at most end20%, the rest is plain. Truly transparent background alpha zero, no matte, no drop shadow outside plaques, NO text, letters, numbers, multiplication symbol or labels. Thin rims. Again overall canvas approximately square; each individual plaque 2.2:1, two vertically stacked plaques."
+    },
+    {
+      "id": "counters-fix2",
+      "prompt": "Use case: precise-object-edit. Keep the attached plaques' artwork, colours, plain blue/red enamel, three blue chips on left, small flame alone on right, thin carved brown wooden rims and transparent background. Change ONLY THE PROPORTIONS AND ICON SIZE: each plaque is still too thin at about 2.9:1. Make EACH plaque substantially TALLER at EXACTLY 2.2 width-to-height. Increase HEIGHT of each plaque by about one third without increasing width. Use almost all the vertical space with only SMALL top/bottom transparent margins. Layout guide on a 1320x1200 canvas: TOP blue plaque outer bounds x66..1254, y30..570 (1188 wide x540 tall); BOTTOM red plaque x66..1254, y630..1170 (1188 wide x540 tall). Equal landscape cells1column2rows, no big unused gap above/below. Three chips and flame should remain natural proportions (not stretched), shrink each to fit entirely in its END FIFTH; chips max width215 pixels at left, flame max width180 pixels at right. Other 80% of each panel plain EVEN smooth enamel for game numbers, no conspicuous grain. No text, letters, numbers, labels or multiplication signs. Truly transparent PNG alpha zero with no matte/glow/ground shadow. Please follow the 1188x540 plaque proportions exactly: compact deep rectangles with large smooth blue/red centres, not thin banners."
+    },
+    {
+      "id": "counters-new",
+      "prompt": "Create a nearly SQUARE transparent PNG sprite sheet. EXACTLY TWO sprites stacked VERTICALLY, ONE ABOVE THE OTHER, equal sized cells. Each sprite is a thick rounded WOODEN SCOREBOARD, a compact landscape rectangle just over TWICE as wide as tall (2.2:1). Upper scoreboard blue; lower scoreboard red. Each fills 90% of its cell's width AND height. Small transparent outer margin and a clean transparent horizontal gap between them. The overall sheet is almost SQUARE, width about 1.1 times total height. NO LONG THIN BANNERS. Each individual scoreboard is deep and chunky with a large plain smooth enamel centre, rim only5% thick, warm carved brown wood, soft upper-left highlights, cosy storybook gouache game art. UPPER board: sky-blue enamel #4fa8e8, tiny stack of THREE blue clay poker chips inside its FAR LEFT END, maximum18% width. LOWER board: berry-red enamel #e8584a, a tiny orange-gold FLAME shape inside its FAR RIGHT END, maximum15% width. Flame only, NO lantern. All the rest of both panels is plain smooth EVEN colour so the game can put white numbers there later. NO writing, NO numbers, NO letters, NO symbols, NO multiplication sign. Transparent alpha zero outside silhouettes, no shadow outside boards, no background or scene. Think of two104x48px rounded scoring boxes, stacked with a small gap, on a square sheet."
+    },
+    {
+      "id": "counters-compact",
+      "prompt": "A transparent sprite sheet with TWO LARGE CHUNKY rectangular wooden tiles, stacked vertically. Each tile is approximately TWICE AS WIDE AS IT IS TALL. Not narrow banners. Deep, almost square game tiles, each width2.2 height1. Overall image a square with the TWO tiles filling it. Top tile occupies y5% to47%, bottom tile y53% to95%, each x5%to95%. Precisely TWO equal landscape rectangles stacked vertically. Rustic storybook hand-painted gouache wooden rims, very THIN, matching warm brown wood with upper-left lighting. TOP tile smooth plain SKY BLUE ENAMEL #4fa8e8, tiny stack of exactly THREE BLUE CLAY CHIPS at FAR LEFT within left18%. BOTTOM tile smooth plain BERRY RED ENAMEL #e8584a, single simple golden orange flame at FAR RIGHT within right15%. Both centres largely empty, evenly coloured, reserved for runtime white numbers, with smooth faint sheen only. Same size, same rim, same lighting. Entire tile surfaces deep enough for big numbers, like compact104x48px scoring boxes. Each tile must fill 90% of sheet width and42% of sheet height. No text, numbers, letters, symbols, multiplication sign, labels, lanterns, ropes, scenery, shadows or glow outside tiles. TRUE alpha transparency outside both rounded rectangles and in all gutters. Composition occupies nearly the whole square, no large margins."
+    },
+    {
+      "id": "counters-chips-fix",
+      "prompt": "Use case: precise-object-edit. Keep EVERYTHING in this sprite sheet unchanged except the three blue rocks at the far left of the upper plaque. Replace those three rocks with exactly THREE ROUND BLUE CLAY POKER CHIPS, a neat little stack of smooth circular flat discs with elliptical top faces and short cylindrical sides. Not angular rocks or ice. Same tiny icon bounding area within the left fifth. Keep EXACT same image dimensions, plaque sizes and layout, wooden rims, blue and red smooth panels, flame at right, lighting, margins, transparent background. Absolutely no other changes. No text, numbers, letters, symbols or extra objects. True alpha transparency outside both plaques."
+    }
+  ],
+  "selected": [
+    {
+      "file": "voucher-hoard.png",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-483086b7-1be4-42d3-8f7b-26c38399e40a.png",
+      "promptIds": [
+        "hoard"
+      ]
+    },
+    {
+      "file": "nuts.png",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-50202c50-0778-49d9-b401-747ee2afabd4.png",
+      "promptIds": [
+        "nuts"
+      ]
+    },
+    {
+      "file": "counters.png",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-a1003ed8-1d44-4c27-94a5-9cd7d6626aa2.png",
+      "promptIds": [
+        "counters-compact",
+        "counters-chips-fix"
+      ]
+    }
+  ],
+  "validation": {
+    "voucher-hoard": {
+      "size": [
+        1448,
+        1086
+      ],
+      "mode": "RGBA",
+      "alphaZeroFraction": 0.4426,
+      "alphaRange": [
+        0,
+        255
+      ],
+      "cropsAlpha12": [
+        [
+          95,
+          175,
+          1258,
+          733
+        ]
+      ],
+      "sha256": "ebf96f6f1c7b09c8e7d0a227768c93595eb23552e88e886f70825690c4f0adf8"
+    },
+    "nuts": {
+      "size": [
+        2172,
+        724
+      ],
+      "mode": "RGBA",
+      "alphaZeroFraction": 0.725,
+      "alphaRange": [
+        0,
+        255
+      ],
+      "cropsAlpha12": [
+        [
+          184,
+          92,
+          421,
+          514
+        ],
+        [
+          879,
+          123,
+          408,
+          475
+        ],
+        [
+          1589,
+          124,
+          402,
+          472
+        ]
+      ],
+      "sha256": "5adb4b4d0a7052ad420025bce4a0d3222d6793ea6683582052ed47f746757f44"
+    },
+    "counters": {
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alphaZeroFraction": 0.1966,
+      "alphaRange": [
+        0,
+        255
+      ],
+      "cropsAlpha12": [
+        [
+          16,
+          115,
+          1222,
+          512
+        ],
+        [
+          16,
+          627,
+          1220,
+          528
+        ]
+      ],
+      "sha256": "519ef50a78fd69307b1d5058db92f04ae3fed1afb48dc9018367705459ef215e"
+    }
+  },
+  "review": "Browser composite on dark plum at 150px ticket width, 16px acorn width, 104x48px plaques with white 1,250 runtime preview. Original PNG bytes and alpha preserved. Assets prepared only; runtime integration pending."
+}
