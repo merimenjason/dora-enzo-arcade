@@ -1,0 +1,557 @@
+{
+  "date": "16-10-2026",
+  "mode": "built-in image_gen",
+  "assets": [
+    {
+      "file": "suits.png",
+      "prompt": "Use case: illustration-story. Redraw the FOUR CARD-SUIT PIPS for Acorn Hand cosy storybook poker. Reference image is SUBJECT and COLOUR REFERENCE ONLY: its detailed still-life style FAILS at20px. Create bold SIMPLE SYMMETRICAL FLAT card pips like spade/heart/club/diamond, enamel-pin or wax-seal flatness with slight gouache warmth. SQUARE PNG, true transparent alpha zero background, EXACT 2columns x2rows equal SQUARE cells, one pip centred EXACTLY in each cell. Each fills about70%width AND70%height with equal visual weight; nothing touches cell edges. NO frames, cards, grid lines, text, letters, numbers or labels. SOLID FLAT base colour, just ONE soft darker lower-right shade and ONE upper-left highlight, single CLEAN outline darker tone of OWN colour, same weight across all4. NO texture, speckle, grain, hatching, leaf veins, tiny parts, drop shadows, glow, halo or coloured fringe. TOP LEFT ACORN warm brown #7a4a1e nut slightlylighter capslightlydarker: upright tall round-bottomed nut with small bottompoint, wide scalloped cap and only3or4simplerowsofBROADbumps, SHORT STRAIGHT THICK STALK straight UP. Mirror symmetric silhouette, NOcurl or tilt. TOP RIGHT CLOVER mossgreen #2f7a33: THREE plump heart-shaped leaves meeting centre, oneUP lowerLEFT lowerRIGHT, SHORT THICK STEM straight DOWN, like playing-card CLUB. Mirror symmetric, NOveins, NOcurledstem. BOTTOM LEFT BERRY berryred #b42840: ONE plump ROUND berry slightlyheartshaped at top, SMALL FIVE-POINT green leafy cap and TINY stalk on top, ONEroundwhite upperleftgleam. Mirror symmetric outline. Not cluster, pair or strawberry. BOTTOM RIGHT PEBBLE slatebluegrey #4d5d72: UPRIGHT EGG-shaped smooth stone TALLER than wide about5wide6tall, ONEpale diagonal band lowerlefttoupperright, ONEupperleftgleam, NOspeckle. Shape-alone GREYSCALE recognition at20pixels: cappednut, three-lobedclub, singlefruitwithstar, plainegg. AcornBROWNnotorange;berryREDnotpink.",
+      "outputHint": "Generated images are saved to /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4 as /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-d8c81986-2651-4e98-9cf3-7cf7714cb5dd.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-d8c81986-2651-4e98-9cf3-7cf7714cb5dd.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "layout": [
+        2,
+        2
+      ],
+      "crops": [
+        [
+          86,
+          83,
+          549,
+          549
+        ],
+        [
+          642,
+          122,
+          549,
+          549
+        ],
+        [
+          82,
+          662,
+          549,
+          549
+        ],
+        [
+          648,
+          660,
+          549,
+          549
+        ]
+      ],
+      "alphaZeroFraction": 0.6464,
+      "sha256": "0deb80066b944b7ffd08b9b6098a94d1d5bfa32fad40346efd0ae3aef5a6f62a",
+      "runtimeCrops": [
+        [
+          86,
+          83,
+          549,
+          549
+        ],
+        [
+          642,
+          122,
+          549,
+          549
+        ],
+        [
+          82,
+          662,
+          549,
+          549
+        ],
+        [
+          648,
+          660,
+          549,
+          549
+        ]
+      ]
+    },
+    {
+      "file": "rivals-0-happy.png",
+      "prompt": "Use case: precise-object-edit. Keep all6characters in attached happy Acorn Hand sheet EXACTLY as they look: identities, smug/happy expressions, cards, left-facingangle, colours, painterlyfur/shell/feathers and lighting. Change ONLY SIZE AND SPACING: every portrait is too large and bear/some features near edges are clipped. Make EACH portrait about75% of its CURRENT width and height, and centre it inside its own equal512x512 cell. Retain same1536x1024sheet, 3columns2rows. Rowmajororder fox, owl, hawk on top; snake, badger, skunk below. Require at least50pixels TRULY TRANSPARENT margin on ALL FOUR sides of EVERY cell, including outercanvasedges and betweenrows. Reconstruct any clipped right-side bear fur/forearm so its silhouette is COMPLETE. Ears, antennae, tails, plum card fans and paws all entirely inside their cell, no cropping and no overlapping neighbours. Half-length cut is only along the original straight torso baseline; no other clipped features. True transparent PNG alpha0 background, no backdrop/haze/glow/matte, NO text/letters/numbers. Exactly the same happy artwork, just SMALLER inside clear roomy cell gutters.",
+      "outputHint": "Generated images are saved to /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4 as /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-8696cef1-725a-4dc8-8c54-078a9aa1e2c7.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+      "correction": true,
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-8696cef1-725a-4dc8-8c54-078a9aa1e2c7.png",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "layout": [
+        3,
+        2
+      ],
+      "crops": [
+        [
+          85,
+          71,
+          411,
+          393
+        ],
+        [
+          596,
+          106,
+          388,
+          362
+        ],
+        [
+          1084,
+          107,
+          391,
+          358
+        ],
+        [
+          92,
+          554,
+          368,
+          388
+        ],
+        [
+          572,
+          555,
+          410,
+          389
+        ],
+        [
+          1074,
+          559,
+          419,
+          384
+        ]
+      ],
+      "alphaZeroFraction": 0.5607,
+      "sha256": "358a7e7c7b686c723bc61a8eef5709419c43d89bd2634c004b4b2f34770f35db",
+      "runtimeCrops": [
+        [
+          85,
+          42,
+          411,
+          422
+        ],
+        [
+          596,
+          86,
+          388,
+          382
+        ],
+        [
+          1084,
+          96,
+          391,
+          369
+        ],
+        [
+          92,
+          523,
+          368,
+          419
+        ],
+        [
+          568,
+          554,
+          418,
+          390
+        ],
+        [
+          1073,
+          558,
+          421,
+          385
+        ]
+      ]
+    },
+    {
+      "file": "rivals-0-sad.png",
+      "prompt": "Use case: precise-object-edit. Asset type rivals-0-sad.png Acorn Hand reaction sprites. Redraw the attached sheet of card-table rivals with EVERY character SAD, BEATEN: ears or crest drooping, shoulders slumped, eyes DOWNCAST, fan of cards drooping in paws/wings/coils. Keep EVERYTHING ELSE exactly as reference: same SIX characters, species, identity, fur/feather/scale colours and markings, accessories, purple-and-gold card backs, warm lantern lighting, painterly storybook gouache, SIZE, framing and position in SAME 3columns x2rows equal grid. Row-major order TOP fox, owl, hawk; BOTTOM green snake, badger, skunk. HALF-LENGTH portraits ALL FACING LEFT at same angle as originals, keep mouths/snouts and bodies turned LEFT; no full bodies or feet. Keep original cell centres and silhouette size closely, portraits must swap during animation WITHOUT jumping. Complete ears, fur and fans contained WITHIN each cell with generous transparent gutters. Only change EXPRESSION and SMALL pose adjustments for sad; don't move characters to different cells, crop parts, add species, props or background. Truly transparent PNG alpha ZERO outside silhouettes, no backdrop, glow, haze, vignette or shadow under figures. Any apparent warm haze around reference characters should NOT be carried over as a background. No text, letters, numbers or labels anywhere. Each fan remains simple plum backs with gold edges, no writing. EXACTLY one sheet of6portraits in3x2grid.",
+      "outputHint": "Generated images are saved to /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4 as /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-24598984-a880-453e-b634-fa05d1989de7.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-24598984-a880-453e-b634-fa05d1989de7.png",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "layout": [
+        3,
+        2
+      ],
+      "crops": [
+        [
+          49,
+          135,
+          455,
+          368
+        ],
+        [
+          600,
+          140,
+          377,
+          372
+        ],
+        [
+          1104,
+          142,
+          392,
+          369
+        ],
+        [
+          91,
+          559,
+          377,
+          408
+        ],
+        [
+          578,
+          555,
+          418,
+          409
+        ],
+        [
+          1101,
+          544,
+          420,
+          423
+        ]
+      ],
+      "alphaZeroFraction": 0.5364,
+      "sha256": "d16ef7c470543fa54301fbc3d869eb69c5abcaab9d6e029285aa8b038f8f6cb4",
+      "runtimeCrops": [
+        [
+          49,
+          35,
+          455,
+          468
+        ],
+        [
+          600,
+          139,
+          378,
+          373
+        ],
+        [
+          1104,
+          141,
+          392,
+          370
+        ],
+        [
+          91,
+          538,
+          377,
+          429
+        ],
+        [
+          567,
+          554,
+          440,
+          410
+        ],
+        [
+          1072,
+          543,
+          464,
+          424
+        ]
+      ]
+    },
+    {
+      "file": "rivals-1-happy.png",
+      "prompt": "Use case: precise-object-edit. Keep all6characters in attached happy Acorn Hand sheet EXACTLY as they look: identities, smug/happy expressions, cards, left-facingangle, colours, painterlyfur/shell/feathers and lighting. Change ONLY SIZE AND SPACING: every portrait is too large and bear/some features near edges are clipped. Make EACH portrait about75% of its CURRENT width and height, and centre it inside its own equal512x512 cell. Retain same1536x1024sheet, 3columns2rows. Rowmajororder weasel, mole, bear on top; cougar, beetle, lizard below. Require at least50pixels TRULY TRANSPARENT margin on ALL FOUR sides of EVERY cell, including outercanvasedges and betweenrows. Reconstruct any clipped right-side bear fur/forearm so its silhouette is COMPLETE. Ears, antennae, tails, plum card fans and paws all entirely inside their cell, no cropping and no overlapping neighbours. Half-length cut is only along the original straight torso baseline; no other clipped features. True transparent PNG alpha0 background, no backdrop/haze/glow/matte, NO text/letters/numbers. Exactly the same happy artwork, just SMALLER inside clear roomy cell gutters.",
+      "outputHint": "Generated images are saved to /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4 as /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-75d27d7e-d063-4df3-9d35-48fc021f6d54.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+      "correction": true,
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-75d27d7e-d063-4df3-9d35-48fc021f6d54.png",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "layout": [
+        3,
+        2
+      ],
+      "crops": [
+        [
+          83,
+          80,
+          384,
+          382
+        ],
+        [
+          582,
+          138,
+          390,
+          324
+        ],
+        [
+          1057,
+          66,
+          423,
+          396
+        ],
+        [
+          74,
+          531,
+          431,
+          399
+        ],
+        [
+          602,
+          575,
+          388,
+          369
+        ],
+        [
+          1102,
+          546,
+          389,
+          385
+        ]
+      ],
+      "alphaZeroFraction": 0.5859,
+      "sha256": "51756ae6fdcb5a5c0d8dbc56aa85e777e1b60ff45b24981aa3bc6164129dbf39",
+      "runtimeCrops": [
+        [
+          83,
+          73,
+          384,
+          389
+        ],
+        [
+          582,
+          137,
+          391,
+          325
+        ],
+        [
+          1057,
+          30,
+          423,
+          432
+        ],
+        [
+          74,
+          502,
+          431,
+          428
+        ],
+        [
+          598,
+          574,
+          395,
+          370
+        ],
+        [
+          1102,
+          539,
+          389,
+          392
+        ]
+      ]
+    },
+    {
+      "file": "rivals-1-sad.png",
+      "prompt": "Use case: precise-object-edit. Asset type rivals-1-sad.png. Redraw attached Acorn Hand card-table rival sheet changing EVERY character to SAD and BEATEN: ears drooping, shoulders slumped, eyes downcast, card fan drooping in paws/claws. Keep reference identities, species, colours, fur/scale/shell markings, SAME size and cell positions, half-length framing, ALL FACING LEFT at same angle, painterly storybook gouache with warm upperleft lantern lighting. EXACTLY3columns x2rows equal grid. Top row WEASEL, MOLE, BEAR; bottom row COUGAR, BEETLE, GREEN LIZARD. Never change species or swapcells. Purple card fans with thin gold edges and plain card backs. Only expression and SMALL related pose movements change. Preserve each portrait's baseline/centre/scale closely for animation swaps; generous transparent gutters, complete ears/antennae/fans within each cell, no overlapping neighbours or cropped features. True transparent PNG ALPHA ZERO around silhouettes: NO brown backdrop/haze/glow/vignette or background even if visible in reference viewer; only actual character pixels. No text, letters, numbers, labels, symbols or extra objects. One6character sheet, matching reference layout.",
+      "outputHint": "Generated images are saved to /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4 as /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-00e4ee43-ff5b-4a9c-98e7-ce6d934237db.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-00e4ee43-ff5b-4a9c-98e7-ce6d934237db.png",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "layout": [
+        3,
+        2
+      ],
+      "crops": [
+        [
+          45,
+          76,
+          450,
+          425
+        ],
+        [
+          542,
+          133,
+          462,
+          368
+        ],
+        [
+          1066,
+          66,
+          465,
+          437
+        ],
+        [
+          52,
+          551,
+          474,
+          426
+        ],
+        [
+          563,
+          633,
+          417,
+          358
+        ],
+        [
+          1086,
+          578,
+          438,
+          399
+        ]
+      ],
+      "alphaZeroFraction": 0.5061,
+      "sha256": "8eb137fd90ade429610d8cec4840da02ff6317db70813c4b4fd39ea191442873",
+      "runtimeCrops": [
+        [
+          45,
+          45,
+          450,
+          456
+        ],
+        [
+          542,
+          117,
+          462,
+          384
+        ],
+        [
+          1066,
+          29,
+          465,
+          474
+        ],
+        [
+          52,
+          506,
+          474,
+          471
+        ],
+        [
+          563,
+          601,
+          417,
+          390
+        ],
+        [
+          1086,
+          536,
+          438,
+          441
+        ]
+      ]
+    },
+    {
+      "file": "rival-armadillo-happy.png",
+      "prompt": "Use case: precise-object-edit. Asset type rival-armadillo-happy.png. Redraw attached SINGLE ARMADILLO card-table portrait in HAPPY and SMUG, sly confident grin, eyes bright, fan of cards raised a little as if about to win pose. Keep EVERY OTHER DETAIL exactly as reference: same cute long-nosed armadillo identity, brown/golden segmented shell, cream chest, long soft ears, paw anatomy, purple cards with gold edges, same storybook gouache warm upperleftlanternlighting. SINGLE character HALF-LENGTH, ALL FACING LEFT at same threequarterangle. Same size, canvas proportions, framing, centre and baseline, only subtle pose/expression changes for happy. Preserve COMPLETE ears/nose/shell/cardfan/paws inside image with clear transparent margin allround, no cropped parts. Truly transparent PNG alpha ZERO outside silhouette, no ground shadow, haze, backdrop, glow, matte or vignette. NO text, letters, numbers, labels or extra objects. Portrait should swap seamlessly with the calm armadillo at160x120pixels.",
+      "outputHint": "Generated images are saved to /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4 as /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-90270257-64be-41ca-85b1-81d32cd9d9a9.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-90270257-64be-41ca-85b1-81d32cd9d9a9.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "layout": [
+        1,
+        1
+      ],
+      "crops": [
+        [
+          170,
+          126,
+          992,
+          1007
+        ]
+      ],
+      "alphaZeroFraction": 0.577,
+      "sha256": "5003c0f609f2f84864cb6639a82d11fee3337d3ede7d111319d09323e15ad65c",
+      "runtimeCrops": [
+        [
+          165,
+          125,
+          1002,
+          1008
+        ]
+      ]
+    },
+    {
+      "file": "rival-armadillo-sad.png",
+      "prompt": "Use case: precise-object-edit. Asset type rival-armadillo-sad.png. Redraw attached SINGLE ARMADILLO card-table portrait in SAD and BEATEN, long ears drooping, shoulders slumped, eyes DOWNCAST, fan of cards drooping lower in paws pose. Keep EVERY OTHER DETAIL exactly as reference: same cute long-nosed armadillo identity, brown/golden segmented shell, cream chest, long soft ears, paw anatomy, purple cards with gold edges, same storybook gouache warm upperleftlanternlighting. SINGLE character HALF-LENGTH, ALL FACING LEFT at same threequarterangle. Same size, canvas proportions, framing, centre and baseline, only subtle pose/expression changes for sad. Preserve COMPLETE ears/nose/shell/cardfan/paws inside image with clear transparent margin allround, no cropped parts. Truly transparent PNG alpha ZERO outside silhouette, no ground shadow, haze, backdrop, glow, matte or vignette. NO text, letters, numbers, labels or extra objects. Portrait should swap seamlessly with the calm armadillo at160x120pixels.",
+      "outputHint": "Generated images are saved to /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4 as /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-13894467-b59f-4ca3-8786-363e380dd9a7.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-13894467-b59f-4ca3-8786-363e380dd9a7.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "layout": [
+        1,
+        1
+      ],
+      "crops": [
+        [
+          202,
+          270,
+          987,
+          859
+        ]
+      ],
+      "alphaZeroFraction": 0.6039,
+      "sha256": "1836c0ef4bb0aaa21e231b2b71c0ea7676e64170dacd7903b8fd05463361bd09",
+      "runtimeCrops": [
+        [
+          202,
+          136,
+          987,
+          993
+        ]
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "file": "suits.png",
+      "prompt": "Use case: illustration-story. Redraw the FOUR CARD-SUIT PIPS for Acorn Hand cosy storybook poker. Reference image is SUBJECT and COLOUR REFERENCE ONLY: its detailed still-life style FAILS at20px. Create bold SIMPLE SYMMETRICAL FLAT card pips like spade/heart/club/diamond, enamel-pin or wax-seal flatness with slight gouache warmth. SQUARE PNG, true transparent alpha zero background, EXACT 2columns x2rows equal SQUARE cells, one pip centred EXACTLY in each cell. Each fills about70%width AND70%height with equal visual weight; nothing touches cell edges. NO frames, cards, grid lines, text, letters, numbers or labels. SOLID FLAT base colour, just ONE soft darker lower-right shade and ONE upper-left highlight, single CLEAN outline darker tone of OWN colour, same weight across all4. NO texture, speckle, grain, hatching, leaf veins, tiny parts, drop shadows, glow, halo or coloured fringe. TOP LEFT ACORN warm brown #7a4a1e nut slightlylighter capslightlydarker: upright tall round-bottomed nut with small bottompoint, wide scalloped cap and only3or4simplerowsofBROADbumps, SHORT STRAIGHT THICK STALK straight UP. Mirror symmetric silhouette, NOcurl or tilt. TOP RIGHT CLOVER mossgreen #2f7a33: THREE plump heart-shaped leaves meeting centre, oneUP lowerLEFT lowerRIGHT, SHORT THICK STEM straight DOWN, like playing-card CLUB. Mirror symmetric, NOveins, NOcurledstem. BOTTOM LEFT BERRY berryred #b42840: ONE plump ROUND berry slightlyheartshaped at top, SMALL FIVE-POINT green leafy cap and TINY stalk on top, ONEroundwhite upperleftgleam. Mirror symmetric outline. Not cluster, pair or strawberry. BOTTOM RIGHT PEBBLE slatebluegrey #4d5d72: UPRIGHT EGG-shaped smooth stone TALLER than wide about5wide6tall, ONEpale diagonal band lowerlefttoupperright, ONEupperleftgleam, NOspeckle. Shape-alone GREYSCALE recognition at20pixels: cappednut, three-lobedclub, singlefruitwithstar, plainegg. AcornBROWNnotorange;berryREDnotpink.",
+      "outputHint": "Generated images are saved to /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4 as /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-d8c81986-2651-4e98-9cf3-7cf7714cb5dd.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+    },
+    {
+      "file": "rivals-0-happy.png",
+      "prompt": "Use case: precise-object-edit. Asset type rivals-0-happy.png Acorn Hand reaction sprites. Redraw the attached sheet of card-table rivals with EVERY character HAPPY, SMUG: a sly grin, bright confident eyes, fan of cards raised a LITTLE as if about to win. Keep EVERYTHING ELSE exactly as reference: same SIX characters, species, identity, fur/feather/scale colours and markings, accessories, purple-and-gold card backs, warm lantern lighting, painterly storybook gouache, SIZE, framing and position in SAME 3columns x2rows equal grid. Row-major order TOP fox, owl, hawk; BOTTOM green snake, badger, skunk. HALF-LENGTH portraits ALL FACING LEFT at same angle as originals, keep mouths/snouts and bodies turned LEFT; no full bodies or feet. Keep original cell centres and silhouette size closely, portraits must swap during animation WITHOUT jumping. Complete ears, fur and fans contained WITHIN each cell with generous transparent gutters. Only change EXPRESSION and SMALL pose adjustments for happy; don't move characters to different cells, crop parts, add species, props or background. Truly transparent PNG alpha ZERO outside silhouettes, no backdrop, glow, haze, vignette or shadow under figures. Any apparent warm haze around reference characters should NOT be carried over as a background. No text, letters, numbers or labels anywhere. Each fan remains simple plum backs with gold edges, no writing. EXACTLY one sheet of6portraits in3x2grid.",
+      "outputHint": "Generated images are saved to /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4 as /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-fa591e8c-2f52-44b5-b35d-79c99895aea4.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+    },
+    {
+      "file": "rivals-0-sad.png",
+      "prompt": "Use case: precise-object-edit. Asset type rivals-0-sad.png Acorn Hand reaction sprites. Redraw the attached sheet of card-table rivals with EVERY character SAD, BEATEN: ears or crest drooping, shoulders slumped, eyes DOWNCAST, fan of cards drooping in paws/wings/coils. Keep EVERYTHING ELSE exactly as reference: same SIX characters, species, identity, fur/feather/scale colours and markings, accessories, purple-and-gold card backs, warm lantern lighting, painterly storybook gouache, SIZE, framing and position in SAME 3columns x2rows equal grid. Row-major order TOP fox, owl, hawk; BOTTOM green snake, badger, skunk. HALF-LENGTH portraits ALL FACING LEFT at same angle as originals, keep mouths/snouts and bodies turned LEFT; no full bodies or feet. Keep original cell centres and silhouette size closely, portraits must swap during animation WITHOUT jumping. Complete ears, fur and fans contained WITHIN each cell with generous transparent gutters. Only change EXPRESSION and SMALL pose adjustments for sad; don't move characters to different cells, crop parts, add species, props or background. Truly transparent PNG alpha ZERO outside silhouettes, no backdrop, glow, haze, vignette or shadow under figures. Any apparent warm haze around reference characters should NOT be carried over as a background. No text, letters, numbers or labels anywhere. Each fan remains simple plum backs with gold edges, no writing. EXACTLY one sheet of6portraits in3x2grid.",
+      "outputHint": "Generated images are saved to /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4 as /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-24598984-a880-453e-b634-fa05d1989de7.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+    },
+    {
+      "file": "rivals-1-happy.png",
+      "prompt": "Use case: precise-object-edit. Asset type rivals-1-happy.png. Redraw attached Acorn Hand card-table rival sheet changing EVERY character to HAPPY and SMUG: sly grin, bright confident eyes, card fan raised slightly as if about to win. Keep reference identities, species, colours, fur/scale/shell markings, SAME size and cell positions, half-length framing, ALL FACING LEFT at same angle, painterly storybook gouache with warm upperleft lantern lighting. EXACTLY3columns x2rows equal grid. Top row WEASEL, MOLE, BEAR; bottom row COUGAR, BEETLE, GREEN LIZARD. Never change species or swapcells. Purple card fans with thin gold edges and plain card backs. Only expression and SMALL related pose movements change. Preserve each portrait's baseline/centre/scale closely for animation swaps; generous transparent gutters, complete ears/antennae/fans within each cell, no overlapping neighbours or cropped features. True transparent PNG ALPHA ZERO around silhouettes: NO brown backdrop/haze/glow/vignette or background even if visible in reference viewer; only actual character pixels. No text, letters, numbers, labels, symbols or extra objects. One6character sheet, matching reference layout.",
+      "outputHint": "Generated images are saved to /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4 as /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-e0e9de7a-12eb-4e8b-b744-5b7174fda2bb.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+    },
+    {
+      "file": "rivals-1-sad.png",
+      "prompt": "Use case: precise-object-edit. Asset type rivals-1-sad.png. Redraw attached Acorn Hand card-table rival sheet changing EVERY character to SAD and BEATEN: ears drooping, shoulders slumped, eyes downcast, card fan drooping in paws/claws. Keep reference identities, species, colours, fur/scale/shell markings, SAME size and cell positions, half-length framing, ALL FACING LEFT at same angle, painterly storybook gouache with warm upperleft lantern lighting. EXACTLY3columns x2rows equal grid. Top row WEASEL, MOLE, BEAR; bottom row COUGAR, BEETLE, GREEN LIZARD. Never change species or swapcells. Purple card fans with thin gold edges and plain card backs. Only expression and SMALL related pose movements change. Preserve each portrait's baseline/centre/scale closely for animation swaps; generous transparent gutters, complete ears/antennae/fans within each cell, no overlapping neighbours or cropped features. True transparent PNG ALPHA ZERO around silhouettes: NO brown backdrop/haze/glow/vignette or background even if visible in reference viewer; only actual character pixels. No text, letters, numbers, labels, symbols or extra objects. One6character sheet, matching reference layout.",
+      "outputHint": "Generated images are saved to /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4 as /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-00e4ee43-ff5b-4a9c-98e7-ce6d934237db.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+    },
+    {
+      "file": "rival-armadillo-happy.png",
+      "prompt": "Use case: precise-object-edit. Asset type rival-armadillo-happy.png. Redraw attached SINGLE ARMADILLO card-table portrait in HAPPY and SMUG, sly confident grin, eyes bright, fan of cards raised a little as if about to win pose. Keep EVERY OTHER DETAIL exactly as reference: same cute long-nosed armadillo identity, brown/golden segmented shell, cream chest, long soft ears, paw anatomy, purple cards with gold edges, same storybook gouache warm upperleftlanternlighting. SINGLE character HALF-LENGTH, ALL FACING LEFT at same threequarterangle. Same size, canvas proportions, framing, centre and baseline, only subtle pose/expression changes for happy. Preserve COMPLETE ears/nose/shell/cardfan/paws inside image with clear transparent margin allround, no cropped parts. Truly transparent PNG alpha ZERO outside silhouette, no ground shadow, haze, backdrop, glow, matte or vignette. NO text, letters, numbers, labels or extra objects. Portrait should swap seamlessly with the calm armadillo at160x120pixels.",
+      "outputHint": "Generated images are saved to /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4 as /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-90270257-64be-41ca-85b1-81d32cd9d9a9.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+    },
+    {
+      "file": "rival-armadillo-sad.png",
+      "prompt": "Use case: precise-object-edit. Asset type rival-armadillo-sad.png. Redraw attached SINGLE ARMADILLO card-table portrait in SAD and BEATEN, long ears drooping, shoulders slumped, eyes DOWNCAST, fan of cards drooping lower in paws pose. Keep EVERY OTHER DETAIL exactly as reference: same cute long-nosed armadillo identity, brown/golden segmented shell, cream chest, long soft ears, paw anatomy, purple cards with gold edges, same storybook gouache warm upperleftlanternlighting. SINGLE character HALF-LENGTH, ALL FACING LEFT at same threequarterangle. Same size, canvas proportions, framing, centre and baseline, only subtle pose/expression changes for sad. Preserve COMPLETE ears/nose/shell/cardfan/paws inside image with clear transparent margin allround, no cropped parts. Truly transparent PNG alpha ZERO outside silhouette, no ground shadow, haze, backdrop, glow, matte or vignette. NO text, letters, numbers, labels or extra objects. Portrait should swap seamlessly with the calm armadillo at160x120pixels.",
+      "outputHint": "Generated images are saved to /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4 as /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-13894467-b59f-4ca3-8786-363e380dd9a7.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+    },
+    {
+      "file": "rivals-0-happy.png",
+      "prompt": "Use case: precise-object-edit. Keep all6characters in attached happy Acorn Hand sheet EXACTLY as they look: identities, smug/happy expressions, cards, left-facingangle, colours, painterlyfur/shell/feathers and lighting. Change ONLY SIZE AND SPACING: every portrait is too large and bear/some features near edges are clipped. Make EACH portrait about75% of its CURRENT width and height, and centre it inside its own equal512x512 cell. Retain same1536x1024sheet, 3columns2rows. Rowmajororder fox, owl, hawk on top; snake, badger, skunk below. Require at least50pixels TRULY TRANSPARENT margin on ALL FOUR sides of EVERY cell, including outercanvasedges and betweenrows. Reconstruct any clipped right-side bear fur/forearm so its silhouette is COMPLETE. Ears, antennae, tails, plum card fans and paws all entirely inside their cell, no cropping and no overlapping neighbours. Half-length cut is only along the original straight torso baseline; no other clipped features. True transparent PNG alpha0 background, no backdrop/haze/glow/matte, NO text/letters/numbers. Exactly the same happy artwork, just SMALLER inside clear roomy cell gutters.",
+      "outputHint": "Generated images are saved to /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4 as /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-8696cef1-725a-4dc8-8c54-078a9aa1e2c7.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+      "correction": true
+    },
+    {
+      "file": "rivals-1-happy.png",
+      "prompt": "Use case: precise-object-edit. Keep all6characters in attached happy Acorn Hand sheet EXACTLY as they look: identities, smug/happy expressions, cards, left-facingangle, colours, painterlyfur/shell/feathers and lighting. Change ONLY SIZE AND SPACING: every portrait is too large and bear/some features near edges are clipped. Make EACH portrait about75% of its CURRENT width and height, and centre it inside its own equal512x512 cell. Retain same1536x1024sheet, 3columns2rows. Rowmajororder weasel, mole, bear on top; cougar, beetle, lizard below. Require at least50pixels TRULY TRANSPARENT margin on ALL FOUR sides of EVERY cell, including outercanvasedges and betweenrows. Reconstruct any clipped right-side bear fur/forearm so its silhouette is COMPLETE. Ears, antennae, tails, plum card fans and paws all entirely inside their cell, no cropping and no overlapping neighbours. Half-length cut is only along the original straight torso baseline; no other clipped features. True transparent PNG alpha0 background, no backdrop/haze/glow/matte, NO text/letters/numbers. Exactly the same happy artwork, just SMALLER inside clear roomy cell gutters.",
+      "outputHint": "Generated images are saved to /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4 as /Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-75d27d7e-d063-4df3-9d35-48fc021f6d54.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+      "correction": true
+    }
+  ]
+}

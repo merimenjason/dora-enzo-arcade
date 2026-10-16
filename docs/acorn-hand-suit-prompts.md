@@ -2,6 +2,20 @@
 
 Written 15-10-2026, updated 16-10-2026. Focused redos of painted art from [`acorn-hand-image-prompts.md`](acorn-hand-image-prompts.md) that didn't work in the game: the four card suits, the [Squirrel Hoard voucher](#squirrel-hoard-voucher), the [nuts and the chips and mult counters](#nuts-chips-and-mult) and the [rival reaction poses](#rival-reaction-poses).
 
+## Delivery status · 16-10-2026
+
+All ten required PNG deliverables in this document have now been generated in `public/art/acorn-hand/`. The optional `suits-large.png` is not needed: the simple ace pip remains readable at its larger size.
+
+| Deliverable | Status |
+| --- | --- |
+| `suits.png` | Redrawn as four simple pips; equal-size square crops and cache version updated. |
+| `voucher-hoard.png`, `nuts.png`, `counters.png` | Shipped as standalone assets in PR #50; their runtime integration remains pending. |
+| `rivals-0-happy.png`, `rivals-0-sad.png` | Generated; measured crops registered with the existing pose renderer. |
+| `rivals-1-happy.png`, `rivals-1-sad.png` | Generated; measured crops registered with the existing pose renderer. |
+| `rival-armadillo-happy.png`, `rival-armadillo-sad.png` | Generated; measured crops registered with the existing pose renderer. |
+
+Generation prompts, corrections, sources, hashes and crop measurements: [`acorn-hand-suits-poses-generation.json`](acorn-hand-suits-poses-generation.json), and [`acorn-hand-redos-generation.json`](acorn-hand-redos-generation.json) for the first three assets. All PNGs preserve generated alpha. The suit pips were checked at 20px in colour and greyscale; all 13 rival triplets were reviewed through `drawRival` at its actual 160 × 120px size on a dark background.
+
 ## Suit pips
 
 The four card suits. The first painted `public/art/acorn-hand/suits.png` is a good illustration but a poor card pip, and it is the most-seen art in the game: every card face draws it two to ten times.
