@@ -114,17 +114,20 @@ export function drawCard(c: C2D, card: Card | null, w: number, h: number, o: { d
   c.fillStyle = paper; c.fill();
   if (look) { c.fillStyle = look.glow; c.fill(); }
   c.strokeStyle = look ? look.edge : PAPER_EDGE; c.lineWidth = look ? 3 : 1.5; c.stroke();
-  // Corners: rank over a small pip, the bottom one upside down.
+  // Face cards reserve a header/footer for rank and pip; portraits stay in the middle.
+  const court = card.rank >= 11 && card.rank <= 13;
+  // Number cards keep rank over pip; court cards put them side by side.
   const fs = Math.round(w * 0.24), name = rankName(card.rank);
   const corner = () => {
     c.fillStyle = ink; c.font = `700 ${fs}px Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'top';
-    c.fillText(name, w * 0.15, h * 0.04); drawSuit(c, card.suit, w * 0.15, h * 0.04 + fs * 1.35, w * 0.17);
+    c.fillText(name, w * 0.15, h * 0.04);
+    drawSuit(c, card.suit, w * (court ? 0.37 : 0.15), h * 0.04 + fs * (court ? 0.55 : 1.35), w * 0.17);
   };
   corner(); c.save(); c.translate(w, h); c.rotate(Math.PI); corner(); c.restore();
-  if (card.rank >= 11 && card.rank <= 13) {
+  if (court) {
     const panel = c.createLinearGradient(0, h * 0.2, 0, h * 0.8); panel.addColorStop(0, 'rgba(0,0,0,0)'); panel.addColorStop(1, `${SUIT_INK[card.suit]}22`);
-    c.save(); rounded(c, w * 0.08, h * 0.24, w * 0.84, h * 0.56, r * 0.6); c.fillStyle = panel; c.fill(); c.restore();
-    faceArt(c, card.rank, card.suit, w * 0.06, h * 0.24, w * 0.88, h * 0.55);
+    c.save(); rounded(c, w * 0.08, h * 0.25, w * 0.84, h * 0.5, r * 0.6); c.fillStyle = panel; c.fill(); c.restore();
+    faceArt(c, card.rank, card.suit, w * 0.06, h * 0.25, w * 0.88, h * 0.5);
   } else if (card.rank === 14) {
     c.beginPath(); c.arc(w / 2, h / 2, w * 0.27, 0, Math.PI * 2); c.strokeStyle = ink; c.globalAlpha = 0.35; c.lineWidth = 2; c.stroke(); c.globalAlpha = 1;
     drawSuit(c, card.suit, w / 2, h / 2, w * 0.42);
@@ -134,8 +137,9 @@ export function drawCard(c: C2D, card: Card | null, w: number, h: number, o: { d
     for (const [px, py] of PIPS[card.rank]) drawSuit(c, card.suit, w * px, h * py, size);
   }
   if (look) {
-    c.fillStyle = look.edge; c.font = `700 ${Math.round(w * 0.11)}px system-ui, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'bottom';
-    c.fillText(look.label.toUpperCase(), w / 2, h - h * 0.025);
+    c.fillStyle = look.edge; c.font = `700 ${Math.round(w * 0.11)}px system-ui, sans-serif`; c.textAlign = court ? 'left' : 'center'; c.textBaseline = 'bottom';
+    // The court card's lower-right index has its own lane; gloss stays at lower left.
+    c.fillText(look.label.toUpperCase(), court ? w * 0.06 : w / 2, h - h * 0.025, w * (court ? 0.43 : 0.8));
   }
   if (o.asleep) { rounded(c, pad, pad, w - pad * 2, h - pad * 2, r); c.fillStyle = 'rgba(40,30,50,.55)'; c.fill(); c.fillStyle = '#fff'; c.font = `${Math.round(w * 0.3)}px serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('z', w / 2, h / 2); }
 }

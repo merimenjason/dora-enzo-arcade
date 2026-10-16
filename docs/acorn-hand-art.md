@@ -8,7 +8,7 @@ Acorn Hand uses nineteen painted PNGs through `lib/acorn-hand-paint.ts` and the 
 | --- | --- | --- | --- |
 | Suit pips: acorn, clover, berry, pebble | `drawSuit` | any; 24-unit frame | Also used as the faint emblem behind suit charms. |
 | Card face | `drawCard` | 150 × 210 canvas | Corner rank and pip, printed-deck pip layouts for 2 to 10 (`PIPS`), a large pip in a ring for the ace. |
-| Face cards | `faceArt` inside `drawCard` | 88% × 55% of the card | Jack is Enzo, queen is Dora, king a brown elder in a crown, each in a bib of the suit's ink with the rank on it. |
+| Face cards | `faceArt` inside `drawCard` | 88% × 50% of the card | Jack is Enzo, queen is Dora, king a brown elder in a crown, each in a bib of the suit's ink with the rank on it. |
 | Glossed card | `drawCard` | | Honey, ember, crystal and gold tint the paper, colour the border and print the gloss name at the foot. |
 | Card back and face-down cards | `drawCard` with `down` | | Plum back with a gold inner frame and a lattice of acorns. |
 | Charm | `drawCharm` | 120 × 150 canvas | A chinchilla in the charm's coat and bib colour (`look` in `CHARMS`) over a faint family emblem: its suit, ×, +, ◆ for chips, ¤ for nuts or ★. The frame is bronze, silver or gold by rarity. |
@@ -100,3 +100,11 @@ Validation for the suit/pose pass: typecheck, targeted oxlint, production build 
 Replaced the tomato-like round berry with a compact raspberry: broad rounded lobes, a scalloped silhouette and a single small leaf. The full transparent 1254 × 1254 `suits.png` preserves the other three suits' visual designs. Connected alpha bounds were remeasured from the full sheet to avoid importing stray fragments across nominal cell edges; all four runtime frames are equal 554px squares. Only `suits` uses the new `berry-pip-3` cache version. Exact built-in imagegen prompt, input/output hashes, selected source, bounds and crops: [`acorn-hand-berry-generation.json`](acorn-hand-berry-generation.json). Reviewed through the renderer at 20/35/70px in colour and greyscale, and on desktop and phone hands containing berry cards.
 
 Validation: typecheck, targeted oxlint, production build and the full Acorn Hand browser suite passed, including six layouts, card/rival motion, saves, painted currency/plaques and image failure/retry. The desktop/phone berry-card review reported no page errors.
+
+### Face-card clearance and table companions · 17-10-2026
+
+Face-card rank and suit indices sit side by side in reserved header and footer bands. The central portrait stays between 25% and 75% of card height; the gloss label sits at lower left, clear of the lower-right index. This keeps both suit icons complete without masking ears or crowns. Number-card pip layouts are unchanged.
+
+The small table companions now load Dora and Enzo from the first two cells of the existing `charms-0.png`. Their full silhouettes fit their own canvases, and Enzo is mirrored to face Dora. Dora retains her dark ruby eyes. No new PNGs are required. Canvas subscriptions repaint them after image arrival; original drawings remain loading/failed-request fallbacks. The painted browser suite blocks and retries this sheet and verifies that both companions change to their painted versions. All twelve court/suit combinations, a glossed example of each court and desktop/phone hands were visually reviewed.
+
+Validation: typecheck, targeted oxlint, production build and a complete clean Acorn Hand browser run passed, including six layouts, card/rival motion, saves, reduced motion, painted currency and the new companion retry regression.
