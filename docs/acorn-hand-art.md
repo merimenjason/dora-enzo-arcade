@@ -84,3 +84,13 @@ Three standalone assets are ready in `public/art/acorn-hand/`, generated with bu
 All three are RGBA with alpha-zero background. The originals were copied without image processing. A dark-plum browser composite was reviewed at the ticket's 150px width, the acorns' 16px width, and 104 × 48px plaques with white `1,250` overlaid in the preview only. The delivered files have no baked text or numbers.
 
 This is an asset handoff: the voucher atlas and runtime consumers have not been changed. Use the integration notes in `acorn-hand-suit-prompts.md`; alpha-bound entries in the generation record are measurement aids, not registered runtime crops. Counter crops should share consistent padding when integrated to keep both plaques aligned. The suit redraw and rival reaction sheets are outside this three-file delivery.
+
+### Suit pips and rival poses · 16-10-2026
+
+The seven remaining required sheets from `acorn-hand-suit-prompts.md` are generated: the replacement `suits.png` and happy/sad variants of `rivals-0`, `rivals-1` and `rival-armadillo`. Exact prompts, selected sources, failed spacing drafts, SHA256 hashes, alpha measurements and final crops are in [`acorn-hand-suits-poses-generation.json`](acorn-hand-suits-poses-generation.json). All are transparent RGBA; suit and armadillo sheets are 1254 × 1254, six-rival sheets 1536 × 1024.
+
+`ACORN_CROPS.suits` now uses four equal 549px square frames centred on measured silhouettes. Pose frames match each calm portrait's aspect ratio and baseline, with extra space above slumped heads, so the renderer does not enlarge a sad pose to fill the old height. Two happy drafts were regenerated with larger gutters after the bear approached the image edge. Crop metadata activates the page's existing happy/sad pose selection; the request cache version is now `suits-poses-2`. Missing-pose loading still falls back to the calm portrait and then the original code drawing.
+
+Reviewed the four pips at 20, 35 and 70px in colour and greyscale, plus all 13 calm/happy/sad triplets through the actual Canvas renderer at 160 × 120px. The larger ace pip works without the optional detailed `suits-large.png`. The prior three-file voucher/currency/plaque handoff is unchanged and still needs its own runtime wiring.
+
+Validation for the suit/pose pass: typecheck, targeted oxlint, production build and the full Acorn Hand browser suite passed, including card motion, rival reactions, reduced motion, six layouts, failed-image fallback and retry. The renderer gallery reported no page errors.

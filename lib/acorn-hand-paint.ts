@@ -15,7 +15,7 @@ export function loadAcornPainting(key: string) {
   const image = new Image();
   image.onload = () => { images.set(key, image); revision++; listeners.forEach((fn) => fn()); };
   image.onerror = () => { failed.add(key); revision++; listeners.forEach((fn) => fn()); };
-  image.src = `/art/acorn-hand/${key}.png?v=painted-1`;
+  image.src = `/art/acorn-hand/${key}.png?v=suits-poses-2`;
 }
 /** Contain the complete measured silhouette, never stretching or cutting off ears and props. */
 export function paintAcorn(c: CanvasRenderingContext2D, key: string, cell: number, x: number, y: number, w: number, h: number) {
