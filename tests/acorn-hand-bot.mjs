@@ -174,6 +174,13 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   console.log(`vouchers bought ${vouchers.size}/${VOUCHERS.length}; pack kinds opened ${[...packs].sort().join(' ')}`);
   assert.ok(rate >= 0.2 && rate <= 0.45, `the bot wins between 20% and 45% of runs (${Math.round(rate * 100)}%)`);
   assert.ok((lost[1] ?? 0) / N < 0.05, `fewer than 5% of runs end in ante 1 (${lost[1] ?? 0})`);
+  // No wall: each ante's survival rate is within 14 points of the one before, so losses spread over the run.
+  let reached = N, prev = 1;
+  for (let a = 1; a <= 8; a++) {
+    const rate = 1 - (lost[a] ?? 0) / reached;
+    assert.ok(prev - rate <= 0.14, `ante ${a} is no wall: ${Math.round(rate * 100)}% survive it after ${Math.round(prev * 100)}% survived ante ${a - 1}`);
+    reached -= lost[a] ?? 0; prev = rate;
+  }
   assert.equal(met.size, BOSSES.length, 'every boss turns up'); assert.equal(beaten.size, BOSSES.length, 'every boss is beaten at least once');
   assert.equal(bought.size, CHARMS.length, 'every charm is bought somewhere');
   assert.ok(inWins.size >= CHARMS.length - 3, `nearly every charm is part of some winning run (${inWins.size}/${CHARMS.length})`);

@@ -86,7 +86,8 @@
 .ah-mult.ah-plaque { padding-left: 10%; padding-right: 24%; }
 .ah-total { font: 900 34px Georgia, serif; color: var(--gold); animation: ah-pop .35s ease-out; }
 
-.ah-charms { display: grid; grid-template-columns: repeat(5, minmax(0, 112px)); gap: 8px; justify-content: center; }
+/* One row however many slots: Wider Shelf makes six. */
+.ah-charms { display: grid; grid-template-columns: repeat(var(--slots, 5), minmax(0, 112px)); gap: 8px; justify-content: center; }
 .ah-charm { display: grid; gap: 4px; min-width: 0; }
 .ah-charm.ah-empty { border: 2px dashed #ffffff22; border-radius: 12px; aspect-ratio: 4 / 5; opacity: .7; }
 .ah-shell .ah-charm-face { padding: 0; background: none; border: 0; position: relative; display: block; min-height: 0; }

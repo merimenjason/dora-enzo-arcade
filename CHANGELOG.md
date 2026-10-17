@@ -6,11 +6,13 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Acorn Hand**: a smoother climb. Antes 3 to 5 now ask for 1,800, 4,400 and 8,500 instead of 1,600, 3,500 and 9,000, so ante 5 is no longer a sudden wall after an easy middle; the last three antes are unchanged.
 - **Acorn Hand**: the rival now sits across the table from you: a bigger portrait centred over the play area, its pile of nuts at its side and its words beside it, with soft card slots between you showing where your hand lands. Between reactions it breathes, squashes and hops, and a card a charm counts from your hand (like Onyx's kings) rises and glows as it scores.
 - **Acorn Hand**: nuts are painted acorns everywhere, in your purse, the pile beside the rival, the nuts that fly to the purse and the round markers, instead of the chestnut emoji; chips and mult sit on painted wooden plaques; and the Squirrel Hoard voucher shows its squirrel guarding a jar of acorns. If the paintings can't load, the old emoji and plain boxes stand in.
 
 ### Fixed
 
+- **Acorn Hand**: with Wider Shelf's sixth charm slot, your charms stay on one row instead of wrapping and pushing the hand off the bottom of the screen.
 - **Acorn Hand**: a new round opens on a calm rival instead of flashing the last one's face and words; a boss that puts several cards to sleep speaks once, not once per card; continuing a saved run shows your purse as it is instead of counting up from zero; and cards flying off the table can no longer be focused. In a pack, a number key past the last offer does nothing instead of saying "That one is taken.", and the help no longer says pack keys stop at 5 (Market Day packs show six).
 - **Acorn Hand**: shop item offers no longer repeat the same almanac page or treat. Existing saved shops with duplicates are repaired when continued, keeping the first offer and preserving progress. Voucher prices now sit inside the plain stub, clear of the notched edge, including Deep Pockets.
 - **Acorn Hand**: face-card portraits now leave clear space for both rank-and-suit corners, including glossed cards. Dora and Enzo beside the hand use their painted character artwork and face each other, with the old drawings only while artwork loads or if a request fails.
