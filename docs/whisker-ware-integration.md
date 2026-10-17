@@ -75,3 +75,5 @@ The browser suite starts its own temporary local server and uses the real transp
 When implementing cabinet 35, follow the README's complete **Adding a game** checklist and add the engine, bot, input, gameplay, pause/reduced-motion and real-page artwork regressions from the design. The asset harness does not substitute for those game tests. No implementation work is blocked on generating these 34 images.
 
 Local validation before merge: typecheck, the full `npm test` suite (including all 34 existing games and the new art tests), production build, targeted oxlint, README consistency, Markdown whitespace/link checks and the final browser harness all passed.
+
+Environments ship as quality-85 WebP, about 6% of the PNG size; the PNG originals are at `b0fa421`. `wareArtUrl` picks the extension from `WARE_EXT`.
