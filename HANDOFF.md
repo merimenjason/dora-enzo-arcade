@@ -1,4 +1,4 @@
-# Handoff · 17-10-2026
+# Handoff · 18-10-2026
 
 Where Dora & Enzo's Arcade stands, how the newest games fit together, how to check your work, and what is worth doing next. For the arcade as a whole, start with [`README.md`](README.md); for how the code is laid out and the traps to avoid, [`CLAUDE.md`](CLAUDE.md); for the documentation and changelog rules, [`AGENTS.md`](AGENTS.md).
 
@@ -6,13 +6,13 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 18-10-2026)
 
-**Where things stand.** `main` is at the merge of PR #62 (Whisker Ware) and is deployed: 35 games at https://chinchillas.jason.engineering. Nothing is open: no pull requests, no unmerged branches. The only local changes are three `.claude/` graft files (see **Agent configuration**), which are the user's and must stay uncommitted.
+**Where things stand.** `main` is at the merge of PR #62 (`380ba76`, Whisker Ware) and is deployed: 35 games at https://chinchillas.jason.engineering. The deploy run passed and a browser check against the live site drew all 24 microgames. Nothing is open: no pull requests, no unmerged branches. The only local changes are three `.claude/` graft files (see **Agent configuration**), which are the user's and must stay uncommitted.
 
 **What happened in the last few sessions (13–18-10-2026), newest first:**
 
 | PR | What | Notes |
 | --- | --- | --- |
-| #62 | **Whisker Ware** (`/whisker-ware`), game 35 | WarioWare-style microgame frenzy: 24 games, 4 hosts, Remix, gallery and Practice. Built from the plan in `docs/superpowers/plans/17-10-2026-whisker-ware-plan.md`; bot-tuned, never played by hand. See **Whisker Ware**. |
+| #62 | **Whisker Ware** (`/whisker-ware`), game 35 | WarioWare-style microgame frenzy: 24 games, 4 hosts, Remix, gallery and Practice. Built from the plan in `docs/superpowers/plans/17-10-2026-whisker-ware-plan.md` (Tasks 1–5 by subagents, 6–10 inline); bot-tuned, never played by hand. See **Whisker Ware**. |
 | #61 | Whisker Ware art (the user, via ChatGPT/Codex) | 34 painted images, the lazy loader with code fallbacks, measured crops and floor lines. |
 | #60 | Whisker Ware design and art prompts | The spec, the ChatGPT image prompts and this handoff refresh. |
 | #59 | Acorn Hand stakes | Bronze, silver and gold, opened by winning; picked on the title screen. Bot 29/14/8/6%. See **Acorn Hand · Stakes**. |
@@ -49,6 +49,10 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 - **A context-mode hook blocks `curl` and inline `fetch(` in Bash commands.** Put HTTP calls in a script file and run it with node, as `p.mjs` does.
 - **Foreground `sleep` is blocked.** Wait with `until …; do sleep N; done` in a background command, or `gh pr checks --watch`.
 - **Some failures are not yours.** `tests/e2e/moonlight.mjs` and `tests/e2e/detectives.mjs` write screenshots to a fixed macOS path (`/Users/jasonchua/...`) and fail on any other machine; `tests/e2e/burrow-express.mjs` has a touch-drag check that passes and fails on reruns. All 49 suites were run on 15-10-2026: 46 passed. A check that fails once and passes alone usually has a random setup: the Acorn Hand ante-8 wins timed out whenever the random boss was the Badger, until the tests pinned it (17-10-2026).
+- **The permission classifier can block subagent dispatches** (it flagged reviewer and implementer dispatches as an "auto-mode bypass" during Whisker Ware). Don't work around it: stop, tell the user, and let them choose (they chose to have the controller review, then to build inline).
+- **A bot that copies a frame-perfect solver measures jitter, not difficulty.** Whisker Ware's first bot run lost DODGE every time and GNAW 40%, because the solvers pressed at the edge of each window or planned paths no person would. Make the solvers play like people (aim for the middle, commit to a side, a dead-band on steering) before tuning numbers, and break losses down by level and speed (`WARE_BOT_DETAIL=1`).
+- **Picks in Whisker Ware count every tick they are held.** The page sends a number key or tap for one tick only; anything replaying frames (a bot with reaction lag) must do the same, or it taps twice.
+- **Superpowers plan workspaces** go in `.superpowers/sdd/<plan>/` (ledger `progress.md`), which `.git/info/exclude` hides. Delete the plan's directory once it has merged.
 - **Graft** is at 0.21.1 (0.23.0 available). End a reply with a graft tally only when graft was used in that turn, and never pipe graft through `head`/`tail`.
 
 **What to do next, in the order I'd do it:**
@@ -59,7 +63,9 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 4. **Whisker Saga chapter 1 variety:** a spitter-heavy stage, an early brute, a second wind-up before the boss.
 5. **Midnight Kitchen code split:** drawing lives in `app/kitchen/page.tsx` (about 700 lines); move it to `lib/kitchen-scene.ts` like every other game, and add `window.__kitchen()`.
 6. **Test hygiene:** make the moonlight and detectives screenshot paths relative (`.checks/…`), and steady the Burrow Express touch-drag check.
-7. **Whisker Ware** shipped on 18-10-2026 as game 35 (see **Whisker Ware · 18-10-2026**). What's left: play it by hand (the bot clears every stage 98–100%, so the stages may be too easy, and Remix may be too hard at level 3); listen to its blips; consider more microgames per host. The pick for the next new game is open.
+7. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
+8. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
+9. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; offer something with a stronger hook.
 
 ## Quality pass · 08-10-2026
 
@@ -163,7 +169,9 @@ Game 35, `/whisker-ware`, a WarioWare-style microgame frenzy. Rules, every numbe
   - `npm run test:e2e:whisker-ware`.
 
   `window.__ware()` exposes the run, `start` and `force(id, level, tier)` for browser tests.
-- **Tuning so far:** bot only, nobody has played it by hand. Several games were slowed or widened so a quarter-second reaction is enough; the ledger of those calls is in the commit messages of PR #62.
+- **Tuning so far:** bot only, nobody has played it by hand. The bot plays through the test solvers with human timing (presses within 5 ticks of the moment, reactions 10–20 ticks late, one game in 25 fumbled, one tap per thing on screen). BALANCE, GNAW, FLUFF, STACK, DODGE, CATCH and SNEAK were slowed or widened so a quarter-second reaction is enough; `docs/whisker-ware.md` **Balance** has the numbers and the commit "Add Whisker Ware's bot and tune six microgames" the reasons. After any balance change rerun `npm run bot:whisker-ware` and the 500-seed solver sweep (the test runs 100).
+- **Rules worth knowing:** a wrong tap on HUSH! loses, and FIND! digs where the lantern is let go (a dig off the acorn loses), so neither can be mashed. Inputs are on `MICROS[id].input` (`mash`, `steer`, `swipe`, `pick`, `timing`, `rub`, `hold`, `drag`). The profile is `whisker-ware-v1`; sound is `whisker-ware-sound-v1`.
+- **Art:** `lib/whisker-ware-paint.ts` loads lazily (menu, then the host's room and props, then each next game's backdrop during the break). Floor lines for actors are in `WARE_SURFACES`. A contact sheet of all 24 games was checked by eye on 18-10-2026; PICK!'s suits are drawn in code, not cut from Acorn Hand's sprite.
 
 ## Acorn Hand · 15-10-2026
 
@@ -379,6 +387,8 @@ npm run bot:saga
 npm run test:kitchen
 npm run test:acorn-hand
 npm run bot:acorn-hand
+npm run test:whisker-ware
+npm run bot:whisker-ware     # WARE_BOT_DETAIL=1 for losses by level and speed
 ```
 
 Browser tests need `npm run dev` running and Playwright. Playwright is **not** in `devDependencies`. Install it with `npm i -D playwright`, or link a global copy (`ln -s "$(npm root -g)/playwright" node_modules/playwright`). Then run one suite, such as `node tests/e2e/scribble.mjs`, or the whole `npm run test:e2e`. The browser tests write screenshots to `.checks/<game>/`, which git ignores.
