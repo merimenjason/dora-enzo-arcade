@@ -2,6 +2,16 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 18-10-2026
+
+### Added
+
+- **Whisker Ware**: the arcade's 35th game, a microgame frenzy. Four hosts (Enzo, Dora, the Owl and the Fox) each throw five five-second games and a boss at you, faster and faster. Clear all four for the endless Remix, and practise any game you've beaten from the gallery. Plays by tap, click or keyboard, with painted art and synthesised sound.
+
+### Documentation
+
+- **Whisker Ware**: a README guide and `docs/whisker-ware.md` with every game's rules and numbers. The art notes now say the backdrops are WebP.
+
 ## 17-10-2026
 
 ### Added

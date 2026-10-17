@@ -4,7 +4,7 @@ Generated and reviewed 17-10-2026 from [`whisker-ware-image-prompts.md`](whisker
 
 ## Delivery
 
-All 34 requested PNGs are saved in `public/art/whisker-ware/`: a host sheet, four prop sheets, a title illustration, four break rooms and 24 microgame backdrops. Every file is 1536 × 1024. The five sheets and title preserve generated RGBA transparency; the 28 environments are opaque RGB. Exact built-in `image_gen` prompts, correction passes and selected original paths are recorded in [`whisker-ware-generation.json`](whisker-ware-generation.json).
+All 34 requested images are in `public/art/whisker-ware/`: a host sheet, four prop sheets, a title illustration, four break rooms and 24 microgame backdrops. Every file is 1536 × 1024. The five sheets and title are PNGs that keep their generated transparency; the 28 opaque environments were converted to WebP on 18-10-2026 (63 MB of PNG down to 5.1 MB), and `WARE_EXT` in `lib/whisker-ware-crops.ts` names each file's format. Exact built-in `image_gen` prompts, correction passes and selected original paths are recorded in [`whisker-ware-generation.json`](whisker-ware-generation.json).
 
 Final filenames and SHA256 hashes, dimensions, alpha measurements and all generation/correction attempts are in the generation record. The images preserve their generated pixels and alpha. No background removal, painted-over repairs or synthetic replacement artwork is applied after generation. Review composites are diagnostic previews, separate from the shipped originals.
 
@@ -61,7 +61,7 @@ Review previews live under ignored `.checks/whisker-ware/`: `hosts-dark.png`, th
 - `lib/whisker-ware-crops.ts`: typed asset names, content hashes, measured sprite frames, named props and the source-pixel background survey.
 - `lib/whisker-ware-paint.ts`: lazy loader, status/subscription/retry helpers, and Canvas painters for hosts, props, title and backdrops. It imports no game engine and performs no requests on the server.
 - `npm run test:whisker-ware-art`: loader state and asset/crop regressions, included in `npm test`.
-- `npm run test:e2e:whisker-ware-art`: standalone Playwright harness using the real loader and original PNGs; starts its own temporary local server, so no dev game route is required.
+- `npm run test:e2e:whisker-ware-art`: standalone Playwright harness using the real loader and the shipped images; starts its own temporary local server, so no dev game route is required.
 
 Public assets deploy with the repository when merged. They become visible in the game once Claude imports and calls these painters from its implementation. The arcade remains at 34 playable games until that implementation adds cabinet 35.
 
