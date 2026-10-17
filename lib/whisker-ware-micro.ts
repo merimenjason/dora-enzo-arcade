@@ -334,6 +334,198 @@ MICROS.sniff = sniff;
 MICROS.gnaw = gnaw;
 MICROS.raisin = raisin;
 
+// ── Dora · Dust Spa ───────────────────────────────────────────────────────────
+
+interface DustState { t: number; result: Outcome; dust: number; target: number }
+const dust: Micro<DustState> = {
+  id: 'dust', verb: 'DUST!', host: 1, boss: false, input: 'rub', ticks: 300, survive: false,
+  init(_r, level) { return { t: 0, result: null, dust: 0, target: [12, 16, 20][level - 1] }; },
+  tick(s, i) {
+    if (!begin(s)) return;
+    if (i.rub) s.dust++;
+    if (s.dust >= s.target) s.result = 'win';
+    lapse(s, this.ticks);
+  },
+  outcome: s => s.result,
+};
+
+const TILT_DRIFT = 0.012, TILT_PUSH = 0.03;
+interface BalanceState {
+  t: number; result: Outcome; level: Level;
+  tilt: number; lean: -1 | 1; gust: number; amp: number; phase: number; dora: { x: number; y: number };
+}
+const balance: Micro<BalanceState> = {
+  id: 'balance', verb: 'BALANCE!', host: 1, boss: false, input: 'steer', ticks: 300, survive: true,
+  init(rand, level) {
+    const lean = rand.next() < 0.5 ? -1 : 1;
+    // Gusts only ever add to the lean, so drift plus gust is at least 0.012 a tick: an untouched Dora starting at 0.08 is past the limit in 77 ticks.
+    return { t: 0, result: null, level, tilt: 0.08 * lean, lean, gust: 0, amp: [0.006, 0.01, 0.014][level - 1], phase: rand.next() * Math.PI * 2, dora: { x: 240, y: 270 } };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    s.gust = s.amp * (0.5 + 0.5 * Math.sin(s.t * 0.07 + s.phase));
+    const away = s.tilt === 0 ? s.lean : s.tilt > 0 ? 1 : -1;
+    s.tilt += away * (TILT_DRIFT + s.gust);
+    // pushing left reduces the tilt, so the pointer's side of Dora pushes the way a key on that side would
+    const push = i.steer || (i.down && i.x >= 0 ? (i.x < 240 ? -1 : 1) : 0);
+    s.tilt += push * TILT_PUSH;
+    if (Math.abs(s.tilt) > 1) s.result = 'lose';
+    else if (s.t >= this.ticks) s.result = 'win';
+  },
+  outcome: s => s.result,
+};
+
+interface FluffState {
+  t: number; result: Outcome;
+  size: number; held: boolean; centre: number; width: number; lo: number; hi: number;
+}
+const fluff: Micro<FluffState> = {
+  id: 'fluff', verb: 'FLUFF!', host: 1, boss: false, input: 'hold', ticks: 300, survive: false,
+  init(rand, level) {
+    const centre = 0.55 + rand.next() * 0.25, width = [0.2, 0.14, 0.09][level - 1];
+    return { t: 0, result: null, size: 0, held: false, centre, width, lo: centre - width / 2, hi: centre + width / 2 };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    if (i.released && s.held) {
+      s.held = false;
+      s.result = s.size >= s.lo && s.size <= s.hi ? 'win' : 'lose';
+      return;
+    }
+    s.held = i.down;
+    if (s.held) s.size += 0.008;
+    if (s.size >= 1) s.result = 'lose';
+    lapse(s, this.ticks);
+  },
+  outcome: s => s.result,
+};
+
+const HOP_X = 120, HOP_GROUND = 270, HOP_SPEED = 3.4, HOP_AIR = 40, HOP_LIFT = 64;
+interface HopState {
+  t: number; result: Outcome;
+  dora: { x: number; y: number }; jump: number; logs: { x: number; y: number }[]; passed: number;
+}
+const hop: Micro<HopState> = {
+  id: 'hop', verb: 'HOP!', host: 1, boss: false, input: 'timing', ticks: 300, survive: false,
+  init(rand, level) {
+    const logs = [];
+    let x = 500 + rand.int(40);
+    for (let k = 0; k < level; k++) {
+      logs.push({ x, y: HOP_GROUND - 14 });
+      // at least 150 apart, so a jump (40 ticks, 136 units of log travel) is over before the next log is 70 away; the last log is past by tick 270
+      x += 150 + rand.int(80);
+    }
+    return { t: 0, result: null, dora: { x: HOP_X, y: HOP_GROUND }, jump: 0, logs, passed: 0 };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    if (!s.jump && i.pressed) s.jump = 1;
+    else if (s.jump) s.jump = s.jump + 1 >= HOP_AIR ? 0 : s.jump + 1;
+    s.dora.y = HOP_GROUND - (s.jump ? HOP_LIFT * Math.sin(Math.PI * s.jump / HOP_AIR) : 0);
+    for (const l of s.logs) {
+      l.x -= HOP_SPEED;
+      // a log clips Dora while she is less than 20 units off the ground and it is within her half-width plus its own
+      if (Math.abs(l.x - s.dora.x) < 30 && HOP_GROUND - s.dora.y < 20) s.result = 'lose';
+    }
+    s.passed = s.logs.filter(l => l.x < s.dora.x - 30).length;
+    if (!s.result && s.passed === s.logs.length) s.result = 'win';
+    lapse(s, this.ticks);
+  },
+  outcome: s => s.result,
+};
+
+const COMB_SPEED = 7, COMB_REACH = 18;
+interface CombState {
+  t: number; result: Outcome;
+  dora: { x: number; y: number }; comb: { x: number; y: number }; tangles: { x: number; y: number; done: boolean }[];
+}
+const comb: Micro<CombState> = {
+  id: 'comb', verb: 'COMB!', host: 1, boss: false, input: 'drag', ticks: 300, survive: false,
+  init(rand, level) {
+    const n = [3, 4, 5][level - 1];
+    const start = { x: 240, y: 90 };
+    const tangles: CombState['tangles'] = [];
+    // A 200 x 120 box round Dora, at least 40 from the comb's start (so idle clears none) and 30 from each other.
+    // The box is small enough that the farthest-first route is under 110 ticks of comb travel, well inside 300.
+    for (let tries = 0; tangles.length < n && tries < 400; tries++) {
+      const x = 140 + rand.int(201), y = 130 + rand.int(121);
+      if (Math.hypot(x - start.x, y - start.y) < 40) continue;
+      if (tangles.some(g => Math.hypot(g.x - x, g.y - y) < 30)) continue;
+      tangles.push({ x, y, done: false });
+    }
+    for (let k = tangles.length; k < n; k++) tangles.push({ x: 150 + k * 40, y: 240, done: false });
+    return { t: 0, result: null, dora: { x: 240, y: 190 }, comb: start, tangles };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    const c = s.comb;
+    if (i.left || i.right || i.up || i.dn) {
+      c.x += ((i.right ? 1 : 0) - (i.left ? 1 : 0)) * COMB_SPEED;
+      c.y += ((i.dn ? 1 : 0) - (i.up ? 1 : 0)) * COMB_SPEED;
+    } else if (i.down && i.x >= 0) {
+      const dx = i.x - c.x, dy = i.y - c.y, d = Math.hypot(dx, dy);
+      if (d > COMB_SPEED) { c.x += dx / d * COMB_SPEED; c.y += dy / d * COMB_SPEED; } else { c.x = i.x; c.y = i.y; }
+    }
+    c.x = Math.max(0, Math.min(480, c.x)); c.y = Math.max(0, Math.min(320, c.y));
+    for (const g of s.tangles) if (!g.done && Math.hypot(g.x - c.x, g.y - c.y) <= COMB_REACH) g.done = true;
+    if (s.tangles.every(g => g.done)) s.result = 'win';
+    lapse(s, this.ticks);
+  },
+  outcome: s => s.result,
+};
+
+const SHELVES = 8, SHELF_GAP = 34, SHELF_HALF = 46, SHELF_FLOOR = 296, SHELF_LEFT = 120, SHELF_RIGHT = 360;
+interface Shelf { x: number; y: number; v: number; dir: -1 | 1 }
+interface ShelfState { t: number; result: Outcome; level: number; dora: { x: number; y: number }; shelves: Shelf[] }
+/** The earliest tick each shelf is within 12 units of Dora's x after the last, plus 6 ticks of slack per hop. */
+function shelfClimb(shelves: Shelf[], x: number) {
+  const sim = shelves.map(h => ({ ...h }));
+  let level = 0;
+  for (let t = 1; t <= 900; t++) {
+    for (const h of sim) { h.x += h.dir * h.v; if (h.x <= SHELF_LEFT || h.x >= SHELF_RIGHT) { h.dir = -h.dir as -1 | 1; h.x = Math.max(SHELF_LEFT, Math.min(SHELF_RIGHT, h.x)); } }
+    if (Math.abs(sim[level].x - x) <= 12) { level++; t += 6; if (level === SHELVES) return t; }
+  }
+  return Infinity;
+}
+const shelf: Micro<ShelfState> = {
+  id: 'shelf', verb: 'CLIMB!', host: 1, boss: true, input: 'timing', ticks: 900, survive: false,
+  init(rand, level) {
+    const mult = [1, 1.12, 1.25][level - 1];
+    let shelves: Shelf[] = [];
+    // Shelf motion never depends on the player, so a layout is checked by climbing it: re-roll until a patient climb finishes inside 700 of the 900 ticks.
+    for (let tries = 0; tries < 200; tries++) {
+      shelves = [];
+      for (let k = 0; k < SHELVES; k++) {
+        shelves.push({ x: SHELF_LEFT + rand.next() * (SHELF_RIGHT - SHELF_LEFT), y: SHELF_FLOOR - SHELF_GAP * (k + 1), v: (1.6 + (1.0 * k) / (SHELVES - 1)) * mult, dir: rand.next() < 0.5 ? -1 : 1 });
+      }
+      if (shelfClimb(shelves, 240) <= 700) break;
+    }
+    return { t: 0, result: null, level: 0, dora: { x: 240, y: SHELF_FLOOR }, shelves };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    for (const h of s.shelves) {
+      h.x += h.dir * h.v;
+      if (h.x <= SHELF_LEFT || h.x >= SHELF_RIGHT) { h.dir = -h.dir as -1 | 1; h.x = Math.max(SHELF_LEFT, Math.min(SHELF_RIGHT, h.x)); }
+    }
+    if (i.pressed) {
+      if (Math.abs(s.shelves[s.level].x - s.dora.x) <= SHELF_HALF) s.level++;
+      else s.level = Math.max(0, s.level - 1);
+      s.dora.y = s.level ? s.shelves[s.level - 1].y : SHELF_FLOOR;
+    }
+    if (s.level >= SHELVES) s.result = 'win';
+    lapse(s, this.ticks);
+  },
+  outcome: s => s.result,
+};
+
+MICROS.dust = dust;
+MICROS.balance = balance;
+MICROS.fluff = fluff;
+MICROS.hop = hop;
+MICROS.comb = comb;
+MICROS.shelf = shelf;
+
 /** Each host's five ordinary microgames, and their boss. */
 export const HOST_GAMES: readonly MicroId[][] = [0, 1, 2, 3].map(h => MICRO_IDS.slice(h * 6, h * 6 + 5));
 export const HOST_BOSS: readonly MicroId[] = [0, 1, 2, 3].map(h => MICRO_IDS[h * 6 + 5]);
