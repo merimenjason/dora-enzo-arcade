@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { Pad, Clock, calm, simulate, IDLE, MICROS, HOST_GAMES, HOST_BOSS, MICRO_IDS, SPEEDS } from '../.checks/whisker-ware-game.js';
+import {
+  Pad, Clock, calm, simulate, IDLE, MICROS, HOST_GAMES, HOST_BOSS, MICRO_IDS, SPEEDS, Rand,
+  HOSTS, STAGE_PACE, stageQueue, Run, freshProfile, loadProfile, record, unlocked,
+} from '../.checks/whisker-ware-game.js';
 import { SOLVERS, READY_HOSTS } from './whisker-ware-solvers.mjs';
 
 let failed = 0;
@@ -69,6 +72,131 @@ test('every ready host is complete and solvable, idle loses, replays match', () 
 test('all 24 microgames are registered and solved', () => {
   assert.equal(Object.keys(MICROS).length, 24);
   for (const id of MICRO_IDS) { assert.ok(MICROS[id], `${id} is registered`); assert.ok(SOLVERS[id], `${id} has a solver`); }
+});
+
+// ── The run ───────────────────────────────────────────────────────────────────
+
+/** Steps a run to its end. `decide(run)` says whether the current microgame is played to win (its solver) or left idle. */
+function play(run, decide = () => true, log = []) {
+  let seen = null;
+  for (let n = 0; n < 200000 && run.phase !== 'over' && run.phase !== 'clear'; n++) {
+    if (run.phase === 'micro' && seen !== run.played) { seen = run.played; log.push({ id: run.game, tier: run.tier, level: run.level, lives: run.lives, win: decide(run) }); }
+    const f = run.phase === 'micro' && log[log.length - 1].win ? SOLVERS[run.game](run.state, run.t) : IDLE;
+    run.step(f);
+    log.events = (log.events ?? []).concat(run.drain());
+  }
+  return log;
+}
+/** Real ticks spent in each break, in order. */
+function breaks(run, decide = () => true) {
+  const out = []; let n = 0;
+  for (let k = 0; k < 200000 && run.phase !== 'over' && run.phase !== 'clear'; k++) {
+    if (run.phase === 'break') n++; else if (n) { out.push(n); n = 0; }
+    run.step(run.phase === 'micro' && decide(run) ? SOLVERS[run.game](run.state, run.t) : IDLE);
+  }
+  return out;
+}
+
+test('hosts and pacing tables', () => {
+  assert.deepEqual(HOSTS.map(h => h.id), ['enzo', 'dora', 'owl', 'fox']);
+  assert.deepEqual(STAGE_PACE.map(p => [...p.tiers, p.level]), [[0, 1, 1], [1, 2, 1], [2, 3, 2], [3, 4, 2]]);
+});
+test('stage queue: 8 games, all five, no repeats in a row', () => {
+  for (let h = 0; h < 4; h++) for (let seed = 1; seed <= 200; seed++) {
+    const q = stageQueue(new Rand(seed), h);
+    assert.equal(q.length, 8);
+    for (const id of HOST_GAMES[h]) assert.ok(q.includes(id), `${id} in host ${h} seed ${seed}`);
+    assert.ok(q.every(id => HOST_GAMES[h].includes(id)));
+    for (let k = 1; k < 8; k++) assert.notEqual(q[k], q[k - 1]);
+  }
+});
+test('a host stage at the right pace', () => {
+  const enzo = play(new Run('host', 7, { host: 0 }));
+  assert.deepEqual(enzo.map(g => g.tier), [0, 0, 0, 0, 1, 1, 1, 1, 1]);
+  assert.ok(enzo.every(g => g.level === 1));
+  assert.equal(enzo[8].id, 'raisin');
+  const fox = play(new Run('host', 7, { host: 3 }));
+  assert.deepEqual(fox.map(g => g.tier), [3, 3, 3, 3, 4, 4, 4, 4, 4]);
+  assert.ok(fox.every(g => g.level === 2));
+});
+test('a perfect stage clears', () => {
+  const run = new Run('host', 3, { host: 1 }), log = play(run);
+  assert.equal(run.phase, 'clear'); assert.equal(run.cleared, 9); assert.equal(run.lives, 4);
+  const marks = log.events.filter(e => e === 'speedup' || e === 'boss' || e === 'clear');
+  assert.deepEqual(marks, ['speedup', 'boss', 'clear']);
+  assert.equal(log.events.filter(e => e === 'command').length, 9);
+  assert.equal(run.wins.length, 9);
+});
+test('losing costs a life and moves on; losing the boss repeats it', () => {
+  let bossTries = 0;
+  const run = new Run('host', 5, { host: 0 });
+  const log = play(run, r => {
+    if (r.played === 2) return false;
+    if (MICROS[r.game].boss) return ++bossTries > 2;
+    return true;
+  });
+  assert.equal(log[1].lives, 4); assert.equal(log[2].lives, 3, 'game 3 starts with a life gone');
+  assert.equal(log.filter(g => g.id === 'raisin').length, 3, 'the boss is played until it is beaten');
+  assert.equal(run.phase, 'clear'); assert.equal(run.lives, 1);
+});
+test('four losses end the stage', () => {
+  const run = new Run('host', 5, { host: 2 }), log = play(run, () => false);
+  assert.equal(run.phase, 'over'); assert.equal(run.lives, 0); assert.equal(log.length, 4);
+  assert.ok(log.events.includes('over'));
+});
+test('break lengths', () => {
+  assert.deepEqual(breaks(new Run('host', 1, { host: 0 })).slice(0, 6), [90, 90, 90, 90, 135, 90]);
+  assert.deepEqual(breaks(new Run('host', 1, { host: 3 })).slice(0, 9), [90, 90, 90, 90, 105, 60, 60, 60, 105]);
+});
+test('remix pacing', () => {
+  const run = new Run('remix', 9), log = play(run, r => r.played <= 45);
+  assert.deepEqual(log.slice(0, 5).map(g => g.tier), [0, 0, 0, 0, 0]);
+  assert.equal(log[5].tier, 1);
+  assert.equal(log[10].id, 'raisin'); assert.equal(log[10].level, 1); assert.equal(log[11].level, 2);
+  assert.equal(log[21].id, 'shelf'); assert.equal(log[22].level, 3);
+  assert.ok(log.every(g => g.tier <= 5 && g.level <= 3));
+  assert.equal(Math.max(...log.map(g => g.tier)), 5); assert.equal(log[44].level, 3);
+  for (let k = 1; k < log.length; k++) assert.notEqual(log[k].id, log[k - 1].id);
+  assert.equal(run.phase, 'over'); assert.equal(run.cleared, 45);
+});
+test('practice', () => {
+  const run = new Run('practice', 2, { game: 'sniff' }), log = play(run, r => r.played <= 7);
+  assert.ok(log.every(g => g.id === 'sniff'));
+  assert.equal(log[0].lives, 1); assert.equal(log[3].tier, 1); assert.equal(log[6].tier, 2); assert.equal(log[6].level, 2);
+  assert.equal(run.phase, 'over'); assert.equal(run.streak, 7);
+});
+test('force starts a chosen microgame at once', () => {
+  const run = new Run('host', 1, { host: 0 });
+  run.force('hop', 3, 5);
+  assert.equal(run.phase, 'micro'); assert.equal(run.game, 'hop'); assert.equal(run.level, 3); assert.equal(run.tier, 5);
+});
+
+test('profile: record unlocks and keeps bests', () => {
+  let p = freshProfile();
+  assert.deepEqual(unlocked(p).hosts, [true, false, false, false]); assert.equal(unlocked(p).remix, false);
+  const stage = new Run('host', 3, { host: 0 }); play(stage);
+  p = record(p, stage);
+  assert.equal(p.hosts, 1); assert.equal(p.games.raisin.tier, 1); assert.deepEqual(unlocked(p).hosts, [true, true, false, false]);
+  assert.deepEqual(record(p, stage), p, 'recording twice changes nothing');
+  const remix = new Run('remix', 4); play(remix, r => r.played <= 6);
+  p = record(p, remix); assert.equal(p.remixBest, 6);
+  const worse = new Run('remix', 4); play(worse, () => false);
+  assert.equal(record(p, worse).remixBest, 6);
+  const practice = new Run('practice', 4, { game: 'stuff' }); play(practice, r => r.played <= 4);
+  p = record(p, practice); assert.equal(p.games.stuff.streak, 4); assert.equal(p.games.stuff.tier, 1);
+  assert.ok(unlocked(p).games.includes('stuff'));
+  assert.equal(unlocked({ ...p, hosts: 4 }).remix, true);
+  assert.equal(loadProfile(JSON.stringify(p)).remixBest, 6, 'a saved profile loads back');
+});
+test('profile: malformed saves load fresh', () => {
+  const fresh = freshProfile();
+  for (const raw of [null, 'nope', '{"v":2}', '{"v":1,"hosts":9,"remixBest":0,"games":{}}', '{"v":1,"hosts":-1,"remixBest":0,"games":{}}',
+    '{"v":1,"hosts":1.5,"remixBest":0,"games":{}}', '{"v":1,"hosts":1,"remixBest":"3","games":{}}', '{"v":1,"hosts":1,"remixBest":3,"games":[]}',
+    '{"v":1,"hosts":1,"remixBest":3,"games":{"stuff":{"tier":6,"streak":0}}}']) {
+    assert.deepEqual(loadProfile(raw), fresh, `${raw} loads fresh`);
+  }
+  const kept = loadProfile('{"v":1,"hosts":2,"remixBest":3,"games":{"stuff":{"tier":2,"streak":1},"nope":{"tier":1,"streak":0}}}');
+  assert.deepEqual(kept, { v: 1, hosts: 2, remixBest: 3, games: { stuff: { tier: 2, streak: 1 } } });
 });
 
 if (failed) { console.log(`${failed} failed`); process.exit(1); }
