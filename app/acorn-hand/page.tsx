@@ -448,8 +448,9 @@ export default function AcornHandPage() {
       </div>}
       {anim?.total && <div className="ah-banner" data-testid="banner" aria-hidden="true">{handById(anim.score.hand).name} · lvl {anim.score.level}</div>}
       <div className="ah-played" aria-label="Played cards" data-testid="played">
+        {!anim && <div className="ah-slots" aria-hidden="true">{[0, 1, 2, 3, 4].map((i) => <span key={i} className="ah-slot" />)}</div>}
         {anim && anim.cards.map((c, i) => {
-          const lit = shownStep?.card === i, scoring = anim.score.scoring.includes(i);
+          const lit = shownStep?.who !== 'held' && shownStep?.card === i, scoring = anim.score.scoring.includes(i);
           return <div key={c.id} className="ah-card ah-in-play" data-card-id={c.id} data-scoring={scoring} data-lit={lit}>
             <CardArt card={c} asleep={r.boss?.rule === `suit${c.suit}`} />
             {lit && <span className="ah-pop" data-testid="pop">{shownStep!.text}</span>}
@@ -461,7 +462,7 @@ export default function AcornHandPage() {
       <div className="ah-hand" data-testid="hand" style={{ '--n': shown.length } as React.CSSProperties}>
         {shown.map((id, i) => {
           const c = r.card(id), sel = selected.includes(id), down = r.hidden(id);
-          return <button key={id} className="ah-card" data-card-id={id} data-selected={sel} data-testid={`card-${i}`} aria-pressed={sel} aria-label={down ? 'A face-down card' : cardName(c)}
+          return <button key={id} className="ah-card" data-card-id={id} data-selected={sel} data-lit={shownStep?.who === 'held' && shownStep.card === i} data-testid={`card-${i}`} aria-pressed={sel} aria-label={down ? 'A face-down card' : cardName(c)}
             onClick={() => toggle(id)} disabled={!!anim} {...(c.gloss && !down ? tip(() => ({ title: cardName(c), body: GLOSS_TEXT[c.gloss as keyof typeof GLOSS_TEXT] })) : {})}>
             <CardArt card={c} down={down} asleep={r.boss?.rule === `suit${c.suit}`} /><span className="ah-cardback" aria-hidden="true" /><kbd aria-hidden="true">{i + 1}</kbd>
           </button>;
