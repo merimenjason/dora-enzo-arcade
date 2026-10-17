@@ -2,6 +2,10 @@
 
 Written 17-10-2026. A handoff for painting Whisker Ware's art in ChatGPT. The game is built fully code-drawn first ([design](superpowers/specs/17-10-2026-whisker-ware-design.md)), so every image below replaces one drawing on its own and the code keeps the drawing as the fallback. Nothing here blocks the build: generate in any order, but the priority order gets the most out of each image.
 
+## Delivery status · 17-10-2026
+
+All 34 requested images have been generated and reviewed in `public/art/whisker-ware/`. The brief below is retained for reference and future corrections. See [`whisker-ware-art.md`](whisker-ware-art.md) for final delivery, crop/ground measurements, validation and integration guidance; [`whisker-ware-generation.json`](whisker-ware-generation.json) records the exact prompts and selected sources. The artwork loader and browser harness are delivered; see [`whisker-ware-integration.md`](whisker-ware-integration.md). Claude's planned game implementation must call the loader/painters before these images appear in play.
+
 ## How to use this
 
 1. Start a new ChatGPT conversation. Attach the style references:

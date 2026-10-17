@@ -848,6 +848,8 @@ npm run test:e2e:newest  # the recent games and interrupted-input / progress reg
 
 Run `npm test` before the browser suites to generate the compiled engines they use. `tests/e2e/newest-quality.mjs` adds checks for cancelled Poof Panic gestures and focus-loss pausing, Barrage controls released between turns and native keyboard slider controls, and Tactics and Barrage progress saved before the final animation finishes. It also checks that a Tactics run reward is banked once when resumed and that Summit Shuffle explains its separate hero card pools. `tests/e2e/older-quality.mjs` does the same for Chinchilla Clash, Hay Maze Defence and Chinchillas vs Zombies: a result saved in the frame the game ends, a cancelled Clash card drag, pausing when the tab is hidden, and portrait and landscape layouts from 320 to 844 pixels wide. `npm run test:e2e:older` runs it with those three games' own suites.
 
+The planned **Whisker Ware** artwork package is ready for its game implementation: [`docs/whisker-ware-integration.md`](docs/whisker-ware-integration.md) documents the loader API and scene wiring. `npm run test:whisker-ware-art` checks its loader/assets/crops (also in `npm test`); `npm run test:e2e:whisker-ware-art` starts an isolated Playwright art harness and needs no dev server. It is not a playable cabinet yet, so the game count remains 34.
+
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
