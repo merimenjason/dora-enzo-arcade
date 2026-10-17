@@ -306,6 +306,63 @@ await check('an old duplicate almanac shelf resumes with two different offers', 
   assert.deepEqual(await page.evaluate(() => window.__acorn().run.shop.items), repaired.shop.items, 'the repaired offers stay the same on another reload');
 }, { width: 1280, height: 860 }, { reducedMotion: 'reduce' });
 
+await check('a digit past the last pack option does nothing, and the help names no fixed pack keys', async (page) => {
+  await fresh(page); await page.getByTestId('how').click();
+  assert.doesNotMatch(await page.getByTestId('help').innerText(), /1 to 5 take/, 'Market Day packs show six');
+  await deal(page); await run(page, '(r) => { r.round.target = 1; }');
+  await page.getByTestId('card-0').click(); await page.getByTestId('play').click(); await settled(page);
+  await page.getByTestId('collect').click(); await page.getByTestId('shop').waitFor();
+  await run(page, '(r) => { r.nuts = 200; r.shop.packs = ["charm", "card"]; }');
+  await page.getByTestId('open-pack-0').click(); await page.getByTestId('pack').waitFor();
+  await page.keyboard.press('5');
+  assert.equal(await page.getByTestId('note').count(), 0, 'no "That one is taken." for an option that was never there');
+  assert.equal(await run(page, '(r) => r.phase'), 'pack');
+}, { width: 1280, height: 860 }, { reducedMotion: 'reduce' });
+
+await check('the rival speaks once for a run of sleeping cards', async (page) => {
+  await fresh(page); await page.getByTestId('new-run').click(); await page.getByTestId('pick').waitFor();
+  await run(page, '(r) => { r.bosses[0] = "suit3"; r.blind = 2; }'); await page.getByTestId('start').click(); await page.getByTestId('hand').waitFor();
+  await setHand(page); await run(page, '(r) => { r.round.hand.forEach((id) => { r.card(id).suit = 3; }); r.round.target = 99999; }');
+  await page.evaluate(() => { window.__says = 0; new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1 && (n.matches('.ah-say') || n.querySelector('.ah-say'))) window.__says++; }))).observe(document.body, { childList: true, subtree: true }); });
+  await page.getByTestId('card-0').click(); await page.getByTestId('card-1').click(); await page.getByTestId('play').click(); await settled(page);
+  assert.equal(await page.evaluate(() => window.__says), 1, 'two sleeping kings, one line');
+});
+
+await check('a new round never shows the last rival\'s mood', async (page) => {
+  await fresh(page); await deal(page); await run(page, '(r) => { r.round.target = 1; }');
+  await page.getByTestId('card-0').click(); await page.getByTestId('play').click();
+  await page.waitForFunction(() => document.querySelector('[data-testid="rival"]')?.dataset.mood === 'beaten');
+  await settled(page); await page.getByTestId('cashout').waitFor();
+  await page.getByTestId('collect').click(); await page.getByTestId('leave').click(); await page.getByTestId('pick').waitFor();
+  await page.evaluate(() => { window.__moods = []; new MutationObserver((ms) => ms.forEach((m) => {
+    if (m.type === 'attributes' && m.target.matches('[data-testid="rival"]')) window.__moods.push(m.oldValue);
+    m.addedNodes.forEach((n) => { if (n.nodeType === 1) n.querySelectorAll?.('[data-testid="rival"]').forEach((el) => window.__moods.push(el.dataset.mood)); });
+  })).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-mood'], attributeOldValue: true }); });
+  await page.getByTestId('start').click(); await page.getByTestId('hand').waitFor(); await page.waitForTimeout(300);
+  const moods = await page.evaluate(() => window.__moods);
+  assert.ok(!moods.includes('beaten'), `moods seen: ${moods.join(', ')}`);
+});
+
+await check('continuing a saved run shows the purse as it is, without counting up', async (page) => {
+  await fresh(page); await deal(page); await run(page, '(r) => { r.nuts = 37; }'); await page.waitForTimeout(800);
+  await page.getByTestId('card-0').click(); await page.getByTestId('discard').click(); await settled(page);
+  await page.reload(); await page.locator('main[data-ready="true"]').waitFor();
+  await page.evaluate(() => { window.__purse = []; new MutationObserver(() => { const el = document.querySelector('[data-testid="nuts"]'); if (el) window.__purse.push(Number(el.textContent.replace(/\D/g, ''))); }).observe(document.body, { childList: true, subtree: true, characterData: true }); });
+  await page.getByTestId('continue').click(); await page.getByTestId('hand').waitFor(); await page.waitForTimeout(800);
+  const seen = await page.evaluate(() => window.__purse);
+  assert.ok(seen.length > 0 && seen.every((n) => n === 37), `purse showed ${[...new Set(seen)].join(', ')}`);
+});
+
+await check('flying copies of cards can never be focused or taken for table cards', async (page) => {
+  await fresh(page); await deal(page); await setHand(page);
+  await page.evaluate(() => { window.__ghosts = []; new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1 && n.classList.contains('ah-ghost')) window.__ghosts.push({ inert: n.inert, inPlay: n.classList.contains('ah-in-play') }); }))).observe(document.body, { childList: true, subtree: true }); });
+  await page.getByTestId('card-0').click(); await page.getByTestId('card-1').click(); await page.getByTestId('play').click(); await settled(page);
+  await page.getByTestId('card-7').click(); await page.getByTestId('discard').click(); await page.waitForTimeout(500);
+  const ghosts = await page.evaluate(() => window.__ghosts);
+  assert.ok(ghosts.length >= 3, `ghosts: ${ghosts.length}`);
+  assert.ok(ghosts.every((g) => g.inert && !g.inPlay), JSON.stringify(ghosts));
+});
+
 for (const [width, height] of [[360, 640], [390, 844], [844, 390], [768, 1024], [1280, 720], [1920, 1080]]) {
   await check(`layout ${width}×${height}: title, rounds, the table and the shop fit`, async (page) => {
     await fresh(page); assert.ok(await fits(page), 'title');

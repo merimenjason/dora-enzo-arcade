@@ -10,6 +10,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Acorn Hand**: a new round opens on a calm rival instead of flashing the last one's face and words; a boss that puts several cards to sleep speaks once, not once per card; continuing a saved run shows your purse as it is instead of counting up from zero; and cards flying off the table can no longer be focused. In a pack, a number key past the last offer does nothing instead of saying "That one is taken.", and the help no longer says pack keys stop at 5 (Market Day packs show six).
 - **Acorn Hand**: shop item offers no longer repeat the same almanac page or treat. Existing saved shops with duplicates are repaired when continued, keeping the first offer and preserving progress. Voucher prices now sit inside the plain stub, clear of the notched edge, including Deep Pockets.
 - **Acorn Hand**: face-card portraits now leave clear space for both rank-and-suit corners, including glossed cards. Dora and Enzo beside the hand use their painted character artwork and face each other, with the old drawings only while artwork loads or if a request fails.
 - **Acorn Hand**: the berry suit now reads as a raspberry, with rounded lobes and a small leaf, instead of a tomato. Refreshed the artwork cache and measured crops so the new pip appears cleanly on small cards.

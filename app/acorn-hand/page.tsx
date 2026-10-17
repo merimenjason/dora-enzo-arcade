@@ -109,7 +109,7 @@ export default function AcornHandPage() {
   const [ready, setReady] = useState(false), [note, setNote] = useState(''), [muted, setMuted] = useState(false), [sortBy, setSortBy] = useState<'rank' | 'suit'>('rank'), [help, setHelp] = useState(false);
   const motion = useRef(true), timers = useRef<number[]>([]), finished = useRef(new Set<string>()), handBefore = useRef<number[] | null>(null);
   const { tip, view: noteView } = useHoverNote();
-  const [mood, setMood] = useState<{ kind: Reaction; n: number; line: string | null }>({ kind: 'idle', n: 0, line: null });
+  const [mood, setMood] = useState<{ kind: Reaction; n: number; line: string | null; at: string }>({ kind: 'idle', n: 0, line: null, at: '' });
   const said = useRef(new Map<string, number>()), moodTimer = useRef(0), queued = useRef<(() => void)[]>([]);
   const tableRef = useRef<HTMLElement>(null), deckRef = useRef<HTMLDivElement>(null), mainRef = useRef<HTMLDivElement>(null), purseRef = useRef<HTMLSpanElement>(null);
   const scoreRef = useRef<HTMLElement>(null), chipsRef = useRef<HTMLOutputElement>(null), multRef = useRef<HTMLOutputElement>(null), totalRef = useRef<HTMLParagraphElement>(null), progressRef = useRef<HTMLProgressElement>(null);
@@ -137,12 +137,15 @@ export default function AcornHandPage() {
     wasDown.current = now;
   });
   const seat = run && run.round ? tableRival(run.seed, run.ante, run.blind, run.bossFor(run.ante).rival) : null;
+  // A mood belongs to the round it was felt in, so a new round never opens on the last rival's face or words.
+  const roundId = run ? `${run.seed}-${run.ante}-${run.blind}` : '';
+  const face = mood.at === roundId ? mood : { ...mood, kind: 'idle' as Reaction, line: null };
   /** The rival reacts: a motion on its portrait and, for some moments, a line in a bubble for a couple of seconds. */
   const react = (kind: Reaction) => {
     if (!seat) return;
     let line: string | null = null;
     if (kind !== 'idle' && kind !== 'hit') { const k = `${seat}:${kind}`, n = said.current.get(k) ?? 0; said.current.set(k, n + 1); line = sayLine(seat, kind as Said, n); sound.cue('chirp', PITCH[seat], 1, 0); }
-    setMood((m) => ({ kind, n: m.n + 1, line }));
+    setMood((m) => ({ kind, n: m.n + 1, line, at: roundId }));
     clearTimeout(moodTimer.current);
     moodTimer.current = window.setTimeout(() => setMood((m) => ({ ...m, line: kind === 'beaten' || kind === 'gloat' ? m.line : null })), 2200);
   };
@@ -150,7 +153,7 @@ export default function AcornHandPage() {
   const shownScore = useTicker(liveRound ? (anim && !anim.landed ? anim.before : liveRound.score) : 0, !!anim, 450);
   const shownChips = useTicker(anim ? anim.score.steps[anim.step].chips : 0, !!anim);
   const shownMult = useTicker(anim ? anim.score.steps[anim.step].mult : 0, !!anim);
-  const purse = useTicker(run?.nuts ?? 0, view === 'run', 600);
+  const purse = useTicker(run?.nuts ?? 0, view === 'run', 600, true);
   useEffect(() => { if (mood.kind !== 'idle' && mood.kind in REACT) { const [frames, opts] = REACT[mood.kind as keyof typeof REACT]; play(rivalArt.current, frames, opts); } }, [mood.n]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -209,7 +212,8 @@ export default function AcornHandPage() {
       if (prev && prev.chips !== st.chips) play(chipsRef.current, POP, { duration: 200 });
       if (prev && prev.mult !== st.mult) play(multRef.current, st.text.includes('×') ? PUNCH : POP, { duration: st.text.includes('×') ? 360 : 200 });
       if (st.who === 'charm' || st.who === 'held') { const k = r.charms.findIndex((o) => o.id === st.ref); play(document.querySelector(`[data-testid="charm-${k}"] .ah-charm-face`), WIGGLE, { duration: 520 }); }
-      if (st.who === 'boss') react('rule');
+      // One line for the rule, however many cards it puts to sleep.
+      if (st.who === 'boss' && !s.steps.slice(0, i).some((x) => x.who === 'boss')) react('rule');
     }, 300 + i * per)));
     const T = 300 + s.steps.length * per + 120;
     timers.current.push(window.setTimeout(() => {
@@ -272,7 +276,7 @@ export default function AcornHandPage() {
       if (e.key === 'm' || e.key === 'M') { const m = !sound.muted(); sound.setMuted(m); setMuted(m); return; }
       const r = runRef.current; if (view !== 'run' || !r || anim) return;
       if (r.phase === 'pack') {
-        if (/^[1-9]$/.test(e.key)) { e.preventDefault(); takeOption(Number(e.key) - 1); }
+        if (/^[1-9]$/.test(e.key) && Number(e.key) <= r.pack!.options.length) { e.preventDefault(); takeOption(Number(e.key) - 1); }
         else if (e.key === 's' || e.key === 'S') skipPack();
         else if (e.key === 'Escape') setSelected([]);
         return;
@@ -321,7 +325,7 @@ export default function AcornHandPage() {
             <li><b>Scoring:</b> the best poker hand among the cards you play sets a base of chips and mult. Each card that counts adds its chips (aces 11, faces 10), then your charms join in, left to right. Chips × mult is the score.</li>
             <li><b>A run:</b> each ante has a small round, a big round and a boss whose rule changes how you play. Beat the eighth boss to win; then keep going in endless.</li>
             <li><b>Between rounds:</b> spend nuts on charms (five slots), almanac pages that level up a hand type, treats that change your cards, one voucher an ante that lasts the whole run, and booster packs to pick from. Every five nuts you keep earns one more, up to five.</li>
-            <li><b>Keys:</b> 1 to 8 pick cards, Enter plays, D discards, S sorts by rank or suit, Esc clears, M sound. In a pack, 1 to 5 take and S skips. On a phone, tap. Hold a charm or item to read it.</li>
+            <li><b>Keys:</b> 1 to 8 pick cards, Enter plays, D discards, S sorts by rank or suit, Esc clears, M sound. In a pack, the number keys take an offer and S skips. On a phone, tap. Hold a charm or item to read it.</li>
           </ul>}
           <dl className="ah-record" data-testid="record">
             <div><dt>Runs</dt><dd>{profile.runs}</dd></div><div><dt>Wins</dt><dd>{profile.wins}</dd></div>
@@ -432,13 +436,13 @@ export default function AcornHandPage() {
   } else if (stage === 'round' && round) {
     const shown = anim && handBefore.current ? handBefore.current : round.hand;
     body = <section className="ah-table" data-testid="table" ref={tableRef}>
-      {seat && <div className="ah-rival" data-testid="rival" data-rival={seat} data-mood={mood.kind}>
-        <div className="ah-rival-art" ref={(el) => { rivalArt.current = el; }}><RivalArt rival={seat} pose={MOOD_POSE[mood.kind] ?? 'calm'} /></div>
+      {seat && <div className="ah-rival" data-testid="rival" data-rival={seat} data-mood={face.kind}>
+        <div className="ah-rival-art" ref={(el) => { rivalArt.current = el; }}><RivalArt rival={seat} pose={MOOD_POSE[face.kind] ?? 'calm'} /></div>
         <div className="ah-rival-words">
           {r.blind === 2
             ? <div className="ah-sign" data-testid="boss-rule" {...tip(() => ({ title: boss.name, body: boss.text }))}><b>{boss.name}</b><span>{boss.text}</span></div>
             : <b className="ah-rival-name">{rivalName(seat)}</b>}
-          {mood.line && <p className="ah-say" data-testid="rival-say" key={mood.n}>{mood.line}</p>}
+          {face.line && <p className="ah-say" data-testid="rival-say" key={face.n}>{face.line}</p>}
         </div>
         <NutPile left={pileLeft} />
       </div>}
