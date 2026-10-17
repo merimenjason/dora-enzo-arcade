@@ -400,7 +400,7 @@ const fluff: Micro<FluffState> = {
   outcome: s => s.result,
 };
 
-const HOP_X = 120, HOP_GROUND = 270, HOP_SPEED = 3.4, HOP_AIR = 40, HOP_LIFT = 64;
+const HOP_X = 120, HOP_GROUND = 270, HOP_SPEED = 3.4, HOP_AIR = 50, HOP_LIFT = 72, HOP_HIT = 26;
 interface HopState {
   t: number; result: Outcome;
   dora: { x: number; y: number }; jump: number; logs: { x: number; y: number }[]; passed: number;
@@ -412,8 +412,8 @@ const hop: Micro<HopState> = {
     let x = 500 + rand.int(40);
     for (let k = 0; k < level; k++) {
       logs.push({ x, y: HOP_GROUND - 14 });
-      // at least 150 apart, so a jump (40 ticks, 136 units of log travel) is over before the next log is 70 away; the last log is past by tick 270
-      x += 150 + rand.int(80);
+      // at least 180 apart, so a jump (50 ticks, 170 units of log travel) is over before the next log is 70 away; the last log is past by tick 280
+      x += 180 + rand.int(70);
     }
     return { t: 0, result: null, dora: { x: HOP_X, y: HOP_GROUND }, jump: 0, logs, passed: 0 };
   },
@@ -424,10 +424,10 @@ const hop: Micro<HopState> = {
     s.dora.y = HOP_GROUND - (s.jump ? HOP_LIFT * Math.sin(Math.PI * s.jump / HOP_AIR) : 0);
     for (const l of s.logs) {
       l.x -= HOP_SPEED;
-      // a log clips Dora while she is less than 20 units off the ground and it is within her half-width plus its own
-      if (Math.abs(l.x - s.dora.x) < 30 && HOP_GROUND - s.dora.y < 20) s.result = 'lose';
+      // a log clips Dora while she is less than 20 units off the ground and it is within 26 units (her half-width plus its own)
+      if (Math.abs(l.x - s.dora.x) < HOP_HIT && HOP_GROUND - s.dora.y < 20) s.result = 'lose';
     }
-    s.passed = s.logs.filter(l => l.x < s.dora.x - 30).length;
+    s.passed = s.logs.filter(l => l.x < s.dora.x - HOP_HIT).length;
     if (!s.result && s.passed === s.logs.length) s.result = 'win';
     lapse(s, this.ticks);
   },
