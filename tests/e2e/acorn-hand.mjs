@@ -328,6 +328,18 @@ await check('the rival sits across the table: centred and big with its nuts, slo
   assert.equal(await page.locator('[data-testid="hand"] .ah-card[data-lit="true"]').count(), 0);
 });
 
+for (const [width, height] of [[1280, 860], [390, 844]]) {
+  await check(`six charm slots share one row and the hand stays on screen at ${width}×${height}`, async (page) => {
+    await fresh(page); await deal(page);
+    await run(page, '(r) => { r.vouchers.push("shelf"); r.charms = ["dora", "enzo", "fennel", "bloom", "stag", "comet"].map((id) => ({ id, state: 0 })); }');
+    await page.waitForTimeout(400);
+    const tops = await page.locator('[data-testid="charms"] > *').evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+    assert.equal(tops.length, 6); assert.equal(new Set(tops).size, 1, `charm rows at ${[...new Set(tops)]}`);
+    const hand = await page.getByTestId('card-0').boundingBox();
+    if (width > 560) assert.ok(hand.y + hand.height <= height, `the hand ends at ${Math.round(hand.y + hand.height)}px`);
+  }, { width, height });
+}
+
 await check('a digit past the last pack option does nothing, and the help names no fixed pack keys', async (page) => {
   await fresh(page); await page.getByTestId('how').click();
   assert.doesNotMatch(await page.getByTestId('help').innerText(), /1 to 5 take/, 'Market Day packs show six');

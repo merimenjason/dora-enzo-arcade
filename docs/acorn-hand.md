@@ -30,7 +30,7 @@ Five of a kind and flush five need copied or dyed cards. Almanac pages for them 
 
 ## A run
 
-- Eight antes, each a small round, a big round and a boss round. The small round's target per ante is 250, 650, 1,600, 3,500, 9,000, 16,000, 25,500 and 38,000; the big round is 1.5 times that and the boss round twice. Past ante 8 (endless) each ante is 1.8 times the last.
+- Eight antes, each a small round, a big round and a boss round. The small round's target per ante is 250, 650, 1,800, 4,400, 8,500, 16,000, 25,500 and 38,000; the big round is 1.5 times that and the boss round twice. Past ante 8 (endless) each ante is 1.8 times the last.
 - Winning pays 3, 4 or 5 nuts for the small, big or boss round, 1 for each play left, 1 for every 5 nuts held (at most 5, or 10 with Squirrel Hoard), plus charms and gold cards. You start with 4 nuts.
 - The small and big rounds can be skipped for a free item (or 4 nuts if both item slots are full). The boss round cannot.
 - Each ante's rival is drawn so that all thirteen come round before any repeats, and never the same rule twice in a row.
@@ -184,7 +184,11 @@ Each rival has two lines per moment, said in turn, never at random. The motion l
 
 ## Balance
 
-Tuned against `tests/acorn-hand-bot.mjs`, which weighs every legal play, discards towards flushes and sets, and judges charms by rescoring its own recent plays with and without them. Since vouchers and packs (15-10-2026), over 200 seeds it wins about 33% of runs and loses about 4.5% in ante 1; `npm test` requires 20–45% and under 5%. It buys this ante's voucher when it can (Wider Shelf, Extra Paw and Big Paws first), opens charm packs with nuts to spare, almanac packs for its most-played hand, treat packs for glosses, and card packs only when rich. With them it won 49% at the old targets, so antes 5 to 8 went up from 7,000, 12,500, 20,000 and 30,000. Its median nuts left after a shop fell from about 12 to about 5 from ante 3 on. A player who builds around one hand type does much better: the first run played by hand (15-10-2026) won with a two-pair build, and once a ×mult charm joined it, antes 6 to 8 were beaten with hands two to three times the target.
+Tuned against `tests/acorn-hand-bot.mjs`, which weighs every legal play, discards towards flushes and sets, and judges charms by rescoring its own recent plays with and without them. Since vouchers and packs (15-10-2026), and the smoother curve of 17-10-2026, over 200 seeds it wins about 29% of runs and loses about 4.5% in ante 1; `npm test` requires 20–45%, under 5% and no wall (below). It buys this ante's voucher when it can (Wider Shelf, Extra Paw and Big Paws first), opens charm packs with nuts to spare, almanac packs for its most-played hand, treat packs for glosses, and card packs only when rich. With them it won 49% at the old targets, so antes 5 to 8 went up from 7,000, 12,500, 20,000 and 30,000. Its median nuts left after a shop fell from about 12 to about 5 from ante 3 on. A player who builds around one hand type does much better: the first run played by hand (15-10-2026) won with a two-pair build, and once a ×mult charm joined it, antes 6 to 8 were beaten with hands two to three times the target.
+
+### The ante curve · 17-10-2026
+
+Over 1,000 seeds the bot survived antes 2 to 4 almost every time (96–98%), then met a wall at ante 5 (80%), where 18% of all runs ended: 3,500 to 9,000 was the steepest step of the curve. Antes 3 to 5 became 1,800, 4,400 and 8,500, and antes 6 to 8 stayed. Survival per ante is now about 96, 98, 98, 92, 84, 73, 75 and 73%, and the bot wins 28% of 1,000 runs (29% of the 200 that `npm test` plays), with 4.4% lost in ante 1 as before. `npm test` now also fails if any ante's survival is more than 14 points below the ante before it; the old curve failed that at ante 5. A browser run of the ante-8 boss with six charms found the charm row wrapping to two lines and pushing the hand off a 1280×860 screen; the row now has a column per slot.
 
 ### Duplicate shelf repair · 17-10-2026
 

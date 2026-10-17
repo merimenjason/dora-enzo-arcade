@@ -358,7 +358,7 @@ export default function AcornHandPage() {
 
   const shownStep = anim ? anim.score.steps[anim.step] : null;
   const charmsRow = (shop: boolean) => (
-    <section className="ah-charms" aria-label="Your charms" data-testid="charms">
+    <section className="ah-charms" aria-label="Your charms" data-testid="charms" style={{ '--slots': r.charmSlots } as React.CSSProperties}>
       {Array.from({ length: r.charmSlots }, (_, i) => {
         const o = r.charms[i];
         if (!o) return <div key={`e${i}`} className="ah-charm ah-empty" aria-hidden="true" />;
