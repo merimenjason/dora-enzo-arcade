@@ -75,7 +75,8 @@ const pickOf = (i: Input, near: (x: number) => number) => {
 
 // ── Enzo · Snack Shack ────────────────────────────────────────────────────────
 
-const BOWL_Y = 260, BOWL_HALF = 34, BOWL_SPEED = 6, CATCH_Y = 250, FLOOR_Y = 272;
+// CATCH_REACT: ticks a player needs to see where the next item is going before the bowl can set off.
+const BOWL_Y = 260, BOWL_HALF = 34, BOWL_SPEED = 6, CATCH_Y = 250, FLOOR_Y = 272, CATCH_REACT = 30;
 const CHUTES = [120, 240, 360];
 
 /** Moves a bowl like every steering game: held arrows win, else towards the pointer, capped at top speed. */
@@ -110,14 +111,14 @@ const catchGame: Micro<CatchState> = {
   init(rand, level) {
     const n = [1, 2, 3][level - 1];
     const kinds = rand.shuffle([...Array(n).fill('raisin'), ...Array(n - 1).fill('pebble')]) as ('raisin' | 'pebble')[];
-    const gap = [70, 50, 42][level - 1];
+    const gap = [70, 60, 44][level - 1];
     const queue: CatchState['queue'] = [{ kind: 'pebble', x: 240 }];
     // Track where the bowl could be at each landing, so every layout is clearable: a raisin's x must be reachable
     // in time, a pebble must leave somewhere to stand outside its width.
     const land = (k: number) => k * gap + (CATCH_Y + 20) / (2.4 + 0.3 * k);
     let reach: [number, number][] = [[240, 240]], at = 0;
     const move = (k: number) => {
-      const d = (land(k) - at) * BOWL_SPEED * 0.9;
+      const d = Math.max(0, land(k) - at - CATCH_REACT) * BOWL_SPEED * 0.9;
       const grown = reach.map(([a, b]): [number, number] => [Math.max(BOWL_HALF, a - d), Math.min(480 - BOWL_HALF, b + d)]).sort((p, q) => p[0] - q[0]);
       reach = [];
       for (const g of grown) {
@@ -278,14 +279,16 @@ const sniff: Micro<SniffState> = {
   outcome: s => s.result,
 };
 
+// The notch takes window / GNAW_SPEED ticks to cross the bite: 24, 18 and 14 ticks by level.
+const GNAW_SPEED = 2;
 interface GnawState { t: number; result: Outcome; stick: number; notch: number; window: number; tooth: number }
 const gnaw: Micro<GnawState> = {
   id: 'gnaw', verb: 'GNAW!', host: 0, boss: false, input: 'timing', ticks: 300, survive: false,
-  init(_r, level) { return { t: 0, result: null, stick: 480, notch: 520, window: [28, 20, 14][level - 1], tooth: 180 }; },
+  init(_r, level) { return { t: 0, result: null, stick: 480, notch: 520, window: [48, 36, 28][level - 1], tooth: 180 }; },
   tick(s, i) {
     if (!begin(s)) return;
     if (i.pressed) { s.result = Math.abs(s.notch - s.tooth) <= s.window / 2 ? 'win' : 'lose'; return; }
-    s.notch -= 3.2; s.stick -= 3.2;
+    s.notch -= GNAW_SPEED; s.stick -= GNAW_SPEED;
     if (s.notch < s.tooth - s.window / 2) s.result = 'lose';
     lapse(s, this.ticks);
   },
@@ -359,7 +362,8 @@ const dust: Micro<DustState> = {
   outcome: s => s.result,
 };
 
-const TILT_DRIFT = 0.012, TILT_PUSH = 0.03;
+// Slow enough that a player reacting a quarter of a second late can still catch the lean at full speed.
+const TILT_DRIFT = 0.007, TILT_PUSH = 0.027;
 interface BalanceState {
   t: number; result: Outcome; level: Level;
   tilt: number; lean: -1 | 1; gust: number; amp: number; phase: number; dora: { x: number; y: number };
@@ -368,8 +372,8 @@ const balance: Micro<BalanceState> = {
   id: 'balance', verb: 'BALANCE!', host: 1, boss: false, input: 'steer', ticks: 300, survive: true,
   init(rand, level) {
     const lean = rand.next() < 0.5 ? -1 : 1;
-    // Gusts only ever add to the lean, so drift plus gust is at least 0.012 a tick: an untouched Dora starting at 0.08 is past the limit in 77 ticks.
-    return { t: 0, result: null, level, tilt: 0.08 * lean, lean, gust: 0, amp: [0.006, 0.01, 0.014][level - 1], phase: rand.next() * Math.PI * 2, dora: { x: 240, y: 270 } };
+    // Gusts only ever add to the lean, so drift plus gust is at least 0.007 a tick: an untouched Dora starting at 0.08 is past the limit in 132 ticks.
+    return { t: 0, result: null, level, tilt: 0.08 * lean, lean, gust: 0, amp: [0.004, 0.006, 0.008][level - 1], phase: rand.next() * Math.PI * 2, dora: { x: 240, y: 270 } };
   },
   tick(s, i) {
     if (!begin(s)) return;
@@ -385,6 +389,7 @@ const balance: Micro<BalanceState> = {
   outcome: s => s.result,
 };
 
+const FLUFF_GROW = 0.006;
 interface FluffState {
   t: number; result: Outcome;
   size: number; held: boolean; centre: number; width: number; lo: number; hi: number;
@@ -403,7 +408,7 @@ const fluff: Micro<FluffState> = {
       return;
     }
     s.held = i.down;
-    if (s.held) s.size += 0.008;
+    if (s.held) s.size += FLUFF_GROW;
     if (s.size >= 1) s.result = 'lose';
     lapse(s, this.ticks);
   },
@@ -545,7 +550,8 @@ function steerActor(a: { x: number }, i: Input, speed: number, lo: number, hi: n
   a.x = Math.max(lo, Math.min(hi, a.x));
 }
 
-const SNEAK_FROM = 40, SNEAK_TO = 420, SNEAK_SPEED = 2.2, SNEAK_WATCH = 60;
+// SNEAK_RESUME: how long a careful player waits to be sure the Owl has turned away before walking again.
+const SNEAK_FROM = 40, SNEAK_TO = 420, SNEAK_SPEED = 2.2, SNEAK_WATCH = 60, SNEAK_RESUME = 9;
 interface SneakState {
   t: number; result: Outcome; level: Level;
   dora: { x: number; y: number }; acorn: { x: number; y: number }; held: boolean;
@@ -555,12 +561,14 @@ const sneak: Micro<SneakState> = {
   id: 'sneak', verb: 'SNEAK!', host: 2, boss: false, input: 'hold', ticks: 300, survive: false,
   init(rand, level) {
     const tell = [24, 18, 12][level - 1];
-    // Dora needs 173 ticks of walking and only walks while the Owl's back is turned (she stops at the tell), so a layout is re-rolled until a patient walk is home by tick 255.
+    // Dora needs 173 ticks of walking and only walks while the Owl's back is turned (from SNEAK_RESUME ticks after she turns
+    // until the tell), so a layout is re-rolled until a careful walk is home by tick 255.
     const finish = (backs: number[]) => {
       let left = Math.ceil((SNEAK_TO - SNEAK_FROM) / SNEAK_SPEED), t = 0;
       for (const b of backs) {
-        if (left <= b) return t + left;
-        left -= b; t += b + tell + SNEAK_WATCH;
+        const walk = b - SNEAK_RESUME;
+        if (left <= walk) return t + SNEAK_RESUME + left;
+        left -= walk; t += b + tell + SNEAK_WATCH;
       }
       return Infinity;
     };
@@ -698,7 +706,7 @@ const find: Micro<FindState> = {
   outcome: s => s.result,
 };
 
-const DODGE_SPEED = 5, DODGE_HIT = 22, DODGE_SWAY = 1.2 / 0.07, DODGE_LAST = 270;
+const DODGE_SPEED = 5, DODGE_HIT = 20, DODGE_SWAY = 1.2 / 0.07, DODGE_LAST = 270;
 interface Feather { x: number; y: number; x0: number; ph: number; age: number; v: number }
 interface DodgeState {
   t: number; result: Outcome; level: Level;
@@ -707,8 +715,8 @@ interface DodgeState {
 const dodge: Micro<DodgeState> = {
   id: 'dodge', verb: 'DODGE!', host: 2, boss: false, input: 'steer', ticks: 300, survive: true,
   init(rand, level) {
-    const v = [2.2, 2.6, 3.0][level - 1], gap = [26, 22, 18][level - 1];
-    // Every third feather (the first included) is aimed: it spawns over Dora's x, with 87+ ticks of fall to move out of the way. The first has no sway, so it lands within 22 units of Dora's start and an idle Dora is hit.
+    const v = [2.0, 2.4, 2.8][level - 1], gap = [30, 26, 22][level - 1];
+    // Every third feather (the first included) is aimed: it spawns over Dora's x, with 103+ ticks of fall to move out of the way. The first has no sway, so it lands within 20 units of Dora's start and an idle Dora is hit.
     // The rest land where `plan` says (x is where the feather is when it reaches Dora's height), at least 70 from the last two planned landings, so they never wall Dora in.
     const fall = (270 + 20) / v, plan: { x: number; ph: number }[] = [];
     const lands: number[] = [];
@@ -917,7 +925,7 @@ const stack: Micro<StackState> = {
   init(rand, level) {
     const amp = [100, 80, 60][level - 1];
     return {
-      t: 0, result: null, need: [2, 3, 4][level - 1], amp, v: [2.2, 2.6, 3.0][level - 1],
+      t: 0, result: null, need: [2, 3, 4][level - 1], amp, v: [2.2, 2.4, 2.6][level - 1],
       crane: { x: STACK_BASE.x - amp + rand.next() * 2 * amp, dir: rand.next() < 0.5 ? -1 : 1 },
       placed: [], top: { ...STACK_BASE }, crate: null, wait: 20,
     };
