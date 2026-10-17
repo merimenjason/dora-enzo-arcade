@@ -188,3 +188,29 @@ SOLVERS.moon = s => {
 };
 
 READY_HOSTS.push(2);
+
+// ── The Fox · Trick Fair ──────────────────────────────────────────────────────
+
+SOLVERS.pick = s => (s.open ? { ...IDLE, pick: s.slot[s.cards.findIndex(c => c.suit === s.target)] + 1 } : IDLE);
+
+SOLVERS.pop = s => {
+  let lane = -1, best = Infinity;
+  for (const b of s.balloons) if (b.state === 'up' && b.y <= 320 && b.y < best) { best = b.y; lane = b.lane; }
+  return lane < 0 ? IDLE : { ...IDLE, pick: lane + 1 };
+};
+
+// Holds Space through the swing and lets go in the middle half of the band.
+SOLVERS.aim = s => ({ ...IDLE, down: !(s.mode === 'swing' && Math.abs(s.power - s.centre) <= s.width / 4) });
+
+SOLVERS.stack = s => ({ ...IDLE, down: !!s.crate && !s.crate.falling && Math.abs(s.crate.x - s.top.x) <= 10 });
+
+SOLVERS.count = s => (s.open ? { ...IDLE, pick: s.right + 1 } : IDLE);
+
+// Throws when a peg will be under the ring as it lands, 30 ticks from now.
+SOLVERS.ring = s => {
+  if (s.flying || !s.left) return IDLE;
+  const ahead = s.pegs.some(p => Math.abs(((p.x + s.v * 30) % 480) - 240) <= 10);
+  return { ...IDLE, down: ahead };
+};
+
+READY_HOSTS.push(3);

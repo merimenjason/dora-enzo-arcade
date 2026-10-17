@@ -66,5 +66,10 @@ test('every ready host is complete and solvable, idle loses, replays match', () 
   }
 });
 
+test('all 24 microgames are registered and solved', () => {
+  assert.equal(Object.keys(MICROS).length, 24);
+  for (const id of MICRO_IDS) { assert.ok(MICROS[id], `${id} is registered`); assert.ok(SOLVERS[id], `${id} has a solver`); }
+});
+
 if (failed) { console.log(`${failed} failed`); process.exit(1); }
 console.log('PASS Whisker Ware: input deriver, clock, microgame contract');

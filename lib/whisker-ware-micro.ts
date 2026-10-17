@@ -223,15 +223,38 @@ interface SniffState {
   swaps: [number, number][]; dur: number; mv: [number, number] | null;
 }
 const SNIFF_START = 40, SNIFF_GAP = 6;
+/**
+ * Plays tick `at` (0-based) of a shuffle: each swap glides two items between slot positions on CHUTES for `dur` ticks, one
+ * lifted over the other, then rests SNIFF_GAP ticks. `slot[item]` is the slot an item sits in. True once every swap is done.
+ */
+function shuffleStep(items: { x: number; y: number }[], st: { slot: number[]; mv: [number, number] | null }, swaps: [number, number][], dur: number, at: number, y: number) {
+  const period = dur + SNIFF_GAP;
+  if (at >= swaps.length * period) return true;
+  const k = Math.floor(at / period), w = at % period;
+  if (w < dur) {
+    const [sa, sb] = swaps[k];
+    if (w === 0) st.mv = [st.slot.indexOf(sa), st.slot.indexOf(sb)];
+    const [ca, cb] = st.mv!;
+    const p = (w + 1) / dur, lift = Math.sin(p * Math.PI) * 24;
+    items[ca].x = CHUTES[sa] + (CHUTES[sb] - CHUTES[sa]) * p; items[ca].y = y - lift;
+    items[cb].x = CHUTES[sb] + (CHUTES[sa] - CHUTES[sb]) * p; items[cb].y = y + lift;
+    if (w === dur - 1) { st.slot[ca] = sb; st.slot[cb] = sa; st.mv = null; }
+  }
+  return false;
+}
+/** `n` random swaps of two of the three slots. */
+function makeSwaps(rand: Rand, n: number) {
+  const swaps: [number, number][] = [];
+  for (let k = 0; k < n; k++) {
+    const a = rand.int(3);
+    swaps.push([a, (a + 1 + rand.int(2)) % 3]);
+  }
+  return swaps;
+}
 const sniff: Micro<SniffState> = {
   id: 'sniff', verb: 'SNIFF!', host: 0, boss: false, input: 'pick', ticks: 300, survive: false,
   init(rand, level) {
-    const n = [3, 5, 7][level - 1];
-    const swaps: [number, number][] = [];
-    for (let k = 0; k < n; k++) {
-      const a = rand.int(3);
-      swaps.push([a, (a + 1 + rand.int(2)) % 3]);
-    }
+    const swaps = makeSwaps(rand, [3, 5, 7][level - 1]);
     return {
       t: 0, result: null, level,
       cups: CHUTES.map(x => ({ x, y: 200 })), slot: [0, 1, 2], raisin: rand.int(3), open: false, show: true,
@@ -240,22 +263,9 @@ const sniff: Micro<SniffState> = {
   },
   tick(s, i) {
     if (!begin(s)) return;
-    const period = s.dur + SNIFF_GAP;
     const at = s.t - 1 - SNIFF_START;
     if (at >= 0) s.show = false;
-    if (at >= 0 && at < s.swaps.length * period) {
-      const k = Math.floor(at / period), w = at % period;
-      if (w < s.dur) {
-        const [sa, sb] = s.swaps[k];
-        if (w === 0) s.mv = [s.slot.indexOf(sa), s.slot.indexOf(sb)];
-        const [ca, cb] = s.mv!;
-        const p = (w + 1) / s.dur, lift = Math.sin(p * Math.PI) * 24;
-        s.cups[ca].x = CHUTES[sa] + (CHUTES[sb] - CHUTES[sa]) * p; s.cups[ca].y = 200 - lift;
-        s.cups[cb].x = CHUTES[sb] + (CHUTES[sa] - CHUTES[sb]) * p; s.cups[cb].y = 200 + lift;
-        if (w === s.dur - 1) { s.slot[ca] = sb; s.slot[cb] = sa; s.mv = null; }
-      }
-    }
-    if (at >= s.swaps.length * period) s.open = true;
+    if (at >= 0 && shuffleStep(s.cups, s, s.swaps, s.dur, at, 200)) s.open = true;
     if (s.open) {
       const c = pickOf(i, x => {
         const k = s.cups.findIndex(cup => Math.abs(cup.x - x) <= 50);
@@ -778,6 +788,242 @@ MICROS.hush = hush;
 MICROS.find = find;
 MICROS.dodge = dodge;
 MICROS.moon = moon;
+
+// ── The Fox · Trick Fair ──────────────────────────────────────────────────────
+
+/** A tap within 50 units of one of the three CHUTES positions, as its index, or -1. */
+const nearChute = (x: number) => CHUTES.findIndex(cx => Math.abs(cx - x) <= 50);
+
+// The face-up look and the count's flash start after the command word (48 ticks) has cleared the stage.
+const PICK_UP = 40, PICK_FLIP = 100, PICK_SWAP = 20;
+interface PickState {
+  t: number; result: Outcome;
+  target: number; cards: { x: number; y: number; suit: number }[]; up: boolean; slot: number[]; open: boolean;
+  swaps: [number, number][]; mv: [number, number] | null;
+}
+const pick: Micro<PickState> = {
+  id: 'pick', verb: 'PICK!', host: 3, boss: false, input: 'pick', ticks: 300, survive: false,
+  init(rand, level) {
+    const suits = rand.shuffle([0, 1, 2, 3]).slice(0, 3);
+    return {
+      t: 0, result: null, target: rand.pick(suits), cards: CHUTES.map((x, k) => ({ x, y: 190, suit: suits[k] })), up: false,
+      slot: [0, 1, 2], open: false, swaps: makeSwaps(rand, level - 1), mv: null,
+    };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    s.up = s.t > PICK_UP && s.t <= PICK_FLIP;
+    if (s.t > PICK_FLIP && shuffleStep(s.cards, s, s.swaps, PICK_SWAP, s.t - 1 - PICK_FLIP, 190)) s.open = true;
+    if (s.open) {
+      const c = pickOf(i, x => {
+        const k = s.cards.findIndex(card => Math.abs(card.x - x) <= 50);
+        return k < 0 ? -1 : s.slot[k];
+      });
+      if (c >= 0) s.result = s.slot[s.cards.findIndex(card => card.suit === s.target)] === c ? 'win' : 'lose';
+    }
+    lapse(s, this.ticks);
+  },
+  outcome: s => s.result,
+};
+
+const POP_FROM = 340, POP_GONE = -30, POP_EVERY = 30;
+interface Balloon { lane: number; x: number; y: number; v: number; colour: number; at: number; state: 'wait' | 'up' | 'popped' }
+interface PopState { t: number; result: Outcome; balloons: Balloon[]; popped: number }
+const pop: Micro<PopState> = {
+  id: 'pop', verb: 'POP!', host: 3, boss: false, input: 'pick', ticks: 300, survive: false,
+  init(rand, level) {
+    const balloons: Balloon[] = [];
+    for (let k = 0; k < [4, 5, 6][level - 1]; k++) {
+      const lane = rand.int(3);
+      balloons.push({ lane, x: CHUTES[lane], y: POP_FROM, v: 1.4 + rand.next() * 0.8, colour: rand.int(4), at: 1 + k * POP_EVERY, state: 'wait' });
+    }
+    return { t: 0, result: null, balloons, popped: 0 };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    for (const b of s.balloons) {
+      if (b.state === 'wait' && s.t >= b.at) b.state = 'up';
+      else if (b.state === 'up') { b.y -= b.v; if (b.y < POP_GONE) s.result = 'lose'; }
+    }
+    // a lane pops its lowest balloon that has come into view
+    const c = pickOf(i, nearChute);
+    let low: Balloon | undefined;
+    if (c >= 0) for (const b of s.balloons) if (b.state === 'up' && b.lane === c && b.y <= 320 && (!low || b.y > low.y)) low = b;
+    if (low) { low.state = 'popped'; s.popped++; }
+    if (!s.result && s.popped >= s.balloons.length) s.result = 'win';
+    lapse(s, this.ticks);
+  },
+  outcome: s => s.result,
+};
+
+// Held Space swings the power 0 → 1 in AIM_SWING ticks and back down; a pointer drag that starts on the slingshot sets it by distance.
+const AIM_SLING = { x: 90, y: 230 }, AIM_GRAB = 60, AIM_PULL = 120, AIM_SWING = 90, AIM_FLY = 24;
+interface AimState {
+  t: number; result: Outcome; level: Level;
+  sling: { x: number; y: number }; target: { x: number; y: number }; pull: { x: number; y: number } | null;
+  mode: 'idle' | 'pull' | 'swing'; power: number; rising: boolean; base: number; centre: number; width: number; phase: number;
+  shot: { x: number; y: number; t: number; power: number; hit: boolean } | null;
+}
+const aim: Micro<AimState> = {
+  id: 'aim', verb: 'AIM!', host: 3, boss: false, input: 'hold', ticks: 300, survive: false,
+  init(rand, level) {
+    const base = 0.45 + rand.next() * 0.35;
+    return {
+      t: 0, result: null, level, sling: { ...AIM_SLING }, target: { x: 400, y: 150 }, pull: null,
+      mode: 'idle', power: 0, rising: true, base, centre: base, width: [0.24, 0.18, 0.13][level - 1], phase: rand.next() * Math.PI * 2, shot: null,
+    };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    if (s.level === 3) {
+      // at level 3 the target bobs, and the power that reaches it moves with it
+      const bob = Math.sin(s.t * 0.05 + s.phase);
+      s.target.y = 150 + 40 * bob; s.centre = s.base - 0.08 * bob;
+    }
+    if (s.shot) {
+      const sh = s.shot, p = ++sh.t / AIM_FLY, reach = s.target.x + (sh.hit ? 0 : (sh.power - s.centre) * 300);
+      sh.x = s.sling.x + (reach - s.sling.x) * p; sh.y = s.sling.y + (s.target.y - s.sling.y) * p - Math.sin(p * Math.PI) * 60;
+      if (sh.t >= AIM_FLY) s.result = sh.hit ? 'win' : 'lose';
+      return;
+    }
+    if (i.pressed) {
+      const grab = i.x >= 0 && Math.hypot(i.x - s.sling.x, i.y - s.sling.y) <= AIM_GRAB;
+      s.mode = grab ? 'pull' : 'swing'; s.power = 0; s.rising = true;
+    }
+    if (s.mode === 'pull' && i.down && i.x >= 0) {
+      s.power = Math.min(1, Math.hypot(i.x - s.sling.x, i.y - s.sling.y) / AIM_PULL); s.pull = { x: i.x, y: i.y };
+    } else if (s.mode === 'swing' && i.down) {
+      s.power += (s.rising ? 1 : -1) / AIM_SWING;
+      if (s.power >= 1) { s.power = 1; s.rising = false; } else if (s.power <= 0) { s.power = 0; s.rising = true; }
+    }
+    if (i.released && s.mode !== 'idle') {
+      s.shot = { x: s.sling.x, y: s.sling.y, t: 0, power: s.power, hit: Math.abs(s.power - s.centre) <= s.width / 2 };
+      s.mode = 'idle'; s.pull = null;
+    }
+    lapse(s, this.ticks);
+  },
+  outcome: s => s.result,
+};
+
+// The crane swings at constant speed round the top of the stack, so the stack can never drift out of its reach.
+const STACK_BASE = { x: 240, y: 290, w: 80 }, CRATE_W = 60, CRATE_H = 30, CRATE_HOOK = 60, CRATE_FALL = 14, CRATE_WAIT = 6;
+interface StackState {
+  t: number; result: Outcome;
+  need: number; amp: number; v: number; crane: { x: number; dir: -1 | 1 };
+  placed: { x: number; y: number }[]; top: { x: number; y: number; w: number }; crate: { x: number; y: number; falling: boolean } | null; wait: number;
+}
+const stack: Micro<StackState> = {
+  id: 'stack', verb: 'STACK!', host: 3, boss: false, input: 'timing', ticks: 300, survive: false,
+  init(rand, level) {
+    const amp = [100, 80, 60][level - 1];
+    return {
+      t: 0, result: null, need: [2, 3, 4][level - 1], amp, v: [2.2, 2.6, 3.0][level - 1],
+      crane: { x: STACK_BASE.x - amp + rand.next() * 2 * amp, dir: rand.next() < 0.5 ? -1 : 1 },
+      placed: [], top: { ...STACK_BASE }, crate: null, wait: 20,
+    };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    const cr = s.crane;
+    cr.x += cr.dir * s.v;
+    if (cr.x > s.top.x + s.amp) { cr.x = s.top.x + s.amp; cr.dir = -1; } else if (cr.x < s.top.x - s.amp) { cr.x = s.top.x - s.amp; cr.dir = 1; }
+    if (!s.crate && --s.wait <= 0) s.crate = { x: cr.x, y: CRATE_HOOK, falling: false };
+    const c = s.crate;
+    if (c && !c.falling) { c.x = cr.x; if (i.pressed) c.falling = true; }
+    if (c && c.falling) {
+      c.y += CRATE_FALL;
+      if (c.y + CRATE_H / 2 >= s.top.y) {
+        const overlap = Math.min(c.x + CRATE_W / 2, s.top.x + s.top.w / 2) - Math.max(c.x - CRATE_W / 2, s.top.x - s.top.w / 2);
+        // 60% of the crate must land on the stack, or it topples off
+        if (overlap >= 0.6 * CRATE_W) {
+          s.placed.push({ x: c.x, y: s.top.y - CRATE_H / 2 });
+          s.top = { x: c.x, y: s.top.y - CRATE_H, w: CRATE_W };
+          s.crate = null; s.wait = CRATE_WAIT;
+          if (s.placed.length >= s.need) s.result = 'win';
+        } else s.result = 'lose';
+      }
+    }
+    lapse(s, this.ticks);
+  },
+  outcome: s => s.result,
+};
+
+const COUNT_SHOW = 40, COUNT_HIDE = 88;
+interface CountState {
+  t: number; result: Outcome;
+  acorns: { x: number; y: number }[]; show: boolean; answers: number[]; right: number; open: boolean;
+}
+const count: Micro<CountState> = {
+  id: 'count', verb: 'COUNT!', host: 3, boss: false, input: 'pick', ticks: 300, survive: false,
+  init(rand, level) {
+    const [lo, hi] = [[3, 5], [5, 8], [7, 11]][level - 1], n = lo + rand.int(hi - lo + 1);
+    const acorns: { x: number; y: number }[] = [];
+    // in a 300 × 140 box, at least 34 apart so none overlap
+    while (acorns.length < n) {
+      const a = { x: 90 + rand.int(301), y: 90 + rand.int(141) };
+      if (acorns.every(o => Math.hypot(o.x - a.x, o.y - a.y) >= 34)) acorns.push(a);
+    }
+    const others = rand.shuffle([n - 2, n - 1, n + 1, n + 2].filter(m => m > 0)).slice(0, 2);
+    const answers = rand.shuffle([n, ...others]);
+    return { t: 0, result: null, acorns, show: false, answers, right: answers.indexOf(n), open: false };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    s.show = s.t > COUNT_SHOW && s.t <= COUNT_HIDE;
+    s.open = s.t > COUNT_HIDE;
+    if (s.open) {
+      const c = pickOf(i, nearChute);
+      if (c >= 0) s.result = c === s.right ? 'win' : 'lose';
+    }
+    lapse(s, this.ticks);
+  },
+  outcome: s => s.result,
+};
+
+// Pegs slide right and wrap round the 480-unit stage; a ring thrown from x 240 lands RING_FLY ticks later.
+const RING_X = 240, RING_Y = 230, RING_FLY = 30, RING_REACH = 20, RINGS = 8, RING_NEED = 5;
+interface RingState {
+  t: number; result: Outcome;
+  pegs: { x: number; y: number }[]; v: number; mult: number; left: number; hits: number;
+  flying: { t: number; x: number; y: number } | null; landed: { x: number; y: number; on: boolean }[];
+}
+const ring: Micro<RingState> = {
+  id: 'ring', verb: 'TOSS!', host: 3, boss: true, input: 'timing', ticks: 900, survive: false,
+  init(rand, level) {
+    const off = rand.next() * 160;
+    return {
+      t: 0, result: null, pegs: [0, 1, 2].map(k => ({ x: (off + k * 160) % 480, y: RING_Y })), v: 1.8, mult: [1, 1.15, 1.3][level - 1],
+      left: RINGS, hits: 0, flying: null, landed: [],
+    };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    s.v = (1.8 + 0.8 * Math.min(1, s.t / this.ticks)) * s.mult;
+    for (const p of s.pegs) p.x = (p.x + s.v) % 480;
+    if (i.pressed && !s.flying && s.left > 0) { s.flying = { t: 0, x: RING_X, y: 300 }; s.left--; }
+    const f = s.flying;
+    if (f) {
+      const p = ++f.t / RING_FLY;
+      f.y = 300 + (RING_Y - 300) * p - Math.sin(p * Math.PI) * 50;
+      if (f.t >= RING_FLY) {
+        const on = s.pegs.some(peg => Math.abs(peg.x - RING_X) <= RING_REACH);
+        if (on) s.hits++;
+        s.landed.push({ x: RING_X, y: RING_Y, on }); s.flying = null;
+      }
+    }
+    if (s.hits >= RING_NEED) s.result = 'win';
+    else if (!s.flying && s.hits + s.left < RING_NEED) s.result = 'lose';
+    lapse(s, this.ticks);
+  },
+  outcome: s => s.result,
+};
+
+MICROS.pick = pick;
+MICROS.pop = pop;
+MICROS.aim = aim;
+MICROS.stack = stack;
+MICROS.count = count;
+MICROS.ring = ring;
 
 /** Each host's five ordinary microgames, and their boss. */
 export const HOST_GAMES: readonly MicroId[][] = [0, 1, 2, 3].map(h => MICRO_IDS.slice(h * 6, h * 6 + 5));
