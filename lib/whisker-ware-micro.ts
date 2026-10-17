@@ -661,6 +661,8 @@ const hush: Micro<HushState> = {
     const c = pickOf(i, x => HUSH_SPOTS.findIndex(sx => Math.abs(sx - x) <= 50));
     const hit = c >= 0 ? s.toys.find(g => g.state === 'squeak' && g.spot === c) : undefined;
     if (hit) { hit.state = 'hushed'; s.hushed++; }
+    // a tap on a quiet spot is a noise of its own, so mashing every spot wakes the Owl
+    else if (c >= 0) { s.result = 'lose'; return; }
     for (const g of s.toys) if (g.state === 'squeak' && ++g.age >= HUSH_LIMIT) s.result = 'lose';
     if (!s.result && s.hushed >= s.toys.length) s.result = 'win';
     lapse(s, this.ticks);
@@ -697,10 +699,8 @@ const find: Micro<FindState> = {
       if (d > FIND_SPEED) { l.x += dx / d * FIND_SPEED; l.y += dy / d * FIND_SPEED; } else { l.x = i.x; l.y = i.y; }
     }
     l.x = Math.max(0, Math.min(480, l.x)); l.y = Math.max(0, Math.min(320, l.y));
-    if (i.pressed) {
-      if (Math.hypot(s.acorn.x - l.x, s.acorn.y - l.y) <= FIND_REACH) s.result = 'win';
-      else if (s.decoys.some(d => Math.hypot(d.x - l.x, d.y - l.y) <= FIND_REACH)) s.result = 'lose';
-    }
+    // the lantern digs where it is let go, so a finger held on a spot can wait for the light to get there; a dig anywhere but the acorn loses
+    if (i.released) s.result = Math.hypot(s.acorn.x - l.x, s.acorn.y - l.y) <= FIND_REACH ? 'win' : 'lose';
     lapse(s, this.ticks);
   },
   outcome: s => s.result,

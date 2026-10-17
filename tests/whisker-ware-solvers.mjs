@@ -135,7 +135,8 @@ SOLVERS.hush = s => {
   return live.length ? { ...IDLE, pick: live[0].spot + 1 } : IDLE;
 };
 
-SOLVERS.find = s => ({ ...IDLE, x: s.acorn.x, y: s.acorn.y, down: Math.hypot(s.acorn.x - s.lantern.x, s.acorn.y - s.lantern.y) < 10 });
+// Holds the pointer on the acorn while the lantern glides over, and lets go once it is there.
+SOLVERS.find = s => ({ ...IDLE, x: s.acorn.x, y: s.acorn.y, down: Math.hypot(s.acorn.x - s.lantern.x, s.acorn.y - s.lantern.y) >= 10 });
 
 // Dodges by eye: stands still until a feather will pass through Dora's spot in the next 60 ticks, then steps to the nearest
 // spot that stays clear and can be reached without running into another feather on the way, and keeps to that spot while

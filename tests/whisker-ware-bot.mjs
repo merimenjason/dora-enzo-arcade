@@ -23,11 +23,11 @@ const started = Date.now();
 /** Plays a run to its end with the bot. Returns per-game outcomes. */
 function play(run, rand) {
   const games = [];
-  let played = 0, buffer = [], lag = 0, fumble = false, anticipate = false, held = IDLE;
+  let played = 0, buffer = [], lag = 0, fumble = false, anticipate = false, held = IDLE, tapped = '';
   for (let n = 0; n < 2_000_000 && run.phase !== 'over' && run.phase !== 'clear'; n++) {
     if (run.mode === 'remix' && run.cleared >= REMIX_CAP) break;
     if (run.phase === 'micro' && run.played !== played) {
-      played = run.played; buffer = [];
+      played = run.played; buffer = []; tapped = '';
       const kind = MICROS[run.game].input;
       anticipate = kind === 'timing' || kind === 'hold';
       lag = anticipate ? rand.int(11) : 10 + rand.int(11);
@@ -37,8 +37,15 @@ function play(run, rand) {
     }
     let f = IDLE;
     if (run.phase === 'micro') {
-      buffer.push(anticipate ? ahead(run, held) : policy(run.game)(run.state, run.t));
-      if (!fumble && run.t >= lag) f = buffer[run.t - lag];
+      const decided = anticipate ? ahead(run, held) : policy(run.game)(run.state, run.t);
+      // the page sends a pick for a single tick, so a player taps once for each thing they see: a pick is tagged with
+      // the progress on screen when it was decided, and a tag already tapped is not tapped again
+      buffer.push({ f: decided, tag: `${decided.pick}:${run.state.popped ?? ''}:${run.state.hushed ?? ''}` });
+      if (!fumble && run.t >= lag) {
+        const d = buffer[run.t - lag];
+        f = d.f;
+        if (f.pick && d.tag === tapped) f = { ...f, pick: 0 }; else if (f.pick) tapped = d.tag;
+      }
       held = f;
     }
     run.step(f);
