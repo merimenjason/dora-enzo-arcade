@@ -110,13 +110,54 @@ const catchGame: Micro<CatchState> = {
   init(rand, level) {
     const n = [1, 2, 3][level - 1];
     const kinds = rand.shuffle([...Array(n).fill('raisin'), ...Array(n - 1).fill('pebble')]) as ('raisin' | 'pebble')[];
+    const gap = [70, 50, 42][level - 1];
     const queue: CatchState['queue'] = [{ kind: 'pebble', x: 240 }];
-    for (const kind of kinds) {
-      let x = 60 + rand.int(361);
-      for (let k = 0; k < 20 && Math.abs(x - queue[queue.length - 1].x) < 100; k++) x = 60 + rand.int(361);
-      queue.push({ kind, x });
+    // Track where the bowl could be at each landing, so every layout is clearable: a raisin's x must be reachable
+    // in time, a pebble must leave somewhere to stand outside its width.
+    const land = (k: number) => k * gap + (CATCH_Y + 20) / (2.4 + 0.3 * k);
+    let reach: [number, number][] = [[240, 240]], at = 0;
+    const move = (k: number) => {
+      const d = (land(k) - at) * BOWL_SPEED * 0.9;
+      const grown = reach.map(([a, b]): [number, number] => [Math.max(BOWL_HALF, a - d), Math.min(480 - BOWL_HALF, b + d)]).sort((p, q) => p[0] - q[0]);
+      reach = [];
+      for (const g of grown) {
+        const last = reach[reach.length - 1];
+        if (last && g[0] <= last[1]) last[1] = Math.max(last[1], g[1]); else reach.push(g);
+      }
+      at = land(k);
+    };
+    const settle = (kind: 'raisin' | 'pebble', x: number) => {
+      const next: [number, number][] = [];
+      for (const [a, b] of reach) {
+        if (kind === 'raisin') { if (Math.max(a, x - 28) <= Math.min(b, x + 28)) next.push([Math.max(a, x - 28), Math.min(b, x + 28)]); }
+        else {
+          if (a < x - 42) next.push([a, Math.min(b, x - 42)]);
+          if (b > x + 42) next.push([Math.max(a, x + 42), b]);
+        }
+      }
+      if (!next.length) return false;
+      reach = next;
+      return true;
+    };
+    move(0); settle('pebble', 240);
+    for (let k = 0; k < kinds.length; k++) {
+      move(k + 1);
+      const save = reach;
+      let x = 240, ok = false;
+      for (let tries = 0; tries < 60 && !ok; tries++) {
+        x = 60 + rand.int(361);
+        if (Math.abs(x - queue[queue.length - 1].x) < 100) continue;
+        reach = save;
+        ok = settle(kinds[k], x);
+      }
+      if (!ok) {
+        reach = save;
+        x = Math.max(60, Math.min(420, (reach[0][0] + reach[0][1]) / 2));
+        if (!settle(kinds[k], x)) reach = save;
+      }
+      queue.push({ kind: kinds[k], x });
     }
-    return { t: 0, result: null, level, bowl: { x: 240, y: BOWL_Y }, items: [], queue, spawned: 0, gap: [70, 50, 42][level - 1], raisins: 0, need: n };
+    return { t: 0, result: null, level, bowl: { x: 240, y: BOWL_Y }, items: [], queue, spawned: 0, gap, raisins: 0, need: n };
   },
   tick(s, i) {
     if (!begin(s)) return;
@@ -252,7 +293,9 @@ const raisin: Micro<RainState> = {
     const queue: RainState['queue'] = [{ kind: 'pebble', chute: 1 }];
     for (let k = 1; k < 60; k++) {
       const chute = rand.int(3);
-      queue.push({ kind: rand.next() < (chute === 1 ? 0.5 : 0.3) ? 'pebble' : 'raisin', chute });
+      // every fourth item (0, 4, 8) is a pebble down the starting chute, so a bowl that never moves meets 3 of them before it can catch 8 raisins
+      if (k % 4 === 0) { queue.push({ kind: 'pebble', chute: 1 }); continue; }
+      queue.push({ kind: rand.next() < 0.2 ? 'pebble' : 'raisin', chute });
     }
     return { t: 0, result: null, level, bowl: { x: 240, y: BOWL_Y }, items: [], queue, spawned: 0, next: 0, raisins: 0, pebbles: 0, missed: 0 };
   },

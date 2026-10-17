@@ -9,16 +9,28 @@ export const READY_HOSTS = [];
 
 SOLVERS.stuff = (s, t) => ({ ...IDLE, down: t % 2 === 0 });
 
+// Plans backwards from the last landing: at each landing the bowl must stand in a set from which every later landing is still reachable.
+const meet = (A, B) => {
+  const out = [];
+  for (const [a, b] of A) for (const [c, d] of B) { const lo = Math.max(a, c), hi = Math.min(b, d); if (lo <= hi) out.push([lo, hi]); }
+  return out;
+};
+const grow = (A, d) => A.map(([a, b]) => [Math.max(34, a - d), Math.min(446, b + d)]);
 SOLVERS.catch = s => {
-  const bx = s.bowl.x;
-  const raisins = s.items.filter(m => m.kind === 'raisin');
-  const r = raisins.length ? raisins.reduce((a, b) => (b.y > a.y ? b : a)) : null;
-  let tx = r ? r.x : bx;
-  // a pebble that lands before the raisin is a wall: never stand within 50 of it, never cross it
-  for (const p of s.items) {
-    if (p.kind !== 'pebble' || (r && p.y <= r.y)) continue;
-    if (Math.abs(bx - p.x) < 50) tx = p.x + (p.x > 240 ? -80 : 80);
-    else if (Math.abs(tx - p.x) < 50 || (bx - p.x) * (tx - p.x) < 0) tx = p.x + (bx < p.x ? -50 : 50);
+  const events = s.items.map(m => ({ kind: m.kind, x: m.x, at: s.t + (250 - m.y) / m.v }));
+  for (let k = s.spawned; k < s.queue.length; k++) events.push({ kind: s.queue[k].kind, x: s.queue[k].x, at: k * s.gap + 1 + 270 / (2.4 + 0.3 * k) });
+  events.sort((p, q) => p.at - q.at);
+  const fit = e => (e.kind === 'raisin' ? [[e.x - 28, e.x + 28]] : [[34, e.x - 42], [e.x + 42, 446]]);
+  let G = [[34, 446]];
+  const sets = [];
+  for (let k = events.length - 1; k >= 0; k--) {
+    G = meet(k === events.length - 1 ? G : grow(G, (events[k + 1].at - events[k].at) * 5.4), fit(events[k]));
+    sets[k] = G;
+  }
+  let tx = s.bowl.x;
+  if (events.length && sets[0].length) {
+    let best = Infinity;
+    for (const [a, b] of sets[0]) { const c = Math.max(a, Math.min(b, s.bowl.x)); if (Math.abs(c - s.bowl.x) < best) { best = Math.abs(c - s.bowl.x); tx = c; } }
   }
   return { ...IDLE, x: tx, y: 260 };
 };
@@ -33,21 +45,49 @@ SOLVERS.sniff = s => (s.open ? { ...IDLE, pick: s.slot[s.raisin] + 1 } : IDLE);
 
 SOLVERS.gnaw = s => ({ ...IDLE, down: Math.abs(s.notch - 180) < s.window / 2 - 1 && s.t > 0 && s.notch < 400 });
 
+// Same planner as catch, but raisins are optional: take one only if every pebble after it can still be dodged.
+const without = (R, e) => {
+  const out = [];
+  for (const [a, b] of R) { if (a < e.x - 42) out.push([a, Math.min(b, e.x - 42)]); if (b > e.x + 42) out.push([Math.max(a, e.x + 42), b]); }
+  return out;
+};
 SOLVERS.raisin = s => {
-  const bx = s.bowl.x;
-  const danger = new Set(s.items.filter(m => m.kind === 'pebble' && m.y > 100).map(m => m.chute));
-  let best = null, bestEta = 1e9;
-  for (const m of s.items) {
-    if (m.kind !== 'raisin' || m.y > 250) continue;
-    if (s.items.some(p => p.kind === 'pebble' && p.chute === m.chute && p.y > m.y)) continue;
-    const eta = (250 - m.y) / m.v;
-    if (Math.abs(m.x - bx) / 6 > eta - 1) continue;
-    if (eta < bestEta) { best = m; bestEta = eta; }
+  const mult = [1, 1.08, 1.16][s.level - 1];
+  const events = s.items.map(m => ({ kind: m.kind, x: m.x, at: s.t + (250 - m.y) / m.v }));
+  let next = s.next;
+  for (let k = s.spawned; k < s.queue.length && events.length < 14; k++) {
+    const t = next + 1, ramp = Math.min(1, t / 600), v = (2.6 + 1.6 * ramp) * mult;
+    events.push({ kind: s.queue[k].kind, x: [120, 240, 360][s.queue[k].chute], at: t + 270 / v });
+    next += Math.round(40 - 18 * ramp);
   }
-  let tx = best ? best.x : bx;
-  if (!best && danger.has(Math.round((bx - 120) / 120))) {
-    const safe = [0, 1, 2].filter(c => !danger.has(c)).map(c => 120 + 120 * c);
-    if (safe.length) tx = safe.reduce((a, b) => (Math.abs(b - bx) < Math.abs(a - bx) ? b : a));
+  events.sort((p, q) => p.at - q.at);
+  const dodges = (R, from, at) => {
+    for (let k = from; k < events.length; k++) {
+      R = grow(R, (events[k].at - at) * 5.4); at = events[k].at;
+      if (events[k].kind === 'pebble') { R = without(R, events[k]); if (!R.length) return false; }
+    }
+    return true;
+  };
+  let R = [[s.bowl.x, s.bowl.x]], at = s.t;
+  const chosen = [];
+  for (let k = 0; k < events.length; k++) {
+    const e = events[k];
+    R = grow(R, (e.at - at) * 5.4); at = e.at;
+    if (e.kind === 'pebble') { const w = without(R, e); if (w.length) R = w; chosen.push(e); continue; }
+    const c = meet(R, [[e.x - 28, e.x + 28]]);
+    if (c.length && dodges(c, k + 1, at)) { R = c; chosen.push(e); }
+  }
+  let G = [[34, 446]];
+  const sets = [];
+  for (let k = chosen.length - 1; k >= 0; k--) {
+    const fitK = chosen[k].kind === 'raisin' ? [[chosen[k].x - 28, chosen[k].x + 28]] : [[34, chosen[k].x - 42], [chosen[k].x + 42, 446]];
+    G = meet(k === chosen.length - 1 ? G : grow(G, (chosen[k + 1].at - chosen[k].at) * 5.4), fitK);
+    sets[k] = G;
+  }
+  let tx = s.bowl.x;
+  if (chosen.length && sets[0].length) {
+    let best = Infinity;
+    for (const [a, b] of sets[0]) { const c = Math.max(a, Math.min(b, s.bowl.x)); if (Math.abs(c - s.bowl.x) < best) { best = Math.abs(c - s.bowl.x); tx = c; } }
   }
   return { ...IDLE, x: tx, y: 260 };
 };

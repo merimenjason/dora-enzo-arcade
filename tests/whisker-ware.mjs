@@ -57,7 +57,7 @@ test('every ready host is complete and solvable, idle loses, replays match', () 
   for (const h of READY_HOSTS) for (const id of [...HOST_GAMES[h], HOST_BOSS[h]]) {
     const m = MICROS[id]; assert.ok(m, `${id} is registered`); assert.ok(SOLVERS[id], `${id} has a solver`);
     assert.equal(m.ticks, m.boss ? 900 : 300); assert.equal(m.host, h);
-    for (const level of [1, 2, 3]) for (const tier of [0, 5]) for (let seed = 1; seed <= 6; seed++) {
+    for (const level of [1, 2, 3]) for (const tier of [0, 5]) for (let seed = 1; seed <= 100; seed++) {
       const a = simulate(id, seed, level, tier, SOLVERS[id]);
       assert.equal(a.result, 'win', `${id} L${level} tier ${tier} seed ${seed}: the solver wins`);
       assert.deepEqual(simulate(id, seed, level, tier, SOLVERS[id]), a, `${id} replays exactly`);
