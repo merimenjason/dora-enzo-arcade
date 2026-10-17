@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Run, BLIND, ANTES, ITEM_COST, MAX_PLAY, INTEREST_EVERY, HANDS, CHARMS, GLOSS_TEXT, SUITS, VOUCHERS, VOUCHER_COST,
-  charmById, handById, itemName, itemText, rankLong, voucherById, packById, loadProfile, freshProfile, record,
+  charmById, handById, itemName, itemText, rankLong, voucherById, packById, loadProfile, freshProfile, record, STAKES,
   type Card, type Score, type Profile, type Item, type Rival, type PackType, type PackKind,
 } from '../../lib/acorn-hand-game';
 import { drawCard, drawCharm, drawRival, drawVoucher, drawPack, drawItem } from '../../lib/acorn-hand-scene';
@@ -105,6 +105,8 @@ function Pal({ who }: { who: 'dora' | 'enzo' }) {
 export default function AcornHandPage() {
   const runRef = useRef<Run | null>(null), [, setTick] = useState(0), refresh = useCallback(() => setTick((n) => n + 1), []);
   const [profile, setProfile] = useState<Profile>(freshProfile), [view, setView] = useState<'title' | 'run'>('title');
+  /** The stake a new run starts on: the hardest open one unless the player picks another. */
+  const [stakePick, setStakePick] = useState<number | null>(null), stake = Math.min(stakePick ?? profile.stake, profile.stake);
   const [kept, setKept] = useState<Run | null>(null), [selected, setSelected] = useState<number[]>([]), [anim, setAnim] = useState<Anim | null>(null);
   const [ready, setReady] = useState(false), [note, setNote] = useState(''), [muted, setMuted] = useState(false), [sortBy, setSortBy] = useState<'rank' | 'suit'>('rank'), [help, setHelp] = useState(false);
   const motion = useRef(true), timers = useRef<number[]>([]), finished = useRef(new Set<string>()), handBefore = useRef<number[] | null>(null);
@@ -183,7 +185,7 @@ export default function AcornHandPage() {
   /** Drop a count in progress, its timers and anything in flight, when the run leaves the table. */
   const stopCount = () => { timers.current.splice(0).forEach(clearTimeout); handBefore.current = null; setAnim(null); dropGhosts(); };
   const begin = (r: Run) => { stopCount(); runRef.current = r; setSelected([]); setAnim(null); setNote(''); setView('run'); persist(); refresh(); sound.cue('deal'); };
-  const newRun = () => begin(new Run((Math.random() * 0xffffffff) >>> 0));
+  const newRun = () => begin(new Run((Math.random() * 0xffffffff) >>> 0, stake));
   const toTitle = () => { stopCount(); persist(); setKept(runRef.current && runRef.current.phase !== 'over' ? Run.load(runRef.current.save()) : null); setView('title'); };
   const resort = (r: Run, by = sortBy) => r.sort(by);
   const toggle = (id: number) => {
@@ -320,6 +322,12 @@ export default function AcornHandPage() {
             <button className={kept ? '' : 'ah-gold'} data-testid="new-run" onClick={newRun}>{kept ? 'New run' : 'Deal me in'}</button>
             <button data-testid="how" onClick={() => setHelp(!help)} aria-expanded={help}>How to play</button>
           </div>
+          {profile.stake > 0 && <div className="ah-stakes" data-testid="stakes">
+            <div className="ah-row ah-center" role="group" aria-label="Stake for a new run">
+              {STAKES.slice(0, profile.stake + 1).map((t, i) => <button key={t.id} data-testid={`stake-${i}`} data-stake={t.id} aria-pressed={stake === i} onClick={() => setStakePick(i)}>{t.name.replace(' stake', '')}</button>)}
+            </div>
+            <p className="ah-small">{stake === 0 ? STAKES[0].text : STAKES.slice(1, stake + 1).map((t) => t.text).join(' ')}{profile.stake < STAKES.length - 1 && ` Win on ${STAKES[profile.stake].name.toLowerCase()} to open ${STAKES[profile.stake + 1].name.toLowerCase()}.`}</p>
+          </div>}
           {help && <ul className="ah-help" data-testid="help">
             <li><b>A round:</b> you hold eight cards. Pick up to five and play them, or throw some away to draw new ones. You have four plays and three discards to reach the target.</li>
             <li><b>Scoring:</b> the best poker hand among the cards you play sets a base of chips and mult. Each card that counts adds its chips (aces 11, faces 10), then your charms join in, left to right. Chips × mult is the score.</li>
@@ -407,7 +415,7 @@ export default function AcornHandPage() {
 
   const roundInfo = round && (
     <section className="ah-roundinfo" aria-label="This round">
-      <p className="ah-eyebrow">Ante {r.ante}{r.endless ? ' · endless' : ` of ${ANTES}`} · {BLIND[r.blind].name}</p>
+      <p className="ah-eyebrow">Ante {r.ante}{r.endless ? ' · endless' : ` of ${ANTES}`} · {BLIND[r.blind].name}{r.stake > 0 && ` · ${STAKES[r.stake].name}`}</p>
       <div className="ah-target"><span>Target</span><strong data-testid="target">{fmt(round.target)}</strong></div>
       <div className="ah-score"><span>Score</span><strong data-testid="score" ref={scoreRef}>{fmt(shownScore)}</strong></div>
       <progress ref={progressRef} max={round.target} value={Math.min(shownScore, round.target)} aria-label="Score towards the target" />
@@ -568,6 +576,7 @@ export default function AcornHandPage() {
     body = <section className="ah-card-panel" data-testid="victory">
       <p className="ah-eyebrow">Ante {ANTES} beaten</p><h2>The wood is yours</h2>
       <p>All eight rivals are beaten. Your best hand scored <b>{fmt(r.best)}</b>. Keep going into endless antes, where the targets climb faster, or rest here.</p>
+      {r.stake + 1 < STAKES.length && <p className="ah-stake-open" data-testid="stake-open"><b>{STAKES[r.stake + 1].name} is open.</b> {STAKES[r.stake + 1].text} Pick it on the title screen.</p>}
       <div className="ah-row ah-center"><button className="ah-gold" data-testid="endless" onClick={() => act(r.goEndless(), 'deal')}>Keep going</button><button data-testid="end-run" onClick={() => { writeJson(RUN_KEY, null); setKept(null); setView('title'); }}>End the run</button></div>
     </section>;
   } else if (stage === 'over') {
@@ -585,7 +594,7 @@ export default function AcornHandPage() {
       <div className="ah-board">
         <aside className="ah-side">
           {roundInfo ?? <section className="ah-roundinfo">
-            <p className="ah-eyebrow">{r.phase === 'victory' ? `All ${ANTES} antes beaten` : `Ante ${r.ante}${r.endless ? ' · endless' : ` of ${ANTES}`}`}</p>
+            <p className="ah-eyebrow">{r.phase === 'victory' ? `All ${ANTES} antes beaten` : `Ante ${r.ante}${r.endless ? ' · endless' : ` of ${ANTES}`}`}{r.stake > 0 && ` · ${STAKES[r.stake].name}`}</p>
             {r.phase !== 'victory' && <p className="ah-small">Rival this ante: <b>{boss.name}</b>. {boss.text}</p>}
           </section>}
           {stage === 'round' && counter}

@@ -4,6 +4,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 17-10-2026
 
+### Added
+
+- **Acorn Hand**: harder stakes for players who win. Beating the eighth boss opens the bronze stake (the small round pays no blind reward), then silver (targets from ante 2 a quarter higher) and gold (one discard fewer each round); each keeps the rules below it. Pick your stake on the title screen; the run shows it beside the ante.
+
 ### Changed
 
 - **Acorn Hand**: a smoother climb. Antes 3 to 5 now ask for 1,800, 4,400 and 8,500 instead of 1,600, 3,500 and 9,000, so ante 5 is no longer a sudden wall after an easy middle; the last three antes are unchanged.

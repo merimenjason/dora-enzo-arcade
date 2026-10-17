@@ -273,7 +273,7 @@ await check('a reload comes back to the same round, and broken saves are ignored
 
 await check('beating the eighth boss wins, and endless carries on', async (page) => {
   await fresh(page); await page.getByTestId('new-run').click(); await page.getByTestId('pick').waitFor();
-  await run(page, '(r) => { r.ante = 8; r.blind = 2; r.bossFor(8); }');
+  await run(page, '(r) => { r.ante = 8; r.blind = 2; r.bossFor(8); r.bosses[7] = "nodiscard"; }');
   await page.getByTestId('start').click(); await run(page, '(r) => { r.round.target = 1; }');
   await page.getByTestId('card-0').click(); await page.getByTestId('play').click(); await settled(page);
   await page.getByTestId('collect').click(); await page.getByTestId('victory').waitFor();
@@ -327,6 +327,30 @@ await check('the rival sits across the table: centred and big with its nuts, slo
   await settled(page);
   assert.equal(await page.locator('[data-testid="hand"] .ah-card[data-lit="true"]').count(), 0);
 });
+
+await check('winning opens a harder stake, which can be picked on the title and shows in the run', async (page) => {
+  await fresh(page);
+  assert.equal(await page.getByTestId('stakes').count(), 0, 'no stake picker before a win');
+  await page.getByTestId('new-run').click(); await page.getByTestId('pick').waitFor();
+  assert.equal(await run(page, '(r) => r.stake'), 0);
+  await run(page, '(r) => { r.ante = 8; r.blind = 2; r.bossFor(8); r.bosses[7] = "nodiscard"; }');
+  await page.getByTestId('start').click(); await run(page, '(r) => { r.round.target = 1; }');
+  await page.getByTestId('card-0').click(); await page.getByTestId('play').click(); await settled(page);
+  await page.getByTestId('collect').click(); await page.getByTestId('victory').waitFor();
+  assert.match(await page.getByTestId('stake-open').innerText(), /Bronze stake/);
+  assert.equal((await stored(page, 'acorn-hand-v1')).stake, 1);
+  await page.getByTestId('menu').click();
+  assert.equal(await page.getByTestId('stakes').locator('button').count(), 2, 'green and bronze to pick from');
+  assert.equal(await page.getByTestId('stake-1').getAttribute('aria-pressed'), 'true', 'the hardest open stake is picked');
+  await page.getByTestId('stake-0').click(); assert.equal(await page.getByTestId('stake-0').getAttribute('aria-pressed'), 'true');
+  await page.getByTestId('stake-1').click();
+  await page.getByTestId('new-run').click(); await page.getByTestId('pick').waitFor();
+  assert.equal(await run(page, '(r) => r.stake'), 1);
+  assert.match(await page.locator('.ah-side .ah-eyebrow').innerText(), /Bronze stake/i, 'between rounds');
+  await page.getByTestId('start').click(); assert.match(await page.locator('.ah-side .ah-eyebrow').innerText(), /Bronze stake/i, 'in a round');
+  await page.reload(); await page.locator('main[data-ready="true"]').waitFor(); await page.getByTestId('continue').click();
+  assert.equal(await run(page, '(r) => r.stake'), 1, 'the stake survives a reload');
+}, { width: 1280, height: 860 }, { reducedMotion: 'reduce' });
 
 for (const [width, height] of [[1280, 860], [390, 844]]) {
   await check(`six charm slots share one row and the hand stays on screen at ${width}×${height}`, async (page) => {

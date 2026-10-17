@@ -35,6 +35,19 @@ Five of a kind and flush five need copied or dyed cards. Almanac pages for them 
 - The small and big rounds can be skipped for a free item (or 4 nuts if both item slots are full). The boss round cannot.
 - Each ante's rival is drawn so that all thirteen come round before any repeats, and never the same rule twice in a row.
 
+## Stakes
+
+Winning a run opens a harder stake, picked on the title screen before a new run (the hardest one open is picked by default). Each stake keeps every rule of the stakes below it, and winning on a stake opens the next. Endless antes keep the stake's rules.
+
+| Stake | Adds |
+| --- | --- |
+| Green | The run as it comes. |
+| Bronze | The small round pays no blind reward (plays left, interest, charms and gold still pay). |
+| Silver | Targets from ante 2 on are a quarter higher (×1.25, rounded). |
+| Gold | One discard fewer each round (never below none). |
+
+Over 500 seeds the bot wins about 29% on green, 14% on bronze, 8% on silver and 6% on gold. `npm test` plays 200 seeds on each and requires each stake to win fewer runs than the one below (gold no more than silver) and gold to be won at least 2% of the time. A player who builds around a hand type does much better than the bot, which is what the stakes are for.
+
 ## The shop
 
 Between rounds: two charms, two distinct items (almanac pages or treats; the same page or treat cannot appear twice on one shelf), a reroll for 5 nuts that costs 1 more each time in the same shop and never shows the charms it replaced, and selling (half the price, at least 1). Commons cost 4, uncommons 6, rares 8, items 3. Charms are drawn 70% common, 25% uncommon and 5% rare, and a charm that fits the run (its suit, or the hand types you play most) is 2.5 times as likely. You hold 5 charms and 2 items. Charms can be reordered: a ×mult charm multiplies everything to its left. Each shop also has this ante's voucher and two booster packs; a reroll changes neither.
@@ -180,7 +193,7 @@ Each rival has two lines per moment, said in turn, never at random. The motion l
 
 ## Saves
 
-`acorn-hand-run-v2` holds the whole run, the round or open pack in progress included, with the random generator's state, so a reload resumes exactly; it is written after every action and cleared when a run is lost. `acorn-hand-v1` is the record: runs, wins, best ante, best hand and the charms you have met. `acorn-hand-sound-v1` is the sound setting. Both saves are validated on load, and anything malformed is ignored. Version 2 added vouchers and packs; a version-1 run is ignored. The record keeps its own version, so it carried over.
+`acorn-hand-run-v2` holds the whole run, the round or open pack in progress included, with the random generator's state, so a reload resumes exactly; it is written after every action and cleared when a run is lost. `acorn-hand-v1` is the record: runs, wins, best ante, best hand and the charms you have met. `acorn-hand-sound-v1` is the sound setting. Both saves are validated on load, and anything malformed is ignored. Version 2 added vouchers and packs; a version-1 run is ignored. The record keeps its own version, so it carried over. Both saves gained a `stake` field on 17-10-2026 without a version change: a run without one is a green run, and a record without one has only green open.
 
 ## Balance
 

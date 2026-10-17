@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {
   Run, Rand, evaluate, scorePlay, HANDS, CHARMS, TREATS, BOSSES, BLIND, ANTES, ANTE_BASE, CHARM_SLOTS, ITEM_SLOTS, HAND_SIZE, PLAYS, DISCARDS, START_NUTS,
   INTEREST_CAP, REROLL, COST, SAVE_VERSION, PROFILE_VERSION, SHOP_CHARMS, HOARD_CAP, HAGGLER_REROLL, VOUCHERS, VOUCHER_COST, PACKS, SHOP_PACKS, PACK_DEAL, packById,
-  anteBase, cardChips, charmById, voucherById, freshProfile, loadProfile, record,
+  anteBase, cardChips, charmById, voucherById, freshProfile, loadProfile, record, STAKES,
 } from '../.checks/acorn-hand-game.js';
 import { BANTER, SAID, RIVALS, PITCH, BIG_HAND, tableRival, sayLine, rivalName } from '../.checks/acorn-hand-banter.js';
 
@@ -445,6 +445,36 @@ const inShop = (seed) => { const run = new Run(seed); run.start(); run.round.tar
   }
   const seen = new Set(); for (let seed = 1; seed < 200; seed++) seen.add(tableRival(seed, 1, 0, 'fox'));
   assert.equal(seen.size, 12, 'every other rival turns up');
+}
+
+// Stakes: each adds one rule to those below it, and winning on one unlocks the next.
+{
+  assert.deepEqual(STAKES.map((t) => t.id), ['green', 'bronze', 'silver', 'gold']);
+  assert.equal(new Run(5).stake, 0, 'a run is on the green stake unless told otherwise');
+  const at = (stake, ante = 1, blind = 0) => { const r = new Run(7, stake); r.ante = ante; r.blind = blind; r.bossFor(ante); return r; };
+  const win = (r) => { r.start(); r.round.target = 1; r.play(r.round.hand.slice(0, 1)); return r.cash; };
+  assert.equal(win(at(0)).blind, BLIND[0].reward); assert.equal(win(at(1)).blind, 0, 'bronze: the small round pays no blind reward');
+  assert.equal(win(at(1, 1, 1)).blind, BLIND[1].reward, 'bronze: the big round still pays');
+  assert.equal(at(2, 1).targetOf(0), at(0, 1).targetOf(0), 'silver: ante 1 is unchanged');
+  for (const ante of [2, 5, 8]) for (const b of [0, 1]) assert.equal(at(2, ante, b).targetOf(b), Math.round(at(0, ante, b).targetOf(b) * 1.25), `silver: ante ${ante} is a quarter higher`);
+  assert.equal(win(at(2)).blind, 0, 'silver keeps bronze');
+  const gold = at(3); gold.start(); const green = at(0); green.start();
+  assert.equal(gold.round.discards, green.round.discards - 1, 'gold: one discard fewer');
+  assert.equal(at(3, 2).targetOf(0), at(2, 2).targetOf(0), 'gold keeps silver');
+  assert.equal(win(at(3)).blind, 0, 'gold keeps bronze');
+  // Saves carry the stake; a save from before stakes is a green run.
+  const back = Run.load(at(2).save()); assert.equal(back.stake, 2);
+  const old = new Run(9).save(); delete old.stake; assert.equal(Run.load(old).stake, 0);
+  for (const bad of [-1, 4, 1.5, '2']) { const sv = new Run(9).save(); sv.stake = bad; assert.equal(Run.load(sv), null, `stake ${bad} is refused`); }
+  // The record: stakes unlock one at a time, by winning on the highest one open.
+  assert.equal(freshProfile().stake, 0); assert.equal(loadProfile({ ...freshProfile(), stake: undefined }).stake, 0, 'a record from before stakes opens green only');
+  assert.equal(loadProfile({ ...freshProfile(), stake: 9 }).stake, 0, 'a nonsense stake is ignored');
+  const victory = (stake) => { const r = new Run(3, stake); r.phase = 'victory'; return r; };
+  let p = record(freshProfile(), victory(0), true); assert.equal(p.stake, 1, 'a green win opens bronze');
+  p = record(p, victory(0), true); assert.equal(p.stake, 1, 'another green win opens nothing more');
+  p = record(p, victory(1), true); assert.equal(p.stake, 2);
+  p = record(record(p, victory(2), true), victory(3), true); assert.equal(p.stake, 3, 'gold is the top');
+  const lost = new Run(3, 1); lost.phase = 'over'; assert.equal(record({ ...freshProfile(), stake: 1 }, lost, true).stake, 1, 'a loss opens nothing');
 }
 
 console.log(`PASS Acorn Hand: ${HANDS.length} hand types, ${CHARMS.length} charms, ${TREATS.length} treats, ${BOSSES.length} rivals; scoring order, rounds, the shop, items, skips, boss rules, the win and endless, seeds and saves, vouchers and packs`);

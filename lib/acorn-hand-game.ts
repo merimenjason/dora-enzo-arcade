@@ -15,6 +15,14 @@ export const HOARD_CAP = 10, HAGGLER_REROLL = 3;
 /** How often the shop offers a common, uncommon or rare charm, and how much more it likes one that fits the run. */
 export const RARITY_ODDS = [0, 0.7, 0.25, 0.05], FIT_WEIGHT = 2.5;
 export const SKIP_NUTS = 4;
+/** Harder stakes for players who win. Each keeps every rule of the stakes below it; winning a run on one opens the next. */
+export const STAKES = [
+  { id: 'green', name: 'Green stake', text: 'The run as it comes.' },
+  { id: 'bronze', name: 'Bronze stake', text: 'The small round pays no blind reward.' },
+  { id: 'silver', name: 'Silver stake', text: 'Targets from ante 2 on are a quarter higher.' },
+  { id: 'gold', name: 'Gold stake', text: 'One discard fewer each round.' },
+] as const;
+export const SILVER_TARGETS = 1.25;
 
 /** A generator whose whole state is one number, so it saves and replays exactly. */
 export class Rand {
@@ -164,6 +172,8 @@ export type Shop = { charms: (string | null)[]; items: (Item | null)[]; packs: (
 export type Pack = { id: string; options: (string | Card | null)[]; picks: number; dealt: number[] };
 export type Save = {
   v: number; seed: number; rand: number; ante: number; blind: number; phase: Phase; endless: boolean; nuts: number; nextId: number;
+  /** Absent in saves from before stakes, which are green runs. */
+  stake?: number;
   deck: Card[]; levels: Record<HandId, number>; played: Record<HandId, number>; charms: Owned[]; items: Item[];
   bosses: BossRule[]; round: Round | null; cash: Cash | null; shop: Shop | null; pack: Pack | null; vouchers: string[]; offer: string | null; best: number; rounds: number;
 };
@@ -181,7 +191,11 @@ export class Run {
   /** The best single hand of the run, and rounds won. */
   best = 0; rounds = 0;
 
-  constructor(seed: number) {
+  /** The stake, an index into STAKES. */
+  stake: number;
+
+  constructor(seed: number, stake = 0) {
+    this.stake = stake;
     this.seed = seed >>> 0; this.rand = new Rand(this.seed ^ 0x5eed);
     for (let s = 0; s < 4; s++) for (let r = 2; r <= 14; r++) this.deck.push({ id: this.nextId++, rank: r, suit: s as Suit, gloss: '' });
     this.bossFor(1); this.rollOffer();
@@ -200,13 +214,13 @@ export class Run {
   }
   get boss(): Boss | null { return this.blind === 2 ? this.bossFor(this.ante) : null; }
   get rule(): BossRule | null { return this.phase === 'round' ? this.boss?.rule ?? null : null; }
-  targetOf(blind = this.blind) { return Math.round(anteBase(this.ante) * BLIND[blind].scale * (blind === 2 && this.bossFor(this.ante).rule === 'shell' ? 1.5 : 1)); }
+  targetOf(blind = this.blind) { return Math.round(anteBase(this.ante) * BLIND[blind].scale * (blind === 2 && this.bossFor(this.ante).rule === 'shell' ? 1.5 : 1) * (this.stake >= 2 && this.ante >= 2 ? SILVER_TARGETS : 1)); }
   has(rule: Charm['rule']) { return this.charms.filter((c) => charmById(c.id)!.rule === rule).length; }
   get rules(): Rules { const ff = this.has('fourFlush') > 0; return { fourFlush: ff, fourStraight: ff, splash: this.has('splash') > 0 }; }
   owns(v: string) { return this.vouchers.includes(v); }
   get handSize() { return HAND_SIZE + this.has('handSize') + (this.owns('hand') ? 1 : 0) - this.has('tight') - (this.boss?.rule === 'small' ? 1 : 0); }
   get maxPlays() { return this.boss?.rule === 'plays' ? 3 : PLAYS + this.has('play') + (this.owns('play') ? 1 : 0); }
-  get maxDiscards() { return this.boss?.rule === 'nodiscard' ? 0 : DISCARDS + this.has('discard') + (this.owns('discard') ? 1 : 0); }
+  get maxDiscards() { return this.boss?.rule === 'nodiscard' ? 0 : Math.max(0, DISCARDS + this.has('discard') + (this.owns('discard') ? 1 : 0) - (this.stake >= 3 ? 1 : 0)); }
   get charmSlots() { return CHARM_SLOTS + (this.owns('shelf') ? 1 : 0); }
   get itemSlots() { return ITEM_SLOTS + (this.owns('pockets') ? 1 : 0); }
   get interestCap() { return this.owns('hoard') ? HOARD_CAP : INTEREST_CAP; }
@@ -325,7 +339,7 @@ export class Run {
     for (const c of this.charms) { const w = charmById(c.id)!.roundWon?.(c.state, boss); if (w) { if (w.state !== undefined) c.state = w.state; charms += w.nuts ?? 0; } }
     const gold = 3 * r.hand.filter((id) => this.card(id).gloss === 'gold').length;
     const interest = Math.min(this.interestCap, Math.floor(this.nuts / INTEREST_EVERY));
-    const blind = BLIND[this.blind].reward, total = blind + r.plays + interest + charms + gold;
+    const blind = this.stake >= 1 && this.blind === 0 ? 0 : BLIND[this.blind].reward, total = blind + r.plays + interest + charms + gold;
     this.cash = { blind, plays: r.plays, interest, charms, gold, total };
     this.rounds++;
     this.phase = 'cashout';
@@ -542,7 +556,7 @@ export class Run {
   save(): Save {
     const copy = <T>(x: T): T => JSON.parse(JSON.stringify(x));
     return {
-      v: SAVE_VERSION, seed: this.seed, rand: this.rand.s, ante: this.ante, blind: this.blind, phase: this.phase, endless: this.endless, nuts: this.nuts,
+      v: SAVE_VERSION, seed: this.seed, stake: this.stake, rand: this.rand.s, ante: this.ante, blind: this.blind, phase: this.phase, endless: this.endless, nuts: this.nuts,
       nextId: this.nextId, deck: copy(this.deck), levels: { ...this.levels }, played: { ...this.played }, charms: copy(this.charms), items: copy(this.items),
       bosses: [...this.bosses], round: copy(this.round), cash: copy(this.cash), shop: copy(this.shop), pack: copy(this.pack), vouchers: [...this.vouchers], offer: this.offer, best: this.best, rounds: this.rounds,
     };
@@ -556,6 +570,7 @@ export class Run {
     try {
       if (!s || typeof s !== 'object' || s.v !== SAVE_VERSION || !int(s.seed, 0, 0xffffffff) || !int(s.rand, 0, 0xffffffff)) return null;
       if (!int(s.ante, 1, 999) || !int(s.blind, 0, 2) || !['pick', 'round', 'cashout', 'shop', 'pack', 'over', 'victory'].includes(s.phase) || typeof s.endless !== 'boolean') return null;
+      if (s.stake !== undefined && !int(s.stake, 0, STAKES.length - 1)) return null;
       if (!int(s.nuts, 0, big) || !int(s.nextId, 0, big) || !int(s.best, 0, big) || !int(s.rounds, 0, big)) return null;
       if (!Array.isArray(s.deck) || s.deck.length < 1 || s.deck.length > 500) return null;
       const okCard = (c: Card) => !!c && int(c.rank, 2, 14) && int(c.suit, 0, 3) && GLOSSES.includes(c.gloss);
@@ -594,7 +609,7 @@ export class Run {
           : okCard(o as Card) && (o as Card).id === -1);
         if (!p.options.every(okOption)) return null;
       }
-      const g = new Run(s.seed);
+      const g = new Run(s.seed, s.stake ?? 0);
       Object.assign(g, {
         ante: s.ante, blind: s.blind, phase: s.phase, endless: s.endless, nuts: s.nuts, nextId: s.nextId, deck: JSON.parse(JSON.stringify(s.deck)),
         levels: { ...s.levels }, played: { ...s.played }, charms: JSON.parse(JSON.stringify(s.charms)), items: JSON.parse(JSON.stringify(s.items)),
@@ -616,12 +631,13 @@ export class Run {
 
 // ── The player's record across runs ───────────────────────────────────────────
 
-export type Profile = { v: number; runs: number; wins: number; bestAnte: number; bestHand: number; seen: string[] };
-export const freshProfile = (): Profile => ({ v: PROFILE_VERSION, runs: 0, wins: 0, bestAnte: 0, bestHand: 0, seen: [] });
+/** `stake` is the highest stake open to the player; records from before stakes have none, which opens green only. */
+export type Profile = { v: number; runs: number; wins: number; bestAnte: number; bestHand: number; seen: string[]; stake: number };
+export const freshProfile = (): Profile => ({ v: PROFILE_VERSION, runs: 0, wins: 0, bestAnte: 0, bestHand: 0, seen: [], stake: 0 });
 export function loadProfile(p: unknown): Profile {
   const s = p as Profile, ok = (x: unknown) => Number.isInteger(x) && (x as number) >= 0;
   if (!s || typeof s !== 'object' || s.v !== PROFILE_VERSION || !ok(s.runs) || !ok(s.wins) || !ok(s.bestAnte) || !ok(s.bestHand) || !Array.isArray(s.seen)) return freshProfile();
-  return { ...s, seen: s.seen.filter((id) => typeof id === 'string' && !!charmById(id)) };
+  return { ...s, seen: s.seen.filter((id) => typeof id === 'string' && !!charmById(id)), stake: Number.isInteger(s.stake) && s.stake >= 0 && s.stake < STAKES.length ? s.stake : 0 };
 }
 /** Fold a run into the record: called whenever it changes, so it is never more than a moment behind. */
 export function record(p: Profile, run: Run, finished: boolean): Profile {
@@ -630,7 +646,7 @@ export function record(p: Profile, run: Run, finished: boolean): Profile {
   run.shop?.charms.forEach((id) => { if (id) seen.add(id); });
   if (run.pack && packById(run.pack.id)?.kind === 'charm') run.pack.options.forEach((id) => { if (typeof id === 'string') seen.add(id); });
   return {
-    ...p, bestAnte: Math.max(p.bestAnte, run.phase === 'victory' ? ANTES : run.ante),
+    ...p, stake: run.phase === 'victory' ? Math.max(p.stake, Math.min(STAKES.length - 1, run.stake + 1)) : p.stake, bestAnte: Math.max(p.bestAnte, run.phase === 'victory' ? ANTES : run.ante),
     bestHand: Math.max(p.bestHand, run.best), seen: [...seen], runs: p.runs + (finished ? 1 : 0), wins: p.wins + (finished && run.phase === 'victory' ? 1 : 0),
   };
 }

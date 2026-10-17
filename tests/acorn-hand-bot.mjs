@@ -145,8 +145,8 @@ export function shop(run, out = null) {
 }
 
 /** Play a whole run to the eighth boss, or until it is lost. */
-export function play(seed) {
-  const run = new Run(seed), out = { run, lostAt: null, bosses: [], bossBeaten: [], charms: new Set(), maxHand: 0, packs: new Set() };
+export function play(seed, stake = 0) {
+  const run = new Run(seed, stake), out = { run, lostAt: null, bosses: [], bossBeaten: [], charms: new Set(), maxHand: 0, packs: new Set() };
   for (let guard = 0; guard < 200; guard++) {
     if (run.phase === 'pick') { run.start(); if (run.boss) out.bosses.push(run.boss.rule); }
     else if (run.phase === 'round') playRound(run);
@@ -186,5 +186,11 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   assert.ok(inWins.size >= CHARMS.length - 3, `nearly every charm is part of some winning run (${inWins.size}/${CHARMS.length})`);
   assert.equal(vouchers.size, VOUCHERS.length, 'every voucher is bought somewhere');
   assert.equal(packs.size, 4, 'every kind of pack is opened');
+  // Each harder stake is harder, and gold can still be won.
+  const won = [wins];
+  for (let stake = 1; stake < 4; stake++) won.push(seeds.filter((seed) => play(seed, stake).run.phase === 'victory').length);
+  console.log(`stakes green to gold: ${won.map((w) => `${Math.round((100 * w) / N)}%`).join(' ')}`);
+  assert.ok(won[1] < won[0] && won[2] < won[1] && won[3] <= won[2], `each stake wins fewer runs (${won})`);
+  assert.ok(won[3] >= N * 0.02, `gold can be won (${won[3]}/${N})`);
   console.log('Acorn Hand bot: PASS');
 }
