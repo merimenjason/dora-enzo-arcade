@@ -51,7 +51,8 @@ export function fly(el: Element | null, to: Box | 'away', opts: { duration?: num
   for (const n of [ghost, ...ghost.querySelectorAll('[data-testid],[data-card-id],[data-fly]')]) { n.removeAttribute('data-testid'); n.removeAttribute('data-card-id'); n.removeAttribute('data-fly'); }
   const src = el.querySelectorAll('canvas'), dst = ghost.querySelectorAll('canvas');
   dst.forEach((c, i) => { try { c.getContext('2d')?.drawImage(src[i], 0, 0); } catch { /* a blank copy still moves */ } });
-  ghost.classList.add('ah-ghost'); ghost.setAttribute('aria-hidden', 'true'); ghost.removeAttribute('id');
+  // A copy is only a picture: it takes no focus and is never mistaken for a card still on the table.
+  ghost.classList.remove('ah-in-play'); ghost.classList.add('ah-ghost'); ghost.setAttribute('aria-hidden', 'true'); ghost.inert = true; ghost.removeAttribute('id');
   Object.assign(ghost.style, { position: 'fixed', left: `${from.x}px`, top: `${from.y}px`, width: `${from.w}px`, height: `${from.h}px`, margin: '0', pointerEvents: 'none', zIndex: '50', transform: 'none' });
   host().appendChild(ghost);
   const end = to === 'away' ? { x: innerWidth + from.w, y: from.y + (opts.drop ?? 60), w: from.w, h: from.h } : to;
@@ -115,17 +116,19 @@ export function shake(el: Element | null, strength: number) {
 /** Remove any copies still in flight, for when the page goes away mid-motion. */
 export const dropGhosts = () => { if (typeof document !== 'undefined') document.querySelectorAll('.ah-ghost, .ah-toss, .ah-bit').forEach((n) => n.remove()); };
 
-/** A number that counts toward `value` over `ms` while `active`; otherwise exactly `value`. */
-export function useTicker(value: number, active: boolean, ms = 140) {
-  const [shown, setShown] = useState(value), from = useRef(value);
+/** A number that counts toward `value` over `ms` while `active`; otherwise exactly `value`. With `snapIn`, it shows `value` as it is on becoming active, and counts only later changes. */
+export function useTicker(value: number, active: boolean, ms = 140, snapIn = false) {
+  const [shown, setShown] = useState(value), from = useRef(value), was = useRef(active);
+  const entering = snapIn && active && !was.current;
   useEffect(() => {
-    if (!active || !motionOn()) { from.current = value; setShown(value); return; }
+    const snap = snapIn && !was.current; was.current = active;
+    if (!active || snap || !motionOn()) { from.current = value; setShown(value); return; }
     const start = performance.now(), a = from.current; let raf = 0;
     const tick = (t: number) => { const k = Math.min(1, (t - start) / ms), v = a + (value - a) * (1 - (1 - k) ** 3); from.current = v; setShown(v); if (k < 1) raf = requestAnimationFrame(tick); };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [value, active, ms]);
-  return active && motionOn() ? shown : value;
+  }, [value, active, ms, snapIn]);
+  return active && motionOn() && !entering ? shown : value;
 }
 
 export const POP: Keyframe[] = [{ transform: 'scale(1)' }, { transform: 'scale(1.12)', offset: 0.35 }, { transform: 'scale(1)' }];
