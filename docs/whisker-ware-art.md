@@ -64,3 +64,5 @@ Review previews live under ignored `.checks/whisker-ware/`: `hosts-dark.png`, th
 - `npm run test:e2e:whisker-ware-art`: standalone Playwright harness using the real loader and original PNGs; starts its own temporary local server, so no dev game route is required.
 
 Public assets deploy with the repository when merged. They become visible in the game once Claude imports and calls these painters from its implementation. The arcade remains at 34 playable games until that implementation adds cabinet 35.
+
+Environments ship as quality-85 WebP, about 6% of the PNG size; the PNG originals are at `b0fa421`. Sprite sheets and the title stay PNG for their alpha.

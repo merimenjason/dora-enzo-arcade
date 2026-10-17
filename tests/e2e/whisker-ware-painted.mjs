@@ -25,11 +25,11 @@ window.ready=true;
 const server = createServer(async (req, res) => {
   const path = new URL(req.url, 'http://localhost').pathname;
   if (path === '/') { res.setHeader('content-type', 'text/html; charset=utf-8'); res.end(html); return; }
-  if (!/^\/art\/whisker-ware\/[a-z0-9-]+\.png$/.test(path)) { res.writeHead(404).end(); return; }
+  if (!/^\/art\/whisker-ware\/[a-z0-9-]+\.(png|webp)$/.test(path)) { res.writeHead(404).end(); return; }
   try {
     const body = await readFile(new URL(`../../public${path}`, import.meta.url));
     requests.set(path, (requests.get(path) ?? 0) + 1);
-    res.setHeader('content-type', 'image/png'); res.end(body);
+    res.setHeader('content-type', path.endsWith('.webp') ? 'image/webp' : 'image/png'); res.end(body);
   } catch { res.writeHead(404).end(); }
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -82,5 +82,5 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
   assert.deepEqual(errors, []);
-  console.log('Whisker Ware painted loader: pending fallback, native touch controls, failure/retry redraw, lazy priorities, all 34 PNGs/88 canvases, real alpha and phone/desktop layouts pass.');
+  console.log('Whisker Ware painted loader: pending fallback, native touch controls, failure/retry redraw, lazy priorities, all 34 assets/88 canvases, real alpha and phone/desktop layouts pass.');
 } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }

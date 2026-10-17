@@ -1,6 +1,6 @@
-import { WARE_ASSETS, WARE_CROPS, WARE_HASHES, WARE_PROPS, type WareAsset, type WareBackdrop, type WareHost, type WareRect, type WareSpriteSheet } from './whisker-ware-crops';
+import { WARE_ASSETS, WARE_CROPS, WARE_EXT, WARE_HASHES, WARE_PROPS, type WareAsset, type WareBackdrop, type WareHost, type WareRect, type WareSpriteSheet } from './whisker-ware-crops';
 
-export { WARE_ASSETS, WARE_CROPS, WARE_PROPS, WARE_SURFACES } from './whisker-ware-crops';
+export { WARE_ASSETS, WARE_CROPS, WARE_EXT, WARE_PROPS, WARE_SURFACES } from './whisker-ware-crops';
 export type { WareAsset, WareBackdrop, WareHost, WareRect, WareSpriteSheet } from './whisker-ware-crops';
 export type WareBox = { x: number; y: number; w: number; h: number };
 export type WareMood = 'presenting' | 'cheering' | 'oops';
@@ -16,7 +16,7 @@ const notify = () => { version++; listeners.forEach(fn => fn()); };
 export const subscribeWareArt = (fn: () => void) => { listeners.add(fn); return () => { listeners.delete(fn); }; };
 export const wareArtVersion = () => version;
 export const wareArtServerVersion = () => 0;
-export const wareArtUrl = (key: WareAsset) => `/art/whisker-ware/${key}.png?v=${WARE_HASHES[key]}`;
+export const wareArtUrl = (key: WareAsset) => `/art/whisker-ware/${key}.${WARE_EXT[key]}?v=${WARE_HASHES[key]}`;
 
 /** Nonblocking and idempotent; failures wait for an explicit retry instead of retrying each frame. */
 export function requestWareArt(keys: readonly WareAsset[]) {

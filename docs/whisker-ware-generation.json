@@ -559,7 +559,13 @@
       ],
       "mode": "RGB",
       "sha256": "64d67533d7a85f9568635c24c679b46f15bbd2e6df98d723fb53c241d77ed737",
-      "bytes": 2828270
+      "bytes": 2828270,
+      "delivered": {
+        "file": "bg-aim.webp",
+        "sha256": "57b4c2b5f000a354e6e79cb9f0e1336866066edc4cfa9d4f8162949384c26b5a",
+        "bytes": 297440,
+        "quality": 85
+      }
     },
     {
       "file": "bg-balance.png",
@@ -569,7 +575,13 @@
       ],
       "mode": "RGB",
       "sha256": "bf95c94d524e4a620459208fa7dea550503d8d888d845070fa1fbb9571031be4",
-      "bytes": 2347707
+      "bytes": 2347707,
+      "delivered": {
+        "file": "bg-balance.webp",
+        "sha256": "9577549fb1ca6fdea1df46de7bc29a791d5d54a0e9e0ea5d67debc783c816c4c",
+        "bytes": 190928,
+        "quality": 85
+      }
     },
     {
       "file": "bg-catch.png",
@@ -579,7 +591,13 @@
       ],
       "mode": "RGB",
       "sha256": "849e4c978a09adfe580c64ae9bbf45636a81cf3858472f2589e448ce2443d238",
-      "bytes": 2063055
+      "bytes": 2063055,
+      "delivered": {
+        "file": "bg-catch.webp",
+        "sha256": "189dc2900800b51c47f06b69fcdbb417ea28cb4ae8890ed928c7ddf89c8aa576",
+        "bytes": 105972,
+        "quality": 85
+      }
     },
     {
       "file": "bg-comb.png",
@@ -589,7 +607,13 @@
       ],
       "mode": "RGB",
       "sha256": "38f2188875f9fcc25a829fe99e995c5108a9d197c024449a9dceb6b04aa1e826",
-      "bytes": 2335378
+      "bytes": 2335378,
+      "delivered": {
+        "file": "bg-comb.webp",
+        "sha256": "03472b8af5c41bc0784d8f66a7359c889bd36f9204e9f0793c9e0000ffb73985",
+        "bytes": 145418,
+        "quality": 85
+      }
     },
     {
       "file": "bg-count.png",
@@ -599,7 +623,13 @@
       ],
       "mode": "RGB",
       "sha256": "08d3bbd28bb1092229afb2a4a5af7bab2d5d04625e855a31705f02452d0aeb22",
-      "bytes": 2259529
+      "bytes": 2259529,
+      "delivered": {
+        "file": "bg-count.webp",
+        "sha256": "c5a0cbb3e6c40aa8dbaada857ee5558f549466a078b8304cebef7dddb07e5a5f",
+        "bytes": 147550,
+        "quality": 85
+      }
     },
     {
       "file": "bg-dodge.png",
@@ -609,7 +639,13 @@
       ],
       "mode": "RGB",
       "sha256": "e3da71945a2f0f39f864421e85c3dc59d955c8172b3ac8a27f3d64849fb35d8d",
-      "bytes": 2722965
+      "bytes": 2722965,
+      "delivered": {
+        "file": "bg-dodge.webp",
+        "sha256": "fbc54e28766bcb8bb70278bb4c77ad3ab294bda1f189bedeeafc37e332f7910b",
+        "bytes": 266082,
+        "quality": 85
+      }
     },
     {
       "file": "bg-dust.png",
@@ -619,7 +655,13 @@
       ],
       "mode": "RGB",
       "sha256": "d5e7005ebfa432e42890812facdb1cc89942fba13bd38346387700eed600acda",
-      "bytes": 2428256
+      "bytes": 2428256,
+      "delivered": {
+        "file": "bg-dust.webp",
+        "sha256": "eb7ae6a56252bd76d79613e0458f49a726a5d43382377576ec33b1f7883f73a8",
+        "bytes": 182052,
+        "quality": 85
+      }
     },
     {
       "file": "bg-find.png",
@@ -629,7 +671,13 @@
       ],
       "mode": "RGB",
       "sha256": "8130f95db4f7f9e1c12d7fc880b484bd47424bfd3b569c1aa02d42088c53de1c",
-      "bytes": 3241150
+      "bytes": 3241150,
+      "delivered": {
+        "file": "bg-find.webp",
+        "sha256": "558924a918b32bd03b42556e593c307ab0b84bcadf884fe1f5068aa01a8912a7",
+        "bytes": 395532,
+        "quality": 85
+      }
     },
     {
       "file": "bg-fluff.png",
@@ -639,7 +687,13 @@
       ],
       "mode": "RGB",
       "sha256": "92eb4a662e6ca1ed216fb4bcc117f74a72a9ce17a2fe31c09f5732f5ce31f89f",
-      "bytes": 2340006
+      "bytes": 2340006,
+      "delivered": {
+        "file": "bg-fluff.webp",
+        "sha256": "c70326819a5a143fd586e6dce1938b83a303600203b28c6b8c7282e965e8e113",
+        "bytes": 160402,
+        "quality": 85
+      }
     },
     {
       "file": "bg-gnaw.png",
@@ -649,7 +703,13 @@
       ],
       "mode": "RGB",
       "sha256": "d13573c913b89866c9ec14049030659e3770f93b9e630163dd1b98af7f8292bf",
-      "bytes": 2155764
+      "bytes": 2155764,
+      "delivered": {
+        "file": "bg-gnaw.webp",
+        "sha256": "e42e4c9f978b28af1619ac0869507a8b2fd254e0415c4349a6490bcf1bdb59ba",
+        "bytes": 141136,
+        "quality": 85
+      }
     },
     {
       "file": "bg-hide.png",
@@ -659,7 +719,13 @@
       ],
       "mode": "RGB",
       "sha256": "6d835c1071574c66afeadbdd4c325588808ce94ba47543dfdb6fe108e706c56e",
-      "bytes": 2778554
+      "bytes": 2778554,
+      "delivered": {
+        "file": "bg-hide.webp",
+        "sha256": "f5ed8f33407442f76a66934a1e68fe262364f921d57e21c78f36ab78c7d7a08a",
+        "bytes": 286258,
+        "quality": 85
+      }
     },
     {
       "file": "bg-hop.png",
@@ -669,7 +735,13 @@
       ],
       "mode": "RGB",
       "sha256": "b91df9d11fa7228290838184e10d9d87f3d98dd062979bdcd8db0721d2fdd0e4",
-      "bytes": 2340196
+      "bytes": 2340196,
+      "delivered": {
+        "file": "bg-hop.webp",
+        "sha256": "13ffad2b5f061fdcf8813cd91cb7a8eb7d03fb0003f2f00f5f718c0b690ec84b",
+        "bytes": 170030,
+        "quality": 85
+      }
     },
     {
       "file": "bg-hush.png",
@@ -679,7 +751,13 @@
       ],
       "mode": "RGB",
       "sha256": "a298feb8d006e221a0cc61116014781633c17c549170dcc5428b74fc4d52984b",
-      "bytes": 2488441
+      "bytes": 2488441,
+      "delivered": {
+        "file": "bg-hush.webp",
+        "sha256": "bab116ea08870310398668988b2737705c12b9d93fb0bf00f3c40478e5887d2c",
+        "bytes": 212300,
+        "quality": 85
+      }
     },
     {
       "file": "bg-moon.png",
@@ -689,7 +767,13 @@
       ],
       "mode": "RGB",
       "sha256": "88255b1815919ca8e56289ebc8aee48c5a343f1b295d075e956e7614b4edc5d1",
-      "bytes": 1713051
+      "bytes": 1713051,
+      "delivered": {
+        "file": "bg-moon.webp",
+        "sha256": "e8da67548140b2188474fc0bcf9771beb0be9be0e85020f3da0e38b437512400",
+        "bytes": 57818,
+        "quality": 85
+      }
     },
     {
       "file": "bg-pick.png",
@@ -699,7 +783,13 @@
       ],
       "mode": "RGB",
       "sha256": "01df477f2b57ebcbf2b62a880692673c44b1e06ad4a641807b0ccae9d69dee44",
-      "bytes": 2376141
+      "bytes": 2376141,
+      "delivered": {
+        "file": "bg-pick.webp",
+        "sha256": "e166a7f33a28305ce474ed0b4954cea79621b71d7e90c5d942a2dd1d46004dd4",
+        "bytes": 147502,
+        "quality": 85
+      }
     },
     {
       "file": "bg-pop.png",
@@ -709,7 +799,13 @@
       ],
       "mode": "RGB",
       "sha256": "ef8881c099c7c88cdec30e0f9c114bda51572656a23ffb045ee578e306a735ba",
-      "bytes": 1971428
+      "bytes": 1971428,
+      "delivered": {
+        "file": "bg-pop.webp",
+        "sha256": "ecf26059e96cc9e14f4b07e310b69dfc353384383fa9f63d0379c5db9f74922a",
+        "bytes": 104468,
+        "quality": 85
+      }
     },
     {
       "file": "bg-raisin.png",
@@ -719,7 +815,13 @@
       ],
       "mode": "RGB",
       "sha256": "09a948e73063d8a51b6a12d2d7f35b4820b311a97a886945d72ad973c4dc5d39",
-      "bytes": 2304783
+      "bytes": 2304783,
+      "delivered": {
+        "file": "bg-raisin.webp",
+        "sha256": "b3fcd619cae3ebb48756de0e8ff4f91eca091c241b65e4a68d7a89cb99ab8042",
+        "bytes": 163950,
+        "quality": 85
+      }
     },
     {
       "file": "bg-ring.png",
@@ -729,7 +831,13 @@
       ],
       "mode": "RGB",
       "sha256": "43feedb8cd61268b97d49007794022d992d1a01f91dd54450f9342f6e31dd460",
-      "bytes": 2194010
+      "bytes": 2194010,
+      "delivered": {
+        "file": "bg-ring.webp",
+        "sha256": "0b7e0200464c1410f99a44b09a1dc5e350359cbf9083e8c228e0b345da64cd1d",
+        "bytes": 136744,
+        "quality": 85
+      }
     },
     {
       "file": "bg-shelf.png",
@@ -739,7 +847,13 @@
       ],
       "mode": "RGB",
       "sha256": "8975172e03064308d2651f075009715fb0212732989bed242cb04558caa1ccc0",
-      "bytes": 2282039
+      "bytes": 2282039,
+      "delivered": {
+        "file": "bg-shelf.webp",
+        "sha256": "bac3ad59e0d8be3d5c189d6634d1c41530460007c11a23284e83413a71580d77",
+        "bytes": 203988,
+        "quality": 85
+      }
     },
     {
       "file": "bg-sneak.png",
@@ -749,7 +863,13 @@
       ],
       "mode": "RGB",
       "sha256": "fbc20c6f0fd4ac16401233fa6a97d9a22d7097a565010d144c68fc517dd1b446",
-      "bytes": 1968357
+      "bytes": 1968357,
+      "delivered": {
+        "file": "bg-sneak.webp",
+        "sha256": "8151054db7d6b9fe18eeeda85cbde1d2260bcf7c827f01894c8595821cb551c6",
+        "bytes": 118104,
+        "quality": 85
+      }
     },
     {
       "file": "bg-sniff.png",
@@ -759,7 +879,13 @@
       ],
       "mode": "RGB",
       "sha256": "badfa5ba2790a030e2ffda3be68f258f7b83ad834f4d4fae2e834959b5129b2a",
-      "bytes": 2870500
+      "bytes": 2870500,
+      "delivered": {
+        "file": "bg-sniff.webp",
+        "sha256": "b1485a9d8fcddb08f3d6adc4734c8aa6eae3a08eeb14423e08c32df299bc2959",
+        "bytes": 275176,
+        "quality": 85
+      }
     },
     {
       "file": "bg-sort.png",
@@ -769,7 +895,13 @@
       ],
       "mode": "RGB",
       "sha256": "d8634840d5696fdc6164003ff930fa1a443cbc3381ffcfab484b3b30dccecb48",
-      "bytes": 2373421
+      "bytes": 2373421,
+      "delivered": {
+        "file": "bg-sort.webp",
+        "sha256": "a50a562865ce1f574452ccc227b65246fc748cd650d5b6d2df5fb1b38dd7de61",
+        "bytes": 200766,
+        "quality": 85
+      }
     },
     {
       "file": "bg-stack.png",
@@ -779,7 +911,13 @@
       ],
       "mode": "RGB",
       "sha256": "9fec5cb1447329618b7ad4af0630bb1b871035a7d80a714d94ed7d869120395d",
-      "bytes": 2472456
+      "bytes": 2472456,
+      "delivered": {
+        "file": "bg-stack.webp",
+        "sha256": "c4e30107924122682e2daa922d1bee007f4b0bd1e2de48520f0831c13de04378",
+        "bytes": 212336,
+        "quality": 85
+      }
     },
     {
       "file": "bg-stuff.png",
@@ -789,7 +927,13 @@
       ],
       "mode": "RGB",
       "sha256": "3f000086d2a6cf16a7be2fb78ac9fe30fafb76617904a411245b329edcc8b48f",
-      "bytes": 2155967
+      "bytes": 2155967,
+      "delivered": {
+        "file": "bg-stuff.webp",
+        "sha256": "4dde3589dc18b80e67740dfb318b070ce98a3b092d5b6527e79cb57dc07e4f7e",
+        "bytes": 139680,
+        "quality": 85
+      }
     },
     {
       "file": "hosts.png",
@@ -1249,7 +1393,13 @@
       ],
       "mode": "RGB",
       "sha256": "0da3b3d7d6726c1dcf611b838654b04a63a9ada6e12ade4a3401655f359e5707",
-      "bytes": 2277652
+      "bytes": 2277652,
+      "delivered": {
+        "file": "room-dora.webp",
+        "sha256": "26ae3c913794a88217a796a8a2ad99c9c2474578305552969c879ab930712c46",
+        "bytes": 182098,
+        "quality": 85
+      }
     },
     {
       "file": "room-enzo.png",
@@ -1259,7 +1409,13 @@
       ],
       "mode": "RGB",
       "sha256": "3abbd316019752337940342e3ecfb6b08c1192ea31d7d614e6209fee6153963e",
-      "bytes": 2145673
+      "bytes": 2145673,
+      "delivered": {
+        "file": "room-enzo.webp",
+        "sha256": "f10de07ccbc3a9d52be6de57d3eafeb110b1e7308449061f018f7efb960274f3",
+        "bytes": 155048,
+        "quality": 85
+      }
     },
     {
       "file": "room-fox.png",
@@ -1269,7 +1425,13 @@
       ],
       "mode": "RGB",
       "sha256": "60fff61088b1f2d717e348d4a7ced7dbd2c687ad2f9027b861be8a11ff5230f7",
-      "bytes": 2273949
+      "bytes": 2273949,
+      "delivered": {
+        "file": "room-fox.webp",
+        "sha256": "6c19b31b311e88927f5507751fcd3a1df920bf1b6ddaf09944c2fb67223f5cfc",
+        "bytes": 180538,
+        "quality": 85
+      }
     },
     {
       "file": "room-owl.png",
@@ -1279,7 +1441,13 @@
       ],
       "mode": "RGB",
       "sha256": "ef7b5e591a102245d9b44f90a218e486503d1dad359aec6738d9c47d47013a98",
-      "bytes": 2127544
+      "bytes": 2127544,
+      "delivered": {
+        "file": "room-owl.webp",
+        "sha256": "dc2981a043d48f2be9e05e73fc67348c3d589fea92f996f8bdbd35e381719f91",
+        "bytes": 143664,
+        "quality": 85
+      }
     },
     {
       "file": "title.png",

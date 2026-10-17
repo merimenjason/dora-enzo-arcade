@@ -69,13 +69,32 @@ export async function verifyWareArt() {
     const metadata = JSON.parse(await readFile(new URL('../docs/whisker-ware-crops.json', import.meta.url), 'utf8'));
     const manifest = JSON.parse(await readFile(new URL('../docs/whisker-ware-generation.json', import.meta.url), 'utf8'));
     assert.equal(art.WARE_ASSETS.length, 34); assert.equal(new Set(art.WARE_ASSETS).size, 34);
+    const envs = manifest.finalAssets.filter(a => /^(bg|room)-/.test(a.file));
+    assert.equal(envs.length, 28);
+    let envBytes = 0;
     for (const asset of manifest.finalAssets) {
-      const png = await readFile(new URL(`../public/art/whisker-ware/${asset.file}`, import.meta.url));
-      assert.equal(createHash('sha256').update(png).digest('hex'), asset.sha256, `${asset.file} is the selected original`);
-      assert.equal(png.readUInt32BE(16), 1536); assert.equal(png.readUInt32BE(20), 1024);
-      assert.equal(png[25], asset.mode === 'RGBA' ? 6 : 2, `${asset.file} has the intended PNG colour type`);
-      assert.match(art.wareArtUrl(asset.file.slice(0, -4)), new RegExp(asset.sha256.slice(0, 12)), 'content hash busts old artwork caches');
+      const key = asset.file.replace(/\.png$/, '');
+      if (/^(bg|room)-/.test(key)) {
+        assert.ok(asset.delivered, `${key} records its delivered WebP`);
+        const webp = await readFile(new URL(`../public/art/whisker-ware/${key}.webp`, import.meta.url));
+        assert.equal(webp.toString('ascii', 0, 4), 'RIFF'); assert.equal(webp.toString('ascii', 8, 12), 'WEBP');
+        assert.equal(webp.toString('ascii', 12, 16), 'VP8 ', `${key} is lossy WebP`);
+        assert.equal(webp.readUInt16LE(26) & 0x3fff, 1536); assert.equal(webp.readUInt16LE(28) & 0x3fff, 1024);
+        assert.equal(createHash('sha256').update(webp).digest('hex'), asset.delivered.sha256);
+        assert.ok(webp.length <= 400 * 1024, `${key} is at most 400 KB (${webp.length})`);
+        assert.equal(art.WARE_EXT[key], 'webp');
+        assert.match(art.wareArtUrl(key), new RegExp(`${key}\\.webp\\?v=${asset.delivered.sha256.slice(0, 12)}`));
+        envBytes += webp.length;
+      } else {
+        const png = await readFile(new URL(`../public/art/whisker-ware/${asset.file}`, import.meta.url));
+        assert.equal(createHash('sha256').update(png).digest('hex'), asset.sha256, `${asset.file} is the selected original`);
+        assert.equal(png.readUInt32BE(16), 1536); assert.equal(png.readUInt32BE(20), 1024);
+        assert.equal(png[25], asset.mode === 'RGBA' ? 6 : 2, `${asset.file} has the intended PNG colour type`);
+        assert.equal(art.WARE_EXT[key], 'png');
+        assert.match(art.wareArtUrl(key), new RegExp(`${key}\\.png\\?v=${asset.sha256.slice(0, 12)}`), 'content hash busts old artwork caches');
+      }
     }
+    assert.ok(envBytes <= 8 * 1024 * 1024, `all environments together stay under 8 MB (${envBytes})`);
     let sprites = 0;
     for (const [file, sheet] of Object.entries(metadata.sheets)) {
       assert.deepEqual(art.WARE_CROPS[file.slice(0, -4)], sheet.cells.map(cell => cell.frame));
