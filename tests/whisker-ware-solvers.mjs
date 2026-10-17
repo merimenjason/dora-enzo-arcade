@@ -121,3 +121,70 @@ SOLVERS.shelf = (s, t) => {
 };
 
 READY_HOSTS.push(1);
+
+// ── The Owl · Night Watch ─────────────────────────────────────────────────────
+
+// Walk while her back is turned; let go as soon as she starts to turn.
+SOLVERS.sneak = s => ({ ...IDLE, down: s.owl === 'back' });
+
+SOLVERS.hide = s => ({ ...IDLE, x: s.shadow.x, y: 270 });
+
+SOLVERS.hush = s => {
+  const live = s.toys.filter(g => g.state === 'squeak').sort((a, b) => a.at - b.at);
+  return live.length ? { ...IDLE, pick: live[0].spot + 1 } : IDLE;
+};
+
+SOLVERS.find = s => ({ ...IDLE, x: s.acorn.x, y: s.acorn.y, down: Math.hypot(s.acorn.x - s.lantern.x, s.acorn.y - s.lantern.y) < 10 });
+
+// Plans a path on a 5-unit grid: mark every (tick, cell) a known feather would hit (those in the air, plus the planned
+// ones still to spawn), then work backwards for the cells from which Dora can keep clear until the end, and walk forwards
+// through them. A plan is kept until a feather spawns or Dora strays from it.
+const CELLS = 87, HORIZON = 150, cellX = i => 25 + 5 * i;
+const plans = new WeakMap();
+function planDodge(s) {
+  const bad = Array.from({ length: HORIZON + 2 }, () => new Uint8Array(CELLS));
+  const feathers = s.feathers.map(f => ({ ...f }));
+  for (let k = s.spawned; k < s.plan.length; k++) {
+    const at = k * s.gap + 1 - s.t;
+    if (k % 3 === 0 || k * s.gap > 270 || at > HORIZON) continue;
+    const p = s.plan[k];
+    feathers.push({ x0: p.x, ph: p.ph, age: -at, y: -20 - s.v * at, v: s.v });
+  }
+  for (const f of feathers) for (let tau = 1; tau <= HORIZON + 1; tau++) {
+    const y = f.y + f.v * tau;
+    if (y < 244 - 8 || y > 296 + 8) continue;
+    const x = f.x0 + 17.14 * Math.sin(f.ph + 0.07 * (f.age + tau));
+    for (let i = Math.max(0, Math.ceil((x - 31 - 25) / 5)); i <= Math.min(CELLS - 1, Math.floor((x + 31 - 25) / 5)); i++) bad[tau][i] = 1;
+  }
+  const ok = Array.from({ length: HORIZON + 2 }, () => new Uint8Array(CELLS));
+  for (let i = 0; i < CELLS; i++) ok[HORIZON + 1][i] = bad[HORIZON + 1][i] ? 0 : 1;
+  for (let tau = HORIZON; tau >= 1; tau--) for (let i = 0; i < CELLS; i++) {
+    if (!bad[tau][i] && (ok[tau + 1][i] || (i > 0 && ok[tau + 1][i - 1]) || (i < CELLS - 1 && ok[tau + 1][i + 1]))) ok[tau][i] = 1;
+  }
+  let i = Math.round((s.dora.x - 25) / 5);
+  const path = [i];
+  for (let tau = 1; tau <= HORIZON; tau++) {
+    let pick = -1;
+    for (const d of [0, -1, 1]) { const j = i + d; if (j >= 0 && j < CELLS && ok[tau][j] && (pick < 0 || Math.abs(j - 43) < Math.abs(pick - 43) - 2)) pick = j; }
+    if (pick < 0) pick = i;
+    path.push(pick); i = pick;
+  }
+  return { t0: s.t, spawned: s.spawned, path };
+}
+SOLVERS.dodge = s => {
+  let p = plans.get(s);
+  const k = p ? s.t - p.t0 : 0;
+  if (!p || p.spawned !== s.spawned || k >= HORIZON - 4 || Math.abs(s.dora.x - cellX(p.path[k])) > 6) { p = planDodge(s); plans.set(s, p); p.last = s.t - 1; }
+  // steps this real tick will run = steps the last one ran (1 at tier 0, 2 at tier 5)
+  const stride = Math.max(1, s.t - p.last);
+  p.last = s.t;
+  return { ...IDLE, x: cellX(p.path[Math.min(HORIZON, s.t - p.t0 + stride)]), y: 270 };
+};
+
+SOLVERS.moon = s => {
+  if (s.jump) return IDLE;
+  const h = s.hazards.find(g => g.x + g.w > s.dora.x);
+  return { ...IDLE, down: !!h && h.x - s.dora.x <= 18 };
+};
+
+READY_HOSTS.push(2);

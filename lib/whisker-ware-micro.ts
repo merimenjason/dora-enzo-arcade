@@ -526,6 +526,259 @@ MICROS.hop = hop;
 MICROS.comb = comb;
 MICROS.shelf = shelf;
 
+// ── The Owl · Night Watch ─────────────────────────────────────────────────────
+
+/** Steering for the Owl's actors: held arrows win, else towards the pointer's x, capped at `speed`; kept between `lo` and `hi`. */
+function steerActor(a: { x: number }, i: Input, speed: number, lo: number, hi: number) {
+  if (i.steer) a.x += i.steer * speed;
+  else if (i.x >= 0) a.x += Math.max(-speed, Math.min(speed, i.x - a.x));
+  a.x = Math.max(lo, Math.min(hi, a.x));
+}
+
+const SNEAK_FROM = 40, SNEAK_TO = 420, SNEAK_SPEED = 2.2, SNEAK_WATCH = 60;
+interface SneakState {
+  t: number; result: Outcome; level: Level;
+  dora: { x: number; y: number }; acorn: { x: number; y: number }; held: boolean;
+  owl: 'back' | 'tell' | 'watching'; phase: number; len: number; cycle: number; backs: number[]; tell: number;
+}
+const sneak: Micro<SneakState> = {
+  id: 'sneak', verb: 'SNEAK!', host: 2, boss: false, input: 'hold', ticks: 300, survive: false,
+  init(rand, level) {
+    const tell = [24, 18, 12][level - 1];
+    // Dora needs 173 ticks of walking and only walks while the Owl's back is turned (she stops at the tell), so a layout is re-rolled until a patient walk is home by tick 255.
+    const finish = (backs: number[]) => {
+      let left = Math.ceil((SNEAK_TO - SNEAK_FROM) / SNEAK_SPEED), t = 0;
+      for (const b of backs) {
+        if (left <= b) return t + left;
+        left -= b; t += b + tell + SNEAK_WATCH;
+      }
+      return Infinity;
+    };
+    let backs: number[] = [];
+    for (let tries = 0; tries < 40; tries++) {
+      backs = Array.from({ length: 6 }, () => 72 + rand.int(61));
+      if (finish(backs) <= 255) break;
+      backs = [132, 132, 132, 132, 132, 132];
+    }
+    return {
+      t: 0, result: null, level, dora: { x: SNEAK_FROM, y: 270 }, acorn: { x: SNEAK_TO, y: 270 }, held: false,
+      owl: 'back', phase: 0, len: backs[0], cycle: 0, backs, tell,
+    };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    s.held = i.down;
+    if (++s.phase > s.len) {
+      s.phase = 1;
+      if (s.owl === 'back') { s.owl = 'tell'; s.len = s.tell; }
+      else if (s.owl === 'tell') { s.owl = 'watching'; s.len = SNEAK_WATCH; }
+      else { s.owl = 'back'; s.len = s.backs[++s.cycle % s.backs.length]; }
+    }
+    if (s.owl === 'watching' && s.held) { s.result = 'lose'; return; }
+    if (s.held) s.dora.x = Math.min(SNEAK_TO, s.dora.x + SNEAK_SPEED);
+    if (s.dora.x >= SNEAK_TO) s.result = 'win';
+    lapse(s, this.ticks);
+  },
+  outcome: s => s.result,
+};
+
+const HIDE_SPEED = 5, HIDE_BEAM = 1.6;
+interface HideState {
+  t: number; result: Outcome;
+  enzo: { x: number; y: number }; shadow: { x: number; w: number }; beam: { x: number; dir: -1 | 1 };
+}
+const hide: Micro<HideState> = {
+  id: 'hide', verb: 'HIDE!', host: 2, boss: false, input: 'steer', ticks: 300, survive: true,
+  init(rand, level) {
+    const w = [110, 80, 56][level - 1];
+    const dir = rand.next() < 0.5 ? -1 : 1;
+    const beamAt = (t: number) => (dir > 0 ? HIDE_BEAM * t : 480 - HIDE_BEAM * t);
+    // Enzo starts at least 30 units outside the shadow. A walk to the shadow at 4 a tick (80% of top speed) must be inside it before the beam reaches him.
+    const safe = (ex: number, sx: number) => {
+      let x = ex;
+      for (let t = 1; t <= 400 && Math.abs(x - sx) > w / 2; t++) {
+        x += Math.max(-4, Math.min(4, sx - x));
+        const a = beamAt(t - 1), b = beamAt(t);
+        if (x >= Math.min(a, b) && x <= Math.max(a, b) && Math.abs(x - sx) > w / 2) return false;
+      }
+      return true;
+    };
+    let sx = 240, ex = 100;
+    for (let tries = 0; tries < 200; tries++) {
+      sx = 120 + rand.int(241); ex = 100 + rand.int(281);
+      if (Math.abs(ex - sx) > w / 2 + 30 && safe(ex, sx)) break;
+      if (tries === 199) { sx = dir > 0 ? 380 : 100; ex = dir > 0 ? 440 : 40; }
+    }
+    return { t: 0, result: null, enzo: { x: ex, y: 270 }, shadow: { x: sx, w }, beam: { x: beamAt(0), dir } };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    steerActor(s.enzo, i, HIDE_SPEED, 20, 460);
+    const was = s.beam.x;
+    s.beam.x = s.beam.dir > 0 ? HIDE_BEAM * s.t : 480 - HIDE_BEAM * s.t;
+    if (s.enzo.x >= Math.min(was, s.beam.x) && s.enzo.x <= Math.max(was, s.beam.x) && Math.abs(s.enzo.x - s.shadow.x) > s.shadow.w / 2) s.result = 'lose';
+    else if (s.t >= this.ticks) s.result = 'win';
+  },
+  outcome: s => s.result,
+};
+
+const HUSH_SPOTS = [120, 240, 360], HUSH_FIRST = 20, HUSH_EVERY = 45, HUSH_LIMIT = 72;
+interface Toy { spot: number; x: number; y: number; at: number; age: number; state: 'wait' | 'squeak' | 'hushed' }
+interface HushState { t: number; result: Outcome; toys: Toy[]; hushed: number }
+const hush: Micro<HushState> = {
+  id: 'hush', verb: 'HUSH!', host: 2, boss: false, input: 'pick', ticks: 300, survive: false,
+  init(rand, level) {
+    const toys: Toy[] = [];
+    let spot = rand.int(3);
+    for (let k = 0; k < [3, 4, 5][level - 1]; k++) {
+      // a different spot from the toy before, so a spot never holds two; toys older than that have already woken the Owl
+      if (k) spot = (spot + 1 + rand.int(2)) % 3;
+      toys.push({ spot, x: HUSH_SPOTS[spot], y: 200, at: HUSH_FIRST + k * HUSH_EVERY, age: 0, state: 'wait' });
+    }
+    return { t: 0, result: null, toys, hushed: 0 };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    for (const g of s.toys) if (g.state === 'wait' && s.t >= g.at) g.state = 'squeak';
+    const c = pickOf(i, x => HUSH_SPOTS.findIndex(sx => Math.abs(sx - x) <= 50));
+    const hit = c >= 0 ? s.toys.find(g => g.state === 'squeak' && g.spot === c) : undefined;
+    if (hit) { hit.state = 'hushed'; s.hushed++; }
+    for (const g of s.toys) if (g.state === 'squeak' && ++g.age >= HUSH_LIMIT) s.result = 'lose';
+    if (!s.result && s.hushed >= s.toys.length) s.result = 'win';
+    lapse(s, this.ticks);
+  },
+  outcome: s => s.result,
+};
+
+const FIND_SPEED = 6, FIND_REACH = 22;
+interface FindState {
+  t: number; result: Outcome;
+  lantern: { x: number; y: number }; acorn: { x: number; y: number }; decoys: { x: number; y: number }[];
+}
+const find: Micro<FindState> = {
+  id: 'find', verb: 'FIND!', host: 2, boss: false, input: 'steer', ticks: 300, survive: false,
+  init(rand, level) {
+    const spot = () => ({ x: 40 + rand.int(401), y: 50 + rand.int(221) });
+    let acorn = spot();
+    while (Math.hypot(acorn.x - 240, acorn.y - 160) < 60) acorn = spot();
+    const decoys: { x: number; y: number }[] = [];
+    while (decoys.length < level - 1) {
+      const d = spot();
+      if (Math.hypot(d.x - acorn.x, d.y - acorn.y) >= 60 && decoys.every(o => Math.hypot(d.x - o.x, d.y - o.y) >= 40)) decoys.push(d);
+    }
+    return { t: 0, result: null, lantern: { x: 240, y: 160 }, acorn, decoys };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    const l = s.lantern;
+    if (i.left || i.right || i.up || i.dn) {
+      l.x += ((i.right ? 1 : 0) - (i.left ? 1 : 0)) * FIND_SPEED;
+      l.y += ((i.dn ? 1 : 0) - (i.up ? 1 : 0)) * FIND_SPEED;
+    } else if (i.x >= 0 && i.y >= 0) {
+      const dx = i.x - l.x, dy = i.y - l.y, d = Math.hypot(dx, dy);
+      if (d > FIND_SPEED) { l.x += dx / d * FIND_SPEED; l.y += dy / d * FIND_SPEED; } else { l.x = i.x; l.y = i.y; }
+    }
+    l.x = Math.max(0, Math.min(480, l.x)); l.y = Math.max(0, Math.min(320, l.y));
+    if (i.pressed) {
+      if (Math.hypot(s.acorn.x - l.x, s.acorn.y - l.y) <= FIND_REACH) s.result = 'win';
+      else if (s.decoys.some(d => Math.hypot(d.x - l.x, d.y - l.y) <= FIND_REACH)) s.result = 'lose';
+    }
+    lapse(s, this.ticks);
+  },
+  outcome: s => s.result,
+};
+
+const DODGE_SPEED = 5, DODGE_HIT = 22, DODGE_SWAY = 1.2 / 0.07, DODGE_LAST = 270;
+interface Feather { x: number; y: number; x0: number; ph: number; age: number; v: number }
+interface DodgeState {
+  t: number; result: Outcome; level: Level;
+  dora: { x: number; y: number }; feathers: Feather[]; spawned: number; v: number; gap: number; plan: { x: number; ph: number }[];
+}
+const dodge: Micro<DodgeState> = {
+  id: 'dodge', verb: 'DODGE!', host: 2, boss: false, input: 'steer', ticks: 300, survive: true,
+  init(rand, level) {
+    const v = [2.2, 2.6, 3.0][level - 1], gap = [26, 22, 18][level - 1];
+    // Every third feather (the first included) is aimed: it spawns over Dora's x, with 87+ ticks of fall to move out of the way. The first has no sway, so it lands within 22 units of Dora's start and an idle Dora is hit.
+    // The rest land where `plan` says (x is where the feather is when it reaches Dora's height), at least 70 from the last two planned landings, so they never wall Dora in.
+    const fall = (270 + 20) / v, plan: { x: number; ph: number }[] = [];
+    const lands: number[] = [];
+    for (let k = 0; k < 24; k++) {
+      const ph = k ? rand.next() * Math.PI * 2 : 0;
+      let x = 240;
+      if (k % 3) {
+        for (let tries = 0; tries < 50; tries++) {
+          x = 40 + rand.int(401);
+          if (lands.slice(-2).every(o => Math.abs(o - x) >= 70)) break;
+        }
+        lands.push(x);
+      }
+      plan.push({ x: x - DODGE_SWAY * Math.sin(ph + 0.07 * fall), ph });
+    }
+    return { t: 0, result: null, level, dora: { x: 240, y: 270 }, feathers: [], spawned: 0, v, gap, plan };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    steerActor(s.dora, i, DODGE_SPEED, 24, 456);
+    // Feathers sway sideways at 1.2 units a tick at most (a 17-unit swing).
+    if (s.t - 1 <= DODGE_LAST && (s.t - 1) % s.gap === 0) {
+      const p = s.plan[s.spawned], x0 = s.spawned % 3 === 0 ? s.dora.x - DODGE_SWAY * Math.sin(p.ph) : p.x;
+      s.feathers.push({ x: x0 + DODGE_SWAY * Math.sin(p.ph), y: -20, x0, ph: p.ph, age: 0, v: s.v });
+      s.spawned++;
+    }
+    for (const f of s.feathers) {
+      f.age++; f.y += f.v;
+      f.x = f.x0 + DODGE_SWAY * Math.sin(f.ph + 0.07 * f.age);
+      if (f.y >= 244 && f.y <= 296 && Math.abs(f.x - s.dora.x) < DODGE_HIT) s.result = 'lose';
+    }
+    s.feathers = s.feathers.filter(f => f.y < 310);
+    if (!s.result && s.t >= this.ticks) s.result = 'win';
+  },
+  outcome: s => s.result,
+};
+
+const MOON_SPEED = 3, MOON_AIR = 44, MOON_LIFT = 70, MOON_FLAG = 2640, MOON_FOOT = 8;
+interface MoonHazard { kind: 'gap' | 'swoop'; x: number; y: number; w: number }
+interface MoonState {
+  t: number; result: Outcome;
+  dora: { x: number; y: number }; jump: number; hazards: MoonHazard[]; flag: number; cam: number;
+}
+const moon: Micro<MoonState> = {
+  id: 'moon', verb: 'DASH!', host: 2, boss: true, input: 'timing', ticks: 900, survive: false,
+  init(rand, level) {
+    const n = [5, 8, 11][level - 1], min = [300, 230, 190][level - 1];
+    // Each hazard starts at least `min` units after the last, so the jump over one (126 units of flight) is over before the next needs one; the last is 80 clear of the flag.
+    const spread = Math.max(0, Math.floor(2070 / (n - 1)) - min);
+    const hazards: MoonHazard[] = [];
+    let x = 420;
+    for (let k = 0; k < n; k++) {
+      const gap = rand.next() < 0.5;
+      hazards.push(gap ? { kind: 'gap', x, y: 270, w: 50 + rand.int(21) } : { kind: 'swoop', x, y: 246, w: 60 });
+      x += min + rand.int(spread + 1);
+    }
+    return { t: 0, result: null, dora: { x: 0, y: 270 }, jump: 0, hazards, flag: MOON_FLAG, cam: -120 };
+  },
+  tick(s, i) {
+    if (!begin(s)) return;
+    s.dora.x += MOON_SPEED;
+    if (!s.jump && i.pressed) s.jump = 1;
+    else if (s.jump) s.jump = s.jump + 1 >= MOON_AIR ? 0 : s.jump + 1;
+    s.dora.y = 270 - (s.jump ? MOON_LIFT * Math.sin(Math.PI * s.jump / MOON_AIR) : 0);
+    s.cam = s.dora.x - 120;
+    // A grounded Dora is lost once her centre is 8 units inside a gap or an owl's span: that foot room gives every press a window of 142 minus the span's width, in units (24 ticks at worst).
+    if (!s.jump && s.hazards.some(h => s.dora.x > h.x + MOON_FOOT && s.dora.x < h.x + h.w - MOON_FOOT)) s.result = 'lose';
+    else if (s.dora.x >= s.flag) s.result = 'win';
+    lapse(s, this.ticks);
+  },
+  outcome: s => s.result,
+};
+
+MICROS.sneak = sneak;
+MICROS.hide = hide;
+MICROS.hush = hush;
+MICROS.find = find;
+MICROS.dodge = dodge;
+MICROS.moon = moon;
+
 /** Each host's five ordinary microgames, and their boss. */
 export const HOST_GAMES: readonly MicroId[][] = [0, 1, 2, 3].map(h => MICRO_IDS.slice(h * 6, h * 6 + 5));
 export const HOST_BOSS: readonly MicroId[] = [0, 1, 2, 3].map(h => MICRO_IDS[h * 6 + 5]);
