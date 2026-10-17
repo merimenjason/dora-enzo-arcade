@@ -33,8 +33,8 @@ Each microgame lasts 300 ticks (five seconds at ×1.0); a boss lasts 900. A *sur
 | Dora | CLIMB! (boss) | timing | Hop up 8 sliding shelves; a miss drops one. The shelves are ×1 / ×1.12 / ×1.25 faster. |
 | Owl | SNEAK! | hold | Walk only while the Owl's back is turned. A glance warns before she looks, lasting 24 / 18 / 12 ticks. |
 | Owl | HIDE! (survive) | steer | Get Enzo into the shadow before the searchlight sweeps past. The shadow is 110 / 80 / 56 wide. |
-| Owl | HUSH! | pick | Tap each squeaking toy (3 / 4 / 5) within 72 ticks, or the Owl wakes. |
-| Owl | FIND! | steer | Point the lantern in the dark and dig up the acorn. Digging up one of the 0 / 1 / 2 pinecones loses. |
+| Owl | HUSH! | pick | Tap each squeaking toy (3 / 4 / 5) within 72 ticks, or the Owl wakes. Tapping a quiet spot wakes her too. |
+| Owl | FIND! | steer | Steer the lantern through the dark and let go to dig where it shines. A dig anywhere but the acorn loses, and 0 / 1 / 2 pinecones look like it in the gloom. |
 | Owl | DODGE! (survive) | steer | Keep Dora clear of the swaying feathers. They fall at 2.0 / 2.4 / 2.8, a new one every 30 / 26 / 22 ticks, and every third is aimed at her. |
 | Owl | DASH! (boss) | timing | Run to the flag, jumping gaps and swooping owls: 5 / 8 / 11 of them. |
 | Fox | PICK! | pick | See the cards face up, follow 0 / 1 / 2 swaps, then pick the card with the Fox's suit. |
@@ -83,7 +83,8 @@ A malformed save loads as a fresh profile, and unknown games are dropped. Sound 
 `npm run bot:whisker-ware` plays each stage and Remix 300 times through the test solvers with human timing:
 - games that are anticipated land within 5 ticks of the right moment;
 - reactions see the game 10–20 ticks late;
-- one game in 25 is fumbled.
+- one game in 25 is fumbled;
+- each tap is made once for each thing on screen that needs it.
 
 It gates:
 - Enzo's stage cleared ≥ 85%;

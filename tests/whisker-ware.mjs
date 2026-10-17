@@ -74,6 +74,25 @@ test('all 24 microgames are registered and solved', () => {
   for (const id of MICRO_IDS) { assert.ok(MICROS[id], `${id} is registered`); assert.ok(SOLVERS[id], `${id} has a solver`); }
 });
 
+test('HUSH: tapping a quiet spot wakes the Owl, so mashing loses', () => {
+  for (let seed = 1; seed <= 50; seed++) {
+    const mash = simulate('hush', seed, 1, 0, (_s, t) => ({ ...IDLE, pick: (t % 3) + 1 }));
+    assert.equal(mash.result, 'lose', `seed ${seed}`);
+    assert.ok(mash.ticks < 20, `seed ${seed} loses at once, not at the fuse (${mash.ticks})`);
+  }
+});
+test('FIND: the lantern digs where it is let go; a dig away from the acorn loses', () => {
+  for (let seed = 1; seed <= 50; seed++) {
+    // a finger held on the acorn: the lantern glides there, and lifting the finger digs
+    const hold = simulate('find', seed, 1, 0, (s, t) => ({ ...IDLE, x: s.acorn.x, y: s.acorn.y, down: t < 120 }));
+    assert.equal(hold.result, 'win', `seed ${seed}: hold and lift wins`);
+    // a quick tap on the acorn digs before the lantern has got there
+    const tap = simulate('find', seed, 1, 0, (s, t) => (t === 0 ? { ...IDLE, x: s.acorn.x, y: s.acorn.y, down: true } : { ...IDLE, x: s.acorn.x, y: s.acorn.y }));
+    assert.equal(tap.result, 'lose', `seed ${seed}: a dig in the wrong place loses`);
+    assert.ok(tap.ticks < 10, `seed ${seed}: at once (${tap.ticks})`);
+  }
+});
+
 // ── The run ───────────────────────────────────────────────────────────────────
 
 /** Steps a run to its end. `decide(run)` says whether the current microgame is played to win (its solver) or left idle. */
