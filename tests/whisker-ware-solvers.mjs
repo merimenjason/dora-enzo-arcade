@@ -35,15 +35,13 @@ SOLVERS.catch = s => {
   return { ...IDLE, x: tx, y: 260 };
 };
 
-SOLVERS.sort = (s, t) => {
-  if (!s.item) return IDLE;
-  const on = t % 2 === 0;
-  return s.item.kind === 'acorn' ? { ...IDLE, right: on } : { ...IDLE, left: on };
-};
+// One held arrow per item: a single swipe each, so nothing is left over to hit the next item.
+SOLVERS.sort = s => (!s.item ? IDLE : s.item.kind === 'acorn' ? { ...IDLE, right: true } : { ...IDLE, left: true });
 
 SOLVERS.sniff = s => (s.open ? { ...IDLE, pick: s.slot[s.raisin] + 1 } : IDLE);
 
-SOLVERS.gnaw = s => ({ ...IDLE, down: Math.abs(s.notch - 180) < s.window / 2 - 1 && s.t > 0 && s.notch < 400 });
+// Bites as the notch reaches the middle of the tooth.
+SOLVERS.gnaw = s => ({ ...IDLE, down: s.t > 0 && s.notch <= s.tooth + 1 });
 
 // Same planner as catch, but raisins are optional: take one only if every pebble after it can still be dodged.
 const without = (R, e) => {
@@ -98,7 +96,8 @@ READY_HOSTS.push(0);
 
 SOLVERS.dust = (s, t) => ({ ...IDLE, left: Math.floor(t / 3) % 2 === 0, right: Math.floor(t / 3) % 2 === 1 });
 
-SOLVERS.balance = s => ({ ...IDLE, left: s.tilt > 0.05, right: s.tilt < -0.05 });
+// Leans back once the tilt is plain to see, as a player would.
+SOLVERS.balance = s => ({ ...IDLE, left: s.tilt > 0.3, right: s.tilt < -0.3 });
 
 SOLVERS.fluff = s => ({ ...IDLE, down: s.size < s.centre });
 
@@ -115,9 +114,10 @@ SOLVERS.comb = s => {
   return { ...IDLE, x: left[0].x, y: left[0].y, down: true };
 };
 
-SOLVERS.shelf = (s, t) => {
+// Held while the next shelf is lined up: one press per shelf.
+SOLVERS.shelf = s => {
   const next = s.shelves[s.level];
-  return { ...IDLE, down: !!next && Math.abs(next.x - s.dora.x) <= 20 && t % 2 === 0 };
+  return { ...IDLE, down: !!next && Math.abs(next.x - s.dora.x) <= 20 };
 };
 
 READY_HOSTS.push(1);
@@ -125,7 +125,8 @@ READY_HOSTS.push(1);
 // ── The Owl · Night Watch ─────────────────────────────────────────────────────
 
 // Walk while her back is turned; let go as soon as she starts to turn.
-SOLVERS.sneak = s => ({ ...IDLE, down: s.owl === 'back' });
+// Waits until the Owl has properly turned away before setting off again.
+SOLVERS.sneak = s => ({ ...IDLE, down: s.owl === 'back' && s.phase > 9 });
 
 SOLVERS.hide = s => ({ ...IDLE, x: s.shadow.x, y: 270 });
 
@@ -136,49 +137,32 @@ SOLVERS.hush = s => {
 
 SOLVERS.find = s => ({ ...IDLE, x: s.acorn.x, y: s.acorn.y, down: Math.hypot(s.acorn.x - s.lantern.x, s.acorn.y - s.lantern.y) < 10 });
 
-// Plans a path on a 5-unit grid: mark every (tick, cell) a known feather would hit (those in the air, plus the planned
-// ones still to spawn), then work backwards for the cells from which Dora can keep clear until the end, and walk forwards
-// through them. A plan is kept until a feather spawns or Dora strays from it.
-const CELLS = 87, HORIZON = 150, cellX = i => 25 + 5 * i;
-const plans = new WeakMap();
-function planDodge(s) {
-  const bad = Array.from({ length: HORIZON + 2 }, () => new Uint8Array(CELLS));
-  const feathers = s.feathers.map(f => ({ ...f }));
-  for (let k = s.spawned; k < s.plan.length; k++) {
-    const at = k * s.gap + 1 - s.t;
-    if (k % 3 === 0 || k * s.gap > 270 || at > HORIZON) continue;
-    const p = s.plan[k];
-    feathers.push({ x0: p.x, ph: p.ph, age: -at, y: -20 - s.v * at, v: s.v });
-  }
-  for (const f of feathers) for (let tau = 1; tau <= HORIZON + 1; tau++) {
-    const y = f.y + f.v * tau;
-    if (y < 244 - 8 || y > 296 + 8) continue;
-    const x = f.x0 + 17.14 * Math.sin(f.ph + 0.07 * (f.age + tau));
-    for (let i = Math.max(0, Math.ceil((x - 31 - 25) / 5)); i <= Math.min(CELLS - 1, Math.floor((x + 31 - 25) / 5)); i++) bad[tau][i] = 1;
-  }
-  const ok = Array.from({ length: HORIZON + 2 }, () => new Uint8Array(CELLS));
-  for (let i = 0; i < CELLS; i++) ok[HORIZON + 1][i] = bad[HORIZON + 1][i] ? 0 : 1;
-  for (let tau = HORIZON; tau >= 1; tau--) for (let i = 0; i < CELLS; i++) {
-    if (!bad[tau][i] && (ok[tau + 1][i] || (i > 0 && ok[tau + 1][i - 1]) || (i < CELLS - 1 && ok[tau + 1][i + 1]))) ok[tau][i] = 1;
-  }
-  let i = Math.round((s.dora.x - 25) / 5);
-  const path = [i];
-  for (let tau = 1; tau <= HORIZON; tau++) {
-    let pick = -1;
-    for (const d of [0, -1, 1]) { const j = i + d; if (j >= 0 && j < CELLS && ok[tau][j] && (pick < 0 || Math.abs(j - 43) < Math.abs(pick - 43) - 2)) pick = j; }
-    if (pick < 0) pick = i;
-    path.push(pick); i = pick;
-  }
-  return { t0: s.t, spawned: s.spawned, path };
-}
+// Dodges by eye: stands still until a feather will pass through Dora's spot in the next 60 ticks, then steps to the nearest
+// spot that stays clear and can be reached without running into another feather on the way, and keeps to that spot while
+// it stays clear rather than changing its mind.
+const SWAY = 1.2 / 0.07, goals = new WeakMap();
 SOLVERS.dodge = s => {
-  let p = plans.get(s);
-  const k = p ? s.t - p.t0 : 0;
-  if (!p || p.spawned !== s.spawned || k >= HORIZON - 4 || Math.abs(s.dora.x - cellX(p.path[k])) > 6) { p = planDodge(s); plans.set(s, p); p.last = s.t - 1; }
-  // steps this real tick will run = steps the last one ran (1 at tier 0, 2 at tier 5)
-  const stride = Math.max(1, s.t - p.last);
-  p.last = s.t;
-  return { ...IDLE, x: cellX(p.path[Math.min(HORIZON, s.t - p.t0 + stride)]), y: 270 };
+  const fs = s.feathers.map(f => ({ f, k0: (244 - f.y) / f.v, k1: (296 - f.y) / f.v })).filter(o => o.k1 >= 0 && o.k0 <= 60);
+  const at = (o, k) => o.f.x0 + SWAY * Math.sin(o.f.ph + 0.07 * (o.f.age + k));
+  // is x clear by `gap` of every feather at Dora's height between ticks a and b from now?
+  const clear = (x, a, b, gap) => fs.every(o => {
+    for (let k = Math.max(a, o.k0); k <= Math.min(b, o.k1); k += 2) if (Math.abs(at(o, k) - x) < gap) return false;
+    return true;
+  });
+  const goal = goals.get(s);
+  if (goal !== undefined && goal !== s.dora.x && clear(goal, Math.abs(goal - s.dora.x) / 5, 60, 30)) return { ...IDLE, x: goal, y: 270 };
+  goals.delete(s);
+  if (clear(s.dora.x, 0, 60, 30)) return { ...IDLE, x: s.dora.x, y: 270 };
+  let best = s.dora.x, d = Infinity;
+  for (let x = 24; x <= 456; x += 4) {
+    const dist = Math.abs(x - s.dora.x);
+    if (dist >= d || !clear(x, dist / 5, 60, 34)) continue;
+    let ok = true;
+    for (let p = 0; p <= dist && ok; p += 5) ok = clear(s.dora.x + Math.sign(x - s.dora.x) * p, p / 5, p / 5 + 1, 24);
+    if (ok) { d = dist; best = x; }
+  }
+  goals.set(s, best);
+  return { ...IDLE, x: best, y: 270 };
 };
 
 SOLVERS.moon = s => {
@@ -199,8 +183,8 @@ SOLVERS.pop = s => {
   return lane < 0 ? IDLE : { ...IDLE, pick: lane + 1 };
 };
 
-// Holds Space through the swing and lets go in the middle half of the band.
-SOLVERS.aim = s => ({ ...IDLE, down: !(s.mode === 'swing' && Math.abs(s.power - s.centre) <= s.width / 4) });
+// Holds Space through the swing and lets go as the power crosses the middle of the band.
+SOLVERS.aim = s => ({ ...IDLE, down: !(s.mode === 'swing' && (s.rising ? s.power >= s.centre - 0.005 : s.power <= s.centre + 0.005)) });
 
 SOLVERS.stack = s => ({ ...IDLE, down: !!s.crate && !s.crate.falling && Math.abs(s.crate.x - s.top.x) <= 10 });
 
