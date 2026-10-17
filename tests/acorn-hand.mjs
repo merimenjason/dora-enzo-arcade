@@ -61,6 +61,7 @@ const score = (played, over) => scorePlay(base({ played, ...over }));
   const late = score([C(2, 1), C(6, 1), C(9, 1), C(11, 1), C(13, 1)], own('dora', 'ember')).mult, early = score([C(2, 1), C(6, 1), C(9, 1), C(11, 1), C(13, 1)], own('ember', 'dora')).mult;
   assert.equal(late, (4 + 4) * 2); assert.equal(early, 4 * 2 + 4);
   assert.equal(score([C(13), C(13, 1)], { ...own('onyx'), held: [C(13, 2), C(13, 3), C(4)] }).mult, 2 * 1.5 * 1.5, 'Onyx counts kings held');
+  assert.deepEqual(score([C(13), C(13, 1)], { ...own('onyx'), held: [C(4), C(13, 2), C(13, 3)] }).steps.filter((st) => st.who === 'held').map((st) => st.card), [1, 2], 'a held step names its card in the hand, so the page can pulse it');
   assert.equal(score([C(13), C(13, 1)], own('aurora')).chips, 10 + 10 + 10 + 10, 'Aurora scores the first card twice');
   assert.equal(score([C(13), C(13, 1)], own('bloom')).chips, 10 + 40, 'Bloom scores every face card twice');
   assert.equal(score([C(13), C(13, 1)], own('echo', 'dora')).mult, 2 + 4 + 4, 'Echo copies the charm to its right');

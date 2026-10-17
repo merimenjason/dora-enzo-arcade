@@ -306,6 +306,28 @@ await check('an old duplicate almanac shelf resumes with two different offers', 
   assert.deepEqual(await page.evaluate(() => window.__acorn().run.shop.items), repaired.shop.items, 'the repaired offers stay the same on another reload');
 }, { width: 1280, height: 860 }, { reducedMotion: 'reduce' });
 
+await check('the rival sits across the table: centred and big with its nuts, slots between, an idle squash and pulsing held cards', async (page) => {
+  await fresh(page); await deal(page); await page.waitForTimeout(600);
+  const g = await page.evaluate(() => {
+    const r = (s) => document.querySelector(s).getBoundingClientRect();
+    const table = r('[data-testid="table"]'), art = r('.ah-rival-art'), pile = r('[data-testid="nut-pile"]');
+    const slots = [...document.querySelectorAll('[data-testid="played"] .ah-slot')].filter((el) => el.getBoundingClientRect().width > 0);
+    return { tableMid: table.left + table.width / 2, groupMid: art.left + art.width / 2, artW: art.width, gap: Math.max(pile.left - art.right, art.left - pile.right), slots: slots.length,
+      idle: document.querySelector('.ah-rival-art').getAnimations().map((a) => a.animationName) };
+  });
+  assert.ok(g.artW >= 180, `rival art ${g.artW}px wide`);
+  assert.ok(Math.abs(g.groupMid - g.tableMid) < 30, `rival centred over the table: ${g.groupMid} vs ${g.tableMid}`);
+  assert.ok(g.gap < 60, `nut pile beside the rival: ${g.gap}px away`);
+  assert.equal(g.slots, 5, 'five card slots mark where the hand lands');
+  assert.ok(g.idle.includes('ah-idle'), `idle animations: ${g.idle}`);
+  await setHand(page); await run(page, '(r) => { r.charms = [{ id: "onyx", state: 0 }]; }');
+  await page.getByTestId('card-2').click(); await page.getByTestId('card-3').click(); await page.getByTestId('play').click();
+  await page.waitForFunction(() => document.querySelectorAll('[data-testid="played"] .ah-slot').length === 0, null, { timeout: 2000 });
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-testid="hand"] .ah-card')].some((c) => c.dataset.lit === 'true'));
+  await settled(page);
+  assert.equal(await page.locator('[data-testid="hand"] .ah-card[data-lit="true"]').count(), 0);
+});
+
 await check('a digit past the last pack option does nothing, and the help names no fixed pack keys', async (page) => {
   await fresh(page); await page.getByTestId('how').click();
   assert.doesNotMatch(await page.getByTestId('help').innerText(), /1 to 5 take/, 'Market Day packs show six');

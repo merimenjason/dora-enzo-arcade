@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Acorn Hand**: the rival now sits across the table from you: a bigger portrait centred over the play area, its pile of nuts at its side and its words beside it, with soft card slots between you showing where your hand lands. Between reactions it breathes, squashes and hops, and a card a charm counts from your hand (like Onyx's kings) rises and glows as it scores.
 - **Acorn Hand**: nuts are painted acorns everywhere, in your purse, the pile beside the rival, the nuts that fly to the purse and the round markers, instead of the chestnut emoji; chips and mult sit on painted wooden plaques; and the Squirrel Hoard voucher shows its squirrel guarding a jar of acorns. If the paintings can't load, the old emoji and plain boxes stand in.
 
 ### Fixed

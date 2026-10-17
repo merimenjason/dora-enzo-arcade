@@ -163,12 +163,12 @@ Glosses: honey +30 chips, ember +4 mult and crystal ×1.5 mult when the card sco
 
 ## Table and motion
 
-A rival sits across the table every round: the ante's boss in the boss round, and otherwise one of the other twelve rivals, picked by `tableRival` in `lib/acorn-hand-banter.ts` from the seed, the ante and the round. It never uses the run's random numbers, so seeds replay as before and a reload shows the same rival; the small and big rounds of an ante always have different rivals. Beside the rival, a pile of `ceil(10 × (1 − score ÷ target))` nuts shows what is left of the target. Dora and Enzo sit by your hand (hidden on phones).
+A rival sits across the table every round: the ante's boss in the boss round, and otherwise one of the other twelve rivals, picked by `tableRival` in `lib/acorn-hand-banter.ts` from the seed, the ante and the round. It never uses the run's random numbers, so seeds replay as before and a reload shows the same rival; the small and big rounds of an ante always have different rivals. Beside the rival, a pile of `ceil(10 × (1 − score ÷ target))` nuts shows what is left of the target. Dora and Enzo sit by your hand (hidden on phones). On screens wider than 560px and taller than 520px the rival's portrait is centred across the table at 200px, with its nut pile at its left and its words at its right; on screens taller than 700px five soft card-shaped slots between the rival and your hand mark where a played hand lands, and they clear while it counts.
 
 | Moment | When | What the rival does |
 | --- | --- | --- |
 | Enter | the round starts | slides in and greets you (the boss boasts) |
-| Idle | between reactions | breathes slowly |
+| Idle | between reactions | breathes slowly, then squashes and hops, every 6 s |
 | Discard | you discard | leans in with a taunt |
 | Hit | a hand under a quarter of the target | flinches |
 | Big | a hand of a quarter of the target or more | recoils and yelps; the table shakes |
@@ -176,7 +176,7 @@ A rival sits across the table every round: the ante's boss in the boss round, an
 | Beaten | the score passes the target | slumps and concedes |
 | Gloat | the run ends in that round | bounces and gloats |
 
-Each rival has two lines per moment, said in turn, never at random. The motion lives in `app/acorn-hand/motion.ts`, on the Web Animations API: cards deal from the deck and flip, fly to the table and sweep away, charms wiggle as they score, the counters and score tick up, the hand's name crosses the table, nuts fly to the purse at cash-out, packs burst open and bought charms fly to their slots. Nothing waits for an animation: the state changes at once and only the counting of a played hand holds input, as before. The hand that wins or loses a round counts on the table before the cash-out or game-over panel. With reduced motion set, none of it runs.
+Each rival has two lines per moment, said in turn, never at random. The motion lives in `app/acorn-hand/motion.ts`, on the Web Animations API: cards deal from the deck and flip, fly to the table and sweep away, charms wiggle as they score, a held card a charm counts (Onyx's kings) rises and glows in your hand, the counters and score tick up, the hand's name crosses the table, nuts fly to the purse at cash-out, packs burst open and bought charms fly to their slots. Nothing waits for an animation: the state changes at once and only the counting of a played hand holds input, as before. The hand that wins or loses a round counts on the table before the cash-out or game-over panel. With reduced motion set, none of it runs.
 
 ## Saves
 

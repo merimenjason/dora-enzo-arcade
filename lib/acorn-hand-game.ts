@@ -86,6 +86,7 @@ export function evaluate(cards: Card[], rules: Rules = NO_RULES): { hand: HandId
 // ── Scoring ───────────────────────────────────────────────────────────────────
 
 /** One moment of a score, with the running totals after it, for the page to count up and for the tests. */
+/** `card` is the played card's index for card and boss steps, and the held card's index (in hand order) for held steps. */
 export type Step = { who: 'hand' | 'card' | 'held' | 'charm' | 'boss'; ref: string; card?: number; text: string; chips: number; mult: number };
 export type Score = { hand: HandId; level: number; scoring: number[]; steps: Step[]; chips: number; mult: number; total: number; nuts: number };
 export type Owned = { id: string; state: number };
@@ -145,7 +146,7 @@ export function scorePlay(o: {
       team.forEach((t, ci) => { if (t) apply(charmById(t.id)!.card?.(c, i, ctx(o.states[o.charms.indexOf(t)])) ?? null, 'charm', o.charms[ci].id, pi); });
     }
   });
-  o.held.forEach((c) => team.forEach((t, ci) => { if (t && !sleeping(c)) apply(charmById(t.id)!.held?.(c, ctx(o.states[o.charms.indexOf(t)])) ?? null, 'held', o.charms[ci].id); }));
+  o.held.forEach((c, hi) => team.forEach((t, ci) => { if (t && !sleeping(c)) apply(charmById(t.id)!.held?.(c, ctx(o.states[o.charms.indexOf(t)])) ?? null, 'held', o.charms[ci].id, hi); }));
   team.forEach((t, ci) => { if (t) apply(charmById(t.id)!.main?.(ctx(o.states[o.charms.indexOf(t)])) ?? null, 'charm', o.charms[ci].id); });
   return { hand, level, scoring, steps, chips, mult, total: Math.floor(chips * mult), nuts };
 }

@@ -51,7 +51,8 @@
 .ah-left { display: flex; justify-content: space-between; font-size: 13px; color: var(--dim); }
 .ah-left b { color: var(--ink); font-size: 16px; }
 .ah-rival { display: grid; grid-template-columns: 140px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 112px; padding: 4px 8px; }
-.ah-rival-art { animation: ah-breathe 3s ease-in-out infinite; transform-origin: 50% 90%; }
+/* Idle: a slow breath, then a squash and a little hop every six seconds. */
+.ah-rival-art { animation: ah-idle 6s ease-in-out infinite; transform-origin: 50% 90%; }
 .ah-rival-art canvas { width: 140px; height: auto; display: block; }
 .ah-rival[data-mood='beaten'] .ah-rival-art { filter: grayscale(.8) brightness(.8); }
 .ah-rival-words { display: grid; gap: 6px; justify-items: start; min-width: 0; }
@@ -69,7 +70,7 @@
 .ah-pals[data-mood='look'] canvas { transform: translateY(-4px) rotate(4deg); }
 .ah-pals[data-mood='cheer'] canvas { animation: ah-cheer .5s ease-out 2; }
 .ah-pals[data-mood='sad'] canvas { transform: translateY(6px) scale(.94); filter: saturate(.6); }
-@keyframes ah-breathe { 0%, 100% { transform: none; } 50% { transform: translateY(-3px) scale(1.015, .985); } }
+@keyframes ah-idle { 0%, 50%, 72%, 100% { transform: none; } 25% { transform: translateY(-3px) scale(1.015, .985); } 78% { transform: scale(1.07, .91); } 85% { transform: translateY(-7px) scale(.96, 1.05); } 92% { transform: scale(1.02, .98); } }
 @keyframes ah-say { from { transform: scale(.7); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes ah-cheer { 0%, 100% { transform: none; } 40% { transform: translateY(-12px); } }
 
@@ -104,7 +105,13 @@
 
 .ah-table { display: grid; gap: 12px; }
 .ah-played { min-height: 150px; display: flex; justify-content: center; align-items: center; gap: 8px; position: relative; flex-wrap: wrap; }
-.ah-note { text-align: center; color: var(--dim); font-weight: 700; }
+.ah-note { text-align: center; color: var(--dim); font-weight: 700; position: relative; }
+/* Where the next hand lands: five faint card outlines, on tall screens only. */
+.ah-slots { position: absolute; inset: 0; display: none; justify-content: center; align-items: center; gap: 8px; pointer-events: none; }
+.ah-slot { width: 96px; aspect-ratio: 5 / 7; border-radius: 10px; background: #00000026; box-shadow: inset 0 0 0 1px #f3e6c412, inset 0 6px 14px #0000002e; }
+/* A held card a charm counts pulses in the hand. */
+.ah-shell .ah-hand .ah-card[data-lit='true'] { transform: translateY(-12px) scale(1.06); filter: drop-shadow(0 0 10px #f2c45a) drop-shadow(0 4px 4px #0006); animation: ah-held .3s ease-out; }
+@keyframes ah-held { 0% { transform: none; } 60% { transform: translateY(-16px) scale(1.1); } 100% { transform: translateY(-12px) scale(1.06); } }
 .ah-hand { display: grid; grid-template-columns: repeat(var(--n, 8), minmax(0, 104px)); gap: 6px; justify-content: center; }
 .ah-shell .ah-card { padding: 0; background: none; border: 0; border-radius: 10px; position: relative; display: block; min-height: 0; transition: transform .22s cubic-bezier(.2,1.6,.4,1); filter: drop-shadow(0 4px 4px #0006); }
 .ah-card canvas { width: 100%; height: auto; display: block; }
@@ -176,6 +183,18 @@
 .ah-total { animation-name: ah-grow; }
 @keyframes ah-grow { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
+/* Across the table: on roomy screens the rival sits centred and large, with its nuts at its side. */
+@media (min-width: 561px) and (min-height: 521px) {
+  .ah-rival { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 16px; }
+  .ah-rival .ah-pile { order: -1; justify-self: end; }
+  .ah-rival-art canvas { width: 200px; }
+  .ah-pile { width: 120px; font-size: 24px; }
+  .ah-pile span[data-size='1'] { font-size: 20px; }
+  .ah-pile span[data-size='2'] { font-size: 30px; }
+}
+@media (min-width: 561px) and (min-height: 701px) {
+  .ah-slots { display: flex; }
+}
 @media (max-width: 900px) {
   .ah-board { grid-template-columns: 1fr; }
   .ah-side { grid-template-columns: 1fr 1fr; }
