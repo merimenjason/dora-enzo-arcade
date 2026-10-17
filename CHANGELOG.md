@@ -22,6 +22,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 - **Acorn Hand**: face-card portraits now leave clear space for both rank-and-suit corners, including glossed cards. Dora and Enzo beside the hand use their painted character artwork and face each other, with the old drawings only while artwork loads or if a request fails.
 - **Acorn Hand**: the berry suit now reads as a raspberry, with rounded lobes and a small leaf, instead of a tomato. Refreshed the artwork cache and measured crops so the new pip appears cleanly on small cards.
 
+### Documentation
+
+- **Acorn Hand**: the README's test summary covers the new table, curve and stake checks, and the handoff is brought up to date through PR #59 with a refreshed list of what to do next.
+
 ## 16-10-2026
 
 ### Added
