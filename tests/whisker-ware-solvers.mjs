@@ -93,3 +93,31 @@ SOLVERS.raisin = s => {
 };
 
 READY_HOSTS.push(0);
+
+// ── Dora · Dust Spa ───────────────────────────────────────────────────────────
+
+SOLVERS.dust = (s, t) => ({ ...IDLE, left: Math.floor(t / 3) % 2 === 0, right: Math.floor(t / 3) % 2 === 1 });
+
+SOLVERS.balance = s => ({ ...IDLE, left: s.tilt > 0.05, right: s.tilt < -0.05 });
+
+SOLVERS.fluff = s => ({ ...IDLE, down: s.size < s.centre });
+
+SOLVERS.hop = s => {
+  if (s.jump) return IDLE;
+  const log = s.logs.find(l => l.x > 90);
+  return { ...IDLE, down: !!log && log.x - s.dora.x <= 70 };
+};
+
+SOLVERS.comb = s => {
+  const left = s.tangles.filter(g => !g.done);
+  if (!left.length) return IDLE;
+  left.sort((a, b) => Math.hypot(a.x - s.comb.x, a.y - s.comb.y) - Math.hypot(b.x - s.comb.x, b.y - s.comb.y));
+  return { ...IDLE, x: left[0].x, y: left[0].y, down: true };
+};
+
+SOLVERS.shelf = (s, t) => {
+  const next = s.shelves[s.level];
+  return { ...IDLE, down: !!next && Math.abs(next.x - s.dora.x) <= 20 && t % 2 === 0 };
+};
+
+READY_HOSTS.push(1);
