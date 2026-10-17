@@ -1,0 +1,1432 @@
+{
+  "date": "17-10-2026",
+  "sourceSize": [
+    1536,
+    1024
+  ],
+  "stageSize": [
+    480,
+    320
+  ],
+  "alphaThreshold": 8,
+  "padding": 8,
+  "rectFormat": "[x, y, width, height] in original source pixels",
+  "notes": [
+    "Bounds group connected silhouettes and detached fragments; never divide the sheet into equal crop rectangles.",
+    "Frames share width and height within each named matching-pose group. Anchor frames at the same destination bottom center.",
+    "Transparent originals preserve generated pixels. A few isolated alpha-1 pixels can occur outside visible silhouettes."
+  ],
+  "sheets": {
+    "hosts.png": {
+      "size": [
+        1536,
+        1024
+      ],
+      "cells": [
+        {
+          "index": 0,
+          "name": "enzo-presenting",
+          "bounds": [
+            88,
+            97,
+            248,
+            216
+          ],
+          "frame": [
+            76,
+            81,
+            273,
+            240
+          ]
+        },
+        {
+          "index": 1,
+          "name": "dora-presenting",
+          "bounds": [
+            487,
+            96,
+            228,
+            217
+          ],
+          "frame": [
+            474,
+            88,
+            254,
+            233
+          ]
+        },
+        {
+          "index": 2,
+          "name": "owl-presenting",
+          "bounds": [
+            834,
+            96,
+            246,
+            218
+          ],
+          "frame": [
+            814,
+            84,
+            285,
+            238
+          ]
+        },
+        {
+          "index": 3,
+          "name": "fox-presenting",
+          "bounds": [
+            1210,
+            85,
+            251,
+            230
+          ],
+          "frame": [
+            1198,
+            74,
+            276,
+            249
+          ]
+        },
+        {
+          "index": 4,
+          "name": "enzo-cheering",
+          "bounds": [
+            84,
+            399,
+            256,
+            218
+          ],
+          "frame": [
+            76,
+            385,
+            273,
+            240
+          ]
+        },
+        {
+          "index": 5,
+          "name": "dora-cheering",
+          "bounds": [
+            482,
+            403,
+            238,
+            214
+          ],
+          "frame": [
+            474,
+            392,
+            254,
+            233
+          ]
+        },
+        {
+          "index": 6,
+          "name": "owl-cheering",
+          "bounds": [
+            826,
+            398,
+            269,
+            219
+          ],
+          "frame": [
+            818,
+            387,
+            285,
+            238
+          ]
+        },
+        {
+          "index": 7,
+          "name": "fox-cheering",
+          "bounds": [
+            1208,
+            385,
+            260,
+            233
+          ],
+          "frame": [
+            1200,
+            377,
+            276,
+            249
+          ]
+        },
+        {
+          "index": 8,
+          "name": "enzo-oops",
+          "bounds": [
+            77,
+            701,
+            257,
+            224
+          ],
+          "frame": [
+            69,
+            693,
+            273,
+            240
+          ]
+        },
+        {
+          "index": 9,
+          "name": "dora-oops",
+          "bounds": [
+            483,
+            712,
+            231,
+            214
+          ],
+          "frame": [
+            472,
+            701,
+            254,
+            233
+          ]
+        },
+        {
+          "index": 10,
+          "name": "owl-oops",
+          "bounds": [
+            840,
+            708,
+            254,
+            222
+          ],
+          "frame": [
+            824,
+            700,
+            285,
+            238
+          ]
+        },
+        {
+          "index": 11,
+          "name": "fox-oops",
+          "bounds": [
+            1211,
+            698,
+            253,
+            228
+          ],
+          "frame": [
+            1200,
+            685,
+            276,
+            249
+          ]
+        }
+      ],
+      "sharedFrameGroups": [
+        [
+          0,
+          4,
+          8
+        ],
+        [
+          1,
+          5,
+          9
+        ],
+        [
+          2,
+          6,
+          10
+        ],
+        [
+          3,
+          7,
+          11
+        ]
+      ]
+    },
+    "props-dora.png": {
+      "size": [
+        1536,
+        1024
+      ],
+      "cells": [
+        {
+          "index": 0,
+          "name": "dora-sit",
+          "bounds": [
+            77,
+            83,
+            233,
+            242
+          ],
+          "frame": [
+            69,
+            75,
+            249,
+            258
+          ]
+        },
+        {
+          "index": 1,
+          "name": "dust",
+          "bounds": [
+            456,
+            115,
+            256,
+            213
+          ],
+          "frame": [
+            448,
+            107,
+            272,
+            229
+          ]
+        },
+        {
+          "index": 2,
+          "name": "dora-balance",
+          "bounds": [
+            840,
+            74,
+            224,
+            262
+          ],
+          "frame": [
+            832,
+            66,
+            240,
+            278
+          ]
+        },
+        {
+          "index": 3,
+          "name": "bale",
+          "bounds": [
+            1206,
+            93,
+            262,
+            238
+          ],
+          "frame": [
+            1198,
+            85,
+            278,
+            254
+          ]
+        },
+        {
+          "index": 4,
+          "name": "dora-sleek",
+          "bounds": [
+            113,
+            408,
+            220,
+            252
+          ],
+          "frame": [
+            81,
+            400,
+            284,
+            268
+          ]
+        },
+        {
+          "index": 5,
+          "name": "dora-puffed",
+          "bounds": [
+            448,
+            430,
+            268,
+            231
+          ],
+          "frame": [
+            440,
+            401,
+            284,
+            268
+          ]
+        },
+        {
+          "index": 6,
+          "name": "dora-run",
+          "bounds": [
+            822,
+            441,
+            298,
+            209
+          ],
+          "frame": [
+            814,
+            433,
+            314,
+            225
+          ]
+        },
+        {
+          "index": 7,
+          "name": "dora-jump",
+          "bounds": [
+            1202,
+            428,
+            291,
+            209
+          ],
+          "frame": [
+            1190,
+            420,
+            314,
+            225
+          ]
+        },
+        {
+          "index": 8,
+          "name": "log",
+          "bounds": [
+            68,
+            774,
+            293,
+            143
+          ],
+          "frame": [
+            60,
+            766,
+            309,
+            159
+          ]
+        },
+        {
+          "index": 9,
+          "name": "comb",
+          "bounds": [
+            465,
+            754,
+            241,
+            181
+          ],
+          "frame": [
+            457,
+            746,
+            257,
+            197
+          ]
+        },
+        {
+          "index": 10,
+          "name": "tangle",
+          "bounds": [
+            842,
+            751,
+            232,
+            189
+          ],
+          "frame": [
+            834,
+            743,
+            248,
+            205
+          ]
+        },
+        {
+          "index": 11,
+          "name": "plank",
+          "bounds": [
+            1174,
+            800,
+            322,
+            68
+          ],
+          "frame": [
+            1166,
+            792,
+            338,
+            84
+          ]
+        }
+      ],
+      "sharedFrameGroups": [
+        [
+          4,
+          5
+        ],
+        [
+          6,
+          7
+        ]
+      ]
+    },
+    "props-enzo.png": {
+      "size": [
+        1536,
+        1024
+      ],
+      "cells": [
+        {
+          "index": 0,
+          "name": "raisin",
+          "bounds": [
+            104,
+            104,
+            217,
+            172
+          ],
+          "frame": [
+            96,
+            96,
+            233,
+            188
+          ]
+        },
+        {
+          "index": 1,
+          "name": "pebble",
+          "bounds": [
+            466,
+            103,
+            237,
+            172
+          ],
+          "frame": [
+            458,
+            95,
+            253,
+            188
+          ]
+        },
+        {
+          "index": 2,
+          "name": "bowl",
+          "bounds": [
+            849,
+            108,
+            247,
+            163
+          ],
+          "frame": [
+            841,
+            100,
+            263,
+            179
+          ]
+        },
+        {
+          "index": 3,
+          "name": "acorn",
+          "bounds": [
+            1272,
+            82,
+            185,
+            196
+          ],
+          "frame": [
+            1264,
+            74,
+            201,
+            212
+          ]
+        },
+        {
+          "index": 4,
+          "name": "jar",
+          "bounds": [
+            87,
+            386,
+            230,
+            219
+          ],
+          "frame": [
+            79,
+            378,
+            246,
+            235
+          ]
+        },
+        {
+          "index": 5,
+          "name": "heap",
+          "bounds": [
+            449,
+            419,
+            269,
+            171
+          ],
+          "frame": [
+            441,
+            411,
+            285,
+            187
+          ]
+        },
+        {
+          "index": 6,
+          "name": "cup",
+          "bounds": [
+            850,
+            391,
+            238,
+            200
+          ],
+          "frame": [
+            842,
+            383,
+            254,
+            216
+          ]
+        },
+        {
+          "index": 7,
+          "name": "stick",
+          "bounds": [
+            1193,
+            459,
+            310,
+            81
+          ],
+          "frame": [
+            1185,
+            451,
+            326,
+            97
+          ]
+        },
+        {
+          "index": 8,
+          "name": "enzo-face",
+          "bounds": [
+            58,
+            701,
+            289,
+            234
+          ],
+          "frame": [
+            40,
+            693,
+            324,
+            250
+          ]
+        },
+        {
+          "index": 9,
+          "name": "enzo-stuffed",
+          "bounds": [
+            425,
+            701,
+            308,
+            232
+          ],
+          "frame": [
+            417,
+            691,
+            324,
+            250
+          ]
+        },
+        {
+          "index": 10,
+          "name": "enzo-gnaw",
+          "bounds": [
+            817,
+            682,
+            307,
+            258
+          ],
+          "frame": [
+            809,
+            674,
+            323,
+            274
+          ]
+        },
+        {
+          "index": 11,
+          "name": "enzo-carry",
+          "bounds": [
+            1207,
+            682,
+            271,
+            263
+          ],
+          "frame": [
+            1199,
+            674,
+            287,
+            279
+          ]
+        }
+      ],
+      "sharedFrameGroups": [
+        [
+          8,
+          9
+        ]
+      ]
+    },
+    "props-fox.png": {
+      "size": [
+        1536,
+        1024
+      ],
+      "cells": [
+        {
+          "index": 0,
+          "name": "card-back",
+          "bounds": [
+            144,
+            53,
+            159,
+            236
+          ],
+          "frame": [
+            136,
+            45,
+            175,
+            252
+          ]
+        },
+        {
+          "index": 1,
+          "name": "balloon-red",
+          "bounds": [
+            520,
+            52,
+            146,
+            252
+          ],
+          "frame": [
+            504,
+            36,
+            177,
+            276
+          ]
+        },
+        {
+          "index": 2,
+          "name": "balloon-yellow",
+          "bounds": [
+            900,
+            51,
+            146,
+            253
+          ],
+          "frame": [
+            884,
+            36,
+            177,
+            276
+          ]
+        },
+        {
+          "index": 3,
+          "name": "balloon-blue",
+          "bounds": [
+            1254,
+            51,
+            148,
+            253
+          ],
+          "frame": [
+            1240,
+            36,
+            177,
+            276
+          ]
+        },
+        {
+          "index": 4,
+          "name": "balloon-green",
+          "bounds": [
+            143,
+            375,
+            161,
+            260
+          ],
+          "frame": [
+            135,
+            367,
+            177,
+            276
+          ]
+        },
+        {
+          "index": 5,
+          "name": "pop",
+          "bounds": [
+            460,
+            377,
+            259,
+            249
+          ],
+          "frame": [
+            452,
+            369,
+            275,
+            265
+          ]
+        },
+        {
+          "index": 6,
+          "name": "slingshot",
+          "bounds": [
+            843,
+            374,
+            231,
+            251
+          ],
+          "frame": [
+            835,
+            366,
+            247,
+            267
+          ]
+        },
+        {
+          "index": 7,
+          "name": "target",
+          "bounds": [
+            1215,
+            370,
+            237,
+            253
+          ],
+          "frame": [
+            1207,
+            362,
+            253,
+            269
+          ]
+        },
+        {
+          "index": 8,
+          "name": "crate",
+          "bounds": [
+            102,
+            697,
+            252,
+            239
+          ],
+          "frame": [
+            94,
+            689,
+            268,
+            255
+          ]
+        },
+        {
+          "index": 9,
+          "name": "peg",
+          "bounds": [
+            514,
+            701,
+            158,
+            232
+          ],
+          "frame": [
+            506,
+            693,
+            174,
+            248
+          ]
+        },
+        {
+          "index": 10,
+          "name": "ring",
+          "bounds": [
+            846,
+            726,
+            253,
+            198
+          ],
+          "frame": [
+            838,
+            718,
+            269,
+            214
+          ]
+        },
+        {
+          "index": 11,
+          "name": "empty",
+          "bounds": null,
+          "frame": null
+        }
+      ],
+      "sharedFrameGroups": [
+        [
+          1,
+          2,
+          3,
+          4
+        ]
+      ]
+    },
+    "props-owl.png": {
+      "size": [
+        1536,
+        1024
+      ],
+      "cells": [
+        {
+          "index": 0,
+          "name": "owl-back",
+          "bounds": [
+            59,
+            55,
+            261,
+            270
+          ],
+          "frame": [
+            51,
+            47,
+            277,
+            286
+          ]
+        },
+        {
+          "index": 1,
+          "name": "owl-glance",
+          "bounds": [
+            431,
+            46,
+            289,
+            280
+          ],
+          "frame": [
+            423,
+            38,
+            305,
+            296
+          ]
+        },
+        {
+          "index": 2,
+          "name": "owl-watch",
+          "bounds": [
+            834,
+            49,
+            284,
+            276
+          ],
+          "frame": [
+            826,
+            41,
+            300,
+            292
+          ]
+        },
+        {
+          "index": 3,
+          "name": "owl-sleep",
+          "bounds": [
+            1205,
+            57,
+            273,
+            267
+          ],
+          "frame": [
+            1197,
+            49,
+            289,
+            283
+          ]
+        },
+        {
+          "index": 4,
+          "name": "owl-swoop",
+          "bounds": [
+            55,
+            386,
+            334,
+            258
+          ],
+          "frame": [
+            47,
+            378,
+            350,
+            274
+          ]
+        },
+        {
+          "index": 5,
+          "name": "dora-tiptoe",
+          "bounds": [
+            439,
+            387,
+            294,
+            263
+          ],
+          "frame": [
+            431,
+            379,
+            310,
+            279
+          ]
+        },
+        {
+          "index": 6,
+          "name": "enzo-crouch",
+          "bounds": [
+            800,
+            461,
+            344,
+            177
+          ],
+          "frame": [
+            792,
+            453,
+            360,
+            193
+          ]
+        },
+        {
+          "index": 7,
+          "name": "toy-mouse",
+          "bounds": [
+            1211,
+            467,
+            292,
+            163
+          ],
+          "frame": [
+            1203,
+            459,
+            308,
+            179
+          ]
+        },
+        {
+          "index": 8,
+          "name": "toy-ball",
+          "bounds": [
+            105,
+            724,
+            215,
+            211
+          ],
+          "frame": [
+            97,
+            716,
+            231,
+            227
+          ]
+        },
+        {
+          "index": 9,
+          "name": "toy-carrot",
+          "bounds": [
+            450,
+            702,
+            251,
+            242
+          ],
+          "frame": [
+            442,
+            694,
+            267,
+            258
+          ]
+        },
+        {
+          "index": 10,
+          "name": "pinecone",
+          "bounds": [
+            840,
+            705,
+            242,
+            239
+          ],
+          "frame": [
+            832,
+            697,
+            258,
+            255
+          ]
+        },
+        {
+          "index": 11,
+          "name": "feather",
+          "bounds": [
+            1216,
+            717,
+            239,
+            220
+          ],
+          "frame": [
+            1208,
+            709,
+            255,
+            236
+          ]
+        }
+      ],
+      "sharedFrameGroups": []
+    }
+  },
+  "backgrounds": [
+    {
+      "file": "bg-aim.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-balance.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-catch.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-comb.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-count.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-dodge.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-dust.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-find.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-fluff.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-gnaw.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-hide.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-hop.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-hush.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-moon.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-pick.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-pop.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-raisin.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-ring.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-shelf.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-sneak.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-sniff.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-sort.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-stack.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "bg-stuff.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "room-dora.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "room-enzo.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "room-fox.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "file": "room-owl.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    }
+  ],
+  "backgroundSurvey": {
+    "method": "Visual source-pixel survey of final selected images, approximate to10px. Bands are visible surfaces; contactY is a suggested actor/prop baseline inside that surface. These are presentation anchors, not collision rules. Confirm them in the running game.",
+    "scenes": {
+      "catch": {
+        "kind": "floor",
+        "surfaceBand": [
+          807,
+          1024
+        ],
+        "contactY": 840
+      },
+      "sort": {
+        "kind": "counter",
+        "surfaceBand": [
+          500,
+          870
+        ],
+        "contactY": 717
+      },
+      "gnaw": {
+        "kind": "bench",
+        "surfaceBand": [
+          468,
+          746
+        ],
+        "contactY": 614
+      },
+      "raisin": {
+        "kind": "floor",
+        "surfaceBand": [
+          789,
+          1024
+        ],
+        "contactY": 870,
+        "chuteCentersX": [
+          384,
+          768,
+          1152
+        ],
+        "chuteMouthY": 250
+      },
+      "dust": {
+        "kind": "dust-bowl",
+        "surfaceBand": [
+          706,
+          824
+        ],
+        "contactY": 770,
+        "note": "Rim band; place actor in dry bowl and draw front-rim occlusion separately if needed."
+      },
+      "balance": {
+        "kind": "path",
+        "surfaceBand": [
+          816,
+          918
+        ],
+        "contactY": 850
+      },
+      "hop": {
+        "kind": "platform",
+        "surfaceBand": [
+          774,
+          860
+        ],
+        "contactY": 819
+      },
+      "sneak": {
+        "kind": "floor-and-perch",
+        "surfaceBand": [
+          765,
+          1024
+        ],
+        "contactY": 819,
+        "perchTopY": 430,
+        "perchSpanX": [
+          980,
+          1536
+        ],
+        "note": "Perch is visibly higher than the requested55%; anchor the Owl to the observed beam, not a hardcoded55%."
+      },
+      "hide": {
+        "kind": "flagstone-plane",
+        "surfaceBand": [
+          658,
+          1024
+        ],
+        "contactY": 819,
+        "note": "No baked cast shadow; gameplay paints its own shadow and sweeping beam."
+      },
+      "hush": {
+        "kind": "floor",
+        "surfaceBand": [
+          360,
+          1024
+        ],
+        "contactY": 717,
+        "rugBand": [
+          450,
+          690
+        ]
+      },
+      "dodge": {
+        "kind": "clearing",
+        "surfaceBand": [
+          620,
+          900
+        ],
+        "contactY": 870
+      },
+      "pick": {
+        "kind": "velvet-table",
+        "surfaceBand": [
+          570,
+          747
+        ],
+        "contactY": 666
+      },
+      "aim": {
+        "kind": "lawn",
+        "surfaceBand": [
+          512,
+          875
+        ],
+        "contactY": 840,
+        "targetPostX": 1465
+      },
+      "stack": {
+        "kind": "yard",
+        "surfaceBand": [
+          660,
+          1024
+        ],
+        "contactY": 901,
+        "note": "Foreground corner cargo is static scenery; center remains clear for the live stack."
+      },
+      "ring": {
+        "kind": "counter",
+        "surfaceBand": [
+          440,
+          718
+        ],
+        "contactY": 650,
+        "note": "Use the actual tabletop band for peg bases; the requested85% falls on the painted front face."
+      }
+    },
+    "moon": "No painted foreground rooftops or platforms. Runtime draws every playable roof, gap and hazard.",
+    "shelf": "No shelves painted in; runtime supplies moving shelves. Hammock occupies the upper center."
+  }
+}

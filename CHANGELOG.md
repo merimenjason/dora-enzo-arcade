@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Whisker Ware**: prepared the full 34-image painted art set for the planned microgame cabinet: expressive hosts, four prop sheets, title, four host rooms and 24 play backdrops. Includes a lazy artwork loader with redraw/retry helpers, measured matching-pose frames, content-hashed image URLs, background placement notes and exact generation provenance. The package is ready for Claude's planned game implementation; no new playable cabinet is added yet.
 - **Acorn Hand**: harder stakes for players who win. Beating the eighth boss opens the bronze stake (the small round pays no blind reward), then silver (targets from ante 2 a quarter higher) and gold (one discard fewer each round); each keeps the rules below it. Pick your stake on the title screen; the run shows it beside the ante.
 
 ### Changed

@@ -1,0 +1,1322 @@
+{
+  "date": "17-10-2026",
+  "mode": "built-in image_gen",
+  "brief": "docs/whisker-ware-image-prompts.md",
+  "baseCommit": "e3918c6",
+  "records": [
+    {
+      "file": "hosts.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nTransparent RGBA sprite sheet, landscape 1536 \u00d7 1024, EXACTLY 4 columns \u00d7 3 rows, TWELVE separate half-length character portraits, all facing the viewer in a slight three-quarter turn, same head size across the sheet, generous transparent gutters. Each COLUMN is one host in costume:\nColumn 1, **Enzo** (grey fur, white chest, black eyes): a red-and-cream striped snack-stand apron and a little paper cap.\nColumn 2, **Dora** (ivory-white fur, very dark ruby-burgundy eyes): a fluffy mint spa towel round her shoulders and a soft headband.\nColumn 3, **the Owl** (round tawny owl, big amber eyes): a long blue nightcap with a pompom, holding a small brass lantern (unlit, no glow).\nColumn 4, **the Fox** (slim russet fox, cream chest): a red ringmaster's tailcoat with gold buttons and a small black top hat.\nEach ROW is one mood, the same for all four:\nRow 1, presenting: a cheerful open-pawed \"here we go!\" pose.\nRow 2, cheering: both arms up, eyes squeezed happily shut, big open smile.\nRow 3, oops: wincing, ears flat back, one paw over the eyes, a single painted sweat drop.\nNo background, shadows, sparkles or text.",
+        "transparent_background": true
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-013aea04-dc44-4b38-9af7-61c7d7b278fd.png",
+      "selected": false,
+      "destination": "public/art/whisker-ware/hosts.png",
+      "sourceSha256": "b2f947dbc351f3d99b3460164a1daf3037d0ac8ecc31540f667649274f38266f"
+    },
+    {
+      "file": "hosts.png",
+      "correction": true,
+      "args": {
+        "prompt": "Edit this host sprite sheet. Keep the twelve character designs, costumes, colors, expressions and exact 4 columns by 3 rows order unchanged. Change ONLY spacing: shrink each of the twelve portraits individually to fit wholly within the central 72% width AND central 72% height of its own equal grid cell, centered in that cell. Canvas remains 1536 x 1024. Leave at least 14% fully transparent margin to all four sides of EACH of the 12 cells, especially top-row hats, sideways paws and bottom edges. None of the subjects may touch any cell edge. Do not crop off any body part or prop. Preserve genuinely transparent RGBA background alpha zero, no painted colored backing, haze, glow, shadow, boxes, grid or text. The owl lantern is unlit brass, no glow. Dora's open eyes remain very dark ruby-burgundy. All other details unchanged.",
+        "referenced_image_paths": [
+          "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-013aea04-dc44-4b38-9af7-61c7d7b278fd.png"
+        ],
+        "transparent_background": true
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-4ff7d9f3-02f5-4a41-a986-f35c48564cff.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/hosts.png",
+      "sourceSha256": "a4c44f005a58ae4b46b24c31567320879535f07bc47554e556b5259346b0fc2a"
+    },
+    {
+      "file": "props-enzo.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nTransparent RGBA sprite sheet, landscape 1536 \u00d7 1024, EXACTLY 4 columns \u00d7 3 rows, TWELVE separate cut-out game sprites, each centred in its cell with generous transparent gutters. Small objects are painted LARGE so they fill about 60% of their cell. Cells, left to right, top row first:\n(1) a single plump dark-purple raisin; (2) a smooth grey pebble, clearly NOT food; (3) an empty round wooden bowl seen from the side; (4) a glossy brown acorn with a cross-hatched cap; (5) a terracotta jar half full of acorns, side view; (6) a small heap of grey pebbles; (7) an upturned red clay cup, side view; (8) a pale applewood stick lying horizontally with one deep V-shaped notch in its middle; (9) Enzo's head, front view, normal cheeks, eager eyes; (10) the SAME head with cheeks hugely stuffed round like balloons, eyes squeezed shut; (11) Enzo in side view facing right, mouth open, about to gnaw; (12) Enzo in side view facing right, running, holding the wooden bowl over his head with both paws.\nProduction spacing constraint: 1536x1024 canvas, invisible equal 4x3 grid. EVERY sprite fits inside the middle 68% width and 68% height of its cell, with generous alpha-zero gutters; no contour, whisker, tail, string or prop crosses a cell boundary. No drawn ground shadows or colored backing. All chinchillas are dry.",
+        "transparent_background": true
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-03352134-e4a7-4a97-8ebc-395f5f962853.png",
+      "selected": false,
+      "destination": "public/art/whisker-ware/props-enzo.png",
+      "sourceSha256": "e031fedb6969d2682b9e2acfe54337415e25c43fdf8330f5deb7a015bd77fef2"
+    },
+    {
+      "file": "props-owl.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nTransparent RGBA sprite sheet, landscape 1536 \u00d7 1024, EXACTLY 4 columns \u00d7 3 rows, TWELVE separate cut-out game sprites, each centred in its cell with generous transparent gutters. The Owl is a round tawny owl with big amber eyes wearing a long blue nightcap, as in the host sheet. Cells, left to right, top row first:\n(1) the Owl perched, seen from BEHIND, back turned, relaxed; (2) the Owl perched, head turned to the side, one eye glancing back, suspicious; (3) the Owl perched, facing straight out, eyes wide open, staring; (4) the Owl asleep, eyes shut, head drooping in the nightcap; (5) the Owl flying, side view facing LEFT, wings spread in a low swoop; (6) Dora (ivory-white fur, dark ruby-burgundy eyes) tiptoeing, side view facing right, one foot raised, paws up; (7) Enzo (grey, white chest) crouched small, side view facing right, ears flat, hiding; (8) a little grey rubber toy mouse; (9) a bright red jingle ball; (10) a squeaky orange rubber carrot; (11) a brown pinecone, about the same size and shape as an acorn; (12) a single soft tawny feather, drifting at an angle.\nProduction spacing constraint: 1536x1024 canvas, invisible equal 4x3 grid. EVERY sprite fits inside the middle 68% width and 68% height of its cell, with generous alpha-zero gutters; no contour, whisker, tail, string or prop crosses a cell boundary. No drawn ground shadows or colored backing. All chinchillas are dry.",
+        "transparent_background": true
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-dd837558-82e7-493e-87a2-570081f644dc.png",
+      "selected": false,
+      "destination": "public/art/whisker-ware/props-owl.png",
+      "sourceSha256": "ae46a114e9d7bad0e5dfc4814af7f931c2c87e7c0c187f8163f75d0d3c5d41cd"
+    },
+    {
+      "file": "props-dora.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nTransparent RGBA sprite sheet, landscape 1536 \u00d7 1024, EXACTLY 4 columns \u00d7 3 rows, TWELVE separate cut-out game sprites, each centred in its cell with generous transparent gutters. Dora always has ivory-white fur and very dark ruby-burgundy eyes. Cells, left to right, top row first:\n(1) Dora sitting, front view, calm and clean; (2) a soft, round puff of sandy-beige bathing dust, opaque, with a clear rounded silhouette (not a haze); (3) Dora standing, front view, arms out, wobbling for balance, worried eyes; (4) a round hay bale lying on its side, seen end-on so it looks like a wheel; (5) Dora sleek and slim, front view, fur smoothed flat; (6) the SAME Dora fully fluffed into a near-perfect round ball of fur, with only her face, ears and feet showing; (7) Dora in side view facing right, running; (8) Dora in side view facing right, mid-leap, legs tucked; (9) a short rolling log, side view, bark and a pale cut end; (10) a small wooden grooming comb; (11) a messy tangle of white fur, a little knotted tuft; (12) a plain wooden shelf plank, side view, wide and thin.\nProduction spacing constraint: 1536x1024 canvas, invisible equal 4x3 grid. EVERY sprite fits inside the middle 68% width and 68% height of its cell, with generous alpha-zero gutters; no contour, whisker, tail, string or prop crosses a cell boundary. No drawn ground shadows or colored backing. All chinchillas are dry.",
+        "transparent_background": true
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-2c56d895-5025-45d9-b347-f9c43f2fc0dc.png",
+      "selected": false,
+      "destination": "public/art/whisker-ware/props-dora.png",
+      "sourceSha256": "f3f3ea22b6c42388e154acdf10316d3da4fad1c09b07243e652acb0d8b480fbe"
+    },
+    {
+      "file": "props-fox.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nTransparent RGBA sprite sheet, landscape 1536 \u00d7 1024, EXACTLY 4 columns \u00d7 3 rows, game sprites each centred in its cell with generous transparent gutters. Cells, left to right, top row first:\n(1) a playing-card back, portrait, deep red with a gold fox-tail swirl pattern, no letters; (2) a shiny red party balloon with a curly string; (3) the same balloon in sunflower yellow; (4) the same balloon in sky blue; (5) the same balloon in leaf green; (6) a balloon pop burst: a star-shaped puff of torn rubber scraps and confetti, opaque, no glow; (7) a wooden Y-shaped slingshot with a leather pouch and a slack band; (8) a round straw archery target with red, cream and blue painted rings, front view; (9) a sturdy wooden crate, side view, with metal-banded corners; (10) a short wooden peg standing upright on a small round base; (11) a thick rope ring, seen at a slight angle so it reads as a hoop; (12) leave EMPTY and fully transparent.\nProduction spacing constraint: 1536x1024 canvas, invisible equal 4x3 grid. EVERY sprite fits inside the middle 68% width and 68% height of its cell, with generous alpha-zero gutters; no contour, whisker, tail, string or prop crosses a cell boundary. No drawn ground shadows or colored backing. All chinchillas are dry.",
+        "transparent_background": true
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-2db55c37-4e07-42e1-9be2-1b43f59cd53c.png",
+      "selected": false,
+      "destination": "public/art/whisker-ware/props-fox.png",
+      "sourceSha256": "6ac3684e1f83ed9c5372f6b6a46992d9693da70323259f116462cfa78e60d83e"
+    },
+    {
+      "file": "props-enzo.png",
+      "correction": true,
+      "args": {
+        "prompt": "Edit this existing sheet for production cropping. Keep the designs and exact row-major 4 columns x 3 rows cell order, but individually SHRINK AND REPOSITION each separate sprite so EVERY PART including tails, whiskers, strings, hats, wings and loose fragments fits in its safe rectangle. Output 1536x1024 transparent RGBA. Invisible cell centers are x=192,576,960,1344 and y=171,512,853. Each sprite MUST fit within x=center +/-125 and y=center +/-105. Thus each safe box is 250x210 pixels with wide alpha-zero gutters. No sprite touches or crosses a cell edge. Re-layout all 12 sprites INDIVIDUALLY; do not just shrink the entire sheet. Preserve all details; no cropping or lost detached fragments. Transparent background truly alpha0, no haze or shadow or painted background. Remove motion lines and any star patterns or writing from clothing. Dora's eyes very dark ruby-burgundy; Enzo's eyes pure glossy black, never red. Keep Fox sheet cell12 fully transparent. No other changes.",
+        "referenced_image_paths": [
+          "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-03352134-e4a7-4a97-8ebc-395f5f962853.png"
+        ],
+        "transparent_background": true
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-a213a0de-f230-4fb5-8f7d-f4a394466d36.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/props-enzo.png",
+      "sourceSha256": "cb3c42d134d1ca194f6566f59a5920285f6ead8667952ad8e6153ead65bd7e35"
+    },
+    {
+      "file": "props-dora.png",
+      "correction": true,
+      "args": {
+        "prompt": "Edit this existing sheet for production cropping. Keep the designs and exact row-major 4 columns x 3 rows cell order, but individually SHRINK AND REPOSITION each separate sprite so EVERY PART including tails, whiskers, strings, hats, wings and loose fragments fits in its safe rectangle. Output 1536x1024 transparent RGBA. Invisible cell centers are x=192,576,960,1344 and y=171,512,853. Each sprite MUST fit within x=center +/-125 and y=center +/-105. Thus each safe box is 250x210 pixels with wide alpha-zero gutters. No sprite touches or crosses a cell edge. Re-layout all 12 sprites INDIVIDUALLY; do not just shrink the entire sheet. Preserve all details; no cropping or lost detached fragments. Transparent background truly alpha0, no haze or shadow or painted background. Remove motion lines and any star patterns or writing from clothing. Dora's eyes very dark ruby-burgundy; Enzo's eyes pure glossy black, never red. Keep Fox sheet cell12 fully transparent. No other changes.",
+        "referenced_image_paths": [
+          "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-2c56d895-5025-45d9-b347-f9c43f2fc0dc.png"
+        ],
+        "transparent_background": true
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-8bbb83d5-72cc-40b1-a04a-225d02ce5174.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/props-dora.png",
+      "sourceSha256": "678be275d1fc7c700fab01dc03369ee4a082dca472668188b4e326b80c6660a4"
+    },
+    {
+      "file": "props-owl.png",
+      "correction": true,
+      "args": {
+        "prompt": "Edit this existing sheet for production cropping. Keep the designs and exact row-major 4 columns x 3 rows cell order, but individually SHRINK AND REPOSITION each separate sprite so EVERY PART including tails, whiskers, strings, hats, wings and loose fragments fits in its safe rectangle. Output 1536x1024 transparent RGBA. Invisible cell centers are x=192,576,960,1344 and y=171,512,853. Each sprite MUST fit within x=center +/-125 and y=center +/-105. Thus each safe box is 250x210 pixels with wide alpha-zero gutters. No sprite touches or crosses a cell edge. Re-layout all 12 sprites INDIVIDUALLY; do not just shrink the entire sheet. Preserve all details; no cropping or lost detached fragments. Transparent background truly alpha0, no haze or shadow or painted background. Remove motion lines and any star patterns or writing from clothing. Dora's eyes very dark ruby-burgundy; Enzo's eyes pure glossy black, never red. Keep Fox sheet cell12 fully transparent. No other changes.",
+        "referenced_image_paths": [
+          "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-dd837558-82e7-493e-87a2-570081f644dc.png"
+        ],
+        "transparent_background": true
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-e053734e-0c43-4955-8fb6-e2a4a2c1b2e2.png",
+      "selected": false,
+      "destination": "public/art/whisker-ware/props-owl.png",
+      "sourceSha256": "4e692ea4f262d3d39fa8458bec4558bca5bd5e0647ad423523027afb27280d76"
+    },
+    {
+      "file": "props-fox.png",
+      "correction": true,
+      "args": {
+        "prompt": "Edit this existing sheet for production cropping. Keep the designs and exact row-major 4 columns x 3 rows cell order, but individually SHRINK AND REPOSITION each separate sprite so EVERY PART including tails, whiskers, strings, hats, wings and loose fragments fits in its safe rectangle. Output 1536x1024 transparent RGBA. Invisible cell centers are x=192,576,960,1344 and y=171,512,853. Each sprite MUST fit within x=center +/-125 and y=center +/-105. Thus each safe box is 250x210 pixels with wide alpha-zero gutters. No sprite touches or crosses a cell edge. Re-layout all 12 sprites INDIVIDUALLY; do not just shrink the entire sheet. Preserve all details; no cropping or lost detached fragments. Transparent background truly alpha0, no haze or shadow or painted background. Remove motion lines and any star patterns or writing from clothing. Dora's eyes very dark ruby-burgundy; Enzo's eyes pure glossy black, never red. Keep Fox sheet cell12 fully transparent. No other changes.",
+        "referenced_image_paths": [
+          "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-2db55c37-4e07-42e1-9be2-1b43f59cd53c.png"
+        ],
+        "transparent_background": true
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-7114c3f6-ce30-4975-8fcb-c9b8841a050c.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/props-fox.png",
+      "sourceSha256": "ac8d07f7c2434c359009d15a5cad9d60bda86153c0341819b46f92901eaa6513"
+    },
+    {
+      "file": "title.png",
+      "correction": false,
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nTransparent RGBA illustration, landscape 1536 \u00d7 1024. An explosive comic action burst: Dora (ivory-white fur, very dark ruby-burgundy eyes) and Enzo (grey fur, white chest, black eyes) leaping towards the viewer from the lower half, grinning, paws flung wide, as if bursting out of a game. Around them, a ring of flying objects tumbles outwards: a raisin, a wooden comb, a tawny feather, a red balloon, an acorn, a red clay cup and a playing card. Leave the TOP THIRD completely empty and transparent for the game's own title lettering. Squash-and-stretch energy, no motion-blur smears, no speed lines, no background, no shadows, no text.",
+        "transparent_background": true
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-cb273339-7fcd-4826-95f5-3ffabbbae836.png",
+      "selected": false,
+      "destination": "public/art/whisker-ware/title.png",
+      "sourceSha256": "25114c53ec4836aa9144df79f5ae85d4b2f7ca4e999db681669bc3f52be9a357"
+    },
+    {
+      "file": "room-enzo.png",
+      "correction": false,
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge, front view. a tiny snack shack inside a hollow log, with a striped red-and-cream awning edge at the top corners, jars of raisins and seeds on shelves at the sides, and a wooden counter front along the bottom.. Keep the central half and the top fifth calm, plain and slightly muted, with a clear floor in the lower middle where a character will stand; put props and texture only at the left and right edges. Warm, welcoming light. No characters, animals, text, signs, frames or vignette.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-336148ee-5c6c-44d4-a1d2-d4f6bdbe588f.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/room-enzo.png",
+      "sourceSha256": "3abbd316019752337940342e3ecfb6b08c1192ea31d7d614e6209fee6153963e"
+    },
+    {
+      "file": "room-owl.png",
+      "correction": false,
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge, front view. an owl's attic at night, with moonlight through a round window high on one side, rafters, stacked books and an unlit lantern at the edges, in deep blues with a warm floor.. Keep the central half and the top fifth calm, plain and slightly muted, with a clear floor in the lower middle where a character will stand; put props and texture only at the left and right edges. Warm, welcoming light. No characters, animals, text, signs, frames or vignette.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-813c6225-1dea-4f6a-adb1-eb61604e761d.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/room-owl.png",
+      "sourceSha256": "ef7b5e591a102245d9b44f90a218e486503d1dad359aec6738d9c47d47013a98"
+    },
+    {
+      "file": "title.png",
+      "correction": true,
+      "args": {
+        "prompt": "Keep these two leaping chinchillas and the surrounding seven props, style and expressions. Change only the following two details. 1: The TOP THIRD, y=0 through y=350 of the 1536x1024 canvas, must be COMPLETELY EMPTY with alpha0: move the red balloon down into y=365..600 and reduce it if necessary; similarly keep every other subject below y350. Clear space for the game's live lettering must be preserved. 2: Replace the heart symbols on the playing card with a deep-red and gold decorative card BACK, NO letters, numbers or suit symbols. Keep all subjects completely inside canvas, never clip tails or feet. Ivory Dora has very dark ruby-burgundy eyes, gray Enzo glossy black eyes. Truly transparent background, no glow, shadow, smears or text. Keep all other details unchanged.",
+        "referenced_image_paths": [
+          "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-cb273339-7fcd-4826-95f5-3ffabbbae836.png"
+        ],
+        "transparent_background": true
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-12f25f12-18bc-4962-8195-a66347b54df6.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/title.png",
+      "sourceSha256": "659cd2fc43eaf6ebcb43c6d676b9233d35113c1b521df3294870375c93126684"
+    },
+    {
+      "file": "room-dora.png",
+      "correction": false,
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge, front view. a cosy chinchilla spa, with pale mint tiles, rolled towels and a basin of sandy dust at the sides, potted ferns, and soft daylight.. Keep the central half and the top fifth calm, plain and slightly muted, with a clear floor in the lower middle where a character will stand; put props and texture only at the left and right edges. Warm, welcoming light. No characters, animals, text, signs, frames or vignette.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-56e454b6-7ddb-4fe6-9d1c-089f078c7556.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/room-dora.png",
+      "sourceSha256": "0da3b3d7d6726c1dcf611b838654b04a63a9ada6e12ade4a3401655f359e5707"
+    },
+    {
+      "file": "props-owl.png",
+      "correction": true,
+      "args": {
+        "prompt": "Keep this transparent 1536x1024 4x3 sprite sheet unchanged EXCEPT restore the missing twelfth sprite in the empty bottom right cell. It is ONE single soft tawny feather drifting diagonally, clean silhouette, centered near (1344,853), fully within x1225..1460 and y760..950, alpha zero all around. Match feather/outline style of the owl. Preserve every other sprite exactly, including black eyes for gray Enzo and very dark ruby eyes for white Dora. Do not add any other object or backdrop, glow, shadow, haze, lettering or grid. Genuine alpha-zero background.",
+        "referenced_image_paths": [
+          "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-e053734e-0c43-4955-8fb6-e2a4a2c1b2e2.png"
+        ],
+        "transparent_background": true
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-81f44945-25ba-4e06-9eae-62d06ef4a753.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/props-owl.png",
+      "sourceSha256": "3c7faff11a78ed616a065c692a33d0493d42b3c86507059c25ed172404848480"
+    },
+    {
+      "file": "room-fox.png",
+      "correction": false,
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge, front view. backstage at a travelling fair, with red-and-gold striped tent walls, a corner of velvet curtain, a trunk of juggling props and strings of unlit bulbs at the edges.. Keep the central half and the top fifth calm, plain and slightly muted, with a clear floor in the lower middle where a character will stand; put props and texture only at the left and right edges. Warm, welcoming light. No characters, animals, text, signs, frames or vignette.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-599d823a-8c86-48ce-82a5-0cec252b3223.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/room-fox.png",
+      "sourceSha256": "60fff61088b1f2d717e348d4a7ced7dbd2c687ad2f9027b861be8a11ff5230f7"
+    },
+    {
+      "file": "bg-stuff.png",
+      "correction": false,
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a warm pantry wall with shelves of jars and hay bundles at the sides, a gingham curtain at one edge. Camera: front view. The play area is the centre 60%, where a big face will sit: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-f9eedd80-509f-4ea9-aaca-4d36b1b3fb11.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-stuff.png",
+      "sourceSha256": "3f000086d2a6cf16a7be2fb78ac9fe30fafb76617904a411245b329edcc8b48f"
+    },
+    {
+      "file": "bg-sort.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a market-stall counter top in warm wood. Camera: front view, counter top at 70%. The play area is the whole counter, with the left and right thirds clear for a jar and a heap: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nThis is a clean static environment layer, not a game screenshot: do not bake actors, gameplay props or HUD into it. Side-view floor/counter line must stay level at the requested percentage across the entire canvas. Actual output MUST be 1536x1024 pixels.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-2d8c6ee6-2c35-4889-bfd9-32fcd395d012.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-sort.png",
+      "sourceSha256": "d8634840d5696fdc6164003ff930fa1a443cbc3381ffcfab484b3b30dccecb48"
+    },
+    {
+      "file": "bg-dust.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a stone bathhouse with mint tiles and a wide, shallow, empty dust-bath bowl on the floor, lit by a sunbeam. Camera: front view, bowl rim at 75%. The play area is the centre above the bowl: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nThis is a clean static environment layer, not a game screenshot: do not bake actors, gameplay props or HUD into it. Side-view floor/counter line must stay level at the requested percentage across the entire canvas. Actual output MUST be 1536x1024 pixels.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-4c87b0b0-5947-4c99-ad49-d5233ec10c23.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-dust.png",
+      "sourceSha256": "d5e7005ebfa432e42890812facdb1cc89942fba13bd38346387700eed600acda"
+    },
+    {
+      "file": "bg-catch.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a kitchen with a long high shelf edge across the top and a tiled floor. Camera: side view, ground at 82%. The play area is the open middle between shelf and floor: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nThis is a clean static environment layer, not a game screenshot: do not bake actors, gameplay props or HUD into it. Side-view floor/counter line must stay level at the requested percentage across the entire canvas. Actual output MUST be 1536x1024 pixels.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-a18a5cf1-35df-4b26-9238-6671ec66e502.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-catch.png",
+      "sourceSha256": "849e4c978a09adfe580c64ae9bbf45636a81cf3858472f2589e448ce2443d238"
+    },
+    {
+      "file": "bg-raisin.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a dramatic pantry storm: three wooden chutes pour from the top edge at 25%, 50% and 75% across, with stormy plum light and a tiled floor. Camera: side view, ground at 85%. The play area is everything below the chutes: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nThis is a clean static environment layer, not a game screenshot: do not bake actors, gameplay props or HUD into it. Side-view floor/counter line must stay level at the requested percentage across the entire canvas. Actual output MUST be 1536x1024 pixels.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-54a5e068-246c-469c-8a0d-95edee8b9b22.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-raisin.png",
+      "sourceSha256": "09a948e73063d8a51b6a12d2d7f35b4820b311a97a886945d72ad973c4dc5d39"
+    },
+    {
+      "file": "bg-gnaw.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a carpenter's nook with a workbench, wood shavings and small tools at the edges. Camera: side view, bench top at 60%. The play area is a horizontal band across the middle: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nThis is a clean static environment layer, not a game screenshot: do not bake actors, gameplay props or HUD into it. Side-view floor/counter line must stay level at the requested percentage across the entire canvas. Actual output MUST be 1536x1024 pixels.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-d26fd519-c2f6-4fe4-b1ff-c745b68f9240.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-gnaw.png",
+      "sourceSha256": "d13573c913b89866c9ec14049030659e3770f93b9e630163dd1b98af7f8292bf"
+    },
+    {
+      "file": "bg-sniff.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a red-and-cream checked tablecloth. Camera: slightly high three-quarter view. The play area is a wide band across the middle for three cups: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nThis is a clean static environment layer, not a game screenshot: do not bake actors, gameplay props or HUD into it. Side-view floor/counter line must stay level at the requested percentage across the entire canvas. Actual output MUST be 1536x1024 pixels.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-ca8e5c56-9f16-4cde-aa38-7dc7e79e6b65.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-sniff.png",
+      "sourceSha256": "badfa5ba2790a030e2ffda3be68f258f7b83ad834f4d4fae2e834959b5129b2a"
+    },
+    {
+      "file": "bg-hop.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a long, earthy burrow tunnel lit by root lanterns at the edges. Camera: side view, ground at 80%. The play area is the whole tunnel floor and the space above it: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nProduction layer: calm playable center, no actors, game pieces or HUD. 1536x1024 pixels, full bleed. Where a floor is specified, use an orthographic side view and make the top walkable boundary a single level line at precisely the specified percentage; leave space above it for actors.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-9344702d-ae7a-44c6-ad93-7b320921a2ec.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-hop.png",
+      "sourceSha256": "b91df9d11fa7228290838184e10d9d87f3d98dd062979bdcd8db0721d2fdd0e4"
+    },
+    {
+      "file": "bg-fluff.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a spa salon with a large empty round mirror frame behind, and towels and a hanging hair-dryer at the edges. Camera: front view. The play area is the centre, inside and around the mirror: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nProduction layer: calm playable center, no actors, game pieces or HUD. 1536x1024 pixels, full bleed. Where a floor is specified, use an orthographic side view and make the top walkable boundary a single level line at precisely the specified percentage; leave space above it for actors.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-1df724f7-ca11-4271-975a-315fa0f2868e.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-fluff.png",
+      "sourceSha256": "92eb4a662e6ca1ed216fb4bcc117f74a72a9ce17a2fe31c09f5732f5ce31f89f"
+    },
+    {
+      "file": "bg-balance.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a sunny meadow with a dirt path along the bottom, low hills and a wide sky. Camera: side view, ground at 80%. The play area is the sky and the middle of the path: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nProduction layer: calm playable center, no actors, game pieces or HUD. 1536x1024 pixels, full bleed. Where a floor is specified, use an orthographic side view and make the top walkable boundary a single level line at precisely the specified percentage; leave space above it for actors.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-a9cb8327-7553-4d54-8cfe-b0ec234e921a.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-balance.png",
+      "sourceSha256": "bf95c94d524e4a620459208fa7dea550503d8d888d845070fa1fbb9571031be4"
+    },
+    {
+      "file": "bg-shelf.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a tall chinchilla cage interior (match the attached `public/art/cage-interior.jpg` if available) with wire mesh walls and a hammock hanging at the top centre. Camera: front view. The play area is the whole height of the middle; no shelves painted in: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nProduction layer: calm playable center, no actors, game pieces or HUD. 1536x1024 pixels, full bleed. Where a floor is specified, use an orthographic side view and make the top walkable boundary a single level line at precisely the specified percentage; leave space above it for actors.\nThe attached photograph is an architecture reference ONLY: adapt its light warm wooden enclosure and protective mesh into the painted front-view microgame backdrop. REMOVE the photographed chinchilla and EVERY shelf/platform and loose object. The new painted scene has a completely open middle, wire mesh, quiet wood side walls, and a hammock only at the TOP center. Do not retain the photograph's animals or shelves.",
+        "transparent_background": false,
+        "referenced_image_paths": [
+          "/Users/jasonchua/Documents/Codex/2026-10-08/read/work/dora-enzo-arcade/public/art/cage-interior.jpg"
+        ]
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-2fb3cd5d-a2b7-447c-aba4-135ff72a827a.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-shelf.png",
+      "sourceSha256": "8975172e03064308d2651f075009715fb0212732989bed242cb04558caa1ccc0"
+    },
+    {
+      "file": "bg-comb.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a grooming parlour wall with a soft towel on a hook and a stool at the edges. Camera: front view. The play area is the centre 60%, where a big Dora will sit: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nProduction layer: calm playable center, no actors, game pieces or HUD. 1536x1024 pixels, full bleed. Where a floor is specified, use an orthographic side view and make the top walkable boundary a single level line at precisely the specified percentage; leave space above it for actors.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-302f8234-9151-43fd-b2f2-86182b7261a6.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-comb.png",
+      "sourceSha256": "38f2188875f9fcc25a829fe99e995c5108a9d197c024449a9dceb6b04aa1e826"
+    },
+    {
+      "file": "bg-sneak.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a moonlit attic floor, with a rafter beam on the right at 55% height where an owl will perch. Camera: side view, ground at 80%. The play area is the floor from left to right: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nProduction layer: calm playable center, no actors, game pieces or HUD. 1536x1024 pixels, full bleed. Where a floor is specified, use an orthographic side view and make the top walkable boundary a single level line at precisely the specified percentage; leave space above it for actors.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-ca34aaa0-3eac-4f58-b57a-500be33ac2e1.png",
+      "selected": false,
+      "destination": "public/art/whisker-ware/bg-sneak.png",
+      "sourceSha256": "cfa8ecd6c4a0caa2988f19ed03032bf072ef05e85fed9d0ec662c4725fcd8f83"
+    },
+    {
+      "file": "bg-hide.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a night garden with a stone wall and plain flagstones. Camera: side view, ground at 80%. The play area is the flagstones; paint NO shadows on them: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\n1536x1024 clean static background layer. Keep gameplay actors, targets, hazards and HUD absent. Preserve the stated camera and calm central play space.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-5670a510-032a-4b87-a730-f09423c3a33b.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-hide.png",
+      "sourceSha256": "6d835c1071574c66afeadbdd4c325588808ce94ba47543dfdb6fe108e706c56e"
+    },
+    {
+      "file": "bg-hush.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: the Owl's bedroom, with an empty round nest bed at the top centre and a rug. Camera: front view, floor at 70%. The play area is the floor, with three clear spots at left, centre and right: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\n1536x1024 clean static background layer. Keep gameplay actors, targets, hazards and HUD absent. Preserve the stated camera and calm central play space.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-fead0d85-66e2-40ad-9e09-60e1724c3413.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-hush.png",
+      "sourceSha256": "a298feb8d006e221a0cc61116014781633c17c549170dcc5428b74fc4d52984b"
+    },
+    {
+      "file": "bg-find.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a forest floor of moss, fallen leaves, roots and pebbles, painted EVENLY LIT and evenly detailed everywhere (the game darkens it and shines a lantern) with no acorns, cones or nuts. Camera: top-down view. The play area is the whole image: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\n1536x1024 clean static background layer. Keep gameplay actors, targets, hazards and HUD absent. Preserve the stated camera and calm central play space.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-02d21164-2b88-4244-bdfc-22b06ffe686a.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-find.png",
+      "sourceSha256": "8130f95db4f7f9e1c12d7fc880b484bd47424bfd3b569c1aa02d42088c53de1c"
+    },
+    {
+      "file": "bg-moon.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a huge friendly moon over a distant sleepy village skyline and deep blue sky (the game draws the rooftops you run on). Camera: side view. The play area is the lower half, kept dark and simple: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\n1536x1024 clean static background layer. Keep gameplay actors, targets, hazards and HUD absent. Preserve the stated camera and calm central play space.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-6282df43-4d72-4fd1-90aa-c085be77a829.png",
+      "selected": false,
+      "destination": "public/art/whisker-ware/bg-moon.png",
+      "sourceSha256": "ea2f285ea559640d334737b479a0d59937e23c45cc6897991d6e56cd9a09a8a0"
+    },
+    {
+      "file": "bg-dodge.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: under a big oak at night, with roots, moonlight and a soft drift of leaves at the edges. Camera: side view, ground at 85%. The play area is the whole middle: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\n1536x1024 clean static background layer. Keep gameplay actors, targets, hazards and HUD absent. Preserve the stated camera and calm central play space.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-4be58ed8-cd3e-4e87-a5dd-aebda0ecf403.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-dodge.png",
+      "sourceSha256": "e3da71945a2f0f39f864421e85c3dc59d955c8172b3ac8a27f3d64849fb35d8d"
+    },
+    {
+      "file": "bg-sneak.png",
+      "correction": true,
+      "args": {
+        "prompt": "Edit this moonlit attic background, preserving its painterly style, colors, window, lighting and quiet central play area. Change only the gameplay geometry: replace the current HIGH right-hand protruding rafter with one LOWER, HORIZONTAL owl-perch beam whose TOP walkable edge is exactly y=563 pixels (55% of the 1024px canvas), extending horizontally from x=1080 to the right edge. No upper beam protruding into the play space remains. Keep the middle-left clear for sneaking. Put the top edge of the level ground floor at y=819 (80% height). Canvas stays1536x1024, fully opaque. No owl, chinchillas, animals, loose gameplay pieces, labels or text. The game will add actors and controls later.",
+        "referenced_image_paths": [
+          "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-ca34aaa0-3eac-4f58-b57a-500be33ac2e1.png"
+        ],
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-e29a2cad-4cb3-4e42-85cd-64b9fa1708a9.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-sneak.png",
+      "sourceSha256": "fbc20c6f0fd4ac16401233fa6a97d9a22d7097a565010d144c68fc517dd1b446"
+    },
+    {
+      "file": "bg-pick.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a striped carnival booth with a red velvet table top across the lower third. Camera: front view, table top at 65%. The play area is the table, wide enough for three cards: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nProduction environment layer ONLY, 1536x1024. Do not paint cards, balloons, projectiles, targets, crates, pegs or rings into the backdrop; those are separate live gameplay sprites. Preserve stated camera, requested ground level and calm playable center.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-f3f7cfeb-4730-4d1a-9468-f258948d8007.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-pick.png",
+      "sourceSha256": "01df477f2b57ebcbf2b62a880692673c44b1e06ad4a641807b0ccae9d69dee44"
+    },
+    {
+      "file": "bg-pop.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a bright fairground sky with soft clouds, and distant tents and bunting along the bottom edge. Camera: front view. The play area is the whole sky: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nProduction environment layer ONLY, 1536x1024. Do not paint cards, balloons, projectiles, targets, crates, pegs or rings into the backdrop; those are separate live gameplay sprites. Preserve stated camera, requested ground level and calm playable center.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-d965f88e-c8c1-4dd4-8232-cc05b10d0109.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-pop.png",
+      "sourceSha256": "ef8881c099c7c88cdec30e0f9c114bda51572656a23ffb045ee578e306a735ba"
+    },
+    {
+      "file": "bg-stack.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a fairground loading yard with a wooden crane arm across the top edge. Camera: side view, ground at 88%. The play area is the middle below the crane: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nProduction environment layer ONLY, 1536x1024. Do not paint cards, balloons, projectiles, targets, crates, pegs or rings into the backdrop; those are separate live gameplay sprites. Preserve stated camera, requested ground level and calm playable center.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-608d8f0f-e9c4-456a-a065-043d8d6af50a.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-stack.png",
+      "sourceSha256": "9fec5cb1447329618b7ad4af0630bb1b871035a7d80a714d94ed7d869120395d"
+    },
+    {
+      "file": "bg-count.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a fortune-teller's tent with draped purple fabric and a round, plain cream tablecloth in the centre. Camera: top-down three-quarter view. The play area is the tablecloth: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nProduction environment layer ONLY, 1536x1024. Do not paint cards, balloons, projectiles, targets, crates, pegs or rings into the backdrop; those are separate live gameplay sprites. Preserve stated camera, requested ground level and calm playable center.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-d21d5758-1b11-4452-8301-24fe4efc2dac.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-count.png",
+      "sourceSha256": "08d3bbd28bb1092229afb2a4a5af7bab2d5d04625e855a31705f02452d0aeb22"
+    },
+    {
+      "file": "bg-aim.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a grassy shooting-gallery lawn with hay bales at the edges and a plain post on the right where a target will hang. Camera: side view, ground at 82%. The play area is from the left edge to the post: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nProduction environment layer ONLY, 1536x1024. Do not paint cards, balloons, projectiles, targets, crates, pegs or rings into the backdrop; those are separate live gameplay sprites. Preserve stated camera, requested ground level and calm playable center.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-6c309956-cda1-44ef-a43d-86a214d6e88d.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-aim.png",
+      "sourceSha256": "64d67533d7a85f9568635c24c679b46f15bbd2e6df98d723fb53c241d77ed737"
+    },
+    {
+      "file": "bg-ring.png",
+      "args": {
+        "prompt": "You are painting production art for **Whisker Ware**, a fast, funny microgame party game: dozens of five-second games where two chinchillas, Dora and Enzo, stuff their cheeks, dodge feathers and sneak past an owl. Match the attached Whisker Saga sheet: soft, detailed gouache on cream paper, round cute bodies, big rounded ears, thin dark-plum outlines, charming and never scary. Whisker Ware is that same world played at cartoon speed, so push it slightly: livelier poses, squash-and-stretch expressions, cleaner silhouettes.\n\nThere are two kinds of image, and the rules differ:\n**Actor and prop sheets** are transparent cut-outs. Use bold, simple silhouettes that read at 60 pixels, saturated colour, an outline a little thicker than the Saga sheet, and even soft light from the upper left with no cast shadow. The background must be truly transparent (alpha zero), with no glow, haze, halo, sparkle, vignette or ground shadow around any subject. Keep every subject wholly inside its own cell, with at least 10% clear space on every side, and nothing crossing into a neighbour.\n**Backdrops** are full-bleed paintings at exactly 1536 \u00d7 1024. Keep the play area calm, low in detail and a little muted so small bright characters read on top of it; put texture and story detail only around the edges. Use no characters or animals unless asked.\n\nFor every image: no text, letters, numbers, signs, logos or symbols painted in, because the game prints all words itself. If something would normally carry writing, leave it blank. Use no frames, borders, grid lines or labels.\n\n**Character canon, every time they appear:**\n- **Dora** has ivory-white fur and very **dark ruby-burgundy eyes** (nearly black in shadow, never pink or glowing).\n- **Enzo** has grey fur with a white chest and black eyes.\n- **The Owl** is a round tawny owl with big amber eyes.\n- **The Fox** is a slim russet fox with a cream chest and a white-tipped tail.\n- In side views, chinchillas face **right**.\n\nWide 3:2 painted game backdrop, exactly 1536 \u00d7 1024, full bleed edge to edge. Scene: a ring-toss stall with a striped back wall and a wooden counter edge in the foreground. Camera: front view, counter at 85%. The play area is a horizontal band across the middle where pegs slide: keep it calm, low in detail and a little muted so small bright cut-out characters read on top of it, and put texture and story detail only around the edges. No characters, animals, food, loose objects, text, signs, frames or vignette.\nProduction environment layer ONLY, 1536x1024. Do not paint cards, balloons, projectiles, targets, crates, pegs or rings into the backdrop; those are separate live gameplay sprites. Preserve stated camera, requested ground level and calm playable center.",
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-3a664853-0671-4553-8673-199bd6d871fa.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-ring.png",
+      "sourceSha256": "43feedb8cd61268b97d49007794022d992d1a01f91dd54450f9342f6e31dd460"
+    },
+    {
+      "file": "bg-moon.png",
+      "correction": true,
+      "args": {
+        "prompt": "Edit this moonlit village backdrop. Keep the enormous friendly moon, painted sky, soft clouds and small DISTANT village skyline, but REMOVE the entire close foreground tiled roof and stone parapet. The entire LOWER HALF from y=512 down to1024 must become a dark, SIMPLE low-contrast navy-blue atmospheric field with only barely visible distant silhouettes, no nearby objects. No visible foreground roofing, parapet, brick ledge, walkable platform or ground at all: the GAME draws the moving rooftops, gaps and hazards over this clean background. Keep the distant village small and concentrated above y550, the upper-right moon unchanged, and the play area below it quiet enough to see bright sprites. No characters, animals, text or HUD. 1536x1024 opaque full-bleed painted background.",
+        "referenced_image_paths": [
+          "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-6282df43-4d72-4fd1-90aa-c085be77a829.png"
+        ],
+        "transparent_background": false
+      },
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-39ff6e85-86b2-4594-90be-e5d392bf6140.png",
+      "selected": true,
+      "destination": "public/art/whisker-ware/bg-moon.png",
+      "sourceSha256": "88255b1815919ca8e56289ebc8aee48c5a343f1b295d075e956e7614b4edc5d1"
+    }
+  ],
+  "referenceReview": [
+    {
+      "file": "public/art/saga/heroes-0.png",
+      "role": "Character/style reference reviewed before generation",
+      "sha256": "9a14d162b2daa0f780d8fadd04ee2b4fbbaa0a8e8af2cb8a8c9e31965ff3318a"
+    },
+    {
+      "file": "public/art/dora.jpeg",
+      "role": "Character/style reference reviewed before generation",
+      "sha256": "a5c0b6a7f1e1bd6c236883e5f0b01c806be11aecdb0fe58036c59720f0783e5c"
+    },
+    {
+      "file": "public/art/enzo.jpeg",
+      "role": "Character/style reference reviewed before generation",
+      "sha256": "a78f6a951dcbfec46d91dfaa249157b938714846ce42a7a439866a5b99c1def4"
+    },
+    {
+      "file": "public/art/acorn-hand/rivals-0.png",
+      "role": "Character/style reference reviewed before generation",
+      "sha256": "0c1b8f700c247c30cf38422b8bb381b76c8a8fa577fe8b9c214818f5f2d7fb37"
+    },
+    {
+      "file": "public/art/cage-interior.jpg",
+      "role": "Architecture reference passed to bg-shelf generation",
+      "sha256": "2dcd54ae09d0e2e229cb31d634c06d1c23fd5976171ed2d03e36f4e7d6a2998b"
+    }
+  ],
+  "finalAssets": [
+    {
+      "file": "bg-aim.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "64d67533d7a85f9568635c24c679b46f15bbd2e6df98d723fb53c241d77ed737",
+      "bytes": 2828270
+    },
+    {
+      "file": "bg-balance.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "bf95c94d524e4a620459208fa7dea550503d8d888d845070fa1fbb9571031be4",
+      "bytes": 2347707
+    },
+    {
+      "file": "bg-catch.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "849e4c978a09adfe580c64ae9bbf45636a81cf3858472f2589e448ce2443d238",
+      "bytes": 2063055
+    },
+    {
+      "file": "bg-comb.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "38f2188875f9fcc25a829fe99e995c5108a9d197c024449a9dceb6b04aa1e826",
+      "bytes": 2335378
+    },
+    {
+      "file": "bg-count.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "08d3bbd28bb1092229afb2a4a5af7bab2d5d04625e855a31705f02452d0aeb22",
+      "bytes": 2259529
+    },
+    {
+      "file": "bg-dodge.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "e3da71945a2f0f39f864421e85c3dc59d955c8172b3ac8a27f3d64849fb35d8d",
+      "bytes": 2722965
+    },
+    {
+      "file": "bg-dust.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "d5e7005ebfa432e42890812facdb1cc89942fba13bd38346387700eed600acda",
+      "bytes": 2428256
+    },
+    {
+      "file": "bg-find.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "8130f95db4f7f9e1c12d7fc880b484bd47424bfd3b569c1aa02d42088c53de1c",
+      "bytes": 3241150
+    },
+    {
+      "file": "bg-fluff.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "92eb4a662e6ca1ed216fb4bcc117f74a72a9ce17a2fe31c09f5732f5ce31f89f",
+      "bytes": 2340006
+    },
+    {
+      "file": "bg-gnaw.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "d13573c913b89866c9ec14049030659e3770f93b9e630163dd1b98af7f8292bf",
+      "bytes": 2155764
+    },
+    {
+      "file": "bg-hide.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "6d835c1071574c66afeadbdd4c325588808ce94ba47543dfdb6fe108e706c56e",
+      "bytes": 2778554
+    },
+    {
+      "file": "bg-hop.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "b91df9d11fa7228290838184e10d9d87f3d98dd062979bdcd8db0721d2fdd0e4",
+      "bytes": 2340196
+    },
+    {
+      "file": "bg-hush.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "a298feb8d006e221a0cc61116014781633c17c549170dcc5428b74fc4d52984b",
+      "bytes": 2488441
+    },
+    {
+      "file": "bg-moon.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "88255b1815919ca8e56289ebc8aee48c5a343f1b295d075e956e7614b4edc5d1",
+      "bytes": 1713051
+    },
+    {
+      "file": "bg-pick.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "01df477f2b57ebcbf2b62a880692673c44b1e06ad4a641807b0ccae9d69dee44",
+      "bytes": 2376141
+    },
+    {
+      "file": "bg-pop.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "ef8881c099c7c88cdec30e0f9c114bda51572656a23ffb045ee578e306a735ba",
+      "bytes": 1971428
+    },
+    {
+      "file": "bg-raisin.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "09a948e73063d8a51b6a12d2d7f35b4820b311a97a886945d72ad973c4dc5d39",
+      "bytes": 2304783
+    },
+    {
+      "file": "bg-ring.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "43feedb8cd61268b97d49007794022d992d1a01f91dd54450f9342f6e31dd460",
+      "bytes": 2194010
+    },
+    {
+      "file": "bg-shelf.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "8975172e03064308d2651f075009715fb0212732989bed242cb04558caa1ccc0",
+      "bytes": 2282039
+    },
+    {
+      "file": "bg-sneak.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "fbc20c6f0fd4ac16401233fa6a97d9a22d7097a565010d144c68fc517dd1b446",
+      "bytes": 1968357
+    },
+    {
+      "file": "bg-sniff.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "badfa5ba2790a030e2ffda3be68f258f7b83ad834f4d4fae2e834959b5129b2a",
+      "bytes": 2870500
+    },
+    {
+      "file": "bg-sort.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "d8634840d5696fdc6164003ff930fa1a443cbc3381ffcfab484b3b30dccecb48",
+      "bytes": 2373421
+    },
+    {
+      "file": "bg-stack.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "9fec5cb1447329618b7ad4af0630bb1b871035a7d80a714d94ed7d869120395d",
+      "bytes": 2472456
+    },
+    {
+      "file": "bg-stuff.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "3f000086d2a6cf16a7be2fb78ac9fe30fafb76617904a411245b329edcc8b48f",
+      "bytes": 2155967
+    },
+    {
+      "file": "hosts.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "sha256": "a4c44f005a58ae4b46b24c31567320879535f07bc47554e556b5259346b0fc2a",
+      "bytes": 2162564,
+      "alphaZeroFraction": 0.6516405741373698,
+      "alphaBounds": [
+        0,
+        15,
+        1522,
+        1024
+      ],
+      "spriteBounds": [
+        [
+          88,
+          97,
+          336,
+          313
+        ],
+        [
+          487,
+          96,
+          715,
+          313
+        ],
+        [
+          834,
+          96,
+          1080,
+          314
+        ],
+        [
+          1210,
+          85,
+          1461,
+          315
+        ],
+        [
+          84,
+          399,
+          340,
+          617
+        ],
+        [
+          482,
+          403,
+          720,
+          617
+        ],
+        [
+          826,
+          398,
+          1095,
+          617
+        ],
+        [
+          1208,
+          385,
+          1468,
+          618
+        ],
+        [
+          77,
+          701,
+          334,
+          925
+        ],
+        [
+          483,
+          712,
+          714,
+          926
+        ],
+        [
+          840,
+          708,
+          1094,
+          930
+        ],
+        [
+          1211,
+          698,
+          1464,
+          926
+        ]
+      ]
+    },
+    {
+      "file": "props-dora.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "sha256": "678be275d1fc7c700fab01dc03369ee4a082dca472668188b4e326b80c6660a4",
+      "bytes": 2033899,
+      "alphaZeroFraction": 0.6308492024739584,
+      "alphaBounds": [
+        0,
+        0,
+        1535,
+        1024
+      ],
+      "spriteBounds": [
+        [
+          77,
+          83,
+          310,
+          325
+        ],
+        [
+          456,
+          115,
+          712,
+          328
+        ],
+        [
+          840,
+          74,
+          1064,
+          336
+        ],
+        [
+          1206,
+          93,
+          1468,
+          331
+        ],
+        [
+          113,
+          408,
+          333,
+          660
+        ],
+        [
+          448,
+          430,
+          716,
+          661
+        ],
+        [
+          822,
+          441,
+          1120,
+          650
+        ],
+        [
+          1202,
+          428,
+          1493,
+          637
+        ],
+        [
+          68,
+          774,
+          361,
+          917
+        ],
+        [
+          465,
+          754,
+          706,
+          935
+        ],
+        [
+          842,
+          751,
+          1074,
+          940
+        ],
+        [
+          1174,
+          800,
+          1496,
+          868
+        ]
+      ]
+    },
+    {
+      "file": "props-enzo.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "sha256": "cb3c42d134d1ca194f6566f59a5920285f6ead8667952ad8e6153ead65bd7e35",
+      "bytes": 2027152,
+      "alphaZeroFraction": 0.6912657419840494,
+      "alphaBounds": [
+        23,
+        17,
+        1514,
+        1024
+      ],
+      "spriteBounds": [
+        [
+          104,
+          104,
+          321,
+          276
+        ],
+        [
+          466,
+          103,
+          703,
+          275
+        ],
+        [
+          849,
+          108,
+          1096,
+          271
+        ],
+        [
+          1272,
+          82,
+          1457,
+          278
+        ],
+        [
+          87,
+          386,
+          317,
+          605
+        ],
+        [
+          449,
+          419,
+          718,
+          590
+        ],
+        [
+          850,
+          391,
+          1088,
+          591
+        ],
+        [
+          1193,
+          459,
+          1503,
+          540
+        ],
+        [
+          58,
+          701,
+          347,
+          935
+        ],
+        [
+          425,
+          701,
+          733,
+          933
+        ],
+        [
+          817,
+          682,
+          1124,
+          940
+        ],
+        [
+          1207,
+          682,
+          1478,
+          945
+        ]
+      ]
+    },
+    {
+      "file": "props-fox.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "sha256": "ac8d07f7c2434c359009d15a5cad9d60bda86153c0341819b46f92901eaa6513",
+      "bytes": 1858309,
+      "alphaZeroFraction": 0.7610683441162109,
+      "alphaBounds": [
+        0,
+        20,
+        1516,
+        1008
+      ],
+      "spriteBounds": [
+        [
+          144,
+          53,
+          303,
+          289
+        ],
+        [
+          520,
+          52,
+          666,
+          304
+        ],
+        [
+          900,
+          51,
+          1046,
+          304
+        ],
+        [
+          1254,
+          51,
+          1402,
+          304
+        ],
+        [
+          143,
+          375,
+          304,
+          635
+        ],
+        [
+          460,
+          377,
+          719,
+          626
+        ],
+        [
+          843,
+          374,
+          1074,
+          625
+        ],
+        [
+          1215,
+          370,
+          1452,
+          623
+        ],
+        [
+          102,
+          697,
+          354,
+          936
+        ],
+        [
+          514,
+          701,
+          672,
+          933
+        ],
+        [
+          846,
+          726,
+          1099,
+          924
+        ],
+        null
+      ]
+    },
+    {
+      "file": "props-owl.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "sha256": "3c7faff11a78ed616a065c692a33d0493d42b3c86507059c25ed172404848480",
+      "bytes": 2210625,
+      "alphaZeroFraction": 0.6338990529378256,
+      "alphaBounds": [
+        25,
+        23,
+        1506,
+        1008
+      ],
+      "spriteBounds": [
+        [
+          59,
+          55,
+          320,
+          325
+        ],
+        [
+          431,
+          46,
+          720,
+          326
+        ],
+        [
+          834,
+          49,
+          1118,
+          325
+        ],
+        [
+          1205,
+          57,
+          1478,
+          324
+        ],
+        [
+          55,
+          386,
+          389,
+          644
+        ],
+        [
+          439,
+          387,
+          733,
+          650
+        ],
+        [
+          800,
+          461,
+          1144,
+          638
+        ],
+        [
+          1211,
+          467,
+          1503,
+          630
+        ],
+        [
+          105,
+          724,
+          320,
+          935
+        ],
+        [
+          450,
+          702,
+          701,
+          944
+        ],
+        [
+          840,
+          705,
+          1082,
+          944
+        ],
+        [
+          1216,
+          717,
+          1455,
+          937
+        ]
+      ]
+    },
+    {
+      "file": "room-dora.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "0da3b3d7d6726c1dcf611b838654b04a63a9ada6e12ade4a3401655f359e5707",
+      "bytes": 2277652
+    },
+    {
+      "file": "room-enzo.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "3abbd316019752337940342e3ecfb6b08c1192ea31d7d614e6209fee6153963e",
+      "bytes": 2145673
+    },
+    {
+      "file": "room-fox.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "60fff61088b1f2d717e348d4a7ced7dbd2c687ad2f9027b861be8a11ff5230f7",
+      "bytes": 2273949
+    },
+    {
+      "file": "room-owl.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "sha256": "ef7b5e591a102245d9b44f90a218e486503d1dad359aec6738d9c47d47013a98",
+      "bytes": 2127544
+    },
+    {
+      "file": "title.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "sha256": "659cd2fc43eaf6ebcb43c6d676b9233d35113c1b521df3294870375c93126684",
+      "bytes": 2044719,
+      "alphaZeroFraction": 0.6242109934488932,
+      "alphaBounds": [
+        0,
+        27,
+        1526,
+        980
+      ],
+      "topThirdNonzeroPixels": 93
+    }
+  ],
+  "validation": {
+    "expectedPngs": 34,
+    "actualPngs": 34,
+    "size": [
+      1536,
+      1024
+    ],
+    "transparentSheets": 5,
+    "transparentTitle": 1,
+    "opaqueBackdrops": 28,
+    "visuallyReviewed": [
+      "Complete sprite crops over dark and cream",
+      "47 prop sprites at up to 60px",
+      "12 host portraits at about 180px",
+      "All 28 backgrounds at384x256",
+      "Host room/title scale composites"
+    ],
+    "integrationStatus": "Artwork and tested loader package only; the user chose a handoff for Claude, so no game route/runtime is implemented by this change."
+  }
+}
