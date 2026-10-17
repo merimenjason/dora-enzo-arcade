@@ -4,14 +4,17 @@ Where Dora & Enzo's Arcade stands, how the newest games fit together, how to che
 
 This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are folded in below.
 
-## Start here (fresh session, 17-10-2026)
+## Start here (fresh session, 18-10-2026)
 
-**Where things stand.** `main` is at the merge of PR #59 (`b50cacf`) and is deployed: 34 games at https://chinchillas.jason.engineering. Nothing is open: no pull requests, no unmerged branches. The only local changes are three `.claude/` graft files (see **Agent configuration**), which are the user's and must stay uncommitted.
+**Where things stand.** `main` is at the merge of PR #62 (Whisker Ware) and is deployed: 35 games at https://chinchillas.jason.engineering. Nothing is open: no pull requests, no unmerged branches. The only local changes are three `.claude/` graft files (see **Agent configuration**), which are the user's and must stay uncommitted.
 
-**What happened in the last few sessions (13–17-10-2026), newest first:**
+**What happened in the last few sessions (13–18-10-2026), newest first:**
 
 | PR | What | Notes |
 | --- | --- | --- |
+| #62 | **Whisker Ware** (`/whisker-ware`), game 35 | WarioWare-style microgame frenzy: 24 games, 4 hosts, Remix, gallery and Practice. Built from the plan in `docs/superpowers/plans/17-10-2026-whisker-ware-plan.md`; bot-tuned, never played by hand. See **Whisker Ware**. |
+| #61 | Whisker Ware art (the user, via ChatGPT/Codex) | 34 painted images, the lazy loader with code fallbacks, measured crops and floor lines. |
+| #60 | Whisker Ware design and art prompts | The spec, the ChatGPT image prompts and this handoff refresh. |
 | #59 | Acorn Hand stakes | Bronze, silver and gold, opened by winning; picked on the title screen. Bot 29/14/8/6%. See **Acorn Hand · Stakes**. |
 | #58 | Acorn Hand ante curve | Antes 3–5 now 1,800 / 4,400 / 8,500 (ante 5 was a wall); bot gate against walls; six charms on one row. |
 | #57 | Acorn Hand table | Rival centred and bigger with its nut pile, card slots, idle squash, held cards pulse. |
@@ -56,7 +59,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 4. **Whisker Saga chapter 1 variety:** a spitter-heavy stage, an early brute, a second wind-up before the boss.
 5. **Midnight Kitchen code split:** drawing lives in `app/kitchen/page.tsx` (about 700 lines); move it to `lib/kitchen-scene.ts` like every other game, and add `window.__kitchen()`.
 6. **Test hygiene:** make the moonlight and detectives screenshot paths relative (`.checks/…`), and steady the Burrow Express touch-drag check.
-7. **Next new game: Whisker Ware**, a WarioWare-style microgame frenzy, chosen on 17-10-2026 (Fluff Drop and Burrow Links were turned down as boring). There are four hosts (Enzo, Dora, the Owl, the Fox), 20 microgames and 4 bosses, a Remix endless mode and a gallery with Practice. Controls are the pointer plus one key, and sound is synthesised. The design is in [`docs/superpowers/specs/17-10-2026-whisker-ware-design.md`](docs/superpowers/specs/17-10-2026-whisker-ware-design.md). The ChatGPT art handoff is [`docs/whisker-ware-image-prompts.md`](docs/whisker-ware-image-prompts.md): the game is built code-drawn first, and the paintings go into `public/art/whisker-ware/` as they arrive. The implementation plan comes next. **Art delivery (17-10-2026):** all 34 PNGs from the brief are now in `public/art/whisker-ware/`, generated with built-in imagegen and reviewed at source/game sizes. Five transparent sheets contain 59 populated cells; the title is transparent, and the four rooms plus 24 microgame backgrounds are opaque. Read [`docs/whisker-ware-art.md`](docs/whisker-ware-art.md), [`docs/whisker-ware-crops.json`](docs/whisker-ware-crops.json) and [`docs/whisker-ware-generation.json`](docs/whisker-ware-generation.json) before wiring them in. Use measured silhouettes and shared pose frames, not equal-grid cuts. Background floor/contact anchors differ from the prompt in places (especially Sneak's perch and Ring's counter); the metadata records the actual visual survey. The user chose **prepare the artwork loader and handoff for Claude**, rather than building the game here. The package now includes `lib/whisker-ware-crops.ts`, `lib/whisker-ware-paint.ts` and [`docs/whisker-ware-integration.md`](docs/whisker-ware-integration.md). `npm run test:whisker-ware-art` checks loader states, hashes and crops; `npm run test:e2e:whisker-ware-art` runs an isolated browser harness against all 34 PNGs/88 canvases with fallback/retry and phone/desktop checks. Claude should import these painters, preserve code fallbacks and use the shared frame/geometry helpers. No public game route, engine or runtime animation is added; the arcade remains at 34 playable games.
+7. **Whisker Ware** shipped on 18-10-2026 as game 35 (see **Whisker Ware · 18-10-2026**). What's left: play it by hand (the bot clears every stage 98–100%, so the stages may be too easy, and Remix may be too hard at level 3); listen to its blips; consider more microgames per host. The pick for the next new game is open.
 
 ## Quality pass · 08-10-2026
 
@@ -145,6 +148,23 @@ Game 31, `/moonpond`, is merged on main (PR #30). It is a night-fishing journal:
 - **Next:** play it by hand and adjust the reel numbers at the top of `lib/moonpond-game.ts` (`BAND_LOW`, `BAND_HIGH`, `SNAP_AFTER`, `SLIP_AFTER`, `LINE_RESPONSE`, the `SURGE_` values), rerunning `npm run bot:moonpond` after any change; listen to the cues in `app/moonpond/sound.ts`; watch the animations in motion on a phone; and continue the human balance and listening pass now that the painted art is in place.
 - **Not done:** nobody has played it by hand, the sound has not been listened to, and the reel has only been tuned against the bot and a scripted hand. The spread of 13 to 56 nights comes from weather luck on the rare pages; if it feels grindy, raise the rare weight in `WEIGHT` or let the journal's found count nudge the weather.
 
+## Whisker Ware · 18-10-2026
+
+Game 35, `/whisker-ware`, a WarioWare-style microgame frenzy. Rules, every number and the bot's rates: [`docs/whisker-ware.md`](docs/whisker-ware.md); art: [`docs/whisker-ware-art.md`](docs/whisker-ware-art.md).
+
+- **Code:**
+  - `lib/whisker-ware-micro.ts` has the 24 microgames, each a seeded engine with `init`, `tick` and `outcome`;
+  - `lib/whisker-ware-game.ts` has `Pad` (input to presses, swipes, rubs and steering), `Clock` (speed tiers), `Run` (stages, Remix, Practice) and the profile;
+  - `lib/whisker-ware-scene.ts` draws everything on a 480 × 320 stage over the painted art, with code fallbacks;
+  - `app/whisker-ware/page.tsx` runs the loop: at most 4 ticks a frame, paused while hidden.
+- **Checks:**
+  - `npm run test:whisker-ware`: a solver must win every game on 100 seeds at every level, and idle must lose;
+  - `npm run bot:whisker-ware`: both this and the line above are in `npm test`, and the bot takes about 10 s;
+  - `npm run test:e2e:whisker-ware`.
+
+  `window.__ware()` exposes the run, `start` and `force(id, level, tier)` for browser tests.
+- **Tuning so far:** bot only, nobody has played it by hand. Several games were slowed or widened so a quarter-second reaction is enough; the ledger of those calls is in the commit messages of PR #62.
+
 ## Acorn Hand · 15-10-2026
 
 Game 34, `/acorn-hand`, a poker-scoring card run in the manner of Balatro. Rules and every number: [`docs/acorn-hand.md`](docs/acorn-hand.md); what is drawn where, and prompts for a painted pass: [`docs/acorn-hand-art.md`](docs/acorn-hand-art.md).
@@ -205,7 +225,7 @@ Game 32, `/saga`, is merged on main (PR #33). It is a hero-squad adventure model
 
 ## Current state
 
-- **34 games on `main`**, deployed at https://chinchillas.jason.engineering. The newest are listed below; `README.md` has all 34 with guides.
+- **35 games on `main`**, deployed at https://chinchillas.jason.engineering. The newest are listed below; `README.md` has all 35 with guides.
 - **Played by hand:** Acorn Hand (one full run won and a second to ante 3, both before vouchers, the new curve and stakes), Whisker Saga (chapter 1, the Thornback boss and Briar Relay, 15-10-2026). Every other recent game has been balanced against its bot, or not at all (Midnight Kitchen), and nobody has listened to any game's sound.
 - **Left uncommitted in the working tree, on purpose:** `.claude/helpers/graft-hooks.cjs`, `.claude/helpers/graft-statusline.cjs` and `.claude/skills/graft/SKILL.md`. They belong to the user; don't stage them.
 
@@ -215,7 +235,6 @@ The eight newest cabinets, all merged to `main` and deployed.
 
 | # | Game | Route | Added | Pull requests |
 | --- | --- | --- | --- | --- |
-| 27 | Moonlight Mischief | `/moonlight` | 09-10-2026 | |
 | 28 | Pawprint Pinball | `/pinball` | 09-10-2026 | |
 | 29 | Pawprint Detectives | `/detectives` | 10-10-2026 | |
 | 30 | Frostpaw Frontier | `/frontier` | 10-10-2026 | |
@@ -223,6 +242,7 @@ The eight newest cabinets, all merged to `main` and deployed.
 | 32 | Whisker Saga | `/saga` | 13-10-2026 | #33–#38, #40 |
 | 33 | Ember & Clover: Midnight Kitchen | `/kitchen` | 15-10-2026 | #39–#41 |
 | 34 | Acorn Hand | `/acorn-hand` | 15-10-2026 | #42, #44–#59 |
+| 35 | Whisker Ware | `/whisker-ware` | 18-10-2026 | #60–#62 |
 
 Each has its own section near the top of this file. The older games' notes (Clash, Hay Maze, Chinchillas vs Zombies, Scribble, Bounce / Burrow, Burrow Tactics, Burrow Barrage, Summit Shuffle, Poof Panic) follow under **Where the code lives**.
 

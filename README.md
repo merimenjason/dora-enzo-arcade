@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of thirty-four original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of thirty-five original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -44,6 +44,7 @@ Listed in arcade-menu order.
 | 32 | Whisker Saga | `/saga` | Hero-squad adventure |
 | 33 | Ember & Clover: Midnight Kitchen | `/kitchen` | Cozy kitchen management |
 | 34 | Acorn Hand | `/acorn-hand` | Poker-scoring card roguelite |
+| 35 | Whisker Ware | `/whisker-ware` | Microgame frenzy |
 
 ## Run
 
@@ -833,6 +834,16 @@ Eighty stages in eight chapters, each stage worth up to three stars (cleared, no
 **Tests:** `npm run test:acorn-hand` checks hand detection with every edge case, the scoring order, every kind of charm, treat and boss rule, the shop and rerolls, every voucher, every kind of booster pack, the win and endless, seed replay and broken saves, and the rivals' lines and who sits at each table. `npm run bot:acorn-hand` plays 200 seeded runs and requires a win rate between 20% and 45%, under 5% of runs lost in ante 1, every boss met and beaten and nearly every charm in some winning run, every voucher bought and every kind of pack opened; no ante may be a wall (survival within 14 points of the ante before), and on the bronze, silver and gold stakes each must win fewer runs than the one below, with gold still won at least 2% of the time. `npm run test:e2e:acorn-hand` plays rounds by mouse, keyboard and touch in a browser, buys a voucher and opens every kind of pack, and checks the rival at the table, cards dealing and flying with no copies left behind, a charm wiggling as it scores, the shop's motion and that reduced motion leaves nothing animating. It also checks painted-art loading, failed-image fallback, retry and redraw on a phone, and resuming an old shop with duplicate almanac offers. Since 17-10-2026 it also checks the rival centred across the table with its nut pile and card slots, held cards pulsing, six charms on one row, a new round never showing the last rival's mood, the purse on Continue, and opening, picking and keeping a harder stake.
 
 **Docs:** [`docs/acorn-hand.md`](docs/acorn-hand.md), [`docs/acorn-hand-art.md`](docs/acorn-hand-art.md), [`docs/acorn-hand-suit-prompts.md`](docs/acorn-hand-suit-prompts.md).
+
+### 35 · Whisker Ware (`/whisker-ware`)
+
+**Play:** A microgame frenzy. Each microgame is one command word, a fuse along the bottom and about five seconds (300 ticks; a boss runs 900) to win it. Four hosts each run a stage of their five games and a boss: Enzo's Snack Shack (STUFF!, CATCH!, SORT!, SNIFF!, GNAW! and the RAISIN RAIN! boss), Dora's Dust Spa (DUST!, BALANCE!, FLUFF!, HOP!, COMB! and CLIMB!), the Owl's Night Watch (SNEAK!, HIDE!, HUSH!, FIND!, DODGE! and DASH!) and the Fox's Trick Fair (PICK!, POP!, AIM!, STACK!, COUNT! and TOSS!). A stage plays eight of the host's games, each at least once and never the same twice running, then the boss. Halfway through, a SPEED UP card raises the speed, and each stage starts faster and at a harder level than the one before (speeds ×1.0 to ×2.0, levels 1 to 3). Four hay cubes are four lives. A lost game costs one and play moves on; a lost boss costs one and is played again. Clearing a stage opens the next. Clearing all four opens Remix, an endless mix of the twenty ordinary games that speeds up every five wins, with a boss every ten that raises the level. Every game won goes into the gallery with the best speed it was beaten at, and from there Practice plays it alone on one life, faster every three wins.
+
+**Controls:** Tap or click, or use the keyboard. **Space** is the button: mash it for STUFF!, press it on the beat for GNAW!, HOP!, CLIMB!, DASH!, STACK! and TOSS!, and hold it for FLUFF!, SNEAK! and AIM! (on AIM! a drag from the slingshot also sets the power). The **arrows** steer the bowl, Dora, Enzo or the lantern (a mouse or finger works too: the bowl or actor follows the pointer), sort left or right on SORT! (or swipe), and rub left-right on DUST! (or scrub back and forth). For SNIFF!, HUSH!, PICK!, POP! and COUNT!, tap the cup, toy, card, balloon or answer, or press **1–3** for left, middle and right. On COMB!, drag the comb or move it with the arrows; on FIND!, point the lantern and press to dig. A press or release anywhere, even off the stage, counts. The game pauses while the tab is hidden, and the sound switch is remembered.
+
+**Tests:** `npm run test:whisker-ware` checks the input deriver (presses, swipes, rubs and steering), the speed clock and the microgame contract. A solver per game must win all 24 on seeds 1–100 at levels 1–3 and the slowest and fastest speeds, standing still must lose, and seeds must replay exactly. It also checks stage pacing and queues, lives, boss retries, break lengths, Remix and Practice pacing, and the saved profile, including malformed saves. `npm run bot:whisker-ware` plays every stage and Remix 300 times with human timing (presses up to five ticks early or late, reactions 10–20 ticks behind, one game in 25 fumbled) and requires Enzo's stage cleared at least 85% of the time, the Fox's at least 50%, no stage easier than the one before, and a Remix median between 20 and 45. `npm run test:e2e:whisker-ware` plays in a browser by pointer and keyboard. It checks a release off the stage, a hidden tab, a resize mid-game, all 24 games drawing at the hardest setting, the gallery and Practice, the fit at phone and desktop sizes, and mute. It then runs the painted-art loader's checks.
+
+**Docs:** [`docs/whisker-ware.md`](docs/whisker-ware.md), [`docs/whisker-ware-art.md`](docs/whisker-ware-art.md), [`docs/whisker-ware-integration.md`](docs/whisker-ware-integration.md), [`docs/whisker-ware-image-prompts.md`](docs/whisker-ware-image-prompts.md).
 
 ## Validation
 

@@ -1,6 +1,6 @@
 # Whisker Ware · implementation handoff
 
-17-10-2026. The user requested integration, merge and push, then clarified **prepare the artwork loader and handoff for Claude**. This package ships all 34 PNGs and the tested Canvas loader. It does not build the game from the [approved design](superpowers/specs/17-10-2026-whisker-ware-design.md), add a menu card or change the arcade's count of 34 playable games. Claude's implementation plan and runtime come next.
+17-10-2026. The user requested integration, merge and push, then clarified **prepare the artwork loader and handoff for Claude**. This package ships all 34 PNGs and the tested Canvas loader. It did not build the game from the [approved design](superpowers/specs/17-10-2026-whisker-ware-design.md). On 18-10-2026 the game itself shipped as the arcade's 35th (see [`whisker-ware.md`](whisker-ware.md)), and the 28 environments were converted to WebP.
 
 ## Files to use
 
@@ -70,7 +70,7 @@ npm run test:e2e:whisker-ware-art
 
 The first suite is included in `npm test`. It checks all 34 selected source hashes and PNG dimensions/types, 59 populated crop frames and matching-pose dimensions, SSR, deduplication, nonblocking pending/failure, explicit retry, stale callbacks, wrong-sized-image fallback and content-hash URLs.
 
-The browser suite starts its own temporary local server and uses the real transpiled loader and original PNGs. It holds and aborts a host image, verifies controls/fallback, retries and observes subscribed redraw, checks menu/game load priorities, and draws all assets across 88 canvases. It verifies real alpha, opaque 3:2 backgrounds, single requests and 390px/1280px layouts with no page errors. Its gallery is a test harness, not a public route or a playable game. Screenshots are ignored under `.checks/whisker-ware/loader-phone.png` and `loader-desktop.png`.
+The browser suite starts its own temporary local server and uses the real transpiled loader and the shipped images. It holds and aborts a host image, verifies controls/fallback, retries and observes subscribed redraw, checks menu/game load priorities, and draws all assets across 88 canvases. It verifies real alpha, opaque 3:2 backgrounds, single requests and 390px/1280px layouts with no page errors. Its gallery is a test harness, not a public route or a playable game. Screenshots are ignored under `.checks/whisker-ware/loader-phone.png` and `loader-desktop.png`.
 
 When implementing cabinet 35, follow the README's complete **Adding a game** checklist and add the engine, bot, input, gameplay, pause/reduced-motion and real-page artwork regressions from the design. The asset harness does not substitute for those game tests. No implementation work is blocked on generating these 34 images.
 
