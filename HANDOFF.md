@@ -12,6 +12,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 | PR | What | Notes |
 | --- | --- | --- |
+| #72 | **Hay Bale Brawl moves and shows prices** | Code-drawn movement over the paintings (`lib/hay-bale-motion.ts`, tested in Node): wind-up and lunge, knock-back and hay burst, faint tumble, hops, summon pop, line slide, win confetti, and shop landings, sparkles, crumbs, roll-ins and a flying acorn. Acorn price tags on every offer, cost/sell line on the card, refund on **Sell**. Fixed a fainted critter flickering back before its line closed. No new art was needed. |
 | #70 | Hay Bale Brawl browser checks steadied | Test-only. The summons check now uses a fixed seed (12345) and attack-0 summoners instead of a random rival; the failed-art check counts requests from one page load only. Both had passed locally and failed live. |
 | #69 | **Hay Bale Brawl painted** | The seven paintings wired in: `lib/hay-bale-crops.ts` (typed crops and hashes), `lib/hay-bale-paint.ts` (lazy loader, painters, Retry), scene and page changes, backdrops served as WebP. Feet on the painted straw, labels on plates, rivals mirrored, reduced motion. Node art test plus five browser checks. See **Hay Bale Brawl**. |
 | #68 | Hay Bale Brawl artwork and integration instructions | Seven original PNGs, 44 measured padded crops, exact provenance, loader/renderer and refresh/retry handoff; runtime integration pending. |
