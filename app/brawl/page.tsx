@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import { Run, UNITS, UNIT_IDS, SNACKS, SNACK_IDS, LINE, loadProfile, record, type Coach, type Profile, type Unit, type Slot } from '../../lib/hay-bale-game';
 import { drawShop, drawFight, drawTitle, drawCritter, drawSnack, stepReplay, inBox, LAYOUT, STAGE, type Held, type ShopUi, type Replay } from '../../lib/hay-bale-scene';
 import { brawlArtServerVersion, brawlArtStatus, brawlArtVersion, brawlSheetsFor, CRITTER_SHEETS, paintBrawlExtra, paintBrawlSnack, paintBrawlUnit, requestBrawlArt, retryBrawlArt, subscribeBrawlArt } from '../../lib/hay-bale-paint';
+import { liveFx, type ShopFx } from '../../lib/hay-bale-motion';
 import { sound } from './sound';
 import './brawl.css';
 
@@ -42,6 +43,9 @@ function Still({ draw, className }: { draw: (c: CanvasRenderingContext2D) => voi
   return <canvas ref={ref} width={960} height={640} className={className} aria-hidden="true" />;
 }
 
+/** The purse's change, as a shop effect. */
+const purse = (before: number, after: number): Omit<ShopFx, 'at'>[] => (after === before ? [] : [{ k: after < before ? 'spend' : 'earn', i: 0, n: Math.abs(after - before) }]);
+
 export default function HayBaleBrawl() {
   const [ready, setReady] = useState(false);
   const [screen, setScreen] = useState<Screen>('title');
@@ -53,7 +57,7 @@ export default function HayBaleBrawl() {
   const replayRef = useRef<Replay | null>(null);
   const speedRef = useRef<1 | 2>(1);
   const profileRef = useRef(profile);
-  const uiRef = useRef<ShopUi>({ held: null, dragging: false, x: 0, y: 0, card: null });
+  const uiRef = useRef<ShopUi>({ held: null, dragging: false, x: 0, y: 0, card: null, fx: [] });
   const pressRef = useRef<{ held: Held | null; x0: number; y0: number } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const screenRef = useRef<Screen>('title');
@@ -61,6 +65,12 @@ export default function HayBaleBrawl() {
   useArtVersion(); // re-render for the Retry artwork notice
   profileRef.current = profile; screenRef.current = screen;
   const refresh = useCallback(() => setTick((n) => n + 1), []);
+  /** Starts shop effects now; none with reduced motion. */
+  const effect = useCallback((...fx: Omit<ShopFx, 'at'>[]) => {
+    if (calmRef.current) return;
+    const at = performance.now();
+    uiRef.current.fx = [...liveFx(uiRef.current.fx, at), ...fx.map((x) => ({ ...x, at }))];
+  }, []);
 
   /** Saves the run after every change; a finished run goes into the profile and its save is removed. */
   const persist = useCallback(() => {
@@ -72,7 +82,7 @@ export default function HayBaleBrawl() {
     store.drop(RUN_KEY); setSaved(false);
   }, []);
 
-  const go = useCallback((s: Screen) => { uiRef.current = { held: null, dragging: false, x: 0, y: 0, card: null }; pressRef.current = null; setScreen(s); }, []);
+  const go = useCallback((s: Screen) => { uiRef.current = { held: null, dragging: false, x: 0, y: 0, card: null, fx: [] }; pressRef.current = null; setScreen(s); }, []);
   const start = useCallback((coach: Coach, seed = (Math.random() * 2 ** 31) | 0) => {
     runRef.current = new Run(seed, coach); replayRef.current = null;
     persist(); go('shop');
@@ -90,7 +100,7 @@ export default function HayBaleBrawl() {
   const apply = useCallback((held: Held, to: Target) => {
     const run = runRef.current;
     if (!run) return false;
-    const at = to.kind === 'line' ? run.line[to.i] : null, level = at?.level ?? 0;
+    const at = to.kind === 'line' ? run.line[to.i] : null, level = at?.level ?? 0, acorns = run.acorns;
     let ok = false;
     if (held.from === 'unit' && to.kind === 'line') ok = run.buy(held.i, to.i);
     else if (held.from === 'snack' && to.kind === 'line') ok = run.feed(held.i, to.i);
@@ -98,22 +108,27 @@ export default function HayBaleBrawl() {
     else if (held.from === 'line' && to.kind === 'sell') ok = run.sell(held.i);
     if (ok) {
       const now = to.kind === 'line' ? run.line[to.i] : null;
-      sound.cue(held.from === 'line' && to.kind === 'sell' ? 'sell' : now && level && now.level > level ? 'level' : at && now === at && held.from !== 'snack' ? 'merge' : 'buy');
+      const cue = held.from === 'line' && to.kind === 'sell' ? 'sell' : now && level && now.level > level ? 'level' : at && now === at && held.from !== 'snack' ? 'merge' : 'buy';
+      sound.cue(cue);
+      const i = to.kind === 'line' ? to.i : held.i;
+      effect(...purse(acorns, run.acorns), cue === 'sell' ? { k: 'sell', i } : held.from === 'snack' ? { k: cue === 'level' ? 'level' : 'eat', i, n: cue === 'level' ? 1 : 0 }
+        : cue === 'level' || cue === 'merge' ? { k: 'level', i, n: cue === 'level' ? 1 : 0 } : { k: 'land', i });
       persist();
     }
     return ok;
-  }, [persist]);
+  }, [persist, effect]);
 
   const roll = useCallback(() => {
-    const run = runRef.current;
+    const run = runRef.current, acorns = run?.acorns ?? 0;
     if (!run?.roll()) return;
     if (uiRef.current.held?.from !== 'line') uiRef.current.held = null;
+    effect({ k: 'roll', i: 0 }, ...purse(acorns, run.acorns));
     sound.cue('roll'); persist(); refresh();
-  }, [persist, refresh]);
+  }, [persist, refresh, effect]);
   const freeze = useCallback(() => {
     const run = runRef.current, h = uiRef.current.held;
-    if (run && h && h.from !== 'line' && run.freeze(h.from, h.i)) { uiRef.current.held = null; persist(); refresh(); }
-  }, [persist, refresh]);
+    if (run && h && h.from !== 'line' && run.freeze(h.from, h.i)) { effect({ k: 'freeze', i: h.from === 'unit' ? h.i : -1 - h.i }); uiRef.current.held = null; persist(); refresh(); }
+  }, [persist, refresh, effect]);
   const endTurn = useCallback(() => {
     const run = runRef.current;
     const out = run?.endTurn();
