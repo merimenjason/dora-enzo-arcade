@@ -6,7 +6,13 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Hay Bale Brawl** moves more. In a fight, critters wind up and lunge, get knocked back in a burst of hay, tumble off the bale when they faint, hop when they use an ability, pop in when summoned, and the line slides up to close gaps; a win ends in confetti. In the shop, bought critters land with a puff, merges sparkle with **Level up!**, snacks leave crumbs, rolls grow the new offers in, and sold critters send an acorn to your purse. Nobody fidgets while nothing is happening, and reduced motion turns all of this off.
+- **Hay Bale Brawl** shows prices: every shop offer wears an acorn tag (red when you can't afford it), the card says what it costs or sells for, and **Sell** shows how many acorns you'd get back.
 - **Hay Bale Brawl** is painted: every critter, summon and snack, both coaches, the barn shop, the meadow stage and the title now use the new storybook paintings. Critters stand on the painted straw and rivals face your crew. The paintings load as you need them, the old drawings fill in until they arrive, and a **Retry artwork** button appears if one fails. With reduced motion the fight's lunges are gentler and the numbers stay still.
+
+### Fixed
+
+- **Hay Bale Brawl**: a critter knocked out just before another's ability no longer flickers back into view before its line closes up.
 
 ### Added
 

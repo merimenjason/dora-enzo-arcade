@@ -311,6 +311,31 @@ await check('failed art: drawings stand in, nothing is asked for again until Ret
   await page.screenshot({ path: '.checks/brawl/retried-art-almanac.png' });
 }, { width: 1280, height: 860 });
 
+await check('shop moves: a buy, a merge, a roll and a sale start their effects; reduced motion starts none', async (page) => {
+  // record every effect the page starts, however short-lived, then ask what started since the last look
+  const watch = () => brawl(page, (w) => {
+    const ui = w.ui(); let fx = ui.fx; window.__seen = [];
+    Object.defineProperty(ui, 'fx', { configurable: true, get: () => fx, set: (v) => { for (const x of v) if (!fx.includes(x)) window.__seen.push(x.k); fx = v; } });
+  });
+  const seen = () => page.evaluate(() => window.__seen.splice(0).sort().join(' '));
+  await fresh(page); await start(page);
+  await stock(page, { units: ['mole', 'mole', 'wren'], acorns: 10 });
+  await watch();
+  await drag(page, ['units', 0], ['line', 0]); assert.equal(await seen(), 'land spend');
+  await drag(page, ['units', 1], ['line', 0]); assert.equal(await seen(), 'level spend', 'a merge');
+  await page.click('[data-testid="roll"]'); assert.equal(await seen(), 'roll spend');
+  await drag(page, ['line', 0], ['sell', null]); assert.equal(await seen(), 'earn sell');
+  await page.waitForTimeout(1200);
+  assert.equal((await brawl(page, (w) => w.ui().fx)).length, 0, 'every effect ends');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await fresh(page); await start(page);
+  await stock(page, { units: ['mole', 'wren'], acorns: 10 });
+  await watch();
+  await drag(page, ['units', 0], ['line', 0]); await page.click('[data-testid="roll"]');
+  assert.equal((await run(page)).line[0]?.id, 'mole');
+  assert.equal(await seen(), '');
+});
+
 await browser.close();
 if (errors.length) { console.error('page errors:\n' + errors.join('\n')); failures.push('page errors'); }
 if (failures.length) { console.error(`${failures.length} failed`); process.exit(1); }
