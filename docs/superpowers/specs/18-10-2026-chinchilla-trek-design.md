@@ -107,7 +107,7 @@ Evolutions, both halves at level 3:
 | `storm` | Thunder Combo | Combo + Static Fluff | Every extra attack also zaps for 120%, and Combo can chain twice. |
 | `fury` | Fluffy Fury | Keen Eye + Grit | Crits deal ×3; below half HP, crit chance +30%. |
 | `bramble` | Bramble Shell | Shell + Prickles | The shield refills by 10% of max HP each round; reflect 60%. |
-| `feast` | Midnight Feast | Snack Break + Power Nap | Heal 25% of the damage dealt, and 6% of max HP each round, at most to full. |
+| `feast` | Midnight Feast | Snack Break + Power Nap | Heal 25% of the damage dealt, and 6% of max HP each round on top of Power Nap's 6% (12% in all), at most to full. |
 
 An evolution keeps both halves' effects at level 3 and adds its own line.
 
@@ -222,7 +222,7 @@ The route is `/trek`.
 
 Tuning knobs, in order: `CHAPTER_SCALE`, `DAY_SCALE`, foe base stats, the experience thresholds, then skill numbers.
 
-The bot's first tuning (19-10-2026) set `CHAPTER_SCALE = [1, 1.5, 2.2, 3.1, 4.3]`, `DAY_SCALE = 0.045`, experience to the next level `2 + floor(level / 4)`, fight experience 3 (foe) and 8 (elite), and raised Pounce and Dust Roll (in the table above). With those, the policy clears chapter 1 in 46% of fresh treks against 13% for a random picker, the median campaign takes 27 treks (the longest 35), and a trek gives about 12 level-ups.
+The bot's first tuning (19-10-2026) set `CHAPTER_SCALE = [1, 1.5, 2.2, 3.1, 4.3]`, `DAY_SCALE = 0.045`, experience to the next level `2 + floor(level / 4)`, fight experience 3 (foe) and 8 (elite), and raised Pounce and Dust Roll (in the table above). With those, the policy clears chapter 1 in 46% of fresh treks against 13% for a random picker, the median campaign takes 27 treks (the longest 35), and a trek gives about 12 level-ups. After the elite's sure chest was added (`15 × chapter` acorns, as a find's chest), the policy clears 51% and the median campaign takes 25 treks (the longest 31).
 
 ## Testing
 

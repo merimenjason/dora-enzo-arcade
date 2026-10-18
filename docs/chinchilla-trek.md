@@ -20,7 +20,7 @@ A trek is 30 days. `next()` walks to the next day:
 
 Fights, finds and rests resolve at once. A find is acorns (`5 × chapter`), a snack (heal 20%) or a little chest (`15 × chapter` acorns); a rest heals 30%. Stories, the wheel, the Pedlar, the crossroads and visits wait for a choice; a skill cache opens a pick.
 
-A won fight gives experience (3 for a foe, 8 for an elite) and acorns (`3`, `12` or `30` for the boss, times the chapter, times Lucky Paw). Experience to the next level is `2 + floor(level / 4)`. Each level-up heals 20% of max HP and offers three skills; several level-ups queue their picks. A pick offers three distinct cards from the skills below level 3 and the evolutions that are ready, fewer when fewer can be drawn, and a single **Rest** (heal 30%) when there are none. The offer can be rerolled once a trek. After an elite win, the Owl or the Fox visits once the picks are done. A lost fight ends the trek; the boss's fall clears it. A fight that reaches 40 rounds ends with the foe wandering off, with no experience or acorns; on day 30 that ends the trek, since there is no day after it.
+A won fight gives experience (3 for a foe, 8 for an elite) and acorns (`3`, `12` or `30` for the boss, times the chapter, times Lucky Paw). Experience to the next level is `2 + floor(level / 4)`. Each level-up heals 20% of max HP and offers three skills; several level-ups queue their picks. A pick offers three distinct cards from the skills below level 3 and the evolutions that are ready, fewer when fewer can be drawn, and a single **Rest** (heal 30%) when there are none. The offer can be rerolled once a trek. After an elite win, the Owl or the Fox visits once the picks are done. An elite win also leaves a sure chest of `15 × chapter` acorns. A lost fight ends the trek; the boss's fall clears it. A fight that reaches 40 rounds ends with the foe wandering off, with no experience or acorns; on day 30 that ends the trek, since there is no day after it.
 
 Max HP changes carry current HP with them: a raise adds the same to HP, a drop clamps HP to the new max, never below 1.
 
@@ -70,7 +70,7 @@ An evolution is offered once both its halves are at level 3. Picking it removes 
 | `storm` | Thunder Combo | Combo + Static Fluff | Every extra attack also zaps for 120%, and Combo can chain twice. |
 | `fury` | Fluffy Fury | Keen Eye + Grit | Crits deal ×3; below half HP, +30% crit chance. |
 | `bramble` | Bramble Shell | Shell + Prickles | Your shield refills by 10% of max HP each round; reflect 60%. |
-| `feast` | Midnight Feast | Snack Break + Power Nap | Heal 25% of the damage you deal, and 6% of max HP each round. |
+| `feast` | Midnight Feast | Snack Break + Power Nap | Heal 25% of the damage you deal, and 12% of max HP each round. |
 
 ## Chapters and foes
 
@@ -140,7 +140,7 @@ A malformed trek save is dropped; a malformed profile loads fresh, and unknown p
 
 `npm run bot:trek` (also in `npm test`) plays 300 fresh chapter-1 treks with the policy and with a random player, then 40 campaigns from a fresh profile until chapter 5 is cleared, training and merging between treks. The gates: the policy clears chapter 1 in 25–55% of treks and at least 20 points more often than the random player; the median campaign takes 15–45 treks and none more than 90; every skill is picked in at least 2% of treks and every evolution reached in at least 5% of clears; under 2% of fights stall.
 
-On 19-10-2026 it gave: the policy clears chapter 1 in 46% of treks against 13% at random; the median campaign takes 27 treks (the longest 35), with 1.6, 2.4, 2.9, 5.8 and 14.7 treks per chapter; a trek gives about 12 level-ups; 8 of 16,320 fights stalled. It runs in under a second.
+On 19-10-2026 it gave: the policy clears chapter 1 in 51% of treks against 13% at random; the median campaign takes 25 treks (the longest 31), with 1.6, 2.1, 2.8, 4.8 and 13.6 treks per chapter; a trek gives about 12 level-ups; 5 of 15,275 fights stalled. It runs in under a second.
 
 ## Art
 

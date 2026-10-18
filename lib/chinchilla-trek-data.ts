@@ -44,7 +44,7 @@ export const EVOS: Record<EvoId, { id: EvoId; name: string; from: [SkillId, Skil
   storm: { id: 'storm', name: 'Thunder Combo', from: ['combo', 'static'], text: 'Every extra attack also zaps for 120%, and Combo can chain twice.' },
   fury: { id: 'fury', name: 'Fluffy Fury', from: ['keen', 'grit'], text: 'Crits deal ×3; below half HP, +30% crit chance.' },
   bramble: { id: 'bramble', name: 'Bramble Shell', from: ['shell', 'prickle'], text: 'Your shield refills by 10% of max HP each round; reflect 60%.' },
-  feast: { id: 'feast', name: 'Midnight Feast', from: ['snack', 'nap'], text: 'Heal 25% of the damage you deal, and 6% of max HP each round.' },
+  feast: { id: 'feast', name: 'Midnight Feast', from: ['snack', 'nap'], text: 'Heal 25% of the damage you deal, and 12% of max HP each round.' },
 };
 export const EVO_IDS = Object.keys(EVOS) as EvoId[];
 

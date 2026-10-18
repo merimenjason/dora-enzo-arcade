@@ -312,7 +312,10 @@ export class Trek {
     if (e.rank === 'boss') { this.phase = 'cleared'; return; }
     this.xp += FIGHT_XP[e.rank];
     while (this.xp >= xpNeed(this.level)) { this.xp -= xpNeed(this.level); this.level++; this.picks++; this.heal(0.2); }
-    if (e.rank === 'elite') this.after = { k: 'visit', who: this.rand.next() < 0.5 ? 'owl' : 'fox' };
+    if (e.rank === 'elite') {
+      this.note = `The ${FOES[e.foe].name} leaves a sure chest behind: ${this.gain(15 * this.chapter)} acorns.`;
+      this.after = { k: 'visit', who: this.rand.next() < 0.5 ? 'owl' : 'fox' };
+    }
     this.settle();
   }
 
@@ -398,7 +401,7 @@ export class Trek {
     else if (fx.k === 'acorns') this.gain(fx.n * this.chapter);
     else if (fx.k === 'stat') this.reshape(() => { this.kit.bonus[fx.stat] += fx.v; });
     else if (fx.k === 'cache') this.openPick(1, null);
-    else if (fx.k === 'later') { let d = this.day + fx.days; while (isFixed(d)) d++; if (d <= DAYS) this.later.push({ day: d, scene: fx.scene }); }
+    else if (fx.k === 'later') { let d = this.day + fx.days; while (isFixed(d) || this.later.some((l) => l.day === d)) d++; if (d <= DAYS) this.later.push({ day: d, scene: fx.scene }); }
   }
 
   buy(i: number): boolean {
