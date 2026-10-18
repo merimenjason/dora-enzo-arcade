@@ -1,17 +1,18 @@
-// Hay Bale Brawl's painted art: the seven files and where each subject sits in its sheet. Generated from
-// docs/hay-bale-brawl-crops.json (rect = the measured silhouette plus 8 px of padding, [x, y, width, height] in
-// source pixels) and the delivered files' SHA-256; tests/hay-bale-art.mjs checks both stay in step.
+// Hay Bale Brawl's painted art: the eight files and where each subject sits in its sheet. Generated from
+// docs/hay-bale-brawl-crops.json and docs/hay-bale-brawl-fx-crops.json (rect = the measured silhouette plus 8 px of
+// padding, [x, y, width, height] in source pixels) and the delivered files' SHA-256; tests/hay-bale-art.mjs checks
+// all of them stay in step.
 import type { UnitId, TokenId, SnackId } from './hay-bale-units.js';
 
 export type BrawlRect = readonly [number, number, number, number];
 export type BrawlSheet = 'critters-1' | 'critters-2' | 'critters-3' | 'snacks';
 export type BrawlBackdrop = 'bg-shop' | 'bg-fight';
-export type BrawlAsset = BrawlSheet | BrawlBackdrop | 'title';
-export const BRAWL_ASSETS: readonly BrawlAsset[] = ['critters-1', 'critters-2', 'critters-3', 'snacks', 'title', 'bg-shop', 'bg-fight'];
+export type BrawlAsset = BrawlSheet | BrawlBackdrop | 'title' | 'fx';
+export const BRAWL_ASSETS: readonly BrawlAsset[] = ['critters-1', 'critters-2', 'critters-3', 'snacks', 'title', 'bg-shop', 'bg-fight', 'fx'];
 /** The two opaque backdrops ship as quality-85 WebP; the sheets and title keep their PNG alpha. */
-export const BRAWL_EXT: Record<BrawlAsset, 'png' | 'webp'> = { 'critters-1': 'png', 'critters-2': 'png', 'critters-3': 'png', 'snacks': 'png', 'title': 'png', 'bg-shop': 'webp', 'bg-fight': 'webp' };
+export const BRAWL_EXT: Record<BrawlAsset, 'png' | 'webp'> = { 'critters-1': 'png', 'critters-2': 'png', 'critters-3': 'png', 'snacks': 'png', 'title': 'png', 'bg-shop': 'webp', 'bg-fight': 'webp', 'fx': 'png' };
 /** The first 12 hex digits of each served file's SHA-256, used as a cache-busting version. */
-export const BRAWL_HASHES: Record<BrawlAsset, string> = { 'critters-1': 'b8c69f96357d', 'critters-2': '6e11ea399198', 'critters-3': '2691c9aff18b', 'snacks': '80169aa1dcf5', 'title': 'b4f6f59abdc1', 'bg-shop': '0cf59b966cd5', 'bg-fight': '5b20d425bc03' };
+export const BRAWL_HASHES: Record<BrawlAsset, string> = { 'critters-1': 'b8c69f96357d', 'critters-2': '6e11ea399198', 'critters-3': '2691c9aff18b', 'snacks': '80169aa1dcf5', 'title': 'b4f6f59abdc1', 'bg-shop': '0cf59b966cd5', 'bg-fight': '5b20d425bc03', 'fx': 'fe0a4128c317' };
 
 type Sprite = { sheet: BrawlSheet; rect: BrawlRect };
 export const BRAWL_UNITS: Record<UnitId | TokenId, Sprite> = {
@@ -67,3 +68,21 @@ export const BRAWL_EXTRAS: Record<'dora' | 'enzo' | 'bale', Sprite> = {
 };
 /** The painted straw top of bg-fight, about y650 of 1024 in the source (y203 on the stage). */
 export const BRAWL_FIGHT_STAGE_Y = 203.1;
+
+/** The twelve effects and icons on fx.png, one per cell (not animation frames), in the sheet's order. */
+export type BrawlFx = 'bonk' | 'dust' | 'poof' | 'hay' | 'gold' | 'green' | 'frost' | 'crumbs' | 'acorn' | 'shell' | 'mint' | 'chilli';
+export const BRAWL_FX_IDS: readonly BrawlFx[] = ['bonk', 'dust', 'poof', 'hay', 'gold', 'green', 'frost', 'crumbs', 'acorn', 'shell', 'mint', 'chilli'];
+export const BRAWL_FX: Record<BrawlFx, BrawlRect> = {
+  bonk: [95, 108, 198, 180],
+  dust: [482, 145, 187, 130],
+  poof: [838, 118, 238, 170],
+  hay: [1250, 117, 183, 166],
+  gold: [113, 419, 165, 171],
+  green: [495, 420, 163, 170],
+  frost: [857, 427, 200, 165],
+  crumbs: [1249, 441, 191, 147],
+  acorn: [123, 721, 156, 172],
+  shell: [495, 727, 171, 163],
+  mint: [865, 742, 196, 145],
+  chilli: [1256, 716, 165, 175],
+};
