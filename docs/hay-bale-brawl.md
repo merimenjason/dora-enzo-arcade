@@ -2,6 +2,8 @@
 
 Route `/brawl`. An auto-battler in the manner of Super Auto Pets. You buy a crew of woodland critters in a shop, line them up on a hay bale, and watch them fight a rival crew by themselves. Design: [`superpowers/specs/18-10-2026-hay-bale-brawl-design.md`](superpowers/specs/18-10-2026-hay-bale-brawl-design.md).
 
+Painted artwork was prepared on 18-10-2026: [asset delivery](hay-bale-brawl-art.md), [integration instructions](hay-bale-brawl-integration.md), [image prompts](hay-bale-brawl-image-prompts.md), [measured crops](hay-bale-brawl-crops.json) and [generation provenance](hay-bale-brawl-generation.json). The runtime still uses its code drawings; wiring the prepared images is the next step.
+
 ## The code
 
 - `lib/hay-bale-units.ts`: the 30 units, 3 summoned tokens and 8 snacks. Abilities are written against a `Ctx` interface, so the same ability works in the shop and in a fight.
@@ -150,4 +152,4 @@ Everything is drawn in code:
 - birds, bugs, frogs and the tortoise have their own shapes;
 - Pip and the Duchess are chinchillas, and the Duchess wears a crown.
 
-Painted art can follow from the ChatGPT prompts in [`hay-bale-brawl-image-prompts.md`](hay-bale-brawl-image-prompts.md). Sound is synthesised WebAudio blips (`app/brawl/sound.ts`), with no files.
+Seven painted images have been prepared from [the ChatGPT prompts](hay-bale-brawl-image-prompts.md); [integration instructions](hay-bale-brawl-integration.md) describe the pending renderer work. Sound is synthesised WebAudio blips (`app/brawl/sound.ts`), with no files.
