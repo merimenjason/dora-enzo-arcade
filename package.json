@@ -62,6 +62,7 @@
     "bot:whisker-ware": "tsc lib/whisker-ware-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/whisker-ware-bot.mjs",
     "test:hay-bale": "tsc lib/hay-bale-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/hay-bale.mjs",
     "bot:hay-bale": "tsc lib/hay-bale-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/hay-bale-bot.mjs",
+    "test:e2e:brawl": "node tests/e2e/brawl.mjs",
     "bot:acorn-hand": "tsc lib/acorn-hand-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/acorn-hand-bot.mjs",
     "test:e2e:acorn-hand": "node tests/e2e/acorn-hand.mjs && node tests/e2e/acorn-hand-painted.mjs",
     "test:kitchen": "tsc lib/kitchen-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/kitchen.mjs",
