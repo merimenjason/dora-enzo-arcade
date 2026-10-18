@@ -223,8 +223,10 @@ await check('painted art: all 44 subjects paint, both facings, on dark and cream
 
 await check('painted art: shop, drag ghost, the three summons and a whole fight, at phone size with reduced motion', async (page) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await fresh(page); await start(page);
-  await stock(page, { line: [{ id: 'mouse', a: 1, h: 1 }, { id: 'beaver', a: 1, h: 1 }, { id: 'stag', a: 1, h: 1 }], units: ['raccoon', 'bear', 'duchess'], acorns: 10 });
+  await fresh(page);
+  // a fixed seed, and summoners that can't hurt anyone, so all three faint and summon
+  await brawl(page, (w) => w.start('dora', 12345)); await screen(page, 'shop');
+  await stock(page, { line: [{ id: 'mouse', a: 0, h: 1 }, { id: 'beaver', a: 0, h: 1 }, { id: 'stag', a: 0, h: 1 }], units: ['raccoon', 'bear', 'duchess'], acorns: 10 });
   await artReady(page, ['bg-shop', 'snacks', 'critters-1', 'critters-2', 'critters-3']);
   const [x0, y0] = await point(page, 'units', 1);
   await page.mouse.move(x0, y0); await page.mouse.down(); await page.mouse.move(x0 + 30, y0 - 60, { steps: 4 });
@@ -280,7 +282,8 @@ await check('failed art: drawings stand in, nothing is asked for again until Ret
   const asked = new Map(); let fail = true;
   page.on('request', (rq) => { const m = rq.url().match(/\/art\/brawl\/([a-z0-9-]+)\./); if (m) asked.set(m[1], (asked.get(m[1]) ?? 0) + 1); });
   await page.route('**/art/brawl/**', (route) => (fail ? route.abort() : route.continue()));
-  await fresh(page);
+  // a new page has empty storage, so one load: a second would add its own requests to the count
+  await page.goto(`${base}/brawl`); await ready(page);
   await page.waitForFunction(() => window.__brawl().art.status().failed.length >= 2);
   await page.getByTestId('retry-art').waitFor();
   const title = page.locator('.hb-title canvas'), before = await still(title);
