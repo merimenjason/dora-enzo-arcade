@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of thirty-six original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of thirty-seven original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -46,6 +46,7 @@ Listed in arcade-menu order.
 | 34 | Acorn Hand | `/acorn-hand` | Poker-scoring card roguelite |
 | 35 | Whisker Ware | `/whisker-ware` | Microgame frenzy |
 | 36 | Hay Bale Brawl | `/brawl` | Auto-battler |
+| 37 | Chinchilla Trek | `/trek` | Roguelite trek |
 
 ## Run
 
@@ -856,6 +857,16 @@ Eighty stages in eight chapters, each stage worth up to three stars (cleared, no
 
 **Docs:** [`docs/hay-bale-brawl.md`](docs/hay-bale-brawl.md), [image prompts](docs/hay-bale-brawl-image-prompts.md), [painted art](docs/hay-bale-brawl-art.md) and [art integration](docs/hay-bale-brawl-integration.md).
 
+### 37 · Chinchilla Trek (`/trek`)
+
+**Play:** A roguelite trek in the spirit of Capybara Go!. At camp, pick Dora (+10% HP, starts with Shell) or Enzo (+10% attack, starts with Combo) and one of five chapters: Clover Meadow, Bramble Wood, Willow River, Frosty Peak and Moon Hollow, each unlocked by clearing the one before. A trek is thirty days, one event a day. Day 1 is always a fight; day 10 and day 20 are elite fights, day 15 is the crossroads, day 25 the Pedlar and day 30 the chapter's boss. The other days are drawn from fights, story scenes, skill caches, finds, rests, the lucky wheel and the Pedlar, never the same kind twice running. Fights play out by themselves, the hero first each round: attacks, crits, dodges and the skills you hold, up to 40 rounds. HP carries from day to day, and at 0 the trek ends. Won fights give experience and acorns; every level-up heals 20% and offers three of 18 skills, each up to level 3, and two skills at level 3 can evolve into one of four evolutions. Story scenes offer two choices, some with odds; the Owl heals or levels a skill, and the Fox trades max HP for new skills. Every trek, won or lost, banks its acorns and opens a chest: acorns plus a piece of gear (a hat, scarf, charm or boots, from Plain to Legend), two on a clear. At camp, acorns train attack and HP, and three pieces of a kind merge into one of the next rarity. The Journal lists every skill, evolution and foe. The trek is saved after every action, and the 30 foes, the Owl, the Fox and both chinchillas are drawn in code.
+
+**Controls:** **Walk on** walks to the next day, or turn on **Auto-walk** to keep walking until a choice is needed. Tap a choice, a skill card or a ware; **Reroll** redraws the skill cards once a trek. During a fight, **×2** and **Skip**. Tap a skill in the tray to read it. Keys: **1**, **2** and **3** pick a choice or card, **Space** walks on or skips a fight, **R** rerolls and **Escape** walks on from an event.
+
+**Tests:** `npm run test:trek` checks the data against the design, the hero's stats and the foes' scaling, every skill at its levels, the four evolutions and the six foe traits, knock-outs after every hit, the 40-round cap and 1000 random fights; then the trek itself (the fixed days, no repeated events, level-ups and picks, evolutions, the reroll, the crossroads, visits, story follow-ups, the wheel, the Pedlar, a stalled boss, illegal actions changing nothing, determinism, saves round-tripping and malformed saves); then camp, the chest odds, the profile and the bot's policy. `npm run bot:trek` plays 300 fresh chapter-1 treks with the policy and with a random player, and 40 whole campaigns to a chapter 5 clear, and requires the policy to clear chapter 1 in 25–55% of treks and at least 20 points more often than the random player, a median campaign of 15–45 treks and none over 90, every skill picked in at least 2% of treks, every evolution in at least 5% of clears, and under 2% of fights stalled. `npm run test:e2e:trek` starts a trek, plays and skips a fight, picks and rerolls, plays a story day, the crossroads and the Pedlar, reloads mid-fight, ends a trek and opens its chest, trains and merges at camp, auto-walks, opens the Journal, and checks the fit at phone and desktop sizes and mute.
+
+**Docs:** [`docs/chinchilla-trek.md`](docs/chinchilla-trek.md), the [design](docs/superpowers/specs/18-10-2026-chinchilla-trek-design.md) and the [plan](docs/superpowers/plans/18-10-2026-chinchilla-trek-plan.md).
+
 ## Validation
 
 ```sh
@@ -875,7 +886,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Thirty-six ways/` assertion in `tests/e2e/dust-bath.mjs`, the 36-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past thirty-six games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Thirty-seven ways/` assertion in `tests/e2e/dust-bath.mjs`, the 37-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past thirty-seven games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
