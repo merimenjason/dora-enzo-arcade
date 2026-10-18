@@ -3,7 +3,7 @@
 // critters from a shared round body with their own colours and features, chinchillas from the arcade's drawChinchilla.
 import { UNITS, SNACKS, TOKENS, UNIT_COST, isUnitId, type Run, type Slot, type Unit, type UnitId, type TokenId, type SnackId, type Outcome, type FightEvent } from './hay-bale-game';
 import { drawChinchilla, coatLike, type Coat } from './chinchilla-art';
-import { BRAWL_FIGHT_STAGE_Y, paintBrawlBackdrop, paintBrawlExtra, paintBrawlSnack, paintBrawlTitle, paintBrawlUnit } from './hay-bale-paint';
+import { BRAWL_FIGHT_STAGE_Y, paintBrawlBackdrop, paintBrawlExtra, paintBrawlFx, paintBrawlSnack, paintBrawlTitle, paintBrawlUnit, type BrawlFx } from './hay-bale-paint';
 import { arc, backOut, endHop, fightPose, fxAge, linePlaces, liveFx, replayLines, rollIn, slotPose, smooth, type Pose, type ShopFx } from './hay-bale-motion';
 
 export { replayLines } from './hay-bale-motion';
@@ -132,6 +132,13 @@ export function drawCritter(c: CanvasRenderingContext2D, id: UnitId | TokenId, b
   c.restore();
 }
 
+const CHARM = 17;
+/** Where a status charm sits: in the box's top-right corner beside the level plate, or just above the corner when the
+ * box is too narrow for both (the fight), so it never covers the plate, its pips or the badges. */
+function charmAt(box: Box, level?: number) {
+  const plate = level ? 16 + (level === 1 ? 2 : level === 2 ? 3 : 0) * 6 : 0, room = box.w - plate - 2 >= CHARM;
+  return { x: box.x + box.w - CHARM / 2 + (room ? 0 : 2), y: room ? box.y + CHARM / 2 - 1 : box.y - 6 };
+}
 /** Attack and health badges at the foot of a box, with the level and experience pips above. `pop` (0 to 1) swells the badges. */
 function drawStats(c: CanvasRenderingContext2D, u: { a: number; h: number; level?: number; xp?: number; status?: string | null; tmpA?: number }, box: Box, pop = 0) {
   const y = box.y + box.h - 9, r = Math.max(8, Math.min(10, box.w / 6)) * (1 + 0.3 * pop);
@@ -148,7 +155,9 @@ function drawStats(c: CanvasRenderingContext2D, u: { a: number; h: number; level
     const need = u.level === 1 ? 2 : u.level === 2 ? 5 : 5, from = u.level === 1 ? 0 : 2;
     if (u.level < 3) for (let k = 0; k < need - from; k++) { c.fillStyle = k < (u.xp ?? 0) - from ? '#5a9a3a' : '#0002'; c.fillRect(box.x + 16 + k * 6, box.y + 4, 4, 4); }
   }
-  if (u.status) {
+  // the status charm in the top-right corner, clear of the level plate and the badges
+  const charm = charmAt(box, u.level);
+  if (u.status && !paintBrawlFx(c, u.status as BrawlFx, charm.x, charm.y, CHARM)) {
     const col = u.status === 'shell' ? '#7a9a52' : u.status === 'mint' ? '#4fc28a' : '#e2452a';
     c.fillStyle = col; c.strokeStyle = INK; c.lineWidth = 1; c.beginPath(); c.arc(box.x + box.w - 7, box.y + 7, 5, 0, Math.PI * 2); c.fill(); c.stroke();
   }
@@ -216,6 +225,8 @@ function wrap(c: CanvasRenderingContext2D, s: string, x: number, y: number, w: n
 }
 
 // ── Effects ────────────────────────────────────────────────────────────────
+// Each effect paints its cell of fx.png when the sheet is ready and draws its code version otherwise. A cell is one
+// still picture: it only grows, drifts and fades with its event's progress, exactly as the drawing it replaces.
 
 /** Draws with `pose` applied about the feet of `box`. */
 function posed(c: CanvasRenderingContext2D, box: Box, pose: Pose, draw: () => void) {
@@ -230,8 +241,9 @@ function scaled(c: CanvasRenderingContext2D, x: number, y: number, s: number, dr
   if (s <= 0) return;
   c.save(); c.translate(x, y); c.scale(s, s); c.translate(-x, -y); draw(); c.restore();
 }
-/** A small acorn, the shop's money, `s` px high. */
+/** A small acorn, the shop's money, about `s` px across its body. */
 function acorn(c: CanvasRenderingContext2D, x: number, y: number, s: number) {
+  if (paintBrawlFx(c, 'acorn', x, y, s * 1.9)) return;
   c.save(); c.strokeStyle = INK; c.lineWidth = 1;
   c.fillStyle = '#c07a34'; c.beginPath(); c.ellipse(x, y + s * 0.2, s * 0.6, s * 0.7, 0, 0, Math.PI * 2); c.fill(); c.stroke();
   c.fillStyle = '#6a3e18'; c.beginPath(); c.ellipse(x, y - s * 0.3, s * 0.78, s * 0.36, 0, 0, Math.PI * 2); c.fill(); c.stroke();
@@ -248,16 +260,25 @@ function priceTag(c: CanvasRenderingContext2D, b: Box, cost: number, afford: boo
 }
 /** A cartoon impact burst. */
 function burst(c: CanvasRenderingContext2D, x: number, y: number, r: number, alpha: number) {
+  if (paintBrawlFx(c, 'bonk', x, y, r * 2.4, { alpha })) return;
   c.save(); c.globalAlpha *= alpha; c.fillStyle = '#ffe066'; c.strokeStyle = '#c0281e'; c.lineWidth = 1.6; c.beginPath();
   for (let k = 0; k < 16; k++) { const a = (k / 16) * Math.PI * 2, d = k % 2 ? r * 0.45 : r; c.lineTo(x + Math.cos(a) * d, y + Math.sin(a) * d); }
   c.closePath(); c.fill(); c.stroke(); c.restore();
 }
-/** A four-pointed twinkle. */
-function twinkle(c: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string) {
-  if (r <= 0) return;
+/** A four-pointed twinkle, gold (abilities, level-ups) or green (buffs); `fill` colours the drawing. */
+function twinkle(c: CanvasRenderingContext2D, kind: 'gold' | 'green', x: number, y: number, r: number, fill: string) {
+  if (r <= 0 || paintBrawlFx(c, kind, x, y, r * 2.3)) return;
   c.fillStyle = fill; c.beginPath();
   for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2, d = k % 2 ? r * 0.3 : r; c.lineTo(x + Math.cos(a) * d, y + Math.sin(a) * d); }
   c.closePath(); c.fill(); c.strokeStyle = '#7a4a10b0'; c.lineWidth = 0.9; c.stroke();
+}
+/** A painted dust puff or poof cloud that grows and fades as `p` goes from 0 to 1; `size` is its full width. */
+function cloud(c: CanvasRenderingContext2D, kind: 'dust' | 'poof', x: number, y: number, p: number, size: number, flip = false) {
+  return paintBrawlFx(c, kind, x, y, size * (0.6 + 0.5 * smooth(p)), { alpha: 1 - p, flip });
+}
+/** Painted hay, crumbs or frost thrown from a point: it drifts by (dx, dy) at the end, falls a little, and fades. */
+function fling(c: CanvasRenderingContext2D, kind: 'hay' | 'crumbs' | 'frost', x: number, y: number, p: number, size: number, dx = 0, dy = 0) {
+  return paintBrawlFx(c, kind, x + dx * p, y + dy * p + 10 * p * p, size * (0.8 + 0.35 * p), { alpha: 1 - p * p, flip: dx < 0 });
 }
 /** Soft puffs spreading from a point as `p` goes from 0 to 1. */
 function puffs(c: CanvasRenderingContext2D, x: number, y: number, p: number, spread = 22, n = 6) {
@@ -395,18 +416,21 @@ export function drawShop(c: CanvasRenderingContext2D, run: Run, ui: ShopUi, now:
     const a = fxAge(x, now), b = x.k === 'freeze' ? (x.i < 0 ? LAYOUT.snacks[-x.i - 1] : LAYOUT.units[x.i]) : LAYOUT.line[x.i];
     if (!b) continue;
     const cx = b.x + b.w / 2, feet = b.y + b.h - 24, mid = b.y + (b.h - 22) / 2;
-    if (x.k === 'land') { puffs(c, cx - 16, feet, a, 10, 3); puffs(c, cx + 16, feet, a, 10, 3); }
+    if (x.k === 'land') {
+      if (!cloud(c, 'dust', cx - 16 - 6 * a, feet - 4, a, 26, true)) puffs(c, cx - 16, feet, a, 10, 3);
+      if (!cloud(c, 'dust', cx + 16 + 6 * a, feet - 4, a, 26)) puffs(c, cx + 16, feet, a, 10, 3);
+    }
     if (x.k === 'level') {
-      for (let k = 0; k < 8; k++) { const ang = (k / 8) * Math.PI * 2 + a, d = 10 + 30 * smooth(a); twinkle(c, cx + Math.cos(ang) * d, mid + Math.sin(ang) * d * 0.8, 8 * (1 - a), k % 2 ? '#ffe066' : '#fff4dc'); }
+      for (let k = 0; k < 8; k++) { const ang = (k / 8) * Math.PI * 2 + a, d = 10 + 30 * smooth(a); twinkle(c, 'gold', cx + Math.cos(ang) * d, mid + Math.sin(ang) * d * 0.8, 8 * (1 - a), k % 2 ? '#ffe066' : '#fff4dc'); }
       if (x.n) { c.save(); c.globalAlpha = 1 - a * a; plate(c, 'Level up!', cx, b.y + 14 - a * 12, 11, '#2a7a2a', 'center'); c.restore(); }
     }
-    if (x.k === 'eat') bits(c, cx, mid + 6, a, x.at, ['#c9905a', HAY, '#d8382f']);
-    if (x.k === 'freeze') bits(c, cx, b.y + b.h / 2, a, x.at, ['#bfe3ff', '#ffffff', '#7ab8e8']);
+    if (x.k === 'eat' && !fling(c, 'crumbs', cx, mid + 8, a, 28)) bits(c, cx, mid + 6, a, x.at, ['#c9905a', HAY, '#d8382f']);
+    if (x.k === 'freeze' && !fling(c, 'frost', cx, b.y + b.h / 2, a, 34)) bits(c, cx, b.y + b.h / 2, a, x.at, ['#bfe3ff', '#ffffff', '#7ab8e8']);
   }
   const sold = fx.find((x) => x.k === 'sell');
   if (sold) {
     const a = fxAge(sold, now), k = smooth(a);
-    puffs(c, sx, sy, a, 26);
+    if (!cloud(c, 'poof', sx, sy, a, 50)) puffs(c, sx, sy, a, 26);
     acorn(c, sx + (14 - sx) * k, sy + (12 - sy) * k - 18 * arc(a), 14 * (1 - 0.4 * k));
   }
   plate(c, ui.held && !ui.dragging ? 'Now tap where it goes, or tap it again to put it back.' : 'Drag to buy, merge, move or sell. Or tap one, then tap where it goes.', 240, 290, 11, INK, 'center', 700);
@@ -459,30 +483,36 @@ export function drawFight(c: CanvasRenderingContext2D, r: Replay, now: number, c
     }
     if (ev.k === 'hit') {
       const front = side === 0 ? box.x + box.w : box.x;
-      if (!calm) { bits(c, front, mid, p, u.uid + r.i, [HAY, HAY_DARK, CREAM], side === 0 ? -1 : 1); burst(c, front, mid - 8, 7 + 9 * backOut(p * 2.5), 1 - p * p); }
+      if (!calm) {
+        const away = side === 0 ? -1 : 1;
+        if (!fling(c, 'hay', front + away * 6, mid, p, 26, away * 22, -4)) bits(c, front, mid, p, u.uid + r.i, [HAY, HAY_DARK, CREAM], away);
+        burst(c, front, mid - 8, 7 + 9 * backOut(p * 2.5), 1 - p * p);
+      }
       plate(c, `-${ev.dmg}`, cx, box.y - 4 - rise * 14, calm ? 15 : 15 + 6 * (1 - smooth(p * 3)), '#c0281e', 'center');
     }
     if (ev.k === 'buff') {
-      if (!calm) for (let k = 0; k < 3; k++) twinkle(c, cx - 12 + k * 12, mid + 10 - p * (26 + k * 6), 7 * (1 - p), '#7ad86a');
+      if (!calm) for (let k = 0; k < 3; k++) twinkle(c, 'green', cx - 12 + k * 12, mid + 10 - p * (26 + k * 6), 7 * (1 - p), '#7ad86a');
       plate(c, 'up!', cx, box.y - 4 - rise * 10, 12, '#2a7a2a', 'center');
     }
     if (ev.k === 'status' && !calm) {
       const col = ev.status === 'shell' ? '#7a9a52' : ev.status === 'mint' ? '#4fc28a' : ev.status === 'chilli' ? '#e2452a' : '#9aa88a';
-      if (ev.status) { c.save(); c.globalAlpha = 1 - p; c.strokeStyle = col; c.lineWidth = 3; c.beginPath(); c.arc(box.x + box.w - 7, box.y + 7, 5 + 16 * p, 0, Math.PI * 2); c.stroke(); c.restore(); }
-      else bits(c, box.x + box.w - 7, box.y + 7, p, u.uid, ['#7a9a52', '#c8d8a0'], 0); // a honey shell cracking
+      const at = charmAt(box, u.level);
+      if (ev.status) { c.save(); c.globalAlpha = 1 - p; c.strokeStyle = col; c.lineWidth = 3; c.beginPath(); c.arc(at.x, at.y, 5 + 16 * p, 0, Math.PI * 2); c.stroke(); c.restore(); }
+      // a honey shell used up: the charm swells and fades away
+      else if (!paintBrawlFx(c, 'shell', at.x, at.y, CHARM + 16 * smooth(p), { alpha: 1 - p })) bits(c, at.x, at.y, p, u.uid, ['#7a9a52', '#c8d8a0'], 0);
     }
     if (ev.k === 'ability') {
       const name = isUnitId(u.id) ? UNITS[u.id].name : '';
-      if (!calm) for (let k = 0; k < 5; k++) { const ang = (k / 5) * Math.PI * 2 + p * 4; twinkle(c, cx + Math.cos(ang) * 26, mid + Math.sin(ang) * 20, 7 * arc(p), '#ffe066'); }
+      if (!calm) for (let k = 0; k < 5; k++) { const ang = (k / 5) * Math.PI * 2 + p * 4; twinkle(c, 'gold', cx + Math.cos(ang) * 26, mid + Math.sin(ang) * 20, 7 * arc(p), '#ffe066'); }
       scaled(c, cx, box.y - 15, calm ? 1 : backOut(p * 3), () => {
         panel(c, { x: box.x - 14, y: box.y - 24, w: box.w + 28, h: 18 }, '#fff6dc', INK); text(c, `${name}!`, cx, box.y - 15, 10, INK, 'center');
       });
     }
-    if (ev.k === 'faint' && !calm) puffs(c, b.x + b.w / 2, b.y + b.h / 2, p);
+    if (ev.k === 'faint' && !calm && !cloud(c, 'poof', b.x + b.w / 2, b.y + b.h / 2, p, 52)) puffs(c, b.x + b.w / 2, b.y + b.h / 2, p);
   });
   if (cur?.k === 'summon' && !calm) {
     const b = fightBox(cur.side, places.get(cur.unit.uid) ?? 0);
-    puffs(c, b.x + b.w / 2, b.y + FIGHT_ART * 0.6, p, 26, 8);
+    if (!cloud(c, 'poof', b.x + b.w / 2, b.y + FIGHT_ART * 0.6, p, 58)) puffs(c, b.x + b.w / 2, b.y + FIGHT_ART * 0.6, p, 26, 8);
   }
   if (ended) {
     if (o.result === 'win' && !calm) confetti(c, r.t);

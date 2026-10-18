@@ -4,7 +4,7 @@ Prepared 18-10-2026 using the built-in image generation tool from the supplied p
 
 What was built, and how it was checked, is in the **Status** section of [the integration instructions](hay-bale-brawl-integration.md), which also keeps the original brief: proposed loader contract, exact engine-to-atlas mappings, shared renderer entry points, stage placement, static-canvas redraws and the validation checklist.
 
-**Supplementary effects sheet (18-10-2026):** `public/art/brawl/fx.png` is generated, with twelve painted effects/icons. This supplementary sheet is **not wired in yet**. Its [handoff](hay-bale-brawl-fx-art.md), [crop map](hay-bale-brawl-fx-crops.json) and [generation provenance](hay-bale-brawl-fx-generation.json) are separate from the original seven-image package below.
+**Supplementary effects sheet (18-10-2026):** `public/art/brawl/fx.png`, twelve painted effects and icons, is **wired in** (PR #77): it paints the game's bursts, puffs, hay, twinkles, frost, crumbs, acorns and status charms. Its [handoff](hay-bale-brawl-fx-art.md), [crop map](hay-bale-brawl-fx-crops.json) and [generation provenance](hay-bale-brawl-fx-generation.json) are separate from the original seven-image package below.
 
 ## Delivered originals
 

@@ -336,6 +336,189 @@ await check('shop moves: a buy, a merge, a roll and a sale start their effects; 
   assert.equal(await seen(), '');
 });
 
+// ---- the painted effects (fx.png) ----
+
+const FX_IDS = ['bonk', 'dust', 'poof', 'hay', 'gold', 'green', 'frost', 'crumbs', 'acorn', 'shell', 'mint', 'chilli'];
+/** Records which fx.png cell every draw uses, by its source rect; a rect that is not a measured cell is 'unknown'. */
+const spyFx = (page) => page.evaluate((ids) => {
+  window.__fx = [];
+  if (window.__fxSpy) return;
+  window.__fxSpy = true;
+  const real = CanvasRenderingContext2D.prototype.drawImage;
+  CanvasRenderingContext2D.prototype.drawImage = function (img, ...a) {
+    if (a.length === 8 && img?.src?.includes('/art/brawl/fx.png')) {
+      const id = ids.find((k) => { const r = window.__fxRects[k]; return r[0] === a[0] && r[1] === a[1] && r[2] === a[2] && r[3] === a[3]; });
+      window.__fx.push(id ?? 'unknown');
+    }
+    return real.call(this, img, ...a);
+  };
+}, FX_IDS);
+const fxSeen = (page) => page.evaluate(() => [...new Set(window.__fx.splice(0))].sort());
+/** Freezes the page's frame clock at `ms` (the shop's effects and the replay stop where they are); null lets it run. */
+const freezeClock = (page, ms) => page.evaluate((t) => {
+  window.__now = t;
+  if (window.__clock) return;
+  window.__clock = true;
+  const real = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = (cb) => real((ts) => cb(window.__now ?? ts));
+}, ms);
+const nextFrames = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 30)))));
+const { readFileSync } = await import('node:fs');
+const FX_RECTS = Object.fromEntries(JSON.parse(readFileSync('docs/hay-bale-brawl-fx-crops.json', 'utf8')).sprites.map((s) => [s.name, s.rect]));
+const fxRects = (page) => page.evaluate((r) => { window.__fxRects = r; }, FX_RECTS);
+/** The rect the painter actually draws from for each cell (needs fx.png ready). */
+const paintedRects = (page) => page.evaluate((ids) => {
+  const w = window.__brawl(), c = document.createElement('canvas').getContext('2d'), rects = {};
+  for (const id of ids) { c.drawImage = (img, ...a) => { rects[id] = a.slice(0, 4); }; w.art.fx(c, id, 10, 10, 10); }
+  return rects;
+}, FX_IDS);
+const FX_LIFE = { land: 0.45, level: 0.9, eat: 0.6, sell: 0.6, roll: 0.6, freeze: 0.5, spend: 0.8, earn: 0.8 };
+/** The shop with every shop effect pinned at `age` of its life, three status charms on the line and a card open. */
+async function shopEffects(page, age) {
+  await stock(page, { line: [{ id: 'mole', status: 'shell' }, { id: 'wren', status: 'mint' }, { id: 'bee', status: 'chilli' }, { id: 'toad' }], units: ['badger', 'otter', 'crow'], acorns: 2 });
+  await brawl(page, (w, a) => {
+    const now = window.__now, ui = w.ui(), at = (k) => now - a.age * a.life[k] * 1000;
+    ui.card = { from: 'unit', i: 0 };
+    ui.fx = [{ k: 'land', at: at('land'), i: 3 }, { k: 'level', at: at('level'), i: 1, n: 1 }, { k: 'eat', at: at('eat'), i: 2 }, { k: 'freeze', at: at('freeze'), i: 1 }, { k: 'sell', at: at('sell'), i: 4 }, { k: 'spend', at: at('spend'), i: 0, n: 3 }];
+  }, { age, life: FX_LIFE });
+  await nextFrames(page);
+}
+/** Plays the fight to just inside the first event of each kind and returns which cells each frame painted. */
+async function fightEffects(page, shot) {
+  const kinds = await brawl(page, (w) => [...new Set(w.replay.outcome.events.map((e) => e.k + (e.k === 'status' && !e.status ? ':used' : '')))]);
+  const painted = {};
+  for (const k of ['attack', 'hit', 'buff', 'ability', 'faint', 'summon', 'status', 'status:used']) {
+    if (!kinds.includes(k)) continue;
+    await brawl(page, (w, kk) => { const r = w.replay, i = r.outcome.events.findIndex((e) => e.k + (e.k === 'status' && !e.status ? ':used' : '') === kk); r.i = i + 1; r.t = 0.35 * 0.35; }, k);
+    await fxSeen(page); await nextFrames(page);
+    painted[k] = await fxSeen(page);
+    if (shot) await page.getByTestId('stage').screenshot({ path: `.checks/brawl/fx-${shot}-${k.replace(':', '-')}.png` });
+  }
+  return { kinds, painted };
+}
+/** A line that brings every fight effect: a shelled front, a fainting Mouse (summon), a Toad's buff and an ability. */
+const FX_LINE = [{ id: 'tortoise', a: 1, h: 3 }, { id: 'mouse', a: 1, h: 1 }, { id: 'toad', a: 1, h: 1 }, { id: 'frog', a: 2, h: 30 }, { id: 'bee', a: 1, h: 20 }];
+
+await check('painted effects: all twelve cells paint whole at their game sizes, on dark and cream', async (page) => {
+  await fresh(page); await start(page);
+  await page.waitForFunction(() => window.__brawl().art.status().ready.includes('fx'), null, { timeout: 30000 });
+  const rects = await paintedRects(page);
+  assert.deepEqual(rects, FX_RECTS, 'each effect paints its measured, padded crop');
+  assert.equal(new Set(Object.values(rects).map(String)).size, 12, 'twelve distinct cells');
+  // the sizes the scene uses: price-tag, card and purse acorns, status charms, bonks, puffs, poofs, hay, twinkles
+  const sizes = { bonk: [26, 38], dust: [16, 29], poof: [30, 64], hay: [21, 35], gold: [9, 18], green: [8, 16], frost: [27, 46], crumbs: [22, 38], acorn: [17, 19, 25, 27], shell: [17, 33], mint: [17], chilli: [17] };
+  const r = await page.evaluate((sz) => {
+    const w = window.__brawl(), cv = document.createElement('canvas'); cv.width = 1440; cv.height = 360;
+    const c = cv.getContext('2d'); c.scale(3, 3);
+    const bad = [], blank = [];
+    for (const [y0, bg] of [[0, '#1d1430'], [60, '#f6ecd6']]) {
+      c.fillStyle = bg; c.fillRect(0, y0, 480, 60);
+      Object.entries(sz).forEach(([id, list], i) => list.forEach((s, j) => {
+        const x = 20 + i * 38, y = y0 + 16 + j * 22 - (list.length > 2 ? 10 : 0);
+        if (!w.art.fx(c, id, x, y, s)) bad.push(`${id}@${s}`);
+        const d = c.getImageData((x - s / 2) * 3, (y - s / 2) * 3, s * 3, s * 3).data; let ink = 0;
+        for (let k = 0; k < d.length; k += 4) if (Math.abs(d[k] - (bg === '#1d1430' ? 0x1d : 0xf6)) + Math.abs(d[k + 2] - (bg === '#1d1430' ? 0x30 : 0xd6)) > 60) ink++;
+        if (ink < s * s * 0.5) blank.push(`${id}@${s}`);
+      }));
+    }
+    return { bad, blank, url: cv.toDataURL() };
+  }, sizes);
+  assert.deepEqual(r.bad, [], 'every cell painted');
+  assert.deepEqual(r.blank, [], 'every cell shows up at its size');
+  const { writeFileSync } = await import('node:fs');
+  writeFileSync('.checks/brawl/fx-sizes.png', Buffer.from(r.url.split(',')[1], 'base64'));
+});
+
+for (const view of [{ width: 1280, height: 860, name: 'desktop' }, { width: 390, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true, name: 'phone' }]) {
+  await check(`painted effects: frozen shop and fight frames paint every effect, the charms and the price tags (${view.name})`, async (page) => {
+    await fresh(page);
+    await brawl(page, (w) => w.start('dora', 12345)); await screen(page, 'shop');
+    await page.waitForFunction(() => ['fx', 'bg-shop', 'critters-1', 'critters-2'].every((k) => window.__brawl().art.status().ready.includes(k)), null, { timeout: 30000 });
+    await fxRects(page); await spyFx(page); await freezeClock(page, await page.evaluate(() => performance.now()));
+    await shopEffects(page, 0.35);
+    const shop = await fxSeen(page);
+    await page.getByTestId('stage').screenshot({ path: `.checks/brawl/fx-${view.name}-shop.png` });
+    for (const id of ['acorn', 'shell', 'mint', 'chilli', 'dust', 'gold', 'crumbs', 'frost', 'poof']) assert.ok(shop.includes(id), `the shop paints ${id}: ${shop}`);
+    assert.ok(!shop.includes('unknown'), 'only measured cells, never a strip of frames');
+    // the effects end, and nothing keeps moving: later frames paint only the still icons
+    await freezeClock(page, await page.evaluate(() => window.__now + 2000)); await nextFrames(page); await fxSeen(page); await nextFrames(page);
+    assert.deepEqual(await fxSeen(page), ['acorn', 'chilli', 'mint', 'shell'], 'once the effects end, only the acorns and charms remain');
+    // a fight, frozen just inside each kind of event
+    await brawl(page, (w) => { w.ui().fx = []; w.ui().card = null; });
+    await stock(page, { line: FX_LINE });
+    await freezeClock(page, null);
+    await page.getByTestId('end-turn').click(); await screen(page, 'fight');
+    await page.waitForFunction(() => window.__brawl().art.status().ready.includes('bg-fight'), null, { timeout: 30000 });
+    await freezeClock(page, await page.evaluate(() => performance.now()));
+    const { kinds, painted } = await fightEffects(page, view.name);
+    for (const k of ['hit', 'buff', 'ability', 'faint', 'summon']) assert.ok(kinds.includes(k), `this fight has a ${k}: ${kinds}`);
+    assert.ok(painted.hit.includes('bonk') && painted.hit.includes('hay'), `a hit: ${painted.hit}`);
+    assert.ok(painted.buff.includes('green'), `a buff: ${painted.buff}`);
+    assert.ok(painted.ability.includes('gold'), `an ability: ${painted.ability}`);
+    assert.ok(painted.faint.includes('poof') && painted.summon.includes('poof'), `a faint and a summon: ${painted.faint} / ${painted.summon}`);
+    if (painted['status:used']) assert.ok(painted['status:used'].includes('shell'), 'a used-up shell');
+    assert.ok(Object.values(painted).flat().every((id) => id !== 'unknown'));
+  }, view);
+}
+
+await check('painted effects: reduced motion keeps the charms and acorns but paints no bursts, hay, puffs or twinkles', async (page) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await fresh(page);
+  await brawl(page, (w) => w.start('dora', 12345)); await screen(page, 'shop');
+  await page.waitForFunction(() => window.__brawl().art.status().ready.includes('fx'), null, { timeout: 30000 });
+  await fxRects(page); await spyFx(page);
+  await stock(page, { line: FX_LINE.map((u, i) => (i === 0 ? { ...u, status: 'mint' } : u)) });
+  await page.getByTestId('end-turn').click(); await screen(page, 'fight');
+  await freezeClock(page, await page.evaluate(() => performance.now()));
+  const { painted } = await fightEffects(page, 'calm');
+  const moving = Object.values(painted).flat().filter((id) => !['acorn', 'shell', 'mint', 'chilli'].includes(id));
+  assert.deepEqual([...new Set(moving)], [], 'no moving effects under reduced motion');
+  assert.ok(Object.values(painted).flat().some((id) => ['shell', 'mint'].includes(id)), 'the status charms still show');
+});
+
+await check('painted effects: a slow fx.png leaves the drawings standing in, and play goes on', async (page) => {
+  let release; const gate = new Promise((r) => { release = r; });
+  await page.route('**/art/brawl/fx.png*', async (route) => { await gate; await route.continue(); });
+  await fresh(page); await start(page);
+  await fxRects(page); await spyFx(page);
+  await stock(page, { line: [{ id: 'mole', status: 'chilli' }], units: ['wren', 'bee', 'otter'], acorns: 10 });
+  assert.ok((await brawl(page, (w) => w.art.status().pending)).includes('fx'));
+  await drag(page, ['units', 0], ['line', 1]);
+  assert.equal((await run(page)).line[1]?.id, 'wren', 'buying works while the effects load');
+  await nextFrames(page);
+  assert.deepEqual(await fxSeen(page), [], 'nothing paints from the sheet before it arrives');
+  await page.getByTestId('stage').screenshot({ path: '.checks/brawl/fx-slow-fallback.png' });
+  release();
+  await page.waitForFunction(() => window.__brawl().art.status().ready.includes('fx'), null, { timeout: 30000 });
+  await nextFrames(page);
+  const after = await fxSeen(page);
+  assert.ok(after.includes('acorn') && after.includes('chilli'), `the paintings take over: ${after}`);
+});
+
+await check('painted effects: a failed fx.png is asked for once, the game plays on, and Retry paints the effects', async (page) => {
+  let fail = true, asked = 0;
+  page.on('request', (rq) => { if (rq.url().includes('/art/brawl/fx.png')) asked++; });
+  await page.route('**/art/brawl/fx.png*', (route) => (fail ? route.abort() : route.continue()));
+  await fresh(page); await start(page);
+  await page.waitForFunction(() => window.__brawl().art.status().failed.includes('fx'));
+  await fxRects(page); await spyFx(page);
+  await stock(page, { line: [{ id: 'mole', status: 'shell' }], units: ['wren', 'bee', 'otter'], acorns: 10 });
+  await page.getByTestId('retry-art').waitFor();
+  await page.waitForTimeout(800);
+  assert.equal(asked, 1, 'a failed sheet is not asked for every frame');
+  assert.deepEqual(await fxSeen(page), []);
+  await drag(page, ['units', 0], ['line', 1]);
+  assert.equal((await run(page)).line[1]?.id, 'wren', 'play goes on without the sheet');
+  await page.getByTestId('stage').screenshot({ path: '.checks/brawl/fx-failed-fallback.png' });
+  fail = false;
+  await page.getByTestId('retry-art').click();
+  await page.waitForFunction(() => window.__brawl().art.status().ready.includes('fx'), null, { timeout: 30000 });
+  await page.waitForFunction(() => !document.querySelector('[data-testid="retry-art"]'));
+  await nextFrames(page);
+  const after = await fxSeen(page);
+  assert.ok(after.includes('acorn') && after.includes('shell'), `Retry brings the paintings: ${after}`);
+});
+
 await browser.close();
 if (errors.length) { console.error('page errors:\n' + errors.join('\n')); failures.push('page errors'); }
 if (failures.length) { console.error(`${failures.length} failed`); process.exit(1); }

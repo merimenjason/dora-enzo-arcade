@@ -1,11 +1,11 @@
-// Hay Bale Brawl's painted art: loads the seven images on demand and paints crops of them. Importing this module on
+// Hay Bale Brawl's painted art: loads the eight images on demand and paints crops of them. Importing this module on
 // the server is safe (no Image, no window, no request). A painter returns false while its image is pending or failed,
 // and the caller draws the code fallback in that frame; nothing waits for art.
-import { BRAWL_ASSETS, BRAWL_EXT, BRAWL_EXTRAS, BRAWL_HASHES, BRAWL_SNACKS, BRAWL_UNITS, type BrawlAsset, type BrawlBackdrop, type BrawlRect, type BrawlSheet } from './hay-bale-crops.js';
+import { BRAWL_ASSETS, BRAWL_EXT, BRAWL_EXTRAS, BRAWL_FX, BRAWL_HASHES, BRAWL_SNACKS, BRAWL_UNITS, type BrawlAsset, type BrawlBackdrop, type BrawlFx, type BrawlRect, type BrawlSheet } from './hay-bale-crops.js';
 import type { UnitId, TokenId, SnackId } from './hay-bale-units.js';
 
-export { BRAWL_ASSETS, BRAWL_EXTRAS, BRAWL_FIGHT_STAGE_Y, BRAWL_SNACKS, BRAWL_UNITS } from './hay-bale-crops.js';
-export type { BrawlAsset, BrawlBackdrop, BrawlRect, BrawlSheet } from './hay-bale-crops.js';
+export { BRAWL_ASSETS, BRAWL_EXTRAS, BRAWL_FIGHT_STAGE_Y, BRAWL_FX, BRAWL_FX_IDS, BRAWL_SNACKS, BRAWL_UNITS } from './hay-bale-crops.js';
+export type { BrawlAsset, BrawlBackdrop, BrawlFx, BrawlRect, BrawlSheet } from './hay-bale-crops.js';
 export type BrawlBox = { x: number; y: number; w: number; h: number };
 type Entry = { state: 'pending' | 'ready' | 'failed'; image: HTMLImageElement };
 
@@ -96,3 +96,22 @@ export function paintBrawlExtra(c: CanvasRenderingContext2D, id: 'dora' | 'enzo'
 /** The whole 3:2 frame, so the backdrop's stage line and the title's empty text band stay where they were painted. */
 export const paintBrawlBackdrop = (c: CanvasRenderingContext2D, key: BrawlBackdrop, box: BrawlBox) => paint(c, key, [0, 0, SIZE.w, SIZE.h], box, false);
 export const paintBrawlTitle = (c: CanvasRenderingContext2D, box: BrawlBox) => paint(c, 'title', [0, 0, SIZE.w, SIZE.h], box, false);
+
+/**
+ * One painted effect or icon, centred on (x, y) and contain-fitted into a `size` square, so its whole silhouette shows
+ * at its own aspect. `alpha` fades it, `flip` mirrors it across, `rot` turns it (radians). False until fx.png is ready.
+ */
+export function paintBrawlFx(c: CanvasRenderingContext2D, id: BrawlFx, x: number, y: number, size: number, o: { alpha?: number; flip?: boolean; rot?: number } = {}): boolean {
+  const rect = BRAWL_FX[id], dest = rect && fitBrawlBox({ x: -size / 2, y: -size / 2, w: size, h: size }, rect[2], rect[3]);
+  if (!dest || !Number.isFinite(x) || !Number.isFinite(y)) return false;
+  requestBrawlArt(['fx']);
+  const entry = entries.get('fx');
+  if (entry?.state !== 'ready') return false;
+  const alpha = o.alpha ?? 1;
+  if (alpha <= 0) return true;
+  c.save(); c.globalAlpha *= Math.min(1, alpha);
+  c.translate(x, y); if (o.rot) c.rotate(o.rot); if (o.flip) c.scale(-1, 1);
+  c.drawImage(entry.image, rect[0], rect[1], rect[2], rect[3], dest.x, dest.y, dest.w, dest.h);
+  c.restore();
+  return true;
+}

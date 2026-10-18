@@ -13,7 +13,7 @@ The game is painted (18-10-2026): [asset delivery](hay-bale-brawl-art.md), [art 
   - `choose` and `playShop` are the buying policy that the rival ghosts and the bot both use;
   - `ghost(seed, turn)` builds a rival crew;
   - the profile (`loadProfile`, `record`).
-- `lib/hay-bale-crops.ts` maps every unit, summon, snack, coach and the bale to its measured crop in the seven painted files, with each file's hash.
+- `lib/hay-bale-crops.ts` maps every unit, summon, snack, coach and the bale to its measured crop in the seven painted files, and the twelve effects to theirs in `fx.png`, with each file's hash.
 - `lib/hay-bale-paint.ts` loads those files on demand and paints crops of them; a painter returns false while its file is pending or failed.
 - `lib/hay-bale-motion.ts` is the movement, as numbers: each critter's pose for the fight event playing now, where the lines stand while they slide, and the shop's short effects. `tests/hay-bale-motion.mjs` checks it.
 - `lib/hay-bale-scene.ts` draws the shop, the fight replay and the title on a 480 × 320 stage, painting each subject when it can and drawing it in code when it can't. Pip, the Duchess and the coaches' fallbacks use `drawChinchilla`.
@@ -150,10 +150,11 @@ The first tuning pass dropped the ghosts to 9 acorns, but the final review found
 
 ## Art and sound
 
-Everything is painted, from seven images in `public/art/brawl/` ([details](hay-bale-brawl-art.md)):
+Everything is painted, from eight images in `public/art/brawl/` ([details](hay-bale-brawl-art.md)):
 - three sheets with the 30 critters, three summons, both coaches and a bale, and a sheet of the eight snacks (PNG);
 - the barn shop and the meadow stage (quality-85 WebP);
-- the title: Dora and Enzo on a bale with five of the crew (PNG).
+- the title: Dora and Enzo on a bale with five of the crew (PNG);
+- an effects sheet of twelve still effects and icons: a bonk, dust, a poof, hay, gold and green twinkles, frost, crumbs, an acorn and the Shell, Mint and Chilli charms (PNG, [details](hay-bale-brawl-fx-art.md)).
 
 How they are used:
 - **Loading.** Each screen asks for what it needs when it opens: the title for the title and barn, the shop for the barn, snacks, the coach's sheet, its critters' sheets and the meadow, a fight for the meadow and every critter sheet. Drawing anything also asks for its file. Nothing waits for a painting.
@@ -161,6 +162,7 @@ How they are used:
 - **Placement.** Every subject keeps its proportions and stands on the bottom of its box. In a fight, feet stand on the painted straw (y203 of 320) and the stat badges sit just below, on the bale's face. Rivals are the same paintings mirrored; their numbers are not. The coach stands on the painted bale, left of the line.
 - **Movement.** The paintings are single still poses, moved as a whole about their feet, and only the critter an event is about moves (`lib/hay-bale-motion.ts`). In a fight: an attack leans back, then hops and lunges 16 px with speed lines; a hit knocks the target back with a shake, a squash, a yellow burst and flying hay, and the damage number pops; a faint tips the critter over backwards and drops it away as it fades, in a puff; an ability hops with twinkles and a banner that pops in; a buff stretches the critter, swells its badges and sends up green twinkles; a status rings out in its colour, and a broken Shell scatters; a summon pops in from nothing; the line slides when it closes up or a summon pushes in; the winners hop once and a win drops confetti. In the shop: a bought or moved critter lands with a squash and dust, a merge sparkles (with **Level up!** when it levels), a snack leaves crumbs and swells the badges, a roll grows the new offers in left to right, frozen slots frost over, a sale puffs at **Sell** and sends an acorn to the purse, and the purse swells as the change floats down from it. Nothing moves on the clock alone: there is no idle bounce. The code drawings still breathe. With reduced motion only a 3 px lunge and the fades remain, the damage numbers stay still, the line snaps into place and the shop shows no effects; the replay's timing is the same either way.
 - **Prices.** Every shop offer wears an acorn price tag at its top-right corner, red when the purse is short. The card adds a last line: what it costs (and what you have, when short) or what it sells for. **Sell** shows the refund while a crew critter is held. Shop offers don't show their level plate, which is always L1; the card does.
+- **Effects.** Hits, landings, knock-outs, summons, sales, buffs, abilities, level-ups, freezes and snacks paint their cell of the effects sheet, which only grows, drifts and fades with its event, as the drawings did; reduced motion drops them as before. Every acorn on screen and the status charms come from it too. A charm sits beside the level plate in the shop and just above a critter's top-right corner in a fight, clear of the pips and badges.
 - **Text.** Names, numbers, levels and hints are drawn by the game, on light plates where they sit over a painting.
 
 Sound is synthesised WebAudio blips (`app/brawl/sound.ts`), with no files.

@@ -132,7 +132,7 @@ The critters come first because the player watches them all the time; the backdr
 
 ## 8 · `fx.png` (optional)
 
-**Delivery 18-10-2026:** `public/art/brawl/fx.png` is now generated and checked. [Effects artwork handoff](hay-bale-brawl-fx-art.md), [measured crops](hay-bale-brawl-fx-crops.json) and [exact prompts and provenance](hay-bale-brawl-fx-generation.json) accompany it. Runtime integration is pending. For this effects-only request, omit the critter pose/facing and backdrop instructions; use transparent centred effects, the existing painted style and the checks specific to `fx.png`.
+**Delivery 18-10-2026:** `public/art/brawl/fx.png` is now generated and checked. [Effects artwork handoff](hay-bale-brawl-fx-art.md), [measured crops](hay-bale-brawl-fx-crops.json) and [exact prompts and provenance](hay-bale-brawl-fx-generation.json) accompany it. It was wired into the game the same day (PR #77). For this effects-only request, omit the critter pose/facing and backdrop instructions; use transparent centred effects, the existing painted style and the checks specific to `fx.png`.
 
 Added 18-10-2026, after the game gained its fight and shop animations. The game already draws every one of these effects in code, so this sheet is polish: it repaints them in the storybook style and replaces the plain coloured status dots for Shell, Mint and Chilli. Painted attack or faint poses for each critter are deliberately not asked for: poses drift too much between generations for 33 critters to stay on-model across frames, so the code keeps moving the existing paintings instead. Attach the critter sheets as references so the outlines and the acorn match.
 

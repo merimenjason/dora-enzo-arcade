@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Run, UNITS, UNIT_IDS, SNACKS, SNACK_IDS, LINE, loadProfile, record, type Coach, type Profile, type Unit, type Slot } from '../../lib/hay-bale-game';
 import { drawShop, drawFight, drawTitle, drawCritter, drawSnack, stepReplay, inBox, LAYOUT, STAGE, type Held, type ShopUi, type Replay } from '../../lib/hay-bale-scene';
-import { brawlArtServerVersion, brawlArtStatus, brawlArtVersion, brawlSheetsFor, CRITTER_SHEETS, paintBrawlExtra, paintBrawlSnack, paintBrawlUnit, requestBrawlArt, retryBrawlArt, subscribeBrawlArt } from '../../lib/hay-bale-paint';
+import { brawlArtServerVersion, brawlArtStatus, brawlArtVersion, brawlSheetsFor, CRITTER_SHEETS, paintBrawlExtra, paintBrawlFx, paintBrawlSnack, paintBrawlUnit, requestBrawlArt, retryBrawlArt, subscribeBrawlArt } from '../../lib/hay-bale-paint';
 import { liveFx, type ShopFx } from '../../lib/hay-bale-motion';
 import { sound } from './sound';
 import './brawl.css';
@@ -134,7 +134,7 @@ export default function HayBaleBrawl() {
     const out = run?.endTurn();
     if (!run || !out) return;
     persist();
-    requestBrawlArt(['bg-fight', ...CRITTER_SHEETS]);
+    requestBrawlArt(['bg-fight', ...CRITTER_SHEETS, 'fx']);
     replayRef.current = { outcome: out, i: 0, t: 0, speed: speedRef.current };
     go('fight');
   }, [persist, go]);
@@ -166,17 +166,17 @@ export default function HayBaleBrawl() {
     const run = runRef.current;
     if (screen === 'title') requestBrawlArt(['title', 'bg-shop']);
     else if (screen === 'almanac') requestBrawlArt([...CRITTER_SHEETS, 'snacks']);
-    else if (screen === 'fight') requestBrawlArt(['bg-fight', ...CRITTER_SHEETS]);
+    else if (screen === 'fight') requestBrawlArt(['bg-fight', ...CRITTER_SHEETS, 'fx']);
     else if (screen === 'shop' && run) {
       const ids = [...run.line, ...run.units.map((s) => (s?.kind === 'unit' ? s.unit : null))].flatMap((u) => (u ? [u.id] : []));
-      requestBrawlArt(['bg-shop', 'snacks', 'critters-3', ...brawlSheetsFor(ids), 'bg-fight']);
+      requestBrawlArt(['bg-shop', 'fx', 'snacks', 'critters-3', ...brawlSheetsFor(ids), 'bg-fight']);
     }
   }, [screen]);
 
   useEffect(() => {
     (window as unknown as { __brawl?: () => unknown }).__brawl = () => ({
       run: runRef.current, profile: profileRef.current, replay: replayRef.current, ui: () => uiRef.current, layout: LAYOUT, start,
-      art: { status: brawlArtStatus, version: brawlArtVersion, critter: drawCritter, snack: drawSnack, unit: paintBrawlUnit, snackArt: paintBrawlSnack, extra: paintBrawlExtra },
+      art: { status: brawlArtStatus, version: brawlArtVersion, critter: drawCritter, snack: drawSnack, unit: paintBrawlUnit, snackArt: paintBrawlSnack, extra: paintBrawlExtra, fx: paintBrawlFx },
       set: (p: { line?: (Unit | null)[]; units?: (Slot | null)[]; snacks?: (Slot | null)[]; acorns?: number }) => {
         const run = runRef.current;
         if (!run) return;

@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Hay Bale Brawl**'s effects are painted: the bonk on a hit, flying hay, landing dust, knock-out and summon poofs, gold and green twinkles, frost, crumbs, every acorn (purse, price tags, cards, Sell) and the Shell, Mint and Chilli charms now come from the new storybook effects sheet. Each still moves exactly as before, nothing bobs while nothing happens, and reduced motion still drops the moving effects. The old drawings stand in while the sheet loads, and **Retry artwork** fetches it again if it fails.
 - **Hay Bale Brawl** moves more. In a fight, critters wind up and lunge, get knocked back in a burst of hay, tumble off the bale when they faint, hop when they use an ability, pop in when summoned, and the line slides up to close gaps; a win ends in confetti. In the shop, bought critters land with a puff, merges sparkle with **Level up!**, snacks leave crumbs, rolls grow the new offers in, and sold critters send an acorn to your purse. Nobody fidgets while nothing is happening, and reduced motion turns all of this off.
 - **Hay Bale Brawl** shows prices: every shop offer wears an acorn tag (red when you can't afford it), the card says what it costs or sells for, and **Sell** shows how many acorns you'd get back.
 - **Hay Bale Brawl** is painted: every critter, summon and snack, both coaches, the barn shop, the meadow stage and the title now use the new storybook paintings. Critters stand on the painted straw and rivals face your crew. The paintings load as you need them, the old drawings fill in until they arrive, and a **Retry artwork** button appears if one fails. With reduced motion the fight's lunges are gentler and the numbers stay still.
@@ -16,7 +17,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
-- **Hay Bale Brawl**: prepared a supplementary painted effects sheet with bonks, dust, poofs, hay, twinkles, frost, crumbs, an acorn and three status charms. Includes measured crops and an integration handoff; the game continues to use its existing code effects until this sheet is wired in.
+- **Hay Bale Brawl**: prepared a supplementary painted effects sheet with bonks, dust, poofs, hay, twinkles, frost, crumbs, an acorn and three status charms, with measured crops and an integration handoff; wired into the game the same day (see **Changed**).
 - **Hay Bale Brawl**: prepared seven painted art files covering every critter, summon and snack, both coaches, the bale, barn shop, meadow stage and title. Includes measured sprite crops and an integration handoff; wired into the game the same day (see **Changed**).
 - **Hay Bale Brawl**: the arcade's 36th game, an auto-battler. Pick Dora or Enzo as coach, buy a crew of thirty woodland critters, merge copies to level them up, feed them snacks, and watch them brawl rival crews on a hay bale. Win ten fights before you lose five hearts. Drag or tap to shop; the run is saved after every move.
 - **Whisker Ware**: the arcade's 35th game, a microgame frenzy. Four hosts (Enzo, Dora, the Owl and the Fox) each throw five five-second games and a boss at you, faster and faster. Clear all four for the endless Remix, and practise any game you've beaten from the gallery. Plays by tap, click or keyboard, with painted art and synthesised sound.
