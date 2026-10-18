@@ -94,8 +94,10 @@ await check('freeze then roll keeps the frozen unit; Enzo rolls free once', asyn
   let r = await run(page);
   assert.equal(r.units[0].unit.uid, kept); assert.equal(r.units[0].frozen, true);
   assert.equal(r.acorns, 10, 'the first roll is free');
+  await tap(page, 'units', 1);
   await page.keyboard.press('KeyR');
   r = await run(page); assert.equal(r.acorns, 9);
+  assert.equal(await brawl(page, (w) => w.ui().held), null, 'a roll drops the choice of a shop unit that is gone');
 });
 
 await check('end turn replays the fight; Skip shows the result; Next opens turn 2', async (page) => {
@@ -120,9 +122,15 @@ await check('reloading during the replay counts the fight exactly once', async (
   await screen(page, 'fight');
   await page.reload(); await ready(page);
   await page.getByTestId('continue').click();
+  await screen(page, 'fight');
+  assert.equal(await brawl(page, (w) => w.replay.outcome.result), 'win', 'Continue shows the fight it missed');
+  await page.getByTestId('next').click();
   await screen(page, 'shop');
   const r = await run(page);
   assert.deepEqual([r.turn, r.bales, r.hearts], [2, 1, 5]);
+  await page.reload(); await ready(page);
+  await page.getByTestId('continue').click();
+  await screen(page, 'shop');
 });
 
 await check('a won run is recorded and its save removed', async (page) => {

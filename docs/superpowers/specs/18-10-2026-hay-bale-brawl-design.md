@@ -59,7 +59,7 @@ Random choices in a fight (random friend, random enemy) use the fight's own `Ran
 
 ### Rivals
 
-There is no online play. The rival for turn *t* is a **ghost crew**: the engine runs the same shop rules for *t* turns with the ghost's own seed, and the bot's buying policy (below) picks for it. The ghost gets `GHOST_ACORNS` acorns per turn, a tuning number that started at 10 and is 9 after the bot's tuning (18-10-2026). A rival's captain is its strongest unit, shown with a crew name built from it ("The Badger's Bunch"); there is no separate rival roster to draw.
+There is no online play. The rival for turn *t* is a **ghost crew**: the engine runs the same shop rules for *t* turns with the ghost's own seed, and the bot's buying policy (below) picks for it. The ghost gets `GHOST_ACORNS` acorns per turn, a tuning number, 10 (the bot found it fair on 18-10-2026). A rival's captain is its strongest unit, shown with a crew name built from it ("The Badger's Bunch"); there is no separate rival roster to draw.
 
 ## Units
 

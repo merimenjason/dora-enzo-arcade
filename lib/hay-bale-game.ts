@@ -52,7 +52,7 @@ export function fight(left: Unit[], right: Unit[], seed: number, coach: Coach | 
   const sideOf = new Map<number, 0 | 1>();
   lines.forEach((l, s) => l.forEach((u) => sideOf.set(u.uid, s as 0 | 1)));
   const events: FightEvent[] = [], rand = new Rand(seed), fainted = new Set<number>();
-  let uid = Math.max(0, ...[...left, ...right].map((u) => u.uid)) + 1, queue: { u: Unit; on: Trigger; other: Unit | null }[] = [], fired = false;
+  let uid = Math.max(0, ...[...left, ...right].map((u) => u.uid)) + 1, queue: { u: Unit; on: Trigger; other: Unit | null }[] = [];
   const side = (u: Unit) => sideOf.get(u.uid)!;
   const living = (s: number) => lines[s].filter((u) => u.h > 0);
   const fire = (u: Unit, on: Trigger, other: Unit | null = null) => { if (UNITS[u.id as keyof typeof UNITS]?.on === on) queue.push({ u, on, other }); };
@@ -113,7 +113,6 @@ export function fight(left: Unit[], right: Unit[], seed: number, coach: Coach | 
       batch.sort((x, y) => y.u.a - x.u.a || side(x.u) - side(y.u) || lines[side(x.u)].indexOf(x.u) - lines[side(y.u)].indexOf(y.u));
       for (const { u, on, other } of batch) {
         if (u.h <= 0 && on !== 'faint') continue;
-        fired = true;
         events.push({ k: 'ability', uid: u.uid });
         UNITS[u.id as keyof typeof UNITS].run(ctx, u, u.level, other);
       }
@@ -130,12 +129,15 @@ export function fight(left: Unit[], right: Unit[], seed: number, coach: Coach | 
   settle();
   let rounds = 0, stalled = false;
   while (lines[0].length && lines[1].length && rounds < MAX_ROUNDS) {
-    rounds++; fired = false;
+    rounds++;
+    const mark = events.length;
     fire(lines[0][0], 'beforeAttack'); fire(lines[1][0], 'beforeAttack');
     settle();
     if (!lines[0].length || !lines[1].length) break;
     const [l, r] = [lines[0][0], lines[1][0]];
-    if (l.a <= 0 && r.a <= 0 && !fired) { stalled = true; break; }
+    // Stalled: neither front can hurt anyone and nothing but empty ability callouts happened this round.
+    const canHit = (u: Unit, foes: Unit[]) => u.a > 0 || (u.status === 'chilli' && foes.length > 1);
+    if (!canHit(l, lines[1]) && !canHit(r, lines[0]) && events.slice(mark).every((e) => e.k === 'ability')) { stalled = true; break; }
     const [lBack, rBack] = [lines[0][1], lines[1][1]];
     events.push({ k: 'attack', uid: l.uid }, { k: 'attack', uid: r.uid });
     ctx.damage(r, l.a); ctx.damage(l, r.a);
@@ -152,7 +154,7 @@ export function fight(left: Unit[], right: Unit[], seed: number, coach: Coach | 
 
 // ── The shop and the run ──────────────────────────────────────────────────────
 
-export const START_ACORNS = 10, UNIT_COST = 3, SNACK_COST = 3, ROLL_COST = 1, HEARTS = 5, BALES = 10, MAX_XP = 5;
+export const SHOP_UNITS_MAX = 7, START_ACORNS = 10, UNIT_COST = 3, SNACK_COST = 3, ROLL_COST = 1, HEARTS = 5, BALES = 10, MAX_XP = 5;
 export const SAVE_VERSION = 1;
 /** The highest tier the shop offers on a turn: tier 1 on turns 1–2, tier 2 on 3–4, and so on up to 5. */
 export const shopTier = (turn: number) => Math.min(5, 1 + Math.floor((turn - 1) / 2)) as Tier;
@@ -257,8 +259,9 @@ export class Run {
     const was = u.level;
     u.xp = Math.min(MAX_XP, u.xp + xp); u.level = levelOf(u.xp);
     if (u.level > was) {
-      const tier = Math.min(5, this.tier + 1);
-      this.units.push({ kind: 'unit', unit: this.spawn(this.rand.pick(UNIT_IDS.filter((id) => UNITS[id].tier === tier))), frozen: false });
+      const tier = Math.min(5, this.tier + 1), free = this.units.indexOf(null);
+      const slot: Slot = { kind: 'unit', unit: this.spawn(this.rand.pick(UNIT_IDS.filter((id) => UNITS[id].tier === tier))), frozen: false };
+      if (free >= 0) this.units[free] = slot; else if (this.units.length < SHOP_UNITS_MAX) this.units.push(slot);
     }
   }
 
@@ -436,7 +439,7 @@ export function playShop(run: Run, pick: (run: Run) => Action | null = choose) {
 }
 
 /** The acorns a ghost crew gets each turn, and the seed every run derives its rival from. */
-export const GHOST_ACORNS = 9, GHOST_SEED = 7, GHOST_UID = 1_000_000;
+export const GHOST_ACORNS = 10, GHOST_SEED = 7, GHOST_UID = 1_000_000;
 const ghosts = new Map<number, Run>();
 /**
  * A rival crew as it stands after shopping `turn` turns with the policy. One ghost run per seed is kept and played
@@ -449,7 +452,9 @@ export function ghost(seed: number, turn: number): Unit[] {
     ghosts.delete(seed); ghosts.set(seed, g);
     if (ghosts.size > 64) ghosts.delete(ghosts.keys().next().value!);
   }
-  while (g.turn <= turn) { playShop(g); g.endTurn(); }
+  // a ghost never fights, so a Raisin's attack is cleared by hand before it shops the next turn
+  // a ghost never fights, so a Raisin's attack is cleared by hand before it shops the next turn
+  while (g.turn <= turn) { for (const u of g.line) if (u) u.tmpA = 0; playShop(g); g.endTurn(); }
   return g.line.filter((u): u is Unit => u !== null).map((u) => ({ ...u, uid: u.uid + GHOST_UID }));
 }
 
