@@ -1,5 +1,9 @@
 # Hay Bale Brawl · image prompts for ChatGPT
 
+## Artwork delivery · 18-10-2026
+
+All seven original PNGs are now generated under `public/art/brawl/`. Runtime integration is pending. Read [the integration instructions](hay-bale-brawl-integration.md) before wiring them into the game; [delivery notes](hay-bale-brawl-art.md), [measured crops](hay-bale-brawl-crops.json) and [exact generated/correction prompts and hashes](hay-bale-brawl-generation.json) accompany them. The original production brief below is preserved for future replacements.
+
 Written 18-10-2026. A handoff for painting Hay Bale Brawl's art in ChatGPT. The game shipped fully code-drawn ([design](superpowers/specs/18-10-2026-hay-bale-brawl-design.md), [rules](hay-bale-brawl.md)), so every image below replaces one drawing on its own and the code keeps the drawing as the fallback. Generate in any order; the priority order gets the most out of each image.
 
 ## How to use this

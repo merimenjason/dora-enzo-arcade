@@ -1,0 +1,1302 @@
+{
+  "date": "18-10-2026",
+  "sourceSize": [
+    1536,
+    1024
+  ],
+  "visibleAlphaThreshold": 8,
+  "padding": 8,
+  "rectFormat": "[x,y,width,height], source pixels; index is zero-based row-major",
+  "sprites": [
+    {
+      "name": "Wren",
+      "asset": "critters-1.png",
+      "index": 0,
+      "cell": [
+        0,
+        0,
+        384,
+        341
+      ],
+      "bounds": [
+        144,
+        129,
+        174,
+        159
+      ],
+      "rect": [
+        136,
+        121,
+        190,
+        175
+      ],
+      "margins": [
+        144,
+        129,
+        66,
+        53
+      ]
+    },
+    {
+      "name": "Field Mouse",
+      "asset": "critters-1.png",
+      "index": 1,
+      "cell": [
+        384,
+        0,
+        768,
+        341
+      ],
+      "bounds": [
+        494,
+        124,
+        190,
+        172
+      ],
+      "rect": [
+        486,
+        116,
+        206,
+        188
+      ],
+      "margins": [
+        110,
+        124,
+        84,
+        45
+      ]
+    },
+    {
+      "name": "Ladybird",
+      "asset": "critters-1.png",
+      "index": 2,
+      "cell": [
+        768,
+        0,
+        1152,
+        341
+      ],
+      "bounds": [
+        870,
+        118,
+        172,
+        183
+      ],
+      "rect": [
+        862,
+        110,
+        188,
+        199
+      ],
+      "margins": [
+        102,
+        118,
+        110,
+        40
+      ]
+    },
+    {
+      "name": "Toad",
+      "asset": "critters-1.png",
+      "index": 3,
+      "cell": [
+        1152,
+        0,
+        1536,
+        341
+      ],
+      "bounds": [
+        1221,
+        147,
+        179,
+        146
+      ],
+      "rect": [
+        1213,
+        139,
+        195,
+        162
+      ],
+      "margins": [
+        69,
+        147,
+        136,
+        48
+      ]
+    },
+    {
+      "name": "Bee",
+      "asset": "critters-1.png",
+      "index": 4,
+      "cell": [
+        0,
+        341,
+        384,
+        682
+      ],
+      "bounds": [
+        130,
+        423,
+        208,
+        181
+      ],
+      "rect": [
+        122,
+        415,
+        224,
+        197
+      ],
+      "margins": [
+        130,
+        82,
+        46,
+        78
+      ]
+    },
+    {
+      "name": "Dormouse",
+      "asset": "critters-1.png",
+      "index": 5,
+      "cell": [
+        384,
+        341,
+        768,
+        682
+      ],
+      "bounds": [
+        473,
+        419,
+        226,
+        184
+      ],
+      "rect": [
+        465,
+        411,
+        242,
+        200
+      ],
+      "margins": [
+        89,
+        78,
+        69,
+        79
+      ]
+    },
+    {
+      "name": "Hedgehog",
+      "asset": "critters-1.png",
+      "index": 6,
+      "cell": [
+        768,
+        341,
+        1152,
+        682
+      ],
+      "bounds": [
+        830,
+        427,
+        236,
+        178
+      ],
+      "rect": [
+        822,
+        419,
+        252,
+        194
+      ],
+      "margins": [
+        62,
+        86,
+        86,
+        77
+      ]
+    },
+    {
+      "name": "Squirrel",
+      "asset": "critters-1.png",
+      "index": 7,
+      "cell": [
+        1152,
+        341,
+        1536,
+        682
+      ],
+      "bounds": [
+        1199,
+        413,
+        222,
+        195
+      ],
+      "rect": [
+        1191,
+        405,
+        238,
+        211
+      ],
+      "margins": [
+        47,
+        72,
+        115,
+        74
+      ]
+    },
+    {
+      "name": "Robin",
+      "asset": "critters-1.png",
+      "index": 8,
+      "cell": [
+        0,
+        682,
+        384,
+        1024
+      ],
+      "bounds": [
+        140,
+        734,
+        194,
+        177
+      ],
+      "rect": [
+        132,
+        726,
+        210,
+        193
+      ],
+      "margins": [
+        140,
+        52,
+        50,
+        113
+      ]
+    },
+    {
+      "name": "Mole",
+      "asset": "critters-1.png",
+      "index": 9,
+      "cell": [
+        384,
+        682,
+        768,
+        1024
+      ],
+      "bounds": [
+        497,
+        754,
+        206,
+        156
+      ],
+      "rect": [
+        489,
+        746,
+        222,
+        172
+      ],
+      "margins": [
+        113,
+        72,
+        65,
+        114
+      ]
+    },
+    {
+      "name": "Frog",
+      "asset": "critters-1.png",
+      "index": 10,
+      "cell": [
+        768,
+        682,
+        1152,
+        1024
+      ],
+      "bounds": [
+        847,
+        759,
+        187,
+        161
+      ],
+      "rect": [
+        839,
+        751,
+        203,
+        177
+      ],
+      "margins": [
+        79,
+        77,
+        118,
+        104
+      ]
+    },
+    {
+      "name": "Pip",
+      "asset": "critters-1.png",
+      "index": 11,
+      "cell": [
+        1152,
+        682,
+        1536,
+        1024
+      ],
+      "bounds": [
+        1196,
+        733,
+        213,
+        180
+      ],
+      "rect": [
+        1188,
+        725,
+        229,
+        196
+      ],
+      "margins": [
+        44,
+        51,
+        127,
+        111
+      ]
+    },
+    {
+      "name": "Badger",
+      "asset": "critters-2.png",
+      "index": 0,
+      "cell": [
+        0,
+        0,
+        384,
+        341
+      ],
+      "bounds": [
+        90,
+        147,
+        196,
+        146
+      ],
+      "rect": [
+        82,
+        139,
+        212,
+        162
+      ],
+      "margins": [
+        90,
+        147,
+        98,
+        48
+      ]
+    },
+    {
+      "name": "Otter",
+      "asset": "critters-2.png",
+      "index": 1,
+      "cell": [
+        384,
+        0,
+        768,
+        341
+      ],
+      "bounds": [
+        493,
+        105,
+        177,
+        189
+      ],
+      "rect": [
+        485,
+        97,
+        193,
+        205
+      ],
+      "margins": [
+        109,
+        105,
+        98,
+        47
+      ]
+    },
+    {
+      "name": "Magpie",
+      "asset": "critters-2.png",
+      "index": 2,
+      "cell": [
+        768,
+        0,
+        1152,
+        341
+      ],
+      "bounds": [
+        855,
+        155,
+        210,
+        143
+      ],
+      "rect": [
+        847,
+        147,
+        226,
+        159
+      ],
+      "margins": [
+        87,
+        155,
+        87,
+        43
+      ]
+    },
+    {
+      "name": "Rabbit",
+      "asset": "critters-2.png",
+      "index": 3,
+      "cell": [
+        1152,
+        0,
+        1536,
+        341
+      ],
+      "bounds": [
+        1277,
+        107,
+        165,
+        187
+      ],
+      "rect": [
+        1269,
+        99,
+        181,
+        203
+      ],
+      "margins": [
+        125,
+        107,
+        94,
+        47
+      ]
+    },
+    {
+      "name": "Porcupine",
+      "asset": "critters-2.png",
+      "index": 4,
+      "cell": [
+        0,
+        341,
+        384,
+        682
+      ],
+      "bounds": [
+        82,
+        435,
+        220,
+        168
+      ],
+      "rect": [
+        74,
+        427,
+        236,
+        184
+      ],
+      "margins": [
+        82,
+        94,
+        82,
+        79
+      ]
+    },
+    {
+      "name": "Beaver",
+      "asset": "critters-2.png",
+      "index": 5,
+      "cell": [
+        384,
+        341,
+        768,
+        682
+      ],
+      "bounds": [
+        464,
+        439,
+        233,
+        162
+      ],
+      "rect": [
+        456,
+        431,
+        249,
+        178
+      ],
+      "margins": [
+        80,
+        98,
+        71,
+        81
+      ]
+    },
+    {
+      "name": "Stoat",
+      "asset": "critters-2.png",
+      "index": 6,
+      "cell": [
+        768,
+        341,
+        1152,
+        682
+      ],
+      "bounds": [
+        846,
+        450,
+        223,
+        154
+      ],
+      "rect": [
+        838,
+        442,
+        239,
+        170
+      ],
+      "margins": [
+        78,
+        109,
+        83,
+        78
+      ]
+    },
+    {
+      "name": "Tortoise",
+      "asset": "critters-2.png",
+      "index": 7,
+      "cell": [
+        1152,
+        341,
+        1536,
+        682
+      ],
+      "bounds": [
+        1257,
+        478,
+        195,
+        126
+      ],
+      "rect": [
+        1249,
+        470,
+        211,
+        142
+      ],
+      "margins": [
+        105,
+        137,
+        84,
+        78
+      ]
+    },
+    {
+      "name": "Crow",
+      "asset": "critters-2.png",
+      "index": 8,
+      "cell": [
+        0,
+        682,
+        384,
+        1024
+      ],
+      "bounds": [
+        79,
+        763,
+        226,
+        162
+      ],
+      "rect": [
+        71,
+        755,
+        242,
+        178
+      ],
+      "margins": [
+        79,
+        81,
+        79,
+        99
+      ]
+    },
+    {
+      "name": "Skunk",
+      "asset": "critters-2.png",
+      "index": 9,
+      "cell": [
+        384,
+        682,
+        768,
+        1024
+      ],
+      "bounds": [
+        474,
+        729,
+        224,
+        192
+      ],
+      "rect": [
+        466,
+        721,
+        240,
+        208
+      ],
+      "margins": [
+        90,
+        47,
+        70,
+        103
+      ]
+    },
+    {
+      "name": "Raccoon",
+      "asset": "critters-2.png",
+      "index": 10,
+      "cell": [
+        768,
+        682,
+        1152,
+        1024
+      ],
+      "bounds": [
+        841,
+        781,
+        239,
+        143
+      ],
+      "rect": [
+        833,
+        773,
+        255,
+        159
+      ],
+      "margins": [
+        73,
+        99,
+        72,
+        100
+      ]
+    },
+    {
+      "name": "Hare",
+      "asset": "critters-2.png",
+      "index": 11,
+      "cell": [
+        1152,
+        682,
+        1536,
+        1024
+      ],
+      "bounds": [
+        1247,
+        724,
+        203,
+        202
+      ],
+      "rect": [
+        1239,
+        716,
+        219,
+        218
+      ],
+      "margins": [
+        95,
+        42,
+        86,
+        98
+      ]
+    },
+    {
+      "name": "Boar",
+      "asset": "critters-3.png",
+      "index": 0,
+      "cell": [
+        0,
+        0,
+        384,
+        341
+      ],
+      "bounds": [
+        117,
+        130,
+        180,
+        129
+      ],
+      "rect": [
+        109,
+        122,
+        196,
+        145
+      ],
+      "margins": [
+        117,
+        130,
+        87,
+        82
+      ]
+    },
+    {
+      "name": "Bear",
+      "asset": "critters-3.png",
+      "index": 1,
+      "cell": [
+        384,
+        0,
+        768,
+        341
+      ],
+      "bounds": [
+        534,
+        90,
+        131,
+        170
+      ],
+      "rect": [
+        526,
+        82,
+        147,
+        186
+      ],
+      "margins": [
+        150,
+        90,
+        103,
+        81
+      ]
+    },
+    {
+      "name": "Stag",
+      "asset": "critters-3.png",
+      "index": 2,
+      "cell": [
+        768,
+        0,
+        1152,
+        341
+      ],
+      "bounds": [
+        890,
+        89,
+        150,
+        171
+      ],
+      "rect": [
+        882,
+        81,
+        166,
+        187
+      ],
+      "margins": [
+        122,
+        89,
+        112,
+        81
+      ]
+    },
+    {
+      "name": "Duchess",
+      "asset": "critters-3.png",
+      "index": 3,
+      "cell": [
+        1152,
+        0,
+        1536,
+        341
+      ],
+      "bounds": [
+        1266,
+        134,
+        151,
+        124
+      ],
+      "rect": [
+        1258,
+        126,
+        167,
+        140
+      ],
+      "margins": [
+        114,
+        134,
+        119,
+        83
+      ]
+    },
+    {
+      "name": "Hawk",
+      "asset": "critters-3.png",
+      "index": 4,
+      "cell": [
+        0,
+        341,
+        384,
+        682
+      ],
+      "bounds": [
+        111,
+        421,
+        168,
+        161
+      ],
+      "rect": [
+        103,
+        413,
+        184,
+        177
+      ],
+      "margins": [
+        111,
+        80,
+        105,
+        100
+      ]
+    },
+    {
+      "name": "Goose",
+      "asset": "critters-3.png",
+      "index": 5,
+      "cell": [
+        384,
+        341,
+        768,
+        682
+      ],
+      "bounds": [
+        516,
+        431,
+        163,
+        145
+      ],
+      "rect": [
+        508,
+        423,
+        179,
+        161
+      ],
+      "margins": [
+        132,
+        90,
+        89,
+        106
+      ]
+    },
+    {
+      "name": "Mouselet",
+      "asset": "critters-3.png",
+      "index": 6,
+      "cell": [
+        768,
+        341,
+        1152,
+        682
+      ],
+      "bounds": [
+        899,
+        455,
+        130,
+        125
+      ],
+      "rect": [
+        891,
+        447,
+        146,
+        141
+      ],
+      "margins": [
+        131,
+        114,
+        123,
+        102
+      ]
+    },
+    {
+      "name": "Log Dam",
+      "asset": "critters-3.png",
+      "index": 7,
+      "cell": [
+        1152,
+        341,
+        1536,
+        682
+      ],
+      "bounds": [
+        1239,
+        460,
+        206,
+        118
+      ],
+      "rect": [
+        1231,
+        452,
+        222,
+        134
+      ],
+      "margins": [
+        87,
+        119,
+        91,
+        104
+      ]
+    },
+    {
+      "name": "Fawn",
+      "asset": "critters-3.png",
+      "index": 8,
+      "cell": [
+        0,
+        682,
+        384,
+        1024
+      ],
+      "bounds": [
+        114,
+        733,
+        161,
+        169
+      ],
+      "rect": [
+        106,
+        725,
+        177,
+        185
+      ],
+      "margins": [
+        114,
+        51,
+        109,
+        122
+      ]
+    },
+    {
+      "name": "Dora",
+      "asset": "critters-3.png",
+      "index": 9,
+      "cell": [
+        384,
+        682,
+        768,
+        1024
+      ],
+      "bounds": [
+        513,
+        761,
+        168,
+        140
+      ],
+      "rect": [
+        505,
+        753,
+        184,
+        156
+      ],
+      "margins": [
+        129,
+        79,
+        87,
+        123
+      ]
+    },
+    {
+      "name": "Enzo",
+      "asset": "critters-3.png",
+      "index": 10,
+      "cell": [
+        768,
+        682,
+        1152,
+        1024
+      ],
+      "bounds": [
+        880,
+        760,
+        150,
+        139
+      ],
+      "rect": [
+        872,
+        752,
+        166,
+        155
+      ],
+      "margins": [
+        112,
+        78,
+        122,
+        125
+      ]
+    },
+    {
+      "name": "Hay Bale",
+      "asset": "critters-3.png",
+      "index": 11,
+      "cell": [
+        1152,
+        682,
+        1536,
+        1024
+      ],
+      "bounds": [
+        1246,
+        760,
+        193,
+        136
+      ],
+      "rect": [
+        1238,
+        752,
+        209,
+        152
+      ],
+      "margins": [
+        94,
+        78,
+        97,
+        128
+      ]
+    },
+    {
+      "name": "Apple",
+      "asset": "snacks.png",
+      "index": 0,
+      "cell": [
+        0,
+        0,
+        384,
+        512
+      ],
+      "bounds": [
+        102,
+        160,
+        212,
+        238
+      ],
+      "rect": [
+        94,
+        152,
+        228,
+        254
+      ],
+      "margins": [
+        102,
+        160,
+        70,
+        114
+      ]
+    },
+    {
+      "name": "Raisin",
+      "asset": "snacks.png",
+      "index": 1,
+      "cell": [
+        384,
+        0,
+        768,
+        512
+      ],
+      "bounds": [
+        470,
+        201,
+        225,
+        185
+      ],
+      "rect": [
+        462,
+        193,
+        241,
+        201
+      ],
+      "margins": [
+        86,
+        201,
+        73,
+        126
+      ]
+    },
+    {
+      "name": "Honey",
+      "asset": "snacks.png",
+      "index": 2,
+      "cell": [
+        768,
+        0,
+        1152,
+        512
+      ],
+      "bounds": [
+        850,
+        149,
+        204,
+        248
+      ],
+      "rect": [
+        842,
+        141,
+        220,
+        264
+      ],
+      "margins": [
+        82,
+        149,
+        98,
+        115
+      ]
+    },
+    {
+      "name": "Hay Bundle",
+      "asset": "snacks.png",
+      "index": 3,
+      "cell": [
+        1152,
+        0,
+        1536,
+        512
+      ],
+      "bounds": [
+        1210,
+        185,
+        229,
+        214
+      ],
+      "rect": [
+        1202,
+        177,
+        245,
+        230
+      ],
+      "margins": [
+        58,
+        185,
+        97,
+        113
+      ]
+    },
+    {
+      "name": "Mint Leaf",
+      "asset": "snacks.png",
+      "index": 4,
+      "cell": [
+        0,
+        512,
+        384,
+        1024
+      ],
+      "bounds": [
+        99,
+        615,
+        215,
+        210
+      ],
+      "rect": [
+        91,
+        607,
+        231,
+        226
+      ],
+      "margins": [
+        99,
+        103,
+        70,
+        199
+      ]
+    },
+    {
+      "name": "Chilli",
+      "asset": "snacks.png",
+      "index": 5,
+      "cell": [
+        384,
+        512,
+        768,
+        1024
+      ],
+      "bounds": [
+        474,
+        611,
+        206,
+        215
+      ],
+      "rect": [
+        466,
+        603,
+        222,
+        231
+      ],
+      "margins": [
+        90,
+        99,
+        88,
+        198
+      ]
+    },
+    {
+      "name": "Sunflower Seed",
+      "asset": "snacks.png",
+      "index": 6,
+      "cell": [
+        768,
+        512,
+        1152,
+        1024
+      ],
+      "bounds": [
+        870,
+        623,
+        158,
+        206
+      ],
+      "rect": [
+        862,
+        615,
+        174,
+        222
+      ],
+      "margins": [
+        102,
+        111,
+        124,
+        195
+      ]
+    },
+    {
+      "name": "Acorn Cake",
+      "asset": "snacks.png",
+      "index": 7,
+      "cell": [
+        1152,
+        512,
+        1536,
+        1024
+      ],
+      "bounds": [
+        1222,
+        614,
+        209,
+        222
+      ],
+      "rect": [
+        1214,
+        606,
+        225,
+        238
+      ],
+      "margins": [
+        70,
+        102,
+        105,
+        188
+      ]
+    }
+  ],
+  "surfaces": {
+    "bg-fight.png": {
+      "visualStageY": 650,
+      "visualStageBand": [
+        638,
+        663
+      ],
+      "note": "Visual survey, about10px precision; surface top at63% rather than exactly60%. Map feet to actual art, do not change fight rules."
+    },
+    "bg-shop.png": {
+      "floorStartY": 750,
+      "note": "Perspective floor starts around750px; UI cards may cover lower wall too."
+    }
+  }
+}

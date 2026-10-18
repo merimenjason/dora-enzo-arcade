@@ -6,13 +6,15 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 18-10-2026)
 
-**Where things stand.** `main` is at the merge of PR #66 (`5f97360`, Hay Bale Brawl's ChatGPT image prompts) and is deployed: 36 games at https://chinchillas.jason.engineering. Hay Bale Brawl itself went live with PR #64 (`6d8527f`); the deploy passed and the Almanac browser check passed against the live site. Nothing is open: no pull requests, no unmerged branches. The only local changes are three `.claude/` graft files (see **Agent configuration**), which are the user's and must stay uncommitted.
+**Where things stand.** The arcade has 36 games at https://chinchillas.jason.engineering. This delivery is PR #68: all seven Hay Bale Brawl paintings, measured crops and concrete integration instructions are prepared; its runtime still uses code drawings. The package builds on PR #67 (`191286d`, handoff refresh) and preserves the original image prompts from PR #66. See `docs/hay-bale-brawl-integration.md` for the next renderer work. Check GitHub for current open PRs and deployment status rather than assuming this handoff is a live status feed. Keep the user's local `.claude/` graft files out of commits (see **Agent configuration**).
 
 **What happened in the last few sessions (13–18-10-2026), newest first:**
 
 | PR | What | Notes |
 | --- | --- | --- |
-| #66 | Hay Bale Brawl image prompts | `docs/hay-bale-brawl-image-prompts.md`: style block, canon and seven prompts (three critter sheets, snacks, shop and fight backdrops, title) for `public/art/brawl/`. Not painted yet. |
+| #68 | Hay Bale Brawl artwork and integration instructions | Seven original PNGs,44 measured padded crops, exact provenance, loader/renderer and refresh/retry handoff; runtime integration pending. |
+| #67 | Handoff after image prompts | Preserved in this delivery. |
+| #66 | Hay Bale Brawl image prompts | `docs/hay-bale-brawl-image-prompts.md`: style block, canon and seven prompts (three critter sheets, snacks, shop and fight backdrops, title) for `public/art/brawl/`. The paintings were subsequently prepared in PR #68. |
 | #65 | Handoff after Hay Bale Brawl | |
 | #64 | **Hay Bale Brawl** (`/brawl`), game 36 | Auto-battler in the manner of Super Auto Pets: 30 critters in five tiers, 8 snacks, two coaches, seeded ghost rivals. Designed and built in one session from `docs/superpowers/specs/18-10-2026-hay-bale-brawl-design.md` and its plan (all 7 tasks inline, then one fresh review whose two important and four player-facing findings were fixed test-first); bot-tuned, never played by hand. See **Hay Bale Brawl**. |
 | #63 | Handoff after Whisker Ware | |
@@ -67,7 +69,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 4. **Whisker Saga chapter 1 variety:** a spitter-heavy stage, an early brute, a second wind-up before the boss.
 5. **Midnight Kitchen code split:** drawing lives in `app/kitchen/page.tsx` (about 700 lines); move it to `lib/kitchen-scene.ts` like every other game, and add `window.__kitchen()`.
 6. **Test hygiene:** make the moonlight and detectives screenshot paths relative (`.checks/…`), and steady the Burrow Express touch-drag check.
-7. **Hay Bale Brawl, from play:** shipped on 18-10-2026 (PR #64) and tuned only against its bot (the policy wins 37%, rivals on 10 acorns). Play a few runs by hand: is the shop readable on a phone, does a kept Dormouse or a Duchess crew run away with it, do rivals feel fair from turn 1? Listen to its blips. Then paint the art from `docs/hay-bale-brawl-image-prompts.md` (the critters are code-drawn).
+7. **Hay Bale Brawl, from play:** shipped on 18-10-2026 (PR #64) and tuned only against its bot (the policy wins 37%, rivals on 10 acorns). Play a few runs by hand: is the shop readable on a phone, does a kept Dormouse or a Duchess crew run away with it, do rivals feel fair from turn 1? Listen to its blips. The seven painted images are now prepared; follow `docs/hay-bale-brawl-integration.md` to wire them in with the original drawings as fallbacks.
 8. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
 9. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
 10. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
@@ -167,7 +169,8 @@ Game 36, `/brawl`, an auto-battler in the manner of Super Auto Pets. Rules, ever
 - **Rivals:** one ghost run per player run, seeded from it, shopping with the bot's policy on 10 acorns a turn and memoised (its Raisins are cleared before each turn, since it never fights), so turn *t*'s rival is that ghost after *t* turns. The policy's `WEIGHT` is its taste only (2 × tier, Dormouse marked down); changing it changes the rivals too.
 - **Checks:** `npm run test:hay-bale` and `npm run bot:hay-bale` (both in `npm test`; the bot runs in under a second) and `npm run test:e2e:brawl` (11 checks, in `test:e2e`).
 - **Saves:** `hay-bale-run-v1` (whole run, written before a fight is replayed), `hay-bale-v1` (profile, recorded once per run by seed), `hay-bale-sound-v1`.
-- **Not done:** played by hand, listened to, painted art. The ChatGPT prompts are ready in `docs/hay-bale-brawl-image-prompts.md`; the user paints them, then the sheets get wired in with the code drawings kept as the fallback (crop cells as Whisker Ware's loader does; your crew faces right and the rival is the same art mirrored).
+- **Painted art prepared (18-10-2026):** seven original PNGs in `public/art/brawl/`: three critter sheets (30 units, three summons, both coaches and a bale), eight snacks, shop/fight backdrops and title. All 44 visible sprite silhouettes pass the 10% cell-margin check, with measured padded crops in `docs/hay-bale-brawl-crops.json`. Delivery and actual stage geometry: [`docs/hay-bale-brawl-art.md`](docs/hay-bale-brawl-art.md). Concrete loader/renderer instructions, exact engine ID mapping, static-canvas refresh/retry and browser checks: [`docs/hay-bale-brawl-integration.md`](docs/hay-bale-brawl-integration.md). Exact prompts, corrections and SHA256 provenance: `docs/hay-bale-brawl-generation.json`. **Runtime integration is still pending**; the scene continues to use its code drawings. Preserve those as loading/failure fallbacks when wiring the images. These are static poses, not animation strips.
+- **Not done:** played by hand, listened to, integrating the prepared painted artwork.
 - **Left on purpose** (from the final review): Start overwrites a saved run without asking (as the other games do); Skunk only lowers the target's health, statuses last between fights, the profile's `won` list is the final winning line only, and the faint chain is capped at 100 passes a settle.
 
 ## Whisker Ware · 18-10-2026
@@ -267,7 +270,7 @@ The nine newest cabinets, all merged to `main` and deployed.
 | 33 | Ember & Clover: Midnight Kitchen | `/kitchen` | 15-10-2026 | #39–#41 |
 | 34 | Acorn Hand | `/acorn-hand` | 15-10-2026 | #42, #44–#59 |
 | 35 | Whisker Ware | `/whisker-ware` | 18-10-2026 | #60–#62 |
-| 36 | Hay Bale Brawl | `/brawl` | 18-10-2026 | #64–#66 |
+| 36 | Hay Bale Brawl | `/brawl` | 18-10-2026 | #64–#68 |
 
 Each has its own section near the top of this file. The older games' notes (Clash, Hay Maze, Chinchillas vs Zombies, Scribble, Bounce / Burrow, Burrow Tactics, Burrow Barrage, Summit Shuffle, Poof Panic) follow under **Where the code lives**.
 

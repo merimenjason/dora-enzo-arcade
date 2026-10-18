@@ -1,0 +1,354 @@
+{
+  "date": "18-10-2026",
+  "tool": "built-in image_gen",
+  "referenceRoles": [
+    {
+      "path": "public/art/saga/heroes-0.png",
+      "role": "painted style"
+    },
+    {
+      "path": "public/art/dora.jpeg",
+      "role": "identity"
+    },
+    {
+      "path": "public/art/enzo.jpeg",
+      "role": "identity"
+    }
+  ],
+  "jobs": [
+    {
+      "name": "critters-1.png",
+      "transparent": true,
+      "prompt": "Use case: illustration-story. Generate production artwork for Hay Bale Brawl, a cosy woodland auto-battler. Image 1 is a STYLE REFERENCE ONLY: match its soft detailed storybook gouache, round cute bodies, rich warm colours and delicate dark-plum outlines, slightly thicker for readability at 50 pixels tall. Do NOT copy its weapons, scarves or background. Images 2 and 3 are IDENTITY REFERENCES ONLY for Dora and Enzo, not photographic style.\nDora ivory-white chinchilla with very dark ruby-burgundy eyes, nearly black, never pink/glowing. Enzo grey chinchilla, white chest, black eyes. Pip lavender-grey young chinchilla with black eyes, eager and wide-eyed. Duchess honey-gold chinchilla, small three-point golden crown, gracious chin raised.\nEvery creature is cuddly, charming, never scary, injured or bloody. Soft upper-left light. No text, letters, numbers, logos, labels, borders or grid lines anywhere. PNG exactly 1536x1024.\n\nTransparent character sprite sheet, an invisible 4-column by 3-row grid, twelve equal 384x341-ish cells. Exactly ONE critter per cell. All face RIGHT in a three-quarter side view. FULL silhouettes including tails, paws, ears, quills and whiskers stay inside each cell with AT LEAST 10% clear space on ALL four sides. Feet near each cell's bottom safe margin. Body mass fills similar share of cell for ALL species: ladybird/wren as readable as chinchilla. Bold simple silhouettes, no excessive tiny details. Actual transparent alpha zero background with NO coloured background, paper rectangle, glow, haze or ground/cast shadow.\nRead LEFT to RIGHT, TOP to BOTTOM:\nRow1: Wren, round brown with cocked tail cheerful; Field Mouse, tan big pink ears long curled tail; Ladybird, red black-spotted upright mascot on little legs with two antennae; Toad, warty olive-brown wide grin sturdy.\nRow2: Bee, fuzzy yellow-black bumblebee small wings plucky; Dormouse, round golden-orange sleepy half-closed eyes fluffy tail; Hedgehog, brown spines cream face determined; Squirrel, red ear tufts huge bushy tail holding acorn.\nRow3: Robin, plump orange-red breast puffed proud; Mole, velvety dark-grey pink nose big pink digging paws squinting; Frog, bright green crouched to leap big eyes; Pip, lavender-grey young chinchilla eager and poised for a little hop.\nNo other subjects."
+    },
+    {
+      "name": "critters-2.png",
+      "transparent": true,
+      "prompt": "Use case: illustration-story. Generate production artwork for Hay Bale Brawl, a cosy woodland auto-battler. Image 1 is a STYLE REFERENCE ONLY: match its soft detailed storybook gouache, round cute bodies, rich warm colours and delicate dark-plum outlines, slightly thicker for readability at 50 pixels tall. Do NOT copy its weapons, scarves or background. Images 2 and 3 are IDENTITY REFERENCES ONLY for Dora and Enzo, not photographic style.\nDora ivory-white chinchilla with very dark ruby-burgundy eyes, nearly black, never pink/glowing. Enzo grey chinchilla, white chest, black eyes. Pip lavender-grey young chinchilla with black eyes, eager and wide-eyed. Duchess honey-gold chinchilla, small three-point golden crown, gracious chin raised.\nEvery creature is cuddly, charming, never scary, injured or bloody. Soft upper-left light. No text, letters, numbers, logos, labels, borders or grid lines anywhere. PNG exactly 1536x1024.\n\nTransparent character sprite sheet, invisible 4-column by 3-row grid, twelve equal cells. Exactly ONE critter per cell all facing RIGHT in three-quarter side view. Complete tail/ear/quill/wing/whisker silhouettes inside own cell with AT LEAST 10% clear space on ALL four sides. Same visual body scale across species. Feet near bottom safe margin. True alpha zero, no paper rectangles, glow, haze or ground shadows.\nRead LEFT to RIGHT, TOP to BOTTOM:\nRow1: Badger, black-white striped face grey low stocky body scrappy; Otter, sleek brown cream chest standing upright playful; Magpie, black-white iridescent blue-green wing and tail holding plain shiny acorn coin with NO markings; Rabbit, soft brown long upright ears white cotton tail kind.\nRow2: Porcupine, dark-brown long cream-tipped quills fanned out; Beaver, chunky brown flat paddle tail big orange front teeth carrying stick; Stoat, slim chestnut cream belly black tail tip poised to pounce; Tortoise, green-grey high domed patterned shell steady wise.\nRow3: Crow, glossy black blue sheen clever; Skunk, black bold white stripe enormous raised fluffy tail smug; Raccoon, grey black bandit face mask ringed tail sly grin; Hare, lean brown very long black-tipped ears mid-sprint.\nNo other subjects."
+    },
+    {
+      "name": "critters-3.png",
+      "transparent": true,
+      "prompt": "Use case: illustration-story. Generate production artwork for Hay Bale Brawl, a cosy woodland auto-battler. Image 1 is a STYLE REFERENCE ONLY: match its soft detailed storybook gouache, round cute bodies, rich warm colours and delicate dark-plum outlines, slightly thicker for readability at 50 pixels tall. Do NOT copy its weapons, scarves or background. Images 2 and 3 are IDENTITY REFERENCES ONLY for Dora and Enzo, not photographic style.\nDora ivory-white chinchilla with very dark ruby-burgundy eyes, nearly black, never pink/glowing. Enzo grey chinchilla, white chest, black eyes. Pip lavender-grey young chinchilla with black eyes, eager and wide-eyed. Duchess honey-gold chinchilla, small three-point golden crown, gracious chin raised.\nEvery creature is cuddly, charming, never scary, injured or bloody. Soft upper-left light. No text, letters, numbers, logos, labels, borders or grid lines anywhere. PNG exactly 1536x1024.\n\nTransparent character/object sprite sheet, invisible 4-column by 3-row grid, twelve equal cells. All subjects face RIGHT in three-quarter side view where meaningful. Exactly one complete subject per cell with AT LEAST 10% clear space on ALL four sides, including antlers, wings, crowns, tails and whistles. Same body visual scale: Bear not larger on sheet than baby mouse, rank through boldness and detail rather than larger scale. Feet near bottom safe margin. True alpha zero background, no paper rectangles, haze, glow, cast/ground shadow.\nRead LEFT to RIGHT, TOP to BOTTOM:\nRow1: Boar, bristly dark-brown wild boar small curved tusks charging stance fierce but cute; Bear, round brown standing tall protective gentle; Stag, red deer grand branching antlers noble; Duchess, honey-gold chinchilla with small THREE-point golden crown chin up gracious.\nRow2: Hawk, brown pale speckled chest hooked yellow beak wings half-spread; Goose, white orange beak and feet neck stretched honking bravely; Mouselet, tan baby mouse oversized ears wobbly; Log Dam, three short logs bound with twigs and mud small beaver-built wall NO face.\nRow3: Fawn, spotted baby deer wobbly long legs big eyes; Dora coach, ivory-white dark nearly-black burgundy eyes, standing cheering one paw raised little whistle on cord; Enzo coach, grey white chest black eyes standing folded arms confident grin little whistle on cord; ONE round golden straw hay bale side view TWO twine bands NO face.\nNo extra props/costume beyond described."
+    },
+    {
+      "name": "snacks.png",
+      "transparent": true,
+      "prompt": "Use case: illustration-story. Generate production artwork for Hay Bale Brawl, a cosy woodland auto-battler. Image 1 is a STYLE REFERENCE ONLY: match its soft detailed storybook gouache, round cute bodies, rich warm colours and delicate dark-plum outlines, slightly thicker for readability at 50 pixels tall. Do NOT copy its weapons, scarves or background. Images 2 and 3 are IDENTITY REFERENCES ONLY for Dora and Enzo, not photographic style.\nDora ivory-white chinchilla with very dark ruby-burgundy eyes, nearly black, never pink/glowing. Enzo grey chinchilla, white chest, black eyes. Pip lavender-grey young chinchilla with black eyes, eager and wide-eyed. Duchess honey-gold chinchilla, small three-point golden crown, gracious chin raised.\nEvery creature is cuddly, charming, never scary, injured or bloody. Soft upper-left light. No text, letters, numbers, logos, labels, borders or grid lines anywhere. PNG exactly 1536x1024.\n\nTransparent item sprite sheet, invisible 4-column by 2-row grid, EIGHT equal 384x512 cells, one snack each large centred with at least 10% clear space all around. Actual alpha zero background, no shadows/haze/glows/paper rectangles. Bold simple silhouettes at 50px tall.\nRead LEFT to RIGHT TOP to BOTTOM:\nRow1: Apple shiny red apple with one leaf; Raisin cluster of exactly three plump dark raisins; Honey small round clay honey pot golden honey dripping over lip with wooden dipper; Hay Bundle golden hay tied with twine bow.\nRow2: Mint Leaf sprig of TWO bright green mint leaves; Chilli glossy red chilli pepper green stem; Sunflower Seed ONE large striped sunflower seed; Acorn Cake little round cake topped with acorn and cream NO plate.\nNo other items."
+    },
+    {
+      "name": "bg-shop.png",
+      "transparent": false,
+      "prompt": "Use case: illustration-story. Generate production artwork for Hay Bale Brawl, a cosy woodland auto-battler. Image 1 is a STYLE REFERENCE ONLY: match its soft detailed storybook gouache, round cute bodies, rich warm colours and delicate dark-plum outlines, slightly thicker for readability at 50 pixels tall. Do NOT copy its weapons, scarves or background. Images 2 and 3 are IDENTITY REFERENCES ONLY for Dora and Enzo, not photographic style.\nDora ivory-white chinchilla with very dark ruby-burgundy eyes, nearly black, never pink/glowing. Enzo grey chinchilla, white chest, black eyes. Pip lavender-grey young chinchilla with black eyes, eager and wide-eyed. Duchess honey-gold chinchilla, small three-point golden crown, gracious chin raised.\nEvery creature is cuddly, charming, never scary, injured or bloody. Soft upper-left light. No text, letters, numbers, logos, labels, borders or grid lines anywhere. PNG exactly 1536x1024.\n\nFull-bleed opaque backdrop exactly1536x1024, 3:2. Inside a cosy barn workshop at golden hour viewed straight on. Wooden plank walls, hay stacked at far sides, lantern and hanging tools at far edges, dusty light through high window. Upper middle calm low-detail plank wall, LOWER THIRD calm low-detail wooden floor because cards and small bright critters overlay it. Softly muted central area, warm detailed gouache edges. No characters, no words, no cards, no UI, no frame. Entire image filled edge to edge."
+    },
+    {
+      "name": "bg-fight.png",
+      "transparent": false,
+      "prompt": "Use case: illustration-story. Generate production artwork for Hay Bale Brawl, a cosy woodland auto-battler. Image 1 is a STYLE REFERENCE ONLY: match its soft detailed storybook gouache, round cute bodies, rich warm colours and delicate dark-plum outlines, slightly thicker for readability at 50 pixels tall. Do NOT copy its weapons, scarves or background. Images 2 and 3 are IDENTITY REFERENCES ONLY for Dora and Enzo, not photographic style.\nDora ivory-white chinchilla with very dark ruby-burgundy eyes, nearly black, never pink/glowing. Enzo grey chinchilla, white chest, black eyes. Pip lavender-grey young chinchilla with black eyes, eager and wide-eyed. Duchess honey-gold chinchilla, small three-point golden crown, gracious chin raised.\nEvery creature is cuddly, charming, never scary, injured or bloody. Soft upper-left light. No text, letters, numbers, logos, labels, borders or grid lines anywhere. PNG exactly 1536x1024.\n\nFull-bleed opaque backdrop exactly1536x1024 3:2. Summer meadow in late afternoon viewed SIDE ON with a long LOW line of golden hay bales extending STRAIGHT and LEVEL across ENTIRE width at 60% of image height (y approx614 of1024), bale TOPS form a FLAT HORIZONTAL STAGE. Bales have modest height; lower foreground meadow remains visible. Rolling hills few trees and wildflowers far edges, soft warm sky. Band just ABOVE stage calm low-detail empty because two crews of small bright critters overlay there. Centre muted enough for silhouettes, details at far edges. No characters, animals, UI, text, frame. Entire image filled edge to edge."
+    },
+    {
+      "name": "title.png",
+      "transparent": true,
+      "prompt": "Use case: illustration-story. Generate production artwork for Hay Bale Brawl, a cosy woodland auto-battler. Image 1 is a STYLE REFERENCE ONLY: match its soft detailed storybook gouache, round cute bodies, rich warm colours and delicate dark-plum outlines, slightly thicker for readability at 50 pixels tall. Do NOT copy its weapons, scarves or background. Images 2 and 3 are IDENTITY REFERENCES ONLY for Dora and Enzo, not photographic style.\nDora ivory-white chinchilla with very dark ruby-burgundy eyes, nearly black, never pink/glowing. Enzo grey chinchilla, white chest, black eyes. Pip lavender-grey young chinchilla with black eyes, eager and wide-eyed. Duchess honey-gold chinchilla, small three-point golden crown, gracious chin raised.\nEvery creature is cuddly, charming, never scary, injured or bloody. Soft upper-left light. No text, letters, numbers, logos, labels, borders or grid lines anywhere. PNG exactly 1536x1024.\n\nONE coherent transparent title illustration exactly1536x1024. Dora and Enzo stand atop a BIG ROUND GOLDEN HAY BALE in CENTRE; Dora cheering paw raised, Enzo arms folded confident, both little whistles on cords. Dora ivory-white dark nearly-black ruby-burgundy eyes NEVER pink; Enzo grey white chest black eyes. Around bale's FOOT stand exactly FIVE other critters: black-white Badger, brown Hedgehog cream face, bright-green Frog, yellow-black Bee, round gentle brown Bear. All friendly ready for playful brawl. Complete silhouettes fully in frame, no cropping. Leave TOP QUARTER EMPTY TRANSPARENT for game's own title text. True alpha zero background, no backdrop/haze/ground shadows, no words, no lettering, no decorative symbols."
+    }
+  ],
+  "additionalPrompts": {
+    "sheet2Spacing": "\nSTRICT LAYOUT: column centres x192,576,960,1344; row centres y170,512,853. EACH complete silhouette MAXIMUM 270px wide by235px high. Generous transparent gutters on all sides, NOT filled cell. Reference4 is SCALE/SPACING reference only: use its generous margins and comparable rendering. Never copy its species.",
+    "sheet3Initial": "Use case: illustration-story. Generate production artwork for Hay Bale Brawl, a cosy woodland auto-battler. Image 1 is a STYLE AND GENEROUS GRID SPACING REFERENCE ONLY: match its soft detailed storybook gouache, round cute bodies, rich warm colours and delicate dark-plum outlines, slightly thicker for readability at 50 pixels tall. Do NOT copy its weapons, scarves or background. Images 2 and 3 are IDENTITY REFERENCES ONLY for Dora and Enzo, not photographic style.\nDora ivory-white chinchilla with very dark ruby-burgundy eyes, nearly black, never pink/glowing. Enzo grey chinchilla, white chest, black eyes. Pip lavender-grey young chinchilla with black eyes, eager and wide-eyed. Duchess honey-gold chinchilla, small three-point golden crown, gracious chin raised.\nEvery creature is cuddly, charming, never scary, injured or bloody. Soft upper-left light. No text, letters, numbers, logos, labels, borders or grid lines anywhere. PNG exactly 1536x1024.\n\nTransparent character/object sprite sheet, invisible 4-column by 3-row grid, twelve equal cells. All subjects face RIGHT in three-quarter side view where meaningful. Exactly one complete subject per cell with AT LEAST 10% clear space on ALL four sides, including antlers, wings, crowns, tails and whistles. Same body visual scale: Bear not larger on sheet than baby mouse, rank through boldness and detail rather than larger scale. Feet near bottom safe margin. True alpha zero background, no paper rectangles, haze, glow, cast/ground shadow.\nRead LEFT to RIGHT, TOP to BOTTOM:\nRow1: Boar, bristly dark-brown wild boar small curved tusks charging stance fierce but cute; Bear, round brown standing tall protective gentle; Stag, red deer grand branching antlers noble; Duchess, honey-gold chinchilla with small THREE-point golden crown chin up gracious.\nRow2: Hawk, brown pale speckled chest hooked yellow beak wings half-spread; Goose, white orange beak and feet neck stretched honking bravely; Mouselet, tan baby mouse oversized ears wobbly; Log Dam, three short logs bound with twigs and mud small beaver-built wall NO face.\nRow3: Fawn, spotted baby deer wobbly long legs big eyes; Dora coach, ivory-white dark nearly-black burgundy eyes, standing cheering one paw raised little whistle on cord; Enzo coach, grey white chest black eyes standing folded arms confident grin little whistle on cord; ONE round golden straw hay bale side view TWO twine bands NO face.\nNo extra props/costume beyond described.\nSTRICT: MAX silhouette270px wide x230px high including antlers/wingtips/tails. Column centres192,576,960,1344; row centres170,512,853. Small separate sprites with plentiful clear space, as reference1. Do not enlarge to fill cells. NO hazy backgrounds, actual alpha0 gutters.",
+    "snackSpacing": "\nStrict safe silhouette rectangles: in each384x512 cell, COMPLETE item max260px wide x340px tall. Cell centres x192,576,960,1344 and y256,768. Smaller isolated items, plentiful transparent space, never fill or cross cells.",
+    "sheet1Fix": "Edit this sprite sheet only. Keep exactly the same twelve characters, their designs, colours, style, right-facing poses and ordering. CRITICAL PRODUCTION FIX: shrink EACH entire character silhouette to 70% of its current linear size and recenter it in its OWN EXACT cell on an invisible FOUR-column THREE-row grid. Canvas1536x1024. Column centres x192,576,960,1344. Row centres y170,512,853. All full silhouettes including tails/antennae/whiskers must fit within a maximum 270px wide x235px high rectangle centred at each of those positions. Generous completely empty TRANSPARENT gutters between every sprite. No part touches or crosses a grid boundary. Keep same relative apparent sizes across species. Do NOT add any new subjects. Transparent alpha-zero background with no haze, shadow, glow or coloured backdrop. No visible grid, text or labels. Keep original rendering style.",
+    "sheet2Fix": "Edit this sprite sheet only. Keep exactly the same twelve characters (Badger, Otter, Magpie, Rabbit / Porcupine, Beaver, Stoat, Tortoise / Crow, Skunk, Raccoon, Hare), their designs, colours, style, right-facing poses and ordering. CRITICAL PRODUCTION FIX: shrink EACH entire character silhouette to 70% of its current linear size and recenter it in its OWN EXACT cell on an invisible FOUR-column THREE-row grid. Canvas1536x1024. Column centres x192,576,960,1344. Row centres y170,512,853. All full silhouettes including tails/antennae/whiskers must fit within a maximum 270px wide x235px high rectangle centred at each of those positions. Generous completely empty TRANSPARENT gutters between every sprite. No part touches or crosses a grid boundary. Keep same relative apparent sizes across species. Do NOT add any new subjects. Transparent alpha-zero background with no haze, shadow, glow or coloured backdrop. No visible grid, text or labels. Keep original rendering style.\nFor Magpie replace held whole acorn with a plain round shiny gold coin, no markings. No other changes.",
+    "sheet3Fix": "Edit this sprite sheet only. Keep exactly the same twelve characters, their designs, colours, style, right-facing poses and ordering. CRITICAL PRODUCTION FIX: shrink EACH entire character silhouette to 70% of its current linear size and recenter it in its OWN EXACT cell on an invisible FOUR-column THREE-row grid. Canvas1536x1024. Column centres x192,576,960,1344. Row centres y170,512,853. All full silhouettes including tails/antennae/whiskers must fit within a maximum 270px wide x235px high rectangle centred at each of those positions. Generous completely empty TRANSPARENT gutters between every sprite. No part touches or crosses a grid boundary. Keep same relative apparent sizes across species. Do NOT add any new subjects. Transparent alpha-zero background with no haze, shadow, glow or coloured backdrop. No visible grid, text or labels. Keep original rendering style.\nThe third subject in top row is an ADULT RED DEER stag: remove white spots from adult stag only. Bottom-row fawn keeps its spots. Enzo (bottom row third) must be neutral GREY with white chest, NOT lavender; keep his black eyes and folded arms. Dora beside him keeps ivory-white fur and very dark burgundy eyes. All12 subjects unchanged otherwise.",
+    "sheetLayout": "Edit ONLY layout of this twelve-critter sheet. Preserve exact twelve animal designs, colours, right-facing poses and order. Shrink EACH separate sprite to 75% of its current size, including whiskers/tails/antennae. Place them on an exact invisible4x3 grid of1536x1024. ALL feet in first row must share baseline y285; second row baseline y625; third row baseline y965. Column centres x192,576,960,1344. Every entire sprite maximum240px width and220px height, all content within its own cell, including detached details. Very generous fully alpha-zero transparent gutters. Do not draw ANY background/glow/shadow/paper rectangles; true transparent PNG. No labels/grid/text. Preserve image dimensions1536x1024.",
+    "sheet3Layout": "Edit ONLY layout of this twelve-critter sheet. Preserve exact twelve animal designs, colours, right-facing poses and order. Shrink EACH separate sprite to 75% of its current size, including whiskers/tails/antennae. Place them on an exact invisible4x3 grid of1536x1024. ALL feet in first row must share baseline y285; second row baseline y625; third row baseline y965. Column centres x192,576,960,1344. Every entire sprite maximum240px width and220px height, all content within its own cell, including detached details. Very generous fully alpha-zero transparent gutters. Do not draw ANY background/glow/shadow/paper rectangles; true transparent PNG. No labels/grid/text. Preserve image dimensions1536x1024.\nAll12 subjects remain Boar/Bear/Stag/Duchess, Hawk/Goose/Mouselet/Log Dam, Fawn/Dora/Enzo/Hay Bale. Especially MOVE TOP ROW UP so stag feet stay ABOVE y300 and nobody crosses y341; no cropping. Dora's dark burgundy eyes and Enzo neutral grey preserved.",
+    "snackLayout": "Edit only SPACING of this eight-item snack sheet. Keep exactly same eight items, designs, colours, texture and ordering: Apple/Raisins/Honey/Hay Bundle then Mint/Chilli/Sunflower Seed/Acorn Cake. Shrink each entire separate item to65% of its current linear size. Recenter in its exact invisible4-column2-row grid cell (centres x192,576,960,1344; y256,768). Complete maximum silhouette230px width by290px height. At least60px clear transparent margins on ALL sides of every cell. True transparent alpha0, no haze/glow/shadow or coloured background. No text, grid, frames. PNG1536x1024. No other changes.",
+    "titleLayout": "Edit composition only of this transparent title illustration. Preserve the same art style, all EXACTLY seven characters, golden hay bale, colours, facial expressions and costumes. Dora ivory-white nearly-black ruby-burgundy eyes cheering with whistle; Enzo neutral grey white chest BLACK eyes arms folded whistle. Badger, Hedgehog, Frog, Bee and Bear around base. Shrink the WHOLE complete group as one composition to75% its current size and place it centred horizontally in LOWER TWO THIRDS of1536x1024 canvas. TOP300 pixels COMPLETELY EMPTY TRANSPARENT alpha0. All artwork must fit inside rectangle x150..1386 y300..970. No characters cropped at sides or bottom, all feet/tails intact. No words/logos/grid/shadows/glow/haze/background. Actual transparent background, not black. No other changes.",
+    "stageLayout": "Edit this meadow backdrop, preserving its warm late-afternoon storybook gouache style, sky, hills, distant trees and edge flowers. Change ONLY the hay stage height and foreground balance. Move the ENTIRE horizontal line of bales DOWN by about100px, so the flat top edge is at y614 pixels (60% image height) across the ENTIRE1536px width on1536x1024 canvas. Top of bale line must be level, no step-ups. Bales themselves modest height ~180px, bottom~794px; foreground meadow fills remaining230px. The band immediately above stage (y400..610) remains calm muted grass/hills, NOT densely detailed, no creatures. No text, no characters, no props/UI. Full-bleed opaque PNG, exact1536x1024.",
+    "sheet1Shift": "Make ONE precise layout change to this1536x1024 transparent character sheet: move ONLY the FIRST ROW's four sprites (Wren, Field Mouse, Ladybird, Toad) STRAIGHT UP by70 pixels, with NO change to their size, appearance, colours, right-facing pose or x positions. Keep rows2and3 completely unchanged. Clear former sprite positions to alpha0. True transparent background alpha0 everywhere outside silhouettes, no haze/glow/shadow/background. No text/grid/labels. ALL subjects still wholly inside their original4x3 cells.",
+    "sheet1Shrink": "Edit layout ONLY. Preserve all twelve subjects in this sheet, order, exact colours/designs/poses. Make every separate subject 20% smaller than it currently is, shrinking about its OWN visual centre WITHOUT moving that centre. This change is needed to add more clear margin all round, particularly above top row and below first row. Do not change canvas size1536x1024. True transparent alpha0 background, no ground shadow/haze/glow. No text/grid.",
+    "sheet3Shrink": "Edit layout ONLY. Preserve all twelve subjects in this sheet, order, exact colours/designs/poses. Make every separate subject 20% smaller than it currently is, shrinking about its OWN visual centre WITHOUT moving that centre. This change is needed to add more clear margin all round, particularly above top row and below first row. Do not change canvas size1536x1024. True transparent alpha0 background, no ground shadow/haze/glow. No text/grid.\nKeep Dora ivory white dark burgundy eyes, Enzo neutral grey white chest black eyes, Duchess honey-gold crown. Keep all12subjects, including three-log dam and round hay bale. No other changes.",
+    "sheet3Shift": "Edit ONLY the placement of first-row four subjects in this1536x1024 transparent sheet: move Boar, Bear, Stag and Duchess UP by40pixels. Keep their SIZE and x positions exactly the same. Keep all twelve designs, poses and colours identical; rows2and3 remain unchanged. First-row feet must have at least70pixels EMPTY transparent space below them before the invisible row boundary at y341. No subject anywhere crosses its cell. No text/grid. True transparent alpha0 outside subjects, no haze/shadows/background.",
+    "sheet3Final": "Edit this character sheet. Keep EXACT SAME twelve designs, poses, colours and ordering, but scale EACH sprite to HALF its current width and HALF its current height, around its current visual centre. The result is deliberately SMALL twelve separate sprites with LARGE TRANSPARENT margins all around, on the SAME1536x1024 canvas. DO NOT scale canvas, do not move centres, do not fill the cells. Each entire silhouette must now fit in180x180 maximum. Antlers, tails, paws, wings and all details remain whole. All critters face RIGHT. True alpha0 outside subjects, no haze/background/shadow. No labels, no grid, no text.",
+    "stageFinal": "Edit this meadow backdrop. Preserve the beautiful warm storybook style, soft sunset sky and rolling hills. The bale stage is still TOO HIGH. Move the complete line of hay bales much LOWER, so their top is below two-thirds of picture height, near y700 on the1536x1024 image. Make bales LOW, not giant tall rolls: height about170px. Extend calm rolling meadow where the bales used to sit, retain low detail in central band. Bales must form a single absolutely FLAT LEVEL horizontal stage across full width. Edge flowers only. No animals, characters, text, UI. Full-bleed opaque1536x1024 PNG."
+  },
+  "history": [
+    {
+      "asset": "critters-1.png",
+      "step": "initial",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-16b5e449-7bba-46e1-8fa2-f6a8ef7744bd.png"
+    },
+    {
+      "asset": "critters-1.png",
+      "step": "fix",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-7e28fcb8-59ae-43fa-8a8e-ee1a73a2a32c.png"
+    },
+    {
+      "asset": "critters-1.png",
+      "step": "final",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-ad51d993-bfb0-409b-8a65-1aa303419883.png"
+    },
+    {
+      "asset": "critters-1.png",
+      "step": "chosen",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-709175c4-97c9-49e6-b6d3-65c320006974.png"
+    },
+    {
+      "asset": "critters-1.png",
+      "step": "safe",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-637f2fec-77ab-4a0c-ab8b-4fec2f191c91.png"
+    },
+    {
+      "asset": "critters-2.png",
+      "step": "initial",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-a347710e-35d0-44a5-b82b-0386761b133b.png"
+    },
+    {
+      "asset": "critters-2.png",
+      "step": "fix",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-a259a95e-9f53-4b60-823f-b54ded62683a.png"
+    },
+    {
+      "asset": "critters-2.png",
+      "step": "final",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-d17d82c4-4f4c-4f8d-9275-0cdf847d545b.png"
+    },
+    {
+      "asset": "critters-3.png",
+      "step": "initial",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-7ad7ac24-54d1-451c-a071-651795ab3404.png"
+    },
+    {
+      "asset": "critters-3.png",
+      "step": "fix",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-38053126-c788-45ca-bd83-aca5fca32956.png"
+    },
+    {
+      "asset": "critters-3.png",
+      "step": "final",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-5e3a7e91-50b7-4a93-8e7f-3291cb713195.png"
+    },
+    {
+      "asset": "critters-3.png",
+      "step": "safe",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-93eabfd0-3488-4bcc-9a96-b20864373db1.png"
+    },
+    {
+      "asset": "critters-3.png",
+      "step": "shift",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-870d4f95-824d-401a-9446-52d9a0f799b0.png"
+    },
+    {
+      "asset": "critters-3.png",
+      "step": "half",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-2769d653-8521-4eb7-ad8a-9efe35fed00a.png"
+    },
+    {
+      "asset": "snacks.png",
+      "step": "initial",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-9197c095-ebb9-4ac6-8e60-631d988b73bd.png"
+    },
+    {
+      "asset": "snacks.png",
+      "step": "final",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-16272691-1a5f-4167-848e-c1106c76c768.png"
+    },
+    {
+      "asset": "bg-shop.png",
+      "step": "initial",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-39d058b4-9694-416f-a45b-a0c725ad5b60.png"
+    },
+    {
+      "asset": "bg-fight.png",
+      "step": "initial",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-b4ac2a83-05be-400c-b3c6-b8883bde6e87.png"
+    },
+    {
+      "asset": "bg-fight.png",
+      "step": "final",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-f3651a96-eb94-45a3-b9d7-24f5e417f141.png"
+    },
+    {
+      "asset": "bg-fight.png",
+      "step": "lower",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-3595d2a8-1e27-4476-b89e-9943d4363ee4.png"
+    },
+    {
+      "asset": "title.png",
+      "step": "initial",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-6e76637c-5c23-4459-b337-a1777445982f.png"
+    },
+    {
+      "asset": "title.png",
+      "step": "final",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-a6ae0418-81da-41fc-b068-6cb7f78b1125.png"
+    }
+  ],
+  "selected": [
+    {
+      "name": "critters-1.png",
+      "transparent": true,
+      "prompt": "Use case: illustration-story. Generate production artwork for Hay Bale Brawl, a cosy woodland auto-battler. Image 1 is a STYLE REFERENCE ONLY: match its soft detailed storybook gouache, round cute bodies, rich warm colours and delicate dark-plum outlines, slightly thicker for readability at 50 pixels tall. Do NOT copy its weapons, scarves or background. Images 2 and 3 are IDENTITY REFERENCES ONLY for Dora and Enzo, not photographic style.\nDora ivory-white chinchilla with very dark ruby-burgundy eyes, nearly black, never pink/glowing. Enzo grey chinchilla, white chest, black eyes. Pip lavender-grey young chinchilla with black eyes, eager and wide-eyed. Duchess honey-gold chinchilla, small three-point golden crown, gracious chin raised.\nEvery creature is cuddly, charming, never scary, injured or bloody. Soft upper-left light. No text, letters, numbers, logos, labels, borders or grid lines anywhere. PNG exactly 1536x1024.\n\nTransparent character sprite sheet, an invisible 4-column by 3-row grid, twelve equal 384x341-ish cells. Exactly ONE critter per cell. All face RIGHT in a three-quarter side view. FULL silhouettes including tails, paws, ears, quills and whiskers stay inside each cell with AT LEAST 10% clear space on ALL four sides. Feet near each cell's bottom safe margin. Body mass fills similar share of cell for ALL species: ladybird/wren as readable as chinchilla. Bold simple silhouettes, no excessive tiny details. Actual transparent alpha zero background with NO coloured background, paper rectangle, glow, haze or ground/cast shadow.\nRead LEFT to RIGHT, TOP to BOTTOM:\nRow1: Wren, round brown with cocked tail cheerful; Field Mouse, tan big pink ears long curled tail; Ladybird, red black-spotted upright mascot on little legs with two antennae; Toad, warty olive-brown wide grin sturdy.\nRow2: Bee, fuzzy yellow-black bumblebee small wings plucky; Dormouse, round golden-orange sleepy half-closed eyes fluffy tail; Hedgehog, brown spines cream face determined; Squirrel, red ear tufts huge bushy tail holding acorn.\nRow3: Robin, plump orange-red breast puffed proud; Mole, velvety dark-grey pink nose big pink digging paws squinting; Frog, bright green crouched to leap big eyes; Pip, lavender-grey young chinchilla eager and poised for a little hop.\nNo other subjects.",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-637f2fec-77ab-4a0c-ab8b-4fec2f191c91.png"
+    },
+    {
+      "name": "critters-2.png",
+      "transparent": true,
+      "prompt": "Use case: illustration-story. Generate production artwork for Hay Bale Brawl, a cosy woodland auto-battler. Image 1 is a STYLE REFERENCE ONLY: match its soft detailed storybook gouache, round cute bodies, rich warm colours and delicate dark-plum outlines, slightly thicker for readability at 50 pixels tall. Do NOT copy its weapons, scarves or background. Images 2 and 3 are IDENTITY REFERENCES ONLY for Dora and Enzo, not photographic style.\nDora ivory-white chinchilla with very dark ruby-burgundy eyes, nearly black, never pink/glowing. Enzo grey chinchilla, white chest, black eyes. Pip lavender-grey young chinchilla with black eyes, eager and wide-eyed. Duchess honey-gold chinchilla, small three-point golden crown, gracious chin raised.\nEvery creature is cuddly, charming, never scary, injured or bloody. Soft upper-left light. No text, letters, numbers, logos, labels, borders or grid lines anywhere. PNG exactly 1536x1024.\n\nTransparent character sprite sheet, invisible 4-column by 3-row grid, twelve equal cells. Exactly ONE critter per cell all facing RIGHT in three-quarter side view. Complete tail/ear/quill/wing/whisker silhouettes inside own cell with AT LEAST 10% clear space on ALL four sides. Same visual body scale across species. Feet near bottom safe margin. True alpha zero, no paper rectangles, glow, haze or ground shadows.\nRead LEFT to RIGHT, TOP to BOTTOM:\nRow1: Badger, black-white striped face grey low stocky body scrappy; Otter, sleek brown cream chest standing upright playful; Magpie, black-white iridescent blue-green wing and tail holding plain shiny acorn coin with NO markings; Rabbit, soft brown long upright ears white cotton tail kind.\nRow2: Porcupine, dark-brown long cream-tipped quills fanned out; Beaver, chunky brown flat paddle tail big orange front teeth carrying stick; Stoat, slim chestnut cream belly black tail tip poised to pounce; Tortoise, green-grey high domed patterned shell steady wise.\nRow3: Crow, glossy black blue sheen clever; Skunk, black bold white stripe enormous raised fluffy tail smug; Raccoon, grey black bandit face mask ringed tail sly grin; Hare, lean brown very long black-tipped ears mid-sprint.\nNo other subjects.",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-d17d82c4-4f4c-4f8d-9275-0cdf847d545b.png"
+    },
+    {
+      "name": "critters-3.png",
+      "transparent": true,
+      "prompt": "Use case: illustration-story. Generate production artwork for Hay Bale Brawl, a cosy woodland auto-battler. Image 1 is a STYLE REFERENCE ONLY: match its soft detailed storybook gouache, round cute bodies, rich warm colours and delicate dark-plum outlines, slightly thicker for readability at 50 pixels tall. Do NOT copy its weapons, scarves or background. Images 2 and 3 are IDENTITY REFERENCES ONLY for Dora and Enzo, not photographic style.\nDora ivory-white chinchilla with very dark ruby-burgundy eyes, nearly black, never pink/glowing. Enzo grey chinchilla, white chest, black eyes. Pip lavender-grey young chinchilla with black eyes, eager and wide-eyed. Duchess honey-gold chinchilla, small three-point golden crown, gracious chin raised.\nEvery creature is cuddly, charming, never scary, injured or bloody. Soft upper-left light. No text, letters, numbers, logos, labels, borders or grid lines anywhere. PNG exactly 1536x1024.\n\nTransparent character/object sprite sheet, invisible 4-column by 3-row grid, twelve equal cells. All subjects face RIGHT in three-quarter side view where meaningful. Exactly one complete subject per cell with AT LEAST 10% clear space on ALL four sides, including antlers, wings, crowns, tails and whistles. Same body visual scale: Bear not larger on sheet than baby mouse, rank through boldness and detail rather than larger scale. Feet near bottom safe margin. True alpha zero background, no paper rectangles, haze, glow, cast/ground shadow.\nRead LEFT to RIGHT, TOP to BOTTOM:\nRow1: Boar, bristly dark-brown wild boar small curved tusks charging stance fierce but cute; Bear, round brown standing tall protective gentle; Stag, red deer grand branching antlers noble; Duchess, honey-gold chinchilla with small THREE-point golden crown chin up gracious.\nRow2: Hawk, brown pale speckled chest hooked yellow beak wings half-spread; Goose, white orange beak and feet neck stretched honking bravely; Mouselet, tan baby mouse oversized ears wobbly; Log Dam, three short logs bound with twigs and mud small beaver-built wall NO face.\nRow3: Fawn, spotted baby deer wobbly long legs big eyes; Dora coach, ivory-white dark nearly-black burgundy eyes, standing cheering one paw raised little whistle on cord; Enzo coach, grey white chest black eyes standing folded arms confident grin little whistle on cord; ONE round golden straw hay bale side view TWO twine bands NO face.\nNo extra props/costume beyond described.",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-2769d653-8521-4eb7-ad8a-9efe35fed00a.png"
+    },
+    {
+      "name": "snacks.png",
+      "transparent": true,
+      "prompt": "Use case: illustration-story. Generate production artwork for Hay Bale Brawl, a cosy woodland auto-battler. Image 1 is a STYLE REFERENCE ONLY: match its soft detailed storybook gouache, round cute bodies, rich warm colours and delicate dark-plum outlines, slightly thicker for readability at 50 pixels tall. Do NOT copy its weapons, scarves or background. Images 2 and 3 are IDENTITY REFERENCES ONLY for Dora and Enzo, not photographic style.\nDora ivory-white chinchilla with very dark ruby-burgundy eyes, nearly black, never pink/glowing. Enzo grey chinchilla, white chest, black eyes. Pip lavender-grey young chinchilla with black eyes, eager and wide-eyed. Duchess honey-gold chinchilla, small three-point golden crown, gracious chin raised.\nEvery creature is cuddly, charming, never scary, injured or bloody. Soft upper-left light. No text, letters, numbers, logos, labels, borders or grid lines anywhere. PNG exactly 1536x1024.\n\nTransparent item sprite sheet, invisible 4-column by 2-row grid, EIGHT equal 384x512 cells, one snack each large centred with at least 10% clear space all around. Actual alpha zero background, no shadows/haze/glows/paper rectangles. Bold simple silhouettes at 50px tall.\nRead LEFT to RIGHT TOP to BOTTOM:\nRow1: Apple shiny red apple with one leaf; Raisin cluster of exactly three plump dark raisins; Honey small round clay honey pot golden honey dripping over lip with wooden dipper; Hay Bundle golden hay tied with twine bow.\nRow2: Mint Leaf sprig of TWO bright green mint leaves; Chilli glossy red chilli pepper green stem; Sunflower Seed ONE large striped sunflower seed; Acorn Cake little round cake topped with acorn and cream NO plate.\nNo other items.",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-16272691-1a5f-4167-848e-c1106c76c768.png"
+    },
+    {
+      "name": "bg-shop.png",
+      "transparent": false,
+      "prompt": "Use case: illustration-story. Generate production artwork for Hay Bale Brawl, a cosy woodland auto-battler. Image 1 is a STYLE REFERENCE ONLY: match its soft detailed storybook gouache, round cute bodies, rich warm colours and delicate dark-plum outlines, slightly thicker for readability at 50 pixels tall. Do NOT copy its weapons, scarves or background. Images 2 and 3 are IDENTITY REFERENCES ONLY for Dora and Enzo, not photographic style.\nDora ivory-white chinchilla with very dark ruby-burgundy eyes, nearly black, never pink/glowing. Enzo grey chinchilla, white chest, black eyes. Pip lavender-grey young chinchilla with black eyes, eager and wide-eyed. Duchess honey-gold chinchilla, small three-point golden crown, gracious chin raised.\nEvery creature is cuddly, charming, never scary, injured or bloody. Soft upper-left light. No text, letters, numbers, logos, labels, borders or grid lines anywhere. PNG exactly 1536x1024.\n\nFull-bleed opaque backdrop exactly1536x1024, 3:2. Inside a cosy barn workshop at golden hour viewed straight on. Wooden plank walls, hay stacked at far sides, lantern and hanging tools at far edges, dusty light through high window. Upper middle calm low-detail plank wall, LOWER THIRD calm low-detail wooden floor because cards and small bright critters overlay it. Softly muted central area, warm detailed gouache edges. No characters, no words, no cards, no UI, no frame. Entire image filled edge to edge.",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-39d058b4-9694-416f-a45b-a0c725ad5b60.png"
+    },
+    {
+      "name": "bg-fight.png",
+      "transparent": false,
+      "prompt": "Use case: illustration-story. Generate production artwork for Hay Bale Brawl, a cosy woodland auto-battler. Image 1 is a STYLE REFERENCE ONLY: match its soft detailed storybook gouache, round cute bodies, rich warm colours and delicate dark-plum outlines, slightly thicker for readability at 50 pixels tall. Do NOT copy its weapons, scarves or background. Images 2 and 3 are IDENTITY REFERENCES ONLY for Dora and Enzo, not photographic style.\nDora ivory-white chinchilla with very dark ruby-burgundy eyes, nearly black, never pink/glowing. Enzo grey chinchilla, white chest, black eyes. Pip lavender-grey young chinchilla with black eyes, eager and wide-eyed. Duchess honey-gold chinchilla, small three-point golden crown, gracious chin raised.\nEvery creature is cuddly, charming, never scary, injured or bloody. Soft upper-left light. No text, letters, numbers, logos, labels, borders or grid lines anywhere. PNG exactly 1536x1024.\n\nFull-bleed opaque backdrop exactly1536x1024 3:2. Summer meadow in late afternoon viewed SIDE ON with a long LOW line of golden hay bales extending STRAIGHT and LEVEL across ENTIRE width at 60% of image height (y approx614 of1024), bale TOPS form a FLAT HORIZONTAL STAGE. Bales have modest height; lower foreground meadow remains visible. Rolling hills few trees and wildflowers far edges, soft warm sky. Band just ABOVE stage calm low-detail empty because two crews of small bright critters overlay there. Centre muted enough for silhouettes, details at far edges. No characters, animals, UI, text, frame. Entire image filled edge to edge.",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-3595d2a8-1e27-4476-b89e-9943d4363ee4.png"
+    },
+    {
+      "name": "title.png",
+      "transparent": true,
+      "prompt": "Use case: illustration-story. Generate production artwork for Hay Bale Brawl, a cosy woodland auto-battler. Image 1 is a STYLE REFERENCE ONLY: match its soft detailed storybook gouache, round cute bodies, rich warm colours and delicate dark-plum outlines, slightly thicker for readability at 50 pixels tall. Do NOT copy its weapons, scarves or background. Images 2 and 3 are IDENTITY REFERENCES ONLY for Dora and Enzo, not photographic style.\nDora ivory-white chinchilla with very dark ruby-burgundy eyes, nearly black, never pink/glowing. Enzo grey chinchilla, white chest, black eyes. Pip lavender-grey young chinchilla with black eyes, eager and wide-eyed. Duchess honey-gold chinchilla, small three-point golden crown, gracious chin raised.\nEvery creature is cuddly, charming, never scary, injured or bloody. Soft upper-left light. No text, letters, numbers, logos, labels, borders or grid lines anywhere. PNG exactly 1536x1024.\n\nONE coherent transparent title illustration exactly1536x1024. Dora and Enzo stand atop a BIG ROUND GOLDEN HAY BALE in CENTRE; Dora cheering paw raised, Enzo arms folded confident, both little whistles on cords. Dora ivory-white dark nearly-black ruby-burgundy eyes NEVER pink; Enzo grey white chest black eyes. Around bale's FOOT stand exactly FIVE other critters: black-white Badger, brown Hedgehog cream face, bright-green Frog, yellow-black Bee, round gentle brown Bear. All friendly ready for playful brawl. Complete silhouettes fully in frame, no cropping. Leave TOP QUARTER EMPTY TRANSPARENT for game's own title text. True alpha zero background, no backdrop/haze/ground shadows, no words, no lettering, no decorative symbols.",
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-a6ae0418-81da-41fc-b068-6cb7f78b1125.png"
+    }
+  ],
+  "assets": [
+    {
+      "name": "critters-1.png",
+      "path": "public/art/brawl/critters-1.png",
+      "selectedSource": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-637f2fec-77ab-4a0c-ab8b-4fec2f191c91.png",
+      "sha256": "b8c69f96357df06cd8e21d34953954912b9ecc5ec4e5f3582ae62052dc224ab9",
+      "bytes": 1809575,
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "transparentPixels": 1254324,
+      "visibleBounds": [
+        130,
+        118,
+        1421,
+        920
+      ]
+    },
+    {
+      "name": "critters-2.png",
+      "path": "public/art/brawl/critters-2.png",
+      "selectedSource": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-d17d82c4-4f4c-4f8d-9275-0cdf847d545b.png",
+      "sha256": "6e11ea399198eece281d435717da86e764c283e6160f1555e3c566999a8ce84b",
+      "bytes": 1812467,
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "transparentPixels": 1269559,
+      "visibleBounds": [
+        79,
+        105,
+        1452,
+        926
+      ]
+    },
+    {
+      "name": "critters-3.png",
+      "path": "public/art/brawl/critters-3.png",
+      "selectedSource": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-2769d653-8521-4eb7-ad8a-9efe35fed00a.png",
+      "sha256": "2691c9aff18b9b16299d087496c512c243908c9eb4e761ecf4b9e82e9eb98413",
+      "bytes": 1640780,
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "transparentPixels": 1360406,
+      "visibleBounds": [
+        111,
+        89,
+        1445,
+        902
+      ]
+    },
+    {
+      "name": "snacks.png",
+      "path": "public/art/brawl/snacks.png",
+      "selectedSource": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-16272691-1a5f-4167-848e-c1106c76c768.png",
+      "sha256": "80169aa1dcf5f49f3487f982a57a1ddf3e666eb0c50f603f57e4c8acd5a288b5",
+      "bytes": 1588150,
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "transparentPixels": 1316643,
+      "visibleBounds": [
+        99,
+        149,
+        1439,
+        836
+      ]
+    },
+    {
+      "name": "bg-shop.png",
+      "path": "public/art/brawl/bg-shop.png",
+      "selectedSource": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-39d058b4-9694-416f-a45b-a0c725ad5b60.png",
+      "sha256": "e83630cc82e47b9c6acc46d4dd5100273725c6b9a6d5ab56ec25f36aeab1a476",
+      "bytes": 2323018,
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "name": "bg-fight.png",
+      "path": "public/art/brawl/bg-fight.png",
+      "selectedSource": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-3595d2a8-1e27-4476-b89e-9943d4363ee4.png",
+      "sha256": "6830d2855e69db3e8d98fcdac755df0791737a95c4b0c01051204bd0c602af40",
+      "bytes": 2347915,
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB"
+    },
+    {
+      "name": "title.png",
+      "path": "public/art/brawl/title.png",
+      "selectedSource": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-a6ae0418-81da-41fc-b068-6cb7f78b1125.png",
+      "sha256": "b4f6f59abdc1ea8731213073e8bae78c158493733e57d118db0bda1c1b4d6430",
+      "bytes": 2160654,
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "transparentPixels": 937434,
+      "visibleBounds": [
+        83,
+        263,
+        1465,
+        973
+      ],
+      "topQuarterMaxAlpha": 1
+    }
+  ],
+  "status": "Artwork only; runtime integration pending.",
+  "processing": "Exact image_gen output PNGs copied byte-for-byte. No alpha cleanup, resampling or cropping of production files."
+}
