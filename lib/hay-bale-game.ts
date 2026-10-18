@@ -375,7 +375,7 @@ export type Action =
   | { k: 'move'; from: number; to: number } | { k: 'roll' } | { k: 'freeze'; kind: 'unit' | 'snack'; i: number };
 
 /** What the policy thinks each ability is worth per level, in stat points. It is the policy's taste, not a rule. */
-export const WEIGHT = Object.fromEntries(UNIT_IDS.map((id) => [id, 2])) as Record<UnitId, number>;
+export const WEIGHT = { ...Object.fromEntries(UNIT_IDS.map((id) => [id, 2 * UNITS[id].tier])), dormouse: -2 } as Record<UnitId, number>;
 /** What the policy thinks a snack adds, in stat points. */
 const SNACK_WORTH: Record<SnackId, number> = { apple: 2, raisin: 1.5, honey: 3, hay: 4, mint: 4, chilli: 3, seed: 3, cake: 6 };
 const unitWorth = (u: Unit) => u.a + u.h + (isUnitId(u.id) ? WEIGHT[u.id] * u.level : 0);
@@ -436,7 +436,7 @@ export function playShop(run: Run, pick: (run: Run) => Action | null = choose) {
 }
 
 /** The acorns a ghost crew gets each turn, and the seed every run derives its rival from. */
-export const GHOST_ACORNS = 10, GHOST_SEED = 7, GHOST_UID = 1_000_000;
+export const GHOST_ACORNS = 9, GHOST_SEED = 7, GHOST_UID = 1_000_000;
 const ghosts = new Map<number, Run>();
 /**
  * A rival crew as it stands after shopping `turn` turns with the policy. One ghost run per seed is kept and played
