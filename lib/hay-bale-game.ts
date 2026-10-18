@@ -177,8 +177,6 @@ export function crewName(line: Unit[], turn: number) {
   return `${name.startsWith('The ') ? name : `The ${name}`}'s ${SUFFIX[turn % SUFFIX.length]}`;
 }
 
-/** Until the buying policy exists, rivals bring nobody. */
-export function ghost(_seed: number, _turn: number): Unit[] { return []; }
 
 export class Run {
   turn = 0; acorns = 0; hearts = HEARTS; bales = 0; phase: Phase = 'shop';
@@ -325,7 +323,7 @@ export class Run {
     for (const u of this.line.slice()) if (u) this.fire(u, 'endTurn');
     if (!this.fights) { this.startTurn(); return null; }
     const left = this.line.filter((u): u is Unit => u !== null).map((u) => ({ ...u }));
-    const rival = this.rival(mix(this.seed, this.turn), this.turn);
+    const rival = this.rival(mix(this.seed, GHOST_SEED), this.turn);
     const { result, events } = fight(left, rival, mix(this.seed, this.turn + 1000), this.coach);
     if (result === 'win') this.bales++; else if (result === 'loss') this.hearts--;
     for (const u of this.line) if (u) u.tmpA = 0;
@@ -368,4 +366,108 @@ export class Run {
       return run;
     } catch { return null; }
   }
+}
+
+// ── The buying policy, ghosts and the profile ─────────────────────────────────
+
+export type Action =
+  | { k: 'buy'; i: number; to: number } | { k: 'feed'; i: number; to: number } | { k: 'sell'; at: number }
+  | { k: 'move'; from: number; to: number } | { k: 'roll' } | { k: 'freeze'; kind: 'unit' | 'snack'; i: number };
+
+/** What the policy thinks each ability is worth per level, in stat points. It is the policy's taste, not a rule. */
+export const WEIGHT = Object.fromEntries(UNIT_IDS.map((id) => [id, 2])) as Record<UnitId, number>;
+/** What the policy thinks a snack adds, in stat points. */
+const SNACK_WORTH: Record<SnackId, number> = { apple: 2, raisin: 1.5, honey: 3, hay: 4, mint: 4, chilli: 3, seed: 3, cake: 6 };
+const unitWorth = (u: Unit) => u.a + u.h + (isUnitId(u.id) ? WEIGHT[u.id] * u.level : 0);
+/** The policy's value of a line. */
+export const worth = (line: (Unit | null)[]) => line.reduce((s, u) => s + (u ? unitWorth(u) : 0), 0);
+
+/** The next shop action of a plain greedy player, or null to end the shop. Ghosts and the bot both use it. */
+export function choose(run: Run): Action | null {
+  if (run.phase !== 'shop') return null;
+  const line = run.line, empty = line.indexOf(null);
+  let best: Action | null = null, gain = 0;
+  const offer = (a: Action, g: number) => { if (g > gain) { best = a; gain = g; } };
+  if (run.acorns >= UNIT_COST) run.units.forEach((s, i) => {
+    if (s?.kind !== 'unit') return;
+    if (empty >= 0) offer({ k: 'buy', i, to: empty }, unitWorth(s.unit));
+    line.forEach((u, to) => {
+      if (u?.id !== s.unit.id) return;
+      const xp = Math.min(MAX_XP, u.xp + 1), up = levelOf(xp) - u.level;
+      offer({ k: 'buy', i, to }, Math.max(u.a, s.unit.a) + 1 - u.a + Math.max(u.h, s.unit.h) + 1 - u.h + (isUnitId(u.id) ? WEIGHT[u.id] * up : 0) + 0.5);
+    });
+  });
+  run.snacks.forEach((s, i) => {
+    if (s?.kind !== 'snack' || s.cost > run.acorns) return;
+    const status = s.snack === 'honey' || s.snack === 'mint' || s.snack === 'chilli';
+    const to = line.findIndex((u) => u && (!status || !u.status));
+    if (to >= 0 && (s.snack !== 'hay' || line.filter(Boolean).length > 1)) offer({ k: 'feed', i, to }, SNACK_WORTH[s.snack]);
+  });
+  if (best) return best;
+  if (empty < 0) {
+    let weak = 0;
+    line.forEach((u, i) => { if (unitWorth(u!) < unitWorth(line[weak]!)) weak = i; });
+    const w = line[weak]!;
+    if (run.units.some((s) => s?.kind === 'unit' && s.unit.id !== w.id && unitWorth(s.unit) > unitWorth(w) + 2 && run.acorns + w.level >= UNIT_COST)) return { k: 'sell', at: weak };
+  }
+  const want = run.units.findIndex((s) => s?.kind === 'unit' && !s.frozen && line.some((u) => u?.id === s.unit.id));
+  if (want >= 0 && run.acorns < UNIT_COST) return { k: 'freeze', kind: 'unit', i: want };
+  if (run.acorns >= 4 || (run.freeRoll && run.acorns >= 3)) return { k: 'roll' };
+  return null;
+}
+
+/** Applies an action; false when the run refused it. */
+export function act(run: Run, a: Action) {
+  switch (a.k) {
+    case 'buy': return run.buy(a.i, a.to);
+    case 'feed': return run.feed(a.i, a.to);
+    case 'sell': return run.sell(a.at);
+    case 'move': return run.move(a.from, a.to);
+    case 'roll': return run.roll();
+    case 'freeze': return run.freeze(a.kind, a.i);
+  }
+}
+
+/** Shops until the policy is done (at most 40 actions), then puts the strongest units at the front. */
+export function playShop(run: Run, pick: (run: Run) => Action | null = choose) {
+  for (let n = 0; n < 40; n++) { const a = pick(run); if (!a || !act(run, a)) break; }
+  const units = run.line.filter((u): u is Unit => u !== null).sort((x, y) => y.a + y.h - (x.a + x.h));
+  run.line = [0, 1, 2, 3, 4].map((i) => units[i] ?? null);
+}
+
+/** The acorns a ghost crew gets each turn, and the seed every run derives its rival from. */
+export const GHOST_ACORNS = 10, GHOST_SEED = 7, GHOST_UID = 1_000_000;
+const ghosts = new Map<number, Run>();
+/**
+ * A rival crew as it stands after shopping `turn` turns with the policy. One ghost run per seed is kept and played
+ * forward, so a run's rival grows turn by turn without being rebuilt; uids are lifted clear of any player's.
+ */
+export function ghost(seed: number, turn: number): Unit[] {
+  let g = ghosts.get(seed);
+  if (!g || g.turn > turn + 1) {
+    g = new Run(seed, null, { acorns: GHOST_ACORNS, fights: false });
+    ghosts.delete(seed); ghosts.set(seed, g);
+    if (ghosts.size > 64) ghosts.delete(ghosts.keys().next().value!);
+  }
+  while (g.turn <= turn) { playShop(g); g.endTurn(); }
+  return g.line.filter((u): u is Unit => u !== null).map((u) => ({ ...u, uid: u.uid + GHOST_UID }));
+}
+
+export const PROFILE_VERSION = 1;
+/** What a player has done across runs. `last` is the seed of the last run recorded, so recording twice is harmless. */
+export type Profile = { v: 1; runs: number; wins: number; best: number; won: UnitId[]; last: number };
+export const freshProfile = (): Profile => ({ v: 1, runs: 0, wins: 0, best: 0, won: [], last: -1 });
+export function loadProfile(raw: string | null): Profile {
+  try {
+    const d = JSON.parse(raw ?? '');
+    const int = (n: unknown, lo: number, hi: number) => Number.isInteger(n) && (n as number) >= lo && (n as number) <= hi;
+    if (!d || d.v !== PROFILE_VERSION || !int(d.runs, 0, 1e9) || !int(d.wins, 0, d.runs) || !int(d.best, 0, BALES) || !int(d.last, -1, 2 ** 32) || !Array.isArray(d.won)) return freshProfile();
+    return { v: 1, runs: d.runs, wins: d.wins, best: d.best, last: d.last, won: [...new Set(d.won.filter((id: unknown) => typeof id === 'string' && isUnitId(id)))] as UnitId[] };
+  } catch { return freshProfile(); }
+}
+export function record(p: Profile, run: Run): Profile {
+  if ((run.phase !== 'over' && run.phase !== 'won') || p.last === run.seed) return p;
+  const won = run.phase === 'won';
+  const ids = won ? run.line.filter((u): u is Unit => u !== null).map((u) => u.id).filter(isUnitId) : [];
+  return { v: 1, runs: p.runs + 1, wins: p.wins + (won ? 1 : 0), best: Math.max(p.best, run.bales), won: [...new Set([...p.won, ...ids])], last: run.seed };
 }
