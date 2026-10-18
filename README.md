@@ -854,7 +854,7 @@ Eighty stages in eight chapters, each stage worth up to three stars (cleared, no
 
 **Tests:** `npm run test:hay-bale` checks the roster against the design, every fight ability at levels 1 and 3, ability order, statuses, chained faints and stalled fights, the shop (slots, tiers, buying, merging, levels, snacks, freezing, rolls, selling and every shop-time ability), illegal actions changing nothing, the end of a run, saves round-tripping and malformed saves, the buying policy, ghost rivals and the profile. `npm run bot:hay-bale` plays 300 runs with the buying policy and 300 with a random buyer, and requires the policy to win 30–55% of runs and the random buyer under 5%, every unit bought in at least 2% of runs, none in more than half of the winning crews, every tier in winning crews, and no fight near the 200-round cap. `npm run test:e2e:brawl` buys by drag and tap-tap, merges, sells, cancels drags, freezes and rolls, plays and skips a fight, reloads mid-fight, wins a whole run, opens the Almanac, and checks the fit at phone and desktop sizes and mute.
 
-**Docs:** [`docs/hay-bale-brawl.md`](docs/hay-bale-brawl.md).
+**Docs:** [`docs/hay-bale-brawl.md`](docs/hay-bale-brawl.md), [`docs/hay-bale-brawl-image-prompts.md`](docs/hay-bale-brawl-image-prompts.md).
 
 ## Validation
 
