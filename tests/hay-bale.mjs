@@ -343,5 +343,77 @@ test('run: malformed saves load as null', () => {
   assert.ok(Run.load(JSON.stringify(good)));
 });
 
+// ---- the buying policy, ghosts and the profile ----
+
+const { choose, playShop, act, worth, ghost, freshProfile, loadProfile, record } = G;
+
+test('policy: fills an empty line on turn 1', () => {
+  const run = new Run(3, 'dora');
+  playShop(run);
+  assert.equal(run.line.filter(Boolean).length, 3);
+  assert.equal(run.acorns, 1);
+});
+
+test('policy: merges a copy it can afford', () => {
+  const run = stock(runWith(), ['mole']);
+  for (const [i, id] of ['wren', 'bee', 'mole', 'toad', 'dormouse'].entries()) place(run, i, id);
+  run.acorns = 3;
+  assert.deepEqual(choose(run), { k: 'buy', i: 0, to: 2 });
+});
+
+test('policy: never takes an illegal action', () => {
+  for (let seed = 1; seed <= 100; seed++) {
+    const run = new Run(seed, seed % 2 ? 'dora' : 'enzo', { rival: none });
+    for (let t = 0; t < 6; t++) {
+      for (let n = 0; n < 40; n++) { const a = choose(run); if (!a) break; assert.equal(act(run, a), true, `seed ${seed}: ${JSON.stringify(a)}`); }
+      run.endTurn();
+    }
+  }
+});
+
+test('policy: playShop puts the strongest at the front', () => {
+  const run = new Run(8, 'dora');
+  for (let t = 0; t < 4; t++) { playShop(run); run.endTurn(); }
+  const line = run.line.filter(Boolean);
+  for (let i = 1; i < line.length; i++) assert.ok(line[i - 1].a + line[i - 1].h >= line[i].a + line[i].h);
+});
+
+test('ghosts: deterministic and growing', () => {
+  assert.deepEqual(ghost(5, 1), ghost(5, 1));
+  assert.deepEqual(ghost(5, 6), ghost(5, 6));
+  const mean = (t) => { let s = 0; for (let k = 1; k <= 50; k++) s += worth(ghost(k * 7919, t)); return s / 50; };
+  const [m1, m5, m9] = [mean(1), mean(5), mean(9)];
+  assert.ok(m1 < m5 && m5 < m9, `${m1} < ${m5} < ${m9}`);
+  for (const u of ghost(5, 4)) assert.ok(u.uid >= 1e6, 'ghost uids never clash with a player\'s');
+});
+
+test('ghosts: the run fights them', () => {
+  const run = new Run(21, 'dora');
+  playShop(run);
+  const out = run.endTurn();
+  assert.ok(out.rival.line.length > 0);
+  assert.match(out.rival.name, /^The .+'s \w+$/);
+});
+
+test('profile: record counts a run once', () => {
+  const run = runWith('dora', none); place(run, 0, 'boar', { level: 3 });
+  let p = record(freshProfile(), run);
+  assert.equal(p.runs, 0, 'a run still in the shop is not recorded');
+  for (let i = 0; i < 10; i++) run.endTurn();
+  p = record(p, run);
+  assert.deepEqual([p.runs, p.wins, p.best, p.won], [1, 1, 10, ['boar']]);
+  assert.deepEqual(record(p, run), p);
+  const lost = new Run(12, 'dora', { rival: () => [{ uid: 900, id: 'boar', a: 50, h: 50, level: 3, xp: 5, status: null, tmpA: 0 }] });
+  for (let i = 0; i < 5; i++) lost.endTurn();
+  const q = record(p, lost);
+  assert.deepEqual([q.runs, q.wins, q.best], [2, 1, 10]);
+});
+
+test('profile: malformed saves load fresh', () => {
+  for (const raw of [null, 'x', '{"v":2}', '{"v":1,"runs":-1,"wins":0,"best":0,"won":[],"last":0}', '{"v":1,"runs":1,"wins":0,"best":11,"won":[],"last":0}', '{"v":1,"runs":1,"wins":0,"best":1,"won":"x","last":0}'])
+    assert.deepEqual(loadProfile(raw), freshProfile(), String(raw));
+  assert.deepEqual(loadProfile('{"v":1,"runs":3,"wins":1,"best":10,"won":["boar","dragon"],"last":4}').won, ['boar']);
+});
+
 if (failed) { console.log(`${failed} failed`); process.exit(1); }
 console.log('PASS Hay Bale Brawl engine');
