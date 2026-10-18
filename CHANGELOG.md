@@ -16,6 +16,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Hay Bale Brawl**: prepared a supplementary painted effects sheet with bonks, dust, poofs, hay, twinkles, frost, crumbs, an acorn and three status charms. Includes measured crops and an integration handoff; the game continues to use its existing code effects until this sheet is wired in.
 - **Hay Bale Brawl**: prepared seven painted art files covering every critter, summon and snack, both coaches, the bale, barn shop, meadow stage and title. Includes measured sprite crops and an integration handoff; wired into the game the same day (see **Changed**).
 - **Hay Bale Brawl**: the arcade's 36th game, an auto-battler. Pick Dora or Enzo as coach, buy a crew of thirty woodland critters, merge copies to level them up, feed them snacks, and watch them brawl rival crews on a hay bale. Win ten fights before you lose five hearts. Drag or tap to shop; the run is saved after every move.
 - **Whisker Ware**: the arcade's 35th game, a microgame frenzy. Four hosts (Enzo, Dora, the Owl and the Fox) each throw five five-second games and a boss at you, faster and faster. Clear all four for the endless Remix, and practise any game you've beaten from the gallery. Plays by tap, click or keyboard, with painted art and synthesised sound.

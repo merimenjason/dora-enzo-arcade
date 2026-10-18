@@ -132,6 +132,8 @@ The critters come first because the player watches them all the time; the backdr
 
 ## 8 · `fx.png` (optional)
 
+**Delivery 18-10-2026:** `public/art/brawl/fx.png` is now generated and checked. [Effects artwork handoff](hay-bale-brawl-fx-art.md), [measured crops](hay-bale-brawl-fx-crops.json) and [exact prompts and provenance](hay-bale-brawl-fx-generation.json) accompany it. Runtime integration is pending. For this effects-only request, omit the critter pose/facing and backdrop instructions; use transparent centred effects, the existing painted style and the checks specific to `fx.png`.
+
 Added 18-10-2026, after the game gained its fight and shop animations. The game already draws every one of these effects in code, so this sheet is polish: it repaints them in the storybook style and replaces the plain coloured status dots for Shell, Mint and Chilli. Painted attack or faint poses for each critter are deliberately not asked for: poses drift too much between generations for 33 critters to stay on-model across frames, so the code keeps moving the existing paintings instead. Attach the critter sheets as references so the outlines and the acorn match.
 
 > Generate the image: a transparent effects sheet, 1536 × 1024, a 4 × 3 grid of 12 equal cells. One effect or icon per cell, each large and centred with clear space around it. They match the critter sheets' gouache style and thin dark-plum outlines. These are cartoon effects for a cosy game, never fiery, violent or scary. Read left to right, top to bottom:
@@ -143,7 +145,7 @@ Added 18-10-2026, after the game gained its fight and shop animations. The game 
 > 6 **Green twinkle:** the same four-pointed sparkle in fresh leaf green.
 > 7 **Frost sparkle:** a small cluster of pale ice-blue snowflake glints, delicate.
 > 8 **Crumbs:** a little scatter of cake and seed crumbs, warm browns and cream.
-> 9 **Acorn:** one plump, shiny brown acorn with a textured darker cap and a tiny stalk, like a coin.
+> 9 **Acorn:** one plump, shiny brown acorn with a textured darker cap and a tiny stalk, like a coin; match the Squirrel's acorn in the attached critter sheet.
 > 10 **Honey shell:** a small round, glossy amber bubble of honey, like a protective shield, with a highlight.
 > 11 **Mint charm:** a sprig of two bright mint leaves with a few cool pale-green glints.
 > 12 **Chilli charm:** a small glossy red chilli with a little curl of warm orange heat above it, cute, not flames.

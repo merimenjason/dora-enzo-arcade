@@ -4,6 +4,8 @@ Prepared 18-10-2026 using the built-in image generation tool from the supplied p
 
 What was built, and how it was checked, is in the **Status** section of [the integration instructions](hay-bale-brawl-integration.md), which also keeps the original brief: proposed loader contract, exact engine-to-atlas mappings, shared renderer entry points, stage placement, static-canvas redraws and the validation checklist.
 
+**Supplementary effects sheet (18-10-2026):** `public/art/brawl/fx.png` is generated, with twelve painted effects/icons. This supplementary sheet is **not wired in yet**. Its [handoff](hay-bale-brawl-fx-art.md), [crop map](hay-bale-brawl-fx-crops.json) and [generation provenance](hay-bale-brawl-fx-generation.json) are separate from the original seven-image package below.
+
 ## Delivered originals
 
 All files were delivered as **1536 × 1024 PNGs**, copied byte-for-byte from the selected image generation outputs into `public/art/brawl/`. No resampling, alpha cleanup or atlas cutting was applied. At integration the two opaque backdrops were re-encoded as quality-85 WebP for serving (`bg-shop.webp`, SHA-256 `0cf59b966cd5100466abc536c768b7f9ef45975231279be95f840e246cf1994f`; `bg-fight.webp`, `5b20d425bc038ab1a7410d2656cb9df5da2d2b2f3fc5f582ccdb253248f8d151`); their PNG originals remain in git at `f4f1ac5`, with hashes in the manifest. The sheets and title are served as delivered.
