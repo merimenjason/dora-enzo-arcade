@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of thirty-five original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of thirty-six original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -45,6 +45,7 @@ Listed in arcade-menu order.
 | 33 | Ember & Clover: Midnight Kitchen | `/kitchen` | Cozy kitchen management |
 | 34 | Acorn Hand | `/acorn-hand` | Poker-scoring card roguelite |
 | 35 | Whisker Ware | `/whisker-ware` | Microgame frenzy |
+| 36 | Hay Bale Brawl | `/brawl` | Auto-battler |
 
 ## Run
 
@@ -845,6 +846,16 @@ Eighty stages in eight chapters, each stage worth up to three stars (cleared, no
 
 **Docs:** [`docs/whisker-ware.md`](docs/whisker-ware.md), [`docs/whisker-ware-art.md`](docs/whisker-ware-art.md), [`docs/whisker-ware-integration.md`](docs/whisker-ware-integration.md), [`docs/whisker-ware-image-prompts.md`](docs/whisker-ware-image-prompts.md).
 
+### 36 · Hay Bale Brawl (`/brawl`)
+
+**Play:** An auto-battler in the manner of Super Auto Pets. Pick Dora or Enzo as coach, then play turns: shop, then fight. Each turn starts with 10 acorns. Units and snacks cost 3, a roll of the shop costs 1, and selling a unit gives back its level. Your crew is a line of five on a hay bale, front first. The shop offers 3 units and 1 snack on turns 1–4, 4 and 1 on turns 5–8, and 5 and 2 from turn 9, from 30 woodland critters in five tiers that unlock every two turns. Three copies of a unit merge into level 2 and six into level 3; each new level adds a unit from the tier above to the shop. Frozen shop slots are kept into the next turn. Snacks give stats or one status: Shell, Mint or Chilli. Then your crew fights a rival crew by itself: start-of-battle abilities first, then the two front units hit each other until one side is empty. A win earns a bale, a loss costs one of five hearts, and a draw changes nothing. Ten bales win the run. Dora gives the front friend +0/+2 at the start of every fight; Enzo's first roll each turn is free. The run is saved after every action, and the Almanac shows every critter and snack, starring those that were in a winning crew.
+
+**Controls:** Drag a shop unit or snack onto the line to buy or feed it, a line unit onto another place to move, swap or merge it, or onto **Sell** to sell it. Or tap one, then tap where it goes; tap it again to put it back. Hover or tap a critter for its card. **Roll**, **Freeze** (the chosen shop slot) and **End turn** are buttons, or **R**, **F** and **Space**. During a fight, **×2 speed** and **Skip**, or **Space** to skip and then go on.
+
+**Tests:** `npm run test:hay-bale` checks the roster against the design, every fight ability at levels 1 and 3, ability order, statuses, chained faints and stalled fights, the shop (slots, tiers, buying, merging, levels, snacks, freezing, rolls, selling and every shop-time ability), illegal actions changing nothing, the end of a run, saves round-tripping and malformed saves, the buying policy, ghost rivals and the profile. `npm run bot:hay-bale` plays 300 runs with the buying policy and 300 with a random buyer, and requires the policy to win 30–55% of runs and the random buyer under 5%, every unit bought in at least 2% of runs, none in more than half of the winning crews, every tier in winning crews, and no fight near the 200-round cap. `npm run test:e2e:brawl` buys by drag and tap-tap, merges, sells, cancels drags, freezes and rolls, plays and skips a fight, reloads mid-fight, wins a whole run, opens the Almanac, and checks the fit at phone and desktop sizes and mute.
+
+**Docs:** [`docs/hay-bale-brawl.md`](docs/hay-bale-brawl.md).
+
 ## Validation
 
 ```sh
@@ -864,7 +875,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Thirty-four ways/` assertion in `tests/e2e/dust-bath.mjs`, the 34-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs` and `tests/e2e/pinball.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past thirty-four games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Thirty-six ways/` assertion in `tests/e2e/dust-bath.mjs`, the 36-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past thirty-six games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

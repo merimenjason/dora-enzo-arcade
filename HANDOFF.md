@@ -63,9 +63,10 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 4. **Whisker Saga chapter 1 variety:** a spitter-heavy stage, an early brute, a second wind-up before the boss.
 5. **Midnight Kitchen code split:** drawing lives in `app/kitchen/page.tsx` (about 700 lines); move it to `lib/kitchen-scene.ts` like every other game, and add `window.__kitchen()`.
 6. **Test hygiene:** make the moonlight and detectives screenshot paths relative (`.checks/…`), and steady the Burrow Express touch-drag check.
-7. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
-8. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
-9. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; offer something with a stronger hook.
+7. **Hay Bale Brawl, from play:** built on 18-10-2026 from `docs/superpowers/plans/18-10-2026-hay-bale-brawl-plan.md` and tuned only against its bot (the policy wins 39%). Play a few runs by hand: is the shop readable on a phone, does a kept Dormouse or a Duchess crew run away with it, do rivals feel fair from turn 1? Listen to its blips. Then the ChatGPT art prompts (the critters are code-drawn).
+8. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
+9. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
+10. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
 
 ## Quality pass · 08-10-2026
 
@@ -154,6 +155,16 @@ Game 31, `/moonpond`, is merged on main (PR #30). It is a night-fishing journal:
 - **Next:** play it by hand and adjust the reel numbers at the top of `lib/moonpond-game.ts` (`BAND_LOW`, `BAND_HIGH`, `SNAP_AFTER`, `SLIP_AFTER`, `LINE_RESPONSE`, the `SURGE_` values), rerunning `npm run bot:moonpond` after any change; listen to the cues in `app/moonpond/sound.ts`; watch the animations in motion on a phone; and continue the human balance and listening pass now that the painted art is in place.
 - **Not done:** nobody has played it by hand, the sound has not been listened to, and the reel has only been tuned against the bot and a scripted hand. The spread of 13 to 56 nights comes from weather luck on the rare pages; if it feels grindy, raise the rare weight in `WEIGHT` or let the journal's found count nudge the weather.
 
+## Hay Bale Brawl · 18-10-2026
+
+Game 36, `/brawl`, an auto-battler in the manner of Super Auto Pets. Rules, every number and the bot's rates: [`docs/hay-bale-brawl.md`](docs/hay-bale-brawl.md).
+
+- **Code:** `lib/hay-bale-units.ts` (30 units, tokens, snacks; abilities against a `Ctx` the game implements for the shop and for fights), `lib/hay-bale-game.ts` (`fight`, `Run`, the buying policy `choose`/`playShop`, `ghost`, the profile), `lib/hay-bale-scene.ts` (all code-drawn) and `app/brawl/`. `window.__brawl()` exposes the run, profile, replay, `LAYOUT` and a `set` hook.
+- **Rivals:** one ghost run per player run, seeded from it, shopping with the bot's policy on 9 acorns a turn and memoised, so turn *t*'s rival is that ghost after *t* turns. The policy's `WEIGHT` is its taste only (2 × tier, Dormouse marked down); changing it changes the rivals too.
+- **Checks:** `npm run test:hay-bale` and `npm run bot:hay-bale` (both in `npm test`; the bot runs in under a second) and `npm run test:e2e:brawl` (11 checks, in `test:e2e`).
+- **Saves:** `hay-bale-run-v1` (whole run, written before a fight is replayed), `hay-bale-v1` (profile, recorded once per run by seed), `hay-bale-sound-v1`.
+- **Not done:** played by hand, listened to, painted art.
+
 ## Whisker Ware · 18-10-2026
 
 Game 35, `/whisker-ware`, a WarioWare-style microgame frenzy. Rules, every number and the bot's rates: [`docs/whisker-ware.md`](docs/whisker-ware.md); art: [`docs/whisker-ware-art.md`](docs/whisker-ware-art.md).
@@ -233,13 +244,13 @@ Game 32, `/saga`, is merged on main (PR #33). It is a hero-squad adventure model
 
 ## Current state
 
-- **35 games on `main`**, deployed at https://chinchillas.jason.engineering. The newest are listed below; `README.md` has all 35 with guides.
+- **36 games** once Hay Bale Brawl merges, deployed at https://chinchillas.jason.engineering. The newest are listed below; `README.md` has all of them with guides.
 - **Played by hand:** Acorn Hand (one full run won and a second to ante 3, both before vouchers, the new curve and stakes), Whisker Saga (chapter 1, the Thornback boss and Briar Relay, 15-10-2026). Every other recent game has been balanced against its bot, or not at all (Midnight Kitchen), and nobody has listened to any game's sound.
 - **Left uncommitted in the working tree, on purpose:** `.claude/helpers/graft-hooks.cjs`, `.claude/helpers/graft-statusline.cjs` and `.claude/skills/graft/SKILL.md`. They belong to the user; don't stage them.
 
 ## What shipped recently
 
-The eight newest cabinets, all merged to `main` and deployed.
+The nine newest cabinets. All but Hay Bale Brawl are merged to `main` and deployed.
 
 | # | Game | Route | Added | Pull requests |
 | --- | --- | --- | --- | --- |
@@ -251,6 +262,7 @@ The eight newest cabinets, all merged to `main` and deployed.
 | 33 | Ember & Clover: Midnight Kitchen | `/kitchen` | 15-10-2026 | #39–#41 |
 | 34 | Acorn Hand | `/acorn-hand` | 15-10-2026 | #42, #44–#59 |
 | 35 | Whisker Ware | `/whisker-ware` | 18-10-2026 | #60–#62 |
+| 36 | Hay Bale Brawl | `/brawl` | 18-10-2026 | |
 
 Each has its own section near the top of this file. The older games' notes (Clash, Hay Maze, Chinchillas vs Zombies, Scribble, Bounce / Burrow, Burrow Tactics, Burrow Barrage, Summit Shuffle, Poof Panic) follow under **Where the code lives**.
 
@@ -389,6 +401,8 @@ npm run test:acorn-hand
 npm run bot:acorn-hand
 npm run test:whisker-ware
 npm run bot:whisker-ware     # WARE_BOT_DETAIL=1 for losses by level and speed
+npm run test:hay-bale
+npm run bot:hay-bale
 ```
 
 Browser tests need `npm run dev` running and Playwright. Playwright is **not** in `devDependencies`. Install it with `npm i -D playwright`, or link a global copy (`ln -s "$(npm root -g)/playwright" node_modules/playwright`). Then run one suite, such as `node tests/e2e/scribble.mjs`, or the whole `npm run test:e2e`. The browser tests write screenshots to `.checks/<game>/`, which git ignores.
