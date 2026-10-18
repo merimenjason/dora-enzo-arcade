@@ -531,5 +531,115 @@ test('malformed saves load as null', () => {
   for (const b of bad) assert.equal(G.Trek.load(typeof b === 'string' || b === null ? b : JSON.stringify(b)), null, JSON.stringify(b)?.slice(0, 60));
 });
 
+
+// ---- camp, the profile and the policy ----
+
+const ended = (seed, chapter, base, hero = 'enzo') => G.playTrek(new G.Trek(seed, hero, chapter, base));
+const rarities = (pieces) => pieces.map((x) => x.r);
+
+test('camp: a fresh profile', () => {
+  const p = G.freshProfile();
+  assert.deepEqual([p.v, p.acorns, p.unlocked, p.gear.length, Object.keys(p.worn).length], [1, 0, 1, 0, 0]);
+  assert.deepEqual(G.campStats(p), G.BASE);
+});
+
+test('camp: training costs rise and need acorns', () => {
+  let p = { ...G.freshProfile(), acorns: 55 };
+  assert.equal(G.train({ ...p, acorns: 19 }, 'atk'), null);
+  p = G.train(p, 'atk'); assert.equal(p.acorns, 35); assert.equal(p.training.atk, 1); assert.equal(G.campStats(p).atk, 11);
+  p = G.train(p, 'atk'); assert.equal(p.acorns, 5); assert.equal(G.train(p, 'hp'), null);
+  p = G.train({ ...p, acorns: 20 }, 'hp'); assert.equal(G.campStats(p).hp, 110);
+});
+
+test('camp: three pieces merge into one of the next rarity, and it is worn if better', () => {
+  const p = { ...G.freshProfile(), gear: [{ uid: 1, slot: 'hat', r: 0 }, { uid: 2, slot: 'hat', r: 0 }, { uid: 3, slot: 'hat', r: 0 }, { uid: 4, slot: 'scarf', r: 0 }], worn: { hat: 1 }, next: 5 };
+  const before = JSON.stringify(p), m = G.merge(p, 'hat', 0);
+  assert.equal(JSON.stringify(p), before, 'pure');
+  assert.deepEqual(m.gear, [{ uid: 4, slot: 'scarf', r: 0 }, { uid: 5, slot: 'hat', r: 1 }]);
+  assert.equal(m.worn.hat, 5); assert.equal(m.next, 6); assert.equal(G.campStats(m).hp, 120);
+  assert.equal(G.wear(m, 4).worn.scarf, 4); assert.equal(G.wear(m, 99), null);
+});
+
+test('camp: legend pieces don\'t merge, two pieces don\'t merge', () => {
+  const legends = { ...G.freshProfile(), gear: [1, 2, 3].map((uid) => ({ uid, slot: 'boots', r: 4 })), next: 4 };
+  assert.equal(G.merge(legends, 'boots', 4), null);
+  const two = { ...G.freshProfile(), gear: [1, 2].map((uid) => ({ uid, slot: 'boots', r: 0 })), next: 3 };
+  assert.equal(G.merge(two, 'boots', 0), null);
+});
+
+test('record: acorns kept after a loss, pedlar spending excluded', () => {
+  const t = new G.Trek(31, 'dora', 1, WEAK); t.next(); assert.equal(t.phase, 'over');
+  t.acorns = 7;
+  const { profile, chest } = G.record(G.freshProfile(), t);
+  assert.equal(chest.acorns, 2 * 1 * t.day); assert.equal(profile.acorns, 7 + chest.acorns);
+  assert.equal(chest.pieces.length, 1); assert.equal(profile.gear.length, 1); assert.equal(profile.worn[chest.pieces[0].slot], chest.pieces[0].uid);
+  assert.equal(profile.best[0], 1); assert.equal(profile.unlocked, 1); assert.equal(profile.last, 31);
+  assert.ok(profile.seen.skills.includes('shell'));
+  const live = new G.Trek(32, 'dora', 1, G.BASE);
+  assert.deepEqual(G.record(G.freshProfile(), live), { profile: G.freshProfile(), chest: null }, 'nothing while the trek is on');
+});
+
+test('record: a clear unlocks the next chapter, gives two pieces, and the first clear gives a rare', () => {
+  for (let seed = 40; seed < 60; seed++) {
+    const t = ended(seed, 1, STRONG); assert.equal(t.phase, 'cleared');
+    const { profile, chest } = G.record(G.freshProfile(), t);
+    assert.equal(chest.pieces.length, 2); assert.equal(profile.unlocked, 2); assert.equal(profile.best[0], 31);
+    assert.ok(chest.pieces.some((x) => x.r >= 2), `seed ${seed}: ${rarities(chest.pieces)}`);
+  }
+  const again = G.record({ ...G.freshProfile(), unlocked: 2, best: [31, 0, 0, 0, 0] }, ended(41, 1, STRONG));
+  assert.equal(again.profile.unlocked, 2);
+});
+
+test('record: counts a trek once', () => {
+  const t = ended(61, 1, STRONG), once = G.record(G.freshProfile(), t).profile;
+  const twice = G.record(once, t);
+  assert.equal(twice.chest, null); assert.deepEqual(twice.profile, once);
+});
+
+test('chest odds improve by chapter and day', () => {
+  const mean = (chapter, day) => { let sum = 0, legend = 0; for (let i = 0; i < 2000; i++) { for (const r of G.chestRarities(chapter, day, new G.Rand(i + 1), 1)) { sum += r; if (r === 4) legend++; } } return { m: sum / 2000, legend }; };
+  const lo = mean(1, 5), hi = mean(3, 30), top = mean(5, 30);
+  assert.ok(hi.m > lo.m + 0.3, `${lo.m} → ${hi.m}`);
+  assert.equal(lo.legend + hi.legend, 0, 'no legend before chapter 4');
+  assert.ok(top.legend > 0);
+});
+
+test('profile: malformed saves load fresh', () => {
+  const good = { ...G.freshProfile(), acorns: 10, gear: [{ uid: 1, slot: 'hat', r: 2 }], worn: { hat: 1 }, next: 2 };
+  assert.deepEqual(G.loadProfile(JSON.stringify(good)), good);
+  for (const b of [null, 'x', '{"v":2}', JSON.stringify({ ...good, acorns: -1 }), JSON.stringify({ ...good, unlocked: 6 })]) assert.deepEqual(G.loadProfile(b), G.freshProfile(), String(b).slice(0, 40));
+  const dropped = G.loadProfile(JSON.stringify({ ...good, gear: [...good.gear, { uid: 2, slot: 'hat', r: 7 }, { uid: 3, slot: 'cape', r: 0 }], worn: { hat: 1, boots: 9 }, seen: { skills: ['combo', 'nope'], foes: ['vole', 'dragon'] } }));
+  assert.deepEqual(dropped.gear, good.gear); assert.deepEqual(dropped.worn, { hat: 1 }); assert.deepEqual(dropped.seen, { skills: ['combo'], foes: ['vole'] });
+});
+
+test('the policy only takes legal actions', () => {
+  let cleared = 0;
+  for (let seed = 1; seed <= 100; seed++) {
+    const t = new G.Trek(seed, seed % 2 ? 'dora' : 'enzo', 1 + (seed % 3), { ...G.BASE, hp: 200, atk: 18 });
+    const strict = (x) => { const a = G.decide(x); const ok = a.k === 'next' ? x.next() !== null : a.k === 'choose' ? x.choose(a.i) : a.k === 'pick' ? x.pickSkill(a.i) : a.k === 'reroll' ? x.reroll() : x.buy(a.i); assert.ok(ok, `${JSON.stringify(a)} in ${x.phase} on day ${x.day}`); return { k: 'noop' }; };
+    let steps = 0; while (t.phase !== 'over' && t.phase !== 'cleared') { strict(t); assert.ok(++steps < 500, 'step cap'); }
+    if (t.phase === 'cleared') cleared++;
+  }
+  assert.ok(cleared > 0);
+  assert.equal(G.playTrek(new G.Trek(5, 'dora', 1, G.BASE)).phase === 'walk', false);
+});
+
+test('the policy picks evolutions and keeps a low hero safe', () => {
+  const t = new G.Trek(70, 'enzo', 1, G.BASE); t.phase = 'pick'; t.picks = 1;
+  t.offer = [{ k: 'skill', id: 'lucky', level: 1 }, { k: 'evo', id: 'storm' }, { k: 'skill', id: 'sharp', level: 1 }];
+  assert.deepEqual(G.decide(t), { k: 'pick', i: 1 });
+  const c = new G.Trek(71, 'enzo', 1, G.BASE); c.day = 14; c.next(); assert.equal(c.today.k, 'crossroads');
+  c.hp = 10; assert.deepEqual(G.decide(c), { k: 'choose', i: 0 });
+  c.hp = c.stats().hp; assert.deepEqual(G.decide(c), { k: 'choose', i: 2 });
+});
+
+test('campStep never overspends', () => {
+  for (const acorns of [0, 19, 20, 100, 1000, 12345]) {
+    const p = G.campStep({ ...G.freshProfile(), acorns, gear: [1, 2, 3, 4].map((uid) => ({ uid, slot: 'scarf', r: 0 })), next: 5 });
+    assert.ok(p.acorns >= 0 && p.acorns < G.trainCost(Math.min(p.training.atk, p.training.hp)), `${acorns} → ${p.acorns}`);
+    assert.ok(p.gear.some((x) => x.r === 1), 'merges what it can');
+  }
+});
+
 if (failed) { console.log(`${failed} failed`); process.exit(1); }
 console.log('PASS Chinchilla Trek engine');
