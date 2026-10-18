@@ -1,0 +1,35 @@
+{
+  "date": "18-10-2026",
+  "baseCommit": "8bd5103",
+  "tool": "built-in image_gen",
+  "asset": "public/art/brawl/fx.png",
+  "status": "Generated artwork only; runtime integration pending.",
+  "references": [
+    "public/art/brawl/critters-1.png",
+    "public/art/brawl/critters-2.png",
+    "public/art/brawl/critters-3.png"
+  ],
+  "prompt": "Use case: illustration-story. Asset type: production transparent effects atlas for Hay Bale Brawl, a cosy auto-battler where woodland critters gently bump and tumble off hay bales, nobody hurt.\nREFERENCE ROLES: attached images1,2,3 are STYLE REFERENCES ONLY, and image1's Squirrel in row2column4 supplies the acorn appearance. Match their soft detailed storybook gouache, round cute shapes, thin dark-plum outlines, saturated warm colours and upper-left soft lighting. Cream-paper PAINTING TEXTURE WITHIN SUBJECTS ONLY, no paper background. Do not paint any critters or copy the reference backgrounds.\nGenerate ONE PNG exactly1536x1024, truly TRANSPARENT ALPHA-ZERO background. Invisible grid of FOUR columns and THREE rows (12equalcells). One complete icon/effect per cell, centred. Column centres x192,576,960,1344; row centres y170,512,853. Each full silhouette INCLUDING wisps/glints/straw bits must fit inside a MAXIMUM270px wide x230px high area at its cell centre, leaving more than10% empty transparent margin on ALL four sides. Nothing crosses a cell boundary. Icons must read at30pixels tall. No glow/haze/ground shadow/coloured background outside subjects. No visible grid/frame/border/labels. No text, numbers, letters, logos or extra symbols.\nRead LEFT to RIGHT, TOP to BOTTOM:\nROW1:\n1 BONK BURST: ONE chunky cartoon impact star, sunny yellow with orange-red edge, exactly EIGHT UNEVEN points, like storybook bonk. No words.\n2 DUST PUFF: small cream-white dust cloud, three or four round puffs seen side-on as kicked up by landing.\n3 POOF CLOUD: bigger rounder white cloud of puffs with a few loose wisps, like a critter tumbling out of sight. This must differ clearly from cell2.\n4 HAY WISPS: five or six individual loose golden straws flying apart, no large bale.\nROW2:\n5 GOLD TWINKLE: single FOUR-point golden sparkle, soft cream centre. Bold long vertical points and slightly shorter horizontal points.\n6 GREEN TWINKLE: an EXACTLY MATCHING DUPLICATE of cell5's four-point silhouette, proportions, size, outline and cream centre, ONLY recoloured fresh leaf green. No extra sparkles or dots around either twinkle.\n7 FROST SPARKLE: small cluster of pale ice-blue snowflake glints, delicate but distinct at30px.\n8 CRUMBS: little scatter of cake and seed crumbs, warm browns and cream.\nROW3:\n9 ACORN: ONE plump shiny BROWN acorn, darker textured cap and tiny stalk, like Squirrel's held acorn in referenceimage1 row2column4. A real acorn silhouette, not a gold metal coin.\n10 HONEY SHELL: small round glossy AMBER bubble of honey protective shield, highlight. Not honey pot.\n11 MINT CHARM: sprig of TWO bright mint leaves with a few cool PALE-GREEN glints, all fully inside its own safe bounds.\n12 CHILLI CHARM: ONE small glossy RED chilli with a little curl of warm ORANGE HEAT above it; cute, no flames.\nCartoon cosy effects only, never fiery, violent or scary. Every subject isolated with crisp readable outline and genuinely transparent exterior. No artwork outside the12 safe rectangles.",
+  "candidates": [
+    {
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-23681987-b58e-49d8-8539-037bea51e8ff.png",
+      "selected": false,
+      "reason": "Several effects below10% cell margins."
+    },
+    {
+      "source": "/Users/jasonchua/.codex/generated_images/01a11b2e-5086-7442-85fb-ba7476ca25b4/exec-109cc6f6-e995-4c38-98d6-a440f5340661.png",
+      "selected": true,
+      "correctionPrompt": "Edit ONLY the spacing and scale of this effects sheet. Keep all EXACT SAME twelve effect designs, colours, rendering style and order. Reduce EACH entire effect, including all detached wisps, straw pieces, crumbs and glints, to65% of its current width and65% of its current height, centred in its OWN exact invisible4-column3-row cell on the SAME1536x1024 canvas. Centres: x192,576,960,1344; y170,512,853. Every complete effect maximum230px wide by190px high, generous EMPTY transparent gutters of at least50px on ALL sides of each cell. Do not enlarge to fill cells, do not scale canvas. GOLD TWINKLE cell5 and GREEN TWINKLE cell6 retain the EXACT SAME four-point silhouette, proportions and size, differing ONLY in colour. Preserve all other shapes and details, including8 uneven bonk points and brown Squirrel-style acorn. Actual alpha-zero TRANSPARENT background; no outside glow, haze, ground shadow or paper rectangle. No text, numbers, labels, grid lines or border. No new subjects."
+    }
+  ],
+  "processing": "Selected original PNG copied byte-for-byte; no pixel/alpha processing.",
+  "sha256": "fe0a4128c317a147936afd70aeaf2f9dd10d69b10ddda6b6129da972340aef1f",
+  "bytes": 1567292,
+  "size": [
+    1536,
+    1024
+  ],
+  "mode": "RGBA",
+  "alphaZeroPixels": 1373337,
+  "twinkleNormalizedSilhouetteIoU": 0.9620686185732971
+}
