@@ -1,12 +1,20 @@
 # Hay Bale Brawl · painted artwork integration instructions
 
-Written 18-10-2026. **The seven images are generated and checked; this document describes the next implementation. No painted loader or runtime integration is included in the art delivery.**
+Written 18-10-2026 for the art delivery (PR #68). **Implemented the same day:** the game now paints every subject from these files, with its code drawings as loading and failure fallbacks. The instructions below are kept as the record of what was asked; **Status** says what was built and how it was checked.
+
+## Status · implemented 18-10-2026
+
+- **Files.** `lib/hay-bale-crops.ts` is the typed table generated from the crop map and the files' hashes; `lib/hay-bale-paint.ts` is the loader and painters (`requestBrawlArt`, `subscribeBrawlArt`, `brawlArtVersion`, `brawlArtStatus`, `retryBrawlArt`, `paintBrawlUnit`, `paintBrawlSnack`, `paintBrawlExtra`, `paintBrawlBackdrop`, `paintBrawlTitle`). URLs carry the first 12 hex digits of each served file's SHA-256 as `?v=`. Nothing is fetched or created at import.
+- **One change from the delivery:** the two opaque backdrops are served as quality-85 WebP (`bg-shop.webp` 226,920 bytes, SHA-256 `0cf59b96…`; `bg-fight.webp` 231,702 bytes, `5b20d425…`), about 10% of the PNGs, as Whisker Ware does. The PNG originals stay in git at `f4f1ac5` and their hashes in the generation manifest. The four sheets and the title are the delivered PNGs byte for byte.
+- **Renderer.** `drawCritter`, `drawSnack`, `drawCoach`, `drawShop`, `drawFight` and `drawTitle` try the painting first and keep their drawings. The fight row moved down so feet stand on the painted straw (y203) and badges sit below them; the result panel moved below the badges. The title's name sits on a cream plate in the picture's empty band. Level labels, hints and fight names sit on light plates. The decorative bale is the coach's perch in the shop.
+- **Page.** Each screen prefetches its files; the title and Almanac canvases subscribe to the art version; a **Retry artwork** notice appears under the bar only after a failure. Reduced motion shrinks the lunge and stops rising numbers, the knock-out puff and the fallback's breathing, without touching replay timing.
+- **Checks.** `tests/hay-bale-art.mjs` (in `npm test` and `npm run test:hay-bale`) checks the files' sizes and hashes, every key's crop against the crop map, and the loader (SSR safety, one request per file, fallback while pending, no per-frame retry, stale callbacks after a retry, wrong-sized images, contain fit, bottom alignment, mirroring). `tests/e2e/brawl.mjs` adds five painted-art browser checks: all 44 subjects both ways on dark and cream; shop, drag, the three summons and a whole fight at 390 × 844, DPR 3, reduced motion; a hidden tab; a whole turn with the art held back; every file failing, one request each, and Retry repainting the title and Almanac in place. Screenshots go to `.checks/brawl/`.
 
 Start with [the delivery notes](hay-bale-brawl-art.md), [the crop map](hay-bale-brawl-crops.json) and [the generation manifest](hay-bale-brawl-generation.json). The running game is described in [the rules](hay-bale-brawl.md). Keep its engine, replay events, seeded results, saves, prices, abilities and shop interaction coordinates intact.
 
 ## 1. Build a small, independent painted-art layer
 
-Suggested new files: `lib/hay-bale-crops.ts` for typed asset/crop mappings and `lib/hay-bale-paint.ts` for browser loading and Canvas painting. These files do **not** exist yet. Use the on-demand loading and subscription patterns in `lib/whisker-ware-paint.ts` as a reference, with a separate Brawl asset registry and cache.
+Suggested new files: `lib/hay-bale-crops.ts` for typed asset/crop mappings and `lib/hay-bale-paint.ts` for browser loading and Canvas painting (both built; see **Status**). Use the on-demand loading and subscription patterns in `lib/whisker-ware-paint.ts` as a reference, with a separate Brawl asset registry and cache.
 
 - Registry: exactly the seven delivered files under `/art/brawl/`, with content-hashed URLs derived from the delivered SHA256 values. Validate decoded dimensions against 1536 × 1024.
 - Importing the module must be safe on the server: create no `Image`, touch no `window`, and start no requests at module scope.
@@ -85,4 +93,4 @@ Before merging the runtime integration:
 6. Run `npm run typecheck`, `npm run test:hay-bale`, `npm run bot:hay-bale`, `npm run test:e2e:brawl` and `npm run build`, plus focused painted-art checks following the existing test conventions. Broader CI runs `npm test` too.
 7. Update `HANDOFF.md`, the README game guide, `docs/hay-bale-brawl.md`, this document and the dated changelog to say what is actually integrated and tested. Keep generation prompts, original hashes and crop provenance; if optimizing runtime copies to WebP, record their paths/hashes and retain clear source-to-runtime mapping.
 
-Until that implementation is complete, merging these art files publishes an asset/handoff package. It does not switch the game's code drawings to painted graphics.
+All seven steps were done on 18-10-2026; see **Status**.

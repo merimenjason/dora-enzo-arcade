@@ -1,7 +1,9 @@
-// Hay Bale Brawl's drawing: the shop and the fight replay on a 480 × 320 stage, in Canvas 2D. Every critter is drawn
-// in code from a shared round body with its own colours and features; the chinchillas use the arcade's drawChinchilla.
+// Hay Bale Brawl's drawing: the shop and the fight replay on a 480 × 320 stage, in Canvas 2D. Every subject is painted
+// from lib/hay-bale-paint.ts once its image has loaded; until then, or if it fails, the code drawings below stand in:
+// critters from a shared round body with their own colours and features, chinchillas from the arcade's drawChinchilla.
 import { UNITS, SNACKS, TOKENS, isUnitId, type Run, type Slot, type Unit, type UnitId, type TokenId, type SnackId, type Outcome, type FightEvent } from './hay-bale-game';
 import { drawChinchilla, coatLike, type Coat } from './chinchilla-art';
+import { BRAWL_FIGHT_STAGE_Y, paintBrawlBackdrop, paintBrawlExtra, paintBrawlSnack, paintBrawlTitle, paintBrawlUnit } from './hay-bale-paint';
 
 export const STAGE = { w: 480, h: 320 };
 export type Box = { x: number; y: number; w: number; h: number };
@@ -15,11 +17,13 @@ export const LAYOUT = {
   units: [0, 1, 2, 3, 4, 5, 6].map((i): Box => ({ x: 8 + i * 50, y: 178, w: 48, h: 84 })),
   snacks: [0, 1].map((i): Box => ({ x: 368 + i * 54, y: 178, w: 50, h: 84 })),
 };
-const FIGHT_Y = 118, FIGHT_W = 40, FIGHT_H = 88;
+// Fighters' feet stand on the painted straw line of bg-fight; their stat badges sit just below it, on the bale's face.
+const FIGHT_W = 40, FIGHT_H = 88, FIGHT_ART = FIGHT_H - 18, FIGHT_Y = Math.round(BRAWL_FIGHT_STAGE_Y + 1 - FIGHT_ART);
 const fightBox = (side: 0 | 1, i: number): Box => ({ x: side === 0 ? 176 - i * 44 : 262 + i * 44, y: FIGHT_Y, w: FIGHT_W, h: FIGHT_H });
 export const inBox = (b: Box, x: number, y: number) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
 
 const INK = '#3a2614', CREAM = '#fff4dc', HAY = '#e8c065', HAY_DARK = '#b98a2e', SKY = '#bfe3f2';
+const WHOLE: Box = { x: 0, y: 0, w: STAGE.w, h: STAGE.h };
 
 // ── Critters ───────────────────────────────────────────────────────────────
 
@@ -45,8 +49,9 @@ const LOOKS: Record<Exclude<UnitId, 'pip' | 'duchess'> | TokenId, Look> = {
 const PIP: Coat = coatLike('enzo', { fur: '#a9a7b0', back: '#8d8b95', face: '#bbb9c3', bands: false });
 const DUCHESS: Coat = coatLike('dora', { fur: '#f2d27a', back: '#e2b85a', face: '#f7e09a', shade: '#cfa648', texture: '#e0bc60', tail: '#f0cf78', tailOuter: '#fbe39c', tailInner: '#d6ad52' });
 
-/** A critter standing in `box`, facing right (1) or left (−1). */
+/** A critter standing in `box`, facing right (1) or left (−1). The painting is still; only the fallback breathes. */
 export function drawCritter(c: CanvasRenderingContext2D, id: UnitId | TokenId, box: Box, facing: 1 | -1, time = 0) {
+  if (paintBrawlUnit(c, id, box, facing)) return;
   const cx = box.x + box.w / 2, base = box.y + box.h, s = Math.min(box.w / 46, box.h / 50);
   if (id === 'pip' || id === 'duchess') {
     drawChinchilla(c, id === 'pip' ? PIP : DUCHESS, cx, base - 2 * s, { face: facing, h: (id === 'pip' ? 34 : 42) * s, time });
@@ -132,6 +137,8 @@ function drawStats(c: CanvasRenderingContext2D, u: { a: number; h: number; level
   };
   badge(box.x + r, '#d98a1e', u.a + (u.tmpA ?? 0)); badge(box.x + box.w - r, '#d23a3a', u.h);
   if (u.level) {
+    const pips = u.level < 3 ? (u.level === 1 ? 2 : 3) : 0;
+    c.fillStyle = '#fff4dcd9'; c.beginPath(); c.roundRect(box.x, box.y, 16 + pips * 6, 11, 4); c.fill();
     c.fillStyle = INK; c.font = `800 9px ui-rounded, system-ui, sans-serif`; c.textAlign = 'left'; c.textBaseline = 'top';
     c.fillText(`L${u.level}`, box.x + 2, box.y + 2);
     const need = u.level === 1 ? 2 : u.level === 2 ? 5 : 5, from = u.level === 1 ? 0 : 2;
@@ -147,7 +154,9 @@ const SNACK_COLOURS: Record<SnackId, [string, string]> = {
   apple: ['#d8382f', '#6a9a3a'], raisin: ['#5a2a3a', '#3a1a26'], honey: ['#f0b030', '#c07a10'], hay: [HAY, HAY_DARK],
   mint: ['#5ac28a', '#2a8a5a'], chilli: ['#e2452a', '#4a8a2a'], seed: ['#3a3430', '#e8d8b0'], cake: ['#c9905a', '#fff4dc'],
 };
+/** A snack in the upper part of `box`, leaving its foot clear for the price. */
 export function drawSnack(c: CanvasRenderingContext2D, id: SnackId, box: Box) {
+  if (paintBrawlSnack(c, id, { x: box.x + 5, y: box.y + 10, w: box.w - 10, h: box.h - 34 })) return;
   const [a, b] = SNACK_COLOURS[id], x = box.x + box.w / 2, y = box.y + box.h / 2 - 6, r = Math.min(box.w, box.h) * 0.28;
   c.save(); c.strokeStyle = INK; c.lineWidth = 1.6;
   c.fillStyle = a; c.beginPath();
@@ -185,6 +194,13 @@ function panel(c: CanvasRenderingContext2D, b: Box, fill: string, stroke = '#000
 function text(c: CanvasRenderingContext2D, s: string, x: number, y: number, size = 12, color = INK, align: CanvasTextAlign = 'left', weight = 800) {
   c.fillStyle = color; c.font = `${weight} ${size}px ui-rounded, 'Trebuchet MS', system-ui, sans-serif`; c.textAlign = align; c.textBaseline = 'middle'; c.fillText(s, x, y);
 }
+/** Text on a soft cream plate, so it reads over a painting. */
+function plate(c: CanvasRenderingContext2D, s: string, x: number, y: number, size = 12, color = INK, align: CanvasTextAlign = 'left', weight = 800) {
+  c.font = `${weight} ${size}px ui-rounded, 'Trebuchet MS', system-ui, sans-serif`;
+  const w = c.measureText(s).width + size, left = align === 'center' ? x - w / 2 : align === 'right' ? x - w + size / 2 : x - size / 2;
+  c.fillStyle = '#fff4dcd9'; c.beginPath(); c.roundRect(left, y - size * 0.75, w, size * 1.5, size * 0.6); c.fill();
+  text(c, s, x, y, size, color, align, weight);
+}
 function wrap(c: CanvasRenderingContext2D, s: string, x: number, y: number, w: number, size: number) {
   c.font = `600 ${size}px ui-rounded, 'Trebuchet MS', system-ui, sans-serif`;
   let line = '', yy = y;
@@ -212,9 +228,11 @@ export function drawCard(c: CanvasRenderingContext2D, item: { unit?: Unit; snack
   }
 }
 
+/** The coach on a little bale of their own, left of the line. */
 function drawCoach(c: CanvasRenderingContext2D, run: Run, now: number) {
   if (!run.coach) return;
-  drawChinchilla(c, run.coach, 38, 132, { face: 1, h: 32, time: now / 1000 });
+  if (!paintBrawlExtra(c, 'bale', { x: 8, y: 112, w: 60, h: 46 })) bale(c, 12, 124, 52, 30);
+  if (!paintBrawlExtra(c, run.coach, { x: 10, y: 74, w: 56, h: 52 })) drawChinchilla(c, run.coach, 38, 126, { face: 1, h: 32, time: now / 1000 });
 }
 function slotItem(run: Run, h: Held): { unit?: Unit; snack?: SnackId; cost?: number } | null {
   if (h.from === 'line') return run.line[h.i] ? { unit: run.line[h.i]! } : null;
@@ -226,7 +244,7 @@ const heldBox = (h: Held) => (h.from === 'line' ? LAYOUT.line : h.from === 'unit
 
 export function drawShop(c: CanvasRenderingContext2D, run: Run, ui: ShopUi, now: number) {
   const t = now / 1000;
-  backdrop(c);
+  if (!paintBrawlBackdrop(c, 'bg-shop', WHOLE)) backdrop(c);
   // the bar along the top
   c.fillStyle = '#3a2614cc'; c.fillRect(0, 0, 480, 24);
   text(c, `Acorns ${run.acorns}`, 10, 12, 12, '#ffd98a');
@@ -240,7 +258,7 @@ export function drawShop(c: CanvasRenderingContext2D, run: Run, ui: ShopUi, now:
     const u = run.line[i], sel = ui.held?.from === 'line' && ui.held.i === i;
     if (!u || (lifted?.from === 'line' && lifted.i === i)) { c.setLineDash([4, 4]); panel(c, b, sel ? '#ffffff60' : '#ffffff2a', '#3a261460'); c.setLineDash([]); }
     else { if (sel) panel(c, b, '#ffffff70', INK); drawCritter(c, u.id, { x: b.x + 4, y: b.y + 4, w: b.w - 8, h: b.h - 26 }, 1, t); drawStats(c, u, b); }
-    if (i === 0) text(c, 'front', b.x + b.w / 2, b.y - 7, 9, '#3a261490', 'center');
+    if (i === 0) plate(c, 'front', b.x + b.w / 2, b.y - 8, 9, INK, 'center');
   });
   panel(c, LAYOUT.sell, ui.held?.from === 'line' ? '#f3b2a2' : '#ead6c0', '#7a3a2a80');
   text(c, 'Sell', LAYOUT.sell.x + LAYOUT.sell.w / 2, LAYOUT.sell.y + LAYOUT.sell.h / 2, 13, '#7a3a2a', 'center');
@@ -259,7 +277,7 @@ export function drawShop(c: CanvasRenderingContext2D, run: Run, ui: ShopUi, now:
     panel(c, b, s?.frozen ? '#bfe3ff' : sel ? '#fff6dc' : '#f4e2bf', s?.frozen ? '#3a7ab0' : '#00000040');
     if (s?.kind === 'snack' && !(lifted?.from === 'snack' && lifted.i === i)) { drawSnack(c, s.snack, b); text(c, `${s.cost}`, b.x + b.w / 2, b.y + b.h - 10, 11, INK, 'center'); }
   });
-  text(c, ui.held && !ui.dragging ? 'Now tap where it goes, or tap it again to put it back.' : 'Drag to buy, merge, move or sell. Or tap one, then tap where it goes.', 240, 290, 11, '#3a2614', 'center', 700);
+  plate(c, ui.held && !ui.dragging ? 'Now tap where it goes, or tap it again to put it back.' : 'Drag to buy, merge, move or sell. Or tap one, then tap where it goes.', 240, 290, 11, INK, 'center', 700);
   // what is being dragged, then the card
   if (lifted) {
     const it = slotItem(run, lifted), b = { x: ui.x - 26, y: ui.y - 36, w: 52, h: 72 };
@@ -299,45 +317,49 @@ export function replayLines(o: Outcome, n: number) {
   return lines;
 }
 
-export function drawFight(c: CanvasRenderingContext2D, r: Replay, now: number) {
-  const t = now / 1000, o = r.outcome, lines = replayLines(o, r.i), cur: FightEvent | undefined = o.events[r.i - 1], p = Math.min(1, r.t / STEP);
-  backdrop(c);
-  bale(c, 6, FIGHT_Y + FIGHT_H - 6, 468, 26);
-  text(c, 'Your crew', 12, 40, 13);
-  text(c, o.rival.name, 468, 40, 13, INK, 'right');
+/** The replay. `calm` (reduced motion) keeps the lunge small and the numbers still; the timing never changes. */
+export function drawFight(c: CanvasRenderingContext2D, r: Replay, now: number, calm = false) {
+  const t = calm ? 0 : now / 1000, o = r.outcome, lines = replayLines(o, r.i), cur: FightEvent | undefined = o.events[r.i - 1], p = Math.min(1, r.t / STEP);
+  const rise = calm ? 0 : p;
+  if (!paintBrawlBackdrop(c, 'bg-fight', WHOLE)) { backdrop(c); bale(c, 6, Math.round(BRAWL_FIGHT_STAGE_Y) - 3, 468, 26); }
+  plate(c, 'Your crew', 12, 40, 13);
+  plate(c, o.rival.name, 468, 40, 13, INK, 'right');
   for (const side of [0, 1] as const) lines[side].forEach((u, i) => {
     const b = fightBox(side, i);
     let dx = 0;
-    if (cur?.k === 'attack' && cur.uid === u.uid) dx = (side === 0 ? 1 : -1) * Math.sin(p * Math.PI) * 10;
+    if (cur?.k === 'attack' && cur.uid === u.uid) dx = (side === 0 ? 1 : -1) * Math.sin(p * Math.PI) * (calm ? 3 : 10);
     const box = { ...b, x: b.x + dx };
     c.save();
     if (u.dead) c.globalAlpha = 1 - p;
-    drawCritter(c, u.id, { x: box.x, y: box.y, w: box.w, h: box.h - 18 }, side === 0 ? 1 : -1, t);
+    drawCritter(c, u.id, { x: box.x - 2, y: box.y, w: box.w + 4, h: FIGHT_ART }, side === 0 ? 1 : -1, t);
     drawStats(c, u, box);
     c.restore();
     if (cur && 'uid' in cur && cur.uid === u.uid) {
-      if (cur.k === 'hit') { c.fillStyle = `rgba(255,60,40,${0.45 * (1 - p)})`; c.beginPath(); c.roundRect(box.x, box.y, box.w, box.h, 8); c.fill(); text(c, `-${cur.dmg}`, box.x + box.w / 2, box.y - 4 - p * 12, 15, '#c0281e', 'center'); }
-      if (cur.k === 'buff') text(c, 'up!', box.x + box.w / 2, box.y - 4 - p * 10, 12, '#2a7a2a', 'center');
+      if (cur.k === 'hit') { c.fillStyle = `rgba(255,60,40,${0.45 * (1 - p)})`; c.beginPath(); c.roundRect(box.x, box.y, box.w, box.h, 8); c.fill(); plate(c, `-${cur.dmg}`, box.x + box.w / 2, box.y - 4 - rise * 12, 15, '#c0281e', 'center'); }
+      if (cur.k === 'buff') plate(c, 'up!', box.x + box.w / 2, box.y - 4 - rise * 10, 12, '#2a7a2a', 'center');
       if (cur.k === 'ability') { const name = isUnitId(u.id) ? UNITS[u.id].name : ''; panel(c, { x: box.x - 14, y: box.y - 24, w: box.w + 28, h: 18 }, '#fff6dc', INK); text(c, `${name}!`, box.x + box.w / 2, box.y - 15, 10, INK, 'center'); }
-      if (cur.k === 'faint') { c.fillStyle = `rgba(255,255,255,${0.8 * (1 - p)})`; for (let k = 0; k < 6; k++) { c.beginPath(); c.arc(box.x + box.w / 2 + Math.cos(k) * p * 22, box.y + box.h / 2 + Math.sin(k * 2) * p * 18, 6 * (1 - p) + 2, 0, Math.PI * 2); c.fill(); } }
+      if (cur.k === 'faint' && !calm) { c.fillStyle = `rgba(255,255,255,${0.8 * (1 - p)})`; for (let k = 0; k < 6; k++) { c.beginPath(); c.arc(box.x + box.w / 2 + Math.cos(k) * p * 22, box.y + box.h / 2 + Math.sin(k * 2) * p * 18, 6 * (1 - p) + 2, 0, Math.PI * 2); c.fill(); } }
     }
   });
   if (r.i >= o.events.length) {
     const word = o.result === 'win' ? 'WIN!' : o.result === 'loss' ? 'LOSS' : 'DRAW';
-    panel(c, { x: 150, y: 216, w: 180, h: 64 }, CREAM, INK);
-    text(c, word, 240, 240, 26, o.result === 'win' ? '#2a7a2a' : o.result === 'loss' ? '#b02a2a' : '#7a5a3a', 'center');
-    text(c, o.result === 'win' ? 'A bale for your crew.' : o.result === 'loss' ? 'You lose a heart.' : 'Nobody wins this one.', 240, 266, 11, INK, 'center', 700);
+    panel(c, { x: 150, y: 230, w: 180, h: 62 }, CREAM, INK);
+    text(c, word, 240, 253, 26, o.result === 'win' ? '#2a7a2a' : o.result === 'loss' ? '#b02a2a' : '#7a5a3a', 'center');
+    text(c, o.result === 'win' ? 'A bale for your crew.' : o.result === 'loss' ? 'You lose a heart.' : 'Nobody wins this one.', 240, 278, 11, INK, 'center', 700);
   }
 }
 
-/** The title picture: Dora and Enzo on a bale with a few of the crew. */
+/** The title picture: Dora and Enzo on a bale with a few of the crew, under the name in the picture's empty top band. */
 export function drawTitle(c: CanvasRenderingContext2D) {
-  backdrop(c);
-  bale(c, 60, 236, 360, 34);
-  drawCritter(c, 'hedgehog', { x: 70, y: 180, w: 60, h: 56 }, 1);
-  drawCritter(c, 'badger', { x: 350, y: 176, w: 64, h: 60 }, -1);
-  drawChinchilla(c, 'dora', 190, 238, { face: 1, h: 70, time: 0.4 });
-  drawChinchilla(c, 'enzo', 290, 238, { face: -1, h: 70, time: 0.9 });
-  text(c, 'HAY BALE BRAWL', 240, 60, 34, '#5a3a14', 'center');
-  text(c, 'Buy a crew. Line them up. Watch them brawl.', 240, 96, 13, '#5a3a14', 'center', 700);
+  if (!paintBrawlBackdrop(c, 'bg-shop', WHOLE)) backdrop(c);
+  if (!paintBrawlTitle(c, WHOLE)) {
+    bale(c, 60, 236, 360, 34);
+    drawCritter(c, 'hedgehog', { x: 70, y: 180, w: 60, h: 56 }, 1);
+    drawCritter(c, 'badger', { x: 350, y: 176, w: 64, h: 60 }, -1);
+    drawChinchilla(c, 'dora', 190, 238, { face: 1, h: 70, time: 0.4 });
+    drawChinchilla(c, 'enzo', 290, 238, { face: -1, h: 70, time: 0.9 });
+  }
+  c.fillStyle = '#fff4dcd0'; c.beginPath(); c.roundRect(76, 14, 328, 66, 14); c.fill();
+  text(c, 'HAY BALE BRAWL', 240, 40, 34, '#5a3a14', 'center');
+  text(c, 'Buy a crew. Line them up. Watch them brawl.', 240, 68, 13, '#5a3a14', 'center', 700);
 }

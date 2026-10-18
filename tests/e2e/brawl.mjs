@@ -12,7 +12,7 @@ async function check(name, fn, view = { width: 1280, height: 860 }) {
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => errors.push(`${name}: ${e.message}`));
   try { await fn(page); console.log(`PASS ${name}`); }
-  catch (e) { failures.push(name); console.error(`FAIL ${name}: ${e.message.split('\n')[0]}`); }
+  catch (e) { failures.push(name); console.error(`FAIL ${name}: ${e.message.split("\n")[0]}`); if (process.env.TRACE) console.error(e.stack); }
   finally { await page.close(); }
 }
 const ready = (page) => page.locator('main[data-ready="true"]').waitFor();
@@ -181,6 +181,132 @@ await check('mute is remembered', async (page) => {
   assert.equal(await page.getByTestId('mute').getAttribute('aria-pressed'), 'true');
   await page.screenshot({ path: '.checks/brawl/title.png' });
 });
+
+// ---- the painted art ----
+
+const SPRITES = ['wren', 'mouse', 'ladybird', 'toad', 'bee', 'dormouse', 'hedgehog', 'squirrel', 'robin', 'mole', 'frog', 'pip', 'badger', 'otter', 'magpie', 'rabbit', 'porcupine', 'beaver', 'stoat', 'tortoise', 'crow', 'skunk', 'raccoon', 'hare', 'boar', 'bear', 'stag', 'duchess', 'hawk', 'goose', 'mouselet', 'log', 'fawn'];
+const ART = ['critters-1', 'critters-2', 'critters-3', 'snacks', 'title', 'bg-shop', 'bg-fight'];
+const artReady = (page, keys = ART) => page.waitForFunction((k) => { const s = window.__brawl().art.status(); return k.every((x) => s.ready.includes(x)); }, keys, { timeout: 30000 });
+const askAll = (page) => page.evaluate(() => { const w = window.__brawl(), c = document.createElement('canvas').getContext('2d'), b = { x: 0, y: 0, w: 40, h: 40 }; w.art.unit(c, 'wren', b); w.art.unit(c, 'badger', b); w.art.unit(c, 'boar', b); w.art.snackArt(c, 'apple', b); });
+/** The pixels of a static canvas, to tell a repaint from the drawing it replaced. */
+const still = (loc) => loc.evaluate((cv) => cv.toDataURL());
+
+await check('painted art: all 44 subjects paint, both facings, on dark and cream', async (page) => {
+  await fresh(page); await start(page);
+  await askAll(page); await artReady(page);
+  const r = await page.evaluate((ids) => {
+    const w = window.__brawl(), cv = document.createElement('canvas'); cv.width = 1360; cv.height = 1160;
+    const c = cv.getContext('2d'); c.scale(2, 2);
+    const bad = [], mirrored = [];
+    for (const [y0, bg] of [[0, '#1d1430'], [290, '#f6ecd6']]) {
+      c.fillStyle = bg; c.fillRect(0, y0, 680, 290);
+      ids.forEach((id, i) => {
+        const x = (i % 17) * 40 + 4, y = y0 + Math.floor(i / 17) * 56 + 4, right = { x, y, w: 34, h: 50 }, left = { x, y: y + 112, w: 34, h: 50 };
+        if (!w.art.unit(c, id, right, 1) || !w.art.unit(c, id, left, -1)) bad.push(id);
+        // a mirrored sprite is the same picture flipped: compare one row of pixels each way
+        if (y0 === 0) {
+          const a = c.getImageData(x * 2, (y + 35) * 2, 68, 1).data, b = c.getImageData(x * 2, (y + 147) * 2, 68, 1).data;
+          let same = 0; for (let k = 0; k < 68; k++) for (let ch = 0; ch < 3; ch++) same += Math.abs(a[k * 4 + ch] - b[(67 - k) * 4 + ch]) < 40 ? 1 : 0;
+          if (same / 204 > 0.8) mirrored.push(id);
+        }
+      });
+      ['apple', 'raisin', 'honey', 'hay', 'mint', 'chilli', 'seed', 'cake'].forEach((id, i) => { if (!w.art.snackArt(c, id, { x: 4 + i * 40, y: y0 + 230, w: 34, h: 50 })) bad.push(id); });
+      ['dora', 'enzo', 'bale'].forEach((id, i) => { if (!w.art.extra(c, id, { x: 340 + i * 44, y: y0 + 230, w: 40, h: 50 })) bad.push(id); });
+    }
+    return { bad, mirrored: mirrored.length, url: cv.toDataURL() };
+  }, SPRITES);
+  assert.deepEqual(r.bad, [], 'every subject painted');
+  assert.ok(r.mirrored >= 30, `rival sprites are true mirror images (${r.mirrored}/33)`);
+  const { writeFileSync } = await import('node:fs');
+  writeFileSync('.checks/brawl/painted-roster.png', Buffer.from(r.url.split(',')[1], 'base64'));
+});
+
+await check('painted art: shop, drag ghost, the three summons and a whole fight, at phone size with reduced motion', async (page) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await fresh(page); await start(page);
+  await stock(page, { line: [{ id: 'mouse', a: 1, h: 1 }, { id: 'beaver', a: 1, h: 1 }, { id: 'stag', a: 1, h: 1 }], units: ['raccoon', 'bear', 'duchess'], acorns: 10 });
+  await artReady(page, ['bg-shop', 'snacks', 'critters-1', 'critters-2', 'critters-3']);
+  const [x0, y0] = await point(page, 'units', 1);
+  await page.mouse.move(x0, y0); await page.mouse.down(); await page.mouse.move(x0 + 30, y0 - 60, { steps: 4 });
+  assert.equal(await brawl(page, (w) => w.ui().dragging), true);
+  await page.waitForTimeout(100); await page.screenshot({ path: '.checks/brawl/painted-drag-390.png' });
+  const [lx, ly] = await point(page, 'line', 3);
+  await page.mouse.move(lx, ly, { steps: 4 }); await page.mouse.up();
+  assert.equal((await run(page)).line[3]?.id, 'bear', 'the drag still buys');
+  const dpr = await page.evaluate(() => devicePixelRatio), size = await page.getByTestId('stage').evaluate((cv) => [cv.width, cv.height, cv.clientWidth, cv.clientHeight]);
+  assert.ok(Math.abs(size[0] - size[2] * dpr) <= 1 && Math.abs(size[1] - size[3] * dpr) <= 1, `canvas at device pixels ${size}`);
+  await page.getByTestId('end-turn').click(); await screen(page, 'fight');
+  await artReady(page, ['bg-fight']);
+  const summons = await brawl(page, (w) => w.replay.outcome.events.filter((e) => e.k === 'summon' && e.side === 0).map((e) => e.unit.id));
+  assert.deepEqual([...new Set(summons)].sort(), ['fawn', 'log', 'mouselet'], 'all three summons appear');
+  const at = await brawl(page, (w) => w.replay.outcome.events.findLastIndex((e) => e.k === 'summon') + 1);
+  await page.waitForFunction((n) => window.__brawl().replay.i >= n, at, { timeout: 60000 });
+  await page.getByTestId('stage').screenshot({ path: '.checks/brawl/painted-summons-390.png' });
+  await page.getByTestId('skip').click();
+  await page.getByTestId('stage').screenshot({ path: '.checks/brawl/painted-result-390.png' });
+}, { width: 390, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+
+await check('painted art: a hidden tab holds the replay and the art; showing it again resumes', async (page) => {
+  await fresh(page); await start(page);
+  await stock(page, { line: BOARS.slice(0, 2) });
+  await page.getByTestId('end-turn').click(); await screen(page, 'fight');
+  await page.waitForFunction(() => window.__brawl().replay.i > 0);
+  await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange')); });
+  const held = await brawl(page, (w) => w.replay.i);
+  await page.waitForTimeout(1200);
+  assert.equal(await brawl(page, (w) => w.replay.i), held, 'no replay time passes while hidden');
+  await page.evaluate(() => { delete document.hidden; document.dispatchEvent(new Event('visibilitychange')); });
+  await page.waitForFunction((n) => window.__brawl().replay.i > n, held);
+});
+
+await check('slow art: the game plays on its drawings until the paintings arrive', async (page) => {
+  let release; const gate = new Promise((r) => { release = r; });
+  await page.route('**/art/brawl/**', async (route) => { await gate; await route.continue(); });
+  await fresh(page); await start(page);
+  await stock(page, { units: ['mole', 'wren', 'bee'], acorns: 10 });
+  assert.ok((await brawl(page, (w) => w.art.status().pending)).length > 0, 'art is still on its way');
+  await drag(page, ['units', 0], ['line', 0]);
+  assert.equal((await run(page)).line[0]?.id, 'mole', 'buying works before the art');
+  await page.getByTestId('end-turn').click(); await screen(page, 'fight');
+  await page.getByTestId('skip').click(); await page.getByTestId('next').click(); await screen(page, 'shop');
+  assert.equal((await run(page)).turn, 2, 'a whole fight plays on the drawings');
+  assert.equal(await brawl(page, (w) => w.art.status().ready.length), 0);
+  await page.screenshot({ path: '.checks/brawl/slow-art-fallback.png' });
+  release();
+  await artReady(page, ['bg-shop', 'snacks', 'critters-1', 'critters-3', 'bg-fight']);
+});
+
+await check('failed art: drawings stand in, nothing is asked for again until Retry, which repaints the title and Almanac', async (page) => {
+  const asked = new Map(); let fail = true;
+  page.on('request', (rq) => { const m = rq.url().match(/\/art\/brawl\/([a-z0-9-]+)\./); if (m) asked.set(m[1], (asked.get(m[1]) ?? 0) + 1); });
+  await page.route('**/art/brawl/**', (route) => (fail ? route.abort() : route.continue()));
+  await fresh(page);
+  await page.waitForFunction(() => window.__brawl().art.status().failed.length >= 2);
+  await page.getByTestId('retry-art').waitFor();
+  const title = page.locator('.hb-title canvas'), before = await still(title);
+  await page.waitForTimeout(1500);
+  assert.ok([...asked.values()].every((n) => n === 1), `each failed file asked for once, not every frame: ${JSON.stringify([...asked])}`);
+  await page.screenshot({ path: '.checks/brawl/failed-art-title.png' });
+  fail = false;
+  await page.getByTestId('retry-art').click();
+  await artReady(page, ['title', 'bg-shop']);
+  await page.waitForFunction(() => !document.querySelector('[data-testid="retry-art"]'));
+  assert.notEqual(await still(title), before, 'the title repaints without navigating');
+  await page.screenshot({ path: '.checks/brawl/retried-art-title.png' });
+
+  // the Almanac, after a reload: a sheet fails, then a retry paints its cards in place
+  fail = true; asked.clear();
+  await page.reload(); await ready(page);
+  await page.getByTestId('almanac').click(); await screen(page, 'almanac');
+  await page.waitForFunction(() => window.__brawl().art.status().failed.includes('critters-1'));
+  const wren = page.getByTestId('almanac-unit-wren').locator('canvas'), drawn = await still(wren);
+  assert.equal(asked.get('critters-1'), 1, 'thirty Almanac cards share one request');
+  fail = false;
+  await page.getByTestId('retry-art').click();
+  await artReady(page, ['critters-1', 'critters-2', 'critters-3', 'snacks']);
+  await page.waitForFunction((d) => document.querySelector('[data-testid="almanac-unit-wren"] canvas').toDataURL() !== d, drawn);
+  await page.screenshot({ path: '.checks/brawl/retried-art-almanac.png' });
+}, { width: 1280, height: 860 });
 
 await browser.close();
 if (errors.length) { console.error('page errors:\n' + errors.join('\n')); failures.push('page errors'); }

@@ -1,12 +1,12 @@
 # Hay Bale Brawl · painted art handoff
 
-Prepared 18-10-2026 using the built-in image generation tool from the supplied production prompts. **Artwork only: the running game still uses its original code drawings.** Claude's next step is to wire these seven assets into the existing renderer with those drawings as loading/failure fallbacks.
+Prepared 18-10-2026 using the built-in image generation tool from the supplied production prompts, and **wired into the game the same day**: every subject is painted from these files, with the original code drawings as loading and failure fallbacks.
 
-Implementation starts with [the integration instructions](hay-bale-brawl-integration.md): proposed loader contract, exact engine-to-atlas mappings, shared renderer entry points, stage placement, static-canvas redraws and the validation checklist.
+What was built, and how it was checked, is in the **Status** section of [the integration instructions](hay-bale-brawl-integration.md), which also keeps the original brief: proposed loader contract, exact engine-to-atlas mappings, shared renderer entry points, stage placement, static-canvas redraws and the validation checklist.
 
 ## Delivered originals
 
-All files are **1536 × 1024 PNGs**, copied byte-for-byte from the selected image generation outputs into `public/art/brawl/`. No resampling, alpha cleanup, atlas cutting or other pixel processing was applied to production files.
+All files were delivered as **1536 × 1024 PNGs**, copied byte-for-byte from the selected image generation outputs into `public/art/brawl/`. No resampling, alpha cleanup or atlas cutting was applied. At integration the two opaque backdrops were re-encoded as quality-85 WebP for serving (`bg-shop.webp`, SHA-256 `0cf59b966cd5100466abc536c768b7f9ef45975231279be95f840e246cf1994f`; `bg-fight.webp`, `5b20d425bc038ab1a7410d2656cb9df5da2d2b2f3fc5f582ccdb253248f8d151`); their PNG originals remain in git at `f4f1ac5`, with hashes in the manifest. The sheets and title are served as delivered.
 
 | File | Contents | Background |
 | --- | --- | --- |
@@ -18,7 +18,7 @@ All files are **1536 × 1024 PNGs**, copied byte-for-byte from the selected imag
 | `bg-fight.png` | Meadow and continuous flat bale stage | Opaque RGB |
 | `title.png` | Dora and Enzo on bale, five friends below | Transparent RGBA |
 
-The complete package is about 13.7 MB in decimal units. Generation prompts, correction prompts, candidate history, selected source paths, file sizes and SHA256 hashes are in [the generation manifest](hay-bale-brawl-generation.json). The normalized original brief is in [the prompt document](hay-bale-brawl-image-prompts.md). The three supplied reference images were used for style and identity, not copied into the output.
+The complete delivery was about 13.7 MB in decimal units; with the WebP backdrops the game serves about 9.5 MB, loaded a screen at a time. Generation prompts, correction prompts, candidate history, selected source paths, file sizes and SHA256 hashes are in [the generation manifest](hay-bale-brawl-generation.json). The normalized original brief is in [the prompt document](hay-bale-brawl-image-prompts.md). The three supplied reference images were used for style and identity, not copied into the output.
 
 ## Atlas order
 
@@ -59,9 +59,9 @@ Keep full-bleed 3:2 compositions intact. At logical size, source x scales by 480
 
 These are static poses, **not animation strips**. Reuse the existing state-driven movement and impacts; avoid rapidly cycling different species or adding continuous whole-body bouncing. Any true articulated animation frames would be a separate art task.
 
-## Integration checks still to run
+## Integration checks
 
-No runtime code, gameplay, save keys or game count changed in this art delivery. Package hash/crop checks, typecheck, the Hay Bale Brawl engine and bot suites, README consistency and diff whitespace checks passed before publication. Painted browser integration checks remain for the implementation. When wiring the images:
+The art delivery changed no runtime code. The integration on 18-10-2026 ran all of these; see the integration **Status** for the tests that keep them:
 
 1. Load lazily, repaint on arrival, retain drawn fallbacks and provide explicit retry for failed requests.
 2. Check every unit/snack and summon, both coaches, rival mirroring, stat-label clearance, drag ghosts and knock-out positions.
