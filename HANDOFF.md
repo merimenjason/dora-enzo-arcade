@@ -6,12 +6,14 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 18-10-2026)
 
-**Where things stand.** `main` is at the merge of PR #62 (`380ba76`, Whisker Ware) and is deployed: 35 games at https://chinchillas.jason.engineering. The deploy run passed and a browser check against the live site drew all 24 microgames. Nothing is open: no pull requests, no unmerged branches. The only local changes are three `.claude/` graft files (see **Agent configuration**), which are the user's and must stay uncommitted.
+**Where things stand.** `main` is at the merge of PR #64 (`6d8527f`, Hay Bale Brawl) and is deployed: 36 games at https://chinchillas.jason.engineering. The deploy run passed and the Almanac browser check passed against the live site. Nothing is open: no pull requests, no unmerged branches. The only local changes are three `.claude/` graft files (see **Agent configuration**), which are the user's and must stay uncommitted.
 
 **What happened in the last few sessions (13–18-10-2026), newest first:**
 
 | PR | What | Notes |
 | --- | --- | --- |
+| #64 | **Hay Bale Brawl** (`/brawl`), game 36 | Auto-battler in the manner of Super Auto Pets: 30 critters in five tiers, 8 snacks, two coaches, seeded ghost rivals. Designed and built in one session from `docs/superpowers/specs/18-10-2026-hay-bale-brawl-design.md` and its plan (all 7 tasks inline, then one fresh review whose two important and four player-facing findings were fixed test-first); bot-tuned, never played by hand. See **Hay Bale Brawl**. |
+| #63 | Handoff after Whisker Ware | |
 | #62 | **Whisker Ware** (`/whisker-ware`), game 35 | WarioWare-style microgame frenzy: 24 games, 4 hosts, Remix, gallery and Practice. Built from the plan in `docs/superpowers/plans/17-10-2026-whisker-ware-plan.md` (Tasks 1–5 by subagents, 6–10 inline); bot-tuned, never played by hand. See **Whisker Ware**. |
 | #61 | Whisker Ware art (the user, via ChatGPT/Codex) | 34 painted images, the lazy loader with code fallbacks, measured crops and floor lines. |
 | #60 | Whisker Ware design and art prompts | The spec, the ChatGPT image prompts and this handoff refresh. |
@@ -63,7 +65,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 4. **Whisker Saga chapter 1 variety:** a spitter-heavy stage, an early brute, a second wind-up before the boss.
 5. **Midnight Kitchen code split:** drawing lives in `app/kitchen/page.tsx` (about 700 lines); move it to `lib/kitchen-scene.ts` like every other game, and add `window.__kitchen()`.
 6. **Test hygiene:** make the moonlight and detectives screenshot paths relative (`.checks/…`), and steady the Burrow Express touch-drag check.
-7. **Hay Bale Brawl, from play:** built on 18-10-2026 from `docs/superpowers/plans/18-10-2026-hay-bale-brawl-plan.md` and tuned only against its bot (the policy wins 37%). Play a few runs by hand: is the shop readable on a phone, does a kept Dormouse or a Duchess crew run away with it, do rivals feel fair from turn 1? Listen to its blips. Then the ChatGPT art prompts (the critters are code-drawn).
+7. **Hay Bale Brawl, from play:** shipped on 18-10-2026 (PR #64) and tuned only against its bot (the policy wins 37%, rivals on 10 acorns). Play a few runs by hand: is the shop readable on a phone, does a kept Dormouse or a Duchess crew run away with it, do rivals feel fair from turn 1? Listen to its blips. Then the ChatGPT art prompts (the critters are code-drawn).
 8. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
 9. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
 10. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
@@ -164,6 +166,7 @@ Game 36, `/brawl`, an auto-battler in the manner of Super Auto Pets. Rules, ever
 - **Checks:** `npm run test:hay-bale` and `npm run bot:hay-bale` (both in `npm test`; the bot runs in under a second) and `npm run test:e2e:brawl` (11 checks, in `test:e2e`).
 - **Saves:** `hay-bale-run-v1` (whole run, written before a fight is replayed), `hay-bale-v1` (profile, recorded once per run by seed), `hay-bale-sound-v1`.
 - **Not done:** played by hand, listened to, painted art.
+- **Left on purpose** (from the final review): Start overwrites a saved run without asking (as the other games do); Skunk only lowers the target's health, statuses last between fights, the profile's `won` list is the final winning line only, and the faint chain is capped at 100 passes a settle.
 
 ## Whisker Ware · 18-10-2026
 
@@ -244,13 +247,13 @@ Game 32, `/saga`, is merged on main (PR #33). It is a hero-squad adventure model
 
 ## Current state
 
-- **36 games** once Hay Bale Brawl merges, deployed at https://chinchillas.jason.engineering. The newest are listed below; `README.md` has all of them with guides.
-- **Played by hand:** Acorn Hand (one full run won and a second to ante 3, both before vouchers, the new curve and stakes), Whisker Saga (chapter 1, the Thornback boss and Briar Relay, 15-10-2026). Every other recent game has been balanced against its bot, or not at all (Midnight Kitchen), and nobody has listened to any game's sound.
+- **36 games on `main`**, deployed at https://chinchillas.jason.engineering. The newest are listed below; `README.md` has all of them with guides.
+- **Played by hand:** Acorn Hand (one full run won and a second to ante 3, both before vouchers, the new curve and stakes), Whisker Saga (chapter 1, the Thornback boss and Briar Relay, 15-10-2026). Every other recent game, Whisker Ware and Hay Bale Brawl included, has been balanced against its bot, or not at all (Midnight Kitchen), and nobody has listened to any game's sound.
 - **Left uncommitted in the working tree, on purpose:** `.claude/helpers/graft-hooks.cjs`, `.claude/helpers/graft-statusline.cjs` and `.claude/skills/graft/SKILL.md`. They belong to the user; don't stage them.
 
 ## What shipped recently
 
-The nine newest cabinets. All but Hay Bale Brawl are merged to `main` and deployed.
+The nine newest cabinets, all merged to `main` and deployed.
 
 | # | Game | Route | Added | Pull requests |
 | --- | --- | --- | --- | --- |
@@ -262,7 +265,7 @@ The nine newest cabinets. All but Hay Bale Brawl are merged to `main` and deploy
 | 33 | Ember & Clover: Midnight Kitchen | `/kitchen` | 15-10-2026 | #39–#41 |
 | 34 | Acorn Hand | `/acorn-hand` | 15-10-2026 | #42, #44–#59 |
 | 35 | Whisker Ware | `/whisker-ware` | 18-10-2026 | #60–#62 |
-| 36 | Hay Bale Brawl | `/brawl` | 18-10-2026 | |
+| 36 | Hay Bale Brawl | `/brawl` | 18-10-2026 | #64 |
 
 Each has its own section near the top of this file. The older games' notes (Clash, Hay Maze, Chinchillas vs Zombies, Scribble, Bounce / Burrow, Burrow Tactics, Burrow Barrage, Summit Shuffle, Poof Panic) follow under **Where the code lives**.
 
