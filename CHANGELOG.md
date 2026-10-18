@@ -11,7 +11,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Documentation
 
-- **Hay Bale Brawl**: a README guide and `docs/hay-bale-brawl.md` with the shop, fight rules, every unit and the bot's rates.
+- **Hay Bale Brawl**: a README guide and `docs/hay-bale-brawl.md` with the shop, fight rules, every unit and the bot's rates, and `docs/hay-bale-brawl-image-prompts.md`, the ChatGPT prompts for painting its critters, snacks and backdrops.
 - **Whisker Ware**: a README guide and `docs/whisker-ware.md` with every game's rules and numbers. The art notes now say the backdrops are WebP.
 
 ## 17-10-2026

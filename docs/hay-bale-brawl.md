@@ -150,4 +150,4 @@ Everything is drawn in code:
 - birds, bugs, frogs and the tortoise have their own shapes;
 - Pip and the Duchess are chinchillas, and the Duchess wears a crown.
 
-Painted art can follow through ChatGPT prompts, as for Whisker Ware. Sound is synthesised WebAudio blips (`app/brawl/sound.ts`), with no files.
+Painted art can follow from the ChatGPT prompts in [`hay-bale-brawl-image-prompts.md`](hay-bale-brawl-image-prompts.md). Sound is synthesised WebAudio blips (`app/brawl/sound.ts`), with no files.
