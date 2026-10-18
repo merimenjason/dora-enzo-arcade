@@ -62,6 +62,7 @@
     "bot:whisker-ware": "tsc lib/whisker-ware-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/whisker-ware-bot.mjs",
     "test:hay-bale": "tsc lib/hay-bale-game.ts lib/hay-bale-paint.ts lib/hay-bale-motion.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/hay-bale.mjs && node tests/hay-bale-art.mjs && node tests/hay-bale-motion.mjs",
     "bot:trek": "tsc lib/chinchilla-trek-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/chinchilla-trek-bot.mjs",
+    "test:e2e:trek": "node tests/e2e/trek.mjs",
     "test:trek": "tsc lib/chinchilla-trek-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/chinchilla-trek.mjs",
     "bot:hay-bale": "tsc lib/hay-bale-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/hay-bale-bot.mjs",
     "test:e2e:brawl": "node tests/e2e/brawl.mjs",

@@ -457,11 +457,13 @@ export type Piece = { uid: number; slot: GearSlot; r: Rarity };
 export type Profile = {
   v: 1; acorns: number; training: { atk: number; hp: number }; gear: Piece[]; worn: Partial<Record<GearSlot, number>>;
   unlocked: ChapterNo; best: [number, number, number, number, number]; seen: { skills: string[]; foes: FoeId[] }; next: number; last: number;
+  /** The page's settings: fights at ×2, and days that walk on by themselves. */
+  ui: { fast: boolean; auto: boolean };
 };
 export type Chest = { acorns: number; pieces: Piece[] };
 
-export const freshProfile = (): Profile => ({ v: 1, acorns: 0, training: { atk: 0, hp: 0 }, gear: [], worn: {}, unlocked: 1, best: [0, 0, 0, 0, 0], seen: { skills: [], foes: [] }, next: 1, last: 0 });
-const copy = (p: Profile): Profile => ({ ...p, training: { ...p.training }, gear: p.gear.map((x) => ({ ...x })), worn: { ...p.worn }, best: [...p.best], seen: { skills: [...p.seen.skills], foes: [...p.seen.foes] } });
+export const freshProfile = (): Profile => ({ v: 1, acorns: 0, training: { atk: 0, hp: 0 }, gear: [], worn: {}, unlocked: 1, best: [0, 0, 0, 0, 0], seen: { skills: [], foes: [] }, next: 1, last: 0, ui: { fast: false, auto: true } });
+const copy = (p: Profile): Profile => ({ ...p, training: { ...p.training }, gear: p.gear.map((x) => ({ ...x })), worn: { ...p.worn }, best: [...p.best], seen: { skills: [...p.seen.skills], foes: [...p.seen.foes] }, ui: { ...p.ui } });
 
 /** A saved profile, or a fresh one when it can't be trusted; unknown pieces, worn uids and ids are dropped. */
 export function loadProfile(raw: string | null): Profile {
@@ -474,7 +476,8 @@ export function loadProfile(raw: string | null): Profile {
     const worn: Profile['worn'] = {};
     for (const s of GEAR_SLOTS) { const uid = d.worn?.[s]; if (gear.some((x) => x.uid === uid && x.slot === s)) worn[s] = uid; }
     const seen = { skills: (d.seen?.skills ?? []).filter((s: string) => s in SKILLS || s in EVOS), foes: (d.seen?.foes ?? []).filter((f: string) => f in FOES) };
-    return { v: 1, acorns: d.acorns, training: { atk: d.training.atk, hp: d.training.hp }, gear, worn, unlocked: d.unlocked, best: [...d.best] as Profile['best'], seen, next: d.next, last: Number.isFinite(d.last) ? d.last : 0 };
+    return { v: 1, acorns: d.acorns, training: { atk: d.training.atk, hp: d.training.hp }, gear, worn, unlocked: d.unlocked, best: [...d.best] as Profile['best'], seen, next: d.next, last: Number.isFinite(d.last) ? d.last : 0,
+      ui: typeof d.ui?.fast === 'boolean' && typeof d.ui?.auto === 'boolean' ? { fast: d.ui.fast, auto: d.ui.auto } : { fast: false, auto: true } };
   } catch { return freshProfile(); }
 }
 

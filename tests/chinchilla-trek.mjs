@@ -611,6 +611,14 @@ test('chest odds improve by chapter and day', () => {
   assert.ok(top.legend > 0);
 });
 
+test('profile: the ui settings default and round-trip', () => {
+  assert.deepEqual(G.freshProfile().ui, { fast: false, auto: true });
+  const p = { ...G.freshProfile(), ui: { fast: true, auto: false } };
+  assert.deepEqual(G.loadProfile(JSON.stringify(p)).ui, { fast: true, auto: false });
+  const { ui: _ui, ...old } = p; assert.deepEqual(G.loadProfile(JSON.stringify(old)).ui, { fast: false, auto: true }, 'older saves get the defaults');
+  assert.deepEqual(G.loadProfile(JSON.stringify({ ...p, ui: { fast: 'yes' } })).ui, { fast: false, auto: true });
+});
+
 test('profile: malformed saves load fresh', () => {
   const good = { ...G.freshProfile(), acorns: 10, gear: [{ uid: 1, slot: 'hat', r: 2 }], worn: { hat: 1 }, next: 2 };
   assert.deepEqual(G.loadProfile(JSON.stringify(good)), good);
