@@ -315,5 +315,221 @@ test('1000 random fights end and the events agree with the result', () => {
   }
 });
 
+
+// ---- the trek ----
+
+const STRONG = { hp: 5000, atk: 500, crit: 0, dodge: 0 }, WEAK = { hp: 1, atk: 1, crit: 0, dodge: 0 };
+const trek = (seed = 1, hero = 'dora', chapter = 1, base = G.BASE) => new G.Trek(seed, hero, chapter, base);
+/** Answers every pending choice the same plain way: first card, first choice, spin, leave the Pedlar. */
+const plain = (t) => {
+  if (t.phase === 'pick') return t.pickSkill(0);
+  const k = t.today.k;
+  return t.choose(k === 'pedlar' ? -1 : 0);
+};
+function walk(t, policy = plain, cap = 500) {
+  for (let i = 0; i < cap && t.phase !== 'over' && t.phase !== 'cleared'; i++) assert.ok(t.phase === 'walk' ? t.next() : policy(t), `stuck in ${t.phase} on day ${t.day}`);
+  return t;
+}
+const save = (t) => JSON.stringify(t);
+
+test('a new trek', () => {
+  const d = trek(1, 'dora'), e = trek(1, 'enzo');
+  assert.deepEqual([d.day, d.level, d.xp, d.acorns, d.phase], [0, 1, 0, 0, 'walk']);
+  assert.equal(d.hp, d.stats().hp); assert.equal(d.hp, 110);
+  assert.deepEqual(d.kit.skills, { shell: 1 }); assert.deepEqual(e.kit.skills, { combo: 1 });
+});
+
+test('day 1 is a fight, and the fixed days fall on 10, 15, 20, 25 and 30', () => {
+  for (let seed = 1; seed <= 50; seed++) {
+    const t = trek(seed, 'enzo', 1, STRONG), days = {};
+    while (t.phase !== 'over' && t.phase !== 'cleared') {
+      if (t.phase === 'walk') { const e = t.next(); days[t.day] = e.k === 'fight' ? `fight:${e.rank}` : e.k; } else plain(t);
+    }
+    assert.equal(t.phase, 'cleared'); assert.equal(t.day, 30);
+    assert.equal(days[1], 'fight:foe'); assert.equal(days[10], 'fight:elite'); assert.equal(days[15], 'crossroads');
+    assert.equal(days[20], 'fight:elite'); assert.equal(days[25], 'pedlar'); assert.equal(days[30], 'fight:boss');
+  }
+});
+
+test('no event repeats on consecutive days', () => {
+  for (let seed = 1; seed <= 50; seed++) {
+    const t = trek(seed, 'enzo', 2, STRONG), seq = [];
+    while (t.phase !== 'over' && t.phase !== 'cleared') { if (t.phase === 'walk') { const e = t.next(); if (!G.FIXED_DAYS[t.day] && !(e.k === 'story' && G.SCENES.find((x) => x.id === e.scene).followUp)) seq.push([t.day, e.k]); /* a due follow-up always comes first */ } else plain(t); }
+    for (let i = 1; i < seq.length; i++) if (seq[i][0] === seq[i - 1][0] + 1) assert.notEqual(seq[i][1], seq[i - 1][1], `seed ${seed} day ${seq[i][0]}`);
+  }
+});
+
+test('fights apply hp, experience and acorns once', () => {
+  const t = trek(3, 'enzo'), e = t.next();
+  assert.equal(e.k, 'fight'); assert.equal(t.last.out.result, 'win');
+  assert.equal(t.hp, t.last.out.hp); assert.equal(t.xp, 2); assert.equal(t.acorns, 3);
+  assert.ok(t.seen.foes.includes(e.foe));
+  const again = G.Trek.load(save(t));
+  assert.deepEqual([again.hp, again.xp, again.acorns], [t.hp, t.xp, t.acorns], 'loading does not apply it again');
+});
+
+test('stacked level-ups and an empty pool', () => {
+  const t = trek(3, 'enzo'); t.xp = G.xpNeed(1) + G.xpNeed(2) - 2;
+  t.next();
+  const max = t.stats().hp, healed = Math.min(max, Math.min(max, t.last.out.hp + Math.round(max * 0.2)) + Math.round(max * 0.2));
+  assert.equal(t.level, 3); assert.equal(t.picks, 2); assert.equal(t.phase, 'pick'); assert.equal(t.hp, healed);
+  assert.equal(t.offer.length, 3); assert.equal(new Set(t.offer.map((c) => c.id)).size, 3);
+  assert.ok(t.pickSkill(0)); assert.equal(t.phase, 'pick'); assert.equal(t.offer.length, 3);
+  assert.ok(t.pickSkill(1)); assert.equal(t.phase, 'walk'); assert.equal(t.offer, null);
+  const u = trek(4, 'enzo'); u.kit.evos = [...G.EVO_IDS]; u.kit.skills = {};
+  for (const id of G.SKILL_IDS) if (G.skillLevel(u.kit, id) < 3) u.kit.skills[id] = 3;
+  assert.deepEqual(u.deal(), [{ k: 'rest' }]);
+  u.kit.skills.lucky = 2; assert.deepEqual(u.deal(), [{ k: 'skill', id: 'lucky', level: 3 }], 'fewer cards when fewer can be drawn');
+  u.picks = 1; u.offer = [{ k: 'rest' }]; u.phase = 'pick'; u.hp = 10;
+  assert.ok(u.pickSkill(0)); assert.equal(u.hp, 10 + Math.round(u.stats().hp * 0.3));
+});
+
+test('evolutions are offered only when both halves are at level 3, and replace them', () => {
+  const t = trek(5, 'enzo'); t.kit.skills = { combo: 3, static: 2 };
+  for (let i = 0; i < 40; i++) assert.ok(!t.deal().some((c) => c.k === 'evo'));
+  t.kit.skills.static = 3;
+  let found = null; for (let i = 0; i < 40 && !found; i++) found = t.deal().find((c) => c.k === 'evo');
+  assert.deepEqual(found, { k: 'evo', id: 'storm' });
+  t.offer = [found]; t.picks = 1; t.phase = 'pick';
+  assert.ok(t.pickSkill(0));
+  assert.deepEqual(t.kit.skills, {}); assert.deepEqual(t.kit.evos, ['storm']); assert.equal(G.skillLevel(t.kit, 'combo'), 3);
+  assert.ok(t.seen.skills.includes('storm'));
+});
+
+test('one reroll per trek', () => {
+  const t = trek(6, 'enzo'); t.xp = G.xpNeed(1) * 3; t.next();
+  assert.equal(t.phase, 'pick');
+  assert.ok(t.reroll()); assert.equal(t.rerolled, true);
+  const before = save(t); assert.equal(t.reroll(), false); assert.equal(save(t), before);
+});
+
+const toDay = (t, day) => { t.day = day - 1; return t.next(); };
+
+test('crossroads: the owl heals or levels a skill', () => {
+  const t = trek(7, 'enzo'); assert.equal(toDay(t, 15).k, 'crossroads'); assert.equal(t.phase, 'event');
+  t.hp = 10; assert.ok(t.choose(0)); assert.equal(t.hp, t.stats().hp); assert.equal(t.phase, 'walk');
+  const u = trek(7, 'enzo'); toDay(u, 15); assert.ok(u.choose(1)); assert.deepEqual(u.kit.skills, { combo: 2 });
+});
+
+test('crossroads: the fox gives two level-2 skills for 20% max hp', () => {
+  const t = trek(8, 'enzo'); toDay(t, 15);
+  const max = t.stats().hp; assert.ok(t.choose(2));
+  const added = Object.entries(t.kit.skills).filter(([id]) => id !== 'combo');
+  assert.equal(added.length, 2); assert.ok(added.every(([, lv]) => lv === 2));
+  assert.ok(near(t.kit.bonus.hp, -0.2)); assert.ok(t.stats().hp < max || added.some(([id]) => id === 'fluff'));
+  assert.ok(t.hp <= t.stats().hp);
+});
+
+test('the fox cannot knock you out', () => {
+  for (const hp of [1, 5, 100]) { const t = trek(9, 'enzo'); toDay(t, 15); t.hp = hp; t.choose(2); assert.ok(t.hp >= 1 && t.hp <= t.stats().hp, `${hp} → ${t.hp}`); }
+});
+
+test('an elite win brings a visit after the picks', () => {
+  const t = trek(10, 'enzo', 1, STRONG); t.xp = G.xpNeed(1) - 1;
+  const e = toDay(t, 10); assert.equal(e.rank, 'elite'); assert.equal(t.last.out.result, 'win');
+  assert.equal(t.phase, 'pick'); assert.ok(t.after?.k === 'visit');
+  while (t.phase === 'pick') t.pickSkill(0);
+  assert.equal(t.phase, 'event'); assert.equal(t.today.k, 'visit'); assert.equal(t.after, null);
+  const who = t.today.who, max = t.stats().hp; t.hp = 10; assert.ok(t.choose(0));
+  if (who === 'owl') assert.equal(t.hp, Math.min(max, 10 + Math.round(max * 0.5)));
+  else assert.ok(near(t.kit.bonus.hp, -0.1));
+  assert.equal(t.phase, 'walk');
+});
+
+test('story: odds, effects, follow-ups', () => {
+  const t = trek(11, 'dora'); t.later.push({ day: 3, scene: 'bird' }); t.day = 2;
+  assert.deepEqual(t.next(), { k: 'story', scene: 'bird' }); assert.equal(t.phase, 'event');
+  assert.ok(t.choose(0)); assert.deepEqual(t.later, [{ day: 6, scene: 'birdback' }]); assert.ok(t.note.length > 0);
+  t.day = 5; assert.deepEqual(t.next(), { k: 'story', scene: 'birdback' });
+  const a = t.acorns; assert.ok(t.choose(0)); assert.equal(t.acorns, a + 15);
+  const u = trek(12, 'dora'); u.later.push({ day: 7, scene: 'bird' }); u.day = 6; u.next(); u.choose(0);
+  assert.deepEqual(u.later, [{ day: 11, scene: 'birdback' }], 'a follow-up due on a fixed day comes the day after');
+  let up = 0, down = 0;
+  for (let seed = 1; seed <= 60; seed++) {
+    const m = trek(seed, 'enzo'); m.later.push({ day: 2, scene: 'mushroom' }); m.day = 1; m.next();
+    const hp = m.hp; m.choose(0);
+    if (near(m.kit.bonus.atk, 0.1)) up++; else { down++; assert.equal(m.hp, Math.max(1, hp - Math.round(m.stats().hp * 0.1))); }
+  }
+  assert.ok(up > 10 && down > 10, `${up} / ${down}`);
+  const p = trek(13, 'enzo'); p.later.push({ day: 2, scene: 'picnic' }); p.day = 1; p.next(); p.choose(1);
+  assert.ok(p.note.includes('Dora') && !p.note.includes('{other}'));
+  const c = trek(14, 'enzo'); c.later.push({ day: 2, scene: 'oldstump' }); c.day = 1; c.next(); c.choose(0);
+  assert.equal(c.phase, 'pick', 'a cache opens a pick');
+});
+
+test('wheel segments, and lucky paw turns the hp segment into acorns', () => {
+  const seen = new Set();
+  for (let seed = 1; seed <= 200; seed++) {
+    for (const lucky of [false, true]) {
+      const t = trek(seed, 'enzo', 2); if (lucky) t.kit.skills.lucky = 1;
+      t.today = { k: 'wheel' }; t.phase = 'event'; t.hp = 50;
+      const a = t.acorns, hp = t.hp; assert.ok(t.choose(0));
+      const prize = t.today.prize; seen.add(prize);
+      const gain = (n) => Math.round(n * 2 * (lucky ? 1.2 : 1));
+      if (prize <= 2) assert.equal(t.acorns, a + gain(3));
+      if (prize === 3) assert.equal(t.acorns, a + gain(12));
+      if (prize === 4) assert.equal(t.hp, hp + Math.round(t.stats().hp * 0.25));
+      if (prize === 5) assert.equal(t.phase, 'pick');
+      if (prize === 6) assert.ok(near(t.kit.bonus.atk, 0.05));
+      if (prize === 7) { if (lucky) { assert.equal(t.acorns, a + gain(12)); assert.equal(t.hp, hp); } else assert.equal(t.hp, hp - Math.round(t.stats().hp * 0.1)); }
+    }
+  }
+  assert.equal(seen.size, 8);
+  const w = trek(1); w.today = { k: 'wheel' }; w.phase = 'event'; assert.ok(w.choose(-1)); assert.equal(w.phase, 'walk');
+});
+
+test('pedlar: buying, prices by chapter, one of each', () => {
+  const t = trek(15, 'enzo', 2); const e = toDay(t, 25);
+  assert.equal(e.k, 'pedlar'); assert.deepEqual(e.stock.map((w) => w.k), ['snack', 'card', 'charm']);
+  assert.deepEqual(G.price(e.stock[0], 2), 30); assert.deepEqual(G.price(e.stock[2], 2), 60);
+  const before = save(t); assert.equal(t.buy(0), false); assert.equal(save(t), before);
+  t.acorns = 200; t.hp = 10;
+  assert.ok(t.buy(0)); assert.equal(t.acorns, 170); assert.equal(t.hp, 10 + Math.round(t.stats().hp * 0.4));
+  assert.equal(t.buy(0), false, 'sold out');
+  assert.ok(t.buy(1)); assert.equal(t.phase, 'pick'); t.pickSkill(0); assert.equal(t.phase, 'event'); assert.equal(t.today.k, 'pedlar', 'back to the stall');
+  const stat = e.stock[2].stat, b = { ...t.kit.bonus };
+  assert.ok(t.buy(2)); assert.ok(near(t.kit.bonus[stat] - b[stat], { atk: 0.08, hp: 0.1, crit: 0.05 }[stat]));
+  assert.equal(t.acorns, 200 - 30 - 50 - 60); assert.ok(t.choose(-1)); assert.equal(t.phase, 'walk');
+});
+
+test('a lost fight ends the trek; the boss clears it', () => {
+  const t = trek(16, 'dora', 1, WEAK); t.next(); assert.equal(t.phase, 'over'); assert.equal(t.hp, 0);
+  const u = trek(17, 'dora', 1, STRONG); u.xp = 50; const e = toDay(u, 30);
+  assert.equal(e.rank, 'boss'); assert.equal(u.phase, 'cleared'); assert.equal(u.picks, 0); assert.equal(u.offer, null);
+});
+
+test('illegal actions change nothing', () => {
+  const t = trek(18, 'enzo');
+  const same = (fn, why) => { const b = save(t); const r = fn(); assert.ok(r === false || r === null, why); assert.equal(save(t), b, why); };
+  same(() => t.pickSkill(0), 'pick while walking'); same(() => t.reroll(), 'reroll while walking'); same(() => t.choose(0), 'choose while walking'); same(() => t.buy(0), 'buy while walking');
+  toDay(t, 15);
+  same(() => t.choose(7), 'choose(7)'); same(() => t.next(), 'next during an event'); same(() => t.pickSkill(0), 'pick during an event');
+  t.choose(-1); t.xp = 99; t.next();
+  if (t.phase === 'pick') { same(() => t.next(), 'next during a pick'); same(() => t.pickSkill(5), 'a card that is not there'); t.reroll(); same(() => t.reroll(), 'a second reroll'); }
+  const o = trek(19, 'dora', 1, WEAK); o.next(); assert.equal(o.phase, 'over');
+  const b = save(o); assert.equal(o.next(), null); assert.equal(o.choose(0), false); assert.equal(o.pickSkill(0), false); assert.equal(save(o), b);
+});
+
+test('same seed and choices, same trek', () => {
+  assert.equal(save(walk(trek(21, 'enzo', 2))), save(walk(trek(21, 'enzo', 2))));
+  assert.notEqual(save(walk(trek(21, 'enzo', 2))), save(walk(trek(22, 'enzo', 2))));
+});
+
+test('save round-trips', () => {
+  const at = (stop) => { const t = trek(23, 'enzo', 1, { ...G.BASE, hp: 400, atk: 30 }); for (let i = 0; i < 200 && !stop(t) && t.phase !== 'over' && t.phase !== 'cleared'; i++) { if (t.phase === 'walk') t.next(); else plain(t); } return t; };
+  for (const stop of [(t) => t.day === 0, (t) => t.phase === 'pick', (t) => t.phase === 'event']) {
+    const t = at(stop), copy = G.Trek.load(save(t));
+    assert.ok(copy, 'loads'); assert.equal(save(copy), save(t));
+    assert.equal(save(walk(copy)), save(walk(t)));
+  }
+});
+
+test('malformed saves load as null', () => {
+  const good = JSON.parse(save(trek(24)));
+  assert.ok(G.Trek.load(JSON.stringify(good)));
+  const bad = [null, 'x', '{"v":2}', { ...good, kit: { ...good.kit, skills: { nope: 1 } } }, { ...good, day: 31 }, { ...good, hp: 9999 }, { ...good, picks: -1 }, { ...good, phase: 'pick', offer: null }, { ...good, hero: 'pip' }, { ...good, chapter: 6 }, { ...good, phase: 'event', today: null }];
+  for (const b of bad) assert.equal(G.Trek.load(typeof b === 'string' || b === null ? b : JSON.stringify(b)), null, JSON.stringify(b)?.slice(0, 60));
+});
+
 if (failed) { console.log(`${failed} failed`); process.exit(1); }
 console.log('PASS Chinchilla Trek engine');
