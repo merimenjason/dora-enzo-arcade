@@ -52,6 +52,7 @@ Written 18-10-2026. A handoff for painting Hay Bale Brawl's art in ChatGPT. The 
 | 5 | Shop | `bg-shop.png` | backdrop, 1536 × 1024 |
 | 6 | Fight | `bg-fight.png` | backdrop, 1536 × 1024 |
 | 7 | Title | `title.png` | transparent, single |
+| 8 | Effects (optional, added later) | `fx.png` | transparent, 4 × 3 |
 
 The critters come first because the player watches them all the time; the backdrops can stay code-drawn the longest.
 
@@ -129,6 +130,28 @@ The critters come first because the player watches them all the time; the backdr
 
 > Generate the image: a transparent title illustration, 1536 × 1024. Dora and Enzo (see canon) stand on top of a big round hay bale in the centre, Dora cheering and Enzo with arms folded, each with a whistle. Around the bale's foot stand a Badger, a Hedgehog, a Frog, a Bee and a Bear, ready for a brawl. Leave the top quarter empty for the game's own title text. No text.
 
+## 8 · `fx.png` (optional)
+
+Added 18-10-2026, after the game gained its fight and shop animations. The game already draws every one of these effects in code, so this sheet is polish: it repaints them in the storybook style and replaces the plain coloured status dots for Shell, Mint and Chilli. Painted attack or faint poses for each critter are deliberately not asked for: poses drift too much between generations for 33 critters to stay on-model across frames, so the code keeps moving the existing paintings instead. Attach the critter sheets as references so the outlines and the acorn match.
+
+> Generate the image: a transparent effects sheet, 1536 × 1024, a 4 × 3 grid of 12 equal cells. One effect or icon per cell, each large and centred with clear space around it. They match the critter sheets' gouache style and thin dark-plum outlines. These are cartoon effects for a cosy game, never fiery, violent or scary. Read left to right, top to bottom:
+> 1 **Bonk burst:** a chunky cartoon impact star, sunny yellow with an orange-red edge, eight uneven points, like a storybook "bonk".
+> 2 **Dust puff:** a small soft cloud of cream-white dust, three or four round puffs, seen from the side as if kicked up by a landing.
+> 3 **Poof cloud:** a bigger, rounder cloud of white puffs, like a critter tumbling out of sight, with a few loose wisps.
+> 4 **Hay wisps:** five or six loose golden straws flying apart, as if knocked off a bale.
+> 5 **Gold twinkle:** a four-pointed golden sparkle with a soft cream centre.
+> 6 **Green twinkle:** the same four-pointed sparkle in fresh leaf green.
+> 7 **Frost sparkle:** a small cluster of pale ice-blue snowflake glints, delicate.
+> 8 **Crumbs:** a little scatter of cake and seed crumbs, warm browns and cream.
+> 9 **Acorn:** one plump, shiny brown acorn with a textured darker cap and a tiny stalk, like a coin.
+> 10 **Honey shell:** a small round, glossy amber bubble of honey, like a protective shield, with a highlight.
+> 11 **Mint charm:** a sprig of two bright mint leaves with a few cool pale-green glints.
+> 12 **Chilli charm:** a small glossy red chilli with a little curl of warm orange heat above it, cute, not flames.
+>
+> No text, numbers or symbols. Truly transparent background: no glow, haze or shadow outside the subjects. Nothing touches the edge of its cell.
+
+Wiring it in means measuring its 12 crops like the other sheets, adding it to the loader with its hash, and drawing each sprite where the scene now draws the burst, puffs, hay, twinkles, frost, crumbs, acorn and status dots, with those drawings kept as the fallback.
+
 ## Acceptance checklist
 
 - Every critter faces right and stays wholly inside its own cell, with clear space around it.
@@ -137,3 +160,4 @@ The critters come first because the player watches them all the time; the backdr
 - Dora's eyes are dark ruby, not pink; Enzo is grey with a white chest; the Duchess wears her crown.
 - Tier-5 critters are bolder, not larger, than tier-1 ones.
 - Each critter reads clearly when the sheet is shrunk so a cell is about 50 pixels tall.
+- For `fx.png`: each item reads clearly when a cell is about 30 pixels tall, the two twinkles share one shape, and the acorn matches the one the Squirrel holds.
