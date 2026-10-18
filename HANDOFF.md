@@ -6,12 +6,14 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 18-10-2026)
 
-**Where things stand.** `main` is at the merge of PR #64 (`6d8527f`, Hay Bale Brawl) and is deployed: 36 games at https://chinchillas.jason.engineering. The deploy run passed and the Almanac browser check passed against the live site. Nothing is open: no pull requests, no unmerged branches. The only local changes are three `.claude/` graft files (see **Agent configuration**), which are the user's and must stay uncommitted.
+**Where things stand.** `main` is at the merge of PR #66 (`5f97360`, Hay Bale Brawl's ChatGPT image prompts) and is deployed: 36 games at https://chinchillas.jason.engineering. Hay Bale Brawl itself went live with PR #64 (`6d8527f`); the deploy passed and the Almanac browser check passed against the live site. Nothing is open: no pull requests, no unmerged branches. The only local changes are three `.claude/` graft files (see **Agent configuration**), which are the user's and must stay uncommitted.
 
 **What happened in the last few sessions (13–18-10-2026), newest first:**
 
 | PR | What | Notes |
 | --- | --- | --- |
+| #66 | Hay Bale Brawl image prompts | `docs/hay-bale-brawl-image-prompts.md`: style block, canon and seven prompts (three critter sheets, snacks, shop and fight backdrops, title) for `public/art/brawl/`. Not painted yet. |
+| #65 | Handoff after Hay Bale Brawl | |
 | #64 | **Hay Bale Brawl** (`/brawl`), game 36 | Auto-battler in the manner of Super Auto Pets: 30 critters in five tiers, 8 snacks, two coaches, seeded ghost rivals. Designed and built in one session from `docs/superpowers/specs/18-10-2026-hay-bale-brawl-design.md` and its plan (all 7 tasks inline, then one fresh review whose two important and four player-facing findings were fixed test-first); bot-tuned, never played by hand. See **Hay Bale Brawl**. |
 | #63 | Handoff after Whisker Ware | |
 | #62 | **Whisker Ware** (`/whisker-ware`), game 35 | WarioWare-style microgame frenzy: 24 games, 4 hosts, Remix, gallery and Practice. Built from the plan in `docs/superpowers/plans/17-10-2026-whisker-ware-plan.md` (Tasks 1–5 by subagents, 6–10 inline); bot-tuned, never played by hand. See **Whisker Ware**. |
@@ -165,7 +167,7 @@ Game 36, `/brawl`, an auto-battler in the manner of Super Auto Pets. Rules, ever
 - **Rivals:** one ghost run per player run, seeded from it, shopping with the bot's policy on 10 acorns a turn and memoised (its Raisins are cleared before each turn, since it never fights), so turn *t*'s rival is that ghost after *t* turns. The policy's `WEIGHT` is its taste only (2 × tier, Dormouse marked down); changing it changes the rivals too.
 - **Checks:** `npm run test:hay-bale` and `npm run bot:hay-bale` (both in `npm test`; the bot runs in under a second) and `npm run test:e2e:brawl` (11 checks, in `test:e2e`).
 - **Saves:** `hay-bale-run-v1` (whole run, written before a fight is replayed), `hay-bale-v1` (profile, recorded once per run by seed), `hay-bale-sound-v1`.
-- **Not done:** played by hand, listened to, painted art.
+- **Not done:** played by hand, listened to, painted art. The ChatGPT prompts are ready in `docs/hay-bale-brawl-image-prompts.md`; the user paints them, then the sheets get wired in with the code drawings kept as the fallback (crop cells as Whisker Ware's loader does; your crew faces right and the rival is the same art mirrored).
 - **Left on purpose** (from the final review): Start overwrites a saved run without asking (as the other games do); Skunk only lowers the target's health, statuses last between fights, the profile's `won` list is the final winning line only, and the faint chain is capped at 100 passes a settle.
 
 ## Whisker Ware · 18-10-2026
@@ -265,7 +267,7 @@ The nine newest cabinets, all merged to `main` and deployed.
 | 33 | Ember & Clover: Midnight Kitchen | `/kitchen` | 15-10-2026 | #39–#41 |
 | 34 | Acorn Hand | `/acorn-hand` | 15-10-2026 | #42, #44–#59 |
 | 35 | Whisker Ware | `/whisker-ware` | 18-10-2026 | #60–#62 |
-| 36 | Hay Bale Brawl | `/brawl` | 18-10-2026 | #64 |
+| 36 | Hay Bale Brawl | `/brawl` | 18-10-2026 | #64–#66 |
 
 Each has its own section near the top of this file. The older games' notes (Clash, Hay Maze, Chinchillas vs Zombies, Scribble, Bounce / Burrow, Burrow Tactics, Burrow Barrage, Summit Shuffle, Poof Panic) follow under **Where the code lives**.
 
