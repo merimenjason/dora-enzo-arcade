@@ -12,7 +12,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 | PR | What | Notes |
 | --- | --- | --- |
-| (open) | **Chinchilla Trek** (`/trek`), game 37 | Roguelite trek in the spirit of Capybara Go!: 30 days, 18 skills and 4 evolutions, 5 chapters of 30 code-drawn foes, camp with training and merging gear. Built inline from the plan (Tasks 1–7) with one fresh whole-branch review; bot-tuned. Not played by hand. |
+| #78 (open) | **Chinchilla Trek** (`/trek`), game 37 | Roguelite trek in the spirit of Capybara Go!: 30 days, 18 skills and 4 evolutions, 5 chapters of 30 code-drawn foes, camp with training and merging gear. Built inline from the plan (Tasks 1–7) with one fresh whole-branch review; bot-tuned. Not played by hand. |
 | #75 | Chinchilla Trek design and plan | `docs/superpowers/specs/18-10-2026-chinchilla-trek-design.md` and `docs/superpowers/plans/18-10-2026-chinchilla-trek-plan.md`. |
 | #77 | **Hay Bale Brawl's painted effects** | `fx.png` wired in: twelve still cells (bonk, dust, poof, hay, gold and green twinkles, frost, crumbs, acorn, Shell, Mint, Chilli) replace the code effects, acorns and status dots, with the drawings kept as fallbacks. Six new browser checks (23 in all). |
 | #76 | Effects sheet delivered | `public/art/brawl/fx.png` with its crops, provenance and an integration handoff. |
@@ -294,7 +294,7 @@ The ten newest cabinets; all but Chinchilla Trek are merged to `main` and deploy
 | 34 | Acorn Hand | `/acorn-hand` | 15-10-2026 | #42, #44–#59 |
 | 35 | Whisker Ware | `/whisker-ware` | 18-10-2026 | #60–#62 |
 | 36 | Hay Bale Brawl | `/brawl` | 18-10-2026 | #64–#72 |
-| 37 | Chinchilla Trek | `/trek` | 19-10-2026 | #75 (design and plan) |
+| 37 | Chinchilla Trek | `/trek` | 19-10-2026 | #75 (design and plan), #78 |
 
 Each has its own section near the top of this file. The older games' notes (Clash, Hay Maze, Chinchillas vs Zombies, Scribble, Bounce / Burrow, Burrow Tactics, Burrow Barrage, Summit Shuffle, Poof Panic) follow under **Where the code lives**.
 
