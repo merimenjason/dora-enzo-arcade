@@ -2,7 +2,8 @@
 // made, every random draw comes from a seeded generator, and a fight is worked out in one go into a list of events
 // the page replays.
 import {
-  CHAPTERS, CHAPTER_SCALE, DAYS, DAY_SCALE, DAY_WEIGHTS, EVOS, EVO_IDS, FIGHT_ACORNS, FIGHT_XP, FIXED_DAYS, FOES, PEDLAR_PRICE, SCENES, SKILLS, SKILL_IDS, ZAP_CHANCE, xpNeed,
+  CHAPTERS, CHAPTER_SCALE, DAYS, DAY_SCALE, DAY_WEIGHTS, EVOS, EVO_IDS, FIGHT_ACORNS, FIGHT_XP, FIXED_DAYS, FOES, GEAR_SLOTS, GEAR_STAT, PEDLAR_PRICE, SCENES, SKILLS, SKILL_IDS,
+  TRAIN_STEP, ZAP_CHANCE, trainCost, xpNeed, type GearSlot, type Rarity,
   type ChapterNo, type Effect, type EvoId, type FoeId, type Hero, type Level, type Rank, type SkillId,
 } from './chinchilla-trek-data.js';
 
@@ -446,4 +447,154 @@ export class Trek {
       return t;
     } catch { return null; }
   }
+}
+
+// ── Camp and the profile ───────────────────────────────────────────────────
+
+export type Piece = { uid: number; slot: GearSlot; r: Rarity };
+/** `best` is the best day reached per chapter, 31 for a clear; `next` the next gear uid; `last` the last trek's seed. */
+export type Profile = {
+  v: 1; acorns: number; training: { atk: number; hp: number }; gear: Piece[]; worn: Partial<Record<GearSlot, number>>;
+  unlocked: ChapterNo; best: [number, number, number, number, number]; seen: { skills: string[]; foes: FoeId[] }; next: number; last: number;
+};
+export type Chest = { acorns: number; pieces: Piece[] };
+
+export const freshProfile = (): Profile => ({ v: 1, acorns: 0, training: { atk: 0, hp: 0 }, gear: [], worn: {}, unlocked: 1, best: [0, 0, 0, 0, 0], seen: { skills: [], foes: [] }, next: 1, last: 0 });
+const copy = (p: Profile): Profile => ({ ...p, training: { ...p.training }, gear: p.gear.map((x) => ({ ...x })), worn: { ...p.worn }, best: [...p.best], seen: { skills: [...p.seen.skills], foes: [...p.seen.foes] } });
+
+/** A saved profile, or a fresh one when it can't be trusted; unknown pieces, worn uids and ids are dropped. */
+export function loadProfile(raw: string | null): Profile {
+  try {
+    const d = raw ? JSON.parse(raw) : null;
+    const int = (n: unknown, lo = 0) => Number.isInteger(n) && (n as number) >= lo;
+    if (!d || d.v !== 1 || !int(d.acorns) || !int(d.training?.atk) || !int(d.training?.hp) || ![1, 2, 3, 4, 5].includes(d.unlocked) || !int(d.next, 1)) return freshProfile();
+    if (!Array.isArray(d.best) || d.best.length !== 5 || !d.best.every((n: unknown) => int(n) && (n as number) <= DAYS + 1) || !Array.isArray(d.gear)) return freshProfile();
+    const gear: Piece[] = d.gear.filter((x: Piece) => int(x?.uid, 1) && x.uid < d.next && GEAR_SLOTS.includes(x.slot) && [0, 1, 2, 3, 4].includes(x.r)).map((x: Piece) => ({ uid: x.uid, slot: x.slot, r: x.r }));
+    const worn: Profile['worn'] = {};
+    for (const s of GEAR_SLOTS) { const uid = d.worn?.[s]; if (gear.some((x) => x.uid === uid && x.slot === s)) worn[s] = uid; }
+    const seen = { skills: (d.seen?.skills ?? []).filter((s: string) => s in SKILLS || s in EVOS), foes: (d.seen?.foes ?? []).filter((f: string) => f in FOES) };
+    return { v: 1, acorns: d.acorns, training: { atk: d.training.atk, hp: d.training.hp }, gear, worn, unlocked: d.unlocked, best: [...d.best] as Profile['best'], seen, next: d.next, last: Number.isFinite(d.last) ? d.last : 0 };
+  } catch { return freshProfile(); }
+}
+
+const wornPiece = (p: Profile, s: GearSlot) => p.gear.find((x) => x.uid === p.worn[s]);
+export function campStats(p: Profile): Stats {
+  const g = (s: GearSlot) => { const x = wornPiece(p, s); return x ? GEAR_STAT[s][x.r] : 0; };
+  return { hp: BASE.hp + p.training.hp * TRAIN_STEP.hp + g('hat'), atk: BASE.atk + p.training.atk * TRAIN_STEP.atk + g('scarf'), crit: BASE.crit + g('charm'), dodge: BASE.dodge + g('boots') };
+}
+
+export function train(p: Profile, which: 'atk' | 'hp'): Profile | null {
+  const cost = trainCost(p.training[which]);
+  if (p.acorns < cost) return null;
+  const q = copy(p); q.acorns -= cost; q.training[which]++;
+  return q;
+}
+
+/** Adds a piece to `q` (already a copy), worn when it beats what's worn. */
+function gain(q: Profile, slot: GearSlot, r: Rarity): Piece {
+  const x: Piece = { uid: q.next++, slot, r };
+  q.gear.push(x);
+  if ((wornPiece(q, slot)?.r ?? -1) < r) q.worn[slot] = x.uid;
+  return x;
+}
+
+export function merge(p: Profile, slot: GearSlot, r: Rarity): Profile | null {
+  const three = p.gear.filter((x) => x.slot === slot && x.r === r).slice(0, 3);
+  if (r >= 4 || three.length < 3) return null;
+  const q = copy(p), gone = new Set(three.map((x) => x.uid));
+  q.gear = q.gear.filter((x) => !gone.has(x.uid));
+  if (gone.has(q.worn[slot] ?? -1)) delete q.worn[slot];
+  gain(q, slot, (r + 1) as Rarity);
+  return q;
+}
+
+export function wear(p: Profile, uid: number): Profile | null {
+  const x = p.gear.find((g) => g.uid === uid);
+  if (!x) return null;
+  const q = copy(p); q.worn[x.slot] = uid;
+  return q;
+}
+
+/** `n` chest rarities: weights 60/30/9/1/0, each chapter above 1 and each 10 days moving 8 points up from the lowest; Legend from chapter 4. */
+export function chestRarities(chapter: ChapterNo, day: number, r: Rand, n: number): Rarity[] {
+  const w = [60, 30, 9, 1, 0];
+  for (let k = 0; k < chapter - 1 + Math.floor(day / 10); k++) {
+    const lo = w.findIndex((x) => x > 0), top = chapter >= 4 ? 4 : 3;
+    if (lo >= top) break;
+    const m = Math.min(8, w[lo]); w[lo] -= m; w[lo + 1] += m;
+  }
+  if (chapter >= 4) { const lo = w.findIndex((x) => x > 0); w[lo] -= chapter - 3; w[4] += chapter - 3; }
+  else { w[3] += w[4]; w[4] = 0; }
+  const total = w.reduce((a, b) => a + b, 0);
+  return Array.from({ length: n }, () => { let x = r.next() * total, i = 0; while (x >= w[i]) x -= w[i++]; return i as Rarity; });
+}
+
+/** Banks a finished trek once: its acorns and a chest, a chapter unlocked on a clear, and the best day and sightings. */
+export function record(p: Profile, t: Trek): { profile: Profile; chest: Chest | null } {
+  if ((t.phase !== 'over' && t.phase !== 'cleared') || p.last === t.seed) return { profile: p, chest: null };
+  const q = copy(p), cleared = t.phase === 'cleared', ch = t.chapter, r = new Rand(mix(t.seed, 999));
+  const rs = chestRarities(ch, t.day, r, cleared ? 2 : 1);
+  if (cleared && p.best[ch - 1] <= DAYS && rs[0] < 2) rs[0] = 2;
+  const chest: Chest = { acorns: 2 * ch * t.day, pieces: rs.map((rar) => gain(q, r.pick(GEAR_SLOTS), rar)) };
+  q.acorns += t.acorns + chest.acorns;
+  if (cleared && ch < 5 && q.unlocked === ch) q.unlocked = (ch + 1) as ChapterNo;
+  q.best[ch - 1] = Math.max(q.best[ch - 1], cleared ? DAYS + 1 : t.day);
+  for (const s of t.seen.skills) if (!q.seen.skills.includes(s)) q.seen.skills.push(s);
+  for (const f of t.seen.foes) if (!q.seen.foes.includes(f)) q.seen.foes.push(f);
+  q.last = t.seed;
+  return { profile: q, chest };
+}
+
+// ── The bot's policy ───────────────────────────────────────────────────────
+
+export const SKILL_WEIGHT: Record<SkillId, number> = Object.fromEntries(SKILL_IDS.map((id) => [id, 30])) as Record<SkillId, number>;
+export type Action = { k: 'next' } | { k: 'choose'; i: number } | { k: 'pick'; i: number } | { k: 'reroll' } | { k: 'buy'; i: number };
+const HALVES = new Set(EVO_IDS.flatMap((e) => EVOS[e].from));
+
+export function decide(t: Trek): Action {
+  const low = (pct: number) => t.hp < t.stats().hp * pct;
+  if (t.phase === 'pick') {
+    const score = (c: Card) => c.k === 'evo' ? 100 : c.k === 'rest' ? 0 : SKILL_WEIGHT[c.id] + (c.level === 3 && HALVES.has(c.id) ? 50 : 0);
+    const scores = t.offer!.map(score), best = Math.max(...scores);
+    if (best < 20 && !t.rerolled) return { k: 'reroll' };
+    return { k: 'pick', i: scores.indexOf(best) };
+  }
+  const e = t.today;
+  if (t.phase !== 'event' || !e) return { k: 'next' };
+  const fresh = SKILL_IDS.some((s) => skillLevel(t.kit, s) === 0);
+  if (e.k === 'story') {
+    const cs = sceneOf(e.scene)!.choices, safe = low(0.4);
+    return { k: 'choose', i: Math.max(0, cs.findIndex((c) => (c.odds === undefined) === safe)) };
+  }
+  if (e.k === 'crossroads') {
+    if (low(0.5)) return { k: 'choose', i: 0 };
+    if (fresh) return { k: 'choose', i: 2 };
+    return { k: 'choose', i: Object.values(t.kit.skills).some((n) => n! < 3) ? 1 : 0 };
+  }
+  if (e.k === 'visit') return { k: 'choose', i: e.who === 'owl' || fresh ? 0 : -1 };
+  if (e.k === 'wheel') return { k: 'choose', i: 0 };
+  if (e.k === 'pedlar') {
+    const can = (i: number) => !e.sold[i] && t.acorns >= price(e.stock[i], t.chapter);
+    for (const i of low(0.5) ? [0] : [2, 1]) if (can(i)) return { k: 'buy', i };
+    return { k: 'choose', i: -1 };
+  }
+  return { k: 'next' };
+}
+
+const act = (t: Trek, a: Action) => a.k === 'next' ? t.next() !== null : a.k === 'choose' ? t.choose(a.i) : a.k === 'pick' ? t.pickSkill(a.i) : a.k === 'reroll' ? t.reroll() : t.buy(a.i);
+
+/** Plays `t` to its end with `policy`, at most 500 steps. */
+export function playTrek(t: Trek, policy: (t: Trek) => Action = decide): Trek {
+  for (let i = 0; i < 500 && t.phase !== 'over' && t.phase !== 'cleared'; i++) if (!act(t, policy(t))) break;
+  return t;
+}
+
+/** The bot's camp: every merge it can make, then training the cheaper of attack and HP until nothing is affordable. */
+export function campStep(p: Profile): Profile {
+  let q = p;
+  for (let again = true; again;) {
+    again = false;
+    for (const s of GEAR_SLOTS) for (const r of [0, 1, 2, 3] as Rarity[]) { const m = merge(q, s, r); if (m) { q = m; again = true; } }
+  }
+  for (;;) { const t = train(q, q.training.atk <= q.training.hp ? 'atk' : 'hp'); if (!t) return q; q = t; }
 }
