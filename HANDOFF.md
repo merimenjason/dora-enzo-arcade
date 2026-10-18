@@ -6,14 +6,15 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 18-10-2026)
 
-**Where things stand.** The arcade has 36 games at https://chinchillas.jason.engineering. PR #69 painted Hay Bale Brawl: every critter, summon, snack, both coaches, the bale, the barn shop, the meadow stage and the title now come from the seven images delivered in PR #68 (`f4f1ac5`), with the code drawings kept as loading and failure fallbacks. Check GitHub for open PRs and the latest deploy rather than trusting this line as a live status. Keep the user's local `.claude/` graft files out of commits (see **Agent configuration**).
+**Where things stand.** The arcade has 36 games at https://chinchillas.jason.engineering. PR #69 painted Hay Bale Brawl: every critter, summon, snack, both coaches, the bale, the barn shop, the meadow stage and the title now come from the seven images delivered in PR #68 (`f4f1ac5`), with the code drawings kept as loading and failure fallbacks. PR #70 steadied two of its browser checks that failed only against the live site; the whole brawl browser suite then passed against production. No work is in flight. Check GitHub for open PRs and the latest deploy rather than trusting this line as a live status. Keep the user's local `.claude/` graft files out of commits (see **Agent configuration**).
 
 **What happened in the last few sessions (13–18-10-2026), newest first:**
 
 | PR | What | Notes |
 | --- | --- | --- |
+| #70 | Hay Bale Brawl browser checks steadied | Test-only. The summons check now uses a fixed seed (12345) and attack-0 summoners instead of a random rival; the failed-art check counts requests from one page load only. Both had passed locally and failed live. |
 | #69 | **Hay Bale Brawl painted** | The seven paintings wired in: `lib/hay-bale-crops.ts` (typed crops and hashes), `lib/hay-bale-paint.ts` (lazy loader, painters, Retry), scene and page changes, backdrops served as WebP. Feet on the painted straw, labels on plates, rivals mirrored, reduced motion. Node art test plus five browser checks. See **Hay Bale Brawl**. |
-| #68 | Hay Bale Brawl artwork and integration instructions | Seven original PNGs,44 measured padded crops, exact provenance, loader/renderer and refresh/retry handoff; runtime integration pending. |
+| #68 | Hay Bale Brawl artwork and integration instructions | Seven original PNGs, 44 measured padded crops, exact provenance, loader/renderer and refresh/retry handoff; runtime integration pending. |
 | #67 | Handoff after image prompts | Preserved in this delivery. |
 | #66 | Hay Bale Brawl image prompts | `docs/hay-bale-brawl-image-prompts.md`: style block, canon and seven prompts (three critter sheets, snacks, shop and fight backdrops, title) for `public/art/brawl/`. The paintings were subsequently prepared in PR #68. |
 | #65 | Handoff after Hay Bale Brawl | |
@@ -168,7 +169,7 @@ Game 36, `/brawl`, an auto-battler in the manner of Super Auto Pets. Rules, ever
 
 - **Code:** `lib/hay-bale-units.ts` (30 units, tokens, snacks; abilities against a `Ctx` the game implements for the shop and for fights), `lib/hay-bale-game.ts` (`fight`, `Run`, the buying policy `choose`/`playShop`, `ghost`, the profile), `lib/hay-bale-scene.ts` (all code-drawn) and `app/brawl/`. `window.__brawl()` exposes the run, profile, replay, `LAYOUT` and a `set` hook.
 - **Rivals:** one ghost run per player run, seeded from it, shopping with the bot's policy on 10 acorns a turn and memoised (its Raisins are cleared before each turn, since it never fights), so turn *t*'s rival is that ghost after *t* turns. The policy's `WEIGHT` is its taste only (2 × tier, Dormouse marked down); changing it changes the rivals too.
-- **Checks:** `npm run test:hay-bale` and `npm run bot:hay-bale` (both in `npm test`; the bot runs in under a second) and `npm run test:e2e:brawl` (11 checks, in `test:e2e`).
+- **Checks:** `npm run test:hay-bale` and `npm run bot:hay-bale` (both in `npm test`; the bot runs in under a second) and `npm run test:e2e:brawl` (16 checks, in `test:e2e`; five cover the paintings: every subject in both facings, a phone at DPR 3 with reduced motion, a hidden tab, slow art and failed art with Retry). `test:hay-bale` also runs `tests/hay-bale-art.mjs` (file sizes and hashes, the crop mapping, the loader). The browser suite passes against the live site with `E2E_BASE_URL=https://chinchillas.jason.engineering`; in a check, start runs with `w.start('dora', seed)` rather than relying on a random rival.
 - **Saves:** `hay-bale-run-v1` (whole run, written before a fight is replayed), `hay-bale-v1` (profile, recorded once per run by seed), `hay-bale-sound-v1`.
 - **Painted art (18-10-2026, PR #69):** seven images in `public/art/brawl/`: three critter sheets (30 units, three summons, both coaches and a bale) and the snacks as the delivered PNGs, the title PNG, and the shop and fight backdrops as quality-85 WebP (PNG originals at `f4f1ac5`). `lib/hay-bale-crops.ts` maps every engine id to its measured crop (generated from `docs/hay-bale-brawl-crops.json`; `tests/hay-bale-art.mjs` fails if they drift or a file's hash changes). `lib/hay-bale-paint.ts` loads on demand, returns false so the scene draws its code fallback, and only re-asks for a failed file on **Retry artwork**. Fight feet stand on the painted straw at y203; badges sit below on the bale face; the result panel sits below them. The paintings are still poses: only the lunge and knock-out fade move them. Details: [`docs/hay-bale-brawl.md`](docs/hay-bale-brawl.md) **Art and sound** and the **Status** of [`docs/hay-bale-brawl-integration.md`](docs/hay-bale-brawl-integration.md). After changing a crop, regenerate the table from the JSON rather than editing numbers by hand.
 - **Not done:** played by hand, listened to. The painted art has been checked in a headless browser and by eye in screenshots, not on a real phone.
@@ -271,7 +272,7 @@ The nine newest cabinets, all merged to `main` and deployed.
 | 33 | Ember & Clover: Midnight Kitchen | `/kitchen` | 15-10-2026 | #39–#41 |
 | 34 | Acorn Hand | `/acorn-hand` | 15-10-2026 | #42, #44–#59 |
 | 35 | Whisker Ware | `/whisker-ware` | 18-10-2026 | #60–#62 |
-| 36 | Hay Bale Brawl | `/brawl` | 18-10-2026 | #64–#69 |
+| 36 | Hay Bale Brawl | `/brawl` | 18-10-2026 | #64–#70 |
 
 Each has its own section near the top of this file. The older games' notes (Clash, Hay Maze, Chinchillas vs Zombies, Scribble, Bounce / Burrow, Burrow Tactics, Burrow Barrage, Summit Shuffle, Poof Panic) follow under **Where the code lives**.
 
