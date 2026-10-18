@@ -101,10 +101,11 @@ Numbers are for levels 1 / 2 / 3.
 ## Rivals
 
 There is no online play. Each run has one **ghost** rival:
-- it is a run of its own, seeded from yours, with **9 acorns** a turn (`GHOST_ACORNS`);
+- it is a run of its own, seeded from yours, with **10 acorns** a turn (`GHOST_ACORNS`), like yours;
 - it shops with the same buying policy the bot uses;
 - turn *t*'s rival is the ghost after *t* turns of shopping, so the rival grows through the run;
 - its uids are lifted by 1,000,000 so they never clash with yours;
+- a ghost never fights, so its Raisins are cleared before each turn's shopping, as a fight would clear yours;
 - the crew is named after its strongest unit ("The Badger's Bunch").
 
 The buying policy takes the first of these that applies:
@@ -132,13 +133,15 @@ It values a unit at attack + health + 2 × tier × level, and it marks the Dormo
 - no fight comes near the 200-round cap.
 
 At the time of writing it measures:
-- the policy wins 39.3% (Dora 57 runs, Enzo 61);
+- the policy wins 37.3% (Dora 54 runs, Enzo 58), with 6.05 bales on average;
 - the random buyer wins none;
-- the least-bought unit is the Duchess, in 38 runs;
-- the most common unit in winning crews is the Bear, in 54 of 118;
-- the longest fight is 21 rounds.
+- the least-bought unit is the Duchess, in 36 runs;
+- the most common unit in winning crews is the Bear, in 46 of 112;
+- the longest fight is 23 rounds.
 
-The ghosts started with 10 acorns, and the policy won only 27.7%. With a flat ability weight, the policy never got past tier-1 units, and the Dormouse sat in about two-thirds of winning crews. It was also in half the losing ones: the policy simply never sold it. Nerfing its stats or ability did not move that number, so the roster stayed as designed and only the policy's taste changed. Nobody has played a run by hand yet.
+The first tuning pass dropped the ghosts to 9 acorns, but the final review found that ghosts kept every Raisin's attack for good; with that fixed, 10 acorns is fair again. With a flat ability weight, the policy never got past tier-1 units, and the Dormouse sat in about two-thirds of winning crews. It was also in half the losing ones: the policy simply never sold it. Nerfing its stats or ability did not move that number, so the roster stayed as designed and only the policy's taste changed.
+
+**Stalls.** A fight is a draw at once when neither front can deal damage (no attack, and no Chilli with someone behind its target) and the round produced nothing but empty ability callouts, such as a drained Badger with no second enemy. Nobody has played a run by hand yet.
 
 ## Art and sound
 

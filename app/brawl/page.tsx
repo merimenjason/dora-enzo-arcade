@@ -74,7 +74,10 @@ export default function HayBaleBrawl() {
   const resume = useCallback(() => {
     const run = Run.load(store.get(RUN_KEY));
     if (!run || run.phase !== 'shop') { store.drop(RUN_KEY); setSaved(false); return; }
-    runRef.current = run; go('shop');
+    runRef.current = run;
+    // a fight the player left before it finished: show its result first
+    if (run.last) { replayRef.current = { outcome: run.last, i: run.last.events.length, t: 0, speed: speedRef.current }; go('fight'); }
+    else go('shop');
   }, [go]);
 
   /** Puts a held item somewhere. */
@@ -95,7 +98,12 @@ export default function HayBaleBrawl() {
     return ok;
   }, [persist]);
 
-  const roll = useCallback(() => { const run = runRef.current; if (run?.roll()) { sound.cue('roll'); persist(); refresh(); } }, [persist, refresh]);
+  const roll = useCallback(() => {
+    const run = runRef.current;
+    if (!run?.roll()) return;
+    if (uiRef.current.held?.from !== 'line') uiRef.current.held = null;
+    sound.cue('roll'); persist(); refresh();
+  }, [persist, refresh]);
   const freeze = useCallback(() => {
     const run = runRef.current, h = uiRef.current.held;
     if (run && h && h.from !== 'line' && run.freeze(h.from, h.i)) { uiRef.current.held = null; persist(); refresh(); }
@@ -109,7 +117,11 @@ export default function HayBaleBrawl() {
     go('fight');
   }, [persist, go]);
   const skip = useCallback(() => { const r = replayRef.current; if (r) { r.i = r.outcome.events.length; r.t = 0; refresh(); } }, [refresh]);
-  const next = useCallback(() => { const run = runRef.current; replayRef.current = null; go(run && run.phase === 'shop' ? 'shop' : 'over'); }, [go]);
+  const next = useCallback(() => {
+    const run = runRef.current;
+    replayRef.current = null;
+    if (run?.phase === 'shop') { run.last = null; persist(); go('shop'); } else go('over');
+  }, [go, persist]);
 
   useEffect(() => {
     const p = loadProfile(store.get(PROFILE_KEY));

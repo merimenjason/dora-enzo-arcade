@@ -227,8 +227,8 @@ test('run: merging levels up and adds a bonus unit', () => {
   assert.deepEqual([run.line[0].a, run.line[0].h, run.line[0].xp, run.line[0].level], [3, 3, 1, 1]);
   run.buy(2, 0);
   assert.deepEqual([run.line[0].a, run.line[0].h, run.line[0].xp, run.line[0].level], [4, 4, 2, 2]);
-  assert.equal(run.units.length, 4);
-  assert.equal(tierOf(run.units[3]), 2);
+  assert.equal(run.units.length, 3, 'the bonus took an emptied slot');
+  assert.equal(tierOf(run.units[0]), 2);
   assert.deepEqual([0, 1, 2, 4, 5, 9].map(levelOf), [1, 1, 2, 2, 3, 3]);
   const b = runWith(); b.acorns = 30;
   place(b, 0, 'wren'); place(b, 1, 'wren', { a: 5, h: 1 });
@@ -413,6 +413,37 @@ test('profile: malformed saves load fresh', () => {
   for (const raw of [null, 'x', '{"v":2}', '{"v":1,"runs":-1,"wins":0,"best":0,"won":[],"last":0}', '{"v":1,"runs":1,"wins":0,"best":11,"won":[],"last":0}', '{"v":1,"runs":1,"wins":0,"best":1,"won":"x","last":0}'])
     assert.deepEqual(loadProfile(raw), freshProfile(), String(raw));
   assert.deepEqual(loadProfile('{"v":1,"runs":3,"wins":1,"best":10,"won":["boar","dragon"],"last":4}').won, ['boar']);
+});
+
+// ---- final review fixes ----
+
+test('review: ghosts never keep a raisin past a fight', () => {
+  // only the last turn's Raisins count; kept for good they pile up to over +1 a unit by turn 14
+  let sum = 0, n = 0;
+  for (let k = 1; k <= 100; k++) for (const u of ghost(k * 104729 + 14, 14)) { sum += u.tmpA; n++; }
+  assert.ok(sum / n < 0.4, `mean raisin attack ${(sum / n).toFixed(2)}`);
+});
+
+test('review: an ability that changes nothing does not keep a stalled fight going', () => {
+  const r = fight([u('badger', 1, { a: 0, h: 5 })], [u('mole', 1, { a: 0, h: 5 })], 1, null);
+  assert.equal(r.result, 'draw'); assert.ok(r.rounds < 3, `${r.rounds} rounds`);
+});
+
+test('review: a chilli front with no attack still splashes', () => {
+  const w = u('wren', 1, { a: 0, h: 1 });
+  const r = fight([tok('log', 0, 9, { status: 'chilli' })], [tok('log', 0, 9), w], 1, null);
+  assert.ok(r.events.some((e) => e.k === 'faint' && e.uid === w.uid), 'the wren behind is splashed out');
+});
+
+test('review: a bonus unit fills an empty shop slot first, and the shop never outgrows its 7 boxes', () => {
+  const run = stock(runWith(), ['toad', 'toad', 'toad', 'mole']);
+  run.buy(0, 0); run.buy(1, 0); run.buy(2, 0);
+  assert.equal(run.units.length, 4, 'the bonus went into an emptied slot');
+  assert.equal(tierOf(run.units[0]), 2);
+  const full = stock(runWith(), ['wren', 'wren', 'wren', 'wren', 'wren', 'wren', 'wren']);
+  place(full, 0, 'mole', { xp: 1 }); full.snacks = [{ kind: 'snack', snack: 'seed', cost: 0, frozen: false }];
+  full.feed(0, 0);
+  assert.equal(full.units.length, 7);
 });
 
 if (failed) { console.log(`${failed} failed`); process.exit(1); }
