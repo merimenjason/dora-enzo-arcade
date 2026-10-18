@@ -1,7 +1,10 @@
 // Hay Bale Brawl: the rules of an auto-battler run. Deterministic and DOM-free: a run is a seed plus the choices made,
 // every random draw comes from a seeded generator, and a fight is worked out in one go into a list of events the page
 // replays.
-import { UNITS, type Unit, type Status, type TokenId, type Ctx, type Trigger } from './hay-bale-units.js';
+import {
+  UNITS, UNIT_IDS, SNACKS, SNACK_IDS, TOKENS, isUnitId, isTokenId, some,
+  type Unit, type UnitId, type SnackId, type Status, type TokenId, type Ctx, type Trigger, type Level, type Tier,
+} from './hay-bale-units.js';
 
 export * from './hay-bale-units.js';
 
@@ -145,4 +148,224 @@ export function fight(left: Unit[], right: Unit[], seed: number, coach: Coach | 
   const result: Result = stalled || (!lines[0].length && !lines[1].length) || (lines[0].length && lines[1].length) ? 'draw' : lines[0].length ? 'win' : 'loss';
   events.push({ k: 'end', result });
   return { result, events, rounds };
+}
+
+// ── The shop and the run ──────────────────────────────────────────────────────
+
+export const START_ACORNS = 10, UNIT_COST = 3, SNACK_COST = 3, ROLL_COST = 1, HEARTS = 5, BALES = 10, MAX_XP = 5;
+export const SAVE_VERSION = 1;
+/** The highest tier the shop offers on a turn: tier 1 on turns 1–2, tier 2 on 3–4, and so on up to 5. */
+export const shopTier = (turn: number) => Math.min(5, 1 + Math.floor((turn - 1) / 2)) as Tier;
+/** How many unit and snack slots the shop has on a turn. */
+export const slotCounts = (turn: number): [number, number] => (turn <= 4 ? [3, 1] : turn <= 8 ? [4, 1] : [5, 2]);
+export const levelOf = (xp: number): Level => (xp >= 5 ? 3 : xp >= 2 ? 2 : 1);
+
+export type Slot = { kind: 'unit'; unit: Unit; frozen: boolean } | { kind: 'snack'; snack: SnackId; cost: number; frozen: boolean };
+export type Phase = 'shop' | 'over' | 'won';
+/** A fought turn: the result, the events to replay, the rival, and the line that fought. */
+export type Outcome = { result: Result; events: FightEvent[]; rival: { name: string; line: Unit[] }; left: Unit[] };
+export type RunOptions = { acorns?: number; fights?: boolean; rival?: (seed: number, turn: number) => Unit[] };
+
+const SUFFIX = ['Bunch', 'Gang', 'Crew', 'Lot'];
+const nameOf = (u: Unit) => (isUnitId(u.id) ? UNITS[u.id].name : TOKENS[u.id as TokenId].name);
+/** A rival crew's name, after its strongest unit (the front-most on a tie). */
+export function crewName(line: Unit[], turn: number) {
+  let best: Unit | null = null;
+  for (const u of line) if (!best || u.a + u.h > best.a + best.h) best = u;
+  if (!best) return 'An empty bale';
+  const name = nameOf(best);
+  return `${name.startsWith('The ') ? name : `The ${name}`}'s ${SUFFIX[turn % SUFFIX.length]}`;
+}
+
+/** Until the buying policy exists, rivals bring nobody. */
+export function ghost(_seed: number, _turn: number): Unit[] { return []; }
+
+export class Run {
+  turn = 0; acorns = 0; hearts = HEARTS; bales = 0; phase: Phase = 'shop';
+  line: (Unit | null)[] = [null, null, null, null, null];
+  units: (Slot | null)[] = []; snacks: (Slot | null)[] = [];
+  freeRoll = false; discount = 0; nextUid = 1; perTurn: number;
+  last: Outcome | null = null;
+  rand: Rand;
+  private fights: boolean;
+  private rival: (seed: number, turn: number) => Unit[];
+  private ctx: Ctx;
+
+  constructor(public seed: number, public coach: Coach | null, opt: RunOptions = {}) {
+    this.rand = new Rand(seed);
+    this.perTurn = opt.acorns ?? START_ACORNS;
+    this.fights = opt.fights !== false;
+    this.rival = opt.rival ?? ghost;
+    const run = this, filled = () => run.line.filter((u): u is Unit => u !== null);
+    this.ctx = {
+      rand: this.rand,
+      friends: (u) => filled().filter((x) => x !== u),
+      enemies: () => [],
+      ahead: (u) => { for (let i = run.line.indexOf(u) - 1; i >= 0; i--) if (run.line[i]) return run.line[i]; return null; },
+      behind: (u) => { for (let i = run.line.indexOf(u) + 1; i < LINE; i++) if (run.line[i]) return run.line[i]; return null; },
+      buff(u, a, h) { u.a = clamp(u.a + a, 0, MAX_STAT); u.h = clamp(u.h + h, 1, MAX_STAT); },
+      damage() {},
+      status(u, st) { u.status = st; },
+      summon() {},
+      acorns(n) { run.acorns += n; },
+      snackDiscount(n) { run.discount += n; run.reprice(); },
+    };
+    this.startTurn();
+  }
+
+  /** A fresh unit with its base stats and a uid of this run's. */
+  spawn(id: UnitId): Unit {
+    const d = UNITS[id];
+    return { uid: this.nextUid++, id, a: d.a, h: d.h, level: 1, xp: 0, status: null, tmpA: 0 };
+  }
+  get tier() { return shopTier(this.turn); }
+  get snackCost() { return Math.max(0, SNACK_COST - this.discount); }
+
+  private fire(u: Unit, on: Trigger, other: Unit | null = null) {
+    if (isUnitId(u.id) && UNITS[u.id].on === on) UNITS[u.id].run(this.ctx, u, u.level, other);
+  }
+  private newUnit(tier: number): Slot {
+    return { kind: 'unit', unit: this.spawn(this.rand.pick(UNIT_IDS.filter((id) => UNITS[id].tier <= tier))), frozen: false };
+  }
+  private newSnack(): Slot {
+    return { kind: 'snack', snack: this.rand.pick(SNACK_IDS.filter((id) => SNACKS[id].tier <= this.tier)), cost: this.snackCost, frozen: false };
+  }
+  private reprice() { for (const s of this.snacks) if (s?.kind === 'snack') s.cost = this.snackCost; }
+  /** Fills every slot that isn't frozen; bonus slots past the turn's count stay only while frozen. */
+  private refill() {
+    const [nu, ns] = slotCounts(this.turn);
+    const units: (Slot | null)[] = [], snacks: (Slot | null)[] = [];
+    for (let i = 0; i < Math.max(nu, this.units.length); i++) {
+      const s = this.units[i];
+      if (s?.frozen) units.push(s); else if (i < nu) units.push(this.newUnit(this.tier));
+    }
+    for (let i = 0; i < ns; i++) { const s = this.snacks[i]; snacks.push(s?.frozen ? s : this.newSnack()); }
+    this.units = units; this.snacks = snacks;
+    this.reprice();
+  }
+  private startTurn() {
+    this.turn++;
+    this.acorns = this.perTurn; this.freeRoll = this.coach === 'enzo'; this.discount = 0;
+    this.refill();
+    for (const u of this.line.slice()) if (u) this.fire(u, 'startTurn');
+  }
+  /** Merges `other` into `into`: the higher stats +1/+1 and its copies as experience. A new level adds a bonus unit. */
+  private merge(into: Unit, other: Unit) {
+    into.a = clamp(Math.max(into.a, other.a) + 1, 0, MAX_STAT);
+    into.h = clamp(Math.max(into.h, other.h) + 1, 1, MAX_STAT);
+    this.gain(into, 1 + other.xp);
+  }
+  private gain(u: Unit, xp: number) {
+    const was = u.level;
+    u.xp = Math.min(MAX_XP, u.xp + xp); u.level = levelOf(u.xp);
+    if (u.level > was) {
+      const tier = Math.min(5, this.tier + 1);
+      this.units.push({ kind: 'unit', unit: this.spawn(this.rand.pick(UNIT_IDS.filter((id) => UNITS[id].tier === tier))), frozen: false });
+    }
+  }
+
+  buy(i: number, to: number) {
+    const slot = this.units[i], at = this.line[to];
+    if (this.phase !== 'shop' || slot?.kind !== 'unit' || to < 0 || to >= LINE || this.acorns < UNIT_COST) return false;
+    if (at && at.id !== slot.unit.id) return false;
+    this.acorns -= UNIT_COST; this.units[i] = null;
+    if (at) { this.merge(at, slot.unit); this.fire(at, 'buy'); }
+    else { this.line[to] = slot.unit; this.fire(slot.unit, 'buy'); }
+    return true;
+  }
+  feed(i: number, to: number) {
+    const slot = this.snacks[i], at = this.line[to];
+    if (this.phase !== 'shop' || slot?.kind !== 'snack' || !at || this.acorns < slot.cost) return false;
+    this.acorns -= slot.cost; this.snacks[i] = null;
+    const ate = slot.snack === 'hay' ? some(this.ctx, this.line.filter((u): u is Unit => u !== null), 2) : [at];
+    for (const u of ate) {
+      switch (slot.snack) {
+        case 'apple': case 'hay': this.ctx.buff(u, 1, 1); break;
+        case 'cake': this.ctx.buff(u, 3, 3); break;
+        case 'raisin': u.tmpA += 3; break;
+        case 'honey': u.status = 'shell'; break;
+        case 'mint': u.status = 'mint'; break;
+        case 'chilli': u.status = 'chilli'; break;
+        case 'seed': this.gain(u, 1); break;
+      }
+      for (const f of this.line.slice()) if (f && f !== u) this.fire(f, 'friendAte', u);
+    }
+    return true;
+  }
+  sell(at: number) {
+    const u = this.line[at];
+    if (this.phase !== 'shop' || !u) return false;
+    this.fire(u, 'sell');
+    this.line[at] = null; this.acorns += u.level;
+    return true;
+  }
+  move(from: number, to: number) {
+    const a = this.line[from];
+    if (this.phase !== 'shop' || !a || from === to || to < 0 || to >= LINE) return false;
+    const b = this.line[to];
+    if (b && b.id === a.id) { this.merge(b, a); this.line[from] = null; }
+    else { this.line[to] = a; this.line[from] = b; }
+    return true;
+  }
+  roll() {
+    if (this.phase !== 'shop' || (!this.freeRoll && this.acorns < ROLL_COST)) return false;
+    if (this.freeRoll) this.freeRoll = false; else this.acorns -= ROLL_COST;
+    this.refill();
+    return true;
+  }
+  freeze(kind: 'unit' | 'snack', i: number) {
+    const s = (kind === 'unit' ? this.units : this.snacks)[i];
+    if (this.phase !== 'shop' || !s) return false;
+    s.frozen = !s.frozen;
+    return true;
+  }
+  /** End-of-turn abilities, then (for a player) the fight, hearts and bales, and the next turn's shop. */
+  endTurn(): Outcome | null {
+    if (this.phase !== 'shop') return null;
+    for (const u of this.line.slice()) if (u) this.fire(u, 'endTurn');
+    if (!this.fights) { this.startTurn(); return null; }
+    const left = this.line.filter((u): u is Unit => u !== null).map((u) => ({ ...u }));
+    const rival = this.rival(mix(this.seed, this.turn), this.turn);
+    const { result, events } = fight(left, rival, mix(this.seed, this.turn + 1000), this.coach);
+    if (result === 'win') this.bales++; else if (result === 'loss') this.hearts--;
+    for (const u of this.line) if (u) u.tmpA = 0;
+    this.last = { result, events, rival: { name: crewName(rival, this.turn), line: rival }, left };
+    if (this.hearts <= 0) this.phase = 'over';
+    else if (this.bales >= BALES) this.phase = 'won';
+    else this.startTurn();
+    return this.last;
+  }
+
+  toJSON() {
+    return {
+      v: SAVE_VERSION, seed: this.seed, coach: this.coach, turn: this.turn, acorns: this.acorns, hearts: this.hearts, bales: this.bales,
+      phase: this.phase, line: this.line, units: this.units, snacks: this.snacks, freeRoll: this.freeRoll, discount: this.discount,
+      nextUid: this.nextUid, perTurn: this.perTurn, rand: this.rand.s, last: this.last && { ...this.last, events: [] },
+    };
+  }
+  /** A saved run, or null for anything malformed, from another version or naming a unit that doesn't exist. */
+  static load(raw: string | null): Run | null {
+    try {
+      const d = JSON.parse(raw ?? '');
+      const int = (n: unknown, lo: number, hi: number) => Number.isInteger(n) && (n as number) >= lo && (n as number) <= hi;
+      if (!d || d.v !== SAVE_VERSION || !int(d.seed, 0, 2 ** 32) || !['dora', 'enzo', null].includes(d.coach)) return null;
+      if (!int(d.turn, 1, 99) || !int(d.acorns, 0, 999) || !int(d.hearts, 0, HEARTS) || !int(d.bales, 0, BALES) || !int(d.perTurn, 0, 99)) return null;
+      if (!['shop', 'over', 'won'].includes(d.phase) || typeof d.freeRoll !== 'boolean' || !int(d.discount, 0, 99) || !int(d.nextUid, 1, 2 ** 31) || !int(d.rand, 0, 2 ** 32)) return null;
+      const unit = (u: any) => u && int(u.uid, 1, 2 ** 31) && (isUnitId(u.id) || isTokenId(u.id)) && int(u.a, 0, MAX_STAT) && int(u.h, 1, MAX_STAT)
+        && int(u.level, 1, 3) && int(u.xp, 0, MAX_XP) && ['shell', 'mint', 'chilli', null].includes(u.status) && int(u.tmpA, 0, MAX_STAT);
+      const slot = (s: any) => s === null || (s && typeof s.frozen === 'boolean'
+        && ((s.kind === 'unit' && unit(s.unit) && isUnitId(s.unit.id)) || (s.kind === 'snack' && SNACK_IDS.includes(s.snack) && int(s.cost, 0, SNACK_COST))));
+      const last = d.last ?? null;
+      if (last !== null && !(['win', 'loss', 'draw'].includes(last.result) && Array.isArray(last.events) && Array.isArray(last.left) && Array.isArray(last.rival?.line) && typeof last.rival.name === 'string')) return null;
+      if (!Array.isArray(d.line) || d.line.length !== LINE || !d.line.every((u: any) => u === null || (unit(u) && isUnitId(u.id)))) return null;
+      if (!Array.isArray(d.units) || d.units.length > 12 || !d.units.every(slot) || !Array.isArray(d.snacks) || d.snacks.length > 2 || !d.snacks.every(slot)) return null;
+      const run = new Run(d.seed, d.coach, { acorns: d.perTurn });
+      Object.assign(run, {
+        turn: d.turn, acorns: d.acorns, hearts: d.hearts, bales: d.bales, phase: d.phase, line: d.line, units: d.units, snacks: d.snacks,
+        freeRoll: d.freeRoll, discount: d.discount, nextUid: d.nextUid, last,
+      });
+      run.rand.s = d.rand;
+      return run;
+    } catch { return null; }
+  }
 }

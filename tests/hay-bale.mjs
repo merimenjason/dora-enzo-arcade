@@ -175,5 +175,173 @@ test('fight: 500 random lines never reach 200 rounds', () => {
   assert.ok(most < 200, `longest fight ${most} rounds`);
 });
 
+// ---- the shop and the run ----
+
+const { Run, levelOf, crewName, shopTier, slotCounts } = G;
+const none = () => [];
+/** A run with a fixed rival (empty unless given) and a shop holding exactly these units and snacks. */
+const runWith = (coach = 'dora', rival = none, opt = {}) => new Run(11, coach, { rival, ...opt });
+const stock = (run, ids = [], snacks = []) => {
+  run.units = ids.map((id) => ({ kind: 'unit', unit: run.spawn(id), frozen: false }));
+  run.snacks = snacks.map((id) => ({ kind: 'snack', snack: id, cost: 3, frozen: false }));
+  return run;
+};
+const place = (run, at, id, extra = {}) => { run.line[at] = { ...run.spawn(id), ...extra }; return run.line[at]; };
+const tierOf = (s) => (s.kind === 'unit' ? UNITS[s.unit.id].tier : SNACKS[s.snack].tier);
+
+test('run: a new run', () => {
+  const run = new Run(1, 'dora');
+  assert.deepEqual([run.turn, run.acorns, run.hearts, run.bales, run.phase], [1, 10, 5, 0, 'shop']);
+  assert.deepEqual([run.units.length, run.snacks.length], [3, 1]);
+  for (const s of [...run.units, ...run.snacks]) assert.equal(tierOf(s), 1);
+  assert.deepEqual(run.line, [null, null, null, null, null]);
+});
+
+test('run: slots and tiers by turn', () => {
+  assert.deepEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 14].map(shopTier), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5]);
+  assert.deepEqual([1, 4, 5, 8, 9].map(slotCounts), [[3, 1], [3, 1], [4, 1], [4, 1], [5, 2]]);
+  const run = runWith('dora', none);
+  place(run, 0, 'wren');
+  for (let t = 1; t < 9; t++) run.endTurn();
+  assert.equal(run.turn, 9);
+  assert.deepEqual([run.units.length, run.snacks.length], [5, 2]);
+  const seen = new Set();
+  for (let i = 0; i < 60; i++) { run.acorns = 10; run.roll(); for (const s of run.units) seen.add(tierOf(s)); }
+  assert.deepEqual([...seen].sort(), [1, 2, 3, 4, 5]);
+});
+
+test('run: buy, sell and acorns', () => {
+  const run = stock(runWith(), ['wren', 'mouse', 'toad']);
+  assert.equal(run.buy(0, 0), true); assert.equal(run.acorns, 7); assert.equal(run.line[0].id, 'wren'); assert.equal(run.units[0], null);
+  run.buy(1, 3);
+  const mouse = run.line[3];
+  assert.equal(run.sell(0), true);
+  assert.deepEqual([run.acorns, run.line[0], mouse.a], [5, null, 3], 'refund 1 and the wren buffs the mouse');
+  place(run, 2, 'toad', { level: 2, xp: 2 });
+  run.sell(2); assert.equal(run.acorns, 7);
+});
+
+test('run: merging levels up and adds a bonus unit', () => {
+  const run = stock(runWith(), ['toad', 'toad', 'toad']);
+  run.buy(0, 0); run.buy(1, 0);
+  assert.deepEqual([run.line[0].a, run.line[0].h, run.line[0].xp, run.line[0].level], [3, 3, 1, 1]);
+  run.buy(2, 0);
+  assert.deepEqual([run.line[0].a, run.line[0].h, run.line[0].xp, run.line[0].level], [4, 4, 2, 2]);
+  assert.equal(run.units.length, 4);
+  assert.equal(tierOf(run.units[3]), 2);
+  assert.deepEqual([0, 1, 2, 4, 5, 9].map(levelOf), [1, 1, 2, 2, 3, 3]);
+  const b = runWith(); b.acorns = 30;
+  place(b, 0, 'wren'); place(b, 1, 'wren', { a: 5, h: 1 });
+  assert.equal(b.move(1, 0), true);
+  assert.deepEqual([b.line[0].a, b.line[0].h, b.line[0].xp, b.line[1]], [6, 2, 1, null], 'moving onto a copy merges');
+  place(b, 1, 'mole');
+  b.move(0, 1); assert.deepEqual([b.line[0].id, b.line[1].id], ['mole', 'wren'], 'moving onto another unit swaps');
+});
+
+test('run: feed: snacks per the spec', () => {
+  const feed = (snack, id = 'mole', extra = {}) => { const r = stock(runWith(), [], [snack]); const t = place(r, 0, id, extra); assert.equal(r.feed(0, 0), true); assert.equal(r.acorns, 7); return [r, t]; };
+  assert.deepEqual(((t) => [t.a, t.h])(feed('apple')[1]), [2, 5]);
+  assert.equal(feed('raisin')[1].tmpA, 3);
+  assert.equal(feed('honey')[1].status, 'shell');
+  assert.equal(feed('mint')[1].status, 'mint');
+  assert.equal(feed('chilli')[1].status, 'chilli');
+  assert.deepEqual(((t) => [t.a, t.h])(feed('cake')[1]), [4, 7]);
+  const [sr, st] = feed('seed', 'mole', { xp: 1 });
+  assert.deepEqual([st.xp, st.level, sr.units.length], [2, 2, 1], 'a seed levels up and adds a bonus unit');
+  const hay = stock(runWith(), [], ['hay']); const a = place(hay, 0, 'mole'), b = place(hay, 3, 'wren');
+  hay.feed(0, 0); assert.deepEqual([a.a, a.h, b.a, b.h], [2, 5, 3, 2]);
+  const rab = stock(runWith(), [], ['apple']); const w = place(rab, 0, 'wren'); place(rab, 1, 'rabbit', { level: 2 });
+  rab.feed(0, 0); assert.deepEqual([w.a, w.h], [3, 4], 'the rabbit adds 2 health');
+});
+
+test('run: freeze survives a roll and the next turn', () => {
+  const run = runWith(); place(run, 0, 'wren');
+  const kept = run.units[1].unit.uid;
+  assert.equal(run.freeze('unit', 1), true);
+  run.roll(); assert.equal(run.units[1].unit.uid, kept);
+  run.endTurn(); assert.equal(run.turn, 2); assert.equal(run.units[1].unit.uid, kept); assert.equal(run.units[1].frozen, true);
+  run.freeze('unit', 1); assert.equal(run.units[1].frozen, false);
+});
+
+test("run: enzo's first roll is free each turn; dora's is not", () => {
+  const e = runWith('enzo'); e.roll(); assert.equal(e.acorns, 10); e.roll(); assert.equal(e.acorns, 9);
+  place(e, 0, 'wren'); e.endTurn(); e.roll(); assert.equal(e.acorns, 10);
+  const d = runWith('dora'); d.roll(); assert.equal(d.acorns, 9);
+});
+
+test('run: shop triggers: squirrel, magpie, pip, otter, dormouse and duchess', () => {
+  const sq = runWith(); place(sq, 0, 'squirrel'); sq.endTurn(); assert.equal(sq.snacks[0].cost, 2);
+  place(sq, 1, 'squirrel', { level: 3 }); sq.endTurn(); assert.equal(sq.snacks[0].cost, 0, 'never below 0');
+  const mg = runWith(); place(mg, 0, 'magpie', { level: 2 }); mg.endTurn(); assert.equal(mg.acorns, 12);
+  const pp = stock(runWith(), ['pip']); const w = place(pp, 0, 'wren'), m = place(pp, 1, 'mole');
+  pp.buy(0, 2); assert.deepEqual([w.h, m.h], [2, 5]);
+  const ot = runWith(); const ow = place(ot, 0, 'wren'); place(ot, 1, 'otter', { level: 3 }); ot.endTurn(); assert.deepEqual([ow.a, ow.h], [5, 4]);
+  const dd = runWith(); const dm = place(dd, 0, 'dormouse'); const du = place(dd, 1, 'duchess');
+  dd.endTurn(); dd.endTurn();
+  assert.deepEqual([dm.a, dm.h, du.a, du.h], [3, 7, 3, 6], 'end-turn buffs last');
+});
+
+test('run: raisin attack lasts one fight', () => {
+  const run = stock(runWith(), [], ['raisin']); place(run, 0, 'mole');
+  run.feed(0, 0);
+  const out = run.endTurn();
+  assert.equal(out.left[0].tmpA, 3); assert.equal(run.line[0].tmpA, 0);
+});
+
+test('run: illegal actions change nothing', () => {
+  const run = stock(runWith(), ['wren', 'mole', 'toad'], ['apple']);
+  place(run, 0, 'bee'); place(run, 1, 'bee'); place(run, 2, 'bee'); place(run, 3, 'bee'); place(run, 4, 'bee');
+  const before = JSON.stringify(run);
+  assert.equal(run.buy(0, 0), false, 'full line, no match');
+  assert.equal(run.buy(9, 0), false, 'no such slot');
+  assert.equal(run.sell(7), false);
+  assert.equal(run.freeze('unit', 9), false);
+  assert.equal(run.move(2, 2), false);
+  assert.equal(JSON.stringify(run), before);
+  const poor = stock(runWith(), ['wren'], ['apple']); poor.acorns = 2;
+  const p0 = JSON.stringify(poor);
+  assert.equal(poor.buy(0, 0), false, 'too few acorns');
+  assert.equal(poor.feed(0, 0), false, 'no acorns and nobody to feed');
+  poor.acorns = 10; const p1 = JSON.stringify(poor);
+  assert.equal(poor.feed(0, 0), false, 'a snack on an empty slot');
+  assert.equal(poor.sell(0), false, 'selling an empty slot');
+  assert.equal(JSON.stringify(poor), p1); assert.notEqual(p0, p1);
+});
+
+test('run: the run ends', () => {
+  const won = runWith('dora', none); place(won, 0, 'boar', { level: 3 });
+  for (let i = 0; i < 10; i++) assert.equal(won.endTurn().result, 'win');
+  assert.deepEqual([won.phase, won.bales, won.hearts], ['won', 10, 5]);
+  assert.equal(won.endTurn(), null);
+  const big = () => [{ uid: 900, id: 'boar', a: 50, h: 50, level: 3, xp: 5, status: null, tmpA: 0 }];
+  const lost = runWith('dora', big);
+  for (let i = 0; i < 5; i++) assert.equal(lost.endTurn().result, 'loss');
+  assert.deepEqual([lost.phase, lost.hearts, lost.bales], ['over', 0, 0]);
+  const drawn = runWith('dora', none);
+  assert.equal(drawn.endTurn().result, 'draw');
+  assert.deepEqual([drawn.hearts, drawn.bales, drawn.turn], [5, 0, 2]);
+  assert.match(crewName([u('wren'), u('boar')], 1), /^The Boar's \w+$/);
+  assert.match(crewName([u('duchess')], 2), /^The Duchess's \w+$/);
+});
+
+test('run: save round-trips', () => {
+  const a = stock(new Run(5, 'enzo'), ['wren', 'mole', 'toad'], ['honey']);
+  a.buy(0, 0); a.feed(0, 0); a.freeze('unit', 1); a.roll();
+  const b = Run.load(JSON.stringify(a));
+  assert.ok(b);
+  assert.equal(JSON.stringify(b), JSON.stringify(a));
+  a.endTurn(); b.endTurn();
+  assert.equal(JSON.stringify(b), JSON.stringify(a));
+});
+
+test('run: malformed saves load as null', () => {
+  const good = JSON.parse(JSON.stringify(new Run(5, 'dora')));
+  const bad = [null, 'x', '{"v":2}', JSON.stringify({ ...good, line: [null, null, null, null, null, null] }),
+    JSON.stringify({ ...good, line: [{ uid: 1, id: 'dragon', a: 1, h: 1, level: 1, xp: 0, status: null, tmpA: 0 }, null, null, null, null] }),
+    JSON.stringify({ ...good, hearts: -1 }), JSON.stringify({ ...good, coach: 'owl' }), JSON.stringify({ ...good, units: [{ kind: 'unit', frozen: false }] }), JSON.stringify({ ...good, last: { result: 'maybe' } })];
+  for (const raw of bad) assert.equal(Run.load(raw), null, String(raw).slice(0, 60));
+  assert.ok(Run.load(JSON.stringify(good)));
+});
+
 if (failed) { console.log(`${failed} failed`); process.exit(1); }
 console.log('PASS Hay Bale Brawl engine');
