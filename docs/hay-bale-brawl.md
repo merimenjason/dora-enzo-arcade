@@ -2,7 +2,7 @@
 
 Route `/brawl`. An auto-battler in the manner of Super Auto Pets. You buy a crew of woodland critters in a shop, line them up on a hay bale, and watch them fight a rival crew by themselves. Design: [`superpowers/specs/18-10-2026-hay-bale-brawl-design.md`](superpowers/specs/18-10-2026-hay-bale-brawl-design.md).
 
-Painted artwork was prepared on 18-10-2026: [asset delivery](hay-bale-brawl-art.md), [integration instructions](hay-bale-brawl-integration.md), [image prompts](hay-bale-brawl-image-prompts.md), [measured crops](hay-bale-brawl-crops.json) and [generation provenance](hay-bale-brawl-generation.json). The runtime still uses its code drawings; wiring the prepared images is the next step.
+The game is painted (18-10-2026): [asset delivery](hay-bale-brawl-art.md), [art integration](hay-bale-brawl-integration.md), [image prompts](hay-bale-brawl-image-prompts.md), [measured crops](hay-bale-brawl-crops.json) and [generation provenance](hay-bale-brawl-generation.json).
 
 ## The code
 
@@ -13,7 +13,9 @@ Painted artwork was prepared on 18-10-2026: [asset delivery](hay-bale-brawl-art.
   - `choose` and `playShop` are the buying policy that the rival ghosts and the bot both use;
   - `ghost(seed, turn)` builds a rival crew;
   - the profile (`loadProfile`, `record`).
-- `lib/hay-bale-scene.ts` draws the shop, the fight replay and every critter in code on a 480 × 320 stage. Pip, the Duchess and the coaches use `drawChinchilla`.
+- `lib/hay-bale-crops.ts` maps every unit, summon, snack, coach and the bale to its measured crop in the seven painted files, with each file's hash.
+- `lib/hay-bale-paint.ts` loads those files on demand and paints crops of them; a painter returns false while its file is pending or failed.
+- `lib/hay-bale-scene.ts` draws the shop, the fight replay and the title on a 480 × 320 stage, painting each subject when it can and drawing it in code when it can't. Pip, the Duchess and the coaches' fallbacks use `drawChinchilla`.
 - `app/brawl/page.tsx` handles the screens, drag and tap-tap input, the replay, sound and saving. `window.__brawl()` exposes the run, the profile, the replay, the shop layout and a `set` hook for tests.
 
 ## The run
@@ -147,9 +149,16 @@ The first tuning pass dropped the ghosts to 9 acorns, but the final review found
 
 ## Art and sound
 
-Everything is drawn in code:
-- each critter is built from a shared round body with its own colours, ears and features (spines, antlers, a mask, a shell);
-- birds, bugs, frogs and the tortoise have their own shapes;
-- Pip and the Duchess are chinchillas, and the Duchess wears a crown.
+Everything is painted, from seven images in `public/art/brawl/` ([details](hay-bale-brawl-art.md)):
+- three sheets with the 30 critters, three summons, both coaches and a bale, and a sheet of the eight snacks (PNG);
+- the barn shop and the meadow stage (quality-85 WebP);
+- the title: Dora and Enzo on a bale with five of the crew (PNG).
 
-Seven painted images have been prepared from [the ChatGPT prompts](hay-bale-brawl-image-prompts.md); [integration instructions](hay-bale-brawl-integration.md) describe the pending renderer work. Sound is synthesised WebAudio blips (`app/brawl/sound.ts`), with no files.
+How they are used:
+- **Loading.** Each screen asks for what it needs when it opens: the title for the title and barn, the shop for the barn, snacks, the coach's sheet, its critters' sheets and the meadow, a fight for the meadow and every critter sheet. Drawing anything also asks for its file. Nothing waits for a painting.
+- **Fallbacks.** Until a file arrives, or if it fails, the code drawings stand in: a shared round body per critter, chinchillas for Pip, the Duchess and the coaches, a sky, hills and a code bale. A failed file is not asked for again until **Retry artwork**, which shows under the bar only when something failed. The title and Almanac canvases repaint when a file arrives or a retry lands.
+- **Placement.** Every subject keeps its proportions and stands on the bottom of its box. In a fight, feet stand on the painted straw (y203 of 320) and the stat badges sit just below, on the bale's face. Rivals are the same paintings mirrored; their numbers are not. The coach stands on the painted bale, left of the line.
+- **Movement.** The paintings are single still poses. They move only when something happens: the attack lunge and the knock-out fade. The code drawings still breathe. With reduced motion, the lunge is small, the damage numbers don't rise, the knock-out puff is off and nothing breathes; the replay's timing is the same.
+- **Text.** Names, numbers, levels and hints are drawn by the game, on light plates where they sit over a painting.
+
+Sound is synthesised WebAudio blips (`app/brawl/sound.ts`), with no files.

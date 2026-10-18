@@ -1,9 +1,10 @@
 /* oxlint-disable react/react-compiler -- The run is a mutable engine object changed by the shop and drawn by the loop, like the other arcade games. */
 /* oxlint-disable next/no-html-link-for-pages -- Match the arcade's hard navigation back to the menu. */
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Run, UNITS, UNIT_IDS, SNACKS, SNACK_IDS, LINE, loadProfile, record, type Coach, type Profile, type Unit, type Slot } from '../../lib/hay-bale-game';
 import { drawShop, drawFight, drawTitle, drawCritter, drawSnack, stepReplay, inBox, LAYOUT, STAGE, type Held, type ShopUi, type Replay } from '../../lib/hay-bale-scene';
+import { brawlArtServerVersion, brawlArtStatus, brawlArtVersion, brawlSheetsFor, CRITTER_SHEETS, paintBrawlExtra, paintBrawlSnack, paintBrawlUnit, requestBrawlArt, retryBrawlArt, subscribeBrawlArt } from '../../lib/hay-bale-paint';
 import { sound } from './sound';
 import './brawl.css';
 
@@ -31,10 +32,13 @@ const isHeld = (s: Spot): s is Held => !!s && 'from' in s;
 const asTarget = (s: Spot): Target | null => (!s ? null : 'kind' in s ? s : s.from === 'line' ? { kind: 'line', i: s.i } : null);
 const same = (a: Held | null, b: Held | null) => !!a && !!b && a.from === b.from && a.i === b.i;
 
-/** A canvas drawn once. */
+const useArtVersion = () => useSyncExternalStore(subscribeBrawlArt, brawlArtVersion, brawlArtServerVersion);
+
+/** A canvas drawn once, and again whenever a painting arrives or a retry lands. */
 function Still({ draw, className }: { draw: (c: CanvasRenderingContext2D) => void; className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => { const c = ref.current?.getContext('2d'); if (c) { c.setTransform(2, 0, 0, 2, 0, 0); c.clearRect(0, 0, 480, 320); draw(c); } }, [draw]);
+  const art = useArtVersion();
+  useEffect(() => { const c = ref.current?.getContext('2d'); if (c) { c.setTransform(2, 0, 0, 2, 0, 0); c.clearRect(0, 0, 480, 320); draw(c); } }, [draw, art]);
   return <canvas ref={ref} width={960} height={640} className={className} aria-hidden="true" />;
 }
 
@@ -53,6 +57,8 @@ export default function HayBaleBrawl() {
   const pressRef = useRef<{ held: Held | null; x0: number; y0: number } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const screenRef = useRef<Screen>('title');
+  const calmRef = useRef(false);
+  useArtVersion(); // re-render for the Retry artwork notice
   profileRef.current = profile; screenRef.current = screen;
   const refresh = useCallback(() => setTick((n) => n + 1), []);
 
@@ -113,6 +119,7 @@ export default function HayBaleBrawl() {
     const out = run?.endTurn();
     if (!run || !out) return;
     persist();
+    requestBrawlArt(['bg-fight', ...CRITTER_SHEETS]);
     replayRef.current = { outcome: out, i: 0, t: 0, speed: speedRef.current };
     go('fight');
   }, [persist, go]);
@@ -131,9 +138,30 @@ export default function HayBaleBrawl() {
     setReady(true);
   }, []);
 
+  // Reduced motion: a smaller lunge, still numbers and no breathing. Replay timing is the same either way.
+  useEffect(() => {
+    if (typeof matchMedia !== 'function') return;
+    const q = matchMedia('(prefers-reduced-motion: reduce)'), on = () => { calmRef.current = q.matches; };
+    on(); q.addEventListener('change', on);
+    return () => q.removeEventListener('change', on);
+  }, []);
+
+  // The paintings each screen needs, asked for when it opens; nothing waits for them. Drawing asks for any it meets.
+  useEffect(() => {
+    const run = runRef.current;
+    if (screen === 'title') requestBrawlArt(['title', 'bg-shop']);
+    else if (screen === 'almanac') requestBrawlArt([...CRITTER_SHEETS, 'snacks']);
+    else if (screen === 'fight') requestBrawlArt(['bg-fight', ...CRITTER_SHEETS]);
+    else if (screen === 'shop' && run) {
+      const ids = [...run.line, ...run.units.map((s) => (s?.kind === 'unit' ? s.unit : null))].flatMap((u) => (u ? [u.id] : []));
+      requestBrawlArt(['bg-shop', 'snacks', 'critters-3', ...brawlSheetsFor(ids), 'bg-fight']);
+    }
+  }, [screen]);
+
   useEffect(() => {
     (window as unknown as { __brawl?: () => unknown }).__brawl = () => ({
       run: runRef.current, profile: profileRef.current, replay: replayRef.current, ui: () => uiRef.current, layout: LAYOUT, start,
+      art: { status: brawlArtStatus, version: brawlArtVersion, critter: drawCritter, snack: drawSnack, unit: paintBrawlUnit, snackArt: paintBrawlSnack, extra: paintBrawlExtra },
       set: (p: { line?: (Unit | null)[]; units?: (Slot | null)[]; snacks?: (Slot | null)[]; acorns?: number }) => {
         const run = runRef.current;
         if (!run) return;
@@ -183,8 +211,8 @@ export default function HayBaleBrawl() {
           if (e.k === 'end') sound.cue(e.result === 'win' ? 'win' : e.result === 'loss' ? 'loss' : 'draw');
         }
         if (!done && r.i >= r.outcome.events.length) { done = true; refresh(); }
-        drawFight(c, r, now);
-      } else drawShop(c, run, uiRef.current, now);
+        drawFight(c, r, now, calmRef.current);
+      } else drawShop(c, run, uiRef.current, calmRef.current ? 0 : now);
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
@@ -241,6 +269,7 @@ export default function HayBaleBrawl() {
   const done = !!replay && replay.i >= replay.outcome.events.length;
   const toggleMute = () => { const m = !muted; sound.setMuted(m); setMuted(m); };
   const shown = screen === 'fight' && !replay ? 'shop' : screen;
+  const failedArt = brawlArtStatus().failed.length > 0;
 
   return (
     <main className="hb-shell" data-ready={ready} data-screen={shown}>
@@ -250,6 +279,12 @@ export default function HayBaleBrawl() {
         <button data-testid="mute" aria-pressed={muted} onClick={toggleMute}>{muted ? 'Sound off' : 'Sound on'}</button>
         {(screen === 'shop' || screen === 'fight') && <button data-testid="menu" onClick={() => go('title')}>Menu</button>}
       </header>
+      {failedArt && (
+        <div className="hb-art-note" aria-live="polite">
+          Some paintings didn&apos;t load, so drawings stand in.
+          <button data-testid="retry-art" onClick={retryBrawlArt}>Retry artwork</button>
+        </div>
+      )}
 
       {screen === 'title' && (
         <section className="hb-menu">

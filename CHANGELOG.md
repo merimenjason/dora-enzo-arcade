@@ -4,15 +4,19 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 18-10-2026
 
+### Changed
+
+- **Hay Bale Brawl** is painted: every critter, summon and snack, both coaches, the barn shop, the meadow stage and the title now use the new storybook paintings. Critters stand on the painted straw and rivals face your crew. The paintings load as you need them, the old drawings fill in until they arrive, and a **Retry artwork** button appears if one fails. With reduced motion the fight's lunges are gentler and the numbers stay still.
+
 ### Added
 
-- **Hay Bale Brawl**: prepared seven painted art files covering every critter, summon and snack, both coaches, the bale, barn shop, meadow stage and title. Includes measured sprite crops and an integration handoff; the running game still uses its original drawings until the artwork is wired in.
+- **Hay Bale Brawl**: prepared seven painted art files covering every critter, summon and snack, both coaches, the bale, barn shop, meadow stage and title. Includes measured sprite crops and an integration handoff; wired into the game the same day (see **Changed**).
 - **Hay Bale Brawl**: the arcade's 36th game, an auto-battler. Pick Dora or Enzo as coach, buy a crew of thirty woodland critters, merge copies to level them up, feed them snacks, and watch them brawl rival crews on a hay bale. Win ten fights before you lose five hearts. Drag or tap to shop; the run is saved after every move.
 - **Whisker Ware**: the arcade's 35th game, a microgame frenzy. Four hosts (Enzo, Dora, the Owl and the Fox) each throw five five-second games and a boss at you, faster and faster. Clear all four for the endless Remix, and practise any game you've beaten from the gallery. Plays by tap, click or keyboard, with painted art and synthesised sound.
 
 ### Documentation
 
-- **Hay Bale Brawl**: a README guide and `docs/hay-bale-brawl.md` with the shop, fight rules, every unit and the bot's rates; `docs/hay-bale-brawl-image-prompts.md` retains the original art brief, and `docs/hay-bale-brawl-integration.md` now specifies the pending loader, renderer mappings, artwork refresh/retry and validation work.
+- **Hay Bale Brawl**: a README guide and `docs/hay-bale-brawl.md` with the shop, fight rules, every unit and the bot's rates; `docs/hay-bale-brawl-image-prompts.md` retains the original art brief, and `docs/hay-bale-brawl-integration.md` records the loader, renderer mappings, refresh/retry and checks, and their status as built.
 - **Whisker Ware**: a README guide and `docs/whisker-ware.md` with every game's rules and numbers. The art notes now say the backdrops are WebP.
 
 ## 17-10-2026
