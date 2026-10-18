@@ -305,7 +305,8 @@ export class Trek {
     const out = fight({ stats: this.stats(), hp: this.hp, kit: this.kit, foe: e.foe, chapter: this.chapter, day: this.day, seed: mix(this.seed, this.day), wind: !this.windUsed });
     this.hp = out.hp; this.windUsed ||= out.windUsed; this.last = { foe: e.foe, day: this.day, out };
     if (!this.seen.foes.includes(e.foe)) this.seen.foes.push(e.foe);
-    if (out.result === 'loss') { this.phase = 'over'; return; }
+    // a boss that won't go down ends the trek, since there is no day after it
+    if (out.result === 'loss' || (out.result === 'stall' && e.rank === 'boss')) { this.phase = 'over'; return; }
     if (out.result === 'stall') { this.note = `The ${FOES[e.foe].name} gives up and wanders off.`; this.phase = 'walk'; return; }
     this.gain(FIGHT_ACORNS[e.rank] * this.chapter);
     if (e.rank === 'boss') { this.phase = 'cleared'; return; }
@@ -547,14 +548,21 @@ export function record(p: Profile, t: Trek): { profile: Profile; chest: Chest | 
 
 // ── The bot's policy ───────────────────────────────────────────────────────
 
-export const SKILL_WEIGHT: Record<SkillId, number> = Object.fromEntries(SKILL_IDS.map((id) => [id, 30])) as Record<SkillId, number>;
+/** How much the bot wants each skill, from how often favouring it clears chapter 1. */
+export const SKILL_WEIGHT: Record<SkillId, number> = {
+  wind: 50, fluff: 50, frost: 45, combo: 45, snack: 45, sharp: 40, static: 40, prickle: 40, nap: 40,
+  pepper: 35, dust: 35, shell: 35, keen: 40, counter: 35, grit: 40, pounce: 35, roll: 35, lucky: 35,
+};
+/** The other half of `id`'s evolution, if it has one. */
+const partner = (id: SkillId) => { const e = EVO_IDS.find((x) => EVOS[x].from.includes(id)); return e ? EVOS[e].from.find((s) => s !== id)! : null; };
 export type Action = { k: 'next' } | { k: 'choose'; i: number } | { k: 'pick'; i: number } | { k: 'reroll' } | { k: 'buy'; i: number };
 const HALVES = new Set(EVO_IDS.flatMap((e) => EVOS[e].from));
 
 export function decide(t: Trek): Action {
   const low = (pct: number) => t.hp < t.stats().hp * pct;
   if (t.phase === 'pick') {
-    const score = (c: Card) => c.k === 'evo' ? 100 : c.k === 'rest' ? 0 : SKILL_WEIGHT[c.id] + (c.level === 3 && HALVES.has(c.id) ? 50 : 0);
+    const pair = (id: SkillId) => { const o = partner(id); return o && t.kit.skills[o] ? 25 : 0; };
+    const score = (c: Card) => c.k === 'evo' ? 100 : c.k === 'rest' ? 0 : SKILL_WEIGHT[c.id] + (c.level === 3 && HALVES.has(c.id) ? 50 : 0) + pair(c.id);
     const scores = t.offer!.map(score), best = Math.max(...scores);
     if (best < 20 && !t.rerolled) return { k: 'reroll' };
     return { k: 'pick', i: scores.indexOf(best) };

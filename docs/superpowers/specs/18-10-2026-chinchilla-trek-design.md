@@ -63,7 +63,7 @@ Fights play themselves and are resolved by the engine in one go, from the hero, 
 
 - The hero and the foe trade turns, the hero first. Each turn is one attack, plus whatever skills trigger.
 - Damage is the attacker's attack, doubled on a crit, after any reductions, never below 1. A dodged attack deals nothing.
-- At 40 rounds the foe gives up and wanders off: the fight ends, with no experience or acorns.
+- At 40 rounds the foe gives up and wanders off: the fight ends, with no experience or acorns. A boss that won't go down ends the trek instead, since there is no day after it.
 - At 0 HP the foe is **knocked out**: it tumbles over and scampers off sulking. Nobody is hurt; it's a scrap, not a battle. If the hero reaches 0, the trek is over.
 - A won fight gives **experience** and a few **acorns**.
 
@@ -93,8 +93,8 @@ The skills are below. Numbers are for levels 1 / 2 / 3.
 | `nap` | Power Nap | End of each round: heal 2% / 4% / 6% of max HP. |
 | `grit` | Grit | Below half HP: +30% / 50% / 80% attack. |
 | `prickle` | Prickles | Reflect 15% / 25% / 40% of the damage taken. |
-| `pounce` | Pounce | The first attack of each fight deals ×2 / ×3 / ×4. |
-| `roll` | Dust Roll | Start of fight: deal 100% / 150% / 200% of attack. |
+| `pounce` | Pounce | The first attack of each fight deals ×2.5 / ×4 / ×5.5. |
+| `roll` | Dust Roll | Start of fight: deal 150% / 250% / 350% of attack. |
 | `pepper` | Pepper Dust | Hits add a burn: the foe takes 10% / 15% / 20% of attack each round; stacks up to 5. |
 | `frost` | Frost Whiskers | 12% / 20% / 28% chance a hit freezes the foe, which then skips its next turn. |
 | `lucky` | Lucky Paw | +20% / 40% / 60% acorns, and the lucky wheel's HP segment becomes a prize. |
@@ -221,6 +221,8 @@ The route is `/trek`.
 - **Round cap:** fewer than 2% of fights reach the 40-round cap.
 
 Tuning knobs, in order: `CHAPTER_SCALE`, `DAY_SCALE`, foe base stats, the experience thresholds, then skill numbers.
+
+The bot's first tuning (19-10-2026) set `CHAPTER_SCALE = [1, 1.5, 2.2, 3.1, 4.3]`, `DAY_SCALE = 0.045`, experience to the next level `2 + floor(level / 4)`, fight experience 3 (foe) and 8 (elite), and raised Pounce and Dust Roll (in the table above). With those, the policy clears chapter 1 in 46% of fresh treks against 13% for a random picker, the median campaign takes 27 treks (the longest 35), and a trek gives about 12 level-ups.
 
 ## Testing
 
