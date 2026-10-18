@@ -433,7 +433,8 @@ export default function ChinchillaTrek() {
 
 /** The status bar: the day, HP (as the fight replay shows it while one plays), level and experience, and acorns. */
 function Status({ t, replay }: { t: Trek; replay: Replay | null }) {
-  const max = replay?.max ?? t.stats().hp, hp = replay && replay.i < replay.out.events.length ? replayState(replay, replay.i).hp : t.hp;
+  const playing = !!replay && replay.i < replay.out.events.length;
+  const max = playing ? replay.max : t.stats().hp, hp = playing ? replayState(replay, replay.i).hp : t.hp;
   const need = xpNeed(t.level);
   return (
     <div className="ct-status">

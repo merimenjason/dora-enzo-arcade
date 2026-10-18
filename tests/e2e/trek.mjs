@@ -80,6 +80,15 @@ await check('a level-up offers cards; reroll works once; a card goes in the tray
   await page.getByTestId(`tray-${id}`).waitFor();
 });
 
+await check('after a fight, a pick that raises max hp shows the new max in the bar', async (page) => {
+  await fresh(page); await begin(page);
+  await trek(page, (w) => w.set({ xp: 40 }));
+  await walk(page);
+  await page.getByTestId('card-0').waitFor();
+  await trek(page, (w) => w.set({ kit: { ...w.trek.kit, skills: { ...w.trek.kit.skills, fluff: 3 } } }));
+  await statusMatches(page);
+});
+
 await check('a story day: a choice shows its outcome', async (page) => {
   await fresh(page); await begin(page);
   await trek(page, (w) => w.set({ day: 3, today: { k: 'story', scene: 'mushroom' }, phase: 'event' }));

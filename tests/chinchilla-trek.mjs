@@ -499,6 +499,25 @@ test('a lost fight ends the trek; the boss clears it', () => {
   assert.equal(e.rank, 'boss'); assert.equal(u.phase, 'cleared'); assert.equal(u.picks, 0); assert.equal(u.offer, null);
 });
 
+test('an elite win opens a sure chest', () => {
+  const t = trek(10, 'enzo', 2, STRONG); toDay(t, 10);
+  assert.equal(t.last.out.result, 'win');
+  assert.equal(t.acorns, G.FIGHT_ACORNS.elite * 2 + 15 * 2); assert.ok(t.note.includes('chest'));
+});
+
+test('two follow-ups due the same day both come', () => {
+  const t = trek(25, 'dora', 1, STRONG); t.day = 5; t.later.push({ day: 6, scene: 'pip' }); t.next(); t.choose(0);
+  const pip = t.later.find((l) => l.scene === 'piphelp'); assert.ok(pip, 'pip follows');
+  t.day = 7; t.later.push({ day: 8, scene: 'bird' }); t.next(); t.choose(0);
+  const days = t.later.map((l) => l.day); assert.equal(new Set(days).size, days.length, `follow-ups on ${days}`);
+  let seen = 0; while (t.phase !== 'over' && t.phase !== 'cleared' && t.day < 20) { if (t.phase === 'walk') { const e = t.next(); if (e?.k === 'story' && (e.scene === 'piphelp' || e.scene === 'birdback')) seen++; } else plain(t); }
+  assert.equal(seen, 2); assert.ok(t.later.every((l) => l.day > t.day));
+});
+
+test('midnight feast says how much it heals a round', () => {
+  assert.match(G.EVOS.feast.text, /12%/);
+});
+
 test('a stalled boss fight ends the trek', () => {
   const t = trek(20, 'dora', 5, { ...G.BASE, hp: 5000, atk: 1 }); t.kit.evos = ['feast'];
   const e = toDay(t, 30); assert.equal(e.rank, 'boss'); assert.equal(t.last.out.result, 'stall');
