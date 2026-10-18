@@ -26,7 +26,7 @@ test('data: skill values match the spec', () => {
   const want = {
     combo: [0.2, 0.35, 0.5], counter: [0.2, 0.35, 0.5], sharp: [0.15, 0.25, 0.4], keen: [0.1, 0.2, 0.3], fluff: [0.2, 0.35, 0.5],
     shell: [0.15, 0.25, 0.4], dust: [0.08, 0.15, 0.22], static: [0.5, 0.8, 1.2], snack: [0.08, 0.14, 0.2], nap: [0.02, 0.04, 0.06],
-    grit: [0.3, 0.5, 0.8], prickle: [0.15, 0.25, 0.4], pounce: [2, 3, 4], roll: [1, 1.5, 2], pepper: [0.1, 0.15, 0.2],
+    grit: [0.3, 0.5, 0.8], prickle: [0.15, 0.25, 0.4], pounce: [2.5, 4, 5.5], roll: [1.5, 2.5, 3.5], pepper: [0.1, 0.15, 0.2],
     frost: [0.12, 0.2, 0.28], lucky: [0.2, 0.4, 0.6], wind: [0.3, 0.5, 0.7],
   };
   assert.deepEqual(Object.keys(want), [...G.SKILL_IDS], 'spec order');
@@ -119,7 +119,7 @@ test('stats: dora and enzo perks, sharp, fluff, keen, dust and caps', () => {
 
 test('foe stats scale by chapter and day', () => {
   assert.deepEqual(G.foeStats('beetle', 1, 0), { hp: 46, atk: 5 });
-  assert.deepEqual(G.foeStats('crab', 3, 10), { hp: 191, atk: 22 });
+  assert.deepEqual(G.foeStats('crab', 3, 10), { hp: 140, atk: 16 });
 });
 
 test('a plain fight: hero first, alternating, a win gives the foe 0 hp', () => {
@@ -131,8 +131,8 @@ test('a plain fight: hero first, alternating, a win gives the foe 0 hp', () => {
 });
 
 test('pounce multiplies the first attack, by level', () => {
-  assert.equal(hits(F({ kit: kit({ pounce: 2 }) }), 1)[0].dmg, 30);
-  assert.equal(hits(F({ kit: kit({ pounce: 1 }) }), 1)[0].dmg, 20);
+  assert.equal(hits(F({ kit: kit({ pounce: 2 }) }), 1)[0].dmg, 40);
+  assert.equal(hits(F({ kit: kit({ pounce: 1 }) }), 1)[0].dmg, 25);
   assert.equal(hits(F({ kit: kit({ pounce: 1 }) }), 1)[1].dmg, 10, 'only the first');
 });
 
@@ -198,8 +198,8 @@ test('prickles reflects at least 1 and never twice', () => {
 });
 
 test('dust roll hits at the start, by level', () => {
-  assert.deepEqual(hits(F({ kit: kit({ roll: 1 }) }), 1)[0], { k: 'hit', side: 1, dmg: 10, hp: 36, crit: false, src: 'roll' });
-  assert.equal(hits(F({ kit: kit({ roll: 3 }) }), 1)[0].dmg, 20);
+  assert.deepEqual(hits(F({ kit: kit({ roll: 1 }) }), 1)[0], { k: 'hit', side: 1, dmg: 15, hp: 31, crit: false, src: 'roll' });
+  assert.equal(hits(F({ kit: kit({ roll: 3 }) }), 1)[0].dmg, 35);
 });
 
 test('pepper stacks to 5', () => {
@@ -362,7 +362,8 @@ test('no event repeats on consecutive days', () => {
 test('fights apply hp, experience and acorns once', () => {
   const t = trek(3, 'enzo'), e = t.next();
   assert.equal(e.k, 'fight'); assert.equal(t.last.out.result, 'win');
-  assert.equal(t.hp, t.last.out.hp); assert.equal(t.xp, 2); assert.equal(t.acorns, 3);
+  const ups = t.level - 1; assert.equal(t.hp, Math.min(t.stats().hp, t.last.out.hp + ups * Math.round(t.stats().hp * 0.2)));
+  assert.equal(t.xp + (ups ? G.xpNeed(1) : 0), G.FIGHT_XP.foe); assert.equal(t.acorns, G.FIGHT_ACORNS.foe);
   assert.ok(t.seen.foes.includes(e.foe));
   const again = G.Trek.load(save(t));
   assert.deepEqual([again.hp, again.xp, again.acorns], [t.hp, t.xp, t.acorns], 'loading does not apply it again');
@@ -496,6 +497,12 @@ test('a lost fight ends the trek; the boss clears it', () => {
   const t = trek(16, 'dora', 1, WEAK); t.next(); assert.equal(t.phase, 'over'); assert.equal(t.hp, 0);
   const u = trek(17, 'dora', 1, STRONG); u.xp = 50; const e = toDay(u, 30);
   assert.equal(e.rank, 'boss'); assert.equal(u.phase, 'cleared'); assert.equal(u.picks, 0); assert.equal(u.offer, null);
+});
+
+test('a stalled boss fight ends the trek', () => {
+  const t = trek(20, 'dora', 5, { ...G.BASE, hp: 5000, atk: 1 }); t.kit.evos = ['feast'];
+  const e = toDay(t, 30); assert.equal(e.rank, 'boss'); assert.equal(t.last.out.result, 'stall');
+  assert.equal(t.phase, 'over'); assert.ok(t.hp > 0); assert.equal(t.next(), null);
 });
 
 test('illegal actions change nothing', () => {

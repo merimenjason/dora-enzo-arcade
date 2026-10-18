@@ -31,8 +31,8 @@ export const SKILLS: Record<SkillId, Skill> = {
   nap: skill('nap', 'Power Nap', [0.02, 0.04, 0.06], (n) => `End of each round: heal ${pc(n)} of max HP.`),
   grit: skill('grit', 'Grit', [0.3, 0.5, 0.8], (n) => `Below half HP: +${pc(n)} attack.`),
   prickle: skill('prickle', 'Prickles', [0.15, 0.25, 0.4], (n) => `Reflect ${pc(n)} of the damage you take.`),
-  pounce: skill('pounce', 'Pounce', [2, 3, 4], (n) => `Your first attack in a fight deals ×${n}.`),
-  roll: skill('roll', 'Dust Roll', [1, 1.5, 2], (n) => `Start of fight: deal ${pc(n)} of attack.`),
+  pounce: skill('pounce', 'Pounce', [2.5, 4, 5.5], (n) => `Your first attack in a fight deals ×${n}.`),
+  roll: skill('roll', 'Dust Roll', [1.5, 2.5, 3.5], (n) => `Start of fight: deal ${pc(n)} of attack.`),
   pepper: skill('pepper', 'Pepper Dust', [0.1, 0.15, 0.2], (n) => `Hits add a burn of ${pc(n)} of attack each round (up to 5).`),
   frost: skill('frost', 'Frost Whiskers', [0.12, 0.2, 0.28], (n) => `${pc(n)} chance a hit freezes the foe for a turn.`),
   lucky: skill('lucky', 'Lucky Paw', [0.2, 0.4, 0.6], (n) => `+${pc(n)} acorns, and the wheel's bad slice turns lucky.`),
@@ -197,11 +197,11 @@ export const GEAR_STAT: Record<GearSlot, [number, number, number, number, number
 
 // ── Tuning ─────────────────────────────────────────────────────────────────
 
-export const CHAPTER_SCALE = [1, 1.8, 3.1, 5, 8];
-export const DAY_SCALE = 0.04;
+export const CHAPTER_SCALE = [1, 1.5, 2.2, 3.1, 4.3];
+export const DAY_SCALE = 0.045;
 /** Experience from level `level` to the next. */
-export const xpNeed = (level: number) => 3 + level;
-export const FIGHT_XP: Record<Rank, number> = { foe: 2, elite: 6, boss: 0 };
+export const xpNeed = (level: number) => 2 + Math.floor(level / 4);
+export const FIGHT_XP: Record<Rank, number> = { foe: 3, elite: 8, boss: 0 };
 /** Acorns per win, times the chapter. */
 export const FIGHT_ACORNS: Record<Rank, number> = { foe: 3, elite: 12, boss: 30 };
 /** The Pedlar's prices, times the chapter. */
