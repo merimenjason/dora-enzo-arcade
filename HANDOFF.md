@@ -1,17 +1,24 @@
-# Handoff · 19-10-2026
+# Handoff · 20-10-2026
 
 Where Dora & Enzo's Arcade stands, how the newest games fit together, how to check your work, and what is worth doing next. For the arcade as a whole, start with [`README.md`](README.md); for how the code is laid out and the traps to avoid, [`CLAUDE.md`](CLAUDE.md); for the documentation and changelog rules, [`AGENTS.md`](AGENTS.md).
 
 This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are folded in below.
 
-## Start here (fresh session, 19-10-2026)
+## Start here (fresh session, 20-10-2026)
 
-**Where things stand.** The arcade has 37 games at https://chinchillas.jason.engineering. Chinchilla Trek (`/trek`, game 37) was built overnight on 18–19-10-2026 from the design and plan merged in PR #75, merged in PR #78, and painted from twelve delivered images on 19-10-2026. See **Chinchilla Trek** below. PR #69 painted Hay Bale Brawl: every critter, summon, snack, both coaches, the bale, the barn shop, the meadow stage and the title now come from the seven images delivered in PR #68 (`f4f1ac5`), with the code drawings kept as loading and failure fallbacks. PR #70 steadied two of its browser checks that failed only against the live site. PR #72 gave it movement and acorn price tags on every shop offer. PR #77 painted its effects, acorns and status charms from `fx.png` (delivered in PR #76). Check GitHub for open PRs and the latest deploy rather than trusting this line as a live status. Keep the user's local `.claude/` graft files out of commits (see **Agent configuration**).
+**Where things stand.** The arcade has 38 games at https://chinchillas.jason.engineering. Glimmer Cave (`/cave`, game 38) was built on 19–20-10-2026 from the design and plan merged in PR #80. It shipped in PRs #83–#88: the engine, the bot and balance, the art import, the page, the painting and the arcade card, all painted from the sheets accepted in PRs #81 and #82. See **Glimmer Cave** below. Chinchilla Trek (`/trek`, game 37) was built overnight on 18–19-10-2026 from the design and plan merged in PR #75, merged in PR #78, and painted from twelve delivered images on 19-10-2026. See **Chinchilla Trek** below. PR #69 painted Hay Bale Brawl: every critter, summon, snack, both coaches, the bale, the barn shop, the meadow stage and the title now come from the seven images delivered in PR #68 (`f4f1ac5`), with the code drawings kept as loading and failure fallbacks. PR #70 steadied two of its browser checks that failed only against the live site. PR #72 gave it movement and acorn price tags on every shop offer. PR #77 painted its effects, acorns and status charms from `fx.png` (delivered in PR #76). Check GitHub for open PRs and the latest deploy rather than trusting this line as a live status. Keep the user's local `.claude/` graft files out of commits (see **Agent configuration**).
 
 **What happened in the last few sessions (13–18-10-2026), newest first:**
 
 | PR | What | Notes |
 | --- | --- | --- |
+| #88 | **Glimmer Cave** (`/cave`), game 38, in the arcade | The menu card, counts, README guide, `docs/glimmer-cave.md`, CHANGELOG. |
+| #87 | Glimmer Cave painted | Heroes, critters, effects, blocks, floor, pod and the wyrm are drawn from the sheets, with code drawings as the fallback; Retry artwork. |
+| #86 | Glimmer Cave playable in code drawings | `lib/glimmer-cave-scene.ts`, `app/cave/page.tsx`, `tests/e2e/cave.mjs`. |
+| #85 | Glimmer Cave's sheets imported | `scripts/glimmer-cave-import.py`, `lib/glimmer-cave-crops.ts`, `lib/glimmer-cave-paint.ts`, `public/art/cave/`. |
+| #84 | Glimmer Cave's bot and balance | `tests/glimmer-cave-bot.mjs` in `npm test`; weapons aim themselves; tuned numbers in the design. |
+| #83 | Glimmer Cave's engine | Data, seeded maps, the dive, twelve weapons, cards, jobs, the Rock Wyrm, camp and saves; 83 tests. |
+| #80–#82 | Glimmer Cave design, plan and accepted art | `docs/superpowers/specs/19-10-2026-glimmer-cave-design.md`, the 13-task plan, the painted sheets in `public/art/cave-survival/`. |
 | #79 | **Chinchilla Trek painted** | The twelve images delivered on `art/chinchilla-trek-painted-assets` (with the ChatGPT prompts doc) wired in: foes, visitors, Pip, landmarks, mirrored chapter paths, badges, gear and title, with code fallbacks and Retry. `tests/chinchilla-trek-art.mjs` and four browser checks. |
 | #78 | **Chinchilla Trek** (`/trek`), game 37 | Roguelite trek in the spirit of Capybara Go!: 30 days, 18 skills and 4 evolutions, 5 chapters of 30 foes, camp with training and merging gear. Built inline from the plan (Tasks 1–7) with one fresh whole-branch review; bot-tuned. Not played by hand. |
 | #75 | Chinchilla Trek design and plan | `docs/superpowers/specs/18-10-2026-chinchilla-trek-design.md` and `docs/superpowers/plans/18-10-2026-chinchilla-trek-plan.md`. |
@@ -173,6 +180,34 @@ Game 31, `/moonpond`, is merged on main (PR #30). It is a night-fishing journal:
 - **Next:** play it by hand and adjust the reel numbers at the top of `lib/moonpond-game.ts` (`BAND_LOW`, `BAND_HIGH`, `SNAP_AFTER`, `SLIP_AFTER`, `LINE_RESPONSE`, the `SURGE_` values), rerunning `npm run bot:moonpond` after any change; listen to the cues in `app/moonpond/sound.ts`; watch the animations in motion on a phone; and continue the human balance and listening pass now that the painted art is in place.
 - **Not done:** nobody has played it by hand, the sound has not been listened to, and the reel has only been tuned against the bot and a scripted hand. The spread of 13 to 56 nights comes from weather luck on the rare pages; if it feels grindy, raise the rare weight in `WEIGHT` or let the journal's found count nudge the weather.
 
+## Glimmer Cave · 20-10-2026
+
+Game 38, `/cave`, a cave survival dive in the spirit of Deep Rock Galactic: Survivor. Rules, every number and the bot's rates: [`docs/glimmer-cave.md`](docs/glimmer-cave.md).
+
+- **Code:**
+  - `lib/glimmer-cave-data.ts`: every table and tuning number.
+  - `lib/glimmer-cave-map.ts`: seeded layers and digging.
+  - `lib/glimmer-cave-game.ts`: the `Dive` state machine at a fixed 60 Hz (30/15 Hz for the bot); cards, jobs, the Rock Wyrm, camp, saves, and the bot's `drive`/`botPick`.
+  - `lib/glimmer-cave-weapons.ts`: twelve weapons and their overclocks behind one `aim()` helper.
+  - `lib/glimmer-cave-scene.ts`: Canvas 2D. Each piece tries its painting, then its code drawing.
+  - `lib/glimmer-cave-paint.ts` and `lib/glimmer-cave-crops.ts` (generated by `scripts/glimmer-cave-import.py`).
+  - `app/cave/page.tsx`.
+- **Saves:**
+  - `glimmer-cave-run-v1`: the dive at the start of its current layer. It is written only at layer starts, and an abandoned save is recorded as bonked when the next dive starts.
+  - `glimmer-cave-v1`: the profile.
+  - `glimmer-cave-sound-v1`.
+- **Balance:** `tests/glimmer-cave-bot.mjs` runs in `npm test`, about 80 s on 2 cores; `npm run bot:cave` runs four times the dives. With FULL:
+  - first dives reach layer 2 in 93% and finish in 24%, 12 points ahead of random cards;
+  - upgraded dives finish hazard 1 in 54% and hazard 3 in 33%;
+  - the wyrm falls in 30–150 s in 90% of the fights the hero survives.
+  - The upgraded hazard-1 gate sits exactly on its 50% floor in QUICK, so any balance change needs a bot rerun.
+- **Art:** nine cleaned sheets in `public/art/cave/`, about 11 MB, loaded on demand. Rerun `python3 scripts/glimmer-cave-import.py` after replacing a source sheet in `public/art/cave-survival/`. The `FIX` table holds per-frame overrides.
+- **Open ends:**
+  - frame time at 300 critters on a real phone at device pixel ratio 3 (software-rendered headless Chrome measured 18–27 ms);
+  - Enzo has no dig frames, so he pushes with his walk;
+  - the floor (2.8 MB) could become WebP;
+  - the e2e can time out on a loaded machine; rerun before changing code.
+
 ## Chinchilla Trek · 19-10-2026
 
 Game 37, `/trek`, a roguelite trek in the spirit of Capybara Go!. Rules, every number and the bot's rates: [`docs/chinchilla-trek.md`](docs/chinchilla-trek.md).
@@ -277,7 +312,7 @@ Game 32, `/saga`, is merged on main (PR #33). It is a hero-squad adventure model
 
 ## Current state
 
-- **37 games**, deployed at https://chinchillas.jason.engineering. The newest are listed below; `README.md` has all of them with guides.
+- **38 games**, deployed at https://chinchillas.jason.engineering. The newest are listed below; `README.md` has all of them with guides.
 - **Played by hand:** Acorn Hand (one full run won and a second to ante 3, both before vouchers, the new curve and stakes), Whisker Saga (chapter 1, the Thornback boss and Briar Relay, 15-10-2026). Every other recent game, Whisker Ware and Hay Bale Brawl included, has been balanced against its bot, or not at all (Midnight Kitchen), and nobody has listened to any game's sound.
 - **Left uncommitted in the working tree, on purpose:** `.claude/helpers/graft-hooks.cjs`, `.claude/helpers/graft-statusline.cjs` and `.claude/skills/graft/SKILL.md`. They belong to the user; don't stage them.
 
@@ -287,7 +322,6 @@ The ten newest cabinets, all merged to `main` and deployed.
 
 | # | Game | Route | Added | Pull requests |
 | --- | --- | --- | --- | --- |
-| 28 | Pawprint Pinball | `/pinball` | 09-10-2026 | |
 | 29 | Pawprint Detectives | `/detectives` | 10-10-2026 | |
 | 30 | Frostpaw Frontier | `/frontier` | 10-10-2026 | |
 | 31 | Moonpond | `/moonpond` | 10-10-2026 | #31–#32 for docs and the painted pond |
@@ -297,6 +331,7 @@ The ten newest cabinets, all merged to `main` and deployed.
 | 35 | Whisker Ware | `/whisker-ware` | 18-10-2026 | #60–#62 |
 | 36 | Hay Bale Brawl | `/brawl` | 18-10-2026 | #64–#72 |
 | 37 | Chinchilla Trek | `/trek` | 19-10-2026 | #75 (design and plan), #78, #79 (painted art) |
+| 38 | Glimmer Cave | `/cave` | 20-10-2026 | #80–#82 (design, plan, art), #83–#88 |
 
 Each has its own section near the top of this file. The older games' notes (Clash, Hay Maze, Chinchillas vs Zombies, Scribble, Bounce / Burrow, Burrow Tactics, Burrow Barrage, Summit Shuffle, Poof Panic) follow under **Where the code lives**.
 

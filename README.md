@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of thirty-seven original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of thirty-eight original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -47,6 +47,7 @@ Listed in arcade-menu order.
 | 35 | Whisker Ware | `/whisker-ware` | Microgame frenzy |
 | 36 | Hay Bale Brawl | `/brawl` | Auto-battler |
 | 37 | Chinchilla Trek | `/trek` | Roguelite trek |
+| 38 | Glimmer Cave | `/cave` | Cave survival |
 
 ## Run
 
@@ -867,6 +868,58 @@ Eighty stages in eight chapters, each stage worth up to three stars (cleared, no
 
 **Docs:** [`docs/chinchilla-trek.md`](docs/chinchilla-trek.md), the [design](docs/superpowers/specs/18-10-2026-chinchilla-trek-design.md), the [plan](docs/superpowers/plans/18-10-2026-chinchilla-trek-plan.md), the [image prompts](docs/chinchilla-trek-image-prompts.md) and the [painted art and its integration](docs/chinchilla-trek-art.md).
 
+### 38 · Glimmer Cave (`/cave`)
+
+**Play:** A cave survival dive in the spirit of Deep Rock Galactic: Survivor, seen from above.
+- **Heroes:** pick Dora or Enzo at camp, plus a hazard level from 1 to 5. Each finished hazard unlocks the next.
+  - **Dora** starts with the Pickaxe Bonk, digs twice as fast and has 15% more Fluff.
+  - **Enzo** starts with the Acorn Sling, is 10% faster and carries a 30% wider lamp.
+  - The other chinchilla trots along as a buddy with its own starting weapon at half damage. It never takes a bump.
+- **A dive** is five layers of five minutes each.
+  - Dig through dirt and gold, but not bedrock.
+  - Soot sprites, pink mites and mossy beetles swarm in from off screen. Elites come from layer 2 on.
+  - Weapons aim and fire by themselves; you only move.
+  - Bonked critters poof into crystals. Crystals level you up, and each level offers three cards: a new weapon (up to four), a level for a weapon you hold, or a passive. Each card rolls Common, Uncommon, Rare or Epic.
+  - At weapon levels 5 and 10, the card is a choice of two overclocks instead.
+- **Jobs:** each of layers 1–4 has a job: a crystal haul, dig out three crates, light three lanterns, or bonk the big one.
+- **The pod:** when a layer's timer runs out, the pod lands 12–20 tiles away. Reach it within 45 s to bank the layer's gold and descend.
+- **Layer 5:** the grumpy Rock Wyrm bursts out of the rock at 3:00. Bonk its head (its body blocks shots), step out of its rumbling rings, and the pod comes for the last run.
+- **Getting bonked:** you keep the gold already banked, plus half the layer's.
+- **Camp:** gold buys eight upgrades. Fluffier, Sharper, Quicker, Diggier, Magnetic and Prospector go to level 5; Rerolls and Head start go to level 3.
+- **Unlocks:** the Burrow Bomb, Glow Moths, Rumble Drum and Pebble Drill join the card pool by reaching layer 3, finishing a dive, finishing hazard 2 and bonking 5,000 critters.
+- **Saving:** the dive is saved at the start of every layer, so **Continue** picks up where you left.
+- **Art:** heroes, critters, effects, blocks, floor and wyrm are painted sheets. The code drawings stand in while they load.
+
+**Controls:** Move with **WASD** or the arrow keys, or put a thumb down anywhere on the stage and drag a floating joystick. Walk into a block to dig it. Pick a card with a click, a tap or **1**, **2** and **3**, and reroll with **R**: one reroll each layer plus any from camp. **P** or **Escape** pauses, and so does the pause button and hiding the tab.
+
+**Tests:**
+- `npm run test:cave` covers:
+  - the data and the seeded maps (reachable pods, jobs placed);
+  - the dive: moving and digging against rock, the swarm's flow field, spawns off screen, contact and grace, crystals and levels, the pod, the timer and layer 5's wyrm;
+  - all twelve weapons and their overclocks;
+  - cards, rarity, rerolls and stacked level-ups;
+  - the jobs and the wyrm;
+  - camp, the profile, unlocks and hazards;
+  - saves, which round-trip, replay exactly like an uninterrupted dive, and reject malformed input;
+  - determinism and step rate independence.
+- It also runs `tests/glimmer-cave-art.mjs`: the nine cleaned sheets and their hashes, decoded alpha, every crop inside its cell, the named sequences, and the loader (one request per sheet, failures, Retry, stale callbacks, wrong sizes).
+- `tests/glimmer-cave-bot.mjs` (in `npm test`; `npm run bot:cave` runs four times as many dives) plays seeded dives on worker threads and requires:
+  - first dives to reach layer 2 in at least 70% and finish in 5–30%, at least 10 points more often than a random-card player;
+  - upgraded dives to finish hazard 1 in 50–85% and hazard 3 in 15–50%;
+  - every weapon to be taken and every overclock chosen;
+  - the wyrm to be bonked within 30–150 s in at least 80% of the fights the hero survives;
+  - a 60 Hz step with 300 critters to average under 2 ms.
+- `npm run test:e2e:cave` checks:
+  - hydration, and each hero's start weapon;
+  - moving and digging;
+  - a card, a reroll and an overclock offer;
+  - the pod run and Continue after a reload, both at the pod and mid-layer;
+  - a camp upgrade;
+  - that a dive asks for every sheet and paints the hero, that slow or failed art leaves the dive playable, and that Retry brings it back;
+  - the fit at phone and desktop sizes, and mute.
+
+**Docs:** [`docs/glimmer-cave.md`](docs/glimmer-cave.md), the [design](docs/superpowers/specs/19-10-2026-glimmer-cave-design.md), the [plan](docs/superpowers/plans/19-10-2026-glimmer-cave-plan.md) and the [art pipeline](docs/cave-survival-art.md).
+
 ## Validation
 
 ```sh
@@ -886,7 +939,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Thirty-seven ways/` assertion in `tests/e2e/dust-bath.mjs`, the 37-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past thirty-seven games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Thirty-eight ways/` assertion in `tests/e2e/dust-bath.mjs`, the 38-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past thirty-eight games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
