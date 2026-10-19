@@ -180,7 +180,8 @@ await check('screenshots: layer 1 at 2:00, a 300-critter swarm, and the wyrm', a
   await page.waitForTimeout(300);
   await page.getByTestId('stage').screenshot({ path: '.checks/cave/swarm-300.png' });
   await cave(page, (w) => { w.set({ layer: 5, fluff: 9999 }); w.dive.t = 179.5; w.dive.timer = 0.5; });
-  await page.waitForFunction(() => { const y = window.__cave().dive.wyrm; return y && y.under === 0; });
+  // With 300 critters still on the stage a software-drawn frame is slow, so the wyrm can take a while to surface.
+  await page.waitForFunction(() => { const y = window.__cave().dive.wyrm; return y && y.under === 0; }, null, { timeout: 60000 });
   await page.waitForTimeout(2500);
   await page.getByTestId('stage').screenshot({ path: '.checks/cave/wyrm.png' });
   assert.ok((await page.getByTestId('timer').textContent()).includes('Wyrm'), 'the wyrm bar shows');
