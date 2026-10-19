@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 20-10-2026
+
+### Documentation
+
+- **Cave-survival concept**: generated two head-only Rock Wyrm sheet attempts with frame checks and visual reviews. Both pass the automated layout check; head isolation, expression and cell-clearance issues remain flagged for review. Accepted environment, floor and body pieces are unchanged.
+
 ## 19-10-2026
 
 ### Documentation

@@ -1,0 +1,79 @@
+{
+  "image": "public/art/cave-survival/wyrm-heads-v2.png",
+  "grid": [
+    2,
+    2
+  ],
+  "cell": [
+    768,
+    512
+  ],
+  "size": [
+    1536,
+    1024
+  ],
+  "mode": "RGBA",
+  "alpha_max": 254,
+  "alpha_zero_pixels": 977601,
+  "measurement": "connected pieces at alpha > 128 (>= 30 px), each assigned to the cell holding its centre",
+  "status": "pass",
+  "problems": [],
+  "frames": [
+    {
+      "row": 1,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        173,
+        68,
+        685,
+        448
+      ],
+      "width": 512,
+      "height": 380,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 2,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        104,
+        67,
+        618,
+        447
+      ],
+      "width": 514,
+      "height": 380,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        173,
+        29,
+        700,
+        443
+      ],
+      "width": 527,
+      "height": 414,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 2,
+      "pieces": 3,
+      "bounds_local_exclusive": [
+        116,
+        1,
+        622,
+        451
+      ],
+      "width": 506,
+      "height": 450,
+      "overhang_px": 0
+    }
+  ]
+}
