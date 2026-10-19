@@ -1,8 +1,13 @@
 // Glimmer Cave's drawing: the cave seen from above at the style art's 55°, the floor squashed to 0.8 of its depth and
 // every block showing a front face. Canvas 2D. The page passes the dive, the view, the effects and the time; the scene
 // keeps only its short-lived effects (Fx) and the frame counters (AnimState), which the page feeds from the dive's
-// events. Everything here is code-drawn: the painter hooks below return false until Task 12 points them at the sheets.
+// events. Every piece tries its painted frame first and falls back to its code drawing in the same frame, so the game
+// plays at once and paints itself as the sheets land.
 import { drawChinchilla } from './chinchilla-art';
+import {
+  BLOCKS, CRITTER_ANIMS, CRYSTAL as CRYSTAL_FRAME, FX_ANIMS, HERO_ANIMS, WYRM_PARTS, caveArtReady, paintCaveBlock, paintCaveFloor,
+  paintCaveFrame, type CaveBlock,
+} from './glimmer-cave-paint';
 import {
   CLASS, CRITTERS, ELITE, JOBS, TINT, WYRM, WYRM_ID, tileAt,
   type Block, type CaveEvent, type Critter, type CritterId, type Dive, type Hero, type Shot, type WeaponId,
@@ -27,16 +32,22 @@ export function toScreen(v: View, x: number, y: number): [number, number] {
 /** The view in tiles, for `Dive.view` (the spawn window): across, and down the squashed floor. */
 export function viewTiles(v: View): { w: number; h: number } { return { w: v.w / v.tile, h: v.h / (v.tile * v.squash) }; }
 
-// ── Painter hooks (Task 12) ─────────────────────────────────────────────────
+// ── Painting ───────────────────────────────────────────────────────────────
 
-/* oxlint-disable no-unused-vars -- The painter hooks keep the signatures of lib/glimmer-cave-paint.ts's painters. */
-/** A painted frame `key`, feet at (x, footY), `h` px tall, mirrored to face left. False: nothing drawn, use the code. */
-const paintCaveFrame = (c: CanvasRenderingContext2D, key: string, x: number, footY: number, h: number, mirror: boolean): boolean => false;
-/** A painted block at crack `stage` (0-2), its top face's top-left at (x, y), `tile` px wide. */
-const paintCaveBlock = (c: CanvasRenderingContext2D, block: Block, stage: number, x: number, y: number, tile: number): boolean => false;
-/** The painted floor across the whole view, tinted. */
-const paintCaveFloor = (c: CanvasRenderingContext2D, v: View, tint: string): boolean => false;
-/* oxlint-enable no-unused-vars */
+/** The painted floor under the view: the painting is laid flat in world tiles, then squashed like the floor. */
+function paintFloor(c: CanvasRenderingContext2D, v: View, tint: string) {
+  c.save(); c.scale(1, v.squash);
+  const ok = paintCaveFloor(c, { x: v.cx * v.tile - v.w / 2, y: v.cy * v.tile - v.h / 2 / v.squash, w: v.w, h: v.h / v.squash, tilePx: v.tile }, tint);
+  c.restore();
+  return ok;
+}
+
+/** Painted heights against a piece's radius: the paintings are wider than the code's round bodies, and the wyrm's
+ *  head frames include its mane and horns. (by eye, against the 300-critter and wyrm screenshots) */
+const PAINT_CRITTER = 1.8, PAINT_BODY = 2, PAINT_HEAD = 1.35;
+
+/** Whether the last hero drawn was painted (for the browser test). */
+export let heroPainted = false;
 
 // ── Palette (from the gameplay style test) ──────────────────────────────────
 
@@ -54,7 +65,7 @@ const CRYSTAL = { fill: '#6fb8ff', light: '#d6ecff', line: '#2a4a9a' };
 
 /** A chinchilla's frame counters: `walk` counts frames by distance, `idle` seconds standing, `attack` the weapon whose
  *  attack frames play and how far in, `flinch` seconds left, and `dig` whether it digs. */
-export type Anim = { walk: number; idle: number; attack: { w: WeaponId; t: number } | null; flinch: number; dig: boolean };
+export type Anim = { walk: number; idle: number; attack: { w: WeaponId; t: number } | null; flinch: number; dig: boolean; cheer?: boolean };
 /** A critter's: walk frames by distance, flinch seconds left, then a bonked one's dizzy seconds left and its poof's age. */
 export type CritterAnim = { walk: number; flinch: number; dizzy: number; poof: number };
 /** `ghost` keeps a bonked critter to draw through its flinch, dizzy and poof; `lx`, `ly` is where it was last step. */
@@ -212,7 +223,11 @@ function drawBlock(c: CanvasRenderingContext2D, b: Block, sx: number, sy: number
   const f = FACE * t, top = sy - f, depth = t * 0.8, col = ROCK[b as keyof typeof ROCK];
   if (!col) return;
   const stage = crack > 2 / 3 ? 2 : crack > 1 / 3 ? 1 : 0;
-  if (paintCaveBlock(c, b, stage, sx, top, t)) return;
+  // The painting's front face stands on the tile's bottom edge, so its foot goes where the code's front face ends.
+  if (paintCaveBlock(c, b as CaveBlock, stage, sx, sy + depth - t, t)) {
+    if (crack > 0 && BLOCKS[b as CaveBlock].length === 1) cracks(c, sx, top, t, depth, stage);
+    return;
+  }
   if (open) { c.fillStyle = col.face; c.fillRect(sx, sy + depth - f, t, f); }
   c.fillStyle = col.top; c.fillRect(sx, top, t, depth);
   c.strokeStyle = INK; c.lineWidth = 1;
@@ -235,7 +250,12 @@ function drawBlock(c: CanvasRenderingContext2D, b: Block, sx: number, sy: number
     c.fillStyle = lit ? '#ffd76a' : '#6a5a4a'; c.strokeStyle = INK;
     c.beginPath(); c.roundRect(sx + t * 0.32, top - t * 0.8, t * 0.36, t * 0.34, 3); c.fill(); c.stroke();
   }
-  if (crack > 0) {
+  if (crack > 0) cracks(c, sx, top, t, depth, stage);
+}
+
+/** Crack lines across a block's top face, more of them at each stage. */
+function cracks(c: CanvasRenderingContext2D, sx: number, top: number, t: number, depth: number, stage: number) {
+  {
     c.strokeStyle = INK; c.lineWidth = 1.2; c.beginPath();
     const mx = sx + t / 2, my = top + depth / 2;
     c.moveTo(mx, my); c.lineTo(mx - t * 0.25, my - depth * 0.3);
@@ -257,6 +277,7 @@ function diamond(c: CanvasRenderingContext2D, x: number, y: number, r: number) {
 /** A crystal of n experience, bobbing; a cache is bigger. */
 function drawCrystal(c: CanvasRenderingContext2D, sx: number, sy: number, t: number, n: number, now: number) {
   const r = t * (n >= 10 ? 0.22 : n >= 4 ? 0.15 : 0.11), bob = Math.sin(now / 300 + sx * 0.05) * t * 0.04;
+  if (paintCaveFrame(c, CRYSTAL_FRAME, sx, sy - bob, r * 2.2)) return;
   c.fillStyle = CRYSTAL.line; diamond(c, sx, sy - r - bob, r + 1.2);
   c.fillStyle = CRYSTAL.fill; diamond(c, sx, sy - r - bob, r);
   c.fillStyle = CRYSTAL.light; c.fillRect(sx - r * 0.3, sy - r * 1.8 - bob, r * 0.3, r * 0.5);
@@ -268,7 +289,15 @@ function drawCrystal(c: CanvasRenderingContext2D, sx: number, sy: number, t: num
 function drawCritter(c: CanvasRenderingContext2D, cr: Critter, sx: number, sy: number, t: number, ca: CritterAnim | undefined, now: number, face: 1 | -1) {
   const r = CRITTERS[cr.kind].radius * t * 1.15 * (cr.elite ? ELITE.size : 1);
   const step = Math.floor(ca?.walk ?? 0) % 4, hop = step % 2 ? r * 0.12 : 0, flinch = (ca?.flinch ?? 0) > 0, dizzy = (ca?.dizzy ?? 0) > 0 && !flinch;
-  if (paintCaveFrame(c, `${cr.kind}:${step}`, sx, sy, r * 2.4, face < 0)) return;
+  const frames = CRITTER_ANIMS[cr.kind];
+  const key = flinch ? frames.flinch : dizzy ? frames.dizzy : cr.state === 'ram' || cr.state === 'ready' ? frames.attack[Math.floor(now / 120) % 2] : frames.walk[step];
+  if (cr.elite) {
+    // The warm rim of an elite: the painting with a soft orange glow behind it.
+    c.save(); c.shadowColor = '#ff9a3a'; c.shadowBlur = Math.max(4, r * 0.5);
+    const ok = paintCaveFrame(c, key, sx, sy, r * PAINT_CRITTER, face < 0);
+    c.restore();
+    if (ok) return;
+  } else if (paintCaveFrame(c, key, sx, sy, r * PAINT_CRITTER, face < 0)) return;
   critterShape(c, cr.kind, cr.elite, sx, sy, r, hop, flinch, dizzy, face, now);
 }
 
@@ -317,6 +346,8 @@ function critterShape(c: CanvasRenderingContext2D, kind: CritterId, elite: boole
 
 /** A dust poof: puffs of cream that swell and fade. `p` 0-1 through the poof. */
 function drawPoof(c: CanvasRenderingContext2D, sx: number, sy: number, r: number, p: number) {
+  const frames = FX_ANIMS.poof;
+  if (paintCaveFrame(c, frames[Math.min(frames.length - 1, Math.floor(Math.max(0, p) * frames.length))], sx, sy, r * 2.2)) return;
   c.globalAlpha = Math.max(0, 1 - p);
   c.fillStyle = '#f4e8d8'; c.strokeStyle = '#c8b4a4'; c.lineWidth = 1;
   const rr = r * (0.5 + p * 0.7);
@@ -328,11 +359,13 @@ function drawPoof(c: CanvasRenderingContext2D, sx: number, sy: number, r: number
 }
 
 /** A chinchilla: painted if the sheet is in, else `drawChinchilla`, flipped by its facing, flashing in grace. */
-function drawHero(c: CanvasRenderingContext2D, who: Hero, an: Anim, sx: number, sy: number, t: number, faceX: number, now: number, flash: boolean, hat: boolean) {
+function drawHero(c: CanvasRenderingContext2D, who: Hero, an: Anim, sx: number, sy: number, t: number, faceX: number, now: number, flash: boolean, hat: boolean, main = false) {
   const h = t * 0.95, mirror = faceX < 0;
   c.fillStyle = 'rgba(20, 8, 30, 0.35)'; ellipse(c, sx, sy, t * 0.3, t * 0.1); c.fill();
   if (flash && Math.floor(now / 80) % 2) return;
-  if (paintCaveFrame(c, who, sx, sy, h, mirror)) return;
+  const painted = paintCaveFrame(c, heroFrame(who, an, now), sx, sy, h, mirror);
+  if (main) heroPainted = painted;
+  if (painted) return;
   const moving = an.idle === 0, flinch = an.flinch > 0;
   drawChinchilla(c, who, sx, sy, {
     face: mirror ? -1 : 1, h, time: now / 1000, run: an.walk * 2.4, moving, blink: !moving && Math.floor(now / 1000 + (who === 'dora' ? 1.7 : 0)) % 4 === 0 && (now % 1000) < 140, dizzy: flinch,
@@ -351,9 +384,23 @@ function drawHero(c: CanvasRenderingContext2D, who: Hero, an: Anim, sx: number, 
   }
 }
 
+/** A chinchilla's painted frame: a flinch, its class weapon's attack, digging (Enzo pushes with his walk), walking by
+ *  distance, a cheer, or idle breathing with a blink every 3-5 s. */
+function heroFrame(who: Hero, an: Anim, now: number): string {
+  const f = HERO_ANIMS[who];
+  if (an.flinch > 0) return f.flinch;
+  if (an.attack) return f.attack[Math.min(f.attack.length - 1, Math.floor(an.attack.t / 0.06))];
+  if (an.dig) return who === 'dora' ? f.dig[Math.floor(now / 150) % f.dig.length] : f.walk[Math.floor(now / 110) % f.walk.length];
+  if (an.idle === 0) return f.walk[Math.floor(an.walk) % f.walk.length];
+  if (an.cheer) return f.cheer[Math.floor(now / 160) % f.cheer.length];
+  const s = now / 1000 + (who === 'dora' ? 1.7 : 0), every = 3 + (Math.floor(s / 4) % 3);
+  if (s % every < 0.15) return f.blink;
+  return f.idle[Math.floor(an.idle / 0.5) % f.idle.length];
+}
+
 /** The drop pod: a round brass capsule on legs, its lamp blinking while it waits. */
 function drawPod(c: CanvasRenderingContext2D, sx: number, sy: number, t: number, now: number, reached: boolean) {
-  if (paintCaveFrame(c, 'pod', sx, sy, t * 1.8, false)) return;
+  if (paintCaveFrame(c, BLOCKS.pod[0], sx, sy, t * 1.6, false)) return;
   c.fillStyle = 'rgba(20, 8, 30, 0.4)'; ellipse(c, sx, sy, t * 0.7, t * 0.22); c.fill();
   c.strokeStyle = INK; c.lineWidth = 2;
   c.beginPath(); c.moveTo(sx - t * 0.5, sy); c.lineTo(sx - t * 0.3, sy - t * 0.5); c.moveTo(sx + t * 0.5, sy); c.lineTo(sx + t * 0.3, sy - t * 0.5); c.stroke();
@@ -372,12 +419,16 @@ function drawWyrmPiece(c: CanvasRenderingContext2D, d: Dive, i: number, sx: numb
     return;
   }
   if (w.bonked) {
+    // The painted boulder pile sits where the head fell; the body's pieces go with it.
+    if (caveArtReady(['wyrm'])) { if (head) paintCaveFrame(c, WYRM_PARTS.boulders, sx, sy, t * 3); return; }
     c.fillStyle = '#7a6a64'; c.strokeStyle = INK; c.lineWidth = 1.5;
     for (let k = 0; k < 3; k++) { ellipse(c, sx + (k - 1) * r * 0.55, sy - r * 0.35 - (k % 2) * r * 0.3, r * 0.45, r * 0.38); c.fill(); c.stroke(); }
     return;
   }
-  if (paintCaveFrame(c, head ? 'wyrm:head' : tail ? 'wyrm:tail' : 'wyrm:body', sx, sy, r * 2.2, Math.cos(w.dir) < 0)) return;
   const rear = head && w.rumble <= WYRM.telegraph && w.ring === null ? r * 0.5 : 0, cy = sy - r * 0.9 - rear;
+  // The head rears to rumble, glares once it has dived and come back fast, and otherwise just looks grumpy.
+  const part = head ? (rear || w.ring !== null ? WYRM_PARTS.rumble : WYRM_PARTS.grumpy) : tail ? WYRM_PARTS.tail : WYRM_PARTS.body;
+  if (paintCaveFrame(c, part, sx, sy - rear, r * (head ? PAINT_HEAD : PAINT_BODY), Math.cos(w.dir) < 0)) return;
   c.fillStyle = 'rgba(20, 8, 30, 0.35)'; ellipse(c, sx, sy, r, r * 0.35); c.fill();
   c.fillStyle = w.fast ? '#9a6a5a' : '#8a7a6e'; c.strokeStyle = INK; c.lineWidth = 2;
   ellipse(c, sx, cy, r, r * 0.9); c.fill(); c.stroke();
@@ -399,7 +450,12 @@ function drawShot(c: CanvasRenderingContext2D, v: View, s: Shot, now: number) {
   const t = v.tile, [sx, sy] = toScreen(v, s.x, s.y);
   switch (s.k) {
     case 'acorn': {
-      if (paintCaveFrame(c, 'acorn', sx, sy, t * 0.3, s.dx < 0)) return;
+      // The 4 acorn frames, each a quarter turn on from the last, so it tumbles.
+      const k = Math.floor(now / 60) % 4;
+      c.save(); c.translate(sx, sy - t * 0.35); c.rotate((k * Math.PI) / 2);
+      const ok = paintCaveFrame(c, FX_ANIMS.acorn[k], 0, t * 0.13, t * 0.26);
+      c.restore();
+      if (ok) return;
       c.save(); c.translate(sx, sy - t * 0.35); c.rotate(now / 60);
       c.fillStyle = '#9a5a26'; c.strokeStyle = INK; c.lineWidth = 1; ellipse(c, 0, 0, t * 0.1, t * 0.08); c.fill(); c.stroke();
       c.fillStyle = '#5a3a1a'; c.fillRect(-t * 0.1, -t * 0.09, t * 0.2, t * 0.05);
@@ -504,7 +560,7 @@ export function drawDive(c: CanvasRenderingContext2D, d: Dive, v: View, fx: Fx, 
   if (fx.shake > 0 && !calm) c.translate((hash(Math.floor(now / 30), 1) - 0.5) * fx.shake, (hash(Math.floor(now / 30), 2) - 0.5) * fx.shake);
 
   // 1. The floor.
-  if (!paintCaveFloor(c, v, tint)) {
+  if (!paintFloor(c, v, tint)) {
     c.fillStyle = floorColour(tint); c.fillRect(-20, -20, v.w + 40, v.h + 40);
   }
   const x0 = Math.max(0, Math.floor(v.cx - v.w / 2 / t) - 1), x1 = Math.min(m.w - 1, Math.ceil(v.cx + v.w / 2 / t) + 1);
@@ -556,13 +612,14 @@ export function drawDive(c: CanvasRenderingContext2D, d: Dive, v: View, fx: Fx, 
       }
       case K.seg: case K.head: drawWyrmPiece(c, d, it.i, sx, sy, t, now); return;
       case K.buddy: { const other: Hero = d.hero === 'dora' ? 'enzo' : 'dora'; drawHero(c, other, an?.buddy ?? newAnim(), sx, sy, t, d.hx - d.buddy.x || 1, now, false, other === 'enzo'); return; }
-      case K.hero: drawHero(c, d.hero, an?.hero ?? newAnim(), sx, sy, t, d.face.x, now, d.grace > 0, d.hero === 'enzo'); return;
+      case K.hero: drawHero(c, d.hero, an?.hero ?? newAnim(), sx, sy, t, d.face.x, now, d.grace > 0, d.hero === 'enzo', true); return;
       case K.shot: drawShot(c, v, it.o as Shot, now); return;
       case K.pod: drawPod(c, sx, sy, t, now, (it.o as { reached: boolean }).reached); return;
       case K.poof: { const p = it.o as Fx['poofs'][number]; drawPoof(c, sx, sy, p.r * t, p.t / FX_LIFE.poof); return; }
       case K.star: {
-        const p = it.o as Fx['stars'][number], a = 1 - p.t / FX_LIFE.star;
-        c.globalAlpha = a; c.fillStyle = '#ffe26a'; star(c, sx, sy - t * 0.6 - p.t * t, t * 0.18); c.globalAlpha = 1; return;
+        const p = it.o as Fx['stars'][number], a = 1 - p.t / FX_LIFE.star, frames = FX_ANIMS.bonk;
+        c.globalAlpha = a;
+        if (paintCaveFrame(c, frames[Math.min(frames.length - 1, Math.floor((p.t / FX_LIFE.star) * frames.length))], sx, sy - t * 0.4 - p.t * t, t * 0.5)) { c.globalAlpha = 1; return; } c.fillStyle = '#ffe26a'; star(c, sx, sy - t * 0.6 - p.t * t, t * 0.18); c.globalAlpha = 1; return;
       }
       case K.chip: { const p = it.o as Fx['chips'][number]; c.fillStyle = p.c; c.fillRect(sx - 2, sy - t * 0.3, 4, 3); return; }
     }
