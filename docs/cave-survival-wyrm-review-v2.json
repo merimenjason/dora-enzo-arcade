@@ -1,0 +1,138 @@
+{
+  "image": "public/art/cave-survival/wyrm-v2.png",
+  "grid": [
+    4,
+    2
+  ],
+  "cell": [
+    384,
+    512
+  ],
+  "size": [
+    1536,
+    1024
+  ],
+  "mode": "RGBA",
+  "alpha_max": 254,
+  "alpha_zero_pixels": 990965,
+  "measurement": "connected pieces at alpha > 128 (>= 30 px), each assigned to the cell holding its centre",
+  "status": "fail",
+  "problems": [
+    "row 2 column 4: a piece overhangs its cell by 36 px",
+    "row 2: frame heights range 190\u2013289 px; check the poses by eye"
+  ],
+  "frames": [
+    {
+      "row": 1,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        35,
+        166,
+        371,
+        506
+      ],
+      "width": 336,
+      "height": 340,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 2,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        36,
+        197,
+        358,
+        504
+      ],
+      "width": 322,
+      "height": 307,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 3,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        21,
+        144,
+        373,
+        507
+      ],
+      "width": 352,
+      "height": 363,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 4,
+      "pieces": 6,
+      "bounds_local_exclusive": [
+        42,
+        139,
+        362,
+        514
+      ],
+      "width": 320,
+      "height": 375,
+      "overhang_px": 2
+    },
+    {
+      "row": 2,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        85,
+        151,
+        322,
+        382
+      ],
+      "width": 237,
+      "height": 231,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 2,
+      "pieces": 9,
+      "bounds_local_exclusive": [
+        45,
+        173,
+        362,
+        383
+      ],
+      "width": 317,
+      "height": 210,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 3,
+      "pieces": 3,
+      "bounds_local_exclusive": [
+        47,
+        179,
+        392,
+        369
+      ],
+      "width": 345,
+      "height": 190,
+      "overhang_px": 8
+    },
+    {
+      "row": 2,
+      "column": 4,
+      "pieces": 9,
+      "bounds_local_exclusive": [
+        -36,
+        118,
+        346,
+        407
+      ],
+      "width": 382,
+      "height": 289,
+      "overhang_px": 36
+    }
+  ]
+}
