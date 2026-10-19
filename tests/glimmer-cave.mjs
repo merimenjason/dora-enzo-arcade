@@ -305,6 +305,18 @@ test('spawning respects the cap and the view', () => {
   assert.equal(elites.length, 1); assert.ok(near(elites[0].max, G.critterFluff(G.CRITTERS[elites[0].kind].fluff, 2, 1) * G.ELITE.fluff));
 });
 
+test('spawning: a tall view keeps spawns off a portrait screen', () => {
+  const d = new G.Dive({ seed: 1, hero: 'dora', hazard: 1, profile: {} });
+  assert.deepEqual(d.view, { w: 18, h: 11 });
+  const e = openDive(); e.spawning = true; e.view = { w: 11, h: 24 }; e.t = 200;
+  let top = 0, n = 0;
+  for (let i = 0; i < 600; i++) {
+    e.step(Z); e.fluff = 999;
+    for (const c of e.critters) if (c.id > top) { n++; assert.ok(!(Math.abs(c.x - e.hx) < 5.5 && Math.abs(c.y - e.hy) < 12), `${c.x},${c.y}`); top = c.id; }
+  }
+  assert.ok(n > 50, `${n} spawns`);
+});
+
 test('timer: the pod lands at 0:00 between 12 and 20 tiles away, and the run lasts 45 s', () => {
   const d = openDive(); assert.equal(d.timer, 300); assert.equal(d.pod, null);
   d.timer = 1; let n = 0, ev = [];
@@ -372,6 +384,26 @@ test('hz: 15 Hz moves as far per second as 60 Hz', () => {
   const a = openDive({ hz: 15 }), b = openDive(), go = { x: 1, y: 0.5 };
   assert.equal(a.dt, 1 / 15); run(a, go, 15); run(b, go, 60);
   assert.ok(Math.abs(a.hx - b.hx) < 0.05 && Math.abs(a.hy - b.hy) < 0.05, `${a.hx},${a.hy} vs ${b.hx},${b.hy}`);
+});
+
+test('hz: a crowd pushes apart as fast at 15 Hz as at 60 Hz', () => {
+  const pushed = (hz) => {
+    const d = openDive({ hz });
+    const a = d.spawn('mite', 40.6, 24.5), b = d.spawn('mite', 40.5, 24.5);
+    a.state = 'rest'; a.t = 99; b.stun = 99;
+    run(d, Z, hz / 15);
+    return a.x;
+  };
+  const a = pushed(15), b = pushed(60);
+  assert.ok(near(a, b, 1e-9), `${a} vs ${b}`);
+});
+
+test("move: a NaN or infinite stick counts as no input", () => {
+  for (const input of [{ x: NaN, y: 0 }, { x: 0, y: NaN }, { x: Infinity, y: 1 }, { x: -Infinity, y: Infinity }]) {
+    const d = openDive(); d.face = { x: 0, y: 1 };
+    run(d, input, 10);
+    assert.equal(d.hx, 32.5, JSON.stringify(input)); assert.equal(d.hy, 24.5); assert.equal(d.moving, false); assert.deepEqual(d.face, { x: 0, y: 1 });
+  }
 });
 
 test('stats: base, class, passives and camp upgrades combine', () => {
@@ -717,6 +749,29 @@ test('rerolls: one per layer, refreshed on descend; an overclock offer can\'t be
   assert.equal(new G.Dive({ seed: 1, hero: 'dora', hazard: 1, profile: { upgrades: { rerolls: 2 } } }).rerolls, 3);
 });
 
+test('rerolls: the camp upgrade adds rerolls per dive, spent after the layer\'s own', () => {
+  const toPod = d => { d.pod = { x: 34, y: 25, reached: true }; d.phase = 'pod'; assert.equal(d.descend(), true); };
+  const d = leveller(['sling'], { profile: { upgrades: { rerolls: 2 } } });
+  assert.equal(d.rerolls, 3);
+  d.collect(8); d.step(Z);
+  for (let i = 0; i < 3; i++) assert.equal(d.reroll(), true);
+  assert.equal(d.reroll(), false); assert.equal(d.rerolls, 0);
+  d.pick(0); toPod(d); assert.equal(d.rerolls, 1);
+  const e = leveller(['sling'], { profile: { upgrades: { rerolls: 2 } } });
+  e.collect(8); e.step(Z);
+  assert.equal(e.reroll(), true); assert.equal(e.rerolls, 2); assert.equal(e.campRerolls, 2); assert.equal(e.layerReroll, 0);
+  e.pick(0); toPod(e); assert.equal(e.rerolls, 3);
+});
+
+test("rerolls: a lone Snack can't be rerolled", () => {
+  const e = leveller(['sling', 'pulse', 'pickaxe', 'popper']);
+  for (const w of e.weapons) w.level = 12;
+  for (const id of G.PASSIVE_IDS) e.passives[id] = { n: 5, v: 1 };
+  e.collect(8); e.step(Z);
+  assert.deepEqual(e.offer, [{ k: 'snack' }]);
+  assert.equal(e.reroll(), false); assert.equal(e.rerolls, 1); assert.deepEqual(e.offer, [{ k: 'snack' }]);
+});
+
 test('illegal actions change nothing', () => {
   const snap = d => JSON.stringify({ phase: d.phase, level: d.level, xp: d.xp, picks: d.picks, offer: d.offer, weapons: d.weapons, passives: d.passives, rerolls: d.rerolls });
   const d = leveller();
@@ -1026,17 +1081,43 @@ test('saving: round-trips at a pod', () => {
   const d = new G.Dive({ seed: 9, hero: 'dora', hazard: 3, profile: p });
   d.weapons[0].cd = 0.4; d.weapons[0].n = 3; d.weapons[0].level = 6; d.weapons[0].overclocks = [G.WEAPONS.pickaxe.oc5[0]]; d.weapons[0].rate = 0.2; d.weapons[0].count = 1;
   d.weapons.push(Object.assign(G.newWeapon('bomb'), { level: 2, dmg: 0.25, size: 0.1 })); d.passives.claws = { n: 1, v: 0.1 }; d.passives.fluff = { n: 2, v: 20 }; d.bonked = 17;
-  d.picks = 0; d.phase = 'play';
+  d.picks = 0; d.phase = 'play'; d.face = { x: 0, y: -1 }; d.moving = true; d.buddyWeapon.cd = 0.7; d.buddyWeapon.n = 2;
   d.phase = 'pod'; d.gold.banked = 55;
   assert.equal(d.descend(), true);
   const save = JSON.parse(JSON.stringify(d.toSave()));
   const e = G.Dive.fromSave(save, p);
   assert.deepEqual(e.toSave(), d.toSave());
   assert.deepEqual(JSON.parse(JSON.stringify(e.toSave())), save);
+  assert.deepEqual(e.weapons, d.weapons); assert.deepEqual(e.buddyWeapon, d.buddyWeapon);
+  assert.deepEqual(e.face, d.face); assert.equal(e.moving, d.moving); assert.deepEqual([e.hx, e.hy, e.fluff, e.xp], [d.hx, d.hy, d.fluff, d.xp]);
+  assert.equal(e.rerolls, d.rerolls); assert.equal(e.campRerolls, d.campRerolls);
   assert.equal(save.weapons[0].cd, 0); assert.equal(save.weapons[0].n, 0);
   assert.deepEqual(save.jobsUsed, d.jobsUsed); assert.equal(save.jobsUsed.length, 2); assert.equal(save.weapons.length, 2); assert.deepEqual(save.weapons[0].overclocks, [G.WEAPONS.pickaxe.oc5[0]]);
   assert.equal(save.bonked, 17); assert.deepEqual(save.passives, { fluff: { n: 2, v: 20 }, claws: { n: 1, v: 0.1 } });
   assert.equal(G.Dive.fromSave(save, p).stats().maxFluff, e.stats().maxFluff);
+});
+
+test('saving: a restored dive plays on exactly like the uninterrupted one', () => {
+  const p = G.freshProfile(), go = i => ({ x: Math.cos(i / 40), y: Math.sin(i / 55) });
+  const d = new G.Dive({ seed: 7, hero: 'dora', hazard: 1, profile: p });
+  for (let i = 0; i < 900; i++) { while (d.phase === 'pick') d.pick(0); d.step(go(i)); d.fluff = d.stats().maxFluff; }
+  while (d.phase === 'pick') d.pick(0);
+  assert.ok(d.weapons.some(w => w.cd !== 0 || w.n !== 0) && d.moving, 'the layer left runtime state behind');
+  d.phase = 'pod'; assert.equal(d.descend(), true);
+  const e = G.Dive.fromSave(JSON.parse(JSON.stringify(d.toSave())), p);
+  for (let i = 0; i < 600; i++) {
+    for (const x of [d, e]) while (x.phase === 'pick') x.pick(0);
+    const a = JSON.stringify(d.step(go(i))), b = JSON.stringify(e.step(go(i)));
+    assert.equal(b, a, `events at step ${i}`);
+    assert.deepEqual([e.hx, e.hy, e.fluff, e.xp], [d.hx, d.hy, d.fluff, d.xp], `state at step ${i}`);
+  }
+});
+
+test('saving: fromSave takes hz as an option', () => {
+  const p = G.freshProfile(), save = JSON.parse(JSON.stringify(new G.Dive({ seed: 2, hero: 'enzo', hazard: 1, profile: p }).toSave()));
+  const e = G.Dive.fromSave(save, p, { hz: 15 });
+  assert.equal(e.hz, 15); assert.equal(e.dt, 1 / 15);
+  assert.equal(G.Dive.fromSave(save, p).hz, 60);
 });
 
 test('saving: a fresh dive saves its start, with a head-start offer intact', () => {
@@ -1064,7 +1145,8 @@ test('saving: malformed saves load fresh', () => {
     bad(s => { s.weapons[0].level = 3; s.weapons[0].overclocks = [G.WEAPONS[s.weapons[0].id].oc5[0]]; }),
     bad(s => { s.weapons[0].level = 6; s.weapons[0].overclocks = [...G.WEAPONS[s.weapons[0].id].oc5]; }),
     bad(s => { s.weapons[0].dmg = -1; }), bad(s => { s.passives = { fluff: { n: 1, v: -2 } }; }),
-    bad(s => { s.fluff = 'a'; }), bad(s => { s.gold.banked = -3; }), bad(s => { delete s.gold; })]) {
+    bad(s => { s.fluff = 'a'; }), bad(s => { s.gold.banked = -3; }), bad(s => { delete s.gold; }),
+    bad(s => { s.campRerolls = 4; }), bad(s => { s.campRerolls = -1; }), bad(s => { s.campRerolls = 1.5; }), bad(s => { delete s.campRerolls; })]) {
     assert.equal(G.Dive.fromSave(raw, p), null, JSON.stringify(raw)?.slice(0, 60));
   }
 });

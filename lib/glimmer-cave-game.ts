@@ -87,16 +87,16 @@ export type DiveOpts = { seed: number; hero: Hero; hazard: Hazard; profile: Prof
 /** A dive in progress, saved at a layer's start. `picks` and the whole weapon state keep rarity bonuses across a reload. */
 export type RunSave = {
   v: 1; hero: Hero; hazard: Hazard; seed: number; layer: LayerNo; fluff: number; xp: number; level: number; picks: number;
-  weapons: WeaponState[]; passives: Partial<Record<PassiveId, { n: number; v: number }>>; rerolls: number;
+  weapons: WeaponState[]; passives: Partial<Record<PassiveId, { n: number; v: number }>>; campRerolls: number;
   gold: { banked: number; layer: 0 }; jobsUsed: JobId[]; bonked: number;
 };
 export type Stats = { maxFluff: number; speed: number; pickup: number; armour: number; crit: number; dig: number; damage: number; cooldown: number; projectile: number };
 
 // ── Tuning that only the rules use ─────────────────────────────────────────
 
-/** The spawn window: the view, in tiles, centred on the hero. Spawns land 1-3 tiles beyond its edge. */
 /** Weapon slots, and the Fluff a Snack heals. */
 const MAX_WEAPONS = 4, SNACK_HEAL = 20;
+/** The spawn window: the view, in tiles, centred on the hero. Spawns land 1-3 tiles beyond its edge. */
 const VIEW = { w: 18, h: 11 };
 const SPAWN_GAP = 0.05;
 /** Crystals in pickup range fly at `speed` tiles/s and are taken within `take`. */
@@ -208,7 +208,11 @@ export class Dive {
   weapons: WeaponState[];
   /** The buddy's one weapon: its class's start, at BUDDY_DAMAGE, never levelled. Null leaves the buddy unarmed (tests). */
   buddyWeapon: WeaponState | null;
-  passives: Partial<Record<PassiveId, { n: number; v: number }>> = {}; rerolls = 0;
+  passives: Partial<Record<PassiveId, { n: number; v: number }>> = {};
+  /** Rerolls left from camp, for the whole dive, and the layer's own one, refilled by `startLayer`. */
+  campRerolls = 0; layerReroll = 0;
+  /** The spawn window, in tiles: the page sets it from its stage's aspect. */
+  view = { ...VIEW };
   gold = { banked: 0, layer: 0 };
   crystals: { x: number; y: number; n: number }[] = [];
   critters: Critter[] = [];
@@ -257,11 +261,14 @@ export class Dive {
     this.weapons = [newWeapon(CLASS[o.hero].start)];
     this.buddyWeapon = newWeapon(CLASS[o.hero === 'dora' ? 'enzo' : 'dora'].start);
     const head = this.upgrade('headstart');
-    this.level = 1 + head; this.picks = head;
+    this.level = 1 + head; this.picks = head; this.campRerolls = this.upgrade('rerolls');
     this.startLayer(1);
     this.st = this.stats();
     this.fluff = this.st.maxFluff;
   }
+
+  /** Rerolls available now: the layer's own, then camp's. */
+  get rerolls() { return this.layerReroll + this.campRerolls; }
 
   private upgrade(id: UpgradeId) { return this.profile.upgrades?.[id] ?? 0; }
   private passive(id: PassiveId) { return this.passives[id]?.v ?? 0; }
@@ -296,8 +303,12 @@ export class Dive {
     this.map = makeMap(mix(this.seed, n), n, this.job?.id ?? null);
     this.phase = 'play'; this.result = null; this.t = 0; this.timer = n === 5 ? WYRM_AT : LAYER_SECONDS;
     this.critters = []; this.crystals = []; this.shots = []; this.pod = null; this.rat = 0; this.gold.layer = 0; this.grace = 0;
-    this.rerolls = 1 + this.upgrade('rerolls');
-    this.spawnCd = 0; this.nextBurst = BURST.every; this.nextElite = FIRST_ELITE; this.flowAt = -1;
+    this.layerReroll = 1;
+    this.spawnCd = 0; this.nextBurst = BURST.every; this.nextElite = FIRST_ELITE; this.flowAt = -1; this.ids = 0;
+    // Runtime counters start clean, as a save restores them, so a reloaded layer plays like an uninterrupted one.
+    for (const w of this.weapons) { w.cd = 0; w.n = 0; }
+    if (this.buddyWeapon) { this.buddyWeapon.cd = 0; this.buddyWeapon.n = 0; }
+    this.face = { x: 1, y: 0 }; this.moving = false;
     this.placeHero(this.map.start.x + 0.5, this.map.start.y + 0.5);
     this.openPicks();
   }
@@ -319,20 +330,20 @@ export class Dive {
     for (const id of PASSIVE_IDS) { const p = this.passives[id]; if (p) passives[id] = { n: p.n, v: p.v }; }
     return {
       v: 1, hero: this.hero, hazard: this.hazard, seed: this.seed, layer: this.layer, fluff: this.fluff, xp: this.xp, level: this.level,
-      picks: this.picks, weapons: this.weapons.map(w => ({ ...w, overclocks: [...w.overclocks], cd: 0, n: 0 })), passives, rerolls: this.rerolls,
+      picks: this.picks, weapons: this.weapons.map(w => ({ ...w, overclocks: [...w.overclocks], cd: 0, n: 0 })), passives, campRerolls: this.campRerolls,
       gold: { banked: this.gold.banked, layer: 0 }, jobsUsed: [...this.jobsUsed], bonked: this.bonked,
     };
   }
 
   /** Rebuilds a dive at the start of the saved layer, or null if the save is malformed. */
-  static fromSave(raw: unknown, profile: ProfileLike): Dive | null {
+  static fromSave(raw: unknown, profile: ProfileLike, opts?: { hz?: 60 | 30 | 15 }): Dive | null {
     const s = raw as Partial<RunSave> | null;
     if (!s || typeof s !== 'object' || s.v !== 1) return null;
     const int = (x: unknown, lo: number, hi: number) => typeof x === 'number' && Number.isInteger(x) && x >= lo && x <= hi;
     const num = (x: unknown) => typeof x === 'number' && Number.isFinite(x);
     if (s.hero !== 'dora' && s.hero !== 'enzo') return null;
     if (!int(s.hazard, 1, 5) || !int(s.layer, 1, 5) || !int(s.seed, 0, 0xffffffff)) return null;
-    if (!num(s.fluff) || !num(s.xp) || (s.xp as number) < 0 || !int(s.level, 1, 999) || !int(s.picks, 0, 999) || !int(s.rerolls, 0, 99) || !int(s.bonked, 0, 1e9)) return null;
+    if (!num(s.fluff) || !num(s.xp) || (s.xp as number) < 0 || !int(s.level, 1, 999) || !int(s.picks, 0, 999) || !int(s.campRerolls, 0, UPGRADES.rerolls.max * UPGRADES.rerolls.per) || !int(s.bonked, 0, 1e9)) return null;
     if (!s.gold || !int(s.gold.banked, 0, 1e9)) return null;
     if (!Array.isArray(s.weapons) || s.weapons.length < 1 || s.weapons.length > MAX_WEAPONS) return null;
     if (!Array.isArray(s.jobsUsed) || s.jobsUsed.length > 5 || s.jobsUsed.some(j => !JOB_IDS.includes(j))) return null;
@@ -351,11 +362,11 @@ export class Dive {
       passives[id as PassiveId] = { n: p.n, v: p.v };
     }
     const v = s as RunSave;
-    const d = new Dive({ seed: v.seed, hero: v.hero, hazard: v.hazard, profile });
+    const d = new Dive({ seed: v.seed, hero: v.hero, hazard: v.hazard, profile, hz: opts?.hz });
     d.weapons = weapons; d.passives = passives; d.xp = v.xp; d.level = v.level; d.picks = v.picks; d.bonked = v.bonked;
     d.gold.banked = v.gold.banked; d.jobsUsed = [...v.jobsUsed];
+    d.campRerolls = v.campRerolls;
     d.startLayer(v.layer);
-    d.rerolls = v.rerolls;
     d.st = d.stats();
     d.fluff = Math.min(d.st.maxFluff, v.fluff);
     if (d.fluff <= 0) return null;
@@ -457,11 +468,13 @@ export class Dive {
 
   // 2. The hero's move, by axis, against rock. A blocked axis with input on it digs.
   moveHero(input: Input, st: Stats) {
-    let ix = input.x, iy = input.y;
+    // A NaN or infinite stick counts as no input.
+    const ok = Number.isFinite(input.x) && Number.isFinite(input.y);
+    let ix = ok ? input.x : 0, iy = ok ? input.y : 0;
     const len = Math.hypot(ix, iy);
-    if (len > 1) { ix /= len; iy /= len; }
     this.moving = len > 1e-6;
-    if (this.moving) { this.face.x = input.x / len; this.face.y = input.y / len; }
+    if (this.moving) { this.face.x = ix / len; this.face.y = iy / len; }
+    if (len > 1) { ix /= len; iy /= len; }
     const m = this.map, r = BASE.radius, step = st.speed * this.dt, wantX = this.hx + ix * step, wantY = this.hy + iy * step;
     this.hx = clipX(m, this.hx, this.hy, r, ix * step);
     const blockedX = ix !== 0 && Math.abs(this.hx - wantX) > EPS;
@@ -517,7 +530,7 @@ export class Dive {
   // 4. Critters move and attack.
   moveCritters() {
     this.updateFlow();
-    const m = this.map, dt = this.dt, near = this.scratch, push = Math.min(0.5, 15 * dt);
+    const m = this.map, dt = this.dt, near = this.scratch, push = 1 - Math.exp(-15 * dt);
     for (const c of this.critters) {
       if (c.hit > 0) c.hit -= dt;
       if (c.slowFor > 0) { c.slowFor -= dt; if (c.slowFor <= 0) c.slow = 0; }
@@ -719,10 +732,13 @@ export class Dive {
     return true;
   }
 
-  /** Redeals the offer for one reroll. Overclock offers can't be rerolled. */
+  /** Redeals the offer for one reroll, spending the layer's before camp's. Overclock offers and a lone Snack can't be
+   *  rerolled. */
   reroll(): boolean {
-    if (this.phase !== 'pick' || this.rerolls <= 0 || this.offer[0]?.k === 'overclock') return false;
-    this.rerolls--; this.offer = this.deal();
+    const k = this.offer[0]?.k;
+    if (this.phase !== 'pick' || this.rerolls <= 0 || k === 'overclock' || k === 'snack') return false;
+    if (this.layerReroll > 0) this.layerReroll--; else this.campRerolls--;
+    this.offer = this.deal();
     return true;
   }
 
@@ -766,7 +782,7 @@ export class Dive {
   /** Finds an open tile 1-3 tiles beyond the view's edge on a side (0 right, 1 left, 2 down, 3 up; -1 any) and puts
    *  its centre in `spot`. Gives up after 8 tries. */
   private spawnSpot(side: number): boolean {
-    const hw = VIEW.w / 2, hh = VIEW.h / 2;
+    const hw = this.view.w / 2, hh = this.view.h / 2;
     for (let i = 0; i < 8; i++) {
       const s = side < 0 ? this.rand.int(4) : side, out = 1 + this.rand.next() * 2, along = this.rand.next() * 2 - 1;
       const x = s === 0 ? this.hx + hw + out : s === 1 ? this.hx - hw - out : this.hx + along * (hw + 3);
