@@ -74,4 +74,88 @@ test('rand: the same seed replays, and mix is stable', () => {
   assert.equal(G.mix(1, 2), G.mix(1, 2)); assert.notEqual(G.mix(1, 2), G.mix(2, 1));
 });
 
+// ---- the map ----
+
+const SEEDS = Array.from({ length: 20 }, (_, i) => i + 1), LAYERS = [1, 2, 3, 4, 5];
+const open = b => b === 'floor';
+
+test('map: the same seed and layer give the same map; a different seed gives a different one', () => {
+  const a = G.makeMap(5, 2, null), b = G.makeMap(5, 2, null), c = G.makeMap(6, 2, null);
+  assert.deepEqual(a, b); assert.notDeepEqual(a.tiles, c.tiles);
+  assert.equal(a.w, 64); assert.equal(a.h, 48); assert.equal(a.tiles.length, 64 * 48); assert.equal(a.tint, 2);
+});
+
+test('map: the border is two tiles of bedrock', () => {
+  for (const seed of SEEDS) {
+    const m = G.makeMap(seed, 1, null);
+    for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
+      if (x < 2 || y < 2 || x >= m.w - 2 || y >= m.h - 2) assert.equal(m.tiles[y * m.w + x], 'bedrock', `seed ${seed} ${x},${y}`);
+    }
+  }
+});
+
+test('map: every open tile and every pod spot is reachable from the start', () => {
+  for (const seed of SEEDS) for (const layer of LAYERS) {
+    const m = G.makeMap(seed, layer, null), r = G.reachable(m, m.start);
+    assert.ok(open(G.tileAt(m, m.start.x, m.start.y)));
+    for (let i = 0; i < m.tiles.length; i++) if (open(m.tiles[i])) assert.equal(r[i], 1, `seed ${seed} layer ${layer} tile ${i}`);
+    for (const p of m.pods) assert.equal(r[p.y * m.w + p.x], 1);
+  }
+});
+
+test('map: at least 12 pod spots, each 3 x 3 open', () => {
+  for (const seed of SEEDS) for (const layer of LAYERS) {
+    const m = G.makeMap(seed, layer, null);
+    assert.ok(m.pods.length >= 12, `seed ${seed} layer ${layer}: ${m.pods.length}`);
+    for (const p of m.pods) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) assert.ok(open(G.tileAt(m, p.x + dx, p.y + dy)));
+    const far = m.pods.filter(p => Math.hypot(p.x - m.start.x, p.y - m.start.y) >= 12);
+    assert.ok(far.length >= 6, `seed ${seed} layer ${layer}: ${far.length} far pods`);
+  }
+});
+
+test('map: the start has a 5 x 5 room', () => {
+  for (const seed of SEEDS) {
+    const m = G.makeMap(seed, 3, null);
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) assert.equal(G.tileAt(m, m.start.x + dx, m.start.y + dy), 'floor');
+  }
+});
+
+test('map: gold is commoner deeper', () => {
+  const mean = layer => SEEDS.reduce((n, s) => n + G.makeMap(s, layer, null).tiles.filter(b => b === 'gold').length, 0) / SEEDS.length;
+  assert.ok(mean(5) > mean(1), `${mean(1)} vs ${mean(5)}`);
+});
+
+test('map: crates are buried but diggable, lanterns stand on open floor', () => {
+  for (const seed of SEEDS) {
+    const m = G.makeMap(seed, 2, 'crates');
+    const crates = m.props.filter(p => p.kind === 'crate'); assert.equal(crates.length, 3);
+    const r = G.reachable(m, m.start);
+    for (const c of crates) {
+      assert.equal(G.tileAt(m, c.x, c.y), 'crate');
+      const ns = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]].map(([dx, dy]) => [c.x + dx, c.y + dy]);
+      assert.ok(ns.every(([x, y]) => G.tileAt(m, x, y) !== 'floor'), 'buried');
+      assert.ok(ns.some(([x, y]) => G.solid(G.tileAt(m, x, y)) && G.tileAt(m, x, y) !== 'bedrock' && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => r[(y + dy) * m.w + x + dx] === 1)), 'diggable');
+    }
+    const l = G.makeMap(seed, 2, 'lanterns').props.filter(p => p.kind === 'lantern'); assert.equal(l.length, 3);
+    const m2 = G.makeMap(seed, 2, 'lanterns');
+    for (const p of l) { assert.equal(G.tileAt(m2, p.x, p.y), 'lantern'); assert.ok(Math.hypot(p.x - m2.start.x, p.y - m2.start.y) >= 10); }
+    assert.equal(G.makeMap(seed, 2, null).props.length, 0);
+  }
+});
+
+test('dig: dirt turns to floor with nothing; gold drops 3-6 on layer 1; crate drops 15 crystals; bedrock and floor return null and stay', () => {
+  const m = G.makeMap(1, 1, null), r = new G.Rand(3), s0 = r.s;
+  m.tiles[100] = 'dirt'; m.tiles[101] = 'gold'; m.tiles[102] = 'crate'; m.tiles[103] = 'bedrock'; m.tiles[104] = 'floor'; m.tiles[105] = 'lantern';
+  assert.deepEqual(G.dig(m, 100 % 64, 1, r, 1), { block: 'dirt', gold: 0, crystals: 0 }); assert.equal(m.tiles[100], 'floor'); assert.equal(r.s, s0);
+  const g = G.dig(m, 101 % 64, 1, r, 1); assert.equal(g.block, 'gold'); assert.ok(g.gold >= 3 && g.gold <= 6); assert.equal(m.tiles[101], 'floor');
+  const c0 = r.s; assert.deepEqual(G.dig(m, 102 % 64, 1, r, 1), { block: 'crate', gold: 0, crystals: 15 }); assert.equal(r.s, c0);
+  for (const [i, b] of [[103, 'bedrock'], [104, 'floor'], [105, 'lantern']]) { assert.equal(G.dig(m, i % 64, 1, r, 1), null); assert.equal(m.tiles[i], b); }
+  assert.equal(G.dig(m, -1, -1, r, 1), null); assert.equal(G.tileAt(m, -5, 3), 'bedrock'); assert.ok(G.solid('dirt') && !G.solid('floor'));
+});
+
+test('map: generation is fast', () => {
+  const t = performance.now(); for (let i = 0; i < 50; i++) G.makeMap(i, 3, 'crates');
+  const ms = (performance.now() - t) / 50; console.log(`     makeMap ${ms.toFixed(2)} ms`); assert.ok(ms < 20);
+});
+
 process.exitCode = failed ? 1 : 0;
