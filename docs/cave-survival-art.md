@@ -76,3 +76,23 @@ The remaining pose notes are accepted:
 - The dizzy stars' thin arc stays; it reads as the stars' path.
 
 Import will snap alpha ≥ 240 to 255 and clear colour under alpha 0 (alpha still peaks at 254). The remaining sheets use Enzo v2 as their size and layout reference instead of a pixel box, and must keep each cell's content apart from its neighbours'.
+
+## Round 1 sheets — Claude's review (19-10-2026)
+
+Every frame of the eight sheets from `adaaf71` was checked by eye, both on the raw file and composited on the cave purple.
+
+| Sheet | Verdict | Import fixes |
+| --- | --- | --- |
+| `dora-animation-v2.png` | **Accepted** | Mirror row 4, column 2 (her dig-up frame faces left; mirrored, it reads as the pick raised in front). |
+| `critters-animation-v2.png` | **Accepted** | None. The scene adds a 1–2 px bob to the walk loops and moves the attackers forward in code, so the subtle walk frames and the weak beetle ram don't matter. |
+| `fx-animation-v2.png` | **Accepted** | The acorn spin is drawn with the four row 3 frames plus a quarter-turn per frame in code. |
+| `environment-v1.png`, `environment-v2.png` | **Rejected** | Not repairable on import (see below). |
+| `dora-animation-v1.png`, `critters-animation-v1.png`, `fx-animation-v1.png` | Kept, unused | Their overhangs are harmless, but v2 of each is as good or better. |
+
+Notes on the accepted sheets:
+- **Dora v2.** Ivory fur, red bandana, satchel and pickaxe match `sprites-0.png`; eyes are dark burgundy, not pink. Row 2 column 5 (recoil) is close to ready, and row 3 column 2 closes her eyes instead of squashing; both are fine at 48 px and 0.1 s a frame.
+- **Critters v2.** Designs match the scene; the mite has exactly two antennae; every critter faces right; flinch and dizzy frames are in order. The importer sets their heights (soot and mite about half Enzo's), so their drawn size doesn't matter.
+- **Effects v2.** All 24 cells are the requested effects in order. The thin swirl strokes on the acorns and the ring's connecting line read as motion and are kept.
+- **All three: faint halo.** 7–12% of each sheet's pixels have alpha 1–31, a faint glow around every subject. It is invisible on the floor but would tint it, so import also **clears alpha below 32**, alongside the existing alpha ≥ 240 → 255 snap and clearing colour under alpha 0.
+
+Why the environment is rejected. The rope overhang (25 px in v2) is harmless on its own, as the importer crops by piece. The real problem is the camera and style: both versions draw crisp, corner-on isometric cubes with diamond-shaped tops and a pixel-art texture. The scene (`gameplay-style-test.png`) shows soft gouache blocks seen square-on from the front, a big top face above a front face, and the floor grid needs exactly that to tile. `docs/cave-survival-layout-guides/environment-reference.png` holds crops of two scene blocks, the lantern and the crystal crate as the reference for the corrected prompt (round 2 in `cave-survival-animation-prompts-v2.md`).

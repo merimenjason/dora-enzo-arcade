@@ -16,8 +16,9 @@ All paths are in this repository on `codex/cave-survival-style-art`; nothing is 
 | ENZO | `public/art/cave-survival/enzo-animation-v2.png` |
 | SPRITES | `public/art/cave-survival/sprites-0.png` |
 | SCENE | `public/art/cave-survival/gameplay-style-test.png` |
-| DORA | `public/art/cave-survival/dora-animation-v1.png` (once made) |
-| CRITTERS | `public/art/cave-survival/critters-animation-v1.png` (once made) |
+| DORA | `public/art/cave-survival/dora-animation-v2.png` (accepted) |
+| CRITTERS | `public/art/cave-survival/critters-animation-v2.png` (accepted) |
+| ENVREF | `docs/cave-survival-layout-guides/environment-reference.png` (crops of the scene's blocks, lantern and crate) |
 
 ## Order, outputs and checks
 
@@ -26,7 +27,7 @@ All paths are in this repository on `codex/cave-survival-style-art`; nothing is 
 | 1 | Dora | 6 × 4 | `dora-animation-v1.png` | `python3 scripts/cave-frame-review.py <png> 6 4 docs/cave-survival-dora-frame-review-v1.json` |
 | 2 | Critters | 6 × 4 | `critters-animation-v1.png` | `… 6 4 docs/cave-survival-critters-frame-review-v1.json` |
 | 3 | Effects | 6 × 4 | `fx-animation-v1.png` | `… 6 4 docs/cave-survival-fx-frame-review-v1.json` |
-| 4 | Environment | 4 × 2 | `environment-v1.png` | `… 4 2 docs/cave-survival-environment-review-v1.json` |
+| 4 | Environment | 4 × 2 | `environment-v3.png` (round 2, below) | `… 4 2 docs/cave-survival-environment-review-v3.json` |
 | 5 | Floor tile | one 1024² tile | `floor-v1.png` | `python3 scripts/cave-frame-review.py --tile <png> docs/cave-survival-floor-review-v1.json` |
 | 6 | Rock Wyrm | 4 × 2 | `wyrm-v1.png` | `… 4 2 docs/cave-survival-wyrm-review-v1.json` |
 
@@ -123,6 +124,30 @@ Genuine alpha-zero transparency. No floor, ground shadow, glow, haze, backdrop, 
 ```
 
 Retry note: `An object reaches the cell edge or the blocks differ in size: draw every object smaller and keep the five blocks identical in size and shape.`
+
+## 4 · Environment, round 2 (use this one)
+
+Round 1 (above, `environment-v1.png` and `-v2.png`) drew crisp corner-on isometric cubes in a pixel-art texture; see **Round 1 sheets — Claude's review** in `cave-survival-art.md`. Output `environment-v3.png`, retry `environment-v4.png`.
+
+Inputs: SCENE (style and camera), ENVREF (the blocks, lantern and crate to match).
+
+```
+Create the cave environment sheet: a transparent 1536 × 1024 PNG with 4 columns × 2 rows of equal 384 × 512 cells, one object centred in each cell, all standing on a common ground line about 90 px above the bottom of the cells.
+
+Match images 1 and 2 EXACTLY in style and camera: soft, loose gouache brushwork on cream paper with thin dark-plum outlines and a warm cosy palette. NOT pixel art, NOT crisp isometric game tiles. The camera looks from the FRONT, high above, tilted about 55° down: every block shows a large TOP face with its FRONT face below it, square-on, like the blocks in image 2. Never turn a block corner-on: no diamond-shaped tops; the left and right sides are hidden or only a sliver.
+
+The five blocks are soft-edged, slightly uneven chunky blocks with rounded corners, like image 2, about 260 px wide, all the SAME size and outline:
+Row 1, left to right: a plain brown diggable dirt block; the same block flecked with a few gold nuggets like image 2; the gold block with a few small hairline cracks; the gold block split into big chunks starting to fall apart, every chunk still touching the block.
+Row 2, left to right: a solid dark grey-purple bedrock block, same size, clearly harder (smoother, darker, no gold); a cosy wooden mine-lift cage about the block's width and one and a half times its height, with a little roof and a coil of rope lying ON the roof, with NO rope rising above it; a wooden post with a hanging lantern like image 2's, its lens painted bright warm yellow, with NO light spilling outside it; a small open wooden crate full of blue crystals like image 2's.
+
+Every object stays well inside its own cell, with at least 40 px of transparent space to every cell edge.
+
+Genuine alpha-zero transparency. No floor, ground shadow, glow, haze, backdrop, grid or text.
+```
+
+Retry note: `The blocks are turned corner-on, look like pixel art, or an object comes near a cell edge: show only each block's top and front faces, square-on, painted in loose gouache like image 2, and draw every object smaller.`
+
+Check by eye as well as by script: the script cannot see the camera. If the tops are diamond-shaped or the texture is pixelated, count it as a failed check.
 
 ## 5 · Floor tile
 
