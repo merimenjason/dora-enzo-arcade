@@ -179,12 +179,54 @@ await check('screenshots: layer 1 at 2:00, a 300-critter swarm, and the wyrm', a
   });
   await page.waitForTimeout(300);
   await page.getByTestId('stage').screenshot({ path: '.checks/cave/swarm-300.png' });
-  await cave(page, (w) => { w.set({ layer: 5, fluff: 9999 }); w.dive.t = 179.5; w.dive.timer = 0.5; });
+  await cave(page, (w) => { w.set({ layer: 5, fluff: 9999 }); w.dive.critters.length = 0; w.dive.t = 179.5; w.dive.timer = 0.5; });
+  if (await page.locator('main[data-screen="pick"]').count()) await page.getByTestId('card-0').click();
   // With 300 critters still on the stage a software-drawn frame is slow, so the wyrm can take a while to surface.
   await page.waitForFunction(() => { const y = window.__cave().dive.wyrm; return y && y.under === 0; }, null, { timeout: 60000 });
   await page.waitForTimeout(2500);
   await page.getByTestId('stage').screenshot({ path: '.checks/cave/wyrm.png' });
   assert.ok((await page.getByTestId('timer').textContent()).includes('Wyrm'), 'the wyrm bar shows');
+});
+
+// ---- painted art ----
+
+const SHEETS = ['enzo', 'dora', 'critters', 'fx', 'environment', 'floor', 'wyrm', 'wyrmheads'];
+const art = (page) => cave(page, (w) => ({ ...w.art(), hero: w.heroPainted() }));
+const clock = (page) => cave(page, (w) => w.dive.t);
+
+await check('art: a dive asks for every sheet, hash-versioned, and paints the hero from its sheet', async (page) => {
+  await fresh(page); await begin(page, { hero: 'dora' });
+  await page.waitForFunction((want) => { const a = window.__cave().art(); return want.every((s) => a.ready.includes(s)); }, SHEETS);
+  await page.waitForFunction(() => window.__cave().heroPainted());
+  const asked = await page.evaluate(() => performance.getEntriesByType('resource').map((e) => new URL(e.name)).filter((u) => u.pathname.startsWith('/art/cave/')).map((u) => u.pathname + u.search));
+  for (const u of asked) assert.match(u, /^\/art\/cave\/[a-z]+\.png\?v=[0-9a-f]{12}$/);
+  await page.waitForTimeout(400);
+  await page.getByTestId('stage').screenshot({ path: '.checks/cave/painted.png' });
+});
+
+await check('art: while it is slow the dive plays on in code drawings, then paints itself', async (page) => {
+  let release; const held = new Promise((r) => { release = r; });
+  await page.route('**/art/cave/**', async (route) => { await held; await route.continue(); });
+  await fresh(page); await begin(page, { hero: 'enzo' });
+  const t0 = await clock(page); await page.waitForTimeout(600);
+  assert.ok((await clock(page)) > t0, 'the dive runs while the art is out');
+  assert.equal((await art(page)).hero, false, 'the hero is code-drawn meanwhile');
+  release();
+  await page.waitForFunction(() => window.__cave().heroPainted());
+});
+
+await check('art: a failed sheet leaves the dive playable, and Retry brings it back', async (page) => {
+  let fail = true;
+  await page.route('**/art/cave/critters.png*', (route) => (fail ? route.abort() : route.continue()));
+  await fresh(page); await begin(page, { hero: 'enzo', spawning: true });
+  await page.getByTestId('retry-art').waitFor();
+  const t0 = await clock(page); await page.waitForTimeout(500);
+  assert.ok((await clock(page)) > t0, 'the dive runs without the critters sheet');
+  assert.ok((await art(page)).failed.includes('critters'));
+  fail = false;
+  await page.getByTestId('retry-art').click();
+  await page.getByTestId('retry-art').waitFor({ state: 'detached' });
+  assert.ok((await art(page)).ready.includes('critters'));
 });
 
 for (const view of [{ width: 390, height: 844 }, { width: 1280, height: 860 }]) {

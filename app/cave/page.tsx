@@ -1,12 +1,13 @@
 /* oxlint-disable react/react-compiler -- The dive is a mutable engine object stepped by the loop and changed by the buttons, like the other arcade games. */
 /* oxlint-disable next/no-html-link-for-pages -- Match the arcade's hard navigation back to the menu. */
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Dive, CARD, JOBS, OVERCLOCKS, PASSIVES, RARITY, UNLOCK, UPGRADES, UPGRADE_IDS, WEAPONS, buy, freshProfile, loadProfile, newWeapon, record, upgradeCost, xpNeed,
   type Card, type CaveEvent, type Hazard, type Hero, type LayerNo, type Profile, type WeaponId, type WeaponState,
 } from '../../lib/glimmer-cave-game';
-import { addEvents, animate, drawDive, drawStick, drawTitle, makeView, newAnimState, newFx, viewTiles, type AnimState, type Fx } from '../../lib/glimmer-cave-scene';
+import { addEvents, animate, drawDive, drawStick, drawTitle, heroPainted, makeView, newAnimState, newFx, viewTiles, type AnimState, type Fx } from '../../lib/glimmer-cave-scene';
+import { CAVE_SHEETS, caveArtServerVersion, caveArtStatus, caveArtVersion, requestCaveArt, retryCaveArt, subscribeCaveArt } from '../../lib/glimmer-cave-paint';
 import { makeSound } from '../../lib/cue-sound';
 import './cave.css';
 
@@ -20,6 +21,9 @@ const SHORT: Record<WeaponId, string> = {
 };
 const UNLOCK_TEXT: Record<keyof typeof UNLOCK, string> = { bomb: 'reach layer 3', moths: 'finish a dive', drum: 'finish hazard 2', drill: 'bonk 5,000 critters' };
 const pct = (n: number) => `${Math.round(n * 100)}%`;
+/** The heroes' sheets are asked for at camp; the rest when a dive starts (the pose sheet only if a frame needs it). */
+const HERO_SHEETS = ['dora', 'enzo'] as const, DIVE_SHEETS = CAVE_SHEETS.filter((s) => s !== 'sprites');
+const useArtVersion = () => useSyncExternalStore(subscribeCaveArt, caveArtVersion, caveArtServerVersion);
 const clock = (s: number) => { const n = Math.ceil(s); return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`; };
 
 const store = {
@@ -183,6 +187,7 @@ export default function GlimmerCave() {
   useEffect(() => {
     (window as unknown as { __cave?: () => unknown }).__cave = () => ({
       get dive() { return diveRef.current; }, get profile() { return profileRef.current; }, start, xpNeed,
+      art: caveArtStatus, heroPainted: () => heroPainted,
       set: (patch: { level?: number; xp?: number; fluff?: number; timer?: number; layer?: LayerNo; weapons?: (Partial<WeaponState> & { id: WeaponId })[] }) => {
         const d = diveRef.current;
         if (!d) return;
@@ -250,6 +255,7 @@ export default function GlimmerCave() {
       if (!c) return;
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
       view.cx = d.hx; view.cy = d.hy;
+      animRef.current.hero.cheer = screenRef.current === 'pod';
       drawDive(c, d, view, fxRef.current, now, calm, animRef.current);
       const s = stickRef.current;
       if (s && screenRef.current === 'dive') {
@@ -323,7 +329,14 @@ export default function GlimmerCave() {
   const toggleMute = () => { const m = !muted; sound.setMuted(m); setMuted(m); };
   const d = diveRef.current;
   const playing = screen === 'dive' || screen === 'pick' || screen === 'pod';
-  const mute = <button data-testid="mute" className="gc-icon" aria-pressed={muted} onClick={toggleMute}>{muted ? 'Sound off' : 'Sound on'}</button>;
+  // The heroes' sheets at camp, everything else as a dive starts.
+  useEffect(() => { if (screen === 'camp' || screen === 'title') requestCaveArt(HERO_SHEETS); else if (playing) requestCaveArt(DIVE_SHEETS); }, [screen, playing]);
+  useArtVersion();
+  const artFailed = caveArtStatus().failed.length > 0;
+  const mute = <>
+    {artFailed && <button data-testid="retry-art" className="gc-icon" onClick={retryCaveArt}>Retry artwork</button>}
+    <button data-testid="mute" className="gc-icon" aria-pressed={muted} onClick={toggleMute}>{muted ? 'Sound off' : 'Sound on'}</button>
+  </>;
 
   return (
     <main className="gc-shell" data-ready={ready} data-screen={screen}>
