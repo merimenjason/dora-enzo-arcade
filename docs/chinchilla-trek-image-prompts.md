@@ -4,6 +4,10 @@ Written 19-10-2026. A handoff for painting Chinchilla Trek's art in ChatGPT. The
 
 Dora and Enzo themselves are not in this list: the trek draws them with the arcade's shared `drawChinchilla`, as most games do. They appear only in the title illustration.
 
+## Delivery status · 19-10-2026
+
+All twelve images are generated under `public/art/trek/`. Runtime integration is pending. Read [the art handoff](chinchilla-trek-art.md), [measured crops and background geometry](chinchilla-trek-crops.json) and [exact generation/correction provenance](chinchilla-trek-generation.json). The five backgrounds require alternating mirrored tiles, using the fallback allowed in **Wiring it in** below; plain repeats are not certified seamless. The original prompts remain unchanged for future replacements.
+
 ## How to use this
 
 1. Start a new ChatGPT conversation. Attach the style references:
