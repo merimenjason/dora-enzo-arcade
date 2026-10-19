@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 20-10-2026
+
+### Documentation
+
+- **Glimmer Cave (in progress)**: added the Rock Wyrm's four separate head frames, the last painted sheet the game needs.
+
 ## 19-10-2026
 
 ### Documentation
