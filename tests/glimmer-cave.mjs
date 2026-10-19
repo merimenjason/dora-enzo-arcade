@@ -1024,7 +1024,8 @@ test('saving: a save restarts its layer', () => {
 test('saving: round-trips at a pod', () => {
   const p = G.freshProfile(); p.upgrades.headstart = 1;
   const d = new G.Dive({ seed: 9, hero: 'dora', hazard: 3, profile: p });
-  d.weapons[0].cd = 0.4; d.weapons[0].n = 3; d.passives.fluff = { n: 2, v: 20 }; d.bonked = 17;
+  d.weapons[0].cd = 0.4; d.weapons[0].n = 3; d.weapons[0].level = 6; d.weapons[0].overclocks = [G.WEAPONS.pickaxe.oc5[0]]; d.weapons[0].rate = 0.2; d.weapons[0].count = 1;
+  d.weapons.push(Object.assign(G.newWeapon('bomb'), { level: 2, dmg: 0.25, size: 0.1 })); d.passives.claws = { n: 1, v: 0.1 }; d.passives.fluff = { n: 2, v: 20 }; d.bonked = 17;
   d.picks = 0; d.phase = 'play';
   d.phase = 'pod'; d.gold.banked = 55;
   assert.equal(d.descend(), true);
@@ -1033,8 +1034,8 @@ test('saving: round-trips at a pod', () => {
   assert.deepEqual(e.toSave(), d.toSave());
   assert.deepEqual(JSON.parse(JSON.stringify(e.toSave())), save);
   assert.equal(save.weapons[0].cd, 0); assert.equal(save.weapons[0].n, 0);
-  assert.deepEqual(save.jobsUsed, d.jobsUsed); assert.equal(save.jobsUsed.length, 2);
-  assert.equal(save.bonked, 17); assert.deepEqual(save.passives, { fluff: { n: 2, v: 20 } });
+  assert.deepEqual(save.jobsUsed, d.jobsUsed); assert.equal(save.jobsUsed.length, 2); assert.equal(save.weapons.length, 2); assert.deepEqual(save.weapons[0].overclocks, [G.WEAPONS.pickaxe.oc5[0]]);
+  assert.equal(save.bonked, 17); assert.deepEqual(save.passives, { fluff: { n: 2, v: 20 }, claws: { n: 1, v: 0.1 } });
   assert.equal(G.Dive.fromSave(save, p).stats().maxFluff, e.stats().maxFluff);
 });
 
@@ -1056,6 +1057,13 @@ test('saving: malformed saves load fresh', () => {
     bad(s => { s.weapons[0].id = 'zap'; }), bad(s => { s.layer = -1; }), bad(s => { s.layer = 6; }), bad(s => { s.layer = 1.5; }),
     bad(s => { s.hero = 'bob'; }), bad(s => { s.hazard = 7; }), bad(s => { s.weapons = []; }), bad(s => { s.jobsUsed = ['x']; }),
     bad(s => { s.passives = { zz: { n: 1, v: 1 } }; }), bad(s => { s.weapons[0].overclocks = ['nope']; }),
+    bad(s => { s.weapons = ['sling', 'pickaxe', 'popper', 'pulse', 'lance'].map(id => ({ ...s.weapons[0], id })); }),
+    bad(s => { s.weapons.push({ ...s.weapons[0] }); }),
+    bad(s => { s.weapons[0].level = 6; s.weapons[0].overclocks = ['bomb.bigger']; }),
+    bad(s => { s.weapons[0].level = 6; s.weapons[0].overclocks = ['constructor']; }),
+    bad(s => { s.weapons[0].level = 3; s.weapons[0].overclocks = [G.WEAPONS[s.weapons[0].id].oc5[0]]; }),
+    bad(s => { s.weapons[0].level = 6; s.weapons[0].overclocks = [...G.WEAPONS[s.weapons[0].id].oc5]; }),
+    bad(s => { s.weapons[0].dmg = -1; }), bad(s => { s.passives = { fluff: { n: 1, v: -2 } }; }),
     bad(s => { s.fluff = 'a'; }), bad(s => { s.gold.banked = -3; }), bad(s => { delete s.gold; })]) {
     assert.equal(G.Dive.fromSave(raw, p), null, JSON.stringify(raw)?.slice(0, 60));
   }

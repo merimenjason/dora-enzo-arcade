@@ -334,18 +334,20 @@ export class Dive {
     if (!int(s.hazard, 1, 5) || !int(s.layer, 1, 5) || !int(s.seed, 0, 0xffffffff)) return null;
     if (!num(s.fluff) || !num(s.xp) || (s.xp as number) < 0 || !int(s.level, 1, 999) || !int(s.picks, 0, 999) || !int(s.rerolls, 0, 99) || !int(s.bonked, 0, 1e9)) return null;
     if (!s.gold || !int(s.gold.banked, 0, 1e9)) return null;
-    if (!Array.isArray(s.weapons) || s.weapons.length < 1 || s.weapons.length > WEAPON_IDS.length) return null;
+    if (!Array.isArray(s.weapons) || s.weapons.length < 1 || s.weapons.length > MAX_WEAPONS) return null;
     if (!Array.isArray(s.jobsUsed) || s.jobsUsed.length > 5 || s.jobsUsed.some(j => !JOB_IDS.includes(j))) return null;
     if (!s.passives || typeof s.passives !== 'object') return null;
     const weapons: WeaponState[] = [];
     for (const w of s.weapons) {
-      if (!w || !WEAPON_IDS.includes(w.id) || !int(w.level, 1, 12) || !Array.isArray(w.overclocks) || w.overclocks.some(o => !(o in OVERCLOCKS))) return null;
-      if (!num(w.dmg) || !num(w.rate) || !num(w.size) || !num(w.count)) return null;
+      if (!w || !WEAPON_IDS.includes(w.id) || weapons.some(x => x.id === w.id) || !int(w.level, 1, 12) || !Array.isArray(w.overclocks)) return null;
+      if (!num(w.dmg) || !num(w.rate) || !num(w.size) || !num(w.count) || w.dmg < 0 || w.rate < 0 || w.size < 0 || w.count < 0) return null;
+      const def = WEAPONS[w.id], a = w.overclocks.filter(o => (def.oc5 as string[]).includes(o)).length, b = w.overclocks.filter(o => (def.oc10 as string[]).includes(o)).length;
+      if (a + b !== w.overclocks.length || new Set(w.overclocks).size !== w.overclocks.length || a > (w.level >= 5 ? 1 : 0) || b > (w.level >= 10 ? 1 : 0)) return null;
       weapons.push({ id: w.id, level: w.level, overclocks: [...w.overclocks], dmg: w.dmg, rate: w.rate, size: w.size, count: w.count, cd: 0, n: 0 });
     }
     const passives: Dive['passives'] = {};
     for (const [id, p] of Object.entries(s.passives)) {
-      if (!PASSIVE_IDS.includes(id as PassiveId) || !p || !int(p.n, 0, 99) || !num(p.v)) return null;
+      if (!PASSIVE_IDS.includes(id as PassiveId) || !p || !int(p.n, 0, 99) || !num(p.v) || p.v < 0) return null;
       passives[id as PassiveId] = { n: p.n, v: p.v };
     }
     const v = s as RunSave;
