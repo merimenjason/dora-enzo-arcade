@@ -114,6 +114,8 @@ export type WeaponDef = {
 
 const alt = (a: Step, b: Step, c?: Step): Step[] => Array.from({ length: 11 }, (_, i) => (c ? [a, b, c][i % 3] : i % 2 ? b : a));
 
+/** Level-1 damage is the spec's, except the bot's raises: the lance 12 to 16, and the four unlocks (bomb 25 to 55,
+ *  moths 6 to 13, drum 10 to 24, drill 8 to 20) so that unlocking them is a step up. */
 export const WEAPONS: Record<WeaponId, WeaponDef> = {
   sling: {
     id: 'sling', name: 'Acorn Sling', text: 'Flings an acorn at the nearest critter.', damage: 8, cooldown: 0.6, mines: false,
@@ -136,7 +138,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     p: { radius: 2.5, bright: 0.4, warmSlow: 0.25, warmFor: 2, beaconEvery: 3, beaconMult: 2, heal: 1, healMax: 5 },
   },
   lance: {
-    id: 'lance', name: 'Crystal Lance', text: 'Fires a piercing shard toward the densest crowd.', damage: 12, cooldown: 1.5, mines: false,
+    id: 'lance', name: 'Crystal Lance', text: 'Fires a piercing shard toward the densest crowd.', damage: 16, cooldown: 1.5, mines: false,
     oc5: ['lance.prism', 'lance.long'], oc10: ['lance.resonance', 'lance.glimmer'], steps: alt('rate', 'size'),
     p: { length: 6, width: 0.4, prism: 3, longMult: 2, chime: 0.5, chimeReach: 1, glimmerChance: 0.1 },
   },
@@ -156,22 +158,22 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     p: { seeds: 3, radius: 1.6, speed: 3, more: 5, wide: 2.4, sproutFor: 1, sproutDamage: 3, sproutTick: 0.5 },
   },
   bomb: {
-    id: 'bomb', name: 'Burrow Bomb', text: 'Drops a bomb that bursts and digs nearby blocks.', damage: 25, cooldown: 2.5, mines: true,
+    id: 'bomb', name: 'Burrow Bomb', text: 'Drops a bomb that bursts and digs nearby blocks.', damage: 55, cooldown: 2.5, mines: true,
     oc5: ['bomb.bigger', 'bomb.quick'], oc10: ['bomb.chain', 'bomb.prospector'], steps: alt('size', 'rate'),
     p: { fuse: 1, radius: 1.5, bigger: 0.5, quickFuse: 0.4, chainReach: 2 },
   },
   moths: {
-    id: 'moths', name: 'Glow Moths', text: 'Moths fly out, home in on critters and return.', damage: 6, cooldown: 0.5, mines: false,
+    id: 'moths', name: 'Glow Moths', text: 'Moths fly out, home in on critters and return.', damage: 13, cooldown: 0.5, mines: false,
     oc5: ['moths.swarm', 'moths.dazzle'], oc10: ['moths.moonlit', 'moths.firefly'], steps: alt('count', 'rate'),
     p: { moths: 2, speed: 7, range: 6, swarm: 4, dazzle: 0.3, fireflyDamage: 15, fireflyRadius: 1 },
   },
   drum: {
-    id: 'drum', name: 'Rumble Drum', text: 'A thump that shakes and stuns everything near you.', damage: 10, cooldown: 4, mines: false,
+    id: 'drum', name: 'Rumble Drum', text: 'A thump that shakes and stuns everything near you.', damage: 24, cooldown: 4, mines: false,
     oc5: ['drum.deep', 'drum.quick'], oc10: ['drum.avalanche', 'drum.echo'], steps: alt('size', 'rate'),
     p: { radius: 3.5, stun: 0.5, deep: 1.5, quickCooldown: 2.5, echoDelay: 0.5 },
   },
   drill: {
-    id: 'drill', name: 'Pebble Drill', text: 'Sends a spinning drill ahead that digs as it goes.', damage: 8, cooldown: 2, mines: true,
+    id: 'drill', name: 'Pebble Drill', text: 'Sends a spinning drill ahead that digs as it goes.', damage: 20, cooldown: 2, mines: true,
     oc5: ['drill.twin', 'drill.long'], oc10: ['drill.diamond', 'drill.tunnelrat'], steps: alt('rate', 'size'),
     p: { range: 6, speed: 8, width: 0.8, tick: 0.25, longRange: 10, diamond: 1, ratSpeed: 0.25, ratFor: 2 },
   },
@@ -192,9 +194,9 @@ export const CLASS: Record<Hero, { start: WeaponId; fluff: number; dig: number; 
 
 // ── Card bonuses ───────────────────────────────────────────────────────────
 
-/** A weapon card at rarity multiplier m adds damage 0.15 x m; its step adds rate (cooldown / (1 + 0.06 x m)), size
- *  (+0.1 x m to radii and lengths) or count (+1, not scaled). (start) */
-export const CARD = { damage: 0.15, rate: 0.06, size: 0.1, count: 1 };
+/** A weapon card at rarity multiplier m adds damage 0.15 x m; its step adds rate (cooldown / (1 + 0.08 x m)), size
+ *  (+0.12 x m to radii and lengths) or count (+1, not scaled). (set by the bot) */
+export const CARD = { damage: 0.15, rate: 0.08, size: 0.12, count: 1 };
 
 // ── Passives ───────────────────────────────────────────────────────────────
 
@@ -230,21 +232,28 @@ export const CRITTERS: Record<CritterId, { name: string; fluff: number; speed: n
   mite: { name: 'Pink mite', fluff: 4, speed: 2.8, contact: 4, xp: 1, radius: 0.25 },
   beetle: { name: 'Mossy beetle', fluff: 30, speed: 1.4, contact: 10, xp: 4, radius: 0.45 },
 };
-/** Mites come in packs and hop in short dashes. (start) */
-export const MITE = { pack: [5, 8], dash: 0.4, rest: 0.6 };
+/** Mites come in packs and hop in short dashes; a dash runs at speed x (dash + rest) / dash, so these keep it near
+ *  the hero's pace. (set by the bot) */
+export const MITE = { pack: [5, 8], dash: 1.2, rest: 0.25 };
 /** A beetle within `within` tiles rams `ram` tiles every `every` seconds. (start) */
 export const BEETLE = { every: 4, within: 4, ram: 2, ramSpeed: 6 };
 export const ELITE = { size: 1.6, fluff: 8, contact: 1.5, cache: 20, every: 60, from: 2 };
 
+/** Critter Fluff is the table's x `base`, scaled by `layer` for each layer below the first and `hazard` for each
+ *  hazard above 1. (call; the bot tunes it) */
+export const FLUFF_SCALE = { base: 1, layer: 3, hazard: 0.25 };
 export function critterFluff(base: number, layer: LayerNo, h: Hazard) {
-  return base * (1 + 0.35 * (layer - 1)) * (1 + 0.25 * (h - 1));
+  return base * FLUFF_SCALE.base * (1 + FLUFF_SCALE.layer * (layer - 1)) * (1 + FLUFF_SCALE.hazard * (h - 1));
 }
 
 export const MAX_ALIVE = 300;
-/** The number of critters the cave tries to keep alive `t` seconds into a layer. */
+/** The spawn ramp: `from` alive at a layer's start to `to` at its end, x`layer` for each layer below the first and
+ *  +`hazard` for each hazard above 1. `targetAlive` is the number the cave tries to keep alive `t` s into a layer.
+ *  (the bot set `to` and `layer`; the spec's start was 120 and 1.25) */
+export const RAMP = { from: 20, to: 72, layer: 1.45, hazard: 0.2 };
 export function targetAlive(t: number, layer: LayerNo, h: Hazard, podRun: boolean) {
-  const ramp = 20 + 100 * Math.max(0, Math.min(1, t / LAYER_SECONDS));
-  return Math.min(MAX_ALIVE, ramp * Math.pow(1.25, layer - 1) * (1 + 0.2 * (h - 1)) * (podRun ? 2 : 1));
+  const ramp = RAMP.from + (RAMP.to - RAMP.from) * Math.max(0, Math.min(1, t / LAYER_SECONDS));
+  return Math.min(MAX_ALIVE, ramp * Math.pow(RAMP.layer, layer - 1) * (1 + RAMP.hazard * (h - 1)) * (podRun ? 2 : 1));
 }
 export const BURST = { every: 60, n: 30 };
 /** Soot, mite and beetle weights per layer. (start) */
@@ -266,9 +275,10 @@ export const JOBS = {
 
 // ── The Rock Wyrm ──────────────────────────────────────────────────────────
 
-/** Its Fluff is scaled by 1 + 0.25 x (hazard - 1); its gold is x hazard. (start, except where the spec fixes a number) */
+/** Its Fluff is scaled by 1 + 0.25 x (hazard - 1); its gold is x hazard. (start, except where the spec fixes a number;
+ *  the bot set its Fluff so a fight lasts about a minute) */
 export const WYRM = {
-  fluff: 2500, segments: 8, spacing: 0.9, head: 0.9, body: 0.6, speed: 2.6, contact: 15, rumbleEvery: 8, telegraph: 1,
+  fluff: 12000, segments: 8, spacing: 0.9, head: 0.9, body: 0.6, speed: 2.6, contact: 15, rumbleEvery: 8, telegraph: 1,
   ring: 4, ringWidth: 0.6, ringDamage: 15, diveAt: 0.5, diveFor: 6, fastAfter: 1.3, crystals: 100, gold: 200,
 };
 /** The id the wyrm's head goes by in `hit` events and to the weapons, which see it as a critter. */
@@ -276,7 +286,9 @@ export const WYRM_ID = -1;
 
 // ── Levels ─────────────────────────────────────────────────────────────────
 
-export function xpNeed(level: number) { return 5 + 3 * level; }
+/** Experience to the next level: `base` + `per` x level + `sq` x level squared. (call) */
+export const XP = { base: 6, per: 2.8, sq: 0.15 };
+export function xpNeed(level: number) { return Math.round(XP.base + XP.per * level + XP.sq * level * level); }
 
 // ── Camp ───────────────────────────────────────────────────────────────────
 

@@ -189,6 +189,17 @@ function nearest(d: Dive, x: number, y: number, range: number, skip: number[] | 
   return best;
 }
 
+/** "Weapons aim themselves": the weapons that fire one way (the pickaxe, the puffer and the drill, the buddy's too) aim
+ *  from (x, y) at the nearest critter within `reach` + AIM_SLACK tiles, else the way the hero faces. `found` says
+ *  whether a critter was in range; the bomb and the drill wait for one. */
+const AIM_SLACK = 1, aimOut = { x: 1, y: 0, found: false };
+function aim(d: Dive, x: number, y: number, reach: number): { x: number; y: number; found: boolean } {
+  const c = nearest(d, x, y, reach + AIM_SLACK, null), ex = c ? c.x - x : 0, ey = c ? c.y - y : 0, l = Math.hypot(ex, ey);
+  if (c && l > 1e-6) { aimOut.x = ex / l; aimOut.y = ey / l; } else { aimOut.x = d.face.x; aimOut.y = d.face.y; }
+  aimOut.found = c !== null;
+  return aimOut;
+}
+
 const rockAt = (d: Dive, x: number, y: number) => solid(tileAt(d.map, Math.floor(x), Math.floor(y)));
 const diggable = (d: Dive, tx: number, ty: number) => tileAt(d.map, tx, ty) in DIG_TIME;
 
@@ -322,7 +333,7 @@ function acorn(d: Dive, s: Extract<Shot, { k: 'acorn' }>): boolean {
   return true;
 }
 
-// ── Pickaxe Bonk: an arc the way the hero faces, which digs ────────────────
+// ── Pickaxe Bonk: an arc at the nearest critter (else the way the hero faces), which digs ──
 
 const pickaxe: Fire = (d, w, who, e, ox, oy) => {
   const p = WEAPONS.pickaxe.p;
@@ -333,14 +344,14 @@ const pickaxe: Fire = (d, w, who, e, ox, oy) => {
   const now = make(0) as Extract<Shot, { k: 'swing' }>;
   swing(d, now); d.shots.push(now);
   if (has(w, 'pickaxe.double')) d.shots.push(make(p.doubleDelay));
-  fired(d, 'pickaxe', ox, oy, d.face.x, d.face.y);
+  fired(d, 'pickaxe', ox, oy, Math.cos(now.ang), Math.sin(now.ang));
   return true;
 };
 
-/** Swings from the owner now: hits every critter in the arc within reach (Quake Bonk: out to its shockwave) and digs
- *  every block whose centre is in the arc within reach. */
+/** Swings from the owner now, aimed as it lands: hits every critter in the arc within reach (Quake Bonk: out to its
+ *  shockwave) and digs every block whose centre is in the arc within reach. */
 function swing(d: Dive, s: Extract<Shot, { k: 'swing' }>) {
-  const ox = ownerX(d, s.who), oy = ownerY(d, s.who), fx = d.face.x, fy = d.face.y, cosHalf = Math.cos(s.arc / 2 * DEG);
+  const ox = ownerX(d, s.who), oy = ownerY(d, s.who), a = aim(d, ox, oy, Math.max(s.reach, s.quake)), fx = a.x, fy = a.y, cosHalf = Math.cos(s.arc / 2 * DEG);
   s.x = ox; s.y = oy; s.ang = Math.atan2(fy, fx);
   for (const c of within(d, ox, oy, Math.max(s.reach, s.quake))) {
     const ex = c.x - ox, ey = c.y - oy, l = Math.hypot(ex, ey);
@@ -444,18 +455,19 @@ const lance: Fire = (d, w, who, e, ox, oy) => {
   return true;
 };
 
-// ── Dust Puffer: a cone the way the hero faces, which slows ────────────────
+// ── Dust Puffer: a cone at the nearest critter (else the way the hero faces), which slows ──
 
 const puffer: Fire = (d, w, who, e, ox, oy) => {
-  const p = WEAPONS.puffer.p, cloud = has(w, 'puffer.cloud'), pepper = has(w, 'puffer.pepper');
+  const p = WEAPONS.puffer.p, cloud = has(w, 'puffer.cloud'), pepper = has(w, 'puffer.pepper'), len = p.length * e.size;
+  const { x: ax, y: ay } = aim(d, ox, oy, len);
   for (const back of has(w, 'puffer.sneezy') ? [1, -1] : [1]) {
     const s: Extract<Shot, { k: 'puff' }> = {
-      k: 'puff', who, w, t: 0, x: ox, y: oy, dx: d.face.x * back, dy: d.face.y * back, len: p.length * e.size,
+      k: 'puff', who, w, t: 0, x: ox, y: oy, dx: ax * back, dy: ay * back, len,
       cone: has(w, 'puffer.big') ? p.wideCone : p.cone, left: cloud ? p.cloudFor : SHOW.puff, tick: CLOUD_TICK, dmg: e.dmg, slow: pepper ? 0 : p.slow, cloud,
     };
     puffHit(d, s); d.shots.push(s);
   }
-  fired(d, 'puffer', ox, oy, d.face.x, d.face.y);
+  fired(d, 'puffer', ox, oy, ax, ay);
   return true;
 };
 
@@ -553,9 +565,11 @@ function seed(d: Dive, s: Extract<Shot, { k: 'seed' }>): boolean {
 // ── Burrow Bomb: dropped where the owner stands; it bursts and digs ────────
 
 const bombFire: Fire = (d, w, who, e, ox, oy) => {
-  const p = WEAPONS.bomb.p;
+  const p = WEAPONS.bomb.p, r = p.radius * e.size * (has(w, 'bomb.bigger') ? 1 + p.bigger : 1);
+  // It waits, ready, for a critter in reach, so it never digs on its own.
+  if (!aim(d, ox, oy, r).found) return false;
   d.shots.push({
-    k: 'bomb', who, w, t: 0, x: ox, y: oy, fuse: has(w, 'bomb.quick') ? p.quickFuse : p.fuse, r: p.radius * e.size * (has(w, 'bomb.bigger') ? 1 + p.bigger : 1),
+    k: 'bomb', who, w, t: 0, x: ox, y: oy, fuse: has(w, 'bomb.quick') ? p.quickFuse : p.fuse, r,
     dmg: e.dmg, chain: has(w, 'bomb.chain'), gold: has(w, 'bomb.prospector'),
   });
   fired(d, 'bomb', ox, oy, 0, 0);
@@ -643,17 +657,19 @@ function thump(d: Dive, s: Extract<Shot, { k: 'thump' }>) {
   if (s.dig) digIn(d, s.x, s.y, s.r, 1, 0, -2);
 }
 
-// ── Pebble Drill: a spinning drill the way the hero faces, which digs ──────
+// ── Pebble Drill: a spinning drill at the nearest critter in range, which digs ─
 
 const drillFire: Fire = (d, w, who, e, ox, oy) => {
-  const p = WEAPONS.drill.p, left = (has(w, 'drill.long') ? p.longRange : p.range) * e.size;
-  const n = 1 + e.count, base = Math.atan2(d.face.y, d.face.x);
+  const p = WEAPONS.drill.p, left = (has(w, 'drill.long') ? p.longRange : p.range) * e.size, a = aim(d, ox, oy, left);
+  // It waits, ready, for a critter in range, so it never bores on its own.
+  if (!a.found) return false;
+  const n = 1 + e.count, base = Math.atan2(a.y, a.x), fx = a.x, fy = a.y;
   for (const back of has(w, 'drill.twin') ? [0, Math.PI] : [0]) for (let i = 0; i < n; i++) {
     const a = base + back + (i - (n - 1) / 2) * TWIG_SPREAD * DEG;
     d.shots.push({ k: 'drill', who, w, t: 0, x: ox, y: oy, dx: Math.cos(a), dy: Math.sin(a), v: p.speed * e.speed, left, dmg: e.dmg, hit: new Map() });
   }
   if (who === 'hero' && has(w, 'drill.tunnelrat')) d.rat = p.ratFor;
-  fired(d, 'drill', ox, oy, d.face.x, d.face.y);
+  fired(d, 'drill', ox, oy, fx, fy);
   return true;
 };
 
