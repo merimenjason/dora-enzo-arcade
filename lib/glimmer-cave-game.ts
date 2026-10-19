@@ -1,8 +1,9 @@
 // Glimmer Cave: the rules of a dive. Deterministic and DOM-free: a dive is a seed plus the moves made, and every
 // random draw comes from a seeded generator.
 import {
-  BASE, BEETLE, BURST, CLASS, CRITTERS, DIG_TIME, ELITE, LAYER_MIX, LAYER_SECONDS, MAX_ALIVE, MITE, POD_DISTANCE, POD_SECONDS,
-  UPGRADES, WEAPONS, WYRM_AT, critterFluff, goldRange, targetAlive,
+  BASE, BEETLE, BURST, CARD, CLASS, CRITTERS, DIG_TIME, ELITE, LAYER_MIX, LAYER_SECONDS, MAX_ALIVE, MITE, PASSIVES, PASSIVE_IDS,
+  PASSIVE_MAX, POD_DISTANCE, POD_SECONDS, RARITY, START_POOL, UPGRADES, WEAPONS, WEAPON_IDS, WYRM_AT, critterFluff, goldRange,
+  rarityWeights, targetAlive, xpNeed,
   type Block, type CritterId, type Hazard, type Hero, type JobId, type LayerNo, type OverclockId, type PassiveId, type UpgradeId,
   type WeaponId,
 } from './glimmer-cave-data.js';
@@ -68,6 +69,8 @@ export type Stats = { maxFluff: number; speed: number; pickup: number; armour: n
 // ── Tuning that only the rules use ─────────────────────────────────────────
 
 /** The spawn window: the view, in tiles, centred on the hero. Spawns land 1-3 tiles beyond its edge. */
+/** Weapon slots, and the Fluff a Snack heals. */
+const MAX_WEAPONS = 4, SNACK_HEAL = 20;
 const VIEW = { w: 18, h: 11 };
 const SPAWN_GAP = 0.05;
 /** Crystals in pickup range fly at `speed` tiles/s and are taken within `take`. */
@@ -199,6 +202,8 @@ export class Dive {
     this.hz = o.hz ?? 60; this.dt = 1 / this.hz;
     this.weapons = [newWeapon(CLASS[o.hero].start)];
     this.buddyWeapon = newWeapon(CLASS[o.hero === 'dora' ? 'enzo' : 'dora'].start);
+    const head = this.upgrade('headstart');
+    this.level = 1 + head; this.picks = head;
     this.startLayer(1);
     this.st = this.stats();
     this.fluff = this.st.maxFluff;
@@ -233,6 +238,7 @@ export class Dive {
     this.rerolls = 1 + this.upgrade('rerolls');
     this.spawnCd = 0; this.nextBurst = BURST.every; this.nextElite = FIRST_ELITE; this.flowAt = -1;
     this.placeHero(this.map.start.x + 0.5, this.map.start.y + 0.5);
+    this.openPicks();
   }
 
   /** Moves to the next layer from its pod. */
@@ -315,6 +321,7 @@ export class Dive {
     this.jobs();
     this.podCheck();
     this.overCheck();
+    this.openPicks();
     return this.events;
   }
 
@@ -511,10 +518,88 @@ export class Dive {
     cs.length = k;
   }
 
-  /** Takes n experience from a crystal. Levelling comes with the cards. */
+  /** Takes n experience from a crystal. Every level it crosses queues a pick; the pick opens at the end of the step. */
   collect(n: number) {
     this.xp += n;
     this.events.push({ k: 'crystal', n });
+    while (this.xp >= xpNeed(this.level)) {
+      this.xp -= xpNeed(this.level); this.level++; this.picks++;
+      this.events.push({ k: 'level', level: this.level });
+    }
+  }
+
+  // ── Cards ──
+
+  /** Opens the first of the queued picks, if any, when the dive is in play. */
+  private openPicks() {
+    if (this.picks > 0 && this.phase === 'play') { this.offer = this.deal(); this.phase = 'pick'; }
+  }
+
+  private rollRarity(): Rarity {
+    const w = rarityWeights(this.hazard); let r = this.rand.next() * 100;
+    for (let i = 0; i < 3; i++) { r -= w[i]; if (r < 0) return i as Rarity; }
+    return 3;
+  }
+
+  /** A weapon whose next card is its overclock: level 4 (the pair at 5) or level 9 (the pair at 10). */
+  private waiting(w: WeaponState) { return w.level === 4 || w.level === 9; }
+
+  /** The cards to choose from: a waiting weapon's two overclocks, else three distinct cards by equal weight from the
+   *  valid pool (a new weapon among them while a slot is free), else a lone Snack. */
+  deal(): Card[] {
+    const r = this.rand;
+    const wait = this.weapons.find(w => this.waiting(w));
+    if (wait) return r.shuffle([...(wait.level === 4 ? WEAPONS[wait.id].oc5 : WEAPONS[wait.id].oc10)]).map(id => ({ k: 'overclock', id }));
+    type Pick = { k: 'weapon' | 'passive'; id: WeaponId | PassiveId };
+    const held = new Set<WeaponId>(this.weapons.map(w => w.id));
+    const fresh: Pick[] = [];
+    if (this.weapons.length < MAX_WEAPONS) {
+      const pool = new Set<WeaponId>([...START_POOL, ...(this.profile.unlocked?.weapons ?? [])]);
+      for (const id of WEAPON_IDS) if (pool.has(id) && !held.has(id)) fresh.push({ k: 'weapon', id });
+    }
+    const pool: Pick[] = [...fresh];
+    for (const w of this.weapons) if (w.level < 12) pool.push({ k: 'weapon', id: w.id });
+    for (const id of PASSIVE_IDS) if ((this.passives[id]?.n ?? 0) < PASSIVE_MAX) pool.push({ k: 'passive', id });
+    if (!pool.length) return [{ k: 'snack' }];
+    const drawn: Pick[] = [];
+    while (drawn.length < 3 && pool.length) drawn.push(pool.splice(r.int(pool.length), 1)[0]);
+    if (fresh.length && !drawn.some(c => fresh.includes(c))) drawn[drawn.length - 1] = r.pick(fresh);
+    return drawn.map(c => ({ k: c.k, id: c.id, rarity: this.rollRarity() }) as Card);
+  }
+
+  /** Takes card i of the offer. The next queued pick is dealt, or play resumes. */
+  pick(i: number): boolean {
+    if (this.phase !== 'pick' || !Number.isInteger(i) || i < 0 || i >= this.offer.length) return false;
+    const c = this.offer[i];
+    if (c.k === 'snack') this.fluff = Math.min(this.stats().maxFluff, this.fluff + SNACK_HEAL);
+    else if (c.k === 'overclock') {
+      const w = this.weapons.find(x => c.id.startsWith(`${x.id}.`) && this.waiting(x))!;
+      w.overclocks.push(c.id); w.level++;
+    } else if (c.k === 'passive') {
+      const m = RARITY.mult[c.rarity], v = PASSIVES[c.id].per * m, p = this.passives[c.id] ?? (this.passives[c.id] = { n: 0, v: 0 });
+      p.n++; p.v += v;
+      if (c.id === 'fluff') this.fluff = Math.min(this.stats().maxFluff, this.fluff + v);
+    } else {
+      let w = this.weapons.find(x => x.id === c.id);
+      if (!w) this.weapons.push(newWeapon(c.id));
+      else {
+        const m = RARITY.mult[c.rarity];
+        w.level++; w.dmg += CARD.damage * m;
+        const step = WEAPONS[w.id].steps[w.level - 2];
+        if (step === 'count') w.count += CARD.count; else w[step] += CARD[step] * m;
+      }
+    }
+    this.picks--; this.offer = [];
+    this.st = this.stats();
+    if (this.picks > 0) this.offer = this.deal(); else this.phase = 'play';
+    return true;
+  }
+
+  /** Redeals the offer for one reroll. Overclock offers can't be rerolled. */
+  reroll(): boolean {
+    if (this.phase !== 'pick' || this.rerolls <= 0 || this.offer[0]?.k === 'overclock') return false;
+    this.rerolls--; this.offer = this.deal();
+    return true;
   }
 
   // 7. Spawns: bursts, elites, then a trickle toward the target alive, never past MAX_ALIVE.
