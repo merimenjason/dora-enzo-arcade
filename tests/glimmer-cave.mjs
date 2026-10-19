@@ -158,4 +158,226 @@ test('map: generation is fast', () => {
   const ms = (performance.now() - t) / 50; console.log(`     makeMap ${ms.toFixed(2)} ms`); assert.ok(ms < 20);
 });
 
+test('map: every open tile and pod spot is reachable on job maps too', () => {
+  for (const job of ['lanterns', 'crates']) for (const seed of SEEDS) for (const layer of LAYERS) {
+    const m = G.makeMap(seed, layer, job), r = G.reachable(m, m.start);
+    for (let i = 0; i < m.tiles.length; i++) if (open(m.tiles[i])) assert.equal(r[i], 1, `${job} seed ${seed} layer ${layer} tile ${i}`);
+    for (const p of m.pods) assert.equal(r[p.y * m.w + p.x], 1, `${job} seed ${seed} layer ${layer} pod`);
+  }
+});
+
+// ---- the dive ----
+
+const R = { x: 1, y: 0 }, Z = { x: 0, y: 0 };
+/** A 64 x 48 floor inside a bedrock border, with three pod spots: about 2, 16 and 32 tiles from the middle. */
+function openMap() {
+  const w = 64, h = 48, tiles = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) tiles.push(x < 2 || y < 2 || x >= w - 2 || y >= h - 2 ? 'bedrock' : 'floor');
+  return { w, h, tiles, start: { x: 32, y: 24 }, pods: [{ x: 34, y: 25 }, { x: 48, y: 24 }, { x: 6, y: 6 }], props: [], tint: 1 };
+}
+function openDive(o = {}) {
+  const d = new G.Dive({ seed: 1, hero: 'dora', hazard: 1, profile: {}, ...o });
+  d.map = openMap(); d.spawning = false; d.critters.length = 0; d.crystals.length = 0;
+  d.placeHero(32.5, 24.5);
+  return d;
+}
+const put = (d, x, y, b) => { d.map.tiles[y * d.map.w + x] = b; };
+const run = (d, input, n) => { const ev = []; for (let i = 0; i < n; i++) ev.push(...d.step(input)); return ev; };
+
+test('move: the hero moves 3.2 tiles in one second right, and Enzo 3.52', () => {
+  const a = openDive(); run(a, R, 60);
+  assert.ok(near(a.hx, 32.5 + 3.2, 0.01), `${a.hx}`); assert.ok(near(a.hy, 24.5)); assert.deepEqual(a.face, { x: 1, y: 0 }); assert.ok(a.moving);
+  assert.ok(near(a.buddy.x, a.hx - 1.2, 0.05) && near(a.buddy.y, a.hy, 1e-6), 'the buddy trails 1.2 tiles behind');
+  const b = openDive({ hero: 'enzo' }); run(b, R, 60); assert.ok(near(b.hx, 32.5 + 3.52, 0.01), `${b.hx}`);
+  const c = openDive(); run(c, { x: 3, y: 4 }, 60);
+  assert.ok(near(Math.hypot(c.hx - 32.5, c.hy - 24.5), 3.2, 0.01), 'input is clamped to length 1'); assert.ok(near(c.face.x, 0.6) && near(c.face.y, 0.8));
+  run(c, Z, 5); assert.ok(!c.moving); assert.ok(near(c.face.x, 0.6), 'face keeps the last direction');
+});
+
+test("move: the hero can't pass rock", () => {
+  const d = openDive(); for (let y = 2; y < 46; y++) put(d, 35, y, 'bedrock');
+  const ev = run(d, R, 120);
+  assert.ok(near(d.hx, 35 - G.BASE.radius, 1e-6), `${d.hx}`); assert.equal(d.digging, null); assert.equal(ev.filter(e => e.k === 'dig').length, 0);
+  run(d, { x: -1, y: 0 }, 60); assert.ok(near(d.hx, 35 - G.BASE.radius - 3.2, 0.01), 'and leaves it freely');
+});
+
+test('move: sliding along a wall', () => {
+  const d = openDive(); for (let y = 2; y < 46; y++) put(d, 33, y, 'bedrock');
+  d.placeHero(32.7, 24.5);
+  const ev = run(d, { x: 1, y: -1 }, 30);
+  assert.ok(near(d.hx, 32.7, 1e-6), `${d.hx}`); assert.ok(near(24.5 - d.hy, 3.2 * Math.SQRT1_2 * 0.5, 0.01), `${d.hy}`);
+  assert.equal(ev.filter(e => e.k === 'dig').length, 0); assert.equal(d.digging, null);
+});
+
+test('dig: pushing into dirt digs it in 0.6 s, Dora in 0.3 s', () => {
+  for (const [hero, secs] of [['enzo', 0.6], ['dora', 0.3]]) {
+    const d = openDive({ hero }); put(d, 33, 24, 'dirt'); d.placeHero(32.7, 24.5);
+    let n = 0; const ev = [];
+    while (G.tileAt(d.map, 33, 24) === 'dirt' && n < 200) { ev.push(...d.step(R)); n++; }
+    assert.ok(Math.abs(n - secs * 60) <= 1, `${hero}: ${n} steps`);
+    const digs = ev.filter(e => e.k === 'dig');
+    assert.ok(digs.every(e => e.x === 33 && e.y === 24 && e.block === 'dirt'));
+    assert.equal(digs.at(-1).progress, 1); assert.ok(digs.slice(0, -1).every((e, i, a) => e.progress < 1 && (i === 0 || e.progress > a[i - 1].progress)));
+    run(d, R, 30); assert.ok(d.hx > 33, 'and walks into the dug tile');
+  }
+});
+
+test('dig: progress resets on a new block', () => {
+  const d = openDive({ hero: 'enzo' }); for (let y = 18; y < 30; y++) put(d, 33, y, 'dirt');
+  d.placeHero(32.7, 24.5);
+  run(d, R, 18); assert.deepEqual([d.digging.x, d.digging.y], [33, 24]); assert.ok(near(d.digging.p, 0.5, 0.02), `${d.digging.p}`);
+  d.hy = 25.5; d.step(R); assert.deepEqual([d.digging.x, d.digging.y], [33, 25]); assert.ok(d.digging.p < 0.05);
+  d.hy = 24.5; d.step(R); assert.deepEqual([d.digging.x, d.digging.y], [33, 24]); assert.ok(d.digging.p < 0.05, 'back on the first block starts again');
+  d.step(Z); assert.equal(d.digging, null, 'letting go stops digging');
+  d.hy = 18.5; const ev = run(d, { x: 1, y: 1 }, 150);
+  assert.ok(d.hy > 24, `${d.hy}`); assert.equal(ev.filter(e => e.k === 'dig' && e.progress === 1).length, 0, 'brushing past rock chips nothing');
+  for (let y = 18; y < 30; y++) assert.equal(G.tileAt(d.map, 33, y), 'dirt');
+});
+
+test('dig: a gold block adds its gold to gold.layer', () => {
+  const d = openDive(); put(d, 33, 24, 'gold'); d.placeHero(32.7, 24.5);
+  const ev = run(d, R, 40), [lo, hi] = G.goldRange(1);
+  assert.equal(G.tileAt(d.map, 33, 24), 'floor');
+  assert.ok(d.gold.layer >= lo && d.gold.layer <= hi, `${d.gold.layer}`); assert.equal(d.gold.banked, 0);
+  assert.deepEqual(ev.filter(e => e.k === 'gold').map(e => e.n), [d.gold.layer]);
+  assert.ok(ev.some(e => e.k === 'dig' && e.block === 'gold' && e.progress === 1));
+});
+
+test('critters: contact takes Fluff once per 0.5 s of grace', () => {
+  const d = openDive({ hero: 'enzo' }); assert.equal(d.fluff, 100);
+  d.spawn('soot', d.hx, d.hy);
+  const ev = d.step(Z); assert.equal(d.fluff, 95); assert.deepEqual(ev.filter(e => e.k === 'hurt'), [{ k: 'hurt', dmg: 5 }]);
+  run(d, Z, 23); assert.equal(d.fluff, 95, 'still 95 after 0.4 s');
+  run(d, Z, 12); assert.equal(d.fluff, 90, '90 after 0.6 s');
+});
+
+test('critters: a beetle within 4 tiles rams 2 tiles every 4 s', () => {
+  const d = openDive(); const b = d.spawn('beetle', d.hx - 3, d.hy); b.t = 0; d.fluff = 1e9;
+  const rams = [], lengths = []; let prev = b.state, rx = 0, ry = 0;
+  for (let i = 1; i <= 660; i++) {
+    if (b.state === 'ready') { rx = b.x; ry = b.y; }
+    d.step(Z);
+    if (b.state === 'ram' && prev !== 'ram') rams.push(i / 60);
+    if (prev === 'ram' && b.state !== 'ram') lengths.push(Math.hypot(b.x - rx, b.y - ry));
+    prev = b.state;
+  }
+  assert.ok(rams.length >= 3, `${rams}`); assert.ok(near(rams[0], 0.4, 0.04), `${rams[0]}`);
+  for (let i = 1; i < rams.length; i++) assert.ok(near(rams[i] - rams[i - 1], 4, 0.05), `${rams}`);
+  for (const l of lengths) assert.ok(near(l, 2, 1e-6), `${lengths}`);
+  const far = openDive(), f = far.spawn('beetle', far.hx - 8, far.hy); f.t = 0;
+  run(far, Z, 60); assert.equal(f.state, 'walk', 'a beetle 8 tiles away walks'); assert.ok(near(f.x, far.hx - 8 + 1.4, 0.02), `${f.x}`);
+});
+
+test('spawning respects the cap and the view', () => {
+  const inView = (d, c) => Math.abs(c.x - d.hx) < 9 && Math.abs(c.y - d.hy) < 5.5;
+  const d = openDive(); d.spawning = true;
+  for (let i = 0; i < 300; i++) d.spawn('soot', 3 + (i % 58), 3 + Math.floor(i / 58) * 0.5);
+  d.t = 59.99;
+  for (let i = 0; i < 30; i++) { d.step(Z); assert.ok(d.critters.length <= 300, `${d.critters.length}`); }
+  assert.equal(d.critters.length, 300);
+  d.critters.length = 200; d.t = 119.99;
+  let top = Math.max(...d.critters.map(c => c.id)), fresh = 0, bursts = 0;
+  for (let i = 0; i < 300; i++) {
+    bursts += d.step(Z).filter(e => e.k === 'burst').length;
+    assert.ok(d.critters.length <= 300);
+    for (const c of d.critters) if (c.id > top) { fresh++; assert.equal(G.tileAt(d.map, Math.floor(c.x), Math.floor(c.y)), 'floor'); assert.ok(!inView(d, c), `${c.x},${c.y}`); }
+    top = Math.max(top, ...d.critters.map(c => c.id));
+  }
+  assert.equal(bursts, 1); assert.equal(fresh, 30);
+  for (const seed of [3, 4, 5]) {
+    const r = new G.Dive({ seed, hero: 'enzo', hazard: 3, profile: {} }); r.t = 200; let top = 0, n = 0;
+    for (let i = 0; i < 1200; i++) {
+      r.step({ x: Math.cos(i / 90), y: Math.sin(i / 70) }); r.fluff = 999;
+      assert.ok(r.critters.length <= 300);
+      for (const c of r.critters) if (c.id > top) {
+        n++; assert.equal(G.tileAt(r.map, Math.floor(c.x), Math.floor(c.y)), 'floor', `seed ${seed} ${c.x},${c.y}`); assert.ok(!inView(r, c), `seed ${seed} ${c.x},${c.y}`);
+        top = c.id;
+      }
+    }
+    assert.ok(n > 100, `seed ${seed}: ${n} spawns`);
+  }
+  const e1 = new G.Dive({ seed: 9, hero: 'enzo', hazard: 1, profile: {} }); e1.t = 29.9; run(e1, Z, 12);
+  assert.ok(!e1.critters.some(c => c.elite), 'no elites on layer 1');
+  const e2 = new G.Dive({ seed: 9, hero: 'enzo', hazard: 1, profile: {} }); e2.startLayer(2); e2.t = 29.9; run(e2, Z, 12);
+  const elites = e2.critters.filter(c => c.elite);
+  assert.equal(elites.length, 1); assert.ok(near(elites[0].max, G.critterFluff(G.CRITTERS[elites[0].kind].fluff, 2, 1) * G.ELITE.fluff));
+});
+
+test('timer: the pod lands at 0:00 between 12 and 20 tiles away, and the run lasts 45 s', () => {
+  const d = openDive(); assert.equal(d.timer, 300); assert.equal(d.pod, null);
+  d.timer = 1; let n = 0, ev = [];
+  while (!d.pod && n < 200) { ev = d.step(Z); n++; }
+  assert.ok(Math.abs(n - 60) <= 1, `${n}`); assert.deepEqual(d.pod, { x: 48.5, y: 24.5, reached: false });
+  assert.deepEqual(ev.filter(e => e.k === 'pod'), [{ k: 'pod', x: 48.5, y: 24.5 }]); assert.equal(d.timer, 45);
+  n = 0; while (d.phase === 'play' && n < 5000) { d.step(Z); n++; }
+  assert.ok(Math.abs(n - 45 * 60) <= 1, `${n}`);
+  for (const seed of SEEDS) {
+    const r = new G.Dive({ seed, hero: 'dora', hazard: 1, profile: {} }); r.spawning = false; r.timer = 0.001; r.step(Z);
+    const dist = Math.hypot(r.pod.x - r.hx, r.pod.y - r.hy);
+    assert.ok(dist >= 12 && dist <= 20, `seed ${seed}: ${dist}`); assert.equal(G.tileAt(r.map, Math.floor(r.pod.x), Math.floor(r.pod.y)), 'floor');
+  }
+  const five = openDive(); five.startLayer(5); assert.equal(five.timer, 300 - G.WYRM_AT);
+  five.spawning = false; five.timer = 0.001; run(five, Z, 10); assert.equal(five.pod, null, 'no pod on layer 5 before the wyrm'); assert.equal(five.timer, 0);
+});
+
+test("pod: reaching it banks the layer's gold and opens phase pod; descend starts layer 2", () => {
+  const d = openDive(); d.gold.banked = 5; d.gold.layer = 12; d.timer = 0.001; d.step(Z);
+  assert.ok(d.pod); assert.equal(d.descend(), false, 'no descending while playing');
+  d.hx = d.pod.x - 0.8; d.hy = d.pod.y;
+  const ev = d.step(Z);
+  assert.equal(d.phase, 'pod'); assert.ok(d.pod.reached); assert.deepEqual(d.gold, { banked: 17, layer: 0 }); assert.ok(ev.some(e => e.k === 'podReached'));
+  assert.deepEqual(d.step(R), [], 'no steps at the pod');
+  assert.equal(d.descend(), true);
+  assert.equal(d.layer, 2); assert.equal(d.phase, 'play'); assert.equal(d.timer, 300); assert.equal(d.t, 0); assert.equal(d.pod, null);
+  assert.deepEqual(d.map, G.makeMap(G.mix(1, 2), 2, null)); assert.deepEqual([d.hx, d.hy], [d.map.start.x + 0.5, d.map.start.y + 0.5]);
+  assert.deepEqual(d.gold, { banked: 17, layer: 0 });
+});
+
+test('pod: missing it bonks the hero with result missed', () => {
+  const d = openDive(); d.timer = 0.001; d.step(Z); d.gold.layer = 9;
+  const ev = run(d, Z, 45 * 60 + 2);
+  assert.equal(d.phase, 'over'); assert.equal(d.result, 'missed'); assert.equal(d.gold.banked, 4);
+  assert.deepEqual(ev.filter(e => e.k === 'over'), [{ k: 'over', result: 'missed' }]); assert.equal(d.descend(), false);
+});
+
+test("bonked: at 0 Fluff, result bonked, half the layer's gold banked, rounded down", () => {
+  const d = openDive({ hero: 'enzo' }); d.gold.layer = 7; d.fluff = 3; d.spawn('soot', d.hx, d.hy);
+  const ev = d.step(Z);
+  assert.equal(d.phase, 'over'); assert.equal(d.result, 'bonked'); assert.equal(d.fluff, 0); assert.equal(d.gold.banked, 3);
+  assert.deepEqual(ev.at(-1), { k: 'over', result: 'bonked' }); assert.deepEqual(d.step(R), []);
+});
+
+test("bonked on the pod's step", () => {
+  const d = openDive(); d.timer = 0.001; d.step(Z); d.gold.layer = 9; d.fluff = 2;
+  d.hx = d.pod.x; d.hy = d.pod.y; d.spawn('soot', d.hx, d.hy);
+  const ev = d.step(Z);
+  assert.equal(d.result, 'bonked'); assert.equal(d.phase, 'over'); assert.ok(!d.pod.reached); assert.equal(d.gold.banked, 4);
+  assert.ok(!ev.some(e => e.k === 'podReached'));
+});
+
+test('determinism: the same seed and inputs give the same events', () => {
+  const play = () => {
+    const d = new G.Dive({ seed: 42, hero: 'dora', hazard: 2, profile: {} }), out = [];
+    for (let i = 0; i < 3000; i++) out.push(JSON.stringify(d.step({ x: Math.cos(i / 150), y: Math.sin(i / 97) })));
+    out.push(JSON.stringify([d.hx, d.hy, d.fluff, d.gold, d.critters, d.map.tiles]));
+    return out;
+  };
+  const a = play(), b = play();
+  assert.deepEqual(a, b); assert.ok(a.some(s => s.includes('"hurt"')), 'critters reached the hero');
+});
+
+test('hz: 15 Hz moves as far per second as 60 Hz', () => {
+  const a = openDive({ hz: 15 }), b = openDive(), go = { x: 1, y: 0.5 };
+  assert.equal(a.dt, 1 / 15); run(a, go, 15); run(b, go, 60);
+  assert.ok(Math.abs(a.hx - b.hx) < 0.05 && Math.abs(a.hy - b.hy) < 0.05, `${a.hx},${a.hy} vs ${b.hx},${b.hy}`);
+});
+
+test('stats: base, class, passives and camp upgrades combine', () => {
+  const e = new G.Dive({ seed: 1, hero: 'enzo', hazard: 1, profile: { upgrades: { fluffier: 2, sharper: 3 } } }).stats();
+  assert.equal(e.maxFluff, 116); assert.ok(near(e.damage, 1.15)); assert.ok(near(e.speed, 3.52)); assert.equal(e.dig, 1);
+  const d = new G.Dive({ seed: 1, hero: 'dora', hazard: 1, profile: {} });
+  assert.ok(near(d.fluff, 115)); assert.equal(d.stats().dig, 2); assert.equal(d.weapons[0].id, 'pickaxe'); assert.equal(d.weapons[0].level, 1);
+  d.passives.paws = { n: 1, v: 0.06 }; assert.ok(near(d.stats().speed, 3.2 * 1.06));
+});
+
 process.exitCode = failed ? 1 : 0;
