@@ -66,6 +66,7 @@
     "test:trek": "tsc lib/chinchilla-trek-game.ts lib/chinchilla-trek-paint.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/chinchilla-trek.mjs && node tests/chinchilla-trek-art.mjs",
     "test:cave": "tsc lib/glimmer-cave-game.ts lib/glimmer-cave-paint.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/glimmer-cave.mjs && node tests/glimmer-cave-art.mjs",
     "bot:cave": "tsc lib/glimmer-cave-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && FULL=1 node tests/glimmer-cave-bot.mjs",
+    "test:e2e:cave": "node tests/e2e/cave.mjs",
     "bot:hay-bale": "tsc lib/hay-bale-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/hay-bale-bot.mjs",
     "test:e2e:brawl": "node tests/e2e/brawl.mjs",
     "bot:acorn-hand": "tsc lib/acorn-hand-game.ts --target es2022 --module es2022 --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/acorn-hand-bot.mjs",
