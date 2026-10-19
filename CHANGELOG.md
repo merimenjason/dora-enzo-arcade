@@ -7,6 +7,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 ### Documentation
 
 - **Cave-survival concept**: added a painted gameplay style reference and transparent eight-subject sprite concept sheet for Dora and Enzo's proposed cave adventure, with generation prompts and review notes.
+- **Cave-survival concept**: saved the seven-image animation brief and first Enzo animation draft, with frame measurements and correction notes; remaining sheets await correction of the draft's size and alignment drift.
 
 ### Added
 

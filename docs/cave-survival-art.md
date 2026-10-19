@@ -24,3 +24,20 @@ Each equal grid cell is 384 × 512 pixels. Read left to right, then top to botto
 ## Review before implementation
 
 Preserve the soft gouache treatment, thin dark-plum outlines, rounded silhouettes and cosy mood. Dora's eyes must stay nearly black burgundy, never pink. Review the camera angle against the actual game mock-up and test silhouette readability with cells displayed at 50 pixels tall. The concept scene does not establish final gameplay scale or production-ready animation frames. Decide which floor, wall, block and effect assets are needed separately before implementation.
+
+## Enzo animation draft — correction required
+
+`public/art/cave-survival/enzo-animation-draft.png` is the first animation generation: 1536 × 1024 RGBA, six columns by four rows of 256 × 256 cells. It is a review draft, not a production atlas. The complete seven-image brief is saved in `docs/cave-survival-animation-prompts.md`, and the normalized prompt actually used for this first generation is in `docs/cave-survival-enzo-generation-prompt.md`.
+
+The brief explicitly requests Enzo first and a correction prompt if his frames drift. This draft fails that gate, so Dora, critters, effects, environment, floor and boss have not been generated yet.
+
+Observed issues:
+
+- Walk frames occupy about 180–193 px in width and 190–202 px in height, exceeding the requested 180 × 180 maximum in most frames.
+- Walk frame silhouette bottoms range from local y=237 to y=243 (exclusive bounds), versus the requested foot line at local y=226. Most non-hopping frames in subsequent rows also move relative to the requested line.
+- Some spin-frame content reaches cell boundaries, so crops cannot safely be treated as independent sprites.
+- Spin poses face left/back despite the requested right-facing rule. Some special frames include motion lines, and the throw release frame does not clearly show the released acorn.
+
+`docs/cave-survival-enzo-frame-review.json` records the per-cell visible bounds measured at alpha > 128. These bounds include tools, tails, acorns and stars; they are silhouette measurements rather than semantic foot coordinates. Background transparency exists, but edge/low-alpha cleanup still needs inspection.
+
+Next step: write a correction prompt for Enzo's grid, frame size, anchoring and pose details before generating the remaining sheets. No animation integration has been attempted.
