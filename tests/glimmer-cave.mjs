@@ -331,7 +331,7 @@ test("pod: reaching it banks the layer's gold and opens phase pod; descend start
   assert.deepEqual(d.step(R), [], 'no steps at the pod');
   assert.equal(d.descend(), true);
   assert.equal(d.layer, 2); assert.equal(d.phase, 'play'); assert.equal(d.timer, 300); assert.equal(d.t, 0); assert.equal(d.pod, null);
-  assert.deepEqual(d.map, G.makeMap(G.mix(1, 2), 2, null)); assert.deepEqual([d.hx, d.hy], [d.map.start.x + 0.5, d.map.start.y + 0.5]);
+  assert.deepEqual(d.map, G.makeMap(G.mix(1, 2), 2, d.job.id)); assert.deepEqual([d.hx, d.hy], [d.map.start.x + 0.5, d.map.start.y + 0.5]);
   assert.deepEqual(d.gold, { banked: 17, layer: 0 });
 });
 
@@ -727,6 +727,219 @@ test('illegal actions change nothing', () => {
   assert.deepEqual(d.step(Z), []); assert.equal(snap(d), before);
   d.reroll(); before = snap(d);
   assert.equal(d.reroll(), false); assert.equal(snap(d), before);
+});
+
+test('levels: a level-up on the pod step or the bonk step waits; the pick opens on the next layer', () => {
+  const d = openDive(); d.timer = 0.001; d.step(Z);
+  d.hx = d.pod.x - 0.8; d.hy = d.pod.y; d.crystals.push({ x: d.hx, y: d.hy, n: G.xpNeed(d.level) });
+  d.step(Z);
+  assert.equal(d.phase, 'pod'); assert.equal(d.picks, 1); assert.deepEqual(d.offer, []);
+  assert.deepEqual(d.step(Z), []); assert.equal(d.phase, 'pod');
+  assert.ok(d.descend()); assert.equal(d.layer, 2); assert.equal(d.phase, 'pick'); assert.ok(d.offer.length > 0);
+  const b = openDive({ hero: 'enzo' }); b.fluff = 3; b.spawn('soot', b.hx, b.hy);
+  b.crystals.push({ x: b.hx, y: b.hy, n: G.xpNeed(b.level) });
+  b.step(Z);
+  assert.equal(b.phase, 'over'); assert.equal(b.result, 'bonked'); assert.equal(b.picks, 1); assert.deepEqual(b.offer, []);
+  assert.deepEqual(b.step(Z), []); assert.equal(b.phase, 'over'); assert.equal(b.descend(), false);
+});
+
+// ---- jobs ----
+
+const job = (d, id) => { d.job = G.newJob(id); return d.job; };
+const jobEvents = ev => ev.filter(e => e.k === 'job');
+
+test('jobs: one per layer 1-4, never repeated in a dive', () => {
+  for (let seed = 1; seed <= 100; seed++) {
+    const d = new G.Dive({ seed, hero: 'enzo', hazard: 1, profile: {} }), ids = [];
+    for (const n of [1, 2, 3, 4]) {
+      if (n > 1) d.startLayer(n);
+      const j = d.job;
+      assert.ok(j && G.JOB_IDS.includes(j.id), `seed ${seed} layer ${n}`);
+      assert.equal(j.n, 0); assert.equal(j.done, false); assert.equal(j.goal, j.id === 'bigone' ? 1 : G.JOBS[j.id].goal);
+      if (j.id === 'crates' || j.id === 'lanterns') {
+        assert.equal(d.map.props.length, 3); assert.ok(d.map.props.every(p => p.kind === j.id.slice(0, -1)), `seed ${seed} ${j.id}`);
+      } else assert.equal(d.map.props.length, 0);
+      ids.push(j.id);
+    }
+    assert.equal(new Set(ids).size, 4, `seed ${seed}: ${ids}`); assert.deepEqual(d.jobsUsed, ids);
+    d.startLayer(5); assert.equal(d.job, null); assert.deepEqual(d.jobsUsed, ids);
+  }
+  const d = new G.Dive({ seed: 7, hero: 'dora', hazard: 2, profile: {} });
+  d.startLayer(2); const two = d.job.id;
+  assert.deepEqual(d.map, G.makeMap(G.mix(7, 2), 2, two));
+  d.startLayer(2); assert.equal(d.job.id, two, 'restarting a layer gives it the same job'); assert.equal(d.jobsUsed.length, 2);
+});
+
+test('jobs: haul completes at 60 crystals and pays 25 x layer', () => {
+  for (const layer of [1, 3]) {
+    const d = openDive(); d.layer = layer; d.level = 100; const j = job(d, 'haul');
+    d.crystals.push({ x: d.hx, y: d.hy, n: 59 });
+    let ev = d.step(Z);
+    assert.equal(j.n, 59); assert.equal(j.done, false); assert.equal(d.gold.layer, 0);
+    assert.deepEqual(jobEvents(ev), [{ k: 'job', id: 'haul', n: 59, done: false }]);
+    d.crystals.push({ x: d.hx, y: d.hy, n: 4 });
+    ev = d.step(Z);
+    assert.equal(j.n, 60); assert.ok(j.done); assert.equal(d.gold.layer, 25 * layer);
+    assert.deepEqual(jobEvents(ev), [{ k: 'job', id: 'haul', n: 60, done: true }]);
+    d.crystals.push({ x: d.hx, y: d.hy, n: 30 }); ev = d.step(Z);
+    assert.equal(d.gold.layer, 25 * layer, 'paid once'); assert.deepEqual(jobEvents(ev), []);
+  }
+});
+
+test('jobs: crates complete after digging 3 crates, each worth 15 crystals', () => {
+  const d = openDive(); d.level = 100; d.layer = 2; const j = job(d, 'crates');
+  for (const x of [33, 38, 40]) put(d, x, 24, 'crate');
+  put(d, 36, 30, 'dirt'); d.digBlock(36, 30); assert.equal(j.n, 0, 'dirt is not a crate');
+  run(d, R, 45);
+  assert.equal(j.n, 1, 'the hero digs a crate'); assert.equal(G.tileAt(d.map, 33, 24), 'floor');
+  assert.ok(d.digBlock(38, 24)); assert.equal(j.n, 2); assert.equal(d.gold.layer, 0);
+  assert.ok(d.digBlock(40, 24)); assert.equal(j.n, 3); assert.ok(j.done); assert.equal(d.gold.layer, 50);
+  assert.deepEqual(d.crystals.map(c => c.n), [15, 15]); assert.equal(d.xp, 15, "the hero's crate was picked up");
+});
+
+test('jobs: lanterns light after 3 s standing, and a lit pool slows a critter by 30%', () => {
+  const d = openDive(); d.level = 100; const j = job(d, 'lanterns');
+  assert.deepEqual(j.lit, []); assert.equal(j.standing, 0);
+  put(d, 34, 24, 'lantern'); put(d, 34, 30, 'lantern');
+  d.map.props.push({ kind: 'lantern', x: 34, y: 24 }, { kind: 'lantern', x: 34, y: 30 });
+  d.placeHero(33.5, 24.5);
+  run(d, Z, 179); assert.equal(j.n, 0); assert.ok(j.standing > 2.9);
+  const ev = run(d, Z, 2);
+  assert.equal(j.n, 1); assert.deepEqual(j.lit, [0]); assert.deepEqual(jobEvents(ev), [{ k: 'job', id: 'lanterns', n: 1, done: false }]);
+  run(d, Z, 300); assert.equal(j.n, 1, 'a lit lantern stays lit and counts once');
+  d.placeHero(33.5, 30.5); run(d, Z, 120); d.placeHero(30.5, 30.5); d.step(Z);
+  assert.equal(j.standing, 0, 'stepping away resets the stand'); assert.equal(j.n, 1);
+  // A soot sprite 2.2 tiles from a lantern, heading for a far hero.
+  const moved = (lit, x = 35.5, y = 26.5, slow = 0) => {
+    const e = openDive(); job(e, 'lanterns'); put(e, 34, 24, 'lantern'); e.map.props.push({ kind: 'lantern', x: 34, y: 24 });
+    if (lit) e.job.lit.push(0);
+    e.placeHero(26.5, 24.5);
+    const c = e.spawn('soot', x, y); c.slow = slow; c.slowFor = slow ? 5 : 0;
+    const x0 = c.x, y0 = c.y; e.step(Z);
+    return Math.hypot(c.x - x0, c.y - y0);
+  };
+  assert.ok(near(moved(true) / moved(false), 0.7, 1e-6), `${moved(true) / moved(false)}`);
+  assert.ok(near(moved(true, 38.5, 24.5) / moved(false, 38.5, 24.5), 1, 1e-6), 'outside the pool, full speed');
+  assert.ok(near(moved(true, 35.5, 26.5, 0.5) / moved(false), 0.5, 1e-6), 'a stronger weapon slow wins');
+});
+
+test('jobs: bigone spawns an elite at 2:30 that pays 30 x layer and a 20-crystal cache', () => {
+  const d = armed('sling'); d.level = 100; d.layer = 2; const j = job(d, 'bigone');
+  assert.equal(j.goal, 1);
+  d.t = G.JOBS.bigone.at - 0.5; run(d, Z, 29);
+  assert.equal(d.bigId, null); assert.equal(d.critters.length, 0);
+  run(d, Z, 2);
+  assert.equal(d.critters.length, 1); const c = d.critters[0];
+  assert.equal(c.id, d.bigId); assert.ok(c.elite); assert.ok(['soot', 'mite', 'beetle'].includes(c.kind));
+  assert.ok(Math.abs(c.x - d.hx) > 9 || Math.abs(c.y - d.hy) > 5.5, 'off screen');
+  c.fluff = 1; c.home = [d.hx + 3, d.hy];
+  let ev = [];
+  for (let i = 0; i < 120 && !j.done; i++) ev.push(...hold(d, 1));
+  assert.ok(j.done); assert.equal(j.n, 1); assert.equal(d.gold.layer, 60);
+  assert.deepEqual(jobEvents(ev).map(e => [e.id, e.n, e.done]), [['bigone', 1, true]]);
+  assert.deepEqual(d.crystals.map(p => p.n), [G.ELITE.cache, G.JOBS.bigone.cache]);
+  run(d, Z, 120); assert.equal(d.critters.length, 0, 'only one big one');
+});
+
+// ---- the wyrm ----
+
+/** A layer-5 dive on the open cave, past the wyrm's hour, with no wyrm yet. */
+function wyrmDive(o = {}, arm = null) {
+  const d = arm ? armed(arm, [], o) : openDive(o);
+  d.layer = 5; d.job = null; d.timer = 0; d.t = G.WYRM_AT;
+  return d;
+}
+const wyrmEvents = (ev, what) => ev.filter(e => e.k === 'wyrm' && e.what === what);
+
+test('wyrm: appears on layer 5 at 3:00, not before', () => {
+  const four = openDive(); four.startLayer(4); four.map = openMap(); four.spawning = false; four.placeHero(32.5, 24.5);
+  four.t = 200; run(four, Z, 10); assert.equal(four.wyrm, null, 'not on layer 4');
+  const d = openDive(); d.startLayer(5); d.map = openMap(); d.spawning = false; d.placeHero(32.5, 24.5);
+  assert.equal(d.wyrm, null); assert.equal(d.job, null);
+  d.t = G.WYRM_AT - 0.5; run(d, Z, 29); assert.equal(d.wyrm, null);
+  let ev = run(d, Z, 2);
+  const w = d.wyrm; assert.ok(w);
+  assert.equal(wyrmEvents(ev, 'surface').length, 1);
+  assert.ok(Math.abs(Math.hypot(w.x - d.hx, w.y - d.hy) - 6) < 0.1, `${Math.hypot(w.x - d.hx, w.y - d.hy)}`);
+  assert.equal(w.segs.length, G.WYRM.segments + 1); assert.equal(w.max, G.WYRM.fluff); assert.equal(w.fluff, w.max);
+  assert.equal(w.under, 0); assert.equal(w.ring, null); assert.equal(w.fast, false); assert.equal(w.bonked, false);
+  assert.ok(JSON.stringify(JSON.parse(JSON.stringify(w))) === JSON.stringify(w), 'plain data');
+  // In rock, it circles the hero at about 4 tiles and digs where its head goes.
+  for (let y = 2; y < 46; y++) for (let x = 2; x < 62; x++) if (Math.abs(x - 32) > 1 || Math.abs(y - 24) > 1) put(d, x, y, 'dirt');
+  d.fluff = 1e9; ev = run(d, Z, 600);
+  const digs = ev.filter(e => e.k === 'dig').length;
+  assert.ok(digs > 20, `${digs} digs`); assert.equal(G.tileAt(d.map, Math.floor(w.x), Math.floor(w.y)), 'floor');
+  assert.equal(ev.filter(e => e.k === 'gold').length, 0, "the wyrm's digging pays nothing");
+  const far = []; for (let i = 0; i < 300; i++) { d.step(Z); far.push(Math.hypot(w.x - d.hx, w.y - d.hy)); }
+  assert.ok(Math.min(...far) > 2.5 && Math.max(...far) < 5.5, `${Math.min(...far)}-${Math.max(...far)}`);
+  for (let i = 1; i < w.segs.length; i++) {
+    const g = Math.hypot(w.segs[i].x - w.segs[i - 1].x, w.segs[i].y - w.segs[i - 1].y);
+    assert.ok(g <= G.WYRM.spacing + 1e-6 && g > G.WYRM.spacing * 0.6, `gap ${i}: ${g}`);
+  }
+});
+
+test('wyrm: only its head takes damage', () => {
+  const shoot = dir => {
+    const d = wyrmDive({}, 'sling'); d.raiseWyrm(36.5, 24.5, dir);
+    d.wyrm.rumble = G.WYRM.telegraph; // rearing up: it holds still for the test
+    return { d, w: d.wyrm, hits: hits(run(d, Z, 40)) };
+  };
+  const body = shoot(0);
+  assert.ok(body.w.segs[0].x < 36.5, 'its body lies between the hero and the head');
+  assert.deepEqual(body.hits, []); assert.equal(body.w.fluff, body.w.max);
+  assert.ok(body.d.blocks(body.w.segs[2].x, body.w.segs[2].y, 0.1)); assert.ok(!body.d.blocks(30.5, 30.5, 0.1));
+  const head = shoot(Math.PI);
+  assert.ok(head.hits.length >= 1);
+  assert.deepEqual(head.hits[0], { k: 'hit', id: G.WYRM_ID, x: 36.5, y: 24.5, dmg: 8, crit: false });
+  assert.equal(head.w.fluff, head.w.max - 8 * head.hits.length);
+});
+
+test('wyrm: the rumble ring hits once, and stepping outside it avoids it', () => {
+  const d = wyrmDive({ hero: 'enzo' }); d.raiseWyrm(35.5, 24.5, Math.PI / 2); d.wyrm.rumble = G.WYRM.telegraph + 0.01;
+  let ev = run(d, Z, 2);
+  assert.deepEqual(wyrmEvents(ev, 'rumble'), [{ k: 'wyrm', what: 'rumble', x: 35.5, y: 24.5 }]);
+  ev = run(d, Z, 58); assert.equal(d.wyrm.ring, null, 'the telegraph lasts 1 s');
+  ev = run(d, Z, 10); assert.ok(d.wyrm.ring > 0);
+  ev.push(...run(d, Z, 80));
+  assert.deepEqual(ev.filter(e => e.k === 'hurt'), [{ k: 'hurt', dmg: 15 }]); assert.equal(d.fluff, 85); assert.equal(d.wyrm.ring, null);
+  const e = wyrmDive({ hero: 'enzo' }); e.raiseWyrm(36, 24.5, Math.PI / 2); e.wyrm.rumble = G.WYRM.telegraph + 0.01;
+  ev = run(e, Z, 2); assert.equal(wyrmEvents(ev, 'rumble').length, 1);
+  ev = run(e, { x: -1, y: 0 }, 150);
+  assert.deepEqual(ev.filter(x => x.k === 'hurt'), []); assert.equal(e.fluff, 100);
+});
+
+test('wyrm: dives at half Fluff for 6 s and resurfaces faster', () => {
+  const d = wyrmDive(); d.fluff = 1e9; d.raiseWyrm(42.5, 24.5, Math.PI / 2); const w = d.wyrm; w.rumble = 1e9;
+  const pace = () => { const x = w.x, y = w.y; d.step(Z); return Math.hypot(w.x - x, w.y - y) * 60; };
+  assert.ok(near(pace(), G.WYRM.speed, 1e-6));
+  w.fluff = w.max / 2 + 1; d.hurtWyrm(0.5); assert.equal(w.under, 0);
+  d.hurtWyrm(1);
+  assert.equal(w.under, 6); assert.equal(wyrmEvents(d.events, 'dive').length, 1);
+  const f = w.fluff; d.hurtWyrm(50); assert.equal(w.fluff, f, 'no damage while under');
+  assert.ok(!d.blocks(w.segs[2].x, w.segs[2].y, 0.1), 'no blocking while under');
+  d.fluff = 100; d.placeHero(w.x, w.y); assert.deepEqual(d.step(Z).filter(e => e.k === 'hurt'), [], 'no contact while under');
+  let n = 1, ev;
+  do { ev = d.step(Z); n++; } while (!wyrmEvents(ev, 'surface').length && n < 400);
+  assert.ok(Math.abs(n - 360) <= 1, `${n}`); assert.ok(w.fast); assert.equal(w.under, 0);
+  assert.ok(near(pace(), G.WYRM.speed * G.WYRM.fastAfter, 1e-6));
+  w.fluff = w.max * 0.4; d.hurtWyrm(1); assert.equal(w.under, 0, 'it dives only once');
+});
+
+test('wyrm: bonked drops 100 crystals and 200 x hazard gold, and the pod lands; reaching it completes the dive', () => {
+  const d = wyrmDive({ hazard: 3 }, 'sling'); d.raiseWyrm(36.5, 24.5, Math.PI); const w = d.wyrm;
+  assert.equal(w.max, G.WYRM.fluff * 1.5);
+  w.rumble = G.WYRM.telegraph; w.fast = true; w.fluff = 5;
+  const ev = []; let n = 0;
+  while (!w.bonked && n < 60) { ev.push(...d.step(Z)); n++; }
+  assert.ok(w.bonked); assert.equal(w.fluff, 0);
+  assert.deepEqual(wyrmEvents(ev, 'bonked'), [{ k: 'wyrm', what: 'bonked', x: 36.5, y: 24.5 }]);
+  assert.deepEqual(d.crystals, [{ x: 36.5, y: 24.5, n: 100 }]);
+  assert.equal(d.gold.layer, 600); assert.ok(d.pod); assert.equal(d.timer, 45); assert.equal(ev.filter(e => e.k === 'pod').length, 1);
+  assert.ok(!d.blocks(w.segs[2].x, w.segs[2].y, 0.1));
+  const x = w.x; assert.deepEqual(hits(run(d, Z, 30)), []); assert.equal(w.x, x, 'a bonked wyrm stays put');
+  d.placeHero(d.pod.x, d.pod.y); const end = d.step(Z);
+  assert.equal(d.result, 'complete'); assert.equal(d.phase, 'over'); assert.equal(d.gold.banked, 600);
+  assert.deepEqual(end.at(-1), { k: 'over', result: 'complete' });
 });
 
 process.exitCode = failed ? 1 : 0;
