@@ -114,17 +114,17 @@ The same three critters appear throughout. Hazard and depth scale their numbers 
 | **Mossy beetle** | 30 | 1.4 | 10 | Slow. Every 4 s, if within 4 tiles, it lowers its head and shell-rams 2 tiles. |
 
 - **Elites** are any critter at 1.6× size, with a warm rim tint, ×8 Fluff and ×1.5 contact. They drop a **crystal cache** (20 crystals) and show a Fluff bar. Elites appear from layer 2 onward, about one a minute.
-- **Waves:** critters spawn just off screen, in open tiles. The target number alive ramps from 20 to 120 across a layer (×1.25 per layer below the first, ×(1 + 0.2 × (hazard − 1)) by hazard), capped at **300** alive. Every 60 s a **swarm burst** spawns 30 at once from one direction.
+- **Waves:** critters spawn just off screen, in open tiles. The target number alive ramps from 20 to 72 across a layer (×1.45 per layer below the first, ×(1 + 0.2 × (hazard − 1)) by hazard), capped at **300** alive. Every 60 s a **swarm burst** spawns 30 at once from one direction.
 - **The pod run** doubles spawns for its 45 s.
 - **A bonked critter** shows its flinch frame on the bonk, its dizzy frame for 0.25 s, then a dust poof. It drops a **crystal**: 1 experience for a soot sprite or mite, 4 for a beetle. Crystals within the pickup radius fly to the hero.
-- **Critter Fluff** scales ×(1 + 0.35 × (layer − 1)) × (1 + 0.25 × (hazard − 1)) **(call; the bot tunes it)**.
+- **Critter Fluff** scales ×(1 + 3 × (layer − 1)) × (1 + 0.25 × (hazard − 1)) **(call; set by the bot)**.
 
 ### The Rock Wyrm (layer 5)
 
 - A chain of a **head**, **8 body segments** and a **tail**.
 - It burrows through rock, digging every block on its path, and surfaces to circle the hero.
 - Every 8 s it rears up and **rumbles**: a ring shockwave with a telegraphed edge that the hero steps out of.
-- Only the **head** takes damage. Segments block shots but take none. The head shows a big Fluff bar.
+- Only the **head** takes damage. Segments block shots but take none. The head shows a big Fluff bar: 12000 × (1 + 0.25 × (hazard − 1)) **(set by the bot, so a fight lasts about a minute)**.
 - At 50% Fluff it dives underground for 6 s and resurfaces faster.
 - When its Fluff hits 0 it is **bonked**: it tumbles into a pile of boulders and dust, drops 100 crystals and 200 gold × hazard, and the pod arrives.
 - It **never dies**; it was just grumpy.
@@ -133,7 +133,7 @@ The same three critters appear throughout. Hazard and depth scale their numbers 
 
 - **Experience** comes from crystals. Reaching the next level pauses the game for a **level-up**: pick one of **three cards**.
 - **One reroll** per layer, plus any from camp.
-- Experience to the next level is `5 + 3 × level` **(call)**.
+- Experience to the next level is `6 + 2.8 × level + 0.15 × level²`, rounded **(call; set by the bot)**.
 
 ### Weapons
 
@@ -144,17 +144,17 @@ The same three critters appear throughout. Hazard and depth scale their numbers 
 | Weapon | What it does (level 1) | Mines? | Overclocks at 5 (pick one) | Overclocks at 10 (pick one) |
 | --- | --- | --- | --- | --- |
 | **Acorn Sling** (Enzo) | Flings an acorn at the nearest critter every 0.6 s; 8 damage. | no | **Twin Sling**: two acorns, aimed apart · **Heavy Acorn**: +80% damage, knocks back | **Ricochet**: acorns bounce to 2 more critters · **Acorn Storm**: every 5th volley fires 8 acorns all round |
-| **Pickaxe Bonk** (Dora) | Swings a 110° arc in the facing direction every 0.9 s; 14 damage. | yes | **Wide Swing**: 200° arc · **Double Tap**: a second, quicker swing | **Quake Bonk**: each swing sends a short shockwave · **Gold Rush**: blocks dug by a swing drop +50% gold |
+| **Pickaxe Bonk** (Dora) | Swings a 110° arc toward the nearest critter (or the facing direction) every 0.9 s; 14 damage. | yes | **Wide Swing**: 200° arc · **Double Tap**: a second, quicker swing | **Quake Bonk**: each swing sends a short shockwave · **Gold Rush**: blocks dug by a swing drop +50% gold |
 | **Pebble Popper** | Lobs a pebble that splashes 1 tile around where it lands; every 1.2 s, 10 damage. | no | **Cluster**: splits into 3 on landing · **Big Pebble**: +60% splash radius | **Sticky**: leaves a 2 s patch that slows · **Bouncy**: bounces twice more |
 | **Lantern Pulse** | Every 2 s, a warm ring pulses out 2.5 tiles from the hero; 6 damage and a push. | no | **Bright**: +40% radius · **Warm**: critters hit are 25% slower for 2 s | **Beacon**: every 3rd pulse reaches double radius · **Hearth**: each pulse heals 1 Fluff per critter hit, up to 5 |
-| **Crystal Lance** | Fires a piercing shard in a line toward the densest crowd, every 1.5 s; 12 damage. | no | **Prism**: splits into 3 lances · **Long Shard**: twice as long, pierces all | **Resonance**: a hit critter chimes, hitting its neighbours for 50% · **Glimmer**: bonked critters drop double crystals 10% of the time |
-| **Dust Puffer** | Puffs a short cone ahead every 0.8 s; 5 damage and 30% slow for 1.5 s. | no | **Big Puff**: wider cone · **Sneezy**: the cone also fires behind | **Choking Cloud**: leaves a lingering cloud 2 s · **Pepper Dust**: +100% damage, no slow |
+| **Crystal Lance** | Fires a piercing shard in a line toward the densest crowd, every 1.5 s; 16 damage. | no | **Prism**: splits into 3 lances · **Long Shard**: twice as long, pierces all | **Resonance**: a hit critter chimes, hitting its neighbours for 50% · **Glimmer**: bonked critters drop double crystals 10% of the time |
+| **Dust Puffer** | Puffs a short cone toward the nearest critter (or ahead) every 0.8 s; 5 damage and 30% slow for 1.5 s. | no | **Big Puff**: wider cone · **Sneezy**: the cone also fires behind | **Choking Cloud**: leaves a lingering cloud 2 s · **Pepper Dust**: +100% damage, no slow |
 | **Twig Boomerang** | Throws a twig that flies 4 tiles and returns, every 1.4 s; 9 damage both ways. | no | **Pair**: two boomerangs · **Long Throw**: 6 tiles | **Whirl**: hovers and spins at its far point for 1 s · **Sharp Twig**: +70% damage |
 | **Seed Orbit** | 3 seeds circle the hero at 1.6 tiles; 7 damage on touch, each seed every 0.4 s. | no | **More Seeds**: 5 seeds · **Wide Orbit**: 2.4 tiles | **Twin Ring**: a second, counter-rotating ring · **Sprout**: seeds leave a brief bramble patch |
-| **Burrow Bomb** | Drops a bomb where the hero stands every 2.5 s; after 1 s it bursts 1.5 tiles for 25 damage and **digs** blocks in range. | yes | **Bigger Bang**: +50% radius · **Quick Fuse**: 0.4 s fuse | **Chain Blast**: each burst sets off another 2 tiles away · **Prospector**: blocks it digs always drop gold |
-| **Glow Moths** | 2 moths fly out, home in on critters and return; 6 damage per hit, 0.5 s apart. | no | **Swarm**: 4 moths · **Dazzle**: hit critters are stunned for 0.3 s | **Moonlit**: moths pierce · **Firefly**: moths explode for 15 when they return |
-| **Rumble Drum** | Every 4 s, a thump shakes everything within 3.5 tiles; 10 damage, stuns 0.5 s. | no | **Deep Drum**: +1.5 tiles radius · **Quick Beat**: every 2.5 s | **Avalanche**: the thump digs blocks in range · **Echo**: a second thump follows 0.5 s later |
-| **Pebble Drill** | Sends a spinning drill 6 tiles in the facing direction every 2 s; 8 damage per tick through everything, and it **digs** blocks in its path. | yes | **Twin Drill**: also drills backward · **Long Bore**: 10 tiles | **Diamond Bit**: +100% damage · **Tunnel Rat**: the hero moves 25% faster for 2 s after each drill |
+| **Burrow Bomb** | Drops a bomb where the hero stands every 2.5 s while a critter is near; after 1 s it bursts 1.5 tiles for 55 damage and **digs** blocks in range. | yes | **Bigger Bang**: +50% radius · **Quick Fuse**: 0.4 s fuse | **Chain Blast**: each burst sets off another 2 tiles away · **Prospector**: blocks it digs always drop gold |
+| **Glow Moths** | 2 moths fly out, home in on critters and return; 13 damage per hit, 0.5 s apart. | no | **Swarm**: 4 moths · **Dazzle**: hit critters are stunned for 0.3 s | **Moonlit**: moths pierce · **Firefly**: moths explode for 15 when they return |
+| **Rumble Drum** | Every 4 s, a thump shakes everything within 3.5 tiles; 24 damage, stuns 0.5 s. | no | **Deep Drum**: +1.5 tiles radius · **Quick Beat**: every 2.5 s | **Avalanche**: the thump digs blocks in range · **Echo**: a second thump follows 0.5 s later |
+| **Pebble Drill** | Sends a spinning drill 6 tiles toward the nearest critter every 2 s while one is in range; 20 damage per tick through everything, and it **digs** blocks in its path. | yes | **Twin Drill**: also drills backward · **Long Bore**: 10 tiles | **Diamond Bit**: +100% damage · **Tunnel Rat**: the hero moves 25% faster for 2 s after each drill |
 
 - Each card raises a weapon's damage by **+15%** and alternates a secondary stat: rate, size or count **(call; exact numbers in the data file, set by the bot)**.
 - Eight weapons are in the pool from the start: Acorn Sling, Pickaxe Bonk, Pebble Popper, Lantern Pulse, Crystal Lance, Dust Puffer, Twig Boomerang and Seed Orbit.
