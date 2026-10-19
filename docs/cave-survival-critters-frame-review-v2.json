@@ -1,0 +1,359 @@
+{
+  "image": "public/art/cave-survival/critters-animation-v2.png",
+  "grid": [
+    6,
+    4
+  ],
+  "cell": [
+    256,
+    256
+  ],
+  "size": [
+    1536,
+    1024
+  ],
+  "mode": "RGBA",
+  "alpha_max": 254,
+  "alpha_zero_pixels": 1062800,
+  "measurement": "connected pieces at alpha > 128 (>= 30 px), each assigned to the cell holding its centre",
+  "status": "pass",
+  "problems": [],
+  "frames": [
+    {
+      "row": 1,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        60,
+        109,
+        204,
+        243
+      ],
+      "width": 144,
+      "height": 134,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 2,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        52,
+        112,
+        206,
+        241
+      ],
+      "width": 154,
+      "height": 129,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 3,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        55,
+        112,
+        201,
+        248
+      ],
+      "width": 146,
+      "height": 136,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 4,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        58,
+        113,
+        216,
+        245
+      ],
+      "width": 158,
+      "height": 132,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 5,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        65,
+        118,
+        226,
+        250
+      ],
+      "width": 161,
+      "height": 132,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 6,
+      "pieces": 4,
+      "bounds_local_exclusive": [
+        53,
+        82,
+        211,
+        250
+      ],
+      "width": 158,
+      "height": 168,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        60,
+        71,
+        220,
+        229
+      ],
+      "width": 160,
+      "height": 158,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 2,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        55,
+        74,
+        218,
+        228
+      ],
+      "width": 163,
+      "height": 154,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 3,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        51,
+        74,
+        213,
+        227
+      ],
+      "width": 162,
+      "height": 153,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 4,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        57,
+        75,
+        223,
+        228
+      ],
+      "width": 166,
+      "height": 153,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 5,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        56,
+        102,
+        233,
+        230
+      ],
+      "width": 177,
+      "height": 128,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 6,
+      "pieces": 5,
+      "bounds_local_exclusive": [
+        52,
+        61,
+        214,
+        234
+      ],
+      "width": 162,
+      "height": 173,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        29,
+        66,
+        257,
+        228
+      ],
+      "width": 228,
+      "height": 162,
+      "overhang_px": 1
+    },
+    {
+      "row": 3,
+      "column": 2,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        30,
+        68,
+        260,
+        231
+      ],
+      "width": 230,
+      "height": 163,
+      "overhang_px": 4
+    },
+    {
+      "row": 3,
+      "column": 3,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        31,
+        58,
+        262,
+        231
+      ],
+      "width": 231,
+      "height": 173,
+      "overhang_px": 6
+    },
+    {
+      "row": 3,
+      "column": 4,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        35,
+        64,
+        267,
+        235
+      ],
+      "width": 232,
+      "height": 171,
+      "overhang_px": 11
+    },
+    {
+      "row": 3,
+      "column": 5,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        43,
+        79,
+        264,
+        237
+      ],
+      "width": 221,
+      "height": 158,
+      "overhang_px": 8
+    },
+    {
+      "row": 3,
+      "column": 6,
+      "pieces": 4,
+      "bounds_local_exclusive": [
+        45,
+        41,
+        229,
+        235
+      ],
+      "width": 184,
+      "height": 194,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        61,
+        71,
+        227,
+        197
+      ],
+      "width": 166,
+      "height": 126,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 2,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        48,
+        45,
+        231,
+        185
+      ],
+      "width": 183,
+      "height": 140,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 3,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        64,
+        40,
+        227,
+        206
+      ],
+      "width": 163,
+      "height": 166,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 4,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        44,
+        84,
+        228,
+        203
+      ],
+      "width": 184,
+      "height": 119,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 5,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        32,
+        60,
+        245,
+        209
+      ],
+      "width": 213,
+      "height": 149,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 6,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        28,
+        62,
+        241,
+        208
+      ],
+      "width": 213,
+      "height": 146,
+      "overhang_px": 0
+    }
+  ]
+}
