@@ -152,7 +152,8 @@ export class Grid {
 export class Dive {
   seed: number; hero: Hero; hazard: Hazard; profile: ProfileLike; hz: 60 | 30 | 15; dt: number;
   layer: LayerNo = 1; map!: CaveMap; phase: Phase = 'play';
-  /** Seconds into the layer, and seconds left on the clock: 300 down to the pod, then the pod's 45. */
+  /** Seconds into the layer, and seconds left on the clock: 300 down to the pod, then the pod's 45
+   *  (on layer 5, WYRM_AT down to the wyrm's arrival, then held at 0 until the pod lands). */
   t = 0; timer: number = LAYER_SECONDS;
   hx = 0; hy = 0; face = { x: 1, y: 0 }; moving = false;
   fluff = 0; grace = 0; xp = 0; level = 1; picks = 0; offer: Card[] = [];
@@ -214,7 +215,7 @@ export class Dive {
     this.layer = n; this.job = null; this.wyrm = null;
     this.map = makeMap(mix(this.seed, n), n, null);
     this.rand = new Rand(mix(this.seed, n + 100));
-    this.phase = 'play'; this.result = null; this.t = 0; this.timer = n === 5 ? LAYER_SECONDS - WYRM_AT : LAYER_SECONDS;
+    this.phase = 'play'; this.result = null; this.t = 0; this.timer = n === 5 ? WYRM_AT : LAYER_SECONDS;
     this.critters = []; this.crystals = []; this.pod = null; this.gold.layer = 0; this.grace = 0;
     this.rerolls = 1 + this.upgrade('rerolls');
     this.spawnCd = 0; this.nextBurst = BURST.every; this.nextElite = FIRST_ELITE; this.flowAt = -1;

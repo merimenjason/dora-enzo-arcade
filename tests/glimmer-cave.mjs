@@ -316,7 +316,7 @@ test('timer: the pod lands at 0:00 between 12 and 20 tiles away, and the run las
     const dist = Math.hypot(r.pod.x - r.hx, r.pod.y - r.hy);
     assert.ok(dist >= 12 && dist <= 20, `seed ${seed}: ${dist}`); assert.equal(G.tileAt(r.map, Math.floor(r.pod.x), Math.floor(r.pod.y)), 'floor');
   }
-  const five = openDive(); five.startLayer(5); assert.equal(five.timer, 300 - G.WYRM_AT);
+  const five = openDive(); five.startLayer(5); assert.equal(five.timer, G.WYRM_AT);
   five.spawning = false; five.timer = 0.001; run(five, Z, 10); assert.equal(five.pod, null, 'no pod on layer 5 before the wyrm'); assert.equal(five.timer, 0);
 });
 
