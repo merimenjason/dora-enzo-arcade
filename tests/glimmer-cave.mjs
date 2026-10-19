@@ -175,9 +175,11 @@ function openMap() {
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) tiles.push(x < 2 || y < 2 || x >= w - 2 || y >= h - 2 ? 'bedrock' : 'floor');
   return { w, h, tiles, start: { x: 32, y: 24 }, pods: [{ x: 34, y: 25 }, { x: 48, y: 24 }, { x: 6, y: 6 }], props: [], tint: 1 };
 }
-function openDive(o = {}) {
+/** The dive tests' open cave. The hero and the buddy are unarmed unless `arms` keeps their weapons. */
+function openDive(o = {}, arms = false) {
   const d = new G.Dive({ seed: 1, hero: 'dora', hazard: 1, profile: {}, ...o });
   d.map = openMap(); d.spawning = false; d.critters.length = 0; d.crystals.length = 0;
+  if (!arms) { d.weapons = []; d.buddyWeapon = null; }
   d.placeHero(32.5, 24.5);
   return d;
 }
@@ -378,6 +380,197 @@ test('stats: base, class, passives and camp upgrades combine', () => {
   const d = new G.Dive({ seed: 1, hero: 'dora', hazard: 1, profile: {} });
   assert.ok(near(d.fluff, 115)); assert.equal(d.stats().dig, 2); assert.equal(d.weapons[0].id, 'pickaxe'); assert.equal(d.weapons[0].level, 1);
   d.passives.paws = { n: 1, v: 0.06 }; assert.ok(near(d.stats().speed, 3.2 * 1.06));
+});
+
+// ---- weapons ----
+
+const HX = 32.5, HY = 24.5;
+/** A dive holding one weapon with the given overclocks: no buddy, no crits, Fluff to spare. */
+function armed(id, ocs = [], o = {}) {
+  const d = openDive(o), w = G.newWeapon(id); w.overclocks = ocs;
+  d.weapons = [w]; d.buddyWeapon = null; d.critOff = true; d.fluff = 1e9;
+  return d;
+}
+/** A critter that `hold` puts back where it was placed before every step. */
+function place(d, x, y, kind = 'soot', fluff = 999) { const c = d.spawn(kind, x, y); c.fluff = c.max = fluff; c.home = [x, y]; return c; }
+/** Steps n times with the placed critters held still; each event carries the step it came in. */
+function hold(d, n, input = Z) {
+  const ev = [];
+  for (let i = 0; i < n; i++) {
+    for (const c of d.critters) if (c.home) { c.x = c.home[0]; c.y = c.home[1]; }
+    for (const e of d.step(input)) ev.push({ ...e, step: i });
+  }
+  return ev;
+}
+const hits = ev => ev.filter(e => e.k === 'hit');
+const shots = (d, k) => d.shots.filter(s => s.k === k);
+/** Steps until the first hit, at most n steps, and returns it. */
+function firstHit(d, n = 120) { for (let i = 0; i < n; i++) { const h = hits(hold(d, 1)); if (h.length) return { ...h[0], step: i }; } return null; }
+/** Every distinct object of kind k seen in d.shots over n steps. */
+function seen(d, k, n) { const s = new Set(); for (let i = 0; i < n; i++) { hold(d, 1); for (const x of shots(d, k)) s.add(x); } return s; }
+
+test('weapons: each level-1 weapon hits a placed critter for its table damage at its table rate', () => {
+  // weapon, the critter's offset from the hero, hits in 10 s
+  const table = [
+    ['sling', [3, 0], [16, 17]], ['pickaxe', [1, 0], [12, 12]], ['popper', [3, 0], [8, 9]], ['pulse', [1.5, 0], [5, 5]],
+    ['lance', [3, 0], [7, 7]], ['puffer', [1.5, 0], [13, 13]], ['boomerang', [2, 0], [14, 16]], ['orbit', [1.6, 0], [14, 15]],
+    ['bomb', [1, 0], [4, 4]], ['moths', [2, 0], [19, 23]], ['drum', [2, 0], [3, 3]], ['drill', [3, 0], [5, 5]],
+  ];
+  assert.equal(table.length, 12);
+  for (const [id, [ox, oy], [lo, hi]] of table) {
+    const d = armed(id); place(d, HX + ox, HY + oy);
+    const ev = hold(d, 600), h = hits(ev);
+    assert.ok(h.length >= lo && h.length <= hi, `${id}: ${h.length} hits`);
+    assert.ok(near(h[0].dmg, G.WEAPONS[id].damage), `${id}: first hit ${h[0].dmg}`);
+    assert.ok(h.every(e => near(e.dmg, h[0].dmg)), `${id}: every hit the same`);
+    if (id === 'bomb') { const f = ev.find(e => e.k === 'fire'); assert.ok(Math.abs(h[0].step - f.step - 60) <= 1, `bomb: ${h[0].step - f.step} steps after the drop`); }
+  }
+});
+
+test('weapons: mining weapons dig', () => {
+  for (const [id, x, n] of [['pickaxe', 33, 1], ['bomb', 33, 70], ['drill', 35, 40]]) {
+    const d = armed(id); put(d, x, 24, 'dirt'); const ev = hold(d, n);
+    assert.equal(G.tileAt(d.map, x, 24), 'floor', id); assert.ok(ev.some(e => e.k === 'dig' && e.x === x && e.progress === 1), id);
+  }
+  const d = armed('sling'); put(d, 34, 24, 'dirt'); place(d, HX + 4, HY);
+  const ev = hold(d, 120);
+  assert.equal(G.tileAt(d.map, 34, 24), 'dirt'); assert.equal(hits(ev).length, 0, 'the acorn stops at the dirt');
+});
+
+test('weapons: a card raises damage by 15% x rarity', () => {
+  for (const [r, want] of [[0, 9.2], [3, 11.6]]) {
+    const d = armed('sling'); d.weapons[0].dmg = G.CARD.damage * G.RARITY.mult[r]; place(d, HX + 3, HY);
+    assert.ok(near(firstHit(d).dmg, want, 1e-9), `rarity ${r}`);
+  }
+  // The helper reads the card bonuses: rate shortens the cooldown, size grows radii, count adds acorns.
+  const d = armed('sling'); Object.assign(d.weapons[0], { rate: 0.06, size: 0.1, count: 1 });
+  const e = G.effective(d, d.weapons[0], 'hero');
+  assert.ok(near(e.cd, 0.6 / 1.06)); assert.ok(near(e.size, 1.1)); assert.equal(e.count, 1);
+  place(d, HX + 3, HY); hold(d, 1); assert.equal(shots(d, 'acorn').length, 2);
+  const fires = hold(d, 80).filter(e => e.k === 'fire').map(e => e.step);
+  assert.ok(Math.abs(fires[0] + 1 - 0.6 / 1.06 * 60) <= 1, `${fires[0]}`);
+});
+
+test("weapons: the buddy's sling does 4 and never levels", () => {
+  const d = openDive({}, true); d.weapons = []; d.critOff = true; d.fluff = 1e9;
+  assert.equal(d.buddyWeapon.id, 'sling'); assert.equal(new G.Dive({ seed: 1, hero: 'enzo', hazard: 1, profile: {} }).buddyWeapon.id, 'pickaxe');
+  d.passives.claws = { n: 2, v: 0.16 };
+  place(d, d.buddy.x + 3, d.buddy.y);
+  const h = hits(hold(d, 300));
+  assert.ok(h.length >= 7, `${h.length}`); assert.ok(h.every(e => near(e.dmg, 4)), `${h[0].dmg}`);
+  assert.equal(d.buddyWeapon.level, 1); assert.deepEqual(d.buddyWeapon.overclocks, []);
+  const hero = armed('sling'); hero.passives.claws = { n: 2, v: 0.16 }; place(hero, HX + 3, HY);
+  assert.ok(near(firstHit(hero).dmg, 8 * 1.16), "the hero's hits take all-damage bonuses");
+});
+
+test('weapons: shots sweep their path at 15 Hz', () => {
+  for (const id of ['sling', 'drill', 'boomerang', 'moths']) {
+    const d = armed(id, [], { hz: 15 }); place(d, HX + 3, HY, 'mite');
+    assert.ok(hits(hold(d, 30)).length >= 1, id);
+  }
+});
+
+test('weapons: hits bonk at 0 Fluff, drop crystals and count', () => {
+  const d = armed('sling'); const c = place(d, HX + 3, HY, 'beetle', 5);
+  const ev = hold(d, 30);
+  assert.ok(ev.some(e => e.k === 'bonk' && e.id === c.id && e.kind === 'beetle'));
+  assert.equal(d.critters.length, 0); assert.equal(d.bonked, 1); assert.deepEqual(d.crystals.map(x => x.n), [G.CRITTERS.beetle.xp]);
+  const e = armed('sling'); place(e, HX + 3, HY, 'soot', 5).elite = true; hold(e, 30);
+  assert.deepEqual(e.crystals.map(x => x.n), [G.ELITE.cache]);
+});
+
+test('overclocks: each changes what it says', () => {
+  const at = (d, x, y, ...r) => place(d, HX + x, HY + y, ...r);
+  /** Each overclock: what to measure, given the overclocks held, and what it should be with this one. */
+  const T = {
+    'sling.twin': [ocs => { const d = armed('sling', ocs); at(d, 3, 0); hold(d, 1); const a = shots(d, 'acorn');
+      return a.length === 2 ? Math.abs(Math.atan2(a[0].dy, a[0].dx) - Math.atan2(a[1].dy, a[1].dx)) * 180 / Math.PI : -a.length; }, v => near(v, 15, 1e-6)],
+    'sling.heavy': [ocs => { const d = armed('sling', ocs); const c = at(d, 3, 0); c.stun = 100; let h = [];
+      for (let i = 0; i < 60 && !h.length; i++) h = hits(d.step(Z)); return [h[0].dmg, c.x - (HX + 3)]; }, ([dmg, kx]) => near(dmg, 14.4, 1e-9) && near(kx, 0.5, 1e-9)],
+    'sling.ricochet': [ocs => { const d = armed('sling', ocs); at(d, 3, 0); at(d, 4.5, 1); at(d, 6, 0); const ev = hold(d, 1); d.weapons[0].cd = 99;
+      return new Set(hits([...ev, ...hold(d, 90)]).map(e => e.id)).size; }, v => v === 3],
+    'sling.storm': [ocs => { const d = armed('sling', ocs); d.weapons[0].n = 4; at(d, 3, 0); hold(d, 1); return shots(d, 'acorn').length; }, v => v === 8],
+
+    'pickaxe.wide': [ocs => { const d = armed('pickaxe', ocs); at(d, 0, -1); return hits(hold(d, 1)).length; }, v => v === 1],
+    'pickaxe.double': [ocs => { const d = armed('pickaxe', ocs); at(d, 1, 0); const h = hits(hold(d, 40)); return h.length > 1 ? h[1].step - h[0].step : 0; }, v => Math.abs(v - 15) <= 1],
+    'pickaxe.quake': [ocs => { const d = armed('pickaxe', ocs); at(d, 2.5, 0); return hits(hold(d, 1)).length; }, v => v === 1],
+    'pickaxe.goldrush': [ocs => { const d = armed('pickaxe', ocs); put(d, 33, 24, 'gold'); hold(d, 1); return d.gold.layer; },
+      v => { const d = armed('pickaxe'); put(d, 33, 24, 'gold'); hold(d, 1); return d.gold.layer > 0 && v === Math.round(d.gold.layer * 1.5); }],
+
+    'popper.cluster': [ocs => { const d = armed('popper', ocs); at(d, 3, 0); hold(d, 1); d.weapons[0].cd = 99; return seen(d, 'splash', 60).size; }, v => v === 3],
+    'popper.big': [ocs => { const d = armed('popper', ocs); at(d, 5.5, 0); const o = at(d, 7, 0); return hits(hold(d, 50)).some(e => e.id === o.id); }, v => v === true],
+    'popper.sticky': [ocs => { const d = armed('popper', ocs); const c = at(d, 3, 0); hold(d, 45); return [c.slow, shots(d, 'patch').length]; }, ([s, n]) => near(s, 0.4) && n === 1],
+    'popper.bouncy': [ocs => { const d = armed('popper', ocs); at(d, 3, 0); hold(d, 1); d.weapons[0].cd = 99; return seen(d, 'splash', 110).size; }, v => v === 3],
+
+    'pulse.bright': [ocs => { const d = armed('pulse', ocs); at(d, 3.4, 0); return hits(hold(d, 60)).length; }, v => v === 1],
+    'pulse.warm': [ocs => { const d = armed('pulse', ocs); const c = at(d, 1.5, 0); const h = firstHit(d); d.weapons[0].cd = 99;
+      const s0 = c.slow; hold(d, 112); const s1 = c.slow; hold(d, 10); return [s0, s1, c.slow, h.step]; }, ([a, b, c]) => near(a, 0.25) && near(b, 0.25) && c === 0],
+    'pulse.beacon': [ocs => { const d = armed('pulse', ocs); at(d, 4.5, 0); const h = hits(hold(d, 300)); return h.length === 1 && h[0].step >= 240; }, v => v === true],
+    'pulse.hearth': [ocs => [3, 8].map(n => { const d = armed('pulse', ocs); d.fluff = 50;
+      for (let i = 0; i < n; i++) at(d, 1.5 * Math.cos(i * Math.PI / 4), 1.5 * Math.sin(i * Math.PI / 4)); hold(d, 30); return d.fluff - 50; }), ([a, b]) => near(a, 3) && near(b, 5)],
+
+    'lance.prism': [ocs => { const d = armed('lance', ocs); at(d, 3, 0); hold(d, 1); return shots(d, 'lance').length; }, v => v === 3],
+    'lance.long': [ocs => { const d = armed('lance', ocs); for (let i = 0; i < 10; i++) at(d, 1.5 + i, 0); return hits(hold(d, 1)).length; }, v => v === 10],
+    'lance.resonance': [ocs => { const d = armed('lance', ocs); at(d, 3, 0); const b = at(d, 3, 0.9); return hits(hold(d, 1)).filter(e => e.id === b.id).map(e => e.dmg); },
+      v => v.length === 1 && near(v[0], 6)],
+    'lance.glimmer': [ocs => { const d = armed('lance', ['lance.long', ...ocs]); let bonks = 0, doubles = 0;
+      for (let k = 0; k < 1000 && bonks < 2000; k++) {
+        d.critters.length = 0; d.crystals.length = 0; for (let i = 0; i < 10; i++) at(d, 2 + 0.5 * i, 0, 'soot', 1e-3);
+        d.weapons[0].cd = 0; const b = hold(d, 1).filter(e => e.k === 'bonk').length; bonks += b; doubles += d.crystals.length - b;
+      }
+      return bonks >= 2000 ? doubles / bonks : -bonks; }, v => v >= 0.08 && v <= 0.12],
+
+    'puffer.big': [ocs => { const d = armed('puffer', ocs); at(d, 1.5 * Math.SQRT1_2, -1.5 * Math.SQRT1_2); return hits(hold(d, 1)).length; }, v => v === 1],
+    'puffer.sneezy': [ocs => { const d = armed('puffer', ocs); at(d, -1.5, 0); return hits(hold(d, 1)).length; }, v => v === 1],
+    'puffer.cloud': [ocs => { const d = armed('puffer', ocs); const c = at(d, -4, 0); hold(d, 1); d.weapons[0].cd = 99; hold(d, 59); c.home = [HX + 1.5, HY];
+      return hits(hold(d, 45)).length; }, v => v >= 1],
+    'puffer.pepper': [ocs => { const d = armed('puffer', ocs); const c = at(d, 1.5, 0); const h = hits(hold(d, 1)); return [h[0].dmg, c.slow]; }, ([dmg, s]) => near(dmg, 10) && s === 0],
+
+    'boomerang.pair': [ocs => { const d = armed('boomerang', ocs); hold(d, 1); return shots(d, 'twig').length; }, v => v === 2],
+    'boomerang.long': [ocs => { const d = armed('boomerang', ocs); hold(d, 1); d.weapons[0].cd = 99; let far = 0;
+      for (let i = 0; i < 120; i++) { hold(d, 1); for (const s of shots(d, 'twig')) far = Math.max(far, Math.hypot(s.x - HX, s.y - HY)); } return far; }, v => Math.abs(v - 6) < 0.15],
+    'boomerang.whirl': [ocs => { const d = armed('boomerang', ocs); hold(d, 1); d.weapons[0].cd = 99; let still = 0, px = 0, py = 0;
+      for (let i = 0; i < 150; i++) { hold(d, 1); const s = shots(d, 'twig')[0]; if (s && s.x === px && s.y === py) still++; if (s) { px = s.x; py = s.y; } } return still; }, v => Math.abs(v - 60) <= 2],
+    'boomerang.sharp': [ocs => { const d = armed('boomerang', ocs); at(d, 2, 0); return firstHit(d).dmg; }, v => near(v, 15.3, 1e-9)],
+
+    'orbit.more': [ocs => { const d = armed('orbit', ocs); hold(d, 1); return shots(d, 'seed').length; }, v => v === 5],
+    'orbit.wide': [ocs => { const d = armed('orbit', ocs); hold(d, 2); return shots(d, 'seed').map(s => Math.hypot(s.x - HX, s.y - HY)); }, v => v.every(r => near(r, 2.4, 1e-9))],
+    'orbit.twin': [ocs => { const d = armed('orbit', ocs); hold(d, 1); const s = shots(d, 'seed'); return [s.filter(x => x.dir > 0).length, s.filter(x => x.dir < 0).length]; },
+      ([a, b]) => a === 3 && b === 3],
+    'orbit.sprout': [ocs => { const d = armed('orbit', ocs); at(d, 1.6, 0); return seen(d, 'bramble', 120).size; }, v => v >= 1],
+
+    'bomb.bigger': [ocs => { const d = armed('bomb', ocs); at(d, 2.2, 0); return hits(hold(d, 70)).length; }, v => v === 1],
+    'bomb.quick': [ocs => { const d = armed('bomb', ocs); at(d, 1, 0); const ev = hold(d, 70), f = ev.find(e => e.k === 'fire'); return hits(ev)[0].step - f.step; }, v => Math.abs(v - 24) <= 1],
+    'bomb.chain': [ocs => { const d = armed('bomb', ocs); const c = at(d, 2, 0); return hits(hold(d, 90)).filter(e => e.id === c.id).length; }, v => v === 1],
+    'bomb.prospector': [ocs => { const d = armed('bomb', ocs); put(d, 33, 24, 'dirt'); hold(d, 70); return [G.tileAt(d.map, 33, 24), d.gold.layer]; }, ([t, g]) => t === 'floor' && g > 0],
+
+    'moths.swarm': [ocs => { const d = armed('moths', ocs); hold(d, 1); return shots(d, 'moth').length; }, v => v === 4],
+    'moths.dazzle': [ocs => { const d = armed('moths', ocs); const c = at(d, 2, 0); firstHit(d); return c.stun; }, v => v > 0.25 && v <= 0.3],
+    'moths.moonlit': [ocs => { const d = armed('moths', ocs); at(d, 2, 0); at(d, 3, 0); return hits(hold(d, 30)).length; }, v => v === 3],
+    'moths.firefly': [ocs => { const d = armed('moths', ocs); at(d, 0.8, 0); at(d, 3, 0); return hits(hold(d, 60)).some(e => near(e.dmg, 15)); }, v => v === true],
+
+    'drum.deep': [ocs => { const d = armed('drum', ocs); at(d, 4.9, 0); return hits(hold(d, 1)).length; }, v => v === 1],
+    'drum.quick': [ocs => { const d = armed('drum', ocs); at(d, 2, 0); const h = hits(hold(d, 200)); return h.length > 1 ? h[1].step - h[0].step : 0; }, v => Math.abs(v - 150) <= 1],
+    'drum.avalanche': [ocs => { const d = armed('drum', ocs); put(d, 34, 24, 'dirt'); hold(d, 1); return G.tileAt(d.map, 34, 24); }, v => v === 'floor'],
+    'drum.echo': [ocs => { const d = armed('drum', ocs); at(d, 2, 0); const h = hits(hold(d, 60)); return h.length > 1 ? h[1].step - h[0].step : 0; }, v => Math.abs(v - 30) <= 1],
+
+    'drill.twin': [ocs => { const d = armed('drill', ocs); at(d, -3, 0); return hits(hold(d, 60)).length; }, v => v === 1],
+    'drill.long': [ocs => { const d = armed('drill', ocs); at(d, 9, 0); return hits(hold(d, 90)).length; }, v => v === 1],
+    'drill.diamond': [ocs => { const d = armed('drill', ocs); at(d, 3, 0); return firstHit(d).dmg; }, v => near(v, 16)],
+    'drill.tunnelrat': [ocs => { const d = armed('drill', ocs); hold(d, 1); const a = d.stats().speed; d.weapons[0].cd = 99; hold(d, 123); return [a / 3.2, d.stats().speed / 3.2]; },
+      ([a, b]) => near(a, 1.25) && near(b, 1)],
+  };
+  assert.equal(Object.keys(T).length, 48);
+  for (const oc of Object.keys(G.OVERCLOCKS)) assert.ok(T[oc], `no check for ${oc}`);
+  const bad = [];
+  for (const [oc, [get, ok]] of Object.entries(T)) {
+    try {
+      const w = get([oc]), wo = get([]);
+      if (!ok(w)) bad.push(`${oc}: with ${JSON.stringify(w)}`);
+      if (ok(wo)) bad.push(`${oc}: the same without (${JSON.stringify(wo)})`);
+    } catch (e) { bad.push(`${oc}: ${e.message}`); }
+  }
+  assert.deepEqual(bad, []);
 });
 
 process.exitCode = failed ? 1 : 0;

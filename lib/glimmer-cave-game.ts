@@ -2,18 +2,18 @@
 // random draw comes from a seeded generator.
 import {
   BASE, BEETLE, BURST, CLASS, CRITTERS, DIG_TIME, ELITE, LAYER_MIX, LAYER_SECONDS, MAX_ALIVE, MITE, POD_DISTANCE, POD_SECONDS,
-  UPGRADES, WYRM_AT, critterFluff, targetAlive,
+  UPGRADES, WEAPONS, WYRM_AT, critterFluff, goldRange, targetAlive,
   type Block, type CritterId, type Hazard, type Hero, type JobId, type LayerNo, type OverclockId, type PassiveId, type UpgradeId,
   type WeaponId,
 } from './glimmer-cave-data.js';
 import { Rand, mix } from './glimmer-cave-rand.js';
 import { MAP_H, MAP_W, dig, makeMap, solid, tileAt, type CaveMap } from './glimmer-cave-map.js';
-import { newWeapon, runWeapons, type WeaponState } from './glimmer-cave-weapons.js';
+import { newWeapon, runWeapons, type Shot, type WeaponState } from './glimmer-cave-weapons.js';
 
 export * from './glimmer-cave-data.js';
 export { Rand, mix } from './glimmer-cave-rand.js';
 export * from './glimmer-cave-map.js';
-export { newWeapon, runWeapons, type WeaponState } from './glimmer-cave-weapons.js';
+export { effective, hurtCritter, newWeapon, runWeapons, type Eff, type HitOpts, type Owner, type Shot, type WeaponState } from './glimmer-cave-weapons.js';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -157,10 +157,15 @@ export class Dive {
   t = 0; timer: number = LAYER_SECONDS;
   hx = 0; hy = 0; face = { x: 1, y: 0 }; moving = false;
   fluff = 0; grace = 0; xp = 0; level = 1; picks = 0; offer: Card[] = [];
-  weapons: WeaponState[]; passives: Partial<Record<PassiveId, { n: number; v: number }>> = {}; rerolls = 0;
+  weapons: WeaponState[];
+  /** The buddy's one weapon: its class's start, at BUDDY_DAMAGE, never levelled. Null leaves the buddy unarmed (tests). */
+  buddyWeapon: WeaponState | null;
+  passives: Partial<Record<PassiveId, { n: number; v: number }>> = {}; rerolls = 0;
   gold = { banked: 0, layer: 0 };
   crystals: { x: number; y: number; n: number }[] = [];
   critters: Critter[] = [];
+  /** Live projectiles, zones and orbiters, for the weapons and the scene. */
+  shots: Shot[] = [];
   pod: { x: number; y: number; reached: boolean } | null = null;
   job: JobState | null = null; jobsUsed: JobId[] = []; wyrm: Wyrm | null = null;
   /** Critters bonked this dive. */
@@ -171,6 +176,12 @@ export class Dive {
   events: CaveEvent[] = [];
   /** False turns all spawning off (tests). */
   spawning = true;
+  /** True makes every crit chance 0 (tests). */
+  critOff = false;
+  /** Seconds left of Tunnel Rat's speed. */
+  rat = 0;
+  /** This step's stats, read by the weapons. */
+  st!: Stats;
   rand!: Rand;
   grid = new Grid();
 
@@ -187,8 +198,10 @@ export class Dive {
     this.seed = o.seed >>> 0; this.hero = o.hero; this.hazard = o.hazard; this.profile = o.profile;
     this.hz = o.hz ?? 60; this.dt = 1 / this.hz;
     this.weapons = [newWeapon(CLASS[o.hero].start)];
+    this.buddyWeapon = newWeapon(CLASS[o.hero === 'dora' ? 'enzo' : 'dora'].start);
     this.startLayer(1);
-    this.fluff = this.stats().maxFluff;
+    this.st = this.stats();
+    this.fluff = this.st.maxFluff;
   }
 
   private upgrade(id: UpgradeId) { return this.profile.upgrades?.[id] ?? 0; }
@@ -199,7 +212,7 @@ export class Dive {
     const c = CLASS[this.hero], up = (id: UpgradeId) => UPGRADES[id].per * this.upgrade(id), pv = (id: PassiveId) => this.passive(id);
     return {
       maxFluff: (BASE.fluff + up('fluffier') + pv('fluff')) * c.fluff,
-      speed: BASE.speed * c.speed * (1 + pv('paws') + up('quicker')),
+      speed: BASE.speed * c.speed * (1 + pv('paws') + up('quicker')) * (this.rat > 0 ? 1 + WEAPONS.drill.p.ratSpeed : 1),
       pickup: BASE.pickup * (1 + pv('magnet') + up('magnetic')),
       armour: BASE.armour + pv('coat'),
       crit: BASE.crit + pv('lucky'),
@@ -216,7 +229,7 @@ export class Dive {
     this.map = makeMap(mix(this.seed, n), n, null);
     this.rand = new Rand(mix(this.seed, n + 100));
     this.phase = 'play'; this.result = null; this.t = 0; this.timer = n === 5 ? WYRM_AT : LAYER_SECONDS;
-    this.critters = []; this.crystals = []; this.pod = null; this.gold.layer = 0; this.grace = 0;
+    this.critters = []; this.crystals = []; this.shots = []; this.pod = null; this.rat = 0; this.gold.layer = 0; this.grace = 0;
     this.rerolls = 1 + this.upgrade('rerolls');
     this.spawnCd = 0; this.nextBurst = BURST.every; this.nextElite = FIRST_ELITE; this.flowAt = -1;
     this.placeHero(this.map.start.x + 0.5, this.map.start.y + 0.5);
@@ -245,16 +258,28 @@ export class Dive {
     return c;
   }
 
-  /** Digs the block at tile (x, y) if it can be dug, paying out its gold and crystals. */
-  digBlock(x: number, y: number): boolean {
+  /** Digs the block at tile (x, y) if it can be dug, paying out its gold and crystals. Weapons pass `gold`, a
+   *  multiplier on the block's gold (Gold Rush), and `always`, which gives a block with no gold a gold block's worth
+   *  (the Burrow Bomb's Prospector). */
+  digBlock(x: number, y: number, gold = 1, always = false): boolean {
     const got = dig(this.map, x, y, this.rand, this.layer);
     if (!got) return false;
     this.flowAt = -1;
     this.events.push({ k: 'dig', x, y, block: got.block, progress: 1 });
-    if (got.gold) this.addGold(got.gold);
+    if (always && !got.gold) { const [lo, hi] = goldRange(this.layer); got.gold = lo + this.rand.int(hi - lo + 1); }
+    if (got.gold) this.addGold(got.gold * gold);
     if (got.crystals) this.crystals.push({ x: x + 0.5, y: y + 0.5, n: got.crystals });
     return true;
   }
+
+  /** Moves a critter by (dx, dy), stopping flush at rock, as the critters' own moves do. For knockback and pushes. */
+  nudge(c: Critter, dx: number, dy: number) {
+    const rw = Math.min(WALL_R, critterRadius(c));
+    c.x = clipX(this.map, c.x, c.y, rw, dx); c.y = clipY(this.map, c.x, c.y, rw, dy);
+  }
+
+  /** True when something other than rock stops a shot of radius r at (x, y). The wyrm's segments will (Task 6). */
+  blocks(x: number, y: number, r: number): boolean { void x; void y; void r; return false; }
 
   /** Adds gold to the layer's purse, with the Prospector upgrade. */
   addGold(n: number) {
@@ -279,7 +304,7 @@ export class Dive {
   step(input: Input): CaveEvent[] {
     this.events = [];
     if (this.phase !== 'play') return this.events;
-    const st = this.stats();
+    const st = this.st = this.stats();
     this.timers();
     this.moveHero(input, st);
     this.fire();
@@ -298,6 +323,7 @@ export class Dive {
     this.t += this.dt;
     this.timer = Math.max(0, this.timer - this.dt);
     if (this.grace > 0) this.grace -= this.dt;
+    if (this.rat > 0) this.rat -= this.dt;
   }
 
   // 2. The hero's move, by axis, against rock. A blocked axis with input on it digs.
