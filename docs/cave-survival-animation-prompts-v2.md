@@ -161,3 +161,5 @@ Retry note: `A piece reaches the cell edge: draw every piece smaller, keeping th
 ## Results
 
 (Add one entry per generated sheet: file, check status, and any frame that's wrong by eye.)
+
+- **Dora**: `public/art/cave-survival/dora-animation-v1.png` **fail** (row 2 column 4: piece overhang 28 px); retry `dora-animation-v2.png` **pass**. Both unmodified versions and their review JSONs are saved. All 24 frames reviewed: right-facing except row 4 column 2, which faces left; row 2 column 5 is close to ready instead of a distinct recoil; row 3 column 2 closes her eyes rather than just breathing/squashing. Ivory fur, red bandana, satchel, pickaxe and nearly black burgundy eyes match the references. V1 has the same recoil/idle ambiguity but its row 4 column 2 faces right. No post-generation image processing applied. Generated with the built-in image generation tool using the exact Dora prompt; v2 appends only the supplied Retry note.
