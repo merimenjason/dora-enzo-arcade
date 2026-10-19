@@ -1,3 +1,5 @@
+> **Superseded for everything after Enzo** by [`cave-survival-animation-prompts-v2.md`](cave-survival-animation-prompts-v2.md) (19-10-2026), which sizes each sheet from the accepted Enzo v2 sheet instead of pixel boxes.
+
 Here are the prompts: seven images, one prompt each. Paste them one at a time, and attach the two existing images as references every time: public/art/cave-survival/sprites-0.png (on the codex branch) and gameplay-style-test.png.
 
 Every sheet uses a fixed grid with a set centre and foot line for each frame. That's what lets the game play frames in sequence without the character sliding around. Making the first Enzo
