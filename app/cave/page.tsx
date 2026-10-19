@@ -119,7 +119,7 @@ export default function GlimmerCave() {
     store.drop(RUN_KEY); setSaved(false);
   }, [saveProfile]);
 
-  const go = useCallback((s: Screen) => { setPaused(false); setScreen(s); }, []);
+  const go = useCallback((s: Screen) => { screenRef.current = s; setPaused(false); setScreen(s); }, []);
   /** Shows the screen the dive's phase calls for. */
   const sync = useCallback((d: Dive) => {
     if (d.phase === 'pick') go('pick');
@@ -295,8 +295,14 @@ export default function GlimmerCave() {
     };
     const up = (e: KeyboardEvent) => { keysRef.current.delete(e.code); };
     const blur = () => { keysRef.current.clear(); stickRef.current = null; };
+    // Coming back to a hidden tab shows the pause screen rather than dropping the hero back into the swarm.
+    const hide = () => { if (document.hidden && screenRef.current === 'dive') setPaused(true); };
     window.addEventListener('keydown', down); window.addEventListener('keyup', up); window.addEventListener('blur', blur);
-    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur); };
+    document.addEventListener('visibilitychange', hide);
+    return () => {
+      window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur);
+      document.removeEventListener('visibilitychange', hide);
+    };
   }, [pick, reroll]);
 
   // The floating joystick: a thumb down anywhere on the stage, then drag.
