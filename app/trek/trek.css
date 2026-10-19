@@ -82,3 +82,6 @@
 .ct-chest { background: var(--card); border: 2px solid var(--gold); border-radius: 16px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; align-items: center; }
 @media (prefers-reduced-motion: no-preference) { .ct-chest { animation: ct-pop .4s ease-out; } }
 @keyframes ct-pop { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.ct-badge { display: inline-block; flex: none; vertical-align: middle; }
+.ct-badge canvas, .ct-entry .ct-badge canvas { width: 100%; height: 100%; aspect-ratio: auto; display: block; background: none; border-radius: 0; }
+.ct-entry b { display: flex; align-items: center; gap: 6px; }

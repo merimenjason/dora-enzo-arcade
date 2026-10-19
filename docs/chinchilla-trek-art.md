@@ -1,6 +1,6 @@
 # Chinchilla Trek · painted artwork handoff
 
-Prepared 19-10-2026 using the built-in image generation tool. **All twelve requested PNGs are generated; runtime integration is pending.** The current game still uses its code drawings. Original brief: [image prompts](chinchilla-trek-image-prompts.md). Rules and code overview: [Chinchilla Trek](chinchilla-trek.md).
+Prepared 19-10-2026 using the built-in image generation tool. **All twelve requested PNGs are generated and, since 19-10-2026, painted in the game** (see **Integration** at the end). The code drawings remain as loading and failure fallbacks. Original brief: [image prompts](chinchilla-trek-image-prompts.md). Rules and code overview: [Chinchilla Trek](chinchilla-trek.md).
 
 ## Delivery
 
@@ -103,8 +103,19 @@ The painter did not follow the requested 77–90% boundaries exactly; the table 
 - Compared plain-repeat and alternating-mirror background pairs. Plain-repeat differences are recorded in crop metadata; both mirrored edge joins measure zero pixel difference. A moving browser check remains part of integration.
 - Verified that the existing hero foot baseline falls inside each surveyed final path band.
 
-No runtime source was changed and no gameplay/browser integration pass is claimed for this asset delivery.
+No runtime source was changed and no gameplay/browser integration pass is claimed for this asset delivery; the integration below came after it.
 
 ## Prompt-branch repair
 
 The supplied prompt commit `3ea3bae197fb37656a8b392ccb2584ad05a63378` was preserved as `e0bec28` on `docs/trek-image-prompts`, created from main `6e43165`. That docs branch was pushed. Only after preserving the commit was the obsolete remote `feat/chinchilla-trek` deleted, guarded by an exact old-tip lease. This artwork branch includes the preserved prompt commit; the art package is delivered on `art/chinchilla-trek-painted-assets` for Claude to integrate; it is not yet merged into main.
+
+## Integration · 19-10-2026
+
+Done by Claude Code on `feat/trek-painted-art`, from this handoff, with the files served unchanged.
+
+- **Mapping:** `lib/chinchilla-trek-crops.ts`, generated from the crop map and the files' SHA-256: `TREK_FOES` (all thirty foe ids), `TREK_EXTRAS` (Owl, Fox, Pip, Pip in the satchel, pony, dizzy stars, kept apart from the foes), `TREK_LANDMARKS` (all eight), `TREK_BADGES` (eighteen skills, four evolutions, Rest and Reroll), `TREK_GEAR` (slot × rarity), `TREK_PATH` (the surveyed bands) and `TREK_WHEEL`. The wheel's disc centre, rim radius, pointer outline and the eight prize slices' angles were measured by sampling the slice colours of `landmarks.png`.
+- **Loader:** `lib/chinchilla-trek-paint.ts`, on the Hay Bale Brawl pattern: safe to import on the server, one request per file, URLs `/art/trek/<file>.png?v=<first 12 hex of SHA-256>`, wrong-sized images count as failures, subscribers hear arrivals and failures, `retryTrekArt` asks again only for failed files and ignores late callbacks from the failed attempt. Painters return false until their file is ready, and the scene draws its code picture in that frame.
+- **Scene:** `drawPath` paints the chapter's backdrop as alternating mirrored world tiles (parity from the world tile index, edges snapped to device pixels) and falls back to the code layers, keeping only the Moon Hollow fireflies on top (no second moon). `drawFoe` paints the left-facing foe with its silhouette on the foot line (70/80/95 px tall in the fight's 120 px box by rank), inside the existing pose transform, so lunges, knock-backs, tumbles and fades are unchanged. `landmark` paints a day's landmark only when both `landmarks` and `foes-3` are ready, so code and painted pieces never mix. The wheel's disc turns, less the pointer, to put the prize's slice under the pointer. A won fight shows the dizzy stars riding the tumbling foe. `drawTitle` paints the full 3:2 title over a soft sky and its code fallback never asks for a backdrop. `drawPiece` paints gear. Health and shield numbers are now outlined to read over the paintings.
+- **Page:** a `Badge` canvas on skill cards, the Reroll button, the tray (replacing initials, which stay as the fallback) and the Journal; still canvases subscribe to the loader, so the title, badges, gear and the Journal's foes repaint when art lands or Retry succeeds; **Retry artwork** appears in the header after a failure; a trek asks for its chapter's sheets when it opens.
+- **Unchanged:** the engine, RNG, saves, progression, replay timing and reduced-motion behaviour. Dora and Enzo stay the shared `drawChinchilla`. The acorn sprite is mapped but not drawn anywhere yet.
+- **Checked:** `tests/chinchilla-trek-art.mjs` (in `npm test` and `npm run test:trek`) and four new checks in `tests/e2e/trek.mjs` (only the chapter's files asked for, once each and hash-versioned; a held title painting leaves the code title until it lands, then repaints by itself; all files failing leaves a trek playable and Retry restores them and the title; badges on cards, Reroll, tray and Journal). By eye, at 1×, 2×, 2.625× and 3× on desktop and phone: all five chapters walking across tile joins, Dora and Enzo, all thirty foes in the Journal and in fights, every landmark and visitor, the wheel at four prizes, the twenty gear pieces, the badges, failed and retried art.
