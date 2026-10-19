@@ -21,12 +21,13 @@ test('data: 12 weapons with two overclocks at 5 and two at 10, 48 distinct', () 
   assert.equal(seen.size, 48); assert.equal(Object.keys(G.OVERCLOCKS).length, 48);
 });
 
-test('data: level-1 weapon numbers match the spec', () => {
-  const want = [['sling', 8, 0.6], ['pickaxe', 14, 0.9], ['popper', 10, 1.2], ['pulse', 6, 2], ['lance', 12, 1.5], ['puffer', 5, 0.8],
-    ['boomerang', 9, 1.4], ['bomb', 25, 2.5], ['drum', 10, 4], ['drill', 8, 2]];
+test('data: level-1 weapon numbers match the spec, with the bot-tuned damage of the lance and the four unlocks', () => {
+  // The spec's damage, except the lance (12), bomb (25), drum (10), drill (8) and moths (6), which the bot raised.
+  const want = [['sling', 8, 0.6], ['pickaxe', 14, 0.9], ['popper', 10, 1.2], ['pulse', 6, 2], ['lance', 16, 1.5], ['puffer', 5, 0.8],
+    ['boomerang', 9, 1.4], ['bomb', 55, 2.5], ['drum', 24, 4], ['drill', 20, 2]];
   for (const [id, damage, cooldown] of want) { assert.equal(G.WEAPONS[id].damage, damage, id); assert.ok(near(G.WEAPONS[id].cooldown, cooldown), id); }
   assert.equal(G.WEAPONS.orbit.damage, 7); assert.equal(G.WEAPONS.orbit.p.seeds, 3);
-  assert.equal(G.WEAPONS.moths.damage, 6); assert.equal(G.WEAPONS.moths.p.moths, 2);
+  assert.equal(G.WEAPONS.moths.damage, 13); assert.equal(G.WEAPONS.moths.p.moths, 2);
   assert.equal(G.START_POOL.length, 8); assert.ok(!G.START_POOL.includes('bomb'));
 });
 
@@ -48,12 +49,13 @@ test('data: rarity weights sum to 100 at every hazard, and hazard 5 is [44, 40, 
   assert.deepEqual(G.rarityWeights(5), [44, 40, 14, 2]);
 });
 
-test('data: critters, elites, jobs and xpNeed match the spec', () => {
-  assert.equal(G.xpNeed(1), 8);
-  assert.equal(G.targetAlive(0, 1, 1, false), 20); assert.equal(G.targetAlive(300, 1, 1, false), 120);
+test('data: critters, elites, jobs and xpNeed match the spec, with the bot-tuned curves', () => {
+  // The bot tuned experience (5 + 3 x level), the ramp (20 to 120, x1.25 a layer) and the layer Fluff scaling (0.35).
+  assert.equal(G.xpNeed(1), 9); assert.equal(G.xpNeed(10), 49);
+  assert.equal(G.targetAlive(0, 1, 1, false), 20); assert.equal(G.targetAlive(300, 1, 1, false), 72);
   assert.equal(G.targetAlive(300, 5, 5, true), 300);
   assert.deepEqual(G.goldRange(1), [3, 6]);
-  assert.ok(near(G.critterFluff(6, 3, 2), 6 * 1.7 * 1.25));
+  assert.ok(near(G.critterFluff(6, 3, 2), 6 * 7 * 1.25));
   assert.equal(G.CRITTERS.beetle.fluff, 30); assert.equal(G.CRITTERS.mite.speed, 2.8);
   assert.equal(G.ELITE.cache, 20); assert.equal(G.JOBS.crates.goal, 3); assert.equal(G.JOBS.bigone.at, 150);
   assert.equal(G.upgradeCost('rerolls', 2), 160); assert.equal(G.UPGRADES.rerolls.max, 3); assert.equal(G.UPGRADES.fluffier.max, 5);
@@ -296,7 +298,7 @@ test('spawning respects the cap and the view', () => {
         top = c.id;
       }
     }
-    assert.ok(n > 100, `seed ${seed}: ${n} spawns`);
+    assert.ok(n > 50, `seed ${seed}: ${n} spawns`);
   }
   const e1 = new G.Dive({ seed: 9, hero: 'enzo', hazard: 1, profile: {} }); e1.t = 29.9; run(e1, Z, 12);
   assert.ok(!e1.critters.some(c => c.elite), 'no elites on layer 1');
@@ -467,13 +469,33 @@ test('weapons: the lance aims at its crowd, not the compass point', () => {
 });
 
 test('weapons: mining weapons dig', () => {
-  for (const [id, x, n] of [['pickaxe', 33, 1], ['bomb', 33, 70], ['drill', 35, 40]]) {
-    const d = armed(id); put(d, x, 24, 'dirt'); const ev = hold(d, n);
+  // The bomb and the drill wait for a critter in range: one beyond the dirt sets them off.
+  for (const [id, x, n, c] of [['pickaxe', 33, 1, null], ['bomb', 33, 70, [-1, 0]], ['drill', 35, 40, [4, 0]]]) {
+    const d = armed(id); put(d, x, 24, 'dirt'); if (c) place(d, HX + c[0], HY + c[1]); const ev = hold(d, n);
     assert.equal(G.tileAt(d.map, x, 24), 'floor', id); assert.ok(ev.some(e => e.k === 'dig' && e.x === x && e.progress === 1), id);
   }
   const d = armed('sling'); put(d, 34, 24, 'dirt'); place(d, HX + 4, HY);
   const ev = hold(d, 120);
   assert.equal(G.tileAt(d.map, 34, 24), 'dirt'); assert.equal(hits(ev).length, 0, 'the acorn stops at the dirt');
+});
+
+test('weapons: the facing weapons aim at the nearest critter, else the way the hero faces', () => {
+  // The hero faces right; the critter is behind.
+  for (const [id, x] of [['pickaxe', -1], ['puffer', -1.5], ['drill', -3]]) {
+    const d = armed(id); d.face = { x: 1, y: 0 }; const c = place(d, HX + x, HY);
+    assert.ok(hits(hold(d, 60)).some(e => e.id === c.id), id);
+  }
+  const d = armed('pickaxe'); d.face = { x: 0, y: 1 }; put(d, 32, 25, 'dirt'); hold(d, 1);
+  assert.equal(G.tileAt(d.map, 32, 25), 'floor', 'with nothing near it swings the way the hero faces');
+});
+
+test('weapons: the bomb and the drill wait for a critter in range', () => {
+  for (const id of ['bomb', 'drill']) {
+    const d = armed(id), ev = hold(d, 120);
+    assert.ok(!ev.some(e => e.k === 'fire'), `${id} fired at nothing`); assert.equal(shots(d, id).length, 0);
+    place(d, HX + 1, HY);
+    assert.ok(hold(d, 2).some(e => e.k === 'fire'), `${id} fires once a critter is near`);
+  }
 });
 
 test('weapons: a card raises damage by 15% x rarity', () => {
@@ -530,7 +552,8 @@ test('overclocks: each changes what it says', () => {
       return new Set(hits([...ev, ...hold(d, 90)]).map(e => e.id)).size; }, v => v === 3],
     'sling.storm': [ocs => { const d = armed('sling', ocs); d.weapons[0].n = 4; at(d, 3, 0); hold(d, 1); return shots(d, 'acorn').length; }, v => v === 8],
 
-    'pickaxe.wide': [ocs => { const d = armed('pickaxe', ocs); at(d, 0, -1); return hits(hold(d, 1)).length; }, v => v === 1],
+    // A nearer decoy straight ahead holds the aim, so the arc's width decides the critter off to the side.
+    'pickaxe.wide': [ocs => { const d = armed('pickaxe', ocs); at(d, 0.9, 0); const c = at(d, 0, -1); return hits(hold(d, 1)).filter(e => e.id === c.id).length; }, v => v === 1],
     'pickaxe.double': [ocs => { const d = armed('pickaxe', ocs); at(d, 1, 0); const h = hits(hold(d, 40)); return h.length > 1 ? h[1].step - h[0].step : 0; }, v => Math.abs(v - 15) <= 1],
     'pickaxe.quake': [ocs => { const d = armed('pickaxe', ocs); at(d, 2.5, 0); return hits(hold(d, 1)).length; }, v => v === 1],
     'pickaxe.goldrush': [ocs => { const d = armed('pickaxe', ocs); put(d, 33, 24, 'gold'); hold(d, 1); return d.gold.layer; },
@@ -551,7 +574,7 @@ test('overclocks: each changes what it says', () => {
     'lance.prism': [ocs => { const d = armed('lance', ocs); at(d, 3, 0); hold(d, 1); return shots(d, 'lance').length; }, v => v === 3],
     'lance.long': [ocs => { const d = armed('lance', ocs); for (let i = 0; i < 10; i++) at(d, 1.5 + i, 0); return hits(hold(d, 1)).length; }, v => v === 10],
     'lance.resonance': [ocs => { const d = armed('lance', ocs); at(d, 5.5, 0); const b = at(d, 6.2, 0.7); return hits(hold(d, 1)).filter(e => e.id === b.id).map(e => e.dmg); },
-      v => v.length === 1 && near(v[0], 6)],
+      v => v.length === 1 && near(v[0], G.WEAPONS.lance.damage * 0.5)],
     'lance.glimmer': [ocs => { const d = armed('lance', ['lance.long', ...ocs]); let bonks = 0, doubles = 0;
       for (let k = 0; k < 1000 && bonks < 2000; k++) {
         d.critters.length = 0; d.crystals.length = 0; for (let i = 0; i < 10; i++) at(d, 2 + 0.5 * i, 0, 'soot', 1e-3);
@@ -559,8 +582,9 @@ test('overclocks: each changes what it says', () => {
       }
       return bonks >= 2000 ? doubles / bonks : -bonks; }, v => v >= 0.08 && v <= 0.12],
 
-    'puffer.big': [ocs => { const d = armed('puffer', ocs); at(d, 1.5 * Math.SQRT1_2, -1.5 * Math.SQRT1_2); return hits(hold(d, 1)).length; }, v => v === 1],
-    'puffer.sneezy': [ocs => { const d = armed('puffer', ocs); at(d, -1.5, 0); return hits(hold(d, 1)).length; }, v => v === 1],
+    'puffer.big': [ocs => { const d = armed('puffer', ocs); at(d, 1.2, 0); const c = at(d, 1.5 * Math.SQRT1_2, -1.5 * Math.SQRT1_2);
+      return hits(hold(d, 1)).filter(e => e.id === c.id).length; }, v => v === 1],
+    'puffer.sneezy': [ocs => { const d = armed('puffer', ocs); at(d, 1.2, 0); const c = at(d, -1.5, 0); return hits(hold(d, 1)).filter(e => e.id === c.id).length; }, v => v === 1],
     'puffer.cloud': [ocs => { const d = armed('puffer', ocs); const c = at(d, -4, 0); hold(d, 1); d.weapons[0].cd = 99; hold(d, 59); c.home = [HX + 1.5, HY];
       return hits(hold(d, 45)).length; }, v => v >= 1],
     'puffer.pepper': [ocs => { const d = armed('puffer', ocs); const c = at(d, 1.5, 0); const h = hits(hold(d, 1)); return [h[0].dmg, c.slow]; }, ([dmg, s]) => near(dmg, 10) && s === 0],
@@ -581,7 +605,7 @@ test('overclocks: each changes what it says', () => {
     'bomb.bigger': [ocs => { const d = armed('bomb', ocs); at(d, 2.2, 0); return hits(hold(d, 70)).length; }, v => v === 1],
     'bomb.quick': [ocs => { const d = armed('bomb', ocs); at(d, 1, 0); const ev = hold(d, 70), f = ev.find(e => e.k === 'fire'); return hits(ev)[0].step - f.step; }, v => Math.abs(v - 24) <= 1],
     'bomb.chain': [ocs => { const d = armed('bomb', ocs); const c = at(d, 2, 0); return hits(hold(d, 90)).filter(e => e.id === c.id).length; }, v => v === 1],
-    'bomb.prospector': [ocs => { const d = armed('bomb', ocs); put(d, 33, 24, 'dirt'); hold(d, 70); return [G.tileAt(d.map, 33, 24), d.gold.layer]; }, ([t, g]) => t === 'floor' && g > 0],
+    'bomb.prospector': [ocs => { const d = armed('bomb', ocs); put(d, 33, 24, 'dirt'); at(d, -1, 0); hold(d, 70); return [G.tileAt(d.map, 33, 24), d.gold.layer]; }, ([t, g]) => t === 'floor' && g > 0],
 
     'moths.swarm': [ocs => { const d = armed('moths', ocs); hold(d, 1); return shots(d, 'moth').length; }, v => v === 4],
     'moths.dazzle': [ocs => { const d = armed('moths', ocs); const c = at(d, 2, 0); firstHit(d); return c.stun; }, v => v > 0.25 && v <= 0.3],
@@ -593,10 +617,10 @@ test('overclocks: each changes what it says', () => {
     'drum.avalanche': [ocs => { const d = armed('drum', ocs); put(d, 34, 24, 'dirt'); hold(d, 1); return G.tileAt(d.map, 34, 24); }, v => v === 'floor'],
     'drum.echo': [ocs => { const d = armed('drum', ocs); at(d, 2, 0); const h = hits(hold(d, 60)); return h.length > 1 ? h[1].step - h[0].step : 0; }, v => Math.abs(v - 30) <= 1],
 
-    'drill.twin': [ocs => { const d = armed('drill', ocs); at(d, -3, 0); return hits(hold(d, 60)).length; }, v => v === 1],
+    'drill.twin': [ocs => { const d = armed('drill', ocs); at(d, 2.5, 0); const c = at(d, -3, 0); return hits(hold(d, 60)).filter(e => e.id === c.id).length; }, v => v === 1],
     'drill.long': [ocs => { const d = armed('drill', ocs); at(d, 9, 0); return hits(hold(d, 90)).length; }, v => v === 1],
-    'drill.diamond': [ocs => { const d = armed('drill', ocs); at(d, 3, 0); return firstHit(d).dmg; }, v => near(v, 16)],
-    'drill.tunnelrat': [ocs => { const d = armed('drill', ocs); hold(d, 1); const a = d.stats().speed; d.weapons[0].cd = 99; hold(d, 123); return [a / 3.2, d.stats().speed / 3.2]; },
+    'drill.diamond': [ocs => { const d = armed('drill', ocs); at(d, 3, 0); return firstHit(d).dmg; }, v => near(v, G.WEAPONS.drill.damage * 2)],
+    'drill.tunnelrat': [ocs => { const d = armed('drill', ocs); at(d, 3, 0); hold(d, 1); const a = d.stats().speed; d.weapons[0].cd = 99; hold(d, 123); return [a / 3.2, d.stats().speed / 3.2]; },
       ([a, b]) => near(a, 1.25) && near(b, 1)],
   };
   assert.equal(Object.keys(T).length, 48);
@@ -622,17 +646,17 @@ const level = d => { d.collect(G.xpNeed(d.level)); d.step(Z); };
 const cardKey = c => `${c.k}:${c.id ?? ''}`;
 const isValid = c => c.k === 'snack' || G.RARITY.names[c.rarity ?? 0];
 
-test('levels: 8 crystals reach level 2 and open a pick of three distinct valid cards', () => {
-  const d = leveller(); d.collect(8);
+test("levels: a level's crystals reach level 2 and open a pick of three distinct valid cards", () => {
+  const d = leveller(); d.collect(G.xpNeed(1));
   assert.equal(d.level, 2); assert.equal(d.xp, 0); assert.equal(d.picks, 1); assert.equal(d.phase, 'play');
   const ev = d.step(Z);
   assert.ok(ev.some(e => e.k === 'level') || d.phase === 'pick');
   assert.equal(d.phase, 'pick'); assert.equal(d.offer.length, 3);
   assert.equal(new Set(d.offer.map(cardKey)).size, 3);
   for (const c of d.offer) { assert.ok(['weapon', 'passive'].includes(c.k)); assert.ok(isValid(c)); }
-  const lv = openDive(); lv.collect(8); assert.ok(lv.events.some(e => e.k === 'level' && e.level === 2));
+  const lv = openDive(); lv.collect(G.xpNeed(1)); assert.ok(lv.events.some(e => e.k === 'level' && e.level === 2));
   // Leftover experience carries over.
-  const e = leveller(); e.collect(10); assert.equal(e.level, 2); assert.equal(e.xp, 2);
+  const e = leveller(); e.collect(G.xpNeed(1) + 2); assert.equal(e.level, 2); assert.equal(e.xp, 2);
 });
 
 test('levels: with a free slot, an offer holds a new weapon', () => {
@@ -712,7 +736,7 @@ test('levels: nothing past its cap', () => {
 });
 
 test('stacked level-ups and an empty pool', () => {
-  const d = leveller(['sling']); d.collect(20);
+  const d = leveller(['sling']); d.collect(G.xpNeed(1) + G.xpNeed(2) + 1);
   assert.equal(d.level, 3); assert.equal(d.picks, 2); assert.equal(d.xp, 1);
   d.step(Z); assert.equal(d.phase, 'pick');
   assert.equal(d.step(Z).length, 0);
@@ -724,7 +748,7 @@ test('stacked level-ups and an empty pool', () => {
   const e = leveller(['sling', 'pulse', 'pickaxe', 'popper']);
   for (const w of e.weapons) w.level = 12;
   for (const id of G.PASSIVE_IDS) e.passives[id] = { n: 5, v: 1 };
-  e.fluff = 50; e.collect(8); e.step(Z);
+  e.fluff = 50; e.collect(G.xpNeed(1)); e.step(Z);
   assert.deepEqual(e.offer, [{ k: 'snack' }]);
   assert.equal(e.pick(0), true); assert.ok(near(e.fluff, 70)); assert.equal(e.phase, 'play');
   e.fluff = e.stats().maxFluff - 5; e.collect(G.xpNeed(e.level)); e.step(Z); e.pick(0); assert.ok(near(e.fluff, e.stats().maxFluff));
@@ -738,7 +762,7 @@ test('levels: head start opens the first picks at once', () => {
 
 test('rerolls: one per layer, refreshed on descend; an overclock offer can\'t be rerolled', () => {
   const d = leveller(); assert.equal(d.rerolls, 1);
-  d.collect(8); d.step(Z);
+  d.collect(G.xpNeed(1)); d.step(Z);
   assert.equal(d.reroll(), true); assert.equal(d.rerolls, 0); assert.equal(d.offer.length, 3); assert.equal(d.phase, 'pick');
   assert.equal(d.reroll(), false);
   d.pick(0); d.pod = { x: 34, y: 25, reached: true }; d.phase = 'pod';
@@ -753,12 +777,12 @@ test('rerolls: the camp upgrade adds rerolls per dive, spent after the layer\'s 
   const toPod = d => { d.pod = { x: 34, y: 25, reached: true }; d.phase = 'pod'; assert.equal(d.descend(), true); };
   const d = leveller(['sling'], { profile: { upgrades: { rerolls: 2 } } });
   assert.equal(d.rerolls, 3);
-  d.collect(8); d.step(Z);
+  d.collect(G.xpNeed(1)); d.step(Z);
   for (let i = 0; i < 3; i++) assert.equal(d.reroll(), true);
   assert.equal(d.reroll(), false); assert.equal(d.rerolls, 0);
   d.pick(0); toPod(d); assert.equal(d.rerolls, 1);
   const e = leveller(['sling'], { profile: { upgrades: { rerolls: 2 } } });
-  e.collect(8); e.step(Z);
+  e.collect(G.xpNeed(1)); e.step(Z);
   assert.equal(e.reroll(), true); assert.equal(e.rerolls, 2); assert.equal(e.campRerolls, 2); assert.equal(e.layerReroll, 0);
   e.pick(0); toPod(e); assert.equal(e.rerolls, 3);
 });
@@ -767,7 +791,7 @@ test("rerolls: a lone Snack can't be rerolled", () => {
   const e = leveller(['sling', 'pulse', 'pickaxe', 'popper']);
   for (const w of e.weapons) w.level = 12;
   for (const id of G.PASSIVE_IDS) e.passives[id] = { n: 5, v: 1 };
-  e.collect(8); e.step(Z);
+  e.collect(G.xpNeed(1)); e.step(Z);
   assert.deepEqual(e.offer, [{ k: 'snack' }]);
   assert.equal(e.reroll(), false); assert.equal(e.rerolls, 1); assert.deepEqual(e.offer, [{ k: 'snack' }]);
 });
@@ -777,7 +801,7 @@ test('illegal actions change nothing', () => {
   const d = leveller();
   let before = snap(d);
   assert.equal(d.pick(0), false); assert.equal(d.reroll(), false); assert.equal(snap(d), before);
-  d.collect(8); d.step(Z); before = snap(d);
+  d.collect(G.xpNeed(1)); d.step(Z); before = snap(d);
   assert.equal(d.pick(5), false); assert.equal(d.pick(-1), false); assert.equal(d.descend(), false);
   assert.deepEqual(d.step(Z), []); assert.equal(snap(d), before);
   d.reroll(); before = snap(d);

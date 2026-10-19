@@ -598,6 +598,10 @@ export class Dive {
     return true;
   }
 
+  /** Steps from each tile to the hero's over floor, -1 for rock or cut off, fresh for the hero's tile and the rock as
+   *  they are now. The bot routes with it. */
+  flowField(): Int16Array { this.updateFlow(); return this.flow; }
+
   /** A 4-way breadth-first fill from the hero's tile over floor. */
   private updateFlow() {
     const m = this.map, w = m.w, n = w * m.h, at = Math.floor(this.hy) * w + Math.floor(this.hx);
@@ -973,6 +977,171 @@ export class Dive {
     this.events.push({ k: 'over', result: this.result });
   }
 }
+
+// ── The bot's policy ───────────────────────────────────────────────────────
+
+/** The policy's reach in tiles (critters to flee, crystals and gold blocks to fetch), the most the crowd's push counts
+ *  for, and the weight of each pull. */
+export const BOT = { flee: 5, crystal: 4, gold: 3, urge: 2, pod: 4, crystalPull: 1, jobPull: 0.8, goldPull: 0.7, bigPull: 0.6 };
+/** The 16 headings the policy chooses among when it flees, so it never runs into rock. */
+const HEADINGS = Array.from({ length: 16 }, (_, i) => ({ x: Math.cos(i * Math.PI / 8), y: Math.sin(i * Math.PI / 8) }));
+const D4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+/** The unit step from the hero toward tile (tx, ty) along the flow field, or null when it's rock or cut off. On the
+ *  hero's own tile it points straight at (px, py). */
+function route(d: Dive, f: Int16Array, tx: number, ty: number, px: number, py: number): Input | null {
+  const m = d.map, w = m.w;
+  if (tx < 0 || ty < 0 || tx >= w || ty >= m.h || f[ty * w + tx] < 0) return null;
+  let x = tx, y = ty;
+  // Walks back down the field to the tile next to the hero's.
+  while (f[y * w + x] > 1) {
+    const k = f[y * w + x];
+    for (const [dx, dy] of D4) {
+      const nx = x + dx, ny = y + dy;
+      if (nx >= 0 && ny >= 0 && nx < w && ny < m.h && f[ny * w + nx] === k - 1) { x = nx; y = ny; break; }
+    }
+  }
+  const gx = f[y * w + x] === 0 ? px : x + 0.5, gy = f[y * w + x] === 0 ? py : y + 0.5;
+  const vx = gx - d.hx, vy = gy - d.hy, len = Math.hypot(vx, vy);
+  return len < 1e-3 ? { x: 0, y: 0 } : { x: vx / len, y: vy / len };
+}
+
+/** The step toward a solid block at (bx, by): along the field to its nearest open side, then into it. Null when no
+ *  side is reached. `stand` returns no push once the hero is on that side (lanterns are stood by, not dug). */
+function routeBlock(d: Dive, f: Int16Array, bx: number, by: number, stand = false): Input | null {
+  const m = d.map, w = m.w;
+  let best = -1, bk = Infinity;
+  for (const [dx, dy] of D4) {
+    const nx = bx + dx, ny = by + dy;
+    if (nx < 0 || ny < 0 || nx >= w || ny >= m.h) continue;
+    const k = f[ny * w + nx];
+    if (k >= 0 && k < bk) { bk = k; best = ny * w + nx; }
+  }
+  if (best < 0) return null;
+  const sx = best % w, sy = (best - sx) / w;
+  if (bk > 0) return route(d, f, sx, sy, sx + 0.5, sy + 0.5);
+  if (stand) return { x: 0, y: 0 };
+  // On the open side: push square into the block, centred on the shared edge so the dig lands on it.
+  const ex = bx - sx, ey = by - sy, cx = ex ? 0 : sx + 0.5 - d.hx, cy = ey ? 0 : sy + 0.5 - d.hy;
+  const vx = ex + cx * 2, vy = ey + cy * 2, len = Math.hypot(vx, vy);
+  return { x: vx / len, y: vy / len };
+}
+
+/**
+ * The bot's stick for this step, the spec's plain policy. It flees the weighted centre of the critters within 5 tiles
+ * (weight 1 / distance squared; the wyrm counts heavily, and more while it rumbles), on the open heading closest to
+ * straight away. It is drawn toward the nearest crystal within 4 tiles, the job's target, a gold block within 3 tiles
+ * and, once it lands, the pod, which outweighs everything. Every pull is routed along the flow field, so the bot
+ * walks round rock rather than into it, and only pushes into a block it means to dig.
+ */
+export function drive(d: Dive): Input {
+  if (d.phase !== 'play') return { x: 0, y: 0 };
+  const m = d.map, w = m.w, hx = d.hx, hy = d.hy, f = d.flowField(), htx = Math.floor(hx), hty = Math.floor(hy);
+  let ax = 0, ay = 0;
+  const pull = (v: Input | null, k: number) => { if (v) { ax += v.x * k; ay += v.y * k; } };
+
+  // The crowd: the weighted centre of what's near.
+  let sx = 0, sy = 0, sw = 0;
+  const threat = (x: number, y: number, k: number) => {
+    const ex = x - hx, ey = y - hy, d2 = ex * ex + ey * ey;
+    if (d2 > BOT.flee * BOT.flee) return;
+    const q = k / Math.max(0.05, d2);
+    sx += ex * q; sy += ey * q; sw += q;
+  };
+  for (const c of d.critters) threat(c.x, c.y, c.elite ? 3 : 1);
+  const wy = d.wyrm;
+  if (wy && !wy.bonked && wy.under <= 0) {
+    const loud = wy.rumble <= WYRM.telegraph || wy.ring !== null ? 6 : 2;
+    threat(wy.x, wy.y, loud * 2);
+    for (const s of wy.segs) threat(s.x, s.y, 2);
+  }
+
+  if (d.pod && !d.pod.reached) pull(route(d, f, Math.floor(d.pod.x), Math.floor(d.pod.y), d.pod.x, d.pod.y), BOT.pod);
+  else {
+    // The nearest crystal within reach (any distance on a haul).
+    const haul = d.job?.id === 'haul' && !d.job.done;
+    let cb: { x: number; y: number } | null = null, cd = haul ? Infinity : BOT.crystal * BOT.crystal;
+    for (const c of d.crystals) {
+      const d2 = (c.x - hx) ** 2 + (c.y - hy) ** 2;
+      if (d2 < cd && f[Math.floor(c.y) * w + Math.floor(c.x)] >= 0) { cd = d2; cb = c; }
+    }
+    if (cb) pull(route(d, f, Math.floor(cb.x), Math.floor(cb.y), cb.x, cb.y), BOT.crystalPull);
+
+    // The job's target.
+    const j = d.job;
+    if (j && !j.done) {
+      if (j.id === 'crates' || j.id === 'lanterns') {
+        let pb = -1, pd = Infinity;
+        m.props.forEach((p, i) => {
+          if (p.kind === 'crate' ? j.id !== 'crates' || tileAt(m, p.x, p.y) !== 'crate' : j.id !== 'lanterns' || j.lit?.includes(i)) return;
+          const d2 = (p.x + 0.5 - hx) ** 2 + (p.y + 0.5 - hy) ** 2;
+          if (d2 < pd) { pd = d2; pb = i; }
+        });
+        if (pb >= 0) {
+          const p = m.props[pb], at = j.id === 'lanterns' && Math.hypot(p.x + 0.5 - hx, p.y + 0.5 - hy) <= JOBS.lanterns.reach - 0.15;
+          // Standing by a lantern, it holds its ground unless the crowd is right on it.
+          if (at) { sw = sw > 1.5 ? sw : 0; } else pull(routeBlock(d, f, p.x, p.y, j.id === 'lanterns'), BOT.jobPull);
+        }
+      } else if (j.id === 'bigone' && d.bigId !== null) {
+        const big = d.critters.find(c => c.id === d.bigId);
+        if (big && (big.x - hx) ** 2 + (big.y - hy) ** 2 > 9) pull(route(d, f, Math.floor(big.x), Math.floor(big.y), big.x, big.y), BOT.bigPull);
+      }
+    }
+
+    // The nearest gold block within 3 tiles that has an open side.
+    let gb = -1, gd = BOT.gold * BOT.gold + 1e-9;
+    for (let y = Math.max(0, hty - BOT.gold); y <= Math.min(m.h - 1, hty + BOT.gold); y++) {
+      for (let x = Math.max(0, htx - BOT.gold); x <= Math.min(w - 1, htx + BOT.gold); x++) {
+        if (m.tiles[y * w + x] !== 'gold') continue;
+        const d2 = (x + 0.5 - hx) ** 2 + (y + 0.5 - hy) ** 2;
+        if (d2 < gd) { gd = d2; gb = y * w + x; }
+      }
+    }
+    if (gb >= 0) pull(routeBlock(d, f, gb % w, Math.floor(gb / w)), BOT.goldPull);
+  }
+
+  // Flee on the open heading nearest straight away, harder the closer the crowd.
+  if (sw > 0) {
+    const cx = sx / sw, cy = sy / sw, len = Math.hypot(cx, cy), urge = Math.min(BOT.urge, sw);
+    let ux = len > 1e-6 ? -cx / len : 0, uy = len > 1e-6 ? -cy / len : 0;
+    if (len > 1e-6) {
+      let best = -Infinity;
+      for (const h of HEADINGS) {
+        const open = !solid(tileAt(m, Math.floor(hx + h.x * 0.8), Math.floor(hy + h.y * 0.8)))
+          && !solid(tileAt(m, Math.floor(hx + h.x * 1.6), Math.floor(hy + h.y * 1.6)));
+        const score = h.x * -cx / len + h.y * -cy / len - (open ? 0 : 2);
+        if (score > best) { best = score; ux = h.x; uy = h.y; }
+      }
+    }
+    ax += ux * urge; ay += uy * urge;
+  }
+  const len = Math.hypot(ax, ay);
+  return len < 0.05 ? { x: 0, y: 0 } : { x: ax / len, y: ay / len };
+}
+
+/** The bot's card: the first of an overclock pair (dealt shuffled, so it varies); otherwise by fixed weights, a new
+ *  weapon 5 while a slot is free, a held weapon 3, a passive 2 and a Snack 1. */
+export function botPick(d: Dive, r: Rand): number {
+  const o = d.offer;
+  if (!o.length || o[0].k === 'overclock') return 0;
+  const held = new Set(d.weapons.map(x => x.id));
+  const ws = o.map(c => c.k === 'weapon' ? (held.has(c.id) ? 3 : 5) : c.k === 'passive' ? 2 : 1);
+  let x = r.next() * ws.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < ws.length; i++) { x -= ws[i]; if (x < 0) return i; }
+  return ws.length - 1;
+}
+
+/** The bot's reroll, tried once per offer: while rerolls remain, it rerolls an offer with no held-weapon card and,
+ *  while a slot is free, no new weapon. Returns whether it rerolled. */
+export function botReroll(d: Dive): boolean {
+  if (d.phase !== 'pick' || d.rerolls <= 0) return false;
+  const held = new Set(d.weapons.map(x => x.id)), free = d.weapons.length < MAX_WEAPONS;
+  const useful = d.offer.some(c => c.k === 'weapon' && (held.has(c.id) || free));
+  return !useful && d.reroll();
+}
+
+/** A random player's card: any of the offer, evenly. */
+export function randomPick(d: Dive, r: Rand): number { return r.int(Math.max(1, d.offer.length)); }
 
 // ── Camp ───────────────────────────────────────────────────────────────────
 
