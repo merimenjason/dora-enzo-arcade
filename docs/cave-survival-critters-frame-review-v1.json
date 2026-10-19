@@ -1,0 +1,363 @@
+{
+  "image": "public/art/cave-survival/critters-animation-v1.png",
+  "grid": [
+    6,
+    4
+  ],
+  "cell": [
+    256,
+    256
+  ],
+  "size": [
+    1536,
+    1024
+  ],
+  "mode": "RGBA",
+  "alpha_max": 254,
+  "alpha_zero_pixels": 1013285,
+  "measurement": "connected pieces at alpha > 128 (>= 30 px), each assigned to the cell holding its centre",
+  "status": "fail",
+  "problems": [
+    "row 1 column 2: a piece overhangs its cell by 29 px",
+    "row 1 column 6: a piece overhangs its cell by 30 px",
+    "row 1 column 5: a piece overhangs its cell by 31 px"
+  ],
+  "frames": [
+    {
+      "row": 1,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        55,
+        140,
+        227,
+        280
+      ],
+      "width": 172,
+      "height": 140,
+      "overhang_px": 24
+    },
+    {
+      "row": 1,
+      "column": 2,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        56,
+        137,
+        228,
+        285
+      ],
+      "width": 172,
+      "height": 148,
+      "overhang_px": 29
+    },
+    {
+      "row": 1,
+      "column": 3,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        53,
+        129,
+        215,
+        276
+      ],
+      "width": 162,
+      "height": 147,
+      "overhang_px": 20
+    },
+    {
+      "row": 1,
+      "column": 4,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        49,
+        134,
+        214,
+        280
+      ],
+      "width": 165,
+      "height": 146,
+      "overhang_px": 24
+    },
+    {
+      "row": 1,
+      "column": 5,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        49,
+        149,
+        214,
+        287
+      ],
+      "width": 165,
+      "height": 138,
+      "overhang_px": 31
+    },
+    {
+      "row": 1,
+      "column": 6,
+      "pieces": 4,
+      "bounds_local_exclusive": [
+        35,
+        99,
+        207,
+        286
+      ],
+      "width": 172,
+      "height": 187,
+      "overhang_px": 30
+    },
+    {
+      "row": 2,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        61,
+        112,
+        251,
+        266
+      ],
+      "width": 190,
+      "height": 154,
+      "overhang_px": 10
+    },
+    {
+      "row": 2,
+      "column": 2,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        63,
+        109,
+        252,
+        264
+      ],
+      "width": 189,
+      "height": 155,
+      "overhang_px": 8
+    },
+    {
+      "row": 2,
+      "column": 3,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        53,
+        97,
+        239,
+        266
+      ],
+      "width": 186,
+      "height": 169,
+      "overhang_px": 10
+    },
+    {
+      "row": 2,
+      "column": 4,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        49,
+        123,
+        237,
+        266
+      ],
+      "width": 188,
+      "height": 143,
+      "overhang_px": 10
+    },
+    {
+      "row": 2,
+      "column": 5,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        54,
+        133,
+        241,
+        271
+      ],
+      "width": 187,
+      "height": 138,
+      "overhang_px": 15
+    },
+    {
+      "row": 2,
+      "column": 6,
+      "pieces": 4,
+      "bounds_local_exclusive": [
+        43,
+        105,
+        221,
+        268
+      ],
+      "width": 178,
+      "height": 163,
+      "overhang_px": 12
+    },
+    {
+      "row": 3,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        32,
+        66,
+        270,
+        247
+      ],
+      "width": 238,
+      "height": 181,
+      "overhang_px": 14
+    },
+    {
+      "row": 3,
+      "column": 2,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        43,
+        62,
+        272,
+        242
+      ],
+      "width": 229,
+      "height": 180,
+      "overhang_px": 16
+    },
+    {
+      "row": 3,
+      "column": 3,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        37,
+        62,
+        257,
+        241
+      ],
+      "width": 220,
+      "height": 179,
+      "overhang_px": 1
+    },
+    {
+      "row": 3,
+      "column": 4,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        30,
+        63,
+        264,
+        238
+      ],
+      "width": 234,
+      "height": 175,
+      "overhang_px": 8
+    },
+    {
+      "row": 3,
+      "column": 5,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        44,
+        87,
+        266,
+        240
+      ],
+      "width": 222,
+      "height": 153,
+      "overhang_px": 10
+    },
+    {
+      "row": 3,
+      "column": 6,
+      "pieces": 4,
+      "bounds_local_exclusive": [
+        31,
+        49,
+        227,
+        248
+      ],
+      "width": 196,
+      "height": 199,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        48,
+        76,
+        225,
+        202
+      ],
+      "width": 177,
+      "height": 126,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 2,
+      "pieces": 2,
+      "bounds_local_exclusive": [
+        24,
+        27,
+        243,
+        171
+      ],
+      "width": 219,
+      "height": 144,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 3,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        49,
+        39,
+        226,
+        205
+      ],
+      "width": 177,
+      "height": 166,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 4,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        24,
+        75,
+        225,
+        202
+      ],
+      "width": 201,
+      "height": 127,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 5,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        4,
+        47,
+        241,
+        209
+      ],
+      "width": 237,
+      "height": 162,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 6,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        12,
+        51,
+        247,
+        204
+      ],
+      "width": 235,
+      "height": 153,
+      "overhang_px": 0
+    }
+  ]
+}
