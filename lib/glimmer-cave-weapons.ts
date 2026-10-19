@@ -412,18 +412,20 @@ function ring(d: Dive, s: Extract<Shot, { k: 'ring' }>): boolean {
 // ── Crystal Lance: a piercing line toward the densest crowd ────────────────
 
 const lance: Fire = (d, w, who, e, ox, oy) => {
-  const p = WEAPONS.lance.p, count = [0, 0, 0, 0, 0, 0, 0, 0];
+  const p = WEAPONS.lance.p, count = [0, 0, 0, 0, 0, 0, 0, 0], sx = [0, 0, 0, 0, 0, 0, 0, 0], sy = [0, 0, 0, 0, 0, 0, 0, 0];
   let any = false;
   for (const c of d.grid.near(ox, oy, LANCE_LOOK, scratch)) {
     if (c.fluff <= 0) continue;
-    count[(Math.round(Math.atan2(c.y - oy, c.x - ox) / (Math.PI / 4)) + 8) % 8]++; any = true;
+    const i = (Math.round(Math.atan2(c.y - oy, c.x - ox) / (Math.PI / 4)) + 8) % 8;
+    count[i]++; sx[i] += c.x - ox; sy[i] += c.y - oy; any = true;
   }
   if (!any) return false;
-  // The 8-way direction with the most critters; ties go to the one nearest the way the hero faces.
+  // The 8-way sector with the most critters; ties go to the one nearest the way the hero faces.
   const fi = (Math.round(Math.atan2(d.face.y, d.face.x) / (Math.PI / 4)) + 8) % 8;
   let best = fi;
   for (let j = 1; j < 8; j++) for (const i of [(fi + j) % 8, (fi - j + 8) % 8]) if (count[i] > count[best]) best = i;
-  const aim = best * Math.PI / 4, long = has(w, 'lance.long'), n = has(w, 'lance.prism') ? p.prism : 1;
+  // Aim at the mean offset of the winning sector's critters, so a crowd off the compass point is still struck.
+  const aim = sx[best] || sy[best] ? Math.atan2(sy[best], sx[best]) : best * Math.PI / 4, long = has(w, 'lance.long'), n = has(w, 'lance.prism') ? p.prism : 1;
   for (let i = 0; i < n; i++) {
     const a = aim + (i - (n - 1) / 2) * PRISM_SPREAD * DEG, ux = Math.cos(a), uy = Math.sin(a);
     const len = clear(d, ox, oy, ux, uy, p.length * e.size * (long ? p.longMult : 1), p.width / 2);
