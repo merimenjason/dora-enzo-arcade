@@ -1,0 +1,365 @@
+{
+  "image": "public/art/cave-survival/fx-animation-v1.png",
+  "grid": [
+    6,
+    4
+  ],
+  "cell": [
+    256,
+    256
+  ],
+  "size": [
+    1536,
+    1024
+  ],
+  "mode": "RGBA",
+  "alpha_max": 254,
+  "alpha_zero_pixels": 1164464,
+  "measurement": "connected pieces at alpha > 128 (>= 30 px), each assigned to the cell holding its centre",
+  "status": "fail",
+  "problems": [
+    "row 1 column 3: a piece overhangs its cell by 25 px",
+    "row 1: frame heights range 116\u2013202 px; check the poses by eye",
+    "row 2: frame heights range 123\u2013277 px; check the poses by eye",
+    "row 3: frame heights range 90\u2013244 px; check the poses by eye",
+    "row 4: frame heights range 70\u2013142 px; check the poses by eye"
+  ],
+  "frames": [
+    {
+      "row": 1,
+      "column": 1,
+      "pieces": 5,
+      "bounds_local_exclusive": [
+        53,
+        145,
+        206,
+        261
+      ],
+      "width": 153,
+      "height": 116,
+      "overhang_px": 5
+    },
+    {
+      "row": 1,
+      "column": 2,
+      "pieces": 8,
+      "bounds_local_exclusive": [
+        28,
+        125,
+        221,
+        269
+      ],
+      "width": 193,
+      "height": 144,
+      "overhang_px": 13
+    },
+    {
+      "row": 1,
+      "column": 3,
+      "pieces": 9,
+      "bounds_local_exclusive": [
+        16,
+        79,
+        239,
+        281
+      ],
+      "width": 223,
+      "height": 202,
+      "overhang_px": 25
+    },
+    {
+      "row": 1,
+      "column": 4,
+      "pieces": 11,
+      "bounds_local_exclusive": [
+        33,
+        101,
+        237,
+        271
+      ],
+      "width": 204,
+      "height": 170,
+      "overhang_px": 15
+    },
+    {
+      "row": 1,
+      "column": 5,
+      "pieces": 7,
+      "bounds_local_exclusive": [
+        33,
+        134,
+        231,
+        255
+      ],
+      "width": 198,
+      "height": 121,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 6,
+      "pieces": 7,
+      "bounds_local_exclusive": [
+        45,
+        150,
+        205,
+        271
+      ],
+      "width": 160,
+      "height": 121,
+      "overhang_px": 15
+    },
+    {
+      "row": 2,
+      "column": 1,
+      "pieces": 6,
+      "bounds_local_exclusive": [
+        74,
+        121,
+        207,
+        259
+      ],
+      "width": 133,
+      "height": 138,
+      "overhang_px": 3
+    },
+    {
+      "row": 2,
+      "column": 2,
+      "pieces": 9,
+      "bounds_local_exclusive": [
+        28,
+        -5,
+        239,
+        272
+      ],
+      "width": 211,
+      "height": 277,
+      "overhang_px": 16
+    },
+    {
+      "row": 2,
+      "column": 3,
+      "pieces": 7,
+      "bounds_local_exclusive": [
+        79,
+        12,
+        201,
+        253
+      ],
+      "width": 122,
+      "height": 241,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 4,
+      "pieces": 15,
+      "bounds_local_exclusive": [
+        41,
+        -2,
+        216,
+        259
+      ],
+      "width": 175,
+      "height": 261,
+      "overhang_px": 3
+    },
+    {
+      "row": 2,
+      "column": 5,
+      "pieces": 18,
+      "bounds_local_exclusive": [
+        11,
+        1,
+        240,
+        262
+      ],
+      "width": 229,
+      "height": 261,
+      "overhang_px": 6
+    },
+    {
+      "row": 2,
+      "column": 6,
+      "pieces": 13,
+      "bounds_local_exclusive": [
+        37,
+        133,
+        221,
+        256
+      ],
+      "width": 184,
+      "height": 123,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 1,
+      "pieces": 4,
+      "bounds_local_exclusive": [
+        80,
+        131,
+        189,
+        221
+      ],
+      "width": 109,
+      "height": 90,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 2,
+      "pieces": 5,
+      "bounds_local_exclusive": [
+        68,
+        -15,
+        196,
+        229
+      ],
+      "width": 128,
+      "height": 244,
+      "overhang_px": 15
+    },
+    {
+      "row": 3,
+      "column": 3,
+      "pieces": 3,
+      "bounds_local_exclusive": [
+        58,
+        130,
+        194,
+        221
+      ],
+      "width": 136,
+      "height": 91,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 4,
+      "pieces": 4,
+      "bounds_local_exclusive": [
+        59,
+        121,
+        203,
+        228
+      ],
+      "width": 144,
+      "height": 107,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 5,
+      "pieces": 4,
+      "bounds_local_exclusive": [
+        81,
+        0,
+        216,
+        220
+      ],
+      "width": 135,
+      "height": 220,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 6,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        60,
+        108,
+        185,
+        239
+      ],
+      "width": 125,
+      "height": 131,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 1,
+      "pieces": 4,
+      "bounds_local_exclusive": [
+        47,
+        78,
+        237,
+        186
+      ],
+      "width": 190,
+      "height": 108,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 2,
+      "pieces": 8,
+      "bounds_local_exclusive": [
+        14,
+        61,
+        262,
+        203
+      ],
+      "width": 248,
+      "height": 142,
+      "overhang_px": 6
+    },
+    {
+      "row": 4,
+      "column": 3,
+      "pieces": 5,
+      "bounds_local_exclusive": [
+        28,
+        91,
+        248,
+        161
+      ],
+      "width": 220,
+      "height": 70,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 4,
+      "pieces": 8,
+      "bounds_local_exclusive": [
+        41,
+        99,
+        215,
+        175
+      ],
+      "width": 174,
+      "height": 76,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 5,
+      "pieces": 10,
+      "bounds_local_exclusive": [
+        5,
+        91,
+        244,
+        185
+      ],
+      "width": 239,
+      "height": 94,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 6,
+      "pieces": 6,
+      "bounds_local_exclusive": [
+        44,
+        101,
+        216,
+        179
+      ],
+      "width": 172,
+      "height": 78,
+      "overhang_px": 0
+    }
+  ]
+}
