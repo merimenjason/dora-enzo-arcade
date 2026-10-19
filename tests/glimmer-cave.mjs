@@ -427,6 +427,13 @@ test('weapons: each level-1 weapon hits a placed critter for its table damage at
   }
 });
 
+test('weapons: the lance aims at its crowd, not the compass point', () => {
+  for (const deg of [20, -20, 65]) {
+    const d = armed('lance'), a = deg * Math.PI / 180, c = place(d, HX + 4 * Math.cos(a), HY + 4 * Math.sin(a));
+    assert.ok(hits(hold(d, 1)).some(e => e.id === c.id), `${deg} degrees`);
+  }
+});
+
 test('weapons: mining weapons dig', () => {
   for (const [id, x, n] of [['pickaxe', 33, 1], ['bomb', 33, 70], ['drill', 35, 40]]) {
     const d = armed(id); put(d, x, 24, 'dirt'); const ev = hold(d, n);
@@ -511,7 +518,7 @@ test('overclocks: each changes what it says', () => {
 
     'lance.prism': [ocs => { const d = armed('lance', ocs); at(d, 3, 0); hold(d, 1); return shots(d, 'lance').length; }, v => v === 3],
     'lance.long': [ocs => { const d = armed('lance', ocs); for (let i = 0; i < 10; i++) at(d, 1.5 + i, 0); return hits(hold(d, 1)).length; }, v => v === 10],
-    'lance.resonance': [ocs => { const d = armed('lance', ocs); at(d, 3, 0); const b = at(d, 3, 0.9); return hits(hold(d, 1)).filter(e => e.id === b.id).map(e => e.dmg); },
+    'lance.resonance': [ocs => { const d = armed('lance', ocs); at(d, 5.5, 0); const b = at(d, 6.2, 0.7); return hits(hold(d, 1)).filter(e => e.id === b.id).map(e => e.dmg); },
       v => v.length === 1 && near(v[0], 6)],
     'lance.glimmer': [ocs => { const d = armed('lance', ['lance.long', ...ocs]); let bonks = 0, doubles = 0;
       for (let k = 0; k < 1000 && bonks < 2000; k++) {
