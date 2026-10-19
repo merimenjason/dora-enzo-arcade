@@ -1,7 +1,7 @@
 // Glimmer Cave's weapons: each weapon's state, firing and shots. Deterministic and DOM-free. The dive calls
 // `runWeapons` once per step for the hero and once for the buddy, after it rebuilds its critter grid.
 
-import { BASE, BUDDY_DAMAGE, CLASS, CRITTERS, DIG_TIME, ELITE, WEAPONS, type OverclockId, type WeaponId } from './glimmer-cave-data.js';
+import { BASE, BUDDY_DAMAGE, CLASS, CRITTERS, DIG_TIME, ELITE, WEAPONS, WYRM, WYRM_ID, type OverclockId, type WeaponId } from './glimmer-cave-data.js';
 import { solid, tileAt } from './glimmer-cave-map.js';
 import type { Critter, Dive } from './glimmer-cave-game.js';
 
@@ -59,8 +59,8 @@ const KNOCK = 0.5;
 const SLOW_MAX = 0.9;
 /** How long a hit critter shows its flinch. */
 const HIT_FLASH = 0.2;
-/** The biggest critter radius (an elite beetle), plus room for a knockback since the grid was built. */
-const PAD = CRITTERS.beetle.radius * ELITE.size + KNOCK + 0.1;
+/** The biggest target radius (the wyrm's head, else an elite beetle), plus room for a knockback since the grid was built. */
+const PAD = Math.max(CRITTERS.beetle.radius * ELITE.size, WYRM.head) + KNOCK + 0.1;
 const ACORN_R = 0.1, TWIG_R = 0.3, MOTH_R = 0.15, SEED_R = 0.25, BRAMBLE_R = 0.5;
 /** A lantern pulse grows at this many tiles a second, then lingers. */
 const PULSE_SPEED = 12, RING_LINGER = 0.15;
@@ -116,7 +116,8 @@ const HERO_HIT: HitOpts = {}, BUDDY_HIT: HitOpts = { buddy: true }, GLIMMER_HIT:
 /**
  * Hits a critter for `base` from (x, y): rolls the crit, applies the hero's all-damage bonus and emits `hit`. At 0
  * Fluff it emits `bonk`, drops its crystals (ELITE.cache for an elite) and counts it; otherwise `knock` pushes it that
- * far away from (x, y). Returns the damage done. A critter already bonked this step takes nothing.
+ * far away from (x, y). Returns the damage done. A critter already bonked this step takes nothing. The wyrm's head
+ * (id WYRM_ID) passes its damage to `Dive.hurtWyrm` and is never knocked.
  */
 export function hurtCritter(d: Dive, c: Critter, base: number, x: number, y: number, o: HitOpts = HERO_HIT, knock = 0): number {
   if (c.fluff <= 0) return 0;
@@ -125,8 +126,10 @@ export function hurtCritter(d: Dive, c: Critter, base: number, x: number, y: num
     dmg *= d.st.damage;
     if (!d.critOff && d.rand.next() < d.st.crit) { crit = true; dmg *= BASE.critMult; }
   }
-  c.fluff -= dmg; c.hit = HIT_FLASH;
   d.events.push({ k: 'hit', id: c.id, x: c.x, y: c.y, dmg, crit });
+  // The wyrm's head stands in the grid as a critter; its Fluff, diving and bonk are the dive's.
+  if (c.id === WYRM_ID) { d.hurtWyrm(dmg); return dmg; }
+  c.fluff -= dmg; c.hit = HIT_FLASH;
   if (c.fluff <= 0) {
     d.bonked++;
     d.events.push({ k: 'bonk', id: c.id, kind: c.kind, elite: c.elite, x: c.x, y: c.y });
@@ -151,7 +154,7 @@ function stunCritter(c: Critter, secs: number) { c.stun = Math.max(c.stun, secs)
 
 // ── Geometry ───────────────────────────────────────────────────────────────
 
-const rad = (c: Critter) => CRITTERS[c.kind].radius * (c.elite ? ELITE.size : 1);
+const rad = (c: Critter) => c.id === WYRM_ID ? WYRM.head : CRITTERS[c.kind].radius * (c.elite ? ELITE.size : 1);
 const scratch: Critter[] = [], scratch2: Critter[] = [];
 
 /** The live critters a shot of radius r touches sweeping from (x, y) along the unit (ux, uy) for len tiles, nearest

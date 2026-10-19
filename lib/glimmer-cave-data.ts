@@ -271,6 +271,8 @@ export const WYRM = {
   fluff: 2500, segments: 8, spacing: 0.9, head: 0.9, body: 0.6, speed: 2.6, contact: 15, rumbleEvery: 8, telegraph: 1,
   ring: 4, ringWidth: 0.6, ringDamage: 15, diveAt: 0.5, diveFor: 6, fastAfter: 1.3, crystals: 100, gold: 200,
 };
+/** The id the wyrm's head goes by in `hit` events and to the weapons, which see it as a critter. */
+export const WYRM_ID = -1;
 
 // ── Levels ─────────────────────────────────────────────────────────────────
 
