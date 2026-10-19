@@ -580,4 +580,153 @@ test('overclocks: each changes what it says', () => {
   assert.deepEqual(bad, []);
 });
 
+// ── Levels, cards, rarity and rerolls ──────────────────────────────────────
+
+/** A dive holding `ids` as weapons, with the cave empty, ready to level. */
+function leveller(ids = ['sling'], o = {}) {
+  const d = openDive(o); d.weapons = ids.map(id => G.newWeapon(id)); return d;
+}
+const level = d => { d.collect(G.xpNeed(d.level)); d.step(Z); };
+const cardKey = c => `${c.k}:${c.id ?? ''}`;
+const isValid = c => c.k === 'snack' || G.RARITY.names[c.rarity ?? 0];
+
+test('levels: 8 crystals reach level 2 and open a pick of three distinct valid cards', () => {
+  const d = leveller(); d.collect(8);
+  assert.equal(d.level, 2); assert.equal(d.xp, 0); assert.equal(d.picks, 1); assert.equal(d.phase, 'play');
+  const ev = d.step(Z);
+  assert.ok(ev.some(e => e.k === 'level') || d.phase === 'pick');
+  assert.equal(d.phase, 'pick'); assert.equal(d.offer.length, 3);
+  assert.equal(new Set(d.offer.map(cardKey)).size, 3);
+  for (const c of d.offer) { assert.ok(['weapon', 'passive'].includes(c.k)); assert.ok(isValid(c)); }
+  const lv = openDive(); lv.collect(8); assert.ok(lv.events.some(e => e.k === 'level' && e.level === 2));
+  // Leftover experience carries over.
+  const e = leveller(); e.collect(10); assert.equal(e.level, 2); assert.equal(e.xp, 2);
+});
+
+test('levels: with a free slot, an offer holds a new weapon', () => {
+  const d = leveller(['sling']);
+  for (let i = 0; i < 200; i++) {
+    const o = d.deal();
+    assert.ok(o.some(c => c.k === 'weapon' && c.id !== 'sling'), `deal ${i}`);
+    assert.equal(new Set(o.map(cardKey)).size, o.length);
+  }
+  // Unlocked weapons join the pool; locked ones never appear.
+  const locked = leveller(['sling']), seenIds = new Set();
+  for (let i = 0; i < 300; i++) for (const c of locked.deal()) if (c.k === 'weapon') seenIds.add(c.id);
+  assert.ok(!seenIds.has('bomb') && !seenIds.has('drill'));
+  const unl = leveller(['sling'], { profile: { unlocked: { weapons: ['bomb'] } } }), seen2 = new Set();
+  for (let i = 0; i < 300; i++) for (const c of unl.deal()) if (c.k === 'weapon') seen2.add(c.id);
+  assert.ok(seen2.has('bomb'));
+});
+
+test('levels: rarity scales a passive', () => {
+  const d = leveller(); d.offer = [{ k: 'passive', id: 'paws', rarity: 3 }]; d.phase = 'pick'; d.picks = 1;
+  assert.equal(d.pick(0), true);
+  assert.ok(near(d.passives.paws.v, 0.18)); assert.equal(d.passives.paws.n, 1);
+  assert.equal(d.phase, 'play'); assert.equal(d.picks, 0);
+  // Rarity is rolled from the hazard's weights: Epic stays rare, and Common is the commonest.
+  const r = leveller(), count = [0, 0, 0, 0];
+  for (let i = 0; i < 400; i++) for (const c of r.deal()) if (c.rarity !== undefined) count[c.rarity]++;
+  assert.ok(count[0] > count[1] && count[1] > count[2] && count[2] > count[3] && count[3] > 0, count.join());
+  // Thick Fluff adds its amount to max Fluff and heals it.
+  const f = leveller(); f.fluff = 50; const before = f.stats().maxFluff;
+  f.offer = [{ k: 'passive', id: 'fluff', rarity: 1 }]; f.phase = 'pick'; f.picks = 1; f.pick(0);
+  const cls = G.CLASS.dora.fluff;
+  assert.ok(near(f.stats().maxFluff, before + 22.5 * cls)); assert.ok(near(f.fluff, 72.5));
+});
+
+test("levels: a weapon card raises its level, damage and that level's step", () => {
+  const d = leveller(['sling']); d.offer = [{ k: 'weapon', id: 'sling', rarity: 2 }]; d.phase = 'pick'; d.picks = 1; d.pick(0);
+  const w = d.weapons[0], step = G.WEAPONS.sling.steps[0];
+  assert.equal(w.level, 2); assert.ok(near(w.dmg, 0.3)); assert.ok(near(w[step], step === 'count' ? 1 : G.CARD[step] * 2));
+  // A new weapon joins at level 1.
+  d.offer = [{ k: 'weapon', id: 'pulse', rarity: 0 }]; d.phase = 'pick'; d.picks = 1; d.pick(0);
+  assert.equal(d.weapons.length, 2); assert.equal(d.weapons[1].id, 'pulse'); assert.equal(d.weapons[1].level, 1); assert.equal(d.weapons[1].dmg, 0);
+});
+
+test("levels: at level 4 a weapon's next card is an overclock pair; picking one makes it level 5 with that overclock", () => {
+  for (const [lv, pair, next] of [[4, 'oc5', 5], [9, 'oc10', 10]]) {
+    const d = leveller(['sling', 'pulse']); d.weapons[0].level = lv; level(d);
+    assert.equal(d.phase, 'pick');
+    assert.deepEqual(d.offer.map(c => c.k), ['overclock', 'overclock']);
+    assert.deepEqual(d.offer.map(c => c.id).sort(), [...G.WEAPONS.sling[pair]].sort());
+    const id = d.offer[1].id; assert.equal(d.pick(1), true);
+    assert.equal(d.weapons[0].level, next); assert.deepEqual(d.weapons[0].overclocks, [id]);
+  }
+  // With two waiting, the lower slot's pair comes first, and the weapon is out of normal offers.
+  const d = leveller(['sling', 'pulse']); d.weapons[0].level = 9; d.weapons[1].level = 4; d.deal();
+  assert.ok(d.deal().every(c => c.id.startsWith('sling.')));
+  const f = leveller(['sling', 'pulse', 'pickaxe', 'popper']); f.weapons[2].level = 4;
+  assert.ok(f.deal().every(c => c.k === 'overclock'));
+  f.weapons[2].level = 5;
+  for (let i = 0; i < 100; i++) assert.ok(f.deal().every(c => c.k !== 'overclock'));
+});
+
+test('levels: four slots fill, then only those weapons and passives are offered', () => {
+  const held = ['sling', 'pulse', 'pickaxe', 'popper'], d = leveller(held);
+  for (let i = 0; i < 200; i++) {
+    const o = d.deal(); assert.equal(o.length, 3); assert.equal(new Set(o.map(cardKey)).size, 3);
+    for (const c of o) { assert.ok(c.k === 'passive' || (c.k === 'weapon' && held.includes(c.id)), cardKey(c)); }
+  }
+});
+
+test('levels: nothing past its cap', () => {
+  const d = leveller(['sling', 'pulse', 'pickaxe', 'popper']); d.weapons[0].level = 12; d.passives.fluff = { n: 5, v: 75 };
+  for (let i = 0; i < 500; i++) for (const c of d.deal()) {
+    assert.ok(!(c.k === 'weapon' && c.id === 'sling'), 'weapon at 12');
+    assert.ok(!(c.k === 'passive' && c.id === 'fluff'), 'passive at 5');
+  }
+  assert.equal(d.weapons[0].level, 12);
+});
+
+test('stacked level-ups and an empty pool', () => {
+  const d = leveller(['sling']); d.collect(20);
+  assert.equal(d.level, 3); assert.equal(d.picks, 2); assert.equal(d.xp, 1);
+  d.step(Z); assert.equal(d.phase, 'pick');
+  assert.equal(d.step(Z).length, 0);
+  assert.equal(d.pick(0), true); assert.equal(d.phase, 'pick'); assert.equal(d.picks, 1); assert.equal(d.offer.length, 3);
+  assert.equal(d.pick(0), true); assert.equal(d.phase, 'play'); assert.equal(d.picks, 0);
+  // Play resumes only after the last pick.
+  const t = d.t; d.step(Z); assert.ok(d.t > t);
+  // Nothing valid: a single Snack that heals 20.
+  const e = leveller(['sling', 'pulse', 'pickaxe', 'popper']);
+  for (const w of e.weapons) w.level = 12;
+  for (const id of G.PASSIVE_IDS) e.passives[id] = { n: 5, v: 1 };
+  e.fluff = 50; e.collect(8); e.step(Z);
+  assert.deepEqual(e.offer, [{ k: 'snack' }]);
+  assert.equal(e.pick(0), true); assert.ok(near(e.fluff, 70)); assert.equal(e.phase, 'play');
+  e.fluff = e.stats().maxFluff - 5; e.collect(G.xpNeed(e.level)); e.step(Z); e.pick(0); assert.ok(near(e.fluff, e.stats().maxFluff));
+});
+
+test('levels: head start opens the first picks at once', () => {
+  const d = new G.Dive({ seed: 1, hero: 'dora', hazard: 1, profile: { upgrades: { headstart: 2 } } });
+  assert.equal(d.level, 3); assert.equal(d.picks, 2); assert.equal(d.phase, 'pick'); assert.ok(d.offer.length > 0);
+  d.pick(0); d.pick(0); assert.equal(d.phase, 'play'); assert.equal(d.level, 3);
+});
+
+test('rerolls: one per layer, refreshed on descend; an overclock offer can\'t be rerolled', () => {
+  const d = leveller(); assert.equal(d.rerolls, 1);
+  d.collect(8); d.step(Z);
+  assert.equal(d.reroll(), true); assert.equal(d.rerolls, 0); assert.equal(d.offer.length, 3); assert.equal(d.phase, 'pick');
+  assert.equal(d.reroll(), false);
+  d.pick(0); d.pod = { x: 34, y: 25, reached: true }; d.phase = 'pod';
+  assert.equal(d.descend(), true); assert.equal(d.rerolls, 1);
+  const o = leveller(['sling']); o.weapons[0].level = 4; level(o);
+  assert.equal(o.offer[0].k, 'overclock'); const offer = JSON.stringify(o.offer);
+  assert.equal(o.reroll(), false); assert.equal(o.rerolls, 1); assert.equal(JSON.stringify(o.offer), offer);
+  assert.equal(new G.Dive({ seed: 1, hero: 'dora', hazard: 1, profile: { upgrades: { rerolls: 2 } } }).rerolls, 3);
+});
+
+test('illegal actions change nothing', () => {
+  const snap = d => JSON.stringify({ phase: d.phase, level: d.level, xp: d.xp, picks: d.picks, offer: d.offer, weapons: d.weapons, passives: d.passives, rerolls: d.rerolls });
+  const d = leveller();
+  let before = snap(d);
+  assert.equal(d.pick(0), false); assert.equal(d.reroll(), false); assert.equal(snap(d), before);
+  d.collect(8); d.step(Z); before = snap(d);
+  assert.equal(d.pick(5), false); assert.equal(d.pick(-1), false); assert.equal(d.descend(), false);
+  assert.deepEqual(d.step(Z), []); assert.equal(snap(d), before);
+  d.reroll(); before = snap(d);
+  assert.equal(d.reroll(), false); assert.equal(snap(d), before);
+});
+
 process.exitCode = failed ? 1 : 0;
