@@ -96,3 +96,15 @@ Notes on the accepted sheets:
 - **All three: faint halo.** 7–12% of each sheet's pixels have alpha 1–31, a faint glow around every subject. It is invisible on the floor but would tint it, so import also **clears alpha below 32**, alongside the existing alpha ≥ 240 → 255 snap and clearing colour under alpha 0.
 
 Why the environment is rejected. The rope overhang (25 px in v2) is harmless on its own, as the importer crops by piece. The real problem is the camera and style: both versions draw crisp, corner-on isometric cubes with diamond-shaped tops and a pixel-art texture. The scene (`gameplay-style-test.png`) shows soft gouache blocks seen square-on from the front, a big top face above a front face, and the floor grid needs exactly that to tile. `docs/cave-survival-layout-guides/environment-reference.png` holds crops of two scene blocks, the lantern and the crystal crate as the reference for the corrected prompt (round 2 in `cave-survival-animation-prompts-v2.md`).
+
+## Round 2 sheets — Claude's review (19-10-2026)
+
+| Sheet | Verdict | Notes |
+| --- | --- | --- |
+| `environment-v3.png` | **Accepted** | Square-on blocks in gouache, as asked. The stronger cracks read well as dig stages at tile size, and the lift's tight top clearance is harmless because the importer crops by piece. The lantern post faces left; it's a prop, so it isn't mirrored. |
+| `floor-v2.png` | **Accepted** | Calmer and more even than v1, which shows a repeating blotch pattern when tiled 2 × 2. Both are seamless. The 1254 × 1254 size is fine: the scene scales the tile to the view, so the importer accepts any square tile and records its size instead of resampling it. |
+| `floor-v1.png` | Kept, unused | |
+| `wyrm-v1.png` row 2 | **Accepted** | Body segment, body flinch, tail and boulder pile: all four are separate pieces, as the game needs. |
+| `wyrm-v1.png` row 1, `wyrm-v2.png` | **Rejected** | The head cells show whole curled wyrms, not separate heads. The game chains a head, 8 body segments and a tail, so it needs the head alone. |
+
+The wyrm's heads get their own sheet, `wyrm-heads-v1.png` (prompt 7 in `cave-survival-animation-prompts-v2.md`). Its input `docs/cave-survival-layout-guides/wyrm-head-guide.png` chains the accepted tail and body pieces with a plain grey circle where the head goes, so the generator sees that only the head is missing.

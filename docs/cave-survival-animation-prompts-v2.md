@@ -181,6 +181,34 @@ Genuine alpha-zero transparency. No floor, ground shadow, glow, haze, backdrop, 
 
 Retry note: `A piece reaches the cell edge: draw every piece smaller, keeping the four head frames identical in size.`
 
+## 7 · Rock Wyrm heads (round 2)
+
+The first wyrm sheets drew whole curled wyrms in the head cells. Row 2 of `wyrm-v1.png` (body, flinch, tail, boulders) is accepted; only the four heads are needed. Output `wyrm-heads-v1.png`, retry `wyrm-heads-v2.png`.
+
+Inputs: GUIDE `docs/cave-survival-layout-guides/wyrm-head-guide.png` (the accepted tail and body pieces chained, with a grey circle where the head goes), WYRM `public/art/cave-survival/wyrm-v1.png` (the face to match), SPRITES.
+
+Check: `python3 scripts/cave-frame-review.py public/art/cave-survival/wyrm-heads-v1.png 2 2 docs/cave-survival-wyrm-heads-review-v1.json`. Also check by eye: **any body segment, coil or tail in a cell counts as a failed check.**
+
+```
+Create the Rock Wyrm's HEAD sheet: a transparent 1536 × 1024 PNG with 2 columns × 2 rows of equal 768 × 512 cells, one head centred in each cell, resting on a common ground line about 80 px above the bottom of the cells.
+
+The game builds the wyrm from separate pieces. Image 1 shows the pieces it already has, chained together: the tail on the left and round mossy body segments, with a plain grey circle where the HEAD goes. Draw ONLY that missing head: one big rounded mossy stone head, about the size of the grey circle compared with the body segments, seen from the side and slightly above, facing RIGHT. Its face, ears, small stone horns, moss tufts and little white flowers are exactly like the wyrm's face in image 2, in the same soft detailed gouache with thin dark-plum outlines. Friendly and never scary.
+
+The head ends at the back of the skull in a short, rounded neck stub. NOTHING behind it: no body segments, no coils, no tail, no second wyrm. Each cell holds one head and nothing else.
+
+Cells, left to right, top to bottom:
+1 sleepy: eyes closed, calm.
+2 grumpy: eyes wide open, frowning brows.
+3 rumbling: mouth wide open in a big yawn-roar, eyes squeezed shut, no teeth, no fire.
+4 bonked: dizzy spiral eyes and three small stars circling just above the head, inside the cell.
+
+The four heads are the SAME size and outline; only the face changes. Every head stays well inside its cell, with at least 60 px of transparent space to every cell edge.
+
+Genuine alpha-zero transparency. No floor, ground shadow, glow, haze, backdrop, grid or text. Do not draw the grey circle.
+```
+
+Retry note: `A body, coil or tail appears behind a head, or a head comes near a cell edge: draw each head alone, as a separate puppet piece ending in a rounded neck stub, smaller, with wide transparent space around it.`
+
 ---
 
 ## Results
