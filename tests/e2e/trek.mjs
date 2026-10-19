@@ -191,6 +191,93 @@ await check('the journal lists 18 skills, 4 evolutions and 30 foes', async (page
   assert.equal(await page.locator('[data-testid^="journal-foe-"]').count(), 30);
 });
 
+// ---- painted art ----
+
+/** A fingerprint of what a canvas shows now. */
+const pixels = (page, selector) => page.evaluate((s) => {
+  const c = document.querySelector(s), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+  let h = 0; for (let i = 0; i < d.length; i += 97) h = (h * 31 + d[i]) | 0;
+  return h;
+}, selector);
+const artAsked = (page) => page.evaluate(() => performance.getEntriesByType('resource').map((e) => new URL(e.name).pathname + new URL(e.name).search).filter((u) => u.startsWith('/art/trek/')));
+
+await check('art: a trek asks for its own chapter\'s backdrop and sheets only, hash-versioned, and paints them', async (page) => {
+  await fresh(page);
+  await trek(page, (w) => w.setProfile({ ...w.profile, unlocked: 5 }));
+  await begin(page, { chapter: 3 });
+  await page.waitForFunction(() => performance.getEntriesByType('resource').some((e) => e.name.includes('/art/trek/bg-3.png')));
+  await page.waitForTimeout(1500);
+  const asked = await artAsked(page);
+  for (const u of asked) assert.match(u, /^\/art\/trek\/[a-z0-9-]+\.png\?v=[0-9a-f]{12}$/);
+  const files = asked.map((u) => u.split('?')[0].split('/').pop());
+  assert.ok(files.includes('bg-3.png') && files.includes('foes-2.png') && files.includes('landmarks.png'), files.join());
+  for (const n of [1, 2, 4, 5]) assert.ok(!files.includes(`bg-${n}.png`), `bg-${n} not asked for`);
+  assert.equal(new Set(asked).size, asked.length, 'each file asked for once');
+  await page.getByTestId('stage').screenshot({ path: '.checks/trek/painted-walk-3.png' });
+});
+
+await check('art: while it is slow the code drawings play on, and the title repaints by itself when it lands', async (page) => {
+  let release;
+  const held = new Promise((r) => { release = r; });
+  await page.route('**/art/trek/title.png*', async (route) => { await held; await route.continue(); });
+  await page.goto(`${base}/trek`); await ready(page);
+  const before = await pixels(page, '.ct-title canvas');
+  await begin(page);
+  await page.getByTestId('walk').click();
+  await page.waitForFunction(() => window.__trek().trek.day === 1, null, { timeout: 20000 });
+  await page.getByTestId('menu').click(); await screen(page, 'title');
+  assert.equal(await pixels(page, '.ct-title canvas'), before, 'still the code title while the painting is held');
+  release();
+  await page.waitForFunction((b) => {
+    const c = document.querySelector('.ct-title canvas'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    let h = 0; for (let i = 0; i < d.length; i += 97) h = (h * 31 + d[i]) | 0;
+    return h !== b;
+  }, before);
+});
+
+await check('art: failed files leave the game playable, then Retry brings them back, still canvases included', async (page) => {
+  let fail = true;
+  await page.route('**/art/trek/**', (route) => (fail ? route.abort() : route.continue()));
+  await fresh(page);
+  await page.getByTestId('retry-art').waitFor();
+  const before = await pixels(page, '.ct-title canvas');
+  await begin(page);
+  await page.getByTestId('walk').click();
+  await page.waitForFunction(() => window.__trek().trek.day === 1, null, { timeout: 20000 });
+  if (await trek(page, (w) => !!w.replay)) { await page.getByTestId('skip').click(); await replayDone(page); }
+  await statusMatches(page);
+  await page.getByTestId('stage').screenshot({ path: '.checks/trek/failed-art.png' });
+  await page.getByTestId('menu').click(); await screen(page, 'title');
+  assert.equal(await pixels(page, '.ct-title canvas'), before);
+  fail = false;
+  await page.getByTestId('retry-art').click();
+  await page.getByTestId('retry-art').waitFor({ state: 'detached' });
+  await page.waitForFunction((b) => {
+    const c = document.querySelector('.ct-title canvas'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    let h = 0; for (let i = 0; i < d.length; i += 97) h = (h * 31 + d[i]) | 0;
+    return h !== b;
+  }, before);
+  await page.getByTestId('continue').click(); await screen(page, 'trek');
+  assert.equal((await state(page)).day, 1, 'the saved trek carries on');
+});
+
+await check('art: skill cards, Reroll, the tray and the journal show badges', async (page) => {
+  await fresh(page); await begin(page);
+  await trek(page, (w) => w.set({ xp: 99 }));
+  await page.getByTestId('walk').click();
+  await page.waitForFunction(() => window.__trek().trek.phase === 'pick' || !!window.__trek().replay);
+  if (await trek(page, (w) => !!w.replay)) { await page.getByTestId('skip').click(); await replayDone(page); await page.getByTestId('walk').click(); }
+  await page.getByTestId('card-0').waitFor();
+  assert.equal(await page.locator('[data-testid^="card-"] .ct-badge canvas').count(), await page.locator('[data-testid^="card-"]').count());
+  assert.equal(await page.locator('[data-testid="reroll"] .ct-badge canvas').count(), 1);
+  await page.waitForTimeout(800);
+  await page.locator('.ct-cards').screenshot({ path: '.checks/trek/badges.png' });
+  await page.getByTestId('card-0').click();
+  assert.ok(await page.locator('.ct-tray .ct-badge canvas').count() >= 1);
+  await page.getByTestId('menu').click(); await page.getByTestId('journal').click(); await screen(page, 'journal');
+  assert.equal(await page.locator('[data-testid^="journal-skill-"] .ct-badge canvas, [data-testid^="journal-evo-"] .ct-badge canvas').count(), 22);
+});
+
 for (const view of [{ width: 390, height: 844 }, { width: 1280, height: 860 }]) {
   await check(`fit at ${view.width}×${view.height}: no scroll; mute persists`, async (page) => {
     await fresh(page); await begin(page);

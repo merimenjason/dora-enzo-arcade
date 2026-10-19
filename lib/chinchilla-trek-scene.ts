@@ -4,6 +4,7 @@
 import { drawChinchilla } from './chinchilla-art';
 import { arc, backOut, smooth, REST, type Pose } from './hay-bale-motion';
 import { FOES, SCENES, SKILLS, EVOS, type ChapterNo, type FoeId, type FightEvent, type FightOut, type Hero, type Trek } from './chinchilla-trek-game';
+import { paintTrekBackdrop, paintTrekDizzy, trekArtReady, paintTrekExtra, paintTrekFoe, paintTrekLandmark, paintTrekPiece, paintTrekTitle, paintTrekWheel } from './chinchilla-trek-paint';
 
 export const STAGE = { w: 480, h: 320 };
 const GROUND = 258, HERO_X = 150, FOE_X = 336;
@@ -55,8 +56,17 @@ function prop(c: CanvasRenderingContext2D, kind: Look['prop'], x: number, y: num
   c.restore();
 }
 
-/** The chapter's sky, hills, ground and path, scrolled `dist` pixels along. */
+/** The chapter's painted backdrop scrolled `dist` pixels along, or its code-drawn sky, hills and path until it loads. */
 export function drawPath(c: CanvasRenderingContext2D, chapter: ChapterNo, dist: number, now: number, calm: boolean) {
+  if (!paintTrekBackdrop(c, chapter, dist, STAGE.w, STAGE.h)) codePath(c, chapter, dist);
+  if (chapter === 5 && !calm) {
+    c.fillStyle = '#fff59a';
+    for (let i = 0; i < 7; i++) { const t = now / 1000 + i * 1.7; c.globalAlpha = 0.4 + 0.4 * Math.sin(t * 2); c.beginPath(); c.arc(wrap(i * 71 + Math.sin(t) * 10 - dist * 0.5, STAGE.w), 150 + Math.sin(t * 0.7 + i) * 30, 2, 0, Math.PI * 2); c.fill(); }
+    c.globalAlpha = 1;
+  }
+}
+
+function codePath(c: CanvasRenderingContext2D, chapter: ChapterNo, dist: number) {
   const L = LOOKS[chapter], g = c.createLinearGradient(0, 0, 0, GROUND);
   g.addColorStop(0, L.sky[0]); g.addColorStop(1, L.sky[1]);
   c.fillStyle = g; c.fillRect(0, 0, STAGE.w, STAGE.h);
@@ -80,11 +90,6 @@ export function drawPath(c: CanvasRenderingContext2D, chapter: ChapterNo, dist: 
   c.fillStyle = '#00000014'; for (let i = 0; i < 12; i++) { const x = wrap(i * 46 - dist, STAGE.w + 40) - 20; c.beginPath(); c.ellipse(x, 290 + (i % 3) * 6, 5, 2.4, 0, 0, Math.PI * 2); c.fill(); }
   for (let i = 0; i < 6; i++) { const x = wrap(i * 96 + 30 - dist, STAGE.w + 80) - 40; prop(c, L.prop, x, 236 - (i % 2) * 4, 0.9 + (i % 3) * 0.12); }
   for (let i = 0; i < 4; i++) { const x = wrap(i * 140 + 80 - dist * 1.3, STAGE.w + 120) - 60; prop(c, L.prop, x, 318, 1.3); }
-  if (chapter === 5 && !calm) {
-    c.fillStyle = '#fff59a';
-    for (let i = 0; i < 7; i++) { const t = now / 1000 + i * 1.7; c.globalAlpha = 0.4 + 0.4 * Math.sin(t * 2); c.beginPath(); c.arc(wrap(i * 71 + Math.sin(t) * 10 - dist * 0.5, STAGE.w), 150 + Math.sin(t * 0.7 + i) * 30, 2, 0, Math.PI * 2); c.fill(); }
-    c.globalAlpha = 1;
-  }
 }
 
 /** The walker's step and the scenery's distance: a whole day is 480 px of path. */
@@ -95,6 +100,7 @@ function landmark(c: CanvasRenderingContext2D, t: Trek, x: number) {
   const e = t.today;
   if (!e || e.k === 'fight' || t.phase === 'walk') return;
   c.save(); c.translate(x, GROUND);
+  if (paintedLandmark(c, t)) { c.restore(); return; }
   if (e.k === 'story') {
     c.fillStyle = '#8a5a34'; c.fillRect(-3, -54, 6, 54);
     c.fillStyle = '#c99a5a'; c.strokeStyle = '#6a4224'; c.lineWidth = 2; c.beginPath(); c.roundRect(-26, -64, 52, 22, 4); c.fill(); c.stroke();
@@ -121,6 +127,31 @@ function landmark(c: CanvasRenderingContext2D, t: Trek, x: number) {
     c.fillStyle = '#a0c8e8'; c.beginPath(); c.ellipse(0, -6, 30, 8, 0, 0, Math.PI * 2); c.fill();
   }
   c.restore();
+}
+
+/** A box `h` tall standing on (x, y), wide enough for any of the paintings. */
+const stand = (x: number, y: number, h: number) => ({ x: x - h, y: y - h, w: h * 2, h });
+
+/**
+ * The day's landmark from landmarks.png and foes-3.png, drawn about (0, GROUND) like the code drawings. False, with
+ * nothing drawn, until every picture it needs has loaded, so a half-painted scene never mixes with the code one.
+ */
+function paintedLandmark(c: CanvasRenderingContext2D, t: Trek): boolean {
+  const e = t.today!;
+  if (!trekArtReady(['landmarks', 'foes-3'])) return false;
+  if (e.k === 'story') {
+    const pip = e.scene === 'pip' ? 'pip' : e.scene === 'piphelp' ? 'pipBag' : null;
+    if (pip) return paintTrekLandmark(c, 'story', stand(-30, 0, 70)) && paintTrekExtra(c, pip, stand(26, 0, 46));
+    return paintTrekLandmark(c, 'story', stand(0, 0, 72));
+  }
+  if (e.k === 'wheel') return paintTrekWheel(c, stand(0, 0, 96), e.prize);
+  if (e.k === 'pedlar') return paintTrekLandmark(c, 'cart', stand(14, 0, 82)) && paintTrekExtra(c, 'pony', stand(-56, 0, 54));
+  if (e.k === 'crossroads') return paintTrekLandmark(c, 'crossroads', stand(0, 0, 76)) && paintTrekExtra(c, 'owl', stand(-62, 0, 62)) && paintTrekExtra(c, 'fox', stand(62, 0, 62));
+  if (e.k === 'visit') return paintTrekExtra(c, e.who, stand(0, 0, 64));
+  if (e.k === 'cache') return paintTrekLandmark(c, 'chest', stand(0, 0, 34));
+  if (e.k === 'find') return paintTrekLandmark(c, 'chestOpen', stand(0, 0, 40));
+  if (e.k === 'rest') return paintTrekLandmark(c, 'rest', stand(0, 4, 28));
+  return false;
 }
 
 /** The Owl and the Fox, the trek's two visitors: friendly, from the same round body as the foes. */
@@ -212,9 +243,11 @@ export function drawFoe(c: CanvasRenderingContext2D, id: FoeId, box: Box, facing
   c.save(); c.globalAlpha *= pose.alpha;
   c.translate(x + pose.dx, y + pose.dy); c.rotate(pose.rot); c.scale(pose.sx, pose.sy);
   c.fillStyle = '#00000022'; c.beginPath(); c.ellipse(0, 0, r * 0.9, r * 0.18, 0, 0, Math.PI * 2); c.fill();
-  critter(c, LOOK[id], 0, 0, r, facing);
+  if (!paintTrekFoe(c, id, stand(0, 0, foeArtHeight(id, box)), facing)) critter(c, LOOK[id], 0, 0, r, facing);
   c.restore();
 }
+/** How tall a foe's painting stands in `box`: about 70, 80 and 95 px in the fight's 120 px box, by rank. */
+const foeArtHeight = (id: FoeId, box: Box) => Math.min(box.w, box.h) * (FOES[id].rank === 'boss' ? 0.79 : FOES[id].rank === 'elite' ? 0.67 : 0.58);
 
 // ── Walking ────────────────────────────────────────────────────────────────
 
@@ -235,7 +268,15 @@ const shadow = (c: CanvasRenderingContext2D, x: number, y: number, w: number) =>
 
 /** The title: both chinchillas on the meadow path. */
 export function drawTitle(c: CanvasRenderingContext2D) {
-  drawPath(c, 1, 120, 0, true);
+  if (paintTrekTitle(c, { x: 0, y: 0, w: STAGE.w, h: STAGE.h })) {
+    // the painting is a vignette on a clear frame: a soft sky goes in behind it
+    const g = c.createLinearGradient(0, 0, 0, STAGE.h);
+    g.addColorStop(0, '#bfe4ff'); g.addColorStop(0.55, '#f4f8ee'); g.addColorStop(1, '#fff6e4');
+    c.save(); c.globalCompositeOperation = 'destination-over'; c.fillStyle = g; c.fillRect(0, 0, STAGE.w, STAGE.h); c.restore();
+    return;
+  }
+  // the code title, which never asks for a chapter backdrop it would not show
+  codePath(c, 1, 120);
   shadow(c, 190, GROUND, 26); shadow(c, 286, GROUND, 26);
   drawChinchilla(c, 'dora', 190, GROUND, { face: 1, h: 66, time: 0.4 });
   drawChinchilla(c, 'enzo', 286, GROUND, { face: -1, h: 66, time: 1.1 });
@@ -278,7 +319,7 @@ export function replayState(r: Replay, n: number) {
 function bar(c: CanvasRenderingContext2D, x: number, y: number, w: number, v: number, max: number, fill: string) {
   c.fillStyle = '#00000055'; c.beginPath(); c.roundRect(x - w / 2 - 2, y - 2, w + 4, 10, 5); c.fill();
   c.fillStyle = fill; c.beginPath(); c.roundRect(x - w / 2, y, Math.max(0, Math.min(w, (w * v) / max)), 6, 3); c.fill();
-  c.fillStyle = '#fff'; c.font = 'bold 11px ui-rounded, system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(`${v}`, x, y - 4);
+  words(c, `${v}`, x, y - 4, 11, '#fff');
 }
 function words(c: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, fill: string, alpha = 1) {
   c.save(); c.globalAlpha *= Math.max(0, alpha); c.font = `900 ${size}px ui-rounded, 'Trebuchet MS', system-ui, sans-serif`; c.textAlign = 'center';
@@ -321,11 +362,17 @@ export function drawFight(c: CanvasRenderingContext2D, r: Replay, t: Trek, now: 
   if (s.shield > 0) { c.save(); c.globalAlpha = 0.35; c.fillStyle = '#9fe0ff'; c.strokeStyle = '#ffffff'; c.lineWidth = 2; c.beginPath(); c.ellipse(HERO_X + hero.dx, GROUND - 32, 44, 40, 0, 0, Math.PI * 2); c.fill(); c.globalAlpha = 0.8; c.stroke(); c.restore(); }
   if (s.heroCold) flake(c, HERO_X + 26, GROUND - 70);
   drawFoe(c, r.foe, { x: foeX - 60, y: GROUND - 120, w: 120, h: 120 }, -1, foe);
+  // a beaten foe is just dizzy: the painted stars ride above it as it tumbles away
+  if (result === 'win' && endP > 0 && foe.alpha > 0) {
+    c.save(); c.globalAlpha *= foe.alpha;
+    paintTrekDizzy(c, { x: foeX + foe.dx - 26, y: GROUND + foe.dy - foeArtHeight(r.foe, { x: 0, y: 0, w: 120, h: 120 }) - 24, w: 52, h: 34 });
+    c.restore();
+  }
   if (s.foeCold && endP === 0) flake(c, foeX - 24, GROUND - 92);
   if (s.burn && endP === 0) flame(c, foeX + 30, GROUND - 70);
   // bars
   bar(c, HERO_X, 92, 84, s.hp, r.max, s.hp < r.max * 0.3 ? '#ff6a5a' : '#6ad06a');
-  if (s.shield > 0) { c.fillStyle = '#9fe0ff'; c.font = 'bold 11px ui-rounded, system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(`🛡 ${s.shield}`, HERO_X, 116); }
+  if (s.shield > 0) words(c, `🛡 ${s.shield}`, HERO_X, 118, 11, '#9fe0ff');
   bar(c, FOE_X, 92, 84, s.foeHp, r.out.foeHp, '#ffb347');
   words(c, FOES[r.foe].name, FOE_X, 64, 14, '#fff6e4');
   // what just happened
@@ -353,6 +400,7 @@ export function drawFight(c: CanvasRenderingContext2D, r: Replay, t: Trek, now: 
 /** One gear piece: a little hat, scarf, charm or boot in its rarity's colour. */
 export const RARITY_COLOUR = ['#d8d0c0', '#8fd6a0', '#7ab8ff', '#c49aff', '#ffcf4a'] as const;
 export function drawPiece(c: CanvasRenderingContext2D, slot: 'hat' | 'scarf' | 'charm' | 'boots', r: number, x: number, y: number, s: number) {
+  if (paintTrekPiece(c, slot, r, { x: x - 20 * s, y: y - 18 * s, w: 40 * s, h: 36 * s })) return;
   const col = RARITY_COLOUR[r];
   c.save(); c.translate(x, y); c.scale(s, s); c.fillStyle = col; c.strokeStyle = '#3a2614'; c.lineWidth = 2;
   if (slot === 'hat') { c.beginPath(); c.ellipse(0, 6, 18, 5, 0, 0, Math.PI * 2); c.fill(); c.stroke(); c.beginPath(); c.moveTo(-11, 5); c.quadraticCurveTo(0, -22, 11, 5); c.fill(); c.stroke(); }

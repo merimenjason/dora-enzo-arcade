@@ -1,12 +1,13 @@
 /* oxlint-disable react/react-compiler -- The trek is a mutable engine object changed by the buttons and drawn by the loop, like the other arcade games. */
 /* oxlint-disable next/no-html-link-for-pages -- Match the arcade's hard navigation back to the menu. */
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Trek, CHAPTERS, EVOS, EVO_IDS, FOES, FOE_IDS, GEAR_SLOTS, GEAR_STAT, RARITY, SCENES, SKILLS, SKILL_IDS, WHEEL, campStats, freshProfile, loadProfile, merge, price, record, skillLevel, train, trainCost, wear, xpNeed,
   type Card, type ChapterNo, type Chest, type DayEvent, type EvoId, type GearSlot, type Hero, type Profile, type Rarity, type SkillId,
 } from '../../lib/chinchilla-trek-game';
 import { STAGE, drawFight, drawFoe, drawPiece, drawTitle, drawWalk, replayState, stepReplay, type Replay } from '../../lib/chinchilla-trek-scene';
+import { paintTrekBadge, requestTrekArt, retryTrekArt, subscribeTrekArt, trekArtServerVersion, trekArtStatus, trekArtVersion, type TrekAsset, type TrekBadge } from '../../lib/chinchilla-trek-paint';
 import { sound } from './sound';
 import './trek.css';
 
@@ -25,11 +26,29 @@ const store = {
   drop: (k: string) => { try { localStorage.removeItem(k); } catch { /* nothing to remove */ } },
 };
 
-/** A canvas drawn once. */
+/** Bumps whenever a painting arrives, fails or comes back on Retry. */
+const useArtVersion = () => useSyncExternalStore(subscribeTrekArt, trekArtVersion, trekArtServerVersion);
+/** The sheets a trek in this chapter shows: its backdrop, its foes, the landmarks and visitors, and the skill badges. */
+const trekSheets = (ch: ChapterNo): TrekAsset[] => [`bg-${ch}`, ch <= 2 ? 'foes-1' : ch <= 4 ? 'foes-2' : 'foes-3', 'foes-3', 'landmarks', 'skills'];
+
+/** A canvas drawn once, and again when a painting it may use arrives. */
 function Still({ draw, w = 480, h = 320, className }: { draw: (c: CanvasRenderingContext2D) => void; w?: number; h?: number; className?: string }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => { const c = ref.current?.getContext('2d'); if (c) { c.setTransform(2, 0, 0, 2, 0, 0); c.clearRect(0, 0, w, h); draw(c); } }, [draw, w, h]);
+  const ref = useRef<HTMLCanvasElement>(null), art = useArtVersion();
+  useEffect(() => { const c = ref.current?.getContext('2d'); if (c) { c.setTransform(2, 0, 0, 2, 0, 0); c.clearRect(0, 0, w, h); draw(c); } }, [draw, w, h, art]);
   return <canvas ref={ref} width={w * 2} height={h * 2} className={className} aria-hidden="true" />;
+}
+
+/** A skill, evolution, Rest or Reroll badge; the name's initials on a disc until skills.png has loaded. */
+function Badge({ id, size, label }: { id: TrekBadge; size: number; label: string }) {
+  const draw = useCallback((c: CanvasRenderingContext2D) => {
+    if (paintTrekBadge(c, id, { x: 0, y: 0, w: size, h: size })) return;
+    const evo = id in EVOS;
+    c.fillStyle = evo ? '#ffd34d' : '#fff6e4'; c.strokeStyle = '#6a4224'; c.lineWidth = 1.5;
+    c.beginPath(); c.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2); c.fill(); c.stroke();
+    c.fillStyle = '#3a2614'; c.font = `bold ${Math.round(size * 0.4)}px ui-rounded, system-ui, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(label.split(' ').map((w) => w[0]).join(''), size / 2, size / 2 + 1);
+  }, [id, size, label]);
+  return <span className="ct-badge" style={{ width: size, height: size }}><Still w={size} h={size} draw={draw} /></span>;
 }
 
 const cardName = (c: Card) => (c.k === 'rest' ? 'Rest' : c.k === 'evo' ? EVOS[c.id].name : SKILLS[c.id].name);
@@ -57,6 +76,8 @@ export default function ChinchillaTrek() {
   const calmRef = useRef(false);
   profileRef.current = profile; screenRef.current = screen;
   const refresh = useCallback(() => setTick((n) => n + 1), []);
+  useArtVersion();
+  const artFailed = trekArtStatus().failed.length > 0;
 
   const saveProfile = useCallback((p: Profile) => { profileRef.current = p; setProfile(p); store.set(PROFILE_KEY, JSON.stringify(p)); }, []);
   /** Saves the trek after every change; a finished one is banked into the profile and its save removed. */
@@ -151,6 +172,9 @@ export default function ChinchillaTrek() {
     });
   });
 
+  // Ask for this trek's paintings as it opens; the stage draws its code pictures until each one arrives.
+  useEffect(() => { if (screen === 'trek' && trekRef.current) requestTrekArt(trekSheets(trekRef.current.chapter)); }, [screen]);
+
   // The canvas fills the largest 3:2 box the panel leaves, at the screen's pixel density.
   useEffect(() => {
     if (screen !== 'trek') return;
@@ -241,6 +265,7 @@ export default function ChinchillaTrek() {
       <header className="ct-top">
         <a className="ct-back" href="/">← Arcade</a>
         <h1>Chinchilla Trek</h1>
+        {artFailed && <button data-testid="retry-art" onClick={retryTrekArt}>Retry artwork</button>}
         <button data-testid="mute" aria-pressed={muted} onClick={toggleMute}>{muted ? 'Sound off' : 'Sound on'}</button>
         {screen === 'trek' && <button data-testid="menu" onClick={() => { persist(); go('title'); }}>Menu</button>}
       </header>
@@ -322,7 +347,7 @@ export default function ChinchillaTrek() {
           <div className="ct-grid">
             {SKILL_IDS.map((id) => (
               <div key={id} className="ct-entry" data-testid={`journal-skill-${id}`} data-seen={profile.seen.skills.includes(id)}>
-                <b>{SKILLS[id].name}</b><span className="ct-small">{SKILLS[id].text.join(' / ')}</span>
+                <b><Badge id={id} size={26} label={SKILLS[id].name} />{SKILLS[id].name}</b><span className="ct-small">{SKILLS[id].text.join(' / ')}</span>
               </div>
             ))}
           </div>
@@ -330,7 +355,7 @@ export default function ChinchillaTrek() {
           <div className="ct-grid">
             {EVO_IDS.map((id) => (
               <div key={id} className="ct-entry" data-testid={`journal-evo-${id}`} data-seen={profile.seen.skills.includes(id)}>
-                <b>{EVOS[id].name}</b><span className="ct-small">{SKILLS[EVOS[id].from[0]].name} + {SKILLS[EVOS[id].from[1]].name}: {EVOS[id].text}</span>
+                <b><Badge id={id} size={26} label={EVOS[id].name} />{EVOS[id].name}</b><span className="ct-small">{SKILLS[EVOS[id].from[0]].name} + {SKILLS[EVOS[id].from[1]].name}: {EVOS[id].text}</span>
               </div>
             ))}
           </div>
@@ -361,6 +386,7 @@ export default function ChinchillaTrek() {
                   <div className="ct-cardrow">
                     {t.offer.map((c, i) => (
                       <button key={i} className={`ct-card ${c.k === 'evo' ? 'ct-evo' : ''}`} data-testid={`card-${i}`} onClick={() => pick(i)}>
+                        <Badge id={c.k === 'rest' ? 'rest' : c.id} size={40} label={cardName(c)} />
                         <b>{cardName(c)}</b>
                         {c.k === 'skill' && <span className="ct-pips">{[1, 2, 3].map((n) => <i key={n} className={n <= c.level ? 'on' : ''} />)}</span>}
                         {c.k === 'evo' && <span className="ct-pips">evolution</span>}
@@ -368,7 +394,7 @@ export default function ChinchillaTrek() {
                       </button>
                     ))}
                   </div>
-                  <button data-testid="reroll" disabled={t.rerolled} onClick={reroll}>Reroll · once a trek</button>
+                  <button data-testid="reroll" className="ct-chip" disabled={t.rerolled} onClick={reroll}><Badge id="reroll" size={22} label="Reroll" />Reroll · once a trek</button>
                 </div>
               )}
             </div>
@@ -380,7 +406,7 @@ export default function ChinchillaTrek() {
               const text = evo ? `${EVOS[id as EvoId].name}: ${EVOS[id as EvoId].text}` : `${SKILLS[id as SkillId].name} ${lv}: ${SKILLS[id as SkillId].text[lv - 1]}`;
               return (
                 <button key={id} data-testid={`tray-${id}`} className={`ct-chip ${evo ? 'ct-evo' : ''}`} onClick={() => setTip(tip === text ? null : text)}>
-                  {(evo ? EVOS[id as EvoId].name : SKILLS[id as SkillId].name).split(' ').map((w) => w[0]).join('')}
+                  <Badge id={id} size={22} label={evo ? EVOS[id as EvoId].name : SKILLS[id as SkillId].name} />
                   {!evo && <span className="ct-pips">{[1, 2, 3].map((n) => <i key={n} className={n <= lv ? 'on' : ''} />)}</span>}
                 </button>
               );

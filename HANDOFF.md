@@ -6,13 +6,14 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 19-10-2026)
 
-**Where things stand.** The arcade has 37 games at https://chinchillas.jason.engineering once Chinchilla Trek (`/trek`, game 37, branch `feat/chinchilla-trek`) merges; it was built overnight on 18–19-10-2026 from the design and plan merged in PR #75, and its pull request was left open for the user's review. See **Chinchilla Trek** below. PR #69 painted Hay Bale Brawl: every critter, summon, snack, both coaches, the bale, the barn shop, the meadow stage and the title now come from the seven images delivered in PR #68 (`f4f1ac5`), with the code drawings kept as loading and failure fallbacks. PR #70 steadied two of its browser checks that failed only against the live site. PR #72 gave it movement and acorn price tags on every shop offer. PR #77 painted its effects, acorns and status charms from `fx.png` (delivered in PR #76). Check GitHub for open PRs and the latest deploy rather than trusting this line as a live status. Keep the user's local `.claude/` graft files out of commits (see **Agent configuration**).
+**Where things stand.** The arcade has 37 games at https://chinchillas.jason.engineering. Chinchilla Trek (`/trek`, game 37) was built overnight on 18–19-10-2026 from the design and plan merged in PR #75, merged in PR #78, and painted from twelve delivered images on 19-10-2026. See **Chinchilla Trek** below. PR #69 painted Hay Bale Brawl: every critter, summon, snack, both coaches, the bale, the barn shop, the meadow stage and the title now come from the seven images delivered in PR #68 (`f4f1ac5`), with the code drawings kept as loading and failure fallbacks. PR #70 steadied two of its browser checks that failed only against the live site. PR #72 gave it movement and acorn price tags on every shop offer. PR #77 painted its effects, acorns and status charms from `fx.png` (delivered in PR #76). Check GitHub for open PRs and the latest deploy rather than trusting this line as a live status. Keep the user's local `.claude/` graft files out of commits (see **Agent configuration**).
 
 **What happened in the last few sessions (13–18-10-2026), newest first:**
 
 | PR | What | Notes |
 | --- | --- | --- |
-| #78 (open) | **Chinchilla Trek** (`/trek`), game 37 | Roguelite trek in the spirit of Capybara Go!: 30 days, 18 skills and 4 evolutions, 5 chapters of 30 code-drawn foes, camp with training and merging gear. Built inline from the plan (Tasks 1–7) with one fresh whole-branch review; bot-tuned. Not played by hand. |
+| — | **Chinchilla Trek painted** | The twelve images delivered on `art/chinchilla-trek-painted-assets` (with the ChatGPT prompts doc) wired in: foes, visitors, Pip, landmarks, mirrored chapter paths, badges, gear and title, with code fallbacks and Retry. `tests/chinchilla-trek-art.mjs` and four browser checks. |
+| #78 | **Chinchilla Trek** (`/trek`), game 37 | Roguelite trek in the spirit of Capybara Go!: 30 days, 18 skills and 4 evolutions, 5 chapters of 30 foes, camp with training and merging gear. Built inline from the plan (Tasks 1–7) with one fresh whole-branch review; bot-tuned. Not played by hand. |
 | #75 | Chinchilla Trek design and plan | `docs/superpowers/specs/18-10-2026-chinchilla-trek-design.md` and `docs/superpowers/plans/18-10-2026-chinchilla-trek-plan.md`. |
 | #77 | **Hay Bale Brawl's painted effects** | `fx.png` wired in: twelve still cells (bonk, dust, poof, hay, gold and green twinkles, frost, crumbs, acorn, Shell, Mint, Chilli) replace the code effects, acorns and status dots, with the drawings kept as fallbacks. Six new browser checks (23 in all). |
 | #76 | Effects sheet delivered | `public/art/brawl/fx.png` with its crops, provenance and an integration handoff. |
@@ -73,7 +74,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 **What to do next, in the order I'd do it:**
 
-1. **Chinchilla Trek, from review and play:** review and merge its PR, then play a few treks by hand: is chapter 1 fair for a first trek (the bot's policy clears it 51%), do the fights read at ×1 and ×2, is the event card readable on a phone, does the campaign pace (bot median 25 treks to a chapter 5 clear, chapter 5 alone about 14) feel like a grind. The twelve paintings are now prepared in `public/art/trek/`; follow `docs/chinchilla-trek-art.md` for the pending integration, measured crops and required mirrored background tiling.
+1. **Chinchilla Trek, from play:** play a few treks by hand: is chapter 1 fair for a first trek (the bot's policy clears it 51%), do the fights read at ×1 and ×2, is the event card readable on a phone, does the campaign pace (bot median 25 treks to a chapter 5 clear, chapter 5 alone about 14) feel like a grind. Look at the paintings in play too: the hero is still the code-drawn chinchilla, a little larger than most painted foes.
 2. **Play-test with real people.** Acorn Hand (one run on green on the new curve, one on bronze: the curve and stakes were tuned against the bot only, which wins 28% on green), Whisker Saga (chapter 1 is samey and easy; trials punish idle heals and shields), Midnight Kitchen (never played by hand, no bot).
 3. **Listen to the sound** in every game from Moonpond on. Nobody has heard any of it.
 4. **Acorn Hand:** retune the stakes from that play if they feel off (`STAKES`, `SILVER_TARGETS` and the bot gate in `tests/acorn-hand-bot.mjs`); listen to the flip, whoosh, tear and chirp sounds.
@@ -179,8 +180,8 @@ Game 37, `/trek`, a roguelite trek in the spirit of Capybara Go!. Rules, every n
 - **Code:** `lib/chinchilla-trek-data.ts` (skills, evolutions, foes, chapters, the 22 scenes, gear, tuning), `lib/chinchilla-trek-game.ts` (`fight` returns a whole fight's events at once; `Trek` is the thirty-day state machine; the profile, camp, chests and the bot's policy `decide`/`playTrek`/`campStep`), `lib/chinchilla-trek-scene.ts` (Canvas 2D: the chapter paths, landmarks, 30 foes from one round body, the fight replay), `app/trek/` (page, CSS, sound). Test hook `window.__trek()` (`start`, `set`, `setProfile`); `main[data-ready]` and `main[data-screen]`.
 - **Saves:** `chinchilla-trek-run-v1` (the whole trek after every action, the fight's events left out, so a reload mid-fight continues without replaying it), `chinchilla-trek-v1` (profile with `ui: { fast, auto }`; a trek is banked once, by its seed, as soon as it ends), `chinchilla-trek-sound-v1`.
 - **Balance:** `npm run bot:trek` (in `npm test`, under a second): the policy clears chapter 1 in 51% of fresh treks against 13% at random; the median campaign to a chapter 5 clear takes 25 treks (longest 31); about 12 level-ups a trek; 5 of 15,275 fights stall. The tuning knobs, in order: `CHAPTER_SCALE`, `DAY_SCALE`, foe base stats, `xpNeed`, skill numbers; `SKILL_WEIGHT` and the chest odds are the policy and the meta pace.
-- **Checks:** `npm run test:trek` (engine), `npm run bot:trek`, `npm run test:e2e:trek` (13 browser checks, in `test:e2e`).
-- **Painted art prepared (19-10-2026):** all twelve PNGs in `public/art/trek/`, with 88 measured padded cutouts, source hashes and complete generation provenance in `docs/chinchilla-trek-crops.json` and `docs/chinchilla-trek-generation.json`. **Runtime integration is pending.** Follow [`docs/chinchilla-trek-art.md`](docs/chinchilla-trek-art.md): foes/guides/Pip face left, backgrounds require alternating mirrored world tiles (the prompt brief permits this), and the measured path bands contain the existing 258px foot baseline. Retain code fallbacks, Retry, static-canvas refresh and reduced motion.
+- **Checks:** `npm run test:trek` (engine and `tests/chinchilla-trek-art.mjs`), `npm run bot:trek`, `npm run test:e2e:trek` (18 browser checks, in `test:e2e`).
+- **Painted art (19-10-2026):** twelve PNGs in `public/art/trek/`, served as delivered; `lib/chinchilla-trek-crops.ts` (generated mapping) and `lib/chinchilla-trek-paint.ts` (loader and painters). Backdrops are alternating mirrored world tiles; foes, visitors and Pip face left; code drawings stand in while loading or after a failure, with **Retry artwork**. What was done and checked: **Integration** in [`docs/chinchilla-trek-art.md`](docs/chinchilla-trek-art.md). The acorn sprite is mapped but unused.
 - **Not done:** integrating the prepared paintings, play-testing by hand, listening to the sound.
 - **Rulings made while building** are in the PR description: among them, evolution lines replace a half's number where they overlap, a stalled boss fight ends the trek, and Legend gear comes from a small weight added from chapter 4.
 
@@ -276,13 +277,13 @@ Game 32, `/saga`, is merged on main (PR #33). It is a hero-squad adventure model
 
 ## Current state
 
-- **37 games** (36 on `main` until Chinchilla Trek merges), deployed at https://chinchillas.jason.engineering. The newest are listed below; `README.md` has all of them with guides.
+- **37 games**, deployed at https://chinchillas.jason.engineering. The newest are listed below; `README.md` has all of them with guides.
 - **Played by hand:** Acorn Hand (one full run won and a second to ante 3, both before vouchers, the new curve and stakes), Whisker Saga (chapter 1, the Thornback boss and Briar Relay, 15-10-2026). Every other recent game, Whisker Ware and Hay Bale Brawl included, has been balanced against its bot, or not at all (Midnight Kitchen), and nobody has listened to any game's sound.
 - **Left uncommitted in the working tree, on purpose:** `.claude/helpers/graft-hooks.cjs`, `.claude/helpers/graft-statusline.cjs` and `.claude/skills/graft/SKILL.md`. They belong to the user; don't stage them.
 
 ## What shipped recently
 
-The ten newest cabinets; all but Chinchilla Trek are merged to `main` and deployed.
+The ten newest cabinets, all merged to `main` and deployed.
 
 | # | Game | Route | Added | Pull requests |
 | --- | --- | --- | --- | --- |
@@ -295,7 +296,7 @@ The ten newest cabinets; all but Chinchilla Trek are merged to `main` and deploy
 | 34 | Acorn Hand | `/acorn-hand` | 15-10-2026 | #42, #44–#59 |
 | 35 | Whisker Ware | `/whisker-ware` | 18-10-2026 | #60–#62 |
 | 36 | Hay Bale Brawl | `/brawl` | 18-10-2026 | #64–#72 |
-| 37 | Chinchilla Trek | `/trek` | 19-10-2026 | #75 (design and plan), #78 |
+| 37 | Chinchilla Trek | `/trek` | 19-10-2026 | #75 (design and plan), #78, painted art |
 
 Each has its own section near the top of this file. The older games' notes (Clash, Hay Maze, Chinchillas vs Zombies, Scribble, Bounce / Burrow, Burrow Tactics, Burrow Barrage, Summit Shuffle, Poof Panic) follow under **Where the code lives**.
 
