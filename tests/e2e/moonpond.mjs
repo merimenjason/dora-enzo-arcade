@@ -28,7 +28,7 @@ const stored = (page) => page.evaluate(() => ({ profile: JSON.parse(localStorage
 
 await check('the arcade lists Moonpond as its thirty-first game', async (page) => {
   await page.goto(base);
-  assert.equal(await page.locator('.arcade-card').count(), 37);
+  assert.equal(await page.locator('.arcade-card').count(), 38);
   await page.locator('.arcade-card[href="/moonpond"]').click(); await page.waitForURL('**/moonpond');
   await page.getByTestId('start').waitFor();
   assert.equal(await page.getByTestId('continue').count(), 0, 'nothing to continue on a first visit');

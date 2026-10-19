@@ -4,6 +4,15 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 20-10-2026
 
+### Added
+
+- **Glimmer Cave**: the arcade's 38th game, a cave survival dive in the spirit of Deep Rock Galactic: Survivor.
+  - Take Dora or Enzo down five layers of a glowing cave, digging through rock while swarms of soot sprites, mites and beetles close in.
+  - Twelve self-aiming weapons with overclocks, level-up cards with rarity, and a job on every layer.
+  - A drop pod to reach in 45 s, and the grumpy Rock Wyrm on layer 5.
+  - Gold from each dive buys camp upgrades and unlocks four more weapons and four hazard levels.
+  - Fully painted, with code drawings while the art loads, and saved at the start of every layer.
+
 ### Documentation
 
 - **Glimmer Cave (in progress)**: added the Rock Wyrm's four separate head frames, the last painted sheet the game needs.

@@ -37,14 +37,15 @@ const GAMES=[
  {href:'/whisker-ware',title:'Whisker Ware',tag:'NEW · MICROGAME FRENZY',blurb:'Twenty five-second games in a row, faster and faster: stuff Enzo\'s cheeks, sneak past the Owl and pop the Fox\'s balloons before the fuse burns out.',color:'#e0784a',art:'⚡'},
  {href:'/brawl',title:'Hay Bale Brawl',tag:'NEW · AUTO-BATTLER',blurb:'Buy a crew of woodland critters, line them up on the hay bale and watch them brawl: merge copies, feed them snacks, and win ten fights before you lose five hearts.',color:'#d9a441',art:'🌾'},
  {href:'/trek',title:'Chinchilla Trek',tag:'NEW · ROGUELITE TREK',blurb:'Walk Dora or Enzo through thirty days of meadow, wood and mountain: pick a skill at every level-up, let the scraps play out, bargain with the Owl and the Fox, and bring home gear to go further next time.',color:'#7bb661',art:'🧭'},
+ {href:'/cave',title:'Glimmer Cave',tag:'NEW · CAVE SURVIVAL',blurb:'Dive five layers under the Andes with Dora or Enzo: dig through rock, bonk swarms of soot sprites, mites and beetles while your weapons aim themselves, pick a card at every level-up, reach the drop pod in time, and bonk the grumpy Rock Wyrm.',color:'#8a6ad8',art:'💎'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">THIRTY-SEVEN ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Thirty-seven ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, thirty-seven cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">THIRTY-EIGHT ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Thirty-eight ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, thirty-eight cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <nav className="arcade-grid" aria-label="Choose a game">
    {GAMES.map((game,i)=><a key={game.href} href={game.href} className="arcade-card" style={{'--game-color':game.color} as React.CSSProperties}>
