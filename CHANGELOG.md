@@ -8,6 +8,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Chinchilla Trek**: the arcade's 37th game, a roguelite trek in the spirit of Capybara Go!. Dora or Enzo walks thirty days through one of five chapters: pick a skill at every level-up, watch the scraps play out, bargain with the Owl and the Fox at the crossroads, and face the chapter's boss on day 30. Every trek, won or lost, brings home acorns for training and gear that merges up in rarity.
 
+### Documentation
+
+- **Chinchilla Trek**: `docs/chinchilla-trek-image-prompts.md`, the ChatGPT prompts for painting its foes, guides, landmarks, chapter backdrops, skill icons, gear and title.
+
 ## 18-10-2026
 
 ### Changed
