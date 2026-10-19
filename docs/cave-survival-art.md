@@ -108,3 +108,9 @@ Why the environment is rejected. The rope overhang (25 px in v2) is harmless on 
 | `wyrm-v1.png` row 1, `wyrm-v2.png` | **Rejected** | The head cells show whole curled wyrms, not separate heads. The game chains a head, 8 body segments and a tail, so it needs the head alone. |
 
 The wyrm's heads get their own sheet, `wyrm-heads-v1.png` (prompt 7 in `cave-survival-animation-prompts-v2.md`). Its input `docs/cave-survival-layout-guides/wyrm-head-guide.png` chains the accepted tail and body pieces with a plain grey circle where the head goes, so the generator sees that only the head is missing.
+
+## Wyrm heads — Claude's review (20-10-2026)
+
+**`wyrm-heads-v2.png` is accepted.** Each cell is one mass: a big mossy stone head whose moss mane runs back over the skull, with no tail, no coils and no second wyrm. In the game the head leads a chain of `wyrm-v1.png`'s body segments, so a bulky back to the head simply overlaps the first segment; it never reads as a second body. v2 is preferred over v1, whose lower-left bulges look like coiled segments. The details Codex flagged are fine at game size: the half-lidded grumpy face reads as grumpy; the dizzy stars sitting 1 px from the cell top are separate pieces that the importer assigns by centre; and four stars instead of three is harmless.
+
+`wyrm-heads-v1.png` is kept, unused. Every sheet the game needs is now accepted.
