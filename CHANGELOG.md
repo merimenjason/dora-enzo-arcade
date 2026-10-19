@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Chinchilla Trek**: prepared twelve storybook paintings covering all thirty foes, guides, Pip, landmarks, five chapter paths, skill badges, gear and title. Includes 88 padded crop definitions, original-file provenance and integration notes, including mirrored background tiling; the game keeps its code drawings until integration.
 - **Chinchilla Trek**: the arcade's 37th game, a roguelite trek in the spirit of Capybara Go!. Dora or Enzo walks thirty days through one of five chapters: pick a skill at every level-up, watch the scraps play out, bargain with the Owl and the Fox at the crossroads, and face the chapter's boss on day 30. Every trek, won or lost, brings home acorns for training and gear that merges up in rarity.
 
 ### Documentation
