@@ -6,7 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Documentation
 
-- **Cave-survival concept**: generated Dora, cave-critter, effects and environment sheets with one retry each, per-frame checks and visual review notes. Dora, critters and effects retries pass the import check, with pose/style differences flagged; both environment versions fail on the lift rope's overhang, so floor and boss generation stops for review.
+- **Cave-survival concept**: generated Dora, cave-critter and effects sheets with passing retries, plus environment attempts and per-frame reviews. The revised environment v3 passes the import and camera/style checks with square-on gouache blocks and a coiled roof rope; earlier attempts remain for reference.
 - **Cave-survival concept**: added a painted gameplay style reference and transparent eight-subject sprite concept sheet for Dora and Enzo's proposed cave adventure, with generation prompts and review notes.
 - **Cave-survival concept**: saved the seven-image animation brief, Enzo's original animation draft and a v2 correction using the layout guide, with per-frame measurements and review notes; remaining sheets await approval of Enzo's alignment and poses.
 
