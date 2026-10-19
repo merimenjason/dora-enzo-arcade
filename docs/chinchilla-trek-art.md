@@ -111,7 +111,7 @@ The supplied prompt commit `3ea3bae197fb37656a8b392ccb2584ad05a63378` was preser
 
 ## Integration · 19-10-2026
 
-Done by Claude Code on `feat/trek-painted-art`, from this handoff, with the files served unchanged.
+Done by Claude Code in PR #79, from this handoff, with the files served unchanged.
 
 - **Mapping:** `lib/chinchilla-trek-crops.ts`, generated from the crop map and the files' SHA-256: `TREK_FOES` (all thirty foe ids), `TREK_EXTRAS` (Owl, Fox, Pip, Pip in the satchel, pony, dizzy stars, kept apart from the foes), `TREK_LANDMARKS` (all eight), `TREK_BADGES` (eighteen skills, four evolutions, Rest and Reroll), `TREK_GEAR` (slot × rarity), `TREK_PATH` (the surveyed bands) and `TREK_WHEEL`. The wheel's disc centre, rim radius, pointer outline and the eight prize slices' angles were measured by sampling the slice colours of `landmarks.png`.
 - **Loader:** `lib/chinchilla-trek-paint.ts`, on the Hay Bale Brawl pattern: safe to import on the server, one request per file, URLs `/art/trek/<file>.png?v=<first 12 hex of SHA-256>`, wrong-sized images count as failures, subscribers hear arrivals and failures, `retryTrekArt` asks again only for failed files and ignores late callbacks from the failed attempt. Painters return false until their file is ready, and the scene draws its code picture in that frame.
