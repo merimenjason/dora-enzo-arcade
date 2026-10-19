@@ -55,3 +55,11 @@ Next step: write a correction prompt for Enzo's grid, frame size, anchoring and 
 | `wyrm-4x2.png` | 384 × 512 cells | head 300 × 300; body 220 × 200; tail 220 × 180; boulders 300 × 260 | 80 px |
 
 The boxes are deliberately about 80% of the earlier targets: the Enzo draft overshot its 180 px box by about 10% and sat 11–17 px below its foot line. Small drift is corrected by the import script, which scales each frame and puts its feet on the line; wrong facing, missing frames and content touching a cell edge cannot be corrected.
+
+## Enzo animation v2 — generated for review
+
+`public/art/cave-survival/enzo-animation-v2.png` is the unmodified image-generator result using the draft, `hero-6x4.png` and `sprites-0.png` as the three image inputs from commit `90d9a79`. The original draft is preserved. The exact correction prompt is saved in `docs/cave-survival-enzo-generation-prompt-v2.md`.
+
+`docs/cave-survival-enzo-frame-review-v2.json` uses the same schema and alpha > 128 measurement as the first review, with the new target foot line at local y=208. The output is 1536 × 1024 RGBA with actual alpha-zero background pixels. No rescaling, alignment or alpha cleanup has been applied after generation.
+
+V2 is still marked `draft_requires_correction`: all 24 measured silhouettes exceed 160 px in width or height; five cells have visible content touching a cell edge (row 2 columns 4–5, row 4 columns 2–4). These measurements can include neighbouring-cell spill and all props/effects. Grounded walk silhouette bottoms range from local y=247–251 exclusive, versus target y=208; the airborne walk frame bottom is y=221. The airborne walk pose and released acorn are clearer, but row 4 column 2 still faces left, and row 2 column 6 still holds an acorn. Stars retain a connecting arc in the dizzy frame. Review the individual poses before generating the remaining six sheets.
