@@ -63,3 +63,16 @@ The boxes are deliberately about 80% of the earlier targets: the Enzo draft over
 `docs/cave-survival-enzo-frame-review-v2.json` uses the same schema and alpha > 128 measurement as the first review, with the new target foot line at local y=208. The output is 1536 × 1024 RGBA with actual alpha-zero background pixels. No rescaling, alignment or alpha cleanup has been applied after generation.
 
 V2 is still marked `draft_requires_correction`: all 24 measured silhouettes exceed 160 px in width or height; five cells have visible content touching a cell edge (row 2 columns 4–5, row 4 columns 2–4). These measurements can include neighbouring-cell spill and all props/effects. Grounded walk silhouette bottoms range from local y=247–251 exclusive, versus target y=208; the airborne walk frame bottom is y=221. The airborne walk pose and released acorn are clearer, but row 4 column 2 still faces left, and row 2 column 6 still holds an acorn. Stars retain a connecting arc in the dizzy frame. Review the individual poses before generating the remaining six sheets.
+
+## Enzo v2 — Claude's review: accepted as the source sheet (19-10-2026)
+
+Two rounds show the generator draws Enzo at about 180–190 px whatever box it is given, so the 160 px target is dropped. Size and foot line were always going to be normalised on import (each frame scaled to one height, each row's grounded frames set its foot line), so they are not reasons to regenerate. What import cannot fix is content that merges between cells, wrong facing in a held pose, or missing frames.
+
+Splitting v2 into connected pieces at alpha > 128 and assigning each piece to the cell holding its centre: **every piece belongs to exactly one cell; no two cells' content touches.** The five "edge" cells are three small overhangs and their neighbours: the released acorn (row 2, column 4) reaches 15 px into column 5, the spin's body (row 4, column 2) 2 px into column 3, and one spin acorn (row 4, column 3) 11 px into column 4. The importer crops by piece, not by cell, so these are harmless. Within each row the grounded feet agree within 4 px (row 1 y 247–251, row 2 236–238, row 3 224, row 4 202–207).
+
+The remaining pose notes are accepted:
+- Row 4, column 2 faces front-left: it is the middle of a spin, played at about 0.08 s a frame, and reads as turning.
+- Row 2, column 6 holds an acorn: Enzo always carries one in his idle design (as in `sprites-0.png`).
+- The dizzy stars' thin arc stays; it reads as the stars' path.
+
+Import will snap alpha ≥ 240 to 255 and clear colour under alpha 0 (alpha still peaks at 254). The remaining sheets use Enzo v2 as their size and layout reference instead of a pixel box, and must keep each cell's content apart from its neighbours'.
