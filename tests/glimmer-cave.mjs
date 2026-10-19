@@ -942,4 +942,144 @@ test('wyrm: bonked drops 100 crystals and 200 x hazard gold, and the pod lands; 
   assert.deepEqual(end.at(-1), { k: 'over', result: 'complete' });
 });
 
+// ---- camp and saving ----
+
+const ended = (d, result, layer = d.layer) => { d.layer = layer; d.result = result; d.phase = 'over'; return d; };
+
+test('camp: costs are base x level; buying spends gold and stops at max', () => {
+  assert.equal(G.upgradeCost('fluffier', 1), 40); assert.equal(G.upgradeCost('fluffier', 3), 120);
+  const p = G.freshProfile(); p.gold = 40 + 80 + 120;
+  assert.equal(G.buy(p, 'fluffier'), true); assert.equal(p.gold, 200); assert.equal(p.upgrades.fluffier, 1);
+  assert.equal(G.buy(p, 'fluffier'), true); assert.equal(G.buy(p, 'fluffier'), true);
+  assert.equal(p.gold, 0); assert.equal(G.buy(p, 'fluffier'), false); assert.equal(p.upgrades.fluffier, 3);
+  const q = G.freshProfile(); q.gold = 100000;
+  for (let i = 0; i < 10; i++) G.buy(q, 'rerolls');
+  assert.equal(q.upgrades.rerolls, 3); assert.equal(q.gold, 100000 - 80 - 160 - 240);
+});
+
+test('camp: upgrades change stats', () => {
+  const p = G.freshProfile(); p.upgrades.fluffier = 2; p.upgrades.sharper = 3;
+  const d = new G.Dive({ seed: 1, hero: 'enzo', hazard: 1, profile: p });
+  assert.equal(d.stats().maxFluff, 116); assert.equal(d.fluff, 116);
+  assert.ok(near(G.effective(d, d.weapons[0]).dmg * d.st.damage, 9.2));
+});
+
+test('camp: unlocks', () => {
+  const p = G.freshProfile();
+  assert.deepEqual(p.unlocked, { hazard: 1, weapons: [] });
+  let r = G.record(p, ended(new G.Dive({ seed: 1, hero: 'dora', hazard: 1, profile: p }), 'bonked', 2));
+  assert.deepEqual(r.unlocked, []); assert.equal(r.hazard, null);
+  r = G.record(p, ended(new G.Dive({ seed: 2, hero: 'dora', hazard: 1, profile: p }), 'bonked', 3));
+  assert.deepEqual(r.unlocked, ['bomb']); assert.equal(p.stats.bestLayer, 3);
+  r = G.record(p, ended(new G.Dive({ seed: 3, hero: 'dora', hazard: 1, profile: p }), 'complete', 5));
+  assert.deepEqual(r.unlocked, ['moths']); assert.equal(r.hazard, 2); assert.equal(p.unlocked.hazard, 2);
+  assert.equal(p.stats.finished, 1); assert.equal(p.stats.finishedHazard, 1);
+  r = G.record(p, ended(new G.Dive({ seed: 4, hero: 'dora', hazard: 2, profile: p }), 'complete', 5));
+  assert.deepEqual(r.unlocked, ['drum']); assert.equal(r.hazard, 3); assert.equal(p.stats.finishedHazard, 2);
+  const e = new G.Dive({ seed: 5, hero: 'dora', hazard: 3, profile: p }); e.bonked = 5000; ended(e, 'bonked', 1);
+  r = G.record(p, e); assert.deepEqual(r.unlocked, ['drill']); assert.equal(r.hazard, null);
+  assert.deepEqual(p.unlocked.weapons.sort(), ['bomb', 'drill', 'drum', 'moths']);
+  const f = new G.Dive({ seed: 6, hero: 'dora', hazard: 5, profile: p }); ended(f, 'complete', 5);
+  r = G.record(p, f); assert.equal(p.unlocked.hazard, 5); assert.equal(r.hazard, 5);
+  assert.equal(p.stats.dives, 6);
+});
+
+test('camp: banking', () => {
+  const p = G.freshProfile();
+  const d = new G.Dive({ seed: 1, hero: 'dora', hazard: 1, profile: p });
+  d.layer = 3; d.gold.banked = 40; d.gold.layer = 9; d.fluff = 0; d.overCheck();
+  assert.equal(d.result, 'bonked'); assert.equal(d.gold.banked, 44);
+  const r = G.record(p, d);
+  assert.equal(r.gold, 44); assert.equal(p.gold, 44); assert.equal(p.stats.dives, 1);
+});
+
+test('camp: loadProfile clamps and drops what it does not know', () => {
+  assert.deepEqual(G.loadProfile(null), G.freshProfile()); assert.deepEqual(G.loadProfile('x'), G.freshProfile());
+  assert.deepEqual(G.loadProfile({ v: 2 }), G.freshProfile());
+  const p = G.loadProfile({ v: 1, gold: -5.7, upgrades: { fluffier: 99, sharper: -2, nope: 3, quicker: 2.6 },
+    unlocked: { hazard: 9, weapons: ['bomb', 'bomb', 'sling', 'zzz', 'drill'] }, stats: { dives: -1, bestLayer: 4.2, bonked: 'a' } });
+  assert.equal(p.gold, 0); assert.equal(p.upgrades.fluffier, 5); assert.equal(p.upgrades.sharper, 0); assert.equal(p.upgrades.nope, undefined);
+  assert.equal(p.upgrades.quicker, 2); assert.equal(p.unlocked.hazard, 5); assert.deepEqual(p.unlocked.weapons, ['bomb', 'drill']);
+  assert.equal(p.stats.dives, 0); assert.equal(p.stats.bestLayer, 4); assert.equal(p.stats.bonked, 0);
+  assert.deepEqual(G.loadProfile(JSON.parse(JSON.stringify(p))), p);
+});
+
+test('saving: a save restarts its layer', () => {
+  const p = G.freshProfile();
+  const d = new G.Dive({ seed: 5, hero: 'enzo', hazard: 2, profile: p });
+  d.spawning = false;
+  d.phase = 'pod'; d.gold.banked = 30; d.xp = 7; d.fluff = 77; d.weapons[0].dmg = 0.3;
+  d.descend();
+  const save = JSON.parse(JSON.stringify(d.toSave()));
+  assert.equal(save.layer, 2); assert.equal(save.gold.layer, 0);
+  const jobAt = d.job.id, startX = d.hx;
+  d.hx += 3; d.gold.layer = 12; d.xp = 99; d.fluff = 10; d.t = 100; d.shots.push({ k: 'splash', who: 'hero', w: d.weapons[0], t: 0, x: 0, y: 0, r: 1 });
+  const e = G.Dive.fromSave(save, p);
+  assert.equal(e.layer, 2); assert.equal(e.t, 0); assert.equal(e.hx, startX); assert.equal(e.job.id, jobAt);
+  assert.equal(e.fluff, 77); assert.equal(e.xp, 7); assert.equal(e.gold.banked, 30); assert.equal(e.gold.layer, 0);
+  assert.equal(e.weapons[0].dmg, 0.3); assert.equal(e.shots.length, 0); assert.equal(e.hero, 'enzo'); assert.equal(e.hazard, 2);
+  assert.equal(e.phase, 'play');
+});
+
+test('saving: round-trips at a pod', () => {
+  const p = G.freshProfile(); p.upgrades.headstart = 1;
+  const d = new G.Dive({ seed: 9, hero: 'dora', hazard: 3, profile: p });
+  d.weapons[0].cd = 0.4; d.weapons[0].n = 3; d.passives.fluff = { n: 2, v: 20 }; d.bonked = 17;
+  d.picks = 0; d.phase = 'play';
+  d.phase = 'pod'; d.gold.banked = 55;
+  assert.equal(d.descend(), true);
+  const save = JSON.parse(JSON.stringify(d.toSave()));
+  const e = G.Dive.fromSave(save, p);
+  assert.deepEqual(e.toSave(), d.toSave());
+  assert.deepEqual(JSON.parse(JSON.stringify(e.toSave())), save);
+  assert.equal(save.weapons[0].cd, 0); assert.equal(save.weapons[0].n, 0);
+  assert.deepEqual(save.jobsUsed, d.jobsUsed); assert.equal(save.jobsUsed.length, 2);
+  assert.equal(save.bonked, 17); assert.deepEqual(save.passives, { fluff: { n: 2, v: 20 } });
+  assert.equal(G.Dive.fromSave(save, p).stats().maxFluff, e.stats().maxFluff);
+});
+
+test('saving: a fresh dive saves its start, with a head-start offer intact', () => {
+  const p = G.freshProfile(); p.upgrades.headstart = 2;
+  const d = new G.Dive({ seed: 3, hero: 'enzo', hazard: 1, profile: p });
+  const save = JSON.parse(JSON.stringify(d.toSave()));
+  assert.equal(save.layer, 1); assert.equal(save.level, 3); assert.equal(save.picks, 2);
+  const e = G.Dive.fromSave(save, p);
+  assert.equal(e.phase, 'pick'); assert.deepEqual(e.offer, d.offer); assert.deepEqual(e.toSave(), d.toSave());
+});
+
+test('saving: malformed saves load fresh', () => {
+  const p = G.freshProfile();
+  const good = new G.Dive({ seed: 1, hero: 'dora', hazard: 1, profile: p }).toSave();
+  const bad = (f) => { const s = JSON.parse(JSON.stringify(good)); f(s); return s; };
+  assert.ok(G.Dive.fromSave(JSON.parse(JSON.stringify(good)), p));
+  for (const raw of [null, 'x', 42, [], {}, { v: 2 }, { ...good, v: 2 },
+    bad(s => { s.weapons[0].id = 'zap'; }), bad(s => { s.layer = -1; }), bad(s => { s.layer = 6; }), bad(s => { s.layer = 1.5; }),
+    bad(s => { s.hero = 'bob'; }), bad(s => { s.hazard = 7; }), bad(s => { s.weapons = []; }), bad(s => { s.jobsUsed = ['x']; }),
+    bad(s => { s.passives = { zz: { n: 1, v: 1 } }; }), bad(s => { s.weapons[0].overclocks = ['nope']; }),
+    bad(s => { s.fluff = 'a'; }), bad(s => { s.gold.banked = -3; }), bad(s => { delete s.gold; })]) {
+    assert.equal(G.Dive.fromSave(raw, p), null, JSON.stringify(raw)?.slice(0, 60));
+  }
+});
+
+test('saving: an ended dive leaves no save, and record runs once', () => {
+  const p = G.freshProfile();
+  const d = new G.Dive({ seed: 1, hero: 'dora', hazard: 1, profile: p });
+  d.gold.banked = 10; ended(d, 'bonked', 3);
+  assert.equal(d.recorded, false);
+  const r1 = G.record(p, d); assert.equal(r1.gold, 10); assert.equal(d.recorded, true);
+  const r2 = G.record(p, d); assert.equal(r2.gold, 0); assert.deepEqual(r2.unlocked, []); assert.equal(r2.hazard, null);
+  assert.equal(p.gold, 10); assert.equal(p.stats.dives, 1);
+});
+
+test('saving: an abandoned save records its banked gold as bonked', () => {
+  const p = G.freshProfile();
+  const d = new G.Dive({ seed: 4, hero: 'enzo', hazard: 1, profile: p });
+  d.phase = 'pod'; d.gold.banked = 25; d.descend(); d.phase = 'pod'; d.descend();
+  const e = G.Dive.fromSave(JSON.parse(JSON.stringify(d.toSave())), p);
+  e.abandon();
+  assert.equal(e.result, 'bonked'); assert.equal(e.phase, 'over');
+  const r = G.record(p, e);
+  assert.equal(r.gold, 25); assert.equal(p.stats.bestLayer, 3); assert.deepEqual(r.unlocked, ['bomb']);
+});
+
 process.exitCode = failed ? 1 : 0;

@@ -1,8 +1,8 @@
 // Glimmer Cave: the rules of a dive. Deterministic and DOM-free: a dive is a seed plus the moves made, and every
 // random draw comes from a seeded generator.
 import {
-  BASE, BEETLE, BURST, CARD, CLASS, CRITTERS, DIG_TIME, ELITE, JOBS, JOB_IDS, LAYER_MIX, LAYER_SECONDS, MAX_ALIVE, MITE, PASSIVES,
-  PASSIVE_IDS, PASSIVE_MAX, POD_DISTANCE, POD_SECONDS, RARITY, START_POOL, UPGRADES, WEAPONS, WEAPON_IDS, WYRM, WYRM_AT, WYRM_ID,
+  BASE, BEETLE, BURST, CARD, CLASS, CRITTERS, DIG_TIME, ELITE, JOBS, JOB_IDS, LAYER_MIX, LAYER_SECONDS, MAX_ALIVE, MITE, OVERCLOCKS, PASSIVES,
+  PASSIVE_IDS, PASSIVE_MAX, POD_DISTANCE, POD_SECONDS, RARITY, START_POOL, UNLOCK, UPGRADES, UPGRADE_IDS, upgradeCost, WEAPONS, WEAPON_IDS, WYRM, WYRM_AT, WYRM_ID,
   critterFluff, goldRange, rarityWeights, targetAlive, xpNeed,
   type Block, type CritterId, type Hazard, type Hero, type JobId, type LayerNo, type OverclockId, type PassiveId, type UpgradeId,
   type WeaponId,
@@ -78,7 +78,18 @@ export function newJob(id: JobId): JobState {
 
 /** The part of the camp profile a dive reads. Missing upgrades count as level 0. */
 export type ProfileLike = { upgrades?: Partial<Record<UpgradeId, number>>; unlocked?: { weapons?: WeaponId[] } };
+/** The camp profile, kept in localStorage between dives. `finishedHazard` is the highest hazard finished (0 for none). */
+export type Profile = {
+  v: 1; gold: number; upgrades: Record<UpgradeId, number>; unlocked: { hazard: Hazard; weapons: WeaponId[] };
+  stats: { dives: number; bestLayer: number; bonked: number; finished: number; finishedHazard: number };
+};
 export type DiveOpts = { seed: number; hero: Hero; hazard: Hazard; profile: ProfileLike; hz?: 60 | 30 | 15 };
+/** A dive in progress, saved at a layer's start. `picks` and the whole weapon state keep rarity bonuses across a reload. */
+export type RunSave = {
+  v: 1; hero: Hero; hazard: Hazard; seed: number; layer: LayerNo; fluff: number; xp: number; level: number; picks: number;
+  weapons: WeaponState[]; passives: Partial<Record<PassiveId, { n: number; v: number }>>; rerolls: number;
+  gold: { banked: number; layer: 0 }; jobsUsed: JobId[]; bonked: number;
+};
 export type Stats = { maxFluff: number; speed: number; pickup: number; armour: number; crit: number; dig: number; damage: number; cooldown: number; projectile: number };
 
 // ── Tuning that only the rules use ─────────────────────────────────────────
@@ -214,6 +225,8 @@ export class Dive {
   events: CaveEvent[] = [];
   /** False turns all spawning off (tests). */
   spawning = true;
+  /** Set by `record`, so a dive is counted once. */
+  recorded = false;
   /** True makes every crit chance 0 (tests). */
   critOff = false;
   /** Seconds left of Tunnel Rat's speed. */
@@ -294,6 +307,57 @@ export class Dive {
     if (this.phase !== 'pod' || this.layer >= 5) return false;
     this.startLayer((this.layer + 1) as LayerNo);
     return true;
+  }
+
+  /** Ends a dive left in a save, as bonked at the start of its layer. Its banked gold still counts. */
+  abandon() { this.gold.layer = 0; this.result = 'bonked'; this.phase = 'over'; }
+
+  /** The run as it stands at the start of `layer`, for the page to keep in localStorage. Runtime counters
+   *  (weapon `cd` and `n`, shots, the wyrm) aren't saved. */
+  toSave(): RunSave {
+    const passives: RunSave['passives'] = {};
+    for (const id of PASSIVE_IDS) { const p = this.passives[id]; if (p) passives[id] = { n: p.n, v: p.v }; }
+    return {
+      v: 1, hero: this.hero, hazard: this.hazard, seed: this.seed, layer: this.layer, fluff: this.fluff, xp: this.xp, level: this.level,
+      picks: this.picks, weapons: this.weapons.map(w => ({ ...w, overclocks: [...w.overclocks], cd: 0, n: 0 })), passives, rerolls: this.rerolls,
+      gold: { banked: this.gold.banked, layer: 0 }, jobsUsed: [...this.jobsUsed], bonked: this.bonked,
+    };
+  }
+
+  /** Rebuilds a dive at the start of the saved layer, or null if the save is malformed. */
+  static fromSave(raw: unknown, profile: ProfileLike): Dive | null {
+    const s = raw as Partial<RunSave> | null;
+    if (!s || typeof s !== 'object' || s.v !== 1) return null;
+    const int = (x: unknown, lo: number, hi: number) => typeof x === 'number' && Number.isInteger(x) && x >= lo && x <= hi;
+    const num = (x: unknown) => typeof x === 'number' && Number.isFinite(x);
+    if (s.hero !== 'dora' && s.hero !== 'enzo') return null;
+    if (!int(s.hazard, 1, 5) || !int(s.layer, 1, 5) || !int(s.seed, 0, 0xffffffff)) return null;
+    if (!num(s.fluff) || !num(s.xp) || (s.xp as number) < 0 || !int(s.level, 1, 999) || !int(s.picks, 0, 999) || !int(s.rerolls, 0, 99) || !int(s.bonked, 0, 1e9)) return null;
+    if (!s.gold || !int(s.gold.banked, 0, 1e9)) return null;
+    if (!Array.isArray(s.weapons) || s.weapons.length < 1 || s.weapons.length > WEAPON_IDS.length) return null;
+    if (!Array.isArray(s.jobsUsed) || s.jobsUsed.length > 5 || s.jobsUsed.some(j => !JOB_IDS.includes(j))) return null;
+    if (!s.passives || typeof s.passives !== 'object') return null;
+    const weapons: WeaponState[] = [];
+    for (const w of s.weapons) {
+      if (!w || !WEAPON_IDS.includes(w.id) || !int(w.level, 1, 12) || !Array.isArray(w.overclocks) || w.overclocks.some(o => !(o in OVERCLOCKS))) return null;
+      if (!num(w.dmg) || !num(w.rate) || !num(w.size) || !num(w.count)) return null;
+      weapons.push({ id: w.id, level: w.level, overclocks: [...w.overclocks], dmg: w.dmg, rate: w.rate, size: w.size, count: w.count, cd: 0, n: 0 });
+    }
+    const passives: Dive['passives'] = {};
+    for (const [id, p] of Object.entries(s.passives)) {
+      if (!PASSIVE_IDS.includes(id as PassiveId) || !p || !int(p.n, 0, 99) || !num(p.v)) return null;
+      passives[id as PassiveId] = { n: p.n, v: p.v };
+    }
+    const v = s as RunSave;
+    const d = new Dive({ seed: v.seed, hero: v.hero, hazard: v.hazard, profile });
+    d.weapons = weapons; d.passives = passives; d.xp = v.xp; d.level = v.level; d.picks = v.picks; d.bonked = v.bonked;
+    d.gold.banked = v.gold.banked; d.jobsUsed = [...v.jobsUsed];
+    d.startLayer(v.layer);
+    d.rerolls = v.rerolls;
+    d.st = d.stats();
+    d.fluff = Math.min(d.st.maxFluff, v.fluff);
+    if (d.fluff <= 0) return null;
+    return d;
   }
 
   /** Puts the hero at (x, y) with the buddy just behind, and stops any digging. */
@@ -890,4 +954,58 @@ export class Dive {
     if (this.result !== 'complete') { this.gold.banked += Math.floor(this.gold.layer / 2); this.gold.layer = 0; }
     this.events.push({ k: 'over', result: this.result });
   }
+}
+
+// ── Camp ───────────────────────────────────────────────────────────────────
+
+const UNLOCKABLE = Object.keys(UNLOCK) as (keyof typeof UNLOCK)[];
+
+export function freshProfile(): Profile {
+  const upgrades = {} as Record<UpgradeId, number>;
+  for (const id of UPGRADE_IDS) upgrades[id] = 0;
+  return { v: 1, gold: 0, upgrades, unlocked: { hazard: 1, weapons: [] }, stats: { dives: 0, bestLayer: 0, bonked: 0, finished: 0, finishedHazard: 0 } };
+}
+
+/** Reads a stored profile. Anything malformed loads fresh; unknown ids are dropped and numbers clamped. */
+export function loadProfile(raw: unknown): Profile {
+  const r = raw as Partial<Profile> | null, p = freshProfile();
+  if (!r || typeof r !== 'object' || r.v !== 1) return p;
+  const int = (x: unknown, hi = 1e9) => typeof x === 'number' && Number.isFinite(x) ? Math.min(hi, Math.max(0, Math.floor(x))) : 0;
+  p.gold = int(r.gold);
+  const up = r.upgrades as Record<string, unknown> | undefined;
+  if (up && typeof up === 'object') for (const id of UPGRADE_IDS) p.upgrades[id] = int(up[id], UPGRADES[id].max);
+  const u = r.unlocked;
+  if (u && typeof u === 'object') {
+    p.unlocked.hazard = Math.max(1, int(u.hazard, 5)) as Hazard;
+    if (Array.isArray(u.weapons)) p.unlocked.weapons = UNLOCKABLE.filter(id => (u.weapons as unknown[]).includes(id));
+  }
+  const st = r.stats as Record<string, unknown> | undefined;
+  if (st && typeof st === 'object') for (const k of Object.keys(p.stats) as (keyof Profile['stats'])[]) p.stats[k] = int(st[k]);
+  p.stats.bestLayer = Math.min(5, p.stats.bestLayer); p.stats.finishedHazard = Math.min(5, p.stats.finishedHazard);
+  return p;
+}
+
+/** Spends the next level's cost on an upgrade, if it's affordable and below its max. */
+export function buy(p: Profile, id: UpgradeId): boolean {
+  const lv = p.upgrades[id], cost = upgradeCost(id, lv + 1);
+  if (lv >= UPGRADES[id].max || p.gold < cost) return false;
+  p.gold -= cost; p.upgrades[id] = lv + 1;
+  return true;
+}
+
+/** Banks an ended (or abandoned) dive into the profile: its gold, stats and the unlocks it earned. Runs once per dive. */
+export function record(p: Profile, d: Dive): { gold: number; unlocked: WeaponId[]; hazard: Hazard | null } {
+  if (d.recorded) return { gold: 0, unlocked: [], hazard: null };
+  d.recorded = true;
+  const done = d.result === 'complete', gold = d.gold.banked, s = p.stats;
+  p.gold += gold; s.dives++; s.bonked += d.bonked; s.bestLayer = Math.max(s.bestLayer, d.layer);
+  if (done) { s.finished++; s.finishedHazard = Math.max(s.finishedHazard, d.hazard); }
+  const met = (r: (typeof UNLOCK)[keyof typeof UNLOCK]) =>
+    r.k === 'layer' ? s.bestLayer >= r.n : r.k === 'finish' ? s.finished > 0 : r.k === 'finishHazard' ? s.finishedHazard >= r.n : s.bonked >= r.n;
+  const unlocked = UNLOCKABLE.filter(id => !p.unlocked.weapons.includes(id) && met(UNLOCK[id]));
+  p.unlocked.weapons.push(...unlocked);
+  let hazard: Hazard | null = null;
+  if (done && d.hazard < 5 && d.hazard + 1 > p.unlocked.hazard) { hazard = (d.hazard + 1) as Hazard; p.unlocked.hazard = hazard; }
+  else if (done && d.hazard === 5 && p.unlocked.hazard < 5) { hazard = 5; p.unlocked.hazard = 5; }
+  return { gold, unlocked, hazard };
 }
