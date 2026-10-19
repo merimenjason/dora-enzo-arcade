@@ -41,3 +41,17 @@ Observed issues:
 `docs/cave-survival-enzo-frame-review.json` records the per-cell visible bounds measured at alpha > 128. These bounds include tools, tails, acorns and stars; they are silhouette measurements rather than semantic foot coordinates. Background transparency exists, but edge/low-alpha cleanup still needs inspection.
 
 Next step: write a correction prompt for Enzo's grid, frame size, anchoring and pose details before generating the remaining sheets. No animation integration has been attempted.
+
+## Layout guides
+
+`docs/cave-survival-layout-guides/` holds one placement guide per animated sheet, at the sheet's exact size. They are for the image generator only, never drawn into the art: grey cell borders, a blue box the whole subject must fit inside, a red foot line where feet rest, and a green arrow for the facing (right).
+
+| Guide | Sheet | Box (w × h) | Feet above cell bottom |
+| --- | --- | --- | --- |
+| `hero-6x4.png` | Enzo and Dora, 256 px cells | 160 × 160 | 48 px |
+| `critters-6x4.png` | soot row 1, mite row 2, beetle row 3, attacks row 4 (2 cells each) | 112 × 112, 120 × 104, 168 × 140 | 48 px |
+| `fx-6x4.png` | effects, 256 px cells | 176 × 176, centred low | none |
+| `environment-4x2.png` | 384 × 512 cells | 260 × 300; pod and lantern 260 × 380 | 90 px |
+| `wyrm-4x2.png` | 384 × 512 cells | head 300 × 300; body 220 × 200; tail 220 × 180; boulders 300 × 260 | 80 px |
+
+The boxes are deliberately about 80% of the earlier targets: the Enzo draft overshot its 180 px box by about 10% and sat 11–17 px below its foot line. Small drift is corrected by the import script, which scales each frame and puts its feet on the line; wrong facing, missing frames and content touching a cell edge cannot be corrected.
