@@ -4,6 +4,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 19-10-2026
 
+### Documentation
+
+- **Glimmer Cave (in progress)**: the painted style reference, sprite concepts and accepted animation sheets for the coming cave-survival game (Enzo, Dora, critters, effects, environment, floor and the Rock Wyrm's body), with their prompts, layout guides, per-frame reviews and the `scripts/cave-frame-review.py` checker. Rejected generation attempts stay in the art branch's history.
+
 ### Added
 
 - **Chinchilla Trek** is painted: all thirty foes, the Owl and the Fox, Pip, the Pedlar's pony and cart, the signs, chests, lucky wheel and rest pond, the five chapter paths, the skill badges on the cards, tray and Journal, every piece of gear and the title now use storybook paintings. The paths scroll without a seam, the wheel turns to show its prize, and a beaten foe tumbles away under dizzy stars. Only the trek you're on loads its paintings; the old drawings fill in until they arrive, and **Retry artwork** appears if one fails.

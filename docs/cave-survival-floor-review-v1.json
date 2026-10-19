@@ -1,0 +1,14 @@
+{
+  "image": "public/art/cave-survival/floor-v1.png",
+  "size": [
+    1254,
+    1254
+  ],
+  "square": true,
+  "edge_difference": {
+    "left_right": 9.92,
+    "top_bottom": 8.53,
+    "neighbouring_columns": 6.13
+  },
+  "status": "pass"
+}

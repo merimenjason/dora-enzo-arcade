@@ -1,0 +1,359 @@
+{
+  "image": "public/art/cave-survival/dora-animation-v2.png",
+  "grid": [
+    6,
+    4
+  ],
+  "cell": [
+    256,
+    256
+  ],
+  "size": [
+    1536,
+    1024
+  ],
+  "mode": "RGBA",
+  "alpha_max": 254,
+  "alpha_zero_pixels": 899833,
+  "measurement": "connected pieces at alpha > 128 (>= 30 px), each assigned to the cell holding its centre",
+  "status": "pass",
+  "problems": [],
+  "frames": [
+    {
+      "row": 1,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        47,
+        58,
+        221,
+        238
+      ],
+      "width": 174,
+      "height": 180,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 2,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        44,
+        88,
+        229,
+        240
+      ],
+      "width": 185,
+      "height": 152,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 3,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        38,
+        56,
+        216,
+        234
+      ],
+      "width": 178,
+      "height": 178,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 4,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        36,
+        52,
+        226,
+        219
+      ],
+      "width": 190,
+      "height": 167,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 5,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        35,
+        77,
+        217,
+        240
+      ],
+      "width": 182,
+      "height": 163,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 6,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        37,
+        61,
+        215,
+        237
+      ],
+      "width": 178,
+      "height": 176,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        40,
+        58,
+        220,
+        234
+      ],
+      "width": 180,
+      "height": 176,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 2,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        57,
+        60,
+        218,
+        235
+      ],
+      "width": 161,
+      "height": 175,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 3,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        49,
+        35,
+        222,
+        228
+      ],
+      "width": 173,
+      "height": 193,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 4,
+      "pieces": 2,
+      "bounds_local_exclusive": [
+        41,
+        66,
+        275,
+        239
+      ],
+      "width": 234,
+      "height": 173,
+      "overhang_px": 19
+    },
+    {
+      "row": 2,
+      "column": 5,
+      "pieces": 2,
+      "bounds_local_exclusive": [
+        10,
+        61,
+        230,
+        227
+      ],
+      "width": 220,
+      "height": 166,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 6,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        40,
+        58,
+        211,
+        232
+      ],
+      "width": 171,
+      "height": 174,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        40,
+        44,
+        222,
+        221
+      ],
+      "width": 182,
+      "height": 177,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 2,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        57,
+        61,
+        231,
+        219
+      ],
+      "width": 174,
+      "height": 158,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 3,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        49,
+        50,
+        226,
+        220
+      ],
+      "width": 177,
+      "height": 170,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 4,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        45,
+        18,
+        230,
+        201
+      ],
+      "width": 185,
+      "height": 183,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 5,
+      "pieces": 5,
+      "bounds_local_exclusive": [
+        42,
+        5,
+        223,
+        220
+      ],
+      "width": 181,
+      "height": 215,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 6,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        38,
+        47,
+        220,
+        220
+      ],
+      "width": 182,
+      "height": 173,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 1,
+      "pieces": 2,
+      "bounds_local_exclusive": [
+        39,
+        34,
+        265,
+        204
+      ],
+      "width": 226,
+      "height": 170,
+      "overhang_px": 9
+    },
+    {
+      "row": 4,
+      "column": 2,
+      "pieces": 5,
+      "bounds_local_exclusive": [
+        -2,
+        25,
+        252,
+        192
+      ],
+      "width": 254,
+      "height": 167,
+      "overhang_px": 2
+    },
+    {
+      "row": 4,
+      "column": 3,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        34,
+        28,
+        224,
+        201
+      ],
+      "width": 190,
+      "height": 173,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 4,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        32,
+        22,
+        242,
+        200
+      ],
+      "width": 210,
+      "height": 178,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 5,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        44,
+        12,
+        242,
+        184
+      ],
+      "width": 198,
+      "height": 172,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 6,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        32,
+        21,
+        240,
+        198
+      ],
+      "width": 208,
+      "height": 177,
+      "overhang_px": 0
+    }
+  ]
+}
