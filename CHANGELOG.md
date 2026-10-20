@@ -23,6 +23,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Glimmer Cave**: weapons now look bigger as they get bigger: Pebble Popper's pebbles, Seed Orbit's seeds, Burrow Bomb's bombs, Pebble Drill's drills and Crystal Lance's beam grow with each size card, as their reach already did.
 - **Glimmer Cave**: the title screen shows the painted Dora and Enzo instead of the plain drawings, and passive cards show what they actually give at their rarity (an Uncommon Lucky Tail reads "+6% crit chance." instead of "+4% crit chance. ×1.5").
 
 ### Documentation

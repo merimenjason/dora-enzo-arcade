@@ -447,7 +447,8 @@ function drawWyrmPiece(c: CanvasRenderingContext2D, d: Dive, i: number, sx: numb
 
 /** A projectile or a weapon's short-lived shape, drawn in the row pass. */
 function drawShot(c: CanvasRenderingContext2D, v: View, s: Shot, now: number) {
-  const t = v.tile, [sx, sy] = toScreen(v, s.x, s.y);
+  // `u` is the tile scaled by the weapon's size cards, so a projectile grows with them as its reach does
+  const t = v.tile, u = t * (1 + s.w.size), [sx, sy] = toScreen(v, s.x, s.y);
   switch (s.k) {
     case 'acorn': {
       // The 4 acorn frames, each a quarter turn on from the last, so it tumbles.
@@ -470,13 +471,13 @@ function drawShot(c: CanvasRenderingContext2D, v: View, s: Shot, now: number) {
       c.closePath(); c.fill(); c.globalAlpha = 1; return;
     }
     case 'pebble':
-      c.fillStyle = 'rgba(20, 8, 30, 0.3)'; ellipse(c, sx, sy, t * 0.1, t * 0.04); c.fill();
-      c.fillStyle = '#9a8e8a'; c.strokeStyle = INK; c.lineWidth = 1; ellipse(c, sx, sy - t * (0.2 + s.h * 1.4), t * 0.1, t * 0.09); c.fill(); c.stroke(); return;
+      c.fillStyle = 'rgba(20, 8, 30, 0.3)'; ellipse(c, sx, sy, u * 0.1, u * 0.04); c.fill();
+      c.fillStyle = '#9a8e8a'; c.strokeStyle = INK; c.lineWidth = 1; ellipse(c, sx, sy - t * (0.2 + s.h * 1.4), u * 0.1, u * 0.09); c.fill(); c.stroke(); return;
     case 'lance': {
       const a = Math.max(0, 1 - s.t / 0.25), [ex, ey] = toScreen(v, s.x + s.dx * s.len, s.y + s.dy * s.len);
-      c.globalAlpha = a; c.strokeStyle = '#bfe4ff'; c.lineWidth = t * 0.16; c.lineCap = 'round';
+      c.globalAlpha = a; c.strokeStyle = '#bfe4ff'; c.lineWidth = u * 0.16; c.lineCap = 'round';
       c.beginPath(); c.moveTo(sx, sy - t * 0.35); c.lineTo(ex, ey - t * 0.35); c.stroke();
-      c.strokeStyle = '#ffffff'; c.lineWidth = t * 0.05; c.stroke(); c.lineCap = 'butt'; c.globalAlpha = 1; return;
+      c.strokeStyle = '#ffffff'; c.lineWidth = u * 0.05; c.stroke(); c.lineCap = 'butt'; c.globalAlpha = 1; return;
     }
     case 'puff': {
       const a = s.cloud ? 0.35 : Math.max(0, 1 - s.t / 0.25) * 0.5, ang = Math.atan2(s.dy, s.dx), cone = (s.cone * Math.PI) / 180;
@@ -489,16 +490,16 @@ function drawShot(c: CanvasRenderingContext2D, v: View, s: Shot, now: number) {
       c.strokeStyle = '#7a4e26'; c.lineWidth = 3; c.beginPath(); c.moveTo(-t * 0.2, 0); c.lineTo(t * 0.2, 0); c.stroke();
       c.restore(); return;
     case 'seed':
-      c.fillStyle = '#9ac85a'; c.strokeStyle = INK; c.lineWidth = 1; ellipse(c, sx, sy - t * 0.3, t * 0.11, t * 0.08); c.fill(); c.stroke(); return;
+      c.fillStyle = '#9ac85a'; c.strokeStyle = INK; c.lineWidth = 1; ellipse(c, sx, sy - t * 0.3, u * 0.11, u * 0.08); c.fill(); c.stroke(); return;
     case 'bomb':
-      c.fillStyle = '#2a2230'; c.strokeStyle = INK; ellipse(c, sx, sy - t * 0.18, t * 0.18, t * 0.17); c.fill();
-      c.fillStyle = Math.floor(now / 90) % 2 ? '#ffd34d' : '#ff7a3a'; ellipse(c, sx + t * 0.1, sy - t * 0.4, t * 0.06, t * 0.06); c.fill(); return;
+      c.fillStyle = '#2a2230'; c.strokeStyle = INK; ellipse(c, sx, sy - u * 0.18, u * 0.18, u * 0.17); c.fill();
+      c.fillStyle = Math.floor(now / 90) % 2 ? '#ffd34d' : '#ff7a3a'; ellipse(c, sx + u * 0.1, sy - u * 0.4, u * 0.06, u * 0.06); c.fill(); return;
     case 'moth':
       c.fillStyle = '#fff2b0'; ellipse(c, sx - t * 0.07, sy - t * 0.5, t * 0.08, t * 0.05 + Math.abs(Math.sin(now / 40)) * t * 0.04); c.fill();
       ellipse(c, sx + t * 0.07, sy - t * 0.5, t * 0.08, t * 0.05 + Math.abs(Math.sin(now / 40)) * t * 0.04); c.fill(); return;
     case 'drill':
       c.save(); c.translate(sx, sy - t * 0.25); c.rotate(Math.atan2(s.dy * v.squash, s.dx));
-      c.fillStyle = '#a8a8b4'; c.strokeStyle = INK; c.lineWidth = 1; c.beginPath(); c.moveTo(t * 0.25, 0); c.lineTo(-t * 0.1, -t * 0.12); c.lineTo(-t * 0.1, t * 0.12); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = '#a8a8b4'; c.strokeStyle = INK; c.lineWidth = 1; c.beginPath(); c.moveTo(u * 0.25, 0); c.lineTo(-u * 0.1, -u * 0.12); c.lineTo(-u * 0.1, u * 0.12); c.closePath(); c.fill(); c.stroke();
       c.restore(); return;
     default: return;
   }
