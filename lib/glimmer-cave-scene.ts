@@ -723,7 +723,7 @@ export function drawStick(c: CanvasRenderingContext2D, ox: number, oy: number, k
 
 // ── The title ──────────────────────────────────────────────────────────────
 
-/** The title picture until the painting comes: the two of them by a lantern in a purple cave, with crystals. */
+/** The title picture: the two of them by a lantern in a purple cave, with crystals; painted once their sheets are in. */
 export function drawTitle(c: CanvasRenderingContext2D, w: number, h: number, now: number) {
   const g = c.createRadialGradient(w * 0.5, h * 0.55, 10, w * 0.5, h * 0.55, w * 0.7);
   g.addColorStop(0, '#8a5a9a'); g.addColorStop(0.5, TINT[1]); g.addColorStop(1, '#1c1024');
@@ -741,6 +741,11 @@ export function drawTitle(c: CanvasRenderingContext2D, w: number, h: number, now
   const soot: Critter = { id: 0, kind: 'soot', elite: false, x: 0, y: 0, fluff: 1, max: 1, slow: 0, slowFor: 0, stun: 0, hit: 0, state: 'walk', t: 0, dx: -1, dy: 0 };
   drawCritter(c, soot, w * 0.88, h * 0.78, t, undefined, now, -1);
   drawCritter(c, { ...soot, kind: 'mite' as CritterId }, w * 0.1, h * 0.7, t, undefined, now, 1);
-  drawChinchilla(c, 'dora', w * 0.32, h * 0.76, { face: 1, h: t * 1.3, time: now / 1000 });
-  drawChinchilla(c, 'enzo', w * 0.68, h * 0.76, { face: -1, h: t * 1.3, time: now / 1000 + 1 });
+  for (const [who, x, face] of [['dora', 0.32, 1], ['enzo', 0.68, -1]] as const) {
+    // idle breathing with the hero's own blink, as at a standstill in the dive; a second on, so calm mode's frozen clock
+    // (now = 0) isn't mid-blink
+    const idle: Anim = { walk: 0, idle: now / 1000 + 1, attack: null, flinch: 0, dig: false };
+    // painted frames hold ears and tail in their height, so they're drawn larger to fill the space the code drawing did
+    if (!paintCaveFrame(c, heroFrame(who, idle, now + 1000), w * x, h * 0.78, t * 1.9, face < 0)) drawChinchilla(c, who, w * x, h * 0.76, { face, h: t * 1.3, time: now / 1000 + (face < 0 ? 1 : 0) });
+  }
 }

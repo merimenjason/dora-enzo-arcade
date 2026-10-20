@@ -21,6 +21,13 @@ const SHORT: Record<WeaponId, string> = {
 };
 const UNLOCK_TEXT: Record<keyof typeof UNLOCK, string> = { bomb: 'reach layer 3', moths: 'finish a dive', drum: 'finish hazard 2', drill: 'bonk 5,000 critters' };
 const pct = (n: number) => `${Math.round(n * 100)}%`;
+const num = (n: number) => `${Math.round(n * 10) / 10}`;
+/** A passive card's text for the value it adds, which its rarity multiplies (PASSIVES[id].text is the Common card's). */
+const PASSIVE_TEXT: Record<keyof typeof PASSIVES, (v: number) => string> = {
+  fluff: (v) => `+${num(v)} max Fluff, and heals ${num(v)}.`, paws: (v) => `+${pct(v)} move speed.`, magnet: (v) => `+${pct(v)} pickup radius.`,
+  claws: (v) => `+${pct(v)} all damage.`, busy: (v) => `-${pct(v)} weapon cooldowns.`, arms: (v) => `+${pct(v)} dig speed.`, lucky: (v) => `+${pct(v)} crit chance.`,
+  coat: (v) => `+${num(v)} armour: takes ${num(v)} off each bump, to a minimum of 1.`,
+};
 /** The heroes' sheets are asked for at camp; the rest when a dive starts (the pose sheet only if a frame needs it). */
 const HERO_SHEETS = ['dora', 'enzo'] as const, DIVE_SHEETS = CAVE_SHEETS.filter((s) => s !== 'sprites');
 const useArtVersion = () => useSyncExternalStore(subscribeCaveArt, caveArtVersion, caveArtServerVersion);
@@ -74,7 +81,7 @@ function describe(c: Card, d: Dive): { name: string; text: string; tag: string }
   const m = RARITY.mult[c.rarity], tag = RARITY.names[c.rarity];
   if (c.k === 'passive') {
     const p = PASSIVES[c.id];
-    return { name: p.name, text: m === 1 ? p.text : `${p.text} ×${m}`, tag };
+    return { name: p.name, text: PASSIVE_TEXT[c.id](p.per * m), tag };
   }
   const w = d.weapons.find((x) => x.id === c.id), def = WEAPONS[c.id];
   if (!w) return { name: def.name, text: `New weapon. ${def.text}`, tag: 'New' };
