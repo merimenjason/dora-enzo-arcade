@@ -4,8 +4,8 @@
 // on sprites-0.png (`CAVE_FALLBACK`), then code.
 import { BLOCKS, CAVE_FALLBACK, CAVE_FRAMES, CAVE_HASHES, CAVE_SHEETS, CAVE_SIZES, type CaveBlock, type CaveSheet } from './glimmer-cave-crops.js';
 
-export { BLOCKS, CAVE_FALLBACK, CAVE_FRAMES, CAVE_GRIDS, CAVE_HASHES, CAVE_SHEETS, CAVE_SIZES, CRITTER_ANIMS, CRYSTAL, DORA_WIPE, ENZO_SPIN, FX_ANIMS, HERO_ANIMS, WYRM_PARTS } from './glimmer-cave-crops.js';
-export type { CaveBlock, CaveFrame, CaveFx, CaveSheet, CritterAnims, HeroAnims, WyrmPart } from './glimmer-cave-crops.js';
+export { BLOCKS, CAVE_FALLBACK, CAVE_FRAMES, CAVE_GRIDS, CAVE_HASHES, CAVE_SHEETS, CAVE_SIZES, CRITTER_ANIMS, CRYSTAL, DORA_WIPE, ENZO_SPIN, FX_ANIMS, HERO_ANIMS, ICONS, WYRM_PARTS } from './glimmer-cave-crops.js';
+export type { CaveBlock, CaveFrame, CaveFx, CaveIcon, CaveSheet, CritterAnims, HeroAnims, WyrmPart } from './glimmer-cave-crops.js';
 /** The camera: `x`, `y` are the world position, in screen px, of the screen's top-left corner; `w` × `h` is the stage. */
 export type CaveView = { x: number; y: number; w: number; h: number; tilePx: number };
 type Entry = { state: 'pending' | 'ready' | 'failed'; image: HTMLImageElement };

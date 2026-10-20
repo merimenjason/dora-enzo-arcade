@@ -191,6 +191,8 @@ The upgraded hazard-1 gate sits on its 50% floor in QUICK. Rerun the bot after a
 - environment v3 and floor v2;
 - row 2 of wyrm v1 (body, flinch, tail, boulders);
 - wyrm-heads v2;
+- Enzo's dig frames (enzo-dig v4);
+- the card and upgrade icons (icons v1);
 - the `sprites-0` fallback poses.
 
 **The importer:** `python3 scripts/glimmer-cave-import.py` cleans each sheet's alpha. It finds each frame's pieces, crop, foot line and scale, and writes:
@@ -204,7 +206,8 @@ The importer is deterministic, so rerunning it reproduces its outputs byte for b
 **At runtime:**
 - `lib/glimmer-cave-paint.ts` loads sheets on demand (hash-versioned URLs, one request each, Retry) and caches each frame at its drawn size.
 - `lib/glimmer-cave-scene.ts` tries the painting for every piece and falls back to its code drawing in the same frame.
-- The page asks for the heroes' sheets at camp and the rest when a dive starts.
+- The page asks for the heroes' sheets at camp and the rest when a dive starts; the icons sheet also loads as soon as a camp upgrade or card shows an icon.
+- The icons are drawn by the page, not the canvas: one cell of the icons sheet as a CSS background, fitted into each card's, camp upgrade's and weapon slot's box. Camp upgrades reuse the icon of the passive they match (Fluffier is Thick Fluff, Sharper is Sharp Claws, Quicker is Quick Paws, Diggier is Strong Arms, Magnetic is Magnet Whiskers); overclock cards show their weapon with a spark badge.
 
 ## Saves
 

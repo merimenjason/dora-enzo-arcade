@@ -102,6 +102,24 @@ await check('the mini-map: the layer\'s blocks, the hero as a white dot where he
   await page.getByTestId('minimap').screenshot({ path: '.checks/cave/minimap.png' });
 });
 
+await check('icons: the camp upgrades, the level-up cards and the weapon slots wear painted icons from the icons sheet', async (page) => {
+  const loaded = [];
+  page.on('response', (r) => { if (r.url().includes('/art/cave/icons.webp')) loaded.push(r.status()); });
+  await fresh(page); await page.getByRole('button', { name: 'Camp' }).click();
+  await page.locator('main[data-screen="camp"]').waitFor();
+  const camp = await page.locator('.gc-up .gc-ico').evaluateAll((els) => els.map((e) => e.dataset.icon));
+  assert.deepEqual(camp, ['fluff', 'claws', 'paws', 'arms', 'magnet', 'prospector', 'rerolls', 'headstart']);
+  await begin(page, { hero: 'enzo' });
+  assert.equal(await page.locator('[data-testid="slot-0"] .gc-ico').getAttribute('data-icon'), 'sling');
+  await cave(page, (w) => w.set({ xp: w.xpNeed(w.dive.level) }));
+  await page.locator('main[data-screen="pick"]').waitFor();
+  const cards = await page.locator('[data-testid^="card-"] .gc-ico-art').evaluateAll((els) => els.map((e) => getComputedStyle(e).backgroundImage));
+  assert.equal(cards.length, 3);
+  for (const b of cards) assert.match(b, /\/art\/cave\/icons\.webp\?v=[0-9a-f]{12}/);
+  assert.ok(loaded.includes(200), `the icons sheet loads: ${loaded}`);
+  await page.screenshot({ path: '.checks/cave/pick-icons.png' });
+});
+
 await check('a card and a reroll: the threshold opens a pick, Reroll works once, card-0 adds a card', async (page) => {
   await fresh(page); await begin(page);
   await cave(page, (w) => w.set({ xp: w.xpNeed(w.dive.level) }));
@@ -213,7 +231,7 @@ await check('screenshots: layer 1 at 2:00, a 300-critter swarm, and the wyrm', a
 
 // ---- painted art ----
 
-const SHEETS = ['enzo', 'enzodig', 'dora', 'critters', 'fx', 'environment', 'floor', 'wyrm', 'wyrmheads'];
+const SHEETS = ['enzo', 'enzodig', 'dora', 'critters', 'fx', 'environment', 'floor', 'wyrm', 'wyrmheads', 'icons'];
 const art = (page) => cave(page, (w) => ({ ...w.art(), hero: w.heroPainted() }));
 const clock = (page) => cave(page, (w) => w.dive.t);
 

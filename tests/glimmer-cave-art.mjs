@@ -63,7 +63,7 @@ const cellOf = (key) => {
 
 test('files: every cleaned PNG and served WebP exists, is 1536 × 1024 (the floor any square), and matches its recorded hash; URLs carry the WebP\'s first 12 hex', () => {
   assert.deepEqual([...A.CAVE_SHEETS].sort(), Object.keys(crops.sheets).sort());
-  assert.deepEqual([...A.CAVE_SHEETS].sort(), ['critters', 'dora', 'environment', 'enzo', 'enzodig', 'floor', 'fx', 'sprites', 'wyrm', 'wyrmheads']);
+  assert.deepEqual([...A.CAVE_SHEETS].sort(), ['critters', 'dora', 'environment', 'enzo', 'enzodig', 'floor', 'fx', 'icons', 'sprites', 'wyrm', 'wyrmheads']);
   for (const s of A.CAVE_SHEETS) {
     assert.ok(existsSync(file(s)), s);
     const buf = readFileSync(file(s)), want = crops.sheets[s];
@@ -192,6 +192,10 @@ test('frames: every sequence names existing frames, and dora:4:2 is flipped', ()
   for (const s of ['enzo', 'enzodig', 'dora', 'critters', 'fx', 'environment', 'wyrm', 'wyrmheads']) for (const [k] of bySheet(s)) assert.ok(used.has(k), `${k} is used`);
   assert.deepEqual(A.HERO_ANIMS.enzo.dig, ['enzodig:1:1', 'enzodig:1:2', 'enzodig:1:3'], 'Enzo digs with his own raise, slam and fling');
   assert.equal(A.CAVE_FALLBACK['enzodig:1:2'], 'sprites:1:1');
+  // the icons: one per weapon and passive plus Prospector, Rerolls, Head start and Snack, all 24 cells of the sheet in order
+  assert.deepEqual(Object.keys(A.ICONS), [...D.WEAPON_IDS, ...D.PASSIVE_IDS, 'prospector', 'rerolls', 'headstart', 'snack']);
+  assert.deepEqual(Object.values(A.ICONS), bySheet('icons').map(([k]) => k).sort((a, b) => a.localeCompare(b, 'en', { numeric: true })));
+  for (const k of Object.values(A.ICONS)) { const [, , w, h] = A.CAVE_FRAMES[k].rect; assert.ok(w > 120 && h > 100 && w < 256 + 48 && h < 256 + 48, `${k} ${w}×${h}`); }
   assert.equal(A.CAVE_FRAMES['dora:4:2'].flip, true);
   assert.deepEqual(Object.entries(A.CAVE_FRAMES).filter(([, f]) => f.flip).map(([k]) => k).sort(), ['dora:4:2', 'sprites:1:2']);
   assert.equal(A.CAVE_FALLBACK['enzo:2:4'], 'sprites:1:1');
