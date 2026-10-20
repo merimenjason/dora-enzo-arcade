@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 21-10-2026
+
+### Fixed
+
+- **Glimmer Cave**: the Boomerang Storm's mini boomerangs and the Acorn Sling's tumbling acorns were drawn blurry while turned; they're sharp now.
+
 ## 20-10-2026
 
 ### Added
