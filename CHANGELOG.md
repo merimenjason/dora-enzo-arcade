@@ -17,6 +17,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Glimmer Cave**: Enzo now digs with his own painted frames, scrabbling at the rock like a dog digging a hole, instead of walking into it.
 
+### Fixed
+
+- **Glimmer Cave**: the title screen shows the painted Dora and Enzo instead of the plain drawings, and passive cards show what they actually give at their rarity (an Uncommon Lucky Tail reads "+6% crit chance." instead of "+4% crit chance. ×1.5").
+
 ### Documentation
 
 - **Glimmer Cave (in progress)**: added the Rock Wyrm's four separate head frames, the last painted sheet the game needs.
