@@ -122,6 +122,19 @@ await check('icons: the camp upgrades, the level-up cards and the weapon slots w
   await page.screenshot({ path: '.checks/cave/pick-icons.png' });
 });
 
+await check('power-ups: walking onto a Boomerang Storm starts it, shows its countdown and 8 minis, and the floor ones are painted', async (page) => {
+  await fresh(page); await begin(page, { hero: 'enzo' });
+  const at = await placeBeside(page, 'open');
+  await cave(page, (w, at) => { w.dive.powerups.push({ id: 'storm', x: at.x + 1.5, y: at.y + 0.5 }, { id: 'snack', x: at.x + 0.5, y: at.y - 3 }); }, at);
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: '.checks/cave/powerups.png' });
+  await page.keyboard.down('ArrowRight'); await page.waitForFunction(() => window.__cave().dive.boost.storm > 0, null, { timeout: 5000 }); await page.keyboard.up('ArrowRight');
+  await page.getByTestId('boost-storm').waitFor();
+  assert.match(await page.getByTestId('boost-storm').textContent(), /^\d s$/);
+  assert.equal(await cave(page, (w) => w.dive.minis.length), 8);
+  assert.equal(await cave(page, (w) => w.dive.powerups.length), 1);
+});
+
 await check('a card and a reroll: the threshold opens a pick, Reroll works once, card-0 adds a card', async (page) => {
   await fresh(page); await begin(page);
   await cave(page, (w) => w.set({ xp: w.xpNeed(w.dive.level) }));

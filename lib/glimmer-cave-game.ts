@@ -1,15 +1,15 @@
 // Glimmer Cave: the rules of a dive. Deterministic and DOM-free: a dive is a seed plus the moves made, and every
 // random draw comes from a seeded generator.
 import {
-  BASE, BEETLE, BURST, CARD, CLASS, CRITTERS, DIG_TIME, ELITE, JOBS, JOB_IDS, LAYER_MIX, LAYER_SECONDS, MAX_ALIVE, MITE, OVERCLOCKS, PASSIVES,
-  PASSIVE_IDS, PASSIVE_MAX, POD_DISTANCE, POD_SECONDS, RARITY, START_POOL, UNLOCK, UPGRADES, UPGRADE_IDS, upgradeCost, WEAPONS, WEAPON_IDS, WYRM, WYRM_AT, WYRM_ID,
+  BASE, BEETLE, BURST, CARD, CLASS, CRITTERS, DIG_TIME, DROPS, ELITE, JOBS, JOB_IDS, LAYER_MIX, LAYER_SECONDS, MAX_ALIVE, MITE, OVERCLOCKS, PASSIVES,
+  PASSIVE_IDS, PASSIVE_MAX, POD_DISTANCE, POD_SECONDS, POWERUPS, POWERUP_IDS, RARITY, START_POOL, UNLOCK, UPGRADES, UPGRADE_IDS, upgradeCost, WEAPONS, WEAPON_IDS, WYRM, WYRM_AT, WYRM_ID,
   critterFluff, goldRange, rarityWeights, targetAlive, xpNeed,
-  type Block, type CritterId, type Hazard, type Hero, type JobId, type LayerNo, type OverclockId, type PassiveId, type UpgradeId,
+  type Block, type CritterId, type Hazard, type Hero, type JobId, type LayerNo, type OverclockId, type PassiveId, type PowerupId, type UpgradeId,
   type WeaponId,
 } from './glimmer-cave-data.js';
 import { Rand, mix } from './glimmer-cave-rand.js';
 import { MAP_H, MAP_W, dig, makeMap, solid, tileAt, type CaveMap } from './glimmer-cave-map.js';
-import { newWeapon, runWeapons, type Shot, type WeaponState } from './glimmer-cave-weapons.js';
+import { hurtCritter, newWeapon, runWeapons, type Shot, type WeaponState } from './glimmer-cave-weapons.js';
 
 export * from './glimmer-cave-data.js';
 export { Rand, mix } from './glimmer-cave-rand.js';
@@ -43,6 +43,8 @@ export type CaveEvent =
   | { k: 'pod'; x: number; y: number }
   | { k: 'podReached' }
   | { k: 'job'; id: JobId; n: number; done: boolean }
+  | { k: 'drop'; id: PowerupId; x: number; y: number }
+  | { k: 'power'; id: PowerupId; x: number; y: number }
   | { k: 'wyrm'; what: 'surface' | 'dive' | 'rumble' | 'bonked'; x: number; y: number }
   | { k: 'over'; result: Result };
 
@@ -235,6 +237,11 @@ export class Dive {
   critOff = false;
   /** Seconds left of Tunnel Rat's speed. */
   rat = 0;
+  /** Power-ups lying on the floor, and the seconds left of the timed ones taken. */
+  powerups: { id: PowerupId; x: number; y: number }[] = [];
+  boost = { storm: 0, vacuum: 0, hourglass: 0, zoomies: 0 };
+  /** The Boomerang Storm's mini boomerangs this step, for the scene. */
+  minis: { x: number; y: number }[] = [];
   /** This step's stats, read by the weapons. */
   st!: Stats;
   rand!: Rand;
@@ -242,6 +249,10 @@ export class Dive {
 
   private ids = 0; private spawnCd = 0; private nextBurst: number = BURST.every; private nextElite = FIRST_ELITE;
   private spot = { x: 0, y: 0 };
+  /** The layer's drops come from their own Rand, so they never shift the draws the rest of the layer makes. */
+  private loot!: Rand;
+  /** When each critter may next take a mini boomerang. */
+  private stormHit = new Map<number, number>();
   /** Steps from each tile to the hero's, -1 for rock or cut off; rebuilt when the hero changes tile or rock is dug. */
   private flow = new Int16Array(MAP_W * MAP_H); private queue = new Int32Array(MAP_W * MAP_H);
   private flowMap: CaveMap | null = null; private flowAt = -1;
@@ -278,11 +289,12 @@ export class Dive {
     const c = CLASS[this.hero], up = (id: UpgradeId) => UPGRADES[id].per * this.upgrade(id), pv = (id: PassiveId) => this.passive(id);
     return {
       maxFluff: (BASE.fluff + up('fluffier') + pv('fluff')) * c.fluff,
-      speed: BASE.speed * c.speed * (1 + pv('paws') + up('quicker')) * (this.rat > 0 ? 1 + WEAPONS.drill.p.ratSpeed : 1),
+      speed: BASE.speed * c.speed * (1 + pv('paws') + up('quicker')) * (this.rat > 0 ? 1 + WEAPONS.drill.p.ratSpeed : 1)
+        * (this.boost.zoomies > 0 ? 1 + POWERUPS.zoomies.speed : 1),
       pickup: BASE.pickup * (1 + pv('magnet') + up('magnetic')),
       armour: BASE.armour + pv('coat'),
       crit: BASE.crit + pv('lucky'),
-      dig: c.dig * (1 + pv('arms') + up('diggier')),
+      dig: c.dig * (1 + pv('arms') + up('diggier')) * (this.boost.zoomies > 0 ? 1 + POWERUPS.zoomies.dig : 1),
       damage: 1 + pv('claws') + up('sharper'),
       cooldown: Math.max(0.4, 1 - pv('busy')),
       projectile: c.projectile,
@@ -294,7 +306,7 @@ export class Dive {
    *  layer gives it the same job, since `jobsUsed` is cut back to the layers before it. */
   startLayer(n: LayerNo) {
     this.layer = n; this.job = null; this.wyrm = null; this.bigId = null; this.wyrmTrail = [];
-    this.rand = new Rand(mix(this.seed, n + 100));
+    this.rand = new Rand(mix(this.seed, n + 100)); this.loot = new Rand(mix(this.seed, n + 200));
     this.jobsUsed = this.jobsUsed.slice(0, n - 1);
     if (n < 5) {
       const id = this.rand.pick(JOB_IDS.filter(j => !this.jobsUsed.includes(j)));
@@ -303,6 +315,7 @@ export class Dive {
     this.map = makeMap(mix(this.seed, n), n, this.job?.id ?? null);
     this.phase = 'play'; this.result = null; this.t = 0; this.timer = n === 5 ? WYRM_AT : LAYER_SECONDS;
     this.critters = []; this.crystals = []; this.shots = []; this.pod = null; this.rat = 0; this.gold.layer = 0; this.grace = 0;
+    this.powerups = []; this.boost = { storm: 0, vacuum: 0, hourglass: 0, zoomies: 0 }; this.minis = []; this.stormHit.clear();
     this.layerReroll = 1;
     this.spawnCd = 0; this.nextBurst = BURST.every; this.nextElite = FIRST_ELITE; this.flowAt = -1; this.ids = 0;
     // Runtime counters start clean, as a save restores them, so a reloaded layer plays like an uninterrupted one.
@@ -401,6 +414,8 @@ export class Dive {
     if (got.gold && gold > 0) this.addGold(got.gold * gold);
     if (got.crystals) this.crystals.push({ x: x + 0.5, y: y + 0.5, n: got.crystals });
     if (got.block === 'crate' && this.job?.id === 'crates') this.progress(1);
+    // the wyrm's digging (gold 0) drops nothing
+    if (gold > 0 && (got.block === 'crate' || this.loot.next() < DROPS.block)) this.drop(x + 0.5, y + 0.5);
     return true;
   }
 
@@ -450,6 +465,7 @@ export class Dive {
     this.moveCritters();
     this.contact(st);
     this.pickup(st);
+    this.powerUps();
     this.spawnWaves();
     this.jobs();
     this.podCheck();
@@ -464,6 +480,8 @@ export class Dive {
     this.timer = Math.max(0, this.timer - this.dt);
     if (this.grace > 0) this.grace -= this.dt;
     if (this.rat > 0) this.rat -= this.dt;
+    const b = this.boost;
+    for (const k of ['storm', 'vacuum', 'hourglass', 'zoomies'] as const) if (b[k] > 0) b[k] = Math.max(0, b[k] - this.dt);
   }
 
   // 2. The hero's move, by axis, against rock. A blocked axis with input on it digs.
@@ -529,6 +547,8 @@ export class Dive {
 
   // 4. Critters move and attack.
   moveCritters() {
+    // the Hourglass holds every critter where it stands
+    if (this.boost.hourglass > 0) return;
     this.updateFlow();
     const m = this.map, dt = this.dt, near = this.scratch, push = 1 - Math.exp(-15 * dt);
     for (const c of this.critters) {
@@ -624,7 +644,7 @@ export class Dive {
 
   // 5. Contact: the strongest touching critter takes its bump from Fluff, then grace.
   contact(st: Stats) {
-    if (this.grace > 0) return;
+    if (this.grace > 0 || this.boost.hourglass > 0) return;
     const r = BASE.radius, hx = this.hx, hy = this.hy;
     // The grid was built before the critters moved, so the search reaches a step's worth of movement further.
     let bump = 0;
@@ -645,7 +665,7 @@ export class Dive {
 
   // 6. Crystals in pickup range fly to the hero and are collected.
   pickup(st: Stats) {
-    const cs = this.crystals, reach = st.pickup, fly = CRYSTAL.speed * this.dt;
+    const vac = this.boost.vacuum > 0, cs = this.crystals, reach = vac ? Infinity : st.pickup, fly = CRYSTAL.speed * this.dt * (vac ? POWERUPS.vacuum.speed : 1);
     let k = 0;
     for (let i = 0; i < cs.length; i++) {
       const c = cs[i], ex = this.hx - c.x, ey = this.hy - c.y;
@@ -655,6 +675,77 @@ export class Dive {
       cs[k++] = c;
     }
     cs.length = k;
+  }
+
+  // 6b. Power-ups: the hero takes any within reach, then the Boomerang Storm's minis fly and hit.
+  powerUps() {
+    const ps = this.powerups;
+    let k = 0;
+    for (let i = 0; i < ps.length; i++) {
+      const p = ps[i];
+      if ((p.x - this.hx) ** 2 + (p.y - this.hy) ** 2 <= DROPS.take ** 2) { this.usePowerup(p.id, p.x, p.y); continue; }
+      ps[k++] = p;
+    }
+    ps.length = k;
+    this.stormStep();
+  }
+
+  /** Drops a power-up at (x, y), drawn by weight from the layer's loot Rand, unless DROPS.max already lie about. */
+  drop(x: number, y: number) {
+    if (this.powerups.length >= DROPS.max) return;
+    const low = this.fluff < this.stats().maxFluff * POWERUPS.snack.low;
+    const weight = (id: PowerupId) => POWERUPS[id].weight * (id === 'snack' && low ? POWERUPS.snack.lowWeight : 1);
+    let r = this.loot.next() * POWERUP_IDS.reduce((t, id) => t + weight(id), 0), id: PowerupId = POWERUP_IDS[0];
+    for (const q of POWERUP_IDS) { r -= weight(q); if (r < 0) { id = q; break; } }
+    this.powerups.push({ id, x, y });
+    this.events.push({ k: 'drop', id, x, y });
+  }
+
+  /** What a power-up does the moment it's taken. */
+  usePowerup(id: PowerupId, x = this.hx, y = this.hy) {
+    this.events.push({ k: 'power', id, x, y });
+    const P = POWERUPS;
+    switch (id) {
+      case 'storm': this.boost.storm = P.storm.secs; return;
+      case 'vacuum': this.boost.vacuum = P.vacuum.secs; return;
+      case 'hourglass': this.boost.hourglass = P.hourglass.secs; return;
+      case 'zoomies': this.boost.zoomies = P.zoomies.secs; return;
+      case 'snack': this.fluff = Math.min(this.stats().maxFluff, this.fluff + P.snack.heal); return;
+      case 'pouch': this.addGold(P.pouch.base + P.pouch.per * this.hazard); return;
+      case 'sneeze': {
+        // a share of each critter's own most Fluff, so it bites as hard on layer 5 as on layer 1; no crits or bonuses
+        const hw = this.view.w / 2, hh = this.view.h / 2;
+        for (const c of this.critters) {
+          if (c.fluff <= 0 || Math.abs(c.x - this.hx) > hw || Math.abs(c.y - this.hy) > hh) continue;
+          hurtCritter(this, c, c.max * (c.elite ? P.sneeze.eliteShare : P.sneeze.share), this.hx, this.hy, { buddy: true });
+          if (c.fluff > 0) c.stun = Math.max(c.stun, P.sneeze.stun);
+        }
+        this.sweep();
+        return;
+      }
+    }
+  }
+
+  /** The Boomerang Storm: P.count minis on a turning ring that swings out to `reach` and back every `period` s. Each
+   *  hits a critter (or the wyrm's head) it touches, at most once every `every` s per critter. */
+  private stormStep() {
+    const P = POWERUPS.storm, left = this.boost.storm;
+    if (left <= 0) { if (this.minis.length) { this.minis = []; this.stormHit.clear(); } return; }
+    const t = P.secs - left, r = 0.6 + (P.reach - 0.6) * Math.abs(Math.sin((Math.PI * t) / P.period)), a0 = t * P.turn;
+    const dmg = critterFluff(P.dmg, this.layer, this.hazard), minis: { x: number; y: number }[] = [];
+    for (let i = 0; i < P.count; i++) {
+      const a = a0 + (i * 2 * Math.PI) / P.count, x = this.hx + Math.cos(a) * r, y = this.hy + Math.sin(a) * r;
+      minis.push({ x, y });
+      for (const c of this.grid.near(x, y, P.hitR + ELITE.size * 0.5, this.scratch)) {
+        if (c.fluff <= 0 || (this.stormHit.get(c.id) ?? 0) > this.t) continue;
+        const rr = P.hitR + critterRadius(c);
+        if ((c.x - x) ** 2 + (c.y - y) ** 2 > rr * rr) continue;
+        this.stormHit.set(c.id, this.t + P.every);
+        hurtCritter(this, c, dmg, this.hx, this.hy, {}, 0.3);
+      }
+    }
+    this.minis = minis;
+    this.sweep();
   }
 
   /** Takes n experience from a crystal (and counts n toward a haul). Every level it crosses queues a pick; the pick

@@ -1196,4 +1196,100 @@ test('saving: an abandoned save records its banked gold as bonked', () => {
   assert.equal(r.gold, 25); assert.equal(p.stats.bestLayer, 3); assert.deepEqual(r.unlocked, ['bomb']);
 });
 
+// ---- power-ups ----
+
+/** An open dive with a power-up of `id` lying 3 tiles right of the hero. */
+function withPower(id, o = {}) { const d = openDive(o); d.fluff = 50; d.powerups.push({ id, x: HX + 3, y: HY }); return d; }
+const walkOnto = d => { const ev = []; for (let i = 0; i < 90 && d.powerups.length; i++) ev.push(...d.step(R)); return ev; };
+
+test('power-ups: seven, each with a name, a weight and words, and an elite bonked drops one', () => {
+  assert.deepEqual(G.POWERUP_IDS, ['storm', 'vacuum', 'snack', 'sneeze', 'hourglass', 'zoomies', 'pouch']);
+  for (const id of G.POWERUP_IDS) assert.ok(G.POWERUPS[id].name && G.POWERUPS[id].text && G.POWERUPS[id].weight > 0, id);
+  const d = openDive(), e = d.spawn('soot', HX + 2, HY, true);
+  G.hurtCritter(d, e, 1e6, HX, HY, { buddy: true });
+  assert.equal(d.powerups.length, 1); assert.ok(G.POWERUP_IDS.includes(d.powerups[0].id));
+  assert.ok(d.events.some(ev => ev.k === 'drop'));
+  // a plain critter drops none
+  G.hurtCritter(d, d.spawn('soot', HX - 2, HY), 1e6, HX, HY, { buddy: true });
+  assert.equal(d.powerups.length, 1);
+});
+
+test('power-ups: a dug crate always drops one, about 1 in 80 other blocks does, the wyrm\'s digging none, and no more than 4 lie about', () => {
+  const d = openDive();
+  put(d, 35, 24, 'crate'); d.digBlock(35, 24);
+  assert.equal(d.powerups.length, 1);
+  d.powerups.length = 0;
+  let n = 0;
+  for (let i = 0; i < 4000; i++) { put(d, 36, 24, 'dirt'); d.digBlock(36, 24); n += d.powerups.length; d.powerups.length = 0; }
+  assert.ok(n > 25 && n < 80, `${n} drops from 4000 blocks`);
+  for (let i = 0; i < 400; i++) { put(d, 36, 24, 'dirt'); d.digBlock(36, 24, 0); }
+  assert.equal(d.powerups.length, 0);
+  for (let i = 0; i < 10; i++) d.drop(HX, HY + 3);
+  assert.equal(d.powerups.length, 4);
+});
+
+test('power-ups: drops come from their own Rand, so the layer\'s other draws are unchanged', () => {
+  const a = openDive(), b = openDive();
+  for (let i = 0; i < 50; i++) { put(b, 36, 24, 'dirt'); b.digBlock(36, 24); }
+  assert.equal(a.rand.next(), b.rand.next());
+});
+
+test('power-ups: walking over one takes it; a Snack heals 20 and a Gold Pouch pays 10 + 5 x hazard', () => {
+  const d = withPower('snack'), ev = walkOnto(d);
+  assert.equal(d.powerups.length, 0); assert.ok(ev.some(e => e.k === 'power' && e.id === 'snack'));
+  assert.equal(d.fluff, 70);
+  const g = withPower('pouch', { hazard: 3 }); walkOnto(g);
+  assert.equal(g.gold.layer, 25);
+});
+
+test('power-ups: Zoomies speeds moving and digging 50% for 8 s; the Hourglass freezes critters and their bumps for 5 s', () => {
+  const d = openDive(), s0 = d.stats();
+  d.usePowerup('zoomies');
+  assert.ok(near(d.stats().speed, s0.speed * 1.5) && near(d.stats().dig, s0.dig * 1.5));
+  run(d, Z, 8 * 60 + 1); assert.ok(near(d.stats().speed, s0.speed));
+  const h = openDive(); h.fluff = 100;
+  const c = h.spawn('soot', HX + 3, HY); h.usePowerup('hourglass');
+  run(h, Z, 60);
+  assert.equal(c.x, HX + 3);
+  c.x = HX; c.y = HY; run(h, Z, 30); assert.equal(h.fluff, 100, 'no bump while frozen');
+  run(h, Z, 5 * 60); assert.ok(h.fluff < 100, 'bumps again after');
+});
+
+test('power-ups: the Whisker Vacuum pulls a crystal from across the layer', () => {
+  const d = openDive(); d.crystals.push({ x: 5, y: 5, n: 1 });
+  d.usePowerup('vacuum'); run(d, Z, 3 * 60);
+  assert.equal(d.crystals.length, 0); assert.equal(d.xp, 1);
+});
+
+test('power-ups: the Big Sneeze takes half of each on-screen critter\'s Fluff (a fifth for elites) and dizzies it; off screen is untouched', () => {
+  const d = openDive();
+  const a = place(d, HX + 2, HY, 'beetle', 100), e = d.spawn('soot', HX - 2, HY, true), far = place(d, HX + 30, HY, 'beetle', 100);
+  e.fluff = e.max = 100;
+  d.usePowerup('sneeze');
+  assert.equal(a.fluff, 50); assert.equal(e.fluff, 80); assert.equal(far.fluff, 100);
+  assert.equal(a.stun, 2); assert.equal(far.stun, 0);
+});
+
+test('power-ups: the Boomerang Storm circles 8 minis out and back for 8 s, hitting critters they touch', () => {
+  const d = openDive(); d.critOff = true;
+  const c = place(d, HX + 2, HY, 'beetle', 1e6);
+  d.usePowerup('storm');
+  let hitN = 0, far = 0;
+  for (let i = 0; i < 8 * 60; i++) {
+    hitN += hits(hold(d, 1)).filter(h => h.id === c.id).length;
+    assert.equal(d.minis.length, 8);
+    far = Math.max(far, Math.hypot(d.minis[0].x - d.hx, d.minis[0].y - d.hy));
+  }
+  assert.ok(far > 3 && far <= 3.2 + 1e-9, `reach ${far}`);
+  assert.ok(hitN >= 4, `${hitN} hits`);
+  hold(d, 2); assert.equal(d.minis.length, 0);
+});
+
+test('power-ups: a new layer clears the floor and the timers', () => {
+  const d = new G.Dive({ seed: 3, hero: 'dora', hazard: 1, profile: {} });
+  d.powerups.push({ id: 'snack', x: 1, y: 1 }); d.usePowerup('storm');
+  d.startLayer(2);
+  assert.equal(d.powerups.length, 0); assert.equal(d.boost.storm, 0);
+});
+
 process.exitCode = failed ? 1 : 0;

@@ -5,13 +5,18 @@
 // plays at once and paints itself as the sheets land.
 import { drawChinchilla } from './chinchilla-art';
 import {
-  BLOCKS, CRITTER_ANIMS, CRYSTAL as CRYSTAL_FRAME, FX_ANIMS, HERO_ANIMS, WYRM_PARTS, caveArtReady, paintCaveBlock, paintCaveFloor,
-  paintCaveFrame, type CaveBlock,
+  BLOCKS, CRITTER_ANIMS, CRYSTAL as CRYSTAL_FRAME, FX_ANIMS, HERO_ANIMS, ICONS, WYRM_PARTS, caveArtReady, paintCaveBlock, paintCaveFloor,
+  paintCaveFrame, type CaveBlock, type CaveIcon,
 } from './glimmer-cave-paint';
 import {
   CLASS, CRITTERS, ELITE, JOBS, TINT, WYRM, WYRM_ID, tileAt,
-  type Block, type CaveEvent, type Critter, type CritterId, type Dive, type Hero, type Shot, type WeaponId,
+  type Block, type CaveEvent, type Critter, type CritterId, type Dive, type Hero, type PowerupId, type Shot, type WeaponId,
 } from './glimmer-cave-game';
+
+/** Each power-up wears the card icon it's kin to. */
+export const POWER_ICON: Record<PowerupId, CaveIcon> = {
+  storm: 'boomerang', vacuum: 'magnet', snack: 'snack', sneeze: 'puffer', hourglass: 'busy', zoomies: 'paws', pouch: 'prospector',
+};
 
 // ── View ───────────────────────────────────────────────────────────────────
 
@@ -180,6 +185,14 @@ export function addEvents(fx: Fx, events: CaveEvent[], calm: boolean) {
         }
       }
     } else if (e.k === 'level') fx.level = 0;
+    else if (e.k === 'power' && e.id === 'sneeze') {
+      // a ring of dust bursting out from the hero
+      for (let i = 0; i < 12 && fx.poofs.length < MAX_POOFS; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        fx.poofs.push({ x: e.x + Math.cos(a) * 1.6, y: e.y + Math.sin(a) * 1.6, t: 0, r: calm ? 0.4 : 0.8 });
+      }
+      if (!calm) fx.shake = Math.max(fx.shake, 5);
+    }
     else if (calm) continue;
     else if (e.k === 'hurt') fx.shake = Math.max(fx.shake, 4);
     else if (e.k === 'burst') fx.shake = Math.max(fx.shake, 3);
@@ -361,7 +374,9 @@ function drawPoof(c: CanvasRenderingContext2D, sx: number, sy: number, r: number
 /** A chinchilla: painted if the sheet is in, else `drawChinchilla`, flipped by its facing, flashing in grace. */
 function drawHero(c: CanvasRenderingContext2D, who: Hero, an: Anim, sx: number, sy: number, t: number, faceX: number, now: number, flash: boolean, hat: boolean, main = false) {
   const h = t * 0.95, mirror = faceX < 0;
-  c.fillStyle = 'rgba(20, 8, 30, 0.35)'; ellipse(c, sx, sy, t * 0.3, t * 0.1); c.fill();
+  // the foot shadow: a soft wide edge and a dark core, so it's plain where a hero stands, even right in front of a wall
+  c.fillStyle = 'rgba(20, 8, 30, 0.3)'; ellipse(c, sx, sy, t * 0.4, t * 0.15); c.fill();
+  c.fillStyle = 'rgba(20, 8, 30, 0.45)'; ellipse(c, sx, sy, t * 0.27, t * 0.095); c.fill();
   if (flash && Math.floor(now / 80) % 2) return;
   const painted = paintCaveFrame(c, heroFrame(who, an, now), sx, sy, h, mirror);
   if (main) heroPainted = painted;
@@ -545,7 +560,7 @@ const put = (y: number, k: number, i: number, o: unknown) => {
   const it = items[used] ?? (items[used] = { y: 0, k: 0, i: 0, o: null });
   it.y = y; it.k = k; it.i = i; it.o = o; used++;
 };
-const K = { crystal: 0, critter: 1, ghost: 2, seg: 3, head: 4, buddy: 5, hero: 6, shot: 7, pod: 8, poof: 9, star: 10, chip: 11 };
+const K = { crystal: 0, critter: 1, ghost: 2, seg: 3, head: 4, buddy: 5, hero: 6, shot: 7, pod: 8, poof: 9, star: 10, chip: 11, power: 12, mini: 13 };
 const byY = (a: Item, b: Item) => a.y - b.y;
 
 /**
@@ -594,6 +609,7 @@ export function drawDive(c: CanvasRenderingContext2D, d: Dive, v: View, fx: Fx, 
   put(d.hy, K.hero, 0, null);
   for (const s of d.shots) if (inView(s.x, s.y) && s.k !== 'patch' && s.k !== 'bramble' && s.k !== 'ring' && s.k !== 'splash' && s.k !== 'burst' && s.k !== 'thump') put(s.y, K.shot, 0, s);
   if (d.pod) put(d.pod.y, K.pod, 0, d.pod);
+  for (const p of d.minis) put(p.y, K.mini, 0, p);
   for (const p of fx.poofs) put(p.y, K.poof, 0, p);
   for (const p of fx.stars) put(p.y, K.star, 0, p);
   for (const p of fx.chips) put(p.y, K.chip, 0, p);
@@ -623,6 +639,8 @@ export function drawDive(c: CanvasRenderingContext2D, d: Dive, v: View, fx: Fx, 
         if (paintCaveFrame(c, frames[Math.min(frames.length - 1, Math.floor((p.t / FX_LIFE.star) * frames.length))], sx, sy - t * 0.4 - p.t * t, t * 0.5)) { c.globalAlpha = 1; return; } c.fillStyle = '#ffe26a'; star(c, sx, sy - t * 0.6 - p.t * t, t * 0.18); c.globalAlpha = 1; return;
       }
       case K.chip: { const p = it.o as Fx['chips'][number]; c.fillStyle = p.c; c.fillRect(sx - 2, sy - t * 0.3, 4, 3); return; }
+      case K.power: drawPowerup(c, (it.o as { id: PowerupId }).id, sx, sy, t, calm ? 0 : now); return;
+      case K.mini: drawMini(c, sx, sy, t, now); return;
     }
   };
   while (n < list.length && list[n].y < y0) drawItem(list[n++]);
@@ -660,6 +678,10 @@ export function drawDive(c: CanvasRenderingContext2D, d: Dive, v: View, fx: Fx, 
   };
   for (const i of lit) glow(m.props[i].x + 0.5, m.props[i].y + 0.5, JOBS.lanterns.pool * t, 0.3);
   if (d.pod && !d.pod.reached) glow(d.pod.x, d.pod.y - 0.6, t * 1.6, 0.35);
+  // power-ups shine through the dark so they can be spotted from the lamp's edge
+  for (const p of d.powerups) if (inView(p.x, p.y)) { glow(p.x, p.y - 0.4, t * 0.9, 0.35); drawItem({ y: p.y, k: K.power, i: 0, o: p }); }
+  // the Hourglass's frost over everything while it runs
+  if (d.boost.hourglass > 0) { c.fillStyle = `rgba(150, 200, 255, ${Math.min(0.14, d.boost.hourglass * 0.1)})`; c.fillRect(0, 0, v.w, v.h); }
 
   // 4. The rumble ring: the telegraph's warning edge, then the shockwave.
   if (w && !w.bonked && w.under <= 0) {
@@ -703,6 +725,23 @@ export function drawDive(c: CanvasRenderingContext2D, d: Dive, v: View, fx: Fx, 
 }
 
 /** An arrow at the screen's edge toward the pod while it's off screen. */
+/** A power-up on the floor: its icon bobbing over a shadow, or a plum disc with a plus until the icons sheet is in. */
+function drawPowerup(c: CanvasRenderingContext2D, id: PowerupId, sx: number, sy: number, t: number, now: number) {
+  const bob = Math.sin(now / 260) * t * 0.06, px = t * 0.62;
+  c.fillStyle = 'rgba(20, 8, 30, 0.35)'; ellipse(c, sx, sy, t * 0.24, t * 0.09); c.fill();
+  if (paintCaveFrame(c, ICONS[POWER_ICON[id]], sx, sy - t * 0.12 + bob, px)) return;
+  c.fillStyle = '#6a3ad0'; c.strokeStyle = '#ffe27a'; c.lineWidth = 2; ellipse(c, sx, sy - t * 0.38 + bob, t * 0.24, t * 0.24); c.fill(); c.stroke();
+  c.fillStyle = '#ffe27a'; c.fillRect(sx - t * 0.12, sy - t * 0.4 + bob, t * 0.24, t * 0.05); c.fillRect(sx - t * 0.025, sy - t * 0.52 + bob, t * 0.05, t * 0.24);
+}
+
+/** A Boomerang Storm mini: the boomerang icon small and spinning, or a twig. */
+function drawMini(c: CanvasRenderingContext2D, sx: number, sy: number, t: number, now: number) {
+  c.save(); c.translate(sx, sy - t * 0.35); c.rotate(now / 70);
+  const ok = paintCaveFrame(c, ICONS.boomerang, 0, t * 0.23, t * 0.46);
+  if (!ok) { c.strokeStyle = '#7a4e26'; c.lineWidth = 3; c.beginPath(); c.moveTo(-t * 0.21, 0); c.lineTo(0, -t * 0.09); c.lineTo(t * 0.21, 0); c.stroke(); }
+  c.restore();
+}
+
 function podArrow(c: CanvasRenderingContext2D, v: View, x: number, y: number, now: number) {
   const [px, py] = toScreen(v, x, y), pad = 28;
   if (px > pad && px < v.w - pad && py > pad && py < v.h - pad) return;
@@ -780,6 +819,7 @@ export function drawMinimap(c: CanvasRenderingContext2D, d: Dive, w: number, h: 
   }
   const y = d.wyrm;
   if (y && !y.bonked && y.under <= 0) { const [x, yy] = at(y.x, y.y); miniWyrm(c, x, yy); }
+  for (const p of d.powerups) { const [x, yy] = at(p.x, p.y); miniPower(c, x, yy); }
   if (d.pod && !d.pod.reached) {
     const [x, yy] = at(d.pod.x, d.pod.y), r = 8 + pulse * 3;
     c.strokeStyle = '#1a0c22'; c.lineWidth = 4; c.beginPath(); c.arc(x, yy, r, 0, TAU); c.stroke();
@@ -827,6 +867,12 @@ function miniPod(c: CanvasRenderingContext2D, x: number, y: number) {
   c.beginPath(); c.moveTo(x - 4, y + 4); c.lineTo(x - 5.5, y + 6); c.lineTo(x + 5.5, y + 6); c.lineTo(x + 4, y + 4); c.closePath(); ink(c, '#c98a2a');
   c.beginPath(); c.ellipse(x, y, 3.8, 5.5, 0, 0, TAU); ink(c, '#ffd25a');
   c.fillStyle = '#6ebeff'; c.beginPath(); c.arc(x, y - 1.2, 1.5, 0, TAU); c.fill();
+}
+
+/** A power-up: a purple disc with a gold plus. */
+function miniPower(c: CanvasRenderingContext2D, x: number, y: number) {
+  c.beginPath(); c.arc(x, y, 4.5, 0, TAU); ink(c, '#8a5af0');
+  c.fillStyle = '#ffe27a'; c.fillRect(x - 2.5, y - 0.75, 5, 1.5); c.fillRect(x - 0.75, y - 2.5, 1.5, 5);
 }
 
 /** The hero: a white chinchilla head, round ears up. */
