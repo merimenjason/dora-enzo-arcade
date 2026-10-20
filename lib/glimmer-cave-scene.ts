@@ -727,8 +727,10 @@ export function drawStick(c: CanvasRenderingContext2D, ox: number, oy: number, k
 const MINI: Record<Exclude<Block, 'floor'>, [number, number, number]> = {
   dirt: [122, 82, 50], gold: [214, 168, 60], bedrock: [40, 30, 46], crate: [110, 190, 255], lantern: [255, 170, 80],
 };
-/** The tiles drawn one pixel each, rebuilt only when a block is dug or the layer changes. */
-const mini: { canvas: HTMLCanvasElement | null; tiles: Block[] | null; solid: number; lit: number } = { canvas: null, tiles: null, solid: -1, lit: -1 };
+/** The tiles drawn one pixel each, rebuilt only when a block is dug or the layer changes, and the crates and lanterns
+ *  found while drawing them, which get markers on top. */
+const mini: { canvas: HTMLCanvasElement | null; tiles: Block[] | null; solid: number; lit: number; marks: { b: 'crate' | 'lantern'; x: number; y: number; lit: boolean }[] } =
+  { canvas: null, tiles: null, solid: -1, lit: -1, marks: [] };
 
 function miniTiles(d: Dive): HTMLCanvasElement | null {
   const m = d.map, lit = d.job?.id === 'lanterns' ? d.job.lit ?? [] : [];
@@ -742,13 +744,16 @@ function miniTiles(d: Dive): HTMLCanvasElement | null {
   if (!c) return null;
   const img = c.createImageData(m.w, m.h), n = parseInt(TINT[d.layer].slice(1), 16);
   const floor: [number, number, number] = [((n >> 16) & 255) * 0.6 + 60, ((n >> 8) & 255) * 0.6 + 50, (n & 255) * 0.6 + 70];
-  const litAt = new Set(lit.map((i) => m.props[i].y * m.w + m.props[i].x));
+  const litAt = new Set(lit.map((i) => m.props[i].y * m.w + m.props[i].x)), marks: typeof mini.marks = [];
   for (let i = 0; i < m.tiles.length; i++) {
-    const b = m.tiles[i], rgb = b === 'floor' ? floor : b === 'lantern' && litAt.has(i) ? MINI.gold : MINI[b];
+    const b = m.tiles[i];
+    if (b === 'crate' || b === 'lantern') marks.push({ b, x: (i % m.w) + 0.5, y: Math.floor(i / m.w) + 0.5, lit: litAt.has(i) });
+    // crates sit in rock and lanterns on it, so their tiles read as dirt under their markers
+    const rgb = b === 'floor' ? floor : b === 'crate' || b === 'lantern' ? MINI.dirt : MINI[b];
     img.data[i * 4] = rgb[0]; img.data[i * 4 + 1] = rgb[1]; img.data[i * 4 + 2] = rgb[2]; img.data[i * 4 + 3] = 255;
   }
   c.putImageData(img, 0, 0);
-  Object.assign(mini, { canvas: cv, tiles: m.tiles, solid, lit: lit.length });
+  Object.assign(mini, { canvas: cv, tiles: m.tiles, solid, lit: lit.length, marks });
   return cv;
 }
 
@@ -764,28 +769,70 @@ export function drawMinimap(c: CanvasRenderingContext2D, d: Dive, w: number, h: 
   // what the lamp shows: the stage's window around the hero
   const [vx, vy] = at(d.hx - d.view.w / 2, d.hy - d.view.h / 2);
   c.strokeStyle = 'rgba(255, 240, 220, 0.5)'; c.lineWidth = 1; c.strokeRect(vx, vy, d.view.w * k, d.view.h * k);
+  // markers are a fixed size whatever the map's scale, each outlined in plum so it stands off the blocks
+  c.lineJoin = 'round';
+  for (const p of mini.marks) { const [x, y] = at(p.x, p.y); if (p.b === 'crate') miniCrate(c, x, y); else miniLantern(c, x, y, p.lit); }
   for (const cr of d.critters) {
     if (!cr.elite && cr.id !== d.bigId) continue;
-    const [x, y] = at(cr.x, cr.y);
-    c.fillStyle = '#ff6a5a'; c.beginPath(); c.arc(x, y, Math.max(1.5, k * 0.8), 0, TAU); c.fill();
+    const [x, y] = at(cr.x, cr.y), big = cr.id === d.bigId;
+    miniStar(c, x, y, big ? 7 + pulse : 5.5);
   }
   const y = d.wyrm;
-  if (y && !y.bonked && y.under <= 0) {
-    const [x, yy] = at(y.x, y.y);
-    c.fillStyle = '#9ad06a'; c.strokeStyle = '#1a0c22'; c.lineWidth = 1;
-    c.beginPath(); c.arc(x, yy, Math.max(2.5, k * 1.6), 0, TAU); c.fill(); c.stroke();
-  }
+  if (y && !y.bonked && y.under <= 0) { const [x, yy] = at(y.x, y.y); miniWyrm(c, x, yy); }
   if (d.pod && !d.pod.reached) {
-    const [x, yy] = at(d.pod.x, d.pod.y);
-    // outlined in plum, so it stands apart from gold blocks
-    const r = Math.max(3, k * 1.4) + pulse * 2;
+    const [x, yy] = at(d.pod.x, d.pod.y), r = 8 + pulse * 3;
     c.strokeStyle = '#1a0c22'; c.lineWidth = 4; c.beginPath(); c.arc(x, yy, r, 0, TAU); c.stroke();
     c.strokeStyle = '#ffd25a'; c.lineWidth = 2; c.beginPath(); c.arc(x, yy, r, 0, TAU); c.stroke();
-    c.fillStyle = '#ffd25a'; c.beginPath(); c.arc(x, yy, Math.max(1.5, k * 0.7), 0, TAU); c.fill();
+    miniPod(c, x, yy);
   }
   const [hx, hy] = at(d.hx, d.hy);
-  c.fillStyle = '#ffffff'; c.strokeStyle = '#1a0c22'; c.lineWidth = 1.5;
-  c.beginPath(); c.arc(hx, hy, Math.max(2.5, k * 1.1) + pulse * 0.6, 0, TAU); c.fill(); c.stroke();
+  miniHero(c, hx, hy);
+}
+
+const PLUM = '#1a0c22';
+/** Fills and outlines the current path. */
+function ink(c: CanvasRenderingContext2D, fill: string, line = 1.5) { c.fillStyle = fill; c.strokeStyle = PLUM; c.lineWidth = line; c.fill(); c.stroke(); }
+
+/** A crystal crate: a blue box with a lid line. */
+function miniCrate(c: CanvasRenderingContext2D, x: number, y: number) {
+  c.beginPath(); c.rect(x - 3.5, y - 3.5, 7, 7); ink(c, '#6ebeff');
+  c.strokeStyle = '#e8f6ff'; c.lineWidth = 1; c.beginPath(); c.moveTo(x - 2, y - 1); c.lineTo(x + 2, y - 1); c.stroke();
+}
+
+/** A lantern: a handle and a rounded body, pale glass until it's lit, then gold with a glow. */
+function miniLantern(c: CanvasRenderingContext2D, x: number, y: number, lit: boolean) {
+  if (lit) { c.fillStyle = 'rgba(255, 220, 120, 0.45)'; c.beginPath(); c.arc(x, y, 6.5, 0, TAU); c.fill(); }
+  c.strokeStyle = PLUM; c.lineWidth = 3; c.beginPath(); c.arc(x, y - 3.5, 2, Math.PI, 0); c.stroke();
+  c.strokeStyle = lit ? '#ffd25a' : '#e8dcc8'; c.lineWidth = 1; c.beginPath(); c.arc(x, y - 3.5, 2, Math.PI, 0); c.stroke();
+  c.beginPath(); c.roundRect(x - 3, y - 3, 6, 7, 2); ink(c, lit ? '#ffd25a' : '#e8dcc8');
+  c.fillStyle = PLUM; c.fillRect(x - 0.5, y - 1.5, 1, 4);
+}
+
+/** An elite: a red five-point star. */
+function miniStar(c: CanvasRenderingContext2D, x: number, y: number, r: number) {
+  c.beginPath();
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, q = i % 2 ? r * 0.45 : r; c.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q); }
+  c.closePath(); ink(c, '#ff5a4a');
+}
+
+/** The wyrm's head: a green dome with two eyes. */
+function miniWyrm(c: CanvasRenderingContext2D, x: number, y: number) {
+  c.beginPath(); c.ellipse(x, y, 6.5, 5.5, 0, 0, TAU); ink(c, '#9ad06a');
+  c.fillStyle = PLUM; for (const s of [-1, 1]) { c.beginPath(); c.arc(x + s * 2.4, y - 0.8, 1.2, 0, TAU); c.fill(); }
+}
+
+/** The drop pod: a gold capsule with a window and two fins. */
+function miniPod(c: CanvasRenderingContext2D, x: number, y: number) {
+  c.beginPath(); c.moveTo(x - 4, y + 4); c.lineTo(x - 5.5, y + 6); c.lineTo(x + 5.5, y + 6); c.lineTo(x + 4, y + 4); c.closePath(); ink(c, '#c98a2a');
+  c.beginPath(); c.ellipse(x, y, 3.8, 5.5, 0, 0, TAU); ink(c, '#ffd25a');
+  c.fillStyle = '#6ebeff'; c.beginPath(); c.arc(x, y - 1.2, 1.5, 0, TAU); c.fill();
+}
+
+/** The hero: a white chinchilla head, round ears up. */
+function miniHero(c: CanvasRenderingContext2D, x: number, y: number) {
+  for (const s of [-1, 1]) { c.beginPath(); c.arc(x + s * 3.2, y - 3.6, 2.4, 0, TAU); ink(c, '#ffffff'); }
+  c.beginPath(); c.arc(x, y, 4.2, 0, TAU); ink(c, '#ffffff');
+  c.fillStyle = PLUM; for (const s of [-1, 1]) { c.beginPath(); c.arc(x + s * 1.6, y - 0.5, 0.8, 0, TAU); c.fill(); }
 }
 
 // ── The title ──────────────────────────────────────────────────────────────

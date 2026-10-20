@@ -883,8 +883,9 @@ Eighty stages in eight chapters, each stage worth up to three stars (cleared, no
   - At weapon levels 5 and 10, the card is a choice of two overclocks instead.
 - **Jobs:** each of layers 1–4 has a job: a crystal haul, dig out three crates, light three lanterns, or bonk the big one.
 - **The pod:** when a layer's timer runs out, the pod lands 12–20 tiles away. Reach it within 45 s to bank the layer's gold and descend.
-- **Mini-map:** the top-right corner maps the whole layer: tunnels, rock, gold, crates and lanterns (gold once lit), with the hero, the screen's window, elites, the surfaced wyrm and the landed pod.
+- **Mini-map:** the top-right corner maps the whole layer's tunnels, rock and gold, with a frame for the screen. Symbols mark the points of interest: a white chinchilla head for you, blue crates, lanterns (pale, gold once lit), red stars for elites (a bigger one for the big one), the wyrm's green head, and the landed pod as a gold capsule in a pulsing ring.
 - **Icons:** every level-up card, camp upgrade and weapon slot shows its painted icon; an overclock card shows its weapon with a spark badge.
+- **Weapon slots:** under each weapon a bar of 12 steps fills to its level; the purple diamonds at levels 5 and 10 are its overclock picks, filled once taken.
 - **Layer 5:** the grumpy Rock Wyrm bursts out of the rock at 3:00. Bonk its head (its body blocks shots), step out of its rumbling rings, and the pod comes for the last run.
 - **Getting bonked:** you keep the gold already banked, plus half the layer's.
 - **Camp:** gold buys eight upgrades. Fluffier, Sharper, Quicker, Diggier, Magnetic and Prospector go to level 5; Rerolls and Head start go to level 3.
