@@ -1,0 +1,361 @@
+{
+  "image": "public/art/cave-survival/icons-v1.png",
+  "grid": [
+    6,
+    4
+  ],
+  "cell": [
+    256,
+    256
+  ],
+  "size": [
+    1536,
+    1024
+  ],
+  "mode": "RGBA",
+  "alpha_max": 254,
+  "alpha_zero_pixels": 742963,
+  "measurement": "connected pieces at alpha > 128 (>= 30 px), each assigned to the cell holding its centre",
+  "status": "pass",
+  "problems": [
+    "row 4: frame heights range 145\u2013219 px; check the poses by eye"
+  ],
+  "frames": [
+    {
+      "row": 1,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        62,
+        58,
+        253,
+        257
+      ],
+      "width": 191,
+      "height": 199,
+      "overhang_px": 1
+    },
+    {
+      "row": 1,
+      "column": 2,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        60,
+        74,
+        250,
+        253
+      ],
+      "width": 190,
+      "height": 179,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 3,
+      "pieces": 8,
+      "bounds_local_exclusive": [
+        41,
+        89,
+        230,
+        255
+      ],
+      "width": 189,
+      "height": 166,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 4,
+      "pieces": 2,
+      "bounds_local_exclusive": [
+        26,
+        44,
+        243,
+        264
+      ],
+      "width": 217,
+      "height": 220,
+      "overhang_px": 8
+    },
+    {
+      "row": 1,
+      "column": 5,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        26,
+        55,
+        228,
+        260
+      ],
+      "width": 202,
+      "height": 205,
+      "overhang_px": 4
+    },
+    {
+      "row": 1,
+      "column": 6,
+      "pieces": 5,
+      "bounds_local_exclusive": [
+        0,
+        81,
+        225,
+        245
+      ],
+      "width": 225,
+      "height": 164,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        42,
+        53,
+        260,
+        239
+      ],
+      "width": 218,
+      "height": 186,
+      "overhang_px": 4
+    },
+    {
+      "row": 2,
+      "column": 2,
+      "pieces": 6,
+      "bounds_local_exclusive": [
+        47,
+        56,
+        247,
+        233
+      ],
+      "width": 200,
+      "height": 177,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 3,
+      "pieces": 2,
+      "bounds_local_exclusive": [
+        51,
+        32,
+        244,
+        244
+      ],
+      "width": 193,
+      "height": 212,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 4,
+      "pieces": 2,
+      "bounds_local_exclusive": [
+        17,
+        53,
+        247,
+        238
+      ],
+      "width": 230,
+      "height": 185,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 5,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        23,
+        57,
+        228,
+        242
+      ],
+      "width": 205,
+      "height": 185,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 6,
+      "pieces": 9,
+      "bounds_local_exclusive": [
+        24,
+        51,
+        221,
+        246
+      ],
+      "width": 197,
+      "height": 195,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        43,
+        24,
+        254,
+        223
+      ],
+      "width": 211,
+      "height": 199,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 2,
+      "pieces": 3,
+      "bounds_local_exclusive": [
+        39,
+        49,
+        254,
+        204
+      ],
+      "width": 215,
+      "height": 155,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 3,
+      "pieces": 7,
+      "bounds_local_exclusive": [
+        44,
+        29,
+        264,
+        210
+      ],
+      "width": 220,
+      "height": 181,
+      "overhang_px": 8
+    },
+    {
+      "row": 3,
+      "column": 4,
+      "pieces": 2,
+      "bounds_local_exclusive": [
+        47,
+        25,
+        237,
+        217
+      ],
+      "width": 190,
+      "height": 192,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 5,
+      "pieces": 2,
+      "bounds_local_exclusive": [
+        49,
+        18,
+        215,
+        222
+      ],
+      "width": 166,
+      "height": 204,
+      "overhang_px": 0
+    },
+    {
+      "row": 3,
+      "column": 6,
+      "pieces": 2,
+      "bounds_local_exclusive": [
+        -5,
+        18,
+        224,
+        232
+      ],
+      "width": 229,
+      "height": 214,
+      "overhang_px": 5
+    },
+    {
+      "row": 4,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        41,
+        -7,
+        249,
+        209
+      ],
+      "width": 208,
+      "height": 216,
+      "overhang_px": 7
+    },
+    {
+      "row": 4,
+      "column": 2,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        42,
+        -13,
+        257,
+        206
+      ],
+      "width": 215,
+      "height": 219,
+      "overhang_px": 13
+    },
+    {
+      "row": 4,
+      "column": 3,
+      "pieces": 4,
+      "bounds_local_exclusive": [
+        32,
+        5,
+        249,
+        207
+      ],
+      "width": 217,
+      "height": 202,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 4,
+      "pieces": 3,
+      "bounds_local_exclusive": [
+        28,
+        18,
+        243,
+        197
+      ],
+      "width": 215,
+      "height": 179,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 5,
+      "pieces": 3,
+      "bounds_local_exclusive": [
+        23,
+        0,
+        222,
+        206
+      ],
+      "width": 199,
+      "height": 206,
+      "overhang_px": 0
+    },
+    {
+      "row": 4,
+      "column": 6,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        -7,
+        41,
+        221,
+        186
+      ],
+      "width": 228,
+      "height": 145,
+      "overhang_px": 7
+    }
+  ]
+}

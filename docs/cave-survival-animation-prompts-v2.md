@@ -342,6 +342,15 @@ Retry note: `An icon is missing, in the wrong cell, sits on a disc or frame, or 
 
 (Add one entry per generated sheet: file, check status, and any frame that's wrong by eye.)
 
+- **Card and upgrade icons** (20-10-2026): `public/art/cave-survival/icons-v1.png` and retry `icons-v2.png` both **pass the script, fail the exact-object visual review**. All 24 cells of each were checked against section 10. Nothing is missing or displaced; no text/letters/numbers or backing disc/frame/card/tile was found. Bold silhouettes generally read when mentally reduced to 48 px; v2's acorn-shaped Dust Puffer is ambiguous as a cloth bellows. Exact section 10 prompt used with FX, SPRITES, ENZO in that order; v2 appends only its Retry note. Both PNGs are unmodified with their original review JSONs. **Stopped after the single retry.**
+
+  | Row | V1 matching cells / wrong cells | V2 matching cells / wrong cells |
+  | --- | --- | --- |
+  | 1 weapons | C1–4 and C6 match; C5 adds a brown handle to the crystal, reading as a sword instead of one bare shard. | C1–4 match; C5 still has a brown handle; C6 substitutes an acorn-shaped bellows body for the requested cloth bellows. |
+  | 2 weapons | C2–6 match; C1 is a readable twig boomerang but has three leaves rather than two. C3 also has an extra paw-print motif. | C2–6 match; C1 still has three leaves rather than two. |
+  | 3 passives | C1–6 match their requested icon concepts. | C1, C4–6 match; C2 has three speed swooshes rather than two; C3 has four blue crystal pieces rather than three. |
+  | 4 passives/camp | C1–6 match: tail/clover, fur-trimmed shield, gold sack, two dice, sprout-arrow and raisin/seed/leaf. | C1–6 match the same six concepts and are readable. |
+
 - **Enzo digging, round 2** (20-10-2026): `public/art/cave-survival/enzo-dig-v3.png` **script pass, eye fail** (acorns at the chest in DONE cells 4 and 8). Retry `enzo-dig-v4.png` **script pass, eye pass** under section 9's gates: no acorn, no tool, all right-facing, with distinct RAISE/SLAM/FLING outlines in both rows. V4's row-height warning is consistent with the deliberately different poses. In both versions, FLING's paws stay nearer the chest/front than the requested sweep under the belly, though the upright tail and backward dirt clearly distinguish its outline. Size differences from ENZO were not treated as failures. Built-in generation used the section 9 prompt verbatim and **ENZO as the only input image**; v4 adds only section 9's Retry note. Both PNGs are saved unmodified with review JSONs; no prior sheet was touched.
 
   | Cell | Pose | V3 acorn | V4 acorn | Facing, both versions | Outline check, both versions |

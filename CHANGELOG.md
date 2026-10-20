@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Documentation
 
+- **Cave-survival concept**: generated the 24 card and upgrade icons and one retry, with automated checks and row-by-row visual reviews. Both pass the layout check; crystal, bellows and small detail mismatches remain flagged. The original sheets are preserved without image processing.
 - **Cave-survival concept**: generated Enzo's paw-digging sheet attempts with automated checks and per-cell visual reviews. Revised v4 passes the layout and visual gates with empty paws, right-facing poses and distinct raise/slam/fling outlines; v1–v3 remain unmodified for comparison, with their failures recorded.
 - **Cave-survival concept**: generated two head-only Rock Wyrm sheet attempts with frame checks and visual reviews. Both pass the automated layout check; head isolation, expression and cell-clearance issues remain flagged for review. Accepted environment, floor and body pieces are unchanged.
 
