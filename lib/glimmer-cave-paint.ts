@@ -99,7 +99,9 @@ export function frameCanvas(key: string, px: number, dpr: number): HTMLCanvasEle
 }
 
 /** The context's device px per px, as the page's transform sets it. */
-const dprOf = (c: CanvasRenderingContext2D) => Math.abs(c.getTransform().a) || 1;
+/** The context's scale, read so a rotation doesn't shrink it (a frame drawn turned is still cached at full resolution),
+ *  and rounded so a turn's float error doesn't miss the cache. */
+const dprOf = (c: CanvasRenderingContext2D) => { const m = c.getTransform(); return Math.round(Math.hypot(m.a, m.b) * 100) / 100 || 1; };
 
 /**
  * Frame `key` with its subject `heightPx` tall (blocks, props and effects: wide), its anchor (the feet's middle; an

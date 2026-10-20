@@ -214,7 +214,7 @@ test('loader: no Image means no request (the server render)', () => {
 /** A canvas context that records calls, with a device scale of `dpr`. */
 function context(dpr = 1) {
   const calls = [];
-  const c = { calls, globalAlpha: 1, getTransform: () => ({ a: dpr, d: dpr, e: 0, f: 0 }) };
+  const c = { calls, globalAlpha: 1, getTransform: () => ({ a: dpr, b: 0, c: 0, d: dpr, e: 0, f: 0 }) };
   for (const k of ['drawImage', 'save', 'restore', 'translate', 'scale', 'fillRect']) c[k] = (...a) => calls.push([k, ...a]);
   return c;
 }
@@ -270,6 +270,12 @@ test('loader: one request per file, failures, Retry, stale callbacks and wrong s
     assert.deepEqual(flipped.ctx.calls[1].slice(1), [-1, 1]);
     assert.equal(A.frameCanvas('nope:1:1', 48, 1), null);
     assert.equal(A.frameCanvas('enzo:1:1', 0, 1), null);
+    // a rotated context still caches at its device scale (a spinning boomerang or acorn at a quarter turn on a 2x screen)
+    for (const [ca, cb] of [[0, 2], [Math.SQRT2, Math.SQRT2]]) {
+      const r = context(); r.getTransform = () => ({ a: ca, b: cb, c: -cb, d: ca, e: 0, f: 0 });
+      A.paintCaveFrame(r, 'enzo:1:1', 0, 0, 48);
+      assert.equal(r.calls.at(-1)[1], k1, `scale (${ca}, ${cb}) draws the 2x canvas`);
+    }
 
     // the anchor (mid, foot) lands on (x, footY); mirroring turns the picture about it
     c.calls.length = 0;
