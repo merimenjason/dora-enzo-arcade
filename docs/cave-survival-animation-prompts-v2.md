@@ -33,6 +33,7 @@ All paths are in this repository on `codex/cave-survival-style-art`; nothing is 
 | 7 | Rock Wyrm heads | 2 × 2 | `wyrm-heads-v1.png` (section 7) | `… 2 2 docs/cave-survival-wyrm-heads-review-v1.json` |
 | 8 | Enzo digging | 4 × 2 | `enzo-dig-v1.png` (section 8) | `… 4 2 docs/cave-survival-enzo-dig-review-v1.json` |
 | 9 | Enzo digging, round 2 | 4 × 2 | `enzo-dig-v3.png` (section 9) | `… 4 2 docs/cave-survival-enzo-dig-review-v3.json` |
+| 10 | Card and upgrade icons | 6 × 4 | `icons-v1.png` (section 10) | `… 6 4 docs/cave-survival-icons-review-v1.json` |
 
 Outputs go in `public/art/cave-survival/`.
 
@@ -282,6 +283,58 @@ Genuine alpha-zero transparency outside Enzo and the clods. No ground, hole, gro
 ```
 
 Retry note: `An acorn appears, or the RAISE, SLAM and FLING cells look alike: no acorn anywhere and empty paws in every cell; make RAISE tall with one paw up by his cheek, SLAM long and low with his chin near the ground, and FLING leaning back with his tail straight up and dirt flying behind him.`
+
+---
+
+## 10 · Card and upgrade icons
+
+Written by Claude Code on 20-10-2026. The level-up cards, the camp upgrades and the weapon slots are text only. One small painted icon per thing gives each card a picture. The camp upgrades reuse the matching passive's icon (Fluffier = Thick Fluff, Sharper = Sharp Claws, Quicker = Quick Paws, Diggier = Strong Arms, Magnetic = Magnet Whiskers), and overclocks reuse their weapon's icon with a badge drawn in code, so 24 icons cover everything. Output `icons-v1.png`, retry `icons-v2.png`.
+
+Inputs: FX `public/art/cave-survival/fx-animation-v2.png` (the painted acorns, crystals, dust and rings to match), SPRITES (the crystal, gold block and chinchillas' designs), ENZO (style, outline and palette).
+
+Check: `python3 scripts/cave-frame-review.py public/art/cave-survival/icons-v1.png 6 4 docs/cave-survival-icons-review-v1.json`. Also check by eye: **every cell holds its own object in the listed order, each still reads when shrunk to 48 px, and no cell has text, a frame or a backdrop.**
+
+```
+Create an icon sheet for a cosy cave game: a transparent 1536 × 1024 PNG with 6 columns × 4 rows of equal 256 × 256 cells, one icon centred in each cell.
+
+Each icon is ONE bold, simple object, about 170 px across, painted in the same soft gouache with thin dark-plum outlines as images 1–3, seen from slightly above, with a warm light from the top left. Chunky shapes and a clear silhouette: each must still read when shrunk to 48 px. Friendly and cute, never scary. No chinchilla bodies or faces, unless a cell says so: paws and tails only where named.
+
+Cells, left to right, top to bottom:
+Row 1 (weapons):
+1 Acorn Sling: a small wooden Y-slingshot with an acorn in its pouch.
+2 Pickaxe Bonk: a tiny pickaxe with a wooden handle and grey head, tilted mid-swing.
+3 Pebble Popper: a round grey pebble flying in an arc with a little cream splash puff under it.
+4 Lantern Pulse: a small brass lantern glowing warm yellow with one soft ring around it.
+5 Crystal Lance: one long pointed blue crystal shard, like image 2's crystal, angled up-right.
+6 Dust Puffer: a little cloth bellows puffing a cream dust cloud.
+Row 2 (weapons):
+1 Twig Boomerang: a bent twig boomerang with two small leaves.
+2 Seed Orbit: three sunflower seeds circling a small dot, in a ring.
+3 Burrow Bomb: a round brown clay bomb with a short lit fuse and a tiny spark.
+4 Glow Moths: two small round fuzzy moths with glowing pale-yellow wings.
+5 Rumble Drum: a small round wooden drum with a stick resting on it.
+6 Pebble Drill: a spinning cone-shaped stone drill bit with spiral grooves.
+Row 3 (passives):
+1 Thick Fluff: a big round puff of soft grey chinchilla fur with a small pink heart on it.
+2 Quick Paws: one pink-padded chinchilla paw print with two little speed swooshes.
+3 Magnet Whiskers: a red horseshoe magnet with three blue crystals drawn toward it.
+4 Sharp Claws: a chinchilla paw with three small pale claws out, a tiny sparkle at one tip.
+5 Busy Paws: a little brass hourglass with sand running, a tiny spark beside it.
+6 Strong Arms: a small shovel stuck in a heap of brown dirt.
+Row 4 (passives, then camp):
+1 Lucky Tail: a fluffy grey chinchilla tail curled around a green four-leaf clover.
+2 Tough Coat: a round wooden shield with a soft fur trim.
+3 Prospector: a small cloth sack spilling gold nuggets.
+4 Rerolls: two cream dice with dark-plum pips, tumbling.
+5 Head start: a little green sprout arrow pointing up out of a dirt mound.
+6 Snack: a plump raisin and a sunflower seed on a tiny leaf.
+
+Every icon is the SAME size and weight and stays inside its own cell with at least 30 px of transparent space to every cell edge. Nothing touches a neighbouring cell.
+
+Genuine alpha-zero transparency outside the icons. No circle, badge, frame, card, tile, backdrop, ground shadow, glow halo, text, letters, numbers or grid.
+```
+
+Retry note: `An icon is missing, in the wrong cell, sits on a disc or frame, or reaches a cell edge: draw exactly the 24 objects in the listed order, each a single object alone on transparency, smaller, with clear space all round.`
 
 ---
 
