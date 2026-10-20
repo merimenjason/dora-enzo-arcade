@@ -46,6 +46,10 @@ SOURCES = {
     # docs/cave-survival-art.md, "Enzo v2 — Claude's review": accepted as the source sheet
     "enzo": {"src": "enzo-animation-v2.png", "grid": (6, 4), "anchor": "cell", "groups": [
         ("h", cells(R6, C6), [(1, c) for c in C6] + [(3, 1), (3, 2)])]},
+    # "Enzo digging, round 2": enzo-dig-v4 accepted, row 1 raise, slam, fling (done and row 2, a spare take, are unused). Sized
+    # by the raise frame, sitting up tall: drawn at the hero's height, its helmet matches the idle frame's width
+    "enzodig": {"src": "enzo-dig-v4.png", "grid": (4, 2), "anchor": "cell", "groups": [
+        ("h", cells([1], [1, 2, 3]), [(1, 1)])]},
     # "Round 1 sheets": accepted
     "dora": {"src": "dora-animation-v2.png", "grid": (6, 4), "anchor": "cell", "groups": [
         ("h", cells(R6, C6), [(1, c) for c in C6] + [(3, 1), (3, 2)])]},
@@ -87,6 +91,9 @@ FIX = {
     # (2:5), so no rectangle holds one without the other. The two crops meet at x = 1030: the strike loses the last
     # 14 px of faint dust, the recoil keeps its whole tail
     "dora:2:4": {"clip": [None, None, 1030, None]}, "dora:2:5": {"clip": [1030, None, None, None]},
+    # enzodig:1:2's slam clods end at x = 769 and 1:3's flung clods start there, so the two padded rects overlap by the
+    # padding alone; both crops meet on that line and neither loses paint
+    "enzodig:1:2": {"clip": [None, None, 769, None]}, "enzodig:1:3": {"clip": [769, None, None, None]},
     # dora:4:1's dig strike throws a dirt chip up and right from the pick, 4 px over the cell line, so by its centre it
     # would join the next frame; checked by eye, it flies from 4:1's dust tuft (4:2's chips fly from its own pick)
     "dora:4:1": {"claim": [(260, 908)]},
@@ -115,8 +122,8 @@ SEQUENCES = {
         "enzo": {
             "walk": row("enzo", 1, C6), "attack": row("enzo", 2, C6), "idle": row("enzo", 3, [1, 2]),
             "blink": "enzo:3:3", "flinch": "enzo:3:4", "dizzy": "enzo:3:5", "recover": "enzo:3:6",
-            # Enzo has no dig row: he digs with the throw's reach-and-wind-up, paws only (frames 2-3, before the acorn)
-            "dig": row("enzo", 2, [2, 3]), "cheer": row("enzo", 4, [5, 6]),
+            # his own sheet: raise, slam, fling, like a dog digging a hole
+            "dig": row("enzodig", 1, [1, 2, 3]), "cheer": row("enzo", 4, [5, 6]),
         },
         # Dora: row 1 walk, row 2 pickaxe bonk, row 3 as Enzo's, row 4 dig down, dig up, wipe brow, cheer, bounce, cheer
         "dora": {
@@ -156,8 +163,8 @@ def fallback_of(key):
     """The sprites-0 pose drawn while a frame's own sheet is missing; the wyrm, effects and plain blocks have none."""
     sheet, r, c = key.split(":")
     r, c = int(r), int(c)
-    if sheet in ("enzo", "dora"):
-        return "sprites:1:1" if sheet == "enzo" else "sprites:1:2"
+    if sheet in ("enzo", "enzodig", "dora"):
+        return "sprites:1:2" if sheet == "dora" else "sprites:1:1"
     if sheet == "critters":
         subject = r if r < 4 else (c + 1) // 2
         return ["sprites:1:3", "sprites:1:4", "sprites:2:1"][subject - 1]

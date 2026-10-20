@@ -16,6 +16,16 @@
    "w": 1536,
    "h": 1024
   },
+  "enzodig": {
+   "source": "enzo-dig-v4.png",
+   "grid": [
+    4,
+    2
+   ],
+   "sha256": "684598ae8f53bc383f6852e5348f05e5c0d994e6ae67a1277c8e2906bbe85574",
+   "w": 1536,
+   "h": 1024
+  },
   "dora": {
    "source": "dora-animation-v2.png",
    "grid": [
@@ -1058,6 +1068,42 @@
    "scale": 0.00536193,
    "flip": false
   },
+  "enzodig:1:1": {
+   "rect": [
+    44,
+    128,
+    287,
+    306
+   ],
+   "foot": 429,
+   "mid": 192.0,
+   "scale": 0.00342466,
+   "flip": false
+  },
+  "enzodig:1:2": {
+   "rect": [
+    386,
+    236,
+    383,
+    209
+   ],
+   "foot": 429,
+   "mid": 576.0,
+   "scale": 0.00342466,
+   "flip": false
+  },
+  "enzodig:1:3": {
+   "rect": [
+    769,
+    134,
+    366,
+    301
+   ],
+   "foot": 429,
+   "mid": 960.0,
+   "scale": 0.00342466,
+   "flip": false
+  },
   "fx:1:1": {
    "rect": [
     83,
@@ -1567,8 +1613,9 @@
     "dizzy": "enzo:3:5",
     "recover": "enzo:3:6",
     "dig": [
-     "enzo:2:2",
-     "enzo:2:3"
+     "enzodig:1:1",
+     "enzodig:1:2",
+     "enzodig:1:3"
     ],
     "cheer": [
      "enzo:4:5",
@@ -1811,6 +1858,9 @@
   "enzo:4:3": "sprites:1:1",
   "enzo:4:4": "sprites:1:1",
   "enzo:4:5": "sprites:1:1",
-  "enzo:4:6": "sprites:1:1"
+  "enzo:4:6": "sprites:1:1",
+  "enzodig:1:1": "sprites:1:1",
+  "enzodig:1:2": "sprites:1:1",
+  "enzodig:1:3": "sprites:1:1"
  }
 }

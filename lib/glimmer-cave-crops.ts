@@ -3,11 +3,12 @@
 // at `px` tall (blocks, props and effects: `px` wide), with (mid, foot) on the anchor point.
 import type { Block, CritterId, Hero } from './glimmer-cave-data.js';
 
-export type CaveSheet = 'enzo' | 'dora' | 'critters' | 'fx' | 'environment' | 'floor' | 'wyrm' | 'wyrmheads' | 'sprites';
-export const CAVE_SHEETS: readonly CaveSheet[] = ['enzo', 'dora', 'critters', 'fx', 'environment', 'floor', 'wyrm', 'wyrmheads', 'sprites'];
+export type CaveSheet = 'enzo' | 'enzodig' | 'dora' | 'critters' | 'fx' | 'environment' | 'floor' | 'wyrm' | 'wyrmheads' | 'sprites';
+export const CAVE_SHEETS: readonly CaveSheet[] = ['enzo', 'enzodig', 'dora', 'critters', 'fx', 'environment', 'floor', 'wyrm', 'wyrmheads', 'sprites'];
 /** The first 12 hex digits of each cleaned file's SHA-256, for the URL's cache key. */
 export const CAVE_HASHES: Record<CaveSheet, string> = {
   enzo: '8bd3c4dc0480',
+  enzodig: '684598ae8f53',
   dora: '7d94d40ac514',
   critters: 'a18bdf274280',
   fx: 'b40533da0a44',
@@ -20,6 +21,7 @@ export const CAVE_HASHES: Record<CaveSheet, string> = {
 /** Each cleaned file's size; an image of any other size counts as failed. */
 export const CAVE_SIZES: Record<CaveSheet, { w: number; h: number }> = {
   enzo: { w: 1536, h: 1024 },
+  enzodig: { w: 1536, h: 1024 },
   dora: { w: 1536, h: 1024 },
   critters: { w: 1536, h: 1024 },
   fx: { w: 1536, h: 1024 },
@@ -32,6 +34,7 @@ export const CAVE_SIZES: Record<CaveSheet, { w: number; h: number }> = {
 /** Columns × rows of equal cells. */
 export const CAVE_GRIDS: Record<CaveSheet, [number, number]> = {
   enzo: [6, 4],
+  enzodig: [4, 2],
   dora: [6, 4],
   critters: [6, 4],
   fx: [6, 4],
@@ -126,6 +129,9 @@ export const CAVE_FRAMES: Record<string, CaveFrame> = {
   'enzo:4:4': f('enzo', 799, 797, 204, 180, 972, 896, 0.00536193),
   'enzo:4:5': f('enzo', 1047, 765, 231, 207, 972, 1152, 0.00536193),
   'enzo:4:6': f('enzo', 1306, 772, 216, 207, 972, 1408, 0.00536193),
+  'enzodig:1:1': f('enzodig', 44, 128, 287, 306, 429, 192, 0.00342466),
+  'enzodig:1:2': f('enzodig', 386, 236, 383, 209, 429, 576, 0.00342466),
+  'enzodig:1:3': f('enzodig', 769, 134, 366, 301, 429, 960, 0.00342466),
   'fx:1:1': f('fx', 83, 142, 121, 100, 128, 128, 0.00623053),
   'fx:1:2': f('fx', 299, 102, 179, 148, 128, 384, 0.00623053),
   'fx:1:3': f('fx', 545, 86, 203, 176, 128, 640, 0.00623053),
@@ -244,11 +250,14 @@ export const CAVE_FALLBACK: Record<string, string> = {
   'enzo:4:4': 'sprites:1:1',
   'enzo:4:5': 'sprites:1:1',
   'enzo:4:6': 'sprites:1:1',
+  'enzodig:1:1': 'sprites:1:1',
+  'enzodig:1:2': 'sprites:1:1',
+  'enzodig:1:3': 'sprites:1:1',
 };
 
 export type HeroAnims = { walk: string[]; attack: string[]; idle: string[]; blink: string; flinch: string; dizzy: string; recover: string; dig: string[]; cheer: string[] };
 export const HERO_ANIMS: Record<Hero, HeroAnims> = {
-  enzo: { walk: ['enzo:1:1', 'enzo:1:2', 'enzo:1:3', 'enzo:1:4', 'enzo:1:5', 'enzo:1:6'], attack: ['enzo:2:1', 'enzo:2:2', 'enzo:2:3', 'enzo:2:4', 'enzo:2:5', 'enzo:2:6'], idle: ['enzo:3:1', 'enzo:3:2'], blink: 'enzo:3:3', flinch: 'enzo:3:4', dizzy: 'enzo:3:5', recover: 'enzo:3:6', dig: ['enzo:2:2', 'enzo:2:3'], cheer: ['enzo:4:5', 'enzo:4:6'] },
+  enzo: { walk: ['enzo:1:1', 'enzo:1:2', 'enzo:1:3', 'enzo:1:4', 'enzo:1:5', 'enzo:1:6'], attack: ['enzo:2:1', 'enzo:2:2', 'enzo:2:3', 'enzo:2:4', 'enzo:2:5', 'enzo:2:6'], idle: ['enzo:3:1', 'enzo:3:2'], blink: 'enzo:3:3', flinch: 'enzo:3:4', dizzy: 'enzo:3:5', recover: 'enzo:3:6', dig: ['enzodig:1:1', 'enzodig:1:2', 'enzodig:1:3'], cheer: ['enzo:4:5', 'enzo:4:6'] },
   dora: { walk: ['dora:1:1', 'dora:1:2', 'dora:1:3', 'dora:1:4', 'dora:1:5', 'dora:1:6'], attack: ['dora:2:1', 'dora:2:2', 'dora:2:3', 'dora:2:4', 'dora:2:5', 'dora:2:6'], idle: ['dora:3:1', 'dora:3:2'], blink: 'dora:3:3', flinch: 'dora:3:4', dizzy: 'dora:3:5', recover: 'dora:3:6', dig: ['dora:4:1', 'dora:4:2'], cheer: ['dora:4:4', 'dora:4:5', 'dora:4:6'] },
 };
 /** Enzo's special: crouch, twist, acorns flying out, land. */

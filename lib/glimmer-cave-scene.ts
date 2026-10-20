@@ -384,13 +384,13 @@ function drawHero(c: CanvasRenderingContext2D, who: Hero, an: Anim, sx: number, 
   }
 }
 
-/** A chinchilla's painted frame: a flinch, its class weapon's attack, digging (Enzo pushes with his walk), walking by
+/** A chinchilla's painted frame: a flinch, its class weapon's attack, digging, walking by
  *  distance, a cheer, or idle breathing with a blink every 3-5 s. */
 function heroFrame(who: Hero, an: Anim, now: number): string {
   const f = HERO_ANIMS[who];
   if (an.flinch > 0) return f.flinch;
   if (an.attack) return f.attack[Math.min(f.attack.length - 1, Math.floor(an.attack.t / 0.06))];
-  if (an.dig) return who === 'dora' ? f.dig[Math.floor(now / 150) % f.dig.length] : f.walk[Math.floor(now / 110) % f.walk.length];
+  if (an.dig) return f.dig[Math.floor(now / 150) % f.dig.length];
   if (an.idle === 0) return f.walk[Math.floor(an.walk) % f.walk.length];
   if (an.cheer) return f.cheer[Math.floor(now / 160) % f.cheer.length];
   const s = now / 1000 + (who === 'dora' ? 1.7 : 0), every = 3 + (Math.floor(s / 4) % 3);

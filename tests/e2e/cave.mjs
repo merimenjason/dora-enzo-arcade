@@ -190,7 +190,7 @@ await check('screenshots: layer 1 at 2:00, a 300-critter swarm, and the wyrm', a
 
 // ---- painted art ----
 
-const SHEETS = ['enzo', 'dora', 'critters', 'fx', 'environment', 'floor', 'wyrm', 'wyrmheads'];
+const SHEETS = ['enzo', 'enzodig', 'dora', 'critters', 'fx', 'environment', 'floor', 'wyrm', 'wyrmheads'];
 const art = (page) => cave(page, (w) => ({ ...w.art(), hero: w.heroPainted() }));
 const clock = (page) => cave(page, (w) => w.dive.t);
 
