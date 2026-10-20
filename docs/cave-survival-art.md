@@ -135,3 +135,18 @@ Section 9 of `cave-survival-animation-prompts-v2.md` asks again with no referenc
 - Size is set on import: the dig frames are scaled against his walk frames by eye.
 
 `enzo-dig-v3.png` (acorns at the chest in both Done cells) is kept, unused. Every sheet the game needs is accepted again.
+
+## Card and upgrade icons — Claude's review (20-10-2026)
+
+**`icons-v1.png` is accepted whole; nothing is regenerated.** I looked at every icon at full size and shrunk to 48 px on the card colour. All 24 read at a glance, in the listed order, with no text, discs or frames. Taking all 24 from one sheet keeps their weight and lighting matched and the import to one source. v2 is no better anywhere it matters.
+
+Codex's flags, judged at game size:
+- **Crystal Lance's handle (both):** kept. A crystal shard on a short binding reads as a lance, which is the weapon's name, and the blue crystal still dominates at 48 px.
+- **Twig Boomerang's third leaf (both):** doesn't matter; at 48 px the leaves are two green flecks.
+- **Dust Puffer (v1):** a cloth bellows with a brass ring, puffing cream dust. It reads as a puffer. (v2's acorn-shaped bellows is the odd one out, which is another reason to take v1.)
+- **v2's extra swoosh and fourth crystal:** moot, since v2 isn't used.
+- **Nice extras in v1:** the Burrow Bomb carries a paw print, and the Glow Moths have faces. Both suit the game.
+
+Measured: no v1 icon keeps the requested 30 px clearance. Seven cross their cell line by 1–13 px (lantern 8, magnet 8, Lucky Tail 7, Tough Coat 13, Snack 7), all within the importer's 24 px allowance. The importer crops by piece, and any two touching crops meet on a line, as Dora's and Enzo's sheets already do. The thin glow arcs (lantern, orbit, paw, dice) are faint and are kept.
+
+`icons-v2.png` is kept, unused. In the game the icons go on the level-up cards, the camp upgrades (Fluffier, Sharper, Quicker, Diggier and Magnetic reuse Thick Fluff, Sharp Claws, Quick Paws, Strong Arms and Magnet Whiskers) and the weapon slots; overclocks reuse their weapon's icon with a badge drawn in code.
