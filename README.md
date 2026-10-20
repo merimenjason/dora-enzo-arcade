@@ -885,6 +885,7 @@ Eighty stages in eight chapters, each stage worth up to three stars (cleared, no
 - **The pod:** when a layer's timer runs out, the pod lands 12–20 tiles away. Reach it within 45 s to bank the layer's gold and descend.
 - **Mini-map:** the top-right corner maps the whole layer's tunnels, rock and gold, with a frame for the screen. Symbols mark the points of interest: a white chinchilla head for you, blue crates, lanterns (pale, gold once lit), red stars for elites (a bigger one for the big one), the wyrm's green head, and the landed pod as a gold capsule in a pulsing ring.
 - **Icons:** every level-up card, camp upgrade and weapon slot shows its painted icon; an overclock card shows its weapon with a spark badge.
+- **Power-ups:** every elite, every crate and about 1 in 80 dug blocks drops a one-time power-up; walk over it to use it. Boomerang Storm (8 mini boomerangs circle out from you for 8 s), Whisker Vacuum (every crystal on the layer flies to you), Snack (+20 Fluff), Big Sneeze (every critter on screen loses half its Fluff, an elite a fifth, and is dizzy 2 s), Hourglass (critters freeze and can't bump you for 5 s), Zoomies (+50% move and dig speed for 8 s) and Gold Pouch (10 + 5 × hazard gold). Up to 4 lie about at once; the timed ones show a countdown under the job.
 - **Weapon slots:** under each weapon a bar of 12 steps fills to its level; the purple diamonds at levels 5 and 10 are its overclock picks, filled once taken.
 - **Layer 5:** the grumpy Rock Wyrm bursts out of the rock at 3:00. Bonk its head (its body blocks shots), step out of its rumbling rings, and the pod comes for the last run.
 - **Getting bonked:** you keep the gold already banked, plus half the layer's.
@@ -902,10 +903,11 @@ Eighty stages in eight chapters, each stage worth up to three stars (cleared, no
   - all twelve weapons and their overclocks;
   - cards, rarity, rerolls and stacked level-ups;
   - the jobs and the wyrm;
+  - the seven power-ups: where they drop (their own seeded draws, at most 4 about), taking one, and what each does;
   - camp, the profile, unlocks and hazards;
   - saves, which round-trip, replay exactly like an uninterrupted dive, and reject malformed input;
   - determinism and step rate independence.
-- It also runs `tests/glimmer-cave-art.mjs`: the nine cleaned sheets and their hashes, decoded alpha, every crop inside its cell, the named sequences, and the loader (one request per sheet, failures, Retry, stale callbacks, wrong sizes).
+- It also runs `tests/glimmer-cave-art.mjs`: the eleven cleaned sheets and their hashes, the icons in card order, decoded alpha, every crop inside its cell, the named sequences, and the loader (one request per sheet, failures, Retry, stale callbacks, wrong sizes).
 - `tests/glimmer-cave-bot.mjs` (in `npm test`; `npm run bot:cave` runs four times as many dives) plays seeded dives on worker threads and requires:
   - first dives to reach layer 2 in at least 70% and finish in 5–30%, at least 10 points more often than a random-card player;
   - upgraded dives to finish hazard 1 in 50–85% and hazard 3 in 15–50%;
@@ -918,6 +920,8 @@ Eighty stages in eight chapters, each stage worth up to three stars (cleared, no
   - a card, a reroll and an overclock offer;
   - the pod run and Continue after a reload, both at the pod and mid-layer;
   - a camp upgrade;
+  - the mini-map's symbols, the painted icons on cards, camp and slots, and a weapon slot's level bar after an overclock;
+  - walking onto a Boomerang Storm: its countdown and its 8 minis;
   - that a dive asks for every sheet and paints the hero, that slow or failed art leaves the dive playable, and that Retry brings it back;
   - the fit at phone and desktop sizes, and mute.
 

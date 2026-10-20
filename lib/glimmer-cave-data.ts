@@ -273,6 +273,32 @@ export const JOBS = {
   bigone: { name: 'Bonk the big one', text: 'An elite critter appears at 2:30. Bonk it.', at: 150, gold: 30, cache: 20 },
 };
 
+// ── Power-ups ──────────────────────────────────────────────────────────────
+
+/** One-time pickups on the floor, each used up when the hero walks over it. `weight` is its share of drops. (the bot
+ *  set the Snack and the block rate: at 30 Fluff and 1 in 40 blocks, first dives finished 40% against 24% without) */
+export type PowerupId = 'storm' | 'vacuum' | 'snack' | 'sneeze' | 'hourglass' | 'zoomies' | 'pouch';
+export const POWERUP_IDS: PowerupId[] = ['storm', 'vacuum', 'snack', 'sneeze', 'hourglass', 'zoomies', 'pouch'];
+export const POWERUPS = {
+  /** Mini boomerangs circling out to `reach` and back every `period` s, each hitting a critter at most every `every` s
+   *  for `dmg` x the layer's critter Fluff scale. */
+  storm: { name: 'Boomerang Storm', text: '8 mini boomerangs circle out from you for 8 s.', weight: 3, secs: 8, count: 8, reach: 3.2, period: 2, turn: 3, hitR: 0.45, every: 0.4, dmg: 8 },
+  /** Every crystal on the layer flies to the hero at `speed` x a crystal's own for `secs`. */
+  vacuum: { name: 'Whisker Vacuum', text: 'Pulls every crystal on the layer to you.', weight: 2, secs: 3, speed: 3 },
+  /** Its weight is x `lowWeight` while Fluff is under `low` of the most (1: no boost, as the bot set it). */
+  snack: { name: 'Snack', text: 'Heals 20 Fluff.', weight: 2, heal: 20, low: 0.4, lowWeight: 1 },
+  /** Every critter in the view takes `share` of its most Fluff (`eliteShare` for elites) and is dizzy `stun` s. */
+  sneeze: { name: 'Big Sneeze', text: 'A dust blast leaves every critter on screen dizzy.', weight: 2, share: 0.5, eliteShare: 0.2, stun: 2 },
+  /** Critters stand still and can't bump for `secs`; the wyrm keeps moving. */
+  hourglass: { name: 'Hourglass', text: 'Freezes every critter for 5 s.', weight: 2, secs: 5 },
+  zoomies: { name: 'Zoomies', text: '+50% move and dig speed for 8 s.', weight: 3, secs: 8, speed: 0.5, dig: 0.5 },
+  /** `base` + `per` x hazard gold, with Prospector. */
+  pouch: { name: 'Gold Pouch', text: 'A pouch of gold.', weight: 3, base: 10, per: 5 },
+} as const;
+/** Where they come from: every elite (and the big one), every crate, and `block` of the other dug blocks (1 in 80). At most `max`
+ *  lie on the floor; a drop past that is skipped. The hero takes one within `take` tiles. */
+export const DROPS = { block: 1 / 80, max: 4, take: 0.6 };
+
 // ── The Rock Wyrm ──────────────────────────────────────────────────────────
 
 /** Its Fluff is scaled by 1 + 0.25 x (hazard - 1); its gold is x hazard. (start, except where the spec fixes a number;

@@ -3,10 +3,10 @@
 'use client';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
-  Dive, CARD, JOBS, OVERCLOCKS, PASSIVES, RARITY, UNLOCK, UPGRADES, UPGRADE_IDS, WEAPONS, buy, freshProfile, loadProfile, newWeapon, record, upgradeCost, xpNeed,
+  Dive, CARD, JOBS, OVERCLOCKS, PASSIVES, POWERUPS, RARITY, UNLOCK, UPGRADES, UPGRADE_IDS, WEAPONS, buy, freshProfile, loadProfile, newWeapon, record, upgradeCost, xpNeed,
   type Card, type CaveEvent, type UpgradeId, type Hazard, type Hero, type LayerNo, type Profile, type WeaponId, type WeaponState,
 } from '../../lib/glimmer-cave-game';
-import { addEvents, animate, drawDive, drawMinimap, drawStick, drawTitle, heroPainted, makeView, newAnimState, newFx, viewTiles, type AnimState, type Fx } from '../../lib/glimmer-cave-scene';
+import { POWER_ICON, addEvents, animate, drawDive, drawMinimap, drawStick, drawTitle, heroPainted, makeView, newAnimState, newFx, viewTiles, type AnimState, type Fx } from '../../lib/glimmer-cave-scene';
 import { CAVE_FRAMES, CAVE_SHEETS, CAVE_SIZES, ICONS, caveArtServerVersion, caveArtUrl, type CaveIcon, caveArtStatus, caveArtVersion, requestCaveArt, retryCaveArt, subscribeCaveArt } from '../../lib/glimmer-cave-paint';
 import { makeSound } from '../../lib/cue-sound';
 import './cave.css';
@@ -63,6 +63,7 @@ function hear(events: CaveEvent[], hero: Hero) {
     else if (e.k === 'bonk') sound.cue(e.elite ? 'poof' : 'bonk', 0, 1, 0.06);
     else if (e.k === 'crystal') sound.cue('crystal', 0, 1, 1 / 12);
     else if (e.k === 'level') sound.cue('level');
+    else if (e.k === 'power') sound.cue(e.id === 'sneeze' ? 'poof' : e.id === 'pouch' ? 'gold' : 'level');
     else if (e.k === 'dig' && e.progress >= 1) sound.cue('dig');
     else if (e.k === 'gold') sound.cue('gold');
     else if (e.k === 'hurt') sound.cue('hurt', 0, 1, 0.2);
@@ -526,9 +527,17 @@ function Hud({ d, paused, onPause, mute, mini }: { d: Dive; paused: boolean; onP
         {mute}
       </div>
       <div className="gc-bar gc-sub">
-        <span data-testid="job" className="gc-pill">
-          {job ? `${JOBS[job.id].name} ${job.done ? '✓' : `${job.n}/${job.goal}`}` : d.layer === 5 ? (w?.bonked ? 'The wyrm is bonked! To the pod' : w ? 'Bonk the Rock Wyrm' : 'Something rumbles below…') : ''}
-        </span>
+        <div className="gc-left">
+          <span data-testid="job" className="gc-pill">
+            {job ? `${JOBS[job.id].name} ${job.done ? '✓' : `${job.n}/${job.goal}`}` : d.layer === 5 ? (w?.bonked ? 'The wyrm is bonked! To the pod' : w ? 'Bonk the Rock Wyrm' : 'Something rumbles below…') : ''}
+          </span>
+          {/* the timed power-ups running, each with its seconds left */}
+          {(['storm', 'hourglass', 'zoomies'] as const).filter((k) => d.boost[k] > 0).map((k) => (
+            <span key={k} data-testid={`boost-${k}`} className="gc-pill gc-boost" title={POWERUPS[k].name}>
+              <Icon id={POWER_ICON[k]} size={22} />{Math.ceil(d.boost[k])} s
+            </span>
+          ))}
+        </div>
         <canvas ref={mini} data-testid="minimap" className="gc-mini" aria-label="Mini-map" />
       </div>
       <div className="gc-slots">

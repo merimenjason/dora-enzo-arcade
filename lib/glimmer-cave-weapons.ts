@@ -115,7 +115,7 @@ const HERO_HIT: HitOpts = {}, BUDDY_HIT: HitOpts = { buddy: true }, GLIMMER_HIT:
 
 /**
  * Hits a critter for `base` from (x, y): rolls the crit, applies the hero's all-damage bonus and emits `hit`. At 0
- * Fluff it emits `bonk`, drops its crystals (ELITE.cache for an elite) and counts it; otherwise `knock` pushes it that
+ * Fluff it emits `bonk`, drops its crystals (ELITE.cache and a power-up for an elite) and counts it; otherwise `knock` pushes it that
  * far away from (x, y). Returns the damage done. A critter already bonked this step takes nothing. The wyrm's head
  * (id WYRM_ID) passes its damage to `Dive.hurtWyrm` and is never knocked.
  */
@@ -136,6 +136,7 @@ export function hurtCritter(d: Dive, c: Critter, base: number, x: number, y: num
     const n = c.elite ? ELITE.cache : CRITTERS[c.kind].xp;
     d.crystals.push({ x: c.x, y: c.y, n });
     if (o.glimmer && d.rand.next() < WEAPONS.lance.p.glimmerChance) d.crystals.push({ x: c.x + 0.2, y: c.y, n });
+    if (c.elite) d.drop(c.x, c.y);
   } else if (knock) {
     const ex = c.x - x, ey = c.y - y, l = Math.hypot(ex, ey);
     if (l > 1e-6) d.nudge(c, ex / l * knock, ey / l * knock);

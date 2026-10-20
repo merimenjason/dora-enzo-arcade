@@ -12,12 +12,14 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
   - A drop pod to reach in 45 s, and the grumpy Rock Wyrm on layer 5.
   - Gold from each dive buys camp upgrades and unlocks four more weapons and four hazard levels.
   - Fully painted, with code drawings while the art loads, and saved at the start of every layer.
+- **Glimmer Cave**: one-time power-ups drop from elites, crates and the odd dug block: Boomerang Storm, Whisker Vacuum, Snack, Big Sneeze, Hourglass, Zoomies and Gold Pouch. Walk over one to use it; the timed ones show a countdown.
 - **Glimmer Cave**: painted icons for every weapon, upgrade and power-up on the level-up cards, the camp upgrades and the weapon slots; overclock cards wear their weapon with a spark badge.
 - **Glimmer Cave**: a mini-map in the top-right corner shows the whole layer's tunnels, rock and gold, with clear symbols for you, crates, lanterns, elites, the Rock Wyrm and the landed drop pod.
 - **Glimmer Cave**: each weapon slot has a level bar, with the overclock levels (5 and 10) marked as diamonds.
 
 ### Changed
 
+- **Glimmer Cave**: Dora and Enzo cast a clearer shadow at their feet, so it's plain where they stand, even right in front of a wall.
 - **Glimmer Cave**: Enzo now digs with his own painted frames, scrabbling at the rock like a dog digging a hole, instead of walking into it.
 - **Glimmer Cave**: the painted art loads about five times faster: its ten sheets are now WebP, 2.3 MB in all instead of 11.7 MB, with no visible change.
 

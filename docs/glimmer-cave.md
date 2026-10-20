@@ -121,6 +121,26 @@ Layers 1–4 each get one job, and no job repeats within a dive. A finished job 
 | Light the lanterns | Stand by 3 unlit lanterns for 3 s each; a lit lantern's pool slows critters by 30% |
 | Bonk the big one | An elite appears at 2:30; bonk it |
 
+## Power-ups
+
+One-time pickups on the floor (`POWERUPS` and `DROPS` in the data file). The hero takes one by walking within 0.6 tiles of it.
+
+**Where they come from:** every elite bonked (the big one included), every dug crate, and 1 in 80 other dug blocks (none from the wyrm's digging). At most 4 lie on the floor; a drop past that is skipped. Drops are drawn from the layer's own loot generator (`mix(seed, layer + 200)`), so they never shift any other draw, and a new layer clears the floor and every timer.
+
+| Power-up | Weight | What it does |
+|---|---|---|
+| Boomerang Storm | 3 | For 8 s, 8 mini boomerangs on a turning ring swing out to 3.2 tiles and back every 2 s. Each hits a critter (or the wyrm's head) it touches for 8 × the layer's critter Fluff scale, at most once every 0.4 s per critter. |
+| Whisker Vacuum | 2 | For 3 s every crystal on the layer flies to the hero at 3 × a crystal's speed. |
+| Snack | 2 | +20 Fluff. |
+| Big Sneeze | 2 | Every critter in the view loses half its most Fluff (an elite a fifth), with no crit or damage bonus, and is dizzy 2 s. |
+| Hourglass | 2 | For 5 s critters don't move and can't bump; the wyrm keeps going. |
+| Zoomies | 3 | +50% move and dig speed for 8 s. |
+| Gold Pouch | 3 | 10 + 5 × hazard gold, with Prospector. |
+
+**Balance:** the bot set the Snack and the block rate. At first (Snack +30 Fluff at weight 3, tripled under 40% Fluff; 1 in 40 blocks) first dives finished 39.7% against 23.8% without power-ups, over the 30% gate; leaving out one power-up at a time showed the Snack was nearly all of that. As shipped: first dives finish 28.1%, upgraded dives 62.5% at hazard 1 and 35.0% at hazard 3 (`npm run bot:cave`).
+
+**On screen:** each lies as its card icon (Twig Boomerang, Magnet Whiskers, Snack, Dust Puffer, Busy Paws, Quick Paws and Prospector), bobbing and glowing through the dark, and as a purple disc with a gold plus on the mini-map. The storm's minis are small spinning boomerangs, the Sneeze bursts a ring of dust, and the Hourglass lays a frost over the cave. The timed ones show their seconds left under the job.
+
 ## The Rock Wyrm
 
 **Body:** a head, 8 body segments and a tail.
@@ -164,20 +184,20 @@ Layers 1–4 each get one job, and no job repeats within a dive. A finished job 
 
 **Running it:** QUICK runs in `npm test`; `npm run bot:cave` (FULL) runs four times as many dives.
 
-Measured on 20-10-2026:
+Measured on 20-10-2026, with the power-ups in:
 
 | Gate | Target | QUICK | FULL |
 | --- | --- | --- | --- |
 | First dives reach layer 2 | ≥70% | 93.8% | 92.8% |
-| First dives finish | 5–30% | 25.0% | 23.8% |
-| Gap over a random-card player | ≥10 points | 16.2 | 11.6 |
-| Upgraded (every upgrade at 3, all unlocked), hazard 1 | 50–85% | 50.0% | 54.2% |
-| Upgraded, hazard 3 | 15–50% | 23.3% | 32.5% |
+| First dives finish | 5–30% | 28.7% | 28.1% |
+| Gap over a random-card player | ≥10 points | 17.4 | 10.6 |
+| Upgraded (every upgrade at 3, all unlocked), hazard 1 | 50–85% | 70.0% | 62.5% |
+| Upgraded, hazard 3 | 15–50% | 36.7% | 35.0% |
 | Every weapon taken | ≥3% of dives | ≥16.7% | ≥21.3% |
-| Wyrm bonked within 30–150 s, of fights the hero survives | ≥80% | 88.1% | 89.5% |
-| 60 Hz step with 300 critters | <2 ms | 0.18 ms | 0.17 ms |
+| Wyrm bonked within 30–150 s, of fights the hero survives | ≥80% | 89.5% | 91.4% |
+| 60 Hz step with 300 critters | <2 ms | 0.20 ms | 0.23 ms |
 
-The upgraded hazard-1 gate sits on its 50% floor in QUICK. Rerun the bot after any change to a number in `lib/glimmer-cave-data.ts`. The tuning knobs, in order, are:
+Before the power-ups, first dives finished 23.8% (FULL) and upgraded hazard 1 sat on its 50% floor in QUICK. First dives now sit 2 points under their 30% ceiling and the random-card gap less than a point over its floor in FULL, so anything that makes dives easier needs the bot rerun. Rerun the bot after any change to a number in `lib/glimmer-cave-data.ts`. The tuning knobs, in order, are:
 1. critter Fluff scaling (`FLUFF_SCALE`);
 2. the spawn ramp (`RAMP`);
 3. weapon base damage;
@@ -208,6 +228,8 @@ The importer is deterministic, so rerunning it reproduces its outputs byte for b
 - `lib/glimmer-cave-scene.ts` tries the painting for every piece and falls back to its code drawing in the same frame.
 - The page asks for the heroes' sheets at camp and the rest when a dive starts; the icons sheet also loads as soon as a camp upgrade or card shows an icon.
 - The icons are drawn by the page, not the canvas: one cell of the icons sheet as a CSS background, fitted into each card's, camp upgrade's and weapon slot's box. Camp upgrades reuse the icon of the passive they match (Fluffier is Thick Fluff, Sharper is Sharp Claws, Quicker is Quick Paws, Diggier is Strong Arms, Magnetic is Magnet Whiskers); overclock cards show their weapon with a spark badge.
+- The HUD's mini-map (`drawMinimap`) draws the layer one pixel per tile, cached until a block is dug or a lantern lit, with fixed-size symbols outlined in plum on top: the hero's white chinchilla head, crates, lanterns (pale, gold once lit), red stars for elites, the wyrm's head, power-ups and the pod's capsule. Each weapon slot has a 12-step level bar with the overclock levels, 5 and 10, as diamonds.
+- Projectiles grow with their weapon's size cards (`1 + size`), as their reach does. Each hero stands on a two-tone foot shadow, a soft wide edge and a dark core, so it's plain where they stand in front of a wall: block paintings are taller than their row on the floor, and a chinchilla is about a block and a half tall.
 
 ## Saves
 
