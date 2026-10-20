@@ -30,6 +30,8 @@ All paths are in this repository on `codex/cave-survival-style-art`; nothing is 
 | 4 | Environment | 4 × 2 | `environment-v3.png` (round 2, below) | `… 4 2 docs/cave-survival-environment-review-v3.json` |
 | 5 | Floor tile | one 1024² tile | `floor-v1.png` | `python3 scripts/cave-frame-review.py --tile <png> docs/cave-survival-floor-review-v1.json` |
 | 6 | Rock Wyrm | 4 × 2 | `wyrm-v1.png` | `… 4 2 docs/cave-survival-wyrm-review-v1.json` |
+| 7 | Rock Wyrm heads | 2 × 2 | `wyrm-heads-v1.png` (section 7) | `… 2 2 docs/cave-survival-wyrm-heads-review-v1.json` |
+| 8 | Enzo digging | 4 × 2 | `enzo-dig-v1.png` (section 8) | `… 4 2 docs/cave-survival-enzo-dig-review-v1.json` |
 
 Outputs go in `public/art/cave-survival/`.
 
@@ -208,6 +210,40 @@ Genuine alpha-zero transparency. No floor, ground shadow, glow, haze, backdrop, 
 ```
 
 Retry note: `A body, coil or tail appears behind a head, or a head comes near a cell edge: draw each head alone, as a separate puppet piece ending in a rounded neck stub, smaller, with wide transparent space around it.`
+
+## 8 · Enzo digging
+
+Written by Claude Code on 20-10-2026. Enzo has no dig frames: Dora's sheet has two (row 4), Enzo's row 4 was spent on his spin and cheers, so in the game he pushes into dirt with his walk. He carries no tool, so he digs the way a chinchilla does, scrabbling with his front paws. Output `enzo-dig-v1.png`, retry `enzo-dig-v2.png`.
+
+Cell 1 is a copy of an accepted idle frame. The importer scales the dig frames by it, so they match the rest of Enzo's frames exactly; it is not used in the game.
+
+Inputs: ENZO (his design, size and style; row 3, column 1 is the idle frame to copy), DORA (her row 4, columns 1–2: the dig strokes these frames stand in for), SCENE.
+
+Check: `python3 scripts/cave-frame-review.py public/art/cave-survival/enzo-dig-v1.png 4 2 docs/cave-survival-enzo-dig-review-v1.json`. Also check by eye: **he faces RIGHT in all eight cells, holds no tool, and cell 1 matches image 1's row 3, column 1 in size.**
+
+```
+Create a short digging sheet for Enzo: a transparent 1536 × 1024 PNG with 4 columns × 2 rows of equal 384 × 512 cells, one Enzo in each cell, all standing on a common ground line about 60 px above the bottom of the cells.
+
+Enzo EXACTLY as in image 1, at the SAME size as he is there: grey chinchilla with a big fluffy tail, round pink-lined ears, dark eyes, yellow miner's helmet with its lamp, brown satchel and strap. Same camera (high, tilted about 55° down, three-quarter view), same soft gouache on cream paper and thin dark-plum outlines. He faces RIGHT in every cell. He holds NO pickaxe, shovel or other tool, and no acorn: he digs with his front paws, like a real chinchilla.
+
+Cells, left to right, top to bottom:
+1 a copy of image 1's row 3, column 1 (standing idle), same size and pose. This is the size reference.
+2 dig ready: crouched low and leaning forward to the right, both front paws raised in front of his chest, tail up behind him.
+3 left front paw scraping down into the ground in front of him, right paw lifted; two or three small brown dirt clods flicking up and back past his belly.
+4 right front paw scraping down, left paw lifted; clods flicking back.
+5 the same as 3 with the clods in a different place.
+6 the same as 4 with the clods in a different place.
+7 leaning in hard, both paws pushing flat against the ground in front, cheeks puffed with effort.
+8 sitting up and shaking dirt off one front paw, a few small specks falling, pleased.
+
+Cells 2 to 7 loop as one digging cycle, so keep his crouch height, body size and helmet in the same place across them: only the paws, tail tip and dirt change. Cells 3 to 6 must clearly alternate paws.
+
+Every cell's content stays inside its own cell with at least 40 px of transparent space to every cell edge: the tail, ears, helmet lamp and dirt clods never reach a cell edge or a neighbouring cell. Dirt clods are a few separate small pieces close to his paws, not a cloud.
+
+Genuine alpha-zero transparency outside Enzo and the clods. No ground, hole, ground shadow, glow, lamp beam, haze, backdrop, motion lines, speed lines, grid or text.
+```
+
+Retry note: `Enzo is holding a tool, faces left, changes size between cells, or dirt reaches a cell edge: draw him with empty front paws, facing right, the same size as image 1 in every cell, with only two or three small clods kept close to his paws.`
 
 ---
 
