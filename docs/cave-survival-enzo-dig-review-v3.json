@@ -1,0 +1,135 @@
+{
+  "image": "public/art/cave-survival/enzo-dig-v3.png",
+  "grid": [
+    4,
+    2
+  ],
+  "cell": [
+    384,
+    512
+  ],
+  "size": [
+    1536,
+    1024
+  ],
+  "mode": "RGBA",
+  "alpha_max": 254,
+  "alpha_zero_pixels": 1050697,
+  "measurement": "connected pieces at alpha > 128 (>= 30 px), each assigned to the cell holding its centre",
+  "status": "pass",
+  "problems": [],
+  "frames": [
+    {
+      "row": 1,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        46,
+        145,
+        335,
+        462
+      ],
+      "width": 289,
+      "height": 317,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 2,
+      "pieces": 5,
+      "bounds_local_exclusive": [
+        9,
+        224,
+        387,
+        451
+      ],
+      "width": 378,
+      "height": 227,
+      "overhang_px": 3
+    },
+    {
+      "row": 1,
+      "column": 3,
+      "pieces": 4,
+      "bounds_local_exclusive": [
+        35,
+        145,
+        372,
+        438
+      ],
+      "width": 337,
+      "height": 293,
+      "overhang_px": 0
+    },
+    {
+      "row": 1,
+      "column": 4,
+      "pieces": 3,
+      "bounds_local_exclusive": [
+        51,
+        136,
+        343,
+        451
+      ],
+      "width": 292,
+      "height": 315,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 1,
+      "pieces": 1,
+      "bounds_local_exclusive": [
+        43,
+        89,
+        322,
+        413
+      ],
+      "width": 279,
+      "height": 324,
+      "overhang_px": 0
+    },
+    {
+      "row": 2,
+      "column": 2,
+      "pieces": 5,
+      "bounds_local_exclusive": [
+        -1,
+        178,
+        396,
+        408
+      ],
+      "width": 397,
+      "height": 230,
+      "overhang_px": 12
+    },
+    {
+      "row": 2,
+      "column": 3,
+      "pieces": 4,
+      "bounds_local_exclusive": [
+        51,
+        98,
+        385,
+        398
+      ],
+      "width": 334,
+      "height": 300,
+      "overhang_px": 1
+    },
+    {
+      "row": 2,
+      "column": 4,
+      "pieces": 3,
+      "bounds_local_exclusive": [
+        51,
+        99,
+        342,
+        411
+      ],
+      "width": 291,
+      "height": 312,
+      "overhang_px": 0
+    }
+  ]
+}
