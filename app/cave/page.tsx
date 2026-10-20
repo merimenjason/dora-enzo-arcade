@@ -6,7 +6,7 @@ import {
   Dive, CARD, JOBS, OVERCLOCKS, PASSIVES, RARITY, UNLOCK, UPGRADES, UPGRADE_IDS, WEAPONS, buy, freshProfile, loadProfile, newWeapon, record, upgradeCost, xpNeed,
   type Card, type CaveEvent, type Hazard, type Hero, type LayerNo, type Profile, type WeaponId, type WeaponState,
 } from '../../lib/glimmer-cave-game';
-import { addEvents, animate, drawDive, drawStick, drawTitle, heroPainted, makeView, newAnimState, newFx, viewTiles, type AnimState, type Fx } from '../../lib/glimmer-cave-scene';
+import { addEvents, animate, drawDive, drawMinimap, drawStick, drawTitle, heroPainted, makeView, newAnimState, newFx, viewTiles, type AnimState, type Fx } from '../../lib/glimmer-cave-scene';
 import { CAVE_SHEETS, caveArtServerVersion, caveArtStatus, caveArtVersion, requestCaveArt, retryCaveArt, subscribeCaveArt } from '../../lib/glimmer-cave-paint';
 import { makeSound } from '../../lib/cue-sound';
 import './cave.css';
@@ -116,6 +116,7 @@ export default function GlimmerCave() {
   const stickRef = useRef<{ id: number; ox: number; oy: number; x: number; y: number } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const titleRef = useRef<HTMLCanvasElement>(null);
+  const miniRef = useRef<HTMLCanvasElement>(null);
   const layerBonkRef = useRef(0); // critters bonked before this layer, for the pod summary
   profileRef.current = profile; screenRef.current = screen; pausedRef.current = paused;
   const refresh = useCallback(() => setTick((n) => n + 1), []);
@@ -264,6 +265,13 @@ export default function GlimmerCave() {
       view.cx = d.hx; view.cy = d.hy;
       animRef.current.hero.cheer = screenRef.current === 'pod';
       drawDive(c, d, view, fxRef.current, now, calm, animRef.current);
+      const mc = miniRef.current, mx = mc?.getContext('2d');
+      if (mc && mx) {
+        const mr = mc.getBoundingClientRect();
+        if (mc.width !== Math.round(mr.width * dpr)) { mc.width = Math.round(mr.width * dpr); mc.height = Math.round(mr.height * dpr); }
+        mx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawMinimap(mx, d, mr.width, mr.height, now, calm);
+      }
       const s = stickRef.current;
       if (s && screenRef.current === 'dive') {
         const dx = s.x - s.ox, dy = s.y - s.oy, l = Math.hypot(dx, dy), k = l > STICK ? STICK / l : 1;
@@ -418,7 +426,7 @@ export default function GlimmerCave() {
         <section className="gc-play">
           <canvas ref={canvasRef} className="gc-stage" data-testid="stage" aria-label="Glimmer Cave stage"
             onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} />
-          {screen !== 'pod' && <Hud d={d} paused={paused} onPause={() => setPaused((p) => !p)} mute={mute} />}
+          {screen !== 'pod' && <Hud d={d} paused={paused} onPause={() => setPaused((p) => !p)} mute={mute} mini={miniRef} />}
           {paused && screen === 'dive' && (
             <div className="gc-over">
               <div className="gc-card-panel">
@@ -480,7 +488,7 @@ export default function GlimmerCave() {
 
 /** The HUD over the stage: experience along the top, Fluff, layer and clock (or the wyrm's bar), job, gold, pause and
  *  mute, and the four weapon slots. */
-function Hud({ d, paused, onPause, mute }: { d: Dive; paused: boolean; onPause: () => void; mute: React.ReactNode }) {
+function Hud({ d, paused, onPause, mute, mini }: { d: Dive; paused: boolean; onPause: () => void; mute: React.ReactNode; mini: React.RefObject<HTMLCanvasElement | null> }) {
   const st = d.stats(), need = xpNeed(d.level), w = d.wyrm, job = d.job;
   const fight = d.layer === 5 && w && !w.bonked && !d.pod;
   return (
@@ -501,6 +509,7 @@ function Hud({ d, paused, onPause, mute }: { d: Dive; paused: boolean; onPause: 
         <span data-testid="job" className="gc-pill">
           {job ? `${JOBS[job.id].name} ${job.done ? '✓' : `${job.n}/${job.goal}`}` : d.layer === 5 ? (w?.bonked ? 'The wyrm is bonked! To the pod' : w ? 'Bonk the Rock Wyrm' : 'Something rumbles below…') : ''}
         </span>
+        <canvas ref={mini} data-testid="minimap" className="gc-mini" aria-label="Mini-map" />
       </div>
       <div className="gc-slots">
         {[0, 1, 2, 3].map((i) => {

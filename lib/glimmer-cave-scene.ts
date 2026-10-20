@@ -721,6 +721,73 @@ export function drawStick(c: CanvasRenderingContext2D, ox: number, oy: number, k
   c.fillStyle = 'rgba(255, 226, 120, 0.7)'; ellipse(c, kx, ky, r * 0.4, r * 0.4); c.fill();
 }
 
+// ── The mini-map ───────────────────────────────────────────────────────────
+
+/** Each block's mini-map colour; the floor takes the layer's tint. Crates and unlit lanterns stand out as job targets. */
+const MINI: Record<Exclude<Block, 'floor'>, [number, number, number]> = {
+  dirt: [122, 82, 50], gold: [214, 168, 60], bedrock: [40, 30, 46], crate: [110, 190, 255], lantern: [255, 170, 80],
+};
+/** The tiles drawn one pixel each, rebuilt only when a block is dug or the layer changes. */
+const mini: { canvas: HTMLCanvasElement | null; tiles: Block[] | null; solid: number; lit: number } = { canvas: null, tiles: null, solid: -1, lit: -1 };
+
+function miniTiles(d: Dive): HTMLCanvasElement | null {
+  const m = d.map, lit = d.job?.id === 'lanterns' ? d.job.lit ?? [] : [];
+  let solid = 0;
+  for (let i = 0; i < m.tiles.length; i++) if (m.tiles[i] !== 'floor') solid++;
+  if (mini.canvas && mini.tiles === m.tiles && mini.solid === solid && mini.lit === lit.length) return mini.canvas;
+  if (typeof document === 'undefined') return null;
+  const cv = mini.canvas ?? document.createElement('canvas');
+  cv.width = m.w; cv.height = m.h;
+  const c = cv.getContext('2d');
+  if (!c) return null;
+  const img = c.createImageData(m.w, m.h), n = parseInt(TINT[d.layer].slice(1), 16);
+  const floor: [number, number, number] = [((n >> 16) & 255) * 0.6 + 60, ((n >> 8) & 255) * 0.6 + 50, (n & 255) * 0.6 + 70];
+  const litAt = new Set(lit.map((i) => m.props[i].y * m.w + m.props[i].x));
+  for (let i = 0; i < m.tiles.length; i++) {
+    const b = m.tiles[i], rgb = b === 'floor' ? floor : b === 'lantern' && litAt.has(i) ? MINI.gold : MINI[b];
+    img.data[i * 4] = rgb[0]; img.data[i * 4 + 1] = rgb[1]; img.data[i * 4 + 2] = rgb[2]; img.data[i * 4 + 3] = 255;
+  }
+  c.putImageData(img, 0, 0);
+  Object.assign(mini, { canvas: cv, tiles: m.tiles, solid, lit: lit.length });
+  return cv;
+}
+
+/** The mini-map, on its own w × h canvas: the whole layer's blocks, with the hero, the landed pod, elites and the
+ *  wyrm's head on top. The pod and the hero pulse unless `calm`. */
+export function drawMinimap(c: CanvasRenderingContext2D, d: Dive, w: number, h: number, now: number, calm: boolean) {
+  const m = d.map, k = Math.min(w / m.w, h / m.h), ox = (w - m.w * k) / 2, oy = (h - m.h * k) / 2;
+  const at = (x: number, y: number): [number, number] => [ox + x * k, oy + y * k];
+  c.clearRect(0, 0, w, h);
+  const tiles = miniTiles(d);
+  if (tiles) { c.imageSmoothingEnabled = false; c.globalAlpha = 0.9; c.drawImage(tiles, ox, oy, m.w * k, m.h * k); c.globalAlpha = 1; }
+  const pulse = calm ? 0.5 : (Math.sin(now / 160) + 1) / 2;
+  // what the lamp shows: the stage's window around the hero
+  const [vx, vy] = at(d.hx - d.view.w / 2, d.hy - d.view.h / 2);
+  c.strokeStyle = 'rgba(255, 240, 220, 0.5)'; c.lineWidth = 1; c.strokeRect(vx, vy, d.view.w * k, d.view.h * k);
+  for (const cr of d.critters) {
+    if (!cr.elite && cr.id !== d.bigId) continue;
+    const [x, y] = at(cr.x, cr.y);
+    c.fillStyle = '#ff6a5a'; c.beginPath(); c.arc(x, y, Math.max(1.5, k * 0.8), 0, TAU); c.fill();
+  }
+  const y = d.wyrm;
+  if (y && !y.bonked && y.under <= 0) {
+    const [x, yy] = at(y.x, y.y);
+    c.fillStyle = '#9ad06a'; c.strokeStyle = '#1a0c22'; c.lineWidth = 1;
+    c.beginPath(); c.arc(x, yy, Math.max(2.5, k * 1.6), 0, TAU); c.fill(); c.stroke();
+  }
+  if (d.pod && !d.pod.reached) {
+    const [x, yy] = at(d.pod.x, d.pod.y);
+    // outlined in plum, so it stands apart from gold blocks
+    const r = Math.max(3, k * 1.4) + pulse * 2;
+    c.strokeStyle = '#1a0c22'; c.lineWidth = 4; c.beginPath(); c.arc(x, yy, r, 0, TAU); c.stroke();
+    c.strokeStyle = '#ffd25a'; c.lineWidth = 2; c.beginPath(); c.arc(x, yy, r, 0, TAU); c.stroke();
+    c.fillStyle = '#ffd25a'; c.beginPath(); c.arc(x, yy, Math.max(1.5, k * 0.7), 0, TAU); c.fill();
+  }
+  const [hx, hy] = at(d.hx, d.hy);
+  c.fillStyle = '#ffffff'; c.strokeStyle = '#1a0c22'; c.lineWidth = 1.5;
+  c.beginPath(); c.arc(hx, hy, Math.max(2.5, k * 1.1) + pulse * 0.6, 0, TAU); c.fill(); c.stroke();
+}
+
 // ── The title ──────────────────────────────────────────────────────────────
 
 /** The title picture: the two of them by a lantern in a purple cave, with crystals; painted once their sheets are in. */
