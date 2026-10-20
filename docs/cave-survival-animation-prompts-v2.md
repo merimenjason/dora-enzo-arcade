@@ -32,6 +32,7 @@ All paths are in this repository on `codex/cave-survival-style-art`; nothing is 
 | 6 | Rock Wyrm | 4 × 2 | `wyrm-v1.png` | `… 4 2 docs/cave-survival-wyrm-review-v1.json` |
 | 7 | Rock Wyrm heads | 2 × 2 | `wyrm-heads-v1.png` (section 7) | `… 2 2 docs/cave-survival-wyrm-heads-review-v1.json` |
 | 8 | Enzo digging | 4 × 2 | `enzo-dig-v1.png` (section 8) | `… 4 2 docs/cave-survival-enzo-dig-review-v1.json` |
+| 9 | Enzo digging, round 2 | 4 × 2 | `enzo-dig-v3.png` (section 9) | `… 4 2 docs/cave-survival-enzo-dig-review-v3.json` |
 
 Outputs go in `public/art/cave-survival/`.
 
@@ -244,6 +245,43 @@ Genuine alpha-zero transparency outside Enzo and the clods. No ground, hole, gro
 ```
 
 Retry note: `Enzo is holding a tool, faces left, changes size between cells, or dirt reaches a cell edge: draw him with empty front paws, facing right, the same size as image 1 in every cell, with only two or three small clods kept close to his paws.`
+
+## 9 · Enzo digging, round 2 (use this one)
+
+Written by Claude Code on 20-10-2026, after section 8's two attempts failed (see **Enzo digging — Claude's review** in `cave-survival-art.md`). What changed:
+- **No size-reference cell.** Section 8's cell 1 asked for a copy of an idle frame, which holds an acorn. That put an acorn on the sheet by instruction, and the model carried it into the dig frames. The importer will size these frames against Enzo's walk frames instead.
+- **Only ENZO as input.** DORA and SCENE added nothing the prompt doesn't say, and fewer pictures of Enzo holding acorns is better.
+- **Big outline changes, not paw swaps.** In a three-quarter view the far paw is hidden behind the near one, so "left paw, then right paw" can't read, and both attempts drew the same crouch four times. The cycle is now three beats with very different outlines (tall, long and low, rocked back) that read at game size.
+
+Output `enzo-dig-v3.png`, retry `enzo-dig-v4.png`. Inputs: ENZO only.
+
+Check: `python3 scripts/cave-frame-review.py public/art/cave-survival/enzo-dig-v3.png 4 2 docs/cave-survival-enzo-dig-review-v3.json`. Also check by eye, and count any of these as a failed check: **an acorn anywhere; any cell facing left; cells 1, 2 and 3 of a row with outlines that are hard to tell apart.** Size differences between the sheet and ENZO don't matter.
+
+```
+Create a short digging sheet for Enzo: a transparent 1536 × 1024 PNG with 4 columns × 2 rows of equal 384 × 512 cells, one Enzo in each cell, all standing on a common ground line about 80 px above the bottom of the cells.
+
+Enzo's design EXACTLY as in image 1: grey chinchilla with a big fluffy tail, round pink-lined ears, dark eyes, yellow miner's helmet with its lamp, brown satchel and strap. Same camera (high, tilted about 55° down, three-quarter view), same soft gouache and thin dark-plum outlines. He faces RIGHT in every cell, and he is the same size in every cell.
+
+In image 1 he holds an acorn; that is only for throwing. On this sheet the acorn is put away: NO acorn anywhere, not in his paws, not at his chest, not on the ground. His front paws are EMPTY in every cell, with pink pads showing. No pickaxe, shovel or other tool.
+
+He digs like a cartoon dog digging a hole, in three big beats. Each beat has a VERY different outline:
+
+Row 1, left to right:
+1 RAISE: sitting up tall on his hind legs, the near front paw lifted HIGH beside his cheek, pads showing, the other paw at his chest. Tail low on the ground.
+2 SLAM: dropped long and low, body stretched far forward, chin near the ground, the near front paw reaching out and pressed into the ground in front of his nose. Three or four small brown dirt clods jump up around that paw.
+3 FLING: rocked back on his haunches, both front paws swept back under his belly, three or four small brown clods flying out behind him past his tail. Tail flicked UP high.
+4 DONE: sitting up, shaking dirt off one paw, eyes happily closed, a few tiny specks falling.
+
+Row 2: the same four beats again, drawn fresh, with the clods in different places.
+
+Tall in cell 1, long and low in cell 2, rocked back with tail up in cell 3: someone seeing only their outlines must tell them apart at a glance.
+
+Every cell's content stays inside its own cell with at least 40 px of transparent space to every cell edge: the tail, ears, helmet lamp and clods never reach a cell edge or a neighbouring cell. Clods are a few separate small pieces, not a cloud.
+
+Genuine alpha-zero transparency outside Enzo and the clods. No ground, hole, ground shadow, glow, lamp beam, haze, backdrop, motion lines, speed lines, grid or text.
+```
+
+Retry note: `An acorn appears, or the RAISE, SLAM and FLING cells look alike: no acorn anywhere and empty paws in every cell; make RAISE tall with one paw up by his cheek, SLAM long and low with his chin near the ground, and FLING leaning back with his tail straight up and dirt flying behind him.`
 
 ---
 

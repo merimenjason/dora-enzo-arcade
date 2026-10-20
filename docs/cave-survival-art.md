@@ -114,3 +114,13 @@ The wyrm's heads get their own sheet, `wyrm-heads-v1.png` (prompt 7 in `cave-sur
 **`wyrm-heads-v2.png` is accepted.** Each cell is one mass: a big mossy stone head whose moss mane runs back over the skull, with no tail, no coils and no second wyrm. In the game the head leads a chain of `wyrm-v1.png`'s body segments, so a bulky back to the head simply overlaps the first segment; it never reads as a second body. v2 is preferred over v1, whose lower-left bulges look like coiled segments. The details Codex flagged are fine at game size: the half-lidded grumpy face reads as grumpy; the dizzy stars sitting 1 px from the cell top are separate pieces that the importer assigns by centre; and four stars instead of three is harmless.
 
 `wyrm-heads-v1.png` is kept, unused. Every sheet the game needs is now accepted.
+
+## Enzo digging — Claude's review (20-10-2026)
+
+**Neither `enzo-dig-v1.png` nor `enzo-dig-v2.png` is accepted.** Enzo faces right with no tool in every cell, and the style matches. But in both sheets, cells 3–6 have nearly the same outline: one crouch with the near paw down, where only the clods move. Played as a loop, that would look like Enzo frozen in a crouch. In a three-quarter view the far paw is hidden behind the near one, so asking for alternating paws can't fix this; the cycle needs bigger changes in his outline.
+
+The acorns came from section 8 itself. Its cell 1 asked for a copy of an idle frame, which holds an acorn, and every ENZO frame shows one. Cell 1's size, which Codex flagged, doesn't matter: it would only have set the scale, and the importer can size these frames against the walk frames.
+
+The soft halo in previews is how transparency is displayed, not haze: both sheets have less semi-transparent edge than the accepted `enzo-animation-v2.png` (about 6% of pixels against 12%).
+
+Section 9 of `cave-survival-animation-prompts-v2.md` asks again with no reference cell, ENZO as the only input, no acorn anywhere, and a three-beat cycle (raise, slam, fling) with clearly different outlines. Both v1 and v2 are kept, unused.
