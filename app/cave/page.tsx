@@ -4,10 +4,10 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Dive, CARD, JOBS, OVERCLOCKS, PASSIVES, RARITY, UNLOCK, UPGRADES, UPGRADE_IDS, WEAPONS, buy, freshProfile, loadProfile, newWeapon, record, upgradeCost, xpNeed,
-  type Card, type CaveEvent, type Hazard, type Hero, type LayerNo, type Profile, type WeaponId, type WeaponState,
+  type Card, type CaveEvent, type UpgradeId, type Hazard, type Hero, type LayerNo, type Profile, type WeaponId, type WeaponState,
 } from '../../lib/glimmer-cave-game';
 import { addEvents, animate, drawDive, drawMinimap, drawStick, drawTitle, heroPainted, makeView, newAnimState, newFx, viewTiles, type AnimState, type Fx } from '../../lib/glimmer-cave-scene';
-import { CAVE_SHEETS, caveArtServerVersion, caveArtStatus, caveArtVersion, requestCaveArt, retryCaveArt, subscribeCaveArt } from '../../lib/glimmer-cave-paint';
+import { CAVE_FRAMES, CAVE_SHEETS, CAVE_SIZES, ICONS, caveArtServerVersion, caveArtUrl, type CaveIcon, caveArtStatus, caveArtVersion, requestCaveArt, retryCaveArt, subscribeCaveArt } from '../../lib/glimmer-cave-paint';
 import { makeSound } from '../../lib/cue-sound';
 import './cave.css';
 
@@ -74,20 +74,37 @@ function hear(events: CaveEvent[], hero: Hero) {
   }
 }
 
-/** A card's name and what it does, with its rarity's bonus worked in. */
-function describe(c: Card, d: Dive): { name: string; text: string; tag: string } {
-  if (c.k === 'snack') return { name: 'Snack', text: 'Nothing left to learn: heal 20 Fluff.', tag: '' };
-  if (c.k === 'overclock') return { name: OVERCLOCKS[c.id].name, text: OVERCLOCKS[c.id].text, tag: 'Overclock' };
+/** The camp upgrades show the icon of the passive they match; the other three have their own. */
+const UPGRADE_ICON: Record<UpgradeId, CaveIcon> = {
+  fluffier: 'fluff', sharper: 'claws', quicker: 'paws', diggier: 'arms', magnetic: 'magnet', prospector: 'prospector', rerolls: 'rerolls', headstart: 'headstart',
+};
+
+/** A painted icon from the icons sheet, fitted into a `size` px square; an overclock wears a spark badge. Until the
+ *  sheet arrives the box is empty and the card's words carry it. */
+function Icon({ id, size, badge = false }: { id: CaveIcon; size: number; badge?: boolean }) {
+  const [x, y, w, h] = CAVE_FRAMES[ICONS[id]].rect, k = size / Math.max(w, h), sheet = CAVE_SIZES.icons;
+  return (
+    <span className="gc-ico" style={{ width: size, height: size }} aria-hidden="true" data-icon={id}>
+      <span className="gc-ico-art" style={{ width: w * k, height: h * k, backgroundImage: `url(${caveArtUrl('icons')})`, backgroundSize: `${sheet.w * k}px ${sheet.h * k}px`, backgroundPosition: `${-x * k}px ${-y * k}px` }} />
+      {badge && <span className="gc-oc">⚡</span>}
+    </span>
+  );
+}
+
+/** A card's name, what it does with its rarity's bonus worked in, and its icon. */
+function describe(c: Card, d: Dive): { name: string; text: string; tag: string; icon: CaveIcon } {
+  if (c.k === 'snack') return { name: 'Snack', text: 'Nothing left to learn: heal 20 Fluff.', tag: '', icon: 'snack' };
+  if (c.k === 'overclock') return { name: OVERCLOCKS[c.id].name, text: OVERCLOCKS[c.id].text, tag: 'Overclock', icon: c.id.split('.')[0] as WeaponId };
   const m = RARITY.mult[c.rarity], tag = RARITY.names[c.rarity];
   if (c.k === 'passive') {
     const p = PASSIVES[c.id];
-    return { name: p.name, text: PASSIVE_TEXT[c.id](p.per * m), tag };
+    return { name: p.name, text: PASSIVE_TEXT[c.id](p.per * m), tag, icon: c.id };
   }
   const w = d.weapons.find((x) => x.id === c.id), def = WEAPONS[c.id];
-  if (!w) return { name: def.name, text: `New weapon. ${def.text}`, tag: 'New' };
+  if (!w) return { name: def.name, text: `New weapon. ${def.text}`, tag: 'New', icon: c.id };
   const step = def.steps[w.level - 1];
   const more = step === 'count' ? '+1 projectile' : step === 'rate' ? `+${pct(CARD.rate * m)} fire rate` : `+${pct(CARD.size * m)} size`;
-  return { name: `${def.name} ${w.level + 1}`, text: `+${pct(CARD.damage * m)} damage, ${more}.`, tag };
+  return { name: `${def.name} ${w.level + 1}`, text: `+${pct(CARD.damage * m)} damage, ${more}.`, tag, icon: c.id };
 }
 
 type Summary = { layer: LayerNo; banked: number; job: string | null; jobDone: boolean; bonked: number };
@@ -404,7 +421,7 @@ export default function GlimmerCave() {
                 return (
                   <button key={id} data-testid={`buy-${id}`} className="gc-up" disabled={max || profile.gold < cost}
                     onClick={() => { const p = structuredClone(profileRef.current); if (buy(p, id)) { saveProfile(p); sound.cue('gold'); } }}>
-                    <b>{u.name} · Lv {lv}/{u.max}</b><span>{u.text}</span><span>{max ? 'Maxed' : `${cost} gold`}</span>
+                    <Icon id={UPGRADE_ICON[id]} size={40} /><b>{u.name} · Lv {lv}/{u.max}</b><span>{u.text}</span><span>{max ? 'Maxed' : `${cost} gold`}</span>
                   </button>
                 );
               })}
@@ -448,7 +465,7 @@ export default function GlimmerCave() {
                     const x = describe(c, d);
                     return (
                       <button key={i} className={`gc-card gc-r${c.k === 'weapon' || c.k === 'passive' ? c.rarity : c.k === 'overclock' ? 'o' : 's'}`} data-testid={`card-${i}`} onClick={() => pick(i)}>
-                        <i>{i + 1}</i>{x.tag && <em>{x.tag}</em>}<b>{x.name}</b><span>{x.text}</span>
+                        <i>{i + 1}</i><Icon id={x.icon} size={56} badge={c.k === 'overclock'} />{x.tag && <em>{x.tag}</em>}<b>{x.name}</b><span>{x.text}</span>
                       </button>
                     );
                   })}
@@ -514,7 +531,7 @@ function Hud({ d, paused, onPause, mute, mini }: { d: Dive; paused: boolean; onP
       <div className="gc-slots">
         {[0, 1, 2, 3].map((i) => {
           const s = d.weapons[i];
-          return <span key={i} data-testid={`slot-${i}`} className={`gc-slot ${s ? '' : 'gc-empty'}`} title={s ? WEAPONS[s.id].name : 'Empty slot'}>{s ? <><b>{SHORT[s.id]}</b><em>{s.level}</em></> : '·'}</span>;
+          return <span key={i} data-testid={`slot-${i}`} className={`gc-slot ${s ? '' : 'gc-empty'}`} title={s ? WEAPONS[s.id].name : 'Empty slot'}>{s ? <><Icon id={s.id} size={26} /><b>{SHORT[s.id]}</b><em>{s.level}</em></> : '·'}</span>;
         })}
       </div>
     </div>

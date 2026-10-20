@@ -38,6 +38,13 @@
 .gc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
 .gc-up { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; font-size: 12px !important; font-weight: 600 !important; }
 .gc-up b { font-size: 14px; }
+.gc-up { position: relative; padding-left: 58px !important; min-height: 64px; justify-content: center; }
+.gc-up .gc-ico { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); }
+.gc-up:disabled .gc-ico { opacity: .55; }
+/* painted icons: one frame of the icons sheet, fitted into its box by the page */
+.gc-ico { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.gc-ico-art { display: block; background-repeat: no-repeat; filter: drop-shadow(0 1px 1px #0005); }
+.gc-oc { position: absolute; right: -6px; bottom: -4px; width: 22px; height: 22px; border-radius: 50%; background: #6a3ad0; color: #ffe27a; font-size: 13px; line-height: 22px; text-align: center; box-shadow: 0 0 0 2px #fff6e4; }
 .gc-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
 .gc-list li[data-unlocked="true"] b { color: var(--gold); }
 
@@ -66,6 +73,7 @@
 .gc-slots { margin-top: auto; display: flex; gap: 6px; justify-content: center; }
 .gc-slot { min-width: 64px; height: 40px; border-radius: 10px; background: #1a0c22cc; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; gap: 4px; padding: 0 8px; font-size: 13px; }
 .gc-slot em { font-style: normal; color: var(--gold); font-weight: 800; }
+.gc-slot .gc-ico { margin-left: -4px; }
 .gc-empty { opacity: .45; border-style: dashed; }
 
 .gc-over { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; padding: 12px; background: #0a0510b8; }
@@ -91,4 +99,5 @@
   .gc-cardrow { flex-direction: column; align-items: stretch; }
   .gc-card { max-width: none; }
   .gc-slot { min-width: 0; flex: 1; font-size: 12px; }
+  .gc-slot b { display: none; }
 }
