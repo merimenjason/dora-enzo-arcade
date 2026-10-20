@@ -124,3 +124,14 @@ The acorns came from section 8 itself. Its cell 1 asked for a copy of an idle fr
 The soft halo in previews is how transparency is displayed, not haze: both sheets have less semi-transparent edge than the accepted `enzo-animation-v2.png` (about 6% of pixels against 12%).
 
 Section 9 of `cave-survival-animation-prompts-v2.md` asks again with no reference cell, ENZO as the only input, no acorn anywhere, and a three-beat cycle (raise, slam, fling) with clearly different outlines. Both v1 and v2 are kept, unused.
+
+## Enzo digging, round 2 — Claude's review (20-10-2026)
+
+**`enzo-dig-v4.png` is accepted; the game uses row 1.** Raise (sitting tall, paw by his cheek), Slam (stretched long and low, chin to the ground, clods jumping in front) and Fling (rocked back, tail straight up, clods flying behind) have clearly different outlines, so the loop reads as digging, even at game size. There are no acorns or tools, and he faces right in every cell. Row 1 has no overhang anywhere; row 2's Slam and Fling cross their cell lines by 17 and 19 px. That's within the importer's allowance, but row 2 is only a spare take.
+
+- Fling's paws stay at his chest rather than sweeping under his belly. It still reads clearly as a separate beat, from the raised tail and the dirt behind him, so this is accepted.
+- Row 1 Slam's clods end at the cell line and Fling's begin 2 px past it. They are separate pieces, and the importer crops by piece, so each frame keeps its own dirt.
+- In the game, Raise → Slam → Fling loops while he digs, and Done can play once when a block breaks.
+- Size is set on import: the dig frames are scaled against his walk frames by eye.
+
+`enzo-dig-v3.png` (acorns at the chest in both Done cells) is kept, unused. Every sheet the game needs is accepted again.
