@@ -13,6 +13,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
   - Gold from each dive buys camp upgrades and unlocks four more weapons and four hazard levels.
   - Fully painted, with code drawings while the art loads, and saved at the start of every layer.
 
+### Changed
+
+- **Glimmer Cave**: Enzo now digs with his own painted frames, scrabbling at the rock like a dog digging a hole, instead of walking into it.
+
 ### Documentation
 
 - **Glimmer Cave (in progress)**: added the Rock Wyrm's four separate head frames, the last painted sheet the game needs.

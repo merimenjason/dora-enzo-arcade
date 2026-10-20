@@ -55,7 +55,7 @@ const cellOf = (key) => {
 
 test('files: every cleaned sheet exists, is 1536 × 1024 (the floor any square), and matches its recorded hash; URLs carry the first 12 hex', () => {
   assert.deepEqual([...A.CAVE_SHEETS].sort(), Object.keys(crops.sheets).sort());
-  assert.deepEqual([...A.CAVE_SHEETS].sort(), ['critters', 'dora', 'environment', 'enzo', 'floor', 'fx', 'sprites', 'wyrm', 'wyrmheads']);
+  assert.deepEqual([...A.CAVE_SHEETS].sort(), ['critters', 'dora', 'environment', 'enzo', 'enzodig', 'floor', 'fx', 'sprites', 'wyrm', 'wyrmheads']);
   for (const s of A.CAVE_SHEETS) {
     assert.ok(existsSync(file(s)), s);
     const buf = readFileSync(file(s)), want = crops.sheets[s];
@@ -148,6 +148,10 @@ test('frames: every row of a character sheet stands on foot lines within 6 px at
   // the subject's median walk or idle frame comes out at the asked-for size
   const heights = [...A.HERO_ANIMS.enzo.walk, ...A.HERO_ANIMS.enzo.idle].map((k) => A.CAVE_FRAMES[k]).map((f) => f.rect[3] * f.scale);
   assert.ok(heights.every((h) => h > 0.9 && h < 1.25), `${heights}`);
+  // Enzo's dig sheet is sized by its raise frame, sitting up tall, at the hero's height; slam is long and low
+  const dig = A.HERO_ANIMS.enzo.dig.map((k) => A.CAVE_FRAMES[k]);
+  assert.ok(Math.abs(dig[0].rect[3] * dig[0].scale - 1.05) < 0.05, `raise ${dig[0].rect[3] * dig[0].scale}`);
+  assert.ok(dig[1].rect[3] * dig[1].scale < 0.75, 'slam is low');
 });
 
 test('frames: every sequence names existing frames, and dora:4:2 is flipped', () => {
@@ -169,7 +173,9 @@ test('frames: every sequence names existing frames, and dora:4:2 is flipped', ()
   for (const k of names) assert.ok(A.CAVE_FRAMES[k], `${k} exists`);
   // every animated frame is used somewhere
   const used = new Set(names);
-  for (const s of ['enzo', 'dora', 'critters', 'fx', 'environment', 'wyrm', 'wyrmheads']) for (const [k] of bySheet(s)) assert.ok(used.has(k), `${k} is used`);
+  for (const s of ['enzo', 'enzodig', 'dora', 'critters', 'fx', 'environment', 'wyrm', 'wyrmheads']) for (const [k] of bySheet(s)) assert.ok(used.has(k), `${k} is used`);
+  assert.deepEqual(A.HERO_ANIMS.enzo.dig, ['enzodig:1:1', 'enzodig:1:2', 'enzodig:1:3'], 'Enzo digs with his own raise, slam and fling');
+  assert.equal(A.CAVE_FALLBACK['enzodig:1:2'], 'sprites:1:1');
   assert.equal(A.CAVE_FRAMES['dora:4:2'].flip, true);
   assert.deepEqual(Object.entries(A.CAVE_FRAMES).filter(([, f]) => f.flip).map(([k]) => k).sort(), ['dora:4:2', 'sprites:1:2']);
   assert.equal(A.CAVE_FALLBACK['enzo:2:4'], 'sprites:1:1');
