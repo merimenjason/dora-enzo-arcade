@@ -14,7 +14,9 @@ Reads each sheet named in SOURCES from public/art/cave-survival/ and, for each:
      hop, a bob or a lunge moves as drawn; a single object is centred on its pieces;
   4. computes scale = 1 / the median size of the subject's walk or idle frames (height, or width for blocks and
      effects), so a frame drawn at `px` × scale per source px shows the subject at `px`; nothing is resampled;
-  5. writes the cleaned PNG to public/art/cave/<name>.png;
+  5. writes the cleaned PNG to art/glimmer-cave/<name>.png, which the tests read pixel by pixel, and the served copy to
+     public/art/cave/<name>.webp: lossy colour at quality 90, lossless alpha, checked on decoding to hold exactly the PNG's
+     alpha, so every crop edge and clear pixel stays as cleaned;
   6. writes docs/glimmer-cave-crops.json and regenerates lib/glimmer-cave-crops.ts from it.
 
 Frame keys are "<sheet>:<row>:<column>", counted from 1 as the art reviews count them. Needs Pillow only.
@@ -29,6 +31,10 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "public/art/cave-survival")
 OUT = os.path.join(ROOT, "public/art/cave")
+CLEAN = os.path.join(ROOT, "art/glimmer-cave")
+# WebP colour quality: at 90 every sheet composited on the cave's purple is 36-44 dB PSNR from its PNG (invisible at the
+# 2-3x downscale the game draws at) and the ten files total about a fifth of the PNGs
+QUALITY = 90
 PAD = 6
 OVERHANG = 24
 
@@ -321,11 +327,19 @@ def import_sheet(name, spec, used):
 
 def save(im, name):
     os.makedirs(OUT, exist_ok=True)
-    path = os.path.join(OUT, f"{name}.png")
-    im.save(path, optimize=True)
-    with open(path, "rb") as f:
-        data = f.read()
-    return {"sha256": hashlib.sha256(data).hexdigest(), "w": im.size[0], "h": im.size[1]}
+    os.makedirs(CLEAN, exist_ok=True)
+    png = os.path.join(CLEAN, f"{name}.png")
+    im.save(png, optimize=True)
+    webp = os.path.join(OUT, f"{name}.webp")
+    im.save(webp, "WEBP", quality=QUALITY, method=6, alpha_quality=100)
+    back = Image.open(webp)
+    back.load()
+    if back.size != im.size or back.mode != im.mode:
+        sys.exit(f"{name}: the WebP decodes as {back.mode} {back.size}, not {im.mode} {im.size}")
+    if im.mode == "RGBA" and back.getchannel("A").tobytes() != im.getchannel("A").tobytes():
+        sys.exit(f"{name}: the WebP's alpha differs from the cleaned PNG's")
+    digest = lambda path: hashlib.sha256(open(path, "rb").read()).hexdigest()
+    return {"sha256": digest(webp), "png_sha256": digest(png), "w": im.size[0], "h": im.size[1]}
 
 
 def main():
@@ -387,6 +401,7 @@ def main():
     fallback = {k: fallback_of(k) for k in sorted(frames) if fallback_of(k)}
     doc = {
         "generated": "python3 scripts/glimmer-cave-import.py",
+        "sheets_note": "sha256 is the served public/art/cave/<sheet>.webp; png_sha256 the cleaned art/glimmer-cave/<sheet>.png it is encoded from",
         "keys": "<sheet>:<row>:<column>, counted from 1",
         "rect": "[x, y, w, h] in sheet px: the frame's content plus 6 px, inside its cell up to its own overhang",
         "foot": "sheet y of the ground line (exclusive bottom of the largest piece; an airborne frame keeps its row's line; effects: the cell centre)",
@@ -442,7 +457,7 @@ def write_ts(doc):
         "",
         "export type CaveSheet = " + " | ".join(f"'{n}'" for n in names) + ";",
         "export const CAVE_SHEETS: readonly CaveSheet[] = " + ts_inline(names) + ";",
-        "/** The first 12 hex digits of each cleaned file's SHA-256, for the URL's cache key. */",
+        "/** The first 12 hex digits of each served WebP's SHA-256, for the URL's cache key. */",
         "export const CAVE_HASHES: Record<CaveSheet, string> = " + ts_obj({n: s[n]["sha256"][:12] for n in names}) + ";",
         "/** Each cleaned file's size; an image of any other size counts as failed. */",
         "export const CAVE_SIZES: Record<CaveSheet, { w: number; h: number }> = " + ts_obj({n: {"w": s[n]["w"], "h": s[n]["h"]} for n in names}) + ";",

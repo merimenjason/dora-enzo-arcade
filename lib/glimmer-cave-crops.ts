@@ -5,18 +5,18 @@ import type { Block, CritterId, Hero } from './glimmer-cave-data.js';
 
 export type CaveSheet = 'enzo' | 'enzodig' | 'dora' | 'critters' | 'fx' | 'environment' | 'floor' | 'wyrm' | 'wyrmheads' | 'sprites';
 export const CAVE_SHEETS: readonly CaveSheet[] = ['enzo', 'enzodig', 'dora', 'critters', 'fx', 'environment', 'floor', 'wyrm', 'wyrmheads', 'sprites'];
-/** The first 12 hex digits of each cleaned file's SHA-256, for the URL's cache key. */
+/** The first 12 hex digits of each served WebP's SHA-256, for the URL's cache key. */
 export const CAVE_HASHES: Record<CaveSheet, string> = {
-  enzo: '8bd3c4dc0480',
-  enzodig: '684598ae8f53',
-  dora: '7d94d40ac514',
-  critters: 'a18bdf274280',
-  fx: 'b40533da0a44',
-  environment: '64120b37a371',
-  floor: '39aaef751858',
-  wyrm: '9f5a64ab10d2',
-  wyrmheads: 'f1bed11cdb3d',
-  sprites: '53aaf29d8bcc',
+  enzo: '111dd2456282',
+  enzodig: 'e6902f27b196',
+  dora: 'a71edf782ad8',
+  critters: '0beed3f9976d',
+  fx: '34ea0adbd7c0',
+  environment: 'b7a9c320a0b4',
+  floor: '8a0b46a49f32',
+  wyrm: 'd2be1a2b9e03',
+  wyrmheads: 'afe540db2fc3',
+  sprites: '486c353e19ad',
 };
 /** Each cleaned file's size; an image of any other size counts as failed. */
 export const CAVE_SIZES: Record<CaveSheet, { w: number; h: number }> = {
