@@ -74,6 +74,9 @@ function hear(events: CaveEvent[], hero: Hero) {
   }
 }
 
+/** A weapon's top level, and the levels whose card is one of its overclocks (the engine offers them at 4 and 9). */
+const WEAPON_TOP = 12, OC_LEVELS = [5, 10];
+
 /** The camp upgrades show the icon of the passive they match; the other three have their own. */
 const UPGRADE_ICON: Record<UpgradeId, CaveIcon> = {
   fluffier: 'fluff', sharper: 'claws', quicker: 'paws', diggier: 'arms', magnetic: 'magnet', prospector: 'prospector', rerolls: 'rerolls', headstart: 'headstart',
@@ -531,7 +534,17 @@ function Hud({ d, paused, onPause, mute, mini }: { d: Dive; paused: boolean; onP
       <div className="gc-slots">
         {[0, 1, 2, 3].map((i) => {
           const s = d.weapons[i];
-          return <span key={i} data-testid={`slot-${i}`} className={`gc-slot ${s ? '' : 'gc-empty'}`} title={s ? WEAPONS[s.id].name : 'Empty slot'}>{s ? <><Icon id={s.id} size={26} /><b>{SHORT[s.id]}</b><em>{s.level}</em></> : '·'}</span>;
+          if (!s) return <span key={i} data-testid={`slot-${i}`} className="gc-slot gc-empty" title="Empty slot">·</span>;
+          const oc = s.overclocks.map((o) => OVERCLOCKS[o].name).join(', ');
+          return (
+            <span key={i} data-testid={`slot-${i}`} className="gc-slot" title={`${WEAPONS[s.id].name}, level ${s.level} of ${WEAPON_TOP}. Overclocks at levels 5 and 10${oc ? `: ${oc}` : ''}.`}>
+              <span className="gc-slot-top"><Icon id={s.id} size={26} /><b>{SHORT[s.id]}</b><em>{s.level}</em></span>
+              {/* one step per level; levels 5 and 10 are the overclock picks */}
+              <span className="gc-lv" data-testid={`slot-bar-${i}`}>
+                {Array.from({ length: WEAPON_TOP }, (_, j) => <i key={j} className={`${j + 1 <= s.level ? 'on' : ''} ${OC_LEVELS.includes(j + 1) ? 'oc' : ''}`} />)}
+              </span>
+            </span>
+          );
         })}
       </div>
     </div>

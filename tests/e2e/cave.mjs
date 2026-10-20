@@ -79,7 +79,7 @@ await check('keys: holding ArrowRight moves the hero, and pushing into dirt digs
   await page.getByTestId('stage').screenshot({ path: '.checks/cave/dig.png' });
 });
 
-await check('the mini-map: the layer\'s blocks, the hero as a white dot where he stands, and the landed pod', async (page) => {
+await check('the mini-map: the layer\'s blocks, the hero\'s white head where he stands, and the landed pod\'s gold capsule', async (page) => {
   await fresh(page); await begin(page, { hero: 'enzo' });
   await page.waitForTimeout(300);
   const read = () => page.evaluate(() => {
@@ -88,17 +88,19 @@ await check('the mini-map: the layer\'s blocks, the hero as a white dot where he
     const px = (fx, fy) => { const i = (Math.round(fy) * c.width + Math.round(fx)) * 4; return [data[i], data[i + 1], data[i + 2], data[i + 3]]; };
     const ox = (c.width - d.map.w * k) / 2, oy = (c.height - d.map.h * k) / 2;
     let opaque = 0; for (let i = 3; i < data.length; i += 4) if (data[i] > 200) opaque++;
-    return { opaque, n: c.width * c.height, hero: px(ox + d.hx * k, oy + d.hy * k), pod: d.pod && px(ox + d.pod.x * k, oy + d.pod.y * k) };
+    // the pod's centre is its blue window, so its gold is read 3 px below
+    const dpr = c.width / c.clientWidth;
+    return { opaque, n: c.width * c.height, hero: px(ox + d.hx * k, oy + d.hy * k), pod: d.pod && px(ox + d.pod.x * k, oy + d.pod.y * k + 3 * dpr) };
   });
   const a = await read();
   assert.ok(a.opaque > a.n * 0.8, `the blocks fill the map: ${a.opaque} of ${a.n}`);
-  assert.ok(a.hero[0] > 240 && a.hero[1] > 240 && a.hero[2] > 240, `a white dot at the hero: ${a.hero}`);
+  assert.ok(a.hero[0] > 240 && a.hero[1] > 240 && a.hero[2] > 240, `white at the hero: ${a.hero}`);
   await cave(page, (w) => { w.set({ fluff: 9999 }); w.dive.critters.length = 0; w.dive.t = 299.5; w.dive.timer = 0.5; });
   await page.waitForFunction(() => window.__cave().dive.pod, null, { timeout: 20000 });
   if (await page.locator('main[data-screen="pick"]').count()) await page.getByTestId('card-0').click();
   await page.waitForTimeout(300);
   const b = await read();
-  assert.ok(b.pod && b.pod[0] > 230 && b.pod[1] > 180 && b.pod[2] < 140, `a gold dot at the pod: ${b.pod}`);
+  assert.ok(b.pod && b.pod[0] > 230 && b.pod[1] > 180 && b.pod[2] < 140, `gold at the pod: ${b.pod}`);
   await page.getByTestId('minimap').screenshot({ path: '.checks/cave/minimap.png' });
 });
 
@@ -191,6 +193,13 @@ await check('an overclock offer: a level-4 sling and a level-up offer exactly it
   await page.getByTestId('card-1').click();
   await screen(page, 'dive');
   assert.ok((await page.getByTestId('slot-0').textContent()).includes('5'), 'the sling shows level 5');
+  // the level bar: five steps lit, the level-5 overclock diamond lit and the level-10 one still empty
+  const steps = await page.locator('[data-testid="slot-bar-0"] i').evaluateAll((els) => els.map((e) => e.className.trim()));
+  assert.equal(steps.length, 12);
+  assert.equal(steps.filter((c) => c.includes('on')).length, 5);
+  assert.deepEqual(steps.map((c, i) => c.includes('oc') ? i + 1 : 0).filter(Boolean), [5, 10]);
+  assert.ok(steps[4].includes('on') && !steps[9].includes('on'));
+  await page.screenshot({ path: '.checks/cave/slot-bar.png', clip: { x: 0, y: 760, width: 1280, height: 100 } });
 });
 
 await check('a camp upgrade: buy-fluffier spends the gold and the level shows', async (page) => {
