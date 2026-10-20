@@ -79,6 +79,29 @@ await check('keys: holding ArrowRight moves the hero, and pushing into dirt digs
   await page.getByTestId('stage').screenshot({ path: '.checks/cave/dig.png' });
 });
 
+await check('the mini-map: the layer\'s blocks, the hero as a white dot where he stands, and the landed pod', async (page) => {
+  await fresh(page); await begin(page, { hero: 'enzo' });
+  await page.waitForTimeout(300);
+  const read = () => page.evaluate(() => {
+    const c = document.querySelector('[data-testid="minimap"]'), x = c.getContext('2d'), { data } = x.getImageData(0, 0, c.width, c.height);
+    const d = window.__cave().dive, k = Math.min(c.width / d.map.w, c.height / d.map.h);
+    const px = (fx, fy) => { const i = (Math.round(fy) * c.width + Math.round(fx)) * 4; return [data[i], data[i + 1], data[i + 2], data[i + 3]]; };
+    const ox = (c.width - d.map.w * k) / 2, oy = (c.height - d.map.h * k) / 2;
+    let opaque = 0; for (let i = 3; i < data.length; i += 4) if (data[i] > 200) opaque++;
+    return { opaque, n: c.width * c.height, hero: px(ox + d.hx * k, oy + d.hy * k), pod: d.pod && px(ox + d.pod.x * k, oy + d.pod.y * k) };
+  });
+  const a = await read();
+  assert.ok(a.opaque > a.n * 0.8, `the blocks fill the map: ${a.opaque} of ${a.n}`);
+  assert.ok(a.hero[0] > 240 && a.hero[1] > 240 && a.hero[2] > 240, `a white dot at the hero: ${a.hero}`);
+  await cave(page, (w) => { w.set({ fluff: 9999 }); w.dive.critters.length = 0; w.dive.t = 299.5; w.dive.timer = 0.5; });
+  await page.waitForFunction(() => window.__cave().dive.pod, null, { timeout: 20000 });
+  if (await page.locator('main[data-screen="pick"]').count()) await page.getByTestId('card-0').click();
+  await page.waitForTimeout(300);
+  const b = await read();
+  assert.ok(b.pod && b.pod[0] > 230 && b.pod[1] > 180 && b.pod[2] < 140, `a gold dot at the pod: ${b.pod}`);
+  await page.getByTestId('minimap').screenshot({ path: '.checks/cave/minimap.png' });
+});
+
 await check('a card and a reroll: the threshold opens a pick, Reroll works once, card-0 adds a card', async (page) => {
   await fresh(page); await begin(page);
   await cave(page, (w) => w.set({ xp: w.xpNeed(w.dive.level) }));
@@ -238,7 +261,7 @@ for (const view of [{ width: 390, height: 844 }, { width: 1280, height: 860 }]) 
     });
     assert.ok(fit.sh <= fit.h && fit.sw <= fit.w, `scroll ${JSON.stringify(fit)}`);
     assert.ok(fit.bottom <= fit.h + 0.5 && fit.right <= fit.w + 0.5 && fit.sw0 >= fit.w - 1 && fit.sh0 >= fit.h - 1, `stage fills ${JSON.stringify(fit)}`);
-    for (const id of ['fluff', 'timer', 'gold', 'job', 'pause', 'mute', 'slot-0', 'slot-3']) {
+    for (const id of ['fluff', 'timer', 'gold', 'job', 'pause', 'mute', 'minimap', 'slot-0', 'slot-3']) {
       const b = await page.getByTestId(id).boundingBox();
       assert.ok(b && b.x >= 0 && b.y >= 0 && b.x + b.width <= fit.w + 0.5 && b.y + b.height <= fit.h + 0.5, `${id} on screen ${JSON.stringify(b)}`);
     }

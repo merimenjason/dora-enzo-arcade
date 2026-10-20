@@ -12,6 +12,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
   - A drop pod to reach in 45 s, and the grumpy Rock Wyrm on layer 5.
   - Gold from each dive buys camp upgrades and unlocks four more weapons and four hazard levels.
   - Fully painted, with code drawings while the art loads, and saved at the start of every layer.
+- **Glimmer Cave**: a mini-map in the top-right corner shows the whole layer: the tunnels you've dug, rock and gold, crates and lanterns, elites, the Rock Wyrm, and a pulsing ring where the drop pod lands.
 
 ### Changed
 

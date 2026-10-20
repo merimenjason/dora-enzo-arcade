@@ -12,7 +12,7 @@ All numbers below come from `lib/glimmer-cave-data.ts`.
 
 1. **At camp,** pick a hero and a hazard level from 1 to 5. Hazard 1 is open from the start, and each finished hazard opens the next.
 2. **Each layer lasts 5:00.** Critters spawn just off screen. Bonked critters drop crystals, which give experience. Each level-up pauses the game and offers three cards.
-3. **When a layer's timer runs out, the drop pod lands** 12–20 tiles away. An arrow at the screen edge points to it, and the swarm doubles. Reach the pod within 45 s to bank the layer's gold and descend. If the pod leaves without you, the dive ends.
+3. **When a layer's timer runs out, the drop pod lands** 12–20 tiles away. An arrow at the screen edge points to it, a pulsing ring marks it on the mini-map, and the swarm doubles. Reach the pod within 45 s to bank the layer's gold and descend. If the pod leaves without you, the dive ends.
 4. **Layer 5 has no job.** The Rock Wyrm bursts out of the rock at 3:00, and the pod lands only once the wyrm is bonked.
 5. **When the dive ends,** you keep the gold already banked. If you were bonked, you also keep half of the gold from the layer you were on. Gold buys camp upgrades.
 
