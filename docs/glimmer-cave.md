@@ -194,7 +194,8 @@ The upgraded hazard-1 gate sits on its 50% floor in QUICK. Rerun the bot after a
 - the `sprites-0` fallback poses.
 
 **The importer:** `python3 scripts/glimmer-cave-import.py` cleans each sheet's alpha. It finds each frame's pieces, crop, foot line and scale, and writes:
-- `public/art/cave/<sheet>.png`;
+- `art/glimmer-cave/<sheet>.png`, the cleaned sheet the art tests read pixel by pixel;
+- `public/art/cave/<sheet>.webp`, the copy the game loads: colour at WebP quality 90, alpha lossless and checked to match the PNG exactly;
 - `docs/glimmer-cave-crops.json`;
 - the generated `lib/glimmer-cave-crops.ts`.
 

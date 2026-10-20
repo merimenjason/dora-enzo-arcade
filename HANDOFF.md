@@ -201,10 +201,9 @@ Game 38, `/cave`, a cave survival dive in the spirit of Deep Rock Galactic: Surv
   - upgraded dives finish hazard 1 in 54% and hazard 3 in 33%;
   - the wyrm falls in 30–150 s in 90% of the fights the hero survives.
   - The upgraded hazard-1 gate sits exactly on its 50% floor in QUICK, so any balance change needs a bot rerun.
-- **Art:** ten cleaned sheets in `public/art/cave/`, about 11.7 MB, loaded on demand. Rerun `python3 scripts/glimmer-cave-import.py` after replacing a source sheet in `public/art/cave-survival/`. The `FIX` table holds per-frame overrides.
+- **Art:** ten sheets served as WebP from `public/art/cave/`, about 2.3 MB, loaded on demand; the cleaned PNGs they're encoded from (11.7 MB) are in `art/glimmer-cave/` for the tests. Rerun `python3 scripts/glimmer-cave-import.py` after replacing a source sheet in `public/art/cave-survival/`. The `FIX` table holds per-frame overrides.
 - **Open ends:**
   - frame time at 300 critters on a real phone at device pixel ratio 3 (software-rendered headless Chrome measured 18–27 ms);
-  - the floor (2.8 MB) could become WebP;
   - the e2e can time out on a loaded machine; rerun before changing code.
 
 ## Chinchilla Trek · 19-10-2026

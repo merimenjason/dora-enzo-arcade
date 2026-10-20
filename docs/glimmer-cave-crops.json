@@ -1,5 +1,6 @@
 {
  "generated": "python3 scripts/glimmer-cave-import.py",
+ "sheets_note": "sha256 is the served public/art/cave/<sheet>.webp; png_sha256 the cleaned art/glimmer-cave/<sheet>.png it is encoded from",
  "keys": "<sheet>:<row>:<column>, counted from 1",
  "rect": "[x, y, w, h] in sheet px: the frame's content plus 6 px, inside its cell up to its own overhang",
  "foot": "sheet y of the ground line (exclusive bottom of the largest piece; an airborne frame keeps its row's line; effects: the cell centre)",
@@ -12,7 +13,8 @@
     6,
     4
    ],
-   "sha256": "8bd3c4dc0480f0d6bfc07c7f211187e9bfb94fc246c36ce09104f55c4ae9966d",
+   "sha256": "111dd24562827cf912dd8b33d46c0a2ce2c75baf682d0abc807fddf67f448f3b",
+   "png_sha256": "8bd3c4dc0480f0d6bfc07c7f211187e9bfb94fc246c36ce09104f55c4ae9966d",
    "w": 1536,
    "h": 1024
   },
@@ -22,7 +24,8 @@
     4,
     2
    ],
-   "sha256": "684598ae8f53bc383f6852e5348f05e5c0d994e6ae67a1277c8e2906bbe85574",
+   "sha256": "e6902f27b196c7d267039ab4bc253851b06bb0fbe5253ac50859486a525e32a0",
+   "png_sha256": "684598ae8f53bc383f6852e5348f05e5c0d994e6ae67a1277c8e2906bbe85574",
    "w": 1536,
    "h": 1024
   },
@@ -32,7 +35,8 @@
     6,
     4
    ],
-   "sha256": "7d94d40ac514e06b06884fe71d3e7a21e4e66382765e1b10dd5e0ce9af345ce6",
+   "sha256": "a71edf782ad88ace9d84f3c2790c1137178b3b528b968b0104726f7b5239b368",
+   "png_sha256": "7d94d40ac514e06b06884fe71d3e7a21e4e66382765e1b10dd5e0ce9af345ce6",
    "w": 1536,
    "h": 1024
   },
@@ -42,7 +46,8 @@
     6,
     4
    ],
-   "sha256": "a18bdf2742807197b46ff781db9466c60061a34966bdf3fd3855299a75002e32",
+   "sha256": "0beed3f9976dffb9684b4b9bc2aeb270a272d33464d43ec38aea0fc6016727e3",
+   "png_sha256": "a18bdf2742807197b46ff781db9466c60061a34966bdf3fd3855299a75002e32",
    "w": 1536,
    "h": 1024
   },
@@ -52,7 +57,8 @@
     6,
     4
    ],
-   "sha256": "b40533da0a4492cb68811b1b7f89ee05fb797a7ce7f7055889e8a241c22167e9",
+   "sha256": "34ea0adbd7c0506b5abcd02e8985d609a96d44be8a2ae7c8a18c4e59ef480be1",
+   "png_sha256": "b40533da0a4492cb68811b1b7f89ee05fb797a7ce7f7055889e8a241c22167e9",
    "w": 1536,
    "h": 1024
   },
@@ -62,7 +68,8 @@
     4,
     2
    ],
-   "sha256": "64120b37a3713cdaf0fbced6a28f8940c388ea2a934abdcc31157adf88fc82a0",
+   "sha256": "b7a9c320a0b4c5304d25f966e12dd234863eeef14f8ecd809f50864d17af9ffa",
+   "png_sha256": "64120b37a3713cdaf0fbced6a28f8940c388ea2a934abdcc31157adf88fc82a0",
    "w": 1536,
    "h": 1024
   },
@@ -72,7 +79,8 @@
     1,
     1
    ],
-   "sha256": "39aaef7518584934683132944e0d17aeccedff2d489f6eb923af4188c1bcf69c",
+   "sha256": "8a0b46a49f3215d2a24a1be8b73fdff19a5e1156140f7d8b4a752701c2a7ff2b",
+   "png_sha256": "39aaef7518584934683132944e0d17aeccedff2d489f6eb923af4188c1bcf69c",
    "w": 1254,
    "h": 1254
   },
@@ -82,7 +90,8 @@
     4,
     2
    ],
-   "sha256": "9f5a64ab10d2d4af1b3cce05932be33018ab6fb9d6ecdcc9f6e0cd741e647c77",
+   "sha256": "d2be1a2b9e033c67f40241784875f0a17d18b63601f1e7ff6e22cc3feddd53f6",
+   "png_sha256": "9f5a64ab10d2d4af1b3cce05932be33018ab6fb9d6ecdcc9f6e0cd741e647c77",
    "w": 1536,
    "h": 1024
   },
@@ -92,7 +101,8 @@
     2,
     2
    ],
-   "sha256": "f1bed11cdb3db87d18e305e46d90823f52c71e7abb37984289cc3f4ed2765aae",
+   "sha256": "afe540db2fc35b37cfb1143eea47698e6ee71bfe09694c97418e933430d65c28",
+   "png_sha256": "f1bed11cdb3db87d18e305e46d90823f52c71e7abb37984289cc3f4ed2765aae",
    "w": 1536,
    "h": 1024
   },
@@ -102,7 +112,8 @@
     4,
     2
    ],
-   "sha256": "53aaf29d8bcc4b379dc1ecde626f34cde131cd56a1c7b357cd731bcd76b5afe9",
+   "sha256": "486c353e19ad9130e6d0aac2d77cd585e3b9c8436c1b114ceacec6cd946f7ae0",
+   "png_sha256": "53aaf29d8bcc4b379dc1ecde626f34cde131cd56a1c7b357cd731bcd76b5afe9",
    "w": 1536,
    "h": 1024
   }

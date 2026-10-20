@@ -25,7 +25,7 @@ const notify = () => { version++; listeners.forEach((fn) => fn()); };
 export const subscribeCaveArt = (fn: () => void) => { listeners.add(fn); return () => { listeners.delete(fn); }; };
 export const caveArtVersion = () => version;
 export const caveArtServerVersion = () => 0;
-export const caveArtUrl = (s: CaveSheet) => `/art/cave/${s}.png?v=${CAVE_HASHES[s]}`;
+export const caveArtUrl = (s: CaveSheet) => `/art/cave/${s}.webp?v=${CAVE_HASHES[s]}`;
 
 /** Starts loading these sheets once each. A failed sheet is not asked for again until retryCaveArt. */
 export function requestCaveArt(sheets: readonly CaveSheet[]) {

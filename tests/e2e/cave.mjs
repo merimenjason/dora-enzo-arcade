@@ -199,7 +199,7 @@ await check('art: a dive asks for every sheet, hash-versioned, and paints the he
   await page.waitForFunction((want) => { const a = window.__cave().art(); return want.every((s) => a.ready.includes(s)); }, SHEETS);
   await page.waitForFunction(() => window.__cave().heroPainted());
   const asked = await page.evaluate(() => performance.getEntriesByType('resource').map((e) => new URL(e.name)).filter((u) => u.pathname.startsWith('/art/cave/')).map((u) => u.pathname + u.search));
-  for (const u of asked) assert.match(u, /^\/art\/cave\/[a-z]+\.png\?v=[0-9a-f]{12}$/);
+  for (const u of asked) assert.match(u, /^\/art\/cave\/[a-z]+\.webp\?v=[0-9a-f]{12}$/);
   await page.waitForTimeout(400);
   await page.getByTestId('stage').screenshot({ path: '.checks/cave/painted.png' });
 });
@@ -217,7 +217,7 @@ await check('art: while it is slow the dive plays on in code drawings, then pain
 
 await check('art: a failed sheet leaves the dive playable, and Retry brings it back', async (page) => {
   let fail = true;
-  await page.route('**/art/cave/critters.png*', (route) => (fail ? route.abort() : route.continue()));
+  await page.route('**/art/cave/critters.webp*', (route) => (fail ? route.abort() : route.continue()));
   await fresh(page); await begin(page, { hero: 'enzo', spawning: true });
   await page.getByTestId('retry-art').waitFor();
   const t0 = await clock(page); await page.waitForTimeout(500);

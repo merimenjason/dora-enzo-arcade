@@ -10,7 +10,15 @@ function test(name, fn) {
   try { fn(); console.log(`ok   ${name}`); } catch (e) { failed++; console.log(`FAIL ${name}\n${e.stack}`); }
 }
 const crops = JSON.parse(readFileSync(new URL('../docs/glimmer-cave-crops.json', import.meta.url), 'utf8'));
-const file = (s) => new URL(`../public/art/cave/${s}.png`, import.meta.url);
+const file = (s) => new URL(`../art/glimmer-cave/${s}.png`, import.meta.url);
+const served = (s) => new URL(`../public/art/cave/${s}.webp`, import.meta.url);
+/** A WebP's canvas size from its first chunk: VP8X (extended, as every sheet with alpha is), VP8L or VP8 (lossy, opaque). */
+const webpSize = (b) => {
+  const kind = b.toString('ascii', 12, 16);
+  if (kind === 'VP8X') return [1 + b.readUIntLE(24, 3), 1 + b.readUIntLE(27, 3)];
+  if (kind === 'VP8L') { const v = b.readUInt32LE(21); return [1 + (v & 0x3fff), 1 + ((v >> 14) & 0x3fff)]; }
+  return [b.readUInt16LE(26) & 0x3fff, b.readUInt16LE(28) & 0x3fff];
+};
 const sha = (buf) => createHash('sha256').update(buf).digest('hex');
 
 /** Decodes an 8-bit, non-interlaced RGB or RGBA PNG. */
@@ -53,7 +61,7 @@ const cellOf = (key) => {
 
 // ---- the files ----
 
-test('files: every cleaned sheet exists, is 1536 × 1024 (the floor any square), and matches its recorded hash; URLs carry the first 12 hex', () => {
+test('files: every cleaned PNG and served WebP exists, is 1536 × 1024 (the floor any square), and matches its recorded hash; URLs carry the WebP\'s first 12 hex', () => {
   assert.deepEqual([...A.CAVE_SHEETS].sort(), Object.keys(crops.sheets).sort());
   assert.deepEqual([...A.CAVE_SHEETS].sort(), ['critters', 'dora', 'environment', 'enzo', 'enzodig', 'floor', 'fx', 'sprites', 'wyrm', 'wyrmheads']);
   for (const s of A.CAVE_SHEETS) {
@@ -65,9 +73,17 @@ test('files: every cleaned sheet exists, is 1536 × 1024 (the floor any square),
     assert.deepEqual(A.CAVE_SIZES[s], { w: want.w, h: want.h }, s);
     if (s === 'floor') assert.equal(size[0], size[1], 'the floor is square');
     else assert.deepEqual(size, [1536, 1024], s);
-    assert.equal(sha(buf), want.sha256, `${s} is the recorded file byte for byte`);
+    assert.equal(sha(buf), want.png_sha256, `${s}: the cleaned PNG is the recorded file byte for byte`);
+    // the served copy: a WebP the importer checked holds the PNG's alpha exactly
+    assert.ok(existsSync(served(s)), `${s}.webp`);
+    const web = readFileSync(served(s));
+    assert.equal(web.toString('ascii', 0, 4) + web.toString('ascii', 8, 12), 'RIFFWEBP', s);
+    assert.deepEqual(webpSize(web), size, `${s}.webp is the PNG's size`);
+    if (s !== 'floor') assert.equal(web.toString('ascii', 12, 16), 'VP8X', `${s}.webp carries alpha`);
+    assert.ok(web.length < buf.length / 2, `${s}.webp is under half its PNG (${web.length} of ${buf.length})`);
+    assert.equal(sha(web), want.sha256, `${s}: the WebP is the recorded file byte for byte`);
     assert.equal(A.CAVE_HASHES[s], want.sha256.slice(0, 12));
-    assert.equal(A.caveArtUrl(s), `/art/cave/${s}.png?v=${want.sha256.slice(0, 12)}`);
+    assert.equal(A.caveArtUrl(s), `/art/cave/${s}.webp?v=${want.sha256.slice(0, 12)}`);
   }
 });
 

@@ -16,6 +16,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 ### Changed
 
 - **Glimmer Cave**: Enzo now digs with his own painted frames, scrabbling at the rock like a dog digging a hole, instead of walking into it.
+- **Glimmer Cave**: the painted art loads about five times faster: its ten sheets are now WebP, 2.3 MB in all instead of 11.7 MB, with no visible change.
 
 ### Fixed
 
