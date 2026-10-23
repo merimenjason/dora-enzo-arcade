@@ -1,4 +1,4 @@
-Repo: dora-enzo-arcade. Run this only after the first build (`1-build-game.md`, branch `codex/grumble-hunt`) has been reviewed.
+Repo: dora-enzo-arcade. Run this only after the first build (`1-build-game.md`, branch `codex/grumble-hunt`) has been reviewed. The review fixes are on `codex/grumble-hunt-fixes`, which is the first build plus those fixes.
 
 Goal: add Grumble Hunt's story mode, 16 weapon types with branching trees, armour, crafting, and the Monster Hunter mechanics the design picks. Build it as five separate branches, one per step in **Build order** in `docs/grumble-hunt/expansion-design.md`, each based on the previous one, and push each when it's done:
 - `codex/grumble-hunt-x1-alive`
@@ -10,7 +10,7 @@ Goal: add Grumble Hunt's story mode, 16 weapon types with branching trees, armou
 Don't open pull requests and never push to `main`.
 
 Setup:
-- Run `git fetch origin`. Create the first branch from `origin/codex/grumble-hunt`, then merge in `origin/grumble-hunt-base`. That brings in the design doc, `lib/grumble-hunt-content.ts` with its tests, and the prompts. If `codex/grumble-hunt-story-art` has been pushed, merge it too for the new art (listed in `docs/grumble-hunt-story-art.md`), and use that art where the design asks for it.
+- Run `git fetch origin`. Create the first branch from `origin/codex/grumble-hunt-fixes`, not `codex/grumble-hunt`, then merge in `origin/grumble-hunt-base`. That brings in the design doc, `lib/grumble-hunt-content.ts` with its tests, and the prompts. If `codex/grumble-hunt-story-art` has been pushed, merge it too for the new art (listed in `docs/grumble-hunt-story-art.md`), and use that art where the design asks for it.
 - Read AGENTS.md, CLAUDE.md, `docs/grumble-hunt/expansion-design.md` (the source of truth for every number and rule), `docs/grumble-hunt.md`, and the existing engine, scene and page for Grumble Hunt.
 
 Use the content module; don't duplicate it:
