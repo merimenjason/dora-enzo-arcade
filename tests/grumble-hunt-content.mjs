@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {
-  MATERIALS, DROPS, ITEMS, SNACKS, WEAPON_TYPES, WEAPON_TREE, ARMOUR_SETS, SLOTS, STORY, BEAST_ORDER, BEAST_MATS,
+  MATERIALS, DROPS, ITEMS, BASIC_WEAPONS, MH_EQUIVALENT, FIRST_PICKS, SNACKS, WEAPON_TYPES, WEAPON_TREE, ARMOUR_SETS, SLOTS, STORY, BEAST_ORDER, BEAST_MATS,
   rollShed, rollCalm, rollGather, canAfford, pay, add, cap, weaponNode, nextNodes, weaponStats, armourCost, armourBonus, validate,
 } from '../.checks/grumble-hunt-content.js';
 
@@ -14,9 +14,21 @@ assert.deepEqual(validate(), []);
 assert.deepEqual(Object.values(MATERIALS).map((m) => m.icon).sort((a, b) => a - b), [...Array(16).keys()]);
 assert.equal(new Set(Object.values(ITEMS).map((i) => i.icon)).size, Object.keys(ITEMS).length);
 
-// six weapon types, each with tiers 1 and 2, then two branches of tiers 3, 4 and Glimmer 5
-assert.equal(Object.keys(WEAPON_TYPES).length, 6);
-assert.equal(WEAPON_TREE.length, 6 * (2 + 2 * 3));
+// sixteen weapon types: the fourteen basic ones you can pick at the start, one per Monster Hunter Wilds type,
+// and two of Grumble Hunt's own that the story unlocks. Each has tiers 1 and 2, then two branches of tiers 3, 4
+// and the Glimmer tier 5.
+const TYPES = Object.keys(WEAPON_TYPES);
+assert.equal(TYPES.length, 16);
+assert.equal(BASIC_WEAPONS.length, 14);
+assert.deepEqual(TYPES.filter((w) => WEAPON_TYPES[w].chapter === 0).sort(), [...BASIC_WEAPONS].sort());
+assert.deepEqual(TYPES.filter((w) => !BASIC_WEAPONS.includes(w)).sort(), ['wand', 'yoyo']);
+assert.deepEqual(Object.keys(MH_EQUIVALENT).sort(), [...BASIC_WEAPONS].sort());
+assert.equal(new Set(Object.values(MH_EQUIVALENT)).size, 14);
+for (const w of FIRST_PICKS) assert.ok(BASIC_WEAPONS.includes(w), w);
+assert.deepEqual(STORY[0].unlocks.weapons, BASIC_WEAPONS);
+assert.deepEqual(STORY.flatMap((c) => c.unlocks.weapons ?? []).sort(), [...TYPES].sort(), 'every type is unlocked exactly once');
+assert.equal(WEAPON_TREE.length, 16 * (2 + 2 * 3));
+assert.equal(new Set(WEAPON_TREE.map((n) => n.name)).size, 16 * 7, 'every tier name is unique, apart from each type\'s shared Glimmer name');
 for (const type of Object.keys(WEAPON_TYPES)) {
   assert.deepEqual(nextNodes(`${type}-1`).map((n) => n.id), [`${type}-2`]);
   assert.deepEqual(nextNodes(`${type}-2`).map((n) => n.id).sort(), [`${type}-3A`, `${type}-3B`]);
@@ -69,8 +81,8 @@ function hunt(r, beast, area, pouch) {
   got.push(...rollCalm(r, beast, Object.keys(DROPS[beast].parts)), ...rollGather(r, area));
   return add(pouch, got);
 }
-function playStory(seed) {
-  const r = rng(seed); let pouch = {}, weapon = 'hammer-1'; const armour = [], hunts = [];
+function playStory(seed, start = 'hammer') {
+  const r = rng(seed); let pouch = {}, weapon = `${start}-1`; const armour = [], hunts = [];
   const met = [];
   for (const c of STORY) {
     let count = 0;
@@ -89,9 +101,13 @@ function playStory(seed) {
       return weaponNode(weapon).tier >= wantTier && armour.length >= wantArmour;
     };
     while (!tryCraft()) {
-      // farm the most recent beast met that drops something still missing for the next weapon node or armour piece
-      const wanted = [...nextNodes(weapon).map((n) => n.cost), ...met.flatMap((m) => SLOTS.map((s) => armourCost(`${m}-${s}`)))]
-        .flatMap((cost) => Object.entries(cost).filter(([id, n]) => (pouch[id] ?? 0) < n).map(([id]) => id));
+      // farm the most recent beast met that drops something still missing for whatever is short: the next
+      // weapon node while the weapon tier is short, armour pieces only while armour is short (as the Forge shows)
+      const short = [
+        ...(weaponNode(weapon).tier < wantTier ? nextNodes(weapon).map((n) => n.cost) : []),
+        ...(armour.length < wantArmour ? met.flatMap((m) => SLOTS.filter((s) => !armour.includes(`${m}-${s}`)).map((s) => armourCost(`${m}-${s}`))) : []),
+      ];
+      const wanted = short.flatMap((cost) => Object.entries(cost).filter(([id, n]) => (pouch[id] ?? 0) < n).map(([id]) => id));
       const drops = (beast) => { const d = DROPS[beast]; return [d.shed.id, ...Object.values(d.parts), ...d.calm.common, d.calm.rare.id]; };
       const beast = [...met].reverse().find((m) => drops(m).some((id) => wanted.includes(id))) ?? met.at(-1) ?? 'bristleback';
       const prev = STORY.find((p) => p.beast === beast && p.id > 0) ?? STORY[0];
@@ -104,10 +120,12 @@ function playStory(seed) {
   }
   return { hunts, weapon, armour };
 }
-for (let seed = 1; seed <= 40; seed++) {
-  const { hunts } = playStory(seed);
-  hunts.forEach((n, ch) => assert.ok(n <= 6, `seed ${seed}: chapter ${ch} took ${n} hunts (${hunts.join(', ')})`));
+const worst = STORY.map(() => 0);
+for (const start of BASIC_WEAPONS) for (let seed = 1; seed <= 40; seed++) {
+  const { hunts } = playStory(seed, start);
+  hunts.forEach((n, ch) => (worst[ch] = Math.max(worst[ch], n)));
+  hunts.forEach((n, ch) => assert.ok(n <= 6, `${start}, seed ${seed}: chapter ${ch} took ${n} hunts (${hunts.join(', ')})`));
 }
 const sample = playStory(1);
-console.log(`grumble-hunt content: ok (seed 1 hunts per chapter ${sample.hunts.join(', ')}, ends with ${weaponNode(sample.weapon).name} and ${sample.armour.length} armour pieces)`);
+console.log(`grumble-hunt content: ok (most hunts any chapter took over ${BASIC_WEAPONS.length} starting weapons × 40 seeds: ${worst.join(', ')}; seed 1 ends with ${weaponNode(sample.weapon).name} and ${sample.armour.length} armour pieces)`);
 void BEAST_MATS;

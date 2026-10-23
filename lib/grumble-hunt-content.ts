@@ -133,14 +133,40 @@ export const SNACKS: Record<SnackId, { name: string; cost: Cost; effect: SnackEf
 };
 
 // ---------- weapons ----------
-export type WeaponType = 'hammer' | 'bow' | 'claws' | 'lance' | 'wand' | 'yoyo';
+export type WeaponType =
+  | 'greatsword' | 'katana' | 'sword' | 'claws' | 'hammer' | 'horn' | 'lance'
+  | 'gunlance' | 'switchaxe' | 'chargeblade' | 'glaive' | 'lightbow' | 'heavybow' | 'bow'
+  | 'wand' | 'yoyo';
+/**
+ * The basic weapons you choose from at the start, in the weapon-select order: one for each of Monster Hunter
+ * Wilds' fourteen types (see MH_EQUIVALENT). The Bubble Wand and Pinecone Yo-yo are Grumble Hunt's own,
+ * unlocked in the story.
+ */
+export const BASIC_WEAPONS: readonly WeaponType[] = ['greatsword', 'katana', 'sword', 'claws', 'hammer', 'horn', 'lance', 'gunlance', 'switchaxe', 'chargeblade', 'glaive', 'lightbow', 'heavybow', 'bow'];
+/** Which Monster Hunter weapon type each one plays like. */
+export const MH_EQUIVALENT: Partial<Record<WeaponType, string>> = {
+  greatsword: 'Great Sword', katana: 'Long Sword', sword: 'Sword & Shield', claws: 'Dual Blades', hammer: 'Hammer', horn: 'Hunting Horn', lance: 'Lance',
+  gunlance: 'Gunlance', switchaxe: 'Switch Axe', chargeblade: 'Charge Blade', glaive: 'Insect Glaive', lightbow: 'Light Bowgun', heavybow: 'Heavy Bowgun', bow: 'Bow',
+};
+/** Marked "Good first pick" on the weapon-select screen: easy to play well straight away. */
+export const FIRST_PICKS: readonly WeaponType[] = ['sword', 'hammer', 'bow'];
 export type Speed = 'slow' | 'medium' | 'fast';
 /** Tier-1 stats. `bonk` lowers Grump, `dizzy` builds the dizzy meter. `chapter` is when the type is first unlocked. */
 export const WEAPON_TYPES: Record<WeaponType, { name: string; bonk: number; dizzy: number; speed: Speed; signature: string; chapter: number }> = {
   hammer: { name: 'Acorn Hammer', bonk: 12, dizzy: 14, speed: 'slow', signature: 'Big Swing: hold to charge three levels (×1, ×1.6, ×2.4); a level-3 head hit adds 25 Dizzy.', chapter: 0 },
   bow: { name: 'Seed Bow', bonk: 6, dizzy: 3, speed: 'medium', signature: 'Charged Shot: hold for one, two or three seeds; switch between plain, sticky and pop seeds.', chapter: 0 },
-  claws: { name: 'Twin Claws', bonk: 4, dizzy: 3, speed: 'fast', signature: 'Zoomies: move and attack 30% faster while the Zoom meter lasts; hits refill it.', chapter: 1 },
-  lance: { name: 'Thistle Lance', bonk: 9, dizzy: 6, speed: 'medium', signature: 'Guard: hold to block from the front; let go as an attack lands for a Counter Boop (×2 Bonk, +15 Dizzy).', chapter: 2 },
+  greatsword: { name: 'Driftwood Greatsword', bonk: 15, dizzy: 6, speed: 'slow', signature: 'Big Finish: charge, shoulder tackle, then a giant overhead swing (×3 Bonk); Blade Guard blocks with the flat of the blade.', chapter: 0 },
+  sword: { name: 'Twig Sword and Acorn Shield', bonk: 5, dizzy: 5, speed: 'fast', signature: 'Shield Bash (+10 Dizzy) and a Leap Slash; items can be used without putting the sword away.', chapter: 0 },
+  katana: { name: 'Bamboo Katana', bonk: 7, dizzy: 3, speed: 'medium', signature: 'Focus: hits fill a meter spent on a Focus Spin (×2 Bonk); a well-timed Swish Counter slips through an attack and hits back.', chapter: 0 },
+  claws: { name: 'Twin Claws', bonk: 4, dizzy: 3, speed: 'fast', signature: 'Zoomies: move and attack 30% faster while the Zoom meter lasts; hits refill it.', chapter: 0 },
+  lance: { name: 'Thistle Lance', bonk: 9, dizzy: 6, speed: 'medium', signature: 'Guard: hold to block from the front; let go as an attack lands for a Counter Boop (×2 Bonk, +15 Dizzy).', chapter: 0 },
+  horn: { name: 'Gourd Horn', bonk: 9, dizzy: 12, speed: 'medium', signature: 'Songs: hits play notes, and K plays the song they make: Speedy (+15% speed), Sturdy (knock-backs push 50% less) or Sleepy (the beast slows 20%). Songs reach your buddy too.', chapter: 0 },
+  gunlance: { name: 'Puffcap Lance', bonk: 8, dizzy: 5, speed: 'medium', signature: 'Poof Shots: the puffball tip pops gusts of air that bonk through shells; hold K for a Big Poof (5 s to puff up again). Guards like the Thistle Lance.', chapter: 0 },
+  switchaxe: { name: 'Switch Spade', bonk: 10, dizzy: 6, speed: 'medium', signature: 'Switch: K flips between Spade mode (long reach) and Bloom mode (fast, fills the Bloom meter); a full meter unlocks a Bloom Burst finisher (×2.5 Bonk).', chapter: 0 },
+  chargeblade: { name: 'Seedpod Blade', bonk: 8, dizzy: 6, speed: 'medium', signature: 'Seedpods: sword hits fill seedpods in the shield; K snaps sword and shield into a Bloom Axe whose swings pop them for bonus Bonk. Guard in sword mode.', chapter: 0 },
+  glaive: { name: 'Firefly Staff', bonk: 6, dizzy: 4, speed: 'fast', signature: 'Firefly: K sends your firefly to the beast for a glow (red: +15% Bonk, white: +15% speed, orange: knock-backs push less; all three last twice as long). Hold J to vault for bonks from the air.', chapter: 0 },
+  lightbow: { name: 'Acorn Slingshot', bonk: 4, dizzy: 2, speed: 'fast', signature: 'Rapid shots on the move; K swaps ammo (acorns, sticky sap, pop seeds), and rolling reloads.', chapter: 0 },
+  heavybow: { name: 'Pumpkin Popper', bonk: 11, dizzy: 5, speed: 'slow', signature: 'Plant your paws and lob big puffballs (×2 Bonk); hold K for a Popcorn Flurry of tiny pops while you stand still; guard with the pumpkin shell.', chapter: 0 },
   wand: { name: 'Bubble Wand', bonk: 5, dizzy: 4, speed: 'medium', signature: 'Bubble Burst: a slow bubble that pops for an area hit, lifts loose materials and heals your buddy 15 Fluff.', chapter: 3 },
   yoyo: { name: 'Pinecone Yo-yo', bonk: 7, dizzy: 5, speed: 'medium', signature: 'Loop-the-Loop: spin all around you; on a dizzy beast it pulls you up for a Hop-on.', chapter: 4 },
 };
@@ -165,6 +191,56 @@ const TREES: Record<WeaponType, { t2: string; A: BranchSpec; B: BranchSpec; glim
     t2: 'Twine Bow', glimmer: 'Glimmer Bow',
     A: ['skreel', 'Feather Flight', perk('seed-speed', 0.3, 'Seeds fly 30% faster.'), 'Galeseed Bow', perk('pierce', 1, 'Level-3 shots go straight through.')],
     B: ['puffwart', 'Sticky Reed', perk('sticky-longer', 0.4, 'Sticky seeds slow 40% longer.'), 'Bogroot Bow', perk('root', 2, 'Three sticky hits hold the beast in place for 2 s.')],
+  },
+  greatsword: {
+    t2: 'Iron-rim Greatsword', glimmer: 'Glimmer Greatsword',
+    A: ['bristleback', 'Tuskedge Greatsword', perk('part-power', 0.2, '+20% part-break power.'), 'Boarking Greatsword', perk('finish-break', 1, 'Big Finish pops a part off at once.')],
+    B: ['hornclack', 'Shellslab Greatsword', perk('side-guard', 1, 'Blade Guard blocks attacks from the sides too.'), 'Bulwark Greatsword', perk('guard-dizzy', 20, 'Blocking just as an attack lands adds 20 Dizzy to the beast.')],
+  },
+  sword: {
+    t2: 'Oakleaf Sword', glimmer: 'Glimmer Sword',
+    A: ['bristleback', 'Bristle Sprig', perk('bash-dizzy', 0.5, 'Shield Bash adds 50% more Dizzy.'), 'Hogback Sword', perk('bash-break', 1, 'A Shield Bash on a dizzy beast pops a part off.')],
+    B: ['skreel', 'Feather Sprig', perk('quick-items', 0.3, 'Items are used 30% faster with the sword out.'), 'Skylark Sword', perk('leap-power', 0.5, 'Leap Slash does 50% more Bonk.')],
+  },
+  katana: {
+    t2: 'Ringed Bamboo Katana', glimmer: 'Glimmer Katana',
+    A: ['skreel', 'Featheredge Katana', perk('focus-fill', 0.25, 'Focus fills 25% faster.'), 'Galewind Katana', perk('counter-focus', 1, 'A Swish Counter fills Focus all the way.')],
+    B: ['puffwart', 'Mistreed Katana', perk('sleepy-spin', 5, 'Focus Spin leaves a sleepy mist: +5 Dizzy over time.'), 'Dreamreed Katana', perk('double-spin', 2, 'Focus Spin hits twice on a dizzy beast.')],
+  },
+  horn: {
+    t2: 'Banded Gourd Horn', glimmer: 'Glimmer Horn',
+    A: ['puffwart', 'Snoozy Horn', perk('sleepy-song', 0.3, 'Sleepy Song lasts 30% longer.'), 'Lullaby Horn', perk('lullaby', 20, 'Sleepy Song adds 20 Dizzy to a slowed beast.')],
+    B: ['skreel', 'Breezy Horn', perk('speedy-song', 0.1, 'Speedy Song gives 10% more speed.'), 'Skysong Horn', perk('song-heal', 10, 'Every song restores 10 Fluff to you and your buddy.')],
+  },
+  gunlance: {
+    t2: 'Twin-cap Lance', glimmer: 'Glimmer Puffcap',
+    A: ['hornclack', 'Shellpop Lance', perk('poof-shell', 0.25, 'Poof Shots do 25% more Bonk on shells.'), 'Clackcannon Lance', perk('poof-cool', 2, 'Big Poof puffs up again 2 s sooner.')],
+    B: ['bristleback', 'Huffpuff Lance', perk('poof-dizzy', 5, 'Poof Shots add 5 Dizzy.'), 'Boarpuff Lance', perk('poof-head', 1, 'A Big Poof on the head makes the beast dizzy.')],
+  },
+  switchaxe: {
+    t2: 'Iron Switch Spade', glimmer: 'Glimmer Spade',
+    A: ['bristleback', 'Tusk Spade', perk('spade-bonk', 0.15, 'Spade mode does 15% more Bonk.'), 'Rootdigger Spade', perk('switch-hit', 1, 'Switching mid-combo adds a free hit.')],
+    B: ['puffwart', 'Puffbloom Spade', perk('bloom-fill', 0.25, 'The Bloom meter fills 25% faster.'), 'Mossbloom Spade', perk('burst-puff', 10, 'Bloom Burst leaves a sleepy puff: +10 Dizzy.')],
+  },
+  chargeblade: {
+    t2: 'Podded Seedblade', glimmer: 'Glimmer Seedblade',
+    A: ['hornclack', 'Shellpod Blade', perk('free-first-guard', 1, 'The first guard in a row costs no stamina.'), 'Platepod Blade', perk('guard-pod', 1, 'Guarding just as an attack lands fills a seedpod.')],
+    B: ['skreel', 'Featherpod Blade', perk('extra-pod', 1, 'The shield holds one more seedpod.'), 'Galepod Blade', perk('pod-dizzy', 1, 'Popping every seedpod at once makes the beast dizzy.')],
+  },
+  glaive: {
+    t2: 'Lantern Staff', glimmer: 'Glimmer Staff',
+    A: ['skreel', 'Featherlight Staff', perk('air-bonk', 0.2, 'Vault higher; bonks from the air do 20% more.'), 'Moonmoth Staff', perk('air-dizzy', 5, 'Bonks from the air add 5 Dizzy.')],
+    B: ['puffwart', 'Glowbog Staff', perk('long-glow', 0.3, 'Glows last 30% longer.'), 'Marshglow Staff', perk('glow-heal', 5, 'Your firefly also brings back 5 Fluff.')],
+  },
+  lightbow: {
+    t2: 'Twine Slingshot', glimmer: 'Glimmer Slingshot',
+    A: ['skreel', 'Feather Slingshot', perk('far-shot', 0.3, 'Shots fly 30% further.'), 'Gust Slingshot', perk('fifth-shot', 2, 'Every fifth shot is free and does double Bonk.')],
+    B: ['puffwart', 'Sap Slingshot', perk('long-sap', 0.4, 'Sticky ammo slows 40% longer.'), 'Bog Slingshot', perk('leg-slow', 0.3, 'Sticky hits on the legs slow the beast 30%.')],
+  },
+  heavybow: {
+    t2: 'Gourd Popper', glimmer: 'Glimmer Popper',
+    A: ['hornclack', 'Shellbreak Popper', perk('pop-shell', 0.3, 'Puffballs do 30% more Bonk on shells.'), 'Beetlebomb Popper', perk('flurry-cool', 0.3, 'Popcorn Flurry is ready again 30% sooner.')],
+    B: ['bristleback', 'Boarblast Popper', perk('pop-parts', 0.2, 'Puffballs pop parts off 20% sooner.'), 'Tuskthunder Popper', perk('pop-head', 20, 'A puffball on the head adds 20 Dizzy.')],
   },
   claws: {
     t2: 'Pebble Claws', glimmer: 'Glimmer Claws',
@@ -276,7 +352,7 @@ export const STORY: readonly Chapter[] = [
       { panel: 'story-1-end', speaker: 'enzo', text: 'Look, it is snoring already!' },
       { panel: 'story-0b', speaker: 'mossback', text: 'Well done. Now, where is this grumpy wind coming from?' },
     ],
-    unlocks: { weapons: ['hammer', 'bow'], features: ['forge'] },
+    unlocks: { weapons: [...BASIC_WEAPONS], features: ['forge', 'weapon-choice'] },
   },
   {
     id: 1, title: 'The Huffy Hog', area: 'meadow', beast: 'bristleback', teaches: ['telegraphs', 'tree-crash', 'part-breaks', 'materials'],
@@ -288,7 +364,7 @@ export const STORY: readonly Chapter[] = [
       { panel: 'story-1-end', speaker: 'narrator', text: 'The Bristleback curled up under a tree and dreamed of acorns.' },
       { panel: 'story-1-end', speaker: 'enzo', text: 'The wind smells like snow. It must come from the mountain.' },
     ],
-    unlocks: { weapons: ['claws'], features: ['armour'] }, ready: { weaponTier: 1 },
+    unlocks: { features: ['armour'] }, ready: { weaponTier: 1 },
   },
   {
     id: 2, title: 'Snores in Soggy Marsh', area: 'marsh', beast: 'puffwart', teaches: ['items', 'pantry', 'sleepy-cloud', 'snacks'],
@@ -297,7 +373,7 @@ export const STORY: readonly Chapter[] = [
       { panel: 'story-2', speaker: 'enzo', text: 'Do not stand in the sleepy cloud. Yaaawn.' },
     ],
     outro: [{ panel: 'story-2', speaker: 'narrator', text: 'The Puffwart gave one last puff and settled down for a snooze.' }],
-    unlocks: { weapons: ['lance'], features: ['pantry', 'snacks'] }, ready: { weaponTier: 2 },
+    unlocks: { features: ['pantry', 'snacks'] }, ready: { weaponTier: 2 },
   },
   {
     id: 3, title: 'Swoops over Windy Ridge', area: 'ridge', beast: 'skreel', teaches: ['tracking', 'gathering', 'ranged-openings'],

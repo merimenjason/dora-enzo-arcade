@@ -225,7 +225,60 @@ const bow = new T.Group(); enzo.model.body.add(bow); bow.position.set(0.42, 0.6,
 }
 // Put the paws on the weapons. The right paw always holds the hammer low on the handle; the left
 // joins it higher up for the slam and lets go for the wind-up and the shoulder rest.
+// ?weapon=claws|lance|wand|yoyo swaps Dora's hammer for one of the later weapons, held the same way:
+// each weapon group sits at its grip point in Dora's body space, scaled back to rig units.
+const WEAPON = new URLSearchParams(location.search).get('weapon') ?? 'hammer';
+const held: Record<string, T.Group[]> = {};
+function grip(...parts: [T.BufferGeometry, Pair, number, number, number, number?, number?, number?][]) {
+  const g = new T.Group(); dora.model.body.add(g); g.scale.setScalar(1 / dora.s);
+  for (const [geo, p, x, y, z, rx = 0, ry = 0, rz = 0] of parts) { const m = mesh(geo, p, g); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); }
+  return g;
+}
+{
+  const wood = pair(0xb07a44), dark = pair(0x6e4423), leaf = pair(0x5d9a3f), thistle = pair(0xa77bd6), bubble = pair(0xbfe6ff);
+  // Twin Claws: a curved wooden paw-blade in each paw, rounded at the tip
+  // a long flattened leaf of pale wood out past the paw, curving up a little, on a dark grip
+  const blade = new T.SphereGeometry(1, 16, 10), pale = pair(0xe3b77a);
+  held.claws = [-1, 1].map(() => {
+    const g = grip([blade, pale, 0.26, 0.05, 0, 0, 0, 0.28], [new T.CylinderGeometry(0.04, 0.04, 0.16, 8), dark, 0.02, 0, 0, 0, 0, Math.PI / 2]);
+    g.children[0].scale.set(0.3, 0.075, 0.035); return g;
+  });
+  // Thistle Lance in the right paw, Leaf Shield on the left
+  const shaft = new T.CylinderGeometry(0.03, 0.04, 1.1, 8), puff = new T.IcosahedronGeometry(0.1, 1);
+  held.lance = [
+    grip([new T.SphereGeometry(1, 16, 12), leaf, 0.06, 0.05, 0, 0, 0, 0], [new T.CylinderGeometry(0.012, 0.012, 0.7, 6), dark, 0.075, 0.05, 0, Math.PI / 2, 0, 0]),
+    grip([shaft, wood, 0.35, 0.05, 0, 0, 0, -Math.PI / 2 + 0.25], [puff, thistle, 0.88, 0.2, 0], [new T.ConeGeometry(0.07, 0.12, 8), leaf, 0.8, 0.18, 0, 0, 0, -Math.PI / 2 + 0.25]),
+  ];
+  held.lance[0].children[0].scale.set(0.045, 0.26, 0.2);
+  // Bubble Wand: a reed stick with a ring, and a bubble drifting off it
+  const ring = new T.TorusGeometry(0.1, 0.02, 8, 20);
+  const bubbleMat = bubble; for (const m of [bubbleMat.soft, bubbleMat.toon]) { m.transparent = true; m.opacity = 0.55; }
+  held.wand = [grip([new T.CylinderGeometry(0.022, 0.026, 0.55, 8), pair(0x9fbf5a), 0, 0.22, 0, 0, 0, -0.3], [ring, pair(0xf2c14e), 0.17, 0.53, 0, 0, Math.PI / 2, -0.3], [new T.SphereGeometry(0.11, 16, 12), bubbleMat, 0.38, 0.7, 0])];
+  // Pinecone Yo-yo: hangs from the right paw on a string and swings
+  const cone = grip([new T.SphereGeometry(0.11, 12, 10), pair(0x8a5a34), 0, -0.24, 0]);
+  for (let i = 0; i < 12; i++) { const sc = mesh(new T.ConeGeometry(0.035, 0.07, 6), pair(0x6e4423), cone); const a = i * 2.4, h = -0.24 + ((i % 4) - 1.5) * 0.05; sc.position.set(Math.cos(a) * 0.1, h, Math.sin(a) * 0.1); sc.rotation.z = Math.PI; }
+  cone.children[0].scale.set(1, 1.3, 1);
+  cone.add(new T.Line(new T.BufferGeometry().setFromPoints([V(0, 0, 0), V(0, -0.14, 0)]), new T.LineBasicMaterial({ color: 0xf3ead8 })));
+  held.yoyo = [cone];
+  for (const [k, gs] of Object.entries(held)) for (const g of gs) g.visible = k === WEAPON;
+  hamPivot.visible = WEAPON === 'hammer';
+}
+
 function poseGrips() {
+  const now = performance.now() / 1000, bob = Math.sin(now * 2) * 0.015;
+  if (WEAPON === 'claws') {
+    const l = V(0.62, 0.55 + bob, -0.26), r = V(0.62, 0.55 - bob, 0.26); poseArms(dora.model, l, r);
+    held.claws[0].position.copy(l); held.claws[1].position.copy(r); held.claws[0].rotation.set(0, 0.25, 0); held.claws[1].rotation.set(0, -0.25, 0);
+  } else if (WEAPON === 'lance') {
+    const l = V(0.6, 0.42 + bob, -0.36), r = V(0.48, 0.46, 0.34); poseArms(dora.model, l, r);
+    held.lance[0].position.copy(l); held.lance[1].position.copy(r);
+  } else if (WEAPON === 'wand') {
+    const r = V(0.56, 0.58 + bob, 0.32); poseArms(dora.model, null, r); held.wand[0].position.copy(r);
+    const b = held.wand[0].children[2]; b.position.set(0.38 + Math.sin(now) * 0.05, 0.7 + (now % 2) * 0.12, 0);
+  } else if (WEAPON === 'yoyo') {
+    const r = V(0.62, 0.78 + bob, 0.42); poseArms(dora.model, null, r); held.yoyo[0].position.copy(r); held.yoyo[0].rotation.set(Math.sin(now * 2.2) * 0.35, 0, Math.sin(now * 1.7) * 0.25);
+  }
+  if (WEAPON !== 'hammer') { bow.updateMatrix(); poseArms(enzo.model, V(0, 0, 0).applyMatrix4(bow.matrix), null); return; }
   hamPivot.updateMatrix();
   const low = V(0, 0.1, 0).applyMatrix4(hamPivot.matrix), high = V(0, 0.26, 0).applyMatrix4(hamPivot.matrix);
   const t = D.swing, both = t >= 0.12 && t < 0.42 ? 1 : t >= 0.06 && t < 0.12 ? (t - 0.06) / 0.06 : t >= 0.42 && t < 0.5 ? 1 - (t - 0.42) / 0.08 : 0;
