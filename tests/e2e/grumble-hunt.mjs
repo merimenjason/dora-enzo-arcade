@@ -190,6 +190,14 @@ try {
     assert(deltas.length >= 2, 'the scene keeps drawing under throttling');
   }, { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 });
 
+  await check('a tree between the camera and the leader shrinks its canopy away', async (p) => {
+    await fresh(p); await start(p, 'puffwart');
+    // The default camera sits behind the leader on +z, so a tree 3.5 units behind them is right in its view.
+    await hunt(p, (w) => { const g = w.game, tree = g.obstacles.find((o) => o.kind === 'tree'); g.beast.state = 'roam'; g.beast.duration = 30; g.beast.x = -tree.x; g.beast.z = -tree.z; g.hero.x = tree.x; g.hero.z = tree.z - 3.5; });
+    await p.waitForFunction(() => window.__hunt().metrics().hiddenCanopies >= 1, null, { timeout: 15000 });
+    await snapshot(p, 'canopy-camera');
+  });
+
   await check('camera orbit avoids terrain, texture count stays bounded, navigation tears down', async (p) => {
     await fresh(p); await start(p); const first = await hunt(p, (w) => w.metrics().textures), c = p.getByTestId('hunt-canvas');
     const r = await c.boundingBox(); await p.mouse.move(r.width / 2, r.height / 2); await p.mouse.down(); await p.mouse.move(r.width / 2 + 200, r.height / 2 - 120, { steps: 8 }); await p.mouse.up();

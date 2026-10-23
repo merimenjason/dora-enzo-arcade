@@ -58,7 +58,9 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   groundGeo.computeVertexNormals(); mesh(scene, groundGeo, groundMat, [0, 0, 0], [1, 1, 1], false);
   const world = new T.Group(), village = new T.Group(), paths = new T.Group(); scene.add(world, village, paths);
   const canopyPositions: T.Vector3[] = [], blockers: T.Object3D[] = [];
-  let leafCards: T.InstancedMesh | null = null;
+  let leafCards: T.InstancedMesh | null = null, crowns: T.InstancedMesh | null = null;
+  // 1 = a tree's crown and leaf card fully shown, 0 = shrunk away because it would fill the camera's view.
+  const canopyShown: number[] = [], upright = new T.Quaternion();
   const barkMat = toon(0xffffff, bark, false), rockMat = toon(0xc7cac0, rock), canopyMat = toon(0x548641, undefined, false), foliage = noOutline(new T.MeshToonMaterial({ color: 0xffffff, map: leaf, gradientMap: ramp, alphaTest: 0.35, side: T.DoubleSide })); materials.add(foliage);
   const tuftMat = noOutline(new T.MeshToonMaterial({ color: 0xffffff, map: tuft, gradientMap: ramp, alphaTest: 0.4, side: T.DoubleSide })); materials.add(tuftMat);
   let randomSeed = 61;
@@ -102,18 +104,19 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   function buildWorld(game: HuntGame) {
     // Reuse a shared set of geometries and materials when hunts change.
     while (world.children.length) { const child = world.children[0]; if (child instanceof T.InstancedMesh) child.dispose(); world.remove(child); }
-    canopyPositions.length = 0;
+    canopyPositions.length = 0; canopyShown.length = 0;
     blockers.length = villageBlockerCount;
     const trees = game.obstacles.filter((o) => o.kind === 'tree');
-    const trunks = new T.InstancedMesh(cylinder, barkMat, trees.length), crowns = new T.InstancedMesh(ico, canopyMat, trees.length);
+    const trunks = new T.InstancedMesh(cylinder, barkMat, trees.length);
+    crowns = new T.InstancedMesh(ico, canopyMat, trees.length);
     leafCards = new T.InstancedMesh(plane, foliage, trees.length);
     trunks.castShadow = true; trunks.receiveShadow = true;
-    world.add(trunks, crowns, leafCards); blockers.push(trunks);
+    world.add(trunks, crowns!, leafCards); blockers.push(trunks);
     const identity = new T.Quaternion();
     trees.forEach((o, i) => {
       matrix.compose(V(o.x, 2, o.z), identity, V(o.r * 0.65, 4, o.r * 0.65)); trunks.setMatrixAt(i, matrix);
-      matrix.compose(V(o.x, 3.7, o.z), identity, V(1.6, 1.5, 1.6)); crowns.setMatrixAt(i, matrix);
-      canopyPositions.push(V(o.x, 4.2, o.z));
+      matrix.compose(V(o.x, 3.7, o.z), identity, V(1.6, 1.5, 1.6)); crowns!.setMatrixAt(i, matrix);
+      canopyPositions.push(V(o.x, 4.2, o.z)); canopyShown.push(1);
       matrix.compose(V(o.x, 4.2, o.z), identity, V(5, 4.4, 1)); leafCards!.setMatrixAt(i, matrix);
     });
     for (const o of game.obstacles) {
@@ -296,7 +299,20 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     camera.position.copy(desired);
     if (!reduced.matches && game.shake > 0) { camera.position.x += Math.sin(game.time * 83) * game.shake * 0.2; camera.position.y += Math.cos(game.time * 71) * game.shake * 0.15; }
     camera.lookAt(target);
-    if (leafCards) { canopyPositions.forEach((p, i) => { matrix.compose(p, camera.quaternion, V(5, 4.4, 1)); leafCards!.setMatrixAt(i, matrix); }); leafCards.instanceMatrix.needsUpdate = true; }
+    if (leafCards && crowns) {
+      // Shrink away any canopy near the camera or across its view of the leader, so leaves never fill the screen.
+      // The camera itself only moves in for trunks and rocks, so it doesn't jump as it passes under trees.
+      const sight = segment.copy(target).sub(camera.position), reach = sight.lengthSq();
+      canopyPositions.forEach((p, i) => {
+        const along = reach > 0 ? Math.max(0, Math.min(1, (p.x - camera.position.x) * sight.x / reach + (p.y - camera.position.y) * sight.y / reach + (p.z - camera.position.z) * sight.z / reach)) : 0;
+        const gap = Math.hypot(camera.position.x + sight.x * along - p.x, camera.position.y + sight.y * along - p.y, camera.position.z + sight.z * along - p.z);
+        const blocking = camera.position.distanceTo(p) < 4.5 || (along < 0.92 && gap < 2.9);
+        const shown = canopyShown[i] = Math.max(0, Math.min(1, canopyShown[i] + (blocking ? -dt : dt) / 0.2));
+        matrix.compose(p, camera.quaternion, V(5 * shown, 4.4 * shown, shown)); leafCards!.setMatrixAt(i, matrix);
+        matrix.compose(V(p.x, 3.7, p.z), upright, V(1.6 * shown, 1.5 * shown, 1.6 * shown)); crowns!.setMatrixAt(i, matrix);
+      });
+      leafCards.instanceMatrix.needsUpdate = true; crowns.instanceMatrix.needsUpdate = true;
+    }
     wind.value = reduced.matches ? 0 : game.time;
     renderer.info.reset();
     outline.render(scene, camera);
@@ -307,7 +323,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     get yaw() { return yaw; },
     orbit(dx: number, dy: number) { yaw -= dx * 0.006; pitch = T.MathUtils.clamp(pitch + dy * 0.004, 0.18, 0.95); userOrbit = 4; },
     zoom(delta: number) { dist = T.MathUtils.clamp(dist + delta * 0.008, 5, 14); },
-    metrics() { return { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures }; },
+    metrics() { return { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length }; },
     dispose() {
       if (closed) return; closed = true; observer.disconnect();
       scene.traverse((o) => { if (o instanceof T.InstancedMesh) o.dispose(); if (o instanceof T.Mesh || o instanceof T.Line) { geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : [o.material]) materials.add(m); } });
