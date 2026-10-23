@@ -1,0 +1,599 @@
+// Throwaway look test for Grumble Hunt: one meadow, two render styles.
+import * as T from 'three';
+import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { createHuntChinchilla, animateHuntChinchilla, poseArms } from '../../../lib/hunt-chinchilla';
+
+type Look = 'toon' | 'soft';
+const V = (x = 0, y = 0, z = 0) => new T.Vector3(x, y, z);
+let seed = 11;
+const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+const lerp = T.MathUtils.lerp, clamp = T.MathUtils.clamp;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const canvas = document.getElementById('c') as HTMLCanvasElement;
+const renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = T.PCFShadowMap;
+const scene = new T.Scene();
+const camera = new T.PerspectiveCamera(50, 1, 0.1, 500);
+const timeU = { value: 0 };
+
+// ---------- materials: every mesh carries a soft and a toon material ----------
+const ramp = new T.DataTexture(new Uint8Array([88, 165, 255]), 3, 1, T.RedFormat);
+ramp.minFilter = ramp.magFilter = T.NearestFilter; ramp.generateMipmaps = false; ramp.needsUpdate = true;
+type Pair = { soft: T.Material; toon: T.Material };
+const swaps: T.Mesh[] = [];
+function pair(color: number, o: { rough?: number; vc?: boolean; outline?: boolean; metal?: number } = {}): Pair {
+  const soft = new T.MeshStandardMaterial({ color, roughness: o.rough ?? 0.86, metalness: o.metal ?? 0, vertexColors: !!o.vc });
+  const toon = new T.MeshToonMaterial({ color, gradientMap: ramp, vertexColors: !!o.vc });
+  if (o.outline === false) toon.userData.outlineParameters = { visible: false };
+  return { soft, toon };
+}
+function mesh(geo: T.BufferGeometry, p: Pair, parent: T.Object3D, cast = true) {
+  const m = new T.Mesh(geo, p.soft); m.userData.pair = p; m.castShadow = cast; m.receiveShadow = true; parent.add(m); swaps.push(m); return m;
+}
+function windify(m: T.Material, amp: number) {
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uTime = timeU;
+    sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+      vec4 ip = instanceMatrix[3];
+      float w = sin(uTime*1.6 + ip.x*.31 + ip.z*.23)*.6 + sin(uTime*3.3 + ip.x*.8 - ip.z*.5)*.2;
+      float h = position.y;
+      transformed.x += w*h*h*${amp.toFixed(2)}; transformed.z += w*h*h*${(amp * 0.5).toFixed(2)};`);
+  };
+}
+
+// ---------- lights, sky, fog ----------
+const hemi = new T.HemisphereLight(0xffffff, 0x556b3a, 1);
+const sun = new T.DirectionalLight(0xffffff, 2);
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 90 });
+sun.shadow.normalBias = 0.03; sun.shadow.radius = 4;
+const rim = new T.DirectionalLight(0x9fc0ff, 1);
+scene.add(hemi, sun, sun.target, rim);
+scene.fog = new T.Fog(0xcfe6f2, 45, 190);
+const skyMat = new T.ShaderMaterial({
+  side: T.BackSide, depthWrite: false, fog: false,
+  uniforms: { top: { value: new T.Color() }, mid: { value: new T.Color() }, low: { value: new T.Color() } },
+  vertexShader: 'varying vec3 vp; void main(){ vp = normalize(position); gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }',
+  fragmentShader: 'uniform vec3 top, mid, low; varying vec3 vp; void main(){ float h = vp.y; vec3 c = h > 0. ? mix(mid, top, pow(h, .55)) : mix(mid, low, min(1., -h*5.)); gl_FragColor = vec4(c, 1.); \n#include <colorspace_fragment>\n }',
+});
+skyMat.userData.outlineParameters = { visible: false };
+const sky = new T.Mesh(new T.SphereGeometry(400, 32, 16), skyMat); sky.renderOrder = -1; scene.add(sky);
+
+// ---------- terrain ----------
+function height(x: number, z: number) {
+  const r = Math.hypot(x, z), hill = T.MathUtils.smoothstep(r, 19, 52);
+  return hill * (4 + Math.sin(x * 0.11) * 2.4 + Math.cos(z * 0.09 + 1) * 2.6 + Math.sin((x + z) * 0.05) * 3.2) + Math.sin(x * 0.7) * Math.cos(z * 0.6) * 0.05;
+}
+{
+  const g = new T.PlaneGeometry(260, 260, 200, 200); g.rotateX(-Math.PI / 2);
+  const pos = g.attributes.position, col: number[] = [], c = new T.Color(), a = new T.Color(0x6fa548), b = new T.Color(0x8fbf55), d = new T.Color(0xa8925f);
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), z = pos.getZ(i); pos.setY(i, height(x, z));
+    const n = Math.sin(x * 0.23) * Math.cos(z * 0.19) * 0.5 + 0.5, patch = Math.max(0, Math.sin(x * 0.08 + 2) * Math.cos(z * 0.1 - 1) - 0.75) * 1.6 * T.MathUtils.smoothstep(Math.hypot(x, z), 8, 20);
+    c.copy(a).lerp(b, n).lerp(d, Math.min(1, patch)); col.push(c.r, c.g, c.b);
+  }
+  g.setAttribute('color', new T.Float32BufferAttribute(col, 3)); g.computeVertexNormals();
+  mesh(g, pair(0xffffff, { vc: true, outline: false }), scene, false);
+}
+
+// ---------- grass ----------
+{
+  const blade = new T.BufferGeometry();
+  blade.setAttribute('position', new T.Float32BufferAttribute([-0.05, 0, 0, 0.05, 0, 0, -0.03, 0.5, 0, 0.03, 0.5, 0, 0, 1, 0], 3));
+  blade.setAttribute('normal', new T.Float32BufferAttribute(Array(15).fill(0).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
+  const lo = new T.Color(0x3f6e2b), hi = new T.Color(0xb6dc72), cols: number[] = [];
+  for (const t of [0, 0, 0.5, 0.5, 1]) { const c = lo.clone().lerp(hi, t); cols.push(c.r, c.g, c.b); }
+  blade.setAttribute('color', new T.Float32BufferAttribute(cols, 3));
+  blade.setIndex([0, 1, 2, 2, 1, 3, 2, 3, 4, 2, 1, 0, 3, 1, 2, 4, 3, 2]);
+  const p = pair(0xffffff, { vc: true, outline: false });
+    windify(p.soft, 0.35); windify(p.toon, 0.35);
+  const N = 30000, grass = new T.InstancedMesh(blade, p.soft, N), m = new T.Matrix4(), q = new T.Quaternion(), c = new T.Color();
+  for (let i = 0; i < N; i++) {
+    const r = (i % 2 ? Math.sqrt(rnd()) * 22 : Math.sqrt(rnd()) * 60), a = rnd() * Math.PI * 2, x = Math.cos(a) * r, z = Math.sin(a) * r;
+    q.setFromAxisAngle(V(0, 1, 0), rnd() * Math.PI);
+    const s = 0.7 + rnd() * 0.7;
+    m.compose(V(x, height(x, z), z), q, V(s, (0.22 + rnd() * 0.26) * s, s));
+    grass.setMatrixAt(i, m); c.setScalar(0.82 + rnd() * 0.3); grass.setColorAt(i, c);
+  }
+  grass.receiveShadow = true; grass.userData.pair = p; swaps.push(grass); scene.add(grass);
+  // wildflowers
+  const fp = pair(0xffffff, { outline: false, rough: 0.6 }), F = 700, fl = new T.InstancedMesh(new T.IcosahedronGeometry(0.075, 1), fp.soft, F);
+  const tints = [0xffffff, 0xffd84d, 0xf59ac0, 0xc9a7ff];
+  for (let i = 0; i < F; i++) {
+    const r = 3 + Math.sqrt(rnd()) * 55, a = rnd() * Math.PI * 2, x = Math.cos(a) * r, z = Math.sin(a) * r;
+    m.compose(V(x, height(x, z) + 0.3 + rnd() * 0.15, z), q, V(1, 0.7, 1)); fl.setMatrixAt(i, m); fl.setColorAt(i, c.set(tints[i % 4]));
+  }
+  fl.userData.pair = fp; swaps.push(fl); scene.add(fl);
+}
+
+// ---------- trees, rocks, clouds ----------
+const trees: { x: number; z: number; r: number }[] = [];
+const trunkP = pair(0x7a5232), leafP = [pair(0x4f8a3c), pair(0x62a046), pair(0x3f7a34)];
+function tree(x: number, z: number, s: number) {
+  const g = new T.Group(); g.position.set(x, height(x, z), z); g.scale.setScalar(s); g.rotation.y = rnd() * 6;
+  const trunk = mesh(new T.CylinderGeometry(0.22, 0.38, 2.6, 9), trunkP, g); trunk.position.y = 1.3;
+  for (let i = 0; i < 5; i++) {
+    const blob = mesh(new T.IcosahedronGeometry(1, 2), leafP[i % 3], g);
+    const a = i * 1.3, rr = i === 0 ? 0 : 0.85;
+    blob.position.set(Math.cos(a) * rr, 3 + (i === 0 ? 0.6 : rnd() * 0.5), Math.sin(a) * rr);
+    blob.scale.setScalar(i === 0 ? 1.45 : 0.95 + rnd() * 0.3);
+  }
+  scene.add(g); trees.push({ x, z, r: 0.55 * s });
+}
+for (let i = 0; i < 26; i++) { const a = (i / 26) * Math.PI * 2 + rnd() * 0.2, r = 22 + rnd() * 26; tree(Math.cos(a) * r, Math.sin(a) * r, 1 + rnd() * 0.8); }
+tree(-9, 7, 1.1); tree(10, -7, 1.2); tree(11, 8, 0.95);
+const rockP = pair(0x8d9196, { rough: 0.95 });
+for (let i = 0; i < 14; i++) {
+  const g = new T.DodecahedronGeometry(1, 1), p = g.attributes.position;
+  for (let j = 0; j < p.count; j++) p.setXYZ(j, p.getX(j) * (0.85 + Math.sin(j * 7.1) * 0.12), p.getY(j) * 0.7, p.getZ(j) * (0.9 + Math.cos(j * 3.3) * 0.1));
+  g.computeVertexNormals();
+  const a = rnd() * 6.28, r = i < 4 ? 13 + rnd() * 4 : 19 + rnd() * 30, x = Math.cos(a) * r, z = Math.sin(a) * r, s = 0.5 + rnd() * 1.1;
+  const m = mesh(g, rockP, scene); m.position.set(x, height(x, z) + s * 0.25, z); m.scale.setScalar(s); m.rotation.y = rnd() * 6;
+}
+const cloudP = pair(0xffffff, { rough: 1 });
+const clouds: T.Group[] = [];
+for (let i = 0; i < 9; i++) {
+  const g = new T.Group(), a = (i / 9) * 6.28, r = 120 + rnd() * 40;
+  g.position.set(Math.cos(a) * r, 45 + rnd() * 25, Math.sin(a) * r);
+  for (let j = 0; j < 6; j++) { const b = mesh(new T.IcosahedronGeometry(1, 2), cloudP, g, false); b.position.set((j - 2.5) * 4.2, Math.sin(j * 1.7) * 1.4, Math.cos(j * 2.1) * 2.5); b.scale.set(5 + rnd() * 2, 3.4 + rnd() * 1.4, 4); }
+  scene.add(g); clouds.push(g);
+}
+
+// ---------- chinchillas ----------
+const toonCache = new Map<T.Material, T.Material>();
+function adopt(root: T.Object3D) {
+  root.traverse((o) => {
+    if (!(o instanceof T.Mesh)) return;
+    const m = o.material as T.Material;
+    let t = toonCache.get(m);
+    if (!t) { t = m instanceof T.MeshStandardMaterial ? new T.MeshToonMaterial({ color: m.color.clone(), gradientMap: ramp }) : m; toonCache.set(m, t); }
+    o.userData.pair = { soft: m, toon: t }; swaps.push(o);
+  });
+}
+function rig(white: boolean) {
+  const model = createHuntChinchilla(white); adopt(model.root);
+  const box = new T.Box3().setFromObject(model.root), s = 1.0 / (box.max.y - box.min.y);
+  model.root.scale.setScalar(s);
+  const g = new T.Group(); g.add(model.root); scene.add(g);
+  return { g, model, s };
+}
+const dora = rig(true), enzo = rig(false);
+
+// acorn hammer
+// The hammer pivots at Dora's right side, clear of her big head. Its group is scaled back to
+// rig units so the sizes below stay in the same units as the rest of the scene.
+const hamPivot = new T.Group(); dora.model.body.add(hamPivot); hamPivot.position.set(0.4, 0.6, 0.5); hamPivot.scale.setScalar(1 / dora.s);
+const handle = mesh(new T.CylinderGeometry(0.03, 0.035, 0.78, 8), pair(0x8a5a34), hamPivot); handle.position.y = 0.39;
+const hamHead = new T.Group(); hamHead.position.y = 0.82; hamHead.rotation.z = Math.PI / 2; hamPivot.add(hamHead);
+const nut = mesh(new T.SphereGeometry(0.2, 20, 14), pair(0xc07f43, { rough: 0.5 }), hamHead); nut.scale.set(1, 1.2, 1); nut.position.y = -0.06;
+const cap = mesh(new T.SphereGeometry(0.215, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), pair(0x6e4423, { rough: 1 }), hamHead); cap.position.y = 0.05;
+mesh(new T.CylinderGeometry(0.02, 0.03, 0.1, 6), pair(0x5b3a1d), hamHead).position.y = 0.3;
+
+// Enzo's Seed Bow, gripped in his left paw
+const bow = new T.Group(); enzo.model.body.add(bow); bow.position.set(0.42, 0.6, -0.5); bow.scale.setScalar(1 / enzo.s);
+{
+  const arc = 2.3, R = 0.3, wood = pair(0x9a6a3c);
+  const limbs = mesh(new T.TorusGeometry(R, 0.022, 8, 24, arc), wood, bow); limbs.rotation.z = -arc / 2; limbs.position.x = -R;
+  mesh(new T.CylinderGeometry(0.032, 0.032, 0.1, 10), pair(0x5c8a3a), bow);
+  const tipY = Math.sin(arc / 2) * R, tipX = Math.cos(arc / 2) * R - R;
+  bow.add(new T.Line(new T.BufferGeometry().setFromPoints([V(tipX, tipY, 0), V(tipX - 0.04, 0, 0), V(tipX, -tipY, 0)]), new T.LineBasicMaterial({ color: 0xf3ead8 })));
+}
+// Put the paws on the weapons. The right paw always holds the hammer low on the handle; the left
+// joins it higher up for the slam and lets go for the wind-up and the shoulder rest.
+function poseGrips() {
+  hamPivot.updateMatrix();
+  const low = V(0, 0.1, 0).applyMatrix4(hamPivot.matrix), high = V(0, 0.26, 0).applyMatrix4(hamPivot.matrix);
+  const t = D.swing, both = t >= 0.12 && t < 0.42 ? 1 : t >= 0.06 && t < 0.12 ? (t - 0.06) / 0.06 : t >= 0.42 && t < 0.5 ? 1 - (t - 0.42) / 0.08 : 0;
+  poseArms(dora.model, high, low, [both, 1]);
+  bow.updateMatrix();
+  poseArms(enzo.model, V(0, 0, 0).applyMatrix4(bow.matrix), null);
+}
+
+// ---------- the Bristleback ----------
+const boarG = new T.Group(); scene.add(boarG);
+const boarBody = new T.Group(); boarG.add(boarBody);
+const furP = pair(0x7a5638, { rough: 0.95 }), darkP = pair(0x4a3221, { rough: 1 }), snoutP = pair(0xd99a84, { rough: 0.7 }), tuskP = pair(0xfff1d6, { rough: 0.4 });
+const boarMats = [furP, darkP, snoutP, tuskP];
+{
+  const g = new T.SphereGeometry(1, 48, 32), p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const front = (x + 1) / 2;
+    z *= 0.82 + front * 0.2; y *= 0.86 + front * 0.18;
+    if (y > 0) y += 0.32 * Math.exp(-((x - 0.25) ** 2) / 0.3) * y;
+    if (y < -0.55) y = -0.55 + (y + 0.55) * 0.4;
+    p.setXYZ(i, x * 1.55, y, z);
+  }
+  g.computeVertexNormals();
+  mesh(g, furP, boarBody).position.y = 1.35;
+}
+const boarHead = new T.Group(); boarHead.position.set(1.45, 1.35, 0); boarBody.add(boarHead);
+{
+  const head = mesh(new T.SphereGeometry(0.72, 32, 24), furP, boarHead); head.scale.set(1, 0.92, 0.9);
+  const snout = mesh(new T.CylinderGeometry(0.34, 0.44, 0.62, 24), furP, boarHead); snout.rotation.z = -Math.PI / 2; snout.position.set(0.68, -0.18, 0);
+  const disc = mesh(new T.CylinderGeometry(0.35, 0.35, 0.06, 24), snoutP, boarHead); disc.rotation.z = -Math.PI / 2; disc.position.set(1.0, -0.18, 0);
+  for (const s of [-1, 1]) {
+    mesh(new T.SphereGeometry(0.06, 10, 8), darkP, boarHead).position.set(1.03, -0.17, s * 0.13);
+    const eye = mesh(new T.SphereGeometry(0.085, 14, 10), pair(0x1d140d, { rough: 0.2 }), boarHead); eye.position.set(0.5, 0.2, s * 0.42);
+    const brow = mesh(new T.BoxGeometry(0.3, 0.07, 0.09), darkP, boarHead); brow.position.set(0.52, 0.33, s * 0.42); brow.rotation.set(s * 0.25, 0, -0.45);
+    const ear = mesh(new T.ConeGeometry(0.2, 0.5, 4), darkP, boarHead); ear.position.set(-0.15, 0.62, s * 0.38); ear.rotation.set(s * -0.5, 0, 0.6);
+    // tapered, curved tusk
+    const curve = new T.CatmullRomCurve3([V(0.85, -0.3, s * 0.3), V(1.05, -0.28, s * 0.36), V(1.18, -0.05, s * 0.4), V(1.12, 0.18, s * 0.36)]);
+    const tg = new T.TubeGeometry(curve, 16, 0.075, 10, false), tp = tg.attributes.position;
+    for (let i = 0; i < tp.count; i++) {
+      const seg = Math.floor(i / 11) / 16, c = curve.getPointAt(Math.min(1, seg)), v = V(tp.getX(i), tp.getY(i), tp.getZ(i)).sub(c).multiplyScalar(1 - seg * 0.85).add(c);
+      tp.setXYZ(i, v.x, v.y, v.z);
+    }
+    tg.computeVertexNormals(); mesh(tg, tuskP, boarHead);
+  }
+}
+for (let i = 0; i < 17; i++) {
+  const t = i / 16, x = lerp(1.0, -1.25, t), y = 1.35 + 0.95 + Math.sin(t * Math.PI) * 0.28 - t * 0.35;
+  const spike = mesh(new T.ConeGeometry(0.11, 0.55 + Math.sin(t * Math.PI) * 0.45, 6), darkP, boarBody);
+  spike.position.set(x, y, (i % 2 ? 0.07 : -0.07)); spike.rotation.z = 0.55 + t * 0.4;
+}
+const legs: T.Group[] = [];
+for (const [x, z] of [[0.95, 0.55], [0.95, -0.55], [-0.95, 0.5], [-0.95, -0.5]]) {
+  const hip = new T.Group(); hip.position.set(x, 1.0, z); boarBody.add(hip);
+  mesh(new T.CapsuleGeometry(0.2, 0.5, 6, 12), darkP, hip).position.y = -0.42;
+  mesh(new T.CylinderGeometry(0.17, 0.2, 0.16, 12), pair(0x2a1d14), hip).position.y = -0.84;
+  legs.push(hip);
+}
+const tail = new T.Group(); tail.position.set(-1.5, 1.6, 0); boarBody.add(tail);
+mesh(new T.TubeGeometry(new T.CatmullRomCurve3([V(0, 0, 0), V(-0.2, 0.15, 0), V(-0.15, 0.35, 0.1), V(-0.3, 0.4, 0)]), 10, 0.05, 6), darkP, tail);
+const BOAR_SCALE = 0.95; boarG.scale.setScalar(BOAR_SCALE);
+
+// dizzy stars
+const starShape = new T.Shape();
+for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2 - Math.PI / 2, r = i % 2 ? 0.07 : 0.17; i ? starShape.lineTo(Math.cos(a) * r, Math.sin(a) * r) : starShape.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
+const starGeo = new T.ExtrudeGeometry(starShape, { depth: 0.05, bevelEnabled: false });
+const starMat = new T.MeshBasicMaterial({ color: 0xffe066 });
+const stars = [0, 1, 2].map(() => { const m = new T.Mesh(starGeo, starMat); m.visible = false; scene.add(m); return m; });
+
+// charge lane telegraph
+const laneTex = (() => {
+  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128; const x = cv.getContext('2d')!;
+  x.fillStyle = 'rgba(255,140,40,0.32)'; x.fillRect(0, 0, 512, 128);
+  x.strokeStyle = 'rgba(255,170,70,0.95)'; x.lineWidth = 10; x.setLineDash([30, 18]); x.strokeRect(5, 5, 502, 118);
+  x.setLineDash([]); x.lineWidth = 14; x.lineCap = 'round'; x.lineJoin = 'round';
+  for (let i = 0; i < 5; i++) { const cx = 70 + i * 95; x.beginPath(); x.moveTo(cx, 30); x.lineTo(cx + 34, 64); x.lineTo(cx, 98); x.stroke(); }
+  const t = new T.CanvasTexture(cv); t.colorSpace = T.SRGBColorSpace; return t;
+})();
+const laneMat = new T.MeshBasicMaterial({ map: laneTex, transparent: true, depthWrite: false, toneMapped: false });
+const lane = new T.Group(); const lanePlane = new T.Mesh(new T.PlaneGeometry(1, 1), laneMat);
+lanePlane.rotation.x = -Math.PI / 2; lane.add(lanePlane); lane.visible = false; scene.add(lane);
+
+// hammer trail
+const TRAIL = 16, trailPts: T.Vector3[][] = [];
+const trailGeo = new T.BufferGeometry();
+trailGeo.setAttribute('position', new T.Float32BufferAttribute(new Float32Array(TRAIL * 2 * 3), 3));
+trailGeo.setAttribute('color', new T.Float32BufferAttribute(new Float32Array(TRAIL * 2 * 3), 3));
+{ const idx: number[] = []; for (let i = 0; i < TRAIL - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 2, a + 1, a + 3); } trailGeo.setIndex(idx); }
+const trail = new T.Mesh(trailGeo, new T.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, toneMapped: false }));
+trail.frustumCulled = false; scene.add(trail);
+
+// particles
+type Part = { m: T.Object3D; kind: 'dust' | 'spark' | 'z'; life: number; max: number; vel: T.Vector3; size: number };
+const parts: Part[] = [];
+const dustP = pair(0xe0cba0, { rough: 1 }), dustGeo = new T.IcosahedronGeometry(1, 1);
+const sparkMat = new T.MeshBasicMaterial({ color: 0xfff1a0, toneMapped: false }), sparkGeo = new T.OctahedronGeometry(1, 0);
+const zTex = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d')!; x.font = 'bold 54px sans-serif'; x.fillStyle = '#fff'; x.strokeStyle = '#3a2a1c'; x.lineWidth = 6; x.textAlign = 'center'; x.strokeText('z', 32, 50); x.fillText('z', 32, 50); const t = new T.CanvasTexture(cv); t.colorSpace = T.SRGBColorSpace; return t; })();
+function puff(at: T.Vector3, n: number, kind: Part['kind'], spread = 1, up = 1, size = 0.3) {
+  for (let i = 0; i < n; i++) {
+    let m: T.Object3D;
+    if (kind === 'dust') { const d = new T.Mesh(dustGeo, dustP.soft); d.userData.pair = dustP; d.material = look === 'toon' ? dustP.toon : dustP.soft; d.castShadow = false; swaps.push(d); m = d; }
+    else if (kind === 'spark') m = new T.Mesh(sparkGeo, sparkMat);
+    else m = new T.Sprite(new T.SpriteMaterial({ map: zTex, depthWrite: false }));
+    m.position.copy(at).add(V((rnd() - 0.5) * 0.4 * spread, rnd() * 0.2, (rnd() - 0.5) * 0.4 * spread));
+    const a = rnd() * Math.PI * 2, sp = kind === 'spark' ? 4 + rnd() * 5 : (0.6 + rnd()) * spread;
+    const vel = kind === 'z' ? V(0.3, 0.8, 0) : V(Math.cos(a) * sp, (kind === 'spark' ? 2 + rnd() * 4 : 0.6 + rnd() * 0.8) * up, Math.sin(a) * sp);
+    scene.add(m); parts.push({ m, kind, life: 0, max: kind === 'spark' ? 0.35 + rnd() * 0.2 : kind === 'z' ? 1.8 : 0.55 + rnd() * 0.35, vel, size: size * (0.7 + rnd() * 0.6) });
+  }
+}
+function stepParts(dt: number) {
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i]; p.life += dt; const f = p.life / p.max;
+    if (f >= 1) { scene.remove(p.m); if (p.m instanceof T.Mesh && p.kind === 'dust') swaps.splice(swaps.indexOf(p.m), 1); if (p.m instanceof T.Sprite) p.m.material.dispose(); parts.splice(i, 1); continue; }
+    p.m.position.addScaledVector(p.vel, dt);
+    if (p.kind === 'spark') { p.vel.y -= 14 * dt; p.m.scale.setScalar(p.size * 0.35 * (1 - f)); p.m.rotation.x += dt * 9; }
+    else if (p.kind === 'dust') { p.vel.multiplyScalar(1 - 3 * dt); p.m.scale.setScalar(p.size * Math.sin(Math.min(1, f * 1.4) * Math.PI) * (1 + f)); }
+    else { p.m.scale.setScalar(0.5 + f * 0.4); (p.m as T.Sprite).material.opacity = 1 - f; }
+  }
+}
+
+// ---------- look switching ----------
+const LOOKS = {
+  toon: { tone: T.NoToneMapping, exp: 1, hemi: [0xeaf6ff, 0x7c9d55, 1.05], sun: [0xfff4e0, 1.75], rim: 0, fog: 0xcde7f5, sky: [0x4b9de0, 0xc4e6f7, 0xa6cf8e], ramp: true },
+  soft: { tone: T.ACESFilmicToneMapping, exp: 1.08, hemi: [0xc3dbff, 0x55663a, 1.1], sun: [0xffd09a, 3.6], rim: 1.5, fog: 0xe3d8c2, sky: [0x5d93d3, 0xf5dcbc, 0xbdb48c], ramp: false },
+} as const;
+let look: Look = 'toon';
+const outline = new OutlineEffect(renderer, { defaultThickness: 0.0042, defaultColor: [0.13, 0.09, 0.07] });
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const gtao = new GTAOPass(scene, camera, 1, 1); gtao.blendIntensity = 1; composer.addPass(gtao);
+const bloom = new UnrealBloomPass(new T.Vector2(1, 1), 0.45, 0.55, 0.9); composer.addPass(bloom);
+composer.addPass(new OutputPass());
+function setLook(l: Look) {
+  look = l; const L = LOOKS[l];
+  for (const m of swaps) m.material = (m.userData.pair as Pair)[l];
+  renderer.toneMapping = L.tone; renderer.toneMappingExposure = L.exp;
+  hemi.color.set(L.hemi[0]); hemi.groundColor.set(L.hemi[1]); hemi.intensity = L.hemi[2];
+  sun.color.set(L.sun[0]); sun.intensity = L.sun[1]; rim.intensity = L.rim;
+  (scene.fog as T.Fog).color.set(L.fog);
+  skyMat.uniforms.top.value.set(L.sky[0]); skyMat.uniforms.mid.value.set(L.sky[1]); skyMat.uniforms.low.value.set(L.sky[2]);
+  document.querySelectorAll<HTMLButtonElement>('[data-look]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.look === l)));
+  document.getElementById('note')!.textContent = l === 'toon'
+    ? 'Storybook: three-band toon shading, ink outlines, flat bright colours. No post-processing, so it stays fast on phones.'
+    : 'Soft light: physically based shading, golden-hour sun, soft shadows, ambient occlusion and bloom. Richer, but heavier on phones.';
+}
+
+// ---------- game state ----------
+const keys = new Set<string>();
+const D = { pos: V(0, 0, 7), face: Math.PI / 2, vel: V(), roll: -1, rollDir: V(), swing: -1, hit: false, knock: 0, vy: 0, y: 0, squash: 0, fluff: 100, speed: 0 };
+const E = { pos: V(-1.5, 0, 8.5), face: Math.PI / 2, speed: 0, berry: 4 };
+const B = { pos: V(0, 0, -5), face: Math.PI / 2, state: 'roam', t: 0, wander: V(2, 0, -4), dir: V(), speed: 0, grump: 100, flash: 0, squash: 0, phase: 0, lean: 0, lie: 0, travelled: 0, dustT: 0 };
+let hitstop = 0, shake = 0, cam = { yaw: 0, pitch: 0.3, dist: 6.8 }, lock = false;
+const faceTo = (from: T.Vector3, to: T.Vector3) => Math.atan2(-(to.z - from.z), to.x - from.x);
+const fwd = (yaw: number) => V(Math.cos(yaw), 0, -Math.sin(yaw));
+function angLerp(a: number, b: number, t: number) { let d = ((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI; return a + d * t; }
+
+const hud = { grump: document.getElementById('grump')!, grumpTxt: document.getElementById('grumpTxt')!, fluff: document.getElementById('fluff')!, msg: document.getElementById('msg')!, fps: document.getElementById('fps')! };
+const pops: { el: HTMLElement; at: T.Vector3; t: number }[] = [];
+function pop(text: string, at: T.Vector3, cls = '') {
+  const el = document.createElement('div'); el.className = 'pop ' + cls; el.textContent = text; document.body.appendChild(el); pops.push({ el, at: at.clone(), t: 0 });
+}
+let msgT = 0;
+function say(t: string) { hud.msg.textContent = t; hud.msg.hidden = false; msgT = 2.6; }
+
+function swing() { if (D.swing < 0 && D.roll < 0 && D.knock <= 0) { D.swing = 0; D.hit = false; trailPts.length = 0; } }
+function roll() {
+  if (D.roll >= 0 || D.knock > 0) return;
+  const dir = inputDir(); D.rollDir.copy(dir.lengthSq() > 0 ? dir : fwd(D.face)); D.roll = 0; D.swing = -1;
+  puff(D.pos.clone(), 4, 'dust', 0.6, 0.5, 0.18);
+}
+function inputDir() {
+  const f = V(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw)), r = V(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)), d = V();
+  if (keys.has('KeyW') || keys.has('ArrowUp')) d.add(f); if (keys.has('KeyS') || keys.has('ArrowDown')) d.sub(f);
+  if (keys.has('KeyD') || keys.has('ArrowRight')) d.add(r); if (keys.has('KeyA') || keys.has('ArrowLeft')) d.sub(r);
+  return d.lengthSq() ? d.normalize() : d;
+}
+function bonkBoar(at: T.Vector3) {
+  const dizzy = B.state === 'dizzy' || B.state === 'tired';
+  B.grump = Math.max(0, B.grump - (dizzy ? 12 : 6)); B.flash = 0.12; B.squash = 0.22;
+  hitstop = dizzy ? 0.12 : 0.08; shake = Math.max(shake, dizzy ? 0.35 : 0.22);
+  puff(at, dizzy ? 18 : 12, 'spark'); puff(at, 3, 'dust', 0.8, 1, 0.22);
+  pop(dizzy ? 'Big bonk!' : 'Bonk!', at, dizzy ? 'big' : '');
+  if (B.grump <= 0 && B.state !== 'nap') { B.state = 'nap'; B.t = 0; lane.visible = false; say('The Bristleback curled up for a nap. Calmed!'); }
+}
+
+function stepDora(dt: number) {
+  const dir = inputDir(), sprint = keys.has('ShiftLeft') || keys.has('ShiftRight');
+  let speed = 0;
+  if (D.knock > 0) {
+    D.knock -= dt; D.pos.addScaledVector(D.vel, dt); D.vel.multiplyScalar(1 - 2.5 * dt); D.vy -= 22 * dt; D.y = Math.max(0, D.y + D.vy * dt);
+    if (D.y === 0 && D.vy < 0) { if (D.vy < -3) { D.squash = 0.35; puff(D.pos.clone(), 5, 'dust', 0.8, 0.6, 0.2); } D.vy = 0; }
+  } else if (D.roll >= 0) {
+    D.roll += dt; const k = 1 - D.roll / 0.46; D.pos.addScaledVector(D.rollDir, (4 + 8 * k) * dt); D.face = angLerp(D.face, Math.atan2(-D.rollDir.z, D.rollDir.x), 0.4); speed = 6;
+    if (D.roll > 0.46) { D.roll = -1; D.squash = 0.15; }
+  } else {
+    const slow = D.swing >= 0 ? 0.25 : 1; speed = dir.lengthSq() ? (sprint ? 7 : 4.4) * slow : 0;
+    D.pos.addScaledVector(dir, speed * dt);
+    if (dir.lengthSq()) D.face = angLerp(D.face, Math.atan2(-dir.z, dir.x), 1 - Math.exp(-14 * dt));
+    if (lock && !dir.lengthSq() && D.swing < 0) D.face = angLerp(D.face, faceTo(D.pos, B.pos), 1 - Math.exp(-8 * dt));
+  }
+  if (D.swing >= 0) {
+    D.swing += dt; const t = D.swing;
+    if (t < 0.15) hamPivot.rotation.z = lerp(0.9, 2.1, t / 0.15);
+    else if (t < 0.25) { hamPivot.rotation.z = lerp(2.1, -2.0, (t - 0.15) / 0.1); D.pos.addScaledVector(fwd(D.face), 3 * dt); }
+    else hamPivot.rotation.z = lerp(-2.0, 0.9, Math.min(1, (t - 0.25) / 0.3) ** 2);
+    if (t >= 0.24 && !D.hit) {
+      D.hit = true; const at = hamHead.getWorldPosition(V());
+      const bodyAt = B.pos.clone().add(V(0, 1.1, 0)), d = Math.hypot(at.x - bodyAt.x, at.z - bodyAt.z);
+      if (d < 2.3 && B.state !== 'nap') bonkBoar(at.clone().lerp(bodyAt, 0.3));
+      else { at.y = Math.max(at.y, 0.05); puff(at, 5, 'dust', 0.7, 0.8, 0.22); shake = Math.max(shake, 0.1); D.squash = 0.12; }
+    }
+    if (t > 0.55) D.swing = -1;
+  } else hamPivot.rotation.z = lerp(hamPivot.rotation.z, 0.9 + Math.sin(performance.now() / 500) * 0.04, 0.2);
+  // keep in the meadow, out of trees and the boar
+  const r = Math.hypot(D.pos.x, D.pos.z); if (r > 17) D.pos.multiplyScalar(17 / r);
+  for (const t of trees) { const dx = D.pos.x - t.x, dz = D.pos.z - t.z, d = Math.hypot(dx, dz), m = t.r + 0.45; if (d < m) { D.pos.x = t.x + (dx / d) * m; D.pos.z = t.z + (dz / d) * m; } }
+  { const dx = D.pos.x - B.pos.x, dz = D.pos.z - B.pos.z, d = Math.hypot(dx, dz), m = 1.7; if (d < m && d > 0) { D.pos.x = B.pos.x + (dx / d) * m; D.pos.z = B.pos.z + (dz / d) * m; } }
+  D.squash *= Math.exp(-9 * dt); D.speed = speed;
+  D.fluff = Math.min(100, D.fluff + dt * 1.5);
+}
+
+function stepEnzo(dt: number) {
+  const behind = D.pos.clone().add(fwd(D.face + 2.3).multiplyScalar(1.9));
+  const to = behind.clone().sub(E.pos); to.y = 0; const d = to.length();
+  E.speed = d > 0.35 ? Math.min(6.5, d * 3) : 0;
+  if (E.speed) { to.normalize(); E.pos.addScaledVector(to, E.speed * dt); E.face = angLerp(E.face, Math.atan2(-to.z, to.x), 1 - Math.exp(-10 * dt)); }
+  else E.face = angLerp(E.face, faceTo(E.pos, B.pos), 1 - Math.exp(-4 * dt));
+  E.berry -= dt;
+  if (E.berry <= 0 && D.fluff < 85) { E.berry = 7; D.fluff = Math.min(100, D.fluff + 15); pop('Enzo: berry! +15', D.pos.clone().add(V(0, 1.4, 0)), 'buddy'); }
+}
+
+function stepBoar(dt: number) {
+  B.t += dt; B.flash = Math.max(0, B.flash - dt); B.squash *= Math.exp(-8 * dt);
+  const toDora = D.pos.clone().sub(B.pos); toDora.y = 0; const dd = toDora.length();
+  let gait = 0;
+  switch (B.state) {
+    case 'roam': {
+      const to = B.wander.clone().sub(B.pos); to.y = 0;
+      if (to.length() < 0.5) B.wander.set((rnd() - 0.5) * 16, 0, (rnd() - 0.5) * 16);
+      to.normalize(); B.pos.addScaledVector(to, 1.7 * dt); B.face = angLerp(B.face, Math.atan2(-to.z, to.x), 1 - Math.exp(-3 * dt)); gait = 1.7;
+      B.lean = lerp(B.lean, 0, 0.1);
+      if (B.t > 3.2 && dd < 15) { B.state = 'paw'; B.t = 0; }
+      break;
+    }
+    case 'paw': {
+      if (B.t < 0.85) { B.face = angLerp(B.face, faceTo(B.pos, D.pos), 1 - Math.exp(-7 * dt)); B.dir.copy(fwd(B.face)); }
+      B.lean = lerp(B.lean, 0.14, 0.15);
+      legs[0].rotation.z = Math.sin(B.t * 16) * 0.7 - 0.2;
+      B.dustT -= dt; if (B.dustT <= 0) { B.dustT = 0.22; puff(boarG.localToWorld(V(1.2, 0.05, 0.55)), 2, 'dust', 0.5, 0.6, 0.2); if (Math.sin(B.t * 5) > 0) puff(boarHead.localToWorld(V(1.05, -0.2, 0)), 1, 'dust', 0.2, 0.3, 0.12); }
+      lane.visible = B.t > 0.25; lane.position.set(B.pos.x, 0.09, B.pos.z); lane.rotation.y = B.face;
+      lanePlane.scale.set(16, 2.6, 1); lanePlane.position.set(8 + 1.2, 0, 0);
+      laneMat.opacity = B.t > 0.85 ? 0.95 : 0.45 + Math.sin(B.t * 18) * 0.25;
+      if (B.t > 1.45) { B.state = 'charge'; B.t = 0; B.speed = 0; B.travelled = 0; pop('Charge!', B.pos.clone().add(V(0, 3, 0)), 'warn'); }
+      break;
+    }
+    case 'charge': {
+      B.speed = Math.min(14, B.speed + 40 * dt); const step = B.speed * dt; B.pos.addScaledVector(B.dir, step); B.travelled += step; gait = B.speed;
+      B.lean = lerp(B.lean, -0.1, 0.2);
+      B.dustT -= dt; if (B.dustT <= 0) { B.dustT = 0.05; puff(boarG.localToWorld(V(-1, 0.05, rnd() > 0.5 ? 0.5 : -0.5)), 1, 'dust', 0.6, 0.8, 0.28); }
+      if (B.t > 0.25) lane.visible = false;
+      if (dd < 1.9 && D.roll < 0 && D.knock <= 0) {
+        D.knock = 0.8; D.vel.copy(B.dir).multiplyScalar(7).add(toDora.normalize().multiplyScalar(3)); D.vy = 7; D.y = 0.01; D.swing = -1;
+        D.fluff = Math.max(5, D.fluff - 18); shake = 0.4; hitstop = 0.07; pop('Oof!', D.pos.clone().add(V(0, 1.2, 0)), 'warn');
+      }
+      for (const t of trees) if (Math.hypot(B.pos.x - t.x, B.pos.z - t.z) < t.r + 1.3) {
+        B.state = 'dizzy'; B.t = 0; B.speed = 0; B.squash = 0.4; shake = 0.5; hitstop = 0.1; lane.visible = false;
+        puff(B.pos.clone().add(B.dir.clone().multiplyScalar(1.6)).setY(1.5), 14, 'spark'); puff(B.pos.clone(), 8, 'dust', 1.4, 1, 0.35);
+        pop('Thonk! Dizzy!', B.pos.clone().add(V(0, 3, 0)), 'big'); say('It bonked a tree. Bonk it while it is dizzy!');
+        break;
+      }
+      if (B.state === 'charge' && (B.travelled > 17 || Math.hypot(B.pos.x, B.pos.z) > 17.5)) { B.state = 'skid'; B.t = 0; puff(B.pos.clone(), 10, 'dust', 1.6, 1, 0.35); }
+      break;
+    }
+    case 'skid': {
+      B.speed = Math.max(0, B.speed - 26 * dt); B.pos.addScaledVector(B.dir, B.speed * dt); B.lean = lerp(B.lean, 0.18, 0.3); gait = B.speed * 0.3;
+      if (B.speed === 0) { B.state = 'tired'; B.t = 0; B.squash = 0.2; }
+      break;
+    }
+    case 'tired': case 'dizzy': {
+      B.lean = lerp(B.lean, 0, 0.1);
+      if (B.t > (B.state === 'dizzy' ? 3.2 : 1.6)) { B.state = 'roam'; B.t = 0; }
+      break;
+    }
+    case 'nap': {
+      B.lie = Math.min(1, B.lie + dt * 1.2); B.lean = lerp(B.lean, 0, 0.1);
+      if (Math.floor(B.t * 1.4) !== Math.floor((B.t - dt) * 1.4)) puff(boarHead.localToWorld(V(0.3, 0.9, 0)), 1, 'z');
+      if (B.t > 7) { B.state = 'roam'; B.t = 0; B.grump = 100; say('It woke up grumpy again. Go another round!'); }
+      break;
+    }
+  }
+  if (B.state !== 'nap') B.lie = Math.max(0, B.lie - dt * 1.5);
+  const r = Math.hypot(B.pos.x, B.pos.z); if (r > 18) B.pos.multiplyScalar(18 / r);
+  // pose
+  B.phase += dt * (gait > 6 ? 15 : 4 + gait * 2);
+  legs.forEach((l, i) => { if (B.state === 'paw' && i === 0) return; l.rotation.z = gait > 0.1 ? Math.sin(B.phase + (i === 0 || i === 3 ? 0 : Math.PI)) * Math.min(0.75, 0.25 + gait * 0.05) : lerp(l.rotation.z, 0, 0.2); });
+  const breathe = 1 + Math.sin(B.t * 2.2) * 0.015;
+  boarBody.position.y = gait > 6 ? Math.abs(Math.sin(B.phase)) * 0.18 : 0;
+  boarBody.rotation.z = B.lean;
+  boarBody.rotation.x = lerp(0, 1.35, B.lie);
+  boarBody.position.y += -B.lie * 0.45;
+  const sq = B.squash;
+  boarG.scale.set(BOAR_SCALE * (1 + sq * 0.5), BOAR_SCALE * (1 - sq) * breathe, BOAR_SCALE * (1 + sq * 0.5));
+  boarHead.rotation.x = B.state === 'dizzy' || B.state === 'tired' ? Math.sin(B.t * 6) * 0.25 : 0;
+  boarHead.rotation.z = B.state === 'paw' ? -0.2 + Math.sin(B.t * 10) * 0.05 : B.state === 'nap' ? 0.3 : 0;
+  tail.rotation.x = Math.sin(B.t * (gait > 6 ? 20 : 5)) * 0.4;
+  boarG.position.set(B.pos.x, height(B.pos.x, B.pos.z), B.pos.z); boarG.rotation.y = B.face;
+  for (const p of boarMats) for (const m of [p.soft, p.toon] as (T.MeshStandardMaterial | T.MeshToonMaterial)[]) m.emissive.setScalar(B.flash > 0 ? 0.55 : 0);
+  const dizzy = B.state === 'dizzy' || B.state === 'tired';
+  const crown = boarHead.localToWorld(V(0.1, 1.0, 0));
+  stars.forEach((s, i) => { s.visible = dizzy; const a = performance.now() / 300 + (i * Math.PI * 2) / 3; s.position.set(crown.x + Math.cos(a) * 0.7, crown.y + Math.sin(a * 2) * 0.1, crown.z + Math.sin(a) * 0.7); s.rotation.y = a * 2; s.lookAt(camera.position); });
+}
+
+function stepTrail() {
+  const pos = trailGeo.attributes.position as T.BufferAttribute, col = trailGeo.attributes.color as T.BufferAttribute;
+  if (D.swing >= 0.1 && D.swing < 0.4) {
+    const a = hamHead.localToWorld(V(0, 0.22, 0)), b = hamPivot.localToWorld(V(0, 0.45, 0));
+    trailPts.unshift([a, b]); if (trailPts.length > TRAIL) trailPts.pop();
+  } else if (trailPts.length) trailPts.pop();
+  for (let i = 0; i < TRAIL; i++) {
+    const p = trailPts[Math.min(i, trailPts.length - 1)], f = trailPts.length ? Math.max(0, 1 - i / Math.max(1, trailPts.length)) : 0;
+    for (let k = 0; k < 2; k++) { const v = p ? p[k] : V(0, -50, 0); pos.setXYZ(i * 2 + k, v.x, v.y, v.z); const c = f * (look === 'toon' ? 0.9 : 0.7); col.setXYZ(i * 2 + k, c, c * 0.92, c * 0.7); }
+  }
+  pos.needsUpdate = true; col.needsUpdate = true;
+}
+
+function placeChin(r: { g: T.Group; model: any }, pos: T.Vector3, face: number, speed: number, t: number, y = 0, squash = 0) {
+  r.g.position.set(pos.x, height(pos.x, pos.z) + y, pos.z); r.g.rotation.y = face;
+  r.g.scale.set(1 + squash * 0.4, 1 - squash, 1 + squash * 0.4);
+  animateHuntChinchilla(r.model, t, speed, y < 0.02);
+}
+
+// ---------- camera ----------
+const portrait = Number(new URLSearchParams(location.search).get('portrait') ?? 0);
+function stepCamera(dt: number) {
+  if (lock) { const d = B.pos.clone().sub(D.pos); cam.yaw = angLerp(cam.yaw, Math.atan2(-d.x, -d.z), 1 - Math.exp(-4 * dt)); }
+  const target = D.pos.clone().setY(height(D.pos.x, D.pos.z) + 0.9 + D.y * 0.5);
+  if (lock) target.lerp(B.pos.clone().setY(1.3), 0.3);
+  const off = V(Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch)).multiplyScalar(cam.dist);
+  const want = target.clone().add(off);
+  camera.position.lerp(want, 1 - Math.exp(-10 * dt));
+  if (shake > 0 && !calm) camera.position.add(V((rnd() - 0.5) * shake, (rnd() - 0.5) * shake, (rnd() - 0.5) * shake));
+  shake = Math.max(0, shake - dt * 1.6);
+  camera.lookAt(target);
+  if (portrait) { const f = V(Math.cos(D.face), 0, -Math.sin(D.face)), side = V(-f.z, 0, f.x), c = D.pos.clone().setY(height(D.pos.x, D.pos.z)); camera.position.copy(c).addScaledVector(f, 2.0).addScaledVector(side, portrait).add(V(0, 0.9, 0)); camera.lookAt(c.add(V(0, 0.55, 0))); }
+  sky.position.copy(camera.position);
+  sun.position.copy(D.pos).add(V(-18, 26, 12)); sun.target.position.copy(D.pos);
+  rim.position.copy(D.pos).add(V(14, 8, -18));
+}
+
+// ---------- input ----------
+addEventListener('keydown', (e) => {
+  if (e.code === 'Tab') { e.preventDefault(); lock = !lock; document.getElementById('lockBtn')!.setAttribute('aria-pressed', String(lock)); return; }
+  if (e.repeat) return; keys.add(e.code);
+  if (e.code === 'KeyJ') swing(); if (e.code === 'Space') { e.preventDefault(); roll(); }
+  if (e.code === 'Digit1') setLook('toon'); if (e.code === 'Digit2') setLook('soft');
+});
+addEventListener('keyup', (e) => keys.delete(e.code));
+addEventListener('blur', () => keys.clear());
+let drag: { x: number; y: number } | null = null;
+canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); canvas.focus(); });
+canvas.addEventListener('pointermove', (e) => { if (!drag) return; cam.yaw -= (e.clientX - drag.x) * 0.006; cam.pitch = clamp(cam.pitch + (e.clientY - drag.y) * 0.004, 0.08, 1.1); drag = { x: e.clientX, y: e.clientY }; });
+canvas.addEventListener('pointerup', () => (drag = null));
+canvas.addEventListener('wheel', (e) => { e.preventDefault(); cam.dist = clamp(cam.dist + e.deltaY * 0.01, 4, 15); }, { passive: false });
+document.querySelectorAll<HTMLButtonElement>('[data-look]').forEach((b) => b.addEventListener('click', () => setLook(b.dataset.look as Look)));
+document.getElementById('bonkBtn')!.addEventListener('click', swing);
+document.getElementById('rollBtn')!.addEventListener('click', roll);
+document.getElementById('lockBtn')!.addEventListener('click', (e) => { lock = !lock; (e.currentTarget as HTMLElement).setAttribute('aria-pressed', String(lock)); });
+
+function resize() {
+  const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); composer.setSize(w, h);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+setLook('toon');
+cam.yaw = 0;
+
+// ---------- loop ----------
+// ?pose=<seconds> freezes Dora mid-swing, for checking the grip in screenshots
+const pose = Number(new URLSearchParams(location.search).get('pose') ?? -1);
+const clock = new T.Clock(); let time = 0, frames = 0, fpsT = 0;
+function frame() {
+  const real = Math.min(clock.getDelta(), 0.05); let dt = real;
+  if (hitstop > 0) { hitstop -= real; dt = 0; }
+  time += dt; timeU.value += real;
+  if (pose >= 0) { D.swing = pose; D.hit = true; }
+  stepDora(dt); stepEnzo(dt); stepBoar(dt); stepParts(dt); stepTrail();
+  placeChin(dora, D.pos, D.face, D.speed, time, D.y, D.squash);
+  if (D.roll >= 0) dora.model.body.rotation.z = -(D.roll / 0.46) * Math.PI * 2;
+  if (D.knock > 0) dora.model.body.rotation.z = D.knock * 9;
+  placeChin(enzo, E.pos, E.face, E.speed, time + 1.3);
+  poseGrips();
+  clouds.forEach((c, i) => c.position.applyAxisAngle(V(0, 1, 0), real * 0.004 * (1 + (i % 3) * 0.3)));
+  stepCamera(real);
+  if (look === 'toon') outline.render(scene, camera); else composer.render();
+  // HUD
+  hud.grump.style.width = B.grump + '%'; hud.grumpTxt.textContent = B.state === 'nap' ? 'Napping · calmed' : `Grump ${Math.round(B.grump)}%` + (B.state === 'dizzy' || B.state === 'tired' ? ' · dizzy, bonk now!' : B.state === 'paw' ? ' · about to charge' : '');
+  hud.fluff.style.width = D.fluff + '%';
+  if (msgT > 0) { msgT -= real; if (msgT <= 0) hud.msg.hidden = true; }
+  for (let i = pops.length - 1; i >= 0; i--) {
+    const p = pops[i]; p.t += real; const v = p.at.clone().add(V(0, p.t * 1.2, 0)).project(camera);
+    p.el.style.transform = `translate(${((v.x + 1) / 2) * innerWidth}px, ${((1 - v.y) / 2) * innerHeight}px) translate(-50%, -50%) scale(${1 + Math.max(0, 0.25 - p.t) * 2})`;
+    p.el.style.opacity = String(1 - Math.max(0, p.t - 0.6) / 0.4);
+    if (p.t > 1) { p.el.remove(); pops.splice(i, 1); }
+  }
+  frames++; fpsT += real; if (fpsT > 0.5) { hud.fps.textContent = `${Math.round(frames / fpsT)} fps`; frames = 0; fpsT = 0; }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);

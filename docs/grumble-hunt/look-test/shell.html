@@ -1,0 +1,85 @@
+<title>Grumble Hunt Look Test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@600;800&display=swap">
+<style>
+/* Layout: full-bleed WebGL scene, HUD panels pinned to the corners. Single committed dark HUD look. */
+:root {
+  --panel: rgba(22, 26, 38, 0.8);
+  --ink: #fdf6e9;
+  --muted: #c9d1dc;
+  --amber: #f6c46b;
+  --amber-ink: #2a1606;
+  --grump: #e8735c;
+  --fluff: #6fd08c;
+  --track: #2c3346;
+  --display: 'Baloo 2', 'Trebuchet MS', system-ui, sans-serif;
+  --body: 'Nunito', system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; background: #8fc7e8; color: var(--ink); font-family: var(--body); overflow: hidden; }
+#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
+.panel { position: fixed; background: var(--panel); border-radius: 16px; padding: 10px 14px; }
+.top-left { top: calc(12px + env(safe-area-inset-top, 0px)); left: calc(12px + env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 8px; max-width: min(360px, calc(100vw - 24px)); }
+h1 { margin: 0; font-family: var(--display); font-size: 22px; line-height: 1; }
+h1 small { font-family: var(--body); font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 6px; }
+.seg { display: flex; gap: 6px; }
+button { font: inherit; font-weight: 800; border: 0; border-radius: 10px; min-height: 40px; padding: 0 14px; background: var(--track); color: var(--ink); cursor: pointer; }
+button[aria-pressed="true"] { background: var(--amber); color: var(--amber-ink); }
+button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+#note { margin: 0; font-size: 13px; line-height: 1.4; color: var(--muted); }
+.meter { display: flex; flex-direction: column; gap: 4px; }
+.bar { height: 12px; background: var(--track); border-radius: 999px; overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 100%; border-radius: 999px; transition: width .15s; }
+.label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; }
+.boss { top: calc(12px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); width: min(340px, calc(100vw - 24px)); text-align: center; box-sizing: border-box; }
+.boss .name { font-family: var(--display); font-size: 22px; line-height: 1.1; }
+@media (max-width: 760px) { .boss { top: auto; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); } }
+.keys { right: calc(12px + env(safe-area-inset-right, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 8px; max-width: calc(100vw - 24px); }
+.keys p { margin: 0; font-size: 12px; color: var(--muted); }
+.keys .row { display: flex; gap: 6px; flex-wrap: wrap; }
+.dora { left: calc(12px + env(safe-area-inset-left, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: 220px; }
+#fps { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; font-weight: 600; }
+#msg { position: fixed; left: 50%; top: 30%; transform: translateX(-50%); background: var(--panel); padding: 10px 18px; border-radius: 999px; font-weight: 800; font-size: 16px; text-align: center; max-width: calc(100vw - 40px); }
+.pop { position: fixed; left: 0; top: 0; pointer-events: none; font-family: var(--display); font-weight: 800; font-size: 26px; color: #fff; -webkit-text-stroke: 1.5px #3a2a1c; paint-order: stroke fill; text-shadow: 0 3px 0 rgba(0,0,0,.25); white-space: nowrap; }
+.pop.big { font-size: 34px; color: #ffe066; }
+.pop.warn { color: #ffb070; }
+.pop.buddy { font-size: 18px; color: #bff0cf; }
+@media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+</style>
+
+<canvas id="c" tabindex="0" aria-label="Meadow scene with Dora, Enzo and the Bristleback"></canvas>
+
+<div class="panel top-left">
+  <h1>Grumble Hunt <small>look test</small></h1>
+  <div class="seg" role="group" aria-label="Render style">
+    <button data-look="toon" aria-pressed="true">1 · Storybook</button>
+    <button data-look="soft" aria-pressed="false">2 · Soft light</button>
+  </div>
+  <p id="note"></p>
+  <span id="fps">– fps</span>
+</div>
+
+<div class="panel boss meter">
+  <span class="name">Bristleback</span>
+  <div class="bar"><i id="grump" style="background: var(--grump)"></i></div>
+  <span id="grumpTxt" class="label" style="justify-content: center">Grump 100%</span>
+</div>
+
+<div class="panel dora meter">
+  <div class="label"><span>Dora</span><span style="color: var(--muted)">Acorn Hammer</span></div>
+  <div class="bar"><i id="fluff" style="background: var(--fluff)"></i></div>
+  <span class="label" style="color: var(--muted); font-weight: 600">Fluff · Enzo tosses berries</span>
+</div>
+
+<div class="panel keys">
+  <div class="row">
+    <button id="bonkBtn">J · Bonk</button>
+    <button id="rollBtn">Space · Roll</button>
+    <button id="lockBtn" aria-pressed="false">Tab · Lock on</button>
+  </div>
+  <p>WASD move · Shift sprint · drag to look · scroll to zoom</p>
+</div>
+
+<div id="msg" hidden></div>
+<script>/*BUNDLE*/</script>
