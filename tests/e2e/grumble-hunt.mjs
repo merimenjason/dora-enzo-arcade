@@ -51,6 +51,64 @@ try {
     await p.getByTestId('mute').click(); assert.equal(await p.getByTestId('mute').getAttribute('aria-pressed'), 'true'); assert.equal(await p.evaluate(() => localStorage.getItem('grumble-hunt-sound-v1')), 'off');
   });
 
+  await check('review fixes: HUD focus, sprint lock, hit-stop taps and guide', async (p) => {
+    await fresh(p); await start(p);
+    await hunt(p, (w) => { const g = w.game; g.beast.state = 'rest'; g.beast.duration = 1000; g.buddy.cooldown = 1000; g.buddy.berry = 1000; g.hero.fluff = 40; });
+    for (const button of [p.getByTestId('use-item'), p.getByRole('button', { name: 'Next item', exact: true }), p.getByRole('button', { name: 'Previous item', exact: true }), p.getByTestId('mute')]) {
+      await button.click(); assert.equal(await p.evaluate(() => document.activeElement?.getAttribute('data-testid')), 'hunt-canvas');
+      const before = await hunt(p, (w) => ({ items: [...w.game.items], item: w.game.item }));
+      const muted = await p.getByTestId('mute').getAttribute('aria-pressed');
+      await p.keyboard.press('Enter'); await p.keyboard.press('Space');
+      await p.waitForFunction(() => window.__hunt().game.hero.rollCd > 0);
+      assert.deepEqual(await hunt(p, (w) => ({ items: [...w.game.items], item: w.game.item })), before);
+      assert.equal(await p.getByTestId('mute').getAttribute('aria-pressed'), muted);
+      await hunt(p, (w) => { w.game.hero.roll = -1; w.game.hero.rollCd = 0; w.game.clearInput(); });
+    }
+    const locked = await hunt(p, (w) => w.game.locked);
+    await p.keyboard.down('Shift'); await p.keyboard.press('Tab'); await p.keyboard.up('Shift');
+    await p.waitForFunction((before) => window.__hunt().game.locked !== before, locked);
+    assert.equal(await hunt(p, (w) => w.game.paused), false);
+    for (const focusBody of [false, true]) {
+      await p.evaluate((body) => {
+        const g = window.__hunt().game; g.hitstop = 0.11; g.hero.roll = -1; g.hero.rollCd = 0;
+        if (body) document.activeElement.blur();
+        const target = body ? document.body : document.activeElement;
+        target.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true }));
+        target.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space', bubbles: true }));
+      }, focusBody);
+      await p.waitForFunction(() => window.__hunt().game.hero.rollCd > 0);
+    }
+    await hunt(p, (w) => { w.game.hero.cooldown = 2; w.game.hero.charge = 0; w.game.hero.roll = -1; });
+    await p.keyboard.down('k'); await p.waitForTimeout(150);
+    assert.equal(await hunt(p, (w) => w.game.hero.charge), 0); assert.match(await p.getByTestId('charge-status').innerText(), /recovering/);
+    await hunt(p, (w) => { w.game.hero.cooldown = 0; });
+    await p.waitForFunction(() => window.__hunt().game.hero.charge >= 0.35);
+    await p.waitForFunction(() => document.querySelector('[data-testid=charge-status]').textContent.includes('ready'));
+    await p.keyboard.up('k');
+    await p.getByRole('button', { name: 'Open field guide' }).click();
+    assert.match(await p.getByTestId('panel-help').innerText(), /two big bonks or big shots; buddy bonks help a little/);
+  });
+
+  await check('review fixes: graphics context loss in village and hunt recovers keyboard', async (p) => {
+    await fresh(p);
+    for (const mode of ['village', 'hunt']) {
+      if (mode === 'hunt') await start(p);
+      await p.getByTestId('hunt-canvas').dispatchEvent('webglcontextlost');
+      assert.equal(await hunt(p, (w) => w.game.paused), mode === 'hunt');
+      if (mode === 'village') {
+        const before = await hunt(p, (w) => w.game.hero.x); await p.keyboard.down('d');
+        await p.waitForFunction((x) => window.__hunt().game.hero.x > x + 0.2, before); await p.keyboard.up('d');
+      }
+      await p.getByTestId('hunt-canvas').dispatchEvent('webglcontextrestored');
+      assert.equal(await hunt(p, (w) => w.game.paused), false);
+      // React clears the banner on its next render, which can land a moment after the event under load.
+      await p.locator('.hunt-error').waitFor({ state: 'detached', timeout: 15000 });
+      await p.getByTestId('hunt-canvas').focus();
+      const before = await hunt(p, (w) => w.game.hero.x); await p.keyboard.down('d');
+      await p.waitForFunction((x) => window.__hunt().game.hero.x > x + 0.2, before); await p.keyboard.up('d');
+    }
+  });
+
   await check('every hunt, dizzy and nap animation, real input policy, forge, victory and saved replay', async (p) => {
     await fresh(p);
     for (const id of ['bristleback', 'puffwart', 'skreel', 'hornclack', 'frostmane']) {
@@ -64,7 +122,7 @@ try {
       await p.locator('main[data-mode="nap"]').waitFor(); await snapshot(p, `${id}-nap`);
       const stored = await p.evaluate(() => JSON.parse(localStorage.getItem('grumble-hunt-v1'))); assert(stored.profile.naps[id] > 0, 'last bonk is saved before the nap finishes');
       await hunt(p, (w) => { const g = w.game; g.paused = false; for (let i = 0; i < 180; i++) g.step(1 / 60); });
-      await p.getByTestId('result').waitFor(); if (id === 'frostmane') { assert.match(await p.getByTestId('result').innerText(), /grand, gentle adventure/); await snapshot(p, 'victory'); }
+      await p.getByTestId('result').waitFor(); assert.equal(await p.locator('.hunt-unlock').count(), id === 'skreel' ? 1 : 0); if (id === 'frostmane') { assert.match(await p.getByTestId('result').innerText(), /grand, gentle adventure/); await snapshot(p, 'victory'); }
       await p.getByTestId('return-village').click();
     }
     await p.getByTestId('open-forge').click(); const total = await hunt(p, (w) => w.game.materialTotal); assert(total >= 36);
@@ -76,8 +134,8 @@ try {
 
   await check('tuckered out keeps materials, retry works, and New game resets only this save', async (p) => {
     await fresh(p, 'enzo'); await start(p);
-    await hunt(p, (w) => { const g = w.game; g.profile.materials.bristleback = 7; g.hero.fluff = 1; g.hero.invincible = 0; g.bumpHero(20, g.beast); });
-    await p.getByTestId('result').waitFor(); assert.match(await p.getByTestId('result').innerText(), /tuckered out/); assert.equal(await hunt(p, (w) => w.game.materialTotal), 7); await snapshot(p, 'camp-return');
+    await hunt(p, (w) => { const g = w.game; g.profile.materials.bristleback = 7; for (const id of ['bristleback', 'puffwart', 'skreel']) g.profile.naps[id] = 1; g.hero.fluff = 1; g.hero.invincible = 0; g.bumpHero(20, g.beast); });
+    await p.getByTestId('result').waitFor(); assert.match(await p.getByTestId('result').innerText(), /tuckered out/); assert.equal(await p.locator('.hunt-unlock').count(), 0); assert.equal(await hunt(p, (w) => w.game.materialTotal), 7); await snapshot(p, 'camp-return');
     await p.getByTestId('retry').click(); assert.equal(await hunt(p, (w) => w.game.hero.fluff), 100); assert.deepEqual(await hunt(p, (w) => w.game.items), [3, 2, 2]);
     await p.getByRole('button', { name: 'New game', exact: true }).click(); await p.getByTestId('confirm-reset').click(); await p.getByTestId('panel-choose').waitFor(); assert.equal(await hunt(p, (w) => w.game.materialTotal), 0); assert.equal(await hunt(p, (w) => w.game.profile.hero), null);
   });

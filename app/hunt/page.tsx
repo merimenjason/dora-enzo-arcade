@@ -30,7 +30,7 @@ export default function GrumbleHuntPage() {
   const start = (id: BeastId) => { const g = game.current; if (!g?.startHunt(id)) return; release(); panelRef.current = null; setPanel(null); persist(); refresh(); focusWorld(); sound.current?.unlock(); };
   const village = () => { game.current?.returnVillage(); release(); panelRef.current = null; setPanel(null); persist(); refresh(); focusWorld(); };
   const pause = () => { const g = game.current; if (!g || g.mode !== 'hunt') return; g.paused = !g.paused; release(); persist(); refresh(); focusWorld(); };
-  const mute = () => { const s = sound.current; if (!s) return; s.unlock(); s.setMuted(!s.muted()); setMuted(s.muted()); };
+  const mute = () => { const s = sound.current; if (!s) return; s.unlock(); s.setMuted(!s.muted()); setMuted(s.muted()); if (game.current?.mode === 'hunt' && !panelRef.current) focusWorld(); };
 
   useEffect(() => {
     let stopped = false, raf = 0, last = 0, acc = 0, ui = 0;
@@ -41,9 +41,11 @@ export default function GrumbleHuntPage() {
     const visibility = () => { if (document.hidden) pauseForFocus(); last = 0; acc = 0; };
     const saveOnHide = () => persist();
     window.addEventListener('blur', pauseForFocus); window.addEventListener('pagehide', saveOnHide); document.addEventListener('visibilitychange', visibility);
-    const lost = (e: Event) => { e.preventDefault(); if (game.current) game.current.paused = true; setError('The meadow renderer paused. Reload the page to return safely to camp; your gathered materials are saved.'); persist(); };
+    const lost = (e: Event) => { e.preventDefault(); release(); if (game.current?.mode === 'hunt') game.current.paused = true; refresh(); setError('The meadow renderer paused. Reload the page to return safely to camp; your gathered materials are saved.'); persist(); };
+    const restored = () => { if (game.current) game.current.paused = false; last = 0; acc = 0; setError(''); refresh(); if (game.current?.mode === 'hunt' && !panelRef.current) focusWorld(); };
     const surface = canvas.current;
     surface?.addEventListener('webglcontextlost', lost);
+    surface?.addEventListener('webglcontextrestored', restored);
     import('@/lib/grumble-hunt-scene').then(({ createHuntScene }) => {
       if (stopped || !canvas.current) return;
       try { scene.current = createHuntScene(canvas.current, () => setRendered(true), setError); }
@@ -60,7 +62,7 @@ export default function GrumbleHuntPage() {
           const input: Input = { x: x * Math.cos(yaw) + z * Math.sin(yaw), z: z * Math.cos(yaw) - x * Math.sin(yaw), sprint: k.has('ShiftLeft') || k.has('ShiftRight') || t.sprint, bonk: k.has('KeyJ') || t.bonk, charge: k.has('KeyK') || t.charge, roll: k.has('Space') || t.roll, lock: k.has('Tab') || t.lock, previous: k.has('KeyQ') || t.previous, next: k.has('KeyE') || t.next, use: k.has('KeyF') || t.use };
           // A quick tap between animation frames still reaches one fixed step.
           for (const key of pulses.current) input[key] = true;
-          while (acc >= DT) { if (!panelRef.current) { current.step(DT, input); pulses.current.clear(); } acc -= DT; }
+          while (acc >= DT) { if (!panelRef.current) { const consumes = current.hitstop <= 0 && !current.paused; current.step(DT, input); if (consumes) pulses.current.clear(); } acc -= DT; }
           for (const e of current.events.splice(0)) { sound.current?.cue(e.kind); if (e.kind === 'interact' && e.spot) openPanel(e.spot); }
           scene.current?.draw(current, Math.max(DT, elapsed));
         }
@@ -74,7 +76,7 @@ export default function GrumbleHuntPage() {
     return () => {
       stopped = true; cancelAnimationFrame(raf); persist(); keys.current.clear(); touch.current = { ...NO_INPUT };
       window.removeEventListener('blur', pauseForFocus); window.removeEventListener('pagehide', saveOnHide); document.removeEventListener('visibilitychange', visibility);
-      surface?.removeEventListener('webglcontextlost', lost); scene.current?.dispose(); scene.current = null; sound.current?.dispose();
+      surface?.removeEventListener('webglcontextlost', lost); surface?.removeEventListener('webglcontextrestored', restored); scene.current?.dispose(); scene.current = null; sound.current?.dispose();
     };
   }, []); // Loop and lifecycle deliberately read refs.
 
@@ -87,7 +89,7 @@ export default function GrumbleHuntPage() {
       if (panelRef.current) return;
       if ((e.target as HTMLElement).closest('button,a') && ['Space', 'Enter', 'Tab'].includes(e.code)) return;
       if (e.code === 'KeyP' && !e.repeat) { pause(); return; }
-      if (e.code === 'Tab' && e.shiftKey) return;
+      if (e.code === 'Tab' && e.shiftKey && game.current?.mode !== 'hunt') return;
       if (game.current?.paused || !['hunt', 'village'].includes(game.current?.mode ?? '')) return;
       if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight', 'KeyJ', 'KeyK', 'Space', 'Tab', 'KeyQ', 'KeyE', 'KeyF'].includes(e.code)) {
         e.preventDefault(); keys.current.add(e.code);
@@ -108,6 +110,7 @@ export default function GrumbleHuntPage() {
   useEffect(() => { if (panel) dialog.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus(); }, [panel]);
 
   const hold = (key: ActionKey) => ({
+    onClick: () => { if (game.current?.mode === 'hunt') focusWorld(); },
     onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); touch.current[key] = true; pulses.current.add(key); sound.current?.unlock(); },
     onPointerUp: () => { touch.current[key] = false; },
     onPointerCancel: () => { touch.current[key] = false; pulses.current.delete(key); game.current?.clearInput(); },
@@ -153,8 +156,9 @@ export default function GrumbleHuntPage() {
         <div><strong>{cap(heroId)}</strong><span>{heroId === 'dora' ? 'Acorn Hammer' : 'Seed Bow'} · Lv {g.profile.levels[heroId]}</span></div>
         <progress aria-label="Fluff" data-testid="fluff" max={100} value={g.hero.fluff} /><small>Fluff {Math.ceil(g.hero.fluff)} / 100</small>
         <p>{cap(g.buddyId)} is with you{g.buddy.berry <= 0 ? ' · berry ready' : ' · gathering a berry'}.</p>
+        {active && <small data-testid="charge-status">{g.hero.cooldown > 0 ? 'Tool recovering' : g.hero.charge >= 0.35 ? 'Big bonk or shot ready' : g.hero.charge > 0 ? 'Charging…' : 'Hold K to charge'}</small>}
       </section>
-      {active && <div className="hunt-items" aria-label="Pouch items"><button aria-label="Previous item" onClick={() => { g.item = (g.item + 2) % 3; refresh(); }}>‹</button><button data-testid="use-item" onClick={() => { g.useItem(); refresh(); }} title={ITEM_HELP[g.item]}><strong>{ITEM_NAMES[g.item]} ×{g.items[g.item]}</strong><small>F · use · Q / E to pick</small></button><button aria-label="Next item" onClick={() => { g.item = (g.item + 1) % 3; refresh(); }}>›</button></div>}
+      {active && <div className="hunt-items" aria-label="Pouch items"><button aria-label="Previous item" onClick={() => { g.item = (g.item + 2) % 3; refresh(); focusWorld(); }}>‹</button><button data-testid="use-item" onClick={() => { g.useItem(); refresh(); focusWorld(); }} title={ITEM_HELP[g.item]}><strong>{ITEM_NAMES[g.item]} ×{g.items[g.item]}</strong><small>F · use · Q / E to pick</small></button><button aria-label="Next item" onClick={() => { g.item = (g.item + 1) % 3; refresh(); focusWorld(); }}>›</button></div>}
       {active && <button className="hunt-pause" data-testid="pause" onClick={pause}>Ⅱ Pause</button>}
       {inVillage && g.nearestSpot() && <button className="hunt-interact" onClick={() => openPanel(g.nearestSpot()!.id)}>F · Visit {g.nearestSpot()!.name}</button>}
       <div className="hunt-touch" aria-label="Touch controls">
@@ -174,7 +178,7 @@ export default function GrumbleHuntPage() {
       <p className="hunt-eyebrow">{g.mode === 'victory' ? 'THE SANCTUARY IS FULL OF FRIENDS' : g.mode === 'camp' ? 'BACK AT CAMP' : 'ONE LESS GRUMBLE IN THE MEADOW'}</p>
       <h1>{g.mode === 'victory' ? 'A grand, gentle adventure.' : g.mode === 'camp' ? 'A little tuckered out.' : `${BEASTS[g.lastHunt].name} is napping!`}</h1>
       <p>{g.mode === 'victory' ? 'Even mighty Frostmane found a soft place to curl up. Dora and Enzo made new friends, one lovely nap at a time.' : g.mode === 'camp' ? 'Every material you gathered is tucked away safely. A fresh berry pouch and another try are ready whenever you are.' : 'Your new friend is off to the sanctuary. All meadow materials are collected. Visit the Forge for something lovely.'}</p>
-      {g.uniqueNaps >= 3 && !g.profile.won && <p className="hunt-unlock">Hornclack and Frostmane are now on the hunt board!</p>}
+      {g.unlockedFinalHunts && g.mode !== 'camp' && <p className="hunt-unlock">Hornclack and Frostmane are now on the hunt board!</p>}
       <button className="hunt-primary" data-testid="return-village" onClick={village}>Return to Clover Camp</button><button data-testid="retry" onClick={() => start(g.lastHunt)}>{g.mode === 'camp' ? 'Try this hunt again' : 'Replay this hunt'}</button>{g.mode === 'victory' && <button onClick={() => openPanel('reset')}>New game</button>}
     </section></div>}
 
@@ -184,7 +188,7 @@ export default function GrumbleHuntPage() {
       {panel === 'board' && <><p className="hunt-eyebrow">CLOVER CAMP · HUNT BOARD</p><h1 id="hunt-panel-title">A meadow of grumpy friends.</h1><p>Pick a hunt. Calm three different beasts to open the final two. Every hunt can be replayed.</p><div className="hunt-board">{BEAST_IDS.map((id) => <article key={id} style={{ '--beast-color': BEASTS[id].color } as React.CSSProperties}><img src={`/art/hunt/ref-${id}.webp`} alt={`${BEASTS[id].name} modelling reference: side, front and three-quarter views`} /><div><h2>{BEASTS[id].name}</h2><span className="hunt-badge">{g?.profile.naps[id] ? `Napping at the sanctuary · ${g.profile.naps[id]} calm${g.profile.naps[id] === 1 ? '' : 's'}` : g?.unlocked(id) ? 'Ready to meet you' : 'Calm 3 different beasts to unlock'}</span><p>{BEASTS[id].tip}</p><button className="hunt-primary" data-testid={`hunt-${id}`} disabled={!g?.unlocked(id)} onClick={() => start(id)}>{g?.unlocked(id) ? `Visit ${BEASTS[id].name}` : `Locked · ${g?.uniqueNaps ?? 0} / 3`}</button></div></article>)}</div></>}
       {panel === 'forge' && <><p className="hunt-eyebrow">CLOVER CAMP · THE FORGE</p><h1 id="hunt-panel-title">Made with little treasures.</h1><p>The beasts shed lovely materials when bonked, when a part pops off, and when calmed. Gather them, then make both friends’ tools stronger.</p><p className="hunt-wallet" data-testid="material-total">{g?.materialTotal ?? 0} materials in your satchel</p><div className="hunt-forge">{(['dora', 'enzo'] as const).map((id) => { const lv = g?.profile.levels[id] ?? 1, cost = g?.upgradeCost(id) ?? 0; return <article key={id}><span className="hunt-eyebrow">{cap(id)}’S TOOL</span><h2>{id === 'dora' ? 'Acorn Hammer' : 'Seed Bow'}</h2><div className="hunt-levels" aria-label={`Level ${lv} of 3`}>{[1, 2, 3].map((n) => <span key={n} data-filled={n <= lv}>{n}</span>)}</div><p>{id === 'dora' ? 'Larger bonks and stronger charged swings.' : 'Stronger seed shots, including your buddy’s shots.'}</p><button data-testid={`upgrade-${id}`} disabled={lv >= 3 || !g || g.materialTotal < cost} onClick={() => { g?.upgrade(id); persist(); refresh(); sound.current?.cue('part'); }}>{lv >= 3 ? 'Lovely! Fully upgraded' : `Upgrade · ${cost} materials`}</button></article>; })}</div><p className="hunt-fine">Three levels per tool. Upgrades use any beast material and help your buddy too.</p></>}
       {panel === 'book' && <><p className="hunt-eyebrow">CLOVER CAMP · BEAST BOOK</p><h1 id="hunt-panel-title">Every grump has a soft side.</h1><p data-testid="nap-count">{g?.uniqueNaps ?? 0} / 5 friends napping at the sanctuary.</p><div className="hunt-book">{BEAST_IDS.map((id) => <article key={id}><img src={`/art/hunt/ref-${id}.webp`} alt={`${BEASTS[id].name}, a gentle storybook beast`} /><h2>{BEASTS[id].name}</h2><strong className="hunt-badge">{g?.profile.naps[id] ? 'Napping at the sanctuary' : 'Not calmed yet'}</strong><p>{BEASTS[id].tip}</p><p><b>{BEASTS[id].material}:</b> {g?.profile.materials[id] ?? 0} in your satchel.<br />Pop-off part: {BEASTS[id].part}.</p></article>)}</div></>}
-      {panel === 'help' && <><p className="hunt-eyebrow">THE FIELD GUIDE</p><h1 id="hunt-panel-title">A gentle kind of hunt.</h1><p>Beasts are never hurt. Bonks lower Grump until they curl up for a nap and go to the sanctuary. An orange lane or circle always warns you before an attack.</p><dl className="hunt-controls"><dt>WASD / arrows</dt><dd>Move · Shift sprints</dd><dt>J</dt><dd>Dora bonks; Enzo shoots</dd><dt>Hold K, release</dt><dd>Charge a big swing or seed shot</dd><dt>Space</dt><dd>Roll, with a brief dodge window</dd><dt>Tab</dt><dd>Lock on while the meadow has focus</dd><dt>Q / E · F</dt><dd>Pick an item · use it</dd><dt>Drag · scroll</dt><dd>Orbit the camera · zoom</dd><dt>P / Escape · M</dt><dd>Pause · toggle sound</dd></dl><p><b>Touch:</b> move with the joystick, drag the meadow to look, tap Bonk or Shoot, hold “Hold · big” to charge, and use Roll, Lock and the item pouch.</p><p><b>Dizzy:</b> two charged hammer bonks or a crash into a tree or rock makes an opening. Dizzy beasts take bigger bonks. Your buddy helps and tosses a healing berry when Fluff is low.</p><p><b>Tuckered out?</b> You return to camp with every gathered material safe. Your berries refill for the next hunt. Reloading also returns safely to camp, keeping permanent progress.</p><button className="hunt-primary" onClick={closePanel}>Ready for a little adventure</button></>}
+      {panel === 'help' && <><p className="hunt-eyebrow">THE FIELD GUIDE</p><h1 id="hunt-panel-title">A gentle kind of hunt.</h1><p>Beasts are never hurt. Bonks lower Grump until they curl up for a nap and go to the sanctuary. An orange lane or circle always warns you before an attack.</p><dl className="hunt-controls"><dt>WASD / arrows</dt><dd>Move · Shift sprints</dd><dt>J</dt><dd>Dora bonks; Enzo shoots</dd><dt>Hold K, release</dt><dd>Charge a big swing or seed shot</dd><dt>Space</dt><dd>Roll, with a brief dodge window</dd><dt>Tab</dt><dd>Lock on while the meadow has focus</dd><dt>Q / E · F</dt><dd>Pick an item · use it</dd><dt>Drag · scroll</dt><dd>Orbit the camera · zoom</dd><dt>P / Escape · M</dt><dd>Pause · toggle sound</dd></dl><p><b>Touch:</b> move with the joystick, drag the meadow to look, tap Bonk or Shoot, hold “Hold · big” to charge, and use Roll, Lock and the item pouch.</p><p><b>Dizzy:</b> two big bonks or big shots; buddy bonks help a little. A crash into a tree or rock also makes an opening. Dizzy beasts take bigger bonks. Your buddy helps and tosses a healing berry when Fluff is low.</p><p><b>Tuckered out?</b> You return to camp with every gathered material safe. Your berries refill for the next hunt. Reloading also returns safely to camp, keeping permanent progress.</p><button className="hunt-primary" onClick={closePanel}>Ready for a little adventure</button></>}
       {panel === 'reset' && <><p className="hunt-eyebrow">A FRESH STORYBOOK</p><h1 id="hunt-panel-title">Start a new adventure?</h1><p>This resets your chosen hero, tool upgrades, beast materials and sanctuary naps in Grumble Hunt.</p><button className="hunt-primary" data-testid="confirm-reset" onClick={() => { game.current = new HuntGame(); written.current = ''; release(); persist(); panelRef.current = 'choose'; setPanel('choose'); refresh(); }}>Start a new game</button><button onClick={closePanel}>Keep this adventure</button></>}
     </section></div>}
   </main>;

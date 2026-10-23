@@ -61,6 +61,7 @@ export class HuntGame {
   events: HuntEvent[] = [];
   items = [3, 2, 2];
   item = 0;
+  unlockedFinalHunts = false;
   locked = false;
   paused = false;
   time = 0;
@@ -106,6 +107,7 @@ export class HuntGame {
   }
   startHunt(id: BeastId) {
     if (!BEAST_IDS.includes(id) || !this.profile.hero || !['village', 'camp', 'calm', 'victory'].includes(this.mode) || !this.unlocked(id)) return false;
+    this.unlockedFinalHunts = false;
     this.lastHunt = id; this.mode = 'hunt'; this.hero = hero(); this.buddy = { x: -1.5, z: 8.5, face: Math.PI / 2, speed: 0, swing: -1, cooldown: 1, berry: 3 };
     const grump = BEASTS[id].grump;
     this.beast = { id, x: 0, z: -3, face: -Math.PI / 2, grump, maxGrump: grump, state: id === 'skreel' ? 'circle' : 'roam', t: 0, duration: 2.4, attack: 'charge', aim: { x: 0, z: 0 }, start: { x: 0, z: -3 }, dir: { x: 0, z: 1 }, phase: 1, cycle: 0, dizzy: 0, part: 0, broken: false, bonks: 0, flash: 0, height: 0 };
@@ -148,7 +150,7 @@ export class HuntGame {
     if (!b || this.mode !== 'hunt' || b.grump <= 0 || !Number.isFinite(power) || power <= 0) return false;
     const dir = direction(b, from), front = dir.x * Math.cos(b.face) + dir.z * -Math.sin(b.face);
     if (b.id === 'hornclack' && front > 0.45 && b.state !== 'dizzy') { this.effect('dust', b, 'Try the sides!'); this.note = 'The front shell is sturdy. Circle to the sides or back.'; return false; }
-    if (b.id === 'skreel' && b.height > 1.8 && !buddy && this.heroId === 'dora') return false;
+    if (b.id === 'skreel' && b.height > 1.8 && (buddy ? this.buddyId : this.heroId) === 'dora') return false;
     const wasDizzy = b.state === 'dizzy';
     const amount = power * (wasDizzy ? 1.7 : 1);
     b.grump = Math.max(0, b.grump - amount); b.flash = 0.18; b.bonks++; b.part += amount;
@@ -160,10 +162,11 @@ export class HuntGame {
     this.events.push({ kind: 'bonk' }); this.effect('bonk', b, wasDizzy ? 'Big bonk!' : 'Bonk!');
     if (b.bonks % 3 === 0) this.drop(b, 1);
     if (!b.broken && b.part >= b.maxGrump * 0.32) { b.broken = true; this.drop(b, 3); this.events.push({ kind: 'part' }); this.effect('part', b, `${BEASTS[b.id].part} popped off!`); }
-    if (heavy && b.grump > 0) { b.dizzy += buddy ? 0.6 : 1; if (b.dizzy >= 2 && !wasDizzy) { this.makeDizzy(); b.dizzy = 0; } }
+    if (heavy && b.grump > 0 && !wasDizzy) { b.dizzy += buddy ? 0.6 : 1; if (b.dizzy >= 2) { this.makeDizzy(); b.dizzy = 0; } }
     if (b.grump <= 0) {
       b.state = 'nap'; b.t = 0; b.height = 0; this.mode = 'nap'; this.resultTime = 0;
-      this.profile.naps[b.id]++; this.profile.won ||= b.id === 'frostmane'; this.drop(b, 5); this.collect(true); this.revision++;
+      const before = this.uniqueNaps;
+      this.profile.naps[b.id]++; this.unlockedFinalHunts = before === 2 && this.uniqueNaps === 3; this.profile.won ||= b.id === 'frostmane'; this.drop(b, 5); this.collect(true); this.revision++;
       this.events.push({ kind: 'nap' }); this.effect('nap', b, 'Calmed. Time for a nap!'); this.note = `${BEASTS[b.id].name} is going to the sanctuary for a lovely nap.`;
     }
     return true;
@@ -179,7 +182,7 @@ export class HuntGame {
     h.fluff = Math.max(0, h.fluff - amount); h.invincible = 1.4;
     const d = direction(from, h); this.move(h, d.x * 1.5, d.z * 1.5, 0.45); this.shake = 0.24;
     this.events.push({ kind: 'bump' }); this.note = 'A little bump! Roll through the orange warning or use a berry.';
-    if (h.fluff <= 0) { this.mode = 'camp'; this.paused = false; this.locked = false; h.x = 0; h.z = 7; this.buddy.x = -1.5; this.buddy.z = 8.5; this.shots = []; this.note = 'Tuckered out. Back at camp, with every gathered material safe. Try again whenever you like.'; this.revision++; }
+    if (h.fluff <= 0) { this.collect(true); this.mode = 'camp'; this.paused = false; this.locked = false; h.x = 0; h.z = 7; this.buddy.x = -1.5; this.buddy.z = 8.5; this.shots = []; this.note = 'Tuckered out. Back at camp, with every gathered material safe. Try again whenever you like.'; this.revision++; }
     return true;
   }
   useItem() {
@@ -221,7 +224,7 @@ export class HuntGame {
       this.move(h, dx * speed * dt, dz * speed * dt, 0.45); h.speed = len > 0.1 ? speed : 0;
       if (len > 0.1) h.face = Math.atan2(-dz, dx); else if (this.locked && this.beast && this.mode === 'hunt') h.face = faceTo(h, this.beast);
       if (this.mode === 'hunt') {
-        if (input.charge && h.swing < 0) h.charge = Math.min(1.4, h.charge + dt);
+        if (input.charge && h.swing < 0 && h.cooldown <= 0) h.charge = Math.min(1.4, h.charge + dt);
         else if (!input.charge && this.last.charge) { this.attack(h.charge >= 0.35); h.charge = 0; }
         else if (input.bonk && !input.charge) this.attack(false);
       }
@@ -280,13 +283,14 @@ export class HuntGame {
     }
     if (b.state === 'windup') {
       b.height = b.id === 'skreel' ? 1 + Math.sin(b.t * 8) * 0.2 : 0;
-      if (b.t >= b.duration) { b.state = b.attack; b.t = 0; b.duration = b.attack === 'charge' || b.attack === 'swoop' ? 1.05 : b.attack === 'pounce' || b.attack === 'hop' ? 0.72 : 0.65; }
+      if (b.t >= b.duration) { b.state = b.attack; b.t = 0; b.duration = b.attack === 'charge' || b.attack === 'swoop' ? distance(b.start, b.aim) / (b.attack === 'charge' ? 12 : 14) : b.attack === 'pounce' || b.attack === 'hop' ? 0.72 : 0.65; }
       return;
     }
     const active = b.state;
     if (active === 'charge' || active === 'swoop') {
       const speed = active === 'charge' ? 12 : 14;
-      const nx = b.x + b.dir.x * speed * dt, nz = b.z + b.dir.z * speed * dt;
+      const travel = Math.min(distance(b.start, b.aim), b.t * speed);
+      const nx = b.start.x + b.dir.x * travel, nz = b.start.z + b.dir.z * travel;
       const obstacle = this.obstacles.some((o) => Math.hypot(nx - o.x, nz - o.z) < o.r + 1.4) || Math.hypot(nx, nz) > ARENA_RADIUS - 1.5;
       if (obstacle) { this.makeDizzy(3.8); return; }
       b.x = nx; b.z = nz; b.height = active === 'swoop' ? Math.max(0, 0.8 - b.t) : 0;

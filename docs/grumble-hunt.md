@@ -20,17 +20,19 @@ Each hunt uses the same open meadow, with seed-driven trees and rocks. There is 
 | Hornclack | 560 | Its front shell blocks bonks; circle to the sides or back. Sweeps its horn and charges | Shell buttons | Horn cap |
 | Frostmane | 840 | Pounces in mood 1, adds an icy mane shake in mood 2, and favours quick pounces in mood 3 | Frost fluff | Mane tufts |
 
+Charges and swoops stop at the end of their 12-unit marked lane. The final-hunt unlock banner appears only on the result that earned the third different nap.
+
 Every attack has a **0.9-second** wind-up and an orange ground marker. Frostmane changes mood below two-thirds and one-third Grump; its later rests become shorter. The mane shake pushes the leader away. A sleepy cloud lasts five seconds and slows movement while inside; it never lowers Fluff.
 
-Two charged hammer bonks build dizzy. A crash or dizzy dust also makes a beast dizzy, providing at least three seconds of opportunity. Bonks during dizzy are 1.7 times as large. Hornclack’s front shell is open during dizzy. Dora’s hammer reaches Skreel when it is low; the bow can reach it in the air.
+Dizzy builds from two big bonks or big shots; buddy bonks help a little. Hits during dizzy do not build the next dizzy. A crash or dizzy dust also makes a beast dizzy, providing at least three seconds of opportunity. Bonks during dizzy are 1.7 times as large. Hornclack’s front shell is open during dizzy. Dora’s hammer reaches Skreel when it is low; the bow can reach it in the air.
 
 ## Paws, tools, and treasures
 
-The leader has 100 Fluff. Ordinary bumps have a 1.4-second recovery window. A roll lasts 0.46 seconds with a dodge window for its first 0.32 seconds; another roll is available after 0.85 seconds. At zero Fluff the leader is tuckered out, returns to camp, and keeps all **gathered** materials. Retrying is immediate, with full Fluff and a fresh pouch. There is no other penalty.
+The leader has 100 Fluff. Ordinary bumps have a 1.4-second recovery window. A roll lasts 0.46 seconds with a dodge window for its first 0.32 seconds; another roll is available after 0.85 seconds. At zero Fluff the leader is tuckered out, returns to camp, and keeps all materials, including drops still in the meadow. Retrying is immediate, with full Fluff and a fresh pouch. There is no other penalty.
 
-Dora’s ordinary hammer bonk is 14 Grump, a charged swing 27. Enzo’s seed shots are 9 or 20. Hold K for at least 0.35 seconds and release for the big version. Tools have three levels; each further level adds 35% to Dora’s bonks and 32% to Enzo’s shots. Buddy bonks are smaller and less frequent. Weapon grips follow the reference look test; `poseArms` is called after each pose so the paws track the handles.
+Dora’s ordinary hammer bonk is 14 Grump, a charged swing 27. Enzo’s seed shots are 9 or 20. Once the tool cooldown ends, hold K for at least 0.35 seconds and release for the big version. The HUD shows tool recovery and reports a big bonk or shot ready only after 0.35 seconds of actual charge. Tools have three levels; each further level adds 35% to Dora’s bonks and 32% to Enzo’s shots. Buddy bonks are smaller and less frequent. Weapon grips follow the reference look test; `poseArms` is called after each pose so the paws track the handles.
 
-Every third connecting bonk sheds one material. At 32% of a beast’s initial Grump bonked away, its part pops off once and drops three materials. Calming drops five. Walk within 2.6 units to gather a drop; calming collects every drop still in the meadow. The Forge upgrades each tool from level 1 to 2 for six materials, then to level 3 for twelve. Any beast material can pay, and buddy tools benefit too. The Beast Book shows each reference picture, sanctuary status, pop-off part, tips, and current material count.
+Every third connecting bonk sheds one material. At 32% of a beast’s initial Grump bonked away, its part pops off once and drops three materials. Calming drops five. Walk within 2.6 units to gather a drop; calming or getting tuckered out collects every drop still in the meadow. The Forge upgrades each tool from level 1 to 2 for six materials, then to level 3 for twelve. Any beast material can pay, and buddy tools benefit too. The Beast Book shows each reference picture, sanctuary status, pop-off part, tips, and current material count.
 
 Each hunt refills three berries (35 Fluff each), two dizzy dust pouches (six-unit range, 3.5 seconds dizzy), and two pep seeds (35% faster for ten seconds). An item is not spent when it cannot help: a berry at full Fluff or dust beyond range stays in the pouch.
 
@@ -50,7 +52,7 @@ Each hunt refills three berries (35 Fluff each), two dizzy dust pouches (six-uni
 | P / Escape | Pause; Escape also closes a panel |
 | M | Toggle sound |
 
-Touch has a joystick and Sprint, Roll, Lock, Bonk/Shoot and Hold · big buttons. The pouch is tappable. Short action taps are buffered until an engine step. A cancelled charge is cleared without releasing a shot. Blur, page hiding, pointer cancellation, and lost pointer capture release held controls. Hiding or leaving pauses a hunt and saves gathered progress. UI buttons retain ordinary Tab navigation; Tab locks only when the meadow has focus.
+Touch has a joystick and Sprint, Roll, Lock, Bonk/Shoot and Hold · big buttons. The pouch is tappable. Short action taps are buffered until an engine step processes input, including through hit-stop. A cancelled charge is cleared without releasing a shot. Blur, page hiding, pointer cancellation, and lost pointer capture release held controls. Hiding or leaving pauses a hunt and saves gathered progress. UI buttons retain ordinary Tab navigation; Tab locks when the meadow or body has focus, including Shift+Tab while sprinting. Pouch and sound buttons return focus to the meadow during hunts. Losing WebGL context pauses only an active hunt; restoring it clears the pause.
 
 The field guide is always available, panels trap focus, buttons have visible focus rings, and reduced motion removes shake, trails, wind and extra dust. Sound begins only after a gesture, has its own persisted mute choice, and uses short quiet synthesised cues. Main arcade navigation remains available.
 
@@ -96,3 +98,9 @@ The browser suite follows the repo’s Playwright style and writes its village, 
 - A 390 × 844 touch viewport at DPR 3 (capped internally at 1.25), with 4× CPU throttling, used 279 draw calls, 114,774 triangles, and 13 textures in the sampled frame. Chromium reported **SwiftShader**, a software GPU. It produced nine frames in the two-second sample, with a 216.6 ms median frame interval. This verifies bounded rendering and continued drawing under emulation; it does **not** establish an acceptable frame rate on physical mid-range phones. A hardware phone play-test remains outstanding.
 - The broader `npm run test:e2e` command passed Classic Pit and the arcade navigation/count checks, then stopped in the existing `tests/e2e/checkpoint.mjs:54` on a 15-second `NEXT IN LINE` click timeout. That game and its test are unchanged by this work; subsequent suites in that chained command did not run. The new hunt suite was run separately.
 - Playwright was installed only for local browser checks. No Playwright dependency or lockfile change is included.
+
+### Review fixes · 24-10-2026
+
+- Added regressions for HUD focus, sprint lock-on, hit-stop taps, cooldown charge display, graphics context recovery, dizzy chains, lane endpoints, airborne buddy hammer hits, distant camp drops and one-time unlock results.
+- `npm run typecheck` and all 23 `npm run test:grumble-hunt` checks passed. The bot still calmed 120/120 beasts across 24 full campaigns; the revised median was 23.1 seconds and slowest 35.8 seconds.
+- Browser regressions were added and syntax-checked, but this sandbox could not launch Chromium (`Operation not permitted`). The dev server also could not write its Vite config cache through the read-only linked `node_modules`. The browser suite needs a run outside this sandbox.

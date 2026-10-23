@@ -112,4 +112,44 @@ check('saves round-trip permanent progress, reject malformed numbers and safely 
   }
   const before = g.time; g.step(NaN); g.step(-1); assert.equal(g.time, before); g.paused = true; g.step(DT); assert.equal(g.time, before);
 });
+check('dizzy openings cannot bank another dizzy', () => {
+  const g = fresh(), b = g.beast; g.makeDizzy();
+  for (let n = 0; n < 4; n++) g.bonkBeast(1, true, g.hero);
+  assert.equal(b.dizzy, 0); b.state = 'rest'; g.bonkBeast(1, true, g.hero);
+  assert.equal(b.state, 'rest'); assert.equal(b.dizzy, 1);
+});
+check('charges and swoops stop at the lane end without bumping beyond it', () => {
+  for (const id of ['bristleback', 'skreel']) for (const dt of [DT, 0.037, 0.05]) {
+    const g = fresh(id), b = g.beast; g.obstacles = []; g.buddy.cooldown = 100;
+    g.hero.x = 0; g.hero.z = 12; g.buddy.berry = 100;
+    Object.assign(b, { x: 0, z: -3, state: 'windup', attack: id === 'skreel' ? 'swoop' : 'charge', t: 0, duration: 0, start: { x: 0, z: -3 }, aim: { x: 0, z: 9 }, dir: { x: 0, z: 1 } });
+    g.step(dt); while (b.state !== 'rest') { g.step(dt); assert(b.z <= 9 + 1e-9); assert.equal(g.hero.fluff, 100); }
+    assert(Math.abs(b.z - 9) < 1e-9);
+  }
+});
+check('charge waits for tool cooldown before building and releases a big shot', () => {
+  const g = fresh('bristleback', 'enzo'); g.buddy.cooldown = 100;
+  g.hero.cooldown = 0.8; tick(g, 0.4, input({ charge: true })); assert.equal(g.hero.charge, 0);
+  tick(g, 0.8, input({ charge: true })); assert(g.hero.charge >= 0.35);
+  g.step(DT); tick(g, 0.13); assert(g.shots.some((s) => s.heavy));
+});
+check('high Skreel blocks either Dora hammer while allowing either bow', () => {
+  for (const leader of ['dora', 'enzo']) for (const buddy of [false, true]) {
+    const g = fresh('skreel', leader); g.beast.height = 2.4;
+    assert.equal(g.bonkBeast(1, true, g.hero, buddy), (buddy ? g.buddyId : g.heroId) === 'enzo');
+    g.beast.height = 0; assert(g.bonkBeast(1, true, g.hero, buddy));
+  }
+});
+check('tuckered out gathers distant drops exactly once', () => {
+  const g = fresh(); g.drops.push({ id: 99, x: 15, z: 0, material: 'bristleback', count: 4 });
+  g.hero.fluff = 1; g.bumpHero(10, g.beast); assert.equal(g.profile.materials.bristleback, 4); assert.equal(g.drops.length, 0);
+  g.bumpHero(10, g.beast); assert.equal(g.profile.materials.bristleback, 4);
+});
+check('final hunt unlock belongs only to the third different nap result', () => {
+  const g = fresh(); calm(g); assert.equal(g.unlockedFinalHunts, false);
+  g.returnVillage(); g.startHunt('puffwart'); calm(g); assert.equal(g.unlockedFinalHunts, false);
+  g.returnVillage(); g.startHunt('skreel'); calm(g); assert.equal(g.unlockedFinalHunts, true);
+  g.returnVillage(); g.startHunt('bristleback'); assert.equal(g.unlockedFinalHunts, false); calm(g); assert.equal(g.unlockedFinalHunts, false);
+  g.startHunt('bristleback'); g.hero.fluff = 1; g.bumpHero(10, g.beast); assert.equal(g.unlockedFinalHunts, false);
+});
 console.log(`Grumble Hunt: ${checks} engine checks passed.`);
