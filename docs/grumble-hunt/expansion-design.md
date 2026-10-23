@@ -2,6 +2,8 @@
 
 Written 24-10-2026. This is the plan for what comes after the first build (`docs/grumble-hunt-prompts/1-build-game.md`): story mode, six weapons with upgrade trees, armour, crafting, and the Monster Hunter mechanics that suit a kids' game. Build it only after the first build is reviewed and merged, as the PRs in **Build order** at the end. The numbers are starting points: tune them with the bot.
 
+**The data is already written:** `lib/grumble-hunt-content.ts` holds the tables below, with pure helpers for drops, crafting, weapon stats and armour skills. `tests/grumble-hunt-content.mjs` checks it, including a story bot. On 40 seeds that bot reaches every chapter's expected gear within 6 hunts; with today's drop rates it needs no repeat hunts at all. If chapters need a little more earning, the knobs are the shed and rare chances in `DROPS` and the `ready` gear of each chapter.
+
 ## Ground rules
 
 - **Kind:** nothing is hurt. Beasts are calmed and nap; the player gets "tuckered out". Use bonk, dizzy, calm, nap, boop and shed. Never use injury words.
