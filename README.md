@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of thirty-eight original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of thirty-nine original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -48,6 +48,7 @@ Listed in arcade-menu order.
 | 36 | Hay Bale Brawl | `/brawl` | Auto-battler |
 | 37 | Chinchilla Trek | `/trek` | Roguelite trek |
 | 38 | Glimmer Cave | `/cave` | Cave survival |
+| 39 | Grumble Hunt | `/hunt` | 3D storybook hunting adventure |
 
 ## Run
 
@@ -927,6 +928,16 @@ Eighty stages in eight chapters, each stage worth up to three stars (cleared, no
 
 **Docs:** [`docs/glimmer-cave.md`](docs/glimmer-cave.md), the [design](docs/superpowers/specs/19-10-2026-glimmer-cave-design.md), the [plan](docs/superpowers/plans/19-10-2026-glimmer-cave-plan.md) and the [art pipeline](docs/cave-survival-art.md).
 
+### 39 · Grumble Hunt (`/hunt`)
+
+**Play:** A gentle 3D storybook adventure. Pick Dora and her Acorn Hammer or Enzo and his Seed Bow; the other friend follows, helps bonk, and tosses a healing berry when Fluff is low. Visit the village Forge, Beast Book, and hunt board. Bonks lower a beast’s Grump until it curls up for a nap and goes to the sanctuary. Bristleback charges into trees, Puffwart hops and makes sleepy clouds, Skreel swoops then rests, Hornclack guards its front, and Frostmane has three moods. Calm the first three different beasts to open Hornclack and Frostmane; calming Frostmane brings the victory screen. Materials from bonks, pop-off parts, and naps pay for three levels of each tool. At zero Fluff you are tuckered out and return to camp with gathered materials safe. Replay any open hunt; New game resets this game’s progress.
+
+**Controls:** **WASD** or arrows move, **Shift** sprints, **J** bonks or shoots, **hold K and release** charges a big swing or shot, **Space** rolls with a brief dodge window, and **Tab** locks on while the meadow has focus. **Q/E** pick an item and **F** uses it; at camp, F visits a nearby place. Drag to orbit the camera and scroll to zoom. **P/Escape** pauses, **M** toggles sound. Touch has a joystick, action buttons, and a tappable item pouch. Blur and hiding the tab pause a hunt. Progress saves under `grumble-hunt-v1`; reloading returns to camp with permanent progress intact.
+
+**Tests:** `npm run test:grumble-hunt` checks deterministic combat, warning times, tool timing, armour, dizzy openings, rolls, items, buddy help, collisions, material rewards, unlocks, upgrades, camp returns, and safe saves. `npm run bot:grumble-hunt` plays every hunt as both heroes across 12 seeds, using movement and action inputs, and requires all 120 beasts to be calmed. `npm run test:e2e:grumble-hunt` checks the arcade entry, desktop and touch input, camera, pause, camp, forge, book, saving, all five hunts, nap, victory, reset, resource cleanup, and phone layouts, and saves screenshots under `.checks/hunt/`.
+
+**Docs:** [`docs/grumble-hunt.md`](docs/grumble-hunt.md), the [art inventory and prompts](docs/grumble-hunt-art.md), and the [model and look-test reference](docs/grumble-hunt/README.md).
+
 ## Validation
 
 ```sh
@@ -946,7 +957,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Thirty-eight ways/` assertion in `tests/e2e/dust-bath.mjs`, the 38-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past thirty-eight games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Thirty-nine ways/` assertion in `tests/e2e/dust-bath.mjs`, the 39-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past thirty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

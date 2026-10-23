@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 24-10-2026
+
+### Added
+
+- **Grumble Hunt** (`/hunt`), the arcade’s 39th game: a painted 3D meadow adventure with Dora’s Acorn Hammer, Enzo’s Seed Bow, and an AI buddy who helps bonk and tosses healing berries. Calm five grumpy beasts into sanctuary naps, roll past orange warnings, gather little treasures, and upgrade both tools at the village Forge. Includes a Beast Book, touch controls, saving, forgiving camp returns, replay, and a Frostmane victory.
+
 ## 21-10-2026
 
 ### Fixed
