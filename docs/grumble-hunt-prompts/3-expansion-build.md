@@ -1,6 +1,6 @@
 Repo: dora-enzo-arcade. Run this only after the first build (`1-build-game.md`, branch `codex/grumble-hunt`) has been reviewed.
 
-Goal: add Grumble Hunt's story mode, six weapons with branching trees, armour, crafting, and the Monster Hunter mechanics the design picks. Build it as five separate branches, one per step in **Build order** in `docs/grumble-hunt/expansion-design.md`, each based on the previous one, and push each when it's done:
+Goal: add Grumble Hunt's story mode, 16 weapon types with branching trees, armour, crafting, and the Monster Hunter mechanics the design picks. Build it as five separate branches, one per step in **Build order** in `docs/grumble-hunt/expansion-design.md`, each based on the previous one, and push each when it's done:
 - `codex/grumble-hunt-x1-alive`
 - `codex/grumble-hunt-x2-pantry`
 - `codex/grumble-hunt-x3-forge`
@@ -30,7 +30,8 @@ Each step:
    - traps (sticky sap), the dizzy bell and the smoke puffball;
    - snacks before a hunt.
 3. **Forge:**
-   - all six weapon types with their signature moves;
+   - a weapon rack for picking any of the 14 basic weapons at the start, and all 16 weapon types with their signature moves (`WEAPON_TYPES`, `BASIC_WEAPONS`, `MH_EQUIVALENT` and `FIRST_PICKS`);
+   - each weapon's 3D model and held pose from the look test (`?weapon=<id>` in `docs/grumble-hunt/look-test/`, built on branch `codex/grumble-hunt-weapons`). Merge `origin/codex/grumble-hunt-weapons` in for this step if it isn't in yet;
    - the Forge tree screen, a node graph per weapon type with costs, greyed out until affordable;
    - armour sets drawn as small accessories on `lib/hunt-chinchilla.ts` models, never covering the face or ears;
    - the save bumps to `grumble-hunt-v2`, migrating v1 as the design says.

@@ -1,6 +1,6 @@
 # Grumble Hunt expansion design
 
-Written 24-10-2026. This is the plan for what comes after the first build (`docs/grumble-hunt-prompts/1-build-game.md`): story mode, six weapons with upgrade trees, armour, crafting, and the Monster Hunter mechanics that suit a kids' game. Build it only after the first build is reviewed and merged, as the PRs in **Build order** at the end. The numbers are starting points: tune them with the bot.
+Written 24-10-2026. This is the plan for what comes after the first build (`docs/grumble-hunt-prompts/1-build-game.md`): story mode, 16 weapon types with upgrade trees, armour, crafting, and the Monster Hunter mechanics that suit a kids' game. Build it only after the first build is reviewed and merged, as the PRs in **Build order** at the end. The numbers are starting points: tune them with the bot.
 
 **The data is already written:** `lib/grumble-hunt-content.ts` holds the tables below, with pure helpers for drops, crafting, weapon stats and armour skills. `tests/grumble-hunt-content.mjs` checks it, including a story bot. On 40 seeds that bot reaches every chapter's expected gear within 6 hunts; with today's drop rates it needs no repeat hunts at all. If chapters need a little more earning, the knobs are the shed and rare chances in `DROPS` and the `ready` gear of each chapter.
 
@@ -28,9 +28,9 @@ They're simple low-poly toon figures who stand at their stations and bob when yo
 
 | # | Chapter | Area | Beast | What it teaches | Unlocks |
 | --- | --- | --- | --- | --- | --- |
-| 0 | A Grumpy Morning | Village paddock | Bristleback calf (tutorial, Grump 40, no attacks for the first 20 s) | Move, bonk, roll, lock on, the Grump meter, napping | The Forge, the Acorn Hammer and Seed Bow at tier 1 |
-| 1 | The Huffy Hog | Clover Meadow | Bristleback | Dodging telegraphs, tree crashes cause dizzy, part breaks, materials | The Bristle armour set, Twin Claws at tier 1 |
-| 2 | Snores in Soggy Marsh | Soggy Marsh | Puffwart | Items and the Pantry, sleepy clouds, snacks | Item crafting, the Thistle Lance at tier 1 |
+| 0 | A Grumpy Morning | Village paddock | Bristleback calf (tutorial, Grump 40, no attacks for the first 20 s) | Move, bonk, roll, lock on, the Grump meter, napping | The Forge, and the choice of all 14 basic weapons at tier 1 |
+| 1 | The Huffy Hog | Clover Meadow | Bristleback | Dodging telegraphs, tree crashes cause dizzy, part breaks, materials | The Bristle armour set |
+| 2 | Snores in Soggy Marsh | Soggy Marsh | Puffwart | Items and the Pantry, sleepy clouds, snacks | Item crafting and snacks |
 | 3 | Swoops over Windy Ridge | Windy Ridge | Skreel | Tracking with Enzo's sniff, gathering spots, ranged openings when it lands | Gathering, the Bubble Wand at tier 1 |
 | 4 | The Stubborn Beetle | Pebble Hollow | Hornclack | Weak spots (sides and back), shell breaks, traps | Traps, the Pinecone Yo-yo at tier 1 |
 | 5 | The Frosty Peak | Frosty Peak | Frostmane (three phases) | Everything above | The ending, then free hunt, Extra Grumpy beasts and bounties |
@@ -39,40 +39,63 @@ Story progress lives in the save as `story: { chapter, scenesSeen[] }`. Each cha
 
 ## 2. Weapons
 
-There are six types, each with its own feel. Every type has **Bonk** (lowers Grump), **Dizzy** (builds the dizzy meter) and one signature move. Values are for tier 1; the tree below scales them.
+There are 16 weapon types. Fourteen are **basic weapons**, one kind version of each of Monster Hunter Wilds' fourteen types, and any of them can be picked from the very start. Two more, the Bubble Wand and the Pinecone Yo-yo, are Grumble Hunt's own and unlock in the story.
 
-| Weapon | Feel | Bonk | Dizzy | Speed | Signature move |
+Every type has **Bonk** (lowers Grump), **Dizzy** (builds the dizzy meter) and a signature move. They're all made of wood, seeds, gourds and puffballs, with rounded edges, so nothing looks like a real blade or gun. Values are for tier 1; the tree below scales them. The tables come from `lib/grumble-hunt-content.ts` (`WEAPON_TYPES`, `MH_EQUIVALENT`, `FIRST_PICKS`, `WEAPON_TREE`), which is the source of truth.
+
+| Weapon | Plays like | Bonk | Dizzy | Speed | Signature move |
 | --- | --- | --- | --- | --- | --- |
-| Acorn Hammer | Slow, heavy | 12 | 14 | slow | **Big Swing**: hold K for 3 charge levels (×1, ×1.6, ×2.4 Bonk). A level-3 hit on the head adds 25 Dizzy. |
-| Seed Bow | Ranged | 6 per shot | 3 | medium | **Charged Shot**: hold J for 3 levels (1, 2 or 3 seeds). K switches seed type: plain, sticky (slows), pop (extra Dizzy). |
-| Twin Claws | Fast combos | 4 per hit | 3 | fast | **Zoomies**: K toggles; you move and attack 30% faster while a Zoom meter drains. Hits refill the meter. |
-| Thistle Lance and Leaf Shield | Steady, defensive | 9 | 6 | medium | **Guard**: hold K to block from the front. Release just as an attack lands for a **Counter Boop** (×2 Bonk, +15 Dizzy). |
-| Bubble Wand | Support, mid range | 5 | 4 | medium | **Bubble Burst**: K blows a slow bubble that pops for an area hit. Bubbles on the ground lift loose materials towards you, and a bubble on your buddy heals 15 Fluff. |
-| Pinecone Yo-yo | Mid-range whip | 7 | 5 | medium | **Loop-the-Loop**: K spins the yo-yo around you, hitting everything near you. On a dizzy beast it pulls you up onto its back for a **Hop-on** (see Mechanics). |
+| Driftwood Greatsword | Great Sword | 15 | 6 | slow | Big Finish: charge, shoulder tackle, then a giant overhead swing (×3 Bonk); Blade Guard blocks with the flat of the blade. |
+| Bamboo Katana | Long Sword | 7 | 3 | medium | Focus: hits fill a meter spent on a Focus Spin (×2 Bonk); a well-timed Swish Counter slips through an attack and hits back. |
+| Twig Sword and Acorn Shield (good first pick) | Sword & Shield | 5 | 5 | fast | Shield Bash (+10 Dizzy) and a Leap Slash; items can be used without putting the sword away. |
+| Twin Claws | Dual Blades | 4 | 3 | fast | Zoomies: move and attack 30% faster while the Zoom meter lasts; hits refill it. |
+| Acorn Hammer (good first pick) | Hammer | 12 | 14 | slow | Big Swing: hold to charge three levels (×1, ×1.6, ×2.4); a level-3 head hit adds 25 Dizzy. |
+| Gourd Horn | Hunting Horn | 9 | 12 | medium | Songs: hits play notes, and K plays the song they make: Speedy (+15% speed), Sturdy (knock-backs push 50% less) or Sleepy (the beast slows 20%). Songs reach your buddy too. |
+| Thistle Lance | Lance | 9 | 6 | medium | Guard: hold to block from the front; let go as an attack lands for a Counter Boop (×2 Bonk, +15 Dizzy). |
+| Puffcap Lance | Gunlance | 8 | 5 | medium | Poof Shots: the puffball tip pops gusts of air that bonk through shells; hold K for a Big Poof (5 s to puff up again). Guards like the Thistle Lance. |
+| Switch Spade | Switch Axe | 10 | 6 | medium | Switch: K flips between Spade mode (long reach) and Bloom mode (fast, fills the Bloom meter); a full meter unlocks a Bloom Burst finisher (×2.5 Bonk). |
+| Seedpod Blade | Charge Blade | 8 | 6 | medium | Seedpods: sword hits fill seedpods in the shield; K snaps sword and shield into a Bloom Axe whose swings pop them for bonus Bonk. Guard in sword mode. |
+| Firefly Staff | Insect Glaive | 6 | 4 | fast | Firefly: K sends your firefly to the beast for a glow (red: +15% Bonk, white: +15% speed, orange: knock-backs push less; all three last twice as long). Hold J to vault for bonks from the air. |
+| Acorn Slingshot | Light Bowgun | 4 | 2 | fast | Rapid shots on the move; K swaps ammo (acorns, sticky sap, pop seeds), and rolling reloads. |
+| Pumpkin Popper | Heavy Bowgun | 11 | 5 | slow | Plant your paws and lob big puffballs (×2 Bonk); hold K for a Popcorn Flurry of tiny pops while you stand still; guard with the pumpkin shell. |
+| Seed Bow (good first pick) | Bow | 6 | 3 | medium | Charged Shot: hold for one, two or three seeds; switch between plain, sticky and pop seeds. |
+| Bubble Wand | — (Grumble Hunt original, unlocked in chapter 3) | 5 | 4 | medium | Bubble Burst: a slow bubble that pops for an area hit, lifts loose materials and heals your buddy 15 Fluff. |
+| Pinecone Yo-yo | — (Grumble Hunt original, unlocked in chapter 4) | 7 | 5 | medium | Loop-the-Loop: spin all around you; on a dizzy beast it pulls you up for a Hop-on. |
 
-**Everyone fights well with anything:** Dora and Enzo can both use every weapon. Their starting weapons are just defaults. The buddy uses whatever you last gave them at the Forge.
+**Choosing a weapon:** after picking Dora or Enzo, the player picks a basic weapon from a weapon rack. It shows Dora or Enzo holding the weapon, its name, "plays like ..." for players who know Monster Hunter, the signature move in one line, and a "Good first pick" badge on the three easiest. Every basic weapon can be swapped at the Forge for free, so there's no wrong choice.
+
+**Everyone fights well with anything:** Dora and Enzo can both use every weapon. The buddy uses whatever you last gave them at the Forge.
 
 ### Weapon trees
 
-Each type has 4 tiers. Tier 3 splits into two beast-themed branches, and tier 4 finishes each branch. Branch perks are small and readable.
+Each type has tiers 1 and 2, then splits at tier 3 into two beast-themed branches. Tier 4 finishes each branch, and tier 5 is the Glimmer capstone. Branch perks are small and readable.
 
-**Multipliers:** stats are tier 1 × 1.0, tier 2 × 1.3, tier 3 × 1.65 and tier 4 × 2.1.
+**Multipliers:** stats are tier 1 × 1.0, tier 2 × 1.3, tier 3 × 1.65, tier 4 × 2.1 and Glimmer × 2.4.
 
 **Costs:**
-- **Tier 2:** 3 common materials from the chapter-1 or chapter-2 beast, plus 2 berries.
+- **Tier 2:** 3 bristle tufts and 2 berries for the basic weapons, or 3 wart pebbles and 2 berries for the Bubble Wand and Pinecone Yo-yo.
 - **Tier 3:** 4 of the branch beast's common materials and 1 of its part-break materials.
 - **Tier 4:** 3 of the branch beast's rare materials, 1 icy mane lock and 1 glimmer stone.
+- **Glimmer:** 2 frost fur, 2 icy mane locks and 2 glimmer stones on top of either tier-4 weapon. It keeps both of that branch's perks and adds **Warm Glow**: every 10th hit restores 10 Fluff to you and your buddy.
 
-| Weapon | Tier 2 | Tier 3, branch A | Tier 4, A | Tier 3, branch B | Tier 4, B |
-| --- | --- | --- | --- | --- | --- |
-| Acorn Hammer | Iron-band Hammer | Bristle Basher (Bristleback): Big Swing charges 20% faster | Tuskquake Hammer: a level-3 Big Swing sends out a short shockwave | Puffball Pounder (Puffwart): hits leave a sleepy puff (+5 Dizzy over time) | Snoozecloud Hammer: a level-3 hit on a dizzy beast extends the dizzy by 1.5 s |
-| Seed Bow | Twine Bow | Feather Flight (Skreel): seeds fly 30% faster | Galeseed Bow: level-3 shots pierce through | Sticky Reed (Puffwart): sticky seeds slow 40% longer | Bogroot Bow: three sticky hits root the beast in place for 2 s |
-| Twin Claws | Pebble Claws | Shell Snips (Hornclack): +20% Bonk on shell parts | Plateclack Claws: Zoomies doesn't drain while hitting from behind | Down Dusters (Skreel): +15% move speed | Skydown Claws: rolling through an attack refills Zoom |
-| Thistle Lance | Bramble Lance | Horncap Lance (Hornclack): guarding costs no stamina for the first 0.5 s | Rhinoclack Lance: a Counter Boop knocks a part off at once | Bristle Pike (Bristleback): +10% Bonk while guarding | Tusk Pike: a successful guard reflects a charge and causes dizzy |
-| Bubble Wand | Reedstraw Wand | Frothy Wand (Puffwart): bubbles are 25% bigger | Puffsac Wand: heal bubbles heal 25 Fluff | Breezy Wand (Skreel): bubbles drift towards the locked-on beast | Cyclone Wand: Bubble Burst hits twice |
-| Pinecone Yo-yo | Twine Yo-yo | Tusk Spinner (Bristleback): Loop-the-Loop is 20% wider | Boarhog Spinner: a Hop-on lasts 2 s longer | Plate Spinner (Hornclack): +25 Dizzy on shell parts | Shellstorm Spinner: Loop-the-Loop pulls loose materials in |
-
-**Finale weapon:** the Frostmane gives each type one capstone, the **Glimmer** version (for example the Glimmer Hammer). It costs 2 frost fur, 2 icy mane locks and 2 glimmer stones on top of either tier-4 weapon. It keeps that branch's perk and adds **Warm Glow**: every 10th hit restores 10 Fluff to you and your buddy.
+| Weapon | Tier 2 | Tier 3, branch A | Tier 4, A | Tier 3, branch B | Tier 4, B | Glimmer |
+| --- | --- | --- | --- | --- | --- | --- |
+| Driftwood Greatsword | Iron-rim Greatsword | Tuskedge Greatsword (Bristleback): +20% part-break power. | Boarking Greatsword: Big Finish pops a part off at once. | Shellslab Greatsword (Hornclack): Blade Guard blocks attacks from the sides too. | Bulwark Greatsword: Blocking just as an attack lands adds 20 Dizzy to the beast. | Glimmer Greatsword |
+| Bamboo Katana | Ringed Bamboo Katana | Featheredge Katana (Skreel): Focus fills 25% faster. | Galewind Katana: A Swish Counter fills Focus all the way. | Mistreed Katana (Puffwart): Focus Spin leaves a sleepy mist: +5 Dizzy over time. | Dreamreed Katana: Focus Spin hits twice on a dizzy beast. | Glimmer Katana |
+| Twig Sword and Acorn Shield | Oakleaf Sword | Bristle Sprig (Bristleback): Shield Bash adds 50% more Dizzy. | Hogback Sword: A Shield Bash on a dizzy beast pops a part off. | Feather Sprig (Skreel): Items are used 30% faster with the sword out. | Skylark Sword: Leap Slash does 50% more Bonk. | Glimmer Sword |
+| Twin Claws | Pebble Claws | Shell Snips (Hornclack): +20% Bonk on shell parts. | Plateclack Claws: Zoomies doesn't drain while you hit from behind. | Down Dusters (Skreel): +15% move speed. | Skydown Claws: Rolling through an attack refills the Zoom meter. | Glimmer Claws |
+| Acorn Hammer | Iron-band Hammer | Bristle Basher (Bristleback): Big Swing charges 20% faster. | Tuskquake Hammer: A level-3 Big Swing sends out a short shockwave. | Puffball Pounder (Puffwart): Hits leave a sleepy puff: +5 Dizzy over time. | Snoozecloud Hammer: A level-3 hit on a dizzy beast keeps it dizzy 1.5 s longer. | Glimmer Hammer |
+| Gourd Horn | Banded Gourd Horn | Snoozy Horn (Puffwart): Sleepy Song lasts 30% longer. | Lullaby Horn: Sleepy Song adds 20 Dizzy to a slowed beast. | Breezy Horn (Skreel): Speedy Song gives 10% more speed. | Skysong Horn: Every song restores 10 Fluff to you and your buddy. | Glimmer Horn |
+| Thistle Lance | Bramble Lance | Horncap Lance (Hornclack): Guarding costs no stamina for the first 0.5 s. | Rhinoclack Lance: A Counter Boop pops a part off at once. | Bristle Pike (Bristleback): +10% Bonk while guarding. | Tusk Pike: Guarding a charge bounces it back and makes the beast dizzy. | Glimmer Lance |
+| Puffcap Lance | Twin-cap Lance | Shellpop Lance (Hornclack): Poof Shots do 25% more Bonk on shells. | Clackcannon Lance: Big Poof puffs up again 2 s sooner. | Huffpuff Lance (Bristleback): Poof Shots add 5 Dizzy. | Boarpuff Lance: A Big Poof on the head makes the beast dizzy. | Glimmer Puffcap |
+| Switch Spade | Iron Switch Spade | Tusk Spade (Bristleback): Spade mode does 15% more Bonk. | Rootdigger Spade: Switching mid-combo adds a free hit. | Puffbloom Spade (Puffwart): The Bloom meter fills 25% faster. | Mossbloom Spade: Bloom Burst leaves a sleepy puff: +10 Dizzy. | Glimmer Spade |
+| Seedpod Blade | Podded Seedblade | Shellpod Blade (Hornclack): The first guard in a row costs no stamina. | Platepod Blade: Guarding just as an attack lands fills a seedpod. | Featherpod Blade (Skreel): The shield holds one more seedpod. | Galepod Blade: Popping every seedpod at once makes the beast dizzy. | Glimmer Seedblade |
+| Firefly Staff | Lantern Staff | Featherlight Staff (Skreel): Vault higher; bonks from the air do 20% more. | Moonmoth Staff: Bonks from the air add 5 Dizzy. | Glowbog Staff (Puffwart): Glows last 30% longer. | Marshglow Staff: Your firefly also brings back 5 Fluff. | Glimmer Staff |
+| Acorn Slingshot | Twine Slingshot | Feather Slingshot (Skreel): Shots fly 30% further. | Gust Slingshot: Every fifth shot is free and does double Bonk. | Sap Slingshot (Puffwart): Sticky ammo slows 40% longer. | Bog Slingshot: Sticky hits on the legs slow the beast 30%. | Glimmer Slingshot |
+| Pumpkin Popper | Gourd Popper | Shellbreak Popper (Hornclack): Puffballs do 30% more Bonk on shells. | Beetlebomb Popper: Popcorn Flurry is ready again 30% sooner. | Boarblast Popper (Bristleback): Puffballs pop parts off 20% sooner. | Tuskthunder Popper: A puffball on the head adds 20 Dizzy. | Glimmer Popper |
+| Seed Bow | Twine Bow | Feather Flight (Skreel): Seeds fly 30% faster. | Galeseed Bow: Level-3 shots go straight through. | Sticky Reed (Puffwart): Sticky seeds slow 40% longer. | Bogroot Bow: Three sticky hits hold the beast in place for 2 s. | Glimmer Bow |
+| Bubble Wand | Reedstraw Wand | Frothy Wand (Puffwart): Bubbles are 25% bigger. | Puffsac Wand: Heal bubbles restore 25 Fluff. | Breezy Wand (Skreel): Bubbles drift towards the locked-on beast. | Cyclone Wand: Bubble Burst hits twice. | Glimmer Wand |
+| Pinecone Yo-yo | Twine Yo-yo | Tusk Spinner (Bristleback): Loop-the-Loop is 20% wider. | Boarhog Spinner: A Hop-on lasts 2 s longer. | Plate Spinner (Hornclack): +25 Dizzy on shell parts. | Shellstorm Spinner: Loop-the-Loop pulls loose materials in. | Glimmer Yo-yo |
 
 **How the tree appears:** the Forge screen shows the tree as a left-to-right node graph for the selected weapon type. Nodes show their icon, name and cost, and are greyed out until the materials are in your pouch. Crafting is one press, followed by a 1 s hammer-on-anvil animation, with Bramble cheering.
 
@@ -216,6 +239,6 @@ Each step is one PR on its own branch from `main`, after the first build has mer
 
 1. **Alive hunts:** Extra Grumpy, Enzo's sniff tracking and buddy commands.
 2. **Pantry:** gathering, item recipes, traps and snacks.
-3. **Forge:** the six weapon types, weapon trees and armour sets, including the v2 save and migration.
+3. **Forge:** the weapon rack and all 16 weapon types with their signature moves, the weapon trees and armour sets, including the v2 save and migration.
 4. **Hop-on:** mounting, with the Pinecone Yo-yo making it easy.
 5. **Story mode:** villagers, storybook pages, chapters 0–5, the four new areas, and the post-game (Extra Grumpy beasts and bounties).
