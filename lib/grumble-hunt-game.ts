@@ -11,7 +11,13 @@ export const BEASTS: Record<BeastId, { name: string; grump: number; material: st
 };
 export const DT = 1 / 60;
 export const ARENA_RADIUS = 19;
-export const TELEGRAPH = 0.9; // Every attack, including final-phase pounces, has at least this warning.
+export const TELEGRAPH = 0.9; // Every attack, including final-phase pounces, has at least this warning (less 0.1 s when Extra Grumpy).
+export const GRUMPY_AT = 0.3; // Below this share of Grump a beast turns Extra Grumpy: 15% faster, warning 0.1 s sooner.
+export const GRUMPY_PACE = 1.15;
+export const SIGHT = 12; // Further than this, or behind a tree or rock, the beast is out of sight and Enzo sniffs out a trail.
+export const ORDERS = ['close', 'bonk', 'gather'] as const;
+export type BuddyOrder = typeof ORDERS[number];
+export const ORDER_NAMES: Record<BuddyOrder, string> = { close: 'Stay close', bonk: 'Go bonk', gather: 'Gather' };
 export const SAVE_KEY = 'grumble-hunt-v1';
 export const SPOTS = [
   { id: 'forge', name: 'Forge', x: -6, z: -3 },
@@ -25,13 +31,13 @@ export const NO_INPUT: Input = { x: 0, z: 0, sprint: false, bonk: false, charge:
 export type Profile = { hero: HeroId | null; levels: Record<HeroId, number>; materials: Record<BeastId, number>; naps: Record<BeastId, number>; won: boolean; hunts: number };
 export type Hero = Vec & { face: number; fluff: number; speed: number; roll: number; rollX: number; rollZ: number; rollCd: number; invincible: number; charge: number; swing: number; heavy: boolean; landed: boolean; cooldown: number; slow: number; pep: number };
 export type BeastState = 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'cloud' | 'circle' | 'swoop' | 'sweep' | 'pounce' | 'shake' | 'rest' | 'dizzy' | 'nap';
-export type Beast = Vec & { id: BeastId; grump: number; maxGrump: number; face: number; state: BeastState; t: number; duration: number; attack: BeastState; aim: Vec; start: Vec; dir: Vec; phase: number; cycle: number; dizzy: number; part: number; broken: boolean; bonks: number; flash: number; height: number };
+export type Beast = Vec & { id: BeastId; grump: number; maxGrump: number; face: number; state: BeastState; t: number; duration: number; attack: BeastState; aim: Vec; start: Vec; dir: Vec; phase: number; cycle: number; dizzy: number; part: number; broken: boolean; bonks: number; flash: number; height: number; grumpy: boolean };
 export type Obstacle = Vec & { r: number; kind: 'tree' | 'rock' };
 export type Shot = Vec & { id: number; dx: number; dz: number; life: number; power: number; heavy: boolean; buddy: boolean };
 export type Drop = Vec & { id: number; material: BeastId; count: number };
 export type Cloud = Vec & { life: number; r: number };
 export type Fx = Vec & { id: number; kind: 'bonk' | 'dust' | 'dizzy' | 'berry' | 'part' | 'nap'; t: number; text: string };
-export type HuntEvent = { kind: 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact'; spot?: SpotId };
+export type HuntEvent = { kind: 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'sniff' | 'order'; spot?: SpotId };
 export type Mode = 'village' | 'hunt' | 'nap' | 'calm' | 'camp' | 'victory';
 const countRecord = (): Record<BeastId, number> => ({ bristleback: 0, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0 });
 export const freshProfile = (): Profile => ({ hero: null, levels: { dora: 1, enzo: 1 }, materials: countRecord(), naps: countRecord(), won: false, hunts: 0 });
@@ -63,6 +69,11 @@ export class HuntGame {
   item = 0;
   unlockedFinalHunts = false;
   locked = false;
+  /** What the buddy does; 'bonk' is the starting order. Held Tab plus Q/E changes it. */
+  order: BuddyOrder = 'bonk';
+  /** Seconds the sniff trail stays lit; out of sight for a second keeps it lit. */
+  sniff = 0;
+  unseen = 0;
   paused = false;
   time = 0;
   hitstop = 0;
@@ -75,6 +86,7 @@ export class HuntGame {
   private id = 0;
   private last: Input = { ...NO_INPUT };
   private resultTime = 0;
+  private ordered = false;
 
   constructor(seed = 39) { this.seed = seed >>> 0; this.rng = this.seed; this.makeMeadow(); }
   random() { this.rng = (Math.imul(this.rng, 1664525) + 1013904223) >>> 0; return this.rng / 4294967296; }
@@ -110,14 +122,14 @@ export class HuntGame {
     this.unlockedFinalHunts = false;
     this.lastHunt = id; this.mode = 'hunt'; this.hero = hero(); this.buddy = { x: -1.5, z: 8.5, face: Math.PI / 2, speed: 0, swing: -1, cooldown: 1, berry: 3 };
     const grump = BEASTS[id].grump;
-    this.beast = { id, x: 0, z: -3, face: -Math.PI / 2, grump, maxGrump: grump, state: id === 'skreel' ? 'circle' : 'roam', t: 0, duration: 2.4, attack: 'charge', aim: { x: 0, z: 0 }, start: { x: 0, z: -3 }, dir: { x: 0, z: 1 }, phase: 1, cycle: 0, dizzy: 0, part: 0, broken: false, bonks: 0, flash: 0, height: 0 };
-    this.shots = []; this.drops = []; this.clouds = []; this.fx = []; this.items = [3, 2, 2]; this.item = 0; this.locked = true; this.paused = false; this.hitstop = 0; this.shake = 0; this.last = { ...NO_INPUT }; this.resultTime = 0;
+    this.beast = { id, x: 0, z: -3, face: -Math.PI / 2, grump, maxGrump: grump, state: id === 'skreel' ? 'circle' : 'roam', t: 0, duration: 2.4, attack: 'charge', aim: { x: 0, z: 0 }, start: { x: 0, z: -3 }, dir: { x: 0, z: 1 }, phase: 1, cycle: 0, dizzy: 0, part: 0, broken: false, bonks: 0, flash: 0, height: 0, grumpy: false };
+    this.shots = []; this.drops = []; this.clouds = []; this.fx = []; this.items = [3, 2, 2]; this.item = 0; this.sniff = 0; this.unseen = 0; this.locked = true; this.paused = false; this.hitstop = 0; this.shake = 0; this.last = { ...NO_INPUT }; this.resultTime = 0;
     this.profile.hunts++; this.makeMeadow(); this.revision++; this.note = BEASTS[id].tip;
     return true;
   }
   returnVillage() {
     this.mode = 'village'; this.beast = null; this.hero = hero(); this.hero.z = 4; this.buddy.x = -1.5; this.buddy.z = 5.5;
-    this.drops = []; this.shots = []; this.clouds = []; this.fx = []; this.locked = false; this.paused = false; this.last = { ...NO_INPUT }; this.revision++;
+    this.drops = []; this.shots = []; this.clouds = []; this.fx = []; this.sniff = 0; this.unseen = 0; this.locked = false; this.paused = false; this.last = { ...NO_INPUT }; this.revision++;
     this.note = 'Materials tucked away safely. Visit the Forge, Beast Book, or hunt board.';
   }
   private effect(kind: Fx['kind'], at: Vec, text = '') { this.fx.push({ ...at, kind, id: ++this.id, t: 0, text }); }
@@ -137,9 +149,9 @@ export class HuntGame {
     if (!this.beast) return;
     this.drops.push({ id: ++this.id, x: at.x + (this.random() - 0.5) * 1.4, z: at.z + (this.random() - 0.5) * 1.4, material: this.beast.id, count });
   }
-  private collect(all = false) {
+  private collect(all = false, by: Vec = this.hero, reach = 2.6) {
     this.drops = this.drops.filter((d) => {
-      if (!all && distance(this.hero, d) > 2.6) return true;
+      if (!all && distance(by, d) > reach) return true;
       this.profile.materials[d.material] += d.count; this.revision++;
       this.effect('part', d, `+${d.count} ${BEASTS[d.material].material}`); return false;
     });
@@ -157,6 +169,10 @@ export class HuntGame {
     if (b.id === 'frostmane') {
       const next = b.grump < b.maxGrump / 3 ? 3 : b.grump < b.maxGrump * 2 / 3 ? 2 : 1;
       if (next > b.phase && b.grump > 0) { b.phase = next; this.note = `Frostmane mood ${next}: ${next === 2 ? 'watch for the icy mane shake' : 'quick pounces, with a warning before each one'}!`; }
+    }
+    if (!b.grumpy && b.grump > 0 && b.grump < b.maxGrump * GRUMPY_AT) {
+      b.grumpy = true; this.events.push({ kind: 'grumpy' }); this.effect('dust', b, 'Extra Grumpy!');
+      this.note = `${BEASTS[b.id].name} is Extra Grumpy! Steamy ears, quicker paws and quicker warnings. Nearly nap time.`;
     }
     if (!buddy) { this.hitstop = heavy ? 0.11 : 0.08; this.shake = heavy ? 0.3 : 0.15; }
     this.events.push({ kind: 'bonk' }); this.effect('bonk', b, wasDizzy ? 'Big bonk!' : 'Bonk!');
@@ -195,6 +211,30 @@ export class HuntGame {
     else { this.hero.pep = 10; this.note = 'Pep seed! Faster paws for ten seconds.'; }
     return true;
   }
+  /** Steps the buddy's order through stay close, go bonk and gather. */
+  commandBuddy(step: 1 | -1) {
+    if (this.mode !== 'hunt' && this.mode !== 'village') return false;
+    this.order = ORDERS[(ORDERS.indexOf(this.order) + step + ORDERS.length) % ORDERS.length];
+    const name = this.buddyId === 'dora' ? 'Dora' : 'Enzo';
+    this.note = this.order === 'close' ? `${name} stays close by your side.` : this.order === 'bonk' ? `${name} goes to bonk the beast.` : `${name} gathers any materials on the ground.`;
+    this.events.push({ kind: 'order' }); this.revision++;
+    return true;
+  }
+  /** The beast is in sight when it is within SIGHT and no tree or rock stands between it and the leader. */
+  inSight() {
+    const b = this.beast; if (!b) return true;
+    return distance(this.hero, b) <= SIGHT && !this.obstacles.some((o) => laneDistance(o, this.hero, b) < o.r);
+  }
+  /** Enzo's pawprint trail from the leader towards the beast, skipping prints under trees and rocks. */
+  trail(): (Vec & { face: number })[] {
+    const b = this.beast, h = this.hero; if (!b || this.sniff <= 0) return [];
+    const length = distance(h, b), d = direction(h, b), face = Math.atan2(-d.z, d.x), out: (Vec & { face: number })[] = [];
+    for (let i = 0, at = 1.2; at < length - 2.5 && i < 16; i++, at += 1.1) {
+      const side = i % 2 ? 0.2 : -0.2, p = { x: h.x + d.x * at - d.z * side, z: h.z + d.z * at + d.x * side, face };
+      if (!this.obstacles.some((o) => distance(p, o) < o.r + 0.2)) out.push(p);
+    }
+    return out;
+  }
   private attack(heavy: boolean) {
     const h = this.hero;
     if (h.cooldown > 0 || h.roll >= 0 || h.swing >= 0) return;
@@ -210,9 +250,14 @@ export class HuntGame {
   private stepHero(dt: number, input: Input) {
     const h = this.hero, pressed = (k: keyof Input) => !!input[k] && !this.last[k];
     for (const k of ['rollCd', 'invincible', 'cooldown', 'slow', 'pep'] as const) h[k] = Math.max(0, h[k] - dt);
-    if (pressed('lock')) this.locked = !this.locked;
-    if (pressed('next')) this.item = (this.item + 1) % 3;
-    if (pressed('previous')) this.item = (this.item + 2) % 3;
+    // Tab toggles lock-on when it is let go, unless Q or E gave the buddy an order while it was held.
+    if (pressed('lock')) this.ordered = false;
+    if (input.lock && (pressed('next') || pressed('previous'))) { this.commandBuddy(pressed('next') ? 1 : -1); this.ordered = true; }
+    else {
+      if (pressed('next')) this.item = (this.item + 1) % 3;
+      if (pressed('previous')) this.item = (this.item + 2) % 3;
+    }
+    if (!input.lock && this.last.lock && !this.ordered) this.locked = !this.locked;
     if (pressed('use')) { if (this.mode === 'village') { const s = this.nearestSpot(); if (s) this.events.push({ kind: 'interact', spot: s.id }); } else this.useItem(); }
     const len = Math.hypot(input.x, input.z), dx = len > 1 ? input.x / len : input.x, dz = len > 1 ? input.z / len : input.z;
     if (pressed('roll') && h.rollCd <= 0) { h.roll = 0; h.rollCd = 0.85; h.rollX = len > 0.1 ? dx : Math.cos(h.face); h.rollZ = len > 0.1 ? dz : -Math.sin(h.face); h.swing = -1; h.charge = 0; this.effect('dust', h); }
@@ -250,15 +295,19 @@ export class HuntGame {
     p.cooldown -= dt; p.berry -= dt;
     if (p.swing >= 0) { p.swing += dt; if (p.swing > 0.6) p.swing = -1; }
     if (this.mode === 'hunt' && h.fluff <= 45 && p.berry <= 0) { h.fluff = Math.min(100, h.fluff + 28); p.berry = 10; this.events.push({ kind: 'berry' }); this.effect('berry', h, 'Buddy berry! +28 Fluff'); this.note = `${this.buddyId === 'dora' ? 'Dora' : 'Enzo'} tossed you a healing berry!`; }
-    const helping = this.mode === 'hunt' && b && distance(h, b) < 11;
-    const target = helping && this.buddyId === 'dora' ? b : { x: h.x - 1.4, z: h.z + 1.4 };
-    const d = distance(p, target), gap = helping && this.buddyId === 'dora' ? 2.7 : 1.2;
+    // Go bonk helps once the leader is near the beast; stay close helps only from the leader's side; gather never bonks.
+    const helping = this.mode === 'hunt' && b && (this.order === 'bonk' ? distance(h, b) < 11 : this.order === 'close');
+    const chase = helping && this.order === 'bonk' && this.buddyId === 'dora';
+    const pickup = this.order === 'gather' && this.mode === 'hunt' ? this.drops.reduce<Drop | null>((best, d) => !best || distance(p, d) < distance(p, best) ? d : best, null) : null;
+    const target = pickup ?? (chase ? b! : { x: h.x - 1.4, z: h.z + 1.4 });
+    const d = distance(p, target), gap = pickup ? 0.3 : chase ? 2.7 : 1.2;
     p.speed = d > gap ? Math.min(6, 2 + d) : 0;
     if (d > gap) { const n = direction(p, target); this.move(p, n.x * p.speed * dt, n.z * p.speed * dt, 0.4); p.face = faceTo(p, target); }
     if (helping && b && p.cooldown <= 0 && distance(p, b) < (this.buddyId === 'dora' ? 3.6 : 13)) {
       p.face = faceTo(p, b); p.swing = 0; p.cooldown = 2.3;
       if (this.buddyId === 'enzo') this.shoot(p, false, true); else this.bonkBeast(8 * (1 + (this.profile.levels.dora - 1) * 0.3), true, p, true);
     }
+    if (pickup) this.collect(false, p, 1.2);
   }
   private windup() {
     const b = this.beast!;
@@ -266,29 +315,29 @@ export class HuntGame {
     const attacks: Record<BeastId, BeastState[]> = { bristleback: ['charge'], puffwart: ['hop', 'tongue', 'cloud'], skreel: ['swoop'], hornclack: ['sweep', 'charge'], frostmane: ['pounce', 'shake', 'pounce'] };
     const pattern = b.id === 'frostmane' ? b.phase === 1 ? ['pounce'] : b.phase === 2 ? ['pounce', 'shake'] : ['pounce', 'pounce', 'shake'] : attacks[b.id];
     b.attack = pattern[(b.cycle - 1) % pattern.length] as BeastState;
-    b.state = 'windup'; b.t = 0; b.duration = TELEGRAPH; b.start = { x: b.x, z: b.z }; b.dir = direction(b, this.hero); b.face = faceTo(b, this.hero);
+    b.state = 'windup'; b.t = 0; b.duration = b.grumpy ? TELEGRAPH - 0.1 : TELEGRAPH; b.start = { x: b.x, z: b.z }; b.dir = direction(b, this.hero); b.face = faceTo(b, this.hero);
     const length = b.attack === 'charge' || b.attack === 'swoop' ? 12 : b.attack === 'pounce' || b.attack === 'hop' ? Math.min(9, distance(b, this.hero)) : b.attack === 'tongue' ? 7 : 0;
     b.aim = { x: b.x + b.dir.x * length, z: b.z + b.dir.z * length };
     this.effect('dust', b);
     this.note = b.attack === 'shake' || b.attack === 'sweep' || b.attack === 'cloud' ? 'Orange circle! Step outside or roll as it lands.' : 'Orange lane! Step sideways or roll as it arrives.';
   }
   private stepBeast(dt: number) {
-    const b = this.beast!; b.t += dt; b.flash = Math.max(0, b.flash - dt);
+    const b = this.beast!, pace = b.grumpy ? GRUMPY_PACE : 1; b.t += dt; b.flash = Math.max(0, b.flash - dt);
     if (b.state === 'dizzy') { b.height = 0; if (b.t >= b.duration) { b.state = 'rest'; b.t = 0; b.duration = 1.8; } return; }
     if (b.state === 'rest') { b.height = 0; if (b.t >= b.duration) { b.state = b.id === 'skreel' ? 'circle' : 'roam'; b.t = 0; b.duration = b.id === 'frostmane' ? 1.5 : 2.4; } return; }
     if (b.state === 'roam' || b.state === 'circle') {
-      if (b.state === 'circle') { b.height = 2.4; this.move(b, Math.cos(this.time * 0.7) * dt * 2.7, Math.sin(this.time * 0.7) * dt * 2.7, 1.5); b.face = this.time * -0.7; }
-      else { b.height = 0; const d = distance(b, this.hero); if (d > 5) { const n = direction(b, this.hero); this.move(b, n.x * dt * 1.35, n.z * dt * 1.35, 1.5); b.face = faceTo(b, this.hero); } }
+      if (b.state === 'circle') { b.height = 2.4; this.move(b, Math.cos(this.time * 0.7) * dt * 2.7 * pace, Math.sin(this.time * 0.7) * dt * 2.7 * pace, 1.5); b.face = this.time * -0.7; }
+      else { b.height = 0; const d = distance(b, this.hero); if (d > 5) { const n = direction(b, this.hero); this.move(b, n.x * dt * 1.35 * pace, n.z * dt * 1.35 * pace, 1.5); b.face = faceTo(b, this.hero); } }
       if (b.t >= b.duration) this.windup(); return;
     }
     if (b.state === 'windup') {
       b.height = b.id === 'skreel' ? 1 + Math.sin(b.t * 8) * 0.2 : 0;
-      if (b.t >= b.duration) { b.state = b.attack; b.t = 0; b.duration = b.attack === 'charge' || b.attack === 'swoop' ? distance(b.start, b.aim) / (b.attack === 'charge' ? 12 : 14) : b.attack === 'pounce' || b.attack === 'hop' ? 0.72 : 0.65; }
+      if (b.t >= b.duration) { b.state = b.attack; b.t = 0; b.duration = b.attack === 'charge' || b.attack === 'swoop' ? distance(b.start, b.aim) / ((b.attack === 'charge' ? 12 : 14) * pace) : b.attack === 'pounce' || b.attack === 'hop' ? 0.72 / pace : 0.65; }
       return;
     }
     const active = b.state;
     if (active === 'charge' || active === 'swoop') {
-      const speed = active === 'charge' ? 12 : 14;
+      const speed = (active === 'charge' ? 12 : 14) * pace;
       const travel = Math.min(distance(b.start, b.aim), b.t * speed);
       const nx = b.start.x + b.dir.x * travel, nz = b.start.z + b.dir.z * travel;
       const obstacle = this.obstacles.some((o) => Math.hypot(nx - o.x, nz - o.z) < o.r + 1.4) || Math.hypot(nx, nz) > ARENA_RADIUS - 1.5;
@@ -307,6 +356,14 @@ export class HuntGame {
       this.clouds.push({ x: b.x + b.dir.x * 3, z: b.z + b.dir.z * 3, life: 5, r: 3.5 });
     }
     if (b.t >= b.duration) { b.state = 'rest'; b.t = 0; b.height = 0; b.duration = b.id === 'skreel' ? 4.5 : b.id === 'frostmane' ? 2.3 - b.phase * 0.3 : 2.2; }
+  }
+  private stepSniff(dt: number) {
+    this.sniff = Math.max(0, this.sniff - dt);
+    if (this.mode !== 'hunt' || this.inSight()) { this.unseen = 0; return; }
+    this.unseen += dt;
+    if (this.unseen < 1) return;
+    if (this.sniff <= 0) { this.events.push({ kind: 'sniff' }); this.note = 'Enzo sniffs the air. Follow the glowing pawprints to the beast!'; }
+    this.sniff = Math.max(this.sniff, 2);
   }
   step(dt: number, input: Input = NO_INPUT) {
     if (this.paused || !Number.isFinite(dt) || dt <= 0) return;
@@ -328,6 +385,7 @@ export class HuntGame {
       });
       this.clouds = this.clouds.filter((c) => { c.life -= dt; if (distance(this.hero, c) < c.r) this.hero.slow = 0.4; return c.life > 0; });
       this.collect();
+      this.stepSniff(dt);
     }
     this.last = { ...input };
   }

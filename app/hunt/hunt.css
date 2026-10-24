@@ -7,3 +7,4 @@
 @media(prefers-reduced-motion:reduce){.hunt-shell *{transition:none!important;animation:none!important}}
 
 @media(max-height:500px) and (min-width:701px){.hunt-hero-hud{width:180px;bottom:132px;padding:9px 12px}.hunt-hero-hud>div{display:block}.hunt-hero-hud span{display:block;margin-top:3px}.hunt-items{bottom:132px}.hunt-note{top:auto;bottom:132px;max-width:350px;font-size:10px!important}.hunt-shortcuts{display:none}.hunt-touch{display:flex}}
+.hunt-shell .hunt-order{display:block;width:100%;margin-top:7px;padding:5px 10px;min-height:32px;font-size:10px;font-weight:700;text-align:left;border-radius:10px}.hunt-order strong{font-size:11px;color:#7b542a}

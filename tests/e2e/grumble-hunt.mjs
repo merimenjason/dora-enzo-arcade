@@ -198,6 +198,28 @@ try {
     await snapshot(p, 'canopy-camera');
   });
 
+  await check('alive hunts: Extra Grumpy steam, Enzo sniff pawprints and buddy orders', async (p) => {
+    await fresh(p); await start(p);
+    // Buddy orders: hold Tab and tap E; lock-on stays as it was. A plain Tab tap still toggles it.
+    const locked = await hunt(p, (w) => w.game.locked);
+    await p.keyboard.down('Tab'); await p.keyboard.press('KeyE'); await p.keyboard.up('Tab');
+    await p.waitForFunction(() => window.__hunt().game.order === 'gather');
+    assert.equal(await hunt(p, (w) => w.game.locked), locked); assert.match(await p.getByTestId('buddy-order').innerText(), /Gather/);
+    await p.getByTestId('buddy-order').click(); await p.waitForFunction(() => window.__hunt().game.order === 'close');
+    await p.getByTestId('buddy-order').click(); await p.waitForFunction(() => window.__hunt().game.order === 'bonk');
+    // Out of sight: the beast far across the meadow gets a pawprint trail within about a second.
+    await hunt(p, (w) => { const g = w.game, b = g.beast; b.state = 'rest'; b.t = 0; b.duration = 60; b.x = 0; b.z = -14; g.hero.x = 0; g.hero.z = 4; g.buddy.cooldown = 60; });
+    await p.waitForFunction(() => window.__hunt().metrics().pawprints >= 6, null, { timeout: 15000 });
+    assert.match(await p.getByTestId('note').innerText(), /pawprints/);
+    await snapshot(p, 'sniff-trail');
+    // Extra Grumpy: below 30% Grump the ears steam and the HUD says so.
+    await hunt(p, (w) => { const g = w.game, b = g.beast; b.x = 0; b.z = -1; g.hero.x = 0; g.hero.z = 4; g.bonkBeast(b.grump - b.maxGrump * 0.25, false, g.hero); b.state = 'roam'; b.t = 0; b.duration = 60; });
+    await p.waitForFunction(() => window.__hunt().metrics().steam === true, null, { timeout: 15000 });
+    await p.waitForFunction(() => /Extra Grumpy/.test(document.querySelector('.hunt-beast-hud')?.textContent ?? ''));
+    await p.waitForTimeout(400); await snapshot(p, 'extra-grumpy');
+    assert(await fits(p));
+  });
+
   await check('camera orbit avoids terrain, texture count stays bounded, navigation tears down', async (p) => {
     await fresh(p); await start(p); const first = await hunt(p, (w) => w.metrics().textures), c = p.getByTestId('hunt-canvas');
     const r = await c.boundingBox(); await p.mouse.move(r.width / 2, r.height / 2); await p.mouse.down(); await p.mouse.move(r.width / 2 + 200, r.height / 2 - 120, { steps: 8 }); await p.mouse.up();

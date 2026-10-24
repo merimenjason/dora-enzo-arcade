@@ -22,7 +22,7 @@ Each hunt uses the same open meadow, with seed-driven trees and rocks. There is 
 
 Charges and swoops stop at the end of their 12-unit marked lane. The final-hunt unlock banner appears only on the result that earned the third different nap.
 
-Every attack has a **0.9-second** wind-up and an orange ground marker. Frostmane changes mood below two-thirds and one-third Grump; its later rests become shorter. The mane shake pushes the leader away. A sleepy cloud lasts five seconds and slows movement while inside; it never lowers Fluff.
+Every attack has a **0.9-second** wind-up (0.8 seconds when Extra Grumpy) and an orange ground marker. Frostmane changes mood below two-thirds and one-third Grump; its later rests become shorter. The mane shake pushes the leader away. A sleepy cloud lasts five seconds and slows movement while inside; it never lowers Fluff.
 
 Dizzy builds from two big bonks or big shots; buddy bonks help a little. Hits during dizzy do not build the next dizzy. A crash or dizzy dust also makes a beast dizzy, providing at least three seconds of opportunity. Bonks during dizzy are 1.7 times as large. Hornclack’s front shell is open during dizzy. Dora’s hammer reaches Skreel when it is low; the bow can reach it in the air.
 
@@ -33,6 +33,14 @@ The leader has 100 Fluff. Ordinary bumps have a 1.4-second recovery window. A ro
 Dora’s ordinary hammer bonk is 14 Grump, a charged swing 27. Enzo’s seed shots are 9 or 20. Once the tool cooldown ends, hold K for at least 0.35 seconds and release for the big version. The HUD shows tool recovery and reports a big bonk or shot ready only after 0.35 seconds of actual charge. Tools have three levels; each further level adds 35% to Dora’s bonks and 32% to Enzo’s shots. Buddy bonks are smaller and less frequent. Weapon grips follow the reference look test; `poseArms` is called after each pose so the paws track the handles.
 
 Every third connecting bonk sheds one material. At 32% of a beast’s initial Grump bonked away, its part pops off once and drops three materials. Calming drops five. Walk within 2.6 units to gather a drop; calming or getting tuckered out collects every drop still in the meadow. The Forge upgrades each tool from level 1 to 2 for six materials, then to level 3 for twelve. Any beast material can pay, and buddy tools benefit too. The Beast Book shows each reference picture, sanctuary status, pop-off part, tips, and current material count.
+
+## Alive hunts
+
+**Extra Grumpy.** The first time a bonk takes a beast below 30% of its starting Grump, it turns Extra Grumpy for the rest of the hunt: steam puffs from its ears, its eyebrows go red, the HUD says so, and a low cue plays. It moves 15% faster (roaming, circling, charges, swoops, hops and pounces) and its wind-up is 0.1 seconds shorter, 0.8 seconds, so every attack still warns well over 0.6 seconds ahead. Grump, damage and materials are unchanged.
+
+**Enzo’s sniff.** The beast is out of sight when it is more than 12 units from the leader, or when a tree or rock stands between them. After one second out of sight Enzo sniffs the air (a note and a high cue): a trail of up to 16 glowing pawprints, 1.1 units apart, leads from the leader towards the beast, skipping any print under a tree or rock. It stays lit while the beast is out of sight and fades two seconds after it is seen again. Enzo sniffs whichever friend is leading.
+
+**Buddy orders.** Hold Tab and tap E or Q to step the buddy’s order forwards or back through **Stay close**, **Go bonk** and **Gather**; the order button under the Fluff bar does the same with a click or tap. While an order is being given, Q and E don’t change the pouch item and releasing Tab doesn’t toggle lock-on; a plain Tab tap toggles lock-on when it is let go. Hunts start on Go bonk, the original behaviour: the buddy helps once the leader is within 11 units of the beast, and Dora runs in to bonk. Stay close keeps the buddy at the leader’s side and lets it help only from there, which for Dora means only when the beast is next to you. Gather sends the buddy to the nearest material on the ground, picks it up within 1.2 units, and never bonks. Healing berries come in every order. The order is not saved.
 
 Each hunt refills three berries (35 Fluff each), two dizzy dust pouches (six-unit range, 3.5 seconds dizzy), and two pep seeds (35% faster for ten seconds). An item is not spent when it cannot help: a berry at full Fluff or dust beyond range stays in the pouch.
 
@@ -45,14 +53,15 @@ Each hunt refills three berries (35 Fluff each), two dizzy dust pouches (six-uni
 | J | Bonk / shoot |
 | Hold K, release | Charge a big bonk / shot |
 | Space | Roll |
-| Tab, with the meadow focused | Toggle lock on |
+| Tab, with the meadow focused | Toggle lock on, when let go |
 | Q / E | Previous / next pouch item |
+| Hold Tab, tap Q / E | Change the buddy’s order |
 | F | Use item; visit a nearby camp place |
 | Drag / scroll | Orbit / zoom camera |
 | P / Escape | Pause; Escape also closes a panel |
 | M | Toggle sound |
 
-Touch has a joystick and Sprint, Roll, Lock, Bonk/Shoot and Hold · big buttons. The pouch is tappable. Short action taps are buffered until an engine step processes input, including through hit-stop. A cancelled charge is cleared without releasing a shot. Blur, page hiding, pointer cancellation, and lost pointer capture release held controls. Hiding or leaving pauses a hunt and saves gathered progress. UI buttons retain ordinary Tab navigation; Tab locks when the meadow or body has focus, including Shift+Tab while sprinting. Pouch and sound buttons return focus to the meadow during hunts. Losing WebGL context pauses only an active hunt; restoring it clears the pause.
+Touch has a joystick and Sprint, Roll, Lock, Bonk/Shoot and Hold · big buttons. The pouch and the buddy order button are tappable. Short action taps are buffered until an engine step processes input, including through hit-stop. A cancelled charge is cleared without releasing a shot. Blur, page hiding, pointer cancellation, and lost pointer capture release held controls. Hiding or leaving pauses a hunt and saves gathered progress. UI buttons retain ordinary Tab navigation; Tab locks when the meadow or body has focus, including Shift+Tab while sprinting. Pouch and sound buttons return focus to the meadow during hunts. Losing WebGL context pauses only an active hunt; restoring it clears the pause.
 
 The field guide is always available, panels trap focus, buttons have visible focus rings, and reduced motion removes shake, trails, wind and extra dust. Sound begins only after a gesture, has its own persisted mute choice, and uses short quiet synthesised cues. Main arcade navigation remains available.
 
@@ -68,7 +77,7 @@ Permanent progress is saved under `grumble-hunt-v1`: selected hero, both tool le
 
 ## Drawing and resource budget
 
-The scene uses `MeshToonMaterial`, the 96/178/255 three-step ramp, `OutlineEffect`, and `NoToneMapping`. Ground, sky, foliage, effects and instanced grass disable outlines. The existing paintings are unchanged: repeating grass and dirt ground, bark trunks, rock boulders and Bristleback fur; the equirectangular sky; billboard leaf clusters, transparent grass tufts and 5,000 instanced grass blades. Trunks, leaf cards and solid canopy shapes are each batched into one instanced draw. The ref sheets guide the five 3D models and appear in the Beast Book.
+The scene uses `MeshToonMaterial`, the 96/178/255 three-step ramp, `OutlineEffect`, and `NoToneMapping`. Ground, sky, foliage, effects and instanced grass disable outlines. The existing paintings are unchanged: repeating grass and dirt ground, bark trunks, rock boulders and Bristleback fur; the equirectangular sky; billboard leaf clusters, transparent grass tufts and 5,000 instanced grass blades. Trunks, leaf cards and solid canopy shapes are each batched into one instanced draw, and so is Enzo’s pawprint trail, a canvas-drawn print with a soft glow. Extra Grumpy steam is six small puffs on the beast’s head; its eyebrows have their own material so they can turn red. The ref sheets guide the five 3D models and appear in the Beast Book.
 
 The camera orbits above flat walkable terrain, keeps a minimum height, and shortens its distance when a trunk, rock or village building would clip the view. A tree crown near the camera, or across its view of the leader, shrinks away over 0.2 seconds and grows back afterwards, so leaves never fill the screen; the camera doesn't move in for crowns. Desktop resolution is capped at 1.5 device pixels with 1024-pixel PCF shadows; touch devices use a 1.25 cap and 512-pixel basic shadows. Tiny facial features do not cast shadows, and there are no postprocessing passes beyond outlines. Projectiles, drops and extra dust use bounded mesh pools. Weapon trails, squash/stretch, a small camera shake and 0.08–0.11-second hit-stop give bonks weight.
 
@@ -87,7 +96,7 @@ npm run test:e2e:grumble-hunt
 npm run test:e2e
 ```
 
-The engine suite covers determinism, warning time in all phases, armour, air/ground openings, tool timing, charged shots, cancelled inputs, dizzy multipliers, crashes, rolls, items, sleepy clouds, buddy healing, collisions, pop-offs, reward idempotency, unlocks, upgrades, safe camp returns and malformed saves. The bot uses only movement/actions and collected materials, plays twelve seeds as each hero, and must calm all 120 beasts. On the initial 24-10-2026 curve it calmed 120/120, with a median hunt of 20.7 seconds and slowest 35.0 seconds.
+The engine suite covers determinism, warning time in all phases, armour, air/ground openings, tool timing, charged shots, cancelled inputs, dizzy multipliers, crashes, rolls, items, sleepy clouds, buddy healing, collisions, pop-offs, reward idempotency, unlocks, upgrades, safe camp returns, malformed saves, Extra Grumpy timing and speed, sniff sight and trails, and buddy orders. The bot uses only movement/actions and collected materials, plays twelve seeds as each hero, keeps one buddy order per seed so all three are played, and must calm all 120 beasts, each of them going Extra Grumpy on the way. On the initial 24-10-2026 curve it calmed 120/120, with a median hunt of 20.7 seconds and slowest 35.0 seconds.
 
 The browser suite follows the repo’s Playwright style and writes its village, five hunt, dizzy, nap, phone and victory screenshots to ignored `.checks/hunt/`. The optional separate icons/portraits pass is not part of this implementation.
 
@@ -104,3 +113,9 @@ The browser suite follows the repo’s Playwright style and writes its village, 
 - Added regressions for HUD focus, sprint lock-on, hit-stop taps, cooldown charge display, graphics context recovery, dizzy chains, lane endpoints, airborne buddy hammer hits, distant camp drops and one-time unlock results.
 - `npm run typecheck` and all 23 `npm run test:grumble-hunt` checks passed. The bot still calmed 120/120 beasts across 24 full campaigns; the revised median was 23.1 seconds and slowest 35.8 seconds.
 - Browser regressions were added and syntax-checked, but this sandbox could not launch Chromium (`Operation not permitted`). The dev server also could not write its Vite config cache through the read-only linked `node_modules`. The browser suite needs a run outside this sandbox.
+
+### Alive hunts · 24-10-2026
+
+- Added Extra Grumpy, Enzo’s sniff trail and buddy orders, the first step of the expansion in [`grumble-hunt/expansion-design.md`](grumble-hunt/expansion-design.md).
+- `npm run typecheck`, all 27 `npm run test:grumble-hunt` checks and the content checks passed. The bot calmed 120/120 beasts across 24 full campaigns, 40 per buddy order, with a median hunt of 23.0 seconds and slowest 47.6 seconds; the slowest hunts are the Gather campaigns, where the buddy never bonks.
+- The browser suite passed with a new check for the buddy-order keys and button, the pawprint trail and Extra Grumpy steam, saving `sniff-trail.png` and `extra-grumpy.png`.

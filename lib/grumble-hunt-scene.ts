@@ -4,10 +4,11 @@ import { createHuntChinchilla, animateHuntChinchilla, poseArms, type HuntChinchi
 import { BEAST_IDS, SPOTS, type BeastId, type HuntGame, type HeroId } from './grumble-hunt-game';
 
 type Rig = { model: HuntChinchilla; hammer: T.Group; bow: T.Group; head: T.Group; trail: T.Line; points: T.Vector3[] };
-type BeastRig = { root: T.Group; body: T.Group; head: T.Group; legs: T.Group[]; wings: T.Group[]; eyes: T.Mesh[]; part: T.Group; throat?: T.Mesh; tongue?: T.Mesh; mane?: T.Group };
+type BeastRig = { root: T.Group; body: T.Group; head: T.Group; legs: T.Group[]; wings: T.Group[]; eyes: T.Mesh[]; part: T.Group; brow: T.MeshToonMaterial; browColor: T.Color; steam: T.Mesh[]; throat?: T.Mesh; tongue?: T.Mesh; mane?: T.Group };
 const V = (x = 0, y = 0, z = 0) => new T.Vector3(x, y, z);
 const lerp = T.MathUtils.lerp;
 const noOutline = <M extends T.Material>(m: M): M => { m.userData.outlineParameters = { visible: false }; return m; };
+const grumpyRed = new T.Color(0xd8432f);
 
 /** Drawing only. The page owns the fixed engine clock and this object owns every GPU resource. */
 export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, failed: (message: string) => void) {
@@ -145,17 +146,20 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   }
   const actors: Record<HeroId, Rig> = { dora: actor(true), enzo: actor(false) };
 
+  const steamMat = noOutline(new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75, depthWrite: false })); materials.add(steamMat);
   function beastRig(id: BeastId): BeastRig {
     const root = new T.Group(), body = new T.Group(), head = new T.Group(), part = new T.Group(); root.add(body); body.add(head, part); scene.add(root);
     const legs: T.Group[] = [], wings: T.Group[] = [], eyes: T.Mesh[] = [];
     const colors = { bristleback: 0x9d754e, puffwart: 0x8c9948, skreel: 0x7189aa, hornclack: 0x7c8394, frostmane: 0xe3eff5 };
     const coat = toon(colors[id], id === 'bristleback' ? fur : undefined), dark = toon(id === 'frostmane' ? 0x91bedc : 0x483f3b);
     const belly = toon(id === 'skreel' ? 0xe9e4cf : 0xf3dfab);
-    const rig: BeastRig = { root, body, head, part, legs, wings, eyes };
+    // Eyebrows get their own material so they can turn red when the beast is Extra Grumpy.
+    const brow = toon(id === 'frostmane' ? 0x91bedc : 0x483f3b);
+    const rig: BeastRig = { root, body, head, part, legs, wings, eyes, brow, browColor: brow.color.clone(), steam: [] };
     function eye(x: number, y: number, z: number, s: number) {
       const white = mesh(head, sphere, cream, [x, y, z], [0.1, 0.15, 0.17]); eyes.push(white);
       eyes.push(mesh(head, sphere, ink, [x + 0.07, y, z + s * 0.065], [0.08, 0.095, 0.095]));
-      const brow = mesh(head, cube, dark, [x + 0.04, y + 0.15, z], [0.14, 0.075, 0.4]); brow.rotation.x = s * 0.28;
+      const b = mesh(head, cube, brow, [x + 0.04, y + 0.15, z], [0.14, 0.075, 0.4]); b.rotation.x = s * 0.28;
     }
     function leg(x: number, z: number, long = 0.6) { const p = new T.Group(); p.position.set(x, 0.6, z); body.add(p); mesh(p, cylinder, coat, [0, -0.1, 0], [0.2, long, 0.2]); mesh(p, sphere, dark, [0.08, -long / 2 - 0.1, 0], [0.27, 0.15, 0.23]); legs.push(p); }
     if (id === 'bristleback') {
@@ -196,6 +200,9 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       for (const s of [-1, 1]) { eye(0.5, 0.1, s * 0.6, s); const ear = mesh(head, cone, coat, [-0.15, 0.9, s * 0.55], [0.25, 0.7, 0.24]); ear.rotation.x = s * 0.2; mesh(part, cone, dark, [0.9, 3.25, s * 0.55], [0.075, 0.4, 0.075]); for (const x of [-1, 1]) leg(x, s * 0.65, 1); }
       const curve = new T.CatmullRomCurve3([V(-1.4, 1.4, 0), V(-2, 1.6, 0.2), V(-2.5, 2.2, 0.3), V(-2.35, 2.7, 0.3)]); mesh(body, new T.TubeGeometry(curve, 12, 0.32, 8, false), toon(0xb5d4e9), [0, 0, 0]);
     }
+    // Steam puffs over each ear, in head space; only shown while Extra Grumpy.
+    const ear = { bristleback: [-0.15, 1, 0.5], puffwart: [0, 0.65, 0.8], skreel: [0, 0.85, 0.5], hornclack: [0, 0.6, 0.55], frostmane: [-0.15, 1.3, 0.55] }[id];
+    for (const side of [-1, 1]) for (let i = 0; i < 3; i++) { const puff = mesh(head, sphere, steamMat, [ear[0], ear[1], ear[2] * side], [0.14, 0.14, 0.14], false); puff.visible = false; rig.steam.push(puff); }
     root.visible = false; return rig;
   }
   const beasts = Object.fromEntries(BEAST_IDS.map((id) => [id, beastRig(id)])) as Record<BeastId, BeastRig>;
@@ -214,6 +221,21 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const dropMat = toon(0xeab95c), dropPool = Array.from({ length: 24 }, () => mesh(scene, ico, dropMat, [0, 0, 0], [0.18, 0.22, 0.18], false));
   const fxMat = noOutline(new T.MeshBasicMaterial({ color: 0xf3db9a, transparent: true, opacity: 0.65, depthWrite: false })); materials.add(fxMat);
   const fxPool = Array.from({ length: 48 }, () => mesh(scene, ico, fxMat, [0, 0, 0], [1, 1, 1], false));
+  // Enzo's sniff trail: one instanced draw of glowing pawprint cards lying on the grass.
+  const pawCanvas = document.createElement('canvas'); pawCanvas.width = pawCanvas.height = 64;
+  const pc = pawCanvas.getContext('2d');
+  if (pc) {
+    // A soft halo first, then the print itself, so it reads as glowing on bright grass.
+    pc.fillStyle = '#fff'; pc.shadowColor = '#ffd25a'; pc.shadowBlur = 9;
+    for (let pass = 0; pass < 2; pass++) {
+      pc.beginPath(); pc.ellipse(32, 41, 12, 10, 0, 0, Math.PI * 2); pc.fill();
+      for (const [x, y, r] of [[16, 24, 5.5], [26, 16, 6], [38, 16, 6], [48, 24, 5.5]]) { pc.beginPath(); pc.arc(x, y, r, 0, Math.PI * 2); pc.fill(); }
+    }
+  }
+  const pawMap = new T.CanvasTexture(pawCanvas); pawMap.colorSpace = T.SRGBColorSpace; textures.add(pawMap);
+  const pawMat = noOutline(new T.MeshBasicMaterial({ color: 0xfff1b0, map: pawMap, transparent: true, opacity: 1, depthWrite: false, toneMapped: false })); materials.add(pawMat);
+  const pawGeo = new T.PlaneGeometry(0.9, 0.9); pawGeo.rotateX(-Math.PI / 2); geometries.add(pawGeo);
+  const pawprints = new T.InstancedMesh(pawGeo, pawMat, 16); pawprints.count = 0; pawprints.frustumCulled = false; scene.add(pawprints);
   function poseActor(id: HeroId, game: HuntGame) {
     const a = actors[id], isPlayer = id === game.heroId, p = isPlayer ? game.hero : game.buddy, h = game.hero;
     const time = reduced.matches ? 0 : game.time;
@@ -268,6 +290,14 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       if (r.throat) r.throat.scale.set(0.9 + (b.attack === 'cloud' && b.state === 'windup' ? b.t * 0.5 : Math.sin(game.time * 2) * 0.035), 0.8, 1.05);
       if (r.tongue) { r.tongue.visible = b.state === 'tongue'; const length = 0.1 + Math.sin(Math.min(1, b.t / Math.max(0.01, b.duration)) * Math.PI) * 5.4; r.tongue.scale.y = length; r.tongue.position.x = 1.4 + length / 2; }
       if (r.mane) { r.mane.rotation.x = b.state === 'shake' ? Math.sin(game.time * 30) * 0.22 : 0; r.mane.scale.setScalar(1 + (b.phase - 1) * 0.08); }
+      const steaming = b.grumpy && !napping;
+      r.brow.color.copy(steaming ? grumpyRed : r.browColor);
+      r.steam.forEach((puff, i) => {
+        puff.visible = steaming; if (!steaming) return;
+        // Each puff rises, swells and vanishes in a 1.2 s loop, staggered across the three per ear.
+        const f = reduced.matches ? 0.35 + (i % 3) * 0.2 : (game.time / 1.2 + (i % 3) / 3) % 1, home = puff.userData.home ??= puff.position.clone();
+        puff.position.set(home.x - f * 0.2, home.y + f * 0.9, home.z * (1 + f * 0.3)); puff.scale.setScalar((0.08 + f * 0.17) * Math.min(1, (1 - f) * 4));
+      });
     }
     const warning = b?.state === 'windup';
     const round = b && ['sweep', 'shake', 'cloud'].includes(b.attack);
@@ -278,6 +308,14 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       if (round) { const size = b.attack === 'shake' ? 5 : b.attack === 'cloud' ? 3.5 : 4; circle.position.set(b.x + (b.attack === 'cloud' ? b.dir.x * 3 : 0), 0.08, b.z + (b.attack === 'cloud' ? b.dir.z * 3 : 0)); circle.scale.set(size, 1, size); }
       else { const length = Math.hypot(b.aim.x - b.start.x, b.aim.z - b.start.z); lane.position.set((b.start.x + b.aim.x) / 2, 0.08, (b.start.z + b.aim.z) / 2); lane.scale.set(b.attack === 'tongue' ? 2.4 : b.attack === 'hop' || b.attack === 'pounce' ? 6 : 5, Math.max(1, length), 1); lane.rotation.set(-Math.PI / 2, 0, -Math.atan2(b.aim.x - b.start.x, b.aim.z - b.start.z)); }
     }
+    const prints = game.trail(), glow = Math.min(1, game.sniff / 1.5);
+    pawprints.count = prints.length; pawMat.opacity = glow;
+    prints.forEach((p, i) => {
+      // A soft wave of brightness travels along the trail towards the beast.
+      const wave = reduced.matches ? 1 : 0.8 + 0.25 * Math.max(0, Math.sin(game.time * 5 - i * 0.7));
+      quat.setFromAxisAngle(V(0, 1, 0), p.face - Math.PI / 2); matrix.compose(V(p.x, 0.06, p.z), quat, V(wave, 1, wave)); pawprints.setMatrixAt(i, matrix);
+    });
+    pawprints.instanceMatrix.needsUpdate = true;
     cloudPool.forEach((o, i) => { const c = game.clouds[i]; o.visible = !!c; if (c) { o.position.set(c.x, 0.5, c.z); o.scale.set(c.r, 0.6, c.r); } });
     stars.forEach((s, i) => { s.visible = !!b && b.state === 'dizzy'; if (b) { const a = game.time * 3 + i * Math.PI * 2 / 3; s.position.set(b.x + Math.cos(a), b.height + 3.2, b.z + Math.sin(a)); s.rotation.y = a; } });
     shotPool.forEach((o, i) => { const s = game.shots[i]; o.visible = !!s; if (s) { o.position.set(s.x, 0.85, s.z); o.scale.setScalar(s.heavy ? 0.18 : 0.1); } });
@@ -323,7 +361,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     get yaw() { return yaw; },
     orbit(dx: number, dy: number) { yaw -= dx * 0.006; pitch = T.MathUtils.clamp(pitch + dy * 0.004, 0.18, 0.95); userOrbit = 4; },
     zoom(delta: number) { dist = T.MathUtils.clamp(dist + delta * 0.008, 5, 14); },
-    metrics() { return { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length }; },
+    metrics() { return { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible) }; },
     dispose() {
       if (closed) return; closed = true; observer.disconnect();
       scene.traverse((o) => { if (o instanceof T.InstancedMesh) o.dispose(); if (o instanceof T.Mesh || o instanceof T.Line) { geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : [o.material]) materials.add(m); } });

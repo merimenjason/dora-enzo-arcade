@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, distance } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, SIGHT, distance } from '../.checks/grumble-hunt-game.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
 const input = (overrides = {}) => ({ ...NO_INPUT, ...overrides });
@@ -144,6 +144,64 @@ check('tuckered out gathers distant drops exactly once', () => {
   const g = fresh(); g.drops.push({ id: 99, x: 15, z: 0, material: 'bristleback', count: 4 });
   g.hero.fluff = 1; g.bumpHero(10, g.beast); assert.equal(g.profile.materials.bristleback, 4); assert.equal(g.drops.length, 0);
   g.bumpHero(10, g.beast); assert.equal(g.profile.materials.bristleback, 4);
+});
+check('below 30% Grump a beast turns Extra Grumpy once: 15% faster, warning 0.1 s sooner and never under 0.6 s', () => {
+  for (const id of BEAST_IDS) {
+    const g = fresh(id), b = g.beast; g.buddy.cooldown = 10000; g.hero.invincible = 10000; b.state = 'rest';
+    const from = { x: b.x - Math.cos(b.face) * 3, z: b.z + Math.sin(b.face) * 3 };
+    g.bonkBeast(b.maxGrump * (1 - GRUMPY_AT) - 1, false, from); assert.equal(b.grumpy, false, id);
+    g.events.length = 0; g.bonkBeast(2, false, from); assert.equal(b.grumpy, true, id);
+    assert.equal(g.events.filter((e) => e.kind === 'grumpy').length, 1); assert.match(g.note, /Extra Grumpy/);
+    g.bonkBeast(1, false, from); assert.equal(g.events.filter((e) => e.kind === 'grumpy').length, 1, 'only announced once');
+    g.hitstop = 0; b.state = 'roam'; b.t = 0; b.duration = 0; g.step(DT); assert.equal(b.state, 'windup');
+    let warning = 0; while (b.state === 'windup') { g.step(DT); warning += DT; }
+    assert(warning >= 0.6 && Math.abs(warning - (TELEGRAPH - 0.1)) < 2 * DT, `${id} warned for ${warning}`);
+  }
+  const calmGrump = fresh(), grumpy = fresh();
+  for (const g of [calmGrump, grumpy]) { const b = g.beast; g.buddy.cooldown = 10000; b.x = b.z = 0; g.hero.x = 0; g.hero.z = 15; g.hero.invincible = 10000; b.state = 'roam'; b.t = 0; b.duration = 0; }
+  grumpy.beast.grumpy = true;
+  for (const g of [calmGrump, grumpy]) { g.step(DT); while (g.beast.state === 'windup') g.step(DT); g.step(DT); g.step(DT); }
+  const run = (g) => distance(g.beast, g.beast.start);
+  assert(Math.abs(run(grumpy) / run(calmGrump) - GRUMPY_PACE) < 0.02, `grumpy charge ran ${run(grumpy)} against ${run(calmGrump)}`);
+  assert.equal(fresh().beast.grumpy, false, 'a new hunt starts calm');
+});
+check('out of sight for a second, Enzo sniffs out a pawprint trail that fades once the beast is seen', () => {
+  const g = fresh(), b = g.beast; g.buddy.cooldown = 10000; b.state = 'rest'; b.duration = 10000;
+  b.x = 0; b.z = -6; g.hero.x = 0; g.hero.z = 4; assert(g.inSight());
+  tick(g, 2); assert.equal(g.sniff, 0); assert.equal(g.trail().length, 0);
+  g.hero.z = SIGHT - 6 + 0.5; assert.equal(g.inSight(), false); g.events.length = 0;
+  tick(g, 0.9); assert.equal(g.sniff, 0); tick(g, 0.2); assert(g.sniff > 0);
+  assert.equal(g.events.filter((e) => e.kind === 'sniff').length, 1); assert.match(g.note, /pawprints/);
+  const prints = g.trail(); assert(prints.length >= 6);
+  for (const p of prints) { assert(distance(p, g.hero) < distance(g.hero, b)); assert(distance(p, b) > 2.4); }
+  tick(g, 3); assert(g.sniff > 0, 'the trail stays lit while the beast is out of sight');
+  g.hero.z = 0; assert(g.inSight()); tick(g, 2.1); assert.equal(g.sniff, 0); assert.equal(g.trail().length, 0);
+  const rock = fresh(), r = rock.beast; rock.buddy.cooldown = 10000; r.state = 'rest'; r.duration = 10000;
+  rock.obstacles = [{ x: 0, z: 0, r: 1.3, kind: 'rock' }]; r.x = 0; r.z = -4; rock.hero.x = 0; rock.hero.z = 4;
+  assert.equal(rock.inSight(), false, 'a rock between them hides the beast'); tick(rock, 1.1); assert(rock.sniff > 0);
+  assert(rock.trail().every((p) => distance(p, rock.obstacles[0]) >= 1.5), 'no prints under the rock');
+});
+check('holding Tab with Q/E gives the buddy an order without changing items or lock-on; a plain Tab tap still locks', () => {
+  const g = fresh(); assert.equal(g.order, 'bonk'); const locked = g.locked, item = g.item;
+  g.step(DT, input({ lock: true })); g.step(DT, input({ lock: true, next: true })); assert.equal(g.order, 'gather');
+  g.step(DT, input({ lock: true })); g.step(DT, input({ lock: true, next: true })); assert.equal(g.order, 'close');
+  g.step(DT, input({ lock: true })); g.step(DT, input({ lock: true, previous: true })); assert.equal(g.order, 'gather');
+  g.step(DT); assert.equal(g.locked, locked); assert.equal(g.item, item);
+  g.step(DT, input({ lock: true })); g.step(DT); assert.equal(g.locked, !locked);
+  g.step(DT, input({ next: true })); assert.equal(g.item, (item + 1) % 3); assert.equal(g.order, 'gather');
+  assert(g.events.some((e) => e.kind === 'order'));
+});
+check('stay close keeps Dora by the leader, and gather sends the buddy to pick up materials without bonking', () => {
+  const near = fresh('bristleback', 'enzo'), b = near.beast; b.state = 'rest'; b.duration = 10000;
+  near.hero.x = 0; near.hero.z = 2; near.commandBuddy(-1); assert.equal(near.order, 'close');
+  tick(near, 4); assert(distance(near.buddy, { x: near.hero.x - 1.4, z: near.hero.z + 1.4 }) < 1.3, 'Dora stays at the side');
+  assert.equal(b.grump, b.maxGrump, 'out of reach from the side, so no bonks');
+  const go = fresh('bristleback', 'enzo'); go.beast.state = 'rest'; go.beast.duration = 10000; go.hero.x = 0; go.hero.z = 2;
+  tick(go, 4); assert(go.beast.grump < go.beast.maxGrump, 'go bonk still runs in and bonks');
+  const g = fresh(), m = g.beast; m.state = 'rest'; m.duration = 10000; g.hero.x = 10; g.hero.z = 10;
+  g.commandBuddy(1); assert.equal(g.order, 'gather'); g.drops.push({ id: 999, x: -8, z: 4, material: 'bristleback', count: 2 });
+  const before = g.profile.materials.bristleback; tick(g, 6);
+  assert.equal(g.drops.length, 0); assert.equal(g.profile.materials.bristleback, before + 2); assert.equal(m.grump, m.maxGrump);
 });
 check('final hunt unlock belongs only to the third different nap result', () => {
   const g = fresh(); calm(g); assert.equal(g.unlockedFinalHunts, false);
