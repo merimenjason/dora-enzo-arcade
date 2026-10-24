@@ -936,7 +936,7 @@ Eighty stages in eight chapters, each stage worth up to three stars (cleared, no
 
 **Tests:** `npm run test:grumble-hunt` checks deterministic combat, warning times, tool timing, armour, dizzy openings, rolls, items, buddy help, collisions, material rewards, unlocks, upgrades, camp returns, safe saves, Extra Grumpy, Enzo’s sniff and buddy orders; it also runs the expansion content checks. `npm run bot:grumble-hunt` plays every hunt as both heroes across 12 seeds with all three buddy orders, using movement and action inputs, and requires all 120 beasts to be calmed. `npm run test:e2e:grumble-hunt` checks the arcade entry, desktop and touch input, camera, pause, camp, forge, book, saving, all five hunts, nap, victory, reset, resource cleanup, and phone layouts, and saves screenshots under `.checks/hunt/`.
 
-**Docs:** [`docs/grumble-hunt.md`](docs/grumble-hunt.md), the [art inventory and prompts](docs/grumble-hunt-art.md), and the [model and look-test reference](docs/grumble-hunt/README.md).
+**Docs:** [`docs/grumble-hunt.md`](docs/grumble-hunt.md), the art inventories and prompts ([meadow, icons and portraits](docs/grumble-hunt-art.md), [story](docs/grumble-hunt-story-art.md), [weapon icons](docs/grumble-hunt-weapon-icons.md)), and the [model and look-test reference](docs/grumble-hunt/README.md).
 
 ## Validation
 

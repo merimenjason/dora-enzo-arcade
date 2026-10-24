@@ -220,6 +220,23 @@ try {
     assert(await fits(p));
   });
 
+  await check('painted portraits, tool tiers and material icons load and follow the game', async (p) => {
+    await fresh(p, 'enzo');
+    await hunt(p, (w) => { w.game.profile.levels.enzo = 2; w.game.profile.materials.skreel = 4; });
+    await p.getByTestId('open-forge').click();
+    assert.equal(await p.locator('.hunt-forge article').nth(1).locator('[data-filled="true"] .hunt-art').count(), 2);
+    assert.match(await p.locator('.hunt-satchel').innerText(), /Sky feathers\s*4/); await snapshot(p, 'forge-art'); await p.keyboard.press('Escape');
+    await start(p);
+    for (const [mood, hero] of [['sleepy', { fluff: 20 }], ['dizzy', { fluff: 100, invincible: 1.4 }], ['happy', { invincible: 0 }]]) {
+      await hunt(p, (w, h) => { w.game.paused = true; Object.assign(w.game.hero, h); }, hero);
+      await p.locator(`[data-testid="hero-mood"][data-mood="${mood}"]`).waitFor();
+    }
+    const sheets = await p.evaluate(async () => {
+      const urls = [...new Set([...document.querySelectorAll('.hunt-art')].map((e) => getComputedStyle(e).backgroundImage.slice(5, -2)))];
+      return Promise.all(urls.map((url) => new Promise((done) => { const img = new Image(); img.onload = () => done([url.split('/').pop(), img.naturalWidth]); img.onerror = () => done([url, 0]); img.src = url; })));
+    });
+    assert.deepEqual(Object.fromEntries(sheets), { 'portraits-enzo.webp': 1024, 'icons-gear.webp': 1024 });
+  });
   await check('camera orbit avoids terrain, texture count stays bounded, navigation tears down', async (p) => {
     await fresh(p); await start(p); const first = await hunt(p, (w) => w.metrics().textures), c = p.getByTestId('hunt-canvas');
     const r = await c.boundingBox(); await p.mouse.move(r.width / 2, r.height / 2); await p.mouse.down(); await p.mouse.move(r.width / 2 + 200, r.height / 2 - 120, { steps: 8 }); await p.mouse.up();
