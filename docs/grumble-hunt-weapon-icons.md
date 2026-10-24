@@ -2,7 +2,7 @@
 
 Completed 24-10-2026 following `docs/grumble-hunt-prompts/6-weapon-icons.md` from `origin/codex/grumble-hunt-fixes`. Work is on `codex/grumble-hunt-weapon-icons`, continuing its existing cell-map commit `1479f48`.
 
-Created three transparent WebP atlases containing forty weapon icons. Warm hand-painted toon storybook style, botanical toy shapes, rounded ends, three-quarter views, top-left light and dark-brown outlines. Read section 2 of the expansion design and the first art log, and inspected the model screenshots. Nothing is hurt; there is no text, logo or watermark. No existing art or game code was changed.
+Created three transparent WebP atlases containing forty weapon icons. Warm hand-painted toon storybook style, botanical toy shapes, rounded ends, three-quarter views, top-left light and dark-brown outlines. Read section 2 of the expansion design and the first art log, and inspected the model screenshots. Nothing is hurt; there is no text, logo or watermark. The initial pass added new sheets without replacing existing art. The Dora motif revision below updates sheet 3 at the user’s request. No game code was changed.
 
 Artwork generation and revisions used the built-in imagegen tool. Original generated PNGs remain in its output directory. Export used `cwebp -q 85 -m 6 -alpha_q 100 -metadata none`; alpha is retained. The generated 1254 × 1254 sources were downscaled and packed into exact 256 × 256 cells.
 
@@ -12,7 +12,7 @@ Paths are relative to the repository root. Sizes are final encoded bytes.
 
 | File | Decoded size | Bytes | Occupied cells | Generated source size |
 | --- | --- | ---: | ---: | --- |
-| `public/art/hunt/icons-weapons-3.webp` | 1024 × 1024 | 258,784 | 16 | 1254 × 1254 |
+| `public/art/hunt/icons-weapons-3.webp` | 1024 × 1024 | 248,698 | 16 | 1254 × 1254 |
 | `public/art/hunt/icons-weapons-4.webp` | 1024 × 1024 | 248,252 | 16 | 1254 × 1254 |
 | `public/art/hunt/icons-weapons-5.webp` | 1024 × 1024 | 124,248 | 8 | 1254 × 1254 |
 
@@ -145,4 +145,16 @@ Revision:
 
 ```text
 Use case: precise-object-edit. Image is the edit target, a Grumble Hunt transparent weapon atlas. Edit ONLY pointed ends and consistency: row1column1 Glimmer Twig Sword must be a SHORT BLUNT rounded wooden twig club, no jagged fork, spike or blade tip; keep its small round acorn-cap shield and inset amber crystal. Row1column3 Puffcap Lance: remove the pointed gold spike on top of its fat round mushroom cap; keep the wooden shaft, leaf shield and small inset warm crystal. Row1column4 Switch Spade: give its wooden scoop a completely smoothly ROUND end, like a serving spoon, no point. Row2column1 Seedpod Blade: round the end of the seedpod paddle, no sharp point; preserve the shield's THREE visibly stacked round seeds and its small warm crystal. Keep every Glimmer weapon the recognizable same basic shape as its plain version, with small inset warm crystals and soft warm glow. Keep all eight icons in order in the FIRST TWO rows of a4x4 square atlas; bottom TWO rows completely EMPTY transparent. Preserve warm hand-painted toon style, chunky shapes, thick dark-brown outlines, three-quarter angle, top-left light, soft saturated colours. All equipment is harmless botanical toys, no real blades or real guns. No text, logo, watermark, grid lines or background. Final square1024x1024,4x4 invisible256px cells, evenly centered icons with generous padding. Actual transparent alpha.
+```
+
+## Dora motif revision · 24-10-2026
+
+Replaced the three highlighted pig/boar motifs on sheet 3 with matching cream-white Dora chinchilla faces: huge round pink dish ears, ruby eyes, tiny pink noses and w smiles. Locations: row 1, column 3 (final Driftwood Greatsword); row 3, column 1 (final Twig Sword and Acorn Shield); row 4, column 3 (final Puffcap Lance).
+
+Edited with the built-in imagegen tool using the preceding sheet 3 WebP as the edit target. Repacked the three edited sprites into their original atlas cells; copied the other thirteen cells from the preceding sheet unchanged before WebP encoding. Weapon silhouettes, cell order, other decorations and transparent background are retained. Exported at quality 85 with alpha quality 100. Verified 1024 × 1024 RGBA WebP, all sixteen occupied cells, clear cell borders and alpha values from 0 to 255 including soft edges.
+
+Exact edit prompt:
+
+```text
+Use case: precise-object-edit. Edit this existing Grumble Hunt transparent 4x4 weapon atlas. Replace ONLY the three little PIG/BOAR FACE motifs at (row1,column3) on the final Driftwood paddle, (row3,column1) on the round Acorn Shield, and (row4,column3) on the final Puffcap Lance's leaf shield. Use a small chibi Dora chinchilla face motif at ALL THREE locations: cream-white round fluffy cheeks, huge ROUND circular dish ears tilted outward with pink inner ears, glossy ruby-red eyes with two tiny white highlights, tiny pink nose and a little w-shaped smile. The same cute Dora identity in each motif. These must unmistakably be CHINCHILLAS: no pig snout, no nostril discs, no pointed pig ears, no tusks. Render them as little painted/enamel emblems in the existing warm hand-painted toon style, at the same motif size and perspective as the old pig faces; preserve surrounding wood, leaves and golden trim. Keep ALL weapons, all other thirteen icons, all other decorations (including bird motifs), exact 4x4 layout, icon positions, sizes, angle, lighting and dark-brown outlines unchanged. Preserve actual transparent background and original square aspect. Do not add the red highlight boxes, checkerboard, text, labels, logo or watermark. Output the complete atlas.
 ```
