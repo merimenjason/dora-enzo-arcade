@@ -12,7 +12,7 @@ Paths are relative to the repository root. Sizes are final encoded bytes.
 
 | File | Decoded size | Bytes | Occupied cells | Generated source size |
 | --- | --- | ---: | ---: | --- |
-| `public/art/hunt/icons-weapons-3.webp` | 1024 × 1024 | 244,500 | 16 | 1254 × 1254 |
+| `public/art/hunt/icons-weapons-3.webp` | 1024 × 1024 | 241,594 | 16 | 1254 × 1254 |
 | `public/art/hunt/icons-weapons-4.webp` | 1024 × 1024 | 248,252 | 16 | 1254 × 1254 |
 | `public/art/hunt/icons-weapons-5.webp` | 1024 × 1024 | 124,248 | 8 | 1254 × 1254 |
 
@@ -192,4 +192,42 @@ Flat-paint refinement:
 
 ```text
 Use case: precise-object-edit. Image1 is the edit target: a mushroom lance with a green leaf shield. Image2 is a STYLE REFERENCE ONLY for a FLAT PAINTED Dora emblem on wood. Change ONLY the Dora face painted on image1's green shield: flatten it into simple TWO-DIMENSIONAL painted line art, matching the flat material-bound emblem in image2. Remove puffy three-dimensional fur, cheek bulges, any relief, sticker edge, bevel, rim light, outline shadow, or shading that makes the head look raised. Use thin warm-brown painted lines, a uniform warm-cream painted fill, dusty pink ears and ruby eyes; a faint continuation of the shield's leaf-vein texture must be visible THROUGH the cream paint. Keep the face's rotated orientation and foreshortening aligned to the shield plane, ears toward upper gold crest, chin toward bottom leaf tip, never upright to the camera. Keep the same emblem size inside the frame. Preserve ALL other image1 pixels and design: mushroom, lance, gold rim, shield shape, gold ornaments, transparent background and framing. Do not copy image2's weapon. One complete icon, no text or checkerboard.
+```
+
+## Smaller emblems and decorative clearance · 24-10-2026
+
+Reduced all three face emblems by approximately a quarter, keeping the Dora/Enzo mix and surface-aligned flat paint. Dora's paddle emblem now has a clear wooden margin from the leaves and gold bands. Enzo's round-shield emblem sits slightly higher with shorter whiskers, clear of the decorative leaves. Dora's leaf-shield emblem sits above the exposed central gold rib with a visible green gap and stays clear of the upper ornament and rim.
+
+Used built-in imagegen for the three size edits and the two final shield-clearance edits, each using its preceding selected icon PNG. Repacked only these three cells; copied the remaining thirteen unchanged before WebP encoding. Export: quality 85, alpha quality 100. Verified 1024 × 1024 RGBA, full and intermediate alpha, sixteen occupied cells and clear cell borders. Inspected enlarged emblems and the packed result for decorative clearance.
+
+Exact edit prompts:
+
+### paddle size reduction
+
+```text
+Use case: precise-object-edit. Edit ONLY the painted chinchilla FACE EMBLEM in this existing transparent Grumble Hunt weapon icon. Make the entire face, BOTH ears, cheek outline and ALL whiskers exactly75 percent of their CURRENT width and height (25 percent smaller), preserving its center, character identity, expression, colours, flat painted-inlay finish, surface-aligned rotation and foreshortening. Keep cream-white DORA with pink ears and ruby eyes on the wooden paddle. Restore the original underlying wood grain in the newly exposed area around the shrunken emblem. There must be a generous visible band of plain surface between EVERY part of the emblem (including ear tips and whisker ends) and ALL existing leaves, gold bands, gold frame, trim, stem or ornamental details. The face must overlap NONE of these details. Preserve the exact weapon/shield silhouette, scale, position, perspective, lighting, surface texture and ALL surrounding decorations. Do NOT shrink, enlarge, rotate or redesign the weapon or shield. No new border, raised badge, drop shadow, text, logo, checkerboard or watermark. Actual transparent background. Output the complete original square icon with only the emblem smaller.
+```
+
+### acorn-shield size reduction
+
+```text
+Use case: precise-object-edit. Edit ONLY the painted chinchilla FACE EMBLEM in this existing transparent Grumble Hunt weapon icon. Make the entire face, BOTH ears, cheek outline and ALL whiskers exactly75 percent of their CURRENT width and height (25 percent smaller), preserving its center, character identity, expression, colours, flat painted-inlay finish, surface-aligned rotation and foreshortening. Keep grey ENZO with mauve-pink ears and black eyes on the round acorn shield. Restore the original underlying wood grain in the newly exposed area around the shrunken emblem. There must be a generous visible band of plain surface between EVERY part of the emblem (including ear tips and whisker ends) and ALL existing leaves, gold bands, gold frame, trim, stem or ornamental details. The face must overlap NONE of these details. Preserve the exact weapon/shield silhouette, scale, position, perspective, lighting, surface texture and ALL surrounding decorations. Do NOT shrink, enlarge, rotate or redesign the weapon or shield. No new border, raised badge, drop shadow, text, logo, checkerboard or watermark. Actual transparent background. Output the complete original square icon with only the emblem smaller.
+```
+
+Final clearance refinement:
+
+```text
+Use case: precise-object-edit. Make ONLY a final clearance adjustment to the small grey Enzo emblem painted on this round wooden shield. Keep the head at its CURRENT reduced size and orientation. Move the entire painted head upward by about2 percent of the image height, onto the clear central wooden patch. Shorten all whisker strokes by one third so every whisker end has a clear visible WOODEN GAP from the green leaf decorations below/left/right. No part of Enzo's head, ears, cheeks or whiskers may overlap a green leaf, gold rim or ornament. Restore wood grain in the old exposed area. Preserve the exact weapon, shield rim, leaf decorations, scale, perspective, all other pixels/design, flat painted-inlay style, transparent background and square framing. No text, logo or watermark.
+```
+
+### leaf-shield size reduction
+
+```text
+Use case: precise-object-edit. Edit ONLY the painted chinchilla FACE EMBLEM in this existing transparent Grumble Hunt weapon icon. Make the entire face, BOTH ears, cheek outline and ALL whiskers exactly75 percent of their CURRENT width and height (25 percent smaller), preserving its center, character identity, expression, colours, flat painted-inlay finish, surface-aligned rotation and foreshortening. Keep cream-white DORA with pink ears and ruby eyes on the green leaf shield. Restore the original underlying green leaf texture and veins in the newly exposed area around the shrunken emblem. There must be a generous visible band of plain surface between EVERY part of the emblem (including ear tips and whisker ends) and ALL existing leaves, gold bands, gold frame, trim, stem or ornamental details. The face must overlap NONE of these details. Preserve the exact weapon/shield silhouette, scale, position, perspective, lighting, surface texture and ALL surrounding decorations. Do NOT shrink, enlarge, rotate or redesign the weapon or shield. No new border, raised badge, drop shadow, text, logo, checkerboard or watermark. Actual transparent background. Output the complete original square icon with only the emblem smaller.
+```
+
+Final clearance refinement:
+
+```text
+Use case: precise-object-edit. Edit ONLY the small Dora face emblem on the green shield in this mushroom-lance icon. Keep its current smaller size, flat painted texture, colours, rotated orientation and perspective. Move the ENTIRE face/ears/whiskers upward slightly, about2 percent of canvas height, into the clear green patch below the upper gold ornament. Ensure the chin and lowest whiskers leave a clearly visible GREEN GAP above the raised gold central rib/stem that rises from the shield's bottom point. The face must overlap NONE of that gold rib, outer gold frame, top gold hanging ornament or surrounding decorative parts; shorten whiskers if needed. Restore the green leaf/vein surface exposed by moving the emblem. Keep the whole weapon and shield, all goldwork, leaves, silhouette, scale, placement, lighting, transparent background and framing unchanged. No new objects, text, logos, shadows or checkerboard.
 ```
