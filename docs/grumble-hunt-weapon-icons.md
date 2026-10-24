@@ -12,7 +12,7 @@ Paths are relative to the repository root. Sizes are final encoded bytes.
 
 | File | Decoded size | Bytes | Occupied cells | Generated source size |
 | --- | --- | ---: | ---: | --- |
-| `public/art/hunt/icons-weapons-3.webp` | 1024 × 1024 | 241,594 | 16 | 1254 × 1254 |
+| `public/art/hunt/icons-weapons-3.webp` | 1024 × 1024 | 241,662 | 16 | 1254 × 1254 |
 | `public/art/hunt/icons-weapons-4.webp` | 1024 × 1024 | 248,252 | 16 | 1254 × 1254 |
 | `public/art/hunt/icons-weapons-5.webp` | 1024 × 1024 | 124,248 | 8 | 1254 × 1254 |
 
@@ -230,4 +230,33 @@ Final clearance refinement:
 
 ```text
 Use case: precise-object-edit. Edit ONLY the small Dora face emblem on the green shield in this mushroom-lance icon. Keep its current smaller size, flat painted texture, colours, rotated orientation and perspective. Move the ENTIRE face/ears/whiskers upward slightly, about2 percent of canvas height, into the clear green patch below the upper gold ornament. Ensure the chin and lowest whiskers leave a clearly visible GREEN GAP above the raised gold central rib/stem that rises from the shield's bottom point. The face must overlap NONE of that gold rib, outer gold frame, top gold hanging ornament or surrounding decorative parts; shorten whiskers if needed. Restore the green leaf/vein surface exposed by moving the emblem. Keep the whole weapon and shield, all goldwork, leaves, silhouette, scale, placement, lighting, transparent background and framing unchanged. No new objects, text, logos, shadows or checkerboard.
+```
+
+## Material-integrated engraving · 24-10-2026
+
+Replaced the opaque painted face fills and glossy eye highlights with subdued material-bound marks. Dora on the paddle uses a pale wood-stain/engraved treatment, Enzo on the round shield uses thin woodburn linework and a faint smoky stain, and Dora on the leaf shield uses ochre/olive scored-vein linework. Wood grain or leaf texture runs continuously through the faces. There are no raised cheeks, sticker edges, white eye glints or head-shaped opaque colour blocks. Existing small size, surface orientation and decorative clearance are retained.
+
+Edited the three selected icons with built-in imagegen, using the preceding selected PNG for each as the edit target. Repacked only those cells; copied the other thirteen cells unchanged before WebP encoding. Exported quality 85 with alpha quality 100. Verified 1024 × 1024 RGBA, fully transparent/opaque and intermediate alpha, all sixteen occupied cells and clear cell borders. Inspected enlarged material texture and the final atlas at icon size.
+
+Exact edit prompts:
+
+### paddle engraving
+
+```text
+Use case: precise-object-edit. Edit ONLY the existing SMALL chinchilla face mark on this Grumble Hunt weapon icon. Keep its current reduced size, exact location, surface-aligned rotation and foreshortening, and its clear gaps from all leaves, goldwork and ornament. REDESIGN THE FACE AS A SUBTLE ENGRAVING IN THE EQUIPMENT'S OWN MATERIAL, not a coloured sticker, badge, plush head or opaque painted portrait. Remove the opaque head-shaped face fill, heavy dark perimeter, three-dimensional cheeks, face lighting, rim, shadow, bevel and ALL glossy white eye highlights. Use sparse thin incised/woodburn-style lines for the round dish ears, cheeks, tiny nose, w smile and short whiskers. Eyes are small simple etched ovals with no glossy shine. Existing material grain/veins and surface lighting must pass CONTINUOUSLY through the entire face including cheeks and ears. Keep the face LOW-CONTRAST, quieter than nearby leaves and goldwork, with no head-shaped silhouette floating above the material. Every line lies flat and follows the object's surface. Preserve EVERY other aspect: exact weapon and shield silhouette, material, proportions, framing, position, light, gold trim, leaf decorations, colours and transparent background. No text, logo, watermark, frame, background or checkerboard. Output one complete square icon.
+DORA on the pale driftwood paddle. Use natural PALE WOOD as her face fill, completely uninterrupted wood grain. Thin, softly worn warm-tan engraved lines, no dark head perimeter. Only faint dusty-rose stain inside the ear linework and tiny muted reddish-brown eye/nose details hint at cream-white Dora's pink ears and ruby eyes. No solid cream or white paint; keep the paddle's own wood tone visible everywhere.
+```
+
+### acorn-shield engraving
+
+```text
+Use case: precise-object-edit. Edit ONLY the existing SMALL chinchilla face mark on this Grumble Hunt weapon icon. Keep its current reduced size, exact location, surface-aligned rotation and foreshortening, and its clear gaps from all leaves, goldwork and ornament. REDESIGN THE FACE AS A SUBTLE ENGRAVING IN THE EQUIPMENT'S OWN MATERIAL, not a coloured sticker, badge, plush head or opaque painted portrait. Remove the opaque head-shaped face fill, heavy dark perimeter, three-dimensional cheeks, face lighting, rim, shadow, bevel and ALL glossy white eye highlights. Use sparse thin incised/woodburn-style lines for the round dish ears, cheeks, tiny nose, w smile and short whiskers. Eyes are small simple etched ovals with no glossy shine. Existing material grain/veins and surface lighting must pass CONTINUOUSLY through the entire face including cheeks and ears. Keep the face LOW-CONTRAST, quieter than nearby leaves and goldwork, with no head-shaped silhouette floating above the material. Every line lies flat and follows the object's surface. Preserve EVERY other aspect: exact weapon and shield silhouette, material, proportions, framing, position, light, gold trim, leaf decorations, colours and transparent background. No text, logo, watermark, frame, background or checkerboard. Output one complete square icon.
+ENZO on the round acorn shield. Use the shield's own WARM WOOD as the face, with continuous wood grain. Fine smoky-grey/brown woodburn engraving suggests Enzo's grey fur; only a very faint translucent smoke-grey stain inside parts of the linework, never an opaque grey head shape. Tiny muted mauve-brown ear stain, small charcoal etched eyes/nose with NO highlights. Simplify the facial detail rather than making it bold. Let the leaves and gold rim remain visually stronger.
+```
+
+### leaf-shield engraving
+
+```text
+Use case: precise-object-edit. Edit ONLY the existing SMALL chinchilla face mark on this Grumble Hunt weapon icon. Keep its current reduced size, exact location, surface-aligned rotation and foreshortening, and its clear gaps from all leaves, goldwork and ornament. REDESIGN THE FACE AS A SUBTLE ENGRAVING IN THE EQUIPMENT'S OWN MATERIAL, not a coloured sticker, badge, plush head or opaque painted portrait. Remove the opaque head-shaped face fill, heavy dark perimeter, three-dimensional cheeks, face lighting, rim, shadow, bevel and ALL glossy white eye highlights. Use sparse thin incised/woodburn-style lines for the round dish ears, cheeks, tiny nose, w smile and short whiskers. Eyes are small simple etched ovals with no glossy shine. Existing material grain/veins and surface lighting must pass CONTINUOUSLY through the entire face including cheeks and ears. Keep the face LOW-CONTRAST, quieter than nearby leaves and goldwork, with no head-shaped silhouette floating above the material. Every line lies flat and follows the object's surface. Preserve EVERY other aspect: exact weapon and shield silhouette, material, proportions, framing, position, light, gold trim, leaf decorations, colours and transparent background. No text, logo, watermark, frame, background or checkerboard. Output one complete square icon.
+DORA on the green leaf shield. Use the shield's own GREEN LEAF as the face fill; leaf veins must remain fully visible and CONTINUOUS through the face. Incise her round-ear chinchilla features into the leaf as thin muted ochre/olive-green lines, just a little lighter/darker than surrounding green. Only the faintest dusty rose ear and muted russet eye hints; no cream/white face fill and no dark head outline. Make it feel like naturally scored leaf-vein decoration, integrated into the leaf itself.
 ```
