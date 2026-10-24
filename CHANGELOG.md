@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Grumble Hunt** adds The Grumble Wind story: six chapters, a gentle tutorial calf, painted story pages and replay, four new wilderness areas and four village friends. The ending opens colourful Extra Grumpy beasts and Wren’s three daily bounties. The v4 save carries over earlier naps, scenes, equipment and materials.
+
 - **Grumble Hunt** adds Hop-on: ride a dizzy or sap-stuck beast with the Pinecone Yo-yo or a rock jump, tap out three full bonks, grip through warned bucks, and plop for Dizzy and materials. Includes touch controls, riding poses, sound cues and a Hop-on HUD.
 
 - **Grumble Hunt** adds a free weapon rack for both friends, sixteen playful tools, branching five-tier Forge trees and Glimmer healing, plus five mixable armour sets with matching-piece skills. The Forge shows painted tool icons and material costs, the meadow shows held botanical models and small armour accessories, and v1/v2 progress carries into the new v3 save.

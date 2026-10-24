@@ -69,10 +69,10 @@ export function rollShed(r: Rand, beast: BeastId): MaterialId | null {
   return r() < s.chance ? s.id : null;
 }
 /** The nap reward: `count` commons, one roll for the rare, plus the materials for any broken parts. */
-export function rollCalm(r: Rand, beast: BeastId, brokenParts: readonly string[] = [], bonusRareRolls = 0): MaterialId[] {
+export function rollCalm(r: Rand, beast: BeastId, brokenParts: readonly string[] = [], bonusRareRolls = 0, rareMultiplier = 1): MaterialId[] {
   const d = DROPS[beast], got: MaterialId[] = [];
   for (let i = 0; i < d.calm.count; i++) got.push(d.calm.common[Math.floor(r() * d.calm.common.length)]);
-  for (let i = 0; i <= bonusRareRolls; i++) if (r() < d.calm.rare.chance) got.push(d.calm.rare.id);
+  for (let i = 0; i <= bonusRareRolls; i++) if (r() < Math.min(1, d.calm.rare.chance * rareMultiplier)) got.push(d.calm.rare.id);
   for (const part of brokenParts) if (d.parts[part]) got.push(d.parts[part]);
   return got;
 }

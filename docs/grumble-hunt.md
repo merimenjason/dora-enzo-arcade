@@ -6,9 +6,9 @@ Built 24-10-2026 as game 39, at `/hunt`, from `grumble-hunt-base`.
 
 Choose Dora (white chinchilla) or Enzo (grey chinchilla), then pick a weapon at the rack. Their starting suggestions are the Acorn Hammer and Seed Bow. The other friend follows, helps bonk, and tosses a berry for 28 Fluff when the leader has 45 Fluff or less, with a ten-second berry cooldown. The buddy never loses Fluff.
 
-Clover Camp has three places, reachable on foot with F or through the camp buttons: the Forge, hunt board, and Beast Book. The board offers the first three hunts immediately. Calming three **different** beasts opens both Hornclack and Frostmane. Calming Frostmane ends the story with a victory screen. Open hunts remain replayable, including after victory. New game asks for confirmation and resets only this game.
+Clover Camp has four stations, reachable on foot with F or through the camp buttons: the Forge, hunt board, Beast Book and Pantry. Old Mossback’s hunt board follows story chapters 0–5. Friends already met remain available for free hunts, including after the ending. New game asks for confirmation and resets only this game.
 
-Each hunt uses the same open meadow, with seed-driven trees and rocks. There is no time limit. Bonks lower Grump. At zero, the beast folds its legs and curls up, rests for a moment, and goes to the sanctuary. Beasts are never hurt.
+Each hunt uses its chapter’s area, with trees, pines and rocks; the original meadow keeps its seeded layout. There is no time limit. Bonks lower Grump. At zero, the beast folds its legs and curls up, rests for a moment, and goes to the sanctuary. Beasts are never hurt.
 
 ## The five friends
 
@@ -50,7 +50,7 @@ The second step of the expansion. The Pantry is a striped market stall at Clover
 
 **Gathering.** Each hunt places gathering spots around the meadow by the seeded generator, at 6–15 units from the middle, clear of trees and rocks and at least 3 units apart. Each beast lives in an area: Bristleback in the meadow (3 berry bushes), Puffwart in the marsh (2 bushes, 4 reed clumps), Skreel on the ridge (2 bushes, a glimmer sparkle half the time), Hornclack in the hollow (2 bushes, 1 reed clump, a glimmer half the time) and Frostmane on the peak (2 bushes, a glimmer three times in four). Each bush or reed clump gives 2, a glimmer 1. Stand within 1.8 units, press **F** (or the Gather button) and stay still for 1.2 seconds; moving, rolling, bonking, charging or a bump stops it. A cream ring marks the spot in reach and fills as you gather; a picked spot loses its berries, cattails or crystals. On the Gather order the buddy visits spots after any drops.
 
-**Items.** Camp tops the pouch up to three fluffberries before every hunt. Recipes open with the story chapter, which is one more than the number of different beasts that have napped:
+**Items.** Camp tops the pouch up to three fluffberries before every hunt. Recipes open with the current story chapter (the Pantry begins in chapter 2):
 
 | Item | Recipe | Holds | Effect | Opens |
 | --- | --- | --- | --- | --- |
@@ -71,7 +71,7 @@ Healing is capped at max Fluff and refused at full Fluff; a bell is refused when
 
 ## The Forge
 
-After choosing a hero, the rack offers fourteen free basic weapons. Bubble Wand opens at chapter 3 (two different naps), Pinecone Yo-yo at chapter 4 (three); the existing chapter getter remains in charge. Both friends can use every open weapon. Beyond the two tier-one compatibility tools, Bonk and Dizzy follow the content stats and tier multipliers. At the Forge, choose Dora or Enzo before clicking a rack tool; the buddy remembers their own equipment when you switch leaders.
+After choosing a hero, the rack offers fourteen free basic weapons. Bubble Wand opens in story chapter 3 and Pinecone Yo-yo in chapter 4. Both friends can use every open weapon. Beyond the two tier-one compatibility tools, Bonk and Dizzy follow the content stats and tier multipliers. At the Forge, choose Dora or Enzo before clicking a rack tool; the buddy remembers their own equipment when you switch leaders.
 
 The rack and weapon tab show a live 3D preview of the selected friend holding their equipped tool, drawn at ten frames per second while the menu is open and disposed on close. The weapon tab shows a left-to-right tree: basic, tier 2, branches A and B at tier 3, tier 4, then Glimmer. A node can be crafted only from its direct parent, with the exact materials shown. Tier 2 takes 3 bristle tufts and 2 berries (wart pebbles for Wand and Yo-yo). Tier 3 takes 4 branch commons and 1 part; tier 4 takes 3 branch rares, an icy mane lock and a glimmer stone. Glimmer takes 2 frost fur, 2 mane locks and 2 glimmer stones, keeps both branch perks and heals both friends by 10 Fluff every tenth connecting hit. Bramble cheers for one second after crafting.
 
@@ -91,7 +91,42 @@ Only the leader rides; the buddy keeps its own ground position, equipment and bo
 
 The first warning starts **1.2–1.6 seconds** into the ride. Every buck warns **0.65 seconds** ahead with a tense squash, orange shake mark, sound and “Hold on! (K)”. Bucks last **0.3 seconds**, or **0.5 seconds for Frostmane**. Subsequent buck starts are **1.6–2.6 seconds** apart, from the seeded generator. Letting go during a buck gives a soft landing, **1 second of invincibility**, no Fluff loss, and leaves the meter visible in engine state until another ride or hunt reset. Roll hops off freely at any time. A new ride starts with an empty meter.
 
-**Time and plop.** The ride ends when the current dizzy / sap timer ends or after **8 seconds**, whichever comes first. Boarhog Spinner’s Long Hop adds **2 seconds** to both the cap and the current dizzy / sap duration at entry. Three full bonks make a **plop**: +30 Dizzy, a fresh **3.2-second** dizzy opening, a seeded part chance of `min(1, part / (maxGrump × 0.32))` if the part has not already popped, and **2 commons** chosen uniformly from that beast’s calm-drop commons through the seeded generator. The plop adds no extra Grump reduction. The beast tips sideways with stars, the leader hops off, and the result card remembers the plop reward. All ride state resets at village, camp, nap or tuckered out; rides are not saved, so the save key stays `grumble-hunt-v3`.
+**Time and plop.** The ride ends when the current dizzy / sap timer ends or after **8 seconds**, whichever comes first. Boarhog Spinner’s Long Hop adds **2 seconds** to both the cap and the current dizzy / sap duration at entry. Three full bonks make a **plop**: +30 Dizzy, a fresh **3.2-second** dizzy opening, a seeded part chance of `min(1, part / (maxGrump × 0.32))` if the part has not already popped, and **2 commons** chosen uniformly from that beast’s calm-drop commons through the seeded generator. The plop adds no extra Grump reduction. The beast tips sideways with stars, the leader hops off, and the result card remembers the plop reward. All ride state resets at village, camp, nap or tuckered out; rides are not saved; permanent progress now uses `grumble-hunt-v4`.
+
+## Story mode · The Grumble Wind
+
+Old Mossback sends Dora and Enzo after the cold, cranky wind. The hunt board follows the six chapters in `STORY`: **0 · A Grumpy Morning**, **1 · The Huffy Hog**, **2 · Snores in Soggy Marsh**, **3 · Swoops over Windy Ridge**, **4 · The Stubborn Beetle**, and **5 · The Frosty Peak**. The first chapter that has not cleared is the current chapter. The tutorial Bristleback calf has **40 Grump**, is drawn at **55% size**, and starts no attacks for its first **20 seconds**. Its small fenced paddock has a twelve-unit walking radius.
+
+Painted intro pages play before the chapter's hunt. Its first nap opens the outro before the reward card. Tap the painting or paper, press **Enter** or **J**, or use Next page; **Skip** skips the whole scene. The Beast Book's **Story** list replays seen intros and outros. Frostmane's outro mends the Glimmer Stone, followed by **The End · free hunt is open**.
+
+The Forge opens after the calf; the Bristle armour set opens after chapter 1. The Pantry and snacks open when chapter 2 begins, gathering and the Bubble Wand in chapter 3, and traps and the Pinecone Yo-yo in chapter 4. Other armour sets open with their beast's chapter. Basic tools can be chosen at the initial rack. Locked recipes and tools carry chapter hints. Free hunts remain open for beasts already met, including after the ending.
+
+Frostmane already has three phases, retained here: above two thirds Grump it pounces and rests **2.0 s**; below two thirds it alternates pounces and mane shakes and rests **1.7 s**; below one third its pattern is pounce, pounce, shake and its rests shorten to **1.4 s**. Pounce bumps add the phase number to 17 Fluff. Every new attack warns for **0.9 s**, or **0.8 s** while enraged, safely above the 0.6-second minimum.
+
+Old Mossback is a moss-shelled tortoise with glasses and a walking stick at the hunt board. Bramble is an apron-wearing hedgehog at the Forge; Pip is a round-eared degu with a scarf at the Pantry; Wren is a small bird with a note satchel at the Beast Book. Repeated villager primitives are batched, with tiny figures excluded from extra shadow and outline passes. The toon figures bob near the leader; use **F** at their station or its camp button to open their panel. Wren's Beast Book links to the bounty board.
+
+## Areas
+
+Each hunt uses its chapter area, or `HUNT_AREA` on a free hunt. Collision tables use tree, pine and rock obstacles; the meadow's original thirty-obstacle seeded layout is unchanged. The four other wilderness layouts are fixed tables with clear centres. All use the same camera, movement and world-building code.
+
+| Area | Drawing |
+| --- | --- |
+| Village paddock | Small wooden fence, meadow ground and the smaller calf |
+| Clover Meadow | Original painted grass, dirt, trees and boulders |
+| Soggy Marsh | Mud, lavender fog and sky, shallow water, lily pads and painted reeds |
+| Windy Ridge | Slate, bright sky, bent pine trunks and conical crowns, standing stones and flags |
+| Pebble Hollow | Sand, warm canyon sky, stacked boulders, crystal nubs, burrows and mushroom cards |
+| Frosty Peak | Snow and ice, winter sky, snowy firs, ice spires, split Glimmer Stone shrine and eighty instanced falling sparkles |
+
+Area ground, sky and card textures are disposed when switching, including late loads. Shared meadow textures are retained for camp. Snowfall and villager bobbing respect reduced motion. Browser metrics expose the area and visible villager count.
+
+## Post-game
+
+The ending unlocks **Extra Grumpy variants** on the hunt board: **×1.6 Grump**, **×2 rare-roll probability** (capped at 100%), and a new coat colour. The colours are blond Bristleback, blue Puffwart, lavender Skreel, peach Hornclack and rose Frostmane. The usual below-30% enrage still applies, with its 15% pace increase and 0.8-second warning. Variants use the ordinary beast's material table and can still benefit from Lucky Seed Bun's extra roll.
+
+**Wren's bounty board** offers three distinct tasks from a pool of ten: a nap without items, Bristleback tusks, Puffwart sac, Skreel crest, Hornclack horn cap, Frostmane mane, a nap without a bump, three gathering spots, three dizzy openings, or any lovely nap. Checks use actual hunt facts, including the buddy's gathering. Tasks are checked when the beast naps. Each claim gives **3 berries, 2 bristle tufts and 2 wart pebbles**, subject to pouch caps, once per task that day. Ready and claimed tasks persist across reloads. These are optional favours; no story progress requires them.
+
+The page passes a local-calendar `YYYY-MM-DD` string to the engine and updates it at midnight (checked once a minute). A separate date-seeded shuffle picks the same three tasks for the same date without advancing hunt randomness. Changing the day clears ready and claimed tasks. Browser checks can set a fixed date with `window.__hunt().game.setBountyDay(...)`.
 
 ## Controls and accessibility
 
@@ -123,7 +158,9 @@ The field guide is always available, panels trap focus, buttons have visible foc
 - `app/hunt/page.tsx`: input, hydration, loop, HUD, panels and storage.
 - `app/hunt/sound.ts`: gesture-unlocked synthesised cues and audio cleanup.
 
-Permanent progress is saved under `grumble-hunt-v3`: selected hero, all sixteen weapon tiers and branches, each friend’s equipped weapon, owned and worn armour, the pouch, ring, packed snack, nap counts and hunt count. With no v3 save, v2 is read first, then v1: old hammer and bow levels 1–3 become tiers 1–3 (branch A at tier 3), and the existing v1 material migration is retained. The final bonk is saved before its animation finishes. **Reloading returns to camp**, rather than resuming an encounter. Version and numeric fields are checked when loading. `grumble-hunt-sound-v1` stores mute separately. `window.__hunt()` exposes `{ game, refresh, metrics, input }` for browser tests and inspection. It does not run a bot by itself.
+Permanent progress is saved under `grumble-hunt-v4`: selected hero, all weapon tiers and branches, each friend's equipped weapon, owned and worn armour, pouch, ring, packed snack, nap counts and hunt count. It adds `story: { chapter, scenesSeen }`, `beastBook` entries (`met`, `napped`, `partsBroken`), `bounties: { day, done, ready }` and `extraGrumpyUnlocked`. The extra `ready` list keeps unclaimed completed daily tasks across reloads.
+
+The page reads v4, then v3, v2 and v1. Old nap counts clear matching chapters, with chapter 0 cleared if any beast napped; the first remaining chapter is current. Matching old scenes count as seen, including chapters beyond a gap. Equipment and pouch carry over unchanged from v3; v2 and v1 retain the earlier level and material migrations. The loader validates versions, numeric ranges, known scene/part/task identifiers, arrays and booleans. Reloading returns safely to camp. The final bonk saves progress before the nap animation ends. Sound still uses `grumble-hunt-sound-v1`; `window.__hunt()` exposes `{ game, refresh, metrics, input }` for checks.
 
 ## Drawing and resource budget
 
@@ -202,3 +239,13 @@ Step 4 adds **70 engine checks total**, including connecting Yo-yo entry, outwar
 The bot uses the earned Yo-yo unlock on later hunts, takes available rock jumps, taps while riding and grips through bucks. It calmed **120/120 beasts in 24 campaigns**, with **96 rides and 96 plops**, all 120 beasts becoming Extra Grumpy, 24 of each beast and 40 with each buddy order. It crafted **56 fluffberries**, bought **26 tree upgrades** and **72 armour pieces**, and needed **one attempt per hunt**. Median hunt **29.8 s**, slowest **112.0 s**.
 
 `npm run typecheck`, `npm run test:grumble-hunt`, `npm run bot:grumble-hunt` and the full `npm test` suite pass, including the README consistency check. The browser suite adds a real keyboard Yo-yo ride, five J taps, the HUD pip and grip prompt, metrics and a free roll off, with screenshots at `.checks/hunt/hop-on-rider.png` and `.checks/hunt/hop-on-hold-on.png`. Its JavaScript syntax was checked; Chromium was unavailable, so this browser check and its screenshots have **not been run or captured**.
+
+### Story mode run results · 24-10-2026
+
+Step 5 adds chapters 0–5, story pages and replay, the tutorial paddock, four wilderness areas, four village figures, post-game variants and Wren's daily tasks, with v1/v2/v3 migration into v4. The engine suite now has **80 checks**, including tutorial timing, chapter gates and progression, per-area layouts, variants and rare chances, all ten bounty checks, one-time claims, strict new save fields, migration and seeded story replay. Existing content checks continue covering recipes, tree costs, branch perks, armour and earning paths.
+
+The existing bot calmed **120/120 beasts in 24 campaigns**, with **96 rides and 96 plops**, all 120 beasts becoming enraged, **48 fluffberries crafted**, **12 upgrades** and **71 armour pieces**. Median **29.8 s**, slowest **111.0 s**. The new story bot completed **144/144 chapters in 24 campaigns**, bought **11 upgrades** and **72 armour pieces**, with median **27.8 s**, slowest **143.9 s**. Both needed **one attempt per hunt**, below the enforced six-attempt limit. Bots buy the cheapest affordable next tool node and armour from earned materials; gathering-order campaigns also earn berries for upgrades. No gear or pouch materials are injected into the story bot.
+
+Browser checks were added for intro/Enter/Skip, the paddock calf and outro, four visible village figures, each wilderness area with screenshot destinations, a fixed-date three-card bounty board, variant colour, v3 migration and scene replay. Existing browser fixtures explicitly set story progress through `window.__hunt()`. Browser JavaScript is syntax-checked. **Chromium was not run; new screenshots and visual/frame-budget checks remain unverified.**
+
+Validation: `npm run typecheck`, `npm run test:grumble-hunt`, `npm run bot:grumble-hunt` and the full `npm test` suite passed. Browser-test syntax and `git diff --check` passed. The local Graft graph was refreshed; no commit or push was made.

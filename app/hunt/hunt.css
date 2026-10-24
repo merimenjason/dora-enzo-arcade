@@ -46,3 +46,5 @@
 .hunt-forge-tabs label{display:flex;align-items:center;gap:8px;margin-left:6px;font-size:13px;font-weight:750}
 .hunt-forge-tabs select{font:inherit;min-height:36px;padding:4px 10px;border:1px solid #d5c3a3;border-radius:10px;background:#fff9eb;color:#43352d;cursor:pointer}
 .hunt-rack button[aria-pressed="true"]{outline-offset:-3px}
+
+.hunt-panel-story{width:min(980px,96vw);padding:0;overflow:hidden}.hunt-story-painting{width:100%;height:min(55vh,520px);object-fit:cover;cursor:pointer}.hunt-story-paper{display:flex;align-items:center;gap:1rem;padding:1rem 2rem;background:#fff3d4;min-height:150px;cursor:pointer}.hunt-story-paper p{font-size:clamp(1.1rem,2.2vw,1.5rem);color:#43372d}.hunt-story>button{margin:.5rem 1rem}.hunt-story-chapters{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.6rem;margin:1rem 0}.hunt-story-chapters button{display:flex;flex-direction:column;gap:.4rem;text-align:left}.hunt-swatch{display:inline-block;width:1.2rem;height:1.2rem;border-radius:50%;margin-left:.6rem;border:2px solid #4b4035}

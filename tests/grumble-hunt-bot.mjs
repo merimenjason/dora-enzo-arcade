@@ -1,15 +1,16 @@
 import assert from 'node:assert/strict';
 import { HuntGame, BEAST_IDS, ORDERS, DT } from '../.checks/grumble-hunt-game.js';
-import { nextNodes, SLOTS, armourCost } from '../.checks/grumble-hunt-content.js';
+import { STORY, nextNodes, SLOTS, armourCost } from '../.checks/grumble-hunt-content.js';
 import { huntPolicy } from './grumble-hunt-policy.mjs';
 const times = [], totals = Object.fromEntries(BEAST_IDS.map((id) => [id, 0])), byOrder = Object.fromEntries(ORDERS.map((o) => [o, 0]));
 let rides = 0, plops = 0, grumpy = 0, crafted = 0, upgrades = 0, armour = 0;
 const seeds = Number(process.env.HUNT_SEEDS || 12);
 for (const hero of ['dora', 'enzo']) for (let seed = 1; seed <= seeds; seed++) {
-  const g = new HuntGame(seed); g.chooseHero(hero);
+  const g = new HuntGame(seed); g.chooseHero(hero); for (const id of BEAST_IDS) g.profile.beastBook[id].met = true;
   // Each seed keeps one buddy order for the whole campaign, so every order has to be able to finish it.
   while (g.order !== ORDERS[seed % ORDERS.length]) g.commandBuddy(1);
   for (const id of BEAST_IDS) {
+    g.story.chapter = BEAST_IDS.indexOf(id) + 1;
     g.returnVillage();
     if (g.chapter >= 4) assert(g.equip('yoyo')); // Exercise the easy Hop-on path with earned unlocks.
     for (;;) { const choices = nextNodes(g.node().id).filter((n) => g.canForge(n.id)).sort((a, b) => Object.values(a.cost).reduce((s, n) => s + n, 0) - Object.values(b.cost).reduce((s, n) => s + n, 0)); if (!choices.length) break; assert(g.forge(choices[0].id)); upgrades++; }
@@ -31,3 +32,30 @@ console.log(`Hop-on: ${rides} rides; ${plops} plops.`);
 console.log(`Grumble Hunt bot: ${seeds * 2} full campaigns, ${times.length} / ${times.length} beasts calmed.`);
 assert.equal(grumpy, times.length, 'every calmed beast went Extra Grumpy on the way');
 console.log(`By beast: ${JSON.stringify(totals)}. By buddy order: ${JSON.stringify(byOrder)}. Extra Grumpy: ${grumpy}. Fluffberries crafted: ${crafted}. Tree upgrades: ${upgrades}; armour pieces: ${armour}; maximum attempts per hunt: 1 (limit 6). Median hunt ${times[Math.floor(times.length / 2)].toFixed(1)}s; slowest ${times.at(-1).toFixed(1)}s.`);
+
+const storyTimes = []; let maxAttempts = 0, storyUpgrades = 0, storyArmour = 0;
+for (const hero of ['dora', 'enzo']) for (let seed = 1; seed <= seeds; seed++) {
+  const g = new HuntGame(seed); g.chooseHero(hero);
+  while (g.order !== ORDERS[seed % ORDERS.length]) g.commandBuddy(1);
+  for (const chapter of STORY) {
+    let cleared = false;
+    for (let attempt = 1; attempt <= 6 && !cleared; attempt++) {
+      g.returnVillage();
+      for (;;) {
+        const choices = nextNodes(g.node().id).filter((n) => g.canForge(n.id)).sort((a, b) => Object.values(a.cost).reduce((n, v) => n + v, 0) - Object.values(b.cost).reduce((n, v) => n + v, 0));
+        if (!choices.length) break; assert(g.forge(choices[0].id)); storyUpgrades++;
+      }
+      const pieces = BEAST_IDS.flatMap((id) => SLOTS.map((slot) => `${id}-${slot}`)).filter((piece) => g.canMakeArmour(piece)).sort((a, b) => Object.values(armourCost(a)).reduce((n, v) => n + v, 0) - Object.values(armourCost(b)).reduce((n, v) => n + v, 0));
+      for (const piece of pieces) if (!g.profile.armour.worn[piece.split('-')[1]] && g.makeArmour(piece)) { g.wear(piece); storyArmour++; }
+      while (g.craft('fluffberry')) { /* earned berries only */ }
+      assert(g.startChapter()); let steps = 0;
+      while (g.mode === 'hunt' && steps++ < 600 / DT) { g.step(DT, huntPolicy(g)); g.events.length = 0; }
+      if (g.mode === 'nap') { cleared = true; maxAttempts = Math.max(maxAttempts, attempt); storyTimes.push(steps * DT); }
+    }
+    assert(cleared, `${hero} seed ${seed}, chapter ${chapter.id} must clear within six attempts`);
+    assert.equal(g.chapter, chapter.id + 1);
+  }
+  assert(g.profile.extraGrumpyUnlocked);
+}
+storyTimes.sort((a, b) => a - b);
+console.log(`Story bot: ${seeds * 2} campaigns, ${storyTimes.length}/${seeds * 2 * STORY.length} chapters cleared; maximum attempts ${maxAttempts}/6; ${storyUpgrades} upgrades, ${storyArmour} armour pieces; median ${storyTimes[Math.floor(storyTimes.length / 2)].toFixed(1)}s, slowest ${storyTimes.at(-1).toFixed(1)}s.`);

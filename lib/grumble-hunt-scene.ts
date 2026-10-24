@@ -1,7 +1,7 @@
 import * as T from 'three';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { createHuntChinchilla, animateHuntChinchilla, poseArms, type HuntChinchilla } from './hunt-chinchilla';
-import { BEASTS, BEAST_IDS, GATHER_TIME, MATERIAL_IDS, SPOTS, type BeastId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
+import { BEASTS, BEAST_IDS, VARIANT_COLORS, GATHER_TIME, MATERIAL_IDS, SPOTS, type BeastId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
 import { createHuntWeapons } from './grumble-hunt-weapons';
 import { MATERIALS } from './grumble-hunt-content';
 
@@ -28,7 +28,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const scene = new T.Scene(); scene.background = new T.Color(0xb7d9ee); scene.fog = new T.Fog(0xc8dfd2, 34, 90);
   const camera = new T.PerspectiveCamera(64, 1, 0.15, 180);
   const target = V(0, 1.5, 4);
-  let yaw = 0, pitch = 0.4, dist = 8.8, userOrbit = 0, closed = false, currentWorld = '', frame = 0;
+  let yaw = 0, pitch = 0.4, dist = 8.8, userOrbit = 0, closed = false, currentWorld = '', currentArea = 'meadow', frame = 0;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const textures = new Set<T.Texture>();
   const loader = new T.TextureLoader();
@@ -40,13 +40,13 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const m = new T.MeshToonMaterial({ color, gradientMap: ramp, map: map ?? null }); if (!outlineOn) noOutline(m); materials.add(m); return m;
   };
   function texture(name: string, repeat = 1) {
-    const t = loader.load(`/art/hunt/${name}.webp`, (loaded) => { if (closed) loaded.dispose(); }, undefined, () => { if (!closed) failed('Some paintings could not load. The meadow is still playable. Reload to try them again.'); });
+    const t = loader.load(`/art/hunt/${name}.webp`, (loaded) => { if (closed || !textures.has(loaded)) loaded.dispose(); }, undefined, () => { if (!closed) failed('Some paintings could not load. The meadow is still playable. Reload to try them again.'); });
     t.colorSpace = T.SRGBColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(repeat, repeat); t.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy()); textures.add(t); return t;
   }
   const grassMap = texture('tex-meadow-grass', 32), dirtMap = texture('tex-meadow-dirt', 5), bark = texture('tex-bark', 2), rock = texture('tex-rock', 2), fur = texture('tex-boar-fur', 3);
   const leaf = texture('leaf-cluster'), tuft = texture('grass-tuft');
   leaf.wrapS = leaf.wrapT = tuft.wrapS = tuft.wrapT = T.ClampToEdgeWrapping;
-  const sky = loader.load('/art/hunt/sky-meadow.webp', (t) => { if (closed) t.dispose(); else { t.mapping = T.EquirectangularReflectionMapping; t.colorSpace = T.SRGBColorSpace; scene.background = t; } }, undefined, () => { if (!closed) failed('The sky painting is taking a nap. You can still play.'); });
+  const sky = loader.load('/art/hunt/sky-meadow.webp', (t) => { if (closed) t.dispose(); else if (currentArea === 'meadow' || currentArea === 'paddock') { t.mapping = T.EquirectangularReflectionMapping; t.colorSpace = T.SRGBColorSpace; scene.background = t; } }, undefined, () => { if (!closed) failed('The sky painting is taking a nap. You can still play.'); });
   textures.add(sky);
   scene.add(new T.HemisphereLight(0xeaf6ff, 0x7c9d55, 1.4));
   const sun = new T.DirectionalLight(0xfff1da, 1.8); sun.position.set(12, 22, 14); sun.castShadow = true; sun.shadow.mapSize.setScalar(phone ? 512 : 1024);
@@ -120,19 +120,91 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   }
   const villageBlockerCount = blockers.length;
   const campPath = mesh(scene, plane, dirtMat, [0, 0.015, 12], [3.5, 10, 1], false); campPath.rotation.x = -Math.PI / 2;
+  const areaMaps: T.Texture[] = [];
+  const areaCard = noOutline(new T.MeshToonMaterial({ color: 0xffffff, gradientMap: ramp, alphaTest: 0.35, side: T.DoubleSide })); materials.add(areaCard);
+  const waterMat = toon(0x7fabb5, undefined, false), lilyMat = toon(0x79a45b), iceMat = toon(0xa7dce9), snowMat = toon(0xf4f5ff), flagMat = toon(0xe3b672);
+  function switchArea(area: string) {
+    if (area === currentArea) return;
+    currentArea = area;
+    groundMat.map = grassMap; dirtMat.map = dirtMap; areaCard.map = null; scene.background = sky;
+    for (const t of areaMaps.splice(0)) { textures.delete(t); t.dispose(); }
+    const data: Record<string, [string, string, string, number]> = {
+      marsh: ['tex-marsh-mud', 'sky-marsh', 'card-reeds', 0xb3a6c1], ridge: ['tex-ridge-slate', 'sky-ridge', 'card-pine', 0xc5ddeb],
+      hollow: ['tex-hollow-sand', 'sky-hollow', 'card-mushrooms', 0xe6c5a4], peak: ['tex-peak-snow', 'sky-peak', 'card-snowfir', 0xc8d4e9],
+    };
+    const d = data[area];
+    groundMat.color.set(d ? 0xffffff : 0xd4dfbd); dirtMat.color.set(d ? 0xffffff : 0xe8d9bd);
+    scene.fog = new T.Fog(d?.[3] ?? 0xc8dfd2, 34, 90);
+    grass.visible = grassTufts.visible = !d || area === 'ridge';
+    if (d) {
+      const ground = texture(d[0], 32), paintedSky = texture(d[1]), card = texture(d[2]); areaMaps.push(ground, paintedSky, card);
+      paintedSky.mapping = T.EquirectangularReflectionMapping; paintedSky.wrapS = paintedSky.wrapT = T.ClampToEdgeWrapping;
+      card.wrapS = card.wrapT = T.ClampToEdgeWrapping; groundMat.map = ground; dirtMat.map = ground; areaCard.map = card; scene.background = paintedSky;
+      if (area === 'peak') { const ice = texture('tex-peak-ice', 5); areaMaps.push(ice); dirtMat.map = ice; }
+    }
+    foliage.map = d ? areaCard.map : leaf; foliage.needsUpdate = true;
+    groundMat.needsUpdate = dirtMat.needsUpdate = areaCard.needsUpdate = true;
+  }
+  const snowfall = new T.InstancedMesh(ico, snowMat, 80); snowfall.visible = false; scene.add(snowfall);
+  /** Batch repeated villager primitives and keep their tiny details out of shadow/outline passes. */
+  const villagerMaterials = new Map<T.Material, T.Material>();
+  function batchVillager(root: T.Group) { batchMeshes(root, true); }
+  function batchMeshes(root: T.Group, plain: boolean) {
+    const groups = new Map<string, T.Mesh[]>();
+    for (const child of [...root.children]) if (child instanceof T.Mesh && !Array.isArray(child.material)) {
+      const key = `${child.geometry.uuid}:${child.material.uuid}`;
+      const list = groups.get(key) ?? []; list.push(child); groups.set(key, list);
+    }
+    for (const list of groups.values()) {
+      const original = list[0].material as T.Material;
+      let material = plain ? villagerMaterials.get(original) : original;
+      if (!material) { material = noOutline(original.clone()); villagerMaterials.set(original, material); materials.add(material); }
+      const batch = new T.InstancedMesh(list[0].geometry, material, list.length);
+      if (!plain) { batch.castShadow = list[0].castShadow; batch.receiveShadow = list[0].receiveShadow; }
+      list.forEach((child, i) => { child.updateMatrix(); batch.setMatrixAt(i, child.matrix); root.remove(child); });
+      root.add(batch);
+    }
+  }
+  const villagers: { root: T.Group; x: number; z: number }[] = [];
+  for (const [i, station] of SPOTS.entries()) {
+    const root = new T.Group(); root.position.set(station.x + 2.2, 0, station.z + 1.3); village.add(root);
+    const bodyMat = toon([0x986842, 0x82a15a, 0xb08a63, 0xbc9a75][i]), faceMat = toon(0xe3c89c);
+    const body = mesh(root, sphere, bodyMat, [0, 0.6, 0], [0.45, 0.6, 0.4]);
+    mesh(root, sphere, faceMat, [0, 1.2, 0.18], [0.36, 0.34, 0.32]);
+    for (const x of [-0.14, 0.14]) { mesh(root, sphere, ink, [x, 1.26, 0.47], [0.045, 0.055, 0.035], false); mesh(root, sphere, bodyMat, [x * 1.6, 0.12, 0.16], [0.17, 0.12, 0.24]); }
+    if (station.id === 'board') { // Mossback: domed moss shell, round glasses, walking stick.
+      body.scale.set(0.65, 0.48, 0.65); mesh(root, sphere, canopyMat, [0, 0.75, -0.2], [0.65, 0.45, 0.65]);
+      mesh(root, cylinder, wood, [0.58, 0.65, 0.15], [0.045, 1.25, 0.045]);
+      for (const x of [-0.15, 0.15]) { const glasses = mesh(root, sphere, gold, [x, 1.27, 0.46], [0.115, 0.12, 0.025]); glasses.material = gold; mesh(root, sphere, ink, [x, 1.27, 0.49], [0.055, 0.065, 0.02], false); }
+    } else if (station.id === 'forge') { // Bramble's soft spikes and apron.
+      for (let j = 0; j < 7; j++) { const a = j / 7 * 6.28; mesh(root, cone, wood, [Math.cos(a) * 0.35, 0.95 + Math.sin(a) * 0.28, -0.25], [0.18, 0.45, 0.18]); }
+      mesh(root, cube, cream, [0, 0.58, 0.38], [0.5, 0.55, 0.06]);
+    } else if (station.id === 'pantry') { // Pip's round ears, scarf and curled tail.
+      for (const x of [-0.3, 0.3]) mesh(root, sphere, bodyMat, [x, 1.48, 0.05], [0.2, 0.22, 0.1]);
+      mesh(root, cylinder, rose, [0, 0.97, 0.15], [0.36, 0.12, 0.33]); mesh(root, sphere, bodyMat, [0.4, 0.4, -0.35], [0.18, 0.3, 0.45]);
+    } else { // Wren's beak, wings and note satchel.
+      mesh(root, cone, gold, [0, 1.2, 0.56], [0.13, 0.28, 0.13]).rotation.x = Math.PI / 2;
+      for (const x of [-0.4, 0.4]) mesh(root, sphere, bodyMat, [x, 0.7, 0], [0.15, 0.4, 0.3]);
+      mesh(root, cube, cream, [0.35, 0.5, 0.3], [0.3, 0.35, 0.15]);
+    }
+    batchVillager(root);
+    villagers.push({ root, x: root.position.x, z: root.position.z });
+  }
   function buildWorld(game: HuntGame) {
+    switchArea(game.mode === 'village' || game.mode === 'camp' ? 'meadow' : game.area);
     // Reuse a shared set of geometries and materials when hunts change.
-    while (world.children.length) { const child = world.children[0]; if (child instanceof T.InstancedMesh) child.dispose(); world.remove(child); }
+    while (world.children.length) { const child = world.children[0]; child.traverse((o) => { if (o instanceof T.InstancedMesh) o.dispose(); }); world.remove(child); }
     canopyPositions.length = 0; canopyShown.length = 0;
     blockers.length = villageBlockerCount;
-    const trees = game.obstacles.filter((o) => o.kind === 'tree');
+    const trees = game.obstacles.filter((o) => o.kind === 'tree' || o.kind === 'pine');
     const trunks = new T.InstancedMesh(cylinder, barkMat, trees.length);
-    crowns = new T.InstancedMesh(ico, canopyMat, trees.length);
+    crowns = new T.InstancedMesh(trees.some((o) => o.kind === 'pine') ? cone : ico, canopyMat, trees.length);
     leafCards = new T.InstancedMesh(plane, foliage, trees.length);
     trunks.castShadow = true; trunks.receiveShadow = true;
     world.add(trunks, crowns!, leafCards); blockers.push(trunks);
     const identity = new T.Quaternion();
     trees.forEach((o, i) => {
+      identity.setFromAxisAngle(V(0, 0, 1), o.kind === 'pine' && currentArea === 'ridge' ? -0.14 : 0);
       matrix.compose(V(o.x, 2, o.z), identity, V(o.r * 0.65, 4, o.r * 0.65)); trunks.setMatrixAt(i, matrix);
       matrix.compose(V(o.x, 3.7, o.z), identity, V(1.6, 1.5, 1.6)); crowns!.setMatrixAt(i, matrix);
       canopyPositions.push(V(o.x, 4.2, o.z)); canopyShown.push(1);
@@ -141,6 +213,25 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     for (const o of game.obstacles) {
       if (o.kind === 'rock') { const m = mesh(world, ico, rockMat, [o.x, o.r * 0.5, o.z], [o.r, o.r * 0.8, o.r]); m.rotation.y = o.x; blockers.push(m); }
     }
+    if (currentArea !== 'meadow' && currentArea !== 'paddock') {
+      const cards = new T.InstancedMesh(plane, areaCard, 12); world.add(cards);
+      for (let i = 0; i < 12; i++) { const a = i / 12 * 6.28; matrix.compose(V(Math.cos(a) * 20, 1.6, Math.sin(a) * 20), upright, V(3, 3.2, 1)); cards.setMatrixAt(i, matrix); }
+    }
+    // Area props are batched into one instanced mesh per shape and material, to keep draw calls in budget.
+    const props = new T.Group(); world.add(props);
+    if (currentArea === 'paddock') {
+      for (let i = 0; i < 24; i++) { const a = i / 24 * 6.28, next = (i + 1) / 24 * 6.28; mesh(props, cylinder, wood, [Math.cos(a) * 13, 0.6, Math.sin(a) * 13], [0.1, 1.2, 0.1]); const rail = mesh(props, cube, wood, [(Math.cos(a) + Math.cos(next)) * 6.5, 0.7, (Math.sin(a) + Math.sin(next)) * 6.5], [3.5, 0.12, 0.12]); rail.rotation.y = -a - Math.PI / 2; }
+    }
+    for (let i = 0; i < 6; i++) {
+      const x = Math.cos(i * 2.1) * 14, z = Math.sin(i * 2.1) * 14;
+      if (currentArea === 'marsh') { mesh(props, cylinder, waterMat, [x, 0.025, z], [3, 0.025, 2], false); for (let k = 0; k < 3; k++) mesh(props, cylinder, lilyMat, [x + k - 1, 0.07, z + k * 0.3], [0.45, 0.02, 0.4], false); }
+      if (currentArea === 'ridge') { mesh(props, ico, rockMat, [x, 1.6, z], [0.6, 2, 0.7]); mesh(props, cylinder, wood, [x + 1, 1.7, z], [0.04, 3.4, 0.04]); mesh(props, plane, flagMat, [x + 1.4, 2.9, z], [0.8, 0.5, 1], false); }
+      if (currentArea === 'hollow') { mesh(props, ico, rockMat, [x, 0.8, z], [1.5, 0.8, 1.2]); mesh(props, ico, rockMat, [x, 1.7, z], [1, 0.6, 0.8]); mesh(props, cone, iceMat, [x + 1, 0.4, z], [0.35, 0.9, 0.35]); mesh(props, sphere, ink, [x - 1, 0.04, z], [0.6, 0.04, 0.5], false); }
+      if (currentArea === 'peak') { mesh(props, cone, iceMat, [x, 1, z], [0.65, 2, 0.65]); mesh(props, cone, snowMat, [x - 2, 2, z], [1.2, 3.5, 1.2]); }
+    }
+    if (currentArea === 'marsh') for (let i = 0; i < 3; i++) { const x = -13 + i * 12, z = 11 - i * 8; mesh(props, cylinder, barkMat, [x, 0.35, z], [0.35, 2.4, 0.35]).rotation.z = Math.PI / 2; mesh(props, cylinder, cream, [x + 1, 0.3, z + 1], [0.12, 0.6, 0.12]); mesh(props, sphere, rose, [x + 1, 0.65, z + 1], [0.45, 0.17, 0.45]); }
+    if (currentArea === 'peak') { mesh(props, cylinder, rockMat, [0, 0.3, -15], [2.5, 0.6, 2.5]); for (const x of [-0.45, 0.45]) mesh(props, ico, iceMat, [x, 1.6, -15], [0.65, 1.4, 0.6]).rotation.z = x * 0.3; }
+    batchMeshes(props, false);
     spotRigs.length = 0;
     for (const s of game.spots) {
       const root = new T.Group(), fruit = new T.Group(); root.position.set(s.x, 0, s.z); root.rotation.y = s.id; root.add(fruit); world.add(root);
@@ -155,6 +246,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
         mesh(root, ico, rockMat, [0, 0.25, 0], [0.7, 0.4, 0.6]);
         for (let k = 0; k < 4; k++) { const c = mesh(fruit, starGeo, crystalMat, [Math.cos(k * 1.6) * 0.3, 0.6 + (k % 2) * 0.2, Math.sin(k * 1.6) * 0.3], [1.4, 2.6 - k * 0.3, 1.4], false); c.rotation.z = (k - 1.5) * 0.3; }
       }
+      batchMeshes(root, false); batchMeshes(fruit, false);
       spotRigs.push({ id: s.id, root, fruit, material: s.material });
     }
   }
@@ -189,6 +281,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const legs: T.Group[] = [], wings: T.Group[] = [], eyes: T.Mesh[] = [];
     const colors = { bristleback: 0x9d754e, puffwart: 0x8c9948, skreel: 0x7189aa, hornclack: 0x7c8394, frostmane: 0xe3eff5 };
     const coat = toon(colors[id], id === 'bristleback' ? fur : undefined), dark = toon(id === 'frostmane' ? 0x91bedc : 0x483f3b);
+    coat.userData.beastColor = colors[id];
     const belly = toon(id === 'skreel' ? 0xe9e4cf : 0xf3dfab);
     // Eyebrows get their own material so they can turn red when the beast is Extra Grumpy.
     const brow = toon(id === 'frostmane' ? 0x91bedc : 0x483f3b);
@@ -347,12 +440,14 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const observer = new ResizeObserver(resize); observer.observe(canvas);
   function resize() { if (closed) return; const w = Math.max(1, canvas.clientWidth), h = Math.max(1, canvas.clientHeight); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
   const ray = new T.Raycaster(), cameraAim = V(), desired = V(), segment = V();
+  let lastVariantColor = '';
   let lastRide = { riding: false, fullBonks: 0, bucking: false };
   // The rack and Forge preview: the hero on a little grass stand, swaying slowly and swinging the weapon every few seconds.
   const showBg = new T.Color(0xf6ead2), stand = new T.Group(); let showTime = 0; stand.visible = false; scene.add(stand);
   if (preview) { mesh(stand, new T.CylinderGeometry(1.2, 1.1, 0.22, 32), toon(0x9a6b44), [0, -0.12, 0], [1, 1, 1], false); mesh(stand, new T.CylinderGeometry(1.22, 1.22, 0.06, 32), toon(0x8cc152), [0, -0.02, 0], [1, 1, 1], false); }
   const showSwing = () => { const c = showTime % 3.2; return !reduced.matches && c >= 2 && c < 2.6 ? c - 2 : -1; };
   function draw(game: HuntGame, dt: number) {
+    lastVariantColor = game.variant && game.beast ? VARIANT_COLORS[game.beast.id] : '';
     lastRide = { riding: game.ride.riding, fullBonks: game.ride.fullBonks, bucking: game.ride.riding && game.ride.phase !== 'quiet' };
     if (closed) return;
     const worldKey = `${game.profile.hunts}:${game.mode === 'village' || game.mode === 'camp'}`;
@@ -360,6 +455,9 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     village.visible = paths.visible = game.mode === 'village' || game.mode === 'camp'; campPath.visible = !village.visible;
     poseActor('dora', game); poseActor('enzo', game);
     for (const id of BEAST_IDS) beasts[id].root.visible = game.beast?.id === id && !['village', 'camp'].includes(game.mode);
+    snowfall.visible = currentArea === 'peak' && !reduced.matches;
+    if (snowfall.visible) { for (let i = 0; i < 80; i++) { const x = Math.sin(i * 7.3) * 22, z = Math.cos(i * 3.7) * 22, y = 9 - (game.time * 0.7 + i * 0.37) % 9; matrix.compose(V(x + Math.sin(game.time + i) * 0.3, y, z), upright, V(0.035, 0.035, 0.035)); snowfall.setMatrixAt(i, matrix); } snowfall.instanceMatrix.needsUpdate = true; }
+    for (const v of villagers) v.root.position.y = !reduced.matches && Math.hypot(game.hero.x - v.x, game.hero.z - v.z) < 5 ? Math.sin(game.time * 5) * 0.07 : 0;
     const b = game.beast;
     const rock = game.hopRock();
     hopRing.visible = hopLabel.visible = !!rock;
@@ -368,6 +466,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     if (b) shakeMark.position.set(b.x, b.height + 3.4, b.z);
     if (b) {
       const r = beasts[b.id], motion = reduced.matches ? 0 : Math.sin(game.time * 8);
+      r.root.traverse((o) => { if (o instanceof T.Mesh && o.material instanceof T.MeshToonMaterial && o.material.userData.beastColor) o.material.color.set(game.variant ? VARIANT_COLORS[b.id] : o.material.userData.beastColor); });
       r.root.position.set(b.x, b.height, b.z); r.root.rotation.y = b.face;
       const napping = b.state === 'nap', nap = napping ? Math.min(1, b.t / 1.6) : 0;
       r.body.rotation.z = napping ? nap * 0.28 : b.state === 'windup' ? -0.12 * Math.sin(b.t * 12) : b.state === 'dizzy' ? Math.sin(game.time * 4) * 0.07 : b.state === 'stuck' && !reduced.matches ? Math.sin(game.time * 11) * 0.05 : 0;
@@ -376,7 +475,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       r.body.rotation.y = b.state === 'sweep' ? Math.sin(Math.min(1, b.t / Math.max(0.01, b.duration)) * Math.PI) * 1.35 : 0;
       const pulse = b.flash > 0 ? Math.sin(b.flash * 25) * 0.08 : 0;
       const gone = napping ? 1 - T.MathUtils.smoothstep(b.t, 2.7, 3.2) : 1;
-      r.root.scale.setScalar(Math.max(0.001, gone)); r.body.scale.set(1 + nap * 0.12 + pulse, 1 - nap * 0.42 - pulse, 1 + nap * 0.16 + pulse);
+      r.root.scale.setScalar(Math.max(0.001, gone) * (game.huntChapter === 0 ? 0.55 : 1)); r.body.scale.set(1 + nap * 0.12 + pulse, 1 - nap * 0.42 - pulse, 1 + nap * 0.16 + pulse);
       if (game.ride.riding && game.ride.phase === 'warning') { r.body.scale.y *= 0.86; r.body.scale.x *= 1.06; }
       r.legs.forEach((leg, i) => { leg.rotation.z = nap * -0.9 + (!napping && ['roam', 'charge', 'pounce', 'hop'].includes(b.state) ? motion * (i % 2 ? 0.3 : -0.3) : 0); });
       if (b.id === 'bristleback' && b.state === 'windup' && !reduced.matches) r.legs[2].rotation.z = Math.sin(game.time * 16) * 0.55;
@@ -482,7 +581,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     get yaw() { return yaw; },
     orbit(dx: number, dy: number) { yaw -= dx * 0.006; pitch = T.MathUtils.clamp(pitch + dy * 0.004, 0.18, 0.95); userOrbit = 4; },
     zoom(delta: number) { dist = T.MathUtils.clamp(dist + delta * 0.008, 5, 14); },
-    metrics() { return { ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible) }; },
+    metrics() { return { area: currentArea, villagers: village.visible ? villagers.length : 0, variantColor: lastVariantColor, ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible) }; },
     dispose() {
       if (closed) return; closed = true; observer.disconnect();
       scene.traverse((o) => { if (o instanceof T.InstancedMesh) o.dispose(); if (o instanceof T.Mesh || o instanceof T.Line) { geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : [o.material]) materials.add(m); } });
