@@ -1,14 +1,34 @@
 # Grumble Hunt weapon icons
 
-24-10-2026. Generation attempted with the built-in imagegen tool. All three initial requests failed with `image generation failed: timeout` and returned no artwork. A retry of sheet 3 using the same exact prompt also failed with that timeout. This document records intended cell layouts and exact submitted prompts, not a claim that the files exist.
+Completed 24-10-2026 following `docs/grumble-hunt-prompts/6-weapon-icons.md` from `origin/codex/grumble-hunt-fixes`. Work is on `codex/grumble-hunt-weapon-icons`, continuing its existing cell-map commit `1479f48`.
 
-No placeholder art was made. No WebP exports exist, so dimension, alpha, cell alignment and visual quality checks could not be performed. The intended art direction follows section 2 of `docs/grumble-hunt/expansion-design.md`, `docs/grumble-hunt-art.md`, the hunt-camera screenshot and the Bristleback reference sheet. No commit, push or pull request was made, as requested.
+Created three transparent WebP atlases containing forty weapon icons. Warm hand-painted toon storybook style, botanical toy shapes, rounded ends, three-quarter views, top-left light and dark-brown outlines. Read section 2 of the expansion design and the first art log, and inspected the model screenshots. Nothing is hurt; there is no text, logo or watermark. No existing art or game code was changed.
 
-The requested output is three 1024 × 1024 WebP sheets (quality 85, alpha retained), each with a 4 × 4 grid of 256 × 256 cells. Row and column indices below are 1-based. No existing art is replaced. No game code is changed.
+Artwork generation and revisions used the built-in imagegen tool. Original generated PNGs remain in its output directory. Export used `cwebp -q 85 -m 6 -alpha_q 100 -metadata none`; alpha is retained. The generated 1254 × 1254 sources were downscaled and packed into exact 256 × 256 cells.
+
+## Files
+
+Paths are relative to the repository root. Sizes are final encoded bytes.
+
+| File | Decoded size | Bytes | Occupied cells | Generated source size |
+| --- | --- | ---: | ---: | --- |
+| `public/art/hunt/icons-weapons-3.webp` | 1024 × 1024 | 258,784 | 16 | 1254 × 1254 |
+| `public/art/hunt/icons-weapons-4.webp` | 1024 × 1024 | 248,252 | 16 | 1254 × 1254 |
+| `public/art/hunt/icons-weapons-5.webp` | 1024 × 1024 | 124,248 | 8 | 1254 × 1254 |
+
+## Checks and final refinements
+
+All three files decode as 1024 × 1024 RGBA WebP. Each contains fully transparent, fully opaque and intermediate alpha values. Checked all forty occupied cells, consistent transparent padding and all eight unused cells. The bottom two rows of sheet 5 have zero alpha throughout. Each drawing is centered in its cell; multi-piece sword/shield pairs stay together. Atlas preparation uses connected alpha silhouettes, retains soft-alpha pixels with each sprite, and fits the complete drawings into their cells. Export helpers and inspection previews are outside the repository.
+
+Inspected the decoded sheets at full sheet size and 48 px per cell. Revised the Switch Spades into round wooden scoops, restored the three visible seeds on the final Seedpod shield and moved its beetle motif to the rim. Rounded the Glimmer twig club, mushroom cap and seedpod paddle; removed their pointed decorations. The Glimmer Katana received a final bamboo-toy revision with a rounded capped end and small warm crystal at its leaf guard. The Pumpkin Poppers are round vegetable popcorn puffers. Tier silhouettes remain recognizable, with iron bands for upgrades, gold trim and small beast motifs for finals, and warm inset crystals for Glimmer versions. No outstanding export, cell-layout or sharp-tip issue was found in the final inspection.
+
+## Cell maps and exact prompts
+
+Rows and columns are 1-based. These are the exact initial generation and revision prompts used in this completed pass. Each revision used the preceding generated sheet as its edit target, retaining transparent background. Initial generations used `transparent_background: true` without image inputs.
 
 ## icons-weapons-3.webp
 
-Intended file: `public/art/hunt/icons-weapons-3.webp`.
+File: `public/art/hunt/icons-weapons-3.webp`.
 
 | Row | Column | Weapon |
 | ---: | ---: | --- |
@@ -29,7 +49,7 @@ Intended file: `public/art/hunt/icons-weapons-3.webp`.
 | 4 | 3 | Puffcap Lance — final |
 | 4 | 4 | Glimmer Greatsword |
 
-Exact generation prompt (`transparent_background: true`):
+Initial generation:
 
 ```text
 Use case: stylized-concept. Create a finished game icon atlas for Grumble Hunt, a kind children's adventure. Warm hand-painted toon storybook look, chunky readable shapes inspired by Wind Waker and Monster Hunter Stories. Actual transparent background. Canvas 1024x1024, exactly 4 columns and 4 rows of invisible 256x256 cells. No grid lines, no text, logos, watermark, scenery or cast shadows. One complete centered icon in each cell, within 208x208 centered bounds, even padding, consistent three-quarter view and top-left light, thick dark-brown outline readable at 48px. All implements are harmless wooden botanical toys with rounded blunt edges; no metal blades, sharp tips or real guns.
@@ -43,7 +63,7 @@ Maintain the same recognizable silhouette through each weapon's variants. Exactl
 
 ## icons-weapons-4.webp
 
-Intended file: `public/art/hunt/icons-weapons-4.webp`.
+File: `public/art/hunt/icons-weapons-4.webp`.
 
 | Row | Column | Weapon |
 | ---: | ---: | --- |
@@ -64,7 +84,7 @@ Intended file: `public/art/hunt/icons-weapons-4.webp`.
 | 4 | 3 | Pumpkin Popper — final |
 | 4 | 4 | Glimmer Katana |
 
-Exact generation prompt (`transparent_background: true`):
+Initial generation:
 
 ```text
 Use case: stylized-concept. Finished game icon atlas for Grumble Hunt, a kind children's adventure. Warm hand-painted toon storybook look inspired by Wind Waker and Monster Hunter Stories. Actual transparent background, 1024x1024, exactly four columns and four rows of invisible 256x256 cells. No grid lines, text, logo, watermark, scenery or cast shadows. One centered complete icon per cell inside a centered 208x208 area, even padding, consistent three-quarter angle, top-left lighting, thick dark-brown outline readable at 48px. Harmless botanical toy implements, rounded edges, no sharp points, real blades or real guns. Same silhouette across variants. Upgraded means iron bands and brighter colors; final means grander with gold trim and small friendly beast motif.
@@ -76,9 +96,21 @@ Row 4: Pumpkin Popper base (chunky little round pumpkin popcorn puffer with stem
 Exactly sixteen icons.
 ```
 
+Revision:
+
+```text
+Use case: precise-object-edit. Image is the edit target, a Grumble Hunt transparent weapon atlas. Edit ONLY these details: row2 column2, the FINAL Seedpod Blade and shield: keep exactly THREE large round seeds visibly stacked inside the bean-pod shield, like the base/upgraded shields; move the small friendly beetle motif to the rim so it never covers the seeds. Row1 columns1,2,3, the three Switch Spades: make the scoop ends smoothly ROUND like a wooden serving spoon, with no pointed scoop corners. Preserve their flower-bud hinges, wood, iron bands for upgraded, gold trim and small boar motif for final. Retain all other sixteen-cell ordering and artwork. Preserve warm hand-painted toon style, chunky shapes, thick dark-brown outlines, three-quarter angle, top-left light, soft saturated colours. All equipment is harmless botanical toys, no real blades or real guns. No text, logo, watermark, grid lines or background. Final square1024x1024,4x4 invisible256px cells, evenly centered icons with generous padding. Actual transparent alpha.
+```
+
+Final bamboo revision:
+
+```text
+Use case: precise-object-edit. Change ONLY row4 column4 (bottom right), the Glimmer Katana, in this Grumble Hunt4x4 transparent icon sheet. It must clearly be a slightly curved GREEN BAMBOO STALK toy with visible bamboo nodes and a fully ROUND capped blunt end, matching the base Bamboo Katana's silhouette. No pointed tip, no cutting edge, no metal blade. Use a ROUND leaf guard and wrapped grip, a SMALL warm amber Glimmer Stone inset in the guard, soft warm crystal glow and a little gold trim confined to the grip. Same three-quarter view, top-left light and thick dark-brown painted outline as the other icons. Keep ALL OTHER fifteen icons EXACTLY unchanged, including the three visible seeds in every Seedpod shield, rounded spades, every row/column position, and transparent background. No text, logos, grid lines or watermark.
+```
+
 ## icons-weapons-5.webp
 
-Intended file: `public/art/hunt/icons-weapons-5.webp`.
+File: `public/art/hunt/icons-weapons-5.webp`.
 
 | Row | Column | Weapon |
 | ---: | ---: | --- |
@@ -99,7 +131,7 @@ Intended file: `public/art/hunt/icons-weapons-5.webp`.
 | 4 | 3 | Empty (transparent) |
 | 4 | 4 | Empty (transparent) |
 
-Exact generation prompt (`transparent_background: true`):
+Initial generation:
 
 ```text
 Use case: stylized-concept. Finished game icon atlas for Grumble Hunt, kind children's adventure. Warm hand-painted toon storybook style inspired by Wind Waker and Monster Hunter Stories. Actual transparent background, 1024x1024. Invisible exact four-column four-row grid of 256x256 cells. Only first EIGHT cells occupied; bottom two rows completely transparent and empty. No text, grid lines, logo, watermark, scenery or cast shadows. One complete centered icon per occupied cell within centered 208x208 bounds. Consistent three-quarter view and top-left lighting, thick dark-brown outline readable at 48px. Rounded harmless botanical toys; no sharp edges, real blades or real guns. Each is a Glimmer version: preserve wooden botanical shape, soft warm glow and small warm amber Glimmer Stone crystal set into implement, gentle gold details.
@@ -109,3 +141,8 @@ Row 2: Glimmer Seedpod Blade (short blunt seedpod paddle paired with bean-pod sh
 Rows 3 and 4 entirely empty transparent. Exactly eight icons.
 ```
 
+Revision:
+
+```text
+Use case: precise-object-edit. Image is the edit target, a Grumble Hunt transparent weapon atlas. Edit ONLY pointed ends and consistency: row1column1 Glimmer Twig Sword must be a SHORT BLUNT rounded wooden twig club, no jagged fork, spike or blade tip; keep its small round acorn-cap shield and inset amber crystal. Row1column3 Puffcap Lance: remove the pointed gold spike on top of its fat round mushroom cap; keep the wooden shaft, leaf shield and small inset warm crystal. Row1column4 Switch Spade: give its wooden scoop a completely smoothly ROUND end, like a serving spoon, no point. Row2column1 Seedpod Blade: round the end of the seedpod paddle, no sharp point; preserve the shield's THREE visibly stacked round seeds and its small warm crystal. Keep every Glimmer weapon the recognizable same basic shape as its plain version, with small inset warm crystals and soft warm glow. Keep all eight icons in order in the FIRST TWO rows of a4x4 square atlas; bottom TWO rows completely EMPTY transparent. Preserve warm hand-painted toon style, chunky shapes, thick dark-brown outlines, three-quarter angle, top-left light, soft saturated colours. All equipment is harmless botanical toys, no real blades or real guns. No text, logo, watermark, grid lines or background. Final square1024x1024,4x4 invisible256px cells, evenly centered icons with generous padding. Actual transparent alpha.
+```
