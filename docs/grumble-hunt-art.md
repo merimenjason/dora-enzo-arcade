@@ -201,3 +201,107 @@ Applied to `sky-meadow`, using its initial generated panorama as the edit target
 ```text
 Use case: precise-object-edit. Input image is the edit target: the Grumble Hunt painted equirectangular sky panorama. Correct ONLY the horizontal wrapping seam: the exact left and right image borders must match in colour and painted cloud and hill shapes, so they join invisibly when the panorama repeats left-to-right. Keep the same blue-to-cream late-afternoon sky, rounded clouds, hills in bottom 15%, no sun disc, same storybook brush style, same 2:1 framing and all other content. No text, logo or watermark. Output one seamless full panorama, not a preview or grid. Preserve warm gentle colours.
 ```
+
+## Icons and portraits pass · 24-10-2026
+
+Followed `docs/grumble-hunt-prompts/2-icons-and-portraits.md` from `origin/grumble-hunt-base`. Pulled `codex/grumble-hunt-art` before writing the six new assets. The original thirteen WebPs above remain unchanged. This branch now contains nineteen Grumble Hunt art files.
+
+Generated with the built-in imagegen tool and exported with `cwebp -q 85 -m 6 -alpha_q 100 -metadata none`. Transparent backgrounds and soft alpha edges are retained. The 2048 × 1024 weapon sheet is upscaled from the generated source; the square sheets are downscaled and packed into exact cells.
+
+| File | Decoded pixels | Bytes | Alpha | Generated source pixels |
+| --- | --- | ---: | --- | --- |
+| `public/art/hunt/icons-materials.webp` | 1024 × 1024 | 235,732 | yes | 1254 × 1254 |
+| `public/art/hunt/icons-items.webp` | 1024 × 1024 | 169,490 | yes | 1254 × 1254 |
+| `public/art/hunt/icons-gear.webp` | 1024 × 1024 | 226,240 | yes | 1254 × 1254 |
+| `public/art/hunt/ref-weapons.webp` | 2048 × 1024 | 133,276 | no | 1774 × 887 |
+| `public/art/hunt/portraits-dora.webp` | 1024 × 1024 | 181,314 | yes | 1254 × 1254 |
+| `public/art/hunt/portraits-enzo.webp` | 1024 × 1024 | 175,508 | yes | 1254 × 1254 |
+
+### Layout and verification
+
+All six exports decode as WebP at the requested dimensions. All five transparent atlases contain fully transparent, fully opaque and intermediate alpha values. Complete icon silhouettes were sliced by connected alpha regions and centered into their exact 256 × 256 or 512 × 512 cells with consistent padding. Touching portrait whiskers were separated at the column boundary; no face or ear was cut off. Soft-alpha pixels stay with their corresponding drawing. Checked every occupied cell, clear padding and unused cell; also inspected icons at 48 px.
+
+Materials fill all sixteen cells in the requested order. Items fill the first eleven (the final five are empty); gear fills the first fifteen (the final cell is empty). Portrait order is happy/determined/dizzy/sleepy. Dora has the Acorn Hammer in the determined cell; Enzo has the Seed Bow. The weapon reference has side/front views with cream-white paws showing the grips. All wooden claw tips are rounded.
+
+Consulted the real `public/art/dora.jpeg` and `public/art/enzo.jpeg` photos and model screenshots on `origin/grumble-hunt-base`. Portrait revision inputs were the initial generated sheet, `docs/grumble-hunt/screenshots/idle-front.png`, and the corresponding real photo. Enzo received a final catchlight edit so each open black eye has two distinct white highlights. Initial and revision prompts are reproduced exactly below. No game code was changed. Temporary export helpers/previews are outside the repository, and original generated PNGs remain in the imagegen output directory.
+
+### icons-materials
+
+Initial generation:
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Transparent inventory atlas, exact4x4 grid,1024x1024, each cell256x256. Fill left to right, top to bottom in the specified order. One icon/group per cell, perfectly centered, generous even padding at least24px, no crossing cell boundaries. Same three-quarter angle, top-left lighting, THICK dark-brown outline, three-band shading, readable at48px. Genuine transparent alpha, no checkerboard, no grid lines or cell borders. Keep unused cells fully transparent. No text.
+Row1: bristle tuft, tusk shard, boar hide patch, curly tail tuft. Row2: puff sac, wart pebble, sleepy-cloud wisp, marsh reed. Row3: sky feather, owl down, beetle shell plate, horn chip. Row4: frost fur, icy mane lock, glimmer stone, berry. Sixteen occupied cells. Tusk and horn materials look like naturally shed rounded toy pieces, no harm. Palette follows brown boar, olive toad, slate-blue owl/beetle, icy-blue lynx; crystal warm gold.
+```
+
+### icons-items
+
+Initial generation:
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Transparent inventory atlas, exact4x4 grid,1024x1024, each cell256x256. Fill left to right, top to bottom in the specified order. One icon/group per cell, perfectly centered, generous even padding at least24px, no crossing cell boundaries. Same three-quarter angle, top-left lighting, THICK dark-brown outline, three-band shading, readable at48px. Genuine transparent alpha, no checkerboard, no grid lines or cell borders. Keep unused cells fully transparent. No text.
+Row1: fluffberry (healing red berry with leaves), big fluffberry (bigger berry bunch), sleepy seed (round lavender seed with sleepy motif but no letters), dizzy bell (small golden jingle bell). Row2: sticky sap (amber sap blob), smoke puffball (round grey puffball), pathfinder acorn (acorn with small leaf), hay bundle (tied hay). Row3: map scroll (rolled parchment with abstract path, NO letters), berry pouch (round fabric pouch full of berries), empty slot ring (one simple brown outlined ring), EMPTY. Row4: all FOUR EMPTY. Exactly eleven icons, five unused cells fully transparent.
+```
+
+### icons-gear
+
+Initial generation:
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Transparent inventory atlas, exact4x4 grid,1024x1024, each cell256x256. Fill left to right, top to bottom in the specified order. One icon/group per cell, perfectly centered, generous even padding at least24px, no crossing cell boundaries. Same three-quarter angle, top-left lighting, THICK dark-brown outline, three-band shading, readable at48px. Genuine transparent alpha, no checkerboard, no grid lines or cell borders. Keep unused cells fully transparent. No text.
+Row1: Acorn Hammer (large acorn head, wooden handle and leather grip); upgraded Acorn Hammer with iron band; final Acorn Hammer with golden cap; Twin Claws (PAIR of curved wooden paw-blades with rounded tips, no sharp edges). Row2: upgraded Twin Claws (PAIR with pebble detail); final Twin Claws (PAIR with golden rounded caps); Seed Bow (small curved green wood, leaf at each tip and seed pouch); upgraded Seed Bow (twine bindings). Row3: final Seed Bow (golden natural details); Bristle helm (brown bristle crest cap with space for huge chinchilla ears); Bristle vest (brown leaf vest); Bristle boots (PAIR of brown puffy boots). Row4: Puffwart helm (olive cap with rounded warts, ear openings); Puffwart vest (olive pale-belly vest); Puffwart boots (PAIR of olive puffy boots); EMPTY. Exactly fifteen occupied cells. No whole characters.
+```
+
+Revision:
+
+```text
+Use case: precise-object-edit. Edit ONLY the Twin Claws in cells4,5,6 (row1col4,row2col1,row2col2) of this4x4 atlas: make them curved WOODEN paw-blades with very broad ROUNDED blunt ends and visible wood grain, toy-like. Preserve pairs, tiers, all other icons, exact cell order, thick brown outlines, painted toon style, transparent background. Improve generous equal padding within all256px cells; do not add anything to empty last cell. No text or grid.
+```
+
+### ref-weapons
+
+Initial generation:
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Weapon modelling reference sheet, wide2:1,final2048x1024. Plain light cream background. THREE columns for three weapons, two rows SIDE VIEW above FRONT VIEW, matching scale across views. Weapons: Acorn Hammer, a big acorn head on stout wooden handle with leather grip wrap; Twin Claws, a PAIR of curved wooden paw-blades with rounded tips, nothing sharp; Seed Bow, small curved green-wood bow with leaf at each tip and pouch of seeds as ammunition. A cream white chinchilla paw drawn HOLDING each weapon grip to show size, cropped furry forearm only, no full character. Simple chunky clear separable model volumes. Same weapon design in both views, complete silhouettes, generous spacing. No labels,text,dividers,scenery or shadows.
+```
+
+### portraits-dora
+
+Initial generation:
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Transparent HUD portrait atlas, exactly2x2 grid,1024x1024, each cell512x512. Four head-and-shoulders portraits of the SAME chibi chinchilla, same framing and scale, centered with generous even padding, no overlap. Huge ROUND CIRCULAR dish ears tilted OUTWARD with rounded rims (never triangular, no pointed ear tops), big glossy eyes with TWO highlights, broad chubby chinchilla cheeks, tiny nose, little w-shaped mouth, soft painted fur. Dora is cream white with pink inner ears and deep ruby eyes. Top left HAPPY; top right DETERMINED with Acorn Hammer over her shoulder (big acorn head, stout wooden leather-wrapped handle); bottom left DIZZY with swirly eyes and little stars; bottom right SLEEPY and content with closed eyes. Genuine transparent background, no checkerboard, borders, letters, logos or watermark. Warm three-band cel shading and dark-brown ink outlines matching the game model.
+```
+
+Revision:
+
+```text
+Use case: identity-preserve. Image1 is the portrait atlas edit target, image2 the game model reference, image3 the real chinchilla photo as coat/ear reference ONLY. Match Dora, cream white with pink inner ears and deep RUBY eyes. Huge perfectly ROUND dish ears tilted outward like the3D model; broad chubby chinchilla cheeks; tiny nose, w mouth. Open eyes have TWO white highlights each. Preserve four exact expressions and order: happy top-left; determined top-right holding Acorn Hammer over shoulder; dizzy swirly eyes and little stars bottom-left; sleepy-content bottom-right. Consistent head-and-shoulders framing and scale, ample equal transparent margins within each512x512 cell. Keep painted three-band toon style, actual transparent background. Do not copy any screenshot UI or lettering. No text/logos/grid.
+```
+
+### portraits-enzo
+
+Initial generation:
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Transparent HUD portrait atlas, exactly2x2 grid,1024x1024, each cell512x512. Four head-and-shoulders portraits of the SAME chibi chinchilla, same framing and scale, centered with generous even padding, no overlap. Huge ROUND CIRCULAR dish ears tilted OUTWARD with rounded rims (never triangular, no pointed ear tops), big glossy eyes with TWO highlights, broad chubby chinchilla cheeks, tiny nose, little w-shaped mouth, soft painted fur. Enzo is grey with a pale chest, mauve-pink inner ears and black eyes. Top left HAPPY; top right DETERMINED holding Seed Bow (curved green-wood with leaf tips and seed pouch); bottom left DIZZY with swirly eyes and little stars; bottom right SLEEPY and content with closed eyes. Genuine transparent background, no checkerboard, borders, letters, logos or watermark. Warm three-band cel shading and dark-brown ink outlines matching the game model.
+```
+
+Revision:
+
+```text
+Use case: identity-preserve. Image1 is the portrait atlas edit target, image2 the game model reference, image3 the real chinchilla photo as coat/ear reference ONLY. Match Enzo, grey with a pale chest, mauve-pink inner ears and truly BLACK eyes. Huge perfectly ROUND dish ears tilted outward like the3D model; broad chubby chinchilla cheeks; tiny nose, w mouth. Open eyes have TWO white highlights each. Preserve four exact expressions and order: happy top-left; determined top-right holding Seed Bow; dizzy swirly eyes and little stars bottom-left; sleepy-content bottom-right. Consistent head-and-shoulders framing and scale, ample equal transparent margins within each512x512 cell. Keep painted three-band toon style, actual transparent background. Do not copy any screenshot UI or lettering. No text/logos/grid.
+```
+
+Catchlight revision:
+
+```text
+Use case: precise-object-edit. Change ONLY the four open black eyes in the TOP TWO portraits of Enzo in this atlas: each eye must have exactly TWO clearly visible WHITE catchlights, one large circle at upper-left and one SMALL white dot at lower-right. The small dot should be about one-third the large circle's diameter. Keep eye colour jet black. Do not change the swirly eyes, closed eyes, character, ears, expressions, bow, framing, artwork, grid or transparent alpha. No other change.
+```
