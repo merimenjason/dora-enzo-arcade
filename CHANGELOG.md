@@ -14,6 +14,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Grumble Hunt**'s weapon preview on the rack and Forge no longer goes blank after switching tabs, heroes or reopening the Forge. It now shows the hero on a little grass stand, swaying slowly and showing off the weapon's swing. Every weapon has its own attack motion (chops, sweeps, thrusts, jabs, recoils, a wand flick and a yo-yo throw) instead of a tiny bob, and the Forge's tabs no longer crowd the weapon cards.
+
 - **Grumble Hunt** safely clears tool effects after hunts and camp returns, keeps Forge upgrades and older saves at least as strong, separates held guards from J+K signatures, and opens the Forge on Weapons. Buddy shots use their own tools and plain seeds, bubbles reach and count correctly, Staff vaults require a hold, counters respect reach, and Bloom and seedpods follow their mode and capacity. Quick item presses work without waiting for recovery.
 
 ## 21-10-2026

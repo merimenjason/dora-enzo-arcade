@@ -121,23 +121,49 @@ function shield(g: T.Group, pod = false) {
   g.position.set(.83,.45,-.31);
 }
 
+  // Attack motion: a quick wind-up, the strike around contact (0.1 s), then an eased return to rest.
+  const ease = (t: number) => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
+  const fastTypes: WeaponType[] = ['claws', 'sword', 'glaive', 'lightbow'];
+  function strike(type: WeaponType, swing: number, delay = 0) {
+    if (swing < 0) return 0;
+    const u = (swing - delay) / (fastTypes.includes(type) ? 0.2 : 0.4);
+    return u < 0 ? 0 : u < 0.2 ? -0.35 * ease(u / 0.2) : u < 0.4 ? -0.35 + 1.35 * ease((u - 0.2) / 0.2) : 1 - ease((u - 0.4) / 0.6);
+  }
+  // Swings turn each toy around its own handle in body space (x forward, y up, z the right-paw side).
+  const SWINGS: Partial<Record<WeaponType, { axis: T.Vector3; angle: number; reach?: T.Vector3 }>> = {
+    greatsword: { axis: V(0, 0, 1), angle: -1.5 }, katana: { axis: V(0.45, 0, 1).normalize(), angle: -1.7 }, switchaxe: { axis: V(0, 0, 1), angle: -1.4 },
+    horn: { axis: V(0, 0, 1), angle: -1.1 }, glaive: { axis: V(1, 0, 0.3).normalize(), angle: 1.3 },
+    sword: { axis: V(0, 0, 1), angle: 0, reach: V(0.28, 0.05, 0) }, chargeblade: { axis: V(0, 0, 1), angle: 0, reach: V(0.28, 0.05, 0) },
+    gunlance: { axis: V(0, 0, 1), angle: 0, reach: V(0.45, 0, 0) },
+    bow: { axis: V(0, 0, 1), angle: 0.25, reach: V(-0.12, 0, 0) }, lightbow: { axis: V(0, 0, 1), angle: 0.2, reach: V(-0.1, 0, 0) }, heavybow: { axis: V(0, 0, 1), angle: 0.35, reach: V(-0.2, 0.04, 0) },
+  };
+  const turn = new T.Quaternion();
+
   return {
     pose(type: WeaponType, time: number, swing: number) {
       for (const [id, groups] of Object.entries(held)) for (const g of groups) g.visible = id === type;
       const groups = held[type]; if (!groups) return;
-      const bob = Math.sin(time * 2) * 0.015, action = swing >= 0 ? Math.sin(swing / 0.6 * Math.PI) * 0.08 : 0;
+      const bob = Math.sin(time * 2) * 0.015, k = strike(type, swing);
       const grips = idleGrips[type];
       if (grips) {
-        const g = groups[0]; g.userData.restY ??= g.position.y; g.position.y = g.userData.restY + action; g.updateMatrix();
+        const g = groups[0], move = SWINGS[type];
+        g.userData.restPos ??= g.position.clone(); g.userData.restQ ??= g.quaternion.clone();
+        g.position.copy(g.userData.restPos); g.quaternion.copy(g.userData.restQ);
+        if (move) { g.quaternion.premultiply(turn.setFromAxisAngle(move.axis, move.angle * k)); if (move.reach) g.position.addScaledVector(move.reach, Math.max(0, k)); }
+        g.updateMatrix();
         poseArms(model, ...grips.map((p) => p ? p.clone().applyMatrix4(g.matrix) : null) as [T.Vector3 | null, T.Vector3 | null]);
         const fly = g.userData.firefly as T.Mesh | undefined; if (fly) fly.position.copy(V(.34 + Math.cos(time * 2) * .85, 1.7, Math.sin(time * 2) * .85).applyMatrix4(g.matrix.clone().invert()));
       } else if (type === 'claws') {
-        const l = V(.62, .55 + bob + action, -.26), r = V(.62, .55 - bob, .26); poseArms(model, l, r); groups[0].position.copy(l); groups[1].position.copy(r);
+        // Left then right jab.
+        const l = V(.62 + .3 * Math.max(0, k), .55 + bob, -.26), r = V(.62 + .3 * Math.max(0, strike(type, swing, 0.06)), .55 - bob, .26); poseArms(model, l, r); groups[0].position.copy(l); groups[1].position.copy(r);
       } else if (type === 'lance') {
-        const l = V(.52, .22 + bob, -.72), r = V(.48 + action, .46, .34); poseArms(model, l, r); groups[0].position.copy(l); groups[1].position.copy(r);
+        const l = V(.52, .22 + bob, -.72), r = V(.48 + .45 * k, .46, .34); poseArms(model, l, r); groups[0].position.copy(l); groups[1].position.copy(r);
+      } else if (type === 'yoyo') {
+        // Thrown out along the string and reeled back in.
+        const r = V(.62, .78 + bob, .42), out = Math.max(0, k); poseArms(model, null, r.clone().add(V(.15 * out, 0, 0)));
+        groups[0].position.copy(r).add(V(1.1 * out, -.25 * out, 0)); groups[0].rotation.z = Math.sin(time * 1.7) * .25 - out * 6;
       } else {
-        const r = type === 'wand' ? V(.56, .58 + bob, .32) : V(.62, .78 + bob, .42); poseArms(model, null, r); groups[0].position.copy(r);
-        if (type === 'yoyo') groups[0].rotation.z = Math.sin(time * 1.7) * .25 + action;
+        const r = V(.56 + .12 * Math.max(0, k), .58 + bob, .32); poseArms(model, null, r); groups[0].position.copy(r); groups[0].rotation.z = -1.1 * k;
       }
     },
   };

@@ -42,3 +42,7 @@
 .hunt-ride-warning { color: #a74414; font-size: 24px; }
 .hunt-ride progress { width: 180px; accent-color: #cb8a3b; }
 @media (max-width: 600px) { .hunt-ride { top: 155px; padding: 8px 12px; } }
+.hunt-forge-tabs{align-items:center;gap:8px;margin:6px 0 18px}
+.hunt-forge-tabs label{display:flex;align-items:center;gap:8px;margin-left:6px;font-size:13px;font-weight:750}
+.hunt-forge-tabs select{font:inherit;min-height:36px;padding:4px 10px;border:1px solid #d5c3a3;border-radius:10px;background:#fff9eb;color:#43352d;cursor:pointer}
+.hunt-rack button[aria-pressed="true"]{outline-offset:-3px}

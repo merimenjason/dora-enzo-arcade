@@ -304,7 +304,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const pawprints = new T.InstancedMesh(pawGeo, pawMat, 16); pawprints.count = 0; pawprints.frustumCulled = false; scene.add(pawprints);
   function poseActor(id: HeroId, game: HuntGame) {
     const a = actors[id], isPlayer = id === game.heroId, p = isPlayer ? game.hero : game.buddy, h = game.hero;
-    const time = reduced.matches ? 0 : game.time;
+    const time = reduced.matches ? 0 : preview ? showTime : game.time;
     const riding = isPlayer && game.ride.riding;
     let height = 0;
     if (riding && game.beast) height = game.beast.height + RIDE_HEIGHT[game.beast.id];
@@ -317,7 +317,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     else a.model.body.rotation.z = isPlayer && h.swing < 0 && !reduced.matches ? Math.min(0.12, game.itemRecovery * 0.4) : 0;
     a.model.feet.forEach((foot, i) => { foot.rotation.x = riding ? (i ? -0.5 : 0.5) : 0; if (riding) foot.position.y = 0.14; });
     if (riding) { a.model.body.scale.y *= 0.85; a.model.body.rotation.z = game.ride.pose > 0 && !reduced.matches ? Math.sin(game.ride.pose / 0.22 * Math.PI) * -0.2 : 0; }
-    const t = isPlayer && game.ride.riding && game.ride.pose > 0 ? 0.24 - game.ride.pose : p.swing;
+    const t = isPlayer && game.ride.riding && game.ride.pose > 0 ? 0.24 - game.ride.pose : preview ? showSwing() : p.swing;
     const weapon = game.weapon(id);
     a.hammer.visible = weapon === 'hammer'; a.trail.visible = false;
     a.armour.forEach((g, i) => { const piece = game.profile.armour.worn[(['helm', 'vest', 'boots'] as const)[i]]; g.visible = isPlayer && !!piece; if (piece) { const color = BEASTS[piece.split('-')[0] as BeastId].color; g.traverse((o) => { if (o instanceof T.Mesh) (o.material as T.MeshToonMaterial).color.set(color); }); } });
@@ -348,6 +348,10 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   function resize() { if (closed) return; const w = Math.max(1, canvas.clientWidth), h = Math.max(1, canvas.clientHeight); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
   const ray = new T.Raycaster(), cameraAim = V(), desired = V(), segment = V();
   let lastRide = { riding: false, fullBonks: 0, bucking: false };
+  // The rack and Forge preview: the hero on a little grass stand, swaying slowly and swinging the weapon every few seconds.
+  const showBg = new T.Color(0xf6ead2), stand = new T.Group(); let showTime = 0; stand.visible = false; scene.add(stand);
+  if (preview) { mesh(stand, new T.CylinderGeometry(1.2, 1.1, 0.22, 32), toon(0x9a6b44), [0, -0.12, 0], [1, 1, 1], false); mesh(stand, new T.CylinderGeometry(1.22, 1.22, 0.06, 32), toon(0x8cc152), [0, -0.02, 0], [1, 1, 1], false); }
+  const showSwing = () => { const c = showTime % 3.2; return !reduced.matches && c >= 2 && c < 2.6 ? c - 2 : -1; };
   function draw(game: HuntGame, dt: number) {
     lastRide = { riding: game.ride.riding, fullBonks: game.ride.fullBonks, bucking: game.ride.riding && game.ride.phase !== 'quiet' };
     if (closed) return;
@@ -355,7 +359,6 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     if (worldKey !== currentWorld) { currentWorld = worldKey; buildWorld(game); }
     village.visible = paths.visible = game.mode === 'village' || game.mode === 'camp'; campPath.visible = !village.visible;
     poseActor('dora', game); poseActor('enzo', game);
-    if (preview) { actors.dora.model.root.visible = preview === 'dora'; actors.enzo.model.root.visible = preview === 'enzo'; actors[preview].model.root.rotation.y = -0.4; village.visible = paths.visible = campPath.visible = false; }
     for (const id of BEAST_IDS) beasts[id].root.visible = game.beast?.id === id && !['village', 'camp'].includes(game.mode);
     const b = game.beast;
     const rock = game.hopRock();
@@ -446,7 +449,14 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     desired.y = Math.max(0.8, desired.y);
     camera.position.copy(desired);
     if (!reduced.matches && game.shake > 0) { camera.position.x += Math.sin(game.time * 83) * game.shake * 0.2; camera.position.y += Math.cos(game.time * 71) * game.shake * 0.15; }
-    if (preview) { const p = preview === game.heroId ? game.hero : game.buddy; target.set(p.x, 0.85, p.z); camera.position.set(p.x + 2.5, 1.7, p.z + 2.8); }
+    if (preview) {
+      showTime += dt; const root = actors[preview].model.root;
+      actors.dora.model.root.visible = preview === 'dora'; actors.enzo.model.root.visible = preview === 'enzo';
+      // Turned three-quarters so the weapon paw faces the camera.
+      root.position.set(0, 0, 0); root.rotation.y = -0.5 + (reduced.matches ? 0 : Math.sin(showTime * 0.7) * 0.35);
+      for (const o of scene.children) o.visible = o === root || o === stand || o instanceof T.Light || o === sun.target;
+      stand.visible = true; scene.background = showBg; target.set(0, 0.62, 0); camera.position.set(1.9, 1.25, 2.1);
+    }
     camera.lookAt(target);
     if (leafCards && crowns) {
       // Shrink away any canopy near the camera or across its view of the leader, so leaves never fill the screen.
