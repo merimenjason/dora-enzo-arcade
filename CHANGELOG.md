@@ -2,6 +2,20 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 25-10-2026
+
+### Added
+
+- **Grumble Hunt** shows when you are charging. Holding K fills a ring of petals around your hero, a ring bursts out and a chime plays as each charge level is ready, and the petals pulse once the charge is full. A meter under your hero names what the release will do ("Mega bonk ready!", "Three-seed shot ready!", "Let go of K to play a song"). The hero crouches and trembles with the power, and the tool draws back ready to strike. Guarding raises a leaf-green bubble and a stamina bar, and shields lift to the front.
+
+### Changed
+
+- **Grumble Hunt**'s village friends are rebuilt to match their storybook art. Old Mossback has a mossy, flowered shell, round glasses, a scarf, a satchel and a walking stick. Bramble has a plush coat of soft spikes, a green apron full of tools and a toy mallet. Pip has big round ears, a red scarf, an apron and a bowl of carrots. Wren is a round speckled bird with a leaf collar and a satchel of notes. They breathe, blink and look around, and wave when you come near.
+
+### Fixed
+
+- **Grumble Hunt**'s heroes hold their tools properly. Paws now grip each handle close to the chest instead of stretching out on long, thin arms. The Greatsword's blade sits on its handle again, and big blades rest over the shoulder, clear of the face. Thrusts and jabs step forward rather than stretching the arms. The weapon preview shows the hero from a closer three-quarter view with eyes open.
+
 ## 24-10-2026
 
 ### Added

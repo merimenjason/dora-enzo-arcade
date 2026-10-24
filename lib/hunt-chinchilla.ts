@@ -80,7 +80,7 @@ export function createHuntChinchilla(white: boolean): HuntChinchilla {
     const paw = new T.Group(); body.add(paw);
     add(paw, new T.SphereGeometry(0.088, 16, 12), plain, 0, 0, 0);
     add(paw, new T.SphereGeometry(0.05, 12, 8), pad, 0.04, -0.03, 0).scale.set(1, 0.6, 1.2);
-    arms.push({ shoulder: V(0.24, 0.66, s * 0.3), rest: V(0.44, 0.42, s * 0.2), limb, paw });
+    arms.push({ shoulder: V(0.3, 0.64, s * 0.2), rest: V(0.46, 0.42, s * 0.2), limb, paw });
   }
   // bushy tail curling up the back: one continuous plume, fullest past the middle, tufted along
   // its edge and tapering to a soft tip; Enzo's darkens to a sooty tip
@@ -118,7 +118,7 @@ export function animateHuntChinchilla(p: HuntChinchilla, time: number, speed: nu
   p.tail.rotation.z = (moving ? Math.sin(time * 9) : Math.sin(time * 1.7)) * 0.08;
   p.ears.forEach((e, i) => (e.rotation.z = 0.1 + Math.sin(time * 1.3 + i) * 0.04 + (moving ? hop * 0.06 : 0)));
   p.feet.forEach((f, i) => (f.position.y = 0.05 + (moving && ground ? Math.max(0, Math.sin(time * 13 + (i % 2) * Math.PI)) * 0.08 : 0)));
-  const shut = (time % 3.7) < 0.12;
+  const shut = (time % 3.7) > 3.58; // never at time 0, so a still (reduced-motion) pose has open eyes
   p.blink.forEach((e) => (e.scale.y = shut ? 0.12 : 1));
 }
 

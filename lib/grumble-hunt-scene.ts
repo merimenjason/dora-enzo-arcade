@@ -3,6 +3,7 @@ import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { createHuntChinchilla, animateHuntChinchilla, poseArms, type HuntChinchilla } from './hunt-chinchilla';
 import { BEASTS, BEAST_IDS, VARIANT_COLORS, GATHER_TIME, MATERIAL_IDS, SPOTS, type BeastId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
 import { createHuntWeapons } from './grumble-hunt-weapons';
+import { createVillager, type VillagerId, type VillagerRig } from './grumble-hunt-villagers';
 import { MATERIALS } from './grumble-hunt-content';
 
 type Rig = { model: HuntChinchilla; hammer: T.Group; head: T.Group; trail: T.Line; points: T.Vector3[]; weapons: ReturnType<typeof createHuntWeapons>; armour: T.Group[] };
@@ -146,9 +147,8 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     groundMat.needsUpdate = dirtMat.needsUpdate = areaCard.needsUpdate = true;
   }
   const snowfall = new T.InstancedMesh(ico, snowMat, 80); snowfall.visible = false; scene.add(snowfall);
-  /** Batch repeated villager primitives and keep their tiny details out of shadow/outline passes. */
-  const villagerMaterials = new Map<T.Material, T.Material>();
-  function batchVillager(root: T.Group) { batchMeshes(root, true); }
+  /** Instance repeated meshes; `plain` batches also drop out of the shadow and outline passes. */
+  const plainMaterials = new Map<T.Material, T.Material>();
   function batchMeshes(root: T.Group, plain: boolean) {
     const groups = new Map<string, T.Mesh[]>();
     for (const child of [...root.children]) if (child instanceof T.Mesh && !Array.isArray(child.material)) {
@@ -157,38 +157,20 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     }
     for (const list of groups.values()) {
       const original = list[0].material as T.Material;
-      let material = plain ? villagerMaterials.get(original) : original;
-      if (!material) { material = noOutline(original.clone()); villagerMaterials.set(original, material); materials.add(material); }
+      let material = plain ? plainMaterials.get(original) : original;
+      if (!material) { material = noOutline(original.clone()); plainMaterials.set(original, material); materials.add(material); }
       const batch = new T.InstancedMesh(list[0].geometry, material, list.length);
       if (!plain) { batch.castShadow = list[0].castShadow; batch.receiveShadow = list[0].receiveShadow; }
       list.forEach((child, i) => { child.updateMatrix(); batch.setMatrixAt(i, child.matrix); root.remove(child); });
       root.add(batch);
     }
   }
-  const villagers: { root: T.Group; x: number; z: number }[] = [];
-  for (const [i, station] of SPOTS.entries()) {
-    const root = new T.Group(); root.position.set(station.x + 2.2, 0, station.z + 1.3); village.add(root);
-    const bodyMat = toon([0x986842, 0x82a15a, 0xb08a63, 0xbc9a75][i]), faceMat = toon(0xe3c89c);
-    const body = mesh(root, sphere, bodyMat, [0, 0.6, 0], [0.45, 0.6, 0.4]);
-    mesh(root, sphere, faceMat, [0, 1.2, 0.18], [0.36, 0.34, 0.32]);
-    for (const x of [-0.14, 0.14]) { mesh(root, sphere, ink, [x, 1.26, 0.47], [0.045, 0.055, 0.035], false); mesh(root, sphere, bodyMat, [x * 1.6, 0.12, 0.16], [0.17, 0.12, 0.24]); }
-    if (station.id === 'board') { // Mossback: domed moss shell, round glasses, walking stick.
-      body.scale.set(0.65, 0.48, 0.65); mesh(root, sphere, canopyMat, [0, 0.75, -0.2], [0.65, 0.45, 0.65]);
-      mesh(root, cylinder, wood, [0.58, 0.65, 0.15], [0.045, 1.25, 0.045]);
-      for (const x of [-0.15, 0.15]) { const glasses = mesh(root, sphere, gold, [x, 1.27, 0.46], [0.115, 0.12, 0.025]); glasses.material = gold; mesh(root, sphere, ink, [x, 1.27, 0.49], [0.055, 0.065, 0.02], false); }
-    } else if (station.id === 'forge') { // Bramble's soft spikes and apron.
-      for (let j = 0; j < 7; j++) { const a = j / 7 * 6.28; mesh(root, cone, wood, [Math.cos(a) * 0.35, 0.95 + Math.sin(a) * 0.28, -0.25], [0.18, 0.45, 0.18]); }
-      mesh(root, cube, cream, [0, 0.58, 0.38], [0.5, 0.55, 0.06]);
-    } else if (station.id === 'pantry') { // Pip's round ears, scarf and curled tail.
-      for (const x of [-0.3, 0.3]) mesh(root, sphere, bodyMat, [x, 1.48, 0.05], [0.2, 0.22, 0.1]);
-      mesh(root, cylinder, rose, [0, 0.97, 0.15], [0.36, 0.12, 0.33]); mesh(root, sphere, bodyMat, [0.4, 0.4, -0.35], [0.18, 0.3, 0.45]);
-    } else { // Wren's beak, wings and note satchel.
-      mesh(root, cone, gold, [0, 1.2, 0.56], [0.13, 0.28, 0.13]).rotation.x = Math.PI / 2;
-      for (const x of [-0.4, 0.4]) mesh(root, sphere, bodyMat, [x, 0.7, 0], [0.15, 0.4, 0.3]);
-      mesh(root, cube, cream, [0.35, 0.5, 0.3], [0.3, 0.35, 0.15]);
-    }
-    batchVillager(root);
-    villagers.push({ root, x: root.position.x, z: root.position.z });
+  const villagers: { rig: VillagerRig; x: number; z: number }[] = [];
+  const VILLAGER_AT: Record<typeof SPOTS[number]['id'], VillagerId> = { board: 'mossback', forge: 'bramble', pantry: 'pip', book: 'wren' };
+  for (const station of SPOTS) {
+    const rig = createVillager(VILLAGER_AT[station.id], { ramp, materials, geometries });
+    rig.root.position.set(station.x + 2.2, 0, station.z + 1.3); village.add(rig.root);
+    villagers.push({ rig, x: rig.root.position.x, z: rig.root.position.z });
   }
   function buildWorld(game: HuntGame) {
     switchArea(game.mode === 'village' || game.mode === 'camp' ? 'meadow' : game.area);
@@ -252,7 +234,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   }
   function actor(white: boolean): Rig {
     const model = createHuntChinchilla(white); model.root.scale.setScalar(0.75); scene.add(model.root);
-    const hammer = new T.Group(); model.body.add(hammer); hammer.position.set(0.4, 0.6, 0.5); hammer.scale.setScalar(1 / 0.75);
+    const hammer = new T.Group(); model.body.add(hammer); hammer.position.set(0.44, 0.58, 0.22); hammer.scale.setScalar(1 / 0.75);
     mesh(hammer, cylinder, wood, [0, 0.39, 0], [0.034, 0.78, 0.034]);
     const head = new T.Group(); head.position.y = 0.82; head.rotation.z = Math.PI / 2; hammer.add(head);
     mesh(head, sphere, toon(0xc58a47), [0, -0.06, 0], [0.24, 0.29, 0.24]);
@@ -371,6 +353,53 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const reach = mesh(scene, reachGeo, reachMat, [0, 0.06, 0], [1, 1, 1], false);
   const fillMat = noOutline(new T.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: 0.45, side: T.DoubleSide, depthWrite: false })); materials.add(fillMat);
   const fill = mesh(scene, circleGeo, fillMat, [0, 0.065, 0], [1, 1, 1], false);
+  // Holding K: petals round the leader fill towards each charge level, a ring bursts out as a level
+  // is reached and the petals pulse once the charge is full, while a warm glow gathers at the paws.
+  // Guarding raises a leaf-green bubble in front instead.
+  const PETALS = 18, petalMat = noOutline(new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92, depthWrite: false, toneMapped: false })); materials.add(petalMat);
+  const petals = new T.InstancedMesh(circleGeo, petalMat, PETALS); petals.frustumCulled = false; petals.visible = false; scene.add(petals);
+  for (let i = 0; i < PETALS; i++) petals.setColorAt(i, tint.set(0xffffff));
+  const burstMat = noOutline(new T.MeshBasicMaterial({ color: 0xffe7a0, transparent: true, opacity: 0, side: T.DoubleSide, depthWrite: false, toneMapped: false })); materials.add(burstMat);
+  const burst = mesh(scene, reachGeo, burstMat, [0, 0.08, 0], [1, 1, 1], false); burst.visible = false;
+  const glowCanvas = document.createElement('canvas'); glowCanvas.width = glowCanvas.height = 64;
+  const gc = glowCanvas.getContext('2d');
+  if (gc) { const g = gc.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, '#fff8d8'); g.addColorStop(0.35, '#ffd36acc'); g.addColorStop(1, '#ffb44000'); gc.fillStyle = g; gc.fillRect(0, 0, 64, 64); }
+  const glowMap = new T.CanvasTexture(glowCanvas); glowMap.colorSpace = T.SRGBColorSpace; textures.add(glowMap);
+  const glowMat = noOutline(new T.SpriteMaterial({ map: glowMap, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false })); materials.add(glowMat);
+  const chargeGlow = new T.Sprite(glowMat); chargeGlow.visible = false; scene.add(chargeGlow);
+  const bubbleGeo = new T.SphereGeometry(1, 24, 14, Math.PI / 2, Math.PI); geometries.add(bubbleGeo);
+  const bubbleMat = noOutline(new T.MeshBasicMaterial({ color: 0xa6dc84, transparent: true, opacity: 0.3, side: T.DoubleSide, depthWrite: false })); materials.add(bubbleMat);
+  const guardBubble = new T.Mesh(bubbleGeo, bubbleMat); guardBubble.visible = false; scene.add(guardBubble);
+  let chargeLevel = 0, burstTime = 1;
+  const petalColor = new T.Color();
+  function holdFx(game: HuntGame, dt: number) {
+    const hold = game.hold(), h = game.hero, a = actors[game.heroId], still = reduced.matches, time = game.time;
+    const charging = hold.kind === 'charge' && !game.ride.riding, fill = Math.min(1, hold.amount / (hold.levels === 2 ? 1 : 0.35)), full = charging && hold.level === hold.levels;
+    petals.visible = chargeGlow.visible = charging;
+    if (charging && hold.level > chargeLevel) burstTime = 0;
+    chargeLevel = charging ? hold.level : 0;
+    burstTime += dt; burst.visible = burstTime < 0.4 && !still;
+    if (burst.visible) { const t = burstTime / 0.4; burst.position.set(h.x, 0.08, h.z); burst.scale.setScalar(0.7 + t * 1.1); burstMat.opacity = 0.85 * (1 - t); }
+    if (charging) {
+      const lit = fill * PETALS, pulse = full && !still ? 1 + Math.sin(time * 12) * 0.18 : 1;
+      petalColor.set(full ? 0xfff0b8 : hold.level ? 0xffa040 : 0xffd56a);
+      for (let i = 0; i < PETALS; i++) {
+        const angle = h.face + (i / PETALS) * Math.PI * 2, on = Math.max(0, Math.min(1, lit - i)), size = (0.28 + 0.5 * on) * pulse;
+        matrix.compose(V(h.x + Math.cos(angle) * 1.05, 0.07, h.z - Math.sin(angle) * 1.05), quat.identity(), V(size * 0.16, 1, size * 0.16)); petals.setMatrixAt(i, matrix);
+        petals.setColorAt(i, on > 0 ? petalColor : tint.set(0xf6ecd0));
+      }
+      petals.instanceMatrix.needsUpdate = true; if (petals.instanceColor) petals.instanceColor.needsUpdate = true;
+      // Gather power: a little crouch, and a tremble once a level is ready.
+      a.model.body.scale.y *= 1 - 0.07 * fill; if (hold.level && !still) { a.model.body.position.z = Math.sin(time * 47) * 0.012 * (full ? 1.6 : 1); a.model.body.rotation.x = Math.sin(time * 39) * 0.02; }
+      a.model.root.updateMatrixWorld(true); a.model.arms[1].paw.getWorldPosition(chargeGlow.position);
+      chargeGlow.scale.setScalar((0.25 + fill * 0.35) * (full && !still ? 1 + Math.sin(time * 12) * 0.15 : 1)); glowMat.opacity = 0.3 + 0.4 * fill;
+    }
+    guardBubble.visible = hold.kind === 'guard';
+    if (guardBubble.visible) {
+      const r = a.model.root; guardBubble.position.set(r.position.x + Math.cos(h.face) * 0.25, 0.75, r.position.z - Math.sin(h.face) * 0.25); guardBubble.rotation.set(0, h.face, 0);
+      guardBubble.scale.set(0.95, 0.85 + (still ? 0 : Math.sin(time * 6) * 0.03), 1.05); bubbleMat.opacity = 0.18 + 0.2 * game.stamina / 100;
+    }
+  }
   // Sticky sap: an amber puddle on the ground, and the same puddle under a stuck beast.
   const sapMat = noOutline(new T.MeshToonMaterial({ color: 0xe39a2c, gradientMap: ramp, transparent: true, opacity: 0.85, depthWrite: false })); materials.add(sapMat);
   const sap = mesh(scene, circleGeo, sapMat, [0, 0.07, 0], [0.8, 1, 0.8], false);
@@ -405,6 +434,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     a.model.root.position.set(p.x, height, p.z); a.model.root.rotation.y = p.face;
     if (isPlayer && game.ride.landing > 0 && !reduced.matches) { const f = 1 - game.ride.landing / 0.6; a.model.root.position.y = (1 - f) * (game.beast ? RIDE_HEIGHT[game.beast.id] : 2) + Math.sin(f * Math.PI) * 0.7; if (game.beast) { a.model.root.position.x = lerp(game.beast.x, p.x, f); a.model.root.position.z = lerp(game.beast.z, p.z, f); } }
     animateHuntChinchilla(a.model, time, p.speed / 5, true);
+    a.model.body.position.z = 0; a.model.body.rotation.x = 0;
     if (isPlayer && h.roll >= 0 && !reduced.matches) { a.model.body.rotation.z = -h.roll / 0.46 * Math.PI * 2; a.model.root.position.y = Math.sin(h.roll / 0.46 * Math.PI) * 0.3; }
     // A little item-use nod can finish sooner with Deep Breath, without delaying another item.
     else a.model.body.rotation.z = isPlayer && h.swing < 0 && !reduced.matches ? Math.min(0.12, game.itemRecovery * 0.4) : 0;
@@ -414,7 +444,8 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const weapon = game.weapon(id);
     a.hammer.visible = weapon === 'hammer'; a.trail.visible = false;
     a.armour.forEach((g, i) => { const piece = game.profile.armour.worn[(['helm', 'vest', 'boots'] as const)[i]]; g.visible = isPlayer && !!piece; if (piece) { const color = BEASTS[piece.split('-')[0] as BeastId].color; g.traverse((o) => { if (o instanceof T.Mesh) (o.material as T.MeshToonMaterial).color.set(color); }); } });
-    a.weapons.pose(weapon, time, t);
+    const hold = isPlayer ? game.hold() : null;
+    a.weapons.pose(weapon, time, t, hold?.kind === 'charge' ? hold.amount : 0, hold?.kind === 'guard');
     if (weapon === 'hammer') {
       a.hammer.rotation.z = t < 0 ? 0.9 : t < 0.15 ? lerp(0.9, 2.1, t / 0.15) : t < 0.25 ? lerp(2.1, -2, (t - 0.15) / 0.1) : lerp(-2, 0.9, Math.min(1, (t - 0.25) / 0.3) ** 2);
       if (isPlayer && h.charge > 0) a.hammer.rotation.z = 1.9 + Math.sin(time * 18) * Math.min(0.05, h.charge * 0.05);
@@ -453,11 +484,17 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const worldKey = `${game.profile.hunts}:${game.mode === 'village' || game.mode === 'camp'}`;
     if (worldKey !== currentWorld) { currentWorld = worldKey; buildWorld(game); }
     village.visible = paths.visible = game.mode === 'village' || game.mode === 'camp'; campPath.visible = !village.visible;
-    poseActor('dora', game); poseActor('enzo', game);
+    poseActor('dora', game); poseActor('enzo', game); holdFx(game, dt);
     for (const id of BEAST_IDS) beasts[id].root.visible = game.beast?.id === id && !['village', 'camp'].includes(game.mode);
     snowfall.visible = currentArea === 'peak' && !reduced.matches;
     if (snowfall.visible) { for (let i = 0; i < 80; i++) { const x = Math.sin(i * 7.3) * 22, z = Math.cos(i * 3.7) * 22, y = 9 - (game.time * 0.7 + i * 0.37) % 9; matrix.compose(V(x + Math.sin(game.time + i) * 0.3, y, z), upright, V(0.035, 0.035, 0.035)); snowfall.setMatrixAt(i, matrix); } snowfall.instanceMatrix.needsUpdate = true; }
-    for (const v of villagers) v.root.position.y = !reduced.matches && Math.hypot(game.hero.x - v.x, game.hero.z - v.z) < 5 ? Math.sin(game.time * 5) * 0.07 : 0;
+    for (const v of villagers) {
+      const near = Math.hypot(game.hero.x - v.x, game.hero.z - v.z) < 5, r = v.rig.root;
+      v.rig.animate(game.time, near, reduced.matches);
+      // Villagers face the paths, and turn to watch the leader who comes to talk.
+      const want = near && !reduced.matches ? Math.atan2(game.hero.x - v.x, game.hero.z - v.z) : 0, turnBy = Math.atan2(Math.sin(want - r.rotation.y), Math.cos(want - r.rotation.y));
+      r.rotation.y += turnBy * Math.min(1, dt * 4);
+    }
     const b = game.beast;
     const rock = game.hopRock();
     hopRing.visible = hopLabel.visible = !!rock;
@@ -552,9 +589,9 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       showTime += dt; const root = actors[preview].model.root;
       actors.dora.model.root.visible = preview === 'dora'; actors.enzo.model.root.visible = preview === 'enzo';
       // Turned three-quarters so the weapon paw faces the camera.
-      root.position.set(0, 0, 0); root.rotation.y = -0.5 + (reduced.matches ? 0 : Math.sin(showTime * 0.7) * 0.35);
+      root.position.set(0, 0, 0); root.rotation.y = -0.25 + (reduced.matches ? 0 : Math.sin(showTime * 0.7) * 0.35);
       for (const o of scene.children) o.visible = o === root || o === stand || o instanceof T.Light || o === sun.target;
-      stand.visible = true; scene.background = showBg; target.set(0, 0.62, 0); camera.position.set(1.9, 1.25, 2.1);
+      stand.visible = true; scene.background = showBg; target.set(0, 0.72, 0); camera.position.set(1.65, 1.0, 1.8);
     }
     camera.lookAt(target);
     if (leafCards && crowns) {

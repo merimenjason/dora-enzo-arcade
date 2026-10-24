@@ -48,3 +48,15 @@
 .hunt-rack button[aria-pressed="true"]{outline-offset:-3px}
 
 .hunt-panel-story{width:min(980px,96vw);padding:0;overflow:hidden}.hunt-story-painting{width:100%;height:min(55vh,520px);object-fit:cover;cursor:pointer}.hunt-story-paper{display:flex;align-items:center;gap:1rem;padding:1rem 2rem;background:#fff3d4;min-height:150px;cursor:pointer}.hunt-story-paper p{font-size:clamp(1.1rem,2.2vw,1.5rem);color:#43372d}.hunt-story>button{margin:.5rem 1rem}.hunt-story-chapters{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.6rem;margin:1rem 0}.hunt-story-chapters button{display:flex;flex-direction:column;gap:.4rem;text-align:left}.hunt-swatch{display:inline-block;width:1.2rem;height:1.2rem;border-radius:50%;margin-left:.6rem;border:2px solid #4b4035}
+.hunt-charge { position: absolute; bottom: 84px; left: 50%; transform: translateX(-50%); display: grid; gap: 5px; justify-items: center; padding: 8px 14px 7px; border: 2px solid #ead4a6; border-radius: 16px; background: #fff5dfe8; color: #48372b; pointer-events: none; box-shadow: 0 3px 12px #2f3b2726; }
+.hunt-charge strong { font-size: 12px; font-weight: 850; white-space: nowrap; }
+.hunt-charge-bar { position: relative; display: block; width: 170px; height: 10px; border-radius: 6px; background: #e6d8bd; overflow: hidden; }
+.hunt-charge-bar > span { position: absolute; inset: 0 auto 0 0; border-radius: 6px; background: linear-gradient(90deg, #f3c76a, #e9963d); transition: width .1s linear; }
+.hunt-charge-bar > i { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #fff5df; }
+.hunt-charge[data-level="1"] .hunt-charge-bar > span { background: linear-gradient(90deg, #f3c76a, #f08a2c); }
+.hunt-charge[data-full="true"] { border-color: #f0b54a; animation: hunt-charge-glow .5s ease-in-out infinite alternate; }
+.hunt-charge[data-full="true"] .hunt-charge-bar > span { background: linear-gradient(90deg, #ffd56b, #ff9d3a, #ffe9a6); }
+.hunt-charge[data-kind="guard"] .hunt-charge-bar > span { background: linear-gradient(90deg, #8fc46e, #5f9f4a); }
+@keyframes hunt-charge-glow { from { box-shadow: 0 3px 12px #2f3b2726; } to { box-shadow: 0 0 18px #ffbf4dcc; } }
+@media (prefers-reduced-motion: reduce) { .hunt-charge[data-full="true"] { animation: none; box-shadow: 0 0 14px #ffbf4daa; } }
+@media (pointer: coarse), (max-width: 700px) { .hunt-charge { bottom: 205px; } }

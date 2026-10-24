@@ -33,6 +33,26 @@ function WeaponIcon({ type, tier = 1, size = 44 }: { type: WeaponType; tier?: nu
   const lastSheet = sheet === 1 ? 2 : type === 'katana' ? 4 : sheet >= 3 && type !== 'greatsword' ? 5 : sheet;
   return <Art sheet={sheet === 1 && tier !== 5 ? 'icons-gear' : `icons-weapons-${tier === 5 ? lastSheet : sheet}`} cell={tier === 5 ? glimmer : tier >= 3 ? final : base + tier - 1} size={size} />;
 }
+// What a held K does with each tool, in the words the HUD uses.
+const RELEASE_NAMES: Partial<Record<WeaponType, string>> = { horn: 'play a song', glaive: 'send the firefly', lightbow: 'swap acorns', chargeblade: 'switch', switchaxe: 'switch', lance: 'counter-thrust', heavybow: 'acorn flurry' };
+const BIG_NAMES: Partial<Record<WeaponType, string[]>> = { hammer: ['Big bonk', 'Mega bonk'], bow: ['Two-seed shot', 'Three-seed shot'], wand: ['Big bubble'], yoyo: ['Loop-the-Loop'] };
+function chargeText(g: HuntGame) {
+  const h = g.hold(), type = g.weapon(), big = BIG_NAMES[type] ?? ['Big bonk'];
+  if (g.hero.cooldown > 0) return 'Tool recovering';
+  if (h.kind === 'guard') return `Guarding · stamina ${Math.ceil(g.stamina)}%`;
+  if (h.kind === 'release') return `Let go of K to ${RELEASE_NAMES[type] ?? 'use it'}`;
+  if (h.kind === 'charge') return h.level ? `${big[h.level - 1]} ready${h.level < h.levels ? ' · keep holding' : '!'}` : 'Charging…';
+  return g.guardTool() ? 'Hold K to guard' : h.levels ? 'Hold K to charge' : `Hold K to ${RELEASE_NAMES[type] ?? 'use it'}`;
+}
+/** The charge bar under the hero: its fill reaches each notch as a level is ready. */
+function ChargeMeter({ g }: { g: HuntGame }) {
+  const h = g.hold(); if (h.kind !== 'charge' && h.kind !== 'guard') return null;
+  const full = h.levels === 2 ? 1 : 0.35, fill = h.kind === 'guard' ? g.stamina / 100 : Math.min(1, h.amount / full);
+  return <div className="hunt-charge" data-testid="charge-meter" data-kind={h.kind} data-level={h.level} data-full={h.kind === 'charge' && h.level === h.levels}>
+    <span className="hunt-charge-bar"><span style={{ width: `${fill * 100}%` }} />{h.levels === 2 && <i style={{ left: '35%' }} />}</span>
+    <strong>{chargeText(g)}</strong>
+  </div>;
+}
 const MOODS = ['happy', 'determined', 'dizzy', 'sleepy'];
 /** Portrait cell: dizzy just after a bump, sleepy when Fluff is low, determined while swinging or charging. */
 const heroMood = (h: Hero) => h.invincible > 0 ? 2 : h.fluff < 30 ? 3 : h.charge > 0 || h.swing >= 0 ? 1 : 0;
@@ -93,7 +113,7 @@ export default function GrumbleHuntPage() {
   const mute = () => { const s = sound.current; if (!s) return; s.unlock(); s.setMuted(!s.muted()); setMuted(s.muted()); if (game.current?.mode === 'hunt' && !panelRef.current) focusWorld(); };
 
   useEffect(() => {
-    let stopped = false, raf = 0, last = 0, acc = 0, ui = 0;
+    let stopped = false, raf = 0, last = 0, acc = 0, ui = 0, lastHold = '';
     const g = HuntGame.load(readSave()); game.current = g; g.setBountyDay(localDay()); sound.current = new HuntSound(); setMuted(sound.current.muted());
     if (!g.profile.hero) { panelRef.current = 'choose'; setPanel('choose'); }
     let today = localDay();
@@ -126,6 +146,8 @@ export default function GrumbleHuntPage() {
           for (const key of pulses.current) input[key] = true;
           while (acc >= DT) { if (!panelRef.current) { const consumes = current.hitstop <= 0 && !current.paused; current.step(DT, input); if (consumes) pulses.current.clear(); } acc -= DT; }
           for (const e of current.events.splice(0)) { sound.current?.cue(e.kind); if (e.kind === 'interact' && e.spot) openPanel(e.spot); }
+          const held = current.hold(), heldKey = `${held.kind}${held.level}`;
+          if (heldKey !== lastHold) { if (held.kind === 'charge' && held.level > 0) sound.current?.cue(`charge-${held.level}`); else if (held.kind === 'guard') sound.current?.cue('guard'); lastHold = heldKey; }
           scene.current?.draw(current, Math.max(DT, elapsed));
         }
         // Permanent progress is saved in the very frame it changes, including the last bonk.
@@ -235,8 +257,9 @@ export default function GrumbleHuntPage() {
         <p>{cap(g.buddyId)} is with you{g.buddy.berry <= 0 ? ' · berry ready' : ' · picking a berry'}.</p>
         <button className="hunt-order" data-testid="buddy-order" aria-label={`${cap(g.buddyId)}'s order: ${ORDER_NAMES[g.order]}. Change order`} title="Hold Tab and tap Q or E" onClick={() => { g.commandBuddy(1); refresh(); focusWorld(); }}>{cap(g.buddyId)}: <strong>{ORDER_NAMES[g.order]}</strong> ›</button>
         {active && <small data-testid="weapon-meter">{g.weapon() === 'katana' || g.weapon() === 'switchaxe' ? `Focus / Bloom ${Math.floor(g.focus)}%` : g.weapon() === 'claws' ? `Zoomies ${g.zoom.toFixed(1)}s` : g.weapon() === 'chargeblade' ? `Seedpods ${g.pods}` : g.weapon() === 'lightbow' ? `Acorns ${g.loaded} / 6 · roll to reload` : g.weapon() === 'glaive' ? `Glows ${g.glowColors} · ${Math.ceil(g.glow)}s` : g.weapon() === 'horn' ? `Notes ${g.notes % 3} · song ${Math.ceil(g.song)}s` : `Stamina ${Math.ceil(g.stamina)}`}</small>}
-        {active && <small data-testid="charge-status">{g.hero.cooldown > 0 ? 'Tool recovering' : g.hero.charge >= 0.35 ? 'Big bonk or shot ready' : g.hero.charge > 0 ? 'Charging…' : 'Hold K to charge'}</small>}
+        {active && <small data-testid="charge-status">{chargeText(g)}</small>}
       </section>
+      {active && !g.ride.riding && <ChargeMeter g={g} />}
       {active && g.ride.riding && <section className="hunt-ride" data-testid="ride-hud" aria-label="Hop-on">
         <strong>Hop-on!</strong><div className="hunt-ride-pips" data-testid="ride-pips" aria-label={`${g.ride.fullBonks} of 3 full bonks`}>{[0, 1, 2].map((i) => <span key={i} data-full={i < g.ride.fullBonks}>🐾</span>)}</div>
         <progress data-testid="ride-meter" aria-label="Bonk meter" max={5} value={g.ride.meter} />

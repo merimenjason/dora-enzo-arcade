@@ -268,6 +268,24 @@ export class HuntGame {
   get armour() { return armourBonus(this.profile.armour.worn); }
   skill(id: string) { return this.armour.skills.some((s) => s.id === id); }
   ranged(id: HeroId = this.heroId) { return ['bow', 'lightbow', 'heavybow', 'wand'].includes(this.weapon(id)); }
+  /** Tools that guard while K is held (the Charge Blade only in sword mode). */
+  guardTool() { return ['lance', 'gunlance', 'greatsword', 'chargeblade', 'heavybow'].includes(this.weapon()) && !(this.weapon() === 'chargeblade' && this.bloom); }
+  /** How many charge levels the leader's held K builds: the hammer and bow have two (0.35 and 1.0),
+   *  tools whose release gets bigger have one, and the rest just fire their signature on release. */
+  chargeLevels() {
+    const type = this.weapon();
+    if (type === 'hammer' || type === 'bow') return 2;
+    if (type === 'switchaxe') return this.bloom && this.focus >= 100 ? 1 : 0;
+    return ['greatsword', 'katana', 'sword', 'gunlance', 'yoyo', 'wand', 'claws'].includes(type) ? 1 : 0;
+  }
+  /** What holding K is doing right now, for the HUD and the scene. */
+  hold(): { kind: 'none' | 'guard' | 'charge' | 'release'; level: number; levels: number; amount: number } {
+    const amount = this.hero.charge, levels = this.chargeLevels();
+    if (this.guarding) return { kind: 'guard', level: 0, levels: 0, amount };
+    if (amount <= 0 || this.mode !== 'hunt') return { kind: 'none', level: 0, levels, amount: 0 };
+    const level = levels === 2 && amount >= 1 ? 2 : levels > 0 && amount >= 0.35 ? 1 : 0;
+    return { kind: levels ? 'charge' : 'release', level, levels, amount };
+  }
   equip(type: WeaponType, who: HeroId = this.heroId) {
     if (this.mode !== 'village' || !Object.hasOwn(WEAPON_TYPES, type) || !['dora', 'enzo'].includes(who) || !this.weaponOpen(type)) return false;
     this.profile.equipped[who] = type; this.revision++; return true;
@@ -726,10 +744,10 @@ export class HuntGame {
     if (this.mode === 'hunt' && this.vaultHold >= 0.35 && this.vault <= 0) { this.vault = 0.8; if (this.rockHop(input.x, input.z) && this.startRide()) return; }
     const releasedHold = this.chargeHold;
     this.chargeHold = input.charge ? this.chargeHold + dt : 0;
-    const guardTool = ['lance', 'gunlance', 'greatsword', 'chargeblade', 'heavybow'].includes(this.weapon()) && !(this.weapon() === 'chargeblade' && this.bloom);
+    const guardTool = this.guardTool();
     if (pressed('charge')) this.guardCombo = false;
     if (input.charge && input.bonk) this.guardCombo = true;
-    this.guarding = input.charge && !this.guardCombo && ['lance', 'gunlance', 'greatsword', 'chargeblade', 'heavybow'].includes(this.weapon()) && !(this.weapon() === 'chargeblade' && this.bloom);
+    this.guarding = input.charge && !this.guardCombo && guardTool;
     this.guardTime = this.guarding ? this.guardTime + dt : 0;
     if (this.guarding && this.guardTime > this.perk('free-guard')) this.stamina = Math.max(0, this.stamina - dt * 8); else this.stamina = Math.min(100, this.stamina + dt * 20 * (1 + (this.snack ? SNACKS[this.snack].effect.staminaRegen ?? 0 : 0)));
     if (this.mode === 'hunt' && this.weapon() === 'heavybow' && input.charge && this.flurry <= 0 && Math.hypot(input.x, input.z) < 0.1 && h.cooldown <= 0) { this.shoot(h, true, false); h.cooldown = 0.18; }
