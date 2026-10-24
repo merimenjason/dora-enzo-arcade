@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Grumble Hunt Look Test</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@600;800&display=swap">
@@ -46,6 +47,13 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 .pop.warn { color: #ffb070; }
 .pop.buddy { font-size: 18px; color: #bff0cf; }
 @media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+
+.weapon { bottom: 12px; left: 50%; transform: translateX(-50%); width: min(420px, 38vw); box-sizing: border-box; font-size: 12px; }
+.weapon .row { display:flex; align-items:center; gap:10px; }
+.weapon strong { font-family:var(--display); font-size:18px; }
+.weapon p { margin:4px 0 0; color:var(--muted); }
+#weaponFirst { color:var(--amber); }
+@media(max-width:760px) { .weapon { bottom:160px; width:calc(100vw - 24px); } .boss { bottom:310px; } }
 </style>
 
 <canvas id="c" tabindex="0" aria-label="Meadow scene with Dora, Enzo and the Bristleback"></canvas>
@@ -67,7 +75,7 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 </div>
 
 <div class="panel dora meter">
-  <div class="label"><span>Dora</span><span style="color: var(--muted)">Acorn Hammer</span></div>
+  <div class="label"><span>Dora</span><span id="doraWeapon" style="color: var(--muted)">Acorn Hammer</span></div>
   <div class="bar"><i id="fluff" style="background: var(--fluff)"></i></div>
   <span class="label" style="color: var(--muted); font-weight: 600">Fluff · Enzo tosses berries</span>
 </div>
@@ -81,5 +89,9 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   <p>WASD move · Shift sprint · drag to look · scroll to zoom</p>
 </div>
 
+<div class="panel weapon" aria-label="Weapon selection">
+  <div class="row"><button id="weaponPrev" aria-label="Previous weapon">‹</button><div aria-live="polite"><strong id="weaponName"></strong><p id="weaponLike"></p></div><button id="weaponNext" aria-label="Next weapon">›</button></div>
+  <p id="weaponMove"></p><span id="weaponFirst">Good first pick</span><p>[ / ] · Change weapon</p>
+</div>
 <div id="msg" hidden></div>
 <script>/*BUNDLE*/</script>

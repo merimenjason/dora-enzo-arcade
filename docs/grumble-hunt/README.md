@@ -23,3 +23,38 @@ Reference material for building Grumble Hunt (game 39, route `/hunt`).
 Build it from the repo root with `bash docs/grumble-hunt/look-test/build.sh`. Pass a JSON list of `[name, query]` pairs to also take screenshots. `?portrait=<offset>` puts the camera in front of Dora. `?pose=<seconds>` freezes her swing: 0.12 is the wind-up, 0.22 the slam and 0.35 the follow-through.
 
 `screenshots/` holds the current renders: idle from the front and side, the hunt camera, and the three swing phases.
+
+## Weapons
+
+Choose the first weapon shown with `?weapon=<id>`. The bottom-centre panel shows its
+name, Monster Hunter equivalent (where applicable), signature move and first-pick
+badge from `lib/grumble-hunt-content.ts`. Use ‹ / › or `[` / `]` to cycle in place.
+J swings the Acorn Hammer; the other weapons bob on their held grips.
+
+| `?weapon=` id | Name |
+| --- | --- |
+| `greatsword` | Driftwood Greatsword |
+| `katana` | Bamboo Katana |
+| `sword` | Twig Sword and Acorn Shield |
+| `claws` | Twin Claws |
+| `hammer` | Acorn Hammer |
+| `horn` | Gourd Horn |
+| `lance` | Thistle Lance |
+| `gunlance` | Puffcap Lance |
+| `switchaxe` | Switch Spade |
+| `chargeblade` | Seedpod Blade |
+| `glaive` | Firefly Staff |
+| `lightbow` | Acorn Slingshot |
+| `heavybow` | Pumpkin Popper |
+| `bow` | Seed Bow |
+| `wand` | Bubble Wand |
+| `yoyo` | Pinecone Yo-yo |
+
+To capture all 32 reference shots from the repo root:
+
+```sh
+mkdir -p docs/grumble-hunt/screenshots/weapons
+SHOTS="$PWD/docs/grumble-hunt/screenshots/weapons" bash docs/grumble-hunt/look-test/build.sh "$(cat docs/grumble-hunt/look-test/weapons-shots.json)"
+```
+
+The screenshots are written as PNG; the committed set in `screenshots/weapons/` (`<id>-front.webp` and `<id>-side.webp`) was converted to WebP to keep it small. They were checked by eye on 24-10-2026: every weapon sits in Dora's paws and none covers her face, from the front or the side.

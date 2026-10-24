@@ -8,6 +8,8 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { createHuntChinchilla, animateHuntChinchilla, poseArms } from '../../../lib/hunt-chinchilla';
 
+import { BASIC_WEAPONS, WEAPON_TYPES, MH_EQUIVALENT, FIRST_PICKS, type WeaponType } from '../../../lib/grumble-hunt-content';
+
 type Look = 'toon' | 'soft';
 const V = (x = 0, y = 0, z = 0) => new T.Vector3(x, y, z);
 let seed = 11;
@@ -227,7 +229,10 @@ const bow = new T.Group(); enzo.model.body.add(bow); bow.position.set(0.42, 0.6,
 // joins it higher up for the slam and lets go for the wind-up and the shoulder rest.
 // ?weapon=claws|lance|wand|yoyo swaps Dora's hammer for one of the later weapons, held the same way:
 // each weapon group sits at its grip point in Dora's body space, scaled back to rig units.
-const WEAPON = new URLSearchParams(location.search).get('weapon') ?? 'hammer';
+const weaponOrder: WeaponType[] = [...BASIC_WEAPONS, 'wand', 'yoyo'];
+const requestedWeapon = new URLSearchParams(location.search).get('weapon') as WeaponType;
+let WEAPON: WeaponType = weaponOrder.includes(requestedWeapon) ? requestedWeapon : 'hammer';
+let weaponBob = -1;
 const held: Record<string, T.Group[]> = {};
 function grip(...parts: [T.BufferGeometry, Pair, number, number, number, number?, number?, number?][]) {
   const g = new T.Group(); dora.model.body.add(g); g.scale.setScalar(1 / dora.s);
@@ -264,13 +269,115 @@ function grip(...parts: [T.BufferGeometry, Pair, number, number, number, number?
   hamPivot.visible = WEAPON === 'hammer';
 }
 
+// Rounded primitives keep the toy silhouettes soft. Grip coordinates below are local to
+// these groups; transform them back to body space for the paws every frame.
+const idleGrips: Partial<Record<WeaponType, [T.Vector3 | null, T.Vector3 | null]>> = {};
+const woodW = pair(0xc39359), paleW = pair(0xe8cca0), greenW = pair(0x6eaa4e), wrapW = pair(0x845638);
+function ball(g: T.Group, p: Pair, x: number, y: number, z: number, sx: number, sy: number, sz: number) {
+  const m = mesh(new T.SphereGeometry(1, 20, 14), p, g); m.position.set(x,y,z); m.scale.set(sx,sy,sz); return m;
+}
+function rod(g: T.Group, a: T.Vector3, b: T.Vector3, r = .028, p = woodW) {
+  const m = mesh(new T.CapsuleGeometry(r, Math.max(.001,a.distanceTo(b)-2*r), 4, 10), p, g);
+  m.position.copy(a).add(b).multiplyScalar(.5); m.quaternion.setFromUnitVectors(V(0,1,0),b.clone().sub(a).normalize()); return m;
+}
+function toy(id: WeaponType, left: T.Vector3 | null, right: T.Vector3 | null) {
+  const g = grip(); held[id] = [g]; idleGrips[id] = [left,right]; return g;
+}
+function wrapped(g: T.Group, a: T.Vector3, b: T.Vector3) {
+  rod(g,a,b,.04,wrapW);
+  for(let i=1;i<5;i++) { const m=mesh(new T.TorusGeometry(.042,.008,6,12),paleW,g); m.position.copy(a).lerp(b,i/5); m.quaternion.setFromUnitVectors(V(0,0,1),b.clone().sub(a).normalize()); }
+}
+function shield(g: T.Group, pod = false) {
+  const c = V(.64,.26,-.46);
+  ball(g,pod?greenW:wrapW,c.x,c.y,c.z,.065,pod?.26:.21,pod?.14:.21);
+  if(pod) for(let i=0;i<3;i++) ball(g,paleW,c.x+.06,c.y+(i-1)*.13,c.z,.035,.065,.075);
+  else { ball(g,woodW,c.x+.05,c.y,c.z,.035,.16,.16); rod(g,V(c.x,c.y+.2,c.z),V(c.x,c.y+.26,c.z),.025); }
+  rod(g,V(c.x-.08,c.y-.05,c.z),V(c.x-.08,c.y+.06,c.z),.035,wrapW);
+}
+{
+  let g=toy('greatsword',V(.12,.20,0),V(0,0,0));
+  wrapped(g,V(0,-.08,0),V(.18,.30,0));
+  ball(g,paleW,-.19,.71,0,.21,.63,.065).rotation.z=-.58;
+  for(let i=0;i<3;i++) rod(g,V(-.26+i*.065,.47, .064),V(-.45+i*.065,.89,.064),.009,woodW);
+  g.position.set(.48,.49,.80); g.rotation.set(0,Math.PI/2,.5);
+  g=toy('katana',V(0,.16,0),V(0,0,0)); wrapped(g,V(0,-.08,0),V(0,.22,0));
+  ball(g,greenW,0,.26,0,.13,.035,.13);
+  const curve=new T.QuadraticBezierCurve3(V(0,.28,0),V(.02,.65,0),V(.18,.98,0));
+  const blade=mesh(new T.TubeGeometry(curve,24,.045,10,false),greenW,g); blade.scale.z=.55;
+  ball(g,greenW,.18,.98,0,.045,.045,.025);
+  for(let i=0;i<3;i++) ball(g,paleW,.015+i*.035,.42+i*.19,0,.05,.018,.03);
+  g.position.set(.78,.38,.68); g.rotation.set(.38,0,-.28);
+  for(const id of ['sword','chargeblade'] as WeaponType[]) {
+    g=toy(id,V(.56,.26,-.46),V(.65,.38,.62)); shield(g,id==='chargeblade');
+    wrapped(g,V(.65,.30,.62),V(.65,.46,.62));
+    const b=ball(g,id==='sword'?woodW:greenW,.70,.64,.70,.085,.24,.045); b.rotation.set(.35,0,-.25);
+    if(id==='chargeblade') for(let i=0;i<3;i++) ball(g,paleW,.72,.52+i*.10,.68+i*.035,.04,.035,.018);
+  }
+  g=toy('horn',V(0,.16,0),V(0,0,0)); wrapped(g,V(0,-.08,0),V(0,.24,0));
+  ball(g,pair(0xd8ae54),0,.48,0,.23,.27,.20); ball(g,woodW,.02,.70,0,.09,.10,.09);
+  for(let i=0;i<3;i++) ball(g,wrapW,.205,.36+i*.11,.04,.025,.028,.04);
+  g.position.set(.72,-.12,.80); g.rotation.set(.3,0,-.35);
+  g=toy('gunlance',V(.60,.30,-.68),V(.58,.40,.40));
+  ball(g,greenW,.68,.30,-.68,.065,.23,.17); rod(g,V(.60,.20,-.68),V(.60,.40,-.68),.025,wrapW); rod(g,V(.47,.40,.40),V(1.34,.55,.40),.045);
+  ball(g,pair(0xf4d6ae),1.35,.56,.40,.20,.17,.17);
+  for(let i=0;i<5;i++) ball(g,paleW,1.39+Math.sin(i*2)*.10,.59+Math.cos(i*2)*.10,.54,.035,.035,.02);
+  g=toy('switchaxe',V(0,.22,0),V(0,0,0)); wrapped(g,V(0,-.12,0),V(0,.35,0)); rod(g,V(0,.3,0),V(0,.70,0));
+  ball(g,pair(0xe6a7bc),0,.64,0,.10,.10,.10); ball(g,woodW,0,.87,0,.22,.22,.065);
+  ball(g,paleW,0,.91,.06,.16,.13,.022); g.position.set(.65,.36,.70); g.rotation.set(.35,0,-.25);
+  g=toy('glaive',V(0,.24,0),V(0,0,0)); rod(g,V(0,-.28,0),V(0,.90,0));
+  for(let i=0;i<5;i++) {const a=i*Math.PI*2/5;ball(g,pair(0xf0b4cd),Math.cos(a)*.10,.91,Math.sin(a)*.10,.07,.14,.07);}
+  ball(g,pair(0xffdf74),0,.89,0,.08,.09,.08); g.position.set(.66,.35,.72); g.rotation.x=.3;
+  const glow=new T.MeshBasicMaterial({color:0xfff18c,toneMapped:false}); glow.userData.outlineParameters={visible:false};
+  const fly=new T.Mesh(new T.SphereGeometry(.04,12,8),glow); g.add(fly); g.userData.firefly=fly;
+  for(const z of [-.04,.04]) { const wing=new T.Mesh(new T.SphereGeometry(.035,10,8),glow);wing.scale.set(1,.3,1);wing.position.z=z;fly.add(wing); }
+  g=toy('lightbow',V(0,0,0),V(-.23,.12,.18));
+  rod(g,V(0,-.10,0),V(0,.12,0),.04); rod(g,V(0,.10,0),V(0,.31,-.13),.035);rod(g,V(0,.10,0),V(0,.31,.13),.035);
+  rod(g,V(0,.31,-.13),V(-.23,.12,.18),.012,paleW);rod(g,V(0,.31,.13),V(-.23,.12,.18),.012,paleW);
+  ball(g,wrapW,-.23,.12,.18,.05,.035,.035);g.position.set(.84,.39,-.30);
+  g=toy('heavybow',V(.10,-.10,-.15),V(-.12,.11,.12));
+  const pumpkin=pair(0xe4a04c);
+  for(let i=0;i<7;i++){const a=i*Math.PI*2/7;ball(g,pumpkin,0,Math.cos(a)*.08,Math.sin(a)*.08,.25,.15,.15);}
+  ball(g,wrapW,.235,0,0,.018,.095,.095);ball(g,paleW,.25,0,0,.015,.065,.065);
+  rod(g,V(-.12,.08,.12),V(-.12,.20,.12),.04,greenW);rod(g,V(.10,-.10,-.15),V(.10,-.10,.08),.04);
+  g.position.set(.75,.38,.38);
+  g=toy('bow',V(0,0,0),V(-.18,0,.18));
+  const arc=new T.QuadraticBezierCurve3(V(0,-.34,0),V(.25,0,0),V(0,.34,0));
+  mesh(new T.TubeGeometry(arc,24,.025,10,false),woodW,g);
+  rod(g,V(0,-.34,0),V(-.18,0,.18),.009,paleW);rod(g,V(-.18,0,.18),V(0,.34,0),.009,paleW);
+  g.position.set(.83,.45,-.31);
+}
+function selectWeapon(id: WeaponType) {
+  WEAPON=id; weaponBob=-1;
+  for(const [k,groups] of Object.entries(held)) for(const g of groups) g.visible=k===id;
+  hamPivot.visible=id==='hammer';
+  const info=WEAPON_TYPES[id];
+  document.getElementById('weaponName')!.textContent=info.name;
+  document.getElementById('doraWeapon')!.textContent=info.name;
+  document.getElementById('weaponLike')!.textContent=MH_EQUIVALENT[id] ? `plays like ${MH_EQUIVALENT[id]}` : 'Grumble Hunt original';
+  document.getElementById('weaponMove')!.textContent=info.signature;
+  document.getElementById('weaponFirst')!.hidden=!FIRST_PICKS.includes(id);
+}
+function cycleWeapon(step:number) { D.swing=-1; trailPts.length=0; selectWeapon(weaponOrder[(weaponOrder.indexOf(WEAPON)+step+weaponOrder.length)%weaponOrder.length]); }
+document.getElementById('weaponPrev')!.addEventListener('click',()=>cycleWeapon(-1));
+document.getElementById('weaponNext')!.addEventListener('click',()=>cycleWeapon(1));
+addEventListener('keydown',e=>{if(e.code==='BracketLeft'||e.code==='BracketRight'){e.preventDefault();cycleWeapon(e.code==='BracketLeft'?-1:1);}});
+selectWeapon(WEAPON);
+
 function poseGrips() {
-  const now = performance.now() / 1000, bob = Math.sin(now * 2) * 0.015;
+  const now = performance.now() / 1000, actionBob = weaponBob<0?0:Math.sin(Math.min(1,(now-weaponBob)/.3)*Math.PI)*.04, bob = Math.sin(now * 2) * 0.015 + actionBob;
+  const grips=idleGrips[WEAPON];
+  if(grips) { const g=held[WEAPON][0];
+    g.userData.restY ??= g.position.y;
+    const offset=actionBob;
+    g.position.y=g.userData.restY+offset; g.updateMatrix();
+    poseArms(dora.model,...grips.map(p=>p?p.clone().applyMatrix4(g.matrix):null) as [T.Vector3|null,T.Vector3|null]);
+    const fly=g.userData.firefly as T.Mesh|undefined; if(fly) fly.position.copy(V(.34+Math.cos(now*2)*.85,1.7+Math.sin(now*2)*.08,Math.sin(now*2)*.85).applyMatrix4(g.matrix.clone().invert()));
+  }
   if (WEAPON === 'claws') {
     const l = V(0.62, 0.55 + bob, -0.26), r = V(0.62, 0.55 - bob, 0.26); poseArms(dora.model, l, r);
     held.claws[0].position.copy(l); held.claws[1].position.copy(r); held.claws[0].rotation.set(0, 0.25, 0); held.claws[1].rotation.set(0, -0.25, 0);
   } else if (WEAPON === 'lance') {
-    const l = V(0.6, 0.42 + bob, -0.36), r = V(0.48, 0.46, 0.34); poseArms(dora.model, l, r);
+    const l = V(0.52, 0.22 + bob, -0.72), r = V(0.48, 0.46 + actionBob, 0.34); poseArms(dora.model, l, r);
     held.lance[0].position.copy(l); held.lance[1].position.copy(r);
   } else if (WEAPON === 'wand') {
     const r = V(0.56, 0.58 + bob, 0.32); poseArms(dora.model, null, r); held.wand[0].position.copy(r);
@@ -443,7 +550,7 @@ function pop(text: string, at: T.Vector3, cls = '') {
 let msgT = 0;
 function say(t: string) { hud.msg.textContent = t; hud.msg.hidden = false; msgT = 2.6; }
 
-function swing() { if (D.swing < 0 && D.roll < 0 && D.knock <= 0) { D.swing = 0; D.hit = false; trailPts.length = 0; } }
+function swing() { if(WEAPON !== 'hammer') { weaponBob=performance.now()/1000; return; } if (D.swing < 0 && D.roll < 0 && D.knock <= 0) { D.swing = 0; D.hit = false; trailPts.length = 0; } }
 function roll() {
   if (D.roll >= 0 || D.knock > 0) return;
   const dir = inputDir(); D.rollDir.copy(dir.lengthSq() > 0 ? dir : fwd(D.face)); D.roll = 0; D.swing = -1;
@@ -593,7 +700,7 @@ function stepBoar(dt: number) {
 
 function stepTrail() {
   const pos = trailGeo.attributes.position as T.BufferAttribute, col = trailGeo.attributes.color as T.BufferAttribute;
-  if (D.swing >= 0.1 && D.swing < 0.4) {
+  if (WEAPON === 'hammer' && D.swing >= 0.1 && D.swing < 0.4) {
     const a = hamHead.localToWorld(V(0, 0.22, 0)), b = hamPivot.localToWorld(V(0, 0.45, 0));
     trailPts.unshift([a, b]); if (trailPts.length > TRAIL) trailPts.pop();
   } else if (trailPts.length) trailPts.pop();
