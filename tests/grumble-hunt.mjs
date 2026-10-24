@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, SIGHT, distance } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance } from '../.checks/grumble-hunt-game.js';
+import { DROPS, GATHER, ITEMS, SNACKS } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
 const input = (overrides = {}) => ({ ...NO_INPUT, ...overrides });
@@ -37,7 +38,7 @@ check('hammer wind-up connects later; heavy hits build dizzy and dizzy bonks are
   const g = fresh(), b = g.beast; g.hero.z = b.z + 2.7; g.buddy.cooldown = 10000;
   g.step(DT, input({ bonk: true })); assert.equal(b.grump, b.maxGrump);
   tick(g, 0.3); assert(b.grump < b.maxGrump); assert(g.hitstop > 0);
-  b.state = 'rest'; b.dizzy = 0; g.bonkBeast(1, true, g.hero); g.bonkBeast(1, true, g.hero); assert.equal(b.state, 'dizzy');
+  b.state = 'rest'; b.dizzy = 0; g.bonkBeast(1, true, g.hero); assert.equal(b.dizzy, DIZZY_FULL / 2); g.bonkBeast(1, true, g.hero); assert.equal(b.state, 'dizzy');
   const before = b.grump; g.bonkBeast(10, false, g.hero); assert(Math.abs(before - b.grump - 17) < 1e-8);
 });
 check('holding and releasing K fires a charged seed shot; cancelled input does not fire', () => {
@@ -62,10 +63,9 @@ check('rolls dodge briefly, ordinary bumps consume Fluff and grant a recovery wi
   g.hero.roll = 0.4; assert(g.bumpHero(20, g.beast)); assert.equal(g.hero.fluff, 80); assert.equal(g.bumpHero(20, g.beast), false);
 });
 check('items are consumed only when useful; sleepy clouds slow paws and the buddy heals', () => {
-  const g = fresh('puffwart'); assert.equal(g.useItem(), false); assert.equal(g.items[0], 3);
-  g.hero.fluff = 60; assert(g.useItem()); assert.equal(g.hero.fluff, 95); assert.equal(g.items[0], 2);
-  g.item = 1; assert.equal(g.useItem(), false); g.hero.z = g.beast.z + 4; assert(g.useItem()); assert.equal(g.beast.state, 'dizzy');
-  g.item = 2; assert(g.useItem()); assert.equal(g.hero.pep, 10);
+  const g = fresh('puffwart'); assert.equal(g.ringItem, 'fluffberry'); assert.equal(g.useItem(), false); assert.equal(g.profile.pouch.fluffberry, CAMP_BERRIES);
+  g.hero.fluff = 60; assert(g.useItem()); assert.equal(g.hero.fluff, 90); assert.equal(g.profile.pouch.fluffberry, CAMP_BERRIES - 1);
+  g.item = 1; g.hero.fluff = 10; assert.equal(g.useItem(), false, 'none carried'); assert.match(g.note, /Pantry/); assert.equal(g.hero.fluff, 10);
   g.clouds.push({ x: g.hero.x, z: g.hero.z, life: 1, r: 4 }); g.hero.fluff = 40; g.buddy.berry = 0; g.step(DT); assert(g.hero.slow > 0); assert.equal(g.hero.fluff, 68);
 });
 check('movement resolves tree centres and arena boundaries without NaNs or tunnelling', () => {
@@ -85,8 +85,9 @@ check('Frostmane changes mood as Grump crosses thresholds, before the next wind-
 check('bonks shed materials; a part pops once; calming banks all drops and rewards once', () => {
   const g = fresh(), b = g.beast;
   for (let i = 0; i < 14; i++) g.bonkBeast(11, false, g.hero);
-  assert(b.broken); assert.equal(g.events.filter((e) => e.kind === 'part').length, 1); assert(g.drops.length >= 3);
-  calm(g); assert.equal(g.mode, 'calm'); assert.equal(g.profile.naps.bristleback, 1); assert(g.profile.materials.bristleback >= 10); assert.equal(g.drops.length, 0);
+  assert(b.broken); assert.equal(g.events.filter((e) => e.kind === 'part').length, 1); assert(g.drops.some((d) => d.material === 'tusk-shard'));
+  const owed = g.drops.length;
+  calm(g); assert.equal(g.mode, 'calm'); assert.equal(g.profile.naps.bristleback, 1); assert(g.beastMaterials('bristleback') >= owed + 3); assert.equal(g.drops.length, 0);
   const record = g.save(); assert.equal(g.bonkBeast(100, true, g.hero), false); tick(g, 2); assert.deepEqual(g.save(), record);
 });
 check('three different naps unlock both final hunts; Frostmane leads to victory and replay', () => {
@@ -96,19 +97,23 @@ check('three different naps unlock both final hunts; Frostmane leads to victory 
   assert.equal(g.mode, 'victory'); assert(g.profile.won); g.returnVillage(); assert(g.startHunt('bristleback'));
 });
 check('forge spends actual materials on both tools, capped at three levels', () => {
-  const g = new HuntGame(); g.chooseHero('dora'); g.profile.materials.bristleback = 20; g.profile.materials.puffwart = 20;
+  const g = new HuntGame(); g.chooseHero('dora'); g.profile.pouch['bristle-tuft'] = 20; g.profile.pouch['tusk-shard'] = 20; g.profile.pouch.berry = 9; g.profile.pouch['marsh-reed'] = 9;
   for (const hero of ['dora', 'enzo']) { assert(g.upgrade(hero)); assert(g.upgrade(hero)); assert.equal(g.profile.levels[hero], 3); assert.equal(g.upgrade(hero), false); }
-  assert.equal(g.materialTotal, 4);
+  assert.equal(g.materialTotal, 4); assert.equal(g.profile.pouch['bristle-tuft'], 0, 'commons are spent first'); assert.equal(g.profile.pouch['tusk-shard'], 4);
+  assert.equal(g.profile.pouch.berry, 9); assert.equal(g.profile.pouch['marsh-reed'], 9, 'gathered berries and reeds are kept for the Pantry');
 });
-check('tuckered-out returns to camp without losing gathered materials and retries refill the pouch', () => {
-  const g = fresh(); g.profile.materials.bristleback = 7; g.items[0] = 0; g.hero.fluff = 5; g.bumpHero(10, g.beast);
-  assert.equal(g.mode, 'camp'); assert.equal(g.profile.materials.bristleback, 7); assert(g.startHunt('bristleback')); assert.equal(g.hero.fluff, 100); assert.deepEqual(g.items, [3, 2, 2]);
+check('tuckered-out returns to camp without losing gathered materials and retries top the berries back up', () => {
+  const g = fresh(); g.profile.pouch['bristle-tuft'] = 7; g.profile.pouch.fluffberry = 0; g.hero.fluff = 5; g.bumpHero(10, g.beast);
+  assert.equal(g.mode, 'camp'); assert.equal(g.profile.pouch['bristle-tuft'], 7); assert(g.startHunt('bristleback')); assert.equal(g.hero.fluff, 100); assert.equal(g.profile.pouch.fluffberry, CAMP_BERRIES);
+  g.returnVillage(); g.profile.pouch.fluffberry = 8; g.startHunt('bristleback'); assert.equal(g.profile.pouch.fluffberry, 8, 'crafted berries are never taken away');
 });
 check('saves round-trip permanent progress, reject malformed numbers and safely return to camp', () => {
   const g = fresh('frostmane', 'enzo'); g.profile.levels.enzo = 2; calm(g); const save = g.save(), restored = HuntGame.load(JSON.parse(JSON.stringify(save)));
   assert.deepEqual(restored.profile, g.profile); assert.equal(restored.mode, 'village'); restored.profile.naps.frostmane++; assert.notDeepEqual(restored.profile, save.profile);
-  for (const s of [null, [], { v: 2 }, { v: 1, profile: { levels: { dora: -100 }, materials: { skreel: NaN }, naps: { frostmane: Infinity }, hero: 'bad' } }]) {
-    const safe = HuntGame.load(s); assert.equal(safe.profile.levels.dora, 1); assert.equal(safe.profile.materials.skreel, 0); assert.equal(safe.profile.won, false);
+  for (const s of [null, [], { v: 2 }, { v: 3, profile: { naps: { frostmane: 1 } } }, { v: 1, profile: { levels: { dora: -100 }, materials: { skreel: NaN }, naps: { frostmane: Infinity }, hero: 'bad' } },
+    { v: 2, profile: { levels: { dora: -100 }, pouch: { 'sky-feather': NaN, fluffberry: 1e9 }, ring: ['nope', 7], snack: 'cake', naps: { frostmane: Infinity }, hero: 'bad' } }]) {
+    const safe = HuntGame.load(s); assert.equal(safe.profile.levels.dora, 1); assert.equal(safe.profile.pouch['sky-feather'], 0); assert.equal(safe.profile.won, false);
+    assert(safe.profile.pouch.fluffberry <= ITEMS.fluffberry.max); assert(safe.profile.ring.length >= 1); assert.equal(safe.profile.snack, null);
   }
   const before = g.time; g.step(NaN); g.step(-1); assert.equal(g.time, before); g.paused = true; g.step(DT); assert.equal(g.time, before);
 });
@@ -116,7 +121,7 @@ check('dizzy openings cannot bank another dizzy', () => {
   const g = fresh(), b = g.beast; g.makeDizzy();
   for (let n = 0; n < 4; n++) g.bonkBeast(1, true, g.hero);
   assert.equal(b.dizzy, 0); b.state = 'rest'; g.bonkBeast(1, true, g.hero);
-  assert.equal(b.state, 'rest'); assert.equal(b.dizzy, 1);
+  assert.equal(b.state, 'rest'); assert.equal(b.dizzy, DIZZY_FULL / 2);
 });
 check('charges and swoops stop at the lane end without bumping beyond it', () => {
   for (const id of ['bristleback', 'skreel']) for (const dt of [DT, 0.037, 0.05]) {
@@ -141,9 +146,9 @@ check('high Skreel blocks either Dora hammer while allowing either bow', () => {
   }
 });
 check('tuckered out gathers distant drops exactly once', () => {
-  const g = fresh(); g.drops.push({ id: 99, x: 15, z: 0, material: 'bristleback', count: 4 });
-  g.hero.fluff = 1; g.bumpHero(10, g.beast); assert.equal(g.profile.materials.bristleback, 4); assert.equal(g.drops.length, 0);
-  g.bumpHero(10, g.beast); assert.equal(g.profile.materials.bristleback, 4);
+  const g = fresh(); g.drops.push({ id: 99, x: 15, z: 0, material: 'boar-hide', count: 4 });
+  g.hero.fluff = 1; g.bumpHero(10, g.beast); assert.equal(g.profile.pouch['boar-hide'], 4); assert.equal(g.drops.length, 0);
+  g.bumpHero(10, g.beast); assert.equal(g.profile.pouch['boar-hide'], 4);
 });
 check('below 30% Grump a beast turns Extra Grumpy once: 15% faster, warning 0.1 s sooner and never under 0.6 s', () => {
   for (const id of BEAST_IDS) {
@@ -188,7 +193,7 @@ check('holding Tab with Q/E gives the buddy an order without changing items or l
   g.step(DT, input({ lock: true })); g.step(DT, input({ lock: true, previous: true })); assert.equal(g.order, 'gather');
   g.step(DT); assert.equal(g.locked, locked); assert.equal(g.item, item);
   g.step(DT, input({ lock: true })); g.step(DT); assert.equal(g.locked, !locked);
-  g.step(DT, input({ next: true })); assert.equal(g.item, (item + 1) % 3); assert.equal(g.order, 'gather');
+  g.step(DT, input({ next: true })); assert.equal(g.item, (item + 1) % g.ring.length); assert.equal(g.order, 'gather');
   assert(g.events.some((e) => e.kind === 'order'));
 });
 check('stay close keeps Dora by the leader, and gather sends the buddy to pick up materials without bonking', () => {
@@ -199,9 +204,9 @@ check('stay close keeps Dora by the leader, and gather sends the buddy to pick u
   const go = fresh('bristleback', 'enzo'); go.beast.state = 'rest'; go.beast.duration = 10000; go.hero.x = 0; go.hero.z = 2;
   tick(go, 4); assert(go.beast.grump < go.beast.maxGrump, 'go bonk still runs in and bonks');
   const g = fresh(), m = g.beast; m.state = 'rest'; m.duration = 10000; g.hero.x = 10; g.hero.z = 10;
-  g.commandBuddy(1); assert.equal(g.order, 'gather'); g.drops.push({ id: 999, x: -8, z: 4, material: 'bristleback', count: 2 });
-  const before = g.profile.materials.bristleback; tick(g, 6);
-  assert.equal(g.drops.length, 0); assert.equal(g.profile.materials.bristleback, before + 2); assert.equal(m.grump, m.maxGrump);
+  g.commandBuddy(1); assert.equal(g.order, 'gather'); g.spots = []; g.drops.push({ id: 999, x: -8, z: 4, material: 'boar-hide', count: 2 });
+  const before = g.profile.pouch['boar-hide']; tick(g, 6);
+  assert.equal(g.drops.length, 0); assert.equal(g.profile.pouch['boar-hide'], before + 2); assert.equal(m.grump, m.maxGrump);
 });
 check('final hunt unlock belongs only to the third different nap result', () => {
   const g = fresh(); calm(g); assert.equal(g.unlockedFinalHunts, false);
@@ -209,5 +214,131 @@ check('final hunt unlock belongs only to the third different nap result', () => 
   g.returnVillage(); g.startHunt('skreel'); calm(g); assert.equal(g.unlockedFinalHunts, true);
   g.returnVillage(); g.startHunt('bristleback'); assert.equal(g.unlockedFinalHunts, false); calm(g); assert.equal(g.unlockedFinalHunts, false);
   g.startHunt('bristleback'); g.hero.fluff = 1; g.bumpHero(10, g.beast); assert.equal(g.unlockedFinalHunts, false);
+});
+const village = (seed = 39, naps = 0) => { const g = new HuntGame(seed); g.chooseHero('dora'); for (const id of BEAST_IDS.slice(0, naps)) g.profile.naps[id] = 1; return g; };
+const still = (g, seconds) => tick(g, seconds);
+check('a v1 save moves into the v2 pouch once, keeping naps, levels and the hero', () => {
+  const g = HuntGame.load({ v: 1, seed: 5, profile: { hero: 'enzo', levels: { dora: 2, enzo: 3 }, materials: { bristleback: 7, puffwart: 4, skreel: 3, hornclack: 2, frostmane: 1 }, naps: { bristleback: 2, frostmane: 1 }, hunts: 9 } });
+  assert.equal(g.profile.hero, 'enzo'); assert.deepEqual(g.profile.levels, { dora: 2, enzo: 3 }); assert.equal(g.profile.naps.bristleback, 2); assert(g.profile.won); assert.equal(g.profile.hunts, 9);
+  for (const [id, n] of [['bristleback', 7], ['puffwart', 4], ['skreel', 3], ['hornclack', 2], ['frostmane', 1]]) assert.equal(g.profile.pouch[DROPS[id].shed.id], n, id);
+  assert.equal(g.materialTotal, 17); const save = g.save(); assert.equal(save.v, 2);
+  const again = HuntGame.load(JSON.parse(JSON.stringify(save))); assert.deepEqual(again.profile, g.profile);
+  g.toggleRing('pathfinder-acorn'); assert.equal(g.toggleRing('dizzy-bell'), true); g.profile.pouch.berry = 2; assert(g.eatSnack('clover-crunch'));
+  assert.deepEqual(HuntGame.load(JSON.parse(JSON.stringify(g.save()))).profile, g.profile, 'ring and packed snack round-trip');
+});
+check('drops follow the content tables and a seed replays them exactly', () => {
+  const run = (seed) => { const g = fresh('bristleback', 'dora', seed); g.buddy.cooldown = 1e9; const got = [];
+    for (let i = 0; i < 40 && g.mode === 'hunt'; i++) { g.bonkBeast(9, false, g.hero); got.push(...g.drops.map((d) => d.material)); g.drops = []; }
+    return { got, rng: g.rng }; };
+  const a = run(7), b = run(7); assert.deepEqual(a, b);
+  assert(a.got.filter((m) => m === 'bristle-tuft').length >= 3, 'bonks shed bristle tufts'); assert.equal(a.got.filter((m) => m === 'tusk-shard').length, 1, 'the tusks give one tusk shard');
+  assert(a.got.every((m) => ['bristle-tuft', 'tusk-shard'].includes(m)));
+  const owl = fresh('skreel'); owl.buddy.cooldown = 1e9; owl.beast.height = 0; owl.bonkBeast(owl.beast.maxGrump * 0.33, false, owl.hero); assert(owl.beast.broken);
+  assert.equal(owl.drops.filter((d) => d.material === 'sky-feather').reduce((n, d) => n + d.count, 0) >= 2, true, 'the crest gives two sky feathers');
+  for (const id of BEAST_IDS) {
+    const g = fresh(id); calm(g); const d = DROPS[id].calm;
+    assert(g.reward.length >= d.count && g.reward.length <= d.count + 1, `${id} reward ${g.reward}`);
+    assert(g.reward.slice(0, d.count).every((m) => d.common.includes(m))); assert(g.reward.slice(d.count).every((m) => m === d.rare.id));
+  }
+});
+check('each hunt lays out its area’s gathering spots, clear of trees, rocks and each other', () => {
+  for (const id of BEAST_IDS) {
+    const g = fresh(id), area = HUNT_AREA[id], plan = GATHER[area];
+    for (const p of plan) { const n = g.spots.filter((s) => s.material === p.id).length; assert(p.chance === undefined ? n === p.spots : n <= p.spots, `${id} ${p.id} ${n}`); }
+    for (const s of g.spots) { assert(g.obstacles.every((o) => distance(s, o) > o.r + 1.6)); assert(g.spots.every((t) => t === s || distance(s, t) > 3)); assert(Math.hypot(s.x, s.z) < 16); }
+  }
+  assert.equal(HUNT_AREA.puffwart, 'marsh'); assert(fresh('puffwart').spots.some((s) => s.material === 'marsh-reed'));
+  const glimmers = Array.from({ length: 40 }, (_, seed) => fresh('skreel', 'dora', seed + 1).spots.filter((s) => s.material === 'glimmer-stone').length);
+  assert(glimmers.includes(0) && glimmers.includes(1), 'the sparkling ridge spot appears on some hunts only');
+  assert.deepEqual(fresh('skreel', 'dora', 11).spots, fresh('skreel', 'dora', 11).spots);
+});
+check('F at a spot gathers after 1.2 s of standing still; moving or a bump stops it; F elsewhere uses the item', () => {
+  const g = fresh(), b = g.beast; g.buddy.cooldown = 1e9; g.order = 'close'; b.state = 'rest'; b.duration = 1e9;
+  const spot = g.spots.find((s) => s.material === 'berry'); g.hero.x = spot.x + 1; g.hero.z = spot.z; g.hero.fluff = 50;
+  assert.equal(g.nearestGather(), spot); g.step(DT, input({ use: true })); assert(g.gathering); assert.equal(g.profile.pouch.fluffberry, CAMP_BERRIES, 'gathering, not eating');
+  still(g, GATHER_TIME - 0.1); assert.equal(g.profile.pouch.berry, 0); still(g, 0.15);
+  assert(spot.done); assert.equal(g.profile.pouch.berry, spot.count); assert(g.events.some((e) => e.kind === 'gather')); assert.equal(g.gathering, null);
+  g.step(DT); g.step(DT, input({ use: true })); assert.equal(g.gathering, null, 'a gathered spot is empty'); assert.equal(g.profile.pouch.fluffberry, CAMP_BERRIES - 1, 'so F eats a berry');
+  const other = g.spots.find((s) => !s.done); g.hero.x = other.x + 1; g.hero.z = other.z;
+  g.step(DT); g.step(DT, input({ use: true })); still(g, 0.5); g.step(DT, input({ x: 1 })); assert.equal(g.gathering, null, 'moving stops gathering'); still(g, 2); assert.equal(other.done, false);
+  g.hero.x = other.x + 1; g.hero.z = other.z; g.step(DT); g.step(DT, input({ use: true })); still(g, 0.5); g.hero.invincible = 0; g.bumpHero(5, b); assert.equal(g.gathering, null, 'a bump stops it');
+});
+check('buddy Gather visits gathering spots once the ground is clear', () => {
+  const g = fresh(), b = g.beast; b.state = 'rest'; b.duration = 1e9; g.commandBuddy(1); assert.equal(g.order, 'gather');
+  const spots = g.spots.length; tick(g, 30);
+  assert.equal(g.spots.filter((s) => s.done).length, spots); assert.equal(g.profile.pouch.berry, g.spots.reduce((n, s) => n + s.count, 0)); assert.equal(b.grump, b.maxGrump);
+});
+check('the Pantry crafts from recipes, by chapter, up to each carry limit, only at camp', () => {
+  const g = village(); g.profile.pouch.berry = 30; g.profile.pouch['marsh-reed'] = 10;
+  assert.equal(g.chapter, 1); assert.equal(g.craft('big-fluffberry'), false, 'chapter 2 recipe');
+  assert(g.craft('fluffberry')); assert.equal(g.profile.pouch.berry, 29); assert.equal(g.profile.pouch.fluffberry, 1);
+  while (g.craft('fluffberry')) { /* up to the limit */ } assert.equal(g.profile.pouch.fluffberry, ITEMS.fluffberry.max); assert.equal(g.profile.pouch.berry, 30 - ITEMS.fluffberry.max);
+  const two = village(39, 1); Object.assign(two.profile.pouch, { berry: 4, 'marsh-reed': 3, 'cloud-wisp': 1, 'puff-sac': 1 }); assert.equal(two.chapter, 2);
+  assert(two.craft('big-fluffberry')); assert(two.craft('sleepy-seed')); assert(two.craft('smoke-puffball')); assert.equal(two.craft('hay-bundle'), false, 'one reed left');
+  assert.deepEqual([two.profile.pouch.berry, two.profile.pouch['marsh-reed'], two.profile.pouch['cloud-wisp'], two.profile.pouch['puff-sac']], [1, 2, 0, 0]);
+  assert.equal(two.craft('dizzy-bell'), false); const four = village(39, 3); Object.assign(four.profile.pouch, { 'horn-chip': 1, 'bristle-tuft': 2 }); assert(four.craft('dizzy-bell'));
+  four.startHunt('bristleback'); four.profile.pouch.berry = 5; assert.equal(four.craft('fluffberry'), false, 'not in the meadow');
+  for (const id of Object.keys(ITEMS)) assert(Object.keys(ITEMS[id].recipe).length > 0);
+});
+check('the ring holds one to six items in a fixed order; Q/E cycle it and F uses the picked one', () => {
+  const g = village(); assert.equal(g.ring.length, RING_SIZE); assert.equal(g.toggleRing('pathfinder-acorn'), false, 'full');
+  assert(g.toggleRing('sleepy-seed')); assert(g.toggleRing('pathfinder-acorn')); assert.deepEqual(g.ring, RING_ITEMS.filter((id) => id !== 'sleepy-seed'));
+  for (const id of g.ring.slice(1)) g.toggleRing(id); assert.deepEqual(g.ring, ['fluffberry']); assert.equal(g.toggleRing('fluffberry'), false, 'keeps one'); assert.equal(g.toggleRing('hay-bundle'), false);
+  g.toggleRing('smoke-puffball'); g.profile.pouch['smoke-puffball'] = 1; g.startHunt('bristleback');
+  g.step(DT, input({ next: true })); assert.equal(g.ringItem, 'smoke-puffball'); g.step(DT); g.step(DT, input({ next: true })); assert.equal(g.ringItem, 'fluffberry');
+  g.step(DT); g.step(DT, input({ previous: true })); g.step(DT); g.step(DT, input({ use: true })); assert(g.hero.hidden > 0); assert.equal(g.profile.pouch['smoke-puffball'], 0);
+});
+check('big fluffberries heal 70, sleepy seeds slow the beast 30% for 8 s and only within ten steps', () => {
+  const g = fresh(); g.profile.pouch['big-fluffberry'] = 1; g.item = 1; g.hero.fluff = 50; assert(g.useItem()); assert.equal(g.hero.fluff, 100);
+  const run = (seed) => { const h = fresh('bristleback', 'dora', 3); const b = h.beast; h.buddy.cooldown = 1e9; b.x = b.z = 0; h.hero.x = 0; h.hero.z = 8; h.hero.invincible = 1e9; if (seed) { h.profile.pouch['sleepy-seed'] = 1; h.item = 2; assert(h.useItem()); assert.equal(b.drowsy, 8); }
+    b.state = 'roam'; b.t = 0; b.duration = 0; h.step(DT); while (b.state === 'windup') h.step(DT); h.step(DT); h.step(DT); return distance(b, b.start); };
+  assert(Math.abs(run(true) / run(false) - 0.7) < 0.02);
+  const far = fresh(); far.profile.pouch['sleepy-seed'] = 1; far.item = 2; far.hero.z = far.beast.z + 10.5; assert.equal(far.useItem(), false); assert.equal(far.profile.pouch['sleepy-seed'], 1);
+  const wear = fresh(); wear.beast.drowsy = 0.5; wear.beast.state = 'rest'; wear.beast.duration = 1e9; tick(wear, 0.6); assert.equal(wear.beast.drowsy, 0);
+});
+check('a dizzy bell rung beside the beast adds 40 Dizzy: two bells and a big bonk make it dizzy, and it is never wasted', () => {
+  const g = fresh(), b = g.beast; g.buddy.cooldown = 1e9; b.state = 'rest'; b.duration = 1e9; g.profile.pouch['dizzy-bell'] = 3; g.item = 3;
+  g.hero.z = b.z + 5; assert.equal(g.useItem(), false); assert.equal(g.profile.pouch['dizzy-bell'], 3);
+  g.hero.z = b.z + 3; assert(g.useItem()); assert.equal(b.dizzy, 40); assert(g.useItem()); assert.equal(b.dizzy, 80); assert.equal(b.state, 'rest');
+  g.bonkBeast(1, true, g.hero); assert.equal(b.state, 'dizzy', '80 + a big bonk'); assert.equal(g.useItem(), false, 'already dizzy'); assert.equal(g.profile.pouch['dizzy-bell'], 1);
+});
+check('sticky sap: one trap at a time; a grounded beast that reaches it is stuck for 4 s, even mid-charge', () => {
+  const g = fresh(), b = g.beast; g.buddy.cooldown = 1e9; g.hero.invincible = 1e9; g.obstacles = []; g.profile.pouch['sticky-sap'] = 2; g.item = 4;
+  b.x = 0; b.z = -8; g.hero.x = 0; g.hero.z = 0; assert(g.useItem()); assert.equal(g.useItem(), false, 'one at a time'); assert.equal(g.profile.pouch['sticky-sap'], 1);
+  g.hero.z = 6; b.state = 'roam'; b.t = 0; b.duration = 0; g.step(DT); assert.equal(b.state, 'windup');
+  while (b.state !== 'stuck' && b.state !== 'rest') g.step(DT);
+  assert.equal(b.state, 'stuck'); assert(Math.abs(b.z) < 1.7, 'stopped on the trap'); assert.equal(g.trap, null); assert(g.events.some((e) => e.kind === 'trap'));
+  const at = { x: b.x, z: b.z }; let stuck = 0; while (b.state === 'stuck') { g.step(DT); stuck += DT; assert.deepEqual({ x: b.x, z: b.z }, at); }
+  assert(Math.abs(stuck - ITEMS['sticky-sap'].effect.seconds) < 2 * DT); assert.equal(b.state, 'rest');
+  const owl = fresh('skreel'); owl.trap = { x: owl.beast.x, z: owl.beast.z }; owl.beast.height = 2.4; owl.step(DT); assert.notEqual(owl.beast.state, 'stuck', 'flying over is fine');
+});
+check('a smoke puffball hides you for 6 s: the beast wanders and starts no attack, and a bonk gives you away', () => {
+  const g = fresh(), b = g.beast; g.buddy.cooldown = 1e9; g.profile.pouch['smoke-puffball'] = 2; g.item = 5; g.hero.x = 0; g.hero.z = 10;
+  b.state = 'roam'; b.t = 0; b.duration = 0.1; assert(g.useItem()); assert.equal(g.hero.hidden, 6);
+  const states = new Set(); for (let t = 0; t < 5.9; t += DT) { g.step(DT); states.add(b.state); }
+  assert.deepEqual([...states], ['roam']); assert(distance(b, g.hero) > 5);
+  tick(g, 0.2); assert.equal(g.hero.hidden, 0); tick(g, 0.2); assert.equal(b.state, 'windup', 'found again after six seconds');
+  const p = fresh(); p.profile.pouch['smoke-puffball'] = 1; p.item = 5; assert(p.useItem()); p.bonkBeast(5, false, p.hero); assert.equal(p.hero.hidden, 0); assert.match(p.note, /Peekaboo/);
+});
+check('a pathfinder acorn lights Enzo’s trail for 20 s', () => {
+  const g = fresh(); g.profile.ring = ['fluffberry', 'pathfinder-acorn']; g.profile.pouch['pathfinder-acorn'] = 1; g.item = 1; g.beast.state = 'rest'; g.beast.duration = 1e9;
+  g.hero.x = 0; g.hero.z = 4; g.beast.x = 0; g.beast.z = -8; assert(g.useItem()); assert.equal(g.sniff, 20); assert(g.trail().length > 4);
+  tick(g, 19.5); assert(g.sniff > 0); tick(g, 1); assert.equal(g.sniff, 0);
+});
+check('snacks: one packed at a time, paid at the Pantry, used up by the next hunt', () => {
+  const g = village(39, 1); g.profile.pouch.berry = 10; g.profile.pouch['hay-bundle'] = 3; g.profile.pouch['glimmer-stone'] = 1;
+  assert.equal(g.eatSnack('lucky-seed-bun'), false, 'chapter 3'); assert(g.eatSnack('clover-crunch')); assert.equal(g.profile.pouch.berry, 8); assert.equal(g.eatSnack('hay-nibble'), false, 'one at a time');
+  g.startHunt('bristleback'); assert.equal(g.snack, 'clover-crunch'); assert.equal(g.profile.snack, null); assert.equal(g.hero.fluff, 120); assert.equal(g.hero.maxFluff, 120);
+  g.hero.fluff = 100; g.profile.pouch.fluffberry = 3; assert(g.useItem()); assert.equal(g.hero.fluff, 120);
+  g.returnVillage(); g.startHunt('bristleback'); assert.equal(g.snack, null); assert.equal(g.hero.maxFluff, 100);
+  g.returnVillage(); assert(g.eatSnack('hay-nibble')); g.startHunt('bristleback'); g.hero.rollCd = 0.85; tick(g, 0.85 / 1.25 + DT); assert.equal(g.hero.rollCd, 0);
+  g.returnVillage(); assert(g.eatSnack('berry-stack')); g.startHunt('bristleback'); g.beast.state = 'rest'; g.bonkBeast(1, true, g.hero); assert(Math.abs(g.beast.dizzy - 55) < 1e-9);
+  let plain = 0, lucky = 0;
+  for (let seed = 1; seed <= 60; seed++) for (const bun of [false, true]) {
+    const h = village(seed, 3); if (bun) { Object.assign(h.profile.pouch, { berry: 2, 'hay-bundle': 1, 'glimmer-stone': 1 }); assert(h.eatSnack('lucky-seed-bun')); }
+    h.startHunt('bristleback'); calm(h); const rares = h.reward.filter((m) => m === DROPS.bristleback.calm.rare.id).length; if (bun) lucky += rares; else plain += rares;
+  }
+  assert(lucky > plain * 1.4, `lucky ${lucky} vs plain ${plain}`);
+  for (const id of SNACK_IDS) assert(SNACKS[id].cost);
 });
 console.log(`Grumble Hunt: ${checks} engine checks passed.`);

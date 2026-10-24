@@ -1,10 +1,13 @@
 import * as T from 'three';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { createHuntChinchilla, animateHuntChinchilla, poseArms, type HuntChinchilla } from './hunt-chinchilla';
-import { BEAST_IDS, SPOTS, type BeastId, type HuntGame, type HeroId } from './grumble-hunt-game';
+import { BEAST_IDS, GATHER_TIME, MATERIAL_IDS, SPOTS, type BeastId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
+import { MATERIALS } from './grumble-hunt-content';
 
 type Rig = { model: HuntChinchilla; hammer: T.Group; bow: T.Group; head: T.Group; trail: T.Line; points: T.Vector3[] };
 type BeastRig = { root: T.Group; body: T.Group; head: T.Group; legs: T.Group[]; wings: T.Group[]; eyes: T.Mesh[]; part: T.Group; brow: T.MeshToonMaterial; browColor: T.Color; steam: T.Mesh[]; throat?: T.Mesh; tongue?: T.Mesh; mane?: T.Group };
+/** A gathering spot's props; `fruit` is what disappears once it is gathered. */
+type SpotRig = { id: number; root: T.Group; fruit: T.Group; material: MaterialId };
 const V = (x = 0, y = 0, z = 0) => new T.Vector3(x, y, z);
 const lerp = T.MathUtils.lerp;
 const noOutline = <M extends T.Material>(m: M): M => { m.userData.outlineParameters = { visible: false }; return m; };
@@ -58,7 +61,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   for (let i = 0; i < gp.count; i++) { const x = gp.getX(i), z = gp.getZ(i), hill = T.MathUtils.smoothstep(Math.hypot(x, z), 22, 65); gp.setY(i, hill * (3 + Math.sin(x * 0.1) * 3 + Math.cos(z * 0.09) * 3)); }
   groundGeo.computeVertexNormals(); mesh(scene, groundGeo, groundMat, [0, 0, 0], [1, 1, 1], false);
   const world = new T.Group(), village = new T.Group(), paths = new T.Group(); scene.add(world, village, paths);
-  const canopyPositions: T.Vector3[] = [], blockers: T.Object3D[] = [];
+  const canopyPositions: T.Vector3[] = [], blockers: T.Object3D[] = [], spotRigs: SpotRig[] = [];
   let leafCards: T.InstancedMesh | null = null, crowns: T.InstancedMesh | null = null;
   // 1 = a tree's crown and leaf card fully shown, 0 = shrunk away because it would fill the camera's view.
   const canopyShown: number[] = [], upright = new T.Quaternion();
@@ -84,12 +87,25 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   for (let i = 0; i < 11; i++) { const a = i / 11 * Math.PI * 2; mesh(scene, sphere, hillMat, [Math.cos(a) * 63, 0, Math.sin(a) * 63], [23, 7 + rnd() * 5, 19], false); }
 
   const wood = toon(0x9b663b), cream = toon(0xffeac8), gold = toon(0xe6b653), roof = toon(0xb9664d), ink = toon(0x3e3031), rose = toon(0xe9a6a0);
+  const berryMat = toon(0xd2344a), hayMat = toon(0xe2c46a), bushMat = toon(0x4f8a3c), reedMat = toon(0x7f9f45), cattailMat = toon(0x8a5a35);
+  const crystalMat = noOutline(new T.MeshBasicMaterial({ color: 0xffc94a, toneMapped: false })); materials.add(crystalMat);
   for (const s of SPOTS) {
     const building = new T.Group(); village.add(building); building.position.set(s.x, 0, s.z);
     if (s.id === 'board') {
       for (const x of [-1.2, 1.2]) mesh(building, cylinder, wood, [x, 1.1, 0], [0.13, 2.2, 0.13]);
       blockers.push(mesh(building, cube, wood, [0, 1.75, 0], [2.8, 1.5, 0.25]));
       for (let i = 0; i < 3; i++) mesh(building, cube, cream, [-0.85 + i * 0.85, 1.8, 0.15], [0.6, 0.85, 0.03]);
+    } else if (s.id === 'pantry') {
+      // A market stall: four posts, a striped awning, a counter of berry and seed baskets, and a hay bale.
+      building.rotation.y = 0.55;
+      for (const x of [-1.3, 1.3]) for (const z of [-0.75, 0.75]) mesh(building, cylinder, wood, [x, 1.15, z], [0.08, 2.3, 0.08]);
+      for (let i = 0; i < 5; i++) { const stripe = mesh(building, cube, i % 2 ? cream : rose, [-1.2 + i * 0.6, 2.4, 0.05], [0.6, 0.1, 2.0]); stripe.rotation.x = 0.22; }
+      blockers.push(mesh(building, cube, wood, [0, 0.5, 0.35], [2.8, 1, 0.75]));
+      for (const [x, fill] of [[-0.85, berryMat], [0, gold], [0.85, berryMat]] as const) {
+        mesh(building, cylinder, toon(0xc79b5c), [x, 1.12, 0.35], [0.3, 0.22, 0.3]);
+        for (let k = 0; k < 5; k++) mesh(building, sphere, fill, [x + Math.cos(k * 1.3) * 0.15, 1.27 + (k % 2) * 0.04, 0.35 + Math.sin(k * 1.3) * 0.15], [0.09, 0.09, 0.09], false);
+      }
+      const bale = mesh(building, cylinder, hayMat, [1.85, 0.42, 0.7], [0.42, 0.85, 0.42]); bale.rotation.z = Math.PI / 2;
     } else {
       const wall = mesh(building, cube, s.id === 'forge' ? wood : cream, [0, 1, 0], [3.4, 2, 2.5]); blockers.push(wall);
       const top = mesh(building, cone, s.id === 'forge' ? roof : toon(0x6c9778), [0, 2.65, 0], [2.6, 1.5, 2.1]); top.rotation.y = Math.PI / 4;
@@ -122,6 +138,22 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     });
     for (const o of game.obstacles) {
       if (o.kind === 'rock') { const m = mesh(world, ico, rockMat, [o.x, o.r * 0.5, o.z], [o.r, o.r * 0.8, o.r]); m.rotation.y = o.x; blockers.push(m); }
+    }
+    spotRigs.length = 0;
+    for (const s of game.spots) {
+      const root = new T.Group(), fruit = new T.Group(); root.position.set(s.x, 0, s.z); root.rotation.y = s.id; root.add(fruit); world.add(root);
+      if (s.material === 'berry') {
+        mesh(root, ico, bushMat, [0, 0.55, 0], [0.8, 0.62, 0.8]);
+        for (let k = 0; k < 8; k++) { const a = k * 2.3, y = 0.45 + (k % 3) * 0.2; mesh(fruit, sphere, berryMat, [Math.cos(a) * 0.72, y, Math.sin(a) * 0.72], [0.11, 0.11, 0.11], false); }
+      } else if (s.material === 'marsh-reed') {
+        for (let k = 0; k < 7; k++) { const a = k * 2.1, r = 0.12 + (k % 3) * 0.14, tall = 1 + (k % 2) * 0.35, x = Math.cos(a) * r, z = Math.sin(a) * r;
+          const stalk = mesh(root, cylinder, reedMat, [x, tall / 2, z], [0.035, tall, 0.035], false); stalk.rotation.z = (k % 3 - 1) * 0.08;
+          mesh(fruit, cylinder, cattailMat, [x, tall + 0.1, z], [0.075, 0.32, 0.075], false); }
+      } else {
+        mesh(root, ico, rockMat, [0, 0.25, 0], [0.7, 0.4, 0.6]);
+        for (let k = 0; k < 4; k++) { const c = mesh(fruit, starGeo, crystalMat, [Math.cos(k * 1.6) * 0.3, 0.6 + (k % 2) * 0.2, Math.sin(k * 1.6) * 0.3], [1.4, 2.6 - k * 0.3, 1.4], false); c.rotation.z = (k - 1.5) * 0.3; }
+      }
+      spotRigs.push({ id: s.id, root, fruit, material: s.material });
     }
   }
   function actor(white: boolean): Rig {
@@ -177,7 +209,8 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       rig.throat = mesh(body, sphere, belly, [1.1, 0.9, 0], [0.9, 0.8, 1.05]);
       rig.tongue = mesh(body, cylinder, rose, [1.8, 1.1, 0], [0.12, 0.1, 0.12], false); rig.tongue.rotation.z = -Math.PI / 2; rig.tongue.visible = false;
       for (const s of [-1, 1]) { eye(0.4, 0.25, s * 0.85, s); leg(0.9, s * 1.1, 0.4); leg(-1, s * 1.2, 0.4); }
-      for (let i = 0; i < 13; i++) { const a = i * 2.4; mesh(part, sphere, toon(0xb4aa5c), [Math.cos(a) * 1.1, 1.7 + Math.sin(i) * 0.2, Math.sin(a) * 0.85], [0.22, 0.18, 0.22]); }
+      // The warts stay on; the pop-off part is the throat sac, which deflates.
+      for (let i = 0; i < 13; i++) { const a = i * 2.4; mesh(body, sphere, toon(0xb4aa5c), [Math.cos(a) * 1.1, 1.7 + Math.sin(i) * 0.2, Math.sin(a) * 0.85], [0.22, 0.18, 0.22]); }
     } else if (id === 'skreel') {
       mesh(body, sphere, coat, [0, 1.4, 0], [1.1, 1.4, 1]); mesh(body, sphere, belly, [0.7, 1.2, 0], [0.55, 1.03, 0.8]); head.position.set(0.35, 2.1, 0);
       mesh(head, sphere, coat, [0, 0, 0], [0.95, 0.85, 1.0]);
@@ -221,6 +254,34 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const dropMat = toon(0xeab95c), dropPool = Array.from({ length: 24 }, () => mesh(scene, ico, dropMat, [0, 0, 0], [0.18, 0.22, 0.18], false));
   const fxMat = noOutline(new T.MeshBasicMaterial({ color: 0xf3db9a, transparent: true, opacity: 0.65, depthWrite: false })); materials.add(fxMat);
   const fxPool = Array.from({ length: 48 }, () => mesh(scene, ico, fxMat, [0, 0, 0], [1, 1, 1], false));
+  // Dropped materials float as their painted icons once the sheet has loaded; the gold gems stand in until then.
+  const iconMaps: Partial<Record<MaterialId, T.Texture>> = {};
+  const iconSheet = loader.load('/art/hunt/icons-materials.webp', (sheet) => {
+    if (closed) { sheet.dispose(); return; }
+    for (const id of MATERIAL_IDS) {
+      const cell = MATERIALS[id].icon, map = sheet.clone(); map.repeat.set(0.25, 0.25); map.offset.set((cell % 4) * 0.25, 0.75 - Math.floor(cell / 4) * 0.25); map.needsUpdate = true; textures.add(map); iconMaps[id] = map;
+    }
+  }, undefined, () => { /* The gold gems remain. */ });
+  iconSheet.colorSpace = T.SRGBColorSpace; textures.add(iconSheet);
+  const dropSprites = Array.from({ length: 24 }, () => {
+    const m = noOutline(new T.SpriteMaterial({ transparent: true, alphaTest: 0.2, depthWrite: false })); materials.add(m);
+    const sprite = new T.Sprite(m); sprite.scale.setScalar(0.8); sprite.visible = false; scene.add(sprite); return sprite;
+  });
+  // Gathering: a soft cream ring marks the spot in reach and fills while you gather.
+  const reachGeo = new T.RingGeometry(1.05, 1.25, 36); reachGeo.rotateX(-Math.PI / 2);
+  const reachMat = noOutline(new T.MeshBasicMaterial({ color: 0xfff4cf, transparent: true, opacity: 0.6, side: T.DoubleSide, depthWrite: false })); materials.add(reachMat);
+  const reach = mesh(scene, reachGeo, reachMat, [0, 0.06, 0], [1, 1, 1], false);
+  const fillMat = noOutline(new T.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: 0.45, side: T.DoubleSide, depthWrite: false })); materials.add(fillMat);
+  const fill = mesh(scene, circleGeo, fillMat, [0, 0.065, 0], [1, 1, 1], false);
+  // Sticky sap: an amber puddle on the ground, and the same puddle under a stuck beast.
+  const sapMat = noOutline(new T.MeshToonMaterial({ color: 0xe39a2c, gradientMap: ramp, transparent: true, opacity: 0.85, depthWrite: false })); materials.add(sapMat);
+  const sap = mesh(scene, circleGeo, sapMat, [0, 0.07, 0], [0.8, 1, 0.8], false);
+  const sapBlobs = Array.from({ length: 4 }, (_, i) => mesh(scene, sphere, sapMat, [0, 0, 0], [0.22 - i * 0.03, 0.08, 0.22 - i * 0.03], false));
+  // Smoke puffball: grey puffs swirl round a hidden leader. Sleepy seed: lavender puffs drift up from a drowsy beast.
+  const smokeMat = noOutline(new T.MeshBasicMaterial({ color: 0x9c968f, transparent: true, opacity: 0.72, depthWrite: false })); materials.add(smokeMat);
+  const smoke = Array.from({ length: 10 }, () => mesh(scene, sphere, smokeMat, [0, 0, 0], [0.4, 0.4, 0.4], false));
+  const drowsyMat = noOutline(new T.MeshBasicMaterial({ color: 0xb8a6ea, transparent: true, opacity: 0.8, depthWrite: false })); materials.add(drowsyMat);
+  const drowsy = Array.from({ length: 3 }, () => mesh(scene, sphere, drowsyMat, [0, 0, 0], [0.15, 0.15, 0.15], false));
   // Enzo's sniff trail: one instanced draw of glowing pawprint cards lying on the grass.
   const pawCanvas = document.createElement('canvas'); pawCanvas.width = pawCanvas.height = 64;
   const pc = pawCanvas.getContext('2d');
@@ -277,7 +338,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       const r = beasts[b.id], motion = reduced.matches ? 0 : Math.sin(game.time * 8);
       r.root.position.set(b.x, b.height, b.z); r.root.rotation.y = b.face;
       const napping = b.state === 'nap', nap = napping ? Math.min(1, b.t / 1.6) : 0;
-      r.body.rotation.z = napping ? nap * 0.28 : b.state === 'windup' ? -0.12 * Math.sin(b.t * 12) : b.state === 'dizzy' ? Math.sin(game.time * 4) * 0.07 : 0;
+      r.body.rotation.z = napping ? nap * 0.28 : b.state === 'windup' ? -0.12 * Math.sin(b.t * 12) : b.state === 'dizzy' ? Math.sin(game.time * 4) * 0.07 : b.state === 'stuck' && !reduced.matches ? Math.sin(game.time * 11) * 0.05 : 0;
       r.body.rotation.y = b.state === 'sweep' ? Math.sin(Math.min(1, b.t / Math.max(0.01, b.duration)) * Math.PI) * 1.35 : 0;
       const pulse = b.flash > 0 ? Math.sin(b.flash * 25) * 0.08 : 0;
       const gone = napping ? 1 - T.MathUtils.smoothstep(b.t, 2.7, 3.2) : 1;
@@ -287,7 +348,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       r.eyes.forEach((eye) => { eye.scale.y = nap > 0 ? Math.max(0.02, 0.15 * (1 - nap)) : 0.12; });
       r.part.visible = !b.broken;
       r.wings.forEach((wing, i) => { wing.rotation.x = b.state === 'circle' || b.state === 'swoop' ? Math.sin(game.time * 9) * (i ? -0.9 : 0.9) : 0; });
-      if (r.throat) r.throat.scale.set(0.9 + (b.attack === 'cloud' && b.state === 'windup' ? b.t * 0.5 : Math.sin(game.time * 2) * 0.035), 0.8, 1.05);
+      if (r.throat) { const sac = b.broken ? 0.72 : 1; r.throat.scale.set((0.9 + (b.attack === 'cloud' && b.state === 'windup' ? b.t * 0.5 : Math.sin(game.time * 2) * 0.035)) * sac, 0.8 * sac, 1.05 * sac); }
       if (r.tongue) { r.tongue.visible = b.state === 'tongue'; const length = 0.1 + Math.sin(Math.min(1, b.t / Math.max(0.01, b.duration)) * Math.PI) * 5.4; r.tongue.scale.y = length; r.tongue.position.x = 1.4 + length / 2; }
       if (r.mane) { r.mane.rotation.x = b.state === 'shake' ? Math.sin(game.time * 30) * 0.22 : 0; r.mane.scale.setScalar(1 + (b.phase - 1) * 0.08); }
       const steaming = b.grumpy && !napping;
@@ -319,7 +380,24 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     cloudPool.forEach((o, i) => { const c = game.clouds[i]; o.visible = !!c; if (c) { o.position.set(c.x, 0.5, c.z); o.scale.set(c.r, 0.6, c.r); } });
     stars.forEach((s, i) => { s.visible = !!b && b.state === 'dizzy'; if (b) { const a = game.time * 3 + i * Math.PI * 2 / 3; s.position.set(b.x + Math.cos(a), b.height + 3.2, b.z + Math.sin(a)); s.rotation.y = a; } });
     shotPool.forEach((o, i) => { const s = game.shots[i]; o.visible = !!s; if (s) { o.position.set(s.x, 0.85, s.z); o.scale.setScalar(s.heavy ? 0.18 : 0.1); } });
-    dropPool.forEach((o, i) => { const d = game.drops[i]; o.visible = !!d; if (d) { o.position.set(d.x, 0.4 + Math.sin(game.time * 3 + d.id) * 0.08, d.z); o.rotation.y = game.time; } });
+    dropPool.forEach((o, i) => { const d = game.drops[i]; o.visible = !!d && !iconMaps[d.material]; if (d) { o.position.set(d.x, 0.4 + Math.sin(game.time * 3 + d.id) * 0.08, d.z); o.rotation.y = game.time; } });
+    dropSprites.forEach((o, i) => { const d = game.drops[i], map = d && iconMaps[d.material]; o.visible = !!map; if (d && map) { if (o.material.map !== map) { o.material.map = map; o.material.needsUpdate = true; } o.position.set(d.x, 0.65 + (reduced.matches ? 0 : Math.sin(game.time * 3 + d.id) * 0.08), d.z); } });
+    const hunting = game.mode === 'hunt' || game.mode === 'nap';
+    for (const rig of spotRigs) {
+      const spot = game.spots.find((s) => s.id === rig.id); rig.root.visible = hunting && !!spot;
+      rig.fruit.visible = !!spot && !spot.done;
+      if (rig.material === 'glimmer-stone' && !reduced.matches) rig.fruit.rotation.y = game.time * 0.8;
+    }
+    const near = game.nearestGather(), busy = game.gathering ? game.spots.find((s) => s.id === game.gathering!.spot) : null, marked = busy ?? near;
+    reach.visible = !!marked; fill.visible = !!busy;
+    if (marked) { reach.position.set(marked.x, 0.06, marked.z); reachMat.opacity = reduced.matches ? 0.6 : 0.45 + Math.sin(game.time * 5) * 0.15; }
+    if (busy && game.gathering) { const f = Math.min(1, game.gathering.t / GATHER_TIME) * 1.1; fill.position.set(busy.x, 0.065, busy.z); fill.scale.set(Math.max(0.01, f), 1, Math.max(0.01, f)); }
+    const stuck = b?.state === 'stuck', puddle = stuck ? b! : game.trap;
+    sap.visible = !!puddle; if (puddle) { sap.position.set(puddle.x, 0.07, puddle.z); sap.scale.set(stuck ? 2.3 : 0.8, 1, stuck ? 2.3 : 0.8); }
+    sapBlobs.forEach((o, i) => { o.visible = !!game.trap || stuck; const at = stuck ? b! : game.trap; if (at) { const a = i * 1.7; o.position.set(at.x + Math.cos(a) * (stuck ? 1.2 : 0.45), 0.08, at.z + Math.sin(a) * (stuck ? 1.2 : 0.45)); o.scale.set(stuck ? 0.6 : 0.2, 0.1, stuck ? 0.6 : 0.2); } });
+    const hidden = game.hero.hidden > 0 && game.mode === 'hunt', fade = Math.min(1, game.hero.hidden);
+    smoke.forEach((o, i) => { o.visible = hidden; if (hidden) { const a = i / 10 * Math.PI * 2 + (reduced.matches ? 0 : game.time * 1.4), s = (0.6 + 0.15 * Math.sin(game.time * 3 + i)) * fade; o.position.set(game.hero.x + Math.cos(a) * 0.75, 0.4 + (i % 3) * 0.45, game.hero.z + Math.sin(a) * 0.75); o.scale.setScalar(s); } });
+    drowsy.forEach((o, i) => { const on = !!b && b.drowsy > 0 && b.state !== 'nap'; o.visible = on; if (on) { const f = reduced.matches ? 0.3 + i * 0.25 : (game.time / 1.8 + i / 3) % 1; o.position.set(b!.x + f * 0.6, b!.height + 3 + f * 1.4, b!.z + Math.sin(f * 6) * 0.3); o.scale.setScalar(0.1 + f * 0.12); } });
     fxPool.forEach((o, i) => { const f = game.fx[Math.floor(i / 4)]; o.visible = !!f && !reduced.matches; if (f) { const a = i * 2.4, t = f.t, s = Math.max(0, 1 - t) * (f.kind === 'bonk' ? 0.16 : 0.25); o.position.set(f.x + Math.cos(a) * t * 1.5, 0.3 + Math.sin(t * Math.PI) * (f.kind === 'bonk' ? 1.4 : 0.6), f.z + Math.sin(a) * t * 1.5); o.scale.setScalar(s); } });
     userOrbit = Math.max(0, userOrbit - dt);
     if (game.locked && b && userOrbit <= 0) { const wanted = Math.atan2(game.hero.x - b.x, game.hero.z - b.z); yaw += Math.atan2(Math.sin(wanted - yaw), Math.cos(wanted - yaw)) * Math.min(1, dt * 2); }
@@ -361,7 +439,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     get yaw() { return yaw; },
     orbit(dx: number, dy: number) { yaw -= dx * 0.006; pitch = T.MathUtils.clamp(pitch + dy * 0.004, 0.18, 0.95); userOrbit = 4; },
     zoom(delta: number) { dist = T.MathUtils.clamp(dist + delta * 0.008, 5, 14); },
-    metrics() { return { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible) }; },
+    metrics() { return { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible) }; },
     dispose() {
       if (closed) return; closed = true; observer.disconnect();
       scene.traverse((o) => { if (o instanceof T.InstancedMesh) o.dispose(); if (o instanceof T.Mesh || o instanceof T.Line) { geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : [o.material]) materials.add(m); } });

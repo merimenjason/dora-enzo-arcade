@@ -29,7 +29,8 @@ export function huntPolicy(g) {
   const len = Math.hypot(dx, dz); if (len > 0.25) { out.x = dx / len; out.z = dz / len; }
   if (melee && d < 3.6 && ['rest', 'dizzy', 'roam'].includes(b.state)) out.charge = g.time % 1.7 < 0.6;
   out.bonk = (!melee || d < 3.6) && !out.charge;
-  const want = h.fluff < 65 && g.items[0] ? 0 : g.items[1] && d < 5 && b.state !== 'dizzy' ? 1 : -1;
+  // Eat a fluffberry from the ring when Fluff is low.
+  const berry = g.profile.ring.indexOf('fluffberry'), want = h.fluff < 65 && berry >= 0 && g.profile.pouch.fluffberry > 0 ? berry : -1;
   if (want >= 0) { if (g.item !== want) out.next = Math.floor(g.time * 10) % 2 === 0; else out.use = Math.floor(g.time * 10) % 2 === 0; }
   return out;
 }

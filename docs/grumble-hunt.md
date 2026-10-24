@@ -28,11 +28,13 @@ Dizzy builds from two big bonks or big shots; buddy bonks help a little. Hits du
 
 ## Paws, tools, and treasures
 
-The leader has 100 Fluff. Ordinary bumps have a 1.4-second recovery window. A roll lasts 0.46 seconds with a dodge window for its first 0.32 seconds; another roll is available after 0.85 seconds. At zero Fluff the leader is tuckered out, returns to camp, and keeps all materials, including drops still in the meadow. Retrying is immediate, with full Fluff and a fresh pouch. There is no other penalty.
+The leader has 100 Fluff. Ordinary bumps have a 1.4-second recovery window. A roll lasts 0.46 seconds with a dodge window for its first 0.32 seconds; another roll is available after 0.85 seconds. At zero Fluff the leader is tuckered out, returns to camp, and keeps all materials, including drops still in the meadow. Retrying is immediate, with full Fluff and the fluffberries topped back up to three. There is no other penalty.
 
 Dora’s ordinary hammer bonk is 14 Grump, a charged swing 27. Enzo’s seed shots are 9 or 20. Once the tool cooldown ends, hold K for at least 0.35 seconds and release for the big version. The HUD shows tool recovery and reports a big bonk or shot ready only after 0.35 seconds of actual charge. Tools have three levels; each further level adds 35% to Dora’s bonks and 32% to Enzo’s shots. Buddy bonks are smaller and less frequent. Weapon grips follow the reference look test; `poseArms` is called after each pose so the paws track the handles.
 
-Every third connecting bonk sheds one material. At 32% of a beast’s initial Grump bonked away, its part pops off once and drops three materials. Calming drops five. Walk within 2.6 units to gather a drop; calming or getting tuckered out collects every drop still in the meadow. The Forge upgrades each tool from level 1 to 2 for six materials, then to level 3 for twelve. Any beast material can pay, and buddy tools benefit too. The Beast Book shows each reference picture, sanctuary status, pop-off part, tips, and current material count.
+Each beast has its own materials, from the drop tables in `lib/grumble-hunt-content.ts`. Every connecting bonk has a 20% chance to shed one of the beast’s common materials (10% for Hornclack’s shell plate). At 32% of a beast’s initial Grump bonked away, its part pops off once and drops its part material: a tusk shard, a puff sac (Puffwart’s throat sac deflates), two sky feathers, a horn chip or an icy mane lock. A nap rewards three commons from the beast’s list plus a 25% roll for its rare material (50% for Frostmane’s glimmer stone); the result card shows what you got. Walk within 2.6 units to pick up a drop; calming or getting tuckered out collects every drop still in the meadow. Drops float as their painted icons.
+
+The Forge upgrades each tool from level 1 to 2 for six beast materials, then to level 3 for twelve, spending commons first, then rares, then parts. Berries, marsh reeds and glimmer stones are not spent there: they belong to the Pantry. Buddy tools benefit too. The Beast Book shows each reference picture, sanctuary status, home area, pop-off part, tips and the beast’s materials in your pouch.
 
 ## Alive hunts
 
@@ -42,7 +44,30 @@ Every third connecting bonk sheds one material. At 32% of a beast’s initial Gr
 
 **Buddy orders.** Hold Tab and tap E or Q to step the buddy’s order forwards or back through **Stay close**, **Go bonk** and **Gather**; the order button under the Fluff bar does the same with a click or tap. While an order is being given, Q and E don’t change the pouch item and releasing Tab doesn’t toggle lock-on; a plain Tab tap toggles lock-on when it is let go. Hunts start on Go bonk, the original behaviour: the buddy helps once the leader is within 11 units of the beast, and Dora runs in to bonk. Stay close keeps the buddy at the leader’s side and lets it help only from there, which for Dora means only when the beast is next to you. Gather sends the buddy to the nearest material on the ground, picks it up within 1.2 units, and never bonks. Healing berries come in every order. The order is not saved.
 
-Each hunt refills three berries (35 Fluff each), two dizzy dust pouches (six-unit range, 3.5 seconds dizzy), and two pep seeds (35% faster for ten seconds). An item is not spent when it cannot help: a berry at full Fluff or dust beyond range stays in the pouch.
+## The Pantry
+
+The second step of the expansion. The Pantry is a striped market stall at Clover Camp. Items are now made, not handed out, and the pouch persists between hunts.
+
+**Gathering.** Each hunt places gathering spots around the meadow by the seeded generator, at 6–15 units from the middle, clear of trees and rocks and at least 3 units apart. Each beast lives in an area: Bristleback in the meadow (3 berry bushes), Puffwart in the marsh (2 bushes, 4 reed clumps), Skreel on the ridge (2 bushes, a glimmer sparkle half the time), Hornclack in the hollow (2 bushes, 1 reed clump, a glimmer half the time) and Frostmane on the peak (2 bushes, a glimmer three times in four). Each bush or reed clump gives 2, a glimmer 1. Stand within 1.8 units, press **F** (or the Gather button) and stay still for 1.2 seconds; moving, rolling, bonking, charging or a bump stops it. A cream ring marks the spot in reach and fills as you gather; a picked spot loses its berries, cattails or crystals. On the Gather order the buddy visits spots after any drops.
+
+**Items.** Camp tops the pouch up to three fluffberries before every hunt. Recipes open with the story chapter, which is one more than the number of different beasts that have napped:
+
+| Item | Recipe | Holds | Effect | Opens |
+| --- | --- | --- | --- | --- |
+| Fluffberry | 1 berry | 10 | +30 Fluff | always |
+| Big fluffberry | 2 berries, 1 marsh reed | 5 | +70 Fluff | after 1 nap |
+| Sleepy seed | 1 berry, 1 sleepy-cloud wisp | 3 | within 10 units, the beast moves 30% slower for 8 s | after 1 nap |
+| Smoke puffball | 1 puff sac | 3 | hidden for 6 s: the beast loses track, wanders and starts no attacks; your bonk ends it | after 1 nap |
+| Hay bundle | 3 marsh reeds | 5 | snack ingredient | after 1 nap |
+| Pathfinder acorn | 1 berry, 1 sky feather | 3 | glowing pawprints to the beast for 20 s | after 2 naps |
+| Dizzy bell | 1 horn chip, 2 bristle tufts | 2 | within 4 units, +40 Dizzy (100 makes a beast dizzy) | after 3 naps |
+| Sticky sap | 2 marsh reeds | 2 | a puddle; a grounded beast that walks within 1.6 units is stuck for 4 s, even mid-attack, then rests 1.2 s | after 3 naps |
+
+Healing is capped at max Fluff and refused at full Fluff; a bell is refused when the beast is already dizzy or stuck; only one sap puddle at a time. Refused items are not spent. A hammer big bonk adds 50 Dizzy and a buddy bonk 30.
+
+**The item ring.** Up to six items ride in the ring; Q and E step through it and F uses the one shown. The Pantry’s ring buttons add and remove items (at least one stays), always in recipe order. The default ring is fluffberry, big fluffberry, sleepy seed, dizzy bell, sticky sap and smoke puffball.
+
+**Snacks.** Snacks open after the first nap. One snack is packed at a time and eaten at the start of the next hunt: Clover Crunch (2 berries) gives +20 max Fluff, Hay Nibble (1 hay bundle) makes rolls recover 25% faster, Berry Stack (3 berries, 1 hay bundle) adds 10% Dizzy to every hit, and the Lucky Seed Bun (2 berries, 1 hay bundle, 1 glimmer stone, after two naps) adds one extra rare-material roll at nap time.
 
 ## Controls and accessibility
 
@@ -54,26 +79,27 @@ Each hunt refills three berries (35 Fluff each), two dizzy dust pouches (six-uni
 | Hold K, release | Charge a big bonk / shot |
 | Space | Roll |
 | Tab, with the meadow focused | Toggle lock on, when let go |
-| Q / E | Previous / next pouch item |
+| Q / E | Previous / next item in the ring |
 | Hold Tab, tap Q / E | Change the buddy’s order |
-| F | Use item; visit a nearby camp place |
+| F | Gather at a nearby spot, otherwise use the item; visit a nearby camp place |
 | Drag / scroll | Orbit / zoom camera |
 | P / Escape | Pause; Escape also closes a panel |
 | M | Toggle sound |
 
-Touch has a joystick and Sprint, Roll, Lock, Bonk/Shoot and Hold · big buttons. The pouch and the buddy order button are tappable. Short action taps are buffered until an engine step processes input, including through hit-stop. A cancelled charge is cleared without releasing a shot. Blur, page hiding, pointer cancellation, and lost pointer capture release held controls. Hiding or leaving pauses a hunt and saves gathered progress. UI buttons retain ordinary Tab navigation; Tab locks when the meadow or body has focus, including Shift+Tab while sprinting. Pouch and sound buttons return focus to the meadow during hunts. Losing WebGL context pauses only an active hunt; restoring it clears the pause.
+Touch has a joystick and Sprint, Roll, Lock, Bonk/Shoot and Hold · big buttons. The item ring, the Gather button and the buddy order button are tappable. Short action taps are buffered until an engine step processes input, including through hit-stop. A cancelled charge is cleared without releasing a shot. Blur, page hiding, pointer cancellation, and lost pointer capture release held controls. Hiding or leaving pauses a hunt and saves gathered progress. UI buttons retain ordinary Tab navigation; Tab locks when the meadow or body has focus, including Shift+Tab while sprinting. Pouch and sound buttons return focus to the meadow during hunts. Losing WebGL context pauses only an active hunt; restoring it clears the pause.
 
 The field guide is always available, panels trap focus, buttons have visible focus rings, and reduced motion removes shake, trails, wind and extra dust. Sound begins only after a gesture, has its own persisted mute choice, and uses short quiet synthesised cues. Main arcade navigation remains available.
 
 ## Saving and architecture
 
+- `lib/grumble-hunt-content.ts`: materials, drop tables, gathering, Pantry recipes, snacks and the story chapters, as data.
 - `lib/grumble-hunt-game.ts`: seeded deterministic rules, no DOM or Three.js. Fixed steps are 1/60 second; the page bounds catch-up after a slow frame.
 - `lib/grumble-hunt-scene.ts`: Three.js drawing, camera, posed tools, chunky beasts, texture loading, effects, and disposal.
 - `lib/hunt-chinchilla.ts`: the dedicated existing hunt model, used unchanged. Shared chinchilla modules are unchanged.
 - `app/hunt/page.tsx`: input, hydration, loop, HUD, panels and storage.
 - `app/hunt/sound.ts`: gesture-unlocked synthesised cues and audio cleanup.
 
-Permanent progress is saved under `grumble-hunt-v1`: selected hero, both tool levels, materials, individual nap counts, and hunt count. The final bonk is saved before its animation finishes. **Reloading returns to camp**, rather than resuming an encounter. Version and numeric fields are checked when loading. `grumble-hunt-sound-v1` stores mute separately. `window.__hunt()` exposes `{ game, refresh, metrics, input }` for browser tests and inspection. It does not run a bot by itself.
+Permanent progress is saved under `grumble-hunt-v2`: selected hero, both tool levels, the pouch (all materials and items), the item ring, the packed snack, individual nap counts, and hunt count. A `grumble-hunt-v1` save from the first build is read when there is no v2 save: its per-beast material counts become each beast’s shed material, and it is saved again as v2. The final bonk is saved before its animation finishes. **Reloading returns to camp**, rather than resuming an encounter. Version and numeric fields are checked when loading. `grumble-hunt-sound-v1` stores mute separately. `window.__hunt()` exposes `{ game, refresh, metrics, input }` for browser tests and inspection. It does not run a bot by itself.
 
 ## Drawing and resource budget
 
@@ -126,3 +152,9 @@ The browser suite follows the repo’s Playwright style and writes its village, 
 
 - Brought in the final art from `codex/grumble-hunt-art` (`cecaa4f`), `codex/grumble-hunt-story-art` (`07d6bff`) and `codex/grumble-hunt-weapon-icons` (`88c62a7`, with the chinchilla engravings on sheet 3). All 48 files decode at their logged sizes; every atlas has transparent, opaque and soft alpha, its occupied cells match its cell map, and no drawing touches a cell border.
 - The browser suite has a new check that the portraits, tool tiers and satchel icons load, follow the upgrade level and material counts, and that the HUD face follows Fluff and bumps.
+
+### The Pantry · 24-10-2026
+
+- Added the Pantry, gathering spots, eight craftable items, the six-item ring and four snacks, the second step of the expansion. Beasts drop their own materials from the content drop tables, the save moved to `grumble-hunt-v2` with v1 migration, and the old dizzy dust and pep seed are gone.
+- `npm run typecheck`, all 40 `npm run test:grumble-hunt` checks and the content checks passed. The bot, which now crafts fluffberries from gathered berries before each hunt, calmed 120/120 beasts across 24 full campaigns, crafting 56 fluffberries, with a median hunt of 24.8 seconds and slowest 90.5 seconds.
+- The browser suite has a new check for v1 migration, crafting, the ring, a packed snack, F gathering, the sap puddle, smoke, drop icons and a stuck beast, saving `pantry.png`, `gathering.png`, `sap-smoke-drop.png` and `stuck.png`.

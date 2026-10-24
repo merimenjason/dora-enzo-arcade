@@ -9,7 +9,7 @@ const failures = [], errors = [];
 mkdirSync('.checks/hunt', { recursive: true });
 const hunt = (p, fn, arg) => p.evaluate(`(() => { const w = window.__hunt(), value = (${fn})(w, ${JSON.stringify(arg ?? null)}); w.refresh(); return value; })()`);
 async function fresh(p, hero = 'dora') {
-  await p.goto(`${base}/hunt`); await p.evaluate(() => { localStorage.removeItem('grumble-hunt-v1'); localStorage.removeItem('grumble-hunt-sound-v1'); }); await p.reload();
+  await p.goto(`${base}/hunt`); await p.evaluate(() => { localStorage.removeItem('grumble-hunt-v1'); localStorage.removeItem('grumble-hunt-v2'); localStorage.removeItem('grumble-hunt-sound-v1'); }); await p.reload();
   await p.locator('main[data-ready="true"][data-rendered="true"]').waitFor();
   await p.getByTestId(`choose-${hero}`).click(); await p.locator('main[data-mode="village"]').waitFor();
 }
@@ -43,7 +43,7 @@ try {
     await hunt(p, (w) => { const g = w.game; g.hero.x = g.beast.x; g.hero.z = g.beast.z + 2.8; g.beast.state = 'rest'; g.beast.t = 0; g.beast.duration = 100; g.buddy.cooldown = 100; });
     const grump = await hunt(p, (w) => w.game.beast.grump); await p.keyboard.down('k'); await p.waitForFunction(() => window.__hunt().game.hero.charge >= 0.4); await p.keyboard.up('k'); await p.waitForFunction((before) => window.__hunt().game.beast.grump < before - 20, grump); assert(await hunt(p, (w) => w.game.beast.grump) < grump - 20);
     const lock = await hunt(p, (w) => w.game.locked); await p.keyboard.press('Tab'); await p.waitForFunction((before) => window.__hunt().game.locked !== before, lock); assert.equal(await hunt(p, (w) => w.game.locked), !lock);
-    await hunt(p, (w) => { w.game.hero.fluff = 50; w.game.buddy.berry = 100; }); await p.keyboard.press('f'); await p.waitForFunction(() => window.__hunt().game.items[0] === 2); assert(await hunt(p, (w) => w.game.hero.fluff) >= 85); assert.equal(await hunt(p, (w) => w.game.items[0]), 2);
+    await hunt(p, (w) => { w.game.hero.fluff = 50; w.game.buddy.berry = 100; }); await p.keyboard.press('f'); await p.waitForFunction(() => window.__hunt().game.profile.pouch.fluffberry === 2); assert(await hunt(p, (w) => w.game.hero.fluff) >= 80); assert.equal(await hunt(p, (w) => w.game.profile.pouch.fluffberry), 2);
     await p.keyboard.press('e'); await p.waitForFunction(() => window.__hunt().game.item === 1); assert.equal(await hunt(p, (w) => w.game.item), 1);
     await p.keyboard.press('p'); await p.getByTestId('resume').waitFor(); assert.equal(await p.evaluate(() => document.activeElement?.getAttribute('data-testid')), 'resume'); const time = await hunt(p, (w) => w.game.time); await p.waitForTimeout(200); assert.equal(await hunt(p, (w) => w.game.time), time); await p.getByTestId('resume').click();
     await p.keyboard.down('k'); await p.waitForTimeout(250); await p.evaluate(() => window.dispatchEvent(new Event('blur'))); assert.equal(await hunt(p, (w) => w.game.hero.charge), 0); assert.equal(await hunt(p, (w) => w.input().keys.length), 0); await p.keyboard.up('k'); await p.getByTestId('resume').click();
@@ -56,11 +56,11 @@ try {
     await hunt(p, (w) => { const g = w.game; g.beast.state = 'rest'; g.beast.duration = 1000; g.buddy.cooldown = 1000; g.buddy.berry = 1000; g.hero.fluff = 40; });
     for (const button of [p.getByTestId('use-item'), p.getByRole('button', { name: 'Next item', exact: true }), p.getByRole('button', { name: 'Previous item', exact: true }), p.getByTestId('mute')]) {
       await button.click(); assert.equal(await p.evaluate(() => document.activeElement?.getAttribute('data-testid')), 'hunt-canvas');
-      const before = await hunt(p, (w) => ({ items: [...w.game.items], item: w.game.item }));
+      const before = await hunt(p, (w) => ({ pouch: { ...w.game.profile.pouch }, item: w.game.item }));
       const muted = await p.getByTestId('mute').getAttribute('aria-pressed');
       await p.keyboard.press('Enter'); await p.keyboard.press('Space');
       await p.waitForFunction(() => window.__hunt().game.hero.rollCd > 0);
-      assert.deepEqual(await hunt(p, (w) => ({ items: [...w.game.items], item: w.game.item })), before);
+      assert.deepEqual(await hunt(p, (w) => ({ pouch: { ...w.game.profile.pouch }, item: w.game.item })), before);
       assert.equal(await p.getByTestId('mute').getAttribute('aria-pressed'), muted);
       await hunt(p, (w) => { w.game.hero.roll = -1; w.game.hero.rollCd = 0; w.game.clearInput(); });
     }
@@ -120,9 +120,9 @@ try {
       const result = await p.evaluate(`(() => { const g = window.__hunt().game, policy = ${huntPolicy.toString()}; g.paused = false; let n = 0; while (g.mode === 'hunt' && n++ < 36000) { g.step(1/60, policy(g)); g.events.length = 0; } if(g.mode === 'nap') { for(let i=0;i<65;i++)g.step(1/60); g.paused=true; } window.__hunt().refresh(); return { mode:g.mode, grump:g.beast.grump, fluff:g.hero.fluff, naps:g.profile.naps, materials:g.materialTotal }; })()`);
       assert.equal(result.mode, 'nap', `${id}: ${JSON.stringify(result)}`); assert.equal(result.grump, 0); assert(result.naps[id] > 0);
       await p.locator('main[data-mode="nap"]').waitFor(); await snapshot(p, `${id}-nap`);
-      const stored = await p.evaluate(() => JSON.parse(localStorage.getItem('grumble-hunt-v1'))); assert(stored.profile.naps[id] > 0, 'last bonk is saved before the nap finishes');
+      const stored = await p.evaluate(() => JSON.parse(localStorage.getItem('grumble-hunt-v2'))); assert(stored.profile.naps[id] > 0, 'last bonk is saved before the nap finishes');
       await hunt(p, (w) => { const g = w.game; g.paused = false; for (let i = 0; i < 180; i++) g.step(1 / 60); });
-      await p.getByTestId('result').waitFor(); assert.equal(await p.locator('.hunt-unlock').count(), id === 'skreel' ? 1 : 0); if (id === 'frostmane') { assert.match(await p.getByTestId('result').innerText(), /grand, gentle adventure/); await snapshot(p, 'victory'); }
+      await p.getByTestId('result').waitFor(); assert.equal(await p.locator('.hunt-unlock').count(), id === 'skreel' ? 1 : 0); assert.equal(await p.getByTestId('reward').count(), 1, 'the nap reward card'); if (id === 'frostmane') { assert.match(await p.getByTestId('result').innerText(), /grand, gentle adventure/); await snapshot(p, 'victory'); }
       await p.getByTestId('return-village').click();
     }
     await p.getByTestId('open-forge').click(); const total = await hunt(p, (w) => w.game.materialTotal); assert(total >= 36);
@@ -134,9 +134,9 @@ try {
 
   await check('tuckered out keeps materials, retry works, and New game resets only this save', async (p) => {
     await fresh(p, 'enzo'); await start(p);
-    await hunt(p, (w) => { const g = w.game; g.profile.materials.bristleback = 7; for (const id of ['bristleback', 'puffwart', 'skreel']) g.profile.naps[id] = 1; g.hero.fluff = 1; g.hero.invincible = 0; g.bumpHero(20, g.beast); });
+    await hunt(p, (w) => { const g = w.game; g.profile.pouch['bristle-tuft'] = 7; for (const id of ['bristleback', 'puffwart', 'skreel']) g.profile.naps[id] = 1; g.hero.fluff = 1; g.hero.invincible = 0; g.bumpHero(20, g.beast); });
     await p.getByTestId('result').waitFor(); assert.match(await p.getByTestId('result').innerText(), /tuckered out/); assert.equal(await p.locator('.hunt-unlock').count(), 0); assert.equal(await hunt(p, (w) => w.game.materialTotal), 7); await snapshot(p, 'camp-return');
-    await p.getByTestId('retry').click(); assert.equal(await hunt(p, (w) => w.game.hero.fluff), 100); assert.deepEqual(await hunt(p, (w) => w.game.items), [3, 2, 2]);
+    await p.getByTestId('retry').click(); assert.equal(await hunt(p, (w) => w.game.hero.fluff), 100); assert.equal(await hunt(p, (w) => w.game.profile.pouch.fluffberry), 3);
     await p.getByRole('button', { name: 'New game', exact: true }).click(); await p.getByTestId('confirm-reset').click(); await p.getByTestId('panel-choose').waitFor(); assert.equal(await hunt(p, (w) => w.game.materialTotal), 0); assert.equal(await hunt(p, (w) => w.game.profile.hero), null);
   });
 
@@ -222,10 +222,10 @@ try {
 
   await check('painted portraits, tool tiers and material icons load and follow the game', async (p) => {
     await fresh(p, 'enzo');
-    await hunt(p, (w) => { w.game.profile.levels.enzo = 2; w.game.profile.materials.skreel = 4; });
+    await hunt(p, (w) => { w.game.profile.levels.enzo = 2; w.game.profile.pouch['sky-feather'] = 4; });
     await p.getByTestId('open-forge').click();
     assert.equal(await p.locator('.hunt-forge article').nth(1).locator('[data-filled="true"] .hunt-art').count(), 2);
-    assert.match(await p.locator('.hunt-satchel').innerText(), /Sky feathers\s*4/); await snapshot(p, 'forge-art'); await p.keyboard.press('Escape');
+    assert.match(await p.locator('.hunt-satchel').innerText(), /Sky feather\s*4/); await snapshot(p, 'forge-art'); await p.keyboard.press('Escape');
     await start(p);
     for (const [mood, hero] of [['sleepy', { fluff: 20 }], ['dizzy', { fluff: 100, invincible: 1.4 }], ['happy', { invincible: 0 }]]) {
       await hunt(p, (w, h) => { w.game.paused = true; Object.assign(w.game.hero, h); }, hero);
@@ -235,7 +235,33 @@ try {
       const urls = [...new Set([...document.querySelectorAll('.hunt-art')].map((e) => getComputedStyle(e).backgroundImage.slice(5, -2)))];
       return Promise.all(urls.map((url) => new Promise((done) => { const img = new Image(); img.onload = () => done([url.split('/').pop(), img.naturalWidth]); img.onerror = () => done([url, 0]); img.src = url; })));
     });
-    assert.deepEqual(Object.fromEntries(sheets), { 'portraits-enzo.webp': 1024, 'icons-gear.webp': 1024 });
+    assert.deepEqual(Object.fromEntries(sheets), { 'portraits-enzo.webp': 1024, 'icons-gear.webp': 1024, 'icons-items.webp': 1024 });
+  });
+  await check('pantry: a v1 save migrates, crafting, ring and snack update the pouch, F gathers, and sap, smoke and drop icons render', async (p) => {
+    await p.goto(`${base}/hunt`);
+    await p.evaluate(() => { localStorage.removeItem('grumble-hunt-v2'); localStorage.setItem('grumble-hunt-v1', JSON.stringify({ v: 1, seed: 9, profile: { hero: 'dora', levels: { dora: 2, enzo: 1 }, materials: { bristleback: 5, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0 }, naps: { bristleback: 1 }, won: false, hunts: 3 } })); });
+    await p.reload(); await p.locator('main[data-ready="true"][data-rendered="true"]').waitFor(); await p.locator('main[data-mode="village"]').waitFor();
+    assert.equal(await hunt(p, (w) => w.game.profile.pouch['bristle-tuft']), 5); assert.equal(await hunt(p, (w) => w.game.profile.levels.dora), 2);
+    await p.waitForFunction(() => JSON.parse(localStorage.getItem('grumble-hunt-v2') || 'null')?.v === 2);
+    await hunt(p, (w) => { Object.assign(w.game.profile.pouch, { berry: 5, 'marsh-reed': 3 }); });
+    await p.getByTestId('open-pantry').click(); await p.getByTestId('panel-pantry').waitFor();
+    await p.getByTestId('craft-big-fluffberry').click(); assert.equal(await hunt(p, (w) => w.game.profile.pouch['big-fluffberry']), 1); assert.equal(await p.getByTestId('pouch-berry').innerText(), '3');
+    assert.equal(await p.getByTestId('craft-dizzy-bell').isDisabled(), true, 'opens after three beasts nap');
+    await p.getByTestId('ring-sleepy-seed').click(); assert.equal(await p.getByTestId('ring-count').innerText(), '5 / 6 in your ring'); await p.getByTestId('ring-pathfinder-acorn').click();
+    await p.getByTestId('eat-clover-crunch').click(); assert.equal(await hunt(p, (w) => w.game.profile.snack), 'clover-crunch'); assert.equal(await p.getByTestId('pouch-berry').innerText(), '1');
+    await snapshot(p, 'pantry'); await p.keyboard.press('Escape'); await start(p);
+    assert.equal(await hunt(p, (w) => w.game.hero.maxFluff), 120); assert.match(await p.locator('.hunt-hero-hud').innerText(), /Clover Crunch/);
+    await hunt(p, (w) => { const g = w.game, s = g.spots[0]; g.beast.state = 'rest'; g.beast.duration = 1e9; g.buddy.cooldown = 1e9; g.order = 'close'; g.hero.x = s.x + 1; g.hero.z = s.z; });
+    await p.getByTestId('gather').waitFor(); await p.locator('.hunt-canvas').focus(); await p.keyboard.press('f');
+    await p.waitForFunction(() => window.__hunt().game.gathering); await snapshot(p, 'gathering');
+    await p.waitForFunction(() => window.__hunt().game.spots[0].done); assert.equal(await hunt(p, (w) => w.game.profile.pouch.berry), 3);
+    await hunt(p, (w) => { const g = w.game; g.profile.pouch['sticky-sap'] = 1; g.profile.pouch['smoke-puffball'] = 1; g.item = g.ring.indexOf('sticky-sap'); });
+    await p.keyboard.press('f'); await p.waitForFunction(() => window.__hunt().metrics()?.trap);
+    await hunt(p, (w) => { const g = w.game; g.item = g.ring.indexOf('smoke-puffball'); g.drops.push({ id: 9999, x: g.hero.x + 3.5, z: g.hero.z - 1.5, material: 'tusk-shard', count: 1 }); });
+    await p.keyboard.press('f'); await p.waitForFunction(() => window.__hunt().metrics()?.smoke); await p.waitForFunction(() => window.__hunt().metrics()?.drops >= 1);
+    await snapshot(p, 'sap-smoke-drop');
+    await hunt(p, (w) => { const g = w.game, b = g.beast; g.hero.hidden = 0; g.trap = { x: b.x, z: b.z }; });
+    await p.waitForFunction(() => window.__hunt().game.beast.state === 'stuck'); await p.waitForTimeout(150); await snapshot(p, 'stuck');
   });
   await check('camera orbit avoids terrain, texture count stays bounded, navigation tears down', async (p) => {
     await fresh(p); await start(p); const first = await hunt(p, (w) => w.metrics().textures), c = p.getByTestId('hunt-canvas');

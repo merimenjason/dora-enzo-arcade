@@ -13,7 +13,7 @@ Paths are relative to the repository root. Sizes are final encoded bytes.
 | File | Decoded size | Bytes | Occupied cells | Generated source size |
 | --- | --- | ---: | ---: | --- |
 | `public/art/hunt/icons-weapons-3.webp` | 1024 × 1024 | 241,662 | 16 | 1254 × 1254 |
-| `public/art/hunt/icons-weapons-4.webp` | 1024 × 1024 | 248,252 | 16 | 1254 × 1254 |
+| `public/art/hunt/icons-weapons-4.webp` | 1024 × 1024 | 852,606 | 16 | 1254 × 1254 |
 | `public/art/hunt/icons-weapons-5.webp` | 1024 × 1024 | 124,248 | 8 | 1254 × 1254 |
 
 ## Checks and final refinements
@@ -259,4 +259,18 @@ ENZO on the round acorn shield. Use the shield's own WARM WOOD as the face, with
 ```text
 Use case: precise-object-edit. Edit ONLY the existing SMALL chinchilla face mark on this Grumble Hunt weapon icon. Keep its current reduced size, exact location, surface-aligned rotation and foreshortening, and its clear gaps from all leaves, goldwork and ornament. REDESIGN THE FACE AS A SUBTLE ENGRAVING IN THE EQUIPMENT'S OWN MATERIAL, not a coloured sticker, badge, plush head or opaque painted portrait. Remove the opaque head-shaped face fill, heavy dark perimeter, three-dimensional cheeks, face lighting, rim, shadow, bevel and ALL glossy white eye highlights. Use sparse thin incised/woodburn-style lines for the round dish ears, cheeks, tiny nose, w smile and short whiskers. Eyes are small simple etched ovals with no glossy shine. Existing material grain/veins and surface lighting must pass CONTINUOUSLY through the entire face including cheeks and ears. Keep the face LOW-CONTRAST, quieter than nearby leaves and goldwork, with no head-shaped silhouette floating above the material. Every line lies flat and follows the object's surface. Preserve EVERY other aspect: exact weapon and shield silhouette, material, proportions, framing, position, light, gold trim, leaf decorations, colours and transparent background. No text, logo, watermark, frame, background or checkerboard. Output one complete square icon.
 DORA on the green leaf shield. Use the shield's own GREEN LEAF as the face fill; leaf veins must remain fully visible and CONTINUOUS through the face. Incise her round-ear chinchilla features into the leaf as thin muted ochre/olive-green lines, just a little lighter/darker than surrounding green. Only the faintest dusty rose ear and muted russet eye hints; no cream/white face fill and no dark head outline. Make it feel like naturally scored leaf-vein decoration, integrated into the leaf itself.
+```
+
+## Glimmer Katana glow · 24-10-2026
+
+Revised only **Glimmer Katana**, sheet 4 row 4 column 4, using the built-in imagegen tool with the decoded current cell as the edit target. Enlarged the amber guard stone, made it the brightest part with a soft warm halo, added warm inner light to the nearby bamboo and small floating golden sparkle flecks. Preserved the curved green bamboo, nodes, round blunt capped end, leaf guard, wrapped grip, gold bands, diagonal angle and painted dark-brown outlines. Two earlier requests timed out; the successful edit prompt is recorded below.
+
+Packed the generated 1254 × 1254 PNG into its exact 256 × 256 cell, centered with an alpha bounding box of (20, 20)–(235, 236), matching the other cells' padding. Located the generated sprite using alpha ≥ 4 with a four-source-pixel margin to exclude isolated near-transparent noise, then downscaled with Lanczos while retaining the glow's soft alpha. Copied the other fifteen cells directly from the original decoded RGBA sheet. Exported using Pillow `lossless=True, method=6, exact=True`, following the requested lossless override rather than the original lossy export command. Final size: **852,606 bytes**.
+
+Checks passed: decoded WebP is **1024 × 1024 RGBA**, with fully transparent, fully opaque and intermediate alpha present. Every cell's outermost rows and columns are fully transparent; no artwork crosses a cell border. Decoded original and final RGBA bytes were asserted equal separately for all fifteen cells outside r4c4: **15/15 pixel-identical**, including RGB beneath transparent pixels. The complete decoded export also equals the assembled RGBA sheet byte for byte. Inspected the full atlas and the edited cell beside the Glimmer Greatsword at 256 px and 48 px; the stone and golden glow remain clear at menu size. Only this sheet and this log changed; no game code or other art changed.
+
+Exact successful edit prompt:
+
+```text
+Edit this Glimmer Katana icon on a genuinely transparent background. Keep its exact green curved bamboo shape, round blunt gold-capped end, nodes, round leaf guard, wrapped grip, gold bands, diagonal pose, thick dark-brown outline and painted storybook style. Enlarge the amber stone in its guard, make it the brightest part with a soft warm amber halo, add faint warm inner glow to nearby bamboo, and 3–4 small floating golden sparkle flecks. Preserve clear transparent padding. No metal blade, points, text, watermark or cast shadow.
 ```
