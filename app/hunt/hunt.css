@@ -11,3 +11,26 @@
 .hunt-art{display:inline-block;flex:none;vertical-align:middle;background-repeat:no-repeat}.hunt-portrait{display:block;margin:2px 0 0}.hunt-hero-hud .hunt-art{display:inline-block;margin:0}.hunt-hero-hud .hunt-face{display:block;width:46px;height:46px;margin:-6px 0 -4px -6px}.hunt-hero-hud>div strong{margin-right:auto;align-self:center}.hunt-hero-hud>div>span:last-child{display:flex;align-items:center;gap:3px}.hunt-satchel{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:10px 0 0;padding:0}.hunt-satchel li{display:flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;border-radius:12px;background:#f2e8d2;font-size:11px}.hunt-satchel strong{font-size:13px;color:#7b542a}.hunt-book p .hunt-art{margin:-4px 4px 0 0}
 .hunt-items button[data-testid=use-item]{display:flex;align-items:center;gap:8px;text-align:left}.hunt-items button[data-empty=true] .hunt-art{filter:grayscale(1);opacity:.45}.hunt-gather{position:absolute;left:50%;bottom:150px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:#fff1c9!important;border-color:#e6c27a!important;padding:6px 14px 6px 8px!important}.hunt-gather progress{width:80px;height:8px;vertical-align:middle;margin-left:6px;accent-color:#e7a93c}.hunt-reward{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;margin:14px 0 4px;font-weight:800;color:#7b542a}.hunt-reward>span{display:flex;align-items:center;gap:2px}.hunt-pantry{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:12px 0 20px}.hunt-pantry article{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:16px;background:#f2e8d2}.hunt-pantry article[data-open=false]{opacity:.6}.hunt-pantry article[data-open=false] .hunt-art{filter:grayscale(1)}.hunt-pantry h3{font-size:15px;margin:0 0 4px}.hunt-pantry h3 small{font-size:11px;color:#7b6a52;font-weight:600}.hunt-pantry p{font-size:12px;margin:0 0 6px}.hunt-panel-pantry h2 small{font-size:12px;font-weight:600;color:#7b6a52;margin-left:6px}.hunt-costs{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 4px}.hunt-costs>span{display:flex;align-items:center;gap:2px;font-size:12px;font-weight:700;padding:2px 8px 2px 3px;border-radius:10px;background:#fbf6ea}.hunt-costs>span[data-short=true]{color:#b0573e}.hunt-pantry-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.hunt-pantry-actions button{padding:6px 12px;font-size:12px}.hunt-pantry-actions button[aria-pressed=true]{background:#e9b763;border-color:#d2a154}
 @media(max-width:700px){.hunt-pantry{grid-template-columns:1fr}.hunt-gather{bottom:205px}}
+
+/* The rack and branching Forge stay readable on small screens. */
+.hunt-rack { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 10px; }
+.hunt-rack button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px; }
+.hunt-rack button[aria-pressed="true"] { outline: 3px solid #a87035; }
+.hunt-tree { display: grid; grid-template-columns: repeat(5, minmax(155px, 1fr)); gap: 14px; overflow-x: auto; padding: 16px 4px; }
+.hunt-tree article { border: 2px solid #c5ac81; border-radius: 12px; padding: 12px; background: #fff8e9; grid-column: var(--tier); }
+.hunt-tree article[data-tier="1"] { grid-column: 1; grid-row: 1 / 3; }
+.hunt-tree article[data-tier="2"] { grid-column: 2; grid-row: 1 / 3; }
+.hunt-tree article[data-tier="3"] { grid-column: 3; }
+.hunt-tree article[data-tier="4"] { grid-column: 4; }
+.hunt-tree article[data-tier="5"] { grid-column: 5; }
+.hunt-tree article[data-branch="A"] { grid-row: 1; }
+.hunt-tree article[data-branch="B"] { grid-row: 2; }
+.hunt-tree article[data-owned="true"] { border-color: #658943; }
+.hunt-tree article:has(button:disabled):not([data-owned="true"]) { filter: grayscale(1); opacity: .65; }
+.hunt-tree h3 { font-size: 16px; }
+.hunt-tree p { font-size: 13px; }
+.hunt-rack-preview { display: flex; align-items: center; justify-content: center; }
+.hunt-forge-cheer { animation: hunt-anvil .2s alternate 5; text-align: center; font-weight: bold; }
+@keyframes hunt-anvil { to { transform: translateY(5px) rotate(-2deg); } }
+@media (prefers-reduced-motion: reduce) { .hunt-forge-cheer { animation: none; } }
+.hunt-rack-preview canvas { width: min(100%, 400px); height: 240px; border-radius: 16px; }

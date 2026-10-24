@@ -4,7 +4,7 @@ Built 24-10-2026 as game 39, at `/hunt`, from `grumble-hunt-base`.
 
 ## A gentle adventure
 
-Choose Dora (white chinchilla, Acorn Hammer) or Enzo (grey chinchilla, Seed Bow). The other friend follows, helps bonk, and tosses a berry for 28 Fluff when the leader has 45 Fluff or less, with a ten-second berry cooldown. The buddy never loses Fluff.
+Choose Dora (white chinchilla) or Enzo (grey chinchilla), then pick a weapon at the rack. Their starting suggestions are the Acorn Hammer and Seed Bow. The other friend follows, helps bonk, and tosses a berry for 28 Fluff when the leader has 45 Fluff or less, with a ten-second berry cooldown. The buddy never loses Fluff.
 
 Clover Camp has three places, reachable on foot with F or through the camp buttons: the Forge, hunt board, and Beast Book. The board offers the first three hunts immediately. Calming three **different** beasts opens both Hornclack and Frostmane. Calming Frostmane ends the story with a victory screen. Open hunts remain replayable, including after victory. New game asks for confirmation and resets only this game.
 
@@ -24,17 +24,17 @@ Charges and swoops stop at the end of their 12-unit marked lane. The final-hunt 
 
 Every attack has a **0.9-second** wind-up (0.8 seconds when Extra Grumpy) and an orange ground marker. Frostmane changes mood below two-thirds and one-third Grump; its later rests become shorter. The mane shake pushes the leader away. A sleepy cloud lasts five seconds and slows movement while inside; it never lowers Fluff.
 
-Dizzy builds from two big bonks or big shots; buddy bonks help a little. Hits during dizzy do not build the next dizzy. A crash or dizzy dust also makes a beast dizzy, providing at least three seconds of opportunity. Bonks during dizzy are 1.7 times as large. Hornclack’s front shell is open during dizzy. Dora’s hammer reaches Skreel when it is low; the bow can reach it in the air.
+At tier one, Dizzy builds from two big hammer bonks or big bow shots; buddy bonks help a little. Hits during dizzy do not build the next dizzy. A crash or dizzy dust also makes a beast dizzy, providing at least three seconds of opportunity. Bonks during dizzy are 1.7 times as large. Hornclack’s front shell is open during dizzy. Dora’s hammer reaches Skreel when it is low; the bow can reach it in the air.
 
 ## Paws, tools, and treasures
 
 The leader has 100 Fluff. Ordinary bumps have a 1.4-second recovery window. A roll lasts 0.46 seconds with a dodge window for its first 0.32 seconds; another roll is available after 0.85 seconds. At zero Fluff the leader is tuckered out, returns to camp, and keeps all materials, including drops still in the meadow. Retrying is immediate, with full Fluff and the fluffberries topped back up to three. There is no other penalty.
 
-Dora’s ordinary hammer bonk is 14 Grump, a charged swing 27. Enzo’s seed shots are 9 or 20. Once the tool cooldown ends, hold K for at least 0.35 seconds and release for the big version. The HUD shows tool recovery and reports a big bonk or shot ready only after 0.35 seconds of actual charge. Tools have three levels; each further level adds 35% to Dora’s bonks and 32% to Enzo’s shots. Buddy bonks are smaller and less frequent. Weapon grips follow the reference look test; `poseArms` is called after each pose so the paws track the handles.
+Dora’s ordinary hammer bonk is 14 Grump, a charged swing 27. Enzo’s seed shots are 9 or 20. Once the tool cooldown ends, hold K for at least 0.35 seconds and release for the big version. The HUD shows tool recovery and reports a big bonk or shot ready only after 0.35 seconds of actual charge. Weapon trees scale Bonk by ×1, ×1.3, ×1.65, ×2.1 and ×2.4. Every tier scales the original hammer’s 14 / 27 quick-swing Bonk; a full charge starts at 28.8. Hammer tiers 2 and 3 use ×1.35 / ×1.70, and bow tier 2 uses ×1.32, preserving old save power. Charged Hammer and Bow Dizzy starts at 50 and scales at every tier. The tier-one bow keeps 9 / 20 total Bonk and timing, sharing a charged shot across two or three seeds. Buddy bonks are smaller and less frequent. Weapon grips follow the reference look test; `poseArms` is called after each pose so the paws track the handles.
 
 Each beast has its own materials, from the drop tables in `lib/grumble-hunt-content.ts`. Every connecting bonk has a 20% chance to shed one of the beast’s common materials (10% for Hornclack’s shell plate). At 32% of a beast’s initial Grump bonked away, its part pops off once and drops its part material: a tusk shard, a puff sac (Puffwart’s throat sac deflates), two sky feathers, a horn chip or an icy mane lock. A nap rewards three commons from the beast’s list plus a 25% roll for its rare material (50% for Frostmane’s glimmer stone); the result card shows what you got. Walk within 2.6 units to pick up a drop; calming or getting tuckered out collects every drop still in the meadow. Drops float as their painted icons.
 
-The Forge upgrades each tool from level 1 to 2 for six beast materials, then to level 3 for twelve, spending commons first, then rares, then parts. Berries, marsh reeds and glimmer stones are not spent there: they belong to the Pantry. Buddy tools benefit too. The Beast Book shows each reference picture, sanctuary status, home area, pop-off part, tips and the beast’s materials in your pouch.
+The Beast Book shows each reference picture, sanctuary status, home area, pop-off part, tips and the beast’s materials in your pouch.
 
 ## Alive hunts
 
@@ -69,6 +69,18 @@ Healing is capped at max Fluff and refused at full Fluff; a bell is refused when
 
 **Snacks.** Snacks open after the first nap. One snack is packed at a time and eaten at the start of the next hunt: Clover Crunch (2 berries) gives +20 max Fluff, Hay Nibble (1 hay bundle) makes rolls recover 25% faster, Berry Stack (3 berries, 1 hay bundle) adds 10% Dizzy to every hit, and the Lucky Seed Bun (2 berries, 1 hay bundle, 1 glimmer stone, after two naps) adds one extra rare-material roll at nap time.
 
+## The Forge
+
+After choosing a hero, the rack offers fourteen free basic weapons. Bubble Wand opens at chapter 3 (two different naps), Pinecone Yo-yo at chapter 4 (three); the existing chapter getter remains in charge. Both friends can use every open weapon. Beyond the two tier-one compatibility tools, Bonk and Dizzy follow the content stats and tier multipliers. At the Forge, choose Dora or Enzo before clicking a rack tool; the buddy remembers their own equipment when you switch leaders.
+
+The rack and weapon tab show a live 3D preview of the selected friend holding their equipped tool, drawn at ten frames per second while the menu is open and disposed on close. The weapon tab shows a left-to-right tree: basic, tier 2, branches A and B at tier 3, tier 4, then Glimmer. A node can be crafted only from its direct parent, with the exact materials shown. Tier 2 takes 3 bristle tufts and 2 berries (wart pebbles for Wand and Yo-yo). Tier 3 takes 4 branch commons and 1 part; tier 4 takes 3 branch rares, an icy mane lock and a glimmer stone. Glimmer takes 2 frost fur, 2 mane locks and 2 glimmer stones, keeps both branch perks and heals both friends by 10 Fluff every tenth connecting hit. Bramble cheers for one second after crafting.
+
+**Moves:** J bonks or shoots with the equipped tool. Hold K and release for a big swing, shot, Poof or Focus Spin. Tap K for a shield bash, a Swish Counter window, Spade/Bloom or Seedpod mode, a horn song, a firefly glow, or an ammo change with the bow and slingshot. Holding K guards with the Greatsword, Lance, Puffcap, Seedpod shield or Pumpkin shell. A K tap under 0.2 seconds uses a signature; releasing a longer guard only ends the guard. Hold J+K, then release K for Big Finish, Big Poof or a timely Lance Counter Boop. Touch uses Bonk and “Hold · big” together for these moves. Slingshots reload with a roll. Hold J for at least 0.35 seconds with the Staff to vault; hold K standing still with the Pumpkin for its Flurry. Tool meters appear below the Fluff bar. The Yo-yo has a short hop opening on a dizzy beast; the full bucking, three-bonk Hop-on encounter belongs to expansion step 4.
+
+**Armour:** the armour tab makes a helm, vest or boots from any of the five sets. Each costs 3 beast commons and 1 part (helm/boots) or rare (vest). Click an owned piece to wear or remove it; pieces may be mixed. Bristle adds 10 Fluff per piece, Puffwart 8, Skreel 7, Hornclack 12 and Frostmane 10. Two matching pieces activate their first skill, three add the second: reduced push / charge protection, weaker sleepy clouds / faster item recovery, longer roll dodges / an extra roll, side guarding / head Dizzy, or distant Fluff regeneration / one half-Fluff recovery from tuckered out. The Forge lists active skills. Caps, vests and boots are small coloured toon accessories.
+
+Weapon geometry is ported from `docs/grumble-hunt/look-test/main.ts.txt` into `lib/grumble-hunt-weapons.ts`, with the original hammer pose and transformed handle grips. The first hammer, claws and bow icons use `icons-gear.webp`: there is no `icons-weapons-1.webp` in this checkout. Lance, Wand and Yo-yo use sheet 2; the other types use sheets 3–5. The gear sheet contains Bristle and Puffwart armour icons, reused for the other sets alongside their explicit names.
+
 ## Controls and accessibility
 
 | Input | Action |
@@ -99,7 +111,7 @@ The field guide is always available, panels trap focus, buttons have visible foc
 - `app/hunt/page.tsx`: input, hydration, loop, HUD, panels and storage.
 - `app/hunt/sound.ts`: gesture-unlocked synthesised cues and audio cleanup.
 
-Permanent progress is saved under `grumble-hunt-v2`: selected hero, both tool levels, the pouch (all materials and items), the item ring, the packed snack, individual nap counts, and hunt count. A `grumble-hunt-v1` save from the first build is read when there is no v2 save: its per-beast material counts become each beast’s shed material, and it is saved again as v2. The final bonk is saved before its animation finishes. **Reloading returns to camp**, rather than resuming an encounter. Version and numeric fields are checked when loading. `grumble-hunt-sound-v1` stores mute separately. `window.__hunt()` exposes `{ game, refresh, metrics, input }` for browser tests and inspection. It does not run a bot by itself.
+Permanent progress is saved under `grumble-hunt-v3`: selected hero, all sixteen weapon tiers and branches, each friend’s equipped weapon, owned and worn armour, the pouch, ring, packed snack, nap counts and hunt count. With no v3 save, v2 is read first, then v1: old hammer and bow levels 1–3 become tiers 1–3 (branch A at tier 3), and the existing v1 material migration is retained. The final bonk is saved before its animation finishes. **Reloading returns to camp**, rather than resuming an encounter. Version and numeric fields are checked when loading. `grumble-hunt-sound-v1` stores mute separately. `window.__hunt()` exposes `{ game, refresh, metrics, input }` for browser tests and inspection. It does not run a bot by itself.
 
 ## Drawing and resource budget
 
@@ -158,3 +170,15 @@ The browser suite follows the repo’s Playwright style and writes its village, 
 - Added the Pantry, gathering spots, eight craftable items, the six-item ring and four snacks, the second step of the expansion. Beasts drop their own materials from the content drop tables, the save moved to `grumble-hunt-v2` with v1 migration, and the old dizzy dust and pep seed are gone.
 - `npm run typecheck`, all 40 `npm run test:grumble-hunt` checks and the content checks passed. The bot, which now crafts fluffberries from gathered berries before each hunt, calmed 120/120 beasts across 24 full campaigns, crafting 56 fluffberries, with a median hunt of 24.8 seconds and slowest 90.5 seconds.
 - The browser suite has a new check for v1 migration, crafting, the ring, a packed snack, F gathering, the sap puddle, smoke, drop icons and a stuck beast, saving `pantry.png`, `gathering.png`, `sap-smoke-drop.png` and `stuck.png`.
+
+### Forge run results · 24-10-2026
+
+The Forge work passes **61 engine checks** and the expansion content checks. It adds engine checks for every tree path, exact payments and prerequisites, free swapping, equipped buddy weapons, v1/v2 migration into v3, strict equipment loading, armour sets, guards, counters, Focus/Bloom/seedpods, firefly glows, songs, Warm Glow, sleepy puffs, reloading and Poof recovery. The original hammer and bow timing checks still pass; the old pooled-material upgrade test is replaced by exact tree-cost checks.
+
+All seven suspected engine issues were confirmed with small scripts and fixed: Staff taps incorrectly vaulted, a hero vault reached a melee buddy, buddy double bubbles counted as hero hits, distant Swish Counters landed, buddy bubbles fell short, Spade hits filled Bloom, and three of four pods triggered Dizzy. Regression checks cover each, along with final-bonk mist, camp resets, tier power, migrations, guard controls, buddy shot ownership and two quick item uses. Item recovery now animates a short nod without blocking another item; Deep Breath halves that animation.
+
+Browser checks were updated for reopening Weapons after an Armour visit, the weapon rack, tree prerequisites and payment, armour crafting and v3 persistence, and syntax-checked. Chromium was not run, as required; model appearance, handle alignment, phone layouts and the anvil animation still need a browser review.
+
+Forge bot: **24 full campaigns, 120/120 beasts calmed**, 24 of each beast and 40 with each buddy order; every hunt needed one attempt (limit six). It bought 16 tree upgrades and 72 armour pieces, and crafted 56 fluffberries. Median hunt **29.8 s**, slowest **155.9 s**. The content planner also checks all fourteen basic paths across 40 seeds; no chapter needed more than two earning hunts.
+
+Validation: `npm run typecheck`, `npm run test:grumble-hunt`, `npm run bot:grumble-hunt` and the full `npm test` suite passed. Browser test syntax and `git diff --check` passed; the local Graft graph was rebuilt. No commit or push was made.

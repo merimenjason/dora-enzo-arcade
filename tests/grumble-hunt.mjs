@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance } from '../.checks/grumble-hunt-game.js';
-import { DROPS, GATHER, ITEMS, SNACKS } from '../.checks/grumble-hunt-content.js';
+import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, cap, armourBonus, armourCost, SLOTS } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
 const input = (overrides = {}) => ({ ...NO_INPUT, ...overrides });
@@ -10,7 +10,7 @@ const calm = (g) => { const b = g.beast; b.height = 0; b.state = 'rest'; assert(
 
 check('selection, gates and refused actions leave the record alone', () => {
   const g = new HuntGame(1); assert.equal(g.startHunt('bristleback'), false); assert(g.chooseHero('dora'));
-  const before = g.save(); assert.equal(g.startHunt('frostmane'), false); assert.equal(g.upgrade('dora'), false); assert.deepEqual(g.save(), before);
+  const before = g.save(); assert.equal(g.startHunt('frostmane'), false); assert.equal(g.forge('hammer-2'), false); assert.deepEqual(g.save(), before);
   assert.deepEqual(BEAST_IDS.filter((id) => g.unlocked(id)), BEAST_IDS.slice(0, 3));
 });
 check('same seed and inputs reproduce layout, combat, projectiles and materials', () => {
@@ -96,11 +96,36 @@ check('three different naps unlock both final hunts; Frostmane leads to victory 
   assert(g.unlocked('hornclack')); assert(g.unlocked('frostmane')); g.returnVillage(); g.startHunt('frostmane'); calm(g);
   assert.equal(g.mode, 'victory'); assert(g.profile.won); g.returnVillage(); assert(g.startHunt('bristleback'));
 });
-check('forge spends actual materials on both tools, capped at three levels', () => {
-  const g = new HuntGame(); g.chooseHero('dora'); g.profile.pouch['bristle-tuft'] = 20; g.profile.pouch['tusk-shard'] = 20; g.profile.pouch.berry = 9; g.profile.pouch['marsh-reed'] = 9;
-  for (const hero of ['dora', 'enzo']) { assert(g.upgrade(hero)); assert(g.upgrade(hero)); assert.equal(g.profile.levels[hero], 3); assert.equal(g.upgrade(hero), false); }
-  assert.equal(g.materialTotal, 4); assert.equal(g.profile.pouch['bristle-tuft'], 0, 'commons are spent first'); assert.equal(g.profile.pouch['tusk-shard'], 4);
-  assert.equal(g.profile.pouch.berry, 9); assert.equal(g.profile.pouch['marsh-reed'], 9, 'gathered berries and reeds are kept for the Pantry');
+check('Forge follows exact costs and branch prerequisites', () => {
+  const g = new HuntGame(); g.chooseHero('dora');
+  for (const id of Object.keys(g.profile.pouch)) g.profile.pouch[id] = cap(id);
+  assert.equal(g.forge('hammer-3A'), false); assert(g.forge('hammer-2')); assert(g.forge('hammer-3A'));
+  assert.equal(g.profile.pouch['bristle-tuft'], 92); assert.equal(g.profile.pouch.berry, 97); assert.equal(g.profile.pouch['tusk-shard'], 98);
+  assert.equal(g.forge('hammer-3B'), false); assert(g.forge('hammer-4A')); assert(g.forge('hammer-5A')); assert.equal(g.perk('warm-glow'), 10);
+});
+check('every tree and armour piece can be crafted, equipped and saved', () => {
+  for (const target of WEAPON_TREE) {
+    const g = new HuntGame(); g.chooseHero('dora'); for (const id of BEAST_IDS) g.profile.naps[id] = 1; g.profile.won = true;
+    for (const id of Object.keys(g.profile.pouch)) g.profile.pouch[id] = cap(id);
+    const path = []; let n = target; while (n.from) { path.unshift(n); n = WEAPON_TREE.find((w) => w.id === n.from); }
+    for (const node of path) assert(g.forge(node.id), node.id);
+    assert(g.equip(target.type)); assert.equal(g.node().id, target.id);
+    for (const perk of target.perks) assert.equal(g.perk(perk.id), perk.value);
+    assert.deepEqual(HuntGame.load(g.save()).profile, g.profile);
+  }
+  for (const beast of BEAST_IDS) {
+    const g = new HuntGame(); for (const id of Object.keys(g.profile.pouch)) g.profile.pouch[id] = cap(id);
+    for (const [i, slot] of SLOTS.entries()) { const piece = `${beast}-${slot}`; assert(g.makeArmour(piece)); assert(g.wear(piece)); assert.equal(g.armour.skills.length, i); }
+    assert.deepEqual(HuntGame.load(g.save()).profile.armour, g.profile.armour);
+    assert.equal(g.makeArmour(`${beast}-helm`), false);
+  }
+});
+check('v2 levels migrate to branch A and locked or malformed equipment is refused', () => {
+  const g = HuntGame.load({ v: 2, profile: { hero: 'dora', levels: { dora: 3, enzo: 2 } } });
+  assert.equal(g.node('hammer').id, 'hammer-3A'); assert.equal(g.node('bow').id, 'bow-2'); assert.equal(g.save().v, 3);
+  assert.equal(g.equip('wand'), false); assert.equal(g.equip('yoyo'), false);
+  const bad = HuntGame.load({ v: 3, profile: { weapons: { hammer: { tier: 99, branch: 'Z' } }, equipped: { dora: 'wand' }, armour: { owned: ['bad'], worn: { helm: 'bad' } } } });
+  assert.equal(bad.node().id, 'hammer-1'); assert.deepEqual(bad.profile.armour.owned, []);
 });
 check('tuckered-out returns to camp without losing gathered materials and retries top the berries back up', () => {
   const g = fresh(); g.profile.pouch['bristle-tuft'] = 7; g.profile.pouch.fluffberry = 0; g.hero.fluff = 5; g.bumpHero(10, g.beast);
@@ -108,11 +133,11 @@ check('tuckered-out returns to camp without losing gathered materials and retrie
   g.returnVillage(); g.profile.pouch.fluffberry = 8; g.startHunt('bristleback'); assert.equal(g.profile.pouch.fluffberry, 8, 'crafted berries are never taken away');
 });
 check('saves round-trip permanent progress, reject malformed numbers and safely return to camp', () => {
-  const g = fresh('frostmane', 'enzo'); g.profile.levels.enzo = 2; calm(g); const save = g.save(), restored = HuntGame.load(JSON.parse(JSON.stringify(save)));
+  const g = fresh('frostmane', 'enzo'); g.profile.weapons.bow = { tier: 2, branch: null }; calm(g); const save = g.save(), restored = HuntGame.load(JSON.parse(JSON.stringify(save)));
   assert.deepEqual(restored.profile, g.profile); assert.equal(restored.mode, 'village'); restored.profile.naps.frostmane++; assert.notDeepEqual(restored.profile, save.profile);
-  for (const s of [null, [], { v: 2 }, { v: 3, profile: { naps: { frostmane: 1 } } }, { v: 1, profile: { levels: { dora: -100 }, materials: { skreel: NaN }, naps: { frostmane: Infinity }, hero: 'bad' } },
+  for (const s of [null, [], { v: 2 },  { v: 1, profile: { levels: { dora: -100 }, materials: { skreel: NaN }, naps: { frostmane: Infinity }, hero: 'bad' } },
     { v: 2, profile: { levels: { dora: -100 }, pouch: { 'sky-feather': NaN, fluffberry: 1e9 }, ring: ['nope', 7], snack: 'cake', naps: { frostmane: Infinity }, hero: 'bad' } }]) {
-    const safe = HuntGame.load(s); assert.equal(safe.profile.levels.dora, 1); assert.equal(safe.profile.pouch['sky-feather'], 0); assert.equal(safe.profile.won, false);
+    const safe = HuntGame.load(s); assert.equal(safe.profile.weapons.hammer.tier, 1); assert.equal(safe.profile.pouch['sky-feather'], 0); assert.equal(safe.profile.won, false);
     assert(safe.profile.pouch.fluffberry <= ITEMS.fluffberry.max); assert(safe.profile.ring.length >= 1); assert.equal(safe.profile.snack, null);
   }
   const before = g.time; g.step(NaN); g.step(-1); assert.equal(g.time, before); g.paused = true; g.step(DT); assert.equal(g.time, before);
@@ -217,11 +242,11 @@ check('final hunt unlock belongs only to the third different nap result', () => 
 });
 const village = (seed = 39, naps = 0) => { const g = new HuntGame(seed); g.chooseHero('dora'); for (const id of BEAST_IDS.slice(0, naps)) g.profile.naps[id] = 1; return g; };
 const still = (g, seconds) => tick(g, seconds);
-check('a v1 save moves into the v2 pouch once, keeping naps, levels and the hero', () => {
+check('a v1 save moves into the v3 pouch once, keeping naps, tier paths and the hero', () => {
   const g = HuntGame.load({ v: 1, seed: 5, profile: { hero: 'enzo', levels: { dora: 2, enzo: 3 }, materials: { bristleback: 7, puffwart: 4, skreel: 3, hornclack: 2, frostmane: 1 }, naps: { bristleback: 2, frostmane: 1 }, hunts: 9 } });
-  assert.equal(g.profile.hero, 'enzo'); assert.deepEqual(g.profile.levels, { dora: 2, enzo: 3 }); assert.equal(g.profile.naps.bristleback, 2); assert(g.profile.won); assert.equal(g.profile.hunts, 9);
+  assert.equal(g.profile.hero, 'enzo'); assert.equal(g.node('hammer').id, 'hammer-2'); assert.equal(g.node('bow').id, 'bow-3A'); assert.equal(g.profile.naps.bristleback, 2); assert(g.profile.won); assert.equal(g.profile.hunts, 9);
   for (const [id, n] of [['bristleback', 7], ['puffwart', 4], ['skreel', 3], ['hornclack', 2], ['frostmane', 1]]) assert.equal(g.profile.pouch[DROPS[id].shed.id], n, id);
-  assert.equal(g.materialTotal, 17); const save = g.save(); assert.equal(save.v, 2);
+  assert.equal(g.materialTotal, 17); const save = g.save(); assert.equal(save.v, 3);
   const again = HuntGame.load(JSON.parse(JSON.stringify(save))); assert.deepEqual(again.profile, g.profile);
   g.toggleRing('pathfinder-acorn'); assert.equal(g.toggleRing('dizzy-bell'), true); g.profile.pouch.berry = 2; assert(g.eatSnack('clover-crunch'));
   assert.deepEqual(HuntGame.load(JSON.parse(JSON.stringify(g.save()))).profile, g.profile, 'ring and packed snack round-trip');
@@ -299,7 +324,7 @@ check('big fluffberries heal 70, sleepy seeds slow the beast 30% for 8 s and onl
 check('a dizzy bell rung beside the beast adds 40 Dizzy: two bells and a big bonk make it dizzy, and it is never wasted', () => {
   const g = fresh(), b = g.beast; g.buddy.cooldown = 1e9; b.state = 'rest'; b.duration = 1e9; g.profile.pouch['dizzy-bell'] = 3; g.item = 3;
   g.hero.z = b.z + 5; assert.equal(g.useItem(), false); assert.equal(g.profile.pouch['dizzy-bell'], 3);
-  g.hero.z = b.z + 3; assert(g.useItem()); assert.equal(b.dizzy, 40); assert(g.useItem()); assert.equal(b.dizzy, 80); assert.equal(b.state, 'rest');
+  g.hero.z = b.z + 3; assert(g.useItem()); assert.equal(b.dizzy, 40); g.itemRecovery = 0; assert(g.useItem()); assert.equal(b.dizzy, 80); assert.equal(b.state, 'rest');
   g.bonkBeast(1, true, g.hero); assert.equal(b.state, 'dizzy', '80 + a big bonk'); assert.equal(g.useItem(), false, 'already dizzy'); assert.equal(g.profile.pouch['dizzy-bell'], 1);
 });
 check('sticky sap: one trap at a time; a grounded beast that reaches it is stuck for 4 s, even mid-charge', () => {
@@ -341,4 +366,155 @@ check('snacks: one packed at a time, paid at the Pantry, used up by the next hun
   assert(lucky > plain * 1.4, `lucky ${lucky} vs plain ${plain}`);
   for (const id of SNACK_IDS) assert(SNACKS[id].cost);
 });
+const geared = (type, tier = 1, branch = null, beast = 'bristleback') => {
+  const g = new HuntGame(77); g.chooseHero('dora'); for (const id of BEAST_IDS) g.profile.naps[id] = 1;
+  g.profile.weapons[type] = { tier, branch }; assert(g.equip(type)); assert(g.startHunt(beast));
+  g.buddy.cooldown = 1e9; g.hero.invincible = 1e9; g.obstacles = []; g.beast.state = 'rest'; g.beast.duration = 100;
+  g.hero.x = g.beast.x; g.hero.z = g.beast.z + 2.7; return g;
+};
+const special = (g, seconds = 0.1) => { tick(g, seconds, input({ charge: true, bonk: seconds >= 0.2 && ['greatsword', 'lance', 'gunlance', 'chargeblade'].includes(g.weapon()) })); tick(g, 0.3); };
+check('either hero equips all fourteen basic tools; the buddy remembers their own choice', () => {
+  const g = new HuntGame(); g.chooseHero('enzo');
+  for (const type of Object.keys(WEAPON_TYPES).filter((id) => WEAPON_TYPES[id].chapter === 0)) { assert(g.equip(type, 'dora')); assert(g.equip(type, 'enzo')); }
+  assert(g.equip('sword', 'dora')); assert(g.equip('bow', 'enzo')); g.chooseHero('dora'); assert.equal(g.weapon(g.buddyId), 'bow');
+  assert(g.startHunt('bristleback')); assert.equal(g.equip('hammer'), false);
+});
+check('guard perks block sides, perfect guards build Dizzy, and lance reflects charges', () => {
+  const g = geared('greatsword', 4, 'B'); g.hero.invincible = 0; g.step(DT, input({ charge: true }));
+  const side = { x: g.hero.x + 3, z: g.hero.z }; assert.equal(g.bumpHero(20, side), false); assert.equal(g.hero.fluff, 100); assert.equal(g.beast.dizzy, 20);
+  const lance = geared('lance', 4, 'B'); lance.hero.invincible = 0; lance.step(DT, input({ charge: true })); lance.beast.state = 'charge';
+  assert.equal(lance.bumpHero(20, lance.beast), false); assert.equal(lance.beast.state, 'dizzy');
+});
+check('greatsword finish and lance counter pop parts; shield bash and leap have different perks', () => {
+  for (const type of ['greatsword', 'lance']) { const g = geared(type, 4, 'A'); if (type === 'lance') g.counter = 2; special(g, 0.6); assert(g.beast.broken, type); }
+  const a = geared('sword', 3, 'A'), b = geared('sword'); special(a); special(b); assert(a.beast.dizzy > b.beast.dizzy);
+  const leap = geared('sword', 4, 'B'), plain = geared('sword', 4, 'A'); special(leap, 0.5); special(plain, 0.5); assert(leap.beast.grump < plain.beast.grump);
+});
+check('Focus, Bloom, seedpods and firefly glows have distinct working signatures', () => {
+  const katana = geared('katana', 4, 'A'); katana.hero.invincible = 0; special(katana, 0.05); assert.equal(katana.bumpHero(10, katana.beast), false); assert.equal(katana.focus, 100);
+  const spade = geared('switchaxe', 4, 'B'); special(spade); assert(spade.bloom); spade.focus = 100; special(spade, 0.5); assert(spade.focus < 100); assert(spade.beast.grump < spade.beast.maxGrump - 40);
+  const pod = geared('chargeblade', 4, 'B'); tick(pod, 1.2, input({ bonk: true })); assert(pod.pods > 0); special(pod); tick(pod, 0.8, input({ bonk: true })); assert.equal(pod.pods, 0);
+  const fly = geared('glaive', 4, 'B'); fly.hero.fluff = 50; special(fly); assert.equal(fly.hero.fluff, 55); assert(fly.glow > 15); tick(fly, 0.8, input({ bonk: true })); assert(fly.vault > 0);
+});
+check('songs heal both friends, Glimmer heals every tenth hit, and sleepy puffs build Dizzy over time', () => {
+  const horn = geared('horn', 4, 'B'); horn.hero.fluff = 40; horn.buddy.fluff = 60; special(horn); assert.equal(horn.hero.fluff, 50); assert.equal(horn.buddy.fluff, 70); assert(horn.song > 0);
+  const glow = geared('hammer', 5, 'A'); glow.hero.fluff = 40; glow.buddy.fluff = 60;
+  for (let i = 0; i < 9; i++) glow.bonkBeast(1, false, glow.hero); assert.equal(glow.hero.fluff, 40); glow.bonkBeast(1, false, glow.hero); assert.equal(glow.hero.fluff, 50); assert.equal(glow.buddy.fluff, 70);
+  const puff = geared('hammer', 3, 'B'); puff.bonkBeast(1, false, puff.hero); const initial = puff.beast.dizzy; tick(puff, 2.3); assert(puff.beast.dizzy >= initial + 4.9);
+});
+check('bow seed tiers share the original Bonk; slingshot rolls reload; Big Poof has a cooldown', () => {
+  const quick = geared('bow'); special(quick, 0.6); assert.equal(quick.beast.maxGrump - quick.beast.grump, 20); assert.equal(quick.beast.dizzy, 50);
+  const bow = geared('bow'); special(bow, 1.1); assert(bow.shots.length > 0 || bow.beast.grump < bow.beast.maxGrump); assert.equal(bow.shotsFired, 1);
+  const sling = geared('lightbow'); tick(sling, 3, input({ bonk: true })); assert.equal(sling.loaded, 0); sling.step(DT, input({ roll: true })); assert.equal(sling.loaded, 6);
+  const poof = geared('gunlance', 4, 'A'); special(poof, 0.5); assert(poof.poof > 2 && poof.poof <= 3);
+});
+check('all armour skills affect combat at two or three pieces and mixed pieces add Fluff', () => {
+  const outfit = (beast, n) => { const g = geared('lance'); g.profile.armour.worn = Object.fromEntries(SLOTS.slice(0, n).map((slot) => [slot, `${beast}-${slot}`])); g.hero.invincible = 0; return g; };
+  const steady = outfit('bristleback', 2), plain = outfit('bristleback', 1); steady.bumpHero(1, steady.beast); plain.bumpHero(1, plain.beast); assert(distance(steady.hero, steady.beast) < distance(plain.hero, plain.beast));
+  const cloud = outfit('puffwart', 2); cloud.hero.slow = 1; cloud.step(DT, input({ x: 1 })); assert(cloud.hero.speed > 3);
+  const deep = outfit('puffwart', 3); deep.hero.fluff = 20; assert(deep.useItem()); assert.equal(deep.itemRecovery, 0.3);
+  const dodge = outfit('skreel', 2); dodge.hero.roll = 0.4; assert.equal(dodge.bumpHero(10, dodge.beast), false);
+  const jump = outfit('skreel', 3); jump.step(DT, input({ roll: true })); jump.step(DT); jump.step(DT, input({ roll: true })); assert.equal(jump.extraRoll, false);
+  const shell = outfit('hornclack', 2); shell.step(DT, input({ charge: true })); assert.equal(shell.bumpHero(20, { x: shell.hero.x + 3, z: shell.hero.z }), false);
+  const frost = outfit('frostmane', 3); frost.hero.fluff = 1; assert(frost.bumpHero(20, frost.beast)); assert.equal(frost.hero.fluff, 50); frost.hero.invincible = 0; frost.bumpHero(100, frost.beast); assert.equal(frost.mode, 'camp');
+  const regen = outfit('frostmane', 2); regen.hero.fluff = 50; regen.hero.z = 15; tick(regen, 2.2); assert(regen.hero.fluff >= 51);
+});
+check('Bubble Burst heals the buddy and gathers loose materials; Yo-yo loop perks reach further', () => {
+  const bubble = geared('wand', 4, 'A'); bubble.buddy.fluff = 40; bubble.drops.push({ id: 990, x: bubble.beast.x, z: bubble.beast.z, material: 'berry', count: 1 });
+  tick(bubble, 0.8, input({ bonk: true })); assert(bubble.buddy.fluff >= 65); assert(bubble.profile.pouch.berry > 0);
+  const yoyo = geared('yoyo', 3, 'A'); yoyo.hero.z = yoyo.beast.z + 4.4; tick(yoyo, 0.4, input({ bonk: true })); assert(yoyo.beast.grump < yoyo.beast.maxGrump);
+  const loop = geared('yoyo', 4, 'B'); loop.drops.push({ id: 991, x: loop.hero.x + 5, z: loop.hero.z, material: 'berry', count: 2 }); tick(loop, 0.4, input({ bonk: true })); assert.equal(loop.profile.pouch.berry, 2);
+});
+check('Pumpkin Flurry needs planted paws and its branch reduces recovery; sticky ammo roots on the third seed', () => {
+  const pumpkin = geared('heavybow', 4, 'A'); tick(pumpkin, 0.8, input({ charge: true })); assert(pumpkin.shotsFired >= 3); pumpkin.step(DT); assert(pumpkin.flurry > 3 && pumpkin.flurry <= 3.5);
+  const moving = geared('heavybow'); tick(moving, 0.5, input({ charge: true, x: 1 })); assert.equal(moving.shotsFired, 0);
+  const bow = geared('bow', 4, 'B'); special(bow, 0.05); assert.equal(bow.ammo, 1); tick(bow, 2, input({ bonk: true })); assert(bow.stickyHits >= 3); assert(bow.beast.state === 'stuck' || bow.beast.state === 'dizzy');
+});
+check('every weapon tree path keeps normal and charged hero and buddy Bonk and Dizzy', () => {
+  function measure(type, tier, branch, buddy, heavy, charge) {
+    const g = geared(type, tier, branch), b = g.beast;
+    b.grump = b.maxGrump = 100000; g.profile.equipped.enzo = type;
+    g.swingCharge = charge; let dizzy = 0;
+    g.makeDizzy = () => { dizzy += DIZZY_FULL; };
+    const add = g.addDizzy.bind(g); g.addDizzy = (n, hit) => { dizzy += n; add(n, hit); };
+    if (g.ranged(buddy ? g.buddyId : g.heroId)) {
+      g.shoot(buddy ? g.buddy : g.hero, heavy, buddy);
+      for (const s of g.shots) g.bonkBeast(s.power, s.heavy, g.hero, buddy, s.dizzyShare);
+    } else if (buddy) {
+      const power = type === 'hammer' ? 8 : WEAPON_TYPES[type].bonk * 2 / 3;
+      g.bonkBeast(power * g.weaponScale(type), heavy, g.buddy, true);
+    } else g.weaponBonk(heavy);
+    return [100000 - b.grump, dizzy];
+  }
+  for (const type of Object.keys(WEAPON_TYPES)) for (const branch of ['A', 'B']) for (const buddy of [false, true]) for (const [heavy, charge] of [[false, 0], [true, 0.6], [true, 1.1]]) {
+    let previous = [0, 0];
+    for (let tier = 1; tier <= 5; tier++) {
+      const next = measure(type, tier, tier < 3 ? null : branch, buddy, heavy, charge);
+      for (let i = 0; i < 2; i++) assert(next[i] + 1e-8 >= previous[i], `${type} ${branch} tier ${tier}, buddy ${buddy}, heavy ${heavy}, stat ${i}: ${previous} → ${next}`);
+      previous = next;
+    }
+  }
+});
+check('v1 and v2 levels two and three retain old hero and buddy power', () => {
+  for (const v of [1, 2]) for (const level of [2, 3]) for (const hero of ['dora', 'enzo']) {
+    const g = HuntGame.load({ v, profile: { hero, levels: { dora: level, enzo: level } } });
+    assert(g.startHunt('bristleback')); g.obstacles = []; const b = g.beast; b.state = 'rest';
+    g.hero.x = b.x; g.hero.z = b.z + 2.7;
+    for (const heavy of [false, true]) {
+      b.grump = b.maxGrump = 10000; b.state = 'rest'; g.swingCharge = 0.6; g.shots = [];
+      if (hero === 'dora') g.weaponBonk(heavy);
+      else { g.shoot(g.hero, heavy, false); for (const s of g.shots) g.bonkBeast(s.power, heavy, g.hero, false, s.dizzyShare); }
+      const old = (hero === 'dora' ? heavy ? 27 : 14 : heavy ? 20 : 9) * (1 + (level - 1) * (hero === 'dora' ? 0.35 : 0.32));
+      assert(10000 - b.grump + 1e-8 >= old, `${v}/${level}/${hero}/${heavy}`);
+    }
+    const type = g.weapon(g.buddyId), oldBuddy = (type === 'hammer' ? 8 : 5) * (1 + (level - 1) * (type === 'hammer' ? 0.3 : 0.32));
+    const newBuddy = (type === 'hammer' ? 8 : 5) * g.weaponScale(type); assert(newBuddy >= oldBuddy);
+  }
+});
+check('final mist bonks and tuckered camp returns clear all hunt weapon state', () => {
+  const g = geared('katana', 3, 'B'); g.beast.grump = 1; g.weaponBonk(true); assert.equal(g.mode, 'nap');
+  tick(g, 3.5); g.returnVillage(); assert.equal(g.mist, 0); assert.doesNotThrow(() => g.step(DT));
+  g.mist = 1; assert.doesNotThrow(() => g.step(DT)); g.addDizzy(5);
+  const camp = geared('hammer', 3, 'B'); camp.buddy.swing = 0.2; camp.mist = 2; camp.vault = 1; camp.bloom = true; camp.pods = 3; camp.hero.invincible = 0; camp.bumpHero(1000, camp.beast);
+  assert.equal(camp.mode, 'camp'); for (const key of ['mist', 'vault', 'pods', 'counter', 'poof', 'flurry', 'focus', 'glow', 'song']) assert.equal(camp[key], 0, key); assert.equal(camp.bloom, false); assert.equal(camp.buddy.swing, -1);
+});
+check('held guards end quietly; taps and J plus K still use signatures', () => {
+  for (const type of ['greatsword', 'gunlance', 'chargeblade']) {
+    const g = geared(type); tick(g, 0.5, input({ charge: true })); assert(g.guarding); tick(g, 0.4);
+    assert.equal(g.beast.grump, g.beast.maxGrump, type); assert.equal(g.bloom, false); assert.equal(g.poof, 0);
+    tick(g, 0.5, input({ charge: true })); assert(g.guarding, type);
+  }
+  const blade = geared('chargeblade'); special(blade, 0.05); assert(blade.bloom);
+  const poof = geared('gunlance'); special(poof, 0.5); assert(poof.poof > 0);
+});
+check('Platepod guards cap pods and Galepod Dizzy needs every pod', () => {
+  const g = geared('chargeblade', 4, 'A'); g.pods = 3; g.hero.invincible = 0; g.step(DT, input({ charge: true })); g.bumpHero(10, g.beast); assert.equal(g.pods, 3);
+  for (const pods of [3, 4]) { const b = geared('chargeblade', 4, 'B'); b.bloom = true; b.pods = pods; b.weaponBonk(false); assert.equal(b.beast.state === 'dizzy', pods === 4); }
+});
+check('Staff taps stay grounded and a hero vault cannot lift a melee buddy', () => {
+  const g = geared('glaive', 4, 'A'); tick(g, 0.15, input({ bonk: true })); assert.equal(g.vault, 0);
+  tick(g, 0.8, input({ bonk: true })); assert(g.vault > 0);
+  g.beast.id = 'skreel'; g.beast.height = 3; g.profile.equipped.enzo = 'hammer'; assert.equal(g.bonkBeast(1, true, g.buddy, true), false);
+  const grounded = geared('glaive'); grounded.beast.id = 'skreel'; grounded.beast.height = 3; assert.equal(grounded.bonkBeast(1, false, grounded.hero), false);
+});
+check('buddy shots own their ammo, charge, fifth shot and pierce perks', () => {
+  const g = geared('lightbow', 4, 'A'); g.ammo = 2; g.swingCharge = 1.4; g.shotsFired = 4; g.profile.equipped.enzo = 'bow';
+  g.shoot(g.buddy, false, true); const s = g.shots[0]; assert.equal(s.ammo, 0); assert.equal(s.charge, 0); assert.equal(s.power, 5); assert.equal(s.heavy, false);
+  g.shots = []; g.profile.equipped.enzo = 'lightbow'; g.profile.equipped.dora = 'hammer'; g.buddyShots = 4; g.shoot(g.buddy, false, true); assert.equal(g.shots[0].power, WEAPON_TYPES.lightbow.bonk * 2 / 3 * 2.1 * 2);
+  const bow = geared('bow', 4, 'A'); bow.profile.equipped.enzo = 'bow'; bow.swingCharge = 1.4; bow.shoot(bow.beast, false, true); bow.step(DT); assert.equal(bow.shots.length, 0, 'uncharged buddy seeds do not pierce');
+});
+check('buddy double bubbles stay buddy hits and reach from thirteen steps', () => {
+  const g = geared('hammer'); g.profile.equipped.enzo = 'wand'; g.profile.weapons.wand = { tier: 4, branch: 'B' };
+  g.buddy.x = g.beast.x; g.buddy.z = g.beast.z + 12.9; g.shoot(g.buddy, false, true);
+  tick(g, 2.4); assert.equal(g.hits, 0); assert.equal(g.buddyHits, 2); assert(g.beast.grump < g.beast.maxGrump);
+});
+check('Swish Counter respects reach and Bloom fills only in Bloom mode', () => {
+  const g = geared('katana'); g.hero.z = 20; g.counter = 0.3; g.hero.invincible = 0; g.bumpHero(1, g.beast); assert.equal(g.beast.grump, g.beast.maxGrump);
+  const axe = geared('switchaxe', 3, 'B'); axe.bonkBeast(1, false, axe.hero); assert.equal(axe.focus, 0); axe.bloom = true; axe.bonkBeast(1, false, axe.hero); assert.equal(axe.focus, 25);
+});
+check('two quick items work while Deep Breath shortens their recovery animation', () => {
+  const g = geared('hammer'); g.hero.fluff = 1; assert(g.useItem()); assert(g.useItem()); assert.equal(g.hero.fluff, 61); assert.equal(g.itemRecovery, 0.6);
+  g.profile.armour.worn = Object.fromEntries(SLOTS.map((slot) => [slot, `puffwart-${slot}`])); assert(g.useItem()); assert.equal(g.itemRecovery, 0.3);
+});
+
 console.log(`Grumble Hunt: ${checks} engine checks passed.`);

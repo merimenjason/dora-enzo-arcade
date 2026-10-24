@@ -1,10 +1,11 @@
 import * as T from 'three';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { createHuntChinchilla, animateHuntChinchilla, poseArms, type HuntChinchilla } from './hunt-chinchilla';
-import { BEAST_IDS, GATHER_TIME, MATERIAL_IDS, SPOTS, type BeastId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
+import { BEASTS, BEAST_IDS, GATHER_TIME, MATERIAL_IDS, SPOTS, type BeastId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
+import { createHuntWeapons } from './grumble-hunt-weapons';
 import { MATERIALS } from './grumble-hunt-content';
 
-type Rig = { model: HuntChinchilla; hammer: T.Group; bow: T.Group; head: T.Group; trail: T.Line; points: T.Vector3[] };
+type Rig = { model: HuntChinchilla; hammer: T.Group; head: T.Group; trail: T.Line; points: T.Vector3[]; weapons: ReturnType<typeof createHuntWeapons>; armour: T.Group[] };
 type BeastRig = { root: T.Group; body: T.Group; head: T.Group; legs: T.Group[]; wings: T.Group[]; eyes: T.Mesh[]; part: T.Group; brow: T.MeshToonMaterial; browColor: T.Color; steam: T.Mesh[]; throat?: T.Mesh; tongue?: T.Mesh; mane?: T.Group };
 /** A gathering spot's props; `fruit` is what disappears once it is gathered. */
 type SpotRig = { id: number; root: T.Group; fruit: T.Group; material: MaterialId };
@@ -14,7 +15,7 @@ const noOutline = <M extends T.Material>(m: M): M => { m.userData.outlineParamet
 const grumpyRed = new T.Color(0xd8432f);
 
 /** Drawing only. The page owns the fixed engine clock and this object owns every GPU resource. */
-export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, failed: (message: string) => void) {
+export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, failed: (message: string) => void, preview: HeroId | null = null) {
   const renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   const phone = matchMedia('(pointer:coarse)').matches || innerWidth < 700;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, phone ? 1.25 : 1.5));
@@ -163,18 +164,21 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const head = new T.Group(); head.position.y = 0.82; head.rotation.z = Math.PI / 2; hammer.add(head);
     mesh(head, sphere, toon(0xc58a47), [0, -0.06, 0], [0.24, 0.29, 0.24]);
     mesh(head, sphere, wood, [0, 0.12, 0], [0.255, 0.12, 0.255]); mesh(head, cylinder, wood, [0, 0.28, 0], [0.025, 0.12, 0.025]);
-    const bow = new T.Group(); model.body.add(bow); bow.position.set(0.42, 0.6, -0.5); bow.scale.setScalar(1 / 0.75);
-    const arc = 2.3, R = 0.36;
-    const limbs = mesh(bow, new T.TorusGeometry(R, 0.035, 8, 20, arc), wood, [-R, 0, 0]); limbs.rotation.z = -arc / 2;
-    mesh(bow, cylinder, toon(0x668f48), [0, 0, 0], [0.042, 0.13, 0.042]);
-    const tx = Math.cos(arc / 2) * R - R, ty = Math.sin(arc / 2) * R;
-    const stringGeo = new T.BufferGeometry().setFromPoints([V(tx, ty, 0), V(tx - 0.04, 0, 0), V(tx, -ty, 0)]), stringMat = noOutline(new T.LineBasicMaterial({ color: 0xf8e8be }));
-    geometries.add(stringGeo); materials.add(stringMat); bow.add(new T.Line(stringGeo, stringMat));
     const trailGeo = new T.BufferGeometry().setFromPoints(Array.from({ length: 10 }, () => V())), trailMat = noOutline(new T.LineBasicMaterial({ color: 0xffd16b, transparent: true, opacity: 0.8 }));
     const trail = new T.Line(trailGeo, trailMat); trail.visible = false; geometries.add(trailGeo); materials.add(trailMat); scene.add(trail);
-    hammer.visible = white; bow.visible = !white;
+    hammer.visible = white;
     model.root.traverse((o) => { if (o instanceof T.Mesh) { if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); o.castShadow = (o.geometry.boundingSphere?.radius ?? 1) * Math.max(o.scale.x, o.scale.y, o.scale.z) > 0.22; geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : [o.material]) { materials.add(m); for (const t of Object.values(m)) if (t instanceof T.Texture) textures.add(t); } } else if (o instanceof T.Line) { geometries.add(o.geometry); materials.add(o.material as T.Material); } });
-    return { model, hammer, bow, head, trail, points: [] };
+    const weapons = createHuntWeapons(model, toon, geometries, materials);
+    const armour: T.Group[] = [];
+    for (let i = 0; i < 3; i++) {
+      const g = new T.Group(); (i === 0 ? model.head : model.body).add(g); armour.push(g);
+      // Small crest, leaf vest and low puffy boots leave cheeks and ears clear.
+      if (i === 0) mesh(g, sphere, toon(0xa77c52), [0, 0.43, 0], [0.16, 0.055, 0.13]);
+      else if (i === 1) mesh(g, sphere, toon(0x76975a), [-0.06, 0.48, 0], [0.58, 0.29, 0.52]);
+      else for (const z of [-0.3, 0.3]) mesh(g, sphere, toon(0xb28f62), [-0.22, 0.09, z], [0.21, 0.1, 0.14]);
+      g.visible = false;
+    }
+    return { model, hammer, head, trail, points: [], weapons, armour };
   }
   const actors: Record<HeroId, Rig> = { dora: actor(true), enzo: actor(false) };
 
@@ -300,12 +304,17 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   function poseActor(id: HeroId, game: HuntGame) {
     const a = actors[id], isPlayer = id === game.heroId, p = isPlayer ? game.hero : game.buddy, h = game.hero;
     const time = reduced.matches ? 0 : game.time;
-    a.model.root.position.set(p.x, 0, p.z); a.model.root.rotation.y = p.face;
+    a.model.root.position.set(p.x, isPlayer && game.vault > 0 ? Math.sin(game.vault / 0.8 * Math.PI) * (game.perk('air-bonk') ? 1.5 : 1) : isPlayer && game.hop > 0 ? 1.2 : 0, p.z); a.model.root.rotation.y = p.face;
     animateHuntChinchilla(a.model, time, p.speed / 5, true);
     if (isPlayer && h.roll >= 0 && !reduced.matches) { a.model.body.rotation.z = -h.roll / 0.46 * Math.PI * 2; a.model.root.position.y = Math.sin(h.roll / 0.46 * Math.PI) * 0.3; }
-    else a.model.body.rotation.z = 0;
+    // A little item-use nod can finish sooner with Deep Breath, without delaying another item.
+    else a.model.body.rotation.z = isPlayer && h.swing < 0 && !reduced.matches ? Math.min(0.12, game.itemRecovery * 0.4) : 0;
     const t = p.swing;
-    if (id === 'dora') {
+    const weapon = game.weapon(id);
+    a.hammer.visible = weapon === 'hammer'; a.trail.visible = false;
+    a.armour.forEach((g, i) => { const piece = game.profile.armour.worn[(['helm', 'vest', 'boots'] as const)[i]]; g.visible = isPlayer && !!piece; if (piece) { const color = BEASTS[piece.split('-')[0] as BeastId].color; g.traverse((o) => { if (o instanceof T.Mesh) (o.material as T.MeshToonMaterial).color.set(color); }); } });
+    a.weapons.pose(weapon, time, t);
+    if (weapon === 'hammer') {
       a.hammer.rotation.z = t < 0 ? 0.9 : t < 0.15 ? lerp(0.9, 2.1, t / 0.15) : t < 0.25 ? lerp(2.1, -2, (t - 0.15) / 0.1) : lerp(-2, 0.9, Math.min(1, (t - 0.25) / 0.3) ** 2);
       if (isPlayer && h.charge > 0) a.hammer.rotation.z = 1.9 + Math.sin(time * 18) * Math.min(0.05, h.charge * 0.05);
       a.hammer.updateMatrix();
@@ -316,11 +325,6 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       else a.points.length = 0;
       a.trail.visible = a.points.length > 1;
       if (a.trail.visible) { const attr = a.trail.geometry.getAttribute('position'); for (let i = 0; i < 10; i++) { const p = a.points[Math.min(i, a.points.length - 1)]; attr.setXYZ(i, p.x, p.y, p.z); } attr.needsUpdate = true; a.trail.geometry.computeBoundingSphere(); }
-    } else {
-      a.bow.rotation.x = isPlayer && h.charge > 0 ? -0.15 : 0;
-      a.bow.updateMatrix();
-      const grip = V(0, 0, 0).applyMatrix4(a.bow.matrix), draw = V(-0.14 - (isPlayer ? h.charge * 0.1 : 0), 0, 0.15).applyMatrix4(a.bow.matrix);
-      poseArms(a.model, grip, t >= 0 || isPlayer && h.charge > 0 ? draw : null);
     }
   }
   const observer = new ResizeObserver(resize); observer.observe(canvas);
@@ -332,6 +336,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     if (worldKey !== currentWorld) { currentWorld = worldKey; buildWorld(game); }
     village.visible = paths.visible = game.mode === 'village' || game.mode === 'camp'; campPath.visible = !village.visible;
     poseActor('dora', game); poseActor('enzo', game);
+    if (preview) { actors.dora.model.root.visible = preview === 'dora'; actors.enzo.model.root.visible = preview === 'enzo'; actors[preview].model.root.rotation.y = -0.4; village.visible = paths.visible = campPath.visible = false; }
     for (const id of BEAST_IDS) beasts[id].root.visible = game.beast?.id === id && !['village', 'camp'].includes(game.mode);
     const b = game.beast;
     if (b) {
@@ -414,6 +419,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     desired.y = Math.max(0.8, desired.y);
     camera.position.copy(desired);
     if (!reduced.matches && game.shake > 0) { camera.position.x += Math.sin(game.time * 83) * game.shake * 0.2; camera.position.y += Math.cos(game.time * 71) * game.shake * 0.15; }
+    if (preview) { const p = preview === game.heroId ? game.hero : game.buddy; target.set(p.x, 0.85, p.z); camera.position.set(p.x + 2.5, 1.7, p.z + 2.8); }
     camera.lookAt(target);
     if (leafCards && crowns) {
       // Shrink away any canopy near the camera or across its view of the leader, so leaves never fill the screen.
