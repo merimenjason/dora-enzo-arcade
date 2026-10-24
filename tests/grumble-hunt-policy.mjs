@@ -3,7 +3,14 @@ export function huntPolicy(g) {
   const b = g.beast, h = g.hero;
   const out = { x: 0, z: 0, sprint: true, bonk: false, charge: false, roll: false, lock: false, previous: false, next: false, use: false };
   if (!b || g.mode !== 'hunt') return out;
-  const d = Math.hypot(h.x - b.x, h.z - b.z), melee = g.heroId === 'dora';
+  if (g.ride.riding) { out.charge = true; out.bonk = Math.floor(g.time * 16) % 2 === 0; return out; }
+  if (g.ride.used < 2 && ['dizzy', 'stuck'].includes(b.state)) {
+    if (g.weapon() === 'yoyo' && Math.hypot(h.x - b.x, h.z - b.z) < 4) { out.charge = g.time % 0.4 < 0.12; return out; }
+    for (const rock of g.obstacles.filter((o) => o.kind === 'rock')) {
+      const x = h.x - rock.x, z = h.z - rock.z; if (g.rockHop(x, z) && h.rollCd <= 0) { const n = Math.hypot(x, z); out.x = x / n; out.z = z / n; out.roll = true; return out; }
+    }
+  }
+  const d = Math.hypot(h.x - b.x, h.z - b.z), melee = !g.ranged();
   const desired = melee ? 2.7 : 7;
   let tx = b.x, tz = b.z;
   if (b.id === 'hornclack') { tx -= Math.cos(b.face) * desired; tz += Math.sin(b.face) * desired; }

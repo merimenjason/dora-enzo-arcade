@@ -34,3 +34,11 @@
 @keyframes hunt-anvil { to { transform: translateY(5px) rotate(-2deg); } }
 @media (prefers-reduced-motion: reduce) { .hunt-forge-cheer { animation: none; } }
 .hunt-rack-preview canvas { width: min(100%, 400px); height: 240px; border-radius: 16px; }
+
+.hunt-ride { position: absolute; top: 175px; left: 50%; transform: translateX(-50%); display: grid; gap: 6px; justify-items: center; padding: 12px 18px; border: 2px solid #ead4a6; border-radius: 18px; background: #fff5dfed; color: #48372b; pointer-events: none; max-width: 90vw; }
+.hunt-ride-pips { display: flex; gap: 14px; font-size: 26px; }
+.hunt-ride-pips span { opacity: .25; }
+.hunt-ride-pips [data-full="true"] { opacity: 1; }
+.hunt-ride-warning { color: #a74414; font-size: 24px; }
+.hunt-ride progress { width: 180px; accent-color: #cb8a3b; }
+@media (max-width: 600px) { .hunt-ride { top: 155px; padding: 8px 12px; } }

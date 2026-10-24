@@ -6,6 +6,7 @@ import { createHuntWeapons } from './grumble-hunt-weapons';
 import { MATERIALS } from './grumble-hunt-content';
 
 type Rig = { model: HuntChinchilla; hammer: T.Group; head: T.Group; trail: T.Line; points: T.Vector3[]; weapons: ReturnType<typeof createHuntWeapons>; armour: T.Group[] };
+const RIDE_HEIGHT: Record<BeastId, number> = { bristleback: 2.4, puffwart: 2, skreel: 2.7, hornclack: 2.25, frostmane: 2.25 };
 type BeastRig = { root: T.Group; body: T.Group; head: T.Group; legs: T.Group[]; wings: T.Group[]; eyes: T.Mesh[]; part: T.Group; brow: T.MeshToonMaterial; browColor: T.Color; steam: T.Mesh[]; throat?: T.Mesh; tongue?: T.Mesh; mane?: T.Group };
 /** A gathering spot's props; `fruit` is what disappears once it is gathered. */
 type SpotRig = { id: number; root: T.Group; fruit: T.Group; material: MaterialId };
@@ -304,12 +305,19 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   function poseActor(id: HeroId, game: HuntGame) {
     const a = actors[id], isPlayer = id === game.heroId, p = isPlayer ? game.hero : game.buddy, h = game.hero;
     const time = reduced.matches ? 0 : game.time;
-    a.model.root.position.set(p.x, isPlayer && game.vault > 0 ? Math.sin(game.vault / 0.8 * Math.PI) * (game.perk('air-bonk') ? 1.5 : 1) : isPlayer && game.hop > 0 ? 1.2 : 0, p.z); a.model.root.rotation.y = p.face;
+    const riding = isPlayer && game.ride.riding;
+    let height = 0;
+    if (riding && game.beast) height = game.beast.height + RIDE_HEIGHT[game.beast.id];
+    else if (isPlayer && game.vault > 0) height = Math.sin(game.vault / 0.8 * Math.PI) * (game.perk('air-bonk') ? 1.5 : 1);
+    a.model.root.position.set(p.x, height, p.z); a.model.root.rotation.y = p.face;
+    if (isPlayer && game.ride.landing > 0 && !reduced.matches) { const f = 1 - game.ride.landing / 0.6; a.model.root.position.y = (1 - f) * (game.beast ? RIDE_HEIGHT[game.beast.id] : 2) + Math.sin(f * Math.PI) * 0.7; if (game.beast) { a.model.root.position.x = lerp(game.beast.x, p.x, f); a.model.root.position.z = lerp(game.beast.z, p.z, f); } }
     animateHuntChinchilla(a.model, time, p.speed / 5, true);
     if (isPlayer && h.roll >= 0 && !reduced.matches) { a.model.body.rotation.z = -h.roll / 0.46 * Math.PI * 2; a.model.root.position.y = Math.sin(h.roll / 0.46 * Math.PI) * 0.3; }
     // A little item-use nod can finish sooner with Deep Breath, without delaying another item.
     else a.model.body.rotation.z = isPlayer && h.swing < 0 && !reduced.matches ? Math.min(0.12, game.itemRecovery * 0.4) : 0;
-    const t = p.swing;
+    a.model.feet.forEach((foot, i) => { foot.rotation.x = riding ? (i ? -0.5 : 0.5) : 0; if (riding) foot.position.y = 0.14; });
+    if (riding) { a.model.body.scale.y *= 0.85; a.model.body.rotation.z = game.ride.pose > 0 && !reduced.matches ? Math.sin(game.ride.pose / 0.22 * Math.PI) * -0.2 : 0; }
+    const t = isPlayer && game.ride.riding && game.ride.pose > 0 ? 0.24 - game.ride.pose : p.swing;
     const weapon = game.weapon(id);
     a.hammer.visible = weapon === 'hammer'; a.trail.visible = false;
     a.armour.forEach((g, i) => { const piece = game.profile.armour.worn[(['helm', 'vest', 'boots'] as const)[i]]; g.visible = isPlayer && !!piece; if (piece) { const color = BEASTS[piece.split('-')[0] as BeastId].color; g.traverse((o) => { if (o instanceof T.Mesh) (o.material as T.MeshToonMaterial).color.set(color); }); } });
@@ -319,7 +327,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       if (isPlayer && h.charge > 0) a.hammer.rotation.z = 1.9 + Math.sin(time * 18) * Math.min(0.05, h.charge * 0.05);
       a.hammer.updateMatrix();
       const both = t >= 0.12 && t < 0.42 ? 1 : t >= 0.06 && t < 0.12 ? (t - 0.06) / 0.06 : t >= 0.42 && t < 0.5 ? 1 - (t - 0.42) / 0.08 : 0;
-      poseArms(a.model, V(0, 0.26, 0).applyMatrix4(a.hammer.matrix), V(0, 0.1, 0).applyMatrix4(a.hammer.matrix), [isPlayer && h.charge > 0 ? 1 : both, 1]);
+      poseArms(a.model, V(0, 0.26, 0).applyMatrix4(a.hammer.matrix), V(0, 0.1, 0).applyMatrix4(a.hammer.matrix), [isPlayer && (h.charge > 0 || game.ride.riding) ? 1 : both, 1]);
       a.model.root.updateMatrixWorld(true);
       if (t >= 0.12 && t < 0.35 && !reduced.matches) { a.points.unshift(a.head.getWorldPosition(V())); if (a.points.length > 10) a.points.pop(); }
       else a.points.length = 0;
@@ -327,10 +335,21 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       if (a.trail.visible) { const attr = a.trail.geometry.getAttribute('position'); for (let i = 0; i < 10; i++) { const p = a.points[Math.min(i, a.points.length - 1)]; attr.setXYZ(i, p.x, p.y, p.z); } attr.needsUpdate = true; a.trail.geometry.computeBoundingSphere(); }
     }
   }
+  const hopRing = mesh(scene, reachGeo, reachMat, [0, 0.1, 0], [1, 1, 1], false);
+  function label(text: string, color: string) {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 96;
+    const ctx = c.getContext('2d'); if (ctx) { ctx.font = 'bold 58px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = color; ctx.fillText(text, 128, 70); }
+    const map = new T.CanvasTexture(c); textures.add(map);
+    const mat = noOutline(new T.SpriteMaterial({ map, transparent: true, depthWrite: false })); materials.add(mat);
+    const sprite = new T.Sprite(mat); sprite.scale.set(1.8, 0.7, 1); scene.add(sprite); return sprite;
+  }
+  const hopLabel = label('hop!', '#fff4cf'), shakeMark = label('〰!', '#f39a31');
   const observer = new ResizeObserver(resize); observer.observe(canvas);
   function resize() { if (closed) return; const w = Math.max(1, canvas.clientWidth), h = Math.max(1, canvas.clientHeight); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
   const ray = new T.Raycaster(), cameraAim = V(), desired = V(), segment = V();
+  let lastRide = { riding: false, fullBonks: 0, bucking: false };
   function draw(game: HuntGame, dt: number) {
+    lastRide = { riding: game.ride.riding, fullBonks: game.ride.fullBonks, bucking: game.ride.riding && game.ride.phase !== 'quiet' };
     if (closed) return;
     const worldKey = `${game.profile.hunts}:${game.mode === 'village' || game.mode === 'camp'}`;
     if (worldKey !== currentWorld) { currentWorld = worldKey; buildWorld(game); }
@@ -339,15 +358,23 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     if (preview) { actors.dora.model.root.visible = preview === 'dora'; actors.enzo.model.root.visible = preview === 'enzo'; actors[preview].model.root.rotation.y = -0.4; village.visible = paths.visible = campPath.visible = false; }
     for (const id of BEAST_IDS) beasts[id].root.visible = game.beast?.id === id && !['village', 'camp'].includes(game.mode);
     const b = game.beast;
+    const rock = game.hopRock();
+    hopRing.visible = hopLabel.visible = !!rock;
+    if (rock) { hopRing.position.set(rock.x, 0.12, rock.z); hopRing.scale.set(rock.r + 0.4, 1, rock.r + 0.4); hopLabel.position.set(rock.x, 1.6, rock.z); }
+    shakeMark.visible = !!b && game.ride.riding && game.ride.phase !== 'quiet';
+    if (b) shakeMark.position.set(b.x, b.height + 3.4, b.z);
     if (b) {
       const r = beasts[b.id], motion = reduced.matches ? 0 : Math.sin(game.time * 8);
       r.root.position.set(b.x, b.height, b.z); r.root.rotation.y = b.face;
       const napping = b.state === 'nap', nap = napping ? Math.min(1, b.t / 1.6) : 0;
       r.body.rotation.z = napping ? nap * 0.28 : b.state === 'windup' ? -0.12 * Math.sin(b.t * 12) : b.state === 'dizzy' ? Math.sin(game.time * 4) * 0.07 : b.state === 'stuck' && !reduced.matches ? Math.sin(game.time * 11) * 0.05 : 0;
+      r.body.rotation.x = game.ride.plopped > 0 ? 1.25 * Math.min(1, (2 - game.ride.plopped) / 0.25, game.ride.plopped / 0.35) : 0;
+      if (game.ride.riding && game.ride.phase === 'buck' && !reduced.matches) r.body.rotation.z = Math.sin(game.time * 22) * 0.3;
       r.body.rotation.y = b.state === 'sweep' ? Math.sin(Math.min(1, b.t / Math.max(0.01, b.duration)) * Math.PI) * 1.35 : 0;
       const pulse = b.flash > 0 ? Math.sin(b.flash * 25) * 0.08 : 0;
       const gone = napping ? 1 - T.MathUtils.smoothstep(b.t, 2.7, 3.2) : 1;
       r.root.scale.setScalar(Math.max(0.001, gone)); r.body.scale.set(1 + nap * 0.12 + pulse, 1 - nap * 0.42 - pulse, 1 + nap * 0.16 + pulse);
+      if (game.ride.riding && game.ride.phase === 'warning') { r.body.scale.y *= 0.86; r.body.scale.x *= 1.06; }
       r.legs.forEach((leg, i) => { leg.rotation.z = nap * -0.9 + (!napping && ['roam', 'charge', 'pounce', 'hop'].includes(b.state) ? motion * (i % 2 ? 0.3 : -0.3) : 0); });
       if (b.id === 'bristleback' && b.state === 'windup' && !reduced.matches) r.legs[2].rotation.z = Math.sin(game.time * 16) * 0.55;
       r.eyes.forEach((eye) => { eye.scale.y = nap > 0 ? Math.max(0.02, 0.15 * (1 - nap)) : 0.12; });
@@ -445,7 +472,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     get yaw() { return yaw; },
     orbit(dx: number, dy: number) { yaw -= dx * 0.006; pitch = T.MathUtils.clamp(pitch + dy * 0.004, 0.18, 0.95); userOrbit = 4; },
     zoom(delta: number) { dist = T.MathUtils.clamp(dist + delta * 0.008, 5, 14); },
-    metrics() { return { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible) }; },
+    metrics() { return { ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible) }; },
     dispose() {
       if (closed) return; closed = true; observer.disconnect();
       scene.traverse((o) => { if (o instanceof T.InstancedMesh) o.dispose(); if (o instanceof T.Mesh || o instanceof T.Line) { geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : [o.material]) materials.add(m); } });

@@ -76,7 +76,9 @@ export type Drop = Vec & { id: number; material: MaterialId; count: number };
 export type GatherSpot = Vec & { id: number; material: MaterialId; count: number; done: boolean };
 export type Cloud = Vec & { life: number; r: number };
 export type Fx = Vec & { id: number; kind: 'bonk' | 'dust' | 'dizzy' | 'berry' | 'part' | 'nap'; t: number; text: string };
-export type HuntEvent = { kind: 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
+export type Ride = { riding: boolean; meter: number; fullBonks: number; phase: 'quiet' | 'warning' | 'buck'; timer: number; grip: boolean; used: number; left: number; pose: number; landing: number; plopped: number };
+const freshRide = (): Ride => ({ riding: false, meter: 0, fullBonks: 0, phase: 'quiet', timer: 0, grip: false, used: 0, left: 0, pose: 0, landing: 0, plopped: 0 });
+export type HuntEvent = { kind: 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shaken-off' | 'plop' | 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
 export type Mode = 'village' | 'hunt' | 'nap' | 'calm' | 'camp' | 'victory';
 const countRecord = (): Record<BeastId, number> => ({ bristleback: 0, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0 });
 const emptyPouch = () => Object.fromEntries([...MATERIAL_IDS, ...ITEM_IDS].map((id) => [id, 0])) as Pouch;
@@ -165,7 +167,12 @@ export class HuntGame {
   loaded = 6;
   glowColors = 0;
   songKind = 0;
-  hop = 0;
+  ride: Ride = freshRide();
+  rides = 0;
+  plops = 0;
+  plopNote = '';
+  private loop = false;
+  private rideRelease = false;
   private nextDizzy = 0;
   private vaultHold = 0;
   private guardCombo = false;
@@ -273,7 +280,7 @@ export class HuntGame {
   }
   private resetWeapons() {
     this.bloom = false; this.ammo = 0; this.songKind = 0; this.swingCharge = 0;
-    this.focus = 0; this.zoom = 5; this.pods = 0; this.notes = 0; this.song = 0; this.glow = 0; this.hits = 0; this.buddyHits = 0; this.revived = false; this.extraRoll = true; this.stamina = 100; this.guardTime = 0; this.counter = 0; this.poof = 0; this.flurry = 0; this.itemRecovery = 0; this.vault = 0; this.mist = 0; this.stickyHits = 0; this.shotsFired = 0; this.loaded = 6; this.glowColors = 0; this.hop = 0;
+    this.focus = 0; this.zoom = 5; this.pods = 0; this.notes = 0; this.song = 0; this.glow = 0; this.hits = 0; this.buddyHits = 0; this.revived = false; this.extraRoll = true; this.stamina = 100; this.guardTime = 0; this.counter = 0; this.poof = 0; this.flurry = 0; this.itemRecovery = 0; this.vault = 0; this.mist = 0; this.stickyHits = 0; this.shotsFired = 0; this.loaded = 6; this.glowColors = 0; this.ride = freshRide(); this.loop = false; this.rideRelease = false; this.plopNote = '';
     this.buddy.cooldown = 0; this.buddy.swing = -1;
     this.chargeHold = 0; this.hero.cooldown = 0; this.hero.heavy = false; this.hero.landed = false;
     this.guarding = false; this.nextDizzy = 0; this.vaultHold = 0; this.guardCombo = false; this.buddyShots = 0; this.hero.charge = 0; this.hero.swing = -1;
@@ -378,17 +385,20 @@ export class HuntGame {
       this.addDizzy(dizzy * dizzyShare);
     }
 
-    if (b.grump <= 0) {
-      b.state = 'nap'; b.t = 0; b.height = 0; this.mode = 'nap'; this.resultTime = 0;
-      const before = this.uniqueNaps;
-      this.profile.naps[b.id]++; this.unlockedFinalHunts = before === 2 && this.uniqueNaps === 3; this.profile.won ||= b.id === 'frostmane';
-      // Three commons and a rare roll (two with a Lucky Seed Bun); the pop-off part already dropped its own material.
-      this.reward = rollCalm(() => this.random(), b.id, [], this.snack ? SNACKS[this.snack].effect.bonusRareRolls ?? 0 : 0);
-      for (const m of this.reward) this.drop(b, m, 1);
-      this.collect(true); this.gathering = null; this.revision++;
-      this.events.push({ kind: 'nap' }); this.effect('nap', b, 'Calmed. Time for a nap!'); this.note = `${BEASTS[b.id].name} is going to the sanctuary for a lovely nap.`;
-    }
+    if (b.grump <= 0 && !(this.ride.riding && this.ride.fullBonks === 3)) this.nap();
     return true;
+  }
+  private nap() {
+    const b = this.beast; if (!b || this.mode !== 'hunt') return;
+    this.ride = freshRide();
+    b.state = 'nap'; b.t = 0; b.height = 0; this.mode = 'nap'; this.resultTime = 0;
+    const before = this.uniqueNaps;
+    this.profile.naps[b.id]++; this.unlockedFinalHunts = before === 2 && this.uniqueNaps === 3; this.profile.won ||= b.id === 'frostmane';
+    // Three commons and a rare roll (two with a Lucky Seed Bun); the pop-off part already dropped its own material.
+    this.reward = rollCalm(() => this.random(), b.id, [], this.snack ? SNACKS[this.snack].effect.bonusRareRolls ?? 0 : 0);
+    for (const m of this.reward) this.drop(b, m, 1);
+    this.collect(true); this.gathering = null; this.revision++;
+    this.events.push({ kind: 'nap' }); this.effect('nap', b, 'Calmed. Time for a nap!'); this.note = `${BEASTS[b.id].name} is going to the sanctuary for a lovely nap.`;
   }
   makeDizzy(seconds = 3.2) {
     const b = this.beast; if (!b || this.mode !== 'hunt' || b.state === 'nap') return;
@@ -397,7 +407,7 @@ export class HuntGame {
   }
   bumpHero(amount: number, from: Vec) {
     const h = this.hero;
-    if (this.mode !== 'hunt' || h.invincible > 0) return false;
+    if (this.mode !== 'hunt' || this.ride.riding || h.invincible > 0) return false;
     if (h.roll >= 0 && h.roll < 0.32 * (this.skill('feather-step') ? 1.3 : 1)) { if (this.perk('roll-refill')) this.zoom = 5; return false; }
     if (this.weapon() === 'katana' && this.counter > 0) {
       h.invincible = 0.4; if (this.beast && distance(h, this.beast) < 3.65) this.weaponBonk(true); this.focus = this.perk('counter-focus') ? 100 : Math.min(100, this.focus + 30); return false;
@@ -473,10 +483,88 @@ export class HuntGame {
     }
     return out;
   }
-  private attack(heavy: boolean) {
+  /** The landing is 2 units out from the leader, along the jump direction. */
+  rockHop(x: number, z: number): Obstacle | null {
+    const b = this.beast, h = this.hero, len = Math.hypot(x, z);
+    if (this.mode !== 'hunt' || !b || this.ride.riding || this.ride.used >= 2 || !['dizzy', 'stuck'].includes(b.state) || len < 0.1) return null;
+    const dx = x / len, dz = z / len, landing = { x: h.x + dx * 2, z: h.z + dz * 2 };
+    if (distance(landing, b) > 3) return null;
+    return this.obstacles.find((o) => o.kind === 'rock' && Math.abs(distance(h, o) - o.r) <= 0.6 && (h.x - o.x) * dx + (h.z - o.z) * dz > 0) ?? null;
+  }
+  /** Preview the outward jump towards the beast; the same rule checks the actual roll or vault. */
+  hopRock() {
+    const b = this.beast;
+    return b ? this.rockHop(b.x - this.hero.x, b.z - this.hero.z) : null;
+  }
+  private startRide() {
+    const b = this.beast, r = this.ride;
+    if (!b || this.mode !== 'hunt' || r.riding || r.used >= 2 || !['dizzy', 'stuck'].includes(b.state) || b.duration <= b.t) return false;
+    const extra = this.perk('long-hop'); b.duration += extra;
+    this.ride = { ...freshRide(), riding: true, used: r.used + 1, left: 8 + extra, timer: 1.2 + this.random() * 0.4 };
+    this.rides++; this.gathering = null; this.guarding = false; this.chargeHold = 0;
+    this.hero.x = b.x; this.hero.z = b.z; this.hero.face = b.face; this.hero.roll = -1; this.hero.swing = -1; this.hero.charge = 0; this.hero.speed = 0;
+    this.events.push({ kind: 'hop-on' }); this.effect('dust', b, 'Hop-on!'); this.note = 'Hop-on! Tap J to bonk, hold K through a buck, roll to hop off.';
+    return true;
+  }
+  private rideBonk() {
+    const b = this.beast, r = this.ride; if (!b || !r.riding) return;
+    r.pose = 0.22; r.meter++;
+    if (r.meter < 5) return;
+    r.meter = 0; r.fullBonks++;
+    const type = this.weapon(), power = type === 'hammer' ? 14 : type === 'bow' ? 9 : WEAPON_TYPES[type].bonk;
+    const complete = r.fullBonks >= 3;
+    this.bonkBeast(power * this.weaponScale(type), false, { x: b.x - Math.cos(b.face) * 2, z: b.z + Math.sin(b.face) * 2 });
+    this.events.push({ kind: 'ride-bonk' }); this.effect('bonk', b, 'Boop!');
+    if (complete && this.mode === 'hunt') { this.plop(); if (b.grump <= 0) this.nap(); }
+    this.hitstop = 0; // Riding counts tap edges without a full-bonk pause swallowing the next tap.
+    if (complete && this.mode === 'hunt') this.note = 'Plop! +30 Dizzy, two commons shed, and you hopped off.';
+  }
+  private buck() {
+    const b = this.beast, r = this.ride; if (!b || !r.riding) return;
+    r.phase = 'buck'; r.timer = b.id === 'frostmane' ? 0.5 : 0.3;
+    if (!r.grip) this.endRide('shaken-off');
+  }
+  private endRide(reason: 'roll' | 'shaken-off' | 'time' | 'plop') {
+    const b = this.beast, r = this.ride; if (!r.riding) return;
+    this.rideRelease = true;
+    r.riding = false; r.grip = false; r.left = 0; r.phase = 'quiet'; r.timer = 0; r.landing = 0.6;
+    if (b) { this.hero.x = b.x; this.hero.z = b.z; this.move(this.hero, -Math.sin(b.face) * 2.8, -Math.cos(b.face) * 2.8, 0.45); }
+    this.hero.invincible = Math.max(this.hero.invincible, 1); this.hero.swing = -1; this.hero.charge = 0;
+    if (reason === 'shaken-off') { this.events.push({ kind: 'shaken-off' }); this.note = 'Soft landing! No Fluff lost. Hold K through the next buck.'; }
+    else if (reason !== 'plop') this.note = 'Back on your paws!';
+  }
+  private plop() {
+    const b = this.beast; if (!b || !this.ride.riding) return;
+    // A seeded part-meter chance, separate from Grump and from the three full bonks.
+    if (!b.broken && this.random() < Math.min(1, b.part / (b.maxGrump * 0.32))) {
+      b.broken = true; this.drop(b, PART_DROP[b.id].id, PART_DROP[b.id].count); this.events.push({ kind: 'part' }); this.effect('part', b, 'Part popped off!');
+    }
+    const common = DROPS[b.id].calm.common;
+    for (let i = 0; i < 2; i++) this.drop({ x: b.x + 3, z: b.z }, common[Math.floor(this.random() * common.length)], 1);
+    this.makeDizzy(); b.dizzy += 30; this.plops++; this.ride.plopped = 2;
+    this.plopNote = 'Hop-on plop: two commons shed, +30 Dizzy, and you hopped off.';
+    this.endRide('plop'); this.events.push({ kind: 'plop' }); this.effect('dizzy', b, 'Plop!'); this.note = 'Plop! +30 Dizzy, two commons shed, and you hopped off.';
+  }
+  private stepRide(dt: number, input: Input) {
+    const b = this.beast, r = this.ride;
+    if (!b || this.mode !== 'hunt') { this.ride = freshRide(); return; }
+    if (input.roll && !this.last.roll) { this.endRide('roll'); return; }
+    r.grip = input.charge; r.left -= dt; b.t += dt; b.height = 0; b.flash = Math.max(0, b.flash - dt);
+    if (!['dizzy', 'stuck'].includes(b.state) || b.t >= b.duration || r.left <= 0) { this.endRide('time'); return; }
+    this.hero.x = b.x; this.hero.z = b.z; this.hero.face = b.face;
+    r.timer -= dt;
+    if (r.phase === 'quiet' && r.timer <= 0) { r.phase = 'warning'; r.timer = 0.65; this.events.push({ kind: 'buck-warning' }); this.note = 'Hold on! (K)'; }
+    else if (r.phase === 'warning' && r.timer <= 0) this.buck();
+    else if (r.phase === 'buck') {
+      if (!r.grip) this.endRide('shaken-off');
+      else if (r.timer <= 0) { r.phase = 'quiet'; r.timer = 1.6 + this.random() - (b.id === 'frostmane' ? 0.5 : 0.3) - 0.65; }
+    }
+    if (r.riding && input.bonk && !this.last.bonk) this.rideBonk();
+  }
+  private attack(heavy: boolean, loop = false) {
     const h = this.hero;
     if (h.cooldown > 0 || h.roll >= 0 || h.swing >= 0) return;
-    this.swingCharge = h.charge;
+    this.loop = loop; this.swingCharge = h.charge;
     h.heavy = heavy; h.swing = 0; h.landed = false; h.cooldown = this.weapon() === 'hammer' ? heavy ? 0.95 : 0.67 : this.weapon() === 'bow' ? heavy ? 0.8 : 0.43 : ({ slow: 0.85, medium: 0.55, fast: 0.3 }[WEAPON_TYPES[this.weapon()].speed]);
     if (this.weapon() === 'claws' && this.zoom > 0) h.cooldown /= 1.3;
     if (this.weapon() === 'switchaxe' && this.bloom) h.cooldown *= 0.7;
@@ -496,11 +584,11 @@ export class HuntGame {
     if (type === 'lance' && (this.counter > 0 || b && ['charge', 'pounce', 'sweep'].includes(b.state) && b.t < 0.25)) { this.counter = 0; this.hero.cooldown = 0; this.attack(true); return; }
     if (type === 'lance') return;
     if (type === 'gunlance' && charge >= 0.35) { if (this.poof > 0) return; this.poof = 5 - this.perk('poof-cool'); }
-    if (type === 'yoyo' && b?.state === 'dizzy') { this.hop = 3 + this.perk('long-hop'); this.hero.invincible = this.hop; }
-    this.attack(charge >= 0.35);
+    this.attack(charge >= 0.35, type === 'yoyo');
   }
   private weaponBonk(heavy: boolean) {
     const type = this.weapon(), b = this.beast; if (!b) return;
+    if (type === 'yoyo' && this.loop) { this.loop = false; if (this.startRide()) return; }
     const front = direction(b, this.hero).x * Math.cos(b.face) - direction(b, this.hero).z * Math.sin(b.face);
     if (b.id === 'hornclack' && front > 0.45 && b.state !== 'dizzy' && type !== 'gunlance') { this.note = 'Try the sides!'; return; }
     if (b.height > 1.8 && this.vault <= 0) return;
@@ -540,14 +628,17 @@ export class HuntGame {
     this.events.push({ kind: 'shoot' });
   }
   private stepHero(dt: number, input: Input) {
+    if (this.rideRelease) { if (!input.charge) this.rideRelease = false; input = { ...input, charge: false }; this.last.charge = false; }
     const h = this.hero, pressed = (k: keyof Input) => !!input[k] && !this.last[k];
     for (const k of ['invincible', 'cooldown', 'slow', 'hidden'] as const) h[k] = Math.max(0, h[k] - dt);
+    this.ride.pose = Math.max(0, this.ride.pose - dt); this.ride.landing = Math.max(0, this.ride.landing - dt); this.ride.plopped = Math.max(0, this.ride.plopped - dt);
+    if (this.ride.riding) { this.stepRide(dt, input); return; }
     this.song = Math.max(0, this.song - dt); this.glow = Math.max(0, this.glow - dt);
-    for (const key of ['counter', 'poof', 'flurry', 'itemRecovery', 'vault', 'hop'] as const) this[key] = Math.max(0, this[key] - dt);
+    for (const key of ['counter', 'poof', 'flurry', 'itemRecovery', 'vault'] as const) this[key] = Math.max(0, this[key] - dt);
     if (this.mode === 'hunt' && this.beast && this.mist > 0) { this.mist -= dt; this.addDizzy(this.nextDizzy * dt); }
     if (this.weapon() === 'claws' && this.zoom > 0 && !(this.perk('zoom-behind') && this.beast && direction(this.beast, h).x * Math.cos(this.beast.face) - direction(this.beast, h).z * Math.sin(this.beast.face) < -0.3 && input.bonk)) this.zoom = Math.max(0, this.zoom - dt);
     this.vaultHold = this.weapon() === 'glaive' && input.bonk ? this.vaultHold + dt : 0;
-    if (this.mode === 'hunt' && this.vaultHold >= 0.35 && this.vault <= 0) this.vault = 0.8;
+    if (this.mode === 'hunt' && this.vaultHold >= 0.35 && this.vault <= 0) { this.vault = 0.8; if (this.rockHop(input.x, input.z) && this.startRide()) return; }
     const releasedHold = this.chargeHold;
     this.chargeHold = input.charge ? this.chargeHold + dt : 0;
     const guardTool = ['lance', 'gunlance', 'greatsword', 'chargeblade', 'heavybow'].includes(this.weapon()) && !(this.weapon() === 'chargeblade' && this.bloom);
@@ -583,6 +674,7 @@ export class HuntGame {
       if (!spot || spot.done || len > 0.1 || input.roll || input.bonk || input.charge || h.swing >= 0) this.gathering = null;
       else if ((this.gathering.t += dt) >= GATHER_TIME) { this.gathering = null; this.gather(spot, h); }
     }
+    if (pressed('roll') && h.rollCd <= 0 && this.rockHop(input.x, input.z) && this.startRide()) return;
     if (pressed('roll') && (h.rollCd <= 0 || this.skill('updraft') && this.extraRoll && h.roll >= 0)) { if (h.rollCd > 0) this.extraRoll = false; this.loaded = 6; h.roll = 0; h.rollCd = 0.85; h.rollX = len > 0.1 ? dx : Math.cos(h.face); h.rollZ = len > 0.1 ? dz : -Math.sin(h.face); h.swing = -1; h.charge = 0; this.effect('dust', h); }
     if (h.roll >= 0) {
       h.roll += dt; const speed = 6 + 6 * (1 - Math.min(1, h.roll / 0.46)); this.move(h, h.rollX * speed * dt, h.rollZ * speed * dt, 0.45); h.speed = 7;
@@ -604,6 +696,7 @@ export class HuntGame {
         h.landed = true;
         if (this.ranged()) this.shoot(h, h.heavy, false);
         else if (this.beast && distance(h, this.beast) < (this.weapon() === 'yoyo' ? 4 * (1 + this.perk('wide-loop')) : this.weapon() === 'switchaxe' && !this.bloom || this.weapon() === 'hammer' && this.perk('shockwave') && h.heavy && this.swingCharge >= 1 ? 4.5 : 3.65)) this.weaponBonk(h.heavy);
+        if (this.ride.riding) return;
         this.effect('dust', h);
       }
       if (h.swing > (['hammer', 'bow'].includes(this.weapon()) ? !this.ranged() ? 0.6 : 0.35 : WEAPON_TYPES[this.weapon()].speed === 'fast' ? 0.2 : 0.4)) h.swing = -1;
@@ -650,7 +743,7 @@ export class HuntGame {
     this.note = b.attack === 'shake' || b.attack === 'sweep' || b.attack === 'cloud' ? 'Orange circle! Step outside or roll as it lands.' : 'Orange lane! Step sideways or roll as it arrives.';
   }
   private stepBeast(dt: number) {
-    const b = this.beast!;
+    const b = this.beast; if (!b || this.ride.riding) return;
     const pace = (b.grumpy ? GRUMPY_PACE : 1) * (b.drowsy > 0 ? 1 - b.drowsySlow : 1);
     b.t += dt; b.flash = Math.max(0, b.flash - dt); b.drowsy = Math.max(0, b.drowsy - dt);
     // A beast on the ground that steps on the sticky sap is stuck where it stands, even mid-charge.
@@ -739,6 +832,7 @@ export class HuntGame {
       this.collect();
       this.stepSniff(dt);
     }
+    if (!this.beast || this.mode !== 'hunt') this.ride = freshRide();
     this.last = { ...input };
   }
   save() { return { v: 3, seed: this.seed, profile: JSON.parse(JSON.stringify(this.profile)) as Profile }; }

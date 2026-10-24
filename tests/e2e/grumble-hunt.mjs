@@ -27,6 +27,28 @@ const fits = (p) => p.evaluate(() => document.documentElement.scrollWidth <= inn
 const snapshot = (p, name) => p.screenshot({ path: `.checks/hunt/${name}.png` });
 
 try {
+  await check('Hop-on rider, tap meter, grip prompt and roll off', async (p) => {
+    await fresh(p);
+    await hunt(p, (w) => { const g = w.game; for (const id of ['bristleback', 'puffwart', 'skreel']) g.profile.naps[id] = 1; if (!g.equip('yoyo')) throw new Error('Yo-yo did not equip'); });
+    await start(p);
+    await hunt(p, (w) => { const g = w.game; g.hero.x = g.beast.x; g.hero.z = g.beast.z + 2.7; g.makeDizzy(8); g.buddy.cooldown = 100; });
+    await p.keyboard.down('k'); await p.waitForTimeout(100); await p.keyboard.up('k');
+    await p.waitForFunction(() => window.__hunt().game.ride.riding);
+    await p.getByTestId('ride-hud').waitFor();
+    await snapshot(p, 'hop-on-rider');
+    assert.equal(await hunt(p, (w) => w.metrics().ride.riding), true);
+    await p.keyboard.down('k');
+    for (let i = 0; i < 5; i++) { await p.keyboard.press('j', { delay: 45 }); await p.waitForTimeout(120); }
+    await p.waitForFunction(() => window.__hunt().game.ride.fullBonks === 1);
+    assert.equal(await p.getByTestId('ride-pips').getAttribute('aria-label'), '1 of 3 full bonks');
+    assert.equal(await p.getByTestId('ride-pips').locator('[data-full="true"]').count(), 1);
+    await p.getByTestId('ride-warning').waitFor(); assert.match(await p.getByTestId('ride-warning').innerText(), /Hold on! \(K\)/);
+    await snapshot(p, 'hop-on-hold-on');
+    await p.keyboard.press('Space'); await p.keyboard.up('k');
+    await p.waitForFunction(() => !window.__hunt().game.ride.riding);
+    await p.getByTestId('ride-hud').waitFor({ state: 'hidden' });
+    assert.equal(await hunt(p, (w) => w.game.hero.fluff), 100);
+  });
   await check('arcade, village, field guide, Beast Book and locked hunts', async (p) => {
     await p.goto(base); assert.equal(await p.locator('.arcade-card').count(), 39); await p.getByRole('link', { name: /Grumble Hunt/ }).click();
     await p.locator('main[data-ready="true"][data-rendered="true"]').waitFor(); await snapshot(p, 'title');

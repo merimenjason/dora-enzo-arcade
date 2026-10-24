@@ -517,4 +517,66 @@ check('two quick items work while Deep Breath shortens their recovery animation'
   g.profile.armour.worn = Object.fromEntries(SLOTS.map((slot) => [slot, `puffwart-${slot}`])); assert(g.useItem()); assert.equal(g.itemRecovery, 0.3);
 });
 
+const rider = (type = 'yoyo', tier = 1, branch = null) => {
+  const g = geared(type, tier, branch); g.obstacles = []; g.buddy.cooldown = 1000; g.buddy.berry = 1000;
+  g.hero.x = g.beast.x; g.hero.z = g.beast.z + 2.5; g.makeDizzy(20); return g;
+};
+const loopOn = (g) => { tick(g, 0.05, input({ charge: true })); tick(g, 0.3); };
+const tapRide = (g, n) => { for (let i = 0; i < n; i++) { g.step(DT, input({ bonk: true, charge: true })); tick(g, 0.12, input({ charge: true })); } };
+check('Hop-on: only a connecting Yo-yo loop on a dizzy or sap-stuck beast starts a ride', () => {
+  const g = rider(); loopOn(g); assert(g.ride.riding); assert.equal(g.rides, 1); assert.equal(g.hero.x, g.beast.x); assert.equal(g.hero.z, g.beast.z);
+  for (const state of ['roam', 'stuck']) { const h = rider(); h.beast.state = state; loopOn(h); assert.equal(h.ride.riding, state === 'stuck'); }
+  const far = rider(); far.hero.z += 10; loopOn(far); assert.equal(far.ride.riding, false);
+});
+check('Hop-on: outward rock rolls and Staff vaults use a two-unit landing with a three-unit opening', () => {
+  for (const type of ['hammer', 'glaive']) { const g = rider(type); g.obstacles = [{ x: 0, z: 0, r: 1, kind: 'rock' }]; g.hero.x = 1.5; g.hero.z = 0; g.beast.x = 5; g.beast.z = 0;
+    assert(g.rockHop(1, 0)); assert.equal(g.rockHop(-1, 0), null);
+    if (type === 'glaive') { g.hero.x = 1.45; g.hero.cooldown = 100; tick(g, 0.3, input({ bonk: true })); tick(g, 0.08, input({ x: 1, bonk: true })); } else g.step(DT, input({ x: 1, roll: true })); assert(g.ride.riding);
+  }
+  for (const missing of ['rock', 'dizzy', 'landing']) { const g = rider('hammer'); g.obstacles = missing === 'rock' ? [] : [{ x: 0, z: 0, r: 1, kind: 'rock' }]; g.hero.x = 1.5; g.hero.z = 0; g.beast.x = missing === 'landing' ? 10 : 5; g.beast.z = 0; if (missing === 'dizzy') g.beast.state = 'rest'; g.step(DT, input({ x: 1, roll: true })); assert.equal(g.ride.riding, false); }
+});
+check('Hop-on: five J edges fill a full bonk; a held J never spams, and normal tier Bonk lowers Grump', () => {
+  const g = rider(); loopOn(g); const grump = g.beast.grump;
+  tick(g, 0.8, input({ bonk: true, charge: true })); assert.equal(g.ride.meter, 1); assert.equal(g.ride.fullBonks, 0);
+  g.step(DT, input({ charge: true })); tapRide(g, 4); assert.equal(g.ride.fullBonks, 1); assert.equal(g.ride.meter, 0);
+  assert(Math.abs(grump - g.beast.grump - WEAPON_TYPES.yoyo.bonk * 1.7) < 1e-8); assert(g.events.some((e) => e.kind === 'ride-bonk'));
+});
+check('Hop-on: every seeded buck warns for at least 0.6 seconds; grip is free and Frostmane bucks longer', () => {
+  for (const id of BEAST_IDS) { const g = rider(); g.beast.id = id; loopOn(g); const stamina = g.stamina; let warning = 0, count = 0, buckTime = 0, prior = 'quiet';
+    for (let i = 0; i < 7 / DT; i++) { g.step(DT, input({ charge: true })); if (g.ride.phase === 'warning') warning += DT; if (g.ride.phase === 'buck' && prior === 'warning') { assert(warning >= 0.6); warning = 0; count++; buckTime = g.ride.timer; } prior = g.ride.phase; }
+    assert(count >= 2); assert(g.ride.riding); assert.equal(g.stamina, stamina); assert.equal(buckTime, id === 'frostmane' ? 0.5 : 0.3);
+  }
+});
+check('Hop-on: an ungripped buck gives a soft invincible landing with no Fluff loss and preserves the meter', () => {
+  const g = rider(); loopOn(g); tapRide(g, 2); const fluff = g.hero.fluff;
+  tick(g, 2.5); assert.equal(g.ride.riding, false); assert.equal(g.ride.meter, 2); assert.equal(g.hero.fluff, fluff); assert(g.hero.invincible > 0); assert(distance(g.hero, g.beast) >= 1.85); assert(g.events.some((e) => e.kind === 'shaken-off'));
+});
+check('Hop-on: three full bonks plop, add exactly 30 Dizzy, restart dizzy, roll the part meter and shed two seeded commons', () => {
+  const g = rider(); loopOn(g); g.beast.part = g.beast.maxGrump * 0.31; g.beast.dizzy = 0;
+  // Make the plop chance certain without ordinary bonks crossing the part threshold.
+  const plopDrops = []; const drop = g.drop.bind(g); g.drop = (at, material, count) => { if (at.x === g.beast.x + 3) plopDrops.push(material); drop(at, material, count); };
+  let rolls = 0; const random = g.random.bind(g); g.random = () => { rolls++; return random(); };
+  tapRide(g, 15); assert.equal(g.ride.fullBonks, 3); assert.equal(g.ride.riding, false); assert.equal(g.plops, 1); assert.equal(g.beast.dizzy, 30); assert.equal(g.beast.state, 'dizzy'); assert.equal(g.beast.duration, 3.2); assert(g.beast.t < 0.2); assert(g.beast.broken); assert(rolls >= 7); assert(g.events.some((e) => e.kind === 'plop')); assert.match(g.note, /two commons.*hopped off/);
+  assert.equal(plopDrops.length, 2); assert(plopDrops.every((m) => DROPS[g.beast.id].calm.common.includes(m)));
+  const chance = rider(); loopOn(chance); chance.beast.part = 0; chance.random = () => 0.99; tapRide(chance, 15); assert.equal(chance.beast.broken, false); assert.equal(chance.plops, 1);
+});
+check('Hop-on: the fifteenth tap still plops when its bonk also calms, and releasing grip after roll does not loop back on', () => {
+  const g = rider(); loopOn(g); tapRide(g, 10); g.beast.grump = 1; tapRide(g, 5); assert.equal(g.mode, 'nap'); assert.equal(g.plops, 1); assert.match(g.plopNote, /hopped off/); assert.equal(g.ride.used, 0);
+  const off = rider(); loopOn(off); off.step(DT, input({ charge: true })); off.step(DT, input({ roll: true, charge: true })); tick(off, 0.4); assert.equal(off.ride.riding, false); assert.equal(off.rides, 1);
+});
+check('Hop-on: roll is free, two rides per hunt, long-hop adds two seconds to cap and dizzy, dizzy expiry ends riding', () => {
+  const g = rider(); loopOn(g); const fluff = g.hero.fluff;
+  for (let i = 0; i < 2; i++) { g.hitstop = 0; g.step(DT, input({ roll: true })); assert.equal(g.hero.fluff, fluff); g.step(DT); if (i === 0) { g.hero.cooldown = 0; loopOn(g); assert(g.ride.riding); } }
+  g.hero.cooldown = 0; loopOn(g); assert.equal(g.ride.riding, false); assert.equal(g.ride.used, 2);
+  const long = rider('yoyo', 4, 'A'); const duration = long.beast.duration; loopOn(long); assert.equal(long.beast.duration, duration + 2); assert(long.ride.left > 9.5);
+  long.beast.t = long.beast.duration - DT / 2; long.step(DT); assert.equal(long.ride.riding, false);
+  const cap = rider(); loopOn(cap); tick(cap, 8.1, input({ charge: true })); assert.equal(cap.ride.riding, false);
+});
+check('Hop-on: seeded rides replay exactly and all exits clear transient ride state safely without a beast', () => {
+  const run = () => { const g = rider(); loopOn(g); tick(g, 3, input({ charge: true })); tapRide(g, 15); return { ride: g.ride, beast: g.beast, drops: g.drops, rng: g.rng, fx: g.fx }; }; assert.deepEqual(run(), run());
+  for (const phase of ['quiet', 'warning', 'buck']) { const g = rider(); loopOn(g); g.ride.phase = phase; g.returnVillage(); assert.equal(g.ride.riding, false); assert.equal(g.ride.used, 0); assert.doesNotThrow(() => tick(g, 1)); g.ride.riding = true; assert.doesNotThrow(() => g.step(DT)); assert.equal(g.ride.riding, false); }
+  const nap = rider(); loopOn(nap); nap.bonkBeast(9999, false, nap.hero); assert.equal(nap.mode, 'nap'); assert.equal(nap.ride.used, 0); assert.doesNotThrow(() => tick(nap, 4));
+  const camp = rider(); loopOn(camp); camp.endRide('roll'); camp.hero.invincible = 0; camp.bumpHero(9999, camp.beast); assert.equal(camp.mode, 'camp'); assert.equal(camp.ride.used, 0); assert.doesNotThrow(() => tick(camp, 1));
+});
+
 console.log(`Grumble Hunt: ${checks} engine checks passed.`);
