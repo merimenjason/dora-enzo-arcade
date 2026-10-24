@@ -24,14 +24,23 @@ const scene = new T.Scene();
 const camera = new T.PerspectiveCamera(50, 1, 0.1, 500);
 const timeU = { value: 0 };
 
+// ---------- painted art from public/art/hunt/ ----------
+const ART: Record<string, string> = (window as any).HUNT_ART ?? {};
+const loader = new T.TextureLoader();
+function art(name: string, repeat = 1, rx = repeat) {
+  const t = loader.load(ART[name] ?? `/art/hunt/${name}.webp`);
+  t.colorSpace = T.SRGBColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(rx, repeat); t.anisotropy = 8;
+  return t;
+}
+
 // ---------- materials: every mesh carries a soft and a toon material ----------
 const ramp = new T.DataTexture(new Uint8Array([88, 165, 255]), 3, 1, T.RedFormat);
 ramp.minFilter = ramp.magFilter = T.NearestFilter; ramp.generateMipmaps = false; ramp.needsUpdate = true;
 type Pair = { soft: T.Material; toon: T.Material };
 const swaps: T.Mesh[] = [];
-function pair(color: number, o: { rough?: number; vc?: boolean; outline?: boolean; metal?: number } = {}): Pair {
-  const soft = new T.MeshStandardMaterial({ color, roughness: o.rough ?? 0.86, metalness: o.metal ?? 0, vertexColors: !!o.vc });
-  const toon = new T.MeshToonMaterial({ color, gradientMap: ramp, vertexColors: !!o.vc });
+function pair(color: number, o: { rough?: number; vc?: boolean; outline?: boolean; metal?: number; map?: T.Texture } = {}): Pair {
+  const soft = new T.MeshStandardMaterial({ color, roughness: o.rough ?? 0.86, metalness: o.metal ?? 0, vertexColors: !!o.vc, map: o.map ?? null });
+  const toon = new T.MeshToonMaterial({ color, gradientMap: ramp, vertexColors: !!o.vc, map: o.map ?? null });
   if (o.outline === false) toon.userData.outlineParameters = { visible: false };
   return { soft, toon };
 }
@@ -65,7 +74,8 @@ const skyMat = new T.ShaderMaterial({
   fragmentShader: 'uniform vec3 top, mid, low; varying vec3 vp; void main(){ float h = vp.y; vec3 c = h > 0. ? mix(mid, top, pow(h, .55)) : mix(mid, low, min(1., -h*5.)); gl_FragColor = vec4(c, 1.); \n#include <colorspace_fragment>\n }',
 });
 skyMat.userData.outlineParameters = { visible: false };
-const sky = new T.Mesh(new T.SphereGeometry(400, 32, 16), skyMat); sky.renderOrder = -1; scene.add(sky);
+const sky = new T.Mesh(new T.SphereGeometry(400, 32, 16), skyMat); sky.renderOrder = -1; scene.add(sky); sky.visible = false;
+const skyTex = art('sky-meadow'); skyTex.mapping = T.EquirectangularReflectionMapping; skyTex.wrapT = T.ClampToEdgeWrapping; scene.background = skyTex;
 
 // ---------- terrain ----------
 function height(x: number, z: number) {
@@ -80,8 +90,19 @@ function height(x: number, z: number) {
     const n = Math.sin(x * 0.23) * Math.cos(z * 0.19) * 0.5 + 0.5, patch = Math.max(0, Math.sin(x * 0.08 + 2) * Math.cos(z * 0.1 - 1) - 0.75) * 1.6 * T.MathUtils.smoothstep(Math.hypot(x, z), 8, 20);
     c.copy(a).lerp(b, n).lerp(d, Math.min(1, patch)); col.push(c.r, c.g, c.b);
   }
-  g.setAttribute('color', new T.Float32BufferAttribute(col, 3)); g.computeVertexNormals();
-  mesh(g, pair(0xffffff, { vc: true, outline: false }), scene, false);
+  const mix: number[] = [];
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), z = pos.getZ(i), lane = Math.abs(z - 9 - Math.sin(x * 0.12) * 4) - (1.6 + Math.sin(x * 0.4) * 0.3);
+    mix.push(1 - T.MathUtils.smoothstep(lane, -0.3, 0.5)); col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = 0.92 + Math.sin(x * 0.23) * Math.cos(z * 0.19) * 0.08;
+  }
+  g.setAttribute('color', new T.Float32BufferAttribute(col, 3)); g.setAttribute('pathMix', new T.Float32BufferAttribute(mix, 1)); g.computeVertexNormals();
+  const gp = pair(0xffffff, { vc: true, outline: false, map: art('tex-meadow-grass', 52) }), dirt = art('tex-meadow-dirt', 52);
+  for (const m of [gp.soft, gp.toon]) m.onBeforeCompile = (sh) => {
+    sh.uniforms.dirtMap = { value: dirt };
+    sh.vertexShader = 'attribute float pathMix;\nvarying float vPath;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvPath = pathMix;');
+    sh.fragmentShader = 'uniform sampler2D dirtMap;\nvarying float vPath;\n' + sh.fragmentShader.replace('#include <map_fragment>', 'vec4 gC = texture2D(map, vMapUv), dC = texture2D(dirtMap, vMapUv); diffuseColor *= mix(gC, dC, vPath);');
+  };
+  mesh(g, gp, scene, false);
 }
 
 // ---------- grass ----------
@@ -114,23 +135,39 @@ function height(x: number, z: number) {
   fl.userData.pair = fp; swaps.push(fl); scene.add(fl);
 }
 
+{
+  const tuft = new T.PlaneGeometry(0.9, 0.9); tuft.translate(0, 0.42, 0);
+  const both = new T.BufferGeometry().copy(tuft); const t2 = tuft.clone().rotateY(Math.PI / 2);
+  const geo = new T.BufferGeometry(); const pa = [...both.getAttribute('position').array, ...t2.getAttribute('position').array], ua = [...both.getAttribute('uv').array, ...t2.getAttribute('uv').array];
+  geo.setAttribute('position', new T.Float32BufferAttribute(pa, 3)); geo.setAttribute('uv', new T.Float32BufferAttribute(ua, 2)); geo.setAttribute('normal', new T.Float32BufferAttribute(Array(pa.length).fill(0).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
+  geo.setIndex([0, 2, 1, 2, 3, 1, 4, 6, 5, 6, 7, 5]);
+  const tt = art('grass-tuft'); tt.wrapS = tt.wrapT = T.ClampToEdgeWrapping;
+  const tp = pair(0xffffff, { outline: false, map: tt }); for (const m of [tp.soft, tp.toon]) { m.alphaTest = 0.5; m.side = T.DoubleSide; }
+  windify(tp.soft, 0.25); windify(tp.toon, 0.25);
+  const n = 500, im = new T.InstancedMesh(geo, tp.soft, n), mm = new T.Matrix4(), qq = new T.Quaternion();
+  for (let i = 0; i < n; i++) { const r = 3 + Math.sqrt(rnd()) * 30, a = rnd() * 6.28, x = Math.cos(a) * r, z = Math.sin(a) * r, sc = 0.6 + rnd() * 0.7; qq.setFromAxisAngle(V(0, 1, 0), rnd() * 3); mm.compose(V(x, height(x, z), z), qq, V(sc, sc, sc)); im.setMatrixAt(i, mm); }
+  im.userData.pair = tp; swaps.push(im); scene.add(im);
+}
+
 // ---------- trees, rocks, clouds ----------
 const trees: { x: number; z: number; r: number }[] = [];
-const trunkP = pair(0x7a5232), leafP = [pair(0x4f8a3c), pair(0x62a046), pair(0x3f7a34)];
+const trunkP = pair(0xffffff, { map: art('tex-bark', 1, 2) }), leafP = [pair(0x3f7a34), pair(0x4a8a3a)];
+// painted leaf cards round each crown, over a darker 3D core that gives the outline and shadow
+const leafTex = art('leaf-cluster'); leafTex.wrapS = leafTex.wrapT = T.ClampToEdgeWrapping;
+const leafCard = new T.SpriteMaterial({ map: leafTex, alphaTest: 0.45, color: 0xf2f2e8 }); leafCard.userData.outlineParameters = { visible: false };
 function tree(x: number, z: number, s: number) {
   const g = new T.Group(); g.position.set(x, height(x, z), z); g.scale.setScalar(s); g.rotation.y = rnd() * 6;
   const trunk = mesh(new T.CylinderGeometry(0.22, 0.38, 2.6, 9), trunkP, g); trunk.position.y = 1.3;
-  for (let i = 0; i < 5; i++) {
-    const blob = mesh(new T.IcosahedronGeometry(1, 2), leafP[i % 3], g);
-    const a = i * 1.3, rr = i === 0 ? 0 : 0.85;
-    blob.position.set(Math.cos(a) * rr, 3 + (i === 0 ? 0.6 : rnd() * 0.5), Math.sin(a) * rr);
-    blob.scale.setScalar(i === 0 ? 1.45 : 0.95 + rnd() * 0.3);
+  const core = mesh(new T.IcosahedronGeometry(1, 2), leafP[0], g); core.position.y = 3.4; core.scale.set(0.95, 0.8, 0.95);
+  for (let i = 0; i < 16; i++) {
+    const a = i * 2.4, up = i / 15, rr = 1.25 * Math.sin(Math.PI * (0.15 + up * 0.75)), card = new T.Sprite(leafCard);
+    card.position.set(Math.cos(a) * rr, 2.5 + up * 2.1, Math.sin(a) * rr); card.scale.setScalar(1.7 + rnd() * 0.6); g.add(card);
   }
   scene.add(g); trees.push({ x, z, r: 0.55 * s });
 }
 for (let i = 0; i < 26; i++) { const a = (i / 26) * Math.PI * 2 + rnd() * 0.2, r = 22 + rnd() * 26; tree(Math.cos(a) * r, Math.sin(a) * r, 1 + rnd() * 0.8); }
 tree(-9, 7, 1.1); tree(10, -7, 1.2); tree(11, 8, 0.95);
-const rockP = pair(0x8d9196, { rough: 0.95 });
+const rockP = pair(0xffffff, { rough: 0.95, map: art('tex-rock', 1.5) });
 for (let i = 0; i < 14; i++) {
   const g = new T.DodecahedronGeometry(1, 1), p = g.attributes.position;
   for (let j = 0; j < p.count; j++) p.setXYZ(j, p.getX(j) * (0.85 + Math.sin(j * 7.1) * 0.12), p.getY(j) * 0.7, p.getZ(j) * (0.9 + Math.cos(j * 3.3) * 0.1));
@@ -144,7 +181,7 @@ for (let i = 0; i < 9; i++) {
   const g = new T.Group(), a = (i / 9) * 6.28, r = 120 + rnd() * 40;
   g.position.set(Math.cos(a) * r, 45 + rnd() * 25, Math.sin(a) * r);
   for (let j = 0; j < 6; j++) { const b = mesh(new T.IcosahedronGeometry(1, 2), cloudP, g, false); b.position.set((j - 2.5) * 4.2, Math.sin(j * 1.7) * 1.4, Math.cos(j * 2.1) * 2.5); b.scale.set(5 + rnd() * 2, 3.4 + rnd() * 1.4, 4); }
-  scene.add(g); clouds.push(g);
+  scene.add(g); clouds.push(g); g.visible = false;
 }
 
 // ---------- chinchillas ----------
@@ -188,7 +225,60 @@ const bow = new T.Group(); enzo.model.body.add(bow); bow.position.set(0.42, 0.6,
 }
 // Put the paws on the weapons. The right paw always holds the hammer low on the handle; the left
 // joins it higher up for the slam and lets go for the wind-up and the shoulder rest.
+// ?weapon=claws|lance|wand|yoyo swaps Dora's hammer for one of the later weapons, held the same way:
+// each weapon group sits at its grip point in Dora's body space, scaled back to rig units.
+const WEAPON = new URLSearchParams(location.search).get('weapon') ?? 'hammer';
+const held: Record<string, T.Group[]> = {};
+function grip(...parts: [T.BufferGeometry, Pair, number, number, number, number?, number?, number?][]) {
+  const g = new T.Group(); dora.model.body.add(g); g.scale.setScalar(1 / dora.s);
+  for (const [geo, p, x, y, z, rx = 0, ry = 0, rz = 0] of parts) { const m = mesh(geo, p, g); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); }
+  return g;
+}
+{
+  const wood = pair(0xb07a44), dark = pair(0x6e4423), leaf = pair(0x5d9a3f), thistle = pair(0xa77bd6), bubble = pair(0xbfe6ff);
+  // Twin Claws: a curved wooden paw-blade in each paw, rounded at the tip
+  // a long flattened leaf of pale wood out past the paw, curving up a little, on a dark grip
+  const blade = new T.SphereGeometry(1, 16, 10), pale = pair(0xe3b77a);
+  held.claws = [-1, 1].map(() => {
+    const g = grip([blade, pale, 0.26, 0.05, 0, 0, 0, 0.28], [new T.CylinderGeometry(0.04, 0.04, 0.16, 8), dark, 0.02, 0, 0, 0, 0, Math.PI / 2]);
+    g.children[0].scale.set(0.3, 0.075, 0.035); return g;
+  });
+  // Thistle Lance in the right paw, Leaf Shield on the left
+  const shaft = new T.CylinderGeometry(0.03, 0.04, 1.1, 8), puff = new T.IcosahedronGeometry(0.1, 1);
+  held.lance = [
+    grip([new T.SphereGeometry(1, 16, 12), leaf, 0.06, 0.05, 0, 0, 0, 0], [new T.CylinderGeometry(0.012, 0.012, 0.7, 6), dark, 0.075, 0.05, 0, Math.PI / 2, 0, 0]),
+    grip([shaft, wood, 0.35, 0.05, 0, 0, 0, -Math.PI / 2 + 0.25], [puff, thistle, 0.88, 0.2, 0], [new T.ConeGeometry(0.07, 0.12, 8), leaf, 0.8, 0.18, 0, 0, 0, -Math.PI / 2 + 0.25]),
+  ];
+  held.lance[0].children[0].scale.set(0.045, 0.26, 0.2);
+  // Bubble Wand: a reed stick with a ring, and a bubble drifting off it
+  const ring = new T.TorusGeometry(0.1, 0.02, 8, 20);
+  const bubbleMat = bubble; for (const m of [bubbleMat.soft, bubbleMat.toon]) { m.transparent = true; m.opacity = 0.55; }
+  held.wand = [grip([new T.CylinderGeometry(0.022, 0.026, 0.55, 8), pair(0x9fbf5a), 0, 0.22, 0, 0, 0, -0.3], [ring, pair(0xf2c14e), 0.17, 0.53, 0, 0, Math.PI / 2, -0.3], [new T.SphereGeometry(0.11, 16, 12), bubbleMat, 0.38, 0.7, 0])];
+  // Pinecone Yo-yo: hangs from the right paw on a string and swings
+  const cone = grip([new T.SphereGeometry(0.11, 12, 10), pair(0x8a5a34), 0, -0.24, 0]);
+  for (let i = 0; i < 12; i++) { const sc = mesh(new T.ConeGeometry(0.035, 0.07, 6), pair(0x6e4423), cone); const a = i * 2.4, h = -0.24 + ((i % 4) - 1.5) * 0.05; sc.position.set(Math.cos(a) * 0.1, h, Math.sin(a) * 0.1); sc.rotation.z = Math.PI; }
+  cone.children[0].scale.set(1, 1.3, 1);
+  cone.add(new T.Line(new T.BufferGeometry().setFromPoints([V(0, 0, 0), V(0, -0.14, 0)]), new T.LineBasicMaterial({ color: 0xf3ead8 })));
+  held.yoyo = [cone];
+  for (const [k, gs] of Object.entries(held)) for (const g of gs) g.visible = k === WEAPON;
+  hamPivot.visible = WEAPON === 'hammer';
+}
+
 function poseGrips() {
+  const now = performance.now() / 1000, bob = Math.sin(now * 2) * 0.015;
+  if (WEAPON === 'claws') {
+    const l = V(0.62, 0.55 + bob, -0.26), r = V(0.62, 0.55 - bob, 0.26); poseArms(dora.model, l, r);
+    held.claws[0].position.copy(l); held.claws[1].position.copy(r); held.claws[0].rotation.set(0, 0.25, 0); held.claws[1].rotation.set(0, -0.25, 0);
+  } else if (WEAPON === 'lance') {
+    const l = V(0.6, 0.42 + bob, -0.36), r = V(0.48, 0.46, 0.34); poseArms(dora.model, l, r);
+    held.lance[0].position.copy(l); held.lance[1].position.copy(r);
+  } else if (WEAPON === 'wand') {
+    const r = V(0.56, 0.58 + bob, 0.32); poseArms(dora.model, null, r); held.wand[0].position.copy(r);
+    const b = held.wand[0].children[2]; b.position.set(0.38 + Math.sin(now) * 0.05, 0.7 + (now % 2) * 0.12, 0);
+  } else if (WEAPON === 'yoyo') {
+    const r = V(0.62, 0.78 + bob, 0.42); poseArms(dora.model, null, r); held.yoyo[0].position.copy(r); held.yoyo[0].rotation.set(Math.sin(now * 2.2) * 0.35, 0, Math.sin(now * 1.7) * 0.25);
+  }
+  if (WEAPON !== 'hammer') { bow.updateMatrix(); poseArms(enzo.model, V(0, 0, 0).applyMatrix4(bow.matrix), null); return; }
   hamPivot.updateMatrix();
   const low = V(0, 0.1, 0).applyMatrix4(hamPivot.matrix), high = V(0, 0.26, 0).applyMatrix4(hamPivot.matrix);
   const t = D.swing, both = t >= 0.12 && t < 0.42 ? 1 : t >= 0.06 && t < 0.12 ? (t - 0.06) / 0.06 : t >= 0.42 && t < 0.5 ? 1 - (t - 0.42) / 0.08 : 0;
@@ -200,7 +290,7 @@ function poseGrips() {
 // ---------- the Bristleback ----------
 const boarG = new T.Group(); scene.add(boarG);
 const boarBody = new T.Group(); boarG.add(boarBody);
-const furP = pair(0x7a5638, { rough: 0.95 }), darkP = pair(0x4a3221, { rough: 1 }), snoutP = pair(0xd99a84, { rough: 0.7 }), tuskP = pair(0xfff1d6, { rough: 0.4 });
+const furP = pair(0xffffff, { rough: 0.95, map: art('tex-boar-fur', 2) }), darkP = pair(0x4a3221, { rough: 1 }), snoutP = pair(0xd99a84, { rough: 0.7 }), tuskP = pair(0xfff1d6, { rough: 0.4 });
 const boarMats = [furP, darkP, snoutP, tuskP];
 {
   const g = new T.SphereGeometry(1, 48, 32), p = g.attributes.position;
@@ -311,7 +401,7 @@ function stepParts(dt: number) {
 
 // ---------- look switching ----------
 const LOOKS = {
-  toon: { tone: T.NoToneMapping, exp: 1, hemi: [0xeaf6ff, 0x7c9d55, 1.05], sun: [0xfff4e0, 1.75], rim: 0, fog: 0xcde7f5, sky: [0x4b9de0, 0xc4e6f7, 0xa6cf8e], ramp: true },
+  toon: { tone: T.NoToneMapping, exp: 1, hemi: [0xeaf6ff, 0x7c9d55, 1.05], sun: [0xfff4e0, 1.75], rim: 0, fog: 0xd6e5e4, sky: [0x4b9de0, 0xc4e6f7, 0xa6cf8e], ramp: true },
   soft: { tone: T.ACESFilmicToneMapping, exp: 1.08, hemi: [0xc3dbff, 0x55663a, 1.1], sun: [0xffd09a, 3.6], rim: 1.5, fog: 0xe3d8c2, sky: [0x5d93d3, 0xf5dcbc, 0xbdb48c], ramp: false },
 } as const;
 let look: Look = 'toon';
