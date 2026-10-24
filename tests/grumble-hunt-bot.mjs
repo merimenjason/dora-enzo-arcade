@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { HuntGame, BEAST_IDS, ORDERS, DT } from '../.checks/grumble-hunt-game.js';
-import { STORY, nextNodes, SLOTS, armourCost } from '../.checks/grumble-hunt-content.js';
+import { HuntGame, BEAST_IDS, BEASTS, ORDERS, DT } from '../.checks/grumble-hunt-game.js';
+import { STORY, POST_GAME_WEAPONS, nextNodes, SLOTS, armourCost } from '../.checks/grumble-hunt-content.js';
 import { huntPolicy } from './grumble-hunt-policy.mjs';
 const times = [], totals = Object.fromEntries(BEAST_IDS.map((id) => [id, 0])), byOrder = Object.fromEntries(ORDERS.map((o) => [o, 0]));
 let rides = 0, plops = 0, grumpy = 0, crafted = 0, upgrades = 0, armour = 0;
@@ -34,6 +34,7 @@ assert.equal(grumpy, times.length, 'every calmed beast went Extra Grumpy on the 
 console.log(`By beast: ${JSON.stringify(totals)}. By buddy order: ${JSON.stringify(byOrder)}. Extra Grumpy: ${grumpy}. Fluffberries crafted: ${crafted}. Tree upgrades: ${upgrades}; armour pieces: ${armour}; maximum attempts per hunt: 1 (limit 6). Median hunt ${times[Math.floor(times.length / 2)].toFixed(1)}s; slowest ${times.at(-1).toFixed(1)}s.`);
 
 const storyTimes = []; let maxAttempts = 0, storyUpgrades = 0, storyArmour = 0;
+const post = Object.fromEntries(POST_GAME_WEAPONS.map((type) => [type, { calmed: 0, rides: 0, times: [] }]));
 for (const hero of ['dora', 'enzo']) for (let seed = 1; seed <= seeds; seed++) {
   const g = new HuntGame(seed); g.chooseHero(hero);
   while (g.order !== ORDERS[seed % ORDERS.length]) g.commandBuddy(1);
@@ -56,6 +57,19 @@ for (const hero of ['dora', 'enzo']) for (let seed = 1; seed <= seeds; seed++) {
     assert.equal(g.chapter, chapter.id + 1);
   }
   assert(g.profile.extraGrumpyUnlocked);
+  // After the story: each post-game tool, carried by both friends, calms every beast in its Extra Grumpy form.
+  // The goals are tested in tests/grumble-hunt.mjs; here they are simply met.
+  g.profile.bountiesClaimed = 5; g.profile.totalPlops = 10; for (const id of BEAST_IDS) { g.profile.variantNaps[id] = 1; g.profile.beastBook[id].partsBroken = [BEASTS[id].part]; }
+  for (const type of POST_GAME_WEAPONS) {
+    g.returnVillage(); assert(g.equip(type, 'dora')); assert(g.equip(type, 'enzo'));
+    for (const id of BEAST_IDS) {
+      g.returnVillage(); assert(g.startHunt(id, true)); let steps = 0;
+      while (g.mode === 'hunt' && steps++ < 600 / DT) { g.step(DT, huntPolicy(g)); for (const e of g.events) if (e.kind === 'hop-on') post[type].rides++; g.events.length = 0; }
+      assert.equal(g.mode, 'nap', `${hero} seed ${seed}: ${type} vs Extra Grumpy ${id} ended ${g.mode}, Grump=${Math.round(g.beast.grump)}`);
+      post[type].times.push(steps * DT); post[type].calmed++;
+    }
+  }
 }
 storyTimes.sort((a, b) => a - b);
 console.log(`Story bot: ${seeds * 2} campaigns, ${storyTimes.length}/${seeds * 2 * STORY.length} chapters cleared; maximum attempts ${maxAttempts}/6; ${storyUpgrades} upgrades, ${storyArmour} armour pieces; median ${storyTimes[Math.floor(storyTimes.length / 2)].toFixed(1)}s, slowest ${storyTimes.at(-1).toFixed(1)}s.`);
+for (const [type, r] of Object.entries(post)) { r.times.sort((a, b) => a - b); console.log(`Post-game ${type}: ${r.calmed}/${seeds * 2 * BEAST_IDS.length} Extra Grumpy beasts calmed; ${r.rides} Hop-ons; median ${r.times[Math.floor(r.times.length / 2)].toFixed(1)}s, slowest ${r.times.at(-1).toFixed(1)}s.`); }

@@ -149,6 +149,24 @@ Touch has a joystick and Sprint, Roll, Lock, Bonk/Shoot and Hold · big buttons.
 
 The field guide is always available, panels trap focus, buttons have visible focus rings, and reduced motion removes shake, trails, wind and extra dust. Sound begins only after a gesture, has its own persisted mute choice, and uses short quiet synthesised cues. Main arcade navigation remains available.
 
+## Post-game weapons
+
+Four more Grumble Hunt originals open after the story ends (chapter 5 cleared), each through its own goal. Until then the rack and Forge show a locked card with the goal and progress, for example "Complete 5 bounties · 2/5".
+
+| Weapon | Speed | Tier 1 Bonk / Dizzy | Unlock |
+| --- | --- | --- | --- |
+| **Tickle Feather** | fast | 3 / 6 | Claim **5** of Wren's bounties (counted across days) |
+| **Dandelion Puffer** | medium | 4 / 7 | Calm each of the **five** Extra Grumpy variants once |
+| **Pogo Spring** | medium | 8 / 5 | **10** Hop-on plops in total |
+| **Leaf Umbrella** | medium | 6 / 5 | The Beast Book shows every part broken on all **five** beasts |
+
+- **Tickle Feather.** Each leader hit fills the **Giggle** meter by 12 (15 on a beast that's already dizzy). At 100 the beast giggle-dizzies for **3 s** and the meter empties. A K tap is a double-tickle flurry: one swing that lands twice. Branch A perks fill Giggle 25% faster.
+- **Dandelion Puffer.** J blows a cone **3.5 units** long and **60°** wide. Fluff clings to the beast and adds **2 Dizzy per second for 3 s**; another puff refreshes the time but doesn't stack it. Hold K past 0.35 s and release for a **Big Breath**: a 120°, 4.5-unit gust that adds **+15 Dizzy** and pushes the beast back **2.5 units**, stopping short of trees, rocks and the arena edge, then a **6 s** recharge. While it recharges the seed clock visibly thins out. Branch A widens the cone 25%; branch B makes fluff cling 1 s longer.
+- **Pogo Spring.** J is a hop-bonk that steps 0.6 units forward. Hold K past 0.35 s and release for a **High Bounce**: about **0.8 s** in the air, landing with a bonk from above (×1.6) that also reaches a flying Skreel. Landing within **2.5 units** of a dizzy beast starts a Hop-on directly, inside the usual limit of two rides a hunt. (Beast bodies keep paws 1.85 units away, so 2.5 is "right beside it".) Branch A bounces higher and pulls loose materials in.
+- **Leaf Umbrella.** Holding K opens the umbrella: it guards **from every side** at **half** walking speed, using the normal guard rules and stamina. While it's open, a J tap is a **Raindrop Spin** that hits everything within **3 units**. After a roll the umbrella floats you down; holding K makes the float last twice as long. Branch A's spin gives the buddy 5 Fluff; branch B's first 0.5 s of guard costs no stamina.
+
+Each has the usual tree: tiers 1–2, branch A (Frostmane materials) or B (Hornclack) at tier 3, tier 4, and the Glimmer tier 5 with Warm Glow. Tier 2 costs 3 frost fur, 2 shell plates and 2 bristle tufts; the higher tiers are priced like every other tree. Their single-hit numbers sit inside the existing weapons' range and scale by `TIER_MULT`. The buddy can carry any of them and uses J only. Buddy hits never touch the leader's Giggle meter.
+
 ## Saving and architecture
 
 - `lib/grumble-hunt-content.ts`: materials, drop tables, gathering, Pantry recipes, snacks and the story chapters, as data.
@@ -158,9 +176,9 @@ The field guide is always available, panels trap focus, buttons have visible foc
 - `app/hunt/page.tsx`: input, hydration, loop, HUD, panels and storage.
 - `app/hunt/sound.ts`: gesture-unlocked synthesised cues and audio cleanup.
 
-Permanent progress is saved under `grumble-hunt-v4`: selected hero, all weapon tiers and branches, each friend's equipped weapon, owned and worn armour, pouch, ring, packed snack, nap counts and hunt count. It adds `story: { chapter, scenesSeen }`, `beastBook` entries (`met`, `napped`, `partsBroken`), `bounties: { day, done, ready }` and `extraGrumpyUnlocked`. The extra `ready` list keeps unclaimed completed daily tasks across reloads.
+Permanent progress is saved under `grumble-hunt-v5`: selected hero, all weapon tiers and branches, each friend's equipped weapon, owned and worn armour, pouch, ring, packed snack, nap counts and hunt count. It adds `story: { chapter, scenesSeen }`, `beastBook` entries (`met`, `napped`, `partsBroken`), `bounties: { day, done, ready }` and `extraGrumpyUnlocked`. The extra `ready` list keeps unclaimed completed daily tasks across reloads. v5 adds the post-game counters `bountiesClaimed`, `variantNaps` (per beast) and `totalPlops`. A v4 save starts `bountiesClaimed` at the tasks claimed that day and the others at 0; broken parts already in the Beast Book carry over.
 
-The page reads v4, then v3, v2 and v1. Old nap counts clear matching chapters, with chapter 0 cleared if any beast napped; the first remaining chapter is current. Matching old scenes count as seen, including chapters beyond a gap. Equipment and pouch carry over unchanged from v3; v2 and v1 retain the earlier level and material migrations. The loader validates versions, numeric ranges, known scene/part/task identifiers, arrays and booleans. Reloading returns safely to camp. The final bonk saves progress before the nap animation ends. Sound still uses `grumble-hunt-sound-v1`; `window.__hunt()` exposes `{ game, refresh, metrics, input }` for checks.
+The page reads v5, then v4, v3, v2 and v1. Old nap counts clear matching chapters, with chapter 0 cleared if any beast napped; the first remaining chapter is current. Matching old scenes count as seen, including chapters beyond a gap. Equipment and pouch carry over unchanged from v3; v2 and v1 retain the earlier level and material migrations. The loader validates versions, numeric ranges, known scene/part/task identifiers, arrays and booleans. Reloading returns safely to camp. The final bonk saves progress before the nap animation ends. Sound still uses `grumble-hunt-sound-v1`; `window.__hunt()` exposes `{ game, refresh, metrics, input }` for checks.
 
 ## Drawing and resource budget
 
@@ -249,3 +267,13 @@ The existing bot calmed **120/120 beasts in 24 campaigns**, with **96 rides and 
 Browser checks were added for intro/Enter/Skip, the paddock calf and outro, four visible village figures, each wilderness area with screenshot destinations, a fixed-date three-card bounty board, variant colour, v3 migration and scene replay. Existing browser fixtures explicitly set story progress through `window.__hunt()`. Browser JavaScript is syntax-checked. **Chromium was not run; new screenshots and visual/frame-budget checks remain unverified.**
 
 Validation: `npm run typecheck`, `npm run test:grumble-hunt`, `npm run bot:grumble-hunt` and the full `npm test` suite passed. Browser-test syntax and `git diff --check` passed. The local Graft graph was refreshed; no commit or push was made.
+
+### Post-game weapons run results · 25-10-2026
+
+Step 6 adds the Tickle Feather, Dandelion Puffer, Pogo Spring and Leaf Umbrella, their trees, unlock goals and the v5 save. The engine suite has **89 checks**, adding each unlock and its progress count, Giggle filling and giggle-dizzy, fluff over time without stacking, Big Breath's push stopping at a rock and its recharge, High Bounce reaching a flying Skreel and landing into a Hop-on within the ride limit, the umbrella guarding from four sides at half speed with its spin and slow float, v4 → v5 migration and seeded replay of all four. The tree-tier check covers them for the leader and the buddy.
+
+The bot now adds a post-game run: after each story campaign both friends carry each new tool and calm all five Extra Grumpy beasts. All **120/120** hunts per tool ended in a nap (tier 1 tools, no upgrades): Feather median **61.6 s**, slowest 115.6 s; Puffer median **161.5 s**, slowest 325.4 s; Pogo median **101.0 s**, slowest 290.6 s, with **240 Hop-ons** from High Bounces; Umbrella median **104.5 s**, slowest 282.9 s. The story bots are unchanged (120/120 beasts, 144/144 chapters).
+
+The browser suite checks the four locked cards' progress text, unlocking, the Forge preview of each tool, both icon sheets loading, and a short hunt with each tool under 400 draw calls, with screenshots under `.checks/hunt/postgame-*`.
+
+The tier icons were rendered from the 3D models (toon shading, a painted outline and a Glimmer glow) into the free cells of `icons-weapons-5.webp` and the new `icons-weapons-6.webp`. Prompts for hand-painted replacements are in `docs/grumble-hunt-prompts/9-new-weapon-icons.md`.

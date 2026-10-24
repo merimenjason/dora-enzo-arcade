@@ -14,7 +14,8 @@ Paths are relative to the repository root. Sizes are final encoded bytes.
 | --- | --- | ---: | ---: | --- |
 | `public/art/hunt/icons-weapons-3.webp` | 1024 × 1024 | 241,662 | 16 | 1254 × 1254 |
 | `public/art/hunt/icons-weapons-4.webp` | 1024 × 1024 | 852,606 | 16 | 1254 × 1254 |
-| `public/art/hunt/icons-weapons-5.webp` | 1024 × 1024 | 124,248 | 8 | 1254 × 1254 |
+| `public/art/hunt/icons-weapons-5.webp` | 1024 × 1024 | 489,358 | 16 | 1254 × 1254 (cells 0–7); rendered (cells 8–15) |
+| `public/art/hunt/icons-weapons-6.webp` | 1024 × 1024 | 72,486 | 8 | rendered |
 
 ## Checks and final refinements
 
@@ -122,14 +123,14 @@ File: `public/art/hunt/icons-weapons-5.webp`.
 | 2 | 2 | Glimmer Firefly Staff |
 | 2 | 3 | Glimmer Acorn Slingshot |
 | 2 | 4 | Glimmer Pumpkin Popper |
-| 3 | 1 | Empty (transparent) |
-| 3 | 2 | Empty (transparent) |
-| 3 | 3 | Empty (transparent) |
-| 3 | 4 | Empty (transparent) |
-| 4 | 1 | Empty (transparent) |
-| 4 | 2 | Empty (transparent) |
-| 4 | 3 | Empty (transparent) |
-| 4 | 4 | Empty (transparent) |
+| 3 | 1 | Tickle Feather |
+| 3 | 2 | Ribbon Feather |
+| 3 | 3 | Frost Giggles / Snowcurl Feather / Shell Tickle / Clackcurl Feather |
+| 3 | 4 | Glimmer Feather |
+| 4 | 1 | Dandelion Puffer |
+| 4 | 2 | Twine Puffer |
+| 4 | 3 | Frost Fluff / Snowclock Puffer / Shell Breeze / Clackclock Puffer |
+| 4 | 4 | Glimmer Puffer |
 
 Initial generation:
 
@@ -274,3 +275,22 @@ Exact successful edit prompt:
 ```text
 Edit this Glimmer Katana icon on a genuinely transparent background. Keep its exact green curved bamboo shape, round blunt gold-capped end, nodes, round leaf guard, wrapped grip, gold bands, diagonal pose, thick dark-brown outline and painted storybook style. Enlarge the amber stone in its guard, make it the brightest part with a soft warm amber halo, add faint warm inner glow to nearby bamboo, and 3–4 small floating golden sparkle flecks. Preserve clear transparent padding. No metal blade, points, text, watermark or cast shadow.
 ```
+
+## Post-game weapon icons · 25-10-2026
+
+The sixteen tier icons of the four post-game tools fill the eight free cells of `icons-weapons-5.webp` (rows 3–4 above) and the top half of the new `icons-weapons-6.webp`. Image generation wasn't available, so they were **rendered from the in-game 3D toy models**: toon shading with the game's light ramp, a three-quarter view lit from the top left, a painted dark-brown outline added around each silhouette, and 25% more colour. Tier 2 adds a teal ribbon at the grip, the tier 3–4 cell adds frost and shell trim, and Glimmer adds a warm amber stone and a soft gold glow. The eight original icons in sheet 5 are pixel-identical (sheet 5 is now saved as lossless WebP, so it decodes exactly). The renderer is `.checks/icon-render.ts` with `.checks/icon-shoot.mjs` (git-ignored lab scripts, run against the dev server). Prompts for hand-painted replacements, in the same cells, are in `docs/grumble-hunt-prompts/9-new-weapon-icons.md`.
+
+## icons-weapons-6.webp
+
+File: `public/art/hunt/icons-weapons-6.webp`. Rows 3–4 are empty (transparent).
+
+| Row | Column | Weapon |
+| ---: | ---: | --- |
+| 1 | 1 | Pogo Spring |
+| 1 | 2 | Banded Pogo |
+| 1 | 3 | Frost Hopper / Snowcap Pogo / Shell Bouncer / Clackcap Pogo |
+| 1 | 4 | Glimmer Pogo |
+| 2 | 1 | Leaf Umbrella |
+| 2 | 2 | Twine Umbrella |
+| 2 | 3 | Frost Parasol / Snowleaf Umbrella / Shell Parasol / Clackleaf Umbrella |
+| 2 | 4 | Glimmer Umbrella |

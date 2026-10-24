@@ -9,7 +9,7 @@ const failures = [], errors = [];
 mkdirSync('.checks/hunt', { recursive: true });
 const hunt = (p, fn, arg) => p.evaluate(`(() => { const w = window.__hunt(), value = (${fn})(w, ${JSON.stringify(arg ?? null)}); w.refresh(); return value; })()`);
 async function fresh(p, hero = 'dora', story = false) {
-  await p.goto(`${base}/hunt`); await p.evaluate(() => { localStorage.removeItem('grumble-hunt-v1'); localStorage.removeItem('grumble-hunt-v2'); localStorage.removeItem('grumble-hunt-v3'); localStorage.removeItem('grumble-hunt-v4'); localStorage.removeItem('grumble-hunt-sound-v1'); }); await p.reload();
+  await p.goto(`${base}/hunt`); await p.evaluate(() => { localStorage.removeItem('grumble-hunt-v1'); localStorage.removeItem('grumble-hunt-v2'); localStorage.removeItem('grumble-hunt-v3'); localStorage.removeItem('grumble-hunt-v4'); localStorage.removeItem('grumble-hunt-v5'); localStorage.removeItem('grumble-hunt-sound-v1'); }); await p.reload();
   await p.locator('main[data-ready="true"][data-rendered="true"]').waitFor();
   await p.getByTestId(`choose-${hero}`).click(); await p.getByTestId('rack-ready').click();
   await p.getByTestId('story-scene').waitFor(); if (story) return;
@@ -61,13 +61,13 @@ try {
     await p.keyboard.press('Escape'); await p.getByTestId('open-board').click(); await p.getByTestId('extra-grumpy-toggle').check(); await p.getByTestId('hunt-puffwart').click();
     await p.waitForFunction(() => window.__hunt().metrics().variantColor === '#639dc8'); assert.equal(await hunt(p, (w) => w.game.beast.maxGrump), 440 * 1.6); await snapshot(p, 'story-blue-puffwart');
   });
-  await check('v3 migrates to v4 with old scenes seen and equipped gear intact', async (p) => {
+  await check('v3 migrates to v5 with old scenes seen and equipped gear intact', async (p) => {
     await fresh(p);
-    await p.evaluate(() => { const s = window.__hunt().game.save(); s.v = 3; delete s.profile.story; delete s.profile.beastBook; delete s.profile.bounties; delete s.profile.extraGrumpyUnlocked; for (const id of ['bristleback', 'puffwart', 'skreel', 'hornclack', 'frostmane']) s.profile.naps[id] = 1; s.profile.weapons.hammer = { tier: 3, branch: 'A' }; localStorage.removeItem('grumble-hunt-v4'); localStorage.setItem('grumble-hunt-v3', JSON.stringify(s)); });
+    await p.evaluate(() => { const s = window.__hunt().game.save(); s.v = 3; delete s.profile.story; delete s.profile.beastBook; delete s.profile.bounties; delete s.profile.extraGrumpyUnlocked; for (const id of ['bristleback', 'puffwart', 'skreel', 'hornclack', 'frostmane']) s.profile.naps[id] = 1; s.profile.weapons.hammer = { tier: 3, branch: 'A' }; localStorage.removeItem('grumble-hunt-v4'); localStorage.removeItem('grumble-hunt-v5'); localStorage.setItem('grumble-hunt-v3', JSON.stringify(s)); });
     await p.reload(); await p.locator('main[data-ready="true"][data-rendered="true"]').waitFor();
     assert.equal(await p.getByTestId('story-scene').count(), 0);
     assert.equal(await hunt(p, (w) => w.game.chapter), 6); assert.equal(await hunt(p, (w) => w.game.story.scenesSeen.length), 12); assert.equal(await hunt(p, (w) => w.game.node('hammer').id), 'hammer-3A');
-    await p.waitForFunction(() => JSON.parse(localStorage.getItem('grumble-hunt-v4') || 'null')?.v === 4);
+    await p.waitForFunction(() => JSON.parse(localStorage.getItem('grumble-hunt-v5') || 'null')?.v === 5);
     await p.getByTestId('open-book').click(); await p.getByRole('button', { name: /A Grumpy Morning · Before/ }).click(); await p.getByTestId('story-scene').waitFor(); await p.getByTestId('story-skip').click(); await p.getByTestId('panel-book').waitFor();
   });
   await check('Hop-on rider, tap meter, grip prompt and roll off', async (p) => {
@@ -185,7 +185,7 @@ try {
       const result = await p.evaluate(`(() => { const g = window.__hunt().game, policy = ${huntPolicy.toString()}; g.paused = false; let n = 0; while (g.mode === 'hunt' && n++ < 36000) { g.step(1/60, policy(g)); g.events.length = 0; } if(g.mode === 'nap') { for(let i=0;i<65;i++)g.step(1/60); g.paused=true; } window.__hunt().refresh(); return { mode:g.mode, grump:g.beast.grump, fluff:g.hero.fluff, naps:g.profile.naps, materials:g.materialTotal }; })()`);
       assert.equal(result.mode, 'nap', `${id}: ${JSON.stringify(result)}`); assert.equal(result.grump, 0); assert(result.naps[id] > 0);
       await p.locator('main[data-mode="nap"]').waitFor(); await snapshot(p, `${id}-nap`);
-      const stored = await p.evaluate(() => JSON.parse(localStorage.getItem('grumble-hunt-v4'))); assert(stored.profile.naps[id] > 0, 'last bonk is saved before the nap finishes');
+      const stored = await p.evaluate(() => JSON.parse(localStorage.getItem('grumble-hunt-v5'))); assert(stored.profile.naps[id] > 0, 'last bonk is saved before the nap finishes');
       await hunt(p, (w) => { const g = w.game; g.paused = false; for (let i = 0; i < 180; i++) g.step(1 / 60); });
       await p.getByTestId('result').waitFor(); assert.equal(await p.locator('.hunt-unlock').count(), await hunt(p, (w) => w.game.clearedChapter >= 0 && w.game.clearedChapter < 5 ? 1 : 0), 'the next-chapter note'); assert.equal(await p.getByTestId('reward').count(), 1, 'the nap reward card'); if (id === 'frostmane') { assert.match(await p.getByTestId('result').innerText(), /The End · free hunt is open/); await snapshot(p, 'victory'); }
       await p.getByTestId('return-village').click();
@@ -314,10 +314,10 @@ try {
   });
   await check('pantry: a v1 save migrates, crafting, ring and snack update the pouch, F gathers, and sap, smoke and drop icons render', async (p) => {
     await p.goto(`${base}/hunt`);
-    await p.evaluate(() => { localStorage.removeItem('grumble-hunt-v2'); localStorage.removeItem('grumble-hunt-v3'); localStorage.removeItem('grumble-hunt-v4'); localStorage.setItem('grumble-hunt-v1', JSON.stringify({ v: 1, seed: 9, profile: { hero: 'dora', levels: { dora: 2, enzo: 1 }, materials: { bristleback: 5, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0 }, naps: { bristleback: 1 }, won: false, hunts: 3 } })); });
+    await p.evaluate(() => { localStorage.removeItem('grumble-hunt-v2'); localStorage.removeItem('grumble-hunt-v3'); localStorage.removeItem('grumble-hunt-v4'); localStorage.removeItem('grumble-hunt-v5'); localStorage.setItem('grumble-hunt-v1', JSON.stringify({ v: 1, seed: 9, profile: { hero: 'dora', levels: { dora: 2, enzo: 1 }, materials: { bristleback: 5, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0 }, naps: { bristleback: 1 }, won: false, hunts: 3 } })); });
     await p.reload(); await p.locator('main[data-ready="true"][data-rendered="true"]').waitFor(); await p.locator('main[data-mode="village"]').waitFor();
     assert.equal(await hunt(p, (w) => w.game.profile.pouch['bristle-tuft']), 5); assert.equal(await hunt(p, (w) => w.game.profile.weapons.hammer.tier), 2);
-    await p.waitForFunction(() => JSON.parse(localStorage.getItem('grumble-hunt-v4') || 'null')?.v === 4);
+    await p.waitForFunction(() => JSON.parse(localStorage.getItem('grumble-hunt-v5') || 'null')?.v === 5);
     await hunt(p, (w) => { w.game.story.chapter = 3; Object.assign(w.game.profile.pouch, { berry: 5, 'marsh-reed': 3 }); });
     await p.getByTestId('open-pantry').click(); await p.getByTestId('panel-pantry').waitFor();
     await p.getByTestId('craft-big-fluffberry').click(); assert.equal(await hunt(p, (w) => w.game.profile.pouch['big-fluffberry']), 1); assert.equal(await p.getByTestId('pouch-berry').innerText(), '3');
@@ -337,6 +337,41 @@ try {
     await snapshot(p, 'sap-smoke-drop');
     await hunt(p, (w) => { const g = w.game, b = g.beast; g.hero.hidden = 0; g.trap = { x: b.x, z: b.z }; });
     await p.waitForFunction(() => window.__hunt().game.beast.state === 'stuck'); await p.waitForTimeout(150); await snapshot(p, 'stuck');
+  });
+  await check('post-game weapons: locked cards show their goal, then unlock, preview, show icons and hunt', async (p) => {
+    const tools = ['feather', 'puffer', 'pogo', 'umbrella'];
+    await fresh(p);
+    await hunt(p, (w) => { const g = w.game; g.profile.bountiesClaimed = 2; g.profile.totalPlops = 7; g.profile.variantNaps.skreel = 1; });
+    await p.getByTestId('open-forge').click(); await p.getByTestId('weapon-rack').waitFor();
+    for (const [t, text] of [['feather', 'Complete 5 bounties · 2/5'], ['puffer', 'Extra Grumpy variants · 1/5'], ['pogo', 'Hop-on plops · 7/10'], ['umbrella', 'all five beasts · 0/5']]) {
+      const card = p.getByTestId(`rack-${t}`); assert(await card.isDisabled(), t); assert((await card.innerText()).includes(text), `${t}: ${await card.innerText()}`);
+    }
+    await p.keyboard.press('Escape');
+    await hunt(p, (w) => { const g = w.game, parts = { bristleback: 'tusks', puffwart: 'throat sac', skreel: 'crest', hornclack: 'horn cap', frostmane: 'mane tufts' }; g.profile.bountiesClaimed = 5; g.profile.totalPlops = 10; for (const id of Object.keys(parts)) { g.profile.variantNaps[id] = 1; g.profile.beastBook[id].partsBroken = [parts[id]]; } });
+    await p.getByTestId('open-forge').click();
+    for (const t of tools) {
+      await p.getByTestId(`rack-${t}`).click(); assert.equal(await p.getByTestId(`rack-${t}`).isDisabled(), false);
+      await p.waitForFunction((t) => document.querySelector('[data-testid="weapon-preview"]')?.dataset.weapon === t, t);
+      await p.getByTestId(`forge-${t}-5B`).waitFor(); await snapshot(p, `postgame-forge-${t}`);
+    }
+    const sheets = await p.evaluate(async () => {
+      const urls = [...new Set([...document.querySelectorAll('.hunt-art')].map((e) => getComputedStyle(e).backgroundImage.slice(5, -2)))].filter((u) => /icons-weapons-[56]/.test(u));
+      return Promise.all(urls.map((url) => new Promise((done) => { const img = new Image(); img.onload = () => done([url.split('/').pop(), img.naturalWidth]); img.onerror = () => done([url, 0]); img.src = url; })));
+    });
+    assert.deepEqual(Object.fromEntries(sheets), { 'icons-weapons-5.webp': 1024, 'icons-weapons-6.webp': 1024 });
+    await p.keyboard.press('Escape');
+    for (const t of tools) {
+      await hunt(p, (w, t) => { w.game.equip(t); }, t); await start(p);
+      await hunt(p, (w) => { const g = w.game; g.hero.invincible = 99; g.beast.x = g.hero.x; g.beast.z = g.hero.z - 3; g.beast.state = 'rest'; g.beast.duration = 99; });
+      await p.getByTestId('postgame-meter').waitFor();
+      await p.keyboard.down('k'); await p.waitForTimeout(600);
+      if (t === 'umbrella') { assert.equal(await hunt(p, (w) => w.game.hold().kind), 'guard'); assert((await p.getByTestId('charge-status').innerText()).includes('tap J to spin')); }
+      await snapshot(p, `postgame-hunt-${t}`); await p.keyboard.up('k'); await p.waitForTimeout(400);
+      await p.keyboard.press('j'); await p.waitForTimeout(500);
+      assert(await hunt(p, (w) => w.game.beast.grump < w.game.beast.maxGrump), `${t} bonks`);
+      assert(await hunt(p, (w) => w.metrics().calls) < 400);
+      await p.getByTestId('pause').click(); await p.getByRole('button', { name: 'Return to camp', exact: true }).click(); await p.locator('main[data-mode="village"]').waitFor();
+    }
   });
   await check('camera orbit avoids terrain, texture count stays bounded, navigation tears down', async (p) => {
     await fresh(p); await start(p); const first = await hunt(p, (w) => w.metrics().textures), c = p.getByTestId('hunt-canvas');

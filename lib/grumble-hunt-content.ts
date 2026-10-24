@@ -136,7 +136,7 @@ export const SNACKS: Record<SnackId, { name: string; cost: Cost; effect: SnackEf
 export type WeaponType =
   | 'greatsword' | 'katana' | 'sword' | 'claws' | 'hammer' | 'horn' | 'lance'
   | 'gunlance' | 'switchaxe' | 'chargeblade' | 'glaive' | 'lightbow' | 'heavybow' | 'bow'
-  | 'wand' | 'yoyo';
+  | 'wand' | 'yoyo' | 'feather' | 'puffer' | 'pogo' | 'umbrella';
 /**
  * The basic weapons you choose from at the start, in the weapon-select order: one for each of Monster Hunter
  * Wilds' fourteen types (see MH_EQUIVALENT). The Bubble Wand and Pinecone Yo-yo are Grumble Hunt's own,
@@ -169,7 +169,12 @@ export const WEAPON_TYPES: Record<WeaponType, { name: string; bonk: number; dizz
   heavybow: { name: 'Pumpkin Popper', bonk: 11, dizzy: 5, speed: 'slow', signature: 'Plant your paws and lob big puffballs (×2 Bonk); hold K for a Popcorn Flurry of tiny pops while you stand still; guard with the pumpkin shell.', chapter: 0 },
   wand: { name: 'Bubble Wand', bonk: 5, dizzy: 4, speed: 'medium', signature: 'Bubble Burst: a slow bubble that pops for an area hit, lifts loose materials and heals your buddy 15 Fluff.', chapter: 3 },
   yoyo: { name: 'Pinecone Yo-yo', bonk: 7, dizzy: 5, speed: 'medium', signature: 'Loop-the-Loop: spin all around you; on a dizzy beast it pulls you up for a Hop-on.', chapter: 4 },
+  feather: { name: 'Tickle Feather', bonk: 3, dizzy: 6, speed: 'fast', signature: 'Giggle: hits fill a meter; full makes a 3 s giggle-dizzy. Tap K for a double-tickle flurry.', chapter: 6 },
+  puffer: { name: 'Dandelion Puffer', bonk: 4, dizzy: 7, speed: 'medium', signature: 'J puffs a 3.5-unit, 60° cone; fluff adds 2 Dizzy/s for 3 s. Hold K then release for Big Breath: +15 Dizzy, 2.5-unit push, 6 s recharge.', chapter: 6 },
+  pogo: { name: 'Pogo Spring', bonk: 8, dizzy: 5, speed: 'medium', signature: 'J hop-bonks forward. Hold K then release for a 0.8 s High Bounce, reaching flying Skreel or a Hop-on beside a dizzy beast.', chapter: 6 },
+  umbrella: { name: 'Leaf Umbrella', bonk: 6, dizzy: 5, speed: 'medium', signature: 'Hold K to guard all around at half walking speed. Tap J while guarding for a radius-3 Raindrop Spin. Hold K in the air to float down slowly.', chapter: 6 },
 };
+export const POST_GAME_WEAPONS: readonly WeaponType[] = ['feather', 'puffer', 'pogo', 'umbrella'];
 export type Tier = 1 | 2 | 3 | 4 | 5;
 /** Tier 5 is the Glimmer capstone. */
 export const TIER_MULT: Record<Tier, number> = { 1: 1, 2: 1.3, 3: 1.65, 4: 2.1, 5: 2.4 };
@@ -262,6 +267,26 @@ const TREES: Record<WeaponType, { t2: string; A: BranchSpec; B: BranchSpec; glim
     A: ['bristleback', 'Tusk Spinner', perk('wide-loop', 0.2, 'Loop-the-Loop is 20% wider.'), 'Boarhog Spinner', perk('long-hop', 2, 'A Hop-on lasts 2 s longer.')],
     B: ['hornclack', 'Plate Spinner', perk('shell-dizzy', 25, '+25 Dizzy on shell parts.'), 'Shellstorm Spinner', perk('loop-gather', 1, 'Loop-the-Loop pulls loose materials in.')],
   },
+  feather: {
+    t2: 'Ribbon Feather', glimmer: 'Glimmer Feather',
+    A: ['frostmane', 'Frost Giggles', perk('giggle-fill', 0.25, 'Giggle fills 25% faster.'), 'Snowcurl Feather', perk('giggle-fill', 0.25, 'Giggle fills 25% faster.')],
+    B: ['hornclack', 'Shell Tickle', perk('move-speed', 0.05, 'Walk 5% faster.'), 'Clackcurl Feather', perk('move-speed', 0.05, 'Walk 5% faster.')],
+  },
+  puffer: {
+    t2: 'Twine Puffer', glimmer: 'Glimmer Puffer',
+    A: ['frostmane', 'Frost Fluff', perk('wide-puff', 0.25, 'The fluff cone is 25% wider.'), 'Snowclock Puffer', perk('wide-puff', 0.25, 'The fluff cone is 25% wider.')],
+    B: ['hornclack', 'Shell Breeze', perk('fluff-time', 1, 'Fluff clings 1 s longer.'), 'Clackclock Puffer', perk('fluff-time', 1, 'Fluff clings 1 s longer.')],
+  },
+  pogo: {
+    t2: 'Banded Pogo', glimmer: 'Glimmer Pogo',
+    A: ['frostmane', 'Frost Hopper', perk('high-gather', 1, 'Bounce higher and pull loose materials in.'), 'Snowcap Pogo', perk('high-gather', 1, 'Bounce higher and pull loose materials in.')],
+    B: ['hornclack', 'Shell Bouncer', perk('move-speed', 0.05, 'Walk 5% faster.'), 'Clackcap Pogo', perk('move-speed', 0.05, 'Walk 5% faster.')],
+  },
+  umbrella: {
+    t2: 'Twine Umbrella', glimmer: 'Glimmer Umbrella',
+    A: ['frostmane', 'Frost Parasol', perk('spin-heal', 5, 'Raindrop Spin restores 5 buddy Fluff.'), 'Snowleaf Umbrella', perk('spin-heal', 5, 'Raindrop Spin restores 5 buddy Fluff.')],
+    B: ['hornclack', 'Shell Parasol', perk('free-guard', 0.5, 'The first 0.5 s of guard costs no stamina.'), 'Clackleaf Umbrella', perk('free-guard', 0.5, 'The first 0.5 s of guard costs no stamina.')],
+  },
 };
 /** The commons, part and rare material of each beast, used to price tree nodes and armour. */
 export const BEAST_MATS: Record<BeastId, { common: MaterialId; part: MaterialId; rare: MaterialId }> = {
@@ -274,7 +299,7 @@ export const BEAST_MATS: Record<BeastId, { common: MaterialId; part: MaterialId;
 /** Merges costs that name the same material twice (the Skreel and Hornclack reuse materials across slots). */
 const sum = (...parts: Cost[]): Cost => { const c: Cost = {}; for (const p of parts) for (const [k, v] of Object.entries(p)) c[k as MaterialId] = (c[k as MaterialId] ?? 0) + (v ?? 0); return c; };
 /** Tier 2 is paid for with the starter beasts, so it's in reach as soon as the weapon type is. */
-const tier2Cost = (type: WeaponType): Cost => (WEAPON_TYPES[type].chapter <= 1 ? { 'bristle-tuft': 3, berry: 2 } : { 'wart-pebble': 3, berry: 2 });
+const tier2Cost = (type: WeaponType): Cost => (POST_GAME_WEAPONS.includes(type) ? { 'frost-fur': 3, 'shell-plate': 2, 'bristle-tuft': 2 } : WEAPON_TYPES[type].chapter <= 1 ? { 'bristle-tuft': 3, berry: 2 } : { 'wart-pebble': 3, berry: 2 });
 
 function buildTree(): WeaponNode[] {
   const nodes: WeaponNode[] = [];
@@ -285,8 +310,8 @@ function buildTree(): WeaponNode[] {
     for (const b of ['A', 'B'] as const) {
       const [beast, n3, p3, n4, p4] = t[b], m = BEAST_MATS[beast];
       nodes.push({ id: `${type}-3${b}`, type, tier: 3, branch: b, name: n3, from: `${type}-2`, cost: sum({ [m.common]: 4 }, { [m.part]: 1 }), perks: [p3] });
-      nodes.push({ id: `${type}-4${b}`, type, tier: 4, branch: b, name: n4, from: `${type}-3${b}`, cost: sum({ [m.rare]: 3 }, { 'mane-lock': 1, 'glimmer-stone': 1 }), perks: [p3, p4] });
-      nodes.push({ id: `${type}-5${b}`, type, tier: 5, branch: b, name: t.glimmer, from: `${type}-4${b}`, cost: { 'frost-fur': 2, 'mane-lock': 2, 'glimmer-stone': 2 }, perks: [p3, p4, WARM_GLOW] });
+      nodes.push({ id: `${type}-4${b}`, type, tier: 4, branch: b, name: n4, from: `${type}-3${b}`, cost: sum({ [m.rare]: 3 }, { 'mane-lock': 1, 'glimmer-stone': 1 }), perks: p3.id === p4.id ? [p3] : [p3, p4] });
+      nodes.push({ id: `${type}-5${b}`, type, tier: 5, branch: b, name: t.glimmer, from: `${type}-4${b}`, cost: { 'frost-fur': 2, 'mane-lock': 2, 'glimmer-stone': 2 }, perks: p3.id === p4.id ? [p3, WARM_GLOW] : [p3, p4, WARM_GLOW] });
     }
   }
   return nodes;

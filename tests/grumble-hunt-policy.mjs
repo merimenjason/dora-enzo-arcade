@@ -6,6 +6,8 @@ export function huntPolicy(g) {
   if (g.ride.riding) { out.charge = true; out.bonk = Math.floor(g.time * 16) % 2 === 0; return out; }
   if (g.ride.used < 2 && ['dizzy', 'stuck'].includes(b.state)) {
     if (g.weapon() === 'yoyo' && Math.hypot(h.x - b.x, h.z - b.z) < 4) { out.charge = g.time % 0.4 < 0.12; return out; }
+    // A High Bounce that lands right beside a dizzy beast hops on.
+    if (g.weapon() === 'pogo' && b.state === 'dizzy') { const d = Math.hypot(h.x - b.x, h.z - b.z); if (d < 2.4) { out.charge = g.bounce <= 0 && g.time % 0.8 < 0.45; return out; } out.x = (b.x - h.x) / d; out.z = (b.z - h.z) / d; return out; }
     for (const rock of g.obstacles.filter((o) => o.kind === 'rock')) {
       const x = h.x - rock.x, z = h.z - rock.z; if (g.rockHop(x, z) && h.rollCd <= 0) { const n = Math.hypot(x, z); out.x = x / n; out.z = z / n; out.roll = true; return out; }
     }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {
-  MATERIALS, DROPS, ITEMS, BASIC_WEAPONS, MH_EQUIVALENT, FIRST_PICKS, SNACKS, WEAPON_TYPES, WEAPON_TREE, ARMOUR_SETS, SLOTS, STORY, BEAST_ORDER, BEAST_MATS,
+  MATERIALS, DROPS, ITEMS, BASIC_WEAPONS, POST_GAME_WEAPONS, MH_EQUIVALENT, FIRST_PICKS, SNACKS, WEAPON_TYPES, WEAPON_TREE, ARMOUR_SETS, SLOTS, STORY, BEAST_ORDER, BEAST_MATS,
   rollShed, rollCalm, rollGather, canAfford, pay, add, cap, weaponNode, nextNodes, weaponStats, armourCost, armourBonus, validate,
 } from '../.checks/grumble-hunt-content.js';
 
@@ -14,21 +14,23 @@ assert.deepEqual(validate(), []);
 assert.deepEqual(Object.values(MATERIALS).map((m) => m.icon).sort((a, b) => a - b), [...Array(16).keys()]);
 assert.equal(new Set(Object.values(ITEMS).map((i) => i.icon)).size, Object.keys(ITEMS).length);
 
-// sixteen weapon types: the fourteen basic ones you can pick at the start, one per Monster Hunter Wilds type,
-// and two of Grumble Hunt's own that the story unlocks. Each has tiers 1 and 2, then two branches of tiers 3, 4
-// and the Glimmer tier 5.
+// twenty weapon types: the fourteen basic ones you can pick at the start, one per Monster Hunter Wilds type,
+// two of Grumble Hunt's own that the story unlocks, and four more that post-game goals unlock. Each has tiers
+// 1 and 2, then two branches of tiers 3, 4 and the Glimmer tier 5.
 const TYPES = Object.keys(WEAPON_TYPES);
-assert.equal(TYPES.length, 16);
+assert.equal(TYPES.length, 20);
 assert.equal(BASIC_WEAPONS.length, 14);
 assert.deepEqual(TYPES.filter((w) => WEAPON_TYPES[w].chapter === 0).sort(), [...BASIC_WEAPONS].sort());
-assert.deepEqual(TYPES.filter((w) => !BASIC_WEAPONS.includes(w)).sort(), ['wand', 'yoyo']);
+assert.deepEqual(TYPES.filter((w) => !BASIC_WEAPONS.includes(w)).sort(), ['feather', 'pogo', 'puffer', 'umbrella', 'wand', 'yoyo']);
+assert.deepEqual([...POST_GAME_WEAPONS].sort(), ['feather', 'pogo', 'puffer', 'umbrella']);
+for (const w of POST_GAME_WEAPONS) assert.equal(WEAPON_TYPES[w].chapter, 6, w);
 assert.deepEqual(Object.keys(MH_EQUIVALENT).sort(), [...BASIC_WEAPONS].sort());
 assert.equal(new Set(Object.values(MH_EQUIVALENT)).size, 14);
 for (const w of FIRST_PICKS) assert.ok(BASIC_WEAPONS.includes(w), w);
 assert.deepEqual(STORY[0].unlocks.weapons, BASIC_WEAPONS);
-assert.deepEqual(STORY.flatMap((c) => c.unlocks.weapons ?? []).sort(), [...TYPES].sort(), 'every type is unlocked exactly once');
-assert.equal(WEAPON_TREE.length, 16 * (2 + 2 * 3));
-assert.equal(new Set(WEAPON_TREE.map((n) => n.name)).size, 16 * 7, 'every tier name is unique, apart from each type\'s shared Glimmer name');
+assert.deepEqual(STORY.flatMap((c) => c.unlocks.weapons ?? []).sort(), TYPES.filter((w) => !POST_GAME_WEAPONS.includes(w)).sort(), 'every story type is unlocked exactly once');
+assert.equal(WEAPON_TREE.length, 20 * (2 + 2 * 3));
+assert.equal(new Set(WEAPON_TREE.map((n) => n.name)).size, 20 * 7, 'every tier name is unique, apart from each type\'s shared Glimmer name');
 for (const type of Object.keys(WEAPON_TYPES)) {
   assert.deepEqual(nextNodes(`${type}-1`).map((n) => n.id), [`${type}-2`]);
   assert.deepEqual(nextNodes(`${type}-2`).map((n) => n.id).sort(), [`${type}-3A`, `${type}-3B`]);

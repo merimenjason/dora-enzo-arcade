@@ -135,11 +135,75 @@ const GUARD = V(.5,.42,-.04), GUARD_DIR = V(-.3,.7,.75);
   rod(g,V(0,-.34,0),V(0,.34,0),.008,paleW); ball(g,wrapW,.125,0,0,.035,.06,.035);
   hold(g,V(.125,0,0),V(.66,.55,-.08),V(.12,1,-.18));
 }
+// The post-game toys.
+const pinkW = pair(0xf2a7c3), blushW = pair(0xfbd3e0), creamW = pair(0xfff3dc), leafW = pair(0x8cc152), capW = pair(0xd9634f);
+/** Remembers a second rest pose (the open umbrella) for pose() to blend towards. */
+function alsoHold(g: T.Group, at: T.Vector3, dir: T.Vector3, roll = 0) {
+  const pos = g.position.clone(), q = g.quaternion.clone();
+  hold(g,V(),at,dir,roll); g.userData.guardPos = g.position.clone(); g.userData.guardQ = g.quaternion.clone();
+  g.position.copy(pos); g.quaternion.copy(q);
+}
+{
+  // Tickle Feather: a big curled pink plume on a twig, held up like a short sword
+  let g=toy('feather',null,V(0,0,0));
+  rod(g,V(0,-.1,0),V(0,.24,0),.026,barkW); ball(g,barkW,.02,.08,0,.035,.03,.035);
+  const quill=new T.QuadraticBezierCurve3(V(0,.2,0),V(-.06,.72,0),V(.24,1.04,0));
+  mesh(new T.TubeGeometry(quill,16,.013,6,false),creamW,g);
+  // The vane: two rows of soft barbs swept towards the tip, one instanced batch with two pinks
+  const BARBS=13, barbs=new T.InstancedMesh(new T.SphereGeometry(1,10,6),pair(0xffffff).toon,BARBS*2), m4=new T.Matrix4(), side=new T.Vector3(), out=V(1,0,0);
+  geometries.add(barbs.geometry); barbs.castShadow=true; g.add(barbs);
+  for(let i=0;i<BARBS;i++) for(const sd of [-1,1]) {
+    const t=.08+i*.068, at=quill.getPoint(t), tan=quill.getTangent(t), len=.06+.15*Math.sin(Math.PI*Math.pow(t,.8));
+    side.set(-tan.y*sd,tan.x*sd,0); const d=side.multiplyScalar(.8).addScaledVector(tan,.6).normalize();
+    m4.compose(at.clone().addScaledVector(d,len*.5),new T.Quaternion().setFromUnitVectors(out,d),V(len*.55,.034,.018));
+    const n=i*2+(sd>0?1:0); barbs.setMatrixAt(n,m4); barbs.setColorAt(n,new T.Color((i+(sd>0?1:0))%2?0xfbd3e0:0xf2a7c3));
+  }
+  ball(g,pinkW,.25,1.05,0,.045,.035,.022);
+  hold(g,V(),V(.54,.42,.2),V(-.2,.8,.6),-1.4);
+  // Dandelion Puffer: a seed clock on a long stem, held upright in both paws; the seeds thin out
+  // while Big Breath recharges (pose's `recharge`)
+  g=toy('puffer',V(0,.16,0),V(0,0,0));
+  rod(g,V(0,-.12,0),V(0,.64,0),.024,greenW); ball(g,greenW,.07,-.02,0,.1,.025,.045).rotation.z=.5;
+  ball(g,pair(0xc8b27a),0,.66,0,.045,.04,.045);
+  const SEEDS=34, stalkGeo=new T.CylinderGeometry(1,1,1,4), tuftGeo=new T.SphereGeometry(1,8,6); geometries.add(stalkGeo); geometries.add(tuftGeo);
+  const stalks=new T.InstancedMesh(stalkGeo,creamW.toon,SEEDS), tufts=new T.InstancedMesh(tuftGeo,creamW.toon,SEEDS), up=V(0,1,0);
+  for(let i=0;i<SEEDS;i++) {
+    const y=1-2*(i+.5)/SEEDS, a=i*2.39996, r=Math.sqrt(1-y*y), dir=V(Math.cos(a)*r,y,Math.sin(a)*r), q=new T.Quaternion().setFromUnitVectors(up,dir);
+    stalks.setMatrixAt(i,m4.compose(dir.clone().multiplyScalar(.1).add(V(0,.66,0)),q,V(.005,.16,.005)));
+    tufts.setMatrixAt(i,m4.compose(dir.clone().multiplyScalar(.19).add(V(0,.66,0)),q,V(.045,.03,.045)));
+  }
+  for(const m of [stalks,tufts]) { m.castShadow=true; g.add(m); }
+  g.userData.seeds=[stalks,tufts];
+  hold(g,V(),GUARD,GUARD_DIR,0);
+  // Pogo Spring: a reed pole with a T-bar for both paws, a coiled spring and a mushroom-cap foot
+  g=toy('pogo',V(0,0,-.3),V(0,0,0));
+  rod(g,V(0,0,.1),V(0,0,-.4),.034,wrapW); for(const z of [.11,-.41]) ball(g,paleW,0,0,z,.05,.05,.05);
+  rod(g,V(0,.16,-.15),V(0,-.22,-.15),.045,greenW); ball(g,leafW,0,.18,-.15,.06,.06,.06);
+  for(const y of [-.06,-.17]) { const ring=mesh(new T.TorusGeometry(.047,.01,6,12),paleW,g); ring.position.set(0,y,-.15); ring.rotation.x=Math.PI/2; }
+  const coil=new T.CatmullRomCurve3(Array.from({length:49},(_,i)=>{const a=i/48*Math.PI*9;return V(Math.cos(a)*.085,-.22-i/48*.2,-.15+Math.sin(a)*.085);}));
+  mesh(new T.TubeGeometry(coil,72,.02,6,false),pair(0xe9b949),g);
+  rod(g,V(0,-.22,-.15),V(0,-.44,-.15),.025,paleW);
+  ball(g,capW,0,-.47,-.15,.17,.08,.17); ball(g,creamW,0,-.52,-.15,.08,.03,.08);
+  for(let i=0;i<5;i++) { const a=i*1.26+.4; ball(g,creamW,Math.cos(a)*.1,-.43,-.15+Math.sin(a)*.1,.03,.015,.03); }
+  hold(g,V(0,0,-.15),V(.52,.5,.14),V(.15,1,-.3));
+  // Leaf Umbrella: a curved twig handle and six leaves that hang folded and fan open to guard
+  g=toy('umbrella',null,V(0,0,0));
+  const hook=new T.CatmullRomCurve3([V(0,.02,0),V(0,-.12,0),V(.05,-.19,0),V(.12,-.15,0),V(.12,-.08,0)]);
+  mesh(new T.TubeGeometry(hook,16,.024,8,false),barkW,g); rod(g,V(0,0,0),V(0,1.02,0),.02,barkW);
+  const canopy=new T.Group(); canopy.position.y=.98; g.add(canopy); const ribs: T.Group[]=[];
+  for(let i=0;i<6;i++) {
+    const turnY=new T.Group(), tilt=new T.Group(); turnY.rotation.y=i*Math.PI/3; canopy.add(turnY); turnY.add(tilt); ribs.push(tilt);
+    ball(tilt,i%2?leafW:greenW,.2,0,0,.22,.022,.12); rod(tilt,V(.02,.012,0),V(.38,.012,0),.006,pair(0xd8e8a8));
+  }
+  ball(g,greenW,0,1.02,0,.05,.04,.05); g.userData.ribs=ribs; g.userData.canopy=canopy;
+  hold(g,V(),V(.54,.42,.2),V(-.2,.8,.6),-.9);
+  alsoHold(g,V(.54,.5,.14),V(.28,1,.08),0);
+}
 for (const gs of Object.values(held)) for (const g of gs) g.visible = false;
 
   // Attack motion: a quick wind-up, the strike around contact (0.1 s), then an eased return to rest.
   const ease = (t: number) => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
-  const fastTypes: WeaponType[] = ['claws', 'sword', 'glaive', 'lightbow'];
+  const fastTypes: WeaponType[] = ['claws', 'sword', 'glaive', 'lightbow', 'feather'];
   function strike(type: WeaponType, swing: number, delay = 0) {
     if (swing < 0) return 0;
     const u = (swing - delay) / (fastTypes.includes(type) ? 0.2 : 0.4);
@@ -152,6 +216,8 @@ for (const gs of Object.values(held)) for (const g of gs) g.visible = false;
     horn: { axis: V(0, 0, 1), angle: -1.1, lunge: 0.1 }, glaive: { axis: V(1, 0, 0.3).normalize(), angle: 1.3 },
     sword: { axis: V(0, 0, 1), angle: -1.3, lunge: 0.1 }, chargeblade: { axis: V(0, 0, 1), angle: -1.3, lunge: 0.1 },
     gunlance: { axis: V(0, 0, 1), angle: 0, reach: V(0.14, 0, 0), lunge: 0.2 }, lance: { axis: V(0, 0, 1), angle: 0, reach: V(0.14, 0, 0), lunge: 0.2 },
+    feather: { axis: V(0.3, 0, 1).normalize(), angle: -1.5, lunge: 0.08 }, puffer: { axis: V(0, 0, 1), angle: -1.2, reach: V(0.04, 0.08, 0) },
+    pogo: { axis: V(0, 0, 1), angle: -0.35, reach: V(0.08, -0.05, 0), lunge: 0.2 }, umbrella: { axis: V(0, 0, 1), angle: -1.3, lunge: 0.1 },
     bow: { axis: V(0, 0, 1), angle: 0.25, reach: V(-0.08, 0, 0) }, lightbow: { axis: V(0, 0, 1), angle: 0.2, reach: V(-0.08, 0, 0) }, heavybow: { axis: V(0, 0, 1), angle: 0.35, reach: V(-0.14, 0.04, 0) },
   };
   const turn = new T.Quaternion(), toBody = new T.Matrix4();
@@ -171,17 +237,31 @@ for (const gs of Object.values(held)) for (const g of gs) g.visible = false;
   }
 
   return {
-    /** `charge` (the held K) draws the toy back ready to strike; `guard` lifts a shield to the front. */
-    pose(type: WeaponType, time: number, swing: number, charge = 0, guard = false) {
+    /** `charge` (the held K) draws the toy back ready to strike; `guard` lifts a shield to the front (or opens
+     *  the umbrella); `recharge` (1 just used, 0 ready) thins the dandelion's seeds. */
+    pose(type: WeaponType, time: number, swing: number, charge = 0, guard = false, recharge = 0) {
       for (const [id, groups] of Object.entries(held)) for (const g of groups) g.visible = id === type;
-      model.body.position.x = 0;
+      model.body.position.x = 0; model.body.rotation.y = 0;
       const groups = held[type]; if (!groups) return;
-      const bob = Math.sin(time * 2) * 0.015, k = swing < 0 && charge > 0 ? -0.5 * Math.min(1, charge / 0.35) : strike(type, swing);
+      const bob = Math.sin(time * 2) * 0.015; let k = swing < 0 && charge > 0 ? -0.5 * Math.min(1, charge / 0.35) : strike(type, swing);
       const grips = idleGrips[type];
       if (grips) {
         const g = groups[0], move = SWINGS[type], side = offhand[type];
         for (const o of [g, side]) if (o) { o.userData.restPos ??= o.position.clone(); o.userData.restQ ??= o.quaternion.clone(); o.position.copy(o.userData.restPos); o.quaternion.copy(o.userData.restQ); o.position.y += bob; }
-        if (move) {
+        const ribs = g.userData.ribs as T.Group[] | undefined;
+        if (ribs) {
+          // The umbrella eases open over about 0.15 s and folds its leaves down when it closes.
+          const dt = Math.min(0.1, Math.max(0, time - (g.userData.at ?? time))); g.userData.at = time;
+          const open = g.userData.open = time ? (g.userData.open ?? 0) + Math.max(-dt * 7, Math.min(dt * 7, (guard ? 1 : 0) - (g.userData.open ?? 0))) : guard ? 1 : 0;
+          g.position.lerp(g.userData.guardPos, open); g.quaternion.slerp(g.userData.guardQ, open);
+          for (const rib of ribs) rib.rotation.z = -1.35 + 1.1 * open;
+          (g.userData.canopy as T.Group).scale.setScalar(1 + 0.45 * open);
+          // Raindrop Spin: J while it's open turns the whole hero once around.
+          if (guard && swing >= 0) { model.body.rotation.y = Math.PI * 2 * ease(Math.min(1, swing / 0.4)); k = 0; }
+        }
+        const seeds = g.userData.seeds as T.InstancedMesh[] | undefined;
+        if (seeds) for (const m of seeds) m.count = Math.round(m.instanceMatrix.count * (1 - 0.85 * Math.min(1, recharge)));
+        if (move && k) {
           g.quaternion.premultiply(turn.setFromAxisAngle(move.axis, move.angle * k)); if (move.reach) g.position.addScaledVector(move.reach, Math.max(0, k));
           model.body.position.x = (move.lunge ?? 0) * Math.max(0, k);
         }

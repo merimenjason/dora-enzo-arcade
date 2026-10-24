@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Grumble Hunt** has four new tools for after the story, each opened by its own goal (the rack shows your progress): the **Tickle Feather** fills a Giggle meter that makes a beast giggle-dizzy; the **Dandelion Puffer** blows clinging fluff and, held, a Big Breath that pushes the beast back; the **Pogo Spring** High Bounces up to a flying Skreel or straight onto a dizzy beast for a Hop-on; and the **Leaf Umbrella** opens into a guard from every side, spins with J and floats you down after a roll. Each has a full five-tier tree with two branches, its own icons and a toy model in both friends' paws. Saves move to `grumble-hunt-v5`; older saves carry over.
+
 - **Grumble Hunt** shows when you are charging. Holding K fills a ring of petals around your hero, a ring bursts out and a chime plays as each charge level is ready, and the petals pulse once the charge is full. A meter under your hero names what the release will do ("Mega bonk ready!", "Three-seed shot ready!", "Let go of K to play a song"). The hero crouches and trembles with the power, and the tool draws back ready to strike. Guarding raises a leaf-green bubble and a stamina bar, and shields lift to the front.
 
 ### Changed

@@ -368,6 +368,8 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const glowMat = noOutline(new T.SpriteMaterial({ map: glowMap, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false })); materials.add(glowMat);
   const chargeGlow = new T.Sprite(glowMat); chargeGlow.visible = false; scene.add(chargeGlow);
   const bubbleGeo = new T.SphereGeometry(1, 24, 14, Math.PI / 2, Math.PI); geometries.add(bubbleGeo);
+  // The Leaf Umbrella guards from every side, so it gets a whole dome.
+  const domeGeo = new T.SphereGeometry(1, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2); geometries.add(domeGeo);
   const bubbleMat = noOutline(new T.MeshBasicMaterial({ color: 0xa6dc84, transparent: true, opacity: 0.3, side: T.DoubleSide, depthWrite: false })); materials.add(bubbleMat);
   const guardBubble = new T.Mesh(bubbleGeo, bubbleMat); guardBubble.visible = false; scene.add(guardBubble);
   let chargeLevel = 0, burstTime = 1;
@@ -396,8 +398,10 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     }
     guardBubble.visible = hold.kind === 'guard';
     if (guardBubble.visible) {
-      const r = a.model.root; guardBubble.position.set(r.position.x + Math.cos(h.face) * 0.25, 0.75, r.position.z - Math.sin(h.face) * 0.25); guardBubble.rotation.set(0, h.face, 0);
-      guardBubble.scale.set(0.95, 0.85 + (still ? 0 : Math.sin(time * 6) * 0.03), 1.05); bubbleMat.opacity = 0.18 + 0.2 * game.stamina / 100;
+      const r = a.model.root, dome = game.weapon() === 'umbrella', breathe = still ? 0 : Math.sin(time * 6) * 0.03; guardBubble.geometry = dome ? domeGeo : bubbleGeo;
+      if (dome) { guardBubble.position.set(r.position.x, r.position.y, r.position.z); guardBubble.scale.set(1.3, 1.45 + breathe, 1.3); }
+      else { guardBubble.position.set(r.position.x + Math.cos(h.face) * 0.25, 0.75, r.position.z - Math.sin(h.face) * 0.25); guardBubble.scale.set(0.95, 0.85 + breathe, 1.05); }
+      guardBubble.rotation.set(0, h.face, 0); bubbleMat.opacity = 0.18 + 0.2 * game.stamina / 100;
     }
   }
   // Sticky sap: an amber puddle on the ground, and the same puddle under a stuck beast.
@@ -430,6 +434,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const riding = isPlayer && game.ride.riding;
     let height = 0;
     if (riding && game.beast) height = game.beast.height + RIDE_HEIGHT[game.beast.id];
+    else if (isPlayer && (game.bounce > 0 || game.float > 0)) height = game.airHeight;
     else if (isPlayer && game.vault > 0) height = Math.sin(game.vault / 0.8 * Math.PI) * (game.perk('air-bonk') ? 1.5 : 1);
     a.model.root.position.set(p.x, height, p.z); a.model.root.rotation.y = p.face;
     if (isPlayer && game.ride.landing > 0 && !reduced.matches) { const f = 1 - game.ride.landing / 0.6; a.model.root.position.y = (1 - f) * (game.beast ? RIDE_HEIGHT[game.beast.id] : 2) + Math.sin(f * Math.PI) * 0.7; if (game.beast) { a.model.root.position.x = lerp(game.beast.x, p.x, f); a.model.root.position.z = lerp(game.beast.z, p.z, f); } }
@@ -445,7 +450,9 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     a.hammer.visible = weapon === 'hammer'; a.trail.visible = false;
     a.armour.forEach((g, i) => { const piece = game.profile.armour.worn[(['helm', 'vest', 'boots'] as const)[i]]; g.visible = isPlayer && !!piece; if (piece) { const color = BEASTS[piece.split('-')[0] as BeastId].color; g.traverse((o) => { if (o instanceof T.Mesh) (o.material as T.MeshToonMaterial).color.set(color); }); } });
     const hold = isPlayer ? game.hold() : null;
-    a.weapons.pose(weapon, time, t, hold?.kind === 'charge' ? hold.amount : 0, hold?.kind === 'guard');
+    // The preview opens the umbrella now and then, so the rack shows both its looks.
+    const guard = preview ? weapon === 'umbrella' && !reduced.matches && showTime % 6 > 3 : hold?.kind === 'guard';
+    a.weapons.pose(weapon, time, t, hold?.kind === 'charge' ? hold.amount : 0, guard, isPlayer ? game.breath / 6 : 0);
     if (weapon === 'hammer') {
       a.hammer.rotation.z = t < 0 ? 0.9 : t < 0.15 ? lerp(0.9, 2.1, t / 0.15) : t < 0.25 ? lerp(2.1, -2, (t - 0.15) / 0.1) : lerp(-2, 0.9, Math.min(1, (t - 0.25) / 0.3) ** 2);
       if (isPlayer && h.charge > 0) a.hammer.rotation.z = 1.9 + Math.sin(time * 18) * Math.min(0.05, h.charge * 0.05);
