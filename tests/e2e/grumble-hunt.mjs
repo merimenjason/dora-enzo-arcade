@@ -329,6 +329,15 @@ try {
     await hunt(p, (w) => { const g = w.game, v = g.visitor; v.x = 3; v.z = 0; });
     await p.waitForFunction(() => window.__hunt().metrics().turfCircle === true, null, { timeout: 15000 }); await snapshot(p, 'turf');
     await p.waitForFunction(() => window.__hunt().game.beast.state === 'dizzy', null, { timeout: 15000 }); assert.match(await p.getByTestId('note').innerText(), /Turf bonk/);
+    // The grab-on vine with real keys: G holds on, two J tickles soften, K yanks.
+    await hunt(p, (w) => { const g = w.game, b = g.beast; g.visitor = null; g.visited = true; g.buddy.cooldown = 100; b.state = 'rest'; b.duration = 100; b.height = 0; b.x = 0; b.z = 0; g.hero.x = 0; g.hero.z = 5; g.hero.invincible = 60; g.vineCd = 0; });
+    assert.match(await p.getByTestId('vine-status').innerText(), /Vine ready/);
+    await p.keyboard.press('KeyG'); await p.waitForFunction(() => window.__hunt().game.vine?.phase === 'cling', null, { timeout: 15000 });
+    await p.waitForFunction(() => window.__hunt().metrics().vine === true); assert.match(await p.getByTestId('vine-status').innerText(), /Holding on/);
+    await p.keyboard.press('KeyJ'); await p.waitForTimeout(150); await p.keyboard.press('KeyJ');
+    await p.waitForFunction(() => window.__hunt().metrics().soft === true, null, { timeout: 15000 }); await snapshot(p, 'vine');
+    await p.keyboard.press('KeyK'); await p.waitForFunction(() => !['grabbed', 'yanked'].includes(window.__hunt().game.beast.state), null, { timeout: 15000 });
+    assert.equal(await hunt(p, (w) => w.game.vine), null); assert.match(await p.getByTestId('vine-status').innerText(), /coiling/);
   });
 
   await check('painted portraits, tool tiers and material icons load and follow the game', async (p) => {

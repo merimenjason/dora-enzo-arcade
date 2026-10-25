@@ -1,9 +1,20 @@
 /** Browser and Node bots share this input policy. It uses no teleports, stat changes or direct bonks. */
 export function huntPolicy(g) {
   const b = g.beast, h = g.hero;
-  const out = { x: 0, z: 0, sprint: true, bonk: false, charge: false, roll: false, lock: false, previous: false, next: false, use: false };
+  const out = { x: 0, z: 0, sprint: true, bonk: false, charge: false, roll: false, lock: false, previous: false, next: false, use: false, grab: false };
   if (!b || g.mode !== 'hunt') return out;
   if (g.ride.riding) { out.charge = true; out.bonk = Math.floor(g.time * 16) % 2 === 0; return out; }
+  // Holding on with the vine: two tickles, then yank towards the nearest tree or rock within the yank, if any.
+  if (g.vine) {
+    if (g.vine.phase === 'cling') {
+      if (g.vine.pokes < 2) { out.bonk = Math.floor(g.time * 10) % 2 === 0; return out; }
+      const wall = g.obstacles.map((o) => ({ o, d: Math.hypot(o.x - b.x, o.z - b.z) })).filter((w) => w.d < 6.5).sort((a, c) => a.d - c.d)[0];
+      if (wall) { out.x = (wall.o.x - b.x) / wall.d; out.z = (wall.o.z - b.z) / wall.d; }
+      out.charge = Math.floor(g.time * 10) % 2 === 0; return out;
+    }
+    return out;
+  }
+  if (g.vineCd <= 0 && ['rest', 'roam'].includes(b.state) && b.height < 0.5 && Math.hypot(h.x - b.x, h.z - b.z) < 8) { out.grab = true; return out; }
   if (g.ride.used < 2 && ['dizzy', 'stuck'].includes(b.state)) {
     if (g.weapon() === 'yoyo' && Math.hypot(h.x - b.x, h.z - b.z) < 4) { out.charge = g.time % 0.4 < 0.12; return out; }
     // A High Bounce that lands right beside a dizzy beast hops on.

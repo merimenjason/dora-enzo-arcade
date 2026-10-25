@@ -26,6 +26,12 @@ export const TURF_REACH = 4.5; // The turf bonk bumps friends this close to the 
 export const TURF_GRUMP = 0.1; // Share of starting Grump a turf bonk takes off the hunted beast, which is then dizzy.
 /** The beast that may wander into each area's hunt once; it can't be bonked and leaves after a turf bonk. */
 export const VISITORS: Record<AreaId, BeastId | null> = { paddock: null, meadow: 'puffwart', marsh: 'bristleback', ridge: 'hornclack', hollow: 'bristleback', peak: 'skreel' };
+export const VINE_REACH = 9; // The grab-on vine reaches a beast this close that is no higher than 2.6.
+export const VINE_COOLDOWN = 20;
+export const CLING_TIME = 4; // Seconds a friend can hold on before letting go by themselves.
+export const SOFT_TIME = 12; // Two tickles soften a beast this long: bonks take 20% more Grump and 50% more part.
+export const YANK = 6; // A yank pulls the beast this far; a tree, rock or the edge on the way makes a wall bonk.
+export const WALL_GRUMP = 0.03;
 export const ROAR_REACH = 7; // A roar makes friends this close cover their ears; a roll or a guard keeps them going.
 export const INTRO_CARD = 3.2;
 export const ROAR_TIME = 1.1; // Seconds a roar lasts; covered ears last 0.9 seconds.
@@ -86,16 +92,16 @@ const PART_DROP: Record<BeastId, { id: MaterialId; count: number }> = {
 const V1_MATERIAL: Record<BeastId, MaterialId> = Object.fromEntries(BEAST_IDS.map((id) => [id, DROPS[id].shed.id])) as Record<BeastId, MaterialId>;
 export type SpotId = typeof SPOTS[number]['id'];
 export type Vec = { x: number; z: number };
-export type Input = { x: number; z: number; sprint: boolean; bonk: boolean; charge: boolean; roll: boolean; lock: boolean; previous: boolean; next: boolean; use: boolean };
-export const NO_INPUT: Input = { x: 0, z: 0, sprint: false, bonk: false, charge: false, roll: false, lock: false, previous: false, next: false, use: false };
+export type Input = { x: number; z: number; sprint: boolean; bonk: boolean; charge: boolean; roll: boolean; lock: boolean; previous: boolean; next: boolean; use: boolean; grab: boolean };
+export const NO_INPUT: Input = { x: 0, z: 0, sprint: false, bonk: false, charge: false, roll: false, lock: false, previous: false, next: false, use: false, grab: false };
 export type Pouch = Record<MaterialId | ItemId, number>;
 /** `ring` is the items carried into a hunt, in ring order; `snack` is packed for the next hunt. */
 export type StoryProgress = { chapter: number; scenesSeen: string[] };
 export type BeastBook = Record<BeastId, { met: boolean; napped: number; partsBroken: string[] }>;
 export type Profile = { bountiesClaimed: number; variantNaps: Record<BeastId, number>; totalPlops: number; story: StoryProgress; beastBook: BeastBook; bounties: { day: string; done: string[]; ready: string[] }; extraGrumpyUnlocked: boolean; hero: HeroId | null; weapons: Record<WeaponType, { tier: Tier; branch: Branch | null }>; equipped: Record<HeroId, WeaponType>; armour: { owned: ArmourPieceId[]; worn: Worn }; pouch: Pouch; ring: ItemId[]; snack: SnackId | null; naps: Record<BeastId, number>; won: boolean; hunts: number };
 export type Hero = Vec & { face: number; fluff: number; maxFluff: number; speed: number; roll: number; rollX: number; rollZ: number; rollCd: number; invincible: number; charge: number; swing: number; heavy: boolean; landed: boolean; cooldown: number; slow: number; hidden: number; covered: number };
-export type BeastState = 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'cloud' | 'circle' | 'swoop' | 'sweep' | 'pounce' | 'shake' | 'roar' | 'turf' | 'rest' | 'dizzy' | 'stuck' | 'trudge' | 'snooze' | 'nap';
-export type Beast = Vec & { id: BeastId; grump: number; maxGrump: number; face: number; state: BeastState; t: number; duration: number; attack: BeastState; aim: Vec; start: Vec; dir: Vec; phase: number; cycle: number; dizzy: number; part: number; broken: boolean; bonks: number; flash: number; height: number; grumpy: boolean; drowsy: number; drowsySlow: number; home: 0 | 1 | 2 };
+export type BeastState = 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'cloud' | 'circle' | 'swoop' | 'sweep' | 'pounce' | 'shake' | 'roar' | 'turf' | 'grabbed' | 'yanked' | 'rest' | 'dizzy' | 'stuck' | 'trudge' | 'snooze' | 'nap';
+export type Beast = Vec & { id: BeastId; grump: number; maxGrump: number; face: number; state: BeastState; t: number; duration: number; attack: BeastState; aim: Vec; start: Vec; dir: Vec; phase: number; cycle: number; dizzy: number; part: number; broken: boolean; bonks: number; flash: number; height: number; grumpy: boolean; drowsy: number; drowsySlow: number; home: 0 | 1 | 2; soft: number };
 export type Visitor = Vec & { id: BeastId; face: number; state: 'arrive' | 'face' | 'leave'; t: number; home: Vec };
 export type Obstacle = Vec & { r: number; kind: 'tree' | 'rock' | 'pine' };
 export type Shot = Vec & { id: number; dx: number; dz: number; life: number; power: number; heavy: boolean; buddy: boolean; type: WeaponType; ammo: number; charge: number; hit: boolean; dizzyShare: number };
@@ -105,7 +111,7 @@ export type Cloud = Vec & { life: number; r: number };
 export type Fx = Vec & { id: number; kind: 'bonk' | 'dust' | 'dizzy' | 'berry' | 'part' | 'nap'; t: number; text: string };
 export type Ride = { riding: boolean; meter: number; fullBonks: number; phase: 'quiet' | 'warning' | 'buck'; timer: number; grip: boolean; used: number; left: number; pose: number; landing: number; plopped: number };
 const freshRide = (): Ride => ({ riding: false, meter: 0, fullBonks: 0, phase: 'quiet', timer: 0, grip: false, used: 0, left: 0, pose: 0, landing: 0, plopped: 0 });
-export type HuntEvent = { kind: 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shaken-off' | 'plop' | 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'tired' | 'snooze' | 'intro' | 'roar' | 'covered' | 'weather' | 'visitor' | 'turf-warning' | 'turf' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
+export type HuntEvent = { kind: 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shaken-off' | 'plop' | 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'tired' | 'snooze' | 'intro' | 'roar' | 'covered' | 'weather' | 'visitor' | 'turf-warning' | 'turf' | 'vine' | 'cling' | 'soft' | 'yank' | 'wall' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
 export type Mode = 'village' | 'hunt' | 'nap' | 'calm' | 'camp' | 'victory';
 const countRecord = (): Record<BeastId, number> => ({ bristleback: 0, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0 });
 const emptyPouch = () => Object.fromEntries([...MATERIAL_IDS, ...ITEM_IDS].map((id) => [id, 0])) as Pouch;
@@ -193,6 +199,9 @@ export class HuntGame {
   weatherClear = 30;
   weatherSpell = 20;
   stormy = false;
+  /** The grab-on vine: flying for 0.25 s, then holding on at the beast's head. */
+  vine: { phase: 'fly' | 'cling'; t: number; pokes: number } | null = null;
+  vineCd = 0;
   /** A visiting beast, the hunt time it arrives and the angle it comes from. */
   visitor: Visitor | null = null;
   visitAt = 50;
@@ -464,9 +473,9 @@ export class HuntGame {
     this.snack = this.profile.snack; this.profile.snack = null;
     this.lastHunt = id; this.mode = 'hunt'; this.hero = hero(100 + this.armour.fluff + (this.snack ? SNACKS[this.snack].effect.maxFluff ?? 0 : 0)); this.buddy = buddy();
     const grump = this.huntChapter === 0 ? 40 : BEASTS[id].grump * (variant ? 1.6 : 1);
-    this.beast = { id, x: 0, z: -3, face: -Math.PI / 2, grump, maxGrump: grump, state: id === 'skreel' ? 'circle' : 'roam', t: 0, duration: 2.4, attack: 'charge', aim: { x: 0, z: 0 }, start: { x: 0, z: -3 }, dir: { x: 0, z: 1 }, phase: 1, cycle: 0, dizzy: 0, part: 0, broken: false, bonks: 0, flash: 0, height: 0, grumpy: false, drowsy: 0, drowsySlow: 0.3, home: 0 };
+    this.beast = { id, x: 0, z: -3, face: -Math.PI / 2, grump, maxGrump: grump, state: id === 'skreel' ? 'circle' : 'roam', t: 0, duration: 2.4, attack: 'charge', aim: { x: 0, z: 0 }, start: { x: 0, z: -3 }, dir: { x: 0, z: 1 }, phase: 1, cycle: 0, dizzy: 0, part: 0, broken: false, bonks: 0, flash: 0, height: 0, grumpy: false, drowsy: 0, drowsySlow: 0.3, home: 0, soft: 0 };
     this.shots = []; this.drops = []; this.clouds = []; this.fx = []; this.item = 0; this.sniff = 0; this.unseen = 0; this.locked = true; this.paused = false; this.hitstop = 0; this.shake = 0; this.last = { ...NO_INPUT }; this.resultTime = 0;
-    this.roared = this.introduced = this.huntChapter === 0; this.introAt = -1; this.gathering = null; this.trap = null; this.reward = []; this.area = this.huntChapter >= 0 ? STORY[this.huntChapter].area : HUNT_AREA[id];
+    this.roared = this.introduced = this.huntChapter === 0; this.introAt = -1; this.vine = null; this.vineCd = 0; this.gathering = null; this.trap = null; this.reward = []; this.area = this.huntChapter >= 0 ? STORY[this.huntChapter].area : HUNT_AREA[id];
     this.profile.pouch.fluffberry = Math.max(this.profile.pouch.fluffberry, CAMP_BERRIES);
     this.profile.hunts++; this.makeArea(); this.makeSpots(); this.nest = this.findNest(); this.planWeather(); this.revision++; this.note = BEASTS[id].tip;
     return true;
@@ -526,8 +535,8 @@ export class HuntGame {
     const wasDizzy = b.state === 'dizzy', wasSnoozing = b.state === 'snooze';
     if (buddy && ++this.buddyHits % 10 === 0 && perk('warm-glow')) this.healFriends(10);
     if (!buddy) { this.hits++; if (this.weapon() !== 'switchaxe' || this.bloom) this.focus = Math.min(100, this.focus + 20 * (1 + perk('focus-fill') + perk('bloom-fill'))); if (!this.bloom) this.pods = Math.min(3 + perk('extra-pod'), this.pods + 1); this.notes++; this.zoom = Math.min(5, this.zoom + 0.5); if (perk('warm-glow') && this.hits % 10 === 0) this.healFriends(10); }
-    const amount = power * (wasDizzy ? 1.7 : wasSnoozing ? 2 : 1);
-    b.grump = Math.max(0, b.grump - amount); b.flash = 0.18; b.bonks++; b.part += amount * (1 + perk('part-power') + perk('pop-parts'));
+    const soft = b.soft > 0, amount = power * (wasDizzy ? 1.7 : wasSnoozing ? 2 : 1) * (soft ? 1.2 : 1);
+    b.grump = Math.max(0, b.grump - amount); b.flash = 0.18; b.bonks++; b.part += amount * (1 + perk('part-power') + perk('pop-parts')) * (soft ? 1.5 : 1);
     if (b.id === 'frostmane') {
       const next = b.grump < b.maxGrump / 3 ? 3 : b.grump < b.maxGrump * 2 / 3 ? 2 : 1;
       if (next > b.phase && b.grump > 0) { b.phase = next; this.note = `Frostmane mood ${next}: ${next === 2 ? 'watch for the icy mane shake' : 'quick pounces, with a warning before each one'}!`; }
@@ -859,6 +868,9 @@ export class HuntGame {
     this.ride.pose = Math.max(0, this.ride.pose - dt); this.ride.landing = Math.max(0, this.ride.landing - dt); this.ride.plopped = Math.max(0, this.ride.plopped - dt);
     if (this.ride.riding) { this.stepRide(dt, input); return; }
     if (h.covered > 0) { h.covered = Math.max(0, h.covered - dt); h.speed = 0; return; }
+    this.vineCd = Math.max(0, this.vineCd - dt);
+    if (this.vine) { this.stepVine(dt, input); return; }
+    if (pressed('grab') && this.mode === 'hunt') { this.throwVine(); if (this.vine) return; }
     this.song = Math.max(0, this.song - dt); this.glow = Math.max(0, this.glow - dt);
     this.breath = Math.max(0, this.breath - dt);
     if (this.fluffTime > 0 && this.mode === 'hunt') { const elapsed = Math.min(dt, this.fluffTime); this.fluffTime -= elapsed; if (this.beast?.state !== 'dizzy') this.addDizzy(2 * elapsed); }
@@ -1035,6 +1047,52 @@ export class HuntGame {
     if (this.mode !== 'hunt') return;
     this.makeDizzy(2.5); this.note = `Turf bonk! ${BEASTS[b.id].name} is dizzy. Big bonks welcome!`;
   }
+  /** G throws the grab-on vine at a nearby beast that is low enough; it lands 0.25 s later. */
+  throwVine() {
+    const b = this.beast, h = this.hero;
+    if (!b || this.mode !== 'hunt' || this.vine || this.ride.riding || this.airHeight > 0.5) return false;
+    if (this.vineCd > 0) { this.note = `The vine is coiling back up: ${Math.ceil(this.vineCd)} s.`; return false; }
+    if (distance(h, b) > VINE_REACH || b.height > 2.6 || ['nap', 'turf', 'yanked'].includes(b.state)) { this.note = 'Get within 9 steps, with the beast near the ground, to throw the vine.'; return false; }
+    this.vine = { phase: 'fly', t: 0, pokes: 0 }; this.vineCd = VINE_COOLDOWN; this.gathering = null; this.guarding = false; this.chargeHold = 0;
+    h.face = faceTo(h, b); h.roll = -1; h.swing = -1; h.charge = 0; h.speed = 0; this.events.push({ kind: 'vine' });
+    return true;
+  }
+  private stepVine(dt: number, input: Input) {
+    const v = this.vine!, b = this.beast, h = this.hero, pressed = (k: keyof Input) => !!input[k] && !this.last[k];
+    v.t += dt; h.speed = 0;
+    if (!b || this.mode !== 'hunt') { this.vine = null; return; }
+    if (v.phase === 'fly') {
+      if (v.t < 0.25) return;
+      if (distance(h, b) > VINE_REACH + 1 || b.height > 2.6 || ['nap', 'turf', 'yanked'].includes(b.state)) { this.vine = null; this.note = 'The vine missed. Try again when it is closer.'; return; }
+      // Holding on stops whatever the beast was doing; it never attacks while held.
+      v.phase = 'cling'; v.t = 0; b.state = 'grabbed'; b.t = 0; b.duration = CLING_TIME; b.height = 0; b.face = faceTo(b, h);
+      this.events.push({ kind: 'cling' }); this.note = 'Holding on! J to tickle it soft, K to yank it into a tree or rock, Space to let go.';
+      return;
+    }
+    h.x = b.x + Math.cos(b.face) * 1.7; h.z = b.z - Math.sin(b.face) * 1.7; h.face = b.face + Math.PI;
+    if (b.state !== 'grabbed' || pressed('roll') || v.t >= CLING_TIME) { this.letGo(); return; }
+    if (pressed('bonk')) {
+      v.pokes++; this.effect('bonk', b, 'Tickle!'); this.events.push({ kind: 'bonk' });
+      if (v.pokes === 2) { b.soft = SOFT_TIME; this.events.push({ kind: 'soft' }); this.effect('part', b, 'Softened!'); this.note = 'Softened! For 12 seconds bonks take 20% more Grump and pop parts sooner.'; }
+    }
+    if (pressed('charge')) {
+      // The yank goes the way the stick points, or straight towards the friend's side.
+      const len = Math.hypot(input.x, input.z), dir = len > 0.2 ? { x: input.x / len, z: input.z / len } : { x: -Math.cos(b.face), z: Math.sin(b.face) };
+      this.letGo(); b.state = 'yanked'; b.t = 0; b.duration = YANK / 12; b.start = { x: b.x, z: b.z }; b.dir = dir; b.face = faceTo(b, { x: b.x + dir.x, z: b.z + dir.z });
+      this.events.push({ kind: 'yank' }); this.note = 'Yank!';
+    }
+  }
+  private letGo() {
+    const b = this.beast, h = this.hero; this.vine = null; h.invincible = Math.max(h.invincible, 0.5);
+    if (b && b.state === 'grabbed') { b.state = 'rest'; b.t = 0; b.duration = 1.2; }
+    if (b) { const d = direction(b, h); this.move(h, d.x * 0.8, d.z * 0.8, 0.4); }
+  }
+  private wallBonk() {
+    const b = this.beast!;
+    b.grump = Math.max(1, b.grump - b.maxGrump * WALL_GRUMP); b.flash = 0.18; this.moods(b);
+    this.events.push({ kind: 'wall' }); this.shake = Math.max(this.shake, 0.4); this.effect('bonk', b, 'Wall bonk!');
+    this.makeDizzy(2); this.note = 'Wall bonk! Dizzy and a little less grumpy. Big bonks welcome!';
+  }
   private coverEars(b: Beast) {
     const h = this.hero, rolling = h.roll >= 0 && h.roll < 0.32 * (this.skill('feather-step') ? 1.3 : 1);
     if (distance(this.buddy, b) < ROAR_REACH) this.buddy.cooldown = Math.max(this.buddy.cooldown, 0.9);
@@ -1047,7 +1105,7 @@ export class HuntGame {
     const pace = (b.grumpy ? GRUMPY_PACE : 1) * (b.drowsy > 0 ? 1 - b.drowsySlow : 1);
     b.t += dt; b.flash = Math.max(0, b.flash - dt); b.drowsy = Math.max(0, b.drowsy - dt);
     // A beast on the ground that steps on the sticky sap is stuck where it stands, even mid-charge.
-    if (this.trap && b.height < 0.5 && !['dizzy', 'stuck', 'snooze', 'turf', 'nap'].includes(b.state) && distance(b, this.trap) < TRAP_REACH) {
+    if (this.trap && b.height < 0.5 && !['dizzy', 'stuck', 'snooze', 'turf', 'grabbed', 'nap'].includes(b.state) && distance(b, this.trap) < TRAP_REACH) {
       const sap = ITEMS['sticky-sap'].effect as { seconds: number };
       b.state = 'stuck'; b.t = 0; b.duration = sap.seconds; b.height = 0; this.trap = null;
       this.effect('dust', b, 'Stuck!'); this.events.push({ kind: 'trap' }); this.note = `Stuck in sticky sap for ${sap.seconds} seconds. Bonk away!`;
@@ -1055,6 +1113,15 @@ export class HuntGame {
     }
     if (b.state === 'dizzy' || b.state === 'stuck') { b.height = 0; if (b.t >= b.duration) { b.duration = b.state === 'dizzy' ? 1.8 : 1.2; b.state = 'rest'; b.t = 0; } return; }
     if (b.state === 'rest') { b.height = 0; if (b.t >= b.duration) { b.state = b.id === 'skreel' ? 'circle' : 'roam'; b.t = 0; b.duration = b.id === 'frostmane' ? 1.5 : 2.4; } return; }
+    b.soft = Math.max(0, b.soft - dt);
+    if (b.state === 'grabbed') { b.height = 0; if (!this.vine) { b.state = 'rest'; b.t = 0; b.duration = 1.2; } return; }
+    if (b.state === 'yanked') {
+      const nx = b.start.x + b.dir.x * Math.min(YANK, b.t * 12), nz = b.start.z + b.dir.z * Math.min(YANK, b.t * 12);
+      if (this.obstacles.some((o) => Math.hypot(nx - o.x, nz - o.z) < o.r + 1.4) || Math.hypot(nx, nz) > (this.area === 'paddock' ? 12 : ARENA_RADIUS) - 1.5) { this.wallBonk(); return; }
+      b.x = nx; b.z = nz; b.height = 0;
+      if (b.t >= b.duration) { b.state = 'rest'; b.t = 0; b.duration = 1.2; this.note = 'A wobbly stumble. Yank it into a tree or rock for a wall bonk!'; }
+      return;
+    }
     if (b.state === 'turf') { b.height = 0; if (this.visitor) b.face = faceTo(b, this.visitor); if (b.t >= b.duration) this.turfBonk(); return; }
     if (b.state === 'snooze') {
       b.height = 0; b.grump = Math.min(b.maxGrump, b.grump + b.maxGrump * NEST_REGAIN / SNOOZE * dt);

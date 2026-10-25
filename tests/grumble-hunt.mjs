@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
 import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
@@ -317,6 +317,33 @@ check('once a hunt a visiting beast wanders in, and meeting the hunted beast the
   assert(g.hero.fluff < fluff, 'bumped inside the circle'); assert(b.grump >= 1 && g.mode === 'hunt');
   const calf = new HuntGame(5); calf.chooseHero('dora'); assert(calf.startHunt('bristleback')); assert(calf.visited); calf.huntTime = 100; tick(calf, 0.5); assert.equal(calf.visitor, null);
   assert(TURF_REACH > 4);
+});
+check('the grab-on vine holds on at the head; two tickles soften, a yank into a rock is a wall bonk, and a held beast never attacks', () => {
+  for (const id of BEAST_IDS) {
+    const g = fresh(id), b = g.beast, h = g.hero; g.buddy.cooldown = 10000;
+    b.state = 'rest'; b.duration = 10000; b.height = 0; b.x = 0; b.z = 0; h.x = 0; h.z = 5; g.obstacles = [];
+    g.events.length = 0; g.step(DT, input({ grab: true })); assert.equal(g.vine?.phase, 'fly', id); assert(g.events.some((e) => e.kind === 'vine'));
+    tick(g, 0.3); assert.equal(g.vine?.phase, 'cling', id); assert.equal(b.state, 'grabbed'); assert(Math.abs(distance(h, b) - 1.7) < 1e-6);
+    tick(g, 1); assert.equal(b.state, 'grabbed', 'held beasts never wind up');
+    g.step(DT, input({ bonk: true })); g.step(DT); g.events.length = 0; g.step(DT, input({ bonk: true }));
+    assert(b.soft > SOFT_TIME - 0.1, `${id} softened`); assert(g.events.some((e) => e.kind === 'soft'));
+    const from = { x: b.x - Math.cos(b.face) * 3, z: b.z + Math.sin(b.face) * 3 }, before = b.grump, part = b.part; g.bonkBeast(10, false, from); g.hitstop = 0;
+    assert(Math.abs(before - b.grump - 12) < 1e-9, `${id} soft bonk`); assert(Math.abs(b.part - part - 18 * (1 + g.perk('part-power') + g.perk('pop-parts'))) < 1e-9, `${id} soft part`);
+    // Yank towards a rock four steps away: a wall bonk, dizzy and 3% Grump.
+    g.obstacles = [{ x: b.x + 4, z: b.z, r: 1, kind: 'rock' }]; const grump = b.grump; g.events.length = 0;
+    g.step(DT, input({ charge: true, x: 1 })); assert.equal(b.state, 'yanked', id); assert.equal(g.vine, null);
+    let t = 0; while (b.state === 'yanked' && t < 2) { g.step(DT); t += DT; }
+    assert.equal(b.state, 'dizzy', `${id} wall bonk`); assert(g.events.some((e) => e.kind === 'wall')); assert(Math.abs(grump - b.grump - b.maxGrump * WALL_GRUMP) < 1e-9);
+    g.step(DT, input({ grab: true })); assert.equal(g.vine, null, 'cooling down'); assert.match(g.note, /coiling/); assert(g.vineCd > 0 && g.vineCd <= VINE_COOLDOWN);
+  }
+  // Holding on ends by itself or with a roll; a yank with nothing in the way is a stumble; too far away, no throw.
+  const g = fresh(), b = g.beast, h = g.hero; g.buddy.cooldown = 10000; g.obstacles = [];
+  const grab = () => { g.vineCd = 0; b.state = 'rest'; b.duration = 10000; b.x = 0; b.z = 0; h.x = 0; h.z = 5; g.step(DT, input({ grab: true })); tick(g, 0.3); assert.equal(g.vine?.phase, 'cling'); };
+  grab(); tick(g, CLING_TIME); assert.equal(g.vine, null); assert.notEqual(b.state, 'grabbed');
+  grab(); g.step(DT, input({ roll: true })); assert.equal(g.vine, null); assert.notEqual(b.state, 'grabbed');
+  grab(); const start = { x: b.x, z: b.z }, grump = b.grump; g.step(DT, input({ charge: true, x: 1 })); tick(g, 0.8);
+  assert.equal(b.state, 'rest'); assert(Math.abs(distance(b, start) - YANK) < 0.3, 'stumbles the full yank'); assert.equal(b.grump, grump);
+  g.vineCd = 0; b.x = 0; b.z = 0; h.x = 0; h.z = VINE_REACH + 1; g.step(DT, input({ grab: true })); assert.equal(g.vine, null); assert.match(g.note, /9 steps/);
 });
 check('out of sight for a second, Enzo sniffs out a pawprint trail that fades once the beast is seen', () => {
   const g = fresh(), b = g.beast; g.buddy.cooldown = 10000; b.state = 'rest'; b.duration = 10000;
