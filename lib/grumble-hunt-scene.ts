@@ -2,7 +2,7 @@ import * as T from 'three';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { createHuntChinchilla, animateHuntChinchilla, poseArms, type HuntChinchilla } from './hunt-chinchilla';
-import { BEASTS, BEAST_IDS, VARIANT_COLORS, GATHER_TIME, MATERIAL_IDS, SPOTS, VILLAGERS, type BeastId, type SpotId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
+import { BEASTS, BEAST_IDS, VARIANT_COLORS, GATHER_TIME, ROAR_REACH, MATERIAL_IDS, SPOTS, VILLAGERS, type BeastId, type SpotId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
 import { createHuntWeapons, decorateHuntWeapon } from './grumble-hunt-weapons';
 import { createVillager, type VillagerId, type VillagerRig } from './grumble-hunt-villagers';
 import { MATERIALS } from './grumble-hunt-content';
@@ -667,6 +667,10 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const icyGeo = new T.RingGeometry(0.9, 1, 40); icyGeo.rotateX(-Math.PI / 2);
   const icyMat = noOutline(new T.MeshBasicMaterial({ color: 0xb5dff5, transparent: true, opacity: 0.55, side: T.DoubleSide, depthWrite: false }));
   const icyRing = mesh(scene, icyGeo, icyMat, [0, 0.09, 0], [1, 1, 1], false);
+  // A roar sends three pale sound rings rolling out across the ground.
+  const roarMat = noOutline(new T.MeshBasicMaterial({ color: 0xfffaf0, transparent: true, opacity: 0.8, side: T.DoubleSide, depthWrite: false })); materials.add(roarMat);
+  const roarGeo = new T.RingGeometry(0.72, 1, 48); roarGeo.rotateX(-Math.PI / 2);
+  const roarRings = Array.from({ length: 3 }, () => mesh(scene, roarGeo, roarMat, [0, 0.11, 0], [1, 1, 1], false));
   const cloudMat = noOutline(new T.MeshBasicMaterial({ color: 0xd0bfe3, transparent: true, opacity: 0.35, depthWrite: false })); materials.add(cloudMat);
   const cloudPool = Array.from({ length: 6 }, () => mesh(scene, sphere, cloudMat, [0, 0, 0], [1, 1, 1], false));
   const starGeo = new T.OctahedronGeometry(0.14), starMat = toon(0xffd35d, undefined, false);
@@ -785,6 +789,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     // A little item-use nod can finish sooner with Deep Breath, without delaying another item.
     else a.model.body.rotation.z = isPlayer && h.swing < 0 && !reduced.matches ? Math.min(0.12, game.itemRecovery * 0.4) : 0;
     a.model.feet.forEach((foot, i) => { foot.rotation.x = riding ? (i ? -0.5 : 0.5) : 0; if (riding) foot.position.y = 0.14; });
+    if (isPlayer && h.covered > 0) { a.model.body.scale.y *= 0.9; a.model.body.scale.x *= 1.05; if (!reduced.matches) a.model.body.rotation.z = Math.sin(game.time * 28) * 0.07; }
     if (riding) { a.model.body.scale.y *= 0.85; a.model.body.rotation.z = game.ride.pose > 0 && !reduced.matches ? Math.sin(game.ride.pose / 0.22 * Math.PI) * -0.2 : 0; }
     const t = isPlayer && game.ride.riding && game.ride.pose > 0 ? 0.24 - game.ride.pose : preview ? showSwing() : p.swing;
     const weapon = game.weapon(id);
@@ -891,13 +896,14 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       r.root.traverse((o) => { if (o instanceof T.Mesh && o.material instanceof T.MeshToonMaterial && o.material.userData.beastColor) o.material.color.set(game.variant ? VARIANT_COLORS[b.id] : o.material.userData.beastColor); });
       r.root.position.set(b.x, b.height, b.z); r.root.rotation.y = b.face;
       const napping = b.state === 'nap', snoozing = b.state === 'snooze', trudging = b.state === 'trudge', nap = napping ? Math.min(1, b.t / 1.6) : snoozing ? Math.min(1, b.t / 0.8) * 0.8 : 0;
-      r.body.rotation.z = napping || snoozing ? nap * 0.28 : trudging ? 0.12 + (reduced.matches ? 0 : Math.sin(game.time * 4) * 0.05) : b.state === 'windup' ? -0.12 * Math.sin(b.t * 12) : b.state === 'dizzy' ? Math.sin(game.time * 4) * 0.07 : b.state === 'stuck' && !reduced.matches ? Math.sin(game.time * 11) * 0.05 : 0;
+      r.body.rotation.z = napping || snoozing ? nap * 0.28 : trudging ? -0.1 + (reduced.matches ? 0 : Math.sin(game.time * 4) * 0.05) : b.state === 'roar' ? 0.3 * Math.min(1, b.t / 0.15) + (reduced.matches ? 0 : Math.sin(game.time * 40) * 0.03) : b.state === 'windup' && b.attack === 'roar' ? -0.1 * Math.min(1, b.t / 0.5) : b.state === 'windup' ? -0.12 * Math.sin(b.t * 12) : b.state === 'dizzy' ? Math.sin(game.time * 4) * 0.07 : b.state === 'stuck' && !reduced.matches ? Math.sin(game.time * 11) * 0.05 : 0;
       r.body.rotation.x = game.ride.plopped > 0 ? 1.25 * Math.min(1, (2 - game.ride.plopped) / 0.25, game.ride.plopped / 0.35) : 0;
       if (game.ride.riding && game.ride.phase === 'buck' && !reduced.matches) r.body.rotation.z = Math.sin(game.time * 22) * 0.3;
       r.body.rotation.y = b.state === 'sweep' ? Math.sin(Math.min(1, b.t / Math.max(0.01, b.duration)) * Math.PI) * 1.35 : 0;
       const pulse = b.flash > 0 ? Math.sin(b.flash * 25) * 0.08 : 0;
       const gone = napping ? 1 - T.MathUtils.smoothstep(b.t, 2.7, 3.2) : 1;
-      r.root.scale.setScalar(Math.max(0.001, gone) * (game.huntChapter === 0 ? 0.55 : 1)); r.body.scale.set(1 + nap * 0.12 + pulse, 1 - nap * 0.42 - pulse + (snoozing && !reduced.matches ? Math.sin(game.time * 2.2) * 0.035 : 0), 1 + nap * 0.16 + pulse);
+      r.root.scale.setScalar(Math.max(0.001, gone) * (game.huntChapter === 0 ? 0.55 : 1)); const puff = b.state === 'roar' ? 0.12 * Math.sin(Math.min(1, b.t / 1.1) * Math.PI) : 0;
+      r.body.scale.set(1 + nap * 0.12 + pulse + puff, 1 - nap * 0.42 - pulse + puff + (snoozing && !reduced.matches ? Math.sin(game.time * 2.2) * 0.035 : 0), 1 + nap * 0.16 + pulse + puff);
       if (game.ride.riding && game.ride.phase === 'warning') { r.body.scale.y *= 0.86; r.body.scale.x *= 1.06; }
       r.legs.forEach((leg, i) => { leg.rotation.z = nap * -0.9 + (!napping && ['roam', 'charge', 'pounce', 'hop'].includes(b.state) ? motion * (i % 2 ? 0.3 : -0.3) : trudging && !reduced.matches ? Math.sin(game.time * 4) * (i % 2 ? 0.4 : -0.4) : 0); });
       if (b.id === 'bristleback' && b.state === 'windup' && !reduced.matches) r.legs[2].rotation.z = Math.sin(game.time * 16) * 0.55;
@@ -918,12 +924,15 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     }
     nest.visible = !!b && game.huntChapter !== 0 && (game.mode === 'hunt' || game.mode === 'nap'); nest.position.set(game.nest.x, 0, game.nest.z);
     const warning = b?.state === 'windup';
-    const round = b && ['sweep', 'shake', 'cloud'].includes(b.attack);
+    const round = b && ['sweep', 'shake', 'cloud', 'roar'].includes(b.attack);
     lane.visible = !!warning && !round; circle.visible = !!warning && !!round;
     icyRing.visible = b?.state === 'shake'; if (b) { const size = 1 + Math.min(1, b.t / Math.max(0.01, b.duration)) * 4; icyRing.position.set(b.x, 0.09, b.z); icyRing.scale.set(size, 1, size); }
+    const roaring = b?.state === 'roar';
+    roarRings.forEach((o, i) => { const f = roaring ? (b!.t - i * 0.18) / 0.7 : -1; o.visible = f > 0 && f < 1; if (o.visible) { const size = 1.5 + f * (ROAR_REACH + 1); o.position.set(b!.x, b!.height + 0.6 + f * 0.4, b!.z); o.scale.set(size, 1, size); } });
+    roarMat.opacity = roaring ? 0.7 * Math.max(0, 1 - b!.t / 1.1) + 0.15 : 0;
     markerMat.opacity = reduced.matches ? 0.48 : 0.3 + Math.sin(game.time * 13) * 0.12 + 0.1;
     if (b && warning) {
-      if (round) { const size = b.attack === 'shake' ? 5 : b.attack === 'cloud' ? 3.5 : 4; circle.position.set(b.x + (b.attack === 'cloud' ? b.dir.x * 3 : 0), 0.08, b.z + (b.attack === 'cloud' ? b.dir.z * 3 : 0)); circle.scale.set(size, 1, size); }
+      if (round) { const size = b.attack === 'roar' ? ROAR_REACH : b.attack === 'shake' ? 5 : b.attack === 'cloud' ? 3.5 : 4; circle.position.set(b.x + (b.attack === 'cloud' ? b.dir.x * 3 : 0), 0.08, b.z + (b.attack === 'cloud' ? b.dir.z * 3 : 0)); circle.scale.set(size, 1, size); }
       else { const length = Math.hypot(b.aim.x - b.start.x, b.aim.z - b.start.z); lane.position.set((b.start.x + b.aim.x) / 2, 0.08, (b.start.z + b.aim.z) / 2); lane.scale.set(b.attack === 'tongue' ? 2.4 : b.attack === 'hop' || b.attack === 'pounce' ? 6 : 5, Math.max(1, length), 1); lane.rotation.set(-Math.PI / 2, 0, -Math.atan2(b.aim.x - b.start.x, b.aim.z - b.start.z)); }
     }
     const prints = game.trail(), glow = Math.min(1, game.sniff / 1.5);
@@ -1005,7 +1014,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     get yaw() { return yaw; },
     orbit(dx: number, dy: number) { yaw -= dx * 0.006; pitch = T.MathUtils.clamp(pitch + dy * 0.004, 0.18, 0.95); userOrbit = 4; },
     zoom(delta: number) { dist = T.MathUtils.clamp(dist + delta * 0.008, 5, 14); },
-    metrics() { return { area: currentArea, villagers: village.visible ? villagers.length : 0, variantColor: lastVariantColor, ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible), nest: nest.visible, sleepy: drowsy[0].visible }; },
+    metrics() { return { area: currentArea, villagers: village.visible ? villagers.length : 0, variantColor: lastVariantColor, ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible), nest: nest.visible, sleepy: drowsy[0].visible, roarRings: roarRings.filter((o) => o.visible).length }; },
     dispose() {
       if (closed) return; closed = true; observer.disconnect();
       scene.traverse((o) => { if (o instanceof T.InstancedMesh) o.dispose(); if (o instanceof T.Mesh || o instanceof T.Line) { geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : [o.material]) materials.add(m); } });

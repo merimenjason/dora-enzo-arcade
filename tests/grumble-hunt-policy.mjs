@@ -18,9 +18,9 @@ export function huntPolicy(g) {
   if (b.id === 'hornclack') { tx -= Math.cos(b.face) * desired; tz += Math.sin(b.face) * desired; }
   else { const a = Math.atan2(h.z - b.z, h.x - b.x); tx += Math.cos(a) * desired; tz += Math.sin(a) * desired; }
   let dx = tx - h.x, dz = tz - h.z;
-  if (b.state === 'windup' || ['charge', 'swoop', 'pounce', 'hop', 'tongue', 'shake', 'sweep'].includes(b.state)) {
-    if (['shake', 'sweep', 'cloud'].includes(b.attack)) {
-      if (d < 6.3) { dx = h.x - b.x; dz = h.z - b.z; }
+  if (b.state === 'windup' || ['charge', 'swoop', 'pounce', 'hop', 'tongue', 'shake', 'sweep', 'roar'].includes(b.state)) {
+    if (['shake', 'sweep', 'cloud', 'roar'].includes(b.attack)) {
+      if (d < (b.attack === 'roar' ? 7.6 : 6.3)) { dx = h.x - b.x; dz = h.z - b.z; }
     } else {
       // Escape sideways, choosing the side already closer to the hero.
       const px = -b.dir.z, pz = b.dir.x, side = (h.x - b.start.x) * px + (h.z - b.start.z) * pz >= 0 ? 1 : -1;

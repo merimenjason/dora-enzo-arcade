@@ -4,18 +4,21 @@ export type { AreaId, ItemId, MaterialId, SnackId };
 export type HeroId = 'dora' | 'enzo';
 export const BEAST_IDS = ['bristleback', 'puffwart', 'skreel', 'hornclack', 'frostmane'] as const;
 export type BeastId = typeof BEAST_IDS[number];
-export const BEASTS: Record<BeastId, { name: string; grump: number; part: string; tip: string; color: string }> = {
-  bristleback: { name: 'Bristleback', grump: 420, part: 'tusks', tip: 'Step out of the orange lane. A charge into a tree or rock makes it dizzy!', color: '#b98050' },
-  puffwart: { name: 'Puffwart', grump: 440, part: 'throat sac', tip: 'Roll past the tongue, leave the sleepy clouds, and bonk between hops.', color: '#8c9d4b' },
-  skreel: { name: 'Skreel', grump: 400, part: 'crest', tip: 'Dodge the swoop, then get close while Skreel rests on the ground.', color: '#788ca6' },
-  hornclack: { name: 'Hornclack', grump: 560, part: 'horn cap', tip: 'The front shell blocks bonks. Circle around to the sides or back.', color: '#8b919f' },
-  frostmane: { name: 'Frostmane', grump: 840, part: 'mane tufts', tip: 'Watch for a pounce or a round mane-shake marker. Three moods, one lovely nap.', color: '#accfe7' },
+export const BEASTS: Record<BeastId, { name: string; title: string; grump: number; part: string; tip: string; color: string }> = {
+  bristleback: { name: 'Bristleback', title: 'the Bristly Charger', grump: 420, part: 'tusks', tip: 'Step out of the orange lane. A charge into a tree or rock makes it dizzy!', color: '#b98050' },
+  puffwart: { name: 'Puffwart', title: 'the Puffy Pond Toad', grump: 440, part: 'throat sac', tip: 'Roll past the tongue, leave the sleepy clouds, and bonk between hops.', color: '#8c9d4b' },
+  skreel: { name: 'Skreel', title: 'the Swooping Sky Crest', grump: 400, part: 'crest', tip: 'Dodge the swoop, then get close while Skreel rests on the ground.', color: '#788ca6' },
+  hornclack: { name: 'Hornclack', title: 'the Shell-Horned Wanderer', grump: 560, part: 'horn cap', tip: 'The front shell blocks bonks. Circle around to the sides or back.', color: '#8b919f' },
+  frostmane: { name: 'Frostmane', title: 'the Snowy Mane of the Peak', grump: 840, part: 'mane tufts', tip: 'Watch for a pounce or a round mane-shake marker. Three moods, one lovely nap.', color: '#accfe7' },
 };
 export const DT = 1 / 60;
 export const ARENA_RADIUS = 19;
 export const TELEGRAPH = 0.9; // Every attack, including final-phase pounces, has at least this warning (less 0.1 s when Extra Grumpy).
 export const GRUMPY_AT = 0.3; // Below this share of Grump a beast turns Extra Grumpy: 15% faster, warning 0.1 s sooner.
 export const GRUMPY_PACE = 1.15;
+export const ROAR_REACH = 7; // A roar makes friends this close cover their ears; a roll or a guard keeps them going.
+export const INTRO_CARD = 3.2;
+export const ROAR_TIME = 1.1; // Seconds a roar lasts; covered ears last 0.9 seconds.
 export const TIRED_AT = 0.2; // Below this share of Grump a beast trudges home to its nest, once, and snoozes there.
 export const SNOOZE = 8; // Seconds a beast snoozes in its nest unless a wake-up bonk (double Grump) comes first.
 const NEST_REGAIN = 0.08; // A full snooze restores at most this share of Grump.
@@ -80,8 +83,8 @@ export type Pouch = Record<MaterialId | ItemId, number>;
 export type StoryProgress = { chapter: number; scenesSeen: string[] };
 export type BeastBook = Record<BeastId, { met: boolean; napped: number; partsBroken: string[] }>;
 export type Profile = { bountiesClaimed: number; variantNaps: Record<BeastId, number>; totalPlops: number; story: StoryProgress; beastBook: BeastBook; bounties: { day: string; done: string[]; ready: string[] }; extraGrumpyUnlocked: boolean; hero: HeroId | null; weapons: Record<WeaponType, { tier: Tier; branch: Branch | null }>; equipped: Record<HeroId, WeaponType>; armour: { owned: ArmourPieceId[]; worn: Worn }; pouch: Pouch; ring: ItemId[]; snack: SnackId | null; naps: Record<BeastId, number>; won: boolean; hunts: number };
-export type Hero = Vec & { face: number; fluff: number; maxFluff: number; speed: number; roll: number; rollX: number; rollZ: number; rollCd: number; invincible: number; charge: number; swing: number; heavy: boolean; landed: boolean; cooldown: number; slow: number; hidden: number };
-export type BeastState = 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'cloud' | 'circle' | 'swoop' | 'sweep' | 'pounce' | 'shake' | 'rest' | 'dizzy' | 'stuck' | 'trudge' | 'snooze' | 'nap';
+export type Hero = Vec & { face: number; fluff: number; maxFluff: number; speed: number; roll: number; rollX: number; rollZ: number; rollCd: number; invincible: number; charge: number; swing: number; heavy: boolean; landed: boolean; cooldown: number; slow: number; hidden: number; covered: number };
+export type BeastState = 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'cloud' | 'circle' | 'swoop' | 'sweep' | 'pounce' | 'shake' | 'roar' | 'rest' | 'dizzy' | 'stuck' | 'trudge' | 'snooze' | 'nap';
 export type Beast = Vec & { id: BeastId; grump: number; maxGrump: number; face: number; state: BeastState; t: number; duration: number; attack: BeastState; aim: Vec; start: Vec; dir: Vec; phase: number; cycle: number; dizzy: number; part: number; broken: boolean; bonks: number; flash: number; height: number; grumpy: boolean; drowsy: number; drowsySlow: number; home: 0 | 1 | 2 };
 export type Obstacle = Vec & { r: number; kind: 'tree' | 'rock' | 'pine' };
 export type Shot = Vec & { id: number; dx: number; dz: number; life: number; power: number; heavy: boolean; buddy: boolean; type: WeaponType; ammo: number; charge: number; hit: boolean; dizzyShare: number };
@@ -91,7 +94,7 @@ export type Cloud = Vec & { life: number; r: number };
 export type Fx = Vec & { id: number; kind: 'bonk' | 'dust' | 'dizzy' | 'berry' | 'part' | 'nap'; t: number; text: string };
 export type Ride = { riding: boolean; meter: number; fullBonks: number; phase: 'quiet' | 'warning' | 'buck'; timer: number; grip: boolean; used: number; left: number; pose: number; landing: number; plopped: number };
 const freshRide = (): Ride => ({ riding: false, meter: 0, fullBonks: 0, phase: 'quiet', timer: 0, grip: false, used: 0, left: 0, pose: 0, landing: 0, plopped: 0 });
-export type HuntEvent = { kind: 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shaken-off' | 'plop' | 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'tired' | 'snooze' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
+export type HuntEvent = { kind: 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shaken-off' | 'plop' | 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'tired' | 'snooze' | 'intro' | 'roar' | 'covered' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
 export type Mode = 'village' | 'hunt' | 'nap' | 'calm' | 'camp' | 'victory';
 const countRecord = (): Record<BeastId, number> => ({ bristleback: 0, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0 });
 const emptyPouch = () => Object.fromEntries([...MATERIAL_IDS, ...ITEM_IDS].map((id) => [id, 0])) as Pouch;
@@ -100,7 +103,7 @@ const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 export const distance = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.z - b.z);
 const faceTo = (a: Vec, b: Vec) => Math.atan2(-(b.z - a.z), b.x - a.x);
 const direction = (a: Vec, b: Vec): Vec => { const d = distance(a, b) || 1; return { x: (b.x - a.x) / d, z: (b.z - a.z) / d }; };
-const hero = (maxFluff = 100): Hero => ({ x: 0, z: 7, face: Math.PI / 2, fluff: maxFluff, maxFluff, speed: 0, roll: -1, rollX: 0, rollZ: -1, rollCd: 0, invincible: 0, charge: 0, swing: -1, heavy: false, landed: false, cooldown: 0, slow: 0, hidden: 0 });
+const hero = (maxFluff = 100): Hero => ({ x: 0, z: 7, face: Math.PI / 2, fluff: maxFluff, maxFluff, speed: 0, roll: -1, rollX: 0, rollZ: -1, rollCd: 0, invincible: 0, charge: 0, swing: -1, heavy: false, landed: false, cooldown: 0, slow: 0, hidden: 0, covered: 0 });
 const buddy = () => ({ x: -1.5, z: 8.5, face: Math.PI / 2, speed: 0, swing: -1, cooldown: 1, berry: 3, gather: 0, gatherT: 0, fluff: 100, maxFluff: 100 });
 export const plural = (n: number, name: string) => n === 1 ? name : name.endsWith('y') ? `${name.slice(0, -1)}ies` : `${name}s`;
 /** Distance from a point to a finite marked attack lane. */
@@ -174,6 +177,11 @@ export class HuntGame {
   area: AreaId = 'meadow';
   spots: GatherSpot[] = [];
   gathering: { spot: number; t: number } | null = null;
+  /** Roars due: the hello roar when the beast first notices the friends, and another on turning Extra Grumpy. The first one shows the name card. */
+  roared = false;
+  introduced = false;
+  /** Hunt time of the name card, or -1; the page shows the card for INTRO_CARD seconds. */
+  introAt = -1;
   /** Where a tired beast goes to snooze: the first clear spot around the edge, chosen without the random generator. */
   nest: Vec = { x: 0, z: 0 };
   /** One sticky sap trap on the ground at a time. */
@@ -438,7 +446,7 @@ export class HuntGame {
     const grump = this.huntChapter === 0 ? 40 : BEASTS[id].grump * (variant ? 1.6 : 1);
     this.beast = { id, x: 0, z: -3, face: -Math.PI / 2, grump, maxGrump: grump, state: id === 'skreel' ? 'circle' : 'roam', t: 0, duration: 2.4, attack: 'charge', aim: { x: 0, z: 0 }, start: { x: 0, z: -3 }, dir: { x: 0, z: 1 }, phase: 1, cycle: 0, dizzy: 0, part: 0, broken: false, bonks: 0, flash: 0, height: 0, grumpy: false, drowsy: 0, drowsySlow: 0.3, home: 0 };
     this.shots = []; this.drops = []; this.clouds = []; this.fx = []; this.item = 0; this.sniff = 0; this.unseen = 0; this.locked = true; this.paused = false; this.hitstop = 0; this.shake = 0; this.last = { ...NO_INPUT }; this.resultTime = 0;
-    this.gathering = null; this.trap = null; this.reward = []; this.area = this.huntChapter >= 0 ? STORY[this.huntChapter].area : HUNT_AREA[id];
+    this.roared = this.introduced = this.huntChapter === 0; this.introAt = -1; this.gathering = null; this.trap = null; this.reward = []; this.area = this.huntChapter >= 0 ? STORY[this.huntChapter].area : HUNT_AREA[id];
     this.profile.pouch.fluffberry = Math.max(this.profile.pouch.fluffberry, CAMP_BERRIES);
     this.profile.hunts++; this.makeArea(); this.makeSpots(); this.nest = this.findNest(); this.revision++; this.note = BEASTS[id].tip;
     return true;
@@ -505,7 +513,7 @@ export class HuntGame {
       if (next > b.phase && b.grump > 0) { b.phase = next; this.note = `Frostmane mood ${next}: ${next === 2 ? 'watch for the icy mane shake' : 'quick pounces, with a warning before each one'}!`; }
     }
     if (!b.grumpy && b.grump > 0 && b.grump < b.maxGrump * GRUMPY_AT) {
-      b.grumpy = true; this.events.push({ kind: 'grumpy' }); this.effect('dust', b, 'Extra Grumpy!');
+      b.grumpy = true; this.roared = this.huntChapter === 0; this.events.push({ kind: 'grumpy' }); this.effect('dust', b, 'Extra Grumpy!');
       this.note = `${BEASTS[b.id].name} is Extra Grumpy! Steamy ears, quicker paws and quicker warnings. Nearly nap time.`;
     }
     if (!b.home && this.huntChapter !== 0 && b.grump > 0 && b.grump < b.maxGrump * TIRED_AT) {
@@ -812,6 +820,7 @@ export class HuntGame {
     for (const k of ['invincible', 'cooldown', 'slow', 'hidden'] as const) h[k] = Math.max(0, h[k] - dt);
     this.ride.pose = Math.max(0, this.ride.pose - dt); this.ride.landing = Math.max(0, this.ride.landing - dt); this.ride.plopped = Math.max(0, this.ride.plopped - dt);
     if (this.ride.riding) { this.stepRide(dt, input); return; }
+    if (h.covered > 0) { h.covered = Math.max(0, h.covered - dt); h.speed = 0; return; }
     this.song = Math.max(0, this.song - dt); this.glow = Math.max(0, this.glow - dt);
     this.breath = Math.max(0, this.breath - dt);
     if (this.fluffTime > 0 && this.mode === 'hunt') { const elapsed = Math.min(dt, this.fluffTime); this.fluffTime -= elapsed; if (this.beast?.state !== 'dizzy') this.addDizzy(2 * elapsed); }
@@ -939,12 +948,23 @@ export class HuntGame {
     b.cycle++; b.phase = b.id === 'frostmane' ? b.grump < b.maxGrump / 3 ? 3 : b.grump < b.maxGrump * 2 / 3 ? 2 : 1 : 1;
     const attacks: Record<BeastId, BeastState[]> = { bristleback: ['charge'], puffwart: ['hop', 'tongue', 'cloud'], skreel: ['swoop'], hornclack: ['sweep', 'charge'], frostmane: ['pounce', 'shake', 'pounce'] };
     const pattern = b.id === 'frostmane' ? b.phase === 1 ? ['pounce'] : b.phase === 2 ? ['pounce', 'shake'] : ['pounce', 'pounce', 'shake'] : attacks[b.id];
-    b.attack = pattern[(b.cycle - 1) % pattern.length] as BeastState;
+    // The first wind-up that can see a friend, and the first after turning Extra Grumpy, is a roar instead.
+    const roar = !this.roared && this.inSight();
+    if (roar) { b.cycle--; this.roared = true; }
+    b.attack = roar ? 'roar' : pattern[(b.cycle - 1) % pattern.length] as BeastState;
     b.state = 'windup'; b.t = 0; b.duration = Math.max(0.6, b.grumpy ? TELEGRAPH - 0.1 : TELEGRAPH); b.start = { x: b.x, z: b.z }; b.dir = direction(b, this.hero); b.face = faceTo(b, this.hero);
     const length = b.attack === 'charge' || b.attack === 'swoop' ? 12 : b.attack === 'pounce' || b.attack === 'hop' ? Math.min(9, distance(b, this.hero)) : b.attack === 'tongue' ? 7 : 0;
     b.aim = { x: b.x + b.dir.x * length, z: b.z + b.dir.z * length };
     this.effect('dust', b);
-    this.note = b.attack === 'shake' || b.attack === 'sweep' || b.attack === 'cloud' ? 'Orange circle! Step outside or roll as it lands.' : 'Orange lane! Step sideways or roll as it arrives.';
+    if (roar && !this.introduced) { this.introduced = true; this.introAt = this.huntTime; this.events.push({ kind: 'intro' }); }
+    this.note = b.attack === 'roar' ? 'Big roar coming! Step out of the orange circle, roll or guard.' : b.attack === 'shake' || b.attack === 'sweep' || b.attack === 'cloud' ? 'Orange circle! Step outside or roll as it lands.' : 'Orange lane! Step sideways or roll as it arrives.';
+  }
+  private coverEars(b: Beast) {
+    const h = this.hero, rolling = h.roll >= 0 && h.roll < 0.32 * (this.skill('feather-step') ? 1.3 : 1);
+    if (distance(this.buddy, b) < ROAR_REACH) this.buddy.cooldown = Math.max(this.buddy.cooldown, 0.9);
+    if (distance(h, b) >= ROAR_REACH || rolling || this.guarding || h.invincible > 0 || this.airHeight > 0.5) return;
+    h.covered = 0.9; h.charge = 0; this.events.push({ kind: 'covered' }); this.effect('dust', h, 'Ears covered!');
+    this.note = 'What a roar! Roll or guard as it roars to keep going.';
   }
   private stepBeast(dt: number) {
     const b = this.beast; if (!b || this.ride.riding) return;
@@ -983,6 +1003,7 @@ export class HuntGame {
     }
     if (b.state === 'windup') {
       b.height = b.id === 'skreel' ? 1 + Math.sin(b.t * 8) * 0.2 : 0;
+      if (b.t >= b.duration && b.attack === 'roar') { b.state = 'roar'; b.t = 0; b.duration = ROAR_TIME; this.events.push({ kind: 'roar' }); this.shake = Math.max(this.shake, 0.35); return; }
       if (b.t >= b.duration) { b.state = b.attack; b.t = 0; b.duration = b.attack === 'charge' || b.attack === 'swoop' ? distance(b.start, b.aim) / ((b.attack === 'charge' ? 12 : 14) * pace) : b.attack === 'pounce' || b.attack === 'hop' ? 0.72 / pace : 0.65; }
       return;
     }
@@ -1003,6 +1024,9 @@ export class HuntGame {
       if (b.t > 0.18 && b.t < 0.48 && laneDistance(this.hero, b.start, b.aim) < 1.2) this.bumpHero(12, b);
     } else if (active === 'sweep' || active === 'shake') {
       if (b.t > 0.25 && distance(this.hero, b) < (active === 'shake' ? 5 : 4)) this.bumpHero(active === 'shake' ? 14 : 16, b);
+    } else if (active === 'roar') {
+      // One sound wave, 0.2 s in: friends inside the reach cover their ears unless rolling, guarding or riding.
+      if (b.t >= 0.2 && b.t - dt < 0.2) this.coverEars(b);
     } else if (active === 'cloud' && b.t >= b.duration) {
       this.clouds.push({ x: b.x + b.dir.x * 3, z: b.z + b.dir.z * 3, life: 5, r: 3.5 });
     }

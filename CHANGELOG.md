@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Grumble Hunt** beasts announce themselves: the first time one spots you it rears up and roars, with a painted name card ("Frostmane, the Snowy Mane of the Peak"), and it roars again when it turns Extra Grumpy. Friends inside the orange circle cover their ears for a moment unless they roll or guard. The Beast Book shows each beast's title.
+
 - **Grumble Hunt** beasts get tired near the end of a hunt and trudge home to a twig nest for a snooze. Follow them: the first bonk on a snoozing beast is a wake-up bonk worth double, but leave it too long and it wakes up a little refreshed.
 
 ### Fixed

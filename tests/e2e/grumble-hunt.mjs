@@ -17,7 +17,8 @@ async function fresh(p, hero = 'dora', story = false) {
   await hunt(p, (w) => { const g = w.game; g.returnVillage(); g.story.chapter = 6; g.profile.extraGrumpyUnlocked = true; for (const id of ['bristleback', 'puffwart', 'skreel', 'hornclack', 'frostmane']) g.profile.beastBook[id].met = true; });
   await p.locator('main[data-mode="village"]').waitFor();
 }
-async function start(p, id = 'bristleback') { await p.getByTestId('open-board').click(); await p.getByTestId(`hunt-${id}`).click(); await p.locator('main[data-mode="hunt"]').waitFor(); }
+// Checks start after the hello roar (it can't come in the first 2.4 s); the orange-warnings check covers the roar.
+async function start(p, id = 'bristleback') { await p.getByTestId('open-board').click(); await p.getByTestId(`hunt-${id}`).click(); await p.locator('main[data-mode="hunt"]').waitFor(); await hunt(p, (w) => { w.game.roared = w.game.introduced = true; }); }
 async function check(name, fn, options = {}) {
   if (process.env.ONLY && !name.includes(process.env.ONLY)) return;
   const page = await browser.newPage({ viewport: { width: 1365, height: 900 }, ...options }); page.setDefaultTimeout(30000);
@@ -251,6 +252,14 @@ try {
       await hunt(p, (w, a) => { const g = w.game; g.returnVillage(); for (const k of ['bristleback', 'puffwart', 'skreel']) g.profile.naps[k] = 1; g.startHunt(a.id); g.beast.state = a.action; g.beast.attack = a.action; g.beast.t = 0.25; g.beast.duration = 2; g.buddy.cooldown = 100; }, { id, action });
       await p.waitForTimeout(150); await snapshot(p, action);
     }
+    // Roar: the first sighting shows the name card and a big orange circle, then sound rings and covered ears.
+    await hunt(p, (w) => { const g = w.game; g.returnVillage(); g.startHunt('bristleback'); const b = g.beast; g.buddy.cooldown = 100; g.hero.x = b.x; g.hero.z = b.z + 4; b.state = 'roam'; b.t = 0; b.duration = 0; });
+    await p.waitForFunction(() => window.__hunt().game.beast.attack === 'roar');
+    await p.getByTestId('intro-card').waitFor(); assert.match(await p.getByTestId('intro-card').innerText(), /Bristleback[\s\S]*the Bristly Charger/);
+    await snapshot(p, 'roar-warning');
+    await p.waitForFunction(() => window.__hunt().metrics().roarRings > 0, null, { timeout: 15000 });
+    await p.waitForFunction(() => window.__hunt().game.hero.covered > 0, null, { timeout: 15000 }); await snapshot(p, 'roar');
+    await p.getByTestId('intro-card').waitFor({ state: 'hidden', timeout: 30000 });
   });
 
   await check('phone rendering budget with four-times CPU throttling', async (p) => {

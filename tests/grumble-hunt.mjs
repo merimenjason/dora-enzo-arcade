@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
 import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
 const input = (overrides = {}) => ({ ...NO_INPUT, ...overrides });
-const fresh = (id = 'bristleback', hero = 'dora', seed = 39) => { const g = new HuntGame(seed); g.chooseHero(hero); g.story.chapter = 6; g.profile.extraGrumpyUnlocked = true; for (const k of BEAST_IDS) g.profile.beastBook[k].met = true; assert(g.startHunt(id)); return g; };
+const fresh = (id = 'bristleback', hero = 'dora', seed = 39) => { const g = new HuntGame(seed); g.chooseHero(hero); g.story.chapter = 6; g.profile.extraGrumpyUnlocked = true; for (const k of BEAST_IDS) g.profile.beastBook[k].met = true; assert(g.startHunt(id)); g.roared = g.introduced = true; return g; }; // Checks start after the hello roar; the roar has its own check.
 const tick = (g, seconds, i = NO_INPUT) => { for (let n = 0; n < Math.ceil(seconds / DT); n++) g.step(DT, i); };
 /** Meets the four post-game weapon goals. */
 const postGame = (g) => { g.profile.bountiesClaimed = 5; g.profile.totalPlops = 10; for (const id of BEAST_IDS) { g.profile.variantNaps[id] = 1; g.profile.beastBook[id].partsBroken = [BEASTS[id].part]; } };
@@ -216,6 +216,31 @@ check('below 30% Grump a beast turns Extra Grumpy once: 15% faster, warning 0.1 
   const run = (g) => distance(g.beast, g.beast.start);
   assert(Math.abs(run(grumpy) / run(calmGrump) - GRUMPY_PACE) < 0.02, `grumpy charge ran ${run(grumpy)} against ${run(calmGrump)}`);
   assert.equal(fresh().beast.grumpy, false, 'a new hunt starts calm');
+});
+check('the first wind-up that sees a friend is a warned roar that covers ears nearby, once, and again on turning Extra Grumpy', () => {
+  for (const id of BEAST_IDS) {
+    const g = fresh(id), b = g.beast, h = g.hero; g.roared = g.introduced = false; g.buddy.cooldown = 10000;
+    b.state = 'roam'; b.t = 0; b.duration = 0; h.x = b.x; h.z = b.z + 4; g.events.length = 0; g.step(DT);
+    assert.equal(b.state, 'windup', id); assert.equal(b.attack, 'roar', id); assert.equal(g.events.filter((e) => e.kind === 'intro').length, 1); assert.equal(g.introAt, g.huntTime); assert.match(`${BEASTS[id].name}, ${BEASTS[id].title}`, /, the /);
+    let warning = 0; while (b.state === 'windup') { g.step(DT); warning += DT; }
+    assert(warning >= 0.6, `${id} roar warned for ${warning}`); assert.equal(b.state, 'roar'); assert(g.events.some((e) => e.kind === 'roar'));
+    const fluff = h.fluff;
+    tick(g, 0.3, input({ x: 1 })); assert(h.covered > 0, `${id} covers ears`); assert.equal(h.fluff, fluff, 'a roar never bumps');
+    const at = { x: h.x, z: h.z }; tick(g, 0.4, input({ x: 1 })); assert(distance(h, at) < 1e-9, 'covered ears hold the friend still');
+    tick(g, 0.6); assert.equal(h.covered, 0); assert.equal(b.state, 'rest');
+    b.state = 'roam'; b.t = 0; b.duration = 0; g.events.length = 0; g.step(DT); assert.notEqual(b.attack, 'roar', 'one hello roar');
+    // Extra Grumpy brings one more roar, without a second name card.
+    b.state = 'rest'; b.height = 0; g.bonkBeast(b.grump - b.maxGrump * (GRUMPY_AT - 0.02), false, { x: b.x - Math.cos(b.face) * 3, z: b.z + Math.sin(b.face) * 3 }); g.hitstop = 0;
+    b.state = 'roam'; b.t = 0; b.duration = 0; g.events.length = 0; g.step(DT); assert.equal(b.attack, 'roar', `${id} grumpy roar`); assert(!g.events.some((e) => e.kind === 'intro'));
+  }
+  // Out of reach, rolling or guarding friends keep going; the paddock calf never roars.
+  for (const setup of [(g) => { g.hero.z = g.beast.z + ROAR_REACH + 0.5; }, (g) => { g.hero.invincible = 5; }]) {
+    const g = fresh(), b = g.beast; g.roared = false; g.buddy.cooldown = 10000; g.hero.x = b.x; g.hero.z = b.z + 4; setup(g);
+    b.state = 'roam'; b.t = 0; b.duration = 0; g.step(DT); while (b.state === 'windup') g.step(DT);
+    tick(g, 0.4); assert.equal(g.hero.covered, 0);
+  }
+  assert(ROAR_TIME >= 0.9);
+  const calf = new HuntGame(5); calf.chooseHero('dora'); assert(calf.startHunt('bristleback')); assert(calf.roared && calf.introduced); assert.equal(calf.introAt, -1);
 });
 check('below 20% Grump a tired beast trudges home, snoozes in its nest and the first bonk is a doubled wake-up bonk', () => {
   for (const id of BEAST_IDS) {
