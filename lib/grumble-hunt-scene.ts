@@ -382,6 +382,42 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     groundMat.needsUpdate = dirtMat.needsUpdate = trailMat.needsUpdate = areaCard.needsUpdate = true;
   }
   const snowfall = new T.InstancedMesh(ico, snowMat, 80); snowfall.visible = false; scene.add(snowfall);
+  // Butterflies over the meadow and camp: one draw per wing side, each wing a big upper and small lower lobe hinged on the body line.
+  const wingGeo = (() => {
+    const shape = new T.Shape(); shape.moveTo(0, 0.02); shape.bezierCurveTo(0.35, 0.45, 0.62, 0.16, 0.48, -0.04); shape.bezierCurveTo(0.42, -0.12, 0.38, -0.36, 0.2, -0.32); shape.bezierCurveTo(0.08, -0.3, 0.03, -0.12, 0, -0.06);
+    const g = new T.ShapeGeometry(shape, 6); g.rotateX(Math.PI / 2); geometries.add(g); return g;
+  })();
+  const wingMat = noOutline(new T.MeshBasicMaterial({ color: 0xffffff, side: T.DoubleSide })); materials.add(wingMat);
+  const BUTTERFLIES = 10, wings = [0, 1].map(() => { const w = new T.InstancedMesh(wingGeo, wingMat, BUTTERFLIES); w.visible = false; scene.add(w); return w; });
+  const wingColors = [0xffe066, 0xfffaf0, 0xff9cc6, 0x8cc8ff, 0xffa94d];
+  for (let i = 0; i < BUTTERFLIES; i++) for (const w of wings) w.setColorAt(i, tint.set(wingColors[i % wingColors.length]));
+  // Fireflies over the marsh: small warm-green glows drifting low.
+  const fireflyMat = noOutline(new T.MeshBasicMaterial({ color: 0xe6ff9a, toneMapped: false })); materials.add(fireflyMat);
+  const FIREFLIES = 18, fireflies = new T.InstancedMesh(ico, fireflyMat, FIREFLIES); fireflies.visible = false; scene.add(fireflies);
+  const yawQ = new T.Quaternion(), flapQ = new T.Quaternion(), wingAt = new T.Vector3(), wingSize = new T.Vector3(), forward = new T.Vector3(0, 0, 1), upAxis = new T.Vector3(0, 1, 0);
+  function ambientLife(time: number) {
+    const fluttery = (currentArea === 'meadow' || currentArea === 'paddock') && !reduced.matches;
+    for (const w of wings) w.visible = fluttery;
+    fireflies.visible = currentArea === 'marsh' && !reduced.matches;
+    if (fluttery) {
+      for (let i = 0; i < BUTTERFLIES; i++) {
+        const a = i * 2.39, r = 6 + (i * 7.7) % 15, t = time * (0.35 + (i % 3) * 0.08) + i * 1.7;
+        const x = Math.cos(a) * r + Math.sin(t) * 2.6, z = Math.sin(a) * r + Math.cos(t * 0.8) * 2.6, y = 0.9 + 0.35 * Math.sin(time * 1.9 + i * 2) + (i % 4) * 0.25;
+        const yaw = Math.atan2(Math.cos(t) * 2.6, -Math.sin(t * 0.8) * 2.08), flap = 0.25 + 0.95 * Math.abs(Math.sin(time * 13 + i * 1.3));
+        yawQ.setFromAxisAngle(upAxis, yaw);
+        wings.forEach((w, side) => { flapQ.setFromAxisAngle(forward, side ? -flap : flap).premultiply(yawQ); matrix.compose(wingAt.set(x, y, z), flapQ, wingSize.set(side ? -0.55 : 0.55, 0.55, 0.55)); w.setMatrixAt(i, matrix); });
+      }
+      for (const w of wings) w.instanceMatrix.needsUpdate = true;
+    }
+    if (fireflies.visible) {
+      for (let i = 0; i < FIREFLIES; i++) {
+        const a = i * 2.39 + time * 0.05, r = 4 + (i * 5.3) % 18, glow = 0.5 + 0.5 * Math.sin(time * 2.2 + i * 1.9);
+        matrix.compose(wingAt.set(Math.cos(a) * r + Math.sin(time * 0.6 + i) * 1.2, 0.6 + 0.5 * Math.sin(time * 0.9 + i * 2.3) + (i % 3) * 0.3, Math.sin(a) * r + Math.cos(time * 0.5 + i) * 1.2), upright, wingSize.setScalar(0.05 + 0.07 * glow));
+        fireflies.setMatrixAt(i, matrix);
+      }
+      fireflies.instanceMatrix.needsUpdate = true;
+    }
+  }
   /** Instance repeated meshes; `plain` batches also drop out of the shadow and outline passes. */
   const plainMaterials = new Map<T.Material, T.Material>();
   function batchMeshes(root: T.Group, plain: boolean) {
@@ -809,6 +845,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     village.visible = paths.visible = game.mode === 'village' || game.mode === 'camp'; campPath.visible = !village.visible;
     poseActor('dora', game); poseActor('enzo', game); holdFx(game, dt);
     for (const id of BEAST_IDS) beasts[id].root.visible = game.beast?.id === id && !['village', 'camp'].includes(game.mode);
+    ambientLife(game.time);
     snowfall.visible = currentArea === 'peak' && !reduced.matches;
     if (snowfall.visible) { for (let i = 0; i < 80; i++) { const x = Math.sin(i * 7.3) * 22, z = Math.cos(i * 3.7) * 22, y = 9 - (game.time * 0.7 + i * 0.37) % 9; matrix.compose(V(x + Math.sin(game.time + i) * 0.3, y, z), upright, V(0.035, 0.035, 0.035)); snowfall.setMatrixAt(i, matrix); } snowfall.instanceMatrix.needsUpdate = true; }
     const talkTo = village.visible && game.mode === 'village' ? game.nearestSpot()?.id : undefined;
