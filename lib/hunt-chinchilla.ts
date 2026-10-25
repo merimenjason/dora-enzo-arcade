@@ -28,11 +28,12 @@ function fluffBall(r: [number, number, number], lump: number, seed: number, top:
   return geo;
 }
 
-export function createHuntChinchilla(white: boolean): HuntChinchilla {
+export function createHuntChinchilla(white: boolean, shade?: (m: T.MeshToonMaterial) => void): HuntChinchilla {
   // Dora: cream white with pink ears and ruby eyes. Enzo: standard grey, darker saddle, pale belly.
   const back = new T.Color(white ? 0xf4eee4 : 0x6f6e78), belly = new T.Color(white ? 0xfffaf2 : 0xe4e0dc);
   const coat = toon(0xffffff, true), plain = toon(white ? 0xf4eee4 : 0x7a7983);
   const earSkin = toon(white ? 0xf2b3a6 : 0xb79a9c), pad = toon(white ? 0xf0b5aa : 0xa98f92), nose = toon(white ? 0xe08e8e : 0x4c3c44);
+  if (shade) for (const m of [coat, plain, earSkin, pad]) shade(m);
   const root = new T.Group(), body = new T.Group(), head = new T.Group(), tail = new T.Group();
   root.add(body); const ears: T.Group[] = [], feet: T.Group[] = [], arms: Arm[] = [], blink: T.Object3D[] = [];
   const add = (p: T.Object3D, g: T.BufferGeometry, m: T.Material, x: number, y: number, z: number) => { const o = new T.Mesh(g, m); o.position.set(x, y, z); o.castShadow = true; p.add(o); return o; };

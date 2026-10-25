@@ -70,16 +70,17 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const m = new T.Mesh(geo, mat); m.position.set(...pos); m.scale.set(...scale); if (!geo.boundingSphere) geo.computeBoundingSphere(); m.castShadow = shadow && (geo.boundingSphere?.radius ?? 1) * Math.max(...scale) > 0.22; m.receiveShadow = true; parent.add(m); geometries.add(geo); materials.add(mat); return m;
   }
   const groundMat = toon(0xd4dfbd, grassMap, false), dirtMat = toon(0xe8d9bd, dirtMap, false);
-  // The ground blends a second, rotated and slightly blurred sample of its painting at a larger scale (more of it on the busier grounds) and a slow light-and-dark patchwork, so the tiling doesn't show.
-  const calm = { value: 0 };
+  // The ground blends a second, rotated and slightly blurred sample of its painting at a larger scale (more of it on the busier grounds) and a slow light-and-dark patchwork, so the tiling doesn't show. The loudest grounds are also muted a little toward grey.
+  const calm = { value: 0 }, mute = { value: 0 };
   groundMat.onBeforeCompile = (shader) => {
-    shader.uniforms.uCalm = calm;
+    shader.uniforms.uCalm = calm; shader.uniforms.uMute = mute;
     shader.vertexShader = 'varying vec2 vGround;\n' + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvGround = (modelMatrix * vec4(transformed, 1.0)).xz;');
-    shader.fragmentShader = 'uniform float uCalm;\nvarying vec2 vGround;\n' + shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+    shader.fragmentShader = 'uniform float uCalm, uMute;\nvarying vec2 vGround;\n' + shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
       vec3 far = texture2D(map, mat2(0.8, -0.6, 0.6, 0.8) * vGround * 0.0305 + 0.37, 1.5).rgb;
       diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * far / max(sampledDiffuseColor.rgb, vec3(0.2)), 0.35 + uCalm);
       float quilt = sin(vGround.x * 0.11 + sin(vGround.y * 0.07) * 2.0) * sin(vGround.y * 0.09 + sin(vGround.x * 0.05) * 1.7);
-      diffuseColor.rgb *= 0.95 + 0.09 * quilt;`);
+      diffuseColor.rgb *= 0.95 + 0.09 * quilt;
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(dot(diffuseColor.rgb, vec3(0.3, 0.55, 0.15))), uMute);`);
   };
   // Paths fade out at their sides and ends through a wobbly painted alpha edge instead of stopping at a hard line.
   const edge = (() => {
@@ -109,7 +110,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   let leafCards: T.InstancedMesh | null = null, crowns: T.InstancedMesh | null = null;
   // 1 = a tree's crown and leaf card fully shown, 0 = shrunk away because it would fill the camera's view.
   const canopyShown: number[] = [], upright = new T.Quaternion();
-  const barkMat = toon(0xffffff, bark, false), rockMat = toon(0xc7cac0, rock), canopyMat = toon(0xffffff, undefined, false), foliage = noOutline(new T.MeshToonMaterial({ color: 0xffffff, map: leaf, gradientMap: ramp, alphaTest: 0.35, side: T.DoubleSide })); materials.add(foliage);
+  const barkMat = toon(0xffffff, bark, false), rockMat = toon(0xc7cac0, rock), canopyMat = fluffy(toon(0xffffff, undefined, false), 0.18), foliage = noOutline(new T.MeshToonMaterial({ color: 0xffffff, map: leaf, gradientMap: ramp, alphaTest: 0.35, side: T.DoubleSide })); materials.add(foliage);
   // Trees: a tapered trunk with a root flare and two branch stubs, under a crown of lumpy leaf blobs.
   const trunkGeo = (() => {
     const parts = [new T.CylinderGeometry(0.62, 1, 4, 10, 4), new T.CylinderGeometry(1, 1.7, 0.55, 10)];
@@ -171,8 +172,14 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     matrix.compose(V(x, 0.01, z), quat, V(s, s, s)); grass.setMatrixAt(i, matrix); grass.setColorAt(i, tint.setScalar(0.85 + rnd() * 0.3));
   }
   for (let i = 0; i < 100; i++) { const a = rnd() * 6.283, r = 5 + rnd() * 25; quat.setFromAxisAngle(V(0, 1, 0), rnd() * 6.283); matrix.compose(V(Math.cos(a) * r, 0.3, Math.sin(a) * r), quat, V(0.7, 0.6, 0.7)); grassTufts.setMatrixAt(i, matrix); }
-  const hillMat = toon(0x739d64, undefined, false);
-  for (let i = 0; i < 11; i++) { const a = i / 11 * Math.PI * 2; mesh(scene, sphere, hillMat, [Math.cos(a) * 63, 0, Math.sin(a) * 63], [23, 7 + rnd() * 5, 19], false); }
+  // Two rings of hills in one draw: a near ring and a taller, hazier one peeking over it between them.
+  const hillMat = fluffy(toon(0x739d64, undefined, false), 0.12), hills = new T.InstancedMesh(sphere, hillMat, 22); geometries.add(sphere);
+  for (let i = 0; i < 22; i++) {
+    const far = i >= 11, a = (i % 11 + (far ? 0.5 : 0)) / 11 * Math.PI * 2, r = far ? 78 : 63;
+    matrix.compose(V(Math.cos(a) * r, far ? -2 : 0, Math.sin(a) * r), quat.setFromAxisAngle(V(0, 1, 0), -a), far ? V(17, 9 + rnd() * 5, 24) : V(19, 7 + rnd() * 5, 23));
+    hills.setMatrixAt(i, matrix); hills.setColorAt(i, tint.setScalar(far ? 1.12 : 0.92 + rnd() * 0.1));
+  }
+  scene.add(hills);
 
   const wood = toon(0x9b663b), cream = toon(0xffeac8), gold = toon(0xe6b653), roof = toon(0xb9664d), ink = toon(0x3e3031), rose = toon(0xe9a6a0);
   const berryMat = toon(0xd2344a), hayMat = toon(0xe2c46a), bushMat = toon(0x4f8a3c), reedMat = toon(0x7f9f45), cattailMat = toon(0x8a5a35);
@@ -304,7 +311,9 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   for (let i = 0; i < tp.count; i++) groundUv.setXY(i, (tp.getX(i) + 90) / 180, (90 - tp.getZ(i) - 12) / 180);
   trailGeo.setAttribute('groundUv', groundUv);
   trailMat.onBeforeCompile = (shader) => {
+    shader.uniforms.uMute = mute;
     shader.vertexShader = 'attribute vec2 groundUv;\n' + shader.vertexShader.replace('#include <uv_vertex>', '#include <uv_vertex>\nvMapUv = (mapTransform * vec3(groundUv, 1)).xy;');
+    shader.fragmentShader = 'uniform float uMute;\n' + shader.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\ndiffuseColor.rgb = mix(diffuseColor.rgb, vec3(dot(diffuseColor.rgb, vec3(0.3, 0.55, 0.15))), uMute);');
   };
   const campPath = mesh(scene, trailGeo, trailMat, [0, 0.015, 12], [1, 1, 1], false);
   const areaMaps: T.Texture[] = [];
@@ -339,9 +348,9 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     groundMat.color.set(d ? 0xffffff : 0xd4dfbd); dirtMat.color.set(d ? 0xffffff : 0xe8d9bd);
     scene.fog = new T.Fog(d?.[3] ?? 0xc8dfd2, 22, 86);
     // Hills, rocks, the start trail and the light bounced up from the ground take each area's colours.
-    const tints: Record<string, number[]> = { marsh: [0x7d8a5f, 0xa9ad97, 0xb3a184, 0x8a8560], ridge: [0x6f8a78, 0xb2b7b4, 0xbdb39b, 0x7f9670], hollow: [0xc99a62, 0xe6c9a4, 0xd9bb98, 0xc29a68], peak: [0xdfe8f2, 0xc6cdd9, 0xc4d0e6, 0xb8c6dc] };
+    const tints: Record<string, number[]> = { marsh: [0x7d8a5f, 0xa9ad97, 0xb3a184, 0x8a8560], ridge: [0x6f8a78, 0xb2b7b4, 0xbdb39b, 0x7f9670], hollow: [0xc99a62, 0xe6c9a4, 0xe8d6c2, 0xc29a68], peak: [0xdfe8f2, 0xc6cdd9, 0xc4d0e6, 0xb8c6dc] };
     const [hill, stone, trail, bounce] = tints[area] ?? [0x739d64, 0xc7cac0, 0xc9b597, 0x7c9d55];
-    hillMat.color.set(hill); rockMat.color.set(stone); calm.value = ({ hollow: 0.25, ridge: 0.15, marsh: 0.1 } as Record<string, number>)[area] ?? 0; trailMat.color.set(trail); skyLight.groundColor.set(bounce);
+    hillMat.color.set(hill); rockMat.color.set(stone); calm.value = ({ hollow: 0.4, ridge: 0.15, marsh: 0.3 } as Record<string, number>)[area] ?? 0; mute.value = ({ hollow: 0.35, marsh: 0.25 } as Record<string, number>)[area] ?? 0; trailMat.color.set(trail); skyLight.groundColor.set(bounce);
     grass.visible = grassTufts.visible = !d || area === 'ridge';
     if (d) {
       const ground = texture(d[0], 32), paintedSky = texture(d[1]), card = texture(d[2]); areaMaps.push(ground, paintedSky, card);
@@ -472,7 +481,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     grounded.forEach((c, i) => { matrix.compose(V(c.x, 0.03, c.z), upright, V(c.r * 2, 1, c.r * 2)); contacts.setMatrixAt(i, matrix); });
   }
   function actor(white: boolean): Rig {
-    const model = createHuntChinchilla(white); model.root.scale.setScalar(0.75); scene.add(model.root);
+    const model = createHuntChinchilla(white, (m) => fluffy(m, 0.3)); model.root.scale.setScalar(0.75); scene.add(model.root);
     const hammer = new T.Group(); model.body.add(hammer); hammer.position.set(0.46, 0.58, 0.32); hammer.scale.setScalar(1 / 0.75);
     // The swing plane tilts out to the right, so the wind-up passes beside the ear rather than through it.
     hammer.rotation.x = 0.45;
