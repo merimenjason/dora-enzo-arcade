@@ -6,7 +6,7 @@ import * as T from 'three';
 
 export type VillagerId = 'mossback' | 'bramble' | 'pip' | 'wren';
 /** What the scene lends each villager: its shared toon ramp and the sets it disposes. */
-export type VillagerKit = { ramp: T.Texture; materials: Set<T.Material>; geometries: Set<T.BufferGeometry> };
+export type VillagerKit = { ramp: T.Texture; materials: Set<T.Material>; geometries: Set<T.BufferGeometry>; shade?: (m: T.MeshToonMaterial) => void };
 export type VillagerRig = { root: T.Group; animate: (time: number, near: boolean, reduced: boolean) => void };
 
 type Vec = [number, number, number];
@@ -87,7 +87,7 @@ function sash(list: Parts, c: Vec, r: Vec, n: T.Vector3, w: number, color: numbe
 /** The materials and mesh makers one villager is built with. */
 function studio(kit: VillagerKit) {
   const toon = new T.MeshToonMaterial({ color: 0xffffff, gradientMap: kit.ramp, vertexColors: true }), flat = new T.MeshBasicMaterial({ vertexColors: true });
-  flat.userData.outlineParameters = { visible: false };
+  flat.userData.outlineParameters = { visible: false }; kit.shade?.(toon);
   const lines = new T.LineBasicMaterial({ color: 0x4a3a30 }); kit.materials.add(toon); kit.materials.add(flat); kit.materials.add(lines);
   const mesh = (parent: T.Object3D, list: Parts, plain = false, shadow = !plain) => { const g = merge(list); kit.geometries.add(g); const m = new T.Mesh(g, plain ? flat : toon); m.castShadow = shadow; parent.add(m); return m; };
   const whiskers = (parent: T.Object3D, pts: T.Vector3[]) => { const g = new T.BufferGeometry().setFromPoints(pts); kit.geometries.add(g); parent.add(new T.LineSegments(g, lines)); };

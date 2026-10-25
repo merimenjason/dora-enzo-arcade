@@ -41,6 +41,16 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const toon = (color: number, map?: T.Texture, outlineOn = true) => {
     const m = new T.MeshToonMaterial({ color, gradientMap: ramp, map: map ?? null }); if (!outlineOn) noOutline(m); materials.add(m); return m;
   };
+  // Beast coats and villagers: lit from above (the back brighter, the belly side shaded), with a soft warm rim so they read as round.
+  const fluffy = <M extends T.MeshToonMaterial>(m: M, rim = 0.4) => {
+    m.onBeforeCompile = (shader) => {
+      shader.vertexShader = 'varying float vUp;\n' + shader.vertexShader.replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvUp = normalize(mat3(modelMatrix) * objectNormal).y;');
+      shader.fragmentShader = 'varying float vUp;\n' + shader.fragmentShader
+        .replace('#include <map_fragment>', '#include <map_fragment>\ndiffuseColor.rgb *= 0.8 + 0.28 * smoothstep(-0.7, 0.8, vUp);')
+        .replace('#include <opaque_fragment>', `#include <opaque_fragment>\ngl_FragColor.rgb += vec3(1.0, 0.95, 0.86) * pow(1.0 - saturate(dot(normal, normalize(vViewPosition))), 2.5) * ${rim.toFixed(2)};`);
+    };
+    m.customProgramCacheKey = () => `fluffy${rim}`; return m;
+  };
   function texture(name: string, repeat = 1) {
     const t = loader.load(`/art/hunt/${name}.webp`, (loaded) => { if (closed || !textures.has(loaded)) loaded.dispose(); }, undefined, () => { if (!closed) failed('Some paintings could not load. The meadow is still playable. Reload to try them again.'); });
     t.colorSpace = T.SRGBColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(repeat, repeat); t.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy()); textures.add(t); return t;
@@ -126,7 +136,8 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     });
     const merged = mergeGeometries(parts); parts.forEach((g) => g.dispose()); merged.computeVertexNormals(); return merged;
   })();
-  geometries.add(trunkGeo); geometries.add(blobGeo); geometries.add(rockGeo); geometries.add(crystalGeo);
+  const pondGeo = new T.CylinderGeometry(1, 1, 1, 32);
+  geometries.add(trunkGeo); geometries.add(blobGeo); geometries.add(rockGeo); geometries.add(crystalGeo); geometries.add(pondGeo);
   /** One crown blob or leaf card per entry, relative to the tree's crown centre. */
   type TreePart = { at: T.Vector3; size: T.Vector3 };
   const treeBlobs: TreePart[][] = [], treeCards: TreePart[][] = [], treeTurn: T.Quaternion[] = [];
@@ -137,11 +148,24 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const blade = new T.BufferGeometry(); blade.setAttribute('position', new T.Float32BufferAttribute([-0.045, 0, 0, 0.045, 0, 0, -0.025, 0.3, 0, 0.025, 0.3, 0, 0, 0.55, 0], 3)); blade.setIndex([0, 1, 2, 2, 1, 3, 2, 3, 4]); blade.computeVertexNormals(); geometries.add(blade);
   const grassMat = toon(0x80b445, undefined, false); grassMat.side = T.DoubleSide;
   const wind = { value: 0 };
-  grassMat.onBeforeCompile = (shader) => { shader.uniforms.uWind = wind; shader.vertexShader = 'uniform float uWind;\n' + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed.x += sin(uWind * 1.8 + instanceMatrix[3].x * .5 + instanceMatrix[3].z * .3) * position.y * position.y * .35;'); };
-  const grass = new T.InstancedMesh(blade, grassMat, 5000); grass.receiveShadow = false; scene.add(grass);
+  // Blades lean away from the two friends (xy, zw of uPush) and the beast (uBeast: x, z, reach), flattening a little as they bend.
+  const push = { value: new T.Vector4(0, 99, 0, 99) }, beastPush = { value: new T.Vector3(0, 99, 0) };
+  grassMat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, { uWind: wind, uPush: push, uBeast: beastPush });
+    shader.vertexShader = 'uniform float uWind; uniform vec4 uPush; uniform vec3 uBeast;\n' + shader.vertexShader
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed.x += sin(uWind * 1.8 + instanceMatrix[3].x * .5 + instanceMatrix[3].z * .3) * position.y * position.y * .35;')
+      .replace('#include <project_vertex>', `vec4 mvPosition = instanceMatrix * vec4(transformed, 1.0);
+        vec2 base = instanceMatrix[3].xz, lean = vec2(0.0), d;
+        d = base - uPush.xy; lean += d / (length(d) + 0.05) * max(0.0, 1.0 - length(d) / 0.8);
+        d = base - uPush.zw; lean += d / (length(d) + 0.05) * max(0.0, 1.0 - length(d) / 0.8);
+        d = base - uBeast.xy; lean += d / (length(d) + 0.05) * max(0.0, 1.0 - length(d) / uBeast.z);
+        float bend = position.y * position.y * 2.2; mvPosition.xz += lean * bend; mvPosition.y -= length(lean) * bend * 0.45;
+        mvPosition = modelViewMatrix * mvPosition; gl_Position = projectionMatrix * mvPosition;`);
+  };
+  const grass = new T.InstancedMesh(blade, grassMat, 8000); grass.receiveShadow = false; scene.add(grass);
   const grassTufts = new T.InstancedMesh(plane, tuftMat, 100); scene.add(grassTufts);
   const matrix = new T.Matrix4(), quat = new T.Quaternion(), tint = new T.Color();
-  for (let i = 0; i < 5000; i++) {
+  for (let i = 0; i < 8000; i++) {
     const a = rnd() * 6.283, r = 3 + Math.sqrt(rnd()) * 30, x = Math.cos(a) * r, z = Math.sin(a) * r;
     quat.setFromAxisAngle(V(0, 1, 0), rnd() * 6.283); const s = 0.6 + rnd() * 0.8;
     matrix.compose(V(x, 0.01, z), quat, V(s, s, s)); grass.setMatrixAt(i, matrix); grass.setColorAt(i, tint.setScalar(0.85 + rnd() * 0.3));
@@ -155,7 +179,25 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const crystalMat = noOutline(new T.MeshBasicMaterial({ color: 0xffc94a, toneMapped: false })); materials.add(crystalMat);
   // Clover Camp. Each building's walls block the camera; everything else is decoration, moved into one group
   // and instanced by shape and material at the end so the whole camp costs a few dozen draws.
-  const shingle = toon(0xb9664d), moss = toon(0x6c9778), timber = toon(0x6e4423), stone = toon(0xb9b4a6, rock), paper = toon(0xfff6df), steel = toon(0x7c7f86);
+  // Canvas-painted building surfaces: horizontal planks with grain, staggered roof shingles, and speckled plaster.
+  function paint(kind: 'planks' | 'shingles' | 'plaster', rx: number, ry: number) {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const ctx = c.getContext('2d')!;
+    let seed = kind.length * 13; const r = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+    ctx.fillStyle = '#f2f2f2'; ctx.fillRect(0, 0, 128, 128);
+    if (kind === 'planks') for (let row = 0; row < 4; row++) {
+      ctx.fillStyle = `rgba(255,255,255,${0.2 + r() * 0.3})`; ctx.fillRect(0, row * 32 + 3, 128, 26);
+      ctx.fillStyle = 'rgba(70,45,25,0.45)'; ctx.fillRect(0, row * 32, 128, 3); ctx.fillRect(((row * 53) % 128), row * 32, 3, 32);
+      ctx.strokeStyle = 'rgba(90,60,35,0.18)'; for (let k = 0; k < 4; k++) { ctx.beginPath(); const y = row * 32 + 7 + k * 6 + r() * 3; ctx.moveTo(0, y); ctx.bezierCurveTo(40, y + 2, 80, y - 2, 128, y + 1); ctx.stroke(); }
+    }
+    if (kind === 'shingles') for (let col = 0; col < 4; col++) for (let k = 0; k < 5; k++) {
+      const x = col * 32, y = k * 25.6 + (col % 2) * 12.8;
+      for (const oy of [-128, 0]) { ctx.fillStyle = `rgba(255,255,255,${0.15 + r() * 0.35})`; ctx.beginPath(); ctx.ellipse(x + 10, y + oy + 12.8, 22, 12, 0, -Math.PI / 2, Math.PI / 2); ctx.fill(); ctx.strokeStyle = 'rgba(60,30,20,0.4)'; ctx.lineWidth = 2; ctx.stroke(); }
+    }
+    if (kind === 'plaster') for (let k = 0; k < 500; k++) { ctx.fillStyle = r() < 0.5 ? 'rgba(120,95,60,0.12)' : 'rgba(255,255,255,0.5)'; ctx.fillRect(r() * 128, r() * 128, 1 + r() * 2, 1 + r() * 2); }
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(rx, ry); t.anisotropy = 4; textures.add(t); return t;
+  }
+  const plankWall = toon(0x9b663b, paint('planks', 2, 2)), plasterWall = toon(0xffeac8, paint('plaster', 2, 2));
+  const shingle = toon(0xb9664d, paint('shingles', 3, 3)), moss = toon(0x6c9778, paint('shingles', 3, 3)), timber = toon(0x6e4423), stone = toon(0xb9b4a6, rock), paper = toon(0xfff6df), steel = toon(0x7c7f86);
   const ember = noOutline(new T.MeshBasicMaterial({ color: 0xffa142, toneMapped: false })), lamp = noOutline(new T.MeshBasicMaterial({ color: 0xffe2a0, toneMapped: false })); materials.add(ember); materials.add(lamp);
   const carrotMat = toon(0xee8a35), leafy = toon(0x6fa84a), sack = toon(0xd9bf8e), skyBlue = toon(0x8cc3d9), plum = toon(0x9a6fb0);
   const gable = new T.ExtrudeGeometry(new T.Shape([new T.Vector2(-0.5, 0), new T.Vector2(0.5, 0), new T.Vector2(0, 1)]), { depth: 1, bevelEnabled: false }); gable.translate(0, 0, -0.5); geometries.add(gable);
@@ -183,7 +225,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const building = new T.Group(); village.add(building); building.position.set(s.x, 0, s.z);
     if (s.id === 'forge') {
       // Bramble's forge: a red-roofed workshop with a glowing furnace window, a stone chimney, an anvil and a hammer sign.
-      const top = cottage(building, wood, shingle, 3.4, 2.5, 1.7);
+      const top = cottage(building, plankWall, shingle, 3.4, 2.5, 1.7);
       part(building, cube, stone, [0.95, 1.35, 1.27], [0.95, 0.8, 0.08]); part(building, cube, ember, [0.95, 1.33, 1.32], [0.68, 0.55, 0.04]);
       for (const x of [0.72, 1.18]) part(building, cube, timber, [x, 1.33, 1.35], [0.06, 0.55, 0.04]);
       part(building, cylinder, stone, [-1.05, top + 0.9, -0.45], [0.36, 2.6, 0.36]); part(building, cylinder, stone, [-1.05, top + 2.25, -0.45], [0.46, 0.2, 0.46]);
@@ -195,7 +237,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       part(building, cylinder, cream, [2.25, 1.75, 1.25], [0.035, 0.5, 0.035], [0.6, 0, 0]); part(building, cube, steel, [2.25, 1.93, 1.12], [0.05, 0.13, 0.22], [0.6, 0, 0]);
     } else if (s.id === 'book') {
       // Wren's Beast Book cottage: cream walls with timber beams, a mossy roof, a round window, an open-book sign and a lantern.
-      cottage(building, cream, moss, 3.4, 2.5, 1.7);
+      cottage(building, plasterWall, moss, 3.4, 2.5, 1.7);
       for (const x of [-1.7, 1.7]) part(building, cube, timber, [x * 0.5, 1.3, 1.27], [0.12, 1.7, 0.05]);
       part(building, cube, timber, [1.0, 1.75, 1.27], [1.2, 0.1, 0.05]);
       part(building, roundGeo, timber, [1.0, 1.25, 1.27], [0.38, 0.38, 0.06]); part(building, roundGeo, lamp, [1.0, 1.25, 1.3], [0.3, 0.3, 0.04]);
@@ -239,6 +281,14 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     }
     const length = Math.hypot(s.x, s.z - 5), path = mesh(paths, plane, dirtMat, [s.x / 2, 0.025, (s.z + 5) / 2], [2.3, length + 1, 1], false); path.rotation.set(-Math.PI / 2, 0, -Math.atan2(s.x, 5 - s.z));
   }
+  // Flower clumps between the paths and beside the cottages, batched with the rest of the decor.
+  const garden = new T.Group(); village.add(garden);
+  const blooms = [0xf2a7c3, 0xffe07a, 0xfdf6ea, 0xc6a6e8].map((c) => toon(c, undefined, false)), stem = toon(0x5e9a43, undefined, false);
+  [[3, 4.4], [2.4, -1.5], [-2.6, -1.5], [-3.4, 7.6], [4, 8.2], [9.6, -0.4], [-9.8, -0.2], [-3.6, 2.6], [8.2, 4]].forEach(([x, z], i) => {
+    for (let k = 0; k < 6; k++) { const a = k * 2.4 + i, rr = 0.15 + (k % 3) * 0.16, fx = x + Math.cos(a) * rr, fz = z + Math.sin(a) * rr, tall = 0.28 + (k % 2) * 0.12;
+      part(garden, cylinder, stem, [fx, tall / 2, fz], [0.025, tall, 0.025]); part(garden, ico, blooms[(i + k) % 4], [fx, tall + 0.04, fz], [0.09, 0.06, 0.09]); }
+    part(garden, blobGeo, stem, [x, 0.08, z], [0.42, 0.16, 0.42]);
+  });
   // Everything except the camera-blocking walls moves into `decor` and is instanced.
   village.updateMatrixWorld(true);
   for (const building of [...village.children]) if (building !== decor) for (const child of [...building.children]) if (child instanceof T.Mesh && !blockers.includes(child)) decor.attach(child);
@@ -260,7 +310,22 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const areaMaps: T.Texture[] = [];
   const areaCard = noOutline(new T.MeshToonMaterial({ color: 0xffffff, gradientMap: ramp, alphaTest: 0.35, side: T.DoubleSide })); materials.add(areaCard);
   const shoreMat = toon(0x6e5c40, undefined, false), glintMat = toon(0xc9eef0, undefined, false);
-  const waterMat = toon(0x7fb4c0, undefined, false), lilyMat = toon(0x79a45b), iceMat = toon(0xa7dce9), snowMat = toon(0xf4f5ff), flagMat = toon(0xe3b672);
+  // Pond water: slow moving light ripples in world space, still when motion is reduced (the wind clock stops).
+  const waterMat = toon(0x7fb4c0, undefined, false);
+  waterMat.onBeforeCompile = (shader) => {
+    shader.uniforms.uWind = wind;
+    shader.vertexShader = 'varying vec2 vWater;\n' + shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+      vec4 wp = vec4(transformed, 1.0);
+      #ifdef USE_INSTANCING
+        wp = instanceMatrix * wp;
+      #endif
+      vWater = (modelMatrix * wp).xz;`);
+    shader.fragmentShader = 'uniform float uWind; varying vec2 vWater;\n' + shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+      vec2 q = vWater * 1.6; float t = uWind;
+      float w = sin(q.x + t * 1.2 + sin(q.y * 1.3 + t * 0.7) * 1.5) * sin(q.y * 1.1 - t * 0.9 + sin(q.x * 0.8 - t * 0.4) * 1.2);
+      diffuseColor.rgb = diffuseColor.rgb * (0.93 + 0.07 * w) + vec3(0.8, 0.95, 1.0) * smoothstep(0.55, 0.92, w) * 0.3;`);
+  };
+  const lilyMat = toon(0x79a45b), iceMat = toon(0xa7dce9), snowMat = toon(0xf4f5ff), flagMat = toon(0xe3b672);
   function switchArea(area: string) {
     if (area === currentArea) return;
     currentArea = area;
@@ -308,7 +373,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const villagers: { rig: VillagerRig; x: number; z: number; face: number; spot: SpotId; top: number }[] = [];
   const VILLAGER_AT: Record<typeof SPOTS[number]['id'], VillagerId> = { board: 'mossback', forge: 'bramble', pantry: 'pip', book: 'wren' };
   for (const station of SPOTS) {
-    const rig = createVillager(VILLAGER_AT[station.id], { ramp, materials, geometries }), at = VILLAGERS[station.id];
+    const rig = createVillager(VILLAGER_AT[station.id], { ramp, materials, geometries, shade: (m) => fluffy(m, 0.3) }), at = VILLAGERS[station.id];
     rig.root.position.set(at.x, 0, at.z); rig.root.rotation.y = at.face; village.add(rig.root);
     villagers.push({ rig, x: at.x, z: at.z, face: at.face, spot: station.id, top: new T.Box3().setFromObject(rig.root).max.y });
   }
@@ -377,7 +442,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     }
     for (let i = 0; i < 6; i++) {
       const x = Math.cos(i * 2.1) * 14, z = Math.sin(i * 2.1) * 14;
-      if (currentArea === 'marsh') { mesh(props, cylinder, shoreMat, [x, 0.015, z], [3.45, 0.02, 2.4], false); mesh(props, cylinder, waterMat, [x, 0.025, z], [3, 0.025, 2], false); mesh(props, cylinder, glintMat, [x - 0.8, 0.03, z - 0.5], [1, 0.02, 0.35], false); for (let k = 0; k < 3; k++) mesh(props, cylinder, lilyMat, [x + k - 1, 0.07, z + k * 0.3], [0.45, 0.02, 0.4], false); }
+      if (currentArea === 'marsh') { mesh(props, pondGeo, shoreMat, [x, 0.015, z], [3.45, 0.02, 2.4], false); mesh(props, pondGeo, waterMat, [x, 0.025, z], [3, 0.025, 2], false); mesh(props, pondGeo, glintMat, [x - 0.8, 0.03, z - 0.5], [1, 0.02, 0.35], false); for (let k = 0; k < 3; k++) mesh(props, cylinder, lilyMat, [x + k - 1, 0.07, z + k * 0.3], [0.45, 0.02, 0.4], false); }
       if (currentArea === 'ridge') { mesh(props, rockGeo, rockMat, [x, 1.1, z], [0.6, 2, 0.7]); mesh(props, cylinder, wood, [x + 1, 1.7, z], [0.04, 3.4, 0.04]); mesh(props, plane, flagMat, [x + 1.4, 2.9, z], [0.8, 0.5, 1], false); }
       if (currentArea === 'hollow') { mesh(props, rockGeo, rockMat, [x, 0.45, z], [1.5, 0.8, 1.2]); mesh(props, rockGeo, rockMat, [x - 0.1, 1.35, z], [1, 0.6, 0.8]); mesh(props, crystalGeo, iceMat, [x + 1.1, 0, z + 0.3], [0.45, 0.5, 0.45]); mesh(props, sphere, ink, [x - 1, 0.04, z], [0.6, 0.04, 0.5], false); }
       if (currentArea === 'peak') { mesh(props, crystalGeo, iceMat, [x, 0, z], [1.1, 1.3, 1.1]); mesh(props, sphere, snowMat, [x - 2.2, 0, z], [2.1, 0.9, 1.7]); mesh(props, sphere, snowMat, [x - 1.1, 0, z + 1], [1.1, 0.5, 0.9]); }
@@ -434,13 +499,36 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const actors: Record<HeroId, Rig> = { dora: actor(true), enzo: actor(false) };
 
   const steamMat = noOutline(new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75, depthWrite: false })); materials.add(steamMat);
+  // Canvas-painted coats: short fur strokes, or soft toad mottling; both tile and multiply the coat colour.
+  function coatTexture(kind: 'fur' | 'mottle') {
+    const c = document.createElement('canvas'); c.width = c.height = 256; const ctx = c.getContext('2d')!;
+    ctx.fillStyle = '#ececec'; ctx.fillRect(0, 0, 256, 256);
+    let seed = kind === 'fur' ? 7 : 11; const r = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+    for (let i = 0; i < (kind === 'fur' ? 900 : 70); i++) {
+      const x = r() * 256, y = r() * 256, light = r() < (kind === 'fur' ? 0.45 : 0.6);
+      for (const ox of [-256, 0, 256]) for (const oy of [-256, 0, 256]) {
+        if (kind === 'fur') {
+          ctx.strokeStyle = light ? 'rgba(255,255,255,0.55)' : 'rgba(60,45,35,0.16)'; ctx.lineWidth = 1.3; ctx.beginPath();
+          ctx.moveTo(x + ox, y + oy); ctx.quadraticCurveTo(x + ox + 3, y + oy + 7, x + ox + 1.5, y + oy + 14); ctx.stroke();
+        } else {
+          const g = ctx.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, 9 + (i % 5) * 4);
+          g.addColorStop(0, light ? 'rgba(255,255,230,0.6)' : 'rgba(70,80,30,0.13)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(x + ox - 30, y + oy - 30, 60, 60);
+        }
+      }
+    }
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(3, 2); t.anisotropy = 4; textures.add(t); return t;
+  }
+  const furStrokes = coatTexture('fur'), toadSkin = coatTexture('mottle');
+  const legGeo = new T.CylinderGeometry(1.15, 0.8, 1, 12); geometries.add(legGeo);
   function beastRig(id: BeastId): BeastRig {
     const root = new T.Group(), body = new T.Group(), head = new T.Group(), part = new T.Group(); root.add(body); body.add(head, part); scene.add(root);
     const legs: T.Group[] = [], wings: T.Group[] = [], eyes: T.Mesh[] = [];
-    const colors = { bristleback: 0x9d754e, puffwart: 0x8c9948, skreel: 0x7189aa, hornclack: 0x7c8394, frostmane: 0xe3eff5 };
-    const coat = toon(colors[id], id === 'bristleback' ? fur : undefined), dark = toon(id === 'frostmane' ? 0x91bedc : 0x483f3b);
+    // Bristleback's painted fur already carries its brown, so its coat colour stays near white.
+    const colors = { bristleback: 0xf0dccb, puffwart: 0x8c9948, skreel: 0x7189aa, hornclack: 0x7c8394, frostmane: 0xe3eff5 };
+    const coatMap = { bristleback: fur, puffwart: toadSkin, skreel: furStrokes, hornclack: undefined, frostmane: furStrokes }[id];
+    const coat = fluffy(toon(colors[id], coatMap), id === 'hornclack' ? 0.25 : 0.4), dark = fluffy(toon(id === 'frostmane' ? 0x91bedc : 0x483f3b), 0.15);
     coat.userData.beastColor = colors[id];
-    const belly = toon(id === 'skreel' ? 0xe9e4cf : 0xf3dfab);
+    const belly = fluffy(toon(id === 'skreel' ? 0xe9e4cf : 0xf3dfab), 0.2);
     // Eyebrows get their own material so they can turn red when the beast is Extra Grumpy.
     const brow = toon(id === 'frostmane' ? 0x91bedc : 0x483f3b);
     const rig: BeastRig = { root, body, head, part, legs, wings, eyes, brow, browColor: brow.color.clone(), steam: [] };
@@ -449,7 +537,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       eyes.push(mesh(head, sphere, ink, [x + 0.07, y, z + s * 0.065], [0.08, 0.095, 0.095]));
       const b = mesh(head, cube, brow, [x + 0.04, y + 0.15, z], [0.14, 0.075, 0.4]); b.rotation.x = s * 0.28;
     }
-    function leg(x: number, z: number, long = 0.6) { const p = new T.Group(); p.position.set(x, 0.6, z); body.add(p); mesh(p, cylinder, coat, [0, -0.1, 0], [0.2, long, 0.2]); mesh(p, sphere, dark, [0.08, -long / 2 - 0.1, 0], [0.27, 0.15, 0.23]); legs.push(p); }
+    function leg(x: number, z: number, long = 0.6) { const p = new T.Group(); p.position.set(x, 0.6, z); body.add(p); mesh(p, legGeo, coat, [0, -0.1, 0], [0.2, long, 0.2]); mesh(p, sphere, dark, [0.08, -long / 2 - 0.1, 0], [0.27, 0.15, 0.23]); legs.push(p); }
     if (id === 'bristleback') {
       mesh(body, sphere, coat, [0, 1.35, 0], [1.65, 1.15, 1.08]); head.position.set(1.3, 1.4, 0);
       mesh(head, sphere, coat, [0, 0, 0], [0.75, 0.73, 0.7]);
@@ -466,7 +554,8 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       rig.tongue = mesh(body, cylinder, rose, [1.8, 1.1, 0], [0.12, 0.1, 0.12], false); rig.tongue.rotation.z = -Math.PI / 2; rig.tongue.visible = false;
       for (const s of [-1, 1]) { eye(0.4, 0.25, s * 0.85, s); leg(0.9, s * 1.1, 0.4); leg(-1, s * 1.2, 0.4); }
       // The warts stay on; the pop-off part is the throat sac, which deflates.
-      for (let i = 0; i < 13; i++) { const a = i * 2.4; mesh(body, sphere, toon(0xb4aa5c), [Math.cos(a) * 1.1, 1.7 + Math.sin(i) * 0.2, Math.sin(a) * 0.85], [0.22, 0.18, 0.22]); }
+      const wart = fluffy(toon(0xb4aa5c), 0.2);
+      for (let i = 0; i < 13; i++) { const a = i * 2.4; mesh(body, sphere, wart, [Math.cos(a) * 1.1, 1.7 + Math.sin(i) * 0.2, Math.sin(a) * 0.85], [0.22, 0.18, 0.22]); }
     } else if (id === 'skreel') {
       mesh(body, sphere, coat, [0, 1.4, 0], [1.1, 1.4, 1]); mesh(body, sphere, belly, [0.7, 1.2, 0], [0.55, 1.03, 0.8]); head.position.set(0.35, 2.1, 0);
       mesh(head, sphere, coat, [0, 0, 0], [0.95, 0.85, 1.0]);
@@ -485,9 +574,10 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       mesh(body, sphere, coat, [-0.15, 1.4, 0], [1.65, 0.95, 0.9]); head.position.set(1.15, 2, 0);
       mesh(head, sphere, coat, [0, 0, 0], [0.8, 0.8, 0.85]); mesh(head, sphere, cream, [0.65, -0.25, 0], [0.35, 0.28, 0.5]); mesh(head, sphere, rose, [0.91, -0.1, 0], [0.1, 0.1, 0.17]);
       rig.mane = new T.Group(); body.add(rig.mane);
-      for (let i = 0; i < 13; i++) { const a = i / 13 * Math.PI * 2, m = mesh(rig.mane, ico, toon(i % 2 ? 0xa5cde7 : 0xc7e3ef), [0.72, 1.8 + Math.cos(a) * 0.72, Math.sin(a) * 0.8], [0.65, 0.5, 0.45]); m.rotation.x = a; }
+      const mane = [fluffy(toon(0xc7e3ef), 0.35), fluffy(toon(0xa5cde7), 0.35)];
+      for (let i = 0; i < 13; i++) { const a = i / 13 * Math.PI * 2, m = mesh(rig.mane, blobGeo, mane[i % 2], [0.72, 1.8 + Math.cos(a) * 0.72, Math.sin(a) * 0.8], [0.65, 0.5, 0.45]); m.rotation.x = a; }
       for (const s of [-1, 1]) { eye(0.5, 0.1, s * 0.6, s); const ear = mesh(head, cone, coat, [-0.15, 0.9, s * 0.55], [0.25, 0.7, 0.24]); ear.rotation.x = s * 0.2; mesh(part, cone, dark, [0.9, 3.25, s * 0.55], [0.075, 0.4, 0.075]); for (const x of [-1, 1]) leg(x, s * 0.65, 1); }
-      const curve = new T.CatmullRomCurve3([V(-1.4, 1.4, 0), V(-2, 1.6, 0.2), V(-2.5, 2.2, 0.3), V(-2.35, 2.7, 0.3)]); mesh(body, new T.TubeGeometry(curve, 12, 0.32, 8, false), toon(0xb5d4e9), [0, 0, 0]);
+      const curve = new T.CatmullRomCurve3([V(-1.4, 1.4, 0), V(-2, 1.6, 0.2), V(-2.5, 2.2, 0.3), V(-2.35, 2.7, 0.3)]); mesh(body, new T.TubeGeometry(curve, 12, 0.32, 8, false), fluffy(toon(0xb5d4e9, furStrokes)), [0, 0, 0]);
     }
     // Steam puffs over each ear, in head space; only shown while Extra Grumpy.
     const ear = { bristleback: [-0.15, 1, 0.5], puffwart: [0, 0.65, 0.8], skreel: [0, 0.85, 0.5], hornclack: [0, 0.6, 0.55], frostmane: [-0.15, 1.3, 0.55] }[id];
@@ -813,6 +903,9 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       placeCanopies();
     }
     wind.value = reduced.matches ? 0 : game.time;
+    push.value.set(game.hero.x, game.hero.z, game.buddy.x, game.buddy.z);
+    const presser = game.mode === 'hunt' && game.beast && game.beast.height < 0.5 ? game.beast : null;
+    beastPush.value.set(presser?.x ?? 0, presser?.z ?? 99, presser ? 1.6 : 0.01);
     renderer.info.reset();
     outline.render(scene, camera);
     if (++frame === 2) ready();
