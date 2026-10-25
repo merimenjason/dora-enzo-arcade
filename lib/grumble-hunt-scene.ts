@@ -2,7 +2,7 @@ import * as T from 'three';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { createHuntChinchilla, animateHuntChinchilla, poseArms, type HuntChinchilla } from './hunt-chinchilla';
-import { BEASTS, BEAST_IDS, VARIANT_COLORS, GATHER_TIME, ROAR_REACH, type WeatherKind, MATERIAL_IDS, SPOTS, VILLAGERS, type BeastId, type SpotId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
+import { BEASTS, BEAST_IDS, VARIANT_COLORS, GATHER_TIME, ROAR_REACH, TURF_REACH, type WeatherKind, MATERIAL_IDS, SPOTS, VILLAGERS, type BeastId, type SpotId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
 import { createHuntWeapons, decorateHuntWeapon } from './grumble-hunt-weapons';
 import { createVillager, type VillagerId, type VillagerRig } from './grumble-hunt-villagers';
 import { MATERIALS } from './grumble-hunt-content';
@@ -866,20 +866,20 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   function resize() { if (closed) return; const w = Math.max(1, canvas.clientWidth), h = Math.max(1, canvas.clientHeight); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
   const ray = new T.Raycaster(), cameraAim = V(), desired = V(), segment = V();
   let lastVariantColor = '';
-  let lastRide = { riding: false, fullBonks: 0, bucking: false };
+  let lastRide = { riding: false, fullBonks: 0, bucking: false }, lastGame: HuntGame | null = null;
   // The rack and Forge preview: the hero on a little grass stand, swaying slowly and swinging the weapon every few seconds.
   const showBg = new T.Color(0xf6ead2), stand = new T.Group(); let showTime = 0; stand.visible = false; scene.add(stand);
   if (preview) { mesh(stand, new T.CylinderGeometry(1.2, 1.1, 0.22, 32), toon(0x9a6b44), [0, -0.12, 0], [1, 1, 1], false); mesh(stand, new T.CylinderGeometry(1.22, 1.22, 0.06, 32), toon(0x8cc152), [0, -0.02, 0], [1, 1, 1], false); }
   const showSwing = () => { const c = showTime % 3.2; return !reduced.matches && c >= 2 && c < 2.6 ? c - 2 : -1; };
   function draw(game: HuntGame, dt: number) {
     lastVariantColor = game.variant && game.beast ? VARIANT_COLORS[game.beast.id] : '';
-    lastRide = { riding: game.ride.riding, fullBonks: game.ride.fullBonks, bucking: game.ride.riding && game.ride.phase !== 'quiet' };
+    lastGame = game; lastRide = { riding: game.ride.riding, fullBonks: game.ride.fullBonks, bucking: game.ride.riding && game.ride.phase !== 'quiet' };
     if (closed) return;
     const worldKey = `${game.profile.hunts}:${game.mode === 'village' || game.mode === 'camp'}`;
     if (worldKey !== currentWorld) { currentWorld = worldKey; buildWorld(game); }
     village.visible = paths.visible = game.mode === 'village' || game.mode === 'camp'; campPath.visible = !village.visible;
     poseActor('dora', game); poseActor('enzo', game); holdFx(game, dt);
-    for (const id of BEAST_IDS) beasts[id].root.visible = game.beast?.id === id && !['village', 'camp'].includes(game.mode);
+    for (const id of BEAST_IDS) beasts[id].root.visible = (game.beast?.id === id || game.visitor?.id === id && game.mode === 'hunt') && !['village', 'camp'].includes(game.mode);
     ambientLife(game.time);
     const weather = game.mode === 'hunt' || game.mode === 'nap' ? game.weather : { kind: 'clear' as WeatherKind, level: 0 }, wl = weather.level;
     // Fog and light follow the weather even with reduced motion; only the falling and drifting bits stop.
@@ -956,9 +956,22 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       });
     }
     nest.visible = !!b && game.huntChapter !== 0 && (game.mode === 'hunt' || game.mode === 'nap'); nest.position.set(game.nest.x, 0, game.nest.z);
+    // A visiting beast walks in and squares off; it is never the hunted beast, so its rig is free.
+    const v = game.visitor;
+    if (v && game.mode === 'hunt') {
+      const r = beasts[v.id], walk = v.state !== 'face' && !reduced.matches ? Math.sin(game.time * 8) : 0, flying = v.id === 'skreel';
+      r.root.traverse((o) => { if (o instanceof T.Mesh && o.material instanceof T.MeshToonMaterial && o.material.userData.beastColor) o.material.color.set(o.material.userData.beastColor); });
+      r.root.position.set(v.x, flying ? 1.2 + (reduced.matches ? 0 : Math.sin(game.time * 3) * 0.15) : 0, v.z); r.root.rotation.y = v.face; r.root.scale.setScalar(1);
+      r.body.rotation.set(0, 0, v.state === 'face' && !reduced.matches ? -0.12 * Math.sin(game.time * 12) : 0); r.body.scale.set(1, 1, 1);
+      r.legs.forEach((leg, i) => { leg.rotation.z = walk * (i % 2 ? 0.3 : -0.3); }); r.eyes.forEach((eye) => { eye.scale.y = 0.12; }); r.part.visible = true;
+      r.wings.forEach((wing, i) => { wing.rotation.x = flying && !reduced.matches ? Math.sin(game.time * 9) * (i ? -0.9 : 0.9) : 0; });
+      if (r.tongue) r.tongue.visible = false; r.steam.forEach((puff) => { puff.visible = false; }); r.brow.color.copy(r.browColor);
+    }
+    const turf = b?.state === 'turf' && !!v;
     const warning = b?.state === 'windup';
     const round = b && ['sweep', 'shake', 'cloud', 'roar'].includes(b.attack);
-    lane.visible = !!warning && !round; circle.visible = !!warning && !!round;
+    lane.visible = !!warning && !round; circle.visible = !!warning && !!round || turf;
+    if (turf) { circle.position.set((b!.x + v!.x) / 2, 0.08, (b!.z + v!.z) / 2); circle.scale.set(TURF_REACH, 1, TURF_REACH); }
     icyRing.visible = b?.state === 'shake'; if (b) { const size = 1 + Math.min(1, b.t / Math.max(0.01, b.duration)) * 4; icyRing.position.set(b.x, 0.09, b.z); icyRing.scale.set(size, 1, size); }
     const roaring = b?.state === 'roar';
     roarRings.forEach((o, i) => { const f = roaring ? (b!.t - i * 0.18) / 0.7 : -1; o.visible = f > 0 && f < 1; if (o.visible) { const size = 1.5 + f * (ROAR_REACH + 1); o.position.set(b!.x, b!.height + 0.6 + f * 0.4, b!.z); o.scale.set(size, 1, size); } });
@@ -1047,7 +1060,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     get yaw() { return yaw; },
     orbit(dx: number, dy: number) { yaw -= dx * 0.006; pitch = T.MathUtils.clamp(pitch + dy * 0.004, 0.18, 0.95); userOrbit = 4; },
     zoom(delta: number) { dist = T.MathUtils.clamp(dist + delta * 0.008, 5, 14); },
-    metrics() { return { area: currentArea, villagers: village.visible ? villagers.length : 0, variantColor: lastVariantColor, ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible), nest: nest.visible, sleepy: drowsy[0].visible, roarRings: roarRings.filter((o) => o.visible).length, weather: { rain: rain.visible ? rain.count : 0, dust: dust.visible ? dust.count : 0, flakes: snowfall.visible ? snowfall.count : 0, fogFar: Math.round((scene.fog as T.Fog).far) } }; },
+    metrics() { const game = lastGame; return { area: currentArea, villagers: village.visible ? villagers.length : 0, variantColor: lastVariantColor, ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible), nest: nest.visible, sleepy: drowsy[0].visible, roarRings: roarRings.filter((o) => o.visible).length, visitor: !!game?.visitor && beasts[game.visitor.id].root.visible, turfCircle: game?.beast?.state === 'turf' && circle.visible, weather: { rain: rain.visible ? rain.count : 0, dust: dust.visible ? dust.count : 0, flakes: snowfall.visible ? snowfall.count : 0, fogFar: Math.round((scene.fog as T.Fog).far) } }; },
     dispose() {
       if (closed) return; closed = true; observer.disconnect();
       scene.traverse((o) => { if (o instanceof T.InstancedMesh) o.dispose(); if (o instanceof T.Mesh || o instanceof T.Line) { geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : [o.material]) materials.add(m); } });

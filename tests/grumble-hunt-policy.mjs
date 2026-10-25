@@ -29,6 +29,8 @@ export function huntPolicy(g) {
     }
     out.roll = b.state === 'windup' && b.t > 0.64 && h.rollCd <= 0;
   }
+  // Two beasts squaring off: leave the circle round the pair before the turf bonk.
+  if (b.state === 'turf' && g.visitor) { const mx = (b.x + g.visitor.x) / 2, mz = (b.z + g.visitor.z) / 2; if (Math.hypot(h.x - mx, h.z - mz) < 5.6) { dx = h.x - mx; dz = h.z - mz; } }
   // Slide around rocks instead of repeatedly pushing into one.
   for (const o of g.obstacles) {
     const n = Math.hypot(dx, dz) || 1;

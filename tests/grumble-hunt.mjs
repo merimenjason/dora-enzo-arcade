@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
 import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
@@ -291,6 +291,32 @@ check('each area has seeded weather that blows in after a clear start, shrinks s
   const a = fresh('frostmane'), c = fresh('frostmane'); assert.deepEqual([a.weatherClear, a.weatherSpell], [c.weatherClear, c.weatherSpell]);
   const loops = new Set(); for (let n = 0; n < 6; n++) { calm(a); a.returnVillage(); assert(a.startHunt('frostmane')); loops.add(`${a.weatherClear}/${a.weatherSpell}`); } assert(loops.size > 1);
   const calf = new HuntGame(5); calf.chooseHero('dora'); assert(calf.startHunt('bristleback')); calf.huntTime = 60; assert.equal(calf.weather.level, 0);
+});
+check('once a hunt a visiting beast wanders in, and meeting the hunted beast they square off for a warned turf bonk', () => {
+  for (const id of BEAST_IDS) {
+    const g = fresh(id), b = g.beast, h = g.hero, visit = VISITORS[g.area]; g.buddy.cooldown = 10000;
+    assert(visit && visit !== id, id); assert(g.visitAt >= 40 && g.visitAt <= 65);
+    b.state = 'rest'; b.duration = 10000; b.height = 0; b.x = 0; b.z = 0; h.x = 0; h.z = 15;
+    g.huntTime = g.visitAt - DT / 2; g.events.length = 0; g.step(DT);
+    assert(g.visitor && g.visitor.id === visit, `${id} visitor`); assert.equal(g.events.filter((e) => e.kind === 'visitor').length, 1); assert.match(g.note, /wanders in/);
+    let t = 0; while (b.state !== 'turf' && t < 20) { g.step(DT); t += DT; }
+    assert.equal(b.state, 'turf', `${id} squares off`); assert(g.events.some((e) => e.kind === 'turf-warning')); assert.match(g.note, /square off/);
+    const grump = b.grump, fluff = h.fluff; let warning = 0;
+    while (b.state === 'turf') { g.step(DT); warning += DT; }
+    assert(warning >= 0.6 && TURF_TIME >= 0.6, `${id} turf warned for ${warning}`);
+    assert.equal(g.events.filter((e) => e.kind === 'turf').length, 1); assert.equal(b.state, 'dizzy'); assert.match(g.note, /Turf bonk/);
+    assert(Math.abs(grump - b.grump - b.maxGrump * TURF_GRUMP) < 1e-9, `${id} turf Grump`); assert.equal(h.fluff, fluff, 'out of the circle, no bump');
+    assert.equal(g.visitor.state, 'leave'); b.state = 'rest'; b.duration = 10000; tick(g, 15); assert.equal(g.visitor, null, `${id} visitor leaves`);
+    g.huntTime += 100; tick(g, 1); assert.equal(g.visitor, null, 'only one visit');
+  }
+  // A friend inside the circle is bumped; a turf bonk never takes the last Grump; the paddock calf has no visitors.
+  const g = fresh(), b = g.beast; g.buddy.cooldown = 10000; b.state = 'rest'; b.duration = 10000; b.x = 0; b.z = 0; b.grump = 5; g.hero.x = 0; g.hero.z = 12;
+  g.huntTime = g.visitAt; while (b.state !== 'turf') g.step(DT);
+  g.hero.x = (b.x + g.visitor.x) / 2; g.hero.z = (b.z + g.visitor.z) / 2 + 1; g.hero.invincible = 0; const fluff = g.hero.fluff;
+  while (b.state === 'turf') g.step(DT);
+  assert(g.hero.fluff < fluff, 'bumped inside the circle'); assert(b.grump >= 1 && g.mode === 'hunt');
+  const calf = new HuntGame(5); calf.chooseHero('dora'); assert(calf.startHunt('bristleback')); assert(calf.visited); calf.huntTime = 100; tick(calf, 0.5); assert.equal(calf.visitor, null);
+  assert(TURF_REACH > 4);
 });
 check('out of sight for a second, Enzo sniffs out a pawprint trail that fades once the beast is seen', () => {
   const g = fresh(), b = g.beast; g.buddy.cooldown = 10000; b.state = 'rest'; b.duration = 10000;

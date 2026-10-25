@@ -21,6 +21,11 @@ export const AREA_WEATHER: Record<AreaId, WeatherKind> = { paddock: 'clear', mea
 /** At full strength, weather shrinks how far a friend can see the beast to this share of SIGHT. */
 export const WEATHER_SIGHT: Record<WeatherKind, number> = { clear: 1, rain: 0.75, mist: 0.6, dust: 0.55, blizzard: 0.5 };
 export const WEATHER_RAMP = 3; // Seconds for weather to blow in or clear.
+export const TURF_TIME = 1; // Two beasts square off this long, inside an orange circle, before a turf bonk.
+export const TURF_REACH = 4.5; // The turf bonk bumps friends this close to the middle of the pair.
+export const TURF_GRUMP = 0.1; // Share of starting Grump a turf bonk takes off the hunted beast, which is then dizzy.
+/** The beast that may wander into each area's hunt once; it can't be bonked and leaves after a turf bonk. */
+export const VISITORS: Record<AreaId, BeastId | null> = { paddock: null, meadow: 'puffwart', marsh: 'bristleback', ridge: 'hornclack', hollow: 'bristleback', peak: 'skreel' };
 export const ROAR_REACH = 7; // A roar makes friends this close cover their ears; a roll or a guard keeps them going.
 export const INTRO_CARD = 3.2;
 export const ROAR_TIME = 1.1; // Seconds a roar lasts; covered ears last 0.9 seconds.
@@ -89,8 +94,9 @@ export type StoryProgress = { chapter: number; scenesSeen: string[] };
 export type BeastBook = Record<BeastId, { met: boolean; napped: number; partsBroken: string[] }>;
 export type Profile = { bountiesClaimed: number; variantNaps: Record<BeastId, number>; totalPlops: number; story: StoryProgress; beastBook: BeastBook; bounties: { day: string; done: string[]; ready: string[] }; extraGrumpyUnlocked: boolean; hero: HeroId | null; weapons: Record<WeaponType, { tier: Tier; branch: Branch | null }>; equipped: Record<HeroId, WeaponType>; armour: { owned: ArmourPieceId[]; worn: Worn }; pouch: Pouch; ring: ItemId[]; snack: SnackId | null; naps: Record<BeastId, number>; won: boolean; hunts: number };
 export type Hero = Vec & { face: number; fluff: number; maxFluff: number; speed: number; roll: number; rollX: number; rollZ: number; rollCd: number; invincible: number; charge: number; swing: number; heavy: boolean; landed: boolean; cooldown: number; slow: number; hidden: number; covered: number };
-export type BeastState = 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'cloud' | 'circle' | 'swoop' | 'sweep' | 'pounce' | 'shake' | 'roar' | 'rest' | 'dizzy' | 'stuck' | 'trudge' | 'snooze' | 'nap';
+export type BeastState = 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'cloud' | 'circle' | 'swoop' | 'sweep' | 'pounce' | 'shake' | 'roar' | 'turf' | 'rest' | 'dizzy' | 'stuck' | 'trudge' | 'snooze' | 'nap';
 export type Beast = Vec & { id: BeastId; grump: number; maxGrump: number; face: number; state: BeastState; t: number; duration: number; attack: BeastState; aim: Vec; start: Vec; dir: Vec; phase: number; cycle: number; dizzy: number; part: number; broken: boolean; bonks: number; flash: number; height: number; grumpy: boolean; drowsy: number; drowsySlow: number; home: 0 | 1 | 2 };
+export type Visitor = Vec & { id: BeastId; face: number; state: 'arrive' | 'face' | 'leave'; t: number; home: Vec };
 export type Obstacle = Vec & { r: number; kind: 'tree' | 'rock' | 'pine' };
 export type Shot = Vec & { id: number; dx: number; dz: number; life: number; power: number; heavy: boolean; buddy: boolean; type: WeaponType; ammo: number; charge: number; hit: boolean; dizzyShare: number };
 export type Drop = Vec & { id: number; material: MaterialId; count: number };
@@ -99,7 +105,7 @@ export type Cloud = Vec & { life: number; r: number };
 export type Fx = Vec & { id: number; kind: 'bonk' | 'dust' | 'dizzy' | 'berry' | 'part' | 'nap'; t: number; text: string };
 export type Ride = { riding: boolean; meter: number; fullBonks: number; phase: 'quiet' | 'warning' | 'buck'; timer: number; grip: boolean; used: number; left: number; pose: number; landing: number; plopped: number };
 const freshRide = (): Ride => ({ riding: false, meter: 0, fullBonks: 0, phase: 'quiet', timer: 0, grip: false, used: 0, left: 0, pose: 0, landing: 0, plopped: 0 });
-export type HuntEvent = { kind: 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shaken-off' | 'plop' | 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'tired' | 'snooze' | 'intro' | 'roar' | 'covered' | 'weather' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
+export type HuntEvent = { kind: 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shaken-off' | 'plop' | 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'tired' | 'snooze' | 'intro' | 'roar' | 'covered' | 'weather' | 'visitor' | 'turf-warning' | 'turf' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
 export type Mode = 'village' | 'hunt' | 'nap' | 'calm' | 'camp' | 'victory';
 const countRecord = (): Record<BeastId, number> => ({ bristleback: 0, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0 });
 const emptyPouch = () => Object.fromEntries([...MATERIAL_IDS, ...ITEM_IDS].map((id) => [id, 0])) as Pouch;
@@ -187,6 +193,11 @@ export class HuntGame {
   weatherClear = 30;
   weatherSpell = 20;
   stormy = false;
+  /** A visiting beast, the hunt time it arrives and the angle it comes from. */
+  visitor: Visitor | null = null;
+  visitAt = 50;
+  visitAngle = 0;
+  visited = false;
   roared = false;
   introduced = false;
   /** Hunt time of the name card, or -1; the page shows the card for INTRO_CARD seconds. */
@@ -455,9 +466,9 @@ export class HuntGame {
     const grump = this.huntChapter === 0 ? 40 : BEASTS[id].grump * (variant ? 1.6 : 1);
     this.beast = { id, x: 0, z: -3, face: -Math.PI / 2, grump, maxGrump: grump, state: id === 'skreel' ? 'circle' : 'roam', t: 0, duration: 2.4, attack: 'charge', aim: { x: 0, z: 0 }, start: { x: 0, z: -3 }, dir: { x: 0, z: 1 }, phase: 1, cycle: 0, dizzy: 0, part: 0, broken: false, bonks: 0, flash: 0, height: 0, grumpy: false, drowsy: 0, drowsySlow: 0.3, home: 0 };
     this.shots = []; this.drops = []; this.clouds = []; this.fx = []; this.item = 0; this.sniff = 0; this.unseen = 0; this.locked = true; this.paused = false; this.hitstop = 0; this.shake = 0; this.last = { ...NO_INPUT }; this.resultTime = 0;
-    this.roared = this.introduced = this.huntChapter === 0; this.introAt = -1; this.planWeather(); this.gathering = null; this.trap = null; this.reward = []; this.area = this.huntChapter >= 0 ? STORY[this.huntChapter].area : HUNT_AREA[id];
+    this.roared = this.introduced = this.huntChapter === 0; this.introAt = -1; this.gathering = null; this.trap = null; this.reward = []; this.area = this.huntChapter >= 0 ? STORY[this.huntChapter].area : HUNT_AREA[id];
     this.profile.pouch.fluffberry = Math.max(this.profile.pouch.fluffberry, CAMP_BERRIES);
-    this.profile.hunts++; this.makeArea(); this.makeSpots(); this.nest = this.findNest(); this.revision++; this.note = BEASTS[id].tip;
+    this.profile.hunts++; this.makeArea(); this.makeSpots(); this.nest = this.findNest(); this.planWeather(); this.revision++; this.note = BEASTS[id].tip;
     return true;
   }
   returnVillage() {
@@ -521,14 +532,7 @@ export class HuntGame {
       const next = b.grump < b.maxGrump / 3 ? 3 : b.grump < b.maxGrump * 2 / 3 ? 2 : 1;
       if (next > b.phase && b.grump > 0) { b.phase = next; this.note = `Frostmane mood ${next}: ${next === 2 ? 'watch for the icy mane shake' : 'quick pounces, with a warning before each one'}!`; }
     }
-    if (!b.grumpy && b.grump > 0 && b.grump < b.maxGrump * GRUMPY_AT) {
-      b.grumpy = true; this.roared = this.huntChapter === 0; this.events.push({ kind: 'grumpy' }); this.effect('dust', b, 'Extra Grumpy!');
-      this.note = `${BEASTS[b.id].name} is Extra Grumpy! Steamy ears, quicker paws and quicker warnings. Nearly nap time.`;
-    }
-    if (!b.home && this.huntChapter !== 0 && b.grump > 0 && b.grump < b.maxGrump * TIRED_AT) {
-      b.home = 1; this.events.push({ kind: 'tired' }); this.effect('dust', b, 'So sleepy…');
-      this.note = `${BEASTS[b.id].name} is tired and trudging home to its nest. Follow it for a wake-up bonk!`;
-    }
+    this.moods(b);
     if (wasSnoozing && b.grump > 0) { b.state = 'rest'; b.t = 0; b.duration = 1.5; b.home = 2; this.note = 'Wake-up bonk! Double Grump off. Back to the hunt!'; }
     if (!buddy) { this.hitstop = heavy ? 0.11 : 0.08; this.shake = heavy ? 0.3 : 0.15; if (this.hero.hidden > 0) { this.hero.hidden = 0; this.note = 'Peekaboo! The bonk gave away your smoky hiding spot.'; } }
     this.events.push({ kind: 'bonk' }); this.effect('bonk', b, wasDizzy ? 'Big bonk!' : wasSnoozing ? 'Wake-up bonk!' : 'Bonk!');
@@ -552,6 +556,17 @@ export class HuntGame {
     if (tool === 'puffer' && b.grump > 0) this.fluffTime = 3 + perk('fluff-time');
     if (b.grump <= 0 && !(this.ride.riding && this.ride.fullBonks === 3)) this.nap();
     return true;
+  }
+  /** Extra Grumpy below 30% Grump and tired below 20%, each announced once a hunt. */
+  private moods(b: Beast) {
+    if (!b.grumpy && b.grump > 0 && b.grump < b.maxGrump * GRUMPY_AT) {
+      b.grumpy = true; this.roared = this.huntChapter === 0; this.events.push({ kind: 'grumpy' }); this.effect('dust', b, 'Extra Grumpy!');
+      this.note = `${BEASTS[b.id].name} is Extra Grumpy! Steamy ears, quicker paws and quicker warnings. Nearly nap time.`;
+    }
+    if (!b.home && this.huntChapter !== 0 && b.grump > 0 && b.grump < b.maxGrump * TIRED_AT) {
+      b.home = 1; this.events.push({ kind: 'tired' }); this.effect('dust', b, 'So sleepy…');
+      this.note = `${BEASTS[b.id].name} is tired and trudging home to its nest. Follow it for a wake-up bonk!`;
+    }
   }
   private nap() {
     const b = this.beast; if (!b || this.mode !== 'hunt') return;
@@ -646,6 +661,8 @@ export class HuntGame {
   private planWeather() {
     let h = Math.imul(this.seed ^ Math.imul(this.profile.hunts + 1, 2654435761), 1664525) + 1013904223 >>> 0;
     this.weatherClear = 25 + h % 16; h = Math.imul(h, 1664525) + 1013904223 >>> 0; this.weatherSpell = 16 + h % 9; this.stormy = false;
+    h = Math.imul(h, 1664525) + 1013904223 >>> 0; this.visitAt = 40 + h % 26; h = Math.imul(h, 1664525) + 1013904223 >>> 0; this.visitAngle = h % 628 / 100;
+    this.visitor = null; this.visited = this.huntChapter === 0 || !VISITORS[this.area];
   }
   /** The weather now: its kind for this area and its strength from 0 (clear) to 1. */
   get weather(): { kind: WeatherKind; level: number } {
@@ -980,6 +997,44 @@ export class HuntGame {
     if (roar && !this.introduced) { this.introduced = true; this.introAt = this.huntTime; this.events.push({ kind: 'intro' }); }
     this.note = b.attack === 'roar' ? 'Big roar coming! Step out of the orange circle, roll or guard.' : b.attack === 'shake' || b.attack === 'sweep' || b.attack === 'cloud' ? 'Orange circle! Step outside or roll as it lands.' : 'Orange lane! Step sideways or roll as it arrives.';
   }
+  private stepVisitor(dt: number) {
+    const b = this.beast; if (!b) return;
+    if (!this.visitor) {
+      if (this.visited || this.huntTime < this.visitAt || b.home) return;
+      const id = VISITORS[this.area]!, r = ARENA_RADIUS - 1.5, home = { x: Math.cos(this.visitAngle) * r, z: Math.sin(this.visitAngle) * r };
+      this.visited = true; this.visitor = { id, ...home, face: 0, state: 'arrive', t: 0, home }; this.events.push({ kind: 'visitor' });
+      this.note = `A wild ${BEASTS[id].name} wanders in! If it meets ${BEASTS[b.id].name}, look out for a turf bonk.`;
+      return;
+    }
+    const v = this.visitor; v.t += dt;
+    if (v.state === 'arrive') {
+      if (v.t > 25 || b.home) { v.state = 'leave'; v.t = 0; return; }
+      if (distance(v, b) < 5 && ['roam', 'circle', 'rest'].includes(b.state)) {
+        // Squaring off is the warning: an orange circle round the pair for TURF_TIME before the bonk.
+        v.state = 'face'; v.t = 0; b.state = 'turf'; b.t = 0; b.duration = TURF_TIME; b.height = 0; b.face = faceTo(b, v); v.face = faceTo(v, b);
+        this.events.push({ kind: 'turf-warning' }); this.note = `${BEASTS[b.id].name} and ${BEASTS[v.id].name} square off! Step out of the orange circle.`;
+        return;
+      }
+      const n = direction(v, b); this.move(v, n.x * dt * 2.4, n.z * dt * 2.4, 1.5); v.face = faceTo(v, b);
+    } else if (v.state === 'face') {
+      if (b.state !== 'turf') { v.state = 'leave'; v.t = 0; }
+      // Step back a little so the two square off nose to nose without overlapping.
+      else if (distance(v, b) < 4.8) { const n = direction(b, v); this.move(v, n.x * dt * 3, n.z * dt * 3, 1.5); v.face = faceTo(v, b); }
+    } else {
+      const d = distance(v, v.home); if (d < 0.6) { this.visitor = null; return; }
+      const n = direction(v, v.home), step = Math.min(d, dt * 3); v.x += n.x * step; v.z += n.z * step; v.face = faceTo(v, v.home);
+    }
+  }
+  /** The turf bonk: a big shove that takes Grump off the hunted beast and leaves it dizzy; the visitor wanders off. */
+  private turfBonk() {
+    const b = this.beast!, v = this.visitor, mid = v ? { x: (b.x + v.x) / 2, z: (b.z + v.z) / 2 } : { x: b.x, z: b.z };
+    this.events.push({ kind: 'turf' }); this.shake = Math.max(this.shake, 0.4); this.effect('bonk', mid, 'Turf bonk!');
+    b.grump = Math.max(1, b.grump - b.maxGrump * TURF_GRUMP); b.flash = 0.18; this.moods(b);
+    if (distance(this.hero, mid) < TURF_REACH) this.bumpHero(12, mid);
+    if (v) { v.state = 'leave'; v.t = 0; }
+    if (this.mode !== 'hunt') return;
+    this.makeDizzy(2.5); this.note = `Turf bonk! ${BEASTS[b.id].name} is dizzy. Big bonks welcome!`;
+  }
   private coverEars(b: Beast) {
     const h = this.hero, rolling = h.roll >= 0 && h.roll < 0.32 * (this.skill('feather-step') ? 1.3 : 1);
     if (distance(this.buddy, b) < ROAR_REACH) this.buddy.cooldown = Math.max(this.buddy.cooldown, 0.9);
@@ -992,7 +1047,7 @@ export class HuntGame {
     const pace = (b.grumpy ? GRUMPY_PACE : 1) * (b.drowsy > 0 ? 1 - b.drowsySlow : 1);
     b.t += dt; b.flash = Math.max(0, b.flash - dt); b.drowsy = Math.max(0, b.drowsy - dt);
     // A beast on the ground that steps on the sticky sap is stuck where it stands, even mid-charge.
-    if (this.trap && b.height < 0.5 && !['dizzy', 'stuck', 'snooze', 'nap'].includes(b.state) && distance(b, this.trap) < TRAP_REACH) {
+    if (this.trap && b.height < 0.5 && !['dizzy', 'stuck', 'snooze', 'turf', 'nap'].includes(b.state) && distance(b, this.trap) < TRAP_REACH) {
       const sap = ITEMS['sticky-sap'].effect as { seconds: number };
       b.state = 'stuck'; b.t = 0; b.duration = sap.seconds; b.height = 0; this.trap = null;
       this.effect('dust', b, 'Stuck!'); this.events.push({ kind: 'trap' }); this.note = `Stuck in sticky sap for ${sap.seconds} seconds. Bonk away!`;
@@ -1000,6 +1055,7 @@ export class HuntGame {
     }
     if (b.state === 'dizzy' || b.state === 'stuck') { b.height = 0; if (b.t >= b.duration) { b.duration = b.state === 'dizzy' ? 1.8 : 1.2; b.state = 'rest'; b.t = 0; } return; }
     if (b.state === 'rest') { b.height = 0; if (b.t >= b.duration) { b.state = b.id === 'skreel' ? 'circle' : 'roam'; b.t = 0; b.duration = b.id === 'frostmane' ? 1.5 : 2.4; } return; }
+    if (b.state === 'turf') { b.height = 0; if (this.visitor) b.face = faceTo(b, this.visitor); if (b.t >= b.duration) this.turfBonk(); return; }
     if (b.state === 'snooze') {
       b.height = 0; b.grump = Math.min(b.maxGrump, b.grump + b.maxGrump * NEST_REGAIN / SNOOZE * dt);
       if (b.t >= b.duration) { b.state = 'rest'; b.t = 0; b.duration = 1.5; b.home = 2; this.note = `${BEASTS[b.id].name} woke up refreshed. Back to the hunt!`; }
@@ -1100,7 +1156,7 @@ export class HuntGame {
       });
       this.clouds = this.clouds.filter((c) => { c.life -= dt; if (distance(this.hero, c) < c.r) this.hero.slow = 0.4; return c.life > 0; });
       this.collect();
-      this.stepSniff(dt); this.stepWeather();
+      this.stepSniff(dt); this.stepWeather(); this.stepVisitor(dt);
     }
     if (!this.beast || this.mode !== 'hunt') this.ride = freshRide();
     this.last = { ...input };

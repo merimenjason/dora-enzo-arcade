@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Grumble Hunt** beasts get visitors: once a hunt a second beast may wander in, and if it meets the one you're hunting they square off and do a big turf bonk that leaves your beast dizzy. Stay out of the orange circle!
+
 - **Grumble Hunt** has weather: rain showers in the meadow and marsh, mist on the ridge, dust storms in the hollow and blizzards on the peak. They roll in and out during a hunt, thicken the fog and make the beast harder to spot from afar, so Enzo's nose comes in handy.
 
 - **Grumble Hunt** beasts announce themselves: the first time one spots you it rears up and roars, with a painted name card ("Frostmane, the Snowy Mane of the Peak"), and it roars again when it turns Extra Grumpy. Friends inside the orange circle cover their ears for a moment unless they roll or guard. The Beast Book shows each beast's title.

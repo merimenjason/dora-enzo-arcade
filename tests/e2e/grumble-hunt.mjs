@@ -323,6 +323,12 @@ try {
     await p.waitForTimeout(600); await snapshot(p, 'snooze');
     await hunt(p, (w) => { const g = w.game, b = g.beast; g.bonkBeast(5, false, { x: b.x - 3, z: b.z }); });
     assert.equal(await hunt(p, (w) => w.game.beast.state), 'rest'); assert.match(await p.getByTestId('note').innerText(), /Wake-up/);
+    // A visitor: Puffwart wanders into the meadow, squares off with Bristleback inside an orange circle, and the turf bonk leaves it dizzy.
+    await hunt(p, (w) => { const g = w.game; g.returnVillage(); g.startHunt('bristleback'); g.roared = g.introduced = true; const b = g.beast; g.buddy.cooldown = 100; b.state = 'rest'; b.duration = 100; b.x = 0; b.z = 0; g.hero.x = 0; g.hero.z = 9; g.huntTime = g.visitAt; });
+    await p.waitForFunction(() => window.__hunt().metrics().visitor === true, null, { timeout: 15000 }); assert.match(await p.getByTestId('note').innerText(), /Puffwart wanders in/);
+    await hunt(p, (w) => { const g = w.game, v = g.visitor; v.x = 3; v.z = 0; });
+    await p.waitForFunction(() => window.__hunt().metrics().turfCircle === true, null, { timeout: 15000 }); await snapshot(p, 'turf');
+    await p.waitForFunction(() => window.__hunt().game.beast.state === 'dizzy', null, { timeout: 15000 }); assert.match(await p.getByTestId('note').innerText(), /Turf bonk/);
   });
 
   await check('painted portraits, tool tiers and material icons load and follow the game', async (p) => {
