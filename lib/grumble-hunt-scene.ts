@@ -381,7 +381,9 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     foliage.map = d ? areaCard.map : leaf; foliage.needsUpdate = true;
     groundMat.needsUpdate = dirtMat.needsUpdate = trailMat.needsUpdate = areaCard.needsUpdate = true;
   }
-  const snowfall = new T.InstancedMesh(ico, snowMat, 80); snowfall.visible = false; scene.add(snowfall);
+  // Snowflakes are plain white without an outline, which would turn each one into a dark speck.
+  const flakeMat = noOutline(new T.MeshBasicMaterial({ color: 0xffffff })); materials.add(flakeMat);
+  const FLAKES = 140, snowfall = new T.InstancedMesh(ico, flakeMat, FLAKES); snowfall.visible = false; scene.add(snowfall);
   // Butterflies over the meadow and camp: one draw per wing side, each wing a big upper and small lower lobe hinged on the body line.
   const wingGeo = (() => {
     const shape = new T.Shape(); shape.moveTo(0, 0.02); shape.bezierCurveTo(0.35, 0.45, 0.62, 0.16, 0.48, -0.04); shape.bezierCurveTo(0.42, -0.12, 0.38, -0.36, 0.2, -0.32); shape.bezierCurveTo(0.08, -0.3, 0.03, -0.12, 0, -0.06);
@@ -629,8 +631,11 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     } else if (id === 'skreel') {
       mesh(body, sphere, coat, [0, 1.4, 0], [1.1, 1.4, 1]); mesh(body, sphere, belly, [0.7, 1.2, 0], [0.55, 1.03, 0.8]); head.position.set(0.35, 2.1, 0);
       mesh(head, sphere, coat, [0, 0, 0], [0.95, 0.85, 1.0]);
+      // Darker flight feathers fan out under each wing, so it reads as feathered when it flaps.
+      const quill = fluffy(toon(0x56698a, furStrokes), 0.3); quill.userData.beastColor = 0x56698a;
       for (const s of [-1, 1]) { mesh(head, sphere, cream, [0.6, 0, s * 0.47], [0.35, 0.5, 0.4]); eye(0.8, 0.05, s * 0.5, s);
         const wing = new T.Group(); wing.position.set(-0.15, 1.8, s * 0.85); body.add(wing); const m = mesh(wing, sphere, coat, [-0.15, -0.55, s * 0.25], [0.5, 1.0, 0.32]); m.rotation.x = -s * 0.2; wings.push(wing); leg(0.25, s * 0.5, 0.35);
+        for (let k = 0; k < 3; k++) { const f = mesh(wing, sphere, quill, [-0.12 - k * 0.24, -1.6 + k * 0.2, s * 0.3], [0.17, 0.5 - k * 0.06, 0.11]); f.rotation.set(-s * 0.2, 0, -0.2 - k * 0.35); }
         mesh(part, cone, coat, [-0.2, 2.95, s * 0.5], [0.3, 0.55, 0.25]); }
       const beak = mesh(head, cone, gold, [1, -0.08, 0], [0.23, 0.45, 0.22]); beak.rotation.z = -Math.PI / 2;
       for (let i = -1; i <= 1; i++) mesh(body, sphere, coat, [-1.03, 0.75, i * 0.32], [0.75, 0.2, 0.25]);
@@ -847,7 +852,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     for (const id of BEAST_IDS) beasts[id].root.visible = game.beast?.id === id && !['village', 'camp'].includes(game.mode);
     ambientLife(game.time);
     snowfall.visible = currentArea === 'peak' && !reduced.matches;
-    if (snowfall.visible) { for (let i = 0; i < 80; i++) { const x = Math.sin(i * 7.3) * 22, z = Math.cos(i * 3.7) * 22, y = 9 - (game.time * 0.7 + i * 0.37) % 9; matrix.compose(V(x + Math.sin(game.time + i) * 0.3, y, z), upright, V(0.035, 0.035, 0.035)); snowfall.setMatrixAt(i, matrix); } snowfall.instanceMatrix.needsUpdate = true; }
+    if (snowfall.visible) { for (let i = 0; i < FLAKES; i++) { const x = Math.sin(i * 7.3) * 22, z = Math.cos(i * 3.7) * 22, y = 9 - (game.time * 0.7 + i * 0.37) % 9; matrix.compose(V(x + Math.sin(game.time + i) * 0.3, y, z), upright, V(0.07, 0.07, 0.07)); snowfall.setMatrixAt(i, matrix); } snowfall.instanceMatrix.needsUpdate = true; }
     const talkTo = village.visible && game.mode === 'village' ? game.nearestSpot()?.id : undefined;
     talkBubble.visible = false;
     chimneyPuffs.forEach((o, i) => {
