@@ -338,6 +338,12 @@ try {
     await p.waitForFunction(() => window.__hunt().metrics().soft === true, null, { timeout: 15000 }); await snapshot(p, 'vine');
     await p.keyboard.press('KeyK'); await p.waitForFunction(() => !['grabbed', 'yanked'].includes(window.__hunt().game.beast.state), null, { timeout: 15000 });
     assert.equal(await hunt(p, (w) => w.game.vine), null); assert.match(await p.getByTestId('vine-status').innerText(), /coiling/);
+    // The slinger: R flicks a pebble at the locked-on beast; it flies, plinks and the count drops.
+    await hunt(p, (w) => { const g = w.game, b = g.beast; g.locked = true; b.state = 'rest'; b.duration = 100; b.x = 0; b.z = 0; g.hero.x = 0; g.hero.z = 9; g.pebbles = 5; g.stones = []; });
+    const before = await hunt(p, (w) => w.game.beast.grump);
+    await p.keyboard.press('KeyR'); await p.waitForFunction(() => window.__hunt().metrics().pebbles > 0, null, { timeout: 15000 }); await snapshot(p, 'sling');
+    await p.waitForFunction(() => window.__hunt().game.stones.length === 0, null, { timeout: 15000 });
+    assert.equal(await hunt(p, (w) => w.game.pebbles), 4); assert(await hunt(p, (w) => w.game.beast.grump) < before); assert.match(await p.getByTestId('vine-status').innerText(), /4 pebbles/);
   });
 
   await check('painted portraits, tool tiers and material icons load and follow the game', async (p) => {

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
 import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
@@ -344,6 +344,31 @@ check('the grab-on vine holds on at the head; two tickles soften, a yank into a 
   grab(); const start = { x: b.x, z: b.z }, grump = b.grump; g.step(DT, input({ charge: true, x: 1 })); tick(g, 0.8);
   assert.equal(b.state, 'rest'); assert(Math.abs(distance(b, start) - YANK) < 0.3, 'stumbles the full yank'); assert.equal(b.grump, grump);
   g.vineCd = 0; b.x = 0; b.z = 0; h.x = 0; h.z = VINE_REACH + 1; g.step(DT, input({ grab: true })); assert.equal(g.vine, null); assert.match(g.note, /9 steps/);
+});
+check('the pebble slinger plinks the locked-on beast, knocks a flying Skreel down in three, shakes berries from trees and refills from gathering and dizzies', () => {
+  const g = fresh(), b = g.beast, h = g.hero; g.buddy.cooldown = 10000; b.state = 'rest'; b.duration = 10000; b.x = 0; b.z = 0; h.x = 0; h.z = 8; g.obstacles = [];
+  assert.equal(g.pebbles, SLING_START); const grump = b.grump, dizzy = b.dizzy, hits = g.hits;
+  g.events.length = 0; g.step(DT, input({ sling: true })); assert.equal(g.pebbles, SLING_START - 1); assert.equal(g.stones.length, 1); assert(g.events.some((e) => e.kind === 'sling'));
+  tick(g, 0.5); assert.equal(g.stones.length, 0); assert.equal(b.grump, grump - PEBBLE_POWER); assert.equal(b.dizzy, dizzy + PEBBLE_DIZZY); assert.equal(g.hits, hits, 'pebbles never charge weapon meters');
+  // Out of pebbles, nothing flies.
+  g.pebbles = 0; g.step(DT); g.step(DT, input({ sling: true })); assert.equal(g.stones.length, 0); assert.match(g.note, /Out of pebbles/);
+  // Gathering adds 3 and a dizzy shakes 1 loose, up to the most a pouch holds.
+  g.pebbles = 0; g.makeDizzy(1); assert.equal(g.pebbles, 1); g.pebbles = SLING_MAX - 1; g.makeDizzy(1); assert.equal(g.pebbles, SLING_MAX);
+  // A tree hit drops one berry per tree, at most TREE_BERRIES a hunt; a rock drops nothing.
+  const t = fresh(), th = t.hero; t.buddy.cooldown = 10000; t.locked = false; t.beast.x = 15; t.beast.z = -15; t.beast.state = 'rest'; t.beast.duration = 10000;
+  t.obstacles = [0, 1, 2, 3].map((i) => ({ x: -12 + i * 8, z: -6, r: 1, kind: 'tree' })).concat([{ x: 12, z: -6, r: 1, kind: 'rock' }]); t.pebbles = 10;
+  const shoot = (x) => { th.x = x; th.z = 0; th.face = Math.PI / 2; t.step(DT); t.step(DT, input({ sling: true })); tick(t, 0.6); };
+  for (const x of [-12, -12, -4, 4, 12, 20]) shoot(x);
+  assert.equal(t.shaken.length, TREE_BERRIES); assert.equal(t.drops.filter((d) => d.material === 'berry').length + (t.profile.pouch.berry > 0 ? 0 : 0), TREE_BERRIES);
+  // Three pebbles bring a flying Skreel down; a pebble on a snoozing beast wakes it.
+  const s = fresh('skreel'), sb = s.beast; s.buddy.cooldown = 10000; s.obstacles = []; sb.state = 'circle'; sb.height = 2.4; sb.x = 0; sb.z = 0; s.hero.x = 0; s.hero.z = 9; s.pebbles = 5;
+  s.events.length = 0; for (let n = 0; n < KNOCKDOWN_HITS; n++) { s.step(DT, input({ sling: true })); tick(s, 0.1); if (n < KNOCKDOWN_HITS - 1) { tick(s, 0.4); assert(!s.events.some((e) => e.kind === 'knockdown'), 'not yet'); } } tick(s, 0.5);
+  assert(s.events.some((e) => e.kind === 'knockdown')); assert.equal(sb.state, 'rest'); assert.equal(sb.height, 0); assert(sb.duration >= 2.5);
+  // Only a flying Skreel comes down: Puffwart high in a hop just takes the plinks.
+  const hp = fresh('puffwart'), pb = hp.beast; hp.buddy.cooldown = 10000; hp.obstacles = []; pb.state = 'hop'; pb.t = 0; pb.duration = 100; pb.start = { x: 0, z: 0 }; pb.aim = { x: 0, z: 0 }; pb.x = 0; pb.z = 0; hp.hero.x = 0; hp.hero.z = 9; hp.hero.invincible = 100;
+  for (let n = 0; n < KNOCKDOWN_HITS + 1; n++) { pb.height = 2; hp.step(DT, input({ sling: true })); tick(hp, 0.3); } assert.equal(hp.skyHits, 0); assert.notEqual(pb.state, 'dizzy');
+  const z = fresh(), zb = z.beast; z.buddy.cooldown = 10000; z.obstacles = []; zb.home = 1; zb.state = 'snooze'; zb.t = 0; zb.duration = 8; zb.x = 0; zb.z = 0; z.hero.x = 0; z.hero.z = 8;
+  z.step(DT, input({ sling: true })); tick(z, 0.5); assert.equal(zb.state, 'rest'); assert.equal(zb.home, 2); assert.match(z.note, /woke/);
 });
 check('out of sight for a second, Enzo sniffs out a pawprint trail that fades once the beast is seen', () => {
   const g = fresh(), b = g.beast; g.buddy.cooldown = 10000; b.state = 'rest'; b.duration = 10000;

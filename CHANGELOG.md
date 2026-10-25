@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Grumble Hunt** has a pebble slinger (R): plink the beast from afar, knock a flying Skreel down to the ground, or shake berries out of trees.
+
 - **Grumble Hunt** has a grab-on vine (G): hold on to a beast, tickle it soft so bonks hit harder, or yank it into a tree or rock for a dizzy wall bonk.
 
 - **Grumble Hunt** beasts get visitors: once a hunt a second beast may wander in, and if it meets the one you're hunting they square off and do a big turf bonk that leaves your beast dizzy. Stay out of the orange circle!

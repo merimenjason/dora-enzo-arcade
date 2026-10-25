@@ -1,7 +1,7 @@
 /** Browser and Node bots share this input policy. It uses no teleports, stat changes or direct bonks. */
 export function huntPolicy(g) {
   const b = g.beast, h = g.hero;
-  const out = { x: 0, z: 0, sprint: true, bonk: false, charge: false, roll: false, lock: false, previous: false, next: false, use: false, grab: false };
+  const out = { x: 0, z: 0, sprint: true, bonk: false, charge: false, roll: false, lock: false, previous: false, next: false, use: false, grab: false, sling: false };
   if (!b || g.mode !== 'hunt') return out;
   if (g.ride.riding) { out.charge = true; out.bonk = Math.floor(g.time * 16) % 2 === 0; return out; }
   // Holding on with the vine: two tickles, then yank towards the nearest tree or rock within the yank, if any.
@@ -14,6 +14,8 @@ export function huntPolicy(g) {
     }
     return out;
   }
+  // Pebbles bring a flying Skreel down.
+  if (b.id === 'skreel' && b.height > 1.5 && g.pebbles > 0 && g.locked && Math.hypot(h.x - b.x, h.z - b.z) < 13) out.sling = Math.floor(g.time * 4) % 2 === 0;
   if (g.vineCd <= 0 && ['rest', 'roam'].includes(b.state) && b.height < 0.5 && Math.hypot(h.x - b.x, h.z - b.z) < 8) { out.grab = true; return out; }
   if (g.ride.used < 2 && ['dizzy', 'stuck'].includes(b.state)) {
     if (g.weapon() === 'yoyo' && Math.hypot(h.x - b.x, h.z - b.z) < 4) { out.charge = g.time % 0.4 < 0.12; return out; }
