@@ -119,12 +119,14 @@ try {
   await check('review fixes: HUD focus, sprint lock, hit-stop taps and guide', async (p) => {
     await fresh(p); await start(p);
     await hunt(p, (w) => { const g = w.game; g.beast.state = 'rest'; g.beast.duration = 1000; g.buddy.cooldown = 1000; g.buddy.berry = 1000; g.hero.fluff = 40; });
+    // Slow software frames can start and finish a roll between two polls, so a setter records that the roll began.
+    const armRoll = () => hunt(p, (w) => { const h = w.game.hero; window.__rolled = false; if (!Object.getOwnPropertyDescriptor(h, 'rollCd')?.set) { let v = h.rollCd; Object.defineProperty(h, 'rollCd', { get: () => v, set: (x) => { if (x > 0.5) window.__rolled = true; v = x; }, configurable: true }); } });
     for (const button of [p.getByTestId('use-item'), p.getByRole('button', { name: 'Next item', exact: true }), p.getByRole('button', { name: 'Previous item', exact: true }), p.getByTestId('mute')]) {
       await button.click(); assert.equal(await p.evaluate(() => document.activeElement?.getAttribute('data-testid')), 'hunt-canvas');
       const before = await hunt(p, (w) => ({ pouch: { ...w.game.profile.pouch }, item: w.game.item }));
       const muted = await p.getByTestId('mute').getAttribute('aria-pressed');
-      await p.keyboard.press('Enter'); await p.keyboard.press('Space');
-      await p.waitForFunction(() => window.__hunt().game.hero.rollCd > 0);
+      await armRoll(); await p.keyboard.press('Enter'); await p.keyboard.press('Space');
+      await p.waitForFunction(() => window.__rolled);
       assert.deepEqual(await hunt(p, (w) => ({ pouch: { ...w.game.profile.pouch }, item: w.game.item })), before);
       assert.equal(await p.getByTestId('mute').getAttribute('aria-pressed'), muted);
       await hunt(p, (w) => { w.game.hero.roll = -1; w.game.hero.rollCd = 0; w.game.clearInput(); });
@@ -134,6 +136,7 @@ try {
     await p.waitForFunction((before) => window.__hunt().game.locked !== before, locked);
     assert.equal(await hunt(p, (w) => w.game.paused), false);
     for (const focusBody of [false, true]) {
+      await armRoll();
       await p.evaluate((body) => {
         const g = window.__hunt().game; g.hitstop = 0.11; g.hero.roll = -1; g.hero.rollCd = 0;
         if (body) document.activeElement.blur();
@@ -141,7 +144,7 @@ try {
         target.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true }));
         target.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space', bubbles: true }));
       }, focusBody);
-      await p.waitForFunction(() => window.__hunt().game.hero.rollCd > 0);
+      await p.waitForFunction(() => window.__rolled);
     }
     await hunt(p, (w) => { w.game.hero.cooldown = 2; w.game.hero.charge = 0; w.game.hero.roll = -1; });
     await p.keyboard.down('k'); await p.waitForTimeout(150);
@@ -202,6 +205,9 @@ try {
     await snapshot(p, 'forge'); await p.keyboard.press('Escape');
     await p.getByTestId('open-forge').click(); await p.getByTestId('forge-tree').waitFor();
     await p.getByTestId('rack-hammer').click(); await p.getByTestId('forge-hammer-3A').waitFor();
+    // Switching who to equip selects that hero's current tool.
+    await p.getByTestId('forge-who').selectOption('enzo'); assert.equal(await p.getByTestId('rack-bow').getAttribute('aria-pressed'), 'true'); await p.getByTestId('forge-bow-2').waitFor();
+    await p.getByTestId('forge-who').selectOption('dora'); assert.equal(await p.getByTestId('rack-hammer').getAttribute('aria-pressed'), 'true');
     await p.keyboard.press('Escape');
     const profile = await hunt(p, (w) => w.game.profile); await p.reload(); await p.locator('main[data-ready="true"][data-rendered="true"]').waitFor(); assert.deepEqual(await hunt(p, (w) => w.game.profile), profile);
     await p.getByTestId('open-board').click(); assert.equal(await p.getByTestId('hunt-frostmane').isDisabled(), false); await p.getByTestId('hunt-frostmane').click(); await p.locator('main[data-mode="hunt"]').waitFor();

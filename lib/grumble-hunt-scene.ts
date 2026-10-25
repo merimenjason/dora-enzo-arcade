@@ -27,7 +27,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   renderer.outputColorSpace = T.SRGBColorSpace;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = phone ? T.BasicShadowMap : T.PCFShadowMap;
   const outline = new OutlineEffect(renderer, { defaultThickness: 0.0042, defaultColor: [0.13, 0.09, 0.07] });
-  const scene = new T.Scene(); scene.background = new T.Color(0xb7d9ee); scene.fog = new T.Fog(0xc8dfd2, 34, 90);
+  const scene = new T.Scene(); scene.background = new T.Color(0xb7d9ee); scene.fog = new T.Fog(0xc8dfd2, 22, 86);
   const camera = new T.PerspectiveCamera(64, 1, 0.15, 180);
   const target = V(0, 1.5, 4);
   let yaw = 0, pitch = 0.4, dist = 8.8, userOrbit = 0, closed = false, currentWorld = '', currentArea = 'meadow', frame = 0;
@@ -50,7 +50,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   leaf.wrapS = leaf.wrapT = tuft.wrapS = tuft.wrapT = T.ClampToEdgeWrapping;
   const sky = loader.load('/art/hunt/sky-meadow.webp', (t) => { if (closed) t.dispose(); else if (currentArea === 'meadow' || currentArea === 'paddock') { t.mapping = T.EquirectangularReflectionMapping; t.colorSpace = T.SRGBColorSpace; scene.background = t; } }, undefined, () => { if (!closed) failed('The sky painting is taking a nap. You can still play.'); });
   textures.add(sky);
-  scene.add(new T.HemisphereLight(0xeaf6ff, 0x7c9d55, 1.4));
+  const skyLight = new T.HemisphereLight(0xeaf6ff, 0x7c9d55, 1.4); scene.add(skyLight);
   const sun = new T.DirectionalLight(0xfff1da, 1.8); sun.position.set(12, 22, 14); sun.castShadow = true; sun.shadow.mapSize.setScalar(phone ? 512 : 1024);
   Object.assign(sun.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 70 }); sun.shadow.normalBias = 0.05; scene.add(sun, sun.target);
   const sphere = new T.SphereGeometry(1, 16, 12), ico = new T.IcosahedronGeometry(1, 1), cube = new T.BoxGeometry(1, 1, 1);
@@ -60,6 +60,36 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const m = new T.Mesh(geo, mat); m.position.set(...pos); m.scale.set(...scale); if (!geo.boundingSphere) geo.computeBoundingSphere(); m.castShadow = shadow && (geo.boundingSphere?.radius ?? 1) * Math.max(...scale) > 0.22; m.receiveShadow = true; parent.add(m); geometries.add(geo); materials.add(mat); return m;
   }
   const groundMat = toon(0xd4dfbd, grassMap, false), dirtMat = toon(0xe8d9bd, dirtMap, false);
+  // The ground blends a second, rotated and slightly blurred sample of its painting at a larger scale (more of it on the busier grounds) and a slow light-and-dark patchwork, so the tiling doesn't show.
+  const calm = { value: 0 };
+  groundMat.onBeforeCompile = (shader) => {
+    shader.uniforms.uCalm = calm;
+    shader.vertexShader = 'varying vec2 vGround;\n' + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvGround = (modelMatrix * vec4(transformed, 1.0)).xz;');
+    shader.fragmentShader = 'uniform float uCalm;\nvarying vec2 vGround;\n' + shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+      vec3 far = texture2D(map, mat2(0.8, -0.6, 0.6, 0.8) * vGround * 0.0305 + 0.37, 1.5).rgb;
+      diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * far / max(sampledDiffuseColor.rgb, vec3(0.2)), 0.35 + uCalm);
+      float quilt = sin(vGround.x * 0.11 + sin(vGround.y * 0.07) * 2.0) * sin(vGround.y * 0.09 + sin(vGround.x * 0.05) * 1.7);
+      diffuseColor.rgb *= 0.95 + 0.09 * quilt;`);
+  };
+  // Paths fade out at their sides and ends through a wobbly painted alpha edge instead of stopping at a hard line.
+  const edge = (() => {
+    const c = document.createElement('canvas'); c.width = 64; c.height = 256; const ctx = c.getContext('2d')!, img = ctx.createImageData(64, 256);
+    for (let y = 0; y < 256; y++) for (let x = 0; x < 64; x++) {
+      const wob = 0.08 * Math.sin(y * 0.19) + 0.05 * Math.sin(y * 0.53 + 1.3), u = Math.abs(x / 63 - 0.5) * 2, v = Math.abs(y / 255 - 0.5) * 2;
+      const a = (1 - T.MathUtils.smoothstep(u, 0.55 + wob, 0.98 + wob * 0.5)) * (1 - T.MathUtils.smoothstep(v, 0.82, 1)), i = (y * 64 + x) * 4;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = Math.round(a * 255); img.data[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0); const t = new T.CanvasTexture(c); textures.add(t); return t;
+  })();
+  Object.assign(dirtMat, { alphaMap: edge, transparent: true, depthWrite: false });
+  // A soft dark blob under every tree, rock and gathering spot, so they sit on the ground.
+  const blobShade = (() => {
+    const c = document.createElement('canvas'); c.width = c.height = 64; const ctx = c.getContext('2d')!, g = ctx.createRadialGradient(32, 32, 4, 32, 32, 32);
+    g.addColorStop(0, 'rgba(30,26,20,0.55)'); g.addColorStop(0.55, 'rgba(30,26,20,0.3)'); g.addColorStop(1, 'rgba(30,26,20,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64);
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; textures.add(t); return t;
+  })();
+  const contactMat = noOutline(new T.MeshBasicMaterial({ map: blobShade, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 })); materials.add(contactMat);
+  const contactGeo = new T.PlaneGeometry(1, 1); contactGeo.rotateX(-Math.PI / 2); geometries.add(contactGeo);
   const groundGeo = new T.PlaneGeometry(180, 180, 80, 80); groundGeo.rotateX(-Math.PI / 2);
   const gp = groundGeo.getAttribute('position');
   for (let i = 0; i < gp.count; i++) { const x = gp.getX(i), z = gp.getZ(i), hill = T.MathUtils.smoothstep(Math.hypot(x, z), 22, 65); gp.setY(i, hill * (3 + Math.sin(x * 0.1) * 3 + Math.cos(z * 0.09) * 3)); }
@@ -82,7 +112,21 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), bump = 1 + 0.07 * Math.sin(x * 5.1 + z * 2.3) + 0.06 * Math.cos(y * 6.2 - x * 3.1) + 0.05 * Math.sin(z * 7.4); p.setXYZ(i, x * bump, y * bump * 0.92, z * bump); }
     g.computeVertexNormals(); return g;
   })();
-  geometries.add(trunkGeo); geometries.add(blobGeo);
+  // Rocks: a lumpy, flat-bottomed boulder; ice: a cluster of pointed six-sided crystals.
+  const rockGeo = (() => {
+    const g = new T.IcosahedronGeometry(1, 2), p = g.getAttribute('position');
+    for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), bump = 1 + 0.12 * Math.sin(x * 3.7 + z * 1.9) + 0.09 * Math.cos(y * 4.3 - x * 2.6) + 0.07 * Math.sin(z * 5.1 + y * 3.3); p.setXYZ(i, x * bump, Math.max(y * bump, -0.55), z * bump); }
+    const flat = g.toNonIndexed(); g.dispose(); flat.computeVertexNormals(); return flat;
+  })();
+  const crystalGeo = (() => {
+    const parts = [[0, 0, 0, 1.15], [0.32, 0.1, 0.42, 0.75], [-0.38, 0.32, 0.12, 0.62], [0.12, -0.35, -0.3, 0.55]].map(([tz, tx, ox, h]) => {
+      const shaft = new T.CylinderGeometry(0.22, 0.26, h, 6), tip = new T.ConeGeometry(0.22, 0.32, 6); tip.translate(0, h / 2 + 0.16, 0);
+      const c = mergeGeometries([shaft.toNonIndexed(), tip.toNonIndexed()]); shaft.dispose(); tip.dispose();
+      c.translate(0, h / 2, 0); c.rotateZ(tz * 0.9); c.rotateX(tx); c.translate(ox, 0, tx * 0.6); return c;
+    });
+    const merged = mergeGeometries(parts); parts.forEach((g) => g.dispose()); merged.computeVertexNormals(); return merged;
+  })();
+  geometries.add(trunkGeo); geometries.add(blobGeo); geometries.add(rockGeo); geometries.add(crystalGeo);
   /** One crown blob or leaf card per entry, relative to the tree's crown centre. */
   type TreePart = { at: T.Vector3; size: T.Vector3 };
   const treeBlobs: TreePart[][] = [], treeCards: TreePart[][] = [], treeTurn: T.Quaternion[] = [];
@@ -202,14 +246,25 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const puffMat = noOutline(new T.MeshBasicMaterial({ color: 0xe9e4dc, transparent: true, opacity: 0.8, depthWrite: false })); materials.add(puffMat);
   const chimneyPuffs = Array.from({ length: 6 }, () => mesh(village, sphere, puffMat, [0, 0, 0], [0.3, 0.3, 0.3], false));
   const villageBlockerCount = blockers.length;
-  const campPath = mesh(scene, plane, dirtMat, [0, 0.015, 12], [3.5, 10, 1], false); campPath.rotation.x = -Math.PI / 2;
+  // The hunt-start trail samples the area's ground painting at the ground's own scale, darkened, so it reads as a worn patch.
+  const trailMat = toon(0xc9b597, groundMat.map!, false); Object.assign(trailMat, { alphaMap: edge, transparent: true, depthWrite: false });
+  const trailGeo = new T.PlaneGeometry(4.2, 11); trailGeo.rotateX(-Math.PI / 2);
+  const tp = trailGeo.getAttribute('position');
+  const groundUv = new T.BufferAttribute(new Float32Array(tp.count * 2), 2);
+  for (let i = 0; i < tp.count; i++) groundUv.setXY(i, (tp.getX(i) + 90) / 180, (90 - tp.getZ(i) - 12) / 180);
+  trailGeo.setAttribute('groundUv', groundUv);
+  trailMat.onBeforeCompile = (shader) => {
+    shader.vertexShader = 'attribute vec2 groundUv;\n' + shader.vertexShader.replace('#include <uv_vertex>', '#include <uv_vertex>\nvMapUv = (mapTransform * vec3(groundUv, 1)).xy;');
+  };
+  const campPath = mesh(scene, trailGeo, trailMat, [0, 0.015, 12], [1, 1, 1], false);
   const areaMaps: T.Texture[] = [];
   const areaCard = noOutline(new T.MeshToonMaterial({ color: 0xffffff, gradientMap: ramp, alphaTest: 0.35, side: T.DoubleSide })); materials.add(areaCard);
-  const waterMat = toon(0x7fabb5, undefined, false), lilyMat = toon(0x79a45b), iceMat = toon(0xa7dce9), snowMat = toon(0xf4f5ff), flagMat = toon(0xe3b672);
+  const shoreMat = toon(0x6e5c40, undefined, false), glintMat = toon(0xc9eef0, undefined, false);
+  const waterMat = toon(0x7fb4c0, undefined, false), lilyMat = toon(0x79a45b), iceMat = toon(0xa7dce9), snowMat = toon(0xf4f5ff), flagMat = toon(0xe3b672);
   function switchArea(area: string) {
     if (area === currentArea) return;
     currentArea = area;
-    groundMat.map = grassMap; dirtMat.map = dirtMap; areaCard.map = null; scene.background = sky;
+    groundMat.map = grassMap; dirtMat.map = dirtMap; trailMat.map = grassMap; areaCard.map = null; scene.background = sky;
     for (const t of areaMaps.splice(0)) { textures.delete(t); t.dispose(); }
     const data: Record<string, [string, string, string, number]> = {
       marsh: ['tex-marsh-mud', 'sky-marsh', 'card-reeds', 0xb3a6c1], ridge: ['tex-ridge-slate', 'sky-ridge', 'card-pine', 0xc5ddeb],
@@ -217,16 +272,19 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     };
     const d = data[area];
     groundMat.color.set(d ? 0xffffff : 0xd4dfbd); dirtMat.color.set(d ? 0xffffff : 0xe8d9bd);
-    scene.fog = new T.Fog(d?.[3] ?? 0xc8dfd2, 34, 90);
+    scene.fog = new T.Fog(d?.[3] ?? 0xc8dfd2, 22, 86);
+    // Hills, rocks, the start trail and the light bounced up from the ground take each area's colours.
+    const tints: Record<string, number[]> = { marsh: [0x7d8a5f, 0xa9ad97, 0xb3a184, 0x8a8560], ridge: [0x6f8a78, 0xb2b7b4, 0xbdb39b, 0x7f9670], hollow: [0xc99a62, 0xe6c9a4, 0xd9bb98, 0xc29a68], peak: [0xdfe8f2, 0xc6cdd9, 0xc4d0e6, 0xb8c6dc] };
+    const [hill, stone, trail, bounce] = tints[area] ?? [0x739d64, 0xc7cac0, 0xc9b597, 0x7c9d55];
+    hillMat.color.set(hill); rockMat.color.set(stone); calm.value = ({ hollow: 0.25, ridge: 0.15, marsh: 0.1 } as Record<string, number>)[area] ?? 0; trailMat.color.set(trail); skyLight.groundColor.set(bounce);
     grass.visible = grassTufts.visible = !d || area === 'ridge';
     if (d) {
       const ground = texture(d[0], 32), paintedSky = texture(d[1]), card = texture(d[2]); areaMaps.push(ground, paintedSky, card);
       paintedSky.mapping = T.EquirectangularReflectionMapping; paintedSky.wrapS = paintedSky.wrapT = T.ClampToEdgeWrapping;
-      card.wrapS = card.wrapT = T.ClampToEdgeWrapping; groundMat.map = ground; dirtMat.map = ground; areaCard.map = card; scene.background = paintedSky;
-      if (area === 'peak') { const ice = texture('tex-peak-ice', 5); areaMaps.push(ice); dirtMat.map = ice; }
+      card.wrapS = card.wrapT = T.ClampToEdgeWrapping; groundMat.map = ground; dirtMat.map = ground; trailMat.map = ground; areaCard.map = card; scene.background = paintedSky;
     }
     foliage.map = d ? areaCard.map : leaf; foliage.needsUpdate = true;
-    groundMat.needsUpdate = dirtMat.needsUpdate = areaCard.needsUpdate = true;
+    groundMat.needsUpdate = dirtMat.needsUpdate = trailMat.needsUpdate = areaCard.needsUpdate = true;
   }
   const snowfall = new T.InstancedMesh(ico, snowMat, 80); snowfall.visible = false; scene.add(snowfall);
   /** Instance repeated meshes; `plain` batches also drop out of the shadow and outline passes. */
@@ -306,7 +364,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     });
     placeCanopies(1);
     for (const o of game.obstacles) {
-      if (o.kind === 'rock') { const m = mesh(world, ico, rockMat, [o.x, o.r * 0.5, o.z], [o.r, o.r * 0.8, o.r]); m.rotation.y = o.x; blockers.push(m); }
+      if (o.kind === 'rock') { const m = mesh(world, rockGeo, rockMat, [o.x, o.r * 0.42, o.z], [o.r, o.r * 0.8, o.r]); m.rotation.y = o.x; blockers.push(m); }
     }
     if (currentArea !== 'meadow' && currentArea !== 'paddock') {
       const cards = new T.InstancedMesh(plane, areaCard, 12); world.add(cards);
@@ -319,31 +377,34 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     }
     for (let i = 0; i < 6; i++) {
       const x = Math.cos(i * 2.1) * 14, z = Math.sin(i * 2.1) * 14;
-      if (currentArea === 'marsh') { mesh(props, cylinder, waterMat, [x, 0.025, z], [3, 0.025, 2], false); for (let k = 0; k < 3; k++) mesh(props, cylinder, lilyMat, [x + k - 1, 0.07, z + k * 0.3], [0.45, 0.02, 0.4], false); }
-      if (currentArea === 'ridge') { mesh(props, ico, rockMat, [x, 1.6, z], [0.6, 2, 0.7]); mesh(props, cylinder, wood, [x + 1, 1.7, z], [0.04, 3.4, 0.04]); mesh(props, plane, flagMat, [x + 1.4, 2.9, z], [0.8, 0.5, 1], false); }
-      if (currentArea === 'hollow') { mesh(props, ico, rockMat, [x, 0.8, z], [1.5, 0.8, 1.2]); mesh(props, ico, rockMat, [x, 1.7, z], [1, 0.6, 0.8]); mesh(props, cone, iceMat, [x + 1, 0.4, z], [0.35, 0.9, 0.35]); mesh(props, sphere, ink, [x - 1, 0.04, z], [0.6, 0.04, 0.5], false); }
-      if (currentArea === 'peak') { mesh(props, cone, iceMat, [x, 1, z], [0.65, 2, 0.65]); mesh(props, cone, snowMat, [x - 2, 2, z], [1.2, 3.5, 1.2]); }
+      if (currentArea === 'marsh') { mesh(props, cylinder, shoreMat, [x, 0.015, z], [3.45, 0.02, 2.4], false); mesh(props, cylinder, waterMat, [x, 0.025, z], [3, 0.025, 2], false); mesh(props, cylinder, glintMat, [x - 0.8, 0.03, z - 0.5], [1, 0.02, 0.35], false); for (let k = 0; k < 3; k++) mesh(props, cylinder, lilyMat, [x + k - 1, 0.07, z + k * 0.3], [0.45, 0.02, 0.4], false); }
+      if (currentArea === 'ridge') { mesh(props, rockGeo, rockMat, [x, 1.1, z], [0.6, 2, 0.7]); mesh(props, cylinder, wood, [x + 1, 1.7, z], [0.04, 3.4, 0.04]); mesh(props, plane, flagMat, [x + 1.4, 2.9, z], [0.8, 0.5, 1], false); }
+      if (currentArea === 'hollow') { mesh(props, rockGeo, rockMat, [x, 0.45, z], [1.5, 0.8, 1.2]); mesh(props, rockGeo, rockMat, [x - 0.1, 1.35, z], [1, 0.6, 0.8]); mesh(props, crystalGeo, iceMat, [x + 1.1, 0, z + 0.3], [0.45, 0.5, 0.45]); mesh(props, sphere, ink, [x - 1, 0.04, z], [0.6, 0.04, 0.5], false); }
+      if (currentArea === 'peak') { mesh(props, crystalGeo, iceMat, [x, 0, z], [1.1, 1.3, 1.1]); mesh(props, sphere, snowMat, [x - 2.2, 0, z], [2.1, 0.9, 1.7]); mesh(props, sphere, snowMat, [x - 1.1, 0, z + 1], [1.1, 0.5, 0.9]); }
     }
     if (currentArea === 'marsh') for (let i = 0; i < 3; i++) { const x = -13 + i * 12, z = 11 - i * 8; mesh(props, cylinder, barkMat, [x, 0.35, z], [0.35, 2.4, 0.35]).rotation.z = Math.PI / 2; mesh(props, cylinder, cream, [x + 1, 0.3, z + 1], [0.12, 0.6, 0.12]); mesh(props, sphere, rose, [x + 1, 0.65, z + 1], [0.45, 0.17, 0.45]); }
-    if (currentArea === 'peak') { mesh(props, cylinder, rockMat, [0, 0.3, -15], [2.5, 0.6, 2.5]); for (const x of [-0.45, 0.45]) mesh(props, ico, iceMat, [x, 1.6, -15], [0.65, 1.4, 0.6]).rotation.z = x * 0.3; }
+    if (currentArea === 'peak') { mesh(props, cylinder, rockMat, [0, 0.3, -15], [2.5, 0.6, 2.5]); for (const x of [-0.6, 0.6]) mesh(props, crystalGeo, iceMat, [x, 0.6, -15], [0.8, 1.2, 0.8]).rotation.y = x * 2; }
     batchMeshes(props, false);
     spotRigs.length = 0;
     for (const s of game.spots) {
       const root = new T.Group(), fruit = new T.Group(); root.position.set(s.x, 0, s.z); root.rotation.y = s.id; root.add(fruit); world.add(root);
       if (s.material === 'berry') {
-        mesh(root, ico, bushMat, [0, 0.55, 0], [0.8, 0.62, 0.8]);
+        mesh(root, blobGeo, bushMat, [0, 0.5, 0], [0.8, 0.62, 0.8]);
         for (let k = 0; k < 8; k++) { const a = k * 2.3, y = 0.45 + (k % 3) * 0.2; mesh(fruit, sphere, berryMat, [Math.cos(a) * 0.72, y, Math.sin(a) * 0.72], [0.11, 0.11, 0.11], false); }
       } else if (s.material === 'marsh-reed') {
         for (let k = 0; k < 7; k++) { const a = k * 2.1, r = 0.12 + (k % 3) * 0.14, tall = 1 + (k % 2) * 0.35, x = Math.cos(a) * r, z = Math.sin(a) * r;
           const stalk = mesh(root, cylinder, reedMat, [x, tall / 2, z], [0.035, tall, 0.035], false); stalk.rotation.z = (k % 3 - 1) * 0.08;
           mesh(fruit, cylinder, cattailMat, [x, tall + 0.1, z], [0.075, 0.32, 0.075], false); }
       } else {
-        mesh(root, ico, rockMat, [0, 0.25, 0], [0.7, 0.4, 0.6]);
+        mesh(root, rockGeo, rockMat, [0, 0.2, 0], [0.7, 0.4, 0.6]);
         for (let k = 0; k < 4; k++) { const c = mesh(fruit, starGeo, crystalMat, [Math.cos(k * 1.6) * 0.3, 0.6 + (k % 2) * 0.2, Math.sin(k * 1.6) * 0.3], [1.4, 2.6 - k * 0.3, 1.4], false); c.rotation.z = (k - 1.5) * 0.3; }
       }
       batchMeshes(root, false); batchMeshes(fruit, false);
       spotRigs.push({ id: s.id, root, fruit, material: s.material });
     }
+    const grounded = [...game.obstacles.map((o) => ({ x: o.x, z: o.z, r: o.kind === 'rock' ? o.r * 1.25 : o.r * 1.6 + 0.6 })), ...game.spots.map((s) => ({ x: s.x, z: s.z, r: 1.1 }))];
+    const contacts = new T.InstancedMesh(contactGeo, contactMat, grounded.length); contacts.renderOrder = 1; world.add(contacts);
+    grounded.forEach((c, i) => { matrix.compose(V(c.x, 0.03, c.z), upright, V(c.r * 2, 1, c.r * 2)); contacts.setMatrixAt(i, matrix); });
   }
   function actor(white: boolean): Rig {
     const model = createHuntChinchilla(white); model.root.scale.setScalar(0.75); scene.add(model.root);
