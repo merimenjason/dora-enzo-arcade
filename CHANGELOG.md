@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 26-10-2026
+
+### Fixed
+
+- **Grumble Hunt** keeps Wren's finished daily tasks in the order you earned them when the game reloads.
+
 ## 25-10-2026
 
 ### Added

@@ -662,6 +662,13 @@ check('a completed daily bounty pays only once, survives loading and resets with
   assert(g.claimBounty(achievable.id)); assert.equal(g.profile.pouch.berry, before + 3); assert(!g.claimBounty(achievable.id));
   const loaded = HuntGame.load(g.save()); assert(!loaded.claimBounty(achievable.id)); assert(loaded.setBountyDay('2026-10-24')); assert(loaded.profile.bounties.done.includes(achievable.id));
   loaded.setBountyDay('2026-10-25'); assert.deepEqual(loaded.profile.bounties.done, []); assert.deepEqual(loaded.profile.bounties.ready, []);
+  // Loading keeps the order tasks were earned in, drops repeats and other days' tasks.
+  for (const day of ['2026-10-24', '2026-10-26']) {
+    const picks = dailyBounties(day).map((t) => t.id), earned = [picks[2], picks[0]];
+    g.profile.bounties = { day, done: [picks[1], 'tusks-not-today', picks[1]], ready: earned };
+    const back = HuntGame.load(JSON.parse(JSON.stringify(g.save()))).profile.bounties;
+    assert.deepEqual(back.ready, earned, day); assert.deepEqual(back.done, [picks[1]], day);
+  }
 });
 check('v1, v2 and v3 saves migrate cleared chapters, seen scenes and equipment into v5', () => {
   for (const v of [1, 2, 3]) {

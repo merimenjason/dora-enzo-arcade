@@ -1052,8 +1052,9 @@ export class HuntGame {
         game.profile.beastBook[id] = { met: b?.met === true, napped: integer(b?.napped, 9999), partsBroken: Array.isArray(b?.partsBroken) ? [BEASTS[id].part].filter((part) => b!.partsBroken.includes(part)) : [] };
       }
       if (validDay(p.bounties?.day)) {
-        const picks = dailyBounties(p.bounties!.day).map((t) => t.id);
-        game.profile.bounties = { day: p.bounties!.day, done: picks.filter((id) => Array.isArray(p.bounties?.done) && p.bounties.done.includes(id)), ready: picks.filter((id) => Array.isArray(p.bounties?.ready) && p.bounties.ready.includes(id)) };
+        // Today's picks only, once each, kept in the order they were earned.
+        const picks = dailyBounties(p.bounties!.day).map((t) => t.id), keep = (list: unknown) => Array.isArray(list) ? list.filter((id, i) => picks.includes(id) && list.indexOf(id) === i) as string[] : [];
+        game.profile.bounties = { day: p.bounties!.day, done: keep(p.bounties?.done), ready: keep(p.bounties?.ready) };
       }
     }
     game.profile.bountiesClaimed = s.v === 5 ? integer(p.bountiesClaimed, 999999) : game.profile.bounties.done.length;
