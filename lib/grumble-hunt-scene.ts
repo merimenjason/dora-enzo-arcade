@@ -138,7 +138,14 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const merged = mergeGeometries(parts); parts.forEach((g) => g.dispose()); merged.computeVertexNormals(); return merged;
   })();
   const pondGeo = new T.CylinderGeometry(1, 1, 1, 32);
-  geometries.add(trunkGeo); geometries.add(blobGeo); geometries.add(rockGeo); geometries.add(crystalGeo); geometries.add(pondGeo);
+  const P = (x: number, y: number) => new T.Vector2(x, y);
+  // A pine tier: a soft point sweeping out to a drooping, scalloped rim that curls under, instead of a flat-bottomed cone.
+  const pineGeo = (() => {
+    const g = new T.LatheGeometry([P(0, -0.36), P(0.82, -0.5), P(1, -0.44), P(0.86, -0.22), P(0.5, 0.12), P(0.16, 0.42), P(0, 0.5)], 16), p = g.getAttribute('position');
+    for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z), k = 1 + 0.09 * Math.sin(Math.atan2(z, x) * 7) * T.MathUtils.smoothstep(r, 0.4, 0.9); p.setXYZ(i, x * k, p.getY(i) - 0.06 * (k - 1) / 0.09 * T.MathUtils.smoothstep(r, 0.6, 1), z * k); }
+    g.computeVertexNormals(); return g;
+  })();
+  geometries.add(pineGeo); geometries.add(trunkGeo); geometries.add(blobGeo); geometries.add(rockGeo); geometries.add(crystalGeo); geometries.add(pondGeo);
   /** One crown blob or leaf card per entry, relative to the tree's crown centre. */
   type TreePart = { at: T.Vector3; size: T.Vector3 };
   const treeBlobs: TreePart[][] = [], treeCards: TreePart[][] = [], treeTurn: T.Quaternion[] = [];
@@ -425,7 +432,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       treeTurn.push(new T.Quaternion().setFromAxisAngle(V(0, 0, 1), o.kind === 'pine' && currentArea === 'ridge' ? -0.14 : 0));
     }
     const trunks = new T.InstancedMesh(trunkGeo, barkMat, trees.length);
-    crowns = new T.InstancedMesh(trees.some((o) => o.kind === 'pine') ? cone : blobGeo, canopyMat, treeBlobs.reduce((n, b) => n + b.length, 0));
+    crowns = new T.InstancedMesh(trees.some((o) => o.kind === 'pine') ? pineGeo : blobGeo, canopyMat, treeBlobs.reduce((n, b) => n + b.length, 0));
     leafCards = new T.InstancedMesh(plane, foliage, treeCards.reduce((n, c) => n + c.length, 0));
     trunks.castShadow = true; trunks.receiveShadow = true;
     world.add(trunks, crowns!, leafCards); blockers.push(trunks);
@@ -528,7 +535,8 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(3, 2); t.anisotropy = 4; textures.add(t); return t;
   }
   const furStrokes = coatTexture('fur'), toadSkin = coatTexture('mottle');
-  const legGeo = new T.CylinderGeometry(1.15, 0.8, 1, 12); geometries.add(legGeo);
+  // Legs: a domed top that sinks into the body, a soft knee and a narrower ankle above the paw.
+  const legGeo = new T.LatheGeometry([P(0, -0.5), P(0.86, -0.5), P(0.8, -0.36), P(0.9, -0.12), P(1.08, 0.12), P(1.15, 0.34), P(0.86, 0.54), P(0, 0.62)], 12); geometries.add(legGeo);
   function beastRig(id: BeastId): BeastRig {
     const root = new T.Group(), body = new T.Group(), head = new T.Group(), part = new T.Group(); root.add(body); body.add(head, part); scene.add(root);
     const legs: T.Group[] = [], wings: T.Group[] = [], eyes: T.Mesh[] = [];
