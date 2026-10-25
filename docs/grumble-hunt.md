@@ -276,4 +276,4 @@ The bot now adds a post-game run: after each story campaign both friends carry e
 
 The browser suite checks the four locked cards' progress text, unlocking, the Forge preview of each tool, both icon sheets loading, and a short hunt with each tool under 400 draw calls, with screenshots under `.checks/hunt/postgame-*`.
 
-The tier icons were rendered from the 3D models (toon shading, a painted outline and a Glimmer glow) into the free cells of `icons-weapons-5.webp` and the new `icons-weapons-6.webp`. Prompts for hand-painted replacements are in `docs/grumble-hunt-prompts/9-new-weapon-icons.md`.
+The tier icons are hand-painted into the free cells of `icons-weapons-5.webp` and the new `icons-weapons-6.webp`; the prompts are in `docs/grumble-hunt-prompts/9-new-weapon-icons.md` and `docs/grumble-hunt-weapon-icons.md`.

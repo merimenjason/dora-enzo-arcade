@@ -1,6 +1,6 @@
 # Grumble Hunt: hand-painted icons for the four post-game weapons
 
-The post-game tools' tier icons are currently rendered from their 3D models (see the last section of `docs/grumble-hunt-weapon-icons.md`). They work, but they are a step away from the hand-painted sheets. Run this in the Codex app, which has image generation, to replace them with painted ones.
+Done 25-10-2026: Codex painted these through the plugin, one row per request after full two-row requests timed out. The prompts it actually used are in the last section of `docs/grumble-hunt-weapon-icons.md`. This brief replaced the first, model-rendered placeholder icons.
 
 **Where the icons go:**
 - `public/art/hunt/icons-weapons-5.webp`, rows 3–4 (cells 8–15): the Tickle Feather in row 3 and the Dandelion Puffer in row 4. **Rows 1–2 must stay pixel-identical**: paste the new cells into the existing image and save it losslessly.

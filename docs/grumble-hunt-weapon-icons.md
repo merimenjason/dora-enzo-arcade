@@ -14,8 +14,8 @@ Paths are relative to the repository root. Sizes are final encoded bytes.
 | --- | --- | ---: | ---: | --- |
 | `public/art/hunt/icons-weapons-3.webp` | 1024 × 1024 | 241,662 | 16 | 1254 × 1254 |
 | `public/art/hunt/icons-weapons-4.webp` | 1024 × 1024 | 852,606 | 16 | 1254 × 1254 |
-| `public/art/hunt/icons-weapons-5.webp` | 1024 × 1024 | 489,358 | 16 | 1254 × 1254 (cells 0–7); rendered (cells 8–15) |
-| `public/art/hunt/icons-weapons-6.webp` | 1024 × 1024 | 72,486 | 8 | rendered |
+| `public/art/hunt/icons-weapons-5.webp` | 1024 × 1024 | 665,846 | 16 | 1254 × 1254 (cells 0–7); 2172 × 724 painted strips (cells 8–15) |
+| `public/art/hunt/icons-weapons-6.webp` | 1024 × 1024 | 260,742 | 8 | 2172 × 724 painted strips |
 
 ## Checks and final refinements
 
@@ -278,7 +278,39 @@ Edit this Glimmer Katana icon on a genuinely transparent background. Keep its ex
 
 ## Post-game weapon icons · 25-10-2026
 
-The sixteen tier icons of the four post-game tools fill the eight free cells of `icons-weapons-5.webp` (rows 3–4 above) and the top half of the new `icons-weapons-6.webp`. Image generation wasn't available, so they were **rendered from the in-game 3D toy models**: toon shading with the game's light ramp, a three-quarter view lit from the top left, a painted dark-brown outline added around each silhouette, and 25% more colour. Tier 2 adds a teal ribbon at the grip, the tier 3–4 cell adds frost and shell trim, and Glimmer adds a warm amber stone and a soft gold glow. The eight original icons in sheet 5 are pixel-identical (sheet 5 is now saved as lossless WebP, so it decodes exactly). The renderer is `.checks/icon-render.ts` with `.checks/icon-shoot.mjs` (git-ignored lab scripts, run against the dev server). Prompts for hand-painted replacements, in the same cells, are in `docs/grumble-hunt-prompts/9-new-weapon-icons.md`.
+All sixteen post-game tier icons are now **hand-painted**, replacing the model-rendered placeholders: **Tickle Feather** in sheet 5 row 3, **Dandelion Puffer** in sheet 5 row 4, **Pogo Spring** in sheet 6 row 1 and **Leaf Umbrella** in sheet 6 row 2. Columns remain base, tier 2, shared tier 3–4 final and Glimmer. No rendered placeholder rows remain. The current toy silhouettes and diagonal poses are retained in the warm painted style of the existing atlases.
+
+Generated with the built-in imagegen tool in four separate single-row requests on 25-10-2026; all succeeded on the first attempt, with no timeouts or retries. Each request used its decoded original rendered row as image 1 (silhouette reference) and `public/art/hunt/icons-weapons-4.webp` as image 2 (painted style reference), with `transparent_background: true`. Each returned a 2172 × 724 RGBA PNG containing just four icons in one horizontal row. Original generated PNGs remain in the built-in tool's output directory.
+
+Packed with Pillow: split each strip into four equal columns; locate each drawing with alpha ≥ 4 and a four-source-pixel margin to exclude isolated near-transparent noise; retain the cropped RGBA, resize with Lanczos into centered 208 × 208 bounds in each 256 × 256 cell (at least 24 px padding). Copied sheet 5 rows 1–2 directly from decoded `git show HEAD:public/art/hunt/icons-weapons-5.webp`. Saved both sheets with `lossless=True, method=6, exact=True`.
+
+Verification passed: both atlases decode as 1024 × 1024 RGBA; their complete decoded RGBA bytes equal the assembled images; sheet 5 rows 1–2 are pixel-identical to HEAD, including RGB beneath transparent pixels; sheet 6 rows 3–4 have zero alpha throughout. Every cell border is fully transparent. All sixteen new icons are occupied, centered and within the padded bounds, with soft alpha retained. Inspected the source strips and a reduced menu-size preview. Final sizes: sheet 5 **665,846 bytes**, sheet 6 **260,742 bytes**. No code changed.
+
+Exact prompts used (one request each):
+
+### Tickle Feather — sheet 5 row 3
+
+```text
+Use case: style-transfer. Paint exactly FOUR game icons in ONE horizontal row on a genuinely transparent background, 1024x256 if possible (otherwise a square canvas with just one centered horizontal row). Image 1 is the silhouette reference: preserve the four tools' recognizable shapes and diagonal poses. Image 2 is the painted style reference only. Match its warm hand-painted storybook botanical toy style, rich brush texture, thick dark-brown outlines, three-quarter view and top-left lighting. Four separate complete icons equally spaced left to right, generous transparent gaps and padding; no text, grid, watermark, scenery or cast shadows. Rounded harmless toys. Left to right: Tickle Feather, a big soft curled pink feather plume on a short brown twig handle; Ribbon Feather, same with teal ribbon wound around twig; Snowcurl Feather, same with gold grip trim, pale blue frost-fur tuft and little grey shell plate; Glimmer Feather, same with small warm amber Glimmer Stone at grip, gold details and soft warm glow.
+```
+
+### Dandelion Puffer — sheet 5 row 4
+
+```text
+Use case: style-transfer. Paint exactly FOUR game icons in ONE horizontal row on a genuinely transparent background, 1024x256 if possible (otherwise a square canvas with just one centered horizontal row). Image 1 is the silhouette reference: preserve the four tools' recognizable shapes and diagonal poses. Image 2 is the painted style reference only. Match its warm hand-painted storybook botanical toy style, rich brush texture, thick dark-brown outlines, three-quarter view and top-left lighting. Four separate complete icons equally spaced left to right, generous transparent gaps and padding; no text, grid, watermark, scenery or cast shadows. Rounded harmless toys. Left to right: Dandelion Puffer, round white dandelion seed clock on long green stem with one leaf; Twine Puffer, same with twine binding on stem; Snowclock Puffer, same with gold trim, pale blue frost-fur tuft and grey shell plate at grip; Glimmer Puffer, same with small warm amber Glimmer Stone at grip, gold details and soft warm glow.
+```
+
+### Pogo Spring — sheet 6 row 1
+
+```text
+Use case: style-transfer. Paint exactly FOUR game icons in ONE horizontal row on a genuinely transparent background, 1024x256 if possible (otherwise a square canvas with just one centered horizontal row). Image 1 is the silhouette reference: preserve the four tools' recognizable shapes and diagonal poses. Image 2 is the painted style reference only. Match its warm hand-painted storybook botanical toy style, rich brush texture, thick dark-brown outlines, three-quarter view and top-left lighting. Four separate complete icons equally spaced left to right, generous transparent gaps and padding; no text, grid, watermark, scenery or cast shadows. Rounded harmless toys. Left to right: Pogo Spring, green reed pogo stick with wooden T-bar handle, golden coiled spring and red-and-cream spotted mushroom-cap foot; Banded Pogo, same with twine bands on reed; Snowcap Pogo, same with gold trim, pale blue frost-fur tuft and grey shell plate on T-bar; Glimmer Pogo, same with small warm amber Glimmer Stone on T-bar, gold details and soft warm glow.
+```
+
+### Leaf Umbrella — sheet 6 row 2
+
+```text
+Use case: style-transfer. Paint exactly FOUR game icons in ONE horizontal row on a genuinely transparent background, 1024x256 if possible (otherwise a square canvas with just one centered horizontal row). Image 1 is the silhouette reference: preserve the four tools' recognizable shapes and diagonal poses. Image 2 is the painted style reference only. Match its warm hand-painted storybook botanical toy style, rich brush texture, thick dark-brown outlines, three-quarter view and top-left lighting. Four separate complete icons equally spaced left to right, generous transparent gaps and padding; no text, grid, watermark, scenery or cast shadows. Rounded harmless toys. Left to right: Leaf Umbrella, open canopy of six soft green leaves on curved brown twig handle with hooked end; Twine Umbrella, same with twine on handle; Snowleaf Umbrella, same with gold trim, pale blue frost-fur tuft and grey shell plate on handle; Glimmer Umbrella, same with small warm amber Glimmer Stone on handle, gold details and soft warm glow.
+```
 
 ## icons-weapons-6.webp
 
