@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
 import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
@@ -268,6 +268,29 @@ check('below 20% Grump a tired beast trudges home, snoozes in its nest and the f
   tick(g, SNOOZE + 0.1); assert.notEqual(b.state, 'snooze'); assert.equal(b.home, 2);
   const calf = new HuntGame(5); calf.chooseHero('dora'); assert(calf.startHunt('bristleback')); assert.equal(calf.huntChapter, 0);
   const c = calf.beast; c.state = 'rest'; calf.bonkBeast(c.maxGrump * (1 - TIRED_AT) + 1, false, { x: c.x - 3, z: c.z }); assert.equal(c.home, 0);
+});
+check('each area has seeded weather that blows in after a clear start, shrinks sight, is announced and clears again', () => {
+  for (const id of BEAST_IDS) {
+    const g = fresh(id), b = g.beast, kind = AREA_WEATHER[g.area]; g.buddy.cooldown = 10000; g.hero.invincible = 10000;
+    assert.notEqual(kind, 'clear', id); assert(g.weatherClear >= 25 && g.weatherClear <= 40 && g.weatherSpell >= 16 && g.weatherSpell <= 24);
+    const levels = []; for (let t = 0; t <= g.weatherClear + g.weatherSpell; t += 0.5) { g.huntTime = t; levels.push(g.weather.level); }
+    assert(levels.slice(0, 40).every((l) => l === 0), `${id} starts clear for 20 s`); assert(levels.includes(1), `${id} reaches full strength`); assert.equal(levels.at(-1), 0, 'and clears');
+    for (let i = 1; i < levels.length; i++) assert(Math.abs(levels[i] - levels[i - 1]) <= 0.5 / WEATHER_RAMP + 1e-9, 'blows in gradually');
+    // Sight: an open view at 80% of SIGHT is in sight when clear and out of sight at full strength.
+    const peak = g.weatherClear + g.weatherSpell / 2; b.state = 'rest'; b.duration = 10000; b.height = 0;
+    let found = false;
+    for (let k = 0; k < 24 && !found; k++) { const a = k / 24 * Math.PI * 2; g.hero.x = Math.cos(a) * 4.8; g.hero.z = Math.sin(a) * 4.8; b.x = -g.hero.x; b.z = -g.hero.z; g.huntTime = 0; found = g.inSight(); }
+    assert(found, `${id} open view`); g.huntTime = peak; assert.equal(g.weather.level, 1); assert(!g.inSight(), `${id} weather hides the beast`);
+    assert(Math.abs(g.sight - SIGHT * WEATHER_SIGHT[kind]) < 1e-9);
+    // Stepping across the change announces it once each way.
+    const change = (from, seconds) => { g.huntTime = from; g.events.length = 0; let note = ''; for (let n = 0; n < seconds / DT; n++) { g.step(DT); if (!note && g.events.some((e) => e.kind === 'weather')) note = g.note; } assert.equal(g.events.filter((e) => e.kind === 'weather').length, 1); return note; };
+    assert.match(change(g.weatherClear - 0.2, 2), /rain|mist|dust|blizzard/i); assert(g.stormy);
+    assert.match(change(g.weatherClear + g.weatherSpell - 2, 2.5), /passes/); assert(!g.stormy);
+  }
+  // Same seed and hunt count, same weather; the next hunt draws a new loop; the paddock stays clear.
+  const a = fresh('frostmane'), c = fresh('frostmane'); assert.deepEqual([a.weatherClear, a.weatherSpell], [c.weatherClear, c.weatherSpell]);
+  const loops = new Set(); for (let n = 0; n < 6; n++) { calm(a); a.returnVillage(); assert(a.startHunt('frostmane')); loops.add(`${a.weatherClear}/${a.weatherSpell}`); } assert(loops.size > 1);
+  const calf = new HuntGame(5); calf.chooseHero('dora'); assert(calf.startHunt('bristleback')); calf.huntTime = 60; assert.equal(calf.weather.level, 0);
 });
 check('out of sight for a second, Enzo sniffs out a pawprint trail that fades once the beast is seen', () => {
   const g = fresh(), b = g.beast; g.buddy.cooldown = 10000; b.state = 'rest'; b.duration = 10000;

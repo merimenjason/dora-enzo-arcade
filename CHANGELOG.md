@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Grumble Hunt** has weather: rain showers in the meadow and marsh, mist on the ridge, dust storms in the hollow and blizzards on the peak. They roll in and out during a hunt, thicken the fog and make the beast harder to spot from afar, so Enzo's nose comes in handy.
+
 - **Grumble Hunt** beasts announce themselves: the first time one spots you it rears up and roars, with a painted name card ("Frostmane, the Snowy Mane of the Peak"), and it roars again when it turns Extra Grumpy. Friends inside the orange circle cover their ears for a moment unless they roll or guard. The Beast Book shows each beast's title.
 
 - **Grumble Hunt** beasts get tired near the end of a hunt and trudge home to a twig nest for a snooze. Follow them: the first bonk on a snoozing beast is a wake-up bonk worth double, but leave it too long and it wakes up a little refreshed.

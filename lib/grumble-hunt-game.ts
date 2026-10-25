@@ -16,6 +16,11 @@ export const ARENA_RADIUS = 19;
 export const TELEGRAPH = 0.9; // Every attack, including final-phase pounces, has at least this warning (less 0.1 s when Extra Grumpy).
 export const GRUMPY_AT = 0.3; // Below this share of Grump a beast turns Extra Grumpy: 15% faster, warning 0.1 s sooner.
 export const GRUMPY_PACE = 1.15;
+export type WeatherKind = 'clear' | 'rain' | 'mist' | 'dust' | 'blizzard';
+export const AREA_WEATHER: Record<AreaId, WeatherKind> = { paddock: 'clear', meadow: 'rain', marsh: 'rain', ridge: 'mist', hollow: 'dust', peak: 'blizzard' };
+/** At full strength, weather shrinks how far a friend can see the beast to this share of SIGHT. */
+export const WEATHER_SIGHT: Record<WeatherKind, number> = { clear: 1, rain: 0.75, mist: 0.6, dust: 0.55, blizzard: 0.5 };
+export const WEATHER_RAMP = 3; // Seconds for weather to blow in or clear.
 export const ROAR_REACH = 7; // A roar makes friends this close cover their ears; a roll or a guard keeps them going.
 export const INTRO_CARD = 3.2;
 export const ROAR_TIME = 1.1; // Seconds a roar lasts; covered ears last 0.9 seconds.
@@ -94,7 +99,7 @@ export type Cloud = Vec & { life: number; r: number };
 export type Fx = Vec & { id: number; kind: 'bonk' | 'dust' | 'dizzy' | 'berry' | 'part' | 'nap'; t: number; text: string };
 export type Ride = { riding: boolean; meter: number; fullBonks: number; phase: 'quiet' | 'warning' | 'buck'; timer: number; grip: boolean; used: number; left: number; pose: number; landing: number; plopped: number };
 const freshRide = (): Ride => ({ riding: false, meter: 0, fullBonks: 0, phase: 'quiet', timer: 0, grip: false, used: 0, left: 0, pose: 0, landing: 0, plopped: 0 });
-export type HuntEvent = { kind: 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shaken-off' | 'plop' | 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'tired' | 'snooze' | 'intro' | 'roar' | 'covered' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
+export type HuntEvent = { kind: 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shaken-off' | 'plop' | 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'tired' | 'snooze' | 'intro' | 'roar' | 'covered' | 'weather' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
 export type Mode = 'village' | 'hunt' | 'nap' | 'calm' | 'camp' | 'victory';
 const countRecord = (): Record<BeastId, number> => ({ bristleback: 0, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0 });
 const emptyPouch = () => Object.fromEntries([...MATERIAL_IDS, ...ITEM_IDS].map((id) => [id, 0])) as Pouch;
@@ -178,6 +183,10 @@ export class HuntGame {
   spots: GatherSpot[] = [];
   gathering: { spot: number; t: number } | null = null;
   /** Roars due: the hello roar when the beast first notices the friends, and another on turning Extra Grumpy. The first one shows the name card. */
+  /** This hunt's weather loop, from the seed and hunt count rather than the generator: clear, then weather, then clear again. */
+  weatherClear = 30;
+  weatherSpell = 20;
+  stormy = false;
   roared = false;
   introduced = false;
   /** Hunt time of the name card, or -1; the page shows the card for INTRO_CARD seconds. */
@@ -446,7 +455,7 @@ export class HuntGame {
     const grump = this.huntChapter === 0 ? 40 : BEASTS[id].grump * (variant ? 1.6 : 1);
     this.beast = { id, x: 0, z: -3, face: -Math.PI / 2, grump, maxGrump: grump, state: id === 'skreel' ? 'circle' : 'roam', t: 0, duration: 2.4, attack: 'charge', aim: { x: 0, z: 0 }, start: { x: 0, z: -3 }, dir: { x: 0, z: 1 }, phase: 1, cycle: 0, dizzy: 0, part: 0, broken: false, bonks: 0, flash: 0, height: 0, grumpy: false, drowsy: 0, drowsySlow: 0.3, home: 0 };
     this.shots = []; this.drops = []; this.clouds = []; this.fx = []; this.item = 0; this.sniff = 0; this.unseen = 0; this.locked = true; this.paused = false; this.hitstop = 0; this.shake = 0; this.last = { ...NO_INPUT }; this.resultTime = 0;
-    this.roared = this.introduced = this.huntChapter === 0; this.introAt = -1; this.gathering = null; this.trap = null; this.reward = []; this.area = this.huntChapter >= 0 ? STORY[this.huntChapter].area : HUNT_AREA[id];
+    this.roared = this.introduced = this.huntChapter === 0; this.introAt = -1; this.planWeather(); this.gathering = null; this.trap = null; this.reward = []; this.area = this.huntChapter >= 0 ? STORY[this.huntChapter].area : HUNT_AREA[id];
     this.profile.pouch.fluffberry = Math.max(this.profile.pouch.fluffberry, CAMP_BERRIES);
     this.profile.hunts++; this.makeArea(); this.makeSpots(); this.nest = this.findNest(); this.revision++; this.note = BEASTS[id].tip;
     return true;
@@ -634,9 +643,21 @@ export class HuntGame {
     return true;
   }
   /** The beast is in sight when it is within SIGHT and no tree or rock stands between it and the leader. */
+  private planWeather() {
+    let h = Math.imul(this.seed ^ Math.imul(this.profile.hunts + 1, 2654435761), 1664525) + 1013904223 >>> 0;
+    this.weatherClear = 25 + h % 16; h = Math.imul(h, 1664525) + 1013904223 >>> 0; this.weatherSpell = 16 + h % 9; this.stormy = false;
+  }
+  /** The weather now: its kind for this area and its strength from 0 (clear) to 1. */
+  get weather(): { kind: WeatherKind; level: number } {
+    const kind = this.mode === 'village' ? 'clear' : AREA_WEATHER[this.area];
+    if (kind === 'clear') return { kind, level: 0 };
+    const period = this.weatherClear + this.weatherSpell, p = this.huntTime % period;
+    return { kind, level: p < this.weatherClear ? 0 : clamp(Math.min(p - this.weatherClear, period - p) / WEATHER_RAMP, 0, 1) };
+  }
+  get sight() { const w = this.weather; return SIGHT * (1 - (1 - WEATHER_SIGHT[w.kind]) * w.level); }
   inSight() {
     const b = this.beast; if (!b) return true;
-    return distance(this.hero, b) <= SIGHT && !this.obstacles.some((o) => laneDistance(o, this.hero, b) < o.r);
+    return distance(this.hero, b) <= this.sight && !this.obstacles.some((o) => laneDistance(o, this.hero, b) < o.r);
   }
   /** Enzo's pawprint trail from the leader towards the beast, skipping prints under trees and rocks. */
   trail(): (Vec & { face: number })[] {
@@ -1032,6 +1053,13 @@ export class HuntGame {
     }
     if (b.t >= b.duration) { b.state = 'rest'; b.t = 0; b.height = 0; b.duration = b.id === 'skreel' ? 4.5 : b.id === 'frostmane' ? 2.3 - b.phase * 0.3 : 2.2; }
   }
+  private stepWeather() {
+    const w = this.weather, stormy = w.level >= 0.5;
+    if (stormy === this.stormy) return;
+    this.stormy = stormy; this.events.push({ kind: 'weather' });
+    const names: Record<WeatherKind, string> = { clear: '', rain: 'rain shower', mist: 'mist', dust: 'dust storm', blizzard: 'blizzard' };
+    this.note = !stormy ? `The ${names[w.kind]} passes. You can see far again.` : w.kind === 'rain' ? 'A rain shower rolls in. Splish, splash! It is a little harder to see far.' : w.kind === 'mist' ? 'Mist creeps over the ridge. Stay close, or follow Enzo’s nose.' : w.kind === 'dust' ? 'A dust storm swirls up! Follow Enzo’s nose if the beast slips out of sight.' : 'A blizzard blows in! It is hard to see far, so follow Enzo’s nose.';
+  }
   private stepSniff(dt: number) {
     this.sniff = Math.max(0, this.sniff - dt);
     if (this.mode !== 'hunt' || this.inSight()) { this.unseen = 0; return; }
@@ -1072,7 +1100,7 @@ export class HuntGame {
       });
       this.clouds = this.clouds.filter((c) => { c.life -= dt; if (distance(this.hero, c) < c.r) this.hero.slow = 0.4; return c.life > 0; });
       this.collect();
-      this.stepSniff(dt);
+      this.stepSniff(dt); this.stepWeather();
     }
     if (!this.beast || this.mode !== 'hunt') this.ride = freshRide();
     this.last = { ...input };

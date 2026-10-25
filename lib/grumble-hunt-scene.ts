@@ -2,7 +2,7 @@ import * as T from 'three';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { createHuntChinchilla, animateHuntChinchilla, poseArms, type HuntChinchilla } from './hunt-chinchilla';
-import { BEASTS, BEAST_IDS, VARIANT_COLORS, GATHER_TIME, ROAR_REACH, MATERIAL_IDS, SPOTS, VILLAGERS, type BeastId, type SpotId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
+import { BEASTS, BEAST_IDS, VARIANT_COLORS, GATHER_TIME, ROAR_REACH, type WeatherKind, MATERIAL_IDS, SPOTS, VILLAGERS, type BeastId, type SpotId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
 import { createHuntWeapons, decorateHuntWeapon } from './grumble-hunt-weapons';
 import { createVillager, type VillagerId, type VillagerRig } from './grumble-hunt-villagers';
 import { MATERIALS } from './grumble-hunt-content';
@@ -356,6 +356,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       diffuseColor.rgb = diffuseColor.rgb * (0.93 + 0.07 * w) + vec3(0.8, 0.95, 1.0) * smoothstep(0.55, 0.92, w) * 0.3;`);
   };
   const lilyMat = toon(0x79a45b), iceMat = toon(0xa7dce9), snowMat = toon(0xf4f5ff), flagMat = toon(0xe3b672);
+  const baseFog = new T.Color(0xc8dfd2);
   function switchArea(area: string) {
     if (area === currentArea) return;
     currentArea = area;
@@ -367,7 +368,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     };
     const d = data[area];
     groundMat.color.set(d ? 0xffffff : 0xd4dfbd); dirtMat.color.set(d ? 0xffffff : 0xe8d9bd);
-    scene.fog = new T.Fog(d?.[3] ?? 0xc8dfd2, 22, 86);
+    scene.fog = new T.Fog(d?.[3] ?? 0xc8dfd2, 22, 86); baseFog.set(d?.[3] ?? 0xc8dfd2);
     // Hills, rocks, the start trail and the light bounced up from the ground take each area's colours.
     const tints: Record<string, number[]> = { marsh: [0x7d8a5f, 0xa9ad97, 0xb3a184, 0x8a8560], ridge: [0x6f8a78, 0xb2b7b4, 0xbdb39b, 0x7f9670], hollow: [0xc99a62, 0xe6c9a4, 0xe8d6c2, 0xc29a68], peak: [0xdfe8f2, 0xc6cdd9, 0xc4d0e6, 0xb8c6dc] };
     const [hill, stone, trail, bounce] = tints[area] ?? [0x739d64, 0xc7cac0, 0xc9b597, 0x7c9d55];
@@ -383,7 +384,18 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   }
   // Snowflakes are plain white without an outline, which would turn each one into a dark speck.
   const flakeMat = noOutline(new T.MeshBasicMaterial({ color: 0xffffff })); materials.add(flakeMat);
-  const FLAKES = 140, snowfall = new T.InstancedMesh(ico, flakeMat, FLAKES); snowfall.visible = false; scene.add(snowfall);
+  // A blizzard thickens the Peak's snowfall from 140 flakes to 520 and blows them sideways.
+  const FLAKES = 140, BLIZZARD = 520, snowfall = new T.InstancedMesh(ico, flakeMat, BLIZZARD); snowfall.visible = false; scene.add(snowfall);
+  // Weather: rain streaks and drifting dust motes, each one draw, shown in proportion to the weather's strength.
+  const RAIN = 380, DUST = 260;
+  const rainGeo = new T.BoxGeometry(0.025, 0.7, 0.025), rainMat = noOutline(new T.MeshBasicMaterial({ color: 0xd6e6f2, transparent: true, opacity: 0.5, depthWrite: false })); materials.add(rainMat);
+  const rain = new T.InstancedMesh(rainGeo, rainMat, RAIN); rain.visible = false; rain.frustumCulled = false; scene.add(rain);
+  const dustMat = noOutline(new T.MeshBasicMaterial({ color: 0xe0b27a, transparent: true, opacity: 0.55, depthWrite: false })); materials.add(dustMat);
+  const dust = new T.InstancedMesh(ico, dustMat, DUST); dust.visible = false; dust.frustumCulled = false; scene.add(dust);
+  snowfall.frustumCulled = false;
+  // Fog each weather blows towards at full strength: colour, near and far.
+  const WEATHER_FOG: Record<WeatherKind, [number, number, number]> = { clear: [0xc8dfd2, 22, 86], rain: [0xa3b3bf, 12, 56], mist: [0xe9eef0, 5, 32], dust: [0xd8a771, 6, 36], blizzard: [0xeef3fa, 5, 32] };
+  const fogTarget = new T.Color(), slant = new T.Quaternion();
   // Butterflies over the meadow and camp: one draw per wing side, each wing a big upper and small lower lobe hinged on the body line.
   const wingGeo = (() => {
     const shape = new T.Shape(); shape.moveTo(0, 0.02); shape.bezierCurveTo(0.35, 0.45, 0.62, 0.16, 0.48, -0.04); shape.bezierCurveTo(0.42, -0.12, 0.38, -0.36, 0.2, -0.32); shape.bezierCurveTo(0.08, -0.3, 0.03, -0.12, 0, -0.06);
@@ -869,8 +881,29 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     poseActor('dora', game); poseActor('enzo', game); holdFx(game, dt);
     for (const id of BEAST_IDS) beasts[id].root.visible = game.beast?.id === id && !['village', 'camp'].includes(game.mode);
     ambientLife(game.time);
+    const weather = game.mode === 'hunt' || game.mode === 'nap' ? game.weather : { kind: 'clear' as WeatherKind, level: 0 }, wl = weather.level;
+    // Fog and light follow the weather even with reduced motion; only the falling and drifting bits stop.
+    const [fogColor, fogNear, fogFar] = WEATHER_FOG[weather.kind], fog = scene.fog as T.Fog;
+    fogTarget.set(fogColor); fog.color.copy(baseFog).lerp(fogTarget, wl); fog.near = lerp(22, fogNear, wl); fog.far = lerp(86, fogFar, wl);
+    skyLight.intensity = 1.4 * (1 - 0.22 * wl); sun.intensity = 1.8 * (1 - 0.45 * wl);
     snowfall.visible = currentArea === 'peak' && !reduced.matches;
-    if (snowfall.visible) { for (let i = 0; i < FLAKES; i++) { const x = Math.sin(i * 7.3) * 22, z = Math.cos(i * 3.7) * 22, y = 9 - (game.time * 0.7 + i * 0.37) % 9; matrix.compose(V(x + Math.sin(game.time + i) * 0.3, y, z), upright, V(0.07, 0.07, 0.07)); snowfall.setMatrixAt(i, matrix); } snowfall.instanceMatrix.needsUpdate = true; }
+    if (snowfall.visible) {
+      const flakes = weather.kind === 'blizzard' ? Math.round(FLAKES + (BLIZZARD - FLAKES) * wl) : FLAKES, fall = 0.7 + wl * 2.4; snowfall.count = flakes;
+      for (let i = 0; i < flakes; i++) { const x = Math.sin(i * 7.3) * 22, z = Math.cos(i * 3.7) * 22, f = (game.time * fall * (0.8 + (i % 5) * 0.1) + i * 0.37) % 9, y = 9 - f; matrix.compose(V(x + Math.sin(game.time + i) * 0.3 + wl * f * 1.6, y, z + wl * f * 0.5), upright, V(0.07, 0.07, 0.07)); snowfall.setMatrixAt(i, matrix); }
+      snowfall.instanceMatrix.needsUpdate = true;
+    }
+    rain.visible = weather.kind === 'rain' && wl > 0.01 && !reduced.matches;
+    if (rain.visible) {
+      const drops = Math.round(RAIN * wl), cx = game.hero.x, cz = game.hero.z; rain.count = drops; slant.setFromAxisAngle(V(0, 0, 1), -0.18);
+      for (let i = 0; i < drops; i++) { const f = (game.time * (16 + (i % 7)) + i * 1.37) % 13, x = cx + Math.sin(i * 12.9898) * 17 + f * 0.18, z = cz + Math.cos(i * 78.233) * 17; matrix.compose(V(x, 13 - f, z), slant, V(1, 1, 1)); rain.setMatrixAt(i, matrix); }
+      rain.instanceMatrix.needsUpdate = true;
+    }
+    dust.visible = weather.kind === 'dust' && wl > 0.01 && !reduced.matches;
+    if (dust.visible) {
+      const motes = Math.round(DUST * wl); dust.count = motes;
+      for (let i = 0; i < motes; i++) { const x = ((i * 7.13 + game.time * (5 + (i % 4))) % 44) - 22, y = 0.3 + (i % 9) * 0.45 + Math.sin(game.time * 2 + i) * 0.2, z = Math.sin(i * 3.31) * 20; matrix.compose(V(x, y, z), upright, V(0.05 + (i % 3) * 0.03, 0.05 + (i % 3) * 0.03, 0.05 + (i % 3) * 0.03)); dust.setMatrixAt(i, matrix); }
+      dust.instanceMatrix.needsUpdate = true;
+    }
     const talkTo = village.visible && game.mode === 'village' ? game.nearestSpot()?.id : undefined;
     talkBubble.visible = false;
     chimneyPuffs.forEach((o, i) => {
@@ -1014,7 +1047,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     get yaw() { return yaw; },
     orbit(dx: number, dy: number) { yaw -= dx * 0.006; pitch = T.MathUtils.clamp(pitch + dy * 0.004, 0.18, 0.95); userOrbit = 4; },
     zoom(delta: number) { dist = T.MathUtils.clamp(dist + delta * 0.008, 5, 14); },
-    metrics() { return { area: currentArea, villagers: village.visible ? villagers.length : 0, variantColor: lastVariantColor, ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible), nest: nest.visible, sleepy: drowsy[0].visible, roarRings: roarRings.filter((o) => o.visible).length }; },
+    metrics() { return { area: currentArea, villagers: village.visible ? villagers.length : 0, variantColor: lastVariantColor, ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible), nest: nest.visible, sleepy: drowsy[0].visible, roarRings: roarRings.filter((o) => o.visible).length, weather: { rain: rain.visible ? rain.count : 0, dust: dust.visible ? dust.count : 0, flakes: snowfall.visible ? snowfall.count : 0, fogFar: Math.round((scene.fog as T.Fog).far) } }; },
     dispose() {
       if (closed) return; closed = true; observer.disconnect();
       scene.traverse((o) => { if (o instanceof T.InstancedMesh) o.dispose(); if (o instanceof T.Mesh || o instanceof T.Line) { geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : [o.material]) materials.add(m); } });

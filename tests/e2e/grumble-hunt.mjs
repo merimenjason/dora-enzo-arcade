@@ -260,6 +260,13 @@ try {
     await p.waitForFunction(() => window.__hunt().metrics().roarRings > 0, null, { timeout: 15000 });
     await p.waitForFunction(() => window.__hunt().game.hero.covered > 0, null, { timeout: 15000 }); await snapshot(p, 'roar');
     await p.getByTestId('intro-card').waitFor({ state: 'hidden', timeout: 30000 });
+    // Weather at full strength: thicker fog everywhere, plus rain, dust or a blizzard of flakes, under the draw budget.
+    for (const [id, kind, bit] of [['bristleback', 'rain', 'rain'], ['skreel', 'mist', null], ['hornclack', 'dust', 'dust'], ['frostmane', 'blizzard', 'flakes']]) {
+      await hunt(p, (w, a) => { const g = w.game; g.returnVillage(); g.story.chapter = 6; g.startHunt(a); g.roared = g.introduced = true; g.buddy.cooldown = 100; g.beast.state = 'rest'; g.beast.duration = 100; g.huntTime = g.weatherClear + g.weatherSpell / 2; }, id);
+      await p.waitForFunction((k) => { const w = window.__hunt(), m = w.metrics(); return w.game.weather.kind === k && w.game.stormy && m.weather.fogFar < 60; }, kind, { timeout: 15000 });
+      const m = await hunt(p, (w) => w.metrics()); if (bit) assert(m.weather[bit] > 300 || bit === 'dust' && m.weather.dust > 200, `${kind}: ${JSON.stringify(m.weather)}`); assert(m.calls < 400, `${kind} calls ${m.calls}`);
+      assert.match(await p.locator('.hunt-beast-hud small').innerText(), /Rain shower|Mist|Dust storm|Blizzard/); await snapshot(p, `weather-${kind}`);
+    }
   });
 
   await check('phone rendering budget with four-times CPU throttling', async (p) => {
