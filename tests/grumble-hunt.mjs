@@ -405,6 +405,14 @@ check('each wild area has one hazard: a pebble or F trips it, it warns for 0.8 s
   // No hazard in the paddock.
   const calf = new HuntGame(5); calf.chooseHero('dora'); calf.story.chapter = 0; assert(calf.startHunt('bristleback', false, true)); assert.equal(calf.hazard, null);
 });
+check('a normal calm records the best time per beast in tenths, keeps it through a save, and flags a new record only when faster', () => {
+  const g = fresh(); g.huntTime = 42.34; g.beast.grump = 1; g.bonkBeast(10, false, g.hero); assert.equal(g.mode, 'nap'); assert.equal(g.newRecord, true); assert.equal(g.profile.beastBook.bristleback.best, 423); assert.equal(g.lastTime, 423);
+  g.returnVillage(); assert(g.startHunt('bristleback')); g.huntTime = 50; g.beast.grump = 1; g.bonkBeast(10, false, g.hero); assert.equal(g.newRecord, false); assert.equal(g.profile.beastBook.bristleback.best, 423);
+  g.returnVillage(); assert(g.startHunt('bristleback')); g.huntTime = 30.06; g.beast.grump = 1; g.bonkBeast(10, false, g.hero); assert.equal(g.newRecord, true); assert.equal(g.profile.beastBook.bristleback.best, 301);
+  // Extra Grumpy hunts don't count.
+  g.returnVillage(); assert(g.startHunt('bristleback', true)); g.huntTime = 5; g.beast.grump = 1; g.bonkBeast(10, false, g.hero); assert.equal(g.newRecord, false); assert.equal(g.profile.beastBook.bristleback.best, 301);
+  const back = HuntGame.load(g.save()); assert.equal(back.profile.beastBook.bristleback.best, 301); assert.equal(back.profile.beastBook.skreel.best, 0);
+});
 check('out of sight for a second, Enzo sniffs out a pawprint trail that fades once the beast is seen', () => {
   const g = fresh(), b = g.beast; g.buddy.cooldown = 10000; b.state = 'rest'; b.duration = 10000;
   b.x = 0; b.z = -6; g.hero.x = 0; g.hero.z = 4; assert(g.inSight());
@@ -872,7 +880,7 @@ check('v1, v2 and v3 saves migrate cleared chapters, seen scenes and equipment i
 });
 check('v4 rejects malformed story, book and daily progress', () => {
   const g = HuntGame.load({ v: 4, profile: { story: { chapter: '6', scenesSeen: ['nonsense', 2] }, beastBook: { bristleback: { met: 'yes', napped: -4, partsBroken: ['nonsense'] } }, bounties: { day: 'not-a-date', done: ['nap'] }, extraGrumpyUnlocked: 'yes' } });
-  assert.equal(g.chapter, 0); assert.deepEqual(g.story.scenesSeen, []); assert.deepEqual(g.profile.beastBook.bristleback, { met: false, napped: 0, partsBroken: [] }); assert(!g.profile.extraGrumpyUnlocked); assert.equal(g.profile.bounties.day, '');
+  assert.equal(g.chapter, 0); assert.deepEqual(g.story.scenesSeen, []); assert.deepEqual(g.profile.beastBook.bristleback, { met: false, napped: 0, partsBroken: [], best: 0 }); assert(!g.profile.extraGrumpyUnlocked); assert.equal(g.profile.bounties.day, '');
 });
 check('a v4 save moves into v5 with the counters it can prove, and v5 counters load strictly', () => {
   const g = fresh(); g.setBountyDay('2026-10-24'); g.profile.bounties.done = [g.dailyBounties[0].id]; g.profile.beastBook.skreel.partsBroken = ['crest'];

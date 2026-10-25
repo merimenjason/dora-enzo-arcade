@@ -109,7 +109,8 @@ export const NO_INPUT: Input = { x: 0, z: 0, sprint: false, bonk: false, charge:
 export type Pouch = Record<MaterialId | ItemId, number>;
 /** `ring` is the items carried into a hunt, in ring order; `snack` is packed for the next hunt. */
 export type StoryProgress = { chapter: number; scenesSeen: string[] };
-export type BeastBook = Record<BeastId, { met: boolean; napped: number; partsBroken: string[] }>;
+/** best: the fastest normal (not Extra Grumpy) calm in whole tenths of a second, 0 before the first. */
+export type BeastBook = Record<BeastId, { met: boolean; napped: number; partsBroken: string[]; best: number }>;
 export type Profile = { bountiesClaimed: number; variantNaps: Record<BeastId, number>; totalPlops: number; story: StoryProgress; beastBook: BeastBook; bounties: { day: string; done: string[]; ready: string[] }; extraGrumpyUnlocked: boolean; hero: HeroId | null; weapons: Record<WeaponType, { tier: Tier; branch: Branch | null }>; equipped: Record<HeroId, WeaponType>; armour: { owned: ArmourPieceId[]; worn: Worn }; pouch: Pouch; ring: ItemId[]; snack: SnackId | null; naps: Record<BeastId, number>; won: boolean; hunts: number };
 export type Hero = Vec & { face: number; fluff: number; maxFluff: number; speed: number; roll: number; rollX: number; rollZ: number; rollCd: number; invincible: number; charge: number; swing: number; heavy: boolean; landed: boolean; cooldown: number; slow: number; hidden: number; covered: number };
 export type BeastState = 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'cloud' | 'circle' | 'swoop' | 'sweep' | 'pounce' | 'shake' | 'roar' | 'turf' | 'grabbed' | 'yanked' | 'rest' | 'dizzy' | 'stuck' | 'trudge' | 'snooze' | 'nap';
@@ -129,7 +130,7 @@ export type HuntEvent = { kind: 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shake
 export type Mode = 'village' | 'hunt' | 'nap' | 'calm' | 'camp' | 'victory';
 const countRecord = (): Record<BeastId, number> => ({ bristleback: 0, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0 });
 const emptyPouch = () => Object.fromEntries([...MATERIAL_IDS, ...ITEM_IDS].map((id) => [id, 0])) as Pouch;
-export const freshProfile = (): Profile => ({ bountiesClaimed: 0, variantNaps: countRecord(), totalPlops: 0, story: { chapter: 0, scenesSeen: [] }, beastBook: Object.fromEntries(BEAST_IDS.map((id) => [id, { met: false, napped: 0, partsBroken: [] }])) as unknown as BeastBook, bounties: { day: '', done: [], ready: [] }, extraGrumpyUnlocked: false, hero: null, weapons: Object.fromEntries(Object.keys(WEAPON_TYPES).map((id) => [id, { tier: 1, branch: null }])) as Profile['weapons'], equipped: { dora: 'hammer', enzo: 'bow' }, armour: { owned: [], worn: {} }, pouch: emptyPouch(), ring: [...DEFAULT_RING], snack: null, naps: countRecord(), won: false, hunts: 0 });
+export const freshProfile = (): Profile => ({ bountiesClaimed: 0, variantNaps: countRecord(), totalPlops: 0, story: { chapter: 0, scenesSeen: [] }, beastBook: Object.fromEntries(BEAST_IDS.map((id) => [id, { met: false, napped: 0, partsBroken: [], best: 0 }])) as unknown as BeastBook, bounties: { day: '', done: [], ready: [] }, extraGrumpyUnlocked: false, hero: null, weapons: Object.fromEntries(Object.keys(WEAPON_TYPES).map((id) => [id, { tier: 1, branch: null }])) as Profile['weapons'], equipped: { dora: 'hammer', enzo: 'bow' }, armour: { owned: [], worn: {} }, pouch: emptyPouch(), ring: [...DEFAULT_RING], snack: null, naps: countRecord(), won: false, hunts: 0 });
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 export const distance = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.z - b.z);
 const faceTo = (a: Vec, b: Vec) => Math.atan2(-(b.z - a.z), b.x - a.x);
@@ -188,6 +189,10 @@ export class HuntGame {
   storyHunt = false;
   huntChapter = -1;
   clearedChapter = -1;
+  /** The last calm beat this beast's best time (shown on the results). */
+  newRecord = false;
+  /** The last calm's hunt time in tenths of a second. */
+  lastTime = 0;
   variant = false;
   huntTime = 0;
   huntFacts = freshFacts();
@@ -627,7 +632,9 @@ export class HuntGame {
     const b = this.beast; if (!b || this.mode !== 'hunt') return;
     this.ride = freshRide();
     b.state = 'nap'; b.t = 0; b.height = 0; this.mode = 'nap'; this.resultTime = 0;
-    const book = this.profile.beastBook[b.id]; book.napped++; if (this.variant) this.profile.variantNaps[b.id] = Math.min(999999, this.profile.variantNaps[b.id] + 1); this.huntFacts.napped = true;
+    const book = this.profile.beastBook[b.id]; book.napped++;
+    // Best times count normal hunts, not the paddock calf, in tenths of a second.
+    const tenths = Math.max(1, Math.round(this.huntTime * 10)); this.lastTime = tenths; this.newRecord = !this.variant && this.huntChapter !== 0 && (book.best === 0 || tenths < book.best); if (this.newRecord) book.best = tenths; if (this.variant) this.profile.variantNaps[b.id] = Math.min(999999, this.profile.variantNaps[b.id] + 1); this.huntFacts.napped = true;
     for (const task of this.dailyBounties) if (this.profile.extraGrumpyUnlocked && task.check(this.huntFacts, b) && !this.profile.bounties.ready.includes(task.id)) this.profile.bounties.ready.push(task.id);
     if (this.chapter <= 5 && STORY[this.chapter].beast === b.id && (this.chapter !== 0 || this.huntChapter === 0)) {
       this.clearedChapter = this.chapter; this.story.chapter++;
@@ -1331,13 +1338,13 @@ export class HuntGame {
       game.story.chapter = any ? 1 : 0;
       while (game.chapter <= 5 && game.profile.naps[STORY[game.chapter].beast] > 0) game.story.chapter++;
       game.story.scenesSeen = SCENES.filter((id) => { const n = Number(id.split('-')[0]); return n === 0 ? any : game.profile.naps[STORY[n].beast] > 0; });
-      for (const id of BEAST_IDS) game.profile.beastBook[id] = { met: game.profile.naps[id] > 0, napped: game.profile.naps[id], partsBroken: [] };
+      for (const id of BEAST_IDS) game.profile.beastBook[id] = { met: game.profile.naps[id] > 0, napped: game.profile.naps[id], partsBroken: [], best: 0 };
     } else {
       game.story.chapter = integer(p.story?.chapter, 6);
       game.story.scenesSeen = Array.isArray(p.story?.scenesSeen) ? SCENES.filter((id) => p.story!.scenesSeen.includes(id)) : [];
       for (const id of BEAST_IDS) {
         const b = p.beastBook?.[id];
-        game.profile.beastBook[id] = { met: b?.met === true, napped: integer(b?.napped, 9999), partsBroken: Array.isArray(b?.partsBroken) ? [BEASTS[id].part].filter((part) => b!.partsBroken.includes(part)) : [] };
+        game.profile.beastBook[id] = { met: b?.met === true, napped: integer(b?.napped, 9999), partsBroken: Array.isArray(b?.partsBroken) ? [BEASTS[id].part].filter((part) => b!.partsBroken.includes(part)) : [], best: integer(b?.best, 99999) };
       }
       if (validDay(p.bounties?.day)) {
         // Today's picks only, once each, kept in the order they were earned.

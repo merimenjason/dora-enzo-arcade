@@ -919,7 +919,9 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const g = kindGroup('icicles'); mesh(g, cylinder, hzIceMat, [-1.9, 1.5, 0], [0.35, 3, 0.35]); mesh(g, cylinder, hzIceMat, [1.9, 1.5, 0], [0.35, 3, 0.35]); mesh(g, cube, hzCrustMat, [0, 3.1, 0], [4.4, 0.45, 0.8]);
     for (let i = 0; i < 6; i++) piece(g, [-1.3 + i * 0.52, 2.45, (i % 2 - 0.5) * 0.3], [0.17, 0.9 + (i % 3) * 0.25, 0.17], [shape(cone, hzIceMat, [0, 0, 0], [1, 1, 1], Math.PI)]);
   }
-  for (const k in hazardKinds) { batchMeshes(hazardKinds[k], false); batchPieces(hazardKinds[k]); }
+  // The props block the camera like trees and rocks, so a tall arch or stump never hides the hunt.
+  const hazardBlockers: T.Object3D[] = [];
+  for (const k in hazardKinds) { batchMeshes(hazardKinds[k], false); hazardBlockers.push(...hazardKinds[k].children); batchPieces(hazardKinds[k]); }
   function label(text: string, color: string) {
     const c = document.createElement('canvas'); c.width = 256; c.height = 96;
     const ctx = c.getContext('2d'); if (ctx) { ctx.font = 'bold 58px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = color; ctx.fillText(text, 128, 70); }
@@ -1155,7 +1157,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const mobile = camera.aspect < 0.85, distance = dist + (mobile ? 1.6 : 0);
     desired.set(target.x + Math.sin(yaw) * distance * Math.cos(pitch), target.y + Math.sin(pitch) * distance, target.z + Math.cos(yaw) * distance * Math.cos(pitch));
     segment.copy(desired).sub(target); const length = segment.length(); ray.set(target, segment.normalize()); ray.far = length;
-    const hits = ray.intersectObjects(blockers.filter((o) => { for (let p: T.Object3D | null = o; p; p = p.parent) if (!p.visible) return false; return true; }), false);
+    const hits = ray.intersectObjects([...blockers, ...hazardBlockers].filter((o) => { for (let p: T.Object3D | null = o; p; p = p.parent) if (!p.visible) return false; return true; }), false);
     if (hits.length) desired.copy(target).addScaledVector(segment, Math.max(1.7, hits[0].distance - 0.6));
     desired.y = Math.max(0.8, desired.y);
     camera.position.copy(desired);

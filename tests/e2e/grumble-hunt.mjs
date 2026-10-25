@@ -191,7 +191,7 @@ try {
       await p.locator('main[data-mode="nap"]').waitFor(); await snapshot(p, `${id}-nap`);
       const stored = await p.evaluate(() => JSON.parse(localStorage.getItem('grumble-hunt-v5'))); assert(stored.profile.naps[id] > 0, 'last bonk is saved before the nap finishes');
       await hunt(p, (w) => { const g = w.game; g.paused = false; for (let i = 0; i < 180; i++) g.step(1 / 60); });
-      await p.getByTestId('result').waitFor(); assert.equal(await p.locator('.hunt-unlock').count(), await hunt(p, (w) => w.game.clearedChapter >= 0 && w.game.clearedChapter < 5 ? 1 : 0), 'the next-chapter note'); assert.equal(await p.getByTestId('reward').count(), 1, 'the nap reward card'); if (id === 'frostmane') { assert.match(await p.getByTestId('result').innerText(), /The End · free hunt is open/); await snapshot(p, 'victory'); }
+      await p.getByTestId('result').waitFor(); assert.equal(await p.locator('.hunt-unlock').count(), await hunt(p, (w) => w.game.clearedChapter >= 0 && w.game.clearedChapter < 5 ? 1 : 0), 'the next-chapter note'); assert.equal(await p.getByTestId('reward').count(), 1, 'the nap reward card'); assert.match(await p.getByTestId('hunt-time').innerText(), await hunt(p, (w) => w.game.newRecord) ? /^Calmed in .+ s · New best time!$/ : /^Calmed in .+ s/); if (id === 'frostmane') { assert.match(await p.getByTestId('result').innerText(), /The End · free hunt is open/); await snapshot(p, 'victory'); }
       await p.getByTestId('return-village').click();
     }
     await hunt(p, (w) => { Object.assign(w.game.profile.pouch, { 'bristle-tuft': 10, berry: 4, 'tusk-shard': 2 }); });

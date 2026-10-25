@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Grumble Hunt** keeps a best calm time for every beast in the Beast Book, and the results cheer a new best time.
+
 - **Grumble Hunt** areas have hazards: an acorn bough, a bubble spring, a rock pile, sticky vines and icicles. Knock one with a pebble when the beast is underneath for a big dizzy bonk.
 
 - **Grumble Hunt** shows hit numbers and sparks on every bonk. Orange numbers mean a weak spot (a beast's face, or Hornclack's sides) that takes 15% more Grump.
