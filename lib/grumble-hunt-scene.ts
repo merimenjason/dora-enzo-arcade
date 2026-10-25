@@ -3,11 +3,11 @@ import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { createHuntChinchilla, animateHuntChinchilla, poseArms, type HuntChinchilla } from './hunt-chinchilla';
 import { BEASTS, BEAST_IDS, VARIANT_COLORS, GATHER_TIME, MATERIAL_IDS, SPOTS, VILLAGERS, type BeastId, type SpotId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
-import { createHuntWeapons } from './grumble-hunt-weapons';
+import { createHuntWeapons, decorateHuntWeapon } from './grumble-hunt-weapons';
 import { createVillager, type VillagerId, type VillagerRig } from './grumble-hunt-villagers';
 import { MATERIALS } from './grumble-hunt-content';
 
-type Rig = { model: HuntChinchilla; hammer: T.Group; head: T.Group; trail: T.Line; points: T.Vector3[]; weapons: ReturnType<typeof createHuntWeapons>; armour: T.Group[] };
+type Rig = { model: HuntChinchilla; hammer: T.Group; head: T.Group; trail: T.Line; points: T.Vector3[]; weapons: ReturnType<typeof createHuntWeapons>; hammerLook: ReturnType<typeof decorateHuntWeapon>; armour: T.Group[] };
 const RIDE_HEIGHT: Record<BeastId, number> = { bristleback: 2.4, puffwart: 2, skreel: 2.7, hornclack: 2.25, frostmane: 2.25 };
 type BeastRig = { root: T.Group; body: T.Group; head: T.Group; legs: T.Group[]; wings: T.Group[]; eyes: T.Mesh[]; part: T.Group; brow: T.MeshToonMaterial; browColor: T.Color; steam: T.Mesh[]; throat?: T.Mesh; tongue?: T.Mesh; mane?: T.Group };
 /** A gathering spot's props; `fruit` is what disappears once it is gathered. */
@@ -347,7 +347,9 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   }
   function actor(white: boolean): Rig {
     const model = createHuntChinchilla(white); model.root.scale.setScalar(0.75); scene.add(model.root);
-    const hammer = new T.Group(); model.body.add(hammer); hammer.position.set(0.44, 0.58, 0.22); hammer.scale.setScalar(1 / 0.75);
+    const hammer = new T.Group(); model.body.add(hammer); hammer.position.set(0.46, 0.58, 0.32); hammer.scale.setScalar(1 / 0.75);
+    // The swing plane tilts out to the right, so the wind-up passes beside the ear rather than through it.
+    hammer.rotation.x = 0.45;
     mesh(hammer, cylinder, wood, [0, 0.39, 0], [0.034, 0.78, 0.034]);
     const head = new T.Group(); head.position.y = 0.82; head.rotation.z = Math.PI / 2; hammer.add(head);
     mesh(head, sphere, toon(0xc58a47), [0, -0.06, 0], [0.24, 0.29, 0.24]);
@@ -356,7 +358,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const trail = new T.Line(trailGeo, trailMat); trail.visible = false; geometries.add(trailGeo); materials.add(trailMat); scene.add(trail);
     hammer.visible = white;
     model.root.traverse((o) => { if (o instanceof T.Mesh) { if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); o.castShadow = (o.geometry.boundingSphere?.radius ?? 1) * Math.max(o.scale.x, o.scale.y, o.scale.z) > 0.22; geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : [o.material]) { materials.add(m); for (const t of Object.values(m)) if (t instanceof T.Texture) textures.add(t); } } else if (o instanceof T.Line) { geometries.add(o.geometry); materials.add(o.material as T.Material); } });
-    const weapons = createHuntWeapons(model, toon, geometries, materials);
+    const weapons = createHuntWeapons(model, toon, geometries, materials), hammerLook = decorateHuntWeapon(hammer, 'hammer', (c) => toon(c), geometries, materials);
     const armour: T.Group[] = [];
     for (let i = 0; i < 3; i++) {
       const g = new T.Group(); (i === 0 ? model.head : model.body).add(g); armour.push(g);
@@ -366,7 +368,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       else for (const z of [-0.3, 0.3]) mesh(g, sphere, toon(0xb28f62), [-0.22, 0.09, z], [0.21, 0.1, 0.14]);
       g.visible = false;
     }
-    return { model, hammer, head, trail, points: [], weapons, armour };
+    return { model, hammer, head, trail, points: [], weapons, hammerLook, armour };
   }
   const actors: Record<HeroId, Rig> = { dora: actor(true), enzo: actor(false) };
 
@@ -560,6 +562,8 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     if (riding) { a.model.body.scale.y *= 0.85; a.model.body.rotation.z = game.ride.pose > 0 && !reduced.matches ? Math.sin(game.ride.pose / 0.22 * Math.PI) * -0.2 : 0; }
     const t = isPlayer && game.ride.riding && game.ride.pose > 0 ? 0.24 - game.ride.pose : preview ? showSwing() : p.swing;
     const weapon = game.weapon(id);
+    // Upgrades show on the toy: a band at tier 2, gold and branch-beast trim at 3–4, a Glimmer stone at 5.
+    const look = game.node(weapon); a.weapons.setLook(weapon, look.tier, look.branch); a.hammerLook.setLook(look.tier, look.branch);
     a.hammer.visible = weapon === 'hammer'; a.trail.visible = false;
     a.armour.forEach((g, i) => { const piece = game.profile.armour.worn[(['helm', 'vest', 'boots'] as const)[i]]; g.visible = isPlayer && !!piece; if (piece) { const color = BEASTS[piece.split('-')[0] as BeastId].color; g.traverse((o) => { if (o instanceof T.Mesh) (o.material as T.MeshToonMaterial).color.set(color); }); } });
     const hold = isPlayer ? game.hold() : null;
@@ -567,8 +571,8 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const guard = preview ? weapon === 'umbrella' && !reduced.matches && showTime % 6 > 3 : hold?.kind === 'guard';
     a.weapons.pose(weapon, time, t, hold?.kind === 'charge' ? hold.amount : 0, guard, isPlayer ? game.breath / 6 : 0);
     if (weapon === 'hammer') {
-      a.hammer.rotation.z = t < 0 ? 0.9 : t < 0.15 ? lerp(0.9, 2.1, t / 0.15) : t < 0.25 ? lerp(2.1, -2, (t - 0.15) / 0.1) : lerp(-2, 0.9, Math.min(1, (t - 0.25) / 0.3) ** 2);
-      if (isPlayer && h.charge > 0) a.hammer.rotation.z = 1.9 + Math.sin(time * 18) * Math.min(0.05, h.charge * 0.05);
+      a.hammer.rotation.z = t < 0 ? 0.9 : t < 0.15 ? lerp(0.9, 1.3, t / 0.15) : t < 0.25 ? lerp(1.3, -2, (t - 0.15) / 0.1) : lerp(-2, 0.9, Math.min(1, (t - 0.25) / 0.3) ** 2);
+      if (isPlayer && h.charge > 0) a.hammer.rotation.z = 1.3 + Math.sin(time * 18) * Math.min(0.05, h.charge * 0.05);
       a.hammer.updateMatrix();
       const both = t >= 0.12 && t < 0.42 ? 1 : t >= 0.06 && t < 0.12 ? (t - 0.06) / 0.06 : t >= 0.42 && t < 0.5 ? 1 - (t - 0.42) / 0.08 : 0;
       poseArms(a.model, V(0, 0.26, 0).applyMatrix4(a.hammer.matrix), V(0, 0.1, 0).applyMatrix4(a.hammer.matrix), [isPlayer && (h.charge > 0 || game.ride.riding) ? 1 : both, 1]);

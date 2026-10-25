@@ -12,6 +12,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Grumble Hunt**'s weapon upgrades now show on the 3D toys in both friends' paws and in the Forge preview: tier 2 adds a band or binding, tiers 3 and 4 add gold trim and a motif in the colour of that branch's beast (two at tier 4), and Glimmer adds a small glowing amber stone. Tools also sit clear of the heroes' heads, ears and fluff: two-handed tools rest leaning out past the head, bows are held out to the side, the hammer's wind-up passes beside the ear, and charging the wand leans it away from the face.
+
 - **Grumble Hunt**'s Clover Camp is rebuilt. Bramble's forge has a stone footing, a gabled roof, a glowing furnace window, a smoking chimney, an anvil and a hammer sign; Wren's Beast Book cottage has timber beams, a round window, an open-book sign and a lantern; the hunt board has a little roof and pinned notes; and Pip's Pantry stall has a carrot sign, crates and a sack. Trees everywhere have tapered trunks with roots and branches under lumpy, leafy crowns, and pines grow in tiers. Walk up to a shopkeeper and press F to talk: a speech bubble shows who will answer, and the prompt names them.
 
 - **Grumble Hunt**'s village friends are rebuilt to match their storybook art. Old Mossback has a mossy, flowered shell, round glasses, a scarf, a satchel and a walking stick. Bramble has a plush coat of soft spikes, a green apron full of tools and a toy mallet. Pip has big round ears, a red scarf, an apron and a bowl of carrots. Wren is a round speckled bird with a leaf collar and a satchel of notes. They breathe, blink and look around, and wave when you come near.
