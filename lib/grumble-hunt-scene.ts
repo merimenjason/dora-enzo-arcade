@@ -145,7 +145,13 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z), k = 1 + 0.09 * Math.sin(Math.atan2(z, x) * 7) * T.MathUtils.smoothstep(r, 0.4, 0.9); p.setXYZ(i, x * k, p.getY(i) - 0.06 * (k - 1) / 0.09 * T.MathUtils.smoothstep(r, 0.6, 1), z * k); }
     g.computeVertexNormals(); return g;
   })();
-  geometries.add(pineGeo); geometries.add(trunkGeo); geometries.add(blobGeo); geometries.add(rockGeo); geometries.add(crystalGeo); geometries.add(pondGeo);
+  // Hornclack's horn: growth rings around the base, sweeping back towards the head at the tip.
+  const hornGeo = (() => {
+    const g = new T.LatheGeometry(Array.from({ length: 15 }, (_, i) => { const t = i / 14; return P(Math.pow(1 - t, 0.85) * (1 + (t < 0.65 ? 0.09 * Math.max(0, Math.sin(t * 38)) : 0)), t - 0.5); }), 22), p = g.getAttribute('position');
+    for (let i = 0; i < p.count; i++) { const t = p.getY(i) + 0.5; p.setX(i, p.getX(i) - 0.8 * t * t); }
+    g.computeVertexNormals(); return g;
+  })();
+  geometries.add(pineGeo); geometries.add(hornGeo); geometries.add(trunkGeo); geometries.add(blobGeo); geometries.add(rockGeo); geometries.add(crystalGeo); geometries.add(pondGeo);
   /** One crown blob or leaf card per entry, relative to the tree's crown centre. */
   type TreePart = { at: T.Vector3; size: T.Vector3 };
   const treeBlobs: TreePart[][] = [], treeCards: TreePart[][] = [], treeTurn: T.Quaternion[] = [];
@@ -189,7 +195,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   scene.add(hills);
 
   const wood = toon(0x9b663b), cream = toon(0xffeac8), gold = toon(0xe6b653), roof = toon(0xb9664d), ink = toon(0x3e3031), rose = toon(0xe9a6a0);
-  const berryMat = toon(0xd2344a), hayMat = toon(0xe2c46a), bushMat = toon(0x4f8a3c), reedMat = toon(0x7f9f45), cattailMat = toon(0x8a5a35);
+  const berryMat = toon(0xd2344a), hayMat = toon(0xe2c46a), bushMat = fluffy(toon(0x4f8a3c), 0.2), bushLight = fluffy(toon(0x65a04a), 0.2), reedMat = toon(0x7f9f45), cattailMat = toon(0x8a5a35);
   const crystalMat = noOutline(new T.MeshBasicMaterial({ color: 0xffc94a, toneMapped: false })); materials.add(crystalMat);
   // Clover Camp. Each building's walls block the camera; everything else is decoration, moved into one group
   // and instanced by shape and material at the end so the whole camp costs a few dozen draws.
@@ -470,8 +476,10 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     for (const s of game.spots) {
       const root = new T.Group(), fruit = new T.Group(); root.position.set(s.x, 0, s.z); root.rotation.y = s.id; root.add(fruit); world.add(root);
       if (s.material === 'berry') {
-        mesh(root, blobGeo, bushMat, [0, 0.5, 0], [0.8, 0.62, 0.8]);
-        for (let k = 0; k < 8; k++) { const a = k * 2.3, y = 0.45 + (k % 3) * 0.2; mesh(fruit, sphere, berryMat, [Math.cos(a) * 0.72, y, Math.sin(a) * 0.72], [0.11, 0.11, 0.11], false); }
+        // A clump of leafy mounds, the top ones lighter, with berries resting on their surface.
+        const mounds: [number, number, number, number][] = [[0, 0.45, 0, 0.7], [0.45, 0.38, 0.25, 0.48], [-0.42, 0.36, 0.3, 0.46], [0.05, 0.36, -0.48, 0.5], [0.08, 0.85, 0.05, 0.45]];
+        mounds.forEach(([x, y, z, r], k) => mesh(root, blobGeo, k === 4 ? bushLight : bushMat, [x, y, z], [r, r * 0.85, r]));
+        for (let k = 0; k < 12; k++) { const [x, y, z, r] = mounds[k % 5], a = k * 2.3 + 0.6, up = 0.15 + (k % 3) * 0.3, out = r * 1.12; mesh(fruit, sphere, berryMat, [x + Math.cos(a) * out * Math.cos(up), y + Math.sin(up) * out * 0.85, z + Math.sin(a) * out * Math.cos(up)], [0.12, 0.12, 0.12], false); }
       } else if (s.material === 'marsh-reed') {
         for (let k = 0; k < 7; k++) { const a = k * 2.1, r = 0.12 + (k % 3) * 0.14, tall = 1 + (k % 2) * 0.35, x = Math.cos(a) * r, z = Math.sin(a) * r;
           const stalk = mesh(root, cylinder, reedMat, [x, tall / 2, z], [0.035, tall, 0.035], false); stalk.rotation.z = (k % 3 - 1) * 0.08;
@@ -586,7 +594,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       for (let i = 0; i < 3; i++) mesh(body, sphere, coat, [-0.9 + i * 0.75, 1.35, 0], [0.78, 1.0, 1.32]);
       head.position.set(1.4, 1.05, 0); mesh(head, sphere, coat, [0, 0, 0], [0.65, 0.65, 0.8]);
       for (const s of [-1, 1]) { eye(0.4, 0.02, s * 0.58, s); for (const x of [-1.05, 0, 1.05]) leg(x, s * 1.15, 0.5); }
-      const horn = mesh(part, cone, cream, [1.7, 2, 0], [0.4, 1.8, 0.4]); horn.rotation.z = -0.4;
+      const horn = mesh(part, hornGeo, cream, [1.7, 2, 0], [0.4, 1.8, 0.4]); horn.rotation.z = -0.4;
     } else {
       mesh(body, sphere, coat, [-0.15, 1.4, 0], [1.65, 0.95, 0.9]); head.position.set(1.15, 2, 0);
       mesh(head, sphere, coat, [0, 0, 0], [0.8, 0.8, 0.85]); mesh(head, sphere, cream, [0.65, -0.25, 0], [0.35, 0.28, 0.5]); mesh(head, sphere, rose, [0.91, -0.1, 0], [0.1, 0.1, 0.17]);
