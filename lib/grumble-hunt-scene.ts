@@ -2,7 +2,7 @@ import * as T from 'three';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { createHuntChinchilla, animateHuntChinchilla, poseArms, type HuntChinchilla } from './hunt-chinchilla';
-import { BEASTS, BEAST_IDS, VARIANT_COLORS, GATHER_TIME, ROAR_REACH, TURF_REACH, type WeatherKind, MATERIAL_IDS, SPOTS, VILLAGERS, type BeastId, type SpotId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
+import { BEASTS, BEAST_IDS, VARIANT_COLORS, GATHER_TIME, HAZARD_REACH, HAZARD_WARN, ROAR_REACH, TURF_REACH, type WeatherKind, MATERIAL_IDS, SPOTS, VILLAGERS, type BeastId, type SpotId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
 import { createHuntWeapons, decorateHuntWeapon } from './grumble-hunt-weapons';
 import { createVillager, type VillagerId, type VillagerRig } from './grumble-hunt-villagers';
 import { MATERIALS } from './grumble-hunt-content';
@@ -854,7 +854,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
         // Each sample pairs the hammer head with a point halfway back to the friend's shoulder, so the ribbon narrows into the swing.
         const attr = a.ribbon.geometry.getAttribute('position'), root = a.model.root.position, sx = root.x, sy = root.y + 0.75, sz = root.z;
         for (let i = 0; i < 10; i++) { const p = a.points[Math.min(i, a.points.length - 1)], k = 0.55 + i * 0.04; attr.setXYZ(i * 2, p.x, p.y, p.z); attr.setXYZ(i * 2 + 1, sx + (p.x - sx) * k, sy + (p.y - sy) * k, sz + (p.z - sz) * k); }
-        attr.needsUpdate = true; const m = a.ribbon.material as T.MeshBasicMaterial; m.color.setHex(isPlayer && h.heavy ? 0xffb35a : 0xfff1d0); m.opacity = isPlayer && h.heavy ? 0.6 : 0.4;
+        attr.needsUpdate = true; const m = a.ribbon.material as T.MeshBasicMaterial; m.color.setHex(isPlayer && h.heavy ? 0xffb35a : 0xfff1d0); m.opacity = isPlayer && h.heavy ? 0.75 : 0.55;
       }
     }
   }
@@ -872,6 +872,54 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     quat.setFromEuler(new T.Euler((i % 4 - 1.5) * 0.18, -a + (i % 2 ? 0.7 : -0.6), (i % 3 - 1) * 0.2));
     matrix.compose(V(Math.cos(a) * r, 0.36 + (i % 3) * 0.06, Math.sin(a) * r), quat, V(0.8 + (i % 5) * 0.08, 1, 1)); twigs.setMatrixAt(i, matrix);
   }
+  // The area hazard: one small prop per wild area, a warning circle while it wobbles, and a tumble when it drops.
+  const hazardGroup = new T.Group(); scene.add(hazardGroup);
+  const hazardCircle = mesh(scene, circleGeo, markerMat, [0, 0.09, 0], [HAZARD_REACH, 1, HAZARD_REACH], false); hazardCircle.visible = false;
+  const hzBarkMat = toon(0x7a5434), hzAcornMat = toon(0xb9773a), hzCapMat = toon(0x6e4b2b), hzLeafMat = toon(0x6fa04f), hzPondMat = toon(0x6fb7c4), hzBubbleMat = noOutline(new T.MeshBasicMaterial({ color: 0xdff6ff, transparent: true, opacity: 0.7, depthWrite: false }));
+  const hzStoneMat = toon(0x9a958c), hzVineMat = toon(0x4f8a3a), hzBudMat = toon(0xd77fa1), hzIceMat = toon(0xcbe9f6), hzCrustMat = toon(0xf4fbff);
+  for (const m of [hzBubbleMat]) materials.add(m);
+  const hazardKinds: Record<string, T.Group> = {}, falling: T.Object3D[] = [];
+  const kindGroup = (kind: string) => { const g = new T.Group(); g.visible = false; hazardGroup.add(g); hazardKinds[kind] = g; return g; };
+  // A falling piece is a plain marker; one instanced batch per kind, shape and colour draws them, so a hazard costs a few draw calls.
+  const pieceBatches: { mesh: T.InstancedMesh; parts: { o: T.Object3D; local: T.Matrix4 }[] }[] = [], partMatrix = new T.Matrix4();
+  const shape = (geo: T.BufferGeometry, mat: T.Material, pos: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1], turnX = 0) => ({ geo, mat, local: new T.Matrix4().compose(V(...pos), new T.Quaternion().setFromAxisAngle(V(1, 0, 0), turnX), V(...scale)) });
+  function piece(g: T.Group, pos: [number, number, number], scale: [number, number, number], shapes: ReturnType<typeof shape>[]) {
+    const o = new T.Object3D(); o.position.set(...pos); o.scale.set(...scale); o.userData.home = o.position.clone(); o.userData.shapes = shapes; g.add(o); falling.push(o); return o;
+  }
+  function batchPieces(g: T.Group) {
+    const lists = new Map<string, { geo: T.BufferGeometry; mat: T.Material; parts: { o: T.Object3D; local: T.Matrix4 }[] }>();
+    for (const o of falling) if (o.parent === g) for (const s of o.userData.shapes as ReturnType<typeof shape>[]) {
+      const key = `${s.geo.uuid}:${s.mat.uuid}`, list = lists.get(key) ?? { geo: s.geo, mat: s.mat, parts: [] }; list.parts.push({ o, local: s.local }); lists.set(key, list);
+    }
+    for (const { geo, mat, parts } of lists.values()) {
+      const m = new T.InstancedMesh(geo, mat, parts.length); m.frustumCulled = false; m.receiveShadow = true;
+      if (!geo.boundingSphere) geo.computeBoundingSphere(); m.castShadow = mat !== hzBubbleMat && parts.some(({ o }) => (geo.boundingSphere?.radius ?? 1) * Math.max(o.scale.x, o.scale.y, o.scale.z) > 0.22);
+      geometries.add(geo); g.add(m); pieceBatches.push({ mesh: m, parts });
+    }
+  }
+  { // Acorn bough: a leaning stump with a heavy branch of acorns overhead.
+    const g = kindGroup('acorns'); mesh(g, cylinder, hzBarkMat, [-1.4, 1.3, 0], [0.32, 2.6, 0.32]); mesh(g, cylinder, hzBarkMat, [-0.3, 2.55, 0], [0.16, 2.4, 0.16]).rotation.z = Math.PI / 2 - 0.15;
+    mesh(g, sphere, hzLeafMat, [0.6, 2.95, 0], [1.3, 0.55, 1.1]); mesh(g, sphere, hzLeafMat, [-1.3, 2.9, 0.2], [1, 0.6, 0.9]);
+    for (let i = 0; i < 6; i++) piece(g, [0.2 + (i % 3) * 0.4, 2.45, (i < 3 ? -0.3 : 0.3)], [0.17, 0.22, 0.17], [shape(sphere, hzAcornMat), shape(sphere, hzCapMat, [0, 0.7, 0], [1.1, 0.55, 1.1])]);
+  }
+  { // Bubble spring: a little pool that burps a fountain of bubbles.
+    const g = kindGroup('bubbles'); mesh(g, circleGeo, hzPondMat, [0, 0.06, 0], [1.4, 1, 1.4], false);
+    for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2; mesh(g, ico, hzStoneMat, [Math.cos(a) * 1.5, 0.12, Math.sin(a) * 1.5], [0.3, 0.2, 0.26]); }
+    for (let i = 0; i < 8; i++) piece(g, [((i * 37) % 9 - 4) * 0.2, 0.3, ((i * 53) % 9 - 4) * 0.2], [0.18, 0.18, 0.18], [shape(sphere, hzBubbleMat)]);
+  }
+  { // Rock pile: a tall stack of boulders on a ledge, ready to tumble.
+    const g = kindGroup('rocks'); mesh(g, cube, hzStoneMat, [-1.6, 0.9, 0], [1.2, 1.8, 1.6]);
+    [[-1.4, 2.1, 0, 0.6], [-1.1, 2.75, 0.3, 0.45], [-1.5, 2.65, -0.35, 0.4], [-1.2, 3.25, 0, 0.35]].forEach(([x, y, z, r]) => piece(g, [x, y, z], [r, r * 0.85, r], [shape(ico, hzStoneMat)]));
+  }
+  { // Sticky vines: springy coils with pink buds, lying in wait on the ground.
+    const g = kindGroup('vines'); const coil = new T.TorusGeometry(0.55, 0.11, 6, 18); coil.rotateX(Math.PI / 2); geometries.add(coil);
+    for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2 + 0.4, r = i ? 1.3 : 0; piece(g, [Math.cos(a) * r, 0.12, Math.sin(a) * r], [1 + (i % 2) * 0.3, 1, 1 + (i % 2) * 0.3], [shape(coil, hzVineMat)]); mesh(g, sphere, hzBudMat, [Math.cos(a) * r + 0.4, 0.3, Math.sin(a) * r], [0.16, 0.16, 0.16]); }
+  }
+  { // Icicles: a frosty arch with long icicles hanging from it.
+    const g = kindGroup('icicles'); mesh(g, cylinder, hzIceMat, [-1.9, 1.5, 0], [0.35, 3, 0.35]); mesh(g, cylinder, hzIceMat, [1.9, 1.5, 0], [0.35, 3, 0.35]); mesh(g, cube, hzCrustMat, [0, 3.1, 0], [4.4, 0.45, 0.8]);
+    for (let i = 0; i < 6; i++) piece(g, [-1.3 + i * 0.52, 2.45, (i % 2 - 0.5) * 0.3], [0.17, 0.9 + (i % 3) * 0.25, 0.17], [shape(cone, hzIceMat, [0, 0, 0], [1, 1, 1], Math.PI)]);
+  }
+  for (const k in hazardKinds) { batchMeshes(hazardKinds[k], false); batchPieces(hazardKinds[k]); }
   function label(text: string, color: string) {
     const c = document.createElement('canvas'); c.width = 256; c.height = 96;
     const ctx = c.getContext('2d'); if (ctx) { ctx.font = 'bold 58px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = color; ctx.fillText(text, 128, 70); }
@@ -989,6 +1037,31 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       });
     }
     nest.visible = !!b && game.huntChapter !== 0 && (game.mode === 'hunt' || game.mode === 'nap'); nest.position.set(game.nest.x, 0, game.nest.z);
+    const z = game.hazard, showHazard = !!z && ['hunt', 'nap'].includes(game.mode);
+    hazardGroup.visible = showHazard; hazardCircle.visible = showHazard && z!.state === 'warn';
+    if (z && showHazard) {
+      hazardGroup.position.set(z.x, 0, z.z); hazardCircle.position.set(z.x, 0.09, z.z);
+      for (const k in hazardKinds) hazardKinds[k].visible = k === z.kind;
+      // Wobble while warning; after the drop the pieces lie where they fell (or the bubbles pop).
+      const wobble = z.state === 'warn' && !reduced.matches ? Math.sin(game.time * 30) * 0.05 * Math.min(1, z.t / HAZARD_WARN + 0.3) : 0;
+      for (const o of falling) {
+        if (o.parent !== hazardKinds[z.kind]) continue;
+        const home = o.userData.home as T.Vector3, n = falling.indexOf(o);
+        if (z.state === 'spent') {
+          if (z.kind === 'bubbles') { o.visible = false; continue; }
+          const ground = z.kind === 'vines' ? 0.12 : 0.2, spread = z.kind === 'vines' ? 1.6 : 1.1;
+          o.position.set(home.x * (z.kind === 'vines' ? spread : 0.3) + ((n * 37) % 7 - 3) * 0.35, ground, home.z * spread + ((n * 53) % 7 - 3) * 0.35);
+        } else {
+          o.visible = true; o.position.copy(home);
+          if (z.kind === 'bubbles') o.position.y = home.y + ((game.time * (z.state === 'warn' ? 3 : 0.6) + n * 0.37) % 1) * (z.state === 'warn' ? 3 : 0.8);
+          else o.position.x += wobble * (n % 2 ? 1 : -1); o.rotation.z = wobble * 3;
+        }
+      }
+      for (const { mesh: m, parts } of pieceBatches) if (m.parent === hazardKinds[z.kind]) {
+        parts.forEach(({ o, local }, i) => { o.updateMatrix(); partMatrix.multiplyMatrices(o.matrix, local); if (!o.visible) partMatrix.makeScale(0, 0, 0); m.setMatrixAt(i, partMatrix); });
+        m.instanceMatrix.needsUpdate = true;
+      }
+    }
     // A visiting beast walks in and squares off; it is never the hunted beast, so its rig is free.
     const v = game.visitor;
     if (v && game.mode === 'hunt') {
@@ -1121,7 +1194,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     get yaw() { return yaw; },
     orbit(dx: number, dy: number) { yaw -= dx * 0.006; pitch = T.MathUtils.clamp(pitch + dy * 0.004, 0.18, 0.95); userOrbit = 4; },
     zoom(delta: number) { dist = T.MathUtils.clamp(dist + delta * 0.008, 5, 14); },
-    metrics() { const game = lastGame; return { area: currentArea, villagers: village.visible ? villagers.length : 0, variantColor: lastVariantColor, ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible), nest: nest.visible, sleepy: drowsy[0].visible, roarRings: roarRings.filter((o) => o.visible).length, visitor: !!game?.visitor && beasts[game.visitor.id].root.visible, hitDigits: digits.count, sparks: sparks.count, pebbles: pebblePool.filter((o) => o.visible).length, vine: vineLine.visible, soft: !!game?.beast && game.beast.soft > 0, turfCircle: game?.beast?.state === 'turf' && circle.visible, weather: { rain: rain.visible ? rain.count : 0, dust: dust.visible ? dust.count : 0, flakes: snowfall.visible ? snowfall.count : 0, fogFar: Math.round((scene.fog as T.Fog).far) } }; },
+    metrics() { const game = lastGame; return { area: currentArea, villagers: village.visible ? villagers.length : 0, variantColor: lastVariantColor, ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible), nest: nest.visible, sleepy: drowsy[0].visible, roarRings: roarRings.filter((o) => o.visible).length, visitor: !!game?.visitor && beasts[game.visitor.id].root.visible, hazard: game?.hazard && hazardGroup.visible ? { kind: game.hazard.kind, state: game.hazard.state, circle: hazardCircle.visible } : null, hitDigits: digits.count, sparks: sparks.count, pebbles: pebblePool.filter((o) => o.visible).length, vine: vineLine.visible, soft: !!game?.beast && game.beast.soft > 0, turfCircle: game?.beast?.state === 'turf' && circle.visible, weather: { rain: rain.visible ? rain.count : 0, dust: dust.visible ? dust.count : 0, flakes: snowfall.visible ? snowfall.count : 0, fogFar: Math.round((scene.fog as T.Fog).far) } }; },
     dispose() {
       if (closed) return; closed = true; observer.disconnect();
       scene.traverse((o) => { if (o instanceof T.InstancedMesh) o.dispose(); if (o instanceof T.Mesh || o instanceof T.Line) { geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : [o.material]) materials.add(m); } });

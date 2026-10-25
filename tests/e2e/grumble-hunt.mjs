@@ -349,6 +349,12 @@ try {
     await hunt(p, (w) => { const g = w.game, b = g.beast; b.state = 'rest'; b.duration = 100; b.face = -Math.PI / 2; g.hero.x = b.x; g.hero.z = b.z + 2.7; g.fx = []; g.bonkBeast(37, true, g.hero); g.bonkBeast(9, false, { x: b.x, z: b.z - 3 }); });
     await p.waitForFunction(() => { const m = window.__hunt().metrics(); return m.hitDigits >= 3 && m.sparks > 0; }, null, { timeout: 15000 }); await snapshot(p, 'hit-numbers');
     assert.deepEqual(await hunt(p, (w) => w.game.fx.filter((f) => f.kind === 'bonk').map((f) => f.weak)), [true, false]);
+    // The area hazard: F beside it shows the orange circle, then it drops on the beast inside.
+    await hunt(p, (w) => { const g = w.game, z = g.hazard, b = g.beast; g.fx = []; b.state = 'rest'; b.duration = 100; b.height = 0; b.x = z.x + 1; b.z = z.z; g.hero.x = z.x - 1.5; g.hero.z = z.z; g.hero.invincible = 5; g.buddy.cooldown = 10000; });
+    assert.equal(await hunt(p, (w) => w.metrics().hazard.state), 'ready');
+    await p.keyboard.press('KeyF'); await p.waitForFunction(() => window.__hunt().metrics().hazard?.circle, null, { timeout: 15000 }); await snapshot(p, 'hazard-warning');
+    await p.waitForFunction(() => window.__hunt().metrics().hazard?.state === 'spent', null, { timeout: 15000 }); await snapshot(p, 'hazard');
+    assert.equal(await hunt(p, (w) => w.game.beast.state), 'dizzy'); assert.equal(await hunt(p, (w) => w.metrics().hazard.circle), false);
   });
 
   await check('painted portraits, tool tiers and material icons load and follow the game', async (p) => {

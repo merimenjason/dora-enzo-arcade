@@ -39,6 +39,11 @@ export const KNOCKDOWN_HITS = 3;
 export const PEBBLE_DIZZY = 6;
 export const TREE_BERRIES = 3; // Pebbles knock at most this many berries out of trees on a hunt, one per tree.
 export const WEAK_SPOT = 1.15; // Bonks on a weak spot, the face (Hornclack: the sides, between its shell plates), take this much more Grump.
+export type HazardKind = 'acorns' | 'bubbles' | 'rocks' | 'vines' | 'icicles';
+/** One hazard per wild area: knock it with a pebble (or press F beside it) and it drops on whatever is inside its circle. */
+export const AREA_HAZARD: Record<AreaId, HazardKind | null> = { paddock: null, meadow: 'acorns', marsh: 'bubbles', ridge: 'rocks', hollow: 'vines', peak: 'icicles' };
+export const HAZARD_REACH = 3.2, HAZARD_WARN = 0.8, HAZARD_GRUMP = 0.08, HAZARD_DIZZY = 3, HAZARD_TOUCH = 1.3;
+export const HAZARD_NAMES: Record<HazardKind, string> = { acorns: 'Acorn bough', bubbles: 'Bubble spring', rocks: 'Rock pile', vines: 'Sticky vines', icicles: 'Icicles' };
 export const ROAR_REACH = 7; // A roar makes friends this close cover their ears; a roll or a guard keeps them going.
 export const INTRO_CARD = 3.2;
 export const ROAR_TIME = 1.1; // Seconds a roar lasts; covered ears last 0.9 seconds.
@@ -111,6 +116,7 @@ export type BeastState = 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'clou
 export type Beast = Vec & { id: BeastId; grump: number; maxGrump: number; face: number; state: BeastState; t: number; duration: number; attack: BeastState; aim: Vec; start: Vec; dir: Vec; phase: number; cycle: number; dizzy: number; part: number; broken: boolean; bonks: number; flash: number; height: number; grumpy: boolean; drowsy: number; drowsySlow: number; home: 0 | 1 | 2; soft: number };
 export type Visitor = Vec & { id: BeastId; face: number; state: 'arrive' | 'face' | 'leave'; t: number; home: Vec };
 export type Stone = Vec & { id: number; dx: number; dz: number; life: number };
+export type Hazard = Vec & { kind: HazardKind; state: 'ready' | 'warn' | 'spent'; t: number };
 export type Obstacle = Vec & { r: number; kind: 'tree' | 'rock' | 'pine' };
 export type Shot = Vec & { id: number; dx: number; dz: number; life: number; power: number; heavy: boolean; buddy: boolean; type: WeaponType; ammo: number; charge: number; hit: boolean; dizzyShare: number };
 export type Drop = Vec & { id: number; material: MaterialId; count: number };
@@ -119,7 +125,7 @@ export type Cloud = Vec & { life: number; r: number };
 export type Fx = Vec & { id: number; kind: 'bonk' | 'dust' | 'dizzy' | 'berry' | 'part' | 'nap'; t: number; text: string; amount?: number; weak?: boolean; heavy?: boolean };
 export type Ride = { riding: boolean; meter: number; fullBonks: number; phase: 'quiet' | 'warning' | 'buck'; timer: number; grip: boolean; used: number; left: number; pose: number; landing: number; plopped: number };
 const freshRide = (): Ride => ({ riding: false, meter: 0, fullBonks: 0, phase: 'quiet', timer: 0, grip: false, used: 0, left: 0, pose: 0, landing: 0, plopped: 0 });
-export type HuntEvent = { kind: 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shaken-off' | 'plop' | 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'tired' | 'snooze' | 'intro' | 'roar' | 'covered' | 'weather' | 'visitor' | 'turf-warning' | 'turf' | 'vine' | 'cling' | 'soft' | 'yank' | 'wall' | 'sling' | 'plink' | 'fruit' | 'knockdown' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
+export type HuntEvent = { kind: 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shaken-off' | 'plop' | 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'tired' | 'snooze' | 'intro' | 'roar' | 'covered' | 'weather' | 'visitor' | 'turf-warning' | 'turf' | 'vine' | 'cling' | 'soft' | 'yank' | 'wall' | 'sling' | 'plink' | 'fruit' | 'knockdown' | 'hazard-warning' | 'hazard' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
 export type Mode = 'village' | 'hunt' | 'nap' | 'calm' | 'camp' | 'victory';
 const countRecord = (): Record<BeastId, number> => ({ bristleback: 0, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0 });
 const emptyPouch = () => Object.fromEntries([...MATERIAL_IDS, ...ITEM_IDS].map((id) => [id, 0])) as Pouch;
@@ -213,6 +219,7 @@ export class HuntGame {
   /** The pebble slinger: pebbles in the pouch, pebbles in flight, hits on a flying Skreel, and trees already shaken. */
   pebbles = SLING_START;
   stones: Stone[] = [];
+  hazard: Hazard | null = null;
   skyHits = 0;
   shaken: number[] = [];
   /** A visiting beast, the hunt time it arrives and the angle it comes from. */
@@ -452,6 +459,32 @@ export class HuntGame {
     if (this.area === 'meadow') { this.makeMeadow(); return; }
     this.obstacles = AREA_OBSTACLES[this.area].map((o) => ({ ...o }));
   }
+  /** This hunt's hazard, from a seed hash (no rng): partway out, clear of trees, rocks, spots and the nest. */
+  private placeHazard(): Hazard | null {
+    const kind = this.huntChapter === 0 ? null : AREA_HAZARD[this.area]; if (!kind) return null;
+    const h = Math.imul(this.seed ^ Math.imul(this.profile.hunts + 7, 2246822519), 1664525) + 1013904223 >>> 0, turn = h % 628 / 100;
+    for (let r = 10; r < ARENA_RADIUS - 5; r += 1.5) for (let k = 0; k < 12; k++) {
+      const a = turn + k * Math.PI / 6, p = { x: Math.cos(a) * r, z: Math.sin(a) * r };
+      if (this.obstacles.every((o) => distance(p, o) > o.r + HAZARD_REACH) && this.spots.every((s) => distance(p, s) > HAZARD_REACH) && distance(p, this.nest) > HAZARD_REACH + 2) return { kind, ...p, state: 'ready', t: 0 };
+    }
+    return null;
+  }
+  /** Knock the hazard: an orange circle warns for HAZARD_WARN seconds, then it drops on everything inside. */
+  private trip() {
+    const z = this.hazard; if (!z || z.state !== 'ready' || this.mode !== 'hunt') return false;
+    z.state = 'warn'; z.t = 0; this.events.push({ kind: 'hazard-warning' }); this.note = `${HAZARD_NAMES[z.kind]} wobble! Out of the orange circle, and lead the beast in.`;
+    return true;
+  }
+  private stepHazard(dt: number) {
+    const z = this.hazard, b = this.beast; if (!z || z.state !== 'warn') return;
+    z.t += dt; if (z.t < HAZARD_WARN) return;
+    z.state = 'spent'; this.events.push({ kind: 'hazard' }); this.shake = Math.max(this.shake, 0.35); this.effect('dust', z, HAZARD_NAMES[z.kind] + '!');
+    if (distance(this.hero, z) < HAZARD_REACH) this.bumpHero(10, z);
+    if (!b || this.mode !== 'hunt' || distance(b, z) >= HAZARD_REACH + 0.8 || b.height > 1.5 && b.id === 'skreel' && z.kind !== 'bubbles') { this.note = `${HAZARD_NAMES[z.kind]} missed. Lead the beast in next hunt!`; return; }
+    b.grump = Math.max(1, b.grump - b.maxGrump * HAZARD_GRUMP); b.flash = 0.18; b.height = 0; this.effect('bonk', b, 'Bonk!', { amount: b.maxGrump * HAZARD_GRUMP, weak: true, heavy: true }); this.moods(b);
+    if (this.mode !== 'hunt') return;
+    this.makeDizzy(HAZARD_DIZZY); this.note = z.kind === 'vines' ? `Tangled in sticky vines! ${BEASTS[b.id].name} is stuck. Big bonks welcome!` : `${HAZARD_NAMES[z.kind]} bonk! ${BEASTS[b.id].name} is dizzy. Big bonks welcome!`;
+  }
   private findNest(): Vec {
     const limit = (this.area === 'paddock' ? 12 : ARENA_RADIUS) - 4, turn = BEAST_IDS.indexOf(this.beast?.id ?? 'bristleback') * 1.3;
     for (let r = limit; r > 4; r -= 2) for (let k = 0; k < 16; k++) {
@@ -490,13 +523,13 @@ export class HuntGame {
     this.shots = []; this.drops = []; this.clouds = []; this.fx = []; this.item = 0; this.sniff = 0; this.unseen = 0; this.locked = true; this.paused = false; this.hitstop = 0; this.shake = 0; this.last = { ...NO_INPUT }; this.resultTime = 0;
     this.roared = this.introduced = this.huntChapter === 0; this.introAt = -1; this.vine = null; this.vineCd = 0; this.pebbles = SLING_START; this.stones = []; this.skyHits = 0; this.shaken = []; this.gathering = null; this.trap = null; this.reward = []; this.area = this.huntChapter >= 0 ? STORY[this.huntChapter].area : HUNT_AREA[id];
     this.profile.pouch.fluffberry = Math.max(this.profile.pouch.fluffberry, CAMP_BERRIES);
-    this.profile.hunts++; this.makeArea(); this.makeSpots(); this.nest = this.findNest(); this.planWeather(); this.revision++; this.note = BEASTS[id].tip;
+    this.profile.hunts++; this.makeArea(); this.makeSpots(); this.nest = this.findNest(); this.hazard = this.placeHazard(); this.planWeather(); this.revision++; this.note = BEASTS[id].tip;
     return true;
   }
   returnVillage() {
     this.resetWeapons();
     this.area = 'meadow'; this.makeMeadow(); this.mode = 'village'; this.beast = null; this.hero = hero(100 + this.armour.fluff); this.hero.z = 4; this.buddy.x = -1.5; this.buddy.z = 5.5;
-    this.drops = []; this.shots = []; this.stones = []; this.clouds = []; this.fx = []; this.spots = []; this.gathering = null; this.trap = null; this.snack = null; this.sniff = 0; this.unseen = 0; this.locked = false; this.paused = false; this.last = { ...NO_INPUT }; this.revision++;
+    this.drops = []; this.shots = []; this.stones = []; this.hazard = null; this.clouds = []; this.fx = []; this.spots = []; this.gathering = null; this.trap = null; this.snack = null; this.sniff = 0; this.unseen = 0; this.locked = false; this.paused = false; this.last = { ...NO_INPUT }; this.revision++;
     this.note = 'Materials tucked away safely. Visit the Pantry, Forge, Beast Book, or hunt board.';
   }
   private effect(kind: Fx['kind'], at: Vec, text = '', hit?: Pick<Fx, 'amount' | 'weak' | 'heavy'>) { this.fx.push({ ...at, kind, id: ++this.id, t: 0, text, ...hit }); }
@@ -933,6 +966,7 @@ export class HuntGame {
     if (pressed('use')) {
       if (this.mode === 'village') { const s = this.nearestSpot(); if (s) this.events.push({ kind: 'interact', spot: s.id }); }
       else if (this.gathering) { /* Already gathering. */ }
+      else if (this.hazard?.state === 'ready' && distance(this.hero, this.hazard) < 2.2 && this.mode === 'hunt') this.trip();
       else { const spot = this.nearestGather(); if (spot) { this.gathering = { spot: spot.id, t: 0 }; this.note = `Gathering ${plural(2, MATERIALS[spot.material].name).toLowerCase()}… stay still for a moment.`; } else this.useItem(); }
     }
     const len = Math.hypot(input.x, input.z), dx = len > 1 ? input.x / len : input.x, dz = len > 1 ? input.z / len : input.z;
@@ -1122,6 +1156,7 @@ export class HuntGame {
     this.stones = this.stones.filter((s) => {
       const from = { x: s.x, z: s.z }; s.x += s.dx * dt; s.z += s.dz * dt; s.life -= dt;
       if (b && this.mode === 'hunt' && b.state !== 'nap' && laneDistance(b, from, s) < 1.4) { this.plink(b); return false; }
+      if (this.hazard?.state === 'ready' && laneDistance(this.hazard, from, s) < HAZARD_TOUCH) { this.trip(); return false; }
       const tree = this.obstacles.findIndex((o) => o.kind !== 'rock' && laneDistance(o, from, s) < o.r);
       if (tree >= 0) {
         if (!this.shaken.includes(tree) && this.shaken.length < TREE_BERRIES) { this.shaken.push(tree); const o = this.obstacles[tree]; this.drop({ x: o.x, z: o.z }, 'berry', 1); this.events.push({ kind: 'fruit' }); this.note = 'Plonk! A berry fell out of the tree.'; }
@@ -1269,7 +1304,7 @@ export class HuntGame {
       });
       this.clouds = this.clouds.filter((c) => { c.life -= dt; if (distance(this.hero, c) < c.r) this.hero.slow = 0.4; return c.life > 0; });
       this.collect();
-      this.stepStones(dt); this.stepSniff(dt); this.stepWeather(); this.stepVisitor(dt);
+      this.stepStones(dt); this.stepSniff(dt); this.stepWeather(); this.stepVisitor(dt); this.stepHazard(dt);
     }
     if (!this.beast || this.mode !== 'hunt') this.ride = freshRide();
     this.last = { ...input };
