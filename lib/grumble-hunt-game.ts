@@ -38,6 +38,7 @@ export const PEBBLE_POWER = 3; // A pebble takes this much Grump and adds 6 dizz
 export const KNOCKDOWN_HITS = 3;
 export const PEBBLE_DIZZY = 6;
 export const TREE_BERRIES = 3; // Pebbles knock at most this many berries out of trees on a hunt, one per tree.
+export const WEAK_SPOT = 1.15; // Bonks on a weak spot, the face (Hornclack: the sides, between its shell plates), take this much more Grump.
 export const ROAR_REACH = 7; // A roar makes friends this close cover their ears; a roll or a guard keeps them going.
 export const INTRO_CARD = 3.2;
 export const ROAR_TIME = 1.1; // Seconds a roar lasts; covered ears last 0.9 seconds.
@@ -115,7 +116,7 @@ export type Shot = Vec & { id: number; dx: number; dz: number; life: number; pow
 export type Drop = Vec & { id: number; material: MaterialId; count: number };
 export type GatherSpot = Vec & { id: number; material: MaterialId; count: number; done: boolean };
 export type Cloud = Vec & { life: number; r: number };
-export type Fx = Vec & { id: number; kind: 'bonk' | 'dust' | 'dizzy' | 'berry' | 'part' | 'nap'; t: number; text: string };
+export type Fx = Vec & { id: number; kind: 'bonk' | 'dust' | 'dizzy' | 'berry' | 'part' | 'nap'; t: number; text: string; amount?: number; weak?: boolean; heavy?: boolean };
 export type Ride = { riding: boolean; meter: number; fullBonks: number; phase: 'quiet' | 'warning' | 'buck'; timer: number; grip: boolean; used: number; left: number; pose: number; landing: number; plopped: number };
 const freshRide = (): Ride => ({ riding: false, meter: 0, fullBonks: 0, phase: 'quiet', timer: 0, grip: false, used: 0, left: 0, pose: 0, landing: 0, plopped: 0 });
 export type HuntEvent = { kind: 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shaken-off' | 'plop' | 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'tired' | 'snooze' | 'intro' | 'roar' | 'covered' | 'weather' | 'visitor' | 'turf-warning' | 'turf' | 'vine' | 'cling' | 'soft' | 'yank' | 'wall' | 'sling' | 'plink' | 'fruit' | 'knockdown' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
@@ -498,7 +499,7 @@ export class HuntGame {
     this.drops = []; this.shots = []; this.stones = []; this.clouds = []; this.fx = []; this.spots = []; this.gathering = null; this.trap = null; this.snack = null; this.sniff = 0; this.unseen = 0; this.locked = false; this.paused = false; this.last = { ...NO_INPUT }; this.revision++;
     this.note = 'Materials tucked away safely. Visit the Pantry, Forge, Beast Book, or hunt board.';
   }
-  private effect(kind: Fx['kind'], at: Vec, text = '') { this.fx.push({ ...at, kind, id: ++this.id, t: 0, text }); }
+  private effect(kind: Fx['kind'], at: Vec, text = '', hit?: Pick<Fx, 'amount' | 'weak' | 'heavy'>) { this.fx.push({ ...at, kind, id: ++this.id, t: 0, text, ...hit }); }
   private move(p: Vec, dx: number, dz: number, radius: number) {
     p.x += dx; p.z += dz;
     for (let pass = 0; pass < 2; pass++) {
@@ -547,7 +548,7 @@ export class HuntGame {
     const wasDizzy = b.state === 'dizzy', wasSnoozing = b.state === 'snooze';
     if (buddy && ++this.buddyHits % 10 === 0 && perk('warm-glow')) this.healFriends(10);
     if (!buddy) { this.hits++; if (this.weapon() !== 'switchaxe' || this.bloom) this.focus = Math.min(100, this.focus + 20 * (1 + perk('focus-fill') + perk('bloom-fill'))); if (!this.bloom) this.pods = Math.min(3 + perk('extra-pod'), this.pods + 1); this.notes++; this.zoom = Math.min(5, this.zoom + 0.5); if (perk('warm-glow') && this.hits % 10 === 0) this.healFriends(10); }
-    const soft = b.soft > 0, amount = power * (wasDizzy ? 1.7 : wasSnoozing ? 2 : 1) * (soft ? 1.2 : 1);
+    const soft = b.soft > 0, weak = b.id === 'hornclack' ? Math.abs(front) < 0.3 : front > 0.45, amount = power * (wasDizzy ? 1.7 : wasSnoozing ? 2 : 1) * (soft ? 1.2 : 1) * (weak ? WEAK_SPOT : 1);
     b.grump = Math.max(0, b.grump - amount); b.flash = 0.18; b.bonks++; b.part += amount * (1 + perk('part-power') + perk('pop-parts')) * (soft ? 1.5 : 1);
     if (b.id === 'frostmane') {
       const next = b.grump < b.maxGrump / 3 ? 3 : b.grump < b.maxGrump * 2 / 3 ? 2 : 1;
@@ -556,7 +557,7 @@ export class HuntGame {
     this.moods(b);
     if (wasSnoozing && b.grump > 0) { b.state = 'rest'; b.t = 0; b.duration = 1.5; b.home = 2; this.note = 'Wake-up bonk! Double Grump off. Back to the hunt!'; }
     if (!buddy) { this.hitstop = heavy ? 0.11 : 0.08; this.shake = heavy ? 0.3 : 0.15; if (this.hero.hidden > 0) { this.hero.hidden = 0; this.note = 'Peekaboo! The bonk gave away your smoky hiding spot.'; } }
-    this.events.push({ kind: 'bonk' }); this.effect('bonk', b, wasDizzy ? 'Big bonk!' : wasSnoozing ? 'Wake-up bonk!' : 'Bonk!');
+    this.events.push({ kind: 'bonk' }); this.effect('bonk', b, wasDizzy ? 'Big bonk!' : wasSnoozing ? 'Wake-up bonk!' : weak ? 'Weak spot!' : 'Bonk!', { amount, weak, heavy: heavy || wasDizzy || wasSnoozing });
     const shed = rollShed(() => this.random(), b.id); if (shed) this.drop(b, shed, 1);
     if (!b.broken && b.part >= b.maxGrump * 0.32) { b.broken = true; this.rememberPart(); this.drop(b, PART_DROP[b.id].id, PART_DROP[b.id].count); this.events.push({ kind: 'part' }); this.effect('part', b, `${BEASTS[b.id].part} popped off!`); }
     if (!buddy && perk('sleepy-puff')) { this.mist = 2; this.nextDizzy = perk('sleepy-puff') / 2; }

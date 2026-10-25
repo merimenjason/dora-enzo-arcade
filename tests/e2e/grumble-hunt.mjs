@@ -310,13 +310,13 @@ try {
     assert.match(await p.getByTestId('note').innerText(), /pawprints/);
     await snapshot(p, 'sniff-trail');
     // Extra Grumpy: below 30% Grump the ears steam and the HUD says so.
-    await hunt(p, (w) => { const g = w.game, b = g.beast; b.x = 0; b.z = -1; g.hero.x = 0; g.hero.z = 4; g.bonkBeast(b.grump - b.maxGrump * 0.25, false, g.hero); b.state = 'roam'; b.t = 0; b.duration = 60; });
+    await hunt(p, (w) => { const g = w.game, b = g.beast; b.x = 0; b.z = -1; g.hero.x = 0; g.hero.z = 4; g.bonkBeast(b.grump - b.maxGrump * 0.25, false, { x: b.x - Math.cos(b.face) * 3, z: b.z + Math.sin(b.face) * 3 }); b.state = 'roam'; b.t = 0; b.duration = 60; });
     await p.waitForFunction(() => window.__hunt().metrics().steam === true, null, { timeout: 15000 });
     await p.waitForFunction(() => /Extra Grumpy/.test(document.querySelector('.hunt-beast-hud')?.textContent ?? ''));
     await p.waitForTimeout(400); await snapshot(p, 'extra-grumpy');
     assert(await fits(p));
     // Tired: below 20% Grump the beast trudges home and snoozes in its nest, with sleepy puffs; a bonk wakes it.
-    await hunt(p, (w) => { const g = w.game, b = g.beast; g.hero.invincible = 60; g.buddy.cooldown = 60; g.bonkBeast(b.grump - b.maxGrump * 0.15, false, { x: b.x, z: b.z + 3 }); b.state = 'rest'; b.t = 0; b.duration = 0; b.x = g.nest.x + 2; b.z = g.nest.z; g.hero.x = g.nest.x - 5; g.hero.z = g.nest.z; });
+    await hunt(p, (w) => { const g = w.game, b = g.beast; g.hero.invincible = 60; g.buddy.cooldown = 60; g.bonkBeast(b.grump - b.maxGrump * 0.15, false, { x: b.x - Math.cos(b.face) * 3, z: b.z + Math.sin(b.face) * 3 }); b.state = 'rest'; b.t = 0; b.duration = 0; b.x = g.nest.x + 2; b.z = g.nest.z; g.hero.x = g.nest.x - 5; g.hero.z = g.nest.z; });
     assert.match(await p.getByTestId('note').innerText(), /nest/);
     await p.waitForFunction(() => window.__hunt().game.beast.state === 'snooze', null, { timeout: 30000 });
     await p.waitForFunction(() => { const m = window.__hunt().metrics(); return m.nest && m.sleepy; }, null, { timeout: 15000 });
@@ -334,7 +334,8 @@ try {
     assert.match(await p.getByTestId('vine-status').innerText(), /Vine ready/);
     await p.keyboard.press('KeyG'); await p.waitForFunction(() => window.__hunt().game.vine?.phase === 'cling', null, { timeout: 15000 });
     await p.waitForFunction(() => window.__hunt().metrics().vine === true); assert.match(await p.getByTestId('vine-status').innerText(), /Holding on/);
-    await p.keyboard.press('KeyJ'); await p.waitForTimeout(150); await p.keyboard.press('KeyJ');
+    // Each tickle holds J for a few frames so a busy frame can't miss it.
+    for (let n = 0; n < 2; n++) { await p.keyboard.down('KeyJ'); await p.waitForTimeout(80); await p.keyboard.up('KeyJ'); await p.waitForTimeout(150); }
     await p.waitForFunction(() => window.__hunt().metrics().soft === true, null, { timeout: 15000 }); await snapshot(p, 'vine');
     await p.keyboard.press('KeyK'); await p.waitForFunction(() => !['grabbed', 'yanked'].includes(window.__hunt().game.beast.state), null, { timeout: 15000 });
     assert.equal(await hunt(p, (w) => w.game.vine), null); assert.match(await p.getByTestId('vine-status').innerText(), /coiling/);
@@ -344,6 +345,10 @@ try {
     await p.keyboard.press('KeyR'); await p.waitForFunction(() => window.__hunt().metrics().pebbles > 0, null, { timeout: 15000 }); await snapshot(p, 'sling');
     await p.waitForFunction(() => window.__hunt().game.stones.length === 0, null, { timeout: 15000 });
     assert.equal(await hunt(p, (w) => w.game.pebbles), 4); assert(await hunt(p, (w) => w.game.beast.grump) < before); assert.match(await p.getByTestId('vine-status').innerText(), /4 pebbles/);
+    // Hit numbers and sparks: a big bonk on the face shows an orange number.
+    await hunt(p, (w) => { const g = w.game, b = g.beast; b.state = 'rest'; b.duration = 100; b.face = -Math.PI / 2; g.hero.x = b.x; g.hero.z = b.z + 2.7; g.fx = []; g.bonkBeast(37, true, g.hero); g.bonkBeast(9, false, { x: b.x, z: b.z - 3 }); });
+    await p.waitForFunction(() => { const m = window.__hunt().metrics(); return m.hitDigits >= 3 && m.sparks > 0; }, null, { timeout: 15000 }); await snapshot(p, 'hit-numbers');
+    assert.deepEqual(await hunt(p, (w) => w.game.fx.filter((f) => f.kind === 'bonk').map((f) => f.weak)), [true, false]);
   });
 
   await check('painted portraits, tool tiers and material icons load and follow the game', async (p) => {

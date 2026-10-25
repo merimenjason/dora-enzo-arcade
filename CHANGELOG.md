@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Grumble Hunt** shows hit numbers and sparks on every bonk. Orange numbers mean a weak spot (a beast's face, or Hornclack's sides) that takes 15% more Grump.
+
 - **Grumble Hunt** has a pebble slinger (R): plink the beast from afar, knock a flying Skreel down to the ground, or shake berries out of trees.
 
 - **Grumble Hunt** has a grab-on vine (G): hold on to a beast, tickle it soft so bonks hit harder, or yank it into a tree or rock for a dizzy wall bonk.

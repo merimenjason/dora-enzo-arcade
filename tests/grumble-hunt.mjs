@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
 import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
@@ -41,7 +41,8 @@ check('hammer wind-up connects later; heavy hits build dizzy and dizzy bonks are
   g.step(DT, input({ bonk: true })); assert.equal(b.grump, b.maxGrump);
   tick(g, 0.3); assert(b.grump < b.maxGrump); assert(g.hitstop > 0);
   b.state = 'rest'; b.dizzy = 0; g.bonkBeast(1, true, g.hero); assert.equal(b.dizzy, DIZZY_FULL / 2); g.bonkBeast(1, true, g.hero); assert.equal(b.state, 'dizzy');
-  const before = b.grump; g.bonkBeast(10, false, g.hero); assert(Math.abs(before - b.grump - 17) < 1e-8);
+  // The friend stands at the face, a weak spot.
+  const before = b.grump; g.bonkBeast(10, false, g.hero); assert(Math.abs(before - b.grump - 17 * WEAK_SPOT) < 1e-8);
 });
 check('holding and releasing K fires a charged seed shot; cancelled input does not fire', () => {
   const g = fresh('bristleback', 'enzo'); g.buddy.cooldown = 10000;
@@ -51,7 +52,8 @@ check('holding and releasing K fires a charged seed shot; cancelled input does n
 check('Hornclack front armour depends on direction, and an owl must land for a hammer', () => {
   const g = fresh('hornclack'), b = g.beast; b.face = 0;
   assert.equal(g.bonkBeast(10, false, { x: b.x + 5, z: b.z }), false); assert.equal(b.grump, b.maxGrump);
-  assert(g.bonkBeast(10, false, { x: b.x, z: b.z + 4 })); assert.equal(b.grump, b.maxGrump - 10);
+  // The side is Hornclack's weak spot, between its shell plates.
+  assert(g.bonkBeast(10, false, { x: b.x, z: b.z + 4 })); assert(Math.abs(b.grump - (b.maxGrump - 10 * WEAK_SPOT)) < 1e-9);
   g.makeDizzy(); assert(g.bonkBeast(10, false, { x: b.x + 5, z: b.z }));
   const owl = fresh('skreel'); owl.beast.height = 2.5; assert.equal(owl.bonkBeast(10, false, owl.hero), false); owl.beast.height = 0; assert(owl.bonkBeast(10, false, owl.hero));
 });
@@ -370,6 +372,17 @@ check('the pebble slinger plinks the locked-on beast, knocks a flying Skreel dow
   const z = fresh(), zb = z.beast; z.buddy.cooldown = 10000; z.obstacles = []; zb.home = 1; zb.state = 'snooze'; zb.t = 0; zb.duration = 8; zb.x = 0; zb.z = 0; z.hero.x = 0; z.hero.z = 8;
   z.step(DT, input({ sling: true })); tick(z, 0.5); assert.equal(zb.state, 'rest'); assert.equal(zb.home, 2); assert.match(z.note, /woke/);
 });
+check('face hits (Hornclack: the sides) are weak spots worth 15% more, and every bonk records its amount for a hit number', () => {
+  for (const id of BEAST_IDS) {
+    const g = fresh(id), b = g.beast; g.buddy.cooldown = 10000; b.face = 0; b.state = 'rest'; b.height = 0;
+    const hit = (at) => { const before = b.grump; g.fx = []; const landed = g.bonkBeast(10, false, { x: b.x + at.x, z: b.z + at.z }); g.hitstop = 0; b.state = 'rest'; return { landed, amount: before - b.grump, fx: g.fx.find((f) => f.kind === 'bonk') }; };
+    const face = hit({ x: 4, z: 0 }), back = hit({ x: -4, z: 0 }), side = hit({ x: 0, z: 4 });
+    assert(Math.abs(back.amount - 10) < 1e-9, `${id} back`); assert.equal(back.fx.weak, false); assert(Math.abs(back.fx.amount - 10) < 1e-9);
+    if (id === 'hornclack') { assert.equal(face.landed, false, 'shell front'); assert(Math.abs(side.amount - 10 * WEAK_SPOT) < 1e-9); assert.equal(side.fx.weak, true); assert.equal(side.fx.text, 'Weak spot!'); }
+    else { assert(Math.abs(face.amount - 10 * WEAK_SPOT) < 1e-9, `${id} face`); assert.equal(face.fx.weak, true); assert(Math.abs(side.amount - 10) < 1e-9, `${id} side`); }
+  }
+  const g = fresh(), b = g.beast; b.state = 'rest'; g.bonkBeast(10, true, { x: b.x - Math.cos(b.face) * 3, z: b.z + Math.sin(b.face) * 3 }); assert.equal(g.fx.find((f) => f.kind === 'bonk').heavy, true);
+});
 check('out of sight for a second, Enzo sniffs out a pawprint trail that fades once the beast is seen', () => {
   const g = fresh(), b = g.beast; g.buddy.cooldown = 10000; b.state = 'rest'; b.duration = 10000;
   b.x = 0; b.z = -6; g.hero.x = 0; g.hero.z = 4; assert(g.inSight());
@@ -577,7 +590,7 @@ check('songs heal both friends, Glimmer heals every tenth hit, and sleepy puffs 
   const puff = geared('hammer', 3, 'B'); puff.bonkBeast(1, false, puff.hero); const initial = puff.beast.dizzy; tick(puff, 2.3); assert(puff.beast.dizzy >= initial + 4.9);
 });
 check('bow seed tiers share the original Bonk; slingshot rolls reload; Big Poof has a cooldown', () => {
-  const quick = geared('bow'); special(quick, 0.6); assert.equal(quick.beast.maxGrump - quick.beast.grump, 20); assert.equal(quick.beast.dizzy, 50);
+  const quick = geared('bow'); special(quick, 0.6); assert(Math.abs(quick.beast.maxGrump - quick.beast.grump - 20 * WEAK_SPOT) < 1e-9, 'a face shot is a weak-spot hit'); assert.equal(quick.beast.dizzy, 50);
   const bow = geared('bow'); special(bow, 1.1); assert(bow.shots.length > 0 || bow.beast.grump < bow.beast.maxGrump); assert.equal(bow.shotsFired, 1);
   const sling = geared('lightbow'); tick(sling, 3, input({ bonk: true })); assert.equal(sling.loaded, 0); sling.step(DT, input({ roll: true })); assert.equal(sling.loaded, 6);
   const poof = geared('gunlance', 4, 'A'); special(poof, 0.5); assert(poof.poof > 2 && poof.poof <= 3);

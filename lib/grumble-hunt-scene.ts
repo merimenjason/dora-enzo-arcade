@@ -7,7 +7,7 @@ import { createHuntWeapons, decorateHuntWeapon } from './grumble-hunt-weapons';
 import { createVillager, type VillagerId, type VillagerRig } from './grumble-hunt-villagers';
 import { MATERIALS } from './grumble-hunt-content';
 
-type Rig = { model: HuntChinchilla; hammer: T.Group; head: T.Group; trail: T.Line; points: T.Vector3[]; weapons: ReturnType<typeof createHuntWeapons>; hammerLook: ReturnType<typeof decorateHuntWeapon>; armour: T.Group[] };
+type Rig = { model: HuntChinchilla; hammer: T.Group; head: T.Group; trail: T.Line; ribbon: T.Mesh; points: T.Vector3[]; weapons: ReturnType<typeof createHuntWeapons>; hammerLook: ReturnType<typeof decorateHuntWeapon>; armour: T.Group[] };
 const RIDE_HEIGHT: Record<BeastId, number> = { bristleback: 2.4, puffwart: 2, skreel: 2.7, hornclack: 2.25, frostmane: 2.25 };
 type BeastRig = { root: T.Group; body: T.Group; head: T.Group; legs: T.Group[]; wings: T.Group[]; eyes: T.Mesh[]; part: T.Group; brow: T.MeshToonMaterial; browColor: T.Color; steam: T.Mesh[]; throat?: T.Mesh; tongue?: T.Mesh; mane?: T.Group };
 /** A gathering spot's props; `fruit` is what disappears once it is gathered. */
@@ -565,6 +565,11 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     mesh(head, sphere, wood, [0, 0.12, 0], [0.255, 0.12, 0.255]); mesh(head, cylinder, wood, [0, 0.28, 0], [0.025, 0.12, 0.025]);
     const trailGeo = new T.BufferGeometry().setFromPoints(Array.from({ length: 10 }, () => V())), trailMat = noOutline(new T.LineBasicMaterial({ color: 0xffd16b, transparent: true, opacity: 0.8 }));
     const trail = new T.Line(trailGeo, trailMat); trail.visible = false; geometries.add(trailGeo); materials.add(trailMat); scene.add(trail);
+    // A soft swoosh ribbon follows the hammer head, warm orange on a charged swing.
+    const ribbonGeo = new T.BufferGeometry(); ribbonGeo.setAttribute('position', new T.Float32BufferAttribute(new Float32Array(60), 3));
+    ribbonGeo.setIndex(Array.from({ length: 9 }, (_, i) => [i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2]).flat());
+    const ribbonMat = noOutline(new T.MeshBasicMaterial({ color: 0xfff1d0, transparent: true, opacity: 0.45, side: T.DoubleSide, depthWrite: false }));
+    const ribbon = new T.Mesh(ribbonGeo, ribbonMat); ribbon.visible = false; ribbon.frustumCulled = false; geometries.add(ribbonGeo); materials.add(ribbonMat); scene.add(ribbon);
     hammer.visible = white;
     model.root.traverse((o) => { if (o instanceof T.Mesh) { if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); o.castShadow = (o.geometry.boundingSphere?.radius ?? 1) * Math.max(o.scale.x, o.scale.y, o.scale.z) > 0.22; geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : [o.material]) { materials.add(m); for (const t of Object.values(m)) if (t instanceof T.Texture) textures.add(t); } } else if (o instanceof T.Line) { geometries.add(o.geometry); materials.add(o.material as T.Material); } });
     const weapons = createHuntWeapons(model, toon, geometries, materials), hammerLook = decorateHuntWeapon(hammer, 'hammer', (c) => toon(c), geometries, materials);
@@ -577,7 +582,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       else for (const z of [-0.3, 0.3]) mesh(g, sphere, toon(0xb28f62), [-0.22, 0.09, z], [0.21, 0.1, 0.14]);
       g.visible = false;
     }
-    return { model, hammer, head, trail, points: [], weapons, hammerLook, armour };
+    return { model, hammer, head, trail, ribbon, points: [], weapons, hammerLook, armour };
   }
   const actors: Record<HeroId, Rig> = { dora: actor(true), enzo: actor(false) };
 
@@ -696,6 +701,20 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const dropMat = toon(0xeab95c), dropPool = Array.from({ length: 24 }, () => mesh(scene, ico, dropMat, [0, 0, 0], [0.18, 0.22, 0.18], false));
   const fxMat = noOutline(new T.MeshBasicMaterial({ color: 0xf3db9a, transparent: true, opacity: 0.65, depthWrite: false })); materials.add(fxMat);
   const fxPool = Array.from({ length: 48 }, () => mesh(scene, ico, fxMat, [0, 0, 0], [1, 1, 1], false));
+  // Hit numbers: one instanced draw of digit cards from a single painted atlas, white or orange on a weak spot.
+  const digitCanvas = document.createElement('canvas'); digitCanvas.width = 640; digitCanvas.height = 80;
+  const dc = digitCanvas.getContext('2d')!; dc.font = '900 64px ui-rounded, "Trebuchet MS", system-ui, sans-serif'; dc.textAlign = 'center'; dc.textBaseline = 'middle'; dc.lineJoin = 'round';
+  for (let d = 0; d < 10; d++) { dc.lineWidth = 12; dc.strokeStyle = '#3b2a1c'; dc.strokeText(String(d), d * 64 + 32, 42); dc.fillStyle = '#ffffff'; dc.fillText(String(d), d * 64 + 32, 42); }
+  const digitMap = new T.CanvasTexture(digitCanvas); digitMap.colorSpace = T.SRGBColorSpace; textures.add(digitMap); renderer.initTexture(digitMap);
+  const digitGeo = new T.PlaneGeometry(1, 1.25); const DIGITS = 36, digitIndex = new T.InstancedBufferAttribute(new Float32Array(DIGITS), 1); digitGeo.setAttribute('digit', digitIndex);
+  const digitMat = noOutline(new T.MeshBasicMaterial({ map: digitMap, transparent: true, depthTest: false, depthWrite: false })); materials.add(digitMat);
+  digitMat.onBeforeCompile = (shader) => { shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nattribute float digit;').replace('#include <uv_vertex>', '#include <uv_vertex>\nvMapUv.x = (vMapUv.x + digit) / 10.0;'); };
+  const digits = new T.InstancedMesh(digitGeo, digitMat, DIGITS); digits.setColorAt(0, new T.Color(0xffffff)); digits.count = 0; digits.renderOrder = 10; digits.frustumCulled = false; scene.add(digits);
+  const white = new T.Color(0xffffff), weakColor = new T.Color(0xffa23d), camRight = new T.Vector3();
+  // Hit sparks: six bright shards burst from every bonk, one instanced draw.
+  const sparkGeo = new T.OctahedronGeometry(0.5, 0); sparkGeo.scale(0.25, 1, 0.25);
+  const sparkMat = noOutline(new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false })); materials.add(sparkMat);
+  const SPARKS = 72, sparks = new T.InstancedMesh(sparkGeo, sparkMat, SPARKS); sparks.setColorAt(0, new T.Color(0xffffff)); sparks.count = 0; sparks.frustumCulled = false; scene.add(sparks);
   // Dropped materials float as their painted icons once the sheet has loaded; the gold gems stand in until then.
   const iconMaps: Partial<Record<MaterialId, T.Texture>> = {};
   const iconSheet = loader.load('/art/hunt/icons-materials.webp', (sheet) => {
@@ -813,7 +832,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const weapon = game.weapon(id);
     // Upgrades show on the toy: a band at tier 2, gold and branch-beast trim at 3–4, a Glimmer stone at 5.
     const look = game.node(weapon); a.weapons.setLook(weapon, look.tier, look.branch); a.hammerLook.setLook(look.tier, look.branch);
-    a.hammer.visible = weapon === 'hammer'; a.trail.visible = false;
+    a.hammer.visible = weapon === 'hammer'; a.trail.visible = false; a.ribbon.visible = false;
     a.armour.forEach((g, i) => { const piece = game.profile.armour.worn[(['helm', 'vest', 'boots'] as const)[i]]; g.visible = isPlayer && !!piece; if (piece) { const color = BEASTS[piece.split('-')[0] as BeastId].color; g.traverse((o) => { if (o instanceof T.Mesh) (o.material as T.MeshToonMaterial).color.set(color); }); } });
     const hold = isPlayer ? game.hold() : null;
     // The preview opens the umbrella now and then, so the rack shows both its looks.
@@ -830,6 +849,13 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       else a.points.length = 0;
       a.trail.visible = a.points.length > 1;
       if (a.trail.visible) { const attr = a.trail.geometry.getAttribute('position'); for (let i = 0; i < 10; i++) { const p = a.points[Math.min(i, a.points.length - 1)]; attr.setXYZ(i, p.x, p.y, p.z); } attr.needsUpdate = true; a.trail.geometry.computeBoundingSphere(); }
+      a.ribbon.visible = a.trail.visible;
+      if (a.ribbon.visible) {
+        // Each sample pairs the hammer head with a point halfway back to the friend's shoulder, so the ribbon narrows into the swing.
+        const attr = a.ribbon.geometry.getAttribute('position'), root = a.model.root.position, sx = root.x, sy = root.y + 0.75, sz = root.z;
+        for (let i = 0; i < 10; i++) { const p = a.points[Math.min(i, a.points.length - 1)], k = 0.55 + i * 0.04; attr.setXYZ(i * 2, p.x, p.y, p.z); attr.setXYZ(i * 2 + 1, sx + (p.x - sx) * k, sy + (p.y - sy) * k, sz + (p.z - sz) * k); }
+        attr.needsUpdate = true; const m = a.ribbon.material as T.MeshBasicMaterial; m.color.setHex(isPlayer && h.heavy ? 0xffb35a : 0xfff1d0); m.opacity = isPlayer && h.heavy ? 0.6 : 0.4;
+      }
     }
   }
   const hopRing = mesh(scene, reachGeo, reachMat, [0, 0.1, 0], [1, 1, 1], false);
@@ -1027,6 +1053,25 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     smoke.forEach((o, i) => { o.visible = hidden; if (hidden) { const a = i / 10 * Math.PI * 2 + (reduced.matches ? 0 : game.time * 1.4), s = (0.6 + 0.15 * Math.sin(game.time * 3 + i)) * fade; o.position.set(game.hero.x + Math.cos(a) * 0.75, 0.4 + (i % 3) * 0.45, game.hero.z + Math.sin(a) * 0.75); o.scale.setScalar(s); } });
     drowsy.forEach((o, i) => { const snooze = b?.state === 'snooze', on = !!b && (b.drowsy > 0 || snooze) && b.state !== 'nap'; o.visible = on; if (on) { const f = reduced.matches ? 0.3 + i * 0.25 : (game.time / 1.8 + i / 3) % 1; o.position.set(b!.x + f * 0.6, b!.height + (snooze ? 2.2 : 3) + f * 1.4, b!.z + Math.sin(f * 6) * 0.3); o.scale.setScalar((0.1 + f * 0.12) * (snooze ? 1.6 : 1)); } });
     fxPool.forEach((o, i) => { const f = game.fx[Math.floor(i / 4)]; o.visible = !!f && !reduced.matches; if (f) { const a = i * 2.4, t = f.t, s = Math.max(0, 1 - t) * (f.kind === 'bonk' ? 0.16 : 0.25); o.position.set(f.x + Math.cos(a) * t * 1.5, 0.3 + Math.sin(t * Math.PI) * (f.kind === 'bonk' ? 1.4 : 0.6), f.z + Math.sin(a) * t * 1.5); o.scale.setScalar(s); } });
+    // Hit numbers rise and pop; sparks burst out for the first quarter second.
+    const hitFx = game.fx.filter((f) => f.kind === 'bonk' && f.amount !== undefined).slice(-12);
+    camRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
+    let nd = 0, ns = 0;
+    for (const f of hitFx) {
+      const text = String(Math.max(1, Math.round(f.amount!))), size = (f.heavy ? 0.62 : 0.48) * (f.t < 0.12 ? 1 + (0.12 - f.t) * 3 : 1) * (f.t > 1.1 ? Math.max(0, 1 - (f.t - 1.1) / 0.3) : 1);
+      const y = (b?.height ?? 0) + 2.6 + (f.id % 2) * 0.5 + (reduced.matches ? 0 : f.t * 1.1), jitter = (f.id % 3 - 1) * 1.1; // Back-to-back hits sit in different slots.
+      for (let k = 0; k < text.length && nd < DIGITS; k++, nd++) {
+        const off = (k - (text.length - 1) / 2) * size * 0.62 + jitter;
+        matrix.compose(V(f.x + camRight.x * off, y, f.z + camRight.z * off), camera.quaternion, V(size, size, size)); digits.setMatrixAt(nd, matrix);
+        digitIndex.setX(nd, Number(text[k])); digits.setColorAt(nd, f.weak ? weakColor : white);
+      }
+      if (f.t < 0.25 && !reduced.matches) for (let k = 0; k < 6 && ns < SPARKS; k++, ns++) {
+        const a = k / 6 * Math.PI * 2 + f.id, r = 0.4 + f.t * 7, up = Math.sin(a * 1.7) * 0.6;
+        quat.setFromUnitVectors(V(0, 1, 0), V(Math.cos(a), up, Math.sin(a)).normalize()); matrix.compose(V(f.x + Math.cos(a) * r, (b?.height ?? 0) + 1.3 + up * r, f.z + Math.sin(a) * r), quat, V(1, 1 - f.t * 3, 1).multiplyScalar(f.heavy ? 1.3 : 0.9)); sparks.setMatrixAt(ns, matrix); sparks.setColorAt(ns, f.weak ? weakColor : white);
+      }
+    }
+    digits.count = nd; sparks.count = ns; digitIndex.needsUpdate = true; digits.instanceMatrix.needsUpdate = true; if (digits.instanceColor) digits.instanceColor.needsUpdate = true;
+    sparks.instanceMatrix.needsUpdate = true; if (sparks.instanceColor) sparks.instanceColor.needsUpdate = true;
     userOrbit = Math.max(0, userOrbit - dt);
     if (game.locked && b && userOrbit <= 0) { const wanted = Math.atan2(game.hero.x - b.x, game.hero.z - b.z); yaw += Math.atan2(Math.sin(wanted - yaw), Math.cos(wanted - yaw)) * Math.min(1, dt * 2); }
     const h = game.hero;
@@ -1076,7 +1121,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     get yaw() { return yaw; },
     orbit(dx: number, dy: number) { yaw -= dx * 0.006; pitch = T.MathUtils.clamp(pitch + dy * 0.004, 0.18, 0.95); userOrbit = 4; },
     zoom(delta: number) { dist = T.MathUtils.clamp(dist + delta * 0.008, 5, 14); },
-    metrics() { const game = lastGame; return { area: currentArea, villagers: village.visible ? villagers.length : 0, variantColor: lastVariantColor, ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible), nest: nest.visible, sleepy: drowsy[0].visible, roarRings: roarRings.filter((o) => o.visible).length, visitor: !!game?.visitor && beasts[game.visitor.id].root.visible, pebbles: pebblePool.filter((o) => o.visible).length, vine: vineLine.visible, soft: !!game?.beast && game.beast.soft > 0, turfCircle: game?.beast?.state === 'turf' && circle.visible, weather: { rain: rain.visible ? rain.count : 0, dust: dust.visible ? dust.count : 0, flakes: snowfall.visible ? snowfall.count : 0, fogFar: Math.round((scene.fog as T.Fog).far) } }; },
+    metrics() { const game = lastGame; return { area: currentArea, villagers: village.visible ? villagers.length : 0, variantColor: lastVariantColor, ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible), nest: nest.visible, sleepy: drowsy[0].visible, roarRings: roarRings.filter((o) => o.visible).length, visitor: !!game?.visitor && beasts[game.visitor.id].root.visible, hitDigits: digits.count, sparks: sparks.count, pebbles: pebblePool.filter((o) => o.visible).length, vine: vineLine.visible, soft: !!game?.beast && game.beast.soft > 0, turfCircle: game?.beast?.state === 'turf' && circle.visible, weather: { rain: rain.visible ? rain.count : 0, dust: dust.visible ? dust.count : 0, flakes: snowfall.visible ? snowfall.count : 0, fogFar: Math.round((scene.fog as T.Fog).far) } }; },
     dispose() {
       if (closed) return; closed = true; observer.disconnect();
       scene.traverse((o) => { if (o instanceof T.InstancedMesh) o.dispose(); if (o instanceof T.Mesh || o instanceof T.Line) { geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : [o.material]) materials.add(m); } });
