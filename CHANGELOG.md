@@ -12,9 +12,13 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Grumble Hunt**'s Clover Camp is rebuilt. Bramble's forge has a stone footing, a gabled roof, a glowing furnace window, a smoking chimney, an anvil and a hammer sign; Wren's Beast Book cottage has timber beams, a round window, an open-book sign and a lantern; the hunt board has a little roof and pinned notes; and Pip's Pantry stall has a carrot sign, crates and a sack. Trees everywhere have tapered trunks with roots and branches under lumpy, leafy crowns, and pines grow in tiers. Walk up to a shopkeeper and press F to talk: a speech bubble shows who will answer, and the prompt names them.
+
 - **Grumble Hunt**'s village friends are rebuilt to match their storybook art. Old Mossback has a mossy, flowered shell, round glasses, a scarf, a satchel and a walking stick. Bramble has a plush coat of soft spikes, a green apron full of tools and a toy mallet. Pip has big round ears, a red scarf, an apron and a bowl of carrots. Wren is a round speckled bird with a leaf collar and a satchel of notes. They breathe, blink and look around, and wave when you come near.
 
 ### Fixed
+
+- **Grumble Hunt**: Dora and Enzo no longer walk through each other or the shopkeepers, the buddy no longer stands inside the beast, and shopkeepers stand clear of their stalls and walls.
 
 - **Grumble Hunt**'s heroes hold their tools properly. Paws now grip each handle close to the chest instead of stretching out on long, thin arms. The Greatsword's blade sits on its handle again, and big blades rest over the shoulder, clear of the face. Thrusts and jabs step forward rather than stretching the arms. The weapon preview shows the hero from a closer three-quarter view with eyes open.
 

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
 import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
@@ -78,6 +78,16 @@ check('beast bodies stay solid and malformed movement cannot spoil the meadow', 
   const g = fresh(); g.hero.x = g.beast.x; g.hero.z = g.beast.z; g.step(DT);
   assert(distance(g.hero, g.beast) >= 1.85 - 1e-8);
   g.step(DT, input({ x: NaN, z: Infinity })); assert(Number.isFinite(g.hero.x)); assert(Number.isFinite(g.hero.z));
+});
+check('friends, shopkeepers and the beast never stand inside each other; F talks to a shopkeeper', () => {
+  const g = fresh(); g.buddy.x = g.hero.x; g.buddy.z = g.hero.z; g.step(DT); assert(distance(g.hero, g.buddy) >= 0.95 - 1e-8);
+  g.buddy.x = g.beast.x; g.buddy.z = g.beast.z; g.beast.state = 'rest'; g.step(DT); assert(distance(g.buddy, g.beast) >= 1.85 - 1e-8);
+  g.returnVillage();
+  for (const s of SPOTS) {
+    const v = VILLAGERS[s.id]; g.hero.x = v.x; g.hero.z = v.z + 3; g.step(DT, input({ z: -1 })); tick(g, 1.5, input({ z: -1 }));
+    assert(distance(g.hero, v) >= 0.95 - 1e-6, `${v.name} is solid`); assert.equal(g.nearestSpot()?.id, s.id, `${v.name} is in talking reach`);
+    g.events.length = 0; g.step(DT, input({ use: true })); assert(g.events.some((e) => e.kind === 'interact' && e.spot === s.id)); g.step(DT);
+  }
 });
 check('Frostmane changes mood as Grump crosses thresholds, before the next wind-up', () => {
   const g = fresh('frostmane'), b = g.beast;

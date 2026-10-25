@@ -32,6 +32,12 @@ export const SPOTS = [
   { id: 'book', name: 'Beast Book', x: 6, z: -3 },
   { id: 'pantry', name: 'Pantry', x: -6.5, z: 4 },
 ] as const;
+/** Each spot's shopkeeper, standing clear of the building and its props. Walk up to one and press F to open their spot. */
+export const VILLAGERS = {
+  forge: { name: 'Bramble', x: -7.3, z: -0.9, face: 0 }, board: { name: 'Old Mossback', x: 2, z: -4.1, face: 0 },
+  book: { name: 'Wren', x: 7.4, z: -0.9, face: 0 }, pantry: { name: 'Pip', x: -6.78, z: 5.75, face: 0.55 },
+} as const;
+const VILLAGER_RADIUS = 0.5, TALK_REACH = 2.2;
 export const MATERIAL_IDS = Object.keys(MATERIALS) as MaterialId[];
 export const ITEM_IDS = Object.keys(ITEMS) as ItemId[];
 export const SNACK_IDS = Object.keys(SNACKS) as SnackId[];
@@ -360,7 +366,7 @@ export class HuntGame {
     this.profile.ring = RING_ITEMS.filter((r) => r === id ? !inRing : ring.includes(r)); this.item = 0; this.revision++;
     return true;
   }
-  nearestSpot() { return SPOTS.find((s) => distance(this.hero, s) < 3) ?? null; }
+  nearestSpot() { return SPOTS.find((s) => distance(this.hero, s) < 3 || distance(this.hero, VILLAGERS[s.id]) < TALK_REACH) ?? null; }
   /** The closest gathering spot within reach of the leader that still has something to gather. */
   nearestGather() { return this.mode === 'hunt' ? this.spots.find((s) => !s.done && distance(this.hero, s) < GATHER_REACH) ?? null : null; }
   clearInput() { this.last = { ...NO_INPUT }; this.hero.charge = 0; this.hero.speed = 0; }
@@ -434,7 +440,7 @@ export class HuntGame {
   private move(p: Vec, dx: number, dz: number, radius: number) {
     p.x += dx; p.z += dz;
     for (let pass = 0; pass < 2; pass++) {
-      const obstacles = this.mode === 'village' ? [...this.obstacles, ...SPOTS.map((s) => ({ ...s, r: s.id === 'board' ? 1.3 : 1.8 }))] : this.obstacles;
+      const obstacles = this.mode === 'village' ? [...this.obstacles, ...SPOTS.map((s) => ({ ...s, r: s.id === 'board' ? 1.3 : 1.8 })), ...SPOTS.map((s) => ({ ...VILLAGERS[s.id], r: VILLAGER_RADIUS }))] : this.obstacles;
       for (const o of obstacles) {
         const d = distance(p, o), r = o.r + radius;
         if (d < r) { const nx = d > 0.0001 ? (p.x - o.x) / d : 1, nz = d > 0.0001 ? (p.z - o.z) / d : 0; p.x = o.x + nx * r; p.z = o.z + nz * r; }
@@ -878,6 +884,13 @@ export class HuntGame {
       this.move(h, d.x * (1.85 - gap), d.z * (1.85 - gap), 0.45);
     }
   }
+  /** The two friends never stand inside each other, and the buddy never stands inside the beast. */
+  private keepApart() {
+    const h = this.hero, p = this.buddy, b = this.beast;
+    const push = (from: Vec, by: number) => { const gap = distance(from, p); if (gap >= by) return; const d = gap < 0.0001 ? { x: -1, z: 0 } : direction(from, p); this.move(p, d.x * (by - gap), d.z * (by - gap), 0.4); };
+    if (!this.ride.riding) push(h, 0.95);
+    if (b && this.mode === 'hunt' && b.height < 1) push(b, 1.85);
+  }
   private stepBuddy(dt: number) {
     const p = this.buddy, h = this.hero, b = this.beast;
     p.cooldown -= dt; p.berry -= dt;
@@ -980,7 +993,7 @@ export class HuntGame {
     if (this.mode === 'nap') { this.resultTime += dt; if (this.beast) this.beast.t += dt; if (this.resultTime >= 3.2) this.mode = this.beast?.id === 'frostmane' ? 'victory' : 'calm'; return; }
     if (this.mode !== 'village' && this.mode !== 'hunt') return;
     if (this.hitstop > 0) { this.hitstop = Math.max(0, this.hitstop - dt); return; }
-    this.stepHero(dt, input); this.stepBuddy(dt);
+    this.stepHero(dt, input); this.stepBuddy(dt); this.keepApart();
     if (this.mode === 'hunt' && this.beast) {
       this.stepBeast(dt);
       this.shots = this.shots.filter((s) => {

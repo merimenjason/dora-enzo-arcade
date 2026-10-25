@@ -1,7 +1,8 @@
 import * as T from 'three';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { createHuntChinchilla, animateHuntChinchilla, poseArms, type HuntChinchilla } from './hunt-chinchilla';
-import { BEASTS, BEAST_IDS, VARIANT_COLORS, GATHER_TIME, MATERIAL_IDS, SPOTS, type BeastId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
+import { BEASTS, BEAST_IDS, VARIANT_COLORS, GATHER_TIME, MATERIAL_IDS, SPOTS, VILLAGERS, type BeastId, type SpotId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
 import { createHuntWeapons } from './grumble-hunt-weapons';
 import { createVillager, type VillagerId, type VillagerRig } from './grumble-hunt-villagers';
 import { MATERIALS } from './grumble-hunt-content';
@@ -68,7 +69,23 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   let leafCards: T.InstancedMesh | null = null, crowns: T.InstancedMesh | null = null;
   // 1 = a tree's crown and leaf card fully shown, 0 = shrunk away because it would fill the camera's view.
   const canopyShown: number[] = [], upright = new T.Quaternion();
-  const barkMat = toon(0xffffff, bark, false), rockMat = toon(0xc7cac0, rock), canopyMat = toon(0x548641, undefined, false), foliage = noOutline(new T.MeshToonMaterial({ color: 0xffffff, map: leaf, gradientMap: ramp, alphaTest: 0.35, side: T.DoubleSide })); materials.add(foliage);
+  const barkMat = toon(0xffffff, bark, false), rockMat = toon(0xc7cac0, rock), canopyMat = toon(0xffffff, undefined, false), foliage = noOutline(new T.MeshToonMaterial({ color: 0xffffff, map: leaf, gradientMap: ramp, alphaTest: 0.35, side: T.DoubleSide })); materials.add(foliage);
+  // Trees: a tapered trunk with a root flare and two branch stubs, under a crown of lumpy leaf blobs.
+  const trunkGeo = (() => {
+    const parts = [new T.CylinderGeometry(0.62, 1, 4, 10, 4), new T.CylinderGeometry(1, 1.7, 0.55, 10)];
+    parts[0].translate(0, 2, 0); parts[1].translate(0, 0.27, 0);
+    for (const [a, y] of [[0.9, 2.7], [-2.2, 3.1]]) { const b = new T.CylinderGeometry(0.25, 0.4, 1.3, 6); b.rotateZ(0.9); b.rotateY(a); b.translate(Math.cos(a) * 0.55, y, -Math.sin(a) * 0.55); parts.push(b); }
+    const merged = mergeGeometries(parts.map((g) => g.toNonIndexed())); parts.forEach((g) => g.dispose()); merged.computeVertexNormals(); return merged;
+  })();
+  const blobGeo = (() => {
+    const g = new T.IcosahedronGeometry(1, 2), p = g.getAttribute('position');
+    for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), bump = 1 + 0.07 * Math.sin(x * 5.1 + z * 2.3) + 0.06 * Math.cos(y * 6.2 - x * 3.1) + 0.05 * Math.sin(z * 7.4); p.setXYZ(i, x * bump, y * bump * 0.92, z * bump); }
+    g.computeVertexNormals(); return g;
+  })();
+  geometries.add(trunkGeo); geometries.add(blobGeo);
+  /** One crown blob or leaf card per entry, relative to the tree's crown centre. */
+  type TreePart = { at: T.Vector3; size: T.Vector3 };
+  const treeBlobs: TreePart[][] = [], treeCards: TreePart[][] = [], treeTurn: T.Quaternion[] = [];
   const tuftMat = noOutline(new T.MeshToonMaterial({ color: 0xffffff, map: tuft, gradientMap: ramp, alphaTest: 0.4, side: T.DoubleSide })); materials.add(tuftMat);
   let randomSeed = 61;
   const rnd = () => { randomSeed = (Math.imul(randomSeed, 1664525) + 1013904223) >>> 0; return randomSeed / 4294967296; };
@@ -92,33 +109,98 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const wood = toon(0x9b663b), cream = toon(0xffeac8), gold = toon(0xe6b653), roof = toon(0xb9664d), ink = toon(0x3e3031), rose = toon(0xe9a6a0);
   const berryMat = toon(0xd2344a), hayMat = toon(0xe2c46a), bushMat = toon(0x4f8a3c), reedMat = toon(0x7f9f45), cattailMat = toon(0x8a5a35);
   const crystalMat = noOutline(new T.MeshBasicMaterial({ color: 0xffc94a, toneMapped: false })); materials.add(crystalMat);
+  // Clover Camp. Each building's walls block the camera; everything else is decoration, moved into one group
+  // and instanced by shape and material at the end so the whole camp costs a few dozen draws.
+  const shingle = toon(0xb9664d), moss = toon(0x6c9778), timber = toon(0x6e4423), stone = toon(0xb9b4a6, rock), paper = toon(0xfff6df), steel = toon(0x7c7f86);
+  const ember = noOutline(new T.MeshBasicMaterial({ color: 0xffa142, toneMapped: false })), lamp = noOutline(new T.MeshBasicMaterial({ color: 0xffe2a0, toneMapped: false })); materials.add(ember); materials.add(lamp);
+  const carrotMat = toon(0xee8a35), leafy = toon(0x6fa84a), sack = toon(0xd9bf8e), skyBlue = toon(0x8cc3d9), plum = toon(0x9a6fb0);
+  const gable = new T.ExtrudeGeometry(new T.Shape([new T.Vector2(-0.5, 0), new T.Vector2(0.5, 0), new T.Vector2(0, 1)]), { depth: 1, bevelEnabled: false }); gable.translate(0, 0, -0.5); geometries.add(gable);
+  const roundGeo = new T.CylinderGeometry(1, 1, 1, 16); roundGeo.rotateX(Math.PI / 2); geometries.add(roundGeo);
+  const decor = new T.Group(); village.add(decor);
+  type P3 = [number, number, number];
+  function part(building: T.Group, geo: T.BufferGeometry, mat: T.Material, pos: P3, scale: P3, rot: P3 = [0, 0, 0]) { const m = mesh(building, geo, mat, pos, scale); m.rotation.set(...rot); return m; }
+  /** A cottage: stone footing, walls with corner posts, a door, and a gabled roof facing the path. */
+  function cottage(b: T.Group, walls: T.Material, roofMat: T.Material, w: number, d: number, h: number) {
+    part(b, cube, stone, [0, 0.22, 0], [w + 0.25, 0.44, d + 0.25]);
+    blockers.push(mesh(b, cube, walls, [0, 0.44 + h / 2, 0], [w, h, d]));
+    for (const x of [-1, 1]) for (const z of [-1, 1]) part(b, cube, timber, [x * w / 2, 0.44 + h / 2, z * d / 2], [0.18, h, 0.18]);
+    part(b, cube, timber, [0, 0.44 + h, d / 2 + 0.01], [w + 0.1, 0.16, 0.12]);
+    const top = 0.44 + h, rise = w * 0.42, slope = Math.atan2(rise, w / 2), half = Math.hypot(w / 2, rise) + 0.3;
+    part(b, gable, walls, [0, top, 0], [w, rise, d]);
+    for (const s of [-1, 1]) part(b, cube, roofMat, [s * (w / 4 + 0.08), top + rise / 2 + 0.1, 0], [half, 0.14, d + 0.55], [0, 0, -s * slope]);
+    part(b, cylinder, timber, [0, top + rise + 0.17, 0], [0.09, d + 0.6, 0.09], [Math.PI / 2, 0, 0]);
+    part(b, cube, timber, [-0.35, 0.44 + 0.75, d / 2 + 0.03], [0.95, 1.55, 0.06]);
+    part(b, cube, ink, [-0.35, 0.44 + 0.7, d / 2 + 0.05], [0.72, 1.4, 0.04]);
+    part(b, sphere, gold, [-0.1, 0.44 + 0.72, d / 2 + 0.08], [0.05, 0.05, 0.04]);
+    return top;
+  }
+  const chimneyAt: T.Vector3[] = [];
   for (const s of SPOTS) {
     const building = new T.Group(); village.add(building); building.position.set(s.x, 0, s.z);
-    if (s.id === 'board') {
-      for (const x of [-1.2, 1.2]) mesh(building, cylinder, wood, [x, 1.1, 0], [0.13, 2.2, 0.13]);
-      blockers.push(mesh(building, cube, wood, [0, 1.75, 0], [2.8, 1.5, 0.25]));
-      for (let i = 0; i < 3; i++) mesh(building, cube, cream, [-0.85 + i * 0.85, 1.8, 0.15], [0.6, 0.85, 0.03]);
-    } else if (s.id === 'pantry') {
-      // A market stall: four posts, a striped awning, a counter of berry and seed baskets, and a hay bale.
+    if (s.id === 'forge') {
+      // Bramble's forge: a red-roofed workshop with a glowing furnace window, a stone chimney, an anvil and a hammer sign.
+      const top = cottage(building, wood, shingle, 3.4, 2.5, 1.7);
+      part(building, cube, stone, [0.95, 1.35, 1.27], [0.95, 0.8, 0.08]); part(building, cube, ember, [0.95, 1.33, 1.32], [0.68, 0.55, 0.04]);
+      for (const x of [0.72, 1.18]) part(building, cube, timber, [x, 1.33, 1.35], [0.06, 0.55, 0.04]);
+      part(building, cylinder, stone, [-1.05, top + 0.9, -0.45], [0.36, 2.6, 0.36]); part(building, cylinder, stone, [-1.05, top + 2.25, -0.45], [0.46, 0.2, 0.46]);
+      chimneyAt.push(V(s.x - 1.05, top + 2.45, s.z - 0.45));
+      part(building, cylinder, wood, [-2.35, 0.32, 1.15], [0.42, 0.64, 0.42]);
+      part(building, cube, steel, [-2.35, 0.78, 1.15], [0.62, 0.22, 0.32]); part(building, cube, steel, [-2.35, 0.7, 1.15], [0.28, 0.2, 0.22]); part(building, cone, steel, [-2.75, 0.8, 1.15], [0.1, 0.3, 0.1], [0, 0, Math.PI / 2]);
+      part(building, cylinder, wood, [2.05, 0.45, 0.85], [0.36, 0.9, 0.36]); for (const y of [0.2, 0.7]) part(building, cylinder, timber, [2.05, y, 0.85], [0.38, 0.06, 0.38]);
+      part(building, cube, timber, [2.0, 2.05, 1.25], [0.7, 0.06, 0.06]); part(building, cube, wood, [2.2, 1.75, 1.25], [0.07, 0.45, 0.8]);
+      part(building, cylinder, cream, [2.25, 1.75, 1.25], [0.035, 0.5, 0.035], [0.6, 0, 0]); part(building, cube, steel, [2.25, 1.93, 1.12], [0.05, 0.13, 0.22], [0.6, 0, 0]);
+    } else if (s.id === 'book') {
+      // Wren's Beast Book cottage: cream walls with timber beams, a mossy roof, a round window, an open-book sign and a lantern.
+      cottage(building, cream, moss, 3.4, 2.5, 1.7);
+      for (const x of [-1.7, 1.7]) part(building, cube, timber, [x * 0.5, 1.3, 1.27], [0.12, 1.7, 0.05]);
+      part(building, cube, timber, [1.0, 1.75, 1.27], [1.2, 0.1, 0.05]);
+      part(building, roundGeo, timber, [1.0, 1.25, 1.27], [0.38, 0.38, 0.06]); part(building, roundGeo, lamp, [1.0, 1.25, 1.3], [0.3, 0.3, 0.04]);
+      part(building, cube, timber, [1.0, 1.25, 1.33], [0.6, 0.05, 0.03]); part(building, cube, timber, [1.0, 1.25, 1.33], [0.05, 0.6, 0.03]);
+      part(building, cylinder, wood, [-2.3, 1.0, 1.5], [0.06, 2.0, 0.06]);
+      for (const s2 of [-1, 1]) part(building, cube, paper, [-2.3 + s2 * 0.24, 2.08, 1.53], [0.46, 0.05, 0.34], [0, 0, s2 * 0.35]);
+      part(building, cube, plum, [-2.3, 2.0, 1.53], [0.96, 0.05, 0.38]);
+      part(building, cylinder, timber, [2.15, 1.0, 1.0], [0.05, 2.0, 0.05]); part(building, cylinder, gold, [2.15, 2.05, 1.0], [0.14, 0.24, 0.14]); part(building, sphere, lamp, [2.15, 2.05, 1.0], [0.1, 0.12, 0.1]); part(building, cone, timber, [2.15, 2.28, 1.0], [0.2, 0.18, 0.2]);
+      [plum, skyBlue, roof, leafy, gold].forEach((m, i) => part(building, cube, m, [-1.95 - (i % 2) * 0.04, 0.11 + i * 0.13, 0.7], [0.6 - i * 0.05, 0.12, 0.42], [0, i * 0.25, 0]));
+    } else if (s.id === 'board') {
+      // The hunt board: stout posts on stones, a little shingled roof, and pinned notes about each beast.
+      for (const x of [-1.25, 1.25]) { part(building, cylinder, wood, [x, 1.25, 0], [0.13, 2.5, 0.13]); part(building, ico, stone, [x, 0.12, 0], [0.32, 0.2, 0.3]); }
+      blockers.push(mesh(building, cube, wood, [0, 1.65, 0], [2.7, 1.45, 0.2]));
+      part(building, cube, timber, [0, 2.43, 0.02], [2.95, 0.12, 0.28]); part(building, cube, timber, [0, 0.9, 0.02], [2.95, 0.1, 0.26]);
+      for (const sd of [-1, 1]) part(building, cube, shingle, [0, 2.75, sd * 0.3], [3.3, 0.1, 0.72], [sd * 0.62, 0, 0]);
+      part(building, cylinder, timber, [0, 2.97, 0], [0.07, 3.3, 0.07], [0, 0, Math.PI / 2]);
+      [[-0.85, 1.8, paper, 0.08], [-0.15, 1.95, toon(0xf5d2c8), -0.06], [0.6, 1.75, paper, 0.05], [-0.55, 1.25, toon(0xd9ecf2), -0.04], [0.35, 1.25, toon(0xf2e6b8), 0.07], [0.95, 1.3, paper, -0.1]].forEach(([x, y, m, r]) => {
+        part(building, cube, m as T.Material, [x as number, y as number, 0.12], [0.55, 0.45, 0.02], [0, 0, r as number]);
+        part(building, sphere, berryMat, [x as number, (y as number) + 0.18, 0.14], [0.04, 0.04, 0.04]);
+        part(building, cube, ink, [x as number, (y as number) - 0.03, 0.135], [0.32, 0.03, 0.01], [0, 0, r as number]);
+      });
+      part(building, cube, wood, [-1.9, 0.3, 0.5], [0.6, 0.6, 0.6], [0, 0.3, 0]); part(building, cube, timber, [-1.9, 0.3, 0.5], [0.62, 0.08, 0.62], [0, 0.3, 0]);
+    } else {
+      // Pip's Pantry: a market stall with a striped awning, baskets on the counter, a carrot sign, crates and sacks.
       building.rotation.y = 0.55;
       for (const x of [-1.3, 1.3]) for (const z of [-0.75, 0.75]) mesh(building, cylinder, wood, [x, 1.15, z], [0.08, 2.3, 0.08]);
+      for (const x of [-0.4, 0.4]) part(building, cylinder, timber, [x, 2.6, 0.98], [0.02, 0.5, 0.02]);
       for (let i = 0; i < 5; i++) { const stripe = mesh(building, cube, i % 2 ? cream : rose, [-1.2 + i * 0.6, 2.4, 0.05], [0.6, 0.1, 2.0]); stripe.rotation.x = 0.22; }
+      for (let i = 0; i < 9; i++) part(building, sphere, i % 2 ? cream : rose, [-1.2 + i * 0.3, 2.22, 1.08], [0.16, 0.16, 0.06]);
       blockers.push(mesh(building, cube, wood, [0, 0.5, 0.35], [2.8, 1, 0.75]));
+      part(building, cube, timber, [0, 1.02, 0.35], [2.95, 0.08, 0.85]);
       for (const [x, fill] of [[-0.85, berryMat], [0, gold], [0.85, berryMat]] as const) {
         mesh(building, cylinder, toon(0xc79b5c), [x, 1.12, 0.35], [0.3, 0.22, 0.3]);
         for (let k = 0; k < 5; k++) mesh(building, sphere, fill, [x + Math.cos(k * 1.3) * 0.15, 1.27 + (k % 2) * 0.04, 0.35 + Math.sin(k * 1.3) * 0.15], [0.09, 0.09, 0.09], false);
       }
+      part(building, cube, cream, [0, 2.95, 0.98], [1.2, 0.42, 0.06], [-0.1, 0, 0]); part(building, cone, carrotMat, [0, 2.95, 1.03], [0.09, 0.5, 0.05], [0, 0, Math.PI / 2 - 0.3]); part(building, cone, leafy, [-0.3, 3.05, 1.03], [0.08, 0.18, 0.04], [0, 0, 1.3]);
       const bale = mesh(building, cylinder, hayMat, [1.85, 0.42, 0.7], [0.42, 0.85, 0.42]); bale.rotation.z = Math.PI / 2;
-    } else {
-      const wall = mesh(building, cube, s.id === 'forge' ? wood : cream, [0, 1, 0], [3.4, 2, 2.5]); blockers.push(wall);
-      const top = mesh(building, cone, s.id === 'forge' ? roof : toon(0x6c9778), [0, 2.65, 0], [2.6, 1.5, 2.1]); top.rotation.y = Math.PI / 4;
-      mesh(building, cube, ink, [0, 0.75, 1.27], [0.85, 1.5, 0.05]);
-      mesh(building, cube, gold, [1, 1.1, 1.28], [0.6, 0.65, 0.04]);
-      if (s.id === 'forge') { mesh(building, cylinder, rockMat, [-1, 2.7, -0.3], [0.35, 2.5, 0.35]); mesh(building, cube, rockMat, [0, 0.7, 2.1], [1.1, 0.3, 0.7]); }
-      else { for (let i = 0; i < 4; i++) mesh(building, cube, [roof, gold, foliage, wood][i], [1.9, 0.3 + i * 0.2, 1.2], [0.65, 0.16, 0.8]); }
+      part(building, cube, wood, [-2.05, 0.28, -0.2], [0.6, 0.56, 0.5]);
+      for (let k = 0; k < 5; k++) part(building, cone, carrotMat, [-2.23 + k * 0.09, 0.62, -0.25 + (k % 2) * 0.1], [0.06, 0.28, 0.06], [Math.PI, 0, (k - 2) * 0.15]);
+      part(building, sphere, sack, [-1.85, 0.36, -0.95], [0.36, 0.38, 0.34]); part(building, cylinder, timber, [-1.85, 0.74, -0.95], [0.12, 0.08, 0.12]);
     }
     const length = Math.hypot(s.x, s.z - 5), path = mesh(paths, plane, dirtMat, [s.x / 2, 0.025, (s.z + 5) / 2], [2.3, length + 1, 1], false); path.rotation.set(-Math.PI / 2, 0, -Math.atan2(s.x, 5 - s.z));
   }
+  // Everything except the camera-blocking walls moves into `decor` and is instanced.
+  village.updateMatrixWorld(true);
+  for (const building of [...village.children]) if (building !== decor) for (const child of [...building.children]) if (child instanceof T.Mesh && !blockers.includes(child)) decor.attach(child);
+  batchMeshes(decor, false);
+  const puffMat = noOutline(new T.MeshBasicMaterial({ color: 0xe9e4dc, transparent: true, opacity: 0.8, depthWrite: false })); materials.add(puffMat);
+  const chimneyPuffs = Array.from({ length: 6 }, () => mesh(village, sphere, puffMat, [0, 0, 0], [0.3, 0.3, 0.3], false));
   const villageBlockerCount = blockers.length;
   const campPath = mesh(scene, plane, dirtMat, [0, 0.015, 12], [3.5, 10, 1], false); campPath.rotation.x = -Math.PI / 2;
   const areaMaps: T.Texture[] = [];
@@ -165,12 +247,24 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       root.add(batch);
     }
   }
-  const villagers: { rig: VillagerRig; x: number; z: number }[] = [];
+  const villagers: { rig: VillagerRig; x: number; z: number; face: number; spot: SpotId; top: number }[] = [];
   const VILLAGER_AT: Record<typeof SPOTS[number]['id'], VillagerId> = { board: 'mossback', forge: 'bramble', pantry: 'pip', book: 'wren' };
   for (const station of SPOTS) {
-    const rig = createVillager(VILLAGER_AT[station.id], { ramp, materials, geometries });
-    rig.root.position.set(station.x + 2.2, 0, station.z + 1.3); village.add(rig.root);
-    villagers.push({ rig, x: rig.root.position.x, z: rig.root.position.z });
+    const rig = createVillager(VILLAGER_AT[station.id], { ramp, materials, geometries }), at = VILLAGERS[station.id];
+    rig.root.position.set(at.x, 0, at.z); rig.root.rotation.y = at.face; village.add(rig.root);
+    villagers.push({ rig, x: at.x, z: at.z, face: at.face, spot: station.id, top: new T.Box3().setFromObject(rig.root).max.y });
+  }
+  const partAt = V(), partSize = V();
+  /** Places every tree's crown blobs and camera-facing leaf cards, shrunk toward the crown centre by how hidden the tree is. */
+  function placeCanopies(force?: number) {
+    if (!crowns || !leafCards) return;
+    let blob = 0, card = 0;
+    canopyPositions.forEach((p, i) => {
+      const shown = force ?? canopyShown[i];
+      for (const b of treeBlobs[i]) { partAt.copy(b.at).applyQuaternion(treeTurn[i]).multiplyScalar(shown).add(p); matrix.compose(partAt, treeTurn[i], partSize.copy(b.size).multiplyScalar(shown)); crowns!.setMatrixAt(blob++, matrix); }
+      for (const c of treeCards[i]) { partAt.copy(c.at).multiplyScalar(shown).add(p); matrix.compose(partAt, camera.quaternion, partSize.copy(c.size).multiplyScalar(shown)); leafCards!.setMatrixAt(card++, matrix); }
+    });
+    crowns.instanceMatrix.needsUpdate = true; leafCards.instanceMatrix.needsUpdate = true;
   }
   function buildWorld(game: HuntGame) {
     switchArea(game.mode === 'village' || game.mode === 'camp' ? 'meadow' : game.area);
@@ -179,19 +273,38 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     canopyPositions.length = 0; canopyShown.length = 0;
     blockers.length = villageBlockerCount;
     const trees = game.obstacles.filter((o) => o.kind === 'tree' || o.kind === 'pine');
-    const trunks = new T.InstancedMesh(cylinder, barkMat, trees.length);
-    crowns = new T.InstancedMesh(trees.some((o) => o.kind === 'pine') ? cone : ico, canopyMat, trees.length);
-    leafCards = new T.InstancedMesh(plane, foliage, trees.length);
+    const leafy = currentArea === 'meadow' || currentArea === 'paddock';
+    treeBlobs.length = treeCards.length = treeTurn.length = 0;
+    let treeSeed = 17 + trees.length;
+    const jitter = () => { treeSeed = (Math.imul(treeSeed, 1664525) + 1013904223) >>> 0; return treeSeed / 4294967296; };
+    for (const o of trees) {
+      const blobs: TreePart[] = [], cards: TreePart[] = [], big = 0.85 + o.r * 0.35;
+      if (o.kind === 'pine') {
+        // Three stacked tiers and a tip.
+        [[-1.2, 1.75, 1.5], [-0.15, 1.4, 1.35], [0.85, 1.0, 1.2], [1.6, 0.55, 0.8]].forEach(([y, r, h]) => blobs.push({ at: V(0, y, 0), size: V(r * big, h, r * big) }));
+        cards.push({ at: V(0, 0.2, 0), size: V(5, 4.4, 1) });
+      } else {
+        blobs.push({ at: V(0, 0, 0), size: V(1.45 * big, 1.2 * big, 1.45 * big) }, { at: V(0.1, 0.85 * big, -0.1), size: V(1.0 * big, 0.9 * big, 1.0 * big) });
+        for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + jitter() * 0.9, r = 0.95 * big, s = (0.8 + jitter() * 0.3) * big; blobs.push({ at: V(Math.cos(a) * r, -0.3 + jitter() * 0.55, Math.sin(a) * r), size: V(s, s * 0.85, s) }); }
+        if (leafy) for (let k = 0; k < 3; k++) { const a = k * 2.1 + jitter(); cards.push({ at: V(Math.cos(a) * 0.9 * big, 0.25 + k * 0.25, Math.sin(a) * 0.9 * big), size: V(2.8 * big, 2.5 * big, 1) }); }
+        else cards.push({ at: V(0, 0.5, 0), size: V(5, 4.4, 1) });
+      }
+      treeBlobs.push(blobs); treeCards.push(cards);
+      treeTurn.push(new T.Quaternion().setFromAxisAngle(V(0, 0, 1), o.kind === 'pine' && currentArea === 'ridge' ? -0.14 : 0));
+    }
+    const trunks = new T.InstancedMesh(trunkGeo, barkMat, trees.length);
+    crowns = new T.InstancedMesh(trees.some((o) => o.kind === 'pine') ? cone : blobGeo, canopyMat, treeBlobs.reduce((n, b) => n + b.length, 0));
+    leafCards = new T.InstancedMesh(plane, foliage, treeCards.reduce((n, c) => n + c.length, 0));
     trunks.castShadow = true; trunks.receiveShadow = true;
     world.add(trunks, crowns!, leafCards); blockers.push(trunks);
-    const identity = new T.Quaternion();
+    const greens = currentArea === 'marsh' ? [0x5f7f45, 0x6f8c4c, 0x55733f] : currentArea === 'ridge' || currentArea === 'peak' ? [0x3f6f52, 0x4a7b5a, 0x376449] : [0x4f8a3c, 0x62a046, 0x76b04e, 0x5a9440];
+    let blob = 0;
     trees.forEach((o, i) => {
-      identity.setFromAxisAngle(V(0, 0, 1), o.kind === 'pine' && currentArea === 'ridge' ? -0.14 : 0);
-      matrix.compose(V(o.x, 2, o.z), identity, V(o.r * 0.65, 4, o.r * 0.65)); trunks.setMatrixAt(i, matrix);
-      matrix.compose(V(o.x, 3.7, o.z), identity, V(1.6, 1.5, 1.6)); crowns!.setMatrixAt(i, matrix);
-      canopyPositions.push(V(o.x, 4.2, o.z)); canopyShown.push(1);
-      matrix.compose(V(o.x, 4.2, o.z), identity, V(5, 4.4, 1)); leafCards!.setMatrixAt(i, matrix);
+      matrix.compose(V(o.x, 0, o.z), treeTurn[i], V(o.r * 0.65, 1, o.r * 0.65)); trunks.setMatrixAt(i, matrix);
+      canopyPositions.push(V(o.x, o.kind === 'pine' ? 4.2 : 4.3, o.z)); canopyShown.push(1);
+      for (const _ of treeBlobs[i]) crowns!.setColorAt(blob++, tint.set(greens[(i * 3 + blob) % greens.length]));
     });
+    placeCanopies(1);
     for (const o of game.obstacles) {
       if (o.kind === 'rock') { const m = mesh(world, ico, rockMat, [o.x, o.r * 0.5, o.z], [o.r, o.r * 0.8, o.r]); m.rotation.y = o.x; blockers.push(m); }
     }
@@ -475,6 +588,20 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const sprite = new T.Sprite(mat); sprite.scale.set(1.8, 0.7, 1); scene.add(sprite); return sprite;
   }
   const hopLabel = label('hop!', '#fff4cf'), shakeMark = label('〰!', '#f39a31');
+  // A speech bubble over the shopkeeper in talking reach.
+  const talkBubble = (() => {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+    const ctx = c.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#fff9eb'; ctx.strokeStyle = '#6e4423'; ctx.lineWidth = 7;
+      ctx.beginPath(); ctx.roundRect(8, 8, 240, 84, 30); ctx.moveTo(112, 92); ctx.lineTo(128, 120); ctx.lineTo(146, 92); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#fff9eb'; ctx.fillRect(114, 86, 30, 9);
+      ctx.font = '900 46px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#43352d'; ctx.fillText('F · Talk', 128, 66);
+    }
+    const map = new T.CanvasTexture(c); map.colorSpace = T.SRGBColorSpace; textures.add(map);
+    const mat = noOutline(new T.SpriteMaterial({ map, transparent: true, depthWrite: false, depthTest: false })); materials.add(mat);
+    const sprite = new T.Sprite(mat); sprite.scale.set(1.3, 0.65, 1); sprite.renderOrder = 5; sprite.visible = false; scene.add(sprite); return sprite;
+  })();
   const observer = new ResizeObserver(resize); observer.observe(canvas);
   function resize() { if (closed) return; const w = Math.max(1, canvas.clientWidth), h = Math.max(1, canvas.clientHeight); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
   const ray = new T.Raycaster(), cameraAim = V(), desired = V(), segment = V();
@@ -495,11 +622,18 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     for (const id of BEAST_IDS) beasts[id].root.visible = game.beast?.id === id && !['village', 'camp'].includes(game.mode);
     snowfall.visible = currentArea === 'peak' && !reduced.matches;
     if (snowfall.visible) { for (let i = 0; i < 80; i++) { const x = Math.sin(i * 7.3) * 22, z = Math.cos(i * 3.7) * 22, y = 9 - (game.time * 0.7 + i * 0.37) % 9; matrix.compose(V(x + Math.sin(game.time + i) * 0.3, y, z), upright, V(0.035, 0.035, 0.035)); snowfall.setMatrixAt(i, matrix); } snowfall.instanceMatrix.needsUpdate = true; }
+    const talkTo = village.visible && game.mode === 'village' ? game.nearestSpot()?.id : undefined;
+    talkBubble.visible = false;
+    chimneyPuffs.forEach((o, i) => {
+      const f = ((reduced.matches ? 0.4 : game.time * 0.3) + i / chimneyPuffs.length) % 1, c = chimneyAt[0];
+      o.position.set(c.x + f * 0.7 + Math.sin(f * 6 + i) * 0.12, c.y + f * 2.4, c.z - f * 0.2); o.scale.setScalar((0.16 + f * 0.42) * Math.min(1, (1 - f) * 4));
+    });
     for (const v of villagers) {
+      if (v.spot === talkTo) { talkBubble.visible = true; talkBubble.position.set(v.x, v.top + 0.55 + (reduced.matches ? 0 : Math.sin(game.time * 3) * 0.06), v.z); }
       const near = Math.hypot(game.hero.x - v.x, game.hero.z - v.z) < 5, r = v.rig.root;
       v.rig.animate(game.time, near, reduced.matches);
       // Villagers face the paths, and turn to watch the leader who comes to talk.
-      const want = near && !reduced.matches ? Math.atan2(game.hero.x - v.x, game.hero.z - v.z) : 0, turnBy = Math.atan2(Math.sin(want - r.rotation.y), Math.cos(want - r.rotation.y));
+      const want = near && !reduced.matches ? Math.atan2(game.hero.x - v.x, game.hero.z - v.z) : v.face, turnBy = Math.atan2(Math.sin(want - r.rotation.y), Math.cos(want - r.rotation.y));
       r.rotation.y += turnBy * Math.min(1, dt * 4);
     }
     const b = game.beast;
@@ -609,11 +743,9 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
         const along = reach > 0 ? Math.max(0, Math.min(1, (p.x - camera.position.x) * sight.x / reach + (p.y - camera.position.y) * sight.y / reach + (p.z - camera.position.z) * sight.z / reach)) : 0;
         const gap = Math.hypot(camera.position.x + sight.x * along - p.x, camera.position.y + sight.y * along - p.y, camera.position.z + sight.z * along - p.z);
         const blocking = camera.position.distanceTo(p) < 4.5 || (along < 0.92 && gap < 2.9);
-        const shown = canopyShown[i] = Math.max(0, Math.min(1, canopyShown[i] + (blocking ? -dt : dt) / 0.2));
-        matrix.compose(p, camera.quaternion, V(5 * shown, 4.4 * shown, shown)); leafCards!.setMatrixAt(i, matrix);
-        matrix.compose(V(p.x, 3.7, p.z), upright, V(1.6 * shown, 1.5 * shown, 1.6 * shown)); crowns!.setMatrixAt(i, matrix);
+        canopyShown[i] = Math.max(0, Math.min(1, canopyShown[i] + (blocking ? -dt : dt) / 0.2));
       });
-      leafCards.instanceMatrix.needsUpdate = true; crowns.instanceMatrix.needsUpdate = true;
+      placeCanopies();
     }
     wind.value = reduced.matches ? 0 : game.time;
     renderer.info.reset();

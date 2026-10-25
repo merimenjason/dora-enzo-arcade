@@ -140,7 +140,7 @@ The page passes a local-calendar `YYYY-MM-DD` string to the engine and updates i
 | Tab, with the meadow focused | Toggle lock on, when let go |
 | Q / E | Previous / next item in the ring |
 | Hold Tab, tap Q / E | Change the buddy’s order |
-| F | Gather at a nearby spot, otherwise use the item; visit a nearby camp place |
+| F | Gather at a nearby spot, otherwise use the item; at camp, talk to the shopkeeper in reach (a speech bubble shows who) to open their place |
 | Drag / scroll | Orbit / zoom camera |
 | P / Escape | Pause; Escape also closes a panel |
 | M | Toggle sound |
