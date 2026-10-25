@@ -154,24 +154,25 @@ function shield(id: WeaponType, pod = false) {
   const glow=new T.MeshBasicMaterial({color:0xfff18c,toneMapped:false}); glow.userData.outlineParameters={visible:false};
   materials.add(glow); const flyGeo=new T.SphereGeometry(.04,12,8); geometries.add(flyGeo); const fly=new T.Mesh(flyGeo,glow); g.add(fly); g.userData.firefly=fly;
   for(const z of [-.04,.04]) { const wing=new T.Mesh(flyGeo,glow);wing.scale.set(1,.3,1);wing.position.z=z;fly.add(wing); }
-  // Slingshot: the left paw holds the forked handle out front, the right pinches the pouch
-  g=toy('lightbow',V(0,0,0),V(-.13,.12,0));
+  // The three bows rest in one paw, out beside the body so the camera behind the hero sees them.
+  // Slingshot: held upright by its handle at the right side
+  g=toy('lightbow',V(0,0,0),null);
   rod(g,V(0,-.12,0),V(0,.12,0),.035,wrapW); rod(g,V(0,.1,0),V(0,.3,-.12),.03);rod(g,V(0,.1,0),V(0,.3,.12),.03);
   rod(g,V(0,.3,-.12),V(-.13,.12,0),.01,paleW);rod(g,V(0,.3,.12),V(-.13,.12,0),.01,paleW);
-  ball(g,wrapW,-.13,.12,0,.035,.03,.045); hold(g,V(),V(.71,.44,-.15),V(.36,.93,-.04),.37);
-  // Pumpkin cannon: hugged against the chest, right paw on the stalk handle, left paw under it
-  g=toy('heavybow',V(-.08,-.12,-.08),V(-.1,.15,.06));
+  ball(g,wrapW,-.13,.12,0,.035,.03,.045); hold(g,V(),V(.42,.5,-.56),V(0,1,-.25));
+  // Pumpkin cannon: carried by its stalk at the left side, hanging clear of the body
+  g=toy('heavybow',null,V(-.1,.15,.06));
   const pumpkin=pair(0xe4a04c);
   for(let i=0;i<7;i++){const a=i*Math.PI*2/7;ball(g,pumpkin,0,Math.cos(a)*.08,Math.sin(a)*.08,.25,.15,.15);}
   ball(g,wrapW,.235,0,0,.018,.095,.095);ball(g,paleW,.25,0,0,.015,.065,.065);
   rod(g,V(-.1,.08,.06),V(-.1,.17,.06),.035,greenW); ball(g,greenW,-.02,.15,-.05,.08,.02,.05);
-  hold(g,V(),V(.84,.48,-.05),V(.06,.9,.43),.02);
-  // Bow: the left paw holds its belly out front, the right paw rests on the string
-  g=toy('bow',V(.125,0,0),V(0,0,0));
+  hold(g,V(-.1,.15,.06),V(.3,.65,.58),V(0,-1,0),Math.PI);
+  // Bow: held upright by its grip at the right side
+  g=toy('bow',V(.125,0,0),null);
   const arc=new T.QuadraticBezierCurve3(V(0,-.34,0),V(.25,0,0),V(0,.34,0));
   mesh(new T.TubeGeometry(arc,24,.025,10,false),woodW,g);
   rod(g,V(0,-.34,0),V(0,.34,0),.008,paleW); ball(g,wrapW,.125,0,0,.035,.06,.035);
-  hold(g,V(.125,0,0),V(.68,.58,-.17),V(-.1,.81,-.58),-.12);
+  hold(g,V(.125,0,0),V(.42,.55,-.56),V(0,1,-.3),Math.PI/2);
 }
 // The post-game toys.
 const pinkW = pair(0xf2a7c3), blushW = pair(0xfbd3e0), creamW = pair(0xfff3dc), leafW = pair(0x8cc152), capW = pair(0xd9634f);
