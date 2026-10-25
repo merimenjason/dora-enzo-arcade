@@ -299,6 +299,14 @@ try {
     await p.waitForFunction(() => /Extra Grumpy/.test(document.querySelector('.hunt-beast-hud')?.textContent ?? ''));
     await p.waitForTimeout(400); await snapshot(p, 'extra-grumpy');
     assert(await fits(p));
+    // Tired: below 20% Grump the beast trudges home and snoozes in its nest, with sleepy puffs; a bonk wakes it.
+    await hunt(p, (w) => { const g = w.game, b = g.beast; g.hero.invincible = 60; g.buddy.cooldown = 60; g.bonkBeast(b.grump - b.maxGrump * 0.15, false, { x: b.x, z: b.z + 3 }); b.state = 'rest'; b.t = 0; b.duration = 0; b.x = g.nest.x + 2; b.z = g.nest.z; g.hero.x = g.nest.x - 5; g.hero.z = g.nest.z; });
+    assert.match(await p.getByTestId('note').innerText(), /nest/);
+    await p.waitForFunction(() => window.__hunt().game.beast.state === 'snooze', null, { timeout: 30000 });
+    await p.waitForFunction(() => { const m = window.__hunt().metrics(); return m.nest && m.sleepy; }, null, { timeout: 15000 });
+    await p.waitForTimeout(600); await snapshot(p, 'snooze');
+    await hunt(p, (w) => { const g = w.game, b = g.beast; g.bonkBeast(5, false, { x: b.x - 3, z: b.z }); });
+    assert.equal(await hunt(p, (w) => w.game.beast.state), 'rest'); assert.match(await p.getByTestId('note').innerText(), /Wake-up/);
   });
 
   await check('painted portraits, tool tiers and material icons load and follow the game', async (p) => {

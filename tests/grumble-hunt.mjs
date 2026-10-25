@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
 import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
@@ -216,6 +216,33 @@ check('below 30% Grump a beast turns Extra Grumpy once: 15% faster, warning 0.1 
   const run = (g) => distance(g.beast, g.beast.start);
   assert(Math.abs(run(grumpy) / run(calmGrump) - GRUMPY_PACE) < 0.02, `grumpy charge ran ${run(grumpy)} against ${run(calmGrump)}`);
   assert.equal(fresh().beast.grumpy, false, 'a new hunt starts calm');
+});
+check('below 20% Grump a tired beast trudges home, snoozes in its nest and the first bonk is a doubled wake-up bonk', () => {
+  for (const id of BEAST_IDS) {
+    const g = fresh(id), b = g.beast; g.buddy.cooldown = 10000; g.hero.invincible = 10000; b.state = 'rest'; b.height = 0;
+    const limit = ARENA_RADIUS - 1.5;
+    assert(Math.hypot(g.nest.x, g.nest.z) <= limit && g.obstacles.every((o) => distance(g.nest, o) > o.r + 1.5), `${id} nest is clear`);
+    const from = () => ({ x: b.x - Math.cos(b.face) * 3, z: b.z + Math.sin(b.face) * 3 });
+    g.bonkBeast(b.maxGrump * (1 - TIRED_AT) - 1, false, from()); assert.equal(b.home, 0, id);
+    g.events.length = 0; g.bonkBeast(2, false, from()); assert.equal(b.home, 1, id);
+    assert.equal(g.events.filter((e) => e.kind === 'tired').length, 1); assert.match(g.note, /nest/);
+    g.bonkBeast(1, false, from()); assert.equal(g.events.filter((e) => e.kind === 'tired').length, 1, 'only announced once');
+    g.hitstop = 0; g.hero.x = 0; g.hero.z = 15; b.state = 'rest'; b.t = 0; b.duration = 0; g.events.length = 0;
+    let t = 0; while (b.state !== 'snooze' && t < 40) { g.step(DT); t += DT; assert(b.state !== 'windup', `${id} attacked on the way home`); }
+    assert.equal(b.state, 'snooze', `${id} reached its nest`); assert(distance(b, g.nest) < 1, id); assert.equal(b.height, 0);
+    assert.equal(g.events.filter((e) => e.kind === 'snooze').length, 1);
+    // A snooze restores a little Grump, never more than 8%.
+    const asleep = b.grump; tick(g, 3); assert(b.grump > asleep && b.grump <= asleep + b.maxGrump * 0.08 + 1e-9, `${id} snooze restores a little`);
+    g.buddy.cooldown = 0; g.buddy.x = b.x + 2; g.buddy.z = b.z; g.hero.x = b.x + 4; g.hero.z = b.z; g.step(DT); assert.equal(b.state, 'snooze', 'the buddy lets it sleep');
+    const before = b.grump; g.bonkBeast(10, false, from());
+    assert(Math.abs(before - b.grump - 20) < 1e-9, `${id} wake-up bonk is doubled`); assert.equal(b.state, 'rest'); assert.equal(b.home, 2); assert.match(g.note, /Wake-up/);
+    g.hitstop = 0; g.hero.invincible = 10000; b.t = b.duration; g.step(DT); assert.notEqual(b.state, 'trudge', 'only goes home once');
+  }
+  // Left alone, the snooze ends by itself; the calf in the paddock never goes home.
+  const g = fresh(), b = g.beast; g.buddy.cooldown = 10000; b.home = 1; b.state = 'snooze'; b.t = 0; b.duration = SNOOZE; b.x = g.nest.x; b.z = g.nest.z;
+  tick(g, SNOOZE + 0.1); assert.notEqual(b.state, 'snooze'); assert.equal(b.home, 2);
+  const calf = new HuntGame(5); calf.chooseHero('dora'); assert(calf.startHunt('bristleback')); assert.equal(calf.huntChapter, 0);
+  const c = calf.beast; c.state = 'rest'; calf.bonkBeast(c.maxGrump * (1 - TIRED_AT) + 1, false, { x: c.x - 3, z: c.z }); assert.equal(c.home, 0);
 });
 check('out of sight for a second, Enzo sniffs out a pawprint trail that fades once the beast is seen', () => {
   const g = fresh(), b = g.beast; g.buddy.cooldown = 10000; b.state = 'rest'; b.duration = 10000;

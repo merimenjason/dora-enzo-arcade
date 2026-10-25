@@ -4,6 +4,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 26-10-2026
 
+### Added
+
+- **Grumble Hunt** beasts get tired near the end of a hunt and trudge home to a twig nest for a snooze. Follow them: the first bonk on a snoozing beast is a wake-up bonk worth double, but leave it too long and it wakes up a little refreshed.
+
 ### Fixed
 
 - **Grumble Hunt** keeps Wren's finished daily tasks in the order you earned them when the game reloads.
