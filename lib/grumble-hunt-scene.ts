@@ -1,6 +1,6 @@
 import * as T from 'three';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { createHuntChinchilla, animateHuntChinchilla, poseArms, type HuntChinchilla } from './hunt-chinchilla';
 import { BEASTS, BEAST_IDS, VARIANT_COLORS, GATHER_TIME, MATERIAL_IDS, SPOTS, VILLAGERS, type BeastId, type SpotId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
 import { createHuntWeapons, decorateHuntWeapon } from './grumble-hunt-weapons';
@@ -93,6 +93,12 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     ctx.putImageData(img, 0, 0); const t = new T.CanvasTexture(c); textures.add(t); return t;
   })();
   Object.assign(dirtMat, { alphaMap: edge, transparent: true, depthWrite: false });
+  // Camp paths are muted a little so the bright dirt painting doesn't read as an orange carpet; in an area they match its ground.
+  const pathMute = { value: 0.22 };
+  dirtMat.onBeforeCompile = (shader) => {
+    shader.uniforms.uMute = pathMute;
+    shader.fragmentShader = 'uniform float uMute;\n' + shader.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\ndiffuseColor.rgb = mix(diffuseColor.rgb, vec3(dot(diffuseColor.rgb, vec3(0.3, 0.55, 0.15))), uMute);');
+  };
   // A soft dark blob under every tree, rock and gathering spot, so they sit on the ground.
   const blobShade = (() => {
     const c = document.createElement('canvas'); c.width = c.height = 64; const ctx = c.getContext('2d')!, g = ctx.createRadialGradient(32, 32, 4, 32, 32, 32);
@@ -118,8 +124,10 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     for (const [a, y] of [[0.9, 2.7], [-2.2, 3.1]]) { const b = new T.CylinderGeometry(0.25, 0.4, 1.3, 6); b.rotateZ(0.9); b.rotateY(a); b.translate(Math.cos(a) * 0.55, y, -Math.sin(a) * 0.55); parts.push(b); }
     const merged = mergeGeometries(parts.map((g) => g.toNonIndexed())); parts.forEach((g) => g.dispose()); merged.computeVertexNormals(); return merged;
   })();
+  // Welded, so crowns, bushes and manes shade as soft rounded lumps rather than flat facets.
   const blobGeo = (() => {
-    const g = new T.IcosahedronGeometry(1, 2), p = g.getAttribute('position');
+    const ico = new T.IcosahedronGeometry(1, 2); ico.deleteAttribute('normal'); ico.deleteAttribute('uv');
+    const g = mergeVertices(ico), p = g.getAttribute('position'); ico.dispose();
     for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), bump = 1 + 0.07 * Math.sin(x * 5.1 + z * 2.3) + 0.06 * Math.cos(y * 6.2 - x * 3.1) + 0.05 * Math.sin(z * 7.4); p.setXYZ(i, x * bump, y * bump * 0.92, z * bump); }
     g.computeVertexNormals(); return g;
   })();
@@ -363,7 +371,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     // Hills, rocks, the start trail and the light bounced up from the ground take each area's colours.
     const tints: Record<string, number[]> = { marsh: [0x7d8a5f, 0xa9ad97, 0xb3a184, 0x8a8560], ridge: [0x6f8a78, 0xb2b7b4, 0xbdb39b, 0x7f9670], hollow: [0xc99a62, 0xe6c9a4, 0xe8d6c2, 0xc29a68], peak: [0xdfe8f2, 0xc6cdd9, 0xc4d0e6, 0xb8c6dc] };
     const [hill, stone, trail, bounce] = tints[area] ?? [0x739d64, 0xc7cac0, 0xc9b597, 0x7c9d55];
-    hillMat.color.set(hill); rockMat.color.set(stone); calm.value = ({ hollow: 0.4, ridge: 0.15, marsh: 0.3 } as Record<string, number>)[area] ?? 0; mute.value = ({ hollow: 0.35, marsh: 0.25 } as Record<string, number>)[area] ?? 0; trailMat.color.set(trail); skyLight.groundColor.set(bounce);
+    hillMat.color.set(hill); rockMat.color.set(stone); calm.value = ({ hollow: 0.4, ridge: 0.15, marsh: 0.3 } as Record<string, number>)[area] ?? 0; mute.value = ({ hollow: 0.35, marsh: 0.25 } as Record<string, number>)[area] ?? 0; pathMute.value = d ? mute.value : 0.22; trailMat.color.set(trail); skyLight.groundColor.set(bounce);
     grass.visible = grassTufts.visible = !d || area === 'ridge';
     if (d) {
       const ground = texture(d[0], 32), paintedSky = texture(d[1]), card = texture(d[2]); areaMaps.push(ground, paintedSky, card);
@@ -432,7 +440,8 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
         blobs.push({ at: V(0, 0, 0), size: V(1.45 * big, 1.2 * big, 1.45 * big) }, { at: V(0.1, 0.85 * big, -0.1), size: V(1.0 * big, 0.9 * big, 1.0 * big) });
         for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + jitter() * 0.9, r = 0.95 * big, s = (0.8 + jitter() * 0.3) * big; blobs.push({ at: V(Math.cos(a) * r, -0.3 + jitter() * 0.55, Math.sin(a) * r), size: V(s, s * 0.85, s) }); }
         if (leafy) for (let k = 0; k < 3; k++) { const a = k * 2.1 + jitter(); cards.push({ at: V(Math.cos(a) * 0.9 * big, 0.25 + k * 0.25, Math.sin(a) * 0.9 * big), size: V(2.8 * big, 2.5 * big, 1) }); }
-        else cards.push({ at: V(0, 0.5, 0), size: V(5, 4.4, 1) });
+        // Marsh reeds grow in a bed around the trunk's foot, not out of the crown.
+        else cards.push(currentArea === 'marsh' ? { at: V(0, -2.75, 0), size: V(4.2, 3.4, 1) } : { at: V(0, 0.5, 0), size: V(5, 4.4, 1) });
       }
       treeBlobs.push(blobs); treeCards.push(cards);
       treeTurn.push(new T.Quaternion().setFromAxisAngle(V(0, 0, 1), o.kind === 'pine' && currentArea === 'ridge' ? -0.14 : 0));
