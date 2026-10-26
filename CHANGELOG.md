@@ -32,6 +32,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Grumble Hunt** keeps Wren's finished daily tasks in the order you earned them when the game reloads.
 
+### Documentation
+
+- **Grumble Hunt**'s README guide now covers zones, hazards, fluff finches, roars, weather, visitors, the tired snooze, hit numbers and best times, and lists the G vine and R sling controls.
+
 ## 25-10-2026
 
 ### Added
