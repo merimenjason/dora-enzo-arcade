@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Grumble Hunt** areas are now three zones joined by paths through the trees. Beasts wander off to the next zone as they calm down and end up at their den. Follow the glowing path (or Enzo's nose) to catch up, and use the zone map to see where everyone is.
+
 - **Grumble Hunt** areas have fluff finches: catch up with one of the three little birds for a bit more Fluff for the rest of the hunt.
 
 - **Grumble Hunt** keeps a best calm time for every beast in the Beast Book, and the results cheer a new best time.

@@ -45,6 +45,11 @@ export const AREA_HAZARD: Record<AreaId, HazardKind | null> = { paddock: null, m
 export const HAZARD_REACH = 3.2, HAZARD_WARN = 0.8, HAZARD_GRUMP = 0.08, HAZARD_DIZZY = 3, HAZARD_TOUCH = 1.3;
 export const HAZARD_NAMES: Record<HazardKind, string> = { acorns: 'Acorn bough', bubbles: 'Bubble spring', rocks: 'Rock pile', vines: 'Sticky vines', icicles: 'Icicles' };
 export const FINCHES = 3, FINCH_FLUFF = 5, FINCH_REACH = 1.4; // Fluff finches per wild area; each one caught adds Fluff and most Fluff for the hunt.
+/** Each wild area is three zones joined by paths; the third is the beast's den. The paddock is one zone. */
+export const ZONE_NAMES: Record<AreaId, string[]> = { paddock: ['The Paddock'], meadow: ['Clover Field', 'Bramble Dell', 'Sunny Knoll'], marsh: ['Lily Pools', 'Reed Maze', 'Misty Bog'], ridge: ['Pine Steps', 'Windy Ledge', 'High Saddle'], hollow: ['Red Dunes', 'Echo Canyon', 'Sandstone Den'], peak: ['Frost Gate', 'Icicle Run', 'Summit Bowl'] };
+export const ZONE_AT = [0.7, 0.35]; // Below these shares of its Grump the beast wanders on from zone 1, then zone 2.
+export const EXIT_REACH = 2.4; // Walk this close to the open path to follow the beast.
+export const WANDER_GIVEUP = 12; // Seconds a wandering beast tries to reach the path before slipping away anyway.
 export const ROAR_REACH = 7; // A roar makes friends this close cover their ears; a roll or a guard keeps them going.
 export const INTRO_CARD = 3.2;
 export const ROAR_TIME = 1.1; // Seconds a roar lasts; covered ears last 0.9 seconds.
@@ -114,8 +119,8 @@ export type StoryProgress = { chapter: number; scenesSeen: string[] };
 export type BeastBook = Record<BeastId, { met: boolean; napped: number; partsBroken: string[]; best: number }>;
 export type Profile = { bountiesClaimed: number; variantNaps: Record<BeastId, number>; totalPlops: number; story: StoryProgress; beastBook: BeastBook; bounties: { day: string; done: string[]; ready: string[] }; extraGrumpyUnlocked: boolean; hero: HeroId | null; weapons: Record<WeaponType, { tier: Tier; branch: Branch | null }>; equipped: Record<HeroId, WeaponType>; armour: { owned: ArmourPieceId[]; worn: Worn }; pouch: Pouch; ring: ItemId[]; snack: SnackId | null; naps: Record<BeastId, number>; won: boolean; hunts: number };
 export type Hero = Vec & { face: number; fluff: number; maxFluff: number; speed: number; roll: number; rollX: number; rollZ: number; rollCd: number; invincible: number; charge: number; swing: number; heavy: boolean; landed: boolean; cooldown: number; slow: number; hidden: number; covered: number };
-export type BeastState = 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'cloud' | 'circle' | 'swoop' | 'sweep' | 'pounce' | 'shake' | 'roar' | 'turf' | 'grabbed' | 'yanked' | 'rest' | 'dizzy' | 'stuck' | 'trudge' | 'snooze' | 'nap';
-export type Beast = Vec & { id: BeastId; grump: number; maxGrump: number; face: number; state: BeastState; t: number; duration: number; attack: BeastState; aim: Vec; start: Vec; dir: Vec; phase: number; cycle: number; dizzy: number; part: number; broken: boolean; bonks: number; flash: number; height: number; grumpy: boolean; drowsy: number; drowsySlow: number; home: 0 | 1 | 2; soft: number };
+export type BeastState = 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'cloud' | 'circle' | 'swoop' | 'sweep' | 'pounce' | 'shake' | 'roar' | 'turf' | 'grabbed' | 'yanked' | 'rest' | 'dizzy' | 'stuck' | 'trudge' | 'snooze' | 'wander' | 'nap';
+export type Beast = Vec & { id: BeastId; grump: number; maxGrump: number; face: number; state: BeastState; t: number; duration: number; attack: BeastState; aim: Vec; start: Vec; dir: Vec; phase: number; cycle: number; dizzy: number; part: number; broken: boolean; bonks: number; flash: number; height: number; grumpy: boolean; drowsy: number; drowsySlow: number; home: 0 | 1 | 2; soft: number; zone: number; away: boolean };
 export type Visitor = Vec & { id: BeastId; face: number; state: 'arrive' | 'face' | 'leave'; t: number; home: Vec };
 export type Stone = Vec & { id: number; dx: number; dz: number; life: number };
 export type Finch = Vec & { id: number; caught: boolean };
@@ -128,7 +133,7 @@ export type Cloud = Vec & { life: number; r: number };
 export type Fx = Vec & { id: number; kind: 'bonk' | 'dust' | 'dizzy' | 'berry' | 'part' | 'nap'; t: number; text: string; amount?: number; weak?: boolean; heavy?: boolean };
 export type Ride = { riding: boolean; meter: number; fullBonks: number; phase: 'quiet' | 'warning' | 'buck'; timer: number; grip: boolean; used: number; left: number; pose: number; landing: number; plopped: number };
 const freshRide = (): Ride => ({ riding: false, meter: 0, fullBonks: 0, phase: 'quiet', timer: 0, grip: false, used: 0, left: 0, pose: 0, landing: 0, plopped: 0 });
-export type HuntEvent = { kind: 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shaken-off' | 'plop' | 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'tired' | 'snooze' | 'intro' | 'roar' | 'covered' | 'weather' | 'visitor' | 'turf-warning' | 'turf' | 'vine' | 'cling' | 'soft' | 'yank' | 'wall' | 'sling' | 'plink' | 'fruit' | 'knockdown' | 'hazard-warning' | 'hazard' | 'finch' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
+export type HuntEvent = { kind: 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shaken-off' | 'plop' | 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'tired' | 'snooze' | 'intro' | 'roar' | 'covered' | 'weather' | 'visitor' | 'turf-warning' | 'turf' | 'vine' | 'cling' | 'soft' | 'yank' | 'wall' | 'sling' | 'plink' | 'fruit' | 'knockdown' | 'hazard-warning' | 'hazard' | 'finch' | 'wander' | 'away' | 'travel' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
 export type Mode = 'village' | 'hunt' | 'nap' | 'calm' | 'camp' | 'victory';
 const countRecord = (): Record<BeastId, number> => ({ bristleback: 0, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0 });
 const emptyPouch = () => Object.fromEntries([...MATERIAL_IDS, ...ITEM_IDS].map((id) => [id, 0])) as Pouch;
@@ -228,6 +233,11 @@ export class HuntGame {
   stones: Stone[] = [];
   hazard: Hazard | null = null;
   finches: Finch[] = [];
+  /** The zone the friends are in; the beast's own zone is on the beast. */
+  zone = 0;
+  /** This hunt's Grump shares for wandering on from each zone. */
+  zoneAt: number[] = [];
+  private baseObstacles: Obstacle[] = [];
   skyHits = 0;
   shaken: number[] = [];
   /** A visiting beast, the hunt time it arrives and the angle it comes from. */
@@ -470,17 +480,53 @@ export class HuntGame {
   /** This hunt's hazard, from a seed hash (no rng): partway out, clear of trees, rocks, spots and the nest. */
   private placeHazard(): Hazard | null {
     const kind = this.huntChapter === 0 ? null : AREA_HAZARD[this.area]; if (!kind) return null;
-    const h = Math.imul(this.seed ^ Math.imul(this.profile.hunts + 7, 2246822519), 1664525) + 1013904223 >>> 0, turn = h % 628 / 100;
+    const h = Math.imul(this.seed ^ Math.imul(this.profile.hunts + 7 + this.zone * 101, 2246822519), 1664525) + 1013904223 >>> 0, turn = h % 628 / 100;
     for (let r = 10; r < ARENA_RADIUS - 5; r += 1.5) for (let k = 0; k < 12; k++) {
       const a = turn + k * Math.PI / 6, p = { x: Math.cos(a) * r, z: Math.sin(a) * r };
       if (this.obstacles.every((o) => distance(p, o) > o.r + HAZARD_REACH) && this.spots.every((s) => distance(p, s) > HAZARD_REACH) && distance(p, this.nest) > HAZARD_REACH + 2) return { kind, ...p, state: 'ready', t: 0 };
     }
     return null;
   }
+  get zones() { return this.mode === 'village' || this.huntChapter === 0 ? 1 : ZONE_NAMES[this.area].length; }
+  get zoneName() { return ZONE_NAMES[this.area][Math.min(this.zone, ZONE_NAMES[this.area].length - 1)]; }
+  /** The open paths out of this zone: on to the next zone at the far (north) edge, back at the near (south) edge. */
+  exits(): (Vec & { to: number })[] {
+    const r = ARENA_RADIUS - 1.2, out: (Vec & { to: number })[] = [];
+    if (this.zone < this.zones - 1) out.push({ x: 0, z: -r, to: this.zone + 1 });
+    if (this.zone > 0) out.push({ x: 0, z: r, to: this.zone - 1 });
+    return out;
+  }
+  exitTo(zone: number) { return this.exits().find((e) => e.to === (zone > this.zone ? this.zone + 1 : this.zone - 1)) ?? null; }
+  /** Each zone turns the area's inner trees and rocks to a new spot, and leaves gaps in the ring of trees for its paths. */
+  private layoutZone() {
+    const k = this.zone, gaps = this.exits().map((e) => Math.atan2(e.z, e.x));
+    this.obstacles = this.baseObstacles.flatMap((o) => {
+      const r = Math.hypot(o.x, o.z), a = Math.atan2(o.z, o.x);
+      if (r > ARENA_RADIUS) return gaps.some((g) => Math.abs(Math.atan2(Math.sin(a - g), Math.cos(a - g))) < 0.32) ? [] : [{ ...o }];
+      if (k === 0) return [{ ...o }];
+      const t = k === 1 ? a + 2.3 : Math.PI - a + 1.1;
+      return [{ ...o, x: Math.cos(t) * r, z: Math.sin(t) * r }];
+    });
+  }
+  /** Following the beast down a path into the next zone, with its own spots, nest, hazard and finches. */
+  private travel(to: number) {
+    const b = this.beast!, h = this.hero, from = this.zone;
+    this.collect(true);
+    if (this.trap) { const sap = (Object.keys(ITEMS) as ItemId[]).find((id) => ITEMS[id].effect.kind === 'trap'); if (sap) this.gain(sap, 1); this.trap = null; }
+    this.zone = to; this.layoutZone(); this.makeSpots(); this.shaken = []; this.nest = this.findNest(); this.hazard = this.placeHazard(); this.finches = this.placeFinches();
+    const back = to > from ? 1 : -1, edge = ARENA_RADIUS - 4.5;
+    h.x = 0; h.z = edge * back; h.face = back > 0 ? Math.PI / 2 : -Math.PI / 2; h.invincible = Math.max(h.invincible, 1.5); h.roll = -1; h.swing = -1; h.charge = 0;
+    this.buddy.x = -1.5; this.buddy.z = (edge + 1.5) * back; this.buddy.swing = -1;
+    b.away = false; b.zone = to; b.x = 0; b.z = -3 * back; b.height = 0; b.state = 'rest'; b.t = 0; b.duration = 1.2; b.face = faceTo(b, h);
+    this.shots = []; this.stones = []; this.clouds = []; this.drops = []; this.vine = null; this.gathering = null; this.guarding = false; this.chargeHold = 0;
+    if (this.visitor) { this.visitor = null; this.visited = true; }
+    this.unseen = 0; this.sniff = 0; this.events.push({ kind: 'travel' }); this.revision++;
+    this.note = `Zone ${to + 1} · ${this.zoneName}. There's ${BEASTS[b.id].name}!`;
+  }
   /** Fluff finches perch round the arena, from a seed hash (no rng), clear of obstacles, spots, the nest and the hazard. */
   private placeFinches(): Finch[] {
     if (this.huntChapter === 0 || this.area === 'paddock') return [];
-    let h = Math.imul(this.seed ^ Math.imul(this.profile.hunts + 11, 3266489917), 1664525) + 1013904223 >>> 0; const out: Finch[] = [];
+    let h = Math.imul(this.seed ^ Math.imul(this.profile.hunts + 11 + this.zone * 101, 3266489917), 1664525) + 1013904223 >>> 0; const out: Finch[] = [];
     for (let tries = 0; tries < 60 && out.length < FINCHES; tries++) {
       h = Math.imul(h, 1664525) + 1013904223 >>> 0; const a = h % 628 / 100; h = Math.imul(h, 1664525) + 1013904223 >>> 0; const r = 8 + h % 1000 / 1000 * (ARENA_RADIUS - 12), p = { x: Math.cos(a) * r, z: Math.sin(a) * r };
       const clear = (q: Vec, d: number) => distance(p, q) > d;
@@ -547,11 +593,11 @@ export class HuntGame {
     this.snack = this.profile.snack; this.profile.snack = null;
     this.lastHunt = id; this.mode = 'hunt'; this.hero = hero(100 + this.armour.fluff + (this.snack ? SNACKS[this.snack].effect.maxFluff ?? 0 : 0)); this.buddy = buddy();
     const grump = this.huntChapter === 0 ? 40 : BEASTS[id].grump * (variant ? 1.6 : 1);
-    this.beast = { id, x: 0, z: -3, face: -Math.PI / 2, grump, maxGrump: grump, state: id === 'skreel' ? 'circle' : 'roam', t: 0, duration: 2.4, attack: 'charge', aim: { x: 0, z: 0 }, start: { x: 0, z: -3 }, dir: { x: 0, z: 1 }, phase: 1, cycle: 0, dizzy: 0, part: 0, broken: false, bonks: 0, flash: 0, height: 0, grumpy: false, drowsy: 0, drowsySlow: 0.3, home: 0, soft: 0 };
+    this.beast = { id, x: 0, z: -3, face: -Math.PI / 2, grump, maxGrump: grump, state: id === 'skreel' ? 'circle' : 'roam', t: 0, duration: 2.4, attack: 'charge', aim: { x: 0, z: 0 }, start: { x: 0, z: -3 }, dir: { x: 0, z: 1 }, phase: 1, cycle: 0, dizzy: 0, part: 0, broken: false, bonks: 0, flash: 0, height: 0, grumpy: false, drowsy: 0, drowsySlow: 0.3, home: 0, soft: 0, zone: 0, away: false };
     this.shots = []; this.drops = []; this.clouds = []; this.fx = []; this.item = 0; this.sniff = 0; this.unseen = 0; this.locked = true; this.paused = false; this.hitstop = 0; this.shake = 0; this.last = { ...NO_INPUT }; this.resultTime = 0;
     this.roared = this.introduced = this.huntChapter === 0; this.introAt = -1; this.vine = null; this.vineCd = 0; this.pebbles = SLING_START; this.stones = []; this.skyHits = 0; this.shaken = []; this.gathering = null; this.trap = null; this.reward = []; this.area = this.huntChapter >= 0 ? STORY[this.huntChapter].area : HUNT_AREA[id];
     this.profile.pouch.fluffberry = Math.max(this.profile.pouch.fluffberry, CAMP_BERRIES);
-    this.profile.hunts++; this.makeArea(); this.makeSpots(); this.nest = this.findNest(); this.hazard = this.placeHazard(); this.finches = this.placeFinches(); this.planWeather(); this.revision++; this.note = BEASTS[id].tip;
+    this.profile.hunts++; this.zone = 0; this.zoneAt = [...ZONE_AT]; this.makeArea(); this.baseObstacles = this.obstacles; this.layoutZone(); this.makeSpots(); this.nest = this.findNest(); this.hazard = this.placeHazard(); this.finches = this.placeFinches(); this.planWeather(); this.revision++; this.note = BEASTS[id].tip;
     return true;
   }
   returnVillage() {
@@ -602,7 +648,7 @@ export class HuntGame {
   /** A front-shell block is based on the actual bonk origin, including arrows and the buddy. */
   bonkBeast(power: number, heavy: boolean, from: Vec, buddy = false, dizzyShare = 1) {
     const b = this.beast, perk = (id: string) => this.perk(id, buddy);
-    if (!b || this.mode !== 'hunt' || b.grump <= 0 || !Number.isFinite(power) || power <= 0) return false;
+    if (!b || this.mode !== 'hunt' || b.away || b.grump <= 0 || !Number.isFinite(power) || power <= 0) return false;
     const dir = direction(b, from), front = dir.x * Math.cos(b.face) + dir.z * -Math.sin(b.face);
     if (b.id === 'hornclack' && this.weapon(buddy ? this.buddyId : this.heroId) !== 'gunlance' && front > 0.45 && b.state !== 'dizzy') { this.effect('dust', b, 'Try the sides!'); this.note = 'The front shell is sturdy. Circle to the sides or back.'; return false; }
     if (b.id === 'skreel' && b.height > 1.8 && (buddy || this.vault <= 0 && !this.bounceLanding) && !this.ranged(buddy ? this.buddyId : this.heroId)) return false;
@@ -711,7 +757,7 @@ export class HuntGame {
     if (this.mode !== 'hunt' || !id) return false;
     const it = ITEMS[id], e = it.effect, refuse = (note: string) => { this.note = note; return false; };
     if (this.profile.pouch[id] <= 0) return refuse(`No ${plural(2, it.name).toLowerCase()} left. Make more at the Pantry.`);
-    const near = (reach: number) => !!b && b.state !== 'nap' && distance(h, b) <= reach;
+    const near = (reach: number) => !!b && !b.away && b.state !== 'nap' && distance(h, b) <= reach;
     if (e.kind === 'heal') {
       if (h.fluff >= h.maxFluff) return refuse('Your Fluff is already full. Save that berry for later!');
       h.fluff = Math.min(h.maxFluff, h.fluff + e.fluff); this.effect('berry', h, `+${e.fluff} Fluff`); this.note = `${it.name}! +${e.fluff} Fluff.`;
@@ -758,13 +804,14 @@ export class HuntGame {
   }
   get sight() { const w = this.weather; return SIGHT * (1 - (1 - WEATHER_SIGHT[w.kind]) * w.level); }
   inSight() {
-    const b = this.beast; if (!b) return true;
+    const b = this.beast; if (!b) return true; if (b.away) return false;
     return distance(this.hero, b) <= this.sight && !this.obstacles.some((o) => laneDistance(o, this.hero, b) < o.r);
   }
   /** Enzo's pawprint trail from the leader towards the beast, skipping prints under trees and rocks. */
   trail(): (Vec & { face: number })[] {
     const b = this.beast, h = this.hero; if (!b || this.sniff <= 0) return [];
-    const length = distance(h, b), d = direction(h, b), face = Math.atan2(-d.z, d.x), out: (Vec & { face: number })[] = [];
+    // Away in another zone, the trail leads to the path it took.
+    const to = b.away ? this.exitTo(b.zone) ?? b : b, length = distance(h, to) + (b.away ? 2.5 : 0), d = direction(h, to), face = Math.atan2(-d.z, d.x), out: (Vec & { face: number })[] = [];
     for (let i = 0, at = 1.2; at < length - 2.5 && i < 16; i++, at += 1.1) {
       const side = i % 2 ? 0.2 : -0.2, p = { x: h.x + d.x * at - d.z * side, z: h.z + d.z * at + d.x * side, face };
       if (!this.obstacles.some((o) => distance(p, o) < o.r + 0.2)) out.push(p);
@@ -1052,7 +1099,7 @@ export class HuntGame {
     if (p.swing >= 0) { p.swing += dt; if (p.swing > 0.6) p.swing = -1; }
     if (this.mode === 'hunt' && h.fluff <= 45 && p.berry <= 0) { h.fluff = Math.min(h.maxFluff, h.fluff + 28); p.berry = 10; this.events.push({ kind: 'berry' }); this.effect('berry', h, 'Buddy berry! +28 Fluff'); this.note = `${this.buddyId === 'dora' ? 'Dora' : 'Enzo'} tossed you a healing berry!`; }
     // Go bonk helps once the leader is near the beast; stay close helps only from the leader's side; gather never bonks.
-    const helping = this.mode === 'hunt' && b && b.state !== 'snooze' && (this.order === 'bonk' ? distance(h, b) < 11 : this.order === 'close');
+    const helping = this.mode === 'hunt' && b && !b.away && b.state !== 'snooze' && (this.order === 'bonk' ? distance(h, b) < 11 : this.order === 'close');
     const chase = helping && this.order === 'bonk' && !this.ranged(this.buddyId);
     const gathering = this.order === 'gather' && this.mode === 'hunt';
     const pickup = gathering ? this.drops.reduce<Drop | null>((best, d) => !best || distance(p, d) < distance(p, best) ? d : best, null) : null;
@@ -1089,7 +1136,9 @@ export class HuntGame {
   }
   private stepVisitor(dt: number) {
     const b = this.beast; if (!b) return;
+    if (b.away && this.visitor) this.visitor.state = 'leave';
     if (!this.visitor) {
+      if (b.away) return;
       if (this.visited || this.huntTime < this.visitAt || b.home) return;
       const id = VISITORS[this.area]!, r = ARENA_RADIUS - 1.5, home = { x: Math.cos(this.visitAngle) * r, z: Math.sin(this.visitAngle) * r };
       this.visited = true; this.visitor = { id, ...home, face: 0, state: 'arrive', t: 0, home }; this.events.push({ kind: 'visitor' });
@@ -1128,7 +1177,7 @@ export class HuntGame {
   /** G throws the grab-on vine at a nearby beast that is low enough; it lands 0.25 s later. */
   throwVine() {
     const b = this.beast, h = this.hero;
-    if (!b || this.mode !== 'hunt' || this.vine || this.ride.riding || this.airHeight > 0.5) return false;
+    if (!b || this.mode !== 'hunt' || b.away || this.vine || this.ride.riding || this.airHeight > 0.5) return false;
     if (this.vineCd > 0) { this.note = `The vine is coiling back up: ${Math.ceil(this.vineCd)} s.`; return false; }
     if (distance(h, b) > VINE_REACH || b.height > 2.6 || ['nap', 'turf', 'yanked'].includes(b.state)) { this.note = 'Get within 9 steps, with the beast near the ground, to throw the vine.'; return false; }
     this.vine = { phase: 'fly', t: 0, pokes: 0 }; this.vineCd = VINE_COOLDOWN; this.gathering = null; this.guarding = false; this.chargeHold = 0;
@@ -1185,7 +1234,7 @@ export class HuntGame {
     const b = this.beast;
     this.stones = this.stones.filter((s) => {
       const from = { x: s.x, z: s.z }; s.x += s.dx * dt; s.z += s.dz * dt; s.life -= dt;
-      if (b && this.mode === 'hunt' && b.state !== 'nap' && laneDistance(b, from, s) < 1.4) { this.plink(b); return false; }
+      if (b && this.mode === 'hunt' && !b.away && b.state !== 'nap' && laneDistance(b, from, s) < 1.4) { this.plink(b); return false; }
       if (this.hazard?.state === 'ready' && laneDistance(this.hazard, from, s) < HAZARD_TOUCH) { this.trip(); return false; }
       const tree = this.obstacles.findIndex((o) => o.kind !== 'rock' && laneDistance(o, from, s) < o.r);
       if (tree >= 0) {
@@ -1212,7 +1261,7 @@ export class HuntGame {
     this.note = 'What a roar! Roll or guard as it roars to keep going.';
   }
   private stepBeast(dt: number) {
-    const b = this.beast; if (!b || this.ride.riding) return;
+    const b = this.beast; if (!b || this.ride.riding || b.away) return;
     const pace = (b.grumpy ? GRUMPY_PACE : 1) * (b.drowsy > 0 ? 1 - b.drowsySlow : 1);
     b.t += dt; b.flash = Math.max(0, b.flash - dt); b.drowsy = Math.max(0, b.drowsy - dt);
     // A beast on the ground that steps on the sticky sap is stuck where it stands, even mid-charge.
@@ -1240,6 +1289,22 @@ export class HuntGame {
       return;
     }
     if (b.home === 1 && (b.state === 'roam' || b.state === 'circle')) { b.state = 'trudge'; b.t = 0; }
+    if ((b.state === 'roam' || b.state === 'circle') && !b.home && this.zone < this.zones - 1 && b.grump < b.maxGrump * (this.zoneAt[this.zone] ?? 0)) {
+      b.state = 'wander'; b.t = 0; this.events.push({ kind: 'wander' }); this.effect('dust', b, 'Off it goes!');
+      this.note = `${BEASTS[b.id].name} is wandering off towards Zone ${this.zone + 2} · ${ZONE_NAMES[this.area][this.zone + 1]}. Bonk it on the way, or follow it!`;
+    }
+    if (b.state === 'wander') {
+      // A brisk walk (or a low flight) to the open path, past the friends without attacking.
+      const e = this.exitTo(this.zone + 1)!, d = distance(b, e);
+      b.height = b.id === 'skreel' ? Math.min(1.6, b.height + dt * 2) : Math.max(0, b.height - dt * 3);
+      if (d < 1.2 || b.t > WANDER_GIVEUP) {
+        b.away = true; b.zone = this.zone + 1; b.x = e.x; b.z = e.z; b.state = 'rest'; b.t = 0; b.duration = 1; b.height = 0; b.drowsy = 0;
+        this.events.push({ kind: 'away' }); this.note = `${BEASTS[b.id].name} went to Zone ${b.zone + 1} · ${ZONE_NAMES[this.area][b.zone]}. Follow the path!`;
+        return;
+      }
+      const n = direction(b, e); this.move(b, n.x * dt * 3.4 * pace, n.z * dt * 3.4 * pace, 1.5); b.face = faceTo(b, e);
+      return;
+    }
     if (b.state === 'trudge') {
       // A slow walk home, ignoring the friends; arriving starts the snooze.
       b.height = Math.max(0, b.height - dt * 3);
@@ -1299,7 +1364,7 @@ export class HuntGame {
     if (this.mode !== 'hunt' || this.inSight()) { this.unseen = 0; return; }
     this.unseen += dt;
     if (this.unseen < 1) return;
-    if (this.sniff <= 0) { this.events.push({ kind: 'sniff' }); this.note = 'Enzo sniffs the air. Follow the glowing pawprints to the beast!'; }
+    if (this.sniff <= 0) { this.events.push({ kind: 'sniff' }); this.note = this.beast?.away ? `Enzo sniffs the air. The pawprints lead down the path to Zone ${this.beast.zone + 1}!` : 'Enzo sniffs the air. Follow the glowing pawprints to the beast!'; }
     this.sniff = Math.max(this.sniff, 2);
   }
   step(dt: number, input: Input = NO_INPUT) {
@@ -1312,6 +1377,7 @@ export class HuntGame {
     if (this.mode !== 'village' && this.mode !== 'hunt') return;
     if (this.hitstop > 0) { this.hitstop = Math.max(0, this.hitstop - dt); return; }
     this.stepHero(dt, input); this.stepBuddy(dt); this.keepApart();
+    if (this.mode === 'hunt' && this.beast?.away && !this.ride.riding) { const e = this.exitTo(this.beast.zone); if (e && distance(this.hero, e) < EXIT_REACH) this.travel(this.beast.zone); }
     if (this.mode === 'hunt' && this.beast) {
       this.stepBeast(dt);
       this.shots = this.shots.filter((s) => {

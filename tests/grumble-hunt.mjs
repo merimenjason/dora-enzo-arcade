@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, FINCHES, FINCH_FLUFF, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, ZONE_NAMES, ZONE_AT, EXIT_REACH, WANDER_GIVEUP, FINCHES, FINCH_FLUFF, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
 import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
 const input = (overrides = {}) => ({ ...NO_INPUT, ...overrides });
-const fresh = (id = 'bristleback', hero = 'dora', seed = 39) => { const g = new HuntGame(seed); g.chooseHero(hero); g.story.chapter = 6; g.profile.extraGrumpyUnlocked = true; for (const k of BEAST_IDS) g.profile.beastBook[k].met = true; assert(g.startHunt(id)); g.roared = g.introduced = true; return g; }; // Checks start after the hello roar; the roar has its own check.
+const fresh = (id = 'bristleback', hero = 'dora', seed = 39) => { const g = new HuntGame(seed); g.chooseHero(hero); g.story.chapter = 6; g.profile.extraGrumpyUnlocked = true; for (const k of BEAST_IDS) g.profile.beastBook[k].met = true; assert(g.startHunt(id)); g.roared = g.introduced = true; g.zoneAt = []; return g; }; // Checks start after the hello roar and keep the beast in its first zone; the roar and the zones have their own checks.
 const tick = (g, seconds, i = NO_INPUT) => { for (let n = 0; n < Math.ceil(seconds / DT); n++) g.step(DT, i); };
 /** Meets the four post-game weapon goals. */
 const postGame = (g) => { g.profile.bountiesClaimed = 5; g.profile.totalPlops = 10; for (const id of BEAST_IDS) { g.profile.variantNaps[id] = 1; g.profile.beastBook[id].partsBroken = [BEASTS[id].part]; } };
@@ -424,6 +424,39 @@ check('three fluff finches perch in each wild area; walking up to one adds Fluff
   g.returnVillage(); assert.deepEqual(g.finches, []);
   const calf = new HuntGame(5); calf.chooseHero('dora'); calf.story.chapter = 0; assert(calf.startHunt('bristleback', false, true)); assert.deepEqual(calf.finches, []);
 });
+check('wild areas are three zones: the beast wanders down a path at 70% and 35% Grump, Enzo follows it, and the friends travel after it', () => {
+  for (const id of BEAST_IDS) {
+    const g = fresh(id), b = g.beast, h = g.hero; g.zoneAt = [...ZONE_AT]; g.buddy.cooldown = 10000; g.hazard = null;
+    assert.equal(g.zones, 3); assert.equal(g.zone, 0); assert.equal(g.zoneName, ZONE_NAMES[g.area][0]); assert.deepEqual(g.exits().map((e) => e.to), [1]);
+    const inner0 = g.obstacles.filter((o) => Math.hypot(o.x, o.z) <= 19).map((o) => [o.x, o.z]);
+    // Above 70% it stays; below, it wanders off without attacking.
+    b.state = 'roam'; b.t = 0; b.duration = 100; b.grump = b.maxGrump * 0.71; g.step(DT); assert.equal(b.state, 'roam', `${id} stays`);
+    b.grump = b.maxGrump * 0.69; h.x = 12; h.z = 6; g.events.length = 0; g.step(DT); assert.equal(b.state, 'wander', `${id} wanders`); assert(g.events.some((e) => e.kind === 'wander'));
+    let t = 0, fluff = h.fluff; while (!b.away && t < WANDER_GIVEUP + 1) { g.step(DT); t += DT; assert(!['windup', 'charge', 'swoop', 'hop', 'pounce', 'sweep', 'shake', 'tongue', 'roar'].includes(b.state), `${id} never attacks on the way`); }
+    assert(b.away, `${id} reaches the path`); assert.equal(b.zone, 1); assert.equal(h.fluff, fluff); assert(g.events.some((e) => e.kind === 'away'));
+    // Away: out of sight, unbonkable, and Enzo's trail leads to the path.
+    assert(!g.inSight()); assert.equal(g.bonkBeast(10, false, b), false); const at = [b.x, b.z]; tick(g, 2); assert.deepEqual([b.x, b.z], at, 'waits in the next zone');
+    const trail = g.trail(), exit = g.exitTo(1); assert(trail.length > 3); assert(Math.hypot(trail.at(-1).x - exit.x, trail.at(-1).z - exit.z) < Math.hypot(h.x - exit.x, h.z - exit.z));
+    // Walking up the path follows it into zone 2, laid out anew with the beast resting ahead.
+    h.x = exit.x; h.z = exit.z + EXIT_REACH - 0.3; g.events.length = 0; g.step(DT);
+    assert.equal(g.zone, 1, `${id} travels`); assert(g.events.some((e) => e.kind === 'travel')); assert.equal(b.away, false); assert.equal(b.state, 'rest'); assert.match(g.note, new RegExp(ZONE_NAMES[g.area][1]));
+    assert(h.z > 10 && h.invincible >= 1.5); assert(Math.hypot(b.x - h.x, b.z - h.z) > 12); assert.deepEqual(g.exits().map((e) => e.to), [2, 0]);
+    assert.notDeepEqual(g.obstacles.filter((o) => Math.hypot(o.x, o.z) <= 19).map((o) => [o.x, o.z]), inner0, 'a new layout');
+    assert(g.obstacles.every((o) => Math.hypot(o.x - h.x, o.z - h.z) > o.r + 0.5), 'arrives clear');
+    // The second wander leads to the den zone, where it stays until tired.
+    b.state = 'roam'; b.t = 0; b.duration = 100; b.grump = b.maxGrump * 0.34; tick(g, WANDER_GIVEUP + 1); assert(b.away); assert.equal(b.zone, 2);
+    const e2 = g.exitTo(2); h.x = e2.x; h.z = e2.z + 1; g.step(DT); assert.equal(g.zone, 2); assert.deepEqual(g.exits().map((e) => e.to), [1]);
+    h.x = 0; h.z = 17; tick(g, 0.2); assert.equal(g.zone, 2, 'no way back while the beast is here');
+    b.state = 'roam'; b.t = 0; b.duration = 100; b.grump = b.maxGrump * 0.25; tick(g, 2); assert.notEqual(b.state, 'wander');
+  }
+  // Same seed and inputs, same next zone; the calf's paddock is a single zone.
+  const run = () => { const g = fresh('puffwart'); g.zoneAt = [...ZONE_AT]; g.beast.grump = g.beast.maxGrump * 0.6; g.beast.state = 'roam'; g.hero.x = 10; tick(g, WANDER_GIVEUP + 1); const e = g.exitTo(1); g.hero.x = e.x; g.hero.z = e.z + 1; g.step(DT); return JSON.stringify([g.zone, g.obstacles, g.spots, g.hazard, g.finches, g.nest]); };
+  assert.equal(run(), run());
+  const calf = new HuntGame(5); calf.chooseHero('dora'); assert(calf.startHunt('bristleback')); assert.equal(calf.zones, 1); assert.deepEqual(calf.exits(), []);
+  // A sap trap left behind comes back to the pouch.
+  const s = fresh(); s.zoneAt = [...ZONE_AT]; s.trap = { x: 3, z: 3 }; const sap = Object.keys(ITEMS).find((k) => ITEMS[k].effect.kind === 'trap'), before = s.profile.pouch[sap];
+  s.beast.grump = s.beast.maxGrump * 0.6; s.beast.state = 'roam'; s.hero.x = 10; tick(s, WANDER_GIVEUP + 1); const se = s.exitTo(1); s.hero.x = se.x; s.hero.z = se.z + 1; s.step(DT); assert.equal(s.zone, 1); assert.equal(s.trap, null); assert.equal(s.profile.pouch[sap], before + 1);
+});
 check('out of sight for a second, Enzo sniffs out a pawprint trail that fades once the beast is seen', () => {
   const g = fresh(), b = g.beast; g.buddy.cooldown = 10000; b.state = 'rest'; b.duration = 10000;
   b.x = 0; b.z = -6; g.hero.x = 0; g.hero.z = 4; assert(g.inSight());
@@ -813,14 +846,16 @@ check('tutorial calf has 40 Grump and starts no warning before twenty seconds', 
   for (let n = 0; n < 1199; n++) { g.step(DT); assert.equal(g.beast.cycle, 0); }
   tick(g, 3); assert(g.beast.cycle > 0); assert(g.beast.duration >= 0.6);
 });
-check('each area uses its obstacle table and the seeded meadow is unchanged', () => {
+check('each area uses its obstacle table and the seeded meadow is unchanged, less the ring trees in the first zone\'s path', () => {
+  // Zone 1 keeps every tree and rock inside the arena; only ring trees beyond the edge in the north path's gap step aside.
+  const pathless = (list, gap) => list.filter((o) => Math.hypot(o.x, o.z) <= ARENA_RADIUS || !gap || Math.abs(Math.atan2(Math.sin(Math.atan2(o.z, o.x) + Math.PI / 2), Math.cos(Math.atan2(o.z, o.x) + Math.PI / 2))) >= 0.32);
   for (const c of STORY) {
-    const g = new HuntGame(39); g.chooseHero('dora'); g.story.chapter = c.id; assert(g.startChapter());
-    if (c.area !== 'meadow') assert.deepEqual(g.obstacles, AREA_OBSTACLES[c.area]);
+    const g = new HuntGame(39); g.chooseHero('dora'); g.story.chapter = c.id; assert(g.startChapter()); const gap = g.zones > 1;
+    assert.equal(gap, c.area !== 'paddock');
+    if (c.area !== 'meadow') assert.deepEqual(g.obstacles, pathless(AREA_OBSTACLES[c.area], gap));
     else {
-      assert.equal(g.obstacles.length, 30);
       assert.deepEqual(g.obstacles.slice(-4), [{ x: -9, z: 1, r: 0.8, kind: 'tree' }, { x: 9, z: -3, r: 0.9, kind: 'tree' }, { x: -6, z: -9, r: 1.3, kind: 'rock' }, { x: 7, z: 8, r: 1.1, kind: 'rock' }]);
-      const original = new HuntGame(39); original.makeMeadow(); assert.deepEqual(g.obstacles, original.obstacles);
+      const original = new HuntGame(39); original.makeMeadow(); assert.equal(original.obstacles.length, 30); assert.deepEqual(g.obstacles, pathless(original.obstacles, gap)); assert(g.obstacles.length < 30, 'the path gap');
     }
   }
   assert.notDeepEqual(AREA_OBSTACLES.marsh, AREA_OBSTACLES.ridge); assert.notDeepEqual(AREA_OBSTACLES.hollow, AREA_OBSTACLES.peak);
@@ -841,7 +876,7 @@ check('variants require the ending, add sixty percent Grump and double the rare 
     assert.match(VARIANT_COLORS[id], /^#[0-9a-f]{6}$/); assert.notEqual(VARIANT_COLORS[id], BEASTS[id].color);
     const chance = DROPS[id].calm.rare.chance, r = () => chance * 1.5;
     assert.equal(rollCalm(r, id).length, DROPS[id].calm.count); assert.equal(rollCalm(r, id, [], 0, 2).length, DROPS[id].calm.count + 1);
-    g.bonkBeast(g.beast.maxGrump * 0.72, false, { x: 0, z: -7 }); assert(g.beast.grumpy); g.hitstop = 0; g.beast.state = 'roam'; g.beast.duration = 0; g.step(DT); assert(g.beast.duration >= 0.6);
+    g.zoneAt = []; g.bonkBeast(g.beast.maxGrump * 0.72, false, { x: 0, z: -7 }); assert(g.beast.grumpy); g.hitstop = 0; g.beast.state = 'roam'; g.beast.duration = 0; g.step(DT); assert(g.beast.duration >= 0.6);
   }
 });
 check('daily picks are deterministic, distinct and do not change hunt randomness', () => {

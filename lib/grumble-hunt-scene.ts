@@ -2,7 +2,7 @@ import * as T from 'three';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { createHuntChinchilla, animateHuntChinchilla, poseArms, type HuntChinchilla } from './hunt-chinchilla';
-import { BEASTS, BEAST_IDS, VARIANT_COLORS, GATHER_TIME, HAZARD_REACH, HAZARD_WARN, ROAR_REACH, TURF_REACH, type WeatherKind, MATERIAL_IDS, SPOTS, VILLAGERS, type BeastId, type SpotId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
+import { BEASTS, BEAST_IDS, VARIANT_COLORS, ZONE_NAMES, GATHER_TIME, HAZARD_REACH, HAZARD_WARN, ROAR_REACH, TURF_REACH, type WeatherKind, MATERIAL_IDS, SPOTS, VILLAGERS, type BeastId, type SpotId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
 import { createHuntWeapons, decorateHuntWeapon } from './grumble-hunt-weapons';
 import { createVillager, type VillagerId, type VillagerRig } from './grumble-hunt-villagers';
 import { MATERIALS } from './grumble-hunt-content';
@@ -944,6 +944,31 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   });
   const hiddenPart = new T.Matrix4().makeScale(0, 0, 0);
   const finchGone = new Map<number, number>();
+  // Zone paths: a worn dirt track out through the gap in the trees, a signpost naming the next zone, and a warm glow once the beast has gone that way.
+  const pathMat = noOutline(new T.MeshBasicMaterial({ color: 0x9c7a4e, transparent: true, opacity: 0.5, depthWrite: false })), pathGlowMat = noOutline(new T.MeshBasicMaterial({ color: 0xffe2a0, transparent: true, opacity: 0.6, side: T.DoubleSide, depthWrite: false }));
+  materials.add(pathMat); materials.add(pathGlowMat);
+  const postMat = toon(0x8a6643);
+  const zonePaths = [0, 1].map(() => {
+    const root = new T.Group(); root.visible = false; scene.add(root);
+    mesh(root, plane, pathMat, [0, 0.035, 0], [3.4, 9, 1], false).rotation.x = -Math.PI / 2;
+    mesh(root, cylinder, postMat, [2.3, 1, 0], [0.11, 2, 0.11]);
+    const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 160;
+    const map = new T.CanvasTexture(canvas); map.colorSpace = T.SRGBColorSpace; textures.add(map);
+    const signMat = noOutline(new T.SpriteMaterial({ map, transparent: true, depthWrite: false })); materials.add(signMat);
+    const sign = new T.Sprite(signMat); sign.scale.set(3.2, 1, 1); sign.position.set(2.3, 2.45, 0); root.add(sign);
+    const glow = mesh(root, icyGeo, pathGlowMat, [0, 0.06, 0], [2.4, 1, 2.4], false); glow.visible = false;
+    return { root, canvas, map, glow, sign, signMat, text: '' };
+  });
+  const signAt = V();
+  function drawSign(path: (typeof zonePaths)[number], text: string) {
+    if (path.text === text) return; path.text = text;
+    const c = path.canvas.getContext('2d'); if (!c) return;
+    c.clearRect(0, 0, 512, 160); c.fillStyle = '#c8955c'; c.strokeStyle = '#6b4a2c'; c.lineWidth = 10;
+    c.beginPath(); c.roundRect(8, 8, 496, 144, 26); c.fill(); c.stroke();
+    const [top, name] = text.split('\n'); c.fillStyle = '#3b2a1c'; c.textAlign = 'center';
+    c.font = '800 46px ui-rounded, "Trebuchet MS", system-ui, sans-serif'; c.fillText(top, 256, 68);
+    c.font = '700 38px ui-rounded, "Trebuchet MS", system-ui, sans-serif'; c.fillText(name, 256, 122); path.map.needsUpdate = true;
+  }
   function label(text: string, color: string) {
     const c = document.createElement('canvas'); c.width = 256; c.height = 96;
     const ctx = c.getContext('2d'); if (ctx) { ctx.font = 'bold 58px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = color; ctx.fillText(text, 128, 70); }
@@ -979,11 +1004,11 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     lastVariantColor = game.variant && game.beast ? VARIANT_COLORS[game.beast.id] : '';
     lastGame = game; lastRide = { riding: game.ride.riding, fullBonks: game.ride.fullBonks, bucking: game.ride.riding && game.ride.phase !== 'quiet' };
     if (closed) return;
-    const worldKey = `${game.profile.hunts}:${game.mode === 'village' || game.mode === 'camp'}`;
+    const worldKey = `${game.profile.hunts}:${game.zone}:${game.mode === 'village' || game.mode === 'camp'}`;
     if (worldKey !== currentWorld) { currentWorld = worldKey; buildWorld(game); }
     village.visible = paths.visible = game.mode === 'village' || game.mode === 'camp'; campPath.visible = !village.visible;
     poseActor('dora', game); poseActor('enzo', game); holdFx(game, dt);
-    for (const id of BEAST_IDS) beasts[id].root.visible = (game.beast?.id === id || game.visitor?.id === id && game.mode === 'hunt') && !['village', 'camp'].includes(game.mode);
+    for (const id of BEAST_IDS) beasts[id].root.visible = (game.beast?.id === id && !game.beast.away || game.visitor?.id === id && game.mode === 'hunt') && !['village', 'camp'].includes(game.mode);
     ambientLife(game.time);
     const weather = game.mode === 'hunt' || game.mode === 'nap' ? game.weather : { kind: 'clear' as WeatherKind, level: 0 }, wl = weather.level;
     // Fog and light follow the weather even with reduced motion; only the falling and drifting bits stop.
@@ -1061,6 +1086,16 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       });
     }
     nest.visible = !!b && game.huntChapter !== 0 && (game.mode === 'hunt' || game.mode === 'nap'); nest.position.set(game.nest.x, 0, game.nest.z);
+    const exits = ['hunt', 'nap'].includes(game.mode) ? game.exits() : [];
+    zonePaths.forEach((path, i) => {
+      const e = exits[i]; path.root.visible = !!e; if (!e) return;
+      const north = e.z < 0; path.root.position.set(e.x, 0, e.z + (north ? -2.5 : 2.5)); path.root.rotation.y = north ? 0 : Math.PI;
+      drawSign(path, `${north ? 'Zone' : '‹ Zone'} ${e.to + 1}${north ? ' ›' : ''}\n${ZONE_NAMES[game.area][e.to]}`);
+      const open = !!game.beast?.away && game.beast.zone === e.to; path.glow.visible = open;
+      if (open) { const pulse = reduced.matches ? 1 : 1 + Math.sin(game.time * 4) * 0.12; path.glow.position.z = 2.5; path.glow.scale.set(2.4 * pulse, 1, 2.4 * pulse); }
+      // A sign right beside the camera (just after a travel) fades out so it never fills the view.
+      path.sign.getWorldPosition(signAt); path.signMat.opacity = Math.min(1, Math.max(0, (camera.position.distanceTo(signAt) - 6) / 4));
+    });
     finchRigs.forEach((r, i) => {
       const f = game.finches[i]; r.root.visible = !!f && ['hunt', 'nap'].includes(game.mode);
       if (!f || !r.root.visible) { finchGone.delete(i); return; }
@@ -1232,7 +1267,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     get yaw() { return yaw; },
     orbit(dx: number, dy: number) { yaw -= dx * 0.006; pitch = T.MathUtils.clamp(pitch + dy * 0.004, 0.18, 0.95); userOrbit = 4; },
     zoom(delta: number) { dist = T.MathUtils.clamp(dist + delta * 0.008, 5, 14); },
-    metrics() { const game = lastGame; return { area: currentArea, villagers: village.visible ? villagers.length : 0, variantColor: lastVariantColor, ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible), nest: nest.visible, sleepy: drowsy[0].visible, roarRings: roarRings.filter((o) => o.visible).length, visitor: !!game?.visitor && beasts[game.visitor.id].root.visible, finches: finchRigs.filter((r) => r.root.visible).length, hazard: game?.hazard && hazardGroup.visible ? { kind: game.hazard.kind, state: game.hazard.state, circle: hazardCircle.visible } : null, hitDigits: digits.count, sparks: sparks.count, pebbles: pebblePool.filter((o) => o.visible).length, vine: vineLine.visible, soft: !!game?.beast && game.beast.soft > 0, turfCircle: game?.beast?.state === 'turf' && circle.visible, weather: { rain: rain.visible ? rain.count : 0, dust: dust.visible ? dust.count : 0, flakes: snowfall.visible ? snowfall.count : 0, fogFar: Math.round((scene.fog as T.Fog).far) } }; },
+    metrics() { const game = lastGame; return { area: currentArea, villagers: village.visible ? villagers.length : 0, variantColor: lastVariantColor, ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible), nest: nest.visible, sleepy: drowsy[0].visible, roarRings: roarRings.filter((o) => o.visible).length, visitor: !!game?.visitor && beasts[game.visitor.id].root.visible, finches: finchRigs.filter((r) => r.root.visible).length, zone: game?.zone ?? 0, paths: zonePaths.filter((z) => z.root.visible).length, openPath: zonePaths.some((z) => z.root.visible && z.glow.visible), beastShown: !!game?.beast && beasts[game.beast.id].root.visible, hazard: game?.hazard && hazardGroup.visible ? { kind: game.hazard.kind, state: game.hazard.state, circle: hazardCircle.visible } : null, hitDigits: digits.count, sparks: sparks.count, pebbles: pebblePool.filter((o) => o.visible).length, vine: vineLine.visible, soft: !!game?.beast && game.beast.soft > 0, turfCircle: game?.beast?.state === 'turf' && circle.visible, weather: { rain: rain.visible ? rain.count : 0, dust: dust.visible ? dust.count : 0, flakes: snowfall.visible ? snowfall.count : 0, fogFar: Math.round((scene.fog as T.Fog).far) } }; },
     dispose() {
       if (closed) return; closed = true; observer.disconnect();
       scene.traverse((o) => { if (o instanceof T.InstancedMesh) o.dispose(); if (o instanceof T.Mesh || o instanceof T.Line) { geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : [o.material]) materials.add(m); } });

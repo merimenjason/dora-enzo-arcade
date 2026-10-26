@@ -3,6 +3,8 @@ export function huntPolicy(g) {
   const b = g.beast, h = g.hero;
   const out = { x: 0, z: 0, sprint: true, bonk: false, charge: false, roll: false, lock: false, previous: false, next: false, use: false, grab: false, sling: false };
   if (!b || g.mode !== 'hunt') return out;
+  // The beast went down a path to the next zone: follow it.
+  if (b.away) { const e = g.exitTo(b.zone), d = Math.hypot(e.x - h.x, e.z - h.z); out.x = (e.x - h.x) / d; out.z = (e.z - h.z) / d; return out; }
   if (g.ride.riding) { out.charge = true; out.bonk = Math.floor(g.time * 16) % 2 === 0; return out; }
   // Holding on with the vine: two tickles, then yank towards the nearest tree or rock within the yank, if any.
   if (g.vine) {

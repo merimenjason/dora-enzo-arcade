@@ -297,6 +297,8 @@ try {
 
   await check('alive hunts: Extra Grumpy steam, Enzo sniff pawprints and buddy orders', async (p) => {
     await fresh(p); await start(p);
+    // The beast stays in zone 1 until the zone step turns the wander thresholds back on.
+    await hunt(p, (w) => { w.game.zoneAt = []; });
     // Buddy orders: hold Tab and tap E; lock-on stays as it was. A plain Tab tap still toggles it.
     const locked = await hunt(p, (w) => w.game.locked);
     await p.keyboard.down('Tab'); await p.keyboard.press('KeyE'); await p.keyboard.up('Tab');
@@ -360,6 +362,16 @@ try {
     const max = await hunt(p, (w) => { const g = w.game, f = g.finches[0]; g.hero.x = f.x - 2.5; g.hero.z = f.z; return g.hero.maxFluff; }); await snapshot(p, 'finch');
     await hunt(p, (w) => { const g = w.game, f = g.finches[0]; g.hero.x = f.x - 0.5; g.hero.z = f.z; }); await p.waitForFunction(() => window.__hunt().game.finches[0].caught, null, { timeout: 15000 });
     assert.equal(await hunt(p, (w) => w.game.hero.maxFluff), max + 5); await p.waitForFunction(() => window.__hunt().metrics().finches === 2, null, { timeout: 15000 });
+    // Zones: below 70% Grump the beast wanders off down the north path, the path glows, and walking up it travels to zone 2.
+    assert.equal(await hunt(p, (w) => w.metrics().paths), 1); assert.equal(await p.locator('.hunt-zones li').count(), 3); assert.match(await p.locator('.hunt-zones .here').innerText(), new RegExp(await hunt(p, (w) => w.game.zoneName)));
+    await hunt(p, (w) => { const g = w.game, b = g.beast; g.zoneAt = [0.7, 0.35]; b.state = 'roam'; b.t = 0; b.duration = 100; b.grump = b.maxGrump * 0.6; b.x = 0; b.z = -8; g.hero.x = 6; g.hero.z = 2; g.buddy.cooldown = 10000; });
+    await p.waitForFunction(() => window.__hunt().game.beast.state === 'wander', null, { timeout: 15000 }); await snapshot(p, 'zone-wander');
+    await p.waitForFunction(() => { const m = window.__hunt().metrics(); return m.openPath && !m.beastShown; }, null, { timeout: 30000 }); await snapshot(p, 'zone-path');
+    assert.match(await p.locator('.hunt-beast-hud').innerText(), /Gone to Zone 2/);
+    await hunt(p, (w) => { const g = w.game, e = g.exitTo(1); g.hero.x = e.x; g.hero.z = e.z + 3.5; });
+    await p.keyboard.down('KeyW'); await p.waitForFunction(() => window.__hunt().game.zone === 1, null, { timeout: 15000 }); await p.keyboard.up('KeyW');
+    await p.waitForFunction(() => { const m = window.__hunt().metrics(); return m.zone === 1 && m.beastShown && m.paths === 2; }, null, { timeout: 15000 }); await p.waitForTimeout(800); await snapshot(p, 'zone-2');
+    assert.equal((await p.locator('.hunt-zones .here').innerText()).replace(/[\s]+/g, ' ').trim(), `2 ${await hunt(p, (w) => w.game.zoneName)}`);
   });
 
   await check('painted portraits, tool tiers and material icons load and follow the game', async (p) => {
