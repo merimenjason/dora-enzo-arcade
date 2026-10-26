@@ -251,11 +251,13 @@ The Beast Book has, in order: Wren's bounty board link; the **Story** list, repl
 ## Saving and architecture
 
 - `lib/grumble-hunt-content.ts`: materials, drop tables, gathering, Pantry recipes, snacks, armour sets, the story chapters, the epilogue and the finale, as data. `storyScene(id)` looks up any scene.
-- `lib/grumble-hunt-game.ts`: seeded deterministic rules, no DOM or Three.js. Fixed steps are 1/60 second; the page bounds catch-up after a slow frame.
+- `lib/grumble-hunt-game.ts`: the `HuntGame` class, seeded and deterministic, with no DOM or Three.js. Fixed steps are 1/60 second; the page bounds catch-up after a slow frame. It re-exports the two modules it is built on, so callers import everything from here:
+  - `lib/grumble-hunt-rules.ts`: the beasts, every tuning number, the area tables and the shared types;
+  - `lib/grumble-hunt-quests.ts`: Wren's bounties, Old Mossback's quests and Bramble's charms.
 - `lib/grumble-hunt-scene.ts`: Three.js drawing, camera, posed tools, chunky beasts, texture loading, effects, and disposal.
 - `lib/hunt-chinchilla.ts`: the dedicated existing hunt model; its only change is an optional `shade` hook that the scene uses to give the coat, ears and paw pads the `fluffy` shading. Shared chinchilla modules are unchanged.
 - `app/hunt/page.tsx`: input, hydration, the loop, story scenes, the result card and storage. The rest of the page is split out: `hud.tsx` (beast HUD and name card), `camp-panels.tsx` (hunt and quest board, bounties, Beast Book, Pantry), `forge-panel.tsx` (weapons, armour and charms), `field-guide.tsx`, `ui.tsx` (shared helpers such as `Art`, `Icon` and `readSave`) and `hunt.css`.
-- `app/hunt/sound.ts`: gesture-unlocked synthesised cues and audio cleanup.
+- `app/hunt/sound.ts`: gesture-unlocked synthesised cues and audio cleanup. Most events are one short sine blip at their own pitch; the newer moves have shaped cues (`SHAPED`): Paddlepaw's splash (a falling wash of filtered noise), Rumblesnout's dig (a low rumble) and pop (a rising blip), a four-note golden shimmer under every Mighty move's wind-up, and a six-note fanfare for the Best of Friends ribbon.
 
 Permanent progress is saved under `grumble-hunt-v6`: selected hero, all weapon tiers and branches, each friend's equipped weapon, owned and worn armour (Mighty pieces included), pouch, ring, packed snack, nap counts and hunt count; `story: { chapter, scenesSeen }` (the epilogue and finale are scene ids too); `beastBook` entries (`met`, `napped`, `partsBroken`, `best`); `bounties: { day, done, ready }` and `extraGrumpyUnlocked`; the post-game counters `bountiesClaimed`, `variantNaps` and `totalPlops`; quest `stars` and `quests`; `charms`; `mightyBest` (Mighty best times) and `turfPairs` (turf bonks seen). Fields added after v6 began (charms, Mighty, the two new beasts, `mightyBest`, `turfPairs`) load as empty from an older v6 save, so the version didn't change.
 
@@ -283,7 +285,7 @@ npm run bot:grumble-hunt
 npm run test:e2e:grumble-hunt
 ```
 
-**Engine suite** (`tests/grumble-hunt.mjs`, plus the content checks in `tests/grumble-hunt-content.mjs`): **118 checks** on 26-10-2026. They cover determinism, the 0.6-second warning rule for every attack, Mighty move and burrow, tools, strings, dizzy, items, gathering, the buddy, every Iceborne-style system, the Forge, armour and charms, Hop-on, story progress, quests, Mighty beasts, the finale, saves from v1 to v6, and malformed saves.
+**Engine suite** (`tests/grumble-hunt.mjs`, plus the content checks in `tests/grumble-hunt-content.mjs`): **119 checks** on 27-10-2026. They cover determinism, the 0.6-second warning rule for every attack, Mighty move and burrow, tools, strings, dizzy, items, gathering, the buddy, every Iceborne-style system, the Forge, armour and charms, Hop-on, story progress, quests, Mighty beasts, the finale, saves from v1 to v6, and malformed saves.
 
 **Bot** (`tests/grumble-hunt-bot.mjs` with the policy in `tests/grumble-hunt-policy.mjs`) uses only movement, actions and earned materials. It plays twelve seeds as each hero, one buddy order per seed. Latest results (26-10-2026):
 
@@ -295,6 +297,17 @@ npm run test:e2e:grumble-hunt
 
 **Browser suite** (`tests/e2e/grumble-hunt.mjs`, `ONLY=<name part>` runs one check): **28 checks**, about 50 minutes on this machine, screenshots in git-ignored `.checks/hunt/`. Every hunt check asserts under 400 draw calls. The phone check (390 × 844 touch, DPR 3, 4× CPU throttling) writes `.checks/hunt/performance.json`. On 26-10-2026, the meadow hunt drew 178 calls and 172k triangles. The busiest newer hunts, each a Mighty beast in full weather with a wild visitor, drew 271 calls (Paddlepaw in marsh rain) and 278 (Rumblesnout in a hollow dust storm), with about 189k triangles. Chromium renders with SwiftShader there, so frame times don't predict a real phone; a hardware play-test is still outstanding.
 
+### Play-test numbers · 27-10-2026
+
+Measured with the bot's policy on tier-1 tools, 24 hunts a beast, once with instant reactions and once with a **0.35-second reaction delay** (closer to a person). Nobody was tuckered out in either run. With the delay:
+
+- **Fight lengths (median):** story beasts 31–67 s, Paddlepaw 55 s, Rumblesnout 58 s. Mighty beasts 51–113 s (Mighty Hornclack longest, slowest run 157 s). Expect a person to take longer, since the bot leans on the vine.
+- **Rumblesnout's burrow is fair:** 0 hits in 24 burrows. Mighty Rumblesnout's burrow lands 12 of 36, when the Pebble Shower circles block the way out.
+- **Paddlepaw's splash always lands** (12/12, Mighty 19/19), and so does Mighty Skreel's Feather Fan (12/12). All three lanes start at the beast, and the gaps between them only open about 4 steps out, so a friend in bonking range can't slip between them; only a well-timed roll or a long run sideways works.
+- **Stars aren't scarce:** finishing each quest once pays 47 stars, against 21 for every charm level and 12 for the Mighty armour, and quests pay again every time.
+
+The bot never rolls through an attack, so the delayed numbers are pessimistic for charges and swoops.
+
 ## History
 
 All dates 2026.
@@ -302,6 +315,6 @@ All dates 2026.
 - **24-10:** the base game (five beasts, two heroes, camp), then the expansion steps: alive hunts (Extra Grumpy, Enzo's sniff, buddy orders), painted icons and portraits, the Pantry (save v2), the Forge (save v3), Hop-on, and Story mode with areas, villagers, post-game variants and bounties (save v4).
 - **25-10:** the four post-game weapons (save v5).
 - **26-10:** the Iceborne-style systems, one at a time: tired beasts and nests, roars and name cards, weather, wild visitors and turf bonks, the grab-on vine, the pebble slinger, hit numbers and weak spots, area hazards, best times, fluff finches and zones. Then merged scenery draw calls, strings and finishers, the quest board (save v6), charms, Mighty beasts and Mighty armour. Then the page split, the painted charm icons, Paddlepaw and Rumblesnout, the epilogue, the Beast Book's Mighty page and per-set armour icons. Last came the Best of Friends finale, the turf-bonk page, Mighty badges and three new bounties.
-- **27-10:** the epilogue's own painting, and this reference in place of the dated run logs.
+- **27-10:** the epilogue's own painting, this reference in place of the dated run logs, shaped sound cues for the newer moves, the play-test numbers above, and the engine split into `grumble-hunt-game.ts`, `grumble-hunt-rules.ts` and `grumble-hunt-quests.ts`.
 
 The art for every step, with the prompts used, is logged in [`grumble-hunt-art.md`](grumble-hunt-art.md), [`grumble-hunt-story-art.md`](grumble-hunt-story-art.md) and [`grumble-hunt-weapon-icons.md`](grumble-hunt-weapon-icons.md); the briefs sent to Codex are in [`grumble-hunt-prompts/`](grumble-hunt-prompts/). `CHANGELOG.md` has the player-facing notes for each change.

@@ -579,6 +579,10 @@ try {
     await p.getByTestId('mighty-badge-paddlepaw').scrollIntoViewIfNeeded(); await snapshot(p, 'mighty-badges');
     await p.getByTestId('quest-finale').scrollIntoViewIfNeeded(); await snapshot(p, 'finale-quest'); await p.getByTestId('quest-finale').click(); await p.locator('main[data-mode="hunt"]').waitFor();
     assert.deepEqual(await hunt(p, (w) => [w.game.beast.id, w.game.beast.mighty]), ['rumblesnout', true]);
+    // The newer cues are shaped sounds: count the filters and notes they build, so a broken recipe can't hide behind silence.
+    await p.evaluate(() => { const proto = AudioContext.prototype, filter = proto.createBiquadFilter, osc = proto.createOscillator; window.__audio = { filters: 0, notes: 0 }; proto.createBiquadFilter = function () { window.__audio.filters++; return filter.call(this); }; proto.createOscillator = function () { window.__audio.notes++; return osc.call(this); }; });
+    await hunt(p, (w) => { for (const kind of ['splash', 'dig', 'pop', 'mighty', 'keepsake']) w.game.events.push({ kind }); });
+    await p.waitForFunction(() => window.__audio.filters >= 3 && window.__audio.notes >= 13, null, { timeout: 5000 });
     // The policy's fan-lane helper has to come along into the page.
     const calm = () => p.evaluate(`(() => { ${laneGap.toString()}; const g = window.__hunt().game, policy = ${huntPolicy.toString()}; g.paused = false; g.hero.invincible = 1e9; let n = 0; while (g.mode === 'hunt' && n++ < 36000) { g.step(1/60, policy(g)); g.events.length = 0; } while (g.mode === 'nap' && n++ < 40000) g.step(1/60); window.__hunt().refresh(); return g.mode; })()`);
     assert.equal(await calm(), 'hunt', 'Mighty Paddlepaw wanders in'); assert.deepEqual(await hunt(p, (w) => [w.game.beast.id, w.game.beast.mighty]), ['paddlepaw', true]);

@@ -1223,7 +1223,7 @@ check('the Best of Friends finale: both Mighty river friends in a row, after the
   g.profile.quests['mighty-paddlepaw'] = 1; assert(g.questOpen('finale'));
   const stars = g.profile.stars; assert(g.startQuest('finale')); assert(g.beast.mighty); assert.equal(g.beast.maxGrump, BEASTS.rumblesnout.grump * MIGHTY_GRUMP);
   questCalm(g); assert.equal(g.beast.id, 'paddlepaw', 'Mighty Paddlepaw wanders in'); assert(g.beast.mighty); assert.equal(g.beast.maxGrump, BEASTS.paddlepaw.grump * MIGHTY_GRUMP); assert.equal(g.quest.step, 1);
-  questCalm(g); assert(g.questResult.success); assert.equal(g.profile.stars, stars + 5); assert.equal(g.profile.quests.finale, 1);
+  g.events.length = 0; questCalm(g); assert(g.questResult.success); assert(g.events.some((e) => e.kind === 'keepsake') && !g.events.some((e) => e.kind === 'quest'), 'the ribbon gets its fanfare'); assert.equal(g.profile.stars, stars + 5); assert.equal(g.profile.quests.finale, 1);
   assert(g.sceneSeen('finale')); const back = HuntGame.load(JSON.parse(JSON.stringify(g.save()))); assert(back.story.scenesSeen.includes('finale')); assert.equal(back.profile.quests.finale, 1);
 });
 check('the turf-bonk page only keeps real pairs from a save', () => {
@@ -1231,5 +1231,15 @@ check('the turf-bonk page only keeps real pairs from a save', () => {
   const g = HuntGame.load({ v: 6, profile: { turfPairs: ['bristleback+puffwart', 'puffwart+puffwart', 7, 'bristleback+puffwart'] } }); assert.deepEqual(g.profile.turfPairs, ['bristleback+puffwart']);
   assert.deepEqual(HuntGame.load({ v: 6, profile: { turfPairs: 'nope' } }).profile.turfPairs, []);
   assert.equal(BOUNTIES.find((t) => t.id === 'turf').check({ napped: true, turfs: 0 }, { id: 'bristleback' }), false);
+});
+check('the newer moves send their own sound cues: dig and pop, splash, a Mighty shimmer and the keepsake fanfare', () => {
+  // Runs a beast's pattern from a set cycle and collects the cue events.
+  const cues = (id, cycle, mighty = false) => { const g = fresh(id); g.roared = g.introduced = true; g.zoneAt = []; const b = g.beast; b.mighty = mighty; b.cycle = cycle; g.events.length = 0; g.windup(); const attack = b.attack, seen = g.events.map((e) => e.kind); g.events.length = 0; for (let i = 0; i < 90 && b.state !== 'rest'; i++) { g.step(DT); seen.push(...g.events.map((e) => e.kind)); g.events.length = 0; } return { seen, attack }; };
+  const dig = cues('rumblesnout', 0); assert.equal(dig.attack, 'burrow'); assert(dig.seen.includes('dig') && dig.seen.includes('pop'), dig.seen.join());
+  assert(dig.seen.indexOf('dig') < dig.seen.indexOf('pop'), 'the dig comes before the pop');
+  const splash = cues('paddlepaw', 1); assert.equal(splash.attack, 'fan', 'Paddlepaw: slide, then the splash'); assert(splash.seen.includes('splash'));
+  const skreelFan = cues('skreel', 1, true); assert.equal(skreelFan.attack, 'fan', 'Mighty Skreel: swoop, then the Feather Fan'); assert(skreelFan.seen.includes('mighty') && !skreelFan.seen.includes('splash'));
+  const dash = cues('bristleback', 1, true); assert(dash.seen.filter((k) => k === 'mighty').length === 1, 'the Double Dash shimmers once, not for its second dash');
+  assert(!cues('bristleback', 0).seen.includes('mighty'), 'a plain charge has no shimmer');
 });
 console.log(`Grumble Hunt: ${checks} engine checks passed.`);

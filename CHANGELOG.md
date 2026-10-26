@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Grumble Hunt** has new sounds: Paddlepaw's splash, Rumblesnout digging down and popping up, a golden shimmer whenever a Mighty beast winds up its Mighty move, and a little fanfare for the Best of Friends ribbon.
 - **Grumble Hunt**'s epilogue has its own painting now: Paddlepaw splashing in and Rumblesnout popping out of a molehill at Clover Camp.
 
 ### Documentation
