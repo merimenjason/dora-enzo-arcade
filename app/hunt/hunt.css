@@ -74,3 +74,4 @@
 .hunt-zones em{font-style:normal;font-weight:700}
 .hunt-travel{position:fixed;inset:0;background:#fff4e2;pointer-events:none;z-index:5;animation:hunt-travel .7s ease-out forwards}
 @keyframes hunt-travel{from{opacity:1}to{opacity:0}}
+.hunt-combo>span{display:inline-flex;gap:3px;vertical-align:middle;margin-left:3px}.hunt-combo i{width:8px;height:8px;border-radius:50%;border:1.5px solid #8a6a4a}.hunt-combo i[data-on="true"]{background:#f2b35a;border-color:#c9772e}.hunt-combo i[data-finisher="true"]{border-radius:2px;transform:rotate(45deg) scale(.9)}

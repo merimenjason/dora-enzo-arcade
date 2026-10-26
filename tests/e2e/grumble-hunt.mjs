@@ -9,7 +9,7 @@ const failures = [], errors = [];
 mkdirSync('.checks/hunt', { recursive: true });
 const hunt = (p, fn, arg) => p.evaluate(`(() => { const w = window.__hunt(), value = (${fn})(w, ${JSON.stringify(arg ?? null)}); w.refresh(); return value; })()`);
 async function fresh(p, hero = 'dora', story = false) {
-  await p.goto(`${base}/hunt`); await p.evaluate(() => { localStorage.removeItem('grumble-hunt-v1'); localStorage.removeItem('grumble-hunt-v2'); localStorage.removeItem('grumble-hunt-v3'); localStorage.removeItem('grumble-hunt-v4'); localStorage.removeItem('grumble-hunt-v5'); localStorage.removeItem('grumble-hunt-sound-v1'); }); await p.reload();
+  await p.goto(`${base}/hunt`); await p.evaluate(() => { localStorage.removeItem('grumble-hunt-v1'); localStorage.removeItem('grumble-hunt-v2'); localStorage.removeItem('grumble-hunt-v3'); localStorage.removeItem('grumble-hunt-v4'); localStorage.removeItem('grumble-hunt-v5'); localStorage.removeItem('grumble-hunt-v6'); localStorage.removeItem('grumble-hunt-sound-v1'); }); await p.reload();
   await p.locator('main[data-ready="true"][data-rendered="true"]').waitFor();
   await p.getByTestId(`choose-${hero}`).click(); await p.getByTestId('rack-ready').click();
   await p.getByTestId('story-scene').waitFor(); if (story) return;
@@ -451,6 +451,17 @@ try {
       assert(await hunt(p, (w) => w.metrics().calls) < 400);
       await p.getByTestId('pause').click(); await p.getByRole('button', { name: 'Return to camp', exact: true }).click(); await p.locator('main[data-mode="village"]').waitFor();
     }
+  });
+  await check('three-hit strings: the pips fill and the third J lands the tool finisher', async (p) => {
+    await fresh(p); await start(p);
+    await hunt(p, (w) => { const g = w.game; g.zoneAt = []; g.buddy.cooldown = 1e9; g.hero.invincible = 1e9; g.beast.grump = g.beast.maxGrump = 1e5; g.beast.state = 'rest'; g.beast.duration = 1e9; g.beast.x = g.hero.x; g.beast.z = g.hero.z - 2.7; g.locked = true; });
+    const ready = () => p.waitForFunction(() => { const g = window.__hunt().game; return g.hero.cooldown <= 0 && g.hitstop <= 0 && g.hero.swing < 0; });
+    for (const step of [1, 2]) { await p.keyboard.down('KeyJ'); await p.waitForTimeout(80); await p.keyboard.up('KeyJ'); await p.waitForFunction((n) => document.querySelector('[data-testid="combo"]')?.getAttribute('data-step') === String(n), step); if (step === 2) await snapshot(p, 'string-two'); await ready(); }
+    await p.keyboard.down('KeyJ'); await p.waitForTimeout(80); await p.keyboard.up('KeyJ');
+    await p.waitForFunction(() => window.__hunt().game.huntFacts.finishers === 1); assert.match(await p.getByTestId('note').innerText(), /Acorn Upswing/);
+    await snapshot(p, 'string-finisher');
+    await p.getByTestId('pause').click(); await p.getByRole('button', { name: 'Return to camp', exact: true }).click(); await p.getByTestId('open-forge').click();
+    assert.match(await p.getByTestId('weapon-finisher').innerText(), /Acorn Upswing/);
   });
   await check('camera orbit avoids terrain, texture count stays bounded, navigation tears down', async (p) => {
     await fresh(p); await start(p); const first = await hunt(p, (w) => w.metrics().textures), c = p.getByTestId('hunt-canvas');

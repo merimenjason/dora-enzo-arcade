@@ -902,7 +902,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
         // Each sample pairs the hammer head with a point halfway back to the friend's shoulder, so the ribbon narrows into the swing.
         const attr = a.ribbon.geometry.getAttribute('position'), root = a.model.root.position, sx = root.x, sy = root.y + 0.75, sz = root.z;
         for (let i = 0; i < 10; i++) { const p = a.points[Math.min(i, a.points.length - 1)], k = 0.55 + i * 0.04; attr.setXYZ(i * 2, p.x, p.y, p.z); attr.setXYZ(i * 2 + 1, sx + (p.x - sx) * k, sy + (p.y - sy) * k, sz + (p.z - sz) * k); }
-        attr.needsUpdate = true; const m = a.ribbon.material as T.MeshBasicMaterial; m.color.setHex(isPlayer && h.heavy ? 0xffb35a : 0xfff1d0); m.opacity = isPlayer && h.heavy ? 0.75 : 0.55;
+        attr.needsUpdate = true; const m = a.ribbon.material as T.MeshBasicMaterial; m.color.setHex(isPlayer && (h.heavy || h.finisher) ? 0xffb35a : 0xfff1d0); m.opacity = isPlayer && (h.heavy || h.finisher) ? 0.75 : 0.55;
       }
     }
   }

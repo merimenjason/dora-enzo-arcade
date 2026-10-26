@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, ZONE_NAMES, ZONE_AT, EXIT_REACH, WANDER_GIVEUP, FINCHES, FINCH_FLUFF, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, COMBO_WINDOW, FINISHERS, FINISHER_POWER, FINISHER_DIZZY, FINISHER_RECOVERY, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, ZONE_NAMES, ZONE_AT, EXIT_REACH, WANDER_GIVEUP, FINCHES, FINCH_FLUFF, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
 import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
@@ -1021,5 +1021,26 @@ check('the four post-game weapons replay exactly from a seed', () => {
     const run = () => { const g = geared(type); g.hero.invincible = 0; g.buddy.cooldown = 0; g.beast.duration = 0; for (let n = 0; n < 1500; n++) g.step(DT, input({ bonk: n % 40 < 8, charge: n % 300 > 240, x: Math.sin(n * .01), z: Math.cos(n * .013) })); return { save: g.save(), beast: g.beast, hero: g.hero, rng: g.rng, giggle: g.giggle, breath: g.breath }; };
     assert.deepEqual(run(), run(), type);
   }
+});
+check('melee tools chain three J swings in rhythm into their own finisher; ranged tools and the puffer never do', () => {
+  const swing = (g) => { g.step(DT, input({ bonk: true })); while (g.hero.cooldown > 0 || g.hitstop > 0) g.step(DT); tick(g, 0.05); };
+  const string = (type) => { const g = geared(type), b = g.beast; b.grump = b.maxGrump = 1e5; const drops = [], parts = [], bonks = []; for (let i = 0; i < 3; i++) { const grump = b.grump, part = b.part, n = b.bonks; swing(g); drops.push(grump - b.grump); parts.push(b.part - part); bonks.push(b.bonks - n); } return { g, b, drops, parts, bonks }; };
+  // Slow: the hammer's third swing is the Acorn Upswing, half again as strong, with 20 Dizzy and a slower recovery.
+  const slow = string('hammer');
+  assert(slow.drops[0] > 0); assert(Math.abs(slow.drops[1] / slow.drops[0] - 1) < 1e-9); assert(Math.abs(slow.drops[2] / slow.drops[0] - FINISHER_POWER) < 1e-9, JSON.stringify(slow.drops));
+  assert.equal(slow.b.dizzy, FINISHER_DIZZY); assert.equal(slow.g.events.filter((e) => e.kind === 'finisher').length, 1); assert.equal(slow.g.huntFacts.finishers, 1); assert.match(slow.g.note, new RegExp(FINISHERS.hammer));
+  // Medium: the katana's Petal Spin also loosens the part twice as fast.
+  const medium = string('katana'); assert(Math.abs(medium.drops[2] / medium.drops[0] - FINISHER_POWER) < 1e-9); assert(Math.abs(medium.parts[2] / medium.parts[0] - FINISHER_POWER * 2) < 1e-9, JSON.stringify(medium.parts));
+  // Fast: the sword's Twig Twirl bonks twice.
+  const fast = string('sword'); assert.deepEqual(fast.bonks, [1, 1, 2]); assert(Math.abs(fast.drops[2] / fast.drops[0] - (FINISHER_POWER + 1)) < 1e-9, JSON.stringify(fast.drops));
+  // The finisher swing recovers more slowly, then a new string starts.
+  const g = geared('hammer'); g.beast.grump = g.beast.maxGrump = 1e5; swing(g); swing(g); g.step(DT, input({ bonk: true })); assert(Math.abs(g.hero.cooldown - 0.67 * FINISHER_RECOVERY) < 1e-9, `${g.hero.cooldown}`); while (g.hero.cooldown > 0 || g.hitstop > 0) g.step(DT); swing(g); assert.equal(g.combo, 1);
+  // Waiting longer than the rhythm window, rolling or a bump starts the string again.
+  const late = geared('hammer'); late.beast.grump = late.beast.maxGrump = 1e5; swing(late); swing(late); assert.equal(late.combo, 2); tick(late, COMBO_WINDOW + 0.1); swing(late); assert.equal(late.combo, 1); assert(!late.events.some((e) => e.kind === 'finisher'));
+  const rolled = geared('hammer'); rolled.beast.grump = rolled.beast.maxGrump = 1e5; swing(rolled); swing(rolled); rolled.step(DT, input({ roll: true, x: 1 })); assert.equal(rolled.combo, 0); assert.equal(rolled.comboTimer, 0);
+  const bumped = geared('hammer'); bumped.beast.grump = bumped.beast.maxGrump = 1e5; swing(bumped); swing(bumped); bumped.hero.invincible = 0; assert(bumped.bumpHero(1, bumped.beast)); assert.equal(bumped.combo, 0);
+  // Every melee tool has a named finisher; bows, the wand and the puffer have none and never build a string.
+  for (const type of Object.keys(WEAPON_TYPES)) assert.equal(!!FINISHERS[type], !['bow', 'lightbow', 'heavybow', 'wand', 'puffer'].includes(type), type);
+  for (const type of ['bow', 'lightbow', 'wand', 'puffer']) { const r = geared(type); r.beast.grump = r.beast.maxGrump = 1e5; for (let i = 0; i < 6; i++) swing(r); assert.equal(r.combo, 0, type); assert(!r.events.some((e) => e.kind === 'finisher'), type); }
 });
 console.log(`Grumble Hunt: ${checks} engine checks passed.`);

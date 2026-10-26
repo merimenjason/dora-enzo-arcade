@@ -50,6 +50,14 @@ export const ZONE_NAMES: Record<AreaId, string[]> = { paddock: ['The Paddock'], 
 export const ZONE_AT = [0.7, 0.35]; // Below these shares of its Grump the beast wanders on from zone 1, then zone 2.
 export const EXIT_REACH = 2.4; // Walk this close to the open path to follow the beast.
 export const WANDER_GIVEUP = 12; // Seconds a wandering beast tries to reach the path before slipping away anyway.
+/** Three J swings in rhythm make a string: each swing must start within COMBO_WINDOW seconds of the last one recovering, and the third is
+ *  the tool's finisher: half again as strong, then a slower recovery. Slow tools add Dizzy, medium tools loosen parts twice as fast, fast tools bonk twice. */
+export const COMBO_WINDOW = 0.6, FINISHER_POWER = 1.5, FINISHER_DIZZY = 20, FINISHER_RECOVERY = 1.3;
+export const FINISHERS: Partial<Record<WeaponType, string>> = {
+  hammer: 'Acorn Upswing', greatsword: 'Driftwood Drop', katana: 'Petal Spin', sword: 'Twig Twirl', claws: 'Pitter-Pat Flurry', horn: 'Gourd Encore', lance: 'Triple Poke',
+  gunlance: 'Puffcap Pop', switchaxe: 'Spade Sweep', chargeblade: 'Seedpod Slam', glaive: 'Firefly Twirl', yoyo: 'Round the World', feather: 'Tickle Storm', pogo: 'Boing Bonk', umbrella: 'Brolly Swirl',
+};
+export const FINISHER_KIND: Record<'slow' | 'medium' | 'fast', string> = { slow: '+20 Dizzy', medium: 'parts loosen twice as fast', fast: 'bonks twice' };
 export const ROAR_REACH = 7; // A roar makes friends this close cover their ears; a roll or a guard keeps them going.
 export const INTRO_CARD = 3.2;
 export const ROAR_TIME = 1.1; // Seconds a roar lasts; covered ears last 0.9 seconds.
@@ -118,7 +126,7 @@ export type StoryProgress = { chapter: number; scenesSeen: string[] };
 /** best: the fastest normal (not Extra Grumpy) calm in whole tenths of a second, 0 before the first. */
 export type BeastBook = Record<BeastId, { met: boolean; napped: number; partsBroken: string[]; best: number }>;
 export type Profile = { bountiesClaimed: number; variantNaps: Record<BeastId, number>; totalPlops: number; story: StoryProgress; beastBook: BeastBook; bounties: { day: string; done: string[]; ready: string[] }; extraGrumpyUnlocked: boolean; hero: HeroId | null; weapons: Record<WeaponType, { tier: Tier; branch: Branch | null }>; equipped: Record<HeroId, WeaponType>; armour: { owned: ArmourPieceId[]; worn: Worn }; pouch: Pouch; ring: ItemId[]; snack: SnackId | null; naps: Record<BeastId, number>; won: boolean; hunts: number };
-export type Hero = Vec & { face: number; fluff: number; maxFluff: number; speed: number; roll: number; rollX: number; rollZ: number; rollCd: number; invincible: number; charge: number; swing: number; heavy: boolean; landed: boolean; cooldown: number; slow: number; hidden: number; covered: number };
+export type Hero = Vec & { finisher: boolean; face: number; fluff: number; maxFluff: number; speed: number; roll: number; rollX: number; rollZ: number; rollCd: number; invincible: number; charge: number; swing: number; heavy: boolean; landed: boolean; cooldown: number; slow: number; hidden: number; covered: number };
 export type BeastState = 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'cloud' | 'circle' | 'swoop' | 'sweep' | 'pounce' | 'shake' | 'roar' | 'turf' | 'grabbed' | 'yanked' | 'rest' | 'dizzy' | 'stuck' | 'trudge' | 'snooze' | 'wander' | 'nap';
 export type Beast = Vec & { id: BeastId; grump: number; maxGrump: number; face: number; state: BeastState; t: number; duration: number; attack: BeastState; aim: Vec; start: Vec; dir: Vec; phase: number; cycle: number; dizzy: number; part: number; broken: boolean; bonks: number; flash: number; height: number; grumpy: boolean; drowsy: number; drowsySlow: number; home: 0 | 1 | 2; soft: number; zone: number; away: boolean };
 export type Visitor = Vec & { id: BeastId; face: number; state: 'arrive' | 'face' | 'leave'; t: number; home: Vec };
@@ -133,7 +141,7 @@ export type Cloud = Vec & { life: number; r: number };
 export type Fx = Vec & { id: number; kind: 'bonk' | 'dust' | 'dizzy' | 'berry' | 'part' | 'nap'; t: number; text: string; amount?: number; weak?: boolean; heavy?: boolean };
 export type Ride = { riding: boolean; meter: number; fullBonks: number; phase: 'quiet' | 'warning' | 'buck'; timer: number; grip: boolean; used: number; left: number; pose: number; landing: number; plopped: number };
 const freshRide = (): Ride => ({ riding: false, meter: 0, fullBonks: 0, phase: 'quiet', timer: 0, grip: false, used: 0, left: 0, pose: 0, landing: 0, plopped: 0 });
-export type HuntEvent = { kind: 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shaken-off' | 'plop' | 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'tired' | 'snooze' | 'intro' | 'roar' | 'covered' | 'weather' | 'visitor' | 'turf-warning' | 'turf' | 'vine' | 'cling' | 'soft' | 'yank' | 'wall' | 'sling' | 'plink' | 'fruit' | 'knockdown' | 'hazard-warning' | 'hazard' | 'finch' | 'wander' | 'away' | 'travel' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
+export type HuntEvent = { kind: 'finisher' | 'hop-on' | 'ride-bonk' | 'buck-warning' | 'shaken-off' | 'plop' | 'bonk' | 'dizzy' | 'berry' | 'part' | 'nap' | 'bump' | 'shoot' | 'item' | 'interact' | 'grumpy' | 'tired' | 'snooze' | 'intro' | 'roar' | 'covered' | 'weather' | 'visitor' | 'turf-warning' | 'turf' | 'vine' | 'cling' | 'soft' | 'yank' | 'wall' | 'sling' | 'plink' | 'fruit' | 'knockdown' | 'hazard-warning' | 'hazard' | 'finch' | 'wander' | 'away' | 'travel' | 'sniff' | 'order' | 'gather' | 'trap' | 'craft'; spot?: SpotId };
 export type Mode = 'village' | 'hunt' | 'nap' | 'calm' | 'camp' | 'victory';
 const countRecord = (): Record<BeastId, number> => ({ bristleback: 0, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0 });
 const emptyPouch = () => Object.fromEntries([...MATERIAL_IDS, ...ITEM_IDS].map((id) => [id, 0])) as Pouch;
@@ -142,7 +150,7 @@ const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 export const distance = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.z - b.z);
 const faceTo = (a: Vec, b: Vec) => Math.atan2(-(b.z - a.z), b.x - a.x);
 const direction = (a: Vec, b: Vec): Vec => { const d = distance(a, b) || 1; return { x: (b.x - a.x) / d, z: (b.z - a.z) / d }; };
-const hero = (maxFluff = 100): Hero => ({ x: 0, z: 7, face: Math.PI / 2, fluff: maxFluff, maxFluff, speed: 0, roll: -1, rollX: 0, rollZ: -1, rollCd: 0, invincible: 0, charge: 0, swing: -1, heavy: false, landed: false, cooldown: 0, slow: 0, hidden: 0, covered: 0 });
+const hero = (maxFluff = 100): Hero => ({ finisher: false, x: 0, z: 7, face: Math.PI / 2, fluff: maxFluff, maxFluff, speed: 0, roll: -1, rollX: 0, rollZ: -1, rollCd: 0, invincible: 0, charge: 0, swing: -1, heavy: false, landed: false, cooldown: 0, slow: 0, hidden: 0, covered: 0 });
 const buddy = () => ({ x: -1.5, z: 8.5, face: Math.PI / 2, speed: 0, swing: -1, cooldown: 1, berry: 3, gather: 0, gatherT: 0, fluff: 100, maxFluff: 100 });
 export const plural = (n: number, name: string) => n === 1 ? name : name.endsWith('y') ? `${name.slice(0, -1)}ies` : `${name}s`;
 /** Distance from a point to a finite marked attack lane. */
@@ -161,8 +169,8 @@ const areaTable = (kind: Obstacle['kind'], shift: number): Obstacle[] => [
   { x: -6 - shift, z: -9, r: 1.3, kind: 'rock' }, { x: 7, z: 8 + shift, r: 1.1, kind: 'rock' },
 ];
 export const AREA_OBSTACLES: Record<AreaId, Obstacle[]> = { meadow: [], paddock: areaTable('tree', 0).slice(0, 18), marsh: areaTable('tree', 1), ridge: areaTable('pine', 2), hollow: areaTable('rock', 3), peak: areaTable('pine', 4) };
-export type HuntFacts = { items: number; bumps: number; gathered: number; dizzies: number; napped: boolean };
-const freshFacts = (): HuntFacts => ({ items: 0, bumps: 0, gathered: 0, dizzies: 0, napped: false });
+export type HuntFacts = { items: number; bumps: number; gathered: number; dizzies: number; napped: boolean; finishers: number };
+const freshFacts = (): HuntFacts => ({ items: 0, bumps: 0, gathered: 0, dizzies: 0, napped: false, finishers: 0 });
 export const BOUNTY_BUNDLE = { berry: 3, 'bristle-tuft': 2, 'wart-pebble': 2 };
 export const BOUNTIES: { id: string; title: string; check: (f: HuntFacts, b: Beast) => boolean }[] = [
   { id: 'no-items', title: 'Calm a beast without using items', check: (f) => f.napped && f.items === 0 },
@@ -301,6 +309,10 @@ export class HuntGame {
   revived = false;
   extraRoll = true;
   private swingCharge = 0;
+  /** Swings in the current string (0–2) and the seconds left to start the next one in rhythm. */
+  combo = 0;
+  comboTimer = 0;
+  private partBoost = 1;
   private guarding = false;
   stamina = 100;
   guardTime = 0;
@@ -570,7 +582,7 @@ export class HuntGame {
   private resetWeapons() {
     this.giggle = 0; this.fluffTime = 0; this.breath = 0; this.bounce = 0; this.float = 0; this.featherFlurry = false; this.bounceLanding = false;
     this.bloom = false; this.ammo = 0; this.songKind = 0; this.swingCharge = 0;
-    this.focus = 0; this.zoom = 5; this.pods = 0; this.notes = 0; this.song = 0; this.glow = 0; this.hits = 0; this.buddyHits = 0; this.revived = false; this.extraRoll = true; this.stamina = 100; this.guardTime = 0; this.counter = 0; this.poof = 0; this.flurry = 0; this.itemRecovery = 0; this.vault = 0; this.mist = 0; this.stickyHits = 0; this.shotsFired = 0; this.loaded = 6; this.glowColors = 0; this.ride = freshRide(); this.loop = false; this.rideRelease = false; this.plopNote = '';
+    this.combo = 0; this.comboTimer = 0; this.partBoost = 1; this.focus = 0; this.zoom = 5; this.pods = 0; this.notes = 0; this.song = 0; this.glow = 0; this.hits = 0; this.buddyHits = 0; this.revived = false; this.extraRoll = true; this.stamina = 100; this.guardTime = 0; this.counter = 0; this.poof = 0; this.flurry = 0; this.itemRecovery = 0; this.vault = 0; this.mist = 0; this.stickyHits = 0; this.shotsFired = 0; this.loaded = 6; this.glowColors = 0; this.ride = freshRide(); this.loop = false; this.rideRelease = false; this.plopNote = '';
     this.buddy.cooldown = 0; this.buddy.swing = -1;
     this.chargeHold = 0; this.hero.cooldown = 0; this.hero.heavy = false; this.hero.landed = false;
     this.guarding = false; this.nextDizzy = 0; this.vaultHold = 0; this.guardCombo = false; this.buddyShots = 0; this.hero.charge = 0; this.hero.swing = -1;
@@ -656,7 +668,7 @@ export class HuntGame {
     if (buddy && ++this.buddyHits % 10 === 0 && perk('warm-glow')) this.healFriends(10);
     if (!buddy) { this.hits++; if (this.weapon() !== 'switchaxe' || this.bloom) this.focus = Math.min(100, this.focus + 20 * (1 + perk('focus-fill') + perk('bloom-fill'))); if (!this.bloom) this.pods = Math.min(3 + perk('extra-pod'), this.pods + 1); this.notes++; this.zoom = Math.min(5, this.zoom + 0.5); if (perk('warm-glow') && this.hits % 10 === 0) this.healFriends(10); }
     const soft = b.soft > 0, weak = b.id === 'hornclack' ? Math.abs(front) < 0.3 : front > 0.45, amount = power * (wasDizzy ? 1.7 : wasSnoozing ? 2 : 1) * (soft ? 1.2 : 1) * (weak ? WEAK_SPOT : 1);
-    b.grump = Math.max(0, b.grump - amount); b.flash = 0.18; b.bonks++; b.part += amount * (1 + perk('part-power') + perk('pop-parts')) * (soft ? 1.5 : 1);
+    b.grump = Math.max(0, b.grump - amount); b.flash = 0.18; b.bonks++; b.part += amount * (1 + perk('part-power') + perk('pop-parts')) * (soft ? 1.5 : 1) * (buddy ? 1 : this.partBoost);
     if (b.id === 'frostmane') {
       const next = b.grump < b.maxGrump / 3 ? 3 : b.grump < b.maxGrump * 2 / 3 ? 2 : 1;
       if (next > b.phase && b.grump > 0) { b.phase = next; this.note = `Frostmane mood ${next}: ${next === 2 ? 'watch for the icy mane shake' : 'quick pounces, with a warning before each one'}!`; }
@@ -664,7 +676,7 @@ export class HuntGame {
     this.moods(b);
     if (wasSnoozing && b.grump > 0) { b.state = 'rest'; b.t = 0; b.duration = 1.5; b.home = 2; this.note = 'Wake-up bonk! Double Grump off. Back to the hunt!'; }
     if (!buddy) { this.hitstop = heavy ? 0.11 : 0.08; this.shake = heavy ? 0.3 : 0.15; if (this.hero.hidden > 0) { this.hero.hidden = 0; this.note = 'Peekaboo! The bonk gave away your smoky hiding spot.'; } }
-    this.events.push({ kind: 'bonk' }); this.effect('bonk', b, wasDizzy ? 'Big bonk!' : wasSnoozing ? 'Wake-up bonk!' : weak ? 'Weak spot!' : 'Bonk!', { amount, weak, heavy: heavy || wasDizzy || wasSnoozing });
+    this.events.push({ kind: 'bonk' }); this.effect('bonk', b, wasDizzy ? 'Big bonk!' : wasSnoozing ? 'Wake-up bonk!' : weak ? 'Weak spot!' : 'Bonk!', { amount, weak, heavy: heavy || wasDizzy || wasSnoozing || !buddy && this.hero.finisher && this.hero.swing >= 0 });
     const shed = rollShed(() => this.random(), b.id); if (shed) this.drop(b, shed, 1);
     if (!b.broken && b.part >= b.maxGrump * 0.32) { b.broken = true; this.rememberPart(); this.drop(b, PART_DROP[b.id].id, PART_DROP[b.id].count); this.events.push({ kind: 'part' }); this.effect('part', b, `${BEASTS[b.id].part} popped off!`); }
     if (!buddy && perk('sleepy-puff')) { this.mist = 2; this.nextDizzy = perk('sleepy-puff') / 2; }
@@ -743,7 +755,7 @@ export class HuntGame {
         h.invincible = 0.3; return false;
       }
     }
-    this.huntFacts.bumps++;
+    this.huntFacts.bumps++; this.combo = 0; this.comboTimer = 0;
     h.fluff = Math.max(0, h.fluff - amount);
     if (h.fluff <= 0 && this.skill('warm-heart') && !this.revived) { this.revived = true; h.fluff = h.maxFluff / 2; this.effect('berry', h, 'Warm Heart! Back on your paws.'); } h.invincible = 1.4; this.gathering = null;
     const d = direction(from, h), push = this.skill('charge-guard') && this.beast?.state === 'charge' ? 0 : (this.skill('steady-paws') ? 0.9 : 1.5) * (this.song > 0 && this.songKind === 1 || this.glow > 0 && this.glowColors === 3 ? 0.5 : 1); this.move(h, d.x * push, d.z * push, 0.45); this.shake = 0.24;
@@ -898,13 +910,22 @@ export class HuntGame {
   }
   private attack(heavy: boolean, loop = false) {
     const h = this.hero;
-    if (h.cooldown > 0 || h.roll >= 0 || h.swing >= 0) return;
-    this.loop = loop; this.swingCharge = h.charge;
+    if (h.cooldown > 0 || h.roll >= 0 || h.swing >= 0) return false;
+    this.loop = loop; this.swingCharge = h.charge; h.finisher = false;
     h.heavy = heavy; h.swing = 0; h.landed = false; h.cooldown = this.weapon() === 'hammer' ? heavy ? 0.95 : 0.67 : this.weapon() === 'bow' ? heavy ? 0.8 : 0.43 : ({ slow: 0.85, medium: 0.55, fast: 0.3 }[WEAPON_TYPES[this.weapon()].speed]);
     if (this.weapon() === 'pogo' && !heavy) this.move(h, Math.cos(h.face) * 0.6, -Math.sin(h.face) * 0.6, 0.45);
     if (this.weapon() === 'claws' && this.zoom > 0) h.cooldown /= 1.3;
     if (this.weapon() === 'switchaxe' && this.bloom) h.cooldown *= 0.7;
     if (this.beast) h.face = faceTo(h, this.beast);
+    return true;
+  }
+  /** A J swing. Melee tools count it towards a three-swing string; the third is the finisher. */
+  private jab() {
+    const h = this.hero, name = FINISHERS[this.weapon()];
+    if (!this.attack(false) || !name) return;
+    this.combo = this.comboTimer > 0 ? this.combo + 1 : 1;
+    if (this.combo >= 3) { this.combo = 0; h.finisher = true; h.cooldown *= FINISHER_RECOVERY; }
+    this.comboTimer = h.cooldown + COMBO_WINDOW;
   }
   private healFriends(amount: number) { if (amount <= 0) return; this.effect('berry', this.hero, `+${amount} Fluff for both friends`); this.hero.fluff = Math.min(this.hero.maxFluff, this.hero.fluff + amount); this.buddy.fluff = Math.min(this.buddy.maxFluff, this.buddy.fluff + amount); }
   private signature(charge: number) {
@@ -950,7 +971,15 @@ export class HuntGame {
     if (type === 'yoyo' && b.id === 'hornclack') this.addDizzy(this.perk('shell-dizzy'));
     if (type === 'lance' && (this.guarding || heavy)) power *= 1 + this.perk('guard-bonk');
     if (type === 'hammer' && heavy && this.swingCharge >= 1 && this.perk('shockwave')) { this.effect('dust', b, 'Shockwave!'); }
-    const landed = this.bonkBeast(power * this.weaponScale(type), heavy, this.hero);
+    const finisher = !heavy && this.hero.finisher && this.hero.swing >= 0 && !!FINISHERS[type], speed = WEAPON_TYPES[type].speed;
+    if (finisher) { power *= FINISHER_POWER; if (speed === 'medium') this.partBoost = 2; }
+    const landed = this.bonkBeast(power * this.weaponScale(type), heavy, this.hero); this.partBoost = 1;
+    if (finisher && landed) {
+      this.huntFacts.finishers++; this.events.push({ kind: 'finisher' }); this.hitstop = Math.max(this.hitstop, 0.11); this.shake = Math.max(this.shake, 0.3);
+      this.note = `${FINISHERS[type]}! ${speed === 'slow' ? '+20 Dizzy.' : speed === 'medium' ? 'Parts loosen twice as fast.' : 'Two bonks in one.'}`;
+      if (speed === 'fast' && this.mode === 'hunt') this.bonkBeast(power / FINISHER_POWER * this.weaponScale(type), false, this.hero);
+      if (speed === 'slow' && this.mode === 'hunt' && b.state !== 'dizzy') this.addDizzy(FINISHER_DIZZY, false);
+    }
     if (landed && type === 'umbrella' && heavy) { const heal = this.perk('spin-heal'); this.buddy.fluff = Math.min(this.buddy.maxFluff, this.buddy.fluff + heal); }
     if (type === 'feather' && this.featherFlurry) { this.featherFlurry = false; this.bonkBeast(power * this.weaponScale(type), false, this.hero); }
     if (type === 'yoyo' && this.perk('loop-gather')) this.collect(true);
@@ -991,7 +1020,7 @@ export class HuntGame {
     this.ride.pose = Math.max(0, this.ride.pose - dt); this.ride.landing = Math.max(0, this.ride.landing - dt); this.ride.plopped = Math.max(0, this.ride.plopped - dt);
     if (this.ride.riding) { this.stepRide(dt, input); return; }
     if (h.covered > 0) { h.covered = Math.max(0, h.covered - dt); h.speed = 0; return; }
-    this.vineCd = Math.max(0, this.vineCd - dt);
+    this.vineCd = Math.max(0, this.vineCd - dt); this.comboTimer = Math.max(0, this.comboTimer - dt);
     if (this.vine) { this.stepVine(dt, input); return; }
     if (pressed('grab') && this.mode === 'hunt') { this.throwVine(); if (this.vine) return; }
     if (pressed('sling') && this.mode === 'hunt') this.sling();
@@ -1054,7 +1083,7 @@ export class HuntGame {
       else if ((this.gathering.t += dt) >= GATHER_TIME) { this.gathering = null; this.gather(spot, h); }
     }
     if (pressed('roll') && h.rollCd <= 0 && this.rockHop(input.x, input.z) && this.startRide()) return;
-    if (pressed('roll') && (h.rollCd <= 0 || this.skill('updraft') && this.extraRoll && h.roll >= 0)) { if (h.rollCd > 0) this.extraRoll = false; this.loaded = 6; h.roll = 0; h.rollCd = 0.85; h.rollX = len > 0.1 ? dx : Math.cos(h.face); h.rollZ = len > 0.1 ? dz : -Math.sin(h.face); h.swing = -1; h.charge = 0; this.effect('dust', h); }
+    if (pressed('roll') && (h.rollCd <= 0 || this.skill('updraft') && this.extraRoll && h.roll >= 0)) { if (h.rollCd > 0) this.extraRoll = false; this.loaded = 6; this.combo = 0; this.comboTimer = 0; h.roll = 0; h.rollCd = 0.85; h.rollX = len > 0.1 ? dx : Math.cos(h.face); h.rollZ = len > 0.1 ? dz : -Math.sin(h.face); h.swing = -1; h.charge = 0; this.effect('dust', h); }
     if (h.roll >= 0) {
       h.roll += dt; const speed = 6 + 6 * (1 - Math.min(1, h.roll / 0.46)); this.move(h, h.rollX * speed * dt, h.rollZ * speed * dt, 0.45); h.speed = 7;
       if (h.roll >= 0.46) { h.roll = -1; if (this.weapon() === 'umbrella') this.float = 0.46; }
@@ -1065,7 +1094,7 @@ export class HuntGame {
       if (this.mode === 'hunt') {
         if (input.charge && h.swing < 0 && h.cooldown <= 0) h.charge = Math.min(1.4, h.charge + dt * (1 + this.perk('charge-speed')));
         else if (!input.charge && this.last.charge) { if (!guardTool || this.guardCombo || releasedHold < 0.2) this.signature(h.charge); h.charge = 0; this.guardCombo = false; }
-        else if (input.bonk && !input.charge && this.bounce <= 0) this.attack(false);
+        else if (input.bonk && !input.charge && this.bounce <= 0) this.jab();
       }
     }
     if (h.swing >= 0) {
@@ -1079,7 +1108,7 @@ export class HuntGame {
         if (this.ride.riding) return;
         this.effect('dust', h);
       }
-      if (h.swing > (['hammer', 'bow'].includes(this.weapon()) ? !this.ranged() ? 0.6 : 0.35 : WEAPON_TYPES[this.weapon()].speed === 'fast' ? 0.2 : 0.4)) h.swing = -1;
+      if (h.swing > (['hammer', 'bow'].includes(this.weapon()) ? !this.ranged() ? 0.6 : 0.35 : WEAPON_TYPES[this.weapon()].speed === 'fast' ? 0.2 : 0.4)) { h.swing = -1; h.finisher = false; }
     }
     if (this.beast && this.mode === 'hunt' && distance(h, this.beast) < 1.85) {
       const gap = distance(h, this.beast), d = gap < 0.0001 ? { x: 1, z: 0 } : direction(this.beast, h);
