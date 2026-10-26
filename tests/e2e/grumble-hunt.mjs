@@ -283,8 +283,16 @@ try {
     assert(metrics.calls < 400); assert(metrics.triangles < 250000);
     const backend = await p.evaluate(() => { const gl = document.querySelector('canvas[data-testid="hunt-canvas"]').getContext('webgl2'); const ext = gl.getExtension('WEBGL_debug_renderer_info'); return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : 'unavailable'; });
     const result = { backend, viewport: '390x844', deviceScaleFactor: 3, cpuThrottle: 4, frames: deltas.length, medianFrameMs: Number(deltas[Math.floor(deltas.length / 2)].toFixed(1)), ...metrics };
-    writeFileSync('.checks/hunt/performance.json', JSON.stringify(result, null, 2)); console.log('Phone emulation:', JSON.stringify(result));
     assert(deltas.length >= 2, 'the scene keeps drawing under throttling');
+    // The busiest post-game hunts on the phone: each newer beast as a Mighty beast, in full weather, with a wild visitor in.
+    result.worst = {};
+    for (const id of ['paddlepaw', 'rumblesnout']) {
+      await hunt(p, (w, a) => { const g = w.game; g.returnVillage(); g.story.chapter = 6; g.profile.beastBook[a].met = true; g.startHunt(a); g.beast.mighty = true; g.roared = g.introduced = true; g.buddy.cooldown = 100; g.beast.state = 'rest'; g.beast.duration = 100; g.huntTime = g.weatherClear + g.weatherSpell / 2; g.visitAt = g.huntTime + 0.2; }, id);
+      await p.waitForFunction(() => { const w = window.__hunt(), m = w.metrics(); return w.game.stormy && m.visitor; }, null, { timeout: 15000 });
+      await p.waitForTimeout(300); const m = await hunt(p, (w) => w.metrics()); result.worst[id] = { calls: m.calls, triangles: m.triangles, area: m.area, weather: m.weather };
+      assert(m.calls < 400, `${id}: ${m.calls} draw calls`); assert(m.triangles < 250000, `${id}: ${m.triangles} triangles`); await snapshot(p, `phone-${id}`);
+    }
+    writeFileSync('.checks/hunt/performance.json', JSON.stringify(result, null, 2)); console.log('Phone emulation:', JSON.stringify(result));
   }, { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 });
 
   await check('a tree between the camera and the leader shrinks its canopy away', async (p) => {

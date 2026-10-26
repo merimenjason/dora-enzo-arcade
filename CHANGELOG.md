@@ -2,6 +2,16 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 27-10-2026
+
+### Added
+
+- **Grumble Hunt**'s epilogue has its own painting now: Paddlepaw splashing in and Rumblesnout popping out of a molehill at Clover Camp.
+
+### Documentation
+
+- **Grumble Hunt**'s design notes (`docs/grumble-hunt.md`) are now one current reference, with sections for strings, charms, the quest board, Mighty beasts, the post-game beasts and the Beast Book, the latest test and phone-budget results, and a short history in place of 25 dated run logs.
+
 ## 26-10-2026
 
 ### Added

@@ -1,6 +1,6 @@
 # Grumble Hunt
 
-Built 24-10-2026 as game 39, at `/hunt`, from `grumble-hunt-base`.
+Built 24-10-2026 as game 39, at `/hunt`, from `grumble-hunt-base`. This is the reference for how the game works now; the **History** section at the end lists when each part arrived.
 
 ## A gentle adventure
 
@@ -10,7 +10,9 @@ Clover Camp has four stations, reachable on foot with F or through the camp butt
 
 Each hunt uses its chapter’s area, with trees, pines and rocks; the original meadow keeps its seeded layout. There is no time limit. Bonks lower Grump. At zero, the beast folds its legs and curls up, rests for a moment, and goes to the sanctuary. Beasts are never hurt.
 
-## The five friends
+## The beasts
+
+Five beasts carry the story, and two more arrive after it (see **Post-game beasts**).
 
 | Beast | Starting Grump | Movement and openings | Material | Pop-off part |
 | --- | ---: | --- | --- | --- |
@@ -19,10 +21,12 @@ Each hunt uses its chapter’s area, with trees, pines and rocks; the original m
 | Skreel | 400 | Circles in the air, swoops along a lane, then lands for a 4.5-second rest | Sky feathers | Crest |
 | Hornclack | 560 | Its front shell blocks bonks; circle to the sides or back. Sweeps its horn and charges | Shell buttons | Horn cap |
 | Frostmane | 840 | Pounces in mood 1, adds an icy mane shake in mood 2, and favours quick pounces in mood 3 | Frost fluff | Mane tufts |
+| Paddlepaw (post-game) | 700 | Belly-slides down a marked lane (a tree makes it dizzy), splashes three water lanes, hops | Otter fluff | Pebble pouch |
+| Rumblesnout (post-game) | 760 | Burrows under an orange circle and pops up inside it, sweeps, charges | Striped fur | Pebble crown |
 
 Charges and swoops stop at the end of their 12-unit marked lane. The final-hunt unlock banner appears only on the result that earned the third different nap.
 
-Every attack has a **0.9-second** wind-up (0.8 seconds when Extra Grumpy) and an orange ground marker. Frostmane changes mood below two-thirds and one-third Grump; its later rests become shorter. The mane shake pushes the leader away. A sleepy cloud lasts five seconds and slows movement while inside; it never lowers Fluff.
+Every attack, including each Mighty move and Rumblesnout's burrow, has a **0.9-second** wind-up (0.8 seconds when Extra Grumpy) and an orange ground marker. Frostmane changes mood below two-thirds and one-third Grump; its later rests become shorter. The mane shake pushes the leader away. A sleepy cloud lasts five seconds and slows movement while inside; it never lowers Fluff.
 
 At tier one, Dizzy builds from two big hammer bonks or big bow shots; buddy bonks help a little. Hits during dizzy do not build the next dizzy. A crash or dizzy dust also makes a beast dizzy, providing at least three seconds of opportunity. Bonks during dizzy are 1.7 times as large. Hornclack’s front shell is open during dizzy. Dora’s hammer reaches Skreel when it is low; the bow can reach it in the air.
 
@@ -68,7 +72,7 @@ The Beast Book shows each reference picture, sanctuary status, home area, pop-of
 
 ## The Pantry
 
-The second step of the expansion. The Pantry is a striped market stall at Clover Camp. Items are now made, not handed out, and the pouch persists between hunts.
+The Pantry is a striped market stall at Clover Camp. Items are now made, not handed out, and the pouch persists between hunts.
 
 **Gathering.** Each hunt places gathering spots around the meadow by the seeded generator, at 6–15 units from the middle, clear of trees and rocks and at least 3 units apart. Each beast lives in an area: Bristleback in the meadow (3 berry bushes), Puffwart in the marsh (2 bushes, 4 reed clumps), Skreel on the ridge (2 bushes, a glimmer sparkle half the time), Hornclack in the hollow (2 bushes, 1 reed clump, a glimmer half the time) and Frostmane on the peak (2 bushes, a glimmer three times in four). Each bush or reed clump gives 2, a glimmer 1. Stand within 1.8 units, press **F** (or the Gather button) and stay still for 1.2 seconds; moving, rolling, bonking, charging or a bump stops it. A cream ring marks the spot in reach and fills as you gather; a picked spot loses its berries, cattails or crystals. On the Gather order the buddy visits spots after any drops.
 
@@ -99,9 +103,9 @@ The rack and weapon tab show a live 3D preview of the selected friend holding th
 
 **Moves:** J bonks or shoots with the equipped tool. Hold K and release for a big swing, shot, Poof or Focus Spin. Tap K for a shield bash, a Swish Counter window, Spade/Bloom or Seedpod mode, a horn song, a firefly glow, or an ammo change with the bow and slingshot. Holding K guards with the Greatsword, Lance, Puffcap, Seedpod shield or Pumpkin shell. A K tap under 0.2 seconds uses a signature; releasing a longer guard only ends the guard. Hold J+K, then release K for Big Finish, Big Poof or a timely Lance Counter Boop. Touch uses Bonk and “Hold · big” together for these moves. Slingshots reload with a roll. Hold J for at least 0.35 seconds with the Staff to vault; hold K standing still with the Pumpkin for its Flurry. Tool meters appear below the Fluff bar. Loop-the-Loop with the Yo-yo starts Hop-on when it connects with a dizzy or sap-stuck beast.
 
-**Armour:** the armour tab makes a helm, vest or boots from any of the five sets. Each costs 3 beast commons and 1 part (helm/boots) or rare (vest). Click an owned piece to wear or remove it; pieces may be mixed. Bristle adds 10 Fluff per piece, Puffwart 8, Skreel 7, Hornclack 12 and Frostmane 10. Two matching pieces activate their first skill, three add the second: reduced push / charge protection, weaker sleepy clouds / faster item recovery, longer roll dodges / an extra roll, side guarding / head Dizzy, or distant Fluff regeneration / one half-Fluff recovery from tuckered out. The Forge lists active skills. Caps, vests and boots are small coloured toon accessories.
+**Armour:** the armour tab makes a helm, vest or boots from any of the seven beast sets; the golden Mighty set is described under **Post-game**. Each costs 3 beast commons and 1 part (helm/boots) or rare (vest). Click an owned piece to wear or remove it; pieces may be mixed. Bristle adds 10 Fluff per piece, Puffwart 8, Skreel 7, Hornclack 12, Frostmane 10, Paddlepaw 11 and Rumblesnout 12. Two matching pieces activate their first skill, three add the second: reduced push / charge protection, weaker sleepy clouds / faster item recovery, longer roll dodges / an extra roll, side guarding / head Dizzy, distant Fluff regeneration / one half-Fluff recovery from tuckered out, River Rest / Soft Landing (Paddlepaw) or Pebble Pouch / Dizzy Dig (Rumblesnout). The Forge lists active skills. Caps, vests and boots are small coloured toon accessories.
 
-Weapon geometry is ported from `docs/grumble-hunt/look-test/main.ts.txt` into `lib/grumble-hunt-weapons.ts`, with the original hammer pose and transformed handle grips. The first hammer, claws and bow icons use `icons-gear.webp`: there is no `icons-weapons-1.webp` in this checkout. Lance, Wand and Yo-yo use sheet 2; the other types use sheets 3–5. The gear sheet contains Bristle and Puffwart armour icons, reused for the other sets alongside their explicit names.
+Weapon geometry is ported from `docs/grumble-hunt/look-test/main.ts.txt` into `lib/grumble-hunt-weapons.ts`, with the original hammer pose and transformed handle grips. The first hammer, claws and bow icons use `icons-gear.webp`: there is no `icons-weapons-1.webp` in this checkout. Lance, Wand and Yo-yo use sheet 2; the other types use sheets 3–5. The gear sheet holds the Bristle and Puffwart armour icons (cells 9–14); `icons-armour.webp` holds the other five sets, three cells each in the order Skreel, Hornclack, Frostmane, Paddlepaw, Rumblesnout, and `icons-charms.webp` holds the charms and the Mighty pieces.
 
 ## Hop-on
 
@@ -113,7 +117,7 @@ Only the leader rides; the buddy keeps its own ground position, equipment and bo
 
 The first warning starts **1.2–1.6 seconds** into the ride. Every buck warns **0.65 seconds** ahead with a tense squash, orange shake mark, sound and “Hold on! (K)”. Bucks last **0.3 seconds**, or **0.5 seconds for Frostmane**. Subsequent buck starts are **1.6–2.6 seconds** apart, from the seeded generator. Letting go during a buck gives a soft landing, **1 second of invincibility**, no Fluff loss, and leaves the meter visible in engine state until another ride or hunt reset. Roll hops off freely at any time. A new ride starts with an empty meter.
 
-**Time and plop.** The ride ends when the current dizzy / sap timer ends or after **8 seconds**, whichever comes first. Boarhog Spinner’s Long Hop adds **2 seconds** to both the cap and the current dizzy / sap duration at entry. Three full bonks make a **plop**: +30 Dizzy, a fresh **3.2-second** dizzy opening, a seeded part chance of `min(1, part / (maxGrump × 0.32))` if the part has not already popped, and **2 commons** chosen uniformly from that beast’s calm-drop commons through the seeded generator. The plop adds no extra Grump reduction. The beast tips sideways with stars, the leader hops off, and the result card remembers the plop reward. All ride state resets at village, camp, nap or tuckered out; rides are not saved; permanent progress now uses `grumble-hunt-v4`.
+**Time and plop.** The ride ends when the current dizzy / sap timer ends or after **8 seconds**, whichever comes first. Boarhog Spinner’s Long Hop adds **2 seconds** to both the cap and the current dizzy / sap duration at entry. Three full bonks make a **plop**: +30 Dizzy, a fresh **3.2-second** dizzy opening, a seeded part chance of `min(1, part / (maxGrump × 0.32))` if the part has not already popped, and **2 commons** chosen uniformly from that beast’s calm-drop commons through the seeded generator. The plop adds no extra Grump reduction. The beast tips sideways with stars, the leader hops off, and the result card remembers the plop reward. All ride state resets at village, camp, nap or tuckered out; rides are not saved.
 
 ## Story mode · The Grumble Wind
 
@@ -144,9 +148,9 @@ Area ground, sky and card textures are disposed when switching, including late l
 
 ## Post-game
 
-The ending unlocks **Extra Grumpy variants** on the hunt board: **×1.6 Grump**, **×2 rare-roll probability** (capped at 100%), and a new coat colour. The colours are blond Bristleback, blue Puffwart, lavender Skreel, peach Hornclack and rose Frostmane. The usual below-30% enrage still applies, with its 15% pace increase and 0.8-second warning. Variants use the ordinary beast's material table and can still benefit from Lucky Seed Bun's extra roll.
+The ending unlocks **Extra Grumpy variants** on the hunt board: **×1.6 Grump**, **×2 rare-roll probability** (capped at 100%), and a new coat colour. The colours are blond Bristleback, blue Puffwart, lavender Skreel, peach Hornclack, rose Frostmane, teal Paddlepaw and tan Rumblesnout. The usual below-30% enrage still applies, with its 15% pace increase and 0.8-second warning. Variants use the ordinary beast's material table and can still benefit from Lucky Seed Bun's extra roll.
 
-**Wren's bounty board** offers three distinct tasks from a pool of ten: a nap without items, Bristleback tusks, Puffwart sac, Skreel crest, Hornclack horn cap, Frostmane mane, a nap without a bump, three gathering spots, three dizzy openings, or any lovely nap. Checks use actual hunt facts, including the buddy's gathering. Tasks are checked when the beast naps. Each claim gives **3 berries, 2 bristle tufts and 2 wart pebbles**, subject to pouch caps, once per task that day. Ready and claimed tasks persist across reloads. These are optional favours; no story progress requires them.
+**Wren's bounty board** offers three distinct tasks from a pool of thirteen: a nap without items, Bristleback tusks, Puffwart sac, Skreel crest, Hornclack horn cap, Frostmane mane, Paddlepaw's pebble pouch, Rumblesnout's pebble crown, a nap without a bump, three gathering spots, three dizzy openings, watching a turf bonk, or any lovely nap. Checks use actual hunt facts, including the buddy's gathering. Tasks are checked when the beast naps. Each claim gives **3 berries, 2 bristle tufts and 2 wart pebbles**, subject to pouch caps, once per task that day. Ready and claimed tasks persist across reloads. These are optional favours; no story progress requires them.
 
 The page passes a local-calendar `YYYY-MM-DD` string to the engine and updates it at midnight (checked once a minute). A separate date-seeded shuffle picks the same three tasks for the same date without advancing hunt randomness. Changing the day clears ready and claimed tasks. Browser checks can set a fixed date with `window.__hunt().game.setBountyDay(...)`.
 
@@ -178,9 +182,9 @@ Four more Grumble Hunt originals open after the story ends (chapter 5 cleared), 
 | Weapon | Speed | Tier 1 Bonk / Dizzy | Unlock |
 | --- | --- | --- | --- |
 | **Tickle Feather** | fast | 3 / 6 | Claim **5** of Wren's bounties (counted across days) |
-| **Dandelion Puffer** | medium | 4 / 7 | Calm each of the **five** Extra Grumpy variants once |
+| **Dandelion Puffer** | medium | 4 / 7 | Calm each of the **five** story beasts' Extra Grumpy variants once |
 | **Pogo Spring** | medium | 8 / 5 | **10** Hop-on plops in total |
-| **Leaf Umbrella** | medium | 6 / 5 | The Beast Book shows every part broken on all **five** beasts |
+| **Leaf Umbrella** | medium | 6 / 5 | The Beast Book shows every part broken on all **five** story beasts |
 
 - **Tickle Feather.** Each leader hit fills the **Giggle** meter by 12 (15 on a beast that's already dizzy). At 100 the beast giggle-dizzies for **3 s** and the meter empties. A K tap is a double-tickle flurry: one swing that lands twice. Branch A perks fill Giggle 25% faster.
 - **Dandelion Puffer.** J blows a cone **3.5 units** long and **60°** wide. Fluff clings to the beast and adds **2 Dizzy per second for 3 s**; another puff refreshes the time but doesn't stack it. Hold K past 0.35 s and release for a **Big Breath**: a 120°, 4.5-unit gust that adds **+15 Dizzy** and pushes the beast back **2.5 units**, stopping short of trees, rocks and the arena edge, then a **6 s** recharge. While it recharges the seed clock visibly thins out. Branch A widens the cone 25%; branch B makes fluff cling 1 s longer.
@@ -189,28 +193,83 @@ Four more Grumble Hunt originals open after the story ends (chapter 5 cleared), 
 
 Each has the usual tree: tiers 1–2, branch A (Frostmane materials) or B (Hornclack) at tier 3, tier 4, and the Glimmer tier 5 with Warm Glow. Tier 2 costs 3 frost fur, 2 shell plates and 2 bristle tufts; the higher tiers are priced like every other tree. Their single-hit numbers sit inside the existing weapons' range and scale by `TIER_MULT`. The buddy can carry any of them and uses J only. Buddy hits never touch the leader's Giggle meter.
 
+## Strings and finishers
+
+Melee tools chain J swings into a three-hit string: start each swing within 0.6 seconds of the last one recovering (`COMBO_WINDOW`, 0.9 s with Mighty Rhythm), and the third is the tool's finisher (`FINISHERS`). It hits 1.5 times as hard and recovers 1.3 times slower. Slow tools add 20 Dizzy, medium tools loosen parts twice as fast, and fast tools bonk a second time at base power. A roll, a bump or a late swing starts the string again. The bows, the Bubble Wand and the Dandelion Puffer have no string. The HUD shows three pips after Stamina, and the Forge names each tool's finisher.
+
+## Charms
+
+The Forge's Charms tab opens in chapter 2 (`CHARM_CHAPTER`). There are three charms (`CHARMS`), each with levels I to III, and one is worn at a time. Clover adds +1/+1/+2 common materials to every nap reward, with +0/+1/+1 extra rare rolls. Acorn adds +10/+20/+30 Fluff. Feather makes rolls recover 15/30/45% faster and brings the vine back 2/4/6 s sooner. Level I costs only materials; levels II and III also cost 2 and 5 quest stars. The first charm made is worn straight away. Charms are made and worn only at camp, and a bad level in a save is clamped to 0–3. Their painted icons are `icons-charms.webp` cells 0–11 (four cells a charm, one per level).
+
+## Quest board
+
+Old Mossback's quest board sits under the free hunts. `QUESTS` has eleven quests from chapter 2 to 6, then the Mighty quests and the finale:
+
+- **Timed calms:** Speedy Snooze (Bristleback, 90 s), Frosty Sprint (Frostmane, 240 s) and Slippery Sprint (Paddlepaw, 180 s). Running out of time doesn't stop the hunt.
+- **Goals:** Paws Only (no vine), Feather Duster (a pebble knockdown), Shell Rhythm (three finishers) and Featherlight (three bumps or fewer).
+- **Two-beast quests:** Double Trouble, Sky and Shell, Peak Parade, and Splash and Dig. The second beast arrives 11 steps across the zone, with full Grump, and roars hello.
+
+A quest opens once its chapter is reached and every beast in it has been met (`freeHuntOpen`). A success pays 1 to 3 stars and a bundle of materials every time, and counts in `profile.quests`. A miss still ends in a nap and the normal reward, and the result card says what was missed. Tuckering out drops the quest.
+
+**Mighty quests.** Seven Mighty quests (`mighty-<beast>`) open once the story is done and three other quests have been finished (`MIGHTY_AT`). A Mighty beast has `MIGHTY_GRUMP` (2) times the Grump, twice the rare chance, a golden glow, is drawn 15% bigger, and adds one move to its pattern (`MIGHTY_MOVES`, names in `MIGHTY_NAMES`):
+
+- **Double Dash** (Bristleback): two charges, each with its own full wind-up and orange lane.
+- **Bubble Rain** (Puffwart), **Icicle Rain** (Frostmane) and **Pebble Shower** (Rumblesnout): orange circles of radius 2.2 (`RAIN_REACH`), one on the leader and the rest in a ring 3.6 away.
+- **Feather Fan** (Skreel): three lanes 11 long and 2.2 wide, 0.55 rad apart.
+- **Shell Spin** (Hornclack) and **Whirlpool Spin** (Paddlepaw): a circle of radius 6 (`SPIN_REACH`).
+
+A Mighty calm pays 3 stars and a bundle, and keeps its own best time (`mightyBest`). On the hunt board, a beast whose Mighty quest is open wears a gold "Mighty quest open!" badge, or "✓ Mighty calmed" once it's done.
+
+**The finale.** Old Mossback's last quest, **Best of Friends** (`finale`), opens once Mighty Rumblesnout and Mighty Paddlepaw have both been calmed (`Quest.needs`; until then the board names them). It is a Mighty Rumblesnout, then a Mighty Paddlepaw that wanders in for a second nap, both with their Mighty moves. It pays 5 stars, a river pearl, a geode heart and 2 glimmer stones, plus the **Best of Friends ribbon** keepsake (`Quest.keepsake`), shown on the result card and in the Beast Book. The first time it is met, the three-page `finale` scene plays on `story-7.webp`.
+
+**Mighty armour.** The Forge's Armour tab shows a sixth set, Mighty, after the story (`ARMOUR_SETS.mighty`, +15 Fluff a piece). Each piece needs Mighty quests finished at least once and costs 4 quest stars (`MIGHTY_ARMOUR`):
+
+- **Helm:** Mighty Bristleback and Puffwart; 2 curly tail tufts, 2 sleepy-cloud wisps, 2 tusk shards.
+- **Vest:** Mighty Skreel and Hornclack; 2 owl down, 3 shell plates, 3 horn chips.
+- **Boots:** Mighty Frostmane; 2 glimmer stones, 3 icy mane locks, 3 frost fur.
+
+Two pieces give Mighty Rhythm: the string window grows to 0.9 s (`MIGHTY_RHYTHM`) and finishers hit 1.1 times as hard (`MIGHTY_FINISHER`); the fast tools' second bonk stays at base power. Three pieces add Full Fluff: the leader's bonks take 15% more Grump while Fluff is full (`FULL_FLUFF`). The pieces are gold with a soft glow on the hero.
+
+## Post-game beasts
+
+Two beasts arrive after the story (`POST_GAME_BEASTS`). They have no chapter, so they open on the hunt board with the ending (`freeHuntOpen`), and each lives in an area it shares with a story beast (`POST_GAME_AREA`). Goals that count "all five" beasts (the Dandelion Puffer and Leaf Umbrella unlocks, the Mighty armour) still count the five story beasts (`STORY_BEASTS`).
+
+- **Paddlepaw**, the belly-sliding river otter, in Soggy Marsh: 700 Grump. Its pattern is a belly slide (a charge lane; a tree on the way makes it dizzy), a splash of three water lanes (the Feather Fan shape) and a hop. Its pop-off part is its pebble pouch.
+- **Rumblesnout**, the burrowing badger, in Pebble Hollow: 760 Grump. Its pattern is a burrow, a sweep and a charge. The burrow drops one orange circle of radius 2.4 (`BURROW_REACH`) on the leader at the start of the normal wind-up. The badger sinks 2.2 below the ground over the first half second and can't be bonked or grabbed with the vine while it is under. Then it pops up inside the circle, bumps anyone still in it for 15, and rests 2.8 seconds while it shakes off the dirt. Its pop-off part is its pebble crown, which drops two crown pebbles.
+
+Their materials are on `icons-materials-2.webp` (cells 16–21 in `MATERIALS`): otter fluff, smooth river stone (part) and river pearl (rare, 30%) for Paddlepaw; striped fur, crown pebble (part) and geode heart (rare, 30%) for Rumblesnout. Their armour sets:
+
+- **Paddlepaw:** +11 Fluff a piece. River Rest: fluffberries and big fluffberries heal 25% more (`RIVER_REST`). Soft Landing: bumps take 20% less Fluff (`SOFT_LANDING`).
+- **Rumblesnout:** +12 Fluff a piece. Pebble Pouch: 4 more pebbles at the start and up to 16 in the sling (`PEBBLE_POUCH`). Dizzy Dig: the leader's bonks on a dizzy beast take 10% more Grump (`DIZZY_DIG`).
+
+**Epilogue.** The `epilogue` scene (`EPILOGUE`, three pages from Wren, Old Mossback and Enzo) introduces the two. It plays straight after the ending's outro; a player who finished the story before it existed sees it the first time they open the hunt board. Its painting is `story-6.webp`.
+
+## The Beast Book
+
+The Beast Book has, in order: Wren's bounty board link; the **Story** list, replaying every seen scene (intros, outros, "New Friends" and the finale); a page for each of the seven beasts with its reference sheet, sanctuary status, home area, part, title, tips, best time and the materials in your pouch; the **Mighty** page (each Mighty beast, its new move, how often it was calmed and its Mighty best time, greyed until calmed); the **Turf bonks** page (`TURF_PAIRS`: each beast and its area's visitor, seven pairs, marked once seen in `turfPairs`, with where to hunt for the rest); and **Keepsakes** (the Best of Friends ribbon). The turf emblem and the ribbon are cells 1 and 0 of `icons-keepsakes.webp`.
+
 ## Saving and architecture
 
-- `lib/grumble-hunt-content.ts`: materials, drop tables, gathering, Pantry recipes, snacks and the story chapters, as data.
+- `lib/grumble-hunt-content.ts`: materials, drop tables, gathering, Pantry recipes, snacks, armour sets, the story chapters, the epilogue and the finale, as data. `storyScene(id)` looks up any scene.
 - `lib/grumble-hunt-game.ts`: seeded deterministic rules, no DOM or Three.js. Fixed steps are 1/60 second; the page bounds catch-up after a slow frame.
 - `lib/grumble-hunt-scene.ts`: Three.js drawing, camera, posed tools, chunky beasts, texture loading, effects, and disposal.
 - `lib/hunt-chinchilla.ts`: the dedicated existing hunt model; its only change is an optional `shade` hook that the scene uses to give the coat, ears and paw pads the `fluffy` shading. Shared chinchilla modules are unchanged.
-- `app/hunt/page.tsx`: input, hydration, loop, HUD, panels and storage.
+- `app/hunt/page.tsx`: input, hydration, the loop, story scenes, the result card and storage. The rest of the page is split out: `hud.tsx` (beast HUD and name card), `camp-panels.tsx` (hunt and quest board, bounties, Beast Book, Pantry), `forge-panel.tsx` (weapons, armour and charms), `field-guide.tsx`, `ui.tsx` (shared helpers such as `Art`, `Icon` and `readSave`) and `hunt.css`.
 - `app/hunt/sound.ts`: gesture-unlocked synthesised cues and audio cleanup.
 
-Permanent progress is saved under `grumble-hunt-v5`: selected hero, all weapon tiers and branches, each friend's equipped weapon, owned and worn armour, pouch, ring, packed snack, nap counts and hunt count. It adds `story: { chapter, scenesSeen }`, `beastBook` entries (`met`, `napped`, `partsBroken`), `bounties: { day, done, ready }` and `extraGrumpyUnlocked`. The extra `ready` list keeps unclaimed completed daily tasks across reloads. v5 adds the post-game counters `bountiesClaimed`, `variantNaps` (per beast) and `totalPlops`. A v4 save starts `bountiesClaimed` at the tasks claimed that day and the others at 0; broken parts already in the Beast Book carry over.
+Permanent progress is saved under `grumble-hunt-v6`: selected hero, all weapon tiers and branches, each friend's equipped weapon, owned and worn armour (Mighty pieces included), pouch, ring, packed snack, nap counts and hunt count; `story: { chapter, scenesSeen }` (the epilogue and finale are scene ids too); `beastBook` entries (`met`, `napped`, `partsBroken`, `best`); `bounties: { day, done, ready }` and `extraGrumpyUnlocked`; the post-game counters `bountiesClaimed`, `variantNaps` and `totalPlops`; quest `stars` and `quests`; `charms`; `mightyBest` (Mighty best times) and `turfPairs` (turf bonks seen). Fields added after v6 began (charms, Mighty, the two new beasts, `mightyBest`, `turfPairs`) load as empty from an older v6 save, so the version didn't change.
 
-The page reads v5, then v4, v3, v2 and v1. Old nap counts clear matching chapters, with chapter 0 cleared if any beast napped; the first remaining chapter is current. Matching old scenes count as seen, including chapters beyond a gap. Equipment and pouch carry over unchanged from v3; v2 and v1 retain the earlier level and material migrations. The loader validates versions, numeric ranges, known scene/part/task identifiers, arrays and booleans. Reloading returns safely to camp. The final bonk saves progress before the nap animation ends. Sound still uses `grumble-hunt-sound-v1`; `window.__hunt()` exposes `{ game, refresh, metrics, input }` for checks.
+The page reads v6, then v5, v4, v3, v2 and v1. Old nap counts clear matching chapters, with chapter 0 cleared if any beast napped; the first remaining chapter is current. Matching old scenes count as seen, including chapters beyond a gap. Equipment and pouch carry over unchanged from v3; v2 and v1 retain the earlier level and material migrations. The loader validates versions, numeric ranges, known scene/part/task identifiers, arrays and booleans. Reloading returns safely to camp. The final bonk saves progress before the nap animation ends. Sound still uses `grumble-hunt-sound-v1`; `window.__hunt()` exposes `{ game, refresh, metrics, input }` for checks.
 
 ## Drawing and resource budget
 
 The scene uses `MeshToonMaterial`, the 96/178/255 three-step ramp, `OutlineEffect`, and `NoToneMapping`. Ground, sky, foliage, effects and instanced grass disable outlines. The existing paintings are unchanged: repeating grass and dirt ground, bark trunks, rock boulders and Bristleback fur; the equirectangular sky; billboard leaf clusters, transparent grass tufts and 8,000 instanced grass blades. The ground shader blends in one extra, rotated and slightly blurred sample of its painting at about six times the scale (35%, rising to 50–75% on the busier slate, mud and sand) and a slow light-and-dark patchwork, so the repeat doesn't show; the sand and mud, and the trail over them, are also muted 35% and 25% toward grey. Paths and the hunt-start trail fade out at their sides and ends through a canvas-drawn wobbly alpha edge; the trail samples the area's ground painting at the ground's own scale, tinted per area. Fog runs from 22 to 86 units. The distant hills are two rings in one instanced draw, a near ring at 63 units and a taller one at 78 between its humps, which the fog turns to haze; the hills, rocks, trail and the hemisphere light's ground bounce take each area's colours. Rocks are a lumpy, flat-bottomed icosahedron; ice is a merged cluster of four pointed six-sided crystals, and the peak's snow mounds are flattened spheres. Every tree, rock and gathering spot gets a soft canvas contact shadow from one instanced draw, and marsh ponds have a mud shore and a light glint. Pond water ripples: its shader moves bands of light in world space on the wind clock, so reduced motion keeps it still. Grass blades lean away from both friends (0.8 units) and from the beast while it is on the ground (1.6 units), flattening a little as they bend, in the grass vertex shader. Beast coats, villagers, Dora and Enzo, tree crowns and the hills share a `fluffy` shader tweak: the top lit and the underside shaded by the world-space normal, plus a soft warm rim. Bristleback keeps its painted fur under a near-white coat colour; Skreel and Frostmane wear canvas-drawn fur strokes and Puffwart a soft mottled skin; legs are a lathed shape with a domed top, a soft knee and a narrower ankle. Pine crowns stack four lathed tiers that droop to a scalloped rim and curl under. Hornclack's horn is lathed with growth rings around its base and sweeps back at the tip. Berry bushes are a clump of five `fluffy`-shaded leaf mounds, the top one lighter, with twelve berries resting just outside their surfaces. Clover Camp's walls and roofs carry canvas-painted planks, plaster speckle and staggered shingles, and nine outline-free flower clumps sit between the paths. Ten butterflies flutter over the meadow, paddock and Clover Camp, each wing side one instanced draw of a two-lobed shape that flaps about the body line as the butterfly wanders a loop around its own home spot; eighteen small glowing fireflies drift low over the marsh. Both hide when motion is reduced, like the Peak's snowfall of 140 plain white, outline-free flakes. Skreel has three darker flight feathers fanning out under each wing. Crown, bush and mane blobs are a welded, gently bumped icosahedron, so they shade smooth rather than faceted. Camp paths are muted 22% toward grey; in an area, paths match its ground. In the marsh the reed card stands in a bed around each trunk's foot rather than behind the crown. Trunks, leaf cards and solid canopy shapes are each batched into one instanced draw, and so is Enzo’s pawprint trail, a canvas-drawn print with a soft glow. Extra Grumpy steam is six small puffs on the beast’s head; its eyebrows have their own material so they can turn red. The ref sheets guide the five 3D models and appear in the Beast Book.
 
-The page draws single cells of the painted atlases as CSS backgrounds (`Art` in `app/hunt/page.tsx`). The hero picker shows each friend’s happy portrait. The HUD portrait changes with play: dizzy during the 1.4-second recovery after a bump, sleepy below 30 Fluff, determined while swinging or charging, and happy otherwise. The Forge draws each tool’s three tiers from `icons-gear.webp` (cells 0–2 for the hammer, 6–8 for the bow), greyed until reached, and lists the satchel by beast with icons from `icons-materials.webp`. The Beast Book uses the same material icons. The pouch keeps text labels: Dizzy dust and Pep seed have no matching icon yet. The expansion art (story panels, area skies, ground tiles and foliage cards, villagers, and weapon sheets 2–5) is in `public/art/hunt/` and logged in [`grumble-hunt-story-art.md`](grumble-hunt-story-art.md) and [`grumble-hunt-weapon-icons.md`](grumble-hunt-weapon-icons.md); the expansion build will connect it.
+The page draws single cells of the painted atlases as CSS backgrounds (`Art` in `app/hunt/ui.tsx`). The hero picker shows each friend’s happy portrait. The HUD portrait changes with play: dizzy during the 1.4-second recovery after a bump, sleepy below 30 Fluff, determined while swinging or charging, and happy otherwise. The Forge draws each tool’s three tiers from `icons-gear.webp` (cells 0–2 for the hammer, 6–8 for the bow), greyed until reached, and lists the satchel by beast with icons from `icons-materials.webp`. The Beast Book uses the same material icons. The pouch keeps text labels: Dizzy dust and Pep seed have no matching icon yet. The expansion art (story panels, area skies, ground tiles and foliage cards, villagers, and weapon sheets 2–5) is in `public/art/hunt/` and logged in [`grumble-hunt-story-art.md`](grumble-hunt-story-art.md) and [`grumble-hunt-weapon-icons.md`](grumble-hunt-weapon-icons.md); the expansion build will connect it.
 
 The camera orbits above flat walkable terrain, keeps a minimum height, and shortens its distance when a trunk, rock or village building would clip the view. A tree crown near the camera, or across its view of the leader, shrinks away over 0.2 seconds and grows back afterwards, so leaves never fill the screen; the camera doesn't move in for crowns. Desktop resolution is capped at 1.5 device pixels with 1024-pixel PCF shadows; touch devices use a 1.25 cap and 512-pixel basic shadows. Tiny facial features do not cast shadows, and there are no postprocessing passes beyond outlines. Projectiles, drops and extra dust use bounded mesh pools. Weapon trails, squash/stretch, a small camera shake and 0.08–0.11-second hit-stop give bonks weight.
 
-On exit, the page cancels its animation frame, removes keyboard, focus, visibility and context listeners, disconnects its resize observer, and closes audio. The scene disposes geometries, materials, loaded textures, shadows, render lists and renderer/context; late texture callbacks also dispose their result. Phone browser emulation and rendering budgets can be checked automatically; actual mid-range phone hardware still needs a device play-test.
+On exit, the page cancels its animation frame, removes keyboard, focus, visibility and context listeners, disconnects its resize observer, and closes audio. The scene disposes geometries, materials, loaded textures, shadows, render lists and renderer/context; late texture callbacks also dispose their result. Phone browser emulation and rendering budgets are checked automatically (see **Verification**); actual mid-range phone hardware still needs a device play-test.
 
 ## Verification
 
@@ -222,203 +281,27 @@ npm run test:grumble-hunt
 npm run bot:grumble-hunt
 # With npm run dev running and Playwright installed locally:
 npm run test:e2e:grumble-hunt
-npm run test:e2e
 ```
 
-The engine suite covers determinism, warning time in all phases, armour, air/ground openings, tool timing, charged shots, cancelled inputs, dizzy multipliers, crashes, rolls, items, sleepy clouds, buddy healing, collisions, pop-offs, reward idempotency, unlocks, upgrades, safe camp returns, malformed saves, Extra Grumpy timing and speed, sniff sight and trails, and buddy orders. The bot uses only movement/actions and collected materials, plays twelve seeds as each hero, keeps one buddy order per seed so all three are played, and must calm all 120 beasts, each of them going Extra Grumpy on the way. On the initial 24-10-2026 curve it calmed 120/120, with a median hunt of 20.7 seconds and slowest 35.0 seconds.
+**Engine suite** (`tests/grumble-hunt.mjs`, plus the content checks in `tests/grumble-hunt-content.mjs`): **118 checks** on 26-10-2026. They cover determinism, the 0.6-second warning rule for every attack, Mighty move and burrow, tools, strings, dizzy, items, gathering, the buddy, every Iceborne-style system, the Forge, armour and charms, Hop-on, story progress, quests, Mighty beasts, the finale, saves from v1 to v6, and malformed saves.
 
-The browser suite follows the repo’s Playwright style and writes its village, five hunt, dizzy, nap, phone and victory screenshots to ignored `.checks/hunt/`.
+**Bot** (`tests/grumble-hunt-bot.mjs` with the policy in `tests/grumble-hunt-policy.mjs`) uses only movement, actions and earned materials. It plays twelve seeds as each hero, one buddy order per seed. Latest results (26-10-2026):
 
-### Run results · 24-10-2026
+- Campaigns: **168/168** beasts calmed, every one going Extra Grumpy, one attempt per hunt; median hunt 32.5 s, slowest 66.5 s.
+- Story bot: **144/144** chapters; median 24.4 s, slowest 74.6 s.
+- Post-game tools, Extra Grumpy beasts: all **168/168** with each tool. Medians: Feather 64.6 s, Puffer 126.9 s, Pogo 78.9 s (335 Hop-ons), Umbrella 91.1 s.
+- Quests: every quest calmed 24/24, with every goal met except Shell Rhythm (12/24: Enzo's bow can't land finishers). Medians run from 21.4 s (Speedy Snooze) to 130.9 s (Best of Friends).
+- Mighty armour pieces made from earned stars: 66/72.
 
-- `npm run typecheck`, the complete `npm test` suite, and `npm run build` passed.
-- The Grumble Hunt browser suite passed all functional, campaign, saving, desktop, touch, portrait/landscape, attack-animation and cleanup checks. Screenshots were inspected for the village, every beast, dizzy, nap and victory.
-- A 390 × 844 touch viewport at DPR 3 (capped internally at 1.25), with 4× CPU throttling, used 279 draw calls, 114,774 triangles, and 13 textures in the sampled frame. Chromium reported **SwiftShader**, a software GPU. It produced nine frames in the two-second sample, with a 216.6 ms median frame interval. This verifies bounded rendering and continued drawing under emulation; it does **not** establish an acceptable frame rate on physical mid-range phones. A hardware phone play-test remains outstanding.
-- The broader `npm run test:e2e` command passed Classic Pit and the arcade navigation/count checks, then stopped in the existing `tests/e2e/checkpoint.mjs:54` on a 15-second `NEXT IN LINE` click timeout. That game and its test are unchanged by this work; subsequent suites in that chained command did not run. The new hunt suite was run separately.
-- Playwright was installed only for local browser checks. No Playwright dependency or lockfile change is included.
+**Browser suite** (`tests/e2e/grumble-hunt.mjs`, `ONLY=<name part>` runs one check): **28 checks**, about 50 minutes on this machine, screenshots in git-ignored `.checks/hunt/`. Every hunt check asserts under 400 draw calls. The phone check (390 × 844 touch, DPR 3, 4× CPU throttling) writes `.checks/hunt/performance.json`. On 26-10-2026, the meadow hunt drew 178 calls and 172k triangles. The busiest newer hunts, each a Mighty beast in full weather with a wild visitor, drew 271 calls (Paddlepaw in marsh rain) and 278 (Rumblesnout in a hollow dust storm), with about 189k triangles. Chromium renders with SwiftShader there, so frame times don't predict a real phone; a hardware play-test is still outstanding.
 
-### Review fixes · 24-10-2026
+## History
 
-- Added regressions for HUD focus, sprint lock-on, hit-stop taps, cooldown charge display, graphics context recovery, dizzy chains, lane endpoints, airborne buddy hammer hits, distant camp drops and one-time unlock results.
-- `npm run typecheck` and all 23 `npm run test:grumble-hunt` checks passed. The bot still calmed 120/120 beasts across 24 full campaigns; the revised median was 23.1 seconds and slowest 35.8 seconds.
-- Browser regressions were added and syntax-checked, but this sandbox could not launch Chromium (`Operation not permitted`). The dev server also could not write its Vite config cache through the read-only linked `node_modules`. The browser suite needs a run outside this sandbox.
+All dates 2026.
 
-### Alive hunts · 24-10-2026
+- **24-10:** the base game (five beasts, two heroes, camp), then the expansion steps: alive hunts (Extra Grumpy, Enzo's sniff, buddy orders), painted icons and portraits, the Pantry (save v2), the Forge (save v3), Hop-on, and Story mode with areas, villagers, post-game variants and bounties (save v4).
+- **25-10:** the four post-game weapons (save v5).
+- **26-10:** the Iceborne-style systems, one at a time: tired beasts and nests, roars and name cards, weather, wild visitors and turf bonks, the grab-on vine, the pebble slinger, hit numbers and weak spots, area hazards, best times, fluff finches and zones. Then merged scenery draw calls, strings and finishers, the quest board (save v6), charms, Mighty beasts and Mighty armour. Then the page split, the painted charm icons, Paddlepaw and Rumblesnout, the epilogue, the Beast Book's Mighty page and per-set armour icons. Last came the Best of Friends finale, the turf-bonk page, Mighty badges and three new bounties.
+- **27-10:** the epilogue's own painting, and this reference in place of the dated run logs.
 
-- Added Extra Grumpy, Enzo’s sniff trail and buddy orders, the first step of the expansion in [`grumble-hunt/expansion-design.md`](grumble-hunt/expansion-design.md).
-- `npm run typecheck`, all 27 `npm run test:grumble-hunt` checks and the content checks passed. The bot calmed 120/120 beasts across 24 full campaigns, 40 per buddy order, with a median hunt of 23.0 seconds and slowest 47.6 seconds; the slowest hunts are the Gather campaigns, where the buddy never bonks.
-- The browser suite passed with a new check for the buddy-order keys and button, the pawprint trail and Extra Grumpy steam, saving `sniff-trail.png` and `extra-grumpy.png`.
-
-### Painted icons and portraits · 24-10-2026
-
-- Brought in the final art from `codex/grumble-hunt-art` (`cecaa4f`), `codex/grumble-hunt-story-art` (`07d6bff`) and `codex/grumble-hunt-weapon-icons` (`88c62a7`, with the chinchilla engravings on sheet 3). All 48 files decode at their logged sizes; every atlas has transparent, opaque and soft alpha, its occupied cells match its cell map, and no drawing touches a cell border.
-- The browser suite has a new check that the portraits, tool tiers and satchel icons load, follow the upgrade level and material counts, and that the HUD face follows Fluff and bumps.
-
-### The Pantry · 24-10-2026
-
-- Added the Pantry, gathering spots, eight craftable items, the six-item ring and four snacks, the second step of the expansion. Beasts drop their own materials from the content drop tables, the save moved to `grumble-hunt-v2` with v1 migration, and the old dizzy dust and pep seed are gone.
-- `npm run typecheck`, all 40 `npm run test:grumble-hunt` checks and the content checks passed. The bot, which now crafts fluffberries from gathered berries before each hunt, calmed 120/120 beasts across 24 full campaigns, crafting 56 fluffberries, with a median hunt of 24.8 seconds and slowest 90.5 seconds.
-- The browser suite has a new check for v1 migration, crafting, the ring, a packed snack, F gathering, the sap puddle, smoke, drop icons and a stuck beast, saving `pantry.png`, `gathering.png`, `sap-smoke-drop.png` and `stuck.png`.
-
-### Forge run results · 24-10-2026
-
-The Forge work passes **61 engine checks** and the expansion content checks. It adds engine checks for every tree path, exact payments and prerequisites, free swapping, equipped buddy weapons, v1/v2 migration into v3, strict equipment loading, armour sets, guards, counters, Focus/Bloom/seedpods, firefly glows, songs, Warm Glow, sleepy puffs, reloading and Poof recovery. The original hammer and bow timing checks still pass; the old pooled-material upgrade test is replaced by exact tree-cost checks.
-
-All seven suspected engine issues were confirmed with small scripts and fixed: Staff taps incorrectly vaulted, a hero vault reached a melee buddy, buddy double bubbles counted as hero hits, distant Swish Counters landed, buddy bubbles fell short, Spade hits filled Bloom, and three of four pods triggered Dizzy. Regression checks cover each, along with final-bonk mist, camp resets, tier power, migrations, guard controls, buddy shot ownership and two quick item uses. Item recovery now animates a short nod without blocking another item; Deep Breath halves that animation.
-
-Browser checks were updated for reopening Weapons after an Armour visit, the weapon rack, tree prerequisites and payment, armour crafting and v3 persistence, and syntax-checked. Chromium was not run, as required; model appearance, handle alignment, phone layouts and the anvil animation still need a browser review.
-
-Forge bot: **24 full campaigns, 120/120 beasts calmed**, 24 of each beast and 40 with each buddy order; every hunt needed one attempt (limit six). It bought 16 tree upgrades and 72 armour pieces, and crafted 56 fluffberries. Median hunt **29.8 s**, slowest **155.9 s**. The content planner also checks all fourteen basic paths across 40 seeds; no chapter needed more than two earning hunts.
-
-Validation: `npm run typecheck`, `npm run test:grumble-hunt`, `npm run bot:grumble-hunt` and the full `npm test` suite passed. Browser test syntax and `git diff --check` passed; the local Graft graph was rebuilt. No commit or push was made.
-
-### Hop-on run results · 24-10-2026
-
-Step 4 adds **70 engine checks total**, including connecting Yo-yo entry, outward rock rolls and Staff vaults, rejected jumps, tap edges, held J, all five beasts’ buck warnings, free grips, gentle shake-offs, plop rewards and part chance, a plop that also calms, two-ride limits, Long Hop, dizzy expiry, the eight-second cap, seeded replay, safe camp / nap / village resets, and releasing grip after hopping off. The result card remembers plop rewards. No save migration or Story mode change is included.
-
-The bot uses the earned Yo-yo unlock on later hunts, takes available rock jumps, taps while riding and grips through bucks. It calmed **120/120 beasts in 24 campaigns**, with **96 rides and 96 plops**, all 120 beasts becoming Extra Grumpy, 24 of each beast and 40 with each buddy order. It crafted **56 fluffberries**, bought **26 tree upgrades** and **72 armour pieces**, and needed **one attempt per hunt**. Median hunt **29.8 s**, slowest **112.0 s**.
-
-`npm run typecheck`, `npm run test:grumble-hunt`, `npm run bot:grumble-hunt` and the full `npm test` suite pass, including the README consistency check. The browser suite adds a real keyboard Yo-yo ride, five J taps, the HUD pip and grip prompt, metrics and a free roll off, with screenshots at `.checks/hunt/hop-on-rider.png` and `.checks/hunt/hop-on-hold-on.png`. Its JavaScript syntax was checked; Chromium was unavailable, so this browser check and its screenshots have **not been run or captured**.
-
-### Story mode run results · 24-10-2026
-
-Step 5 adds chapters 0–5, story pages and replay, the tutorial paddock, four wilderness areas, four village figures, post-game variants and Wren's daily tasks, with v1/v2/v3 migration into v4. The engine suite now has **80 checks**, including tutorial timing, chapter gates and progression, per-area layouts, variants and rare chances, all ten bounty checks, one-time claims, strict new save fields, migration and seeded story replay. Existing content checks continue covering recipes, tree costs, branch perks, armour and earning paths.
-
-The existing bot calmed **120/120 beasts in 24 campaigns**, with **96 rides and 96 plops**, all 120 beasts becoming enraged, **48 fluffberries crafted**, **12 upgrades** and **71 armour pieces**. Median **29.8 s**, slowest **111.0 s**. The new story bot completed **144/144 chapters in 24 campaigns**, bought **11 upgrades** and **72 armour pieces**, with median **27.8 s**, slowest **143.9 s**. Both needed **one attempt per hunt**, below the enforced six-attempt limit. Bots buy the cheapest affordable next tool node and armour from earned materials; gathering-order campaigns also earn berries for upgrades. No gear or pouch materials are injected into the story bot.
-
-Browser checks were added for intro/Enter/Skip, the paddock calf and outro, four visible village figures, each wilderness area with screenshot destinations, a fixed-date three-card bounty board, variant colour, v3 migration and scene replay. Existing browser fixtures explicitly set story progress through `window.__hunt()`. Browser JavaScript is syntax-checked. **Chromium was not run; new screenshots and visual/frame-budget checks remain unverified.**
-
-Validation: `npm run typecheck`, `npm run test:grumble-hunt`, `npm run bot:grumble-hunt` and the full `npm test` suite passed. Browser-test syntax and `git diff --check` passed. The local Graft graph was refreshed; no commit or push was made.
-
-### Post-game weapons run results · 25-10-2026
-
-Step 6 adds the Tickle Feather, Dandelion Puffer, Pogo Spring and Leaf Umbrella, their trees, unlock goals and the v5 save. The engine suite has **89 checks**, adding each unlock and its progress count, Giggle filling and giggle-dizzy, fluff over time without stacking, Big Breath's push stopping at a rock and its recharge, High Bounce reaching a flying Skreel and landing into a Hop-on within the ride limit, the umbrella guarding from four sides at half speed with its spin and slow float, v4 → v5 migration and seeded replay of all four. The tree-tier check covers them for the leader and the buddy.
-
-The bot now adds a post-game run: after each story campaign both friends carry each new tool and calm all five Extra Grumpy beasts. All **120/120** hunts per tool ended in a nap (tier 1 tools, no upgrades): Feather median **61.6 s**, slowest 115.6 s; Puffer median **161.5 s**, slowest 325.4 s; Pogo median **101.0 s**, slowest 290.6 s, with **240 Hop-ons** from High Bounces; Umbrella median **104.5 s**, slowest 282.9 s. The story bots are unchanged (120/120 beasts, 144/144 chapters).
-
-The browser suite checks the four locked cards' progress text, unlocking, the Forge preview of each tool, both icon sheets loading, and a short hunt with each tool under 400 draw calls, with screenshots under `.checks/hunt/postgame-*`.
-
-The tier icons are hand-painted into the free cells of `icons-weapons-5.webp` and the new `icons-weapons-6.webp`; the prompts are in `docs/grumble-hunt-prompts/9-new-weapon-icons.md` and `docs/grumble-hunt-weapon-icons.md`.
-
-### Iceborne step 1: tired beasts go home to snooze · 26-10-2026
-
-The first of eight Iceborne-style steps. The engine suite has **91 checks**. A new one covers every beast: the tired note fires only once, it trudges home without a wind-up, the nest is clear and inside the arena, the snooze restores no more than 8%, the buddy holds off, the wake-up bonk is doubled and the beast goes home only once. It also checks that a snooze ends by itself and that the paddock calf never goes home. The bot calmed **120/120 beasts in 24 campaigns** (median **31.1 s**, slowest 93.5 s; it was 29.8 s before the walk home) and **144/144 chapters**, and every post-game tool calmed all 120 Extra Grumpy beasts. The browser check for alive hunts now brings a beast home, waits for its snooze, the nest and the sleepy puffs, saves `snooze.png`, then wakes it with a bonk.
-
-### Iceborne step 2: roars and name cards · 26-10-2026
-
-The engine suite has **92 checks**. The new one covers every beast's roar: it warns for at least 0.6 seconds, covers ears only for a leader inside the reach (not out of reach or invincible) without a bump, and holds the friend still. It also checks that there is one hello roar, that turning Extra Grumpy brings one more without a second name card, and that the paddock calf never roars. The other checks start after the hello roar. The bot's policy treats the roar's circle like the other round markers. It calmed **120/120 beasts in 24 campaigns** (median **36.1 s**, up from 31.1 s with two roars a hunt) and **144/144 chapters**, and every post-game tool calmed all 120 Extra Grumpy beasts. The browser suite's `start` helper skips the hello roar. The orange-warnings check now plays a first sighting and checks the name card's text, the sound rings and covered ears, saving `roar-warning.png` and `roar.png`.
-
-### Iceborne step 3: weather · 26-10-2026
-
-The engine suite has **93 checks**. The new one checks each area's weather kind, that a spell blows in over 3 seconds, how far the beast stays in sight, that a replay keeps the same weather, and that the note and `weather` event come when a spell turns stormy and when it clears. Weather changes no numbers the bot depends on: it calmed **120/120 beasts in 24 campaigns** (median **36.1 s**) and **144/144 chapters**. The browser suite's orange-warnings check now plays all four kinds of weather at full strength, checking the thicker fog, the rain, dust or snowflake counts, the draw-call budget and the HUD weather name, saving `weather-rain.png`, `weather-mist.png`, `weather-dust.png` and `weather-blizzard.png`.
-
-### Iceborne step 4: wild visitors and turf bonks · 26-10-2026
-
-The engine suite has **94 checks**. The new one covers, for every beast, the area's visitor and its arrival between 40 and 65 seconds, the square-off warning (at least 0.6 seconds), the turf bonk's Grump and dizzy, no bump outside the circle, the visitor leaving afterwards, and only one visit a hunt. It also checks the bump inside the circle, that a turf bonk never takes the last Grump, and that the paddock calf has no visitor. The two beasts square off within 5 steps, and the visitor steps back to 4.8 so they meet nose to nose. The visitor plan now reads the hunt's own area. The bot's policy steps out of the turf circle: it calmed **120/120 beasts in 24 campaigns** (median **36.1 s**) and **144/144 chapters**. The browser suite's alive-hunts check brings Puffwart into the meadow, checks the circle and the dizzy turf bonk, and saves `turf.png`.
-
-### Iceborne step 5: the grab-on vine · 26-10-2026
-
-The engine suite has **95 checks**. The new one checks, for every beast, that the vine holds on at the head and that a held beast never attacks, that two tickles soften it for 12 seconds, and that a yank into a rock is a wall bonk with its Grump and dizzy, as well as the reach, the cooldown and letting go. The bot's policy now throws the vine at a resting or roaming beast within 8 steps, tickles twice and yanks towards the nearest tree or rock. It calmed **120/120 beasts in 24 campaigns** (median **29.0 s**, down from 36.1 s) and **144/144 chapters**, and every post-game tool calmed all 120 Extra Grumpy beasts. The browser suite's alive-hunts check throws the vine with G, tickles the beast soft and lets go, saving `vine.png`.
-
-### Iceborne step 6: the pebble slinger · 26-10-2026
-
-The engine suite has **96 checks**. The new one checks that a pebble plinks the locked-on beast for 3 Grump and 6 dizzy, and that nothing flies with an empty pouch. It also checks that gathering adds 3 and a dizzy shakes 1 loose up to 12, that a tree drops one berry (three a hunt) and a rock drops nothing, that three pebbles bring a flying Skreel down to rest, that a pebble wakes a snoozing beast, and that Puffwart high in a hop only takes the plinks. The bot's policy slings at a flying Skreel within 13 steps. It calmed **120/120 beasts in 24 campaigns** (median **28.6 s**) and **144/144 chapters**, and every post-game tool calmed all 120 Extra Grumpy beasts. The browser suite's alive-hunts check flicks a pebble with R, watches it fly and checks the Grump and the pebble count in the HUD, saving `sling.png`.
-
-### Iceborne step 7: hit numbers and weak spots · 26-10-2026
-
-The engine suite has **97 checks**. The new one checks, for every beast, that a face bonk (Hornclack: a side bonk, with its shell front still armoured) takes 15% more and is marked as a weak spot, that back and side bonks take the plain amount, and that every bonk records its amount for its hit number, heavy ones marked heavy. Three older checks now expect the weak-spot bonus where they bonk the face. The bot's policy is unchanged. It calmed **120/120 beasts in 24 campaigns** (median **27.4 s**, down from 28.6 s) and **144/144 chapters**, and every post-game tool calmed all 120 Extra Grumpy beasts. The browser suite's alive-hunts check lands a big face bonk and a small back bonk, waits for the numbers and sparks, and saves `hit-numbers.png`. Its setup bonks that aim for an exact Grump share now land from behind, and its vine tickles hold J for 80 ms each.
-
-### Iceborne step 8: area hazards · 26-10-2026
-
-The engine suite has **98 checks**. The new one checks, for every beast, that its area's hazard is placed clear of obstacles and in the same spot on a replay, that a pebble trips it into a warning of at least 0.6 seconds, and that the drop takes 8% Grump, leaves the beast dizzy and bumps a friend inside. It also checks that the hazard is spent for the rest of the hunt, that F beside it trips it too, that a beast outside the circle is missed, and that the paddock has none. The bot's policy is unchanged and never trips a hazard on purpose: it calmed **120/120 beasts in 24 campaigns** (median **27.4 s**) and **144/144 chapters**, and every post-game tool calmed all 120 Extra Grumpy beasts. The browser suite's alive-hunts check trips the hazard with F, checks the orange circle and the dizzy beast after the drop, and saves `hazard-warning.png` and `hazard.png`.
-
-### Best calm times · 26-10-2026
-
-The engine suite has **99 checks**. The new one checks that a normal calm records the beast's best time in tenths of a second and flags a new best, that a slower calm keeps the old best and flags nothing, that a faster one replaces it, that an Extra Grumpy calm leaves it alone, and that the best times survive a save. The save check now expects `best: 0` in a fresh Beast Book entry. The bot's policy is unchanged. It calmed **120/120 beasts in 24 campaigns** (median **27.4 s**) and **144/144 chapters**, and every post-game tool calmed all 120 Extra Grumpy beasts. The browser suite's every-hunt check expects the calm time on every results screen.
-
-### Fluff finches · 26-10-2026
-
-The engine suite has **100 checks**. The new one checks, for every beast, that three finches perch clear of obstacles and in the same spots on a replay. It also checks that walking up to one adds 5 Fluff and 5 most Fluff once, with a finch event, and that the village and the paddock have none. The bot's policy is unchanged. It calmed **120/120 beasts in 24 campaigns** (median **27.4 s**) and **144/144 chapters**, and every post-game tool calmed all 120 Extra Grumpy beasts. The browser suite's alive-hunts check sees three finches, walks up to one, checks the Fluff and that only two are left, and saves `finch.png`.
-
-### Iceborne step 9: zones · 26-10-2026
-
-The engine suite has **101 checks**. The new one checks, for every beast, that a wild area has three zones, that the beast stays above 70% Grump and wanders below it with a wander event, and that it reaches the far path without attacking. It checks that while away it can't be seen or bonked and Enzo's trail leads to the path, and that walking up the path travels into zone 2: a new layout of trees and rocks, the friends at the near edge and clear of obstacles with 1.5 seconds of safety, the beast resting ahead, and paths on and back. Below 35% the beast goes on to the den zone, where there is no way back while it is there and it doesn't wander again. It also checks that the same seed and inputs give the same zone, spots, hazard and finches, that the paddock is one zone with no paths, and that a sap trap left behind returns to the pouch. The obstacle-table check now allows for the ring trees that step aside for the first zone's path, and the older checks start with the wander thresholds off so the beast stays put. The bot's policy now follows the beast down the open path: it calmed **120/120 beasts in 24 campaigns** (median **26.6 s**, down from 27.4 s) and **144/144 chapters**, and every post-game tool calmed all 120 Extra Grumpy beasts. The browser suite's alive-hunts check shows the zone map, lets the beast wander off below 70% Grump, waits for the glowing path, walks up it with W into zone 2, checks the map and that both paths show, and saves `zone-wander.png`, `zone-path.png` and `zone-2.png`.
-
-### Strings and finishers · 26-10-2026
-
-Melee tools chain J swings into a three-hit string: start each swing within 0.6 seconds of the last one recovering (`COMBO_WINDOW`), and the third is the tool's finisher (`FINISHERS`). It hits 1.5 times as hard and recovers 1.3 times slower. Slow tools add 20 Dizzy, medium tools loosen parts twice as fast, and fast tools bonk a second time at base power. A roll, a bump or a late swing starts the string again. The bows, the Bubble Wand and the Dandelion Puffer have no string. The HUD shows three pips after Stamina, and the Forge names each tool's finisher. The engine suite has **102 checks**; the new one covers the drop ratios for the hammer, katana and sword, the finisher's Dizzy, note, event and recovery, and every way the string resets. The bot still calmed **120/120** beasts (median 26.9 s), cleared **144/144** chapters and calmed 120/120 Extra Grumpy beasts with each post-game tool. A new browser check presses J three times and reads the pips, the Acorn Upswing note and the Forge text.
-
-### Quest board · 26-10-2026
-
-Old Mossback's quest board sits under the free hunts. `QUESTS` has nine quests from chapter 2 to 6. There are two timed calms (90 s for Bristleback, 240 s for Frostmane), four goals (no vine, a pebble knockdown, three finishers, three bumps or fewer) and three two-beast quests. In a two-beast quest the second beast arrives 11 steps across the zone, with full Grump, and roars hello. A quest only opens once its chapter is reached and every beast in it has been met. A success pays 1 to 3 stars and a bundle of materials and counts in `profile.quests`. A miss still ends in a nap and the normal reward, and the result card says what was missed. Running out of time doesn't stop the hunt. Tuckering out drops the quest. The save is now v6 (`grumble-hunt-v6`) and adds `stars` and `quests`; v1 to v5 saves load and move forward. The engine suite has **105 checks**. The new ones cover gating, the second beast, payment and saving, a timed miss at 89.9 s, the no-vine miss and tuckering out. The bot now runs every quest after each campaign: all **216/216** calmed. Every goal was met in all 24 runs except Shell Rhythm, which Enzo's bow can't meet; Dora met it 11 times out of 12. A browser check takes Double Trouble through both naps and reads the HUD line, the result card, the stars and the save.
-
-### Charms · 26-10-2026
-
-The Forge has a third tab, Charms, from chapter 2 (`CHARM_CHAPTER`). There are three charms (`CHARMS`), each with levels I to III, and one is worn at a time. Clover adds +1/+1/+2 common materials to every nap reward, with +0/+1/+1 extra rare rolls. Acorn adds +10/+20/+30 Fluff. Feather makes rolls recover 15/30/45% faster and brings the vine back 2/4/6 s sooner. Level I costs only materials; levels II and III also cost 2 and 5 quest stars. The first charm made is worn straight away. Charms are made and worn only at camp, and the save keeps them in `profile.charms`; a bad level is clamped to 0–3. The engine suite has **107 checks**; the new ones cover gating, payment, levels, wearing, saving, Acorn Fluff, Feather timing and Clover rewards over 30 seeds. The bot buys every charm level it can before each quest: **136 levels across 24 campaigns**, with all quests still calmed. A browser check makes, grows and wears charms, follows max Fluff and reloads the save.
-
-### Mighty beasts · 26-10-2026
-
-Five Mighty quests (`mighty-<beast>`) join the quest board once the story is done and three other quests have been finished (`MIGHTY_AT`). A Mighty beast has `MIGHTY_GRUMP` (2) times the Grump, twice the rare chance, a golden glow and is drawn 15% bigger. It adds one move to its pattern (`MIGHTY_MOVES`):
-
-- **Double Dash** (Bristleback): two charges, each with its own full wind-up and orange lane.
-- **Bubble Rain** (Puffwart) and **Icicle Rain** (Frostmane): three or four orange circles of radius 2.2 (`RAIN_REACH`), one on the leader and the rest in a ring 3.6 away, turned a little each time.
-- **Feather Fan** (Skreel): three lanes 11 long and 2.2 wide, 0.55 rad apart.
-- **Shell Spin** (Hornclack): a circle of radius 6 (`SPIN_REACH`).
-
-Every move uses the normal wind-up, so it warns at least 0.6 seconds ahead (the engine check covers every beast), and the circles and lanes stay drawn while the move lands. A Mighty calm pays 3 stars and a bundle. The engine suite has **110 checks**; the new ones cover the gating, the Grump, each beast's new move and its warning, hits inside and misses outside each shape, and the payment. The bot policy steps to the spot with the most room from the rain circles and fan lanes and backs out of the spin. After the nine other quests it calms every Mighty beast: **120/120** across 24 campaigns, with medians from 38.8 s (Skreel) to 106.0 s (Hornclack). A browser check opens the lock, then photographs the Bubble Rain circles and the Feather Fan lanes under 400 draw calls.
-
-### Mighty armour · 26-10-2026
-
-The Forge's Armour tab shows a sixth set, Mighty, after the story (`ARMOUR_SETS.mighty`, +15 Fluff a piece). Each piece needs Mighty quests finished at least once (`MIGHTY_ARMOUR`):
-
-- **Helm:** Mighty Bristleback and Puffwart; 2 curly tail tufts, 2 sleepy-cloud wisps, 2 tusk shards.
-- **Vest:** Mighty Skreel and Hornclack; 2 owl down, 3 shell plates, 3 horn chips.
-- **Boots:** Mighty Frostmane; 2 glimmer stones, 3 icy mane locks, 3 frost fur.
-
-Every piece also costs 4 quest stars. Two pieces give Mighty Rhythm: the string window grows by 0.3 s to 0.9 s (`MIGHTY_RHYTHM`), and finishers hit 1.1 times as hard (`MIGHTY_FINISHER`); the fast tools' second bonk stays at base power. Three pieces add Full Fluff: the leader's bonks take 15% more Grump while Fluff is full (`FULL_FLUFF`). Pieces are saved in the existing `armour.owned` list (no new save version), and unknown ids are dropped on load. On the hero, the pieces are gold with a soft glow. The engine suite has **111 checks**; the new one covers gating by quest and stars, payment, wearing, saving, the 0.9 s window, the 1.65 finisher ratio and the Full Fluff bonus. After each campaign's quests the bot makes whatever pieces it can afford: **63/72**. A browser check opens the lock, crafts all three pieces, reads both skills and starts a hunt at 145 Fluff, under 400 draw calls.
-
-### Post-game beasts · 26-10-2026
-
-Two beasts arrive after the story (`POST_GAME_BEASTS`). They have no chapter, so they open on the hunt board with the ending (`freeHuntOpen`), and each lives in an area it shares with a story beast (`POST_GAME_AREA`). The weapon goals that count "all five" beasts still count the five story beasts (`STORY_BEASTS`).
-
-- **Paddlepaw**, the belly-sliding river otter, in Soggy Marsh: 700 Grump. Its pattern is a belly slide (a charge lane; a tree on the way makes it dizzy), a splash of three water lanes (the Feather Fan shape) and a hop. Its pop-off part is its pebble pouch.
-- **Rumblesnout**, the burrowing badger, in Pebble Hollow: 760 Grump. Its pattern is a burrow, a sweep and a charge. The burrow drops one orange circle of radius 2.4 (`BURROW_REACH`) on the leader at the start of the normal wind-up, so it warns at least 0.6 seconds ahead. The badger sinks 2.2 below the ground over the first half second and can't be bonked or grabbed with the vine while it is under. Then it pops up inside the circle, bumps anyone still in it for 15, and rests 2.8 seconds while it shakes off the dirt. Its pop-off part is its pebble crown, which drops two crown pebbles.
-
-Each beast has three materials. They are on a second icon sheet, `icons-materials-2.webp` (cells 16–21 in `MATERIALS`):
-
-- Paddlepaw: otter fluff (common), smooth river stone (part) and river pearl (rare, 30%).
-- Rumblesnout: striped fur (common), crown pebble (part) and geode heart (rare, 30%).
-
-Each beast also has an armour set:
-
-- **Paddlepaw:** +11 Fluff a piece. Two pieces give River Rest: fluffberries and big fluffberries heal 25% more (`RIVER_REST`). Three give Soft Landing: bumps take 20% less Fluff (`SOFT_LANDING`).
-- **Rumblesnout:** +12 Fluff a piece. Two pieces give Pebble Pouch: 4 more pebbles at the start and up to 16 in the sling (`PEBBLE_POUCH`). Three give Dizzy Dig: the leader's bonks on a dizzy beast take 10% more Grump (`DIZZY_DIG`).
-
-The quest board has two new quests, Slippery Sprint (calm Paddlepaw within 3 minutes) and Splash and Dig (Rumblesnout, then Paddlepaw). There are also two Mighty quests: Mighty Paddlepaw's Whirlpool Spin is the Shell Spin circle, and Mighty Rumblesnout's Pebble Shower is a three-circle rain. The Mighty armour still asks for the five story Mighty quests.
-
-The save keeps its version (v6): missing beasts load as unmet with no naps. The engine suite has **115 checks**. The new ones cover the unlock and areas, the materials, the burrow warning, the hit inside the circle and the miss outside it, the splash lanes, and the four armour skills. The bot policy treats the burrow circle like a rain circle. Results:
-
-- Campaigns: the bot calms **168/168** beasts across 24 campaigns.
-- New quests: it finishes Slippery Sprint (median 35.4 s), Splash and Dig (77.5 s), Mighty Paddlepaw (65.7 s) and Mighty Rumblesnout (67.9 s) on every seed.
-- Mighty armour: it makes **66/72** Mighty pieces.
-
-A browser check opens the hunt board after the ending. It then photographs both beasts, Rumblesnout's burrow circle and Paddlepaw's splash lanes, all under 400 draw calls.
-
-### Epilogue, the Mighty page and armour icons · 26-10-2026
-
-- **Epilogue.** A new story scene, `epilogue` (`EPILOGUE` in the content; it shows the ending painting, `story-end.webp`, until a panel of its own is painted: brief 12's `story-6` request timed out eight times), introduces Paddlepaw and Rumblesnout in three pages from Wren, Old Mossback and Enzo. It plays straight after the ending's outro. Players who finished the story before it existed see it the first time they open the hunt board. It is saved in `scenesSeen` and can be replayed from the Beast Book as "New Friends". `storyScene(id)` looks up any scene by id.
-- **Mighty page.** The Beast Book has a Mighty page with all seven Mighty beasts, their new moves, how often each was calmed, and a best time. Mighty best times are kept apart from the normal ones (`mightyBest` in the v6 profile; missing or bad values load as 0).
-- **Armour icons.** Codex painted `icons-armour.webp` from brief 12, so the Skreel, Hornclack, Frostmane, Paddlepaw and Rumblesnout sets have their own helm, vest and boots instead of reusing the Bristle icons.
-
-The engine suite has **116 checks**. A browser check plays the epilogue once, reads a Mighty best time and counts the 15 new armour icons at the Forge.
-
-### The Best of Friends finale and Beast Book extras · 26-10-2026
-
-- **Finale quest.** Old Mossback's last quest, **Best of Friends** (`finale`), is a Mighty Rumblesnout followed by a Mighty Paddlepaw that wanders in for a second nap; both have twice the Grump and their Mighty move. It opens after `mighty-rumblesnout` and `mighty-paddlepaw` are both met (`Quest.needs`; the board names them), pays 5 stars, a river pearl, a geode heart and 2 glimmer stones, and gives the **Best of Friends ribbon** keepsake (`Quest.keepsake`), shown on the result card and in the Beast Book's Keepsakes section. The first time it is met, the three-page `finale` story scene plays (`FINALE` in the content, painted panel `story-7.webp`), which the Beast Book can replay. The bot calms it 24 of 24 times, median 131 s.
-- **Turf-bonk page.** `TURF_PAIRS` lists the seven turf bonks the free hunts can show (each beast and its area's visitor). The Beast Book marks the ones seen (`turfPairs` in the v6 profile; unknown pairs are dropped on load) and says where to hunt for the rest.
-- **Mighty badge.** On the hunt board, a beast whose Mighty quest is open wears a gold "Mighty quest open!" badge, or "✓ Mighty calmed" once it's done.
-- **Bounties.** Wren's pool gains three: boop loose a Paddlepaw pebble pouch, knock the pebble crown off a Rumblesnout, and watch a turf bonk on a hunt (`HuntFacts.turfs`).
-- **Art.** Codex painted `icons-keepsakes.webp` (the ribbon and a turf-bonk emblem) and the finale panel `story-7.webp` from brief 13. The epilogue's `story-6.webp` timed out three more times, so the epilogue still borrows the ending painting.
-
-The engine suite has **118 checks**; a browser check walks the badges, the finale, its scene and ribbon, and the turf page.
-
+The art for every step, with the prompts used, is logged in [`grumble-hunt-art.md`](grumble-hunt-art.md), [`grumble-hunt-story-art.md`](grumble-hunt-story-art.md) and [`grumble-hunt-weapon-icons.md`](grumble-hunt-weapon-icons.md); the briefs sent to Codex are in [`grumble-hunt-prompts/`](grumble-hunt-prompts/). `CHANGELOG.md` has the player-facing notes for each change.

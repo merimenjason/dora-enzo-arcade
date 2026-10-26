@@ -464,9 +464,9 @@ export const STORY: readonly Chapter[] = [
 
 /** After the ending: the two post-game beasts come down to the valley. Plays once, the first time the hunt board opens after the story. */
 export const EPILOGUE: Page[] = [
-  { panel: 'story-end', speaker: 'wren', text: 'Two new friends have come down to the valley!' },
-  { panel: 'story-end', speaker: 'mossback', text: 'Paddlepaw slides in from the stream. Rumblesnout digs up through Pebble Hollow.' },
-  { panel: 'story-end', speaker: 'enzo', text: 'They look a little grumpy. Shall we help them find a nap?' },
+  { panel: 'story-6', speaker: 'wren', text: 'Two new friends have come down to the valley!' },
+  { panel: 'story-6', speaker: 'mossback', text: 'Paddlepaw slides in from the stream. Rumblesnout digs up through Pebble Hollow.' },
+  { panel: 'story-6', speaker: 'enzo', text: 'They look a little grumpy. Shall we help them find a nap?' },
 ];
 /** After the Best of Friends quest: the two river friends nap together, and Dora and Enzo get a ribbon. */
 export const FINALE: Page[] = [

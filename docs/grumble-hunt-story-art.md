@@ -33,7 +33,7 @@ Paths are relative to the repository root. Sizes describe final encoded files. S
 | `public/art/hunt/story-5a.webp` | 1600 × 1000 | 274,648 | no | 1584 × 993 |
 | `public/art/hunt/story-5b.webp` | 1600 × 1000 | 297,544 | no | 1584 × 993 |
 | `public/art/hunt/story-end.webp` | 1600 × 1000 | 362,934 | no | 1584 × 993 |
-| `public/art/hunt/story-6.webp` (pending; generation timed out) | 1600 × 1000 target | — | no (target) | unavailable |
+| `public/art/hunt/story-6.webp` | 1600 × 1000 | 442,358 | no | 1586 × 992 |
 | `public/art/hunt/story-7.webp` | 1600 × 1000 | 314,740 | no | 1586 × 992 |
 | `public/art/hunt/ref-villagers.webp` | 2048 × 1024 | 170,708 | no | 1774 × 887 |
 | `public/art/hunt/portraits-villagers.webp` | 1024 × 1024 | 185,094 | yes | 1254 × 1254 |
@@ -466,25 +466,25 @@ Transparent inventory sprite atlas, exact4x4 grid,1024x1024, sixteen256x256 cell
 
 ### story-6
 
-Attempted 26-10-2026 with built-in imagegen using a text-only prompt, no reference images, and the generator's default landscape size. **Not delivered:** this request also timed out without an image, following seven earlier timeouts. `public/art/hunt/story-6.webp` was not created; the intended Pillow export remains 1600 × 1000 RGB WebP at quality 90. No CLI/API fallback was used.
+File: `public/art/hunt/story-6.webp`
+Size: 1600 × 1000 px; 442,358 bytes; RGB WebP at quality 90. Created 26-10-2026 with built-in imagegen. Following eleven historical timeouts, the exact full epilogue prompt timed out once more. The first shortened essentials prompt succeeded, delivering a 1586 × 992 PNG. Both requests were text only, with no reference images. Resized with Pillow Lanczos and exported at quality 90, method 6; verified decoded dimensions and RGB channels. No CLI/API fallback.
 
-Exact prompt used:
+Inspected the panel against `ref-paddlepaw.webp` and `ref-rumblesnout.webp`: exactly two beasts; Paddlepaw has warm-brown fur, cream face and belly, white whiskers, a flat paddle tail and a woven-grass pouch with one grey stone; Rumblesnout has grey fur, white-and-charcoal facial stripes, a pink-tipped snout and a pebble crown, emerging from a molehill. Dora is cream-white with ruby eyes, Enzo grey with black eyes, and mossy Old Mossback wears round glasses beside the wooden hunt board in sunny camp. No lettering. Rumblesnout looks grumpy; Paddlepaw is more cheerful than requested.
 
-```text
-Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
-Use case: illustration-story. Single full-bleed storybook panel, landscape. Dora and Enzo are chibi CHINCHILLAS, with huge round dish ears tilted outward, big glossy eyes with two white highlights, tiny noses and w-shaped mouths, rounded pear bodies and short paws. Each has a long bushy tail formed as ONE continuous curved plume, never segmented or ringed. Dora has cream-white fur, pink inner ears and ruby eyes. Enzo has grey fur, a pale chest, mauve-pink inner ears and black eyes. Dora's Acorn Hammer is a big acorn head on stout wooden handle with leather grip; Enzo's Seed Bow is curved green wood with leaf tips and a seed pouch. All equipment is rounded and toy-like.
-Story beat: A sunny afternoon at Clover Camp after the picnic. Dora and Enzo stand by the hunt board with Old Mossback the mossy tortoise with round glasses, looking curious and excited. Two new grumpy-but-cute beasts peek in from the edge of camp: Paddlepaw, a chubby sulky river otter with sleek warm-brown fur, a cream face and belly, long white whiskers, a flat paddle tail and a woven-grass pouch holding one round grey stone, sliding in on its belly from a stream; and Rumblesnout, a stocky grey badger with a white-and-charcoal striped face, a long pink-tipped snout, rounded digging paws and a little crown of sand-coloured pebbles on its head, poking up out of a fresh molehill of earth. Count exactly two beasts. Both look grumpy but endearing, never scary.
-```
-
-Retry series · 26-10-2026, brief 13: **Not delivered after three further timeouts** (eleven total including the eight historical attempts above). All three requests used the identical text-only prompt below, without reference images. Stopped after the third timeout as instructed; no `public/art/hunt/story-6.webp` was created. Intended export remains 1600 × 1000 RGB WebP at quality 90. No CLI/API fallback.
-
-Exact prompt used for all three retries (restores the word-for-word story-end preamble and closing constraints):
+Exact full prompt used for the timed-out attempt:
 
 ```text
 Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
 Use case: illustration-story. Single full-bleed storybook panel, landscape 8:5, final 1600x1000. Dora and Enzo are chibi CHINCHILLAS, with huge round dish ears tilted outward, big glossy eyes with two white highlights, tiny noses and w-shaped mouths, rounded pear bodies and short paws. Each has a long bushy tail formed as ONE continuous curved plume, never segmented or ringed. Dora has cream-white fur, pink inner ears and ruby eyes. Enzo has grey fur, a pale chest, mauve-pink inner ears and black eyes. Dora's Acorn Hammer is a big acorn head on stout wooden handle with leather grip; Enzo's Seed Bow is curved green wood with leaf tips and a seed pouch. All equipment is rounded and toy-like.
 Story beat: A sunny afternoon at Clover Camp after the picnic. Dora and Enzo stand by the hunt board with Old Mossback the mossy tortoise with round glasses, looking curious and excited. Two new grumpy-but-cute beasts peek in from the edge of camp: Paddlepaw, a chubby sulky river otter with sleek warm-brown fur, a cream face and belly, long white whiskers, a flat paddle tail and a woven-grass pouch holding one round grey stone, sliding in on its belly from a stream; and Rumblesnout, a stocky grey badger with a white-and-charcoal striped face, a long pink-tipped snout, rounded digging paws and a little crown of sand-coloured pebbles on its head, poking up out of a fresh molehill of earth. Count exactly two beasts. Both look grumpy but endearing, never scary.
-One complete scene, no panels, page borders, labels, speech bubbles or text. Keep both chinchillas consistent in every illustration. Clear readable composition for a child's story page.```
+One complete scene, no panels, page borders, labels, speech bubbles or text. Keep both chinchillas consistent in every illustration. Clear readable composition for a child's story page.
+```
+
+Exact shortened prompt used for the delivered panel:
+
+```text
+Storybook toon style, single landscape 8:5 epilogue illustration. Chibi chinchillas Dora cream-white with ruby eyes and Enzo grey with black eyes, with big round ears and bushy tails, beside Old Mossback the mossy tortoise with round glasses at a wooden hunt board in a sunny camp. Paddlepaw, a chubby brown otter with cream face and belly, white whiskers, flat paddle tail and a woven-grass pouch holding one grey stone, belly-sliding in from a stream. Rumblesnout, a stocky grey badger with a white-and-charcoal striped face, long pink-tipped snout and a crown of sand-coloured pebbles, poking up from a molehill. Exactly two beasts, grumpy but cute. No text.
+```
 
 ### story-7
 
