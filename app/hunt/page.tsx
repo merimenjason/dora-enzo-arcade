@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { QUESTS, FINISHERS, BEASTS, DT, INTRO_CARD, GATHER_TIME, HuntGame, NO_INPUT, plural, ORDER_NAMES, SAVE_KEY, VILLAGERS, type BeastId, type HeroId, type Input, type MaterialId, type SpotId } from '@/lib/grumble-hunt-game';
-import { STORY, POST_GAME_WEAPONS, type WeaponType, ITEMS, MATERIALS, SNACKS } from '@/lib/grumble-hunt-content';
+import { STORY, storyScene as sceneOf, POST_GAME_WEAPONS, type WeaponType, ITEMS, MATERIALS, SNACKS } from '@/lib/grumble-hunt-content';
 import type { HuntScene } from '@/lib/grumble-hunt-scene';
 import { HuntSound } from './sound';
 import { BoardPanel, BookPanel, BountiesPanel, PantryPanel } from './camp-panels';
@@ -12,6 +12,8 @@ import { ForgePanel, type ForgeTab } from './forge-panel';
 import { nextChapterNote, itemText, WeaponIcon, localDay, cap, ChargeMeter, chargeText, MOODS, heroMood, Art, Icon, readSave, seconds } from './ui';
 import './hunt.css';
 
+/** Where a story scene leads when it ends. */
+type SceneAfter = 'hunt' | 'result' | 'replay' | 'board';
 type ActionKey = Exclude<keyof Input, 'x' | 'z'>;
 type Panel = 'choose' | 'rack' | 'board' | 'forge' | 'book' | 'pantry' | 'help' | 'reset' | 'story' | 'bounties' | null;
 
@@ -24,17 +26,20 @@ export default function GrumbleHuntPage() {
   const panelRef = useRef<Panel>(null), pausedBeforePanel = useRef(false), written = useRef('');
   const [ready, setReady] = useState(false), [rendered, setRendered] = useState(false), [panel, setPanel] = useState<Panel>(null), [muted, setMuted] = useState(false), [error, setError] = useState(''), [stick, setStick] = useState({ x: 0, y: 0 });
   const [forgeType, setForgeType] = useState<WeaponType>('hammer'), [forgeTab, setForgeTab] = useState<ForgeTab>('weapons'), [forgeWho, setForgeWho] = useState<HeroId>('dora');
-  const [storyScene, setStoryScene] = useState({ id: '0-intro', page: 0, after: 'hunt' as 'hunt' | 'result' | 'replay' }), [extraGrumpy, setExtraGrumpy] = useState(false);
+  const [storyScene, setStoryScene] = useState({ id: '0-intro', page: 0, after: 'hunt' as SceneAfter }), [extraGrumpy, setExtraGrumpy] = useState(false);
   const [, setTick] = useState(0), refresh = () => setTick((n) => n + 1), [travels, setTravels] = useState(0);
   panelRef.current = panel;
   const persist = () => { if (!game.current) return; const json = JSON.stringify(game.current.save()); if (json === written.current) return; try { localStorage.setItem(SAVE_KEY, json); written.current = json; } catch { /* Storage may be unavailable; play continues. */ } };
   const release = () => { keys.current.clear(); touch.current = { ...NO_INPUT }; pulses.current.clear(); joystick.current = null; drag.current = null; game.current?.clearInput(); setStick({ x: 0, y: 0 }); };
   const focusWorld = () => canvas.current?.focus({ preventScroll: true });
-  const openPanel = (next: Panel) => { release(); const g = game.current; if (g) { if (next === 'forge') { setForgeTab('weapons'); setForgeWho(g.heroId); setForgeType(g.weapon()); } if (!panelRef.current) pausedBeforePanel.current = g.paused; g.paused = true; } panelRef.current = next; setPanel(next); sound.current?.unlock(); };
+  const openPanel = (next: Panel) => { release(); const g = game.current;
+    // The epilogue plays once, the first time the hunt board opens after a finished story.
+    if (next === 'board' && g && g.profile.won && g.chapter >= 6 && !g.story.scenesSeen.includes('epilogue')) { setStoryScene({ id: 'epilogue', page: 0, after: 'board' }); next = 'story'; }
+    if (g) { if (next === 'forge') { setForgeTab('weapons'); setForgeWho(g.heroId); setForgeType(g.weapon()); } if (!panelRef.current) pausedBeforePanel.current = g.paused; g.paused = true; } panelRef.current = next; setPanel(next); sound.current?.unlock(); };
   const closePanel = () => { if (!game.current?.profile.hero && panel === 'choose') return; if (game.current) game.current.paused = pausedBeforePanel.current; const next = game.current?.profile.hero ? null : 'choose'; panelRef.current = next; setPanel(next); release(); if (!next) focusWorld(); };
   const beginHunt = (id: BeastId, story = false) => { const g = game.current; if (!g?.startHunt(id, extraGrumpy, story)) return; release(); panelRef.current = null; setPanel(null); persist(); refresh(); focusWorld(); sound.current?.unlock(); };
   const beginQuest = (id: string) => { const g = game.current; if (!g?.startQuest(id)) return; release(); panelRef.current = null; setPanel(null); persist(); refresh(); focusWorld(); sound.current?.unlock(); };
-  const showScene = (id: string, after: 'hunt' | 'result' | 'replay') => { setStoryScene({ id, page: 0, after }); openPanel('story'); };
+  const showScene = (id: string, after: SceneAfter) => { setStoryScene({ id, page: 0, after }); openPanel('story'); };
   const start = (id: BeastId) => {
     const g = game.current; if (!g) return;
     const current = g.chapter <= 5 && STORY[g.chapter].beast === id;
@@ -43,11 +48,14 @@ export default function GrumbleHuntPage() {
   };
   const advanceStory = (skip = false) => {
     const g = game.current; if (!g) return;
-    const [chapter, kind] = storyScene.id.split('-'), c = STORY[Number(chapter)], pages = kind === 'intro' ? c.intro : c.outro;
+    const { pages, beast } = sceneOf(storyScene.id);
     if (!skip && storyScene.page + 1 < pages.length) { setStoryScene({ ...storyScene, page: storyScene.page + 1 }); return; }
     g.sceneSeen(storyScene.id); persist();
-    if (storyScene.after === 'hunt') { beginHunt(c.beast, true); return; }
+    if (storyScene.after === 'hunt' && beast) { beginHunt(beast, true); return; }
     if (storyScene.after === 'replay') { openPanel('book'); return; }
+    if (storyScene.after === 'board') { openPanel('board'); return; }
+    // The ending leads straight into the epilogue.
+    if (storyScene.id === '5-outro' && !g.story.scenesSeen.includes('epilogue')) { setStoryScene({ id: 'epilogue', page: 0, after: 'result' }); return; }
     closePanel(); refresh();
   };
   useEffect(() => {
@@ -248,9 +256,9 @@ export default function GrumbleHuntPage() {
       {dismissable && panel !== 'story' && <button className="hunt-close" aria-label="Close panel" onClick={closePanel}>×</button>}
       {panel === 'choose' && <><p className="hunt-eyebrow">WELCOME TO CLOVER CAMP</p><h1 id="hunt-panel-title">Small paws.<br /><em>Big grumbles.</em></h1><p>A storybook meadow, five huffy beasts, and two very good friends. Gently bonk each grump into a lovely nap.</p><h2>Who will lead the way?</h2><div className="hunt-hero-picks">{(['dora', 'enzo'] as const).map((id) => <button key={id} data-testid={`choose-${id}`} disabled={!ready} onClick={() => { g?.chooseHero(id); if (g) { setForgeType(g.weapon()); setForgeWho(id); } if (g) g.paused = false; panelRef.current = 'rack'; setPanel('rack'); release(); persist(); refresh(); sound.current?.unlock(); }}><span className="hunt-portrait"><Art sheet={`portraits-${id}`} cell={0} grid={2} size={88} /></span><strong>{cap(id)}</strong><small>{id === 'dora' ? 'White chinchilla · Acorn Hammer' : 'Grey chinchilla · Seed Bow'}</small><p>{id === 'dora' ? 'Slow, mighty bonks. Charge a swing to build dizzy.' : 'A nimble archer. Hold a shot for a bigger bonk.'}</p></button>)}</div><p className="hunt-fine">Your other friend comes along to help bonk and toss healing berries. You can switch at camp.</p></>}
       {panel === 'story' && g && (() => {
-        const [chapter, kind] = storyScene.id.split('-'), c = STORY[Number(chapter)], pages = kind === 'intro' ? c.intro : c.outro, page = pages[storyScene.page];
+        const c = sceneOf(storyScene.id), page = c.pages[storyScene.page];
         const villager = ['mossback', 'bramble', 'pip', 'wren'].indexOf(page.speaker);
-        return <div className="hunt-story" data-testid="story-scene"><img className="hunt-story-painting" src={`/art/hunt/${page.panel}.webp`} alt={`${c.title}, story painting`} onClick={() => advanceStory()} /><div className="hunt-story-paper" onClick={() => advanceStory()}>{page.speaker !== 'narrator' && <Art sheet={villager >= 0 ? 'portraits-villagers' : `portraits-${page.speaker}`} cell={Math.max(0, villager)} grid={2} size={86} />}<div><small id="hunt-panel-title">{c.title} · {page.speaker === 'mossback' ? 'Old Mossback' : cap(page.speaker)}</small><p data-testid="story-text">{page.text}</p><small>{storyScene.page + 1} / {pages.length} · Tap, Enter or J</small></div></div><button data-testid="story-next" onClick={() => advanceStory()}>Next page →</button><button data-testid="story-skip" onClick={() => advanceStory(true)}>Skip</button></div>;
+        return <div className="hunt-story" data-testid="story-scene"><img className="hunt-story-painting" src={`/art/hunt/${page.panel}.webp`} alt={`${c.title}, story painting`} onClick={() => advanceStory()} /><div className="hunt-story-paper" onClick={() => advanceStory()}>{page.speaker !== 'narrator' && <Art sheet={villager >= 0 ? 'portraits-villagers' : `portraits-${page.speaker}`} cell={Math.max(0, villager)} grid={2} size={86} />}<div><small id="hunt-panel-title">{c.title} · {page.speaker === 'mossback' ? 'Old Mossback' : cap(page.speaker)}</small><p data-testid="story-text">{page.text}</p><small>{storyScene.page + 1} / {c.pages.length} · Tap, Enter or J</small></div></div><button data-testid="story-next" onClick={() => advanceStory()}>Next page →</button><button data-testid="story-skip" onClick={() => advanceStory(true)}>Skip</button></div>;
       })()}
       {panel === 'board' && g && <BoardPanel g={g} extraGrumpy={extraGrumpy} setExtraGrumpy={setExtraGrumpy} start={start} beginQuest={beginQuest} />}
       {panel === 'bounties' && g && <BountiesPanel g={g} persist={persist} refresh={refresh} />}

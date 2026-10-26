@@ -80,3 +80,4 @@
 .hunt-charm-badge{position:relative;display:grid;place-items:center;width:52px;height:52px}.hunt-charm-badge b{position:absolute;right:-4px;bottom:-4px;font-size:10px;background:#c9772e;color:#fff;border-radius:8px;padding:1px 5px;min-width:6px}.hunt-charm-badge b:empty{display:none}.hunt-charms article[data-worn="true"]{outline:3px solid #7fae5a;outline-offset:-3px}.hunt-charm-actions{display:flex;gap:6px;flex-wrap:wrap}
 .hunt-quests article[data-mighty="true"]{border-left-color:#d4a017;background:linear-gradient(90deg,#f7e7b8,#f3ebd8 45%)}
 .hunt-mighty-piece{background:linear-gradient(135deg,#fbefc8,#f3ebd8 55%)!important;border:1px solid #e3c06a}.hunt-fine[data-short="true"]{color:#b0482b}
+.hunt-mighty-book article{background:linear-gradient(135deg,#fbefc8,#f3ebd8 55%);border:1px solid #e3c06a}.hunt-mighty-book article[data-calmed="false"] img{filter:grayscale(1) opacity(.55)}

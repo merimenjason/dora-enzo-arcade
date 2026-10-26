@@ -33,6 +33,7 @@ Paths are relative to the repository root. Sizes describe final encoded files. S
 | `public/art/hunt/story-5a.webp` | 1600 × 1000 | 274,648 | no | 1584 × 993 |
 | `public/art/hunt/story-5b.webp` | 1600 × 1000 | 297,544 | no | 1584 × 993 |
 | `public/art/hunt/story-end.webp` | 1600 × 1000 | 362,934 | no | 1584 × 993 |
+| `public/art/hunt/story-6.webp` (pending; generation timed out) | 1600 × 1000 target | — | no (target) | unavailable |
 | `public/art/hunt/ref-villagers.webp` | 2048 × 1024 | 170,708 | no | 1774 × 887 |
 | `public/art/hunt/portraits-villagers.webp` | 1024 × 1024 | 185,094 | yes | 1254 × 1254 |
 | `public/art/hunt/icons-weapons-2.webp` | 1024 × 1024 | 269,624 | yes | 1254 × 1254 |
@@ -459,4 +460,17 @@ Initial generation:
 ```text
 Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
 Transparent inventory sprite atlas, exact4x4 grid,1024x1024, sixteen256x256 cells. Center ONE icon per cell, even generous padding, no crossings. Same three-quarter angle and light top-left. THICK dark-brown outline readable at48px, chunky rounded toy-like nature equipment. No text, grid lines, frames, checkerboard or cast shadows. Row1 left-right: Thistle Lance with its Leaf Shield (blunt wooden thistle stem and rounded leaf shield); same upgraded with bramble bindings; same final with ornate rounded natural cap; Bubble Wand (reed handle and circular bubble loop). Row2: upgraded Bubble Wand with twine; final Bubble Wand with frothy rounded ornament; Pinecone Yo-yo (two round pinecone halves and string); upgraded Pinecone Yo-yo with twine detail. Row3: final Pinecone Yo-yo with shell detail; Glimmer Hammer (acorn hammer with warm gold crystal); Glimmer Bow (leaf-tipped wood bow with warm glowing crystal); Glimmer Claws (PAIR of rounded wood paw blades with warm crystal accents). Row4: Glimmer Lance with Leaf Shield and warm crystal; Glimmer Wand with crystal and circular bubble loop; Glimmer Yo-yo with warm crystal; Glimmer Stone itself, one faceted glowing warm golden crystal. Exactly sixteen occupied cells. Genuine transparent background.
+```
+
+
+### story-6
+
+Attempted 26-10-2026 with built-in imagegen using a text-only prompt, no reference images, and the generator's default landscape size. **Not delivered:** this request also timed out without an image, following seven earlier timeouts. `public/art/hunt/story-6.webp` was not created; the intended Pillow export remains 1600 × 1000 RGB WebP at quality 90. No CLI/API fallback was used.
+
+Exact prompt used:
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Use case: illustration-story. Single full-bleed storybook panel, landscape. Dora and Enzo are chibi CHINCHILLAS, with huge round dish ears tilted outward, big glossy eyes with two white highlights, tiny noses and w-shaped mouths, rounded pear bodies and short paws. Each has a long bushy tail formed as ONE continuous curved plume, never segmented or ringed. Dora has cream-white fur, pink inner ears and ruby eyes. Enzo has grey fur, a pale chest, mauve-pink inner ears and black eyes. Dora's Acorn Hammer is a big acorn head on stout wooden handle with leather grip; Enzo's Seed Bow is curved green wood with leaf tips and a seed pouch. All equipment is rounded and toy-like.
+Story beat: A sunny afternoon at Clover Camp after the picnic. Dora and Enzo stand by the hunt board with Old Mossback the mossy tortoise with round glasses, looking curious and excited. Two new grumpy-but-cute beasts peek in from the edge of camp: Paddlepaw, a chubby sulky river otter with sleek warm-brown fur, a cream face and belly, long white whiskers, a flat paddle tail and a woven-grass pouch holding one round grey stone, sliding in on its belly from a stream; and Rumblesnout, a stocky grey badger with a white-and-charcoal striped face, a long pink-tipped snout, rounded digging paws and a little crown of sand-coloured pebbles on its head, poking up out of a fresh molehill of earth. Count exactly two beasts. Both look grumpy but endearing, never scary.
 ```

@@ -25,6 +25,7 @@ The original 13 images are WebP encoded with libwebp `cwebp -q 85 -m 6`. Foliage
 | `public/art/hunt/ref-frostmane.webp` | 2048 × 1024 | 100,302 | 98.0 | RGB |
 | `public/art/hunt/ref-paddlepaw.webp` | 2048 × 1024 | 110,742 | 108.1 | RGB |
 | `public/art/hunt/ref-rumblesnout.webp` | 2048 × 1024 | 116,254 | 113.5 | RGB |
+| `public/art/hunt/icons-armour.webp` | 1024 × 1024 | 644,268 | 629.2 | RGBA |
 
 Original 13-image payload: **1,509,624 bytes (1.44 MiB)**. The two post-game reference sheets added 26-10-2026 use quality 90; their generation and export details appear below.
 
@@ -420,4 +421,75 @@ Row 2:
 Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
 Transparent inventory row strip, exact4x1 grid,1024x256, each cell256x256. Fill left to right in the specified order. One icon/group per cell, perfectly centered, generous even padding at least24px, no crossing cell boundaries. Same three-quarter angle, top-left lighting, THICK dark-brown outline, three-band shading, readable at48px. Genuine transparent alpha, no checkerboard, no grid lines or cell borders. Keep unused cells fully transparent. No text.
 Row2: Crown pebble: three smooth sand-coloured pebbles stuck together with a little fur; Geode heart (rare): a split round geode with warm purple crystals inside; EMPTY; EMPTY. Exactly two occupied cells at left, final two cells fully transparent. Reference image icons-materials.webp is a style reference only. Generate only this single row, not a full sheet.
+```
+
+
+### icons-armour
+
+Created 26-10-2026 with built-in imagegen, one three-icon set per request. Reference inspected: `icons-gear.webp` cells 9–14, plus the Paddlepaw and Rumblesnout turnarounds. Each source is 2172 × 724 RGBA. Alpha bounds were cropped per strip cell, fitted proportionally within 208 × 208, and centred in exact 256 × 256 cells. Export: 1024 × 1024 lossless WebP with alpha. Verified all fifteen occupied cells retain at least 24 px padding and cell 15 is fully transparent.
+
+Cell order: 0–2 Skreel; 3–5 Hornclack; 6–8 Frostmane; 9–11 Paddlepaw; 12–14 Rumblesnout. Each triple is helm, vest, pair of boots.
+
+Skreel: the initial prompt with `/tmp/armour-reference.png` attached timed out twice; the shorter prompt below succeeded without reattaching the viewed reference. Frostmane: the initial and shorter prompts timed out; adding an explicit short-strip size instruction succeeded. Other sets succeeded on their first request. No CLI/API fallback was used.
+
+**Skreel — initial prompt:**
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Transparent inventory atlas, exact3x1 strip,768x256, each cell256x256. Fill left to right in the specified order. One icon/group per cell, perfectly centered within208x208, generous even padding at least24px, no crossing cell boundaries. Same three-quarter angle, top-left lighting, THICK dark-brown outline, three-band shading, readable at48px. Genuine transparent alpha, no checkerboard, no grid lines or cell borders. No text.
+One Skreel armour set, exactly three icons left to right: cosy rounded helm with TWO big openings for large chinchilla ears; padded vest; PAIR of puffy boots together as one icon. All three use slate-blue feathers, cream down trim, a small yellow beak-shaped clasp. No whole characters. Reference image is shape and painting style reference ONLY: match its Bristle and Puffwart armour silhouettes and thick dark-brown contours, replace their materials with this set's materials. Output ONLY this one three-icon set.
+```
+
+**Successful retry:**
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Transparent 768x256 inventory strip, three equal cells. Skreel armour ONLY: left rounded helm with two big chinchilla-ear openings; centre padded vest; right pair of puffy boots. Slate-blue feathers, cream down trim, small yellow beak clasp. Match the viewed Bristle/Puffwart icon shapes. Three-quarter view, top-left light, thick brown outline readable at48px. Each icon inside central208x208 of its256x256 cell. No characters, text, grid or shadows. Genuine alpha.
+```
+
+**Hornclack — initial prompt:**
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Transparent inventory atlas, exact3x1 strip,768x256, each cell256x256. Fill left to right in the specified order. One icon/group per cell, perfectly centered within208x208, generous even padding at least24px, no crossing cell boundaries. Same three-quarter angle, top-left lighting, THICK dark-brown outline, three-band shading, readable at48px. Genuine transparent alpha, no checkerboard, no grid lines or cell borders. No text.
+One Hornclack armour set, exactly three icons left to right: cosy rounded helm with TWO big openings for large chinchilla ears; padded vest; PAIR of puffy boots together as one icon. All three use slate-grey rounded shell plates, sand-coloured horn-tip details. No whole characters. Reference image is shape and painting style reference ONLY: match its Bristle and Puffwart armour silhouettes and thick dark-brown contours, replace their materials with this set's materials. Output ONLY this one three-icon set.
+```
+
+**Frostmane — initial prompt:**
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Transparent inventory atlas, exact3x1 strip,768x256, each cell256x256. Fill left to right in the specified order. One icon/group per cell, perfectly centered within208x208, generous even padding at least24px, no crossing cell boundaries. Same three-quarter angle, top-left lighting, THICK dark-brown outline, three-band shading, readable at48px. Genuine transparent alpha, no checkerboard, no grid lines or cell borders. No text.
+One Frostmane armour set, exactly three icons left to right: cosy rounded helm with TWO big openings for large chinchilla ears; padded vest; PAIR of puffy boots together as one icon. All three use pale white-blue fur, icy-blue mane tufts, soft frosty trim. No whole characters. Reference image is shape and painting style reference ONLY: match its Bristle and Puffwart armour silhouettes and thick dark-brown contours, replace their materials with this set's materials. Output ONLY this one three-icon set.
+```
+
+**First retry (timed out):**
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Transparent 768x256 inventory strip, three equal cells. Frostmane armour ONLY: left rounded helm with two big chinchilla-ear openings; centre padded vest; right pair of puffy boots. Pale white-blue fur, icy-blue mane tufts, soft frosty trim. Match the viewed Bristle/Puffwart icon shapes. Three-quarter view, top-left light, thick brown outline readable at48px. Each icon inside central208x208 of its256x256 cell. No characters, text, grid or shadows. Genuine alpha.
+```
+
+**Successful retry:**
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Transparent 768x256 inventory strip, three equal cells. Frostmane armour ONLY: left rounded helm with two big chinchilla-ear openings; centre padded vest; right pair of puffy boots. Pale white-blue fur, icy-blue mane tufts, soft frosty trim. Match the viewed Bristle/Puffwart icon shapes. Three-quarter view, top-left light, thick brown outline readable at48px. Each icon inside central208x208 of its256x256 cell. No characters, text, grid or shadows. Genuine alpha.
+Generate at 768x256, a wide short strip, not a large sheet.
+```
+
+**Paddlepaw — initial prompt:**
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Transparent inventory atlas, exact3x1 strip,768x256, each cell256x256. Fill left to right in the specified order. One icon/group per cell, perfectly centered within208x208, generous even padding at least24px, no crossing cell boundaries. Same three-quarter angle, top-left lighting, THICK dark-brown outline, three-band shading, readable at48px. Genuine transparent alpha, no checkerboard, no grid lines or cell borders. No text.
+One Paddlepaw armour set, exactly three icons left to right: cosy rounded helm with TWO big openings for large chinchilla ears; padded vest; PAIR of puffy boots together as one icon. All three use warm-brown otter fur, cream trim, a woven-grass pouch with a little round grey stone. No whole characters. Reference image is shape and painting style reference ONLY: match its Bristle and Puffwart armour silhouettes and thick dark-brown contours, replace their materials with this set's materials. Output ONLY this one three-icon set.
+```
+
+**Rumblesnout — initial prompt:**
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Transparent inventory atlas, exact3x1 strip,768x256, each cell256x256. Fill left to right in the specified order. One icon/group per cell, perfectly centered within208x208, generous even padding at least24px, no crossing cell boundaries. Same three-quarter angle, top-left lighting, THICK dark-brown outline, three-band shading, readable at48px. Genuine transparent alpha, no checkerboard, no grid lines or cell borders. No text.
+One Rumblesnout armour set, exactly three icons left to right: cosy rounded helm with TWO big openings for large chinchilla ears; padded vest; PAIR of puffy boots together as one icon. All three use grey fur with a white-and-charcoal stripe, a few smooth sand-coloured pebbles as studs. No whole characters. Reference image is shape and painting style reference ONLY: match its Bristle and Puffwart armour silhouettes and thick dark-brown contours, replace their materials with this set's materials. Output ONLY this one three-icon set.
 ```

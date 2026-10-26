@@ -14,7 +14,7 @@ async function fresh(p, hero = 'dora', story = false) {
   await p.getByTestId(`choose-${hero}`).click(); await p.getByTestId('rack-ready').click();
   await p.getByTestId('story-scene').waitFor(); if (story) return;
   await p.getByTestId('story-skip').click();
-  await hunt(p, (w) => { const g = w.game; g.returnVillage(); g.story.chapter = 6; g.profile.extraGrumpyUnlocked = true; for (const id of ['bristleback', 'puffwart', 'skreel', 'hornclack', 'frostmane']) g.profile.beastBook[id].met = true; });
+  await hunt(p, (w) => { const g = w.game; g.returnVillage(); g.story.chapter = 6; g.story.scenesSeen.push('epilogue'); g.profile.extraGrumpyUnlocked = true; for (const id of ['bristleback', 'puffwart', 'skreel', 'hornclack', 'frostmane']) g.profile.beastBook[id].met = true; });
   await p.locator('main[data-mode="village"]').waitFor();
 }
 // Checks start after the hello roar (it can't come in the first 2.4 s); the orange-warnings check covers the roar.
@@ -98,7 +98,7 @@ try {
     await p.locator('main[data-ready="true"][data-rendered="true"]').waitFor(); await snapshot(p, 'title');
     await p.getByTestId('choose-dora').click(); await p.getByTestId('panel-rack').waitFor(); assert(await p.getByTestId('weapon-preview').isVisible()); assert.equal(await p.getByTestId('rack-wand').isDisabled(), true); await p.getByTestId('rack-hammer').click(); await p.getByTestId('rack-ready').click(); await p.getByTestId('story-skip').click(); await hunt(p, (w) => { const g = w.game; g.returnVillage(); g.story.chapter = 1; }); await snapshot(p, 'village');
     await p.getByTestId('open-board').click(); assert.equal(await p.getByTestId('hunt-hornclack').isDisabled(), true); assert.equal(await p.getByTestId('hunt-frostmane').isDisabled(), true); await p.getByRole('button', { name: 'Close panel' }).click();
-    await p.getByTestId('open-book').click(); assert.equal(await p.locator('.hunt-book article').count(), 7); assert.match(await p.getByTestId('nap-count').innerText(), /0 \/ 7/); assert.equal(await p.locator('.hunt-book img').evaluateAll((imgs) => imgs.every((i) => i.complete && i.naturalWidth > 0)), true); await snapshot(p, 'beast-book');
+    await p.getByTestId('open-book').click(); assert.equal(await p.locator('.hunt-book:not(.hunt-mighty-book) article').count(), 7); assert.equal(await p.locator('.hunt-mighty-book article').count(), 7); assert.match(await p.getByTestId('nap-count').innerText(), /0 \/ 7/); assert.equal(await p.locator('.hunt-book img').evaluateAll((imgs) => imgs.every((i) => i.complete && i.naturalWidth > 0)), true); await snapshot(p, 'beast-book');
     await p.keyboard.press('Escape'); await p.getByRole('button', { name: 'Open field guide' }).click(); assert.match(await p.getByTestId('panel-help').innerText(), /Hold K|hold K|Charge a big/); await p.getByRole('button', { name: 'Ready for a little adventure' }).click();
     assert(await fits(p));
   });
@@ -545,6 +545,21 @@ try {
       await p.getByTestId('pause').click(); await p.getByRole('button', { name: 'Return to camp', exact: true }).click(); await p.locator('main[data-mode="village"]').waitFor();
     }
     await p.getByTestId('open-book').click(); assert.match(await p.getByTestId('nap-count').innerText(), /\/ 7 friends/);
+  });
+  await check('the epilogue plays once at the hunt board, the Beast Book has a Mighty page, and every armour set has painted icons', async (p) => {
+    await fresh(p);
+    await hunt(p, (w) => { const g = w.game; g.profile.won = true; g.story.scenesSeen = g.story.scenesSeen.filter((id) => id !== 'epilogue'); g.profile.quests['mighty-skreel'] = 2; g.profile.mightyBest.skreel = 452; });
+    await p.getByTestId('open-board').click(); await p.getByTestId('story-scene').waitFor(); assert.match(await p.getByTestId('story-text').innerText(), /Two new friends/);
+    assert(await p.locator('.hunt-story-painting').evaluate((i) => i.complete && i.naturalWidth > 0)); await snapshot(p, 'epilogue');
+    for (let i = 0; i < 3; i++) await p.getByTestId('story-next').click();
+    await p.getByTestId('hunt-paddlepaw').waitFor(); assert(await hunt(p, (w) => w.game.story.scenesSeen.includes('epilogue')));
+    await p.getByRole('button', { name: 'Close panel' }).click(); await p.getByTestId('open-board').click(); await p.getByTestId('hunt-paddlepaw').waitFor(); assert.equal(await p.getByTestId('story-scene').count(), 0);
+    await p.getByRole('button', { name: 'Close panel' }).click(); await p.getByTestId('open-book').click();
+    assert.match(await p.getByTestId('mighty-best-skreel').innerText(), /45\.2/); assert.equal(await p.getByTestId('mighty-book-skreel').getAttribute('data-calmed'), 'true'); assert.equal(await p.getByTestId('mighty-book-frostmane').getAttribute('data-calmed'), 'false');
+    assert(await p.getByRole('button', { name: /New Friends · After the story/ }).isVisible());
+    await p.getByTestId('mighty-book').scrollIntoViewIfNeeded(); await snapshot(p, 'mighty-book');
+    await p.getByRole('button', { name: 'Close panel' }).click(); await p.getByTestId('open-forge').click(); await p.getByTestId('forge-armour').click();
+    assert.equal(await p.locator('.hunt-art[style*="icons-armour"]').count(), 15); await p.getByTestId('armour-hornclack-helm').scrollIntoViewIfNeeded(); await snapshot(p, 'forge-armour-icons');
   });
   await check('camera orbit avoids terrain, texture count stays bounded, navigation tears down', async (p) => {
     await fresh(p); await start(p); const first = await hunt(p, (w) => w.metrics().textures), c = p.getByTestId('hunt-canvas');

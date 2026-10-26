@@ -1,6 +1,7 @@
+import { existsSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { HuntGame, ARMOUR_PIECES, MIGHTY_RHYTHM, MIGHTY_FINISHER, FULL_FLUFF, MIGHTY_GRUMP, MIGHTY_MOVES, MIGHTY_AT, RAIN_REACH, FAN_SPREAD, SPIN_REACH, CHARMS, CHARM_IDS, CHARM_CHAPTER, QUESTS, COMBO_WINDOW, FINISHERS, FINISHER_POWER, FINISHER_DIZZY, FINISHER_RECOVERY, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, ZONE_NAMES, ZONE_AT, EXIT_REACH, WANDER_GIVEUP, FINCHES, FINCH_FLUFF, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties, POST_GAME_BEASTS, STORY_BEASTS, BEAST_MATERIALS, BURROW_REACH, RIVER_REST, SOFT_LANDING, PEBBLE_POUCH, DIZZY_DIG } from '../.checks/grumble-hunt-game.js';
-import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm, MIGHTY_ARMOUR, ARMOUR_SETS } from '../.checks/grumble-hunt-content.js';
+import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm, MIGHTY_ARMOUR, ARMOUR_SETS, EPILOGUE, storyScene, validate } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
 const input = (overrides = {}) => ({ ...NO_INPUT, ...overrides });
@@ -920,7 +921,7 @@ check('v1, v2 and v3 saves migrate cleared chapters, seen scenes and equipment i
     if (v === 3) { assert.equal(g.profile.weapons.yoyo.tier, 3); assert.equal(g.profile.equipped.dora, 'yoyo'); assert.equal(g.profile.armour.worn.helm, 'bristleback-helm'); }
     else assert.equal(g.profile.weapons.hammer.tier, 3);
     if (v !== 1) assert.equal(g.profile.pouch.berry, 7);
-    const complete = HuntGame.load({ v, profile: { ...profile, naps: Object.fromEntries(BEAST_IDS.map((id) => [id, 1])) } }); assert.equal(complete.chapter, 6); assert(complete.profile.extraGrumpyUnlocked); assert.deepEqual(complete.story.scenesSeen, SCENES);
+    const complete = HuntGame.load({ v, profile: { ...profile, naps: Object.fromEntries(BEAST_IDS.map((id) => [id, 1])) } }); assert.equal(complete.chapter, 6); assert(complete.profile.extraGrumpyUnlocked); assert.deepEqual(complete.story.scenesSeen, SCENES.filter((id) => id !== 'epilogue'), 'an old finished save still gets the epilogue');
   }
   const gap = HuntGame.load({ v: 3, profile: { naps: { puffwart: 1 } } }); assert.equal(gap.chapter, 1); assert(gap.story.scenesSeen.includes('2-outro')); gap.chooseHero('dora'); gap.startChapter(); calm(gap); assert.equal(gap.chapter, 3, 'already cleared chapters beyond an old-save gap stay cleared');
 });
@@ -1203,5 +1204,15 @@ check('Paddlepaw and Rumblesnout armour: bigger berries, softer bumps, a fuller 
   const pouch = armed('rumblesnout', 2); assert.equal(pouch.pebbles, SLING_START + PEBBLE_POUCH.start); pouch.pebbles = 0; for (let i = 0; i < 10; i++) pouch.makeDizzy(0.01); assert.equal(pouch.pebbles, 10); assert.equal(pouch.slingMax, PEBBLE_POUCH.max);
   const dizzy = (n) => { const a = armed('rumblesnout', n), b = a.beast; b.grump = b.maxGrump = 1e5; a.makeDizzy(5); const gr = b.grump; a.bonkBeast(10, false, { x: b.x - Math.cos(b.face) * 3, z: b.z + Math.sin(b.face) * 3 }); return gr - b.grump; };
   assert(Math.abs(dizzy(3) / dizzy(2) - DIZZY_DIG) < 1e-9);
+});
+check('the epilogue is a story scene of its own, and a Mighty calm keeps its own best time', () => {
+  assert.equal(SCENES.at(-1), 'epilogue'); assert.equal(storyScene('epilogue').pages, EPILOGUE); assert.equal(storyScene('epilogue').beast, null); assert.equal(storyScene('2-intro').beast, 'puffwart');
+  assert(EPILOGUE.every((p) => existsSync(new URL(`../public/art/hunt/${p.panel}.webp`, import.meta.url))), 'every epilogue painting exists'); assert.deepEqual(validate(), []);
+  const g = mightyGame(); assert(g.sceneSeen('epilogue')); assert(g.story.scenesSeen.includes('epilogue'));
+  const back = HuntGame.load(JSON.parse(JSON.stringify(g.save()))); assert(back.story.scenesSeen.includes('epilogue'));
+  assert(g.startQuest('mighty-paddlepaw')); g.huntTime = 61.2; questCalm(g); assert.equal(g.profile.mightyBest.paddlepaw, 612); assert.equal(g.profile.beastBook.paddlepaw.best, 0, 'the normal best stays apart'); assert(g.newRecord);
+  g.returnVillage(); assert(g.startQuest('mighty-paddlepaw')); g.huntTime = 70; questCalm(g); assert.equal(g.profile.mightyBest.paddlepaw, 612); assert.equal(g.newRecord, false);
+  assert.equal(HuntGame.load(JSON.parse(JSON.stringify(g.save()))).profile.mightyBest.paddlepaw, 612);
+  assert.equal(HuntGame.load({ v: 6, profile: { mightyBest: { skreel: -4, hornclack: 'fast' } } }).profile.mightyBest.skreel, 0);
 });
 console.log(`Grumble Hunt: ${checks} engine checks passed.`);

@@ -144,7 +144,7 @@ export type Pouch = Record<MaterialId | ItemId, number>;
 export type StoryProgress = { chapter: number; scenesSeen: string[] };
 /** best: the fastest normal (not Extra Grumpy) calm in whole tenths of a second, 0 before the first. */
 export type BeastBook = Record<BeastId, { met: boolean; napped: number; partsBroken: string[]; best: number }>;
-export type Profile = { charms: { levels: Record<CharmId, number>; worn: CharmId | null }; quests: Record<string, number>; stars: number; bountiesClaimed: number; variantNaps: Record<BeastId, number>; totalPlops: number; story: StoryProgress; beastBook: BeastBook; bounties: { day: string; done: string[]; ready: string[] }; extraGrumpyUnlocked: boolean; hero: HeroId | null; weapons: Record<WeaponType, { tier: Tier; branch: Branch | null }>; equipped: Record<HeroId, WeaponType>; armour: { owned: ArmourPieceId[]; worn: Worn }; pouch: Pouch; ring: ItemId[]; snack: SnackId | null; naps: Record<BeastId, number>; won: boolean; hunts: number };
+export type Profile = { charms: { levels: Record<CharmId, number>; worn: CharmId | null }; quests: Record<string, number>; stars: number; bountiesClaimed: number; variantNaps: Record<BeastId, number>; mightyBest: Record<BeastId, number>; totalPlops: number; story: StoryProgress; beastBook: BeastBook; bounties: { day: string; done: string[]; ready: string[] }; extraGrumpyUnlocked: boolean; hero: HeroId | null; weapons: Record<WeaponType, { tier: Tier; branch: Branch | null }>; equipped: Record<HeroId, WeaponType>; armour: { owned: ArmourPieceId[]; worn: Worn }; pouch: Pouch; ring: ItemId[]; snack: SnackId | null; naps: Record<BeastId, number>; won: boolean; hunts: number };
 export type Hero = Vec & { finisher: boolean; face: number; fluff: number; maxFluff: number; speed: number; roll: number; rollX: number; rollZ: number; rollCd: number; invincible: number; charge: number; swing: number; heavy: boolean; landed: boolean; cooldown: number; slow: number; hidden: number; covered: number };
 export type BeastState = 'burrow' | 'rush' | 'rain' | 'fan' | 'spin' | 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'cloud' | 'circle' | 'swoop' | 'sweep' | 'pounce' | 'shake' | 'roar' | 'turf' | 'grabbed' | 'yanked' | 'rest' | 'dizzy' | 'stuck' | 'trudge' | 'snooze' | 'wander' | 'nap';
 export type Beast = Vec & { id: BeastId; grump: number; maxGrump: number; face: number; state: BeastState; t: number; duration: number; attack: BeastState; aim: Vec; start: Vec; dir: Vec; phase: number; cycle: number; dizzy: number; part: number; broken: boolean; bonks: number; flash: number; height: number; grumpy: boolean; drowsy: number; drowsySlow: number; home: 0 | 1 | 2; soft: number; zone: number; away: boolean; mighty: boolean; rush: number; marks: Vec[] };
@@ -164,7 +164,7 @@ export type HuntEvent = { kind: 'quest' | 'finisher' | 'hop-on' | 'ride-bonk' | 
 export type Mode = 'village' | 'hunt' | 'nap' | 'calm' | 'camp' | 'victory';
 const countRecord = (): Record<BeastId, number> => ({ bristleback: 0, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0, paddlepaw: 0, rumblesnout: 0 });
 const emptyPouch = () => Object.fromEntries([...MATERIAL_IDS, ...ITEM_IDS].map((id) => [id, 0])) as Pouch;
-export const freshProfile = (): Profile => ({ charms: { levels: { clover: 0, acorn: 0, feather: 0 }, worn: null }, quests: {}, stars: 0, bountiesClaimed: 0, variantNaps: countRecord(), totalPlops: 0, story: { chapter: 0, scenesSeen: [] }, beastBook: Object.fromEntries(BEAST_IDS.map((id) => [id, { met: false, napped: 0, partsBroken: [], best: 0 }])) as unknown as BeastBook, bounties: { day: '', done: [], ready: [] }, extraGrumpyUnlocked: false, hero: null, weapons: Object.fromEntries(Object.keys(WEAPON_TYPES).map((id) => [id, { tier: 1, branch: null }])) as Profile['weapons'], equipped: { dora: 'hammer', enzo: 'bow' }, armour: { owned: [], worn: {} }, pouch: emptyPouch(), ring: [...DEFAULT_RING], snack: null, naps: countRecord(), won: false, hunts: 0 });
+export const freshProfile = (): Profile => ({ charms: { levels: { clover: 0, acorn: 0, feather: 0 }, worn: null }, quests: {}, stars: 0, bountiesClaimed: 0, variantNaps: countRecord(), mightyBest: countRecord(), totalPlops: 0, story: { chapter: 0, scenesSeen: [] }, beastBook: Object.fromEntries(BEAST_IDS.map((id) => [id, { met: false, napped: 0, partsBroken: [], best: 0 }])) as unknown as BeastBook, bounties: { day: '', done: [], ready: [] }, extraGrumpyUnlocked: false, hero: null, weapons: Object.fromEntries(Object.keys(WEAPON_TYPES).map((id) => [id, { tier: 1, branch: null }])) as Profile['weapons'], equipped: { dora: 'hammer', enzo: 'bow' }, armour: { owned: [], worn: {} }, pouch: emptyPouch(), ring: [...DEFAULT_RING], snack: null, naps: countRecord(), won: false, hunts: 0 });
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 export const distance = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.z - b.z);
 const faceTo = (a: Vec, b: Vec) => Math.atan2(-(b.z - a.z), b.x - a.x);
@@ -179,7 +179,8 @@ export function laneDistance(p: Vec, a: Vec, b: Vec) {
   return Math.hypot(p.x - a.x - x * t, p.z - a.z - z * t);
 }
 
-export const SCENES = STORY.flatMap((c) => [`${c.id}-intro`, `${c.id}-outro`]);
+/** Every story scene id, ending with the post-game epilogue. */
+export const SCENES = [...STORY.flatMap((c) => [`${c.id}-intro`, `${c.id}-outro`]), 'epilogue'];
 export const VARIANT_COLORS: Record<BeastId, string> = { bristleback: '#e4c278', puffwart: '#639dc8', skreel: '#b7a1d8', hornclack: '#dfb085', frostmane: '#e6adc7', paddlepaw: '#6fb0a8', rumblesnout: '#c79a6a' };
 /** The meadow keeps its original seeded layout. Other areas use fixed, clear-centred tables. */
 const areaTable = (kind: Obstacle['kind'], shift: number): Obstacle[] => [
@@ -848,7 +849,7 @@ export class HuntGame {
     b.state = 'nap'; b.t = 0; b.height = 0; this.mode = 'nap'; this.resultTime = 0;
     const book = this.profile.beastBook[b.id]; book.napped++;
     // Best times count normal hunts, not the paddock calf, in tenths of a second.
-    const tenths = Math.max(1, Math.round(this.huntTime * 10)); this.lastTime = tenths; this.newRecord = !this.variant && this.huntChapter !== 0 && !this.quest?.step && (book.best === 0 || tenths < book.best); if (this.newRecord) book.best = tenths; if (this.variant) this.profile.variantNaps[b.id] = Math.min(999999, this.profile.variantNaps[b.id] + 1); this.huntFacts.napped = true;
+    const tenths = Math.max(1, Math.round(this.huntTime * 10)); this.lastTime = tenths; const best = b.mighty ? this.profile.mightyBest[b.id] : book.best; this.newRecord = !this.variant && this.huntChapter !== 0 && !this.quest?.step && (best === 0 || tenths < best); if (this.newRecord) { if (b.mighty) this.profile.mightyBest[b.id] = tenths; else book.best = tenths; } if (this.variant) this.profile.variantNaps[b.id] = Math.min(999999, this.profile.variantNaps[b.id] + 1); this.huntFacts.napped = true;
     for (const task of this.dailyBounties) if (this.profile.extraGrumpyUnlocked && task.check(this.huntFacts, b) && !this.profile.bounties.ready.includes(task.id)) this.profile.bounties.ready.push(task.id);
     if (this.chapter <= 5 && STORY[this.chapter].beast === b.id && (this.chapter !== 0 || this.huntChapter === 0)) {
       this.clearedChapter = this.chapter; this.story.chapter++;
@@ -1614,7 +1615,7 @@ export class HuntGame {
       const any = game.uniqueNaps > 0;
       game.story.chapter = any ? 1 : 0;
       while (game.chapter <= 5 && game.profile.naps[STORY[game.chapter].beast] > 0) game.story.chapter++;
-      game.story.scenesSeen = SCENES.filter((id) => { const n = Number(id.split('-')[0]); return n === 0 ? any : game.profile.naps[STORY[n].beast] > 0; });
+      game.story.scenesSeen = SCENES.filter((id) => { if (id === 'epilogue') return false; const n = Number(id.split('-')[0]); return n === 0 ? any : game.profile.naps[STORY[n].beast] > 0; });
       for (const id of BEAST_IDS) game.profile.beastBook[id] = { met: game.profile.naps[id] > 0, napped: game.profile.naps[id], partsBroken: [], best: 0 };
     } else {
       game.story.chapter = integer(p.story?.chapter, 6);
@@ -1632,6 +1633,7 @@ export class HuntGame {
     game.profile.bountiesClaimed = s.v === 5 || s.v === 6 ? integer(p.bountiesClaimed, 999999) : game.profile.bounties.done.length;
     game.profile.totalPlops = s.v === 5 || s.v === 6 ? integer(p.totalPlops, 999999) : 0;
     for (const id of BEAST_IDS) game.profile.variantNaps[id] = s.v === 5 || s.v === 6 ? integer(p.variantNaps?.[id], 999999) : 0;
+    for (const id of BEAST_IDS) game.profile.mightyBest[id] = s.v === 6 ? integer(p.mightyBest?.[id], 99999) : 0;
     game.profile.extraGrumpyUnlocked = game.chapter === 6;
     if (s.v === 1 || s.v === 2) {
       for (const [hero, type] of [['dora', 'hammer'], ['enzo', 'bow']] as const) { const tier = clamp(integer(p.levels?.[hero], 3, 1), 1, 3) as Tier; game.profile.weapons[type] = { tier, branch: tier >= 3 ? 'A' : null }; }

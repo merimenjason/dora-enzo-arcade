@@ -403,3 +403,12 @@ The save keeps its version (v6): missing beasts load as unmet with no naps. The 
 - Mighty armour: it makes **66/72** Mighty pieces.
 
 A browser check opens the hunt board after the ending. It then photographs both beasts, Rumblesnout's burrow circle and Paddlepaw's splash lanes, all under 400 draw calls.
+
+### Epilogue, the Mighty page and armour icons · 26-10-2026
+
+- **Epilogue.** A new story scene, `epilogue` (`EPILOGUE` in the content; it shows the ending painting, `story-end.webp`, until a panel of its own is painted: brief 12's `story-6` request timed out eight times), introduces Paddlepaw and Rumblesnout in three pages from Wren, Old Mossback and Enzo. It plays straight after the ending's outro. Players who finished the story before it existed see it the first time they open the hunt board. It is saved in `scenesSeen` and can be replayed from the Beast Book as "New Friends". `storyScene(id)` looks up any scene by id.
+- **Mighty page.** The Beast Book has a Mighty page with all seven Mighty beasts, their new moves, how often each was calmed, and a best time. Mighty best times are kept apart from the normal ones (`mightyBest` in the v6 profile; missing or bad values load as 0).
+- **Armour icons.** Codex painted `icons-armour.webp` from brief 12, so the Skreel, Hornclack, Frostmane, Paddlepaw and Rumblesnout sets have their own helm, vest and boots instead of reusing the Bristle icons.
+
+The engine suite has **116 checks**. A browser check plays the epilogue once, reads a Mighty best time and counts the 15 new armour icons at the Forge.
+
