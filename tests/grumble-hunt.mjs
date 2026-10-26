@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { HuntGame, MIGHTY_GRUMP, MIGHTY_MOVES, MIGHTY_AT, RAIN_REACH, FAN_SPREAD, SPIN_REACH, CHARMS, CHARM_IDS, CHARM_CHAPTER, QUESTS, COMBO_WINDOW, FINISHERS, FINISHER_POWER, FINISHER_DIZZY, FINISHER_RECOVERY, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, ZONE_NAMES, ZONE_AT, EXIT_REACH, WANDER_GIVEUP, FINCHES, FINCH_FLUFF, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
-import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm } from '../.checks/grumble-hunt-content.js';
+import { HuntGame, ARMOUR_PIECES, MIGHTY_RHYTHM, MIGHTY_FINISHER, FULL_FLUFF, MIGHTY_GRUMP, MIGHTY_MOVES, MIGHTY_AT, RAIN_REACH, FAN_SPREAD, SPIN_REACH, CHARMS, CHARM_IDS, CHARM_CHAPTER, QUESTS, COMBO_WINDOW, FINISHERS, FINISHER_POWER, FINISHER_DIZZY, FINISHER_RECOVERY, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, ZONE_NAMES, ZONE_AT, EXIT_REACH, WANDER_GIVEUP, FINCHES, FINCH_FLUFF, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
+import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm, MIGHTY_ARMOUR, ARMOUR_SETS } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
 const input = (overrides = {}) => ({ ...NO_INPUT, ...overrides });
@@ -1134,5 +1134,30 @@ check('Mighty moves: rain circles, a three-lane feather fan and a wide shell spi
 check('a Mighty calm pays three stars and twice the rare chance', () => {
   const g = mightyGame(), stars = g.profile.stars; assert(g.startQuest('mighty-hornclack')); questCalm(g); assert.equal(g.mode, 'calm'); assert(g.questResult.success); assert.equal(g.profile.stars, stars + 3); assert.equal(g.profile.quests['mighty-hornclack'], 1);
   assert(!g.beast.mighty || g.mode === 'calm');
+});
+check('the Mighty armour set needs its Mighty quests and stars, and its skills stretch strings, boost finishers and reward full Fluff', () => {
+  const g = mightyGame(); rich(g); g.profile.stars = 12;
+  for (const slot of SLOTS) assert.equal(g.canMakeArmour(`mighty-${slot}`), false, `${slot} waits for its Mighty quests`);
+  g.profile.quests['mighty-bristleback'] = 1; assert.equal(g.canMakeArmour('mighty-helm'), false, 'the helm needs both its beasts');
+  g.profile.quests['mighty-puffwart'] = 1; assert(g.canMakeArmour('mighty-helm')); assert.equal(g.canMakeArmour('mighty-vest'), false);
+  const pouch = { ...g.profile.pouch }; assert(g.makeArmour('mighty-helm')); assert.equal(g.profile.stars, 8);
+  for (const [m, n] of Object.entries(MIGHTY_ARMOUR.helm.cost)) assert.equal(g.profile.pouch[m], pouch[m] - n, m);
+  assert.equal(g.makeArmour('mighty-helm'), false, 'made once');
+  g.profile.stars = 3; g.profile.quests['mighty-skreel'] = g.profile.quests['mighty-hornclack'] = 1; assert.equal(g.canMakeArmour('mighty-vest'), false, 'four stars a piece');
+  g.profile.stars = 8; g.profile.quests['mighty-frostmane'] = 1; assert(g.makeArmour('mighty-vest')); assert(g.makeArmour('mighty-boots')); assert.equal(g.profile.stars, 0);
+  for (const slot of SLOTS) assert(g.wear(`mighty-${slot}`)); assert.equal(g.hero.maxFluff, 100 + 3 * ARMOUR_SETS.mighty.fluff);
+  assert.deepEqual(g.armour.skills.map((x) => x.id), ['mighty-rhythm', 'full-fluff']);
+  const back = HuntGame.load(JSON.parse(JSON.stringify(g.save()))); assert.deepEqual(back.profile.armour.worn, { helm: 'mighty-helm', vest: 'mighty-vest', boots: 'mighty-boots' }); assert.equal(back.hero.maxFluff, 145);
+  assert.equal(HuntGame.load({ ...g.save(), profile: { ...g.save().profile, armour: { owned: ['mighty-crown', 'mighty-helm'], worn: { helm: 'mighty-crown' } } } }).profile.armour.owned.join(), 'mighty-helm');
+  assert(ARMOUR_PIECES.includes('mighty-boots'));
+  // Skills in a hunt: the string waits 0.9 s, the finisher hits 1.65 times as hard, and full Fluff adds 15%.
+  const armed = (worn) => { const a = geared('hammer'); a.profile.armour.owned = [...ARMOUR_PIECES]; for (const x of worn) a.profile.armour.worn[x.split('-')[1]] = x; a.beast.grump = a.beast.maxGrump = 1e5; return a; };
+  const swing = (a) => { a.step(DT, input({ bonk: true })); while (a.hero.cooldown > 0 || a.hitstop > 0) a.step(DT); tick(a, 0.05); };
+  const two = armed(['mighty-helm', 'mighty-vest']); two.step(DT, input({ bonk: true })); assert(Math.abs(two.comboTimer - (two.hero.cooldown + COMBO_WINDOW + MIGHTY_RHYTHM)) < 1e-9);
+  const late = armed(['mighty-helm', 'mighty-vest']); swing(late); swing(late); tick(late, COMBO_WINDOW + 0.1); swing(late); assert.equal(late.huntFacts.finishers, 1, 'a swing 0.7 s late still finishes the string');
+  const drops = []; const rhythm = armed(['mighty-helm', 'mighty-vest']); for (let i = 0; i < 3; i++) { const gr = rhythm.beast.grump; swing(rhythm); drops.push(gr - rhythm.beast.grump); }
+  assert(Math.abs(drops[2] / drops[0] - FINISHER_POWER * MIGHTY_FINISHER) < 1e-9, JSON.stringify(drops));
+  const hit = (fluff) => { const a = armed(['mighty-helm', 'mighty-vest', 'mighty-boots']), b = a.beast; b.state = 'rest'; a.hero.fluff = a.hero.maxFluff - (fluff ?? 0); const gr = b.grump; a.bonkBeast(10, false, { x: b.x - Math.cos(b.face) * 3, z: b.z + Math.sin(b.face) * 3 }); return gr - b.grump; };
+  assert(Math.abs(hit() / hit(1) - FULL_FLUFF) < 1e-9, `${hit()} vs ${hit(1)}`);
 });
 console.log(`Grumble Hunt: ${checks} engine checks passed.`);

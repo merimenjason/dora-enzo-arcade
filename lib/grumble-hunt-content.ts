@@ -329,26 +329,37 @@ export function weaponStats(id: string) {
 
 // ---------- armour ----------
 export type Slot = 'helm' | 'vest' | 'boots';
-export type ArmourPieceId = `${BeastId}-${Slot}`;
+/** The five beast sets, and the Mighty set made from Mighty calms. */
+export type ArmourSetId = BeastId | 'mighty';
+export type ArmourPieceId = `${ArmourSetId}-${Slot}`;
 export type Skill = { id: string; name: string; text: string };
-export const ARMOUR_SETS: Record<BeastId, { name: string; fluff: number; two: Skill; three: Skill }> = {
+export const ARMOUR_SETS: Record<ArmourSetId, { name: string; fluff: number; two: Skill; three: Skill }> = {
   bristleback: { name: 'Bristle', fluff: 10, two: { id: 'steady-paws', name: 'Steady Paws', text: 'Knock-backs push you 40% less.' }, three: { id: 'charge-guard', name: 'Charge Guard', text: 'Charges never knock you down.' } },
   puffwart: { name: 'Puffwart', fluff: 8, two: { id: 'snooze-proof', name: 'Snooze Proof', text: 'Sleepy clouds slow you half as much.' }, three: { id: 'deep-breath', name: 'Deep Breath', text: 'Items are used 50% faster.' } },
   skreel: { name: 'Skreel', fluff: 7, two: { id: 'feather-step', name: 'Feather Step', text: 'The roll dodge window is 30% longer.' }, three: { id: 'updraft', name: 'Updraft', text: 'One free double-jump roll.' } },
   hornclack: { name: 'Hornclack', fluff: 12, two: { id: 'shell-stance', name: 'Shell Stance', text: 'Guarding blocks attacks from the sides too.' }, three: { id: 'hard-head', name: 'Hard Head', text: '+20% Dizzy on head hits.' } },
+  mighty: { name: 'Mighty', fluff: 15, two: { id: 'mighty-rhythm', name: 'Mighty Rhythm', text: 'Strings wait 0.9 s for the next swing, and finishers hit 10% harder.' }, three: { id: 'full-fluff', name: 'Full Fluff', text: 'While your Fluff is full, your bonks take 15% more Grump.' } },
   frostmane: { name: 'Frostmane', fluff: 10, two: { id: 'frost-fluff', name: 'Frost Fluff', text: 'Regain 1 Fluff every 2 s out of combat.' }, three: { id: 'warm-heart', name: 'Warm Heart', text: 'Once per hunt, getting tuckered out is forgiven: you get back up at 50% Fluff.' } },
 };
 export const SLOTS: readonly Slot[] = ['helm', 'vest', 'boots'];
 /** Each piece: three of its beast's commons and one part (helm, boots) or rare (vest) material. */
+/** Each Mighty piece needs its Mighty quests finished at least once, 4 quest stars and rare materials. */
+export const MIGHTY_ARMOUR: Record<Slot, { quests: string[]; stars: number; cost: Cost }> = {
+  helm: { quests: ['mighty-bristleback', 'mighty-puffwart'], stars: 4, cost: { 'curly-tail-tuft': 2, 'cloud-wisp': 2, 'tusk-shard': 2 } },
+  vest: { quests: ['mighty-skreel', 'mighty-hornclack'], stars: 4, cost: { 'owl-down': 2, 'shell-plate': 3, 'horn-chip': 3 } },
+  boots: { quests: ['mighty-frostmane'], stars: 4, cost: { 'glimmer-stone': 2, 'mane-lock': 3, 'frost-fur': 3 } },
+};
 export function armourCost(piece: ArmourPieceId): Cost {
-  const [beast, slot] = piece.split('-') as [BeastId, Slot], m = BEAST_MATS[beast];
+  const [beast, slot] = piece.split('-') as [ArmourSetId, Slot];
+  if (beast === 'mighty') return MIGHTY_ARMOUR[slot].cost;
+  const m = BEAST_MATS[beast];
   return sum({ [m.common]: 3 }, { [slot === 'vest' ? m.rare : m.part]: 1 });
 }
 export type Worn = Partial<Record<Slot, ArmourPieceId>>;
 /** Total bonus Fluff and the skills switched on by 2 and 3 pieces of a set. Pieces of different sets mix. */
 export function armourBonus(worn: Worn) {
-  const counts = new Map<BeastId, number>(); let fluff = 0;
-  for (const piece of Object.values(worn)) { if (!piece) continue; const beast = piece.split('-')[0] as BeastId; counts.set(beast, (counts.get(beast) ?? 0) + 1); fluff += ARMOUR_SETS[beast].fluff; }
+  const counts = new Map<ArmourSetId, number>(); let fluff = 0;
+  for (const piece of Object.values(worn)) { if (!piece) continue; const beast = piece.split('-')[0] as ArmourSetId; counts.set(beast, (counts.get(beast) ?? 0) + 1); fluff += ARMOUR_SETS[beast].fluff; }
   const skills: Skill[] = [];
   for (const [beast, n] of counts) { if (n >= 2) skills.push(ARMOUR_SETS[beast].two); if (n >= 3) skills.push(ARMOUR_SETS[beast].three); }
   return { fluff, skills };

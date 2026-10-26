@@ -35,7 +35,7 @@ console.log(`By beast: ${JSON.stringify(totals)}. By buddy order: ${JSON.stringi
 
 const storyTimes = []; let maxAttempts = 0, storyUpgrades = 0, storyArmour = 0;
 const post = Object.fromEntries(POST_GAME_WEAPONS.map((type) => [type, { calmed: 0, rides: 0, times: [] }]));
-const quests = Object.fromEntries(QUESTS.map((q) => [q.id, { calmed: 0, done: 0, times: [] }])); let charmsMade = 0; const worn = [];
+const quests = Object.fromEntries(QUESTS.map((q) => [q.id, { calmed: 0, done: 0, times: [] }])); let charmsMade = 0, mightyPieces = 0; const worn = [];
 for (const hero of ['dora', 'enzo']) for (let seed = 1; seed <= seeds; seed++) {
   const g = new HuntGame(seed); g.chooseHero(hero);
   while (g.order !== ORDERS[seed % ORDERS.length]) g.commandBuddy(1);
@@ -79,6 +79,8 @@ for (const hero of ['dora', 'enzo']) for (let seed = 1; seed <= seeds; seed++) {
     assert.equal(g.mode, 'calm', `${hero} seed ${seed}: quest ${q.id} ended ${g.mode}, ${g.beast?.id} Grump=${Math.round(g.beast?.grump)}`);
     quests[q.id].calmed++; quests[q.id].times.push(steps * DT); if (g.questResult.success) quests[q.id].done++;
   }
+  // Then the Mighty armour, if the stars and rare materials left after the charms stretch that far.
+  g.returnVillage(); for (const slot of ['helm', 'vest', 'boots']) if (g.makeArmour(`mighty-${slot}`)) mightyPieces++;
   worn.push(g.profile.charms.worn ? `${g.profile.charms.worn} ${g.profile.charms.levels[g.profile.charms.worn]}` : "none");
 }
 storyTimes.sort((a, b) => a - b);
@@ -86,3 +88,4 @@ console.log(`Story bot: ${seeds * 2} campaigns, ${storyTimes.length}/${seeds * 2
 for (const [type, r] of Object.entries(post)) { r.times.sort((a, b) => a - b); console.log(`Post-game ${type}: ${r.calmed}/${seeds * 2 * BEAST_IDS.length} Extra Grumpy beasts calmed; ${r.rides} Hop-ons; median ${r.times[Math.floor(r.times.length / 2)].toFixed(1)}s, slowest ${r.times.at(-1).toFixed(1)}s.`); }
 for (const [id, r] of Object.entries(quests)) { r.times.sort((a, b) => a - b); console.log(`Quest ${id}: ${r.calmed}/${seeds * 2} calmed, ${r.done} met the quest; median ${r.times[Math.floor(r.times.length / 2)].toFixed(1)}s, slowest ${r.times.at(-1).toFixed(1)}s.`); }
 console.log(`Charms made along the way: ${charmsMade}; worn at the end: ${worn.join(', ')}.`);
+console.log(`Mighty armour pieces made after the quests: ${mightyPieces}/${seeds * 2 * 3}.`);

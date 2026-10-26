@@ -367,3 +367,13 @@ Five Mighty quests (`mighty-<beast>`) join the quest board once the story is don
 
 Every move uses the normal wind-up, so it warns at least 0.6 seconds ahead (the engine check covers every beast), and the circles and lanes stay drawn while the move lands. A Mighty calm pays 3 stars and a bundle. The engine suite has **110 checks**; the new ones cover the gating, the Grump, each beast's new move and its warning, hits inside and misses outside each shape, and the payment. The bot policy steps to the spot with the most room from the rain circles and fan lanes and backs out of the spin. After the nine other quests it calms every Mighty beast: **120/120** across 24 campaigns, with medians from 38.8 s (Skreel) to 106.0 s (Hornclack). A browser check opens the lock, then photographs the Bubble Rain circles and the Feather Fan lanes under 400 draw calls.
 
+### Mighty armour · 26-10-2026
+
+The Forge's Armour tab shows a sixth set, Mighty, after the story (`ARMOUR_SETS.mighty`, +15 Fluff a piece). Each piece needs Mighty quests finished at least once (`MIGHTY_ARMOUR`):
+
+- **Helm:** Mighty Bristleback and Puffwart; 2 curly tail tufts, 2 sleepy-cloud wisps, 2 tusk shards.
+- **Vest:** Mighty Skreel and Hornclack; 2 owl down, 3 shell plates, 3 horn chips.
+- **Boots:** Mighty Frostmane; 2 glimmer stones, 3 icy mane locks, 3 frost fur.
+
+Every piece also costs 4 quest stars. Two pieces give Mighty Rhythm: the string window grows by 0.3 s to 0.9 s (`MIGHTY_RHYTHM`), and finishers hit 1.1 times as hard (`MIGHTY_FINISHER`); the fast tools' second bonk stays at base power. Three pieces add Full Fluff: the leader's bonks take 15% more Grump while Fluff is full (`FULL_FLUFF`). Pieces are saved in the existing `armour.owned` list (no new save version), and unknown ids are dropped on load. On the hero, the pieces are gold with a soft glow. The engine suite has **111 checks**; the new one covers gating by quest and stars, payment, wearing, saving, the 0.9 s window, the 1.65 finisher ratio and the Full Fluff bonus. After each campaign's quests the bot makes whatever pieces it can afford: **63/72**. A browser check opens the lock, crafts all three pieces, reads both skills and starts a hunt at 145 Fluff, under 400 draw calls.
+

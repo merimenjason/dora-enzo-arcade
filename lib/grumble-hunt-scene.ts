@@ -884,7 +884,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     // Upgrades show on the toy: a band at tier 2, gold and branch-beast trim at 3–4, a Glimmer stone at 5.
     const look = game.node(weapon); a.weapons.setLook(weapon, look.tier, look.branch); a.hammerLook.setLook(look.tier, look.branch);
     a.hammer.visible = weapon === 'hammer'; a.trail.visible = false; a.ribbon.visible = false;
-    a.armour.forEach((g, i) => { const piece = game.profile.armour.worn[(['helm', 'vest', 'boots'] as const)[i]]; g.visible = isPlayer && !!piece; if (piece) { const color = BEASTS[piece.split('-')[0] as BeastId].color; g.traverse((o) => { if (o instanceof T.Mesh) (o.material as T.MeshToonMaterial).color.set(color); }); } });
+    a.armour.forEach((g, i) => { const piece = game.profile.armour.worn[(['helm', 'vest', 'boots'] as const)[i]]; g.visible = isPlayer && !!piece; if (piece) { const set = piece.split('-')[0], color = set === 'mighty' ? '#e8b931' : BEASTS[set as BeastId].color; g.traverse((o) => { if (o instanceof T.Mesh) { const m = o.material as T.MeshToonMaterial; m.color.set(color); m.emissive.setHex(set === 'mighty' ? 0xffc94a : 0x000000); m.emissiveIntensity = set === 'mighty' ? 0.25 : 0; } }); } });
     const hold = isPlayer ? game.hold() : null;
     // The preview opens the umbrella now and then, so the rack shows both its looks.
     const guard = preview ? weapon === 'umbrella' && !reduced.matches && showTime % 6 > 3 : hold?.kind === 'guard';

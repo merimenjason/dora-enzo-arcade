@@ -1,5 +1,5 @@
 /** Grumble Hunt rules. All distances are world units; all clocks are seconds. No DOM or Three.js. */
-import { SLOTS, POST_GAME_WEAPONS, WEAPON_TYPES, TIER_MULT, armourBonus, armourCost, weaponNode, type WeaponType, type Tier, type Branch, type ArmourPieceId, type Worn, DROPS, GATHER, ITEMS, MATERIALS, SNACKS, STORY, canAfford, cap, pay, rollCalm, rollShed, type AreaId, type ItemId, type MaterialId, type SnackId } from './grumble-hunt-content.js';
+import { MIGHTY_ARMOUR, type ArmourSetId, SLOTS, POST_GAME_WEAPONS, WEAPON_TYPES, TIER_MULT, armourBonus, armourCost, weaponNode, type WeaponType, type Tier, type Branch, type ArmourPieceId, type Worn, DROPS, GATHER, ITEMS, MATERIALS, SNACKS, STORY, canAfford, cap, pay, rollCalm, rollShed, type AreaId, type ItemId, type MaterialId, type SnackId } from './grumble-hunt-content.js';
 export type { AreaId, ItemId, MaterialId, SnackId };
 export type HeroId = 'dora' | 'enzo';
 export const BEAST_IDS = ['bristleback', 'puffwart', 'skreel', 'hornclack', 'frostmane'] as const;
@@ -52,6 +52,8 @@ export const EXIT_REACH = 2.4; // Walk this close to the open path to follow the
 export const WANDER_GIVEUP = 12; // Seconds a wandering beast tries to reach the path before slipping away anyway.
 /** Three J swings in rhythm make a string: each swing must start within COMBO_WINDOW seconds of the last one recovering, and the third is
  *  the tool's finisher: half again as strong, then a slower recovery. Slow tools add Dizzy, medium tools loosen parts twice as fast, fast tools bonk twice. */
+export const MIGHTY_RHYTHM = 0.3, MIGHTY_FINISHER = 1.1, FULL_FLUFF = 1.15;
+export const ARMOUR_PIECES: readonly ArmourPieceId[] = ([...BEAST_IDS, 'mighty'] as ArmourSetId[]).flatMap((id) => SLOTS.map((slot) => `${id}-${slot}` as ArmourPieceId));
 export const COMBO_WINDOW = 0.6, FINISHER_POWER = 1.5, FINISHER_DIZZY = 20, FINISHER_RECOVERY = 1.3;
 export const FINISHERS: Partial<Record<WeaponType, string>> = {
   hammer: 'Acorn Upswing', greatsword: 'Driftwood Drop', katana: 'Petal Spin', sword: 'Twig Twirl', claws: 'Pitter-Pat Flurry', horn: 'Gourd Encore', lance: 'Triple Poke',
@@ -411,7 +413,9 @@ export class HuntGame {
     return null;
   }
   weaponOpen(type: WeaponType) { const goal = this.weaponGoal(type); if (goal) return this.chapter === 6 && goal.count >= goal.total; return STORY.some((c) => c.unlocks.weapons?.includes(type) && this.chapter >= c.id); }
-  armourOpen(id: BeastId) { return BEAST_IDS.includes(id) && this.feature('armour') && this.chapter >= (STORY.find((c) => c.id > 0 && c.beast === id)?.id ?? 6); }
+  /** The Mighty set needs the Mighty quests that each piece names. */
+  mightyArmourOpen(slot: typeof SLOTS[number]) { return MIGHTY_ARMOUR[slot].quests.every((id) => (this.profile.quests[id] ?? 0) > 0); }
+  armourOpen(id: ArmourSetId) { if (id === 'mighty') return this.feature('armour') && this.chapter >= 6 && SLOTS.some((slot) => this.mightyArmourOpen(slot)); return BEAST_IDS.includes(id) && this.feature('armour') && this.chapter >= (STORY.find((c) => c.id > 0 && c.beast === id)?.id ?? 6); }
   sceneSeen(id: string) { if (!SCENES.includes(id)) return false; if (!this.story.scenesSeen.includes(id)) { this.story.scenesSeen.push(id); this.revision++; } return true; }
   startChapter() { if (this.chapter > 5) return false; return this.startHunt(STORY[this.chapter].beast, false, true); }
   questOpen(id: string) { const q = QUESTS.find((x) => x.id === id); return !!q && !!this.profile.hero && this.chapter >= q.chapter && q.beasts.every((b) => this.profile.beastBook[b].met) && (!q.mighty || this.questsDone >= MIGHTY_AT); }
@@ -528,11 +532,14 @@ export class HuntGame {
     this.note = `Bramble cheers! ${n.name} is ready.`; this.events.push({ kind: 'craft' }); this.revision++; return true;
   }
   canMakeArmour(piece: ArmourPieceId) {
-    return this.mode === 'village' && this.armourOpen(piece.split('-')[0] as BeastId) && BEAST_IDS.some((id) => SLOTS.some((slot) => piece === `${id}-${slot}`)) && !this.profile.armour.owned.includes(piece) && canAfford(this.profile.pouch, armourCost(piece));
+    const [set, slot] = piece.split('-') as [ArmourSetId, typeof SLOTS[number]], mighty = set === 'mighty';
+    return this.mode === 'village' && ARMOUR_PIECES.includes(piece) && this.armourOpen(set) && (!mighty || this.mightyArmourOpen(slot) && this.profile.stars >= MIGHTY_ARMOUR[slot].stars) && !this.profile.armour.owned.includes(piece) && canAfford(this.profile.pouch, armourCost(piece));
   }
   makeArmour(piece: ArmourPieceId) {
     if (!this.canMakeArmour(piece)) return false;
-    this.profile.pouch = pay(this.profile.pouch, armourCost(piece)) as Pouch; this.profile.armour.owned.push(piece); this.revision++; return true;
+    this.profile.pouch = pay(this.profile.pouch, armourCost(piece)) as Pouch; this.profile.armour.owned.push(piece); this.revision++;
+    if (piece.startsWith('mighty-')) { this.profile.stars -= MIGHTY_ARMOUR[piece.split('-')[1] as typeof SLOTS[number]].stars; this.note = 'Bramble hammers out a Mighty piece. It glows like the sun!'; this.events.push({ kind: 'craft' }); }
+    return true;
   }
   wear(piece: ArmourPieceId) {
     if (this.mode !== 'village' || !this.profile.armour.owned.includes(piece)) return false;
@@ -776,7 +783,7 @@ export class HuntGame {
     const wasDizzy = b.state === 'dizzy', wasSnoozing = b.state === 'snooze';
     if (buddy && ++this.buddyHits % 10 === 0 && perk('warm-glow')) this.healFriends(10);
     if (!buddy) { this.hits++; if (this.weapon() !== 'switchaxe' || this.bloom) this.focus = Math.min(100, this.focus + 20 * (1 + perk('focus-fill') + perk('bloom-fill'))); if (!this.bloom) this.pods = Math.min(3 + perk('extra-pod'), this.pods + 1); this.notes++; this.zoom = Math.min(5, this.zoom + 0.5); if (perk('warm-glow') && this.hits % 10 === 0) this.healFriends(10); }
-    const soft = b.soft > 0, weak = b.id === 'hornclack' ? Math.abs(front) < 0.3 : front > 0.45, amount = power * (wasDizzy ? 1.7 : wasSnoozing ? 2 : 1) * (soft ? 1.2 : 1) * (weak ? WEAK_SPOT : 1);
+    const soft = b.soft > 0, weak = b.id === 'hornclack' ? Math.abs(front) < 0.3 : front > 0.45, amount = power * (wasDizzy ? 1.7 : wasSnoozing ? 2 : 1) * (soft ? 1.2 : 1) * (weak ? WEAK_SPOT : 1) * (!buddy && this.skill('full-fluff') && this.hero.fluff >= this.hero.maxFluff ? FULL_FLUFF : 1);
     b.grump = Math.max(0, b.grump - amount); b.flash = 0.18; b.bonks++; b.part += amount * (1 + perk('part-power') + perk('pop-parts')) * (soft ? 1.5 : 1) * (buddy ? 1 : this.partBoost);
     if (b.id === 'frostmane') {
       const next = b.grump < b.maxGrump / 3 ? 3 : b.grump < b.maxGrump * 2 / 3 ? 2 : 1;
@@ -1036,7 +1043,7 @@ export class HuntGame {
     if (!this.attack(false) || !name) return;
     this.combo = this.comboTimer > 0 ? this.combo + 1 : 1;
     if (this.combo >= 3) { this.combo = 0; h.finisher = true; h.cooldown *= FINISHER_RECOVERY; }
-    this.comboTimer = h.cooldown + COMBO_WINDOW;
+    this.comboTimer = h.cooldown + COMBO_WINDOW + (this.skill('mighty-rhythm') ? MIGHTY_RHYTHM : 0);
   }
   private healFriends(amount: number) { if (amount <= 0) return; this.effect('berry', this.hero, `+${amount} Fluff for both friends`); this.hero.fluff = Math.min(this.hero.maxFluff, this.hero.fluff + amount); this.buddy.fluff = Math.min(this.buddy.maxFluff, this.buddy.fluff + amount); }
   private signature(charge: number) {
@@ -1083,12 +1090,12 @@ export class HuntGame {
     if (type === 'lance' && (this.guarding || heavy)) power *= 1 + this.perk('guard-bonk');
     if (type === 'hammer' && heavy && this.swingCharge >= 1 && this.perk('shockwave')) { this.effect('dust', b, 'Shockwave!'); }
     const finisher = !heavy && this.hero.finisher && this.hero.swing >= 0 && !!FINISHERS[type], speed = WEAPON_TYPES[type].speed;
-    if (finisher) { power *= FINISHER_POWER; if (speed === 'medium') this.partBoost = 2; }
+    if (finisher) { power *= FINISHER_POWER * (this.skill('mighty-rhythm') ? MIGHTY_FINISHER : 1); if (speed === 'medium') this.partBoost = 2; }
     const landed = this.bonkBeast(power * this.weaponScale(type), heavy, this.hero); this.partBoost = 1;
     if (finisher && landed) {
       this.huntFacts.finishers++; this.events.push({ kind: 'finisher' }); this.hitstop = Math.max(this.hitstop, 0.11); this.shake = Math.max(this.shake, 0.3);
       this.note = `${FINISHERS[type]}! ${speed === 'slow' ? '+20 Dizzy.' : speed === 'medium' ? 'Parts loosen twice as fast.' : 'Two bonks in one.'}`;
-      if (speed === 'fast' && this.mode === 'hunt') this.bonkBeast(power / FINISHER_POWER * this.weaponScale(type), false, this.hero);
+      if (speed === 'fast' && this.mode === 'hunt') this.bonkBeast(power / FINISHER_POWER / (this.skill('mighty-rhythm') ? MIGHTY_FINISHER : 1) * this.weaponScale(type), false, this.hero);
       if (speed === 'slow' && this.mode === 'hunt' && b.state !== 'dizzy') this.addDizzy(FINISHER_DIZZY, false);
     }
     if (landed && type === 'umbrella' && heavy) { const heal = this.perk('spin-heal'); this.buddy.fluff = Math.min(this.buddy.maxFluff, this.buddy.fluff + heal); }
@@ -1612,8 +1619,7 @@ export class HuntGame {
         if (w && Number.isInteger(w.tier) && w.tier >= 1 && w.tier <= 5 && (w.tier < 3 ? w.branch === null : w.branch === 'A' || w.branch === 'B')) game.profile.weapons[type] = { tier: w.tier, branch: w.branch };
       }
       for (const who of ['dora', 'enzo'] as const) { const type = p.equipped?.[who]; if (typeof type === 'string' && Object.hasOwn(WEAPON_TYPES, type) && (!POST_GAME_WEAPONS.includes(type) || game.weaponOpen(type))) game.profile.equipped[who] = type; }
-      const pieces = BEAST_IDS.flatMap((id) => SLOTS.map((slot) => `${id}-${slot}` as ArmourPieceId));
-      game.profile.armour.owned = Array.isArray(p.armour?.owned) ? pieces.filter((id) => p.armour!.owned.includes(id)) : [];
+      game.profile.armour.owned = Array.isArray(p.armour?.owned) ? ARMOUR_PIECES.filter((id) => p.armour!.owned.includes(id)) : [];
       for (const slot of SLOTS) { const piece = p.armour?.worn?.[slot]; if (piece && game.profile.armour.owned.includes(piece) && piece.endsWith(`-${slot}`)) game.profile.armour.worn[slot] = piece; }
     }
     if (s.v === 6) { const c = p.charms; for (const id of CHARM_IDS) game.profile.charms.levels[id] = integer(c?.levels?.[id], 3); game.profile.charms.worn = c && CHARM_IDS.includes(c.worn as CharmId) && game.profile.charms.levels[c.worn as CharmId] > 0 ? c.worn : null; }

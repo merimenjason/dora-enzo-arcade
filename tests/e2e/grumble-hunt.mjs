@@ -512,6 +512,19 @@ try {
       await p.getByTestId('pause').click(); await p.getByRole('button', { name: 'Return to camp', exact: true }).click(); await p.locator('main[data-mode="village"]').waitFor();
     }
   });
+  await check('Mighty armour: locked by its Mighty quests, crafted with stars, worn gold with both set skills', async (p) => {
+    await fresh(p);
+    await hunt(p, (w) => { const g = w.game; g.story.chapter = 6; for (const id of ['bristleback', 'puffwart', 'skreel', 'hornclack', 'frostmane']) { g.profile.beastBook[id].met = true; g.profile.naps[id] = 1; } Object.assign(g.profile.pouch, { 'curly-tail-tuft': 5, 'cloud-wisp': 5, 'tusk-shard': 5, 'owl-down': 5, 'shell-plate': 5, 'horn-chip': 5, 'glimmer-stone': 5, 'mane-lock': 5, 'frost-fur': 5 }); g.profile.stars = 12; g.profile.quests = { 'mighty-bristleback': 1 }; });
+    await p.getByTestId('open-forge').click(); await p.getByTestId('forge-armour').click();
+    assert.equal(await p.getByTestId('armour-mighty-helm').isDisabled(), true); assert.match(await p.locator('.hunt-mighty-piece').first().innerText(), /✓ Mighty Bristleback and Mighty Puffwart/);
+    await hunt(p, (w) => { Object.assign(w.game.profile.quests, { 'mighty-puffwart': 1, 'mighty-skreel': 1, 'mighty-hornclack': 1, 'mighty-frostmane': 1 }); });
+    for (const slot of ['helm', 'vest', 'boots']) await p.getByTestId(`armour-mighty-${slot}`).click();
+    assert.match(await p.getByTestId('armour-skills').innerText(), /\+45 Fluff · Mighty Rhythm · Full Fluff/); assert.equal(await hunt(p, (w) => w.game.profile.stars), 0);
+    await p.getByTestId('armour-mighty-helm').scrollIntoViewIfNeeded(); await snapshot(p, 'forge-mighty-armour');
+    await p.getByRole('button', { name: 'Close panel' }).click(); await start(p);
+    assert.equal(await hunt(p, (w) => w.game.hero.maxFluff), 145); await p.waitForTimeout(400); await snapshot(p, 'mighty-armour-hunt');
+    assert(await hunt(p, (w) => w.metrics().calls) < 400);
+  });
   await check('camera orbit avoids terrain, texture count stays bounded, navigation tears down', async (p) => {
     await fresh(p); await start(p); const first = await hunt(p, (w) => w.metrics().textures), c = p.getByTestId('hunt-canvas');
     const r = await c.boundingBox(); await p.mouse.move(r.width / 2, r.height / 2); await p.mouse.down(); await p.mouse.move(r.width / 2 + 200, r.height / 2 - 120, { steps: 8 }); await p.mouse.up();
