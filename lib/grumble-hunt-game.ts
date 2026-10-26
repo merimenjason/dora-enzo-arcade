@@ -58,6 +58,12 @@ export const FINISHERS: Partial<Record<WeaponType, string>> = {
   gunlance: 'Puffcap Pop', switchaxe: 'Spade Sweep', chargeblade: 'Seedpod Slam', glaive: 'Firefly Twirl', yoyo: 'Round the World', feather: 'Tickle Storm', pogo: 'Boing Bonk', umbrella: 'Brolly Swirl',
 };
 export const FINISHER_KIND: Record<'slow' | 'medium' | 'fast', string> = { slow: '+20 Dizzy', medium: 'parts loosen twice as fast', fast: 'bonks twice' };
+/** Mighty beasts are quest-only, after the story and MIGHTY_AT other quests: MIGHTY_GRUMP times the Grump, twice the rare chance and one new
+ *  move each, warned like every other attack. Rain drops orange circles round the leader, the fan sends three lanes, the spin is a wide circle. */
+export const MIGHTY_GRUMP = 2, MIGHTY_AT = 3;
+export const RAIN_REACH = 2.2, FAN_SPREAD = 0.55, FAN_REACH = 1.1, FAN_LENGTH = 11, SPIN_REACH = 6;
+export const MIGHTY_MOVES = { bristleback: 'rush', puffwart: 'rain', skreel: 'fan', hornclack: 'spin', frostmane: 'rain' } as const;
+export const MIGHTY_NAMES: Record<BeastId, string> = { bristleback: 'Double Dash', puffwart: 'Bubble Rain', skreel: 'Feather Fan', hornclack: 'Shell Spin', frostmane: 'Icicle Rain' };
 export const ROAR_REACH = 7; // A roar makes friends this close cover their ears; a roll or a guard keeps them going.
 export const INTRO_CARD = 3.2;
 export const ROAR_TIME = 1.1; // Seconds a roar lasts; covered ears last 0.9 seconds.
@@ -128,8 +134,8 @@ export type StoryProgress = { chapter: number; scenesSeen: string[] };
 export type BeastBook = Record<BeastId, { met: boolean; napped: number; partsBroken: string[]; best: number }>;
 export type Profile = { charms: { levels: Record<CharmId, number>; worn: CharmId | null }; quests: Record<string, number>; stars: number; bountiesClaimed: number; variantNaps: Record<BeastId, number>; totalPlops: number; story: StoryProgress; beastBook: BeastBook; bounties: { day: string; done: string[]; ready: string[] }; extraGrumpyUnlocked: boolean; hero: HeroId | null; weapons: Record<WeaponType, { tier: Tier; branch: Branch | null }>; equipped: Record<HeroId, WeaponType>; armour: { owned: ArmourPieceId[]; worn: Worn }; pouch: Pouch; ring: ItemId[]; snack: SnackId | null; naps: Record<BeastId, number>; won: boolean; hunts: number };
 export type Hero = Vec & { finisher: boolean; face: number; fluff: number; maxFluff: number; speed: number; roll: number; rollX: number; rollZ: number; rollCd: number; invincible: number; charge: number; swing: number; heavy: boolean; landed: boolean; cooldown: number; slow: number; hidden: number; covered: number };
-export type BeastState = 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'cloud' | 'circle' | 'swoop' | 'sweep' | 'pounce' | 'shake' | 'roar' | 'turf' | 'grabbed' | 'yanked' | 'rest' | 'dizzy' | 'stuck' | 'trudge' | 'snooze' | 'wander' | 'nap';
-export type Beast = Vec & { id: BeastId; grump: number; maxGrump: number; face: number; state: BeastState; t: number; duration: number; attack: BeastState; aim: Vec; start: Vec; dir: Vec; phase: number; cycle: number; dizzy: number; part: number; broken: boolean; bonks: number; flash: number; height: number; grumpy: boolean; drowsy: number; drowsySlow: number; home: 0 | 1 | 2; soft: number; zone: number; away: boolean };
+export type BeastState = 'rush' | 'rain' | 'fan' | 'spin' | 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'cloud' | 'circle' | 'swoop' | 'sweep' | 'pounce' | 'shake' | 'roar' | 'turf' | 'grabbed' | 'yanked' | 'rest' | 'dizzy' | 'stuck' | 'trudge' | 'snooze' | 'wander' | 'nap';
+export type Beast = Vec & { id: BeastId; grump: number; maxGrump: number; face: number; state: BeastState; t: number; duration: number; attack: BeastState; aim: Vec; start: Vec; dir: Vec; phase: number; cycle: number; dizzy: number; part: number; broken: boolean; bonks: number; flash: number; height: number; grumpy: boolean; drowsy: number; drowsySlow: number; home: 0 | 1 | 2; soft: number; zone: number; away: boolean; mighty: boolean; rush: number; marks: Vec[] };
 export type Visitor = Vec & { id: BeastId; face: number; state: 'arrive' | 'face' | 'leave'; t: number; home: Vec };
 export type Stone = Vec & { id: number; dx: number; dz: number; life: number };
 export type Finch = Vec & { id: number; caught: boolean };
@@ -187,7 +193,7 @@ export const BOUNTIES: { id: string; title: string; check: (f: HuntFacts, b: Bea
 ];
 /** Old Mossback's quests: one beast with a time limit or a side goal, or two beasts in a row (the second wanders in after the first naps).
  *  A quest opens with its chapter; finishing it pays stars and a bundle every time. Missing the limit or the goal still ends in a lovely nap. */
-export type Quest = { id: string; title: string; text: string; beasts: BeastId[]; chapter: number; stars: number; reward: Partial<Record<MaterialId, number>>; limit?: number; goal?: { text: string; miss: string; check: (f: HuntFacts) => boolean } };
+export type Quest = { mighty?: boolean; id: string; title: string; text: string; beasts: BeastId[]; chapter: number; stars: number; reward: Partial<Record<MaterialId, number>>; limit?: number; goal?: { text: string; miss: string; check: (f: HuntFacts) => boolean } };
 export const QUESTS: readonly Quest[] = [
   { id: 'quick-bristleback', title: 'Speedy Snooze', text: 'Calm Bristleback within 90 seconds.', beasts: ['bristleback'], chapter: 2, stars: 1, reward: { 'bristle-tuft': 3, 'boar-hide': 1 }, limit: 90 },
   { id: 'no-vine-puffwart', title: 'Paws Only', text: 'Calm Puffwart without throwing the vine.', beasts: ['puffwart'], chapter: 3, stars: 1, reward: { 'wart-pebble': 3, 'marsh-reed': 2 }, goal: { text: 'No vine', miss: 'the vine came out', check: (f) => f.vines === 0 } },
@@ -198,6 +204,8 @@ export const QUESTS: readonly Quest[] = [
   { id: 'quick-frostmane', title: 'Frosty Sprint', text: 'Calm Frostmane within 4 minutes.', beasts: ['frostmane'], chapter: 6, stars: 2, reward: { 'frost-fur': 3, 'mane-lock': 1 }, limit: 240 },
   { id: 'gentle-frostmane', title: 'Featherlight', text: 'Calm Frostmane with three bumps or fewer.', beasts: ['frostmane'], chapter: 6, stars: 2, reward: { 'frost-fur': 2, 'glimmer-stone': 1 }, goal: { text: 'Three bumps or fewer', miss: 'more than three bumps', check: (f) => f.bumps <= 3 } },
   { id: 'peak-parade', title: 'Peak Parade', text: 'Calm Hornclack, then Frostmane wanders in for a second nap.', beasts: ['hornclack', 'frostmane'], chapter: 6, stars: 3, reward: { 'horn-chip': 2, 'frost-fur': 2, 'glimmer-stone': 1 } },
+  ...BEAST_IDS.map((id): Quest => ({ id: `mighty-${id}`, title: `Mighty ${BEASTS[id].name}`, text: `A Mighty ${BEASTS[id].name}: twice the Grump and a new move, the ${MIGHTY_NAMES[id]}.`, beasts: [id], chapter: 6, stars: 3, mighty: true,
+    reward: ({ bristleback: { 'curly-tail-tuft': 2, 'tusk-shard': 1 }, puffwart: { 'cloud-wisp': 2, 'puff-sac': 1 }, skreel: { 'owl-down': 3, 'sky-feather': 2 }, hornclack: { 'horn-chip': 2, 'shell-plate': 2 }, frostmane: { 'glimmer-stone': 2, 'mane-lock': 2 } } as Record<BeastId, Quest['reward']>)[id] })),
 ];
 /** Bramble's charm tree: three charms, each made at level I and grown to II and III with beast materials and quest stars.
  *  One charm is worn at a time. Clover fills the nap reward, Acorn adds Fluff, Feather quickens rolls and the vine. */
@@ -406,12 +414,15 @@ export class HuntGame {
   armourOpen(id: BeastId) { return BEAST_IDS.includes(id) && this.feature('armour') && this.chapter >= (STORY.find((c) => c.id > 0 && c.beast === id)?.id ?? 6); }
   sceneSeen(id: string) { if (!SCENES.includes(id)) return false; if (!this.story.scenesSeen.includes(id)) { this.story.scenesSeen.push(id); this.revision++; } return true; }
   startChapter() { if (this.chapter > 5) return false; return this.startHunt(STORY[this.chapter].beast, false, true); }
-  questOpen(id: string) { const q = QUESTS.find((x) => x.id === id); return !!q && !!this.profile.hero && this.chapter >= q.chapter && q.beasts.every((b) => this.profile.beastBook[b].met); }
+  questOpen(id: string) { const q = QUESTS.find((x) => x.id === id); return !!q && !!this.profile.hero && this.chapter >= q.chapter && q.beasts.every((b) => this.profile.beastBook[b].met) && (!q.mighty || this.questsDone >= MIGHTY_AT); }
+  /** Different non-Mighty quests finished at least once. */
+  get questsDone() { return QUESTS.filter((q) => !q.mighty && (this.profile.quests[q.id] ?? 0) > 0).length; }
   /** Takes a quest from the board: its first beast's hunt, in that beast's area. */
   startQuest(id: string) {
     const q = QUESTS.find((x) => x.id === id);
     if (!q || !this.questOpen(id) || !this.startHunt(q.beasts[0])) return false;
     this.quest = { id, step: 0, failed: '' }; if (q.beasts.length > 1) this.visited = true;
+    if (q.mighty) { const b = this.beast!; b.mighty = true; b.grump = b.maxGrump = BEASTS[b.id].grump * MIGHTY_GRUMP; }
     this.note = `Quest: ${q.title}. ${q.text}`; this.revision++; return true;
   }
   private stepQuest() {
@@ -708,7 +719,7 @@ export class HuntGame {
     return true;
   }
   private newBeast(id: BeastId, grump: number): Beast {
-    return { id, x: 0, z: -3, face: -Math.PI / 2, grump, maxGrump: grump, state: id === 'skreel' ? 'circle' : 'roam', t: 0, duration: 2.4, attack: 'charge', aim: { x: 0, z: 0 }, start: { x: 0, z: -3 }, dir: { x: 0, z: 1 }, phase: 1, cycle: 0, dizzy: 0, part: 0, broken: false, bonks: 0, flash: 0, height: 0, grumpy: false, drowsy: 0, drowsySlow: 0.3, home: 0, soft: 0, zone: 0, away: false };
+    return { id, x: 0, z: -3, face: -Math.PI / 2, grump, maxGrump: grump, state: id === 'skreel' ? 'circle' : 'roam', t: 0, duration: 2.4, attack: 'charge', aim: { x: 0, z: 0 }, start: { x: 0, z: -3 }, dir: { x: 0, z: 1 }, phase: 1, cycle: 0, dizzy: 0, part: 0, broken: false, bonks: 0, flash: 0, height: 0, grumpy: false, drowsy: 0, drowsySlow: 0.3, home: 0, soft: 0, zone: 0, away: false, mighty: false, rush: 0, marks: [] };
   }
   returnVillage() {
     this.resetWeapons(); this.quest = null; this.questResult = null;
@@ -822,7 +833,7 @@ export class HuntGame {
     }
     this.profile.naps[b.id]++; this.profile.won ||= b.id === 'frostmane';
     // Three commons and a rare roll (two with a Lucky Seed Bun); the pop-off part already dropped its own material.
-    this.reward = rollCalm(() => this.random(), b.id, [], (this.snack ? SNACKS[this.snack].effect.bonusRareRolls ?? 0 : 0) + this.charm.rareRolls, this.variant ? 2 : 1);
+    this.reward = rollCalm(() => this.random(), b.id, [], (this.snack ? SNACKS[this.snack].effect.bonusRareRolls ?? 0 : 0) + this.charm.rareRolls, this.variant || b.mighty ? 2 : 1);
     const common = DROPS[b.id].calm.common; for (let i = 0; i < this.charm.commons; i++) this.reward.splice(DROPS[b.id].calm.count + i, 0, common[Math.floor(this.random() * common.length)]);
     for (const m of this.reward) this.drop(b, m, 1);
     this.collect(true); this.gathering = null; this.revision++;
@@ -833,7 +844,7 @@ export class HuntGame {
   makeDizzy(seconds = 3.2) {
     const b = this.beast; if (!b || this.mode !== 'hunt' || b.state === 'nap') return;
     this.huntFacts.dizzies++;
-    b.state = 'dizzy'; b.t = 0; b.duration = seconds; b.height = 0; this.pebbles = Math.min(SLING_MAX, this.pebbles + 1);
+    b.state = 'dizzy'; b.t = 0; b.duration = seconds; b.height = 0; b.rush = 0; this.pebbles = Math.min(SLING_MAX, this.pebbles + 1);
     this.effect('dizzy', b, 'Dizzy!'); this.events.push({ kind: 'dizzy' }); this.note = 'Dizzy! A lovely opening for a big bonk.';
   }
   bumpHero(amount: number, from: Vec) {
@@ -1247,21 +1258,33 @@ export class HuntGame {
     if (pickup) this.collect(false, p, 1.2);
     if (spot && d <= gap && (p.gatherT += dt) >= GATHER_TIME) { p.gatherT = 0; this.gather(spot, p); }
   }
-  private windup() {
+  /** The three Mighty-fan lanes, from where the beast stood when it wound up. */
+  fanLanes(): { start: Vec; end: Vec }[] {
+    const b = this.beast; if (!b) return [];
+    return [-1, 0, 1].map((k) => { const a = k * FAN_SPREAD, c = Math.cos(a), s = Math.sin(a); return { start: b.start, end: { x: b.start.x + (b.dir.x * c + b.dir.z * s) * FAN_LENGTH, z: b.start.z + (-b.dir.x * s + b.dir.z * c) * FAN_LENGTH } }; });
+  }
+  /** `force` winds up a set move straight away (the Double Dash's second dash) without counting a new cycle. */
+  private windup(force?: BeastState) {
     const b = this.beast!;
-    b.cycle++; b.phase = b.id === 'frostmane' ? b.grump < b.maxGrump / 3 ? 3 : b.grump < b.maxGrump * 2 / 3 ? 2 : 1 : 1;
+    if (!force) { b.cycle++; b.rush = 0; }
+    b.phase = b.id === 'frostmane' ? b.grump < b.maxGrump / 3 ? 3 : b.grump < b.maxGrump * 2 / 3 ? 2 : 1 : 1;
     const attacks: Record<BeastId, BeastState[]> = { bristleback: ['charge'], puffwart: ['hop', 'tongue', 'cloud'], skreel: ['swoop'], hornclack: ['sweep', 'charge'], frostmane: ['pounce', 'shake', 'pounce'] };
-    const pattern = b.id === 'frostmane' ? b.phase === 1 ? ['pounce'] : b.phase === 2 ? ['pounce', 'shake'] : ['pounce', 'pounce', 'shake'] : attacks[b.id];
+    const pattern: BeastState[] = [...(b.id === 'frostmane' ? b.phase === 1 ? ['pounce'] : b.phase === 2 ? ['pounce', 'shake'] : ['pounce', 'pounce', 'shake'] : attacks[b.id]) as BeastState[], ...(b.mighty ? [MIGHTY_MOVES[b.id]] : [])];
     // The first wind-up that can see a friend, and the first after turning Extra Grumpy, is a roar instead.
-    const roar = !this.roared && this.inSight();
+    const roar = !force && !this.roared && this.inSight();
     if (roar) { b.cycle--; this.roared = true; }
-    b.attack = roar ? 'roar' : pattern[(b.cycle - 1) % pattern.length] as BeastState;
+    b.attack = force ?? (roar ? 'roar' : pattern[(b.cycle - 1) % pattern.length]);
+    // The Double Dash is two charges, each with its own warning.
+    if (b.attack === 'rush') { b.attack = 'charge'; b.rush = 1; }
     b.state = 'windup'; b.t = 0; b.duration = Math.max(0.6, b.grumpy ? TELEGRAPH - 0.1 : TELEGRAPH); b.start = { x: b.x, z: b.z }; b.dir = direction(b, this.hero); b.face = faceTo(b, this.hero);
-    const length = b.attack === 'charge' || b.attack === 'swoop' ? 12 : b.attack === 'pounce' || b.attack === 'hop' ? Math.min(9, distance(b, this.hero)) : b.attack === 'tongue' ? 7 : 0;
+    const length = b.attack === 'charge' || b.attack === 'swoop' ? 12 : b.attack === 'fan' ? FAN_LENGTH : b.attack === 'pounce' || b.attack === 'hop' ? Math.min(9, distance(b, this.hero)) : b.attack === 'tongue' ? 7 : 0;
     b.aim = { x: b.x + b.dir.x * length, z: b.z + b.dir.z * length };
+    // Rain: one circle on the leader and the rest in a ring round them, turned a little each time.
+    const h = this.hero, n = b.attack === 'rain' ? b.id === 'frostmane' ? 4 : 3 : 0, turn = b.cycle * 1.3;
+    b.marks = Array.from({ length: n }, (_, i) => i === 0 ? { x: h.x, z: h.z } : { x: h.x + Math.cos(turn + i / (n - 1) * Math.PI * 2) * 3.6, z: h.z + Math.sin(turn + i / (n - 1) * Math.PI * 2) * 3.6 });
     this.effect('dust', b);
     if (roar && !this.introduced) { this.introduced = true; this.introAt = this.huntTime; this.events.push({ kind: 'intro' }); }
-    this.note = b.attack === 'roar' ? 'Big roar coming! Step out of the orange circle, roll or guard.' : b.attack === 'shake' || b.attack === 'sweep' || b.attack === 'cloud' ? 'Orange circle! Step outside or roll as it lands.' : 'Orange lane! Step sideways or roll as it arrives.';
+    this.note = b.attack === 'rain' ? `${MIGHTY_NAMES[b.id]}! Step out of the orange circles before they land.` : b.attack === 'fan' ? 'Feather Fan! Slip between the three orange lanes.' : b.attack === 'spin' ? 'Shell Spin! Get well outside the big orange circle.' : b.rush ? `${MIGHTY_NAMES[b.id]}! Two charges, each with its own orange lane.` : b.attack === 'roar' ? 'Big roar coming! Step out of the orange circle, roll or guard.' : b.attack === 'shake' || b.attack === 'sweep' || b.attack === 'cloud' ? 'Orange circle! Step outside or roll as it lands.' : 'Orange lane! Step sideways or roll as it arrives.';
   }
   private stepVisitor(dt: number) {
     const b = this.beast; if (!b) return;
@@ -1453,7 +1476,7 @@ export class HuntGame {
     if (b.state === 'windup') {
       b.height = b.id === 'skreel' ? 1 + Math.sin(b.t * 8) * 0.2 : 0;
       if (b.t >= b.duration && b.attack === 'roar') { b.state = 'roar'; b.t = 0; b.duration = ROAR_TIME; this.events.push({ kind: 'roar' }); this.shake = Math.max(this.shake, 0.35); return; }
-      if (b.t >= b.duration) { b.state = b.attack; b.t = 0; b.duration = b.attack === 'charge' || b.attack === 'swoop' ? distance(b.start, b.aim) / ((b.attack === 'charge' ? 12 : 14) * pace) : b.attack === 'pounce' || b.attack === 'hop' ? 0.72 / pace : 0.65; }
+      if (b.t >= b.duration) { b.state = b.attack; b.t = 0; b.duration = b.attack === 'charge' || b.attack === 'swoop' ? distance(b.start, b.aim) / ((b.attack === 'charge' ? 12 : 14) * pace) : b.attack === 'pounce' || b.attack === 'hop' ? 0.72 / pace : b.attack === 'rain' || b.attack === 'fan' ? 0.5 : b.attack === 'spin' ? 0.7 : 0.65; }
       return;
     }
     const active = b.state;
@@ -1473,13 +1496,20 @@ export class HuntGame {
       if (b.t > 0.18 && b.t < 0.48 && laneDistance(this.hero, b.start, b.aim) < 1.2) this.bumpHero(12, b);
     } else if (active === 'sweep' || active === 'shake') {
       if (b.t > 0.25 && distance(this.hero, b) < (active === 'shake' ? 5 : 4)) this.bumpHero(active === 'shake' ? 14 : 16, b);
+    } else if (active === 'rain') {
+      const mark = b.t > 0.05 && b.t < 0.3 ? b.marks.find((m) => distance(this.hero, m) < RAIN_REACH) : undefined; if (mark) this.bumpHero(14, mark);
+    } else if (active === 'fan') {
+      if (b.t > 0.15 && b.t < 0.45 && this.fanLanes().some((l) => laneDistance(this.hero, l.start, l.end) < FAN_REACH)) this.bumpHero(12, b);
+    } else if (active === 'spin') {
+      if (b.t > 0.25 && distance(this.hero, b) < SPIN_REACH) this.bumpHero(16, b);
     } else if (active === 'roar') {
       // One sound wave, 0.2 s in: friends inside the reach cover their ears unless rolling, guarding or riding.
       if (b.t >= 0.2 && b.t - dt < 0.2) this.coverEars(b);
     } else if (active === 'cloud' && b.t >= b.duration) {
       this.clouds.push({ x: b.x + b.dir.x * 3, z: b.z + b.dir.z * 3, life: 5, r: 3.5 });
     }
-    if (b.t >= b.duration) { b.state = 'rest'; b.t = 0; b.height = 0; b.duration = b.id === 'skreel' ? 4.5 : b.id === 'frostmane' ? 2.3 - b.phase * 0.3 : 2.2; }
+    if (b.t >= b.duration && b.rush && active === 'charge') { b.rush = 0; this.windup('charge'); return; }
+    if (b.t >= b.duration) { b.state = 'rest'; b.t = 0; b.height = 0; b.marks = []; b.duration = b.id === 'skreel' ? 4.5 : b.id === 'frostmane' ? 2.3 - b.phase * 0.3 : 2.2; }
   }
   private stepWeather() {
     const w = this.weather, stormy = w.level >= 0.5;

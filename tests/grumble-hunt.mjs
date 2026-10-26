@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { HuntGame, CHARMS, CHARM_IDS, CHARM_CHAPTER, QUESTS, COMBO_WINDOW, FINISHERS, FINISHER_POWER, FINISHER_DIZZY, FINISHER_RECOVERY, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, ZONE_NAMES, ZONE_AT, EXIT_REACH, WANDER_GIVEUP, FINCHES, FINCH_FLUFF, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, MIGHTY_GRUMP, MIGHTY_MOVES, MIGHTY_AT, RAIN_REACH, FAN_SPREAD, SPIN_REACH, CHARMS, CHARM_IDS, CHARM_CHAPTER, QUESTS, COMBO_WINDOW, FINISHERS, FINISHER_POWER, FINISHER_DIZZY, FINISHER_RECOVERY, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, ZONE_NAMES, ZONE_AT, EXIT_REACH, WANDER_GIVEUP, FINCHES, FINCH_FLUFF, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
 import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
@@ -1104,5 +1104,35 @@ check('charm effects: more Fluff, quicker rolls and vine, and a fuller nap rewar
     if (id) rareClover += rares; else rarePlain += rares;
   }
   assert(rareClover > rarePlain * 1.4, `${rareClover} vs ${rarePlain}`);
+});
+const mightyGame = () => { const g = questGame(); for (const q of QUESTS.filter((x) => !x.mighty).slice(0, MIGHTY_AT)) g.profile.quests[q.id] = 1; return g; };
+check('Mighty beasts open after the story and three quests, with more Grump and one new move each', () => {
+  const mighty = QUESTS.filter((q) => q.mighty); assert.deepEqual(mighty.map((q) => q.beasts[0]), BEAST_IDS);
+  const early = questGame(); for (const q of QUESTS.filter((x) => !x.mighty).slice(0, MIGHTY_AT - 1)) early.profile.quests[q.id] = 1; assert.equal(early.questOpen('mighty-frostmane'), false);
+  const five = questGame(5); for (const q of QUESTS.filter((x) => !x.mighty)) five.profile.quests[q.id] = 1; assert.equal(five.questOpen('mighty-bristleback'), false, 'not before the ending');
+  for (const id of BEAST_IDS) {
+    const g = mightyGame(); assert(g.startQuest(`mighty-${id}`)); const b = g.beast; assert(b.mighty); assert.equal(b.maxGrump, BEASTS[id].grump * MIGHTY_GRUMP); assert.equal(b.grump, b.maxGrump);
+    g.roared = g.introduced = true; g.zoneAt = []; g.buddy.cooldown = 1e9; g.hero.invincible = 1e9; g.obstacles = []; const seen = new Set();
+    for (let cycle = 0; cycle < 8; cycle++) {
+      b.x = 0; b.z = -3; g.hero.x = 0; g.hero.z = 4; b.state = id === 'skreel' ? 'circle' : 'roam'; b.t = 0; b.duration = 0; g.step(DT); assert.equal(b.state, 'windup'); assert(b.duration >= 0.6, `${id} ${b.attack}`); seen.add(b.attack);
+      if (b.attack === 'charge' && b.rush) { tick(g, b.duration + 0.05); while (b.state === 'charge') g.step(DT); assert.equal(b.state, 'windup', 'the second dash winds up again'); assert(b.duration >= 0.6); assert.equal(b.rush, 0); seen.add('rush'); }
+    }
+    assert(seen.has(MIGHTY_MOVES[id]), `${id} used ${[...seen]}`);
+  }
+});
+check('Mighty moves: rain circles, a three-lane feather fan and a wide shell spin each hit only inside their warning', () => {
+  const at = (id, move, place) => { const g = mightyGame(); assert(g.startQuest(`mighty-${id}`)); g.roared = g.introduced = true; g.zoneAt = []; g.buddy.cooldown = 1e9; g.obstacles = []; const b = g.beast; b.x = 0; b.z = 0; b.height = 0; g.hero.x = 0; g.hero.z = 6;
+    b.state = 'windup'; b.attack = move; b.t = 0; b.duration = 0.9; b.start = { x: 0, z: 0 }; b.dir = { x: 0, z: 1 }; b.face = faceAngle(0, 1); b.marks = move === 'rain' ? [{ x: 0, z: 6 }, { x: 5, z: 6 }, { x: -5, z: 6 }] : []; b.aim = { x: 0, z: 11 };
+    place(g); const f = g.huntFacts.bumps; tick(g, 0.9 + 0.8, NO_INPUT); return g.huntFacts.bumps - f; };
+  const faceAngle = (x, z) => Math.atan2(-z, x);
+  assert(at('puffwart', 'rain', (g) => { g.hero.x = 0.5; g.hero.z = 6.5; }) > 0, 'inside a rain circle');
+  assert.equal(at('puffwart', 'rain', (g) => { g.hero.x = 2.5; g.hero.z = 6 + RAIN_REACH + 0.6; }), 0, 'between and outside the circles');
+  assert(at('skreel', 'fan', (g) => { g.hero.x = Math.sin(FAN_SPREAD) * 6; g.hero.z = Math.cos(FAN_SPREAD) * 6; }) > 0, 'in a side lane');
+  assert.equal(at('skreel', 'fan', (g) => { g.hero.x = Math.sin(FAN_SPREAD / 2) * 6; g.hero.z = Math.cos(FAN_SPREAD / 2) * 6; }), 0, 'between the lanes');
+  assert(at('hornclack', 'spin', (g) => { g.hero.z = SPIN_REACH - 0.6; }) > 0); assert.equal(at('hornclack', 'spin', (g) => { g.hero.z = SPIN_REACH + 0.6; }), 0);
+});
+check('a Mighty calm pays three stars and twice the rare chance', () => {
+  const g = mightyGame(), stars = g.profile.stars; assert(g.startQuest('mighty-hornclack')); questCalm(g); assert.equal(g.mode, 'calm'); assert(g.questResult.success); assert.equal(g.profile.stars, stars + 3); assert.equal(g.profile.quests['mighty-hornclack'], 1);
+  assert(!g.beast.mighty || g.mode === 'calm');
 });
 console.log(`Grumble Hunt: ${checks} engine checks passed.`);

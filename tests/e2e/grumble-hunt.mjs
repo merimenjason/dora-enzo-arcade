@@ -495,6 +495,23 @@ try {
     await p.reload(); await p.locator('main[data-ready="true"][data-rendered="true"]').waitFor();
     assert.deepEqual(await hunt(p, (w) => w.game.profile.charms), { levels: { clover: 0, acorn: 2, feather: 1 }, worn: 'feather' });
   });
+  await check('Mighty quests: locked until three quests, then rain circles and fan lanes warn in orange', async (p) => {
+    await fresh(p);
+    await hunt(p, (w) => { const g = w.game; g.story.chapter = 6; for (const id of ['bristleback', 'puffwart', 'skreel', 'hornclack', 'frostmane']) { g.profile.beastBook[id].met = true; g.profile.naps[id] = 1; } g.profile.quests = { 'quick-bristleback': 1, 'no-vine-puffwart': 1 }; });
+    await p.getByTestId('open-board').click(); assert.equal(await p.getByTestId('quest-mighty-puffwart').isDisabled(), true); assert.match(await p.getByTestId('quest-mighty-puffwart').innerText(), /2\/3/);
+    await p.getByRole('button', { name: 'Close panel' }).click();
+    await hunt(p, (w) => { w.game.profile.quests['double-meadow'] = 1; });
+    for (const [id, move] of [['puffwart', 'rain'], ['skreel', 'fan']]) {
+      await p.getByTestId('open-board').click(); await p.getByTestId(`quest-mighty-${id}`).click(); await p.locator('main[data-mode="hunt"]').waitFor();
+      await hunt(p, (w, id) => { const g = w.game, b = g.beast; g.roared = g.introduced = true; g.buddy.cooldown = 1e9; g.hero.invincible = 1e9; b.x = g.hero.x; b.z = g.hero.z - 5; b.height = 0; b.state = id === 'skreel' ? 'circle' : 'roam'; b.t = 0; b.duration = 0; b.cycle = id === 'skreel' ? 1 : 3; }, id);
+      await p.waitForFunction((m) => { const b = window.__hunt().game.beast; return b.state === 'windup' && b.attack === m; }, move);
+      await hunt(p, (w) => { w.game.beast.duration = 1e3; }); await p.waitForTimeout(300);
+      assert.match(await p.locator('.hunt-beast-hud strong').innerText(), new RegExp(`Mighty`));
+      await snapshot(p, `mighty-${move}`);
+      assert(await hunt(p, (w) => w.metrics().calls) < 400);
+      await p.getByTestId('pause').click(); await p.getByRole('button', { name: 'Return to camp', exact: true }).click(); await p.locator('main[data-mode="village"]').waitFor();
+    }
+  });
   await check('camera orbit avoids terrain, texture count stays bounded, navigation tears down', async (p) => {
     await fresh(p); await start(p); const first = await hunt(p, (w) => w.metrics().textures), c = p.getByTestId('hunt-canvas');
     const r = await c.boundingBox(); await p.mouse.move(r.width / 2, r.height / 2); await p.mouse.down(); await p.mouse.move(r.width / 2 + 200, r.height / 2 - 120, { steps: 8 }); await p.mouse.up();

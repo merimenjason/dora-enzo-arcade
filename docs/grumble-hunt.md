@@ -356,3 +356,14 @@ Old Mossback's quest board sits under the free hunts. `QUESTS` has nine quests f
 
 The Forge has a third tab, Charms, from chapter 2 (`CHARM_CHAPTER`). There are three charms (`CHARMS`), each with levels I to III, and one is worn at a time. Clover adds +1/+1/+2 common materials to every nap reward, with +0/+1/+1 extra rare rolls. Acorn adds +10/+20/+30 Fluff. Feather makes rolls recover 15/30/45% faster and brings the vine back 2/4/6 s sooner. Level I costs only materials; levels II and III also cost 2 and 5 quest stars. The first charm made is worn straight away. Charms are made and worn only at camp, and the save keeps them in `profile.charms`; a bad level is clamped to 0–3. The engine suite has **107 checks**; the new ones cover gating, payment, levels, wearing, saving, Acorn Fluff, Feather timing and Clover rewards over 30 seeds. The bot buys every charm level it can before each quest: **136 levels across 24 campaigns**, with all quests still calmed. A browser check makes, grows and wears charms, follows max Fluff and reloads the save.
 
+### Mighty beasts · 26-10-2026
+
+Five Mighty quests (`mighty-<beast>`) join the quest board once the story is done and three other quests have been finished (`MIGHTY_AT`). A Mighty beast has `MIGHTY_GRUMP` (2) times the Grump, twice the rare chance, a golden glow and is drawn 15% bigger. It adds one move to its pattern (`MIGHTY_MOVES`):
+
+- **Double Dash** (Bristleback): two charges, each with its own full wind-up and orange lane.
+- **Bubble Rain** (Puffwart) and **Icicle Rain** (Frostmane): three or four orange circles of radius 2.2 (`RAIN_REACH`), one on the leader and the rest in a ring 3.6 away, turned a little each time.
+- **Feather Fan** (Skreel): three lanes 11 long and 2.2 wide, 0.55 rad apart.
+- **Shell Spin** (Hornclack): a circle of radius 6 (`SPIN_REACH`).
+
+Every move uses the normal wind-up, so it warns at least 0.6 seconds ahead (the engine check covers every beast), and the circles and lanes stay drawn while the move lands. A Mighty calm pays 3 stars and a bundle. The engine suite has **110 checks**; the new ones cover the gating, the Grump, each beast's new move and its warning, hits inside and misses outside each shape, and the payment. The bot policy steps to the spot with the most room from the rain circles and fan lanes and backs out of the spin. After the nine other quests it calms every Mighty beast: **120/120** across 24 campaigns, with medians from 38.8 s (Skreel) to 106.0 s (Hornclack). A browser check opens the lock, then photographs the Bubble Rain circles and the Feather Fan lanes under 400 draw calls.
+

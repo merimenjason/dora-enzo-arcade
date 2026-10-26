@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { HuntGame, BEAST_IDS, BEASTS, ORDERS, DT, QUESTS, CHARM_IDS } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, BEAST_IDS, BEASTS, ORDERS, DT, QUESTS, CHARM_IDS, MIGHTY_AT } from '../.checks/grumble-hunt-game.js';
 import { STORY, POST_GAME_WEAPONS, nextNodes, SLOTS, armourCost } from '../.checks/grumble-hunt-content.js';
 import { huntPolicy } from './grumble-hunt-policy.mjs';
 const times = [], totals = Object.fromEntries(BEAST_IDS.map((id) => [id, 0])), byOrder = Object.fromEntries(ORDERS.map((o) => [o, 0]));
@@ -74,7 +74,7 @@ for (const hero of ['dora', 'enzo']) for (let seed = 1; seed <= seeds; seed++) {
   g.returnVillage(); assert(g.equip('hammer', 'dora')); assert(g.equip('bow', 'enzo'));
   for (const q of QUESTS) {
     g.returnVillage(); for (const id of CHARM_IDS) while (g.makeCharm(id)) charmsMade++;
-    assert(g.startQuest(q.id), `${hero} seed ${seed}: ${q.id} opens`); let steps = 0;
+    assert(g.startQuest(q.id), `${hero} seed ${seed}: ${q.id} opens (${g.questsDone} quests done, ${MIGHTY_AT} open the Mighty ones)`); let steps = 0;
     while (!['calm', 'victory', 'camp'].includes(g.mode) && steps++ < 900 / DT) { g.step(DT, huntPolicy(g)); g.events.length = 0; }
     assert.equal(g.mode, 'calm', `${hero} seed ${seed}: quest ${q.id} ended ${g.mode}, ${g.beast?.id} Grump=${Math.round(g.beast?.grump)}`);
     quests[q.id].calmed++; quests[q.id].times.push(steps * DT); if (g.questResult.success) quests[q.id].done++;
