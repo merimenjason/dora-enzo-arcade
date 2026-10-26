@@ -2,13 +2,13 @@ import * as T from 'three';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { createHuntChinchilla, animateHuntChinchilla, poseArms, type HuntChinchilla } from './hunt-chinchilla';
-import { BEASTS, BEAST_IDS, VARIANT_COLORS, ZONE_NAMES, GATHER_TIME, HAZARD_REACH, HAZARD_WARN, ROAR_REACH, TURF_REACH, RAIN_REACH, FAN_REACH, SPIN_REACH, type WeatherKind, MATERIAL_IDS, SPOTS, VILLAGERS, type BeastId, type SpotId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
+import { BEASTS, BEAST_IDS, VARIANT_COLORS, ZONE_NAMES, GATHER_TIME, HAZARD_REACH, HAZARD_WARN, ROAR_REACH, TURF_REACH, RAIN_REACH, BURROW_REACH, FAN_REACH, SPIN_REACH, type WeatherKind, MATERIAL_IDS, SPOTS, VILLAGERS, type BeastId, type SpotId, type HuntGame, type HeroId, type MaterialId } from './grumble-hunt-game';
 import { createHuntWeapons, decorateHuntWeapon } from './grumble-hunt-weapons';
 import { createVillager, type VillagerId, type VillagerRig } from './grumble-hunt-villagers';
 import { MATERIALS } from './grumble-hunt-content';
 
 type Rig = { model: HuntChinchilla; hammer: T.Group; head: T.Group; trail: T.Line; ribbon: T.Mesh; points: T.Vector3[]; weapons: ReturnType<typeof createHuntWeapons>; hammerLook: ReturnType<typeof decorateHuntWeapon>; armour: T.Group[] };
-const RIDE_HEIGHT: Record<BeastId, number> = { bristleback: 2.4, puffwart: 2, skreel: 2.7, hornclack: 2.25, frostmane: 2.25 };
+const RIDE_HEIGHT: Record<BeastId, number> = { bristleback: 2.4, puffwart: 2, skreel: 2.7, hornclack: 2.25, frostmane: 2.25, paddlepaw: 1.9, rumblesnout: 2.2 };
 type BeastRig = { root: T.Group; body: T.Group; head: T.Group; legs: T.Group[]; wings: T.Group[]; eyes: T.Mesh[]; part: T.Group; brow: T.MeshToonMaterial; browColor: T.Color; steam: T.Mesh[]; throat?: T.Mesh; tongue?: T.Mesh; mane?: T.Group };
 /** A gathering spot's props; `fruit` is what disappears once it is gathered. */
 type SpotRig = { id: number; root: T.Group; fruit: T.Group; material: MaterialId };
@@ -660,8 +660,8 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const root = new T.Group(), body = new T.Group(), head = new T.Group(), part = new T.Group(); root.add(body); body.add(head, part); scene.add(root);
     const legs: T.Group[] = [], wings: T.Group[] = [], eyes: T.Mesh[] = [];
     // Bristleback's painted fur already carries its brown, so its coat colour stays near white.
-    const colors = { bristleback: 0xf0dccb, puffwart: 0x8c9948, skreel: 0x7189aa, hornclack: 0x7c8394, frostmane: 0xe3eff5 };
-    const coatMap = { bristleback: fur, puffwart: toadSkin, skreel: furStrokes, hornclack: undefined, frostmane: furStrokes }[id];
+    const colors = { bristleback: 0xf0dccb, puffwart: 0x8c9948, skreel: 0x7189aa, hornclack: 0x7c8394, frostmane: 0xe3eff5, paddlepaw: 0x8f6243, rumblesnout: 0x7d7f88 };
+    const coatMap = { bristleback: fur, puffwart: toadSkin, skreel: furStrokes, hornclack: undefined, frostmane: furStrokes, paddlepaw: furStrokes, rumblesnout: furStrokes }[id];
     const coat = fluffy(toon(colors[id], coatMap), id === 'hornclack' ? 0.25 : 0.4), dark = fluffy(toon(id === 'frostmane' ? 0x91bedc : 0x483f3b), 0.15);
     coat.userData.beastColor = colors[id];
     const belly = fluffy(toon(id === 'skreel' ? 0xe9e4cf : 0xf3dfab), 0.2);
@@ -709,6 +709,23 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       head.position.set(1.4, 1.05, 0); mesh(head, sphere, coat, [0, 0, 0], [0.65, 0.65, 0.8]);
       for (const s of [-1, 1]) { eye(0.4, 0.02, s * 0.58, s); for (const x of [-1.05, 0, 1.05]) leg(x, s * 1.15, 0.5); }
       const horn = mesh(part, hornGeo, cream, [1.7, 2, 0], [0.4, 1.8, 0.4]); horn.rotation.z = -0.4;
+    } else if (id === 'paddlepaw') {
+      // A long low otter: cream face and belly, whiskers, a flat paddle tail and a woven pouch holding its favourite stone.
+      mesh(body, sphere, coat, [-0.1, 1.05, 0], [1.75, 0.8, 0.85]); mesh(body, sphere, belly, [0.45, 0.95, 0], [1.05, 0.62, 0.72]); head.position.set(1.5, 1.5, 0);
+      mesh(head, sphere, coat, [0, 0, 0], [0.62, 0.56, 0.62]); mesh(head, sphere, belly, [0.4, -0.14, 0], [0.34, 0.27, 0.44]); mesh(head, sphere, ink, [0.68, -0.02, 0], [0.09, 0.07, 0.12]);
+      for (const s of [-1, 1]) { eye(0.32, 0.13, s * 0.42, s); mesh(head, sphere, rose, [-0.12, 0.42, s * 0.4], [0.15, 0.13, 0.1]);
+        for (let k = 0; k < 2; k++) { const w = mesh(head, cylinder, cream, [0.6, -0.12 - k * 0.07, s * 0.3], [0.015, 0.42, 0.015]); w.rotation.x = s * (1.3 + k * 0.15); }
+        for (const x of [-0.9, 0.85]) leg(x, s * 0.55, 0.32); }
+      const tail = mesh(body, sphere, dark, [-2.05, 0.72, 0], [0.95, 0.16, 0.42]); tail.rotation.z = 0.15;
+      mesh(part, sphere, toon(0x8f9a4a), [0.95, 1.05, 0.62], [0.3, 0.3, 0.17]); mesh(part, sphere, toon(0x9ea4aa), [1.0, 1.18, 0.74], [0.17, 0.15, 0.12]);
+    } else if (id === 'rumblesnout') {
+      // A stocky badger: grey back, a white ruff and striped face, a long pink-tipped snout and a crown of pebbles stuck in its fur.
+      mesh(body, sphere, coat, [-0.15, 1.2, 0], [1.55, 0.95, 1.15]); mesh(body, sphere, cream, [0.75, 1.15, 0], [0.7, 0.85, 1.0]); mesh(body, sphere, cream, [0.1, 0.85, 0], [1.1, 0.5, 0.85]); head.position.set(1.45, 1.45, 0);
+      mesh(head, sphere, cream, [0, 0, 0], [0.8, 0.7, 0.76]); const snout = mesh(head, cone, cream, [0.85, -0.14, 0], [0.32, 0.6, 0.3]); snout.rotation.z = -Math.PI / 2; mesh(head, sphere, rose, [1.17, -0.14, 0], [0.16, 0.14, 0.18]);
+      for (const s of [-1, 1]) { const stripe = mesh(head, sphere, dark, [0.25, 0.2, s * 0.34], [0.85, 0.24, 0.2]); stripe.rotation.z = -0.25; eye(0.5, 0.12, s * 0.46, s); mesh(head, sphere, rose, [-0.22, 0.58, s * 0.48], [0.17, 0.15, 0.11]);
+        for (const x of [-0.9, 0.9]) leg(x, s * 0.72, 0.42); }
+      const tail = mesh(body, cone, coat, [-1.65, 1.25, 0], [0.22, 0.55, 0.22]); tail.rotation.z = 1.25;
+      const pebble = toon(0xcbb48a); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; mesh(part, ico, pebble, [1.35 + Math.cos(a) * 0.3, 2.12 + (i % 2) * 0.1, Math.sin(a) * 0.32], [0.22, 0.17, 0.22]); } mesh(part, ico, pebble, [1.35, 2.3, 0], [0.26, 0.2, 0.26]);
     } else {
       mesh(body, sphere, coat, [-0.15, 1.4, 0], [1.65, 0.95, 0.9]); head.position.set(1.15, 2, 0);
       mesh(head, sphere, coat, [0, 0, 0], [0.8, 0.8, 0.85]); mesh(head, sphere, cream, [0.65, -0.25, 0], [0.35, 0.28, 0.5]); mesh(head, sphere, rose, [0.91, -0.1, 0], [0.1, 0.1, 0.17]);
@@ -719,7 +736,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       const curve = new T.CatmullRomCurve3([V(-1.4, 1.4, 0), V(-2, 1.6, 0.2), V(-2.5, 2.2, 0.3), V(-2.35, 2.7, 0.3)]); mesh(body, new T.TubeGeometry(curve, 12, 0.32, 8, false), fluffy(toon(0xb5d4e9, furStrokes)), [0, 0, 0]);
     }
     // Steam puffs over each ear, in head space; only shown while Extra Grumpy.
-    const ear = { bristleback: [-0.15, 1, 0.5], puffwart: [0, 0.65, 0.8], skreel: [0, 0.85, 0.5], hornclack: [0, 0.6, 0.55], frostmane: [-0.15, 1.3, 0.55] }[id];
+    const ear = { bristleback: [-0.15, 1, 0.5], puffwart: [0, 0.65, 0.8], skreel: [0, 0.85, 0.5], hornclack: [0, 0.6, 0.55], frostmane: [-0.15, 1.3, 0.55], paddlepaw: [-0.12, 0.5, 0.4], rumblesnout: [-0.22, 0.68, 0.48] }[id];
     for (const side of [-1, 1]) for (let i = 0; i < 3; i++) { const puff = mesh(head, sphere, steamMat, [ear[0], ear[1], ear[2] * side], [0.14, 0.14, 0.14], false); puff.visible = false; rig.steam.push(puff); }
     mergeRig(root, [...eyes, ...rig.steam, ...(rig.throat ? [rig.throat] : []), ...(rig.tongue ? [rig.tongue] : [])]);
     root.visible = false; return rig;
@@ -768,13 +785,17 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   const SPARKS = 72, sparks = new T.InstancedMesh(sparkGeo, sparkMat, SPARKS); sparks.setColorAt(0, new T.Color(0xffffff)); sparks.count = 0; sparks.frustumCulled = false; scene.add(sparks);
   // Dropped materials float as their painted icons once the sheet has loaded; the gold gems stand in until then.
   const iconMaps: Partial<Record<MaterialId, T.Texture>> = {};
-  const iconSheet = loader.load('/art/hunt/icons-materials.webp', (sheet) => {
-    if (closed) { sheet.dispose(); return; }
-    for (const id of MATERIAL_IDS) {
-      const cell = MATERIALS[id].icon, map = sheet.clone(); map.repeat.set(0.25, 0.25); map.offset.set((cell % 4) * 0.25, 0.75 - Math.floor(cell / 4) * 0.25); map.needsUpdate = true; textures.add(map); iconMaps[id] = map;
-    }
-  }, undefined, () => { /* The gold gems remain. */ });
-  iconSheet.colorSpace = T.SRGBColorSpace; textures.add(iconSheet);
+  // The first sixteen materials are on icons-materials, the post-game beasts' on icons-materials-2.
+  for (const [file, first] of [['icons-materials', 0], ['icons-materials-2', 16]] as const) {
+    const iconSheet = loader.load(`/art/hunt/${file}.webp`, (sheet) => {
+      if (closed) { sheet.dispose(); return; }
+      for (const id of MATERIAL_IDS) {
+        const cell = MATERIALS[id].icon - first; if (cell < 0 || cell >= 16) continue;
+        const map = sheet.clone(); map.repeat.set(0.25, 0.25); map.offset.set((cell % 4) * 0.25, 0.75 - Math.floor(cell / 4) * 0.25); map.needsUpdate = true; textures.add(map); iconMaps[id] = map;
+      }
+    }, undefined, () => { /* The gold gems remain. */ });
+    iconSheet.colorSpace = T.SRGBColorSpace; textures.add(iconSheet);
+  }
   const dropSprites = Array.from({ length: 24 }, () => {
     const m = noOutline(new T.SpriteMaterial({ transparent: true, alphaTest: 0.2, depthWrite: false })); materials.add(m);
     const sprite = new T.Sprite(m); sprite.scale.setScalar(0.8); sprite.visible = false; scene.add(sprite); return sprite;
@@ -1206,8 +1227,8 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     }
     const turf = b?.state === 'turf' && !!v;
     const warning = b?.state === 'windup';
-    const round = b && ['sweep', 'shake', 'cloud', 'roar', 'spin'].includes(b.attack), rainWarn = !!b && b.attack === 'rain' && (warning || b.state === 'rain'), fanWarn = !!b && b.attack === 'fan' && (warning || b.state === 'fan');
-    rainCircles.forEach((o, i) => { const m = rainWarn ? b!.marks[i] : undefined; o.visible = !!m; if (m) o.position.set(m.x, 0.085 + i * 0.002, m.z); });
+    const round = b && ['sweep', 'shake', 'cloud', 'roar', 'spin'].includes(b.attack), rainWarn = !!b && (b.attack === 'rain' || b.attack === 'burrow') && (warning || b.state === b.attack), fanWarn = !!b && b.attack === 'fan' && (warning || b.state === 'fan');
+    rainCircles.forEach((o, i) => { const m = rainWarn ? b!.marks[i] : undefined, r = b?.attack === 'burrow' ? BURROW_REACH : RAIN_REACH; o.visible = !!m; if (m) { o.position.set(m.x, 0.085 + i * 0.002, m.z); o.scale.set(r, 1, r); } });
     const lanes = fanWarn ? game.fanLanes() : [];
     fanLanes.forEach((o, i) => { const l = lanes[i]; o.visible = !!l; if (l) { o.position.set((l.start.x + l.end.x) / 2, 0.075 + i * 0.002, (l.start.z + l.end.z) / 2); o.scale.set(FAN_REACH * 2, Math.hypot(l.end.x - l.start.x, l.end.z - l.start.z), 1); o.rotation.set(-Math.PI / 2, 0, -Math.atan2(l.end.x - l.start.x, l.end.z - l.start.z)); } });
     lane.visible = !!warning && !round && !rainWarn && !fanWarn; circle.visible = !!warning && !!round || turf;

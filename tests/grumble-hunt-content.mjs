@@ -10,8 +10,8 @@ const rng = (seed) => { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) 
 // the content is self-consistent: no unknown materials, nothing asked for before it can be had, kind story text
 assert.deepEqual(validate(), []);
 
-// the icon cells line up with the icon sheets: 16 materials in 16 cells, items in their own order
-assert.deepEqual(Object.values(MATERIALS).map((m) => m.icon).sort((a, b) => a - b), [...Array(16).keys()]);
+// the icon cells line up with the icon sheets: 16 materials on the first sheet, the post-game six from cell 16, items in their own order
+assert.deepEqual(Object.values(MATERIALS).map((m) => m.icon).sort((a, b) => a - b), [...Array(22).keys()]);
 assert.equal(new Set(Object.values(ITEMS).map((i) => i.icon)).size, Object.keys(ITEMS).length);
 
 // twenty weapon types: the fourteen basic ones you can pick at the start, one per Monster Hunter Wilds type,

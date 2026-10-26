@@ -6,7 +6,7 @@ Warm hand-painted storybook assets for a gentle children's 3D adventure. The bea
 
 ## Files
 
-All 13 images are WebP encoded with libwebp `cwebp -q 85 -m 6`. Foliage cards use `-alpha_q 100` to preserve their full alpha channel. File sizes below are the final encoded sizes, in bytes and binary KiB.
+The original 13 images are WebP encoded with libwebp `cwebp -q 85 -m 6`. Foliage cards use `-alpha_q 100` to preserve their full alpha channel. File sizes below are the final encoded sizes, in bytes and binary KiB.
 
 | File | Dimensions (px) | Bytes | KiB | Channels |
 | --- | --- | ---: | ---: | --- |
@@ -23,8 +23,10 @@ All 13 images are WebP encoded with libwebp `cwebp -q 85 -m 6`. Foliage cards us
 | `public/art/hunt/ref-skreel.webp` | 2048 × 1024 | 88,588 | 86.5 | RGB |
 | `public/art/hunt/ref-hornclack.webp` | 2048 × 1024 | 71,432 | 69.8 | RGB |
 | `public/art/hunt/ref-frostmane.webp` | 2048 × 1024 | 100,302 | 98.0 | RGB |
+| `public/art/hunt/ref-paddlepaw.webp` | 2048 × 1024 | 110,742 | 108.1 | RGB |
+| `public/art/hunt/ref-rumblesnout.webp` | 2048 × 1024 | 116,254 | 113.5 | RGB |
 
-Total image payload: **1,509,624 bytes (1.44 MiB)**.
+Original 13-image payload: **1,509,624 bytes (1.44 MiB)**. The two post-game reference sheets added 26-10-2026 use quality 90; their generation and export details appear below.
 
 ## Export and verification
 
@@ -211,8 +213,10 @@ Generated with the built-in imagegen tool and exported with `cwebp -q 85 -m 6 -a
 | File | Decoded pixels | Bytes | Alpha | Generated source pixels |
 | --- | --- | ---: | --- | --- |
 | `public/art/hunt/icons-materials.webp` | 1024 × 1024 | 235,732 | yes | 1254 × 1254 |
+| `public/art/hunt/icons-materials-2.webp` | 1024 × 1024 | 261,176 | yes | two 2172 × 724 rows |
 | `public/art/hunt/icons-items.webp` | 1024 × 1024 | 169,490 | yes | 1254 × 1254 |
 | `public/art/hunt/icons-gear.webp` | 1024 × 1024 | 226,240 | yes | 1254 × 1254 |
+| `public/art/hunt/icons-charms.webp` | 1024 × 1024 | 570,764 | yes | four 2172 × 724 rows |
 | `public/art/hunt/ref-weapons.webp` | 2048 × 1024 | 133,276 | no | 1774 × 887 |
 | `public/art/hunt/portraits-dora.webp` | 1024 × 1024 | 181,314 | yes | 1254 × 1254 |
 | `public/art/hunt/portraits-enzo.webp` | 1024 × 1024 | 175,508 | yes | 1254 × 1254 |
@@ -304,4 +308,116 @@ Catchlight revision:
 
 ```text
 Use case: precise-object-edit. Change ONLY the four open black eyes in the TOP TWO portraits of Enzo in this atlas: each eye must have exactly TWO clearly visible WHITE catchlights, one large circle at upper-left and one SMALL white dot at lower-right. The small dot should be about one-third the large circle's diameter. Keep eye colour jet black. Do not change the swirly eyes, closed eyes, character, ears, expressions, bow, framing, artwork, grid or transparent alpha. No other change.
+```
+
+### icons-charms
+
+File: `public/art/hunt/icons-charms.webp`
+Size: 1024 × 1024 px; 570,764 bytes; lossless WebP with RGBA. Created 26-10-2026 with the built-in imagegen tool following `docs/grumble-hunt-prompts/10-charm-and-mighty-icons.md`.
+
+Generated one row per request, using `icons-gear.webp`, `icons-items.webp` and `icons-materials.webp` as style references. All four source strips were 2172 × 724 px with genuine alpha. Cropped complete icon silhouettes with their soft alpha edges, downscaled proportionally into centered 208 × 208 bounds in each 256 × 256 cell, and stacked in row order. Excluded stray pixels outside the drawings. Column 4 is fully transparent. Verified decoded dimensions, all twelve cell bounds, and an exact RGBA lossless round trip. No rows required retries.
+
+| Row | Column 1 | Column 2 | Column 3 | Column 4 |
+| --- | --- | --- | --- | --- |
+| 1 | Clover Charm I | Clover Charm II | Clover Charm III | transparent |
+| 2 | Acorn Charm I | Acorn Charm II | Acorn Charm III | transparent |
+| 3 | Feather Charm I | Feather Charm II | Feather Charm III | transparent |
+| 4 | Mighty helm | Mighty vest | Mighty boots (pair) | transparent |
+
+Exact prompts used (the level III instruction retains the preceding tier’s ribbon and accessories):
+
+Row 1:
+
+```text
+Use case: stylized-concept. Game icon atlas row for Grumble Hunt, a kind children's adventure. Warm hand-painted toon storybook style inspired by Wind Waker and Monster Hunter Stories: chunky rounded readable forms, soft painted brushwork, three-band cel shading, saturated but gentle colours. Transparent background, a wide 1024x256 strip of four 256x256 cells. One complete centered icon per occupied cell within centered 208x208 bounds. Consistent three-quarter view and top-left lighting, THICK dark-brown outline readable at 48px. Genuine transparent alpha, no checkerboard. No text, letters, numerals, grid lines, logo, watermark, scenery or cast shadows. The fourth cell is completely empty and transparent.
+Left to right: Clover Charm I (a round wooden disc carved with a four-leaf clover, painted fresh green, hanging from a loop of brown twine); Clover Charm II (the same with a teal ribbon bow on the twine and one green bead); Clover Charm III (the same with gold trim round the disc, a small warm amber Glimmer Stone set in the clover's middle and a soft warm glow); EMPTY.
+Reference images are style references only: match their warm painted brushwork and dark brown outlines. Generate only this single row, not a full sheet. Keep all three icons consistent in scale. Level III retains the level II additions.
+```
+
+Row 2:
+
+```text
+Use case: stylized-concept. Game icon atlas row for Grumble Hunt, a kind children's adventure. Warm hand-painted toon storybook style inspired by Wind Waker and Monster Hunter Stories: chunky rounded readable forms, soft painted brushwork, three-band cel shading, saturated but gentle colours. Transparent background, a wide 1024x256 strip of four 256x256 cells. One complete centered icon per occupied cell within centered 208x208 bounds. Consistent three-quarter view and top-left lighting, THICK dark-brown outline readable at 48px. Genuine transparent alpha, no checkerboard. No text, letters, numerals, grid lines, logo, watermark, scenery or cast shadows. The fourth cell is completely empty and transparent.
+Left to right: Acorn Charm I (a plump polished acorn with its cap, hanging from a loop of brown twine); Acorn Charm II (the same with a teal ribbon bow and one wooden bead); Acorn Charm III (the same with a gold band round the cap, a small warm amber Glimmer Stone on top and a soft warm glow); EMPTY.
+Reference images are style references only: match their warm painted brushwork and dark brown outlines. Generate only this single row, not a full sheet. Keep all three icons consistent in scale. Level III retains the level II additions.
+```
+
+Row 3:
+
+```text
+Use case: stylized-concept. Game icon atlas row for Grumble Hunt, a kind children's adventure. Warm hand-painted toon storybook style inspired by Wind Waker and Monster Hunter Stories: chunky rounded readable forms, soft painted brushwork, three-band cel shading, saturated but gentle colours. Transparent background, a wide 1024x256 strip of four 256x256 cells. One complete centered icon per occupied cell within centered 208x208 bounds. Consistent three-quarter view and top-left lighting, THICK dark-brown outline readable at 48px. Genuine transparent alpha, no checkerboard. No text, letters, numerals, grid lines, logo, watermark, scenery or cast shadows. The fourth cell is completely empty and transparent.
+Left to right: Feather Charm I (a soft pale-blue sky feather tied to a small wooden ring with brown twine); Feather Charm II (the same with a teal ribbon and a second smaller white owl-down feather); Feather Charm III (the same with gold trim on the ring, a small warm amber Glimmer Stone at the tie and a soft warm glow); EMPTY.
+Reference images are style references only: match their warm painted brushwork and dark brown outlines. Generate only this single row, not a full sheet. Keep all three icons consistent in scale. Level III retains the level II additions.
+```
+
+Row 4:
+
+```text
+Use case: stylized-concept. Game icon atlas row for Grumble Hunt, a kind children's adventure. Warm hand-painted toon storybook style inspired by Wind Waker and Monster Hunter Stories: chunky rounded readable forms, soft painted brushwork, three-band cel shading, saturated but gentle colours. Transparent background, a wide 1024x256 strip of four 256x256 cells. One complete centered icon per occupied cell within centered 208x208 bounds. Consistent three-quarter view and top-left lighting, THICK dark-brown outline readable at 48px. Genuine transparent alpha, no checkerboard. No text, letters, numerals, grid lines, logo, watermark, scenery or cast shadows. The fourth cell is completely empty and transparent.
+Left to right: Mighty helm (a cosy rounded honey-gold cap with a soft bristle crest, two big openings for large chinchilla ears, gold trim and a small warm amber Glimmer Stone on the brow, soft warm glow); Mighty vest (a honey-gold padded vest with gold trim, leaf-shaped shoulder pads and a small amber Glimmer Stone clasp, soft warm glow); Mighty boots (a PAIR of puffy honey-gold boots with gold trim and a small amber Glimmer Stone on each, soft warm glow); EMPTY.
+Reference images are style references only: match their warm painted brushwork and dark brown outlines. Generate only this single row, not a full sheet. Keep all three icons consistent in scale. Level III retains the level II additions.
+Use the Bristle armour in the gear reference (third row, columns 2–4) as the cosy shape reference; keep the large ear openings and leaf shoulder pads.
+```
+
+### ref-paddlepaw
+
+File: `public/art/hunt/ref-paddlepaw.webp`
+Size: 2048 × 1024 px; 110,742 bytes; RGB WebP at quality 90, method 6.
+Revision: none. Created 26-10-2026 with the built-in imagegen tool.
+
+One image request, with `ref-bristleback.webp` and `ref-hornclack.webp` supplied as style references. The generator returned 1774 × 887 px, resized with Lanczos to the requested 2048 × 1024 (a small upscale rather than the brief’s anticipated downscale). Inspected the three views, full silhouettes, expression, accessory consistency and decoded dimensions. No retries.
+
+```text
+Use case: stylized-concept. Art for Grumble Hunt, a gentle children's 3D adventure. Warm hand-painted storybook look in the spirit of Monster Hunter Stories and Wind Waker, chunky readable shapes, soft painted brush texture, saturated but gentle colours, no photorealism. No text, logos, watermark, blood, injuries, or scary imagery.
+Asset type: 3D modelling turnaround reference sheet, wide 2:1 canvas, intended final size 2048x1024. Plain uniform warm off-white background. Exactly THREE full-body drawings of the SAME beast in one horizontal row: strict SIDE PROFILE at left, straight FRONT VIEW in middle, THREE-QUARTER VIEW at right. Same physical scale, same anatomy, same proportions and colours in all three, feet aligned on one baseline. Leave generous whitespace between drawings and margins. Simple chunky clearly separable volumes, soft painted surface, readable silhouette, no perspective exaggeration. All body parts fit inside the canvas, no cropped tails or wings. NO text, labels, frames, props, ground, cast shadows, scenery, or extra poses. Grumpy, endearing and safe for young kids.
+Subject: Paddlepaw, a chubby sulky river otter with sleek warm-brown fur, a cream face and belly, small round ears, long white whiskers, a thick flat paddle tail and four short webbed paws. A little woven-grass pouch on a cord across its chest holds one round grey river stone. Small grumpy eyes under heavy brows, closed mouth, never scary. Relaxed standing pose on all four paws, tail lying flat behind; same pouch and tail in every view.
+```
+
+### ref-rumblesnout
+
+File: `public/art/hunt/ref-rumblesnout.webp`
+Size: 2048 × 1024 px; 116,254 bytes; RGB WebP at quality 90, method 6.
+Revision: none. Created 26-10-2026 with the built-in imagegen tool.
+
+One image request, with `ref-bristleback.webp` and `ref-hornclack.webp` supplied as style references. The generator returned 1774 × 887 px, resized with Lanczos to the requested 2048 × 1024 (a small upscale rather than the brief’s anticipated downscale). Inspected the three views, full silhouettes, expression, accessory consistency and decoded dimensions. No retries.
+
+```text
+Use case: stylized-concept. Art for Grumble Hunt, a gentle children's 3D adventure. Warm hand-painted storybook look in the spirit of Monster Hunter Stories and Wind Waker, chunky readable shapes, soft painted brush texture, saturated but gentle colours, no photorealism. No text, logos, watermark, blood, injuries, or scary imagery.
+Asset type: 3D modelling turnaround reference sheet, wide 2:1 canvas, intended final size 2048x1024. Plain uniform warm off-white background. Exactly THREE full-body drawings of the SAME beast in one horizontal row: strict SIDE PROFILE at left, straight FRONT VIEW in middle, THREE-QUARTER VIEW at right. Same physical scale, same anatomy, same proportions and colours in all three, feet aligned on one baseline. Leave generous whitespace between drawings and margins. Simple chunky clearly separable volumes, soft painted surface, readable silhouette, no perspective exaggeration. All body parts fit inside the canvas, no cropped tails or wings. NO text, labels, frames, props, ground, cast shadows, scenery, or extra poses. Grumpy, endearing and safe for young kids.
+Subject: Rumblesnout, a stocky grumpy badger, grey back with a bold white-and-charcoal striped face, a long pink-tipped snout, small round ears, short sturdy legs with big rounded digging paws (no sharp claws), and a short tufted tail. A little crown of smooth sand-coloured pebbles sits stuck in the fur on top of its head like a cap. Small grumpy eyes under heavy brows, closed mouth, never scary. Relaxed standing pose; same pebble crown in every view.
+```
+
+### icons-materials-2
+
+File: `public/art/hunt/icons-materials-2.webp`
+Size: 1024 × 1024 px; 261,176 bytes; lossless WebP with RGBA. Created 26-10-2026 with the built-in imagegen tool following `docs/grumble-hunt-prompts/11-new-beast-art.md`.
+
+Generated one row per request with `icons-materials.webp` as the style reference. Both sources were 2172 × 724 px with genuine alpha. Cropped each complete drawing/group, excluding near-transparent source noise outside the drawing bounds, and downscaled proportionally into centered 208 × 208 bounds in its 256 × 256 cell. Soft alpha edges within those bounds are retained. Stacked the rows onto a transparent 1024 × 1024 canvas. Verified at least 24 px of padding, six occupied cells, fully transparent cells 6–15, decoded dimensions, and lossless visible RGB and alpha round trip (RGB under zero alpha is immaterial). Inspected the packed sheet. No requests required retries.
+
+| Cell | Material |
+| --- | --- |
+| 0 | Otter fluff |
+| 1 | Smooth river stone |
+| 2 | River pearl (rare) |
+| 3 | Striped fur |
+| 4 | Crown pebble |
+| 5 | Geode heart (rare) |
+| 6–15 | fully transparent |
+
+Exact prompts used:
+
+Row 1:
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Transparent inventory row strip, exact4x1 grid,1024x256, each cell256x256. Fill left to right in the specified order. One icon/group per cell, perfectly centered, generous even padding at least24px, no crossing cell boundaries. Same three-quarter angle, top-left lighting, THICK dark-brown outline, three-band shading, readable at48px. Genuine transparent alpha, no checkerboard, no grid lines or cell borders. Keep unused cells fully transparent. No text.
+Row1: Otter fluff: a soft curl of warm-brown fur with a cream tip; Smooth river stone: one round flat grey stone, polished and shiny; River pearl (rare): a round pearl with a soft pink-blue sheen, on a little water lily leaf; Striped fur: a tuft of grey fur with a white-and-charcoal stripe. Exactly four occupied cells. Reference image icons-materials.webp is a style reference only. Generate only this single row, not a full sheet.
+```
+
+Row 2:
+
+```text
+Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
+Transparent inventory row strip, exact4x1 grid,1024x256, each cell256x256. Fill left to right in the specified order. One icon/group per cell, perfectly centered, generous even padding at least24px, no crossing cell boundaries. Same three-quarter angle, top-left lighting, THICK dark-brown outline, three-band shading, readable at48px. Genuine transparent alpha, no checkerboard, no grid lines or cell borders. Keep unused cells fully transparent. No text.
+Row2: Crown pebble: three smooth sand-coloured pebbles stuck together with a little fur; Geode heart (rare): a split round geode with warm purple crystals inside; EMPTY; EMPTY. Exactly two occupied cells at left, final two cells fully transparent. Reference image icons-materials.webp is a style reference only. Generate only this single row, not a full sheet.
 ```

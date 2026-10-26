@@ -35,10 +35,10 @@ export function huntPolicy(g) {
   if (b.id === 'hornclack') { tx -= Math.cos(b.face) * desired; tz += Math.sin(b.face) * desired; }
   else { const a = Math.atan2(h.z - b.z, h.x - b.x); tx += Math.cos(a) * desired; tz += Math.sin(a) * desired; }
   let dx = tx - h.x, dz = tz - h.z;
-  if (b.state === 'windup' || ['charge', 'swoop', 'pounce', 'hop', 'tongue', 'shake', 'sweep', 'roar', 'rain', 'fan', 'spin'].includes(b.state)) {
-    if (b.attack === 'rain' || b.attack === 'fan') {
-      // Mighty rain circles and feather fans: step to the nearby spot with the most room from every circle or lane.
-      const room = (x, z) => b.attack === 'rain' ? Math.min(...b.marks.map((m) => Math.hypot(x - m.x, z - m.z) - 2.2)) : Math.min(...g.fanLanes().map((l) => laneGap({ x, z }, l.start, l.end) - 1.1));
+  if (b.state === 'windup' || ['charge', 'swoop', 'pounce', 'hop', 'tongue', 'shake', 'sweep', 'roar', 'rain', 'fan', 'spin', 'burrow'].includes(b.state)) {
+    if (b.attack === 'rain' || b.attack === 'fan' || b.attack === 'burrow') {
+      // Mighty rain circles, Rumblesnout's burrow circle and fans of lanes: step to the nearby spot with the most room from every circle or lane.
+      const room = (x, z) => b.attack !== 'fan' ? Math.min(...b.marks.map((m) => Math.hypot(x - m.x, z - m.z) - (b.attack === 'burrow' ? 2.4 : 2.2))) : Math.min(...g.fanLanes().map((l) => laneGap({ x, z }, l.start, l.end) - 1.1));
       if (room(h.x, h.z) < 1.2) {
         let best = null;
         for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2, x = h.x + Math.cos(a) * 2.6, z = h.z + Math.sin(a) * 2.6; if (Math.hypot(x, z) > 17 || g.obstacles.some((o) => Math.hypot(x - o.x, z - o.z) < o.r + 0.6)) continue; const r = room(x, z); if (!best || r > best.r) best = { r, x: x - h.x, z: z - h.z }; }
@@ -52,7 +52,7 @@ export function huntPolicy(g) {
       const signed = Math.abs((h.x - b.start.x) * px + (h.z - b.start.z) * pz);
       if (signed < 4) { dx = px * side; dz = pz * side; }
     }
-    out.roll = b.state === 'windup' && b.t > 0.64 && h.rollCd <= 0 && b.attack !== 'rain' && b.attack !== 'fan';
+    out.roll = b.state === 'windup' && b.t > 0.64 && h.rollCd <= 0 && b.attack !== 'rain' && b.attack !== 'fan' && b.attack !== 'burrow';
   }
   // Two beasts squaring off: leave the circle round the pair before the turf bonk.
   if (b.state === 'turf' && g.visitor) { const mx = (b.x + g.visitor.x) / 2, mz = (b.z + g.visitor.z) / 2; if (Math.hypot(h.x - mx, h.z - mz) < 5.6) { dx = h.x - mx; dz = h.z - mz; } }

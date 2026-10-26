@@ -15,7 +15,7 @@ export function nextChapterNote(id: number) {
 }
 export const localDay = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 export const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
-/** Cells of the painted atlases in public/art/hunt: tool tiers in icons-gear, beast materials in icons-materials. */
+/** Cells of the painted atlases in public/art/hunt: tool tiers in icons-gear, beast materials in icons-materials and icons-materials-2. */
 export const WEAPON_ICONS: Record<WeaponType, [number, number, number, number]> = {
   feather: [5, 8, 10, 11], puffer: [5, 12, 14, 15], pogo: [6, 0, 2, 3], umbrella: [6, 4, 6, 7],
   hammer: [1, 0, 2, 9], claws: [1, 3, 5, 11], bow: [1, 6, 8, 10], lance: [2, 0, 2, 12],
@@ -57,7 +57,7 @@ export function Art({ sheet, cell, size, grid = 4 }: { sheet: string; cell: numb
   return <span className="hunt-art" aria-hidden="true" style={{ width: size, height: size, backgroundImage: `url(/art/hunt/${sheet}.webp)`, backgroundSize: `${grid * 100}%`, backgroundPosition: `${at(cell % grid)} ${at(Math.floor(cell / grid))}` }} />;
 }
 /** A material or item icon, from whichever sheet holds it. */
-export const Icon = ({ id, size }: { id: MaterialId | ItemId; size: number }) => id in MATERIALS ? <Art sheet="icons-materials" cell={MATERIALS[id as MaterialId].icon} size={size} /> : <Art sheet="icons-items" cell={ITEMS[id as ItemId].icon} size={size} />;
+export const Icon = ({ id, size }: { id: MaterialId | ItemId; size: number }) => id in MATERIALS ? <Art sheet={MATERIALS[id as MaterialId].icon >= 16 ? 'icons-materials-2' : 'icons-materials'} cell={MATERIALS[id as MaterialId].icon % 16} size={size} /> : <Art sheet="icons-items" cell={ITEMS[id as ItemId].icon} size={size} />;
 export const nameOf = (id: MaterialId | ItemId) => id in MATERIALS ? MATERIALS[id as MaterialId].name : ITEMS[id as ItemId].name;
 /** Cost chips: the icon, then what you have of what it needs. */
 export const Costs = ({ cost, have }: { cost: Cost; have: Record<string, number> }) => <span className="hunt-costs">{Object.entries(cost).map(([id, n]) => <span key={id} title={nameOf(id as MaterialId)} data-short={(have[id] ?? 0) < (n ?? 0)}><Icon id={id as MaterialId} size={22} />{have[id] ?? 0}/{n}</span>)}</span>;

@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Grumble Hunt** has two new beasts after the story. Paddlepaw, a belly-sliding river otter in Soggy Marsh, slides down an orange lane, splashes three lanes of water and hops. Rumblesnout, a burrowing badger in Pebble Hollow, digs down under an orange circle on you and pops up inside it. Each has its own materials and an armour set: Paddlepaw's makes fluffberries heal more and bumps softer, and Rumblesnout's carries more pebbles and bonks dizzy beasts harder. The quest board adds Slippery Sprint, Splash and Dig, and a Mighty quest for each. Charms and the Mighty armour also have their own painted icons.
+
 - **Grumble Hunt** has a golden Mighty armour set at the Forge. Each piece needs its Mighty beasts calmed on the quest board, plus 4 stars and rare materials. It gives +15 Fluff a piece. Two pieces switch on Mighty Rhythm: strings wait 0.9 s for the next swing, and finishers hit 10% harder. All three add Full Fluff: while your Fluff is full, your bonks take 15% more Grump.
 
 - **Grumble Hunt** has Mighty beasts: after the story and three other quests, the quest board offers a Mighty version of every beast, with twice the Grump, a golden glow and one new move: Bristleback's Double Dash, Puffwart's Bubble Rain, Skreel's Feather Fan, Hornclack's Shell Spin and Frostmane's Icicle Rain. Every new move is warned in orange first. Each Mighty quest pays three stars, a bundle and twice the rare chance.

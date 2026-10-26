@@ -5,7 +5,7 @@ import { BEAST_MATS, weaponNode, type BeastId, type Branch, type Tier, type Weap
 const V = (x = 0, y = 0, z = 0) => new T.Vector3(x, y, z);
 type Pair = { soft: T.Material; toon: T.Material };
 /** Same beast palette as the hunt, without importing the deterministic engine. */
-const BEAST_COLOURS: Record<BeastId,number> = { bristleback:0xb98050, puffwart:0x8c9d4b, skreel:0x788ca6, hornclack:0x8b919f, frostmane:0xaccfe7 };
+const BEAST_COLOURS: Record<BeastId,number> = { bristleback:0xb98050, puffwart:0x8c9d4b, skreel:0x788ca6, hornclack:0x8b919f, frostmane:0xaccfe7, paddlepaw:0x8a6447, rumblesnout:0x8e9099 };
 /** Decorate a handle-local group once; caller owns visibility and disposal sets (also used by actor's hammer). */
 export function decorateHuntWeapon(g: T.Group, type: WeaponType, material: (color:number)=>T.Material, geometries: Set<T.BufferGeometry>, materials: Set<T.Material>, shield=false) {
   const looks: { tier:Tier; branch:Branch|null; group:T.Group }[]=[];

@@ -377,3 +377,29 @@ The Forge's Armour tab shows a sixth set, Mighty, after the story (`ARMOUR_SETS.
 
 Every piece also costs 4 quest stars. Two pieces give Mighty Rhythm: the string window grows by 0.3 s to 0.9 s (`MIGHTY_RHYTHM`), and finishers hit 1.1 times as hard (`MIGHTY_FINISHER`); the fast tools' second bonk stays at base power. Three pieces add Full Fluff: the leader's bonks take 15% more Grump while Fluff is full (`FULL_FLUFF`). Pieces are saved in the existing `armour.owned` list (no new save version), and unknown ids are dropped on load. On the hero, the pieces are gold with a soft glow. The engine suite has **111 checks**; the new one covers gating by quest and stars, payment, wearing, saving, the 0.9 s window, the 1.65 finisher ratio and the Full Fluff bonus. After each campaign's quests the bot makes whatever pieces it can afford: **63/72**. A browser check opens the lock, crafts all three pieces, reads both skills and starts a hunt at 145 Fluff, under 400 draw calls.
 
+### Post-game beasts · 26-10-2026
+
+Two beasts arrive after the story (`POST_GAME_BEASTS`). They have no chapter, so they open on the hunt board with the ending (`freeHuntOpen`), and each lives in an area it shares with a story beast (`POST_GAME_AREA`). The weapon goals that count "all five" beasts still count the five story beasts (`STORY_BEASTS`).
+
+- **Paddlepaw**, the belly-sliding river otter, in Soggy Marsh: 700 Grump. Its pattern is a belly slide (a charge lane; a tree on the way makes it dizzy), a splash of three water lanes (the Feather Fan shape) and a hop. Its pop-off part is its pebble pouch.
+- **Rumblesnout**, the burrowing badger, in Pebble Hollow: 760 Grump. Its pattern is a burrow, a sweep and a charge. The burrow drops one orange circle of radius 2.4 (`BURROW_REACH`) on the leader at the start of the normal wind-up, so it warns at least 0.6 seconds ahead. The badger sinks 2.2 below the ground over the first half second and can't be bonked or grabbed with the vine while it is under. Then it pops up inside the circle, bumps anyone still in it for 15, and rests 2.8 seconds while it shakes off the dirt. Its pop-off part is its pebble crown, which drops two crown pebbles.
+
+Each beast has three materials. They are on a second icon sheet, `icons-materials-2.webp` (cells 16–21 in `MATERIALS`):
+
+- Paddlepaw: otter fluff (common), smooth river stone (part) and river pearl (rare, 30%).
+- Rumblesnout: striped fur (common), crown pebble (part) and geode heart (rare, 30%).
+
+Each beast also has an armour set:
+
+- **Paddlepaw:** +11 Fluff a piece. Two pieces give River Rest: fluffberries and big fluffberries heal 25% more (`RIVER_REST`). Three give Soft Landing: bumps take 20% less Fluff (`SOFT_LANDING`).
+- **Rumblesnout:** +12 Fluff a piece. Two pieces give Pebble Pouch: 4 more pebbles at the start and up to 16 in the sling (`PEBBLE_POUCH`). Three give Dizzy Dig: the leader's bonks on a dizzy beast take 10% more Grump (`DIZZY_DIG`).
+
+The quest board has two new quests, Slippery Sprint (calm Paddlepaw within 3 minutes) and Splash and Dig (Rumblesnout, then Paddlepaw). There are also two Mighty quests: Mighty Paddlepaw's Whirlpool Spin is the Shell Spin circle, and Mighty Rumblesnout's Pebble Shower is a three-circle rain. The Mighty armour still asks for the five story Mighty quests.
+
+The save keeps its version (v6): missing beasts load as unmet with no naps. The engine suite has **115 checks**. The new ones cover the unlock and areas, the materials, the burrow warning, the hit inside the circle and the miss outside it, the splash lanes, and the four armour skills. The bot policy treats the burrow circle like a rain circle. Results:
+
+- Campaigns: the bot calms **168/168** beasts across 24 campaigns.
+- New quests: it finishes Slippery Sprint (median 35.4 s), Splash and Dig (77.5 s), Mighty Paddlepaw (65.7 s) and Mighty Rumblesnout (67.9 s) on every seed.
+- Mighty armour: it makes **66/72** Mighty pieces.
+
+A browser check opens the hunt board after the ending. It then photographs both beasts, Rumblesnout's burrow circle and Paddlepaw's splash lanes, all under 400 draw calls.

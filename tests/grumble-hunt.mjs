@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { HuntGame, ARMOUR_PIECES, MIGHTY_RHYTHM, MIGHTY_FINISHER, FULL_FLUFF, MIGHTY_GRUMP, MIGHTY_MOVES, MIGHTY_AT, RAIN_REACH, FAN_SPREAD, SPIN_REACH, CHARMS, CHARM_IDS, CHARM_CHAPTER, QUESTS, COMBO_WINDOW, FINISHERS, FINISHER_POWER, FINISHER_DIZZY, FINISHER_RECOVERY, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, ZONE_NAMES, ZONE_AT, EXIT_REACH, WANDER_GIVEUP, FINCHES, FINCH_FLUFF, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, ARMOUR_PIECES, MIGHTY_RHYTHM, MIGHTY_FINISHER, FULL_FLUFF, MIGHTY_GRUMP, MIGHTY_MOVES, MIGHTY_AT, RAIN_REACH, FAN_SPREAD, SPIN_REACH, CHARMS, CHARM_IDS, CHARM_CHAPTER, QUESTS, COMBO_WINDOW, FINISHERS, FINISHER_POWER, FINISHER_DIZZY, FINISHER_RECOVERY, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, ZONE_NAMES, ZONE_AT, EXIT_REACH, WANDER_GIVEUP, FINCHES, FINCH_FLUFF, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties, POST_GAME_BEASTS, STORY_BEASTS, BEAST_MATERIALS, BURROW_REACH, RIVER_REST, SOFT_LANDING, PEBBLE_POUCH, DIZZY_DIG } from '../.checks/grumble-hunt-game.js';
 import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm, MIGHTY_ARMOUR, ARMOUR_SETS } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
@@ -932,7 +932,7 @@ check('a v4 save moves into v5 with the counters it can prove, and v5 counters l
   const g = fresh(); g.setBountyDay('2026-10-24'); g.profile.bounties.done = [g.dailyBounties[0].id]; g.profile.beastBook.skreel.partsBroken = ['crest'];
   const v4 = JSON.parse(JSON.stringify(g.save())); v4.v = 4; delete v4.profile.bountiesClaimed; delete v4.profile.variantNaps; delete v4.profile.totalPlops;
   const moved = HuntGame.load(v4); assert.equal(moved.save().v, 6); assert.equal(moved.profile.bountiesClaimed, 1); assert.equal(moved.profile.totalPlops, 0);
-  assert.deepEqual(moved.profile.variantNaps, { bristleback: 0, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0 }); assert.deepEqual(moved.profile.beastBook.skreel.partsBroken, ['crest']);
+  assert.deepEqual(moved.profile.variantNaps, { bristleback: 0, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0, paddlepaw: 0, rumblesnout: 0 }); assert.deepEqual(moved.profile.beastBook.skreel.partsBroken, ['crest']);
   const bad = HuntGame.load({ v: 5, profile: { bountiesClaimed: -3, totalPlops: 'ten', variantNaps: { puffwart: 2.7, skreel: Infinity } } });
   assert.equal(bad.profile.bountiesClaimed, 0); assert.equal(bad.profile.totalPlops, 0); assert.equal(bad.profile.variantNaps.puffwart, 2); assert.equal(bad.profile.variantNaps.skreel, 0);
   const locked = HuntGame.load({ v: 5, profile: { story: { chapter: 6, scenesSeen: [] }, equipped: { dora: 'pogo' } } }); assert.equal(locked.profile.equipped.dora, 'hammer', 'a locked post-game tool is not equipped');
@@ -1159,5 +1159,49 @@ check('the Mighty armour set needs its Mighty quests and stars, and its skills s
   assert(Math.abs(drops[2] / drops[0] - FINISHER_POWER * MIGHTY_FINISHER) < 1e-9, JSON.stringify(drops));
   const hit = (fluff) => { const a = armed(['mighty-helm', 'mighty-vest', 'mighty-boots']), b = a.beast; b.state = 'rest'; a.hero.fluff = a.hero.maxFluff - (fluff ?? 0); const gr = b.grump; a.bonkBeast(10, false, { x: b.x - Math.cos(b.face) * 3, z: b.z + Math.sin(b.face) * 3 }); return gr - b.grump; };
   assert(Math.abs(hit() / hit(1) - FULL_FLUFF) < 1e-9, `${hit()} vs ${hit(1)}`);
+});
+check('post-game beasts: Paddlepaw and Rumblesnout open after the story, each in its own area, and nap with their own materials', () => {
+  const g = new HuntGame(5); g.chooseHero('dora'); assert.deepEqual(POST_GAME_BEASTS, ['paddlepaw', 'rumblesnout']); assert.deepEqual(BEAST_IDS, [...STORY_BEASTS, ...POST_GAME_BEASTS]);
+  for (const id of POST_GAME_BEASTS) { assert.equal(g.unlocked(id), false); assert.equal(g.freeHuntOpen(id), false); }
+  g.story.chapter = 6; for (const id of POST_GAME_BEASTS) { assert(g.unlocked(id)); assert(g.freeHuntOpen(id)); }
+  assert.equal(HUNT_AREA.paddlepaw, 'marsh'); assert.equal(HUNT_AREA.rumblesnout, 'hollow');
+  for (const id of POST_GAME_BEASTS) {
+    const h = fresh(id); assert.equal(h.area, HUNT_AREA[id]); assert.equal(h.beast.maxGrump, BEASTS[id].grump); calm(h); assert.equal(h.mode, 'calm');
+    assert(h.reward.some((m) => BEAST_MATERIALS[id].includes(m)), `${id} naps with its own materials`); assert(h.profile.beastBook[id].met);
+    assert(QUESTS.some((q) => q.id === `mighty-${id}`)); assert.equal(BEAST_MATERIALS[id].length, 3);
+  }
+  // The post-game weapon goals still ask for the five story beasts.
+  const w = new HuntGame(5); w.chooseHero('dora'); w.story.chapter = 6;
+  for (const id of STORY_BEASTS) { w.profile.variantNaps[id] = 1; w.profile.beastBook[id].partsBroken = [BEASTS[id].part]; }
+  assert.equal(w.weaponGoal('puffer').count, 5); assert.equal(w.weaponGoal('umbrella').count, 5); assert(w.weaponOpen('puffer')); assert(w.weaponOpen('umbrella'));
+  const back = HuntGame.load(JSON.parse(JSON.stringify(fresh('paddlepaw').save()))); assert.equal(back.profile.beastBook.paddlepaw.met, true);
+});
+check('Rumblesnout digs down under one orange circle on the leader, pops up there, and cannot be bonked underground', () => {
+  const dig = (stay) => {
+    const g = fresh('rumblesnout'), b = g.beast; g.buddy.cooldown = 1e9; g.obstacles = []; b.x = 0; b.z = 0; g.hero.x = 0; g.hero.z = 6;
+    b.state = 'roam'; b.cycle = 0; b.t = 0; b.duration = 0; g.step(DT);
+    assert.equal(b.state, 'windup'); assert.equal(b.attack, 'burrow'); assert(b.duration >= 0.6); assert.equal(b.marks.length, 1); assert(distance(b.marks[0], g.hero) < 0.01);
+    tick(g, 0.6); assert(b.height < -0.5, 'underground'); const gr = b.grump; assert.equal(g.bonkBeast(10, false, { x: b.x + 1, z: b.z }), false); assert.equal(b.grump, gr);
+    if (!stay) { g.hero.x = 0; g.hero.z = 6 + BURROW_REACH + 0.6; }
+    const bumps = g.huntFacts.bumps; tick(g, 1); assert(Math.hypot(b.x, b.z - 6) < 0.01, 'pops up on the circle'); assert(b.height >= 0);
+    return g.huntFacts.bumps - bumps;
+  };
+  assert(dig(true) > 0, 'inside the circle'); assert.equal(dig(false), 0, 'stepped out');
+});
+check('Paddlepaw splashes three orange lanes, and its Mighty move is a whirlpool spin', () => {
+  const g = fresh('paddlepaw'), b = g.beast; g.buddy.cooldown = 1e9; b.cycle = 1; b.state = 'roam'; b.t = 0; b.duration = 0; g.step(DT);
+  assert.equal(b.attack, 'fan'); assert.equal(g.fanLanes().length, 3); assert.match(g.note, /Splash/);
+  assert.equal(MIGHTY_MOVES.paddlepaw, 'spin'); assert.equal(MIGHTY_MOVES.rumblesnout, 'rain');
+});
+check('Paddlepaw and Rumblesnout armour: bigger berries, softer bumps, a fuller pebble pouch and bigger dizzy bonks', () => {
+  const armed = (set, n, id = 'bristleback') => { const a = new HuntGame(9); a.chooseHero('dora'); a.story.chapter = 6; for (const k of BEAST_IDS) a.profile.beastBook[k].met = true; a.profile.armour.owned = [...ARMOUR_PIECES]; for (const s of SLOTS.slice(0, n)) a.profile.armour.worn[s] = `${set}-${s}`; assert(a.startHunt(id)); a.roared = a.introduced = true; a.zoneAt = []; a.buddy.cooldown = 1e9; return a; };
+  assert.deepEqual(armed('paddlepaw', 3).armour.skills.map((x) => x.id), ['river-rest', 'soft-landing']); assert.deepEqual(armed('rumblesnout', 3).armour.skills.map((x) => x.id), ['pebble-pouch', 'dizzy-dig']);
+  const heal = (n) => { const a = armed('paddlepaw', n); a.profile.ring = ['fluffberry']; a.item = 0; a.hero.fluff = 10; a.useItem(); return a.hero.fluff - 10; };
+  assert.equal(heal(2), Math.round(heal(0) * RIVER_REST));
+  const bump = (n) => { const a = armed('paddlepaw', n); a.hero.invincible = 0; const f = a.hero.fluff; a.bumpHero(20, a.beast); return f - a.hero.fluff; };
+  assert.equal(bump(3), 20 * SOFT_LANDING); assert.equal(bump(2), 20);
+  const pouch = armed('rumblesnout', 2); assert.equal(pouch.pebbles, SLING_START + PEBBLE_POUCH.start); pouch.pebbles = 0; for (let i = 0; i < 10; i++) pouch.makeDizzy(0.01); assert.equal(pouch.pebbles, 10); assert.equal(pouch.slingMax, PEBBLE_POUCH.max);
+  const dizzy = (n) => { const a = armed('rumblesnout', n), b = a.beast; b.grump = b.maxGrump = 1e5; a.makeDizzy(5); const gr = b.grump; a.bonkBeast(10, false, { x: b.x - Math.cos(b.face) * 3, z: b.z + Math.sin(b.face) * 3 }); return gr - b.grump; };
+  assert(Math.abs(dizzy(3) / dizzy(2) - DIZZY_DIG) < 1e-9);
 });
 console.log(`Grumble Hunt: ${checks} engine checks passed.`);

@@ -8,9 +8,13 @@ export type Pouch = Partial<Record<MaterialId | ItemId, number>>;
 export type Cost = Partial<Record<MaterialId | ItemId, number>>;
 
 // ---------- beasts and chapters ----------
-export type BeastId = 'bristleback' | 'puffwart' | 'skreel' | 'hornclack' | 'frostmane';
+export type BeastId = 'bristleback' | 'puffwart' | 'skreel' | 'hornclack' | 'frostmane' | 'paddlepaw' | 'rumblesnout';
 export type AreaId = 'paddock' | 'meadow' | 'marsh' | 'ridge' | 'hollow' | 'peak';
+/** The five story beasts, in chapter order. */
 export const BEAST_ORDER: readonly BeastId[] = ['bristleback', 'puffwart', 'skreel', 'hornclack', 'frostmane'];
+/** Beasts that arrive after the story, each in an area it shares with a story beast. */
+export const POST_GAME_BEASTS: readonly BeastId[] = ['paddlepaw', 'rumblesnout'];
+export const POST_GAME_AREA: Partial<Record<BeastId, AreaId>> = { paddlepaw: 'marsh', rumblesnout: 'hollow' };
 
 // ---------- materials ----------
 export type Rarity = 'common' | 'part' | 'rare';
@@ -18,8 +22,9 @@ export type MaterialId =
   | 'bristle-tuft' | 'tusk-shard' | 'boar-hide' | 'curly-tail-tuft'
   | 'wart-pebble' | 'puff-sac' | 'cloud-wisp' | 'marsh-reed'
   | 'sky-feather' | 'owl-down' | 'shell-plate' | 'horn-chip'
-  | 'frost-fur' | 'mane-lock' | 'glimmer-stone' | 'berry';
-/** `chapter` is the first story chapter where the material can be had; `icon` is its cell in icons-materials.webp. */
+  | 'frost-fur' | 'mane-lock' | 'glimmer-stone' | 'berry'
+  | 'otter-fluff' | 'river-stone' | 'river-pearl' | 'stripe-fur' | 'crown-pebble' | 'geode-heart';
+/** `chapter` is the first story chapter where the material can be had; `icon` is its cell in icons-materials.webp, or from 16 on in icons-materials-2.webp. */
 export const MATERIALS: Record<MaterialId, { name: string; rarity: Rarity; chapter: number; icon: number }> = {
   'bristle-tuft': { name: 'Bristle tuft', rarity: 'common', chapter: 1, icon: 0 },
   'tusk-shard': { name: 'Tusk shard', rarity: 'part', chapter: 1, icon: 1 },
@@ -37,6 +42,12 @@ export const MATERIALS: Record<MaterialId, { name: string; rarity: Rarity; chapt
   'mane-lock': { name: 'Icy mane lock', rarity: 'part', chapter: 5, icon: 13 },
   'glimmer-stone': { name: 'Glimmer stone', rarity: 'rare', chapter: 3, icon: 14 },
   berry: { name: 'Berry', rarity: 'common', chapter: 0, icon: 15 },
+  'otter-fluff': { name: 'Otter fluff', rarity: 'common', chapter: 6, icon: 16 },
+  'river-stone': { name: 'Smooth river stone', rarity: 'part', chapter: 6, icon: 17 },
+  'river-pearl': { name: 'River pearl', rarity: 'rare', chapter: 6, icon: 18 },
+  'stripe-fur': { name: 'Striped fur', rarity: 'common', chapter: 6, icon: 19 },
+  'crown-pebble': { name: 'Crown pebble', rarity: 'part', chapter: 6, icon: 20 },
+  'geode-heart': { name: 'Geode heart', rarity: 'rare', chapter: 6, icon: 21 },
 };
 
 // ---------- drop tables ----------
@@ -52,6 +63,8 @@ export const DROPS: Record<BeastId, Drops> = {
   skreel: { shed: { id: 'sky-feather', chance: 0.2 }, parts: {}, calm: { common: ['sky-feather', 'sky-feather', 'owl-down'], count: 3, rare: { id: 'owl-down', chance: 0.25 } } },
   hornclack: { shed: { id: 'shell-plate', chance: 0.1 }, parts: { shell: 'shell-plate', horn: 'horn-chip' }, calm: { common: ['horn-chip', 'shell-plate'], count: 3, rare: { id: 'horn-chip', chance: 0.25 } } },
   frostmane: { shed: { id: 'frost-fur', chance: 0.2 }, parts: { mane: 'mane-lock' }, calm: { common: ['frost-fur', 'mane-lock'], count: 3, rare: { id: 'glimmer-stone', chance: 0.5 } } },
+  paddlepaw: { shed: { id: 'otter-fluff', chance: 0.2 }, parts: { pouch: 'river-stone' }, calm: { common: ['otter-fluff', 'otter-fluff', 'river-stone'], count: 3, rare: { id: 'river-pearl', chance: 0.3 } } },
+  rumblesnout: { shed: { id: 'stripe-fur', chance: 0.2 }, parts: { crown: 'crown-pebble' }, calm: { common: ['stripe-fur', 'stripe-fur', 'crown-pebble'], count: 3, rare: { id: 'geode-heart', chance: 0.3 } } },
 };
 /** Gathering spots per area: berry bushes everywhere, reeds in the marsh, one sparkling glimmer spot from the ridge on. */
 export const GATHER: Record<AreaId, { id: MaterialId; spots: number; each: number; chance?: number }[]> = {
@@ -295,6 +308,8 @@ export const BEAST_MATS: Record<BeastId, { common: MaterialId; part: MaterialId;
   skreel: { common: 'sky-feather', part: 'sky-feather', rare: 'owl-down' },
   hornclack: { common: 'shell-plate', part: 'horn-chip', rare: 'horn-chip' },
   frostmane: { common: 'frost-fur', part: 'mane-lock', rare: 'glimmer-stone' },
+  paddlepaw: { common: 'otter-fluff', part: 'river-stone', rare: 'river-pearl' },
+  rumblesnout: { common: 'stripe-fur', part: 'crown-pebble', rare: 'geode-heart' },
 };
 /** Merges costs that name the same material twice (the Skreel and Hornclack reuse materials across slots). */
 const sum = (...parts: Cost[]): Cost => { const c: Cost = {}; for (const p of parts) for (const [k, v] of Object.entries(p)) c[k as MaterialId] = (c[k as MaterialId] ?? 0) + (v ?? 0); return c; };
@@ -329,7 +344,7 @@ export function weaponStats(id: string) {
 
 // ---------- armour ----------
 export type Slot = 'helm' | 'vest' | 'boots';
-/** The five beast sets, and the Mighty set made from Mighty calms. */
+/** A set for each beast, and the Mighty set made from Mighty calms. */
 export type ArmourSetId = BeastId | 'mighty';
 export type ArmourPieceId = `${ArmourSetId}-${Slot}`;
 export type Skill = { id: string; name: string; text: string };
@@ -339,6 +354,8 @@ export const ARMOUR_SETS: Record<ArmourSetId, { name: string; fluff: number; two
   skreel: { name: 'Skreel', fluff: 7, two: { id: 'feather-step', name: 'Feather Step', text: 'The roll dodge window is 30% longer.' }, three: { id: 'updraft', name: 'Updraft', text: 'One free double-jump roll.' } },
   hornclack: { name: 'Hornclack', fluff: 12, two: { id: 'shell-stance', name: 'Shell Stance', text: 'Guarding blocks attacks from the sides too.' }, three: { id: 'hard-head', name: 'Hard Head', text: '+20% Dizzy on head hits.' } },
   mighty: { name: 'Mighty', fluff: 15, two: { id: 'mighty-rhythm', name: 'Mighty Rhythm', text: 'Strings wait 0.9 s for the next swing, and finishers hit 10% harder.' }, three: { id: 'full-fluff', name: 'Full Fluff', text: 'While your Fluff is full, your bonks take 15% more Grump.' } },
+  paddlepaw: { name: 'Paddlepaw', fluff: 11, two: { id: 'river-rest', name: 'River Rest', text: 'Fluffberries and big fluffberries heal 25% more.' }, three: { id: 'soft-landing', name: 'Soft Landing', text: 'Bumps take 20% less Fluff.' } },
+  rumblesnout: { name: 'Rumblesnout', fluff: 12, two: { id: 'pebble-pouch', name: 'Pebble Pouch', text: 'Start every hunt with 4 more pebbles, and carry up to 16.' }, three: { id: 'dizzy-dig', name: 'Dizzy Dig', text: 'Bonks on a dizzy beast take 10% more Grump.' } },
   frostmane: { name: 'Frostmane', fluff: 10, two: { id: 'frost-fluff', name: 'Frost Fluff', text: 'Regain 1 Fluff every 2 s out of combat.' }, three: { id: 'warm-heart', name: 'Warm Heart', text: 'Once per hunt, getting tuckered out is forgiven: you get back up at 50% Fluff.' } },
 };
 export const SLOTS: readonly Slot[] = ['helm', 'vest', 'boots'];
@@ -472,7 +489,7 @@ export function validate(): string[] {
     else if (firstChapter(m) > item.chapter) out.push(`${id}: needs ${m} (chapter ${firstChapter(m)}) by chapter ${item.chapter}`);
   }
   for (const [id, s] of Object.entries(SNACKS)) for (const m of Object.keys(s.cost) as (MaterialId | ItemId)[]) if (firstChapter(m) > s.chapter) out.push(`${id}: needs ${m} too early`);
-  for (const beast of BEAST_ORDER) for (const slot of SLOTS) for (const m of Object.keys(armourCost(`${beast}-${slot}`)) as MaterialId[]) if (!(m in MATERIALS)) out.push(`${beast}-${slot}: unknown ${m}`);
+  for (const beast of [...BEAST_ORDER, ...POST_GAME_BEASTS]) for (const slot of SLOTS) for (const m of Object.keys(armourCost(`${beast}-${slot}`)) as MaterialId[]) if (!(m in MATERIALS)) out.push(`${beast}-${slot}: unknown ${m}`);
   for (const c of STORY) for (const p of [...c.intro, ...c.outro]) {
     if (p.text.split(/(?<=[.!?])\s+/).length > 2) out.push(`chapter ${c.id}: page has more than two sentences`);
     if (/\b(hurt|kill|die|dead|blood|wound|injur|attack them|defeat)\w*/i.test(p.text)) out.push(`chapter ${c.id}: unkind word in "${p.text}"`);

@@ -98,7 +98,7 @@ try {
     await p.locator('main[data-ready="true"][data-rendered="true"]').waitFor(); await snapshot(p, 'title');
     await p.getByTestId('choose-dora').click(); await p.getByTestId('panel-rack').waitFor(); assert(await p.getByTestId('weapon-preview').isVisible()); assert.equal(await p.getByTestId('rack-wand').isDisabled(), true); await p.getByTestId('rack-hammer').click(); await p.getByTestId('rack-ready').click(); await p.getByTestId('story-skip').click(); await hunt(p, (w) => { const g = w.game; g.returnVillage(); g.story.chapter = 1; }); await snapshot(p, 'village');
     await p.getByTestId('open-board').click(); assert.equal(await p.getByTestId('hunt-hornclack').isDisabled(), true); assert.equal(await p.getByTestId('hunt-frostmane').isDisabled(), true); await p.getByRole('button', { name: 'Close panel' }).click();
-    await p.getByTestId('open-book').click(); assert.equal(await p.locator('.hunt-book article').count(), 5); assert.match(await p.getByTestId('nap-count').innerText(), /0 \/ 5/); assert.equal(await p.locator('.hunt-book img').evaluateAll((imgs) => imgs.every((i) => i.complete && i.naturalWidth > 0)), true); await snapshot(p, 'beast-book');
+    await p.getByTestId('open-book').click(); assert.equal(await p.locator('.hunt-book article').count(), 7); assert.match(await p.getByTestId('nap-count').innerText(), /0 \/ 7/); assert.equal(await p.locator('.hunt-book img').evaluateAll((imgs) => imgs.every((i) => i.complete && i.naturalWidth > 0)), true); await snapshot(p, 'beast-book');
     await p.keyboard.press('Escape'); await p.getByRole('button', { name: 'Open field guide' }).click(); assert.match(await p.getByTestId('panel-help').innerText(), /Hold K|hold K|Charge a big/); await p.getByRole('button', { name: 'Ready for a little adventure' }).click();
     assert(await fits(p));
   });
@@ -524,6 +524,27 @@ try {
     await p.getByRole('button', { name: 'Close panel' }).click(); await start(p);
     assert.equal(await hunt(p, (w) => w.game.hero.maxFluff), 145); await p.waitForTimeout(400); await snapshot(p, 'mighty-armour-hunt');
     assert(await hunt(p, (w) => w.metrics().calls) < 400);
+  });
+  await check('post-game beasts: Paddlepaw and Rumblesnout open after the story, Rumblesnout burrows under an orange circle and Paddlepaw splashes three lanes', async (p) => {
+    await fresh(p);
+    await hunt(p, (w) => { const g = w.game; g.story.chapter = 5; for (const id of ['bristleback', 'puffwart', 'skreel', 'hornclack']) g.profile.beastBook[id].met = true; });
+    await p.getByTestId('open-board').click(); assert.equal(await p.getByTestId('hunt-rumblesnout').isDisabled(), true); assert.match(await p.getByTestId('hunt-paddlepaw').innerText(), /Opens after the story/);
+    await p.getByRole('button', { name: 'Close panel' }).click();
+    await hunt(p, (w) => { const g = w.game; g.story.chapter = 6; g.profile.beastBook.frostmane.met = true; });
+    for (const [id, move] of [['rumblesnout', 'burrow'], ['paddlepaw', 'fan']]) {
+      await p.getByTestId('open-board').click(); await p.getByTestId(`hunt-${id}`).click(); await p.locator('main[data-mode="hunt"]').waitFor();
+      await hunt(p, (w) => { const g = w.game, b = g.beast; g.roared = g.introduced = true; g.zoneAt = []; g.buddy.cooldown = 1e9; g.hero.invincible = 1e9; b.x = g.hero.x + 1.5; b.z = g.hero.z - 5; b.height = 0; b.state = 'rest'; b.t = 0; b.duration = 1e3; b.face = 0; });
+      await p.waitForTimeout(400); await snapshot(p, `postgame-${id}`);
+      await hunt(p, (w, id) => { const b = w.game.beast; b.state = 'roam'; b.t = 0; b.duration = 0; b.cycle = id === 'paddlepaw' ? 1 : 0; }, id);
+      await p.waitForFunction((m) => { const b = window.__hunt().game.beast; return b.state === 'windup' && b.attack === m; }, move);
+      await hunt(p, (w) => { w.game.beast.duration = 1e3; }); await p.waitForTimeout(700);
+      if (move === 'burrow') assert(await hunt(p, (w) => w.game.beast.height < -0.5), 'Rumblesnout is underground');
+      assert.match(await p.getByTestId('note').innerText(), move === 'burrow' ? /digs down/ : /Splash/);
+      await snapshot(p, `postgame-${id}-${move}`);
+      assert(await hunt(p, (w) => w.metrics().calls) < 400);
+      await p.getByTestId('pause').click(); await p.getByRole('button', { name: 'Return to camp', exact: true }).click(); await p.locator('main[data-mode="village"]').waitFor();
+    }
+    await p.getByTestId('open-book').click(); assert.match(await p.getByTestId('nap-count').innerText(), /\/ 7 friends/);
   });
   await check('camera orbit avoids terrain, texture count stays bounded, navigation tears down', async (p) => {
     await fresh(p); await start(p); const first = await hunt(p, (w) => w.metrics().textures), c = p.getByTestId('hunt-canvas');

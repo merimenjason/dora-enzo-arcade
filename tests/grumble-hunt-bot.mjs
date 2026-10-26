@@ -10,7 +10,7 @@ for (const hero of ['dora', 'enzo']) for (let seed = 1; seed <= seeds; seed++) {
   // Each seed keeps one buddy order for the whole campaign, so every order has to be able to finish it.
   while (g.order !== ORDERS[seed % ORDERS.length]) g.commandBuddy(1);
   for (const id of BEAST_IDS) {
-    g.story.chapter = BEAST_IDS.indexOf(id) + 1;
+    g.story.chapter = Math.min(6, BEAST_IDS.indexOf(id) + 1); // The post-game beasts come after the ending.
     g.returnVillage();
     if (g.chapter >= 4) assert(g.equip('yoyo')); // Exercise the easy Hop-on path with earned unlocks.
     for (;;) { const choices = nextNodes(g.node().id).filter((n) => g.canForge(n.id)).sort((a, b) => Object.values(a.cost).reduce((s, n) => s + n, 0) - Object.values(b.cost).reduce((s, n) => s + n, 0)); if (!choices.length) break; assert(g.forge(choices[0].id)); upgrades++; }
