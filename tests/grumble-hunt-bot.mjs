@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { HuntGame, BEAST_IDS, BEASTS, ORDERS, DT, QUESTS } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, BEAST_IDS, BEASTS, ORDERS, DT, QUESTS, CHARM_IDS } from '../.checks/grumble-hunt-game.js';
 import { STORY, POST_GAME_WEAPONS, nextNodes, SLOTS, armourCost } from '../.checks/grumble-hunt-content.js';
 import { huntPolicy } from './grumble-hunt-policy.mjs';
 const times = [], totals = Object.fromEntries(BEAST_IDS.map((id) => [id, 0])), byOrder = Object.fromEntries(ORDERS.map((o) => [o, 0]));
@@ -35,7 +35,7 @@ console.log(`By beast: ${JSON.stringify(totals)}. By buddy order: ${JSON.stringi
 
 const storyTimes = []; let maxAttempts = 0, storyUpgrades = 0, storyArmour = 0;
 const post = Object.fromEntries(POST_GAME_WEAPONS.map((type) => [type, { calmed: 0, rides: 0, times: [] }]));
-const quests = Object.fromEntries(QUESTS.map((q) => [q.id, { calmed: 0, done: 0, times: [] }]));
+const quests = Object.fromEntries(QUESTS.map((q) => [q.id, { calmed: 0, done: 0, times: [] }])); let charmsMade = 0; const worn = [];
 for (const hero of ['dora', 'enzo']) for (let seed = 1; seed <= seeds; seed++) {
   const g = new HuntGame(seed); g.chooseHero(hero);
   while (g.order !== ORDERS[seed % ORDERS.length]) g.commandBuddy(1);
@@ -70,17 +70,19 @@ for (const hero of ['dora', 'enzo']) for (let seed = 1; seed <= seeds; seed++) {
       post[type].times.push(steps * DT); post[type].calmed++;
     }
   }
-  // Then every quest on Old Mossback's board, with the story's own tools.
+  // Then every quest on Old Mossback's board, with the story's own tools and any charm the stars and materials buy.
   g.returnVillage(); assert(g.equip('hammer', 'dora')); assert(g.equip('bow', 'enzo'));
   for (const q of QUESTS) {
-    g.returnVillage();
+    g.returnVillage(); for (const id of CHARM_IDS) while (g.makeCharm(id)) charmsMade++;
     assert(g.startQuest(q.id), `${hero} seed ${seed}: ${q.id} opens`); let steps = 0;
     while (!['calm', 'victory', 'camp'].includes(g.mode) && steps++ < 900 / DT) { g.step(DT, huntPolicy(g)); g.events.length = 0; }
     assert.equal(g.mode, 'calm', `${hero} seed ${seed}: quest ${q.id} ended ${g.mode}, ${g.beast?.id} Grump=${Math.round(g.beast?.grump)}`);
     quests[q.id].calmed++; quests[q.id].times.push(steps * DT); if (g.questResult.success) quests[q.id].done++;
   }
+  worn.push(g.profile.charms.worn ? `${g.profile.charms.worn} ${g.profile.charms.levels[g.profile.charms.worn]}` : "none");
 }
 storyTimes.sort((a, b) => a - b);
 console.log(`Story bot: ${seeds * 2} campaigns, ${storyTimes.length}/${seeds * 2 * STORY.length} chapters cleared; maximum attempts ${maxAttempts}/6; ${storyUpgrades} upgrades, ${storyArmour} armour pieces; median ${storyTimes[Math.floor(storyTimes.length / 2)].toFixed(1)}s, slowest ${storyTimes.at(-1).toFixed(1)}s.`);
 for (const [type, r] of Object.entries(post)) { r.times.sort((a, b) => a - b); console.log(`Post-game ${type}: ${r.calmed}/${seeds * 2 * BEAST_IDS.length} Extra Grumpy beasts calmed; ${r.rides} Hop-ons; median ${r.times[Math.floor(r.times.length / 2)].toFixed(1)}s, slowest ${r.times.at(-1).toFixed(1)}s.`); }
 for (const [id, r] of Object.entries(quests)) { r.times.sort((a, b) => a - b); console.log(`Quest ${id}: ${r.calmed}/${seeds * 2} calmed, ${r.done} met the quest; median ${r.times[Math.floor(r.times.length / 2)].toFixed(1)}s, slowest ${r.times.at(-1).toFixed(1)}s.`); }
+console.log(`Charms made along the way: ${charmsMade}; worn at the end: ${worn.join(', ')}.`);

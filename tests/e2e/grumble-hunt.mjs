@@ -481,6 +481,20 @@ try {
     assert.match(await p.getByTestId('stars').innerText(), /★ 2/);
     assert.equal(await p.evaluate(() => JSON.parse(localStorage.getItem('grumble-hunt-v6')).profile.quests['double-meadow']), 1);
   });
+  await check('charms: make, grow and wear at the Forge, with Fluff following the Acorn Charm', async (p) => {
+    await fresh(p);
+    await hunt(p, (w) => { const g = w.game; g.story.chapter = 3; Object.assign(g.profile.pouch, { 'boar-hide': 9, 'wart-pebble': 9, 'shell-plate': 9, 'horn-chip': 9, 'sky-feather': 9, 'marsh-reed': 9 }); g.profile.stars = 2; });
+    await p.getByTestId('open-forge').click(); await p.getByTestId('forge-charms').click();
+    assert.equal(await p.getByTestId('charm-make-clover').isDisabled(), true, 'not enough berries for the Clover Charm');
+    await p.getByTestId('charm-make-acorn').click(); assert.equal(await hunt(p, (w) => w.game.hero.maxFluff), 110);
+    assert.match(await p.getByTestId('charm-status').innerText(), /Wearing the Acorn Charm I/);
+    await p.getByTestId('charm-make-acorn').click(); assert.equal(await hunt(p, (w) => w.game.hero.maxFluff), 120); assert.match(await p.getByTestId('charm-status').innerText(), /★ 0 stars/);
+    await p.getByTestId('charm-make-feather').click(); await p.getByTestId('charm-wear-feather').click();
+    assert.match(await p.getByTestId('charm-status').innerText(), /Wearing the Feather Charm I/); assert.equal(await hunt(p, (w) => w.game.hero.maxFluff), 100);
+    await snapshot(p, 'forge-charms');
+    await p.reload(); await p.locator('main[data-ready="true"][data-rendered="true"]').waitFor();
+    assert.deepEqual(await hunt(p, (w) => w.game.profile.charms), { levels: { clover: 0, acorn: 2, feather: 1 }, worn: 'feather' });
+  });
   await check('camera orbit avoids terrain, texture count stays bounded, navigation tears down', async (p) => {
     await fresh(p); await start(p); const first = await hunt(p, (w) => w.metrics().textures), c = p.getByTestId('hunt-canvas');
     const r = await c.boundingBox(); await p.mouse.move(r.width / 2, r.height / 2); await p.mouse.down(); await p.mouse.move(r.width / 2 + 200, r.height / 2 - 120, { steps: 8 }); await p.mouse.up();

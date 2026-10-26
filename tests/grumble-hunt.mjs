@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { HuntGame, QUESTS, COMBO_WINDOW, FINISHERS, FINISHER_POWER, FINISHER_DIZZY, FINISHER_RECOVERY, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, ZONE_NAMES, ZONE_AT, EXIT_REACH, WANDER_GIVEUP, FINCHES, FINCH_FLUFF, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, CHARMS, CHARM_IDS, CHARM_CHAPTER, QUESTS, COMBO_WINDOW, FINISHERS, FINISHER_POWER, FINISHER_DIZZY, FINISHER_RECOVERY, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, ZONE_NAMES, ZONE_AT, EXIT_REACH, WANDER_GIVEUP, FINCHES, FINCH_FLUFF, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
 import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
@@ -1070,5 +1070,39 @@ check('timed and side-goal quests still end in a lovely nap when missed, with no
   questCalm(vine); assert.equal(vine.questResult.success, false); assert.match(vine.questResult.why, /vine/i);
   const paws = questGame(); assert(paws.startQuest('no-vine-puffwart')); questCalm(paws); assert(paws.questResult.success);
   const out = questGame(); assert(out.startQuest('quick-bristleback')); out.hero.fluff = 1; out.hero.invincible = 0; out.bumpHero(5, out.beast); assert.equal(out.mode, 'camp'); assert.equal(out.quest, null); assert.equal(out.profile.stars, 0);
+});
+const rich = (g) => { for (const id of Object.keys(g.profile.pouch)) g.profile.pouch[id] = cap(id); g.profile.stars = 99; return g; };
+check('the charm tree: three charms, three levels each, paid in materials and quest stars, one worn at a time', () => {
+  assert.deepEqual(CHARM_IDS, ['clover', 'acorn', 'feather']);
+  for (const id of CHARM_IDS) { assert.equal(CHARMS[id].levels.length, 3); assert.equal(CHARMS[id].levels[0].stars, 0); assert(CHARMS[id].levels[2].stars > CHARMS[id].levels[1].stars); for (const l of CHARMS[id].levels) for (const m of Object.keys(l.cost)) assert.equal(cap(m), 99, m); }
+  const closed = rich(questGame(CHARM_CHAPTER - 1)); assert.equal(closed.makeCharm('acorn'), false);
+  const g = questGame(); g.returnVillage(); assert.equal(g.makeCharm('acorn'), false, 'materials are needed');
+  rich(g); g.profile.stars = 0; const pouch = { ...g.profile.pouch };
+  assert(g.makeCharm('acorn')); assert.equal(g.profile.charms.levels.acorn, 1); assert.equal(g.profile.charms.worn, 'acorn', 'the first charm made is worn');
+  for (const [m, n] of Object.entries(CHARMS.acorn.levels[0].cost)) assert.equal(g.profile.pouch[m], pouch[m] - n);
+  assert.equal(g.makeCharm('acorn'), false, 'level II needs quest stars'); g.profile.stars = CHARMS.acorn.levels[1].stars; assert(g.makeCharm('acorn')); assert.equal(g.profile.stars, 0);
+  g.profile.stars = 99; rich(g); assert(g.makeCharm('acorn')); assert.equal(g.profile.charms.levels.acorn, 3); assert.equal(g.makeCharm('acorn'), false, 'III is the top');
+  assert(g.makeCharm('feather')); assert.equal(g.profile.charms.worn, 'acorn', 'a new charm does not swap the worn one'); assert(g.wearCharm('feather')); assert.equal(g.profile.charms.worn, 'feather'); assert(g.wearCharm('feather')); assert.equal(g.profile.charms.worn, null); assert.equal(g.wearCharm('clover'), false, 'only made charms');
+  assert(g.wearCharm('acorn')); const loaded = HuntGame.load(g.save()); assert.deepEqual(loaded.profile.charms, g.profile.charms); assert.equal(loaded.hero.maxFluff, 100 + 30);
+  assert.deepEqual(HuntGame.load({ v: 6, profile: { charms: { levels: { acorn: 7, clover: -1, feather: 'x' }, worn: 'clover' } } }).profile.charms, { levels: { clover: 0, acorn: 3, feather: 0 }, worn: null });
+  g.startHunt('bristleback'); assert(g.makeCharm('clover') === false && g.wearCharm('feather') === false, 'only at camp');
+});
+check('charm effects: more Fluff, quicker rolls and vine, and a fuller nap reward', () => {
+  const wearing = (id, level) => { const g = rich(questGame()); g.returnVillage(); for (let i = 0; i < level; i++) assert(g.makeCharm(id)); assert(g.profile.charms.worn === id || g.wearCharm(id)); return g; };
+  const plain = rich(questGame()); plain.returnVillage();
+  const acorn = wearing('acorn', 2); assert(acorn.startHunt('bristleback')); assert.equal(acorn.hero.maxFluff, 120); assert.equal(acorn.hero.fluff, 120);
+  const feather = wearing('feather', 3); assert(feather.startHunt('bristleback')); assert(plain.startHunt('bristleback'));
+  for (const g of [feather, plain]) { g.zoneAt = []; g.hero.invincible = 1e9; g.buddy.cooldown = 1e9; g.beast.state = 'rest'; g.beast.duration = 1e9; g.step(DT, input({ roll: true, x: 1 })); }
+  let a = 0, b = 0; while (feather.hero.rollCd > 0) { feather.step(DT); a++; } while (plain.hero.rollCd > 0) { plain.step(DT); b++; } assert(Math.abs(a / b - 1 / 1.45) < 0.03, `${a} / ${b}`);
+  for (const g of [feather, plain]) { g.hero.x = g.beast.x; g.hero.z = g.beast.z + 5; assert(g.throwVine()); }
+  assert(Math.abs(plain.vineCd - feather.vineCd - 6) < 1e-9);
+  // Clover III: two more commons every nap, and a second rare roll (frost fur and mane locks are Frostmane's commons, glimmer its rare).
+  let rarePlain = 0, rareClover = 0;
+  for (let seed = 1; seed <= 30; seed++) for (const id of [null, 'clover']) {
+    const g = id ? wearing(id, 3) : rich(questGame()); if (!id) g.returnVillage(); g.seed = g.rng = seed; assert(g.startHunt('frostmane')); calm(g);
+    const commons = g.reward.filter((m) => m !== 'glimmer-stone').length, rares = g.reward.length - commons; assert.equal(commons, id ? 5 : 3);
+    if (id) rareClover += rares; else rarePlain += rares;
+  }
+  assert(rareClover > rarePlain * 1.4, `${rareClover} vs ${rarePlain}`);
 });
 console.log(`Grumble Hunt: ${checks} engine checks passed.`);

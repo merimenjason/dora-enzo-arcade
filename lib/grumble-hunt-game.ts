@@ -126,7 +126,7 @@ export type Pouch = Record<MaterialId | ItemId, number>;
 export type StoryProgress = { chapter: number; scenesSeen: string[] };
 /** best: the fastest normal (not Extra Grumpy) calm in whole tenths of a second, 0 before the first. */
 export type BeastBook = Record<BeastId, { met: boolean; napped: number; partsBroken: string[]; best: number }>;
-export type Profile = { quests: Record<string, number>; stars: number; bountiesClaimed: number; variantNaps: Record<BeastId, number>; totalPlops: number; story: StoryProgress; beastBook: BeastBook; bounties: { day: string; done: string[]; ready: string[] }; extraGrumpyUnlocked: boolean; hero: HeroId | null; weapons: Record<WeaponType, { tier: Tier; branch: Branch | null }>; equipped: Record<HeroId, WeaponType>; armour: { owned: ArmourPieceId[]; worn: Worn }; pouch: Pouch; ring: ItemId[]; snack: SnackId | null; naps: Record<BeastId, number>; won: boolean; hunts: number };
+export type Profile = { charms: { levels: Record<CharmId, number>; worn: CharmId | null }; quests: Record<string, number>; stars: number; bountiesClaimed: number; variantNaps: Record<BeastId, number>; totalPlops: number; story: StoryProgress; beastBook: BeastBook; bounties: { day: string; done: string[]; ready: string[] }; extraGrumpyUnlocked: boolean; hero: HeroId | null; weapons: Record<WeaponType, { tier: Tier; branch: Branch | null }>; equipped: Record<HeroId, WeaponType>; armour: { owned: ArmourPieceId[]; worn: Worn }; pouch: Pouch; ring: ItemId[]; snack: SnackId | null; naps: Record<BeastId, number>; won: boolean; hunts: number };
 export type Hero = Vec & { finisher: boolean; face: number; fluff: number; maxFluff: number; speed: number; roll: number; rollX: number; rollZ: number; rollCd: number; invincible: number; charge: number; swing: number; heavy: boolean; landed: boolean; cooldown: number; slow: number; hidden: number; covered: number };
 export type BeastState = 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'cloud' | 'circle' | 'swoop' | 'sweep' | 'pounce' | 'shake' | 'roar' | 'turf' | 'grabbed' | 'yanked' | 'rest' | 'dizzy' | 'stuck' | 'trudge' | 'snooze' | 'wander' | 'nap';
 export type Beast = Vec & { id: BeastId; grump: number; maxGrump: number; face: number; state: BeastState; t: number; duration: number; attack: BeastState; aim: Vec; start: Vec; dir: Vec; phase: number; cycle: number; dizzy: number; part: number; broken: boolean; bonks: number; flash: number; height: number; grumpy: boolean; drowsy: number; drowsySlow: number; home: 0 | 1 | 2; soft: number; zone: number; away: boolean };
@@ -146,7 +146,7 @@ export type HuntEvent = { kind: 'quest' | 'finisher' | 'hop-on' | 'ride-bonk' | 
 export type Mode = 'village' | 'hunt' | 'nap' | 'calm' | 'camp' | 'victory';
 const countRecord = (): Record<BeastId, number> => ({ bristleback: 0, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0 });
 const emptyPouch = () => Object.fromEntries([...MATERIAL_IDS, ...ITEM_IDS].map((id) => [id, 0])) as Pouch;
-export const freshProfile = (): Profile => ({ quests: {}, stars: 0, bountiesClaimed: 0, variantNaps: countRecord(), totalPlops: 0, story: { chapter: 0, scenesSeen: [] }, beastBook: Object.fromEntries(BEAST_IDS.map((id) => [id, { met: false, napped: 0, partsBroken: [], best: 0 }])) as unknown as BeastBook, bounties: { day: '', done: [], ready: [] }, extraGrumpyUnlocked: false, hero: null, weapons: Object.fromEntries(Object.keys(WEAPON_TYPES).map((id) => [id, { tier: 1, branch: null }])) as Profile['weapons'], equipped: { dora: 'hammer', enzo: 'bow' }, armour: { owned: [], worn: {} }, pouch: emptyPouch(), ring: [...DEFAULT_RING], snack: null, naps: countRecord(), won: false, hunts: 0 });
+export const freshProfile = (): Profile => ({ charms: { levels: { clover: 0, acorn: 0, feather: 0 }, worn: null }, quests: {}, stars: 0, bountiesClaimed: 0, variantNaps: countRecord(), totalPlops: 0, story: { chapter: 0, scenesSeen: [] }, beastBook: Object.fromEntries(BEAST_IDS.map((id) => [id, { met: false, napped: 0, partsBroken: [], best: 0 }])) as unknown as BeastBook, bounties: { day: '', done: [], ready: [] }, extraGrumpyUnlocked: false, hero: null, weapons: Object.fromEntries(Object.keys(WEAPON_TYPES).map((id) => [id, { tier: 1, branch: null }])) as Profile['weapons'], equipped: { dora: 'hammer', enzo: 'bow' }, armour: { owned: [], worn: {} }, pouch: emptyPouch(), ring: [...DEFAULT_RING], snack: null, naps: countRecord(), won: false, hunts: 0 });
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 export const distance = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.z - b.z);
 const faceTo = (a: Vec, b: Vec) => Math.atan2(-(b.z - a.z), b.x - a.x);
@@ -199,6 +199,31 @@ export const QUESTS: readonly Quest[] = [
   { id: 'gentle-frostmane', title: 'Featherlight', text: 'Calm Frostmane with three bumps or fewer.', beasts: ['frostmane'], chapter: 6, stars: 2, reward: { 'frost-fur': 2, 'glimmer-stone': 1 }, goal: { text: 'Three bumps or fewer', miss: 'more than three bumps', check: (f) => f.bumps <= 3 } },
   { id: 'peak-parade', title: 'Peak Parade', text: 'Calm Hornclack, then Frostmane wanders in for a second nap.', beasts: ['hornclack', 'frostmane'], chapter: 6, stars: 3, reward: { 'horn-chip': 2, 'frost-fur': 2, 'glimmer-stone': 1 } },
 ];
+/** Bramble's charm tree: three charms, each made at level I and grown to II and III with beast materials and quest stars.
+ *  One charm is worn at a time. Clover fills the nap reward, Acorn adds Fluff, Feather quickens rolls and the vine. */
+export const CHARM_IDS = ['clover', 'acorn', 'feather'] as const;
+export type CharmId = typeof CHARM_IDS[number];
+export const CHARM_CHAPTER = 2;
+export type CharmLevel = { text: string; cost: Partial<Record<MaterialId, number>>; stars: number; fluff: number; commons: number; rareRolls: number; roll: number; vine: number };
+const level = (text: string, cost: CharmLevel['cost'], stars: number, effect: Partial<Pick<CharmLevel, 'fluff' | 'commons' | 'rareRolls' | 'roll' | 'vine'>>): CharmLevel => ({ text, cost, stars, fluff: 0, commons: 0, rareRolls: 0, roll: 0, vine: 0, ...effect });
+export const CHARMS: Record<CharmId, { name: string; levels: CharmLevel[] }> = {
+  clover: { name: 'Clover Charm', levels: [
+    level('+1 common material at every nap', { berry: 4, 'bristle-tuft': 3 }, 0, { commons: 1 }),
+    level('+1 common and one more rare roll at every nap', { 'curly-tail-tuft': 1, 'cloud-wisp': 1, 'sky-feather': 3 }, 2, { commons: 1, rareRolls: 1 }),
+    level('+2 commons and one more rare roll at every nap', { 'glimmer-stone': 2, 'owl-down': 2, 'mane-lock': 2 }, 5, { commons: 2, rareRolls: 1 }),
+  ] },
+  acorn: { name: 'Acorn Charm', levels: [
+    level('+10 Fluff', { 'boar-hide': 3, 'wart-pebble': 3 }, 0, { fluff: 10 }),
+    level('+20 Fluff', { 'shell-plate': 3, 'horn-chip': 2 }, 2, { fluff: 20 }),
+    level('+30 Fluff', { 'frost-fur': 4, 'mane-lock': 2, 'tusk-shard': 2 }, 5, { fluff: 30 }),
+  ] },
+  feather: { name: 'Feather Charm', levels: [
+    level('Rolls recover 15% faster; the vine coils back 2 s sooner', { 'sky-feather': 3, 'marsh-reed': 3 }, 0, { roll: 0.15, vine: 2 }),
+    level('Rolls recover 30% faster; the vine coils back 4 s sooner', { 'owl-down': 1, 'puff-sac': 2, 'sky-feather': 3 }, 2, { roll: 0.3, vine: 4 }),
+    level('Rolls recover 45% faster; the vine coils back 6 s sooner', { 'glimmer-stone': 2, 'cloud-wisp': 2, 'frost-fur': 4 }, 5, { roll: 0.45, vine: 6 }),
+  ] },
+};
+const NO_CHARM = level('', {}, 0, {});
 function validDay(day: unknown): day is string {
   if (typeof day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return false;
   const year = Number(day.slice(0, 4)), month = Number(day.slice(5, 7)), date = Number(day.slice(8));
@@ -435,6 +460,27 @@ export class HuntGame {
   node(type: WeaponType = this.weapon()) { const w = this.profile.weapons[type]; return weaponNode(`${type}-${w.tier}${w.branch ?? ''}`)!; }
   perk(id: string, buddy = false) { return this.node(this.weapon(buddy ? this.buddyId : this.heroId)).perks.find((p) => p.id === id)?.value ?? 0; }
   get armour() { return armourBonus(this.profile.armour.worn); }
+  /** The worn charm's level, or no effect. */
+  get charm(): CharmLevel { const id = this.profile.charms.worn, n = id ? this.profile.charms.levels[id] : 0; return id && n > 0 ? CHARMS[id].levels[n - 1] : NO_CHARM; }
+  /** Most Fluff before snacks and finches: 100, armour and the worn charm. */
+  get baseFluff() { return 100 + this.armour.fluff + this.charm.fluff; }
+  canCharm(id: CharmId) {
+    const n = this.profile.charms.levels[id], next = CHARMS[id]?.levels[n];
+    return this.mode === 'village' && this.chapter >= CHARM_CHAPTER && !!next && this.profile.stars >= next.stars && canAfford(this.profile.pouch, next.cost);
+  }
+  /** Makes a charm, or grows it a level; the first charm made is worn straight away. */
+  makeCharm(id: CharmId) {
+    if (!this.canCharm(id)) return false;
+    const c = this.profile.charms, next = CHARMS[id].levels[c.levels[id]];
+    this.profile.pouch = pay(this.profile.pouch, next.cost) as Pouch; this.profile.stars -= next.stars; c.levels[id]++; c.worn ??= id;
+    this.hero.maxFluff = this.baseFluff; this.hero.fluff = this.hero.maxFluff;
+    this.note = `Bramble polishes the ${CHARMS[id].name} ${['I', 'II', 'III'][c.levels[id] - 1]}. Lovely!`; this.events.push({ kind: 'craft' }); this.revision++; return true;
+  }
+  /** Wears a made charm, or takes off the one worn. */
+  wearCharm(id: CharmId) {
+    const c = this.profile.charms; if (this.mode !== 'village' || !(c.levels[id] > 0)) return false;
+    c.worn = c.worn === id ? null : id; this.hero.maxFluff = this.baseFluff; this.hero.fluff = this.hero.maxFluff; this.revision++; return true;
+  }
   skill(id: string) { return this.armour.skills.some((s) => s.id === id); }
   ranged(id: HeroId = this.heroId) { return ['bow', 'lightbow', 'heavybow', 'wand'].includes(this.weapon(id)); }
   /** Tools that guard while K is held (the Charge Blade only in sword mode). */
@@ -481,7 +527,7 @@ export class HuntGame {
     if (this.mode !== 'village' || !this.profile.armour.owned.includes(piece)) return false;
     const slot = piece.split('-')[1] as typeof SLOTS[number];
     if (this.profile.armour.worn[slot] === piece) delete this.profile.armour.worn[slot]; else this.profile.armour.worn[slot] = piece;
-    this.hero.maxFluff = 100 + this.armour.fluff; this.hero.fluff = this.hero.maxFluff; this.revision++; return true;
+    this.hero.maxFluff = this.baseFluff; this.hero.fluff = this.hero.maxFluff; this.revision++; return true;
   }
   canCraft(id: ItemId) { const it = ITEMS[id]; return this.mode === 'village' && !!it && this.feature('pantry') && this.chapter >= it.chapter && this.profile.pouch[id] < it.max && canAfford(this.profile.pouch, it.recipe); }
   /** Makes one batch of an item at the Pantry from its recipe. */
@@ -653,7 +699,7 @@ export class HuntGame {
     this.profile.beastBook[id].met = true;
     this.resetWeapons();
     this.snack = this.profile.snack; this.profile.snack = null;
-    this.lastHunt = id; this.mode = 'hunt'; this.hero = hero(100 + this.armour.fluff + (this.snack ? SNACKS[this.snack].effect.maxFluff ?? 0 : 0)); this.buddy = buddy();
+    this.lastHunt = id; this.mode = 'hunt'; this.hero = hero(this.baseFluff + (this.snack ? SNACKS[this.snack].effect.maxFluff ?? 0 : 0)); this.buddy = buddy();
     this.beast = this.newBeast(id, this.huntChapter === 0 ? 40 : BEASTS[id].grump * (variant ? 1.6 : 1)); this.quest = null; this.questResult = null;
     this.shots = []; this.drops = []; this.clouds = []; this.fx = []; this.item = 0; this.sniff = 0; this.unseen = 0; this.locked = true; this.paused = false; this.hitstop = 0; this.shake = 0; this.last = { ...NO_INPUT }; this.resultTime = 0;
     this.roared = this.introduced = this.huntChapter === 0; this.introAt = -1; this.vine = null; this.vineCd = 0; this.pebbles = SLING_START; this.stones = []; this.skyHits = 0; this.shaken = []; this.gathering = null; this.trap = null; this.reward = []; this.area = this.huntChapter >= 0 ? STORY[this.huntChapter].area : HUNT_AREA[id];
@@ -666,7 +712,7 @@ export class HuntGame {
   }
   returnVillage() {
     this.resetWeapons(); this.quest = null; this.questResult = null;
-    this.area = 'meadow'; this.makeMeadow(); this.mode = 'village'; this.beast = null; this.hero = hero(100 + this.armour.fluff); this.hero.z = 4; this.buddy.x = -1.5; this.buddy.z = 5.5;
+    this.area = 'meadow'; this.makeMeadow(); this.mode = 'village'; this.beast = null; this.hero = hero(this.baseFluff); this.hero.z = 4; this.buddy.x = -1.5; this.buddy.z = 5.5;
     this.drops = []; this.shots = []; this.stones = []; this.hazard = null; this.finches = []; this.clouds = []; this.fx = []; this.spots = []; this.gathering = null; this.trap = null; this.snack = null; this.sniff = 0; this.unseen = 0; this.locked = false; this.paused = false; this.last = { ...NO_INPUT }; this.revision++;
     this.note = 'Materials tucked away safely. Visit the Pantry, Forge, Beast Book, or hunt board.';
   }
@@ -776,7 +822,8 @@ export class HuntGame {
     }
     this.profile.naps[b.id]++; this.profile.won ||= b.id === 'frostmane';
     // Three commons and a rare roll (two with a Lucky Seed Bun); the pop-off part already dropped its own material.
-    this.reward = rollCalm(() => this.random(), b.id, [], this.snack ? SNACKS[this.snack].effect.bonusRareRolls ?? 0 : 0, this.variant ? 2 : 1);
+    this.reward = rollCalm(() => this.random(), b.id, [], (this.snack ? SNACKS[this.snack].effect.bonusRareRolls ?? 0 : 0) + this.charm.rareRolls, this.variant ? 2 : 1);
+    const common = DROPS[b.id].calm.common; for (let i = 0; i < this.charm.commons; i++) this.reward.splice(DROPS[b.id].calm.count + i, 0, common[Math.floor(this.random() * common.length)]);
     for (const m of this.reward) this.drop(b, m, 1);
     this.collect(true); this.gathering = null; this.revision++;
     this.events.push({ kind: 'nap' }); this.effect('nap', b, 'Calmed. Time for a nap!'); this.note = `${BEASTS[b.id].name} is going to the sanctuary for a lovely nap.`;
@@ -1111,7 +1158,7 @@ export class HuntGame {
     if (this.weapon() === 'heavybow' && !input.charge && this.last.charge) this.flurry = 5 * (1 - this.perk('flurry-cool'));
     if (this.skill('frost-fluff') && this.beast && distance(h, this.beast) > 12) h.fluff = Math.min(h.maxFluff, h.fluff + dt / 2);
     // Hay Nibble: rolls recover 25% faster.
-    h.rollCd = Math.max(0, h.rollCd - dt * (1 + (this.snack ? SNACKS[this.snack].effect.staminaRegen ?? 0 : 0)));
+    h.rollCd = Math.max(0, h.rollCd - dt * (1 + (this.snack ? SNACKS[this.snack].effect.staminaRegen ?? 0 : 0) + this.charm.roll));
     // Tab toggles lock-on when it is let go, unless Q or E gave the buddy an order while it was held.
     if (pressed('lock')) this.ordered = false;
     if (input.lock && (pressed('next') || pressed('previous'))) { this.commandBuddy(pressed('next') ? 1 : -1); this.ordered = true; }
@@ -1262,7 +1309,7 @@ export class HuntGame {
     if (!b || this.mode !== 'hunt' || b.away || this.vine || this.ride.riding || this.airHeight > 0.5) return false;
     if (this.vineCd > 0) { this.note = `The vine is coiling back up: ${Math.ceil(this.vineCd)} s.`; return false; }
     if (distance(h, b) > VINE_REACH || b.height > 2.6 || ['nap', 'turf', 'yanked'].includes(b.state)) { this.note = 'Get within 9 steps, with the beast near the ground, to throw the vine.'; return false; }
-    this.vine = { phase: 'fly', t: 0, pokes: 0 }; this.vineCd = VINE_COOLDOWN; this.huntFacts.vines++; this.gathering = null; this.guarding = false; this.chargeHold = 0;
+    this.vine = { phase: 'fly', t: 0, pokes: 0 }; this.vineCd = VINE_COOLDOWN - this.charm.vine; this.huntFacts.vines++; this.gathering = null; this.guarding = false; this.chargeHold = 0;
     h.face = faceTo(h, b); h.roll = -1; h.swing = -1; h.charge = 0; h.speed = 0; this.events.push({ kind: 'vine' });
     return true;
   }
@@ -1539,10 +1586,11 @@ export class HuntGame {
       game.profile.armour.owned = Array.isArray(p.armour?.owned) ? pieces.filter((id) => p.armour!.owned.includes(id)) : [];
       for (const slot of SLOTS) { const piece = p.armour?.worn?.[slot]; if (piece && game.profile.armour.owned.includes(piece) && piece.endsWith(`-${slot}`)) game.profile.armour.worn[slot] = piece; }
     }
+    if (s.v === 6) { const c = p.charms; for (const id of CHARM_IDS) game.profile.charms.levels[id] = integer(c?.levels?.[id], 3); game.profile.charms.worn = c && CHARM_IDS.includes(c.worn as CharmId) && game.profile.charms.levels[c.worn as CharmId] > 0 ? c.worn : null; }
     if (s.v === 6) { game.profile.stars = integer(p.stars, 9999); for (const q of QUESTS) { const n = integer(p.quests?.[q.id], 9999); if (n) game.profile.quests[q.id] = n; } }
     game.profile.won = game.profile.naps.frostmane > 0; game.profile.hunts = integer(p.hunts, 999999);
     if (typeof s.seed === 'number' && Number.isFinite(s.seed)) game.seed = game.rng = s.seed >>> 0;
-    game.hero = hero(100 + game.armour.fluff);
+    game.hero = hero(game.baseFluff);
     return game;
   }
 }

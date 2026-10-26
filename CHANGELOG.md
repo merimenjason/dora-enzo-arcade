@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Grumble Hunt** has charms at Bramble's Forge from chapter 2. The Clover Charm adds materials to every nap reward, the Acorn Charm adds up to 30 Fluff, and the Feather Charm makes rolls recover faster and the vine come back sooner. Each grows from I to III with beast materials and quest stars, and one is worn at a time.
+
 - **Grumble Hunt** has Old Mossback's quest board, on the hunt board from chapter 2: nine little challenges, such as calming Bristleback within 90 seconds, calming Puffwart without the vine, knocking Skreel down with pebbles or calming two beasts one after the other. A quest pays stars and a bundle of materials. A missed goal still ends in a lovely nap. Old saves carry over.
 
 - **Grumble Hunt** melee tools chain three J swings into a string. Keep the rhythm and the third swing is the tool's own finisher, such as the Acorn Upswing or the Petal Spin. It is half again as strong; slow tools add Dizzy, medium tools loosen parts faster and fast tools bonk twice. Three pips under your Fluff show the string.
