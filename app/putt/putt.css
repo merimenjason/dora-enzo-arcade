@@ -1,0 +1,128 @@
+.putt-shell{position:relative;width:100%;height:100svh;min-height:320px;overflow:hidden;background:#b7d9ee;color:#43352d;font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;isolation:isolate}
+.putt-shell *{box-sizing:border-box}
+.putt-shell button,.putt-shell a{font:inherit}
+.putt-shell button{border:1px solid #d5c3a3;border-radius:12px;background:#fff9eb;color:#43352d;font-weight:750;padding:10px 15px;cursor:pointer;min-height:42px;transition:background .15s,transform .15s}
+.putt-shell button:hover:not(:disabled){background:#f6dfab;transform:translateY(-1px)}
+.putt-shell button:disabled{opacity:.5;cursor:default}
+.putt-shell button:focus-visible,.putt-shell a:focus-visible,.putt-canvas:focus-visible{outline:3px solid #d3762c;outline-offset:3px}
+.putt-shell .putt-primary{background:#f2bd64;border-color:#db9a45;color:#3c2a1c}
+.putt-shell h1,.putt-shell h2,.putt-shell h3,.putt-shell p{margin:0}
+.putt-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+.putt-canvas:focus-visible{outline-offset:-3px}
+.putt-portrait{display:inline-block;flex:none;border-radius:50%;background-color:#fff3dc;background-size:200% 200%;border:2px solid #fff9eb;box-shadow:0 2px 8px #3a2a1a33}
+
+/* clubhouse menu */
+.putt-menu{position:absolute;inset:0;z-index:10;overflow:auto;background:linear-gradient(160deg,#cfe8f4,#f6ecd2 60%,#d9ecbf)}
+.putt-menu-art{position:fixed;inset:0;z-index:0;pointer-events:none}
+.putt-menu-art img{width:100%;height:100%;object-fit:cover;object-position:70% 50%}
+.putt-menu-art::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#fff8eaf2 0%,#fff8eae0 34%,#fff8ea40 62%,transparent 80%)}
+.putt-menu-top{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:16px 24px}
+.putt-back{color:#65533b;font-size:12px;font-weight:900;letter-spacing:1px;text-decoration:none;background:#fff9ebd9;border-radius:10px;padding:9px 12px}
+.putt-shell .putt-chip{min-height:36px;padding:7px 12px;font-size:12px}
+.putt-menu-panel{position:relative;z-index:1;width:min(560px,100%);padding:4px 24px 32px;display:flex;flex-direction:column;gap:14px}
+.putt-eyebrow{font-size:11px;font-weight:900;letter-spacing:2.2px;color:#8b592d}
+.putt-menu-panel h1{font-size:clamp(40px,6vw,64px);font-weight:950;line-height:.95;letter-spacing:-2px;color:#3b2c22}
+.putt-menu-panel h1 em{font-style:normal;color:#5c9a3f}
+.putt-lede{font-size:15px;line-height:1.5;color:#5b4b3d;max-width:46ch}
+.putt-label{font-size:12px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase;color:#7b6551;margin-top:6px}
+.putt-who{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.putt-who button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;font-size:13px}
+.putt-who button.is-on{background:#dff0c8;border-color:#7fb35d;box-shadow:inset 0 0 0 2px #7fb35d}
+.putt-pair{display:flex}.putt-pair .putt-portrait+.putt-portrait{margin-left:-10px}
+.putt-resume{align-self:flex-start}
+.putt-courses{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.putt-course{display:flex;flex-direction:column;gap:10px;justify-content:space-between;padding:14px;border-radius:16px;background:#fffaf0ee;border:1px solid #e6d6b8;box-shadow:0 6px 18px #3a2a1a14}
+.putt-course.is-lantern{background:linear-gradient(160deg,#fff2df,#efe1f6)}
+.putt-course.is-locked{opacity:.75}
+.putt-course h3{font-size:18px;font-weight:900}
+.putt-course p{font-size:13px;line-height:1.4;color:#6b5a49;margin-top:3px}
+.putt-course dl{display:flex;gap:14px;margin:0}
+.putt-course dl div{display:flex;flex-direction:column}
+.putt-course dt{font-size:10px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#9a8670}
+.putt-course dd{margin:0;font-size:17px;font-weight:900}
+.putt-tabs{display:flex;gap:6px}
+.putt-tabs button{min-height:34px;padding:6px 12px;font-size:12px}
+.putt-tabs button.is-on{background:#dff0c8;border-color:#7fb35d}
+.putt-holes{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.putt-holes button{width:100%;display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;column-gap:7px;text-align:left;align-items:center;padding:8px 9px;font-size:12px;min-height:54px}
+.putt-hole-n{grid-row:1/3;font-size:18px;font-weight:950;color:#5c9a3f;width:20px;text-align:center}
+.putt-hole-name{font-weight:850;line-height:1.15}
+.putt-hole-meta{grid-column:2;font-size:10.5px;color:#8a7864;font-weight:700}
+.putt-holes .putt-acorn{grid-column:3;grid-row:1/3}
+.putt-acorn-row{display:flex;flex-wrap:wrap;align-items:center;gap:2px;font-size:12px;font-weight:800;color:#6b5a49}
+.putt-acorn-row span{margin-left:8px}
+.putt-help{font-size:12px;line-height:1.5;color:#7b6551;background:#fffaf0cc;border-radius:12px;padding:10px 12px}
+
+/* in play */
+.putt-hud{position:absolute;inset:0 0 auto;z-index:5;display:flex;align-items:flex-start;gap:10px;padding:12px 14px;pointer-events:none}
+.putt-hud>*{pointer-events:auto}
+.putt-hud-card,.putt-hud-who{background:#fff9ebee;border-radius:14px;box-shadow:0 4px 14px #2a3a2226;padding:9px 13px}
+.putt-hud-card{display:flex;flex-direction:column;min-width:170px}
+.putt-hud-hole{font-size:10px;font-weight:900;letter-spacing:1.6px;color:#8b592d}
+.putt-hud-card strong{font-size:18px;font-weight:950;letter-spacing:-.3px}
+.putt-hud-card span:last-child{font-size:13px;font-weight:750;color:#6b5a49}
+.putt-hud-who{display:flex;gap:9px;align-items:center;padding:6px 13px 6px 6px}
+.putt-hud-who div{display:flex;flex-direction:column}
+.putt-hud-who strong{font-size:15px}.putt-hud-who span{font-size:12px;font-weight:750;color:#6b5a49}
+.putt-hud-actions{margin-left:auto;display:flex;gap:6px}
+.putt-hud-actions button{min-height:36px;padding:7px 11px;font-size:12px;background:#fff9ebee}
+.putt-intro{position:absolute;left:50%;top:18%;transform:translateX(-50%);z-index:4;text-align:center;background:#fff9ebf2;border-radius:18px;padding:14px 22px;box-shadow:0 10px 30px #2a3a2233;max-width:min(92vw,460px);pointer-events:none;animation:putt-pop .35s ease-out}
+.putt-intro span{font-size:11px;font-weight:900;letter-spacing:1.8px;color:#8b592d;text-transform:uppercase}
+.putt-intro strong{display:block;font-size:28px;font-weight:950;letter-spacing:-.8px;margin:2px 0 4px}
+.putt-intro p{font-size:14px;line-height:1.45;color:#5b4b3d}
+.putt-intro em{display:block;margin-top:6px;font-style:normal;font-weight:850;color:#5c9a3f}
+.putt-power{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:4;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.putt-meter{width:min(320px,70vw);height:14px;border-radius:99px;background:#fff9ebd9;box-shadow:0 3px 10px #2a3a2226;overflow:hidden;border:2px solid #fff9eb}
+.putt-meter i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#8ccf6a,#f2bd64 60%,#e9785a)}
+.putt-power span{font-size:12px;font-weight:800;color:#3b2c22;background:#fff9ebd9;border-radius:99px;padding:4px 11px}
+.putt-found{position:absolute;right:14px;bottom:18px;z-index:4;display:flex;align-items:center;gap:5px;font-size:12px;font-weight:850;background:#fff9ebe6;border-radius:99px;padding:5px 11px 5px 7px}
+.putt-banner{position:absolute;left:50%;top:30%;transform:translateX(-50%);z-index:6;display:flex;flex-direction:column;align-items:center;gap:2px;background:#fff9ebf2;border-radius:16px;padding:10px 20px;box-shadow:0 10px 30px #2a3a2233;pointer-events:none;animation:putt-pop .3s ease-out;text-align:center}
+.putt-banner strong{font-size:22px;font-weight:950}
+.putt-banner span{font-size:13px;font-weight:750;color:#6b5a49}
+.putt-banner.is-big{top:24%;padding:16px 30px;background:linear-gradient(#fffdf4,#fff1cf)}
+.putt-banner.is-big strong{font-size:clamp(34px,6vw,54px);letter-spacing:-1.5px;color:#4d8a32}
+@keyframes putt-pop{from{opacity:0;transform:translate(-50%,8px) scale(.94)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@media (prefers-reduced-motion:reduce){.putt-intro,.putt-banner{animation:none}}
+
+/* panels */
+.putt-shade{position:absolute;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;padding:18px;background:#26302a52;backdrop-filter:blur(2px)}
+.putt-panel{width:min(640px,100%);max-height:100%;overflow:auto;background:#fffaf0;border-radius:20px;padding:20px;box-shadow:0 20px 50px #1d261f55;display:flex;flex-direction:column;gap:12px}
+.putt-panel h2{font-size:22px;font-weight:950;letter-spacing:-.5px}
+.putt-panel>p{font-size:14px;line-height:1.45;color:#5b4b3d}
+.putt-row{display:flex;flex-wrap:wrap;gap:8px}
+.putt-table-wrap{overflow-x:auto}
+.putt-table{border-collapse:collapse;width:100%;font-size:14px;text-align:center;min-width:420px}
+.putt-table th,.putt-table td{padding:6px 4px;border-bottom:1px solid #eadcc2}
+.putt-table thead th{font-size:11px;font-weight:900;color:#8b592d}
+.putt-table th[scope=row]{text-align:left;font-weight:850;padding-left:6px}
+.putt-table .is-now{background:#f6e7c4;border-radius:6px}
+.putt-table .is-par-row td,.putt-table .is-par-row th{color:#8a7864;font-size:12px}
+.putt-table td.is-ace{background:#ffe9a3;font-weight:950;border-radius:50%}
+.putt-table td.is-under{color:#3d8a2a;font-weight:900}
+.putt-table td.is-par{font-weight:750}
+.putt-table td.is-over{color:#9a6b48}
+.putt-table small{color:#8a7864;font-weight:750}
+.putt-practice{list-style:none;margin:0;padding:0;font-size:16px}
+.putt-practice span{color:#8a7864;font-size:13px}
+.putt-practice em{margin-left:8px;font-style:normal;font-weight:800;font-size:14px;color:#5b4b3d}
+.putt-practice em.is-ace{color:#b07a00}.putt-practice em.is-under{color:#3d8a2a}.putt-practice em.is-over{color:#8a7864}
+.putt-found{display:flex;align-items:center;gap:6px;font-weight:800;color:#8a5a1c}
+.putt-finale{width:min(720px,100%)}
+.putt-finale-art{width:100%;aspect-ratio:16/5;object-fit:cover;object-position:50% 40%;border-radius:14px}
+.putt-finale.is-lantern .putt-finale-art{filter:hue-rotate(-25deg) saturate(.8) brightness(.8)}
+.putt-unlock{font-weight:850;color:#7a4fb0}
+.putt-pause{width:min(380px,100%)}
+.putt-error{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:20;background:#fff1e6;border:1px solid #e3a77d;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:750;max-width:92vw}
+
+@media (max-width:720px){
+  .putt-menu-art::after{background:linear-gradient(180deg,#fff8ea99 0%,#fff8eaf2 30%)}
+  .putt-menu-panel{padding:0 16px 28px}
+  .putt-courses{grid-template-columns:1fr}
+  .putt-holes{grid-template-columns:1fr 1fr}
+  .putt-hud{flex-wrap:wrap;padding:8px}
+  .putt-hud-card{min-width:0;padding:7px 10px}.putt-hud-card strong{font-size:15px}
+  .putt-hud-who{padding:4px 9px 4px 4px}
+  .putt-hud-actions{width:100%;margin-left:0;justify-content:flex-end}
+  .putt-hud-actions button{min-height:32px;padding:5px 9px;font-size:11px}
+  .putt-intro{top:30%}
+}

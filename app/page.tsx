@@ -39,14 +39,15 @@ const GAMES=[
  {href:'/trek',title:'Chinchilla Trek',tag:'NEW · ROGUELITE TREK',blurb:'Walk Dora or Enzo through thirty days of meadow, wood and mountain: pick a skill at every level-up, let the scraps play out, bargain with the Owl and the Fox, and bring home gear to go further next time.',color:'#7bb661',art:'🧭'},
  {href:'/cave',title:'Glimmer Cave',tag:'NEW · CAVE SURVIVAL',blurb:'Dive five layers under the Andes with Dora or Enzo: dig through rock, bonk swarms of soot sprites, mites and beetles while your weapons aim themselves, pick a card at every level-up, reach the drop pod in time, and bonk the grumpy Rock Wyrm.',color:'#8a6ad8',art:'💎'},
  {href:'/hunt',title:'Grumble Hunt',tag:'NEW · 3D STORYBOOK ADVENTURE',blurb:'Take Dora’s Acorn Hammer or Enzo’s Seed Bow into a painted meadow. Roll past the orange warnings, bonk five grumpy beasts into lovely naps, and bring little treasures home to the Forge.',color:'#e5ba73',art:'🐾'},
+ {href:'/putt',title:'Puttering Paws',tag:'NEW · 3D MINI GOLF',blurb:'Putt with Dora and Enzo through two storybook nine-hole courses: ramps and windmills, burrows and dust baths, bouncy mushrooms and a sleepwalking Bristleback. Every hole hides a golden acorn.',color:'#9fcf7a',art:'⛳'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
    <p className="arcade-eyebrow">THIRTY-NINE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Thirty-nine ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, thirty-nine cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <h1>Small paws.<br/><em>Forty ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, forty cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <nav className="arcade-grid" aria-label="Choose a game">
    {GAMES.map((game,i)=><a key={game.href} href={game.href} className="arcade-card" style={{'--game-color':game.color} as React.CSSProperties}>

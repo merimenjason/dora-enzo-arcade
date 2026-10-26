@@ -47,7 +47,7 @@ const fits = (page) => page.evaluate(() => document.documentElement.scrollWidth 
 
 await check('the arcade lists Whisker Saga as its thirty-second game', async (page) => {
   await page.goto(base);
-  assert.equal(await page.locator('.arcade-card').count(), 39);
+  assert.equal(await page.locator('.arcade-card').count(), 40);
   await page.locator('.arcade-card[href="/saga"]').click(); await page.waitForURL('**/saga');
   await page.getByTestId('start').waitFor();
   assert.equal(await page.getByTestId('continue').count(), 0, 'nothing to continue on a first visit');

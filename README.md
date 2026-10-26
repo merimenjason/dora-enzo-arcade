@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of thirty-nine original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of forty original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -49,6 +49,7 @@ Listed in arcade-menu order.
 | 37 | Chinchilla Trek | `/trek` | Roguelite trek |
 | 38 | Glimmer Cave | `/cave` | Cave survival |
 | 39 | Grumble Hunt | `/hunt` | 3D storybook hunting adventure |
+| 40 | Puttering Paws | `/putt` | 3D mini golf |
 
 ## Run
 
@@ -938,6 +939,16 @@ Eighty stages in eight chapters, each stage worth up to three stars (cleared, no
 
 **Docs:** [`docs/grumble-hunt.md`](docs/grumble-hunt.md), the art inventories and prompts ([meadow, icons and portraits](docs/grumble-hunt-art.md), [story](docs/grumble-hunt-story-art.md), [weapon icons](docs/grumble-hunt-weapon-icons.md)), and the [model and look-test reference](docs/grumble-hunt/README.md).
 
+### 40 · Puttering Paws (`/putt`)
+
+**Play:** Storybook 3D mini golf. Putt as Dora or Enzo, or pick **Both, taking turns** for two players on one screen: each hole is played in turn, and whoever scored lower on the last hole putts first on the next. Two nine-hole courses: the sunny **Clover Nine** (par 24) and, once you have finished it, the dusk **Lantern Nine** (par 27) with lantern strings and fireflies. Holes are built from ramps, one-way ledges you can only drop off, windmills whose turning sails block the door, burrows that swallow the ball and roll it out of a paired burrow, dust-bath sand that slows it, ponds (a ball in the water costs a stroke and goes back to where it was putted from), bouncy mushrooms, hills and bowls, rolling hay bales and a sleepwalking Bristleback. A ball rolling faster than the cup can catch rattles over the rim. After six putts the ball is picked up and the hole scores 7. Every hole hides a golden acorn to roll through; the clubhouse counts them per course. The friend who isn't putting waits by the flag and lifts it as the ball drops. **Practise a hole** plays any open hole on its own. The clubhouse keeps each hole's best, aces, acorns and each course's best round.
+
+**Controls:** Drag back from the ball and let go, like a slingshot: the drag direction aims and its length sets the power. The dotted line shows the direction and the first bounce; the power bar shows how hard. Or use **←/→** (or **A/D**) to aim and **↑/↓** (or **W/S**) for power, with **Shift** for fine steps, and **Space** or **Enter** to putt, skip the fly-over and move on from the scorecard. **V** or **Whole hole** shows the whole hole from above, **M** toggles sound and **Escape** pauses. A course round saves between putts under `puttering-paws-run-v1` and carries on from the clubhouse; bests, aces, acorns and the Lantern unlock save under `puttering-paws-v1`.
+
+**Tests:** `npm run test:putt` parses all eighteen holes, replays a recorded par-or-better line and an acorn line for every hole through the real game, plays a whole Clover round on those lines and checks it opens the Lantern Nine, and checks determinism, lip-outs, the pick-up after six putts, the pond penalty, windmill sails, random putts staying on the course, taking turns and the honour order, round saves and broken saves, and the profile. `npm run bot:putt` plays every hole eight times as a careful player who aims along the game's suggested line and misses each putt by up to 5° and 20% power, and fails if the average is more than one stroke from par; `node tests/putt-bot.mjs --find` searches for new par and acorn lines. `npm run test:e2e:putt` checks the arcade entry, the clubhouse, a practice hole played with the mouse and the keyboard, a saved round, pause, the phone layout and the draw-call budget.
+
+**Docs:** [`docs/puttering-paws.md`](docs/puttering-paws.md) and the [art list](docs/puttering-paws-art.md).
+
 ## Validation
 
 ```sh
@@ -957,7 +968,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Thirty-nine ways/` assertion in `tests/e2e/dust-bath.mjs`, the 39-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past thirty-nine games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty ways/` assertion in `tests/e2e/dust-bath.mjs`, the 40-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
