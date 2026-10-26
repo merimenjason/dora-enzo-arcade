@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Grumble Hunt** areas have fluff finches: catch up with one of the three little birds for a bit more Fluff for the rest of the hunt.
+
 - **Grumble Hunt** keeps a best calm time for every beast in the Beast Book, and the results cheer a new best time.
 
 - **Grumble Hunt** areas have hazards: an acorn bough, a bubble spring, a rock pile, sticky vines and icicles. Knock one with a pebble when the beast is underneath for a big dizzy bonk.

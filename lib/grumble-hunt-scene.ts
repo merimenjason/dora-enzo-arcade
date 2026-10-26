@@ -922,6 +922,28 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   // The props block the camera like trees and rocks, so a tall arch or stump never hides the hunt.
   const hazardBlockers: T.Object3D[] = [];
   for (const k in hazardKinds) { batchMeshes(hazardKinds[k], false); hazardBlockers.push(...hazardKinds[k].children); batchPieces(hazardKinds[k]); }
+  // Fluff finches: round little birds that hop about, then flutter off when a friend comes close.
+  const finchBody = toon(0xf2c46b), finchBelly = toon(0xfff0d0), finchBeak = toon(0xe58a3a), finchEye = toon(0x2b2018);
+  // Each bird part is a plain marker; one instanced batch per shape and colour draws all three birds.
+  const finchParts: T.Object3D[] = [];
+  const finchPart = (parent: T.Object3D, geo: T.BufferGeometry, mat: T.Material, pos: [number, number, number], scale: [number, number, number], shadow = true) => {
+    const o = new T.Object3D(); o.position.set(...pos); o.scale.set(...scale); o.userData.geo = geo; o.userData.mat = mat; o.userData.shadow = shadow; parent.add(o); finchParts.push(o); return o;
+  };
+  const finchRigs = Array.from({ length: 3 }, () => {
+    const root = new T.Group(); scene.add(root); root.visible = false;
+    const body = new T.Group(); root.add(body); finchPart(body, sphere, finchBody, [0, 0.32, 0], [0.26, 0.24, 0.24]); finchPart(body, sphere, finchBelly, [0.1, 0.27, 0], [0.18, 0.16, 0.19]);
+    finchPart(body, sphere, finchBody, [0.2, 0.52, 0], [0.16, 0.15, 0.15]); finchPart(body, cone, finchBeak, [0.38, 0.52, 0], [0.05, 0.1, 0.05]).rotation.z = -Math.PI / 2;
+    for (const z of [-0.08, 0.08]) finchPart(body, sphere, finchEye, [0.31, 0.56, z], [0.03, 0.035, 0.03], false);
+    finchPart(body, cone, finchBody, [-0.28, 0.4, 0], [0.08, 0.2, 0.12]).rotation.z = Math.PI / 2 + 0.5;
+    const wings = [-1, 1].map((side) => { const w = finchPart(body, sphere, finchBody, [0, 0.34, side * 0.2], [0.16, 0.06, 0.12]); return w; });
+    return { root, body, wings };
+  });
+  const finchBatches = [...new Set(finchParts.map((o) => `${o.userData.geo.uuid}:${o.userData.mat.uuid}`))].map((key) => {
+    const parts = finchParts.filter((o) => `${o.userData.geo.uuid}:${o.userData.mat.uuid}` === key), m = new T.InstancedMesh(parts[0].userData.geo, parts[0].userData.mat, parts.length);
+    m.frustumCulled = false; m.castShadow = parts.some((o) => o.userData.shadow && Math.max(o.scale.x, o.scale.y, o.scale.z) > 0.22); m.receiveShadow = true; scene.add(m); return { mesh: m, parts };
+  });
+  const hiddenPart = new T.Matrix4().makeScale(0, 0, 0);
+  const finchGone = new Map<number, number>();
   function label(text: string, color: string) {
     const c = document.createElement('canvas'); c.width = 256; c.height = 96;
     const ctx = c.getContext('2d'); if (ctx) { ctx.font = 'bold 58px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = color; ctx.fillText(text, 128, 70); }
@@ -1039,6 +1061,20 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       });
     }
     nest.visible = !!b && game.huntChapter !== 0 && (game.mode === 'hunt' || game.mode === 'nap'); nest.position.set(game.nest.x, 0, game.nest.z);
+    finchRigs.forEach((r, i) => {
+      const f = game.finches[i]; r.root.visible = !!f && ['hunt', 'nap'].includes(game.mode);
+      if (!f || !r.root.visible) { finchGone.delete(i); return; }
+      if (!f.caught) finchGone.delete(i); else if (!finchGone.has(i)) finchGone.set(i, game.time);
+      const gone = f.caught ? game.time - finchGone.get(i)! : -1; if (gone > 1.4) { r.root.visible = false; return; }
+      const hop = reduced.matches ? 0 : Math.max(0, Math.sin(game.time * 5 + i * 2)) * 0.18, flap = gone >= 0 && !reduced.matches ? Math.sin(game.time * 40) * 0.9 : 0;
+      r.root.position.set(f.x + (gone > 0 ? gone * 2 : 0), gone > 0 ? gone * gone * 4 : hop, f.z - (gone > 0 ? gone * 1.5 : 0));
+      r.root.rotation.y = gone > 0 ? 0.6 : Math.floor(game.time * 0.7 + i) % 4 * 1.57; r.root.scale.setScalar(gone > 0 ? Math.max(0.01, 1 - gone / 1.4) * 1.3 : 1.3);
+      r.wings.forEach((w, k) => { w.rotation.x = k ? -flap : flap; });
+    });
+    for (const { mesh: m, parts } of finchBatches) {
+      parts.forEach((o, i) => { const root = o.parent!.parent!; if (root.visible) { root.updateMatrixWorld(true); m.setMatrixAt(i, o.matrixWorld); } else m.setMatrixAt(i, hiddenPart); });
+      m.instanceMatrix.needsUpdate = true;
+    }
     const z = game.hazard, showHazard = !!z && ['hunt', 'nap'].includes(game.mode);
     hazardGroup.visible = showHazard; hazardCircle.visible = showHazard && z!.state === 'warn';
     if (z && showHazard) {
@@ -1196,7 +1232,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     get yaw() { return yaw; },
     orbit(dx: number, dy: number) { yaw -= dx * 0.006; pitch = T.MathUtils.clamp(pitch + dy * 0.004, 0.18, 0.95); userOrbit = 4; },
     zoom(delta: number) { dist = T.MathUtils.clamp(dist + delta * 0.008, 5, 14); },
-    metrics() { const game = lastGame; return { area: currentArea, villagers: village.visible ? villagers.length : 0, variantColor: lastVariantColor, ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible), nest: nest.visible, sleepy: drowsy[0].visible, roarRings: roarRings.filter((o) => o.visible).length, visitor: !!game?.visitor && beasts[game.visitor.id].root.visible, hazard: game?.hazard && hazardGroup.visible ? { kind: game.hazard.kind, state: game.hazard.state, circle: hazardCircle.visible } : null, hitDigits: digits.count, sparks: sparks.count, pebbles: pebblePool.filter((o) => o.visible).length, vine: vineLine.visible, soft: !!game?.beast && game.beast.soft > 0, turfCircle: game?.beast?.state === 'turf' && circle.visible, weather: { rain: rain.visible ? rain.count : 0, dust: dust.visible ? dust.count : 0, flakes: snowfall.visible ? snowfall.count : 0, fogFar: Math.round((scene.fog as T.Fog).far) } }; },
+    metrics() { const game = lastGame; return { area: currentArea, villagers: village.visible ? villagers.length : 0, variantColor: lastVariantColor, ride: { riding: lastRide.riding, fullBonks: lastRide.fullBonks, bucking: lastRide.bucking }, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, camera: camera.position.toArray(), pixelRatio: renderer.getPixelRatio(), textures: renderer.info.memory.textures, hiddenCanopies: canopyShown.filter((v) => v < 0.5).length, pawprints: pawprints.count, spots: spotRigs.filter((r) => r.root.visible && r.fruit.visible).length, drops: dropSprites.filter((o) => o.visible).length, trap: sap.visible, smoke: smoke[0].visible, steam: BEAST_IDS.some((id) => beasts[id].root.visible && beasts[id].steam[0].visible), nest: nest.visible, sleepy: drowsy[0].visible, roarRings: roarRings.filter((o) => o.visible).length, visitor: !!game?.visitor && beasts[game.visitor.id].root.visible, finches: finchRigs.filter((r) => r.root.visible).length, hazard: game?.hazard && hazardGroup.visible ? { kind: game.hazard.kind, state: game.hazard.state, circle: hazardCircle.visible } : null, hitDigits: digits.count, sparks: sparks.count, pebbles: pebblePool.filter((o) => o.visible).length, vine: vineLine.visible, soft: !!game?.beast && game.beast.soft > 0, turfCircle: game?.beast?.state === 'turf' && circle.visible, weather: { rain: rain.visible ? rain.count : 0, dust: dust.visible ? dust.count : 0, flakes: snowfall.visible ? snowfall.count : 0, fogFar: Math.round((scene.fog as T.Fog).far) } }; },
     dispose() {
       if (closed) return; closed = true; observer.disconnect();
       scene.traverse((o) => { if (o instanceof T.InstancedMesh) o.dispose(); if (o instanceof T.Mesh || o instanceof T.Line) { geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : [o.material]) materials.add(m); } });

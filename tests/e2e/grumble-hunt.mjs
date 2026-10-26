@@ -355,6 +355,11 @@ try {
     await p.keyboard.press('KeyF'); await p.waitForFunction(() => window.__hunt().metrics().hazard?.circle, null, { timeout: 15000 }); await snapshot(p, 'hazard-warning');
     await p.waitForFunction(() => window.__hunt().metrics().hazard?.state === 'spent', null, { timeout: 15000 }); await snapshot(p, 'hazard');
     assert.equal(await hunt(p, (w) => w.game.beast.state), 'dizzy'); assert.equal(await hunt(p, (w) => w.metrics().hazard.circle), false);
+    // A fluff finch hops nearby; walking up to it adds most Fluff, and it flutters away.
+    assert.equal(await hunt(p, (w) => w.metrics().finches), 3);
+    const max = await hunt(p, (w) => { const g = w.game, f = g.finches[0]; g.hero.x = f.x - 2.5; g.hero.z = f.z; return g.hero.maxFluff; }); await snapshot(p, 'finch');
+    await hunt(p, (w) => { const g = w.game, f = g.finches[0]; g.hero.x = f.x - 0.5; g.hero.z = f.z; }); await p.waitForFunction(() => window.__hunt().game.finches[0].caught, null, { timeout: 15000 });
+    assert.equal(await hunt(p, (w) => w.game.hero.maxFluff), max + 5); await p.waitForFunction(() => window.__hunt().metrics().finches === 2, null, { timeout: 15000 });
   });
 
   await check('painted portraits, tool tiers and material icons load and follow the game', async (p) => {

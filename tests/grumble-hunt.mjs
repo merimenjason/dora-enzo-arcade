@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, FINCHES, FINCH_FLUFF, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
 import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
@@ -412,6 +412,17 @@ check('a normal calm records the best time per beast in tenths, keeps it through
   // Extra Grumpy hunts don't count.
   g.returnVillage(); assert(g.startHunt('bristleback', true)); g.huntTime = 5; g.beast.grump = 1; g.bonkBeast(10, false, g.hero); assert.equal(g.newRecord, false); assert.equal(g.profile.beastBook.bristleback.best, 301);
   const back = HuntGame.load(g.save()); assert.equal(back.profile.beastBook.bristleback.best, 301); assert.equal(back.profile.beastBook.skreel.best, 0);
+});
+check('three fluff finches perch in each wild area; walking up to one adds Fluff and most Fluff for the hunt', () => {
+  for (const id of BEAST_IDS) {
+    const g = fresh(id); assert.equal(g.finches.length, FINCHES, id); assert.deepEqual(fresh(id).finches, g.finches, 'replays perch them the same');
+    for (const f of g.finches) assert(g.obstacles.every((o) => Math.hypot(o.x - f.x, o.z - f.z) > o.r + 1.5));
+  }
+  const g = fresh(); g.buddy.cooldown = 10000; g.beast.state = 'rest'; g.beast.duration = 1000; const f = g.finches[0], max = g.hero.maxFluff; g.hero.fluff = 50;
+  g.hero.x = f.x; g.hero.z = f.z + 0.5; g.step(DT); assert(f.caught); assert.equal(g.hero.maxFluff, max + FINCH_FLUFF); assert.equal(g.hero.fluff, 50 + FINCH_FLUFF); assert(g.events.some((e) => e.kind === 'finch'));
+  g.step(DT); assert.equal(g.hero.maxFluff, max + FINCH_FLUFF, 'each finch only once');
+  g.returnVillage(); assert.deepEqual(g.finches, []);
+  const calf = new HuntGame(5); calf.chooseHero('dora'); calf.story.chapter = 0; assert(calf.startHunt('bristleback', false, true)); assert.deepEqual(calf.finches, []);
 });
 check('out of sight for a second, Enzo sniffs out a pawprint trail that fades once the beast is seen', () => {
   const g = fresh(), b = g.beast; g.buddy.cooldown = 10000; b.state = 'rest'; b.duration = 10000;
