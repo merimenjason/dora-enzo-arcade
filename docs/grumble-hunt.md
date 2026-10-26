@@ -412,3 +412,13 @@ A browser check opens the hunt board after the ending. It then photographs both 
 
 The engine suite has **116 checks**. A browser check plays the epilogue once, reads a Mighty best time and counts the 15 new armour icons at the Forge.
 
+### The Best of Friends finale and Beast Book extras · 26-10-2026
+
+- **Finale quest.** Old Mossback's last quest, **Best of Friends** (`finale`), is a Mighty Rumblesnout followed by a Mighty Paddlepaw that wanders in for a second nap; both have twice the Grump and their Mighty move. It opens after `mighty-rumblesnout` and `mighty-paddlepaw` are both met (`Quest.needs`; the board names them), pays 5 stars, a river pearl, a geode heart and 2 glimmer stones, and gives the **Best of Friends ribbon** keepsake (`Quest.keepsake`), shown on the result card and in the Beast Book's Keepsakes section. The first time it is met, the three-page `finale` story scene plays (`FINALE` in the content, painted panel `story-7.webp`), which the Beast Book can replay. The bot calms it 24 of 24 times, median 131 s.
+- **Turf-bonk page.** `TURF_PAIRS` lists the seven turf bonks the free hunts can show (each beast and its area's visitor). The Beast Book marks the ones seen (`turfPairs` in the v6 profile; unknown pairs are dropped on load) and says where to hunt for the rest.
+- **Mighty badge.** On the hunt board, a beast whose Mighty quest is open wears a gold "Mighty quest open!" badge, or "✓ Mighty calmed" once it's done.
+- **Bounties.** Wren's pool gains three: boop loose a Paddlepaw pebble pouch, knock the pebble crown off a Rumblesnout, and watch a turf bonk on a hunt (`HuntFacts.turfs`).
+- **Art.** Codex painted `icons-keepsakes.webp` (the ribbon and a turf-bonk emblem) and the finale panel `story-7.webp` from brief 13. The epilogue's `story-6.webp` timed out three more times, so the epilogue still borrows the ending painting.
+
+The engine suite has **118 checks**; a browser check walks the badges, the finale, its scene and ribbon, and the turf page.
+

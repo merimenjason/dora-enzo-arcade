@@ -1,5 +1,5 @@
 /** Distance from a point to a lane segment. */
-function laneGap(p, a, b) { const x = b.x - a.x, z = b.z - a.z, d = x * x + z * z, t = d ? Math.max(0, Math.min(1, ((p.x - a.x) * x + (p.z - a.z) * z) / d)) : 0; return Math.hypot(p.x - a.x - x * t, p.z - a.z - z * t); }
+export function laneGap(p, a, b) { const x = b.x - a.x, z = b.z - a.z, d = x * x + z * z, t = d ? Math.max(0, Math.min(1, ((p.x - a.x) * x + (p.z - a.z) * z) / d)) : 0; return Math.hypot(p.x - a.x - x * t, p.z - a.z - z * t); }
 /** Browser and Node bots share this input policy. It uses no teleports, stat changes or direct bonks. */
 export function huntPolicy(g) {
   const b = g.beast, h = g.hero;

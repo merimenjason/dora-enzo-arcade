@@ -26,6 +26,7 @@ The original 13 images are WebP encoded with libwebp `cwebp -q 85 -m 6`. Foliage
 | `public/art/hunt/ref-paddlepaw.webp` | 2048 × 1024 | 110,742 | 108.1 | RGB |
 | `public/art/hunt/ref-rumblesnout.webp` | 2048 × 1024 | 116,254 | 113.5 | RGB |
 | `public/art/hunt/icons-armour.webp` | 1024 × 1024 | 644,268 | 629.2 | RGBA |
+| `public/art/hunt/icons-keepsakes.webp` | 1024 × 1024 | 82,964 | 81.0 | RGBA |
 
 Original 13-image payload: **1,509,624 bytes (1.44 MiB)**. The two post-game reference sheets added 26-10-2026 use quality 90; their generation and export details appear below.
 
@@ -492,4 +493,26 @@ One Paddlepaw armour set, exactly three icons left to right: cosy rounded helm w
 Use case: stylized-concept. Grumble Hunt children's game art. Warm hand-painted toon storybook look in the spirit of Monster Hunter Stories and Wind Waker: chunky rounded readable forms, soft painted brushwork, three-band cel shading, thin dark-brown ink contours, saturated but gentle colours. No photorealism, text, letters, logos, watermarks, blood, injury or scary imagery. Nothing is ever hurt.
 Transparent inventory atlas, exact3x1 strip,768x256, each cell256x256. Fill left to right in the specified order. One icon/group per cell, perfectly centered within208x208, generous even padding at least24px, no crossing cell boundaries. Same three-quarter angle, top-left lighting, THICK dark-brown outline, three-band shading, readable at48px. Genuine transparent alpha, no checkerboard, no grid lines or cell borders. No text.
 One Rumblesnout armour set, exactly three icons left to right: cosy rounded helm with TWO big openings for large chinchilla ears; padded vest; PAIR of puffy boots together as one icon. All three use grey fur with a white-and-charcoal stripe, a few smooth sand-coloured pebbles as studs. No whole characters. Reference image is shape and painting style reference ONLY: match its Bristle and Puffwart armour silhouettes and thick dark-brown contours, replace their materials with this set's materials. Output ONLY this one three-icon set.
+```
+
+### icons-keepsakes
+
+File: `public/art/hunt/icons-keepsakes.webp`
+Size: 1024 × 1024 px; 82,964 bytes; lossless WebP with RGBA. Created 26-10-2026 with built-in imagegen following `docs/grumble-hunt-prompts/13-finale-art.md`.
+
+Generated one transparent 2172 × 724 source strip from the text-only prompt below. No timeouts or retries. Cropped the two complete alpha silhouettes, resized proportionally into centered 208 × 208 bounds, and packed into cells 0 and 1 of a transparent 4 × 4 sheet. Verified decoded WebP dimensions, RGBA channels, occupied-cell padding and fully transparent cells 2–15.
+
+| Row | Column 1 | Column 2 | Column 3 | Column 4 |
+| --- | --- | --- | --- | --- |
+| 1 | Best of Friends ribbon | Turf bonk emblem | transparent | transparent |
+| 2 | transparent | transparent | transparent | transparent |
+| 3 | transparent | transparent | transparent | transparent |
+| 4 | transparent | transparent | transparent | transparent |
+
+Exact prompt used:
+
+```text
+Use case: stylized-concept. Game icon atlas row for Grumble Hunt, a kind children's adventure. Warm hand-painted toon storybook style inspired by Wind Waker and Monster Hunter Stories: chunky rounded readable forms, soft painted brushwork, three-band cel shading, saturated but gentle colours. Transparent background, a wide 1024x256 strip of four 256x256 cells. One complete centered icon per occupied cell within centered 208x208 bounds. Consistent three-quarter view and top-left lighting, THICK dark-brown outline readable at 48px. Genuine transparent alpha, no checkerboard. No text, letters, numerals, grid lines, logo, watermark, scenery or cast shadows. The third and fourth cells are completely empty and transparent.
+Left to right: Best of Friends ribbon (a soft rosette keepsake made of a teal river-blue ribbon and a sand-brown ribbon woven together, with one smooth round grey river stone and one small sand-coloured pebble stitched in the middle, short tails hanging down); Turf bonk emblem (an orange dashed circle on the ground with two small round puffs of dust bumping in the middle and three little yellow stars popping up, no animals); EMPTY; EMPTY.
+Generate only this single row, not a full sheet. Keep both icons consistent in scale.
 ```

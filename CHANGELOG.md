@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Grumble Hunt** has a post-game finale: Old Mossback's Best of Friends quest sends a Mighty Rumblesnout and then a Mighty Paddlepaw, and ends with a finale story scene and a Best of Friends ribbon for your Beast Book. The Beast Book also gains a page of turf bonks you've seen, the hunt board shows a gold badge when a beast's Mighty quest is open, and Wren has three new bounties.
+
 - **Grumble Hunt** has an epilogue after the ending, in which Paddlepaw and Rumblesnout come down to the valley. It plays once at the hunt board and can be replayed from the Beast Book. The Beast Book also has a Mighty page with every Mighty beast, its new move, how often you calmed it and its best time. Every armour set now has its own painted helm, vest and boots.
 
 - **Grumble Hunt** has two new beasts after the story. Paddlepaw, a belly-sliding river otter in Soggy Marsh, slides down an orange lane, splashes three lanes of water and hops. Rumblesnout, a burrowing badger in Pebble Hollow, digs down under an orange circle on you and pops up inside it. Each has its own materials and an armour set: Paddlepaw's makes fluffberries heal more and bumps softer, and Rumblesnout's carries more pebbles and bonks dizzy beasts harder. The quest board adds Slippery Sprint, Splash and Dig, and a Mighty quest for each. Charms and the Mighty armour also have their own painted icons.
@@ -44,6 +46,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Grumble Hunt**'s nap card now names the area you hunted in, instead of always saying the meadow.
 - **Grumble Hunt** keeps Wren's finished daily tasks in the order you earned them when the game reloads.
 
 ### Documentation

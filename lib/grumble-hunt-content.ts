@@ -468,9 +468,16 @@ export const EPILOGUE: Page[] = [
   { panel: 'story-end', speaker: 'mossback', text: 'Paddlepaw slides in from the stream. Rumblesnout digs up through Pebble Hollow.' },
   { panel: 'story-end', speaker: 'enzo', text: 'They look a little grumpy. Shall we help them find a nap?' },
 ];
-/** A story scene by id: `<chapter>-intro`, `<chapter>-outro` or `epilogue`. */
+/** After the Best of Friends quest: the two river friends nap together, and Dora and Enzo get a ribbon. */
+export const FINALE: Page[] = [
+  { panel: 'story-7', speaker: 'narrator', text: 'As the sun sets, Paddlepaw curls up beside Rumblesnout. Its paddle tail makes a cosy blanket.' },
+  { panel: 'story-7', speaker: 'pip', text: 'Look, they wove you something from river reeds and pebbles!' },
+  { panel: 'story-7', speaker: 'dora', text: 'A Best of Friends ribbon. We will keep it forever!' },
+];
+/** A story scene by id: `<chapter>-intro`, `<chapter>-outro`, `epilogue` or `finale`. */
 export function storyScene(id: string): { title: string; pages: Page[]; beast: BeastId | null } {
   if (id === 'epilogue') return { title: 'New Friends', pages: EPILOGUE, beast: null };
+  if (id === 'finale') return { title: 'Best of Friends', pages: FINALE, beast: null };
   const [chapter, kind] = id.split('-'), c = STORY[Number(chapter)];
   return { title: c.title, pages: kind === 'intro' ? c.intro : c.outro, beast: c.beast };
 }
@@ -503,7 +510,7 @@ export function validate(): string[] {
   }
   for (const [id, s] of Object.entries(SNACKS)) for (const m of Object.keys(s.cost) as (MaterialId | ItemId)[]) if (firstChapter(m) > s.chapter) out.push(`${id}: needs ${m} too early`);
   for (const beast of [...BEAST_ORDER, ...POST_GAME_BEASTS]) for (const slot of SLOTS) for (const m of Object.keys(armourCost(`${beast}-${slot}`)) as MaterialId[]) if (!(m in MATERIALS)) out.push(`${beast}-${slot}: unknown ${m}`);
-  for (const c of [...STORY, { id: 'epilogue', intro: EPILOGUE, outro: [] }]) for (const p of [...c.intro, ...c.outro]) {
+  for (const c of [...STORY, { id: 'epilogue', intro: EPILOGUE, outro: FINALE }]) for (const p of [...c.intro, ...c.outro]) {
     if (p.text.split(/(?<=[.!?])\s+/).length > 2) out.push(`chapter ${c.id}: page has more than two sentences`);
     if (/\b(hurt|kill|die|dead|blood|wound|injur|attack them|defeat)\w*/i.test(p.text)) out.push(`chapter ${c.id}: unkind word in "${p.text}"`);
   }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { chromium } from 'playwright';
-import { huntPolicy } from '../grumble-hunt-policy.mjs';
+import { huntPolicy, laneGap } from '../grumble-hunt-policy.mjs';
 
 const base = process.env.E2E_BASE_URL || 'http://localhost:3000';
 const browser = await chromium.launch();
@@ -560,6 +560,29 @@ try {
     await p.getByTestId('mighty-book').scrollIntoViewIfNeeded(); await snapshot(p, 'mighty-book');
     await p.getByRole('button', { name: 'Close panel' }).click(); await p.getByTestId('open-forge').click(); await p.getByTestId('forge-armour').click();
     assert.equal(await p.locator('.hunt-art[style*="icons-armour"]').count(), 15); await p.getByTestId('armour-hornclack-helm').scrollIntoViewIfNeeded(); await snapshot(p, 'forge-armour-icons');
+  });
+  await check('Best of Friends finale: Mighty badges, both Mighty river friends, the finale scene, the ribbon and the turf-bonk page', async (p) => {
+    await fresh(p);
+    await hunt(p, (w) => { const g = w.game; g.profile.won = true; for (const id of ['paddlepaw', 'rumblesnout']) g.profile.beastBook[id].met = true; for (const q of ['quick-bristleback', 'no-vine-puffwart', 'double-meadow']) g.profile.quests[q] = 1; g.profile.turfPairs = ['bristleback+puffwart']; });
+    await p.getByTestId('open-board').click(); assert.match(await p.getByTestId('mighty-badge-bristleback').innerText(), /Mighty quest open/);
+    assert.equal(await p.getByTestId('quest-finale').isDisabled(), true); assert.match(await p.getByTestId('quest-finale').innerText(), /First: Mighty Rumblesnout and Mighty Paddlepaw/);
+    await hunt(p, (w) => { w.game.profile.quests['mighty-rumblesnout'] = 1; w.game.profile.quests['mighty-paddlepaw'] = 1; });
+    assert.equal(await p.getByTestId('mighty-badge-paddlepaw').getAttribute('data-done'), 'true'); assert.equal(await p.getByTestId('quest-finale').isDisabled(), false);
+    await p.getByTestId('mighty-badge-paddlepaw').scrollIntoViewIfNeeded(); await snapshot(p, 'mighty-badges');
+    await p.getByTestId('quest-finale').scrollIntoViewIfNeeded(); await snapshot(p, 'finale-quest'); await p.getByTestId('quest-finale').click(); await p.locator('main[data-mode="hunt"]').waitFor();
+    assert.deepEqual(await hunt(p, (w) => [w.game.beast.id, w.game.beast.mighty]), ['rumblesnout', true]);
+    // The policy's fan-lane helper has to come along into the page.
+    const calm = () => p.evaluate(`(() => { ${laneGap.toString()}; const g = window.__hunt().game, policy = ${huntPolicy.toString()}; g.paused = false; g.hero.invincible = 1e9; let n = 0; while (g.mode === 'hunt' && n++ < 36000) { g.step(1/60, policy(g)); g.events.length = 0; } while (g.mode === 'nap' && n++ < 40000) g.step(1/60); window.__hunt().refresh(); return g.mode; })()`);
+    assert.equal(await calm(), 'hunt', 'Mighty Paddlepaw wanders in'); assert.deepEqual(await hunt(p, (w) => [w.game.beast.id, w.game.beast.mighty]), ['paddlepaw', true]);
+    assert.equal(await calm(), 'calm'); await p.getByTestId('story-scene').waitFor(); assert.match(await p.getByTestId('story-text').innerText(), /sun sets/);
+    await p.waitForFunction(() => { const i = document.querySelector('.hunt-story-painting'); return i && i.complete && i.naturalWidth > 0 && i.src.endsWith('/story-7.webp'); }); await snapshot(p, 'finale-scene');
+    for (let i = 0; i < 3; i++) await p.getByTestId('story-next').click();
+    await p.getByTestId('result').waitFor(); assert.match(await p.getByTestId('quest-result').innerText(), /Quest done: Best of Friends! \+5 stars/); assert(await p.getByTestId('keepsake-won').isVisible()); await snapshot(p, 'finale-result');
+    assert.equal(await p.getByTestId('story-scene').count(), 0); assert(await hunt(p, (w) => w.game.story.scenesSeen.includes('finale')));
+    await p.getByTestId('return-village').click(); await p.getByTestId('open-book').click();
+    assert(await p.getByTestId('keepsake-ribbon').isVisible()); assert.equal(await p.getByTestId('turf-bristleback+puffwart').getAttribute('data-seen'), 'true'); assert.equal(await p.getByTestId('turf-rumblesnout+bristleback').getAttribute('data-seen'), 'false');
+    assert.equal(await p.locator('.hunt-turf-book article').count(), 7); assert(await p.getByRole('button', { name: /Best of Friends · After the finale/ }).isVisible());
+    await p.getByTestId('turf-book').scrollIntoViewIfNeeded(); await snapshot(p, 'turf-book');
   });
   await check('camera orbit avoids terrain, texture count stays bounded, navigation tears down', async (p) => {
     await fresh(p); await start(p); const first = await hunt(p, (w) => w.metrics().textures), c = p.getByTestId('hunt-canvas');

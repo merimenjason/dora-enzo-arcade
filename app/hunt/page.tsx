@@ -9,7 +9,7 @@ import { BoardPanel, BookPanel, BountiesPanel, PantryPanel } from './camp-panels
 import { BeastHud, IntroCard } from './hud';
 import { FieldGuide } from './field-guide';
 import { ForgePanel, type ForgeTab } from './forge-panel';
-import { nextChapterNote, itemText, WeaponIcon, localDay, cap, ChargeMeter, chargeText, MOODS, heroMood, Art, Icon, readSave, seconds } from './ui';
+import { nextChapterNote, itemText, WeaponIcon, localDay, cap, ChargeMeter, chargeText, MOODS, heroMood, Art, Icon, readSave, seconds, Keepsake, AREA_NAMES } from './ui';
 import './hunt.css';
 
 /** Where a story scene leads when it ends. */
@@ -63,6 +63,11 @@ export default function GrumbleHuntPage() {
     if (!g || panel || !['calm', 'victory'].includes(g.mode) || g.clearedChapter < 0) return;
     const id = `${g.clearedChapter}-outro`;
     if (!g.story.scenesSeen.includes(id)) showScene(id, 'result');
+  });
+  useEffect(() => {
+    // The finale scene plays once, after the Best of Friends quest is first met.
+    const g = game.current;
+    if (g && !panel && g.mode === 'calm' && g.questResult?.success && QUESTS.find((q) => q.id === g.questResult!.id)?.keepsake && !g.story.scenesSeen.includes('finale')) showScene('finale', 'result');
   });
   const village = () => { game.current?.returnVillage(); release(); panelRef.current = null; setPanel(null); persist(); refresh(); focusWorld(); };
   const pause = () => { const g = game.current; if (!g || g.mode !== 'hunt') return; g.paused = !g.paused; release(); persist(); refresh(); focusWorld(); };
@@ -241,11 +246,11 @@ export default function GrumbleHuntPage() {
 
     {g?.paused && active && !panel && <div className="hunt-shade"><section ref={dialog} onKeyDown={trapFocus} className="hunt-modal hunt-result" role="dialog" aria-modal="true" aria-label="Paused"><p className="hunt-eyebrow">A QUIET MOMENT</p><h1>Rest your paws.</h1><p>Your gathered materials are safe. Take all the time you need.</p><button className="hunt-primary" data-testid="resume" autoFocus onClick={pause}>Back to the meadow</button><button onClick={village}>Return to camp</button></section></div>}
     {g && ['camp', 'calm', 'victory'].includes(g.mode) && !panel && !awaitingOutro && <div className="hunt-shade"><section className="hunt-modal hunt-result" data-testid="result" aria-label="Hunt result">
-      <p className="hunt-eyebrow">{g.mode === 'victory' ? 'THE SANCTUARY IS FULL OF FRIENDS' : g.mode === 'camp' ? 'BACK AT CAMP' : 'ONE LESS GRUMBLE IN THE MEADOW'}</p>
+      <p className="hunt-eyebrow">{g.mode === 'victory' ? 'THE SANCTUARY IS FULL OF FRIENDS' : g.mode === 'camp' ? 'BACK AT CAMP' : `ONE LESS GRUMBLE IN ${(AREA_NAMES[g.area] ?? 'the village paddock').toUpperCase()}`}</p>
       <h1>{g.mode === 'victory' ? 'The End · free hunt is open' : g.mode === 'camp' ? 'A little tuckered out.' : `${BEASTS[g.lastHunt].name} is napping!`}</h1>
-      <p>{g.mode === 'victory' ? 'Even mighty Frostmane found a soft place to curl up. Dora and Enzo made new friends, one lovely nap at a time.' : g.mode === 'camp' ? 'Every material you gathered is tucked away safely. Your berries are topped back up and another try is ready whenever you are.' : 'Your new friend is off to the sanctuary. All meadow materials are collected. Visit the Pantry or the Forge for something lovely.'}</p>
+      <p>{g.mode === 'victory' ? 'Even mighty Frostmane found a soft place to curl up. Dora and Enzo made new friends, one lovely nap at a time.' : g.mode === 'camp' ? 'Every material you gathered is tucked away safely. Your berries are topped back up and another try is ready whenever you are.' : 'Your new friend is off to the sanctuary. All its materials are collected. Visit the Pantry or the Forge for something lovely.'}</p>
       {g.mode !== 'camp' && g.lastTime > 0 && <p className="hunt-time" data-testid="hunt-time">Calmed in {seconds(g.lastTime)}{g.newRecord ? <strong> · New best time!</strong> : g.profile.beastBook[g.lastHunt].best > 0 && !g.variant ? ` · Best ${seconds(g.profile.beastBook[g.lastHunt].best)}` : ''}</p>}
-      {g.mode !== 'camp' && g.questResult && (() => { const q = QUESTS.find((x) => x.id === g.questResult!.id)!, r = g.questResult!; return <p className="hunt-quest-result" data-testid="quest-result">{r.success ? <><strong>Quest done: {q.title}!</strong> +{r.stars} {r.stars === 1 ? 'star' : 'stars'} and a bundle from Old Mossback: <span className="hunt-quest-reward">{Object.entries(q.reward).map(([m, n]) => <span key={m} title={MATERIALS[m as MaterialId].name}><Icon id={m as MaterialId} size={26} />×{n}</span>)}</span></> : <>Lovely nap! The quest {q.title} wasn't met this time: {r.why}. Try it again any time.</>}</p>; })()}
+      {g.mode !== 'camp' && g.questResult && (() => { const q = QUESTS.find((x) => x.id === g.questResult!.id)!, r = g.questResult!; return <p className="hunt-quest-result" data-testid="quest-result">{r.success ? <><strong>Quest done: {q.title}!</strong> +{r.stars} {r.stars === 1 ? 'star' : 'stars'} and a bundle from Old Mossback: <span className="hunt-quest-reward">{Object.entries(q.reward).map(([m, n]) => <span key={m} title={MATERIALS[m as MaterialId].name}><Icon id={m as MaterialId} size={26} />×{n}</span>)}</span>{q.keepsake && <span className="hunt-keepsake-won" data-testid="keepsake-won"><Keepsake size={36} /> and the Best of Friends ribbon!</span>}</> : <>Lovely nap! The quest {q.title} wasn't met this time: {r.why}. Try it again any time.</>}</p>; })()}
       {g.mode !== 'camp' && g.plopNote && <p data-testid="plop-reward-note">{g.plopNote}</p>}
       {g.mode !== 'camp' && g.reward.length > 0 && <div className="hunt-reward" data-testid="reward"><span>You got</span>{[...new Set(g.reward)].map((id) => <span key={id} title={MATERIALS[id].name}><Icon id={id} size={40} />×{g.reward.filter((m) => m === id).length}</span>)}</div>}
       {g.clearedChapter >= 0 && g.clearedChapter < STORY.length - 1 && g.mode !== 'camp' && <p className="hunt-unlock">{nextChapterNote(g.clearedChapter + 1)}</p>}

@@ -66,3 +66,6 @@ export function readSave() { try { return JSON.parse(localStorage.getItem(SAVE_K
 
 /** A time in tenths of a second, as minutes and seconds. */
 export const seconds = (tenths: number) => tenths >= 600 ? `${Math.floor(tenths / 600)} min ${(tenths % 600 / 10).toFixed(1)} s` : `${(tenths / 10).toFixed(1)} s`;
+/** The Best of Friends ribbon from the finale quest, and the turf-bonk emblem: cells 0 and 1 of icons-keepsakes. */
+export const Keepsake = ({ size = 40 }: { size?: number }) => <Art sheet="icons-keepsakes" cell={0} size={size} />;
+export const TurfEmblem = ({ size = 40 }: { size?: number }) => <Art sheet="icons-keepsakes" cell={1} size={size} />;

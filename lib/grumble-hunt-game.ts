@@ -118,6 +118,8 @@ export const DIZZY_FULL = 100; // A big bonk or shot adds 50 Dizzy, a buddy's 30
 const TRAP_REACH = 1.6, SLEEPY_REACH = 10, BELL_REACH = 4;
 /** Each hunt happens in its beast's story area, which sets the gathering spots. */
 export const HUNT_AREA = Object.fromEntries(BEAST_IDS.map((id) => [id, STORY.find((c) => c.id > 0 && c.beast === id)?.area ?? POST_GAME_AREA[id]!])) as Record<BeastId, AreaId>;
+/** Every turf bonk the free hunts can show, as `hunted+visitor`: the hunted beast meets its area's wandering visitor. The Beast Book keeps the ones seen. */
+export const TURF_PAIRS = BEAST_IDS.flatMap((id) => { const v = VISITORS[HUNT_AREA[id]]; return v && v !== id ? [`${id}+${v}`] : []; });
 const GATHERED: readonly MaterialId[] = ['berry', 'marsh-reed', 'glimmer-stone'];
 /** What each beast sheds, pops off and gives at nap time. Gathered berries, reeds and glimmer stones are not beast materials. */
 export const BEAST_MATERIALS = Object.fromEntries(BEAST_IDS.map((id) => {
@@ -144,7 +146,7 @@ export type Pouch = Record<MaterialId | ItemId, number>;
 export type StoryProgress = { chapter: number; scenesSeen: string[] };
 /** best: the fastest normal (not Extra Grumpy) calm in whole tenths of a second, 0 before the first. */
 export type BeastBook = Record<BeastId, { met: boolean; napped: number; partsBroken: string[]; best: number }>;
-export type Profile = { charms: { levels: Record<CharmId, number>; worn: CharmId | null }; quests: Record<string, number>; stars: number; bountiesClaimed: number; variantNaps: Record<BeastId, number>; mightyBest: Record<BeastId, number>; totalPlops: number; story: StoryProgress; beastBook: BeastBook; bounties: { day: string; done: string[]; ready: string[] }; extraGrumpyUnlocked: boolean; hero: HeroId | null; weapons: Record<WeaponType, { tier: Tier; branch: Branch | null }>; equipped: Record<HeroId, WeaponType>; armour: { owned: ArmourPieceId[]; worn: Worn }; pouch: Pouch; ring: ItemId[]; snack: SnackId | null; naps: Record<BeastId, number>; won: boolean; hunts: number };
+export type Profile = { charms: { levels: Record<CharmId, number>; worn: CharmId | null }; quests: Record<string, number>; stars: number; bountiesClaimed: number; variantNaps: Record<BeastId, number>; mightyBest: Record<BeastId, number>; turfPairs: string[]; totalPlops: number; story: StoryProgress; beastBook: BeastBook; bounties: { day: string; done: string[]; ready: string[] }; extraGrumpyUnlocked: boolean; hero: HeroId | null; weapons: Record<WeaponType, { tier: Tier; branch: Branch | null }>; equipped: Record<HeroId, WeaponType>; armour: { owned: ArmourPieceId[]; worn: Worn }; pouch: Pouch; ring: ItemId[]; snack: SnackId | null; naps: Record<BeastId, number>; won: boolean; hunts: number };
 export type Hero = Vec & { finisher: boolean; face: number; fluff: number; maxFluff: number; speed: number; roll: number; rollX: number; rollZ: number; rollCd: number; invincible: number; charge: number; swing: number; heavy: boolean; landed: boolean; cooldown: number; slow: number; hidden: number; covered: number };
 export type BeastState = 'burrow' | 'rush' | 'rain' | 'fan' | 'spin' | 'roam' | 'windup' | 'charge' | 'hop' | 'tongue' | 'cloud' | 'circle' | 'swoop' | 'sweep' | 'pounce' | 'shake' | 'roar' | 'turf' | 'grabbed' | 'yanked' | 'rest' | 'dizzy' | 'stuck' | 'trudge' | 'snooze' | 'wander' | 'nap';
 export type Beast = Vec & { id: BeastId; grump: number; maxGrump: number; face: number; state: BeastState; t: number; duration: number; attack: BeastState; aim: Vec; start: Vec; dir: Vec; phase: number; cycle: number; dizzy: number; part: number; broken: boolean; bonks: number; flash: number; height: number; grumpy: boolean; drowsy: number; drowsySlow: number; home: 0 | 1 | 2; soft: number; zone: number; away: boolean; mighty: boolean; rush: number; marks: Vec[] };
@@ -164,7 +166,7 @@ export type HuntEvent = { kind: 'quest' | 'finisher' | 'hop-on' | 'ride-bonk' | 
 export type Mode = 'village' | 'hunt' | 'nap' | 'calm' | 'camp' | 'victory';
 const countRecord = (): Record<BeastId, number> => ({ bristleback: 0, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0, paddlepaw: 0, rumblesnout: 0 });
 const emptyPouch = () => Object.fromEntries([...MATERIAL_IDS, ...ITEM_IDS].map((id) => [id, 0])) as Pouch;
-export const freshProfile = (): Profile => ({ charms: { levels: { clover: 0, acorn: 0, feather: 0 }, worn: null }, quests: {}, stars: 0, bountiesClaimed: 0, variantNaps: countRecord(), mightyBest: countRecord(), totalPlops: 0, story: { chapter: 0, scenesSeen: [] }, beastBook: Object.fromEntries(BEAST_IDS.map((id) => [id, { met: false, napped: 0, partsBroken: [], best: 0 }])) as unknown as BeastBook, bounties: { day: '', done: [], ready: [] }, extraGrumpyUnlocked: false, hero: null, weapons: Object.fromEntries(Object.keys(WEAPON_TYPES).map((id) => [id, { tier: 1, branch: null }])) as Profile['weapons'], equipped: { dora: 'hammer', enzo: 'bow' }, armour: { owned: [], worn: {} }, pouch: emptyPouch(), ring: [...DEFAULT_RING], snack: null, naps: countRecord(), won: false, hunts: 0 });
+export const freshProfile = (): Profile => ({ charms: { levels: { clover: 0, acorn: 0, feather: 0 }, worn: null }, quests: {}, stars: 0, bountiesClaimed: 0, variantNaps: countRecord(), mightyBest: countRecord(), turfPairs: [], totalPlops: 0, story: { chapter: 0, scenesSeen: [] }, beastBook: Object.fromEntries(BEAST_IDS.map((id) => [id, { met: false, napped: 0, partsBroken: [], best: 0 }])) as unknown as BeastBook, bounties: { day: '', done: [], ready: [] }, extraGrumpyUnlocked: false, hero: null, weapons: Object.fromEntries(Object.keys(WEAPON_TYPES).map((id) => [id, { tier: 1, branch: null }])) as Profile['weapons'], equipped: { dora: 'hammer', enzo: 'bow' }, armour: { owned: [], worn: {} }, pouch: emptyPouch(), ring: [...DEFAULT_RING], snack: null, naps: countRecord(), won: false, hunts: 0 });
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 export const distance = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.z - b.z);
 const faceTo = (a: Vec, b: Vec) => Math.atan2(-(b.z - a.z), b.x - a.x);
@@ -179,8 +181,8 @@ export function laneDistance(p: Vec, a: Vec, b: Vec) {
   return Math.hypot(p.x - a.x - x * t, p.z - a.z - z * t);
 }
 
-/** Every story scene id, ending with the post-game epilogue. */
-export const SCENES = [...STORY.flatMap((c) => [`${c.id}-intro`, `${c.id}-outro`]), 'epilogue'];
+/** Every story scene id, ending with the post-game epilogue and finale. */
+export const SCENES = [...STORY.flatMap((c) => [`${c.id}-intro`, `${c.id}-outro`]), 'epilogue', 'finale'];
 export const VARIANT_COLORS: Record<BeastId, string> = { bristleback: '#e4c278', puffwart: '#639dc8', skreel: '#b7a1d8', hornclack: '#dfb085', frostmane: '#e6adc7', paddlepaw: '#6fb0a8', rumblesnout: '#c79a6a' };
 /** The meadow keeps its original seeded layout. Other areas use fixed, clear-centred tables. */
 const areaTable = (kind: Obstacle['kind'], shift: number): Obstacle[] => [
@@ -189,8 +191,8 @@ const areaTable = (kind: Obstacle['kind'], shift: number): Obstacle[] => [
   { x: -6 - shift, z: -9, r: 1.3, kind: 'rock' }, { x: 7, z: 8 + shift, r: 1.1, kind: 'rock' },
 ];
 export const AREA_OBSTACLES: Record<AreaId, Obstacle[]> = { meadow: [], paddock: areaTable('tree', 0).slice(0, 18), marsh: areaTable('tree', 1), ridge: areaTable('pine', 2), hollow: areaTable('rock', 3), peak: areaTable('pine', 4) };
-export type HuntFacts = { items: number; bumps: number; gathered: number; dizzies: number; napped: boolean; finishers: number; vines: number; knockdowns: number };
-const freshFacts = (): HuntFacts => ({ items: 0, bumps: 0, gathered: 0, dizzies: 0, napped: false, finishers: 0, vines: 0, knockdowns: 0 });
+export type HuntFacts = { items: number; bumps: number; gathered: number; dizzies: number; napped: boolean; finishers: number; vines: number; knockdowns: number; turfs: number };
+const freshFacts = (): HuntFacts => ({ items: 0, bumps: 0, gathered: 0, dizzies: 0, napped: false, finishers: 0, vines: 0, knockdowns: 0, turfs: 0 });
 export const BOUNTY_BUNDLE = { berry: 3, 'bristle-tuft': 2, 'wart-pebble': 2 };
 export const BOUNTIES: { id: string; title: string; check: (f: HuntFacts, b: Beast) => boolean }[] = [
   { id: 'no-items', title: 'Calm a beast without using items', check: (f) => f.napped && f.items === 0 },
@@ -203,10 +205,13 @@ export const BOUNTIES: { id: string; title: string; check: (f: HuntFacts, b: Bea
   { id: 'gather', title: 'Gather from three spots on a hunt', check: (f) => f.gathered >= 3 },
   { id: 'dizzy', title: 'Make three dizzy openings', check: (f) => f.dizzies >= 3 },
   { id: 'nap', title: 'Help any beast find a lovely nap', check: (f) => f.napped },
+  { id: 'pouch', title: 'Boop loose a Paddlepaw pebble pouch', check: (_, b) => b.id === 'paddlepaw' && b.broken },
+  { id: 'crown', title: 'Knock the pebble crown off a Rumblesnout', check: (_, b) => b.id === 'rumblesnout' && b.broken },
+  { id: 'turf', title: 'Watch a turf bonk on a hunt', check: (f) => f.turfs > 0 },
 ];
 /** Old Mossback's quests: one beast with a time limit or a side goal, or two beasts in a row (the second wanders in after the first naps).
  *  A quest opens with its chapter; finishing it pays stars and a bundle every time. Missing the limit or the goal still ends in a lovely nap. */
-export type Quest = { mighty?: boolean; id: string; title: string; text: string; beasts: BeastId[]; chapter: number; stars: number; reward: Partial<Record<MaterialId, number>>; limit?: number; goal?: { text: string; miss: string; check: (f: HuntFacts) => boolean } };
+export type Quest = { mighty?: boolean; needs?: string[]; keepsake?: boolean; id: string; title: string; text: string; beasts: BeastId[]; chapter: number; stars: number; reward: Partial<Record<MaterialId, number>>; limit?: number; goal?: { text: string; miss: string; check: (f: HuntFacts) => boolean } };
 export const QUESTS: readonly Quest[] = [
   { id: 'quick-bristleback', title: 'Speedy Snooze', text: 'Calm Bristleback within 90 seconds.', beasts: ['bristleback'], chapter: 2, stars: 1, reward: { 'bristle-tuft': 3, 'boar-hide': 1 }, limit: 90 },
   { id: 'no-vine-puffwart', title: 'Paws Only', text: 'Calm Puffwart without throwing the vine.', beasts: ['puffwart'], chapter: 3, stars: 1, reward: { 'wart-pebble': 3, 'marsh-reed': 2 }, goal: { text: 'No vine', miss: 'the vine came out', check: (f) => f.vines === 0 } },
@@ -221,6 +226,8 @@ export const QUESTS: readonly Quest[] = [
   { id: 'splash-and-dig', title: 'Splash and Dig', text: 'Calm Rumblesnout, then Paddlepaw wanders in for a second nap.', beasts: ['rumblesnout', 'paddlepaw'], chapter: 6, stars: 3, reward: { 'stripe-fur': 2, 'otter-fluff': 2, 'geode-heart': 1 } },
   ...BEAST_IDS.map((id): Quest => ({ id: `mighty-${id}`, title: `Mighty ${BEASTS[id].name}`, text: `A Mighty ${BEASTS[id].name}: twice the Grump and a new move, the ${MIGHTY_NAMES[id]}.`, beasts: [id], chapter: 6, stars: 3, mighty: true,
     reward: ({ bristleback: { 'curly-tail-tuft': 2, 'tusk-shard': 1 }, puffwart: { 'cloud-wisp': 2, 'puff-sac': 1 }, skreel: { 'owl-down': 3, 'sky-feather': 2 }, hornclack: { 'horn-chip': 2, 'shell-plate': 2 }, frostmane: { 'glimmer-stone': 2, 'mane-lock': 2 }, paddlepaw: { 'river-pearl': 2, 'river-stone': 1 }, rumblesnout: { 'geode-heart': 2, 'crown-pebble': 1 } } as Record<BeastId, Quest['reward']>)[id] })),
+  // The post-game finale: both Mighty river friends in a row, after each one's own Mighty quest. It pays the Best of Friends ribbon.
+  { id: 'finale', title: 'Best of Friends', text: 'A Mighty Rumblesnout, then a Mighty Paddlepaw wanders in for a second nap.', beasts: ['rumblesnout', 'paddlepaw'], chapter: 6, stars: 5, mighty: true, keepsake: true, needs: ['mighty-rumblesnout', 'mighty-paddlepaw'], reward: { 'river-pearl': 1, 'geode-heart': 1, 'glimmer-stone': 2 } },
 ];
 /** Bramble's charm tree: three charms, each made at level I and grown to II and III with beast materials and quest stars.
  *  One charm is worn at a time. Clover fills the nap reward, Acorn adds Fluff, Feather quickens rolls and the vine. */
@@ -431,7 +438,7 @@ export class HuntGame {
   armourOpen(id: ArmourSetId) { if (id === 'mighty') return this.feature('armour') && this.chapter >= 6 && SLOTS.some((slot) => this.mightyArmourOpen(slot)); return BEAST_IDS.includes(id) && this.feature('armour') && this.chapter >= (STORY.find((c) => c.id > 0 && c.beast === id)?.id ?? 6); }
   sceneSeen(id: string) { if (!SCENES.includes(id)) return false; if (!this.story.scenesSeen.includes(id)) { this.story.scenesSeen.push(id); this.revision++; } return true; }
   startChapter() { if (this.chapter > 5) return false; return this.startHunt(STORY[this.chapter].beast, false, true); }
-  questOpen(id: string) { const q = QUESTS.find((x) => x.id === id); return !!q && !!this.profile.hero && this.chapter >= q.chapter && q.beasts.every((b) => this.freeHuntOpen(b)) && (!q.mighty || this.questsDone >= MIGHTY_AT); }
+  questOpen(id: string) { const q = QUESTS.find((x) => x.id === id); return !!q && !!this.profile.hero && this.chapter >= q.chapter && q.beasts.every((b) => this.freeHuntOpen(b)) && (!q.mighty || this.questsDone >= MIGHTY_AT) && (q.needs ?? []).every((n) => (this.profile.quests[n] ?? 0) > 0); }
   /** Different non-Mighty quests finished at least once. */
   get questsDone() { return QUESTS.filter((q) => !q.mighty && (this.profile.quests[q.id] ?? 0) > 0).length; }
   /** Takes a quest from the board: its first beast's hunt, in that beast's area. */
@@ -453,7 +460,7 @@ export class HuntGame {
     const q = this.quest && QUESTS.find((x) => x.id === this.quest!.id);
     if (!q || this.quest!.step + 1 >= q.beasts.length) return false;
     const id = q.beasts[++this.quest!.step], h = this.hero, r = Math.hypot(h.x, h.z) || 1;
-    this.beast = this.newBeast(id, BEASTS[id].grump); this.beast.x = -h.x / r * 11; this.beast.z = -h.z / r * 11; this.beast.zone = this.zone;
+    this.beast = this.newBeast(id, BEASTS[id].grump * (q.mighty ? MIGHTY_GRUMP : 1)); if (q.mighty) this.beast.mighty = true; this.beast.x = -h.x / r * 11; this.beast.z = -h.z / r * 11; this.beast.zone = this.zone;
     this.move(this.beast, 0, 0, 1.5); this.beast.face = faceTo(this.beast, h);
     this.mode = 'hunt'; this.lastHunt = id; this.profile.beastBook[id].met = true; this.roared = this.introduced = false; this.introAt = -1; this.locked = true;
     this.zoneAt = [...ZONE_AT]; this.nest = this.findNest(); this.clouds = []; this.shots = []; this.ride = freshRide(); this.resultTime = 0;
@@ -1346,7 +1353,8 @@ export class HuntGame {
   private turfBonk() {
     const b = this.beast!, v = this.visitor, mid = v ? { x: (b.x + v.x) / 2, z: (b.z + v.z) / 2 } : { x: b.x, z: b.z };
     this.events.push({ kind: 'turf' }); this.shake = Math.max(this.shake, 0.4); this.effect('bonk', mid, 'Turf bonk!');
-    b.grump = Math.max(1, b.grump - b.maxGrump * TURF_GRUMP); b.flash = 0.18; this.moods(b);
+    b.grump = Math.max(1, b.grump - b.maxGrump * TURF_GRUMP); b.flash = 0.18; this.moods(b); this.huntFacts.turfs++;
+    const pair = v && `${b.id}+${v.id}`; if (pair && TURF_PAIRS.includes(pair) && !this.profile.turfPairs.includes(pair)) this.profile.turfPairs.push(pair);
     if (distance(this.hero, mid) < TURF_REACH) this.bumpHero(12, mid);
     if (v) { v.state = 'leave'; v.t = 0; }
     if (this.mode !== 'hunt') return;
@@ -1615,7 +1623,7 @@ export class HuntGame {
       const any = game.uniqueNaps > 0;
       game.story.chapter = any ? 1 : 0;
       while (game.chapter <= 5 && game.profile.naps[STORY[game.chapter].beast] > 0) game.story.chapter++;
-      game.story.scenesSeen = SCENES.filter((id) => { if (id === 'epilogue') return false; const n = Number(id.split('-')[0]); return n === 0 ? any : game.profile.naps[STORY[n].beast] > 0; });
+      game.story.scenesSeen = SCENES.filter((id) => { if (id === 'epilogue' || id === 'finale') return false; const n = Number(id.split('-')[0]); return n === 0 ? any : game.profile.naps[STORY[n].beast] > 0; });
       for (const id of BEAST_IDS) game.profile.beastBook[id] = { met: game.profile.naps[id] > 0, napped: game.profile.naps[id], partsBroken: [], best: 0 };
     } else {
       game.story.chapter = integer(p.story?.chapter, 6);
@@ -1634,6 +1642,7 @@ export class HuntGame {
     game.profile.totalPlops = s.v === 5 || s.v === 6 ? integer(p.totalPlops, 999999) : 0;
     for (const id of BEAST_IDS) game.profile.variantNaps[id] = s.v === 5 || s.v === 6 ? integer(p.variantNaps?.[id], 999999) : 0;
     for (const id of BEAST_IDS) game.profile.mightyBest[id] = s.v === 6 ? integer(p.mightyBest?.[id], 99999) : 0;
+    game.profile.turfPairs = Array.isArray(p.turfPairs) ? TURF_PAIRS.filter((pair) => p.turfPairs!.includes(pair)) : [];
     game.profile.extraGrumpyUnlocked = game.chapter === 6;
     if (s.v === 1 || s.v === 2) {
       for (const [hero, type] of [['dora', 'hammer'], ['enzo', 'bow']] as const) { const tier = clamp(integer(p.levels?.[hero], 3, 1), 1, 3) as Tier; game.profile.weapons[type] = { tier, branch: tier >= 3 ? 'A' : null }; }
