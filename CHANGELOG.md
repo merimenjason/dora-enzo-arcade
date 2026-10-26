@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Grumble Hunt** has Old Mossback's quest board, on the hunt board from chapter 2: nine little challenges, such as calming Bristleback within 90 seconds, calming Puffwart without the vine, knocking Skreel down with pebbles or calming two beasts one after the other. A quest pays stars and a bundle of materials. A missed goal still ends in a lovely nap. Old saves carry over.
+
 - **Grumble Hunt** melee tools chain three J swings into a string. Keep the rhythm and the third swing is the tool's own finisher, such as the Acorn Upswing or the Petal Spin. It is half again as strong; slow tools add Dizzy, medium tools loosen parts faster and fast tools bonk twice. Three pips under your Fluff show the string.
 
 - **Grumble Hunt** areas are now three zones joined by paths through the trees. Beasts wander off to the next zone as they calm down and end up at their den. Follow the glowing path (or Enzo's nose) to catch up, and use the zone map to see where everyone is.

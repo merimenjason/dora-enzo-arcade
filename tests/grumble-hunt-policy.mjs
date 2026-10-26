@@ -18,7 +18,7 @@ export function huntPolicy(g) {
   }
   // Pebbles bring a flying Skreel down.
   if (b.id === 'skreel' && b.height > 1.5 && g.pebbles > 0 && g.locked && Math.hypot(h.x - b.x, h.z - b.z) < 13) out.sling = Math.floor(g.time * 4) % 2 === 0;
-  if (g.vineCd <= 0 && ['rest', 'roam'].includes(b.state) && b.height < 0.5 && Math.hypot(h.x - b.x, h.z - b.z) < 8) { out.grab = true; return out; }
+  if (g.vineCd <= 0 && g.quest?.id !== 'no-vine-puffwart' && ['rest', 'roam'].includes(b.state) && b.height < 0.5 && Math.hypot(h.x - b.x, h.z - b.z) < 8) { out.grab = true; return out; }
   if (g.ride.used < 2 && ['dizzy', 'stuck'].includes(b.state)) {
     if (g.weapon() === 'yoyo' && Math.hypot(h.x - b.x, h.z - b.z) < 4) { out.charge = g.time % 0.4 < 0.12; return out; }
     // A High Bounce that lands right beside a dizzy beast hops on.

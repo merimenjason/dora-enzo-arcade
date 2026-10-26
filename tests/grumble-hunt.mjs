@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { HuntGame, COMBO_WINDOW, FINISHERS, FINISHER_POWER, FINISHER_DIZZY, FINISHER_RECOVERY, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, ZONE_NAMES, ZONE_AT, EXIT_REACH, WANDER_GIVEUP, FINCHES, FINCH_FLUFF, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
+import { HuntGame, QUESTS, COMBO_WINDOW, FINISHERS, FINISHER_POWER, FINISHER_DIZZY, FINISHER_RECOVERY, BEAST_IDS, BEASTS, DT, TELEGRAPH, NO_INPUT, GRUMPY_AT, GRUMPY_PACE, WEAK_SPOT, ZONE_NAMES, ZONE_AT, EXIT_REACH, WANDER_GIVEUP, FINCHES, FINCH_FLUFF, AREA_HAZARD, HAZARD_REACH, HAZARD_WARN, HAZARD_GRUMP, HAZARD_DIZZY, SLING_START, SLING_MAX, KNOCKDOWN_HITS, PEBBLE_POWER, PEBBLE_DIZZY, TREE_BERRIES, VINE_REACH, VINE_COOLDOWN, CLING_TIME, SOFT_TIME, YANK, WALL_GRUMP, VISITORS, TURF_TIME, TURF_REACH, TURF_GRUMP, AREA_WEATHER, WEATHER_SIGHT, WEATHER_RAMP, ROAR_REACH, ROAR_TIME, TIRED_AT, SNOOZE, ARENA_RADIUS, SIGHT, CAMP_BERRIES, DIZZY_FULL, GATHER_TIME, HUNT_AREA, RING_ITEMS, RING_SIZE, SNACK_IDS, distance, SCENES, AREA_OBSTACLES, VARIANT_COLORS, VILLAGERS, SPOTS, BOUNTIES, dailyBounties } from '../.checks/grumble-hunt-game.js';
 import { DROPS, GATHER, ITEMS, SNACKS, WEAPON_TREE, WEAPON_TYPES, POST_GAME_WEAPONS, cap, armourBonus, armourCost, SLOTS, STORY, rollCalm } from '../.checks/grumble-hunt-content.js';
 let checks = 0;
 function check(name, fn) { fn(); checks++; console.log(`PASS hunt: ${name}`); }
@@ -146,7 +146,7 @@ check('every tree and armour piece can be crafted, equipped and saved', () => {
 });
 check('v2 levels migrate to branch A and locked or malformed equipment is refused', () => {
   const g = HuntGame.load({ v: 2, profile: { hero: 'dora', levels: { dora: 3, enzo: 2 } } });
-  assert.equal(g.node('hammer').id, 'hammer-3A'); assert.equal(g.node('bow').id, 'bow-2'); assert.equal(g.save().v, 5);
+  assert.equal(g.node('hammer').id, 'hammer-3A'); assert.equal(g.node('bow').id, 'bow-2'); assert.equal(g.save().v, 6);
   assert.equal(g.equip('wand'), false); assert.equal(g.equip('yoyo'), false);
   const bad = HuntGame.load({ v: 3, profile: { weapons: { hammer: { tier: 99, branch: 'Z' } }, equipped: { dora: 'wand' }, armour: { owned: ['bad'], worn: { helm: 'bad' } } } });
   assert.equal(bad.node().id, 'wand-1'); assert.deepEqual(bad.profile.armour.owned, []);
@@ -506,7 +506,7 @@ check('a v1 save moves into the v3 pouch once, keeping naps, tier paths and the 
   const g = HuntGame.load({ v: 1, seed: 5, profile: { hero: 'enzo', levels: { dora: 2, enzo: 3 }, materials: { bristleback: 7, puffwart: 4, skreel: 3, hornclack: 2, frostmane: 1 }, naps: { bristleback: 2, frostmane: 1 }, hunts: 9 } });
   assert.equal(g.profile.hero, 'enzo'); assert.equal(g.node('hammer').id, 'hammer-2'); assert.equal(g.node('bow').id, 'bow-3A'); assert.equal(g.profile.naps.bristleback, 2); assert(g.profile.won); assert.equal(g.profile.hunts, 9);
   for (const [id, n] of [['bristleback', 7], ['puffwart', 4], ['skreel', 3], ['hornclack', 2], ['frostmane', 1]]) assert.equal(g.profile.pouch[DROPS[id].shed.id], n, id);
-  assert.equal(g.materialTotal, 17); const save = g.save(); assert.equal(save.v, 5);
+  assert.equal(g.materialTotal, 17); const save = g.save(); assert.equal(save.v, 6);
   const again = HuntGame.load(JSON.parse(JSON.stringify(save))); assert.deepEqual(again.profile, g.profile);
   g.toggleRing('pathfinder-acorn'); assert.equal(g.toggleRing('dizzy-bell'), true); g.profile.pouch.berry = 2; assert(g.eatSnack('clover-crunch'));
   assert.deepEqual(HuntGame.load(JSON.parse(JSON.stringify(g.save()))).profile, g.profile, 'ring and packed snack round-trip');
@@ -915,7 +915,7 @@ check('a completed daily bounty pays only once, survives loading and resets with
 check('v1, v2 and v3 saves migrate cleared chapters, seen scenes and equipment into v5', () => {
   for (const v of [1, 2, 3]) {
     const profile = { hero: 'enzo', naps: Object.fromEntries(BEAST_IDS.map((id, i) => [id, i < 3 ? 2 : 0])), levels: { dora: 3, enzo: 2 }, weapons: { yoyo: { tier: 3, branch: 'B' } }, equipped: { dora: 'yoyo', enzo: 'bow' }, pouch: { berry: 7 }, armour: { owned: ['bristleback-helm'], worn: { helm: 'bristleback-helm' } } };
-    const g = HuntGame.load({ v, profile }); assert.equal(g.save().v, 5); assert.equal(g.chapter, 4);
+    const g = HuntGame.load({ v, profile }); assert.equal(g.save().v, 6); assert.equal(g.chapter, 4);
     assert.deepEqual(g.story.scenesSeen, SCENES.filter((id) => Number(id[0]) <= 3)); assert(g.profile.beastBook.skreel.met); assert.equal(g.profile.beastBook.skreel.napped, 2);
     if (v === 3) { assert.equal(g.profile.weapons.yoyo.tier, 3); assert.equal(g.profile.equipped.dora, 'yoyo'); assert.equal(g.profile.armour.worn.helm, 'bristleback-helm'); }
     else assert.equal(g.profile.weapons.hammer.tier, 3);
@@ -931,7 +931,7 @@ check('v4 rejects malformed story, book and daily progress', () => {
 check('a v4 save moves into v5 with the counters it can prove, and v5 counters load strictly', () => {
   const g = fresh(); g.setBountyDay('2026-10-24'); g.profile.bounties.done = [g.dailyBounties[0].id]; g.profile.beastBook.skreel.partsBroken = ['crest'];
   const v4 = JSON.parse(JSON.stringify(g.save())); v4.v = 4; delete v4.profile.bountiesClaimed; delete v4.profile.variantNaps; delete v4.profile.totalPlops;
-  const moved = HuntGame.load(v4); assert.equal(moved.save().v, 5); assert.equal(moved.profile.bountiesClaimed, 1); assert.equal(moved.profile.totalPlops, 0);
+  const moved = HuntGame.load(v4); assert.equal(moved.save().v, 6); assert.equal(moved.profile.bountiesClaimed, 1); assert.equal(moved.profile.totalPlops, 0);
   assert.deepEqual(moved.profile.variantNaps, { bristleback: 0, puffwart: 0, skreel: 0, hornclack: 0, frostmane: 0 }); assert.deepEqual(moved.profile.beastBook.skreel.partsBroken, ['crest']);
   const bad = HuntGame.load({ v: 5, profile: { bountiesClaimed: -3, totalPlops: 'ten', variantNaps: { puffwart: 2.7, skreel: Infinity } } });
   assert.equal(bad.profile.bountiesClaimed, 0); assert.equal(bad.profile.totalPlops, 0); assert.equal(bad.profile.variantNaps.puffwart, 2); assert.equal(bad.profile.variantNaps.skreel, 0);
@@ -1042,5 +1042,33 @@ check('melee tools chain three J swings in rhythm into their own finisher; range
   // Every melee tool has a named finisher; bows, the wand and the puffer have none and never build a string.
   for (const type of Object.keys(WEAPON_TYPES)) assert.equal(!!FINISHERS[type], !['bow', 'lightbow', 'heavybow', 'wand', 'puffer'].includes(type), type);
   for (const type of ['bow', 'lightbow', 'wand', 'puffer']) { const r = geared(type); r.beast.grump = r.beast.maxGrump = 1e5; for (let i = 0; i < 6; i++) swing(r); assert.equal(r.combo, 0, type); assert(!r.events.some((e) => e.kind === 'finisher'), type); }
+});
+const questGame = (chapter = 6) => { const g = new HuntGame(41); g.chooseHero('dora'); g.story.chapter = chapter; g.profile.extraGrumpyUnlocked = chapter === 6; for (const id of BEAST_IDS) g.profile.beastBook[id].met = BEAST_IDS.indexOf(id) < chapter; return g; };
+const questCalm = (g) => { const b = g.beast; g.roared = g.introduced = true; b.height = 0; b.state = 'rest'; assert(g.bonkBeast(1e6, true, { x: b.x - Math.cos(b.face) * 3, z: b.z + Math.sin(b.face) * 3 })); tick(g, 3.5); };
+check('the quest board opens quests by chapter and refuses unknown ones', () => {
+  assert(QUESTS.length >= 9); assert.equal(new Set(QUESTS.map((q) => q.id)).size, QUESTS.length);
+  for (const q of QUESTS) { assert(q.stars >= 1 && q.beasts.length >= 1 && q.beasts.length <= 2, q.id); assert(q.limit === undefined || q.limit >= 60, q.id); for (const id of Object.keys(q.reward)) assert(DROPS[q.beasts[0]] && cap(id) === 99, `${q.id} ${id}`); }
+  const early = questGame(2); assert.equal(early.startQuest('double-meadow'), false); assert(early.questOpen('quick-bristleback')); assert.equal(early.startQuest('nonsense'), false);
+  const g = questGame(); assert(g.startQuest('quick-bristleback')); assert.equal(g.mode, 'hunt'); assert.equal(g.quest.id, 'quick-bristleback'); assert.equal(g.storyHunt, false); assert.equal(g.startQuest('double-meadow'), false, 'not mid-hunt');
+});
+check('a two-beast quest brings the second beast in after the first nap, then pays its stars and bundle', () => {
+  const g = questGame(), q = QUESTS.find((x) => x.id === 'double-meadow'), before = { ...g.profile.pouch };
+  assert(g.startQuest(q.id)); assert.equal(g.beast.id, q.beasts[0]); assert.equal(g.area, 'meadow'); assert(g.visited, 'no visitor wanders into a two-beast quest');
+  questCalm(g); assert.equal(g.mode, 'hunt'); assert.equal(g.beast.id, q.beasts[1]); assert.equal(g.quest.step, 1); assert.equal(g.roared, false, 'the newcomer roars hello'); assert.equal(g.beast.grump, g.beast.maxGrump);
+  assert(Math.hypot(g.beast.x - g.hero.x, g.beast.z - g.hero.z) > 8, 'it arrives a little way off'); assert.equal(g.questResult, null);
+  questCalm(g); assert.equal(g.mode, 'calm'); assert.deepEqual(g.questResult, { id: q.id, success: true, stars: q.stars, why: '' }); assert.equal(g.profile.stars, q.stars); assert.equal(g.profile.quests[q.id], 1);
+  for (const [id, n] of Object.entries(q.reward)) assert(g.profile.pouch[id] >= before[id] + n, id);
+  assert.equal(g.profile.naps.bristleback, 1); assert.equal(g.profile.naps.puffwart, 1);
+  const again = g.save(); const loaded = HuntGame.load(again); assert.equal(loaded.profile.stars, q.stars); assert.equal(loaded.profile.quests[q.id], 1);
+});
+check('timed and side-goal quests still end in a lovely nap when missed, with no stars', () => {
+  const slow = questGame(); assert(slow.startQuest('quick-bristleback')); slow.beast.state = 'rest'; slow.beast.duration = 1e9; slow.hero.invincible = 1e9; slow.buddy.cooldown = 1e9; slow.zoneAt = [];
+  slow.huntTime = 89.9; tick(slow, 0.2); assert.match(slow.note, /no rush/i); assert(slow.quest.failed);
+  questCalm(slow); assert.equal(slow.mode, 'calm'); assert.equal(slow.questResult.success, false); assert.match(slow.questResult.why, /90 s/); assert.equal(slow.profile.stars, 0); assert.equal(slow.profile.quests['quick-bristleback'] ?? 0, 0);
+  const quick = questGame(); assert(quick.startQuest('quick-bristleback')); questCalm(quick); assert(quick.questResult.success); assert.equal(quick.profile.stars, 1);
+  const vine = questGame(); assert(vine.startQuest('no-vine-puffwart')); vine.hero.x = vine.beast.x; vine.hero.z = vine.beast.z + 5; vine.beast.state = 'rest'; vine.beast.height = 0; assert(vine.throwVine()); assert.equal(vine.huntFacts.vines, 1); tick(vine, 0.5); vine.step(DT, input({ roll: true }));
+  questCalm(vine); assert.equal(vine.questResult.success, false); assert.match(vine.questResult.why, /vine/i);
+  const paws = questGame(); assert(paws.startQuest('no-vine-puffwart')); questCalm(paws); assert(paws.questResult.success);
+  const out = questGame(); assert(out.startQuest('quick-bristleback')); out.hero.fluff = 1; out.hero.invincible = 0; out.bumpHero(5, out.beast); assert.equal(out.mode, 'camp'); assert.equal(out.quest, null); assert.equal(out.profile.stars, 0);
 });
 console.log(`Grumble Hunt: ${checks} engine checks passed.`);
