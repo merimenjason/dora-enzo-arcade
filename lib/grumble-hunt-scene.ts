@@ -432,11 +432,57 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
       fireflies.instanceMatrix.needsUpdate = true;
     }
   }
-  /** Instance repeated meshes; `plain` batches also drop out of the shadow and outline passes. */
+  /** Static meshes sharing a material (and shadow setting) merge into one mesh, which draws, outlines and shadows exactly as the
+   *  pieces did; transparent or mismatched pieces are instanced instead. `plain` batches also drop out of the shadow and outline passes. */
   const plainMaterials = new Map<T.Material, T.Material>();
+  /** Inside an animated rig, the meshes hanging off the same moving group with the same material merge into one, and so do
+   *  whisker lines of one colour; they move together anyway. Meshes the animation touches by themselves stay apart (`keep`). */
+  function mergeRig(root: T.Object3D, keep: T.Object3D[] = []) {
+    const nodes: T.Object3D[] = []; root.traverse((o) => nodes.push(o));
+    for (const node of nodes) {
+      const sets = new Map<string, (T.Mesh | T.Line)[]>();
+      for (const child of node.children) {
+        if (child.children.length || keep.includes(child) || !child.visible || Array.isArray((child as T.Mesh).material)) continue;
+        const key = child instanceof T.Line && !(child instanceof T.LineSegments) ? `line:${(child.material as T.LineBasicMaterial).color.getHex()}` : child instanceof T.Mesh && !(child instanceof T.InstancedMesh) && !(child.material as T.Material).transparent ? `mesh:${(child.material as T.Material).uuid}:${child.castShadow}:${child.receiveShadow}:${Object.keys(child.geometry.attributes).sort().join(',')}` : '';
+        if (!key) continue;
+        const list = sets.get(key) ?? []; list.push(child as T.Mesh | T.Line); sets.set(key, list);
+      }
+      for (const [key, list] of sets) {
+        if (list.length < 2) continue;
+        const parts = list.map((child) => {
+          child.updateMatrix(); let g = child.geometry.index ? child.geometry.toNonIndexed() : child.geometry.clone();
+          if (key.startsWith('line:')) { const p = g.getAttribute('position'), pairs: number[] = []; for (let i = 0; i + 1 < p.count; i++) pairs.push(p.getX(i), p.getY(i), p.getZ(i), p.getX(i + 1), p.getY(i + 1), p.getZ(i + 1)); g.dispose(); g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pairs, 3)); }
+          g.applyMatrix4(child.matrix); return g;
+        });
+        const merged = mergeGeometries(parts); for (const g of parts) g.dispose();
+        if (!merged) continue;
+        const first = list[0], one = key.startsWith('line:') ? new T.LineSegments(merged, first.material) : new T.Mesh(merged, first.material);
+        one.castShadow = first.castShadow; one.receiveShadow = first.receiveShadow; one.userData.merged = true; geometries.add(merged);
+        for (const child of list) node.remove(child);
+        node.add(one);
+      }
+    }
+  }
   function batchMeshes(root: T.Group, plain: boolean) {
+    const attributeKey = (g: T.BufferGeometry) => Object.keys(g.attributes).sort().join(',');
+    if (!plain) {
+      const sets = new Map<string, T.Mesh[]>();
+      for (const child of [...root.children]) if (child instanceof T.Mesh && !(child instanceof T.InstancedMesh) && !Array.isArray(child.material) && !child.material.transparent) {
+        const key = `${child.material.uuid}:${child.castShadow}:${child.receiveShadow}:${attributeKey(child.geometry)}`;
+        const list = sets.get(key) ?? []; list.push(child); sets.set(key, list);
+      }
+      for (const list of sets.values()) {
+        if (list.length < 2) continue;
+        const parts = list.map((child) => { child.updateMatrix(); const g = child.geometry.index ? child.geometry.toNonIndexed() : child.geometry.clone(); g.applyMatrix4(child.matrix); return g; });
+        const merged = mergeGeometries(parts); for (const g of parts) g.dispose();
+        if (!merged) continue;
+        const one = new T.Mesh(merged, list[0].material); one.castShadow = list[0].castShadow; one.receiveShadow = list[0].receiveShadow; one.userData.merged = true;
+        for (const child of list) root.remove(child);
+        root.add(one);
+      }
+    }
     const groups = new Map<string, T.Mesh[]>();
-    for (const child of [...root.children]) if (child instanceof T.Mesh && !Array.isArray(child.material)) {
+    for (const child of [...root.children]) if (child instanceof T.Mesh && !(child instanceof T.InstancedMesh) && !child.userData.merged && !Array.isArray(child.material)) {
       const key = `${child.geometry.uuid}:${child.material.uuid}`;
       const list = groups.get(key) ?? []; list.push(child); groups.set(key, list);
     }
@@ -472,7 +518,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
   function buildWorld(game: HuntGame) {
     switchArea(game.mode === 'village' || game.mode === 'camp' ? 'meadow' : game.area);
     // Reuse a shared set of geometries and materials when hunts change.
-    while (world.children.length) { const child = world.children[0]; child.traverse((o) => { if (o instanceof T.InstancedMesh) o.dispose(); }); world.remove(child); }
+    while (world.children.length) { const child = world.children[0]; child.traverse((o) => { if (o instanceof T.InstancedMesh) o.dispose(); if (o instanceof T.Mesh && o.userData.merged) o.geometry.dispose(); }); world.remove(child); }
     canopyPositions.length = 0; canopyShown.length = 0;
     blockers.length = villageBlockerCount;
     const trees = game.obstacles.filter((o) => o.kind === 'tree' || o.kind === 'pine');
@@ -572,6 +618,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     const ribbon = new T.Mesh(ribbonGeo, ribbonMat); ribbon.visible = false; ribbon.frustumCulled = false; geometries.add(ribbonGeo); materials.add(ribbonMat); scene.add(ribbon);
     hammer.visible = white;
     model.root.traverse((o) => { if (o instanceof T.Mesh) { if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); o.castShadow = (o.geometry.boundingSphere?.radius ?? 1) * Math.max(o.scale.x, o.scale.y, o.scale.z) > 0.22; geometries.add(o.geometry); for (const m of Array.isArray(o.material) ? o.material : [o.material]) { materials.add(m); for (const t of Object.values(m)) if (t instanceof T.Texture) textures.add(t); } } else if (o instanceof T.Line) { geometries.add(o.geometry); materials.add(o.material as T.Material); } });
+    mergeRig(model.root, model.arms.map((arm) => arm.limb));
     const weapons = createHuntWeapons(model, toon, geometries, materials), hammerLook = decorateHuntWeapon(hammer, 'hammer', (c) => toon(c), geometries, materials);
     const armour: T.Group[] = [];
     for (let i = 0; i < 3; i++) {
@@ -674,6 +721,7 @@ export function createHuntScene(canvas: HTMLCanvasElement, ready: () => void, fa
     // Steam puffs over each ear, in head space; only shown while Extra Grumpy.
     const ear = { bristleback: [-0.15, 1, 0.5], puffwart: [0, 0.65, 0.8], skreel: [0, 0.85, 0.5], hornclack: [0, 0.6, 0.55], frostmane: [-0.15, 1.3, 0.55] }[id];
     for (const side of [-1, 1]) for (let i = 0; i < 3; i++) { const puff = mesh(head, sphere, steamMat, [ear[0], ear[1], ear[2] * side], [0.14, 0.14, 0.14], false); puff.visible = false; rig.steam.push(puff); }
+    mergeRig(root, [...eyes, ...rig.steam, ...(rig.throat ? [rig.throat] : []), ...(rig.tongue ? [rig.tongue] : [])]);
     root.visible = false; return rig;
   }
   const beasts = Object.fromEntries(BEAST_IDS.map((id) => [id, beastRig(id)])) as Record<BeastId, BeastRig>;
