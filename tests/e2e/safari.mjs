@@ -18,8 +18,9 @@ const snapFirst = (page) => page.evaluate(() => {
   const g = window.__safari(), a = g.animals.find((x) => x.state === 'live');
   g.x = a.x - 5; g.move(0); g.steady = 1;
   const h = a.sp.h; g.view = { x: a.x, y: a.y + h / 2, zoom: Math.min(8, 2.5 / h) };
+  const before = { film: g.film, photos: g.photos.length, sp: a.sp.id };
   window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
-  return { film: g.film, photos: g.photos.length, sp: a.sp.id };
+  return before;
 });
 
 {

@@ -134,8 +134,9 @@ export default function SnapshotSafariPage() {
           g.tick(dt);
           const ev = g.events.splice(0);
           if (ev.length) { sc.feed(ev, g); events(ev, g); }
-          if ((g.state as string) === 'done') finish(g);
         }
+        // the day ran out, or Head home was picked (from the pause menu, the outing ends while paused)
+        if (g.state === 'done') { finish(g); raf = requestAnimationFrame(loop); return; }
         const pv = g.state === 'out' ? g.preview() : null, n = pv ? nameOf(pv) : null;
         sc.draw(g, { dt: pausedRef.current ? 0 : dt, label: n ? `${n.sp} · ${n.bh}${pv!.rare ? ' ✦' : ''}` : '', sharp: pv ? pv.sharp : null });
       } else {
