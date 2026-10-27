@@ -92,6 +92,10 @@
 .parade-job small{font-size:10px;font-weight:800;color:#8a6a50}
 .parade-job kbd{position:absolute;top:3px;right:6px;font:800 10px ui-rounded,system-ui,sans-serif;color:#b8a48a}
 /* an upright phone shows only a slice of each level, so suggest turning it, then fade away */
+/* once the target is home and every kit is out, there is no need to wait for the stragglers */
+.parade-shell .parade-finish{position:absolute;right:12px;bottom:calc(98px + env(safe-area-inset-bottom));z-index:3;background:#fff3c4;border-color:var(--gold);font-size:14px;animation:parade-finish-in .3s ease-out}
+@keyframes parade-finish-in{from{opacity:0}}
+@media (max-height:500px){.parade-shell .parade-finish{bottom:calc(72px + env(safe-area-inset-bottom));min-height:36px;padding:6px 12px}}
 .parade-turn{display:none}
 @media (orientation:portrait) and (max-width:700px){
   .parade-turn{display:block;position:absolute;left:12px;right:12px;top:96px;margin:0 auto;width:max-content;max-width:calc(100% - 24px);background:var(--card);border-radius:14px;padding:8px 14px;font-weight:800;font-size:13px;text-align:center;pointer-events:none;box-shadow:0 3px 10px #0002;animation:parade-turn-away 6s ease-in forwards}

@@ -83,6 +83,16 @@ const kitOnScreen = async (page, i) => {
   assert.ok(await page.evaluate(() => window.__parade().tick < 30), 'calling them all home starts the level again');
   console.log('PASS calling everyone home starts over');
 
+  // once the target is home and every kit is out, a button ends the level without waiting for the stragglers
+  await page.keyboard.press('Space'); await page.getByRole('button', { name: 'Levels' }).click();
+  await page.locator('.parade-level').first().click(); await page.keyboard.press('Enter');
+  assert.equal(await page.locator('.parade-finish').count(), 0, 'no finish button before the target is home');
+  await page.evaluate(() => { const g = window.__parade(); while (g.state === 'play' && !(g.kits.length >= g.level.kits && g.saved >= g.level.need)) g.step(); });
+  await page.locator('.parade-finish').click();
+  await page.getByRole('dialog', { name: 'Results' }).waitFor();
+  console.log('PASS the finish button ends a level once the target is home');
+  await page.keyboard.press('Escape');
+
   await page.getByRole('button', { name: /Sound on/ }).click();
   assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem('kit-parade-v1')))).muted, true, 'mute is saved');
   console.log('PASS the mute switch is saved');

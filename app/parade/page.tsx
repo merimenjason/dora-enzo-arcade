@@ -248,6 +248,7 @@ export default function KitParadePage() {
               <button className="parade-chip" aria-pressed={!muted} onClick={() => { const s = snd(); s.setMuted(!s.muted); P.muted = s.muted; setMuted(s.muted); save(); }} aria-label={muted ? 'Sound off' : 'Sound on'}>{muted ? '🔇' : '🔊'}</button>
             </div>
           </div>
+          {g.state === 'play' && g.kits.length >= g.level.kits && g.saved >= g.level.need && <button className="parade-finish" onClick={() => { g.finish('finish'); finish(g); }}>🏁 Everyone needed is home · finish here</button>}
           <p className="parade-turn" key={g.level.id}>📱 Turn your phone sideways to see more of the parade</p>
           <div className="parade-jobs" role="toolbar" aria-label="Jobs">
             {JOBS.filter((j) => L.jobs[j]).map((j) => (
