@@ -24,18 +24,20 @@ Shared-worktree note: another writer replaced the wood export from this continua
 | `tex-wood.webp` | 1024 × 1024 | 90606 | Passed: WebP, RGB, exact dimensions |
 | `tex-dust.webp` | 1024 × 1024 | 125472 | Passed: WebP, RGB, exact dimensions |
 | `tex-water.webp` | 1024 × 1024 | 129556 | Passed: WebP, RGB, exact dimensions |
-| `card-tree.webp` | 512 × 512 | — | Missing: timeout on initial request and all 3 retries |
-| `card-flowers.webp` | 512 × 512 | — | Missing: timeout on initial request and all 3 retries |
-| `card-lantern-tree.webp` | 512 × 512 | — | Missing: timeout on initial request and all 3 retries |
+| `card-tree.webp` | 512 × 512 | 95132 | Passed: WebP, RGBA, exact dimensions; transparent corners, 56.16% opaque |
+| `card-flowers.webp` | 512 × 512 | 103604 | Passed: WebP, RGBA, exact dimensions; transparent corners, 35.95% opaque |
+| `card-lantern-tree.webp` | 512 × 512 | 108062 | Passed: WebP, RGBA, exact dimensions; transparent corners, 55.89% opaque |
 
 Average RGB differences across decoded opposite edges (edges are not pixel-identical):
 
 - `tex-felt.webp`: 10.85/255 left/right; 11.42/255 top/bottom.
 - `tex-wood.webp`: 1.86/255 left/right; 1.84/255 top/bottom.
 
-Still failed: `card-tree.webp`, `card-flowers.webp`, and `card-lantern-tree.webp`.
+Still failed: none after the chroma-card continuation below; earlier timeout history is retained for provenance.
 
 ## Prompt provenance
+
+The successful chroma-card prompts, processing and validation are recorded in the final continuation below; earlier failed requests remain as historical provenance.
 
 The eight earlier continuation prompts below are the exact text submitted to the built-in generator, unchanged across retries; no image-reference arguments were passed during this continuation. The three protected assets retain their original recorded prompts. Visual references were inspected before generation.
 
@@ -178,4 +180,46 @@ Each prompt was submitted unchanged four times (initial request plus three retri
 > Style: match title.webp reference, warm hand-painted storybook, soft cel shading, gentle ink edges, soft saturated colours.
 > Size: 512×512.
 
-Still failed: `card-tree.webp`, `card-flowers.webp`, `card-lantern-tree.webp`. No card alpha validation was possible because no card file was generated.
+At the end of that earlier continuation all three cards were still failed, so no alpha validation was possible then. All three are now completed and validated by the chroma-card continuation below.
+
+
+## Chroma-card continuation — 27-10-2026
+
+Completed all three missing cards using the built-in image generator. Each succeeded on its initial request; no timeout or retry occurred (up to three retries were allowed). Each request passed only `public/art/putt/title.webp` as its single style reference and explicitly set `transparent_background: false`. No transparency was requested from the generator, and no CLI/API fallback was used. The two existing paintings (`lantern.webp` and `trophy.webp`), title and all other existing art were left untouched.
+
+The exact short prompts below retain the recorded text except that “fully transparent background and corners” was replaced with the chroma isolation instruction. Trees used pure magenta (#ff00ff) to protect green foliage; flowers used pure green (#00ff00). The returned RGB PNGs were 1254 × 1254, then processed locally with Pillow 13.0.0, numpy 2.5.4 and scipy 1.18.1:
+
+- Key foreground by channel dominance below 80: green minus max(red, blue), or min(red, blue) minus green for magenta. This removes background in enclosed gaps as well as outside the object.
+- Feather alpha with signed Euclidean distance, approximately 1.5 pixels at final scale. Remove edge spill by replacing boundary RGB with the nearest safe interior colour (dominance below 30 and more than three final-scale pixels inside).
+- Crop to the nonzero-alpha bounding box, fit proportionally within 504 × 512 using Lanczos, then place on a transparent 512 × 512 canvas, centred horizontally with the base touching the bottom edge. The 504-pixel width limit keeps both bottom corners transparent.
+- Save WebP quality 90, method 6. Reopen and fully decode each export; assert RGBA, 512 × 512, alpha zero at all four corners, at least 15% fully opaque pixels (alpha 255), and nonzero alpha on the bottom row.
+
+Validation: tree 56.16% fully opaque, flowers 35.95%, lantern tree 55.89%. Visually inspected all three exports composited on slate against `public/art/hunt/card-pine.webp` and `card-mushrooms.webp`: warm painted shading and colours fit the references; new foliage is more detailed with lighter outlines. No visible chroma fringe or background ground/shadow remains. The dusk tree has exactly two warm paper lanterns; their painted light on adjacent foliage is preserved, with soft silhouette alpha rather than an added exterior glow.
+
+### Exact successful prompts
+
+#### `public/art/putt/card-tree.webp`
+
+> One round puffy leafy tree with a short trunk, front-view cutout, base at bottom edge, isolated on a flat pure bright magenta #ff00ff background, no ground, no shadow.
+> Style: match title.webp reference, warm hand-painted storybook, soft cel shading, gentle ink edges, soft saturated colours.
+> Size: 512×512.
+
+Source output: `exec-bbd0893a-1a77-47a5-94d0-d0bc5ffb5c7a.png` in the generator's `01a17c09-a97d-7cc2-8ba6-4d00580fd7f1` output directory.
+
+#### `public/art/putt/card-flowers.webp`
+
+> A clump of meadow clover, daisies and little pink flowers with leaves, front-view cutout, base at bottom edge, isolated on a flat pure bright green #00ff00 background, no ground, no shadow.
+> Style: match title.webp reference, warm hand-painted storybook, soft cel shading, gentle ink edges, soft saturated colours.
+> Size: 512×512.
+
+Source output: `exec-cdecec59-1a69-41a1-aee6-05c73ae04400.png` in the generator's `01a17c09-a97d-7cc2-8ba6-4d00580fd7f1` output directory.
+
+#### `public/art/putt/card-lantern-tree.webp`
+
+> One round green-violet tree at dusk with two glowing paper lanterns, front-view cutout, trunk base at bottom edge, isolated on a flat pure bright magenta #ff00ff background, no ground, no shadow.
+> Style: match title.webp reference, warm hand-painted storybook, soft cel shading, gentle ink edges, soft saturated colours.
+> Size: 512×512.
+
+Source output: `exec-f6a961bf-3eba-4c22-a8dc-0938070175ad.png` in the generator's `01a17c09-a97d-7cc2-8ba6-4d00580fd7f1` output directory.
+
+Still failed: none. All eleven documented assets now decode at their requested dimensions.

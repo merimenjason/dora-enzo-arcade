@@ -11,8 +11,8 @@ import {
 export type PuttView = { overview: boolean; dragging: boolean };
 type Theme = { sky: string; fog: number; bg: number; hemi: [number, number, number]; sun: [number, number]; felt: number; rim: number; grass: number; night: boolean; tree: string; treeFallback: string };
 const THEMES: Record<CourseId, Theme> = {
-  clover: { sky: '/art/hunt/sky-meadow.webp', fog: 0xcfe3d6, bg: 0xb7d9ee, hemi: [0xeaf6ff, 0x7c9d55, 1.45], sun: [0xfff1da, 1.75], felt: 0x67b84e, rim: 0xd9a35a, grass: 0x9ccb6b, night: false, tree: '/art/hunt/leaf-cluster.webp', treeFallback: '/art/hunt/leaf-cluster.webp' },
-  lantern: { sky: '/art/putt/sky-lantern.webp', fog: 0x7d6a9a, bg: 0x6c5b93, hemi: [0xd3c3ff, 0x40513f, 1.05], sun: [0xffd6b0, 1.25], felt: 0x58a35a, rim: 0xc98f4c, grass: 0x7aa36a, night: true, tree: '/art/hunt/leaf-cluster.webp', treeFallback: '/art/hunt/leaf-cluster.webp' },
+  clover: { sky: '/art/hunt/sky-meadow.webp', fog: 0xcfe3d6, bg: 0xb7d9ee, hemi: [0xeaf6ff, 0x7c9d55, 1.45], sun: [0xfff1da, 1.75], felt: 0x67b84e, rim: 0xd9a35a, grass: 0x9ccb6b, night: false, tree: '/art/putt/card-tree.webp', treeFallback: '/art/hunt/leaf-cluster.webp' },
+  lantern: { sky: '/art/putt/sky-lantern.webp', fog: 0x7d6a9a, bg: 0x6c5b93, hemi: [0xd3c3ff, 0x40513f, 1.05], sun: [0xffd6b0, 1.25], felt: 0x58a35a, rim: 0xc98f4c, grass: 0x7aa36a, night: true, tree: '/art/putt/card-lantern-tree.webp', treeFallback: '/art/hunt/leaf-cluster.webp' },
 };
 const GROUND = -0.45, RAIL_H = 0.2, RAIL_T = 0.24, POST = 0.3, HERO_SCALE = 0.42;
 const V = (x = 0, y = 0, z = 0) => new T.Vector3(x, y, z);
@@ -427,7 +427,7 @@ export function createPuttScene(canvas: HTMLCanvasElement, ready: () => void, fa
       for (let dz = -pad; dz <= pad; dz += 0.5) for (let dx = -pad; dx <= pad; dx += 0.5) { const t = h.tiles[Math.floor(z + dz)]?.[Math.floor(x + dx)]; if (t && t.kind !== 'void') return true; }
       return false;
     };
-    const tree = card(th.tree, th.treeFallback), flowers = card('/art/hunt/grass-tuft.webp', '/art/hunt/grass-tuft.webp'), shrooms = card('/art/hunt/card-mushrooms.webp', '/art/hunt/grass-tuft.webp');
+    const tree = card(th.tree, th.treeFallback), flowers = card('/art/putt/card-flowers.webp', '/art/hunt/grass-tuft.webp'), shrooms = card('/art/hunt/card-mushrooms.webp', '/art/hunt/grass-tuft.webp');
     const sprite = (map: T.Texture, x: number, z: number, size: number) => { const m = noOutline(new T.SpriteMaterial({ map, transparent: true, alphaTest: 0.35, fog: true })); const s = new T.Sprite(m); s.center.set(0.5, 0.02); s.scale.setScalar(size); s.position.set(x, GROUND, z); holeRoot.add(s); return s; };
     const cx = h.w / 2, cz = h.d / 2, R = Math.max(h.w, h.d) / 2;
     let placed = 0;
