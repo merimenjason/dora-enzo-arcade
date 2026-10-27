@@ -1,0 +1,146 @@
+.pebble-shell{position:relative;width:100%;height:100svh;min-height:480px;overflow:hidden;background:#f3e3c4;color:#4a2e18;font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;isolation:isolate;user-select:none;-webkit-user-select:none}
+.pebble-shell *{box-sizing:border-box}
+/* the global stylesheet colours every <p>; in here paragraphs take their colour from where they sit */
+:where(.pebble-shell) p{color:inherit;font-size:inherit;line-height:1.45;margin:0}
+.pebble-shell h1,.pebble-shell h2{margin:0;font-family:inherit;color:inherit}
+.pebble-shell button,.pebble-shell a{font:inherit}
+.pebble-shell button{border:2px solid #7a5230;border-radius:14px;background:#fff5e2;color:#4a2e18;font-weight:800;padding:10px 15px;cursor:pointer;min-height:42px;transition:background .15s,transform .15s,box-shadow .15s;box-shadow:0 3px 0 #7a5230}
+.pebble-shell button:hover:not(:disabled){background:#fff0cf;transform:translateY(-1px)}
+.pebble-shell button:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #7a5230}
+.pebble-shell button:disabled{opacity:.5;cursor:default}
+.pebble-shell button:focus-visible,.pebble-shell a:focus-visible{outline:3px solid #ff8f5a;outline-offset:2px}
+.pebble-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.pebble-shell .pebble-chip{min-height:36px;padding:6px 11px;font-size:13px;border-radius:999px}
+.pebble-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.pebble-row>button,.pebble-row>a{flex:1 1 150px}
+.pebble-row-tight{display:flex;gap:6px}
+.pebble-eyebrow{font-size:12px;font-weight:900;letter-spacing:2.5px;color:#c0602e}
+
+/* ---- title */
+.pebble-title{position:absolute;inset:0;overflow:auto;padding:16px max(16px,calc(50% - 520px)) 28px;display:flex;flex-direction:column;gap:14px;background:linear-gradient(180deg,#fdf1d8f0,#f6e2bcf5)}
+.pebble-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.pebble-back{color:#4a2e18;font-size:12px;font-weight:900;letter-spacing:1px;text-decoration:none;background:#fff5e2;border:2px solid #7a5230;border-radius:12px;padding:8px 12px}
+.pebble-hero{position:relative;border-radius:24px;overflow:hidden;min-height:220px;display:flex;align-items:flex-end;background:linear-gradient(160deg,#8fd0f0,#cfeec0 60%,#9fcf7a);box-shadow:0 10px 30px #7a523040;border:3px solid #7a5230}
+.pebble-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pebble-hero>div{position:relative;padding:22px 24px;width:100%;background:linear-gradient(0deg,#fff6e4f0,#fff6e400)}
+.pebble-hero h1{font-size:clamp(46px,8vw,84px);line-height:.95;font-weight:900;letter-spacing:-1px;color:#5a3418;text-shadow:0 4px 0 #f0c070}
+.pebble-hero h1 em{font-style:normal;color:#ff7a59;text-shadow:0 4px 0 #ffd2a0}
+.pebble-sub{font-size:15px;font-weight:700;max-width:560px;margin-top:4px!important}
+.pebble-chars{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pebble-shell .pebble-char{display:flex;gap:12px;align-items:center;text-align:left;padding:10px;border-radius:18px;background:#fff8ea}
+.pebble-shell .pebble-char.is-on{background:#ffe7b8;border-color:#c0602e;box-shadow:0 3px 0 #c0602e,0 0 0 4px #ff8f5a55}
+.pebble-portrait{flex:none;width:84px;height:84px;border-radius:16px;background-size:cover;background-position:center;background-color:#f0d8b0;position:relative;border:2px solid #7a523060}
+.pebble-portrait b{position:absolute;inset:0;display:grid;place-items:center;font-size:34px;z-index:-1}
+.pebble-char strong{font-size:20px;display:block}
+.pebble-char small{display:block;font-size:12.5px;font-weight:700;color:#6a4a30;margin-top:2px}
+.pebble-char .pebble-wins{color:#c0602e;font-weight:900}
+.pebble-go-row{display:flex;flex-direction:column;gap:8px}
+.pebble-shell .pebble-go{background:linear-gradient(90deg,#ff8f5a,#ffb35c);border-color:#a4482a;color:#fff;font-size:18px;font-weight:900;letter-spacing:.5px;min-height:54px;box-shadow:0 5px 0 #a4482a;text-shadow:0 2px 0 #a4482a}
+.pebble-shell .pebble-go:hover:not(:disabled){background:linear-gradient(90deg,#ffa070,#ffc27a)}
+.pebble-shell .pebble-go.is-alt{background:linear-gradient(90deg,#7fc6a0,#9fdcb0);border-color:#3f7f5c;box-shadow:0 5px 0 #3f7f5c;text-shadow:0 2px 0 #3f7f5c;font-size:16px}
+.pebble-records{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0}
+.pebble-records div{background:#fff8ea;border:2px solid #7a523040;border-radius:14px;padding:8px 6px;text-align:center}
+.pebble-records dt{font-size:11px;font-weight:900;letter-spacing:1px;color:#a0704a;text-transform:uppercase}
+.pebble-records dd{margin:2px 0 0;font-size:18px;font-weight:900}
+.pebble-found{background:#fff8ea;border:2px solid #7a523040;border-radius:18px;padding:12px 14px}
+.pebble-found h2{font-size:15px;letter-spacing:.5px;margin-bottom:8px}
+.pebble-found ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px}
+.pebble-found li{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:12px;background:#efe2cc;color:#a08a70}
+.pebble-found li span{font-size:24px;line-height:1.1}
+.pebble-found li small{font-size:10.5px;font-weight:800;text-align:center;line-height:1.15}
+.pebble-found li.got{background:#ffe9bd;color:#4a2e18}
+.pebble-how{font-size:13px;text-align:center;color:#6a4a30}
+.pebble-how b{color:#c0602e}
+
+/* ---- in a wall */
+.pebble-hud{position:absolute;left:0;right:0;top:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:10px 12px;pointer-events:none}
+.pebble-hud>*{pointer-events:auto}
+.pebble-lives{display:inline-flex;gap:4px;background:#fff5e2e6;border:2px solid #7a5230;border-radius:999px;padding:5px 9px}
+.pebble-lives i{width:13px;height:11px;border-radius:50%;background:#d8cfc4;box-shadow:inset 0 -2px 0 #0002}
+.pebble-lives i.on{background:radial-gradient(circle at 35% 35%,#e6e0d8,#7a716a);box-shadow:inset 0 -2px 0 #0003,0 0 0 1px #4e4640}
+.pebble-acorns{font-weight:900;background:#fff5e2e6;border:2px solid #7a5230;border-radius:999px;padding:4px 11px;font-variant-numeric:tabular-nums}
+.pebble-where,.pebble-score{display:flex;flex-direction:column;background:#fff5e2e6;border:2px solid #7a5230;border-radius:14px;padding:3px 11px;line-height:1.15}
+.pebble-where small,.pebble-score small{font-size:11px;font-weight:800;color:#8a6040}
+.pebble-score{margin-left:auto;align-items:flex-end;min-width:96px}
+.pebble-score b{font-size:18px;font-variant-numeric:tabular-nums}
+.pebble-ups{display:inline-flex;flex-wrap:wrap;gap:3px}
+.pebble-ups i{position:relative;font-style:normal;font-size:17px;width:30px;height:30px;display:grid;place-items:center;background:#fff5e2e6;border:2px solid #7a523099;border-radius:10px}
+.pebble-ups i b{position:absolute;right:-5px;bottom:-5px;font-size:10px;background:#c0602e;color:#fff;border-radius:999px;padding:0 4px;line-height:15px}
+.pebble-hud .pebble-ups{position:absolute;left:12px;top:62px;flex-direction:column;max-height:calc(100% - 80px)}
+.pebble-shell .pebble-spin{position:absolute;right:14px;bottom:14px;width:84px;height:62px;border-radius:18px;overflow:hidden;padding:0;display:none;background:#e8f6ff;border-color:#3f7fa8;box-shadow:0 4px 0 #3f7fa8;touch-action:none}
+.pebble-spin i{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(0deg,#7fc8f0,#c8ecff)}
+.pebble-spin span{position:relative;font-size:13px;font-weight:900;color:#1f4f70}
+.pebble-spin.is-ready{box-shadow:0 4px 0 #3f7fa8,0 0 16px #9fe0ff}
+@media (pointer:coarse){.pebble-shell .pebble-spin{display:block}}
+
+/* ---- the map */
+.pebble-mapview{position:absolute;inset:0;display:flex;flex-direction:column;gap:8px;padding:12px max(12px,calc(50% - 300px)) 0;background:linear-gradient(180deg,#fdf1d8f2,#f6e2bcf5)}
+.pebble-maphead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pebble-mapups{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:30px}
+.pebble-syn{display:inline-block;font-size:12px;font-weight:900;color:#7a3fa0;background:#f3e2ff;border:1.5px solid #b48cd8;border-radius:999px;padding:3px 9px}
+.pebble-maptip{font-size:13px;font-weight:800;color:#8a6040;text-align:center}
+.pebble-map{flex:1;overflow:auto;border-radius:18px 18px 0 0;border:3px solid #7a5230;border-bottom:0;background:#fffaf0;position:relative}
+.pebble-trail{position:relative;width:100%}
+.pebble-band{position:absolute;left:0;right:0;border-bottom:2px dashed #7a523030}
+.pebble-band span{position:absolute;left:8px;top:6px;font-size:11px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:#7a5230aa}
+.b-meadow{background:linear-gradient(180deg,#e2f4d2,#cfeabb)}
+.b-creek{background:linear-gradient(180deg,#d8f0f0,#c2e6ea)}
+.b-frosty{background:linear-gradient(180deg,#f2f6fc,#e2ecf8)}
+.b-barn{background:linear-gradient(180deg,#fbe6cc,#f3d4ac)}
+.pebble-lines{position:absolute;inset:0;width:100%;height:100%}
+.pebble-lines line{stroke:#7a523055;stroke-width:3;stroke-dasharray:2 6;stroke-linecap:round}
+.pebble-lines line.live{stroke:#ff7a59;stroke-dasharray:none;stroke-width:4}
+.pebble-shell .pebble-node{position:absolute;transform:translate(-50%,-50%);width:48px;height:48px;min-height:0;padding:0;border-radius:50%;display:grid;place-items:center;background:#fff5e2;box-shadow:0 3px 0 #7a5230;z-index:1}
+.pebble-node span{font-size:22px;line-height:1}
+.pebble-node small{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;white-space:nowrap;font-size:11px;font-weight:900;background:#fff5e2;border-radius:999px;padding:1px 7px;border:1.5px solid #7a523070}
+.pebble-shell .pebble-node:disabled{opacity:.55}
+.pebble-shell .pebble-node.is-past{opacity:.35}
+.pebble-shell .pebble-node.is-here{opacity:1;background:#ffe7b8;border-color:#c0602e;box-shadow:0 3px 0 #c0602e,0 0 0 5px #ff8f5a44}
+.pebble-shell .pebble-node.is-open{opacity:1;border-color:#c0602e;animation:pebble-bob 1.2s ease-in-out infinite}
+.pebble-shell .pebble-node.k-boss{width:58px;height:58px;background:#ffe0d0}
+.pebble-shell .pebble-node.k-elite{background:#e6e0f0}
+@keyframes pebble-bob{50%{transform:translate(-50%,-56%)}}
+
+/* ---- panels: reward, shop, rest, pause, end */
+.pebble-panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(680px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;background:#fff6e4f5;border:3px solid #7a5230;border-radius:24px;padding:20px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center;box-shadow:0 18px 50px #4a2e1860;animation:pebble-in .25s ease-out;z-index:2}
+.pebble-panel>*{width:100%}
+.pebble-panel .pebble-lives{width:auto}
+@keyframes pebble-in{from{opacity:0;transform:translate(-50%,-46%)}}
+.pebble-panel h2{font-size:24px;display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap}
+.pebble-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.pebble-shell .pebble-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 10px 12px;border-radius:18px;background:#fffdf6;text-align:center;animation:pebble-deal .35s cubic-bezier(.3,1.5,.5,1) backwards}
+.pebble-card:nth-child(2){animation-delay:.07s}.pebble-card:nth-child(3){animation-delay:.14s}.pebble-card:nth-child(4){animation-delay:.21s}
+@keyframes pebble-deal{from{opacity:0;transform:translateY(24px) rotate(-3deg)}}
+.pebble-shell .pebble-card:hover:not(:disabled){background:#fff3d6;transform:translateY(-3px)}
+.pebble-card kbd{position:absolute;left:8px;top:6px;font:900 11px ui-rounded,system-ui,sans-serif;color:#a0704a}
+.pebble-card-icon{font-size:38px;line-height:1.1}
+.pebble-card strong{font-size:16px}
+.pebble-card small{font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase}
+.r-common{color:#6a8a50}.r-uncommon{color:#3f7fa8}.r-rare{color:#b05aa8}
+.pebble-card-text{font-size:13px;font-weight:600;color:#5a3d22;line-height:1.35}
+.pebble-card .pebble-syn{font-size:11px}
+.pebble-price{margin-top:auto;font-weight:900;color:#a4482a;background:#ffe7b8;border-radius:999px;padding:3px 10px}
+.pebble-card.is-sold{background:#efe6d6}
+.pebble-shell .pebble-skip{background:transparent;box-shadow:none;border-style:dashed;font-size:13px}
+.pebble-news{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.pebble-news b{background:#ff8f5a;color:#fff;border-radius:999px;padding:5px 12px;font-size:12px;letter-spacing:1px}
+.pebble-end h2{font-size:22px}
+.pebble-end-ups{justify-content:center;display:flex}
+.pebble-linkbtn{display:grid;place-items:center;flex:1 1 150px;border:2px solid #7a5230;border-radius:14px;background:#fff5e2;color:#4a2e18;font-weight:800;text-decoration:none;min-height:42px;box-shadow:0 3px 0 #7a5230}
+.pebble-error{z-index:3}
+
+@media (max-width:640px){
+  .pebble-chars{grid-template-columns:1fr}
+  .pebble-records{grid-template-columns:repeat(2,1fr)}
+  .pebble-hero{min-height:180px}
+  .pebble-hud{padding:8px;gap:5px 6px}
+  .pebble-where{display:none}
+  .pebble-score{min-width:0}
+  .pebble-score b{font-size:15px}
+  .pebble-hud .pebble-ups{display:none}
+  .pebble-cards{grid-template-columns:1fr}
+  .pebble-shell .pebble-card{flex-direction:row;flex-wrap:wrap;text-align:left;justify-content:flex-start;gap:4px 10px;padding:10px 12px 10px 28px}
+  .pebble-card-icon{font-size:30px}
+  .pebble-card-text{flex-basis:100%}
+  .pebble-panel{padding:16px 14px}
+}
