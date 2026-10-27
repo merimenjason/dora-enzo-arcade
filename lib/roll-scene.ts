@@ -1,6 +1,7 @@
 import * as T from 'three';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { propGeometry } from './roll-props';
 import { createHuntChinchilla, animateHuntChinchilla, poseArms, type HuntChinchilla } from './hunt-chinchilla';
 import { KINDS, INTRO, topSpeed, type Kind, type RollEvent, type RollGame } from './roll-game';
 
@@ -102,7 +103,8 @@ export function createRollScene(canvas: HTMLCanvasElement, ready: () => void) {
     const merged = mergeGeometries(parts); for (const p of parts) p.dispose(); return geo(merged!);
   }
   const shapes = new Map<string, T.BufferGeometry>();
-  const shapeFor = (id: string) => { let g = shapes.get(id); if (!g) { g = shapeOf(KINDS[id]); shapes.set(id, g); } return g; };
+  // Codex's modelled props where there is one, the primitive stand-in otherwise
+  const shapeFor = (id: string) => { let g = shapes.get(id); if (!g) { const made = propGeometry(KINDS[id]); g = made ? geo(made) : shapeOf(KINDS[id]); shapes.set(id, g); } return g; };
 
   let meshes: T.InstancedMesh[] = [], slots: Slot[] = [], stuck = new Map<number, Stuck>(), hops = new Map<number, number>();
   /** Critters and golden things are redrawn every frame; the rest only move when they stick, fall off or hop. */
@@ -302,7 +304,7 @@ export function createRollScene(canvas: HTMLCanvasElement, ready: () => void) {
 
   function resize() { if (closed) return; const w = Math.max(1, canvas.clientWidth), h = Math.max(1, canvas.clientHeight); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
   const observer = new ResizeObserver(resize); observer.observe(canvas); resize();
-  function metrics() { return { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, textures: renderer.info.memory.textures, geometries: renderer.info.memory.geometries }; }
+  function metrics() { return { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, textures: renderer.info.memory.textures, geometries: renderer.info.memory.geometries, rings: rings.count }; }
   function dispose() {
     closed = true; observer.disconnect();
     for (const m of meshes) m.dispose();

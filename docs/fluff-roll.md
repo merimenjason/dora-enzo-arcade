@@ -1,6 +1,6 @@
 # Fluff Roll
 
-Planned game 41, at `/roll`: a 3D rolling-and-growing game in the spirit of Katamari Damacy. Dora pushes a dust ball round the meadow, and everything smaller than it sticks. Written 27-10-2026; this is the greybox stage, not yet on the arcade menu.
+Game 41, at `/roll`: a 3D roll-and-grow game. Dora pushes a dust ball round the meadow, and everything smaller than it sticks. Written 27-10-2026.
 
 ## The game
 
@@ -19,8 +19,10 @@ Planned game 41, at `/roll`: a 3D rolling-and-growing game in the spirit of Kata
 | --- | --- | --- | --- | --- | --- |
 | 1 | Dust Bath Corner | 8 cm | 40 cm | 3 min | 14 m |
 | 2 | Clover Garden | 32 cm | 1.6 m | 4 min | 52 m |
+| 3 | Hay Barn Yard | 1.6 m | 8 m | 5 min | 180 m |
+| 4 | The Whole Meadow | 6 m | 30 m | 3½ min | 660 m |
 
-Planned: **Hay Barn Yard** (hay carts, haystacks, trees, sheds and a sleepy Bristleback; about 1.6 m to 8 m) and **The Whole Meadow** (windmills, the big red barn; about 6 m to 30 m), with themed goals such as "only round things".
+The Whole Meadow has the shortest clock because a ball that big crosses the meadow in seconds. Its biggest things are farmhouses, barns and grassy hills 18 m across, and a fast roll gathers every last thing in it.
 
 ## Controls
 
@@ -40,23 +42,32 @@ Planned: **Hay Barn Yard** (hay carts, haystacks, trees, sheds and a sleepy Bris
 
 | Level | Goal reached at | Final size |
 | --- | --- | --- |
-| Dust Bath Corner | 78–91 s of 180 | 69 cm |
+| Dust Bath Corner | 77–97 s of 180 | 69 cm |
 | Clover Garden | 95–113 s of 240 | 2.5–3.1 m |
+| Hay Barn Yard | 125–155 s of 300 | 13 m |
+| The Whole Meadow | 81–102 s of 210 | 48 m |
 
-The first level's start was made much denser after a play-through showed that rolling straight ahead for 8 s caught nothing. Adding the critters and golden acorns moved the seeded layout and emptied the start again, so it now has a fixed starter carpet of seeds, crumbs and clover within 1 m; rolling straight ahead for 8 s catches about 16 things.
+The first level's start was made much denser after a play-through showed that rolling straight ahead for 8 s caught nothing. Adding the critters and golden acorns moved the seeded layout and emptied the start again, so it now has a fixed starter carpet of 300 seeds, crumbs and clover leaves within 1.3 m of the start.
 
 `node tests/roll.mjs` checks the layout replays, sticking and bumping, the next-up hint and its call-out, streaks, golden acorns, critters (they wander, run and still get caught) and the save.
 
 ## Drawing (`lib/roll-scene.ts`)
 
 - Toon materials and the ink outline, as in Grumble Hunt and Puttering Paws, with Grumble Hunt's meadow sky and grass and the Puttering Paws dust and wood textures.
-- Every kind of thing is one merged, vertex-coloured shape built from primitives, drawn as one instanced mesh, so a level costs about one draw call per kind (about 290 with outlines and shadows). Tiny things use fewer segments.
+- Every kind of thing has a modelled low-poly prop in `lib/roll-props.ts` (made by Codex: a teacup with a handle, a sock with a heel, a duckling with a beak), merged into one vertex-coloured shape, with a primitive stand-in for any kind without one. Each kind is drawn as one instanced mesh, so a level costs about one draw call per kind (about 290 with outlines and shadows). Tiny things use fewer segments.
 - A stuck thing is stored in the ball's own turning frame, standing out from the surface like a pin in a cushion. Things buried deeper than 55% of the current radius are hidden.
 - Rings are one instanced mesh, rebuilt every frame from the things within 12 ball radii; sparkles are a pool of 160 instanced bits that burst from where a thing sticks (gold and bigger for a golden acorn).
 - Dora stands a little shorter than the ball, so the camera behind her sees the ball over her head.
 - The camera sits behind the heading and pulls back and up as the ball grows; Dora grows more slowly than the ball, so late in a level she is small beside it.
 
-## Next
+## Tests
 
-- Painted props: proper models per kind (a teacup with a handle, a sock with a heel) and Codex paintings for the menu.
-- Levels 3 and 4, then the arcade card, README, tests and browser suite.
+- `npm run test:roll` and `npm run bot:roll`, both in `npm test`.
+- `npm run test:e2e:roll` checks:
+  - the arcade card and the level menu;
+  - rolling with the keys and with a drag;
+  - a ring and the "too big" note at the dust-bath tub;
+  - pausing;
+  - finishing a level, which opens the next one and saves;
+  - The Whole Meadow's draw calls;
+  - the phone HUD.

@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of forty original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of forty-one original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -50,6 +50,7 @@ Listed in arcade-menu order.
 | 38 | Glimmer Cave | `/cave` | Cave survival |
 | 39 | Grumble Hunt | `/hunt` | 3D storybook hunting adventure |
 | 40 | Puttering Paws | `/putt` | 3D mini golf |
+| 41 | Fluff Roll | `/roll` | 3D roll-and-grow |
 
 ## Run
 
@@ -949,6 +950,18 @@ Eighty stages in eight chapters, each stage worth up to three stars (cleared, no
 
 **Docs:** [`docs/puttering-paws.md`](docs/puttering-paws.md) and the [art list](docs/puttering-paws-art.md).
 
+### 41 · Fluff Roll (`/roll`)
+
+**Play:** A 3D roll-and-grow game. Dora pushes a fluffy dust ball round a fenced meadow while Enzo rides on top and calls out every catch. Anything with a footprint up to 0.6 of the ball's radius sticks to it, and the ball keeps 0.4 of each catch's volume, so it grows. Bigger things are in the way: a coral ring on the ground marks every one near the ball, and bumping one says what it is and the size it sticks at. The HUD names the next kind you'll grow into, and when the ball gets big enough for a new kind, a banner says so and every one nearby hops. Hitting something too big at more than 0.6 of top speed knocks up to three small things off; they can be rolled up again after a moment. Ladybirds, beetles, field mice, ducklings and ducks wander about, and run from a ball that could catch them, though never faster than it can roll. Each level hides three golden acorns, each worth 5 more seconds. Catches less than a second apart build a streak.
+
+Four levels open in turn, each with a starting size, a goal and a clock: **Dust Bath Corner** (8 cm to 40 cm in 3 minutes), **Clover Garden** (32 cm to 1.6 m in 4 minutes), **Hay Barn Yard** (1.6 m to 8 m in 5 minutes) and **The Whole Meadow** (6 m to 30 m in 3½ minutes, from hay bales to barns and grassy hills). Reaching the goal opens the next level, and you keep rolling until the clock runs out: one star for the goal, two for 1.35 times it, three for 1.65 times. The Fluffbook records every kind of thing you have ever rolled up.
+
+**Controls:** Press anywhere and drag, like a joystick: up rolls forward, sideways turns and edges the ball across. Or use **↑/↓** (or **W/S**) to roll and **←/→** (or **A/D**) to turn. **Space** skips the intro, **Escape** pauses and **M** toggles sound. Progress saves under `fluff-roll-v1` and sound under `fluff-roll-sound-v1`.
+
+**Tests:** `npm run test:roll` (also in `npm test`) compiles `lib/roll-game.ts` and runs `tests/roll.mjs`. It checks that layouts and replays repeat exactly, and covers sticking and bumping, the next-up hint and its call-out, streaks, golden acorns, critters wandering, running and still being caught, and the save. `npm run bot:roll` (also in `npm test`) plays every level four times as a busy player who steers round things too big to roll, backs out when wedged and gives up on a chase after 4 seconds. It fails unless the goal comes between 35% and 80% of the clock. `npm run test:e2e:roll` checks the arcade entry, the level menu, rolling with the keys and the joystick, the rings, pausing, finishing a level, the phone layout and the draw-call budget.
+
+**Docs:** [`docs/fluff-roll.md`](docs/fluff-roll.md).
+
 ## Validation
 
 ```sh
@@ -968,7 +981,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty ways/` assertion in `tests/e2e/dust-bath.mjs`, the 40-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-one ways/` assertion in `tests/e2e/dust-bath.mjs`, the 41-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-two games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

@@ -37,7 +37,7 @@
 .roll-help{font-size:12px;line-height:1.5;color:#7b6551;background:#fffaf0cc;border-radius:12px;padding:10px 12px}
 
 /* in play */
-.roll-hud{position:absolute;inset:0 0 auto;z-index:5;display:flex;align-items:flex-start;gap:10px;padding:12px 14px;pointer-events:none}
+.roll-hud{position:absolute;inset:0 0 auto;z-index:5;display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px;padding:12px 14px;pointer-events:none}
 .roll-hud>*{pointer-events:auto}
 .roll-card{display:flex;flex-direction:column;background:#fff9ebee;border-radius:14px;box-shadow:0 4px 14px #2a3a2226;padding:9px 13px}
 .roll-small{font-size:10px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#9a8670}
@@ -74,11 +74,13 @@
 @keyframes roll-pop{from{transform:translateX(-50%) scale(.85);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
 @media (max-width:600px){
   .roll-hud{padding:8px;gap:6px}
-  .roll-card{padding:7px 10px}
+  .roll-card{padding:6px 8px}
+  .roll-tools{gap:4px}
+  .roll-tools button{padding:6px 8px;font-size:12px;min-height:36px}
   .roll-size{font-size:24px}
   .roll-bar{width:110px}
   .roll-time strong{font-size:20px}
   .roll-gold strong{font-size:20px}
-  .roll-next{max-width:130px;font-size:11px}
+  .roll-next{max-width:118px;font-size:11px}
   .roll-levels li{grid-template-columns:1fr}
 }

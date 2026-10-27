@@ -89,6 +89,11 @@ export const KINDS: Record<string, Kind> = Object.fromEntries([
   K('shed', 'garden shed', 'garden sheds', 2.2, 2.8, 'house', 0xd9c3a0, 0xc4683f, ['house']),
   K('windmill', 'windmill', 'windmills', 2.6, 6, 'house', 0xf4e3c2, 0xe8c56a, ['house']),
   K('barn', 'big red barn', 'big red barns', 5, 7, 'house', 0xd9493e, 0xffffff, ['house']),
+  K('tractor', 'little tractor', 'little tractors', 1.9, 2.4, 'box', 0xd9493e, 0x3b3631, []),
+  K('silo', 'grain silo', 'grain silos', 2.4, 9, 'disc', 0xd9d4c8, 0x9fb7c9, ['round']),
+  K('oak', 'old oak', 'old oaks', 3.2, 10, 'tree', 0x4f8f3a, 0x7a4f27, ['green']),
+  K('farmhouse', 'farmhouse', 'farmhouses', 4, 6.5, 'house', 0xf4e3c2, 0x9b4a3a, ['house']),
+  K('hill', 'grassy hill', 'grassy hills', 9, 6, 'ball', 0x7fb35d, undefined, ['green', 'round']),
 ].map((k) => [k.id, k]));
 for (const [id, walk] of Object.entries({ ladybird: 0.05, beetle: 0.07, mouse: 0.16, duckling: 0.3, duck: 0.4 })) KINDS[id].walk = walk;
 /** Seconds added to the clock for every golden thing rolled up. */
@@ -120,7 +125,7 @@ export const LEVELS: LevelSpec[] = [
     start: 0.04, goal: 0.2, time: 180, half: 7, seed: 41,
     spawns: [
       // a carpet of crumbs right round the start, so the very first push picks things up
-      { kind: 'seed', n: 50, ring: [0.13, 0.9] }, { kind: 'crumb', n: 50, ring: [0.13, 0.9] }, { kind: 'clover', n: 40, ring: [0.13, 1] },
+      { kind: 'seed', n: 110, ring: [0.13, 1.2] }, { kind: 'crumb', n: 110, ring: [0.13, 1.2] }, { kind: 'clover', n: 80, ring: [0.13, 1.3] },
       { kind: 'seed', n: 260, ring: [0.12, 2.4], patches: 26 }, { kind: 'crumb', n: 220, ring: [0.12, 2.6], patches: 22 },
       { kind: 'clover', n: 220, ring: [0.15, 3.2], patches: 24 }, { kind: 'pebble', n: 110, ring: [0.3, 3.6], patches: 12 },
       { kind: 'raisin', n: 90, ring: [0.5, 3.4], patches: 10 }, { kind: 'blueberry', n: 70, ring: [0.9, 3.8], patches: 9 },
@@ -158,6 +163,35 @@ export const LEVELS: LevelSpec[] = [
       { kind: 'bale', n: 8, ring: [15, 25] }, { kind: 'barrow', n: 3, ring: [16, 25] }, { kind: 'bush', n: 8, ring: [17, 25] },
       { kind: 'bench', n: 3, ring: [18, 25] },
       { kind: 'mouse', n: 12, ring: [1, 10] }, { kind: 'duckling', n: 15, ring: [4, 16], patches: 3 }, { kind: 'golden', n: 3, ring: [9, 24] },
+    ],
+  },
+  {
+    id: 'yard', name: 'Hay Barn Yard', blurb: 'Hay bales, wheelbarrows, sheds and a sleepy Bristleback. Roll up a fluffball as tall as a haystack!',
+    start: 0.8, goal: 4, time: 300, half: 90, seed: 113,
+    spawns: [
+      { kind: 'slipper', n: 24, ring: [2, 12], patches: 4 }, { kind: 'wicker', n: 24, ring: [2, 12] }, { kind: 'pot', n: 40, ring: [2, 15], patches: 6 },
+      { kind: 'can', n: 20, ring: [2, 15] }, { kind: 'cushion', n: 30, ring: [3, 18] }, { kind: 'tub', n: 20, ring: [4, 20] },
+      { kind: 'mouse', n: 20, ring: [2, 20] }, { kind: 'cabbage', n: 60, ring: [3, 20], patches: 8 }, { kind: 'bucket', n: 30, ring: [3, 22] },
+      { kind: 'pumpkin', n: 50, ring: [4, 28], patches: 6 }, { kind: 'sunflower', n: 60, ring: [5, 30], patches: 6 }, { kind: 'flag', n: 12, ring: [5, 30] },
+      { kind: 'hedgehog', n: 16, ring: [6, 30] }, { kind: 'duckling', n: 30, ring: [5, 30], patches: 4 }, { kind: 'duck', n: 20, ring: [6, 34], patches: 4 },
+      { kind: 'crate', n: 30, ring: [8, 36], patches: 5 }, { kind: 'birdbath', n: 10, ring: [8, 36] }, { kind: 'chair', n: 16, ring: [10, 40] },
+      { kind: 'bale', n: 60, ring: [10, 50], patches: 8 }, { kind: 'barrow', n: 14, ring: [12, 50] }, { kind: 'bench', n: 14, ring: [12, 50] },
+      { kind: 'bush', n: 40, ring: [14, 60], patches: 6 }, { kind: 'barrel', n: 24, ring: [14, 60] }, { kind: 'bristle', n: 10, ring: [18, 60] },
+      { kind: 'cart', n: 18, ring: [20, 70] }, { kind: 'haystack', n: 24, ring: [22, 75], patches: 4 }, { kind: 'tree', n: 40, ring: [24, 85], patches: 6 },
+      { kind: 'shed', n: 12, ring: [30, 85] }, { kind: 'tractor', n: 8, ring: [30, 85] }, { kind: 'windmill', n: 6, ring: [45, 85] },
+      { kind: 'barn', n: 4, ring: [50, 85] }, { kind: 'golden', n: 3, ring: [25, 85] },
+    ],
+  },
+  {
+    id: 'meadow', name: 'The Whole Meadow', blurb: 'Haystacks, windmills, barns and grassy hills. Roll up the whole meadow!',
+    start: 3, goal: 15, time: 210, half: 330, seed: 211,
+    spawns: [
+      { kind: 'duck', n: 40, ring: [6, 50], patches: 6 }, { kind: 'barrel', n: 40, ring: [6, 60] }, { kind: 'bench', n: 30, ring: [6, 60] },
+      { kind: 'bristle', n: 30, ring: [8, 60] }, { kind: 'bale', n: 120, ring: [10, 80], patches: 12 }, { kind: 'bush', n: 80, ring: [10, 90], patches: 10 },
+      { kind: 'cart', n: 60, ring: [15, 110], patches: 8 }, { kind: 'haystack', n: 70, ring: [20, 130], patches: 8 }, { kind: 'tree', n: 120, ring: [20, 160], patches: 12 },
+      { kind: 'shed', n: 40, ring: [30, 170] }, { kind: 'tractor', n: 30, ring: [30, 170] }, { kind: 'windmill', n: 30, ring: [50, 220] },
+      { kind: 'silo', n: 30, ring: [50, 220] }, { kind: 'barn', n: 40, ring: [60, 260] }, { kind: 'oak', n: 60, ring: [60, 260], patches: 8 },
+      { kind: 'farmhouse', n: 30, ring: [90, 300] }, { kind: 'hill', n: 30, ring: [140, 320] }, { kind: 'golden', n: 3, ring: [100, 320] },
     ],
   },
 ];
