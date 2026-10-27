@@ -1,0 +1,49 @@
+/* Paw Fighter II: guard bars, combo readouts, trials, versus setup, modes and medals. The cabinet itself is in globals.css. */
+.fighter-guard{height:4px;margin-top:4px;background:#3b3346;transform:skewX(-10deg);overflow:hidden}
+.fighter-guard i{display:block;height:100%;background:linear-gradient(90deg,#8fd8ff,#c9ecff);transition:width .1s}
+.fighter-vitals.rival .fighter-guard i{margin-left:auto}
+.fighter-guard.low i{background:linear-gradient(90deg,#ff8a6a,#ffc16a);animation:fighter-blink .35s steps(2) infinite}
+@keyframes fighter-blink{50%{opacity:.45}}
+.fighter-combo{left:25px;top:46px;font:900 italic 22px Arial;color:#ffe4a0;text-shadow:3px 3px #933d56;animation:fighter-pop .18s ease-out}
+.fighter-combo b{font-size:46px;margin-right:4px;color:#ffda75}
+.fighter-combo.right{left:auto;right:25px;text-align:right}
+@keyframes fighter-pop{from{transform:scale(1.35)}to{transform:scale(1)}}
+.fighter-unlock{position:absolute;top:44%;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;animation:fighter-pop .25s ease-out}
+.fighter-unlock b{font:900 italic 20px Arial;color:#2b2030;background:#ffda75;padding:8px 16px;border-bottom:4px solid #9c6940;letter-spacing:.5px}
+.fighter-trials{position:absolute;right:18px;bottom:16px;width:240px;background:#1d1a2ce8;border:1px solid #6c5570;border-radius:6px;padding:10px 12px}
+.fighter-trials>span{display:block;font-size:9px;letter-spacing:1.5px;color:#f0ad86;margin-bottom:6px}
+.fighter-trials ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.fighter-trials button{width:100%;text-align:left;font-size:11px;padding:5px 8px;background:#33283a;border:1px solid #5f4a5f;color:#c9b9c8;border-radius:4px;cursor:pointer}
+.fighter-trials button.on{background:#eebf65;border-color:#eebf65;color:#2b2030;font-weight:900}
+.fighter-trials p{display:flex;flex-wrap:wrap;gap:4px;margin:5px 0 2px;font-size:10px}
+.fighter-trials em{font-style:normal;padding:2px 6px;border-radius:3px;background:#2a2234;color:#a99bb0}
+.fighter-trials em.got{background:#5f9a3f;color:#fff}
+.fighter-overlay.versus>div{max-width:620px}
+.fighter-overlay.versus h2{font-size:32px}
+.fighter-overlay.versus p{margin:10px 0 6px;font-size:13px}
+.fighter-pick{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.fighter-pick button,.fighter-stages button,.fighter-level button,.fighter-modes button{background:#33283a;border:1px solid #5f4a5f;color:#c9b9c8;border-radius:4px;cursor:pointer;font-size:10px;padding:5px}
+.fighter-pick button{display:flex;flex-direction:column;align-items:center;gap:2px}
+.fighter-pick img{display:block;width:48px;height:48px;object-fit:contain}
+.fighter-pick button.on{border:2px solid var(--fighter-color);background:#4b333c;color:#ffe3a6}
+.fighter-stages{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.fighter-stages button.on,.fighter-level button[aria-pressed="true"]{background:#eebf65;border-color:#eebf65;color:#2b2030;font-weight:900}
+.fighter-keys{font-size:11px!important;line-height:1.6!important;color:#a99bb0!important;margin-bottom:14px!important}
+.fighter-keys b{color:#ffda75}
+.fighter-level{display:flex;justify-content:center;gap:4px;margin:0 0 12px}
+.fighter-level button{padding:6px 12px;letter-spacing:1px}
+.fighter-alt{display:flex;justify-content:center;align-items:center;gap:6px;font-size:12px;color:#c3b7c4;margin:0 0 12px;cursor:pointer}
+.fighter-modes{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:12px}
+.fighter-modes button{font-size:12px;padding:8px 6px;text-align:center}
+.fighter-modes button:last-child{grid-column:span 2}
+.fighter-medals{display:flex;flex-wrap:wrap;gap:3px;margin-top:8px;min-height:15px}
+.fighter-medals i{font-style:normal;font-size:8px;font-weight:900;letter-spacing:.6px;padding:2px 5px;border-radius:3px;background:var(--fighter-color);color:#241c2a}
+.fighter-mode-tag{color:#e6c993!important;font-size:11px;letter-spacing:1px}
+.fighter-overlay.selection .fighter-modes button{width:100%}
+@media (max-width:760px){
+ .fighter-trials{left:10px;right:10px;width:auto;bottom:auto;top:44px}
+ .fighter-pick{grid-template-columns:repeat(4,1fr)}
+ .fighter-stages{grid-template-columns:repeat(2,1fr)}
+ .fighter-combo b{font-size:32px}
+}
+.fighter-arena-tags span{text-shadow:0 1px 3px #000c,0 0 2px #000a}

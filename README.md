@@ -70,13 +70,19 @@ Every game uses the same layout: **Play** (what it is), **Controls**, **Tests** 
 
 ### 01 · Paw Fighter II (`/fighter`)
 
-**Play:** A one-on-one fighter with seven fighters. Arcade mode is a six-rival ladder. Each match is first to two round wins, and rounds last 60 seconds. Tied rounds award no win. Story mode follows a chinchilla leaving the Andes to chase American citizenship. Rivals appear in a fixed south-to-north order: the burrow in Chile, the Antofagasta docks, the Atacama crossing, the Darien Gap, the Rio Grande at midnight, an ICE checkpoint and the naturalization podium. Narration runs before and after each chapter. Training mode gives infinite power, no round timer, a self-healing dummy (set it to stand, block, jump or fight back) and a live combo-damage readout. Guarding reduces damage, attacks build power, and projectiles can be jumped. Picking a fighter from the roster at any time returns to selection and resets the run. Progress is session-only.
+**Play:** A one-on-one fighter with seven fighters. Arcade mode is a six-rival ladder. Each match is first to two round wins, and rounds last 60 seconds. Tied rounds award no win. Story mode follows a chinchilla leaving the Andes to chase American citizenship. Rivals appear in a fixed south-to-north order: the burrow in Chile, the Antofagasta docks, the Atacama crossing, the Darien Gap, the Rio Grande at midnight, an ICE checkpoint and the naturalization podium. Narration runs before and after each chapter. Versus is two players on one keyboard or two gamepads; player two picks a fighter and one of eight arenas (the Andean night market plus the seven story places). Survival is one round per rival with 30 health back after each win, and counts how many fall. Time attack runs the arcade ladder against a running clock. Training mode gives infinite power, no round timer, a self-healing dummy (set it to stand, block, jump or fight back), a live combo-damage readout and five combo trials (jab into kick, special finish, launcher, super finish, throw follow-up), named with each fighter's own moves. The CPU plays at easy, normal or hard.
+
+Hits pause the action for a moment and shake the camera. A jab that connects cancels into a kick, special, rising attack or super, and a kick into a special, rising attack or super; each extra hit in a combo does 12% less, down to 40%. Blocking stops jabs and kicks completely, while specials and supers chip 15% through. Every blocked hit wears down a guard bar that refills after a short rest, and an empty guard breaks, leaving the blocker open. A throw (12 damage, up close) beats blocking; pressing jab and kick together as you are grabbed breaks free. Projectiles can be jumped, and two projectiles cancel each other. Picking a fighter from the roster at any time returns to selection and resets the run.
+
+Progress is saved in `localStorage` under `paw-fighter-v1`: the CPU level, story and arcade medals, best survival streak and time-attack time for each fighter, and cleared trials. Clearing arcade with a fighter unlocks their alternate outfit on the select screen.
 
 **Controls:**
 
 - A / D or ← / →: move. Space, W or ↑: jump. I, S or ↓: block while grounded.
-- J: jab. K: kick. L: special (35 power). U: rising attack (20 power, grounded only). O: super (100 power, grounded only), a staggered barrage unique to each fighter.
+- J: jab. K: kick. J + K together, or H: throw. L: special (35 power). U: rising attack (20 power, grounded only). O: super (100 power, grounded only), a staggered barrage unique to each fighter.
 - Fireball motion: down, down-forward, forward + J (S, S+D, D+J facing right; mirror with A facing left). Rising attacks also accept forward, down, down-forward + J.
+- Versus: player one uses A / D, W or Space to jump, S to block, F jab, G kick, H special, R rising, T super and Y throw; player two uses the arrows (↓ blocks), J jab, K kick, L special, U rising, O super and ; to throw. Either player can throw with jab and kick together.
+- Gamepad (the first pad is player one, the second player two): stick or d-pad to move, X jab, A kick, Y special, B rising, RB super, LB or down to block, RT throw, Start pause.
 - P / Escape: pause. Losing window focus also pauses. On-screen buttons support touch; sound is toggled from the header.
 
 Each fighter's special (35 power) is shown on its roster card, and an on-screen callout confirms activation or insufficient power:
@@ -89,7 +95,7 @@ Each fighter's special (35 power) is shown on its roster card, and an on-screen 
 - ICE Agent: Red Tape. A hit briefly slows movement; blocking prevents the slow.
 - Donald Trump: Golden Tweet, a large, slow, powerful energy wave.
 
-**Tests:** `tests/fighter.mjs` (in `npm test`). Browser: `tests/e2e/fighter.mjs`.
+**Tests:** `tests/fighter.mjs` and the CPU-against-CPU bot `tests/fighter-bot.mjs` (both in `npm test`; the bot alone is `npm run bot:fighter`). Browser: `tests/e2e/fighter.mjs`.
 
 **Docs:** This section.
 
