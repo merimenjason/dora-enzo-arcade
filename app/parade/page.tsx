@@ -11,6 +11,9 @@ const STARS = (n: number) => '★'.repeat(n) + '☆'.repeat(3 - n);
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const JOB_KEYS: Record<string, Job> = Object.fromEntries(JOBS.map((j) => [JOB_INFO[j].key, j]));
 
+/** The painting can fail to load before the page hydrates, when onError is not listening yet, so check once on mount too. */
+const hideIfBroken = (el: HTMLImageElement | null) => { if (el && el.complete && !el.naturalWidth) el.style.display = 'none'; };
+
 export default function KitParadePage() {
   const canvas = useRef<HTMLCanvasElement>(null), scene = useRef<ParadeScene | null>(null), sound = useRef<ParadeSound | null>(null);
   const game = useRef<ParadeGame | null>(null), profile = useRef<Profile>(readProfile(null));
@@ -37,7 +40,8 @@ export default function KitParadePage() {
     game.current = new ParadeGame(i); scene.current?.fit(game.current);
     pausedRef.current = true; setPaused(false); setResult(null); setScreen('brief'); snd().play('select');
   }
-  function start(i = levelIdx) {
+  // the key handler keeps the first render's levelIdx, so the briefed game is the source of truth
+  function start(i = game.current?.index ?? levelIdx) {
     if (!unlocked(profile.current, i)) return;
     setLevelIdx(i); setWorld(LEVELS[i].world);
     const fresh = !game.current || game.current.index !== i || game.current.tick > 0;
@@ -179,7 +183,7 @@ export default function KitParadePage() {
             <button className="parade-chip" aria-pressed={!muted} onClick={() => { const s = snd(); s.setMuted(!s.muted); P.muted = s.muted; setMuted(s.muted); save(); }}>{muted ? '🔇 Sound off' : '🔊 Sound on'}</button>
           </header>
           <div className="parade-title">
-            <img src="/art/parade/title.webp" alt="" width={1600} height={1000} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+            <img src="/art/parade/title.webp" alt="" width={1600} height={1000} ref={hideIfBroken} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
             <div>
               <p className="parade-eyebrow">A PUZZLE PARADE OF BABY CHINCHILLAS</p>
               <h1>Kit <em>Parade</em></h1>
