@@ -228,7 +228,8 @@ export default function DustBunnyDungeonPage() {
   const g = game.current, playing = screen === 'play' && g;
   const looked = g && hoverRef.current >= 0 && g.seen[hoverRef.current] ? g.enemies.find((e) => e.y * W + e.x === hoverRef.current) : undefined;
   const aimName = aimRef.current === null ? '' : aimRef.current === 9 ? 'Dash' : TOOL_INFO[TOOLS[aimRef.current]].name;
-  const day = today(), daily = P.daily[day];
+  // the server's clock can be on a different day from the player's, so the date waits for the page to mount
+  const day = ready ? today() : '', daily = P.daily[day];
   const seenKinds = BESTIARY.filter((k) => P.bestiary[k]).length;
   const savedRun = P.run;
   // the floor a saved run reached comes from replaying it, once per saved run (perks only come every other floor)

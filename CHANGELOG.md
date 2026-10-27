@@ -12,10 +12,12 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Dust Bunny Dungeon** is hand-painted: Dora and Enzo with their dusters, all eleven dust bunnies and cellar foes from the hoppers to the Dust King, the tools, chests, crates, switches, floors and the title painting.
 - **Snapshot Safari** is hand-painted: all 24 creatures, four Andes horizons, Dora and Enzo with their cameras, and a new title painting.
 
 ### Fixed
 
+- **Dust Bunny Dungeon**: the menu no longer trips over itself late in the evening, when the server and your device disagree about which day's daily dust-up it is.
 - **Pebble Pop**: map steps no longer jump away from the pointer when you hover or press them, so every click starts the wall.
 
 ## 27-10-2026
