@@ -93,6 +93,9 @@
 .pebble-shell .pebble-node{position:absolute;transform:translate(-50%,-50%);width:48px;height:48px;min-height:0;padding:0;border-radius:50%;display:grid;place-items:center;background:#fff5e2;box-shadow:0 3px 0 #7a5230;z-index:1}
 .pebble-node span{font-size:22px;line-height:1}
 .pebble-node small{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;white-space:nowrap;font-size:11px;font-weight:900;background:#fff5e2;border-radius:999px;padding:1px 7px;border:1.5px solid #7a523070}
+/* the shared hover and press nudges would replace the centring and make a step jump away from the pointer */
+.pebble-shell .pebble-node:hover:not(:disabled){transform:translate(-50%,-50%)}
+.pebble-shell .pebble-node:active:not(:disabled){transform:translate(-50%,-50%) scale(.94)}
 .pebble-shell .pebble-node:disabled{opacity:.55}
 .pebble-shell .pebble-node.is-past{opacity:.35}
 .pebble-shell .pebble-node.is-here{opacity:1;background:#ffe7b8;border-color:#c0602e;box-shadow:0 3px 0 #c0602e,0 0 0 5px #ff8f5a44}

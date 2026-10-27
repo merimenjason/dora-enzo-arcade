@@ -14,7 +14,7 @@ const open = async (viewport = { width: 1280, height: 800 }) => {
 };
 const ready = (page) => page.locator('main[data-ready="true"]').waitFor();
 /** Clicks the first open map step with the mouse, as a player would. */
-const clickStep = async (page) => { await page.waitForTimeout(600); const b = await page.locator('.pebble-node.is-open').first().boundingBox(); await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2); };
+const clickStep = async (page) => { const b = await page.locator('.pebble-node.is-open').first().boundingBox(); await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2); };
 const phase = (page) => page.evaluate(() => window.__pebble()?.phase ?? null);
 
 {
