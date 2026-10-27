@@ -6,7 +6,7 @@ const readme=readFileSync(new URL('../README.md',import.meta.url),'utf8');
 const routes=[...page.matchAll(/href:'(\/[\w-]+)'/g)].map(m=>m[1]);
 assert(routes.length>0,'no games found in the GAMES list of app/page.tsx');
 
-const words=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty','twenty-one','twenty-two','twenty-three','twenty-four','twenty-five','twenty-six','twenty-seven','twenty-eight','twenty-nine','thirty','thirty-one','thirty-two','thirty-three','thirty-four','thirty-five','thirty-six','thirty-seven','thirty-eight','thirty-nine','forty','forty-one','forty-two','forty-three','forty-four'];
+const words=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty','twenty-one','twenty-two','twenty-three','twenty-four','twenty-five','twenty-six','twenty-seven','twenty-eight','twenty-nine','thirty','thirty-one','thirty-two','thirty-three','thirty-four','thirty-five','thirty-six','thirty-seven','thirty-eight','thirty-nine','forty','forty-one','forty-two','forty-three','forty-four','forty-five'];
 const count=words[routes.length]??String(routes.length);
 assert(readme.includes(`A collection of ${count} original browser games`),`README intro must say "${count}" games`);
 

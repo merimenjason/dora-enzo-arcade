@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of forty-four original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of forty-five original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -54,6 +54,7 @@ Listed in arcade-menu order.
 | 42 | Pawhaven | `/pawhaven` | Town builder |
 | 43 | Dust Disco | `/disco` | Rhythm |
 | 44 | Pebble Pop | `/pebble` | Brick breaker |
+| 45 | Snapshot Safari | `/safari` | Photography |
 
 ## Run
 
@@ -1003,6 +1004,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/pebble-pop.md`](docs/pebble-pop.md), with the art list in [`docs/pebble-pop-art-brief.md`](docs/pebble-pop-art-brief.md).
 
+### 45 · Snapshot Safari (`/safari`)
+
+**Play:** Dora or Enzo walk a 220 m Andes trail with a camera, 24 frames of film and six minutes of daylight. Shy animals run off if you hurry at them, so tiptoe, crouch in the tall grass and wait. A calm animal does more: a vicuña rolls in the dust, flamingos dance, a bear cub tumbles. Each photo is scored 0–5★ for size, framing (centre or thirds), sharpness (your steadiness against the animal's movement), facing, behaviour (rare ones are worth much more), friends in frame and golden light. At home the roll is developed and the best shots go into a field journal: 24 creatures, 82 behaviour slots, 22 of them rare. Journal stars unlock noon (12★), the Cloud Forest (30), a berry pouch (50), dusk (70), the Salt Flat Lagoon (95), a soft whistle (125), Condor Cliffs (155) and a camera trap (190) you set down and walk back to fetch.
+
+**Controls:** A/D or ←/→ walk; 1/2/3 tiptoe, walk, hurry (hold Shift to tiptoe); S or ↓ crouch and hide; the mouse aims (or I/J/K/L); click, Space or Enter snaps; wheel or +/− zooms; B berries, V whistle, C camera trap; P pauses, H heads home. On touch: hold ◀ ▶, tap a pace and Hide, drag to aim, zoom slider and the 📸 button.
+
+**Tests:** `npm run test:safari` (engine: creatures, trails, being noticed, scoring, tools, the day, journal, save), `npm run bot:safari` (a careful photographer fills 70 of 82 slots over 36 outings, reaching three quarters only on outing 22, at 3.88★ a photo, against a careless one's 1.88★; exact replays), `npm run test:e2e:safari`.
+
+**Docs:** [`docs/snapshot-safari.md`](docs/snapshot-safari.md), art brief [`docs/snapshot-safari-art-brief.md`](docs/snapshot-safari-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1022,7 +1033,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-four ways/` assertion in `tests/e2e/dust-bath.mjs`, the 44-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-four games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-five ways/` assertion in `tests/e2e/dust-bath.mjs`, the 45-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-five games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
