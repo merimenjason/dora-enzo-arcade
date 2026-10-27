@@ -11,6 +11,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 - **Grumble Hunt** has new sounds: Paddlepaw's splash, Rumblesnout digging down and popping up, a golden shimmer whenever a Mighty beast winds up its Mighty move, and a little fanfare for the Best of Friends ribbon.
 - **Grumble Hunt**'s epilogue has its own painting now: Paddlepaw splashing in and Rumblesnout popping out of a molehill at Clover Camp.
 
+### Changed
+
+- **Fluff Roll**: The Whole Meadow is now a full five-minute level. Its things are laid out in bands, with a ring of grassy hills at the edge, and the goal is 40 m. A barn-sized ball also rolls with more weight, so it no longer clears the whole meadow in seconds. Hay Barn Yard has 5½ minutes, and its haystacks and trees stand in smaller groups.
+
 ### Documentation
 
 - **Grumble Hunt**'s design notes (`docs/grumble-hunt.md`) are now one current reference, with sections for strings, charms, the quest board, Mighty beasts, the post-game beasts and the Beast Book, the latest test and phone-budget results, and a short history in place of 25 dated run logs.

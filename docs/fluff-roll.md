@@ -19,10 +19,12 @@ Game 41, at `/roll`: a 3D roll-and-grow game. Dora pushes a dust ball round the 
 | --- | --- | --- | --- | --- | --- |
 | 1 | Dust Bath Corner | 8 cm | 40 cm | 3 min | 14 m |
 | 2 | Clover Garden | 32 cm | 1.6 m | 4 min | 52 m |
-| 3 | Hay Barn Yard | 1.6 m | 8 m | 5 min | 180 m |
-| 4 | The Whole Meadow | 6 m | 30 m | 3½ min | 660 m |
+| 3 | Hay Barn Yard | 1.6 m | 8 m | 5½ min | 180 m |
+| 4 | The Whole Meadow | 6 m | 40 m | 5 min | 660 m |
 
-The Whole Meadow has the shortest clock because a ball that big crosses the meadow in seconds. Its biggest things are farmhouses, barns and grassy hills 18 m across, and a fast roll gathers every last thing in it.
+The Whole Meadow is laid out in bands: hay bales, carts and trees near the start; windmills, silos, barns, oaks and farmhouses in the middle; and 120 grassy hills 18 m across in an outer ring that a ball can only roll once it is 30 m across. The goal of 40 m needs a dozen hills, and three stars needs nearly all of them.
+
+A first version gave it a 3½-minute clock and a 30 m goal, because the ball reached the goal so fast. That treated a symptom. The real trouble was top speed: it grew almost in step with the ball, so a ball 80 m across rolled 100 m a second and cleared the whole fenced meadow in 20 s, leaving minutes with nothing to roll. Past a metre of radius top speed now grows as r^0.55 instead of r^0.9, so a barn-sized ball feels heavy. Clumps of haystacks and trees in Hay Barn Yard were also broken into smaller groups, after the bot got boxed in by a wall of things just too big to roll.
 
 ## Controls
 
@@ -32,7 +34,7 @@ The Whole Meadow has the shortest clock because a ball that big crosses the mead
 ## Rules engine (`lib/roll-game.ts`)
 
 - Units are metres. A level's things are laid out from its seed, biggest first, in rings round the start (small things near the middle, big ones further out) and in patches. The same seed always gives the same layout.
-- The ball steers towards the stick at `grip` (5.2 per second, a little lazier when big) up to `topSpeed` = 7.5 × r^0.9 metres per second. Movement is substepped so a fast little ball never skips over a seed.
+- The ball steers towards the stick at `grip` (5.2 per second, a little lazier when big) up to `topSpeed` = 7.5 × r^0.9 metres per second, or 7.5 × r^0.55 past a metre of radius. Movement is substepped so a fast little ball never skips over a seed.
 - Free things are kept in a grid, with very big ones in a separate list, so a 1,400-thing level stays cheap.
 - The profile is saved under `fluff-roll-v1`: unlocked levels, best size and stars per level, the kinds found and the number rolled. Junk and unknown ids are dropped.
 
@@ -44,8 +46,8 @@ The Whole Meadow has the shortest clock because a ball that big crosses the mead
 | --- | --- | --- |
 | Dust Bath Corner | 77–97 s of 180 | 69 cm |
 | Clover Garden | 95–113 s of 240 | 2.5–3.1 m |
-| Hay Barn Yard | 125–155 s of 300 | 13 m |
-| The Whole Meadow | 81–102 s of 210 | 48 m |
+| Hay Barn Yard | 134–235 s of 330 | 13 m |
+| The Whole Meadow | 128–154 s of 300 | 68–69 m |
 
 The first level's start was made much denser after a play-through showed that rolling straight ahead for 8 s caught nothing. Adding the critters and golden acorns moved the seeded layout and emptied the start again, so it now has a fixed starter carpet of 300 seeds, crumbs and clover leaves within 1.3 m of the start.
 

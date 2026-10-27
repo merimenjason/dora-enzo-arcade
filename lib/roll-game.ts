@@ -167,7 +167,7 @@ export const LEVELS: LevelSpec[] = [
   },
   {
     id: 'yard', name: 'Hay Barn Yard', blurb: 'Hay bales, wheelbarrows, sheds and a sleepy Bristleback. Roll up a fluffball as tall as a haystack!',
-    start: 0.8, goal: 4, time: 300, half: 90, seed: 113,
+    start: 0.8, goal: 4, time: 330, half: 90, seed: 113,
     spawns: [
       { kind: 'slipper', n: 24, ring: [2, 12], patches: 4 }, { kind: 'wicker', n: 24, ring: [2, 12] }, { kind: 'pot', n: 40, ring: [2, 15], patches: 6 },
       { kind: 'can', n: 20, ring: [2, 15] }, { kind: 'cushion', n: 30, ring: [3, 18] }, { kind: 'tub', n: 20, ring: [4, 20] },
@@ -177,21 +177,21 @@ export const LEVELS: LevelSpec[] = [
       { kind: 'crate', n: 30, ring: [8, 36], patches: 5 }, { kind: 'birdbath', n: 10, ring: [8, 36] }, { kind: 'chair', n: 16, ring: [10, 40] },
       { kind: 'bale', n: 60, ring: [10, 50], patches: 8 }, { kind: 'barrow', n: 14, ring: [12, 50] }, { kind: 'bench', n: 14, ring: [12, 50] },
       { kind: 'bush', n: 40, ring: [14, 60], patches: 6 }, { kind: 'barrel', n: 24, ring: [14, 60] }, { kind: 'bristle', n: 10, ring: [18, 60] },
-      { kind: 'cart', n: 18, ring: [20, 70] }, { kind: 'haystack', n: 24, ring: [22, 75], patches: 4 }, { kind: 'tree', n: 40, ring: [24, 85], patches: 6 },
+      { kind: 'cart', n: 18, ring: [20, 70] }, { kind: 'haystack', n: 24, ring: [22, 75], patches: 12 }, { kind: 'tree', n: 40, ring: [24, 85], patches: 14 },
       { kind: 'shed', n: 12, ring: [30, 85] }, { kind: 'tractor', n: 8, ring: [30, 85] }, { kind: 'windmill', n: 6, ring: [45, 85] },
       { kind: 'barn', n: 4, ring: [50, 85] }, { kind: 'golden', n: 3, ring: [25, 85] },
     ],
   },
   {
     id: 'meadow', name: 'The Whole Meadow', blurb: 'Haystacks, windmills, barns and grassy hills. Roll up the whole meadow!',
-    start: 3, goal: 15, time: 210, half: 330, seed: 211,
+    start: 3, goal: 20, time: 300, half: 330, seed: 211,
     spawns: [
       { kind: 'duck', n: 40, ring: [6, 50], patches: 6 }, { kind: 'barrel', n: 40, ring: [6, 60] }, { kind: 'bench', n: 30, ring: [6, 60] },
       { kind: 'bristle', n: 30, ring: [8, 60] }, { kind: 'bale', n: 120, ring: [10, 80], patches: 12 }, { kind: 'bush', n: 80, ring: [10, 90], patches: 10 },
       { kind: 'cart', n: 60, ring: [15, 110], patches: 8 }, { kind: 'haystack', n: 70, ring: [20, 130], patches: 8 }, { kind: 'tree', n: 120, ring: [20, 160], patches: 12 },
-      { kind: 'shed', n: 40, ring: [30, 170] }, { kind: 'tractor', n: 30, ring: [30, 170] }, { kind: 'windmill', n: 30, ring: [50, 220] },
-      { kind: 'silo', n: 30, ring: [50, 220] }, { kind: 'barn', n: 40, ring: [60, 260] }, { kind: 'oak', n: 60, ring: [60, 260], patches: 8 },
-      { kind: 'farmhouse', n: 30, ring: [90, 300] }, { kind: 'hill', n: 30, ring: [140, 320] }, { kind: 'golden', n: 3, ring: [100, 320] },
+      { kind: 'shed', n: 40, ring: [30, 170] }, { kind: 'tractor', n: 30, ring: [30, 170] }, { kind: 'windmill', n: 30, ring: [45, 170] },
+      { kind: 'silo', n: 30, ring: [45, 170] }, { kind: 'barn', n: 40, ring: [60, 185] }, { kind: 'oak', n: 60, ring: [40, 185], patches: 8 },
+      { kind: 'farmhouse', n: 30, ring: [80, 195] }, { kind: 'hill', n: 120, ring: [205, 322] }, { kind: 'golden', n: 3, ring: [100, 320] },
     ],
   },
 ];
@@ -291,8 +291,9 @@ export function sizeLabel(r: number) {
 }
 /** Stars for a finished level: reaching the goal is one, a third bigger again is two, two-thirds bigger is three. */
 export function starsFor(spec: LevelSpec, r: number) { return r >= spec.goal * 1.65 ? 3 : r >= spec.goal * 1.35 ? 2 : r >= spec.goal ? 1 : 0; }
-/** Top speed grows a little slower than the ball, so a big ball feels heavy but still covers more ground. */
-export const topSpeed = (r: number) => 7.5 * Math.pow(r, 0.9);
+/** Top speed grows a little slower than the ball, so a big ball feels heavy but still covers more ground. Past a metre
+ *  of radius it grows much more slowly, or a barn-sized ball would cross the whole meadow in a few seconds. */
+export const topSpeed = (r: number) => (r <= 1 ? 7.5 * Math.pow(r, 0.9) : 7.5 * Math.pow(r, 0.55));
 /** The radius a ball needs before a thing of footprint `r` sticks to it. */
 export const sticksAt = (r: number) => r / PICK;
 /** How fast the ball turns towards where it's steered (per second); a big ball is a little lazier. */
