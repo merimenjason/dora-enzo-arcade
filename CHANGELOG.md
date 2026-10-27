@@ -4,6 +4,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 28-10-2026
 
+### Added
+
+- **Burrow Command** (`/command`), game 47: a cosy real-time strategy game. Lead the Burrow Colony, the Ringtail Guild or the Clockwork Hive, each with its own units, buildings, upgrades and abilities. Gather hay and glimmer, build up your burrow, and poof rivals home dizzy (nobody gets hurt). Play a ten-mission story campaign with Dora, Enzo, Marlo and the Queen, or skirmish against an Easy, Normal or Hard computer on five maps. It has fog, a minimap, control groups, attack-move and patrol, and touch controls on phones.
+
 ### Changed
 
 - **Snapshot Safari** is hand-painted: all 24 creatures, four Andes horizons, Dora and Enzo with their cameras, and a new title painting.

@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of forty-six original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of forty-seven original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -56,6 +56,7 @@ Listed in arcade-menu order.
 | 44 | Pebble Pop | `/pebble` | Brick breaker |
 | 45 | Snapshot Safari | `/safari` | Photography |
 | 46 | Dust Bunny Dungeon | `/dungeon` | Roguelike |
+| 47 | Burrow Command | `/command` | Real-time strategy |
 
 ## Run
 
@@ -1025,6 +1026,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/dust-bunny-dungeon.md`](docs/dust-bunny-dungeon.md), art brief [`docs/dust-bunny-dungeon-art-brief.md`](docs/dust-bunny-dungeon-art-brief.md).
 
+### 47 · Burrow Command (`/command`)
+
+**Play:** A cosy real-time strategy game for three sides: Dora and Enzo's Burrow Colony of chinchillas, Marlo's Ringtail Guild of raccoons and the Clockwork Hive of wind-up beetles. Gather hay and glimmer, put up buildings, train an army and send it out; a unit bumped to nothing is poofed home dizzy and a broken building is tidied away. The Colony tunnels between mounds and mends units in Dust Baths; the Guild salvages 15% of each rival poofed nearby, sets Honey Snares and rolls its workshop somewhere new; the Hive's beetles run down to half pace away from Spring Towers but mend their own shells, and the Queen calls out more beetles. There is a ten-mission story campaign with briefings, talk during play, heroes and three stars per mission, and skirmishes against an Easy, Normal or Hard computer on five maps.
+
+**Controls:** Drag a box or click to pick (double-click picks every one of that kind on screen); right-click walks, gathers or bumps, and Shift queues orders. A attack-moves, P patrols, H holds, S stops, M moves, B builds, F uses an ability and T tunnels. Ctrl+1–9 (or Alt+1–9) sets a group and 1–9 picks it. The arrow keys or the screen's edges look around and the wheel zooms; Space looks at the last alert, Backspace looks home, . picks the next idle gatherer and Esc pauses. On touch, tap to pick and tap to send; drag looks around (or draws a box once the ▢ button is on) and pinch zooms.
+
+**Tests:** `npm run test:command` checks the engine: the sides, the maps, gathering, building, training, combat, pathfinding, fog, every ability, the computer players, each mission's goals, replays and saving. `npm run bot:command` plays every pairing of sides on every map, Hard against Easy, and a pilot through all ten missions. `npm run test:e2e:command` covers the browser.
+
+**Docs:** [`docs/burrow-command.md`](docs/burrow-command.md), art brief [`docs/burrow-command-art-brief.md`](docs/burrow-command-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1044,7 +1055,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-six ways/` assertion in `tests/e2e/dust-bath.mjs`, the 46-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-six games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-seven ways/` assertion in `tests/e2e/dust-bath.mjs`, the 47-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-seven games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
