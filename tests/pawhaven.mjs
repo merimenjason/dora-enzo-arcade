@@ -2,7 +2,7 @@
 // shrinking, carts, the market chain, workers, fire, foxes, trade, saving, the profile, and how long a big town's month takes.
 import assert from 'node:assert/strict';
 import {
-  PawhavenGame, MEADOWS, BUILDINGS, HOME_LEVELS, MONTH, YEAR, VISIT, GRACE, BURN, TREE_CLEAR, CARAVAN_EVERY, WELL_RANGE, OWN_STORE,
+  PawhavenGame, MEADOWS, BUILDINGS, HOME_LEVELS, MONTH, YEAR, VISIT, GRACE, BURN, TREE_CLEAR, CARAVAN_EVERY, WELL_RANGE, OWN_STORE, CART_LOAD,
   GRASS, FERTILE, WATER, ROCK, TREES, SAND, ROAD, PUDDLE, makeMap, meadowKinds, readProfile, recordWin, saveTown, SAVE_KEY,
 } from '../.checks/pawhaven-game.js';
 import { play } from './pawhaven-bot.mjs';
@@ -172,9 +172,9 @@ test('carts carry loads from producers to the nearest building with room, and pr
   const g = fresh(); crowd(g, 2); row(g, 10, 0, 20);
   const berry = put(g, 'berry', 2, 8), granary = put(g, 'granary', 12, 7);
   let sawCart = false;
-  for (let i = 0; i < 2 * MONTH; i++) { g.step(); const c = g.walkers.find((w) => w.kind === 'cart' && !w.back); if (c) { sawCart = true; assert.equal(c.load.berries, 8); } }
+  for (let i = 0; i < 3 * MONTH; i++) { g.step(); const c = g.walkers.find((w) => w.kind === 'cart' && !w.back); if (c) { sawCart = true; assert.equal(c.load.berries, CART_LOAD); } }
   assert.ok(sawCart);
-  assert.ok(granary.store.berries >= 8, `the granary has ${granary.store.berries} berries`);
+  assert.ok(granary.store.berries >= CART_LOAD, `the granary has ${granary.store.berries} berries`);
   assert.ok(berry.cart === 0 || berry.cart === 1);
   // with nowhere to take them, a producer fills its own store and stops
   const h = fresh(); crowd(h, 2); row(h, 10, 0, 6);
@@ -185,7 +185,7 @@ test('carts carry loads from producers to the nearest building with room, and pr
   for (const [x, y] of [[2, 8], [3, 8], [2, 9], [3, 9]]) w.terrain[y * w.size + x] = SAND;
   put(w, 'sandPit', 2, 8);
   const store = put(w, 'storehouse', 6, 7), mill = put(w, 'dustMill', 16, 8);
-  run(w, 4 * MONTH);
+  run(w, 8 * MONTH);
   assert.ok(store.store.dust > 0, 'the sand went to the dust mill first, and its dust to the storehouse');
   assert.ok(!store.store.sand, 'no sand went to the store while the mill had room');
   void mill;

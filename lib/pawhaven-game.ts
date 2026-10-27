@@ -18,7 +18,7 @@ export const SPEEDS = [0, 1, 2, 4] as const;
 export const WALK_EVERY = 100;
 export const WALK_RANGE = 30;
 export const WELL_RANGE = 12;
-export const CART_LOAD = 8;
+export const CART_LOAD = 16;
 /** What a producer or workshop holds before it stops; also a workshop's input store. */
 export const OWN_STORE = 16;
 /** A farm's own store, big enough for one harvest. */

@@ -16,6 +16,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Pawhaven**'s carts carry 16 goods instead of 8, so food reaches big towns' markets before it piles up at the farms.
 - **Fluff Roll**: The Whole Meadow is now a full five-minute level. Its things are laid out in bands, with a ring of grassy hills at the edge, and the goal is 40 m. A barn-sized ball also rolls with more weight, so it no longer clears the whole meadow in seconds. Hay Barn Yard has 5½ minutes, and its haystacks and trees stand in smaller groups.
 
 ### Documentation
