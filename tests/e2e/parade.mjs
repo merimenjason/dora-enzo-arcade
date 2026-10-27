@@ -113,6 +113,11 @@ const kitOnScreen = async (page, i) => {
   await page.touchscreen.tap(at.x + 8, at.y + 6);
   assert.equal(await page.evaluate(() => window.__parade().kits[0].state), 'stop', 'a tap near a kit gives it the job');
   console.log('PASS the phone layout fits, dragging pans and a tap near a kit gives the job');
+  // held sideways the phone is short, and the job bar must still be on screen
+  await page.setViewportSize({ width: 844, height: 390 }); await page.waitForTimeout(500);
+  const bar = await page.locator('.parade-job').first().boundingBox();
+  assert.ok(bar && bar.y + bar.height <= 390, 'the job bar fits a sideways phone');
+  console.log('PASS a sideways phone keeps the job bar on screen');
   await page.close();
 }
 

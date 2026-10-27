@@ -248,6 +248,7 @@ export default function KitParadePage() {
               <button className="parade-chip" aria-pressed={!muted} onClick={() => { const s = snd(); s.setMuted(!s.muted); P.muted = s.muted; setMuted(s.muted); save(); }} aria-label={muted ? 'Sound off' : 'Sound on'}>{muted ? '🔇' : '🔊'}</button>
             </div>
           </div>
+          <p className="parade-turn" key={g.level.id}>📱 Turn your phone sideways to see more of the parade</p>
           <div className="parade-jobs" role="toolbar" aria-label="Jobs">
             {JOBS.filter((j) => L.jobs[j]).map((j) => (
               <button key={j} className={'parade-job' + (job === j ? ' is-on' : '')} aria-pressed={job === j} disabled={g.left[j] <= 0} onClick={() => pickJob(j)} title={`${JOB_INFO[j].name}: ${JOB_INFO[j].tip} (key ${JOB_INFO[j].key})`}>

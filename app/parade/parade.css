@@ -1,4 +1,4 @@
-.parade-shell{--ink:#3b2a22;--paper:#fff8ec;--card:#fffdf7f0;--line:#e7d6bd;--accent:#ff9a6b;--gold:#f6b93b;--world:#7cc46a;position:relative;width:100%;height:100svh;min-height:480px;overflow:hidden;background:#cfeaf7;color:var(--ink);font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;isolation:isolate;user-select:none;-webkit-user-select:none}
+.parade-shell{--ink:#3b2a22;--paper:#fff8ec;--card:#fffdf7f0;--line:#e7d6bd;--accent:#ff9a6b;--gold:#f6b93b;--world:#7cc46a;position:relative;width:100%;height:100svh;min-height:300px;overflow:hidden;background:#cfeaf7;color:var(--ink);font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;isolation:isolate;user-select:none;-webkit-user-select:none}
 .parade-shell[data-world=meadow]{--world:#7cc46a}
 .parade-shell[data-world=pantry]{--world:#e8a65a}
 .parade-shell[data-world=cave]{--world:#7aa6c8}
@@ -91,6 +91,17 @@
 .parade-job b{font-size:16px;line-height:1}
 .parade-job small{font-size:10px;font-weight:800;color:#8a6a50}
 .parade-job kbd{position:absolute;top:3px;right:6px;font:800 10px ui-rounded,system-ui,sans-serif;color:#b8a48a}
+/* an upright phone shows only a slice of each level, so suggest turning it, then fade away */
+.parade-turn{display:none}
+@media (orientation:portrait) and (max-width:700px){
+  .parade-turn{display:block;position:absolute;left:12px;right:12px;top:96px;margin:0 auto;width:max-content;max-width:calc(100% - 24px);background:var(--card);border-radius:14px;padding:8px 14px;font-weight:800;font-size:13px;text-align:center;pointer-events:none;box-shadow:0 3px 10px #0002;animation:parade-turn-away 6s ease-in forwards}
+}
+/* a phone held sideways is short, so the job bar slims down to leave room for the level */
+@media (max-height:500px){
+  .parade-shell .parade-job{width:64px;min-height:56px;padding:3px 4px}
+  .parade-jobs{padding-top:4px;padding-bottom:calc(4px + env(safe-area-inset-bottom))}
+}
+@keyframes parade-turn-away{0%,75%{opacity:1}100%{opacity:0;visibility:hidden}}
 .parade-nojobs{background:var(--card);border-radius:14px;padding:10px 14px;font-weight:800}
 
 @media (max-width:700px){

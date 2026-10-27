@@ -19,6 +19,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Kit Parade**: on a phone held sideways, the job bar is back on screen and the whole level fits. Held upright, a little tip suggests turning the phone to see more of the parade. Clover Meadow and The Big Pantry also have painted backdrops.
 - **Dust Bunny Dungeon**: the menu no longer trips over itself late in the evening, when the server and your device disagree about which day's daily dust-up it is.
 - **Pebble Pop**: map steps no longer jump away from the pointer when you hover or press them, so every click starts the wall.
 

@@ -70,8 +70,8 @@ export class ParadeScene {
     const r = this.canvas.getBoundingClientRect(); this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.w = Math.max(300, r.width); this.h = Math.max(300, r.height);
     this.canvas.width = Math.round(this.w * this.dpr); this.canvas.height = Math.round(this.h * this.dpr);
-    // phones stack the HUD in two rows
-    this.insets = this.w < 700 ? { top: 84, bottom: 84 } : { top: 60, bottom: 96 };
+    // phones stack the HUD in two rows; a short sideways screen has a slimmer job bar
+    this.insets = this.w < 700 ? { top: 84, bottom: 84 } : { top: 60, bottom: this.h <= 500 ? 66 : 96 };
   }
 
   // ---- camera
