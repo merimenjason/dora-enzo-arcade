@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { DiscoGame, SONGS, DIFFS, DIFF, DUST_UP, SAVE_KEY, compose, chart, readProfile, record, unlocked, totalStars, type Diff, type Profile, type Song } from '@/lib/disco-game';
 import type { DiscoScene } from '@/lib/disco-scene';
@@ -197,7 +196,7 @@ export default function DustDiscoPage() {
       {screen === 'menu' && (
         <section className="disco-menu" aria-label="Song select">
           <header className="disco-head">
-            <Link href="/" className="disco-back">← ARCADE</Link>
+            <a href="/" className="disco-back">← ARCADE</a>
             <button className="disco-chip" aria-pressed={!muted} onClick={() => { const s = audio(); s.setMuted(!s.muted()); setMuted(s.muted()); }}>{muted ? '🔇 Sound off' : '🔊 Sound on'}</button>
           </header>
           <div className="disco-title">

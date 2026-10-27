@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   PawhavenGame, BUILDINGS, HOME_LEVELS, MEADOWS, ROUTES, GOODS, GOOD_NAMES, SAVE_KEY, SEASONS, TAX, YEAR, MAX_TOWNS, ROAD, PUDDLE,
@@ -402,7 +401,7 @@ function Menu({ profile, replace, onStart, onResume, onForget, onCancel }: {
   const towns = profile.towns, campaign = MEADOWS.filter((m) => m.goals.length);
   return (
     <section className="haven-menu">
-      <div className="haven-menu-top"><Link href="/" className="haven-back">← ARCADE</Link></div>
+      <div className="haven-menu-top"><a href="/" className="haven-back">← ARCADE</a></div>
       <div className="haven-menu-panel">
         <div className="haven-hero">
           <Vignette id="hero" />

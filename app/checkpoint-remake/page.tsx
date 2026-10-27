@@ -8,7 +8,6 @@ import {
 } from '../../lib/checkpoint-remake-game';
 import type { Flag } from '../../lib/checkpoint-game';
 import type { RemakeScene } from '../../lib/checkpoint-remake-scene';
-import Link from 'next/link';
 import './remake.css';
 export default function CheckpointRemake() {
   'use no memo'; // The deterministic controller mutates in event handlers, with explicit refreshes.
@@ -105,11 +104,11 @@ export default function CheckpointRemake() {
   return (
     <main className="rm-shell">
       <header className="rm-header">
-        <Link href="/">← MAIN ARCADE</Link>
-        <Link className="rm-wordmark" href="/checkpoint-remake">
+        <a href="/">← MAIN ARCADE</a>
+        <a className="rm-wordmark" href="/checkpoint-remake">
           DUST <i>&</i> DOCUMENTS
-        </Link>
-        <Link href="/checkpoint">ORIGINAL EDITION ↗</Link>
+        </a>
+        <a href="/checkpoint">ORIGINAL EDITION ↗</a>
       </header>
       <section className="rm-mast">
         <div>
@@ -467,7 +466,7 @@ export default function CheckpointRemake() {
       <footer className="rm-footer">
         <span>DUST & DOCUMENTS / THE REMAKE</span>
         <p>Two inspectors. One small booth. Everyone has somewhere to go.</p>
-        <Link href="/checkpoint">Play the original ↗</Link>
+        <a href="/checkpoint">Play the original ↗</a>
       </footer>
     </main>
   );

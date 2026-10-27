@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import {
   DungeonGame, AREAS, BESTIARY, CHARS, FLOORS, KINDS, PERKS, TOOLS, TOOL_INFO, DUST_CALM, SAVE_KEY, W, DX, DY,
@@ -245,7 +244,7 @@ export default function DustBunnyDungeonPage() {
       {screen === 'title' && (
         <section className="dungeon-menu" aria-label="Dust Bunny Dungeon menu">
           <header className="dungeon-head">
-            <Link href="/" className="dungeon-back">← ARCADE</Link>
+            <a href="/" className="dungeon-back">← ARCADE</a>
             <button className="dungeon-chip" aria-pressed={!muted} onClick={() => { const s = audio(); s.setMuted(!s.muted()); setMuted(s.muted()); }}>{muted ? '🔇 Sound off' : '🔊 Sound on'}</button>
           </header>
           <div className="dungeon-title">

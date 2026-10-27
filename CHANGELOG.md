@@ -28,6 +28,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 - **Pawhaven**'s carts carry 16 goods instead of 8, so food reaches big towns' markets before it piles up at the farms.
 - **Fluff Roll**: The Whole Meadow is now a full five-minute level. Its things are laid out in bands, with a ring of grassy hills at the edge, and the goal is 40 m. A barn-sized ball also rolls with more weight, so it no longer clears the whole meadow in seconds. Hay Barn Yard has 5½ minutes, and its haystacks and trees stand in smaller groups.
 
+### Fixed
+
+- The **← ARCADE** button in **Pawhaven**, **Fluff Roll**, **Midnight Kitchen**, the **Checkpoint remake**, **Dust Disco**, **Pebble Pop** and **Snapshot Safari** takes you back to the arcade again; before, it did nothing when clicked.
+
 ### Documentation
 
 - **Grumble Hunt**'s design notes (`docs/grumble-hunt.md`) are now one current reference, with sections for strings, charms, the quest board, Mighty beasts, the post-game beasts and the Beast Book, the latest test and phone-budget results, and a short history in place of 25 dated run logs.

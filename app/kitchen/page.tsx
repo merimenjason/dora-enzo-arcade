@@ -3,7 +3,6 @@
 /* Canvas illustrations retain descriptive accessible names. */
 /* eslint-disable jsx-a11y/prefer-tag-over-role */
 'use client';
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import {
   Kitchen,
@@ -273,7 +272,7 @@ export default function KitchenPage() {
   return (
     <main className="kitchen">
       <header className="k-head">
-        <Link href="/">← Arcade</Link>
+        <a href="/">← Arcade</a>
         <div>
           <span>EMBER &amp; CLOVER</span>
           <h1>Midnight Kitchen</h1>

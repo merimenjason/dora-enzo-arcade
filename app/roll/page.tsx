@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { RollGame, DT, SAVE_KEY, LEVELS, KINDS, HURRY, GOLDEN_TIME, readProfile, sizeLabel, sticksAt, type Profile, type RollEvent } from '@/lib/roll-game';
 import type { RollScene } from '@/lib/roll-scene';
@@ -185,7 +184,7 @@ export default function FluffRollPage() {
 function Menu({ profile, muted, onSound, onStart }: { profile: Profile; muted: boolean; onSound: () => void; onStart: (id: string) => void }) {
   const kinds = Object.keys(KINDS).length;
   return <div className="roll-menu">
-    <div className="roll-menu-top"><Link href="/" className="roll-back">← MAIN ARCADE</Link><button className="roll-chip" onClick={onSound}>{muted ? 'Sound off' : 'Sound on'}</button></div>
+    <div className="roll-menu-top"><a href="/" className="roll-back">← MAIN ARCADE</a><button className="roll-chip" onClick={onSound}>{muted ? 'Sound off' : 'Sound on'}</button></div>
     <div className="roll-menu-panel">
       <div className="roll-hero">
         <img src="/art/roll/title.webp" alt="Dora pushing a huge fluffy dust ball studded with acorns, buttons and a teacup, with Enzo cheering on top" width={1600} height={1000} />

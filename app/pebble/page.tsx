@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import {
   PebbleGame, CHARS, UPGRADES, UP_IDS, SYNERGIES, PLACES, STEPS, LIVES, DT, SPIN, SAVE_KEY, BOSSES,
@@ -200,7 +199,7 @@ export default function PebblePopPage() {
       {screen === 'title' && (
         <section className="pebble-title" aria-label="Pebble Pop">
           <header className="pebble-head">
-            <Link href="/" className="pebble-back">← ARCADE</Link>
+            <a href="/" className="pebble-back">← ARCADE</a>
             <span className="pebble-row-tight">
               <button className="pebble-chip" aria-pressed={P.settings.sound} onClick={() => { P.settings.sound = !P.settings.sound; save(); audio().setOn(P.settings.sound); refresh(); }}>{P.settings.sound ? '🔊 Sound on' : '🔇 Sound off'}</button>
               <button className="pebble-chip" aria-pressed={P.settings.shake} onClick={() => { P.settings.shake = !P.settings.shake; save(); refresh(); }}>{P.settings.shake ? '〰️ Shake on' : '➖ Shake off'}</button>
@@ -338,7 +337,7 @@ export default function PebblePopPage() {
           <div className="pebble-row">
             <button className="pebble-go" onClick={() => newRun(end.char)}>New run</button>
             <button onClick={toTitle}>Menu</button>
-            <Link href="/" className="pebble-linkbtn">Arcade</Link>
+            <a href="/" className="pebble-linkbtn">Arcade</a>
           </div>
         </div>
       )}

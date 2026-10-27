@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import {
   SafariGame, SPECIES, SPECIES_BY_ID, TRAILS, TIMES, UNLOCKS, FILM, DAY, ZOOM, BERRIES, SAVE_KEY, ALL_SLOTS, MAX_STARS,
@@ -201,7 +200,7 @@ export default function SnapshotSafariPage() {
       {screen === 'menu' && (
         <section className="safari-menu" aria-label="Plan an outing">
           <header className="safari-head">
-            <Link href="/" className="safari-back">← ARCADE</Link>
+            <a href="/" className="safari-back">← ARCADE</a>
             <button className="safari-chip" aria-pressed={P.sound} onClick={() => { P.sound = !P.sound; save(); audio(); refresh(); }}>{P.sound ? '🔊 Sound on' : '🔇 Sound off'}</button>
           </header>
           <div className="safari-title">
