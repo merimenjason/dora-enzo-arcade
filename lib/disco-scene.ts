@@ -24,6 +24,8 @@ const LOOKS: Record<string, [string, string, string, string, string]> = {
   stars: ['#0b1238', '#3a2a6e', '#e8e0f5', '#ffd86b', '#ff9ad0'],
 };
 const POSES = ['idle', 'step', 'up', 'point', 'dizzy'] as const;
+/** The painted friends in the front row, seen from behind. */
+const FANS = 6;
 type Pose = (typeof POSES)[number];
 // the crowd: friends in all sorts of coats
 const CROWD: Coat[] = [
@@ -56,9 +58,12 @@ export class DiscoScene {
     for (const id of ['dora', 'enzo']) for (const pose of POSES) {
       const img = new Image(); img.decoding = 'async'; img.src = `/art/disco/dancer-${id}-${pose}.webp`; this.poses.set(`${id}-${pose}`, img);
     }
+    for (let f = 1; f <= FANS; f++) for (const pose of ['bob', 'cheer']) {
+      const img = new Image(); img.decoding = 'async'; img.src = `/art/disco/crowd-f${f}-${pose}.webp`; this.poses.set(`f${f}-${pose}`, img);
+    }
     fetch('/art/disco/dancers.json').then((r) => (r.ok ? r.json() : {})).then((j) => { this.feet = j ?? {}; }).catch(() => {});
   }
-  private pose(id: string, pose: Pose) { const i = this.poses.get(`${id}-${pose}`); return i && i.complete && i.naturalWidth > 0 ? i : null; }
+  private pose(id: string, pose: Pose | 'bob' | 'cheer') { const i = this.poses.get(`${id}-${pose}`); return i && i.complete && i.naturalWidth > 0 ? i : null; }
   resize() {
     const r = this.canvas.getBoundingClientRect(); this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.w = Math.max(320, r.width); this.h = Math.max(320, r.height);
@@ -353,6 +358,14 @@ export class DiscoScene {
       const x = ((i + 0.5) / n) * w, beside = L && x > L.x0 - hh * 0.4 && x < L.x0 + L.hw + hh * 0.4;
       if (beside) continue;
       const lift = Math.abs(Math.sin(Math.PI * (beat + i * 0.13))) * hh * (dust ? 0.3 : 0.12);
+      // painted friends cheer in Dust Up, and otherwise take turns throwing their paws up
+      const cheer = dust || (Math.floor(beat) + i * 3) % 8 === 0, img = this.pose(`f${(i % FANS) + 1}`, cheer ? 'cheer' : 'bob');
+      if (img) {
+        const sh = hh * 2.1, sw = (img.naturalWidth / img.naturalHeight) * sh, sway = Math.sin((beat + i * 0.5) * Math.PI * 0.5) * 0.06;
+        c.save(); c.translate(x, h + sh * 0.3 - lift); c.rotate(sway); if (i % 2) c.scale(-1, 1);
+        c.drawImage(img, -sw / 2, -sh, sw, sh); c.restore();
+        continue;
+      }
       drawChinchilla(c, CROWD[i % CROWD.length], x, h - 30 + hh * 0.25 - lift, { face: x < w / 2 ? 1 : -1, h: hh, time: beat * 0.5 + i, moving: false, air: dust && lift > hh * 0.2 });
     }
   }

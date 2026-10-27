@@ -1,6 +1,6 @@
 # Dust Disco
 
-Game 43, at `/disco`. A four-lane rhythm game: dust bunnies roll down four lanes, and you press each lane as its bunny reaches the pad, on the beat of twelve original songs. Dora and Enzo dance either side of the lanes in painted poses (a bop and a step in turn, a point on each bar's last beat, a leap on big hits and in Dust Up, a wobble after a miss; the drawn chinchillas stand in until the paintings load), and a crowd of chinchillas bobs along at the front.
+Game 43, at `/disco`. A four-lane rhythm game: dust bunnies roll down four lanes, and you press each lane as its bunny reaches the pad, on the beat of twelve original songs. Dora and Enzo dance either side of the lanes in painted poses (a bop and a step in turn, a point on each bar's last beat, a leap on big hits and in Dust Up, a wobble after a miss; the drawn chinchillas stand in until the paintings load), and a painted front row of six chinchilla friends sways along, each throwing their paws up in turn and all of them cheering in Dust Up.
 
 ## Files
 
@@ -10,7 +10,7 @@ Game 43, at `/disco`. A four-lane rhythm game: dust bunnies roll down four lanes
 | Scene: venue, lights, disco ball, dancers, crowd, notes and bursts (Canvas 2D) | `lib/disco-scene.ts` |
 | Sound: the band that renders each song ahead of time, and the little effects | `app/disco/sound.ts` |
 | Page: song list, settings, calibration, play, pause, results | `app/disco/page.tsx`, `app/disco/disco.css` |
-| Paintings: the title, twelve venues, and Dora and Enzo's five dance poses each (`dancer-<id>-<pose>.webp`, with foot positions in `dancers.json`) | `public/art/disco/`, described in [`dust-disco-art.md`](dust-disco-art.md) |
+| Paintings: the title, twelve venues, and Dora and Enzo's five dance poses each (`dancer-<id>-<pose>.webp`, with foot positions in `dancers.json`), and six front-row friends seen from behind, swaying or cheering (`crowd-f<1-6>-<bob|cheer>.webp`) | `public/art/disco/`, described in [`dust-disco-art.md`](dust-disco-art.md) |
 | Tests | `tests/disco.mjs`, `tests/disco-bot.mjs`, `tests/e2e/disco.mjs` |
 
 ## Songs
