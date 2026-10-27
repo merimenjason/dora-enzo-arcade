@@ -58,12 +58,15 @@ export class DiscoScene {
     for (const id of ['dora', 'enzo']) for (const pose of POSES) {
       const img = new Image(); img.decoding = 'async'; img.src = `/art/disco/dancer-${id}-${pose}.webp`; this.poses.set(`${id}-${pose}`, img);
     }
+    for (const piece of ['note-0', 'note-1', 'note-2', 'note-3', 'note-gold', 'spot', 'ball']) {
+      const img = new Image(); img.decoding = 'async'; img.src = `/art/disco/${piece}.webp`; this.poses.set(piece, img);
+    }
     for (let f = 1; f <= FANS; f++) for (const pose of ['bob', 'cheer']) {
       const img = new Image(); img.decoding = 'async'; img.src = `/art/disco/crowd-f${f}-${pose}.webp`; this.poses.set(`f${f}-${pose}`, img);
     }
     fetch('/art/disco/dancers.json').then((r) => (r.ok ? r.json() : {})).then((j) => { this.feet = j ?? {}; }).catch(() => {});
   }
-  private pose(id: string, pose: Pose | 'bob' | 'cheer') { const i = this.poses.get(`${id}-${pose}`); return i && i.complete && i.naturalWidth > 0 ? i : null; }
+  private pose(id: string, pose?: string) { const i = this.poses.get(pose ? `${id}-${pose}` : id); return i && i.complete && i.naturalWidth > 0 ? i : null; }
   resize() {
     const r = this.canvas.getBoundingClientRect(); this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.w = Math.max(320, r.width); this.h = Math.max(320, r.height);
@@ -266,7 +269,9 @@ export class DiscoScene {
         const wob = Math.sin(this.wall * 9 + i) * 0.06;
         c.save(); c.translate(x, y); c.scale(1 + wob, 1 - wob);
         if (dust && !missed) { c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = hexA(LANE_COLORS[n.lane], 0.35); c.beginPath(); c.arc(0, 0, r * 1.25, 0, Math.PI * 2); c.fill(); c.restore(); }
-        c.drawImage(spr, -size / 2, -size / 2, size, size); c.restore();
+        const fluff = this.pose(dust && !missed ? 'note-gold' : `note-${n.lane}`);
+        if (fluff) { const d = r * 2.3; c.drawImage(fluff, -d / 2, -d / 2, d, d); } else c.drawImage(spr, -size / 2, -size / 2, size, size);
+        c.restore();
         c.globalAlpha = 1;
       }
       // judgement and combo
@@ -295,7 +300,13 @@ export class DiscoScene {
   }
 
   private discoBall(x: number, y: number, r: number, t: number, dust: boolean) {
-    const c = this.c;
+    const c = this.c, art = this.pose('ball');
+    if (art) {
+      // the painted pebble ball swings gently on its string, glinting
+      const k = (r * 2) / art.naturalWidth, top = y - (art.naturalHeight - art.naturalWidth / 2) * k;
+      c.strokeStyle = 'rgba(200,160,90,.7)'; c.lineWidth = 2; c.beginPath(); c.moveTo(x, 0); c.lineTo(x, top + 2); c.stroke();
+      c.save(); c.translate(x, top); c.rotate(Math.sin(t * 1.4) * 0.04); c.drawImage(art, -r, 0, r * 2, art.naturalHeight * k); c.restore();
+    } else {
     c.strokeStyle = 'rgba(255,255,255,.35)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x, 0); c.lineTo(x, y - r); c.stroke();
     c.save(); c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.clip();
     const base = c.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r); base.addColorStop(0, '#f4f0ff'); base.addColorStop(1, '#6d6688');
@@ -313,21 +324,26 @@ export class DiscoScene {
     }
     c.restore();
     c.strokeStyle = 'rgba(40,30,60,.6)'; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.stroke();
+    }
     c.save(); c.globalCompositeOperation = 'lighter';
     for (let k = 0; k < 3; k++) { const a = t * 1.3 + k * 2.1; c.fillStyle = 'rgba(255,255,240,.8)'; star(c, x + Math.cos(a) * r * 0.6, y + Math.sin(a * 1.3) * r * 0.5, 3 + Math.sin(t * 7 + k) * 1.5, t * 2 + k); }
     c.restore();
   }
   private floor(x: number, y: number, h: number, beat: number, dust: boolean, col: string) {
-    const c = this.c, rx = h * 0.62, ry = h * 0.15;
-    c.save(); c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); c.clip();
+    const c = this.c, art = this.pose('spot'), rx = h * 0.62, ry = art ? rx / 2.6 : h * 0.15;
+    // the painted stage, its top lit by the beat
+    if (art) { const k = rx / 251; c.drawImage(art, x - (art.naturalWidth / 2) * k, y - 96 * k, art.naturalWidth * k, art.naturalHeight * k); }
+    c.save(); c.beginPath(); c.ellipse(x, y, rx * (art ? 0.94 : 1), ry * (art ? 0.9 : 1), 0, 0, Math.PI * 2); c.clip();
+    if (art) c.globalCompositeOperation = 'lighter';
     const tiles = 5;
     for (let i = 0; i < tiles; i++) for (let j = 0; j < 2; j++) {
       const on = wrap(i + j + Math.floor(beat)) % 2 === 0;
-      c.fillStyle = on ? hexA(dust ? LANE_COLORS[wrap(i + j + Math.floor(beat))] : col, 0.55) : 'rgba(20,10,30,.35)';
+      if (art && !on) continue;
+      c.fillStyle = on ? hexA(dust ? LANE_COLORS[wrap(i + j + Math.floor(beat))] : col, art ? 0.32 : 0.55) : 'rgba(20,10,30,.35)';
       c.fillRect(x - rx + (i * 2 * rx) / tiles, y - ry + j * ry, (2 * rx) / tiles + 1, ry + 1);
     }
     c.restore();
-    c.strokeStyle = 'rgba(255,255,255,.25)'; c.lineWidth = 1.5; c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); c.stroke();
+    if (!art) { c.strokeStyle = 'rgba(255,255,255,.25)'; c.lineWidth = 1.5; c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); c.stroke(); }
   }
   private dancer(id: 'dora' | 'enzo', x: number, base: number, h: number, t: number, beat: number, dust: boolean, failed: boolean) {
     const c = this.c, phase = ((beat % 1) + 1) % 1, side = id === 'dora' ? 1 : -1;

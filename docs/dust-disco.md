@@ -10,7 +10,7 @@ Game 43, at `/disco`. A four-lane rhythm game: dust bunnies roll down four lanes
 | Scene: venue, lights, disco ball, dancers, crowd, notes and bursts (Canvas 2D) | `lib/disco-scene.ts` |
 | Sound: the band that renders each song ahead of time, and the little effects | `app/disco/sound.ts` |
 | Page: song list, settings, calibration, play, pause, results | `app/disco/page.tsx`, `app/disco/disco.css` |
-| Paintings: the title, twelve venues, and Dora and Enzo's five dance poses each (`dancer-<id>-<pose>.webp`, with foot positions in `dancers.json`), and six front-row friends seen from behind, swaying or cheering (`crowd-f<1-6>-<bob|cheer>.webp`) | `public/art/disco/`, described in [`dust-disco-art.md`](dust-disco-art.md) |
+| Paintings: the title, twelve venues, and Dora and Enzo's five dance poses each (`dancer-<id>-<pose>.webp`, with foot positions in `dancers.json`), and six front-row friends seen from behind, swaying or cheering (`crowd-f<1-6>-<bob|cheer>.webp`), the dust-bunny notes (`note-<0-3>.webp`, `note-gold.webp` in Dust Up), the dancers' stage (`spot.webp`) and the pebble disco ball (`ball.webp`) | `public/art/disco/`, described in [`dust-disco-art.md`](dust-disco-art.md) |
 | Tests | `tests/disco.mjs`, `tests/disco-bot.mjs`, `tests/e2e/disco.mjs` |
 
 ## Songs

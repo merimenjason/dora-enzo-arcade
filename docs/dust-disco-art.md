@@ -444,3 +444,90 @@ Use case: illustration-story. Asset type: single Dust Disco front-row audience s
 ```
 
 The f1-bob rear-ear replacement timeout and successful retry both used the exact selected f1-bob prompt above. All other successful replacement prompts are the selected prompts above.
+
+
+## Notes, spot and ball (27-10-2026)
+
+Generated exclusively with the built-in image generation tool. Both `public/art/disco/dancer-dora-idle.webp` and `public/art/disco/venue-burrow.webp` were inspected and passed as style references to every call; neither was an edit target. No paid image CLI/API fallback or API key was used. No code or CHANGELOG.md was changed, and nothing was committed.
+
+Seven final pieces were delivered. Each note and the ball succeeded on its first generation. The spot was generated four times: three versions were discarded because the top ellipse was too shallow; the fourth was selected. The selected outer gold-rim ellipse is approximately 2.7 times wider than tall, with an empty, unpatterned plum surface and two lanterns below it. The ball's short braided suspension string reaches the top edge of the cropped sprite.
+
+Processing used Pillow and numpy in a temporary environment outside the repository. For each source, a chroma-dominance mask identified the clean foreground. A normalized Gaussian neighbourhood estimated foreground edge colours, alpha was solved from `C = alpha F + (1-alpha) B`, and the chroma contribution was unmixed from soft edges. Residual spill was suppressed. Alpha below 4/255 was cleared, then the image was cropped to nontransparent bounds. Notes were centred on a transparent square and Lanczos-resized to 256×256; spot and ball were Lanczos-resized proportionally to widths 512 and 256. Files were encoded as WebP with alpha at **quality 90**. Green was the chroma for all pieces except mint `note-2`, which used magenta.
+
+Every saved WebP was reopened and fully decoded with `Image.load()`, with format, RGBA mode and dimensions asserted. On the decoded pixels, all green-matte files have zero pixels with `g > r+40 and g > b+40 and alpha > 32`; the magenta-matte mint note has zero pixels with `r > g+60 and b > g+60 and alpha > 32`. Each saved piece was composited on dark purple `#251532` and visually inspected; each note was additionally inspected at exactly 40×40. Faces remain legible, lane colours distinct, fluffy edges clean, and the golden-white Dust Up puff visibly sparkly. No chroma fringe, text, letters or numbers were observed. Local setup required a temporary Python environment because numpy was absent; this was not an image-generation fallback.
+
+`pieces.json` records the selected stage's dimensions and the approximate centre and horizontal radius of the outer top ellipse in final sprite pixels: `{"spot": {"w": 512, "h": 240, "topY": 96, "topRx": 251}}`.
+
+| File | Decoded size | Bytes | RGBA / full decode | Chroma violations | Dark-purple inspection | 40 px note inspection |
+| --- | --- | ---: | --- | ---: | --- | --- |
+| `note-0.webp` | 256×256 | 20014 | PASS | 0 | PASS | PASS |
+| `note-1.webp` | 256×256 | 20250 | PASS | 0 | PASS | PASS |
+| `note-2.webp` | 256×256 | 21526 | PASS | 0 | PASS | PASS |
+| `note-3.webp` | 256×256 | 20990 | PASS | 0 | PASS | PASS |
+| `note-gold.webp` | 256×256 | 22838 | PASS | 0 | PASS | PASS |
+| `spot.webp` | 512×240 | 28304 | PASS | 0 | PASS | N/A |
+| `ball.webp` | 256×319 | 29638 | PASS | 0 | PASS | N/A |
+
+### Exact generation prompts
+
+Every call used the two reference paths stated above and `transparent_background: false`, to generate the explicitly requested chroma backdrop. Each block is the full verbatim prompt.
+
+#### note-0.webp
+
+```text
+Use case: illustration-story. Asset type: one isolated Dust Disco game piece. Input images are STYLE REFERENCES ONLY: dancer-dora-idle.webp and venue-burrow.webp. Match their warm hand-painted toon storybook style, soft cel shading, gentle fine brown ink edges, cute joyful mood. No text, letters, numbers, logos or watermark. Paint ONE round fluffy dust puffball seen straight on, whole puff tinted pink #ff8fb1. Soft fuzzy fringe all round, two small shiny black dot eyes and a tiny happy mouth, little highlight on top. Bold simple circular shape and strong face that read clearly at 40 pixels across. No ears, limbs, tail or accessories. Centered circular puff filling most of a square frame, with a small clear margin all around. Background perfectly flat uniform pure GREEN #00ff00, no gradient, no shadow on the background. Never let the subject contain the chroma colour. No floor or scenery.
+```
+
+#### note-1.webp
+
+```text
+Use case: illustration-story. Asset type: one isolated Dust Disco game piece. Input images are STYLE REFERENCES ONLY: dancer-dora-idle.webp and venue-burrow.webp. Match their warm hand-painted toon storybook style, soft cel shading, gentle fine brown ink edges, cute joyful mood. No text, letters, numbers, logos or watermark. Paint ONE round fluffy dust puffball seen straight on, whole puff tinted golden yellow #ffc95c. Soft fuzzy fringe all round, two small shiny black dot eyes and a tiny happy mouth, little highlight on top. Bold simple circular shape and strong face that read clearly at 40 pixels across. No ears, limbs, tail or accessories. Centered circular puff filling most of a square frame, with a small clear margin all around. Background perfectly flat uniform pure GREEN #00ff00, no gradient, no shadow on the background. Never let the subject contain the chroma colour. No floor or scenery.
+```
+
+#### note-2.webp
+
+```text
+Use case: illustration-story. Asset type: one isolated Dust Disco game piece. Input images are STYLE REFERENCES ONLY: dancer-dora-idle.webp and venue-burrow.webp. Match their warm hand-painted toon storybook style, soft cel shading, gentle fine brown ink edges, cute joyful mood. No text, letters, numbers, logos or watermark. Paint ONE round fluffy dust puffball seen straight on, whole puff tinted mint green #7fe0b0. Soft fuzzy fringe all round, two small shiny black dot eyes and a tiny happy mouth, little highlight on top. Bold simple circular shape and strong face that read clearly at 40 pixels across. No ears, limbs, tail or accessories. Centered circular puff filling most of a square frame, with a small clear margin all around. Background perfectly flat uniform pure MAGENTA #ff00ff, no gradient, no shadow on the background. Never let the subject contain the chroma colour. No floor or scenery.
+```
+
+#### note-3.webp
+
+```text
+Use case: illustration-story. Asset type: one isolated Dust Disco game piece. Input images are STYLE REFERENCES ONLY: dancer-dora-idle.webp and venue-burrow.webp. Match their warm hand-painted toon storybook style, soft cel shading, gentle fine brown ink edges, cute joyful mood. No text, letters, numbers, logos or watermark. Paint ONE round fluffy dust puffball seen straight on, whole puff tinted sky blue #7cc6ff. Soft fuzzy fringe all round, two small shiny black dot eyes and a tiny happy mouth, little highlight on top. Bold simple circular shape and strong face that read clearly at 40 pixels across. No ears, limbs, tail or accessories. Centered circular puff filling most of a square frame, with a small clear margin all around. Background perfectly flat uniform pure GREEN #00ff00, no gradient, no shadow on the background. Never let the subject contain the chroma colour. No floor or scenery.
+```
+
+#### note-gold.webp
+
+```text
+Use case: illustration-story. Asset type: one isolated Dust Disco game piece. Input images are STYLE REFERENCES ONLY: dancer-dora-idle.webp and venue-burrow.webp. Match their warm hand-painted toon storybook style, soft cel shading, gentle fine brown ink edges, cute joyful mood. No text, letters, numbers, logos or watermark. Paint ONE round fluffy dust puffball seen straight on, whole puff tinted sparkly golden-white with tiny star glints. Soft fuzzy fringe all round, two small shiny black dot eyes and a tiny happy mouth, little highlight on top. Bold simple circular shape and strong face that read clearly at 40 pixels across. No ears, limbs, tail or accessories. Centered circular puff filling most of a square frame, with a small clear margin all around. Background perfectly flat uniform pure GREEN #00ff00, no gradient, no shadow on the background. Never let the subject contain the chroma colour. No floor or scenery.
+```
+
+#### Initial spot — discarded
+
+```text
+Use case: illustration-story. Asset type: one isolated Dust Disco game piece. Input images are STYLE REFERENCES ONLY: dancer-dora-idle.webp and venue-burrow.webp. Match their warm hand-painted toon storybook style, soft cel shading, gentle fine brown ink edges, cute joyful mood. No text, letters, numbers, logos or watermark. Paint ONE short round wooden drum pedestal, front view at a low angle. The TOP surface is a wide ellipse exactly about 2.6 times wider than tall, a plain dark plum surface with NO pattern at all, bordered by a soft gold rim. Short front wooden side showing a little painted trim and two tiny warm amber lanterns attached to the FRONT SIDE below the top, one on each side. Nothing on top. Entire pedestal visible with small clear margin, horizontally centered. Perfectly flat uniform pure GREEN #00ff00 background, no gradient, no background shadow. No green anywhere on the subject. No floor, characters or scenery.
+```
+
+#### Second spot — discarded
+
+```text
+Use case: illustration-story. Asset type: one isolated Dust Disco game piece. Input images are STYLE REFERENCES ONLY: dancer-dora-idle.webp and venue-burrow.webp. Match their warm hand-painted toon storybook style, soft cel shading, gentle fine brown ink edges, cute joyful mood. No text, letters, numbers, logos or watermark. Paint ONE short round wooden drum pedestal, front view at a low angle. The TOP surface is a wide ellipse exactly about 2.6 times wider than tall, a plain dark plum surface with NO pattern at all, bordered by a soft gold rim. Short front wooden side showing a little painted trim and two tiny warm amber lanterns attached to the FRONT SIDE below the top, one on each side. Nothing on top. Entire pedestal visible with small clear margin, horizontally centered. Perfectly flat uniform pure GREEN #00ff00 background, no gradient, no background shadow. No green anywhere on the subject. No floor, characters or scenery. Critical geometry: the top ellipse must have substantial visible depth: for example 780 pixels wide and 300 pixels tall, width divided by height = 2.6. Show the whole oval dark plum top prominently, viewed from slightly above while still seeing the short front side. Do not flatten the oval into a thin sliver. Overall pedestal silhouette about 2.1 times wider than tall.
+```
+
+#### Third spot — discarded
+
+```text
+Use case: illustration-story. Asset type: one isolated Dust Disco game piece. Input images are STYLE REFERENCES ONLY: dancer-dora-idle.webp and venue-burrow.webp. Match their warm hand-painted toon storybook style, soft cel shading, gentle fine brown ink edges, cute joyful mood. No text, letters, numbers, logos or watermark. Paint ONE short round wooden drum pedestal, front view at a low angle. The TOP surface is a wide ellipse exactly about 2.6 times wider than tall, a plain dark plum surface with NO pattern at all, bordered by a soft gold rim. Short front wooden side showing a little painted trim and two tiny warm amber lanterns attached to the FRONT SIDE below the top, one on each side. Nothing on top. Entire pedestal visible with small clear margin, horizontally centered. Perfectly flat uniform pure GREEN #00ff00 background, no gradient, no background shadow. No green anywhere on the subject. No floor, characters or scenery. REQUIRED camera adjustment: see much more of the TOP. The top oval must be 800 units wide and 308 units TALL (height is 38.5 percent of width). A plump deep oval, NOT a thin horizontal ellipse. Tilt camera further downward until this ratio is achieved. Front wooden side is only 90 units tall. Overall isolated object 800 wide and 398 tall. Keep the plain plum top entirely empty, NO texture pattern. Use the references only for painting style, not camera angle.
+```
+
+#### spot.webp — selected fourth spot
+
+```text
+Use case: illustration-story. Asset type: one isolated Dust Disco game piece. Input images are STYLE REFERENCES ONLY: dancer-dora-idle.webp and venue-burrow.webp. Match their warm hand-painted toon storybook style, soft cel shading, gentle fine brown ink edges, cute joyful mood. No text, letters, numbers, logos or watermark. Paint ONE short round wooden drum pedestal, front view at a low angle. The TOP surface is a wide ellipse exactly about 2.6 times wider than tall, a plain dark plum surface with NO pattern at all, bordered by a soft gold rim. Short front wooden side showing a little painted trim and two tiny warm amber lanterns attached to the FRONT SIDE below the top, one on each side. Nothing on top. Entire pedestal visible with small clear margin, horizontally centered. Perfectly flat uniform pure GREEN #00ff00 background, no gradient, no background shadow. No green anywhere on the subject. No floor, characters or scenery. CAMERA: elevated front view, looking down at 25 degrees. The TOP ellipse must be very deep: its width is 2.6 times its height. Top surface dimensions 780 wide by 300 tall. Total pedestal dimensions 800 wide by 370 tall. The top occupies most of the image height; very short 60-unit wooden front side. Top should appear almost halfway between a circle and a thin ellipse. Do NOT use the low camera angle of the venue reference. Plain flat dark plum top, no pattern. Entire object visible with margin.
+```
+
+#### ball.webp
+
+```text
+Use case: illustration-story. Asset type: one isolated Dust Disco game piece. Input images are STYLE REFERENCES ONLY: dancer-dora-idle.webp and venue-burrow.webp. Match their warm hand-painted toon storybook style, soft cel shading, gentle fine brown ink edges, cute joyful mood. No text, letters, numbers, logos or watermark. Paint ONE round disco ball made of smooth coloured pebbles in pink, gold, mint, sky blue and cream, hanging from a short braided string centered at the very top. Seen straight on, softly glowing with warm highlights confined to the object. Entire ball and entire string visible with small clear margin. Mint pebbles must be pale desaturated pastel mint with blue, never vivid green. Perfectly flat uniform pure GREEN #00ff00 background, no gradient, no background shadow, no glow on background. Never pure green in the subject. No scenery or other objects.
+```
