@@ -13,6 +13,8 @@ const open = async (viewport = { width: 1280, height: 800 }) => {
   return page;
 };
 const ready = (page) => page.locator('main[data-ready="true"]').waitFor();
+/** Clicks the first open map step with the mouse, as a player would. */
+const clickStep = async (page) => { await page.waitForTimeout(600); const b = await page.locator('.pebble-node.is-open').first().boundingBox(); await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2); };
 const phase = (page) => page.evaluate(() => window.__pebble()?.phase ?? null);
 
 {
@@ -34,7 +36,7 @@ const phase = (page) => page.evaluate(() => window.__pebble()?.phase ?? null);
   console.log('PASS choosing Dora starts a run on the map');
 
   // the first wall: launch with Space, steer with the keys under the pebble for a while
-  await open1.first().click();
+  await page.waitForFunction(() => { const r = document.querySelector('.pebble-node.is-open')?.getBoundingClientRect(); return r && r.top >= 0 && r.bottom <= innerHeight; }); await clickStep(page); // open steps bob forever, so they never count as stable: click like a player instead
   await page.waitForFunction(() => window.__pebble()?.phase === 'wall');
   await page.locator('.pebble-canvas').focus();
   await page.keyboard.press('Space');
@@ -88,7 +90,7 @@ const phase = (page) => page.evaluate(() => window.__pebble()?.phase ?? null);
   console.log('PASS a saved run carries on from the map');
 
   // lose the run: drop every pebble
-  await page.locator('.pebble-node.is-open').first().click();
+  await page.waitForFunction(() => { const r = document.querySelector('.pebble-node.is-open')?.getBoundingClientRect(); return r && r.top >= 0 && r.bottom <= innerHeight; }); await clickStep(page);
   await page.waitForFunction(() => window.__pebble()?.phase === 'wall');
   await page.evaluate(() => { const g = window.__pebble(); g.lives = 1; g.wall.shield = 0; const b = g.wall.balls[0]; b.held = false; b.x = 10; b.y = 520; b.vx = 0; b.vy = 300; g.input.target = 340; });
   await page.getByRole('dialog', { name: 'Run over' }).waitFor({ timeout: 10000 });
@@ -103,7 +105,7 @@ const phase = (page) => page.evaluate(() => window.__pebble()?.phase ?? null);
   await page.goto(base + '/pebble'); await ready(page);
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'no sideways scroll on the title');
   await page.evaluate(() => window.__pebbleStart('enzo', 1234));
-  await page.locator('.pebble-node.is-open').first().click();
+  await page.waitForFunction(() => { const r = document.querySelector('.pebble-node.is-open')?.getBoundingClientRect(); return r && r.top >= 0 && r.bottom <= innerHeight; }); await clickStep(page);
   await page.waitForFunction(() => window.__pebble()?.phase === 'wall');
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'no sideways scroll in a wall');
   // a tap launches and a drag steers

@@ -40,6 +40,7 @@ export default function PebblePopPage() {
   function begin(g: PebbleGame) {
     game.current = g; pausedRef.current = false; setPaused(false); setEnd(null);
     scene.current?.place(g.place); setScreen('run'); refresh();
+    if (g.phase === 'map') scrollMap();
   }
   function newRun(c: Char, seed?: number) {
     audio().ui(); profile.current.char = c; setChar(c);
@@ -75,10 +76,12 @@ export default function PebblePopPage() {
     const g = game.current; if (!g) return;
     if (fn(g)) { if (sfx === 'buy') audio().buy(); else audio().ui(); discover(profile.current, g); save(); refresh(); }
   }
-  function scrollMap() {
-    const g = game.current, el = mapRef.current; if (!g || !el) return;
+  /** Brings the next step into view; on a new or resumed run the map is still mounting, so it waits a few frames for it. */
+  function scrollMap(tries = 30) {
+    const g = game.current, el = mapRef.current; if (!g) return;
+    if (!el || !el.clientHeight) { if (tries > 0) requestAnimationFrame(() => scrollMap(tries - 1)); return; }
     const step = Math.max(1, g.step + 1), y = (STEPS - step) * ROW - el.clientHeight / 2 + ROW;
-    el.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+    el.scrollTo({ top: Math.max(0, y), behavior: el.scrollTop ? 'smooth' : 'auto' });
   }
   /** Sends a held pebble off (its launch event plays the sound). */
   function launch() { const g = game.current; if (g && g.phase === 'wall' && !pausedRef.current) g.launch(); }
