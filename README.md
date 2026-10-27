@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of forty-three original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of forty-four original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -53,6 +53,7 @@ Listed in arcade-menu order.
 | 41 | Fluff Roll | `/roll` | 3D roll-and-grow |
 | 42 | Pawhaven | `/pawhaven` | Town builder |
 | 43 | Dust Disco | `/disco` | Rhythm |
+| 44 | Pebble Pop | `/pebble` | Brick breaker |
 
 ## Run
 
@@ -992,6 +993,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/dust-disco.md`](docs/dust-disco.md), and [`docs/dust-disco-art.md`](docs/dust-disco-art.md) for the paintings.
 
+### 44 · Pebble Pop (`/pebble`)
+
+**Play:** A brick-breaker roguelite. Dora and Enzo hold up a hay bale and bounce a pebble into walls of crates, stout crates, acorn piles (acorns to catch and spend), ice (two hits), dust clouds (the pebble rolls through and slows), moss that grows back after 7 s, chain blocks that pop their eight neighbours, and sliding crates. A run follows a branching trail of 15 steps through the Meadow, Pebble Creek, Frosty Ridge and Badger Barn, with elite walls, acorn shops, rest stops, and bosses at steps 5, 10 and 15: Captain Caw, Frostwhisker and Big Bramble. Each boss sways side to side and rebuilds its rows. You start with 3 pebbles (up to 6). After every wall you keep one of three upgrades from 13, such as Split Pebble, Burr Ball, Snowball, Spark, Sticky Paws, Dust Up Shield, Wide Bale and Pinecone Pop, and four pairings give synergies. Dora has a wide, gentle bale (84 wide, pebble at 92% speed). Enzo has a narrower one (64 wide), but he can charge a spin shot that curves the pebble and hits harder. Where the pebble lands on the bale sets its angle, up to 62°. Hits trigger hit-stop, screen shake and a combo that pays 2 acorns for every 10 in a row.
+
+**Controls:** Mouse or finger to steer the bale. Click, tap or Space to launch. A / D or ← / → also steer. Enzo holds Space, the mouse button or the SPIN button to charge his spin. Number keys pick on the map and in the reward, shop and rest screens. P or Esc pauses. Gamepads work too.
+
+**Tests:** `npm run test:pebble` covers the map, the walls, swept collision without tunnelling, every block, upgrade and synergy, the shop, rest and bosses, a whole run, replays and saving. `npm run bot:pebble`: a careful bot must win at least half its runs as Dora and 40% as Enzo, and a sloppy one must win clearly fewer. `npm run test:e2e:pebble` is the browser test.
+
+**Docs:** [`docs/pebble-pop.md`](docs/pebble-pop.md), with the art list in [`docs/pebble-pop-art-brief.md`](docs/pebble-pop-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1011,7 +1022,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-three ways/` assertion in `tests/e2e/dust-bath.mjs`, the 43-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-three games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-four ways/` assertion in `tests/e2e/dust-bath.mjs`, the 44-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-four games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

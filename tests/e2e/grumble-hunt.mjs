@@ -94,7 +94,7 @@ try {
     assert.equal(await hunt(p, (w) => w.game.hero.fluff), 100);
   });
   await check('arcade, village, field guide, Beast Book and locked hunts', async (p) => {
-    await p.goto(base); assert.equal(await p.locator('.arcade-card').count(), 43); await p.getByRole('link', { name: /Grumble Hunt/ }).click();
+    await p.goto(base); assert.equal(await p.locator('.arcade-card').count(), 44); await p.getByRole('link', { name: /Grumble Hunt/ }).click();
     await p.locator('main[data-ready="true"][data-rendered="true"]').waitFor(); await snapshot(p, 'title');
     await p.getByTestId('choose-dora').click(); await p.getByTestId('panel-rack').waitFor(); assert(await p.getByTestId('weapon-preview').isVisible()); assert.equal(await p.getByTestId('rack-wand').isDisabled(), true); await p.getByTestId('rack-hammer').click(); await p.getByTestId('rack-ready').click(); await p.getByTestId('story-skip').click(); await hunt(p, (w) => { const g = w.game; g.returnVillage(); g.story.chapter = 1; }); await snapshot(p, 'village');
     await p.getByTestId('open-board').click(); assert.equal(await p.getByTestId('hunt-hornclack').isDisabled(), true); assert.equal(await p.getByTestId('hunt-frostmane').isDisabled(), true); await p.getByRole('button', { name: 'Close panel' }).click();
@@ -602,7 +602,7 @@ try {
     assert(await hunt(p, (w) => w.metrics().camera[1]) >= 0.8); await p.mouse.wheel(0, -1500); await p.waitForTimeout(150); assert(await hunt(p, (w) => w.metrics().camera[1]) >= 0.8);
     for (let n = 0; n < 3; n++) { await p.getByTestId('pause').click(); await p.getByRole('button', { name: 'Return to camp', exact: true }).click(); await start(p); }
     assert(await hunt(p, (w) => w.metrics().textures) <= first + 1);
-    await p.getByRole('link', { name: /MAIN ARCADE/ }).click(); await p.waitForSelector('.arcade-grid'); assert.equal(await p.locator('.arcade-card').count(), 43);
+    await p.getByRole('link', { name: /MAIN ARCADE/ }).click(); await p.waitForSelector('.arcade-grid'); assert.equal(await p.locator('.arcade-card').count(), 44);
     // Return via client navigation/history: the lifecycle also has to recreate a working renderer.
     await p.goBack(); await p.locator('main[data-ready="true"][data-rendered="true"]').waitFor(); assert(await hunt(p, (w) => w.metrics().textures) > 0);
   });
