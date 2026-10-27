@@ -7,7 +7,7 @@ import {
   readProfile, recordWin, saveTown, meadowById, type Kind, type Good, type GameEvent, type Profile, type TradeMode, type Building, type Meadow,
 } from '@/lib/pawhaven-game';
 import type { PawhavenScene, View, Overlay, Ghost } from '@/lib/pawhaven-scene';
-import { glyph, portrait, type Glyph } from '@/lib/pawhaven-icons';
+import { glyph, type Glyph } from '@/lib/pawhaven-icons';
 import { HavenSound } from './sound';
 import './pawhaven.css';
 
@@ -17,7 +17,33 @@ type Note = { text: string; id: number; x?: number; y?: number; icon?: string };
 
 /** The scene, once loaded, also paints building icons for the page. */
 let ART: PawhavenScene | null = null;
-const bi = (kind: Kind, level?: number, size = 64) => (ART ? ART.icon(kind, { level, size }) : '');
+/** Painted sprites for most buildings; roads, fences and fields are drawn by the scene. */
+const DRAWN = new Set<Kind>(['road', 'fence', 'hayFarm', 'oatFarm']);
+const sprite = (kind: Kind, level = 3) => `/art/pawhaven/sprites/${kind === 'home' ? `home-${level}` : kind}.webp`;
+const bi = (kind: Kind, level?: number, size = 64) => (!DRAWN.has(kind) ? sprite(kind, level) : ART ? ART.icon(kind, { level, size }) : '');
+/** Dora and Enzo, painted, from the shared portrait sheets (2 by 2: happy, determined, dizzy, content). */
+const Face = ({ who, mood = 0, size = 64 }: { who: 'dora' | 'enzo'; mood?: 0 | 3; size?: number }) =>
+  <span className={`haven-face is-${who}`} role="img" aria-label={who === 'dora' ? 'Dora' : 'Enzo'} style={{ width: size, height: size, backgroundImage: `url(/art/hunt/portraits-${who}.webp)`, backgroundPosition: mood ? '100% 100%' : '0 0' }} />;
+/** A little painted scene for each meadow, built from its buildings, until (or unless) a painting is there. */
+const SCENES: Record<string, { sky: string; land: string; spots: string[] }> = {
+  clover: { sky: '#cfe8f4', land: '#a6cf72', spots: ['home-2', 'well', 'market', 'home-1', 'berry'] },
+  willow: { sky: '#d6ecf2', land: '#93c266', spots: ['woodcutter', 'tower', 'home-3', 'garden', 'fireWatch'] },
+  sandy: { sky: '#f6e3bd', land: '#e3c98a', spots: ['dustMill', 'sandPit', 'bathhouse', 'home-4', 'pond'] },
+  clayfoot: { sky: '#d9ecf0', land: '#b8c978', spots: ['clayPit', 'tradingPost', 'potter', 'home-5', 'plaza'] },
+  foxglove: { sky: '#e6dff0', land: '#8fbf6a', spots: ['foxWatch', 'toymaker', 'story', 'home-6', 'garden'] },
+  stormy: { sky: '#c9d2dc', land: '#97b88a', spots: ['weaver', 'statue', 'music', 'home-6', 'pond'] },
+  pawhaven: { sky: '#f8dcb4', land: '#a8cf74', spots: ['home-7', 'hall', 'plaza', 'home-7', 'garden'] },
+  free: { sky: '#d4ecf7', land: '#b2d987', spots: ['garden', 'well', 'home-1', 'pond', 'herb'] },
+  hero: { sky: '#cfe8f4', land: '#a6cf72', spots: ['home-5', 'hall', 'market', 'home-3', 'well'] },
+};
+function Vignette({ id }: { id: string }) {
+  const sc = SCENES[id] ?? SCENES.free;
+  return (
+    <div className="haven-vignette" style={{ '--sky': sc.sky, '--land': sc.land } as React.CSSProperties} aria-hidden="true">
+      {sc.spots.map((n, k) => <img key={k} src={`/art/pawhaven/sprites/${n}.webp`} alt="" className={`haven-spot s${k}`} draggable={false} />)}
+    </div>
+  );
+}
 const Pic = ({ src, size, alt = '', className }: { src: string; size: number; alt?: string; className?: string }) =>
   src ? <img src={src} width={size} height={size} alt={alt} className={className ?? 'haven-pic'} draggable={false} /> : <span className="haven-pic-space" style={{ width: size, height: size }} />;
 const noSub = () => () => {};
@@ -370,12 +396,6 @@ export default function PawhavenPage() {
   );
 }
 
-/** A meadow's painting, or nothing until it exists. */
-function Painting({ src, alt, className }: { src: string; alt: string; className: string }) {
-  const [ok, setOk] = useState(true);
-  return ok ? <img src={src} alt={alt} className={className} onError={() => setOk(false)} /> : null;
-}
-
 function Menu({ profile, replace, onStart, onResume, onForget, onCancel }: {
   profile: Profile; replace: string | null; onStart: (id: string, into?: number) => void; onResume: (i: number) => void; onForget: (i: number) => void; onCancel: () => void;
 }) {
@@ -385,11 +405,11 @@ function Menu({ profile, replace, onStart, onResume, onForget, onCancel }: {
       <div className="haven-menu-top"><Link href="/" className="haven-back">← ARCADE</Link></div>
       <div className="haven-menu-panel">
         <div className="haven-hero">
-          <Painting src="/art/pawhaven/title.webp" alt="Dora and Enzo looking over a cosy chinchilla village" className="haven-hero-art" />
+          <Vignette id="hero" />
+          <div className="haven-hero-faces"><Face who="dora" size={84} /><Face who="enzo" size={84} /></div>
           <div className="haven-hero-copy">
             <p className="haven-eyebrow">A CHINCHILLA TOWN</p>
             <h1>Paw<em>haven</em></h1>
-            <div className="haven-hero-icons" aria-hidden="true">{(['home', 'well', 'market', 'bathhouse', 'hall'] as Kind[]).map((k, i) => <Pic key={k} src={bi(k, i ? undefined : 5, 56)} size={56} />)}</div>
           </div>
         </div>
         <p className="haven-lede">Lay roads, send helpers down the streets, and grow hay nests into grand burrows. Seven meadows, each a little bigger and busier than the last.</p>
@@ -418,7 +438,7 @@ function Menu({ profile, replace, onStart, onResume, onForget, onCancel }: {
             return (
               <li key={m.id} className={locked ? 'is-locked' : undefined}>
                 <div className="haven-meadow-art">
-                  <Painting src={`/art/pawhaven/meadow-${m.id}.webp`} alt="" className="haven-meadow-paint" />
+                  <Vignette id={m.id} />
                   <span className="haven-n">{m.goals.length ? m.n : '∞'}</span>
                 </div>
                 <div className="haven-meadow-body">
@@ -535,13 +555,13 @@ function Brief({ m, onGo }: { m: Meadow; onGo: () => void }) {
     <div className="haven-modal" role="dialog" aria-label={m.name}>
       <div className="haven-card has-art">
         <div className="haven-card-art">
-          <Painting src={`/art/pawhaven/meadow-${m.id}.webp`} alt="" className="haven-card-paint" />
+          <Vignette id={m.id} />
           <div className="haven-card-title"><p className="haven-eyebrow">{m.goals.length ? `MEADOW ${m.n}` : 'FREE MEADOW'}</p><h2>{m.name}</h2></div>
         </div>
         <div className="haven-card-body">
           {lines(m.brief).map((l, i) => (
             <div key={i} className={`haven-say${l.who ? ` is-${l.who.toLowerCase()}` : ''}`}>
-              {l.who && <img src={portrait(l.who.toLowerCase() as 'dora' | 'enzo', 64)} width={64} height={64} alt={l.who} className="haven-face" />}
+              {l.who && <Face who={l.who.toLowerCase() as 'dora' | 'enzo'} />}
               <p>{l.who && <b>{l.who}</b>}{l.text}</p>
             </div>
           ))}
@@ -635,7 +655,7 @@ function Won({ g, stars: got, years, profile, onStay, onMenu, onNext }: {
       <div className="haven-card is-won">
         <p className="haven-eyebrow">MEADOW FINISHED</p>
         <h2>{g.meadow.name}</h2>
-        <div className="haven-cheer"><img src={portrait('dora', 88, true)} width={88} height={88} alt="Dora" /><span className="haven-big-stars" aria-label={`${got} of 3 stars`}>{[0, 1, 2].map((k) => <G key={k} g={k < got ? 'star' : 'starOff'} size={52} />)}</span><img src={portrait('enzo', 88, true)} width={88} height={88} alt="Enzo" /></div>
+        <div className="haven-cheer"><Face who="dora" mood={3} size={88} /><span className="haven-big-stars" aria-label={`${got} of 3 stars`}>{[0, 1, 2].map((k) => <G key={k} g={k < got ? 'star' : 'starOff'} size={52} />)}</span><Face who="enzo" mood={3} size={88} /></div>
         <p>Finished in {years} years with cosiness {g.cosiness}. {g.meadow.n === 7 ? 'Pawhaven is the cosiest town there ever was!' : 'Dora and Enzo are so proud of this town.'}</p>
         <div className="haven-row">
           {next && <button type="button" className="haven-primary" onClick={() => onNext(next.id)}>On to {next.name}</button>}

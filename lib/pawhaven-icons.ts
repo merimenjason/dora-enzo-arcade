@@ -1,6 +1,6 @@
-// Pawhaven's little painted icons for the page: goods, the HUD, event glyphs and Dora and Enzo's portraits. Drawn on
+// Pawhaven's little painted icons for the page: goods, the HUD and event glyphs. Drawn on
 // a canvas in the town's own style (soft fills, brown ink edges) and handed back as cached image URLs.
-import { drawChinchilla, type ChinId } from './chinchilla-art';
+import { drawChinchilla } from './chinchilla-art';
 import type { Good } from './pawhaven-game';
 
 export type Glyph =
@@ -72,17 +72,5 @@ export function glyph(g: Glyph, px = 64) {
   const key = `${g}:${px}`; const hit = cache.get(key); if (hit) return hit;
   const cv = document.createElement('canvas'); cv.width = cv.height = px * 2;
   const c = cv.getContext('2d')!; c.scale((px * 2) / 64, (px * 2) / 64); PAINT[g](c);
-  const url = cv.toDataURL('image/png'); cache.set(key, url); return url;
-}
-
-/** Dora or Enzo from the waist up, for the speech bubbles. */
-export function portrait(id: ChinId, px = 96, happy = false) {
-  const key = `p:${id}:${px}:${happy}`; const hit = cache.get(key); if (hit) return hit;
-  const cv = document.createElement('canvas'); cv.width = cv.height = px * 2;
-  const c = cv.getContext('2d')!;
-  // a soft round backdrop, then the chinchilla big enough that the head fills the circle
-  const r = px * 0.96; c.beginPath(); c.arc(px, px, r, 0, Math.PI * 2); c.fillStyle = id === 'dora' ? '#fbe3e6' : '#e1e8ef'; c.fill();
-  c.save(); c.clip(); drawChinchilla(c, id, px * 1.06, px * 2.5, { face: id === 'dora' ? 1 : -1, h: px * 2.5, time: happy ? 0.3 : 0, air: happy }); c.restore();
-  c.lineWidth = px * 0.06; c.strokeStyle = id === 'dora' ? '#e8a6b0' : '#a9b8c6'; c.beginPath(); c.arc(px, px, r - c.lineWidth / 2, 0, Math.PI * 2); c.stroke();
   const url = cv.toDataURL('image/png'); cache.set(key, url); return url;
 }
