@@ -12,6 +12,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Burrow Command** is hand-painted: every unit and building for the Burrow Colony, the Ringtail Guild and the Clockwork Hive, portraits for Dora, Enzo, Marlo and the Queen, mission briefing scenes, command icons and the meadow, dirt and water ground.
 - **Hayloft Tycoon** is hand-painted: all twelve buildings, Dora and Enzo, the visitors who fly in, the six valleys and the title painting. On phones, a building's level badge now always shows in full beside a long name.
 - **Dust Bunny Dungeon** is hand-painted: Dora and Enzo with their dusters, all eleven dust bunnies and cellar foes from the hoppers to the Dust King, the tools, chests, crates, switches, floors and the title painting.
 - **Snapshot Safari** is hand-painted: all 24 creatures, four Andes horizons, Dora and Enzo with their cameras, and a new title painting.
