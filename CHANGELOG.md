@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Fluff Roll**'s menu is painted: a storybook title of Dora pushing the fluffball with Enzo cheering on top, and a picture for each of the four levels.
 - **Fluff Roll** (`/roll`), game 41: a 3D roll-and-grow game. Push a dust ball round the meadow with Dora while Enzo rides on top, and everything smaller than the ball sticks to it. Four levels grow the ball from a crumb catcher to a hill roller: Dust Bath Corner, Clover Garden, Hay Barn Yard and The Whole Meadow, with modelled teacups, socks, ducklings, tractors, windmills and barns to roll up. Coral rings mark what is still too big, the HUD names the next thing you'll grow into, critters scurry off when you could catch them, three golden acorns per level add time, and quick catches build a streak.
 - **Puttering Paws** (`/putt`), game 40: storybook 3D mini golf. Putt as Dora or Enzo, or both taking turns, through the sunny **Clover Nine** and, once it is finished, the dusk **Lantern Nine**: eighteen holes of ramps, one-way ledges, windmills, burrows, dust baths, ponds, bouncy mushrooms, rolling hay bales and a sleep-walking Bristleback. Drag back from the ball like a slingshot, or aim with the keys. Every hole hides a golden acorn, and the clubhouse keeps your bests, aces and acorns.
 - **Grumble Hunt** has new sounds: Paddlepaw's splash, Rumblesnout digging down and popping up, a golden shimmer whenever a Mighty beast winds up its Mighty move, and a little fanfare for the Best of Friends ribbon.

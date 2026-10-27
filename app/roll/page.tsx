@@ -187,13 +187,16 @@ function Menu({ profile, muted, onSound, onStart }: { profile: Profile; muted: b
   return <div className="roll-menu">
     <div className="roll-menu-top"><Link href="/" className="roll-back">← MAIN ARCADE</Link><button className="roll-chip" onClick={onSound}>{muted ? 'Sound off' : 'Sound on'}</button></div>
     <div className="roll-menu-panel">
-      <span className="roll-eyebrow">DORA & ENZO</span>
-      <h1>Fluff <em>Roll</em></h1>
+      <div className="roll-hero">
+        <img src="/art/roll/title.webp" alt="Dora pushing a huge fluffy dust ball studded with acorns, buttons and a teacup, with Enzo cheering on top" width={1600} height={1000} />
+        <div><span className="roll-eyebrow">DORA & ENZO</span><h1>Fluff <em>Roll</em></h1></div>
+      </div>
       <p className="roll-lede">Dora’s dust bath has gone rolly-polly. Push the fluffball round the meadow: anything smaller than it sticks, and the bigger it gets, the bigger the things it can pick up. Enzo rides on top and calls out every catch.</p>
       <ol className="roll-levels">
         {LEVELS.map((l, i) => {
           const open = profile.unlocked.includes(l.id), stars = profile.stars[l.id] ?? 0, best = profile.best[l.id];
           return <li key={l.id} className={open ? '' : 'is-locked'}>
+            <img className="roll-thumb" src={`/art/roll/level-${l.id}.webp`} alt="" width={1200} height={750} loading="lazy" />
             <div><span className="roll-n">{i + 1}</span><h3>{l.name}</h3><p>{open ? l.blurb : `Reach the goal in ${LEVELS[i - 1]?.name} to open this one.`}</p></div>
             <dl><div><dt>Goal</dt><dd>{sizeLabel(l.goal)}</dd></div><div><dt>Time</dt><dd>{Math.round(l.time / 60)} min</dd></div><div><dt>Best</dt><dd>{best ? sizeLabel(best) : '–'}</dd></div><div><dt>Golden</dt><dd>{profile.golden[l.id] ?? 0}/{l.spawns.filter((s) => s.kind === 'golden').reduce((n, s) => n + s.n, 0)}</dd></div><div><dt>Stars</dt><dd className="roll-stars">{[0, 1, 2].map((s) => <span key={s} className={s < stars ? 'is-on' : ''}>★</span>)}</dd></div></dl>
             <button className="roll-primary" disabled={!open} onClick={() => onStart(l.id)} aria-label={open ? `Roll in ${l.name}` : 'Locked'}>{open ? 'Roll!' : 'Locked'}</button>

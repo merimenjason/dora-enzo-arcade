@@ -19,6 +19,12 @@
 .roll-eyebrow{font-size:11px;font-weight:900;letter-spacing:2.2px;color:#8b592d}
 .roll-menu-panel h1{font-size:clamp(44px,7vw,72px);font-weight:950;line-height:.95;letter-spacing:-2px;color:#3b2c22}
 .roll-menu-panel h1 em{font-style:normal;color:#d98a3a}
+.roll-hero{position:relative;border-radius:22px;overflow:hidden;box-shadow:0 10px 30px #3a2a1a2a;aspect-ratio:16/10}
+.roll-hero img{display:block;width:100%;height:100%;object-fit:cover}
+.roll-hero>div{position:absolute;left:0;top:0;bottom:0;width:48%;display:flex;flex-direction:column;justify-content:flex-start;gap:6px;padding:22px 20px;background:linear-gradient(90deg,#eaf5fbd9,#eaf5fb00)}
+.roll-hero .roll-eyebrow{color:#5b4026}
+.roll-thumb{grid-column:1/3;width:100%;aspect-ratio:3/1;object-fit:cover;border-radius:12px;display:block}
+.roll-levels li.is-locked .roll-thumb{filter:grayscale(.6) brightness(1.05)}
 .roll-lede{font-size:15px;line-height:1.5;color:#5b4b3d;max-width:52ch}
 .roll-levels{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
 .roll-levels li{display:grid;grid-template-columns:1fr auto;gap:10px 14px;align-items:center;padding:14px;border-radius:16px;background:#fffaf0ee;border:1px solid #e6d6b8;box-shadow:0 6px 18px #3a2a1a14}
