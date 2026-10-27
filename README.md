@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of forty-one original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of forty-two original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -51,6 +51,7 @@ Listed in arcade-menu order.
 | 39 | Grumble Hunt | `/hunt` | 3D storybook hunting adventure |
 | 40 | Puttering Paws | `/putt` | 3D mini golf |
 | 41 | Fluff Roll | `/roll` | 3D roll-and-grow |
+| 42 | Pawhaven | `/pawhaven` | Town builder |
 
 ## Run
 
@@ -962,6 +963,18 @@ Four levels open in turn, each with a starting size, a goal and a clock: **Dust 
 
 **Docs:** [`docs/fluff-roll.md`](docs/fluff-roll.md).
 
+### 42 · Pawhaven (`/pawhaven`)
+
+**Play:** An isometric town builder. Dora and Enzo found a chinchilla town meadow by meadow. Lay roads from the way in and put down home plots, and newcomers walk in and move into them. Every service runs on walkers: a water helper, a market seller, a dust bath helper, a healer, a storyteller, a musician and a fire watcher each walk the roads from their building and visit the homes they pass, and carts carry goods between farms, workshops, the granary and the storehouse. A home grows through seven levels, from Hay Nest to Grand Burrow, as its needs are met: water, then food, a dust bath, a second food with pottery and a healer, toys, stories and a pretty street, and finally three foods, bedding, music and a lovely street. A home that loses a need shrinks back after a month. Goods come in chains: hay, oats and berries from farms; sand milled into bath dust; clay into pottery, wood into toys and hay into bedding. The town hall collects acorns from every home each month and pays its workers, and cosiness rises with food, visits and fair taxes. From Clayfoot Brook on, roads to four neighbouring towns can be opened, and a caravan stops at the trading post every two months to sell what is above your line and buy up to it. The threats are gentle: fires that a fire watcher puts out (nobody is hurt, and rubble clears for free), curious foxes that fences, gates and a fox watch keep away, storms that leave puddles to sweep, and dry spells that slow farms away from water.
+
+Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and 10 Snug Burrows) to **Pawhaven** itself (900 chinchillas and 15 Grand Burrows), each opening new buildings, plus a **Free Meadow** with 5,000 acorns and no goals. A meadow is finished when every goal holds at once: one star, two for finishing within its set years, and three for doing that with cosiness 80 or more. Up to three towns are kept in save slots, and a town saves itself every month and when the page is hidden.
+
+**Controls:** Drag the meadow to look around; scroll, pinch or **+/−** to zoom; **arrow keys** or **WASD** to pan. Pick a building from the bar at the bottom and tap the meadow to place it: roads and fences are laid by dragging a line, home plots, gardens and the clearing tool by dragging a box. With no tool picked, tapping a building shows what it holds and what a home needs next, and tapping a puddle sweeps it away. **Space** pauses, **1**, **2** and **3** set the speed, **R** picks the road, **X** the clearing tool, **Escape** puts a tool down and **M** toggles sound. Progress saves under `pawhaven-v1` and sound under `pawhaven-sound-v1`.
+
+**Tests:** `npm run test:pawhaven` (also in `npm test`) compiles `lib/pawhaven-game.ts` and runs `tests/pawhaven.mjs`, which checks that maps and towns replay exactly and covers building rules, walkers, home levels, goods chains, trade, fire, foxes, weather, goals and the save. `npm run bot:pawhaven` (also in `npm test`) builds Clover Landing, Willow Bend and Sandy Rise from a fixed plan and fails unless each is finished within its two-star years. `npm run test:e2e:pawhaven` checks the arcade entry, the meadow menu, the brief, laying roads and placing buildings with the mouse, saving and carrying on, finishing a meadow, trade routes, the save slots and the phone layout.
+
+**Docs:** [`docs/pawhaven.md`](docs/pawhaven.md).
+
 ## Validation
 
 ```sh
@@ -981,7 +994,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-one ways/` assertion in `tests/e2e/dust-bath.mjs`, the 41-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-two games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-two ways/` assertion in `tests/e2e/dust-bath.mjs`, the 42-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-two games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

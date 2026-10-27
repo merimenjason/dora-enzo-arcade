@@ -21,7 +21,7 @@ try {
   // The arcade lists the cabinet.
   const menu = await browser.newPage();
   await menu.goto(base);
-  assert.equal(await menu.locator('.arcade-card').count(), 41);
+  assert.equal(await menu.locator('.arcade-card').count(), 42);
   assert.match(await menu.locator('a.arcade-card[href="/frontier"]').textContent(), /Frostpaw Frontier/);
   await menu.close();
 
