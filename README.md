@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of forty-eight original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of forty-nine original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -58,6 +58,7 @@ Listed in arcade-menu order.
 | 46 | Dust Bunny Dungeon | `/dungeon` | Roguelike |
 | 47 | Burrow Command | `/command` | Real-time strategy |
 | 48 | Hayloft Tycoon | `/hayloft` | Idle tycoon |
+| 49 | Kit Parade | `/parade` | Puzzle |
 
 ## Run
 
@@ -1047,6 +1048,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/hayloft-tycoon.md`](docs/hayloft-tycoon.md), art brief [`docs/hayloft-tycoon-art-brief.md`](docs/hayloft-tycoon-art-brief.md).
 
+### 49 · Kit Parade (`/parade`)
+
+**Play:** A line of baby chinchilla kits pops out of a burrow, one every 1.2 to 4.4 seconds, and marches on. They walk a pixel a tick at 25 ticks a second, hop steps of up to 5 pixels and turn round at anything taller. Falls of up to 56 pixels are safe; from any higher a kit gets dizzy and Mum carries it home. Hand out a limited number of eight jobs: the **Stopper** turns others round (any other job sets it free), the **Digger** digs a shaft 9 pixels wide straight down, the **Tunneller** digs a kit-tall tunnel sideways, the **Builder** lays a 12-bale hay stair 24 pixels high and 48 long, the **Climber** climbs walls, the **Glider** floats down any drop, the **Bouncer** makes a dust puff that springs every kit about 50 pixels up, and the **Hugger** clears a circle of earth 13 pixels round. Bring home the target number of kits before the gentle timer runs out. There are 30 handmade levels in four worlds: Clover Meadow (one-way hay), The Big Pantry (hay belts), Pebble Cave (undiggable pebble stone and a pond with drifting lily pads) and Moonlit Rooftops (seesaws that tip by weight and chimney fans that float kits up). Each level gives three stars: one for the target, one for jobs at or under par and one for everyone home by the par time; clearing a level opens the next. Progress saves in `kit-parade-v1`.
+
+**Controls:** Pick a job with its button or keys **1–8**, then click a kit; hovering shows who would get it. On a phone, tap a job, then tap near a kit, and drag to look around big levels. **Space**, **P** or **Esc** pause, **F** fast-forwards 3×, and **R** in the pause menu calls everyone home and restarts. Arrow keys or **WASD** pan. There are buttons for pause, fast-forward, restart and sound.
+
+**Tests:** `npm run test:parade` runs 466 engine checks: levels, every job and terrain rule, falls, the exit, stars, determinism and saves. `npm run bot:parade` replays each level's stored solution for three stars, checks that idling fails every level but the first, that removing any key job fails the level, and that clicks a few ticks early or late still clear at least 85% of runs. `npm run test:e2e:parade` is the browser suite.
+
+**Docs:** [`docs/kit-parade.md`](docs/kit-parade.md), art brief [`docs/kit-parade-art-brief.md`](docs/kit-parade-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1066,7 +1077,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-eight ways/` assertion in `tests/e2e/dust-bath.mjs`, the 48-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-eight games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-nine ways/` assertion in `tests/e2e/dust-bath.mjs`, the 49-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

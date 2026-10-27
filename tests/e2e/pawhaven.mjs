@@ -34,7 +34,7 @@ const entry = (page) => page.evaluate(() => { const g = window.__haven().game, N
 
 await check('the arcade lists Pawhaven and opens the meadow menu', async (page) => {
   await page.goto(base);
-  assert.equal(await page.locator('.arcade-card').count(), 48);
+  assert.equal(await page.locator('.arcade-card').count(), 49);
   await page.getByRole('link', { name: /Pawhaven/ }).click();
   await page.locator('main[data-ready="true"]').waitFor({ timeout: 60000 });
   await page.evaluate(() => localStorage.removeItem('pawhaven-v1')); await page.reload(); await page.locator('main[data-ready="true"]').waitFor();
