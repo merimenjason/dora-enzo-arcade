@@ -1,0 +1,172 @@
+.safari-shell{position:relative;width:100%;height:100svh;min-height:480px;overflow:hidden;background:#2a3b2e;color:#fff8ec;font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;isolation:isolate;user-select:none;-webkit-user-select:none}
+.safari-shell *{box-sizing:border-box}
+/* the global stylesheet colours every <p>; in here paragraphs take their colour from where they sit */
+:where(.safari-shell) p{color:inherit;font-size:inherit;line-height:1.45;margin:0}
+.safari-shell h1,.safari-shell h2,.safari-shell h3{margin:0;font-family:inherit}
+.safari-shell button,.safari-shell a{font:inherit}
+.safari-shell button{border:1px solid #ffffff38;border-radius:12px;background:#2f4a36e0;color:#fff8ec;font-weight:800;padding:10px 15px;cursor:pointer;min-height:42px;transition:background .15s,transform .15s,border-color .15s}
+.safari-shell button:hover:not(:disabled){background:#3d5e45f0;transform:translateY(-1px)}
+.safari-shell button:disabled{opacity:.45;cursor:default}
+.safari-shell button:focus-visible,.safari-shell a:focus-visible,.safari-shell input:focus-visible{outline:3px solid #ffd86b;outline-offset:2px}
+.safari-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;cursor:crosshair}
+.safari-chip{min-height:36px!important;padding:7px 12px!important;font-size:13px}
+.safari-eyebrow{font-size:12px;font-weight:900;letter-spacing:2.5px;color:#ffd86b}
+.safari-bar{position:relative;height:10px;border-radius:999px;background:#1d2a20b0;overflow:hidden;box-shadow:inset 0 0 0 1px #ffffff26}
+.safari-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:linear-gradient(90deg,#ffd86b,#ffab5c);transition:width .3s}
+.safari-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.safari-row>button{flex:1 1 150px}
+.safari-shell .safari-go{background:linear-gradient(90deg,#ffd86b,#ffab5c);border:0;color:#2a2418;font-size:18px;font-weight:900;letter-spacing:.5px;min-height:52px;box-shadow:0 5px 0 #a8692c}
+.safari-shell .safari-go:hover:not(:disabled){background:linear-gradient(90deg,#ffe48a,#ffbb75)}
+.safari-warn{background:#ffd86b26;border:1px solid #ffd86b80;border-radius:12px;padding:8px 12px;font-size:14px;color:#ffe9b0}
+
+/* ---- camp: plan an outing */
+.safari-menu{position:absolute;inset:0;overflow:auto;padding:16px max(16px,calc(50% - 560px)) 28px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);grid-template-areas:'head head' 'title title' 'progress who' 'trails go' 'how how';gap:12px 18px;align-content:start;background:linear-gradient(90deg,#1c2a1fe8 0,#1c2a1fb8 55%,#1c2a1f50)}
+.safari-head{grid-area:head;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.safari-back{color:#ffe7a8;font-size:12px;font-weight:900;letter-spacing:1px;text-decoration:none;background:#2f4a36e0;border:1px solid #ffffff2e;border-radius:10px;padding:9px 12px}
+.safari-title{grid-area:title;position:relative;border-radius:22px;overflow:hidden;min-height:190px;display:flex;align-items:flex-end;box-shadow:0 12px 40px #0007;background:linear-gradient(160deg,#f6c98a,#e88a6a 45%,#6a8a6a)}
+.safari-title img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 35%}
+.safari-title>div{position:relative;padding:22px 26px;width:100%;background:linear-gradient(0deg,#1c2a1fe6,#1c2a1f00)}
+.safari-title h1{font-size:clamp(42px,7vw,76px);line-height:.95;font-weight:900;letter-spacing:-1px;text-shadow:0 4px 0 #5a3a22,0 8px 24px #000a}
+.safari-title h1 em{font-style:normal;color:#ffd86b}
+.safari-sub{font-size:15px;color:#fff1d6;margin-top:6px!important;max-width:560px}
+.safari-progress{grid-area:progress;background:#22342699;border-radius:16px;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.safari-progress-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.safari-progress-row b{font-size:24px;color:#ffd86b}
+.safari-progress-row span,.safari-progress small{font-size:13px;color:#d9e6d4;font-weight:700}
+.safari-who{grid-area:who;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-self:start}
+.safari-shell .safari-who button{display:flex;align-items:center;justify-content:center;gap:10px;font-size:17px;min-height:58px}
+.safari-shell .safari-who button.is-on{background:#ffd86b;color:#2a2418;border-color:#ffd86b}
+.safari-face{width:30px;height:30px;border-radius:50%;box-shadow:inset 0 0 0 2px #0003;position:relative}
+.safari-face::before,.safari-face::after{content:'';position:absolute;top:-6px;width:13px;height:15px;border-radius:50%;background:inherit;box-shadow:inset 0 0 0 2px #0002}
+.safari-face::before{left:-3px}.safari-face::after{right:-3px}
+.safari-face-dora{background:#fbf8f3}.safari-face-enzo{background:#75737d}
+.safari-trails{grid-area:trails;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.safari-shell .safari-trail{width:100%;display:flex;gap:12px;align-items:center;text-align:left;padding:8px;border-radius:16px;background:#22342699;border:2px solid transparent}
+.safari-shell .safari-trail.is-on{border-color:#ffd86b;background:#2f4a36f0;box-shadow:0 0 0 4px #ffd86b33}
+.safari-thumb{flex:none;width:76px;height:54px;border-radius:12px;display:grid;place-items:center;font-size:28px;box-shadow:inset 0 0 0 1px #fff3}
+.t-puna{background:linear-gradient(180deg,#9fc3e8,#f3d79a 60%,#cfae62)}.t-forest{background:linear-gradient(180deg,#bcd8c8,#5f8a5a 60%,#3f6b3c)}
+.t-salar{background:linear-gradient(180deg,#b8d8f0,#f2c6d0 55%,#ece7dc)}.t-cliffs{background:linear-gradient(180deg,#c8b8d8,#a08669 60%,#7a6450)}
+.safari-trail:disabled .safari-thumb{filter:grayscale(1) brightness(.6)}
+.safari-trail-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+.safari-trail-body strong{font-size:17px}
+.safari-trail-body small{font-size:12px;color:#d9e6d4;font-weight:700}
+.safari-trail-body i{font-style:normal;font-size:11px;font-weight:900;color:#ffd86b;letter-spacing:.5px}
+.safari-go-box{grid-area:go;align-self:start;display:flex;flex-direction:column;gap:10px;background:#22342699;border-radius:18px;padding:14px}
+.safari-times{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.safari-shell .safari-times button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px}
+.safari-times small{font-size:10.5px;color:#cfe0c8;font-weight:700;text-align:center}
+.safari-shell .safari-times button.is-on{background:#ffd86b;border-color:#ffd86b;color:#2a2418}
+.safari-shell .safari-times button.is-on small{color:#5a4322}
+.safari-tools{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;font-weight:800}
+.safari-tools span{background:#1c2a1f99;border-radius:999px;padding:4px 10px;color:#a9bba4}
+.safari-tools span.got{color:#ffd86b}
+.safari-shell .safari-journal-btn{background:#f4ead8;color:#4a3422;border-color:#f4ead8}
+.safari-shell .safari-journal-btn:hover:not(:disabled){background:#fff6e4}
+.safari-how{grid-area:how;font-size:13px;color:#d9e6d4;text-align:center}
+.safari-how b{color:#ffd86b}
+
+/* ---- out on the trail */
+.safari-hud{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:12px 14px;pointer-events:none}
+.safari-hud>*{pointer-events:auto}
+.safari-day{flex:0 1 320px;background:#1c2a1fb8;border-radius:14px;padding:8px 12px;display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:800}
+.safari-day small{font-size:11px;color:#d9e6d4}
+.safari-film{background:#1c2a1fb8;border-radius:14px;padding:8px 14px;font-size:18px;white-space:nowrap}
+.safari-film b{font-size:24px;font-variant-numeric:tabular-nums}
+.safari-film small{font-size:12px;color:#d9e6d4}
+.safari-film.is-low b{color:#ffab8a}
+.safari-toasts{position:absolute;left:50%;top:84px;transform:translateX(-50%);width:min(560px,calc(100% - 32px));display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
+.safari-toasts p{background:#1c2a1fd9;border:1px solid #ffffff2a;border-radius:999px;padding:7px 14px;font-size:14px;font-weight:700;text-align:center;animation:safari-toast 3.2s ease forwards}
+@keyframes safari-toast{0%{opacity:0;transform:translateY(-6px)}8%{opacity:1;transform:none}85%{opacity:1}100%{opacity:0}}
+.safari-pad{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;gap:10px;padding:10px 14px 14px;pointer-events:none}
+.safari-pad>*{pointer-events:auto}
+.safari-walk,.safari-shoot{display:flex;align-items:center;gap:6px;background:#1c2a1fb8;border-radius:18px;padding:6px}
+.safari-shell .safari-arrow{width:52px;min-height:52px;padding:0;font-size:20px;touch-action:none}
+.safari-paces{display:flex;gap:3px}
+.safari-shell .safari-paces button{min-height:40px;padding:6px 10px;font-size:13px}
+.safari-shell .safari-paces button.is-on,.safari-shell .safari-hide.is-on{background:#ffd86b;color:#2a2418;border-color:#ffd86b}
+.safari-shell .safari-hide{min-height:44px;font-size:13px;min-width:92px}
+.safari-shell .safari-hide.is-hidden{background:#9fd27a;border-color:#9fd27a;color:#1f2a18}
+.safari-shell .safari-tool{display:flex;flex-direction:column;align-items:center;gap:0;min-height:52px;padding:4px 8px;font-size:20px;line-height:1.1}
+.safari-tool small{font-size:10px;font-weight:800;color:#d9e6d4}
+.safari-zoom{display:flex;align-items:center;gap:4px}
+.safari-shell .safari-zoom button{min-height:36px;width:36px;padding:0;font-size:18px}
+.safari-zoom input{width:90px;accent-color:#ffd86b}
+.safari-shell .safari-snap{width:68px;height:68px;min-height:68px;border-radius:50%;padding:0;font-size:28px;background:radial-gradient(circle at 40% 35%,#fff6e0,#ffd86b 55%,#e8a24a);border:4px solid #fff8ec;box-shadow:0 4px 0 #a8692c,0 6px 16px #0006}
+.safari-shell .safari-snap:active:not(:disabled){transform:translateY(2px) scale(.96)}
+
+/* ---- panels */
+.safari-panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto;background:#24382bf2;border:1px solid #ffffff2e;border-radius:24px;padding:24px;text-align:center;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px #000a;animation:safari-in .25s ease-out;z-index:2}
+@keyframes safari-in{from{opacity:0;transform:translate(-50%,-46%)}}
+.safari-panel h2{font-size:26px}
+.safari-error{z-index:3}
+
+/* ---- developing photos */
+.safari-develop{position:absolute;inset:0;overflow:auto;padding:20px max(16px,calc(50% - 600px)) 28px;background:#20180fe8;display:flex;flex-direction:column;gap:16px}
+.safari-develop header{text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center}
+.safari-develop h2{font-size:clamp(26px,4vw,38px)}
+.safari-develop header p{color:#f2e3c8;max-width:620px}
+.safari-prints{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.safari-print{background:#fffaf0;color:#3a2a1e;border-radius:6px;padding:10px 10px 12px;box-shadow:0 8px 24px #0008;display:flex;flex-direction:column;gap:8px;animation:safari-drop .5s cubic-bezier(.3,1.4,.5,1) both}
+.safari-print:nth-child(odd){transform:rotate(-.8deg)}.safari-print:nth-child(even){transform:rotate(.7deg)}
+@keyframes safari-drop{from{opacity:0;transform:translateY(-20px) rotate(-4deg)}}
+.safari-print-img{width:100%;height:auto;display:block;border-radius:2px;background:#d8cdb8}
+.safari-print .safari-print-img{animation:safari-develop 1.6s ease-out both;animation-delay:inherit}
+@keyframes safari-develop{0%{filter:sepia(1) brightness(.25) contrast(.6)}60%{filter:sepia(.6) brightness(.85)}100%{filter:none}}
+.safari-print-body{display:flex;flex-direction:column;gap:2px}
+.safari-print-body strong{font-size:16px}
+.safari-print-body small{font-size:12px;color:#7a6450;font-weight:700}
+.safari-stars{color:#e8a22a;font-size:20px;letter-spacing:2px;line-height:1}
+.safari-comment{font-size:13px;color:#5a4636!important;font-style:italic;margin-top:4px!important}
+.safari-keep{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;font-weight:800;color:#7a6450;cursor:pointer}
+.safari-keep input{width:18px;height:18px;accent-color:#5a8a4a}
+.safari-keep b{border-radius:999px;padding:3px 9px;letter-spacing:.8px;font-size:11px}
+.tag-new{background:#ffd86b;color:#3a2a1e}.tag-better{background:#9fd27a;color:#1f2a18}
+.safari-dev-actions{position:sticky;bottom:0;padding:12px;background:#20180ff2;border-radius:16px;align-items:center}
+.safari-news{flex:1 1 100%;display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.safari-news b{background:#ffd86b;color:#2a2418;border-radius:999px;padding:5px 12px;font-size:12px;letter-spacing:1px;animation:safari-drop .5s both}
+.safari-news span{color:#f2e3c8}
+
+/* ---- the field journal */
+.safari-journal{position:absolute;inset:0;overflow:auto;padding:16px max(16px,calc(50% - 620px)) 28px;background:#3a2a1ef0;display:flex;flex-direction:column;gap:12px}
+.safari-journal h2{font-size:24px;display:flex;align-items:baseline;gap:10px}
+.safari-journal h2 small{font-size:14px;color:#ffd86b}
+.safari-book{display:grid;grid-template-columns:220px minmax(0,1fr);gap:16px;align-items:start}
+.safari-index{display:flex;flex-direction:column;gap:4px;background:#2a1e14;border-radius:16px;padding:8px;max-height:calc(100svh - 110px);overflow:auto}
+.safari-shell .safari-index button{display:flex;justify-content:space-between;gap:6px;min-height:34px;padding:6px 10px;font-size:13px;background:transparent;border-color:transparent;text-align:left}
+.safari-shell .safari-index button.is-on{background:#f4ead8;color:#3a2a1e}
+.safari-index i{font-style:normal;color:#c9b08a;font-size:12px}
+.safari-index button.is-full i{color:#9fd27a}
+.safari-page{background:#f8f0de;color:#3a2a1e;border-radius:10px 18px 18px 10px;padding:22px 24px;box-shadow:inset 14px 0 18px -14px #0005,0 10px 30px #0006;background-image:repeating-linear-gradient(0deg,transparent 0 27px,#d9c9a840 27px 28px)}
+.safari-page h3{font-size:30px;color:#4a3422;font-family:Georgia,'Times New Roman',serif}
+.safari-fact{font-size:15px;color:#5a4636!important;margin-top:6px!important;max-width:680px}
+.safari-where{font-size:12px;font-weight:800;color:#7a6450!important;margin:6px 0 14px!important}
+.safari-slots{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.safari-slot{background:#fffaf0;border-radius:4px;padding:8px 8px 10px;box-shadow:0 3px 10px #3a2a1e33;display:flex;flex-direction:column;gap:3px}
+.safari-slot:nth-child(odd){transform:rotate(-1deg)}.safari-slot:nth-child(even){transform:rotate(.8deg)}
+.safari-slot strong{font-size:15px;margin-top:4px}
+.safari-slot small{font-size:12px;color:#7a6450}
+.safari-slot .safari-by{font-size:11px;color:#a08a70}
+.safari-slot.rare strong{color:#b0602a}
+.safari-empty{aspect-ratio:3/2;border:2px dashed #c9b08a;border-radius:4px;display:grid;place-items:center;font-size:42px;font-weight:900;color:#c9b08a;background:#f2e6cc}
+
+@media (max-width:760px){
+  .safari-menu{grid-template-columns:1fr;grid-template-areas:'head' 'title' 'progress' 'who' 'go' 'trails' 'how';background:#1c2a1fe0}
+  .safari-title{min-height:160px}
+  .safari-how{display:none}
+  .safari-hud{padding:8px}
+  .safari-day{flex:1 1 auto}
+  .safari-day span{display:none}
+  .safari-toasts{top:70px}
+  .safari-pad{flex-direction:column;align-items:stretch;gap:6px;padding:6px 8px 10px}
+  .safari-walk,.safari-shoot{justify-content:space-between}
+  .safari-shell .safari-arrow{width:46px;min-height:48px}
+  .safari-shell .safari-paces button{padding:6px 7px;font-size:12px}
+  .safari-shell .safari-hide{min-width:70px;padding:6px 8px}
+  .safari-zoom input{width:56px;flex:1}
+  .safari-zoom{flex:1}
+  .safari-shell .safari-snap{width:60px;height:60px;min-height:60px}
+  .safari-book{grid-template-columns:1fr}
+  .safari-index{flex-direction:row;overflow-x:auto;max-height:none}
+  .safari-shell .safari-index button{flex:none}
+  .safari-page{padding:16px}
+}
