@@ -289,9 +289,10 @@ export class HayloftScene {
     }
   }
   private pair(g: HayloftGame, L: ReturnType<HayloftScene['L']>) {
-    const c = this.c, t = this.wall, hgt = L.front, gy = this.h - 6;
+    // the pair stands side by side in the home spot, sized so neither runs off the edge or into the other
+    const c = this.c, t = this.wall, hgt = Math.min(L.front, L.home * 0.4), gy = this.h - 6;
     for (const id of ['dora', 'enzo'] as const) {
-      const k = id === 'dora' ? 0 : 1, x = L.home * (k ? 0.68 : 0.3), age = t - this.cheer[id], up = age < 0.45 ? Math.sin((age / 0.45) * Math.PI) * hgt * 0.16 : 0;
+      const k = id === 'dora' ? 0 : 1, x = L.home * (k ? 0.8 : 0.36), age = t - this.cheer[id], up = age < 0.45 ? Math.sin((age / 0.45) * Math.PI) * hgt * 0.16 : 0;
       c.fillStyle = 'rgba(40,30,20,.2)'; c.beginPath(); c.ellipse(x, gy, hgt * 0.32, hgt * 0.06, 0, 0, Math.PI * 2); c.fill();
       const img = this.art(age < 0.45 ? `${id}-cheer` : id) ?? (age < 0.45 ? this.art(id) : null);
       if (img) { const s = hgt * 1.2; c.drawImage(img, x - s / 2, gy - s - up, s, s); }

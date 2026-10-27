@@ -45,7 +45,7 @@ const state = (page) => page.evaluate(() => JSON.parse(window.__hayloft().save()
 
   // saving and the welcome-back card
   await page.waitForTimeout(5600);
-  await page.evaluate(() => { const g = window.__hayloft(); g.s.wall -= 2 * 3600e3; localStorage.setItem('hayloft-tycoon-v1', g.save()); });
+  await page.evaluate(() => { const g = window.__hayloft(); g.s.wall -= 2 * 3600e3; localStorage.setItem('hayloft-tycoon-v1', g.save()); localStorage.setItem = () => {}; }); // the page saves again on pagehide, which would undo the two hours
   await page.reload(); await ready(page);
   await page.getByRole('dialog', { name: 'Welcome back' }).waitFor();
   assert.match(await page.getByRole('dialog', { name: 'Welcome back' }).textContent(), /2h/);
@@ -71,7 +71,7 @@ const state = (page) => page.evaluate(() => JSON.parse(window.__hayloft().save()
 
   // the Twig Shower
   await page.evaluate(() => { const g = window.__hayloft(); g.s.nextShower = g.s.t; });
-  await page.locator('.hayloft-shower-offer').click();
+  await page.locator('.hayloft-shower-offer').click({ force: true }); // it wiggles forever, so it never counts as stable
   await page.waitForFunction(() => !!window.__hayloftShower());
   for (let k = 0; k < 120; k++) {
     const hit = await page.evaluate(() => { const sh = window.__hayloftShower(); if (!sh) return 'done'; const t = sh.twigs.find((x) => !x.caught && !x.gone && sh.y(x) > 0.25 && sh.y(x) < 0.8); return t ? { x: t.x, y: sh.y(t) } : null; });
