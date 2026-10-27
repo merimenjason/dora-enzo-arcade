@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Hayloft Tycoon** (`/hayloft`), game 48: an idle game where Dora and Enzo grow one hay patch into a valley-wide chinchilla business of twelve buildings. Hire helpers who keep working while you're away, catch visitors flying past, play a quick Twig Shower for a boost, send teams on real-time trips, study research and open a daily gift. Build the Comet Skyship and the colony migrates to a new valley with its own twist, earning Stardust for the Star Tree, with Constellations further on. Made for phones and short sessions, with a welcome-back summary of everything that happened while you were away.
 - **Burrow Command** (`/command`), game 47: a cosy real-time strategy game. Lead the Burrow Colony, the Ringtail Guild or the Clockwork Hive, each with its own units, buildings, upgrades and abilities. Gather hay and glimmer, build up your burrow, and poof rivals home dizzy (nobody gets hurt). Play a ten-mission story campaign with Dora, Enzo, Marlo and the Queen, or skirmish against an Easy, Normal or Hard computer on five maps. It has fog, a minimap, control groups, attack-move and patrol, and touch controls on phones.
 
 ### Changed

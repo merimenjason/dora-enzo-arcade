@@ -47,14 +47,15 @@ const GAMES=[
  {href:'/safari',title:'Snapshot Safari',tag:'NEW · PHOTOGRAPHY',blurb:'Tiptoe along four Andes trails with a camera, hide in the grass and wait for the magic moment. Photograph 24 creatures and fill your field journal.',color:'#e0a458',art:'📸'},
  {href:'/dungeon',title:'Dust Bunny Dungeon',tag:'NEW · ROGUELIKE',blurb:'Tidy twelve burrow cellars of mischievous dust bunnies, one step at a time. Every bunny shows its next move, so push, bop and plan your way down to the Dust King.',color:'#c98a4b',art:'🧹'},
  {href:'/command',title:'Burrow Command',tag:'NEW · REAL-TIME STRATEGY',blurb:'Lead chinchillas, raccoons or wind-up beetles: gather hay and glimmer, build a burrow and poof rivals home dizzy in ten story missions and skirmishes.',color:'#e9b44c',art:'🏰'},
+ {href:'/hayloft',title:'Hayloft Tycoon',tag:'NEW · IDLE TYCOON',blurb:'Grow one hay patch into a valley-wide chinchilla business. Hire helpers, send trips, migrate to new valleys for Stardust, and come back to a valley that kept busy while you were away.',color:'#e9b23b',art:'🌾'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">FORTY-SEVEN ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Forty-seven ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, forty-seven cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">FORTY-EIGHT ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Forty-eight ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, forty-eight cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <nav className="arcade-grid" aria-label="Choose a game">
    {GAMES.map((game,i)=><a key={game.href} href={game.href} className="arcade-card" style={{'--game-color':game.color} as React.CSSProperties}>

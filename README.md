@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of forty-seven original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of forty-eight original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -57,6 +57,7 @@ Listed in arcade-menu order.
 | 45 | Snapshot Safari | `/safari` | Photography |
 | 46 | Dust Bunny Dungeon | `/dungeon` | Roguelike |
 | 47 | Burrow Command | `/command` | Real-time strategy |
+| 48 | Hayloft Tycoon | `/hayloft` | Idle tycoon |
 
 ## Run
 
@@ -1036,6 +1037,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/burrow-command.md`](docs/burrow-command.md), art brief [`docs/burrow-command-art-brief.md`](docs/burrow-command-art-brief.md).
 
+### 48 · Hayloft Tycoon (`/hayloft`)
+
+**Play:** Dora and Enzo start with one hay meadow and grow it into a valley of twelve buildings, from the Hay Meadow and the Dust Bath Spa to the Moonlight Observatory and the Comet Skyship Dock. Buy levels, which pay ×2 to ×5 at milestones (10, 25, 50, 100, 150 … 1000); valley festivals double everything when every building reaches 10, 25, 50 and so on. Each building has a helper who runs it on their own, also while you are away, and brings a perk; there are upgrades too. Fifty taps make a Fluff Burst. Visitors fly by every 75–150 s: catch them for a ×7 Golden Acorn, coins, blueprints, sunberries or a burst. Every 6–10 minutes a 10-second Twig Shower can give a boost of up to ×6. Teams go on real-time trips of 15 minutes to 8 hours and bring back finds and ten keepsakes; sixteen research studies run on blueprints and real time; a daily gift runs in a seven-day round; and 59 achievements give +3% each. Time away counts for 8 hours at first, and upgrades raise that to 38. Building the Comet Skyship Dock opens the Great Migration, which gives Stardust for a Star Tree and moves the colony through five valleys, each with a twist: Meadowvale, Snowdrift Valley, Pebble Cove, Glowcap Hollow and Cloudreach Isles. At 200K Stardust you can name a Constellation for Moonstones that last for good.
+
+**Controls:** Tap the valley for coins and fluff, tap a building marked TAP! to run it, tap visitors to catch them, and drag to scroll. Six bottom tabs: Build (×1/×10/×100/MAX), Helpers, Research, Trips, Stars and More. Keys: Space taps, 1–0, - and = buy buildings, B sets the buy amount, C catches a visitor, M mutes, and P or Esc pauses.
+
+**Tests:** `npm run test:hayloft` runs 1009 engine checks, including that an hour away pays the same as an hour online, the offline cap, the prestige maths, saves and the number range. `npm run bot:hayloft` runs active, commuter and idle players over a simulated day and asserts that the first migration comes 45–90 minutes into active play and that there is never a wait of more than five minutes. `npm run test:e2e:hayloft` runs the browser test.
+
+**Docs:** [`docs/hayloft-tycoon.md`](docs/hayloft-tycoon.md), art brief [`docs/hayloft-tycoon-art-brief.md`](docs/hayloft-tycoon-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1055,7 +1066,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-seven ways/` assertion in `tests/e2e/dust-bath.mjs`, the 47-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-seven games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-eight ways/` assertion in `tests/e2e/dust-bath.mjs`, the 48-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-eight games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
