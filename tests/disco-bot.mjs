@@ -37,4 +37,4 @@ for (const s of SONGS) {
   table.push(row);
 }
 console.table(table);
-console.log('Dust Disco bot: a steady player clears all 18 charts, a shaky one clears every easy and normal chart.');
+console.log(`Dust Disco bot: a steady player clears all ${SONGS.length * 3} charts, a shaky one clears every easy and normal chart.`);

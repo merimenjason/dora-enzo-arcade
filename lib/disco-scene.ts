@@ -16,7 +16,15 @@ const LOOKS: Record<string, [string, string, string, string, string]> = {
   market: ['#2a1238', '#6a2a5a', '#3a2430', '#ff8fd0', '#ffb35c'],
   summit: ['#0b1838', '#2e4f8a', '#dfe9f5', '#8af0c0', '#b48cff'],
   hall: ['#1c0f33', '#4a2a6e', '#2a1a3e', '#ffd86b', '#c08cff'],
+  beach: ['#4fb6d8', '#bfe8ea', '#e8d2a6', '#ffe28a', '#ff8f7a'],
+  garden: ['#2a1a3e', '#8a5a8e', '#3a3a2e', '#ffd28a', '#ff9ad0'],
+  meadow: ['#6ab6ea', '#cdeaf5', '#6aa84a', '#ffe36b', '#ff8fb0'],
+  cafe: ['#1e2a32', '#3a5258', '#4a3428', '#ffc56b', '#7fe0d0'],
+  storm: ['#120f2e', '#3a2a6e', '#2a2a3a', '#9ad0ff', '#c08cff'],
+  stars: ['#0b1238', '#3a2a6e', '#e8e0f5', '#ffd86b', '#ff9ad0'],
 };
+const POSES = ['idle', 'step', 'up', 'point', 'dizzy'] as const;
+type Pose = (typeof POSES)[number];
 // the crowd: friends in all sorts of coats
 const CROWD: Coat[] = [
   coatLike('enzo', { fur: '#c9c2bb', back: '#a59d96', face: '#d8d2cb' }), coatLike('dora', { fur: '#f3e6d6', back: '#e2cdb6' }),
@@ -39,10 +47,18 @@ export class DiscoScene {
   private dizzy = -9;
   private wall = 0;
   private bunny = new Map<string, HTMLCanvasElement>();
+  /** Dora and Enzo's painted dance poses, and where each one's feet are; the drawn chinchillas stand in until they load. */
+  private poses = new Map<string, HTMLImageElement>();
+  private feet: Record<string, { w: number; h: number; foot: number }> = {};
   constructor(private canvas: HTMLCanvasElement) {
     const c = canvas.getContext('2d'); if (!c) throw new Error('no 2d');
     this.c = c; this.resize();
+    for (const id of ['dora', 'enzo']) for (const pose of POSES) {
+      const img = new Image(); img.decoding = 'async'; img.src = `/art/disco/dancer-${id}-${pose}.webp`; this.poses.set(`${id}-${pose}`, img);
+    }
+    fetch('/art/disco/dancers.json').then((r) => (r.ok ? r.json() : {})).then((j) => { this.feet = j ?? {}; }).catch(() => {});
   }
+  private pose(id: string, pose: Pose) { const i = this.poses.get(`${id}-${pose}`); return i && i.complete && i.naturalWidth > 0 ? i : null; }
   resize() {
     const r = this.canvas.getBoundingClientRect(); this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.w = Math.max(320, r.width); this.h = Math.max(320, r.height);
@@ -320,7 +336,15 @@ export class DiscoScene {
     c.save(); c.translate(x + step, base - bounce);
     if (dust) { const spin = Math.cos(beat * Math.PI); c.scale(Math.abs(spin) < 0.15 ? 0.15 * Math.sign(spin || 1) : spin, 1); }
     c.scale(1 / squash, squash);
-    drawChinchilla(c, id, 0, 0, { face: turn as 1 | -1, h, time: t, moving: !dizzy, run: 0.6, air: hopping || bounce > h * 0.12, dizzy, blink: phase > 0.92 });
+    // a painted pose for each beat: bop and step in turn, point on the bar, leap on a big hit or in Dust Up, wobble after a miss
+    const n = Math.floor(beat), pose: Pose = dizzy ? 'dizzy' : hopping || (dust && n % 2 === 0) ? 'up' : n % 4 === 3 ? 'point' : n % 2 ? 'step' : 'idle';
+    const img = this.pose(id, pose);
+    if (img) {
+      const sh = h * 1.55, sw = (img.naturalWidth / img.naturalHeight) * sh, f = this.feet[`dancer-${id}-${pose}.webp`];
+      const foot = f ? (f.foot / f.w) * sw : sw / 2;
+      if (turn < 0) c.scale(-1, 1);
+      c.drawImage(img, -foot, -sh, sw, sh);
+    } else drawChinchilla(c, id, 0, 0, { face: turn as 1 | -1, h, time: t, moving: !dizzy, run: 0.6, air: hopping || bounce > h * 0.12, dizzy, blink: phase > 0.92 });
     c.restore();
   }
   private crowd(beat: number, dust: boolean, L: ReturnType<DiscoScene['layout']> | null) {

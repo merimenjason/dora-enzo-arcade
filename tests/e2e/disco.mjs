@@ -35,8 +35,8 @@ const autoplay = (page) => page.evaluate(() => {
   console.log('PASS the arcade lists Dust Disco and its card opens the game');
 
   const songs = page.locator('.disco-song');
-  assert.equal(await songs.count(), 6);
-  assert.equal(await page.locator('.disco-song:disabled').count(), 5, 'only the first song is open');
+  assert.equal(await songs.count(), 12);
+  assert.equal(await page.locator('.disco-song:disabled').count(), 11, 'only the first song is open');
   assert.match(await songs.first().textContent(), /Burrow Bop/);
   await page.getByRole('button', { name: /^Hard/ }).click();
   assert.equal(await page.getByRole('button', { name: /^Hard/ }).getAttribute('aria-pressed'), 'true');
@@ -73,7 +73,7 @@ const autoplay = (page) => page.evaluate(() => {
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('dust-disco-v1')));
   assert.ok(saved.best['burrow:easy'].stars >= 1 && saved.noFail === true, 'the result is saved');
   await page.getByRole('button', { name: 'Song list' }).click();
-  assert.equal(await page.locator('.disco-song:disabled').count(), 4, 'the second song is now open');
+  assert.equal(await page.locator('.disco-song:disabled').count(), 10, 'the second song is now open');
   console.log('PASS the results show, the save records the clear, and Hay Loft Hop opens');
   await page.close();
 }

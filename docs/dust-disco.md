@@ -1,6 +1,6 @@
 # Dust Disco
 
-Game 43, at `/disco`. A four-lane rhythm game: dust bunnies roll down four lanes, and you press each lane as its bunny reaches the pad, on the beat of six original songs. Dora and Enzo dance either side of the lanes, and a crowd of chinchillas bobs along at the front.
+Game 43, at `/disco`. A four-lane rhythm game: dust bunnies roll down four lanes, and you press each lane as its bunny reaches the pad, on the beat of twelve original songs. Dora and Enzo dance either side of the lanes in painted poses (a bop and a step in turn, a point on each bar's last beat, a leap on big hits and in Dust Up, a wobble after a miss; the drawn chinchillas stand in until the paintings load), and a crowd of chinchillas bobs along at the front.
 
 ## Files
 
@@ -10,7 +10,7 @@ Game 43, at `/disco`. A four-lane rhythm game: dust bunnies roll down four lanes
 | Scene: venue, lights, disco ball, dancers, crowd, notes and bursts (Canvas 2D) | `lib/disco-scene.ts` |
 | Sound: the band that renders each song ahead of time, and the little effects | `app/disco/sound.ts` |
 | Page: song list, settings, calibration, play, pause, results | `app/disco/page.tsx`, `app/disco/disco.css` |
-| Paintings: the title and six venues | `public/art/disco/`, described in [`dust-disco-art.md`](dust-disco-art.md) |
+| Paintings: the title, twelve venues, and Dora and Enzo's five dance poses each (`dancer-<id>-<pose>.webp`, with foot positions in `dancers.json`) | `public/art/disco/`, described in [`dust-disco-art.md`](dust-disco-art.md) |
 | Tests | `tests/disco.mjs`, `tests/disco-bot.mjs`, `tests/e2e/disco.mjs` |
 
 ## Songs
@@ -25,6 +25,14 @@ Every song is written in `SONGS` as data: a tempo, a key and mode, a lead sound,
 | 4 | **Pebble Street Funk** | The Night Market | 104 | 2:06 | 139 / 292 / 527 |
 | 5 | **Snowpeak Gallop** | The Snowy Summit | 140 | 1:48 | 123 / 261 / 485 |
 | 6 | **Dust Storm Disco** | The Grand Dust Hall | 124 | 2:05 | 127 / 299 / 527 |
+| 7 | **Pebble Beach Sway** | The Pebble Beach | 100 | 1:52 | 142 / 168 / 336 |
+| 8 | **Lantern Lullaby** | The Lantern Garden | 96 | 1:42 | 142 / 209 / 286 |
+| 9 | **Clover Reel** | The Clover Fair | 138 | 1:49 | 117 / 325 / 461 |
+| 10 | **Raindrop Bossa** | The Raindrop Café | 112 | 1:57 | 107 / 238 / 478 |
+| 11 | **Thunder Peak Rock** | Thunder Peak | 152 | 1:39 | 113 / 214 / 421 |
+| 12 | **Encore!** | The Starlight Stage | 128 | 2:01 | 127 / 314 / 502 |
+
+The second six are a laid-back reggae sway with the beat dropping on three, a music-box lullaby, a running reel, a bossa nova with notes off the beat, a fast rock song, and **Encore!**, the finale, which brings Burrow Bop's tune back as a disco anthem.
 
 ## Charts
 
@@ -75,5 +83,5 @@ Saved in `localStorage` under `dust-disco-v1`: the best score, accuracy, grade, 
 ## Tests
 
 - `tests/disco.mjs`: songs and their sections are well formed, compose and chart are cached and ordered, every chart's spacing and lanes, the timing windows, strays, misses, holds kept and dropped, the multiplier, grades, a perfect run scoring an all-perfect S, Dust Up doubling, failing by standing still or mashing, never fail, unlocking and the save.
-- `tests/disco-bot.mjs`: a steady player (timing spread 35 ms, forgets 1% of notes) clears all eighteen charts at 85% accuracy or better, and a shaky one (70 ms, forgets 5%) clears every Easy and Normal chart. Runs replay exactly from a seed.
+- `tests/disco-bot.mjs`: a steady player (timing spread 35 ms, forgets 1% of notes) clears all thirty-six charts at 85% accuracy or better, and a shaky one (70 ms, forgets 5%) clears every Easy and Normal chart. Runs replay exactly from a seed.
 - `tests/e2e/disco.mjs`: the arcade card, the song list and saved settings, playing by key presses, pausing, the results and save, and the phone layout with a lane tap.

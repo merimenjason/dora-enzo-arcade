@@ -6,7 +6,7 @@ let checks = 0;
 const ok = (cond, msg) => { assert.ok(cond, msg); checks++; };
 
 // ---- songs and composing
-ok(SONGS.length === 6 && new Set(SONGS.map((s) => s.id)).size === 6, 'six songs with their own ids');
+ok(SONGS.length === 12 && new Set(SONGS.map((s) => s.id)).size === 12, 'twelve songs with their own ids');
 for (const s of SONGS) {
   for (const name of s.form) ok(s.sections[name], `${s.id}: section ${name} exists`);
   for (const [name, sec] of Object.entries(s.sections)) {

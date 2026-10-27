@@ -42,7 +42,7 @@ const GAMES=[
  {href:'/putt',title:'Puttering Paws',tag:'NEW · 3D MINI GOLF',blurb:'Putt with Dora and Enzo through two storybook nine-hole courses: ramps and windmills, burrows and dust baths, bouncy mushrooms and a sleepwalking Bristleback. Every hole hides a golden acorn.',color:'#9fcf7a',art:'⛳'},
  {href:'/roll',title:'Fluff Roll',tag:'NEW · 3D ROLL-AND-GROW',blurb:'Push a dust ball round the meadow with Dora while Enzo rides on top. Everything smaller sticks, from seeds and buttons to hay bales, barns and grassy hills.',color:'#f2bd64',art:'🧶'},
  {href:'/pawhaven',title:'Pawhaven',tag:'NEW · TOWN BUILDER',blurb:'Found a chinchilla town across seven meadows. Lay roads, send water, food and dust bath helpers down the streets, grow hay nests into grand burrows, and trade with the towns next door.',color:'#8cc46a',art:'🏡'},
- {href:'/disco',title:'Dust Disco',tag:'NEW · RHYTHM',blurb:'Dance with Dora and Enzo to six original tunes, from the home burrow to the Grand Dust Hall. Tap the dust bunnies on the beat, hold the long notes and light up Dust Up.',color:'#b48cf0',art:'🪩'},
+ {href:'/disco',title:'Dust Disco',tag:'NEW · RHYTHM',blurb:'Dance with Dora and Enzo to twelve original tunes, from the home burrow to a stage among the stars. Tap the dust bunnies on the beat, hold the long notes and light up Dust Up.',color:'#b48cf0',art:'🪩'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">

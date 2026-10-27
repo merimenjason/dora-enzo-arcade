@@ -1,0 +1,52 @@
+{
+  "dancer-dora-idle.webp": {
+    "w": 504,
+    "h": 512,
+    "foot": 312
+  },
+  "dancer-dora-step.webp": {
+    "w": 512,
+    "h": 512,
+    "foot": 328
+  },
+  "dancer-dora-up.webp": {
+    "w": 376,
+    "h": 512,
+    "foot": 241
+  },
+  "dancer-dora-point.webp": {
+    "w": 518,
+    "h": 512,
+    "foot": 337
+  },
+  "dancer-dora-dizzy.webp": {
+    "w": 581,
+    "h": 512,
+    "foot": 366
+  },
+  "dancer-enzo-idle.webp": {
+    "w": 500,
+    "h": 512,
+    "foot": 310
+  },
+  "dancer-enzo-step.webp": {
+    "w": 510,
+    "h": 512,
+    "foot": 332
+  },
+  "dancer-enzo-up.webp": {
+    "w": 377,
+    "h": 512,
+    "foot": 245
+  },
+  "dancer-enzo-point.webp": {
+    "w": 528,
+    "h": 512,
+    "foot": 343
+  },
+  "dancer-enzo-dizzy.webp": {
+    "w": 554,
+    "h": 512,
+    "foot": 349
+  }
+}
