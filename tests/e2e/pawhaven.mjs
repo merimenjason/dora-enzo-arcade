@@ -68,7 +68,7 @@ await check('dragging lays a road, a tap builds a well, and tapping it shows wha
   const e = await entry(page), purse = (await state(page)).purse;
   await page.evaluate(([x, y]) => window.__haven().look(x, y), [e.x + e.dx * 4, e.y + e.dy * 4]);
   await page.locator('.haven-tabs').getByRole('button', { name: /Roads/ }).click();
-  await page.getByRole('button', { name: /^Road/ }).click();
+  await page.locator('.haven-drawer').getByRole('button', { name: /^Road/ }).click();
   const a = await at(page, e.x + e.dx, e.y + e.dy), b = await at(page, e.x + e.dx * 6, e.y + e.dy * 6);
   await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move((a.x + b.x) / 2, (a.y + b.y) / 2, { steps: 4 }); await page.mouse.move(b.x, b.y, { steps: 4 }); await page.mouse.up();
   const roads = await page.evaluate(([e]) => { const g = window.__haven().game; let n = 0; for (let k = 1; k <= 6; k++) if (g.road[(e.y + e.dy * k) * g.size + e.x + e.dx * k] === 1) n++; return n; }, [e]);
@@ -127,7 +127,7 @@ await check('finishing a meadow gives stars and opens the next one', async (page
     g.pop = 60; g.tick = 49; g.step();
   });
   await page.getByRole('dialog', { name: 'Meadow finished' }).waitFor();
-  assert.match(await page.locator('.haven-big-stars').innerText(), /★/);
+  assert.match(await page.locator('.haven-big-stars').getAttribute('aria-label'), /^[123] of 3 stars$/);
   await page.getByRole('button', { name: 'On to Willow Bend' }).click();
   await page.getByRole('dialog', { name: 'Willow Bend' }).waitFor();
   const p = await page.evaluate(() => JSON.parse(localStorage.getItem('pawhaven-v1')));
@@ -138,13 +138,13 @@ await check('finishing a meadow gives stars and opens the next one', async (page
 await check('trade routes open from Clayfoot Brook', async (page) => {
   await fresh(page, { open: 4, stars: { clover: 3, willow: 2, sandy: 1 }, best: {}, towns: [null, null, null] });
   assert.equal(await page.getByRole('button', { name: 'Start' }).count(), 5);
-  assert.match(await page.locator('.haven-meadows li').first().innerText(), /★★★/);
+  assert.equal(await page.locator('.haven-meadows li').first().locator('.haven-stars').getAttribute('aria-label'), '3 of 3 stars');
   await play(page, 3);
   await page.getByRole('button', { name: 'Trade' }).click();
   const dialog = page.getByRole('dialog', { name: 'Trade' });
   await dialog.getByText(/Build a trading post/).waitFor();
   const purse = (await state(page)).purse;
-  await dialog.getByRole('button', { name: /Open road · 🌰 100/ }).click();
+  await dialog.getByRole('button', { name: /Open road · 100/ }).click();
   assert.equal((await state(page)).purse, purse - 100);
   await dialog.getByRole('combobox', { name: 'berries trade' }).selectOption('export');
   assert.deepEqual(await page.evaluate(() => window.__haven().game.trade.berries), { mode: 'export', n: 20 });

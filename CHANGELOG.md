@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Pawhaven** is painted and lively: every building is a hand-painted storybook picture, chinchillas sit outside their homes, stroll the roads, skip round plazas and ponds, gather at the story circle and work the fields, and a working building gently breathes. Placing or picking a well, market, bath house or other helper building lights up the roads its helper reaches and the homes it serves. The menus, build bar, info panel, brief, goals and trade window now show painted buildings, goods and icons, with Dora and Enzo's faces beside their lines.
 - **Pawhaven** (`/pawhaven`), game 42: an isometric chinchilla town builder. Lay roads and home plots, and helpers walk the streets with water, food, dust baths, stories and music, so hay nests grow through seven levels into Grand Burrows. Farms, mills and workshops make berries, hay, oats, bath dust, pottery, toys and bedding, and from Clayfoot Brook caravans trade with four neighbouring towns. Gentle fires, curious foxes, storms and dry spells keep the town on its toes. Seven campaign meadows open in turn, each with goals and up to three stars, plus a Free Meadow with no goals; up to three towns are saved at once.
 - **Puttering Paws** now has painted scenery cards for its meadow tree, flowers and dusk tree with two glowing lanterns.
 - **Fluff Roll**'s menu is painted: a storybook title of Dora pushing the fluffball with Enzo cheering on top, and a picture for each of the four levels.

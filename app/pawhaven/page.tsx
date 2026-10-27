@@ -1,29 +1,56 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   PawhavenGame, BUILDINGS, HOME_LEVELS, MEADOWS, ROUTES, GOODS, GOOD_NAMES, SAVE_KEY, SEASONS, TAX, YEAR, MAX_TOWNS, ROAD, PUDDLE,
   readProfile, recordWin, saveTown, meadowById, type Kind, type Good, type GameEvent, type Profile, type TradeMode, type Building, type Meadow,
 } from '@/lib/pawhaven-game';
 import type { PawhavenScene, View, Overlay, Ghost } from '@/lib/pawhaven-scene';
+import { glyph, portrait, type Glyph } from '@/lib/pawhaven-icons';
 import { HavenSound } from './sound';
 import './pawhaven.css';
 
 type Tool = Kind | 'clear' | null;
 type Modal = { kind: 'brief' } | { kind: 'won'; stars: number; years: number } | { kind: 'trade' } | { kind: 'goals' } | null;
-type Note = { text: string; id: number; x?: number; y?: number };
+type Note = { text: string; id: number; x?: number; y?: number; icon?: string };
+
+/** The scene, once loaded, also paints building icons for the page. */
+let ART: PawhavenScene | null = null;
+const bi = (kind: Kind, level?: number, size = 64) => (ART ? ART.icon(kind, { level, size }) : '');
+const Pic = ({ src, size, alt = '', className }: { src: string; size: number; alt?: string; className?: string }) =>
+  src ? <img src={src} width={size} height={size} alt={alt} className={className ?? 'haven-pic'} draggable={false} /> : <span className="haven-pic-space" style={{ width: size, height: size }} />;
+const noSub = () => () => {};
+/** Painted on the client only, so the server's first page and the hydrated one agree. */
+function G({ g, size = 22, alt = '' }: { g: Glyph; size?: number; alt?: string }) {
+  const client = useSyncExternalStore(noSub, () => true, () => false);
+  return <Pic src={client ? glyph(g, size) : ''} size={size} alt={alt} />;
+}
+/** A goal's picture: a chinchilla, the home it asks for, a heart or an acorn. */
+const goalPic = (goal: Meadow['goals'][number], size = 40) => goal.kind === 'level' ? <Pic src={bi('home', goal.level, size)} size={size} /> : <G g={goal.kind === 'pop' ? 'chin' : goal.kind === 'cosy' ? 'heart' : 'acorn'} size={size} />;
+/** The picture for a ticker message. */
+function noteIcon(e: GameEvent): string {
+  const lv = typeof e.level === 'number' ? e.level : 3, gl = (x: Glyph) => glyph(x, 40);
+  switch (e.kind) {
+    case 'levelUp': case 'levelDown': case 'homeAgain': return bi('home', lv, 40);
+    case 'fire': return gl('flame'); case 'fireOut': return gl('drop'); case 'rubble': return bi('rubble', 1, 40);
+    case 'fox': case 'foxChased': case 'foxHome': case 'foxAway': return gl('fox');
+    case 'caravan': return gl('cart'); case 'route': return bi('tradingPost', 1, 40); case 'year': return gl('calendar');
+    case 'goal': return gl('star'); case 'leavers': return gl('leave'); case 'storm': return gl('storm'); case 'dry': return gl('dry');
+    default: return gl('sparkle');
+  }
+}
 
 /** The build palette, grouped as the town grows. */
-const GROUPS: { name: string; icon: string; kinds: Kind[] }[] = [
-  { name: 'Roads', icon: '🛤️', kinds: ['road', 'fence'] },
-  { name: 'Homes', icon: '🏡', kinds: ['home'] },
-  { name: 'Water', icon: '💧', kinds: ['well', 'tower'] },
-  { name: 'Food', icon: '🫐', kinds: ['berry', 'hayFarm', 'oatFarm', 'granary', 'market'] },
-  { name: 'Makers', icon: '🪵', kinds: ['woodcutter', 'clayPit', 'sandPit', 'dustMill', 'potter', 'toymaker', 'weaver', 'storehouse'] },
-  { name: 'Helpers', icon: '🌿', kinds: ['bathhouse', 'herb', 'story', 'music', 'fireWatch', 'foxWatch'] },
-  { name: 'Pretty', icon: '🌷', kinds: ['garden', 'pond', 'plaza', 'statue'] },
-  { name: 'Town', icon: '🏛️', kinds: ['hall', 'tradingPost'] },
+const GROUPS: { name: string; icon: Kind; kinds: Kind[] }[] = [
+  { name: 'Roads', icon: 'road', kinds: ['road', 'fence'] },
+  { name: 'Homes', icon: 'home', kinds: ['home'] },
+  { name: 'Water', icon: 'well', kinds: ['well', 'tower'] },
+  { name: 'Food', icon: 'berry', kinds: ['berry', 'hayFarm', 'oatFarm', 'granary', 'market'] },
+  { name: 'Makers', icon: 'potter', kinds: ['woodcutter', 'clayPit', 'sandPit', 'dustMill', 'potter', 'toymaker', 'weaver', 'storehouse'] },
+  { name: 'Helpers', icon: 'bathhouse', kinds: ['bathhouse', 'herb', 'story', 'music', 'fireWatch', 'foxWatch'] },
+  { name: 'Pretty', icon: 'garden', kinds: ['garden', 'pond', 'plaza', 'statue'] },
+  { name: 'Town', icon: 'hall', kinds: ['hall', 'tradingPost'] },
 ];
 /** One line on what each building is for, shown on the palette. */
 const ABOUT: Partial<Record<Kind, string>> = {
@@ -107,7 +134,7 @@ export default function PawhavenPage() {
     }
     if (e.msg && e.kind !== 'won') {
       const id = ++noteId.current;
-      setNotes((n) => [{ text: e.msg as string, id, x: e.x, y: e.y }, ...n].slice(0, 4));
+      setNotes((n) => [{ text: e.msg as string, id, x: e.x, y: e.y, icon: noteIcon(e) }, ...n.filter((m) => m.text !== e.msg)].slice(0, 3));
       setTimeout(() => setNotes((n) => n.filter((m) => m.id !== id)), 9000);
     }
   }
@@ -282,7 +309,7 @@ export default function PawhavenPage() {
 
     import('@/lib/pawhaven-scene').then(({ createPawhavenScene }) => {
       if (stopped || !canvas.current) return;
-      scene.current = createPawhavenScene(canvas.current);
+      scene.current = createPawhavenScene(canvas.current); ART = scene.current;
       setReady(true);
       let first = true;
       const loop = (now: number) => {
@@ -330,7 +357,7 @@ export default function PawhavenPage() {
         {selected > 0 && g.buildings.get(selected) && <Info g={g} b={g.buildings.get(selected)!} onClose={() => select(0)}
           onClear={(b) => { g.clear(b.x, b.y); select(0); sound.current?.play('clear'); refresh(); }} />}
         <div className="haven-ticker" aria-live="polite">
-          {notes.map((n) => <button key={n.id} type="button" onClick={() => { if (n.x !== undefined && n.y !== undefined) look(n.x + 0.5, n.y + 0.5); }}>{n.text}</button>)}
+          {notes.map((n) => <button key={n.id} type="button" onClick={() => { if (n.x !== undefined && n.y !== undefined) look(n.x + 0.5, n.y + 0.5); }}>{n.icon && <Pic src={n.icon} size={30} />}<span>{n.text}</span></button>)}
         </div>
         {toast && <div className="haven-toast" key={toast.id} role="status">{toast.text}</div>}
         {modal?.kind === 'brief' && <Brief m={g.meadow} onGo={() => { setModal(null); sound.current?.unlock(); }} />}
@@ -343,6 +370,12 @@ export default function PawhavenPage() {
   );
 }
 
+/** A meadow's painting, or nothing until it exists. */
+function Painting({ src, alt, className }: { src: string; alt: string; className: string }) {
+  const [ok, setOk] = useState(true);
+  return ok ? <img src={src} alt={alt} className={className} onError={() => setOk(false)} /> : null;
+}
+
 function Menu({ profile, replace, onStart, onResume, onForget, onCancel }: {
   profile: Profile; replace: string | null; onStart: (id: string, into?: number) => void; onResume: (i: number) => void; onForget: (i: number) => void; onCancel: () => void;
 }) {
@@ -351,15 +384,22 @@ function Menu({ profile, replace, onStart, onResume, onForget, onCancel }: {
     <section className="haven-menu">
       <div className="haven-menu-top"><Link href="/" className="haven-back">← ARCADE</Link></div>
       <div className="haven-menu-panel">
-        <p className="haven-eyebrow">A CHINCHILLA TOWN</p>
-        <h1>Paw<em>haven</em></h1>
+        <div className="haven-hero">
+          <Painting src="/art/pawhaven/title.webp" alt="Dora and Enzo looking over a cosy chinchilla village" className="haven-hero-art" />
+          <div className="haven-hero-copy">
+            <p className="haven-eyebrow">A CHINCHILLA TOWN</p>
+            <h1>Paw<em>haven</em></h1>
+            <div className="haven-hero-icons" aria-hidden="true">{(['home', 'well', 'market', 'bathhouse', 'hall'] as Kind[]).map((k, i) => <Pic key={k} src={bi(k, i ? undefined : 5, 56)} size={56} />)}</div>
+          </div>
+        </div>
         <p className="haven-lede">Lay roads, send helpers down the streets, and grow hay nests into grand burrows. Seven meadows, each a little bigger and busier than the last.</p>
         {towns.some(Boolean) && <>
           <h2>Your towns</h2>
           <ul className="haven-slots">
             {towns.map((t, i) => t && (
               <li key={i}>
-                <div><h3>{meadowById(t.meadow)?.name}</h3><p>Year {Math.floor(t.state.tick / YEAR) + 1} · {t.state.pop ?? 0} chinchillas{t.state.won !== null ? ' · finished' : ''}</p></div>
+                <Pic src={bi('home', Math.min(7, 1 + Math.floor((t.state.pop ?? 0) / 60)), 52)} size={52} />
+                <div><h3>{meadowById(t.meadow)?.name}</h3><p><G g="calendar" size={16} /> Year {Math.floor(t.state.tick / YEAR) + 1} <G g="chin" size={16} /> {t.state.pop ?? 0}{t.state.won !== null ? <> <G g="star" size={16} /> finished</> : null}</p></div>
                 <button type="button" className="haven-primary" onClick={() => onResume(i)}>Carry on</button>
                 <button type="button" className="haven-quiet" onClick={() => onForget(i)}>Let go</button>
               </li>
@@ -374,14 +414,20 @@ function Menu({ profile, replace, onStart, onResume, onForget, onCancel }: {
         <h2>Meadows</h2>
         <ul className="haven-meadows">
           {MEADOWS.map((m) => {
-            const locked = m.goals.length > 0 && m.n > profile.open, got = profile.stars[m.id] ?? 0;
+            const locked = m.goals.length > 0 && m.n > profile.open, got = profile.stars[m.id] ?? 0, opens = m.opens.filter((k) => k !== 'road').slice(0, 6);
             return (
               <li key={m.id} className={locked ? 'is-locked' : undefined}>
-                <span className="haven-n">{m.goals.length ? m.n : '∞'}</span>
-                <div>
+                <div className="haven-meadow-art">
+                  <Painting src={`/art/pawhaven/meadow-${m.id}.webp`} alt="" className="haven-meadow-paint" />
+                  <span className="haven-n">{m.goals.length ? m.n : '∞'}</span>
+                </div>
+                <div className="haven-meadow-body">
                   <h3>{m.name}</h3>
-                  <p>{m.goals.length ? m.goals.map(goalLabel).join(' · ') : 'No goals, no hurry: build whatever you dream up.'}</p>
-                  {m.goals.length > 0 && <p className="haven-stars" aria-label={`${got} of 3 stars`}>{stars(got)}{profile.best[m.id] ? <small> best {profile.best[m.id]} years</small> : null}</p>}
+                  {m.goals.length > 0
+                    ? <div className="haven-goal-chips">{m.goals.map((goal) => <span key={goalLabel(goal)}>{goalPic(goal, 24)}{goalLabel(goal)}</span>)}</div>
+                    : <p>No goals, no hurry: build whatever you dream up.</p>}
+                  {opens.length > 0 && <div className="haven-opens"><small>New</small>{opens.map((k) => <Pic key={k} src={bi(k, undefined, 34)} size={34} alt={BUILDINGS[k].name} />)}</div>}
+                  {m.goals.length > 0 && <div className="haven-stars" aria-label={`${got} of 3 stars`}>{[0, 1, 2].map((k) => <G key={k} g={k < got ? 'star' : 'starOff'} size={20} />)}{profile.best[m.id] ? <small> best {profile.best[m.id]} years</small> : null}</div>}
                 </div>
                 <button type="button" className="haven-primary" disabled={locked} onClick={() => onStart(m.id)}>{locked ? `Finish ${campaign[m.n - 2]?.name}` : 'Start'}</button>
               </li>
@@ -394,29 +440,30 @@ function Menu({ profile, replace, onStart, onResume, onForget, onCancel }: {
   );
 }
 
+const SEASON_GLYPH: Glyph[] = ['spring', 'summer', 'autumn', 'winter'];
 function Hud({ g, muted, overlay, onSpeed, onTax, onOverlay, onGoals, onTrade, onMenu, onSound }: {
   g: PawhavenGame; muted: boolean; overlay: Overlay; onSpeed: (s: number) => void; onTax: (t: number) => void; onOverlay: (o: Overlay) => void;
   onGoals: () => void; onTrade: () => void; onMenu: () => void; onSound: () => void;
 }) {
-  const goals = g.goalStatus(), met = goals.filter((x) => x.done).length;
+  const goals = g.goalStatus(), met = goals.filter((x) => x.done).length, net = Math.round(g.income - g.wages);
   return (
     <header className="haven-hud">
       <div className="haven-stats">
-        <span title="Acorns in the purse"><b>🌰 {Math.floor(g.purse)}</b><small>{g.income - g.wages >= 0 ? '+' : ''}{Math.round(g.income - g.wages)} last month</small></span>
-        <span title="Chinchillas living here"><b>🐭 {g.pop}</b><small>{g.employed}/{g.jobs} jobs filled{g.unemployed ? ` · ${g.unemployed} free` : ''}</small></span>
-        <span title="Cosiness: food, visits and fair taxes keep it up"><b>💛 {g.cosiness}</b><small>cosiness</small></span>
-        <span><b>{cap(SEASONS[Math.floor(g.month / 3)])}</b><small>{MONTHS[g.month]} · year {g.year}{g.dry ? ' · dry spell' : ''}</small></span>
+        <span title="Acorns in the purse"><G g="acorn" size={30} /><span><b>{Math.floor(g.purse)}</b><small className={net < 0 ? 'is-down' : 'is-up'}>{net >= 0 ? '▲' : '▼'} {Math.abs(net)} a month</small></span></span>
+        <span title="Chinchillas living here"><G g="chin" size={30} /><span><b>{g.pop}</b><small>{g.employed}/{g.jobs} at work{g.unemployed ? ` · ${g.unemployed} free` : ''}</small></span></span>
+        <span title="Cosiness: food, visits and fair taxes keep it up"><G g="heart" size={30} /><span><b>{g.cosiness}</b><i className="haven-mini-bar"><i style={{ width: `${Math.max(0, Math.min(100, g.cosiness))}%` }} /></i></span></span>
+        <span title={cap(SEASONS[Math.floor(g.month / 3)])}><G g={g.dry ? 'dry' : SEASON_GLYPH[Math.floor(g.month / 3)]} size={30} /><span><b>{MONTHS[g.month]}</b><small>year {g.year}</small></span></span>
       </div>
       <div className="haven-controls">
         <div className="haven-seg" role="group" aria-label="Speed">
           {[0, 1, 2, 4].map((s) => <button key={s} type="button" aria-pressed={g.speed === s} aria-label={s ? `Speed ${s}` : 'Pause'} onClick={() => onSpeed(s)}>{SPEED_LABELS[s]}</button>)}
         </div>
-        <label className="haven-pick">Tax<select value={g.tax} onChange={(e) => onTax(Number(e.target.value))}>{TAX.map((t, i) => <option key={t.name} value={i}>{cap(t.name)}</option>)}</select></label>
-        <label className="haven-pick">Map<select value={overlay} onChange={(e) => onOverlay(e.target.value as Overlay)}>{OVERLAYS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}</select></label>
-        {g.meadow.goals.length > 0 && <button type="button" onClick={onGoals}>Goals {met}/{goals.length}</button>}
-        {g.meadow.routes.length > 0 && <button type="button" onClick={onTrade}>Trade</button>}
+        <label className="haven-pick"><G g="coins" size={20} /><select aria-label="Tax" value={g.tax} onChange={(e) => onTax(Number(e.target.value))}>{TAX.map((t, i) => <option key={t.name} value={i}>{cap(t.name)} tax</option>)}</select></label>
+        <label className="haven-pick"><G g="look" size={20} /><select aria-label="Map" value={overlay} onChange={(e) => onOverlay(e.target.value as Overlay)}>{OVERLAYS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}</select></label>
+        {g.meadow.goals.length > 0 && <button type="button" className="haven-icon-btn" onClick={onGoals} aria-label={`Goals ${met}/${goals.length}`}><G g="star" size={20} />{met}/{goals.length}</button>}
+        {g.meadow.routes.length > 0 && <button type="button" className="haven-icon-btn" onClick={onTrade} aria-label="Trade"><G g="cart" size={22} /><span className="haven-btn-word">Trade</span></button>}
         <button type="button" aria-label={muted ? 'Sound on' : 'Sound off'} onClick={onSound}>{muted ? '🔇' : '🔊'}</button>
-        <button type="button" onClick={onMenu}>Meadows</button>
+        <button type="button" className="haven-icon-btn" onClick={onMenu} aria-label="Meadows"><Pic src={bi('home', 3, 22)} size={22} /><span className="haven-btn-word">Meadows</span></button>
       </div>
     </header>
   );
@@ -430,73 +477,106 @@ function Palette({ g, tool, group, onGroup, onTool }: { g: PawhavenGame; tool: T
       {open && <div className="haven-drawer">
         {open.kinds.map((k) => { const s = BUILDINGS[k], short = g.purse < s.cost; return (
           <button key={k} type="button" aria-pressed={tool === k} className={short ? 'is-short' : undefined} onClick={() => onTool(tool === k ? null : k)}>
-            <b>{s.name}</b><span>🌰 {s.cost}{s.jobs ? ` · ${s.jobs} jobs` : ''}{s.size > 1 ? ` · ${s.size}×${s.size}` : ''}</span><small>{ABOUT[k]}</small>
+            <Pic src={bi(k, k === 'home' ? 1 : undefined, 64)} size={64} className="haven-drawer-pic" />
+            <span className="haven-drawer-text">
+              <b>{s.name}</b>
+              <span className="haven-cost"><G g="acorn" size={14} />{s.cost}{s.jobs ? <><G g="chin" size={14} />{s.jobs}</> : null}{s.size > 1 ? <em>{s.size}×{s.size}</em> : null}</span>
+              <small>{ABOUT[k]}</small>
+            </span>
           </button>
         ); })}
       </div>}
       <div className="haven-tabs">
-        <button type="button" aria-pressed={tool === null && group === null} onClick={() => { onTool(null); onGroup(null); }}>👆<span>Look</span></button>
+        <button type="button" aria-pressed={tool === null && group === null} onClick={() => { onTool(null); onGroup(null); }}><G g="look" size={32} /><span>Look</span></button>
         {groups.map((gr) => { const i = GROUPS.findIndex((x) => x.name === gr.name); return (
-          <button key={gr.name} type="button" aria-pressed={group === i} aria-expanded={group === i} onClick={() => onGroup(group === i ? null : i)}>{gr.icon}<span>{gr.name}</span></button>
+          <button key={gr.name} type="button" aria-pressed={group === i} aria-expanded={group === i} onClick={() => onGroup(group === i ? null : i)}><Pic src={bi(gr.icon, gr.icon === 'home' ? 3 : undefined, 40)} size={40} /><span>{gr.name}</span></button>
         ); })}
-        <button type="button" aria-pressed={tool === 'clear'} onClick={() => { onGroup(null); onTool(tool === 'clear' ? null : 'clear'); }}>🧹<span>Clear</span></button>
+        <button type="button" aria-pressed={tool === 'clear'} onClick={() => { onGroup(null); onTool(tool === 'clear' ? null : 'clear'); }}><G g="broom" size={32} /><span>Clear</span></button>
       </div>
     </nav>
   );
 }
 
+/** What a home is asking for next, as a picture. */
+const NEED_PIC: Record<string, () => string> = {
+  water: () => glyph('drop', 28), food: () => glyph('berries', 28), 'a second kind of food': () => glyph('oats', 28), 'a dust bath': () => glyph('dust', 28),
+  pottery: () => glyph('pottery', 28), toys: () => glyph('toys', 28), bedding: () => glyph('bedding', 28), 'a road beside it': () => bi('road', undefined, 28), residents: () => glyph('chin', 28),
+};
 function Info({ g, b, onClose, onClear }: { g: PawhavenGame; b: Building; onClose: () => void; onClear: (b: Building) => void }) {
   const s = BUILDINGS[b.kind], access = g.hasAccess(b), goods = (Object.entries(b.store) as [Good, number][]).filter(([, n]) => n > 0);
-  let line = '';
-  if (b.kind === 'home') line = b.pop ? `${b.pop} of ${g.holds(b)} living here.` : 'Waiting for newcomers.';
-  else if (b.kind === 'rubble') line = 'Clear it away for free and build again.';
-  else if (s.jobs) line = `${b.workers} of ${s.jobs} helpers at work.`;
-  const growing = b.kind === 'home' && b.level < 7 ? g.nextNeed(b) : '';
+  const growing = b.kind === 'home' && b.level < 7 ? g.nextNeed(b) : '', needsRoad = !access && b.kind !== 'rubble' && (s.jobs > 0 || b.kind === 'home');
   return (
     <aside className="haven-info" aria-label={g.nameOf(b)}>
       <button type="button" className="haven-x" aria-label="Close" onClick={onClose}>×</button>
-      <h3>{g.nameOf(b)}</h3>
-      {b.burning > 0 && <p className="haven-warm">On fire! A fire watcher walking by will put it out.</p>}
-      {!access && b.kind !== 'rubble' && s.size && b.kind !== 'garden' && b.kind !== 'pond' && b.kind !== 'statue' && b.kind !== 'plaza' && <p className="haven-warm">It needs a road beside it.</p>}
-      {line && <p>{line}</p>}
-      {b.kind === 'home' && <p>{growing ? `To grow into a ${HOME_LEVELS[b.level].name} it would love ${growing}.` : 'The grandest burrow there is!'}</p>}
-      {b.kind === 'home' && b.away > 0 && <p>{b.away} are staying with friends until the fox has gone.</p>}
+      <div className="haven-info-head">
+        <Pic src={bi(b.kind, b.kind === 'home' ? b.level : undefined, 84)} size={84} />
+        <div><h3>{g.nameOf(b)}</h3>
+          {b.kind === 'home' && <p className="haven-people">{Array.from({ length: Math.min(12, g.holds(b)) }, (_, k) => <i key={k} className={k < Math.round((b.pop / g.holds(b)) * Math.min(12, g.holds(b))) ? 'is-in' : ''} />)}<small>{b.pop}/{g.holds(b)}</small></p>}
+          {s.jobs > 0 && <p className="haven-people">{Array.from({ length: s.jobs }, (_, k) => <i key={k} className={k < b.workers ? 'is-in' : ''} />)}<small>{b.workers}/{s.jobs} at work</small></p>}
+        </div>
+      </div>
+      {b.burning > 0 && <p className="haven-warm"><G g="flame" size={20} /> On fire! A fire watcher walking by will put it out.</p>}
+      {needsRoad && <p className="haven-warm"><Pic src={bi('road', undefined, 22)} size={22} /> It needs a road beside it.</p>}
+      {b.kind === 'home' && <ol className="haven-ladder" aria-label="Home levels">{HOME_LEVELS.map((l) => <li key={l.level} className={l.level === b.level ? 'is-now' : l.level < b.level ? 'is-done' : ''} title={l.name}><Pic src={bi('home', l.level, 34)} size={34} /></li>)}</ol>}
+      {b.kind === 'home' && (growing
+        ? <p className="haven-need">{NEED_PIC[growing] ? <Pic src={NEED_PIC[growing]()} size={28} /> : <G g="sparkle" size={28} />}<span>To grow into a <b>{HOME_LEVELS[b.level].name}</b> it would love {growing}.</span></p>
+        : <p className="haven-need"><G g="trophy" size={28} /><span>The grandest burrow there is!</span></p>)}
+      {b.kind === 'home' && b.away > 0 && <p><G g="fox" size={20} /> {b.away} are staying with friends until the fox has gone.</p>}
       {ABOUT[b.kind] && b.kind !== 'home' && <p className="haven-soft">{ABOUT[b.kind]}</p>}
-      {goods.length > 0 && <ul className="haven-goods">{goods.map(([k, n]) => <li key={k}>{GOOD_NAMES[k]} <b>{Math.floor(n)}</b></li>)}</ul>}
-      {b.kind !== 'rubble' && <p className="haven-soft">Pretty here: {g.desirAt(b.x, b.y)}</p>}
-      <button type="button" className="haven-quiet" onClick={() => onClear(b)}>{b.kind === 'rubble' ? 'Clear the rubble' : 'Take it down'}</button>
+      {goods.length > 0 && <ul className="haven-goods">{goods.map(([k, n]) => <li key={k} title={GOOD_NAMES[k]}><G g={k} size={24} /><b>{Math.floor(n)}</b></li>)}</ul>}
+      {b.kind !== 'rubble' && <p className="haven-soft"><G g="sparkle" size={16} /> Pretty here: {g.desirAt(b.x, b.y)}</p>}
+      <button type="button" className="haven-quiet" onClick={() => onClear(b)}><G g="broom" size={18} /> {b.kind === 'rubble' ? 'Clear the rubble' : 'Take it down'}</button>
     </aside>
   );
 }
 
 function Brief({ m, onGo }: { m: Meadow; onGo: () => void }) {
-  const goals = m.goals.map(goalLabel);
   return (
     <div className="haven-modal" role="dialog" aria-label={m.name}>
-      <div className="haven-card">
-        <p className="haven-eyebrow">{m.goals.length ? `MEADOW ${m.n}` : 'FREE MEADOW'}</p>
-        <h2>{m.name}</h2>
-        {lines(m.brief).map((l, i) => <p key={i} className={`haven-say${l.who ? ` is-${l.who.toLowerCase()}` : ''}`}>{l.who && <b>{l.who}</b>}{l.text}</p>)}
-        {goals.length > 0 && <><h3>Goals</h3><ul className="haven-goal-list">{goals.map((x) => <li key={x}>{x}</li>)}</ul>
-          <p className="haven-soft">Finish within {m.years} years for a second star, and with cosiness 80 or more for a third.</p></>}
-        <button type="button" className="haven-primary" onClick={onGo}>Let&apos;s build!</button>
+      <div className="haven-card has-art">
+        <div className="haven-card-art">
+          <Painting src={`/art/pawhaven/meadow-${m.id}.webp`} alt="" className="haven-card-paint" />
+          <div className="haven-card-title"><p className="haven-eyebrow">{m.goals.length ? `MEADOW ${m.n}` : 'FREE MEADOW'}</p><h2>{m.name}</h2></div>
+        </div>
+        <div className="haven-card-body">
+          {lines(m.brief).map((l, i) => (
+            <div key={i} className={`haven-say${l.who ? ` is-${l.who.toLowerCase()}` : ''}`}>
+              {l.who && <img src={portrait(l.who.toLowerCase() as 'dora' | 'enzo', 64)} width={64} height={64} alt={l.who} className="haven-face" />}
+              <p>{l.who && <b>{l.who}</b>}{l.text}</p>
+            </div>
+          ))}
+          {m.opens.length > 0 && <div className="haven-opens is-big"><small>Opens here</small>{m.opens.filter((k) => k !== 'road').map((k) => <span key={k} className="haven-open-chip"><Pic src={bi(k, k === 'home' ? 1 : undefined, 44)} size={44} />{BUILDINGS[k].name}</span>)}</div>}
+          {m.goals.length > 0 && <><h3>Goals</h3><ul className="haven-goal-list">{m.goals.map((x) => <li key={goalLabel(x)}>{goalPic(x, 34)}<span>{goalLabel(x)}</span></li>)}</ul>
+            <ul className="haven-star-rules">
+              <li><G g="star" size={20} /> Reach every goal</li>
+              <li><G g="star" size={20} /><G g="calendar" size={20} /> Within {m.years} years</li>
+              <li><G g="star" size={20} /><G g="heart" size={20} /> With cosiness 80</li>
+            </ul></>}
+          <button type="button" className="haven-primary haven-go" onClick={onGo}>Let&apos;s build!</button>
+        </div>
       </div>
     </div>
   );
 }
 
 function Goals({ g, onClose }: { g: PawhavenGame; onClose: () => void }) {
+  const counts = HOME_LEVELS.map((l) => g.homes().filter((h) => h.level === l.level).length);
   return (
     <div className="haven-modal" role="dialog" aria-label="Goals" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="haven-card">
         <h2>{g.meadow.name}</h2>
-        <ul className="haven-goal-list">{g.goalStatus().map((x) => (
-          <li key={x.label} className={x.done ? 'is-done' : undefined}><span>{x.done ? '✓ ' : ''}{x.label}</span><b>{Math.floor(x.now)} / {x.need}</b>
+        <ul className="haven-goal-list">{g.goalStatus().map((x, i) => (
+          <li key={x.label} className={x.done ? 'is-done' : undefined}>{goalPic(g.meadow.goals[i], 34)}<span>{x.done ? '✓ ' : ''}{x.label}</span><b>{Math.floor(x.now)} / {x.need}</b>
             <i style={{ width: `${Math.min(100, (100 * x.now) / x.need)}%` }} /></li>
         ))}</ul>
-        <p className="haven-soft">Every goal has to hold at the same time. Year {g.year} of {g.meadow.years} for a second star; cosiness 80 for a third.</p>
+        <ul className="haven-star-rules">
+          <li><G g="calendar" size={20} /> Year {g.year} of {g.meadow.years} for a second star</li>
+          <li><G g="heart" size={20} /> Cosiness {g.cosiness} of 80 for a third</li>
+        </ul>
         <h3>Homes</h3>
-        <ul className="haven-levels">{HOME_LEVELS.map((l) => <li key={l.level}><b>{l.name}</b> {g.homes().filter((h) => h.level === l.level).length}<small>{l.level > 1 ? ` · needs ${l.needs}` : ''}</small></li>)}</ul>
+        <ul className="haven-levels">{HOME_LEVELS.map((l, i) => (
+          <li key={l.level} className={counts[i] ? 'has-some' : undefined}><Pic src={bi('home', l.level, 52)} size={52} /><b>{counts[i]}</b><span>{l.name}</span><small>{l.level > 1 ? `needs ${l.needs}` : 'a plot by a road'}</small></li>
+        ))}</ul>
         <button type="button" className="haven-primary" onClick={onClose}>Back to town</button>
       </div>
     </div>
@@ -507,19 +587,21 @@ function Trade({ g, onClose, onChange }: { g: PawhavenGame; onClose: () => void;
   const routes = g.meadow.routes.map((id) => ROUTES[id]), open = routes.filter((r) => g.routes.includes(r.id));
   const post = [...g.buildings.values()].some((b) => b.kind === 'tradingPost');
   const tradable = GOODS.filter((k) => open.some((r) => r.buys[k] || r.sells[k]));
+  const wares = (list: Partial<Record<Good, number>>) => (Object.entries(list) as [Good, number][]).map(([k, v]) => <span key={k} className="haven-ware" title={GOOD_NAMES[k]}><G g={k} size={22} /><G g="acorn" size={12} />{v}</span>);
   return (
     <div className="haven-modal" role="dialog" aria-label="Trade" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="haven-card is-wide">
-        <h2>Trade</h2>
-        {!post && <p className="haven-warm">Build a trading post so caravans have somewhere to stop.</p>}
+        <h2><G g="cart" size={34} /> Trade</h2>
+        {!post && <p className="haven-warm"><Pic src={bi('tradingPost', undefined, 40)} size={40} /> Build a trading post so caravans have somewhere to stop.</p>}
         <ul className="haven-routes">{routes.map((r) => {
           const has = g.routes.includes(r.id);
           return (
             <li key={r.id}>
+              <Pic src={bi('tradingPost', undefined, 52)} size={52} />
               <div><h3>{r.name}</h3>
-                <p>Buys {Object.entries(r.buys).map(([k, v]) => `${k} (${v})`).join(', ')}</p>
-                <p>Sells {Object.entries(r.sells).map(([k, v]) => `${k} (${v})`).join(', ')}</p></div>
-              {has ? <span className="haven-open">Open</span> : <button type="button" disabled={g.purse < r.cost} onClick={() => { const res = g.openRoute(r.id); if (res.ok) onChange(); }}>Open road · 🌰 {r.cost}</button>}
+                <p className="haven-wares"><small>Buys</small>{wares(r.buys)}</p>
+                <p className="haven-wares"><small>Sells</small>{wares(r.sells)}</p></div>
+              {has ? <span className="haven-open">✓ Open</span> : <button type="button" disabled={g.purse < r.cost} onClick={() => { const res = g.openRoute(r.id); if (res.ok) onChange(); }}>Open road · <G g="acorn" size={16} />{r.cost}</button>}
             </li>
           );
         })}</ul>
@@ -528,7 +610,7 @@ function Trade({ g, onClose, onChange }: { g: PawhavenGame; onClose: () => void;
           <table className="haven-trade"><tbody>{tradable.map((k) => {
             const t = g.trade[k] ?? { mode: 'keep' as TradeMode, n: 0 };
             return (
-              <tr key={k}><th>{GOOD_NAMES[k]}<small> · {g.stock(k)} in store</small></th>
+              <tr key={k}><th><G g={k} size={26} /><span>{GOOD_NAMES[k]}<small> · {g.stock(k)} in store</small></span></th>
                 <td><select aria-label={`${GOOD_NAMES[k]} trade`} value={t.mode} onChange={(e) => { g.setTrade(k, e.target.value as TradeMode, t.n || 20); onChange(); }}>
                   <option value="keep">Keep</option>{open.some((r) => r.buys[k]) && <option value="export">Sell above</option>}{open.some((r) => r.sells[k]) && <option value="import">Buy up to</option>}
                 </select></td>
@@ -553,7 +635,7 @@ function Won({ g, stars: got, years, profile, onStay, onMenu, onNext }: {
       <div className="haven-card is-won">
         <p className="haven-eyebrow">MEADOW FINISHED</p>
         <h2>{g.meadow.name}</h2>
-        <p className="haven-big-stars" aria-label={`${got} of 3 stars`}>{stars(got)}</p>
+        <div className="haven-cheer"><img src={portrait('dora', 88, true)} width={88} height={88} alt="Dora" /><span className="haven-big-stars" aria-label={`${got} of 3 stars`}>{[0, 1, 2].map((k) => <G key={k} g={k < got ? 'star' : 'starOff'} size={52} />)}</span><img src={portrait('enzo', 88, true)} width={88} height={88} alt="Enzo" /></div>
         <p>Finished in {years} years with cosiness {g.cosiness}. {g.meadow.n === 7 ? 'Pawhaven is the cosiest town there ever was!' : 'Dora and Enzo are so proud of this town.'}</p>
         <div className="haven-row">
           {next && <button type="button" className="haven-primary" onClick={() => onNext(next.id)}>On to {next.name}</button>}
