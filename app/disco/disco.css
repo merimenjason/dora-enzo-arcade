@@ -1,0 +1,111 @@
+.disco-shell{position:relative;width:100%;height:100svh;min-height:480px;overflow:hidden;background:#1c0f2a;color:#fbefff;font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;isolation:isolate;user-select:none;-webkit-user-select:none}
+.disco-shell *{box-sizing:border-box}
+/* the global stylesheet colours every <p>; in here paragraphs take their colour from where they sit */
+:where(.disco-shell) p{color:inherit;font-size:inherit;line-height:1.45;margin:0}
+.disco-shell h1,.disco-shell h2{margin:0;font-family:inherit}
+.disco-shell button,.disco-shell a{font:inherit}
+.disco-shell button{border:1px solid #ffffff3a;border-radius:12px;background:#2d1a42d9;color:#fbefff;font-weight:800;padding:10px 15px;cursor:pointer;min-height:42px;transition:background .15s,transform .15s,border-color .15s}
+.disco-shell button:hover:not(:disabled){background:#46285fe6;transform:translateY(-1px)}
+.disco-shell button:disabled{opacity:.5;cursor:default}
+.disco-shell button:focus-visible,.disco-shell a:focus-visible,.disco-shell summary:focus-visible{outline:3px solid #ffd86b;outline-offset:2px}
+.disco-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.disco-chip{min-height:36px!important;padding:7px 12px!important;font-size:13px}
+
+/* ---- song select */
+.disco-menu{position:absolute;inset:0;overflow:auto;padding:16px max(16px,calc(50% - 560px)) 28px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);grid-template-areas:'head head' 'title title' 'songs play' 'songs settings' 'how how';gap:14px 18px;align-content:start;background:linear-gradient(90deg,#1a0d27ee 0,#1a0d27c8 55%,#1a0d2770)}
+.disco-head{grid-area:head;display:flex;justify-content:space-between;align-items:center}
+.disco-back{color:#ffe7a8;font-size:12px;font-weight:900;letter-spacing:1px;text-decoration:none;background:#2d1a42d9;border:1px solid #ffffff2e;border-radius:10px;padding:9px 12px}
+.disco-title{grid-area:title;position:relative;border-radius:22px;overflow:hidden;min-height:200px;display:flex;align-items:flex-end;box-shadow:0 12px 40px #0008}
+.disco-title img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%}
+.disco-title>div{position:relative;padding:22px 26px;width:100%;background:linear-gradient(0deg,#1a0d27e6,#1a0d2700)}
+.disco-eyebrow{font-size:12px;font-weight:900;letter-spacing:2.5px;color:#ffd86b}
+.disco-title h1{font-size:clamp(44px,7vw,78px);line-height:.95;font-weight:900;letter-spacing:-1px;text-shadow:0 4px 0 #6a2d72,0 8px 24px #000a}
+.disco-title h1 em{font-style:normal;background:linear-gradient(90deg,#ff8fb1,#ffc95c,#7fe0b0,#7cc6ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.disco-stars-total{position:absolute;right:22px;bottom:22px;font-weight:900;color:#ffd86b;background:#1a0d27b3;border-radius:999px;padding:6px 12px}
+.disco-songs{grid-area:songs;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.disco-shell .disco-song{width:100%;display:flex;gap:12px;align-items:center;text-align:left;padding:8px;border-radius:16px;background:#26173ad9;border:2px solid transparent}
+.disco-shell .disco-song.is-on{border-color:var(--song);background:#3a2252f0;box-shadow:0 0 0 4px color-mix(in srgb,var(--song) 25%,transparent)}
+.disco-thumb{flex:none;width:96px;height:58px;border-radius:11px;background-size:cover;background-position:center;position:relative;box-shadow:inset 0 0 0 1px #fff3}
+.disco-thumb b{position:absolute;left:6px;top:5px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#1a0d27d9;color:#ffd86b;font-size:12px}
+.disco-song:disabled .disco-thumb{filter:grayscale(1) brightness(.5)}
+.disco-song-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+.disco-song-body strong{font-size:17px}
+.disco-song-body small{font-size:12px;color:#d6c3e6;font-weight:700}
+.disco-bests{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.disco-bests i{font-style:normal;font-size:11px;font-weight:800;color:#a58fb8;background:#1a0d2799;padding:2px 7px;border-radius:999px;letter-spacing:.5px}
+.disco-bests i.got{color:#ffd86b}
+.disco-play{grid-area:play;align-self:start;display:flex;flex-direction:column;gap:12px;background:#26173ad9;border-radius:18px;padding:16px}
+.disco-blurb{font-size:15px;color:#efe0fa}
+.disco-diffs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.disco-shell .disco-diffs button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px}
+.disco-diffs small{font-size:11px;color:#cdb6df;font-weight:700}
+.disco-shell .disco-diffs button.is-on{background:#ffd86b;border-color:#ffd86b;color:#2b1838}
+.disco-shell .disco-diffs button.is-on small{color:#5a3d22}
+.disco-shell .disco-go{background:linear-gradient(90deg,#ff8fb1,#ffb35c);border:0;color:#2b1838;font-size:18px;font-weight:900;letter-spacing:.5px;min-height:52px;box-shadow:0 6px 0 #9c4a5a}
+.disco-shell .disco-go:hover:not(:disabled){background:linear-gradient(90deg,#ffa3c0,#ffc277)}
+.disco-settings{grid-area:settings;align-self:start;background:#26173ad9;border-radius:18px;padding:12px 16px;display:flex;flex-direction:column;gap:10px}
+.disco-settings summary{cursor:pointer;font-weight:900;letter-spacing:1px;color:#ffd86b}
+.disco-settings[open]{gap:10px}
+.disco-settings label{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;margin-top:8px}
+.disco-settings input[type=range]{flex:1;accent-color:#ff8fb1}
+.disco-settings label b{min-width:56px;text-align:right}
+.disco-check{align-items:flex-start!important}
+.disco-settings .disco-chip{margin-top:6px}
+.disco-how{grid-area:how;font-size:13px;color:#d6c3e6;text-align:center}
+.disco-how b{color:#ffd86b}
+
+/* ---- playing */
+.disco-hud{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:12px 14px;pointer-events:none}
+.disco-hud>*{pointer-events:auto}
+.disco-hud-song,.disco-score{background:#1a0d27b8;border-radius:14px;padding:8px 12px;display:flex;flex-direction:column}
+.disco-hud-song small,.disco-score small{font-size:11px;color:#d6c3e6;font-weight:700}
+.disco-score{align-items:center;min-width:140px}
+.disco-score b{font-size:24px;font-variant-numeric:tabular-nums}
+.disco-meters{position:absolute;left:14px;right:14px;bottom:12px;display:flex;gap:10px;align-items:center;pointer-events:none}
+.disco-groove,.disco-sparkle{flex:1;position:relative;height:22px;border-radius:999px;background:#1a0d27cc;overflow:hidden;box-shadow:inset 0 0 0 1px #fff3}
+.disco-groove i,.disco-sparkle i{position:absolute;left:0;top:0;bottom:0;transition:width .12s}
+.disco-groove i{background:linear-gradient(90deg,#7fe0b0,#c8f59c)}
+.disco-groove.is-low i{background:linear-gradient(90deg,#ff8f8f,#ffb35c);animation:disco-blink .5s steps(2) infinite}
+.disco-sparkle i{background:linear-gradient(90deg,#b48cff,#ff8fb1)}
+.disco-sparkle.is-ready i,.disco-sparkle.is-on i{background:linear-gradient(90deg,#ff8fb1,#ffc95c,#7fe0b0,#7cc6ff);background-size:200% 100%;animation:disco-shine 1s linear infinite}
+.disco-groove span,.disco-sparkle span{position:relative;z-index:1;display:block;text-align:center;font-size:11px;font-weight:900;letter-spacing:1.5px;line-height:22px;color:#fff;text-shadow:0 1px 2px #000c}
+.disco-shell .disco-dust-btn{pointer-events:auto;min-height:36px;padding:6px 12px;font-size:13px;display:none}
+@keyframes disco-blink{50%{opacity:.5}}
+@keyframes disco-shine{to{background-position:-200% 0}}
+.disco-count{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);font-size:clamp(48px,9vw,96px);font-weight:900;color:#fff6e0;text-shadow:0 5px 0 #6a2d72,0 10px 30px #000a;pointer-events:none;animation:disco-pop .3s ease-out}
+@keyframes disco-pop{from{transform:translate(-50%,-50%) scale(1.3);opacity:.4}}
+
+/* ---- panels */
+.disco-panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto;background:#24143aee;border:1px solid #ffffff2e;border-radius:24px;padding:24px;text-align:center;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px #000a;animation:disco-in .25s ease-out}
+@keyframes disco-in{from{opacity:0;transform:translate(-50%,-46%)}}
+.disco-panel h2{font-size:26px}
+.disco-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.disco-row>button{flex:1 1 140px}
+.disco-cal-state{font-size:18px;font-weight:900;color:#ffd86b;min-height:28px}
+.disco-grade{font-size:110px;line-height:1;font-weight:900;margin:-4px 0;background:linear-gradient(180deg,#fff6c8,#ffb35c);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 5px 0 #6a2d72);animation:disco-grade .5s cubic-bezier(.3,1.6,.5,1)}
+.disco-grade.g-S{background-image:linear-gradient(90deg,#ff8fb1,#ffc95c,#7fe0b0,#7cc6ff)}
+@keyframes disco-grade{from{transform:scale(2.2) rotate(-8deg);opacity:0}}
+.disco-stars{font-size:30px;color:#ffd86b;letter-spacing:4px}
+.disco-news{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.disco-news b{background:#ffd86b;color:#2b1838;border-radius:999px;padding:5px 12px;font-size:12px;letter-spacing:1px}
+.disco-tally{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0}
+.disco-tally div{background:#1a0d2799;border-radius:12px;padding:8px 4px}
+.disco-tally div:nth-child(8){grid-column:span 4}
+.disco-tally dt{font-size:11px;font-weight:900;letter-spacing:1px;color:#cdb6df}
+.disco-tally dd{margin:2px 0 0;font-size:18px;font-weight:900}
+.disco-tally div:nth-child(-n+3){grid-column:span 4}
+@supports (display:grid){.disco-tally div:nth-child(-n+3){grid-column:auto}.disco-tally div:nth-child(3){grid-column:span 2}}
+.j-perfect dd{color:#fff2a8}.j-great dd{color:#9ff0c4}.j-good dd{color:#a8d4ff}.j-miss dd{color:#e4a8b8}
+.disco-timing{font-size:13px;color:#d6c3e6}
+.disco-error{z-index:3}
+
+@media (max-width:820px){
+  .disco-stars-total{top:14px;bottom:auto;right:14px}
+  .disco-menu{grid-template-columns:1fr;grid-template-areas:'head' 'title' 'play' 'songs' 'settings' 'how';background:#1a0d27e6}
+  .disco-title{min-height:170px}
+  .disco-hud-song{display:none}
+  .disco-shell .disco-dust-btn{display:block}
+  .disco-score{min-width:0}
+}
+@media (pointer:coarse){.disco-shell .disco-dust-btn{display:block}}
+.disco-count.is-tuning{font-size:clamp(20px,3vw,30px);background:#1a0d27cc;border-radius:999px;padding:12px 24px;animation:disco-blink 1s steps(2) infinite}

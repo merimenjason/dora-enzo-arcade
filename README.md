@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of forty-two original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of forty-three original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -52,6 +52,7 @@ Listed in arcade-menu order.
 | 40 | Puttering Paws | `/putt` | 3D mini golf |
 | 41 | Fluff Roll | `/roll` | 3D roll-and-grow |
 | 42 | Pawhaven | `/pawhaven` | Town builder |
+| 43 | Dust Disco | `/disco` | Rhythm |
 
 ## Run
 
@@ -981,6 +982,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/pawhaven.md`](docs/pawhaven.md).
 
+### 43 · Dust Disco (`/disco`)
+
+**Play:** A four-lane rhythm game. Dust bunnies roll down four lanes; press each lane as its bunny reaches the pad, on the beat, while Dora and Enzo dance either side and a crowd of chinchillas bobs at the front. Six original songs, each at its own venue with its own painting: **Burrow Bop** (96 BPM), **Hay Loft Hop** (112, swung), **Moonpond Waltz** (132, in 3/4), **Pebble Street Funk** (104), **Snowpeak Gallop** (140) and **Dust Storm Disco** (124). Each song has Easy, Normal and Hard charts built from its own melody and drums: melody notes move left to right as the tune rises, drums fill the rests, long notes become holds, and Normal and Hard add two-note chords on the chorus downbeats. A press within 45 ms is Perfect (100 points), within 90 ms Great (70) and within 135 ms Good (40); a hold kept to the end is worth another 100. The combo multiplies points by up to 4 (from a 60 combo). Hits fill the sparkle meter; from half full, Dust Up doubles points for up to 16 beats. Misses, dropped holds and stray presses drain the groove meter, and the song stops if it empties, unless **Never fail** is on. A clear earns one star, an A two and an S (95% accuracy) three, and opens the next song. Settings hold note speed, timing offset and a **Find my timing** tap test. Bests, stars, full combos and settings are saved in `localStorage` (`dust-disco-v1`).
+
+**Controls:** **D F J K** or **← ↓ ↑ →** press the four lanes; keep a key down through a hold. **Space** for Dust Up. **P** or **Escape** pauses; **R** starts over from the pause menu or the results. On a phone, tap the lanes and use the Dust Up button. Gamepad: d-pad or **X A Y B** for the lanes, **LB**/**RB** for Dust Up, **Start** to pause.
+
+**Tests:** `npm run test:disco` (also in `npm test`) compiles `lib/disco-game.ts` and runs `tests/disco.mjs`, which checks every song and chart (order, spacing per difficulty, lane use, Easy sparser than Normal sparser than Hard), the timing windows, holds, strays, scoring, grades, Dust Up, failing and never fail, unlocking and the save. `npm run bot:disco` (also in `npm test`) has a steady seeded player clear all eighteen charts at 85% accuracy or better and a shakier one clear every Easy and Normal chart. Browser: `npm run test:e2e:disco` (`tests/e2e/disco.mjs`).
+
+**Docs:** [`docs/dust-disco.md`](docs/dust-disco.md), and [`docs/dust-disco-art.md`](docs/dust-disco-art.md) for the paintings.
+
 ## Validation
 
 ```sh
@@ -1000,7 +1011,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-two ways/` assertion in `tests/e2e/dust-bath.mjs`, the 42-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-two games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-three ways/` assertion in `tests/e2e/dust-bath.mjs`, the 43-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-three games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
