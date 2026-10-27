@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of forty-five original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of forty-six original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -55,6 +55,7 @@ Listed in arcade-menu order.
 | 43 | Dust Disco | `/disco` | Rhythm |
 | 44 | Pebble Pop | `/pebble` | Brick breaker |
 | 45 | Snapshot Safari | `/safari` | Photography |
+| 46 | Dust Bunny Dungeon | `/dungeon` | Roguelike |
 
 ## Run
 
@@ -1014,6 +1015,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/snapshot-safari.md`](docs/snapshot-safari.md), art brief [`docs/snapshot-safari-art-brief.md`](docs/snapshot-safari-art-brief.md).
 
+### 46 · Dust Bunny Dungeon (`/dungeon`)
+
+**Play:** Mischievous dust bunnies have taken over the old burrow cellars. Dora (5 hearts) or Enzo (4 hearts, plus a dash of up to 3 tiles once a floor) tidies twelve floors on a turn-based grid, across the Root Cellar, the Pantry Tunnels and the Old Mine, with bosses on floors 4, 8 and 12: the Great Dust Bunny, the Mole Foreman and the Dust King. Every bunny marks on the floor what it will do next turn, and you can only be bopped on a marked tile. Walk into a bunny to bop it and knock it back a tile; knock it into walls, crates or friends to make it dizzy, or into pits and raised prickles to poof it at once. Crates fill pits, switches raise and lower every prickle trap, bellows plates puff things away, and keys open treasure rooms. Five tools carry up to 3 charges each (feather duster, pebble sling, bubble soap, lantern and acorn), and you pick one of three perks after floors 2, 4, 6, 8 and 10. Linger more than 120 turns on a floor and a new dust bunny tumbles out every 10 turns. The Daily dust-up gives everyone the same cellars each day. Runs save every turn and resume exactly.
+
+**Controls:** Arrows, WASD or the numpad move and bop; Space waits; 1–5 use a tool (aimed tools then take a direction, Esc cancels); Q or Shift + arrow dashes; 1–3 pick a perk; P pauses. With a mouse or touch, tap a tile next to you, or tap yourself to wait. Phones get an on-screen pad.
+
+**Tests:** `npm run test:dungeon` checks the room templates, 1440 generated floors, every push, trap, tool, boss and perk, fairness (you are only ever bopped on marked tiles), replays and saves. `npm run bot:dungeon` checks that a careful bot wins at least 60% of runs, a bot without look-ahead wins far less, and a random walker never wins. `npm run test:e2e:dungeon` covers the menu, keys, tools, pause, save and resume, the daily seed and the phone layout.
+
+**Docs:** [`docs/dust-bunny-dungeon.md`](docs/dust-bunny-dungeon.md), art brief [`docs/dust-bunny-dungeon-art-brief.md`](docs/dust-bunny-dungeon-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1033,7 +1044,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-five ways/` assertion in `tests/e2e/dust-bath.mjs`, the 45-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-five games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-six ways/` assertion in `tests/e2e/dust-bath.mjs`, the 46-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-six games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
