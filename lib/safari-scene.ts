@@ -116,9 +116,17 @@ function far(c: CanvasRenderingContext2D, k: Cam, tr: TrailId, L: Look) {
 }
 function mid(c: CanvasRenderingContext2D, k: Cam, tr: TrailId, L: Look, t: number) {
   const base = k.gy, px = (x: number) => (x + k.cx * k.ppm * 0.45) / 90;
+  // over a painted horizon the hills stay low and fade in towards the trail, so the painting shows through
+  const painted = !!art(`far-${tr}`), lift = painted ? 0.55 : 1;
   c.beginPath(); c.moveTo(0, base);
-  for (let x = 0; x <= k.w + 6; x += 6) c.lineTo(x, base - k.ppm * (tr === 'salar' ? 0.25 + wave(px(x), 1) * 0.12 : 0.9 + wave(px(x), 1) * 0.6));
-  c.lineTo(k.w, base); c.closePath(); c.fillStyle = L.mid; c.fill();
+  for (let x = 0; x <= k.w + 6; x += 6) c.lineTo(x, base - k.ppm * lift * (tr === 'salar' ? 0.25 + wave(px(x), 1) * 0.12 : 0.9 + wave(px(x), 1) * 0.6));
+  c.lineTo(k.w, base); c.closePath();
+  if (painted) {
+    const fade = c.createLinearGradient(0, base - k.ppm * lift * 1.5, 0, base);
+    fade.addColorStop(0, L.mid + '00'); fade.addColorStop(0.55, L.mid + '99'); fade.addColorStop(1, L.mid);
+    c.fillStyle = fade;
+  } else c.fillStyle = L.mid;
+  c.fill();
   if (tr === 'forest') {
     // a misty tree line behind the trail
     c.fillStyle = 'rgba(52, 92, 66, 0.8)';

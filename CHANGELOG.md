@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 28-10-2026
+
+### Changed
+
+- **Snapshot Safari** is hand-painted: all 24 creatures, four Andes horizons, Dora and Enzo with their cameras, and a new title painting.
+
 ## 27-10-2026
 
 ### Added
