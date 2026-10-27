@@ -76,3 +76,247 @@ The falling pieces in the catch-the-twigs minigame. **128 × 128 px, transparent
 | `title.webp` | **1600 × 900 px, opaque.** Dora and Enzo on a hilltop at golden hour overlooking a busy little valley: the hay shed, the dust spa, lanterns, a balloon and a skyship in the distance. Leave the lower-left third calm for a title laid over it. |
 
 Total: 29 images.
+
+## Painted (28-10-2026)
+
+All 29 assets were painted with the built-in `image_gen` tool. No paid CLI/API fallback was used. WebP quality 88, method 6. Prompts below are verbatim; identical timeout retries reused their listed prompt.
+
+### References and processing
+
+Character references: `public/art/disco/dancer-dora-idle.webp` and `public/art/disco/dancer-enzo-idle.webp`. Painting references: `public/art/disco/venue-burrow.webp` and `public/art/pebble/place-meadow.webp`. The hay shed painting was then used to keep the buildings consistent. The golden twig used the generated ordinary twig as its shape reference. For the title retries, the same four supplied references were also packed into a temporary reference sheet; this sheet was reference material only.
+
+Transparent assets were generated against flat pure magenta for the buildings, emerald hummingbird and both twigs, and flat pure green for the characters and other visitors. Pillow and NumPy removed the matte, estimated alpha from chroma dominance, unmixed the matte colour from soft edges, cropped to the subject and Lanczos-fitted within the exact box. Buildings and characters were bottom-aligned; characters occupy approximately 80% of the frame height. Other cutouts were centred. Opaque assets were fitted with `ImageOps.fit` and Lanczos. Every exported file was reopened and fully decoded, with exact dimensions and RGB/RGBA mode asserted. Alpha files were checked for transparent and opaque pixels and strong matte-colour contamination. Every asset was viewed on a mid-dark background, with reduced phone-size previews (visitors 74 px, twigs 40 px; other assets also previewed smaller).
+
+The first Dora image had a painted checkerboard and was rejected and regenerated. Built-in generation timeouts for the polishery, orchard, cushion mill, skyship dock and title were retried. Discarded intermediate images and processing scripts are not project assets.
+
+### Validation
+
+| File | Size (px) | Mode | Notes |
+| --- | --- | --- | --- |
+| `valley-meadowvale.webp` | 2400 × 900 | RGB | Opaque; fully decoded; exact size; calm sky and clear ground band reviewed. |
+| `valley-snowdrift.webp` | 2400 × 900 | RGB | Opaque; fully decoded; exact size; calm sky and clear ground band reviewed. |
+| `valley-cove.webp` | 2400 × 900 | RGB | Opaque; fully decoded; exact size; calm sky and clear ground band reviewed. |
+| `valley-glowcap.webp` | 2400 × 900 | RGB | Opaque; fully decoded; exact size; calm sky and clear ground band reviewed. |
+| `valley-cloudreach.webp` | 2400 × 900 | RGB | Opaque; fully decoded; exact size; calm sky and clear ground band reviewed. |
+| `building-meadow.webp` | 512 × 512 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark/phone-size review; matched angle, light and bottom alignment. |
+| `building-spa.webp` | 512 × 512 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark/phone-size review; matched angle, light and bottom alignment. |
+| `building-pebble.webp` | 512 × 512 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark/phone-size review; matched angle, light and bottom alignment. |
+| `building-orchard.webp` | 512 × 512 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark/phone-size review; matched angle, light and bottom alignment. |
+| `building-cushion.webp` | 512 × 512 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark/phone-size review; matched angle, light and bottom alignment. |
+| `building-bakery.webp` | 512 × 512 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark/phone-size review; matched angle, light and bottom alignment. |
+| `building-lantern.webp` | 512 × 512 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark/phone-size review; matched angle, light and bottom alignment. |
+| `building-observatory.webp` | 512 × 512 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark/phone-size review; matched angle, light and bottom alignment. |
+| `building-balloon.webp` | 512 × 512 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark/phone-size review; matched angle, light and bottom alignment. |
+| `building-tea.webp` | 512 × 512 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark/phone-size review; matched angle, light and bottom alignment. |
+| `building-bells.webp` | 512 × 512 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark/phone-size review; matched angle, light and bottom alignment. |
+| `building-skyship.webp` | 512 × 512 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark/phone-size review; matched angle, light and bottom alignment. |
+| `dora.webp` | 512 × 512 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark/reduced-size review; reference colours, eyes and facing checked. |
+| `dora-cheer.webp` | 512 × 512 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark/reduced-size review; reference colours, eyes and facing checked. |
+| `enzo.webp` | 512 × 512 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark/reduced-size review; reference colours, eyes and facing checked. |
+| `enzo-cheer.webp` | 512 × 512 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark/reduced-size review; reference colours, eyes and facing checked. |
+| `visitor-acorn.webp` | 256 × 256 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark and 74 px review; faces right. |
+| `visitor-pedlar.webp` | 256 × 256 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark and 74 px review; faces right. |
+| `visitor-owl.webp` | 256 × 256 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark and 74 px review; faces right. |
+| `visitor-bat.webp` | 256 × 256 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark and 74 px review; faces right. |
+| `visitor-breeze.webp` | 256 × 256 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark and 74 px review; faces right. |
+| `twig.webp` | 128 × 128 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark and 40 px review; lower-left to upper-right diagonal. |
+| `twig-gold.webp` | 128 × 128 | RGBA | Alpha; fully decoded; exact size; no chroma fringe seen; dark and 40 px review; lower-left to upper-right diagonal. |
+| `title.webp` | 1600 × 900 | RGB | Opaque; fully decoded; exact size; four-reference style/character review; calm lower-left overlay area. |
+
+### Exact prompts
+
+#### `valley-meadowvale.webp`
+
+```text
+Use case: illustration-story. Paint a wide 8:3 opaque panorama for Hayloft Tycoon: Meadowvale home valley, rolling green hills, gentle river far away, wildflowers, puffy clouds, warm morning sky pale blue to soft cream. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Use the supplied venue-burrow and place-meadow images as painting-style references. Bottom quarter must be a soft fairly flat green ground band free of big objects, building ground line at 78% height. Top third calm sky for flying visitors. No buildings, animals, text, letters, numbers or logos. Final target 2400 by 900.
+```
+
+#### `valley-snowdrift.webp`
+
+```text
+Use case: illustration-story. Asset for the phone game Hayloft Tycoon. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Match the supplied venue-burrow and place-meadow painting-style references. No text, letters, numbers, logos or watermarks anywhere. Paint an opaque wide 8:3 valley panorama, final target 2400 × 900 px. Snowdrift Valley: snowy hills and frosted pines, smoke curling from distant chimneys, pale lavender-blue winter sky, soft snow on the ground band. Bottom quarter soft fairly flat ground band, free of big objects, buildings will stand at 78% height. Top third calm sky for visitors. No buildings and no animals. For Snowdrift suggest the distant chimney smoke as wisps beyond the hills without visible buildings.
+```
+
+#### `valley-cove.webp`
+
+```text
+Use case: illustration-story. Asset for the phone game Hayloft Tycoon. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Match the supplied venue-burrow and place-meadow painting-style references. No text, letters, numbers, logos or watermarks anywhere. Paint an opaque wide 8:3 valley panorama, final target 2400 × 900 px. Pebble Cove: a seaside bay with smooth round pebbles, a turquoise sea and gentle waves on the left and right horizon, a sandy ground band, a peachy afternoon sky. Bottom quarter soft fairly flat ground band, free of big objects, buildings will stand at 78% height. Top third calm sky for visitors. No buildings and no animals. For Snowdrift suggest the distant chimney smoke as wisps beyond the hills without visible buildings.
+```
+
+#### `valley-glowcap.webp`
+
+```text
+Use case: illustration-story. Asset for the phone game Hayloft Tycoon. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Match the supplied venue-burrow and place-meadow painting-style references. No text, letters, numbers, logos or watermarks anywhere. Paint an opaque wide 8:3 valley panorama, final target 2400 × 900 px. Glowcap Hollow: a twilight mushroom forest, giant soft glowing mushrooms in pink, teal and gold in the background, fireflies, a purple-to-rose dusk sky, mossy ground band. Bottom quarter soft fairly flat ground band, free of big objects, buildings will stand at 78% height. Top third calm sky for visitors. No buildings and no animals.
+```
+
+#### `valley-cloudreach.webp`
+
+```text
+Use case: illustration-story. Asset for the phone game Hayloft Tycoon. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Match the supplied venue-burrow and place-meadow painting-style references. No text, letters, numbers, logos or watermarks anywhere. Paint an opaque wide 8:3 valley panorama, final target 2400 × 900 px. Cloudreach Isles: floating grassy islands with little waterfalls drifting among pink and gold clouds, a bright sky; the ground band is a big grassy island top. Bottom quarter soft fairly flat ground band, free of big objects, buildings will stand at 78% height. Top third calm sky for visitors. No buildings and no animals.
+```
+
+#### `building-meadow.webp`
+
+```text
+Use case: illustration-story. Asset for the phone game Hayloft Tycoon. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Match the supplied venue-burrow and place-meadow painting-style references. No text, letters, numbers, logos or watermarks anywhere. Paint ONE isolated chinchilla-sized Hay Meadow building: A small wooden hay shed with an open front, golden bales stacked inside and a patch of tall timothy grass beside it, a little scythe leaning on the wall. Part of a matched twelve-building set: front three-quarter view showing front and right side, modest elevation, warm upper-left daylight, fine brown outlines, rounded cosy proportions. Same scale and ground line throughout set. Entire structure and props fully visible, centred, broad base at bottom, fills most of square; no terrain slab, no animals. Final 512 × 512 with transparent background after extraction. For extraction paint perfectly flat uniform pure magenta #ff00ff background, including all gaps; no gradient, no magenta bounce or cast shadow. Small neutral contact shadow only.
+```
+
+#### `building-spa.webp`
+
+```text
+Use case: illustration-story. Asset for the phone game Hayloft Tycoon. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Match the supplied venue-burrow and place-meadow painting-style references. No text, letters, numbers, logos or watermarks anywhere. Paint ONE isolated Dust Bath Spa: A round sandstone bathhouse with a domed roof, a big shallow bowl of fine volcanic dust inside the doorway, a towel rack and a puff of dust in the air. Part of a matched twelve-building set: match the supplied hay shed reference angle, scale, lighting and ground line. Front three-quarter view showing front and right side, modest elevation, warm upper-left daylight, fine brown outlines, rounded cosy proportions. Entire structure and props fully visible, centred, broad base at bottom, fills most of square; no terrain slab, no animals. Final 512 × 512 with transparent background after extraction. For extraction paint perfectly flat uniform pure magenta #ff00ff background, including all gaps; no gradient, no magenta bounce or cast shadow. Small neutral contact shadow only.
+```
+
+#### `building-pebble.webp`
+
+```text
+Use case: illustration-story. Asset for the phone game Hayloft Tycoon. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Match the supplied venue-burrow and place-meadow painting-style references. No text, letters, numbers, logos or watermarks anywhere. Paint ONE isolated Pebble Polishery: A stone workshop with a water wheel turning a tumbling barrel, baskets of shiny smooth pebbles in grey, blue and pink out front. Part of a matched twelve-building set: match the supplied hay shed reference angle, scale, lighting and ground line. Front three-quarter view showing front and right side, modest elevation, warm upper-left daylight, fine brown outlines, rounded cosy proportions. Entire structure and props fully visible, centred, broad base at bottom, fills most of square; no terrain slab, no animals. Final 512 × 512 with transparent background after extraction. For extraction paint perfectly flat uniform pure magenta #ff00ff background, including all gaps; no gradient, no magenta bounce or cast shadow. Small neutral contact shadow only.
+```
+
+#### `building-orchard.webp`
+
+```text
+Use case: illustration-story. Asset for the phone game Hayloft Tycoon. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Match the supplied venue-burrow and place-meadow painting-style references. No text, letters, numbers, logos or watermarks anywhere. Paint ONE isolated Apple-Twig Orchard: Two little apple trees in blossom and fruit, with a twig-drying rack and a wooden crate of neat apple-twig bundles. Part of a matched twelve-building set: match the supplied hay shed reference angle, scale, lighting and ground line. Front three-quarter view showing front and right side, modest elevation, warm upper-left daylight, fine brown outlines, rounded cosy proportions. Entire structure and props fully visible, centred, broad base at bottom, fills most of square; no terrain slab, no animals. Final 512 × 512 with transparent background after extraction. For extraction paint perfectly flat uniform pure magenta #ff00ff background, including all gaps; no gradient, no magenta bounce or cast shadow. Small neutral contact shadow only. This asset is an orchard rather than a shed: two trees, twig rack and crate, no added hut.
+```
+
+#### `building-cushion.webp`
+
+```text
+Use case: illustration-story. Asset for the phone game Hayloft Tycoon. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Match the supplied venue-burrow and place-meadow painting-style references. No text, letters, numbers, logos or watermarks anywhere. Paint ONE isolated Cozy Cushion Mill: A cottage mill with a soft fabric windmill, plump pastel cushions piled by the door, a spool of yarn. Part of a matched twelve-building set: match the supplied hay shed reference angle, scale, lighting and ground line. Front three-quarter view showing front and right side, modest elevation, warm upper-left daylight, fine brown outlines, rounded cosy proportions. Entire structure and props fully visible, centred, broad base at bottom, fills most of square; no terrain slab, no animals. Final 512 × 512 with transparent background after extraction. For extraction paint perfectly flat uniform pure magenta #ff00ff background, including all gaps; no gradient, no magenta bounce or cast shadow. Small neutral contact shadow only.
+```
+
+#### `building-bakery.webp`
+
+```text
+Use case: illustration-story. Asset for the phone game Hayloft Tycoon. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Match the supplied venue-burrow and place-meadow painting-style references. No text, letters, numbers, logos or watermarks anywhere. Paint ONE isolated Hay Biscuit Bakery: A half-timbered bakery with a round brick oven glowing orange, a tray of golden hay biscuits on the sill, a striped awning. Part of a matched twelve-building set: match the supplied hay shed reference angle, scale, lighting and ground line. Front three-quarter view showing front and right side, modest elevation, warm upper-left daylight, fine brown outlines, rounded cosy proportions. Entire structure and props fully visible, centred, broad base at bottom, fills most of square; no terrain slab, no animals. Final 512 × 512 with transparent background after extraction. For extraction paint perfectly flat uniform pure magenta #ff00ff background, including all gaps; no gradient, no magenta bounce or cast shadow. Small neutral contact shadow only.
+```
+
+#### `building-lantern.webp`
+
+```text
+Use case: illustration-story. Asset for the phone game Hayloft Tycoon. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Match the supplied venue-burrow and place-meadow painting-style references. No text, letters, numbers, logos or watermarks anywhere. Paint ONE isolated Glimmer Lantern Works: A workshop with a glass roof, many small paper and glass lanterns hanging outside glowing warm yellow. Part of a matched twelve-building set: match the supplied hay shed reference angle, scale, lighting and ground line. Front three-quarter view showing front and right side, modest elevation, warm upper-left daylight, fine brown outlines, rounded cosy proportions. Entire structure and props fully visible, centred, broad base at bottom, fills most of square; no terrain slab, no animals. Final 512 × 512 with transparent background after extraction. For extraction paint perfectly flat uniform pure magenta #ff00ff background, including all gaps; no gradient, no magenta bounce or cast shadow. Small neutral contact shadow only.
+```
+
+#### `building-observatory.webp`
+
+```text
+Use case: illustration-story. Asset for the phone game Hayloft Tycoon. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Match the supplied venue-burrow and place-meadow painting-style references. No text, letters, numbers, logos or watermarks anywhere. Paint ONE isolated Moonlight Observatory: A small round stone tower with a silver dome open to a brass telescope, a crescent-moon weathervane. Part of a matched twelve-building set: match the supplied hay shed reference angle, scale, lighting and ground line. Front three-quarter view showing front and right side, modest elevation, warm upper-left daylight, fine brown outlines, rounded cosy proportions. Entire structure and props fully visible, centred, broad base at bottom, fills most of square; no terrain slab, no animals. Final 512 × 512 with transparent background after extraction. For extraction paint perfectly flat uniform pure magenta #ff00ff background, including all gaps; no gradient, no magenta bounce or cast shadow. Small neutral contact shadow only.
+```
+
+#### `building-balloon.webp`
+
+```text
+Use case: illustration-story. Asset for the phone game Hayloft Tycoon. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Match the supplied venue-burrow and place-meadow painting-style references. No text, letters, numbers, logos or watermarks anywhere. Paint ONE isolated Cloudhopper Balloon Port: A wooden landing platform with a patchwork hot-air balloon tethered above it and a wicker basket. Part of a matched twelve-building set: match the supplied hay shed reference angle, scale, lighting and ground line. Front three-quarter view showing front and right side, modest elevation, warm upper-left daylight, fine brown outlines, rounded cosy proportions. Entire structure and props fully visible, centred, broad base at bottom, fills most of square; no terrain slab, no animals. Final 512 × 512 with transparent background after extraction. For extraction paint perfectly flat uniform pure magenta #ff00ff background, including all gaps; no gradient, no magenta bounce or cast shadow. Small neutral contact shadow only.
+```
+
+#### `building-tea.webp`
+
+```text
+Use case: illustration-story. Asset for the phone game Hayloft Tycoon. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Match the supplied venue-burrow and place-meadow painting-style references. No text, letters, numbers, logos or watermarks anywhere. Paint ONE isolated Starleaf Tea Garden: A terraced tea garden with a little pagoda-roofed tea house, rows of round green tea bushes and a steaming teapot. Part of a matched twelve-building set: match the supplied hay shed reference angle, scale, lighting and ground line. Front three-quarter view showing front and right side, modest elevation, warm upper-left daylight, fine brown outlines, rounded cosy proportions. Entire structure and props fully visible, centred, broad base at bottom, fills most of square; no terrain slab, no animals. Final 512 × 512 with transparent background after extraction. For extraction paint perfectly flat uniform pure magenta #ff00ff background, including all gaps; no gradient, no magenta bounce or cast shadow. Small neutral contact shadow only.
+```
+
+#### `building-bells.webp`
+
+```text
+Use case: illustration-story. Asset for the phone game Hayloft Tycoon. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Match the supplied venue-burrow and place-meadow painting-style references. No text, letters, numbers, logos or watermarks anywhere. Paint ONE isolated Aurora Bell Tower: A slender bell tower with a row of silver bells, faint ribbons of aurora colour (green, violet, pink) shimmering off the bells. Part of a matched twelve-building set: match the supplied hay shed reference angle, scale, lighting and ground line. Front three-quarter view showing front and right side, modest elevation, warm upper-left daylight, fine brown outlines, rounded cosy proportions. Entire structure and props fully visible, centred, broad base at bottom, fills most of square; no terrain slab, no animals. Final 512 × 512 with transparent background after extraction. For extraction paint perfectly flat uniform pure magenta #ff00ff background, including all gaps; no gradient, no magenta bounce or cast shadow. Small neutral contact shadow only. Keep the silver bells and green, violet, pink aurora ribbons clearly separate from the pure magenta extraction background.
+```
+
+#### `building-skyship.webp`
+
+```text
+Use case: illustration-story. Asset for the phone game Hayloft Tycoon. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Match the supplied venue-burrow and place-meadow painting-style references. No text, letters, numbers, logos or watermarks anywhere. Paint ONE isolated Comet Skyship Dock: A tall wooden dock with a small airship moored to it: a cosy hull, hay-coloured sails, a comet-tail pennant, ropes and a gangplank. Part of a matched twelve-building set: match the supplied hay shed reference angle, scale, lighting and ground line. Front three-quarter view showing front and right side, modest elevation, warm upper-left daylight, fine brown outlines, rounded cosy proportions. Entire structure and props fully visible, centred, broad base at bottom, fills most of square; no terrain slab, no animals. Final 512 × 512 with transparent background after extraction. For extraction paint perfectly flat uniform pure magenta #ff00ff background, including all gaps; no gradient, no magenta bounce or cast shadow. Small neutral contact shadow only. Show a complete small sailing airship and dock, ropes and gangplank readable; the comet-tail pennant is plain decorative fabric without symbols or text.
+```
+
+#### `dora.webp`
+
+Attempt 1:
+
+```text
+Use case: illustration-story. Paint Dora for Hayloft Tycoon, matching the supplied dancer-dora-idle.webp character reference exactly in face, round ears, fluffy tail, proportions, cream-white fur, pink ears and ruby-red eyes. Dora standing on her hind legs holding a small bundle of hay, gentle smile, ears up. Three-quarter view facing slightly RIGHT toward the centre of the game. Entire body and fluffy tail in frame, upright on hind legs, feet at bottom; character will occupy roughly 80% of final square height. Warm hand-painted toon storybook, soft cel shading and gentle fine brown ink edges, cosy and kind. No clothing or accessories except the hay bundle. No text, letters, numbers, logos or watermark. Isolated on perfectly flat uniform pure green #00ff00 chroma background including gaps; no gradient or green reflected light. No scenery or ground patch. Final transparent 512 × 512 after matte removal.
+```
+
+Attempt 2 (regeneration: remove painted checkerboard):
+
+```text
+Use case: illustration-story. Paint Dora for Hayloft Tycoon, matching the supplied dancer-dora-idle.webp character reference exactly in face, round ears, fluffy tail, proportions, cream-white fur, pink ears and ruby-red eyes. Dora standing on her hind legs holding a small bundle of hay, gentle smile, ears up. Three-quarter view facing slightly RIGHT toward the centre of the game. Entire body and fluffy tail in frame, upright on hind legs, feet at bottom; character will occupy roughly 80% of final square height. Warm hand-painted toon storybook, soft cel shading and gentle fine brown ink edges, cosy and kind. No clothing or accessories except the hay bundle. No text, letters, numbers, logos or watermark. Isolated on perfectly flat uniform pure green #00ff00 chroma background including gaps; no gradient or green reflected light. No scenery or ground patch. Final transparent 512 × 512 after matte removal. CRITICAL: replace any checkerboard or transparency-grid appearance from the reference with a solid flat bright pure GREEN RGB(0,255,0) background. The background must be green paint with absolutely no checks or grey pixels.
+```
+
+#### `dora-cheer.webp`
+
+```text
+Use case: illustration-story. Paint Dora for Hayloft Tycoon, matching the supplied dancer-dora-idle.webp reference exactly in face, round ears, fluffy tail, proportions, cream-white fur, pink ears and ruby-red eyes. Dora mid-hop with both front paws up, delighted, a few tufts of fluff floating around her. Three-quarter view facing slightly RIGHT toward the centre of the game. Entire body, both raised paws, tufts and fluffy tail fully in frame; bottom feet near bottom, character roughly 80% of final square height. Warm hand-painted toon storybook, soft cel shading, fine brown ink edges, cosy and kind. No clothing or hay. No text, letters, numbers, logos or watermark. Paint an actual flat uniform pure green #00ff00 background including gaps, no gradient or green reflected light. CRITICAL: no checkerboard, transparency grid or grey backdrop; solid green paint only. No scenery or ground patch. Final transparent 512 × 512 after matte removal.
+```
+
+#### `enzo.webp`
+
+```text
+Use case: illustration-story. Paint Enzo for Hayloft Tycoon, matching the supplied dancer-enzo-idle.webp character reference exactly in face, big round ears, fluffy tail and proportions. Enzo has COOL MID-GREY fur with a darker grey back, pale chest, pink ears, and solid BLACK eyes with small white catchlights (no brown irises). Enzo standing holding a little wooden clipboard, calm happy look. Three-quarter view facing slightly LEFT toward the centre of the game; tail on right side. Entire body and fluffy tail in frame, upright on hind legs, feet at bottom; character roughly 80% of final square height. Little wooden clipboard must be blank, no marks. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No clothing. No text, letters, numbers, logos or watermark. Isolated on perfectly flat uniform pure green #00ff00 chroma background including gaps; no gradient or green reflected light. CRITICAL: no checkerboard, transparency grid or grey backdrop; solid green paint only. No scenery or ground patch. Final transparent 512 × 512 after matte removal.
+```
+
+#### `enzo-cheer.webp`
+
+```text
+Use case: illustration-story. Paint Enzo for Hayloft Tycoon, matching the supplied dancer-enzo-idle.webp character reference exactly in face, big round ears, fluffy tail and proportions. Enzo has COOL MID-GREY fur with a darker grey back, pale chest, pink ears, and solid BLACK eyes with small white catchlights (no brown irises). Enzo mid-hop with paws up and his clipboard tossed in the air, a few tufts of fluff floating. Three-quarter view facing slightly LEFT toward the centre of the game; tail on right side. Entire body, raised paws, airborne clipboard and tufts in frame; bottom feet near bottom, character roughly 80% of final square height. Little wooden clipboard tossed above must be blank, no marks. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No clothing. No text, letters, numbers, logos or watermark. Isolated on perfectly flat uniform pure green #00ff00 chroma background including gaps; no gradient or green reflected light. CRITICAL: no checkerboard, transparency grid or grey backdrop; solid green paint only. No scenery or ground patch. Final transparent 512 × 512 after matte removal.
+```
+
+#### `visitor-acorn.webp`
+
+```text
+Use case: illustration-story. Paint a Hayloft Tycoon visitor. A tiny emerald hummingbird carrying a shining golden acorn, sparkles around the acorn. One centred isolated sky visitor facing RIGHT, fully visible, bold readable silhouette for a 74px phone display, final transparent 256 × 256 after extraction. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, logos or watermark, no scenery, no ground. Isolated on a perfectly flat uniform pure MAGENTA #ff00ff chroma background, including gaps. Emerald green hummingbird, shiny golden acorn held securely. No gradient or magenta reflected light. No checkerboard or transparency grid. Use supplied meadow image as painting-style reference.
+```
+
+#### `visitor-pedlar.webp`
+
+```text
+Use case: illustration-story. Paint a Hayloft Tycoon visitor. A friendly viscacha pedlar riding a little dandelion-seed parachute, with a bulging coin sack. One centred isolated sky visitor facing RIGHT, fully visible, bold readable silhouette for a 74px phone display, final transparent 256 × 256 after extraction. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, logos or watermark, no scenery, no ground. A viscacha is a long-eared fluffy grey South American rodent; make it friendly and small, riding suspended under one fluffy dandelion seed parachute and holding a bulging gold-coin sack without symbols. Use the supplied Enzo image as a reference for the arcade's rodent rendering style, but make a distinct viscacha. Isolated on perfectly flat uniform pure GREEN #00ff00 chroma background including gaps. No gradient or green reflected light. No checkerboard or transparency grid.
+```
+
+#### `visitor-owl.webp`
+
+```text
+Use case: illustration-story. Paint a Hayloft Tycoon visitor. A round little owl scholar with round spectacles, flying with a rolled blueprint in its talons. One centred isolated sky visitor facing RIGHT, fully visible, bold readable silhouette for a 74px phone display, final transparent 256 × 256 after extraction. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, logos or watermark, no scenery, no ground. Friendly round brown-and-cream owl with round spectacles; blue rolled blueprint has no writing, letters, numbers, diagram marks or symbols. Isolated on perfectly flat uniform pure GREEN #00ff00 chroma background including gaps. No gradient or green reflected light. No checkerboard or transparency grid. Supplied meadow is painting-style reference.
+```
+
+#### `visitor-bat.webp`
+
+```text
+Use case: illustration-story. Paint a Hayloft Tycoon visitor. A small fluffy fruit bat, smiling, holding a glowing orange sunberry. One centred isolated sky visitor facing RIGHT, fully visible, bold readable silhouette for a 74px phone display, final transparent 256 × 256 after extraction. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, logos or watermark, no scenery, no ground. A small fluffy fruit bat, kind smile, wings spread in flight facing right, holding a glowing orange sunberry. Isolated on perfectly flat uniform pure GREEN #00ff00 chroma background including gaps. No gradient or green reflected light. No checkerboard or transparency grid. Supplied meadow is painting-style reference.
+```
+
+#### `visitor-breeze.webp`
+
+```text
+Use case: illustration-story. Paint a Hayloft Tycoon visitor. A swirl of soft wind carrying puffs of chinchilla fluff and a few flower petals, with a happy face in the swirl. One centred isolated sky visitor facing RIGHT, fully visible, bold readable silhouette for a 74px phone display, final transparent 256 × 256 after extraction. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, logos or watermark, no scenery, no ground. A graceful readable pale cream and soft powder-blue wind curl travelling right, carrying little cream-white and grey chinchilla fluff puffs and a few pink and peach flower petals, a kind happy face in the curl. Keep airy soft edges and distinct silhouette. Isolated on perfectly flat uniform pure GREEN #00ff00 chroma background including gaps. No gradient or green reflected light. No checkerboard or transparency grid. Supplied meadow is painting-style reference.
+```
+
+#### `twig.webp`
+
+```text
+Use case: illustration-story. Hayloft Tycoon minigame pickup. Paint one short APPLE TWIG with exactly two small GREEN LEAVES. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind, match supplied meadow painting style. A simple stout brown twig with tiny buds, diagonal from LOWER LEFT to UPPER RIGHT, centred and fully visible, bold clear silhouette at 40px phone gameplay size. Final transparent 128 × 128. For extraction paint perfectly flat uniform pure MAGENTA #ff00ff chroma background including gaps. No gradient, magenta bounce, cast shadow, scenery or ground. No text, letters, numbers, logos, watermark or checkerboard.
+```
+
+#### `twig-gold.webp`
+
+```text
+Use case: illustration-story. Paint the GOLDEN VERSION of the supplied apple twig for Hayloft Tycoon. SAME short apple twig shape, exactly two small leaves, same diagonal from LOWER LEFT to UPPER RIGHT, same angle and layout; turn the twig and leaves luminous warm gold, add tiny golden sparkles and a soft gold glow. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Centred fully visible, bold clear silhouette at 40px phone gameplay size, final transparent 128 × 128. For extraction paint perfectly flat uniform pure MAGENTA #ff00ff chroma background including all gaps. No gradient or magenta reflected light, no scenery or ground. No text, letters, numbers, logos, watermark or checkerboard.
+```
+
+#### `title.webp`
+
+Attempt 1:
+
+```text
+Use case: illustration-story. Paint the opaque 16:9 title illustration for Hayloft Tycoon, final size 1600 × 900. Dora and Enzo on a hilltop at golden hour overlooking a busy little valley: the hay shed, sandstone domed dust spa, warm glowing lanterns, patchwork hot-air balloon and a cosy wooden sailing skyship in the distance. Dora and Enzo stand together on the RIGHT foreground, seen in three-quarter profile looking fondly over their valley, faces visible. Keep the LOWER-LEFT THIRD quiet open softly lit grass without characters or large objects so a game title can be overlaid later. Dora must match dancer-dora-idle.webp exactly: cream-white fur, pink ears, ruby-red eyes, big round ears, fluffy tail. Enzo must match dancer-enzo-idle.webp exactly: cool mid-grey, darker back, pale chest, pink ears, solid black eyes, big round ears and fluffy tail. Supplied venue-burrow.webp and place-meadow.webp are painting-style references: warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Warm golden-hour light, inviting layered hills and little paths. NO text, letters, numbers, logos, watermark or title painted into the image.
+```
+
+Attempt 2 (retry with four references packed into one sheet):
+
+```text
+Use case: illustration-story. Paint the opaque 16:9 title illustration for Hayloft Tycoon, final size 1600 × 900. Dora and Enzo on a hilltop at golden hour overlooking a busy little valley: the hay shed, sandstone domed dust spa, warm glowing lanterns, patchwork hot-air balloon and a cosy wooden sailing skyship in the distance. Dora and Enzo stand together on the RIGHT foreground, seen in three-quarter profile looking fondly over their valley, faces visible. Keep the LOWER-LEFT THIRD quiet open softly lit grass without characters or large objects so a game title can be overlaid later. Dora must match dancer-dora-idle.webp exactly: cream-white fur, pink ears, ruby-red eyes, big round ears, fluffy tail. Enzo must match dancer-enzo-idle.webp exactly: cool mid-grey, darker back, pale chest, pink ears, solid black eyes, big round ears and fluffy tail. Supplied venue-burrow.webp and place-meadow.webp are painting-style references: warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Warm golden-hour light, inviting layered hills and little paths. NO text, letters, numbers, logos, watermark or title painted into the image. The single supplied reference sheet contains the four references: Dora upper left, Enzo upper right, venue-burrow lower left and place-meadow lower right. Use these as references only; paint one unified landscape, no panels, no collage.
+```
+
+Attempt 3 (shorter retry after timeout):
+
+```text
+Paint a warm hand-painted toon storybook game title scene, 16:9 opaque landscape. Dora and Enzo stand together on a hilltop at golden hour overlooking a busy cosy valley with a hay shed, domed dust spa, glowing lanterns, patchwork balloon and little wooden sailing skyship in the distance. Keep the lower-left third calm empty grass for an overlay. Characters on right: Dora cream-white with pink ears and ruby eyes, Enzo cool grey with darker back, pale chest, pink ears and black eyes. Match the four images in the supplied reference sheet: Dora top left, Enzo top right, painting styles bottom left and bottom right. Soft cel shading, fine brown ink edges, cosy and kind. Paint ONE unified scene. No text, letters, numbers, logos, borders or panels. Final 1600 × 900.
+```

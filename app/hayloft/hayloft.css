@@ -59,6 +59,10 @@
 .hayloft-icon{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:#f6ead2}
 .hayloft-b-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .hayloft-b-body strong{font-size:14.5px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* the name gives way to the level badge on narrow phones, so the badge always reads in full */
+.hayloft-b-body .hayloft-b-name{display:flex;align-items:center;gap:4px;min-width:0}
+.hayloft-b-name span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.hayloft-b-body .hayloft-b-name em{flex:none;margin-left:0}
 .hayloft-b-body strong em{font-style:normal;font-size:11px;font-weight:900;color:#fff;background:#b07a3a;border-radius:999px;padding:1px 7px;margin-left:4px;vertical-align:2px}
 .hayloft-b-body small{font-size:11.5px;color:#8a6542;font-weight:700}
 .hayloft-next{color:#4f8a2a!important}

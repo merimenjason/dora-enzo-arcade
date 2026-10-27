@@ -277,7 +277,7 @@ function Build({ g, act }: { g: HayloftGame; act: Act }) {
             <li key={b.id} className="hayloft-row-b" style={{ '--c': b.color } as React.CSSProperties}>
               <span className="hayloft-icon" aria-hidden="true">{b.icon}</span>
               <div className="hayloft-b-body">
-                <strong>{b.name} <em>{lv ? `Lv ${lv}` : 'new'}</em></strong>
+                <strong className="hayloft-b-name"><span>{b.name}</span><em>{lv ? `Lv ${lv}` : 'new'}</em></strong>
                 <small>{lv ? (auto ? `${fmt(per / b.cycle)} a second · ${MANAGERS[i].name}` : `${fmt(per)} each run (${fmtTime(len)})`) : b.blurb}</small>
                 {lv > 0 && next && <small className="hayloft-next">{next - lv} more to Lv {next}: ×{milestoneMult(next) / milestoneMult(lv)}</small>}
                 {lv > 0 && <span className="hayloft-bar" aria-hidden="true"><i style={{ width: `${Math.round(p * 100)}%` }} className={auto ? 'auto' : ''} /></span>}
