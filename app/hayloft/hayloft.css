@@ -1,0 +1,126 @@
+.hayloft-shell{--ink:#4a2e1a;--paper:#fff8ea;--card:#fffdf6;--line:#e8d6b8;--gold:#ffc94a;--green:#7fbf5a;position:relative;width:100%;height:100svh;min-height:520px;overflow:hidden;display:grid;grid-template-rows:auto minmax(200px,40svh) minmax(0,1fr) auto;grid-template-areas:'hud' 'stage' 'panel' 'tabs';background:#f6ead2;color:var(--ink);font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;isolation:isolate;user-select:none;-webkit-user-select:none}
+.hayloft-shell *{box-sizing:border-box}
+/* the global stylesheet colours every <p>; in here paragraphs take their colour from where they sit */
+:where(.hayloft-shell) p{color:inherit;font-size:inherit;line-height:1.45;margin:0}
+.hayloft-shell h2,.hayloft-shell h3{margin:0;font-family:inherit;color:inherit}
+.hayloft-shell button,.hayloft-shell a{font:inherit;color:inherit}
+.hayloft-shell button{border:1.5px solid var(--line);border-radius:12px;background:var(--card);font-weight:800;padding:8px 12px;cursor:pointer;min-height:40px;transition:transform .12s,background .15s,box-shadow .15s;touch-action:manipulation}
+.hayloft-shell button:hover:not(:disabled){background:#fff3d6}
+.hayloft-shell button:active:not(:disabled){transform:scale(.96)}
+.hayloft-shell button:disabled{opacity:.48;cursor:default}
+.hayloft-shell button:focus-visible,.hayloft-shell a:focus-visible{outline:3px solid #e9a23b;outline-offset:2px}
+
+/* ---- top bar */
+.hayloft-hud{grid-area:hud;padding:8px 12px 6px;background:linear-gradient(180deg,#fff4dc,#f6e6c6);border-bottom:1.5px solid var(--line);display:flex;flex-direction:column;gap:6px;z-index:2}
+.hayloft-hud-row{display:flex;align-items:center;gap:8px}
+.hayloft-back{font-size:12px;font-weight:900;letter-spacing:1px;text-decoration:none;background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;white-space:nowrap}
+.hayloft-valley{flex:1;min-width:0;text-align:center;font-weight:900;font-size:13px;letter-spacing:.5px;color:#8a5a2e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hayloft-shell .hayloft-chip{min-height:36px;padding:6px 10px;font-size:13px}
+.hayloft-money{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.hayloft-coins{display:flex;flex-direction:column;min-width:0}
+.hayloft-coins b{font-size:clamp(28px,8vw,40px);line-height:1;font-weight:900;font-variant-numeric:tabular-nums;color:#6b3f12;text-shadow:0 2px 0 #fff}
+.hayloft-coins b::before{content:'🌾 ';font-size:.7em}
+.hayloft-coins small{font-size:12px;font-weight:800;color:#9a6b3a}
+.hayloft-items{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px;font-size:13px;font-weight:900}
+.hayloft-items>span{background:var(--card);border:1.5px solid var(--line);border-radius:999px;padding:5px 9px}
+.hayloft-shell .hayloft-item{min-height:30px;padding:4px 9px;border-radius:999px}
+.hayloft-boosts{display:flex;flex-wrap:wrap;gap:5px}
+.hayloft-boost{font-size:12px;font-weight:900;border-radius:999px;padding:3px 9px;background:#ffe9a8;border:1.5px solid #f0c85a}
+.hayloft-boost.b-fluff{background:#ffe0f0;border-color:#f3a8cf}
+.hayloft-boost.b-berry{background:#ffd9c2;border-color:#f3a07a}
+.hayloft-boost.b-twig{background:#dff3c8;border-color:#9fd27a}
+
+/* ---- the valley */
+.hayloft-stage{grid-area:stage;position:relative;overflow:hidden;min-height:0}
+.hayloft-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;cursor:pointer}
+.hayloft-shell .hayloft-shower-offer{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:linear-gradient(90deg,#ff9a6b,#ffc94a);border:0;color:#4a2412;font-weight:900;box-shadow:0 4px 0 #b05a2a,0 8px 20px #0003;animation:hayloft-wiggle 1.2s ease-in-out infinite;white-space:nowrap}
+.hayloft-shower-offer b{margin-left:4px;background:#fff8;border-radius:8px;padding:2px 8px}
+.hayloft-shower-offer small{margin-left:6px;opacity:.75}
+@keyframes hayloft-wiggle{50%{transform:translateX(-50%) rotate(-2deg) scale(1.03)}}
+.hayloft-visitor-hint{position:absolute;left:50%;top:8px;transform:translateX(-50%);font-size:12px;font-weight:900;background:#fff8eacc;border-radius:999px;padding:4px 10px;pointer-events:none;white-space:nowrap}
+.hayloft-shell .hayloft-gift{position:absolute;right:10px;top:10px;background:#ffe9f3;border-color:#f3a8cf;animation:hayloft-wiggle2 1.4s ease-in-out infinite}
+@keyframes hayloft-wiggle2{50%{transform:rotate(4deg) scale(1.05)}}
+
+/* ---- panels */
+.hayloft-panel{grid-area:panel;overflow:auto;padding:10px 12px 18px;background:var(--paper);border-top:1.5px solid var(--line);display:flex;flex-direction:column;gap:8px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.hayloft-panel h3{font-size:15px;font-weight:900;margin-top:6px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.hayloft-count{font-size:12px;font-weight:800;color:#9a6b3a}
+.hayloft-note{font-size:12.5px;color:#7a5532}
+.hayloft-hint{font-size:13px;text-align:center;background:#fff1c9;border-radius:12px;padding:8px}
+.hayloft-buyrow{display:flex;align-items:center;gap:6px;position:sticky;top:-10px;z-index:1;background:var(--paper);padding:2px 0 6px}
+.hayloft-buyrow span{font-size:12px;font-weight:900;color:#9a6b3a;margin-right:2px}
+.hayloft-shell .hayloft-buyrow button{flex:1;min-height:34px;padding:4px}
+.hayloft-shell .hayloft-buyrow button.is-on{background:#ffd86b;border-color:#e9b23b}
+.hayloft-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.hayloft-row-b,.hayloft-row-m{display:flex;align-items:center;gap:10px;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:7px 8px}
+.hayloft-row-b{border-left:6px solid var(--c)}
+.hayloft-row-m.is-hired{background:#f1f8e6;border-color:#cfe5b4}
+.hayloft-row-m.is-locked{opacity:.6}
+.hayloft-icon{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:#f6ead2}
+.hayloft-b-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.hayloft-b-body strong{font-size:14.5px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hayloft-b-body strong em{font-style:normal;font-size:11px;font-weight:900;color:#fff;background:#b07a3a;border-radius:999px;padding:1px 7px;margin-left:4px;vertical-align:2px}
+.hayloft-b-body small{font-size:11.5px;color:#8a6542;font-weight:700}
+.hayloft-next{color:#4f8a2a!important}
+.hayloft-bar{display:block;height:6px;border-radius:999px;background:#ead9bb;overflow:hidden;margin-top:3px}
+.hayloft-bar i{display:block;height:100%;background:var(--c,#e9a23b);border-radius:999px;transition:width .2s linear}
+.hayloft-bar i.auto{background:repeating-linear-gradient(90deg,var(--c,#e9a23b) 0 10px,#fff8 10px 14px);background-size:28px 100%;animation:hayloft-flow 1s linear infinite}
+@keyframes hayloft-flow{to{background-position:28px 0}}
+.hayloft-b-acts{display:flex;gap:6px;align-items:center}
+.hayloft-shell .hayloft-buy{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:76px;min-height:46px;padding:4px 8px;background:linear-gradient(180deg,#ffe28a,#ffc94a);border-color:#e0a63a;box-shadow:0 3px 0 #c98a2a}
+.hayloft-shell .hayloft-buy:disabled{background:#efe3cc;border-color:var(--line);box-shadow:none}
+.hayloft-buy b{font-size:14px;line-height:1.1}
+.hayloft-buy small{font-size:11px;font-weight:800;line-height:1.1}
+.hayloft-shell .hayloft-run{min-height:46px;background:#e6f4d6;border-color:#a8d27a}
+.hayloft-done{font-size:12px;font-weight:900;color:#4f8a2a;white-space:nowrap}
+.hayloft-pips{flex:none;min-width:44px;text-align:center;font-size:12px;font-weight:900;background:#f6ead2;border-radius:10px;padding:8px 4px}
+.hayloft-current{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:5px}
+.hayloft-current strong{font-size:14px}
+.hayloft-current small{font-size:12px;color:#8a6542;font-weight:700}
+.hayloft-shell .hayloft-go{background:linear-gradient(90deg,#9fd27a,#7fbf5a);border:0;color:#24400f;font-weight:900;min-height:46px;box-shadow:0 4px 0 #4f8a2a}
+.hayloft-shell .hayloft-go:hover:not(:disabled){background:linear-gradient(90deg,#b0dc8f,#8fca6a)}
+.hayloft-team{display:flex;flex-direction:column;gap:6px;background:#fff3dc;border-radius:14px;padding:10px}
+.hayloft-dests{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
+.hayloft-shell .hayloft-dests button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:6px 9px}
+.hayloft-dests b{font-size:13px}
+.hayloft-dests small{font-size:11px;color:#8a6542}
+.hayloft-shelf,.hayloft-trophies{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:5px}
+.hayloft-shelf li{font-size:12px;font-weight:800;text-align:center;border-radius:10px;padding:8px 4px;background:#efe3cc;color:#a58a6a}
+.hayloft-shelf li.got{background:#fff1c9;color:var(--ink)}
+.hayloft-trophies li{font-size:12px;font-weight:900;border-radius:10px;padding:6px 8px;background:#efe3cc;color:#a58a6a;display:flex;flex-direction:column}
+.hayloft-trophies li b{font-size:14px}
+.hayloft-trophies li small{font-size:10.5px;font-weight:700}
+.hayloft-trophies li.got{background:#fff1c9;color:var(--ink)}
+.hayloft-stats{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.hayloft-stats div{background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:6px 8px}
+.hayloft-stats dt{font-size:11px;font-weight:800;color:#9a6b3a}
+.hayloft-stats dd{margin:0;font-weight:900}
+.hayloft-shell .hayloft-reset{align-self:center;margin-top:8px;color:#9a5a3a}
+
+/* ---- tab bar */
+.hayloft-tabs{grid-area:tabs;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));background:#fff4dc;border-top:1.5px solid var(--line);padding:4px 4px max(4px,env(safe-area-inset-bottom))}
+.hayloft-shell .hayloft-tabs button{position:relative;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:10.5px;font-weight:900;padding:4px 0;min-height:50px;border-radius:12px;color:#8a6542}
+.hayloft-tabs button span{font-size:20px;line-height:1.1}
+.hayloft-shell .hayloft-tabs button.is-on{background:#ffe9a8;color:var(--ink)}
+.hayloft-dot{position:absolute;top:4px;right:calc(50% - 18px);width:10px;height:10px;border-radius:50%;background:#ff6b7a;box-shadow:0 0 0 2px #fff4dc}
+
+/* ---- toasts and cards */
+.hayloft-toasts{position:absolute;left:50%;top:96px;transform:translateX(-50%);width:min(440px,calc(100% - 24px));display:flex;flex-direction:column;gap:6px;pointer-events:none;z-index:5}
+.hayloft-toasts p{display:flex;gap:8px;align-items:center;background:#fffdf6f2;border:1.5px solid var(--line);border-radius:14px;padding:8px 12px;font-size:13px;font-weight:800;box-shadow:0 6px 20px #0002;animation:hayloft-in .25s ease-out}
+.hayloft-toasts span{font-size:18px}
+@keyframes hayloft-in{from{opacity:0;transform:translateY(-8px)}}
+.hayloft-modal{position:absolute;inset:0;z-index:10;display:grid;place-items:center;padding:16px;background:#4a2e1a66}
+.hayloft-card{width:min(440px,100%);max-height:100%;overflow:auto;background:var(--card);border-radius:22px;padding:20px;display:flex;flex-direction:column;gap:10px;text-align:center;box-shadow:0 20px 60px #0005;animation:hayloft-in .25s ease-out}
+.hayloft-card h2{font-size:24px;font-weight:900}
+.hayloft-eyebrow{font-size:11px;font-weight:900;letter-spacing:2px;color:#b07a3a}
+.hayloft-big{font-size:30px;font-weight:900;color:#6b3f12}
+.hayloft-row{display:flex;gap:8px;justify-content:center}
+.hayloft-row button{flex:1}
+
+/* ---- wide screens: the valley on the left, the shop on the right */
+@media (min-width:900px){
+  .hayloft-shell{grid-template-columns:minmax(0,1fr) 440px;grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:'stage hud' 'stage panel' 'stage tabs'}
+  .hayloft-hud{border-left:1.5px solid var(--line)}
+  .hayloft-panel,.hayloft-tabs{border-left:1.5px solid var(--line)}
+  .hayloft-toasts{left:calc(50% - 220px)}
+}
