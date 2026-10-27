@@ -133,7 +133,7 @@ export function Finale({ game, profile, onMenu, onAgain, onLantern }: { game: Pu
   const firstLantern = c === 'clover' && profile.finished.includes('clover') && profile.rounds === 1;
   const acorns = COURSES[c].holes.filter((h) => game.acorns.includes(h.id)).length;
   return <div className="putt-shade"><section className={`putt-panel putt-finale is-${c}`} role="dialog" aria-label="Round complete">
-    <img className="putt-finale-art" src="/art/putt/title.webp" alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+    <img className="putt-finale-art" src={c === 'lantern' ? '/art/putt/lantern.webp' : '/art/putt/trophy.webp'} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
     <p className="putt-eyebrow">{COURSES[c].name} complete</p>
     <h2>{headline}</h2>
     <ScoreTable game={game} />
