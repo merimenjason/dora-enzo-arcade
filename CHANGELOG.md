@@ -13,6 +13,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Kit Parade**: now hand-painted: night rooftops and a glowing cave join the meadow and pantry backdrops, with painted ground, hay, pebbles, burrows, lily pads, seesaws, chimney fans, job badges, and Dora, Enzo and Mum cheering the kits home.
 - **Snapshot Safari**: Enzo is repainted grey with black eyes, as he should be, on the trail and in the title painting.
 - **Snapshot Safari**: on a phone held upright, a short tip at the start of each outing suggests turning the phone sideways for a wider view of the trail.
 - **Hayloft Tycoon**: a new valley shows a little “Tap the valley to gather coins” hint, so your first move is clear. It goes away after a few taps.

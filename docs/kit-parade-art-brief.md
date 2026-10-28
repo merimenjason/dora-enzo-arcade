@@ -74,6 +74,10 @@ Shown on the job buttons and in a little bubble above each kit. 128×128, transp
 
 ## Painted (28-10-2026)
 
+**Latest continuation result: 27 of 29 images are now present and validated (25 newly painted, 2 existing live backgrounds preserved).** `title.webp` and `earth-cave.webp` each timed out twice in this continuation and were skipped as requested. No usage cap was reported during this continuation. Only the built-in image generation tool was used; no CLI/API fallback, key request, code change, changelog change or commit. Kits remain code-drawn: this brief specifies no kit sprite asset.
+
+The earlier partial-delivery report and prompts below are retained as history. The continuation report at the end of this section is the current validation record.
+
 Partial delivery: **2 of 29 images painted** using only the built-in image generation tool. The title request timed out twice. After the meadow and pantry backgrounds succeeded, the tool returned HTTP 429 `usage_limit_reached`; generation stopped with 27 assets unfinished. The reported reset was 28-10-2026 at 06:02:11 UTC (14:02:11 Singapore time). No paid CLI/API fallback was used.
 
 ### Processing and validation
@@ -369,6 +373,371 @@ Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma bac
 ```
 
 #### `job-hugger.webp` — prepared, unsubmitted
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: job-hugger.webp, intended final size 128x128. Two little chinchilla arms in a hug around a pink heart.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Icon must read clearly at 28 pixels, single simple subject, padding around silhouette. Match the intended aspect ratio 128:128; preserve the requested side/front view.
+```
+
+
+### Continuation delivery and validation (28-10-2026)
+
+All new outputs are saved under `public/art/parade/`. Opaque paintings were converted to RGB, fitted with Pillow `ImageOps.fit` using Lanczos, and saved as WebP quality 90. For repeating materials, the fitted painted material was reduced to a half-size cell and mirrored horizontally and vertically to make a periodic tile with matching opposite boundaries; repeated previews were inspected.
+
+Transparent inputs were generated on uniform green, or magenta for green subjects, then processed individually with Pillow and numpy. Alpha was estimated from matte-channel excess, matte color was unmixed from soft edges, residual spill suppressed, and negligible matte residue removed before cropping. Cropped subjects were Lanczos-fitted proportionally and centred in the exact target canvas; job icons retain 8 px padding. Final WebPs use quality 90 and RGBA. Every saved file was reopened and fully decoded with exact dimensions and RGB/RGBA mode asserted. Cutouts were inspected on a mid-dark background, including reduced previews (28 px job icons, up to 80×55 px other cutouts); no visible chroma fringe remained. No kit sprite exists in the brief, so a 13–20 px kit sprite check is inapplicable. Both existing live backgrounds were preserved unchanged.
+
+Enzo's first output was rejected for warm fur and brown irises and regenerated with explicit cool-grey and black-eye constraints. The entrance's first output added green foliage, so it was regenerated on magenta to preserve it. The accepted variants were checked again after final spill cleanup. Hay timed out once and succeeded on its one retry. Title and cave clay timed out on both attempts; neither has a saved deliverable. No other requests failed.
+
+| File | Size | Mode | Notes |
+| --- | --- | --- | --- |
+| `title.webp` | 1600×1000 | RGB | SKIPPED: two generation timeouts in this continuation; no output saved. |
+| `bg-meadow.webp` | 1920×1080 | RGB | PRESERVED: existing live painting kept byte-for-byte; fully decoded, exact size/mode. |
+| `bg-pantry.webp` | 1920×1080 | RGB | PRESERVED: existing live painting kept byte-for-byte; fully decoded, exact size/mode. |
+| `bg-cave.webp` | 1920×1080 | RGB | PASS: exact size/mode, fully decoded, visually inspected. |
+| `bg-roofs.webp` | 1920×1080 | RGB | PASS: exact size/mode, fully decoded, visually inspected. |
+| `earth-meadow.webp` | 256×256 | RGB | PASS: exact size/mode, fully decoded, visually inspected. Periodic mirrored cell; repeated preview inspected. |
+| `earth-pantry.webp` | 256×256 | RGB | PASS: exact size/mode, fully decoded, visually inspected. Periodic mirrored cell; repeated preview inspected. |
+| `earth-cave.webp` | 256×256 | RGB | SKIPPED: two generation timeouts in this continuation; no output saved. |
+| `earth-roofs.webp` | 256×256 | RGB | PASS: exact size/mode, fully decoded, visually inspected. Periodic mirrored cell; repeated preview inspected. |
+| `stone.webp` | 256×256 | RGB | PASS: exact size/mode, fully decoded, visually inspected. Periodic mirrored cell; repeated preview inspected. |
+| `hay.webp` | 256×256 | RGB | PASS: exact size/mode, fully decoded, visually inspected. Periodic mirrored cell; repeated preview inspected. |
+| `bale.webp` | 128×128 | RGB | PASS: exact size/mode, fully decoded, visually inspected. Periodic mirrored cell; repeated preview inspected. |
+| `burrow-in.webp` | 256×256 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+| `burrow-home.webp` | 320×256 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+| `parent-dora.webp` | 512×512 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+| `parent-enzo.webp` | 512×512 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+| `mum-carry.webp` | 384×384 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+| `lilypad.webp` | 256×96 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+| `seesaw.webp` | 512×96 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+| `fan.webp` | 256×128 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+| `puff.webp` | 192×128 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+| `job-stopper.webp` | 128×128 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+| `job-digger.webp` | 128×128 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+| `job-tunneller.webp` | 128×128 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+| `job-builder.webp` | 128×128 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+| `job-climber.webp` | 128×128 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+| `job-glider.webp` | 128×128 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+| `job-bouncer.webp` | 128×128 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+| `job-hugger.webp` | 128×128 | RGBA | PASS: exact size/mode, fully decoded, visually inspected. Clean alpha; matte spill unmixed; dark composite and reduced-size inspection. |
+
+### Continuation exact submitted prompts and reference inputs
+
+The prompts below are verbatim, including retries. All requests used `transparent_background: false` because alpha was extracted from chroma mattes afterward. All referenced paths were supplied to the built-in tool via `referenced_image_paths`.
+
+Reference sets (paths relative to this worktree):
+
+- **Style:** `public/art/disco/venue-burrow.webp`, `public/art/pebble/place-meadow.webp`.
+- **Family:** `public/art/disco/dancer-dora-idle.webp`, `public/art/disco/dancer-enzo-idle.webp`, followed by both Style references.
+- **Title continuation:** `public/art/disco/dancer-dora-idle.webp`, `public/art/parade/parent-enzo.webp` (accepted regenerated variant), followed by both Style references.
+- **Enzo correction:** only `public/art/disco/dancer-enzo-idle.webp`.
+
+#### Continuation `parent-dora.webp` — one attempt; saved
+
+References: **Family**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: parent-dora.webp, intended final size 512x512. Dora standing on her hind legs facing right, front paws open in a welcoming hug, smiling, feet at the bottom centre.
+Reference images: exact character identity and painting style; Dora cream-white with pink ears and ruby eyes; Enzo COOL MID-GREY with darker back, pale chest, pink ears and solid black eyes. Match reference faces, round ears and fluffy curled tails exactly.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Match the intended aspect ratio 512:512; preserve the requested side/front view.
+```
+
+#### Continuation `parent-enzo.webp` — first attempt; rejected in favour of correction below
+
+References: **Family**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: parent-enzo.webp, intended final size 512x512. Enzo standing on his hind legs facing left, one paw waving and one on his chest, proud and happy, feet at the bottom centre.
+Reference images: exact character identity and painting style; Dora cream-white with pink ears and ruby eyes; Enzo COOL MID-GREY with darker back, pale chest, pink ears and solid black eyes. Match reference faces, round ears and fluffy curled tails exactly.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Match the intended aspect ratio 512:512; preserve the requested side/front view.
+```
+
+Accepted regeneration; references: **Enzo correction**. Exact prompt:
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: parent-enzo.webp, intended final size 512x512. Enzo standing on his hind legs facing left, one paw waving and one on his chest, proud and happy, feet at the bottom centre.
+Reference images: exact character identity and painting style; Dora cream-white with pink ears and ruby eyes; Enzo COOL MID-GREY with darker back, pale chest, pink ears and solid black eyes. Match reference faces, round ears and fluffy curled tails exactly.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Match the intended aspect ratio 512:512; preserve the requested side/front view.
+Critical color correction: Enzo's main fur must be visibly COOL neutral MID-GREY, with slate-grey darker back and tail, never beige, taupe, brown or cream. Only the chest and muzzle are pale. Eyes solid black with tiny white highlights, no brown iris. Preserve his exact reference anatomy and the requested left-facing waving pose.
+```
+
+#### Continuation `title.webp` — two identical attempts; both timed out
+
+References: **Title continuation**.
+
+```text
+Use case: illustration-story. Paint Kit Parade title card, landscape 1600x1000 composition. Use the four supplied reference images: Dora and Enzo are exact character identity references; venue and meadow are painting style references. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Sunny clover meadow hillside at golden hour. Exactly six tiny baby chinchilla kits, coats cream, pale grey, beige, white, dark grey, fawn, march left to right in single file out of a round burrow at left, tails up. One middle kit wears a tiny hard hat, another carries a hay bale. Right: Dora and Enzo kneel beside a cosy round home burrow with little wooden door and lantern, paws open welcoming them. Dora cream-white, pink ears, ruby eyes. Enzo cool mid-grey, darker back, pale chest, pink ears, solid black eyes. Bold simple kit silhouettes. Top third calm sky; bottom fifth darker for future title overlay. No text, letters, numbers, symbols resembling writing, or watermark anywhere. Opaque full-frame painting.
+```
+
+#### Continuation `bg-cave.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: bg-cave.webp, intended final size 1920x1080. Pebble Cave: a cool blue-green cavern with glowing mushrooms, soft crystals, gentle drips and a faint underground pond glow; calm and friendly, never dark or spooky.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Wide 16:9 composition. Painted behind game terrain. Put interest in sky and far distance; no ground plane in bottom 40 percent: keep that area soft hazy low contrast.
+```
+
+#### Continuation `bg-roofs.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: bg-roofs.webp, intended final size 1920x1080. Moonlit Rooftops: a deep blue night sky with a big friendly full moon, stars, and a skyline of crooked cottage roofs and chimneys with warm lit windows far away.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Wide 16:9 composition. Painted behind game terrain. Put interest in sky and far distance; no ground plane in bottom 40 percent: keep that area soft hazy low contrast.
+```
+
+#### Continuation `earth-meadow.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: earth-meadow.webp, intended final size 256x256. Soft brown garden soil with little pebbles, roots and the odd tiny clover seed.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Square seamless repeating material texture, orthographic flat material only, fills edge to edge. No object outline, edges, grass tops, lighting gradients or cast shadows. Detail should read at roughly 6 to 30 pixels in final tile. Continuous matching opposite edges in both directions.
+```
+
+#### Continuation `earth-pantry.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: earth-pantry.webp, intended final size 256x256. Packed oat-and-biscuit crumble, warm golden brown, with oat flakes.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Square seamless repeating material texture, orthographic flat material only, fills edge to edge. No object outline, edges, grass tops, lighting gradients or cast shadows. Detail should read at roughly 6 to 30 pixels in final tile. Continuous matching opposite edges in both directions.
+```
+
+#### Continuation `earth-cave.webp` — two identical attempts; both timed out
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: earth-cave.webp, intended final size 256x256. Soft blue-grey cave clay with flecks of sparkle.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Square seamless repeating material texture, orthographic flat material only, fills edge to edge. No object outline, edges, grass tops, lighting gradients or cast shadows. Detail should read at roughly 6 to 30 pixels in final tile. Continuous matching opposite edges in both directions.
+```
+
+#### Continuation `earth-roofs.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: earth-roofs.webp, intended final size 256x256. Old terracotta roof moss and soft packed thatch, dusky orange-brown under moonlight.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Square seamless repeating material texture, orthographic flat material only, fills edge to edge. No object outline, edges, grass tops, lighting gradients or cast shadows. Detail should read at roughly 6 to 30 pixels in final tile. Continuous matching opposite edges in both directions.
+```
+
+#### Continuation `stone.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: stone.webp, intended final size 256x256. Pebble stone: smooth rounded grey and slate pebbles set tight together, clearly hard and undiggable.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Square seamless repeating material texture, orthographic flat material only, fills edge to edge. No object outline, edges, grass tops, lighting gradients or cast shadows. Detail should read at roughly 6 to 30 pixels in final tile. Continuous matching opposite edges in both directions.
+```
+
+#### Continuation `hay.webp` — two identical attempts; first timed out, retry succeeded
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: hay.webp, intended final size 256x256. Pale golden straw hay packed in horizontal strands (the scene paints direction arrows over it).
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Square seamless repeating material texture, orthographic flat material only, fills edge to edge. No object outline, edges, grass tops, lighting gradients or cast shadows. Detail should read at roughly 6 to 30 pixels in final tile. Continuous matching opposite edges in both directions.
+```
+
+#### Continuation `bale.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: bale.webp, intended final size 128x128. Freshly tied hay bale surface, brighter yellow than `hay.webp`, with a hint of twine.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Square seamless repeating material texture, orthographic flat material only, fills edge to edge. No object outline, edges, grass tops, lighting gradients or cast shadows. Detail should read at roughly 6 to 30 pixels in final tile. Continuous matching opposite edges in both directions.
+```
+
+#### Continuation `burrow-in.webp` — first attempt; rejected in favour of correction below
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: burrow-in.webp, intended final size 256x256. The entrance: a round earthy burrow hole seen from the front, framed by roots and a tiny wooden sign post (blank), with a soft dark opening in the lower half where kits pop out.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Match the intended aspect ratio 256:256; preserve the requested side/front view.
+```
+
+Accepted regeneration; references: **Style**. Exact prompt:
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: burrow-in.webp, intended final size 256x256. The entrance: a round earthy burrow hole seen from the front, framed by roots and a tiny wooden sign post (blank), with a soft dark opening in the lower half where kits pop out.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure magenta #ff00ff chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Match the intended aspect ratio 256:256; preserve the requested side/front view.
+```
+
+#### Continuation `burrow-home.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: burrow-home.webp, intended final size 320x256. The home burrow: a round green front door set into a mossy mound, a warm lantern beside it, a doormat and a little flower pot. The door stands open with warm light inside; the doorstep is at the bottom centre.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure magenta #ff00ff chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Match the intended aspect ratio 320:256; preserve the requested side/front view.
+```
+
+#### Continuation `mum-carry.webp` — one attempt; saved
+
+References: **Family**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: mum-carry.webp, intended final size 384x384. Dora gently carrying a sleepy, dizzy baby kit (pale grey) wrapped in a leaf blanket in her arms, little swirls of dizziness above the kit, Dora looking down at it kindly. Side view, facing right.
+Reference images: exact character identity and painting style; Dora cream-white with pink ears and ruby eyes; Enzo COOL MID-GREY with darker back, pale chest, pink ears and solid black eyes. Match reference faces, round ears and fluffy curled tails exactly.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure magenta #ff00ff chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Match the intended aspect ratio 384:384; preserve the requested side/front view.
+```
+
+#### Continuation `lilypad.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: lilypad.webp, intended final size 256x96. A round green lily pad seen from the side and slightly above, flat top, with a small pink flower at one edge; it sits on water.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure magenta #ff00ff chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Match the intended aspect ratio 256:96; preserve the requested side/front view.
+```
+
+#### Continuation `seesaw.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: seesaw.webp, intended final size 512x96. A long wooden plank (like an old ruler) with a little cushion at each end, drawn level; the scene tilts it. A small wooden pivot block is painted under its middle.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Match the intended aspect ratio 512:96; preserve the requested side/front view.
+```
+
+#### Continuation `fan.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: fan.webp, intended final size 256x128. A chimney-top fan: a round brick chimney pot with a friendly spinning propeller of feathers on top, seen from the front.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Match the intended aspect ratio 256:128; preserve the requested side/front view.
+```
+
+#### Continuation `puff.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: puff.webp, intended final size 192x128. A springy, bouncy cloud of dust: soft, round and fluffy, cream with lilac shading, a few sparkles.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Match the intended aspect ratio 192:128; preserve the requested side/front view.
+```
+
+#### Continuation `job-stopper.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: job-stopper.webp, intended final size 128x128. A small chinchilla paw held up, palm out, in a "stop" gesture.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Icon must read clearly at 28 pixels, single simple subject, padding around silhouette. Match the intended aspect ratio 128:128; preserve the requested side/front view.
+```
+
+#### Continuation `job-digger.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: job-digger.webp, intended final size 128x128. A little garden trowel pointing down into a mound of earth with an arrow-shaped divot.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Icon must read clearly at 28 pixels, single simple subject, padding around silhouette. Match the intended aspect ratio 128:128; preserve the requested side/front view.
+```
+
+#### Continuation `job-tunneller.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: job-tunneller.webp, intended final size 128x128. A tiny pickaxe beside a round tunnel opening.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Icon must read clearly at 28 pixels, single simple subject, padding around silhouette. Match the intended aspect ratio 128:128; preserve the requested side/front view.
+```
+
+#### Continuation `job-builder.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: job-builder.webp, intended final size 128x128. Three small hay bales stacked as stairs.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Icon must read clearly at 28 pixels, single simple subject, padding around silhouette. Match the intended aspect ratio 128:128; preserve the requested side/front view.
+```
+
+#### Continuation `job-climber.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: job-climber.webp, intended final size 128x128. A small rope with a grappling hook and a paw print.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Icon must read clearly at 28 pixels, single simple subject, padding around silhouette. Match the intended aspect ratio 128:128; preserve the requested side/front view.
+```
+
+#### Continuation `job-glider.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: job-glider.webp, intended final size 128x128. A fluffy chinchilla tail spread like a parachute.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Icon must read clearly at 28 pixels, single simple subject, padding around silhouette. Match the intended aspect ratio 128:128; preserve the requested side/front view.
+```
+
+#### Continuation `job-bouncer.webp` — one attempt; saved
+
+References: **Style**.
+
+```text
+Use case: illustration-story. Paint one Kit Parade game asset: job-bouncer.webp, intended final size 128x128. A small springy dust cloud with a curved bounce line above it.
+Reference images: painting style only, not the subjects or composition.
+Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, watermark or writing anywhere.
+Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Icon must read clearly at 28 pixels, single simple subject, padding around silhouette. Match the intended aspect ratio 128:128; preserve the requested side/front view.
+```
+
+#### Continuation `job-hugger.webp` — one attempt; saved
+
+References: **Style**.
 
 ```text
 Use case: illustration-story. Paint one Kit Parade game asset: job-hugger.webp, intended final size 128x128. Two little chinchilla arms in a hug around a pink heart.
