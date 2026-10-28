@@ -2,14 +2,15 @@
 // near the pilot, plays them forward (bullets move deterministically), and tries each of the nine moves with focus on
 // and off, picking the one that stays clear longest; ties go to flying under the boss or the critters, or toward
 // seeds. When nothing is safe it tries two-part moves, and it Blooms when it can't escape or has just been hit.
-// It proves Breezy and Gusty can be cleared, and a pilot who never moves loses early on Gusty.
+// It proves Breezy and Gusty can be cleared, and a pilot who never moves loses early on Gusty. A slower, sloppier
+// human-like pilot (see `human`) shows the normal settings are fair: Breezy is gentle and Gusty's first stage is kind.
 // `node tests/seedstorm-bot.mjs` plays the full table; `--quick` plays the short check that `npm test` runs.
 import assert from 'node:assert/strict';
-import { SeedstormGame, moveBullet, bulletGone, W, H, HITBOX, BOUNDS, FOCUS_SLOW, STAGE_COUNT, HZ, PILOTS, UP_IDS, idleInput } from '../.checks/seedstorm-game.js';
+import { SeedstormGame, Rng, moveBullet, bulletGone, W, H, HITBOX, BOUNDS, FOCUS_SLOW, STAGE_COUNT, HZ, PILOTS, UP_IDS, idleInput } from '../.checks/seedstorm-game.js';
 
 const HORIZON = 22, NEAR = 160;
 /** Extra clearance the bot keeps from every bullet; experiments can raise it to stand in for a less precise pilot. */
-export const config = { margin: 1.6 };
+export const config = { margin: 1.6, sight: NEAR, max: 900 };
 const D = Math.SQRT1_2;
 const MOVES = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [D, D], [D, -D], [-D, D], [-D, -D]];
 const scratch = Array.from({ length: 900 }, () => ({}));
@@ -18,8 +19,10 @@ const px = new Float32Array(900 * (HORIZON + 1)), py = new Float32Array(900 * (H
 /** Copies what can reach the pilot soon and plays it forward; returns how many things it tracks. */
 function lookAhead(g) {
   const p = g.player; let n = 0;
-  for (const b of g.bullets) {
-    if (!b.on || Math.abs(b.x - p.x) > NEAR || Math.abs(b.y - p.y) > NEAR) continue;
+  // what the pilot is watching: everything within sight, or (a human) only the nearest `max` of it, ignoring what has already gone past
+  let seen = g.bullets.filter((b) => b.on && Math.abs(b.x - p.x) <= config.sight && Math.abs(b.y - p.y) <= config.sight && !(config.max < 900 && b.y > p.y + 12 && b.vy > 0));
+  if (seen.length > config.max) seen = seen.map((b) => [Math.hypot(b.x - p.x, b.y - p.y), b]).sort((a, b) => a[0] - b[0]).slice(0, config.max).map((e) => e[1]);
+  for (const b of seen) {
     const s = Object.assign(scratch[n], b); pr[n] = b.r + HITBOX + config.margin;
     for (let t = 1; t <= HORIZON; t++) { if (!bulletGone(s)) moveBullet(s, p.x, p.y); px[t * 900 + n] = s.x; py[t * 900 + n] = s.y; }
     n++;
@@ -138,6 +141,50 @@ export function clumsy(seed, diff) {
   return { g, lost };
 }
 
+/**
+ * A human-like pilot (continues allowed). It looks and decides only every 8 or 9 ticks (about 140 ms), watches just the
+ * nearest 40 bullets within 110 units, keeps about 5 units clear, holds focus when 12 or more bullets are within 70
+ * units, one look in five steers up to 25 degrees off what it meant (a seeded wobble), Blooms only when it notices a bullet within
+ * 10 units at one of its looks (never in the last-gasp window), and shops like the main bot.
+ */
+const WOBBLE = 0.45; // radians, about 25 degrees
+export function human(seed, diff, { stages = STAGE_COUNT } = {}) {
+  const g = new SeedstormGame({ seed, pilot: seed % 2 ? 'dora' : 'enzo', diff }), inp = idleInput(), rng = new Rng(seed * 7919 + 17);
+  const lost = Array(STAGE_COUNT).fill(0), keep = { ...config }, cont = [];
+  Object.assign(config, { margin: 5, sight: 110, max: 40 });
+  let next = 0;
+  for (let i = 0; i < HZ * 60 * 40; i++) {
+    if (g.phase === 'chat') { g.skipChat(); continue; }
+    if (g.phase === 'shop') { if (g.stage >= stages) break; shop(g); continue; }
+    if (g.phase === 'over' && g.continueRun()) { cont.push(g.stage); continue; }
+    if (g.phase !== 'play') break;
+    inp.bloom = false;
+    if (i >= next) {
+      next = i + (rng.next() < 0.5 ? 8 : 9);
+      think(g, inp); inp.bloom = false;
+      if (rng.next() < 0.2) { const a = Math.atan2(inp.dy, inp.dx) + (rng.next() - 0.5) * 2 * WOBBLE; if (inp.dx || inp.dy) { inp.dx = Math.cos(a); inp.dy = Math.sin(a); } }
+      const p = g.player; let crowd = 0, close = false;
+      for (const b of g.bullets) { if (!b.on) continue; const d = Math.hypot(b.x - p.x, b.y - p.y); if (d < 70) crowd++; if (d < 10 + b.r) close = true; }
+      if (crowd >= 12) inp.focus = true;
+      if (close && g.blooms > 0 && p.gasp === 0 && p.invuln === 0) inp.bloom = true;
+    }
+    const h = g.hearts; g.step(inp); g.events.length = 0; if (g.hearts < h) lost[g.stage - 1] += h - g.hearts;
+  }
+  Object.assign(config, keep);
+  return { g, lost, cont };
+}
+function humanTable(diff, seeds) {
+  const out = [];
+  console.log(`\nHuman-like pilot, ${diff.toUpperCase()}`);
+  console.log(' seed pilot  hearts lost per stage   total  continues  end');
+  for (const seed of seeds) {
+    const r = human(seed, diff), tot = r.lost.reduce((a, b) => a + b, 0);
+    console.log(`${fmt(seed, 5)} ${r.g.pilot.padEnd(5)}  ${r.lost.map((n) => fmt(n, 2)).join(' ')}          ${fmt(tot, 5)}  ${fmt(r.g.continues, 9)}  ${r.g.phase === 'won' ? 'cleared' : `out on stage ${r.g.stage}`}${r.cont.length ? ` (continued on ${r.cont.join(', ')})` : ''}`);
+    out.push({ seed, ...r, tot });
+  }
+  return out;
+}
+
 const fmt = (n, w) => String(n).padStart(w);
 function table(diff, seeds) {
   const out = [];
@@ -160,7 +207,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     assert.equal(g.phase, 'won', `the bot clears Gusty with seed 1 (out on stage ${g.stage})`);
     const idle = play(1, 'gusty', 'dora', { idle: true }).g;
     assert.ok(idle.phase === 'over' && idle.stage <= 2, `standing still loses on Gusty before stage 3 (${idle.phase} on stage ${idle.stage})`);
-    console.log(`Passed: the bot clears Gusty (score ${g.score}, ${g.grazes} grazes), and standing still loses on stage ${idle.stage}.`);
+    // a human-like pilot gets through Gusty's first stage losing at most one heart
+    for (const seed of [1, 2, 3]) {
+      const h = human(seed, 'gusty', { stages: 1 });
+      assert.ok(h.g.phase === 'shop' && h.lost[0] <= 1, `the human-like pilot clears Gusty stage 1 losing at most 1 heart (seed ${seed}: ${h.g.phase}, lost ${h.lost[0]})`);
+    }
+    console.log(`Passed: the bot clears Gusty (score ${g.score}, ${g.grazes} grazes), a human-like pilot clears Gusty stage 1, and standing still loses on stage ${idle.stage}.`);
   } else {
     const seeds = [1, 2, 3, 4, 5];
     for (const diff of ['breezy', 'gusty']) {
@@ -168,6 +220,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.log(`${diff}: cleared ${won} of ${seeds.length}`);
       assert.ok(won >= 4, `the bot clears ${diff} for at least 4 of 5 seeds (${won})`);
     }
+    // the human-like pilot: Breezy cleared losing at most 2 hearts on every seed; Gusty stage 1 losing at most 1, and stage 4 reached on most seeds
+    const hs = [1, 2, 3, 4, 5, 6, 7, 8];
+    for (const r of humanTable('breezy', hs)) assert.ok(r.g.phase === 'won' && r.tot <= 2, `the human-like pilot clears Breezy losing at most 2 hearts (seed ${r.seed}: ${r.g.phase}, lost ${r.tot})`);
+    const gh = humanTable('gusty', hs);
+    for (const r of gh) assert.ok(r.lost[0] <= 1 && (r.g.stage > 1 || r.g.phase === 'won'), `the human-like pilot clears Gusty stage 1 losing at most 1 heart (seed ${r.seed}: lost ${r.lost[0]})`);
+    const far = gh.filter((r) => r.g.phase === 'won' || r.g.stage >= 4).length;
+    console.log(`gusty: the human-like pilot reached stage 4 or beyond on ${far} of ${hs.length}`);
+    assert.ok(far >= 6, `the human-like pilot reaches stage 4 on Gusty for most seeds (${far} of ${hs.length})`);
+    humanTable('stormy', hs); // not asserted: Stormy may beat it
     // not asserted: a clumsier pilot who reacts every 8 ticks, keeps 10 units clear and never Blooms, to show the patterns bite
     for (const diff of ['breezy', 'gusty', 'stormy']) for (const seed of [1, 2]) {
       const { g, lost } = clumsy(seed, diff);

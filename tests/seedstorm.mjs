@@ -124,7 +124,7 @@ const live = (pool) => pool.filter((x) => x.on).length;
   // a Bloom damages critters
   const c = lab(); c['addCritter']('bumble', { k: 'stop', sx: 100, tx: 100, ty: 100, enter: 1, stay: 1e9, exit: 'up' }, null); c.step(); c.step({ ...idleInput(), bloom: true });
   ok(c.critterCount === 0, 'Bloom puffs small critters');
-  // last gasp: Bloom within 8 ticks of a hit cancels it
+  // last gasp: Bloom within LAST_GASP ticks of a hit cancels it
   for (const late of [0, LAST_GASP - 1, LAST_GASP]) {
     const l = lab(); l.shoot(START.x, START.y - 20, Math.PI / 2, 4, LOOK.seed, HUE.gold);
     let t = 0; while (l.player.gasp === 0 && t++ < 30) l.step();

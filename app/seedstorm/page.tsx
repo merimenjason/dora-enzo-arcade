@@ -243,8 +243,9 @@ export default function SeedstormPage() {
       <div className="ss-stage">
         <canvas ref={canvas} className="ss-canvas" tabIndex={0} aria-label="Seedstorm playfield. Arrow keys or WASD fly, Shift focuses, X, Space or K Blooms, Esc or P pauses. On a touch screen, drag anywhere to fly and tap with a second finger to Bloom."
           onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} />
-        {screen === 'play' && g && phase === 'play' && !paused && (
-          <div className="ss-touch">
+        {screen === 'play' && g && (
+          // stays mounted through chats, the shop and pauses so the field never jumps; the buttons just hide
+          <div className={'ss-touch' + (phase === 'play' && !paused ? '' : ' is-idle')}>
             <button className={'ss-tbtn ss-focus' + (focusOn ? ' is-on' : '')} aria-pressed={focusOn} onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); focusLock.current = !focusLock.current; setFocusOn(focusLock.current); }}>🎯<small>Focus</small></button>
             <button className="ss-tbtn ss-bloom" disabled={g.blooms <= 0} onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); audio(); bloomQ.current = true; }}>🌸<small>Bloom ×{g.blooms}</small></button>
           </div>

@@ -31,6 +31,14 @@
   .ss-shell .ss-focus.is-on{background:#ffe08acc;border-color:#d9a020}
   .ss-shell .ss-bloom{right:12px;background:#ffd6eccc;border-color:#ff8fbf}
 }
+/* upright phones: the buttons get their own strip under the sky, so they never cover the field's corners */
+@media (pointer:coarse) and (orientation:portrait){
+  .ss-stage{display:flex;flex-direction:column}
+  .ss-canvas{position:relative;inset:auto;flex:1;min-height:0;height:auto}
+  .ss-touch{position:relative;inset:auto;flex:none;height:72px;background:linear-gradient(180deg,#221a3c,#1b1530);border-top:1px solid #ffffff14}
+  .ss-shell .ss-tbtn{bottom:6px;height:58px}
+}
+.ss-touch.is-idle .ss-tbtn{visibility:hidden}
 @media (pointer:coarse) and (orientation:landscape){
   .ss-touch{inset:0}
   .ss-shell .ss-tbtn{bottom:auto;top:50%;transform:translateY(-50%)}

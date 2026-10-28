@@ -23,7 +23,9 @@ export const CAPS = { bullets: 700, shots: 160, seeds: 320, critters: 48 };
 /** Invulnerable ticks after losing a heart, after a Bloom, and when a stage starts or a run continues. */
 export const INVULN = { hit: 120, bloom: 180, start: 90 };
 /** Ticks after a hit in which a Bloom cancels it. */
-export const LAST_GASP = 8;
+export const LAST_GASP = 12;
+/** On Breezy and Gusty, critters fire less often in the first two stages while pilots find their wings. */
+export const EARLY = [0.75, 0.85, 1, 1, 1];
 /** Bullets within this distance of the pilot vanish when a heart is lost. */
 export const HIT_CLEAR = 110;
 /**
@@ -56,10 +58,10 @@ export const WING_EVERY = [5, 4, 3, 2];
 export type Diff = 'breezy' | 'gusty' | 'stormy';
 export const DIFF_IDS: Diff[] = ['breezy', 'gusty', 'stormy'];
 /** speed: bullet speed; density: bullets per ring, fan and curtain; rate: how often things fire; bossHp: boss health. */
-export const DIFFS: Record<Diff, { name: string; blurb: string; speed: number; density: number; rate: number; bossHp: number; hearts: number; continues: boolean }> = {
-  breezy: { name: 'Breezy', blurb: 'Gentle and slow, with five hearts. Lovely for little pilots.', speed: 0.75, density: 0.6, rate: 0.7, bossHp: 0.75, hearts: 5, continues: true },
-  gusty: { name: 'Gusty', blurb: 'The proper storm: three hearts, continues if you need them.', speed: 1, density: 1, rate: 1, bossHp: 1, hearts: 3, continues: true },
-  stormy: { name: 'Stormy', blurb: 'For expert pilots: faster, thicker patterns, tougher bosses and no continues.', speed: 1.2, density: 1.5, rate: 1.35, bossHp: 1.3, hearts: 3, continues: false },
+export const DIFFS: Record<Diff, { name: string; blurb: string; speed: number; density: number; rate: number; critters: number; bossHp: number; hearts: number; continues: boolean }> = {
+  breezy: { name: 'Breezy', blurb: 'Gentle and slow, with five hearts. Lovely for little pilots.', speed: 0.62, density: 0.45, rate: 0.55, critters: 0.85, bossHp: 0.7, hearts: 5, continues: true },
+  gusty: { name: 'Gusty', blurb: 'The proper storm: three hearts, continues if you need them.', speed: 1, density: 1, rate: 1, critters: 1, bossHp: 1, hearts: 3, continues: true },
+  stormy: { name: 'Stormy', blurb: 'For expert pilots: faster, thicker patterns, tougher bosses and no continues.', speed: 1.25, density: 1.5, rate: 1.45, critters: 1, bossHp: 1.3, hearts: 3, continues: false },
 };
 
 // ---------------------------------------------------------------- shop
@@ -221,7 +223,7 @@ const P = LOOK, C = HUE;
 const chest = (b: Boss) => b.y + b.def.r * 0.35;
 
 const MAGPIE: BossDef = {
-  id: 'magpie', name: 'Gale the Magpie', art: 'boss-magpie', r: 32, y: 130, mid: false,
+  id: 'magpie', name: 'Gale the Magpie', art: 'boss-magpie', r: 32, y: 152, mid: false,
   chat: [
     { who: 'boss', text: 'Halt, fluffballs! Not one more gust gets past me. Every button up here is MINE. Finders keepers!' },
     { who: 'pilot', text: 'Gale, those buttons came off everybody’s washing!' },
@@ -234,7 +236,7 @@ const MAGPIE: BossDef = {
   ],
   phases: [
     { name: 'Button Barrage', hp: 400, time: 40, move: 'sway', fire: (g, b, t) => {
-      if (g.every(t, 34, 20)) g.fan(b.x, chest(b), 7, 0.62, 2.6, g.aimFrom(b.x, chest(b)), P.seed, C.gold);
+      if (g.every(t, 40, 20)) g.fan(b.x, chest(b), 7, 0.7, 2.4, g.aimFrom(b.x, chest(b)), P.seed, C.gold);
       if (g.every(t, 80, 50)) g.ring(b.x, b.y, 22, 1.7, t * 0.013, P.petal, C.pink);
     } },
     { name: 'Feather Flurry', hp: 600, time: 45, move: 'hover', fire: (g, b, t) => {
@@ -242,13 +244,13 @@ const MAGPIE: BossDef = {
       if (g.every(t, 120, 60)) g.fan(b.x, chest(b), 3, 0.3, 2.8, g.aimFrom(b.x, chest(b)), P.seed, C.gold);
     } },
     { name: 'Shiny Swoop', hp: 520, time: 50, move: 'swoop', fire: (g, b, t) => {
-      if (g.every(t, 14)) for (const s of [-1, 1]) { const x = g.shoot(b.x, chest(b), Math.PI / 2 + s * (0.45 + 0.35 * Math.sin(t * 0.05)), 2.4, P.petal, C.pink); if (x) x.bounce = 1; }
+      if (g.every(t, 18)) for (const s of [-1, 1]) { const x = g.shoot(b.x, chest(b), Math.PI / 2 + s * (0.45 + 0.35 * Math.sin(t * 0.05)), 2.4, P.petal, C.pink); if (x) x.bounce = 1; }
       if (g.every(t, 80, 40)) g.ring(b.x, chest(b), 18, 3, t * 0.02, P.seed, C.gold, (x) => { x.acc = -0.06 * g.diff.speed; x.at = 56; x.then = THEN.aim; x.thenSpd = 3 * g.diff.speed; });
     } },
   ],
 };
 const CROW: BossDef = {
-  id: 'crow', name: 'Crabapple Crow', art: 'boss-crow', r: 32, y: 125, mid: false,
+  id: 'crow', name: 'Crabapple Crow', art: 'boss-crow', r: 32, y: 148, mid: false,
   chat: [
     { who: 'boss', text: 'Caw! The wind keeps whipping my hat off, and every crabapple in the orchard lands on my head!' },
     { who: 'pilot', text: 'So now you’re throwing them at everybody else?' },
@@ -274,7 +276,7 @@ const CROW: BossDef = {
   ],
 };
 const CLOUD: BossDef = {
-  id: 'cloud', name: 'Rumble', art: 'boss-cloud', r: 40, y: 120, mid: false,
+  id: 'cloud', name: 'Rumble', art: 'boss-cloud', r: 40, y: 150, mid: false,
   chat: [
     { who: 'boss', text: 'BOOM! …Oh, sorry. I only meant to sing, but it always comes out as thunder.' },
     { who: 'wing', text: 'Is that why everyone hides indoors?' },
@@ -292,9 +294,9 @@ const CLOUD: BossDef = {
       if (g.every(t, 80, 40)) g.ring(b.x, b.y, 14, 1.4, t * 0.05, P.drop, C.sky);
     } },
     { name: 'Slow Drizzle, Fast Pour', hp: 860, time: 48, move: 'sway', fire: (g, b, t) => {
-      const tri = Math.abs(((t * 0.004) % 2) - 1);
-      if (g.every(t, 20)) g.curtain(20, 50 + tri * (W - 100), 64, 0.5, P.drop, C.sky, (x) => { x.acc = 0.045 * g.diff.speed; x.maxS = 4.2 * g.diff.speed; });
-      if (g.every(t, 48, 24)) g.fan(b.x, chest(b), 5, 0.5, 2.6, g.aimFrom(b.x, chest(b)), P.spark, C.gold);
+      const tri = Math.abs(((t * 0.0032) % 2) - 1);
+      if (g.every(t, 26)) g.curtain(20, 50 + tri * (W - 100), 76, 0.5, P.drop, C.sky, (x) => { x.acc = 0.035 * g.diff.speed; x.maxS = 3.4 * g.diff.speed; });
+      if (g.every(t, 64, 32)) g.fan(b.x, chest(b), 3, 0.4, 2.4, g.aimFrom(b.x, chest(b)), P.spark, C.gold);
     } },
     { name: 'Thunder Drum', hp: 1180, time: 52, move: 'still', fire: (g, b, t) => {
       const m = t % 64;
@@ -305,7 +307,7 @@ const CLOUD: BossDef = {
   ],
 };
 const OWL: BossDef = {
-  id: 'owl', name: 'Madame Hoot', art: 'boss-owl', r: 34, y: 125, mid: false,
+  id: 'owl', name: 'Madame Hoot', art: 'boss-owl', r: 34, y: 150, mid: false,
   chat: [
     { who: 'boss', text: 'Hoo. Such a racket. I have not slept a wink, and the moon is already up.' },
     { who: 'pilot', text: 'The storm kept you awake too?' },
@@ -335,7 +337,7 @@ const OWL: BossDef = {
   ],
 };
 const STORM: BossDef = {
-  id: 'storm', name: 'The Grumble Storm', art: 'boss-storm', r: 46, y: 120, mid: false,
+  id: 'storm', name: 'The Grumble Storm', art: 'boss-storm', r: 46, y: 156, mid: false,
   chat: [
     { who: 'boss', text: 'GRRRUMBLE! Every time I come out to play, everybody runs inside!' },
     { who: 'pilot', text: 'Because you blow the washing away and soak all the hay!' },
@@ -354,7 +356,7 @@ const STORM: BossDef = {
     } },
     { name: 'Hailstone Hullabaloo', hp: 1600, time: 48, move: 'hover', fire: (g, b, t) => {
       if (g.every(t, 56)) g.ring(b.x, b.y, 22, 2.6, t * 0.02, P.seed, C.white, (x) => { x.acc = -0.07 * g.diff.speed; x.at = 40; x.then = THEN.fall; x.thenSpd = 0.045 * g.diff.speed; });
-      if (g.every(t, 30, 15)) for (const s of [-1, 1]) { const x = g.shoot(b.x, chest(b), Math.PI / 2 + s * (0.5 + g.rng.next() * 0.5), 2.5, P.seed, C.sky); if (x) x.bounce = 1; }
+      if (g.every(t, 38, 15)) for (const s of [-1, 1]) { const x = g.shoot(b.x, chest(b), Math.PI / 2 + s * (0.5 + g.rng.next() * 0.5), 2.5, P.seed, C.sky); if (x) x.bounce = 1; }
     } },
     { name: 'Lightning Lullaby', hp: 1700, time: 50, move: 'circle', fire: (g, b, t) => {
       if (g.every(t, 6)) { g.spiral(b.x, b.y, 3, 2, t * 0.03, P.spark, C.gold); g.spiral(b.x, b.y, 3, 2, -t * 0.03 + Math.PI / 2, P.spark, C.violet); }
@@ -367,14 +369,14 @@ const STORM: BossDef = {
   ],
 };
 /** Mid-bosses: one per stage, a single named attack, and they fly off home afterwards. */
-const mid = (id: BossId, name: string, art: string, r: number, ph: PhaseDef): BossDef => ({ id, name, art, r, y: 140, mid: true, chat: [], friends: [], phases: [ph] });
+const mid = (id: BossId, name: string, art: string, r: number, ph: PhaseDef): BossDef => ({ id, name, art, r, y: 156, mid: true, chat: [], friends: [], phases: [ph] });
 const MIDS: BossDef[] = [
   mid('bumbleQueen', 'Big Bumble', 'bumble', 24, { name: 'Buzzing Bloom', hp: 200, time: 20, move: 'sway', fire: (g, b, t) => {
     if (g.every(t, 44)) g.ring(b.x, b.y, 14, 1.8, Math.floor(t / 44) % 2 ? Math.PI / 14 : 0, P.seed, C.gold);
     if (g.every(t, 66, 33)) g.fan(b.x, b.y, 3, 0.4, 2.6, g.aimFrom(b.x, b.y), P.petal, C.pink);
   } }),
   mid('kiteCaptain', 'Kite Captain', 'kite', 24, { name: 'Ribbon Loop', hp: 320, time: 20, move: 'circle', fire: (g, b, t) => {
-    if (g.every(t, 10)) for (const s of [-1, 1]) { const x = g.shoot(b.x + s * 14, b.y, Math.PI / 2 + s * 0.25, 2, P.petal, s < 0 ? C.pink : C.sky); if (x) { x.wav = 20; x.wavF = 0.08; } }
+    if (g.every(t, 13)) for (const s of [-1, 1]) { const x = g.shoot(b.x + s * 14, b.y, Math.PI / 2 + s * 0.25, 2, P.petal, s < 0 ? C.pink : C.sky); if (x) { x.wav = 12; x.wavF = 0.07; } }
     if (g.every(t, 80, 40)) g.fan(b.x, b.y, 5, 0.6, 2.6, g.aimFrom(b.x, b.y), P.seed, C.gold);
   } }),
   mid('sproutChief', 'Sprout Chief', 'sprout', 26, { name: 'Pitter Patter', hp: 440, time: 20, move: 'sway', fire: (g, b, t) => {
@@ -929,7 +931,7 @@ export class SeedstormGame {
       const dx = c.x - p.x, dy = c.y - p.y, rr = c.r * 0.55 + HITBOX;
       if (dx * dx + dy * dy < rr * rr) this.touched();
       const g = c.gun;
-      if (g && c.t >= g.first && (c.t - g.first) % Math.max(2, Math.round(g.every / this.diff.rate)) === 0 && c.shots < g.max && c.y > 12 && c.y < top && c.x > 8 && c.x < W - 8 && dx * dx + dy * dy > 96 * 96) {
+      if (g && c.t >= g.first && (c.t - g.first) % Math.max(2, Math.round(g.every / (this.diff.rate * this.diff.critters * (this.diffId === 'stormy' ? 1 : EARLY[this.stage - 1])))) === 0 && c.shots < g.max && c.y > 12 && c.y < top && c.x > 8 && c.x < W - 8 && dx * dx + dy * dy > 96 * 96) {
         c.shots++; this.critterFire(c, g);
       }
     }

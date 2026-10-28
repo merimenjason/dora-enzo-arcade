@@ -2,7 +2,7 @@
 
 A cosy vertical shoot-'em-up at `/seedstorm`. The Grumble Storm has rolled over the valley and its gusty helpers are blowing everyone's washing away, so Dora and Enzo hop on dandelion-seed gliders and fly up through five skies to calm it down. Dodge pretty patterns of petals, seeds and raindrops with a tiny hitbox, puff storm critters into fluff, and make friends with five grumpy bosses. Nobody is ever hurt: a beaten critter puffs into fluff and drifts home.
 
-Written 29-10-2026 from the code in `lib/seedstorm-game.ts`. Every number below is a constant there.
+Written 29-10-2026 (difficulty retuned the same day) from the code in `lib/seedstorm-game.ts`. Every number below is a constant there.
 
 ## The field and the clock
 
@@ -29,7 +29,7 @@ Written 29-10-2026 from the code in `lib/seedstorm-game.ts`. Every number below 
 - **Hearts:** 3 at the start (5 on Breezy), at most 8. A hit costs a heart, clears every bullet within 110 units, resets Breeze to ×1, and gives 120 ticks (2 s) of blinking invulnerability.
 - **Bloom** (X, Space or K, a second finger, or the 🌸 button): hold 2 at the start, carry 3 (plus one per Bloom Pouch). A Bloom sends a ring of petals out from the pilot at 16 units a tick for 45 ticks; every bullet it passes turns into a seed, and on its last tick every bullet left goes too. It deals 40 damage to every critter and 50 to the boss, and gives 180 ticks (3 s) of invulnerability.
 - **Bloom meter:** 100 points makes a Bloom. Grazes give 1.6, seeds 0.35 (big seeds 1.05), puffing a critter 1. At the cap the meter waits, full, and becomes a Bloom as soon as one is used.
-- **Last-gasp Bloom:** a hit only lands 8 ticks later. Blooming inside those 8 ticks cancels it ("Phew! Saved by a Bloom!").
+- **Last-gasp Bloom:** a hit only lands 12 ticks (0.2 s) later. Blooming inside those 12 ticks cancels it ("Phew! Saved by a Bloom!").
 - At 0 hearts the run is over. Breezy and Gusty offer **Continue**: hearts refill, at least 2 Blooms, 3 s of invulnerability, the score starts again from 0 and a continue counter shows. Stormy has no continues. The score at each game over goes on the high-score table.
 
 ## Seeds and the Breeze multiplier
@@ -43,14 +43,15 @@ Written 29-10-2026 from the code in `lib/seedstorm-game.ts`. Every number below 
 
 | | Breezy | Gusty | Stormy |
 | --- | --- | --- | --- |
-| Bullet speed | × 0.75 | × 1 | × 1.2 |
-| Bullets per ring, fan and curtain | × 0.6 | × 1 | × 1.5 |
-| How often things fire | × 0.7 | × 1 | × 1.35 |
-| Boss health | × 0.75 | × 1 | × 1.3 |
+| Bullet speed | × 0.62 | × 1 | × 1.25 |
+| Bullets per ring, fan and curtain | × 0.45 | × 1 | × 1.5 |
+| How often things fire | × 0.55 | × 1 | × 1.45 |
+| How often critters fire (on top of that) | × 0.85 | × 1 | × 1 |
+| Boss health | × 0.7 | × 1 | × 1.3 |
 | Hearts | 5 | 3 | 3 |
 | Continues | yes | yes | no |
 
-Spiral arms are never thinned; they fire less often instead. Curtain gaps keep their width on every difficulty. Critters never fire when they are lower than 62 % of the field, off its sides, or within 96 units of the pilot.
+Spiral arms are never thinned; they fire less often instead. Curtain gaps keep their width on every difficulty. Critters never fire when they are lower than 62 % of the field, off its sides, or within 96 units of the pilot. On Breezy and Gusty, critters fire less often while pilots find their wings: × 0.75 in stage 1 and × 0.85 in stage 2.
 
 ## Stages
 
@@ -81,7 +82,7 @@ Critters fly one of four paths (fly in and stop, arc across, drift down with a s
 
 ### Bosses and their attacks
 
-Each phase has its own named attack, a health bar and a timer. Health is shown for Gusty (Breezy × 0.75, Stormy × 1.3).
+Each phase has its own named attack, a health bar and a timer. Health is shown for Gusty (Breezy × 0.7, Stormy × 1.3). Bosses hover at heights 148 to 156 and mid-bosses at 156, clear of the health bar.
 
 | Boss | Attack | Health | Time | What it does |
 | --- | --- | --- | --- | --- |
@@ -89,13 +90,13 @@ Each phase has its own named attack, a health bar and a timer. Health is shown f
 | Gale the Magpie | Button Barrage | 400 | 40 s | Aimed 7-way fans of shiny buttons and slow rings of 22 petals. |
 | | Feather Flurry | 600 | 45 s | Two counter-turning three-arm spirals of feathers from the wing tips, and aimed buttons. |
 | | Shiny Swoop | 520 | 50 s | Swoops while dropping petals that bounce off the side walls once, and rings of 18 buttons that stop, then turn toward you. |
-| Kite Captain (mid) | Ribbon Loop | 320 | 20 s | Wiggling ribbons of petals from both sides of the kite, and aimed fans. |
+| Kite Captain (mid) | Ribbon Loop | 320 | 20 s | Gently wiggling ribbons of petals from both sides of the kite, and aimed fans. |
 | Crabapple Crow | Crabapple Cascade | 600 | 42 s | Lobs 7 crabapples high that fall back under gravity, and aimed seed fans. |
 | | Wobbly Windfall | 840 | 46 s | Slow crabapples that wobble and home in for 100 ticks, and rings of 24 seeds. |
 | | Scarecrow Shuffle | 920 | 50 s | Curtains of leaves with a 68-unit gap that sways across the sky, while the crow follows you and throws apples. |
 | Sprout Chief (mid) | Pitter Patter | 440 | 20 s | Raindrops that start slow and fall faster, and rings of 18 seeds. |
 | Rumble | Static Spiral | 1000 | 45 s | A five-arm spiral of sparks that switches direction every 4 s, and slow rings of raindrops. |
-| | Slow Drizzle, Fast Pour | 860 | 48 s | Curtains of raindrops that start slow and pour fast, with a gap that slides from side to side, and aimed sparks. |
+| | Slow Drizzle, Fast Pour | 860 | 48 s | Curtains of raindrops that start slow and pour faster, with a 76-unit gap that slides slowly from side to side, and small aimed fans of 3 sparks. |
 | | Thunder Drum | 1180 | 52 s | Double rings of 28 sparks on the beat, and bursts that stop and turn toward you. |
 | Moth Matron (mid) | Lantern Flutter | 560 | 20 s | A three-arm spiral of petals and fluttering rings of stars. |
 | Madame Hoot | Moonmoth Waltz | 1200 | 45 s | Three beats a bar: one big ring of 28 petals and two rings of 18, each curling the other way. |
@@ -183,4 +184,6 @@ The page exposes `window.__seedstorm()` (the running game), `window.__seedstormS
 ## Tests
 
 - **Engine** (`tests/seedstorm.mjs`): exact replays after 3,000 ticks; movement, focus and touch targets; shots and piercing; the hitbox and graze edges; invulnerability; Bloom, the meter and the last-gasp window; game over and continues; pool caps under the busiest boss on every difficulty; seeds, magnets and the top-quarter call; Breeze chains and decay; shop prices and caps; every timeline ending with its boss; every boss phase's name, timer and health; a full boss with chats, Clear Sky and a timeout; mid-bosses stopping the clock; practice; difficulty scaling; bullet behaviours; and saving.
-- **Bot** (`tests/seedstorm-bot.mjs`): each tick it plays the nearby bullets forward 22 ticks and tries the nine moves with focus on and off (two-part moves when nothing is safe), preferring to fly under the boss or the critters or toward seeds, and Blooms when a hit is certain or has just landed. It must clear Breezy and Gusty for at least 4 of 5 seeds, buying upgrades in the shop, and a pilot who stands still and never Blooms must lose on Gusty before the end of stage 2. It also reports, without asserting, how a clumsier bot (reacting every 8 ticks, keeping 10 units clear, never Blooming) fares on each difficulty.
+- **Bot** (`tests/seedstorm-bot.mjs`): each tick it plays the nearby bullets forward 22 ticks and tries the nine moves with focus on and off (two-part moves when nothing is safe), preferring to fly under the boss or the critters or toward seeds, and Blooms when a hit is certain or has just landed. It must clear Breezy and Gusty for at least 4 of 5 seeds, buying upgrades in the shop, and a pilot who stands still and never Blooms must lose on Gusty before the end of stage 2.
+- **Human-like pilot** (also in `tests/seedstorm-bot.mjs`): it looks and decides only every 8 or 9 ticks (about 140 ms), watches the nearest 40 bullets within 110 units (ignoring ones already past it), keeps about 5 units clear, holds focus when 12 or more bullets are within 70 units, steers up to 25 degrees off on one look in five (a seeded wobble), Blooms only when it notices a bullet within 10 units (never in the last-gasp window), shops, and continues when it runs out. On seeds 1 to 8 it must clear Breezy losing at most 2 hearts, clear Gusty's stage 1 losing at most 1 heart, and reach Gusty's stage 4 on at least 6 seeds; its Stormy runs are printed, not asserted. `npm test` checks Gusty's stage 1 for seeds 1 to 3.
+- It also reports, without asserting, how a clumsier bot (reacting every 8 ticks, keeping 10 units clear, never Blooming) fares on each difficulty.
