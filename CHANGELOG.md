@@ -4,6 +4,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ## 29-10-2026
 
+### Added
+
+- **Prism Paws** (`/prism`), game 50: a light-beam puzzle game. The valley's Lantern Festival has gone dark, and Dora and Enzo steer moonlight with mirrors, candy glass, crystal panes and prisms to relight every paper lantern without waking the sleeping kits. Colours mix like real light (rose and leaf glow honey), burrows carry beams under the hill, and 32 handmade levels across Meadow Lanterns, Candy Glass, Crystal Grotto and Festival Night build to a grand finale with a lantern of every colour. Every level has three stars (light it, catch the firefly, match par), unlimited free hints, undo, and works on phones held either way.
+
 ### Changed
 
 - **Hayloft Tycoon**: buildings show their upgrades. The first adds bunting, the second a warm glow and paper lanterns, the third a flag on top, and every milestone adds a gold star and makes the building a little bigger. The valley is livelier too: buildings bob and puff while they work and bounce when a run pays out, helpers hop as they work and cheer each payout, and Dora and Enzo breathe, sway and hop now and then.

@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of forty-nine original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of fifty original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -59,6 +59,7 @@ Listed in arcade-menu order.
 | 47 | Burrow Command | `/command` | Real-time strategy |
 | 48 | Hayloft Tycoon | `/hayloft` | Idle tycoon |
 | 49 | Kit Parade | `/parade` | Puzzle |
+| 50 | Prism Paws | `/prism` | Light-beam puzzle |
 
 ## Run
 
@@ -1058,6 +1059,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/kit-parade.md`](docs/kit-parade.md), art brief [`docs/kit-parade-art-brief.md`](docs/kit-parade-art-brief.md).
 
+### 50 · Prism Paws (`/prism`)
+
+**Play:** A light-beam puzzle on a night board of at most 9 × 7 tiles. Moon windows shine beams of moonlight, and Dora and Enzo steer them with pieces from a tray to light every paper lantern without waking the sleeping kits. Light mixes like real light: **Rose**, **Leaf** and **Sky** combine into **Honey** (rose and leaf), **Plum** (rose and sky), **Mint** (leaf and sky) and **Moonwhite** (all three). A lantern lights only when the colours reaching it make exactly its colour; too much colour leaves it "too bright". A **Mirror** bounces light round a corner from either face, a **Crystal pane** lets light through and bounces a copy, **Candy glass** keeps only its own colour (and stops a beam with none of it), and a **Prism** fans light out: rose turns left, leaf goes straight on and sky turns right. Rocks stop light, nothing stands on clover, light on a kit wakes it, and a beam into a burrow leaves its partner going the same way. There are 32 handmade levels in four chapters: Meadow Lanterns (mirrors and kits), Candy Glass (tinting and mixing), Crystal Grotto (panes and prisms) and Festival Night (burrows, ending with a board of seven lanterns in every colour). Each level gives three stars: one for lighting it, one for catching the firefly in the winning arrangement, and one for using no more tray pieces than par, the fewest the built-in solver needs. Solving a level opens the next, and lighting all 32 opens the Festival. Progress saves in `prism-paws-v1`.
+
+**Controls:** Drag a piece from the tray onto open grass, or tap a tray piece and then a tile. Tap a piece on the board to turn it (fixed mirrors and panes with a gold arrow turn too), drag it to another tile to move it, or drag it off the board to pick it up. **Arrow keys** move a tile cursor, **1–9** pick a tray piece, **Enter** or **Space** place or turn, **Backspace** or **Delete** pick up, **Z** undoes, **R** resets and **H** shows a hint: a glowing ghost of where the next piece goes. There are buttons for undo, reset, hint, sound and the level list.
+
+**Tests:** `npm run test:prism` runs 765 engine checks: every piece's optics in every direction, colour mixing, the too-bright rule, kits, burrows, loops, undo and reset, hints, stars and saves, and for every level that it is not won at the start, that the solver's par matches, that nothing wins with fewer pieces, that the firefly can be caught at par, and that the solution wins three stars through the real actions. It prints each level's par, tray and solve time. `npm run test:e2e:prism` is the browser suite.
+
+**Docs:** [`docs/prism-paws.md`](docs/prism-paws.md), art brief [`docs/prism-paws-art-brief.md`](docs/prism-paws-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1077,7 +1088,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Forty-nine ways/` assertion in `tests/e2e/dust-bath.mjs`, the 49-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fifty ways/` assertion in `tests/e2e/dust-bath.mjs`, the 50-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
