@@ -163,3 +163,8 @@
   .bt-board canvas { width: 107%; max-width: none; margin: -4% -3.5% -3.5%; }
 }
 .bt-kept { align-items: center; margin: 4px 0 14px; } .bt-kept small { color: #a9c3c0; }
+
+/* the painted title picture replaces the drawn icons once it is there */
+.bt-intro-art:has(.bt-title-art) { padding: 0; background: none; overflow: hidden; width: min(360px, 42vw); }
+.bt-intro-art:has(.bt-title-art) > :not(.bt-title-art) { display: none; }
+.bt-title-art { display: block; width: 100%; aspect-ratio: 3 / 2; object-fit: cover; }

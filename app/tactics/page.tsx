@@ -416,6 +416,7 @@ export default function BurrowTactics() {
         {header}
         <section className="bt-intro">
           <div className="bt-intro-art">
+            <img className="bt-title-art" src="/art/tactics/title.webp" alt="" onError={(e) => e.currentTarget.remove()} />
             <Icon draw={heroIcon('enzo')} w={84} h={84} id="enzo" /><Icon draw={heroIcon('dora')} w={84} h={84} id="dora" /><Icon draw={predIcon('fox')} w={84} h={84} id="fox" />
           </div>
           <div>

@@ -157,3 +157,8 @@
   .bb-shell .bb-actions button { padding: 8px 10px; font-size: 13px; }
   .bb-shell .bb-fire { flex: 1 1 100%; flex-direction: row; gap: 8px; padding: 12px; }
 }
+
+/* the painted title picture replaces the drawn icons once it is there */
+.bb-intro-art:has(.bb-title-art) { padding: 0; background: none; overflow: hidden; width: min(360px, 42vw); }
+.bb-intro-art:has(.bb-title-art) > :not(.bb-title-art) { display: none; }
+.bb-title-art { display: block; width: 100%; aspect-ratio: 3 / 2; object-fit: cover; }

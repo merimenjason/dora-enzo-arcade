@@ -317,7 +317,7 @@ export default function BurrowBarrage() {
       <main className="bb-shell">
         {header}
         <section className="bb-intro">
-          <div className="bb-intro-art"><Icon coat="dora" ride={save.rides[0]} team={0} size={92} /><Icon coat="enzo" ride={save.rides[1]} team={0} size={92} /></div>
+          <div className="bb-intro-art"><img className="bb-title-art" src="/art/barrage/title.webp" alt="" onError={(e) => e.currentTarget.remove()} /><Icon coat="dora" ride={save.rides[0]} team={0} size={92} /><Icon coat="enzo" ride={save.rides[1]} team={0} size={92} /></div>
           <div>
             <p className="bb-eyebrow">TURN-BASED ARTILLERY · SIX-MATCH LADDER · PASS AND PLAY</p>
             <h1>Burrow Barrage</h1>

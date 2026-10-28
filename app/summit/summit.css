@@ -306,3 +306,8 @@
 .ss-peek-notes .ss-peek-who { border-color: #7a6cc0; color: #ddd6ff; }
 .ss-book-head { margin: 14px 0 8px; font-size: 0.95rem; color: #f3e6c0; }
 .ss-book-head small { margin-left: 6px; font-weight: 400; color: #a9a6c8; }
+
+/* the painted title picture replaces the drawn icons once it is there */
+.ss-intro-art:has(.ss-title-art) { padding: 0; background: none; overflow: hidden; width: min(360px, 42vw); }
+.ss-intro-art:has(.ss-title-art) > :not(.ss-title-art) { display: none; }
+.ss-title-art { display: block; width: 100%; aspect-ratio: 3 / 2; object-fit: cover; }

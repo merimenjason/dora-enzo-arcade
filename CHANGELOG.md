@@ -15,6 +15,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Border Hop** is now hand-painted: Dora and Enzo flap on little paper wings over a painted desert panorama, and a new title painting greets you before takeoff. **Burrow Tactics**, **Burrow Barrage**, **Summit Shuffle** and **Poof Panic** each have a title painting on their menu.
 - **Hayloft Tycoon**: Enzo now runs the Dust Bath Spa as its helper, in place of Pip, with the same price and the same Spa ×2 perk; saves keep their hired helpers.
 - **Pawprint Grand Prix**: rivals race faster in every class, and a Frost Pellet now slows its target to 70% speed instead of 48%, so the lead is earned on the road. Holding the gas alone still wins the Pebble Cup.
 - **Hayloft Tycoon**: the eleven hired helpers beside the buildings are now hand-painted, each in their own coat with a little prop, matching Dora and Enzo; the empty plot's “Next” name and price sit on solid tags so they read clearly over the grass.

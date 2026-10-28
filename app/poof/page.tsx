@@ -299,6 +299,7 @@ export default function PoofPanic() {
         <header className="pp-top"><a href="/">← Arcade</a><span>POOF PANIC</span><button className="pp-icon" onClick={() => { setMuted(!save.muted); store({ ...save, muted: !save.muted }); }} aria-label={save.muted ? 'Turn sound on' : 'Turn sound off'}>{save.muted ? '🔇' : '🔊'}</button></header>
         {screen === 'home' && (
           <section className="pp-home">
+            <img className="pp-title-art" src="/art/poof/title.webp" alt="" onError={(e) => e.currentTarget.remove()} />
             <div className="pp-logo" aria-hidden="true">{[1, 2, 3, 4, 5].map((n) => <Poof key={n} colour={n} size={46} />)}</div>
             <h1>Poof Panic</h1>
             <p className="pp-lede">Drop pairs of fluff balls. Four of a colour pop, and what falls into place next is a chain. Chains bury your rival in dust.</p>

@@ -1,12 +1,16 @@
 import {FLIGHT,FlappyGame} from './flappy-game';
 import {drawChinchilla} from './chinchilla-art';
 const W=FLIGHT.width,H=FLIGHT.height;
+// Paintings from public/art/hop/, used once loaded; the drawn desert and pair stand in until then.
+const art=new Map<string,HTMLImageElement>();
+function painting(name:string){if(typeof Image==='undefined')return null;let i=art.get(name);if(!i){i=new Image();i.decoding='async';i.src=`/art/hop/${name}.webp`;art.set(name,i)}return i.complete&&i.naturalWidth>0?i:null}
 export function drawFlight(c:CanvasRenderingContext2D,g:FlappyGame,t:number){
- c.clearRect(0,0,W,H);const sky=c.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#719eb4');sky.addColorStop(.66,'#eed4ad');sky.addColorStop(1,'#d6a478');c.fillStyle=sky;c.fillRect(0,0,W,H);
+ c.clearRect(0,0,W,H);const desert=painting('desert');
+ if(desert){const off=g.distance*.25%1800;c.drawImage(desert,-off,0,1800,H);c.drawImage(desert,1800-off,0,1800,H)}else{const sky=c.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#719eb4');sky.addColorStop(.66,'#eed4ad');sky.addColorStop(1,'#d6a478');c.fillStyle=sky;c.fillRect(0,0,W,H);
  c.fillStyle='#ffedbe';c.beginPath();c.arc(724,100,42,0,Math.PI*2);c.fill();
  for(let layer=0;layer<3;layer++){const offset=g.distance*(.09+layer*.09)%400;c.fillStyle=['#8395a0','#aa9d96','#c09c80'][layer];c.beginPath();c.moveTo(-400,H);for(let i=-1;i<5;i++){const x=i*400-offset;c.lineTo(x,340+layer*38);c.lineTo(x+75,210+layer*53);c.lineTo(x+155,245+layer*44);c.lineTo(x+205,185+layer*65);c.lineTo(x+290,330+layer*35)}c.lineTo(W+400,H);c.closePath();c.fill()}
  // Sparse roadside cacti and scrub in the parallax distance.
- for(let i=0;i<9;i++){const x=((i*139-g.distance*.4)%1251+1251)%1251-100;const y=464;c.strokeStyle='#7c886a';c.lineWidth=8;c.lineCap='round';c.beginPath();c.moveTo(x,y);c.lineTo(x,y-45);c.moveTo(x,y-18);c.lineTo(x-13,y-18);c.lineTo(x-13,y-33);c.moveTo(x,y-25);c.lineTo(x+12,y-25);c.lineTo(x+12,y-40);c.stroke()}
+ for(let i=0;i<9;i++){const x=((i*139-g.distance*.4)%1251+1251)%1251-100;const y=464;c.strokeStyle='#7c886a';c.lineWidth=8;c.lineCap='round';c.beginPath();c.moveTo(x,y);c.lineTo(x,y-45);c.moveTo(x,y-18);c.lineTo(x-13,y-18);c.lineTo(x-13,y-33);c.moveTo(x,y-25);c.lineTo(x+12,y-25);c.lineTo(x+12,y-40);c.stroke()}}
  for(const gate of g.gates){const top=gate.center-gate.gap/2,bottom=gate.center+gate.gap/2,x=gate.x;
  // Stylized checkpoint columns, with bold striped lips around each gap.
  for(const [y,h] of [[0,top],[bottom,FLIGHT.ground-bottom]]){c.fillStyle='#435d62';c.fillRect(x,y,74,h);c.fillStyle='#658084';for(let k=0;k<4;k++)c.fillRect(x+7+k*18,y,4,h);c.fillStyle='#34494e';c.fillRect(x-5,y===0?top-16:y,84,16);c.save();c.beginPath();c.rect(x-5,y===0?top-13:y+3,84,10);c.clip();c.strokeStyle='#ebbb69';c.lineWidth=7;for(let k=-2;k<9;k++){c.beginPath();c.moveTo(x+k*16,y===0?top-20:y);c.lineTo(x+k*16+20,y===0?top:y+20);c.stroke()}c.restore()}
@@ -22,6 +26,7 @@ export function drawFlight(c:CanvasRenderingContext2D,g:FlappyGame,t:number){
  for(let i=0;i<2;i++)chinchilla(c,FLIGHT.x[i],g.state==='ready'?g.y+Math.sin(t*2)*7:g.y,i===0,g.vy,g.flapTime>0||g.state==='ready',t);
 }
 function chinchilla(c:CanvasRenderingContext2D,x:number,y:number,white:boolean,vy:number,flap:boolean,t:number){c.save();c.translate(x,y);c.rotate(Math.max(-.27,Math.min(.45,vy/1000)));
+ const img=painting(`${white?'dora':'enzo'}-${flap?'up':'down'}`);if(img){c.drawImage(img,-38,-40,76,76);c.restore();return}
  const ellipse=(x:number,y:number,rx:number,ry:number,color:string,angle=0)=>{c.fillStyle=color;c.beginPath();c.ellipse(x,y,rx,ry,angle,0,Math.PI*2);c.fill()};
  // Little paper wings make the shared flap visible: the far one behind the body, the near one over it.
  const wing=(dx:number,alpha:number)=>{c.globalAlpha=alpha;ellipse(dx,flap?-30:-8,10,23,'#fff0cf',flap?-.8:.9);c.strokeStyle='#c9b48e';c.lineWidth=1;c.beginPath();c.moveTo(dx-1,-8);c.lineTo(dx-10,flap?-42:-16);c.stroke();c.globalAlpha=1};

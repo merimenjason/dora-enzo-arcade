@@ -465,7 +465,7 @@ export default function SummitShuffle() {
       <main className="ss-shell">
         {header}
         <section className="ss-intro">
-          <div className="ss-intro-art"><Portrait hero="dora" size={96} /><Portrait hero="enzo" size={96} /></div>
+          <div className="ss-intro-art"><img className="ss-title-art" src="/art/summit/title.webp" alt="" onError={(e) => e.currentTarget.remove()} /><Portrait hero="dora" size={96} /><Portrait hero="enzo" size={96} /></div>
           <div>
             <p className="ss-eyebrow">DECK-BUILDING CLIMB · THREE STRETCHES · SIX ALTITUDES</p>
             <h1>Summit Shuffle</h1>

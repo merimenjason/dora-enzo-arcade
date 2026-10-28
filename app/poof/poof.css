@@ -101,3 +101,6 @@
   .pp-lesson-goal { flex-direction: row; align-items: center; justify-content: space-between; }
   .pp-stage { border-radius: 12px; }
 }
+
+/* the painted title banner above the fluff-ball logo */
+.pp-title-art { display: block; width: min(560px, 100%); aspect-ratio: 16 / 7; object-fit: cover; margin: 0 auto 10px; border-radius: 16px; }
