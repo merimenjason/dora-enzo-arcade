@@ -1,0 +1,350 @@
+// Lake Whisker, the world of Driftwood Post: every island, rock, reed bed, current, fog bank, hidden shell and message
+// bottle, all placed by hand, plus the story's letters and the pool of side deliveries. Data and geometry only, no DOM:
+// driftwood-game.ts holds the rules and driftwood-scene.ts draws it.
+//
+// Coordinates are lake units, x to the east and y to the south; angles are radians with 0 pointing east and π/2 south.
+
+export const LAKE_W = 4000, LAKE_H = 3000;
+/** How far from the lake's edge the land starts. The boat bumps softly off it. */
+export const SHORE = 70;
+
+export type IslandId =
+  | 'home' | 'lighthouse' | 'bakery' | 'boatyard' | 'reeds' | 'orchard' | 'market' | 'heron' | 'rabbits' | 'observatory'
+  | 'palm' | 'sandbar' | 'birdhouse' | 'gullrest' | 'pebblebar';
+export type ResidentId = 'duo' | 'tuft' | 'pip' | 'bun' | 'tamsin' | 'mossy' | 'bramble' | 'clover' | 'grisel' | 'dabble' | 'quill';
+export type Pt = [number, number];
+
+export type IslandDef = {
+  id: IslandId; name: string; x: number; y: number;
+  /** The shore's distance from the middle every 30°, going clockwise from east. Smoothed into the coast. */
+  radii: number[];
+  /** Which way the jetty points out from the island (villages only). */
+  dockA: number | null;
+  art: string; resident: ResidentId | null; blurb: string;
+};
+
+export const ISLAND_DEFS: IslandDef[] = [
+  { id: 'home', name: 'Whisker Cove', x: 600, y: 2470, radii: [205, 200, 185, 175, 190, 215, 240, 225, 200, 180, 190, 210], dockA: -0.75, art: 'island-home', resident: 'duo',
+    blurb: 'Home: the red-roofed post office, Granny Tuft’s burrow and the boathouse where the driftwood dinghy waited.' },
+  { id: 'lighthouse', name: 'Lighthouse Rock', x: 1450, y: 1880, radii: [125, 135, 120, 112, 128, 140, 130, 118, 126, 138, 120, 115], dockA: 2.35, art: 'island-lighthouse', resident: 'pip',
+    blurb: 'A rocky knuckle with a white-and-red lighthouse. Old Pip has kept the lamp for forty years.' },
+  { id: 'bakery', name: 'Crumb Isle', x: 1760, y: 2620, radii: [150, 160, 165, 150, 140, 150, 165, 160, 150, 145, 150, 155], dockA: -1.75, art: 'island-bakery', resident: 'bun',
+    blurb: 'A round, warm island that smells of bread. The windmill grinds Bun’s flour.' },
+  { id: 'boatyard', name: 'Slipway Isle', x: 420, y: 1640, radii: [180, 170, 150, 140, 150, 165, 175, 160, 150, 160, 175, 185], dockA: 0.15, art: 'island-boatyard', resident: 'tamsin',
+    blurb: 'Timber stacks, a crane and a slipway. Tamsin can fix anything that floats, and some things that don’t.' },
+  { id: 'reeds', name: 'Reedmere', x: 2620, y: 2380, radii: [175, 150, 140, 160, 175, 150, 135, 150, 170, 160, 145, 165], dockA: -1.45, art: 'island-reeds', resident: 'mossy',
+    blurb: 'Stilt houses over the marsh, lily pads and the loudest choir on the lake.' },
+  { id: 'orchard', name: 'Blossom Holm', x: 3460, y: 2500, radii: [195, 185, 170, 180, 200, 210, 190, 175, 185, 200, 195, 190], dockA: -2.45, art: 'island-orchard', resident: 'bramble',
+    blurb: 'Blossom trees and humming beehives. Bramble looks after both.' },
+  { id: 'market', name: 'Bobbin Market', x: 2200, y: 1520, radii: [190, 175, 165, 170, 180, 185, 175, 165, 170, 185, 190, 195], dockA: 1.65, art: 'island-market', resident: 'dabble',
+    blurb: 'Striped stalls and bargains. If it exists, Dabble sells it; if it doesn’t, Dabble knows a duck.' },
+  { id: 'heron', name: 'Crag Top', x: 1060, y: 820, radii: [140, 150, 155, 135, 125, 140, 160, 150, 130, 125, 135, 145], dockA: 1.85, art: 'island-heron', resident: 'grisel',
+    blurb: 'A tall grey crag with a very tidy nest on top, and a very particular heron in it.' },
+  { id: 'rabbits', name: 'Twin Hills', x: 3420, y: 1470, radii: [180, 165, 200, 215, 190, 170, 175, 165, 205, 220, 195, 175], dockA: 3.0, art: 'island-rabbits', resident: 'clover',
+    blurb: 'Two grassy hills full of burrows, joined by a little bridge. Clover lives on the left hill.' },
+  { id: 'observatory', name: 'Starpine', x: 2720, y: 540, radii: [165, 180, 170, 155, 160, 175, 170, 160, 150, 160, 170, 160], dockA: 1.7, art: 'island-observatory', resident: 'quill',
+    blurb: 'Tall pines and a tiny domed observatory, often wrapped in fog. Professor Quill counts the stars.' },
+  { id: 'palm', name: 'Lone Palm', x: 1900, y: 930, radii: [62, 58, 55, 60, 66, 62, 58, 54, 60, 64, 60, 58], dockA: null, art: 'island-small-1', resident: null, blurb: 'One tree, two rocks and a great deal of opinion from the gulls.' },
+  { id: 'sandbar', name: 'Shell Sandbar', x: 3040, y: 1980, radii: [90, 60, 45, 50, 70, 95, 85, 55, 45, 50, 65, 85], dockA: null, art: 'island-small-2', resident: null, blurb: 'A long pale sandbar that collects shells and sunbathing ducks.' },
+  { id: 'birdhouse', name: 'Birdhouse Rock', x: 430, y: 470, radii: [58, 62, 55, 52, 60, 64, 58, 52, 56, 60, 62, 58], dockA: null, art: 'island-small-3', resident: null, blurb: 'A mossy rock with a birdhouse on a post. Nobody knows who lives in it.' },
+  { id: 'gullrest', name: 'Gull Rest', x: 3640, y: 760, radii: [64, 60, 58, 62, 70, 66, 60, 56, 62, 68, 64, 60], dockA: null, art: 'island-small-1', resident: null, blurb: 'A palm, some rocks, and gulls resting from a hard day of shouting.' },
+  { id: 'pebblebar', name: 'Pebble Bar', x: 1160, y: 1420, radii: [70, 50, 42, 46, 60, 72, 64, 46, 40, 46, 56, 68], dockA: null, art: 'island-small-2', resident: null, blurb: 'A curl of pebbles just above the water, perfect for skimming stones.' },
+];
+
+export type Rock = { x: number; y: number; r: number; shoal?: boolean };
+/** Rocks bump the boat; shoals are pale sandy shallows that bump it the same way. */
+export const ROCKS: Rock[] = [
+  // around Lighthouse Rock
+  { x: 1610, y: 1770, r: 26 }, { x: 1300, y: 1760, r: 22 }, { x: 1620, y: 1990, r: 20 }, { x: 1660, y: 1830, r: 14 },
+  // Crag Top's skirt of boulders
+  { x: 880, y: 760, r: 30 }, { x: 1240, y: 700, r: 26 }, { x: 1220, y: 960, r: 20 }, { x: 930, y: 980, r: 18 },
+  // the narrows between the market and Pebble Bar
+  { x: 1660, y: 1400, r: 24 }, { x: 1720, y: 1640, r: 20 },
+  // Shell Sandbar's shoals
+  { x: 3190, y: 1910, r: 46, shoal: true }, { x: 2900, y: 2080, r: 40, shoal: true },
+  // Starpine's rocky approach, hidden in the fog
+  { x: 2520, y: 760, r: 26 }, { x: 2930, y: 740, r: 24 }, { x: 2600, y: 330, r: 22 }, { x: 2900, y: 420, r: 18 },
+  // the far east and the orchard
+  { x: 3760, y: 1980, r: 30 }, { x: 3200, y: 2700, r: 26 }, { x: 3700, y: 2240, r: 18 },
+  // Twin Hills' little reef
+  { x: 3150, y: 1300, r: 22 }, { x: 3180, y: 1650, r: 20 },
+  // near home and the bakery
+  { x: 930, y: 2300, r: 22 }, { x: 1300, y: 2560, r: 26, shoal: true }, { x: 2080, y: 2470, r: 22 },
+  // the north-west
+  { x: 620, y: 560, r: 24 }, { x: 300, y: 1040, r: 28 }, { x: 1520, y: 520, r: 30, shoal: true },
+  // Gull Rest
+  { x: 3500, y: 640, r: 20 }, { x: 3780, y: 900, r: 22 },
+];
+
+/** Reed beds: ellipses that slow the boat to a crawl. Reedmere is ringed with them. */
+export type Reed = { x: number; y: number; rx: number; ry: number; rot: number };
+export const REEDS: Reed[] = [
+  { x: 2390, y: 2230, rx: 140, ry: 60, rot: 0.5 }, { x: 2860, y: 2520, rx: 150, ry: 70, rot: -0.35 }, { x: 2480, y: 2610, rx: 110, ry: 55, rot: 0.25 },
+  { x: 230, y: 2150, rx: 120, ry: 60, rot: 1.2 }, { x: 3820, y: 1500, rx: 100, ry: 50, rot: 1.4 }, { x: 1020, y: 2680, rx: 120, ry: 50, rot: -0.2 },
+];
+
+/** Currents: streams that carry the boat along their line, strongest in the middle. `speed` is lake units a tick. */
+export type Current = { name: string; pts: Pt[]; w: number; speed: number };
+export const CURRENTS: Current[] = [
+  { name: 'The Long Current', pts: [[260, 1240], [900, 1190], [1500, 1180], [1950, 1140], [2500, 1060], [3000, 1020], [3500, 1060], [3860, 1150]], w: 120, speed: 1.15 },
+  { name: 'The Homeward Drift', pts: [[2950, 1760], [2450, 1960], [1950, 2150], [1450, 2230], [1000, 2190]], w: 110, speed: 1.0 },
+  { name: 'Heron’s Race', pts: [[720, 380], [760, 760], [760, 1100], [700, 1420]], w: 95, speed: 0.9 },
+];
+
+/** Fog banks: soft patches that hide the chart and shrink how far you can see. They drift a little. */
+export type Fog = { x: number; y: number; r: number };
+export const FOGS: Fog[] = [
+  { x: 2720, y: 560, r: 470 },
+  { x: 3680, y: 560, r: 300 },
+  { x: 320, y: 300, r: 280 },
+  { x: 1980, y: 2000, r: 220 },
+];
+
+/** Hidden shells in coves and behind rocks: sail over one to pick it up. */
+export const SHELLS: Pt[] = [
+  [880, 2620], [1260, 1980], [1880, 2810], [640, 1500], [2780, 2640], [3700, 2420], [2380, 1700], [1180, 620],
+  [3640, 1240], [2560, 300], [1950, 1030], [3100, 1870], [520, 360], [3730, 900], [1150, 1520], [310, 1900],
+  [3230, 2760], [2980, 690], [1680, 1720], [2140, 2380],
+];
+
+export type Bottle = { x: number; y: number; title: string; text: string };
+export const BOTTLES: Bottle[] = [
+  { x: 1050, y: 2050, title: 'A very old note', text: 'When this lake was young, a post boat called the Dandelion sailed it every morning. The islands sent each other bread and gossip and the occasional goat. Whoever finds this: keep the post going.' },
+  { x: 2050, y: 760, title: 'A note in a pup’s handwriting', text: 'I am Pip and I am seven and tonight I sailed in the Lantern Regatta with my dad. Every island lit up. When I am big I will keep the lighthouse so the lights never go out.' },
+  { x: 3300, y: 1820, title: 'A note with a cloud drawn on it', text: 'If you find this, I am Clover and I am six and I like clouds. If you also like clouds please write back. I live on the left hill. (Not the right hill.)' },
+  { x: 860, y: 1260, title: 'A sailor’s tip', text: 'The Long Current runs east across the middle of the lake. Ride it to the market and you’ll be there before your tea goes cold. Coming back, use the Homeward Drift in the south.' },
+  { x: 3000, y: 2900, title: 'Tamsin’s grandad’s notebook', text: 'A good keel lets a boat point higher into the wind. A bigger sail is grand on a reach. And a sturdy hull forgives a lot of rocks. Most important: say thank you to your boat.' },
+  { x: 2400, y: 940, title: 'A pressed feather', text: 'Lantern Regatta, champion: G. Heron of Crag Top, three years running. She sailed like the wind and she complained about the wind the whole way round.' },
+];
+
+export type Resident = { name: string; role: string; art: string | null };
+export const RESIDENTS: Record<ResidentId, Resident> = {
+  duo: { name: 'Dora & Enzo', role: 'the new posties', art: 'dora' },
+  tuft: { name: 'Granny Tuft', role: 'Dora and Enzo’s gran', art: null },
+  pip: { name: 'Old Pip', role: 'lighthouse keeper', art: 'otter' },
+  bun: { name: 'Bun', role: 'baker', art: 'mole' },
+  tamsin: { name: 'Tamsin', role: 'boatwright', art: 'beaver' },
+  mossy: { name: 'Mossy', role: 'choir conductor', art: null },
+  bramble: { name: 'Bramble', role: 'beekeeper', art: 'rabbit-b' },
+  clover: { name: 'Clover', role: 'cloud-spotter', art: 'rabbit-a' },
+  grisel: { name: 'Mrs Grisel', role: 'heron of strong opinions', art: 'heron' },
+  dabble: { name: 'Dabble', role: 'market trader', art: 'duck' },
+  quill: { name: 'Professor Quill', role: 'astronomer', art: 'hedgehog' },
+};
+
+/** The story: who writes to whom, in order. `need` lists the story letters that must arrive before this one is written. */
+export type StoryDef = {
+  n: number; from: IslandId; to: IslandId; sender: ResidentId; recipient: ResidentId; title: string; text: string;
+  parcel?: boolean; heavy?: boolean; fragile?: boolean; express?: boolean; need: number[];
+};
+export const STORY: StoryDef[] = [
+  { n: 1, from: 'home', to: 'lighthouse', sender: 'tuft', recipient: 'pip', need: [], title: 'A letter for Old Pip',
+    text: 'Dear Pip,\nThe post boat has sprung a leak, so my two grandkits have patched up that old driftwood dinghy and declared themselves the post. They are very fluffy and very serious about it. Please act surprised.\nLove, Tuft' },
+  { n: 2, from: 'lighthouse', to: 'bakery', sender: 'pip', recipient: 'bun', need: [1], title: 'An order for a seed loaf',
+    text: 'Bun, old friend,\nA post boat! I nearly dropped my kettle. My lamp’s gone dim and my larder’s gone dimmer. One seed loaf, please, and all the news you’ve been saving up these four quiet years.\n— Pip' },
+  { n: 3, from: 'bakery', to: 'home', sender: 'bun', recipient: 'tuft', need: [2], parcel: true, fragile: true, title: 'Six cream buns',
+    text: 'Dear Tuft,\nThank-you buns for your brave posties: six cream buns, still warm. Please tell them not to sail into anything. Buns are very delicate. So am I, if I’m honest.\nFloury regards, Bun' },
+  { n: 4, from: 'home', to: 'boatyard', sender: 'tuft', recipient: 'tamsin', need: [3], title: 'A worried note about the boat',
+    text: 'Tamsin, dear,\nThe children’s boat is held together with string, hope and one of my old scarves. Could you look her over? I’ve put shells in the jar to pay for it. Don’t tell them I said “hope”.\n— Tuft' },
+  { n: 5, from: 'boatyard', to: 'lighthouse', sender: 'tamsin', recipient: 'pip', need: [4], parcel: true, heavy: true, title: 'A lamp wick (and an anchor)',
+    text: 'Pip,\nHere is the lamp wick you ordered four years ago. Sorry about the wait. It’s heavy because I’ve put a spare anchor in the box. No reason. Anchors are just nice to have.\n— Tamsin' },
+  { n: 6, from: 'lighthouse', to: 'rabbits', sender: 'pip', recipient: 'clover', need: [5], title: 'An answer, years late',
+    text: 'Young Clover,\nYears ago you asked me whether anyone else on the lake liked cloud-spotting. I’ve finally remembered: Bramble, over on Blossom Holm. Write to her. The post is back, so you’ve no excuse.\n— Old Pip' },
+  { n: 7, from: 'rabbits', to: 'orchard', sender: 'clover', recipient: 'bramble', need: [6], title: 'A shy first letter',
+    text: 'Dear Bramble,\nPip says you like clouds. Today I saw one shaped like a teapot. Do you like teapots? You don’t have to answer. (Please answer.)\nFrom Clover, Twin Hills (the left hill)' },
+  { n: 8, from: 'orchard', to: 'rabbits', sender: 'bramble', recipient: 'clover', need: [7], express: true, title: 'EXPRESS EXPRESS EXPRESS',
+    text: 'Dear Clover,\nI DO like teapots!! This morning I saw a cloud shaped like a rabbit holding a teapot, and I think it might have been you. Is that a strange thing to write? I have written EXPRESS on this three times.\nYour friend (?) Bramble' },
+  { n: 9, from: 'orchard', to: 'bakery', sender: 'bramble', recipient: 'bun', need: [8], parcel: true, heavy: true, title: 'Four jars of blossom honey',
+    text: 'Dear Mr Bun,\nThe bees have been busy and so have I. Four jars of blossom honey, as promised before the post went quiet. Sorry they’re four years late. The bees say sorry too. Mostly they say “bzz”.\n— Bramble' },
+  { n: 10, from: 'bakery', to: 'market', sender: 'bun', recipient: 'dabble', need: [9], title: 'A flour order',
+    text: 'Dabble!\nThe posties are back and I have honey again. Order me the big flour sacks, the really big ones you have to sit on to close. Something tells me everyone’s going to want cake.\n— Bun' },
+  { n: 11, from: 'market', to: 'heron', sender: 'dabble', recipient: 'grisel', need: [10], parcel: true, fragile: true, title: 'New spectacles',
+    text: 'Mrs G!\nYour new spectacles have finally come in! Rather than make you fly down to the market and complain about the queue, I’m sending them by post. Handle with care, posties. She will check.\nQuack quack, Dabble' },
+  { n: 12, from: 'heron', to: 'home', sender: 'grisel', recipient: 'duo', need: [11], title: 'A complaint (sort of)',
+    text: 'To Whom It May Concern,\nYour boat is too small. Your posties are too fluffy. My spectacles arrived in perfect condition, which is most irregular, and I intend to get used to it.\nYours, Mrs Grisel\nP.S. Thank you.' },
+  { n: 13, from: 'market', to: 'reeds', sender: 'dabble', recipient: 'mossy', need: [10], parcel: true, heavy: true, title: 'Ten lily pads',
+    text: 'Mossy, my dear,\nTen fresh lily pads for the choir stand, as ordered! The posties tell me they’re much heavier than they look. Most things are, except clouds and rumours.\nQuack, Dabble' },
+  { n: 14, from: 'reeds', to: 'observatory', sender: 'mossy', recipient: 'quill', need: [13], title: 'A question about stars',
+    text: 'Dear Professor,\nThe Reedmere Choir would like to sing to the stars. Which night of the season will they be brightest? We are ready to practise. We have been practising. We never stop. Ribbit.\n— Mossy, conductor' },
+  { n: 15, from: 'observatory', to: 'lighthouse', sender: 'quill', recipient: 'pip', need: [14], express: true, title: 'Urgent and exciting!',
+    text: 'Pip! Urgent and exciting!\nMy sums say the clearest night of the year is coming very soon. From up here I could see every island at once, if only they were lit. Your lamp could reach them all with a proper lens. I am grinding one!\n— Professor Quill' },
+  { n: 16, from: 'lighthouse', to: 'market', sender: 'pip', recipient: 'dabble', need: [15, 12], title: 'An old otter’s idea',
+    text: 'Dabble,\nAn old otter’s idea. On the clear night, what if every island lit a lantern and sailed out to the lighthouse, like the regattas we had when I was a pup? Tell everybody. You’re the best at telling everybody.\n— Pip' },
+  { n: 17, from: 'market', to: 'boatyard', sender: 'dabble', recipient: 'tamsin', need: [16], express: true, title: 'TAMSIN! REGATTA!',
+    text: 'TAMSIN!\nA Lantern Regatta! The whole lake is coming! Everyone wants a boat! How many can you build by the clear night? (Please say lots.) (Please say hundreds.)\nVery excited quacks, Dabble' },
+  { n: 18, from: 'boatyard', to: 'observatory', sender: 'tamsin', recipient: 'quill', need: [17], parcel: true, heavy: true, title: 'A brass lens mount',
+    text: 'Professor,\nBrass mount for your lens, made from the drawing on the back of your napkin. I built nine boats today and I’m not even tired. That’s a lie. Mind your spines on the edges.\n— Tamsin' },
+  { n: 19, from: 'observatory', to: 'lighthouse', sender: 'quill', recipient: 'pip', need: [18], parcel: true, fragile: true, title: 'The great lens',
+    text: 'Pip,\nThe lens! Ground by paw over eleven nights. Please do not drop it, sit on it, or use it to make toast. It will throw your light to the far shore and back.\nStarrily, Quill' },
+  { n: 20, from: 'rabbits', to: 'orchard', sender: 'clover', recipient: 'bramble', need: [16], express: true, title: 'A very brave question',
+    text: 'Bramble,\nThere’s going to be a regatta. Would you like to share a boat? You can say no. Please don’t say no. I’ve drawn you a teapot on the back to help you decide.\n— Clover (the left hill)' },
+  { n: 21, from: 'orchard', to: 'rabbits', sender: 'bramble', recipient: 'clover', need: [20], title: 'YES',
+    text: 'YES.\n(Sorry for shouting. Yes, please.) I will bring the teapot. A real one, with honey. I’m so happy I told the bees, and the bees told everyone.\n— Bramble' },
+  { n: 22, from: 'heron', to: 'bakery', sender: 'grisel', recipient: 'bun', need: [16], title: 'A cake reservation',
+    text: 'Mr Bun,\nI shall attend this regatta purely to complain about it. Kindly reserve me a large slice of something. Not too large. Quite large. Make it large.\n— Mrs Grisel' },
+  { n: 23, from: 'bakery', to: 'lighthouse', sender: 'bun', recipient: 'pip', need: [22], parcel: true, heavy: true, fragile: true, title: 'The Lantern Cake',
+    text: 'Pip,\nOne Lantern Cake: three layers, honey icing and a little marzipan lighthouse on top. It is heavy and it is fragile, like all the best things. Tilt it and I’ll know.\n— Bun' },
+  { n: 24, from: 'lighthouse', to: 'home', sender: 'pip', recipient: 'duo', need: [19, 21, 23], title: 'An invitation',
+    text: 'To the Posties of Lake Whisker,\nEvery island is talking again, and it’s because of you two and your leaky little boat. Tonight is the clear night. Sail to the lighthouse at dusk, and bring a lantern.\nWith love, Old Pip' },
+];
+
+/** Side deliveries, drawn from this pool between story letters. `{to}` and `{from}` become the residents’ names. */
+export type SideDef = { title: string; text: string; parcel?: boolean; heavy?: boolean; fragile?: boolean; express?: boolean };
+export const SIDE_POOL: SideDef[] = [
+  { title: 'A postcard', text: 'Dear {to},\nWish you were here! I’ve drawn a picture of here on the front so you can see it. It’s the same as there, mostly, but with more me.\n— {from}' },
+  { title: 'Knitted socks', parcel: true, text: '{to},\nI knitted you socks. One is longer than the other. Wear it on your longer leg.\n— {from}' },
+  { title: 'A jar of pickled acorns', parcel: true, heavy: true, text: 'For {to}: pickled acorns, my mother’s recipe. Do not open near anyone you wish to keep as a friend.\n— {from}' },
+  { title: 'A painted teacup', parcel: true, fragile: true, text: '{to},\nA teacup I painted with tiny boats on it. If it arrives in one piece, the posties are wizards.\n— {from}' },
+  { title: 'A party invitation', express: true, text: '{to}!\nParty! Tonight! Bring a hat! Any hat! Even a small one! Reply by post, quickly, it’s tonight!\n— {from}' },
+  { title: 'A borrowed book, returned', parcel: true, text: 'Dear {to},\nHere is your book back. I only spilt tea on one page and I think it improves the plot.\n— {from}' },
+  { title: 'A recipe card', text: '{to},\nAs promised: dandelion fritters. The secret ingredient is more dandelions.\n— {from}' },
+  { title: 'Pressed flowers', fragile: true, parcel: true, text: 'For {to}: flowers from my garden, pressed flat in a very heavy dictionary. Please open gently.\n— {from}' },
+  { title: 'A box of good pebbles', parcel: true, heavy: true, text: '{to},\nFor your garden path. They are very good pebbles. I checked each one personally.\n— {from}' },
+  { title: 'A birthday card', express: true, text: 'Happy birthday, {to}! I remembered! (I nearly didn’t.) Please read this before the day is over.\n— {from}' },
+  { title: 'A crossword answer', express: true, text: '{to},\nIt was “TEAPOT”. I couldn’t wait until Thursday. I may never sleep again.\n— {from}' },
+  { title: 'A tin of biscuits', parcel: true, text: 'Dear {to},\nA tin of biscuits. There were twelve. There are now eleven. I tested one for safety.\n— {from}' },
+  { title: 'A drawing of a cloud', text: '{to},\nI saw this cloud and thought of you. It looks like a sheep doing its taxes.\n— {from}' },
+  { title: 'A spare lantern', parcel: true, fragile: true, text: '{to},\nA spare lantern for long evenings. Light it, put the kettle on, and think of me.\n— {from}' },
+  { title: 'A thank-you note', text: 'Dear {to},\nThank you for the thing. You know the thing. It was lovely, and I think of it often.\n— {from}' },
+  { title: 'A jar of jam', parcel: true, heavy: true, fragile: true, text: '{to},\nBlackberry jam, the good kind. The jar is heavy and the glass is thin, so I’ve wrapped it in three scarves.\n— {from}' },
+];
+
+// ---------------------------------------------------------------- geometry
+
+export type Island = IslandDef & {
+  /** The smoothed coast, used both for collisions and for drawing. */
+  poly: Pt[];
+  /** The farthest the coast reaches from the middle, for quick distance checks. */
+  reach: number;
+  /** Where the boat ties up, and which way it faces when it casts off. */
+  dock: { x: number; y: number; a: number } | null;
+  /** Where the jetty meets the shore. */
+  pier: Pt | null;
+};
+
+/** The coast through the radii, smoothed with a closed Catmull-Rom spline (it passes through every radius point). */
+export function coast(d: { x: number; y: number; radii: number[] }, sub = 4): Pt[] {
+  const n = d.radii.length, ctl: Pt[] = d.radii.map((r, i) => { const a = (i / n) * Math.PI * 2; return [d.x + Math.cos(a) * r, d.y + Math.sin(a) * r]; });
+  const out: Pt[] = [];
+  for (let i = 0; i < n; i++) {
+    const p0 = ctl[(i - 1 + n) % n], p1 = ctl[i], p2 = ctl[(i + 1) % n], p3 = ctl[(i + 2) % n];
+    for (let s = 0; s < sub; s++) {
+      const t = s / sub, t2 = t * t, t3 = t2 * t;
+      const f = (a: number, b: number, c: number, e: number) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - e) * t2 + (-a + 3 * b - 3 * c + e) * t3);
+      out.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
+    }
+  }
+  return out;
+}
+
+/** The coast's radius in a direction, read off the smoothed polygon by casting a ray from the middle. */
+export function radiusAt(poly: Pt[], cx: number, cy: number, a: number) {
+  const dx = Math.cos(a), dy = Math.sin(a); let best = 0;
+  for (let i = 0; i < poly.length; i++) {
+    const [ax, ay] = poly[i], [bx, by] = poly[(i + 1) % poly.length];
+    const ex = bx - ax, ey = by - ay, den = dx * ey - dy * ex; if (Math.abs(den) < 1e-9) continue;
+    const t = ((ax - cx) * ey - (ay - cy) * ex) / den, u = ((ax - cx) * dy - (ay - cy) * dx) / den;
+    if (t > 0 && u >= 0 && u <= 1) best = Math.max(best, t);
+  }
+  return best;
+}
+
+/** How far out from the coast the jetty reaches: the boat ties up at its end. */
+export const PIER = 58;
+
+export const ISLANDS: Island[] = ISLAND_DEFS.map((d) => {
+  const poly = coast(d), reach = Math.max(...poly.map(([x, y]) => Math.hypot(x - d.x, y - d.y)));
+  let dock: Island['dock'] = null, pier: Pt | null = null;
+  if (d.dockA !== null) {
+    const r = radiusAt(poly, d.x, d.y, d.dockA);
+    pier = [d.x + Math.cos(d.dockA) * (r - 6), d.y + Math.sin(d.dockA) * (r - 6)];
+    dock = { x: d.x + Math.cos(d.dockA) * (r + PIER), y: d.y + Math.sin(d.dockA) * (r + PIER), a: d.dockA };
+  }
+  return { ...d, poly, reach, dock, pier };
+});
+export const ISLAND: Record<IslandId, Island> = Object.fromEntries(ISLANDS.map((i) => [i.id, i])) as Record<IslandId, Island>;
+export const VILLAGES = ISLANDS.filter((i) => i.dock !== null).map((i) => i.id);
+
+export function insidePoly(poly: Pt[], x: number, y: number) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/** The nearest point on a polygon's outline. */
+export function nearestOnPoly(poly: Pt[], x: number, y: number): { x: number; y: number; d: number } {
+  let bx = 0, by = 0, bd = Infinity;
+  for (let i = 0; i < poly.length; i++) {
+    const [ax, ay] = poly[i], [cx, cy] = poly[(i + 1) % poly.length];
+    const ex = cx - ax, ey = cy - ay, l2 = ex * ex + ey * ey;
+    const t = l2 > 0 ? Math.max(0, Math.min(1, ((x - ax) * ex + (y - ay) * ey) / l2)) : 0;
+    const px = ax + ex * t, py = ay + ey * t, d = (px - x) * (px - x) + (py - y) * (py - y);
+    if (d < bd) { bd = d; bx = px; by = py; }
+  }
+  return { x: bx, y: by, d: Math.sqrt(bd) };
+}
+
+/** The lake's edge wanders in and out a little, so the far shore looks like a shore and not a box. */
+export const shoreIn = (t: number, side: number) => SHORE + 26 * Math.sin(t * 0.0037 + side * 1.9) + 14 * Math.sin(t * 0.0113 + side * 4.1);
+/** How far a point is inside the lake's edge (negative on land), and which way is back into the lake. */
+export function edgeDist(x: number, y: number): { d: number; nx: number; ny: number } {
+  const l = x - shoreIn(y, 0), r = LAKE_W - shoreIn(y, 1) - x, t = y - shoreIn(x, 2), b = LAKE_H - shoreIn(x, 3) - y;
+  const d = Math.min(l, r, t, b);
+  return d === l ? { d, nx: 1, ny: 0 } : d === r ? { d, nx: -1, ny: 0 } : d === t ? { d, nx: 0, ny: 1 } : { d, nx: 0, ny: -1 };
+}
+
+/**
+ * How far a point is from anything solid (coasts, rocks, shoals, the lake's edge), negative inside. Used by the
+ * pathfinding in the bot and the tests, and by the scene's shallows; the rules use the same shapes.
+ */
+export function clearance(x: number, y: number) {
+  let d = edgeDist(x, y).d;
+  for (const r of ROCKS) d = Math.min(d, Math.hypot(x - r.x, y - r.y) - r.r);
+  for (const isl of ISLANDS) {
+    const far = Math.hypot(x - isl.x, y - isl.y) - isl.reach; if (far > d) continue;
+    const n = nearestOnPoly(isl.poly, x, y); d = Math.min(d, insidePoly(isl.poly, x, y) ? -n.d : n.d);
+  }
+  return d;
+}
+
+/** Whether a point is inside a reed bed. */
+export function inReeds(x: number, y: number) {
+  for (const r of REEDS) {
+    const dx = x - r.x, dy = y - r.y, c = Math.cos(-r.rot), s = Math.sin(-r.rot), u = dx * c - dy * s, v = dx * s + dy * c;
+    if ((u * u) / (r.rx * r.rx) + (v * v) / (r.ry * r.ry) <= 1) return true;
+  }
+  return false;
+}
+
+/** The current's push at a point, in lake units a tick: along the nearest stretch of stream, fading to its edges. */
+export function currentAt(x: number, y: number): Pt {
+  let vx = 0, vy = 0;
+  for (const c of CURRENTS) {
+    let best = Infinity, dx = 0, dy = 0, along = 0;
+    for (let i = 0; i < c.pts.length - 1; i++) {
+      const [ax, ay] = c.pts[i], [bx, by] = c.pts[i + 1], ex = bx - ax, ey = by - ay, l2 = ex * ex + ey * ey;
+      const t = Math.max(0, Math.min(1, ((x - ax) * ex + (y - ay) * ey) / l2)), px = ax + ex * t, py = ay + ey * t, d = Math.hypot(x - px, y - py);
+      if (d < best) { best = d; const l = Math.sqrt(l2); dx = ex / l; dy = ey / l; along = (i + t) / (c.pts.length - 1); }
+    }
+    if (best >= c.w) continue;
+    // full strength in the middle, easing to nothing at the edge, and easing in and out at the stream's two ends
+    const across = 1 - (best / c.w) ** 2, ends = Math.min(1, along * 8, (1 - along) * 8), k = c.speed * across * Math.max(0, ends);
+    vx += dx * k; vy += dy * k;
+  }
+  return [vx, vy];
+}
+
+/** A fog bank's middle at a tick: they wander slowly in small loops. */
+export function fogAt(i: number, tick: number): Fog {
+  const f = FOGS[i], t = tick / 30;
+  return { x: f.x + Math.sin(t * 0.021 + i * 1.7) * 70, y: f.y + Math.cos(t * 0.017 + i * 2.3) * 45, r: f.r * (1 + Math.sin(t * 0.031 + i) * 0.06) };
+}
+/** How deep in fog a point is: 0 in clear air, 1 in the thick of it. */
+export function fogDepth(x: number, y: number, tick: number) {
+  let k = 0;
+  for (let i = 0; i < FOGS.length; i++) { const f = fogAt(i, tick), d = Math.hypot(x - f.x, y - f.y) / f.r; if (d < 1) k = Math.max(k, Math.min(1, (1 - d) * 2.2)); }
+  return k;
+}
