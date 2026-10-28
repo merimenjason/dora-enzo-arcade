@@ -3,7 +3,7 @@
 // the Twig Shower minigame. Drawing only: the rules live in hayloft-game.ts. Painted art loads from public/art/hayloft/ and
 // the drawn stand-ins below show until it arrives (or if it never does).
 import { drawChinchilla, coatLike, type Coat } from './chinchilla-art';
-import { BUILDINGS, MANAGERS, VALLEYS, N, fmt, type GameEvent, type HayloftGame, type TwigShower, type VisitorKind } from './hayloft-game';
+import { BUILDINGS, MANAGERS, MILESTONES, VALLEYS, N, fmt, type GameEvent, type HayloftGame, type TwigShower, type VisitorKind } from './hayloft-game';
 
 const FONT = 'ui-rounded, "Trebuchet MS", system-ui, sans-serif';
 const ART = '/art/hayloft/';
@@ -229,18 +229,36 @@ export class HayloftScene {
   }
   private building(g: HayloftGame, i: number, x: number, L: ReturnType<HayloftScene['L']>) {
     const c = this.c, s = g.s, b = BUILDINGS[i], t = this.wall, size = L.size, gy = L.ground;
-    const hop = Math.max(0, 1 - (t - this.hops[i]) * 4), squash = 1 + Math.sin(Math.min(1, (t - this.hops[i]) * 4) * Math.PI) * 0.04 * (hop > 0 ? 1 : 0);
+    // a payout bounce: a quick squash, a stretch up off the ground, then a wobble back to rest
+    const since = t - this.hops[i], bounce = since < 0.55 ? Math.sin((since / 0.55) * Math.PI * 2) * Math.exp(-since * 5) : 0;
+    const busy = s.managers[i] || s.cycles[i] >= 0;
+    // idle, it breathes slowly; at work it bobs to the beat of its run
+    const breathe = Math.sin(t * 1.7 + i * 1.3) * 0.012, work = busy ? Math.abs(Math.sin(t * 4.2 + i)) * 0.022 : 0;
+    const squash = 1 + breathe + work - bounce * 0.09, lift = Math.max(0, bounce) * size * 0.05;
+    const tilt = busy ? Math.sin(t * 2.1 + i) * 0.012 : Math.sin(t * 0.9 + i) * 0.006;
     // shadow
     c.fillStyle = 'rgba(40,30,20,.18)'; c.beginPath(); c.ellipse(x, gy + 2, size * 0.42, size * 0.07, 0, 0, Math.PI * 2); c.fill();
     const img = this.art(`building-${b.id}`);
-    c.save(); c.translate(x, gy); c.scale(2 - squash, squash);
+    // each milestone reached makes the building a touch bigger; each of its shop upgrades dresses it up
+    const stars = MILESTONES.filter(([l]) => s.levels[i] >= l).length, grow = 1 + Math.min(stars, 10) * 0.008;
+    const tier = [1, 2, 3].filter((k) => s.upgrades.includes(`${b.id}-${k}`)).length;
+    c.save(); c.translate(x, gy - lift); c.rotate(tilt); c.scale((2 - squash) * grow, squash * grow);
+    if (tier >= 2) this.glow(size, t, i);
     if (img) c.drawImage(img, -size / 2, -size, size, size); else this.drawnBuilding(i, size, t, g.s.managers[i]);
+    if (tier >= 1) this.bunting(size, t, i);
+    if (tier >= 2) this.lanterns(size, t, i);
+    if (tier >= 3) this.pennant(size, t, b.color);
     c.restore();
+    if (busy) this.wisps(x, gy - size * grow * 0.86 - lift, size, t, i, b.color);
+    if (stars) this.milestoneStars(x, gy, stars);
     // helper hopping beside it
     if (s.managers[i]) {
-      const hx = x + size * 0.36, hh = Math.max(22, size * 0.24), up = Math.max(0, Math.sin(Math.min(1, (t - this.hops[i]) * 3) * Math.PI)) * 10;
+      // a cheer jump when the run pays out, little working hops in between, and breathing all the time
+      const hx = x + size * 0.36, hh = Math.max(22, size * 0.24), cheer = Math.max(0, Math.sin(Math.min(1, (t - this.hops[i]) * 3) * Math.PI)) * hh * 0.5;
+      const beat = (t * 1.4 + i * 0.37) % 1, hopUp = beat < 0.35 ? Math.sin((beat / 0.35) * Math.PI) * hh * 0.14 : 0, up = cheer + hopUp;
+      const land = beat >= 0.35 && beat < 0.5 ? Math.sin(((beat - 0.35) / 0.15) * Math.PI) * 0.08 : 0;
       const img = this.art(i === 0 ? 'dora' : i === 1 ? 'enzo' : helperArt(MANAGERS[i]));
-      if (img) { const sz = hh * 1.9; c.drawImage(img, hx - sz / 2, gy + 6 - sz - up, sz, sz); }
+      if (img) this.critter(img, hx, gy + 6 - up, hh * 1.9, t * 1.1 + i * 2, land, Math.sin(t * 3 + i) * 0.05 + (cheer > 1 ? Math.sin(t * 18) * 0.06 : 0));
       else drawChinchilla(c, i === 0 ? 'dora' : i === 1 ? 'enzo' : HELPER_COATS[i], hx, gy + 4 - up, { face: -1, h: hh, time: t + i, blink: Math.sin(t * 0.9 + i * 3) > 0.97 });
     }
     // progress bar and level badge
@@ -277,6 +295,75 @@ export class HayloftScene {
     tag('🪙 ' + fmt(g.buyCost(i, 1)), gy + 16, '#ffd86b', '#3a2410', `900 13px ${FONT}`);
   }
   /** The drawn stand-in for a building's painting, in a size×size box with the base at (0, 0). */
+  /** A painted critter standing at (x, footY): it breathes (a slow squash at the feet), takes a landing squash and leans. */
+  private critter(img: HTMLImageElement, x: number, footY: number, sz: number, phase: number, land: number, lean: number) {
+    const c = this.c, breathe = Math.sin(phase * 2.2) * 0.025, sy = 1 + breathe - land, sx = 1 - breathe * 0.6 + land * 0.7;
+    c.save(); c.translate(x, footY); c.rotate(lean); c.scale(sx, sy); c.drawImage(img, -sz / 2, -sz, sz, sz); c.restore();
+  }
+  /** Soft puffs drifting up from the roof of a building at work, tinted with its colour. */
+  private wisps(x: number, y: number, size: number, t: number, i: number, color: string) {
+    const c = this.c, tint = shade(color, 90);
+    for (let k = 0; k < 3; k++) {
+      const u = (t * 0.45 + k / 3 + i * 0.13) % 1, r = size * (0.03 + u * 0.05);
+      c.globalAlpha = Math.sin(u * Math.PI) * 0.35; c.fillStyle = tint;
+      c.beginPath(); c.arc(x + size * 0.12 + Math.sin(u * 5 + k) * size * 0.05, y - u * size * 0.32, r, 0, Math.PI * 2); c.fill();
+    }
+    c.globalAlpha = 1;
+  }
+  // ---- upgrade dressing, drawn in the building's own frame: origin at the ground under its middle, `size` tall
+  /** Upgrade 1: a string of bunting swung across the front. */
+  private bunting(size: number, t: number, i: number) {
+    const c = this.c, x0 = -size * 0.44, x1 = size * 0.44, y = -size * 0.58, sag = size * 0.09, n = 9;
+    const at = (u: number) => [x0 + (x1 - x0) * u, y + Math.sin(u * Math.PI) * sag] as const;
+    c.strokeStyle = '#6b4a2a'; c.lineWidth = Math.max(1.2, size * 0.012); c.beginPath();
+    for (let k = 0; k <= 20; k++) { const [px, py] = at(k / 20); if (k) c.lineTo(px, py); else c.moveTo(px, py); } c.stroke();
+    const cols = ['#e8505b', '#ffd86b', '#5fb8e8', '#7ccf6a', '#f49ac1'];
+    for (let k = 0; k < n; k++) {
+      const u = (k + 0.5) / n, [px, py] = at(u), fw = size * 0.034, fh = size * 0.07, sway = Math.sin(t * 2.4 + k + i) * fw * 0.35;
+      c.fillStyle = cols[(k + i) % cols.length]; c.beginPath(); c.moveTo(px - fw, py); c.lineTo(px + fw, py); c.lineTo(px + sway, py + fh); c.closePath(); c.fill();
+    }
+  }
+  /** Upgrade 2, behind the painting: a warm glow, as if the place is busy and lit up. */
+  private glow(size: number, t: number, i: number) {
+    const c = this.c, r = size * (0.62 + Math.sin(t * 1.6 + i) * 0.02), cy = -size * 0.45;
+    const gr = c.createRadialGradient(0, cy, size * 0.1, 0, cy, r);
+    gr.addColorStop(0, 'rgba(255,214,120,.55)'); gr.addColorStop(1, 'rgba(255,214,120,0)');
+    c.fillStyle = gr; c.beginPath(); c.arc(0, cy, r, 0, Math.PI * 2); c.fill();
+  }
+  /** Upgrade 2, in front: two paper lanterns on posts either side of the door. */
+  private lanterns(size: number, t: number, i: number) {
+    const c = this.c;
+    for (const side of [-1, 1]) {
+      const px = side * size * 0.47, top = -size * 0.36, lw = size * 0.06, lh = size * 0.085, swing = Math.sin(t * 2 + side + i) * 0.12;
+      c.fillStyle = '#5a3a1e'; c.fillRect(px - size * 0.008, top, size * 0.016, -top);
+      c.save(); c.translate(px, top); c.rotate(swing);
+      const lit = 0.8 + Math.sin(t * 5 + side * 2 + i) * 0.2;
+      c.fillStyle = `rgba(255,190,80,${0.35 * lit})`; c.beginPath(); c.arc(0, lh * 0.75, lh * 1.1, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#e8505b'; c.beginPath(); c.ellipse(0, lh * 0.75, lw, lh * 0.6, 0, 0, Math.PI * 2); c.fill();
+      c.fillStyle = `rgba(255,230,150,${0.7 * lit})`; c.beginPath(); c.ellipse(0, lh * 0.75, lw * 0.5, lh * 0.4, 0, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#3a2a1a'; c.fillRect(-lw * 0.5, lh * 0.12, lw, lh * 0.12); c.fillRect(-lw * 0.5, lh * 1.28, lw, lh * 0.12);
+      c.restore();
+    }
+  }
+  /** Upgrade 3: a flag in the building's colour flying from a pole on top, with a twinkle. */
+  private pennant(size: number, t: number, color: string) {
+    const c = this.c, px = size * 0.06, base = -size * 0.86, top = -size * 1.12, fl = size * 0.2, fh = size * 0.11;
+    c.fillStyle = '#5a3a1e'; c.fillRect(px - size * 0.008, top, size * 0.016, base - top);
+    c.fillStyle = '#ffd86b'; c.beginPath(); c.arc(px, top, size * 0.018, 0, Math.PI * 2); c.fill();
+    // the flag ripples: its top and bottom edges follow the same travelling wave, more at the free end
+    const wave = (u: number) => Math.sin(t * 6 - u * 4) * fh * 0.18 * u, y0 = top + size * 0.01;
+    c.fillStyle = color; c.strokeStyle = shade(color, -60); c.lineWidth = Math.max(1, size * 0.008); c.beginPath(); c.moveTo(px, y0);
+    for (let k = 1; k <= 8; k++) { const u = k / 8; c.lineTo(px + fl * u, y0 + fh * 0.25 * u + wave(u)); }
+    for (let k = 8; k >= 0; k--) { const u = k / 8; c.lineTo(px + fl * u, top + fh * (1 - u * 0.5) + wave(u)); }
+    c.closePath(); c.fill(); c.stroke();
+    const tw = Math.max(0, Math.sin(t * 2.2)); if (tw > 0.2) { c.globalAlpha = tw; this.star(-size * 0.3, -size * 0.92, size * 0.035, '#fff3b0'); this.star(size * 0.36, -size * 0.7, size * 0.025, '#fff3b0'); c.globalAlpha = 1; }
+  }
+  /** One gold star per milestone reached, in a row under the progress bar (five, then a count). */
+  private milestoneStars(x: number, gy: number, n: number) {
+    const c = this.c, y = gy + 30, r = 5.5, gap = 13, shown = Math.min(n, 5), x0 = x - ((shown - 1) * gap) / 2 - (n > 5 ? 10 : 0);
+    for (let k = 0; k < shown; k++) this.star(x0 + k * gap, y, r, '#ffd23f');
+    if (n > 5) { c.font = `900 11px ${FONT}`; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillStyle = '#fff8e8'; c.fillText(`×${n}`, x0 + (shown - 1) * gap + 9, y + 0.5); }
+  }
   private drawnBuilding(i: number, size: number, t: number, busy: boolean) {
     const c = this.c, b = BUILDINGS[i], u = size / 100, col = b.color, ink = '#5a3a1e';
     c.lineJoin = 'round'; c.lineWidth = 2.2 * u; c.strokeStyle = ink;
@@ -306,7 +393,9 @@ export class HayloftScene {
       const k = id === 'dora' ? 0 : 1, x = L.home * (k ? 0.8 : 0.36), age = t - this.cheer[id], up = age < 0.45 ? Math.sin((age / 0.45) * Math.PI) * hgt * 0.16 : 0;
       c.fillStyle = 'rgba(40,30,20,.2)'; c.beginPath(); c.ellipse(x, gy, hgt * 0.32, hgt * 0.06, 0, 0, Math.PI * 2); c.fill();
       const img = this.art(age < 0.45 ? `${id}-cheer` : id) ?? (age < 0.45 ? this.art(id) : null);
-      if (img) { const s = hgt * 1.2; c.drawImage(img, x - s / 2, gy - s - up, s, s); }
+      // an idle hop now and then, out of step with each other
+      const idle = (t * 0.17 + k * 0.45) % 1, skip = age >= 0.45 && idle < 0.06 ? Math.sin((idle / 0.06) * Math.PI) * hgt * 0.07 : 0;
+      if (img) this.critter(img, x, gy - up - skip, hgt * 1.2, t + k * 1.7, 0, Math.sin(t * 0.8 + k * 2.5) * 0.035);
       else drawChinchilla(c, id, x, gy - up, { face: k ? -1 : 1, h: hgt * 0.75, time: t + k, air: up > 2, blink: Math.sin(t * 0.8 + k * 2) > 0.97 });
     }
     // the fluff meter as a little cloud ring over the pair

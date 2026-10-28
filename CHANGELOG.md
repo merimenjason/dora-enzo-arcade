@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 29-10-2026
+
+### Changed
+
+- **Hayloft Tycoon**: buildings show their upgrades. The first adds bunting, the second a warm glow and paper lanterns, the third a flag on top, and every milestone adds a gold star and makes the building a little bigger. The valley is livelier too: buildings bob and puff while they work and bounce when a run pays out, helpers hop as they work and cheer each payout, and Dora and Enzo breathe, sway and hop now and then.
+
 ## 28-10-2026
 
 ### Added
