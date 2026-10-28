@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Pawprint Grand Prix**: the Pawprint Cup. Race three circuits in a row: Dust Valley, the new Moonpebble Canyon with mud patches, and the new Frostwhisker Pass with ice puddles. Every race scores points toward a Gold, Silver or Bronze trophy. Pick the Pebble, Boulder or Summit Cup for gentle to fast rivals; best times and trophies are saved.
 - **Hayloft Tycoon**: the welcome-back card now shows which buildings earned the most while you were away (and the helper who ran each), a word from your top helper, and what your coins can buy right now, including when the Great Migration is ready. “Lovely!” takes you straight to the shop.
 - **Arcade menu**: a “Continue playing” shortcut at the top of the menu takes you straight back to the last game you picked on this device, so there's no scrolling past 49 cabinets.
 - **Kit Parade** (`/parade`), game 49: a cosy guide-the-kits puzzle game. A line of baby chinchilla kits marches out of a burrow, and Dora and Enzo hand out jobs (stoppers, diggers, tunnellers, builders, climbers, gliders, bouncers and huggers) so the kits reach the home burrow. There are 30 handmade levels across Clover Meadow, The Big Pantry, Pebble Cave and Moonlit Rooftops, with one-way hay, hay belts, pebble stone, a lily-pad pond, seesaws and chimney fans along the way. Every level has three stars to earn, and you can fast-forward, pause or call everyone home to start again. Nobody ever gets hurt: dizzy or splashed kits are carried home by Mum.
@@ -14,6 +15,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Pawprint Grand Prix**: rivals race faster in every class, and a Frost Pellet now slows its target to 70% speed instead of 48%, so the lead is earned on the road. Holding the gas alone still wins the Pebble Cup.
 - **Burrow Command**: the menu now has its title painting: Dora and Enzo on the Great Burrow looking out over the raccoon camp and the clockwork hive.
 - **Kit Parade**: now hand-painted, with a title painting of the kits marching home to Dora and Enzo: night rooftops and a glowing cave join the meadow and pantry backdrops, with painted ground, hay, pebbles, burrows, lily pads, seesaws, chimney fans, job badges, and Dora, Enzo and Mum cheering the kits home.
 - **Dust Disco**, **Hayloft Tycoon**, **Dust Bunny Dungeon** and **Pebble Pop**: Enzo is repainted his real cool grey with black eyes (he had come out taupe): all five Disco dance moves, both Hayloft Enzos, the Dungeon hero and title painting, and Pebble Pop's Enzo and title painting.

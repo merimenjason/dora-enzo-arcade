@@ -189,7 +189,7 @@ Each fighter's special (35 power) is shown on its roster card, and an on-screen 
 
 ### 08 · Pawprint Grand Prix (`/kart`)
 
-**Play:** An arcade 3D kart racer. Dora and Enzo share a kart and race Copper Fox, Night Owl, Sly Snake and Mountain Cougar over three laps of Dust Valley Circuit. Mint crystals near the road center award items, and gold strips on the outside line give boosts. Driving off the asphalt or bumping rivals costs speed. There are three items: Hay Turbo (a three-second boost), Frost Pellet (slows the closest rival ahead) and Dust Bath (slows rivals close behind). The minimap and running order track all five racers.
+**Play:** An arcade 3D kart racer. Dora and Enzo share a kart and race Copper Fox, Night Owl, Sly Snake and Mountain Cougar in the Pawprint Cup: three laps each of Dust Valley Circuit (a wide oval), Moonpebble Canyon (three sweeping bends with mud patches that cap your speed) and Frostwhisker Pass (a snowy hourglass with ice puddles that take away grip). Every race scores 10, 7, 5, 3 or 1 points, and the cup standings decide the trophy. Choose the Pebble, Boulder or Summit Cup to set how fast the rivals are. Mint crystals near the road center award items, and gold strips give boosts; each circuit places its strips differently. Driving off the asphalt or bumping rivals costs speed. There are three items: Hay Turbo (a three-second boost), Frost Pellet (slows the closest rival ahead) and Dust Bath (slows rivals close behind). Best times per circuit and the best trophy in each cup are saved in this browser. The minimap and running order track all five racers.
 
 **Controls:**
 
