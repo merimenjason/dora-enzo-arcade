@@ -66,7 +66,7 @@ export default function DriftwoodPage() {
   const canvas = useRef<HTMLCanvasElement>(null), chartCv = useRef<HTMLCanvasElement>(null), scene = useRef<DriftwoodScene | null>(null), mod = useRef<SceneModule | null>(null), sound = useRef<DriftwoodSound | null>(null);
   const game = useRef<DriftwoodGame | null>(null), save = useRef<Save>(freshSave());
   const screenRef = useRef<Screen>('menu'), pausedRef = useRef(false), chartRef = useRef(false), bottleRef = useRef<number | null>(null), endingRef = useRef(false);
-  const keys = useRef(new Set<string>()), steerVal = useRef(0), touchSteer = useRef<number | null>(null), touchHold = useRef({ anchor: false, dock: false, trim: 0 });
+  const keys = useRef(new Set<string>()), steerVal = useRef(0), touchSteer = useRef<number | null>(null), touchHold = useRef({ anchor: false, dock: false, trim: 0 }), wheelPointer = useRef<number | null>(null);
   const prev = useRef<{ x: number; y: number; h: number } | null>(null), dockedAt = useRef(0), toastId = useRef(0), firstCast = useRef(false);
   const [screen, setScreenState] = useState<Screen>('menu'), [paused, setPaused] = useState(false), [chart, setChart] = useState(false), [chartTab, setChartTab] = useState<ChartTab>('chart');
   const [bottle, setBottle] = useState<number | null>(null), [ending, setEnding] = useState(false), [toasts, setToasts] = useState<Toast[]>([]);
@@ -85,7 +85,9 @@ export default function DriftwoodPage() {
   };
   const audio = () => { sound.current ??= new DriftwoodSound(save.current.settings.sound, save.current.settings.music); sound.current.unlock(); return sound.current; };
   const toast = (text: string) => { const id = ++toastId.current; setToasts((t) => [...t.slice(-2), { id, text, until: performance.now() + 3600 }]); };
-  const setChartOpen = (on: boolean) => { chartRef.current = on; setChart(on); keys.current.clear(); if (on) setChartTab('chart'); else requestAnimationFrame(() => canvas.current?.focus()); };
+  /** Lets go of every key, the wheel and the touch buttons (pausing, opening the chart, losing focus). */
+  const releaseAll = () => { keys.current.clear(); touchSteer.current = null; wheelPointer.current = null; touchHold.current = { anchor: false, dock: false, trim: 0 }; setWheel(0); };
+  const setChartOpen = (on: boolean) => { chartRef.current = on; setChart(on); releaseAll(); if (on) setChartTab('chart'); else requestAnimationFrame(() => canvas.current?.focus()); };
   const closeBottle = () => { bottleRef.current = null; setBottle(null); canvas.current?.focus(); };
 
   /** Starts a voyage: a fresh one, or the saved one tied up where it was left. */
@@ -95,7 +97,7 @@ export default function DriftwoodPage() {
     if (!o.fresh && save.current.voyage) g = DriftwoodGame.fromVoyage(save.current.voyage);
     if (!g) { g = new DriftwoodGame({ seed: o.seed ?? ((Date.now() ^ Math.floor(performance.now() * 1000)) >>> 0) }); firstCast.current = true; }
     game.current = g; pausedRef.current = false; setPaused(false); setChartOpen(false); closeBottle(); endingRef.current = false; setEnding(false);
-    keys.current.clear(); touchSteer.current = null; steerVal.current = 0; prev.current = null; setConfirmNew(false); setNews([]); setToasts([]);
+    releaseAll(); steerVal.current = 0; prev.current = null; setConfirmNew(false); setNews([]); setToasts([]);
     dockedAt.current = performance.now();
     const first = g.at ? [...g.forHere(), ...g.waiting(g.at)].find((i) => i.story) : null; setOpenItem(first?.id ?? null);
     persist(); setScreen('play'); refresh();
@@ -103,15 +105,15 @@ export default function DriftwoodPage() {
   function toMenu() { persist(); pausedRef.current = false; setPaused(false); setChartOpen(false); closeBottle(); game.current = null; endingRef.current = false; setEnding(false); setScreen('menu'); setConfirmNew(false); refresh(); }
   function pause(on: boolean) {
     if (screenRef.current !== 'play' || !game.current || endingRef.current) return;
-    pausedRef.current = on; setPaused(on); keys.current.clear(); touchSteer.current = null; touchHold.current = { anchor: false, dock: false, trim: 0 };
-    if (!on) canvas.current?.focus();
+    pausedRef.current = on; setPaused(on); releaseAll();
+    if (!on) { sound.current?.resume(); canvas.current?.focus(); }
   }
   /** Notices what the game did: sounds, sparkles, toasts, saving and the overlays. */
   function handle(events: Ev[], g: DriftwoodGame) {
     scene.current?.feed(events, g); sound.current?.play(events);
     for (const e of events) {
       switch (e.k) {
-        case 'dock': dockedAt.current = performance.now(); keys.current.clear(); touchHold.current = { anchor: false, dock: false, trim: 0 }; touchSteer.current = null; setNews([]); { const f = [...g.forHere(), ...g.waiting(e.id)].find((i) => i.story) ?? g.forHere()[0]; setOpenItem(f?.id ?? null); } persist(); refresh(); break;
+        case 'dock': dockedAt.current = performance.now(); releaseAll(); setNews([]); { const f = [...g.forHere(), ...g.waiting(e.id)].find((i) => i.story) ?? g.forHere()[0]; setOpenItem(f?.id ?? null); } persist(); refresh(); break;
         case 'ending': endingRef.current = true; setEnding(true); save.current.finished++; persist(); refresh(); break;
         case 'shell': toast('🐚 A hidden shell! +5'); refresh(); break;
         case 'bottle': bottleRef.current = e.i; setBottle(e.i); keys.current.clear(); refresh(); break;
@@ -194,6 +196,8 @@ export default function DriftwoodPage() {
             g.step(inp);
             const ev = g.events.splice(0); if (ev.length) handle(ev, g);
             if (g.phase !== 'sail' && g.phase !== 'patch') { acc = 0; break; }
+            // a bottle's note (or anything else that stops play) opened during this tick: no more ticks this frame
+            if (pausedRef.current || chartRef.current || bottleRef.current !== null || endingRef.current) { acc = 0; break; }
           }
           if (n >= 5) acc = 0;
           alpha = Math.max(0, Math.min(1, acc / DT));
@@ -230,29 +234,34 @@ export default function DriftwoodPage() {
         if ((k === ' ' || k === 'enter') && !onControl && !e.repeat && performance.now() - dockedAt.current > 450) { e.preventDefault(); castOff(); }
         return;
       }
-      if (HELD.has(k)) { keys.current.add(k); if (k.startsWith('arrow') || k === ' ') e.preventDefault(); audio(); }
+      if (HELD.has(k)) { if (!e.repeat) keys.current.add(k); if (k.startsWith('arrow') || k === ' ') e.preventDefault(); audio(); }
     };
     const keyup = (e: KeyboardEvent) => { keys.current.delete(e.key.toLowerCase()); if (e.key === 'Shift') keys.current.delete('shift'); };
-    const blur = () => { keys.current.clear(); touchSteer.current = null; touchHold.current = { anchor: false, dock: false, trim: 0 }; const g = game.current; if (g && g.phase !== 'dock') pause(true); };
-    const hide = () => { if (document.hidden) blur(); };
-    window.addEventListener('keydown', keydown); window.addEventListener('keyup', keyup); window.addEventListener('blur', blur); document.addEventListener('visibilitychange', hide);
+    const blur = () => { releaseAll(); sound.current?.suspend(); const g = game.current; if (g && g.phase !== 'dock') pause(true); };
+    // back in view: the sound comes back unless the game sits paused (it comes back on unpausing)
+    const focus = () => { if (!document.hidden && !pausedRef.current) sound.current?.resume(); };
+    const hide = () => { if (document.hidden) blur(); else focus(); };
+    window.addEventListener('keydown', keydown); window.addEventListener('keyup', keyup); window.addEventListener('blur', blur); window.addEventListener('focus', focus); document.addEventListener('visibilitychange', hide);
     return () => {
       dead = true; cancelAnimationFrame(raf); sound.current?.dispose(); sound.current = null; ro?.disconnect();
-      window.removeEventListener('resize', resize); window.removeEventListener('keydown', keydown); window.removeEventListener('keyup', keyup); window.removeEventListener('blur', blur); document.removeEventListener('visibilitychange', hide);
+      window.removeEventListener('resize', resize); window.removeEventListener('keydown', keydown); window.removeEventListener('keyup', keyup); window.removeEventListener('blur', blur); window.removeEventListener('focus', focus); document.removeEventListener('visibilitychange', hide);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // touch: the wheel on the left steers by how far the finger slides from its middle
   const wheelAt = (e: React.PointerEvent) => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); return Math.max(-1, Math.min(1, (e.clientX - (r.left + r.width / 2)) / (r.width * 0.38))); };
-  const wheelDown = (e: React.PointerEvent) => { e.preventDefault(); audio(); (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); const v = wheelAt(e); touchSteer.current = v; setWheel(v); };
-  const wheelMove = (e: React.PointerEvent) => { if (touchSteer.current === null) return; const v = wheelAt(e); touchSteer.current = v; setWheel(v); };
-  const wheelUp = () => { touchSteer.current = null; setWheel(0); };
+  /** Keeps a finger's moves and lifts coming here even if it slides off (a pointer the browser no longer knows is skipped). */
+  const capture = (e: React.PointerEvent) => { try { (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); } catch { /* gone already */ } };
+  // (one finger at a time: a second touch on the wheel is ignored until the first lets go)
+  const wheelDown = (e: React.PointerEvent) => { e.preventDefault(); if (wheelPointer.current !== null) return; audio(); wheelPointer.current = e.pointerId; capture(e); const v = wheelAt(e); touchSteer.current = v; setWheel(v); };
+  const wheelMove = (e: React.PointerEvent) => { if (touchSteer.current === null || e.pointerId !== wheelPointer.current) return; const v = wheelAt(e); touchSteer.current = v; setWheel(v); };
+  const wheelUp = (e: React.PointerEvent) => { if (e.pointerId !== wheelPointer.current) return; wheelPointer.current = null; touchSteer.current = null; setWheel(0); };
   const hold = (key: 'anchor' | 'dock' | 'trimIn' | 'trimOut', on: boolean) => (e: React.PointerEvent) => {
     e.preventDefault(); e.stopPropagation(); if (on) audio();
     const h = touchHold.current;
     if (key === 'anchor') h.anchor = on; else if (key === 'dock') h.dock = on; else h.trim = on ? (key === 'trimIn' ? -1 : 1) : 0;
-    if (on) (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    if (on) capture(e);
   };
 
   const toggle = (k: 'sound' | 'music' | 'manualTrim') => {
@@ -312,16 +321,16 @@ export default function DriftwoodPage() {
           {phase === 'patch' && <div className="dw-patch" role="status">🔨 Enzo is patching the hull…</div>}
           {touch && (
             <div className="dw-touch">
-              <div className="dw-wheel" onPointerDown={wheelDown} onPointerMove={wheelMove} onPointerUp={wheelUp} onPointerCancel={wheelUp} aria-label="Steering wheel">
+              <div className="dw-wheel" onPointerDown={wheelDown} onPointerMove={wheelMove} onPointerUp={wheelUp} onPointerCancel={wheelUp} onLostPointerCapture={wheelUp} aria-label="Steering wheel">
                 <span style={{ transform: `rotate(${wheel * 100}deg)` }}>☸</span><small>◀ steer ▶</small>
               </div>
               <div className="dw-tbtns">
                 {S.settings.manualTrim && (<>
-                  <button className="dw-tbtn" onPointerDown={hold('trimIn', true)} onPointerUp={hold('trimIn', false)} onPointerCancel={hold('trimIn', false)}>⤒<small>Haul</small></button>
-                  <button className="dw-tbtn" onPointerDown={hold('trimOut', true)} onPointerUp={hold('trimOut', false)} onPointerCancel={hold('trimOut', false)}>⤓<small>Ease</small></button>
+                  <button className="dw-tbtn" onPointerDown={hold('trimIn', true)} onPointerUp={hold('trimIn', false)} onPointerCancel={hold('trimIn', false)} onLostPointerCapture={hold('trimIn', false)}>⤒<small>Haul</small></button>
+                  <button className="dw-tbtn" onPointerDown={hold('trimOut', true)} onPointerUp={hold('trimOut', false)} onPointerCancel={hold('trimOut', false)} onLostPointerCapture={hold('trimOut', false)}>⤓<small>Ease</small></button>
                 </>)}
-                <button className="dw-tbtn" onPointerDown={hold('anchor', true)} onPointerUp={hold('anchor', false)} onPointerCancel={hold('anchor', false)}>🪝<small>Brake</small></button>
-                <button className={'dw-tbtn dw-dockbtn' + (nearDock ? ' is-near' : '')} onPointerDown={hold('dock', true)} onPointerUp={hold('dock', false)} onPointerCancel={hold('dock', false)}>⚓<small>Dock</small></button>
+                <button className="dw-tbtn" onPointerDown={hold('anchor', true)} onPointerUp={hold('anchor', false)} onPointerCancel={hold('anchor', false)} onLostPointerCapture={hold('anchor', false)}>🪝<small>Brake</small></button>
+                <button className={'dw-tbtn dw-dockbtn' + (nearDock ? ' is-near' : '')} onPointerDown={hold('dock', true)} onPointerUp={hold('dock', false)} onPointerCancel={hold('dock', false)} onLostPointerCapture={hold('dock', false)}>⚓<small>Dock</small></button>
               </div>
             </div>
           )}

@@ -57,15 +57,15 @@ export type Rock = { x: number; y: number; r: number; shoal?: boolean };
 /** Rocks bump the boat; shoals are pale sandy shallows that bump it the same way. */
 export const ROCKS: Rock[] = [
   // around Lighthouse Rock
-  { x: 1610, y: 1770, r: 26 }, { x: 1300, y: 1760, r: 22 }, { x: 1620, y: 1990, r: 20 }, { x: 1660, y: 1830, r: 14 },
+  { x: 1625, y: 1760, r: 26 }, { x: 1300, y: 1760, r: 22 }, { x: 1620, y: 1990, r: 20 }, { x: 1660, y: 1830, r: 14 },
   // Crag Top's skirt of boulders
-  { x: 800, y: 730, r: 30 }, { x: 1240, y: 700, r: 26 }, { x: 1220, y: 960, r: 20 }, { x: 930, y: 980, r: 18 },
+  { x: 845, y: 715, r: 30 }, { x: 1240, y: 700, r: 26 }, { x: 1220, y: 960, r: 20 }, { x: 930, y: 980, r: 18 },
   // the narrows between the market and Pebble Bar
   { x: 1660, y: 1400, r: 24 }, { x: 1720, y: 1640, r: 20 },
   // Shell Sandbar's shoals
   { x: 3190, y: 1910, r: 46, shoal: true }, { x: 2900, y: 2080, r: 40, shoal: true },
   // Starpine's rocky approach, hidden in the fog
-  { x: 2520, y: 760, r: 26 }, { x: 2930, y: 740, r: 24 }, { x: 2600, y: 330, r: 22 }, { x: 2900, y: 420, r: 18 },
+  { x: 2520, y: 760, r: 26 }, { x: 2930, y: 740, r: 24 }, { x: 2600, y: 330, r: 22 }, { x: 2910, y: 410, r: 18 },
   // the far east and the orchard
   { x: 3760, y: 1980, r: 30 }, { x: 3200, y: 2700, r: 26 }, { x: 3700, y: 2240, r: 18 },
   // Twin Hills' little reef

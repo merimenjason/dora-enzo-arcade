@@ -9,7 +9,7 @@
 // The world itself (islands, rocks, currents, the letters) lives in driftwood-world.ts.
 import {
   LAKE_W, LAKE_H, ISLANDS, ISLAND, VILLAGES, ROCKS, STORY, SIDE_POOL, RESIDENTS, SHELLS, BOTTLES,
-  insidePoly, nearestOnPoly, edgeDist, inReeds, currentAt, fogDepth,
+  insidePoly, nearestOnPoly, clearance, edgeDist, inReeds, currentAt, fogDepth,
   type IslandId, type ResidentId, type StoryDef,
 } from './driftwood-world.js';
 
@@ -202,6 +202,22 @@ export function daylight(minute: number) {
   return s(290, 470, m) * (1 - s(1050, 1200, m));
 }
 
+const castOffHeadings = new Map<IslandId, number>();
+/**
+ * Which way the boat points casting off: out along the jetty, turned (by as little as will do) toward the widest open
+ * water in the next 240 units, so no jetty sends her straight at a nearby shore.
+ */
+export function castOffHeading(id: IslandId): number {
+  const known = castOffHeadings.get(id); if (known !== undefined) return known;
+  const d = ISLAND[id].dock!; let best = d.a, score = -Infinity;
+  for (let k = -12; k <= 12; k++) {
+    const a = d.a + k * 0.1; let open = Infinity;
+    for (let s = 20; s <= 240; s += 10) open = Math.min(open, clearance(d.x + Math.cos(a) * s, d.y + Math.sin(a) * s));
+    const sc = Math.min(open, 60) - Math.abs(k) * 1.5; if (sc > score) { score = sc; best = a; }
+  }
+  best = wrap(best); castOffHeadings.set(id, best); return best;
+}
+
 export class DriftwoodGame {
   seed: number; tick = 0; minute = START_MINUTE; phase: Phase = 'dock'; at: IslandId | null = 'home';
   boat = { x: 0, y: 0, h: 0, v: 0, vx: 0, vy: 0, bx: 0, by: 0, sheet: 0.3, trimErr: 0, side: 1, turn: 0, inReeds: false, anchored: false, braking: false, luff: 0 };
@@ -212,7 +228,9 @@ export class DriftwoodGame {
   bag: Item[] = []; done = new Set<number>(); side: Partial<Record<IslandId, Item>> = {}; sideCount = 0;
   shells = 0; found: Uint8Array = new Uint8Array(SHELLS.length); bottles: Uint8Array = new Uint8Array(BOTTLES.length);
   chart = new Uint8Array(CHART_W * CHART_H); seen = new Set<IslandId>(); known = new Set<IslandId>(['home']);
-  scuffs = 0; lastScuff = -999; patchT = 0; regatta = 0; armed = new Set<IslandId>(); stats: Stats = freshStats();
+  scuffs = 0; lastScuff = -999; patchT = 0;
+  /** Touching a shore or rock last tick (only the first touch bumps), and a dock key still held from casting off. */
+  touching = false; dockLatch = false; regatta = 0; armed = new Set<IslandId>(); stats: Stats = freshStats();
   events: Ev[] = [];
   /** Bumped whenever the chart changes, so the scene knows to redraw its copy. */
   chartVersion = 0;
@@ -304,6 +322,8 @@ export class DriftwoodGame {
   // ---------------------------------------------------------------- the tick
   step(inp: Input) {
     if (this.phase === 'dock' || this.phase === 'ending') return;
+    // a dock key held down through casting off doesn't count until it's let go
+    if (!inp.dock) this.dockLatch = false; else if (this.dockLatch) inp = { ...inp, dock: false };
     this.tick++;
     this.minute += MIN_PER_TICK;
     this.weatherTick();
@@ -399,12 +419,14 @@ export class DriftwoodGame {
     let bumped = false;
     for (let i = 0; i < n; i++) {
       b.x += vx / n; b.y += vy / n;
-      for (let k = 0; k < 3; k++) {
+      // push out of the deepest overlap, again and again: wedged between a rock and a coast, each push can undo the other
+      for (let k = 0; k < 12; k++) {
         const hit = this.contact(b.x, b.y); if (!hit) break;
         b.x = hit.x; b.y = hit.y;
         if (!bumped) { bumped = true; this.bump(hit.nx, hit.ny, hit.soft); }
       }
     }
+    this.touching = bumped;
   }
   /** The deepest overlap at a point: where to push the boat to, and the shore's outward normal there. */
   contact(x: number, y: number): { x: number; y: number; nx: number; ny: number; soft: boolean } | null {
@@ -431,10 +453,13 @@ export class DriftwoodGame {
   private bump(nx: number, ny: number, soft: boolean) {
     const b = this.boat, into = -(b.vx * nx + b.vy * ny);
     if (into <= 0.05) return;
-    if (soft || into < BUMP_SPEED) {
-      // a gentle nudge: slide along the shore
+    const first = !this.touching;
+    // the push into the shore is spent: what's left slides along it
+    b.vx += nx * into; b.vy += ny * into;
+    if (soft || into < BUMP_SPEED || !first) {
+      // a gentle nudge (or still pressed against the same shore): slide along it, with one soft bump on touching
       b.v *= 0.96;
-      if (into > 0.4) this.events.push({ k: 'bump', x: b.x - nx * BOAT_R, y: b.y - ny * BOAT_R, hard: false, power: into });
+      if (first && into > 0.4) this.events.push({ k: 'bump', x: b.x - nx * BOAT_R, y: b.y - ny * BOAT_R, hard: false, power: into });
       return;
     }
     // a real bump: knocked back, slowed, swung toward the shore's line, and a scuff unless the hull is sturdy
@@ -552,8 +577,10 @@ export class DriftwoodGame {
     if (it.story === STORY.length && this.regatta === 0) {
       // Pip's invitation: dusk falls, the weather clears, and the lighthouse waits
       this.regatta = 1;
-      const today = Math.floor(this.minute / 1440) * 1440, dusk = today + 18 * 60 + 30;
-      this.minute = this.minute < dusk ? dusk : this.minute;
+      const today = Math.floor(this.minute / 1440) * 1440, dusk = today + 18 * 60 + 30, jump = Math.max(0, dusk - this.minute);
+      this.minute += jump;
+      // the evening rushes on, not the post: express items in the bag keep the time they had left
+      for (const b of this.bag) if (b.express && b.due > 0) b.due += jump;
       this.weather = 'breeze'; this.weatherUntil = this.tick + 600 * HZ;
       this.events.push({ k: 'regatta' });
     }
@@ -566,8 +593,8 @@ export class DriftwoodGame {
   castOff() {
     if (this.phase !== 'dock' || !this.at) return false;
     const isl = ISLAND[this.at], b = this.boat;
-    b.h = isl.dock!.a; b.v = 0.8; b.vx = 0; b.vy = 0; b.bx = 0; b.by = 0;
-    this.armed.delete(this.at);
+    b.h = castOffHeading(this.at); b.v = 0.8; b.vx = 0; b.vy = 0; b.bx = 0; b.by = 0;
+    this.armed.delete(this.at); this.dockLatch = true; this.touching = false;
     this.events.push({ k: 'castoff', id: this.at });
     this.at = null; this.phase = 'sail';
     this.side0 = this.twaSigned >= 0 ? 1 : -1;

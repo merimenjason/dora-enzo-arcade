@@ -53,6 +53,9 @@ export class DriftwoodSound {
   }
   setSound(on: boolean) { this.soundOn = on; const c = this.ctx; if (!c) return; for (const g of [this.sfx, this.amb]) g?.gain.setTargetAtTime(on ? 1 : 0, c.currentTime, 0.05); }
   setMusic(on: boolean) { this.musicOn = on; if (this.mus && this.ctx) this.mus.gain.setTargetAtTime(on ? 0.3 : 0, this.ctx.currentTime, 0.1); }
+  /** Hidden or out of focus: everything falls silent at once (the wind and water don't play on in a background tab). */
+  suspend() { if (this.ctx && this.ctx.state === 'running') void this.ctx.suspend().catch(() => {}); }
+  resume() { if (this.ctx && this.ctx.state === 'suspended') void this.ctx.resume().catch(() => {}); }
   dispose() { void this.ctx?.close().catch(() => {}); this.ctx = null; }
   private ok(key: string, gap: number) {
     const c = this.ctx; if (!c || !this.soundOn) return false;

@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import {
   DriftwoodGame, polar, idealSheet, trimFactor, wrap, idleInput, packBits, unpackBits, readSave, freshSave, storyItem, expressLimit,
-  ISLANDS, ISLAND, VILLAGES, ROCKS, STORY, SHELLS, BOTTLES, RESIDENTS, CURRENTS, clearance, insidePoly, currentAt,
+  castOffHeading, edgeDist, nearestOnPoly, ISLANDS, ISLAND, VILLAGES, ROCKS, STORY, SHELLS, BOTTLES, RESIDENTS, CURRENTS, clearance, insidePoly, currentAt,
   NO_GO, KEEL_NO_GO, BOAT_R, MAX_SPEED, DOCK_REACH, DOCK_SPEED, AUTO_DOCK, BAG, BAG_MAX, PATCH_TICKS, SCUFFS, HZ, GRAB, PAY,
   CHART_W, CHART_H, DAY_TICKS, MIN_PER_TICK, SHELL_VALUE, SIDE_FROM, PREVAIL, PREVAIL_SWING, START_MINUTE,
 } from '../.checks/driftwood-game.js';
@@ -17,7 +17,7 @@ const test = (name, fn) => { fn(); passed++; console.log('ok', name); };
 function steady(dir = 0, str = 0.85, seed = 7) {
   const g = new DriftwoodGame({ seed });
   g.weather = 'breeze'; g.weatherUntil = 1e12; g.wind.nextShift = 1e12; g.wind.dir = dir; g.wind.toDir = dir; g.wind.nextDir = dir; g.wind.str = str;
-  g.castOff(); g.events.length = 0;
+  g.castOff(); g.events.length = 0; g.dockLatch = false; // (the key that cast off has been let go)
   return g;
 }
 const place = (g, x, y, h, v = 0) => { Object.assign(g.boat, { x, y, h, v, vx: 0, vy: 0, bx: 0, by: 0 }); };
@@ -344,6 +344,100 @@ test('the boatyard sells upgrades once Tamsin has her letter, for shells', () =>
   assert.ok(g.buy('sail') && g.buy('sail')); assert.equal(g.canBuy('sail'), 'max'); assert.equal(g.shells, 500 - 90);
   g.shells = 0; assert.equal(g.canBuy('keel'), 'shells');
   g.castOff(); g.shells = 999; assert.equal(g.canBuy('keel'), 'closed', 'only at the boatyard');
+});
+
+test('holding the dock key through casting off does not tie straight back up; letting go and asking again does', () => {
+  for (const id of VILLAGES) {
+    const g = new DriftwoodGame({ seed: 4 }); g.dockAt(id); g.castOff(); g.events.length = 0;
+    const hold = { steer: 0, trim: null, anchor: false, dock: true };
+    for (let t = 0; t < 2 * HZ && g.phase === 'sail'; t++) g.step(hold);
+    assert.equal(g.phase, 'sail', `${id}: a held key (auto-repeat) doesn't re-dock`);
+    g.step(idleInput()); place(g, ISLAND[id].dock.x, ISLAND[id].dock.y, g.boat.h, 0.2); g.step(hold);
+    assert.equal(g.phase, 'dock', `${id}: a fresh press ties up`);
+  }
+});
+
+test('casting off points every jetty at open water: idling away from any jetty bumps nothing', () => {
+  for (const id of VILLAGES) {
+    const d = ISLAND[id].dock, a = castOffHeading(id);
+    for (let s = 20; s <= 160; s += 10) assert.ok(clearance(d.x + Math.cos(a) * s, d.y + Math.sin(a) * s) > BOAT_R + 8, `${id}: open water ${s} units out`);
+    for (const seed of [7, 8]) {
+      const g = new DriftwoodGame({ seed }); g.weather = 'calm'; g.wind.str = 0.55; g.dockAt(id); g.castOff(); g.events.length = 0;
+      let bumps = 0; for (let t = 0; t < 6 * HZ && g.phase === 'sail'; t++) { g.step(idleInput()); bumps += g.events.filter((e) => e.k === 'bump').length; g.events.length = 0; }
+      assert.equal(bumps, 0, `${id} seed ${seed}: no bump in the first 6 s after casting off`);
+    }
+  }
+});
+
+test('pressed against a shore, the boat slides along it with one soft bump, not one a tick', () => {
+  const g = steady(0, 0.25), isl = ISLAND.market;
+  // drive slowly straight at the market's south shore and hold the helm there
+  const sx = isl.x, sy = Math.max(...isl.poly.filter(([x]) => Math.abs(x - isl.x) < 30).map(([, y]) => y));
+  place(g, sx, sy + BOAT_R + 30, -Math.PI / 2, 0.9);
+  let bumps = 0, hard = 0, scuffs = 0, touches = 0;
+  for (let t = 0; t < 8 * HZ; t++) {
+    g.step(idleInput()); if (g.touching) touches++;
+    for (const e of g.events) { if (e.k === 'bump') { bumps++; if (e.hard) hard++; } if (e.k === 'scuff') scuffs++; }
+    g.events.length = 0;
+    assert.ok(clearance(g.boat.x, g.boat.y) > BOAT_R - 1.5, 'never inside the shore');
+  }
+  assert.ok(touches > 10, `the boat really was pressed against the shore (${touches} ticks)`);
+  assert.ok(bumps <= 2 && hard === 0 && scuffs === 0, `${bumps} bump events, ${hard} hard, ${scuffs} scuffs while pressed for 8 s`);
+  // a real knock still bumps hard, once
+  const k = steady(0, 1.18); place(k, sx, sy + BOAT_R + 40, -Math.PI / 2, 3);
+  let kh = 0, first = -1; for (let t = 0; t < HZ; t++) { k.step(idleInput()); const n = k.events.filter((e) => e.k === 'bump' && e.hard).length; if (n && first < 0) first = t; kh += n; k.events.length = 0; }
+  assert.ok(first >= 0 && kh <= 2, `ramming the shore bumps hard (${kh} in a second), not every tick`);
+});
+
+test('rocks never leave a gap the boat could wedge into, and the boat is never left inside a rock by a coast', () => {
+  for (const r of ROCKS) {
+    if (r.shoal) continue;
+    const gaps = [edgeDist(r.x, r.y).d - r.r, ...ISLANDS.map((i) => (insidePoly(i.poly, r.x, r.y) ? -1 : 1) * nearestOnPoly(i.poly, r.x, r.y).d - r.r)];
+    for (const o of ROCKS) if (o !== r && !o.shoal) gaps.push(Math.hypot(o.x - r.x, o.y - r.y) - r.r - o.r);
+    for (const gap of gaps) assert.ok(gap <= 0 || gap >= 2 * BOAT_R + 4, `rock at ${r.x},${r.y}: a ${gap.toFixed(1)}-unit gap`);
+  }
+  // shoved hard into every rock from every side, the boat comes out clear of everything the same tick
+  for (const r of ROCKS) for (let a = 0; a < 16; a++) {
+    const g = steady(0), u = (a / 16) * Math.PI * 2;
+    place(g, r.x + Math.cos(u) * (r.r + BOAT_R + 2), r.y + Math.sin(u) * (r.r + BOAT_R + 2), u + Math.PI, 3.2);
+    g.step(idleInput());
+    assert.ok(clearance(g.boat.x, g.boat.y) > BOAT_R - 1.5, `rock at ${r.x},${r.y} from ${a * 22.5}°: left at clearance ${clearance(g.boat.x, g.boat.y).toFixed(1)}`);
+  }
+});
+
+test('no current can pin the boat on a rock: steering across it gets free in calm air', () => {
+  for (const r of ROCKS) {
+    if (r.shoal) continue;
+    const [cx, cy] = currentAt(r.x, r.y), m = Math.hypot(cx, cy); if (m < 0.05) continue;
+    for (const dir of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+      const g = steady(dir, 0.55), up = Math.atan2(-cy, -cx);
+      place(g, r.x + Math.cos(up) * (r.r + BOAT_R + 1), r.y + Math.sin(up) * (r.r + BOAT_R + 1), up + Math.PI, 0);
+      // a player heads across the stream, whichever side sails better
+      let free = false;
+      for (const side of [1, -1]) {
+        const h = new DriftwoodGame({ seed: 7 }); Object.assign(h, { weather: g.weather, weatherUntil: g.weatherUntil }); Object.assign(h.wind, g.wind); h.castOff(); h.dockLatch = false;
+        place(h, g.boat.x, g.boat.y, Math.atan2(cy, cx) + side * Math.PI / 2, 0);
+        for (let t = 0; t < 10 * HZ; t++) { h.step(idleInput()); if (Math.hypot(h.boat.x - r.x, h.boat.y - r.y) > r.r + BOAT_R + 60) { free = true; break; } }
+        if (free) break;
+      }
+      assert.ok(free, `rock at ${r.x},${r.y} in a ${m.toFixed(2)} current, wind toward ${(dir / DEG).toFixed(0)}°: still pinned after 10 s`);
+    }
+  }
+});
+
+test('the regatta evening does not make carried express post late', () => {
+  const g = new DriftwoodGame({ seed: 5 });
+  for (let n = 1; n <= 23; n++) g.done.add(n);
+  g.dockAt('lighthouse'); g.pickUp('story-24');
+  const ex = { ...storyItem(STORY[1]), id: 'side-99', story: 0, from: 'lighthouse', to: 'bakery', express: 120, got: g.minute, due: g.minute + 120 };
+  g.bag.push(ex);
+  g.castOff(); g.dockAt('home'); g.events.length = 0;
+  const m0 = g.minute, left = ex.due - m0;
+  assert.ok(m0 % 1440 < 18 * 60, 'the test starts before dusk');
+  g.deliver('story-24');
+  assert.equal(g.regatta, 1); assert.ok(g.minute > m0 + 60, 'the clock jumps to dusk');
+  assert.equal(ex.due - g.minute, left, 'the express item keeps the time it had left');
+  g.castOff(); for (let t = 0; t < 30; t++) { g.step(idleInput()); assert.ok(!g.events.some((e) => e.k === 'late'), 'nothing turns late at once'); g.events.length = 0; }
 });
 
 console.log(`Passed: ${passed} Driftwood Post checks.`);

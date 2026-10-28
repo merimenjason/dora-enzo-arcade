@@ -240,18 +240,23 @@ function feature(c: CanvasRenderingContext2D, f: Feat) {
 }
 
 /** Paints an island stand-in into an offscreen canvas at `k` pixels a unit; returns it with the island middle's offset. */
-function paintIslandStandIn(isl: Island, k: number) {
+function paintIslandStandIn(isl: Island, k: number, tiles: { land: HTMLImageElement | null; sand: HTMLImageElement | null } = { land: null, sand: null }) {
   const pad = 70, size = (isl.reach + pad) * 2, cv = mk(size * k, size * k), c = ctx2(cv), local = isl.poly.map(([x, y]) => [x - isl.x, y - isl.y] as Pt), look = lookOf(isl);
   c.scale(k, k); c.translate(size / 2, size / 2);
   // wet sand, dry sand, then the island's ground
   c.beginPath(); smoothPath(c, offsetPoly(local, 4)); c.fillStyle = '#d8c28c'; c.fill();
-  c.beginPath(); smoothPath(c, local); const sand = c.createRadialGradient(-isl.reach * 0.3, -isl.reach * 0.3, 10, 0, 0, isl.reach); sand.addColorStop(0, '#fbecc0'); sand.addColorStop(1, '#ecd59c'); c.fillStyle = sand; c.fill();
+  // (the painted tiles, when they've loaded, lie fixed to the lake so neighbouring islands' sand and grass line up)
+  const tile = (img: HTMLImageElement | null, scale: number) => { if (!img) return null; const p = c.createPattern(img, 'repeat'); p?.setTransform(new DOMMatrix().translate(-isl.x, -isl.y).scale(scale)); return p; };
+  const sandTile = tile(tiles.sand, 0.6), landTile = tile(tiles.land, 0.9);
+  c.beginPath(); smoothPath(c, local); const sand = c.createRadialGradient(-isl.reach * 0.3, -isl.reach * 0.3, 10, 0, 0, isl.reach); sand.addColorStop(0, '#fbecc0'); sand.addColorStop(1, '#ecd59c'); c.fillStyle = sandTile ?? sand; c.fill();
   const groundCols: Record<IslandLook['ground'], [string, string, string]> = { grass: ['#a8da7c', '#6eae56', '#5a9a48'], rock: ['#c4beb4', '#948e84', '#7a756d'], marsh: ['#9ec67a', '#6a9a58', '#557f46'], sand: ['#fbecc0', '#ecd59c', '#d8c28c'] };
   const [g0, g1, g2] = groundCols[look.ground];
   if (look.ground !== 'sand') {
     const inset = offsetPoly(local, -Math.min(26, isl.reach * 0.2)).map(([x, y], i) => { const w = 1 + (hash(i, 77) - 0.5) * 0.06; return [x * w, y * w] as Pt; });
     c.beginPath(); smoothPath(c, inset); const gr = c.createRadialGradient(-isl.reach * 0.35, -isl.reach * 0.4, 6, 0, 0, isl.reach); gr.addColorStop(0, g0); gr.addColorStop(1, g1);
-    c.fillStyle = gr; c.fill(); c.strokeStyle = g2; c.lineWidth = 3; c.stroke();
+    c.fillStyle = gr; c.fill();
+    if (look.ground === 'grass' && landTile) { c.fillStyle = landTile; c.fill(); }
+    c.strokeStyle = g2; c.lineWidth = 3; c.stroke();
     // tufts and texture
     c.save(); c.clip();
     for (let i = 0; i < Math.round(isl.reach * 0.5); i++) {
@@ -599,15 +604,15 @@ export class DriftwoodScene {
   private time = 0; private shake = 0;
   private base: HTMLCanvasElement | null = null; private baseK = 0.1;
   private edgePath: Path2D; private edgeLine: Path2D; private edgePts: Pt[];
-  private islandArt = new Map<IslandId, { cv: HTMLCanvasElement; half: number }>();
+  private islandArt = new Map<string, { cv: HTMLCanvasElement; half: number }>();
   private coastPaths = new Map<IslandId, { coast: Path2D; foam: Path2D; foam2: Path2D; pfoam: Path2D; pfoam2: Path2D }>();
   /** Each painted island's tall parts (towers, trees, crags) cut out, drawn again over the boat when she's behind them. */
   private overhangs = new Map<string, HTMLCanvasElement | null>();
   private reedArt: HTMLCanvasElement[] = [];
-  private art = new Map<string, HTMLImageElement>();
+  private art = new Map<string, HTMLImageElement>(); private patterns = new Map<string, CanvasPattern>();
   private fogSprite: HTMLCanvasElement; private glowSprite: HTMLCanvasElement;
   private parts: Particle[] = []; private wake: WakePt[] = [];
-  private mini: HTMLCanvasElement | null = null; private miniVer = -1;
+  private mini: HTMLCanvasElement | null = null; private miniVer = -1; private miniGame: DriftwoodGame | null = null;
   private lastBoat: { x: number; y: number } | null = null;
   private dockPulse = 0;
   /** Where the boat is drawn this frame (between ticks). */
@@ -628,11 +633,25 @@ export class DriftwoodScene {
     }
     this.fogSprite = mk(128, 128); { const c = ctx2(this.fogSprite), g = c.createRadialGradient(64, 64, 4, 64, 64, 64); g.addColorStop(0, 'rgba(255, 255, 255, 0.9)'); g.addColorStop(0.5, 'rgba(255, 255, 255, 0.45)'); g.addColorStop(1, 'rgba(255, 255, 255, 0)'); c.fillStyle = g; c.fillRect(0, 0, 128, 128); }
     this.glowSprite = mk(64, 64); { const c = ctx2(this.glowSprite), g = c.createRadialGradient(32, 32, 1, 32, 32, 32); g.addColorStop(0, 'rgba(255, 236, 170, 1)'); g.addColorStop(0.25, 'rgba(255, 196, 110, 0.55)'); g.addColorStop(1, 'rgba(255, 170, 80, 0)'); c.fillStyle = g; c.fillRect(0, 0, 64, 64); }
-    for (const name of ['boat', 'chart', ...new Set(ISLANDS.map((i) => i.art))]) this.load(name);
+    for (const name of ['boat', 'chart', 'land-tile', 'sand-tile', ...new Set(ISLANDS.map((i) => i.art))]) this.load(name);
     this.resize();
   }
   private load(name: string) { const img = new Image(); img.decoding = 'async'; img.src = `/art/driftwood/${name}.webp`; this.art.set(name, img); }
   /** A painting, once it has loaded; null until then (or if it never does). */
+  /**
+   * A painted tile as a fill pattern fixed to the lake (not the screen), `k` lake units a tile pixel, or null until it
+   * has loaded. The meadow tile spans 460 units and the sand 300, so neither repeat shows at play zoom.
+   */
+  pattern(name: 'land-tile' | 'sand-tile', c: CanvasRenderingContext2D = this.c) {
+    const img = this.img(name); if (!img) return null;
+    const key = name + (c === this.c ? '' : ':other'); let p = this.patterns.get(key);
+    if (!p || c !== this.c) {
+      p = c.createPattern(img, 'repeat') ?? undefined; if (!p) return null;
+      p.setTransform(new DOMMatrix().scale(name === 'land-tile' ? 0.9 : 0.6));
+      if (c === this.c) this.patterns.set(key, p);
+    }
+    return p;
+  }
   img(name: string) { const i = this.art.get(name); return i && i.complete && i.naturalWidth > 0 ? i : null; }
 
   resize() {
@@ -677,7 +696,9 @@ export class DriftwoodScene {
     this.overhangs.set(isl.art, cv); return cv;
   }
   private islandSprite(isl: Island) {
-    let s = this.islandArt.get(isl.id); if (!s) { s = paintIslandStandIn(isl, 1); this.islandArt.set(isl.id, s); } return s;
+    // (painted again once the shore tiles arrive)
+    const tiles = { land: this.img('land-tile'), sand: this.img('sand-tile') }, key = isl.id + (tiles.land ? 'L' : '') + (tiles.sand ? 'S' : '');
+    let s = this.islandArt.get(key); if (!s) { s = paintIslandStandIn(isl, 1, tiles); this.islandArt.set(key, s); } return s;
   }
   private reedSprite(i: number) {
     if (this.reedArt[i]) return this.reedArt[i];
@@ -743,7 +764,7 @@ export class DriftwoodScene {
     for (let i = 0; i < REEDS.length; i++) { const rd = REEDS[i]; if (!inView(rd.x, rd.y, rd.rx + 40)) continue; const sp = this.reedSprite(i); c.drawImage(sp, rd.x - sp.width / 2, rd.y - sp.height / 2); }
     if (g) this.drawWake(c, g, dt);
     this.drawFoam(c, view, t);
-    c.fillStyle = '#76b25a'; c.fill(this.edgePath, 'evenodd');
+    c.fillStyle = this.pattern('land-tile') ?? '#76b25a'; c.fill(this.edgePath, 'evenodd');
     this.drawShoreland(c, view);
     // rocks and islands
     for (const r of ROCKS) if (inView(r.x, r.y, r.r + 20) && !r.shoal) this.drawRock(c, r.x, r.y, r.r, t);
@@ -871,8 +892,13 @@ export class DriftwoodScene {
     c.strokeStyle = `rgba(255, 255, 255, ${0.4 + 0.12 * ph})`; c.lineWidth = 8 + ph * 3; c.stroke(this.edgeLine);
   }
   private drawShoreland(c: CanvasRenderingContext2D, v: { x0: number; x1: number; y0: number; y1: number }) {
-    // a sandy lip and a few trees on the lake's own shores
-    c.strokeStyle = '#e8d49c'; c.lineWidth = 16; c.stroke(this.edgeLine);
+    // a sandy beach and a few trees on the lake's own shores: the sand runs out under pale wet sand and a foamy edge
+    // into the water, and its inner edge softens into the meadow
+    const sand = this.pattern('sand-tile');
+    c.strokeStyle = 'rgba(255, 255, 255, 0.22)'; c.lineWidth = 58; c.stroke(this.edgeLine);
+    c.strokeStyle = 'rgba(214, 196, 150, 0.55)'; c.lineWidth = 50; c.stroke(this.edgeLine);
+    c.strokeStyle = sand ?? '#e8d49c'; c.lineWidth = sand ? 42 : 16; c.stroke(this.edgeLine);
+    if (sand) { c.strokeStyle = 'rgba(232, 214, 160, 0.45)'; c.lineWidth = 50; c.save(); c.clip(this.edgePath, 'evenodd'); c.stroke(this.edgeLine); c.restore(); }
     const S = 90;
     for (let j = Math.floor(v.y0 / S); j <= Math.ceil(v.y1 / S); j++) for (let i = Math.floor(v.x0 / S); i <= Math.ceil(v.x1 / S); i++) {
       const x = (i + hash(i, j)) * S, y = (j + hash(j, i)) * S, e = edgeDist(x, y).d;
@@ -1217,8 +1243,9 @@ export class DriftwoodScene {
     c.fillText(ok ? 'trimmed!' : err > 0 ? 'haul in (W)' : 'ease out (S)', x + 6, y + 10);
   }
   private drawMinimap(c: CanvasRenderingContext2D, g: DriftwoodGame, x: number, y: number, w: number, h: number, t: number) {
-    if (!this.mini || this.miniVer !== g.chartVersion) {
-      const cv = this.mini ?? mk(200, 150), m = ctx2(cv); this.mini = cv; this.miniVer = g.chartVersion;
+    // (a new voyage is a new game whose chart version can match the old one's, so the game is part of the key)
+    if (!this.mini || this.miniVer !== g.chartVersion || this.miniGame !== g) {
+      const cv = this.mini ?? mk(200, 150), m = ctx2(cv); this.mini = cv; this.miniVer = g.chartVersion; this.miniGame = g;
       m.clearRect(0, 0, 200, 150); m.drawImage(chartMap(), 0, 0, 200, 150);
       m.globalCompositeOperation = 'destination-in'; m.drawImage(chartMask(g, 0.05), 0, 0, 200, 150); m.globalCompositeOperation = 'destination-over';
       m.fillStyle = '#b8a888'; m.fillRect(0, 0, 200, 150); m.globalCompositeOperation = 'source-over';
