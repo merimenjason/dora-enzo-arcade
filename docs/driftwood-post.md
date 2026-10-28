@@ -11,7 +11,8 @@ Started 29-10-2026.
 - `lib/driftwood-scene.ts`: Canvas 2D drawing of the lake, the boat, the HUD, the chart, and the drawn stand-ins for every painting.
 - `app/driftwood/page.tsx`, `driftwood.css`, `sound.ts`: the page, its styles and the WebAudio sound.
 - `tests/driftwood.mjs` (engine), `tests/driftwood-bot.mjs` (a bot that plays the whole story), `tests/e2e/driftwood.mjs` (browser).
-- Art goes in `public/art/driftwood/` (see `docs/driftwood-post-art-brief.md`). Every painting has a drawn stand-in, so the game is complete without it.
+- Art is in `public/art/driftwood/` (see `docs/driftwood-post-art-brief.md`). Every painting has a drawn stand-in, so the game is complete without it.
+- Each island's coast is traced from its painting (`ART_SHAPES` in `lib/driftwood-world.ts`): the ground's outline, kept just inside the sandy rim and capped above by its mirror image, so towers, trees and crags don't count as land. The boat bumps on that coast, the drawn stand-ins use it, and sailing behind an island its tall parts are drawn over the boat. Whisker Cove and Slipway Isle tie up at their painted jetty and slipway.
 
 ## Sailing
 

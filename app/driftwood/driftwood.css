@@ -82,7 +82,9 @@
 .dw-card{width:min(760px,100%);max-height:100%;overflow:auto;background:var(--paper);border:3px solid #fff;border-radius:24px;box-shadow:0 20px 60px #0a283c80;animation:dw-in .25s ease-out;display:flex;flex-direction:column;gap:10px;padding-bottom:12px}
 @keyframes dw-in{from{opacity:0;transform:translateY(14px)}}
 .dw-card-top{position:relative;flex:none}
-.dw-card-art{height:170px;border-radius:21px 21px 0 0}
+.dw-card-art{height:170px;border-radius:21px 21px 0 0;background:radial-gradient(ellipse at 50% 60%,#5cc4d0,#2f8cba 70%)}
+/* the island paintings are whole islands on clear water: show all of one, not a crop */
+.dw-card-art img{object-fit:contain;padding:6px 0 0}
 .dw-card-who{display:flex;gap:12px;align-items:flex-start;padding:0 16px;margin-top:-54px;position:relative}
 .dw-card-who>div{padding-top:60px;min-width:0}
 .dw-face{flex:none;width:104px;height:104px;border-radius:22px;border:3px solid #fff;background:radial-gradient(circle at 50% 35%,#fff6e0,#f0d8b8);box-shadow:0 6px 16px #0003}

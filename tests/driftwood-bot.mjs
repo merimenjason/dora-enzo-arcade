@@ -156,7 +156,7 @@ function nextStop(g, side) {
   for (const it of g.bag) add(it.to, it.express ? 0.5 : it.story ? 0.8 : 1);
   if (g.bag.length < g.capacity) {
     for (const d of STORY) if (!g.done.has(d.n) && !g.bag.some((b) => b.story === d.n) && d.need.every((n) => g.done.has(n))) add(d.from, 0.9);
-    if (side) for (const id of VILLAGES) if (g.side[id]) add(id, 1.6);
+    if (side && g.bag.length < g.capacity - 1) for (const id of VILLAGES) if (g.side[id]) add(id, 1.6);
   }
   if (g.shopOpen && g.at !== 'boatyard' && BUY.some((id) => g.canBuy(id) !== 'max' && g.shells >= g.price(id) + 10)) add('boatyard', 1.3);
   if (g.regatta === 1) return 'lighthouse';

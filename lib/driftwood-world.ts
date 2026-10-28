@@ -16,39 +16,41 @@ export type Pt = [number, number];
 
 export type IslandDef = {
   id: IslandId; name: string; x: number; y: number;
-  /** The shore's distance from the middle every 30°, going clockwise from east. Smoothed into the coast. */
-  radii: number[];
+  /** How wide and tall the island's painting stands on the lake, in lake units (its ground's middle sits on x, y). */
+  size: number;
   /** Which way the jetty points out from the island (villages only). */
   dockA: number | null;
+  /** The painting has its own jetty or slipway where the boat ties up, so none is drawn over it. */
+  jetty?: boolean;
   art: string; resident: ResidentId | null; blurb: string;
 };
 
 export const ISLAND_DEFS: IslandDef[] = [
-  { id: 'home', name: 'Whisker Cove', x: 600, y: 2470, radii: [205, 200, 185, 175, 190, 215, 240, 225, 200, 180, 190, 210], dockA: -0.75, art: 'island-home', resident: 'duo',
+  { id: 'home', name: 'Whisker Cove', x: 600, y: 2470, size: 490, dockA: 1.26, art: 'island-home', jetty: true, resident: 'duo',
     blurb: 'Home: the red-roofed post office, Granny Tuft’s burrow and the boathouse where the driftwood dinghy waited.' },
-  { id: 'lighthouse', name: 'Lighthouse Rock', x: 1450, y: 1880, radii: [125, 135, 120, 112, 128, 140, 130, 118, 126, 138, 120, 115], dockA: 2.35, art: 'island-lighthouse', resident: 'pip',
+  { id: 'lighthouse', name: 'Lighthouse Rock', x: 1450, y: 1880, size: 380, dockA: 2.35, art: 'island-lighthouse', resident: 'pip',
     blurb: 'A rocky knuckle with a white-and-red lighthouse. Old Pip has kept the lamp for forty years.' },
-  { id: 'bakery', name: 'Crumb Isle', x: 1760, y: 2620, radii: [150, 160, 165, 150, 140, 150, 165, 160, 150, 145, 150, 155], dockA: -1.75, art: 'island-bakery', resident: 'bun',
+  { id: 'bakery', name: 'Crumb Isle', x: 1760, y: 2620, size: 440, dockA: -1.75, art: 'island-bakery', resident: 'bun',
     blurb: 'A round, warm island that smells of bread. The windmill grinds Bun’s flour.' },
-  { id: 'boatyard', name: 'Slipway Isle', x: 420, y: 1640, radii: [180, 170, 150, 140, 150, 165, 175, 160, 150, 160, 175, 185], dockA: 0.15, art: 'island-boatyard', resident: 'tamsin',
+  { id: 'boatyard', name: 'Slipway Isle', x: 420, y: 1640, size: 410, dockA: 1.31, art: 'island-boatyard', jetty: true, resident: 'tamsin',
     blurb: 'Timber stacks, a crane and a slipway. Tamsin can fix anything that floats, and some things that don’t.' },
-  { id: 'reeds', name: 'Reedmere', x: 2620, y: 2380, radii: [175, 150, 140, 160, 175, 150, 135, 150, 170, 160, 145, 165], dockA: -1.45, art: 'island-reeds', resident: 'mossy',
+  { id: 'reeds', name: 'Reedmere', x: 2620, y: 2380, size: 360, dockA: -1.45, art: 'island-reeds', resident: 'mossy',
     blurb: 'Stilt houses over the marsh, lily pads and the loudest choir on the lake.' },
-  { id: 'orchard', name: 'Blossom Holm', x: 3460, y: 2500, radii: [195, 185, 170, 180, 200, 210, 190, 175, 185, 200, 195, 190], dockA: -2.45, art: 'island-orchard', resident: 'bramble',
+  { id: 'orchard', name: 'Blossom Holm', x: 3460, y: 2500, size: 490, dockA: -2.45, art: 'island-orchard', resident: 'bramble',
     blurb: 'Blossom trees and humming beehives. Bramble looks after both.' },
-  { id: 'market', name: 'Bobbin Market', x: 2200, y: 1520, radii: [190, 175, 165, 170, 180, 185, 175, 165, 170, 185, 190, 195], dockA: 1.65, art: 'island-market', resident: 'dabble',
+  { id: 'market', name: 'Bobbin Market', x: 2200, y: 1520, size: 430, dockA: 1.65, art: 'island-market', resident: 'dabble',
     blurb: 'Striped stalls and bargains. If it exists, Dabble sells it; if it doesn’t, Dabble knows a duck.' },
-  { id: 'heron', name: 'Crag Top', x: 1060, y: 820, radii: [140, 150, 155, 135, 125, 140, 160, 150, 130, 125, 135, 145], dockA: 1.85, art: 'island-heron', resident: 'grisel',
+  { id: 'heron', name: 'Crag Top', x: 1060, y: 820, size: 530, dockA: 1.85, art: 'island-heron', resident: 'grisel',
     blurb: 'A tall grey crag with a very tidy nest on top, and a very particular heron in it.' },
-  { id: 'rabbits', name: 'Twin Hills', x: 3420, y: 1470, radii: [180, 165, 200, 215, 190, 170, 175, 165, 205, 220, 195, 175], dockA: 3.0, art: 'island-rabbits', resident: 'clover',
+  { id: 'rabbits', name: 'Twin Hills', x: 3420, y: 1470, size: 540, dockA: 3.0, art: 'island-rabbits', resident: 'clover',
     blurb: 'Two grassy hills full of burrows, joined by a little bridge. Clover lives on the left hill.' },
-  { id: 'observatory', name: 'Starpine', x: 2720, y: 540, radii: [165, 180, 170, 155, 160, 175, 170, 160, 150, 160, 170, 160], dockA: 1.7, art: 'island-observatory', resident: 'quill',
+  { id: 'observatory', name: 'Starpine', x: 2720, y: 540, size: 410, dockA: 1.7, art: 'island-observatory', resident: 'quill',
     blurb: 'Tall pines and a tiny domed observatory, often wrapped in fog. Professor Quill counts the stars.' },
-  { id: 'palm', name: 'Lone Palm', x: 1900, y: 930, radii: [62, 58, 55, 60, 66, 62, 58, 54, 60, 64, 60, 58], dockA: null, art: 'island-small-1', resident: null, blurb: 'One tree, two rocks and a great deal of opinion from the gulls.' },
-  { id: 'sandbar', name: 'Shell Sandbar', x: 3040, y: 1980, radii: [90, 60, 45, 50, 70, 95, 85, 55, 45, 50, 65, 85], dockA: null, art: 'island-small-2', resident: null, blurb: 'A long pale sandbar that collects shells and sunbathing ducks.' },
-  { id: 'birdhouse', name: 'Birdhouse Rock', x: 430, y: 470, radii: [58, 62, 55, 52, 60, 64, 58, 52, 56, 60, 62, 58], dockA: null, art: 'island-small-3', resident: null, blurb: 'A mossy rock with a birdhouse on a post. Nobody knows who lives in it.' },
-  { id: 'gullrest', name: 'Gull Rest', x: 3640, y: 760, radii: [64, 60, 58, 62, 70, 66, 60, 56, 62, 68, 64, 60], dockA: null, art: 'island-small-1', resident: null, blurb: 'A palm, some rocks, and gulls resting from a hard day of shouting.' },
-  { id: 'pebblebar', name: 'Pebble Bar', x: 1160, y: 1420, radii: [70, 50, 42, 46, 60, 72, 64, 46, 40, 46, 56, 68], dockA: null, art: 'island-small-2', resident: null, blurb: 'A curl of pebbles just above the water, perfect for skimming stones.' },
+  { id: 'palm', name: 'Lone Palm', x: 1900, y: 930, size: 200, dockA: null, art: 'island-small-1', resident: null, blurb: 'One tree, two rocks and a great deal of opinion from the gulls.' },
+  { id: 'sandbar', name: 'Shell Sandbar', x: 3040, y: 1980, size: 240, dockA: null, art: 'island-small-2', resident: null, blurb: 'A long pale sandbar that collects shells and sunbathing ducks.' },
+  { id: 'birdhouse', name: 'Birdhouse Rock', x: 430, y: 470, size: 190, dockA: null, art: 'island-small-3', resident: null, blurb: 'A mossy rock with a birdhouse on a post. Nobody knows who lives in it.' },
+  { id: 'gullrest', name: 'Gull Rest', x: 3640, y: 760, size: 210, dockA: null, art: 'island-small-1', resident: null, blurb: 'A palm, some rocks, and gulls resting from a hard day of shouting.' },
+  { id: 'pebblebar', name: 'Pebble Bar', x: 1160, y: 1420, size: 200, dockA: null, art: 'island-small-2', resident: null, blurb: 'A curl of pebbles just above the water, perfect for skimming stones.' },
 ];
 
 export type Rock = { x: number; y: number; r: number; shoal?: boolean };
@@ -222,19 +224,37 @@ export type Island = IslandDef & {
   pier: Pt | null;
 };
 
-/** The coast through the radii, smoothed with a closed Catmull-Rom spline (it passes through every radius point). */
-export function coast(d: { x: number; y: number; radii: number[] }, sub = 4): Pt[] {
-  const n = d.radii.length, ctl: Pt[] = d.radii.map((r, i) => { const a = (i / n) * Math.PI * 2; return [d.x + Math.cos(a) * r, d.y + Math.sin(a) * r]; });
-  const out: Pt[] = [];
-  for (let i = 0; i < n; i++) {
-    const p0 = ctl[(i - 1 + n) % n], p1 = ctl[i], p2 = ctl[(i + 1) % n], p3 = ctl[(i + 2) % n];
-    for (let s = 0; s < sub; s++) {
-      const t = s / sub, t2 = t * t, t3 = t2 * t;
-      const f = (a: number, b: number, c: number, e: number) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - e) * t2 + (-a + 3 * b - 3 * c + e) * t3);
-      out.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
-    }
-  }
-  return out;
+/**
+ * Each island painting's ground, traced from the painting (`public/art/driftwood/<art>.webp`): where the ground's middle
+ * sits in the picture and 48 points round its edge, as fractions of the picture's size. Traced from the paintings'
+ * outlines, kept inside the sandy rim, and capped above by the ground's mirror image so towers, trees and crags that
+ * stand up off the ground don't count as land. Both the collisions and the drawn stand-ins use these.
+ */
+export const ART_SHAPES: Record<string, { c: Pt; pts: Pt[] }> = {
+  'island-bakery': { c: [0.498, 0.644], pts: [[0.931, 0.644], [0.925, 0.701], [0.904, 0.753], [0.87, 0.799], [0.832, 0.837], [0.792, 0.87], [0.746, 0.892], [0.699, 0.906], [0.656, 0.919], [0.615, 0.926], [0.575, 0.932], [0.536, 0.936], [0.498, 0.934], [0.461, 0.93], [0.422, 0.928], [0.382, 0.924], [0.343, 0.912], [0.304, 0.897], [0.26, 0.882], [0.215, 0.862], [0.174, 0.832], [0.136, 0.795], [0.103, 0.75], [0.077, 0.7], [0.066, 0.644], [0.077, 0.589], [0.103, 0.539], [0.136, 0.494], [0.174, 0.457], [0.215, 0.427], [0.26, 0.407], [0.304, 0.392], [0.343, 0.377], [0.382, 0.365], [0.422, 0.361], [0.461, 0.359], [0.498, 0.355], [0.536, 0.353], [0.575, 0.357], [0.615, 0.363], [0.656, 0.37], [0.699, 0.383], [0.746, 0.397], [0.792, 0.419], [0.832, 0.452], [0.87, 0.49], [0.904, 0.536], [0.925, 0.588]] },
+  'island-boatyard': { c: [0.499, 0.558], pts: [[0.919, 0.558], [0.91, 0.612], [0.899, 0.665], [0.892, 0.72], [0.871, 0.772], [0.834, 0.815], [0.795, 0.853], [0.751, 0.885], [0.698, 0.902], [0.645, 0.911], [0.598, 0.925], [0.548, 0.933], [0.499, 0.929], [0.451, 0.92], [0.406, 0.905], [0.362, 0.889], [0.315, 0.877], [0.265, 0.862], [0.219, 0.838], [0.172, 0.809], [0.131, 0.77], [0.105, 0.721], [0.091, 0.667], [0.082, 0.613], [0.079, 0.558], [0.089, 0.504], [0.1, 0.451], [0.111, 0.397], [0.144, 0.353], [0.192, 0.322], [0.227, 0.286], [0.265, 0.253], [0.315, 0.238], [0.362, 0.227], [0.406, 0.21], [0.451, 0.196], [0.499, 0.186], [0.548, 0.182], [0.598, 0.19], [0.645, 0.204], [0.698, 0.213], [0.751, 0.23], [0.795, 0.262], [0.834, 0.3], [0.871, 0.343], [0.892, 0.395], [0.899, 0.45], [0.91, 0.503]] },
+  'island-heron': { c: [0.498, 0.696], pts: [[0.871, 0.696], [0.86, 0.744], [0.829, 0.785], [0.793, 0.818], [0.751, 0.842], [0.708, 0.857], [0.672, 0.87], [0.637, 0.878], [0.604, 0.879], [0.574, 0.88], [0.549, 0.886], [0.525, 0.898], [0.498, 0.91], [0.469, 0.914], [0.441, 0.91], [0.413, 0.902], [0.386, 0.89], [0.359, 0.878], [0.328, 0.866], [0.294, 0.853], [0.261, 0.833], [0.219, 0.812], [0.165, 0.786], [0.129, 0.745], [0.126, 0.696], [0.136, 0.649], [0.168, 0.608], [0.219, 0.581], [0.261, 0.559], [0.294, 0.54], [0.328, 0.526], [0.359, 0.515], [0.386, 0.502], [0.413, 0.491], [0.441, 0.482], [0.469, 0.479], [0.498, 0.482], [0.525, 0.494], [0.549, 0.507], [0.574, 0.513], [0.604, 0.513], [0.637, 0.515], [0.672, 0.523], [0.708, 0.535], [0.751, 0.55], [0.793, 0.574], [0.829, 0.608], [0.86, 0.649]] },
+  'island-home': { c: [0.498, 0.546], pts: [[0.927, 0.546], [0.923, 0.602], [0.916, 0.658], [0.9, 0.713], [0.879, 0.766], [0.852, 0.817], [0.807, 0.855], [0.757, 0.884], [0.708, 0.91], [0.654, 0.923], [0.601, 0.928], [0.549, 0.933], [0.498, 0.928], [0.45, 0.914], [0.405, 0.895], [0.363, 0.873], [0.317, 0.86], [0.265, 0.85], [0.214, 0.829], [0.168, 0.799], [0.124, 0.762], [0.097, 0.712], [0.084, 0.657], [0.077, 0.601], [0.076, 0.546], [0.077, 0.49], [0.09, 0.437], [0.11, 0.385], [0.134, 0.336], [0.17, 0.294], [0.214, 0.262], [0.265, 0.242], [0.317, 0.232], [0.363, 0.219], [0.405, 0.197], [0.45, 0.178], [0.498, 0.164], [0.548, 0.165], [0.598, 0.175], [0.652, 0.175], [0.708, 0.182], [0.757, 0.208], [0.799, 0.245], [0.834, 0.288], [0.869, 0.332], [0.897, 0.381], [0.909, 0.436], [0.919, 0.49]] },
+  'island-lighthouse': { c: [0.498, 0.676], pts: [[0.917, 0.676], [0.922, 0.732], [0.907, 0.785], [0.875, 0.832], [0.839, 0.872], [0.792, 0.901], [0.739, 0.916], [0.688, 0.923], [0.645, 0.93], [0.607, 0.938], [0.57, 0.944], [0.534, 0.946], [0.498, 0.941], [0.464, 0.932], [0.431, 0.925], [0.397, 0.921], [0.361, 0.913], [0.329, 0.897], [0.297, 0.876], [0.259, 0.86], [0.213, 0.84], [0.169, 0.812], [0.128, 0.775], [0.101, 0.728], [0.095, 0.676], [0.101, 0.624], [0.128, 0.577], [0.169, 0.539], [0.213, 0.511], [0.259, 0.492], [0.297, 0.475], [0.329, 0.455], [0.361, 0.439], [0.397, 0.431], [0.431, 0.426], [0.464, 0.42], [0.498, 0.411], [0.534, 0.406], [0.57, 0.407], [0.607, 0.413], [0.645, 0.421], [0.688, 0.428], [0.739, 0.435], [0.792, 0.45], [0.839, 0.479], [0.867, 0.523], [0.885, 0.572], [0.905, 0.622]] },
+  'island-market': { c: [0.498, 0.529], pts: [[0.92, 0.529], [0.923, 0.585], [0.925, 0.644], [0.913, 0.701], [0.888, 0.754], [0.85, 0.799], [0.802, 0.834], [0.748, 0.855], [0.693, 0.867], [0.646, 0.885], [0.599, 0.907], [0.55, 0.921], [0.498, 0.932], [0.446, 0.928], [0.397, 0.908], [0.349, 0.889], [0.298, 0.875], [0.248, 0.855], [0.208, 0.819], [0.171, 0.78], [0.127, 0.743], [0.092, 0.697], [0.082, 0.641], [0.082, 0.584], [0.081, 0.529], [0.084, 0.475], [0.087, 0.419], [0.099, 0.364], [0.13, 0.317], [0.171, 0.279], [0.208, 0.24], [0.248, 0.204], [0.298, 0.184], [0.349, 0.17], [0.397, 0.15], [0.446, 0.131], [0.498, 0.127], [0.55, 0.138], [0.599, 0.152], [0.646, 0.173], [0.693, 0.192], [0.748, 0.203], [0.802, 0.225], [0.846, 0.262], [0.876, 0.311], [0.897, 0.364], [0.912, 0.418], [0.918, 0.474]] },
+  'island-observatory': { c: [0.498, 0.539], pts: [[0.923, 0.539], [0.923, 0.595], [0.922, 0.653], [0.908, 0.709], [0.874, 0.756], [0.831, 0.795], [0.79, 0.831], [0.746, 0.862], [0.694, 0.878], [0.644, 0.891], [0.598, 0.911], [0.549, 0.928], [0.498, 0.931], [0.448, 0.922], [0.399, 0.908], [0.352, 0.893], [0.304, 0.876], [0.262, 0.847], [0.225, 0.812], [0.181, 0.782], [0.146, 0.742], [0.123, 0.694], [0.096, 0.647], [0.078, 0.594], [0.073, 0.539], [0.078, 0.484], [0.096, 0.431], [0.123, 0.384], [0.146, 0.336], [0.181, 0.296], [0.225, 0.266], [0.262, 0.231], [0.304, 0.202], [0.352, 0.185], [0.399, 0.17], [0.448, 0.156], [0.498, 0.147], [0.549, 0.15], [0.598, 0.168], [0.642, 0.191], [0.689, 0.208], [0.743, 0.22], [0.788, 0.249], [0.826, 0.288], [0.865, 0.328], [0.896, 0.374], [0.913, 0.428], [0.919, 0.484]] },
+  'island-orchard': { c: [0.498, 0.55], pts: [[0.922, 0.55], [0.915, 0.605], [0.915, 0.661], [0.92, 0.725], [0.89, 0.776], [0.831, 0.805], [0.776, 0.828], [0.733, 0.856], [0.687, 0.877], [0.637, 0.886], [0.589, 0.891], [0.544, 0.898], [0.498, 0.909], [0.45, 0.913], [0.403, 0.905], [0.356, 0.893], [0.31, 0.875], [0.266, 0.852], [0.218, 0.83], [0.17, 0.802], [0.132, 0.761], [0.104, 0.713], [0.086, 0.66], [0.081, 0.605], [0.08, 0.55], [0.104, 0.498], [0.138, 0.453], [0.149, 0.405], [0.162, 0.356], [0.196, 0.318], [0.235, 0.287], [0.276, 0.261], [0.318, 0.237], [0.359, 0.214], [0.403, 0.196], [0.45, 0.186], [0.498, 0.19], [0.544, 0.201], [0.589, 0.209], [0.637, 0.214], [0.687, 0.223], [0.728, 0.25], [0.759, 0.288], [0.795, 0.322], [0.836, 0.355], [0.875, 0.394], [0.896, 0.443], [0.911, 0.495]] },
+  'island-rabbits': { c: [0.498, 0.55], pts: [[0.928, 0.55], [0.93, 0.607], [0.923, 0.664], [0.904, 0.718], [0.869, 0.764], [0.82, 0.797], [0.771, 0.822], [0.723, 0.843], [0.674, 0.854], [0.625, 0.857], [0.581, 0.86], [0.538, 0.857], [0.498, 0.848], [0.46, 0.839], [0.422, 0.832], [0.383, 0.828], [0.341, 0.821], [0.301, 0.807], [0.259, 0.789], [0.216, 0.766], [0.175, 0.736], [0.138, 0.699], [0.108, 0.654], [0.082, 0.605], [0.069, 0.55], [0.082, 0.495], [0.108, 0.445], [0.138, 0.401], [0.175, 0.363], [0.216, 0.334], [0.259, 0.311], [0.301, 0.293], [0.341, 0.279], [0.383, 0.272], [0.425, 0.277], [0.465, 0.295], [0.498, 0.316], [0.527, 0.33], [0.555, 0.338], [0.584, 0.343], [0.615, 0.348], [0.665, 0.332], [0.747, 0.301], [0.816, 0.306], [0.852, 0.345], [0.879, 0.392], [0.906, 0.441], [0.922, 0.494]] },
+  'island-reeds': { c: [0.498, 0.507], pts: [[0.924, 0.507], [0.921, 0.563], [0.921, 0.62], [0.924, 0.683], [0.912, 0.746], [0.883, 0.803], [0.837, 0.846], [0.777, 0.871], [0.716, 0.884], [0.658, 0.894], [0.607, 0.912], [0.553, 0.926], [0.498, 0.928], [0.443, 0.922], [0.389, 0.913], [0.335, 0.9], [0.28, 0.884], [0.226, 0.862], [0.172, 0.833], [0.125, 0.793], [0.096, 0.739], [0.081, 0.679], [0.076, 0.62], [0.077, 0.562], [0.076, 0.507], [0.083, 0.452], [0.092, 0.398], [0.098, 0.341], [0.11, 0.283], [0.132, 0.226], [0.179, 0.187], [0.234, 0.162], [0.288, 0.142], [0.345, 0.138], [0.397, 0.129], [0.446, 0.109], [0.498, 0.111], [0.549, 0.12], [0.602, 0.119], [0.657, 0.122], [0.714, 0.133], [0.773, 0.148], [0.829, 0.176], [0.864, 0.226], [0.888, 0.282], [0.907, 0.338], [0.916, 0.395], [0.921, 0.451]] },
+  'island-small-1': { c: [0.498, 0.717], pts: [[0.912, 0.717], [0.91, 0.771], [0.88, 0.819], [0.832, 0.855], [0.784, 0.882], [0.743, 0.905], [0.701, 0.92], [0.66, 0.928], [0.625, 0.936], [0.592, 0.944], [0.56, 0.949], [0.529, 0.95], [0.498, 0.948], [0.468, 0.946], [0.437, 0.944], [0.405, 0.942], [0.369, 0.941], [0.328, 0.938], [0.285, 0.93], [0.242, 0.913], [0.202, 0.888], [0.164, 0.855], [0.129, 0.816], [0.101, 0.769], [0.089, 0.717], [0.101, 0.664], [0.129, 0.618], [0.164, 0.578], [0.202, 0.546], [0.242, 0.52], [0.285, 0.504], [0.328, 0.495], [0.369, 0.493], [0.405, 0.491], [0.437, 0.49], [0.468, 0.488], [0.498, 0.485], [0.529, 0.484], [0.56, 0.484], [0.592, 0.489], [0.625, 0.498], [0.66, 0.506], [0.681, 0.534], [0.697, 0.564], [0.759, 0.566], [0.828, 0.58], [0.865, 0.618], [0.892, 0.665]] },
+  'island-small-2': { c: [0.498, 0.494], pts: [[0.928, 0.494], [0.914, 0.549], [0.871, 0.594], [0.817, 0.626], [0.766, 0.649], [0.719, 0.664], [0.678, 0.674], [0.642, 0.681], [0.608, 0.684], [0.577, 0.684], [0.547, 0.679], [0.521, 0.672], [0.498, 0.673], [0.473, 0.681], [0.447, 0.686], [0.419, 0.685], [0.389, 0.683], [0.354, 0.682], [0.317, 0.675], [0.28, 0.662], [0.232, 0.648], [0.183, 0.625], [0.138, 0.591], [0.095, 0.547], [0.077, 0.494], [0.095, 0.441], [0.138, 0.398], [0.183, 0.364], [0.233, 0.341], [0.283, 0.329], [0.324, 0.32], [0.361, 0.315], [0.395, 0.316], [0.425, 0.318], [0.45, 0.313], [0.474, 0.311], [0.498, 0.315], [0.521, 0.319], [0.545, 0.319], [0.571, 0.318], [0.6, 0.318], [0.634, 0.317], [0.672, 0.32], [0.716, 0.327], [0.765, 0.34], [0.817, 0.362], [0.871, 0.394], [0.914, 0.439]] },
+  'island-small-3': { c: [0.498, 0.721], pts: [[0.926, 0.721], [0.917, 0.776], [0.884, 0.824], [0.838, 0.862], [0.796, 0.893], [0.75, 0.914], [0.703, 0.926], [0.664, 0.936], [0.626, 0.943], [0.59, 0.944], [0.558, 0.946], [0.528, 0.947], [0.498, 0.947], [0.468, 0.949], [0.438, 0.947], [0.407, 0.941], [0.375, 0.934], [0.341, 0.925], [0.303, 0.916], [0.26, 0.904], [0.213, 0.885], [0.172, 0.856], [0.13, 0.819], [0.09, 0.774], [0.073, 0.721], [0.09, 0.667], [0.13, 0.622], [0.172, 0.586], [0.213, 0.556], [0.26, 0.538], [0.303, 0.526], [0.341, 0.516], [0.375, 0.508], [0.407, 0.5], [0.438, 0.495], [0.468, 0.493], [0.498, 0.494], [0.528, 0.494], [0.558, 0.496], [0.59, 0.498], [0.626, 0.499], [0.664, 0.505], [0.703, 0.515], [0.75, 0.527], [0.796, 0.549], [0.838, 0.58], [0.884, 0.617], [0.917, 0.666]] },
+};
+
+/** An island's coast: its painting's traced ground, placed and scaled on the lake. */
+export function coast(d: { x: number; y: number; size: number; art: string }): Pt[] {
+  const sh = ART_SHAPES[d.art];
+  return sh.pts.map(([u, v]) => [d.x + (u - sh.c[0]) * d.size, d.y + (v - sh.c[1]) * d.size]);
+}
+/** Where an island's painting goes on the lake: its top-left corner and its size. */
+export function artBox(d: { x: number; y: number; size: number; art: string }) {
+  const sh = ART_SHAPES[d.art];
+  return { x: d.x - sh.c[0] * d.size, y: d.y - sh.c[1] * d.size, s: d.size };
 }
 
 /** The coast's radius in a direction, read off the smoothed polygon by casting a ray from the middle. */

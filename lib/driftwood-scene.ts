@@ -7,7 +7,7 @@
 // Every painting in public/art/driftwood/ has a drawn stand-in, shown until (or unless) it loads.
 import { drawChinchilla, coatLike, type Coat } from './chinchilla-art';
 import {
-  ISLANDS, ISLAND, ROCKS, REEDS, CURRENTS, FOGS, SHELLS, BOTTLES, STORY, LAKE_W, LAKE_H, MAX_SPEED, PREVAIL,
+  ISLANDS, ISLAND, ART_SHAPES, artBox, ROCKS, REEDS, CURRENTS, FOGS, SHELLS, BOTTLES, STORY, LAKE_W, LAKE_H, MAX_SPEED, PREVAIL,
   CHART_W, CHART_H, CHART_CELL, HZ, clearance, edgeDist, shoreIn, fogAt, daylight, clockOf, clockText, dayPart, wrap,
   type DriftwoodGame, type Ev, type Island, type IslandId, type ResidentId, type Pt,
 } from './driftwood-game';
@@ -16,6 +16,12 @@ const FONT = 'ui-rounded, "Trebuchet MS", "Segoe UI", system-ui, sans-serif';
 const TAU = Math.PI * 2;
 const mk = (w: number, h: number) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 const ctx2 = (c: HTMLCanvasElement) => c.getContext('2d')!;
+/** How much bigger than its bumping coast a painting's ground is drawn (the traced coast sits inside the sandy rim). */
+const RIM = 1 / 0.93;
+/** The boat painting's size in lake units (its hull runs nearly top to bottom), and where the lighthouse painting's lamp is. */
+const BOAT_ART = 54, LAMP: Pt = [0.414, 0.07];
+/** A painted island's sandy edge on the lake: its coast pushed out to the painted rim. */
+function paintedEdge(isl: Island): Pt[] { return isl.poly.map(([x, y]) => [isl.x + (x - isl.x) * RIM, isl.y + (y - isl.y) * RIM]); }
 /** A repeatable hash of two integers to 0..1, for scattering trees, ripples and glints without Math.random. */
 const hash = (i: number, j: number) => { let h = Math.imul(i | 0, 374761393) + Math.imul(j | 0, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 const rgb = (s: string) => [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)];
@@ -523,7 +529,8 @@ export function drawChart(cv: HTMLCanvasElement, g: DriftwoodGame, art: HTMLImag
   const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.max(1, r.width), H = Math.max(1, r.height);
   if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
   const c = ctx2(cv); c.setTransform(dpr, 0, 0, dpr, 0, 0);
-  if (art) c.drawImage(art, 0, 0, W, H); else c.drawImage(parchment(W, H), 0, 0, W, H);
+  if (art) { const k = Math.max(W / art.naturalWidth, H / art.naturalHeight), aw = art.naturalWidth * k, ah = art.naturalHeight * k; c.drawImage(art, (W - aw) / 2, (H - ah) / 2, aw, ah); }
+  else c.drawImage(parchment(W, H), 0, 0, W, H);
   const pad = Math.min(W, H) * 0.06, s = Math.min((W - pad * 2) / LAKE_W, (H - pad * 2) / LAKE_H), ox = (W - LAKE_W * s) / 2, oy = (H - LAKE_H * s) / 2;
   // the charted lake: the inked map masked by what's been seen
   // (rebuilt only when more of the lake is charted: the blur is too dear to run every frame)
@@ -536,7 +543,7 @@ export function drawChart(cv: HTMLCanvasElement, g: DriftwoodGame, art: HTMLImag
   const lay = CHARTED.cv;
   c.save(); c.globalAlpha = 0.95; c.drawImage(lay, ox, oy, LAKE_W * s, LAKE_H * s); c.restore();
   c.strokeStyle = 'rgba(90, 70, 40, 0.5)'; c.lineWidth = 2; c.strokeRect(ox - 4, oy - 4, LAKE_W * s + 8, LAKE_H * s + 8);
-  if (!art) compassRose(c, ox + LAKE_W * s - 46, oy + LAKE_H * s - 46, 30);
+  compassRose(c, ox + LAKE_W * s - 46, oy + LAKE_H * s - 46, 30);
   const P = (x: number, y: number): Pt => [ox + x * s, oy + y * s];
   const fs = Math.max(11, Math.min(16, W / 70));
   // shells and bottles found
@@ -593,7 +600,9 @@ export class DriftwoodScene {
   private base: HTMLCanvasElement | null = null; private baseK = 0.1;
   private edgePath: Path2D; private edgeLine: Path2D; private edgePts: Pt[];
   private islandArt = new Map<IslandId, { cv: HTMLCanvasElement; half: number }>();
-  private coastPaths = new Map<IslandId, { coast: Path2D; foam: Path2D; foam2: Path2D }>();
+  private coastPaths = new Map<IslandId, { coast: Path2D; foam: Path2D; foam2: Path2D; pfoam: Path2D; pfoam2: Path2D }>();
+  /** Each painted island's tall parts (towers, trees, crags) cut out, drawn again over the boat when she's behind them. */
+  private overhangs = new Map<string, HTMLCanvasElement | null>();
   private reedArt: HTMLCanvasElement[] = [];
   private art = new Map<string, HTMLImageElement>();
   private fogSprite: HTMLCanvasElement; private glowSprite: HTMLCanvasElement;
@@ -612,7 +621,10 @@ export class DriftwoodScene {
     for (const isl of ISLANDS) {
       const coast = new Path2D(), foam = new Path2D(), foam2 = new Path2D();
       smoothPath(coast, isl.poly); smoothPath(foam, offsetPoly(isl.poly, 7)); smoothPath(foam2, offsetPoly(isl.poly, 17));
-      this.coastPaths.set(isl.id, { coast, foam, foam2 });
+      // a painting's sand runs a little past the coast the boat bumps on, so its foam laps further out
+      const edge = paintedEdge(isl), pfoam = new Path2D(), pfoam2 = new Path2D();
+      smoothPath(pfoam, offsetPoly(edge, 3)); smoothPath(pfoam2, offsetPoly(edge, 13));
+      this.coastPaths.set(isl.id, { coast, foam, foam2, pfoam, pfoam2 });
     }
     this.fogSprite = mk(128, 128); { const c = ctx2(this.fogSprite), g = c.createRadialGradient(64, 64, 4, 64, 64, 64); g.addColorStop(0, 'rgba(255, 255, 255, 0.9)'); g.addColorStop(0.5, 'rgba(255, 255, 255, 0.45)'); g.addColorStop(1, 'rgba(255, 255, 255, 0)'); c.fillStyle = g; c.fillRect(0, 0, 128, 128); }
     this.glowSprite = mk(64, 64); { const c = ctx2(this.glowSprite), g = c.createRadialGradient(32, 32, 1, 32, 32, 32); g.addColorStop(0, 'rgba(255, 236, 170, 1)'); g.addColorStop(0.25, 'rgba(255, 196, 110, 0.55)'); g.addColorStop(1, 'rgba(255, 170, 80, 0)'); c.fillStyle = g; c.fillRect(0, 0, 64, 64); }
@@ -652,6 +664,16 @@ export class DriftwoodScene {
     }
     c.putImageData(im, 0, 0);
     this.base = cv; return cv;
+  }
+  private overhang(isl: Island) {
+    if (this.overhangs.has(isl.art)) return this.overhangs.get(isl.art)!;
+    const art = this.img(isl.art); if (!art) return null;
+    const sh = ART_SHAPES[isl.art], N = 512, cv = mk(N, N), o = ctx2(cv);
+    o.drawImage(art, 0, 0, N, N); o.globalCompositeOperation = 'destination-out';
+    // keep only what stands above the ground: cut away the ground (out to its painted rim) and everything below its middle
+    const [cx, cy] = sh.c; o.beginPath(); smoothPath(o, sh.pts.map(([u, v]): Pt => [(cx + (u - cx) * RIM) * N, (cy + (v - cy) * RIM) * N])); o.fill();
+    o.fillRect(0, cy * N, N, N);
+    this.overhangs.set(isl.art, cv); return cv;
   }
   private islandSprite(isl: Island) {
     let s = this.islandArt.get(isl.id); if (!s) { s = paintIslandStandIn(isl, 1); this.islandArt.set(isl.id, s); } return s;
@@ -727,9 +749,9 @@ export class DriftwoodScene {
     for (const isl of ISLANDS) {
       if (!inView(isl.x, isl.y, isl.reach + 80)) continue;
       const art = this.img(isl.art);
-      if (art) { const s = isl.reach * 2.24; c.drawImage(art, isl.x - s / 2, isl.y - s / 2, s, s); }
+      if (art) { const b = artBox(isl); c.drawImage(art, b.x, b.y, b.s, b.s); }
       else { const sp = this.islandSprite(isl); c.drawImage(sp.cv, isl.x - sp.half, isl.y - sp.half, sp.half * 2, sp.half * 2); }
-      if (isl.dock) this.drawJetty(c, isl, g, t);
+      if (isl.dock) this.drawJetty(c, isl, g, t, !(art && isl.jetty));
       this.drawIslandLife(c, isl, !!art, t, windDir, minute);
     }
     // treasures in the water: shells glint, bottles bob
@@ -739,6 +761,11 @@ export class DriftwoodScene {
     // the boat (or none on the menu)
     if (g) this.drawBoat(c, g, t);
     else this.drawBoatAt(c, bx, by, Math.atan2(Math.cos(t * 0.07) * 14, -Math.sin(t * 0.05) * 6) || 0.4, 1.4, windDir, 1, 0.45, 0, t, 0, null);
+    // sailing behind an island (north of its middle), its towers, trees and crags stand in front of the boat
+    for (const isl of ISLANDS) {
+      const b = artBox(isl); if (this.at.y >= isl.y || this.at.x < b.x - 40 || this.at.x > b.x + b.s + 40 || this.at.y < b.y - 60) continue;
+      const oh = this.overhang(isl); if (oh) c.drawImage(oh, b.x, b.y, b.s, b.s);
+    }
     this.drawParticles(c, dt, o.paused);
     // weather and light
     const rain = g ? g.rain : false;
@@ -822,9 +849,9 @@ export class DriftwoodScene {
     // two rings of foam breathing in and out on every coast, the outer one fainter and out of step
     for (const isl of ISLANDS) {
       if (isl.x + isl.reach + 60 < v.x0 || isl.x - isl.reach - 60 > v.x1 || isl.y + isl.reach + 60 < v.y0 || isl.y - isl.reach - 60 > v.y1) continue;
-      const p = this.coastPaths.get(isl.id)!, ph = Math.sin(t * 1.3 + isl.x * 0.01), ph2 = Math.sin(t * 1.3 + isl.x * 0.01 - 1.6);
-      c.strokeStyle = `rgba(255, 255, 255, ${0.16 + 0.1 * ph2})`; c.lineWidth = 4 + ph2 * 2; c.stroke(p.foam2);
-      c.strokeStyle = `rgba(255, 255, 255, ${0.5 + 0.15 * ph})`; c.lineWidth = 7 + ph * 2.5; c.stroke(p.foam);
+      const p = this.coastPaths.get(isl.id)!, ph = Math.sin(t * 1.3 + isl.x * 0.01), ph2 = Math.sin(t * 1.3 + isl.x * 0.01 - 1.6), painted = !!this.img(isl.art);
+      c.strokeStyle = `rgba(255, 255, 255, ${0.16 + 0.1 * ph2})`; c.lineWidth = 4 + ph2 * 2; c.stroke(painted ? p.pfoam2 : p.foam2);
+      c.strokeStyle = `rgba(255, 255, 255, ${0.5 + 0.15 * ph})`; c.lineWidth = 7 + ph * 2.5; c.stroke(painted ? p.pfoam : p.foam);
     }
     for (const r of ROCKS) {
       if (r.x < v.x0 - 60 || r.x > v.x1 + 60 || r.y < v.y0 - 60 || r.y > v.y1 + 60) continue;
@@ -856,14 +883,16 @@ export class DriftwoodScene {
     if (hash(y | 0, 3) < 0.4) blob(c, x + r * 0.3, y - r * 0.1, r * 0.25, r * 0.15, '#6a8a4a');
     void t;
   }
-  private drawJetty(c: CanvasRenderingContext2D, isl: Island, g: DriftwoodGame | null, t: number) {
+  private drawJetty(c: CanvasRenderingContext2D, isl: Island, g: DriftwoodGame | null, t: number, planks = true) {
     const d = isl.dock!, p = isl.pier!, ux = Math.cos(d.a), uy = Math.sin(d.a), px = -uy, py = ux;
-    const ex = d.x - ux * 18, ey = d.y - uy * 18, w = 9;
+    const ex = d.x - ux * (planks ? 18 : 34), ey = d.y - uy * (planks ? 18 : 34), w = 9;
+    if (planks) {
     c.fillStyle = 'rgba(10, 40, 60, 0.22)'; c.beginPath(); c.moveTo(p[0] + px * w + 4, p[1] + py * w + 5); c.lineTo(ex + px * w + 4, ey + py * w + 5); c.lineTo(ex - px * w + 4, ey - py * w + 5); c.lineTo(p[0] - px * w + 4, p[1] - py * w + 5); c.fill();
     c.fillStyle = '#b08a5e'; c.beginPath(); c.moveTo(p[0] + px * w, p[1] + py * w); c.lineTo(ex + px * w, ey + py * w); c.lineTo(ex - px * w, ey - py * w); c.lineTo(p[0] - px * w, p[1] - py * w); c.closePath(); c.fill();
     c.strokeStyle = '#7a5a3a'; c.lineWidth = 1.2; const L = Math.hypot(ex - p[0], ey - p[1]);
     for (let s = 4; s < L; s += 6) { const x = p[0] + ux * s, y = p[1] + uy * s; c.beginPath(); c.moveTo(x + px * w, y + py * w); c.lineTo(x - px * w, y - py * w); c.stroke(); }
     for (const sgn of [-1, 1]) for (const s of [L * 0.4, L]) blob(c, p[0] + ux * s + px * w * sgn, p[1] + uy * s + py * w * sgn, 2.6, 2.6, '#5a4028');
+    }
     // the post box at the end, its flag up when there's post waiting
     const bxp = ex + px * (w + 6), byp = ey + py * (w + 6), waiting = g ? g.waiting(isl.id).length > 0 : false;
     c.fillStyle = '#5a4028'; c.fillRect(bxp - 1, byp - 14, 2, 14);
@@ -935,7 +964,7 @@ export class DriftwoodScene {
     const art = this.img('boat');
     c.save(); c.translate(x, y); c.rotate(h); c.scale(1, 1 + roll);
     // the painting has its bow up, so it turns a quarter more to face along the heading
-    if (art) { c.rotate(Math.PI / 2); c.drawImage(art, -32, -32, 64, 64); c.rotate(-Math.PI / 2); }
+    if (art) { c.rotate(Math.PI / 2); c.drawImage(art, -BOAT_ART / 2, -BOAT_ART / 2 - 1, BOAT_ART, BOAT_ART); c.rotate(-Math.PI / 2); }
     else {
       // driftwood hull from above: pointed bow (+x), rounded stern
       const hull = c.createLinearGradient(0, -10, 0, 10); hull.addColorStop(0, '#c8a880'); hull.addColorStop(0.5, '#a88a64'); hull.addColorStop(1, '#8a6e4e');
@@ -987,9 +1016,10 @@ export class DriftwoodScene {
     };
     // Dora at the tiller and Enzo up in the bow, sitting up so you can see them, facing the way the boat goes
     const stern = [x - ch * 15, y - sh * 15], bow = [x + ch * 17, y + sh * 17];
+    // (the boat's painting has the crew painted in, sitting in the boat; the drawn boat seats them upright)
+    const crew = !art;
     const order: [number, () => void][] = [
-      [stern[1], () => drawChinchilla(c, 'dora', stern[0], stern[1] + 3 + bob, { face, h: 13, time: t })],
-      [bow[1], () => drawChinchilla(c, 'enzo', bow[0], bow[1] + 3 + bob, { face, h: 12, time: t + 0.8 })],
+      ...(crew ? [[stern[1], () => drawChinchilla(c, 'dora', stern[0], stern[1] + 3 + bob, { face, h: 13, time: t })], [bow[1], () => drawChinchilla(c, 'enzo', bow[0], bow[1] + 3 + bob, { face, h: 12, time: t + 0.8 })]] as [number, () => void][] : []),
       [foot[1] + 0.5, drawSail],
     ];
     order.sort((a, b) => a[0] - b[0]);
@@ -1049,7 +1079,7 @@ export class DriftwoodScene {
       if (isl.dock) { const d = isl.dock; light(d.x - Math.cos(d.a) * 14, d.y - Math.sin(d.a) * 14, 22, glow * 0.7 * flick(9)); }
     }
     // the lighthouse: dim with an old wick, steady once Tamsin's wick arrives, sweeping far once Quill's lens is in
-    const lh = ISLAND.lighthouse, look = lookOf(lh), painted = !!this.img(lh.art), lamp: Pt = painted ? [lh.x, lh.y - lh.reach * 0.55] : [lh.x + look.lamp![0], lh.y + look.lamp![1]];
+    const lh = ISLAND.lighthouse, look = lookOf(lh), painted = !!this.img(lh.art), lamp: Pt = painted ? [artBox(lh).x + artBox(lh).s * LAMP[0], artBox(lh).y + artBox(lh).s * LAMP[1]] : [lh.x + look.lamp![0], lh.y + look.lamp![1]];
     const lit = !g ? 1 : g.done.has(19) ? 1 : g.done.has(5) ? 0.55 : 0.25, reach = 260 + 900 * lit * lit;
     light(lamp[0], lamp[1], 40 + 30 * lit, glow * (0.6 + 0.4 * lit));
     c.globalAlpha = 1;
