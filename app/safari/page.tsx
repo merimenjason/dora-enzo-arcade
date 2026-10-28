@@ -253,6 +253,7 @@ export default function SnapshotSafariPage() {
 
       {out && (
         <>
+          <p className="safari-turn" key={g.seed}>📱 Turn your phone sideways for a wider view of the trail</p>
           <div className="safari-hud">
             <button className="safari-chip" onClick={() => pause(true)}>❚❚ Pause</button>
             <div className="safari-day" aria-label={`Daylight left: ${clock(g.dayLeft)}`}>

@@ -149,6 +149,12 @@
 .safari-slot.rare strong{color:#b0602a}
 .safari-empty{aspect-ratio:3/2;border:2px dashed #c9b08a;border-radius:4px;display:grid;place-items:center;font-size:42px;font-weight:900;color:#c9b08a;background:#f2e6cc}
 
+/* an upright phone shows the trail small under a tall sky, so suggest turning it, then fade away */
+.safari-turn{display:none}
+@media (orientation:portrait) and (max-width:760px){
+  .safari-turn{display:block;position:absolute;left:0;right:0;top:150px;z-index:4;margin:0 auto;width:max-content;max-width:calc(100% - 24px);background:#1c2a1fe6;color:#fff8ec;border:1px solid #ffffff38;border-radius:14px;padding:8px 14px;font-weight:800;font-size:13px;text-align:center;pointer-events:none;animation:safari-turn-away 7s ease-in forwards}
+}
+@keyframes safari-turn-away{0%,78%{opacity:1}100%{opacity:0;visibility:hidden}}
 @media (max-width:760px){
   .safari-menu{grid-template-columns:1fr;grid-template-areas:'head' 'title' 'progress' 'who' 'go' 'trails' 'how';background:#1c2a1fe0}
   .safari-title{display:block;min-height:auto;overflow:clip;padding-top:calc(62.5vw - 20px)}
