@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of fifty original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of fifty-one original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -60,6 +60,7 @@ Listed in arcade-menu order.
 | 48 | Hayloft Tycoon | `/hayloft` | Idle tycoon |
 | 49 | Kit Parade | `/parade` | Puzzle |
 | 50 | Prism Paws | `/prism` | Light-beam puzzle |
+| 51 | Seedstorm | `/seedstorm` | Vertical shoot-'em-up |
 
 ## Run
 
@@ -1069,6 +1070,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/prism-paws.md`](docs/prism-paws.md), art brief [`docs/prism-paws-art-brief.md`](docs/prism-paws-art-brief.md).
 
+### 51 · Seedstorm (`/seedstorm`)
+
+**Play:** A cosy vertical shoot-'em-up. The Grumble Storm is blowing the valley's washing away, so Dora and Enzo ride dandelion-seed gliders up through five skies: Meadow Morning, Orchard Breeze, Thunderhead, Moonlit Mist and the Eye of the Storm. Each stage has waves of storm critters (bumbles, kites, beetles, sprouts, moths and wisps), a mid-boss and a boss with three or four named attacks, each with its own health bar and timer: Gale the Magpie, Crabapple Crow, Rumble the thundercloud, Madame Hoot and finally the Grumble Storm. Only a 2.5-unit dot at the pilot's chest can be hit. Dora fires a **Petal Spread** (3 to 9 petals) and flies faster; Enzo fires a **Pebble Lance** (2 to 5 pebbles that pierce small critters); the other flies alongside as a wingmate with homing seeds. Passing close to bullets **grazes** them, which fills the Bloom meter; a **Bloom** sweeps a ring out from the pilot that turns every bullet into a seed, and a Bloom within 8 ticks of a hit cancels it. Seeds score 10 × the **Breeze** multiplier (up to ×5 from chained kills) and fill a purse for the seed shop between stages (Shot Power, Wingmate Wings, Extra Heart, Bloom Pouch, Magnet Paws). Beating a boss attack before its timer without being hit earns a **Clear Sky** bonus. Three difficulties: Breezy (5 hearts, slower and sparser bullets), Gusty (3 hearts) and Stormy (3 hearts, more and faster bullets, no continues). Breezy and Gusty offer a continue at game over, which restarts the score from zero. Bosses chat before each fight and make friends after it, and clearing stage 5 plays an ending and a cast roll. Any stage reached can be practised alone. The top 5 scores per difficulty, the stages reached and the settings save in `seedstorm-v1`.
+
+**Controls:** **Arrow keys** or **WASD** fly, **Shift** focuses (slower, tighter shots, hitbox shown), **X**, **Space** or **K** Bloom, **Esc** or **P** pause. Shots fire by themselves. On a touch screen, drag anywhere to fly (the glider keeps its offset from your finger), tap with a second finger or the 🌸 button to Bloom, and use the 🎯 button to toggle focus. In chats, tap or press **Z**, **Enter** or **Space** to go on and **Esc** to skip; in the shop, **1–5** buy and **Enter** flies on. The game pauses when the tab is hidden.
+
+**Tests:** `npm run test:seedstorm` runs 207 engine checks: exact replays, movement and focus, shots and piercing, the hitbox and graze edges, Bloom and the last-gasp window, game over and continues, pool caps under the busiest attacks on every difficulty, seeds, magnets and Breeze, the shop, every stage's timeline, boss phases, chats and Clear Sky, mid-bosses, practice, difficulty scaling and saving. `npm run bot:seedstorm` runs a dodging bot that plays nearby bullets forward 22 ticks; it must clear all five stages on Breezy and Gusty for at least 4 of 5 seeds, and a pilot who stands still must lose on Gusty before the end of stage 2 (`npm test` runs a quick version). `npm run test:e2e:seedstorm` is the browser suite.
+
+**Docs:** [`docs/seedstorm.md`](docs/seedstorm.md), art brief [`docs/seedstorm-art-brief.md`](docs/seedstorm-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1088,7 +1099,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fifty ways/` assertion in `tests/e2e/dust-bath.mjs`, the 50-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fifty-one ways/` assertion in `tests/e2e/dust-bath.mjs`, the 51-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

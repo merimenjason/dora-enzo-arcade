@@ -7,6 +7,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 ### Added
 
 - **Prism Paws** (`/prism`), game 50: a light-beam puzzle game. The valley's Lantern Festival has gone dark, and Dora and Enzo steer moonlight with mirrors, candy glass, crystal panes and prisms to relight every paper lantern without waking the sleeping kits. Colours mix like real light (rose and leaf glow honey), burrows carry beams under the hill, and 32 handmade levels across Meadow Lanterns, Candy Glass, Crystal Grotto and Festival Night build to a grand finale with a lantern of every colour. Every level has three stars (light it, catch the firefly, match par), unlimited free hints, undo, and works on phones held either way.
+- **Seedstorm** (`/seedstorm`), game 51: a cosy vertical shoot-'em-up. Dora and Enzo ride dandelion-seed gliders up through five skies to calm the Grumble Storm, weaving through pretty patterns of petals, seeds and raindrops with a tiny hitbox. Graze bullets to fill the Bloom meter, Bloom to turn every bullet into seeds (even a split second after a hit), and spend seeds in the shop between stages. Five bosses with named attacks, chats and a happy ending, five mid-bosses, two pilots with their own shots, three difficulties, practice for any stage reached, high scores, and touch controls for phones held either way.
 
 ### Changed
 

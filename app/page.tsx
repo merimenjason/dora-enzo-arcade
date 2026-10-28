@@ -51,14 +51,15 @@ const GAMES=[
  {href:'/hayloft',title:'Hayloft Tycoon',tag:'NEW · IDLE TYCOON',blurb:'Grow one hay patch into a valley-wide chinchilla business. Hire helpers, send trips, migrate to new valleys for Stardust, and come back to a valley that kept busy while you were away.',color:'#e9b23b',art:'🌾'},
  {href:'/parade',title:'Kit Parade',tag:'NEW · PUZZLE',blurb:'A line of baby kits marches on and on. Hand out jobs (diggers, builders, stoppers, gliders and more) so everyone gets home to Dora and Enzo.',color:'#f2a65a',art:'🐾'},
  {href:'/prism',title:'Prism Paws',tag:'NEW · PUZZLE',blurb:'Steer moonlight with mirrors, candy glass and crystals to relight the festival lanterns, mixing colours like real light, without waking the sleeping kits.',color:'#8f7cf0',art:'🏮'},
+ {href:'/seedstorm',title:'Seedstorm',tag:'NEW · SHOOT-\'EM-UP',blurb:'Ride dandelion-seed gliders up through five skies, weave through clouds of petals and raindrops, Bloom when it gets tight, and calm the Grumble Storm.',color:'#5fb8e8',art:'🌬️'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">FIFTY ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Fifty ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, fifty cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">FIFTY-ONE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Fifty-one ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, fifty-one cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <nav className="arcade-grid" aria-label="Choose a game">

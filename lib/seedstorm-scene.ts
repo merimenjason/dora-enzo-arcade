@@ -256,9 +256,9 @@ export function paintTitle(cv: HTMLCanvasElement, t = 0.4) {
   c.fillStyle = g; c.fillRect(0, 0, w, h);
   seedR = 99;
   for (let i = 0; i < 26; i++) { const x = rand() * w, y = h * (0.35 + rand() * 0.7), r = (30 + rand() * 90) * (w / 1200); const cg = c.createRadialGradient(x, y, 0, x, y, r); cg.addColorStop(0, 'rgba(255, 246, 225, 0.85)'); cg.addColorStop(1, 'rgba(255, 236, 200, 0)'); c.fillStyle = cg; circ(c, x, y, r); c.fill(); }
-  c.save(); c.translate(w * 0.72, h * 0.2); paintBoss(c, 'storm', w * 0.2); c.restore();
-  for (let i = 0; i < 40; i++) { c.fillStyle = `rgba(255, 255, 240, ${0.4 + rand() * 0.5})`; const x = w * (0.18 + i * 0.012 + rand() * 0.04), y = h * (0.95 - i * 0.012 - rand() * 0.06); star(c, x, y, 4, 3 + rand() * 4, 1); c.fill(); }
-  for (const [p, x, y, s] of [['dora', 0.34, 0.62, 3.2], ['enzo', 0.5, 0.74, 3]] as [Pilot, number, number, number][]) { c.save(); c.translate(w * x, h * y); c.scale(s * w / 1200, s * w / 1200); c.rotate(-0.15); paintGlider(c, p, t, t * 3); c.restore(); }
+  c.save(); c.translate(w * 0.7, h * 0.3); paintBoss(c, 'storm', w * 0.15); c.restore();
+  for (let i = 0; i < 40; i++) { c.fillStyle = `rgba(255, 255, 240, ${0.4 + rand() * 0.5})`; const x = w * (0.42 + i * 0.006 + rand() * 0.04), y = h * (0.78 - i * 0.008 - rand() * 0.06); star(c, x, y, 4, 3 + rand() * 4, 1); c.fill(); }
+  for (const [p, x, y, s] of [['dora', 0.47, 0.37, 3], ['enzo', 0.6, 0.5, 2.8]] as [Pilot, number, number, number][]) { c.save(); c.translate(w * x, h * y); c.scale(s * w / 1200, s * w / 1200); c.rotate(-0.15); paintGlider(c, p, t, t * 3); c.restore(); }
 }
 /** The ending's stand-in: a rainbow, the calmed storm and the gliders. */
 export function paintEnding(cv: HTMLCanvasElement, t = 0.4) {
@@ -269,7 +269,7 @@ export function paintEnding(cv: HTMLCanvasElement, t = 0.4) {
   c.globalAlpha = 1;
   c.save(); c.translate(w * 0.5, h * 0.3); paintBoss(c, 'storm', w * 0.12, true); c.restore();
   for (const [p, x, s] of [['dora', 0.36, 2.8], ['enzo', 0.64, 2.8]] as [Pilot, number, number][]) { c.save(); c.translate(w * x, h * 0.36); c.scale(s * w / 1200, s * w / 1200); paintGlider(c, p, t, t * 3, x > 0.5 ? -1 : 1); c.restore(); }
-  (['magpie', 'crow', 'cloud', 'owl'] as BossId[]).forEach((id, i) => { c.save(); c.translate(w * (0.14 + i * 0.24), h * 0.84); paintBoss(c, id, w * 0.09, true); c.restore(); });
+  (['magpie', 'crow', 'cloud', 'owl'] as BossId[]).forEach((id, i) => { c.save(); c.translate(w * [0.1, 0.24, 0.76, 0.9][i], h * (0.8 + (i % 2) * 0.06)); paintBoss(c, id, w * 0.09, true); c.restore(); });
 }
 /** A chat portrait's stand-in. */
 export function paintPortrait(cv: HTMLCanvasElement, who: Pilot | BossId, t = 0.4) {
@@ -444,17 +444,25 @@ export class SeedstormScene {
       for (let i = 0; i < 40; i++) blob(rand() * W, rand() * 800, 30 + rand() * 70, rand() < 0.5 ? 'rgba(120, 190, 90, 0.35)' : 'rgba(200, 235, 150, 0.35)');
       c.strokeStyle = '#8fd0ee'; c.lineWidth = 16; c.lineCap = 'round'; c.beginPath(); for (let y = -10; y <= 810; y += 10) c.lineTo(180 + 95 * Math.sin((y / 800) * TAU * 2) + 20 * Math.sin((y / 800) * TAU * 5), y); c.stroke();
       c.strokeStyle = 'rgba(255,255,255,0.5)'; c.lineWidth = 3; c.stroke();
+      c.globalAlpha = 0.55; // scenery stays soft so bullets read over it
       for (let i = 0; i < 26; i++) { const x = rand() * W, y = rand() * 800; wrap(y, 14, (yy) => { c.fillStyle = 'rgba(40, 90, 40, 0.3)'; circ(c, x + 3, yy + 4, 11); c.fill(); c.fillStyle = '#4f9a48'; circ(c, x, yy, 11); c.fill(); c.fillStyle = 'rgba(160, 220, 120, 0.6)'; circ(c, x - 3, yy - 3, 5); c.fill(); }); }
+      c.globalAlpha = 1;
       for (let i = 0; i < 260; i++) { const x = rand() * W, y = rand() * 800; c.fillStyle = rand() < 0.6 ? 'rgba(255, 255, 255, 0.85)' : 'rgba(255, 220, 80, 0.85)'; wrap(y, 2, (yy) => { circ(c, x, yy, 1 + rand() * 1.2); c.fill(); }); }
     } else if (n === 2) {
       for (let i = 0; i < 30; i++) blob(rand() * W, rand() * 800, 40 + rand() * 60, 'rgba(170, 210, 120, 0.35)');
       c.strokeStyle = 'rgba(210, 180, 130, 0.7)'; c.lineWidth = 10; for (const x of [60, 300]) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, 800); c.stroke(); }
+      c.globalAlpha = 0.42; // the orchard stays soft so bullets read over it
       for (let row = 0; row < 16; row++) for (let col = 0; col < 5; col++) {
         const x = 30 + col * 75 + (row % 2) * 37, y = row * 50 + 20;
         if (row === 5 && (col === 2 || col === 3)) continue;
         wrap(y, 20, (yy) => { c.fillStyle = 'rgba(50, 80, 40, 0.3)'; circ(c, x + 4, yy + 5, 15); c.fill(); c.fillStyle = '#5ea24e'; circ(c, x, yy, 15); c.fill(); for (let k = 0; k < 7; k++) { c.fillStyle = k % 2 ? '#ffd0e0' : '#ffffff'; circ(c, x + Math.cos(k * 2.4) * 9, yy + Math.sin(k * 2.4) * 8, 2.4); c.fill(); } });
       }
-      c.fillStyle = '#b8443a'; c.fillRect(150, 260, 90, 54); c.fillStyle = '#8a2e26'; c.fillRect(150, 284, 90, 4); c.fillStyle = '#f0e0c0'; c.fillRect(186, 262, 18, 50);
+      // a gingham picnic blanket with a pie in the gap between the trees
+      c.save(); c.translate(195, 290); c.rotate(-0.12); c.fillStyle = 'rgba(60, 40, 30, 0.18)'; c.fillRect(-40, -22, 84, 50);
+      for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) { c.fillStyle = (i + j) % 2 ? '#f6f0ea' : '#e46a6a'; c.fillRect(-42 + i * 14, -26 + j * 12, 14, 12); }
+      c.fillStyle = 'rgba(255, 255, 255, 0.35)'; for (let i = 0; i < 6; i += 2) c.fillRect(-42 + i * 14, -26, 14, 48);
+      c.fillStyle = '#c98a4a'; circ(c, 6, -2, 11); c.fill(); c.fillStyle = '#e8b878'; circ(c, 6, -3, 9); c.fill(); c.strokeStyle = '#b06a34'; c.lineWidth = 1.2; for (let k = -1; k <= 1; k++) { c.beginPath(); c.moveTo(6 + k * 4, -10); c.lineTo(6 + k * 4, 4); c.stroke(); }
+      c.restore(); c.globalAlpha = 1;
       for (let i = 0; i < 120; i++) { const x = rand() * W, y = rand() * 800; c.fillStyle = 'rgba(255, 200, 220, 0.8)'; wrap(y, 3, (yy) => { ell(c, x, yy, 2.2, 1.2, rand() * 3); c.fill(); }); }
     } else if (n === 3) {
       for (let i = 0; i < 34; i++) blob(rand() * W, rand() * 800, 50 + rand() * 90, rand() < 0.5 ? 'rgba(230, 226, 245, 0.45)' : 'rgba(90, 84, 120, 0.4)');
@@ -480,8 +488,10 @@ export class SeedstormScene {
     const count = layer ? 7 : 11;
     for (let i = 0; i < count; i++) {
       const x = rand() * W, y = rand() * 800, s = (layer ? 1.4 : 0.9) * (30 + rand() * 40);
-      for (const yy of [y, y - 800, y + 800]) for (let k = 0; k < 6; k++) {
-        const bx = x + (rand() - 0.5) * s * 1.6, by = yy + (rand() - 0.5) * s * 0.6, br = s * (0.4 + rand() * 0.5);
+      // the same puffs at y and a tile up and down, so the layer wraps without a seam
+      const puffs: [number, number, number][] = []; for (let k = 0; k < 6; k++) puffs.push([x + (rand() - 0.5) * s * 1.6, y + (rand() - 0.5) * s * 0.6, s * (0.4 + rand() * 0.5)]);
+      for (const dy of [0, -800, 800]) for (const [bx, py, br] of puffs) {
+        const by = py + dy;
         const g = c.createRadialGradient(bx, by, 0, bx, by, br); g.addColorStop(0, L.cloud); g.addColorStop(0.6, L.cloud + 'aa'); g.addColorStop(1, L.cloud + '00');
         c.fillStyle = g; circ(c, bx, by, br); c.fill();
       }
@@ -493,12 +503,12 @@ export class SeedstormScene {
     if (this.skyStage !== n || !this.skyCanvas) { this.skyStage = n; this.skyCanvas = this.paintSky(n); this.clouds = [this.paintClouds(n, 0), this.paintClouds(n, 1)]; this.tinyAt = -1; }
     const img = this.img('sky-' + n), src: CanvasImageSource = img ?? this.skyCanvas, tileH = 800;
     const off = this.scroll % tileH;
-    for (let y = off - tileH; y < H; y += tileH) c.drawImage(src, 0, y, W, tileH);
+    for (let y = off - tileH; y < H; y += tileH) c.drawImage(src, 0, y - 0.5, W, tileH + 1);
     c.fillStyle = L.grade; c.fillRect(0, 0, W, H);
     // the far clouds, slow, then the near ones a little faster, both soft
     for (let i = 0; i < 2; i++) {
       const cv = this.clouds[i], o2 = (this.scroll * (i ? 2.2 : 1.4)) % tileH; c.globalAlpha = L.cloudA * (i ? 0.7 : 1);
-      for (let y = o2 - tileH; y < H; y += tileH) c.drawImage(cv, 0, y, W, tileH);
+      for (let y = o2 - tileH; y < H; y += tileH) c.drawImage(cv, 0, y - 0.5, W, tileH + 1);
     }
     c.globalAlpha = 1;
     // a tiny copy for the blurred letterbox
