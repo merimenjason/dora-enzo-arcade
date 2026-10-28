@@ -65,6 +65,12 @@
 .arcade-blurb{margin-top:6px;font-size:13px;line-height:1.65;color:#b6abbf}
 .arcade-play{margin-top:12px;font:900 11px Arial;letter-spacing:2px;color:#efe5d6}
 .arcade-card:hover .arcade-play{color:var(--game-color)}
+.arcade-continue{display:flex;align-items:center;gap:16px;margin:0 0 18px;padding:16px 22px;background:#2c2639;border:1px solid var(--game-color);border-left:6px solid var(--game-color);border-radius:10px;text-decoration:none;color:inherit;transition:transform .16s ease}
+.arcade-continue:hover{transform:translateY(-2px)}
+.arcade-continue>span:nth-child(2){flex:1;display:grid;gap:4px;min-width:0}
+.arcade-continue small{font:900 10px Arial;letter-spacing:2.4px;color:#9a90ad}
+.arcade-continue strong{font:900 22px Arial;color:var(--game-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arcade-continue .arcade-play{margin:0;color:var(--game-color)}
 .arcade-foot{margin-top:38px;border-top:1px solid #3c3449;padding-top:18px}
 .arcade-foot p{margin:0;font-size:12px;line-height:1.8;color:#8b8299}
 .arcade-shell a:focus-visible{outline:3px solid #f0cd8b;outline-offset:3px}

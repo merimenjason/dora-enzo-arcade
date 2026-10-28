@@ -1,4 +1,5 @@
 // The arcade front door: every game Dora and Enzo star in, in one place.
+import ContinuePlaying from './continue-playing';
 const GAMES=[
  {href:'/fighter',title:'Paw Fighter II',tag:'FIGHTING',blurb:'Seven fighters, six rivals, one champion. Arcade, story and training modes with fireballs, risers and supers.',color:'#e0a35c',art:'🥊'},
  {href:'/checkpoint-remake',title:'Dust & Documents: Remake',tag:'NEW · INSPECTION',blurb:'A reimagined mountain crossing. Compare documents, justify denials, choose supper and keep Dora and Enzo’s booth open.',color:'#c2cda2',art:'📜'},
@@ -58,6 +59,7 @@ export default function Arcade(){
    <h1>Small paws.<br/><em>Forty-nine ways to play.</em></h1>
    <p className="arcade-lede">One roster of chinchillas, forty-nine cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
+  <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <nav className="arcade-grid" aria-label="Choose a game">
    {GAMES.map((game,i)=><a key={game.href} href={game.href} className="arcade-card" style={{'--game-color':game.color} as React.CSSProperties}>
     <span className="arcade-art" aria-hidden="true">{game.art}</span>
