@@ -134,7 +134,7 @@ export default function DriftwoodPage() {
     const ev = g.events.splice(0);
     const lines: string[] = [];
     for (const e of ev) {
-      if (e.k === 'deliver') lines.push(`${e.item.title} → ${RESIDENTS[e.item.recipient].name}: 🐚 +${e.pay}${e.onTime ? ' (on time!)' : e.onTime === false ? ' (late, no bonus)' : ''}${e.intact ? ' (not a scratch!)' : e.intact === false ? ' (a bit jostled)' : ''}`);
+      if (e.k === 'deliver') lines.push(`${e.item.parcel ? '📦' : '✉️'} “${e.item.title}” for ${RESIDENTS[e.item.recipient].name}: 🐚 +${e.pay}${e.onTime ? ' (on time!)' : e.onTime === false ? ' (late, no bonus)' : ''}${e.intact ? ' (not a scratch!)' : e.intact === false ? ' (a bit jostled)' : ''}`);
       if (e.k === 'regatta') lines.push('🏮 Pip’s invitation! Dusk is falling: sail to Lighthouse Rock for the Lantern Regatta.');
       if (e.k === 'buy') lines.push(`${UPGRADES[e.up].icon} ${UPGRADES[e.up].name} fitted!`);
     }
@@ -455,7 +455,7 @@ export default function DriftwoodPage() {
             <div className="dw-ending-text">
               <h2>The Lantern Regatta</h2>
               <p>As the sun goes down, every island lights a lantern and sails out to Lighthouse Rock. Pip’s great lens throws its light to the far shore and back. Mossy’s choir sings to the stars, Mrs Grisel complains about the cake (and has three slices), and Clover and Bramble share a boat and a teapot. Every island is back in touch.</p>
-              <p className="dw-final">Day {g.day} · {g.stats.delivered} deliveries · 🐚 {g.stats.earned} earned · {g.shellsFound}/{SHELLS.length} hidden shells · {g.stats.bumps} bumps</p>
+              <p className="dw-final">Day {g.day} · {g.stats.delivered} {g.stats.delivered === 1 ? 'delivery' : 'deliveries'} · 🐚 {g.stats.earned} earned · {g.shellsFound}/{SHELLS.length} hidden shells · {g.stats.bumps} {g.stats.bumps === 1 ? 'bump' : 'bumps'}</p>
               <div className="dw-row">
                 <button className="dw-go" onClick={() => { endingRef.current = false; setEnding(false); act((x) => x.sailOn()); }}>Sail on: the lake keeps writing →</button>
                 <button className="dw-alt" onClick={toMenu}>Menu</button>

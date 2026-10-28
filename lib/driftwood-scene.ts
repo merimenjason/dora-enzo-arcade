@@ -48,7 +48,7 @@ function offsetPoly(pts: Pt[], d: number): Pt[] {
 /** Colour grade keyframes by minute of the day: the multiply tint and how strong it is. */
 const GRADE: [number, string, number][] = [
   [0, '#1b2a62', 0.66], [270, '#1b2a62', 0.66], [345, '#8a6ab0', 0.42], [400, '#f2a2b2', 0.28], [470, '#ffe6c8', 0.08], [540, '#ffffff', 0],
-  [960, '#ffffff', 0], [1040, '#ffc070', 0.2], [1110, '#f08a70', 0.3], [1170, '#7a5aa8', 0.46], [1240, '#1b2a62', 0.66], [1440, '#1b2a62', 0.66],
+  [960, '#ffffff', 0], [1030, '#ffc878', 0.24], [1090, '#ff9a5c', 0.46], [1150, '#e8707a', 0.5], [1195, '#7a5aa8', 0.52], [1240, '#1b2a62', 0.66], [1440, '#1b2a62', 0.66],
 ];
 function gradeAt(minute: number): { col: number[]; a: number } {
   const m = clockOf(minute);
@@ -274,14 +274,13 @@ export function paintPortrait(cv: HTMLCanvasElement, who: Who, t = 0.4) {
   const ln = (col: string, w: number) => { c.strokeStyle = col; c.lineWidth = w; c.lineCap = 'round'; c.lineJoin = 'round'; };
   switch (who) {
     case 'duo': case 'dora': case 'enzo': case 'tuft': {
-      const scarf = (x: number, col: string) => { c.fillStyle = col; c.beginPath(); c.ellipse(x, 86, 16, 6, 0, 0, TAU); c.fill(); c.fillRect(x + 4, 86, 6, 12); };
       if (who === 'duo') {
-        drawChinchilla(c, 'dora', 34, 96, { face: 1, h: 48, time: t }); drawChinchilla(c, 'enzo', 68, 96, { face: -1, h: 50, time: t + 1 });
-        scarf(36, '#d8423a'); scarf(66, '#3a6ac0');
+        // side by side, nose to nose
+        drawChinchilla(c, 'enzo', 70, 90, { face: -1, h: 38, time: t + 1 }); drawChinchilla(c, 'dora', 30, 92, { face: 1, h: 36, time: t });
       } else if (who === 'tuft') {
         drawChinchilla(c, TUFT, 50, 98, { face: 1, h: 64, time: t, decorate: (q) => { q.strokeStyle = '#6a4a2a'; q.lineWidth = 0.7; q.beginPath(); q.arc(5.2, -15.5, 1.7, 0, TAU); q.moveTo(7, -15.5); q.arc(8.8, -15.5, 1.7, Math.PI, Math.PI * 3); q.stroke(); } });
         c.fillStyle = '#b05a8a'; c.beginPath(); c.ellipse(50, 90, 22, 7, 0, 0, TAU); c.fill();
-      } else { drawChinchilla(c, who, 50, 98, { face: who === 'dora' ? 1 : -1, h: 64, time: t }); scarf(50, who === 'dora' ? '#d8423a' : '#3a6ac0'); }
+      } else drawChinchilla(c, who, 50, 98, { face: who === 'dora' ? 1 : -1, h: 64, time: t });
       break;
     }
     case 'pip': { // the otter: sleek brown, small round ears, white whiskers, knitted cap
@@ -403,28 +402,57 @@ function paintSideBoat(c: CanvasRenderingContext2D, x: number, y: number, k: num
 }
 /** The ending's stand-in: the Lantern Regatta at night, every island glowing and the lake full of lanterns. */
 export function paintEnding(cv: HTMLCanvasElement, t = 0.4) {
-  const c = ctx2(cv), W = cv.width, H = cv.height; c.setTransform(1, 0, 0, 1, 0, 0);
-  const sky = c.createLinearGradient(0, 0, 0, H * 0.5); sky.addColorStop(0, '#0c1438'); sky.addColorStop(1, '#3a3a78'); c.fillStyle = sky; c.fillRect(0, 0, W, H);
-  for (let i = 0; i < 120; i++) blob(c, hash(i, 1) * W, hash(i, 2) * H * 0.42, 1 + hash(i, 3) * 1.6, 1 + hash(i, 3) * 1.6, `rgba(255, 255, 240, ${0.4 + hash(i, 4) * 0.6})`);
-  // soft fireworks
-  for (const [fx, fy, col] of [[0.24, 0.16, '255, 190, 120'], [0.72, 0.12, '170, 210, 255'], [0.5, 0.22, '255, 160, 200']] as const) {
-    for (let k = 0; k < 18; k++) { const a = (k / 18) * TAU, r = W * 0.06; c.strokeStyle = `rgba(${col}, 0.7)`; c.lineWidth = W / 500; c.beginPath(); c.moveTo(W * fx + Math.cos(a) * r * 0.3, H * fy + Math.sin(a) * r * 0.3); c.lineTo(W * fx + Math.cos(a) * r, H * fy + Math.sin(a) * r); c.stroke(); blob(c, W * fx + Math.cos(a) * r, H * fy + Math.sin(a) * r, W / 400, W / 400, `rgba(${col}, 1)`); }
+  const c = ctx2(cv), W = cv.width, H = cv.height, HZN = H * 0.5; c.setTransform(1, 0, 0, 1, 0, 0);
+  const sky = c.createLinearGradient(0, 0, 0, HZN); sky.addColorStop(0, '#0a1034'); sky.addColorStop(0.7, '#2a2c6a'); sky.addColorStop(1, '#6a4a7a'); c.fillStyle = sky; c.fillRect(0, 0, W, HZN + 2);
+  for (let i = 0; i < 150; i++) { const r = (0.6 + hash(i, 3) * 1.4) * W / 1200; blob(c, hash(i, 1) * W, hash(i, 2) * HZN * 0.9, r, r, `rgba(255, 255, 240, ${0.3 + hash(i, 4) * 0.7})`); }
+  // fireworks: a soft glow, then sparks that droop as they fall
+  for (const [fx, fy, col, rr] of [[0.2, 0.15, '255, 190, 120', 0.07], [0.5, 0.1, '255, 150, 200', 0.055], [0.78, 0.2, '170, 210, 255', 0.065], [0.36, 0.3, '255, 230, 140', 0.035]] as const) {
+    const cx = W * fx, cy = H * fy, r = W * rr, glow = c.createRadialGradient(cx, cy, 0, cx, cy, r * 1.3);
+    glow.addColorStop(0, `rgba(${col}, 0.35)`); glow.addColorStop(1, `rgba(${col}, 0)`); c.fillStyle = glow; c.fillRect(cx - r * 1.4, cy - r * 1.4, r * 2.8, r * 2.8);
+    for (let k = 0; k < 28; k++) {
+      const a = (k / 28) * TAU + hash(k, fx * 100) * 0.1, L = r * (0.75 + hash(k, 3) * 0.3), ex = cx + Math.cos(a) * L, ey = cy + Math.sin(a) * L + L * 0.18;
+      c.strokeStyle = `rgba(${col}, 0.55)`; c.lineWidth = W / 700; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(cx + Math.cos(a) * L * 0.35, cy + Math.sin(a) * L * 0.35); c.quadraticCurveTo(cx + Math.cos(a) * L * 0.8, cy + Math.sin(a) * L * 0.8, ex, ey); c.stroke();
+      blob(c, ex, ey, W / 500, W / 500, `rgba(${col}, 0.95)`);
+    }
   }
-  const water = c.createLinearGradient(0, H * 0.46, 0, H); water.addColorStop(0, '#1c2a5a'); water.addColorStop(1, '#0a1230'); c.fillStyle = water; c.fillRect(0, H * 0.46, W, H * 0.54);
-  // islands glowing
-  for (const [ix, iw] of [[0.12, 0.12], [0.4, 0.08], [0.85, 0.15]]) { blob(c, W * ix, H * 0.47, W * iw, H * 0.05, '#1a3a2a'); for (let k = 0; k < 5; k++) blob(c, W * (ix - iw * 0.6 + k * iw * 0.3), H * 0.455, W * 0.004, W * 0.004, '#ffd880'); }
-  c.fillStyle = '#3a3a48'; c.fillRect(W * 0.61, H * 0.32, W * 0.02, H * 0.15);
-  const beam = c.createRadialGradient(W * 0.62, H * 0.32, 2, W * 0.62, H * 0.32, W * 0.4); beam.addColorStop(0, 'rgba(255, 240, 180, 0.6)'); beam.addColorStop(1, 'rgba(255, 240, 180, 0)');
-  c.fillStyle = beam; c.beginPath(); c.moveTo(W * 0.62, H * 0.32); c.lineTo(W * 0.05, H * 0.2); c.lineTo(W * 0.05, H * 0.34); c.closePath(); c.fill();
-  blob(c, W * 0.62, H * 0.32, W * 0.02, W * 0.02, '#fff6c0');
-  // lantern boats, reflected
-  for (let i = 0; i < 46; i++) {
-    const x = hash(i, 7) * W, y = H * (0.5 + hash(i, 8) * 0.42), s = 0.4 + (y / H - 0.5) * 1.6;
-    blob(c, x, y, W * 0.012 * s, H * 0.004 * s, '#2a2030'); blob(c, x, y - H * 0.012 * s, W * 0.006 * s, W * 0.006 * s, 'rgba(255, 200, 110, 0.4)');
-    blob(c, x, y - H * 0.012 * s, W * 0.0025 * s, W * 0.0025 * s, '#ffe090');
-    c.fillStyle = 'rgba(255, 200, 110, 0.25)'; c.fillRect(x - W * 0.001 * s, y, W * 0.002 * s, H * 0.03 * s);
+  const water = c.createLinearGradient(0, HZN, 0, H); water.addColorStop(0, '#2a2a5e'); water.addColorStop(0.3, '#18225a'); water.addColorStop(1, '#0a1030'); c.fillStyle = water; c.fillRect(0, HZN, W, H - HZN);
+  // the lighthouse beam swings across the sky
+  const lx = W * 0.6, ly = H * 0.3;
+  const beam = c.createLinearGradient(lx, ly, W * 0.05, ly); beam.addColorStop(0, 'rgba(255, 244, 190, 0.55)'); beam.addColorStop(1, 'rgba(255, 244, 190, 0)');
+  c.fillStyle = beam; c.beginPath(); c.moveTo(lx, ly); c.lineTo(W * 0.02, H * 0.18); c.lineTo(W * 0.02, H * 0.33); c.closePath(); c.fill();
+  // islands along the horizon, strung with lanterns, windows lit
+  for (const [ix, iw, ih] of [[0.1, 0.14, 0.06], [0.36, 0.09, 0.04], [0.6, 0.07, 0.05], [0.9, 0.16, 0.07]]) {
+    c.fillStyle = '#16283a'; c.beginPath(); c.ellipse(W * ix, HZN + 2, W * iw, H * ih, 0, Math.PI, TAU); c.fill();
+    c.strokeStyle = 'rgba(255, 220, 140, 0.5)'; c.lineWidth = W / 1000; c.beginPath();
+    for (let k = 0; k <= 8; k++) { const x = W * (ix - iw * 0.7 + (k / 8) * iw * 1.4), y = HZN - H * ih * 0.55 + Math.sin(k * 0.9) * H * 0.006 + Math.abs(k - 4) * H * ih * 0.08; if (k) c.lineTo(x, y); else c.moveTo(x, y); }
+    c.stroke();
+    for (let k = 0; k <= 8; k++) { const x = W * (ix - iw * 0.7 + (k / 8) * iw * 1.4), y = HZN - H * ih * 0.55 + Math.sin(k * 0.9) * H * 0.006 + Math.abs(k - 4) * H * ih * 0.08; blob(c, x, y + H * 0.004, W * 0.004, W * 0.004, ['#ffd27a', '#ff9a7a', '#a8e0ff'][k % 3]); }
+    for (let k = 0; k < 3; k++) c.fillStyle = '#ffd890', c.fillRect(W * (ix - iw * 0.4 + k * iw * 0.35), HZN - H * ih * 0.25, W * 0.006, H * 0.01);
   }
-  paintSideBoat(c, W * 0.5, H * 0.8, W / 1300, t, false, true);
+  // the lighthouse on its rock, lamp blazing with the great lens
+  c.fillStyle = '#20263a'; c.beginPath(); c.ellipse(lx, HZN + 2, W * 0.06, H * 0.035, 0, Math.PI, TAU); c.fill();
+  const tw = W * 0.018;
+  for (let k = 0; k < 4; k++) { c.fillStyle = k % 2 ? '#e8e0e0' : '#c84a4a'; c.fillRect(lx - tw / 2 - k * 0.3, ly + H * 0.02 + k * (HZN - ly - H * 0.03) / 4, tw + k * 0.6, (HZN - ly - H * 0.03) / 4 + 1); }
+  c.fillStyle = '#3a2a2a'; c.fillRect(lx - tw * 0.7, ly + H * 0.012, tw * 1.4, H * 0.01);
+  const halo = c.createRadialGradient(lx, ly, 0, lx, ly, W * 0.06); halo.addColorStop(0, 'rgba(255, 250, 210, 1)'); halo.addColorStop(0.25, 'rgba(255, 240, 170, 0.7)'); halo.addColorStop(1, 'rgba(255, 240, 170, 0)');
+  c.fillStyle = halo; c.fillRect(lx - W * 0.06, ly - W * 0.06, W * 0.12, W * 0.12);
+  c.fillStyle = '#3a2a2a'; c.beginPath(); c.moveTo(lx - tw * 0.6, ly - H * 0.012); c.lineTo(lx, ly - H * 0.03); c.lineTo(lx + tw * 0.6, ly - H * 0.012); c.fill();
+  // lantern boats: little sails catching the lantern light, each with its reflection
+  const boats: [number, number, number][] = [];
+  for (let i = 0; i < 34; i++) boats.push([hash(i, 7), 0.53 + hash(i, 8) ** 1.5 * 0.42, i]);
+  boats.sort((a, b) => a[1] - b[1]);
+  for (const [bx0, by0, i] of boats) {
+    const x = bx0 * W, y = by0 * H, s = (0.35 + (by0 - 0.5) * 2.2) * W / 1200, col = ['255, 210, 120', '255, 160, 140', '180, 220, 255'][i % 3];
+    if (Math.abs(x - W * 0.82) < 170 * s * 4 && by0 > 0.6) continue; // leave room for Dora and Enzo
+    c.fillStyle = `rgba(${col}, 0.18)`; c.fillRect(x - 2 * s, y + 4 * s, 4 * s, 34 * s);
+    c.fillStyle = '#1a1420'; c.beginPath(); c.moveTo(x - 22 * s, y); c.lineTo(x + 22 * s, y); c.lineTo(x + 15 * s, y + 7 * s); c.lineTo(x - 15 * s, y + 7 * s); c.fill();
+    c.fillStyle = 'rgba(240, 220, 190, 0.85)'; c.beginPath(); c.moveTo(x, y - 2 * s); c.lineTo(x, y - 34 * s); c.lineTo(x + 17 * s, y - 4 * s); c.fill();
+    const g2 = c.createRadialGradient(x - 9 * s, y - 10 * s, 0, x - 9 * s, y - 10 * s, 18 * s); g2.addColorStop(0, `rgba(${col}, 0.9)`); g2.addColorStop(0.3, `rgba(${col}, 0.4)`); g2.addColorStop(1, `rgba(${col}, 0)`);
+    c.fillStyle = g2; c.fillRect(x - 27 * s, y - 28 * s, 36 * s, 36 * s); blob(c, x - 9 * s, y - 10 * s, 3 * s, 3.6 * s, '#fff2c0');
+  }
+  // Dora and Enzo's own boat, close by on the right, lantern lit
+  paintSideBoat(c, W * 0.82, H * 0.74, W / 1700, t, false, true);
 }
 
 // ---------------------------------------------------------------- the chart's map
@@ -485,6 +513,8 @@ function compassRose(c: CanvasRenderingContext2D, x: number, y: number, r: numbe
   c.font = `900 ${r * 0.34}px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#6a4a2a'; c.fillText('N', 0, -r * 1.22);
   c.restore();
 }
+/** The charted part of the lake, inked and soft-edged, kept until more is charted. */
+let CHARTED: { g: DriftwoodGame; v: number; cv: HTMLCanvasElement } | null = null;
 /**
  * The full-screen chart: parchment, the charted parts of the lake, island names, pins for the post, shells and
  * bottles found, and a little boat for "you are here". `art` is the parchment painting, if it has loaded.
@@ -496,8 +526,14 @@ export function drawChart(cv: HTMLCanvasElement, g: DriftwoodGame, art: HTMLImag
   if (art) c.drawImage(art, 0, 0, W, H); else c.drawImage(parchment(W, H), 0, 0, W, H);
   const pad = Math.min(W, H) * 0.06, s = Math.min((W - pad * 2) / LAKE_W, (H - pad * 2) / LAKE_H), ox = (W - LAKE_W * s) / 2, oy = (H - LAKE_H * s) / 2;
   // the charted lake: the inked map masked by what's been seen
-  const map = chartMap(), mask = chartMask(g, 0.1), lay = mk(map.width, map.height), lc = ctx2(lay);
-  lc.drawImage(map, 0, 0); lc.globalCompositeOperation = 'destination-in'; lc.filter = 'blur(2px)'; lc.drawImage(mask, 0, 0); lc.filter = 'none';
+  // (rebuilt only when more of the lake is charted: the blur is too dear to run every frame)
+  if (!CHARTED || CHARTED.g !== g || CHARTED.v !== g.chartVersion) {
+    const map = chartMap(), mask = chartMask(g, 0.1), lay = CHARTED?.cv ?? mk(map.width, map.height), lc = ctx2(lay);
+    lc.globalCompositeOperation = 'source-over'; lc.clearRect(0, 0, lay.width, lay.height);
+    lc.drawImage(map, 0, 0); lc.globalCompositeOperation = 'destination-in'; lc.filter = 'blur(2px)'; lc.drawImage(mask, 0, 0); lc.filter = 'none'; lc.globalCompositeOperation = 'source-over';
+    CHARTED = { g, v: g.chartVersion, cv: lay };
+  }
+  const lay = CHARTED.cv;
   c.save(); c.globalAlpha = 0.95; c.drawImage(lay, ox, oy, LAKE_W * s, LAKE_H * s); c.restore();
   c.strokeStyle = 'rgba(90, 70, 40, 0.5)'; c.lineWidth = 2; c.strokeRect(ox - 4, oy - 4, LAKE_W * s + 8, LAKE_H * s + 8);
   if (!art) compassRose(c, ox + LAKE_W * s - 46, oy + LAKE_H * s - 46, 30);
@@ -529,7 +565,7 @@ export function drawChart(cv: HTMLCanvasElement, g: DriftwoodGame, art: HTMLImag
   const [bx, by] = P(g.boat.x, g.boat.y);
   c.save(); c.translate(bx, by); c.strokeStyle = 'rgba(224, 58, 58, 0.5)'; c.lineWidth = 2; c.beginPath(); c.arc(0, 0, 12 + Math.sin(t * 3) * 3, 0, TAU); c.stroke();
   c.rotate(g.boat.h); c.fillStyle = '#7a5a3a'; c.beginPath(); c.moveTo(9, 0); c.lineTo(-6, -4.5); c.lineTo(-6, 4.5); c.closePath(); c.fill(); c.fillStyle = '#fbf2dc'; c.beginPath(); c.moveTo(2, 0); c.lineTo(-4, -7); c.lineTo(-4, 0); c.fill(); c.restore();
-  c.font = `800 ${fs * 0.85}px ${FONT}`; c.textAlign = 'center'; c.fillStyle = '#a02a2a'; c.textBaseline = 'bottom'; c.fillText('you are here', bx, by - 16);
+  c.font = `800 ${fs * 0.85}px ${FONT}`; c.textAlign = 'center'; c.fillStyle = '#a02a2a'; c.textBaseline = 'top'; c.fillText('you are here', bx, by + 15);
 }
 function shellIcon(c: CanvasRenderingContext2D, x: number, y: number, s: number) {
   c.save(); c.translate(x, y); c.fillStyle = '#f8c8d0'; c.strokeStyle = '#b06a7a'; c.lineWidth = Math.max(0.8, s * 0.12);
@@ -594,7 +630,7 @@ export class DriftwoodScene {
     if (this.canvas.width !== w || this.canvas.height !== h) { this.canvas.width = w; this.canvas.height = h; }
   }
   /** Lake units to a pixel, from the screen's size: the lake looks about the same on a phone as on a desktop. */
-  private baseZoom() { return Math.max(0.48, Math.min(1.25, Math.min(this.W, this.H * 1.5) / 820)); }
+  private baseZoom() { return Math.max(0.6, Math.min(1.25, Math.min(this.W, this.H * 1.5) / 720)); }
 
   /** The water's base colours, from deep to the shallows by each coast, at 1 pixel to 10 units. Built once. */
   private baseMap() {
@@ -605,7 +641,8 @@ export class DriftwoodScene {
     for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
       const x = (i + 0.5) / k, y = (j + 0.5) / k, dist = clearance(x, y);
       let col: number[];
-      if (dist < 0) col = shoals.some((r) => Math.hypot(x - r.x, y - r.y) < r.r) ? sand : land;
+      // under a rock is shallow water (the rock is drawn on top); only the islands and the far shore are land
+      if (dist < 0) col = shoals.some((r) => Math.hypot(x - r.x, y - r.y) < r.r) ? sand : ROCKS.some((r) => Math.hypot(x - r.x, y - r.y) < r.r + 4) ? shallow : land;
       else if (dist < 70) col = mixRgb(shallow, mid, ease(dist / 70));
       else if (dist < 260) col = mixRgb(mid, deep, ease((dist - 70) / 190));
       else col = mixRgb(deep, deepest, ease((dist - 260) / 300));
@@ -697,18 +734,19 @@ export class DriftwoodScene {
     }
     // treasures in the water: shells glint, bottles bob
     if (g) this.drawFinds(c, g, t);
+    // fog banks lie over the islands, but never over your own boat: you can always see her
+    this.drawFog(c, view, g ? g.tick : t * HZ);
     // the boat (or none on the menu)
     if (g) this.drawBoat(c, g, t);
     else this.drawBoatAt(c, bx, by, Math.atan2(Math.cos(t * 0.07) * 14, -Math.sin(t * 0.05) * 6) || 0.4, 1.4, windDir, 1, 0.45, 0, t, 0, null);
     this.drawParticles(c, dt, o.paused);
     // weather and light
     const rain = g ? g.rain : false;
-    this.drawFog(c, view, g ? g.tick : t * HZ);
     if (rain) this.drawRain(c, view, t, windDir);
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     const grade = gradeAt(minute);
     if (grade.a > 0.005) { c.globalCompositeOperation = 'multiply'; c.fillStyle = css(mixRgb([255, 255, 255], grade.col, grade.a)); c.fillRect(0, 0, W, H); c.globalCompositeOperation = 'source-over'; }
-    if (rain) { c.fillStyle = 'rgba(40, 60, 90, 0.2)'; c.fillRect(0, 0, W, H); }
+    if (rain) { c.fillStyle = 'rgba(40, 56, 84, 0.3)'; c.fillRect(0, 0, W, H); }
     const glow = glowAt(minute);
     c.setTransform(dpr * Z, 0, 0, dpr * Z, dpr * (W / 2 - cx * Z + shx), dpr * (H / 2 - cy * Z + shy));
     if (glow > 0.02) this.drawNight(c, g, view, t, glow, minute);
@@ -730,21 +768,22 @@ export class DriftwoodScene {
   private drawSurface(c: CanvasRenderingContext2D, v: { x0: number; x1: number; y0: number; y1: number }, t: number, windDir: number, windStr: number, minute: number) {
     // ripple crescents across the wind, drifting downwind, twinkling in and out; glints by day, moonlight by night.
     // Strokes are gathered into a few paths by brightness, so the whole surface costs a handful of draw calls.
-    const S = 92, wx = Math.cos(windDir), wy = Math.sin(windDir), drift = t * (16 + windStr * 26), day = daylight(minute);
+    const S = 100, wx = Math.cos(windDir), wy = Math.sin(windDir), drift = t * (16 + windStr * 26), day = daylight(minute);
     const i0 = Math.floor(v.x0 / S) - 1, i1 = Math.ceil(v.x1 / S), j0 = Math.floor(v.y0 / S) - 1, j1 = Math.ceil(v.y1 / S);
-    const B = 4, paths = Array.from({ length: B }, () => new Path2D()), peak = (0.18 + 0.28 * windStr) * (0.6 + 0.4 * day);
+    const B = 4, paths = Array.from({ length: B }, () => new Path2D()), peak = (0.16 + 0.22 * windStr) * (0.6 + 0.4 * day);
     const glints: [number, number, number][] = [];
     for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
       for (let n = 0; n < 2; n++) {
         const h1 = hash(i * 7 + n, j * 13), h2 = hash(i * 3 + n, j * 5 + 1), h3 = hash(i + n * 17, j * 11 + 3);
         const ph = (drift / S + h1) % 1, x = (i + h2) * S + wx * ph * S, y = (j + h3) * S + wy * ph * S;
         if (x < 0 || y < 0 || x > LAKE_W || y > LAKE_H) continue;
-        const b = Math.min(B - 1, Math.floor(Math.sin(ph * Math.PI) * B)), len = 9 + h1 * 14 + windStr * 6, p = paths[b];
-        p.moveTo(x - wy * len, y + wx * len); p.quadraticCurveTo(x + wx * 5, y + wy * 5, x + wy * len, y - wx * len);
+        const b = Math.min(B - 1, Math.floor(Math.sin(ph * Math.PI) * B)), len = 4 + h1 * 6 + windStr * 3, p = paths[b];
+        // a short smile-shaped crescent, bowed downwind
+        p.moveTo(x - wy * len, y + wx * len); p.quadraticCurveTo(x + wx * len * 0.9, y + wy * len * 0.9, x + wy * len, y - wx * len);
         if (n === 0 && h2 > 0.72) { const tw = Math.max(0, Math.sin(t * (2 + h3 * 3) + h1 * 20)) ** 6; if (tw > 0.1) glints.push([x, y, tw]); }
       }
     }
-    c.lineCap = 'round'; c.lineWidth = 1.6 + windStr;
+    c.lineCap = 'round'; c.lineWidth = 1.4 + windStr * 0.6;
     for (let b = 0; b < B; b++) { c.strokeStyle = `rgba(255, 255, 255, ${(peak * (b + 0.5)) / B})`; c.stroke(paths[b]); }
     c.lineCap = 'butt';
     c.fillStyle = day > 0.3 ? 'rgb(255, 255, 240)' : 'rgb(220, 230, 255)';
@@ -918,26 +957,43 @@ export class DriftwoodScene {
     const belly = -side * (2 + fill * 7) + (luff > 0.2 ? Math.sin(t * 30) * 3.5 * luff : 0);
     const mx = (mastX + bxe) / 2 + Math.cos(boomA + Math.PI / 2) * belly, my = bye / 2 + Math.sin(boomA + Math.PI / 2) * belly;
     c.fillStyle = 'rgba(10, 30, 50, 0.18)'; c.beginPath(); c.moveTo(mastX + 3, 4); c.quadraticCurveTo(mx + 3, my + 4, bxe + 3, bye + 4); c.lineTo(mastX + 3, 4); c.fill();
-    const sg = c.createLinearGradient(mastX, 0, bxe, bye); sg.addColorStop(0, '#fffaf0'); sg.addColorStop(1, '#efe0c0');
-    c.fillStyle = sg; c.beginPath(); c.moveTo(mastX, 0); c.quadraticCurveTo(mx, my, bxe, bye); c.lineTo(mastX + Math.cos(boomA) * 3, Math.sin(boomA) * 3); c.closePath(); c.fill();
-    c.strokeStyle = '#c8b08a'; c.lineWidth = 1; c.stroke();
-    // a patch on the sail
-    const pxp = mastX + Math.cos(boomA) * boomLen * 0.55 + Math.cos(boomA + Math.PI / 2) * belly * 0.5, pyp = Math.sin(boomA) * boomLen * 0.55 + Math.sin(boomA + Math.PI / 2) * belly * 0.5;
-    c.fillStyle = '#f2c8a0'; c.fillRect(pxp - 2.5, pyp - 2.5, 5, 5);
+    // the boom, seen from above
     c.strokeStyle = '#6a4a2a'; c.lineWidth = 2; c.beginPath(); c.moveTo(mastX, 0); c.lineTo(bxe, bye); c.stroke();
     blob(c, mastX, 0, 2.6, 2.6, '#5a4028');
     c.restore();
-    // the pennant at the masthead streams downwind (in the lake's frame, not the boat's)
-    const mxw = x + Math.cos(h) * mastX, myw = y + Math.sin(h) * mastX - 3;
-    c.save(); c.translate(mxw, myw); c.rotate(windDir + Math.sin(t * 9) * 0.12);
-    c.fillStyle = '#d8423a'; c.beginPath(); c.moveTo(0, -2); c.quadraticCurveTo(7, -1 + Math.sin(t * 14) * 1.5, 13, Math.sin(t * 12) * 1.2); c.quadraticCurveTo(7, 1.5 + Math.sin(t * 14) * 1.5, 0, 2); c.closePath(); c.fill();
-    c.restore();
-    // Dora at the tiller and Enzo by the mast, sitting up so you can see them, facing the way the boat goes
-    const face: 1 | -1 = Math.cos(h) >= 0 ? 1 : -1, bob = Math.sin(t * 2.2) * 0.4;
-    const stern = [x - Math.cos(h) * 15, y - Math.sin(h) * 15], mid = [x + Math.cos(h) * 2, y + Math.sin(h) * 2];
-    const order: [number[], 'dora' | 'enzo'][] = [[stern, 'dora'], [mid, 'enzo']];
-    order.sort((a, b) => a[0][1] - b[0][1]);
-    for (const [p, who] of order) drawChinchilla(c, who, p[0], p[1] + 3 + bob, { face, h: 15, time: t + (who === 'enzo' ? 0.8 : 0) });
+    // The sail stands up off the deck like the chinchillas do, so it reads at a glance: a patched triangle from the
+    // masthead down to the boom's end, bellied out by the wind. It's sorted with Dora and Enzo, nearest drawn last.
+    const ch = Math.cos(h), sh = Math.sin(h), MAST = 46;
+    const foot = [x + ch * mastX, y + sh * mastX], end = [x + ch * bxe - sh * bye, y + sh * bxe + ch * bye];
+    const face: 1 | -1 = ch >= 0 ? 1 : -1, bob = Math.sin(t * 2.2) * 0.4;
+    const drawSail = () => {
+      const fx = foot[0], fy = foot[1], top = fy - MAST, ex = end[0], ey = end[1] - 2, sway = luff * Math.sin(t * 24) * 3;
+      // the belly: the sail's middle pushed out to leeward (in screen terms, away from the line mast→boom end)
+      const nx = -(ey - top), ny = ex - fx, nl = Math.hypot(nx, ny) || 1, bulge = (3 + fill * 9) * -side * face + sway;
+      const cx2 = (fx + ex) / 2 + (nx / nl) * bulge, cy2 = (top + ey) / 2 + (ny / nl) * bulge;
+      c.strokeStyle = '#5a4028'; c.lineWidth = 2.4; c.lineCap = 'round'; c.beginPath(); c.moveTo(fx, fy - 2); c.lineTo(fx, top - 3); c.stroke();
+      const sg = c.createLinearGradient(fx, top, ex, ey); sg.addColorStop(0, '#fffdf6'); sg.addColorStop(1, luff > 0.5 ? '#e4d8c0' : '#f0e2c2');
+      c.fillStyle = sg; c.beginPath(); c.moveTo(fx + 1, top); c.quadraticCurveTo(cx2, cy2, ex, ey); c.lineTo(fx + 1, fy - 3); c.closePath(); c.fill();
+      c.strokeStyle = '#b89c74'; c.lineWidth = 1.1; c.stroke();
+      // seams and a patch
+      c.strokeStyle = 'rgba(184, 156, 116, 0.55)'; c.lineWidth = 0.8;
+      for (const k of [0.35, 0.65]) { c.beginPath(); c.moveTo(fx + 1, top + (fy - 5 - top) * k); c.lineTo(fx + (cx2 - fx) * k * 0.9 + (ex - fx) * k * 0.3, top + (cy2 - top) * k + (ey - top) * k * 0.3); c.stroke(); }
+      const px = fx + (cx2 - fx) * 0.45 + (ex - fx) * 0.12, py = top + (cy2 - top) * 0.6 + (ey - top) * 0.2;
+      c.fillStyle = '#f2b8a0'; c.fillRect(px - 3, py - 3, 6, 6); c.strokeStyle = '#c88a70'; c.lineWidth = 0.7; c.setLineDash([1.2, 1.2]); c.strokeRect(px - 3, py - 3, 6, 6); c.setLineDash([]);
+      // the pennant at the masthead streams downwind
+      c.save(); c.translate(fx, top - 3); c.rotate(windDir + Math.sin(t * 9) * 0.12);
+      c.fillStyle = '#d8423a'; c.beginPath(); c.moveTo(0, -2); c.quadraticCurveTo(7, -1 + Math.sin(t * 14) * 1.5, 13, Math.sin(t * 12) * 1.2); c.quadraticCurveTo(7, 1.5 + Math.sin(t * 14) * 1.5, 0, 2); c.closePath(); c.fill();
+      c.restore(); c.lineCap = 'butt';
+    };
+    // Dora at the tiller and Enzo up in the bow, sitting up so you can see them, facing the way the boat goes
+    const stern = [x - ch * 15, y - sh * 15], bow = [x + ch * 17, y + sh * 17];
+    const order: [number, () => void][] = [
+      [stern[1], () => drawChinchilla(c, 'dora', stern[0], stern[1] + 3 + bob, { face, h: 13, time: t })],
+      [bow[1], () => drawChinchilla(c, 'enzo', bow[0], bow[1] + 3 + bob, { face, h: 12, time: t + 0.8 })],
+      [foot[1] + 0.5, drawSail],
+    ];
+    order.sort((a, b) => a[0] - b[0]);
+    for (const [, draw] of order) draw();
   }
   private drawParticles(c: CanvasRenderingContext2D, dt: number, paused: boolean) {
     const keep: Particle[] = [];
@@ -1082,8 +1138,9 @@ export class DriftwoodScene {
       y += (small ? 30 : 34) + 5;
     };
     const twaD = Math.round((Math.abs(g.twaSigned) * 180) / Math.PI), sail = twaD < (ng * 180) / Math.PI ? 'in irons!' : twaD < 70 ? 'close-hauled' : twaD < 110 ? 'beam reach' : twaD < 160 ? 'broad reach' : 'running';
-    label(`${g.knots.toFixed(1)} kn`, sail, twaD < (ng * 180) / Math.PI ? '#c0402a' : '#4a2a1a');
-    label(`${g.weather === 'squall' ? '🌧' : g.weather === 'calm' ? '〰' : '🌬'} ${(g.windStr * 10).toFixed(0)} kn`, secs < 12 ? `wind shift in ${Math.ceil(secs)} s` : (g.weather === 'squall' ? 'rain squall' : g.weather === 'gusty' ? 'gusty' : g.weather === 'calm' ? 'calm' : 'breezy'));
+    if (g.phase === 'dock' || g.phase === 'ending') label('0.0 kn', 'tied up', '#4a2a1a');
+    else label(`${g.knots.toFixed(1)} kn`, sail, twaD < (ng * 180) / Math.PI ? '#c0402a' : '#4a2a1a');
+    label(`wind ${(g.windStr * 10).toFixed(0)} kn`, secs < 12 ? `wind shift in ${Math.ceil(secs)} s` : (g.weather === 'squall' ? 'rain squall' : g.weather === 'gusty' ? 'gusty' : g.weather === 'calm' ? 'calm' : 'breezy'));
     if (o.manual && !small) this.telltale(c, g, x0, y + 4, t);
     else if (o.manual) this.telltale(c, g, x0 + R + 54, y0 - R + 12, t);
     // the clock dial and the minimap, top right
@@ -1104,7 +1161,7 @@ export class DriftwoodScene {
     c.fillStyle = 'rgba(255, 250, 240, 0.85)'; roundRect(c, dx - cw / 2, dy + dr + 4, cw, 17, 8); c.fill(); c.fillStyle = '#4a2a1a'; c.fillText(ct, dx, dy + dr + 6.5);
     // scuffs
     if (g.scuffs > 0 && g.phase === 'sail') {
-      c.font = `900 ${small ? 11 : 12.5}px ${FONT}`; const s = `🩹 scuffs ${g.scuffs}/3`, sw = c.measureText(s).width + 14;
+      c.font = `900 ${small ? 11 : 12.5}px ${FONT}`; const s = `hull scuffs ${g.scuffs}/3`, sw = c.measureText(s).width + 14;
       c.fillStyle = 'rgba(255, 230, 220, 0.9)'; roundRect(c, dx - sw / 2, dy + dr + 26, sw, 20, 10); c.fill(); c.fillStyle = '#a03a2a'; c.textBaseline = 'middle'; c.fillText(s, dx, dy + dr + 36.5);
     }
     if (this.dockPulse > 0) this.dockPulse = Math.max(0, this.dockPulse - 0.03);

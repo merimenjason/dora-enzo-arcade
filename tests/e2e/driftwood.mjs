@@ -121,6 +121,7 @@ for (const [w, h] of [[844, 390], [390, 844]]) {
   assert.ok(await noSideScroll(page), `no sideways scroll on the menu at ${w}×${h}`);
   await page.evaluate(() => window.__driftwoodStart({ seed: 3 }));
   const card = page.locator('.dw-card'); await card.waitFor();
+  await page.waitForTimeout(500); // let the card finish sliding in
   const box = await card.boundingBox();
   assert.ok(box.x >= 0 && box.x + box.width <= w + 1 && box.y >= 0 && box.y + box.height <= h + 1, `the island card fits on screen (${JSON.stringify(box)})`);
   assert.ok(await noSideScroll(page), `no sideways scroll at the jetty at ${w}×${h}`);
