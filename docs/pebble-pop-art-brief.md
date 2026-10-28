@@ -317,3 +317,48 @@ The reference was the first title render resized to 800 × 500 with Lanczos for 
 ```text
 Repaint this illustration with its entire scene in the upper two thirds and a completely calm empty meadow in the lower third. Keep the exact characters and painting style. No text.
 ```
+
+
+## Enzo repaint (28-10-2026)
+
+Used only the built-in image generation tool, one image at a time. No CLI/API fallback or API key was used. No code or CHANGELOG.md was edited; nothing was committed.
+
+Every generation used these three identity references: `public/art/enzo.jpeg` (real photo), `public/art/command/portrait-enzo.webp`, and `public/art/safari/walker-enzo.webp`. The current image being replaced was also supplied for its pose, composition, props and painting style, never as an identity-colour reference. Disco calls additionally supplied the matching `public/art/disco/dancer-dora-<pose>.webp` for scale and feet placement. No disco Enzo dancer was used as an identity reference.
+
+### Files and outcomes
+
+- `public/art/pebble/hold-enzo.webp` — Repainted and saved.
+- `public/art/pebble/pick-enzo.webp` — Repainted and saved.
+- `public/art/pebble/title.webp` — Repainted and saved.
+
+Completed images were saved as WebP quality 88, preserving exact original pixel size and RGB/RGBA mode, and reopened and fully decoded to assert those properties. Originals were copied before replacement to `/tmp/enzo-old/<game>-<name>.webp`. Transparent sprites were generated on flat pure green #00ff00, keyed with Pillow and numpy, with green spill unmixed from soft edges, resampled with Lanczos into the original subject bounds and baseline, and checked after WebP encoding for chroma fringe. Opaque images used `ImageOps.fit` with Lanczos. Saved results were visually compared beside the originals on a dark purple background. Enzo has cool grey fur and black eyes (original closed eyes and dizzy spirals retained); props and poses were retained.
+
+All three generations succeeded on their initial calls. The title retains Dora and the original scene arrangement; generated repainting may introduce small brushwork differences outside Enzo.
+
+### Exact prompts used
+
+Each block is the exact submitted string; identical timeout retries reused it unchanged.
+
+#### `public/art/pebble/hold-enzo.webp`
+
+```text
+Use case: illustration-story. Paint hold-enzo.webp, 256×256 game sprite for Pebble Pop. Reference images 1 and 2 show exact Dora and Enzo designs; match faces, proportions, fur, ears and eyes exactly if present. Reference image 3 supplies painting style. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Subject: Enzo in the same pose and framing as Dora, facing right, a cheeky grin. Full body character facing right, both paws above head, feet horizontally centered at 75% of final square image height; nothing below feet. Keep character proportions exactly from references. Single isolated subject on a perfectly flat uniform pure green #00ff00 chroma background. No background texture, gradient, cast shadow or colored reflected spill. No text, letters, numbers, logos or watermark.
+
+EDIT OVERRIDE: Image 1 real Enzo photo, 2 command portrait-enzo, 3 safari walker-enzo are identity colour references only; no copying clothes or props. Image 4 is the CURRENT EDIT TARGET and defines exact pose, silhouette, composition, props, background and painting style. Change ONLY Enzo colours: COOL BLUE-GREY chinchilla, mid-grey coat, darker grey wavy back, pale grey-white face and chest, pink ears, solid jet BLACK eyes with white glints. No brown iris, lower-eye crescent or warm eye reflection. Never taupe, beige or brown fur. Preserve Dora EXACTLY as she is, cream-white, ruby eyes, pink ears. Preserve everything else including framing and all background details. Supersede original reference instructions. Perfectly flat uniform pure green #00ff00 chroma background, no spill, gradient or shadow. Match old subject bounding box and feet baseline exactly on 256x256 canvas.
+```
+
+#### `public/art/pebble/pick-enzo.webp`
+
+```text
+Paint a square head-and-shoulders portrait of the exact grey chinchilla in the reference image: Enzo, pale chest, black eyes, huge pink ears, determined cheerful grin, a smooth grey pebble in one paw with small blue spin swirls. Soft creek-blue background. Warm hand-painted toon storybook, soft cel shading, fine brown ink edges, cosy and kind. No text, letters, numbers or watermark.
+
+EDIT OVERRIDE: Image 1 real Enzo photo, 2 command portrait-enzo, 3 safari walker-enzo are identity colour references only; no copying clothes or props. Image 4 is the CURRENT EDIT TARGET and defines exact pose, silhouette, composition, props, background and painting style. Change ONLY Enzo colours: COOL BLUE-GREY chinchilla, mid-grey coat, darker grey wavy back, pale grey-white face and chest, pink ears, solid jet BLACK eyes with white glints. No brown iris, lower-eye crescent or warm eye reflection. Never taupe, beige or brown fur. Preserve Dora EXACTLY as she is, cream-white, ruby eyes, pink ears. Preserve everything else including framing and all background details. Supersede original reference instructions.
+```
+
+#### `public/art/pebble/title.webp`
+
+```text
+Repaint this illustration with its entire scene in the upper two thirds and a completely calm empty meadow in the lower third. Keep the exact characters and painting style. No text.
+
+EDIT OVERRIDE: Image 1 real Enzo photo, 2 command portrait-enzo, 3 safari walker-enzo are identity colour references only; no copying clothes or props. Image 4 is the CURRENT EDIT TARGET and defines exact pose, silhouette, composition, props, background and painting style. Change ONLY Enzo colours: COOL BLUE-GREY chinchilla, mid-grey coat, darker grey wavy back, pale grey-white face and chest, pink ears, solid jet BLACK eyes with white glints. No brown iris, lower-eye crescent or warm eye reflection. Never taupe, beige or brown fur. Preserve Dora EXACTLY as she is, cream-white, ruby eyes, pink ears. Preserve everything else including framing and all background details. Supersede original reference instructions.
+```

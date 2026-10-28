@@ -320,3 +320,63 @@ Attempt 3 (shorter retry after timeout):
 ```text
 Paint a warm hand-painted toon storybook game title scene, 16:9 opaque landscape. Dora and Enzo stand together on a hilltop at golden hour overlooking a busy cosy valley with a hay shed, domed dust spa, glowing lanterns, patchwork balloon and little wooden sailing skyship in the distance. Keep the lower-left third calm empty grass for an overlay. Characters on right: Dora cream-white with pink ears and ruby eyes, Enzo cool grey with darker back, pale chest, pink ears and black eyes. Match the four images in the supplied reference sheet: Dora top left, Enzo top right, painting styles bottom left and bottom right. Soft cel shading, fine brown ink edges, cosy and kind. Paint ONE unified scene. No text, letters, numbers, logos, borders or panels. Final 1600 × 900.
 ```
+
+
+## Enzo repaint (28-10-2026)
+
+### Follow-up repaint — title retry
+
+`public/art/hayloft/title.webp` remains skipped: short-prompt generation and its identical retry both timed out; original remains untouched. Backup: `/tmp/enzo-old/hayloft-title.webp`.
+
+The general Enzo identity references are the photo `public/art/enzo.jpeg`, command `portrait-enzo.webp`, and safari `walker-enzo.webp`; this title call deliberately used ONLY the current title and `public/art/command/portrait-enzo.webp`, per the requested timeout workaround. No photo or safari reference was attached to title calls.
+
+Exact prompt (both calls):
+
+```text
+Edit the current warm hand-painted Hayloft Tycoon title scene: Dora and Enzo on the right hilltop overlooking a golden-hour valley with hay shed, domed dust spa, lanterns, patchwork balloon and wooden sailing skyship; keep the exact composition, scenery, style, poses and Dora unchanged. Repaint ONLY Enzo using the portrait colour reference: COOL BLUE-GREY mid-grey coat, darker grey wavy back, pale grey-white face and chest, pink ears, solid BLACK eyes with white glints, never taupe, beige or brown; opaque 1600x900, no text.
+```
+
+
+Used only the built-in image generation tool, one image at a time. No CLI/API fallback or API key was used. No code or CHANGELOG.md was edited; nothing was committed.
+
+Every generation used these three identity references: `public/art/enzo.jpeg` (real photo), `public/art/command/portrait-enzo.webp`, and `public/art/safari/walker-enzo.webp`. The current image being replaced was also supplied for its pose, composition, props and painting style, never as an identity-colour reference. Disco calls additionally supplied the matching `public/art/disco/dancer-dora-<pose>.webp` for scale and feet placement. No disco Enzo dancer was used as an identity reference.
+
+### Files and outcomes
+
+- `public/art/hayloft/enzo.webp` — Repainted and saved.
+- `public/art/hayloft/enzo-cheer.webp` — Repainted and saved.
+- `public/art/hayloft/title.webp` — Skipped: Generation and identical retry both timed out. Original left untouched.
+
+Completed images were saved as WebP quality 88, preserving exact original pixel size and RGB/RGBA mode, and reopened and fully decoded to assert those properties. Originals were copied before replacement to `/tmp/enzo-old/<game>-<name>.webp`. Transparent sprites were generated on flat pure green #00ff00, keyed with Pillow and numpy, with green spill unmixed from soft edges, resampled with Lanczos into the original subject bounds and baseline, and checked after WebP encoding for chroma fringe. Opaque images used `ImageOps.fit` with Lanczos. Saved results were visually compared beside the originals on a dark purple background. Enzo has cool grey fur and black eyes (original closed eyes and dizzy spirals retained); props and poses were retained.
+
+Clipboard Enzo: initial generation timed out; identical retry succeeded. Cheer succeeded on its initial call.
+
+### Exact prompts used
+
+Each block is the exact submitted string; identical timeout retries reused it unchanged.
+
+#### `public/art/hayloft/enzo.webp`
+
+```text
+Use case: illustration-story. Paint Enzo for Hayloft Tycoon, matching the supplied dancer-enzo-idle.webp character reference exactly in face, big round ears, fluffy tail and proportions. Enzo has COOL MID-GREY fur with a darker grey back, pale chest, pink ears, and solid BLACK eyes with small white catchlights (no brown irises). Enzo standing holding a little wooden clipboard, calm happy look. Three-quarter view facing slightly LEFT toward the centre of the game; tail on right side. Entire body and fluffy tail in frame, upright on hind legs, feet at bottom; character roughly 80% of final square height. Little wooden clipboard must be blank, no marks. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No clothing. No text, letters, numbers, logos or watermark. Isolated on perfectly flat uniform pure green #00ff00 chroma background including gaps; no gradient or green reflected light. CRITICAL: no checkerboard, transparency grid or grey backdrop; solid green paint only. No scenery or ground patch. Final transparent 512 × 512 after matte removal.
+
+EDIT OVERRIDE: Image 1 real Enzo photo, 2 command portrait-enzo and 3 safari walker-enzo define identity colours only. Image 4 is the CURRENT EDIT TARGET: keep its exact composition, pose, expression, props, framing, background and painting style, change ONLY Enzo colours. Do not copy any outfit or prop from identity references. Enzo is a COOL BLUE-GREY chinchilla: mid-grey coat with a darker grey wavy back, pale grey-white face and chest, pink ears, solid BLACK eyes with white glints, NO brown iris or warm eye reflections. Never taupe, beige or brown. Dora must stay EXACTLY as she is: cream-white, ruby eyes, pink ears. Supersede original reference instructions and warm fur colours. Flat uniform pure green #00ff00 background; no spill, gradient or shadow. Match target subject bounds and feet baseline exactly, final 512x512 RGBA.
+```
+
+#### `public/art/hayloft/enzo-cheer.webp`
+
+```text
+Use case: illustration-story. Paint Enzo for Hayloft Tycoon, matching the supplied dancer-enzo-idle.webp character reference exactly in face, big round ears, fluffy tail and proportions. Enzo has COOL MID-GREY fur with a darker grey back, pale chest, pink ears, and solid BLACK eyes with small white catchlights (no brown irises). Enzo mid-hop with paws up and his clipboard tossed in the air, a few tufts of fluff floating. Three-quarter view facing slightly LEFT toward the centre of the game; tail on right side. Entire body, raised paws, airborne clipboard and tufts in frame; bottom feet near bottom, character roughly 80% of final square height. Little wooden clipboard tossed above must be blank, no marks. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. No clothing. No text, letters, numbers, logos or watermark. Isolated on perfectly flat uniform pure green #00ff00 chroma background including gaps; no gradient or green reflected light. CRITICAL: no checkerboard, transparency grid or grey backdrop; solid green paint only. No scenery or ground patch. Final transparent 512 × 512 after matte removal.
+
+EDIT OVERRIDE: Image 1 real Enzo photo, 2 command portrait-enzo and 3 safari walker-enzo define identity colours only. Image 4 is the CURRENT EDIT TARGET: keep its exact composition, pose, expression, props, framing, background and painting style, change ONLY Enzo colours. Do not copy any outfit or prop from identity references. Enzo is a COOL BLUE-GREY chinchilla: mid-grey coat with a darker grey wavy back, pale grey-white face and chest, pink ears, solid BLACK eyes with white glints, NO brown iris or warm eye reflections. Never taupe, beige or brown. Dora must stay EXACTLY as she is: cream-white, ruby eyes, pink ears. Supersede original reference instructions and warm fur colours. Flat uniform pure green #00ff00 background; no spill, gradient or shadow. Match target subject bounds and feet baseline exactly, final 512x512 RGBA.
+Eyes must be SOLID BLACK throughout with white glints, no brown lower-eye crescent.
+```
+
+#### `public/art/hayloft/title.webp`
+
+```text
+Use case: illustration-story. Paint the opaque 16:9 title illustration for Hayloft Tycoon, final size 1600 × 900. Dora and Enzo on a hilltop at golden hour overlooking a busy little valley: the hay shed, sandstone domed dust spa, warm glowing lanterns, patchwork hot-air balloon and a cosy wooden sailing skyship in the distance. Dora and Enzo stand together on the RIGHT foreground, seen in three-quarter profile looking fondly over their valley, faces visible. Keep the LOWER-LEFT THIRD quiet open softly lit grass without characters or large objects so a game title can be overlaid later. Dora must match dancer-dora-idle.webp exactly: cream-white fur, pink ears, ruby-red eyes, big round ears, fluffy tail. Enzo must match dancer-enzo-idle.webp exactly: cool mid-grey, darker back, pale chest, pink ears, solid black eyes, big round ears and fluffy tail. Supplied venue-burrow.webp and place-meadow.webp are painting-style references: warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and kind. Warm golden-hour light, inviting layered hills and little paths. NO text, letters, numbers, logos, watermark or title painted into the image.
+
+EDIT OVERRIDE: Image 1 real Enzo photo, 2 command portrait-enzo and 3 safari walker-enzo define identity colours only. Image 4 is the CURRENT EDIT TARGET: keep its exact composition, pose, expression, props, framing, background and painting style, change ONLY Enzo colours. Do not copy any outfit or prop from identity references. Enzo is a COOL BLUE-GREY chinchilla: mid-grey coat with a darker grey wavy back, pale grey-white face and chest, pink ears, solid BLACK eyes with white glints, NO brown iris or warm eye reflections. Never taupe, beige or brown. Dora must stay EXACTLY as she is: cream-white, ruby eyes, pink ears. Supersede original reference instructions and warm fur colours.
+Precise localized recolour: Enzo is the RIGHTMOST foreground chinchilla. Dora to his left and every landscape detail must remain exactly unchanged. Keep current front-facing poses, do not restage from original text.
+```

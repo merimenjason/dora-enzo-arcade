@@ -235,3 +235,56 @@ Warm hand-painted toon storybook matching the supplied reference images, soft ce
 ```text
 Warm hand-painted toon storybook matching the supplied reference images, soft cel shading, gentle fine brown ink edges, cosy and kind. No text, letters, numbers, logos, frames or UI. References supply painting style only. Paint a plump glossy acorn with its textured cap, one bite-sized nibble taken out of the side revealing pale inner nut. Make the single missing bite clearly visible in the outline at 30px. Warm chestnut brown body, golden-brown cap and short stem, simple chunky shape. Single isolated game sprite, slight top-down three-quarter view, bold chunky silhouette readable at 40–60px and 30px icon size. Centre the entire subject with generous narrow margin, base about 5% above bottom, no floor or contact shadow. Perfectly flat uniform pure green #00ff00 background, no green reflected light or green elements on subject. Final asset tool-acorn.webp, 256×256.
 ```
+
+
+## Enzo repaint (28-10-2026)
+
+### Follow-up repaint — title completed
+
+Repainted `public/art/dungeon/title.webp` using only the built-in image tool. The general Enzo identity references are the photo `public/art/enzo.jpeg`, command `portrait-enzo.webp`, and safari `walker-enzo.webp`; this title used ONLY the current title and `public/art/command/portrait-enzo.webp`, per the requested timeout workaround.
+
+Initial exact prompt (output rejected because Enzo's tail remained brown):
+
+```text
+Edit this warm hand-painted storybook cellar scene: Dora with a broom and Enzo with a feather duster atop lantern-lit stairs, dust bunnies bouncing below, jam jars and roots on walls; preserve the exact composition, scenery, props, style and Dora unchanged. Repaint ONLY Enzo using the portrait colour reference: COOL BLUE-GREY mid-grey coat, darker grey wavy back, pale grey-white face and chest, pink ears, solid BLACK eyes with white glints, never taupe, beige or brown; opaque 1600x900, no text.
+```
+
+Corrective exact prompt (timed out once, identical retry succeeded):
+
+```text
+Edit this warm hand-painted storybook cellar scene: Dora with a broom and Enzo with a feather duster atop lantern-lit stairs, dust bunnies bouncing below, jam jars and roots on walls; preserve the exact composition, scenery, props, style and Dora unchanged. Repaint ONLY Enzo using the portrait colour reference: COOL BLUE-GREY mid-grey coat, darker grey wavy back, pale grey-white face and chest, pink ears, solid BLACK eyes with white glints, never taupe, beige or brown; opaque 1600x900, no text. Enzo is the RIGHT chinchilla: recolour his ENTIRE body AND the large curled tail behind him cool blue-grey, including all fur highlights; the cream tail at far left belongs to Dora and must stay unchanged. Preserve Dora's original facial expression exactly.
+```
+
+Original backed up at `/tmp/enzo-old/dungeon-title.webp`. Final image fitted using ImageOps.fit with Lanczos and saved WebP quality 88; reopened and decoded to assert 1600×900 RGB, opaque. Visually compared beside the original: Enzo's coat and tail are cool grey with black eyes; Dora retains cream fur, ruby eyes and pink ears. Generated edits retain the scene and poses but are not pixel-identical outside Enzo. No code, changelog or commits.
+
+
+Used only the built-in image generation tool, one image at a time. No CLI/API fallback or API key was used. No code or CHANGELOG.md was edited; nothing was committed.
+
+Every generation used these three identity references: `public/art/enzo.jpeg` (real photo), `public/art/command/portrait-enzo.webp`, and `public/art/safari/walker-enzo.webp`. The current image being replaced was also supplied for its pose, composition, props and painting style, never as an identity-colour reference. Disco calls additionally supplied the matching `public/art/disco/dancer-dora-<pose>.webp` for scale and feet placement. No disco Enzo dancer was used as an identity reference.
+
+### Files and outcomes
+
+- `public/art/dungeon/title.webp` — Skipped: Generation and identical retry both timed out. Original left untouched.
+- `public/art/dungeon/player-enzo.webp` — Repainted and saved.
+
+Completed images were saved as WebP quality 88, preserving exact original pixel size and RGB/RGBA mode, and reopened and fully decoded to assert those properties. Originals were copied before replacement to `/tmp/enzo-old/<game>-<name>.webp`. Transparent sprites were generated on flat pure green #00ff00, keyed with Pillow and numpy, with green spill unmixed from soft edges, resampled with Lanczos into the original subject bounds and baseline, and checked after WebP encoding for chroma fringe. Opaque images used `ImageOps.fit` with Lanczos. Saved results were visually compared beside the originals on a dark purple background. Enzo has cool grey fur and black eyes (original closed eyes and dizzy spirals retained); props and poses were retained.
+
+The existing brief explicitly records that the inherited player sprite’s original generation prompt is unavailable. Its recorded asset brief and current image were used instead; the prompt below is the exact new edit prompt, not a reconstruction of an unknown original. Player Enzo succeeded on its initial call.
+
+### Exact prompts used
+
+Each block is the exact submitted string; identical timeout retries reused it unchanged.
+
+#### `public/art/dungeon/title.webp`
+
+```text
+Warm hand-painted toon storybook, soft cel shading, fine brown ink edges, cosy kind burrow-cellar painting. Wide 16:9 banner, no text, letters, numbers, logos, frames or UI. Use the attached images as exact character references. Dora is cream-white with pink ears and ruby eyes; Enzo is cool mid-grey with darker back, pale chest, pink ears and solid black eyes with white glints. Dora with a little broom and Enzo with a feather duster stand at the top of a lantern-lit cellar stair, peering down at grey dust bunnies bouncing up the steps. Jam jars and roots on walls, warm lantern glow against cool deep shadow. Characters centred near 50% across, 35% down for a wide-strip crop. Keep bottom-left third calm and dark. Opaque edge-to-edge scene for title.webp, final 1600×900.
+
+EDIT OVERRIDE: Image 1 real Enzo photo, 2 command portrait-enzo, 3 safari walker-enzo are identity colour references only. Image 4 is the CURRENT EDIT TARGET: preserve its exact composition, poses, props, background, lighting and painting style. Change ONLY Enzo colours: COOL BLUE-GREY chinchilla, mid-grey coat, darker grey wavy back, pale grey-white face and chest, pink ears, solid jet BLACK eyes with white glints. No brown iris or warm eye reflections; never taupe, beige or brown fur. Preserve Dora EXACTLY as she is, cream-white, ruby eyes, pink ears. Opaque full bleed 1600x900. Supersede original reference instructions.
+```
+
+#### `public/art/dungeon/player-enzo.webp`
+
+```text
+Use case: precise-object-edit. Repaint ONLY Enzo's fur and eyes in image 4, the current player-enzo.webp for Dust Bunny Dungeon. Original brief: Enzo in the same pose and size, facing right, holding a feather duster, a little scarf; grey fur, pale chest, black eyes. Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy cellar colours. Images 1 real Enzo photo, 2 command portrait-enzo, 3 safari walker-enzo are identity colour references ONLY. Enzo is a COOL BLUE-GREY chinchilla: mid-grey coat with a darker grey wavy back, pale grey-white face and chest, pink ears, solid jet BLACK eyes with white glints. No brown iris, lower-eye crescent or warm eye reflections. Never taupe, beige or brown fur. Preserve exact anatomy, pose, silhouette, framing, size and painting style of image 4; preserve red patterned scarf and feather duster colours, shape and position exactly. No added clothes or props. Flat uniform pure green #00ff00 background with no spill, gradient or shadow. Exact final 512x512 RGBA; match current subject bounding box and feet baseline. No text.
+```
