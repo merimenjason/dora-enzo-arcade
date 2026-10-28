@@ -1,4 +1,4 @@
-.disco-shell{position:relative;width:100%;height:100svh;min-height:480px;overflow:hidden;background:#1c0f2a;color:#fbefff;font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;isolation:isolate;user-select:none;-webkit-user-select:none}
+.disco-shell{position:relative;width:100%;height:100svh;min-height:300px;overflow:hidden;background:#1c0f2a;color:#fbefff;font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;isolation:isolate;user-select:none;-webkit-user-select:none}
 .disco-shell *{box-sizing:border-box}
 /* the global stylesheet colours every <p>; in here paragraphs take their colour from where they sit */
 :where(.disco-shell) p{color:inherit;font-size:inherit;line-height:1.45;margin:0}

@@ -1,4 +1,4 @@
-.hayloft-shell{--ink:#4a2e1a;--paper:#fff8ea;--card:#fffdf6;--line:#e8d6b8;--gold:#ffc94a;--green:#7fbf5a;position:relative;width:100%;height:100svh;min-height:520px;overflow:hidden;display:grid;grid-template-rows:auto minmax(200px,40svh) minmax(0,1fr) auto;grid-template-areas:'hud' 'stage' 'panel' 'tabs';background:#f6ead2;color:var(--ink);font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;isolation:isolate;user-select:none;-webkit-user-select:none}
+.hayloft-shell{--ink:#4a2e1a;--paper:#fff8ea;--card:#fffdf6;--line:#e8d6b8;--gold:#ffc94a;--green:#7fbf5a;position:relative;width:100%;height:100svh;min-height:300px;overflow:hidden;display:grid;grid-template-rows:auto minmax(200px,40svh) minmax(0,1fr) auto;grid-template-areas:'hud' 'stage' 'panel' 'tabs';background:#f6ead2;color:var(--ink);font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;isolation:isolate;user-select:none;-webkit-user-select:none}
 .hayloft-shell *{box-sizing:border-box}
 /* the global stylesheet colours every <p>; in here paragraphs take their colour from where they sit */
 :where(.hayloft-shell) p{color:inherit;font-size:inherit;line-height:1.45;margin:0}
@@ -130,4 +130,10 @@
   .hayloft-hud{border-left:1.5px solid var(--line)}
   .hayloft-panel,.hayloft-tabs{border-left:1.5px solid var(--line)}
   .hayloft-toasts{left:calc(50% - 220px)}
+}
+/* a phone held sideways is too short to stack the valley over the list, so it gets the side panel too */
+@media (max-width:899px) and (orientation:landscape) and (max-height:520px){
+  .hayloft-shell{grid-template-columns:minmax(0,1fr) min(380px,50vw);grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:'stage hud' 'stage panel' 'stage tabs'}
+  .hayloft-hud,.hayloft-panel,.hayloft-tabs{border-left:1.5px solid var(--line)}
+  .hayloft-toasts{left:calc(50% - min(190px,25vw))}
 }

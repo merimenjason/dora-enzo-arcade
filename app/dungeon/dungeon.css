@@ -1,4 +1,4 @@
-.dungeon-shell{position:relative;width:100%;height:100svh;min-height:480px;overflow:hidden;background:#140c08;color:#fbf1e2;font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;isolation:isolate;user-select:none;-webkit-user-select:none}
+.dungeon-shell{position:relative;width:100%;height:100svh;min-height:300px;overflow:hidden;background:#140c08;color:#fbf1e2;font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;isolation:isolate;user-select:none;-webkit-user-select:none}
 .dungeon-shell *{box-sizing:border-box}
 /* the global stylesheet colours every <p>; in here paragraphs take their colour from where they sit */
 :where(.dungeon-shell) p{color:inherit;font-size:inherit;line-height:1.45;margin:0}
@@ -97,6 +97,9 @@
 .dungeon-controls.is-phone{flex-direction:column;align-items:center;gap:8px;padding-bottom:max(12px,env(safe-area-inset-bottom))}
 .dungeon-controls.is-phone .dungeon-tools{gap:4px;padding:4px;max-width:100%}
 .dungeon-controls.is-phone .dungeon-tool{width:52px;min-height:54px}
+@media (orientation:landscape) and (max-height:500px){
+  .dungeon-controls.is-phone{flex-direction:row;justify-content:space-between;align-items:flex-end}
+}
 .dungeon-log.is-phone{bottom:250px}
 
 /* ---- panels */

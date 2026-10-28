@@ -30,6 +30,9 @@ function plan(e: Enemy) {
   } as Record<string, string>)[e.intent.kind] ?? '';
 }
 
+/** A phone held sideways: the tools and the pad sit in the bottom corners instead of stacking over the cellar. */
+const SIDEWAYS = '(orientation: landscape) and (max-height: 500px)';
+
 export default function DustBunnyDungeonPage() {
   const canvas = useRef<HTMLCanvasElement>(null), scene = useRef<DungeonScene | null>(null), sound = useRef<DungeonSound | null>(null);
   const game = useRef<DungeonGame | null>(null), profile = useRef<Profile>(readProfile(null));
@@ -165,7 +168,7 @@ export default function DustBunnyDungeonPage() {
             if ((hx === 0) !== (hy === 0)) aimView = { tiles: aimTiles(g, aim, (hx === 0 ? (hy < 0 ? 0 : 2) : hx > 0 ? 1 : 3) as Dir), ok: true };
           }
           const narrowNow = window.matchMedia('(max-width: 760px), (pointer: coarse)').matches;
-          sc.draw(g, { dt: pausedRef.current ? 0 : dt, hover: hv, aim: aimView, warn: warnRef.current?.tile ?? -1, grid: profile.current.settings.grid, padBottom: narrowNow ? 230 : 96, char: g.char });
+          sc.draw(g, { dt: pausedRef.current ? 0 : dt, hover: hv, aim: aimView, warn: warnRef.current?.tile ?? -1, grid: profile.current.settings.grid, padBottom: narrowNow ? (window.matchMedia(SIDEWAYS).matches ? 0 : 230) : 96, char: g.char });
         } else sc.draw(null, { dt, hover: -1, aim: null, warn: -1, grid: false, padBottom: 0, char: 'dora' });
         if (ms - ui > 120) { ui = ms; refresh(); }
         raf = requestAnimationFrame(loop);

@@ -21,6 +21,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Snapshot Safari**, **Pebble Pop**, **Dust Bunny Dungeon**, **Burrow Command**, **Dust Disco** and **Hayloft Tycoon** now play on a phone held sideways. The controls used to fall off the bottom of the screen; Snapshot Safari's move and shutter buttons couldn't be reached at all. Sideways, Hayloft Tycoon puts its list beside the valley, Dust Bunny Dungeon moves its tools and pad into the corners, and Burrow Command's command panel slims down to give the battle more room.
 - **Kit Parade**: on a phone held sideways, the job bar is back on screen and the whole level fits. Held upright, a little tip suggests turning the phone to see more of the parade. Clover Meadow and The Big Pantry also have painted backdrops.
 - **Dust Bunny Dungeon**: the menu no longer trips over itself late in the evening, when the server and your device disagree about which day's daily dust-up it is.
 - **Pebble Pop**: map steps no longer jump away from the pointer when you hover or press them, so every click starts the wall.
