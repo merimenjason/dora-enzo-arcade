@@ -158,3 +158,8 @@
   .hm-play :is(.hm-cardbtn, .hm-tool) span { font-size: 10px; white-space: nowrap; }
   .hm-play .hm-tool { padding: 3px 4px; }
 }
+
+/* the painted title picture replaces the drawn heroes once it is there */
+.hm-intro-art { flex-shrink: 0; }
+.hm-intro-art:has(img) canvas { display: none; }
+.hm-intro-art img { display: block; width: min(330px, 40vw); aspect-ratio: 3 / 2; object-fit: cover; border-radius: 14px; border: 1px solid var(--line); }

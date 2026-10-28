@@ -517,12 +517,27 @@ function rangeRing(c: CanvasRenderingContext2D, col: number, r: number, range: n
 
 // ---------- Icons for the page ----------
 
+// Paintings from public/art/hay-maze/ stand in for the drawn icons once loaded; an icon drawn before its painting
+// arrives is drawn again when it does.
+const paintings = new Map<string, HTMLImageElement>();
+function paintedIcon(c: CanvasRenderingContext2D, name: string, w: number, h: number, redraw: () => void) {
+  if (typeof Image === 'undefined') return false;
+  let img = paintings.get(name);
+  if (!img) { img = new Image(); img.decoding = 'async'; img.src = `/art/hay-maze/${name}.webp`; paintings.set(name, img); }
+  if (!img.complete || img.naturalWidth === 0) { if (!img.complete) img.addEventListener('load', redraw, { once: true }); return false; }
+  const s = Math.min(w / img.naturalWidth, h / img.naturalHeight), dw = img.naturalWidth * s, dh = img.naturalHeight * s;
+  c.clearRect(0, 0, w, h); c.drawImage(img, (w - dw) / 2, h - dh, dw, dh);
+  return true;
+}
+
 export function drawTowerIcon(c: CanvasRenderingContext2D, kind: TowerId, w: number, h: number, time = 0) {
   c.clearRect(0, 0, w, h);
+  if (paintedIcon(c, `tower-${kind}`, w, h, () => drawTowerIcon(c, kind, w, h, time))) return;
   fitDraw(c, `maze-${kind}`, 1, 1, w - 2, h - 2, (q) => tower(q, kind, 0, 0, { level: 0, time }));
 }
 export function drawCritterIcon(c: CanvasRenderingContext2D, kind: Enemy['kind'], w: number, h: number) {
   c.clearRect(0, 0, w, h);
+  if (paintedIcon(c, `foe-${kind}`, w, h, () => drawCritterIcon(c, kind, w, h))) return;
   critter(c, kind, w / 2 - 1, h * 0.78, 1, 0, kind === 'lynx' ? 0.8 : 1);
 }
 /** A card's picture: the piece's shape in bales, or the item. */

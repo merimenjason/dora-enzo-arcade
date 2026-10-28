@@ -306,7 +306,7 @@ export default function HayMaze() {
       <main className="hm-shell">
         {header}
         <section className="hm-intro">
-          <Icon draw={heroes} w={230} h={116} />
+          <div className="hm-intro-art"><img src="/art/hay-maze/title.webp" alt="" onError={(e) => e.currentTarget.remove()} /><Icon draw={heroes} w={230} h={116} /></div>
           <div>
             <p className="hm-eyebrow">ROGUELITE TOWER DEFENCE · BUILD THE MAZE · GUARD THE FLAME</p>
             <h1>Hay Maze Defence</h1>
