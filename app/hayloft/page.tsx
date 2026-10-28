@@ -10,6 +10,40 @@ import { HayloftSound } from './sound';
 import './hayloft.css';
 
 type Tab = 'build' | 'helpers' | 'research' | 'trips' | 'stars' | 'more';
+
+/** Something cheerful from the helper whose building earned the most while you were away. */
+const AWAY_LINES = [
+  (b: string) => `We kept the ${b} humming the whole time!`,
+  (b: string) => `The ${b} never had a quiet minute. I only napped a little.`,
+  (b: string) => `Everyone asked where you were. The ${b} missed you!`,
+  (b: string) => `I counted every coin from the ${b} twice. It's all there!`,
+  (b: string) => `The ${b} had its best stretch yet. Shall we build more?`,
+];
+
+/** The welcome-back card's middle: who earned what, a word from the top helper, and what you can buy now. */
+function AwayDetails({ away, g }: { away: AwaySummary; g: HayloftGame }) {
+  const total = away.by.reduce((a, b) => a + b, 0);
+  const top = away.by.map((c, i) => ({ c, i })).filter((x) => x.c > 0).sort((a, b) => b.c - a.c).slice(0, 3);
+  const shop = g.shopping(), lead = top[0], who = lead && g.s.managers[lead.i] ? MANAGERS[lead.i].name : null;
+  const bits = [
+    shop.levels.length && `${shop.levels.length} building${shop.levels.length > 1 ? 's' : ''} to level up`,
+    shop.hires.length && `${shop.hires.length === 1 ? MANAGERS[shop.hires[0]].name : `${shop.hires.length} helpers`} to hire`,
+    shop.upgrades.length && `${shop.upgrades.length} upgrade${shop.upgrades.length > 1 ? 's' : ''}`,
+  ].filter(Boolean) as string[];
+  return <>
+    {total > 0 && top.length > 0 && (
+      <ul className="hayloft-away-top" aria-label="Top earners while you were away">
+        {top.map(({ c, i }) => (
+          <li key={i}><span>{BUILDINGS[i].icon} {BUILDINGS[i].name}{g.s.managers[i] ? ` · ${MANAGERS[i].name}` : ''}</span><b>{fmt(c)}</b>
+            <i style={{ width: `${Math.max(4, (c / total) * 100)}%`, background: BUILDINGS[i].color }} /></li>
+        ))}
+      </ul>
+    )}
+    {who && <p className="hayloft-away-says">“{AWAY_LINES[Math.floor(away.away / 60) % AWAY_LINES.length](BUILDINGS[lead.i].name)}” <small>· {who}</small></p>}
+    {bits.length > 0 && <p className="hayloft-away-ready">🛒 Ready to buy: {bits.join(' · ')}</p>}
+    {g.canMigrate() && <p className="hayloft-away-ready">🌄 The Great Migration is ready: +{fmt(g.pendingStardust())} Stardust</p>}
+  </>;
+}
 const TABS: { id: Tab; icon: string; name: string }[] = [
   { id: 'build', icon: '🏡', name: 'Build' }, { id: 'helpers', icon: '🐭', name: 'Helpers' }, { id: 'research', icon: '📜', name: 'Research' },
   { id: 'trips', icon: '🎒', name: 'Trips' }, { id: 'stars', icon: '✨', name: 'Stars' }, { id: 'more', icon: '🎁', name: 'More' },
@@ -220,8 +254,9 @@ export default function HayloftTycoonPage() {
             <p className="hayloft-big">+{fmt(away.coins)} coins</p>
             <p>Your helpers kept the valley busy{away.capped ? ` for ${fmtTime(away.credited)}, as long as they could stay up. Long Naps and Comfy Naps let them keep going longer` : ''}.</p>
             {away.tripsReady > 0 && <p>🎒 {away.tripsReady} team{away.tripsReady > 1 ? 's are' : ' is'} home with finds to unpack.</p>}
+            {g && <AwayDetails away={away} g={g} />}
             {away.research.map((r) => <p key={r}>📜 Research finished: <b>{RESEARCH.find((x) => x.id === r)?.name}</b></p>)}
-            <button className="hayloft-go" onClick={() => { setAway(null); snd().gift(); if (away.tripsReady) setTab('trips'); }}>Lovely!</button>
+            <button className="hayloft-go" onClick={() => { setAway(null); snd().gift(); setTab(away.tripsReady ? 'trips' : 'build'); }}>Lovely!</button>
           </div>
         </div>
       )}

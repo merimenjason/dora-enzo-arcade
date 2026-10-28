@@ -240,7 +240,9 @@ export type GameEvent =
   | { kind: 'tap'; coins: number } | { kind: 'burst' } | { kind: 'visitor'; v: VisitorKind } | { kind: 'caught'; v: VisitorKind; text: string }
   | { kind: 'shower' } | { kind: 'achievement'; id: string } | { kind: 'trip'; slot: number } | { kind: 'research'; id: string }
   | { kind: 'migrate'; stardust: number } | { kind: 'constellation'; moonstones: number } | { kind: 'gift'; text: string } | { kind: 'item'; text: string };
-export interface AwaySummary { away: number; credited: number; capped: boolean; coins: number; tripsReady: number; research: string[] }
+export interface AwaySummary { away: number; credited: number; capped: boolean; coins: number; tripsReady: number; research: string[]; by: number[] }
+/** What the coins in hand can buy right now: building indices with a level to buy, helpers to hire and shop upgrades. */
+export interface Shopping { levels: number[]; hires: number[]; upgrades: string[] }
 
 // ---------------------------------------------------------------- small maths
 /** mulberry32 step: returns [value 0..1, next state]. */
@@ -321,6 +323,8 @@ export function freshState(seed: number, wall: number): State {
 export class HayloftGame {
   s: State;
   events: GameEvent[] = [];
+  /** Coins per building while catchUp() runs, for the welcome-back card. */
+  private tally: number[] | null = null;
   constructor(state: State) { this.s = state; }
   static fresh(seed: number, wall: number) { return new HayloftGame(freshState(seed, wall)); }
 
@@ -426,14 +430,18 @@ export class HayloftGame {
     for (const b of [...cuts, end]) {
       if (b <= a) continue;
       const span = cove ? tideIntegral(a, b) : b - a;
-      if (rate > 0) this.earn(rate * this.boostMult((a + b) / 2) * span);
+      if (rate > 0) {
+        const c = rate * this.boostMult((a + b) / 2) * span; this.earn(c);
+        // helpers share one stream; each building's part is its own rate's share of it
+        if (this.tally) for (let i = 0; i < N; i++) if (s.managers[i]) this.tally[i] += (c * pay[i]) / BUILDINGS[i].cycle / rate;
+      }
       a = b;
     }
     // buildings run by paw: a running cycle pays when it finishes, at that moment's boosts and tide
     for (let i = 0; i < N; i++) {
       if (s.managers[i] || s.cycles[i] < 0) continue;
       const len = this.cycleTime(i), left = len - s.cycles[i];
-      if (dt >= left) { const at = s.t + left, c = pay[i] * this.boostMult(at) * (cove ? tideAt(at) : 1); this.earn(c); s.cycles[i] = -1; this.events.push({ kind: 'cycle', i, coins: c }); }
+      if (dt >= left) { const at = s.t + left, c = pay[i] * this.boostMult(at) * (cove ? tideAt(at) : 1); this.earn(c); if (this.tally) this.tally[i] += c; s.cycles[i] = -1; this.events.push({ kind: 'cycle', i, coins: c }); }
       else s.cycles[i] += dt;
     }
     s.t = end;
@@ -465,7 +473,9 @@ export class HayloftGame {
   catchUp(now: number): AwaySummary {
     const s = this.s, away = Math.max(0, (now - s.wall) / 1000), cap = this.offlineCapHours() * 3600;
     const credited = Math.min(away, cap), before = s.coins, researchBefore = s.research.length;
+    this.tally = Array(N).fill(0);
     let left = credited; while (left > 0) { const step = Math.min(left, 3600); this.produce(step); left -= step; }
+    const by = this.tally; this.tally = null;
     if (now > s.wall) s.wall = now;
     if (s.visitor) s.visitor = null;
     s.nextVisit = Math.max(s.nextVisit, s.t + 20);
@@ -473,7 +483,7 @@ export class HayloftGame {
     s.nextShower = Math.max(s.nextShower, s.t + 60);
     this.wallChecks();
     this.checkAchievements();
-    return { away, credited, capped: away > cap, coins: s.coins - before, tripsReady: s.trips.filter((x) => x && s.wall >= x.ends).length, research: s.research.slice(researchBefore) };
+    return { away, credited, capped: away > cap, coins: s.coins - before, tripsReady: s.trips.filter((x) => x && s.wall >= x.ends).length, research: s.research.slice(researchBefore), by };
   }
   private spawnVisitor() {
     const s = this.s, total = Object.values(VISITORS).reduce((a, v) => a + v.weight, 0);
@@ -512,6 +522,16 @@ export class HayloftGame {
     if (fest2.length > fest) this.events.push({ kind: 'festival', level: fest2[fest2.length - 1] });
     this.checkAchievements();
     return true;
+  }
+  /** Everything the coins in hand can buy right now, one level or one item at a time. */
+  shopping(): Shopping {
+    const s = this.s, levels: number[] = [], hires: number[] = [];
+    for (let i = 0; i < N; i++) {
+      if (this.unlocked(i) && s.levels[i] < MAX_LEVEL && this.buyCost(i, 1) <= s.coins) levels.push(i);
+      if (s.levels[i] >= 1 && !s.managers[i] && this.managerCost(i) <= s.coins) hires.push(i);
+    }
+    const upgrades = UPGRADES.filter((u) => !s.upgrades.includes(u.id) && u.cost <= s.coins && (u.target === 'all' || s.levels[u.target] >= 1)).map((u) => u.id);
+    return { levels, hires, upgrades };
   }
   /** Is building i visible in the shop yet (the one after the last owned is shown as the next to build)? */
   unlocked(i: number) { return i === 0 || this.s.levels[i - 1] > 0 || this.s.levels[i] > 0; }

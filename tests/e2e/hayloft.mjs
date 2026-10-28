@@ -48,10 +48,15 @@ const state = (page) => page.evaluate(() => JSON.parse(window.__hayloft().save()
   await page.evaluate(() => { const g = window.__hayloft(); g.s.wall -= 2 * 3600e3; localStorage.setItem('hayloft-tycoon-v1', g.save()); localStorage.setItem = () => {}; }); // the page saves again on pagehide, which would undo the two hours
   await page.reload(); await ready(page);
   await page.getByRole('dialog', { name: 'Welcome back' }).waitFor();
-  assert.match(await page.getByRole('dialog', { name: 'Welcome back' }).textContent(), /2h/);
+  const card = await page.getByRole('dialog', { name: 'Welcome back' }).textContent();
+  assert.match(card, /2h/);
+  assert.match(card, /Dust Bath Spa · Pip/, 'the top earners list the spa and its helper');
+  assert.match(card, /· Pip|· Dora/, 'a word from the top helper');
+  assert.match(card, /Ready to buy:/, 'what the coins can buy now');
+  await page.screenshot({ path: process.env.SHOT ?? '/dev/null' }).catch(() => {});
   s = await state(page); assert.ok(s.levels[1] > 10 && s.managers[1], 'the valley was saved');
   await page.getByRole('button', { name: 'Lovely!' }).click();
-  console.log('PASS the valley is saved, and two hours away shows the welcome-back card');
+  console.log('PASS the valley is saved, and two hours away shows the welcome-back card with top earners and what to buy');
 
   // trips
   await page.getByRole('button', { name: /Trips/ }).click();

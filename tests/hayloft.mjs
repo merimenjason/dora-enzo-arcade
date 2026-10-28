@@ -118,6 +118,19 @@ for (const valley of [0, 1, 2]) {
   near(a.s.coins, b.s.coins, 1e-9, `an hour away pays the same as an hour online in ${VALLEYS[valley].name}`);
   ok(Math.abs(sum.credited - 3600) < 1e-6 && !sum.capped && Math.abs(sum.coins - b.s.coins) < 1e-6 * b.s.coins, 'the away summary');
   ok(a.s.boosts.length === 0 && b.s.boosts.length === 0, 'boosts run out either way');
+  near(sum.by.reduce((x, y) => x + y, 0), sum.coins, 1e-9, 'the welcome-back card’s per-building coins add up to the total');
+  ok(sum.by.length === N && sum.by.every((c, i) => (i < 9 ? c > 0 : i === 9 ? c === 0 : c >= 0)), 'every helper-run building earned, the idle one did not');
+  ok(sum.by[8] > sum.by[0], 'a later building out-earns the first');
+}
+{
+  // the shopping list matches what the shop would actually allow
+  const g = fresh(5); g.s.coins = 1e40; for (let i = 0; i < 4; i++) g.buy(i, 20); g.s.coins = g.managerCost(1) + 1;
+  const sh = g.shopping();
+  ok(sh.levels.length > 0 && sh.levels.every((i) => new HayloftGame(structuredClone(g.s)).buy(i, 1)), 'every listed level can be bought');
+  ok(!sh.levels.includes(5), 'a building that is not unlocked yet is not listed');
+  ok(sh.hires.includes(1) && sh.hires.every((i) => g.s.levels[i] > 0 && !g.s.managers[i]), 'affordable helpers for owned buildings');
+  ok(sh.upgrades.every((id) => new HayloftGame(structuredClone(g.s)).upgrade(id)), 'every listed upgrade can be bought');
+  g.s.coins = 0; const none = g.shopping(); ok(!none.levels.length && !none.hires.length && !none.upgrades.length, 'nothing is listed with no coins');
 }
 {
   const g = busy(4), r = g.baseRate(), paw = g.cyclePay(10) + g.cyclePay(11);
