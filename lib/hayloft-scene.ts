@@ -39,7 +39,7 @@ export class HayloftScene {
     for (const n of names) this.load(n);
   }
   private load(name: string) { if (this.img.has(name)) return; const i = new Image(); i.decoding = 'async'; i.src = `${ART}${name}.webp`; this.img.set(name, i); }
-  private art(name: string) { const i = this.img.get(name); return i && i.complete && i.naturalWidth > 0 ? i : null; }
+  private art(name: string) { this.load(name); const i = this.img.get(name); return i && i.complete && i.naturalWidth > 0 ? i : null; }
   resize() {
     const r = this.canvas.getBoundingClientRect(); this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.w = Math.max(280, r.width); this.h = Math.max(200, r.height);
@@ -238,28 +238,37 @@ export class HayloftScene {
     const tilt = busy ? Math.sin(t * 2.1 + i) * 0.012 : Math.sin(t * 0.9 + i) * 0.006;
     // shadow
     c.fillStyle = 'rgba(40,30,20,.18)'; c.beginPath(); c.ellipse(x, gy + 2, size * 0.42, size * 0.07, 0, 0, Math.PI * 2); c.fill();
-    const img = this.art(`building-${b.id}`);
     // each milestone reached makes the building a touch bigger; each of its shop upgrades dresses it up
     const stars = MILESTONES.filter(([l]) => s.levels[i] >= l).length, grow = 1 + Math.min(stars, 10) * 0.008;
     const tier = [1, 2, 3].filter((k) => s.upgrades.includes(`${b.id}-${k}`)).length;
     c.save(); c.translate(x, gy - lift); c.rotate(tilt); c.scale((2 - squash) * grow, squash * grow);
+    // the painted upgrade (upgrades 1-2, then 3) when it has loaded; otherwise the base painting dressed with drawn extras
+    const painted = (tier >= 3 && this.art(`building-${b.id}-up2`)) || (tier >= 1 && this.art(`building-${b.id}-up1`)) || null;
+    const img = painted ?? this.art(`building-${b.id}`);
     if (tier >= 2) this.glow(size, t, i);
     if (img) c.drawImage(img, -size / 2, -size, size, size); else this.drawnBuilding(i, size, t, g.s.managers[i]);
-    if (tier >= 1) this.bunting(size, t, i);
-    if (tier >= 2) this.lanterns(size, t, i);
-    if (tier >= 3) this.pennant(size, t, b.color);
+    if (!painted) {
+      if (tier >= 1) this.bunting(size, t, i);
+      if (tier >= 2) this.lanterns(size, t, i);
+      if (tier >= 3) this.pennant(size, t, b.color);
+    } else if (tier >= 3) this.twinkles(size, t, i);
     c.restore();
     if (busy) this.wisps(x, gy - size * grow * 0.86 - lift, size, t, i, b.color);
     if (stars) this.milestoneStars(x, gy, stars);
     // helper hopping beside it
     if (s.managers[i]) {
       // a cheer jump when the run pays out, little working hops in between, and breathing all the time
-      const hx = x + size * 0.36, hh = Math.max(22, size * 0.24), cheer = Math.max(0, Math.sin(Math.min(1, (t - this.hops[i]) * 3) * Math.PI)) * hh * 0.5;
-      const beat = (t * 1.4 + i * 0.37) % 1, hopUp = beat < 0.35 ? Math.sin((beat / 0.35) * Math.PI) * hh * 0.14 : 0, up = cheer + hopUp;
-      const land = beat >= 0.35 && beat < 0.5 ? Math.sin(((beat - 0.35) / 0.15) * Math.PI) * 0.08 : 0;
-      const img = this.art(i === 0 ? 'dora' : i === 1 ? 'enzo' : helperArt(MANAGERS[i]));
-      if (img) this.critter(img, hx, gy + 6 - up, hh * 1.9, t * 1.1 + i * 2, land, Math.sin(t * 3 + i) * 0.05 + (cheer > 1 ? Math.sin(t * 18) * 0.06 : 0));
-      else drawChinchilla(c, i === 0 ? 'dora' : i === 1 ? 'enzo' : HELPER_COATS[i], hx, gy + 4 - up, { face: -1, h: hh, time: t + i, blink: Math.sin(t * 0.9 + i * 3) > 0.97 });
+      const hx = x + size * 0.36, hh = Math.max(22, size * 0.24), who = i === 0 ? 'dora' : i === 1 ? 'enzo' : helperArt(MANAGERS[i]);
+      const cheering = t - this.hops[i] < 0.9, cheer = Math.max(0, Math.sin(Math.min(1, (t - this.hops[i]) * 3) * Math.PI)) * hh * 0.5;
+      const idle = this.art(who), work = this.art(`${who}-work`), carry = this.art(`${who}-carry`), joy = this.art(`${who}-cheer`);
+      if (idle && work && carry && !cheering) this.helperRoutine(i, hx, x, gy, hh, t, idle, work, carry);
+      else if (idle) {
+        // without its frames (or while cheering a payout) the helper hops: a jump of joy, little working hops, breathing
+        const beat = (t * 1.4 + i * 0.37) % 1, hopUp = cheering ? 0 : beat < 0.35 ? Math.sin((beat / 0.35) * Math.PI) * hh * 0.14 : 0, up = cheer + hopUp;
+        const land = !cheering && beat >= 0.35 && beat < 0.5 ? Math.sin(((beat - 0.35) / 0.15) * Math.PI) * 0.08 : 0;
+        this.critter(cheering && joy ? joy : idle, hx, gy + 6 - up, hh * 1.9, t * 1.1 + i * 2, land, Math.sin(t * 3 + i) * 0.05 + (cheer > 1 ? Math.sin(t * 18) * 0.06 : 0));
+      }
+      else drawChinchilla(c, i === 0 ? 'dora' : i === 1 ? 'enzo' : HELPER_COATS[i], hx, gy + 4 - cheer, { face: -1, h: hh, time: t + i, blink: Math.sin(t * 0.9 + i * 3) > 0.97 });
     }
     // progress bar and level badge
     const bw = size * 0.7, by = gy + 12;
@@ -296,9 +305,40 @@ export class HayloftScene {
   }
   /** The drawn stand-in for a building's painting, in a size×size box with the base at (0, 0). */
   /** A painted critter standing at (x, footY): it breathes (a slow squash at the feet), takes a landing squash and leans. */
-  private critter(img: HTMLImageElement, x: number, footY: number, sz: number, phase: number, land: number, lean: number) {
+  private critter(img: HTMLImageElement, x: number, footY: number, sz: number, phase: number, land: number, lean: number, flip = false) {
     const c = this.c, breathe = Math.sin(phase * 2.2) * 0.025, sy = 1 + breathe - land, sx = 1 - breathe * 0.6 + land * 0.7;
-    c.save(); c.translate(x, footY); c.rotate(lean); c.scale(sx, sy); c.drawImage(img, -sz / 2, -sz, sz, sz); c.restore();
+    c.save(); c.translate(x, footY); c.rotate(lean); c.scale(flip ? -sx : sx, sy); c.drawImage(img, -sz / 2, -sz, sz, sz); c.restore();
+  }
+  /**
+   * A helper's day at its building, a loop of about nine seconds offset per helper: it works at its spot (the work frame,
+   * with a rhythmic effort bob), carries the goods over to the door (the carry frame, walking, mirrored to face left),
+   * hands them in, walks back (its own frame, bobbing) and takes a breather before starting again.
+   */
+  private helperRoutine(i: number, spot: number, door: number, gy: number, hh: number, t: number, idle: HTMLImageElement, work: HTMLImageElement, carry: HTMLImageElement) {
+    const P = 9, u = ((t + i * 1.7) % P + P) % P, sz = hh * 1.9, at = door + hh * 0.35, foot = gy + 6;
+    const walk = (from: number, to: number, a: number, b: number) => from + (to - from) * Math.min(1, Math.max(0, (u - a) / (b - a)));
+    const stride = (rate: number) => Math.abs(Math.sin(t * rate + i)) * hh * 0.08;
+    if (u < 4.2) {
+      // working: a push-and-settle beat, squashing a little on each push
+      const beat = (t * 1.6 + i * 0.3) % 1, push = Math.sin(beat * Math.PI * 2);
+      this.critter(work, spot, foot - Math.max(0, push) * hh * 0.05, sz, t + i, Math.max(0, -push) * 0.05, push * 0.04);
+    } else if (u < 5.8) this.mirrored(carry, walk(spot, at, 4.2, 5.8), foot - stride(10), sz, -1, Math.sin(t * 10 + i) * 0.05);
+    else if (u < 6.4) this.critter(carry, at, foot, sz, t + i, Math.sin(((u - 5.8) / 0.6) * Math.PI) * 0.1, -0.12, true);
+    else if (u < 8) this.critter(idle, walk(at, spot, 6.4, 8), foot - stride(10), sz, t + i, 0, Math.sin(t * 10 + i) * 0.05);
+    else this.critter(idle, spot, foot, sz, t * 1.1 + i * 2, 0, Math.sin(t * 2 + i) * 0.04);
+  }
+  /** A walking frame painted facing right, drawn facing `dir`, leaning `lean`. */
+  private mirrored(img: HTMLImageElement, x: number, footY: number, sz: number, dir: 1 | -1, lean: number) {
+    const c = this.c; c.save(); c.translate(x, footY); c.scale(dir, 1); c.rotate(lean); c.drawImage(img, -sz / 2, -sz, sz, sz); c.restore();
+  }
+  /** Sparkles around a building at its grandest. */
+  private twinkles(size: number, t: number, i: number) {
+    const c = this.c;
+    for (let k = 0; k < 4; k++) {
+      const tw = Math.sin(t * 2.4 + k * 1.7 + i); if (tw < 0.3) continue;
+      c.globalAlpha = tw; this.star(Math.sin(k * 2.3 + i) * size * 0.4, -size * (0.45 + ((k * 0.37) % 0.5)), size * 0.03, '#fff3b0');
+    }
+    c.globalAlpha = 1;
   }
   /** Soft puffs drifting up from the roof of a building at work, tinted with its colour. */
   private wisps(x: number, y: number, size: number, t: number, i: number, color: string) {

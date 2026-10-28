@@ -417,3 +417,26 @@ Keep image 1 exactly unchanged except recolour rightmost Enzo cool blue-grey, da
 ## Enzo recolour (28-10-2026, evening)
 
 The image tool timed out on every repaint of `title.webp` (nine attempts), so Enzo was recoloured in the existing painting with Pillow instead: inside ellipses traced around his head, ears, body and tail, warm low-saturation fur (hue 18°–58°, saturation under 0.55, or near-neutral) was blended to a faintly cool grey at 86% of its brightness; the pink inner ears, cheeks and tongue were left alone; brown iris pixels were darkened to near-black. Dora and the scene are untouched. The page does not currently display `title.webp`.
+
+## Upgraded buildings and helper frames (29-10-2026)
+
+The shop's three upgrades per building now show as paintings instead of drawn bunting and lanterns, and each helper gets extra frames so they work, carry and cheer rather than only hop. **Use the existing painting as the reference for every new one**, so it is clearly the same building or the same helper: same camera angle, same size and position in the frame, same style.
+
+**Upgraded buildings: 512 × 512 transparent**, the building footprint and base in exactly the same place as in `building-<id>.webp`, no ground beyond its own base.
+
+| File | Shown from | Description |
+| --- | --- | --- |
+| `building-<id>-up1.webp` | upgrades 1 and 2 | The same building spruced up: fresh paint, flower boxes, a string of colourful bunting, a couple of warm paper lanterns, a little extra detail that fits its trade (more hay bales, a second tub, bigger sign-board with no text). Clearly busier and cosier. |
+| `building-<id>-up2.webp` | upgrade 3 | The same building at its grandest: grown a little taller (an extra floor, tower or wing), gold trim, a pennant flag in its colour on top, lanterns lit, sparkles. Still recognisably the same place. |
+
+for each `<id>` in: `meadow` (Hay Meadow), `spa` (Dust Bath Spa), `pebble` (Pebble Polishery), `orchard` (Apple-Twig Orchard), `cushion` (Cozy Cushion Mill), `bakery` (Hay Biscuit Bakery), `lantern` (Glimmer Lantern Works), `observatory` (Moonlight Observatory), `balloon` (Cloudhopper Balloon Port), `tea` (Starleaf Tea Garden), `bells` (Aurora Bell Tower), `skyship` (Comet Skyship Dock).
+
+**Helper frames: 256 × 256 transparent** (512 × 512 for Dora and Enzo, to match `dora.webp` and `enzo.webp`), full body, feet near the bottom edge, same scale as the existing frame.
+
+| File | Description |
+| --- | --- |
+| `<who>-work.webp` | Busy at its building's job, facing the viewer at three-quarters: Dora pitching hay with a little fork; Enzo scrubbing with a brush in a puff of dust; Pebble polishing a stone with a cloth; Juniper reaching up to pick an apple; Tuft plumping a cushion; Biscuit sliding a tray of biscuits; Lumen lighting a lantern wick; Nova peering through its telescope; Breeze tugging a balloon rope; Sage pouring tea from a pot; Chime pulling a bell rope; Captain Wisp turning a ship's wheel. |
+| `<who>-carry.webp` | Walking side-on **facing right**, mid-stride, carrying its building's goods: a hay bundle, a towel, a basket of shiny pebbles, a basket of apples, a stack of cushions, a tray of biscuits, a lit lantern, a rolled star chart, a sandbag, a teapot, a tiny bell, a little comet-shaped parcel. |
+| `<who>-cheer.webp` | Cheering, both arms up, sparkles (not needed for Dora and Enzo, who have one). |
+
+where `<who>` is `dora`, `enzo`, and `helper-<slug>` for `pebble`, `juniper`, `tuft`, `biscuit`, `lumen`, `nova`, `breeze`, `sage`, `chime`, `captain-wisp`. Each helper keeps its fur colour, eyes and accessory from its row above (Dora cream-white with ruby-red eyes; Enzo cool blue-grey with solid black eyes, never taupe).
