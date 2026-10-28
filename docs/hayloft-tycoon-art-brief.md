@@ -18,6 +18,24 @@ Wide panoramas the valley scrolls across, with slow parallax. **2400 × 900 px, 
 | `valley-glowcap.webp` | Glowcap Hollow: a twilight mushroom forest, giant soft glowing mushrooms in pink, teal and gold in the background, fireflies, a purple-to-rose dusk sky, mossy ground band. |
 | `valley-cloudreach.webp` | Cloudreach Isles: floating grassy islands with little waterfalls drifting among pink and gold clouds, a bright sky; the ground band is a big grassy island top. |
 
+## Helpers (11, transparent)
+
+The chinchilla who runs each building stands beside it, small, so each needs to read at about 60 px tall. **256 × 256 px, transparent background.** One chinchilla, full body, sitting upright in three-quarter view **facing left**, centred with its feet on the bottom edge, filling most of the frame. Big round ears with pink insides, long whiskers, fluffy tail, solid black eyes, the fur colour below, and one small prop. Same painted style as `dora.webp`. Dora runs the meadow herself and uses `dora.webp`.
+
+| File | Helper | Coat | Prop |
+| --- | --- | --- | --- |
+| `helper-pip.webp` | Pip | fur #9c948c (soft mid grey) | a tiny folded towel over one shoulder (from the Dust Bath Spa) |
+| `helper-pebble.webp` | Pebble | fur #6d6862 (dark charcoal grey) | a small round pebble held in its front paws |
+| `helper-juniper.webp` | Juniper | fur #e8d2b0 (warm sandy beige) | a sprig of juniper tucked behind one ear |
+| `helper-tuft.webp` | Tuft | fur #fbf4ea (cream-white with an extra fluffy tuft on its head) | a little cushion hugged to its chest |
+| `helper-biscuit.webp` | Biscuit | fur #b3a89a (light grey-beige) | a small round biscuit in its paws |
+| `helper-lumen.webp` | Lumen | fur #f6ead8 (pale cream) | a tiny glowing lantern |
+| `helper-nova.webp` | Nova | fur #4f4b48 (very dark ebony grey with a pale chest) | a small brass telescope |
+| `helper-breeze.webp` | Breeze | fur #efe2d0 (light oat beige) | a tiny paper pinwheel |
+| `helper-sage.webp` | Sage | fur #c9c2bb (silver grey) | a small cup of green tea with steam |
+| `helper-chime.webp` | Chime | fur #fdf6ee (snow white) | a tiny silver bell on a ribbon round its neck |
+| `helper-captain-wisp.webp` | Captain Wisp | fur #8a847d (mid grey with a pale chest) | a little sky-captain hat and goggles |
+
 ## Buildings (12, transparent)
 
 One per building in the production chain, front three-quarter view, each a cosy little chinchilla-sized structure. **512 × 512 px, transparent background.** The building sits centred with its base resting on the bottom edge (about 16 px of soft shadow below is fine). Similar scale across all twelve; later buildings may be a little grander. No chinchillas in these (the game draws helpers beside them).

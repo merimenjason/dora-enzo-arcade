@@ -11,6 +11,8 @@ type Float = { x: number; y: number; text: string; color: string; born: number; 
 type Puff = { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number; star: boolean; world: boolean };
 export type Hit = { kind: 'visitor' } | { kind: 'building'; i: number } | { kind: 'tap' } | { kind: 'twig'; x: number; y: number };
 
+/** The painting for a helper: `helper-captain-wisp` for Captain Wisp. Dora uses her own painting. */
+const helperArt = (m: { name: string }) => 'helper-' + m.name.toLowerCase().replace(/ /g, '-');
 const HELPER_COATS: Coat[] = MANAGERS.map((m) => coatLike(m.coat, { fur: m.fur, back: shade(m.fur, -18), face: shade(m.fur, 10) }));
 function shade(hex: string, amt: number) {
   const n = parseInt(hex.slice(1), 16), f = (v: number) => Math.max(0, Math.min(255, v + amt));
@@ -33,7 +35,7 @@ export class HayloftScene {
   constructor(private canvas: HTMLCanvasElement) {
     const c = canvas.getContext('2d'); if (!c) throw new Error('no 2d');
     this.c = c; this.resize();
-    const names = ['dora', 'dora-cheer', 'enzo', 'enzo-cheer', 'twig', 'twig-gold', ...BUILDINGS.map((b) => `building-${b.id}`), ...['acorn', 'pedlar', 'owl', 'bat', 'breeze'].map((v) => `visitor-${v}`)];
+    const names = ['dora', 'dora-cheer', 'enzo', 'enzo-cheer', 'twig', 'twig-gold', ...BUILDINGS.map((b) => `building-${b.id}`), ...['acorn', 'pedlar', 'owl', 'bat', 'breeze'].map((v) => `visitor-${v}`), ...MANAGERS.slice(1).map(helperArt)];
     for (const n of names) this.load(n);
   }
   private load(name: string) { if (this.img.has(name)) return; const i = new Image(); i.decoding = 'async'; i.src = `${ART}${name}.webp`; this.img.set(name, i); }
@@ -237,7 +239,9 @@ export class HayloftScene {
     // helper hopping beside it
     if (s.managers[i]) {
       const hx = x + size * 0.36, hh = Math.max(22, size * 0.24), up = Math.max(0, Math.sin(Math.min(1, (t - this.hops[i]) * 3) * Math.PI)) * 10;
-      drawChinchilla(c, i === 0 ? 'dora' : HELPER_COATS[i], hx, gy + 4 - up, { face: -1, h: hh, time: t + i, blink: Math.sin(t * 0.9 + i * 3) > 0.97 });
+      const img = this.art(i === 0 ? 'dora' : helperArt(MANAGERS[i]));
+      if (img) { const sz = hh * 1.9; c.drawImage(img, hx - sz / 2, gy + 6 - sz - up, sz, sz); }
+      else drawChinchilla(c, i === 0 ? 'dora' : HELPER_COATS[i], hx, gy + 4 - up, { face: -1, h: hh, time: t + i, blink: Math.sin(t * 0.9 + i * 3) > 0.97 });
     }
     // progress bar and level badge
     const bw = size * 0.7, by = gy + 12;
@@ -258,12 +262,19 @@ export class HayloftScene {
   }
   private ghost(g: HayloftGame, i: number, x: number, L: ReturnType<HayloftScene['L']>) {
     const c = this.c, size = L.size, gy = L.ground, b = BUILDINGS[i];
-    c.save(); c.globalAlpha = 0.45; c.setLineDash([6, 6]); c.strokeStyle = '#5a3a1e'; c.lineWidth = 2;
-    this.round(x - size * 0.34, gy - size * 0.62, size * 0.68, size * 0.62, 14); c.stroke(); c.restore();
+    c.save(); c.fillStyle = 'rgba(255,248,232,.28)'; this.round(x - size * 0.34, gy - size * 0.62, size * 0.68, size * 0.62, 14); c.fill();
+    c.globalAlpha = 0.8; c.setLineDash([6, 6]); c.strokeStyle = '#fff8e8'; c.lineWidth = 2.5; c.stroke(); c.restore();
     c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.font = `${Math.round(size * 0.22)}px ${FONT}`; c.globalAlpha = 0.6; c.fillText(b.icon, x, gy - size * 0.38); c.globalAlpha = 1;
-    c.font = `900 11px ${FONT}`; c.fillStyle = '#4a2e1a'; c.fillText('NEXT: ' + b.name.toUpperCase(), x, gy - size * 0.12, size * 0.95);
-    c.font = `800 11px ${FONT}`; c.fillText(fmt(g.buyCost(i, 1)), x, gy + 12);
+    c.font = `${Math.round(size * 0.22)}px ${FONT}`; c.globalAlpha = 0.8; c.fillText(b.icon, x, gy - size * 0.38); c.globalAlpha = 1;
+    // name and price sit on solid tags so they read over the busy grass
+    const tag = (text: string, y: number, fill: string, ink: string, font: string) => {
+      c.font = font; const tw = Math.min(c.measureText(text).width, size * 0.95) + 16;
+      c.fillStyle = fill; this.round(x - tw / 2, y - 11, tw, 22, 11); c.fill();
+      c.strokeStyle = 'rgba(58,36,16,.35)'; c.lineWidth = 1; c.stroke();
+      c.fillStyle = ink; c.fillText(text, x, y + 0.5, size * 0.95);
+    };
+    tag('NEXT: ' + b.name.toUpperCase(), gy - size * 0.12, 'rgba(255,248,232,.94)', '#3a2410', `900 12px ${FONT}`);
+    tag('🪙 ' + fmt(g.buyCost(i, 1)), gy + 16, '#ffd86b', '#3a2410', `900 13px ${FONT}`);
   }
   /** The drawn stand-in for a building's painting, in a size×size box with the base at (0, 0). */
   private drawnBuilding(i: number, size: number, t: number, busy: boolean) {
