@@ -69,7 +69,7 @@ export default function SeedstormPage() {
     audio().ui();
     const p = o.pilot ?? save.current.pilot, d = o.diff ?? save.current.diff;
     const g = new SeedstormGame({ seed: o.seed ?? ((Date.now() ^ Math.floor(performance.now() * 1000)) >>> 0), pilot: p, diff: d, stage: o.stage, practice: o.practice });
-    game.current = g; pausedRef.current = false; setPaused(false); setEnding(false); setRecorded(null); setFresh(null);
+    game.current = g; pausedRef.current = false; slow.current = 0; focusLock.current = false; setFocusOn(false); setPaused(false); setEnding(false); setRecorded(null); setFresh(null);
     keys.current.clear(); bloomQ.current = false; drag.current = null; target.current = null;
     noteReached(save.current, g); persist();
     scene.current?.stage(g.stage); sound.current?.music(g.stage, false);
@@ -119,7 +119,7 @@ export default function SeedstormPage() {
     w.__seedstorm = () => game.current;
     w.__seedstormStart = (o) => start(o ?? {});
     w.__seedstormSkip = (stage) => { if (!game.current) start({}); const g = game.current!; g.warp(stage); g.player.invuln = 120; const ev = g.events.splice(0); scene.current?.feed(ev, g); handle(ev, g); refresh(); };
-    let dead = false, raf = 0, last = 0, acc = 0, prev: Phase | null = null, ui = 0;
+    let dead = false, raf = 0, last = 0, acc = 0, prev: Phase | null = null, prevBlooms = -1, ui = 0;
     const inp = idleInput();
     const resize = () => scene.current?.resize();
     const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(resize) : null;
@@ -152,7 +152,7 @@ export default function SeedstormPage() {
           acc = 0;
           if (g && g.events.length) { const ev = g.events.splice(0); sc.feed(ev, g); sound.current?.play(ev); handle(ev, g); }
         }
-        if (g && g.phase !== prev) { prev = g.phase; refresh(); }
+        if (g && (g.phase !== prev || g.blooms !== prevBlooms)) { prev = g.phase; prevBlooms = g.blooms; refresh(); }
         if (!g) prev = null;
         sc.draw(playing ? g : null, g ? g.stage : 1, { dt, shake: save.current.settings.shake, paused: pausedRef.current || (!!g && g.phase === 'chat'), hi: save.current.scores[g ? g.diffId : 'gusty'][0]?.score ?? 0 });
         sound.current?.tick(playing && !pausedRef.current && g.phase !== 'over' && g.phase !== 'won');
@@ -174,7 +174,7 @@ export default function SeedstormPage() {
       if (g.phase === 'shop') {
         const n = Number(k) - 1;
         if (n >= 0 && n < UP_IDS.length && !e.repeat) act((x) => x.buy(UP_IDS[n]), 'buy');
-        else if (k === 'enter' && !e.repeat) act((x) => x.leaveShop());
+        else if (k === 'enter' && !e.repeat && !(e.target as HTMLElement | null)?.closest?.('button')) act((x) => x.leaveShop());
         return;
       }
       if (g.phase !== 'play') return;

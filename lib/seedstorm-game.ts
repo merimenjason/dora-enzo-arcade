@@ -200,8 +200,8 @@ const newCritter = (i: number): Critter => ({ on: false, i, id: 0, kind: 'bumble
 
 // ---------------------------------------------------------------- shots and seeds
 /** 0 Dora's petal, 1 Enzo's pebble, 2 the wingmate's homing seed. */
-export type Shot = { on: boolean; i: number; x: number; y: number; vx: number; vy: number; dmg: number; kind: number; pierce: boolean; hit: number; t: number };
-const newShot = (i: number): Shot => ({ on: false, i, x: 0, y: 0, vx: 0, vy: 0, dmg: 1, kind: 0, pierce: false, hit: -1, t: 0 });
+export type Shot = { on: boolean; i: number; x: number; y: number; vx: number; vy: number; dmg: number; kind: number; pierce: boolean; hits: number[]; t: number };
+const newShot = (i: number): Shot => ({ on: false, i, x: 0, y: 0, vx: 0, vy: 0, dmg: 1, kind: 0, pierce: false, hits: [], t: 0 });
 export type Seed = { on: boolean; i: number; x: number; y: number; vx: number; vy: number; t: number; big: boolean; home: number; pulled: boolean };
 const newSeed = (i: number): Seed => ({ on: false, i, x: 0, y: 0, vx: 0, vy: 0, t: 0, big: false, home: 0, pulled: false });
 
@@ -599,7 +599,7 @@ export class SeedstormGame {
   private addShot(x: number, y: number, vx: number, vy: number, dmg: number, kind: number, pierce: boolean) {
     if (this.sFreeN === 0) return;
     const s = this.shots[this.sFree[--this.sFreeN]];
-    s.on = true; s.x = x; s.y = y; s.vx = vx; s.vy = vy; s.dmg = dmg; s.kind = kind; s.pierce = pierce; s.hit = -1; s.t = 0; this.shotCount++;
+    s.on = true; s.x = x; s.y = y; s.vx = vx; s.vy = vy; s.dmg = dmg; s.kind = kind; s.pierce = pierce; s.hits.length = 0; s.t = 0; this.shotCount++;
   }
   private killShot(s: Shot) { if (!s.on) return; s.on = false; this.sFree[this.sFreeN++] = s.i; this.shotCount--; }
   /** Drops a seed; when the pool is full the seed is collected on the spot instead, so nothing is lost. */
@@ -692,7 +692,7 @@ export class SeedstormGame {
     let bonus = 0;
     if (beaten) {
       this.score += SCORE.phase * this.stage; this.ss.phases++;
-      if (!b.hit) { bonus = SCORE.clearSky + SCORE.clearSkyStage * this.stage + SCORE.clearSkySecond * Math.floor(b.timer / HZ); this.score += bonus; this.ss.clearSky++; }
+      if (!b.hit && this.player.gasp === 0) { bonus = SCORE.clearSky + SCORE.clearSkyStage * this.stage + SCORE.clearSkySecond * Math.floor(b.timer / HZ); this.score += bonus; this.ss.clearSky++; }
     }
     b.clearSky = bonus;
     for (const x of this.bullets) if (x.on) { this.addSeed(x.x, x.y, 0, 0, false, 20); this.killBullet(x); }
@@ -986,13 +986,13 @@ export class SeedstormGame {
       if (s.y < -20 || s.y > H + 20 || s.x < -20 || s.x > W + 20) { this.killShot(s); continue; }
       let gone = false;
       for (const c of this.critters) {
-        if (!c.on || c.id === s.hit || c.y < -c.r) continue;
+        if (!c.on || c.y < -c.r || s.hits.includes(c.id)) continue;
         const dx = c.x - s.x, dy = c.y - s.y, rr = c.r + 4;
         if (dx * dx + dy * dy >= rr * rr) continue;
         c.hp -= s.dmg; c.flash = 3;
         const small = CRITTERS[c.kind].hp <= SMALL_HP;
         if (c.hp <= 0) this.puff(c);
-        if (s.pierce && small) { s.hit = c.id; continue; }
+        if (s.pierce && small) { s.hits.push(c.id); continue; }
         gone = true; break;
       }
       if (!gone && bossOpen && b) {

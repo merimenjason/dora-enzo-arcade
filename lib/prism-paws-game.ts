@@ -514,7 +514,8 @@ const freshCache = new Map<string, Solution | null>();
 /** A fewest-pieces solution from the starting board (cached: the levels never change). */
 export function solveFresh(level: number | LevelDef): Solution | null {
   const L = typeof level === 'number' ? LEVELS[level] : level;
-  if (!freshCache.has(L.id)) freshCache.set(L.id, solveLevel(L).solution);
+  // hints only need a fewest-pieces solution, so skip solveLevel's firefly search, which is the slow half
+  if (!freshCache.has(L.id)) { const b = parseLevel(L); freshCache.set(L.id, search(b, b.fixed, trayCounts(L.tray), [...b.turnable.keys()].filter((i) => b.turnable[i])).solution); }
   return freshCache.get(L.id)!;
 }
 

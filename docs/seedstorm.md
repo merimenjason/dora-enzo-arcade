@@ -108,7 +108,7 @@ Each phase has its own named attack, a health bar and a timer. Health is shown f
 | | Lightning Lullaby | 1700 | 50 s | Two counter-turning three-arm spirals of sparks, and fast aimed streams of lightning. |
 | | Grumble Typhoon | 1900 | 60 s | A six-arm spiral whose turn swings back and forth, and slow rings of 30 seeds. |
 
-- Beating a phase scores 1,000 × the stage. Beating it before the timer runs out **without losing a heart** also earns a **Clear Sky** bonus of 2,000 + 1,000 × the stage + 50 for every second left. A phase that times out just ends, with no bonus.
+- Beating a phase scores 1,000 × the stage. Beating it before the timer runs out **without losing a heart** (a hit still waiting out its last-gasp window counts as one) also earns a **Clear Sky** bonus of 2,000 + 1,000 × the stage + 50 for every second left. A phase that times out just ends, with no bonus.
 - When a phase ends every bullet turns into a seed and the game runs in slow motion for a moment. Mid-bosses fly home afterwards; bosses calm down, chat, and make friends.
 
 ## Chats

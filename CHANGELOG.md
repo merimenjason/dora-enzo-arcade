@@ -14,6 +14,11 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Hayloft Tycoon**: buildings show their upgrades in paint. Each building gets a spruced-up painting for its first two upgrades and a grand one for the third, and every milestone adds a gold star and makes it a little bigger. The valley is livelier too: buildings bob and puff while they work and bounce when a run pays out; helpers work at their building, carry its goods to the door and back, and cheer each payout; and Dora and Enzo breathe, sway and hop now and then.
 
+### Fixed
+
+- **Prism Paws**: Enter or Space on a focused button now presses that button instead of placing a piece on the board, Enter on the last level's win card opens the Festival, pieces can no longer be dragged onto a board that's already won, and the first hint answers straight away.
+- **Seedstorm**: the on-screen Bloom button shows the right count and wakes up as soon as a Bloom is earned mid-fight, Enter on a focused shop card buys it, Enzo's piercing pebbles no longer hit the same critter twice, a hit still pending in the last-gasp window no longer earns a Clear Sky bonus, and a new run never starts in slow motion or with focus stuck on.
+
 ## 28-10-2026
 
 ### Added

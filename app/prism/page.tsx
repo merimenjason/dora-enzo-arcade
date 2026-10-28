@@ -68,6 +68,8 @@ export default function PrismPawsPage() {
     setChapter(LEVELS[i].chapter); setWin(null); setScreen('play');
     const first = TRAY.find((k) => game.current!.left[TRAY.indexOf(k)] > 0) ?? null; setArmed(first);
     scene.current?.layout(game.current);
+    // work out the level's hint solution while the player looks at the board, so the first hint answers at once
+    window.setTimeout(() => { if (game.current?.index === i) solveFresh(i); }, 700);
     snd(); requestAnimationFrame(() => { syncInsets(); canvas.current?.focus(); });
   }
   function toMenu() { setScreen('menu'); setWin(null); dragRef.current = null; setChapter(LEVELS[profile.current.level].chapter); }
@@ -93,7 +95,7 @@ export default function PrismPawsPage() {
 
   const kindIndex = (k: TrayKind) => TRAY.indexOf(k);
   function pickTray(k: TrayKind) {
-    const g = game.current; if (!g || g.left[kindIndex(k)] <= 0) return;
+    const g = game.current; if (!g || g.won || winRef.current || g.left[kindIndex(k)] <= 0) return;
     setArmed(k); snd().play('tap');
   }
   /** A tap on a tile: place the chosen tray piece, or turn the piece already there. */
@@ -122,7 +124,7 @@ export default function PrismPawsPage() {
     cursorRef.current = null;
   };
   const onTrayDown = (e: React.PointerEvent, k: TrayKind) => {
-    const g = game.current; if (!g || g.left[kindIndex(k)] <= 0) return;
+    const g = game.current; if (!g || g.won || winRef.current || g.left[kindIndex(k)] <= 0) return;
     snd(); e.preventDefault();
     const p = local(e.clientX, e.clientY);
     dragRef.current = { id: e.pointerId, kind: k, code: TRAY_INFO[k].codes[0], from: null, sx: p.x, sy: p.y, x0: p.x, y0: p.y, moved: false };
@@ -203,8 +205,10 @@ export default function PrismPawsPage() {
     const keydown = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase(), g = game.current;
       if (screenRef.current !== 'play' || !g) return;
+      // Enter and Space on a focused button press that button, not the board
+      if ((k === 'enter' || k === ' ') && (e.target as HTMLElement | null)?.closest?.('button, a')) return;
       if (winRef.current) {
-        if (k === 'enter') { e.preventDefault(); const i = winRef.current.index; if (i + 1 < LEVELS.length) start(i + 1); else toMenu(); }
+        if (k === 'enter') { e.preventDefault(); const i = winRef.current.index; if (i + 1 < LEVELS.length) start(i + 1); else { setWin(null); setScreen('festival'); } }
         else if (k === 'r') { setWin(null); g.reset(); flush(); }
         else if (k === 'escape') toMenu();
         return;

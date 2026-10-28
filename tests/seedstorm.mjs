@@ -347,4 +347,15 @@ const live = (pool) => pool.filter((x) => x.on).length;
   ok(ws.cleared.breezy && ws.scores.breezy[0].cleared, 'a cleared run is marked'); noteReached(ws, w); ok(ws.reached.breezy === 5, 'and reached stage 5');
 }
 
+// a piercing pebble hits each small critter in its path once, even where two overlap
+{
+  const g = new SeedstormGame({ seed: 1, pilot: 'enzo', diff: 'gusty' }); g.clearField(true);
+  const still = (x, y) => ({ k: 'stop', sx: x, tx: x, ty: y, enter: 1, stay: 1e9, exit: 'up' });
+  g.addCritter('bumble', still(180, 300), null); g.addCritter('bumble', still(186, 300), null);
+  const cs = g.critters.filter((c) => c.on); cs.forEach((c, k) => { c.hp = 100; c.max = 100; c.x = 180 + 6 * k; c.y = 300; });
+  g.addShot(180, 320, 0, -12, 1.45, 1, true);
+  for (let i = 0; i < 4; i++) g.moveShots();
+  ok(cs.every((c) => Math.abs(100 - c.hp - 1.45) < 1e-9), 'a piercing pebble hits each overlapping critter only once');
+}
+
 console.log(`Seedstorm: ${checks} checks passed.`);

@@ -131,7 +131,7 @@ The obstacles on each generated board were pruned until every rock, clover tuft 
 - Tap a piece on the board to turn it. Fixed pieces carry brass rivets; the ones that turn also wear a gold arrow.
 - Drag a placed piece to another tile to move it, or off the board to pick it up.
 - Keys: **arrows** move a tile cursor, **1–9** pick a tray piece, **Enter** or **Space** place or turn, **Backspace** or **Delete** pick up, **Z** undo, **R** reset, **H** hint, **Esc** drops the chosen piece or goes back to the levels.
-- Buttons: undo, reset, hint, sound and levels. On the win card, Enter goes to the next level and R replays.
+- Buttons: undo, reset, hint, sound and levels. On the win card, Enter goes to the next level (or, after the last one, to the Festival) and R replays. Enter or Space on a focused button presses that button.
 
 The board scales to fit; on a wide screen the tray stands beside it, and on a phone it wraps below (or stands at the side when the phone is held sideways).
 
