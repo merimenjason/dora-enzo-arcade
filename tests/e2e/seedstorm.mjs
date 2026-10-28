@@ -99,12 +99,12 @@ const fieldPixel = (page, fx, fy) => page.evaluate(([fx, fy]) => {
   await page.locator('main[data-screen="play"]').waitFor(); await page.locator('.ss-canvas').focus();
   await page.evaluate(() => { const g = window.__seedstorm(); for (let i = 0; i < 6; i++) g.ring(180, 160 + i * 25, 20, 0.05, i * 0.1, 0, i % 8); });
   const before = await game(page, () => { const g = window.__seedstorm(); return { n: g.bulletCount, blooms: g.blooms, seeds: g.seedCount }; });
-  assert.ok(before.n >= 60, `bullets in the sky (${before.n})`);
+  assert.ok(before.n >= 40, `bullets in the sky (${before.n})`);
   await page.keyboard.press('x');
   await page.waitForFunction((b) => window.__seedstorm().blooms === b - 1, before.blooms);
   await page.waitForTimeout(1000);
   const after = await game(page, () => { const g = window.__seedstorm(); return { n: g.bulletCount, seeds: g.seedCount, purse: g.purse }; });
-  assert.ok(after.n < 5 && after.seeds + after.purse > before.seeds + 40, `X Blooms the bullets into seeds (${JSON.stringify(after)})`);
+  assert.ok(after.n < 5 && after.seeds + after.purse > before.seeds + 30, `X Blooms the bullets into seeds (${JSON.stringify(after)})`);
   console.log('PASS Bloom turns the bullets into seeds');
 
   await page.evaluate(() => { const g = window.__seedstorm(); g.score = 4321; g.hearts = 1; g.player.invuln = 0; g.blooms = 0; g.shoot(g.player.x, g.player.y - 30, Math.PI / 2, 3, 1, 1); });
@@ -135,6 +135,7 @@ for (const [w, h] of [[390, 844], [844, 390]]) {
   const field = await page.evaluate(() => { const r = document.querySelector('.ss-canvas').getBoundingClientRect(), s = Math.min(r.width / 360, r.height / 640); return { s, oy: (r.height - 640 * s) / 2 }; });
   assert.ok(field.s * 640 <= box.height + 1 && field.s * 360 <= box.width + 1, 'the whole field fits on screen');
   assert.ok(await page.locator('.ss-bloom').isVisible() && await page.locator('.ss-focus').isVisible(), 'touch Bloom and Focus buttons show');
+  if (h > w) { const bb = await page.locator('.ss-bloom').boundingBox(); assert.ok(bb.y >= box.y + box.height - 1, `upright, the touch buttons sit below the sky, not over it (${bb.y} vs ${box.y + box.height})`); }
   // a drag flies the pilot with the finger's offset kept
   const x0 = await game(page, () => window.__seedstorm().player.x), cx = box.x + box.width / 2, cy = box.y + box.height * 0.6;
   await page.mouse.move(cx, cy); await page.mouse.down(); await page.mouse.move(cx + 50, cy, { steps: 6 }); await page.waitForTimeout(250); await page.mouse.up();

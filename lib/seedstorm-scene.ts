@@ -25,6 +25,15 @@ const SKY: { top: string; bottom: string; cloud: string; cloudA: number; grade: 
   { top: '#2c1748', bottom: '#5a3b7c', cloud: '#c9a8f0', cloudA: 0.32, grade: 'rgba(80, 30, 120, 0.16)', night: true },
 ];
 
+/** How each painted sky is quietened under play: how far to desaturate it, and a wash of the stage's deep colour. */
+const GRADE: { desat: number; wash: string }[] = [
+  { desat: 0.5, wash: 'rgba(28, 52, 64, 0.42)' },
+  { desat: 0.5, wash: 'rgba(58, 34, 52, 0.42)' },
+  { desat: 0.35, wash: 'rgba(36, 30, 64, 0.32)' },
+  { desat: 0.25, wash: 'rgba(10, 14, 40, 0.26)' },
+  { desat: 0.25, wash: 'rgba(30, 10, 50, 0.26)' },
+];
+
 let seedR = 1;
 const rand = () => { seedR = (seedR + 0x6d2b79f5) >>> 0; let t = seedR; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 const mk = (w: number, h: number) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
@@ -296,6 +305,7 @@ export class SeedstormScene {
   private k = 1;
   private art = new Map<string, HTMLImageElement>();
   private cache = new Map<string, HTMLCanvasElement>();
+  private graded: { n: number; img: HTMLImageElement; cv: HTMLCanvasElement } | null = null;
   private skyStage = 0; private skyCanvas: HTMLCanvasElement | null = null; private clouds: HTMLCanvasElement[] = []; private tiny = mk(24, 43); private tinyAt = -1;
   private vignette: HTMLCanvasElement | null = null;
   private scroll = 0; private time = 0;
@@ -498,17 +508,33 @@ export class SeedstormScene {
     }
     return cv;
   }
+  /**
+   * The painted skies are bright and busy, so under play they are baked once into a quieter copy: partly
+   * desaturated, then washed toward a deep stage colour (strongest on the busy daytime stages 1 and 2), so every
+   * bullet, with its pale core and dark rim, reads instantly over them.
+   */
+  private gradeSky(n: number, img: HTMLImageElement) {
+    if (this.graded && this.graded.n === n && this.graded.img === img) return this.graded.cv;
+    const G = GRADE[n - 1], w = Math.min(img.naturalWidth, 720), h = Math.round((w * img.naturalHeight) / img.naturalWidth);
+    const cv = mk(w, h), q = ctx2(cv);
+    q.drawImage(img, 0, 0, w, h);
+    q.globalCompositeOperation = 'saturation'; q.fillStyle = `rgba(128, 128, 128, ${G.desat})`; q.fillRect(0, 0, w, h);
+    q.globalCompositeOperation = 'source-over'; q.fillStyle = G.wash; q.fillRect(0, 0, w, h);
+    this.graded = { n, img, cv }; return cv;
+  }
   private drawSky(g: SeedstormGame | null, n: number) {
     const c = this.c, s = this.s, L = SKY[n - 1];
     if (this.skyStage !== n || !this.skyCanvas) { this.skyStage = n; this.skyCanvas = this.paintSky(n); this.clouds = [this.paintClouds(n, 0), this.paintClouds(n, 1)]; this.tinyAt = -1; }
-    const img = this.img('sky-' + n), src: CanvasImageSource = img ?? this.skyCanvas, tileH = 800;
+    const img = this.img('sky-' + n), src: CanvasImageSource = img ? this.gradeSky(n, img) : this.skyCanvas, tileH = 800;
     const off = this.scroll % tileH;
-    for (let y = off - tileH; y < H; y += tileH) c.drawImage(src, 0, y - 0.5, W, tileH + 1);
+    // sample a row inside each edge, so smoothing never pulls in the transparent border and leaves a hairline
+    const sw = (src as HTMLCanvasElement).width, sh = (src as HTMLCanvasElement).height;
+    for (let y = off - tileH; y < H; y += tileH) c.drawImage(src, 0, 1, sw, sh - 2, 0, y - 0.5, W, tileH + 1);
     c.fillStyle = L.grade; c.fillRect(0, 0, W, H);
     // the far clouds, slow, then the near ones a little faster, both soft
     for (let i = 0; i < 2; i++) {
-      const cv = this.clouds[i], o2 = (this.scroll * (i ? 2.2 : 1.4)) % tileH; c.globalAlpha = L.cloudA * (i ? 0.7 : 1);
-      for (let y = o2 - tileH; y < H; y += tileH) c.drawImage(cv, 0, y - 0.5, W, tileH + 1);
+      const cv = this.clouds[i], o2 = (this.scroll * (i ? 2.2 : 1.4)) % tileH; c.globalAlpha = L.cloudA * (i ? 0.7 : 1) * (img ? 0.4 : 1); // the paintings have their own clouds
+      for (let y = o2 - tileH; y < H; y += tileH) c.drawImage(cv, 0, Math.round(y * this.k) / this.k, W, tileH); // translucent: no overlap, or the seam doubles up
     }
     c.globalAlpha = 1;
     // a tiny copy for the blurred letterbox
@@ -606,7 +632,7 @@ export class SeedstormScene {
     // critters
     for (const cr of g.critters) {
       if (!cr.on) continue;
-      const art = this.img(cr.kind), r = cr.r, bob = Math.sin(t * 4 + cr.id) * 1.6, size = r * 3.2;
+      const art = this.img(cr.kind), r = cr.r, bob = Math.sin(t * 4 + cr.id) * 1.6, size = r * 3.6;
       c.save(); c.translate(cr.x, cr.y + bob); c.rotate(Math.max(-0.35, Math.min(0.35, cr.vx * 0.12)));
       const flap = cr.kind === 'bumble' || cr.kind === 'moth' ? 1 + Math.sin(t * 30 + cr.id) * 0.04 : 1; c.scale(flap, 2 - flap);
       if (art) { c.drawImage(art, -size / 2, -size / 2, size, size); if (cr.flash > 0) { c.globalAlpha = 0.7; c.drawImage(this.whiteOf('w-' + cr.kind, art, 128, 128), -size / 2, -size / 2, size, size); } }
@@ -661,11 +687,11 @@ export class SeedstormScene {
     const breathe = 1 + Math.sin(t * 2.2) * 0.025, tilt = Math.max(-0.25, Math.min(0.25, b.vx * 0.05)), r = b.def.r, size = r * 3.4;
     // a soft shadow-glow behind, so the boss reads over any sky
     const halo = this.sprite('halo', 100, (q) => { const rg = q.createRadialGradient(0, 0, 0, 0, 0, 50); rg.addColorStop(0, 'rgba(255,255,255,0.35)'); rg.addColorStop(1, 'rgba(255,255,255,0)'); q.fillStyle = rg; circ(q, 0, 0, 50); q.fill(); });
-    c.save(); c.translate(b.x, b.y); c.globalAlpha = 0.6; c.drawImage(halo, -size * 0.6, -size * 0.6, size * 1.2, size * 1.2); c.globalAlpha = 1;
+    c.save(); c.translate(b.x, b.y); c.globalAlpha = 0.3; c.drawImage(halo, -size * 0.6, -size * 0.6, size * 1.2, size * 1.2); c.globalAlpha = 1;
     c.rotate(tilt); c.scale(1 / breathe, breathe);
     const artName = id === 'storm' && calm ? 'boss-storm-calm' : b.def.mid ? b.def.art : 'boss-' + (id === 'cloud' ? 'cloud' : id);
-    const art = this.img(artName), drawSize = b.def.mid ? r * 3.2 : size;
-    if (art) { c.drawImage(art, -drawSize / 2, -drawSize / 2, drawSize, drawSize); if (b.flash > 0) { c.globalAlpha = 0.55; c.drawImage(this.whiteOf('wa-' + artName, art, 256, 256), -drawSize / 2, -drawSize / 2, drawSize, drawSize); } }
+    const art = this.img(artName), drawSize = b.def.mid ? r * 3.8 : r * 4.2; // the paintings carry a soft margin
+    if (art) { c.drawImage(art, -drawSize / 2, -drawSize / 2, drawSize, drawSize); if (b.flash > 0) { c.globalAlpha = 0.22 * Math.min(1, b.flash / 4); c.drawImage(this.whiteOf('wa-' + artName, art, 256, 256), -drawSize / 2, -drawSize / 2, drawSize, drawSize); } }
     else { const sp = this.bossSprite(id, calm), d = sp.width / this.k; c.drawImage(sp, -d / 2, -d / 2, d, d); if (b.flash > 0) { c.globalAlpha = 0.55; c.drawImage(this.whiteOf(`wb-${id}${calm ? '-calm' : ''}`, sp, sp.width, sp.height), -d / 2, -d / 2, d, d); } }
     c.globalAlpha = 1; c.restore();
     // little sparks around Rumble and the storm, hearts once calm

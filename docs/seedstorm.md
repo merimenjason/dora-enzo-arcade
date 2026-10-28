@@ -164,8 +164,7 @@ Shots fire by themselves. The game pauses when the tab is hidden or the window l
 
 ## Art
 
-Paintings load from `public/art/seedstorm/` (listed in `docs/seedstorm-art-brief.md`). Each has a drawn stand-in, shown until (or unless) it loads: the scene draws every critter, boss, glider and sky itself, and the menu, chat portraits and ending have canvas stand-ins under their images.
-
+Twenty-three paintings in `public/art/seedstorm/` (briefed in `docs/seedstorm-art-brief.md`): the title and ending (1200 × 800), five skies (720 × 1600, tiling top to bottom, drawn 360 × 800 units), the two gliders and six critters (256 × 256), the five bosses plus the calm Grumble Storm (512 × 512), and Dora's and Enzo's chat portraits (512 × 512). Bosses talk in their own painting. Under play each painted sky is baked once into a quieter copy, partly desaturated and washed toward a deep stage colour (strongest on the bright daytime stages 1 and 2), so every bullet reads over it; the drawn cloud layers drift over the paintings at 40 % of their usual strength. Every painting keeps a drawn stand-in, shown until (or unless) it loads: the scene draws every critter, boss, glider and sky itself, and the menu, chat portraits and ending have canvas stand-ins under their images.
 ## Sound
 
 Made on the fly with WebAudio; silent until the first click, tap or key. Soft shot ticks (at most one every 0.09 s), puff pops, graze tings, a Bloom whoosh and chime, chords when a phase breaks, and an "oof" on a hit. Each stage has its own music loop from a small step sequencer (a melody over a bass, a pad and a soft beat, in its own key and tempo, with a faster boss variant). Sound, music and shake each have their own toggle.

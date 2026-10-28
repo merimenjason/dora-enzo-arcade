@@ -47,6 +47,7 @@
 
 /* ---- the menu */
 .ss-menu{position:absolute;inset:0;overflow:auto;padding:14px max(16px,calc(50% - 500px)) 28px;display:flex;flex-direction:column;gap:14px;background:linear-gradient(180deg,#fff6fbfa,#f6f0fff5 45%,#eaf6fff0);z-index:2}
+.ss-menu>*{flex-shrink:0}
 .ss-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .ss-art{position:relative;display:block;overflow:hidden}
 .ss-art canvas,.ss-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
@@ -157,8 +158,11 @@
 @media (max-width:720px){
   .ss-pick,.ss-diffs{grid-template-columns:1fr}
   .ss-how{grid-template-columns:1fr}
-  .ss-hero{min-height:420px}
-  .ss-hero>div{padding:56px 16px 16px}
+  /* on a phone the painting gets its own band above the words, so the title never sits on the chinchillas' faces */
+  .ss-hero{min-height:0;flex-direction:column;align-items:stretch;background:#2a1840}
+  .ss-hero-art{position:relative!important;inset:auto;height:clamp(200px,58vw,300px);flex:none}
+  .ss-hero-art img,.ss-hero-art canvas{object-position:50% 30%}
+  .ss-hero>div{padding:14px 16px 16px;background:#2a1840}
   .ss-cards{grid-template-columns:1fr 1fr}
   .ss-shell .ss-card{flex-direction:row;flex-wrap:wrap;justify-content:flex-start;text-align:left;padding:8px 10px 8px 22px;gap:2px 8px}
   .ss-card-icon{font-size:24px}
