@@ -131,3 +131,30 @@
 @media (prefers-reduced-motion: reduce) {
   .hm-shell .hm-cardbtn, .hm-shell .hm-reward { transition: none; }
 }
+
+/* Phone held sideways: the board takes the screen height on the left, the hand and helpers stack beside it */
+@media (orientation: landscape) and (max-height: 500px) {
+  .hm-shell.hm-play { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; column-gap: 8px; padding: 4px 8px; min-height: 0; }
+  .hm-play > * { grid-column: 2; min-width: 0; }
+  .hm-play > .hm-header { grid-column: 1 / -1; padding-bottom: 4px; }
+  .hm-play > .hm-board { grid-column: 1; grid-row: 2 / span 4; position: sticky; top: 4px; margin-top: 4px; }
+  .hm-play .hm-board canvas { width: min(62vw, calc((100dvh - 56px) * 1480 / 848)); height: auto; }
+  .hm-play .hm-hud { margin: 4px 0 0; padding: 3px 8px; gap: 0 10px; line-height: 1.1; }
+  .hm-play .hm-hud b { font-size: 13px; }
+  .hm-play .hm-hud > span { flex-direction: row; flex-wrap: wrap; gap: 0 4px; align-items: baseline; min-width: 0; max-width: 100%; }
+  .hm-play .hm-hud > * { max-width: 100%; }
+  .hm-play .hm-controls { margin-top: 4px; gap: 4px; }
+  .hm-play .hm-controls button { padding: 4px 9px; font-size: 12px; }
+  .hm-play .hm-hand { margin-top: 4px; min-height: 0; padding: 5px; flex-wrap: nowrap; overflow-x: auto; }
+  .hm-play .hm-cardbtn { width: 64px; flex: none; }
+  .hm-play .hm-palette { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 88px; overflow-x: auto; margin-top: 4px; }
+  .hm-play .hm-keys { display: none; }
+  .hm-play .hm-header { border-bottom: 0; padding-bottom: 0; }
+  .hm-play .hm-header h1 { font-size: 16px; margin: 0; }
+  .hm-play .hm-header button { padding: 3px 9px; }
+  .hm-play .hm-go { font-size: 12px; padding: 6px 10px; }
+  .hm-play .hm-hud { font-size: 12px; }
+  .hm-play :is(.hm-cardbtn, .hm-tool) canvas { width: 32px; height: auto; }
+  .hm-play :is(.hm-cardbtn, .hm-tool) span { font-size: 10px; white-space: nowrap; }
+  .hm-play .hm-tool { padding: 3px 4px; }
+}
