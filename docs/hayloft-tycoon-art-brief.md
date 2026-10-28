@@ -396,3 +396,7 @@ Retry prompt:
 Keep image 1 exactly unchanged except recolour rightmost Enzo cool blue-grey, darker back, pale chest, solid black eyes like image 2. Preserve Dora, every scene detail and storybook style; opaque 1600x900, no text or borders.
 ```
 
+
+## Enzo recolour (28-10-2026, evening)
+
+The image tool timed out on every repaint of `title.webp` (nine attempts), so Enzo was recoloured in the existing painting with Pillow instead: inside ellipses traced around his head, ears, body and tail, warm low-saturation fur (hue 18°–58°, saturation under 0.55, or near-neutral) was blended to a faintly cool grey at 86% of its brightness; the pink inner ears, cheeks and tongue were left alone; brown iris pixels were darkened to near-black. Dora and the scene are untouched. The page does not currently display `title.webp`.
