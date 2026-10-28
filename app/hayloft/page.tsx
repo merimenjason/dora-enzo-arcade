@@ -186,6 +186,7 @@ export default function HayloftTycoonPage() {
             🍎 Apple twigs are falling! <b>Catch</b> <small>{Math.ceil(s.shower.until - s.t)}s</small>
           </button>
         )}
+        {g && s && !s.visitor && s.stats.taps < 12 && s.stats.migrations === 0 && !shower.current && <p className="hayloft-tap-hint">👆 Tap the valley to gather coins</p>}
         {g && s?.visitor && !shower.current && <p className="hayloft-visitor-hint" aria-live="polite">{VISITORS[s.visitor.kind].name}! Tap to catch</p>}
         {g && g.todo(day).gift && <button className="hayloft-gift" onClick={() => act((x) => x.claimDaily(day), (so) => so.gift())}>🎁 Daily gift</button>}
       </div>

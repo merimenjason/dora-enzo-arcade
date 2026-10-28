@@ -37,6 +37,9 @@
 .hayloft-shower-offer b{margin-left:4px;background:#fff8;border-radius:8px;padding:2px 8px}
 .hayloft-shower-offer small{margin-left:6px;opacity:.75}
 @keyframes hayloft-wiggle{50%{transform:rotate(-2deg) scale(1.03)}}
+/* a brand-new player's first move is tapping, which nothing else on screen says */
+.hayloft-tap-hint{position:absolute;left:0;right:0;top:64px;width:max-content;margin:0 auto;font-size:14px;font-weight:900;background:#fff8eaee;border-radius:999px;padding:6px 14px;pointer-events:none;white-space:nowrap;box-shadow:0 3px 10px #4a2e1a33;animation:hayloft-tap-bob 1.4s ease-in-out infinite}
+@keyframes hayloft-tap-bob{50%{translate:0 -4px}}
 .hayloft-visitor-hint{position:absolute;left:50%;top:8px;transform:translateX(-50%);font-size:12px;font-weight:900;background:#fff8eacc;border-radius:999px;padding:4px 10px;pointer-events:none;white-space:nowrap}
 .hayloft-shell .hayloft-gift{position:absolute;right:10px;top:10px;background:#ffe9f3;border-color:#f3a8cf;animation:hayloft-wiggle2 1.4s ease-in-out infinite}
 @keyframes hayloft-wiggle2{50%{transform:rotate(4deg) scale(1.05)}}
