@@ -68,7 +68,7 @@ ok(maxAfford(0, MAX_LEVEL - 3, 1e300) === 3, 'max buy stops at the level cap');
   ok(!g.hire(5), 'no helper for a building you do not have');
   // perks
   const t1 = g.tapSeconds(); ok(t1 === 0.04, 'Dora’s perk doubles the 0.02 s tap');
-  const sp = g.cyclePay(1); s.managers[1] = false; const sp2 = g.cyclePay(1); s.managers[1] = true; near(sp / sp2, 2, 1e-12, 'Pip doubles the spa');
+  const sp = g.cyclePay(1); s.managers[1] = false; const sp2 = g.cyclePay(1); s.managers[1] = true; near(sp / sp2, 2, 1e-12, 'Enzo doubles the spa');
   s.managers[2] = true; near(g.costMult(), 0.97, 1e-12, 'Pebble trims prices'); s.managers[2] = false;
   // upgrades
   const u = UPGRADES.find((x) => x.target === 0); const m0 = g.cyclePay(0); s.coins = u.cost; ok(g.upgrade(u.id) && !g.upgrade(u.id), 'buy an upgrade once'); near(g.cyclePay(0) / m0, 3, 1e-12, 'an upgrade triples its building');

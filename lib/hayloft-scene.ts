@@ -11,7 +11,7 @@ type Float = { x: number; y: number; text: string; color: string; born: number; 
 type Puff = { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number; star: boolean; world: boolean };
 export type Hit = { kind: 'visitor' } | { kind: 'building'; i: number } | { kind: 'tap' } | { kind: 'twig'; x: number; y: number };
 
-/** The painting for a helper: `helper-captain-wisp` for Captain Wisp. Dora uses her own painting. */
+/** The painting for a helper: `helper-captain-wisp` for Captain Wisp. Dora and Enzo use their own paintings. */
 const helperArt = (m: { name: string }) => 'helper-' + m.name.toLowerCase().replace(/ /g, '-');
 const HELPER_COATS: Coat[] = MANAGERS.map((m) => coatLike(m.coat, { fur: m.fur, back: shade(m.fur, -18), face: shade(m.fur, 10) }));
 function shade(hex: string, amt: number) {
@@ -35,7 +35,7 @@ export class HayloftScene {
   constructor(private canvas: HTMLCanvasElement) {
     const c = canvas.getContext('2d'); if (!c) throw new Error('no 2d');
     this.c = c; this.resize();
-    const names = ['dora', 'dora-cheer', 'enzo', 'enzo-cheer', 'twig', 'twig-gold', ...BUILDINGS.map((b) => `building-${b.id}`), ...['acorn', 'pedlar', 'owl', 'bat', 'breeze'].map((v) => `visitor-${v}`), ...MANAGERS.slice(1).map(helperArt)];
+    const names = ['dora', 'dora-cheer', 'enzo', 'enzo-cheer', 'twig', 'twig-gold', ...BUILDINGS.map((b) => `building-${b.id}`), ...['acorn', 'pedlar', 'owl', 'bat', 'breeze'].map((v) => `visitor-${v}`), ...MANAGERS.slice(2).map(helperArt)];
     for (const n of names) this.load(n);
   }
   private load(name: string) { if (this.img.has(name)) return; const i = new Image(); i.decoding = 'async'; i.src = `${ART}${name}.webp`; this.img.set(name, i); }
@@ -239,9 +239,9 @@ export class HayloftScene {
     // helper hopping beside it
     if (s.managers[i]) {
       const hx = x + size * 0.36, hh = Math.max(22, size * 0.24), up = Math.max(0, Math.sin(Math.min(1, (t - this.hops[i]) * 3) * Math.PI)) * 10;
-      const img = this.art(i === 0 ? 'dora' : helperArt(MANAGERS[i]));
+      const img = this.art(i === 0 ? 'dora' : i === 1 ? 'enzo' : helperArt(MANAGERS[i]));
       if (img) { const sz = hh * 1.9; c.drawImage(img, hx - sz / 2, gy + 6 - sz - up, sz, sz); }
-      else drawChinchilla(c, i === 0 ? 'dora' : HELPER_COATS[i], hx, gy + 4 - up, { face: -1, h: hh, time: t + i, blink: Math.sin(t * 0.9 + i * 3) > 0.97 });
+      else drawChinchilla(c, i === 0 ? 'dora' : i === 1 ? 'enzo' : HELPER_COATS[i], hx, gy + 4 - up, { face: -1, h: hh, time: t + i, blink: Math.sin(t * 0.9 + i * 3) > 0.97 });
     }
     // progress bar and level badge
     const bw = size * 0.7, by = gy + 12;

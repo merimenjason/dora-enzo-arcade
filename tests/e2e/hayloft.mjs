@@ -40,7 +40,7 @@ const state = (page) => page.evaluate(() => JSON.parse(window.__hayloft().save()
   await page.getByRole('button', { name: /Run/ }).first().click();
   await page.getByRole('button', { name: /Helpers/ }).click();
   await page.getByRole('button', { name: /^Hire/ }).first().click();
-  s = await state(page); assert.ok(s.managers[1], 'Pip hired for the spa');
+  s = await state(page); assert.ok(s.managers[1], 'Enzo hired for the spa');
   console.log('PASS buying ×1 and MAX, running by paw and hiring a helper');
 
   // saving and the welcome-back card
@@ -50,8 +50,8 @@ const state = (page) => page.evaluate(() => JSON.parse(window.__hayloft().save()
   await page.getByRole('dialog', { name: 'Welcome back' }).waitFor();
   const card = await page.getByRole('dialog', { name: 'Welcome back' }).textContent();
   assert.match(card, /2h/);
-  assert.match(card, /Dust Bath Spa · Pip/, 'the top earners list the spa and its helper');
-  assert.match(card, /· Pip|· Dora/, 'a word from the top helper');
+  assert.match(card, /Dust Bath Spa · Enzo/, 'the top earners list the spa and its helper');
+  assert.match(card, /· Enzo|· Dora/, 'a word from the top helper');
   assert.match(card, /Ready to buy:/, 'what the coins can buy now');
   await page.screenshot({ path: process.env.SHOT ?? '/dev/null' }).catch(() => {});
   s = await state(page); assert.ok(s.levels[1] > 10 && s.managers[1], 'the valley was saved');

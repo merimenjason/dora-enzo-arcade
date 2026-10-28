@@ -52,7 +52,7 @@ export interface ManagerDef { name: string; coat: 'dora' | 'enzo'; fur: string; 
 /** One helper per building: hiring them runs the building on its own (and while you are away), and each brings a perk. */
 export const MANAGERS: readonly ManagerDef[] = [
   { name: 'Dora', coat: 'dora', fur: '#fbf8f3', cost: 0, perk: { kind: 'tap', x: 2 }, says: 'Runs the meadow from day one, and taps are twice as strong' },
-  { name: 'Pip', coat: 'enzo', fur: '#9c948c', cost: 1.2e4, perk: { kind: 'bld', i: 1, x: 2 }, says: 'Dust Bath Spa ×2' },
+  { name: 'Enzo', coat: 'enzo', fur: '#a3a9b1', cost: 1.2e4, perk: { kind: 'bld', i: 1, x: 2 }, says: 'Dust Bath Spa ×2' },
   { name: 'Pebble', coat: 'enzo', fur: '#6d6862', cost: 1.5e5, perk: { kind: 'cost', x: 0.97 }, says: 'Buildings cost 3% less' },
   { name: 'Juniper', coat: 'dora', fur: '#e8d2b0', cost: 2e6, perk: { kind: 'stay', s: 4 }, says: 'Visitors linger 4 s longer' },
   { name: 'Tuft', coat: 'dora', fur: '#fbf4ea', cost: 2.5e7, perk: { kind: 'burst', s: 5 }, says: 'Fluff Bursts last 5 s longer' },

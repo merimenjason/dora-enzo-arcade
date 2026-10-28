@@ -20,7 +20,7 @@ Each building has a base cost, a cost growth per level, a cycle and an output pe
 | # | Building | First price | Growth | Cycle | Output / level | Helper (price): perk |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 🌾 Hay Meadow | 40 | ×1.07 | 1 s | 1 | Dora (free, from the start): taps ×2 |
-| 2 | 🛁 Dust Bath Spa | 600 | ×1.15 | 3 s | 60 | Pip (120K): Dust Bath Spa ×2 |
+| 2 | 🛁 Dust Bath Spa | 600 | ×1.15 | 3 s | 60 | Enzo (120K): Dust Bath Spa ×2 |
 | 3 | 🪨 Pebble Polishery | 7.20K | ×1.14 | 6 s | 540 | Pebble (1.50M): buildings cost 3% less |
 | 4 | 🍎 Apple-Twig Orchard | 86.4K | ×1.13 | 12 s | 4.32K | Juniper (20.0M): visitors stay 4 s longer |
 | 5 | 🧺 Cozy Cushion Mill | 1.03M | ×1.12 | 24 s | 51.8K | Tuft (250M): Fluff Bursts last 5 s longer |
