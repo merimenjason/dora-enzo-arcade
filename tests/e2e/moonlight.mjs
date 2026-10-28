@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
-const browser=await chromium.launch(),base=process.env.E2E_BASE_URL||'http://localhost:3000',out='/Users/jasonchua/Documents/Codex/2026-10-08/read/outputs';
+const browser=await chromium.launch(),base=process.env.E2E_BASE_URL||'http://localhost:3000',out=process.env.E2E_OUT||(await import('node:os')).tmpdir();
 const state=p=>p.evaluate(()=>{const g=window.__moonlight().game;return {time:g.time,paused:g.paused,active:g.active,state:g.state,catches:g.catches,collected:g.collected,rescued:g.rescued,friendHome:g.friendHome,hero:g.hero,heroes:g.heroes,trail:g.trail,treats:g.treats};});
 const advance=(p,dt,input)=>p.evaluate(([dt,input])=>window.__moonlight().advance(dt,input),[dt,input]);
 async function walk(p,label,to){await p.getByRole('button',{name:'Walk to '+label,exact:true}).click();const started=(await state(p)).time;let catches=(await state(p)).catches;
@@ -9,7 +9,7 @@ async function walk(p,label,to){await p.getByRole('button',{name:'Walk to '+labe
 }
 try {
  const p=await browser.newPage({viewport:{width:1536,height:1100}}),errors=[];p.on('pageerror',e=>errors.push(e.message));p.setDefaultTimeout(20000);
- await p.goto(base);assert.equal(await p.locator('.arcade-card').count(),41);await p.getByRole('link',{name:/Moonlight Mischief/}).click();
+ await p.goto(base);assert.equal(await p.locator('.arcade-card').count(),50);await p.getByRole('link',{name:/Moonlight Mischief/}).click();
  await p.getByTestId('start').click();await p.waitForFunction(()=>window.__moonlight()?.game);assert.equal((await state(p)).time,0);
  const cv=p.getByTestId('village'),r=await cv.boundingBox();await p.mouse.move(r.x+r.width*.2,r.y+r.height*.7);await p.mouse.down();await p.mouse.move(r.x+r.width*.3,r.y+r.height*.7);await p.mouse.up();assert.equal((await state(p)).time,0,'dragging the map never counts as a path tap');await p.mouse.click(r.x+r.width*.225,r.y+r.height*.465/640*1000);await p.waitForTimeout(200);assert.ok((await state(p)).time>0,'tapping a path starts navigation');
  await cv.focus();await p.keyboard.press('KeyQ');assert.equal((await state(p)).active,'enzo');await p.keyboard.press('Space');assert.ok((await state(p)).hero.cooldown>0);
