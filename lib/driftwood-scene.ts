@@ -8,7 +8,7 @@
 import { drawChinchilla, coatLike, type Coat } from './chinchilla-art';
 import {
   ISLANDS, ISLAND, ART_SHAPES, artBox, ROCKS, REEDS, CURRENTS, FOGS, SHELLS, BOTTLES, STORY, LAKE_W, LAKE_H, MAX_SPEED, PREVAIL,
-  CHART_W, CHART_H, CHART_CELL, HZ, clearance, edgeDist, shoreIn, fogAt, daylight, clockOf, clockText, dayPart, wrap,
+  CHART_W, CHART_H, CHART_CELL, HZ, clearance, edgeDist, shoreIn, fogAt, fogDepth, daylight, clockOf, clockText, dayPart, wrap,
   type DriftwoodGame, type Ev, type Island, type IslandId, type ResidentId, type Pt,
 } from './driftwood-game';
 
@@ -670,8 +670,9 @@ export class DriftwoodScene {
     const art = this.img(isl.art); if (!art) return null;
     const sh = ART_SHAPES[isl.art], N = 512, cv = mk(N, N), o = ctx2(cv);
     o.drawImage(art, 0, 0, N, N); o.globalCompositeOperation = 'destination-out';
-    // keep only what stands above the ground: cut away the ground (out to its painted rim) and everything below its middle
-    const [cx, cy] = sh.c; o.beginPath(); smoothPath(o, sh.pts.map(([u, v]): Pt => [(cx + (u - cx) * RIM) * N, (cy + (v - cy) * RIM) * N])); o.fill();
+    // keep only what stands above the ground behind the island: cut away everything below its middle and the ground the
+    // boat can't sail on, so anything beyond the coast (where she can be) stays
+    const [, cy] = sh.c; o.beginPath(); smoothPath(o, sh.pts.map(([u, v]): Pt => [u * N, v * N])); o.fill();
     o.fillRect(0, cy * N, N, N);
     this.overhangs.set(isl.art, cv); return cv;
   }
@@ -762,10 +763,16 @@ export class DriftwoodScene {
     if (g) this.drawBoat(c, g, t);
     else this.drawBoatAt(c, bx, by, Math.atan2(Math.cos(t * 0.07) * 14, -Math.sin(t * 0.05) * 6) || 0.4, 1.4, windDir, 1, 0.45, 0, t, 0, null);
     // sailing behind an island (north of its middle), its towers, trees and crags stand in front of the boat
+    let hidden = false;
     for (const isl of ISLANDS) {
       const b = artBox(isl); if (this.at.y >= isl.y || this.at.x < b.x - 40 || this.at.x > b.x + b.s + 40 || this.at.y < b.y - 60) continue;
-      const oh = this.overhang(isl); if (oh) c.drawImage(oh, b.x, b.y, b.s, b.s);
+      const oh = this.overhang(isl); if (!oh) continue;
+      // (fog drifts over the island, so its tall parts stay as misty as the rest of it)
+      const fog = g ? fogDepth(isl.x, isl.y - b.s * 0.2, g.tick) : 0;
+      c.globalAlpha = 1 - 0.85 * fog; c.drawImage(oh, b.x, b.y, b.s, b.s); c.globalAlpha = 1; hidden = true;
     }
+    // ... and the boat shows through them faintly, so she's never lost
+    if (hidden && g) { c.save(); c.globalAlpha = 0.5; this.drawBoat(c, g, t); c.restore(); }
     this.drawParticles(c, dt, o.paused);
     // weather and light
     const rain = g ? g.rain : false;

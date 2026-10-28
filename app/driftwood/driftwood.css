@@ -39,6 +39,8 @@
 .dw-toasts{position:absolute;left:50%;top:10px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:5;pointer-events:none;width:min(520px,calc(100% - 340px))}
 .dw-toast{background:#2f2620e0;color:#fff8ea;border-radius:999px;padding:6px 14px;font-weight:800;font-size:13.5px;text-align:center;animation:dw-toast .3s ease-out;box-shadow:0 6px 18px #0004}
 @keyframes dw-toast{from{opacity:0;transform:translateY(-8px)}}
+/* tied up, the jetty card has the floor: sailing news waits */
+.dw-shell[data-phase="dock"] .dw-toasts{display:none}
 .dw-touch{position:absolute;inset:auto 0 0 0;height:0;z-index:2}
 .dw-wheel{position:absolute;left:12px;bottom:12px;width:150px;height:96px;border-radius:24px;background:#fffaf0b8;border:2px solid #fff;backdrop-filter:blur(3px);display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:none;box-shadow:0 6px 18px #0a283c40}
 .dw-wheel span{font-size:52px;line-height:1;color:#7a5a3a;transition:transform .06s linear;pointer-events:none}
@@ -159,7 +161,7 @@
 .dw-ending-text h2{font-size:28px;font-weight:900;color:#a0502a}
 .dw-ending-text p{font-weight:700;font-size:14.5px}
 .dw-final{color:#1f6f8b;font-weight:900!important}
-.dw-credits{position:absolute;top:12px;left:12px;width:min(300px,42%);height:min(44%,320px);overflow:hidden;border-radius:18px;background:radial-gradient(ellipse at 50% 50%,#0a103499,#0a103400 75%);color:#fff;text-shadow:0 1px 6px #000c;-webkit-mask-image:linear-gradient(180deg,transparent,#000 18%,#000 82%,transparent);mask-image:linear-gradient(180deg,transparent,#000 18%,#000 82%,transparent)}
+.dw-credits{position:absolute;top:12px;left:12px;width:min(300px,42%);height:min(44%,320px);overflow:hidden;border-radius:18px;background:#0a1034a8;backdrop-filter:blur(3px);color:#fff;text-shadow:0 1px 6px #000c;-webkit-mask-image:linear-gradient(180deg,transparent,#000 18%,#000 82%,transparent);mask-image:linear-gradient(180deg,transparent,#000 18%,#000 82%,transparent)}
 .dw-credits>div{padding:0 14px;animation:dw-roll 30s linear infinite;text-align:center}
 .dw-credits p{margin:0 0 12px!important}
 .dw-credits b{display:block;font-size:14px}
@@ -185,6 +187,7 @@
   .dw-chart-stats{display:none}
 }
 @media (max-height:500px){
+  .dw-credits{display:none}
   .dw-bar{height:38px}
   .dw-shell .dw-chip{min-height:28px;padding:3px 8px}
   .dw-back{padding:4px 9px}

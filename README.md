@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of fifty-one original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of fifty-two original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -61,6 +61,7 @@ Listed in arcade-menu order.
 | 49 | Kit Parade | `/parade` | Puzzle |
 | 50 | Prism Paws | `/prism` | Light-beam puzzle |
 | 51 | Seedstorm | `/seedstorm` | Vertical shoot-'em-up |
+| 52 | Driftwood Post | `/driftwood` | Sailing adventure |
 
 ## Run
 
@@ -1080,6 +1081,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/seedstorm.md`](docs/seedstorm.md), art brief [`docs/seedstorm-art-brief.md`](docs/seedstorm-art-brief.md).
 
+### 52 · Driftwood Post (`/driftwood`)
+
+**Play:** A cosy sailing adventure. The post boat on Lake Whisker has sprung a leak, so Dora and Enzo patch up an old driftwood dinghy and take over Granny Tuft's round: twenty-four story letters between ten island villages, each unlocked by the ones before, get every island back in touch for the Lantern Regatta. The wind drives the boat. Nothing sails inside the no-go zone (42° either side of the wind, 34° with the deep keel), a beam reach is fastest, and going upwind means tacking. The wind mostly blows from the west-south-west, swings up to 115° either side, and announces its shifts. Weather is Calm, Breezy, Gusty or a rain squall; currents carry the boat, reeds slow it to 42%, and three hard bumps on rocks or shores scuff the hull until Enzo patches it. A day lasts 6 real minutes; at night and in fog you see less, and the chart fills in as you sail. The bag holds 3 items (up to 6 with mail crates). Letters pay 5 shells and parcels 7, with bonuses for heavy, express on time and unjostled fragile parcels. After letter 4, side post appears between the islands and Tamsin's boatyard sells a bigger sail, a deep keel, mail crates, a lantern, a spyglass and a sturdy hull. 20 hidden shells and 6 message bottles are tucked round the lake. The voyage saves every time you tie up.
+
+**Controls:** **A/D** or **←/→** steer (tap to nudge, hold to turn), **E** or **Space** ties up within reach of a jetty, **X** or **Shift** brakes, **M** opens the chart, **Esc** or **P** pause. At a jetty, **Space** or **Enter** casts off. With manual trim on, **W/S** or **↑/↓** haul and ease the sail. On a touch screen, slide on the wheel at the bottom left to steer; the buttons on the right brake, tie up and trim.
+
+**Tests:** `npm run test:driftwood` runs 23 engine checks: the sailing polar and no-go zone, tacking, steering, collisions (no tunnelling through rocks), currents and reeds, docking, the bag, heavy and fragile parcels, scuffs and patching, express times, the story's unlocks, side post, that every jetty, hidden shell and bottle can be reached by water, pickups, the chart, saves, exact replays, the weather, how far you can see, and the boatyard. `npm run bot:driftwood` sails the whole story to the Lantern Regatta for three weather seeds; `npm test` runs a quick version. `npm run test:e2e:driftwood` runs 11 browser checks.
+
+**Docs:** [`docs/driftwood-post.md`](docs/driftwood-post.md), art brief [`docs/driftwood-post-art-brief.md`](docs/driftwood-post-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1099,7 +1110,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fifty-one ways/` assertion in `tests/e2e/dust-bath.mjs`, the 51-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fifty-two ways/` assertion in `tests/e2e/dust-bath.mjs`, the 52-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

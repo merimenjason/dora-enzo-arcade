@@ -30,13 +30,13 @@ export const ISLAND_DEFS: IslandDef[] = [
     blurb: 'Home: the red-roofed post office, Granny Tuft’s burrow and the boathouse where the driftwood dinghy waited.' },
   { id: 'lighthouse', name: 'Lighthouse Rock', x: 1450, y: 1880, size: 380, dockA: 2.35, art: 'island-lighthouse', resident: 'pip',
     blurb: 'A rocky knuckle with a white-and-red lighthouse. Old Pip has kept the lamp for forty years.' },
-  { id: 'bakery', name: 'Crumb Isle', x: 1760, y: 2620, size: 440, dockA: -1.75, art: 'island-bakery', resident: 'bun',
+  { id: 'bakery', name: 'Crumb Isle', x: 1760, y: 2620, size: 440, dockA: 2.7, art: 'island-bakery', resident: 'bun',
     blurb: 'A round, warm island that smells of bread. The windmill grinds Bun’s flour.' },
   { id: 'boatyard', name: 'Slipway Isle', x: 420, y: 1640, size: 410, dockA: 1.31, art: 'island-boatyard', jetty: true, resident: 'tamsin',
     blurb: 'Timber stacks, a crane and a slipway. Tamsin can fix anything that floats, and some things that don’t.' },
-  { id: 'reeds', name: 'Reedmere', x: 2620, y: 2380, size: 360, dockA: -1.45, art: 'island-reeds', resident: 'mossy',
+  { id: 'reeds', name: 'Reedmere', x: 2620, y: 2380, size: 360, dockA: 2.75, art: 'island-reeds', resident: 'mossy',
     blurb: 'Stilt houses over the marsh, lily pads and the loudest choir on the lake.' },
-  { id: 'orchard', name: 'Blossom Holm', x: 3460, y: 2500, size: 490, dockA: -2.45, art: 'island-orchard', resident: 'bramble',
+  { id: 'orchard', name: 'Blossom Holm', x: 3460, y: 2500, size: 490, dockA: 2.7, art: 'island-orchard', resident: 'bramble',
     blurb: 'Blossom trees and humming beehives. Bramble looks after both.' },
   { id: 'market', name: 'Bobbin Market', x: 2200, y: 1520, size: 430, dockA: 1.65, art: 'island-market', resident: 'dabble',
     blurb: 'Striped stalls and bargains. If it exists, Dabble sells it; if it doesn’t, Dabble knows a duck.' },
@@ -59,7 +59,7 @@ export const ROCKS: Rock[] = [
   // around Lighthouse Rock
   { x: 1610, y: 1770, r: 26 }, { x: 1300, y: 1760, r: 22 }, { x: 1620, y: 1990, r: 20 }, { x: 1660, y: 1830, r: 14 },
   // Crag Top's skirt of boulders
-  { x: 880, y: 760, r: 30 }, { x: 1240, y: 700, r: 26 }, { x: 1220, y: 960, r: 20 }, { x: 930, y: 980, r: 18 },
+  { x: 800, y: 730, r: 30 }, { x: 1240, y: 700, r: 26 }, { x: 1220, y: 960, r: 20 }, { x: 930, y: 980, r: 18 },
   // the narrows between the market and Pebble Bar
   { x: 1660, y: 1400, r: 24 }, { x: 1720, y: 1640, r: 20 },
   // Shell Sandbar's shoals
