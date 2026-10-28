@@ -746,3 +746,19 @@ Warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges,
 Isolated single cutout on a perfectly flat uniform pure green #00ff00 chroma background, no gradient, no ground, no shadows on background, no ambient background color cast. Keep the entire subject inside the image, centered. Bold simple readable silhouette. Icon must read clearly at 28 pixels, single simple subject, padding around silhouette. Match the intended aspect ratio 128:128; preserve the requested side/front view.
 ```
 
+## Painted (28-10-2026, follow-up)
+
+Painted `public/art/parade/earth-cave.webp` (256×256) and `public/art/parade/title.webp` (1600×1000) using the built-in image tool. Fitted with Pillow ImageOps.fit and Lanczos, saved as opaque RGB WebP quality 88, reopened to assert size/mode, and visually inspected. Cave tile also inspected with a half-width/height offset wrap and a 3×3 repeat.
+
+Exact cave prompt (one attempt):
+
+```text
+Paint a seamless square tile of soft blue-grey cave clay with tiny flecks of sparkle, matching the reference texture's style and scale. Warm hand-painted toon storybook, soft cel shading, fine brown ink edges; uniform lighting and perfectly wrapping opposite edges. Opaque 256x256, no text, letters or borders.
+```
+
+The title's first attempt timed out; its one shorter retry succeeded. Exact successful title prompt:
+
+```text
+Golden-hour clover hillside, six mixed-coat baby chinchillas marching single-file left to right from a burrow toward kneeling Dora and Enzo beside a round wooden-door home and lantern. Dora cream-white, ruby eyes, pink ears; Enzo COOL BLUE-GREY, darker back, pale chest, solid BLACK eyes. Warm painted toon storybook, soft cel shading, fine brown ink edges; opaque 1600x1000, calm top sky, dark bottom fifth, no text or borders.
+```
+

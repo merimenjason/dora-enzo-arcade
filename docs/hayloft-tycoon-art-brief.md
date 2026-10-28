@@ -380,3 +380,19 @@ Use case: illustration-story. Paint the opaque 16:9 title illustration for Haylo
 EDIT OVERRIDE: Image 1 real Enzo photo, 2 command portrait-enzo and 3 safari walker-enzo define identity colours only. Image 4 is the CURRENT EDIT TARGET: keep its exact composition, pose, expression, props, framing, background and painting style, change ONLY Enzo colours. Do not copy any outfit or prop from identity references. Enzo is a COOL BLUE-GREY chinchilla: mid-grey coat with a darker grey wavy back, pale grey-white face and chest, pink ears, solid BLACK eyes with white glints, NO brown iris or warm eye reflections. Never taupe, beige or brown. Dora must stay EXACTLY as she is: cream-white, ruby eyes, pink ears. Supersede original reference instructions and warm fur colours.
 Precise localized recolour: Enzo is the RIGHTMOST foreground chinchilla. Dora to his left and every landscape detail must remain exactly unchanged. Keep current front-facing poses, do not restage from original text.
 ```
+## Painted (28-10-2026, follow-up)
+
+Skipped `public/art/hayloft/title.webp`: both built-in generation attempts timed out; original unchanged. Backup: `/tmp/enzo-old/hayloft-title.webp`.
+
+Initial prompt:
+
+```text
+Repaint image 1, keeping the entire scene, composition and Dora exactly unchanged; change only Enzo on the right to COOL BLUE-GREY with a darker back, pale chest and solid BLACK eyes, matching image 2, never taupe or brown. Preserve warm hand-painted toon storybook style, soft cel shading and fine brown ink edges. Opaque 1600x900 landscape, no text, letters or borders.
+```
+
+Retry prompt:
+
+```text
+Keep image 1 exactly unchanged except recolour rightmost Enzo cool blue-grey, darker back, pale chest, solid black eyes like image 2. Preserve Dora, every scene detail and storybook style; opaque 1600x900, no text or borders.
+```
+

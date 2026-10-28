@@ -804,3 +804,19 @@ Cosy hand-painted storybook landscape, sunny meadow valley from above. Left: two
 ## Remaining work
 
 Generate and validate `title.webp` (1600×1000 RGB opaque), following the original brief exactly. The staged valley and unfinished edits do not satisfy the character requirements. Keep all other 70 completed assets. The last built-in request returned `usage_limit_reached` with `resets_at: 1793167331`; the tool reported approximately 42,163 seconds until reset when it rejected the request. No fallback generation is authorized.
+## Painted (28-10-2026, follow-up)
+
+Skipped `public/art/command/title.webp`: both built-in generation attempts timed out; original unchanged.
+
+Initial prompt:
+
+```text
+Paint a sunny meadow valley from a gentle high angle, matching reference 1's landscape style and reference 2's Enzo. On the left cream-white ruby-eyed pink-eared Dora and COOL BLUE-GREY Enzo with darker back, pale chest and solid BLACK eyes stand on a grassy burrow mound pointing ahead. A cheerful raccoon junk camp with kites fills the middle distance; a brass clockwork beehive stands among trees on the right. Warm hand-painted toon storybook, soft cel shading, fine brown ink edges, calm sky top-centre, opaque 1600x1000, no text, letters or borders.
+```
+
+Retry prompt:
+
+```text
+Sunny meadow valley, gentle high angle: left, cream-white ruby-eyed pink-eared Dora and COOL BLUE-GREY black-eyed Enzo with darker back and pale chest point ahead from a grassy burrow mound. Middle distance, cheerful raccoon junk camp with kites; right, brass clockwork beehive among trees. Warm painted toon storybook, soft cel shading, fine brown ink edges, calm top-centre sky; opaque 1600x1000, no text or borders.
+```
+
