@@ -14,6 +14,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Burrow Command**: the menu now has its title painting: Dora and Enzo on the Great Burrow looking out over the raccoon camp and the clockwork hive.
 - **Kit Parade**: now hand-painted, with a title painting of the kits marching home to Dora and Enzo: night rooftops and a glowing cave join the meadow and pantry backdrops, with painted ground, hay, pebbles, burrows, lily pads, seesaws, chimney fans, job badges, and Dora, Enzo and Mum cheering the kits home.
 - **Dust Disco**, **Hayloft Tycoon**, **Dust Bunny Dungeon** and **Pebble Pop**: Enzo is repainted his real cool grey with black eyes (he had come out taupe): all five Disco dance moves, both Hayloft Enzos, the Dungeon hero and title painting, and Pebble Pop's Enzo and title painting.
 - **Snapshot Safari**: Enzo is repainted grey with black eyes, as he should be, on the trail and in the title painting.

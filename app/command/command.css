@@ -24,7 +24,7 @@
 .cmd-head h2{font-size:24px;flex:1}
 .cmd-back{color:var(--gold)!important;font-size:12px;font-weight:900;letter-spacing:1px;text-decoration:none;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-height:0!important}
 .cmd-total{font-weight:900;color:var(--gold)}
-.cmd-title{position:relative;border-radius:22px;overflow:hidden;min-height:260px;display:flex;align-items:flex-end;box-shadow:0 12px 40px #0008;background:radial-gradient(circle at 70% 30%,#f7d77a,#89b858 45%,#3f6b33);background-size:cover;background-position:center}
+.cmd-title{position:relative;border-radius:22px;overflow:hidden;min-height:260px;display:flex;align-items:flex-end;box-shadow:0 12px 40px #0008;background:radial-gradient(circle at 70% 30%,#f7d77a,#89b858 45%,#3f6b33);background-size:cover;background-position:center 40%}
 .cmd-title>div{position:relative;padding:22px 26px;width:100%;background:linear-gradient(0deg,#1d160ee6,#1d160e00)}
 .cmd-eyebrow{font-size:12px;font-weight:900;letter-spacing:2.5px;color:var(--gold)}
 .cmd-title h1{font-size:clamp(42px,7vw,80px);line-height:.95;font-weight:900;letter-spacing:-1px;text-shadow:0 4px 0 #5a3a1c,0 8px 24px #000a}

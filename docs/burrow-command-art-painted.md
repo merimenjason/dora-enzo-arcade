@@ -820,3 +820,7 @@ Retry prompt:
 Sunny meadow valley, gentle high angle: left, cream-white ruby-eyed pink-eared Dora and COOL BLUE-GREY black-eyed Enzo with darker back and pale chest point ahead from a grassy burrow mound. Middle distance, cheerful raccoon junk camp with kites; right, brass clockwork beehive among trees. Warm painted toon storybook, soft cel shading, fine brown ink edges, calm top-centre sky; opaque 1600x1000, no text or borders.
 ```
 
+
+## Title painting (28-10-2026, evening)
+
+`title.webp` (1600×1000, RGB) was painted with the built-in image tool on the eleventh attempt, with no reference images and a smaller requested size, then fitted with `ImageOps.fit` and Lanczos and saved as WebP quality 88. Prompt: "Cosy hand-painted storybook landscape, soft cel shading, fine brown ink lines, wide 16:10. Sunny green meadow valley from a gentle high angle. Left: two cute chibi chinchillas on a grassy mound with a round wooden door, pointing ahead; one cream-white with ruby eyes, one cool grey with black eyes. Middle distance: a cheerful raccoon camp of tidy junk piles with colourful kites. Right: a brass clockwork beehive among trees. Calm pale sky at the top. No text." The menu banner shows it at `background-position: center 40%` so both faces sit above the title text.
