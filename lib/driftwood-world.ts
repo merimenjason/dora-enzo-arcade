@@ -126,7 +126,7 @@ export const RESIDENTS: Record<ResidentId, Resident> = {
   pip: { name: 'Old Pip', role: 'lighthouse keeper', art: 'otter' },
   bun: { name: 'Bun', role: 'baker', art: 'mole' },
   tamsin: { name: 'Tamsin', role: 'boatwright', art: 'beaver' },
-  mossy: { name: 'Mossy', role: 'choir conductor', art: null },
+  mossy: { name: 'Mossy', role: 'choir conductor', art: 'mossy' },
   bramble: { name: 'Bramble', role: 'beekeeper', art: 'rabbit-b' },
   clover: { name: 'Clover', role: 'cloud-spotter', art: 'rabbit-a' },
   grisel: { name: 'Mrs Grisel', role: 'heron of strong opinions', art: 'heron' },

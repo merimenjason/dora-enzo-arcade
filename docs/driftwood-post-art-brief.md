@@ -51,6 +51,6 @@ Paintings for Driftwood Post (`/driftwood`), a cosy sailing adventure. Dora and 
 
 | File | Size | Description |
 | --- | --- | --- |
-| `mossy.webp` | 384 × 384, transparent | Mossy the frog, choir leader: chest-up portrait, a green frog with a tiny conductor's bow tie and a sheet of blank music, cheerful, same style as the other residents. |
+| `mossy.webp` | 384 × 384, transparent | Mossy the frog, choir leader: chest-up portrait, a green frog with a tiny conductor's bow tie and a small baton (the brief first asked for blank music), cheerful, same style as the other residents. |
 | `land-tile.webp` | 512 × 512, opaque, **seamless on all four sides** | The lakeshore meadow seen straight from above: soft green grass with gentle colour variation, scattered tiny wildflowers and clover, a few small stones. No trees, paths or buildings (the game draws trees). Painterly, low contrast so it tiles without visible repeats. |
 | `sand-tile.webp` | 512 × 512, opaque, **seamless on all four sides** | Warm beach sand seen straight from above, with soft ripples, tiny pebbles and a few shell fragments. Low contrast. |
