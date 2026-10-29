@@ -117,6 +117,8 @@ export default function PrismPawsPage() {
   const local = (cx: number, cy: number) => { const r = canvas.current!.getBoundingClientRect(); return { x: cx - r.left, y: cy - r.top }; };
   const onBoardDown = (e: React.PointerEvent) => {
     const g = game.current, sc = scene.current; if (!g || !sc || screenRef.current !== 'play' || winRef.current) return;
+    // a second finger never takes over a drag already under way
+    if (dragRef.current && !e.isPrimary) return;
     snd();
     const p = local(e.clientX, e.clientY), cell = sc.cellAt(p.x, p.y); if (!cell) return;
     const from = g.canLift(cell.x, cell.y) ? cell : null;
@@ -124,7 +126,7 @@ export default function PrismPawsPage() {
     cursorRef.current = null;
   };
   const onTrayDown = (e: React.PointerEvent, k: TrayKind) => {
-    const g = game.current; if (!g || g.won || winRef.current || g.left[kindIndex(k)] <= 0) return;
+    const g = game.current; if (!g || g.won || winRef.current || (dragRef.current && !e.isPrimary) || g.left[kindIndex(k)] <= 0) return;
     snd(); e.preventDefault();
     const p = local(e.clientX, e.clientY);
     dragRef.current = { id: e.pointerId, kind: k, code: TRAY_INFO[k].codes[0], from: null, sx: p.x, sy: p.y, x0: p.x, y0: p.y, moved: false };
@@ -155,7 +157,7 @@ export default function PrismPawsPage() {
       }
       flush();
     };
-    const cancel = () => { dragRef.current = null; };
+    const cancel = (e: PointerEvent) => { if (dragRef.current?.id === e.pointerId) dragRef.current = null; };
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', cancel);
     return () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', cancel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -562,6 +562,8 @@ export class SeedstormGame {
   events: Ev[] = [];
   private prevBloom = false;
   private nextId = 1;
+  /** a Clear Sky bonus held back while a hit waits out its last-gasp window at a phase break */
+  private pendingClear = 0;
   private tmp = { x: 0, y: 0 };
 
   constructor(o: Options) {
@@ -683,7 +685,7 @@ export class SeedstormGame {
   }
   private setPhase(k: number) {
     const b = this.boss!, ph = b.def.phases[k];
-    b.phase = k; b.max = b.hp = Math.round(ph.hp * this.diff.bossHp); b.t = 0; b.time = b.timer = ph.time * HZ; b.hit = false; b.state = 'fight'; b.clearSky = 0;
+    b.phase = k; b.max = b.hp = Math.round(ph.hp * this.diff.bossHp); b.t = 0; b.time = b.timer = ph.time * HZ; b.hit = false; b.state = 'fight'; b.clearSky = 0; this.pendingClear = 0;
     this.banner = { text: ph.name, sub: b.def.name, t: 0, kind: b.def.mid ? 'mid' : 'attack' };
     this.events.push({ k: 'phase', name: ph.name, index: k, boss: b.def.id });
   }
@@ -692,7 +694,11 @@ export class SeedstormGame {
     let bonus = 0;
     if (beaten) {
       this.score += SCORE.phase * this.stage; this.ss.phases++;
-      if (!b.hit && this.player.gasp === 0) { bonus = SCORE.clearSky + SCORE.clearSkyStage * this.stage + SCORE.clearSkySecond * Math.floor(b.timer / HZ); this.score += bonus; this.ss.clearSky++; }
+      if (!b.hit) {
+        bonus = SCORE.clearSky + SCORE.clearSkyStage * this.stage + SCORE.clearSkySecond * Math.floor(b.timer / HZ);
+        // a hit still in its last-gasp window decides it: a Bloom save pays it, the heart landing loses it
+        if (this.player.gasp > 0) { this.pendingClear = bonus; bonus = 0; } else { this.score += bonus; this.ss.clearSky++; }
+      }
     }
     b.clearSky = bonus;
     for (const x of this.bullets) if (x.on) { this.addSeed(x.x, x.y, 0, 0, false, 20); this.killBullet(x); }
@@ -888,7 +894,7 @@ export class SeedstormGame {
     const p = this.player, saved = p.gasp > 0;
     this.blooms--; this.bloomT = BLOOM.sweep; this.bloomX = p.x; this.bloomY = p.y;
     p.invuln = Math.max(p.invuln, INVULN.bloom);
-    if (saved) { p.gasp = 0; this.events.push({ k: 'saved', x: p.x, y: p.y }); }
+    if (saved) { p.gasp = 0; this.events.push({ k: 'saved', x: p.x, y: p.y }); if (this.pendingClear) { this.score += this.pendingClear; this.ss.clearSky++; if (this.boss) this.boss.clearSky = this.pendingClear; this.pendingClear = 0; } }
     for (const c of this.critters) if (c.on) { c.hp -= BLOOM.damage; c.flash = 6; if (c.hp <= 0) this.puff(c); }
     this.damageBoss(BLOOM.bossDamage);
     if (this.blooms < this.bloomCap) this.addMeter(0);
@@ -906,7 +912,7 @@ export class SeedstormGame {
   }
   private loseHeart() {
     const p = this.player;
-    this.hearts--; this.ss.hits++; this.breeze = 1;
+    this.hearts--; this.ss.hits++; this.breeze = 1; this.pendingClear = 0;
     if (this.boss && this.boss.state === 'fight') this.boss.hit = true;
     for (const b of this.bullets) if (b.on) { const dx = b.x - p.x, dy = b.y - p.y; if (dx * dx + dy * dy < HIT_CLEAR * HIT_CLEAR) this.killBullet(b); }
     p.invuln = INVULN.hit;

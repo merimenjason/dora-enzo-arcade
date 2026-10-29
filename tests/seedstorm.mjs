@@ -347,6 +347,23 @@ const live = (pool) => pool.filter((x) => x.on).length;
   ok(ws.cleared.breezy && ws.scores.breezy[0].cleared, 'a cleared run is marked'); noteReached(ws, w); ok(ws.reached.breezy === 5, 'and reached stage 5');
 }
 
+// a phase beaten while a hit waits out its last-gasp window: the Bloom save pays Clear Sky, the heart landing loses it
+for (const save of [true, false]) {
+  const g = new SeedstormGame({ seed: 1, pilot: 'dora', diff: 'gusty' }); g.warp(1);
+  for (let i = 0; i < 200 && g.phase === 'play'; i++) g.step();
+  for (let i = 0; i < 10 && g.phase === 'chat'; i++) g.advanceChat();
+  g.player.gasp = LAST_GASP; g.blooms = 1; const h0 = g.hearts, c0 = g.ss.clearSky; g.events.length = 0; g['damageBoss'](1e6);
+  ok(g.events.find((e) => e.k === 'break').clearSky === 0 && g.ss.clearSky === c0, 'the bonus waits while the hit is pending');
+  const s0 = g.score;
+  if (save) {
+    g.step({ ...idleInput(), bloom: true });
+    ok(g.hearts === h0 && g.ss.clearSky === c0 + 1 && g.boss.clearSky > 0 && g.score - s0 >= g.boss.clearSky, 'a last-gasp Bloom after the break still earns Clear Sky');
+  } else {
+    for (let i = 0; i < LAST_GASP + 2; i++) g.step();
+    ok(g.hearts === h0 - 1 && g.ss.clearSky === c0, 'the heart landing after the break loses Clear Sky');
+  }
+}
+
 // a piercing pebble hits each small critter in its path once, even where two overlap
 {
   const g = new SeedstormGame({ seed: 1, pilot: 'enzo', diff: 'gusty' }); g.clearField(true);
