@@ -243,10 +243,10 @@ ok('every valley is smooth and unbroken except the designed bridge gaps, with co
   assert.ok(upgradeValue('wax', { ...noUpgrades(), wax: 3 }) >= 0.75 && upgradeValue('runners', { ...noUpgrades(), runners: 3 }) >= 0.88);
   // buying
   const s = freshSave(); s.flakes = 100;
-  assert.ok(buy(s, 'wax') && s.levels.wax === 1 && s.flakes === 70);
-  assert.ok(buy(s, 'wax') && s.levels.wax === 2 && s.flakes === 0);
-  assert.ok(!buy(s, 'wax'), 'not enough snowflakes');
-  s.flakes = 999; buy(s, 'wax'); assert.equal(s.levels.wax, 3); assert.ok(!buy(s, 'wax') && s.flakes === 869, 'three levels at most');
+  assert.ok(buy(s, 'wax') && s.levels.wax === 1 && s.flakes === 80);
+  assert.ok(buy(s, 'wax') && s.levels.wax === 2 && s.flakes === 20);
+  assert.ok(!buy(s, 'wax') && s.flakes === 20, 'not enough snowflakes');
+  s.flakes = 999; buy(s, 'wax'); assert.equal(s.levels.wax, 3); assert.ok(!buy(s, 'wax') && s.flakes === 879, 'three levels at most');
   ok('the lodge shop: wax, scarf, thermos and runners each do what they say, modestly, and cost snowflakes');
 }
 

@@ -50,10 +50,10 @@ export type UpgradeId = 'wax' | 'scarf' | 'thermos' | 'runners';
 export const UPGRADE_IDS: UpgradeId[] = ['wax', 'scarf', 'thermos', 'runners'];
 export const MAX_LEVEL = 3;
 export const UPGRADES: Record<UpgradeId, { name: string; icon: string; blurb: string; cost: number[]; values: number[]; unit: string }> = {
-  wax: { name: 'Sled wax', icon: '🕯', blurb: 'Less friction on the snow.', cost: [30, 70, 130], values: [1, 0.9, 0.82, 0.75], unit: '× friction' },
-  scarf: { name: 'Woolly scarf', icon: '🧣', blurb: 'A longer Snow Flurry.', cost: [30, 70, 130], values: [4, 5, 6, 7], unit: 's flurry' },
-  thermos: { name: 'Bigger thermos', icon: '☕', blurb: 'Each cocoa pushes the sunset back further.', cost: [30, 70, 130], values: [3, 4, 5, 6], unit: 's per cocoa' },
-  runners: { name: 'Lighter runners', icon: '🛷', blurb: 'Lighter in the air, for longer flights.', cost: [30, 70, 130], values: [1, 0.96, 0.93, 0.9], unit: '× air pull' },
+  wax: { name: 'Sled wax', icon: '🕯', blurb: 'Less friction on the snow.', cost: [20, 60, 120], values: [1, 0.9, 0.82, 0.75], unit: '× friction' },
+  scarf: { name: 'Woolly scarf', icon: '🧣', blurb: 'A longer Snow Flurry.', cost: [20, 60, 120], values: [4, 5, 6, 7], unit: 's flurry' },
+  thermos: { name: 'Bigger thermos', icon: '☕', blurb: 'Each cocoa pushes the sunset back further.', cost: [20, 60, 120], values: [3, 4, 5, 6], unit: 's per cocoa' },
+  runners: { name: 'Lighter runners', icon: '🛷', blurb: 'Lighter in the air, for longer flights.', cost: [20, 60, 120], values: [1, 0.96, 0.93, 0.9], unit: '× air pull' },
 };
 export type Levels = Record<UpgradeId, number>;
 export const noUpgrades = (): Levels => ({ wax: 0, scarf: 0, thermos: 0, runners: 0 });

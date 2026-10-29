@@ -55,14 +55,15 @@ const GAMES=[
  {href:'/driftwood',title:'Driftwood Post',tag:'NEW · SAILING',blurb:'Sail a patched-up dinghy round Lake Whisker, tacking into the wind and through fog and night, and carry twenty-four letters between ten islands until the Lantern Regatta.',color:'#3fa7a0',art:'⛵'},
  {href:'/ropeclimb',title:'Ropeclimb',tag:'NEW · CLIMBING',blurb:'Dora and Enzo, tied together by a stretchy rope, leap, grip, swing and haul each other up a giant barn tower, from the cellar to the weathervane at dawn. For one player or two.',color:'#d9893a',art:'🪢'},
  {href:'/echo',title:'Echo Burrow',tag:'NEW · TIME-LOOP PUZZLE',blurb:'One chinchilla runs a room while the candle burns, then time rewinds and the other plays beside a shimmering echo that repeats every move. Thirty burrow rooms of plates, crates, seesaws and glow-moss on the way home.',color:'#3fb8ac',art:'🕯️'},
+ {href:'/snowdrift',title:'Snowdrift',tag:'NEW · ONE-BUTTON SLEDDING',blurb:'Dora and Enzo share one little sled and race the sunset across seven snowy valleys of the Andes. Hold to tuck down the slopes, let go to fly off the crests, land smooth for a Snow Flurry, backflip for a boost, and reach the lodge before night.',color:'#6aa8e8',art:'🛷'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">FIFTY-FOUR ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Fifty-four ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, fifty-four cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">FIFTY-FIVE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Fifty-five ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, fifty-five cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <nav className="arcade-grid" aria-label="Choose a game">

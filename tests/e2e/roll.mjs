@@ -25,7 +25,7 @@ const state = (page) => page.evaluate(() => { const s = window.__roll(), g = s.g
 
 await check('the arcade lists Fluff Roll and opens the level menu', async (page) => {
   await page.goto(base);
-  assert.equal(await page.locator('.arcade-card').count(), 54);
+  assert.equal(await page.locator('.arcade-card').count(), 55);
   await page.getByRole('link', { name: /Fluff Roll/ }).click();
   await page.locator('main[data-ready="true"]').waitFor();
   assert.equal(await page.locator('main').getAttribute('data-screen'), 'menu');

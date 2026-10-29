@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of fifty-four original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of fifty-five original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -64,6 +64,7 @@ Listed in arcade-menu order.
 | 52 | Driftwood Post | `/driftwood` | Sailing adventure |
 | 53 | Ropeclimb | `/ropeclimb` | Rope-physics climber |
 | 54 | Echo Burrow | `/echo` | Time-loop puzzle platformer |
+| 55 | Snowdrift | `/snowdrift` | One-button sledding race |
 
 ## Run
 
@@ -1113,6 +1114,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/echo-burrow.md`](docs/echo-burrow.md), art brief [`docs/echo-burrow-art-brief.md`](docs/echo-burrow-art-brief.md).
 
+### 55 · Snowdrift (`/snowdrift`)
+
+**Play:** A one-button momentum sledding game. Dora (in front) and Enzo (behind) share one little wooden sled and race the sunset across seven snowy valleys of the Andes to each evening's lodge: Pine Meadow, the Frozen Lake (glassy ice that keeps your speed), the Ice Caves (low roofs: holding keeps you low), Windy Ridge (gusts that lift and push), Snow Bridges (gaps to fly; a fall puts you back at the lip), Aurora Peaks (night skies and big drops) and the Summit Run, which has everything and ends at the grand lodge with fireworks. Holding the button on the ground tucks: a strong pull down slopes and a slight drag up them. Letting go makes the pair light, so they fly off the crests. A landing along a downslope is a Smooth landing and a boost; three in a row start a Snow Flurry (more speed, a snow trail and an extra music layer). Holding in the air turns a backflip: a full flip landed upright is a big boost, a bad landing angle is a tumble that costs most of the speed but never ends the run. The dusk creeps up from behind, starting 6 seconds back; if it catches the sled, night falls and the day ends, showing how far they got. Cocoa mugs push the dusk back, and snowflakes buy modest upgrades in the lodge shop (sled wax, a woolly scarf, a bigger thermos and lighter runners, three levels each for 20, 60 and 120 snowflakes). Each day has three medals: reach the lodge, collect every cocoa, and reach it with the daylight to spare the day asks for (28 seconds on day 1 down to 17 on the summit). Best times are kept and any opened day can be replayed. After day 3 the endless Moonlit Hills open, seeded fresh each run, with a Daily Hill seeded by the date; the best distances are saved.
+
+**Controls:** **Space** (or **↓**, **↑**, **S**, **W**, **Enter**) is the one button: hold to tuck, let go to fly, hold in the air to flip. Pressing and holding the mouse, or a finger anywhere on the snow, works the same way. **Esc** or **P** pause. On the end-of-day panel **Enter** goes to the next day (or tries again after night falls) and **R** plays again. Gamepads: Ⓐ, Ⓑ or the right trigger is the button and Start pauses. The game pauses when the tab is hidden or the window loses focus.
+
+**Tests:** `npm run test:snowdrift` runs the engine checks: course sense for every valley and the endless hills, exact replay from a seed and inputs, the push-off, tucking, smooth landings and the Flurry, flips and tumbles, cave roofs and gusts, the dusk, cocoa and snowflakes, gap falls and respawns, the upgrades and the shop, and saves (corrupt ones included). `npm run bot:snowdrift` plays every day with a human-like bot that must reach each lodge with daylight to spare but below the medal, checks that never pressing and always holding are both caught by the dusk, and (without `--quick`, which `npm test` uses) that expert and planning bots beat every daylight medal and that the endless hills catch everyone in the end. `npm run test:e2e:snowdrift` checks the browser: the menu, day 1 played to the lodge with real key presses, the medals, the lodge shop, pausing (by key, a hidden tab and lost focus), the dusk catching the sled, the save across a reload, the day list, a corrupt save, the Moonlit and Daily Hills, the sled's size at 1280×800 and 1920×1080, and phones held either way with touch.
+
+**Docs:** [`docs/snowdrift.md`](docs/snowdrift.md), art brief [`docs/snowdrift-art-brief.md`](docs/snowdrift-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1132,7 +1143,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fifty-four ways/` assertion in `tests/e2e/dust-bath.mjs`, the 54-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fifty-five ways/` assertion in `tests/e2e/dust-bath.mjs`, the 55-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
