@@ -30,6 +30,8 @@ export type Pose = 'idle' | 'charge' | 'leap' | 'grip' | 'swing' | 'dangle' | 'c
 export const POSES: Pose[] = ['idle', 'charge', 'leap', 'grip', 'swing', 'dangle', 'cheer'];
 /** How tall a painted pose is drawn, in world units (the climber's box is 16). */
 const SPRITE_H = 40;
+/** A painted pose to borrow while one hasn't come (or never does), so the painted climbers never switch to the drawn ones mid-air. */
+const STAND_IN: Partial<Record<Pose, Pose>> = { swing: 'leap', dangle: 'grip', charge: 'idle', cheer: 'idle' };
 
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; max: number; size: number; color: string; kind: 'dust' | 'straw' | 'spark' | 'feather' | 'note' };
 type Juice = { squash: number; land: number; tilt: number; blink: number; cheer: number };
@@ -495,7 +497,7 @@ export class RopeclimbScene {
       c.fillStyle = cl.who === 'dora' ? 'rgba(255, 120, 130, 0.35)' : 'rgba(120, 170, 255, 0.35)';
       c.beginPath(); c.ellipse(x, y + 1, 14 + Math.sin(this.time * 5) * 1.5, 3.5, 0, 0, TAU); c.fill();
     }
-    const face = cl.face, img = this.img(`${cl.who}-${pose}`);
+    const face = cl.face, img = this.img(`${cl.who}-${pose}`) ?? (STAND_IN[pose] ? this.img(`${cl.who}-${STAND_IN[pose]}`) : null);
     c.save(); c.translate(x, y); c.rotate(-j.tilt); c.scale(sx, sy);
     if (img) {
       c.scale(face, -1);
