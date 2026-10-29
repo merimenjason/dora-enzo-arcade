@@ -2,7 +2,7 @@
 
 Game 53, at `/ropeclimb`. A side-on physics climber. Dora and Enzo are tied together by a short, stretchy rope and climb the inside of a giant barn tower, from the cellar to the weathervane on the roof at dawn. One climber moves while the other holds on. A missed leap is caught by the rope, and the climber left dangling can swing to a post or be hauled up. Falls cost height, never lives.
 
-All numbers below come from `lib/ropeclimb-game.ts` and `lib/ropeclimb-world.ts`. Written 29-10-2026.
+All numbers below come from `lib/ropeclimb-game.ts` and `lib/ropeclimb-world.ts`. Written 30-10-2026.
 
 ## Files
 

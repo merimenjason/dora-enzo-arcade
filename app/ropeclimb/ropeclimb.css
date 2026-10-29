@@ -37,7 +37,7 @@
 .rc-who{position:absolute;left:34px;top:12px;z-index:2;background:#fff8ecd9;border:2px solid #fff;border-radius:14px;padding:5px 11px;font-weight:900;font-size:14px;display:flex;flex-direction:column;line-height:1.15;pointer-events:none;box-shadow:0 4px 14px #0003}
 .rc-who small{font-size:10.5px;font-weight:800;opacity:.7}
 .rc-who.is-dora{border-color:#ff9aa4}.rc-who.is-enzo{border-color:#9ab8ff}
-.rc-banner{position:absolute;left:50%;top:22%;transform:translateX(-50%);z-index:3;display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 30px;border-radius:22px;background:linear-gradient(180deg,#fff6e4f0,#ffe8c4f0);border:3px solid #fff;box-shadow:0 14px 40px #0006;pointer-events:none;animation:rc-banner 2.8s ease-in-out forwards;white-space:nowrap}
+.rc-banner{position:absolute;left:50%;top:max(96px,12%);transform:translateX(-50%);z-index:3;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 26px;border-radius:20px;background:linear-gradient(180deg,#fff6e4f0,#ffe8c4f0);border:3px solid #fff;box-shadow:0 14px 40px #0006;pointer-events:none;animation:rc-banner 2.8s ease-in-out forwards;white-space:nowrap}
 .rc-banner small{font-size:11px;font-weight:900;letter-spacing:2px;color:#a8642a}
 .rc-banner b{font-size:clamp(24px,5vw,36px);font-weight:900;color:#4a2a14}
 .rc-banner span{font-size:13px;font-weight:800;color:#7a5030}
@@ -121,6 +121,7 @@
   .rc-shell .rc-tb{width:60px;height:60px;font-size:24px}
   .rc-shell .rc-jump{width:80px;height:80px}
   .rc-shell .rc-small{width:50px;height:44px}
-  .rc-banner{top:12%}
+  .rc-banner{top:auto;bottom:10px;padding:6px 20px}
+  .rc-banner b{font-size:22px}
   .rc-hero{min-height:240px}
 }
