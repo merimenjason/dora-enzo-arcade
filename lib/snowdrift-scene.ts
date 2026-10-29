@@ -183,13 +183,13 @@ export class SnowScene {
     const sp = g.speed, q = g.course.ground(g.x);
     const above = q ? Math.max(0, g.y - q.y) : Math.max(0, g.y - g.course.height(g.course.start));
     const tall = W < H;
-    // visible height: about 26 units at a normal pace, more when fast or high
-    let vh = 23 + clamp((sp - 14) * 0.22, 0, 7) + Math.min(42, above * 1.15);
-    if (g.phase === 'ready') vh = 22;
+    // visible height: about 22 units at a normal pace, more when fast or high
+    let vh = 20 + clamp((sp - 14) * 0.22, 0, 7) + Math.min(42, above * 1.15);
+    if (g.phase === 'ready') vh = 19;
     if (g.phase === 'finish') vh = 32;
     let k = H / vh;
     // never so close that the road ahead is cut short (on an upright phone the width decides)
-    const minW = tall ? 22 + clamp(sp - 14, 0, 14) * 0.4 : 34;
+    const minW = tall ? 22 + clamp(sp - 14, 0, 14) * 0.4 : 30;
     k = Math.min(k, W / minW);
     const lead = clamp(sp * 0.42, 2, 14) + (W / k) * 0.12;
     const ahead = g.course.ground(g.x + lead * 1.4);
