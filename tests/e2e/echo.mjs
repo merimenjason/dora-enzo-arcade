@@ -125,7 +125,7 @@ const walkOntoPlate = async (page, press = (k) => page.keyboard.down(k), release
   await page.evaluate(() => window.__echoStart(0)); await phase(page, 'record');
   const r = await game(page, () => window.__echoRoomRect());
   assert.ok(r.h > 800 * 0.6 && r.w <= 1280, `the room fills the screen (${Math.round(r.w)}×${Math.round(r.h)})`);
-  assert.ok(13 * r.scale >= 800 * 0.02 && 22 * r.scale >= 800 * 0.04, 'the climbers are big enough to read');
+  assert.ok(22 * r.scale >= 800 * 0.08, `the climbers are at least 8% of the screen tall (${Math.round(22 * r.scale)} px)`);  // Dora's painting is 22 units tall
   assert.ok(await noSideScroll(page));
   console.log('PASS the desktop framing');
   await page.context().close();
