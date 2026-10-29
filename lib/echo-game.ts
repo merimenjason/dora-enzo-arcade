@@ -34,6 +34,8 @@ export const JUMP_CUT = 0.5;
 export const PUSH = 45;
 /** Doors slide fully open or shut in 10 ticks; lifts move 48 units a second. */
 export const DOOR_STEP = 1 / 10, LIFT_SPEED = 48;
+/** The tallest lip (a low seesaw pad, a resting lift) a climber walks straight up onto. */
+export const STEP_UP = 8;
 /** Seesaws: four tiles wide, the low pad 6 above the floor and the high one 26; a fall faster than `impact` onto the
  *  high pad by a weight of 2 or more flips it and launches whatever stands on the other pad. */
 export const SAW = { w: 64, pad: 24, low: 6, high: 26, mid: 16, impact: 90, launch: { dora: 470, enzo: 330, crate: 300 } } as const;
@@ -597,6 +599,12 @@ export class EchoGame {
       }
       p.x += allow;
       if (Math.abs(allow - dx) > EPS && !p.push) p.vx = 0;
+      // walking into a low seesaw pad or lift plank steps up onto it rather than ducking under
+      if (p.ground && p.vy >= 0) for (const s of this.surfaces(false)) {
+        const rise = p.y - s.top;
+        if (rise <= EPS || rise > STEP_UP || p.x + k.w / 2 <= s.l || p.x - k.w / 2 >= s.r) continue;
+        if (Math.abs(this.sweepY(box(p.x, p.y, k.w, k.h), -rise, p.who, rects, []).dy + rise) < EPS) { p.y = s.top; break; }
+      }
     }
     // up and down
     const wasGround = p.ground;
