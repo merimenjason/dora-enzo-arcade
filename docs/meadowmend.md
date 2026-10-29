@@ -80,7 +80,7 @@ The ghost shows a green tick on every edge that would match and a red cross on e
 
 ## Dora and Enzo
 
-They hop to each new tile (Enzo a beat behind), cheer a Perfect or a granted wish, go and sit by each new pond, and otherwise sit together. They are painted poses (walk, sit and cheer) once the paintings load, and the shared drawn chinchillas until then. On screen they are 1.15 hex radii tall but never less than 72 pixels (14% of the shorter side on small screens), so they read clearly however far the camera pulls back, and they turn see-through when the ghost tile is right behind them.
+They hop to each new tile (Enzo a beat behind), cheer a Perfect or a granted wish, go and sit by each new pond, and otherwise sit together. They are painted poses (walk, sit and cheer) once the paintings load, and the shared drawn chinchillas until then. On screen they are 1.15 hex radii tall but never less than 100 pixels (14% of the shorter side on smaller screens), so they read clearly however far the camera pulls back, and they turn see-through when the ghost tile is right behind them.
 
 ## The camera
 

@@ -566,7 +566,7 @@ export class MeadowScene {
     }
   }
   /** The characters' height on screen: tied to the zoom, but never too small to read. */
-  chinHeight() { const small = Math.min(this.W, this.H); return clamp(this.k * 1.15, Math.min(72, small * 0.14), Math.max(90, Math.min(140, small * 0.2))); }
+  chinHeight() { const small = Math.min(this.W, this.H); return clamp(this.k * 1.15, Math.min(100, small * 0.14), Math.max(90, Math.min(140, small * 0.2))); }
   private drawChins(dt: number, gh: Ghost) {
     const c = this.c, H = this.chinHeight();
     const ghostAt = gh ? this.cellToScreen(gh.q, gh.r) : null;
