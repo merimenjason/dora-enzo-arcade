@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of fifty-two original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of fifty-three original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -62,6 +62,7 @@ Listed in arcade-menu order.
 | 50 | Prism Paws | `/prism` | Light-beam puzzle |
 | 51 | Seedstorm | `/seedstorm` | Vertical shoot-'em-up |
 | 52 | Driftwood Post | `/driftwood` | Sailing adventure |
+| 53 | Ropeclimb | `/ropeclimb` | Rope-physics climber |
 
 ## Run
 
@@ -1091,6 +1092,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/driftwood-post.md`](docs/driftwood-post.md), art brief [`docs/driftwood-post-art-brief.md`](docs/driftwood-post-art-brief.md).
 
+### 53 · Ropeclimb (`/ropeclimb`)
+
+**Play:** A side-on physics climber for one player or two. Dora and Enzo are tied together by a short, stretchy rope (130 units, about eight times their height) and climb a giant barn tower from the cellar to the weathervane at dawn, through six sections of two floors each: the Cellar, the Stables, the Hayloft, the Rafters, the Bell Loft and the Rooftop. Hold to charge a leap and let go to spring (a full 0.75 s charge leaps about eight times their height), aim with left or right, and grip posts, hay stacks and beams with your claws. Whoever isn't moving holds on: a missed leap is caught by the rope, and the dangling climber can steer to swing like a pendulum, grab something, or be hauled up by the partner. Holding a hanging partner too long tires the claws. Falls cost height, never lives. The hazards are crumbling straw, hay bales sliding along beams, knothole gusts, swinging lanterns, the bell and three sleepy owls who wake at noise (hard landings, big leaps, the rope snapping taut, the bell) and flap off anyone not gripping. Rolling together in the dust-bath tub on every floor saves the climb. For replays there are a speedrun clock, fewest-falls medals (Sure-Footed, Steady Paws, Hay Hopper), 30 acorn charms, and Hard Knot (a 90-unit rope, no saves and no hay nets), which opens after the first finish.
+
+**Controls:** In 1 player, **←/→** or **A/D** aim and walk, hold **Space** (or **Enter** or **J**) to charge and let go to leap, **↓**, **S** or **Shift** let go (with Auto claws on, the default) or grip (with it off), **↑** or **W** hauls the rope or climbs a post, **Tab**, **Q** or **E** swap climbers, and **Esc** or **P** pause. In 2 players on one keyboard, Dora uses **A/D**, **Space**, **S** and **W**, and Enzo uses **←/→**, **Enter**, **↓** and **↑**. The first two gamepads work too: the stick aims, Ⓐ leaps, Ⓑ or a trigger grips or lets go, d-pad ↑ hauls, Ⓨ or a bumper swaps, and Start pauses. On a touch screen, ◀ ▶ aim, the big button holds to charge a leap, and smaller buttons haul, grip or let go, and swap. The game pauses when the tab is hidden or the window loses focus.
+
+**Tests:** `npm run test:ropeclimb` runs 157 engine checks: exact replays (1 and 2 players, and copies of a game), leaping and its charge, the rope's length, links, pendulum swing and pumping, gripping posts, beams and the auto-bracing partner, catches, hauling, tired claws, the rope paying out, drags in 2 players, falls and hard landings, every hazard (straw, bales, gusts, lanterns, owls and noise, the bell), acorns, tubs and checkpoints, Hard Knot, swapping, reaching the top, medals, and saves (corrupt ones, clamping, resuming, records). `npm run bot:ropeclimb` climbs every floor from its tub with a human-like bot that searches ahead, plays with a wobble on its charge and aim, and replans; it checks that standing still climbs nothing and that each floor takes under 8 minutes (`--quick`, floors 1, 5 and 9, runs in `npm test`). `npm run test:e2e:ropeclimb` checks the browser: the menu, a real charged leap, swapping, pausing by key and on a hidden tab, a tub saving the climb, acorns, continuing after a reload, the ending and Hard Knot opening, a corrupt save, two players on one keyboard, and phones held either way with the touch buttons.
+
+**Docs:** [`docs/ropeclimb.md`](docs/ropeclimb.md), art brief [`docs/ropeclimb-art-brief.md`](docs/ropeclimb-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1110,7 +1121,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fifty-two ways/` assertion in `tests/e2e/dust-bath.mjs`, the 52-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fifty-three ways/` assertion in `tests/e2e/dust-bath.mjs`, the 53-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

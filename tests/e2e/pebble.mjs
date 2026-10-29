@@ -19,7 +19,7 @@ const phase = (page) => page.evaluate(() => window.__pebble()?.phase ?? null);
 
 {
   const page = await open();
-  await page.goto(base); assert.equal(await page.locator('.arcade-card').count(), 52);
+  await page.goto(base); assert.equal(await page.locator('.arcade-card').count(), 53);
   await page.getByRole('link', { name: /Pebble Pop/ }).click(); await page.waitForURL('**/pebble'); await ready(page);
   console.log('PASS the arcade lists Pebble Pop and its card opens the game');
 
