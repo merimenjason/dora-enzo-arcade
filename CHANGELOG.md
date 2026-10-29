@@ -13,6 +13,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 ### Changed
 
 - **Hayloft Tycoon**: buildings show their upgrades in paint. Each building gets a spruced-up painting for its first two upgrades and a grand one for the third, and every milestone adds a gold star and makes it a little bigger. The valley is livelier too: buildings bob and puff while they work and bounce when a run pays out; helpers work at their building, carry its goods to the door and back, and cheer each payout; and Dora and Enzo breathe, sway and hop now and then.
+- **Seedstorm**: Dora and Enzo look more like themselves on the title, the ending, their chat portraits and their dandelion gliders: softly furry rounded heads with no spiky tufts, and clean pink ears.
 - **Driftwood Post**: Dora and Enzo look more like themselves on the title painting, their portraits, the boat and the regatta ending: softly furry rounded heads with no spiky tufts, and clean pink ears.
 - **Driftwood Post**: Mossy the frog, Reedmere's choir conductor, has a painted portrait on the jetty card and in letters, like the other residents.
 - **Driftwood Post**: the lake's shores are painted. The mainland is a flowery meadow and a sandy beach that runs out into the foam, and the islands' drawn stand-ins use the same meadow and sand.
