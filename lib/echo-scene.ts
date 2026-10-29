@@ -32,9 +32,9 @@ const MARK = ['', '●', '▲', '■', '◆'];
 const PAINTED: Record<Who, Pose[]> = { dora: ['idle', 'run', 'jump', 'squeeze', 'cheer'], enzo: ['idle', 'run', 'jump', 'push', 'cheer'] };
 const STAND_IN: Record<Pose, Pose[]> = { idle: [], run: ['idle'], jump: ['run', 'idle'], fall: ['jump', 'run', 'idle'], push: ['run', 'idle'], squeeze: ['run', 'idle'], cheer: ['idle'] };
 /** How tall each climber's painting is drawn, in world units (the boxes are 13 and 22). */
-const SPRITE_H: Record<Who, number> = { dora: 24, enzo: 34 };
+const SPRITE_H: Record<Who, number> = { dora: 22, enzo: 30 };
 /** The sprites are 768 × 512 with the climber standing on a line 16 from the bottom, the idle pose 360 tall. */
-const SPRITE_FOOT = 16 / 512, SPRITE_FIG = 360 / 512;
+const SPRITE_FOOT = 16 / 512, SPRITE_FIG = 360 / 512, SPRITE_BACK = 0.07;
 const TEAL = 'rgba(90, 236, 222, 1)';
 
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; max: number; size: number; color: string; kind: 'dust' | 'chip' | 'spark' | 'leaf' | 'drop' };
@@ -485,7 +485,8 @@ export class EchoScene {
       const h = H / SPRITE_FIG, w = h * (art.i.naturalWidth / art.i.naturalHeight);
       const bob = o.run ? -Math.abs(Math.sin(this.time * 16)) * 1.2 : 0;
       c.scale(face, 1);
-      c.drawImage(src, -w / 2, -h + h * SPRITE_FOOT + bob, w, h);
+      // the tail trails behind, so the painting sits a little back to keep the body over the climber's box
+      c.drawImage(src, -w / 2 - w * SPRITE_BACK, -h + h * SPRITE_FOOT + bob, w, h);
     } else {
       const fb = this.fallback, f = ctx2(fb), hh = who === 'dora' ? 22 : 30;
       if (o.teal) {

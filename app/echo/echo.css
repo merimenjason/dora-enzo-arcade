@@ -69,7 +69,8 @@
 .eb-shell .eb-jump{width:88px;height:88px;border-radius:50%;background:#ffe2a8dc;border-color:#fff3d0;font-size:34px}
 .eb-shell .eb-tb:active{background:#ffd27ae0}
 .eb-touch.is-tall .eb-tl{left:14px;bottom:18px}
-.eb-touch.is-tall .eb-tr{right:14px;bottom:14px;align-items:flex-end}
+.eb-touch.is-tall .eb-tr{right:14px;bottom:10px;width:128px;flex-wrap:wrap;justify-content:flex-end}
+.eb-touch.is-tall .eb-jump{width:80px;height:80px}
 .eb-touch.is-wide .eb-tl{left:8px;bottom:12px;width:min(134px,calc(15vw - 10px));justify-content:space-between}
 .eb-touch.is-wide .eb-tl .eb-tb{width:calc(50% - 4px);min-width:50px;height:72px}
 .eb-touch.is-wide .eb-tr{right:8px;bottom:10px;width:min(134px,calc(15vw - 10px));flex-wrap:wrap;justify-content:center}
@@ -156,6 +157,7 @@
 @media (max-width:760px){
   .eb-line{display:none}
   .eb-candle+.eb-line{margin-left:0}
+  .eb-candle{margin-right:22px}
   .eb-bar-mid{gap:14px}
 }
 @media (max-width:520px){
