@@ -55,6 +55,8 @@
 .eb-shell .eb-hint small{opacity:.6;margin-left:6px}
 .eb-tip{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:2;background:#241a2cd8;color:#fff4dc;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:800;white-space:nowrap;pointer-events:none;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
 .eb-shell[data-touch=tall] .eb-tip{bottom:auto;top:12px}
+.eb-tall-note{display:none}
+@media (max-aspect-ratio:3/5){.eb-shell[data-touch=tall] .eb-tall-note{position:absolute;left:0;right:0;bottom:178px;display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none;color:#fff4e4;text-shadow:0 1px 3px #000c}.eb-tall-note b{font-size:17px;font-weight:900}.eb-tall-note small{font-size:12px;opacity:.75}}
 .eb-toasts{position:absolute;left:50%;top:58px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:5;pointer-events:none;width:min(520px,calc(100% - 24px))}
 .eb-toast{background:#241a2ce0;color:#fff8ea;border-radius:999px;padding:6px 14px;font-weight:800;font-size:13.5px;text-align:center;animation:eb-toast .3s ease-out;box-shadow:0 6px 18px #0004}
 @keyframes eb-toast{from{opacity:0;transform:translateY(-8px)}}
@@ -144,9 +146,12 @@
 .eb-clear .eb-row{justify-content:center;width:100%}
 .eb-ending{position:absolute;inset:0;z-index:7;display:grid;grid-template-columns:1fr;grid-template-rows:1fr auto;background:#2a1a10;color:#fff4e4;overflow:auto}
 .eb-ending-art{position:absolute;inset:0}
-.eb-ending-text{position:relative;align-self:end;margin:0 auto 12px;width:min(760px,calc(100% - 24px));background:#2a1a10d8;border:2px solid #fff3;border-radius:22px;padding:18px 20px;display:flex;flex-direction:column;gap:8px;backdrop-filter:blur(4px)}
+@media (max-aspect-ratio:3/4){.eb-ending-art{bottom:auto;height:100%;transform:translateY(-17%)}}
+.eb-ending-text{position:relative;align-self:end;margin:0 auto 12px;width:min(700px,calc(100% - 24px));background:#2a1a10d8;border:2px solid #fff3;border-radius:20px;padding:12px 18px;display:flex;flex-direction:column;gap:5px;backdrop-filter:blur(4px)}
 .eb-ending-text .eb-eyebrow{color:#ffd28a}
-.eb-ending-text h2{font-size:clamp(26px,5vw,40px);font-weight:900}
+.eb-ending-text h2{font-size:clamp(22px,3.6vw,32px);font-weight:900;line-height:1.1}
+.eb-ending-text>p:not(.eb-eyebrow):not(.eb-final){font-size:14px;line-height:1.4}
+.eb-ending-text .eb-go,.eb-ending-text .eb-alt{padding-top:9px;padding-bottom:9px}
 .eb-final{font-weight:900;font-size:15px;color:#ffe8b8}
 .eb-credits{position:absolute;right:16px;top:16px;width:230px;height:170px;overflow:hidden;mask-image:linear-gradient(180deg,transparent,#000 20%,#000 80%,transparent);-webkit-mask-image:linear-gradient(180deg,transparent,#000 20%,#000 80%,transparent);pointer-events:none}
 .eb-credits>div{display:flex;flex-direction:column;gap:6px;text-align:right;animation:eb-roll 16s linear infinite;text-shadow:0 1px 3px #000a}

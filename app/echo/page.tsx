@@ -307,6 +307,7 @@ export default function EchoPage() {
       <div className="eb-stage" ref={stage}>
         <canvas ref={canvas} className="eb-canvas" tabIndex={0} aria-label="A burrow room. Move with the arrow keys, jump with Space, R rewinds and Shift+R records again." />
         {screen === 'play' && g && R && (<>
+          <p className="eb-tall-note"><b>{R.name}</b><small>Turn your phone sideways for a bigger burrow</small></p>
           {intro && intro.i === R.index && (
             <div key={intro.id} className="eb-intro">
               <small>{CHAPTERS.find((c) => c.id === R.chapter)!.name} · room {R.index + 1} of {ROOM_COUNT}</small>
