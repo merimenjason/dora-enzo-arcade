@@ -2,7 +2,7 @@
 
 Paintings for Driftwood Post (`/driftwood`), a cosy sailing adventure. Dora and Enzo sail a little driftwood post boat around Lake Whisker, delivering letters between island villages. The game draws its own stand-in for every image until the file loads, so they can arrive in any order. Written 29-10-2026.
 
-**Style for all images:** warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, sunny lakeside colours, matching `public/art/hayloft/dora.webp` and `public/art/hayloft/enzo.webp`. No text, letters, numbers or logos (envelopes are blank). **Dora** is a cream-white chinchilla with pink ears and ruby-red eyes. **Enzo** is a cool blue-grey chinchilla with a darker wavy back, a pale chest and solid black eyes (never taupe or brown). Export as `.webp` (quality about 88). All files live in `public/art/driftwood/`.
+**Style for all images:** warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, sunny lakeside colours, matching how Dora and Enzo look in `public/art/driftwood/title.webp` and `public/art/roll/title.webp`. **Their heads:** a broad, slightly flat crown with a soft edge of short dense fur, no spiky tufts or cowlicks on the head, and clean pink ear insides with no fluffy ear tufts (the older Hayloft Tycoon portraits have these tufts, so don't copy them). No text, letters, numbers or logos (envelopes are blank). **Dora** is a cream-white chinchilla with pink ears and ruby-red eyes. **Enzo** is a cool blue-grey chinchilla with a darker wavy back, a pale chest and solid black eyes (never taupe or brown). Export as `.webp` (quality about 88). All files live in `public/art/driftwood/`.
 
 ## Scenes (opaque)
 

@@ -2,7 +2,7 @@
 
 Every painted image Hayloft Tycoon (`/hayloft`) loads. Until a file exists (or if it never loads) the scene draws its own Canvas stand-in, so these can arrive in any order. Written 28-10-2026.
 
-**Style for all images:** warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and bright. No text, letters, numbers or logos anywhere in the images. **Dora** is a cream-white chinchilla with pink ears and ruby-red eyes; **Enzo** is a grey chinchilla with a pale chest and black eyes. Both have big round ears, long whiskers and fluffy tails. Export as `.webp` (quality about 85).
+**Style for all images:** warm hand-painted toon storybook, soft cel shading, gentle fine brown ink edges, cosy and bright. No text, letters, numbers or logos anywhere in the images. **Dora** is a cream-white chinchilla with pink ears and ruby-red eyes; **Enzo** is a grey chinchilla with a pale chest and black eyes. Both have big round ears, long whiskers and fluffy tails. Export as `.webp` (quality about 85). **Their heads** (added 29-10-2026): a broad, slightly flat crown with a soft edge of short dense fur, no spiky tufts or cowlicks on the head, and clean pink ear insides with no fluffy ear tufts; match `public/art/driftwood/title.webp` and `public/art/roll/title.webp`, not the older portraits in this folder.
 
 All files live in `public/art/hayloft/`.
 
