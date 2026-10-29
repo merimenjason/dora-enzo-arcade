@@ -155,6 +155,8 @@ export class RopeclimbScene {
       const k = Math.max(this.W / img.naturalWidth, (this.H * 1.35) / img.naturalHeight), w = img.naturalWidth * k, h = img.naturalHeight * k;
       const p = clamp((this.cam.y - s0) / span, 0, 1), y = -(h - this.H) * (1 - p);
       c.globalAlpha = 0.92; c.drawImage(img, (this.W - w) / 2 + (TOWER_W / 2 - this.cam.x) * z * 0.15, y, w, h); c.globalAlpha = 1;
+      // a soft veil sets the painting back so the ledges and climbers stand out in front of it
+      c.fillStyle = sec === 'rooftop' ? 'rgba(40, 20, 50, 0.16)' : 'rgba(28, 16, 8, 0.32)'; c.fillRect(0, 0, this.W, this.H);
     }
     void g;
   }
@@ -278,8 +280,12 @@ export class RopeclimbScene {
           this.strawBeam(s, v > 0 ? Math.sin(this.time * 50) * Math.min(2, v / 15) : 0);
           return;
         }
+        // a shadow on the wall behind it, then the beam with a dark edge, so it stands out from painted boards
+        c.fillStyle = 'rgba(15, 8, 4, 0.32)'; c.fillRect(s.x + 3, s.y - 6, s.w, 6);
         c.fillStyle = L.wood; c.fillRect(s.x, s.y, s.w, s.h);
+        c.strokeStyle = 'rgba(30, 16, 8, 0.75)'; c.lineWidth = 1; c.strokeRect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);
         c.fillStyle = L.woodTop; c.fillRect(s.x, s.y + s.h - 3, s.w, 3);
+        c.fillStyle = 'rgba(255, 236, 190, 0.35)'; c.fillRect(s.x + 1, s.y + s.h - 1, s.w - 2, 1);
         c.fillStyle = 'rgba(0,0,0,0.22)'; c.fillRect(s.x, s.y, s.w, 2);
         c.fillStyle = 'rgba(0,0,0,0.18)'; for (let x = s.x + 14 + hash(s.id) * 20; x < s.x + s.w - 6; x += 34 + hash(x) * 10) c.fillRect(x, s.y + 3, 10 + hash(x * 3) * 12, 1);
         c.fillStyle = '#2a1a10'; c.beginPath(); c.arc(s.x + 4, s.y + s.h / 2, 1.3, 0, TAU); c.arc(s.x + s.w - 4, s.y + s.h / 2, 1.3, 0, TAU); c.fill();
