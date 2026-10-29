@@ -146,7 +146,7 @@ async function ride(page, press, release, until = () => false) {
   await page.reload(); await ready(page);
   await page.getByRole('button', { name: /Daily Hill/ }).click();
   await phase(page, 'ready');
-  assert.match(await page.locator('.sd-intro').innerText(), /Daily Hill/);
+  assert.match(await page.locator('.sd-intro').innerText(), /Daily Hill/i);
   const seedA = await game(page, () => window.__snowdrift().mode.seed);
   await page.evaluate(() => window.__snowdriftStart('daily')); await phase(page, 'ready');
   assert.equal(await game(page, () => window.__snowdrift().mode.seed), seedA, 'the Daily Hill is the same hill all day');
