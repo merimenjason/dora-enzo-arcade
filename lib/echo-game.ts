@@ -41,7 +41,7 @@ export const SAW = { w: 64, pad: 24, low: 6, high: 26, mid: 16, impact: 90, laun
 export const CRUMBLE_TICKS = 30;
 /** Glow-moss is solid for the live climber while the echo is within this distance of it. */
 export const MOSS_R = 52;
-/** Wind lifts Dora (up to `cap`) but only slows Enzo's fall (to `cap`). */
+/** Wind lifts Dora (rising up to `cap`) but only brakes Enzo's fall (down to `cap`). */
 export const FAN = { dora: { lift: 1900, cap: -130 }, enzo: { lift: 800, cap: 50 } } as const;
 /** How long the rewind plays before the next loop starts. */
 export const REWIND_TICKS = 42, RETRY_TICKS = 26;
@@ -184,7 +184,8 @@ export function validateRoom(index: number): string[] {
   // lifts run through open air, with a plank that fits
   for (const l of R.lifts) {
     if (l.w < 1 || l.up < 1 || l.c < 1 || l.c + l.w > COLS - 1) out.push(`${id}: a lift has a bad size`);
-    for (let k = 0; k <= l.up; k++) for (let c = l.c; c < l.c + l.w; c++) { const r = l.r - k; if (k > 0 && tile(c, r) !== AIR) out.push(`${id}: the lift at ${l.c},${l.r} runs into rock at ${c},${r}`); }
+    // the plank rests in row r and rises through the `up` rows above it, which must all be open
+    for (let k = 0; k <= l.up; k++) for (let c = l.c; c < l.c + l.w; c++) { const r = l.r - k; if (tile(c, r) !== AIR || DOOR_LETTERS.includes(ch(c, r))) out.push(`${id}: the lift at ${l.c},${l.r} runs into something at ${c},${r}`); }
     if (!R.plates.some((p) => p.g === l.g)) out.push(`${id}: a lift has no plate`);
   }
   // seesaws sit on the floor in four clear tiles
@@ -570,7 +571,8 @@ export class EchoGame {
     if (p.wind) {
       const f = FAN[p.who];
       if (p.who === 'dora') { if (p.vy > f.cap) p.vy = Math.max(f.cap, p.vy - f.lift * DT); }
-      else { p.vy -= f.lift * DT; if (p.vy > f.cap) p.vy = Math.max(f.cap, p.vy - 2400 * DT); }
+      // Enzo is too heavy to be lifted: the wind only brakes his fall
+      else if (p.vy > f.cap) p.vy = Math.max(f.cap, p.vy - f.lift * 3 * DT);
     }
     // sideways, shoving crates if Enzo
     const rects = this.rects(-1), dx = p.vx * DT;
