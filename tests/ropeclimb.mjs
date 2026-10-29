@@ -93,6 +93,11 @@ function leap(g, who, ticks, aim = 0, grip = false, after = 120) {
   ok(left < 240 - 60, `the swing carries past the anchor (${left.toFixed(0)})`);
   near(low, 300 - ROPE.len, 14, 'at the bottom of the arc it hangs a rope-length down');
   ok(p.enzo.x === 240 && p.enzo.y === 300, 'the anchored partner does not move');
+  // the rope never cuts through a floor: it bends round the hatch edge, so a partner under the floor swings in below the hatch
+  const w = lab({ x: 250, y: 750 }, { x: 180, y: 690, mode: 'air' });
+  run(w, 90);
+  ok(w.bend && Math.abs(w.bend.x - 331) < 2, `a climber under the floor hangs from the hatch edge (${w.bend && w.bend.x.toFixed(0)})`);
+  ok(w.enzo.x > 300 && w.enzo.mode === 'stand', `swinging in under the hatch onto the beam there (${w.enzo.x.toFixed(0)})`);
   // steering pumps the swing
   const q1 = lab({ x: 240 + 60, y: 200, mode: 'air' }, { x: 240, y: 300, mode: 'grip' }), q2 = q1.clone();
   let a1 = 0, a2 = 0;

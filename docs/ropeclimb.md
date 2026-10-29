@@ -23,7 +23,7 @@ All numbers below come from `lib/ropeclimb-game.ts` and `lib/ropeclimb-world.ts`
 
 ## The rope
 
-- **Length:** 130 units, or 90 on Hard Knot. It is made of 6 links solved 12 times a tick as inequality constraints, so it goes slack but never pulls longer than its length. It can stretch 10% before it stops like a wall. The links drape over ledges.
+- **Length:** 130 units, or 90 on Hard Knot. It is made of 6 links solved 12 times a tick as inequality constraints, so it goes slack but never pulls longer than its length. It can stretch 10% before it stops like a wall. The links drape over ledges. The rope never cuts through a floor or a block: it bends round the nearest corner, so a climber hanging below a floor hangs from the edge of the hatch.
 - **Weight:** a climber who grips, or one braced standing still on a ledge, is anchored and can't be moved by the rope. One standing without bracing gives way at 0.4 of the weight. In the air you are weightless to it. In 1 player, the climber you aren't steering braces by itself.
 - **Catches:** when the rope suddenly stops a flying climber, that's a catch if the partner is anchored. If the partner is standing and gets pulled, that's a drag; if both are in the air, it's a yank. A taut rope damps 75% of its spring-back, so a catch doesn't bounce. The swing across is kept, so you swing like a pendulum. Steering with the swing pumps it higher.
 - **Hauling:** an anchored climber holding up reels the rope in at 60% of its length a second, down to a quarter of its length, lifting the partner. The rope pays back out at 80% a second once it's slack or nobody hangs on it.

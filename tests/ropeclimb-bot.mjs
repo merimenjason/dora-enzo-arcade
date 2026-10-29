@@ -89,7 +89,12 @@ function score(g) {
   if (tub) for (const c of [g.dora, g.enzo]) if (Math.abs(c.y - tub.y) < 2) s += 80 - Math.min(80, Math.abs(c.x - tub.x) * 0.25);
   return s;
 }
-const done = (g, from) => g.tub > from || g.phase === 'won';
+/** Climbed: the next tub reached (or the top), or both climbers standing up on the next floor. */
+const done = (g, from) => {
+  if (g.tub > from || g.phase === 'won') return true;
+  const t = g.world.tubs[from + 1];
+  return !!t && [g.dora, g.enzo].every((c) => c.mode === 'stand' && c.y >= t.y);
+};
 
 /**
  * Best-first search from `g` for the next real gain: a settled spot at least `gain` higher (by score) than here, or

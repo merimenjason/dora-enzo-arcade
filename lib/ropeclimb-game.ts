@@ -165,6 +165,8 @@ export class RopeclimbGame {
   reel = 1;
   /** How tight the rope is: 0 slack, 1 at full length, more when stretched. */
   tension = 0;
+  /** Where the rope bends round the corner of a solid it would otherwise cut through (a hatch edge, a block), or null. */
+  bend: { x: number; y: number } | null = null;
   owls: OwlState[];
   /** Crumbling straw by solid id: 0 whole, >0 ticks since stood on, <0 ticks until it grows back. */
   straw: Record<number, number> = {};
@@ -272,7 +274,7 @@ export class RopeclimbGame {
     // a taut rope doesn't bounce: the springing back toward the partner is damped, the swing across is kept
     if (this.tension > 0.97) for (const c of this.both) {
       if (c.mode !== 'air') continue;
-      const o = this.c(other(c.who)), dx = o.x - c.x, dy = o.y - c.y, d = Math.hypot(dx, dy) || 1, vr = (c.vx * dx + c.vy * dy) / d;
+      const o = this.bend ?? this.c(other(c.who)), dx = o.x - c.x, dy = o.y - c.y, d = Math.hypot(dx, dy) || 1, vr = (c.vx * dx + c.vy * dy) / d;
       if (vr > 0) { const k = vr * ROPE.damp; c.vx -= dx / d * k; c.vy -= dy / d * k; }
     }
     this.hazards();
@@ -427,20 +429,65 @@ export class RopeclimbGame {
       });
       if (ry[i] < 0.5) ry[i] = 0.5;
     }
-    // the rope stops like a wall a little past its length
+    // the rope stops like a wall a little past its length; if it would cut through a floor or a block, it bends round
+    // that solid's nearest corner instead, so a climber hanging under a floor hangs from the hatch's edge
     const max = this.ropeNow * (1 + ROPE.stretch);
-    let dx = rx[n] - rx[0], dy = ry[n] - ry[0], len = Math.hypot(dx, dy);
-    if (len > max && wd + we > 0) {
-      const k = (len - max) / len / (wd + we);
-      rx[0] += dx * k * wd; ry[0] += dy * k * wd; rx[n] -= dx * k * we; ry[n] -= dy * k * we;
+    const b = this.bend = this.bendAt(rx[0], ry[0], rx[n], ry[n]);
+    let len: number;
+    if (b) {
+      const l1 = Math.hypot(rx[0] - b.x, ry[0] - b.y) || 1e-9, l2 = Math.hypot(rx[n] - b.x, ry[n] - b.y) || 1e-9;
+      len = l1 + l2;
+      if (len > max && wd + we > 0) {
+        const over = len - max, m0 = Math.min(l1, over * wd / (wd + we)), m1 = Math.min(l2, over * we / (wd + we));
+        rx[0] += (b.x - rx[0]) / l1 * m0; ry[0] += (b.y - ry[0]) / l1 * m0; rx[n] += (b.x - rx[n]) / l2 * m1; ry[n] += (b.y - ry[n]) / l2 * m1;
+        len -= m0 + m1;
+      }
+      // lay the links along the bent rope
+      const a1 = Math.hypot(rx[0] - b.x, ry[0] - b.y), a2 = Math.hypot(rx[n] - b.x, ry[n] - b.y), tot = a1 + a2 || 1;
+      for (let i = 1; i < n; i++) {
+        const t = i / n * tot;
+        if (t <= a1) { const f = t / (a1 || 1); rx[i] = rx[0] + (b.x - rx[0]) * f; ry[i] = ry[0] + (b.y - ry[0]) * f; }
+        else { const f = (t - a1) / (a2 || 1); rx[i] = b.x + (rx[n] - b.x) * f; ry[i] = b.y + (ry[n] - b.y) * f; }
+        this.rpx[i] = rx[i]; this.rpy[i] = ry[i];
+      }
+    } else {
+      const dx = rx[n] - rx[0], dy = ry[n] - ry[0]; len = Math.hypot(dx, dy);
+      if (len > max && wd + we > 0) {
+        const k = (len - max) / len / (wd + we);
+        rx[0] += dx * k * wd; ry[0] += dy * k * wd; rx[n] -= dx * k * we; ry[n] -= dy * k * we;
+        len = max;
+      }
     }
     // the climbers go where the rope put their waists
     d.x = rx[0]; d.y = ry[0] - BODY.waist; e.x = rx[n]; e.y = ry[n] - BODY.waist;
-    dx = e.x - d.x; dy = e.y - d.y; len = Math.hypot(dx, dy);
     this.tension = len / this.ropeNow;
     // pay the rope back out once it's slack and nobody is hauling
     const hauling = (['dora', 'enzo'] as Who[]).some((w2) => pads[w2].up && this.anchored(this.c(w2)));
     if (!hauling && this.reel < 1 && (len < this.ropeNow * 0.92 || !this.loaded(d) && !this.loaded(e))) this.reel = Math.min(1, this.reel + ROPE.payOut * DT);
+  }
+
+  /** The corner the straight rope from (ax, ay) to (bx, by) must bend round, if it cuts through a solid. */
+  private bendAt(ax: number, ay: number, bx: number, by: number): { x: number; y: number } | null {
+    let best: { x: number; y: number } | null = null, bestT = 2;
+    this.near(Math.min(ay, by) - 1, Math.max(ay, by) + 1, (s) => {
+      if (s.oneWay || !this.solidOn(s)) return;
+      // Liang-Barsky: where along the segment it enters the box, if it does
+      let t0 = 0, t1 = 1;
+      const dx = bx - ax, dy = by - ay;
+      for (const [p, q] of [[-dx, ax - s.x], [dx, s.x + s.w - ax], [-dy, ay - s.y], [dy, s.y + s.h - ay]]) {
+        if (p === 0) { if (q < 0) return; continue; }
+        const r = q / p;
+        if (p < 0) { if (r > t1) return; if (r > t0) t0 = r; } else { if (r < t0) return; if (r < t1) t1 = r; }
+      }
+      if (t1 - t0 < 1e-6 || t0 >= bestT) return;
+      let pick: { x: number; y: number } | null = null, pl = Infinity;
+      for (const [cx, cy] of [[s.x - 1, s.y - 1], [s.x + s.w + 1, s.y - 1], [s.x - 1, s.y + s.h + 1], [s.x + s.w + 1, s.y + s.h + 1]]) {
+        const l = Math.hypot(ax - cx, ay - cy) + Math.hypot(bx - cx, by - cy);
+        if (l < pl) { pl = l; pick = { x: cx, y: cy }; }
+      }
+      best = pick; bestT = t0;
+    });
+    return best;
   }
 
   /** Sweeps a climber from where it was this tick to where it wants to be: across first, then up or down. */
@@ -468,7 +515,15 @@ export class RopeclimbGame {
       if (y <= c.py && c.py >= top - 0.01 && y < top) { if (y < top || !landed) { y = top; landed = s; } return; }
       if (s.oneWay) return;
       if (y + h > s.y && y < top) {
-        if (y > c.py && c.py + h <= s.y + 0.01) { y = s.y - h; head = true; }
+        if (y > c.py && c.py + h <= s.y + 0.01) {
+          // only clipping a corner with the edge of your head: slide off it sideways instead of sticking under it
+          const inL = x + hw - s.x, inR = s.x + s.w - (x - hw);
+          if (Math.min(inL, inR) < hw * 0.8 && s.w > hw * 2) {
+            const nx = inL < inR ? s.x - hw : s.x + s.w + hw;
+            if (nx >= hw && nx <= TOWER_W - hw) { x = nx; return; }
+          }
+          y = s.y - h; head = true;
+        }
         else if (y <= c.py) { y = top; landed = s; }
       }
     });
