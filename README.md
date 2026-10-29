@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of fifty-five original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of fifty-six original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -65,6 +65,7 @@ Listed in arcade-menu order.
 | 53 | Ropeclimb | `/ropeclimb` | Rope-physics climber |
 | 54 | Echo Burrow | `/echo` | Time-loop puzzle platformer |
 | 55 | Snowdrift | `/snowdrift` | One-button sledding race |
+| 56 | Meadowmend | `/meadow` | Hex tile-laying valley builder |
 
 ## Run
 
@@ -1124,6 +1125,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/snowdrift.md`](docs/snowdrift.md), art brief [`docs/snowdrift-art-brief.md`](docs/snowdrift-art-brief.md).
 
+### 56 · Meadowmend (`/meadow`)
+
+**Play:** A cosy hex tile-laying valley builder. Winter is over and the valley below the burrow is bare; Dora and Enzo mend it one hexagonal tile at a time. Every tile has six edges of meadow, woods, burrow-hill or stream. Take the current tile (with a peek at the next), turn it, and set it on any empty cell next to the valley: every edge that matches its neighbour scores 10. A tile whose six sides all match is Perfect (60 points and a tile added to the stack; rocks and the valley's edge never spoil one). Streams must meet streams, and a stream with every end joined becomes a pond (12 points a tile and a tile back) where a duck and her ducklings move in; a land patch with no open side left is finished, with bees, hedgehogs or rabbits moving in. Now and then a tile carries a neighbour's wish (the bee wants a meadow, the hedgehog a woods, the rabbit a burrow-hill, the duck a stream) of at least, or exactly, so many tiles: granted wishes pay points and two or three tiles, and an at-least patch keeps paying as it grows. The run ends when the stack is empty. Dora and Enzo hop to each new tile, cheer the Perfects and sit by the ponds. **First Spring** is a guided first valley; seven hand-tuned valleys follow (Clover Hollow, Willow Brook with a brook already running through, Old Oak Rise round an ancient oak, Pebble Fields full of boulders, Twin Ponds, the walled Burrow Downs and the Misty Fen), each a fixed deal of 34 to 38 tiles with one, two and three acorns to earn at scores set from the bots; each opens with an acorn in the one before. The first acorn opens the **Endless Meadow** (a fresh 40-tile valley each run) and the **Daily Valley** (seeded by the date). Undo takes back the last tile. Every placement is saved, so a reload carries on where it was; bests and acorns are kept, and the ending plays when every valley has an acorn.
+
+**Controls:** Move the mouse over a cell to see the ghost tile there, with a green tick or a red cross on every edge it touches and the points it would score; click to place it. **R**, **E**, the mouse wheel or a right-click turns the tile, **Q** turns it back, and the six dots under the tile pick a turn directly (the best turns at the hovered cell glow gold when Hints are on). Drag, **WASD** or the arrow keys pan; **Shift** with the wheel, a trackpad pinch, **+** and **−** zoom; **F** frames the valley; **Z** undoes; **Enter** or **Space** places at the pointer; **Esc** or **P** pause. On a touch screen, tap a cell to try the tile there and tap it again (or ✓) to place it; drag to pan, pinch to zoom, ⟳ and ⟲ to turn. Sound, Music and Hints are toggles on the menu and the pause panel.
+
+**Tests:** `npm run test:meadow` runs the engine checks: how edges join up inside a tile, turning, seeded deals and exact replay, legal cells (rocks and the valley's edge), matching, Perfects, finished patches and ponds, wishes (at least, exactly, growing past and spoiled), one-step undo, snapshots and saved runs (corrupt ones refused), the end of a run, the tutorial's lesson in order, and saves, acorns, unlocking, the ending and the daily best. `npm run bot:meadow` plays every valley with naive, casual, greedy and smart bots: ignoring the edges stays below the first acorn, the greedy bot earns at least one with Perfects earned rather than handed out, a casual player lands about the first acorn and the smart bot reaches three (`npm test` runs it with `--quick`, naive and greedy only). `npm run test:e2e:meadow` checks the browser: the menu, First Spring played with the real mouse (the ghost, turning by R, the wheel and a right-click, a click to place, the Perfect, undo), the run saved across a reload, the end-of-run panel, the valley list, corrupt saves, the framing at 1280×800 and 1920×1080 with Dora and Enzo a clear size, and phones held either way with tap, tap again and ✓.
+
+**Docs:** [`docs/meadowmend.md`](docs/meadowmend.md), art brief [`docs/meadowmend-art-brief.md`](docs/meadowmend-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1143,7 +1154,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fifty-five ways/` assertion in `tests/e2e/dust-bath.mjs`, the 55-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fifty-six ways/` assertion in `tests/e2e/dust-bath.mjs`, the 56-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
