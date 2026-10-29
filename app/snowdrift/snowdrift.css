@@ -53,6 +53,7 @@
 
 /* ---- the menus */
 .sd-menu{position:absolute;inset:0;overflow:auto;padding:14px max(16px,calc(50% - 540px)) 28px;display:flex;flex-direction:column;gap:14px;background:linear-gradient(180deg,#eef5fff6,#e2ecfaf0 50%,#d6e2f6f2);z-index:2}
+.sd-menu>*{flex-shrink:0}
 .sd-head{position:relative;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .sd-total,.sd-flakes{font-size:16px;font-weight:900;color:#2a4a7a}
 .sd-art{position:relative;display:block;overflow:hidden}
@@ -61,7 +62,7 @@
 .sd-hero-art{position:absolute;inset:0}
 .sd-hero-art img{object-position:50% 30%}
 .sd-hero>div:last-child{position:relative;padding:22px clamp(16px,3vw,30px);background:linear-gradient(180deg,#121a3800,#121a38d0 46%);width:100%;color:#f4f8ff}
-.sd-hero .sd-eyebrow{color:#ffd28a}
+.sd-hero .sd-eyebrow{color:#ffd28a;text-shadow:0 1px 3px #000c}
 .sd-hero h1{font-size:clamp(40px,7vw,70px);font-weight:900;line-height:1;text-shadow:0 3px 0 #0005}
 .sd-hero h1 em{font-style:normal;color:#9fe0ff}
 .sd-lede{font-size:15px;font-weight:700;max-width:680px;margin-top:6px!important;text-shadow:0 1px 2px #0008}
@@ -146,6 +147,17 @@
 .sd-credits small{font-size:11.5px;opacity:.8}
 @keyframes sd-roll{from{transform:translateY(170px)}to{transform:translateY(-100%)}}
 
+/* on a phone the title painting sits above its words, so the words never cover Dora and Enzo */
+@media (max-width:600px),(max-height:460px){
+  .sd-shell .sd-hero{flex-direction:column;align-items:stretch;min-height:0}
+  .sd-hero .sd-hero-art{position:relative;inset:auto;width:100%;aspect-ratio:3/2}
+  .sd-hero>div:last-child{background:#121a38;padding:14px 16px}
+}
+@media (max-height:460px) and (min-width:601px){
+  .sd-shell .sd-hero{flex-direction:row}
+  .sd-hero .sd-hero-art{width:44%;aspect-ratio:auto}
+  .sd-hero>div:last-child{flex:1;display:flex;flex-direction:column;justify-content:center}
+}
 @media (max-width:860px){
   .sd-day span{display:none}
   .sd-bar-mid{gap:10px}

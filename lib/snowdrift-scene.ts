@@ -186,10 +186,10 @@ export class SnowScene {
     // visible height: about 26 units at a normal pace, more when fast or high
     let vh = 23 + clamp((sp - 14) * 0.22, 0, 7) + Math.min(42, above * 1.15);
     if (g.phase === 'ready') vh = 22;
-    if (g.phase === 'finish') vh = 22;
+    if (g.phase === 'finish') vh = 32;
     let k = H / vh;
     // never so close that the road ahead is cut short (on an upright phone the width decides)
-    const minW = tall ? 26 + clamp(sp - 14, 0, 14) * 0.4 : 34;
+    const minW = tall ? 22 + clamp(sp - 14, 0, 14) * 0.4 : 34;
     k = Math.min(k, W / minW);
     const lead = clamp(sp * 0.42, 2, 14) + (W / k) * 0.12;
     const ahead = g.course.ground(g.x + lead * 1.4);
@@ -200,7 +200,7 @@ export class SnowScene {
       const L = g.course.lodge + LODGE_AT, span = Math.abs(L - g.x) + 26;
       k = Math.min(k, W / span); tx = (g.x + L) / 2;
     }
-    const ty = lerp(Math.min(g.y, gy + 6), ay, 0.35) + (H / k) * 0.08 + Math.min(above, 30) * 0.32;
+    const ty = lerp(Math.min(g.y, gy + 6), ay, 0.35) + (H / k) * (g.phase === 'finish' ? 0.2 : 0.08) + Math.min(above, 30) * 0.32;
     if (!this.camReady) { this.cx = tx; this.cy = ty; this.k = k; this.camReady = true; }
     else {
       this.cx = lerp(this.cx, tx, ease(6, dt)); this.cy = lerp(this.cy, ty, ease(4, dt));
@@ -478,7 +478,7 @@ export class SnowScene {
   private lodge(g: SnowGame) {
     const co = g.course; if (!Number.isFinite(co.lodge)) return;
     const c = this.c, x = co.lodge + LODGE_AT, q = co.ground(x); if (!q) return;
-    const X = this.sx(x), Y = this.sy(q.y), u = this.k * (g.valley?.id === 'summit' ? 1.9 : 1.4);
+    const X = this.sx(x), Y = this.sy(q.y), u = this.k * (g.valley?.id === 'summit' ? 1.25 : 1);
     if (X < -40 * u || X > this.W + 40 * u) { this.flag(g); return; }
     // the lodge: timber walls, a snowy roof, glowing windows and a curl of smoke
     c.fillStyle = '#7a4e2e'; c.fillRect(X - 7 * u, Y - 7 * u, 14 * u, 7 * u);
@@ -653,10 +653,10 @@ export class SnowScene {
   private dusk(g: SnowGame) {
     const c = this.c, X = this.sx(g.duskX);
     // still off screen but coming: the left edge darkens and fills with stars as the daylight runs short
-    const near = g.phase === 'ride' || g.phase === 'fall' ? clamp((6 - g.daylight) / 6, 0, 1) : 0;
+    const near = g.phase === 'ride' || g.phase === 'fall' ? clamp((6 - g.daylight) / 5, 0, 1) : 0;
     if (near > 0 && X < this.W * 0.3) {
-      const w = this.W * (0.06 + 0.26 * near), e = c.createLinearGradient(0, 0, w, 0);
-      e.addColorStop(0, `rgba(14, 18, 52, ${0.85 * near})`); e.addColorStop(0.5, `rgba(34, 40, 110, ${0.45 * near})`); e.addColorStop(1, 'rgba(70, 80, 170, 0)');
+      const w = this.W * (0.1 + 0.3 * near), e = c.createLinearGradient(0, 0, w, 0);
+      e.addColorStop(0, `rgba(10, 14, 46, ${0.6 + 0.38 * near})`); e.addColorStop(0.45, `rgba(30, 36, 104, ${0.35 + 0.35 * near})`); e.addColorStop(1, 'rgba(70, 80, 170, 0)');
       c.fillStyle = e; c.fillRect(-10, -10, w + 10, this.H + 20);
       for (let i = 0; i < 18; i++) {
         const x = hash(i * 7.3) * w * 0.6, y = hash(i * 2.9) * this.H, tw = 0.3 + 0.7 * Math.abs(Math.sin(this.time * 2.4 + i));
@@ -697,10 +697,12 @@ export class SnowScene {
   private fireworks(dt: number) {
     this.fireworkT -= dt;
     if (this.fireworkT <= 0) {
-      this.fireworkT = 0.45 + hash(this.time) * 0.5;
+      this.fireworkT = 0.3 + hash(this.time) * 0.4;
       const x = this.cx + (hash(this.time * 3) - 0.3) * (this.W / this.k) * 0.6, y = this.cy + (this.H / this.k) * (0.2 + hash(this.time * 7) * 0.25);
       const cols = ['#ffd86a', '#ff8ab0', '#8ae0ff', '#b4ff9a', '#ffffff'], col = cols[Math.floor(hash(this.time * 11) * cols.length)];
-      for (let i = 0; i < 36; i++) { const a = (i / 36) * TAU, v = 6 + hash(i + this.time) * 3; this.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1.3, max: 1.3, size: 0.2, color: col, kind: 'firework', g: 4 }); }
+      for (let i = 0; i < 56; i++) { const a = (i / 56) * TAU, v = 5 + hash(i + this.time) * 5; this.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1.6, max: 1.6, size: 0.34, color: col, kind: 'firework', g: 3 }); }
+      for (let i = 0; i < 18; i++) { const a = hash(i * 1.7 + this.time) * TAU, v = 2 + hash(i * 2.3) * 2.5; this.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1.1, max: 1.1, size: 0.24, color: '#ffffff', kind: 'spark', g: 2 }); }
+      this.flashColor = col; this.flash = Math.max(this.flash, 0.12);
     }
   }
   /** Over everything: night deepening toward dusk, a flash for big moments, a cold edge when the dusk is close. */
