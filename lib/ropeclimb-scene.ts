@@ -62,7 +62,7 @@ export class RopeclimbScene {
     if (this.canvas.width !== w || this.canvas.height !== h) { this.canvas.width = w; this.canvas.height = h; }
   }
   /** World units to a pixel: enough of the tower to see a leap ahead, the climbers big enough to read on a phone. */
-  private baseZoom() { return clamp(Math.min(this.H / 470, this.W / 330), 0.7, 2.4); }
+  private baseZoom() { return clamp(Math.min(this.H / 420, this.W / 330), 0.7, 2.4); }
   /** Puts the camera straight on the pair (when a climb starts). */
   snap(g: RopeclimbGame) { const t = this.camTarget(g); this.cam.x = t.x; this.cam.y = t.y; this.cam.z = t.z; }
   private camTarget(g: RopeclimbGame) {
