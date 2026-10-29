@@ -56,6 +56,8 @@ export class RopeclimbScene {
   /** A painting, once it has fully loaded; null until then (or if it never does). */
   img(name: string) { const i = this.art.get(name); return i && i.complete && i.naturalWidth > 0 ? i : null; }
   setShake(on: boolean) { this.shakeOn = on; }
+  /** Screen pixels along the bottom covered by touch buttons, so the camera keeps the climbers above them. */
+  padBottom = 0;
 
   resize() {
     const r = this.canvas.getBoundingClientRect(); this.dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -71,10 +73,11 @@ export class RopeclimbScene {
     const d = g.dora, e = g.enzo, spread = Math.abs(d.y - e.y);
     const z = Math.min(this.baseZoom(), this.H / (spread + 240));
     // the pair sits a little below the middle, so you see more of the climb ahead
-    const my = (d.y + e.y) / 2 + this.H * 0.14 / z;
+    // (with touch buttons along the bottom, framed above them instead)
+    const pad = this.padBottom, my = (d.y + e.y) / 2 + (this.H * 0.14 - pad * 0.75) / z;
     const halfW = this.W / 2 / z;
     const x = halfW * 2 >= TOWER_W + 40 ? TOWER_W / 2 : clamp((d.x + e.x) / 2, halfW - 20, TOWER_W + 20 - halfW);
-    return { x, y: Math.max(my, this.H / 2 / z - 44), z };
+    return { x, y: Math.max(my, (this.H / 2 - pad) / z - 44), z };
   }
 
   /** Reacts to what the game did: squash and stretch, dust, shakes. */

@@ -206,6 +206,7 @@ export default function RopeclimbPage() {
           acc = 0;
           if (g && g.events.length) handle(g.events.splice(0), g);
         }
+        sc.padBottom = touchRef.current ? Math.min(190, window.innerHeight * 0.24) : 0;
         sc.draw(playing ? g : null, { dt, alpha, paused: playing && pausedRef.current, showActive: !!g && g.players === 1, aimGuide: !!g && g.players === 1 });
         sound.current?.tick(playing && !pausedRef.current);
         if (ms - ui > 200) {
