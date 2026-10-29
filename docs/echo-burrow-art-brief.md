@@ -44,4 +44,4 @@ Ten poses, five each, all drawn at the same scale for each chinchilla so the gam
 
 ## In the game
 
-The game trims and scales the poses with Pillow so that each chinchilla's idle pose is the same height, and every pose of that chinchilla uses the same scale and stands on the same line. A pose that fails to load borrows the nearest painted pose (`run` for `push` and `squeeze`, `idle` for `cheer`), and the drawn chinchillas stand in until any painting arrives.
+After painting, the poses are trimmed and rescaled with Pillow onto 768 × 512 canvases: each chinchilla's idle figure is 360 pixels tall, every pose of that chinchilla uses the idle pose's scale, and all of them stand on a line 16 pixels above the bottom edge. A pose that fails to load borrows the nearest painted pose (`run` for `push` and `squeeze`, `idle` for `cheer`), and the drawn chinchillas stand in until any painting arrives.
