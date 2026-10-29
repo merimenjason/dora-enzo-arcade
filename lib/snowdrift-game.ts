@@ -24,7 +24,7 @@ export const MU = 0.055, MU_ICE = 0.006, DRAG = 0.0011;
 /** They always paddle along at least this fast, and the sled tops out here. */
 export const MIN_SPEED = 5, MAX_SPEED = 44;
 /** Backflips: how fast the spin builds while you hold in the air, its top speed, and how fast it settles once you let go. */
-export const SPIN_ACC = 18, SPIN_MAX = 8, SPIN_DAMP = 26;
+export const SPIN_ACC = 18, SPIN_MAX = 8, SPIN_DAMP = 50;
 /** A short hop never spins: holding only turns a flip once they have been in the air this long. */
 export const SPIN_AFTER = 0.12;
 /** Landing: more than this far off the slope is a tumble; a Smooth landing needs the flight to meet a downslope within this. */
@@ -261,7 +261,7 @@ export class SnowGame {
       if (below) { const k = Math.max(0, Math.min(1, 1 - (this.y - below.y - 1) / 5)); want = flight + wrap(Math.atan(below.m) - flight) * k; }
       // (a sled that never tried a flip always straightens up in time; one left upside down mid-flip does not)
       const d = wrap(want - this.ang);
-      if ((Math.abs(this.spin) < 0.8 || Math.abs(d) < 1.2) && Math.abs(this.omega) < 1) this.ang += Math.max(-3.5 * h, Math.min(3.5 * h, d * 6 * h));
+      if ((Math.abs(this.spin) < 0.8 || Math.abs(d) < 1.05) && Math.abs(this.omega) < 1.5) this.ang += Math.max(-4.5 * h, Math.min(4.5 * h, d * 7 * h));
     }
     // the cave roof
     const ceil = c.ceiling(this.x);

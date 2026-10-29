@@ -5,36 +5,10 @@
 // Needs the engine compiled to .checks/ (npm run bot:snowdrift does that).
 import assert from 'node:assert/strict';
 import { SnowGame, VALLEY_IDS, VALLEYS, playRun, TPS, fmtTime } from '../.checks/snowdrift-game.js';
+import { human, expert, planRun } from './snowdrift-bot-policy.mjs';
 
 const quick = process.argv.includes('--quick');
 
-/** Holds on a downslope just ahead and under a cave roof; lets go on the way up and in the air. Reacts 6 ticks late. */
-export function human(lag = 6) {
-  const plan = [];
-  return (g) => {
-    let want = false;
-    if (!g.air && !g.tumbling) {
-      const look = g.x + g.speed * 0.12, q = g.course.ground(look);
-      const roof = g.course.ceiling(g.x + g.speed * 0.4) !== null;
-      want = roof || (q ? q.m < -0.04 : false);
-    }
-    plan.push(want);
-    return plan.length > lag ? plan[plan.length - 1 - lag] : false;
-  };
-}
-/** The rhythm, plus a backflip on any flight with room for one: holds in the air until nearly round, then lets go. */
-export function expert(lag = 3, room = 7) {
-  const base = human(lag);
-  let flipping = false;
-  return (g) => {
-    const b = base(g);
-    if (!g.air) { flipping = false; return b; }
-    const q = g.course.ground(g.x + g.vx * 0.5), high = q ? g.y - q.y : 0;
-    if (!flipping && g.airT > 0.13 && g.spin === 0 && high > room && g.vy > -4) flipping = true;
-    if (flipping && g.spin > Math.PI * 2 - 0.9) flipping = false, g.__done = true;
-    return flipping;
-  };
-}
 const never = () => false;
 const always = () => true;
 
@@ -61,6 +35,17 @@ for (const [i, id] of VALLEY_IDS.entries()) {
 console.table(rows);
 
 if (!quick) {
+  // the daylight medal asks for more than the plain rhythm, but a careful run (flips, or a planner) can win it
+  for (const id of VALLEY_IDS) {
+    const V = VALLEYS[id];
+    let best = playRun(new SnowGame({ kind: 'day', valley: id }), human()).spare, how = 'rhythm';
+    for (const lag of [0, 2, 4]) for (const room of [5, 7, 9]) { const g = playRun(new SnowGame({ kind: 'day', valley: id }), expert(lag, room)); if (g.phase === 'finish' && g.spare > best) { best = g.spare; how = `flips (lag ${lag}, room ${room})`; } }
+    const p = planRun(new SnowGame({ kind: 'day', valley: id }));
+    if (p.phase === 'finish' && p.spare > best) { best = p.spare; how = 'planner'; }
+    console.log(`${V.name}: best ${best.toFixed(1)}s of daylight spare by ${how}; the medal asks ${V.spare}s`);
+    assert.ok(best >= V.spare, `${V.name}: the daylight medal can be won`);
+  }
+
   // the endless hills go on and on: the human-like bot gets a fair way before the night catches it
   for (const seed of [1, 2, 3]) {
     const g = playRun(new SnowGame({ kind: 'endless', seed, daily: false }), human(), TPS * 900);
