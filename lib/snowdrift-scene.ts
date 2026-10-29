@@ -29,13 +29,15 @@ const DAY: [number, string, string][] = [
 ];
 const NIGHT: [string, string] = ['#070c24', '#26305e'];
 /** Each valley's look: the far hills' colours, the snow's shade, trees on the near hills, and the fallback mountains. */
+/** How far past the finishing flag the lodge stands: past where a sled at full speed coasts to a stop. */
+const LODGE_AT = 46;
 export const LOOK: Record<ValleyId, { far: string; near: string; shade: string; trees: boolean; peaks: string; night: boolean; accent: string }> = {
   meadow: { far: '#a8bede', near: '#cbdaee', shade: '#b8cbe6', trees: true, peaks: '#93a9cc', night: false, accent: '#5aa070' },
   lake: { far: '#a2bcdc', near: '#d2e2f2', shade: '#b4cce6', trees: true, peaks: '#8ea8ca', night: false, accent: '#6ac0e8' },
   caves: { far: '#98b4da', near: '#c2d6ee', shade: '#a8c4e6', trees: false, peaks: '#7e9cc8', night: false, accent: '#5ab8f0' },
   ridge: { far: '#9cb0d4', near: '#c6d2e8', shade: '#b0c0de', trees: false, peaks: '#7a90bc', night: false, accent: '#e8f0ff' },
   bridges: { far: '#a6b4d4', near: '#cdd6ea', shade: '#b6c4e0', trees: true, peaks: '#8696be', night: false, accent: '#c89a6a' },
-  aurora: { far: '#2a3c6a', near: '#3c5284', shade: '#5a74a8', trees: true, peaks: '#1c2a52', night: true, accent: '#6af0b0' },
+  aurora: { far: '#56699e', near: '#7486bc', shade: '#5a74a8', trees: true, peaks: '#1c2a52', night: true, accent: '#6af0b0' },
   summit: { far: '#a0b2d8', near: '#cad6ec', shade: '#b2c2e2', trees: false, peaks: '#7c8ec0', night: false, accent: '#ffc860' },
 };
 /** Painted poses, and which to borrow when one has not loaded (or never does). */
@@ -157,8 +159,8 @@ export class SnowScene {
     const night = !g.valley || LOOK[valley].night;
     const t = g.dayTime;
     this.sky(valley, t, night);
-    this.backdrop(valley, t, night);
-    this.sun(t, night);
+    const painted = this.backdrop(valley, t, night);
+    this.sun(t, night, painted);
     this.hills(valley, g.course, t, night);
     this.terrain(g, valley, t);
     this.lodge(g);
@@ -193,7 +195,12 @@ export class SnowScene {
     const ahead = g.course.ground(g.x + lead * 1.4);
     const gy = q ? q.y : g.y, ay = ahead ? ahead.y : gy;
     // the sled sits a little below the middle; in a big flight the camera keeps the snow below in view
-    const tx = g.x + lead, ty = lerp(Math.min(g.y, gy + 6), ay, 0.35) + (H / k) * 0.08 + Math.min(above, 30) * 0.32;
+    let tx = g.x + lead;
+    if (g.phase === 'finish' && Number.isFinite(g.course.lodge)) {
+      const L = g.course.lodge + LODGE_AT, span = Math.abs(L - g.x) + 26;
+      k = Math.min(k, W / span); tx = (g.x + L) / 2;
+    }
+    const ty = lerp(Math.min(g.y, gy + 6), ay, 0.35) + (H / k) * 0.08 + Math.min(above, 30) * 0.32;
     if (!this.camReady) { this.cx = tx; this.cy = ty; this.k = k; this.camReady = true; }
     else {
       this.cx = lerp(this.cx, tx, ease(6, dt)); this.cy = lerp(this.cy, ty, ease(4, dt));
@@ -234,7 +241,7 @@ export class SnowScene {
     c.restore();
   }
   /** The valley's painting, far away: it scrolls very slowly, mirrored so the seam never shows. */
-  private backdrop(v: ValleyId, t: number, night: boolean) {
+  private backdrop(v: ValleyId, t: number, night: boolean): boolean {
     const c = this.c, im = this.img(`bg-${v}`);
     const h = this.H * 0.9, top = -this.H * 0.02;
     if (im) {
@@ -252,11 +259,13 @@ export class SnowScene {
       const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, css(tc, 0.32)); g.addColorStop(1, css(hc, 0.22));
       c.fillStyle = g; c.fillRect(0, top, this.W, h);
       if (!night) { c.fillStyle = `rgba(30, 24, 70, ${clamp((t - 0.6) * 0.9, 0, 0.42)})`; c.fillRect(0, top, this.W, h); }
+      // a daytime painting under the moonlit hills turns to night
+      else if (!LOOK[v].night) { c.fillStyle = 'rgba(16, 22, 64, 0.58)'; c.fillRect(0, top, this.W, h); }
       // fade the bottom of the painting into the haze
       const f = c.createLinearGradient(0, h * 0.55, 0, h + top); f.addColorStop(0, css(hc, 0)); f.addColorStop(1, css(hc, 0.9));
       c.fillStyle = f; c.fillRect(0, h * 0.55, this.W, h * 0.45 + top + 2);
       c.restore();
-      return;
+      return true;
     }
     // until the painting loads: far peaks drawn in the valley's colours
     const L = LOOK[v], base = this.H * 0.55;
@@ -265,9 +274,10 @@ export class SnowScene {
     c.lineTo(this.W, this.H); c.fill();
     c.fillStyle = 'rgba(255,255,255,0.55)';
     for (let x = 0; x <= this.W + 40; x += 40) { const wx = x / 40 + Math.floor(this.cx * this.k * 0.035 / 40); const y = base - (0.15 + hash(wx) * 0.22) * this.H, px = x - ((this.cx * this.k * 0.035) % 40); c.beginPath(); c.moveTo(px - 8, y + 10); c.lineTo(px, y); c.lineTo(px + 8, y + 10); c.fill(); }
+    return false;
   }
   /** The sun: low behind them at dawn, high at noon, sinking ahead toward the lodge as the dusk comes on. */
-  private sun(t: number, night: boolean) {
+  private sun(t: number, night: boolean, painted: boolean) {
     const c = this.c;
     if (night) {
       const x = this.W * 0.78, y = this.H * 0.17, r = Math.max(14, this.H * 0.04);
@@ -285,7 +295,8 @@ export class SnowScene {
     g.addColorStop(0, warm ? 'rgba(255,200,130,0.65)' : 'rgba(255,250,220,0.55)'); g.addColorStop(1, 'rgba(255,200,130,0)');
     c.fillStyle = g; c.fillRect(x - r * 6, y - r * 6, r * 12, r * 12);
     c.restore();
-    c.fillStyle = warm ? '#ffd28a' : '#fff6da'; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+    // the paintings carry their own sky and sun, so over them only the glow shows
+    if (!painted) { c.fillStyle = warm ? '#ffd28a' : '#fff6da'; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); }
   }
   /** Two layers of hazy snowy hills between the painting and the course. */
   private hills(v: ValleyId, course: Course, t: number, night: boolean) {
@@ -294,7 +305,7 @@ export class SnowScene {
     for (const [par, col, base, haze] of layers) {
       const off = this.cx * this.k * par, y0 = this.H * base;
       const fill = mix(hex(col), hor, haze * 0.5);
-      c.fillStyle = css(night ? mix(fill, [20, 28, 60], 0.35) : fill);
+      c.fillStyle = css(night ? mix(fill, [60, 72, 124], 0.2) : fill);
       c.beginPath(); c.moveTo(-10, this.H + 10);
       for (let x = -10; x <= this.W + 20; x += 10) {
         const wx = (x + off) / (this.H * 0.5);
@@ -466,8 +477,8 @@ export class SnowScene {
   }
   private lodge(g: SnowGame) {
     const co = g.course; if (!Number.isFinite(co.lodge)) return;
-    const c = this.c, x = co.lodge + 14, q = co.ground(x); if (!q) return;
-    const X = this.sx(x), Y = this.sy(q.y), u = this.k * (g.valley?.id === 'summit' ? 1.5 : 1.1);
+    const c = this.c, x = co.lodge + LODGE_AT, q = co.ground(x); if (!q) return;
+    const X = this.sx(x), Y = this.sy(q.y), u = this.k * (g.valley?.id === 'summit' ? 1.9 : 1.4);
     if (X < -40 * u || X > this.W + 40 * u) { this.flag(g); return; }
     // the lodge: timber walls, a snowy roof, glowing windows and a curl of smoke
     c.fillStyle = '#7a4e2e'; c.fillRect(X - 7 * u, Y - 7 * u, 14 * u, 7 * u);
@@ -477,6 +488,10 @@ export class SnowScene {
     const glow = 0.85 + Math.sin(this.time * 3) * 0.08;
     for (const wx of [-4.6, 1.8]) { c.fillStyle = `rgba(255, 196, 100, ${glow})`; c.fillRect(X + wx * u, Y - 5 * u, 2.8 * u, 2.2 * u); c.fillStyle = '#5e3a20'; c.fillRect(X + (wx + 1.3) * u, Y - 5 * u, 0.2 * u, 2.2 * u); }
     c.fillStyle = '#4a2c18'; c.fillRect(X - 1.2 * u, Y - 3.8 * u, 2.4 * u, 3.8 * u);
+    c.fillStyle = '#8a8a9a'; c.fillRect(X - 7.3 * u, Y - 0.9 * u, 14.6 * u, 0.9 * u);
+    c.fillStyle = '#ffffff'; c.beginPath(); c.moveTo(X - 9 * u, Y - 6.4 * u); c.lineTo(X + 9 * u, Y - 6.4 * u); c.lineTo(X + 8.6 * u, Y - 7.2 * u); c.lineTo(X - 8.6 * u, Y - 7.2 * u); c.fill();
+    c.fillStyle = 'rgba(200, 230, 255, 0.9)'; for (let i = 0; i < 9; i++) { const ix = X + (-8 + i * 2) * u, ih = (0.5 + hash(i * 3.3) * 0.9) * u; c.beginPath(); c.moveTo(ix - 0.25 * u, Y - 6.4 * u); c.lineTo(ix, Y - 6.4 * u + ih); c.lineTo(ix + 0.25 * u, Y - 6.4 * u); c.fill(); }
+    c.fillStyle = `rgba(255, 210, 120, ${glow})`; c.beginPath(); c.arc(X + 2 * u, Y - 4.2 * u, 0.45 * u, 0, TAU); c.fill();
     for (let i = 0; i < 5; i++) { const t = (this.time * 0.4 + i / 5) % 1; c.fillStyle = `rgba(240,240,250,${0.45 * (1 - t)})`; c.beginPath(); c.arc(X + 4.4 * u + Math.sin(t * 5 + i) * u, Y - 12 * u - t * 6 * u, (0.6 + t * 1.4) * u, 0, TAU); c.fill(); }
     // warm light on the snow
     const gl = c.createRadialGradient(X, Y - 3 * u, u, X, Y - 3 * u, 14 * u); gl.addColorStop(0, 'rgba(255, 190, 110, 0.35)'); gl.addColorStop(1, 'rgba(255, 190, 110, 0)');
@@ -637,6 +652,17 @@ export class SnowScene {
   /** The dusk: a soft blue wall of night from the left, full of stars, with a glowing edge. */
   private dusk(g: SnowGame) {
     const c = this.c, X = this.sx(g.duskX);
+    // still off screen but coming: the left edge darkens and fills with stars as the daylight runs short
+    const near = g.phase === 'ride' || g.phase === 'fall' ? clamp((6 - g.daylight) / 6, 0, 1) : 0;
+    if (near > 0 && X < this.W * 0.3) {
+      const w = this.W * (0.06 + 0.26 * near), e = c.createLinearGradient(0, 0, w, 0);
+      e.addColorStop(0, `rgba(14, 18, 52, ${0.85 * near})`); e.addColorStop(0.5, `rgba(34, 40, 110, ${0.45 * near})`); e.addColorStop(1, 'rgba(70, 80, 170, 0)');
+      c.fillStyle = e; c.fillRect(-10, -10, w + 10, this.H + 20);
+      for (let i = 0; i < 18; i++) {
+        const x = hash(i * 7.3) * w * 0.6, y = hash(i * 2.9) * this.H, tw = 0.3 + 0.7 * Math.abs(Math.sin(this.time * 2.4 + i));
+        c.fillStyle = `rgba(220, 230, 255, ${tw * near * 0.8})`; c.fillRect(x, y, 2, 2);
+      }
+    }
     if (X < -this.k * 14) return;
     const soft = this.k * 12;
     const gr = c.createLinearGradient(X - soft, 0, X + soft * 0.35, 0);

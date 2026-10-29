@@ -20,13 +20,13 @@ export type Valley = {
   seed: number;
 };
 export const VALLEYS: Record<ValleyId, Valley> = {
-  meadow: { id: 'meadow', name: 'Pine Meadow', blurb: 'Gentle rolling hills under the pines. Learn the rhythm.', feature: 'Rolling hills', teach: 'Hold on the way down, let go on the way up', length: 1500, head: 6, dusk: 19.8, spare: 28, seed: 1101 },
-  lake: { id: 'lake', name: 'Frozen Lake', blurb: 'Long stretches of glassy ice where speed holds.', feature: 'Slippery ice', teach: 'Dive onto the ice fast: it keeps your speed', length: 1800, head: 6, dusk: 24.8, spare: 27, seed: 2203 },
-  caves: { id: 'caves', name: 'Ice Caves', blurb: 'Low blue ceilings full of icicles.', feature: 'Low ceilings', teach: 'In the caves, keep holding to stay low', length: 1900, head: 6, dusk: 23.6, spare: 24, seed: 3307 },
-  ridge: { id: 'ridge', name: 'Windy Ridge', blurb: 'Big gusts that carry you on and on.', feature: 'Gusts', teach: 'Let the gusts carry you over the long dips', length: 2100, head: 6, dusk: 23.7, spare: 21, seed: 4409 },
-  bridges: { id: 'bridges', name: 'Snow Bridges', blurb: 'Gaps across the gorges. Fly them!', feature: 'Gaps to fly', teach: 'Hold down the slope, let go at the lip to fly the gap', length: 2100, head: 6, dusk: 25.8, spare: 21, seed: 5501 },
-  aurora: { id: 'aurora', name: 'Aurora Peaks', blurb: 'Night skies, dancing lights and enormous drops.', feature: 'Big drops', teach: 'Big drops: land on the downslope to fly on', length: 2400, head: 6, dusk: 24.6, spare: 19, seed: 6607 },
-  summit: { id: 'summit', name: 'The Summit Run', blurb: 'Everything at once, all the way to the grand lodge.', feature: 'Everything', teach: 'Ice, caves, gusts and gaps: the last run', length: 2700, head: 6, dusk: 31.5, spare: 17, seed: 7703 },
+  meadow: { id: 'meadow', name: 'Pine Meadow', blurb: 'Gentle rolling hills under the pines. Learn the rhythm.', feature: 'Rolling hills', teach: 'Hold on the way down, let go on the way up', length: 1500, head: 8, dusk: 19.8, spare: 30, seed: 1101 },
+  lake: { id: 'lake', name: 'Frozen Lake', blurb: 'Long stretches of glassy ice where speed holds.', feature: 'Slippery ice', teach: 'Dive onto the ice fast: it keeps your speed', length: 1800, head: 8, dusk: 24.8, spare: 29, seed: 2203 },
+  caves: { id: 'caves', name: 'Ice Caves', blurb: 'Low blue ceilings full of icicles.', feature: 'Low ceilings', teach: 'In the caves, keep holding to stay low', length: 1900, head: 8, dusk: 23.6, spare: 26, seed: 3307 },
+  ridge: { id: 'ridge', name: 'Windy Ridge', blurb: 'Big gusts that carry you on and on.', feature: 'Gusts', teach: 'Let the gusts carry you over the long dips', length: 2100, head: 8, dusk: 23.7, spare: 23, seed: 4409 },
+  bridges: { id: 'bridges', name: 'Snow Bridges', blurb: 'Gaps across the gorges. Fly them!', feature: 'Gaps to fly', teach: 'Hold down the slope, let go at the lip to fly the gap', length: 2100, head: 8, dusk: 25.8, spare: 23, seed: 5501 },
+  aurora: { id: 'aurora', name: 'Aurora Peaks', blurb: 'Night skies, dancing lights and enormous drops.', feature: 'Big drops', teach: 'Big drops: land on the downslope to fly on', length: 2400, head: 8, dusk: 24.6, spare: 21, seed: 6607 },
+  summit: { id: 'summit', name: 'The Summit Run', blurb: 'Everything at once, all the way to the grand lodge.', feature: 'Everything', teach: 'Ice, caves, gusts and gaps: the last run', length: 2700, head: 8, dusk: 31.5, spare: 19, seed: 7703 },
 };
 
 // ---------------------------------------------------------------- randomness

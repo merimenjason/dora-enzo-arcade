@@ -165,7 +165,8 @@ export default function SnowdriftPage() {
             if (pausedRef.current || endingRef.current) { acc = 0; break; }
           }
           if (n >= 6) acc = 0;
-          if (g.done && endAt.current && performance.now() >= endAt.current && !panelRef.current) finish(g);
+          if (g.done && !endAt.current) endAt.current = performance.now() + 1500;
+          if (g.done && performance.now() >= endAt.current && !panelRef.current) finish(g);
         } else {
           acc = 0;
           if (playing && !pausedRef.current) held();

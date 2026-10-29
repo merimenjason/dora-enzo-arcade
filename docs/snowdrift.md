@@ -28,19 +28,19 @@ All numbers below come from `lib/snowdrift-game.ts` and `lib/snowdrift-terrain.t
 
 ## The sunset
 
-The dusk wall starts 6 seconds behind the sled and moves at the valley's dusk speed. The HUD shows the daylight left: the gap to the dusk in seconds at its pace. If the dusk reaches the sled, night falls and the day ends, showing how far they got and how far the lodge was; the snowflakes they picked up are kept. A cocoa mug pushes the dusk back by 3 seconds of its pace (more with the bigger thermos). Snowflakes are the currency for the lodge shop.
+The dusk wall starts 8 seconds behind the sled and moves at the valley's dusk speed. The HUD shows the daylight left: the gap to the dusk in seconds at its pace. If the dusk reaches the sled, night falls and the day ends, showing how far they got and how far the lodge was; the snowflakes they picked up are kept. A cocoa mug pushes the dusk back by 3 seconds of its pace (more with the bigger thermos). Snowflakes are the currency for the lodge shop.
 
 ## Valleys
 
 | Day | Valley | What it teaches | Course length | Dusk speed | ☀ medal: spare daylight |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Pine Meadow | Hold on the way down, let go on the way up | 1500 | 19.8 | 28 s |
-| 2 | Frozen Lake | Long ice flats keep your speed | 1800 | 24.8 | 27 s |
-| 3 | Ice Caves | Low roofs: hold to stay low (a bonk keeps 86% of the speed) | 1900 | 23.6 | 24 s |
-| 4 | Windy Ridge | Gusts lift you in the air and push you along | 2100 | 23.7 | 21 s |
-| 5 | Snow Bridges | Gaps to fly; a fall puts you back at the lip after 1.2 s at speed 7 | 2100 | 25.8 | 21 s |
-| 6 | Aurora Peaks | Night skies and big drops | 2400 | 24.6 | 19 s |
-| 7 | The Summit Run | Everything, to the grand lodge, fireworks and the ending | 2700 | 31.5 | 17 s |
+| 1 | Pine Meadow | Hold on the way down, let go on the way up | 1500 | 19.8 | 30 s |
+| 2 | Frozen Lake | Long ice flats keep your speed | 1800 | 24.8 | 29 s |
+| 3 | Ice Caves | Low roofs: hold to stay low (a bonk keeps 86% of the speed) | 1900 | 23.6 | 26 s |
+| 4 | Windy Ridge | Gusts lift you in the air and push you along | 2100 | 23.7 | 23 s |
+| 5 | Snow Bridges | Gaps to fly; a fall puts you back at the lip after 1.2 s at speed 7 | 2100 | 25.8 | 23 s |
+| 6 | Aurora Peaks | Night skies and big drops | 2400 | 24.6 | 21 s |
+| 7 | The Summit Run | Everything, to the grand lodge, fireworks and the ending | 2700 | 31.5 | 19 s |
 
 Each day has three medals: 🏠 reach the lodge, ☕ collect every cocoa, and ☀ reach the lodge with the spare daylight in the table. The best time and the most spare daylight are kept per day, and any opened day can be replayed. Finishing a day opens the next.
 
@@ -78,4 +78,4 @@ Saved in `localStorage` under `snowdrift-v1`: per day whether it is done, its co
 
 ## Known gaps
 
-- The planner and expert bots beat the human-like bot by only 5 to 13 seconds of daylight, so the daylight medals reward clean, rhythmic riding rather than tricks alone.
+- The planner and expert bots beat the human-like bot by only 5 to 12 seconds of daylight, so the daylight medals reward clean, rhythmic riding rather than tricks alone.
