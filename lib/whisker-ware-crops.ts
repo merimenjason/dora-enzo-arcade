@@ -498,7 +498,7 @@ export const WARE_HASHES = {
   "room-enzo":"f10de07ccbc3",
   "room-fox":"6c19b31b311e",
   "room-owl":"dc2981a043d4",
-  "title":"659cd2fc43ea"
+  "title":"93c57b776301"
 } as const;
 
 export const WARE_SURFACES = {

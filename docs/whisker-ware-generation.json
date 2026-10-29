@@ -1456,16 +1456,16 @@
         1024
       ],
       "mode": "RGBA",
-      "sha256": "659cd2fc43eaf6ebcb43c6d676b9233d35113c1b521df3294870375c93126684",
-      "bytes": 2044719,
-      "alphaZeroFraction": 0.6242109934488932,
+      "sha256": "93c57b7763014c474bfc7863cdc0187ef7f647da67a0b2322a80121d4be45e83",
+      "bytes": 2010258,
+      "alphaZeroFraction": 0.6261246999104818,
       "alphaBounds": [
         0,
         27,
         1526,
         980
       ],
-      "topThirdNonzeroPixels": 93
+      "topThirdNonzeroPixels": 81
     }
   ],
   "validation": {
