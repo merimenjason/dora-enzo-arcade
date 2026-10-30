@@ -1,0 +1,3 @@
+import type { Metadata } from 'next';
+export const metadata: Metadata = { title: 'Moonhop · Dora & Enzo’s Arcade', description: 'A cosy gravity-slingshot game. Dora and Enzo’s paper-lantern balloon drifts up into a sky of tiny round moons, and they hop from moon to moon, holding paws, gathering the lost fireflies that light the way home. Every moon pulls, so leaps curve, slingshot and orbit: moss, jelly, ice, spinning and breathing moons, comets, twin moons, black beans and rabbit holes, across five skies of handmade stages, a Starlight time attack and the endless Moon Garden.' };
+export default function OrbitLayout({ children }: { children: React.ReactNode }) { return children; }

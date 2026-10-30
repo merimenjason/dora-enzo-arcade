@@ -1,0 +1,132 @@
+.mh-shell{--ink:#f3f0ff;--dim:#c4c0e6;--card:#1c1a4cee;--line:#4a4596;--gold:#ffd27a;--lamp:#ffb35a;--teal:#8ff0dc;--leaf:#d9ff7a;position:relative;width:100%;height:100svh;min-height:300px;overflow:hidden;display:flex;flex-direction:column;background:#0e0c2c;color:var(--ink);font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;isolation:isolate;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.mh-shell *{box-sizing:border-box}
+/* the global stylesheet colours every <p>; in here paragraphs take their colour from where they sit */
+:where(.mh-shell) p{color:inherit;font-size:inherit;line-height:1.45;margin:0}
+.mh-shell h1,.mh-shell h2,.mh-shell h3{margin:0;font-family:inherit;color:inherit;letter-spacing:normal}
+.mh-shell header{margin:0}
+.mh-shell button,.mh-shell a{font:inherit}
+.mh-shell button{border:2px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);font-weight:800;padding:9px 14px;cursor:pointer;min-height:42px;transition:background .15s,transform .15s,border-color .15s,box-shadow .15s;box-shadow:0 3px 0 #0006}
+.mh-shell button:hover:not(:disabled){transform:translateY(-1px);border-color:var(--gold)}
+.mh-shell button:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #0006}
+.mh-shell button:disabled{opacity:.45;cursor:default}
+.mh-shell button:focus-visible,.mh-shell a:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+.mh-shell kbd{font:900 11px ui-rounded,system-ui,sans-serif;background:#2a2766;border:1.5px solid var(--line);border-bottom-width:3px;border-radius:6px;padding:1px 5px;margin:0 1px;color:var(--ink)}
+.mh-eyebrow{font-size:11.5px;font-weight:900;letter-spacing:2.2px;color:var(--gold)}
+.mh-chips{display:inline-flex;gap:6px;flex-wrap:wrap}
+.mh-shell .mh-chip{min-height:34px;padding:5px 11px;font-size:13px;border-radius:999px}
+.mh-shell .mh-chip[aria-pressed=false]{opacity:.7}
+.mh-shell .mh-chip.is-on{border-color:var(--gold);background:#3a3488}
+
+/* ---- the bar */
+.mh-bar{flex:none;height:46px;display:flex;align-items:center;gap:8px;padding:0 10px;background:linear-gradient(180deg,#26215e,#17143f);border-bottom:2px solid #39337e;z-index:3}
+.mh-back{color:var(--ink);font-size:12px;font-weight:900;letter-spacing:1px;text-decoration:none;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:7px 11px;white-space:nowrap;cursor:pointer}
+.mh-shell button.mh-back{min-height:0;box-shadow:none}
+.mh-bar-mid{flex:1;min-width:0;display:flex;align-items:baseline;justify-content:center;gap:10px;white-space:nowrap;overflow:hidden}
+.mh-bar-mid small{font-size:11px;font-weight:900;letter-spacing:1.6px;color:var(--dim);overflow:hidden;text-overflow:ellipsis}
+.mh-name{font-size:16px;overflow:hidden;text-overflow:ellipsis;min-width:0;color:#fff1d2}
+.mh-pills{display:flex;gap:6px;flex:none}
+.mh-pill{background:#ffffff18;border-radius:999px;padding:4px 11px;font-weight:800;white-space:nowrap;font-size:14px}
+.mh-pill b{color:var(--leaf)}
+.mh-pill small{color:var(--dim);font-weight:700}
+.mh-gold{font-style:normal;margin-left:6px;color:#ffffff40}
+.mh-gold.is-on{color:#ffd84a;text-shadow:0 0 8px #ffd84a}
+
+/* ---- the stage: the sky and what floats over it */
+.mh-stage{position:relative;flex:1;min-height:0}
+.mh-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;cursor:pointer}
+.mh-shell:not([data-screen=play]) .mh-stage{display:none}
+.mh-hint{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;max-width:min(520px,calc(100% - 260px));text-align:center;font-size:14px;font-weight:700;color:#ebe8ff;background:#13113ab8;border-radius:12px;padding:6px 12px;z-index:2;pointer-events:none}
+.mh-tools{position:absolute;bottom:12px;right:14px;display:flex;gap:8px;z-index:2}
+.mh-shell .mh-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:64px;font-size:19px;line-height:1;padding:6px 10px;border-radius:14px}
+.mh-shell .mh-btn.is-on{border-color:var(--gold);background:#3a3488}
+.mh-btn small{font-size:11px;font-weight:800;color:var(--dim)}
+.mh-toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);max-width:min(560px,calc(100% - 24px));background:#25205ef2;border:2px solid #6a62c8;border-radius:14px;padding:9px 14px;font-weight:700;font-size:14px;z-index:5;text-align:center;box-shadow:0 8px 24px #0008;pointer-events:none}
+
+/* phones held upright: the tools along the bottom, the hint above them */
+@media (max-aspect-ratio:20/21){
+  .mh-tools{left:12px;right:12px;justify-content:center}
+  .mh-hint{bottom:74px;max-width:calc(100% - 24px);font-size:13px}
+  .mh-bar-mid small{display:none}
+  .mh-pill{padding:3px 8px;font-size:13px}
+}
+/* phones held sideways: everything slimmer so the moons get the room */
+@media (max-height:460px) and (min-aspect-ratio:21/20){
+  .mh-bar{height:40px}
+  .mh-hint{font-size:12.5px;bottom:8px;padding:4px 10px}
+  .mh-shell .mh-btn{min-width:52px;font-size:16px;padding:4px 8px;min-height:36px}
+  .mh-tools{bottom:8px;right:8px}
+  .mh-bar-mid small{display:none}
+}
+
+/* ---- cards and panels over the sky */
+.mh-card,.mh-panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(460px,calc(100% - 24px));max-height:calc(100% - 16px);overflow:auto;background:linear-gradient(180deg,#2a2468f6,#1a1648f6);border:2px solid #6a62c8;border-radius:20px;padding:18px 20px;z-index:6;box-shadow:0 18px 50px #000a;display:flex;flex-direction:column;gap:9px;text-align:center}
+.mh-card h3,.mh-panel h2{font-size:22px;color:#fff1d2}
+.mh-card p:not(.mh-eyebrow){font-size:15px;color:#ebe8ff}
+.mh-done{animation:mh-rise .5s ease-out both}
+@keyframes mh-rise{from{opacity:0;transform:translate(-50%,-44%)}to{opacity:1;transform:translate(-50%,-50%)}}
+/* on wide screens the card sits to one side, so the home moon and the cheering pair stay in view */
+@media (min-aspect-ratio:21/20) and (min-height:521px){.mh-done{left:auto;right:18px;top:18px;transform:none;width:min(400px,40%);animation-name:mh-rise-side}}
+@keyframes mh-rise-side{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.mh-done h2{font-size:28px;color:var(--gold);text-shadow:0 0 18px #ffb83a88}
+.mh-story{font-style:italic;font-size:15px;color:#ebe8ff}
+.mh-stars{display:inline-flex;gap:2px;font-style:normal}
+.mh-stars i{font-style:normal;color:#ffffff55}
+.mh-stars i.is-on{color:var(--gold);text-shadow:0 0 8px #ffb83a99}
+.mh-stars.is-big{justify-content:center;font-size:38px;gap:8px}
+.mh-stars.is-big i.is-on{animation:mh-pop .5s ease-out both}
+.mh-stars.is-big i:nth-child(2){animation-delay:.2s}.mh-stars.is-big i:nth-child(3){animation-delay:.4s}
+@keyframes mh-pop{from{transform:scale(.2);opacity:0}70%{transform:scale(1.3)}to{transform:scale(1);opacity:1}}
+.mh-checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;font-size:14px;font-weight:700;color:var(--dim)}
+.mh-checks li.is-on{color:#fff1d2}
+.mh-checks small{font-weight:600;color:var(--dim)}
+.mh-medal{font-weight:900;color:var(--dim)}
+.mh-medal.is-on{color:var(--gold)}
+.mh-earn{font-size:13.5px;font-weight:800;color:var(--teal)}
+.mh-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+.mh-shell .mh-go{background:linear-gradient(180deg,#ffd98f,#f2a23f);color:#2a1600;border-color:#ffe3a8;display:inline-flex;flex-direction:column;align-items:center;gap:1px;font-size:15px}
+.mh-shell .mh-go small,.mh-shell .mh-alt small{font-size:11.5px;font-weight:700;opacity:.8}
+.mh-shell .mh-alt{display:inline-flex;flex-direction:column;align-items:center;gap:1px}
+.mh-error{z-index:9}
+@media (max-height:460px){.mh-panel{padding:10px 14px;gap:5px}.mh-done h2{font-size:21px}.mh-stars.is-big{font-size:28px}.mh-story{display:none}.mh-checks{font-size:12.5px}}
+
+/* ---- the menu and the sky map */
+.mh-menu{flex:1;overflow:auto;padding:12px max(14px,calc(50% - 560px)) 28px;background:radial-gradient(ellipse at 50% 0%,#2e2872 0%,#141136 60%,#0b0a24 100%);display:flex;flex-direction:column;gap:14px}
+.mh-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.mh-total{font-size:15px;color:#fff1d2}
+.mh-hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:22px;align-items:center}
+.mh-art{position:relative;display:block;aspect-ratio:3/2;border-radius:20px;overflow:hidden;box-shadow:0 14px 40px #0009;border:2px solid #4a4596}
+.mh-art canvas,.mh-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.mh-hero h1{font-size:clamp(40px,6vw,68px);line-height:1;color:#fff;text-shadow:0 0 28px #ffc77a55;margin:6px 0 10px}
+.mh-hero h1 em{color:var(--gold);font-style:normal}
+.mh-lede{font-size:16.5px;color:#e2deff}
+.mh-go-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.mh-go-row>button{min-width:150px}
+.mh-go-row>.mh-go{min-width:220px;font-size:17px}
+.mh-how{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.mh-how li{background:#1a1748cc;border:1.5px solid #39337e;border-radius:14px;padding:10px 12px;font-size:14px;color:#e2deff}
+.mh-how b{color:#fff1d2;display:block;margin-bottom:2px}
+.mh-keys{text-align:center;font-size:12.5px;color:var(--dim)}
+.mh-tabs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.mh-shell .mh-tab{display:inline-flex;flex-direction:column;align-items:center;min-width:120px;padding:6px 10px}
+.mh-tab small{font-size:11.5px;color:var(--dim)}
+.mh-shell .mh-tab.is-on{border-color:var(--gold);background:#3a3488}
+.mh-modes{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.mh-skyhead{text-align:center;border-radius:18px;padding:16px 14px;background:linear-gradient(180deg,#0e0c2c66,#0e0c2ccc),var(--sky) center/cover,#231f5a;border:2px solid #39337e}
+.mh-skyhead small{font-size:11.5px;font-weight:900;letter-spacing:2px;color:var(--gold)}
+.mh-skyhead h2{font-size:28px;color:#fff1d2;text-shadow:0 2px 10px #000a}
+.mh-skyhead p{color:#ebe8ff;font-size:15px;text-shadow:0 1px 6px #000a}
+.mh-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:700px){.mh-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mh-shell .mh-cell{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 8px 10px;border-radius:16px;background:#1a1748e6}
+.mh-cell b{font-size:14px;color:#fff}
+.mh-cell small{font-size:12px;color:var(--dim);font-weight:700;text-align:center}
+.mh-shell .mh-cell.is-done{border-color:#b08a4a}
+.mh-shell .mh-cell.is-next{border-color:var(--teal);box-shadow:0 0 0 3px #8ff0dc33,0 3px 0 #0006}
+.mh-thumb{display:block;width:100%;aspect-ratio:300/190;border-radius:10px;background:#0b0a24}
+.mh-ending{position:fixed;inset:0;z-index:20;background:#05071a;display:flex;align-items:center;justify-content:center;animation:mh-fade 1.2s ease both}
+@keyframes mh-fade{from{opacity:0}to{opacity:1}}
+.mh-ending-art{position:absolute;inset:0;border-radius:0;border:0;aspect-ratio:auto}
+.mh-ending-text{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);width:min(640px,calc(100% - 24px));background:#13113ad9;border:2px solid #6a62c8;border-radius:20px;padding:14px 18px;display:flex;flex-direction:column;gap:7px;text-align:center;color:#ebe8ff;backdrop-filter:blur(4px)}
+.mh-ending-text h2{font-size:24px;color:var(--gold)}
+@media (max-width:760px){.mh-hero{grid-template-columns:1fr}.mh-hero h1{font-size:44px}}
+@media (max-height:520px){.mh-ending-text{bottom:8px;padding:9px 12px;gap:4px;font-size:13px}.mh-ending-text h2{font-size:18px}}
