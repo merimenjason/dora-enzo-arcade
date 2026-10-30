@@ -150,7 +150,8 @@ export class Stitch {
     if (land !== to) this.visits[land]++;
     this.moves.push({ from, seam: r, to, land });
     this.events.push({ k: 'stitch', from, to, seam: r, n: this.stitched });
-    if (land !== to) this.events.push({ k: 'jump', from: to, to: land });
+    // the needle leaps to the twin: the drag ends there, and the thread is picked up again from the twin
+    if (land !== to) { this.events.push({ k: 'jump', from: to, to: land }); this.drag = false; }
     this.check(); return true;
   }
   /** Unpicks the last stitch (or the first star, when that's all there is). */
@@ -211,16 +212,25 @@ export class Stitch {
     const at = this.at, A = this.p.stars[at], opts = this.options();
     const last = this.moves[this.moves.length - 1];
     const back = last && !opts.includes(last.from) ? last.from : -1;
-    let pick = -1, score = -Infinity, unpick = false;
-    const consider = (j: number, isBack: boolean) => {
-      const B = this.p.stars[j], vx = B.x - A.x, vy = B.y - A.y, L2 = vx * vx + vy * vy, L = Math.sqrt(L2) || 1;
-      const d = Math.hypot(B.x - x, B.y - y);
-      if (d <= r) { const sc = 10 - d / r; if (sc > score) { score = sc; pick = j; unpick = isBack; } return; }
-      const ux = x - A.x, uy = y - A.y, t = (ux * vx + uy * vy) / L2, perp = Math.abs(ux * vy - uy * vx) / L;
-      if (t > 0.6 && t < 1.6 && perp < Math.max(r, L * 0.28)) { const sc = t - perp / L; if (sc > score) { score = sc; pick = j; unpick = isBack; } }
-    };
-    for (const j of opts) consider(j, false);
-    if (back >= 0) consider(back, true);
+    const cands: [number, boolean][] = opts.map((j) => [j, false]);
+    if (back >= 0) cands.push([back, true]);
+    if (!cands.length) return false;
+    let pick = -1, unpick = false, near = r;
+    // right on a star: that one
+    for (const [j, isBack] of cands) { const B = this.p.stars[j], d = Math.hypot(B.x - x, B.y - y); if (d <= near) { near = d; pick = j; unpick = isBack; } }
+    if (pick < 0) {
+      // otherwise the star whose direction the drag is heading in, once it is past 60% of the way along its seam and
+      // not far off the line. Unpicking asks for more (further along, closer to the thread), so a drag that only
+      // brushes past the last star doesn't undo it.
+      const ux = x - A.x, uy = y - A.y; if (Math.hypot(ux, uy) < r * 0.8) return false;
+      const ang = Math.atan2(uy, ux);
+      let best: [number, boolean] | null = null, bestD = Infinity;
+      for (const c of cands) { const B = this.p.stars[c[0]]; let d = Math.abs(Math.atan2(B.y - A.y, B.x - A.x) - ang); if (d > Math.PI) d = 2 * Math.PI - d; if (d < bestD) { bestD = d; best = c; } }
+      const [j, isBack] = best!, B = this.p.stars[j], vx = B.x - A.x, vy = B.y - A.y, L2 = vx * vx + vy * vy, L = Math.sqrt(L2) || 1;
+      const t = (ux * vx + uy * vy) / L2, perp = Math.abs(ux * vy - uy * vx) / L;
+      const ok = isBack ? t > 0.72 && t < 1.4 && perp < r * 0.8 : t > 0.6 && t < 1.6 && perp < Math.max(r, L * 0.28);
+      if (ok) { pick = j; unpick = isBack; }
+    }
     if (pick < 0) return false;
     if (unpick) { this.undo(); return true; }
     return this.stitch(pick);

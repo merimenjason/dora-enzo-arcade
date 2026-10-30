@@ -208,7 +208,7 @@ add({
   id: 'n3-8', name: 'The Stag', fig: 'stag',
   s: 'hd 64 30, n 74 38, a1 58 14, a2 50 4, a3 66 4, a4 76 10, a5 86 4, b1 30 40, b2 62 48, l1 28 76, l2 40 76, l3 56 76, l4 66 76, t 16 34',
   e: 'hd-n n>b2 hd-a1 a1=a2 a1-a3 a3-hd hd-a4 a4=a5 b1-hd b1-b2 b1>l1 l2>b1 b2>l3 l4>b2 l1-l2 l3-l4 b1=t',
-  c: [[44, 22, 12]],
+  c: [[50, 32, 11]],
   story: ['The Stag walks the ridge at the top of the world', 'and the frost follows wherever he steps.'],
 });
 
@@ -232,7 +232,7 @@ add({
   s: 'b1 50 6, b2 50 26 ~r1, b3 50 48, b4 50 76, w1 16 34, w2 22 60, r1 70 18 ~b2, r2 92 10, r3 90 34, r4 70 34',
   e: 'b1-b2 b2-b3 b3-b4 b3-w1 w1-w2 w2-b3 r1-r2 r2-r3 r3-r4 r4-r1',
   story: ['The Dragonfly is so quick, Grandmother said,', 'that it’s in two places at once.'],
-  teach: { title: 'Twin stars', text: 'Twin stars share a colour. Stitch into one and the needle leaps to the other, ready to carry on from there.' },
+  teach: { title: 'Twin stars', text: 'Twin stars share a colour. Stitch into one and the needle leaps to the other: pick it up there and carry on.' },
 });
 add({
   id: 'n4-4', name: 'The Leaping Trout', fig: 'trout',
