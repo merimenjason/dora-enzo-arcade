@@ -56,6 +56,8 @@ export default function OrbitPage() {
   const screenRef = useRef<Screen>('menu'), hop = useRef<Hop | null>(null), mode = useRef<Mode>('story'), gardenLevel = useRef(1);
   const keys = useRef({ left: false, right: false, up: false, down: false, jump: false });
   const ptr = useRef<{ down: boolean; x: number; y: number; over: boolean }>({ down: false, x: 0, y: 0, over: false });
+  // a press in mid-air that was let go again before the next step still puffs: 'key' for Space, 'ptr' for a click or tap
+  const tap = useRef<'' | 'key' | 'ptr'>('');
   const acc = useRef(0), paused = useRef(false), lookRef = useRef(false), toastTimer = useRef(0), panelTimer = useRef(0), lastCharge = useRef(0);
   const [screen, setScreenState] = useState<Screen>('menu'), [sky, setSky] = useState(1), [starMode, setStarMode] = useState(false);
   const [done, setDone] = useState<Done | null>(null), [tip, setTip] = useState<{ title: string; text: string } | null>(null), [toast, setToast] = useState('');
@@ -123,6 +125,7 @@ export default function OrbitPage() {
     window.clearTimeout(panelTimer.current);
     const info: Done = { out, leaps: r.leaps, time: r.time, gold: h.goldGot(), garden };
     panelTimer.current = window.setTimeout(() => { setDone(info); refresh(); }, 1700);
+    layout();
   }
   function nextAfter() {
     const h = hop.current, sv = save.current; if (!h) return;
@@ -139,14 +142,19 @@ export default function OrbitPage() {
     const el = stage.current, sc = scene.current; if (!el || !sc) return;
     sc.resize();
     const r = el.getBoundingClientRect(), t = tools.current?.getBoundingClientRect(), tall = r.height > r.width * 1.05;
-    sc.inset = { top: 0, left: 0, right: 0, bottom: tall && t && t.height > 0 ? Math.max(0, r.bottom - t.top + 6) : 0 };
+    // on wide screens the done card comes in at the side (see .mh-done in orbit.css): from the moment they are home,
+    // frame the cheering pair in the sky beside it
+    const side = !!hop.current?.done && window.matchMedia?.('(min-aspect-ratio: 21/20) and (min-height: 521px)').matches;
+    sc.inset = { top: 0, left: 0, right: side ? Math.min(400, r.width * 0.4) + 30 : 0, bottom: tall && t && t.height > 0 ? Math.max(0, r.bottom - t.top + 6) : 0 };
   }
   /** What the player is holding right now, as the game's input. */
   function input(): Input {
     const k = keys.current, p = ptr.current, sc = scene.current, cv = canvas.current;
+    const tapped = hop.current?.mode === 'fly' ? tap.current : '';
+    tap.current = '';
     let point: [number, number] | null = null;
-    if (p.down && sc && cv) { const b = cv.getBoundingClientRect(); point = sc.toWorld(p.x - b.left, p.y - b.top); }
-    return { left: k.left, right: k.right, up: k.up, down: k.down, jump: k.jump || p.down, point };
+    if ((p.down || tapped === 'ptr') && sc && cv) { const b = cv.getBoundingClientRect(); point = sc.toWorld(p.x - b.left, p.y - b.top); }
+    return { left: k.left, right: k.right, up: k.up, down: k.down, jump: k.jump || p.down || !!tapped, point };
   }
 
   useEffect(() => {
@@ -217,7 +225,7 @@ export default function OrbitPage() {
       if (tgt.closest?.('button, a, input') && (k === 'enter' || k === ' ')) return;
       if (k === 'r') { e.preventDefault(); restart(); return; }
       if (k === 'l' || k === 'shift') { e.preventDefault(); if (!e.repeat) setLookOn(k === 'shift' ? true : !lookRef.current); return; }
-      if (setKey(e, true)) { e.preventDefault(); audio(); }
+      if (setKey(e, true)) { e.preventDefault(); audio(); if (keys.current.jump && !e.repeat) tap.current = 'key'; }
     };
     const keyup = (e: KeyboardEvent) => { if (e.key === 'Shift') setLookOn(false); if (setKey(e, false)) e.preventDefault(); };
     const blur = () => { keys.current = { left: false, right: false, up: false, down: false, jump: false }; ptr.current.down = false; sound.current?.suspend(); };
@@ -240,7 +248,7 @@ export default function OrbitPage() {
     audio();
     if (e.pointerType !== 'mouse' && !touchRef.current) setTouch(true);
     try { (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); } catch { /* gone already */ }
-    ptr.current = { down: true, x: e.clientX, y: e.clientY, over: true };
+    ptr.current = { down: true, x: e.clientX, y: e.clientY, over: true }; tap.current = 'ptr';
   };
   const onMove = (e: React.PointerEvent) => { ptr.current.x = e.clientX; ptr.current.y = e.clientY; ptr.current.over = true; };
   const onUp = () => { ptr.current.down = false; };

@@ -40,6 +40,16 @@ const aimPoint = (page, at) => page.evaluate((a) => {
   return window.__orbitPoint(h.mx[h.moon] + Math.cos(a) * m.r * 0.5, h.my[h.moon] + Math.sin(a) * m.r * 0.5);
 }, at);
 
+/** True when it is time to let go: a full ring for a full leap; otherwise, once the ring is nearly there, waits out
+ *  the last moment (the ring fills in 1.1 s) so the letting go lands on the charge rather than a poll later. */
+async function charged(page, act) {
+  const c = (await state(page)).charge;
+  if (act.charge >= 1) return c >= 1;
+  const left = (act.charge - c) * 1.1;
+  if (c <= 0 || left > 0.1) return false;
+  if (left > 0.012) await page.waitForTimeout(Math.round((left - 0.012) * 1000));
+  return true;
+}
 /** One leap with the mouse or a finger: hold on the spot (the pair walk there and the ring fills), let go at the charge. */
 async function leapPointer(page, act, cdp = null) {
   const before = (await state(page)).leaps;
@@ -47,8 +57,7 @@ async function leapPointer(page, act, cdp = null) {
   let [x, y] = await aimPoint(page, act.at);
   if (cdp) await touch('touchStart', x, y); else { await page.mouse.move(x, y); await page.mouse.down(); }
   for (let k = 0; k < 600; k++) {
-    const s = await state(page);
-    if (s.charge >= act.charge - 0.02 || (act.charge >= 1 && s.charge >= 1)) break;
+    if (await charged(page, act)) break;
     [x, y] = await aimPoint(page, act.at);
     if (cdp) await touch('touchMove', x, y); else await page.mouse.move(x, y);
     await page.waitForTimeout(8);
@@ -61,17 +70,20 @@ async function leapPointer(page, act, cdp = null) {
 /** One leap with the keyboard alone: walk there with the arrows, hold Space, let go at the charge. */
 async function leapKeys(page, act) {
   const before = (await state(page)).leaps;
-  for (let tries = 0; tries < 6; tries++) {
+  // walk there: hold the arrow while far off (letting go a few px early, since they take a step to stop), then tap
+  for (let tries = 0; tries < 30; tries++) {
     let s = await state(page), d = wrap(act.at - s.at);
-    if (Math.abs(d) * s.r < 3) break;
+    if (Math.abs(d) * s.r < 1.2) break;
     const key = (d > 0) === (Math.sin(s.at) <= 0.05) ? 'ArrowRight' : 'ArrowLeft';
     await page.keyboard.down(key);
-    for (let k = 0; k < 400; k++) { s = await state(page); const e = wrap(act.at - s.at); if (Math.abs(e) * s.r < 4 || Math.sign(e) !== Math.sign(d)) break; await page.waitForTimeout(5); }
+    if (Math.abs(d) * s.r > 9) {
+      for (let k = 0; k < 400; k++) { s = await state(page); const e = wrap(act.at - s.at); if (Math.abs(e) * s.r < 5 || Math.sign(e) !== Math.sign(d)) break; await page.waitForTimeout(5); }
+    } else await page.waitForTimeout(25);
     await page.keyboard.up(key);
-    await page.waitForTimeout(150);
+    await page.waitForTimeout(140);
   }
   await page.keyboard.down(' ');
-  for (let k = 0; k < 600; k++) { const s = await state(page); if (s.charge >= act.charge - 0.02 || (act.charge >= 1 && s.charge >= 1)) break; await page.waitForTimeout(8); }
+  for (let k = 0; k < 600; k++) { if (await charged(page, act)) break; await page.waitForTimeout(8); }
   await page.keyboard.up(' ');
   await page.waitForFunction((n) => window.__orbit().h.leaps > n, before);
   await settle(page);
@@ -148,6 +160,7 @@ async function threeStars(page, label) {
   await page.waitForFunction(() => window.__orbit().h.mode === 'fly');
   // a puff with Space and an arrow
   await page.keyboard.down('ArrowRight'); await page.keyboard.press(' '); await page.keyboard.up('ArrowRight');
+  await page.waitForFunction(() => window.__orbit().h.puffsUsed > 0, null, { timeout: 2000 }).catch(() => {});
   s = await state(page); assert.equal(s.puffsUsed, 1, 'Space in the air puffs'); assert.equal(s.puffs, 0);
   await settle(page);
   assert.equal((await state(page)).puffs, 1, 'landing refills the puff');
@@ -160,6 +173,7 @@ async function threeStars(page, label) {
     await page.waitForFunction((n) => window.__orbit().h.leaps > n && window.__orbit().h.mode === 'fly', before);
     const p = await page.evaluate(() => { const h = window.__orbit().h; return window.__orbitPoint(h.x + 120, h.y); });
     await page.mouse.click(p[0], p[1]);
+    await page.waitForFunction(() => window.__orbit().h.puffsUsed > 1, null, { timeout: 2000 }).catch(() => {});
     assert.equal((await state(page)).puffsUsed, 2, 'a click in the air puffs');
     await settle(page);
   }
@@ -172,10 +186,19 @@ async function threeStars(page, label) {
   s = await state(page); assert.equal(s.leaps, 0, 'R starts the stage again');
   await page.keyboard.press('l'); assert.ok((await state(page)).look, 'L looks round');
   await page.getByRole('button', { name: /Look/ }).click(); assert.ok(!(await state(page)).look, 'and the Look button puts it back');
-  // straight out into the dark at full power: the lantern string reels them back
+  // straight out into the dark: a full leap off the left of the moon and a puff on the way out; the lantern string
+  // reels them back
   await page.locator('canvas.mh-canvas').focus();
-  const out = await page.evaluate(() => { const h = window.__orbit().h, st = h.s, [l, t, r, b] = h.bounds(); void l; void t; void r; void b; return Math.atan2(h.my[h.moon] - (st.moons.reduce((a, m) => a + m.y, 0) / st.moons.length), h.mx[h.moon] - (st.moons.reduce((a, m) => a + m.x, 0) / st.moons.length)); });
-  await leapPointer(page, { at: out, charge: 1 });
+  {
+    const [x, y] = await aimPoint(page, Math.PI);
+    await page.mouse.move(x, y); await page.mouse.down();
+    await page.waitForFunction(() => window.__orbit().h.charge >= 1); await page.mouse.up();
+    await page.waitForFunction(() => window.__orbit().h.mode === 'fly'); await page.waitForTimeout(350);
+    const p = await page.evaluate(() => { const h = window.__orbit().h, v = Math.hypot(h.vx, h.vy) || 1; return window.__orbitPoint(h.x + h.vx / v * 120, h.y + h.vy / v * 120); });
+    await page.mouse.click(p[0], p[1]);
+    await page.waitForFunction(() => window.__orbit().h.lost > 0, null, { timeout: 15000 });
+    await settle(page);
+  }
   s = await state(page);
   assert.equal(s.lost, 1, 'drifted off into the dark'); assert.equal(s.leaps, 1, 'the leap still counts'); assert.equal(s.m, 'stand');
   console.log('PASS the charge ring and the dotted path, puffs by key and click, R, Look, and the rewind from the dark');
