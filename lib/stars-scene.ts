@@ -69,8 +69,8 @@ export class StarsScene {
       const ph = Math.max(80, Math.min(H * 0.32, 380, W * 0.19)), pw = ph * 2;
       this.pair = [6, H - ph - 2, pw, ph];
       // beside them, or above them: whichever leaves the sky bigger
-      const a: [number, number, number, number] = [pw + 4, I.top + 10, W - 16 - I.right, H - I.bottom - 8];
-      const b: [number, number, number, number] = [16 + I.left, I.top + 10, W - 16 - I.right, H - ph - 4];
+      const a: [number, number, number, number] = [pw + 4, I.top + 10, W - 16 - I.right, Math.min(H - I.bottom - 8, H * 0.8)];
+      const b: [number, number, number, number] = [16 + I.left, I.top + 10, W - 16 - I.right, Math.min(H - ph - 4, H * 0.8)];
       const sc = (f: number[]) => Math.min((f[2] - f[0]) / 100, (f[3] - f[1]) / 80);
       this.field = sc(a) >= sc(b) ? a : b;
     }
@@ -312,7 +312,7 @@ export class StarsScene {
 export function paintConstellation(cv: HTMLCanvasElement, p: Puzzle, solved: boolean, fig: HTMLImageElement | null) {
   const c = cv.getContext('2d'); if (!c) return;
   const W = cv.width, H = cv.height;
-  c.clearRect(0, 0, W, H);
+  c.fillStyle = '#070a22'; c.fillRect(0, 0, W, H);
   const xs = p.stars.map((q) => q.x), ys = p.stars.map((q) => q.y), x0 = Math.min(...xs), y0 = Math.min(...ys);
   const bw = Math.max(20, Math.max(...xs) - x0), bh = Math.max(20, Math.max(...ys) - y0), s = Math.min((W * 0.84) / bw, (H * 0.84) / bh);
   const ox = W / 2 - (x0 + bw / 2) * s, oy = H / 2 - (y0 + bh / 2) * s, R = Math.max(1.8, W / 70);

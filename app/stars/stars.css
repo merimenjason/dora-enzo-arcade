@@ -62,6 +62,8 @@
 .ss-card h3,.ss-panel h2{font-size:22px;color:#fff4d0}
 .ss-card p:not(.ss-eyebrow){font-size:15px;color:#e4e8ff}
 .ss-done{animation:ss-rise .5s ease-out both}
+@media (min-aspect-ratio:21/20) and (min-height:521px){.ss-done{left:16px;top:16px;transform:none;width:min(440px,calc(var(--pairw) - 4px));animation-name:ss-rise-side}}
+@keyframes ss-rise-side{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes ss-rise{from{opacity:0;transform:translate(-50%,-44%)}to{opacity:1;transform:translate(-50%,-50%)}}
 .ss-done h2{font-size:28px;color:var(--gold);text-shadow:0 0 18px #ffb83a88}
 .ss-story{font-style:italic;font-size:15.5px;color:#e8ebff}
@@ -99,7 +101,8 @@
 .ss-nighthead small{font-size:11.5px;font-weight:900;letter-spacing:2px;color:var(--gold)}
 .ss-nighthead h2{font-size:28px;color:#fff4d0}
 .ss-nighthead p{color:#cfd5ff;font-size:15px}
-.ss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.ss-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:700px){.ss-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .ss-shell .ss-cell{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 8px;border-radius:16px;background:#121845e6}
 .ss-cell b{font-size:14.5px;color:#fff}
 .ss-cell small{font-size:11.5px;color:var(--dim);font-weight:700;text-align:center}
@@ -120,3 +123,5 @@
 .ss-ending-text h2{font-size:24px;color:var(--gold)}
 @media (max-width:760px){.ss-hero{grid-template-columns:1fr}.ss-hero h1{font-size:44px}}
 @media (max-height:520px){.ss-ending-text{bottom:8px;padding:9px 12px;gap:4px;font-size:13px}.ss-ending-text h2{font-size:18px}}
+.ss-side.is-gone{visibility:hidden}
+@media (max-width:520px){.ss-bar-mid small{display:none}}

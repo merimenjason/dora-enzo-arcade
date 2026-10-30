@@ -287,7 +287,7 @@ export default function StarsPage() {
           onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onPointerLeave={onLeave} onContextMenu={(e) => e.preventDefault()} />
 
         {screen === 'play' && s && p && (<>
-          <div className="ss-side" ref={side}>
+          <div className={'ss-side' + (done ? ' is-gone' : '')} ref={side}>
             <p className="ss-count" data-testid="count"><b>{s.stitched}</b> / {s.total} stitched{s.clean && !s.done ? <span className="ss-clean" title="No unpicking yet: on course for the star medal">★ in one go</span> : null}</p>
             {p.rules.length > 0 && <ul className="ss-rules">{p.rules.map((r) => <li key={r}>{RULE_TIP[r]}</li>)}</ul>}
           </div>
