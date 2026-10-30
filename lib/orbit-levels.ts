@@ -11,7 +11,7 @@ export type Sky = { n: number; name: string; blurb: string; skin: Skin; tint: st
 export const SKIES: Sky[] = [
   { n: 1, name: 'Lantern Clouds', blurb: 'Just above the clouds, where the little paper-lantern moons bob. Walk, crouch and leap.', skin: 'lantern', tint: '#f3a65a' },
   { n: 2, name: 'Mushroom Moons', blurb: 'Soft moss that catches you, jelly that bounces you, and moons that turn under your paws.', skin: 'mushroom', tint: '#e0605a' },
-  { n: 3, name: 'Frost Moons', blurb: 'Ice to skid on and moons whose pull breathes slowly in and out.', skin: 'ice', tint: '#8fd3ff' },
+  { n: 3, name: 'Frost Moons', blurb: 'Ice to skid on and moons whose pull breathes slowly in and out.', skin: 'lantern', tint: '#8fd3ff' },
   { n: 4, name: 'The Comet Stream', blurb: 'Comets to ride, twin moons that dance round each other, and black beans that push you away.', skin: 'cheese', tint: '#ffd36b' },
   { n: 5, name: 'The Night Garden', blurb: 'Rabbit holes that pop you out of another moon, and everything you have learned, all at once.', skin: 'garden', tint: '#c9a2ff' },
 ];
@@ -221,7 +221,7 @@ const S5: Def[] = [
     name: 'Under the Leaves', story: 'A comet loops under the leaves, and a hole leads up and out.',
     moons: [m(0, 0, 46, { skin: 'garden' }), m(330, 140, 22, { comet: true, skin: 'ice', path: { cx: 330, cy: 160, ax: 200, ay: 70, period: 8 } }), m(330, -160, 44, { skin: 'garden' }), m(680, 0, 46, { skin: 'garden' })],
     holes: [{ a: 0, aAt: P * 0.75, b: 2, bAt: up }],
-    flies: [f(170, 100), f(330, 280), f(330, -300), f(510, -60), f(510, 150, true)], start: { moon: 0, at: up }, home: 3,
+    flies: [f(170, 100), f(330, 280), f(330, -300), f(510, -60), f(580, 290, true)], start: { moon: 0, at: up }, home: 3,
   },
   {
     name: 'Night Bloom', story: 'Ice petals, moss stems and a bean in the middle of the flower.',

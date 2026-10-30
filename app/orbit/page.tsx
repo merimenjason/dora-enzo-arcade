@@ -60,7 +60,8 @@ export default function OrbitPage() {
   const [screen, setScreenState] = useState<Screen>('menu'), [sky, setSky] = useState(1), [starMode, setStarMode] = useState(false);
   const [done, setDone] = useState<Done | null>(null), [tip, setTip] = useState<{ title: string; text: string } | null>(null), [toast, setToast] = useState('');
   const [ending, setEnding] = useState(false), [ready, setReady] = useState(false), [mounted, setMounted] = useState(false), [error, setError] = useState('');
-  const [touch, setTouch] = useState(false), [look, setLook] = useState(false);
+  const [touch, setTouchState] = useState(false), [look, setLook] = useState(false), touchRef = useRef(false);
+  const setTouch = (on: boolean) => { touchRef.current = on; setTouchState(on); };
   const [, setTick] = useState(0);
   const refresh = () => setTick((n) => n + 1);
   const setScreen = (s: Screen) => { screenRef.current = s; setScreenState(s); };
@@ -185,7 +186,10 @@ export default function OrbitPage() {
             lastCharge.current = h.charge;
           }
           const showPath = mode.current !== 'starlight' && h.mode === 'stand' && h.charge > 0;
-          sc.draw({ dt, h, preview: showPath ? h.preview(h.s.preview) : null, look: lookRef.current, aim: null, starlight: mode.current === 'starlight' });
+          let aim: number | null = null;
+          const pp = ptr.current, cv = canvas.current;
+          if (pp.over && !pp.down && !touchRef.current && h.mode === 'stand' && cv) { const b = cv.getBoundingClientRect(), [wx, wy] = sc.toWorld(pp.x - b.left, pp.y - b.top); aim = Math.atan2(wy - h.my[h.moon], wx - h.mx[h.moon]); }
+          sc.draw({ dt, h, preview: showPath ? h.preview(h.s.preview) : null, look: lookRef.current, aim, starlight: mode.current === 'starlight' });
           if (mode.current === 'starlight' && !h.done && Math.floor(h.t * 10) !== Math.floor((h.t - dt) * 10)) refresh();
         }
         sound.current?.tick(true);
@@ -234,7 +238,7 @@ export default function OrbitPage() {
   const onDown = (e: React.PointerEvent) => {
     if (screenRef.current !== 'play' || !hop.current || tip) return;
     audio();
-    if (e.pointerType !== 'mouse' && !touch) setTouch(true);
+    if (e.pointerType !== 'mouse' && !touchRef.current) setTouch(true);
     try { (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); } catch { /* gone already */ }
     ptr.current = { down: true, x: e.clientX, y: e.clientY, over: true };
   };

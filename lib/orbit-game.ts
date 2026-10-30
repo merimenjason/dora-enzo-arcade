@@ -260,7 +260,7 @@ export class Hop {
         this.events.push({ k: 'bounce', moon: i, speed: -vn });
         break;
       }
-      this.mode = 'stand'; this.moon = i; this.at = Math.atan2(ny, nx); this.holeLock = -1;
+      this.mode = 'stand'; this.moon = i; this.at = Math.atan2(ny, nx); this.holeLock = -1; this.puffs = 1;
       this.ws = Math.max(-260, Math.min(260, kind === 'moss' ? 0 : kind === 'ice' ? vt * 0.9 : vt * 0.3));
       this.feet(); this.landT = 0; this.block = this.prevJump;
       this.events.push({ k: 'land', moon: i, kind, speed: Math.hypot(rvx, rvy) });

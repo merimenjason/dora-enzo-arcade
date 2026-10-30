@@ -97,7 +97,7 @@ export class OrbitScene {
   }
   /** The most and least the camera may zoom: the pair never smaller than about 52 px nor bigger than a quarter of the view. */
   private zoomRange(): [number, number] {
-    const v = this.view(), lo = Math.max(48, Math.min(64, v.h * 0.12)) / PAIR, hi = Math.max(lo, (v.h * 0.24) / PAIR);
+    const v = this.view(), lo = Math.max(56, Math.min(70, v.h * 0.12)) / PAIR, hi = Math.max(lo, (v.h * 0.24) / PAIR);
     return [lo, hi];
   }
   toScreen(x: number, y: number): [number, number] { const v = this.view(); return [v.x + v.w / 2 + (x - this.cx) * this.s, v.y + v.h / 2 + (y - this.cy) * this.s]; }
@@ -182,6 +182,7 @@ export class OrbitScene {
     this.drawLantern(h, dt);
     this.drawFlies(h);
     if (o.preview && o.preview.length > 1) this.drawPreview(o.preview, h);
+    if (o.aim !== null && h.mode === 'stand') this.drawAim(h, o.aim);
     this.drawPair(h, o, dt);
     this.drawSparks(dt);
     c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -195,6 +196,7 @@ export class OrbitScene {
       const k = Math.max(W / bg.width, H / bg.height) * 1.08, w = bg.width * k, h = bg.height * k;
       const px = Math.max(-1, Math.min(1, this.cx / 1500)), py = Math.max(-1, Math.min(1, this.cy / 1000));
       c.drawImage(bg, (W - w) / 2 - px * (w - W) * 0.45, (H - h) / 2 - py * (h - H) * 0.45, w, h);
+      c.fillStyle = 'rgba(12,10,40,0.28)'; c.fillRect(0, 0, W, H);
     } else {
       const [a, b, d] = SKY_COL[this.sky - 1], g = c.createLinearGradient(0, 0, 0, H);
       g.addColorStop(0, a); g.addColorStop(0.65, b); g.addColorStop(1, d); c.fillStyle = g; c.fillRect(0, 0, W, H);
@@ -364,10 +366,19 @@ export class OrbitScene {
     pts.forEach(([x, y], k) => {
       if (k === 0) return;
       const a = 1 - k / pts.length;
-      c.fillStyle = `rgba(255,246,214,${0.25 + a * 0.65})`; c.beginPath(); c.arc(x, y, 2.2 + a * 2.2, 0, TAU); c.fill();
+      c.fillStyle = `rgba(20,16,60,${0.25 * a})`; c.beginPath(); c.arc(x, y, 3.6 + a * 2.4, 0, TAU); c.fill();
+      c.fillStyle = `rgba(255,246,214,${0.35 + a * 0.6})`; c.beginPath(); c.arc(x, y, 2.4 + a * 2.2, 0, TAU); c.fill();
     });
     c.restore();
     void h;
+  }
+
+  /** Where the pointer would send them on this moon: a little glowing mark on the rim and a dashed hint outward. */
+  private drawAim(h: Hop, at: number) {
+    const c = this.c, m = h.s.moons[h.moon], x = h.mx[h.moon] + Math.cos(at) * m.r, y = h.my[h.moon] + Math.sin(at) * m.r;
+    c.save(); c.strokeStyle = 'rgba(255,240,200,0.75)'; c.lineWidth = 2; c.setLineDash([4, 6]);
+    c.beginPath(); c.moveTo(x + Math.cos(at) * 8, y + Math.sin(at) * 8); c.lineTo(x + Math.cos(at) * 40, y + Math.sin(at) * 40); c.stroke();
+    c.setLineDash([]); c.fillStyle = 'rgba(255,240,200,0.9)'; c.beginPath(); c.arc(x, y, 3.5, 0, TAU); c.fill(); c.restore();
   }
 
   private drawPair(h: Hop, o: DrawOpts, dt: number) {
@@ -381,7 +392,11 @@ export class OrbitScene {
       x = this.lostFrom[0] + (tx - this.lostFrom[0]) * e; y = this.lostFrom[1] + (ty - this.lostFrom[1]) * e - Math.sin(e * Math.PI) * 60;
       c.save(); c.setLineDash([2, 6]); c.strokeStyle = 'rgba(255,230,170,0.6)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x, y); c.lineTo(tx, ty); c.stroke(); c.restore();
       ux = Math.cos(h.lastAt); uy = Math.sin(h.lastAt);
-    } else if (h.mode === 'fly') { [ux, uy] = h.flyUp(); }
+    } else if (h.mode === 'fly') {
+      // away from the pull when it is strong, drifting back towards screen-up out in the open
+      const [ax, ay] = h.pull(h.x, h.y), a = Math.hypot(ax, ay), w = Math.min(1, a / 260);
+      ux = a > 0 ? (-ax / a) * w : 0; uy = (a > 0 ? (-ay / a) * w : 0) - (1 - w);
+    }
     else { ux = Math.cos(h.at); uy = Math.sin(h.at); }
     const want = Math.atan2(uy, ux); let d = want - this.upA; d = Math.atan2(Math.sin(d), Math.cos(d));
     this.upA += d * Math.min(1, dt * (h.mode === 'fly' ? 5 : 18));
@@ -469,16 +484,21 @@ export class OrbitScene {
 /** A stage drawn small: its moons, fireflies and the home lantern, on the sky's colours. */
 export function paintThumb(cv: HTMLCanvasElement, st: Stage, done: boolean) {
   const c = cv.getContext('2d'); if (!c) return;
-  const W = cv.width, H = cv.height, [a, b] = SKY_COL[Math.max(0, Math.min(4, st.sky - 1))];
-  const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, a); g.addColorStop(1, b); c.fillStyle = g; c.fillRect(0, 0, W, H);
+  const W = cv.width, H = cv.height, k = Math.max(1, Math.min(5, st.sky)), bg = img('sky-' + k);
+  want('sky-' + k);
+  if (bg) { const z = Math.max(W / bg.width, H / bg.height); c.drawImage(bg, (W - bg.width * z) / 2, (H - bg.height * z) / 2, bg.width * z, bg.height * z); c.fillStyle = 'rgba(12,10,40,0.3)'; c.fillRect(0, 0, W, H); }
+  else { const [a, b] = SKY_COL[k - 1], g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, a); g.addColorStop(1, b); c.fillStyle = g; c.fillRect(0, 0, W, H); }
+  // the moons drawn half as big again as they really are, so the little islands read at this size
+  const grow = 1.5;
   let l = Infinity, t = Infinity, r = -Infinity, bt = -Infinity;
-  st.moons.forEach((m) => { const x = m.path?.cx ?? m.x, y = m.path?.cy ?? m.y, e = m.path ? m.path.ax * 0.5 : 0; l = Math.min(l, x - m.r - e); r = Math.max(r, x + m.r + e); t = Math.min(t, y - m.r - e); bt = Math.max(bt, y + m.r + e); });
-  const s = Math.min((W * 0.86) / (r - l), (H * 0.8) / (bt - t)), ox = W / 2 - ((l + r) / 2) * s, oy = H / 2 - ((t + bt) / 2) * s + H * 0.04;
-  c.save(); c.setTransform(s, 0, 0, s, ox, oy);
-  st.moons.forEach((m) => { want('moon-' + (m.skin ?? 'lantern')); disc(c, m.skin ?? 'lantern', m.x, m.y, m.r, 0); });
-  c.restore();
-  st.flies.forEach((f) => { if (f.x === undefined || f.y === undefined) return; c.fillStyle = f.gold ? '#ffd84a' : '#d9ff7a'; c.globalAlpha = done ? 0.5 : 0.9; c.beginPath(); c.arc(ox + f.x * s, oy + f.y * s, f.gold ? 3.4 : 2.4, 0, TAU); c.fill(); c.globalAlpha = 1; });
-  const hm = st.moons[st.home]; if (hm) { c.fillStyle = done ? '#ffcf6a' : '#c9a07a'; c.beginPath(); c.ellipse(ox + hm.x * s, oy + (hm.y - hm.r) * s - 7, 5, 6.5, 0, 0, TAU); c.fill(); }
+  st.moons.forEach((m) => { const x = m.path?.cx ?? m.x, y = m.path?.cy ?? m.y, e = m.r * grow + (m.path ? m.path.ax * 0.3 : 0); l = Math.min(l, x - e); r = Math.max(r, x + e); t = Math.min(t, y - e); bt = Math.max(bt, y + e); });
+  const s = Math.min((W * 0.9) / (r - l), (H * 0.78) / (bt - t)), ox = W / 2 - ((l + r) / 2) * s, oy = H / 2 - ((t + bt) / 2) * s + H * 0.05;
+  const P = (m: { x: number; y: number; path?: { cx?: number; cy?: number } }): [number, number] => [ox + (m.path?.cx ?? m.x) * s, oy + (m.path?.cy ?? m.y) * s];
+  c.save(); c.setLineDash([2, 5]); c.strokeStyle = 'rgba(255,240,200,0.35)'; c.lineWidth = 1.5; c.beginPath();
+  st.moons.forEach((m, i) => { const [x, y] = P(m); if (i === 0) c.moveTo(x, y); else c.lineTo(x, y); }); c.stroke(); c.restore();
+  st.moons.forEach((m) => { want('moon-' + (m.skin ?? 'lantern')); const [x, y] = P(m); disc(c, m.skin ?? 'lantern', x, y, Math.max(7, m.r * s * grow), 0); });
+  const hm = st.moons[st.home];
+  if (hm) { const [x, y] = P(hm), rr = Math.max(7, hm.r * s * grow); if (done) { const g = c.createRadialGradient(x, y - rr - 9, 1, x, y - rr - 9, 18); g.addColorStop(0, 'rgba(255,214,120,0.8)'); g.addColorStop(1, 'rgba(255,190,90,0)'); c.fillStyle = g; c.beginPath(); c.arc(x, y - rr - 9, 18, 0, TAU); c.fill(); } c.fillStyle = done ? '#ffcf6a' : '#a88a6a'; c.beginPath(); c.ellipse(x, y - rr - 9, 6, 7.5, 0, 0, TAU); c.fill(); }
 }
 /** The drawn stand-in for the title painting. */
 export function paintTitle(cv: HTMLCanvasElement) {
