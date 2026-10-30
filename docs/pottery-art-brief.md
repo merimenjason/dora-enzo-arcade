@@ -40,3 +40,7 @@ Happy head-and-shoulders portraits of the customers, each facing a little to the
 ## In the game
 
 The green is keyed out with Pillow (a soft edge and green despill) and each figure is trimmed. The two halves of each `pair-*` painting are cut apart at the widest green gap, trimmed, and scaled so every mood of a chinchilla has the same height, standing on the bottom edge (`dora-<mood>.webp` and `enzo-<mood>.webp`, 640 × 640). The customer portraits are trimmed and fitted to 640 × 640 on the bottom edge. A mood that fails to load borrows `focus`; a missing customer is drawn as a simple round face; and the drawn chinchillas stand in until any painting arrives.
+
+## What shipped
+
+Every painting above was made except the title: the image tool timed out on it three times, the last with a much simpler prompt, so `title.webp` is put together from the workshop backdrop with the cheering Dora and Enzo cut-outs in front. The ending was also simplified after two time-outs: Dora and Enzo's picnic with the tea set, without the neighbours. `kiln.webp` is cropped so the kiln door sits in the middle of the frame, where the game draws the pots.
