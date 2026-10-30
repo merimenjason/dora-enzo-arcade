@@ -36,7 +36,8 @@
 .lp-art{position:relative;display:block;overflow:hidden}
 .lp-art canvas,.lp-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .lp-menu-art{position:absolute!important;inset:0}
-@media (min-aspect-ratio:5/4){.lp-menu{background:linear-gradient(90deg,#3a1e24,#5a2a2a)}.lp-menu-art{left:min(520px,42%)!important;box-shadow:inset 30px 0 30px -20px #0008}.lp-menu-art img,.lp-menu-art canvas{object-position:55% 40%}}
+@media (min-aspect-ratio:5/4){.lp-menu{background:linear-gradient(90deg,#3a1e24,#5a2a2a)}.lp-menu-art{left:min(520px,max(42%,calc(100% - 52vh * 1.5)))!important;box-shadow:inset 30px 0 30px -20px #0008}.lp-menu-art img,.lp-menu-art canvas{object-position:55% 40%}.lp-menu-card{width:min(470px,calc(max(42%,100% - 52vh * 1.5) - 6vw))}}
+@media (max-aspect-ratio:4/5){.lp-menu-art{bottom:auto!important;height:42%}.lp-menu-art img,.lp-menu-art canvas{object-position:58% 50%}.lp-menu{background:linear-gradient(180deg,#5a2a2a,#3a1e24)}}
 .lp-menu-art img,.lp-menu-art canvas{object-position:62% 40%}
 .lp-menu-card{position:relative;width:min(470px,100%);background:#fff6e6f2;color:var(--ink);border:3px solid var(--wood);border-radius:22px;box-shadow:0 10px 30px #0007;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
 .lp-menu-card h1{font-size:44px;line-height:1;color:var(--red);text-shadow:0 3px 0 #f2b84a}
@@ -110,7 +111,7 @@
 .lp-shell .lp-tool.is-dim{opacity:.55}
 .lp-shell .lp-tool.is-spent{opacity:.5;filter:saturate(.5)}
 .lp-shell .lp-tool.is-locked{filter:grayscale(.6)}
-.lp-lockmark{position:absolute;right:6px;top:4px;background:#c8433a;color:#fff;border-radius:999px;padding:1px 7px;font-size:10.5px;font-weight:900;transform:rotate(6deg)}
+.lp-lockmark{position:absolute;left:50%;top:-9px;margin-left:-26px;background:#c8433a;color:#fff;border-radius:999px;padding:1px 7px;font-size:10.5px;font-weight:900;transform:rotate(6deg)}
 .lp-shell .lp-tool.is-flash{animation:lp-flash .38s ease-out}
 @keyframes lp-flash{0%{transform:scale(1.08);background:#fff8b0}100%{transform:none}}
 .lp-ghost{position:fixed;left:0;top:0;display:none;pointer-events:none;z-index:50;filter:drop-shadow(0 8px 10px #0007)}
@@ -119,6 +120,10 @@
 .lp-over{position:absolute;inset:0;display:grid;place-items:center;padding:14px;background:#2b1a2299;overflow:auto;z-index:4}
 .lp-scene{flex:1;min-height:0;display:grid;place-items:center;padding:16px;background-size:cover;background-position:center;overflow:auto;position:relative}
 .lp-scene::before{content:'';position:absolute;inset:0;background:#2b1a2266}
+.lp-pair{position:absolute;left:2vw;bottom:0;display:flex;align-items:flex-end;pointer-events:none;z-index:0}
+.lp-pair img{height:min(34vh,300px);width:auto;filter:drop-shadow(0 6px 8px #0006)}
+.lp-pair img+img{margin-left:-6vh;height:min(30vh,264px)}
+@media (max-aspect-ratio:4/5),(max-height:520px){.lp-pair{display:none}}
 .lp-panel{position:relative;width:min(880px,100%);background:#fff6e6f5;color:var(--ink);border:3px solid var(--wood);border-radius:22px;box-shadow:0 12px 30px #0008;padding:16px 18px;display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center}
 .lp-panel h2{font-size:26px;color:var(--red)}
 .lp-panel > p{font-size:15px;max-width:620px}
@@ -132,8 +137,8 @@
 .lp-price{margin-left:auto;color:#a8641e}
 .lp-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 .lp-swap{display:flex;flex-direction:column;gap:9px;align-items:center;width:100%}
-.lp-end{width:min(1000px,100%);flex-direction:row;text-align:left;padding:0;overflow:hidden;align-items:stretch}
-.lp-end-art{flex:1 1 55%;min-height:300px}
+.lp-end{width:min(1320px,100%);flex-direction:row;text-align:left;padding:0;overflow:hidden;align-items:stretch}
+.lp-end-art{flex:1 1 60%;min-height:min(68vh,620px)}
 .lp-end-text{flex:1 1 45%;padding:18px;display:flex;flex-direction:column;gap:9px;justify-content:center}
 .lp-lost .lp-end-text{text-align:center;align-items:center}
 .lp-shell .lp-abandon{align-self:flex-start;font-size:12px;min-height:30px;padding:3px 10px;box-shadow:none;opacity:.8;margin-top:auto}

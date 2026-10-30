@@ -33,6 +33,7 @@ export class PipsScene {
   private wince = new Map<number, number>(); private lunge = new Map<number, number>();
   private pose: { p: 'ready' | 'attack' | 'hurt' | 'win'; t: number } = { p: 'ready', t: 0 };
   private flash = 0;
+  private off: HTMLCanvasElement | null = null;
   constructor(private cv: HTMLCanvasElement) { this.c = cv.getContext('2d')!; }
   resize(w: number, h: number, dpr: number) {
     this.W = Math.max(1, w); this.H = Math.max(1, h); this.dpr = Math.min(2, dpr);
@@ -44,9 +45,10 @@ export class PipsScene {
   /** Where the pair stand and how tall they are drawn. */
   pairBox() {
     const { W, H } = this, portrait = W < H * 1.25;
-    const h = Math.min(H * (portrait ? 0.56 : 0.62), W * (portrait ? 0.3 : 0.24));
+    const h = Math.min(H * (portrait ? 0.58 : 0.62), W * (portrait ? 0.36 : 0.24));
     const base = H * 0.88;
-    return { h, base, x1: W * (portrait ? 0.15 : 0.13), x2: W * (portrait ? 0.33 : 0.27) };
+    if (portrait) { const x1 = Math.max(h * 0.4, W * 0.16); return { h, base, x1, x2: Math.min(W * 0.4, x1 + h * 0.5) }; }
+    return { h, base, x1: W * 0.13, x2: W * 0.27 };
   }
   /** Where each foe stands (feet in the middle bottom) and its size. */
   foeBox(i: number) {
@@ -176,9 +178,17 @@ export class PipsScene {
     c.translate(x, base - bob);
     c.scale(1 + wk * 0.08, 1 - wk * 0.1);
     const im = art(f.art);
-    if (im) c.drawImage(im, -b.w / 2, -b.h, b.w, b.h);
+    if (im && wk > 0.05) {
+      // a white flash on the sprite alone, tinted off-screen so the backdrop stays untouched
+      const off = this.off ?? (this.off = document.createElement('canvas'));
+      const ow = Math.max(1, Math.round(b.w)), oh = Math.max(1, Math.round(b.h));
+      if (off.width !== ow || off.height !== oh) { off.width = ow; off.height = oh; }
+      const o = off.getContext('2d')!;
+      o.globalCompositeOperation = 'source-over'; o.clearRect(0, 0, ow, oh); o.drawImage(im, 0, 0, ow, oh);
+      o.globalCompositeOperation = 'source-atop'; o.fillStyle = `rgba(255,255,255,${wk * 0.55})`; o.fillRect(0, 0, ow, oh);
+      c.drawImage(off, -b.w / 2, -b.h, b.w, b.h);
+    } else if (im) c.drawImage(im, -b.w / 2, -b.h, b.w, b.h);
     else paintFoe(c, f.def, b.h, this.time);
-    if (wk > 0.05) { c.globalCompositeOperation = 'source-atop'; c.fillStyle = `rgba(255,255,255,${wk * 0.5})`; c.fillRect(-b.w / 2, -b.h, b.w, b.h); c.globalCompositeOperation = 'source-over'; }
     if (f.stun) { for (let k = 0; k < 3; k++) { const a = this.time * 3 + (k * Math.PI * 2) / 3; star(c, Math.cos(a) * b.w * 0.22, -b.h * 0.95 + Math.sin(a) * 6, 7, '#ffe58a'); } }
     if (f.elite) { c.fillStyle = '#ffd27a'; crown(c, 0, -b.h * 1.0, b.h * 0.11); }
     c.restore();

@@ -656,7 +656,12 @@ export default function LuckyPips() {
             </div>
           )}
           {!showStage && shown === 'map' && MapScreen({ r })}
-          {!showStage && shown !== 'map' && <div className="lp-scene" style={{ backgroundImage: `url(/art/pips/${AREAS[r.area].art}.webp)` }}>{Panel({ r })}</div>}
+          {!showStage && shown !== 'map' && (
+            <div className="lp-scene" style={{ backgroundImage: `url(/art/pips/${AREAS[r.area].art}.webp)` }}>
+              {shown !== 'won' && (() => { const pose = shown === 'lost' ? 'hurt' : shown === 'picnic' ? 'win' : 'ready'; return <span className="lp-pair" aria-hidden="true"><img src={`/art/pips/enzo-${pose}.webp`} alt="" /><img src={`/art/pips/dora-${pose}.webp`} alt="" /></span>; })()}
+              {Panel({ r })}
+            </div>
+          )}
         </div>
       )}
       <div className="lp-ghost" ref={ghost} aria-hidden="true">{sel != null && b?.dice.find(d => d.id === sel) ? <DieFace v={b.dice.find(d => d.id === sel)!.v} size={56} /> : null}</div>

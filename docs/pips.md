@@ -57,7 +57,7 @@ Regular foes grow with the area: hearts ×1, ×1.45 and ×1.9 and every hit +0, 
 
 ## The map
 
-Each area is seven rows of two or three stops (three in the first row), then the boss. The first row is all battles; the second is battles (70%) or mystery tents; the middle rows are battles 42%, grand foes 16%, tents 15%, stalls 14% and picnics 13%; the last row before the boss is all picnics. Every map has at least one stall. Paths only lead to a near stop in the next row, and every stop can be reached.
+Each area is seven rows of two or three stops (three in the first row, spread across the meadow; two-stop rows sit closer together), then the boss. The first row is all battles; the second is battles (70%) or mystery tents; the middle rows are battles 42%, grand foes 16%, tents 15%, stalls 14% and picnics 13%; the last row before the boss is all picnics. Every map has at least one stall. Paths only lead to a near stop in the next row, and every stop can be reached.
 
 - **Battles** pay 10–16 acorns, grand foes 24–32 (and gold-rim a random tool), bosses 40–50. Then choose one of three tools, or skip for 8 acorns.
 - **Trading stall:** three tools at 38–46, 58–66 or 82–90 acorns by rarity; one gold rim (45, 55, 65 by area), leaving one tool behind (30) and a pumpkin pie (+12 hearts, 25), once each.
@@ -77,9 +77,9 @@ Measured with `npm run bot:pips` (every tool unlocked), 31-10-2026:
 
 | Players | Runs | Wins |
 | --- | --- | --- |
-| Greedy, Foggier 0 | 900 | 49% (Dora 47%, Enzo 52%, Side by Side 50%) |
-| Random, Foggier 0 | 900 | 0% (869 fall in the Meadow Fair) |
-| Greedy, Foggier 5 | 300 | 7% |
+| Greedy, Foggier 0 | 900 | 48% (Dora 50%, Enzo 51%, Side by Side 43%) |
+| Random, Foggier 0 | 900 | 0% (868 fall in the Meadow Fair) |
+| Greedy, Foggier 5 | 300 | 8% |
 
 A greedy run lasts about 50 turns over 15 or so battles; the biggest single hit in 900 runs was 48. The suite fails if the greedy player's Foggier 0 rate leaves 35–60% (or any lead leaves 28–68%), the random player wins more than 2%, Foggier 5 is not harder, any hit passes 80, a run passes 160 turns, or any tool never appears in a winning run. Tuning that got here: Dora's kit first had no multiplier tool and won 5%, so she gained Pebble Toss with the Acorn Splitter (split a 4 into two 2s for two Pebble Tosses), the Lucky Clover now also deals its die, and she heals on sixes; Enzo's Thick Fur went from 3 block to 2 and his hearts from 44 to 40; the second and third areas' foes were softened from ×1.55/×2.1 hearts and +2/+3 hits to ×1.45/×1.9 and +1/+2.
 
