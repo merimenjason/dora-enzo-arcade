@@ -112,7 +112,7 @@
 .kc-error{z-index:9}
 
 /* ---- the menu, the board and the gallery */
-.kc-menu{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:12px max(16px,calc(50% - 560px)) 28px;background:radial-gradient(ellipse at 50% 0,#fff0d8,#f0d4b0 60%,#dcb48a);z-index:3;display:flex;flex-direction:column;gap:14px}
+.kc-menu{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:12px max(16px,calc(50% - 680px)) 28px;background:radial-gradient(ellipse at 50% 0,#fff0d8,#f0d4b0 60%,#dcb48a);z-index:3;display:flex;flex-direction:column;gap:14px}
 .kc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .kc-total{font-size:15px;font-variant-numeric:tabular-nums}
 .kc-hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:22px;align-items:center}
@@ -159,9 +159,9 @@
 .kc-mini span{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.2}
 .kc-mini small{font-size:11px;color:#8a5a3a}
 .kc-title{font-size:30px;color:#6a3418}
-.kc-shelves{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0 12px;padding:10px 14px 0;background:linear-gradient(#0000 calc(100% - 22px),#8a5a34 calc(100% - 22px),#6a4024 calc(100% - 10px),#0000 calc(100% - 10px)),#f6e2c4;background-size:100% 214px;border-radius:16px;border:2px solid var(--line)}
-.kc-shelfpot{position:relative;margin:0;height:214px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:20px}
-.kc-shelfpot figcaption{position:absolute;bottom:10px;line-height:12px;left:0;right:0;text-align:center;font-size:11px;font-weight:900;color:#fff4e4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;flex-direction:column;line-height:1.1;text-shadow:0 1px 0 #0006;pointer-events:none}
+.kc-shelves{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0 12px;padding:10px 14px 0;background:linear-gradient(#0000 calc(100% - 34px),#8a5a34 calc(100% - 34px),#6a4024 calc(100% - 22px),#0000 calc(100% - 22px)),#f6e2c4;background-size:100% 214px;border-radius:16px;border:2px solid var(--line)}
+.kc-shelfpot{position:relative;margin:0;height:214px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:32px}
+.kc-shelfpot figcaption{position:absolute;bottom:3px;line-height:16px;left:0;right:0;text-align:center;font-size:12px;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
 .kc-shelfpot figcaption small{display:none}
 .kc-shell .kc-x{position:absolute;right:4px;top:8px;min-height:0;width:28px;height:28px;padding:0;border-radius:99px;font-size:16px;line-height:1;opacity:0;transition:opacity .15s}
 .kc-shelfpot:hover .kc-x,.kc-x:focus-visible{opacity:1}
@@ -174,7 +174,7 @@
 .kc-ending-text h2{font-size:30px;color:#6a3418}
 .kc-ending-text p{font-size:15px;font-weight:600}
 .kc-final{font-size:13.5px!important;font-weight:800!important;color:#a0502a}
-.kc-credits{position:absolute;right:24px;top:24px;bottom:24px;width:230px;overflow:hidden;z-index:2;mask-image:linear-gradient(#0000,#000 15%,#000 85%,#0000);-webkit-mask-image:linear-gradient(#0000,#000 15%,#000 85%,#0000)}
+.kc-credits{position:absolute;right:24px;top:24px;bottom:24px;width:240px;background:#2a1a0e8c;border-radius:20px;overflow:hidden;z-index:2;mask-image:linear-gradient(#0000,#000 15%,#000 85%,#0000);-webkit-mask-image:linear-gradient(#0000,#000 15%,#000 85%,#0000)}
 .kc-credits>div{display:flex;flex-direction:column;gap:10px;text-align:center;color:#fff8ee;text-shadow:0 2px 4px #000c;animation:kc-roll 26s linear infinite}
 .kc-credits p{display:flex;flex-direction:column;font-size:16px}
 .kc-credits small{font-size:12.5px;opacity:.9}
@@ -240,8 +240,9 @@
   .kc-handle{bottom:8px}
   .kc-hero{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}
   .kc-credits{display:none}
-  .kc-ending-text{left:10px;bottom:10px;padding:10px 14px;width:min(520px,60%)}
-  .kc-ending-text h2{font-size:20px}
-  .kc-ending-text p{font-size:13px}
+  .kc-ending-text{left:50%;transform:translateX(-50%);bottom:8px;padding:8px 14px;width:min(520px,calc(100% - 16px));gap:4px}
+  .kc-ending-text h2{font-size:19px}
+  .kc-ending-text p:not(.kc-final),.kc-ending-text .kc-eyebrow{display:none}
+  .kc-final{font-size:12px!important}
 }
 .kc-shell[data-touch=tall][data-phase=glaze] .kc-hint{display:none}
