@@ -59,7 +59,7 @@ export type GlazeAsk = { all?: Family; rim?: Family; foot?: Family; stripes?: { 
 export type CustomerId = 'hedgehog' | 'duck' | 'badger' | 'heron' | 'squirrel' | 'rabbit' | 'owl';
 export const CUSTOMERS: Record<CustomerId, { name: string; who: string; fur: string; trim: string }> = {
   hedgehog: { name: 'Mrs Prickle', who: 'the hedgehog', fur: '#8a6a4a', trim: '#f0c8d8' },
-  duck: { name: 'Mother Duck', who: 'and the ducklings', fur: '#f6f2ea', trim: '#6fa8dc' },
+  duck: { name: 'Mother Duck', who: 'with her ducklings', fur: '#f6f2ea', trim: '#6fa8dc' },
   badger: { name: 'Bramble', who: 'the badger baker', fur: '#4a4a4e', trim: '#ffffff' },
   heron: { name: 'Professor Heron', who: 'the heron', fur: '#9aa8b4', trim: '#d8c070' },
   squirrel: { name: 'Hazel', who: 'the red squirrel', fur: '#c8642a', trim: '#f2d8b0' },

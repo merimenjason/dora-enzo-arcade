@@ -64,7 +64,7 @@ function PotThumb({ pot, size = 120 }: { pot: GalleryPot; size?: number }) {
       const c = cv.current, x = c?.getContext('2d'); if (dead || !c || !x) return;
       x.clearRect(0, 0, c.width, c.height);
       const b = pot.parts[0].prof, R = Math.max(...b.r), hh = b.h + (pot.parts.some((q) => q.id === 'lid') ? 1.6 : 0);
-      const s = Math.min((c.height * 0.8) / (hh + R * 0.4), (c.width * 0.7) / (R * 2 + (pot.handle ? 2.4 : 0) + (pot.parts.some((q) => q.id === 'spout') ? 3 : 0)));
+      const s = Math.min((c.height * 0.86) / (hh + R * 0.4), (c.width * 0.86) / (R * 2 + (pot.handle ? 2.4 : 0) + (pot.parts.some((q) => q.id === 'spout') ? 3 : 0)));
       m.drawPiece(x, { parts: pot.parts, handle: pot.handle, glaze: pot.glaze, fired: true, finish: pot.finish, cracked: pot.cracked, lip: pot.lip }, c.width / 2, c.height * 0.9, s);
     }).catch(() => {});
     return () => { dead = true; };
@@ -85,7 +85,7 @@ export default function PotteryPage() {
   const acc = useRef(0), bellows = useRef(false), keyBellows = useRef(false), hover = useRef<{ x: number; y: number; mode: Mode | null } | null>(null);
   const trimTool = useRef(false), speedPref = useRef(2), selGlaze = useRef<GlazeId>('honey'), band = useRef<{ u0: number; u1: number; g: GlazeId } | null>(null);
   const moodRef = useRef<{ m: Mood; until: number }>({ m: 'focus', until: 0 }), clock = useRef(0), endingAfter = useRef(false);
-  const toastTimer = useRef(0);
+  const toastTimer = useRef(0), galleryFrom = useRef<Screen>('menu');
   const [screen, setScreenState] = useState<Screen>('menu'), [phase, setPhaseState] = useState<Phase>('throw'), [paused, setPaused] = useState(false);
   const [scored, setScored] = useState<Scored | null>(null), [fired, setFired] = useState<FireResult | null>(null), [delivered, setDelivered] = useState<Delivered | null>(null);
   const [tip, setTip] = useState<{ title: string; text: string } | null>(null), [toast, setToast] = useState(''), [ending, setEnding] = useState(false), [dayNews, setDayNews] = useState<{ day: number; tips: number } | null>(null);
@@ -193,6 +193,7 @@ export default function PotteryPage() {
     queue.current = [...firePieces.current]; firePieces.current = [];
     persist(); setFired(r); setPhase('fired');
     const a = audio(); if (r.cracked) a.crack(); if (r.finish === 'shine') { a.shine(); scene.current?.celebrate(); }
+    mood(r.cracked || r.finish === 'dull' ? 'oops' : 'cheer', 30);
     bellows.current = false; refresh();
   }
   function nextDelivery() {
@@ -487,8 +488,9 @@ export default function PotteryPage() {
               {w.centred < 1 && <span className="kc-meter" title="Centring"><small>◎ Centred</small><i><b style={{ width: `${Math.round(w.centred * 100)}%`, background: '#f2c84a' }} /></i></span>}
               {live && <span className="kc-live" data-testid="live" title="How close it is to the outline">Shape <b>{Math.round(live.match * 100)}%</b> <Stars n={live.stars} /></span>}
             </div>
+            {touch && orient === 'tall' && (tut || cardOpen) && <p className={'kc-hint is-in' + (tut ? ' is-tut' : '')} role="status">{tut && <b>FIRST POT</b>}{hint()}</p>}
           </div>
-          {(tut || !touch || orient === 'wide') && <p className={'kc-hint' + (tut ? ' is-tut' : '')} role="status">{tut && <b>FIRST POT</b>}{hint()}</p>}
+          {!(touch && orient === 'tall') && <p className={'kc-hint' + (tut ? ' is-tut' : '')} role="status">{tut && <b>FIRST POT</b>}{hint()}</p>}
           <div className="kc-tools" ref={tools} role="toolbar" aria-label="Wheel tools">
             <span className="kc-speeds" role="group" aria-label="Wheel speed">
               {[1, 2, 3].map((v) => <button key={v} className={'kc-speed' + (w.speed === v ? ' is-on' : '')} onClick={() => setSpeed(v)} aria-pressed={w.speed === v} aria-label={`${SPEED_NAME[v]} wheel`} title={`${SPEED_NAME[v]} wheel (${v})`}>{v === 1 ? '🐢' : v === 2 ? '◎' : '🐇'}</button>)}
@@ -632,7 +634,7 @@ export default function PotteryPage() {
             <button className="kc-go" disabled={!ready} onClick={() => { audio().ui(); setScreen('board'); music('menu'); }}>{!ready ? 'Warming the kiln…' : started ? 'CONTINUE →' : 'OPEN THE WORKSHOP →'}<small>{mounted ? `Day ${today} · ${DAYS[today - 1].name}${nextUp ? ` · ${CUSTOMERS[nextUp.who].name} is waiting` : ''}` : ' '}</small></button>
             {mounted && freeOpen(S) ? <button className="kc-alt kc-dusk" disabled={!ready} onClick={() => openOrder(null)}>🎡 Free throw<small>anything you like</small></button>
               : <button className="kc-alt" disabled><span>🎡 Free throw</span><small>after your first order</small></button>}
-            <button className="kc-alt" disabled={!ready} onClick={() => { audio().ui(); setScreen('gallery'); }}>🖼 Gallery<small>{mounted ? `${S.gallery.length} pot${S.gallery.length === 1 ? '' : 's'}` : ' '}</small></button>
+            <button className="kc-alt" disabled={!ready} onClick={() => { audio().ui(); galleryFrom.current = screenRef.current; setScreen('gallery'); }}>🖼 Gallery<small>{mounted ? `${S.gallery.length} pot${S.gallery.length === 1 ? '' : 's'}` : ' '}</small></button>
             {mounted && S.ended && <button className="kc-alt" onClick={() => { audio().ui(); setEnding(true); music('ending'); }}>🧺 The picnic</button>}
           </div>
           <ol className="kc-how" aria-label="How to play">
@@ -677,7 +679,7 @@ export default function PotteryPage() {
             {mounted && dayDone(S, today) && today < DAY_COUNT && <button className="kc-go kc-night" onClick={endDay}>🌙 Close up for the day<small>on to day {today + 1}: {DAYS[today].name}</small></button>}
             {mounted && dayDone(S, today) && today === DAY_COUNT && S.ended && <button className="kc-go" onClick={() => { setEnding(true); music('ending'); }}>🧺 The picnic</button>}
             <button className="kc-alt" disabled={!ready || !mounted || !freeOpen(S)} onClick={() => openOrder(null)}>🎡 Free throw<small>{mounted && freeOpen(S) ? 'anything you like' : 'after your first order'}</small></button>
-            <button className="kc-alt" onClick={() => { audio().ui(); setScreen('gallery'); }}>🖼 Gallery<small>{mounted ? `${S.gallery.length} of 12` : ' '}</small></button>
+            <button className="kc-alt" onClick={() => { audio().ui(); galleryFrom.current = screenRef.current; setScreen('gallery'); }}>🖼 Gallery<small>{mounted ? `${S.gallery.length} of 12` : ' '}</small></button>
             <button className={'kc-alt' + (shop ? ' is-on' : '')} onClick={() => { audio().ui(); setShop(!shop); }} aria-expanded={shop}>🛒 Workshop shop<small>{UPGRADE_IDS.filter((u) => mounted && has(S, u)).length} of {UPGRADE_IDS.length} bought</small></button>
           </div>
           {shop && (
@@ -709,13 +711,13 @@ export default function PotteryPage() {
       {/* ---------------------------------------------------------------- the gallery */}
       {screen === 'gallery' && (
         <section className="kc-menu kc-gallery" aria-label="Gallery">
-          <header className="kc-head"><button className="kc-back" onClick={() => { audio().ui(); setScreen(started ? 'board' : 'menu'); }}>← Back</button><b className="kc-total">🖼 {mounted ? S.gallery.length : 0} / 12 pots</b></header>
+          <header className="kc-head"><button className="kc-back" onClick={() => { audio().ui(); setScreen(galleryFrom.current); }}>← Back</button><b className="kc-total">🖼 {mounted ? S.gallery.length : 0} / 12 pots</b></header>
           <h2 className="kc-title">The gallery shelves</h2>
           {mounted && S.gallery.length === 0 && <p className="kc-note">Nothing on the shelves yet. After a delivery, tap “♥ Keep one for the gallery” to keep a copy of the pot here.{has(S, 'shelf') ? '' : ' With the Display Shelf, passers-by tip an acorn for each pot every day.'}</p>}
           <div className="kc-shelves">
             {mounted && S.gallery.map((p, i) => (
               <figure key={i + p.name} className="kc-shelfpot">
-                <PotThumb pot={p} size={130} />
+                <PotThumb pot={p} size={150} />
                 <figcaption><b>{p.name}</b><small>{p.finish === 'shine' ? '✨ shining' : p.finish === 'dull' ? 'matt' : 'glazed'}{p.cracked ? ' · a little crack' : ''}</small></figcaption>
                 <button className="kc-x" aria-label={`Take ${p.name} off the shelf`} onClick={() => { if (!window.confirm(`Take “${p.name}” off the shelf?`)) return; S.gallery.splice(i, 1); persist(); audio().ui(); refresh(); }}>×</button>
               </figure>

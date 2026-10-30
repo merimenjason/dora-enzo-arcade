@@ -38,7 +38,7 @@
 .kc-side{position:absolute;left:12px;top:12px;width:min(300px,30vw);background:var(--card);border:2px solid var(--line);border-radius:16px;padding:9px 11px;box-shadow:0 6px 18px #3a261826;z-index:2;display:flex;flex-direction:column;gap:7px}
 .kc-shell .kc-side-head{display:flex;align-items:center;gap:9px;width:100%;padding:0;border:0;background:none;box-shadow:none;min-height:0;text-align:left}
 .kc-shell .kc-side-head:hover:not(:disabled){transform:none}
-.kc-side-head span{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.2}
+.kc-side-head>span:not(.kc-face){flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.2}
 .kc-side-head small{font-size:12px;font-weight:700;color:#7a5a40}
 .kc-side-head i{font-style:normal;color:#a0502a}
 .kc-ask{font-size:13.5px;font-weight:700;color:#5a3a24}
@@ -69,7 +69,7 @@
 .kc-btn small,.kc-swatch small{font-size:10.5px;font-weight:800;letter-spacing:.3px}
 .kc-shell .kc-done{background:var(--leaf);color:#fff;border-color:#3f7a30;font-size:16px;padding:9px 16px;white-space:nowrap}
 .kc-shell .kc-done:hover:not(:disabled){border-color:#ffe07a}
-.kc-swatches{display:inline-flex;gap:4px;flex-wrap:wrap;max-width:420px}
+.kc-swatches{display:inline-flex;gap:3px;flex-wrap:nowrap}
 .kc-shell .kc-swatch{display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:4px 5px;min-height:0;min-width:46px;box-shadow:none;border-color:transparent;background:transparent}
 .kc-swatch i{width:26px;height:26px;border-radius:99px;background:var(--g);box-shadow:inset 0 -4px 0 #0002,inset 0 3px 0 #fff6,0 0 0 2px #3a261830}
 .kc-shell .kc-swatch.is-on{background:#fff;border-color:var(--clay)}
@@ -89,7 +89,7 @@
 .kc-panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(480px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;background:var(--paper);border:3px solid var(--line);border-radius:22px;padding:18px 20px;z-index:6;box-shadow:0 16px 50px #3a261866;text-align:center;display:flex;flex-direction:column;gap:9px;align-items:center}
 .kc-panel h2{font-size:24px}
 .kc-panel p{font-size:15px;font-weight:600}
-.kc-result{top:auto;bottom:16px;transform:translateX(-50%)}
+.kc-result{top:12px;transform:translateX(-50%);max-height:calc(100% - 140px)}
 .kc-match{font-size:14px;color:#7a5a40}
 .kc-line{font-size:16px!important;font-weight:700!important;font-style:italic}
 .kc-notes{margin:0;padding:0;list-style:none;font-size:13.5px;font-weight:700;color:#a0502a}
@@ -160,8 +160,8 @@
 .kc-mini small{font-size:11px;color:#8a5a3a}
 .kc-title{font-size:30px;color:#6a3418}
 .kc-shelves{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0 12px;padding:10px 14px 0;background:linear-gradient(#0000 calc(100% - 22px),#8a5a34 calc(100% - 22px),#6a4024 calc(100% - 10px),#0000 calc(100% - 10px)),#f6e2c4;background-size:100% 214px;border-radius:16px;border:2px solid var(--line)}
-.kc-shelfpot{position:relative;margin:0;height:214px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:22px}
-.kc-shelfpot figcaption{position:absolute;bottom:-2px;left:0;right:0;text-align:center;font-size:11.5px;font-weight:800;color:#fff4e4;display:flex;flex-direction:column;line-height:1.1;text-shadow:0 1px 0 #0006;pointer-events:none}
+.kc-shelfpot{position:relative;margin:0;height:214px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:20px}
+.kc-shelfpot figcaption{position:absolute;bottom:10px;line-height:12px;left:0;right:0;text-align:center;font-size:11px;font-weight:900;color:#fff4e4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;flex-direction:column;line-height:1.1;text-shadow:0 1px 0 #0006;pointer-events:none}
 .kc-shelfpot figcaption small{display:none}
 .kc-shell .kc-x{position:absolute;right:4px;top:8px;min-height:0;width:28px;height:28px;padding:0;border-radius:99px;font-size:16px;line-height:1;opacity:0;transition:opacity .15s}
 .kc-shelfpot:hover .kc-x,.kc-x:focus-visible{opacity:1}
@@ -208,12 +208,12 @@
 [data-touch=tall] .kc-meter{grid-template-columns:70px 1fr}
 [data-touch=tall] .kc-side.is-shut .kc-meters{flex-direction:row;flex-wrap:wrap;gap:4px 10px}
 [data-touch=tall] .kc-side.is-shut .kc-meter{grid-template-columns:auto 60px}
-[data-touch=tall] .kc-hint{top:auto;bottom:118px;max-width:calc(100% - 24px);min-width:0;font-size:12.5px;padding:6px 10px}
-[data-touch=tall] .kc-tools{bottom:8px;gap:5px;padding:5px 6px;flex-wrap:wrap;justify-content:center;width:calc(100% - 16px)}
-[data-touch=tall] .kc-shell .kc-btn,.kc-shell[data-touch=tall] .kc-btn{min-width:40px;padding:5px 7px}
-.kc-shell[data-touch=tall] .kc-speed{min-width:38px}
-.kc-shell[data-touch=tall] .kc-done{padding:8px 12px;font-size:15px}
-.kc-shell[data-touch=tall] .kc-swatches{justify-content:center;max-width:none}
+.kc-shell .kc-hint.is-in{position:static;transform:none;max-width:none;min-width:0;font-size:12.5px;padding:5px 9px;border-radius:10px}
+[data-touch=tall] .kc-tools{bottom:8px;left:6px;right:6px;transform:none;gap:4px;padding:5px;flex-wrap:wrap;justify-content:center;max-width:none}
+.kc-shell[data-touch=tall] .kc-btn{min-width:38px;padding:5px 4px;font-size:17px}
+.kc-shell[data-touch=tall] .kc-speed{min-width:34px;padding:5px 2px;font-size:16px}
+.kc-shell[data-touch=tall] .kc-done{padding:8px 10px;font-size:14px}
+.kc-shell[data-touch=tall] .kc-swatches{justify-content:center;flex-wrap:wrap}
 .kc-shell[data-touch=tall] .kc-swatch small{display:none}
 .kc-shell[data-touch=tall] .kc-swatch{min-width:38px}
 .kc-shell[data-touch=tall] .kc-glaze-tools .kc-done{padding:8px 10px}
@@ -236,10 +236,12 @@
   .kc-panel{padding:10px 14px;gap:5px}
   .kc-panel h2{font-size:19px}
   .kc-stars.is-big{font-size:30px}
-  .kc-result,.kc-handle{bottom:8px}
+  .kc-result{top:6px;max-height:calc(100% - 12px)}
+  .kc-handle{bottom:8px}
   .kc-hero{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}
   .kc-credits{display:none}
   .kc-ending-text{left:10px;bottom:10px;padding:10px 14px;width:min(520px,60%)}
   .kc-ending-text h2{font-size:20px}
   .kc-ending-text p{font-size:13px}
 }
+.kc-shell[data-touch=tall][data-phase=glaze] .kc-hint{display:none}
