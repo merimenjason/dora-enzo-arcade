@@ -148,20 +148,21 @@ try {
     console.log('PASS a battle won by dragging dice with the mouse, a tool taken, the run kept across a reload');
 
     // ---- the next battle by keyboard alone: walk the map with the arrows and Enter, then dice by keys
-    let guard = 0;
-    while ((await st(page)).shown === 'map' && guard++ < 6) {
-      const kind = await page.locator('.lp-node.is-focus').getAttribute('data-kind').catch(() => null);
-      if (kind !== 'battle') { await page.keyboard.press('ArrowRight'); const k2 = await page.locator('.lp-node.is-focus').getAttribute('data-kind'); if (k2 !== 'battle') { await page.keyboard.press('Enter'); await idle(page); await page.waitForTimeout(200); const s2 = await st(page); if (s2.shown !== 'battle' && s2.shown !== 'map') { await page.evaluate(() => window.__pipsDebug((r) => { r.screen = 'map'; r.offer = null; })); } continue; } }
-      await page.keyboard.press('Enter');
-      await page.waitForTimeout(300);
+    // make sure one of the stops ahead is a battle, then reach it with the arrows and walk there with Enter
+    await page.evaluate(() => window.__pipsDebug((r) => { const c = r.map[r.at].next; if (!c.some((j) => r.map[j].kind === 'battle')) r.map[c[c.length - 1]].kind = 'battle'; }));
+    for (let k = 0; k < 4; k++) {
+      if ((await page.locator('.lp-node.is-focus').getAttribute('data-kind')) === 'battle') break;
+      await page.keyboard.press('ArrowRight');
     }
+    assert.equal(await page.locator('.lp-node.is-focus').getAttribute('data-kind'), 'battle');
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('.lp-felt .lp-die');
     await idle(page);
     s = await st(page);
-    if (s.screen === 'battle') {
-      s = await winBattle(page, 'keys');
-      assert.equal(s.screen, 'reward', 'a battle won by keyboard');
-      console.log('PASS the map walked and a battle won with the keyboard alone');
-    } else console.log('NOTE no battle on the keyboard path; the map walk was checked');
+    assert.equal(s.screen, 'battle');
+    s = await winBattle(page, 'keys');
+    assert.equal(s.screen, 'reward', 'a battle won by keyboard');
+    console.log('PASS the map walked and a battle won with the keyboard alone');
     await page.context().close();
   }
 

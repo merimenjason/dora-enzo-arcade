@@ -295,7 +295,7 @@ export default function LuckyPips() {
     const s = save.current;
     sound.current = new PipsSound(s.sound, s.music);
     sound.current.music('menu');
-    setToday(new Date().toISOString().slice(0, 10));
+    { const d = new Date(); setToday(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`); }
     setTouch(matchMedia('(pointer: coarse)').matches);
     if (s.run && s.run.screen !== 'won' && s.run.screen !== 'lost') { stage.current = fromRun(s.run); setShown(s.run.screen); }
     else if (s.run) { s.run = null; persist(); }
@@ -484,7 +484,10 @@ export default function LuckyPips() {
           {r.note && <p className="lp-note">{r.note}</p>}
           <p className="lp-hint">{r.at < 0 ? 'Choose where to start. ' : ''}Pick a glowing stop. The boss of the area waits at the end: {FOES[area.boss].name}.</p>
           <ul className="lp-legend">{(['battle', 'elite', 'tent', 'stall', 'picnic'] as const).map(k => <li key={k}><span className={'lp-dot k-' + k}><Glyph k={NODE_GLYPH[k]} size={16} /></span>{NODE_LABEL[k]}</li>)}</ul>
-          <div className="lp-belt">{r.tools.map((t, i) => <span key={i} className={'lp-belt-tool' + (t.up ? ' is-up' : '')} title={`${TOOL[t.id].name}: ${t.up ? TOOL[t.id].textUp : TOOL[t.id].text}`}><Glyph k={TOOL[t.id].glyph} size={22} /></span>)}</div>
+          <p className="lp-eyebrow">YOUR SATCHEL · {r.tools.length}/{toolRoom(r)} TOOLS</p>
+          <ul className="lp-satchel">{r.tools.map((t, i) => <li key={i} className={t.up ? 'is-up' : ''}><Glyph k={TOOL[t.id].glyph} size={24} /><span><b>{TOOL[t.id].name}</b><small>{t.up ? TOOL[t.id].textUp : TOOL[t.id].text}</small></span></li>)}</ul>
+          {r.charms.length > 0 && <ul className="lp-satchel">{r.charms.map(c => <li key={c}><Glyph k={CHARM[c].glyph} size={24} /><span><b>{CHARM[c].name}</b><small>{CHARM[c].text}</small></span></li>)}</ul>}
+          <button type="button" className="lp-abandon" onClick={abandon}>Give up this run</button>
         </aside>
       </div>
     );
@@ -615,7 +618,7 @@ export default function LuckyPips() {
           </div>
           <div className="lp-tray-bar">
             {bt.rerolls > 0 && <button type="button" className={'lp-cup' + (hover === -2 ? ' is-hover' : '')} data-reroll="1" disabled={busy || sel == null} onClick={() => doReroll(sel)} title="Re-roll the chosen die (R)">Re-roll ×{bt.rerolls}</button>}
-            <span className="lp-turn">Turn {bt.turn}</span>
+            <span className="lp-turn">TURN {bt.turn}</span>
             <button type="button" className={'lp-end' + (!anyMove && !busy ? ' is-ready' : '')} disabled={busy} onClick={doEnd}>End turn <kbd>E</kbd></button>
           </div>
           {tipText && <p className="lp-tip">{tipText}</p>}
@@ -654,7 +657,6 @@ export default function LuckyPips() {
           )}
           {!showStage && shown === 'map' && MapScreen({ r })}
           {!showStage && shown !== 'map' && <div className="lp-scene" style={{ backgroundImage: `url(/art/pips/${AREAS[r.area].art}.webp)` }}>{Panel({ r })}</div>}
-          {!showStage && shown !== 'won' && shown !== 'lost' && <button type="button" className="lp-abandon" onClick={abandon}>Give up this run</button>}
         </div>
       )}
       <div className="lp-ghost" ref={ghost} aria-hidden="true">{sel != null && b?.dice.find(d => d.id === sel) ? <DieFace v={b.dice.find(d => d.id === sel)!.v} size={56} /> : null}</div>

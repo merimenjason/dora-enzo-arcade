@@ -132,7 +132,7 @@ export function makeMap(run: Run, area: number): MapNode[] {
     const n = row === 0 ? 3 : 2 + ri(run, 2);
     const r: MapNode[] = [];
     for (let i = 0; i < n; i++) {
-      const x = n === 1 ? 0.5 : 0.18 + (0.64 * i) / (n - 1) + (rnd(run) - 0.5) * 0.06;
+      const spread = n === 2 ? 0.42 : 0.64, x = n === 1 ? 0.5 : 0.5 - spread / 2 + (spread * i) / (n - 1) + (rnd(run) - 0.5) * 0.08;
       let kind: NodeKind;
       if (row === 0) kind = 'battle';
       else if (row === ROWS - 1) kind = 'picnic';

@@ -176,7 +176,7 @@ test('once a battle means once a battle', () => {
 });
 
 test('poison and burn tick on foes and on the pair', () => {
-  const run = fight(['toffee'], [6, 5], ['nettle', 'ember']);
+  const run = fight(['toffee'], [6, 5], ['nettle', 'ember'], { lead: 'enzo' });
   const f = run.battle.foes[0]; f.intent = {};
   place(run, 100, 0); place(run, 101, 1);
   assert.equal(f.poison, 3); assert.equal(f.burn, 5);

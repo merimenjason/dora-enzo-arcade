@@ -144,10 +144,10 @@ export class PipsScene {
     const lunge = pose === 'attack' ? Math.sin(Math.min(1, (0.45 - this.pose.t) / 0.45) * Math.PI) * p.h * 0.12 : 0;
     const hurt = pose === 'hurt' ? -Math.sin(Math.min(1, (0.55 - this.pose.t) / 0.55) * Math.PI) * p.h * 0.08 : 0;
     // the lead stands in front; Enzo is the bigger of the two
-    const order: ('dora' | 'enzo')[] = v.lead === 'enzo' ? ['dora', 'enzo'] : v.lead === 'dora' ? ['enzo', 'dora'] : ['enzo', 'dora'];
+    const order: ('dora' | 'enzo')[] = v.lead === 'enzo' ? ['dora', 'enzo'] : ['enzo', 'dora'];
     for (const who of order) {
       const front = who === order[1];
-      const x = (who === 'dora' ? p.x2 : p.x1) + (front ? lunge : lunge * 0.5) + hurt;
+      const x = (front ? p.x2 : p.x1) + (front ? lunge : lunge * 0.5) + hurt;
       const h = p.h * (who === 'dora' ? 0.86 : 1);
       const bob = pose === 'win' ? Math.abs(Math.sin(this.time * 6 + (who === 'dora' ? 0 : 1.3))) * h * 0.06 : Math.sin(this.time * 2.2 + (who === 'dora' ? 0 : 1)) * h * 0.008;
       c.save();
@@ -196,17 +196,17 @@ export class PipsScene {
     const parts = intentParts(f.intent, f.hit);
     if (f.stun) parts.splice(0, parts.length, ['stun', 'zzz']);
     if (!parts.length) return;
-    c.font = '900 15px ui-rounded, system-ui, sans-serif';
-    const widths = parts.map(([, t]) => 22 + (t ? c.measureText(t).width + 3 : 0));
-    const tw = widths.reduce((a, x) => a + x, 0) + 12, th = 28;
+    c.font = '900 17px ui-rounded, system-ui, sans-serif';
+    const widths = parts.map(([, t]) => 25 + (t ? c.measureText(t).width + 3 : 0));
+    const tw = widths.reduce((a, x) => a + x, 0) + 14, th = 32;
     const ty = Math.max(th / 2 + 4, b.base - b.h - 22 - (f.elite ? b.h * 0.1 : 0)), tx = Math.min(this.W - tw / 2 - 4, Math.max(tw / 2 + 4, b.x));
     c.fillStyle = '#fff8ecf2'; c.strokeStyle = parts.some(p => p[0] === 'atk') ? '#d2473c' : '#6a5a8e'; c.lineWidth = 2.5;
     round(c, tx - tw / 2, ty - th / 2, tw, th, 14); c.fill(); c.stroke();
     c.beginPath(); c.moveTo(tx - 6, ty + th / 2 - 1); c.lineTo(tx, ty + th / 2 + 7); c.lineTo(tx + 6, ty + th / 2 - 1); c.fill();
     let x = tx - tw / 2 + 8;
     parts.forEach(([k, t], j) => {
-      icon(c, k, x + 9, ty, 9);
-      if (t) { c.fillStyle = '#3a2430'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(t, x + 20, ty + 1); }
+      icon(c, k, x + 10, ty, 10.5);
+      if (t) { c.fillStyle = '#3a2430'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(t, x + 23, ty + 1); }
       x += widths[j];
     });
     void v;
