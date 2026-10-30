@@ -164,7 +164,7 @@ const S4: Def[] = [
     name: 'Black Bean', story: 'A shiny black bean of a moon. It pushes instead of pulls.',
     teach: { title: 'Beans push', text: 'Black-bean moons push you away and bounce you off. Use them to turn a corner.' },
     moons: [m(0, 0, 46), m(320, -40, 40, { kind: 'bean', skin: 'bean' }), m(320, 300, 46), m(640, 0, 46)],
-    flies: [f(160, -140), f(480, -140), f(320, 170), f(320, -260, true)], start: { moon: 0, at: up }, home: 3,
+    flies: [f(160, -140), f(480, -140), f(320, 170), f(440, -200, true)], start: { moon: 0, at: up }, home: 3,
   },
   {
     name: 'Comet Rider', story: 'Ride the comet across the stream to the far shore.',
@@ -242,7 +242,13 @@ const S5: Def[] = [
 ];
 
 // The pars and Starlight times, from the search bot's routes (fewest leaps with the golden firefly, plus one).
-const PARS: Record<string, [number, number]> = {};
+const PARS: Record<string, [number, number]> = {
+  '1-1': [4, 20], '1-2': [3, 17], '1-3': [4, 24], '1-4': [4, 26], '1-5': [6, 29], '1-6': [4, 36], '1-7': [5, 34], '1-8': [6, 23],
+  '2-1': [5, 35], '2-2': [6, 45], '2-3': [4, 25], '2-4': [5, 35], '2-5': [6, 39], '2-6': [9, 55], '2-7': [5, 28], '2-8': [6, 59],
+  '3-1': [4, 33], '3-2': [4, 29], '3-3': [5, 37], '3-4': [5, 33], '3-5': [5, 25], '3-6': [6, 30], '3-7': [10, 67], '3-8': [6, 28],
+  '4-1': [4, 21], '4-2': [5, 29], '4-3': [8, 46], '4-4': [8, 48], '4-5': [6, 28], '4-6': [4, 19], '4-7': [5, 23], '4-8': [6, 46],
+  '5-1': [5, 38], '5-2': [6, 45], '5-3': [5, 52], '5-4': [6, 36], '5-5': [6, 38], '5-6': [9, 41], '5-7': [5, 33], '5-8': [5, 40],
+};
 
 function build(sky: number, defs: Def[]): Stage[] {
   return defs.map((d, i) => {
