@@ -146,8 +146,11 @@ export default function LuckyPips() {
   function act(fn: (r: Run) => Ev[] | boolean | void, after?: () => void) {
     const r = save.current.run; if (!r || busyRef.current) return;
     sfx();
-    const before = fromRun(r);
+    const had = !!r.battle;
+    let before = fromRun(r);
     const out = fn(r);
+    // a battle that has just begun starts from its own first look, not the map's
+    if (!had && r.battle) before = { ...fromRun(r), you: { ...fromRun(r).you, block: 0 } };
     const evs = Array.isArray(out) ? out : [];
     if (r.screen === 'won' || r.screen === 'lost') finishRun(r);
     persist();
@@ -341,7 +344,6 @@ export default function LuckyPips() {
     return () => window.clearInterval(id);
   }, [showStage]);
   useEffect(() => { if (rolling.size) { const id = window.setTimeout(() => setRolling(new Set()), 700); return () => window.clearTimeout(id); } }, [rolling]);
-  useEffect(() => { if (view === 'run' && run && !save.current.taught && shown === 'battle' && tip === 0) setTip(0); }, [view, run, shown, tip]);
 
   const toggle = (k: 'sound' | 'music') => { const s = save.current; s[k] = !s[k]; if (k === 'sound') sound.current?.setSound(s.sound); else sound.current?.setMusic(s.music); sfx()?.ui(); persist(); rerender(); };
   const settings = (
