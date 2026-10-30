@@ -43,4 +43,4 @@ The green is keyed out with Pillow (a soft edge and green despill) and each figu
 
 ## What shipped
 
-Every painting above was made except the title: the image tool timed out on it three times, the last with a much simpler prompt, so `title.webp` is put together from the workshop backdrop with the cheering Dora and Enzo cut-outs in front. The ending was also simplified after two time-outs: Dora and Enzo's picnic with the tea set, without the neighbours. `kiln.webp` is cropped so the kiln door sits in the middle of the frame, where the game draws the pots.
+Every painting above was made. The title timed out three times on 30-10-2026 and was first put together from the workshop backdrop and the cut-outs; it was painted properly on 31-10-2026. The full picnic with all seven neighbours timed out again, so the ending (also repainted on 31-10-2026) shows Dora and Enzo sharing tea with Mrs Prickle the hedgehog. `kiln.webp` is cropped so the kiln door sits in the middle of the frame, where the game draws the pots.

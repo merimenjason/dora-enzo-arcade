@@ -13,6 +13,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 ### Changed
 
 - **Twig & Twine**: when a bridge drops them in the water or the stream, Dora and Enzo now sit dripping and dismayed in their acorn cart, pond weed on Enzo's ear, in a new painting; a tumble into the canyon's dust has them covering their eyes.
+- **Kiln & Clay**: a new title painting of Enzo at the wheel and Dora holding up a freshly glazed vase, and the picnic ending now has Mrs Prickle the hedgehog sharing tea with them.
 
 ## 30-10-2026
 
