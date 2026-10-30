@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import {
   SnowGame, VALLEYS, VALLEY_IDS, buildDay, Endless, validateCourse, playRun, noUpgrades, upgradeValue, UPGRADES, UPGRADE_IDS,
   readSave, freshSave, recordRun, recordDaily, buy, dayOpen, endlessOpen, medalCount, dailySeed, fmtTime,
-  TPS, DT, G, AIR_G, FLURRY_CHAIN, FALL_TIME, SAVE_KEY, MIN_SPEED, SMOOTH_BOOST, FLIP_BOOST, TUMBLE_TIME,
+  TPS, DT, G, AIR_G, FLURRY_CHAIN, FALL_TIME, SAVE_KEY, MIN_SPEED, SMOOTH_BOOST, FLIP_BOOST, FLIP_SUN, TUMBLE_TIME,
 } from '../.checks/snowdrift-game.js';
 import { human } from './snowdrift-bot-policy.mjs';
 
@@ -132,6 +132,8 @@ ok('every valley is smooth and unbroken except the designed bridge gaps, with co
   assert.equal(land.flips, 1, 'one full flip');
   assert.equal(g.flips, 1);
   assert.ok(g.s > MIN_SPEED + FLIP_BOOST - 1, 'with a big boost');
+  const sun = ev.find((e) => e.k === 'sun');
+  assert.ok(sun && sun.s === FLIP_SUN, `a flip wins back ${FLIP_SUN}s of daylight (${sun && sun.s})`);
   // half a flip and let go: upside down on landing is a tumble
   const t = day('aurora');
   launch(t, d.x - 30, d.q.y + 26, 20, 4);

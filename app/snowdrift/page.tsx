@@ -316,8 +316,8 @@ export default function SnowdriftPage() {
           <ol className="sd-how" aria-label="How to play">
             <li><b>⬇ Hold to tuck.</b> Holding makes the pair heavy: they shoot down the slopes. Holding up a slope slows them a little.</li>
             <li><b>🕊 Let go to fly.</b> Light again, they leap off the crests. Land along a downslope for a <i>Smooth landing</i>; three in a row start a <i>Snow Flurry</i>.</li>
-            <li><b>🔄 Flip!</b> Hold in the air to backflip. A full flip landed upright is a big boost; land badly and they tumble.</li>
-            <li><b>🌅 Race the dusk.</b> Night creeps up from behind. Cocoa pushes it back; snowflakes buy upgrades at the lodge.</li>
+            <li><b>🔄 Flip!</b> Hold in the air to backflip. A full flip landed upright is a big boost and wins back 2.5 s of daylight; land badly and they tumble.</li>
+            <li><b>🌅 Race the dusk.</b> Night creeps up from behind. Cocoa, flips and starting a Snow Flurry push it back; snowflakes buy upgrades at the lodge.</li>
           </ol>
           <p className="sd-keys">{keysLine}</p>
         </section>

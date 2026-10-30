@@ -30,6 +30,8 @@ export const SPIN_AFTER = 0.12;
 /** Landing: more than this far off the slope is a tumble; a Smooth landing needs the flight to meet a downslope within this. */
 export const TUMBLE_ANGLE = 0.95, SMOOTH_ANGLE = 0.34, SMOOTH_SLOPE = -0.07;
 export const SMOOTH_BOOST = 2.4, FLIP_BOOST = 6.5;
+/** Tricks win daylight too: the seconds the dusk falls back for each flip landed upright, and for starting a Snow Flurry. */
+export const FLIP_SUN = 2.5, FLURRY_SUN = 1.5;
 /** A tumble keeps this much of the speed and lasts this long. */
 export const TUMBLE_KEEP = 0.4, TUMBLE_TIME = 1.1;
 /** Three smooth landings in a row start a Snow Flurry: extra push, a higher top speed. */
@@ -66,6 +68,7 @@ export type Ev =
   | { k: 'land'; v: number; impact: number; smooth: boolean; flips: number; chain: number; air: number }
   | { k: 'tumble'; v: number }
   | { k: 'flurry'; on: boolean }
+  | { k: 'sun'; s: number }
   | { k: 'bonk' }
   | { k: 'fall' }
   | { k: 'respawn' }
@@ -293,14 +296,16 @@ export class SnowGame {
     }
     let s = Math.max(MIN_SPEED, along);
     const smooth = air > 0.3 && slope < SMOOTH_SLOPE && Math.abs(wrap(flightAng - slope)) < SMOOTH_ANGLE && Math.abs(off) < 0.6;
-    if (flips > 0) { s += FLIP_BOOST * flips; this.flips += flips; }
+    let sun = 0;
+    if (flips > 0) { s += FLIP_BOOST * flips; this.flips += flips; sun += FLIP_SUN * flips; }
     if (smooth) {
       s += SMOOTH_BOOST; this.smooths++; this.chain++;
       if (this.flurryT > 0) this.flurryT = Math.min(upgradeValue('scarf', this.levels) + 2, this.flurryT + 1);
-      else if (this.chain >= FLURRY_CHAIN) { this.flurryT = upgradeValue('scarf', this.levels); ev.push({ k: 'flurry', on: true }); }
+      else if (this.chain >= FLURRY_CHAIN) { this.flurryT = upgradeValue('scarf', this.levels); sun += FLURRY_SUN; ev.push({ k: 'flurry', on: true }); }
     } else if (air > 0.3) this.chain = 0;
     this.s = Math.min(MAX_SPEED + (this.flurryT > 0 ? FLURRY_TOP : 0) + FLIP_BOOST, s);
     ev.push({ k: 'land', v: this.s, impact, smooth, flips, chain: this.chain, air });
+    if (sun > 0) { this.duskX -= sun * this.duskV; ev.push({ k: 'sun', s: sun }); }
   }
 
   private fall(respawn: number) {

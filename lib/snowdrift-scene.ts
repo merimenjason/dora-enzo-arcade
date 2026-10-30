@@ -115,6 +115,7 @@ export class SnowScene {
         case 'fall': this.spray(g.x, g.y, 40, 2); this.pop('Poof!', g, '#e8f0ff', false); this.kick(2); break;
         case 'respawn': this.squash = -0.25; this.sparkle(g.x, g.y + 1.2, '#ffffff', 12); this.trailBreak(); break;
         case 'flake': this.twinkle(e.x, e.y, '#e8f8ff', 5); break;
+        case 'sun': this.pop(`☀ +${e.s}s daylight`, g, '#ffe39a', false); break;
         case 'cocoa': this.pop(`☕ +${e.push}s daylight`, g, '#ffd2a0', true); this.twinkle(e.x, e.y, '#ffcf8a', 14); for (let i = 0; i < 8; i++) this.parts.push({ x: e.x, y: e.y + 0.6, vx: (hash(i + e.x) - 0.5) * 1.5, vy: 1.5 + hash(i * 5) * 2, life: 1.4, max: 1.4, size: 0.4 + hash(i) * 0.4, color: 'rgba(255,255,255,0.5)', kind: 'steam', g: -1 }); break;
         case 'finish': this.sparkle(g.x, g.y + 2, '#fff2b0', 40); this.pop('The lodge!', g, '#ffe6a0', true); this.fireworkT = 0; break;
         case 'caught': this.pop('Nightfall…', g, '#c8d0ff', true); break;
@@ -696,9 +697,11 @@ export class SnowScene {
       const a = p.age < 0.15 ? p.age / 0.15 : clamp((1.4 - p.age) / 0.5, 0, 1);
       const s = p.age < 0.15 ? 0.6 + (p.age / 0.15) * 0.5 : 1.1 - Math.min(0.1, (p.age - 0.15) * 0.3);
       const size = clamp(this.H * (p.big ? 0.05 : 0.04), 16, p.big ? 40 : 32) * s;
-      const X = this.sx(p.x), Y = this.sy(p.y + p.age * 1.4);
+      const Y = this.sy(p.y + p.age * 1.4);
       c.save(); c.globalAlpha = a;
       c.font = `900 ${size}px ui-rounded, "Trebuchet MS", system-ui, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      // kept clear of the screen's edges
+      const half = c.measureText(p.text).width / 2 + size * 0.3, X = clamp(this.sx(p.x), half, Math.max(half, this.W - half));
       c.lineWidth = Math.max(3, size * 0.16); c.strokeStyle = 'rgba(20, 30, 70, 0.75)'; c.lineJoin = 'round';
       c.strokeText(p.text, X, Y); c.fillStyle = p.color; c.fillText(p.text, X, Y);
       c.restore();

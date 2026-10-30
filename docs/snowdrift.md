@@ -21,26 +21,26 @@ All numbers below come from `lib/snowdrift-game.ts` and `lib/snowdrift-terrain.t
 - **In the air:** gravity is 0.72 of the ground's pull (lighter runners make it lighter still). Holding for more than 0.12 s turns a backflip: the spin builds at 18 radians a second squared up to 8 radians a second, and settles quickly once you let go. With no flip attempted, the sled eases itself to match the flight and the slope below, so an ordinary landing never tumbles.
 - **Landing:**
   - A **Smooth landing** meets a downslope (steeper than 0.07) within 0.34 radians of its angle: a boost of 2.4.
-  - Three smooth landings in a row start a **Snow Flurry**: extra push (6), a top speed 6 higher, a snow trail and a music layer, for 4 s (more with the woolly scarf).
-  - A **Flip!** is a full backflip landed upright: a boost of 6.5.
+  - Three smooth landings in a row start a **Snow Flurry**: extra push (6), a top speed 6 higher, a snow trail and a music layer, for 4 s (more with the woolly scarf). Starting one pushes the dusk back by 1.5 seconds.
+  - A **Flip!** is a full backflip landed upright: a boost of 6.5, and the dusk falls back by 2.5 seconds for each full turn.
   - Landing more than 0.95 radians off the slope is a **tumble**: the pair keep 40% of their speed and take 1.1 s to get going again. It is never a game over.
 - Speed is always at least 5 and at most 44. Snow friction is 0.055 (times the press into the ground), ice friction 0.006, and there is a little air drag.
 
 ## The sunset
 
-The dusk wall starts 8 seconds behind the sled and moves at the valley's dusk speed. The HUD shows the daylight left: the gap to the dusk in seconds at its pace. If the dusk reaches the sled, night falls and the day ends, showing how far they got and how far the lodge was; the snowflakes they picked up are kept. A cocoa mug pushes the dusk back by 3 seconds of its pace (more with the bigger thermos). Snowflakes are the currency for the lodge shop.
+The dusk wall starts 8 seconds behind the sled and moves at the valley's dusk speed. The HUD shows the daylight left: the gap to the dusk in seconds at its pace. If the dusk reaches the sled, night falls and the day ends, showing how far they got and how far the lodge was; the snowflakes they picked up are kept. A cocoa mug pushes the dusk back by 3 seconds of its pace (more with the bigger thermos). Tricks win daylight too: 2.5 seconds for every flip landed upright and 1.5 seconds for starting a Snow Flurry; a smooth landing on its own wins speed, not daylight. Snowflakes are the currency for the lodge shop.
 
 ## Valleys
 
 | Day | Valley | What it teaches | Course length | Dusk speed | ☀ medal: spare daylight |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Pine Meadow | Hold on the way down, let go on the way up | 1500 | 19.8 | 30 s |
+| 1 | Pine Meadow | Hold on the way down, let go on the way up | 1500 | 19.8 | 31 s |
 | 2 | Frozen Lake | Long ice flats keep your speed | 1800 | 24.8 | 29 s |
-| 3 | Ice Caves | Low roofs: hold to stay low (a bonk keeps 86% of the speed) | 1900 | 23.6 | 26 s |
+| 3 | Ice Caves | Low roofs: hold to stay low (a bonk keeps 86% of the speed) | 1900 | 23.6 | 31 s |
 | 4 | Windy Ridge | Gusts lift you in the air and push you along | 2100 | 23.7 | 23 s |
-| 5 | Snow Bridges | Gaps to fly; a fall puts you back at the lip after 1.2 s at speed 7 | 2100 | 25.8 | 23 s |
-| 6 | Aurora Peaks | Night skies and big drops | 2400 | 24.6 | 21 s |
-| 7 | The Summit Run | Everything, to the grand lodge, fireworks and the ending | 2700 | 31.5 | 19 s |
+| 5 | Snow Bridges | Gaps to fly; a fall puts you back at the lip after 1.2 s at speed 7 | 2100 | 25.8 | 35 s |
+| 6 | Aurora Peaks | Night skies and big drops | 2400 | 24.6 | 30 s |
+| 7 | The Summit Run | Everything, to the grand lodge, fireworks and the ending | 2700 | 31.5 | 26 s |
 
 Each day has three medals: 🏠 reach the lodge, ☕ collect every cocoa, and ☀ reach the lodge with the spare daylight in the table. The best time and the most spare daylight are kept per day, and any opened day can be replayed. Finishing a day opens the next.
 
@@ -78,4 +78,4 @@ Saved in `localStorage` under `snowdrift-v1`: per day whether it is done, its co
 
 ## Known gaps
 
-- The planner and expert bots beat the human-like bot by only 5 to 12 seconds of daylight, so the daylight medals reward clean, rhythmic riding rather than tricks alone.
+- Flips win daylight, so from Snow Bridges on the daylight medals (35, 30 and 26 s) are out of reach of plain rhythm (17, 15 and 13 s) but well within reach of a rider who flips (the expert bot spares 44 to 63 s). On the first four days the medals ask for a cleaner line than the human-like bot rides, and Windy Ridge's is the tightest: the planner beats it by about a second.

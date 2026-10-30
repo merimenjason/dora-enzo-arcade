@@ -13,6 +13,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Snowdrift**: tricks win daylight. Every flip landed upright pushes the dusk back 2.5 seconds and starting a Snow Flurry 1.5 seconds, with a ☀ pop to show it. The daylight medals are retuned to match: plain riding no longer wins them on the later days, but a few flips do (Snow Bridges now asks 35 seconds, Aurora Peaks 30 and the Summit Run 26).
 - **Snowdrift**: each day now ends at a painted lodge (snowy roof, glowing windows, a smoking chimney and a cocoa sign) instead of a drawn cabin, and the finish shot frames the whole lodge.
 
 ### Fixed
