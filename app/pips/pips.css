@@ -118,6 +118,8 @@
 
 /* ---- panels over the stage or the fair */
 .lp-over{position:absolute;inset:0;display:grid;place-items:center;padding:14px;background:#2b1a2299;overflow:auto;z-index:4}
+/* on wide screens the reward sits to the right, clear of Dora and Enzo cheering on the left of the stage */
+@media (min-aspect-ratio:5/4) and (min-height:521px){.lp-over{justify-items:end;padding-right:3vw;background:linear-gradient(90deg,#2b1a2222 0,#2b1a2222 30%,#2b1a2299 45%)}.lp-over .lp-panel{width:min(820px,58vw)}}
 .lp-scene{flex:1;min-height:0;display:grid;place-items:center;padding:16px;background-size:cover;background-position:center;overflow:auto;position:relative}
 .lp-scene::before{content:'';position:absolute;inset:0;background:#2b1a2266}
 .lp-pair{position:absolute;left:2vw;bottom:0;display:flex;align-items:flex-end;pointer-events:none;z-index:0}
