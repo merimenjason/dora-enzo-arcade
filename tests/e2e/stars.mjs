@@ -55,7 +55,7 @@ async function stitchAll(page, { cdp = null, ms = 260 } = {}) {
 {
   const page = await open();
   await page.goto(base);
-  assert.equal(await page.locator('.arcade-card').count(), 59);
+  assert.equal(await page.locator('.arcade-card').count(), 60);
   await page.evaluate((k) => localStorage.removeItem(k), KEY);
   await page.getByRole('link', { name: /Starstitch/ }).click();
   await page.waitForURL(/\/stars$/); await ready(page);

@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of fifty-nine original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of sixty original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -69,6 +69,7 @@ Listed in arcade-menu order.
 | 57 | Twig & Twine | `/bridges` | Physics bridge-building puzzle |
 | 58 | Kiln & Clay | `/pottery` | Cosy pottery workshop |
 | 59 | Starstitch | `/stars` | Cosy constellation puzzle |
+| 60 | Moonhop | `/orbit` | Cosy gravity-slingshot game |
 
 ## Run
 
@@ -1168,6 +1169,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/stars.md`](docs/stars.md), art brief [`docs/stars-art-brief.md`](docs/stars-art-brief.md).
 
+### 60 · Moonhop (`/orbit`)
+
+**Play:** A cosy gravity-slingshot game, drawn in Canvas 2D. Dora and Enzo's paper-lantern balloon has drifted up past the clouds into a sky of tiny moons, and the fireflies that light it home have wandered off between them. Holding paws, the pair walk round the moon they stand on, crouch while the ring fills, and leap straight off the surface; every moon pulls on them, so leaps curve, slingshot round big moons and swing into orbit, and a dotted path shows where a leap begins. Once per leap they can puff in mid-air for a little nudge, and drifting off into the dark (or flying for 8 seconds) lets the lantern string reel them gently back to where they leapt from; the leap still counts. Gather every firefly to open the home lantern, then land on its moon. Each stage has three stars: home, the golden firefly (hidden off the obvious way), and home within the leap par. New moons arrive one sky at a time, each taught by a tip card: big and small moons, sticky moss, bouncy jelly, spinning moons, slippery ice, moons whose pull breathes in and out, comets on long loops, twin moons circling each other, black beans that push instead of pull, and rabbit holes that pop the pair out on another moon. Five skies of eight stages (Lantern Clouds, Mushroom Moons, Frost Moons, The Comet Stream and The Night Garden) are laid out on a sky map; the last stage, The Home Lantern, plays the ending painting. After the Frost Moons, **Starlight** replays any stage with no dotted path and a clock, for a 🏅 medal within the Starlight time, and after the first sky the endless **Moon Garden** grows a new field of moons for every level. Progress is saved in `moonhop-v1`.
+
+**Controls:** Point and hold on the side of the moon to leap from (a dashed mark shows the spot as the mouse hovers): Dora and Enzo walk there, crouch and fill the ring; let go to leap. In the air, click (or tap) the way to puff. Touch works the same way with a finger, and phones work held either way. Keyboard: **←**/**→** (or **A**/**D**) walk, hold **Space** (or **J**) and let go to leap, **Space** in the air puffs (aimed with the arrows), **L** or holding **Shift** looks at the whole sky, **R** starts again, **Esc** returns to the sky map, **Enter** goes on from a finished stage. **Look** and **↺ Again** buttons sit in the corner; Sound and Music are toggles on the menu and the map.
+
+**Tests:** `npm run test:orbit` runs the engine checks: the pull, walking and the arrow latch, charging and leaping, the pointer, holding through a landing, every kind of moon (moss, jelly, ice, spinning, moving, pulsing, black beans), the puff, rabbit holes, fireflies and the lantern, drifting off and the rewind, the dotted path, determinism, the stage data, saves (corrupt ones included) and the Moon Garden. `npm run bot:orbit` searches every stage with the page's own inputs and proves each can be finished with every firefly and the golden one within its leap par and Starlight time, using only leaps that still land the same way a little off in aim or power; it checks that leaping straight up or at random doesn't win the stars, and that sixty grown Moon Garden fields each come with a route that finishes them (`npm test` runs it with `--quick`, replaying the saved routes in `tests/orbit-solutions.json`). `npm run test:e2e:orbit` checks the browser: the menu, the first stage played to three stars with the real mouse and again with the keyboard alone, the second by mouse, the charge ring and dotted path, puffs by key and click, starting again, Look and the rewind from the dark, the save across a reload and the sky map, corrupt saves, the Moon Garden, Starlight and the ending, the framing at 1280×800 and 1920×1080 with Dora and Enzo a clear size and nothing over them, and phones held either way, played by touch to three stars.
+
+**Docs:** [`docs/orbit.md`](docs/orbit.md), art brief [`docs/orbit-art-brief.md`](docs/orbit-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1187,7 +1198,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fifty-nine ways/` assertion in `tests/e2e/dust-bath.mjs`, the 59-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Sixty ways/` assertion in `tests/e2e/dust-bath.mjs`, the 60-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

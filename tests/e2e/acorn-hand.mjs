@@ -31,7 +31,7 @@ const setHand = (page) => run(page, `(r) => { const want = [[13,0],[13,1],[5,2],
 
 await check('the arcade lists Acorn Hand and opens it on a fresh record', async (page) => {
   await page.goto(base);
-  assert.equal(await page.locator('.arcade-card').count(), 59);
+  assert.equal(await page.locator('.arcade-card').count(), 60);
   await page.getByRole('link', { name: /Acorn Hand/ }).click();
   await page.locator('main[data-ready="true"]').waitFor();
   assert.match(await page.getByTestId('record').innerText(), /Runs\s*0[\s\S]*Wins\s*0/);

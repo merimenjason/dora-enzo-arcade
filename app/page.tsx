@@ -60,14 +60,15 @@ const GAMES=[
  {href:'/bridges',title:'Twig & Twine',tag:'NEW · BRIDGE-BUILDING PUZZLE',blurb:'The spring floods took the valley’s bridges. Build them again from twigs, planks, twine and bamboo, then send Dora and Enzo across in their acorn cart: triangles hold, twine only pulls, and a plank alone snaps.',color:'#c8874a',art:'🌉'},
  {href:'/pottery',title:'Kiln & Clay',tag:'NEW · POTTERY WORKSHOP',blurb:'Throw pots on a spinning wheel for the valley’s neighbours: centre the clay, open it and raise the walls before they flump, then glaze, fire the kiln and deliver, all the way to a teapot for the picnic.',color:'#c0764a',art:'🏺'},
  {href:'/stars',title:'Starstitch',tag:'NEW · CONSTELLATION PUZZLE',blurb:'The constellations have come loose. Lie on the hill with Dora and Enzo and stitch them back with one silver thread, along every seam and never the same one twice, through five autumn nights of bright stars, knots, comets, clouds and leaping twins.',color:'#6b74d8',art:'✨'},
+ {href:'/orbit',title:'Moonhop',tag:'NEW · GRAVITY HOPPER',blurb:'Dora and Enzo’s lantern balloon has drifted up into a sky of tiny moons. Hop from moon to moon holding paws, curving and slingshotting round every pull, and gather the lost fireflies that light the way home.',color:'#f2a24f',art:'🌙'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">FIFTY-NINE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Fifty-nine ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, fifty-nine cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">SIXTY ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Sixty ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, sixty cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <nav className="arcade-grid" aria-label="Choose a game">
