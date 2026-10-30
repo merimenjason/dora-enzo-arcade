@@ -65,7 +65,8 @@
 .mh-done{animation:mh-rise .5s ease-out both}
 @keyframes mh-rise{from{opacity:0;transform:translate(-50%,-44%)}to{opacity:1;transform:translate(-50%,-50%)}}
 /* on wide screens the card sits to one side, so the home moon and the cheering pair stay in view */
-@media (min-aspect-ratio:21/20) and (min-height:521px){.mh-done{left:auto;right:18px;top:18px;transform:none;width:min(400px,40%);animation-name:mh-rise-side}}
+@media (min-aspect-ratio:21/20){.mh-done{left:auto;right:18px;top:18px;transform:none;width:min(400px,40%);animation-name:mh-rise-side}}
+@media (min-aspect-ratio:21/20) and (max-height:520px){.mh-done{right:10px;top:8px;width:min(380px,44%);max-height:calc(100% - 16px)}}
 @keyframes mh-rise-side{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .mh-done h2{font-size:28px;color:var(--gold);text-shadow:0 0 18px #ffb83a88}
 .mh-story{font-style:italic;font-size:15px;color:#ebe8ff}
@@ -130,3 +131,10 @@
 .mh-ending-text h2{font-size:24px;color:var(--gold)}
 @media (max-width:760px){.mh-hero{grid-template-columns:1fr}.mh-hero h1{font-size:44px}}
 @media (max-height:520px){.mh-ending-text{bottom:8px;padding:9px 12px;gap:4px;font-size:13px}.mh-ending-text h2{font-size:18px}}
+/* big screens: a larger menu, sitting in the middle of the screen rather than stuck to the top */
+.mh-menu:not(.mh-map)>.mh-hero{margin-top:auto}
+.mh-menu:not(.mh-map)>:last-child{margin-bottom:auto}
+@media (min-width:1500px) and (min-height:900px){.mh-menu:not(.mh-map){padding-inline:max(14px,calc(50% - 700px));gap:20px}.mh-hero h1{font-size:84px}.mh-hero p:not(.mh-eyebrow){font-size:19px}}
+/* phones held upright: the done card comes up from the bottom, and the camera frames the cheering pair above it */
+@media (max-aspect-ratio:20/21){.mh-done{top:auto;bottom:10px;transform:translateX(-50%);animation-name:mh-rise-up}}
+@keyframes mh-rise-up{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translateX(-50%)}}

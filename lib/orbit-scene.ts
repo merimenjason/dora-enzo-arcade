@@ -55,7 +55,7 @@ export class OrbitScene {
   inset = { top: 0, right: 0, bottom: 0, left: 0 };
   private st: Stage | null = null; private sky = 1;
   // the camera, in world units: centre and pixels per unit
-  cx = 0; cy = 0; s = 1; private intro = 0;
+  cx = 0; cy = 0; s = 1; private intro = 0; private framed = true;
   private time = 0; private sparks: Spark[] = [];
   private stars: [number, number, number, number][] = [];
   private wob = new Map<number, number>(); private pose: Pose = 'stand'; private poseT = 0; private cheerT = 0;
@@ -82,9 +82,9 @@ export class OrbitScene {
     want('sky-' + this.sky);
     if (!st) return;
     for (const m of st.moons) want('moon-' + (m.skin ?? 'lantern'));
-    // start on the whole field, then ease in to the pair
-    const [l, t, r, b] = this.fieldBox(st);
-    this.cx = (l + r) / 2; this.cy = (t + b) / 2; this.s = this.fit(r - l, b - t, 0.9); this.intro = 1.6;
+    // start on the whole field, then ease in to the pair (framed on the first drawing, once the canvas has its size:
+    // it may still be hidden behind the menu now)
+    this.framed = false; this.intro = 1.6;
   }
   /** The view's clear area (between the bars) in screen pixels. */
   private view() { const I = this.inset; return { x: I.left, y: I.top, w: Math.max(50, this.W - I.left - I.right), h: Math.max(50, this.H - I.top - I.bottom) }; }
@@ -169,6 +169,11 @@ export class OrbitScene {
   draw(o: DrawOpts) {
     const { c, W, H } = this, h = o.h, st = h.s, dt = o.dt;
     this.time += dt;
+    if (!this.framed) this.resize();
+    if (!this.framed && this.W > 40 && this.H > 40) {
+      const [l, t, r, b] = this.fieldBox(st);
+      this.cx = (l + r) / 2; this.cy = (t + b) / 2; this.s = this.fit(r - l, b - t, 0.9); this.framed = true;
+    }
     this.aimCamera(h, o.look, dt);
     c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.background();
@@ -350,13 +355,17 @@ export class OrbitScene {
       const [x, y] = h.flyAt(i), bl = 0.6 + 0.4 * Math.sin(this.time * 4 + i * 1.7), gold = !!f.gold, R = gold ? 26 : 18;
       const dy = Math.sin(this.time * 2.2 + i) * 3;
       const g = c.createRadialGradient(x, y + dy, 0, x, y + dy, R * (1 + bl * 0.4));
-      g.addColorStop(0, gold ? `rgba(255,220,90,${0.9 * bl})` : `rgba(215,255,120,${0.85 * bl})`); g.addColorStop(1, 'rgba(200,255,120,0)');
+      g.addColorStop(0, gold ? `rgba(255,220,90,${0.9 * bl})` : `rgba(215,255,120,${0.85 * bl})`); g.addColorStop(1, gold ? 'rgba(255,170,40,0)' : 'rgba(200,255,120,0)');
       c.fillStyle = g; c.beginPath(); c.arc(x, y + dy, R * 1.4, 0, TAU); c.fill();
-      c.fillStyle = gold ? '#fff2b0' : '#f6ffd0'; c.beginPath(); c.arc(x, y + dy, gold ? 4.5 : 3.2, 0, TAU); c.fill();
+      // the body, drawn over the glow rather than added to it, so the golden one reads gold and not white
+      c.globalCompositeOperation = 'source-over';
+      if (gold) { c.fillStyle = '#e08a10'; c.beginPath(); c.arc(x, y + dy, 6, 0, TAU); c.fill(); c.fillStyle = '#ffd23c'; c.beginPath(); c.arc(x - 0.6, y + dy - 0.6, 4.6, 0, TAU); c.fill(); c.fillStyle = '#fff6c8'; c.beginPath(); c.arc(x - 1.6, y + dy - 1.6, 1.6, 0, TAU); c.fill(); }
+      else { c.fillStyle = '#f6ffd0'; c.beginPath(); c.arc(x, y + dy, 3.2, 0, TAU); c.fill(); }
+      c.globalCompositeOperation = 'lighter';
       // wings
       c.fillStyle = 'rgba(255,255,255,0.35)'; const fl = Math.sin(this.time * 30 + i) * 0.4;
       c.beginPath(); c.ellipse(x - 3, y + dy - 3, 3.4, 1.8, -0.6 + fl, 0, TAU); c.fill(); c.beginPath(); c.ellipse(x + 3, y + dy - 3, 3.4, 1.8, 0.6 - fl, 0, TAU); c.fill();
-      if (gold) for (let k = 0; k < 4; k++) { const a = this.time * 1.5 + (k * TAU) / 4, d = 13 + Math.sin(this.time * 3 + k) * 3; c.fillStyle = '#ffe9a0'; c.beginPath(); c.arc(x + Math.cos(a) * d, y + dy + Math.sin(a) * d, 1.4, 0, TAU); c.fill(); }
+      if (gold) for (let k = 0; k < 4; k++) { const a = this.time * 1.5 + (k * TAU) / 4, d = 13 + Math.sin(this.time * 3 + k) * 3; c.fillStyle = '#ffc73a'; c.beginPath(); c.arc(x + Math.cos(a) * d, y + dy + Math.sin(a) * d, 1.8, 0, TAU); c.fill(); }
     });
     c.restore();
   }
@@ -422,7 +431,7 @@ export class OrbitScene {
       const gold = !!h.s.flies[fi]?.gold, a = this.time * 1.8 + (k * TAU) / Math.max(1, this.gathered.length);
       let fx = bx + Math.cos(a) * PAIR * 0.85, fy = by + Math.sin(a) * PAIR * 0.55;
       if (this.lanternT > 0) { const m = h.s.moons[h.s.home], lx = h.mx[h.s.home], ly = h.my[h.s.home] - m.r - 34, e = Math.min(1, this.lanternT * 1.2); fx += (lx - fx) * e; fy += (ly - fy) * e; }
-      const g = c.createRadialGradient(fx, fy, 0, fx, fy, 9); g.addColorStop(0, gold ? 'rgba(255,220,90,0.9)' : 'rgba(215,255,120,0.8)'); g.addColorStop(1, 'rgba(200,255,120,0)');
+      const g = c.createRadialGradient(fx, fy, 0, fx, fy, 9); g.addColorStop(0, gold ? 'rgba(255,220,90,0.9)' : 'rgba(215,255,120,0.8)'); g.addColorStop(1, gold ? 'rgba(255,170,40,0)' : 'rgba(200,255,120,0)');
       c.fillStyle = g; c.beginPath(); c.arc(fx, fy, 9, 0, TAU); c.fill();
     });
     c.restore();

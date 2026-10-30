@@ -144,8 +144,10 @@ export default function OrbitPage() {
     const r = el.getBoundingClientRect(), t = tools.current?.getBoundingClientRect(), tall = r.height > r.width * 1.05;
     // on wide screens the done card comes in at the side (see .mh-done in orbit.css): from the moment they are home,
     // frame the cheering pair in the sky beside it
-    const side = !!hop.current?.done && window.matchMedia?.('(min-aspect-ratio: 21/20) and (min-height: 521px)').matches;
-    sc.inset = { top: 0, left: 0, right: side ? Math.min(400, r.width * 0.4) + 30 : 0, bottom: tall && t && t.height > 0 ? Math.max(0, r.bottom - t.top + 6) : 0 };
+    // (and on phones held upright it comes up from the bottom: frame them above it)
+    const home = !!hop.current?.done, side = home && window.matchMedia?.('(min-aspect-ratio: 21/20)').matches;
+    const card = home && tall ? el.querySelector('.mh-done')?.getBoundingClientRect() : null;
+    sc.inset = { top: 0, left: 0, right: side ? (window.innerHeight > 520 ? Math.min(400, r.width * 0.4) + 30 : Math.min(380, r.width * 0.44) + 18) : 0, bottom: card && card.height > 0 ? card.height + 16 : tall && t && t.height > 0 ? Math.max(0, r.bottom - t.top + 6) : 0 };
   }
   /** What the player is holding right now, as the game's input. */
   function input(): Input {
