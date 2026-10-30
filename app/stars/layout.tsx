@@ -1,0 +1,3 @@
+import type { Metadata } from 'next';
+export const metadata: Metadata = { title: 'Starstitch · Dora & Enzo’s Arcade', description: 'A cosy constellation puzzle. On clear autumn nights Dora and Enzo lie on the hill above the burrow with a spool of silver thread and stitch the loose constellations back into the sky: one continuous thread along every seam, with bright stars, knots, double seams, one-way comets, clouds, twin stars and moons along the way. Five nights of handmade skies, a Night Journal of painted constellations, a Daily Sky and an endless Shooting Star mode.' };
+export default function StarsLayout({ children }: { children: React.ReactNode }) { return children; }
