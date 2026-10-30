@@ -46,4 +46,8 @@ Three moods of the pair lying together on their tummies side by side, as if on t
 
 ## In the game
 
-The green is keyed out with Pillow (a soft edge and green despill), trimmed and fitted to 960 × 640 standing on the bottom edge. The figures are levelled so their background is true black and drawn with the "screen" blend. A missing mood borrows `point`; the drawn chinchillas stand in until any painting arrives; a missing figure is left out, and the golden thread alone shows the constellation; a missing backdrop falls back to a drawn sky and hill.
+The green is keyed out with Pillow (a soft edge and green despill), trimmed and fitted to 960 × 480 standing on the bottom edge (the pair lies low and wide). The figures are levelled so their background is true black and drawn with the "screen" blend. A missing mood borrows `point`; the drawn chinchillas stand in until any painting arrives; a missing figure is left out, and the golden thread alone shows the constellation; a missing backdrop falls back to a drawn sky and hill.
+
+## What shipped
+
+All twenty-one paintings were made with Codex's built-in image tool, one image per job: the title, the five night skies and the ending at 1536 × 1024; the eleven figures, saved at 768 × 768 with their blacks crushed to true black for the "screen" blend; and the three moods of the pair, keyed and fitted to 960 × 480. Dora is cream-white with ruby-red eyes and Enzo cool blue-grey with black eyes in every one, both with smooth rounded crowns. The figures that shipped are the Snail, the Acorn, the Hare, the Lantern, the Sleeping Fox, the Owl, the Stag, the Leaping Trout, the Heron, the Teapot and the Two Chinchillas. Written 31-10-2026.

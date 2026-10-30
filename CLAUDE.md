@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-Fifty-eight original browser games starring two chinchillas, served from one arcade menu at `/`. Live at https://chinchillas.jason.engineering. `README.md` has the full game list, per-game guides and the deployment guide; `HANDOFF.md` has the current state of the work.
+Fifty-nine original browser games starring two chinchillas, served from one arcade menu at `/`. Live at https://chinchillas.jason.engineering. `README.md` has the full game list, per-game guides and the deployment guide; `HANDOFF.md` has the current state of the work.
 
 ## Commands
 

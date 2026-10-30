@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of fifty-eight original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of fifty-nine original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -68,6 +68,7 @@ Listed in arcade-menu order.
 | 56 | Meadowmend | `/meadow` | Hex tile-laying valley builder |
 | 57 | Twig & Twine | `/bridges` | Physics bridge-building puzzle |
 | 58 | Kiln & Clay | `/pottery` | Cosy pottery workshop |
+| 59 | Starstitch | `/stars` | Cosy constellation puzzle |
 
 ## Run
 
@@ -1157,6 +1158,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/pottery.md`](docs/pottery.md), art brief [`docs/pottery-art-brief.md`](docs/pottery-art-brief.md).
 
+### 59 · Starstitch (`/stars`)
+
+**Play:** A cosy constellation logic puzzle, drawn in Canvas 2D. The constellations have come loose, and Dora and Enzo lie on the hill above the burrow with Grandmother's spool of silver thread to stitch them back. Each sky is a handful of stars joined by faint dotted seams: press on a star and drag, star to star, to stitch one continuous thread along every seam exactly once. A star with an odd number of seams must be where the thread starts or ends, and setting off too soon can strand a loop with no way back, so the thread gets stuck; drag back along it to unpick. New rules arrive one night at a time: bright stars wear rays and must be touched exactly that many times (the start and the end count), knot stars can be touched only once, double seams are stitched twice, a comet flies along a one-way seam that can only be stitched its way, clouds hide the seams behind them until the pointer or the needle comes close, the thread must begin at the crescent moon and finish at the full moon when the moons are out, and stitching into a twin star leaps the needle to its twin, where it is picked up again. Three short lessons, then five nights of eight constellations (The Hill at Dusk, Deep Autumn, Frost and Aurora, The Moonlit Lake and The Meteor Shower); eleven of them have a painted figure (the Hare, the Fox, the Stag, the Heron, the Teapot and more) that fades in behind the thread as it blazes gold, and every one finishes with a two-line story for the Night Journal. Stitching a sky without unpicking or starting again wins its ★ "in one go" medal. Each sky has one free ✨ hint (where to start, the next stitch, or how far to unpick), and stitching a story sky for the first time (or a Shooting Star sky) without one banks another, up to 5. The last constellation, the Two Chinchillas, plays the ending; after it the Daily Sky (a new generated sky each day, the same for everyone, with a streak) and the endless Shooting Star (generated skies that grow and gather rules) open on the menu. The sky chart shows every night and medal. Progress is saved in `starstitch-v1`.
+
+**Controls:** Press on a star with the mouse (or a finger) and drag towards the next star along a seam: once the drag is past about 60% of the way the thread snaps to that star, so one long drag can stitch a whole constellation. Tapping the next star also stitches it; dragging back along the thread, **Z**, **Backspace** or ↶ Unpick unpick; **R** or ↺ Again starts again; **H** or ✨ Hint asks for a hint. Keyboard alone: **←**/**→** (or **Tab**) choose a star, **Enter** or **Space** stitches to it. **Esc** returns to the sky chart, and **Enter** goes on from a finished sky. Phones work held either way. Sound and Music are toggles on the menu and the chart.
+
+**Tests:** `npm run test:stars` runs the engine checks: the content (three lessons and five nights of eight, each rule taught when it first appears, every constellation drawn cleanly, solvable, neither forced nor hopeless), every rule of a stitch, getting stuck, the pointer's press, drag, snap, unpick and tap, the hints (following them always finishes), the generated Daily and Shooting Star skies, progress and the daily streak, and saves (corrupt ones included). `npm run bot:stars` stitches all 43 skies in one go through the pointer calls the page makes (a steady drag, a wobbly one and taps), checks that a careless player rarely finishes a story sky while a thoughtful one is still caught out on the later nights, and plays the whole story through the save to the ending (`npm test` runs it with `--quick`). `npm run test:e2e:stars` checks the browser: the menu, the first lesson stitched in one go with the real mouse, the second with the keyboard alone, unpicking, starting again and hints, a twin's leap, the save across a reload, the chart and the journal, corrupt saves, the framing at 1280×800 and 1920×1080 with Dora and Enzo a clear size and nothing over them or a star, and phones held either way, stitched by touch.
+
+**Docs:** [`docs/stars.md`](docs/stars.md), art brief [`docs/stars-art-brief.md`](docs/stars-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1176,7 +1187,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fifty-eight ways/` assertion in `tests/e2e/dust-bath.mjs`, the 58-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Fifty-nine ways/` assertion in `tests/e2e/dust-bath.mjs`, the 59-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 31-10-2026
+
+### Added
+
+- **Starstitch** (`/stars`), game 59: a cosy constellation logic puzzle. The constellations have come loose, so lie on the hill with Dora and Enzo and stitch them back with one silver thread: press on a star and drag star to star, along every seam exactly once. Three short lessons and five autumn nights of eight skies bring in one rule at a time (bright stars touched an exact number of times, knot stars touched once, double seams, one-way comets, clouds that hide seams until you come close, start and end moons, and twin stars that leap the needle across the sky). A finished thread blazes gold, eleven of the constellations reveal a painted figure, and each one adds a two-line story to the Night Journal. Stitch a sky without unpicking for its ★ medal; each sky has a free hint and more are earned by stitching without one. After the last night come the Daily Sky, a new sky each day with a streak, and the endless Shooting Star. Works with the mouse, the keyboard alone, and on phones held either way.
+
 ## 30-10-2026
 
 ### Added
