@@ -72,7 +72,7 @@ export type Order = {
   id: string; day: number; who: CustomerId; title: string; ask: string;
   parts: Part[]; handle?: boolean; glaze: GlazeAsk;
   /** A new idea this order teaches, shown once. */
-  teach?: { title: string; text: string };
+  teach?: { title: string; text: string; at: 'throw' | 'handle' | 'glaze' };
   /** What the customer says at 3, 2 and 1 stars. */
   thanks: [string, string, string];
 };
@@ -95,20 +95,20 @@ export const ORDERS: Order[] = [
     thanks: ['Oh, it’s perfect! The blackberries will look so happy in it.', 'What a dear little bowl. Thank you!', 'It’s a bowl, and I shall love it anyway.'] },
   { id: 'o2', day: 1, who: 'duck', title: 'The ducklings’ cup', ask: 'A cup for the ducklings’ milk, please, cream with two green stripes. They love stripes.',
     parts: body('cup'), glaze: { all: 'cream', stripes: { fam: 'green', n: 2 } },
-    teach: { title: 'Stripes', text: 'Pick a glaze, then drag up or down the spinning pot to paint a band. A short drag makes a thin stripe.' },
+    teach: { title: 'Stripes', text: 'Pick a glaze, then drag up or down the spinning pot to paint a band. A short drag makes a thin stripe.', at: 'glaze' },
     thanks: ['Quack! The ducklings are fighting over who drinks first!', 'Lovely stripes. Thank you, dears.', 'They’ll drink from it all the same. Thank you.'] },
   { id: 'o3', day: 1, who: 'badger', title: 'A dough bowl', ask: 'I need a big, wide mixing bowl for my bread dough. Cream inside and out, with a blue rim.',
     parts: body('mixingBowl'), glaze: { all: 'cream', rim: 'blue' },
-    teach: { title: 'A rim', text: 'Dip it cream first, then pick a blue and paint a band right at the top for the rim.' },
+    teach: { title: 'A rim', text: 'Dip it cream first, then pick a blue and paint a band right at the top for the rim.', at: 'glaze' },
     thanks: ['A baker’s dream of a bowl! Tomorrow’s loaves will be the best yet.', 'Good and sturdy. Thank you!', 'It’ll hold the dough. Thank you kindly.'] },
   // ---- day 2: handles, bellies
   { id: 'o4', day: 2, who: 'duck', title: 'A mug for Father Duck', ask: 'Father Duck wants a proper mug with a handle. Blue, like the pond.',
     parts: body('mug'), handle: true, glaze: { all: 'blue' },
-    teach: { title: 'Handles', text: 'After throwing, pick a handle. The kiln joins it on for good.' },
+    teach: { title: 'Handles', text: 'After throwing, pick a handle. The kiln joins it on for good.', at: 'handle' },
     thanks: ['He hasn’t put it down all morning!', 'A fine mug. Thank you!', 'He says it’s very… mug-like. Thank you!'] },
   { id: 'o5', day: 2, who: 'squirrel', title: 'A honey pot', ask: 'A round honey pot, nice and plump in the middle and a bit narrower at the top. Honey glaze with a cream rim!',
     parts: body('honeyPot'), glaze: { all: 'honey', rim: 'cream' },
-    teach: { title: 'A plump belly', text: 'Press inside the pot low down and drag outwards to swell the belly. Then press outside near the top and drag in to narrow it.' },
+    teach: { title: 'A plump belly', text: 'Press inside the pot low down and drag outwards to swell the belly. Then press outside near the top and drag in to narrow it.', at: 'throw' },
     thanks: ['So plump! So round! My honey has a palace!', 'Lovely and round. Thank you!', 'It holds honey. That’s the main thing!'] },
   { id: 'o6', day: 2, who: 'rabbit', title: 'A flower pot', ask: 'A flower pot that gets wider at the top, please. Cream with one rose-pink stripe.',
     parts: body('flowerPot'), glaze: { all: 'cream', stripes: { fam: 'pink', n: 1 } },
@@ -116,24 +116,24 @@ export const ORDERS: Order[] = [
   // ---- day 3: tall, speckle
   { id: 'o7', day: 3, who: 'heron', title: 'A tall vase for reeds', ask: 'A tall vase for my reeds: a round belly low down, a slim neck, and a little flare at the top. Blue all over.',
     parts: body('tallVase'), glaze: { all: 'blue' },
-    teach: { title: 'Tall walls', text: 'Raise the walls a few times: press outside at the bottom and slide up. Thin walls go higher, but too thin and they wobble.' },
+    teach: { title: 'Tall walls', text: 'Raise the walls a few times: press outside at the bottom and slide up. Thin walls go higher, but too thin and they wobble.', at: 'throw' },
     thanks: ['Exquisite. Truly. The reeds approve.', 'A most elegant vase. Thank you.', 'It stands up. That is something. Thank you.'] },
   { id: 'o8', day: 3, who: 'hedgehog', title: 'A pudding basin', ask: 'A deep pudding basin for my steamed puddings. Cream with brown speckles, like a hen’s egg.',
     parts: body('basin'), glaze: { all: 'cream', speckle: true },
-    teach: { title: 'Speckles', text: 'Tap ✨ Speckle to scatter little iron flecks over the glaze.' },
+    teach: { title: 'Speckles', text: 'Tap ✨ Speckle to scatter little iron flecks over the glaze.', at: 'glaze' },
     thanks: ['It’s just like an egg! My puddings will be so proud.', 'A good deep basin. Thank you!', 'It’ll hold a pudding. Thank you, dear.'] },
   { id: 'o9', day: 3, who: 'owl', title: 'A quill pot', ask: 'A tall, straight quill pot for my feathers and pens. Green all over, with a honey foot.',
     parts: body('quillPot'), glaze: { all: 'green', foot: 'honey' },
-    teach: { title: 'A foot', text: 'A band right at the bottom of the pot is its foot.' },
+    teach: { title: 'A foot', text: 'A band right at the bottom of the pot is its foot.', at: 'glaze' },
     thanks: ['Hoo! Splendid. My quills stand to attention.', 'Very handsome. Thank you.', 'It will do nicely. Thank you.'] },
   // ---- day 4: wide and low, drips, jugs
   { id: 'o10', day: 4, who: 'badger', title: 'A pie dish', ask: 'A wide, shallow pie dish for my blackberry pies. Honey with a cream rim.',
     parts: body('pieDish'), glaze: { all: 'honey', rim: 'cream' },
-    teach: { title: 'Wide and low', text: 'Wide pots fling themselves apart on a fast wheel. Slow the wheel down before you pull a dish out wide.' },
+    teach: { title: 'Wide and low', text: 'Wide pots fling themselves apart on a fast wheel. Slow the wheel down before you pull a dish out wide.', at: 'throw' },
     thanks: ['The pie fits like it was made for it. Because it was!', 'A fine dish. Thank you!', 'Pie will go in it. Thank you!'] },
   { id: 'o11', day: 4, who: 'duck', title: 'A paddling dish', ask: 'A shallow paddling dish for the ducklings. Blue, with cream drips running down from the rim, like little waterfalls.',
     parts: body('paddleDish'), glaze: { all: 'blue', drip: 'cream' },
-    teach: { title: 'Drips', text: 'Pick a glaze and tap 💧 Drip to let it run down from the rim.' },
+    teach: { title: 'Drips', text: 'Pick a glaze and tap 💧 Drip to let it run down from the rim.', at: 'glaze' },
     thanks: ['Splish! They won’t get out of it!', 'Lovely waterfalls. Thank you!', 'They’ll paddle in it anyway. Thank you!'] },
   { id: 'o12', day: 4, who: 'rabbit', title: 'A carrot-juice jug', ask: 'A jug with a handle for carrot juice, round below and narrower at the neck. Honey, with two cream stripes.',
     parts: body('jug'), handle: true, glaze: { all: 'honey', stripes: { fam: 'cream', n: 2 } },
@@ -141,7 +141,7 @@ export const ORDERS: Order[] = [
   // ---- day 5: lids, narrow necks
   { id: 'o13', day: 5, who: 'squirrel', title: 'An acorn jar with a lid', ask: 'A jar with a lid to keep my acorns safe from the jays. Green, with a honey stripe.',
     parts: [{ id: 'body', shape: SHAPES.jarBody }, { id: 'lid', shape: SHAPES.jarLid }], glaze: { all: 'green', stripes: { fam: 'honey', n: 1 } },
-    teach: { title: 'Lids', text: 'Throw the jar first, then a small lid from its own little lump of clay: it doesn’t need opening. Shape a wide flat lid with a knob on top.' },
+    teach: { title: 'Lids', text: 'Throw the jar first, then a small lid from its own little lump of clay: it doesn’t need opening. Shape a wide flat lid with a knob on top.', at: 'throw' },
     thanks: ['Not a single jay will get in. Perfect!', 'It fits! Thank you!', 'The lid wobbles a bit, but I love it.'] },
   { id: 'o14', day: 5, who: 'heron', title: 'A bud vase', ask: 'A bud vase for a single rose: round below and a very slim neck. Rose pink, with a blue rim.',
     parts: body('budVase'), glaze: { all: 'pink', rim: 'blue' },
@@ -168,7 +168,7 @@ export const ORDERS: Order[] = [
     thanks: ['The perfect splash of milk every time!', 'Sweet little jug. Thank you!', 'It will do for milk. Thank you!'] },
   { id: 'o21', day: 7, who: 'squirrel', title: 'The picnic teapot', ask: 'The big one: a teapot for the whole valley! A round body, a spout, a lid and a handle. Cream with a blue rim and blue stripes, like the picnic sky.',
     parts: [{ id: 'body', shape: SHAPES.teapot }, { id: 'spout', shape: SHAPES.spout }, { id: 'lid', shape: SHAPES.teapotLid }], handle: true, glaze: { all: 'cream', rim: 'blue', stripes: { fam: 'blue', n: 2 } },
-    teach: { title: 'The teapot', text: 'Three throws: the round body, a slim tapering spout, and a lid with a knob. Then a handle, and the kiln joins them all.' },
+    teach: { title: 'The teapot', text: 'Three throws: the round body, a slim tapering spout, and a lid with a knob. Then a handle, and the kiln joins them all.', at: 'throw' },
     thanks: ['The whole valley is coming for tea. Thank you, both of you!', 'It pours! Hooray for the picnic!', 'A teapot! Just about! Hooray!'] },
 ];
 export const ORDER_IDS = ORDERS.map((o) => o.id);
