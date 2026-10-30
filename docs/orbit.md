@@ -77,7 +77,7 @@ Opens once Lantern Clouds is done. An endless run of generated fields: field `n`
 
 ## Feel
 
-The camera eases in from the whole field at the start of a stage, then frames the pair, the moon they stand on and the moons near them, drawing back in long flights and never letting the pair get smaller than about 56 px on screen. Off-screen fireflies (and the open lantern) get arrows at the edge of the view. Leaps whoosh, landings squish (a boing on jelly, a crunch on ice), each firefly rings a chime one step up the scale, and the music box gains a layer every quarter of the fireflies gathered.
+The camera eases in from the whole field at the start of a stage, then frames the pair, the moon they stand on and the moons near them, drawing back in long flights and never letting the pair get smaller than about 56 px on screen (42 px on a phone held upright, so the next moon fits across the narrow view). Off-screen fireflies (and the open lantern) get arrows at the edge of the view. Leaps whoosh, landings squish (a boing on jelly, a crunch on ice), each firefly rings a chime one step up the scale, and the music box gains a layer every quarter of the fireflies gathered.
 
 ## Saving
 

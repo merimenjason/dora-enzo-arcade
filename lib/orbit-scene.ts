@@ -95,9 +95,11 @@ export class OrbitScene {
     st.flies.forEach((f) => { if (f.x !== undefined && f.y !== undefined) { l = Math.min(l, f.x - 20); r = Math.max(r, f.x + 20); t = Math.min(t, f.y - 20); b = Math.max(b, f.y + 20); } });
     return [l - 30, t - 30, r + 30, b + 30];
   }
-  /** The most and least the camera may zoom: the pair never smaller than about 52 px nor bigger than a quarter of the view. */
+  /** The most and least the camera may zoom: the pair never smaller than about 52 px (42 px on a phone held upright,
+   *  so the next moon fits across the narrow view) nor bigger than a quarter of the view. */
   private zoomRange(): [number, number] {
-    const v = this.view(), lo = Math.max(56, Math.min(70, v.h * 0.12)) / PAIR, hi = Math.max(lo, (v.h * 0.24) / PAIR);
+    const v = this.view(), floor = v.w < v.h ? 42 : 56;
+    const lo = Math.max(floor, Math.min(70, v.h * 0.12, v.w * 0.11)) / PAIR, hi = Math.max(lo, (v.h * 0.24) / PAIR);
     return [lo, hi];
   }
   toScreen(x: number, y: number): [number, number] { const v = this.view(); return [v.x + v.w / 2 + (x - this.cx) * this.s, v.y + v.h / 2 + (y - this.cy) * this.s]; }
