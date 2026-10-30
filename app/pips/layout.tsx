@@ -1,0 +1,3 @@
+import type { Metadata } from 'next';
+export const metadata: Metadata = { title: 'Lucky Pips · Dora & Enzo’s Arcade', description: 'A cosy dice-placement roguelite. A mischief of fog has taken over the harvest fair, and Dora and Enzo roll carved wooden dice into handmade tools (slings, shields, honey pots, twin rattles and forty more) to set the fair right, stall by stall: three areas of battles, grand foes, trading stalls, picnics and mystery tents, three bosses, lucky charms, Foggier levels and a Daily Fair.' };
+export default function PipsLayout({ children }: { children: React.ReactNode }) { return children; }

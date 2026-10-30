@@ -607,8 +607,8 @@ export function tentChoose(run: Run, choice: string): Ev[] {
 }
 
 // ---------- saves ----------
-export type Save = { v: 1; meta: Meta; run: Run | null; sound: boolean; music: boolean; lead: LeadId; fog: number };
-export const freshSave = (): Save => ({ v: 1, meta: freshMeta(), run: null, sound: true, music: true, lead: 'dora', fog: 0 });
+export type Save = { v: 1; meta: Meta; run: Run | null; sound: boolean; music: boolean; lead: LeadId; fog: number; taught: boolean };
+export const freshSave = (): Save => ({ v: 1, meta: freshMeta(), run: null, sound: true, music: true, lead: 'dora', fog: 0, taught: false });
 const num = (x: unknown, d: number) => (typeof x === 'number' && Number.isFinite(x) ? x : d);
 /** A run from storage, or null when anything about it is off. */
 export function saneRun(x: unknown): Run | null {
@@ -639,7 +639,7 @@ export function readSave(raw: string | null): Save {
     if (m.daily && typeof m.daily === 'object') for (const [d, v] of Object.entries(m.daily)) if (/^\d{4}-\d{2}-\d{2}$/.test(d) && v && typeof v === 'object') s.meta.daily[d] = { won: v.won === true, area: num(v.area, 0), turns: num(v.turns, 0) };
   }
   s.run = saneRun(o.run);
-  s.sound = o.sound !== false; s.music = o.music !== false;
+  s.sound = o.sound !== false; s.music = o.music !== false; s.taught = o.taught === true;
   s.lead = o.lead && LEADS[o.lead] ? o.lead : 'dora';
   s.fog = Math.max(0, Math.min(5, Math.floor(num(o.fog, 0))));
   return s;
