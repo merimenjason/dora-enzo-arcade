@@ -274,7 +274,7 @@ export default function LuckyPips() {
         }
         if (shown === 'map') {
           const c = choices(r);
-          if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); setMapSel(m => (m + (e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : c.length - 1)) % Math.max(1, c.length)); sound.current?.step(); return; }
+          if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); setMapSel(m => (m + (e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : c.length - 1)) % Math.max(1, c.length)); sound.current?.walk(); return; }
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const id = c[Math.min(mapSel, c.length - 1)]; if (id != null) walk(id); return; }
         }
       }
@@ -284,7 +284,7 @@ export default function LuckyPips() {
     return () => window.removeEventListener('keydown', key);
   });
   function walk(id: number) {
-    sound.current?.step();
+    sound.current?.walk();
     setMapSel(0); setTrayHidden(true);
     act(r => go(r, id));
   }

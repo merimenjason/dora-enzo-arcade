@@ -117,7 +117,7 @@ export class PipsSound {
     for (const m of [60, 64, 67, 72]) this.tone(this.sfx!, 'triangle', hz(m), hz(m), 1.4, 0.05, now + 0.5, 0.03);
   }
   lose() { if (!this.ctx || !this.soundOn) return; const now = this.ctx.currentTime; [67, 63, 60, 55].forEach((m, i) => this.tone(this.sfx!, 'triangle', hz(m), hz(m) * 0.99, 0.5, 0.07, now + i * 0.28)); }
-  step() { if (this.ok('step', 0.1)) { this.knock(0, 0.06, 0.6); } }
+  walk() { if (this.ok('walk', 0.1)) { this.knock(0, 0.06, 0.6); } }
 
   // ---------------------------------------------------------------- music: a little fair organ playing a waltz
   music(id: SongId | null) { if (id === this.song) return; this.song = id; this.step = 0; this.nextAt = 0; }
