@@ -11,6 +11,14 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 - **Snowdrift** (`/snowdrift`), game 55: a one-button sledding race against the sunset. Dora and Enzo share one little sled across seven snowy valleys of the Andes: hold to tuck down the slopes, let go to fly off the crests, land smooth three times in a row for a Snow Flurry, and backflip for a boost before the dusk catches up. Cocoa pushes the night back, snowflakes buy sled upgrades at the lodge, every day has three medals and a best time, and after day 3 the endless Moonlit Hills and a Daily Hill open. Plays with a key, a mouse, a finger anywhere or a gamepad.
 - **Meadowmend** (`/meadow`), game 56: a cosy hex tile-laying valley builder. Winter is over and the valley below the burrow is bare: turn and lay hexagonal tiles of meadow, woods, burrow-hill and stream next to the valley, match every edge you can, fill a hole with all six sides matching for a Perfect and an extra tile, join streams end to end into ponds full of ducklings, and grant the bee's, hedgehog's, rabbit's and duck's little wishes for points and tiles before the stack runs out. Dora and Enzo hop to each new tile, cheer the Perfects and sit by the ponds. A guided First Spring, seven hand-tuned valleys with three acorns each, the Endless Meadow and a Daily Valley; one-step undo, hints, mouse, keys and touch (tap, then tap again or ✓), and every placement saved.
 
+### Changed
+
+- **Snowdrift**: each day now ends at a painted lodge (snowy roof, glowing windows, a smoking chimney and a cocoa sign) instead of a drawn cabin, and the finish shot frames the whole lodge.
+
+### Fixed
+
+- **Meadowmend**: on a phone, the "tap again (or ✓) to place" label no longer sits over Dora and Enzo; the ✓ button glows instead while a tile waits to be placed.
+
 ## 29-10-2026
 
 ### Added

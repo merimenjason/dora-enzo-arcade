@@ -378,7 +378,7 @@ export default function MeadowPage() {
               <button className="mm-btn" onClick={() => scene.current?.frame()} aria-label="Frame the valley" title="Frame (F)">⌖</button>
               <button className="mm-btn" onClick={() => scene.current?.zoomAt(1.25)} aria-label="Zoom in" title="Zoom in (+)">＋</button>
               <button className="mm-btn" onClick={() => scene.current?.zoomAt(0.8)} aria-label="Zoom out" title="Zoom out (−)">－</button>
-              {touch && <button className="mm-btn mm-place" onClick={() => { const p = pending.current; if (p) placeAt(p[0], p[1]); }} disabled={!pending.current || !!g.done} aria-label="Place the tile">✓</button>}
+              {touch && <button className={`mm-btn mm-place${pending.current && !g.done ? ' mm-ready' : ''}`} onClick={() => { const p = pending.current; if (p) placeAt(p[0], p[1]); }} disabled={!pending.current || !!g.done} aria-label="Place the tile">✓</button>}
             </div>
             <div className="mm-wishes" aria-label="Wishes">
               <small>WISHES</small>

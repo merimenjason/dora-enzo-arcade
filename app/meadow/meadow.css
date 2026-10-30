@@ -56,6 +56,8 @@
 .mm-buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .mm-shell .mm-btn{min-height:40px;padding:4px;font-size:20px;line-height:1;border-radius:12px}
 .mm-shell .mm-place{grid-column:1/-1;background:linear-gradient(180deg,#8ad86a,#5aa04a);color:#fff;border-color:#e0ffd0;font-size:22px}
+.mm-shell .mm-place.mm-ready{animation:mm-ready 1.1s ease-in-out infinite}
+@keyframes mm-ready{0%,100%{box-shadow:0 0 0 0 rgba(120,210,90,.75)}50%{box-shadow:0 0 0 7px rgba(120,210,90,0)}}
 .mm-wishes{display:flex;flex-direction:column;gap:6px}
 .mm-none{font-size:12.5px;font-weight:700;color:#7a8a68}
 .mm-wish{display:grid;grid-template-columns:30px 1fr;grid-template-rows:auto auto;column-gap:6px;align-items:center;background:#fff;border:2px solid var(--line);border-radius:12px;padding:5px 8px}

@@ -547,9 +547,9 @@ export class MeadowScene {
     if (gh.a.tiles) bits.push(`+${gh.a.tiles} tile${gh.a.tiles > 1 ? 's' : ''}`);
     for (const w of gh.a.wishes) if (w.fresh && w.state !== 'open') { const wish = g.wishes.find((v) => v.id === w.id); const an = wish ? wish.animal : tile.wish ? ANIMAL_OF[tile.wish.terrain] : 'bee'; bits.push(`${EMOJI[an]} ${w.state === 'done' ? '✓' : '✗'}`); }
     for (const cl of gh.a.closes) if (cl.pond) bits.push('a pond!');
-    this.pill = { text: bits.join('  '), x: sx, y: sy - R * 1.32, gold: gh.a.perfects.length > 0, pending: gh.pending, below: sy + R * 1.2 };
+    this.pill = { text: bits.join('  '), x: sx, y: sy - R * 1.32, gold: gh.a.perfects.length > 0, };
   }
-  private pill: { text: string; x: number; y: number; gold: boolean; pending: boolean; below: number } | null = null;
+  private pill: { text: string; x: number; y: number; gold: boolean } | null = null;
   private drawPill() {
     const p = this.pill, c = this.c; if (!p) return;
     const fs = clamp(this.k * 0.3, 12, 17);
@@ -558,12 +558,6 @@ export class MeadowScene {
     c.fillStyle = p.gold ? 'rgba(120,80,0,0.9)' : 'rgba(30,50,30,0.85)';
     c.beginPath(); c.roundRect(x - w / 2, y - fs * 0.85, w, fs * 1.7, fs * 0.85); c.fill();
     c.fillStyle = p.gold ? '#ffe46a' : '#fff'; c.fillText(p.text, x, y + 1);
-    if (p.pending) {
-      const t = 'tap again (or ✓) to place', fy = Math.min(p.below, this.H - this.inset.bottom - fs);
-      c.font = `800 ${fs * 0.9}px ui-rounded,system-ui,sans-serif`; const tw = c.measureText(t).width + fs;
-      c.fillStyle = 'rgba(30,50,30,0.85)'; c.beginPath(); c.roundRect(p.x - tw / 2, fy - fs * 0.7, tw, fs * 1.4, fs * 0.7); c.fill();
-      c.fillStyle = '#fff'; c.fillText(t, p.x, fy + 1);
-    }
   }
   /** The characters' height on screen: tied to the zoom, but never too small to read. */
   chinHeight() { const small = Math.min(this.W, this.H); return clamp(this.k * 1.15, Math.min(100, small * 0.14), Math.max(90, Math.min(140, small * 0.2))); }

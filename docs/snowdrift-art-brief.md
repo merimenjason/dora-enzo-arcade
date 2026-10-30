@@ -11,6 +11,7 @@ Paintings for Snowdrift (`/snowdrift`), a one-button side-on sledding game. Dora
 | `title.webp` | Dora and Enzo flying over a snowy crest on their little wooden sled, Dora in front with her red scarf, Enzo behind with his blue scarf streaming, both delighted; a powder spray behind the runners, Andes peaks glowing pink and gold at sunset behind them, a tiny lit lodge far down the valley. Keep the lower third calmer. |
 | `ending.webp` | The grand lodge at the summit at night: a big timber lodge with glowing windows, fireworks blooming in a starry sky, and inside the big front window Dora and Enzo snuggled on a rug by a crackling fire with two mugs of cocoa, the little sled leaning by the door outside. |
 | `lodge.webp` | Inside a snug mountain lodge: a stone fireplace with a crackling fire, wooden walls, a woven rug, a shelf with a jar of wax, a woolly scarf, a big thermos and a pair of polished sled runners, two steaming cocoa mugs on a low table, frosty window with blue dusk outside. No characters. Keep the centre calm (a panel is drawn over it). |
+| `lodge-out.webp` | The lodge from outside, standing at the end of each day: a snowy two-storey log cabin with glowing windows, a wreath on the round door, a smoking stone chimney, a lantern post with a cocoa sign, snowy pines and a sled by the door, on a snowy mound. No characters. Painted on flat green and keyed to transparency. |
 
 ## Valley backdrops (opaque, 1536 × 1024, landscape)
 

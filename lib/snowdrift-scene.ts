@@ -73,6 +73,7 @@ export class SnowScene {
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas; this.c = ctx2(canvas);
     for (const p of POSES) this.load(p);
+    this.load('lodge-out');
     this.resize();
   }
   private load(name: string) { if (this.art.has(name)) return; const img = new Image(); img.decoding = 'async'; img.src = `/art/snowdrift/${name}.webp`; this.art.set(name, img); }
@@ -197,8 +198,8 @@ export class SnowScene {
     // the sled sits a little below the middle; in a big flight the camera keeps the snow below in view
     let tx = g.x + lead;
     if (g.phase === 'finish' && Number.isFinite(g.course.lodge)) {
-      const L = g.course.lodge + LODGE_AT, span = Math.abs(L - g.x) + 26;
-      k = Math.min(k, W / span); tx = (g.x + L) / 2;
+      const L = g.course.lodge + LODGE_AT, span = Math.abs(L - g.x) + 44;
+      k = Math.min(k, W / span); tx = (g.x + L) / 2 + 3;
     }
     const ty = lerp(Math.min(g.y, gy + 6), ay, 0.35) + (H / k) * (g.phase === 'finish' ? 0.2 : 0.08) + Math.min(above, 30) * 0.32;
     if (!this.camReady) { this.cx = tx; this.cy = ty; this.k = k; this.camReady = true; }
@@ -480,6 +481,15 @@ export class SnowScene {
     const c = this.c, x = co.lodge + LODGE_AT, q = co.ground(x); if (!q) return;
     const X = this.sx(x), Y = this.sy(q.y), u = this.k * (g.valley?.id === 'summit' ? 1.25 : 1);
     if (X < -40 * u || X > this.W + 40 * u) { this.flag(g); return; }
+    const im = this.img('lodge-out');
+    if (im) {
+      // the painted lodge, standing on its snowy mound with the warm light spilling onto the snow
+      const gl = c.createRadialGradient(X, Y - 4 * u, u, X, Y - 4 * u, 20 * u); gl.addColorStop(0, 'rgba(255, 190, 110, 0.3)'); gl.addColorStop(1, 'rgba(255, 190, 110, 0)');
+      c.fillStyle = gl; c.fillRect(X - 20 * u, Y - 24 * u, 40 * u, 40 * u);
+      const w = 26 * u, h = w * im.naturalHeight / im.naturalWidth;
+      c.drawImage(im, X - w * 0.5, Y - h * 0.9, w, h);
+      this.flag(g); return;
+    }
     // the lodge: timber walls, a snowy roof, glowing windows and a curl of smoke
     c.fillStyle = '#7a4e2e'; c.fillRect(X - 7 * u, Y - 7 * u, 14 * u, 7 * u);
     c.fillStyle = '#5e3a20'; for (let i = 1; i < 7; i++) c.fillRect(X - 7 * u, Y - i * u, 14 * u, u * 0.12);
