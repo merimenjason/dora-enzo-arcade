@@ -60,7 +60,7 @@ Stages open one after another, and the first stage of a sky opens when the last 
 
 ## Pars, Starlight and the bots
 
-The search bot in `tests/orbit-solve.mjs` plays each stage with the page's own inputs on copies of the game: from each spot it tries 24 aims, 11 ring levels and, on stages where things move, three waits (and, if that finds nothing, a puff at 0.35 s or 0.7 s in four directions). It is a breadth-first search over (moon, fireflies gathered), so its route home has the fewest leaps, and it only keeps leaps a person could repeat: the same leap 0.05 rad off in aim or 0.035 off in charge must end the same way. The par is the bot's leaps with the golden firefly plus one (plus two from six leaps up). The **Starlight** time is the bot's route time × 1.25 + 4 s.
+The search bot in `tests/orbit-solve.mjs` plays each stage with the page's own inputs on copies of the game: from each spot it tries 24 aims, 11 ring levels and, on stages where things move, three waits (and, if that finds nothing, a puff at 0.35 s or 0.7 s in four directions). It is a breadth-first search over (moon, fireflies gathered), so its route home has the fewest leaps, and it only keeps leaps a person could repeat: the same leap 0.05 rad off in aim or 0.035 off in charge must end the same way (on the same moon with the same fireflies, so a last leap that snatches the golden firefly on the way home must snatch it every time). The par is the bot's leaps with the golden firefly plus one (plus two from six leaps up). The **Starlight** time is the bot's route time × 1.25 + 4 s.
 
 **Starlight** opens once the Frost Moons are done: the same stages with no dotted path and a clock, and a 🏅 medal for coming home within the Starlight time.
 

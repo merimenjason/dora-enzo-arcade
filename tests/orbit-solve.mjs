@@ -10,6 +10,9 @@ const TAU = Math.PI * 2;
 export const CHARGES = [0.02, 0.12, 0.22, 0.32, 0.42, 0.52, 0.62, 0.72, 0.82, 0.92, 1];
 export const dynamic = (s) => s.moons.some((m) => m.path || m.spin || m.pulse) || s.flies.some((f) => f.path);
 const key = (h) => h.moon + ':' + h.got.map((g) => (g ? 1 : 0)).join('');
+/** Where a leap ends: the moon and the fireflies, or home with the fireflies (so a last leap that snatches the
+ *  golden firefly on the way in must snatch it every time). */
+const end = (h) => (h.done ? 'done:' : '') + key(h);
 
 /** Plays out the rest of a flight (and any rewind) the way `play` does. */
 function land(g, steps) { let k = steps; while (g.mode === 'fly' && k++ < 4000) g.tick({}); while (g.mode === 'lost' && k++ < 4000) g.tick({}); return g; }
@@ -86,13 +89,14 @@ export function solve(s, { gold = true, maxLeaps = 14, maxNodes = 400, robust = 
 }
 
 /** A leap a person could repeat: a little off in aim or power still ends the same way. */
+export function steadyLeap(...a) { return steady(...a); }
 function steady(h, a, g, [ta, tc] = [0.05, 0.035]) {
-  const want = g.done ? 'done' : key(g);
+  const want = end(g);
   for (const [da, dc] of [[ta, 0], [-ta, 0], [0, tc], [0, -tc]]) {
     const b = { ...a, at: a.at + da, charge: Math.min(1, Math.max(0.01, a.charge + dc)) };
     const k = h.clone();
     if (!play(k, b)) return false;
-    if ((k.done ? 'done' : key(k)) !== want) return false;
+    if (end(k) !== want) return false;
   }
   return true;
 }
