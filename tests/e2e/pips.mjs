@@ -230,8 +230,8 @@ try {
     await shot(page, '06-battle-1920');
     await page.evaluate(() => window.__pipsDebug((r) => { r.area = 2; r.battle = null; r.screen = 'charm'; r.offer = { kind: 'charm', charms: ['scarf', 'die', 'belt'] }; }));
     await page.locator('.lp-charmcard').first().click();
-    await page.waitForSelector('.lp-end');
-    assert.match(await page.locator('.lp-end h2').textContent(), /The fog lifts/);
+    await page.waitForSelector('.lp-finale');
+    assert.match(await page.locator('.lp-finale h2').textContent(), /The fog lifts/);
     await shot(page, '07-ending');
     await page.getByRole('button', { name: 'Back to the fair gate' }).click();
     assert.ok(!(await page.getByRole('radio', { name: /Side by Side/ }).isDisabled()), 'a win unlocks Side by Side');

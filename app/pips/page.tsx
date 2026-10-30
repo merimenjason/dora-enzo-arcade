@@ -579,9 +579,9 @@ export default function LuckyPips() {
         <button type="button" onClick={() => act(rr => leave(rr))}>Never mind</button></div>
     );
     if (shown === 'won') return (
-      <div className="lp-panel lp-end">
-        <Art src="/art/pips/ending.webp" paint="ending" className="lp-end-art" />
-        <div className="lp-end-text">
+      <div className="lp-panel lp-finale">
+        <Art src="/art/pips/ending.webp" paint="ending" className="lp-finale-art" />
+        <div className="lp-finale-text">
           <p className="lp-eyebrow">{r.daily ? `DAILY FAIR · ${r.daily}` : r.fog ? `FOGGIER ${r.fog}` : 'THE FAIR IS SAVED'}</p>
           <h2>The fog lifts!</h2>
           <p>The Fog Ringmaster tips his hat, sighs a long grey sigh and drifts off over the hills. The bunting snaps bright in the sun, the carousel tinkles back to life, and every stall-keeper wants to shake Dora and Enzo by the paw. Somebody pins a blue rosette on the hay bale. It says, in wobbly letters, LUCKIEST PAWS AT THE FAIR.</p>
@@ -592,8 +592,8 @@ export default function LuckyPips() {
       </div>
     );
     if (shown === 'lost') return (
-      <div className="lp-panel lp-end lp-lost">
-        <div className="lp-end-text">
+      <div className="lp-panel lp-finale lp-lost">
+        <div className="lp-finale-text">
           <p className="lp-eyebrow">{AREAS[r.area].name.toUpperCase()}</p>
           <h2>Out of hearts</h2>
           <p>The fog swirls a little thicker, and Dora and Enzo trudge home for cocoa and a nap. The fair will still be there tomorrow, and so will your dice.</p>
