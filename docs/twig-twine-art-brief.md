@@ -26,7 +26,7 @@ Four poses of the same cart and the same pair, so the game can swap them while t
 | `cart-nervous.webp` | Both covering their eyes with their forepaws, ears flat, a little nervous (funny, not scared). |
 | `cart-soggy.webp` | Soggy after a splash: fur damp and droopy, drips falling, a little pond weed on Enzo's ear, both blinking and comically dismayed. |
 
-**Status (30-10-2026):** every painting above is in place except `cart-soggy.webp`: the image tool timed out on it four times. Until it is painted, the scene draws the eyes-covered pose with water dripping off it after a splash (`lib/bridges-scene.ts`), and the soggy file isn't requested.
+**Status (31-10-2026):** every painting above is in place. `cart-soggy.webp` came on the fifth try (31-10-2026), with Enzo's irises darkened to black by hand; the scene shows it after a fall into water or the stream, with drips drawn over it, and the eyes-covered pose after a tumble into the canyon's dust.
 
 ## In the game
 

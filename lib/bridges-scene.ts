@@ -78,8 +78,8 @@ export class BridgeScene {
     this.cv = cv;
     const c = cv.getContext('2d'); if (!c) throw new Error('no 2d');
     this.c = c;
-    // there is no soggy painting: after a splash the cart borrows the eyes-covered one, with drips drawn over it
-    for (const p of POSES) if (p !== 'soggy') this.load(`cart-${p}`);
+    // after a splash the soggy painting shows, with drips drawn over it (until it loads, the eyes-covered one stands in)
+    for (const p of POSES) this.load(`cart-${p}`);
     this.resize();
   }
   private load(name: string) { if (this.art.has(name)) return; const img = new Image(); img.decoding = 'async'; img.src = `/art/bridges/${name}.webp`; this.art.set(name, img); }
@@ -504,7 +504,8 @@ export class BridgeScene {
       rx = mx - d.base / 2; fx = mx + d.base / 2; ry = fy = L.water - d.r * 0.6 + bob;
     }
     const ang = Math.atan2(fy - ry, fx - rx);
-    const pose: Pose = v.fell ? 'soggy' : o.celebrate || v.done ? 'cheer' : o.sim && o.sim.strain > 0.82 && !o.sim.outcome ? 'nervous' : 'ride';
+    // soggy after the water or the stream; a tumble into the canyon's dust just covers their eyes
+    const pose: Pose = v.fell ? (L.floor === 'canyon' ? 'nervous' : 'soggy') : o.celebrate || v.done ? 'cheer' : o.sim && o.sim.strain > 0.82 && !o.sim.outcome ? 'nervous' : 'ride';
     if (v.kind === 'cart') {
       this.poseNow = pose;
       const im = this.img(`cart-${pose}`) ?? (pose === 'soggy' ? this.img('cart-nervous') : null) ?? this.img('cart-ride');

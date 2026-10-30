@@ -10,6 +10,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 - **Moonhop** (`/orbit`), game 60: a cosy gravity-slingshot game. Dora and Enzo's lantern balloon has drifted up into a sky of tiny moons; hold paws and hop from moon to moon, curving and slingshotting round every pull, with one mid-air puff per leap, to gather the lost fireflies and light the home lantern. Forty stages across five skies bring moss, jelly, ice, spinning and breathing moons, comets, twin moons, black beans that push and rabbit holes, each stage with three stars (home, the golden firefly and the leap par). Starlight mode replays stages with no dotted path against the clock, the endless Moon Garden grows a new field of moons every level, and the last stage plays a painted ending.
 - **Lucky Pips** (`/pips`), game 61: a dice-placement roguelite. A mischief of fog has taken over the harvest fair, so Dora and Enzo roll carved wooden dice onto a felt tray and drop them into handmade tools, each with a one-line rule (the Pinecone Sling deals any die, the Honey Pot triples a small one, the Twin Rattle doubles a pair, Straight Path stuns on a run of three, and forty-four more), while every grumpy fog-sprite shows what it will do next. Walk a branching map through the Meadow Fair, the Lantern Midway and the Big Top, past battles, grand foes, trading stalls, picnics and mystery tents to three bosses; choose who leads (Dora, Enzo, or both together after a first win), gather tools and lucky charms, and unlock new tools and five Foggier levels. There is a Daily Fair, a painted ending, dice that clatter, and phones work held either way.
 
+### Changed
+
+- **Twig & Twine**: when a bridge drops them in the water or the stream, Dora and Enzo now sit dripping and dismayed in their acorn cart, pond weed on Enzo's ear, in a new painting; a tumble into the canyon's dust has them covering their eyes.
+
 ## 30-10-2026
 
 ### Added
