@@ -1,0 +1,3 @@
+import type { Metadata } from 'next';
+export const metadata: Metadata = { title: 'Twig & Twine · Dora & Enzo’s Arcade', description: 'A cosy physics bridge-building puzzle. Rebuild the valley’s crossings with twigs, planks, twine and bamboo, then send Dora and Enzo across in their acorn cart: triangles hold, twine only pulls, and a plank alone sags and snaps. Twenty-four crossings in four regions, three acorn medals for building cheaply, the hay wagon, the boat lane, the wind and a sandbox.' };
+export default function BridgesLayout({ children }: { children: React.ReactNode }) { return children; }
