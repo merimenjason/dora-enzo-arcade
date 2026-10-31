@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
-  Match, DRILLS, DT, HOG, TEE, HOUSE_R, STONE_R, BACK, distanceWeight, SAVE_KEY, PLAYER_NOISE, readSave, freshSave, drillStones, drillStars, judgeSweep, scoreEnd, inHouse, speed, weightName,
+  Match, DRILLS, DT, HOG, TEE, HOUSE_R, STONE_R, BACK, distanceWeight, tapeReadings, SAVE_KEY, PLAYER_NOISE, readSave, freshSave, drillStones, drillStars, judgeSweep, scoreEnd, inHouse, speed, weightName,
   type Save, type Shot, type Drill, type IceEvent, type EndResult, type SweepPlan, type TeamId, type Stone,
 } from '@/lib/curl-game';
-import { TEAMS, CALLER, plan, evaluate, drillSolution, clampAim, teamById, type Team, type Plan } from '@/lib/curl-ai';
+import { TEAMS, CALLER, plan, evaluate, drillSolution, clampAim, teamById, firstHammer, type Team, type Plan } from '@/lib/curl-ai';
 import type { CurlScene, Pose, Who } from '@/lib/curl-scene';
 import { CurlSound, type SongId } from './sound';
 import './curl.css';
@@ -56,7 +56,7 @@ export default function CurlPage() {
   const before = useRef(0), acc = useRef(0), sim = useRef(1), brushT = useRef(0), lookT = useRef(0), timers = useRef<number[]>([]);
   const drag = useRef<{ id: number; x: number; y: number; moved: boolean } | null>(null), hold = useRef(false), tapUntil = useRef(0);
   const [screen, setScreenState] = useState<Screen>('menu'), [phase, setPhaseState] = useState<Phase>('intro');
-  const [endInfo, setEndInfo] = useState<{ r: EndResult; close: boolean } | null>(null), [stars, setStars] = useState(0);
+  const [endInfo, setEndInfo] = useState<{ r: EndResult; close: boolean; tape?: [string, string] } | null>(null), [stars, setStars] = useState(0);
   const [bubble, setBubble] = useState<{ who: 'us' | 'them'; text: string } | null>(null), [toast, setToast] = useState('');
   const [ready, setReady] = useState(false), [mounted, setMounted] = useState(false), [error, setError] = useState('');
   const [touch, setTouch] = useState(false), [orient, setOrient] = useState<'wide' | 'tall'>('wide'), [short, setShort] = useState(false);
@@ -80,7 +80,7 @@ export default function CurlPage() {
     clearTimers();
     const seed = resume && S.match ? S.match.seed : (Date.now() % 100000) + 1;
     const noise: [typeof PLAYER_NOISE, typeof PLAYER_NOISE] = [PLAYER_NOISE, team.noise];
-    match.current = resume && S.match ? Match.restore(S.match.snap, noise) : new Match({ ends: team.ends, seed, hammer: team.hammer ?? 0, noise });
+    match.current = resume && S.match ? Match.restore(S.match.snap, noise) : new Match({ ends: team.ends, seed, hammer: firstHammer(team, seed), noise });
     mode.current = { kind: 'match', team, seed };
     S.match = { team: team.id, seed, snap: match.current.snapshot() }; persist();
     sc.captain = team.id; sc.capInk = team.ink; sc.stones = match.current.stones; sc.current = null; sc.counting = []; sc.measure = null; sc.setAim(null); sc.broom = null; sc.clearTrail();
@@ -193,17 +193,20 @@ export default function CurlPage() {
     setPhase('look');
     if (end) {
       const sc2 = scoreEnd(m.stones), close = sc2.best[0] < 9 && sc2.best[1] < 9 && Math.abs(sc2.best[0] - sc2.best[1]) < 0.3;
+      // the tape reads from the button to each stone's near edge, in whole centimetres (as the endcard repeats them)
+      const tape = close ? tapeReadings(sc2.best[0], sc2.best[1]) : undefined;
       sc.counting = sc2.counting;
       if (close) {
         const pick = (t: TeamId) => m.stones.filter((s) => !s.out && s.team === t && inHouse(s)).sort((a, b) => Math.hypot(a.x - TEE, a.y) - Math.hypot(b.x - TEE, b.y))[0];
         const a = pick(0), b = pick(1);
-        if (a && b) later(() => { sc.measure = { a: { x: a.x, y: a.y, team: 0 }, b: { x: b.x, y: b.y, team: 1 }, t: 0 }; sound.current?.measure(); }, 700);
+        // close in on the button and run the tape out to both stones, then leave it to be read before the score
+        if (a && b) later(() => { sc.measure = { a: { x: a.x, y: a.y, team: 0 }, b: { x: b.x, y: b.y, team: 1 }, t: 0 }; sc.view = 'measure'; sound.current?.measure(); }, 700);
       }
       later(() => {
-        setEndInfo({ r: end, close }); setPhase(m.over ? 'over' : 'endcard');
+        setEndInfo({ r: end, close, tape }); setPhase(m.over ? 'over' : 'endcard');
         if (end.scorer !== null) { sound.current?.points(end.points, end.scorer === 0); if (end.scorer === 0) { poses('cheer', 'cheer'); sc.cheer(); sound.current?.cheer(end.points >= 2); } else poses('groan', 'groan'); }
         if (m.over) finishMatch();
-      }, close ? 2600 : 1300);
+      }, close ? 3700 : 1300);
     } else later(() => { if (phaseRef.current === 'look') nextTurn(); }, 1400 / sim.current);
   }
   function finishMatch() {
@@ -283,7 +286,7 @@ export default function CurlPage() {
       };
     };
     /** The scene's layout for the framing checks: the ice band, the house, and where Dora, Enzo and the captain stand. */
-    w.__curlScene = () => { const sc = scene.current; if (!sc) return null; const L = sc.layout; return { W: sc.W, H: sc.H, tall: L.tall, band: L.band, crowd: L.crowd, dora: L.dora, enzo: L.enzo, cap: L.cap, captain: sc.captain, poses: sc.poses, house: sc.house(), scale: sc.scale, settled: sc.settled(), stone0: sc.hackPoint() }; };
+    w.__curlScene = () => { const sc = scene.current; if (!sc) return null; const L = sc.layout; return { W: sc.W, H: sc.H, tall: L.tall, band: L.band, crowd: L.crowd, dora: L.dora, enzo: L.enzo, cap: L.cap, captain: sc.captain, poses: sc.poses, house: sc.house(), scale: sc.scale, settled: sc.settled(), stone0: sc.hackPoint(), view: sc.view, measure: sc.measure ? { ...sc.measure } : null, tape: sc.tapeLabels.map((b) => ({ ...b })) }; };
     /** Page coordinates of a point on the ice. */
     w.__curlPoint = (x: number, y: number) => { const sc = scene.current, c = canvas.current; if (!sc || !c) return null; const r = c.getBoundingClientRect(), p = sc.toScreen(x, y); return [r.left + p.x, r.top + p.y]; };
     /** Runs the ice faster (for the tests). */
@@ -376,6 +379,7 @@ export default function CurlPage() {
   const resumeTeam = mounted && S.match ? teamById(S.match.team) : null, nextTeam = TEAMS[Math.min(S.beaten, TEAMS.length - 1)];
   const a = aim.current, wName = weightName(a.weight), sugg = call.current?.shot;
   const drillsDone = DRILLS.reduce((n, d) => n + (S.drills[d.id] ?? 0), 0);
+  const wonCount = Object.values(S.wins).reduce((n, v) => n + v, 0);
   // on a roomy wide screen the teammate's call sits on top of the controls, so the two never overlap
   const inPanel = orient === 'wide' && !short;
   const ourStonesLeft = m ? 4 - m.stones.filter((s) => s.team === 0).length : 0;
@@ -385,7 +389,7 @@ export default function CurlPage() {
         <section className="ss-menu">
           <Art src="/art/curl/title.webp" paint="title" className="ss-menu-art" />
           <div className="ss-menu-card">
-            <p className="ss-eyebrow">THE WINTER PEBBLE CUP · A CURLING GAME</p>
+            <p className="ss-eyebrow">THE WINTER PEBBLE CUP<span className="ss-eyebrow-more"> · A CURLING GAME</span></p>
             <h1>Sweep <span>&amp;</span> Slide</h1>
             <p className="ss-lede">The millpond has frozen and the woodland teams are on the ice. Slide your polished river stones into the rings, sweep them home, and take the Pebble Cup from the stoat champions.</p>
             <div className="ss-menu-buttons">
@@ -406,7 +410,7 @@ export default function CurlPage() {
             <span className="ss-bar-mid">The Pebble Cup · {S.beaten} of 8 beaten</span>
             <Toggles />
           </header>
-          <p className="ss-blurb">Beat each team to meet the next. Four ends a match, six in the final. You have the hammer (the last stone) in the first end, except against the champions.</p>
+          <p className="ss-blurb">Beat each team to meet the next. Four ends a match, six in the final. You have the hammer (the last stone) in the first end, except in the final, where a coin toss decides it.</p>
           <div className="ss-cards">
             {TEAMS.map((t, i) => {
               const open = i <= S.beaten, won = S.wins[t.id] ?? 0;
@@ -496,7 +500,7 @@ export default function CurlPage() {
               <p className="ss-eyebrow">{TEAMS.indexOf(team) === TEAMS.length - 1 ? 'THE FINAL' : `ROUND ${TEAMS.indexOf(team) + 1} OF 8`}</p>
               <h2>{team.name}</h2>
               <p>{team.blurb}</p>
-              <p className="ss-note">{team.ends} ends · {(team.hammer ?? 0) === 0 ? 'you have the hammer in the first end' : 'they have the hammer in the first end'}</p>
+              <p className="ss-note">{team.ends} ends · {team.toss ? `the coin toss gives ${m?.hammer === 0 ? 'you' : 'them'}` : m?.hammer === 0 ? 'you have' : 'they have'} the hammer in the first end</p>
               {!Object.keys(S.wins).length && <p className="ss-howto">Pull back on the ice and let go to throw. Your teammate holds the broom where to aim and marks the weight. Hold to sweep a stone that looks light. Closest to the button scores.</p>}
               <button type="button" className="ss-primary" autoFocus onClick={() => { audio().ui(); setBubble(null); nextTurn(); }}>To the ice</button>
             </div>
@@ -517,6 +521,7 @@ export default function CurlPage() {
                   <p className="ss-eyebrow">END {m.end}{endInfo.close ? ' · MEASURED' : ''}</p>
                   <h2>{endInfo.r.tie ? 'A measured tie: no score' : endInfo.r.blank ? 'A blank end' : endInfo.r.scorer === 0 ? `Dora & Enzo score ${endInfo.r.points}` : `${team.name.replace('The ', '')} score ${endInfo.r.points}`}</h2>
                   <p className="ss-big">{m.score[0]} – {m.score[1]}</p>
+                  {endInfo.tape && <p className="ss-note ss-tape">Measured from the button: Dora &amp; Enzo {endInfo.tape[0]}, {team.name.replace('The ', '')} {endInfo.tape[1]}.</p>}
                   <p className="ss-note">{endInfo.r.blank || endInfo.r.tie ? `${m.hammer === 0 ? 'You keep' : 'They keep'} the hammer.` : `${m.hammer === 0 ? 'You have' : 'They have'} the hammer next end.`}{m.end >= m.ends ? ' Level after the last end: an extra end decides it.' : ''}</p>
                 </>
               )}
@@ -555,7 +560,7 @@ export default function CurlPage() {
             <p className="ss-eyebrow">CUP NIGHT ON THE MILLPOND</p>
             <h2>The Pebble Cup</h2>
             <p>Lanterns swing over the ice and the whole wood is on the bank. Dora and Enzo lift the silver cup together, scarves flying, while the stoats clap politely and the hedgehog twins cheer loudest of all.</p>
-            <p className="ss-note">{Object.values(S.wins).reduce((n, v) => n + v, 0)} matches won · {drillsDone}/15 practice stars</p>
+            <p className="ss-note">{wonCount} {wonCount === 1 ? 'match' : 'matches'} won · {drillsDone}/15 practice stars</p>
             <div className="ss-menu-buttons">
               <button type="button" className="ss-primary" onClick={() => { audio().ui(); setScreen('ladder'); song('menu'); }}>The ladder</button>
               <button type="button" onClick={() => { audio().ui(); setScreen('menu'); song('menu'); }}>The menu</button>

@@ -5,7 +5,7 @@
 // with the stone, and settles on the house. Paintings are cut-outs and backdrops from public/art/curl/; until each
 // loads, a print-style stand-in is drawn in its place.
 import {
-  STONE_R, HALF_W, HOG, TEE, HOUSE_R, RINGS, BACK, END, HACK, speed, dist, ghost, broomOf, type Stone, type Shot, type TeamId,
+  STONE_R, HALF_W, HOG, TEE, HOUSE_R, RINGS, BACK, END, HACK, speed, dist, ghost, broomOf, tapeReadings, type Stone, type Shot, type TeamId,
 } from './curl-game.js';
 
 export const INK = { navy: '#1d2a44', ice: '#dceef4', ice2: '#b9d8e6', blue: '#3d6f9e', cream: '#f4ecd8', red: '#c8423a', mustard: '#d9a23a', grey: '#8c96a3', snow: '#f7f4ec' };
@@ -98,7 +98,8 @@ function drawSheet(c: CanvasRenderingContext2D) {
 type Chip = { x: number; y: number; vx: number; vy: number; t: number };
 type Mark = { x: number; y: number; t: number; a: number };
 export type Measure = { a: { x: number; y: number; team: TeamId }; b: { x: number; y: number; team: TeamId }; t: number };
-export type View = 'aim' | 'follow' | 'house';
+export type View = 'aim' | 'follow' | 'house' | 'measure';
+export type TapeLabel = { x: number; y: number; w: number; h: number; text: string; team: TeamId };
 
 export class CurlScene {
   cv: HTMLCanvasElement; c: CanvasRenderingContext2D; W = 0; H = 0; dpr = 1;
@@ -110,6 +111,8 @@ export class CurlScene {
   poses: Record<Who, Pose | null> = { dora: 'sweep', enzo: 'sweep' };
   captain: string | null = null; capInk = INK.navy; capBounce = 0;
   measure: Measure | null = null;
+  /** Where the tape's labels were last drawn (screen boxes), for the tests. */
+  tapeLabels: TapeLabel[] = [];
   cheerT = 0; flash = 0;
   layout = { tall: false, band: { x: 0, y: 0, w: 0, h: 0 } as Box, crowd: { x: 0, y: 0, w: 0, h: 0 } as Box, bank: { x: 0, y: 0, w: 0, h: 0 } as Box, dora: { x: 0, y: 0, h: 0 }, enzo: { x: 0, y: 0, h: 0 }, cap: { x: 0, y: 0, h: 0 } };
   bottomPad = 0;
@@ -164,6 +167,12 @@ export class CurlScene {
       return { cx: END + 0.45 - long / (2 * s), s };
     }
     if (this.view === 'house') return { cx: Math.min(END + 0.3 - long / (2 * house), TEE - 1.0), s: house };
+    if (this.view === 'measure' && this.measure) {
+      // close in on the button so the tape and its labels read clearly, keeping both measured stones and room for
+      // the labels round them in view
+      const m = this.measure, R = Math.max(dist(m.a), dist(m.b)) + STONE_R;
+      return { cx: TEE, s: Math.max(house, Math.min(house * 2.2, cross / (2 * (R + 0.75)), long / (2 * (R + 0.9)))) };
+    }
     const cur = this.current, x = cur ? cur.x : 0;
     const s = this.slow && x > HOG - 2 ? house : Math.min(house, Math.max(fit * 1.6, house * 0.72));
     const half = long / (2 * s), lead = cur && speed(cur) > 0.3 ? 2.2 : 0.8;
@@ -204,7 +213,7 @@ export class CurlScene {
     }
     for (const m of this.marks) m.t += dt; this.marks = this.marks.filter((m) => m.t < 1.4);
     for (const p of this.chips) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.92; p.vy *= 0.92; } this.chips = this.chips.filter((p) => p.t < 0.7);
-    if (this.measure) this.measure.t = Math.min(1, this.measure.t + dt * 0.8);
+    if (this.measure) this.measure.t = Math.min(1, this.measure.t + dt * 1.3);
     this.cheerT = Math.max(0, this.cheerT - dt); this.flash = Math.max(0, this.flash - dt * 2.5); this.capBounce = Math.max(0, this.capBounce - dt);
     this.draw();
   }
@@ -229,9 +238,9 @@ export class CurlScene {
       for (const s of this.stones) if (!s.out) drawStone(c, s.x, s.y, s.team, this.rot.get(s.id) ?? 0, this.counting.includes(s.id) ? pulse : 0);
       for (const p of this.chips) { c.fillStyle = `rgba(255,255,255,${1 - p.t / 0.7})`; c.fillRect(p.x - 0.03, p.y - 0.03, 0.06, 0.06); }
     });
-    this.drawMeasure();
     this.drawSweeper();
     this.drawCountBadges();
+    this.drawMeasure();
     this.drawShot();
     c.restore();
     // band edges like a print border
@@ -336,22 +345,58 @@ export class CurlScene {
     const im = art(`${who}-sweep`), x = p.x + (this.layout.tall ? -h * 0.15 : -h * 0.1) + jig * h * 0.03, y = p.y + h * 0.05;
     if (im) this.c.drawImage(im, x - h / 2, y - h, h, h); else drawStandIn(c, who, 'sweep', x, y, h * 0.9);
   }
+  /**
+   * The measuring tape: a printed tape from the button to the near edge of each measured stone, unrolling one after
+   * the other, then a label for each in its team's ink, set beside its stone where it covers no stone and no other
+   * label.
+   */
   private drawMeasure() {
-    const m = this.measure, c = this.c; if (!m) return;
-    const o = this.toScreen(TEE, 0);
-    for (const [i, s] of [m.a, m.b].entries()) {
-      const p = this.toScreen(s.x, s.y), f = Math.min(1, m.t * 1.6 - i * 0.4); if (f <= 0) continue;
-      const ex = o.x + (p.x - o.x) * f, ey = o.y + (p.y - o.y) * f;
-      c.strokeStyle = INK.navy; c.lineWidth = 7; c.beginPath(); c.moveTo(o.x, o.y); c.lineTo(ex, ey); c.stroke();
-      c.strokeStyle = INK.mustard; c.lineWidth = 4.5; c.beginPath(); c.moveTo(o.x, o.y); c.lineTo(ex, ey); c.stroke();
-      if (f >= 1) {
-        const d = Math.round((dist(s) - STONE_R) * 100), lx = (o.x + p.x) / 2, ly = (o.y + p.y) / 2;
-        c.font = '700 14px "Alfa Slab One", Georgia, serif'; const t = `${Math.max(0, d)} cm`, w = c.measureText(t).width + 12;
-        c.fillStyle = TEAM_INK[s.team]; c.fillRect(lx - w / 2, ly - 12, w, 22); c.strokeStyle = INK.navy; c.lineWidth = 2; c.strokeRect(lx - w / 2, ly - 12, w, 22);
-        c.fillStyle = s.team === 0 ? INK.cream : INK.navy; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(t, lx, ly);
+    const m = this.measure, c = this.c; this.tapeLabels = []; if (!m) return;
+    const o = this.toScreen(TEE, 0), s = this.cam.s, B = this.layout.band;
+    const fs = Math.round(Math.max(14, Math.min(22, s * 0.15))), R = s * STONE_R;
+    const live = this.stones.filter((t) => !t.out).map((t) => ({ ...this.toScreen(t.x, t.y), r: R + 3 }));
+    // the counting badges sit up and to the right of their stones: keep the labels off them too
+    const br = Math.max(10, s * 0.16), boff = R + br * 0.6;
+    for (const id of this.counting) { const t = this.stones.find((q) => q.id === id); if (t && !t.out) { const q = this.toScreen(t.x, t.y); live.push({ x: q.x + boff, y: q.y - boff, r: br + 2 }); } }
+    const hitsDisc = (b: Box, d: { x: number; y: number; r: number }) => { const nx = Math.max(b.x, Math.min(d.x, b.x + b.w)), ny = Math.max(b.y, Math.min(d.y, b.y + b.h)); return Math.hypot(nx - d.x, ny - d.y) < d.r; };
+    const overlap = (p: Box, q: Box) => p.x < q.x + q.w + 4 && q.x < p.x + p.w + 4 && p.y < q.y + q.h + 4 && q.y < p.y + p.h + 4;
+    c.save();
+    c.font = `${fs}px "Alfa Slab One", Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineCap = 'butt';
+    const nearer = dist(m.a) <= dist(m.b) ? 0 : 1;
+    const read = tapeReadings(dist(m.a), dist(m.b));
+    for (const [i, st] of [m.a, m.b].entries()) {
+      const f = Math.min(1, m.t * 1.6 - i * 0.4); if (f <= 0) continue;
+      const d = dist(st), ux = d > 0 ? (st.x - TEE) / d : 1, uy = d > 0 ? st.y / d : 0, len = Math.max(0, d - STONE_R) * f;
+      const e = this.toScreen(TEE + ux * len, uy * len);
+      // the tape: a navy edge, a mustard face, and a tick every 10 cm
+      c.strokeStyle = INK.navy; c.lineWidth = Math.max(7, s * 0.075); c.beginPath(); c.moveTo(o.x, o.y); c.lineTo(e.x, e.y); c.stroke();
+      c.strokeStyle = INK.mustard; c.lineWidth = Math.max(4.5, s * 0.05); c.beginPath(); c.moveTo(o.x, o.y); c.lineTo(e.x, e.y); c.stroke();
+      const sx = e.x - o.x, sy = e.y - o.y, sl = Math.hypot(sx, sy);
+      if (sl > 1) {
+        const tx = sx / sl, ty = sy / sl, step = s * 0.1, half = Math.max(2.5, s * 0.025);
+        c.strokeStyle = INK.navy; c.lineWidth = 1.2; c.beginPath();
+        for (let k = step; k < sl; k += step) { const px = o.x + tx * k, py = o.y + ty * k; c.moveTo(px - ty * half, py + tx * half); c.lineTo(px + ty * half, py - tx * half); }
+        c.stroke();
       }
+      if (f < 1) continue;
+      // the label, beside the stone: straight out from the button if that is clear, else turned round it
+      const text = read[i], w = c.measureText(text).width + 16, h = fs + 10;
+      const p = this.toScreen(st.x, st.y), out = Math.atan2(p.y - o.y, p.x - o.x) || 0, gap = R + Math.hypot(w, h) / 2 + 4;
+      let pick: Box | null = null;
+      for (const turn of [0, 0.7, -0.7, 1.4, -1.4, 2.1, -2.1, Math.PI]) {
+        const a = out + turn, box = { x: p.x + Math.cos(a) * gap - w / 2, y: p.y + Math.sin(a) * gap - h / 2, w, h };
+        const inside = box.x >= B.x + 2 && box.x + w <= B.x + B.w - 2 && box.y >= B.y + 2 && box.y + h <= B.y + B.h - 2;
+        if (inside && !live.some((q) => hitsDisc(box, q)) && !this.tapeLabels.some((q) => overlap(box, q))) { pick = box; break; }
+        pick ??= box;
+      }
+      const b = pick!, lw = i === nearer ? 3 : 2;
+      c.fillStyle = 'rgba(29,42,68,0.35)'; c.fillRect(b.x + 3, b.y + 3, b.w, b.h);
+      c.fillStyle = TEAM_INK[st.team]; c.fillRect(b.x, b.y, b.w, b.h); c.strokeStyle = INK.navy; c.lineWidth = lw; c.strokeRect(b.x, b.y, b.w, b.h);
+      c.fillStyle = st.team === 0 ? INK.cream : INK.navy; c.fillText(text, b.x + b.w / 2, b.y + b.h / 2 + 1);
+      this.tapeLabels.push({ ...b, text, team: st.team });
     }
-    c.fillStyle = INK.navy; c.beginPath(); c.arc(o.x, o.y, 5, 0, Math.PI * 2); c.fill();
+    c.fillStyle = INK.navy; c.beginPath(); c.arc(o.x, o.y, Math.max(5, s * 0.05), 0, Math.PI * 2); c.fill();
+    c.restore();
   }
   private drawCountBadges() {
     const c = this.c; if (!this.counting.length) return;

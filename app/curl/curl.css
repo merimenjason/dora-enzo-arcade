@@ -165,11 +165,26 @@
   .ss-menu-card h1{font-size:clamp(26px,4.2vw,34px)}
   .ss-ending-card h2{font-size:26px}
   .ss-menu-buttons{gap:6px}
-  .ss-eyebrow{letter-spacing:1.4px}
-  .ss-lede{font-size:13.5px;line-height:1.3}
+  .ss-eyebrow{letter-spacing:1.4px;font-size:11.5px}
+  .ss-lede{font-size:13px;line-height:1.28}
+  /* the card fits the screen without scrolling, with the Cup won too (four buttons): one-line eyebrow and foot,
+     slimmer buttons, and the ending's two buttons side by side */
+  .ss-eyebrow-more{display:none}
+  .ss-menu-card,.ss-ending-card{gap:6px}
+  .ss-shell .ss-menu-buttons button{min-height:33px;padding:4px 10px}
+  .ss-menu-buttons{gap:5px}
+  .ss-menu-foot{flex-wrap:nowrap}
+  .ss-menu-foot .ss-back{font-size:12px;letter-spacing:.5px;padding:5px 8px}
+  .ss-ending-card{padding:12px 16px}
+  .ss-ending-card p{font-size:13.5px;line-height:1.32}
+  .ss-ending-card .ss-note{font-size:13px}
+  .ss-ending-card .ss-menu-buttons{flex-direction:row}
+  .ss-ending-card .ss-menu-buttons button{flex:1}
 }
 @media (max-width:720px) and (orientation:portrait){
   .ss-menu-card,.ss-ending-card{width:100%;max-width:440px}
+  /* a one-line eyebrow leaves the poster more room above the card */
+  .ss-eyebrow-more{display:none}
 }
 @media (max-width:720px){
   .ss-shell .ss-toggles .ss-tog{padding:4px 6px;font-size:12px}

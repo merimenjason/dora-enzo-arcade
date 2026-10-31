@@ -266,6 +266,18 @@ export function scoreEnd(stones: Stone[]): EndScore {
   return { team, points: counting.length, blank: false, tie: false, best, counting };
 }
 
+/**
+ * What the measuring tape reads for two stones `da` and `db` metres (centre) from the button: the distance to each
+ * stone's near edge in whole centimetres, or to the millimetre when whole centimetres would read the same but the
+ * stones are not level.
+ */
+export function tapeReadings(da: number, db: number): [string, string] {
+  const cm = (d: number) => Math.max(0, (d - STONE_R) * 100);
+  const a = cm(da), b = cm(db), fine = Math.round(a) === Math.round(b) && Math.abs(da - db) >= TIE_EPS;
+  const f = (v: number) => (fine ? v.toFixed(1) : String(Math.round(v))) + ' cm';
+  return [f(a), f(b)];
+}
+
 // ---- a match
 export type MatchOpts = { ends: number; seed: number; hammer?: TeamId; noise: [{ v: number; a: number }, { v: number; a: number }] };
 export type EndResult = { scorer: TeamId | null; points: number; hammer: TeamId; blank: boolean; tie: boolean };

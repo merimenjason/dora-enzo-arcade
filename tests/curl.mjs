@@ -2,9 +2,10 @@
 // harder as it slows; sweeping carries it further and straighter; bumps lose a little energy, pass momentum (a
 // takeout stops dead on a full hit, a thin hit splits the stones) and pass spin; stones leave play over the back
 // line, against the side boards and short of the hog line; the line-finders hit their marks; the end's score with
-// counting stones, measured ties and empty ends; the hammer; a whole match; snapshots; the drills; and the save.
+// counting stones, measured ties and empty ends; the tape's readings; the final's coin toss; the hammer; a whole match; snapshots; the drills; and the save.
 import assert from 'node:assert/strict';
 import * as C from '../.checks/curl-game.js';
+import * as A from '../.checks/curl-ai.js';
 
 let checks = 0;
 const ok = (cond, msg) => { assert.ok(cond, msg); checks++; };
@@ -126,6 +127,25 @@ const roll = (stones, mover, vx, vy = 0, w = 0) => { mover.vx = vx; mover.vy = v
   eq(C.scoreEnd(S([[0, C.TEE, C.HOUSE_R + C.STONE_R - 0.01]])).points, 1, 'a stone biting the outer ring counts');
   eq(C.scoreEnd(S([[0, C.TEE, C.HOUSE_R + C.STONE_R + 0.01]])).blank, true, 'one just outside does not');
   const out = S([[0, C.TEE, 0]]); out[0].out = true; eq(C.scoreEnd(out).blank, true, 'stones out of play do not count');
+}
+
+// ---- the measuring tape reads to each stone's near edge: whole centimetres, or millimetres when those would read level
+{
+  eq(C.tapeReadings(0.39, 0.403), ['21 cm', '22 cm'], 'the tape reads whole centimetres to the near edge');
+  eq(C.tapeReadings(0.391, 0.394), ['21.1 cm', '21.4 cm'], 'two stones within the same centimetre read to the millimetre');
+  eq(C.tapeReadings(0.1, 0.5), ['0 cm', '32 cm'], 'a stone covering the button reads 0');
+  eq(C.tapeReadings(0.4, 0.4), ['22 cm', '22 cm'], 'a measured tie reads level');
+}
+
+// ---- the first hammer: Dora and Enzo's in every round, a seeded coin toss in the final
+{
+  let ours = 0;
+  for (let seed = 1; seed <= 400; seed++) {
+    for (const t of A.TEAMS.slice(0, -1)) if (A.firstHammer(t, seed) !== 0) throw new Error(`${t.id} never has the first hammer`);
+    const h = A.firstHammer(A.TEAMS[7], seed); if (h !== A.firstHammer(A.TEAMS[7], seed)) throw new Error('the toss replays from its seed'); if (h === 0) ours++;
+  }
+  checks += 2;
+  ok(ours > 160 && ours < 240, `the final's coin toss is fair (${ours} of 400 ours)`);
 }
 
 // ---- the hammer and the match

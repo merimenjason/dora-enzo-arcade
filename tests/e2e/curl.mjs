@@ -3,7 +3,9 @@
 // against the hedgehogs played through its first end with the scoreboard and the hammer; the match kept across a
 // reload; corrupt saves; the final and the ending; the framing at 1280×800 and 1920×1080 (the house, the stone,
 // Dora, Enzo and the captain all in view, a clear size and clear of the controls and the speech bubbles); and phones
-// held upright and sideways, aiming with a touch drag and sweeping with the Sweep button.
+// held upright and sideways, aiming with a touch drag and sweeping with the Sweep button; a close end measured with
+// the tape (on a desktop and both phones, with the stones apart and side by side); and the menu and the ending
+// fitting every phone without scrolling, before and after the Cup. CURL_ONLY=tape or fit runs one of the last two.
 // Needs `npm run dev` (port 3000, or BASE_URL) and Playwright.
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
@@ -166,8 +168,10 @@ if (!only) {
   assert.equal(await page.locator('.ss-team:not([disabled])').count(), 8, 'every team is open after beating seven');
   await page.locator('.ss-team.is-final').click();
   assert.match(await page.locator('.ss-modal').textContent(), /THE FINAL/);
+  const toss = (await page.locator('.ss-modal .ss-note').textContent()).match(/coin toss gives (you|them) the hammer/);
+  assert.ok(toss, 'a coin toss decides the hammer in the final');
   await page.locator('.ss-modal').getByRole('button', { name: 'To the ice' }).click();
-  assert.equal((await state(page)).hammer, 1, 'the champions have the hammer in the first end');
+  assert.equal((await state(page)).hammer, toss[1] === 'you' ? 0 : 1, 'the toss is the hammer the match starts with');
   await page.evaluate(() => window.__curlFinish(0));
   await phase(page, 'over');
   assert.match(await page.locator('.ss-modal h2').textContent(), /Pebble Cup/);
@@ -190,7 +194,7 @@ if (!only) {
 }
 
 // ---- phones, upright and sideways: aim with a touch drag, sweep with the button
-for (const [w, h, label, minChar] of [[390, 844, 'phone upright', 90], [844, 390, 'phone sideways', 90]]) {
+for (const [w, h, label, minChar] of only ? [] : [[390, 844, 'phone upright', 90], [844, 390, 'phone sideways', 90]]) {
   const page = await open({ width: w, height: h }, true);
   await page.goto(base + '/curl'); await page.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, quietSave()]); await page.reload(); await ready(page);
   assert.ok(await noSideScroll(page), `${label}: the menu fits`);
@@ -214,6 +218,66 @@ for (const [w, h, label, minChar] of [[390, 844, 'phone upright', 90], [844, 390
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await page.evaluate(() => window.__curlSpeed(10)); await phase(page, 'drilled');
   assert.ok(await noSideScroll(page), `${label}: no sideways scroll`);
+  await page.close();
+}
+
+// ---- a close end is measured: the camera closes in on the button, the tape runs out to both stones, its labels
+// sit clear of the stones and each other, inside the ice, and the end card repeats the distances
+const st = (id, team, x, y) => ({ id, team, thrower: team ? 'opp' : 'dora', x, y, vx: 0, vy: 0, w: 0, out: false, touched: false, moving: false });
+const closeEnds = {
+  // ours 21 cm from the button, theirs 22 cm, on opposite sides
+  apart: [st(1, 0, 18.7, 0.25), st(0, 1, 18.05, -0.2), st(3, 0, 16.2, 0.9), st(2, 1, 19.6, -1.1)],
+  // ours and theirs side by side above the button, 24 and 26 cm out: the labels must not land on each other
+  together: [st(1, 0, 18.7, 0.3), st(0, 1, 18.3, 0.43), st(3, 0, 16.2, 0.9), st(2, 1, 19.6, -1.1)],
+};
+for (const [w, h, label, mobile] of [[1280, 800, 'desktop', false], [844, 390, 'phone sideways', true], [390, 844, 'phone upright', true]]) {
+  if (only && only !== 'tape') break;
+  for (const [name, stones] of Object.entries(closeEnds)) {
+    const page = await open({ width: w, height: h }, mobile);
+    const snap = { ends: 4, end: 0, hammer: 0, thrown: 7, stones, results: [], score: [0, 0], rand: 1234 };
+    await page.goto(base + '/curl'); await page.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, quietSave({ beaten: 5, match: { team: 'otter', seed: 7, snap } })]); await page.reload(); await ready(page);
+    await page.getByRole('button', { name: /Carry on/ }).click();
+    await phase(page, 'aim');
+    const houseR = (await page.evaluate(() => window.__curlScene().house)).r;
+    // our last stone runs into the side boards, leaving the house as it was
+    await page.evaluate(() => { window.__curlSpeed(10); window.__curlAim({ weight: 1, angle: 0.19, curl: 1 }, true); });
+    await page.waitForFunction(() => { const s = window.__curlScene(); return s.view === 'measure' && s.measure && s.measure.t >= 1 && s.tape.length === 2 && s.settled; }, null, { polling: 50, timeout: 8000 });
+    const r = await page.evaluate(() => ({ s: window.__curlScene(), phase: window.__curl().phase, stones: window.__curl().stones.filter((q) => !q.out).map((q) => window.__curlPoint(q.x, q.y)), c: document.querySelector('.ss-canvas').getBoundingClientRect().toJSON() }));
+    const tag = `${label} ${name}`;
+    assert.equal(r.phase, 'look', `${tag}: the tape is read before the end card`);
+    assert.ok(r.s.house.r >= houseR * 1.25, `${tag}: the camera closes in on the button (${r.s.house.r.toFixed(0)} vs ${houseR.toFixed(0)})`);
+    assert.deepEqual(r.s.tape.map((t) => t.text), name === 'apart' ? ['21 cm', '22 cm'] : ['24 cm', '26 cm'], `${tag}: the tape reads the distances`);
+    const R = r.s.scale * 0.18, [A, B] = r.s.tape;
+    assert.ok(A.x + A.w <= B.x || B.x + B.w <= A.x || A.y + A.h <= B.y || B.y + B.h <= A.y, `${tag}: the two labels do not overlap`);
+    for (const t of r.s.tape) {
+      assert.ok(t.h >= 24 && t.w >= 50, `${tag}: the label ${t.text} is a readable size (${t.w.toFixed(0)}×${t.h.toFixed(0)})`);
+      assert.ok(t.x >= r.s.band.x && t.x + t.w <= r.s.band.x + r.s.band.w && t.y >= r.s.band.y && t.y + t.h <= r.s.band.y + r.s.band.h, `${tag}: the label ${t.text} is on the ice`);
+      for (const [px, py] of r.stones) { const cx = px - r.c.x, cy = py - r.c.y, nx = Math.max(t.x, Math.min(cx, t.x + t.w)), ny = Math.max(t.y, Math.min(cy, t.y + t.h)); assert.ok(Math.hypot(nx - cx, ny - cy) >= R, `${tag}: the label ${t.text} leaves every stone clear`); }
+    }
+    await phase(page, 'endcard');
+    assert.match(await page.locator('.ss-modal').textContent(), name === 'apart' ? /MEASURED.*Dora & Enzo score 1.*Dora & Enzo 21 cm, Otter Swimmers 22 cm/s : /MEASURED.*Dora & Enzo score 1.*Dora & Enzo 24 cm, Otter Swimmers 26 cm/s, `${tag}: the end card repeats the measure`);
+    await page.close();
+  }
+}
+
+// ---- the menu and the ending fit every phone without scrolling, before and after the Cup, with the poster in view
+for (const [w, h] of [[667, 375], [844, 390], [360, 740], [390, 844]]) {
+  if (only && only !== 'fit') break;
+  const page = await open({ width: w, height: h }, true);
+  await page.goto(base + '/curl');
+  const fits = (sel) => page.evaluate((sel) => { const c = document.querySelector(sel), r = c.getBoundingClientRect(), a = document.querySelector(sel.replace('-card', '-art')).getBoundingClientRect(); return { scroll: c.scrollHeight - c.clientHeight, top: r.top, bottom: r.bottom, left: r.left, artH: a.height, artW: a.width, page: document.documentElement.scrollHeight - innerHeight, side: document.documentElement.scrollWidth - innerWidth }; }, sel);
+  for (const won of [false, true]) {
+    await page.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, quietSave(won ? { beaten: 8, ended: true, wins: { stoat: 1 } } : {})]); await page.reload(); await ready(page);
+    assert.equal(await page.getByRole('button', { name: 'The Cup night' }).count(), won ? 1 : 0, `${w}×${h}: the Cup night button once the Cup is won`);
+    const f = await fits('.ss-menu-card'), tag = `${w}×${h} menu${won ? ' (Cup won)' : ''}`;
+    assert.ok(f.scroll <= 0 && f.page <= 0 && f.side <= 0 && f.top >= 0 && f.bottom <= h, `${tag}: fits without scrolling ${JSON.stringify(f)}`);
+    // the poster keeps room for Dora and Enzo: beside the card on a sideways phone, above it upright
+    assert.ok(h < w ? f.artW >= w * 0.5 : f.artH >= 200, `${tag}: the poster keeps its room ${JSON.stringify(f)}`);
+  }
+  await page.getByRole('button', { name: 'The Cup night' }).click(); await page.locator('.ss-ending-card').waitFor();
+  const e = await fits('.ss-ending-card');
+  assert.ok(e.scroll <= 0 && e.page <= 0 && e.side <= 0 && e.top >= 0 && e.bottom <= h, `${w}×${h} ending: fits without scrolling ${JSON.stringify(e)}`);
+  assert.match(await page.locator('.ss-ending-card').textContent(), /1 match won/);
   await page.close();
 }
 

@@ -52,9 +52,9 @@ Every delivery gets a small seeded error on its speed and its line (normally dis
 
 After all eight stones (four per team, two each for Dora and Enzo), only stones touching the house count. The team with the stone nearest the button scores one point for each of its stones nearer than the other team's best. A measured tie for shot (the two nearest within 0.1 mm) scores nothing. An empty house is a blank end.
 
-- **Hammer:** the team without the hammer throws first, so the hammer team throws last. The team that scores gives the hammer to the other team; a blank end or a measured tie keeps it where it is. Dora and Enzo have the hammer in the first end of every match except the final, where the champions have it.
+- **Hammer:** the team without the hammer throws first, so the hammer team throws last. The team that scores gives the hammer to the other team; a blank end or a measured tie keeps it where it is. Dora and Enzo have the hammer in the first end of every match except the final, where a coin toss decides it (drawn from the match's seed, so a saved match replays the same; the intro card says who won it). The toss is worth a lot: with the hammer first a person wins about half their finals, without it about a quarter.
 - **Matches:** four ends (six in the final). Level after the last end, extra ends are played until someone scores.
-- **Measuring:** when both teams have a stone in the house and the two nearest are within 30 cm of each other, a measuring tape runs from the button to each and shows the distances.
+- **Measuring:** when both teams have a stone in the house and the two nearest are within 30 cm of each other, the camera closes in on the button (up to 2.2 times the house view, keeping both stones and room for the labels) and a printed tape, ticked every 10 cm, runs from the button to the near edge of each stone in turn. Each reading sits in a label in its team's ink beside its stone, turned round it until it covers no stone, counting badge or the other label; the nearer one has the heavier border. The readings are whole centimetres, or millimetres when both would read the same centimetre. The tape is up for about three seconds before the end card, which repeats both readings.
 
 ## Playing
 
@@ -74,33 +74,37 @@ After all eight stones (four per team, two each for Dora and Enzo), only stones 
 
 | # | Team | Captain | Ends | Release error (speed, line) | Plays |
 | --- | --- | --- | --- | --- | --- |
-| 1 | The Hedgehog Twins | Prickle | 4 | 5 %, 0.014 rad | gentle draws |
-| 2 | The Duck Pond Paddlers | Mallory | 4 | 3.8 %, 0.011 rad | wobbly weight, the odd hit |
-| 3 | The Badger Brothers | Brock | 4 | 3.4 %, 0.0095 rad | love hitting |
-| 4 | The Beaver Builders | Timber | 4 | 2.4 %, 0.007 rad | walls of guards |
-| 5 | The Squirrel Scramblers | Hazel | 4 | 2.1 %, 0.0062 rad | guards and hits everywhere |
-| 6 | The Otter Swimmers | Ripple | 4 | 1.9 %, 0.0055 rad | takeouts |
-| 7 | The Owl Tacticians | Professor Hoot | 4 | 0.92 %, 0.0027 rad | think hardest, the odd guard |
-| 8 | The Stoat Champions | Ermine | 6 | 0.95 %, 0.0026 rad | everything; the hammer first |
+| 1 | The Hedgehog Twins | Prickle | 4 | 1.5 %, 0.0045 rad | gentle draws, little thought |
+| 2 | The Duck Pond Paddlers | Mallory | 4 | 1.6 %, 0.0048 rad | wobbly weight, the odd hit |
+| 3 | The Badger Brothers | Brock | 4 | 1.8 %, 0.0054 rad | love hitting |
+| 4 | The Beaver Builders | Timber | 4 | 0.95 %, 0.0028 rad | walls of guards |
+| 5 | The Squirrel Scramblers | Hazel | 4 | 1.1 %, 0.0033 rad | guards and hits everywhere |
+| 6 | The Otter Swimmers | Ripple | 4 | 1.5 %, 0.0045 rad | takeouts |
+| 7 | The Owl Tacticians | Professor Hoot | 4 | 0.85 %, 0.0025 rad | think hardest, take out what they can |
+| 8 | The Stoat Champions | Ermine | 6 | 0.95 %, 0.0026 rad | everything; a coin toss for the hammer |
 
 Beating a team opens the next. Beating the stoats wins the Pebble Cup and opens the ending.
 
 ### Balance, from the bots
 
-`npm run bot:curl` (60 matches per team with `CURL_N=60`): an expert bot playing as Dora and Enzo (their caller, their release error and a sharp sweep judge) won against each team in turn:
+`npm run bot:curl` plays 100 matches per team (`CURL_N` changes it) with three bots as Dora and Enzo, each following the teammate's calls:
 
-| # | Team | Expert won | Average score | Naive won |
-| --- | --- | --- | --- | --- |
-| 1 | Hedgehog Twins | 60 / 60 | 4.7 – 1.1 | 25 / 30 |
-| 2 | Duck Pond Paddlers | 56 / 60 | 3.6 – 1.4 | 14 / 30 |
-| 3 | Badger Brothers | 54 / 60 | 3.1 – 1.5 | 11 / 30 |
-| 4 | Beaver Builders | 51 / 60 | 3.4 – 1.9 | 7 / 30 |
-| 5 | Squirrel Scramblers | 45 / 60 | 2.8 – 2.1 | 3 / 30 |
-| 6 | Otter Swimmers | 40 / 60 | 2.6 – 2.3 | 1 / 30 |
-| 7 | Owl Tacticians | 37 / 60 | 3.0 – 2.5 | 2 / 30 |
-| 8 | Stoat Champions (6 ends, their hammer) | 17 / 60 | 3.6 – 4.2 | 0 / 30 |
+- **Human-like:** plays as a person with a mouse. Its pointing error comes from the page's input mapping at 1280×800, measured in the browser: a full pull-back is 266 px for weight 1, the line is half the drag's angle, the house shows at 95.6 px per metre and the weight bar is 268 px wide. A hand lets go within about 1.5 px of where it meant to, the pointer moves in whole pixels, and the eye lines the aim mark up on the broom within about 4 px and the weight on the teammate's mark within about 4 px of the bar. For a draw that is a spread of 0.0062 rad on the line (11 cm at the tee) and 0.016 on the weight (25 cm of slide), on top of the release error. It sweeps by eye: each throw it misjudges where the stone will stop by about 0.7 m, and its broom starts and stops 0.25 s late.
+- **Expert:** sets the called shot exactly (as the keys can) and sweeps with a perfect eye.
+- **Naive:** throws the same draw to the button every time and never sweeps.
 
-A naive bot that throws the same draw to the button every time without sweeping won 63 of 240 (26 %), almost all of them against the first four teams; after the beavers it hardly wins at all. `tests/curl-bot.mjs` checks that the expert beats the hedgehogs at least 75 % of the time, the champions between 10 % and 70 %, that the second half of the ladder is harder than the first, that each team is at least as hard as the one before (allowing 0.04 + 1/N for luck, N matches per team), and that the naive bot loses most matches.
+| # | Team | Human-like won | Expert won | Average score (human) | Naive won |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Hedgehog Twins | 74 / 100 | 81 / 100 | 3.3 – 2.4 | 2 / 50 |
+| 2 | Duck Pond Paddlers | 65 / 100 | 69 / 100 | 2.9 – 2.4 | 1 / 50 |
+| 3 | Badger Brothers | 64 / 100 | 70 / 100 | 2.7 – 2.4 | 3 / 50 |
+| 4 | Beaver Builders | 60 / 100 | 72 / 100 | 2.7 – 2.5 | 1 / 50 |
+| 5 | Squirrel Scramblers | 51 / 100 | 67 / 100 | 2.5 – 2.6 | 2 / 50 |
+| 6 | Otter Swimmers | 48 / 100 | 62 / 100 | 2.4 – 2.5 | 0 / 50 |
+| 7 | Owl Tacticians | 43 / 100 | 60 / 100 | 2.4 – 2.7 | 0 / 50 |
+| 8 | Stoat Champions (6 ends, coin toss for the hammer) | 33 / 100 | 44 / 100 | 3.4 – 4.2 | 0 / 50 |
+
+What makes a team hard is mostly a taste for takeouts and a clean release; the hammer matters as much as anything (with the hammer first a person wins about half their finals, without it about a quarter, which is why the final's hammer is tossed for). `tests/curl-bot.mjs` checks that the human-like bot beats the hedgehogs 60–85 % of the time and the champions 25–45 %, that for both the human-like and the expert bot each team is at least as hard as the one before (allowing 0.04 + 1/N for luck, N matches per team) and the second half of the ladder is harder than the first, that the expert stays ahead of the human-like bot against every team (within half that allowance), that the expert beats the hedgehogs at least 75 % of the time, and that the naive bot loses most matches.
 
 ## The Practice Pond
 
