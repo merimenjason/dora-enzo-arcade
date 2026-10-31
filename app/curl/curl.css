@@ -36,7 +36,8 @@
 .ss-lede{font-size:15px;font-weight:600}
 .ss-menu-buttons{display:flex;flex-direction:column;gap:9px;position:relative;z-index:1}
 .ss-menu-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;position:relative;z-index:1}
-.ss-ending{justify-content:flex-start}
+.ss-ending{justify-content:flex-start;padding-left:2.5vw}
+.ss-ending-card{width:min(370px,31vw)}
 .ss-ending-art img,.ss-ending-art canvas{object-position:60% 50%}
 .ss-ending-card h2{font-size:clamp(30px,3.6vw,46px);font-weight:900;text-transform:uppercase;text-shadow:2px 2px 0 var(--mustard)}
 
@@ -128,6 +129,7 @@
 .ss-shell[data-orient="tall"] .ss-controls{left:8px;right:8px;transform:none;max-width:none;grid-template-columns:auto 1fr auto;bottom:8px}
 .ss-shell[data-orient="tall"] .ss-bubble{left:8px;right:8px;transform:none;max-width:none;top:58px;bottom:auto}
 .ss-shell[data-orient="tall"] .ss-stones{display:none}
+.ss-shell[data-orient="tall"] .ss-toast{top:42%}
 .ss-shell[data-orient="tall"] .ss-board{gap:6px}
 .ss-shell[data-orient="tall"] .ss-row b{max-width:64px;font-size:12px}
 .ss-shell[data-orient="tall"] .ss-ends{display:none}

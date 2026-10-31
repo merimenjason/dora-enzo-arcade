@@ -88,9 +88,18 @@ Beating a team opens the next. Beating the stoats wins the Pebble Cup and opens 
 
 `npm run bot:curl` (60 matches per team with `CURL_N=60`): an expert bot playing as Dora and Enzo (their caller, their release error and a sharp sweep judge) won against each team in turn:
 
-BOT_TABLE
+| # | Team | Expert won | Average score | Naive won |
+| --- | --- | --- | --- | --- |
+| 1 | Hedgehog Twins | 60 / 60 | 4.7 – 1.1 | 25 / 30 |
+| 2 | Duck Pond Paddlers | 56 / 60 | 3.6 – 1.4 | 14 / 30 |
+| 3 | Badger Brothers | 54 / 60 | 3.1 – 1.5 | 11 / 30 |
+| 4 | Squirrel Scramblers | 46 / 60 | 2.9 – 1.8 | 6 / 30 |
+| 5 | Beaver Builders | 49 / 60 | 3.2 – 2.2 | 0 / 30 |
+| 6 | Otter Swimmers | 40 / 60 | 2.6 – 2.3 | 1 / 30 |
+| 7 | Owl Tacticians | 37 / 60 | 3.0 – 2.5 | 2 / 30 |
+| 8 | Stoat Champions (6 ends, their hammer) | 17 / 60 | 3.6 – 4.2 | 0 / 30 |
 
-A naive bot that throws the same draw to the button every time without sweeping won BOT_NAIVE. `tests/curl-bot.mjs` checks that the expert beats the hedgehogs at least 75 % of the time, the champions between 10 % and 70 %, that the second half of the ladder is harder than the first, and that the naive bot loses most matches.
+A naive bot that throws the same draw to the button every time without sweeping won 59 of 240 (25 %), almost all of them against the first three teams; after the squirrels it hardly wins at all. `tests/curl-bot.mjs` checks that the expert beats the hedgehogs at least 75 % of the time, the champions between 10 % and 70 %, that the second half of the ladder is harder than the first, and that the naive bot loses most matches.
 
 ## The Practice Pond
 

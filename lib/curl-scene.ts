@@ -141,6 +141,8 @@ export class CurlScene {
       L.dora = { x: W * 0.15, y: H - 4, h: ch * 0.92 }; L.enzo = { x: W * 0.15 + ch * 0.6, y: H - 2, h: ch };
       L.cap = { x: W - ch * 0.42, y: H - 4, h: ch * 0.95 };
     }
+    // redraw at once: resizing clears the canvas, and a blank frame would flash
+    try { this.draw(); } catch { /* drawn next frame */ }
   }
   /** The camera's target for the current view. */
   private target() {
@@ -180,6 +182,7 @@ export class CurlScene {
   cheer() { this.cheerT = 1.6; }
 
   frame(dt: number) {
+    if (this.cv.clientWidth !== this.W || this.cv.clientHeight !== this.H) this.resize();
     this.t += dt;
     const tg = this.target(), k = 1 - Math.exp(-dt * (this.view === 'follow' ? 4 : 2.6));
     this.cam.cx += (tg.cx - this.cam.cx) * k; this.cam.s += (tg.s - this.cam.s) * k;
