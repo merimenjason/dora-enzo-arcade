@@ -1,0 +1,170 @@
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Nunito:wght@600;700;800;900&display=swap');
+/* Kite Day: a watercolour picture book. Cream paper panels with feathered edges and a soft wash shadow, hand-lettered
+   headings in Patrick Hand, body text in Nunito, medals as painted rosettes. */
+.kd-shell{--ink:#3a3550;--paper:#fbf3df;--paper2:#f4e8c8;--edge:#e3d3a8;--poppy:#e8574a;--cobalt:#3a78c8;--sun:#f6cd3f;--leaf:#5a8a36;--sky:#9fd0ee;position:relative;width:100%;height:100svh;min-height:320px;overflow:hidden;background:#cfe6f2;color:var(--ink);font-family:Nunito,ui-rounded,'Trebuchet MS',system-ui,sans-serif;font-weight:700;isolation:isolate;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.kd-shell *{box-sizing:border-box}
+:where(.kd-shell) p{color:inherit;font-size:inherit;line-height:1.45;margin:0}
+.kd-shell h1,.kd-shell h2,.kd-shell h3{margin:0;font-family:'Patrick Hand','Comic Sans MS',cursive;font-weight:400;color:inherit;letter-spacing:.3px;line-height:1.05}
+.kd-shell button,.kd-shell a{font:inherit}
+.kd-shell button{border:2px solid var(--edge);border-radius:16px 13px 17px 12px;background:var(--paper);color:var(--ink);font-weight:800;padding:9px 15px;cursor:pointer;min-height:42px;transition:transform .15s,border-color .15s,box-shadow .15s,background .15s;box-shadow:0 3px 0 #3a355022,0 6px 14px -8px #3a355055}
+.kd-shell button:hover:not(:disabled){transform:translateY(-1px) rotate(-.4deg);border-color:var(--sun)}
+.kd-shell button:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #3a355022}
+.kd-shell button:disabled{opacity:.5;cursor:default}
+.kd-shell button:focus-visible,.kd-shell a:focus-visible{outline:3px solid var(--cobalt);outline-offset:2px}
+.kd-shell kbd{font:800 11px Nunito,system-ui,sans-serif;background:#fff;border:1.5px solid var(--edge);border-bottom-width:3px;border-radius:6px;padding:1px 5px;margin:0 1px;color:var(--ink)}
+.kd-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.kd-spacer{flex:1}
+
+/* paper: a warm wash, a darker pooled rim and a feathered, slightly uneven edge */
+.kd-paper{background:radial-gradient(120% 90% at 20% 10%,#fffaea 0,var(--paper) 45%,var(--paper2) 100%);border-radius:22px 18px 24px 16px/18px 24px 16px 22px;box-shadow:0 0 0 2px #e9dcb860,0 0 0 5px #fbf3df55,0 14px 30px -14px #3a355088,inset 0 0 22px #d8c08e40}
+.kd-big{font-size:18px!important;padding:12px 20px!important;background:linear-gradient(180deg,#fff1b8,#f6cd3f)!important;border-color:#e2b43a!important}
+.kd-big.is-warm{background:linear-gradient(180deg,#ffd2c6,#f39a8a)!important;border-color:#e0705e!important}
+.kd-chips{display:inline-flex;gap:6px;flex-wrap:wrap}
+.kd-shell .kd-chip{min-height:36px;padding:5px 11px;font-size:13px;border-radius:999px}
+.kd-shell .kd-chip[aria-pressed=false]{opacity:.7}
+.kd-back{color:var(--ink);font-size:13px;font-weight:900;text-decoration:none;background:var(--paper);border:2px solid var(--edge);border-radius:14px;padding:8px 12px;white-space:nowrap;cursor:pointer;box-shadow:0 3px 0 #3a355022}
+.kd-shell button.kd-back{min-height:0}
+
+/* medals: painted rosettes */
+.kd-medal{display:inline-block;flex:none;border-radius:50%;position:relative;vertical-align:middle;background:radial-gradient(circle at 35% 30%,#ffffffcc 0 12%,transparent 13%),radial-gradient(circle,#d8d0bc 0 55%,#bfb59c 56% 62%,#e2dac6 63%);box-shadow:inset 0 0 0 2px #0001;opacity:.55}
+.kd-medal.m1{opacity:1;background:radial-gradient(circle at 35% 30%,#fff6 0 12%,transparent 13%),radial-gradient(circle,#d9945a 0 55%,#a8622e 56% 62%,#e6a670 63%)}
+.kd-medal.m2{opacity:1;background:radial-gradient(circle at 35% 30%,#fffa 0 12%,transparent 13%),radial-gradient(circle,#d7dde6 0 55%,#9aa6b6 56% 62%,#eef1f6 63%)}
+.kd-medal.m3{opacity:1;background:radial-gradient(circle at 35% 30%,#fffc 0 12%,transparent 13%),radial-gradient(circle,#f8d24a 0 55%,#c9961c 56% 62%,#ffe680 63%)}
+.kd-medal.m1::after,.kd-medal.m2::after,.kd-medal.m3::after{content:'';position:absolute;left:22%;top:78%;width:56%;height:40%;background:linear-gradient(90deg,var(--poppy) 0 48%,transparent 48% 52%,var(--cobalt) 52%);clip-path:polygon(0 0,45% 0,35% 100%,20% 80%,5% 100%,0 0,55% 0,100% 0,95% 100%,80% 80%,65% 100%);z-index:-1}
+
+/* ---- the menu: the title painting with a paper card in its open sky */
+.kd-menu,.kd-ending{position:absolute;inset:0}
+.kd-hero{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:60% 50%}
+.kd-menu-card{position:absolute;left:clamp(12px,4vw,64px);top:clamp(12px,5vh,64px);width:min(470px,calc(100% - 24px));padding:22px 24px 18px;display:flex;flex-direction:column;gap:12px;background:radial-gradient(120% 90% at 20% 10%,#fffaeaf2 0,#fbf3dfee 50%,#f4e8c8ea 100%)}
+.kd-title{font-size:clamp(58px,8vw,92px);color:var(--poppy);text-shadow:2px 3px 0 #fff,4px 6px 0 #3a355022;transform:rotate(-2deg);margin-top:-4px!important}
+.kd-sub{font-size:15px;color:#5a5068}
+.kd-menu-buttons{display:flex;flex-wrap:wrap;gap:8px}
+.kd-menu-buttons .kd-big{flex:1 1 100%}
+.kd-menu-foot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.kd-medals{font-size:13px;color:#6a6078;display:flex;gap:6px;align-items:center}
+.kd-menu .kd-back{align-self:flex-start}
+.kd-flyer{display:inline-flex;gap:6px}
+.kd-shell .kd-who{display:inline-flex;align-items:center;gap:6px;padding:3px 12px 3px 4px;font-size:15px;border-radius:999px}
+.kd-who img{width:40px;height:40px;object-fit:contain}
+.kd-shell .kd-who.is-on{background:linear-gradient(180deg,#fff6d0,#ffe796);border-color:#e2b43a}
+
+/* ---- the summer map */
+.kd-map,.kd-placescreen,.kd-workshop{position:absolute;inset:0;display:flex;flex-direction:column;overflow:auto}
+.kd-map{background:radial-gradient(90% 70% at 50% 40%,#fff8e4,#efe0b8);}
+.kd-bar{flex:none;display:flex;align-items:center;gap:10px;padding:10px 14px;position:sticky;top:0;z-index:2;background:linear-gradient(180deg,#fbf3dff0,#fbf3dfd0 70%,#fbf3df00)}
+.kd-bar h2{font-size:30px;color:var(--ink)}
+.kd-map-grid{position:relative;flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(12px,3vw,36px);padding:12px clamp(12px,4vw,56px) 28px;align-content:center;max-width:1300px;width:100%;margin:0 auto}
+.kd-path{position:absolute;inset:8% 10%;width:80%;height:84%;pointer-events:none}
+.kd-path path{fill:none;stroke:#c9a86a;stroke-width:1.4;stroke-dasharray:3 4;vector-effect:non-scaling-stroke}
+.kd-shell .kd-place{position:relative;display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;padding:10px 10px 12px;border:0;min-height:0;font-weight:700;background:radial-gradient(120% 90% at 20% 10%,#fffaea 0,var(--paper) 45%,var(--paper2) 100%)}
+.kd-place:nth-child(odd){transform:rotate(-.8deg)}.kd-place:nth-child(even){transform:rotate(.7deg)}
+.kd-place-pic{display:block;width:100%;aspect-ratio:3/1.7;background-size:cover;background-position:50% 62%;border-radius:14px 18px 12px 16px;margin-bottom:6px;box-shadow:inset 0 0 0 2px #0000000d}
+.kd-place-name{font-family:'Patrick Hand',cursive;font-size:26px;line-height:1}
+.kd-place-feat{font-size:13px;color:#6a6078}
+.kd-place-medals{display:flex;gap:4px;align-items:center;font-size:12.5px;color:#6a6078;margin-top:4px}
+.kd-place.is-locked .kd-place-pic{filter:grayscale(.85) brightness(1.1);opacity:.6}
+
+/* ---- a place */
+.kd-placescreen{background-size:cover;background-position:50% 60%}
+.kd-place-body{display:grid;grid-template-columns:minmax(240px,320px) minmax(0,1fr);gap:16px;padding:6px clamp(12px,3vw,40px) 26px;max-width:1300px;width:100%;margin:0 auto;align-items:start}
+.kd-place-intro{padding:16px;display:flex;flex-direction:column;gap:12px;font-size:15px;position:sticky;top:70px}
+.kd-kites,.kd-shapes,.kd-stencils{display:flex;flex-wrap:wrap;gap:6px}
+.kd-shell .kd-kitebtn{font-size:13px;padding:6px 10px;min-height:36px;display:inline-flex;flex-direction:column;align-items:center;line-height:1.1;text-transform:capitalize}
+.kd-kitebtn small{font-size:10px;font-weight:700;opacity:.8;text-transform:none}
+.kd-shell .kd-kitebtn.is-on{background:linear-gradient(180deg,#fff6d0,#ffe796);border-color:#e2b43a}
+.kd-challenges{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.kd-ch{padding:14px 16px;display:flex;flex-direction:column;gap:8px;font-size:14.5px}
+.kd-ch-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.kd-ch h3{font-size:27px}
+.kd-award{font-size:12px;background:#ffe8a0;border-radius:999px;padding:2px 9px;color:#7a5a10}
+.kd-marks{font-size:12.5px;color:#6a6078}
+.kd-ch-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto}
+.kd-best{font-size:13px;color:#4a7a2e}
+.kd-shell .kd-go{background:linear-gradient(180deg,#fff1b8,#f6cd3f);border-color:#e2b43a;padding:8px 22px}
+.kd-ch.is-locked{opacity:.62}
+
+/* ---- the workshop */
+.kd-workshop{background:radial-gradient(90% 70% at 30% 30%,#e6f3fb,#cfe6f2)}
+.kd-ws-body{display:grid;grid-template-columns:minmax(260px,440px) minmax(0,1fr);gap:16px;padding:6px clamp(12px,3vw,40px) 26px;max-width:1200px;width:100%;margin:0 auto;align-items:start}
+.kd-ws-preview{padding:14px 18px 18px;display:flex;flex-direction:column;gap:8px;font-size:14.5px}
+.kd-ws-preview canvas{width:100%;aspect-ratio:1;background:radial-gradient(circle at 50% 40%,#e9f5fc,#bcdcef);border-radius:18px 14px 20px 16px}
+.kd-ws-preview h3{font-size:32px}
+.kd-bars{list-style:none;padding:0;margin:4px 0 0;display:grid;gap:5px}
+.kd-bars li{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:8px;font-size:13px}
+.kd-bars i,.kd-gauges i{display:block;height:10px;border-radius:999px;background:#e8dcbc;overflow:hidden}
+.kd-bars b,.kd-gauges b{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#7cbf5a,#3a9a6c)}
+.kd-ws-tools{padding:14px 18px 18px;display:flex;flex-direction:column;gap:8px}
+.kd-ws-tools h3{font-size:24px;margin-top:4px}
+.kd-swatches{display:flex;flex-wrap:wrap;gap:6px}
+.kd-shell .kd-sw{width:38px;height:38px;min-height:0;padding:0;border-radius:50% 46% 52% 48%;border:3px solid #fff8}
+.kd-shell .kd-sw.is-on{border-color:var(--ink);transform:scale(1.08)}
+
+/* ---- playing */
+.kd-play{position:absolute;inset:0;touch-action:none}
+.kd-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
+.kd-hud{position:absolute;left:0;right:0;top:0;display:flex;align-items:flex-start;gap:10px;padding:10px 12px;pointer-events:none;z-index:2}
+.kd-hud>*{pointer-events:auto}
+.kd-hud-mid{display:flex;align-items:baseline;gap:14px;padding:7px 16px;min-width:0;flex:0 1 auto;white-space:nowrap}
+.kd-hud-name{font-family:'Patrick Hand',cursive;font-weight:400;font-size:24px;overflow:hidden;text-overflow:ellipsis}
+.kd-hud-prog{font-size:15px;font-variant-numeric:tabular-nums}
+.kd-hud-time{font-size:15px;color:var(--poppy);font-variant-numeric:tabular-nums}
+.kd-hud-wind{margin-left:auto;display:grid;grid-template-columns:auto 150px;grid-template-rows:auto auto;column-gap:10px;row-gap:3px;padding:6px 12px;align-items:center}
+.kd-hud-label{font-size:12.5px;white-space:nowrap}
+.kd-strip{width:150px;height:22px;display:block;border-radius:6px;background:#eef6fb}
+.kd-gauges{grid-column:1/3;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kd-gauges span{display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:center;font-size:11.5px}
+.kd-gauges i.is-pull b{background:linear-gradient(90deg,#f6cd3f,#e8574a)}
+.kd-hud-right{display:flex;gap:6px;align-items:center}
+.kd-coach{position:absolute;left:50%;top:84px;transform:translateX(-50%) rotate(-.5deg);width:min(620px,calc(100% - 24px));padding:12px 16px;display:flex;gap:12px;align-items:center;font-size:15px;z-index:2}
+.kd-pad{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;padding:10px 12px calc(10px + env(safe-area-inset-bottom));pointer-events:none;z-index:2}
+.kd-pad>*{pointer-events:auto;display:flex;gap:10px}
+.kd-shell .kd-pad button{width:66px;height:66px;border-radius:50%;font-size:20px;padding:0;background:#fbf3dfe6;touch-action:none}
+.kd-shell .kd-pad .is-pull{width:92px;height:92px;font-size:20px;background:linear-gradient(180deg,#fff1b8,#f6cd3f)}
+.kd-shell .kd-pad .is-ease{background:linear-gradient(180deg,#e6f3fb,#a8d0ec)}
+.kd-overlay{position:absolute;inset:0;display:grid;place-items:center;background:#3a355033;z-index:5;padding:12px}
+.kd-panel{width:min(520px,100%);max-height:calc(100% - 8px);overflow:auto;padding:22px 24px;display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;font-size:15px}
+.kd-panel h2{font-size:44px;color:var(--poppy)}
+.kd-res-value{font-size:19px}
+.kd-unlock{background:#fff1b8;border-radius:14px;padding:6px 12px;font-size:14px}
+.kd-result .kd-medal{margin-top:-4px}
+.kd-panel .kd-menu-buttons{justify-content:center}
+
+/* ---- the ending */
+.kd-ending-card{position:absolute;right:clamp(12px,3vw,48px);top:clamp(12px,4vh,48px);width:min(440px,calc(100% - 24px));padding:20px 22px;display:flex;flex-direction:column;gap:10px;font-size:15px;background:radial-gradient(120% 90% at 20% 10%,#fffaeaf0 0,#fbf3dfec 50%,#f4e8c8e8 100%)}
+.kd-ending-card h2{font-size:44px;color:#c0503e}
+
+/* ---- small screens */
+@media (max-width:900px){
+  .kd-hud-mid{flex-direction:column;align-items:flex-start;gap:0;padding:5px 12px}
+  .kd-hud-name{font-size:20px}
+  .kd-hud-wind{grid-template-columns:auto 96px}
+  .kd-strip{width:96px}
+  .kd-hud-right .kd-chips{display:none}
+  .kd-place-body,.kd-ws-body{grid-template-columns:minmax(0,1fr)}
+  .kd-place-intro{position:static}
+  .kd-map-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kd-path{display:none}
+}
+@media (max-width:560px){
+  .kd-hud{flex-wrap:wrap;gap:6px;padding:8px}
+  .kd-hud-mid{order:3;flex:1 1 100%}
+  .kd-hud-wind{margin-left:auto;padding:4px 8px}
+  .kd-map-grid{grid-template-columns:minmax(0,1fr)}
+  .kd-place:nth-child(n){transform:none}
+  .kd-menu-card{top:auto;bottom:12px;padding:14px 16px 12px;gap:8px}
+  .kd-title{font-size:52px}
+  .kd-sub{font-size:13.5px}
+  .kd-ending-card{top:auto;bottom:12px}
+  .kd-coach{top:120px;font-size:13.5px}
+}
+@media (max-height:500px){
+  .kd-menu-card{top:8px;bottom:auto;max-height:calc(100% - 16px);overflow:auto;padding:12px 16px;gap:8px}
+  .kd-title{font-size:46px}
+  .kd-sub{display:none}
+  .kd-hud{padding:6px 8px}
+  .kd-hud-mid{flex-direction:row;align-items:baseline;gap:10px}
+  .kd-coach{top:64px;font-size:13px;padding:8px 12px}
+  .kd-shell .kd-pad button{width:56px;height:56px}
+  .kd-shell .kd-pad .is-pull{width:76px;height:76px}
+  .kd-ending-card{top:8px;max-height:calc(100% - 16px);overflow:auto}
+}
