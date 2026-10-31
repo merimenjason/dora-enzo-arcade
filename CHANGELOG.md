@@ -15,6 +15,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 - **Twig & Twine**: when a bridge drops them in the water or the stream, Dora and Enzo now sit dripping and dismayed in their acorn cart, pond weed on Enzo's ear, in a new painting; a tumble into the canyon's dust has them covering their eyes.
 - **Kiln & Clay**: a new title painting of Enzo at the wheel and Dora holding up a freshly glazed vase, and the picnic ending now has Mrs Prickle the hedgehog sharing tea with them.
 
+### Fixed
+
+- **Kiln & Clay**: Dora and Enzo are now as big at the kiln and the delivery counter as at the wheel, on every screen and on phones held either way, and stand clear of the pot, the dial, the buttons and the words. The picnic ending's words and cast list now sit in a band below the painting (beside it on a sideways phone) instead of over Mrs Prickle and the pair. The delivery card moves up into the corner, clear of the neighbour's face, and the top bar names the pot in the kiln when you fire one from the rack instead of saying "Free throw".
+
 ## 30-10-2026
 
 ### Added

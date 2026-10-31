@@ -260,7 +260,8 @@ export class PotteryScene {
   private c: CanvasRenderingContext2D;
   private art = new Map<string, HTMLImageElement>();
   W = 0; H = 0; private dpr = 1;
-  inset = { top: 0, bottom: 0, left: 0, right: 0 };
+  /** What the page's own panels and bars cover, in css px from each edge; `tools` is the bottom bar's left and right edge. */
+  inset: { top: number; bottom: number; left: number; right: number; tools?: [number, number] | null } = { top: 0, bottom: 0, left: 0, right: 0, tools: null };
   private time = 0; private spin = 0; private sparks: Spark[] = [];
   /** Pixels per clay unit, eased so the view doesn't jump; held still while a finger is down. */
   scale = 30; private scaleGoal = 30; hold = false;
@@ -302,13 +303,28 @@ export class PotteryScene {
     for (let i = 0; i < 40; i++) { const a = (i / 40) * Math.PI * 2; this.sparks.push({ x: cx, y: cy, vx: Math.cos(a) * (120 + (i % 5) * 40), vy: Math.sin(a) * (120 + (i % 5) * 40) - 60, life: 0, max: 1.4, r: 3 + (i % 3), col: ['#ffe07a', '#ffb0c0', '#a0e0ff', '#c8f0a0'][i % 4], kind: 'star' }); }
   }
 
+  /** Dora and Enzo's height: the same on every screen (the wheel, the kiln, the counter), set by the size of the stage alone. */
+  private pairH() {
+    const room = Math.max(80, this.H - 88);
+    return this.tall ? Math.min(this.W * 0.44, room * 0.26) : Math.min(this.W * 0.25, room * 0.5);
+  }
+  /** Where a figure spanning x0..x1 stands: the bottom edge, or on top of the tool bar when the bar is under it. */
+  private floor(x0: number, x1: number) {
+    const t = this.inset.tools;
+    return t && t[0] < x1 && t[1] > x0 ? this.H - this.inset.bottom : this.H;
+  }
+  /** Puts one of the pair in a box centred on x, standing on the floor. */
+  private stand(who: 'dora' | 'enzo', x: number, h: number) {
+    this.boxes[who] = [x - h / 2, this.floor(x - h / 2, x + h / 2) - h, h, h];
+  }
+
   // ---- layout: Dora and Enzo either side, the wheel between them, the pot scaled to fit
   private layout(view: View, need: { h: number; r: number }) {
     const W = this.W, H = this.H, tall = this.tall, top = this.inset.top + 8, bottom = H - this.inset.bottom;
     const area = Math.max(80, bottom - top);
-    const chH = tall ? Math.min(area * 0.42, W * 0.44) : Math.min(area * 0.5, W * 0.25);
-    const dx = tall ? W * 0.2 : Math.max(chH * 0.5 + 8, W * 0.16), cw = chH;
-    this.boxes = { dora: [dx - cw / 2, bottom - chH, cw, chH], enzo: [W - dx - cw / 2, bottom - chH, cw, chH] };
+    const chH = this.pairH();
+    const dx = tall ? Math.max(chH * 0.5 + 4, W * 0.2) : Math.max(chH * 0.5 + 8, W * 0.16), cw = chH;
+    this.stand('dora', dx, chH); this.stand('enzo', W - dx, chH);
     this.cx = W / 2;
     // upright phones: the wheel sits up on its bench behind the pair, so the pot stands clear above their heads
     const pan = tall ? chH * 0.88 : Math.max(36, area * 0.12);
@@ -478,37 +494,44 @@ export class PotteryScene {
     // the pots inside the door
     const pieces = o.kiln ?? [];
     const top = this.inset.top + 8, bottom = H - this.inset.bottom, area = bottom - top;
-    const dial = Math.min(area * 0.42, W * (this.tall ? 0.42 : 0.24));
+    // Dora and Enzo keep watch at the bottom corners, the same size as at the wheel (clear of a panel on the right)
+    const tall = this.tall, R = W - this.inset.right, chH = this.pairH(), mood = o.mood ?? 'focus';
+    const lx = chH * 0.5 + (tall ? 4 : 8), rx = R - lx;
+    this.stand('dora', lx, chH); this.stand('enzo', rx, chH);
+    const pairTop = Math.min(this.boxes.dora[1], this.boxes.enzo[1]);
+    // the dial: up in the corner, or under the hint on an upright phone, never down over Enzo
+    let dial = Math.min(area * (tall ? 0.28 : 0.42), W * (tall ? 0.4 : 0.24));
+    if (!tall) dial = Math.min(dial, (pairTop - top - 16) / 0.93);
     const potH = Math.max(...pieces.map((p) => p.parts[0].prof.h), 3), potR = Math.max(...pieces.map((p) => Math.max(...p.parts[0].prof.r)), 2);
-    const space = this.tall ? area - dial - 30 : area * 0.62;
-    const s = clamp(Math.min(space / (potH + 2), (W * (this.tall ? 0.4 : 0.22)) / (potR * pieces.length + 1)), 6, 46);
-    const baseY = this.tall ? top + space * 0.95 : top + area * 0.72;
+    // upright: the pots between the dial and the pair's heads; sideways: on the kiln floor between the two of them
+    const potsTop = top + dial * 0.85 + 14, baseY = tall ? pairTop - 10 : top + area * 0.72;
+    const space = tall ? baseY - potsTop : area * 0.62, gap = tall ? W * 0.8 : Math.min(W * 0.44, R - 2 * (chH + 16));
+    const s = clamp(Math.min(space / (potH + 1), gap / (potR * 2.4 * pieces.length + 0.6)), 6, 46);
+    const cxK = R / 2;
     pieces.forEach((p, i) => {
-      const x = W / 2 + (i - (pieces.length - 1) / 2) * (potR * 2.4 * s);
+      const x = cxK + (i - (pieces.length - 1) / 2) * (potR * 2.4 * s);
       c.fillStyle = 'rgba(40,14,0,0.35)'; c.beginPath(); c.ellipse(x, baseY + 4, potR * s * 1.2, potR * s * 0.25, 0, 0, Math.PI * 2); c.fill();
       drawPiece(c, { ...p, fired: false }, x, baseY, s, { glow: 0.12 + T * 0.45 });
     });
     // flames licking at the bottom
     for (let i = 0; i < 9; i++) {
-      const x = W / 2 + (i - 4) * Math.min(W, 600) * 0.06, hh = (20 + 30 * T) * (0.7 + 0.3 * Math.sin(this.time * 9 + i * 1.7));
+      const x = cxK + (i - 4) * Math.min(R, 600) * 0.06, hh = (20 + 30 * T) * (0.7 + 0.3 * Math.sin(this.time * 9 + i * 1.7));
       const fg = c.createLinearGradient(0, baseY + 40, 0, baseY + 40 - hh); fg.addColorStop(0, 'rgba(255,140,30,0.8)'); fg.addColorStop(1, 'rgba(255,230,120,0)');
       c.fillStyle = fg; c.beginPath(); c.moveTo(x - 12, baseY + 40); c.quadraticCurveTo(x, baseY + 40 - hh * 1.4, x + 12, baseY + 40); c.fill();
     }
-    if (f && f.heat && Math.floor(this.time * 30) % 2 === 0) this.sparks.push({ x: W / 2 + Math.sin(this.time * 13) * 60, y: baseY + 30, vx: Math.sin(this.time * 7) * 30, vy: -80, life: 0, max: 0.9, r: 2, col: 'rgba(255,200,80,0.9)', kind: 'spark' });
-    // the dial
-    const dx = this.tall ? W / 2 : W - dial * 0.62 - 14, dy = this.tall ? bottom - dial * 0.2 - 10 : top + dial * 0.7 + 8;
-    this.dial(dx, dy, dial * 0.55, f);
-    // Dora and Enzo keep watch either side, in the glow
-    const chH = this.tall ? Math.min(area * 0.24, W * 0.3) : Math.min(area * 0.42, W * 0.2), mood = o.mood ?? 'focus';
-    const lx = this.tall ? W * 0.15 : chH * 0.55 + 10, rx = W - lx;
-    this.pal('dora', mood, lx, bottom, chH, 1); this.pal('enzo', mood, rx, bottom, chH, -1);
-    this.boxes = { dora: [lx - chH / 2, bottom - chH, chH, chH], enzo: [rx - chH / 2, bottom - chH, chH, chH] };
+    if (f && f.heat && Math.floor(this.time * 30) % 2 === 0) this.sparks.push({ x: cxK + Math.sin(this.time * 13) * 60, y: baseY + 30, vx: Math.sin(this.time * 7) * 30, vy: -80, life: 0, max: 0.9, r: 2, col: 'rgba(255,200,80,0.9)', kind: 'spark' });
+    // the dial (once the firing is over a panel sits over that corner, so it goes)
+    if (!f?.done) {
+      const dx = tall ? W / 2 : R - dial * 0.62 - 14, dy = tall ? top + dial * 0.62 + 4 : top + dial * 0.7 + 8;
+      this.dial(dx, dy, dial * 0.55, f);
+    }
+    this.pal('dora', mood, 1); this.pal('enzo', mood, -1);
   }
-  /** One of the pair, painted in a mood (or drawn when the painting is missing). */
-  private pal(who: 'dora' | 'enzo', mood: Mood, x: number, bottom: number, h: number, face: 1 | -1) {
-    const img = this.img(`${who}-${mood}`) ?? this.img(`${who}-focus`);
-    if (img) this.c.drawImage(img, x - h / 2, bottom - h, h, h);
-    else drawChinchilla(this.c, who, x, bottom, { face, h: h * (who === 'dora' ? 0.6 : 0.7), time: this.time });
+  /** One of the pair in their box, painted in a mood (or drawn when the painting is missing). */
+  private pal(who: 'dora' | 'enzo', mood: Mood, face: 1 | -1) {
+    const [x, y, , h] = this.boxes[who], img = this.img(`${who}-${mood}`) ?? this.img(`${who}-focus`);
+    if (img) this.c.drawImage(img, x, y, h, h);
+    else drawChinchilla(this.c, who, x + h / 2, y + h, { face, h: h * (who === 'dora' ? 0.6 : 0.7), time: this.time });
   }
   private dial(x: number, y: number, r: number, f: Firing | null | undefined) {
     const c = this.c, a0 = Math.PI * 0.95, a1 = Math.PI * 2.05, ang = (t: number) => a0 + (a1 - a0) * t;
@@ -536,32 +559,42 @@ export class PotteryScene {
   // ---- the counter: the neighbour collects their pot
   private drawDeliver(o: DrawOpts) {
     const c = this.c, W = this.W, H = this.H, tall = this.tall;
-    const top = this.inset.top + 6, bottom = H - this.inset.bottom, area = bottom - top;
-    // the counter
-    const cy = tall ? top + area * 0.62 : top + area * 0.78;
+    // the panel sits along the top (upright phones) or down the right (sideways phones): lay out round it
+    const top = this.inset.top + 6, R = W - this.inset.right, area = Math.max(80, H - 8 - top);
+    // Dora and Enzo, the same size as at the wheel: at the bottom corners upright, side by side on the right sideways
+    const chH = this.pairH();
+    if (tall) { this.stand('dora', chH * 0.5 + 4, chH); this.stand('enzo', W - chH * 0.5 - 4, chH); }
+    else { const ex = R - chH * 0.5 - 4; this.stand('enzo', ex, chH); this.stand('dora', ex - chH * 0.8, chH); }
+    const pairTop = Math.min(this.boxes.dora[1], this.boxes.enzo[1]);
+    // the counter: the pair stand in front of it
+    const cy = tall ? pairTop - 4 : top + area * 0.78;
     c.fillStyle = '#8a5a34'; c.fillRect(0, cy, W, H - cy);
     c.fillStyle = '#a8744a'; c.fillRect(0, cy - 10, W, 14);
     c.fillStyle = 'rgba(255,240,210,0.25)'; c.fillRect(0, cy - 10, W, 3);
-    // the neighbour
+    // the neighbour, behind the counter
     const who = o.customer, img = who ? this.img(`cust-${who}`) : null;
-    const ph = tall ? Math.min(area * 0.42, W * 0.7) : Math.min(area * 0.78, W * 0.36), px = tall ? W * 0.5 : W * 0.3;
+    const ph = tall ? Math.min(cy + 6 - top, W * 0.75) : Math.min(area * 0.74, R * 0.36), px = tall ? W * 0.5 : Math.max(ph * 0.5 + 8, R * 0.2);
     if (who) {
       const bob = Math.sin(this.time * 3) * ph * 0.008;
       if (img) c.drawImage(img, px - ph / 2, cy - ph + 6 + bob, ph, ph);
       else drawNeighbour(c, who, px, cy + 6 + bob, ph);
     }
-    // the pot on the counter
+    // the pot on the counter: in front of the neighbour, below their face (upright), or between them and the pair
     if (o.piece) {
-      const body = o.piece.parts[0].prof, s = clamp(Math.min((tall ? area * 0.3 : area * 0.5) / (body.h + 2), (tall ? W * 0.28 : W * 0.16) / (Math.max(...body.r) + 1)), 5, 40);
-      const x = tall ? W * 0.5 : W * 0.58, y = tall ? bottom - 16 - Math.max(...body.r) * s * E : cy + 4;
-      c.fillStyle = 'rgba(40,20,8,0.3)'; c.beginPath(); c.ellipse(x, y + 3, Math.max(...body.r) * s * 1.15, Math.max(...body.r) * s * 0.22, 0, 0, Math.PI * 2); c.fill();
+      const body = o.piece.parts[0].prof, r = Math.max(...body.r);
+      let x: number, s: number;
+      if (tall) { x = px; s = Math.min((ph * 0.25) / (body.h + r * E + 0.3), (W * 0.3) / (r + 0.3)); }
+      else {
+        const face = px + ph * 0.16, doraL = this.boxes.dora[0] + chH * 0.1;
+        x = (face + doraL) / 2; s = Math.min((area * 0.5) / (body.h + 2), Math.max(10, (doraL - face) / 2 - 6) / (r * 1.15));
+      }
+      s = clamp(s, 5, 40);
+      const y = cy + 4;
+      c.fillStyle = 'rgba(40,20,8,0.3)'; c.beginPath(); c.ellipse(x, y + 3, r * s * 1.15, r * s * 0.22, 0, 0, Math.PI * 2); c.fill();
       drawPiece(c, o.piece, x, y, s);
     }
-    // Dora and Enzo hand it over, cheering, at the side
-    const chH = tall ? Math.min(area * 0.26, W * 0.34) : Math.min(area * 0.46, W * 0.17);
-    const dx = tall ? W * 0.16 : W * 0.77, ex = tall ? W - dx : W * 0.91;
-    this.pal('enzo', 'cheer', ex, bottom, chH, -1); this.pal('dora', 'cheer', dx, bottom, chH * (tall ? 1 : 0.94), tall ? 1 : -1);
-    this.boxes = { dora: [dx - chH / 2, bottom - chH, chH, chH], enzo: [ex - chH / 2, bottom - chH, chH, chH] };
+    // Dora and Enzo hand it over, cheering
+    this.pal('enzo', 'cheer', -1); this.pal('dora', 'cheer', tall ? 1 : -1);
   }
 }
 

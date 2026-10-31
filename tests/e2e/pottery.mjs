@@ -2,7 +2,8 @@
 // (centred, opened, the walls raised and shaped), shown to her, glazed by dipping and painting a band, fired with
 // the Space bar and delivered for acorns; the wheel's tools (speed, water, the outline, trim, a fresh lump) by mouse
 // and key; a collapse; the save across a reload, the gallery and a corrupt save; the framing at 1280×800 and
-// 1920×1080 (Dora and Enzo a clear size, nothing over them or the pot); and phones held either way, thrown by touch.
+// 1920×1080 (Dora and Enzo a clear size, nothing over them or the pot); phones held either way, thrown by touch;
+// and at all four sizes, Dora and Enzo as big at the kiln and the counter as at the wheel, and the picnic's words clear of all three.
 // Needs `npm run dev` on port 3000 and Playwright.
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
@@ -231,6 +232,59 @@ for (const vp of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
   assert.ok(await noSideScroll(page));
   console.log(`PASS a phone at ${vp.width}×${vp.height}, thrown by touch`);
   await page.context().close();
+}
+
+// ---------------------------------------------------------------- Dora and Enzo the same size at the kiln and the counter; the picnic's words clear of all three
+{
+  const prof = { h: 3.2, r: Array.from({ length: 33 }, (_, i) => 1.6 + 2 * Math.sin((i / 32) * 1.4)), floor: 0.5 };
+  prof.ri = prof.r.map((r, i) => (i < 4 ? 0 : r - 0.45));
+  const racked = { v: 1, acorns: 0, day: 1, done: {}, upgrades: [], gallery: [], rack: [{ order: 'o1', parts: [{ id: 'body', prof, stars: 3 }], handle: null, glaze: { base: 'honey', bands: [], speckle: false, drip: null }, throwStars: 3 }], ended: false, seen: ['o1', 'o2', 'o3'], tutorial: true, tipDay: 1, flumps: 0, pots: 0, settings: { sound: false, music: false, ghost: true } };
+  const ids = Array.from({ length: 21 }, (_, i) => 'o' + (i + 1));
+  const ended = { ...racked, rack: [], day: 7, done: Object.fromEntries(ids.map((id) => [id, 3])), ended: true };
+  const overlap = (a, b) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+  for (const [vp, mobile] of [[{ width: 1280, height: 800 }, false], [{ width: 1920, height: 1080 }, false], [{ width: 390, height: 844 }, true], [{ width: 844, height: 390 }, true]]) {
+    const page = await open(vp, mobile), at = `${vp.width}×${vp.height}`;
+    await page.goto(base + '/pottery'); await ready(page);
+    await page.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, JSON.stringify(racked)]);
+    await page.reload(); await ready(page);
+    await page.evaluate(() => window.__potteryOpen('o2')); await closeTip(page); await page.waitForTimeout(300);
+    const size = async () => { const m = await game(page, () => window.__potteryScene()); return [m.dora, m.enzo]; };
+    const [wd] = await size();
+    await page.evaluate(() => { window.confirm = () => true; }); await page.getByRole('button', { name: '← BOARD' }).click();
+    await page.getByRole('button', { name: /Fire the kiln/ }).click(); await page.waitForTimeout(400);
+    assert.match(await page.locator('.kc-bar-mid').textContent(), /blackberry bowl/i, 'the bar names the pot from the rack');
+    const clear = async (where, sels) => {
+      const cv = await page.locator('canvas.kc-canvas').boundingBox();
+      for (const [x, y, w, h] of await size()) {
+        assert.ok(Math.abs(h - wd[3]) < 1, `${where} at ${at}: the pair as big as at the wheel (${Math.round(h)} vs ${Math.round(wd[3])}px)`);
+        assert.ok(x >= -2 && x + w <= vp.width + 2, `${where} at ${at}: on screen`);
+        const face = { x: cv.x + x + w * 0.25, y: cv.y + y + h * 0.05, width: w * 0.5, height: h * 0.5 };
+        for (const sel of sels) { const r = await page.locator(sel).boundingBox(); if (r) assert.ok(!overlap(r, face), `${where} at ${at}: ${sel} clear of a face`); }
+      }
+    };
+    await clear('the kiln', ['.kc-tools', '.kc-fire-hint']);
+    await game(page, () => { window.__pottery().firing.t = 99; });
+    await page.locator('.kc-fired').waitFor(); await page.waitForTimeout(400);
+    await clear('out of the kiln', ['.kc-fired']);
+    await page.getByRole('button', { name: /Deliver it/ }).click(); await page.getByTestId('pay').waitFor(); await page.waitForTimeout(400);
+    await clear('the counter', ['.kc-deliver']);
+    // the picnic: the painting's three (x 8.5–92.5%, y 18.5–78% of it) all on screen, nothing over them
+    await page.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, JSON.stringify(ended)]);
+    await page.reload(); await ready(page);
+    await page.getByRole('button', { name: /The picnic/ }).first().click(); await page.waitForTimeout(500);
+    const art = await page.locator('.kc-ending-art').boundingBox(), k = Math.max(art.width / 1536, art.height / 1024);
+    const ox = art.x + (art.width - 1536 * k) * 0.5, oy = art.y + (art.height - 1024 * k) * 0.45;
+    const trio = { x: ox + 0.085 * 1536 * k, y: oy + 0.185 * 1024 * k, width: 0.84 * 1536 * k, height: 0.595 * 1024 * k };
+    assert.ok(trio.x >= art.x - 1 && trio.y >= art.y - 1 && trio.x + trio.width <= art.x + art.width + 1 && trio.y + trio.height <= art.y + art.height + 1, `the picnic at ${at}: all three in view`);
+    for (const sel of ['.kc-ending-text', '.kc-credits', '.kc-ending .kc-go']) {
+      const r = await page.locator(sel).boundingBox(); if (r && r.width > 0) assert.ok(!overlap(r, trio), `the picnic at ${at}: ${sel} clear of the three`);
+    }
+    const go = await page.locator('.kc-ending .kc-go').boundingBox();
+    assert.ok(go.y >= 0 && go.y + go.height <= vp.height + 1, `the picnic at ${at}: the button on screen`);
+    assert.ok(await noSideScroll(page));
+    console.log(`PASS the kiln, the counter and the picnic at ${at} (the pair ${Math.round(wd[3])}px throughout)`);
+    await page.context().close();
+  }
 }
 
 assert.deepEqual(errors, [], 'no page errors');

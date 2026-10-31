@@ -256,7 +256,16 @@ export default function PotteryPage() {
     sc.resize();
     const t = tools.current?.getBoundingClientRect(), sd = side.current?.getBoundingClientRect();
     const tallNow = r.height > r.width * 1.05;
-    sc.inset = { top: tallNow && sd && sd.height > 0 ? Math.max(0, sd.bottom - r.top) : 0, right: 0, left: 0, bottom: t && t.height > 0 ? Math.max(8, r.bottom - t.top + 4) : 8 };
+    // what covers the stage: upright, the order card, the kiln's hint or the delivery along the top; sideways phones, the panel down the right
+    const hint = el.querySelector('.kc-fire-hint')?.getBoundingClientRect();
+    const sheet = el.parentElement?.querySelector('.kc-fired, .kc-deliver')?.getBoundingClientRect();
+    const besides = !!sheet && sheet.height > r.height * 0.6;
+    let topIn = 0;
+    if (tallNow) for (const b of [sd, hint, besides ? null : sheet]) if (b && b.height > 0) topIn = Math.max(topIn, b.bottom - r.top);
+    sc.inset = {
+      top: topIn, left: 0, right: besides && sheet ? Math.max(0, r.right - sheet.left + 6) : 0,
+      bottom: t && t.height > 0 ? Math.max(8, r.bottom - t.top + 4) : 8, tools: t && t.height > 0 ? [t.left - r.left - 6, t.right - r.left + 6] : null,
+    };
   }
 
   useEffect(() => {
@@ -367,7 +376,9 @@ export default function PotteryPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const deliveredRef = useRef<Delivered | null>(null); deliveredRef.current = delivered;
-  useEffect(() => { requestAnimationFrame(() => layout()); }, [screen, phase, orient, touch, cardOpen, scored, tip]);
+  // the kiln's hint grows a line once the warm-up ends, so the layout is measured again then
+  const warming = screen === 'work' && phase === 'fire' && !!firing.current && firing.current.t < FIRE_WARM;
+  useEffect(() => { requestAnimationFrame(() => layout()); }, [screen, phase, orient, touch, cardOpen, scored, tip, warming, delivered]);
   const artOf = (p: Piece): PieceArt => ({ parts: p.parts, handle: p.handle, glaze: p.glaze, fired: !!p.fire, finish: p.fire?.finish, cracked: p.fire?.cracked, lip: p.order ? !!ORDER[p.order].parts[0].shape.lip : false });
 
   // ---------------------------------------------------------------- the pointer: shape the clay, paint the glaze, work the bellows
@@ -447,6 +458,10 @@ export default function PotteryPage() {
   const openG = mounted ? GLAZE_IDS.filter((g) => glazeOpen(S, g)) : [];
   const gWish = j && order && (phase === 'glaze') ? scoreGlaze(j.glaze, order.glaze) : null;
   const k = firing.current;
+  // the bar names the pot in hand: in the kiln and at the counter that can be a pot from the rack, not the one just thrown
+  const inKiln = screen === 'work' && phase === 'fire' ? firePieces.current : screen === 'work' && phase === 'fired' ? queue.current : null;
+  const shownId = phase === 'deliver' && delivered ? delivered.piece.order : inKiln?.length ? (inKiln.length === 1 ? inKiln[0].order : null) : order?.id ?? null;
+  const barOrder = shownId ? ORDER[shownId] : null;
   const tut = screen === 'work' && phase === 'throw' && order?.id === 'o1' && !S.tutorial;
   const today = mounted ? S.day : 1;
   const totalStars = ORDERS.length * 3;
@@ -462,7 +477,7 @@ export default function PotteryPage() {
         <header className="kc-bar">
           <button className="kc-back" onClick={() => { if (phase === 'throw' || phase === 'glaze' || phase === 'handle' || phase === 'scored') { if (!window.confirm('Leave this pot and go back to the board?')) return; } if (phase === 'fire') return; toBoard(); }} disabled={phase === 'fire'}>← BOARD</button>
           <span className="kc-bar-mid">
-            {order ? <b className="kc-name"><small>{CUSTOMERS[order.who].name}</small> {order.title}</b> : <b className="kc-name">🎡 Free throw</b>}
+            {barOrder ? <b className="kc-name"><small>{CUSTOMERS[barOrder.who].name}</small> {barOrder.title}</b> : <b className="kc-name">{inKiln && inKiln.length > 1 ? '🔥 Two pots' : '🎡 Free throw'}</b>}
             {phase === 'throw' && order && order.parts.length > 1 && <span className="kc-part">{(j?.part ?? 0) + 1}/{order.parts.length} · {PART_NAME[order.parts[j?.part ?? 0].id]}</span>}
             <span className="kc-acorns" title="Acorns">🌰 <b>{mounted ? S.acorns : 0}</b></span>
           </span>
@@ -581,7 +596,7 @@ export default function PotteryPage() {
         </div>
       )}
       {screen === 'work' && phase === 'fired' && fired && (
-        <div className="kc-panel kc-result" role="dialog" aria-label="Out of the kiln">
+        <div className="kc-panel kc-result kc-fired" role="dialog" aria-label="Out of the kiln">
           <p className="kc-eyebrow">OUT OF THE KILN</p>
           <h2>{FINISH_NAME[fired.finish]}</h2>
           <p className="kc-match">In the sweet band <b>{Math.round(fired.quality * 100)}%</b> of the firing</p>
@@ -740,18 +755,22 @@ export default function PotteryPage() {
       {ending && (
         <div className="kc-ending" role="dialog" aria-label="The valley picnic">
           <Art src="/art/pottery/ending.webp" paint="ending" w={1536} h={1024} className="kc-ending-art" />
-          <div className="kc-ending-text">
-            <p className="kc-eyebrow">THE TEA SET · DELIVERED</p>
-            <h2>The valley picnic</h2>
-            <p>The whole valley spreads out on the hill: Mrs Prickle’s blackberries in their bowl, Bramble’s pie in its dish, the ducklings’ cups and, in the middle, the great teapot. Dora pours, Enzo passes the cups, and every pot on the blanket was thrown on their wheel.</p>
-            <p className="kc-final">{mounted ? starCount(S) : 0} of {totalStars} stars{mounted && starCount(S) < totalStars ? ' · make an order again for more' : ' · every star!'} · 🎡 the wheel is always free for a free throw</p>
-            <div className="kc-row"><button className="kc-go" onClick={() => { setEnding(false); toBoard(); }}>Back to the workshop →</button></div>
+          <div className="kc-ending-band">
+            <div className="kc-ending-text">
+              <p className="kc-eyebrow">THE TEA SET · DELIVERED</p>
+              <h2>The valley picnic</h2>
+              <p>The whole valley spreads out on the hill: Mrs Prickle’s blackberries in their bowl, Bramble’s pie in its dish, the ducklings’ cups and, in the middle, the great teapot. Dora pours, Enzo passes the cups, and every pot on the blanket was thrown on their wheel.</p>
+              <div className="kc-ending-foot">
+                <p className="kc-final">{mounted ? starCount(S) : 0} of {totalStars} stars{mounted && starCount(S) < totalStars ? ' · make an order again for more' : ' · every star!'} · 🎡 the wheel is always free for a free throw</p>
+                <button className="kc-go" onClick={() => { setEnding(false); toBoard(); }}>Back to the workshop →</button>
+              </div>
+            </div>
+            <div className="kc-credits" aria-label="Cast"><div>
+              <p className="kc-eyebrow">STARRING</p>
+              {CAST.map(([n, r]) => <p key={n}><b>{n}</b><small>{r}</small></p>)}
+              <p className="kc-eyebrow">THANK YOU FOR PLAYING</p>
+            </div></div>
           </div>
-          <div className="kc-credits" aria-label="Cast"><div>
-            <p className="kc-eyebrow">STARRING</p>
-            {CAST.map(([n, r]) => <p key={n}><b>{n}</b><small>{r}</small></p>)}
-            <p className="kc-eyebrow">THANK YOU FOR PLAYING</p>
-          </div></div>
         </div>
       )}
     </main>
