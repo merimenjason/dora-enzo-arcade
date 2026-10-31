@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 const url = process.env.BASE_URL || 'http://localhost:3000';
@@ -31,15 +32,22 @@ try {
   );
   await original.close();
   await p.goto(url);
+  // the arcade's size comes from GAMES in app/page.tsx (read the same way as tests/readme.mjs), not a fixed number
+  const games = [...readFileSync(new URL('../../app/page.tsx', import.meta.url), 'utf8').matchAll(/href:'(\/[\w-]+)'/g)].length;
   assert.equal(
     await p.locator('.arcade-card').count(),
-    11,
-    'arcade has eleven cabinets',
+    games,
+    `arcade has a cabinet for each of the ${games} games`,
   );
+  const ones = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+  const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+  const words = (n) => (n < 20 ? ones[n] : tens[Math.floor(n / 10)] + (n % 10 ? '-' + ones[n % 10] : ''));
+  const spelled = words(games);
   assert(
     (await p.locator('.arcade-hero').textContent()).includes(
-      'Eleven ways to play.',
+      `${spelled[0].toUpperCase()}${spelled.slice(1)} ways to play.`,
     ),
+    `the arcade hero names ${spelled} ways to play`,
   );
   assert.equal(await p.locator('a[href="/checkpoint-remake"]').count(), 1);
   assert.equal(await p.locator('a[href="/checkpoint"]').count(), 1);
