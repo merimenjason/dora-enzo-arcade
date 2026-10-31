@@ -247,9 +247,9 @@ export class HoneyScene {
         this.words.push({ text: '+' + s.gain, x: cx, y: cy, life: 1, big: false });
       }
       const W = ['', '', 'Sweet!', 'Buzzing!', 'Honey-tastic!', 'Golden!', 'Royal!'];
-      if (s.chain >= 2) this.words.push({ text: W[Math.min(6, s.chain)], x: g.comb.x0 + g.comb.w / 2, y: g.comb.y0 + g.comb.h * 0.42, life: 1.2, big: true });
-      if (s.waggle >= 2) this.words.push({ text: s.waggle === 3 ? 'Triple turn!' : 'Double turn!', x: g.comb.x0 + g.comb.w / 2, y: g.comb.y0 + g.comb.h * 0.3, life: 1.3, big: true });
-      if (s.fired.some((f) => f.combo)) { const f = s.fired.find((x) => x.combo)!; const names: Record<string, string> = { feast: 'Royal feast!', 'jelly-bee': 'Swarm!', 'jelly-blossom': 'Spring!', jelly: 'Royal jelly!', 'blossom-blossom': 'Great bloom!', 'bee-blossom': 'Sunburst!', 'bee-bee': 'Bee star!' }; this.words.push({ text: names[f.combo!] ?? 'Combo!', x: g.comb.x0 + g.comb.w / 2, y: g.comb.y0 + g.comb.h * 0.55, life: 1.5, big: true }); }
+      if (s.chain >= 2) this.shout(W[Math.min(6, s.chain)], 1.2);
+      if (s.waggle >= 2) this.shout(s.waggle === 3 ? 'Triple turn!' : 'Double turn!');
+      if (s.fired.some((f) => f.combo)) { const f = s.fired.find((x) => x.combo)!; const names: Record<string, string> = { feast: 'Royal feast!', 'jelly-bee': 'Swarm!', 'jelly-blossom': 'Spring!', jelly: 'Royal jelly!', 'blossom-blossom': 'Great bloom!', 'bee-blossom': 'Sunburst!', 'bee-bee': 'Bee star!' }; this.shout(names[f.combo!] ?? 'Combo!', 1.5); }
       if (s.chain >= 4) this.shake = Math.max(this.shake, 0.2);
       this.shown = s.board; this.curDur = 0.2 + (s.fired.length ? 0.12 : 0);
       return;
@@ -278,14 +278,22 @@ export class HoneyScene {
       this.shown = s.board; return;
     }
     if (s.t === 'moss') { this.grow.set(s.cell, 0); this.shown = s.board; this.curDur = 0.3; return; }
-    if (s.t === 'shuffle') { this.shown = s.board; for (const c of s.board) if (c.p) this.spin.set(c.p.id, 0); this.curDur = 0.5; this.words.push({ text: 'All stirred up!', x: g.comb.x0 + g.comb.w / 2, y: g.comb.y0 + g.comb.h / 2, life: 1.4, big: true }); return; }
-    if (s.t === 'rush') { this.words.push({ text: 'Honey rush!', x: g.comb.x0 + g.comb.w / 2, y: g.comb.y0 + g.comb.h * 0.4, life: 1.6, big: true }); this.curDur = 0.45; return; }
+    if (s.t === 'shuffle') { this.shown = s.board; for (const c of s.board) if (c.p) this.spin.set(c.p.id, 0); this.curDur = 0.5; this.shout('All stirred up!', 1.4); return; }
+    if (s.t === 'rush') { this.shout('Honey rush!', 1.6); this.curDur = 0.45; return; }
     this.curDur = 0.05;
   }
   private lineEnds(i: number, ax: number): Pos[] {
     const g = this.game!, out: Pos[] = [];
     for (const d of [ax, ax + 3]) { let j = i, k = 0; while (g.comb.nb[j][d] >= 0) { j = g.comb.nb[j][d]; k++; } const p = this.cellXY(j), o = this.cellXY(i); out.push({ x: p.x + (p.x - o.x) / Math.max(1, k) * 2, y: p.y + (p.y - o.y) / Math.max(1, k) * 2 }); }
     return out;
+  }
+  /** Big words take the next free line, so a chain, a double turn and a combo never sit on top of each other. */
+  private shout(text: string, life = 1.3) {
+    const g = this.game!, big = this.words.filter((w) => w.big && w.life > 0.35);
+    while (big.length >= 2) { const o = big.shift()!; o.life = Math.min(o.life, 0.3); }
+    const used = new Set(big.map((w) => w.y));
+    const ys = [0.36, 0.52, 0.68].map((k) => g.comb.y0 + g.comb.h * k), y = ys.find((v) => !used.has(v)) ?? ys[0];
+    this.words.push({ text, x: g.comb.x0 + g.comb.w / 2, y, life, big: true });
   }
   private burst(x: number, y: number, p: Piece, n: number) {
     const col = p.k === 'drop' ? DROPS[p.c % 7] : p.k === 'wax' ? { a: '#fff6dc', b: '#f0dca0' } : p.k === 'dew' ? { a: '#ffffff', b: '#bfe8ff' } : { a: '#ffe080', b: '#3a2a10' };
@@ -457,8 +465,8 @@ export class HoneyScene {
     c.save(); c.beginPath(); hexPath(c, 0, 0, r * 0.9);
     const g = c.createRadialGradient(-r * 0.25, -r * 0.3, r * 0.1, 0, 0, r);
     if (kind === 'honey') { g.addColorStop(0, '#fff3a6'); g.addColorStop(0.5, '#ffbf2a'); g.addColorStop(1, '#d9780a'); }
-    else if (kind === 'dark') { g.addColorStop(0, '#6a4a30'); g.addColorStop(1, '#2a1a10'); }
-    else { g.addColorStop(0, '#fbf2dc'); g.addColorStop(0.6, '#e6d3a8'); g.addColorStop(1, '#bfa16c'); }
+    else if (kind === 'dark') { g.addColorStop(0, '#3e2c22'); g.addColorStop(1, '#140c08'); }
+    else { g.addColorStop(0, '#d8c39c'); g.addColorStop(0.6, '#b0946a'); g.addColorStop(1, '#7a5e3c'); }
     c.fillStyle = g; c.fill(); c.clip();
     // hammered glass and a leaded seam from the centre to three corners
     if (this.noise) { c.globalAlpha = kind === 'dark' ? 0.5 : 0.9; c.drawImage(this.noise, -r, -r, r * 2, r * 2); c.globalAlpha = 1; }
@@ -516,10 +524,13 @@ export class HoneyScene {
     else if (p.k === 'wax') {
       const hs = this.layout.s * 0.9;
       this.blit('wax-' + p.hp, 0, 0, hs, (x, rr) => {
-        x.beginPath(); hexPath(x, 0, 0, rr * 0.96); const gr = x.createRadialGradient(-rr * 0.2, -rr * 0.3, 2, 0, 0, rr); gr.addColorStop(0, '#fffbea'); gr.addColorStop(1, p.hp > 1 ? '#e2c47e' : '#ecd8a8'); x.fillStyle = gr; x.fill();
-        x.lineWidth = Math.max(2, rr * (p.hp > 1 ? 0.16 : 0.1)); x.strokeStyle = '#7a5418'; x.stroke();
-        x.beginPath(); hexPath(x, 0, 0, rr * 0.62); x.lineWidth = Math.max(1, rr * 0.05); x.strokeStyle = '#b08a40aa'; x.stroke();
-        if (p.hp === 1) { x.strokeStyle = '#5a3a10'; x.lineWidth = Math.max(1.2, rr * 0.06); x.beginPath(); x.moveTo(-rr * 0.6, -rr * 0.3); x.lineTo(-rr * 0.1, 0); x.lineTo(-rr * 0.25, rr * 0.4); x.moveTo(-rr * 0.1, 0); x.lineTo(rr * 0.5, -rr * 0.2); x.stroke(); }
+        x.save(); x.shadowColor = '#000a'; x.shadowBlur = rr * 0.2; x.shadowOffsetY = rr * 0.08;
+        x.beginPath(); hexPath(x, 0, 0, rr * 0.94); const gr = x.createRadialGradient(-rr * 0.25, -rr * 0.35, 2, 0, 0, rr * 1.05); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.5, '#fff1c8'); gr.addColorStop(1, '#e0b860'); x.fillStyle = gr; x.fill(); x.restore();
+        x.beginPath(); hexPath(x, 0, 0, rr * 0.94); x.lineWidth = Math.max(2.5, rr * 0.14); x.strokeStyle = '#6a3e0c'; x.stroke();
+        x.lineWidth = Math.max(1, rr * 0.05); x.strokeStyle = '#c8943a';
+        for (const k of p.hp > 1 ? [0.7, 0.46] : [0.62]) { x.beginPath(); hexPath(x, 0, 0, rr * k); x.stroke(); }
+        x.fillStyle = '#ffffffb0'; x.beginPath(); x.ellipse(-rr * 0.3, -rr * 0.45, rr * 0.3, rr * 0.11, -0.4, 0, Math.PI * 2); x.fill();
+        if (p.hp === 1) { x.strokeStyle = '#5a3008'; x.lineWidth = Math.max(1.5, rr * 0.07); x.beginPath(); x.moveTo(-rr * 0.7, -rr * 0.3); x.lineTo(-rr * 0.12, 0.02 * rr); x.lineTo(-rr * 0.3, rr * 0.55); x.moveTo(-rr * 0.12, 0); x.lineTo(rr * 0.55, -rr * 0.25); x.lineTo(rr * 0.75, rr * 0.1); x.stroke(); }
       });
       if (p.bee) { c.save(); c.globalAlpha = p.hp > 1 ? 0.55 : 0.85; c.translate(0, Math.sin(this.time * 2 + p.id) * r * 0.06); drawBeeBody(c, r * 0.62, 0.2); c.restore(); }
     } else if (p.k === 'wasp') { c.save(); c.translate(0, Math.sin(this.time * 7 + p.id) * r * 0.08); c.scale(-1, 1); drawBeeBody(c, r * 1.05, Math.sin(this.time * 70 + p.id), true); c.restore(); }
