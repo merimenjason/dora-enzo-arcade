@@ -108,6 +108,7 @@
 .ss-card h2{font-size:clamp(22px,2.6vw,30px);font-weight:900;line-height:1.1}
 .ss-card.is-over h2{color:var(--red)}
 .ss-card-small{width:min(400px,92vw);padding:14px 16px;gap:6px}
+.ss-howto{font-size:13.5px;font-weight:700;background:var(--ice);border:2px dashed var(--blue);padding:7px 10px}
 .ss-big{font-size:38px;font-weight:900;letter-spacing:2px}
 .ss-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 
@@ -130,6 +131,11 @@
 .ss-shell[data-orient="tall"] .ss-board{gap:6px}
 .ss-shell[data-orient="tall"] .ss-row b{max-width:64px;font-size:12px}
 .ss-shell[data-orient="tall"] .ss-ends{display:none}
+@media (max-width:720px) and (orientation:portrait){
+  .ss-menu-art,.ss-ending-art{bottom:40%}
+  .ss-menu-art img,.ss-menu-art canvas{object-position:16% 62%}
+  .ss-ending-art img,.ss-ending-art canvas{object-position:50% 70%}
+}
 @media (max-width:720px){
   .ss-menu,.ss-ending{justify-content:center;align-items:flex-end;padding:12px}
   .ss-menu-card,.ss-ending-card{width:100%;max-width:440px}

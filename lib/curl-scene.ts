@@ -131,7 +131,7 @@ export class CurlScene {
       L.crowd = { x: 0, y: 0, w: W, h: crowdH };
       L.band = { x: 0, y: crowdH, w: W, h: bandH };
       const ch = Math.min(H * 0.36, W * 0.2);
-      L.dora = { x: W * 0.085, y: H - 6, h: ch * 0.92 }; L.enzo = { x: W * 0.085 + ch * 0.62, y: H - 4, h: ch };
+      L.dora = { x: Math.max(W * 0.07, ch * 0.36), y: H - 6, h: ch * 0.92 }; L.enzo = { x: Math.max(W * 0.07, ch * 0.36) + ch * 0.74, y: H - 4, h: ch };
       L.cap = { x: W - Math.max(W * 0.09, ch * 0.42), y: H - 6, h: ch * 0.95 };
     } else {
       const crowdH = Math.round(H * 0.07), bandH = Math.round(H * 0.72);
@@ -147,7 +147,11 @@ export class CurlScene {
     const L = this.layout, B = L.band, long = L.tall ? B.h : B.w, cross = L.tall ? B.w : B.h;
     const fit = Math.min(long / (END - HACK + 0.9), cross / (HALF_W * 2 + 0.8));
     const house = Math.min(long / 8.6, cross / (HALF_W * 2 + 0.5));
-    if (this.view === 'aim') return { cx: (HACK + END) / 2 + 0.1, s: fit };
+    if (this.view === 'aim') {
+      // upright screens are too narrow for the whole sheet: show the far end big, with the stone at the hack as an inset
+      if (L.tall) { const s = Math.min(long / 13.6, cross / (HALF_W * 2 + 0.8)); return { cx: END + 0.45 - long / (2 * s), s }; }
+      return { cx: (HACK + END) / 2 - 0.15, s: fit };
+    }
     if (this.view === 'house') return { cx: Math.min(END + 0.3 - long / (2 * house), TEE - 1.0), s: house };
     const cur = this.current, x = cur ? cur.x : 0;
     const s = this.slow && x > HOG - 2 ? house : Math.min(house, Math.max(fit * 1.6, house * 0.72));
@@ -236,8 +240,12 @@ export class CurlScene {
     c.save(); c.beginPath(); c.rect(C.x, C.y, C.w, C.h); c.clip();
     if (im) {
       // the middle band of the frieze, where the animals stand, tiled across if the screen is wider
-      const sh = im.naturalHeight * 0.5, sy = im.naturalHeight * 0.27, k = C.h / sh, w = im.naturalWidth * k;
-      for (let x = C.x + (C.w - Math.ceil(C.w / w) * w) / 2; x < C.x + C.w; x += w) c.drawImage(im, 0, sy, im.naturalWidth, sh, x, C.y - bob, w, C.h + bob);
+      const sh = im.naturalHeight * 0.66, sy = im.naturalHeight * 0.1, k = C.h / sh, w = im.naturalWidth * k, n = Math.ceil(C.w / w);
+      for (let i = 0, x = C.x + (C.w - n * w) / 2; i < n; i++, x += w) {
+        const jump = bob * (i % 2 ? 1 : 0.6);
+        if (i % 2) { c.save(); c.translate(x + w, 0); c.scale(-1, 1); c.drawImage(im, 0, sy, im.naturalWidth, sh, 0, C.y - jump, w, C.h + jump); c.restore(); }
+        else c.drawImage(im, 0, sy, im.naturalWidth, sh, x, C.y - jump, w, C.h + jump);
+      }
     } else {
       c.fillStyle = '#e9e2d0'; c.fillRect(C.x, C.y, C.w, C.h);
       for (let i = 0; i < C.w / 34; i++) { const x = i * 34 + 14, y = C.y + C.h * 0.62 - bob * (i % 2); c.fillStyle = i % 3 ? INK.navy : INK.red; c.beginPath(); c.arc(x, y, C.h * 0.16, 0, Math.PI * 2); c.fill(); c.beginPath(); c.arc(x - 5, y - C.h * 0.18, 4, 0, Math.PI * 2); c.arc(x + 5, y - C.h * 0.18, 4, 0, Math.PI * 2); c.fill(); }
@@ -250,7 +258,10 @@ export class CurlScene {
     const a = this.aim, c = this.c; if (!a) return;
     const s = this.cam.s, br = broomOf(a.shot);
     // the line of delivery toward the tee line (no curl shown), and the dotted ghost of the first metres
-    const p0 = this.toScreen(0, 0), p1 = this.toScreen(br.x, br.y);
+    const B = this.layout.band, inset = this.layout.tall && this.toScreen(0, 0).y > B.y + B.h - 30;
+    const p1 = this.toScreen(br.x, br.y), p0 = inset ? this.insetPoint(a.shot) : this.toScreen(0, 0);
+    if (inset) this.drawInset(p0);
+    else this.world(() => drawStone(c, 0, 0, 0, this.rot.get(-1) ?? 0));
     c.strokeStyle = 'rgba(29,42,68,0.32)'; c.lineWidth = 1.5; c.setLineDash([6, 8]); c.beginPath(); c.moveTo(p0.x, p0.y); c.lineTo(p1.x, p1.y); c.stroke(); c.setLineDash([]);
     c.fillStyle = INK.navy;
     a.pts.forEach((p, i) => { if (i % 2) return; const q = this.toScreen(p.x, p.y); c.globalAlpha = 1 - i / a.pts.length * 0.7; c.beginPath(); c.arc(q.x, q.y, Math.max(2, s * 0.045), 0, Math.PI * 2); c.fill(); });
@@ -258,12 +269,25 @@ export class CurlScene {
     // the aim mark where the line meets the tee line
     c.strokeStyle = INK.navy; c.lineWidth = 2; c.beginPath(); c.arc(p1.x, p1.y, Math.max(5, s * 0.1), 0, Math.PI * 2); c.stroke();
     // the curl, as a turning arrow around the stone at the hack
-    const r = Math.max(14, s * STONE_R * 2.1), dir = -a.shot.curl;
+    const r = inset ? 34 : Math.max(14, s * STONE_R * 2.1), dir = -a.shot.curl;
     c.strokeStyle = INK.red; c.lineWidth = 3; c.beginPath(); c.arc(p0.x, p0.y, r, -Math.PI * 0.85, -Math.PI * 0.15); c.stroke();
     const ang = dir > 0 ? -Math.PI * 0.15 : -Math.PI * 0.85, tx = p0.x + Math.cos(ang) * r, ty = p0.y + Math.sin(ang) * r, tdir = ang + (dir > 0 ? Math.PI / 2 : -Math.PI / 2);
     c.fillStyle = INK.red; c.beginPath(); c.moveTo(tx + Math.cos(tdir) * 9, ty + Math.sin(tdir) * 9); c.lineTo(tx + Math.cos(tdir + 2.4) * 8, ty + Math.sin(tdir + 2.4) * 8); c.lineTo(tx + Math.cos(tdir - 2.4) * 8, ty + Math.sin(tdir - 2.4) * 8); c.fill();
     // the skip's broom: where the teammate asks you to aim
     if (this.broom) this.drawBroom(this.broom.x, this.broom.y);
+  }
+  /** Where the stone waiting at the hack is drawn (in the inset on an upright screen). */
+  hackPoint() { const B = this.layout.band, p = this.toScreen(0, 0); return this.layout.tall && p.y > B.y + B.h - 30 ? this.insetPoint(this.aim?.shot ?? { angle: 0, weight: 0.5, curl: 1 }) : p; }
+  /** Where the line of delivery enters the bottom of the ice on an upright screen. */
+  private insetPoint(shot: Shot) {
+    const B = this.layout.band, s = this.cam.s, xb = this.cam.cx - (B.h / 2 - 34) / s;
+    return this.toScreen(xb, Math.tan(shot.angle) * xb);
+  }
+  /** The stone waiting at the hack, drawn in a round frame at the foot of the ice when the hack is off screen. */
+  private drawInset(p: { x: number; y: number }) {
+    const c = this.c, r = 26;
+    c.save(); c.fillStyle = INK.ice; c.strokeStyle = INK.navy; c.lineWidth = 3; c.beginPath(); c.arc(p.x, p.y, r, 0, Math.PI * 2); c.fill(); c.stroke();
+    c.translate(p.x, p.y); c.scale(r / (STONE_R * 1.6), -r / (STONE_R * 1.6)); drawStone(c, 0, 0, 0, Math.PI / 2); c.restore();
   }
   private drawBroom(x: number, y: number) {
     const c = this.c, p = this.toScreen(x, y), s = Math.max(16, this.cam.s * 0.5), wob = Math.sin(this.t * 3) * 0.08;
@@ -289,7 +313,7 @@ export class CurlScene {
       c.fillStyle = INK.mustard; c.save(); c.translate(p.x, p.y); c.rotate(this.layout.tall ? 0 : Math.PI / 2); c.fillRect(-s * 0.2, -s * 0.07, s * 0.4, s * 0.14); c.strokeRect(-s * 0.2, -s * 0.07, s * 0.4, s * 0.14); c.restore();
       return;
     }
-    const h = Math.max(54, Math.min(this.layout.band.h * 0.55, s * 1.5)), p = this.toScreen(cur.x + 0.2, cur.y + side);
+    const h = Math.max(70, Math.min(this.layout.band.h * 0.6, s * 2.1)), p = this.toScreen(cur.x + 0.2, cur.y + side);
     const im = art(`${who}-sweep`), x = p.x + (this.layout.tall ? -h * 0.15 : -h * 0.1) + jig * h * 0.03, y = p.y + h * 0.05;
     if (im) this.c.drawImage(im, x - h / 2, y - h, h, h); else drawStandIn(c, who, 'sweep', x, y, h * 0.9);
   }

@@ -97,9 +97,9 @@ export default function CurlPage() {
     const m = new Match({ ends: 1, seed: 4242 + tries * 31 + DRILLS.indexOf(d), hammer: 0, noise: [PLAYER_NOISE, PLAYER_NOISE] });
     m.stones = drillStones(d); m.thrown = 7; match.current = m;
     sc.captain = null; sc.stones = m.stones; sc.current = null; sc.counting = []; sc.measure = null; sc.clearTrail(); sc.view = 'aim'; sc.snapCamera();
-    drillShot.current ??= null; drillShot.current = drillSolution(d);
+    drillShot.current = drillSolution(d);
     setEndInfo(null); setStars(0); setScreen('play'); song('practice');
-    if (!S.tips.includes('drill-' + d.id)) { S.tips.push('drill-' + d.id); persist(); }
+    if (!S.tips.includes('drill-' + d.id)) { S.tips.push('drill-' + d.id); persist(); later(() => showToast(d.teach, 7000), 400); }
     ourTurn();
     requestAnimationFrame(() => { sc.resize(); sc.snapCamera(); });
   }
@@ -278,7 +278,7 @@ export default function CurlPage() {
       };
     };
     /** The scene's layout for the framing checks: the ice band, the house, and where Dora, Enzo and the captain stand. */
-    w.__curlScene = () => { const sc = scene.current; if (!sc) return null; const L = sc.layout; return { W: sc.W, H: sc.H, tall: L.tall, band: L.band, crowd: L.crowd, dora: L.dora, enzo: L.enzo, cap: L.cap, captain: sc.captain, poses: sc.poses, house: sc.house(), scale: sc.scale, settled: sc.settled(), stone0: sc.toScreen(0, 0) }; };
+    w.__curlScene = () => { const sc = scene.current; if (!sc) return null; const L = sc.layout; return { W: sc.W, H: sc.H, tall: L.tall, band: L.band, crowd: L.crowd, dora: L.dora, enzo: L.enzo, cap: L.cap, captain: sc.captain, poses: sc.poses, house: sc.house(), scale: sc.scale, settled: sc.settled(), stone0: sc.hackPoint() }; };
     /** Page coordinates of a point on the ice. */
     w.__curlPoint = (x: number, y: number) => { const sc = scene.current, c = canvas.current; if (!sc || !c) return null; const r = c.getBoundingClientRect(), p = sc.toScreen(x, y); return [r.left + p.x, r.top + p.y]; };
     /** Runs the ice faster (for the tests). */
@@ -489,6 +489,7 @@ export default function CurlPage() {
               <h2>{team.name}</h2>
               <p>{team.blurb}</p>
               <p className="ss-note">{team.ends} ends · {(team.hammer ?? 0) === 0 ? 'you have the hammer in the first end' : 'they have the hammer in the first end'}</p>
+              {!Object.keys(S.wins).length && <p className="ss-howto">Pull back on the ice and let go to throw. Your teammate holds the broom where to aim and marks the weight. Hold to sweep a stone that looks light. Closest to the button scores.</p>}
               <button type="button" className="ss-primary" autoFocus onClick={() => { audio().ui(); setBubble(null); nextTurn(); }}>To the ice</button>
             </div>
           </div>

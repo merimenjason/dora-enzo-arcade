@@ -1,11 +1,12 @@
 // Sweep & Slide bots. An expert bot (Dora and Enzo's own shot-caller, the player's release error and a sharp sweep)
 // plays the whole ladder; the eight woodland teams must form a rising curve: the expert beats the hedgehogs nearly
 // always and the stoat champions only sometimes. A naive bot that throws the same draw to the button every time,
-// never sweeping, must lose most of its matches. `--quick` plays fewer matches (for `npm test`).
+// never sweeping, must lose most of its matches. Every Practice Pond drill has a three-star throw for the
+// teammate's broom. `--quick` plays fewer matches (for `npm test`).
 import assert from 'node:assert/strict';
 import { Match, PLAYER_NOISE, judgeSweep } from '../.checks/curl-game.js';
-import { TEAMS, CALLER, plan } from '../.checks/curl-ai.js';
-import { drawTo, TEE } from '../.checks/curl-game.js';
+import { TEAMS, CALLER, plan, drillSolution } from '../.checks/curl-ai.js';
+import { drawTo, TEE, DRILLS, drillStones, drillStars, newStone, launch, settle } from '../.checks/curl-game.js';
 
 const quick = process.argv.includes('--quick');
 const N = quick ? 4 : Number(process.env.CURL_N ?? 16);
@@ -26,6 +27,10 @@ function playMatch(team, who, seed) {
   return { won: m.winner === 0, score: [...m.score], ends: m.end };
 }
 
+for (const d of DRILLS) {
+  const st = drillStones(d), s = newStone(0, 0, 'dora', 0, 0); launch(s, drillSolution(d)); st.push(s); settle(st, s);
+  assert.equal(drillStars(d, st, s), 3, `drill ${d.id} has a three-star throw`);
+}
 const rates = [], naive = [];
 const t0 = Date.now();
 for (const [i, team] of TEAMS.entries()) {
