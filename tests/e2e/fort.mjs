@@ -55,7 +55,7 @@ try {
   // ---- the arcade card, the menu
   const page = await open();
   await page.goto(base);
-  assert.equal(await page.locator('.arcade-card').count(), 66);
+  assert.equal(await page.locator('.arcade-card').count(), 67);
   await page.locator('a.arcade-card[href="/fort"]').click();
   await ready(page);
   assert.equal(await page.getByRole('heading', { level: 1 }).textContent(), 'Pillow Fort');
