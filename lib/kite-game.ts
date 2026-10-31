@@ -298,7 +298,9 @@ export function stepKite(k: Kite, P: Place, seed: number, t: number, inp: Input,
 /** A kite that is down: it rests a moment, then the line reels it back (faster while you pull) and it relaunches. */
 function stepDown(k: Kite, P: Place, seed: number, t: number, inp: Input, who: number, out: Ev[]) {
   k.downT += DT; k.taut = false; k.tension = 0; k.q = 0;
-  if (k.down === 'water') k.y = (waterAt(P, k.x) ?? k.y) + 0.15 + Math.sin(t * 3) * 0.06;
+  // in the water it bobs on the surface until it is dragged out
+  const wl = k.down === 'water' ? waterAt(P, k.x) : null;
+  if (wl !== null) k.y = wl + 0.15 + Math.sin(t * 3) * 0.06;
   if (k.downT < 0.9) return;
   k.state = 'reel';
   const sp = (inp.pull ? 9 : 4.5) * DT;
