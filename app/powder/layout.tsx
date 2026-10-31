@@ -1,0 +1,3 @@
+import type { Metadata } from 'next';
+export const metadata: Metadata = { title: 'Powder Paws · Dora & Enzo’s Arcade', description: 'A pixel-art downhill skiing game. Dora and Enzo carve down Whiskerpeak, a mountain that never runs out, racing a snowstorm: weave through pines and birches, ride ice and deep powder, bounce the moguls, launch off ramps for twirls, snowball flips and tail grabs, and find the ten hidden cabins for their postcards. Freeride, six slalom courses, a Big Air park and a Daily Mountain.' };
+export default function PowderLayout({ children }: { children: React.ReactNode }) { return children; }
