@@ -12,7 +12,7 @@ const N = quick ? 4 : Number(process.env.CURL_N ?? 16);
 const only = process.env.CURL_TEAM;
 
 function playMatch(team, who, seed) {
-  const m = new Match({ ends: team.ends, seed, hammer: 0, noise: [PLAYER_NOISE, team.noise] });
+  const m = new Match({ ends: team.ends, seed, hammer: team.hammer ?? 0, noise: [PLAYER_NOISE, team.noise] });
   let guard = 0;
   while (!m.over && guard++ < 400) {
     const me = m.turn, ps = seed * 977 + m.end * 16 + m.thrown;
@@ -41,7 +41,7 @@ if (!only) {
   assert.ok(rates[0] >= 0.75, 'the expert beats the hedgehogs nearly always');
   assert.ok(rates[7] < rates[0], 'the champions are harder than the hedgehogs');
   if (!quick) {
-    assert.ok(rates[7] >= 0.1 && rates[7] <= 0.75, `the expert beats the champions only sometimes (${rates[7]})`);
+    assert.ok(rates[7] >= 0.1 && rates[7] <= 0.7, `the expert beats the champions only sometimes (${rates[7]})`);
     const firstHalf = (rates[0] + rates[1] + rates[2] + rates[3]) / 4, secondHalf = (rates[4] + rates[5] + rates[6] + rates[7]) / 4;
     assert.ok(firstHalf > secondHalf, 'the ladder gets harder');
     assert.ok(naive.reduce((a, b) => a + b, 0) / naive.length < 0.35, 'the naive bot loses most matches');

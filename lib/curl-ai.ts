@@ -13,7 +13,7 @@ export type Kind = 'draw' | 'come' | 'guard' | 'tap' | 'hit' | 'peel' | 'through
 export type Brain = { think: number; sweep: number; hit: number; guard: number; draw: number };
 export type Team = {
   id: string; name: string; animal: string; captain: string; blurb: string; ends: number;
-  noise: { v: number; a: number }; brain: Brain; hello: string; win: string; lose: string; ink: string;
+  noise: { v: number; a: number }; brain: Brain; hammer?: TeamId; hello: string; win: string; lose: string; ink: string;
 };
 export const TEAMS: Team[] = [
   { id: 'hedgehog', name: 'The Hedgehog Twins', animal: 'hedgehogs', captain: 'Prickle', ends: 4, ink: '#8a5a3c', noise: { v: 0.05, a: 0.014 },
@@ -28,16 +28,16 @@ export const TEAMS: Team[] = [
   { id: 'squirrel', name: 'The Squirrel Scramblers', animal: 'squirrels', captain: 'Hazel', ends: 4, ink: '#b4552a', noise: { v: 0.028, a: 0.008 },
     brain: { think: 0.5, sweep: 0.55, hit: 0.15, guard: 0.2, draw: 0 }, blurb: 'Quick and busy. Stones everywhere, guards in front of everything.',
     hello: 'Ooh ooh! Let’s go let’s go let’s go!', win: 'Scramble scramble, we win!', lose: 'Aww, nuts.' },
-  { id: 'otter', name: 'The Otter Swimmers', animal: 'otters', captain: 'Ripple', ends: 4, ink: '#5c4433', noise: { v: 0.022, a: 0.0062 },
-    brain: { think: 0.6, sweep: 0.65, hit: 0.45, guard: -0.15, draw: 0 }, blurb: 'Slick and sporty. They love a takeout and a stone that rolls behind cover.',
-    hello: 'Splash! Clean sheet by the end, that’s our style.', win: 'Clean sweep!', lose: 'You slid that well. Respect.' },
-  { id: 'beaver', name: 'The Beaver Builders', animal: 'beavers', captain: 'Timber', ends: 4, ink: '#6a4a2a', noise: { v: 0.02, a: 0.0056 },
+  { id: 'beaver', name: 'The Beaver Builders', animal: 'beavers', captain: 'Timber', ends: 4, ink: '#6a4a2a', noise: { v: 0.016, a: 0.0048 },
     brain: { think: 0.7, sweep: 0.7, hit: -0.05, guard: 0.4, draw: 0.05 }, blurb: 'They build walls of guards and hide behind them. Bring your come-arounds.',
     hello: 'We’ll build a nice wall out there. You’ll see.', win: 'Built to last!', lose: 'You got round our wall. Clever.' },
-  { id: 'owl', name: 'The Owl Tacticians', animal: 'owls', captain: 'Professor Hoot', ends: 4, ink: '#4a3a5a', noise: { v: 0.012, a: 0.0033 },
+  { id: 'otter', name: 'The Otter Swimmers', animal: 'otters', captain: 'Ripple', ends: 4, ink: '#5c4433', noise: { v: 0.019, a: 0.0055 },
+    brain: { think: 0.6, sweep: 0.65, hit: 0.45, guard: -0.15, draw: 0 }, blurb: 'Slick and sporty. They love a takeout and a stone that rolls behind cover.',
+    hello: 'Splash! Clean sheet by the end, that’s our style.', win: 'Clean sweep!', lose: 'You slid that well. Respect.' },
+  { id: 'owl', name: 'The Owl Tacticians', animal: 'owls', captain: 'Professor Hoot', ends: 4, ink: '#4a3a5a', noise: { v: 0.0092, a: 0.0027 },
     brain: { think: 1, sweep: 0.85, hit: 0.05, guard: 0.2, draw: 0.05 }, blurb: 'They think three stones ahead and rarely miss the shot they call.',
     hello: 'Hoo. A fine evening for geometry.', win: 'As calculated.', lose: 'Hoo! Most unexpected. Well played.' },
-  { id: 'stoat', name: 'The Stoat Champions', animal: 'stoats', captain: 'Ermine', ends: 6, ink: '#1e2a4a', noise: { v: 0.0095, a: 0.0026 },
+  { id: 'stoat', name: 'The Stoat Champions', animal: 'stoats', captain: 'Ermine', ends: 6, ink: '#1e2a4a', noise: { v: 0.0095, a: 0.0026 }, hammer: 1,
     brain: { think: 1, sweep: 0.95, hit: 0.1, guard: 0.1, draw: 0 }, blurb: 'Holders of the Pebble Cup three winters running. Six ends, and they miss almost nothing.',
     hello: 'The Cup stays with us. It always does.', win: 'Champions again.', lose: 'The Cup is yours. You earned every end of it.' },
 ];
