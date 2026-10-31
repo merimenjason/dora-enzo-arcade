@@ -159,6 +159,16 @@ export default function HoneyPage() {
     w.__honeyMove = () => game.current?.findMove() ?? null;
     /** Every turn that works right now. */
     w.__honeyMoves = () => game.current?.allMoves() ?? [];
+    /** The working turn that fills the most honey right now, for playing a chamber through in the browser suite. */
+    w.__honeyBest = () => {
+      const g = game.current; if (!g) return null;
+      let best = null, bv = -Infinity;
+      for (const m of g.allMoves()) { const c = g.clone(); c.turn(m.t, m.dir); const v = c.over?.won ? 1e6 : -c.goals().reduce((n, x) => n + x.left, 0); if (v > bv) { bv = v; best = m; } }
+      return best;
+    };
+    /** A trio that turns but matches nothing (it springs back). */
+    w.__honeyDud = () => { const g = game.current; if (!g) return -1; return g.comb.trios.findIndex((_, t) => g.canTurn(t) && !g.works(t, 1) && !g.works(t, -1)); };
+    w.__honeyCursor = (t: number) => { if (scene.current) { scene.current.cursor = t; scene.current.hover = -1; } };
     w.__honeyScene = () => scene.current?.boxes() ?? null;
     w.__honeyEnding = () => { game.current = null; screenRef.current = 'ending'; setScreenState('ending'); };
     return () => { dead = true; cancelAnimationFrame(raf); ro.disconnect(); removeEventListener('resize', o); document.removeEventListener('visibilitychange', hide); window.clearTimeout(resultT.current); sound.current?.dispose(); };
