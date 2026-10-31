@@ -352,16 +352,12 @@ export default function HoneyPage() {
               {goals.map((x) => <span key={x.key} className={'hh-goal' + (x.left <= 0 ? ' is-met' : '')} title={GOAL[x.key].name}>{GOAL[x.key].icon} <b>{x.left <= 0 ? '✓' : x.left}</b></span>)}
               <span className={'hh-moves' + (g.moves <= 3 && !g.over ? ' is-low' : '')} title="Turns left"><b>{g.moves}</b><small>turns</small></span>
             </span>
+            <button type="button" className="hh-back hh-restart" onClick={restart} disabled={!g.turns || !!result} title="Restart (R)" aria-label="Restart">⟲</button>
             <Toggles />
           </header>
         )}
         <canvas ref={canvas} className="hh-canvas" tabIndex={0} aria-label="The honeycomb"
           onPointerMove={onMove} onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => { press.current = null; }} onPointerLeave={() => { if (scene.current) scene.current.hover = -1; }} onWheel={onWheel} onContextMenu={(e) => e.preventDefault()} />
-        {screen === 'play' && g && !result && (
-          <div className="hh-tools">
-            <button type="button" onClick={restart} disabled={!g.turns}>⟲ Restart</button>
-          </div>
-        )}
         {screen === 'play' && toast && !result && <p className="hh-toast" role="status">{toast}</p>}
         {screen === 'play' && result && (
           <div className="hh-result" role="dialog" aria-label={result.won ? 'Chamber filled' : 'Out of turns'}>

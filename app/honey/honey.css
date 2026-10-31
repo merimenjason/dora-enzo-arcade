@@ -76,8 +76,7 @@
 .hh-stage{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
 .hh-stage.is-hidden{position:absolute;inset:0;visibility:hidden;pointer-events:none}
 .hh-canvas{flex:1;min-height:0;width:100%;display:block;touch-action:none;cursor:pointer;outline:none}
-.hh-tools{position:absolute;right:12px;bottom:12px;display:flex;gap:8px;z-index:2}
-.hh-shell .hh-tools button{min-height:36px;padding:6px 12px;font-size:13px}
+.hh-shell button.hh-restart{font-size:16px;padding:3px 10px;line-height:1}
 .hh-toast{position:absolute;left:50%;top:64px;transform:translateX(-50%);max-width:min(560px,92vw);background:var(--card);border:3px solid var(--lead);border-radius:12px;padding:8px 14px;font-weight:700;font-size:14px;text-align:center;z-index:3}
 .hh-result,.hh-tip{position:absolute;inset:0;display:grid;place-items:center;background:#1a0c0430;z-index:4;padding:16px}
 /* the result card stands beside the comb, or above it on an upright screen; the scene makes room for it */
@@ -147,13 +146,14 @@
   .hh-lede{font-size:13.5px}
   .hh-name{display:none}
   .hh-toggles{display:none}
-  .hh-tools{right:8px;bottom:8px}
   .hh-ending{padding:12px;justify-content:center}
   .hh-ending-card{width:100%}
   .hh-ending-art img,.hh-ending-art canvas{height:58%;object-position:50% 0}
   .hh-story-cast{bottom:34%;padding:0 3vw}
-  .hh-story-cast .hh-cut{max-width:44vw;height:auto;max-height:38vh}
-  .hh-story-cast .hh-story-bee{max-height:28vh}
+  .hh-story-cast{flex-wrap:wrap;align-content:flex-end;justify-content:center}
+  .hh-story-pair{height:auto;width:100%;justify-content:center}
+  .hh-story-cast .hh-cut{max-width:42vw;height:auto;max-height:30vh}
+  .hh-story-cast .hh-story-bee{max-width:40vw;max-height:22vh;align-self:auto;order:-1}
   .hh-bubble p{font-size:15px}
 }
 @media (max-height:520px) and (orientation:landscape){
@@ -164,7 +164,6 @@
   .hh-menu-buttons{gap:5px}
   .hh-shell .hh-menu-buttons button{min-height:36px;padding:6px 12px}
   .hh-ending-card p:not(.hh-note){display:none}
-  .hh-tools{bottom:6px;right:8px}
   .hh-result{padding:48px 12px 8px}
   .hh-shell .hh-result .hh-result-card{width:min(320px,40vw);padding:10px 14px;gap:4px}
   .hh-result-card .hh-eyebrow{font-size:10px;letter-spacing:1.5px}
