@@ -2,15 +2,23 @@
 // world, lets each one settle (hazards included), scores the fort it leaves (height, den, pillars for the roof
 // still to come, nothing lost, nothing wobbling) and plays the best; after every piece it tries bedtime on a copy
 // and goes to bed as soon as that would earn the most stars it can. It proves every night can be passed, that the
-// second star (den or high line) is reachable, and that the third-star par is set from its real play (par is at
-// least what the bot used). A naive bot that drops everything in the middle, unturned, must fail the later nights.
-// `--quick` plays the first night of each room only; `--night <id>` plays one; `--verbose` prints every move.
+// second star (den or high line) is reachable, and that the third-star par is set from its real play (par is what
+// the full search used). Den nights are played with three pairs of pillars before the blanket. A naive bot that drops
+// everything in the middle, unturned, must fail the later nights. `--quick` plays the first night of each room only,
+// with a coarser search allowed three pieces over par; `--night <id>` plays one; `--verbose` prints every move;
+// `--measure` plays the whole basket chasing the biggest den (or height) that stands past the line.
 import assert from 'node:assert/strict';
 import { FortGame, NIGHTS, PIECES, RUG, pieceExtent } from '../.checks/fort-game.js';
 
 const args = process.argv.slice(2);
 const AHEAD = Number(process.env.AHEAD ?? 0);
-const PILLAR = 1.55;
+/**
+ * Den nights: the pillar pairs tried, as each pillar's distance from the middle and how wide its flat top must be (a
+ * narrow top lets a cushion, a book or a bolster stand on end as a pillar), and how tall a pillar is built.
+ */
+const PILLARS = [{ pillar: 1.25, fw: 0.15 }, { pillar: 1.55, fw: 0.35 }, { pillar: 1.85, fw: 0.15 }], PILLAR_H = 1.6;
+/** The share of the eighteen nights after the living room the naive middle-stacker must fail: it failed all 18 on the last full run, and the check allows one. */
+const NAIVE_FAILS = 0.94;
 const quick = args.includes('--quick'), verbose = args.includes('--verbose');
 const only = args.includes('--night') ? args[args.indexOf('--night') + 1] : null;
 
@@ -52,10 +60,10 @@ function pillars(g) {
 }
 
 /** Building a pillar for the blanket: a flat top about 1.6 to 2.2 up, the same height as the other pillar. */
-function pillarScore(g, near, base) {
-  let flat = Infinity; for (let d = -0.35; d <= 0.351; d += 0.07) flat = Math.min(flat, g.colTop(near + d));
-  const other = g.colTop(-near), h = Math.min(flat, 2.2);
-  return h * 4 - Math.max(0, flat - 2.3) * 3 - (other > 1 ? Math.abs(flat - other) * 1.5 : 0) - (g.lostCount - base.lost) * 50 - g.world.motion() * 2 - Math.max(colMid(g), 0) * 3;
+function pillarScore(g, near, base, ph = PILLAR_H, fw = 0.35) {
+  let flat = Infinity; for (let d = -fw; d <= fw + 0.001; d += fw / 5) flat = Math.min(flat, g.colTop(near + d));
+  const other = g.colTop(-near), h = Math.min(flat, ph + 0.6);
+  return h * 4 - Math.max(0, flat - ph - 0.7) * 3 - (other > 1 ? Math.abs(flat - other) * 1.5 : 0) - (g.lostCount - base.lost) * 50 - g.world.motion() * 2 - Math.max(colMid(g), 0) * 3;
 }
 const colMid = (g) => Math.max(g.colTop(-0.3), g.colTop(0), g.colTop(0.3));
 
@@ -79,7 +87,7 @@ function score(g, night, base) {
 function tryBed(g) { const c = g.clone(); c.bedtime(); for (let i = 0; i < 330 && !c.result; i++) c.step(); return c.result; }
 
 /** Every drop spot and turn for a piece, each played out on a copy and scored. */
-function tries(g, kind, step, night, base, near = null, centre = null) {
+function tries(g, kind, step, night, base, near = null, centre = null, ph = PILLAR_H, fw = 0.35) {
   const out = [];
   for (const r of rotations(kind)) {
     const ext = pieceExtent(kind, r * PIECES[kind].step), lim = RUG - Math.min(ext.w, RUG * 0.8) + 0.4;
@@ -93,7 +101,7 @@ function tries(g, kind, step, night, base, near = null, centre = null) {
       c.aim(x);
       while (!c.canDrop()) c.step();
       c.drop(); settle(c);
-      out.push({ s: near !== null ? pillarScore(c, near, base) : score(c, night, base), r, x, c });
+      out.push({ s: near !== null ? pillarScore(c, near, base, ph, fw) : score(c, night, base), r, x, c });
     }
   }
   // the few best are shaken a little: a spot that a nudge would topple is worth less
@@ -106,9 +114,13 @@ function tries(g, kind, step, night, base, near = null, centre = null) {
 function towerX(g) { let bx = 0, bt = -1; for (let x = -RUG + 0.5; x <= RUG - 0.5; x += 0.25) { const t = g.colTop(x); if (t > bt + 0.05 || (Math.abs(t - bt) <= 0.05 && Math.abs(x) < Math.abs(bx))) { bt = Math.max(bt, t); bx = x; } } return bt < 0.1 ? 0 : bx; }
 
 export function playSearch(id, opts = {}) {
-  const night = NIGHTS.find((n) => n.id === id), g = new FortGame(id), step = opts.step ?? 0.3;
+  const real = NIGHTS.find((n) => n.id === id), g = new FortGame(id), step = opts.step ?? 0.3;
+  // measuring: the bot chases as big a den (or as tall a fort) as it can and plays the whole basket, keeping the
+  // best fort that would stand past the line at bedtime
+  const night = opts.measure ? { ...real, den: real.den !== undefined ? 50 : undefined, high: real.den !== undefined ? real.high : 50 } : real;
+  const PILLAR = opts.pillar ?? PILLARS[1].pillar, ph = opts.ph ?? PILLAR_H, fw = opts.fw ?? 0.35;
   const maxStars = 3;
-  let best = null;
+  let best = null, most = null;
   while (g.phase === 'build') {
     if (!g.held) break;
     const kind = g.held.kind, base = { lost: g.lostCount };
@@ -116,10 +128,10 @@ export function playSearch(id, opts = {}) {
     let near = null;
     if (night.den !== undefined && kind !== 'blanket' && g.queue.includes('blanket')) {
       const L = g.colTop(-PILLAR), R = g.colTop(PILLAR);
-      if (Math.min(L, R) < 1.6) near = L <= R ? -PILLAR : PILLAR;
+      if (Math.min(L, R) < ph) near = L <= R ? -PILLAR : PILLAR;
     }
     const centre = opts.plan === 'centre' && night.den === undefined ? towerX(g) : null;
-    const first = tries(g, kind, step, night, base, near, centre).sort((p, q) => q.s - p.s);
+    const first = tries(g, kind, step, night, base, near, centre, ph, fw).sort((p, q) => q.s - p.s);
     let top = first[0];
     // look one piece ahead from the few best spots: a pillar is worth more once something can sit across it
     const nextKind = g.queue[0];
@@ -137,12 +149,16 @@ export function playSearch(id, opts = {}) {
     if (verbose) console.log(`  ${id} #${g.used} ${kind} r${top.r} x${top.x.toFixed(2)} → top ${g.top().toFixed(2)} den ${g.den().area.toFixed(2)} lost ${g.lostCount}`);
     const r = tryBed(g);
     if (r && r.stars > 0 && (!best || r.stars > best.stars)) best = { ...r };
+    if (opts.measure) {
+      if (r && r.height >= real.line) { const v = real.den !== undefined ? r.den : r.height; if (!most || v > most.v) most = { v, used: r.used, height: r.height, den: r.den }; }
+      continue;
+    }
     const can2 = r && r.goals[0] && r.goals[1];
     if (can2 || (r && r.stars >= maxStars)) break;
   }
   if (g.phase === 'build') g.bedtime();
   for (let i = 0; i < 400 && !g.result; i++) g.step();
-  return { id, result: g.result, log: g.log, ticks: g.tick };
+  return { id, result: g.result, log: g.log, ticks: g.tick, most };
 }
 
 export function playNaive(id) {
@@ -155,27 +171,39 @@ export function playNaive(id) {
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
+  const measure = args.includes('--measure'), json = args.includes('--json');
   const list = only ? NIGHTS.filter((n) => n.id === only) : quick ? NIGHTS.filter((n, i) => i % 6 === 0) : NIGHTS;
   const t0 = Date.now(), rows = [];
   for (const n of list) {
-    // two plans, each a full search: spread out over the rug, or keep building on the tallest tower; the better counts
-    const plans = ['spread', 'centre'].map((plan) => playSearch(n.id, { step: quick ? 0.5 : 0.35, plan }));
+    // several plans, each a full search; the best counts. Without a den: spread out over the rug, or keep building
+    // on the tallest tower. With one: a pair of pillars at each spacing, then the blanket across them.
+    const opts = process.env.PLANS ? JSON.parse(process.env.PLANS) : n.den !== undefined ? PILLARS.map((p) => ({ plan: 'spread', ...p })) : [{ plan: 'spread' }, { plan: 'centre' }];
+    const plans = opts.map((o) => playSearch(n.id, { step: quick ? 0.5 : 0.35, measure, ...o }));
+    if (measure) {
+      const m = plans.map((p) => p.most).filter(Boolean).sort((a, b) => b.v - a.v)[0];
+      console.log(json ? JSON.stringify({ id: n.id, most: m, each: plans.map((p) => p.most?.v ?? null) }) : `${n.id.padEnd(3)} ${n.name.padEnd(24)} most ${n.den !== undefined ? 'den' : 'height'} ${m ? m.v.toFixed(2) : '-'} (height ${m?.height.toFixed(2)}, den ${m?.den.toFixed(2)}, ${m?.used} pieces) each ${plans.map((p) => p.most?.v.toFixed(2) ?? '-').join(' ')}`);
+      continue;
+    }
     const better = (a, b) => (b.result.stars > a.result.stars || (b.result.stars === a.result.stars && b.result.used < a.result.used) ? b : a);
     const r = plans.reduce(better);
     const nv = playNaive(n.id);
     rows.push({ id: n.id, ...r.result, naive: nv?.stars ?? 0 });
-    console.log(`${n.id.padEnd(3)} ${n.name.padEnd(24)} stars ${r.result.stars} [${r.result.goals.map((x) => (x ? 'y' : '-')).join('')}] used ${r.result.used}/${n.par} height ${r.result.height.toFixed(2)}/${n.line}${n.high ? '|' + n.high : ''} den ${r.result.den.toFixed(2)}${n.den !== undefined ? '/' + n.den : ''}  naive ${nv?.stars ?? 0} (${nv?.height.toFixed(2)})`);
+    if (json) console.log(JSON.stringify({ id: n.id, ...r.result, each: plans.map((p) => [p.result.stars, p.result.used]), naive: nv?.stars ?? 0, naiveH: nv?.height, naiveDen: nv?.den }));
+    else console.log(`${n.id.padEnd(3)} ${n.name.padEnd(24)} stars ${r.result.stars} [${r.result.goals.map((x) => (x ? 'y' : '-')).join('')}] used ${r.result.used}/${n.par} height ${r.result.height.toFixed(2)}/${n.line}${n.high ? '|' + n.high : ''} den ${r.result.den.toFixed(2)}${n.den !== undefined ? '/' + n.den : ''}  naive ${nv?.stars ?? 0} (${nv?.height.toFixed(2)})`);
   }
+  if (measure) process.exit(0);
   for (const r of rows) {
     const n = NIGHTS.find((x) => x.id === r.id);
     assert.ok(r.stars >= 1, `${r.id}: the search bot passes`);
     assert.ok(r.goals[1], `${r.id}: the second star is reachable`);
-    assert.ok(r.used <= n.par, `${r.id}: par ${n.par} is at least what the bot used (${r.used})`);
+    // par is what the full search used; the coarser quick search needs up to three more (Book stacks: 12 to 9)
+    const slack = quick ? 3 : 0;
+    assert.ok(r.used <= n.par + slack, `${r.id}: par ${n.par}${slack ? ` (+${slack} for the quick search)` : ''} covers what the bot used (${r.used})`);
   }
   if (!quick && !only) {
     const late = rows.filter((r) => NIGHTS.findIndex((n) => n.id === r.id) >= 6);
     const fails = late.filter((r) => r.naive === 0).length;
-    assert.ok(fails >= late.length * 0.7, `the naive bot fails most later nights (${fails}/${late.length})`);
+    assert.ok(fails >= late.length * NAIVE_FAILS, `the naive bot fails the later nights (${fails}/${late.length})`);
   }
   console.log(`fort bots: ${rows.length} nights, ok in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
 }

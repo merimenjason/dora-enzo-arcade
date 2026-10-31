@@ -1,8 +1,9 @@
 // Pillow Fort in the browser: the arcade card and the menu, the first night built with a real mouse (aim, click to
 // drop) and the keyboard (arrows, turn, Space, B for bedtime), the result and its save; restart; progress kept across
 // a reload; a corrupt save; the nights screen with locked nights; the free build shelf; the ending; the framing at
-// 1280×800 and 1920×1080 (Dora and Enzo in view, a clear size, clear of the rug, the buttons and each other); and
-// phones held upright and sideways, building by touch (drag to aim, the Drop button).
+// 1280×800 and 1920×1080 (Dora and Enzo in view, a clear size, clear of the rug, the buttons and each other); the
+// tallest night's camera (big pieces, panning up, easing out at bedtime); the bedtime buttons on one row on small
+// sideways phones; and phones held upright and sideways, building by touch (drag to aim, the Drop button).
 // Needs `npm run dev` on port 3000 (or BASE_URL) and Playwright.
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
@@ -157,6 +158,58 @@ try {
   await wide.waitForTimeout(800);
   await framing(wide, '1920×1080', 200);
   await wide.close();
+
+  // ---- the tallest night: the pieces stay as big as on a short night, the camera pans up with the fort and eases
+  // back out to the whole fort at bedtime
+  for (const vp of [{ width: 1280, height: 800 }, { width: 1920, height: 1080 }]) {
+    const p = await open(vp);
+    await p.goto(base + '/fort'); await ready(p);
+    await p.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, saveWith(ids.slice(0, 18))]);
+    await p.reload(); await ready(p);
+    await p.getByRole('button', { name: /The nights/ }).click();
+    await p.locator('.pw-tab').first().click(); await p.locator('.pw-card').first().click();
+    await p.waitForFunction(() => window.__fort().night === 'l1');
+    await p.waitForTimeout(400);
+    const short = (await p.evaluate(() => window.__fortScene())).s;
+    await p.keyboard.press('Escape');
+    await p.locator('.pw-tab').nth(1).click(); await p.locator('.pw-card').nth(4).click();
+    await p.waitForFunction(() => window.__fort().night === 'a5');
+    await dismissTip(p); await p.waitForTimeout(400);
+    const tallNight = (await p.evaluate(() => window.__fortScene())).s;
+    assert.ok(tallNight >= short * 0.97, `${vp.width}×${vp.height}: Trunk tower's pieces are as big as a short night's (${Math.round(tallNight)} vs ${Math.round(short)}px a unit)`);
+    // drop pieces into the middle till the fort is tall; the camera keeps the piece and the fort's top in view
+    for (let i = 0; i < 9; i++) {
+      await canDrop(p); await p.keyboard.press('Space'); await p.waitForTimeout(700);
+      const v = await p.evaluate(() => { const f = window.__fort(), s = window.__fortScene(), c = document.querySelector('.pw-canvas').getBoundingClientRect(); return { f, s, top: document.querySelector('.pw-bar').getBoundingClientRect().bottom - c.top, H: c.height }; });
+      if (v.f.held) { const y = v.s.rug.y - (v.f.top) * v.s.s; assert.ok(y > v.top && y < v.H, `${vp.width}×${vp.height}: the fort's top stays in view (${Math.round(y)})`); }
+    }
+    const built = await p.evaluate(() => window.__fortScene());
+    await p.keyboard.press('b');
+    await p.locator('.pw-result').waitFor({ timeout: 20000 }); await p.waitForTimeout(1500);
+    const done = await p.evaluate(() => window.__fortScene());
+    assert.ok(done.cam < 0.05, `${vp.width}×${vp.height}: at bedtime the camera is back down on the rug (${done.cam.toFixed(2)}, ${built.cam.toFixed(2)} while building)`);
+    await p.screenshot({ path: process.env.SHOTS ? `${process.env.SHOTS}/e2e-a5-${vp.width}.png` : '/dev/null' }).catch(() => {});
+    await p.close();
+  }
+
+  // ---- the bedtime card's buttons share one row on small sideways phones
+  for (const vp of [{ width: 667, height: 375 }, { width: 844, height: 390 }]) {
+    const p = await open(vp, true);
+    await p.goto(base + '/fort'); await ready(p);
+    await p.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, saveWith([])]);
+    await p.reload(); await ready(p);
+    await p.locator('.pw-menu-buttons .pw-primary').tap();
+    await p.waitForFunction(() => window.__fort().night === 'l1');
+    for (let i = 0; i < 6; i++) { await canDrop(p); await p.locator('.pw-drop').tap(); await p.waitForTimeout(250); }
+    await p.waitForTimeout(800); await p.locator('.pw-bed').tap();
+    await p.locator('.pw-result-buttons').waitFor({ timeout: 20000 }); await p.waitForTimeout(600);
+    const rows = await p.evaluate(() => new Set([...document.querySelectorAll('.pw-result-buttons button')].map((b) => Math.round(b.getBoundingClientRect().top))).size);
+    const fits = await p.evaluate(() => { const c = document.querySelector('.pw-result-card').getBoundingClientRect(); return c.bottom <= innerHeight + 1 && [...document.querySelectorAll('.pw-result-buttons button')].every((b) => { const r = b.getBoundingClientRect(); return r.left >= c.left && r.right <= c.right; }); });
+    assert.equal(rows, 1, `${vp.width}×${vp.height}: the bedtime buttons sit on one row`);
+    assert.ok(fits, `${vp.width}×${vp.height}: the bedtime card and its buttons fit`);
+    await p.screenshot({ path: process.env.SHOTS ? `${process.env.SHOTS}/e2e-card-${vp.width}.png` : '/dev/null' }).catch(() => {});
+    await p.close();
+  }
 
   // ---- phones: upright and sideways, by touch
   for (const [vp, label] of [[{ width: 390, height: 844 }, 'phone upright'], [{ width: 844, height: 390 }, 'phone sideways']]) {

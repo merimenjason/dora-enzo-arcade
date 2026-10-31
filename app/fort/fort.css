@@ -121,6 +121,8 @@
 }
 @media (max-width:760px) and (orientation:portrait){
   .pw-result{padding:52px 10px 10px}
+  .pw-result-buttons{flex-wrap:nowrap;gap:6px}
+  .pw-shell .pw-result-buttons button{min-width:0;padding:9px 10px;white-space:nowrap}
   .pw-menu{align-items:flex-end;justify-content:center;padding:14px}
   .pw-menu-art img,.pw-menu-art canvas{object-position:28% 0;height:56%}
   .pw-menu-card{width:100%;padding:16px 18px 14px;gap:9px}
@@ -148,11 +150,13 @@
   .pw-toast{bottom:56px}
   .pw-shelf{bottom:6px;left:8px;transform:none;max-width:60vw}
   .pw-result{padding:50px 12px 8px}
-  .pw-shell .pw-result .pw-result-card{width:min(330px,42vw);padding:10px 14px;gap:4px;outline-offset:-6px}
+  .pw-shell .pw-result .pw-result-card{width:min(340px,46vw);padding:10px 14px;gap:4px;outline-offset:-6px}
   .pw-result-card .pw-eyebrow{font-size:10px;letter-spacing:1.5px}
   .pw-result-card .pw-stars i{font-size:24px}
   .pw-result-card h2{font-size:19px}
   .pw-result-card .pw-goals li{font-size:12px;padding:3px 8px}
   .pw-result-card .pw-note{font-size:12px}
-  .pw-shell .pw-result-buttons button{min-height:34px;padding:5px 10px;font-size:13px}
+  /* the three buttons share one row, even on a small sideways phone */
+  .pw-result-buttons{flex-wrap:nowrap;gap:5px}
+  .pw-shell .pw-result-buttons button{min-height:34px;min-width:0;padding:5px 9px;font-size:13px;white-space:nowrap}
 }

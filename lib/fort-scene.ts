@@ -70,6 +70,10 @@ const ROOM_FOCUS: Record<RoomId, number> = { living: 0.17, attic: 0.25, library:
 /** Dora and Enzo beside the rug on wide screens: their height in world units, and where they stand. Their fur on the
  * fort side stays 0.3 past the rug's edge, so they never cover a piece or a line label. */
 const CHIN = 1.9, CHIN_X = RUG + 0.3 + CHIN * 0.44;
+/** The most world height the camera fits while building. A taller night keeps its pieces this big and pans up with
+ * the fort instead (the fort's top, the piece hanging over it and the next line stay in view); at bedtime it eases
+ * back out to the whole fort. */
+const COMFORT = 5.8;
 
 type Puff = { x: number; y: number; vx: number; vy: number; life: number; max: number; r: number; c: string; kind: 'fluff' | 'star' | 'z' };
 type Squish = { v: number; t: number };
@@ -113,13 +117,25 @@ export class FortScene {
   setGame(g: FortGame | null, room: RoomId) { this.game = g; this.room = room; this.puffs = []; this.squish.clear(); this.catAnim = null; this.flash = 0; this.yawn = 0; this.camY = 0; this.reserve = { right: 0, top: 0 }; this.viewH = this.wantView(); this.place(true); }
 
   /**
-   * How much world height the camera wants. The night's star line plus room for a piece hanging over a fort that
-   * reaches it sets the zoom for the whole night; only a fort built past that pulls the camera back.
+   * How much world height the camera wants. While building, the night's star line plus room for a piece hanging over
+   * a fort that reaches it, but never more than COMFORT: past that the camera pans (see `wantTop`) rather than
+   * shrinking the pieces. At bedtime it eases out to show the whole fort and the star line.
    */
   private wantView() {
     const g = this.game; if (!g) return 6;
-    const nt = g.night, top = g.top(), held = g.held ? g.hoverY(g.held.kind, g.held.rot) + pieceExtent(g.held.kind, g.held.rot).h : 0;
-    return Math.max(nt ? Math.max(5.2, Math.max(nt.line, nt.high) + 2.2) : 6.2, top + 2.4, held + 0.35);
+    const nt = g.night, view = Math.min(COMFORT, nt ? Math.max(5.2, Math.max(nt.line, nt.high) + 2.2) : 6.2);
+    if (g.phase === 'build') return view;
+    return Math.max(view, g.top() + 1.3, (nt?.high ?? 0) + 0.7);
+  }
+  /**
+   * The world height the camera's top must reach while building: the piece hanging over the fort, the fort's top, and
+   * the next line still to reach (with room for its label). The camera pans up just enough to show it.
+   */
+  private wantTop() {
+    const g = this.game; if (!g || g.phase !== 'build') return 0;
+    const nt = g.night, top = g.top(), held = g.held ? g.hoverY(g.held.kind, g.held.rot) + pieceExtent(g.held.kind, g.held.rot).h + 0.35 : 0;
+    const next = nt ? [nt.line, nt.high].filter((h) => h > top).sort((a, b) => a - b)[0] : undefined;
+    return Math.max(held, top + 0.6, next !== undefined ? next + 0.45 : 0);
   }
 
   /** Fits the rug and the two of them across, and the night's lines (with headroom) up the height. */
@@ -129,11 +145,11 @@ export class FortScene {
     const short = !tall && typeof window !== 'undefined' && window.innerHeight <= 520;
     const want = this.wantView();
     this.viewH = snap ? want : this.viewH + (want - this.viewH) * 0.06;
-    let s: number, ox: number, oy: number;
+    let s: number, ox: number, oy: number, shown: number;
     if (tall) {
       const top = Math.max(50, this.reserve.top), bottom = 64 + Math.min(140, W * 0.36);
       s = Math.max(8, Math.min(W / (2 * (RUG + 0.5)), (H - top - bottom) / this.viewH));
-      ox = W / 2; oy = H - bottom;
+      ox = W / 2; oy = H - bottom; shown = (H - top - bottom) / s;
     } else {
       const right = Math.max(this.reserve.right, short ? 118 : 0), top = short ? 10 : 16;
       const bottom = short ? Math.max(18, H * 0.06) : 66 + Math.max(8, H * 0.02);
@@ -143,11 +159,15 @@ export class FortScene {
       const mid = admire ? (admire[0] + admire[1]) / 2 : 0, reach = admire ? Math.max(1.4, (admire[1] - admire[0]) / 2) + 0.3 + CHIN * 0.44 : CHIN_X;
       const vh = admire && g ? Math.max(4, g.top() + 1.3, (g.night?.high ?? 0) + 0.7) : this.viewH;
       s = Math.max(8, Math.min((W - right) / (2 * (reach + CHIN * 0.42)), (H - top - bottom) / vh));
-      ox = (W - right) / 2 - mid * s; oy = H - bottom;
+      ox = (W - right) / 2 - mid * s; oy = H - bottom; shown = (H - top - bottom) / s;
       // on a tall night the height sets the zoom and leaves width spare: Dora and Enzo grow into it
       const spare = (W - right) / 2 / s, kc = admire ? CHIN : Math.max(CHIN, Math.min(2.6, (spare - RUG - 0.3) / 0.86));
       this.chinAt = { mid, reach: admire ? reach : RUG + 0.3 + 0.44 * kc, k: kc };
     }
+    // the pan: the floor slides down out of view while the active part of a tall fort stays framed
+    const cam = Math.max(0, this.wantTop() - shown);
+    this.camY = snap ? cam : this.camY + (cam - this.camY) * 0.06;
+    oy += this.camY * s;
     if (snap) { L.s = s; L.ox = ox; L.oy = oy; }
     else { const k = 0.14; L.s += (s - L.s) * k; L.ox += (ox - L.ox) * k; L.oy += (oy - L.oy) * k; }
     L.tall = tall; s = L.s; ox = L.ox; oy = L.oy;
@@ -157,7 +177,9 @@ export class FortScene {
     } else {
       const ch = Math.min(this.chinAt.k * s, H * 0.42);
       const { mid, reach } = this.chinAt;
-      L.dora = { x: ox + (mid - reach) * s, y: oy + s * 0.12, h: ch }; L.enzo = { x: ox + (mid + reach) * s, y: oy + s * 0.12, h: ch };
+      // when the camera pans up past the floor they stay at the bottom edge, watching, with no more than a third cut off
+      const fy = Math.min(oy + s * 0.12, H + ch * 0.32);
+      L.dora = { x: ox + (mid - reach) * s, y: fy, h: ch }; L.enzo = { x: ox + (mid + reach) * s, y: fy, h: ch };
     }
   }
 
@@ -235,7 +257,7 @@ export class FortScene {
       const k = Math.max(W / iw, (L.tall ? L.oy + 6 : H) / ih), dw = iw * k, dh = ih * k;
       const dx = Math.max(W - dw, Math.min(0, W / 2 - (L.tall ? ROOM_FOCUS[this.room] : 0.5) * dw));
       // the camera rises with the fort; the backdrop drifts a little with it
-      const lift = Math.min(0.12, Math.max(0, (this.viewH - 7) / 40)) * H;
+      const lift = Math.min(0.12, Math.max(0, (this.viewH + this.camY - 7) / 40)) * H;
       const dy = dh <= H ? 0 : Math.max(H - dh, Math.min(0, (H - dh) / 2 + lift));
       c.drawImage(bg, dx, dy, dw, dh);
       c.fillStyle = 'rgba(30,18,24,0.18)'; c.fillRect(0, 0, W, H);
@@ -444,7 +466,7 @@ export class FortScene {
   /** For the browser checks: where things are on screen. */
   boxes() {
     const L = this.layout, d = L.dora, e = L.enzo;
-    return { W: this.W, H: this.H, s: L.s, tall: L.tall, rug: { x0: L.ox - RUG * L.s, x1: L.ox + RUG * L.s, y: L.oy },
+    return { W: this.W, H: this.H, s: L.s, tall: L.tall, cam: this.camY, rug: { x0: L.ox - RUG * L.s, x1: L.ox + RUG * L.s, y: L.oy },
       dora: { x: d.x - d.h / 2, y: d.y - d.h, w: d.h, h: d.h }, enzo: { x: e.x - e.h / 2, y: e.y - e.h, w: e.h, h: e.h } };
   }
 }
