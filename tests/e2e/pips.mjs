@@ -3,8 +3,11 @@
 // by keyboard; the core interactions (tap a die then a tool, a two-dice tool waiting and giving its dice back, picking
 // a target, the re-roll cup); the save across a reload; a corrupt save; the ending; the framing at 1280×800 and
 // 1920×1080 (Dora and Enzo a clear size, nothing over them); and phones held upright and sideways, a battle won by
-// touch with the dice, the tools, the End turn button and the foe all on screen. Needs `npm run dev` on port 3000 and
-// Playwright. Set SHOTS=<dir> to keep screenshots.
+// touch with the dice, the tools, the End turn button and the foe all on screen; the menu and the ending fitting
+// without a scroll on phones (390×844, 360×740, 844×390, 667×375) and on desktop, nothing over Dora's and Enzo's
+// faces; and the sound: silent until the first click, then effects scheduled for the dice and the hits, music
+// playing, and the Sound and Music toggles silencing them and kept across a reload. Needs `npm run dev` on port 3000
+// and Playwright. Set SHOTS=<dir> to keep screenshots.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { chromium } from 'playwright';
@@ -87,6 +90,21 @@ async function winBattle(page, how) {
   }
   return st(page);
 }
+/** Where Dora's and Enzo's faces land on screen in a painting (`.lp-art`), from where they sit in the 3:2 picture. */
+const FACES = { title: [0.3, 0.3, 0.73, 0.58], ending: [0.37, 0.2, 0.66, 0.5] };
+async function faces(page, sel, which) {
+  return page.evaluate(([sel, f]) => {
+    const el = document.querySelector(sel), r = el.getBoundingClientRect();
+    const pic = el.querySelector('img') ?? el.querySelector('canvas');
+    const [px, py] = getComputedStyle(pic).objectPosition.split(' ').map((v) => parseFloat(v) / 100);
+    const k = Math.max(r.width / 1536, r.height / 1024), dw = 1536 * k, dh = 1024 * k;
+    const ox = r.left + (r.width - dw) * px, oy = r.top + (r.height - dh) * py;
+    return { x: ox + f[0] * dw, y: oy + f[1] * dh, w: (f[2] - f[0]) * dw, h: (f[3] - f[1]) * dh, art: { x: r.left, y: r.top, w: r.width, h: r.height } };
+  }, [sel, FACES[which]]);
+}
+const within = (a, b) => a.x >= b.x - 1 && a.y >= b.y - 1 && a.x + a.w <= b.x + b.w + 1 && a.y + a.h <= b.y + b.h + 1;
+const noScroll = (page, sel) => page.evaluate((sel) => { const e = document.querySelector(sel); return e.scrollHeight <= e.clientHeight + 1 && e.scrollWidth <= e.clientWidth + 1 && document.documentElement.scrollHeight <= window.innerHeight + 1; }, sel);
+
 async function startSeeded(page, seed, lead = 'enzo') {
   await page.evaluate(([s, l]) => window.__pips && window.__pipsStart(s, l), [seed, lead]);
   await page.waitForSelector('.lp-node.is-can');
@@ -237,6 +255,89 @@ try {
     assert.ok(!(await page.getByRole('radio', { name: /Side by Side/ }).isDisabled()), 'a win unlocks Side by Side');
     console.log('PASS the ending, and a win unlocks Side by Side and Foggier');
     await page.context().close();
+  }
+
+  // ---- the ending and the menu fit without a scroll, phones and desktop, with Dora's and Enzo's faces clear
+  for (const [w, h] of [[390, 844], [360, 740], [844, 390], [667, 375], [1280, 800], [1920, 1080]]) {
+    const phone = w < 1000, name = `${w}×${h}`;
+    const page = await open({ width: w, height: h }, phone);
+    await page.goto(base + '/pips'); await ready(page);
+    const bar = await box(page.locator('.lp-bar'));
+    // a first win: the ending with every piece of news a first win brings
+    await startSeeded(page, 99, 'dora');
+    await page.evaluate(() => window.__pipsDebug((r) => { r.area = 2; r.battle = null; r.screen = 'charm'; r.offer = { kind: 'charm', charms: ['scarf', 'die', 'belt'] }; }));
+    await page.locator('.lp-charmcard').first().click();
+    await page.waitForSelector('.lp-finale'); await page.waitForTimeout(300);
+    assert.ok(await page.locator('.lp-news').count() >= 3, `the first win's news shows (${name})`);
+    assert.ok(await noScroll(page, '.lp-scene'), `the ending fits without a scroll (${name})`);
+    const back = await box(page.getByRole('button', { name: 'Back to the fair gate' }));
+    assert.ok(inside(back, w, h), `the way back is on screen (${name})`);
+    let f = await faces(page, '.lp-finale-art', 'ending');
+    assert.ok(within(f, f.art) && inside(f, w, h) && f.y >= bar.y + bar.h, `Dora's and Enzo's faces show in the ending painting (${name})`);
+    assert.ok(!overlaps(f, await box(page.locator('.lp-finale-text'))), `the words clear their faces (${name})`);
+    await shot(page, `12-fit-${w}x${h}-ending`);
+    // the tallest menu: every lead open, the Foggier row, and a run to continue
+    await page.getByRole('button', { name: 'Back to the fair gate' }).click();
+    await startSeeded(page, 7, 'dora');
+    await page.locator('.lp-back').click();
+    await page.getByRole('button', { name: 'Continue the run' }).waitFor();
+    assert.ok(await page.locator('.lp-fog').count() === 1, `the Foggier row shows (${name})`);
+    assert.ok(await noScroll(page, '.lp-menu'), `the menu fits without a scroll (${name})`);
+    assert.ok(inside(await box(page.locator('.lp-menu-card')), w, h), `the menu card is on screen (${name})`);
+    f = await faces(page, '.lp-menu-art', 'title');
+    assert.ok(within(f, f.art) && inside(f, w, h) && f.y >= bar.y + bar.h, `Dora's and Enzo's faces show in the title painting (${name})`);
+    assert.ok(!overlaps(f, await box(page.locator('.lp-menu-card'))), `the menu card clears their faces (${name})`);
+    await shot(page, `13-fit-${w}x${h}-menu`);
+    await page.context().close();
+  }
+  console.log('PASS the ending and the menu fit without a scroll at every size, faces clear');
+
+  // ---- the sound: a context on the first click, effects for dice and hits, music, the toggles kept
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    await ctx.addInitScript(() => {
+      const A = window.AudioContext, log = (window.__aud = { made: 0, ctx: null, starts: 0, an: null });
+      window.AudioContext = class extends A { constructor(...a) { super(...a); log.made++; log.ctx = this; log.an = this.createAnalyser(); } };
+      const conn = AudioNode.prototype.connect;
+      AudioNode.prototype.connect = function (t, ...r) { const out = conn.call(this, t, ...r); if (t instanceof AudioDestinationNode && log.an && this !== log.an) conn.call(this, log.an); return out; };
+      for (const N of [OscillatorNode, AudioBufferSourceNode]) { const st = N.prototype.start; N.prototype.start = function (...a) { log.starts++; return st.apply(this, a); }; }
+      // the loudest sample reaching the speakers over the next `ms`
+      window.__peak = (ms) => new Promise((res) => { const an = log.an, d = new Float32Array(an.fftSize); let pk = 0; const t0 = performance.now(); const f = () => { an.getFloatTimeDomainData(d); for (const x of d) pk = Math.max(pk, Math.abs(x)); if (performance.now() - t0 < ms) setTimeout(f, 20); else res(pk); }; f(); });
+    });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => errors.push(e.message)); page.setDefaultTimeout(30000);
+    const aud = () => page.evaluate(() => ({ made: window.__aud.made, state: window.__aud.ctx?.state ?? 'none', starts: window.__aud.starts }));
+    await page.goto(base + '/pips'); await ready(page);
+    await page.waitForTimeout(300);
+    assert.equal((await aud()).made, 0, 'no sound before the first click');
+    await page.getByRole('radio', { name: /Enzo leads/ }).click();
+    await page.waitForTimeout(300);
+    assert.equal((await aud()).state, 'running', 'the first click starts the sound');
+    assert.ok(await page.evaluate(() => window.__peak(1500)) > 0.003, 'the menu music plays');
+    await page.getByRole('button', { name: 'Start a run' }).click(); await page.waitForSelector('.lp-node.is-can');
+    let a0 = (await aud()).starts;
+    await page.locator('.lp-node.is-can').first().click();
+    await page.waitForSelector('.lp-felt .lp-die'); await idle(page);
+    assert.ok((await aud()).starts - a0 >= 20, 'the dice clatter onto the felt');
+    await page.getByRole('button', { name: 'Music' }).click(); await page.waitForTimeout(700);
+    assert.ok(await page.evaluate(() => window.__peak(600)) < 0.002, 'Music off: quiet');
+    a0 = (await aud()).starts;
+    const hit = page.evaluate(() => window.__peak(900));
+    await page.locator('.lp-felt .lp-die').first().click(); await page.locator('.lp-tool[data-tool="sling"]').click();
+    assert.ok(await hit > 0.05 && (await aud()).starts > a0, 'a die into the Sling lands with a thwack');
+    await idle(page);
+    await page.getByRole('button', { name: 'Sound' }).click(); await page.waitForTimeout(300);
+    a0 = (await aud()).starts;
+    const quiet = page.evaluate(() => window.__peak(1500));
+    await page.locator('.lp-end').click(); await idle(page);
+    assert.ok(await quiet < 0.002 && (await aud()).starts === a0, 'Sound off: no effects while the foes act and the dice roll');
+    await page.reload(); await ready(page);
+    const kept = await page.evaluate(() => [...document.querySelectorAll('.lp-chip')].filter((b) => /^(Sound|Music)$/.test(b.textContent)).map((b) => b.getAttribute('aria-pressed')));
+    assert.deepEqual(kept, ['false', 'false'], 'the toggles are kept across a reload');
+    await page.getByRole('button', { name: 'Music' }).click(); await page.waitForTimeout(300);
+    assert.ok(await page.evaluate(() => window.__peak(1500)) > 0.003, 'Music back on after the reload plays');
+    console.log('PASS sound: starts on the first click, dice and hits heard, music plays, toggles work and are kept');
+    await ctx.close();
   }
 
   // ---- phones, upright and sideways, played by touch

@@ -42,6 +42,17 @@ function Die({ v, curse, sel, id, onDown, roll }: { v: number; curse?: boolean; 
   );
 }
 /** A painting with a drawn stand-in underneath, which shows until (or unless) the painting loads. */
+/** The page's news after a run, with every "new tools" line folded into one so the ending stays short. */
+function foldNews(news: string[]): string[] {
+  const tools: string[] = [], out: string[] = [];
+  for (const n of news) {
+    const m = /^New tools? at the fair: (.*)\.$/.exec(n);
+    if (m) tools.push(...m[1].split(' and ')); else out.push(n);
+  }
+  if (tools.length) out.unshift(`New tool${tools.length > 1 ? 's' : ''} at the fair: ${tools.length > 1 ? tools.slice(0, -1).join(', ') + ' and ' + tools[tools.length - 1] : tools[0]}.`);
+  return out;
+}
+
 function Art({ src, paint, className }: { src: string; paint: 'title' | 'ending'; className?: string }) {
   const cv = useRef<HTMLCanvasElement>(null), [got, setGot] = useState(false), [hide, setHide] = useState(false), im = useRef<HTMLImageElement>(null);
   useEffect(() => { const i = im.current; if (i && i.complete) { if (i.naturalWidth > 0) setGot(true); else setHide(true); } }, [src]);
@@ -422,6 +433,7 @@ export default function LuckyPips() {
               );
             })}
           </div>
+          <p className="lp-lead-note">{LEADS[s.lead].hp} hearts · {LEADS[s.lead].passive}</p>
           {open > 0 && (
             <div className="lp-fog" aria-label="Foggier">
               <span>Foggier</span>
@@ -586,7 +598,7 @@ export default function LuckyPips() {
           <h2>The fog lifts!</h2>
           <p>The Fog Ringmaster tips his hat, sighs a long grey sigh and drifts off over the hills. The bunting snaps bright in the sun, the carousel tinkles back to life, and every stall-keeper wants to shake Dora and Enzo by the paw. Somebody pins a blue rosette on the hay bale. It says, in wobbly letters, LUCKIEST PAWS AT THE FAIR.</p>
           <p className="lp-gain">{r.stats.battles} battles · {r.stats.turns} turns · biggest hit {r.stats.maxHit} · {r.stats.healed} hearts mended</p>
-          {news.map(n => <p key={n} className="lp-news">{n}</p>)}
+          {foldNews(news).map(n => <p key={n} className="lp-news">{n}</p>)}
           <button type="button" className="lp-big" onClick={() => { save.current.meta.ending = true; closeRun(); }}>Back to the fair gate</button>
         </div>
       </div>
@@ -598,7 +610,7 @@ export default function LuckyPips() {
           <h2>Out of hearts</h2>
           <p>The fog swirls a little thicker, and Dora and Enzo trudge home for cocoa and a nap. The fair will still be there tomorrow, and so will your dice.</p>
           <p className="lp-gain">{r.stats.battles} battles won · {r.stats.turns} turns · biggest hit {r.stats.maxHit}</p>
-          {news.map(n => <p key={n} className="lp-news">{n}</p>)}
+          {foldNews(news).map(n => <p key={n} className="lp-news">{n}</p>)}
           <button type="button" className="lp-big" onClick={closeRun}>Back to the fair gate</button>
         </div>
       </div>
@@ -657,7 +669,7 @@ export default function LuckyPips() {
           )}
           {!showStage && shown === 'map' && MapScreen({ r })}
           {!showStage && shown !== 'map' && (
-            <div className="lp-scene" style={{ backgroundImage: `url(/art/pips/${AREAS[r.area].art}.webp)` }}>
+            <div className={'lp-scene' + (shown === 'won' ? ' is-finale' : '')} style={{ backgroundImage: `url(/art/pips/${AREAS[r.area].art}.webp)` }}>
               {shown !== 'won' && (() => { const pose = shown === 'lost' ? 'hurt' : shown === 'picnic' ? 'win' : 'ready'; return <span className="lp-pair" aria-hidden="true"><img src={`/art/pips/enzo-${pose}.webp`} alt="" /><img src={`/art/pips/dora-${pose}.webp`} alt="" /></span>; })()}
               {Panel({ r })}
             </div>

@@ -73,15 +73,19 @@ Winning at a Foggier level opens the next, up to 5. Each adds one rule to those 
 
 `tests/pips-ai.mjs` holds the two players. The greedy one tries every die in every tool, and every pair or three of dice in a multi-dice tool, scores the result (hearts kept against the foes' next hits, foe hearts left after their poison and burn, block, statuses, dice still in hand, countdown progress), and looks one move further after any move that makes dice; it plays the best move until nothing helps, then ends the turn. Off the battlefield it picks stops by hearts left, rates tools from a table plus a little per-run taste, buys and gold-rims at stalls, and rests when hurt. The random player places random dice and makes random choices.
 
-Measured with `npm run bot:pips` (every tool unlocked), 31-10-2026:
+Measured with `npm run bot:pips`, 31-10-2026. "Fresh save" is what a first-time player has: the 41 starting tools in the pool and Dora or Enzo leading (Side by Side opens after a first win); "every tool" has all 48 unlocked and all three leads.
 
 | Players | Runs | Wins |
 | --- | --- | --- |
-| Greedy, Foggier 0 | 900 | 48% (Dora 50%, Enzo 51%, Side by Side 43%) |
-| Random, Foggier 0 | 900 | 0% (868 fall in the Meadow Fair) |
-| Greedy, Foggier 5 | 300 | 8% |
+| Greedy, Foggier 0, fresh save | 600 | 49% (Dora 44%, Enzo 54%) |
+| Greedy, Foggier 0, every tool | 900 | 48% (Dora 50%, Enzo 51%, Side by Side 43%) |
+| Random, Foggier 0, fresh save | 600 | 0% (570 fall in the Meadow Fair) |
+| Random, Foggier 0, every tool | 900 | 0% (868 fall in the Meadow Fair) |
+| Greedy, Foggier 5, every tool | 300 | 8% |
 
-A greedy run lasts about 50 turns over 15 or so battles; the biggest single hit in 900 runs was 48. The suite fails if the greedy player's Foggier 0 rate leaves 35–60% (or any lead leaves 28–68%), the random player wins more than 2%, Foggier 5 is not harder, any hit passes 80, a run passes 160 turns, or any tool never appears in a winning run. Tuning that got here: Dora's kit first had no multiplier tool and won 5%, so she gained Pebble Toss with the Acorn Splitter (split a 4 into two 2s for two Pebble Tosses), the Lucky Clover now also deals its die, and she heals on sixes; Enzo's Thick Fur went from 3 block to 2 and his hearts from 44 to 40; the second and third areas' foes were softened from ×1.55/×2.1 hearts and +2/+3 hits to ×1.45/×1.9 and +1/+2.
+The fresh-save numbers were first measured on 31-10-2026 (before that the suite only played with every tool unlocked). They already sat inside the band a first run should have, so nothing was retuned for them: the seven unlockable tools add choice more than strength.
+
+A greedy run lasts about 50 turns over 15 or so battles; the biggest single hit in 900 runs was 48. The suite fails if the greedy player's Foggier 0 rate with every tool leaves 35–60% (or any lead leaves 28–68%), its fresh-save rate leaves 25–50% (or Dora's or Enzo's leaves 25–60%), the random player either way wins more than 2%, Foggier 5 is not harder, any hit passes 80, a run passes 160 turns, or any tool never appears in a winning run. Tuning that got here: Dora's kit first had no multiplier tool and won 5%, so she gained Pebble Toss with the Acorn Splitter (split a 4 into two 2s for two Pebble Tosses), the Lucky Clover now also deals its die, and she heals on sixes; Enzo's Thick Fur went from 3 block to 2 and his hearts from 44 to 40; the second and third areas' foes were softened from ×1.55/×2.1 hearts and +2/+3 hits to ×1.45/×1.9 and +1/+2.
 
 ## Controls
 
@@ -90,6 +94,12 @@ Drag a die onto a tool, or tap the die and then the tool; while a die is chosen,
 ## Feel
 
 Dice tumble in from the left of the tray along a path fixed by each die's id, with a clatter of wooden knocks that thin out as they settle. A die dropping into a slot thunks; a firing tool flashes, the pair lunge on an attack, the foe winces with a white flash and a number pops; hits of 15 or more stop the action for a beat, shake the stage and burst sparks. Foes lunge when they act, and the pair flinch, with a red flash, when hit. Each area has its own fair-organ waltz, bosses a faster one, and the ending its own.
+
+The sound is silent until the first click, tap or key, which starts it (browsers allow nothing sooner); the tab going hidden pauses it. The Sound and Music toggles in the bar fade their own channel out and are saved. The browser suite checks this by listening at the speakers: no audio before the first click, the menu waltz playing after it, a clatter of knocks when the dice roll, a thwack when a die goes into the Sling, silence for effects and music once each is turned off, and both toggles still off after a reload (31-10-2026: it all played; nothing needed fixing).
+
+## Fitting the screen
+
+The menu and the ending never scroll. On phones held upright the title painting takes the space above the menu card, so the card never covers a face; each lead shows just its name, and the chosen lead's hearts and gift sit in one line below; below 760 pixels tall the story line gives its room to the painting. Held sideways, the card sits on the left and the painting beside it. The ending fills the screen: held upright, the painting takes whatever the words leave; held sideways, the painting is on the left and the words on the right. The news a first win brings (up to five lines) folds every "new tools" line into one. The browser suite checks the menu (at its tallest: a run to continue, every lead open, the Foggier row) and a first win's ending at 390×844, 360×740, 844×390, 667×375, 1280×800 and 1920×1080: no scroll, the way back on screen, and Dora's and Enzo's faces inside the painting and clear of the card or the words.
 
 ## Saving
 
