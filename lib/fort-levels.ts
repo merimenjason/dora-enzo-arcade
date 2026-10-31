@@ -42,7 +42,7 @@ export const PIECES: Record<Kind, PieceDef> = {
     shapes: () => [circle(0.32, 0, 0), circle(0.2, 0.2, 0.34), box(0.44, 0.08, 0.02, -0.02, -0.29)],
   },
   box: { name: 'Cardboard box', shapes: () => [box(1.1, 0.9, 0.03)], density: 0.35, friction: 0.75, restitution: 0.04, soft: 0.1, step: Q, angDamp: 0.8 },
-  blanket: { name: 'Blanket', rope: { links: 27, gap: 0.2, r: 0.075, mass: 0.012 }, density: 0, friction: 1.3, restitution: 0, soft: 0, step: 0 },
+  blanket: { name: 'Blanket', rope: { links: 27, gap: 0.2, r: 0.075, mass: 0.006 }, density: 0, friction: 1.3, restitution: 0, soft: 0, step: 0 },
   lights: { name: 'Fairy lights', rope: { links: 18, gap: 0.18, r: 0.05, mass: 0.008 }, density: 0, friction: 0.8, restitution: 0, soft: 0, step: 0 },
 };
 

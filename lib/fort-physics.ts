@@ -466,6 +466,29 @@ export class World {
     return best;
   }
 
+  /** The highest surface straight down at x (the top of whatever is there), or 0 for the floor. */
+  topAt(x: number, skip?: (b: Body) => boolean): number {
+    let best = 0;
+    for (const b of this.bodies) {
+      if (b.isStatic || x < b.minX || x > b.maxX || b.maxY <= best || (skip && skip(b))) continue;
+      for (let i = 0; i < b.shapes.length; i++) {
+        const sh = b.shapes[i];
+        if (sh.kind === 'circle') {
+          const cx = b.x + b.c * sh.c.x - b.s * sh.c.y, cy = b.y + b.s * sh.c.x + b.c * sh.c.y, dx = x - cx;
+          if (Math.abs(dx) <= sh.r) best = Math.max(best, cy + Math.sqrt(sh.r * sh.r - dx * dx));
+        } else {
+          const v = b.wv[i];
+          for (let k = 0; k < v.length; k++) {
+            const p = v[k], q = v[(k + 1) % v.length];
+            if ((p.x - x) * (q.x - x) > 0 || p.x === q.x) continue;
+            best = Math.max(best, p.y + ((x - p.x) / (q.x - p.x)) * (q.y - p.y));
+          }
+        }
+      }
+    }
+    return best;
+  }
+
   /** A copy that steps exactly like this one, for trying moves ahead. */
   clone(): World {
     const w = new World(), map = new Map<Body, Body>();

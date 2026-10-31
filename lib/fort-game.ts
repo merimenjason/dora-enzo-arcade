@@ -198,6 +198,9 @@ export class FortGame {
     return { area, cols };
   }
 
+  /** The top surface of the fort straight down at x. */
+  colTop(x: number) { return this.world.topAt(x, (b) => b.tag < 0 || this.pieces[b.tag].lost || !this.pieces[b.tag].landed); }
+
   /** The tallest, fastest-wobbling piece near the top, for the hold-your-breath slow-down. */
   wobble() {
     const t = this.top(); if (t < 1.5) return 0;
