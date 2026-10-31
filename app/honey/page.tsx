@@ -144,7 +144,8 @@ export default function HoneyPage() {
       raf = requestAnimationFrame(loop);
       setReady(true);
     }).catch(() => setError('The comb did not load. Try reloading the page.'));
-    const ro = new ResizeObserver(() => scene.current?.resize()); if (stage.current) ro.observe(stage.current);
+    // watch the canvas itself: the bar appearing over it changes its size without changing the stage's
+    const ro = new ResizeObserver(() => scene.current?.resize()); if (stage.current) ro.observe(stage.current); if (canvas.current) ro.observe(canvas.current);
     const hide = () => { if (document.hidden) sound.current?.suspend(); else sound.current?.resume(); };
     document.addEventListener('visibilitychange', hide);
     const w = window as unknown as Record<string, unknown>;
