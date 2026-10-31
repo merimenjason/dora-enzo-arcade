@@ -18,10 +18,10 @@ export type PieceDef = {
 };
 const Q = Math.PI / 2, E = Math.PI / 4;
 export const PIECES: Record<Kind, PieceDef> = {
-  cushion: { name: 'Cushion', shapes: () => [box(1.6, 0.62, 0.2)], density: 0.5, friction: 0.95, restitution: 0.08, soft: 1, step: Q },
-  pillow: { name: 'Little pillow', shapes: () => [box(0.92, 0.92, 0.24)], density: 0.5, friction: 0.95, restitution: 0.08, soft: 1, step: E },
-  floor: { name: 'Floor cushion', shapes: () => [box(2.5, 0.7, 0.24)], density: 0.45, friction: 1, restitution: 0.05, soft: 1, step: Q },
-  bolster: { name: 'Bolster', shapes: () => [box(2.3, 0.48, 0.2)], density: 0.6, friction: 0.85, restitution: 0.06, soft: 0.55, step: Q },
+  cushion: { name: 'Cushion', shapes: () => [box(1.6, 0.62, 0.25)], density: 0.5, friction: 0.95, restitution: 0, soft: 1, step: Q, angDamp: 2.5 },
+  pillow: { name: 'Little pillow', shapes: () => [box(0.92, 0.92, 0.24)], density: 0.5, friction: 0.95, restitution: 0, soft: 1, step: E, angDamp: 2.5 },
+  floor: { name: 'Floor cushion', shapes: () => [box(2.5, 0.7, 0.28)], density: 0.45, friction: 1, restitution: 0, soft: 1, step: Q, angDamp: 2.5 },
+  bolster: { name: 'Bolster', shapes: () => [box(2.3, 0.48, 0.21)], density: 0.6, friction: 0.85, restitution: 0, soft: 0.55, step: Q, angDamp: 1.5 },
   book: { name: 'Book', shapes: () => [box(1.25, 0.25, 0.02)], density: 1.3, friction: 0.6, restitution: 0.02, soft: 0, step: Q },
   atlas: { name: 'Big atlas', shapes: () => [box(1.9, 0.32, 0.03)], density: 1.2, friction: 0.6, restitution: 0.02, soft: 0, step: Q },
   stool: {
@@ -41,9 +41,9 @@ export const PIECES: Record<Kind, PieceDef> = {
     name: 'Rubber duck', density: 0.35, friction: 0.6, restitution: 0.55, soft: 0.3, step: E,
     shapes: () => [circle(0.32, 0, 0), circle(0.2, 0.2, 0.34), box(0.44, 0.08, 0.02, -0.02, -0.29)],
   },
-  box: { name: 'Cardboard box', shapes: () => [box(1.1, 0.9, 0.03)], density: 0.35, friction: 0.75, restitution: 0.04, soft: 0.1, step: Q },
-  blanket: { name: 'Blanket', rope: { links: 21, gap: 0.2, r: 0.075, mass: 0.07 }, density: 0, friction: 1, restitution: 0, soft: 0, step: 0 },
-  lights: { name: 'Fairy lights', rope: { links: 18, gap: 0.18, r: 0.05, mass: 0.025 }, density: 0, friction: 0.8, restitution: 0, soft: 0, step: 0 },
+  box: { name: 'Cardboard box', shapes: () => [box(1.1, 0.9, 0.03)], density: 0.35, friction: 0.75, restitution: 0.04, soft: 0.1, step: Q, angDamp: 0.8 },
+  blanket: { name: 'Blanket', rope: { links: 27, gap: 0.2, r: 0.075, mass: 0.012 }, density: 0, friction: 1.3, restitution: 0, soft: 0, step: 0 },
+  lights: { name: 'Fairy lights', rope: { links: 18, gap: 0.18, r: 0.05, mass: 0.008 }, density: 0, friction: 0.8, restitution: 0, soft: 0, step: 0 },
 };
 
 export type RoomId = 'living' | 'attic' | 'library' | 'treehouse';

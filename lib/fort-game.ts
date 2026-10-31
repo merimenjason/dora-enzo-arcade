@@ -133,12 +133,14 @@ export class FortGame {
     if (d.rope) {
       const r = d.rope, half = (r.links - 1) * r.gap / 2, group = 100 + n;
       for (let i = 0; i < r.links; i++) {
-        const b = this.world.add([{ kind: 'circle', c: { x: 0, y: 0 }, r: r.r }], { density: r.mass / (Math.PI * r.r * r.r), friction: d.friction, restitution: 0, group, linDamp: 0.4, angDamp: 4 }, h.x - half + i * r.gap, y);
-        b.vy = -1.2; bodies.push(b); if (i) this.world.link(bodies[i - 1], b, r.gap);
+        const b = this.world.add([{ kind: 'circle', c: { x: 0, y: 0 }, r: r.r }], { density: r.mass / (Math.PI * r.r * r.r), friction: d.friction, restitution: 0, group, linDamp: 2.5, angDamp: 4 }, h.x - half + i * r.gap, y);
+        // links don't spin, so a blanket grips what it lies on instead of rolling off like beads
+        b.iI = 0; b.I = 0; b.vy = -1.2; bodies.push(b); if (i) this.world.link(bodies[i - 1], b, r.gap, 22, 0.8);
       }
     } else {
       const b = this.world.add(pieceShapes(h.kind), { density: d.density, friction: d.friction, restitution: d.restitution, angDamp: d.angDamp ?? 0.4, linDamp: 0.08 }, h.x, y, h.rot);
-      b.vy = -1.5; bodies.push(b);
+      // paws never let go perfectly straight: a little seeded wobble, so nothing balances on a knife edge
+      b.vy = -1.5; b.w = (this.rand() - 0.5) * 0.12; bodies.push(b);
     }
     for (const b of bodies) b.tag = n;
     this.pieces.push({ n, kind: h.kind, bodies, rot: h.rot, dropT: this.tick, lost: false, goneT: -1, landed: false });

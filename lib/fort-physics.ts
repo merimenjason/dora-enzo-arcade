@@ -208,7 +208,7 @@ type CPoint = { id: number; rax: number; ray: number; rbx: number; rby: number; 
 type Contact = { key: number; A: Body; B: Body; nx: number; ny: number; f: number; e: number; pts: CPoint[]; soft: Soft; k: number[] | null };
 const BI = [0, 0], MS = [1, 1], IS = [0, 0];
 type Soft = { bias: number; ms: number; is: number };
-export type Link = { A: Body; B: Body; len: number; p: number; mass: number };
+export type Link = { A: Body; B: Body; len: number; p: number; mass: number; sp: Soft | null };
 
 function soft(hz: number, zeta: number, h: number): Soft {
   if (hz === 0) return { bias: 0, ms: 1, is: 0 };
@@ -261,7 +261,8 @@ export class World {
     this.bodies = this.bodies.filter((o) => o !== b);
     this.links = this.links.filter((l) => l.A !== b && l.B !== b);
   }
-  link(A: Body, B: Body, len?: number) { const l = len ?? Math.hypot(B.x - A.x, B.y - A.y); this.links.push({ A, B, len: l, p: 0, mass: 0 }); }
+  /** Ties two bodies' centres together: rigid, or a stretchy spring of `hz` hertz (cloth) that soaks up a yank. */
+  link(A: Body, B: Body, len?: number, hz = 0, zeta = 0.7) { const l = len ?? Math.hypot(B.x - A.x, B.y - A.y); this.links.push({ A, B, len: l, p: 0, mass: 0, sp: hz ? soft(hz, zeta, DT / SUBSTEPS) : null }); }
 
   private collide() {
     const bs = this.bodies, out: Contact[] = [], next = new Map<number, CPoint[]>();
@@ -334,7 +335,8 @@ export class World {
     for (const l of this.links) {
       const A = l.A, B = l.B, dx = B.x - A.x, dy = B.y - A.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, C = d - l.len;
       let bias = 0, ms = 1, is = 0;
-      if (useBias) { bias = this.softJ.bias * C; ms = this.softJ.ms; is = this.softJ.is; }
+      if (l.sp) { bias = l.sp.bias * C; ms = l.sp.ms; is = l.sp.is; }
+      else if (useBias) { bias = this.softJ.bias * C; ms = this.softJ.ms; is = this.softJ.is; }
       const vr = (B.vx - A.vx) * ux + (B.vy - A.vy) * uy;
       const P = -ms * l.mass * (vr + bias) - is * l.p; l.p += P;
       A.vx -= A.im * P * ux; A.vy -= A.im * P * uy; B.vx += B.im * P * ux; B.vy += B.im * P * uy;
@@ -474,7 +476,7 @@ export class World {
       o.wv = b.wv.map((a) => a.map((p) => ({ x: p.x, y: p.y }))); o.wn = b.wn.map((a) => a.map((p) => ({ x: p.x, y: p.y })));
       map.set(b, o); w.bodies.push(o);
     }
-    w.links = this.links.map((l) => ({ A: map.get(l.A)!, B: map.get(l.B)!, len: l.len, p: l.p, mass: l.mass }));
+    w.links = this.links.map((l) => ({ A: map.get(l.A)!, B: map.get(l.B)!, len: l.len, p: l.p, mass: l.mass, sp: l.sp }));
     for (const [k, pts] of this.cache) w.cache.set(k, pts.map((p) => ({ ...p })));
     return w;
   }
