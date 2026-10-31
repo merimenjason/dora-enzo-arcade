@@ -365,6 +365,14 @@ export class HoneyScene {
     c.beginPath(); for (let i = 0; i < cb.n; i++) { const p = this.px(cb.x[i], cb.y[i]); hexPath(c, p.x, p.y, s * 1.2); } c.fill();
     c.fillStyle = LEAD; c.beginPath(); for (let i = 0; i < cb.n; i++) { const p = this.px(cb.x[i], cb.y[i]); hexPath(c, p.x, p.y, s * 1.06); } c.fill();
     for (let i = 0; i < cb.n; i++) this.drawCell(i, cells[i], R);
+    // the last few empty cells glow, so they are easy to find
+    const empty = cells.reduce((n, x) => n + (x.honey ? 0 : 1), 0);
+    if (empty > 0 && empty <= 6 && !g.over) {
+      const a = 0.35 + Math.sin(this.time * 4) * 0.25;
+      c.save(); c.lineWidth = Math.max(3, s * 0.14); c.strokeStyle = `rgba(255,214,90,${a + 0.3})`; c.shadowColor = '#ffd24a'; c.shadowBlur = s * 0.6;
+      for (let i = 0; i < cb.n; i++) if (!cells[i].honey) { const p = this.px(cb.x[i], cb.y[i]); c.beginPath(); hexPath(c, p.x, p.y, s * 0.86); c.stroke(); }
+      c.restore();
+    }
     // the turn under the pointer
     const hv = this.hover >= 0 ? this.hover : this.cursor;
     if (hv >= 0 && !this.busy() && !g.over) this.drawTrio(hv, g.canTurn(hv));
