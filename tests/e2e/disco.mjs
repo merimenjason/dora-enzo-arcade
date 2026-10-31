@@ -30,7 +30,7 @@ const autoplay = (page) => page.evaluate(() => {
 
 {
   const page = await open();
-  await page.goto(base); assert.equal(await page.locator('.arcade-card').count(), 62);
+  await page.goto(base); assert.equal(await page.locator('.arcade-card').count(), 63);
   await page.getByRole('link', { name: /Dust Disco/ }).click(); await page.waitForURL('**/disco'); await ready(page);
   console.log('PASS the arcade lists Dust Disco and its card opens the game');
 

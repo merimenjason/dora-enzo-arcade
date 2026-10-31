@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of sixty-two original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of sixty-three original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -72,6 +72,7 @@ Listed in arcade-menu order.
 | 60 | Moonhop | `/orbit` | Cosy gravity-slingshot game |
 | 61 | Lucky Pips | `/pips` | Dice-placement roguelite |
 | 62 | Paperfold | `/fold` | Origami folding puzzle |
+| 63 | Pillow Fort | `/fort` | Physics stacking |
 
 ## Run
 
@@ -1201,6 +1202,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/fold.md`](docs/fold.md), art brief [`docs/fold-art-brief.md`](docs/fold-art-brief.md).
 
+### 63 · Pillow Fort (`/fort`)
+
+**Play:** A physics stacking game in needle-felt, drawn in Canvas 2D over painted felted rooms, with Dora and Enzo as felted cut-outs who watch, fret and cheer. A storm rattles the windows, and the two of them are building the greatest pillow fort the burrow has ever seen. Pieces come out of the basket one at a time (the next two are shown): squashy cushions and square pillows, floor cushions, long bolsters, books and big atlases, a wobbly stool with one short leg, toy boxes, teacups, a teapot, a bouncy rubber duck, a patchwork blanket that drapes like cloth, and a string of fairy lights. Hang the piece over the rug, turn it, and drop it; it lands with a soft thump and the stack settles under its weight. Each night has a dotted line to reach, often a den to make (pillars with the blanket draped across them; the glowing space underneath counts wherever a chinchilla could sit), and a par. Press Bedtime and the fort has to stand still for five seconds; time slows while the top wobbles. One star for standing past the line (with the den, on den nights), two for reaching the star line higher up, three for doing it in par. Pieces that tumble off the rug are lost. Hazards arrive as the rooms go on: a window draught that pushes harder the higher the fort, a cat that pounces on the very top piece every few drops and again at bedtime, thunder that shakes the floor, and a sleepy Enzo who flops onto the fort for a nap. Twenty-four nights in four rooms of six (the living room, the attic, the library and the treehouse), each room opening when the last is built, ending with the grand fort and Dora and Enzo reading under the fairy lights as the storm passes. Free build has every piece on a shelf and no goals. The physics is a small deterministic engine of its own (a fixed step, soft contacts, cloth for the blanket), so a night plays out the same way every time.
+
+**Controls:** Move the mouse to hang the piece over the rug and click to drop it; right-click or the mouse wheel turns it (a quarter turn, or an eighth for the little pillow and the duck; the blanket and the lights only go flat). Keyboard: <kbd>←</kbd> <kbd>→</kbd> (or <kbd>A</kbd> <kbd>D</kbd>) move, <kbd>↑</kbd> (or <kbd>W</kbd>, <kbd>E</kbd>) turns and <kbd>Q</kbd> turns back, <kbd>Space</kbd> (or <kbd>↓</kbd>, <kbd>S</kbd>, <kbd>Enter</kbd>) drops, <kbd>B</kbd> is bedtime, <kbd>R</kbd> restarts and <kbd>Esc</kbd> goes back to the nights. On a touch screen, drag a finger to move the piece and use the Turn, Drop, Bedtime and Restart buttons. Sound and Music toggle in the bar.
+
+**Tests:** `npm run test:fort` runs the engine checks: a stack of twenty pieces stands still for thirty seconds, energy never grows, a night replays exactly from its moves, clones don't disturb the game, pieces land soft and flat, the blanket drapes into a den, lost pieces, the goals and stars, the draught, the cat, thunder and sleepy Enzo, every night's queue and lines, unlocking, and saving with corrupt saves. `npm run bot:fort` plays every night with a search bot that tries every spot and turn for each piece (checking how it survives a shake) and proves at least one star on every night, that the star line can be reached, and that par is no less than the bot needed; a naive bot that drops everything in the middle fails most nights after the first room. `npm test` runs the checks and the bot with `--quick` (the first night of each room). `npm run test:e2e:fort` plays in the browser: the menu, the first night built with the real mouse and keyboard, restart, saving across a reload, a corrupt save, the nights screen, free build, the ending, the framing at 1280×800 and 1920×1080 and on phones held both ways, built by touch.
+
+**Docs:** [`docs/fort.md`](docs/fort.md), art brief [`docs/fort-art-brief.md`](docs/fort-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1220,7 +1231,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Sixty ways/` assertion in `tests/e2e/dust-bath.mjs`, the 60-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Sixty-three ways/` assertion in `tests/e2e/dust-bath.mjs`, the 63-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

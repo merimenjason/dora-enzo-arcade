@@ -71,7 +71,7 @@ async function cardClear(page, where) {
 {
   const page = await open();
   await page.goto(base);
-  assert.equal(await page.locator('.arcade-card').count(), 62);
+  assert.equal(await page.locator('.arcade-card').count(), 63);
   await page.evaluate((k) => localStorage.removeItem(k), KEY);
   await page.getByRole('link', { name: /Starstitch/ }).click();
   await page.waitForURL(/\/stars$/); await ready(page);

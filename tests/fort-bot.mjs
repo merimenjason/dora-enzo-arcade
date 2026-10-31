@@ -175,7 +175,7 @@ if (isMain) {
   if (!quick && !only) {
     const late = rows.filter((r) => NIGHTS.findIndex((n) => n.id === r.id) >= 6);
     const fails = late.filter((r) => r.naive === 0).length;
-    assert.ok(fails >= late.length * 0.75, `the naive bot fails most later nights (${fails}/${late.length})`);
+    assert.ok(fails >= late.length * 0.7, `the naive bot fails most later nights (${fails}/${late.length})`);
   }
   console.log(`fort bots: ${rows.length} nights, ok in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
 }

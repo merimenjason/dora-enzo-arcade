@@ -174,6 +174,8 @@ export default function FortPage() {
     w.__fortPoint = (x: number) => { const sc = scene.current, c = canvas.current, g = game.current; if (!sc || !c || !g) return null; const r = c.getBoundingClientRect(), p = sc.screen(x, g.held ? g.hoverY(g.held.kind, g.held.rot) : 3); return [r.left + p.x, r.top + p.y]; };
     /** Where things sit on screen, for the framing checks. */
     w.__fortScene = () => scene.current?.boxes() ?? null;
+    /** Straight to the ending, for the browser suite. */
+    w.__fortEnding = () => { game.current = null; screenRef.current = 'ending'; setScreenState('ending'); };
     return () => { dead = true; cancelAnimationFrame(raf); ro.disconnect(); removeEventListener('resize', o); document.removeEventListener('visibilitychange', hide); window.clearTimeout(resultT.current); sound.current?.dispose(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
