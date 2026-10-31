@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of sixty-three original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of sixty-four original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -73,6 +73,7 @@ Listed in arcade-menu order.
 | 61 | Lucky Pips | `/pips` | Dice-placement roguelite |
 | 62 | Paperfold | `/fold` | Origami folding puzzle |
 | 63 | Pillow Fort | `/fort` | Physics stacking |
+| 64 | Sweep & Slide | `/curl` | Curling |
 
 ## Run
 
@@ -1212,6 +1213,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/fort.md`](docs/fort.md), art brief [`docs/fort-art-brief.md`](docs/fort-art-brief.md).
 
+### 64 · Sweep & Slide (`/curl`)
+
+**Play:** A cosy curling game in a linocut winter-poster style, drawn in Canvas 2D with printed paintings. The millpond has frozen for the winter Pebble Cup, and Dora and Enzo's two-chinchilla team slides polished river stones at the painted house against eight woodland teams, from the Hedgehog Twins to the Stoat Champions; each team's captain watches from the near bank. Each end both teams slide four stones (Dora throws two, Enzo two); after all eight, the team with the stone nearest the button scores one point for each of its stones nearer than the other team's best, a measured tie scores nothing, and the hammer (the last stone) goes to the team that didn't score. While the stones rest, the one nearest the button is marked SHOT. A stone curls toward its spin, more as it slows; sweeping carries it further and straighter. Stones bump elastically (takeouts, raises, doubles), and leave play over the back line, against the side boards or short of the far hog line. Matches are four ends (six in the final, where the champions have the hammer first), with extra ends to break a tie. Before each of your stones the teammate calls a shot ("Draw behind our guard", "Take out their shot stone"), holds the broom where to aim and marks the weight. The ice shows the far end and the house as big as the screen allows, with the stone at the hack in a round inset; the camera runs with each stone and the last stone of each end runs in slow motion as it reaches the house. Close ends are measured with a tape. The Practice Pond teaches five shots (draw, guard, come-around, hit and roll, double takeout) for up to three stars each. Beat the stoats to lift the Cup under the lanterns. Progress and the match in play are saved in `localStorage` (`sweep-slide-v1`).
+
+**Controls:** Pull back anywhere on the ice and let go, like a slingshot: the pull's length sets the weight (the bar names Guard, Draw, Tap, Hit and Peel) and its direction the line; a dotted ghost shows only the first few metres. Choose the curl with Curl left / Curl right or <kbd>C</kbd>. While your stone runs, hold the mouse, <kbd>Space</kbd> or <kbd>Enter</kbd> to sweep; on a touch screen hold or tap fast on Sweep. Keyboard aiming: on a wide screen <kbd>↑</kbd> <kbd>↓</kbd> move the line and <kbd>←</kbd> <kbd>→</kbd> the weight (swapped on an upright screen), <kbd>Shift</kbd> for fine steps, <kbd>Space</kbd> throws, <kbd>Esc</kbd> goes back.
+
+**Tests:** `npm run test:curl` runs the engine checks: determinism, steady friction, curl direction and its late bend, sweeping further and straighter, collisions that keep momentum and lose energy and pass spin, takeouts and doubles, the back, side and hog rules, the line-finders, scoring with counting stones, measured ties and blank ends, the hammer, whole matches with extra ends, snapshots, the drills and corrupt saves. `npm run bot:curl` has an expert bot play the whole ladder and checks each team is at least as hard as the one before (within a few matches of luck), the champions beaten only sometimes, a naive same-draw bot losing most matches and a three-star throw for every drill. `npm run test:e2e:curl` plays a drill by mouse, keyboard and touch, a Cup match through its first end, a reload, corrupt saves, the final and the ending, and checks framing at 1280×800, 1920×1080 and on phones.
+
+**Docs:** [`docs/curl.md`](docs/curl.md), art brief [`docs/curl-art-brief.md`](docs/curl-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1231,7 +1242,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Sixty-three ways/` assertion in `tests/e2e/dust-bath.mjs`, the 63-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Sixty-four ways/` assertion in `tests/e2e/dust-bath.mjs`, the 64-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
