@@ -54,7 +54,7 @@ export const LEAVES = def('leaves', 'Birch leaves', 'cube', { hard: 0, tiles: t3
 export const PEBBLES = def('pebbles', 'River pebbles', 'cube', { hard: 0.2, tiles: t3('pebbles') });
 export const CLAY = def('clay', 'Clay', 'cube', { hard: 0.2, tiles: t3('clay') });
 export const IRONSTONE = def('ironstone', 'Ironstone', 'cube', { hard: 1.4, fast: 0.42, tiles: t3('ironstone'), drops: [['iron', 1]] });
-export const CRYSTAL = def('crystal', 'Glow crystal', 'prop', { hard: 0.7, fast: 0.25, solid: false, light: 12 });
+export const CRYSTAL = def('crystal', 'Glow crystal', 'prop', { hard: 0.7, fast: 0.25, solid: false, light: 7 });
 export const HAYBALE = def('haybale', 'Hay bale', 'cube', { hard: 0.1, tiles: t3('hay_top', 'hay_side', 'hay_top') });
 export const PLANKS = def('planks', 'Birch planks', 'cube', { hard: 0.4, fast: 0.2, tiles: t3('planks') });
 export const BRICK = def('brick', 'Clay bricks', 'cube', { hard: 0.9, fast: 0.3, tiles: t3('brick') });
@@ -90,6 +90,7 @@ export const SAPLING = def('sapling', 'Birch sapling', 'cross', { hard: 0, solid
 export const DEEP = def('deepstone', 'Deepstone', 'cube', { hard: -1, tiles: t3('deepstone') });
 export const STUMP = def('stump', 'Notice stump', 'prop', { hard: -1, height: 1 });
 export const CUSHION = def('cushion', 'Cushion', 'prop', { hard: 0, height: 0.3, knock: true });
+export const LANTERN_OUT = def('lantern_out', 'Snuffed lantern', 'prop', { hard: 0, solid: false, drops: [['lantern', 1]] });
 export const BLOCKS: readonly BlockDef[] = defs;
 export const BLOCK_BY_KEY: Record<string, number> = Object.fromEntries(defs.map((b) => [b.key, b.id]));
 export const TILES = [
@@ -151,7 +152,7 @@ function distToSeg(px: number, pz: number, ax: number, az: number, bx: number, b
 export function generate(seed: number): Valley {
   const rng = new Rng(seed ^ 0x5eed);
   const j = (n: number) => Math.round(rng.range(-n, n));
-  const start = { x: 58 + j(2), y: 16, z: 64 + j(2) };
+  const start = { x: 58 + j(2), y: 17, z: 64 + j(2) };
   const lake = { x: 22 + j(3), z: 74 + j(3), r: 11 + rng.range(0, 2) };
   const river = [[68 + j(3), 0], [62 + j(3), 20], [50 + j(3), 34], [36 + j(2), 50], [lake.x + 4, lake.z - 6]] as const;
   const caveZ = start.z - 2 + j(4);
