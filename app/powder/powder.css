@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap');
 /* Powder Paws: pixel panels with hard edges, hard drop shadows and a pixel font; every picture is scaled without smoothing */
-.pp-shell{--ink:#1d1b2e;--snow:#f4f8ff;--ice:#bfe9f7;--red:#e8344a;--blue:#3a7cf0;--sun:#ffd23a;--mint:#3cc8a0;--card:#f4f8fff2;position:relative;width:100%;height:100svh;min-height:320px;overflow:hidden;display:flex;flex-direction:column;background:#9fd4ff;color:var(--ink);font-family:"Pixelify Sans",ui-monospace,monospace;-webkit-tap-highlight-color:transparent;touch-action:none}
+.pp-shell{--ink:#1d1b2e;--snow:#f4f8ff;--ice:#bfe9f7;--red:#e8344a;--blue:#3a7cf0;--sun:#ffd23a;--mint:#3cc8a0;--card:#f4f8fff2;position:relative;width:100%;height:100svh;min-height:320px;overflow:hidden;display:flex;flex-direction:column;background:#9fd4ff;color:var(--ink);font-family:"Pixelify Sans",ui-monospace,monospace;font-variant-ligatures:none;-webkit-tap-highlight-color:transparent;touch-action:none}
 .pp-shell *{box-sizing:border-box}
 :where(.pp-shell) p{color:inherit;font-size:inherit;line-height:1.35;margin:0}
 .pp-shell h1,.pp-shell h2{margin:0;font-family:inherit;color:inherit;letter-spacing:normal;font-weight:700}

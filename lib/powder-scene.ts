@@ -83,7 +83,7 @@ export class PowderScene {
   setGame(g: PowderGame | null, who: Who) {
     this.g = g; this.who = who; this.partner = who === 'dora' ? 'enzo' : 'dora';
     this.parts = []; this.tracks = []; this.hist = []; this.cheer = 0; this.shake = 0;
-    if (g) { this.camX = g.sk.x; this.camY = g.sk.y - this.H * 0.32; }
+    if (g) { this.camX = g.sk.x; this.camY = g.sk.y - this.H * 0.37; }
   }
   /** The skier's anchor on screen, from the world. */
   private sx(x: number) { return Math.round(x - this.camX + this.W / 2); }
@@ -124,7 +124,7 @@ export class PowderScene {
     if (g) {
       const k = g.sk;
       // the camera leads the skier: a third of the way down the screen, a little further ahead at speed
-      const ty = k.y - H * (0.3 - Math.min(0.06, k.s / 4000)), lead = Math.sin(k.th) * Math.min(60, k.s * 0.25);
+      const ty = k.y - H * (0.37 - Math.min(0.05, k.s / 4500)), lead = Math.sin(k.th) * Math.min(60, k.s * 0.25);
       this.camY += (ty - this.camY) * Math.min(1, dt * 8);
       const span = HALF + EDGE + 40, tx = Math.max(-span + W / 2, Math.min(span - W / 2, k.x + lead));
       this.camX += ((W / 2 > span ? 0 : tx) - this.camX) * Math.min(1, dt * 4);
@@ -151,6 +151,11 @@ export class PowderScene {
     this.drawGround();
     if (g) this.drawWorld(g);
     b.restore();
+    // speed lines when flying down the fall line
+    if (g && g.sk.s > 165 && g.sk.state !== 'tumble') {
+      const n = Math.min(14, Math.round((g.sk.s - 165) / 5)); b.fillStyle = '#d3def0';
+      for (let i = 0; i < n; i++) { const h = hash(i, 91), x = h % W; if (Math.abs(x - this.sx(g.sk.x)) < 24) continue; const y = H - ((((h >> 8) % H) + this.t * (500 + (h % 200))) % (H + 30)); b.fillRect(x, Math.round(y), 1, 8 + (h % 10)); }
+    }
     if (g && g.storm.on) this.drawStorm(g);
     this.drawSnowfall(g);
     if (this.flash > 0) { b.fillStyle = `rgba(255,255,255,${this.flash})`; b.fillRect(0, 0, W, H); }
@@ -307,8 +312,10 @@ export class PowderScene {
   }
   /** Where the partner is: a short way back along the leader's line (beside them while they pick themselves up). */
   private partnerRec(): Rec | null {
-    const h = this.hist; if (h.length < 30) return null;
-    const r = { ...h[h.length - 30] };
+    const h = this.hist; if (h.length < 16) return null;
+    const r = { ...h[h.length - 16] };
+    // a little to one side of the leader's line, so both stay in view
+    r.x += Math.max(-1, Math.min(1, -r.x / 40)) * 11;
     const now = h[h.length - 1];
     if (now.state === 'tumble' || now.state === 'up') { r.state = 'ride'; r.brake = true; r.x = now.x + (now.x > 0 ? -16 : 16); r.y = Math.min(r.y, now.y - 10); r.z = 0; }
     if (r.state === 'tumble' || r.state === 'up') { r.state = 'ride'; r.brake = true; }
