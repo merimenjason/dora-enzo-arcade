@@ -146,7 +146,7 @@ export default function CubbyPage() {
         case 'snuff': snd?.snuff(); once('snuff', 'A moth snuffed a lantern. Press F (or Use) on it to relight it; lanterns under a roof are safe.', 'warn'); break;
         case 'relight': snd?.relight(); break;
         case 'lunge': snd?.growl(); once('gnasher', 'A Gloom Gnasher! Lantern light makes them back off.', 'warn'); break;
-        case 'steal': snd?.nibble(); toast(`A Grumblefluff nibbled ${e.n} ${itemName(e.key ?? '').toLowerCase()} from your bag! Bonk it to get it back.`, 'warn'); break;
+        case 'steal': { snd?.nibble(); const nm = itemName(e.key ?? '').toLowerCase(), many = (e.n ?? 1) > 1; toast(`A Grumblefluff nibbled ${many ? e.n : 'a'} ${nm}${many && !nm.endsWith('s') ? 's' : ''} from your bag! Bonk it to get ${many ? 'them' : 'it'} back.`, 'warn'); break; }
         case 'fling': snd?.fling(); view.current.swing = 0; break;
         case 'splash': snd?.splash(); break;
         case 'grow': snd?.grow(); toast('A sapling grew into a birch!', 'small'); break;
