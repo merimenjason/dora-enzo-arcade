@@ -587,10 +587,10 @@ export function festivalSpot(id: string, W: number, H: number) {
   const i = PUZZLES.findIndex((p) => p.id === id), p = PUZZLES[i], r = rng(100 + i);
   const k = i % 8;
   switch (p.piece) {
-    case 'lantern': { const row = k % 3, x = 0.08 + ((k * 0.37 + row * 0.11 + (p.chapter === 'night' ? 0.17 : 0)) % 0.86); return { x: W * x, y: H * (0.16 + row * 0.08) + Math.sin(x * 9) * H * 0.02, s: H * 0.07 }; }
-    case 'boat': return { x: W * (0.1 + ((k * 0.29 + (p.chapter === 'night' ? 0.13 : 0)) % 0.8)), y: H * (0.8 + (k % 3) * 0.05), s: H * 0.07 };
-    case 'crane': return { x: W * (0.1 + ((k * 0.31 + 0.05 + (p.chapter === 'night' ? 0.2 : 0)) % 0.82)), y: H * (0.42 + (k % 3) * 0.07 + r() * 0.03), s: H * 0.065 };
-    case 'star': return { x: W * (0.06 + ((k * 0.33 + 0.02 + (p.chapter === 'night' ? 0.15 : 0)) % 0.88)), y: H * (0.04 + (k % 3) * 0.045), s: H * 0.045 };
+    case 'lantern': { const row = k % 3, x = 0.08 + ((k * 0.37 + row * 0.11 + (p.chapter === 'night' ? 0.17 : 0)) % 0.86); return { x: W * x, y: H * (0.16 + row * 0.08) + Math.sin(x * 9) * H * 0.02, s: H * 0.085 }; }
+    case 'boat': return { x: W * (0.1 + ((k * 0.29 + (p.chapter === 'night' ? 0.13 : 0)) % 0.8)), y: H * (0.8 + (k % 3) * 0.05), s: H * 0.085 };
+    case 'crane': return { x: W * (0.1 + ((k * 0.31 + 0.05 + (p.chapter === 'night' ? 0.2 : 0)) % 0.82)), y: H * (0.42 + (k % 3) * 0.07 + r() * 0.03), s: H * 0.08 };
+    case 'star': return { x: W * (0.06 + ((k * 0.33 + 0.02 + (p.chapter === 'night' ? 0.15 : 0)) % 0.88)), y: H * (0.04 + (k % 3) * 0.045), s: H * 0.055 };
     case 'moon': return p.id === 'n8' ? { x: W * 0.84, y: H * 0.12, s: H * 0.1 } : { x: W * 0.62, y: H * 0.08, s: H * 0.06 };
     case 'fish': return { x: W * (0.3 + k * 0.06), y: H * 0.9, s: H * 0.06 };
   }
