@@ -515,7 +515,8 @@ export class CubbyGame {
     if (this.nearVisitor()) return 'talk';
     const h = this.aim();
     if (h && h.b === LANTERN_OUT) { this.world.set(h.x, h.y, h.z, LANTERN); this.emit({ t: 'relight', x: h.x, y: h.y, z: h.z }); return 'relight'; }
-    if (h && h.b === BED) return this.sleep({ x: h.x, y: h.y, z: h.z });
+    // a bed in view only matters from the evening on; in the day the Workbench beside it wins
+    if (h && h.b === BED && (this.phase >= 0.6 || !this.nearBench())) return this.sleep({ x: h.x, y: h.y, z: h.z });
     if (h && h.b === BENCH_WORK) return 'loom';
     if (this.nearBench()) return 'loom';
     return null;

@@ -103,15 +103,17 @@ async function room(page, x0, y0, z0, item) {
     assert.ok(Math.abs((await g(page)).yaw - y0) > 0.05, 'dragging looks around');
   }
 
-  // hold the mouse to dig the turf in front, then right-click to place it back
+  // hold the mouse to dig the turf in front, then right-click to place it back (unlocked: headless mouse presses jolt a locked view)
+  await page.evaluate(() => document.exitPointerLock()); await page.waitForTimeout(200);
   await meadow(page);
   s = await g(page);
   const tx = Math.floor(s.pos.x), ty = Math.floor(s.pos.y) - 1, tz = Math.floor(s.pos.z) - 2;
+  await page.mouse.move(640, 400); // first, so a locked pointer doesn't turn the view after aiming
   await doIt(page, 'look', { x: tx + 0.5, y: ty + 0.9, z: tz + 0.5 });
   await page.waitForTimeout(200);
   const aimed = (await g(page)).aim;
   assert.ok(aimed, 'looking at a block');
-  await page.mouse.move(640, 400); await page.mouse.down(); await page.waitForTimeout(700); await page.mouse.up();
+  await page.mouse.down(); await page.waitForTimeout(700); await page.mouse.up();
   s = await g(page);
   assert.ok((s.inv.soil ?? 0) + (s.inv.hay ?? 0) + (s.inv.daisy ?? 0) + (s.inv.berries ?? 0) + (s.inv.twig ?? 0) >= 1 || s.stats.dug >= 1, `held mouse digs (${JSON.stringify(s.inv)})`);
   const dug = s.stats.dug;
@@ -185,7 +187,7 @@ async function room(page, x0, y0, z0, item) {
   await page.locator('.cv-welcome').waitFor();
   s = await g(page);
   assert.deepEqual(s.moved, ['hazel']); assert.equal(s.neighbour, 'morrow');
-  await doIt(page, 'teleport', { x: rx + 2.5, y: ry, z: rz - 3, yaw: 0, pitch: -0.15 });
+  await doIt(page, 'teleport', { x: rx + 2.5, y: ry, z: rz - 3.5, yaw: Math.PI, pitch: -0.25 });
   await page.waitForTimeout(900);
   await shot(page, '05-neighbour-moves-in');
 
@@ -193,10 +195,19 @@ async function room(page, x0, y0, z0, item) {
   await meadow(page);
   await doIt(page, 'time', { phase: 0.78 });
   await doIt(page, 'hp', { hp: 10 });
-  for (const [kind, dx, dz] of [['boar', 4, -7], ['moth', -3, -6], ['grumble', 2, -5], ['bunny', -4, -4], ['bunny', 3, -3]]) await doIt(page, 'spawn', { kind, dx, dz, cd: 0.4 });
+  for (const [kind, dx, dz, cd] of [['boar', 3, 9, 6], ['moth', -3, 6, 0.4], ['grumble', 2, 6, 0.4], ['bunny', -4, 4, 0.4], ['bunny', 3, 3, 0.4]]) await doIt(page, 'spawn', { kind, dx, dz, cd });
   await page.waitForTimeout(1200);
-  const facing = await page.evaluate(() => window.__cubbyScene().critters);
-  for (const c of facing.filter((c) => c.kind !== 'bunny')) {
+  // every monster that is after the chinchilla (approaching, snorting, charging, swooping, chasing, lunging) faces it
+  const CHASE = { boar: ['roam', 'windup', 'charge', 'rest'], moth: ['swoop'], grumble: ['chase'], gnasher: ['lurk', 'lunge', 'chase'] };
+  let facing = [];
+  for (let k = 0; k < 20; k++) {
+    const [boxes, crs] = await page.evaluate(() => [window.__cubbyScene().critters, window.__cubby().game.critters]);
+    facing = boxes.map((b, i) => ({ ...b, st: crs[i]?.st })).filter((c) => CHASE[c.kind]?.includes(c.st));
+    if (['boar', 'grumble'].every((k) => facing.some((c) => c.kind === k))) break;
+    await page.waitForTimeout(150);
+  }
+  assert.ok(facing.some((c) => c.kind === 'boar') && facing.some((c) => c.kind === 'grumble'), 'a boar and a Grumblefluff are after the chinchilla');
+  for (const c of facing) {
     const diff = Math.abs(Math.atan2(Math.sin(c.yaw - c.toPlayer), Math.cos(c.yaw - c.toPlayer)));
     assert.ok(diff < 0.9, `${c.kind} faces the chinchilla (off by ${diff.toFixed(2)})`);
     assert.ok(c.box.on && c.box.h > 8, `${c.kind} is on screen`);
@@ -210,8 +221,13 @@ async function room(page, x0, y0, z0, item) {
   let defeated0 = s.stats.defeated;
   for (let k = 0; k < 8 && (await g(page)).stats.defeated === defeated0; k++) {
     const c = (await g(page)).critters.find((c) => c.id === gid);
-    if (c) await doIt(page, 'look', { x: c.x, y: c.y + 0.25, z: c.z });
-    await page.mouse.click(640, 400); await page.waitForTimeout(500);
+    if (c) {
+      const me = (await g(page)).pos, d = Math.hypot(c.x - me.x, c.z - me.z);
+      if (d > 2) await doIt(page, 'teleport', { x: c.x + (me.x - c.x) / d * 1.5, y: c.y, z: c.z + (me.z - c.z) / d * 1.5 }); // step back in after the knock-back
+      await page.evaluate(() => document.exitPointerLock());
+      await doIt(page, 'look', { x: c.x, y: c.y + 0.25, z: c.z });
+    }
+    await page.mouse.down(); await page.waitForTimeout(80); await page.mouse.up(); await page.waitForTimeout(500);
   }
   s = await g(page);
   assert.equal(s.stats.defeated, defeated0 + 1, 'the bonk-stick poofs a Grumblefluff');
@@ -220,9 +236,10 @@ async function room(page, x0, y0, z0, item) {
   // a knock-out wakes you by the bed, with half your things left where you fell
   await doIt(page, 'give', { stone: 8 });
   const before = (await g(page)).inv.stone;
+  { const s0 = await g(page); await doIt(page, 'teleport', { x: s0.start.x - 5.5, y: s0.start.y + 3, z: s0.start.z + 10.5, yaw: Math.PI }); await page.waitForTimeout(1200); } // out of the cubby lantern's light
   await doIt(page, 'hp', { hp: 1 });
-  await doIt(page, 'spawn', { kind: 'gnasher', dx: 0, dz: -2, cd: 0 });
-  await until(page, () => window.__cubby().game.stats.kos >= 1, null, 20000);
+  await doIt(page, 'spawn', { kind: 'gnasher', dx: 0, dz: 2, cd: 0 }); await doIt(page, 'spawn', { kind: 'grumble', dx: 2, dz: 2, cd: 0 });
+  await until(page, () => window.__cubby().game.stats.kos >= 1, null, 20000).catch(async (e) => { const x = await st(page); console.log('KO wait', JSON.stringify({ ov: x.overlay, screen: x.screen, hp: x.game.hp, phase: x.game.phase, pos: x.game.pos, critters: x.game.critters })); throw e; });
   s = await g(page);
   assert.equal(s.hp, 10); assert.equal(s.inv.stone, before - Math.floor(before / 2));
   assert.ok(Math.hypot(s.pos.x - s.homeBed.x - 0.5, s.pos.z - s.homeBed.z - 0.5) < 2.5, 'woke by the bed');

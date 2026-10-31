@@ -445,7 +445,8 @@ export class World {
     }
   }
   /** The first block the ray from (ox,oy,oz) along (dx,dy,dz) hits within `reach`, ignoring air and water. */
-  raycast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, reach: number): Hit | null {
+  /** The first block along a ray; `cubes` passes through everything but whole solid blocks (for the camera). */
+  raycast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, reach: number, cubes = false): Hit | null {
     const len = Math.hypot(dx, dy, dz) || 1; dx /= len; dy /= len; dz /= len;
     let x = Math.floor(ox), y = Math.floor(oy), z = Math.floor(oz);
     const sx = dx > 0 ? 1 : -1, sy = dy > 0 ? 1 : -1, sz = dz > 0 ? 1 : -1;
@@ -456,7 +457,7 @@ export class World {
     let nx = 0, ny = 0, nz = 0, t = 0;
     for (let i = 0; i < 64 && t <= reach; i++) {
       const b = this.get(x, y, z), d = BLOCKS[b];
-      if (b !== AIR && d.shape !== 'liquid' && inside(x, y, z)) return { x, y, z, b, nx, ny, nz, dist: t };
+      if (b !== AIR && d.shape !== 'liquid' && inside(x, y, z) && (!cubes || (d.shape === 'cube' && d.solid))) return { x, y, z, b, nx, ny, nz, dist: t };
       if (tx < ty && tx < tz) { x += sx; t = tx; tx += tdx; nx = -sx; ny = 0; nz = 0; }
       else if (ty < tz) { y += sy; t = ty; ty += tdy; nx = 0; ny = -sy; nz = 0; }
       else { z += sz; t = tz; tz += tdz; nx = 0; ny = 0; nz = -sz; }

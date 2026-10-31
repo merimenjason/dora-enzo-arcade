@@ -470,6 +470,7 @@ export function createCubbyScene(canvas: HTMLCanvasElement) {
   // ---------------------------------------------------------------- the frame
   const box3 = new T.Box3(), v3 = new T.Vector3();
   let camLook = new T.Vector3(), camPos = new T.Vector3(), camInit = false;
+  let camDebug = { dist: 0, hit: '', hx: 0, hy: 0, hz: 0 };
   function frame(dt: number, view: View) {
     if (!game || closed) return;
     time += dt;
@@ -508,7 +509,9 @@ export function createCubbyScene(canvas: HTMLCanvasElement) {
       if (b.water) r.root.position.y -= 0.25;
       const flash = active && g.hurtT > 0.5 ? (g.hurtT - 0.5) * 1.2 : 0;
       tintAt(r.mats[0], b.x, b.y, b.z, flash);
-      r.root.visible = !(active && view.mode === 'first' && !view.orbit);
+      // hidden in first person, and when the camera is pressed right up against them (backed into a wall)
+      const close = camInit && !view.orbit && Math.hypot(camPos.x - b.x, camPos.y - b.y - 0.45, camPos.z - b.z) < 0.85;
+      r.root.visible = !(active && view.mode === 'first' && !view.orbit) && !close;
     });
     // the held tool
     if (view.held !== heldKey) {
@@ -614,8 +617,9 @@ export function createCubbyScene(canvas: HTMLCanvasElement) {
     } else {
       const head = new T.Vector3(me.x, me.y + 0.78, me.z);
       let dist = 2.9;
-      const hit = g.world.raycast(head.x, head.y, head.z, -dir.x, -dir.y + 0.18, -dir.z, dist + 0.3);
+      const hit = g.world.raycast(head.x, head.y, head.z, -dir.x, -dir.y + 0.18, -dir.z, dist + 0.3, true); // grass and flowers don't push the camera in
       if (hit) dist = Math.max(0.6, hit.dist - 0.3);
+      camDebug = { dist, hit: hit ? BLOCKS[hit.b].key : '', hx: hit?.x ?? 0, hy: hit?.y ?? 0, hz: hit?.z ?? 0 };
       want = head.clone().addScaledVector(dir, -dist).add(new T.Vector3(0, 0.18 * dist / 2.9, 0));
       look = head.clone().addScaledVector(dir, 4);
     }
@@ -704,7 +708,7 @@ export function createCubbyScene(canvas: HTMLCanvasElement) {
 
   // ---------------------------------------------------------------- framing for the tests
   /** Where Dora and Enzo are on screen (CSS pixels), for the framing checks. */
-  function boxes(): { dora: Box; enzo: Box; neighbours: Record<string, Box>; critters: { kind: string; box: Box; yaw: number; toPlayer: number }[] } {
+  function boxes() {
     const rect = canvas.getBoundingClientRect();
     const of = (o: T.Object3D): Box => {
       if (!o.visible) return { x: 0, y: 0, w: 0, h: 0, on: false };
@@ -724,7 +728,7 @@ export function createCubbyScene(canvas: HTMLCanvasElement) {
       const r = critterRigs.get(c.id), me = game!.me;
       return { kind: c.kind, box: r ? of(r.root) : { x: 0, y: 0, w: 0, h: 0, on: false }, yaw: c.body.yaw, toPlayer: Math.atan2(-(me.x - c.body.x), -(me.z - c.body.z)) };
     }) : [];
-    return { dora: of(chin[0].root), enzo: of(chin[1].root), neighbours: nb, critters: cr };
+    return { dora: of(chin[0].root), enzo: of(chin[1].root), neighbours: nb, critters: cr, cam: { ...camDebug, at: camPos.toArray(), me: game ? [game.me.x, game.me.y, game.me.z] : [] } };
   }
 
   function resize() {

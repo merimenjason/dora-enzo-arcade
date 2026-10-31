@@ -110,8 +110,8 @@
 .cv-tb-jump{right:4px;bottom:92px}
 .cv-tb-down{right:80px;bottom:150px;width:52px!important;height:52px!important;font-size:12px!important}
 .cv-tb-use{right:84px;bottom:84px;width:56px!important;height:56px!important;font-size:12.5px!important;background:#e2f4c8!important}
-.cv-shell[data-touch] .cv-hotbar{transform:scale(.86);transform-origin:bottom center}
-.cv-shell[data-touch] .cv-shell button.cv-hot{width:46px;height:46px}
+.cv-shell[data-touch] button.cv-hot{width:46px;height:46px}
+.cv-shell[data-touch] .cv-hot .cv-ico{width:34px;height:34px}
 .cv-shell[data-touch] .cv-prompt{bottom:auto;top:calc(50% + 40px)}
 
 /* ---- panels */
@@ -203,6 +203,11 @@
   .cv-grid.small,.cv-patterns{max-height:60vh}
 }
 @media (max-width:560px){
+  .cv-hotbar{gap:2px;padding:3px;border-radius:12px}
+  .cv-shell button.cv-hot,.cv-shell[data-touch] button.cv-hot{width:34px;height:34px;padding:1px;border-radius:8px}
+  .cv-hot .cv-ico,.cv-shell[data-touch] .cv-hot .cv-ico{width:26px;height:26px}
+  .cv-hot .cv-n{font-size:10px;right:1px;bottom:0}
+  .cv-shell button.cv-bag{font-size:10px}
   .cv-top{flex-wrap:wrap}
   .cv-shell button.cv-quest{order:3;flex-basis:100%}
   .cv-quest-text span{display:none}
