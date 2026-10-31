@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of sixty-five original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of sixty-six original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -75,6 +75,7 @@ Listed in arcade-menu order.
 | 63 | Pillow Fort | `/fort` | Physics stacking |
 | 64 | Sweep & Slide | `/curl` | Curling |
 | 65 | Honeycomb Hollow | `/honey` | Hex match-3 puzzle |
+| 66 | Powder Paws | `/powder` | Pixel-art downhill skiing |
 
 ## Run
 
@@ -1234,6 +1235,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/honey.md`](docs/honey.md), art brief [`docs/honey-art-brief.md`](docs/honey-art-brief.md).
 
+### 66 · Powder Paws (`/powder`)
+
+**Play:** A top-down downhill skiing game in crisp pixel art, drawn in Canvas 2D into a low-resolution buffer and scaled up by a whole number so every pixel stays square, with every sprite drawn in code. Dora and Enzo ski Whiskerpeak, a mountain that never runs out, one jump ahead of a snowstorm: one skis and the other follows on the same line and cheers clean tricks. Straight down is fastest and carving across bleeds speed; steep pitches speed you up, ice slides, deep powder drags, moguls bounce and snowbanks puff. Pines, birches, rocks, stumps, fences, huts, skiing marmots and stoats, tobogganing rabbits and a hedgehog on a tea tray knock you into a rolling snowball. Ramps launch you for spins, snowball flips and tail grabs: land straight for the points (and to blow the storm back) or wipe out. **Freeride** is endless, with ten hidden cabins off the piste whose postcards lead to the lodge party ending; when the storm catches you, the pair shelter for a cocoa. There is also a **Daily Mountain**, six **Slalom** courses with medals, a **Big Air** park, and scarves, hats and skis to unlock.
+
+**Controls:** <kbd>←</kbd>/<kbd>→</kbd> or <kbd>A</kbd>/<kbd>D</kbd> carve, <kbd>↓</kbd>/<kbd>S</kbd> snowplough, <kbd>↑</kbd>/<kbd>W</kbd> or <kbd>Space</kbd> tuck; in the air the same keys spin, grab and flip. Or steer with the mouse: the skier heads toward the pointer, the left button tucks (flips) and the right button brakes (grabs), and pointing level with the skier in the air spins. On phones, hold a finger where you want to ski, with **Brake** and **Tuck** pads at the bottom (**Grab** and **Flip** in the air). <kbd>Esc</kbd> or <kbd>P</kbd> pauses, <kbd>R</kbd> restarts.
+
+**Tests:** `npm run test:powder` runs the engine checks: straight down beats carving across, a hard turn bleeds speed, the snowplough and the tuck, ice sliding and powder drag, moguls, ramps, a 360, a flip and a grab scoring, sideways and still-grabbing landings wiping out and the skier getting back up, trees and fences knocking you down while banks only slow you, jumping a rock, the deep woods, the storm catching a skier who stops and a clean trick blowing it back, a path search proving every slice of 12 mountains, every slalom course and the park has a way through, gates and the five-second penalty, postcards, seeded generation, exact replays and corrupt saves. `npm run bot:powder` plays careless, human-like and good steering bots with reaction delays and aiming wobble: the storm catches the careless one early, the human-like one gets a fair way, the good one outruns it, a cabin hunter reaches the cabins, and the slalom and Big Air medals sit where the bots put them. `npm run test:e2e:powder` plays it in the browser with the real keyboard, mouse and touch: the menu, carving, the snowplough, steering by pointer, a jump, a postcard, pause, the storm and the cocoa, progress across a reload, the slalom, Big Air, the wardrobe, the album, the ending, a corrupt save, the framing at 1280×800 and 1920×1080, and phones held upright and sideways.
+
+**Docs:** [`docs/powder.md`](docs/powder.md), art brief [`docs/powder-art-brief.md`](docs/powder-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1253,7 +1264,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Sixty-five ways/` assertion in `tests/e2e/dust-bath.mjs`, the 65-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Sixty-six ways/` assertion in `tests/e2e/dust-bath.mjs`, the 66-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

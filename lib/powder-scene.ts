@@ -60,6 +60,8 @@ export class PowderScene {
   reserve = { bottom: 0, right: 0 };
   /** Where the skier is drawn on the page (css px), for pointer steering. */
   skierAt = { x: 0, y: 0 };
+  /** Where the partner is drawn (css px), or null when they're off screen. */
+  partnerAt: { x: number; y: number } | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     this.cv = canvas;
@@ -215,6 +217,7 @@ export class PowderScene {
     for (const n of g.npcs) if (n.y > top && n.y < bot) list.push({ y: n.y, draw: () => this.drawNpc(n, g) });
     const k = g.sk;
     const p = this.partnerRec();
+    this.partnerAt = p ? { x: this.sx(p.x) * (this.k / this.dpr), y: this.sy(p.y) * (this.k / this.dpr) } : null;
     if (p) list.push({ y: p.y, draw: () => this.drawSkier(this.partner, p, true) });
     list.push({ y: k.y + 0.5, draw: () => this.drawSkier(this.who, { x: k.x, y: k.y, a: k.a, z: k.z, state: k.state, spin: k.spin, flip: k.flip, grab: k.grab, tuck: k.tuck, brake: k.brake }, false) });
     list.sort((a, c) => a.y - c.y);

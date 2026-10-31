@@ -146,7 +146,7 @@ try {
   // ---- the menu, the story, the first tip
   const page = await open();
   await page.goto(base + '/');
-  assert.equal(await page.locator('.arcade-card').count(), 65);
+  assert.equal(await page.locator('.arcade-card').count(), 66);
   await page.locator('a.arcade-card[href="/honey"]').click();
   await ready(page);
   assert.equal(await page.getByRole('heading', { level: 1 }).textContent(), 'Honeycomb Hollow');

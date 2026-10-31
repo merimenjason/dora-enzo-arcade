@@ -188,7 +188,7 @@ export default function PowderPage() {
         screen: screenRef.current, mode: g?.mode ?? null, state: k?.state ?? null, x: k?.x ?? 0, y: k?.y ?? 0, s: k?.s ?? 0, a: k?.a ?? 0, z: k?.z ?? 0,
         dist: g?.dist() ?? 0, tricks: g?.tricks ?? 0, crashes: g?.crashes ?? 0, gatesOk: g?.gatesOk ?? 0, missed: g?.missed ?? 0, cards: g?.cards ?? [], over: g?.over ?? null,
         gap: g && g.storm.on ? g.sk.y - g.storm.y : null, blocked: blocked.current, steps: g?.steps ?? 0, save: save.current, scale: sc?.k ?? 0,
-        skier: sc && g ? sc.skierAt : null,
+        skier: sc && g ? sc.skierAt : null, partner: sc && g ? sc.partnerAt : null,
       };
     };
     /** Puts the skier just above a cabin's porch (for the postcard check). */
