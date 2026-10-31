@@ -1,0 +1,3 @@
+import type { Metadata } from 'next';
+export const metadata: Metadata = { title: 'Cubby Valley · Dora & Enzo’s Arcade', description: 'A cosy 3D block-building sandbox. Dora and Enzo arrive in a green valley of blocks: dig, gather and weave at the Burrow Workbench, build snug burrows for six animal neighbours, keep Bramble Boars, Murk Moths, Gloom Gnashers and Grumblefluffs at bay with lanterns and a bonk-stick, and hold the summer fair. Story, Cosy nights and Creative valleys in three save slots.' };
+export default function CubbyLayout({ children }: { children: React.ReactNode }) { return children; }
