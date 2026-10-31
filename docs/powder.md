@@ -54,7 +54,7 @@ Moving things: marmots and stoats ski down in lazy zigzags, rabbits toboggan acr
 
 `tests/powder-bot.mjs` plays with a steering bot that looks a second ahead, simulates each candidate heading with the real turning rate, and acts on what it saw a reaction time ago with a wobble in its aim. In the air it plans a spin, flip or grab for the airtime it guesses and lets go with a timing error. Three players: careless (0.55 s reaction, big wobble, never brakes or tricks), human-like (0.25 s, small wobble) and good (0.12 s, steady, bolder tricks).
 
-Typical results over 24 seeds: careless about 600 to 850 metres, human-like about 1,900 metres, good 4,000 metres or more. The storm numbers above were set so these land there. Slalom gold is the good bot's median time, silver 1.06 × and bronze 1.35 × the human-like bot's median. Big Air gold is 95% of the good bot's median score, silver 95% and bronze half of the human-like median:
+Typical results over 24 seeds: careless about 500 metres, human-like about 1,850 metres, good about 4,000 metres. The storm numbers above were set so these land there. Slalom gold is the good bot's median time, silver 1.06 × and bronze 1.35 × the human-like bot's median. Big Air gold is 95% of the good bot's median score, silver 95% and bronze half of the human-like median:
 
 | Course | Gold | Silver | Bronze |
 | --- | --- | --- | --- |
