@@ -88,8 +88,8 @@
 .pf-keys{font-size:12.5px!important;color:#7a5a40}
 
 /* ---- ending */
-.pf-ending{position:relative;flex:1;display:flex;align-items:flex-end;justify-content:center;padding:3vh 4vw}
-.pf-ending-card{width:min(560px,92vw);transform:rotate(-.4deg)}
+.pf-ending{position:relative;flex:1;display:flex;align-items:flex-end;justify-content:flex-end;padding:3vh 3vw}
+.pf-ending-card{width:min(440px,36vw);transform:rotate(-.4deg)}
 .pf-ending-card h2{font-size:clamp(28px,3.4vw,42px);font-weight:900;color:var(--navy)}
 
 /* ---- phones */
@@ -109,7 +109,8 @@
   .pf-menu-card h1{font-size:40px}
   .pf-lede{font-size:13.5px}
   .pf-name small{display:none}
-  .pf-ending{padding:12px}
+  .pf-ending{padding:12px;justify-content:center}
+  .pf-ending-card{width:100%}
   .pf-ending-art img,.pf-ending-art canvas{height:55%;object-position:50% 0}
 }
 @media (max-height:520px) and (orientation:landscape){

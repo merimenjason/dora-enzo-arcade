@@ -314,13 +314,13 @@ export class FoldScene {
         dora: { x: tx * 0.52, y: H - bot * 0.35, h: Math.min(ch, tx * 1.05) }, enzo: { x: W - tx * 0.52, y: H - bot * 0.35, h: Math.min(ch, tx * 1.05) } };
     }
     const chH = Math.min(W * 0.36, H * 0.2), cw = Math.min(W * 0.36, 170), cardH = cw * 0.9;
-    const ty = top + cardH + 12, th = H - ty - bot - chH * 0.72, tw = W - 20;
+    const ty = top + cardH + 12, th = H - ty - bot - chH * 0.97, tw = W - 20;
     return { W, H, tall, table: { x: 10, y: ty, w: tw, h: th }, card: { x: W - cw - 10, y: top + 4, w: cw, h: cardH },
       dora: { x: W * 0.17, y: H - bot - 4, h: chH }, enzo: { x: W * 0.83, y: H - bot - 4, h: chH } };
   }
   fitCell() {
-    const T = this.layout.table, n = Math.max(this.dims.w, this.dims.h) + 0.7;
-    this.cell = Math.max(18, Math.min((T.w - 20) / (this.dims.w + 0.7), (T.h - 20) / (this.dims.h + 0.7), 150, (Math.min(T.w, T.h) - 20) / n * 1.4));
+    const T = this.layout.table;
+    this.cell = Math.max(18, Math.min((T.w - 40) / (this.dims.w + 1.1), (T.h - 40) / (this.dims.h + 1.1), Math.min(T.w, T.h) * 0.3, 210));
   }
   setPuzzle(id: string, sheet: Sheet, paper: Paper, target: Picture) {
     this.puzzleId = id; this.sheet = sheet; this.paper = paper; this.target = target; this.anim = null; this.preview = null; this.hint = null;
@@ -465,6 +465,25 @@ export class FoldScene {
     c.strokeStyle = 'rgba(220,240,230,0.16)'; c.lineWidth = 1; const step = Math.max(14, this.cell / 2);
     c.beginPath(); for (let x = T.x + m; x < T.x + T.w - m; x += step) { c.moveTo(x, T.y); c.lineTo(x, T.y + T.h); } for (let y = T.y + m; y < T.y + T.h - m; y += step) { c.moveTo(T.x, y); c.lineTo(T.x + T.w, y); } c.stroke();
     c.restore();
+    this.drawProps(T.x + m, T.y + m, T.w - 2 * m, T.h - 2 * m);
+  }
+  /** A few cut-paper things left about the mat's corners: scraps, a pencil and a little folded crane. */
+  drawProps(x: number, y: number, w: number, h: number) {
+    const c = this.c, u = Math.min(w, h) / 14;
+    const shadowed = (fn: () => void) => { c.save(); c.shadowColor = 'rgba(30,20,10,0.3)'; c.shadowOffsetX = u * 0.08; c.shadowOffsetY = u * 0.12; fn(); c.restore(); };
+    const tri = (pts: number[], col: string) => shadowed(() => { c.fillStyle = col; c.beginPath(); for (let i = 0; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]); c.closePath(); c.fill(); });
+    // scraps in the top-left corner
+    tri([x + u * 0.4, y + u * 0.3, x + u * 2.2, y + u * 0.5, x + u * 0.8, y + u * 1.6], INK.gold[0]);
+    tri([x + u * 1.6, y + u * 0.9, x + u * 2.8, y + u * 0.4, x + u * 2.5, y + u * 1.7], INK.pink[0]);
+    // a pencil along the bottom-right edge
+    c.save(); c.translate(x + w - u * 0.6, y + h - u * 0.7); c.rotate(-0.35);
+    shadowed(() => { c.fillStyle = '#f2b636'; c.fillRect(-u * 4, -u * 0.22, u * 3.3, u * 0.44); });
+    c.fillStyle = '#e8c9a0'; c.beginPath(); c.moveTo(-u * 0.7, -u * 0.22); c.lineTo(0, 0); c.lineTo(-u * 0.7, u * 0.22); c.fill();
+    c.fillStyle = '#3a2a20'; c.beginPath(); c.moveTo(-u * 0.22, -u * 0.07); c.lineTo(0, 0); c.lineTo(-u * 0.22, u * 0.07); c.fill();
+    c.fillStyle = '#e88a9a'; c.fillRect(-u * 4.4, -u * 0.22, u * 0.4, u * 0.44);
+    c.restore();
+    // a tiny paper crane in the bottom-left corner
+    shadowed(() => drawPiece(c, 'crane', 'white', 'teal', x + u * 1.3, y + h - u * 1.1, u * 1.2));
   }
   round(x: number, y: number, w: number, h: number, r: number) { const c = this.c; c.beginPath(); c.roundRect(x, y, w, h, r); }
 

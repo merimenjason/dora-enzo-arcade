@@ -43,8 +43,8 @@ function Thumb({ id, size = 64, piece = false }: { id: string; size?: number; pi
     let dead = false;
     sceneModule().then((m) => {
       const c = cv.current?.getContext('2d'); if (dead || !c) return;
-      const p = puzzle(id), d = Math.min(2, window.devicePixelRatio || 1);
-      c.setTransform(d, 0, 0, d, 0, 0); c.clearRect(0, 0, size, size);
+      const p = puzzle(id);
+      c.setTransform(2, 0, 0, 2, 0, 0); c.clearRect(0, 0, size, size);
       if (piece) { m.drawPiece(c, p.piece, p.front, p.back, size / 2, size / 2, size * 0.62, 0.5, 0); return; }
       const t = p.target, s = Math.min((size - 10) / t.w, (size - 10) / t.h);
       m.drawPicture(c, t, (size - t.w * s) / 2, (size - t.h * s) / 2, s);
@@ -293,7 +293,7 @@ export default function FoldPage() {
         <section className="pf-book">
           <header className="pf-bar">
             <button type="button" className="pf-back" onClick={() => { audio().ui(); setScreen('menu'); }}>← MENU</button>
-            <span className="pf-bar-mid">The festival book · {folded}/{total} folded</span>
+            <span className="pf-bar-mid">The book · {folded}/{total} folded</span>
             <Toggles />
           </header>
           <nav className="pf-tabs" aria-label="Chapters">
