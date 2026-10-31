@@ -357,6 +357,8 @@ export class HoneyScene {
   // ---------------------------------------------------------------- the frame
   frame(dt: number) {
     this.time += dt;
+    // the canvas can change size without the observer firing (a bar mounting over it): follow it every frame
+    if (Math.abs(this.cv.clientWidth - this.W) > 0.5 || Math.abs(this.cv.clientHeight - this.H) > 0.5) this.resize();
     const sp = dt * this.speed;
     // advance the step queue
     if (this.cur) { this.curT += sp; if (this.curT >= this.curDur) { this.finishAnims(); this.cur = null; } }
