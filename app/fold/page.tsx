@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   FoldGame, PUZZLES, CHAPTERS, SAVE_KEY, SEAL_NAMES, readSave, freshSave, record, chapterOpen, puzzleOpen, nextPuzzle, doneIn, sealCount,
-  chapterPuzzles, puzzle, foldText, paperKey, sameFold, type Save, type Seal, type Fold, type ChapterId,
+  chapterPuzzles, puzzle, foldText, parseFold, paperKey, sameFold, type Save, type Seal, type Fold, type ChapterId,
 } from '@/lib/fold-game';
 import type { FoldScene, Mood } from '@/lib/fold-scene';
 import { FoldSound, type SongId } from './sound';
@@ -126,6 +126,8 @@ export default function FoldPage() {
     if (!h) { showToast('This one has gone astray. Undo a fold or two, or reset.', 3200); return; }
     sc.hint = h; sound.current?.hint(); mood('curious', 'thinking'); refresh();
   }
+  const foldRef = useRef<(f: Fold) => void>(null);
+  foldRef.current = doFold;
   const hintReady = () => { const g = game.current; return !!g && !g.solved && (resetsRef.current >= 1 || g.folds >= g.p.par + 1); };
   function afterResult(kind: 'next' | 'again' | 'book' | 'festival') {
     const r = result; if (!r) return; audio().ui();
@@ -170,6 +172,10 @@ export default function FoldPage() {
     };
     /** Page coordinates of a grid point of the paper as it lies now. */
     w.__foldPoint = (gx: number, gy: number) => { const sc = scene.current, c = canvas.current; if (!sc || !c) return null; const r = c.getBoundingClientRect(), p = sc.point(gx, gy); return [r.left + p.x, r.top + p.y]; };
+    /** The table's layout for the framing checks: where the paper, the card and the two of them are. */
+    w.__foldScene = () => { const sc = scene.current; if (!sc) return null; const L = sc.layout, o = sc.origin(); return { W: sc.W, H: sc.H, cell: sc.cell, table: L.table, card: L.card, dora: L.dora, enzo: L.enzo, tall: L.tall, paper: sc.paper ? { x: o.x, y: o.y, w: sc.paper.w * sc.cell, h: sc.paper.h * sc.cell } : null, busy: sc.busy, festival: !!sc.festival }; };
+    /** Makes a fold by its text (as in the solutions), the way a click would. */
+    w.__foldDo = (t: string) => { foldRef.current?.(parseFold(t)); };
     return () => { dead = true; cancelAnimationFrame(raf); ro.disconnect(); removeEventListener('resize', o); document.removeEventListener('visibilitychange', hide); window.clearTimeout(endTimer.current); sound.current?.dispose(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
