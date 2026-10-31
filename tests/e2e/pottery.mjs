@@ -59,7 +59,7 @@ async function throwBasics(page, cdp = null) {
 {
   const page = await open();
   await page.goto(base);
-  assert.equal(await page.locator('.arcade-card').count(), 61);
+  assert.equal(await page.locator('.arcade-card').count(), 62);
   await page.evaluate((k) => localStorage.removeItem(k), KEY);
   await page.getByRole('link', { name: /Kiln & Clay/ }).click();
   await page.waitForURL(/\/pottery$/); await ready(page);

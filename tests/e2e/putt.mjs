@@ -25,7 +25,7 @@ const practise = async (page, n) => { await page.locator('.putt-holes button').n
 
 await check('the arcade lists Puttering Paws and opens the clubhouse', async (page) => {
   await page.goto(base);
-  assert.equal(await page.locator('.arcade-card').count(), 61);
+  assert.equal(await page.locator('.arcade-card').count(), 62);
   await page.getByRole('link', { name: /Puttering Paws/ }).click();
   await page.locator('main[data-ready="true"]').waitFor();
   assert.equal(await page.locator('main').getAttribute('data-screen'), 'menu');
