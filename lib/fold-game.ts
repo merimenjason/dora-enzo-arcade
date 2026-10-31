@@ -174,32 +174,179 @@ export function paperKey(paper: Paper) {
   return `${paper.w}x${paper.h}|` + [...paper.stacks.entries()].sort((a, b) => a[0] - b[0]).map(([p, s]) => p + '=' + s.map((l) => l.c + l.up).join('.')).join(',');
 }
 
-// ---- the solver: breadth first over the paper's states, for hints and for the tests
-export type Solved = { min: number; count: number; first: Fold[]; path: Fold[]; states: number } | null;
-/** Shortest fold sequences from `paper` to a paper whose picture has key `goal`: the length, how many distinct
- * sequences of that length there are, the folds that start one, and one of them. */
-export function solve(sheet: Sheet, paper: Paper, goal: string, maxDepth = 8, maxStates = 400000): Solved {
-  const done = (p: Paper) => pictureKey(picture(sheet, p)) === goal;
-  if (done(paper)) return { min: 0, count: 1, first: [], path: [], states: 1 };
-  type Node = { paper: Paper; ways: number; first: Set<string>; path: Fold[] };
-  let layer = new Map<string, Node>([[paperKey(paper), { paper, ways: 1, first: new Set(), path: [] }]]);
-  const seen = new Set(layer.keys());
-  for (let d = 1; d <= maxDepth; d++) {
-    const next = new Map<string, Node>();
-    for (const n of layer.values()) for (const f of foldsOf(n.paper)) {
-      const q = applyFold(sheet, n.paper, f); if (!q) continue;
-      const k = paperKey(q); if (seen.has(k) && !next.has(k)) continue;
-      const first = d === 1 ? new Set([foldText(f)]) : n.first;
-      const m = next.get(k);
-      if (m) { m.ways += n.ways; for (const t of first) m.first.add(t); }
-      else next.set(k, { paper: q, ways: n.ways, first: new Set(first), path: [...n.path, f] });
+// ---- the solver, for hints and for the tests. Breadth first over whole paper states is far too slow for the big
+// sheets (a 6 by 6 sheet reaches millions of stackings), so it splits the problem by axis instead. Where a square
+// ends up along x depends only on the vertical folds made (in their order), never on the horizontal ones, and the
+// same holds for y; which face is up depends only on how many folds lifted it. Only the stacking order depends on
+// how the two kinds of fold are interleaved. Every fold also makes the paper strictly narrower or shorter, so each
+// axis has only a few hundred fold chains. The solver lists the chains of each axis that end at the target's size,
+// keeps the pairs whose landing places alone could make the picture (the outline, the holes and a square with the
+// right face for every position), and only then plays out each interleaving of the pair with the real fold rules,
+// tape and creases included. The search is exhaustive, so the minimum and the count of shortest solutions are exact.
+export type Solved = { min: number; count: number; first: Fold[]; path: Fold[]; pairs: number } | null;
+
+/** One chain of folds along one axis: the folds, and per square its final coordinate and how often it was lifted. */
+type Chain = { folds: Fold[]; at: Int16Array; lifted: Uint8Array };
+function chains(sheet: Sheet, start: Int16Array, axis: 'x' | 'y', size: number, want: number, maxLen: number): Chain[][] {
+  const out: Chain[][] = Array.from({ length: maxLen + 1 }, () => []);
+  const n = start.length;
+  const walk = (at: Int16Array, lifted: Uint8Array, w: number, folds: Fold[]) => {
+    if (w === want) out[folds.length].push({ folds, at, lifted });
+    if (folds.length >= maxLen || w <= want) return;
+    for (let k = 1; k < w; k++) for (const low of [true, false]) {
+      const nw = Math.max(k, w - k); if (nw < want) continue;
+      const up = (v: number) => (low ? v < k : v >= k);
+      if (sheet.tape.some(([a, b]) => up(at[a]) !== up(at[b]))) continue;
+      const na = new Int16Array(n), nl = lifted.slice(); let lo = Infinity;
+      for (let c = 0; c < n; c++) { const u = up(at[c]); na[c] = u ? 2 * k - 1 - at[c] : at[c]; if (u) nl[c]++; lo = Math.min(lo, na[c]); }
+      for (let c = 0; c < n; c++) na[c] -= lo;
+      walk(na, nl, nw, [...folds, { axis, at: k, low }]);
     }
+  };
+  walk(start, new Uint8Array(n), size, []);
+  return out;
+}
+
+/** A lean copy of the paper for the solver's inner loop: stacks on a fixed grid (each layer a square's number times
+ * two, plus one when it lies face down), and where each square is and which way up. `fastFold` follows exactly the
+ * rules of `checkFold` and `applyFold`; the tests check the solver against a plain search built on those. */
+type Fast = { w: number; h: number; st: (Int16Array | null)[]; cx: Int16Array; cy: Int16Array; up: Uint8Array };
+function fastFold(sheet: Sheet, s: Fast, f: Fold, SW: number): Fast | null {
+  const xa = f.axis === 'x', coord = xa ? s.cx : s.cy, k = f.at, low = f.low;
+  const lifts = (v: number) => (low ? v < k : v >= k);
+  for (const [a, b] of sheet.tape) if (lifts(coord[a]) !== lifts(coord[b])) return null;
+  let need = 0;
+  for (const cr of sheet.creases) {
+    const la = lifts(coord[cr.a]); if (la === lifts(coord[cr.b])) continue;
+    const seen = (cr.kind === 'mountain') === (s.up[la ? cr.b : cr.a] === 0) ? 2 : 1;
+    if (need && need !== seen) return null;
+    need = seen;
+  }
+  const n = s.cx.length, cx = s.cx.slice(), cy = s.cy.slice(), up = s.up.slice(), nc = xa ? cx : cy;
+  let lo = Infinity, hi = -Infinity;
+  for (let c = 0; c < n; c++) { if (lifts(coord[c])) { nc[c] = 2 * k - 1 - coord[c]; up[c] ^= 1; } if (nc[c] < lo) lo = nc[c]; if (nc[c] > hi) hi = nc[c]; }
+  for (let c = 0; c < n; c++) nc[c] -= lo;
+  const st: (Int16Array | null)[] = new Array(s.st.length).fill(null), moved: [number, Int16Array][] = [];
+  for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) {
+    const here = s.st[x + y * SW]; if (!here) continue;
+    const v = xa ? x : y;
+    if (!lifts(v)) { st[(xa ? x - lo : x) + (xa ? y : y - lo) * SW] = here; continue; }
+    const m = 2 * k - 1 - v - lo, flipped = new Int16Array(here.length);
+    for (let i = 0; i < here.length; i++) flipped[i] = here[here.length - 1 - i] ^ 1;
+    moved.push([(xa ? m : x) + (xa ? y : m) * SW, flipped]);
+  }
+  for (const [i, flipped] of moved) {
+    const below = st[i]; if (!below) { st[i] = flipped; continue; }
+    const out = new Int16Array(below.length + flipped.length);
+    if (need === 2) { out.set(flipped); out.set(below, flipped.length); } else { out.set(below); out.set(flipped, below.length); }
+    st[i] = out;
+  }
+  return { w: xa ? hi - lo + 1 : s.w, h: xa ? s.h : hi - lo + 1, st, cx, cy, up };
+}
+
+/** Every shortest fold sequence from `paper` to a paper showing `target`, found exhaustively up to `maxDepth` folds:
+ * the length, how many sequences of that length there are, the folds that start one, and one of them. With
+ * `all` false it stops at the first shortest sequence (enough for a hint; the count is then 1). */
+export function solve(sheet: Sheet, paper: Paper, target: Picture, maxDepth = 99, all = true): Solved {
+  const goal = pictureKey(target);
+  if (pictureKey(picture(sheet, paper)) === goal) return { min: 0, count: 1, first: [], path: [], pairs: 0 };
+  const n = sheet.cells.length, where = whereIs(paper);
+  const x0 = new Int16Array(n), y0 = new Int16Array(n), up0 = new Uint8Array(n);
+  for (const [c, w] of where) { x0[c] = px(w.p); y0[c] = py(w.p); up0[c] = w.up === 'b' ? 1 : 0; }
+  const depth = Math.min(maxDepth, paper.w - target.w + paper.h - target.h);
+  if (target.w > paper.w || target.h > paper.h || depth < 0) return null;
+  const xs = chains(sheet, x0, 'x', paper.w, target.w, depth), ys = chains(sheet, y0, 'y', paper.h, target.h, depth);
+  // the paper and the target in the solver's lean form: each face and each target square as a number
+  const SW = paper.w, TW = target.w, ids = new Map<string, number>();
+  const id = (k: string) => { let v = ids.get(k); if (v === undefined) ids.set(k, (v = ids.size)); return v; };
+  const face = new Int16Array(n * 2);
+  for (const c of sheet.cells) { face[c.id * 2] = c.hole ? -1 : id(topKey({ colour: c.f, mark: c.fm })); face[c.id * 2 + 1] = c.hole ? -1 : id(topKey({ colour: c.b, mark: c.bm })); }
+  const want = new Int16Array(TW * target.h).fill(-2);
+  for (const [p, t] of target.tops) want[px(p) + py(p) * TW] = t === 'hole' ? -1 : id(topKey(t));
+  const shown = want.filter((t) => t >= 0).length;
+  const st: (Int16Array | null)[] = new Array(SW * paper.h).fill(null);
+  for (const [p, layers] of paper.stacks) st[px(p) + py(p) * SW] = Int16Array.from(layers, (l) => l.c * 2 + (l.up === 'b' ? 1 : 0));
+  const start: Fast = { w: paper.w, h: paper.h, st, cx: x0, cy: y0, up: up0 };
+  const matches = (s: Fast) => {
+    if (s.w !== TW || s.h !== target.h) return false;
+    for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) {
+      const here = s.st[x + y * SW], t = want[x + y * TW];
+      if (!here) { if (t !== -2) return false; continue; }
+      let top = -1; for (let i = here.length - 1; i >= 0 && top < 0; i--) top = face[here[i]];
+      if (top !== t) return false;
+    }
+    return true;
+  };
+  // A pair of chains fixes where every square lands and which face it shows, whatever the interleaving. It can only
+  // make the picture if the outline matches, every hole position holds only punched squares, and every other
+  // position gets at least one square showing the wanted face: those squares are the pair's candidates.
+  type Pair = { X: Chain; Y: Chain; cand: number[]; at: Int16Array; back: Uint8Array };
+  const mark = new Int32Array(TW * target.h); let stamp = 0;
+  const pairOf = (X: Chain, Y: Chain): Pair | null => {
+    stamp++; let got = 0; const cand: number[] = [], at = new Int16Array(n), back = new Uint8Array(n);
+    const filled = new Uint8Array(TW * target.h);
+    for (let c = 0; c < n; c++) {
+      const xx = X.at[c], yy = Y.at[c]; if (xx >= TW || yy >= target.h) return null;
+      const i = xx + yy * TW, t = want[i]; if (t === -2) return null;
+      filled[i] = 1; at[c] = i; back[c] = (up0[c] + X.lifted[c] + Y.lifted[c]) & 1;
+      const f = face[c * 2 + back[c]];
+      if (t === -1) { if (f !== -1) return null; continue; }
+      if (f === t) { cand.push(c); if (mark[i] !== stamp) { mark[i] = stamp; got++; } }
+    }
+    for (let i = 0; i < want.length; i++) if (want[i] !== -2 && !filled[i]) return null;
+    return got === shown ? { X, Y, cand, at, back } : null;
+  };
+  // Two squares in one stack never part again, and their order flips exactly when their stack is lifted. So a
+  // candidate can still end on top only if it is the highest unpunched square of its stack now (with an even number
+  // of lifts to come, that is, if it shows now the face it must end on) or the lowest (with an odd number).
+  const topNow = new Uint8Array(n), bottomNow = new Uint8Array(n);
+  const alive = (s: Fast, pr: Pair) => {
+    stamp++; let got = 0;
+    for (const c of pr.cand) {
+      const i = pr.at[c]; if (mark[i] === stamp) continue;
+      if (pr.back[c] === s.up[c] ? topNow[c] : bottomNow[c]) { mark[i] = stamp; got++; }
+    }
+    return got === shown;
+  };
+  let pairs = 0;
+  for (let L = 1; L <= depth; L++) {
     let count = 0, path: Fold[] | null = null; const firsts = new Set<string>();
-    for (const n of next.values()) if (done(n.paper)) { count += n.ways; path ??= n.path; for (const t of n.first) firsts.add(t); }
-    for (const k of next.keys()) seen.add(k);
-    if (path) return { min: d, count, first: [...firsts].sort().map(parseFold), path, states: seen.size };
-    if (seen.size > maxStates || !next.size) return null;
-    layer = next;
+    const live: Pair[] = [];
+    for (let a = 0; a <= L; a++) {
+      const b = L - a; if (a >= xs.length || b >= ys.length) continue;
+      for (const X of xs[a]) for (const Y of ys[b]) { const pr = pairOf(X, Y); if (pr) live.push(pr); }
+    }
+    pairs += live.length;
+    // play every interleaving of every surviving pair with the real rules; pairs that share the folds made so far
+    // share the paper too, so each prefix is folded once
+    const walk = (i: number, j: number, p: Fast, seq: Fold[], list: Pair[]) => {
+      if (!all && path) return;
+      topNow.fill(0); bottomNow.fill(0);
+      for (const here of p.st) {
+        if (!here) continue;
+        let k = here.length - 1; while (k >= 0 && face[here[k]] < 0) k--; if (k >= 0) topNow[here[k] >> 1] = 1;
+        k = 0; while (k < here.length && face[here[k]] < 0) k++; if (k < here.length) bottomNow[here[k] >> 1] = 1;
+      }
+      const next = new Map<string, { f: Fold; x: boolean; list: Pair[] }>();
+      for (const pr of list) {
+        if (!alive(p, pr)) continue;
+        if (pr.X.folds.length === i && pr.Y.folds.length === j) {
+          if (matches(p)) { count++; path ??= seq.slice(); firsts.add(foldText(seq[0])); }
+          continue;
+        }
+        for (const [f, x] of [[pr.X.folds[i], true], [pr.Y.folds[j], false]] as const) {
+          if (!f) continue;
+          const k = foldText(f), g = next.get(k);
+          if (g) g.list.push(pr); else next.set(k, { f, x, list: [pr] });
+        }
+      }
+      for (const { f, x, list: sub } of next.values()) {
+        const q = fastFold(sheet, p, f, SW); if (!q) continue;
+        seq.push(f); walk(x ? i + 1 : i, x ? j : j + 1, q, seq, sub); seq.pop();
+      }
+    };
+    if (live.length) walk(0, 0, start, [], live);
+    if (path) return { min: L, count, first: [...firsts].sort().map(parseFold), path, pairs };
   }
   return null;
 }
@@ -252,7 +399,7 @@ export class FoldGame {
   /** The first fold of a shortest way from here, or null when the target can no longer be reached. */
   hint(): Fold | null {
     if (this.solved) return null;
-    const s = solve(this.p.sheet, this.paper, this.p.goal, this.p.par + 2, 60000);
+    const s = solve(this.p.sheet, this.paper, this.p.target, 99, false);
     return s && s.first.length ? s.first[0] : null;
   }
 }

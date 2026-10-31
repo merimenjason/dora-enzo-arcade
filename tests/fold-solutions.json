@@ -53,7 +53,7 @@
   "shortest": 1,
   "solution": [
    "x1<",
-   "x1>",
+   "y1v",
    "x1>"
   ]
  },
@@ -167,40 +167,47 @@
   ]
  },
  "c5": {
-  "par": 3,
+  "par": 4,
   "shortest": 1,
   "solution": [
-   "x1<",
-   "x1<",
-   "y1^"
-  ]
- },
- "c6": {
-  "par": 3,
-  "shortest": 1,
-  "solution": [
-   "x2>",
-   "x1>",
-   "y2v"
-  ]
- },
- "c7": {
-  "par": 3,
-  "shortest": 1,
-  "solution": [
-   "x1<",
+   "x3>",
+   "y1^",
    "x1<",
    "y1v"
   ]
  },
- "c8": {
-  "par": 4,
-  "shortest": 2,
+ "c6": {
+  "par": 5,
+  "shortest": 1,
   "solution": [
    "x1<",
+   "x3<",
    "x2>",
-   "y1^",
+   "y3v",
+   "y2^"
+  ]
+ },
+ "c7": {
+  "par": 5,
+  "shortest": 1,
+  "solution": [
+   "x1>",
+   "x1>",
+   "y3v",
+   "y1v",
    "x1>"
+  ]
+ },
+ "c8": {
+  "par": 6,
+  "shortest": 1,
+  "solution": [
+   "y4v",
+   "x1<",
+   "x1<",
+   "y1v",
+   "x1>",
+   "y2^"
   ]
  },
  "s1": {
@@ -221,124 +228,160 @@
   "par": 2,
   "shortest": 1,
   "solution": [
-   "x1>",
-   "x1>"
+   "y1v",
+   "x1<"
   ]
  },
  "s4": {
-  "par": 2,
+  "par": 4,
   "shortest": 1,
   "solution": [
-   "x1<",
-   "x1>"
+   "y1v",
+   "x3>",
+   "x2>",
+   "y2^"
   ]
  },
  "s5": {
-  "par": 3,
-  "shortest": 2,
+  "par": 5,
+  "shortest": 1,
   "solution": [
+   "y3^",
    "x1<",
-   "y1v",
+   "x1<",
+   "y2v",
    "x1>"
   ]
  },
  "s6": {
-  "par": 3,
-  "shortest": 3,
+  "par": 6,
+  "shortest": 1,
   "solution": [
-   "x3>",
+   "x1>",
+   "y1v",
    "x1<",
-   "y1^"
+   "x3>",
+   "y2v",
+   "x1>"
   ]
  },
  "s7": {
-  "par": 3,
+  "par": 6,
   "shortest": 1,
   "solution": [
-   "y2v",
-   "x2>",
-   "x1<"
+   "x1<",
+   "y4^",
+   "y3^",
+   "x1<",
+   "y1v",
+   "x1>"
   ]
  },
  "s8": {
-  "par": 4,
-  "shortest": 2,
+  "par": 6,
+  "shortest": 1,
   "solution": [
    "x1<",
+   "y3v",
+   "x1<",
+   "x3>",
    "y1v",
-   "y1^",
-   "x1<"
+   "x2<"
   ]
  },
  "n1": {
-  "par": 2,
-  "shortest": 2,
+  "par": 3,
+  "shortest": 1,
   "solution": [
-   "x1<",
-   "x1<"
+   "x3>",
+   "x1>",
+   "y1v"
   ]
  },
  "n2": {
-  "par": 2,
-  "shortest": 1,
+  "par": 5,
+  "shortest": 2,
   "solution": [
-   "x2>",
+   "x5>",
+   "x4>",
+   "y1^",
+   "x3>",
    "y1^"
   ]
  },
  "n3": {
-  "par": 3,
+  "par": 5,
   "shortest": 1,
   "solution": [
    "x1<",
-   "x1>",
-   "y2v"
+   "x3<",
+   "y4v",
+   "x1<",
+   "y3v"
   ]
  },
  "n4": {
-  "par": 3,
+  "par": 6,
   "shortest": 1,
   "solution": [
-   "y1^",
-   "x1<",
-   "x1>"
-  ]
- },
- "n5": {
-  "par": 3,
-  "shortest": 2,
-  "solution": [
+   "x5>",
+   "y4^",
    "x1>",
    "y1^",
-   "x2>"
-  ]
- },
- "n6": {
-  "par": 3,
-  "shortest": 1,
-  "solution": [
-   "y1^",
-   "x3>",
-   "x1>"
-  ]
- },
- "n7": {
-  "par": 3,
-  "shortest": 1,
-  "solution": [
-   "y2v",
    "y1v",
    "x3<"
   ]
  },
- "n8": {
-  "par": 4,
+ "n5": {
+  "par": 6,
   "shortest": 1,
   "solution": [
-   "y1^",
-   "y2^",
    "x1<",
+   "x3<",
+   "x2<",
+   "y4v",
+   "y1v",
+   "y1v"
+  ]
+ },
+ "n6": {
+  "par": 7,
+  "shortest": 2,
+  "solution": [
+   "y4v",
+   "y1v",
+   "y1v",
+   "x5>",
+   "y1^",
+   "x4<",
    "x1>"
+  ]
+ },
+ "n7": {
+  "par": 7,
+  "shortest": 3,
+  "solution": [
+   "y1^",
+   "y4v",
+   "y1^",
+   "x5>",
+   "x4>",
+   "y1^",
+   "x3<"
+  ]
+ },
+ "n8": {
+  "par": 8,
+  "shortest": 3,
+  "solution": [
+   "y5^",
+   "x1<",
+   "y1v",
+   "x4<",
+   "x1<",
+   "y3^",
+   "x2<",
+   "y1v"
   ]
  }
 }

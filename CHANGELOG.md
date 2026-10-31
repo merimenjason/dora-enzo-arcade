@@ -18,6 +18,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 - **Twig & Twine**: when a bridge drops them in the water or the stream, Dora and Enzo now sit dripping and dismayed in their acorn cart, pond weed on Enzo's ear, in a new painting; a tumble into the canyon's dust has them covering their eyes.
 - **Kiln & Clay**: a new title painting of Enzo at the wheel and Dora holding up a freshly glazed vase, and the picnic ending now has Mrs Prickle the hedgehog sharing tea with them.
+- **Paperfold**: the later pages are much deeper. From the back half of Cranes the sheets grow to 6 by 6, some notched or punched, and the pars climb from 4 to 8 at the Festival Night finale; each target is now a little picture (a crane's head, a lantern with two windows, a candle boat, a star and moon) that only one particular order of folds makes, because whatever folds last lands on top. Blue valley creases now appear: Valley Fold teaches them (a valley and a mountain on one line lock it until a fold turns one over), and later pages need them. Tall Order, a five-long strip, gives way to Lantern Window, a gentle 3 by 3 lantern. The hint still lights the first fold of a shortest way on every page, now quickly even on the biggest sheets.
 
 ### Fixed
 

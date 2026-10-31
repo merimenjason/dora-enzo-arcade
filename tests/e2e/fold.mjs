@@ -1,6 +1,6 @@
 // Paperfold in the browser: the arcade card and the menu, the first page folded with a real mouse click (the
 // chapter tip first), the second with a real drag, undo and reset, then folded by keyboard; a fold blocked by tape;
-// progress kept across a reload; a corrupt save; the festival and the ending; the framing at 1280×800 and
+// progress kept across a reload; a corrupt save; the hint on the 6 by 6 finale; the festival and the ending; the framing at 1280×800 and
 // 1920×1080 (the paper, the target card and Dora and Enzo all in view, a clear size and clear of each other and of
 // the buttons); and phones held upright and sideways, folding by touch (tap twice, or drag).
 // Needs `npm run dev` on port 3000 (or BASE_URL) and Playwright.
@@ -125,6 +125,16 @@ try {
   await page.waitForFunction(() => window.__fold().id === 'n8'); await dismissTip(page);
   await framing(page, '1920×1080', 220);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/e2e-1920.png` });
+
+  // ---- the hint on the biggest sheet: one fold, reset, and the hint lights a first fold of a shortest way
+  await page.evaluate((f) => window.__foldDo(f), (await state(page)).solution[0]); await idle(page);
+  await page.getByRole('button', { name: /Reset/ }).click();
+  const hintAt = Date.now();
+  await page.getByRole('button', { name: /Hint/ }).click();
+  await page.waitForFunction(() => window.__fold().hint);
+  assert.ok(Date.now() - hintAt < 2000, `the finale's hint comes quickly (${Date.now() - hintAt} ms)`);
+  assert.match((await state(page)).hint, /^[xy]\d[<>v^]$/, 'the hint shows a fold on the 6 by 6 finale');
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/e2e-hint-1920.png` });
 
   // ---- the finale, the ending and the festival
   for (const t of (await state(page)).solution) { await idle(page); await page.evaluate((f) => window.__foldDo(f), t); }
