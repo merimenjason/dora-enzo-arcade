@@ -56,10 +56,10 @@ export const ROOMS: { id: RoomId; name: string; blurb: string }[] = [
 
 export type Night = {
   id: string; room: RoomId; name: string;
-  /** Height to reach (and hold for five seconds at bedtime) for the first star. */
-  line: number;
-  /** The second star: den space to cover with a roof, or else a higher line. */
-  den?: number; high?: number;
+  /** The first star: the height to reach, and on some nights a den to cover with a roof, held for five seconds at bedtime. */
+  line: number; den?: number;
+  /** The second star: a higher line. */
+  high: number;
   /** The third star: pieces used, at most. */
   par: number;
   queue: Kind[];
@@ -71,40 +71,40 @@ const n = (id: string, room: RoomId, name: string, o: Omit<Night, 'id' | 'room' 
 const C = 'cushion', P = 'pillow', F = 'floor', B = 'bolster', K = 'book', A = 'atlas', S = 'stool', T = 'teacup', H = 'teapot', D = 'duck', X = 'box', L = 'blanket', Z = 'lights';
 
 export const NIGHTS: Night[] = [
-  n('l1', 'living', 'First cushions', { line: 2, high: 3, par: 5, queue: [C, C, C, C, C, C, C],
+  n('l1', 'living', 'First cushions', { line: 2, high: 3.5, par: 5, queue: [C, C, C, C, C, C, C],
     tip: { title: 'Build a pillow fort!', text: 'Move the piece with the mouse (or ← →) and click (or Space) to drop it. Stack cushions up past the dotted line, then press Bedtime: the fort has to stand for five seconds.' } }),
-  n('l2', 'living', 'Story books', { line: 2.6, high: 3.6, par: 7, queue: [K, K, C, K, C, K, P, K, C],
+  n('l2', 'living', 'Story books', { line: 2.6, high: 3.8, par: 7, queue: [K, K, C, K, C, K, P, K, C],
     tip: { title: 'Turn it round', text: 'Right-click, the mouse wheel, or ↑ turns a piece. A book on its end makes a tall, thin pillar; on its side it makes a strong shelf.' } }),
-  n('l3', 'living', 'The bolster', { line: 3, high: 4, par: 7, queue: [C, B, C, B, C, P, B, C, C] }),
-  n('l4', 'living', 'A roof!', { line: 1.6, den: 2, par: 7, queue: [C, C, P, P, C, C, L, P, C],
-    tip: { title: 'Make a den', text: 'Two pillars with a gap between them, and the blanket draped across the top, make an inside. The glowing space under the roof is your den: it counts wherever a chinchilla could sit.' } }),
-  n('l5', 'living', 'The wobbly stool', { line: 3, den: 2.5, par: 8, queue: [S, C, K, K, P, C, B, L, C, C] }),
-  n('l6', 'living', 'Sofa castle', { line: 3.5, den: 3, par: 10, queue: [F, C, C, B, B, K, K, L, P, C, Z, C] }),
+  n('l3', 'living', 'The bolster', { line: 3, high: 4.4, par: 7, queue: [C, B, C, B, C, P, B, C, C] }),
+  n('l4', 'living', 'A roof!', { line: 1.6, den: 1.5, high: 2.6, par: 7, queue: [C, C, P, P, C, C, L, P, C],
+    tip: { title: 'Make a den', text: 'Two pillars with a gap between them, and the blanket draped across the top, make an inside. The glowing space under the roof is the den: it counts wherever a chinchilla could sit. Tonight the fort needs a den.' } }),
+  n('l5', 'living', 'The wobbly stool', { line: 2.4, den: 1.5, high: 3.5, par: 8, queue: [S, C, K, K, P, C, B, L, C, C] }),
+  n('l6', 'living', 'Sofa castle', { line: 2.8, den: 2, high: 4, par: 10, queue: [F, C, C, B, B, K, K, L, P, C, Z, C] }),
 
-  n('a1', 'attic', 'Draughty corner', { line: 3.2, high: 4.2, par: 8, wind: 0.4, queue: [X, X, C, K, X, C, P, K, C, X],
+  n('a1', 'attic', 'Draughty corner', { line: 3.2, high: 4.4, par: 8, wind: 0.6, queue: [X, X, C, K, X, C, P, K, D, C, X],
     tip: { title: 'The window draught', text: 'A draught blows in from the window and pushes on the fort, harder the higher it gets. Lean against it and keep things wide at the bottom.' } }),
-  n('a2', 'attic', 'Tea party', { line: 3, high: 4, par: 8, queue: [X, T, K, T, C, H, K, C, T, X] }),
-  n('a3', 'attic', 'Rubber duck', { line: 3.4, high: 4.4, par: 8, wind: 0.3, queue: [C, D, X, K, D, C, X, P, K, C] }),
-  n('a4', 'attic', 'Under the eaves', { line: 2.4, den: 3, par: 8, wind: 0.4, queue: [X, X, C, C, K, K, L, P, Z, C] }),
-  n('a5', 'attic', 'Trunk tower', { line: 4.4, high: 5.4, par: 10, wind: 0.5, queue: [X, S, X, K, C, T, B, K, X, P, D, C] }),
-  n('a6', 'attic', 'Attic hideout', { line: 3.5, den: 4, par: 11, wind: 0.5, queue: [F, X, X, B, B, C, C, L, K, K, Z, H, C] }),
+  n('a2', 'attic', 'Tea party', { line: 2.4, den: 1.5, high: 3.4, par: 9, wind: 0.3, queue: [X, X, T, C, K, L, T, H, C, K, T] }),
+  n('a3', 'attic', 'Rubber duck', { line: 3.2, high: 4.2, par: 8, wind: 0.5, queue: [C, D, X, K, D, C, X, P, K, D, C] }),
+  n('a4', 'attic', 'Under the eaves', { line: 2.4, den: 2, high: 3.4, par: 8, wind: 0.4, queue: [X, X, C, C, K, K, L, P, Z, C] }),
+  n('a5', 'attic', 'Trunk tower', { line: 4.2, high: 5.4, par: 10, wind: 0.6, queue: [X, S, X, K, C, T, B, K, X, P, D, H, C] }),
+  n('a6', 'attic', 'Attic hideout', { line: 3, den: 2.5, high: 4.2, par: 11, wind: 0.5, queue: [F, X, X, B, B, C, C, L, K, K, Z, H, C] }),
 
-  n('b1', 'library', 'Book stacks', { line: 3, high: 4, par: 9, queue: [A, K, K, K, A, K, K, K, C, K, K] }),
-  n('b2', 'library', 'The cat', { line: 3.6, high: 4.6, par: 9, cat: 4, queue: [C, K, A, C, K, P, K, A, C, B, C],
-    tip: { title: 'Here comes the cat', text: 'Every few pieces the cat creeps up and pounces on the very top of the fort. A heavy, flat piece on top shrugs it off; a duck does not.' } }),
-  n('b3', 'library', 'Reading nook', { line: 2.5, den: 3.5, par: 9, queue: [K, K, K, K, A, C, C, L, P, Z, K, C] }),
-  n('b4', 'library', 'Encyclopaedias', { line: 4.6, high: 5.6, par: 11, cat: 4, queue: [A, A, K, K, S, A, K, K, C, K, A, P, C] }),
-  n('b5', 'library', 'The library ladder', { line: 5, high: 6, par: 11, cat: 3, wind: 0.3, queue: [S, K, K, C, B, A, P, K, C, T, K, D, C] }),
-  n('b6', 'library', 'The great library den', { line: 4, den: 5, par: 13, cat: 4, queue: [F, A, A, B, B, K, K, K, K, L, C, C, Z, P, C] }),
+  n('b1', 'library', 'Book stacks', { line: 3, high: 4, par: 9, queue: [A, K, K, K, A, K, T, K, K, C, K, K] }),
+  n('b2', 'library', 'The cat', { line: 3.4, high: 4.4, par: 9, cat: 3, queue: [C, K, A, C, K, P, D, K, A, C, B, C],
+    tip: { title: 'Here comes the cat', text: 'Every few pieces the cat creeps up and pounces on the very top of the fort, and she comes back at bedtime. A heavy, flat piece on top shrugs her off; a duck does not.' } }),
+  n('b3', 'library', 'Reading nook', { line: 2.4, den: 2.5, high: 3.4, par: 9, cat: 5, queue: [K, K, K, K, A, C, C, L, P, Z, K, C] }),
+  n('b4', 'library', 'Encyclopaedias', { line: 4.2, high: 5.2, par: 11, cat: 4, queue: [A, A, K, K, S, A, D, K, K, C, K, A, P, C] }),
+  n('b5', 'library', 'The library ladder', { line: 3, den: 2, high: 4.4, par: 11, cat: 3, wind: 0.3, queue: [S, K, K, C, B, A, L, P, K, C, T, K, D, C] }),
+  n('b6', 'library', 'The great library den', { line: 3.4, den: 3, high: 4.6, par: 13, cat: 4, queue: [F, A, A, B, B, K, K, K, K, L, C, C, Z, P, C] }),
 
-  n('t1', 'treehouse', 'Thunder', { line: 3.6, high: 4.6, par: 8, thunder: 3, queue: [C, X, C, K, C, B, P, K, C, C],
-    tip: { title: 'Thunder!', text: 'When the thunder rumbles the whole treehouse shakes. Soft cushions settle and grip; teacups and ducks rattle loose.' } }),
-  n('t2', 'treehouse', 'Sleepy Enzo', { line: 3.2, den: 3.5, par: 9, enzo: 4, queue: [F, C, K, C, S, P, K, C, L, C, C],
+  n('t1', 'treehouse', 'Thunder', { line: 3.4, high: 4.4, par: 8, thunder: 3, queue: [C, X, C, T, K, C, B, P, D, K, C, C],
+    tip: { title: 'Thunder!', text: 'When the thunder rumbles the whole treehouse shakes, and it rumbles again at bedtime. Soft cushions settle and grip; teacups and ducks rattle loose.' } }),
+  n('t2', 'treehouse', 'Sleepy Enzo', { line: 2.6, den: 2, high: 3.6, par: 9, enzo: 4, queue: [F, C, K, C, S, P, K, C, L, C, C],
     tip: { title: 'Sleepy Enzo', text: 'Enzo is very tired. Partway through he will yawn and flop down on the fort for a nap. Build it sturdy enough to take a sleepy chinchilla.' } }),
-  n('t3', 'treehouse', 'Treetop tower', { line: 5.4, high: 6.4, par: 11, thunder: 4, wind: 0.4, queue: [X, S, C, K, A, C, B, P, K, X, C, H, C] }),
-  n('t4', 'treehouse', 'Duck storm', { line: 4.4, high: 5.4, par: 11, thunder: 3, cat: 5, queue: [D, C, D, X, K, D, C, A, P, D, B, C, C] }),
-  n('t5', 'treehouse', 'Everything at once', { line: 4.4, den: 4, par: 12, thunder: 4, cat: 5, enzo: 6, wind: 0.3, queue: [F, X, X, C, B, B, K, A, L, C, P, Z, K, C, C] }),
-  n('t6', 'treehouse', 'The grand fort', { line: 6, den: 6, par: 16, thunder: 5, cat: 6, enzo: 8, wind: 0.3, queue: [F, F, X, X, B, B, A, A, K, K, L, C, C, S, P, Z, C, K, C, P] }),
+  n('t3', 'treehouse', 'Treetop tower', { line: 4.6, high: 5.8, par: 11, thunder: 3, wind: 0.4, queue: [X, S, C, K, A, C, D, B, P, K, X, C, H, C] }),
+  n('t4', 'treehouse', 'Duck storm', { line: 3, den: 2, high: 4.2, par: 11, thunder: 3, cat: 4, queue: [D, C, D, X, K, L, D, C, A, P, D, B, C, C] }),
+  n('t5', 'treehouse', 'Everything at once', { line: 3.2, den: 2.5, high: 4.4, par: 12, thunder: 4, cat: 5, enzo: 6, wind: 0.3, queue: [F, X, X, C, B, B, K, A, L, C, P, Z, K, C, C] }),
+  n('t6', 'treehouse', 'The grand fort', { line: 4.4, den: 3.5, high: 5.6, par: 16, thunder: 5, cat: 6, enzo: 8, wind: 0.3, queue: [F, F, X, X, B, B, A, A, K, K, L, C, C, S, P, Z, C, K, C, P] }),
 ];
 
 export const SANDBOX_KINDS: Kind[] = ['cushion', 'pillow', 'floor', 'bolster', 'book', 'atlas', 'stool', 'box', 'teacup', 'teapot', 'duck', 'blanket', 'lights'];

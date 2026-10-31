@@ -51,10 +51,18 @@ function pillars(g) {
   return best;
 }
 
+/** Building a pillar for the blanket: a flat top about 1.6 to 2.2 up, the same height as the other pillar. */
+function pillarScore(g, near, base) {
+  let flat = Infinity; for (let d = -0.35; d <= 0.351; d += 0.07) flat = Math.min(flat, g.colTop(near + d));
+  const other = g.colTop(-near), h = Math.min(flat, 2.2);
+  return h * 4 - Math.max(0, flat - 2.3) * 3 - (other > 1 ? Math.abs(flat - other) * 1.5 : 0) - (g.lostCount - base.lost) * 50 - g.world.motion() * 2 - Math.max(colMid(g), 0) * 3;
+}
+const colMid = (g) => Math.max(g.colTop(-0.3), g.colTop(0), g.colTop(0.3));
+
 function score(g, night, base) {
   const h = g.top(), den = g.den().area, lost = g.lostCount - base.lost;
-  let s = -lost * 50 - g.world.motion() * 2 - fragility(g) * 5;
-  const cap = night.line + (night.high ? night.high - night.line + 0.3 : 0.4);
+  let s = -lost * 50 - g.world.motion() * 2;
+  const cap = night.high + 0.3;
   s += Math.min(h, cap) * 1 + Math.min(platform(g), cap) * 4;
   if (night.den !== undefined) {
     s += Math.min(den, night.den + 1.5) * 5;
@@ -71,12 +79,13 @@ function score(g, night, base) {
 function tryBed(g) { const c = g.clone(); c.bedtime(); for (let i = 0; i < 330 && !c.result; i++) c.step(); return c.result; }
 
 /** Every drop spot and turn for a piece, each played out on a copy and scored. */
-function tries(g, kind, step, night, base, near = null) {
+function tries(g, kind, step, night, base, near = null, centre = null) {
   const out = [];
   for (const r of rotations(kind)) {
     const ext = pieceExtent(kind, r * PIECES[kind].step), lim = RUG - Math.min(ext.w, RUG * 0.8) + 0.4;
     const xs = [];
     if (near !== null) for (const d of [-0.3, -0.15, 0, 0.15, 0.3]) xs.push(near + d);
+    else if (centre !== null) for (const d of [-0.6, -0.3, -0.15, 0, 0.15, 0.3, 0.6]) xs.push(Math.max(-lim, Math.min(lim, centre + d)));
     else for (let x = -lim; x <= lim + 1e-9; x += step) xs.push(x);
     for (const x of xs) {
       const c = g.clone();
@@ -84,11 +93,17 @@ function tries(g, kind, step, night, base, near = null) {
       c.aim(x);
       while (!c.canDrop()) c.step();
       c.drop(); settle(c);
-      out.push({ s: score(c, night, base), r, x, c });
+      out.push({ s: near !== null ? pillarScore(c, near, base) : score(c, night, base), r, x, c });
     }
   }
-  return out;
+  // the few best are shaken a little: a spot that a nudge would topple is worth less
+  out.sort((p, q) => q.s - p.s);
+  const top = out.slice(0, 8);
+  for (const t of top) t.s -= fragility(t.c) * 5;
+  return top.sort((p, q) => q.s - p.s);
 }
+/** Where the tallest part of the fort is, for the plan that keeps building one tower. */
+function towerX(g) { let bx = 0, bt = -1; for (let x = -RUG + 0.5; x <= RUG - 0.5; x += 0.25) { const t = g.colTop(x); if (t > bt + 0.05 || (Math.abs(t - bt) <= 0.05 && Math.abs(x) < Math.abs(bx))) { bt = Math.max(bt, t); bx = x; } } return bt < 0.1 ? 0 : bx; }
 
 export function playSearch(id, opts = {}) {
   const night = NIGHTS.find((n) => n.id === id), g = new FortGame(id), step = opts.step ?? 0.3;
@@ -101,9 +116,10 @@ export function playSearch(id, opts = {}) {
     let near = null;
     if (night.den !== undefined && kind !== 'blanket' && g.queue.includes('blanket')) {
       const L = g.colTop(-PILLAR), R = g.colTop(PILLAR);
-      if (Math.min(L, R) < 2) near = L <= R ? -PILLAR : PILLAR;
+      if (Math.min(L, R) < 1.6) near = L <= R ? -PILLAR : PILLAR;
     }
-    const first = tries(g, kind, step, night, base, near).sort((p, q) => q.s - p.s);
+    const centre = opts.plan === 'centre' && night.den === undefined ? towerX(g) : null;
+    const first = tries(g, kind, step, night, base, near, centre).sort((p, q) => q.s - p.s);
     let top = first[0];
     // look one piece ahead from the few best spots: a pillar is worth more once something can sit across it
     const nextKind = g.queue[0];
@@ -142,7 +158,10 @@ if (isMain) {
   const list = only ? NIGHTS.filter((n) => n.id === only) : quick ? NIGHTS.filter((n, i) => i % 6 === 0) : NIGHTS;
   const t0 = Date.now(), rows = [];
   for (const n of list) {
-    const r = playSearch(n.id, { step: quick ? 0.4 : 0.3 });
+    // two plans, each a full search: spread out over the rug, or keep building on the tallest tower; the better counts
+    const plans = ['spread', 'centre'].map((plan) => playSearch(n.id, { step: quick ? 0.5 : 0.35, plan }));
+    const better = (a, b) => (b.result.stars > a.result.stars || (b.result.stars === a.result.stars && b.result.used < a.result.used) ? b : a);
+    const r = plans.reduce(better);
     const nv = playNaive(n.id);
     rows.push({ id: n.id, ...r.result, naive: nv?.stars ?? 0 });
     console.log(`${n.id.padEnd(3)} ${n.name.padEnd(24)} stars ${r.result.stars} [${r.result.goals.map((x) => (x ? 'y' : '-')).join('')}] used ${r.result.used}/${n.par} height ${r.result.height.toFixed(2)}/${n.line}${n.high ? '|' + n.high : ''} den ${r.result.den.toFixed(2)}${n.den !== undefined ? '/' + n.den : ''}  naive ${nv?.stars ?? 0} (${nv?.height.toFixed(2)})`);

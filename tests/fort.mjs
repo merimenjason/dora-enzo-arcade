@@ -128,7 +128,7 @@ const floor = (w) => w.add([box(60, 2)], { isStatic: true, friction: 0.9 }, 0, -
   for (const x of [-1.6, 1.6, -1.6, 1.6, -1.6, 1.6, 0]) { r.aim(x); while (!r.canDrop()) r.step(); r.drop(); steps(r, 100); }
   ok(r.pieces[6].kind === 'blanket' && r.den().area > 2, `a blanket across two pillars makes a den (${r.den().area.toFixed(2)})`);
   r.bedtime(); steps(r, CHECK_TICKS + 2);
-  eq(r.result.goals, [true, true, true], 'and three stars on night 4');
+  eq(r.result.goals, [true, false, true], 'and night 4 passes in par, below the high line');
 }
 
 // ---- bedtime, stars and the automatic bedtime
@@ -173,8 +173,7 @@ const floor = (w) => w.add([box(60, 2)], { isStatic: true, friction: 0.9 }, 0, -
   for (const n of NIGHTS) {
     ok(n.queue.length >= 7 && n.queue.every((k) => PIECES[k]), `${n.id}: a basket of real pieces`);
     ok(n.par >= 2 && n.par <= n.queue.length, `${n.id}: par fits the basket`);
-    ok((n.den !== undefined) !== (n.high !== undefined), `${n.id}: the second star is a den or a high line`);
-    if (n.high !== undefined) ok(n.high > n.line, `${n.id}: the high line is above the line`);
+    ok(n.high > n.line, `${n.id}: the high line is above the line`);
     if (n.den !== undefined) ok(n.queue.includes('blanket') || n.queue.includes('stool'), `${n.id}: a den night has something to make a roof`);
   }
   eq(nightNo('l1'), 1, 'night numbers'); eq(nightNo('t6'), 24, 'to twenty-four');

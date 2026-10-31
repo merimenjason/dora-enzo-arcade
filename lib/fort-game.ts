@@ -292,8 +292,8 @@ export class FortGame {
 
   private finish() {
     const nt = this.night!, height = this.top(), den = this.den().area;
-    const g1 = height >= nt.line;
-    const g2 = g1 && (nt.den !== undefined ? den >= nt.den : height >= (nt.high ?? Infinity));
+    const g1 = height >= nt.line && (nt.den === undefined || den >= nt.den);
+    const g2 = g1 && height >= nt.high;
     const g3 = g1 && this.used <= nt.par;
     const result: Result = { stars: g1 ? 1 + (g2 ? 1 : 0) + (g3 ? 1 : 0) : 0, height, den, used: this.used, goals: [g1, g2, g3], stood: g1 };
     this.result = result; this.phase = 'over';
