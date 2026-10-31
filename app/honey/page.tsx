@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   HoneyGame, CHAMBERS, AREAS, SAVE_KEY, readSave, freshSave, record, chamberOpen, areaOpen, areaChambers, starCount, nextChamber, chamberById, chamberNo, seedFor,
   type Save, type Step, type AreaId, type GoalKey,
@@ -197,7 +197,8 @@ export default function HoneyPage() {
   }, []);
   const onStepRef = useRef(onStep); onStepRef.current = onStep;
   useEffect(() => { if (scene.current) scene.current.onStep = (s) => onStepRef.current(s); });
-  useEffect(() => { requestAnimationFrame(() => scene.current?.resize()); }, [screen, orient, touch, result]);
+  // resize as soon as the bar is in the page (before the next paint or anything measures the comb), and again next frame
+  useLayoutEffect(() => { scene.current?.resize(); requestAnimationFrame(() => scene.current?.resize()); }, [screen, orient, touch, result]);
   // the result card stands beside the comb (wide) or above it (upright): the scene makes room
   useEffect(() => {
     const sc = scene.current, card = resultCard.current, cv = canvas.current; if (!sc) return;
