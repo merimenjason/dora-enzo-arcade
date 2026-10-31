@@ -118,7 +118,7 @@ export class FortScene {
       }
     }
     if (e.kind === 'lost') for (let i = 0; i < 8; i++) this.puffs.push({ x: e.x, y: 0.2, vx: (i - 4) * 0.3, vy: 0.6 + (i % 3) * 0.3, life: 0, max: 0.8, r: 0.1, c: '#f3e6d0', kind: 'fluff' });
-    if (e.kind === 'cat') this.catAnim = { x: e.x, dir: e.dir, t: 0, pounce: null, pt: 0 };
+    if (e.kind === 'cat') this.catAnim = { x: -e.dir * (RUG + 0.35), dir: e.dir, t: 0, pounce: null, pt: 0 };
     if (e.kind === 'pounce' && this.catAnim) { this.catAnim.pounce = { x: e.x, y: e.y }; this.catAnim.pt = 0; }
     if (e.kind === 'thunder') this.flash = 1;
     if (e.kind === 'yawn') this.yawn = 1.6;

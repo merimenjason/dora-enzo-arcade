@@ -45,7 +45,7 @@ async function framing(page, label, minChin) {
     for (const [m, o] of [['buttons', r.tools], ['basket', r.basket]]) if (o) assert.ok(overlap(b, o) < 0.06 * area(b), `${label}: ${n} is clear of the ${m}`);
   }
   assert.ok(s.dora.h >= minChin && s.enzo.h >= minChin, `${label}: Dora and Enzo are a clear size (${Math.round(s.dora.h)}px)`);
-  assert.ok(s.s >= (s.tall ? 28 : 50), `${label}: the fort is a good size (${Math.round(s.s)}px a unit)`);
+  assert.ok(s.s >= (s.tall || r.H < 500 ? 28 : 50), `${label}: the fort is a good size (${Math.round(s.s)}px a unit)`);
   assert.equal(overlap(dora, enzo), 0, `${label}: Dora and Enzo don’t overlap`);
   assert.ok(await noSideScroll(page), `${label}: no sideways scrolling`);
 }

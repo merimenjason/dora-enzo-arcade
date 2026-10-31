@@ -114,7 +114,7 @@ export default function FortPage() {
     if (e.kind === 'flop') { snd?.flop(); moodT.current.worry = 1.4; }
     if (e.kind === 'check') snd?.tick();
     if (e.kind === 'done' && g?.night) {
-      const r = e.result, rec = record(S, g.night.id, r); persist();
+      const r = e.result, rec = record(save.current, g.night.id, r); persist();
       if (r.stars > 0) { snd?.win(r.stars); moodT.current.cheer = 99; } else { snd?.flop2(); moodT.current.worry = 99; }
       const id = g.night.id;
       resultT.current = window.setTimeout(() => { setResult({ ...r, ...rec, id }); refresh(); }, r.stars > 0 ? 900 : 1300);
