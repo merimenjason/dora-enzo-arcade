@@ -138,3 +138,34 @@
 /* phones held upright: the done card comes up from the bottom, and the camera frames the cheering pair above it */
 @media (max-aspect-ratio:20/21){.mh-done{top:auto;bottom:10px;transform:translateX(-50%);animation-name:mh-rise-up}}
 @keyframes mh-rise-up{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translateX(-50%)}}
+/* the sky map fits the screen without scrolling on laptops: a little less air round the sky's header */
+@media (min-aspect-ratio:21/20) and (max-height:900px){
+  .mh-map{gap:10px;padding-bottom:14px}
+  .mh-map .mh-skyhead{padding:10px 14px}
+}
+/* ...and on phones held sideways: slimmer tabs, the sky's name and blurb on two short lines, and its eight stages in
+   one row, so every stage is in view at once */
+@media (min-aspect-ratio:21/20) and (max-height:520px){
+  .mh-map{gap:7px;padding:8px 14px 10px}
+  .mh-map .mh-head .mh-back{padding:5px 10px}
+  .mh-map .mh-chip{min-height:30px;padding:3px 10px;font-size:12px}
+  .mh-shell .mh-map .mh-tab{min-width:0;min-height:0;padding:3px 10px;font-size:13px;border-radius:12px}
+  .mh-map .mh-tab small{font-size:10.5px}
+  .mh-map .mh-skyhead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;column-gap:10px;padding:6px 12px;border-radius:14px}
+  .mh-map .mh-skyhead h2{font-size:18px}
+  .mh-map .mh-skyhead p{flex-basis:100%;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mh-map .mh-grid{grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
+  .mh-shell .mh-map .mh-cell{gap:2px;padding:4px 4px 6px;border-radius:12px;min-height:0}
+  .mh-map .mh-cell b{font-size:11.5px;line-height:1.2;text-align:center}
+  .mh-map .mh-cell small{font-size:10.5px;line-height:1.25}
+  .mh-map .mh-thumb{border-radius:8px}
+  /* any room to spare goes above and below, not all at the bottom */
+  .mh-map>:first-child{margin-top:auto}
+  .mh-map>:last-child{margin-bottom:auto}
+}
+@media (min-aspect-ratio:21/20) and (max-height:520px) and (max-width:740px){
+  .mh-shell .mh-map .mh-tab{padding:3px 7px;font-size:12px}
+  .mh-map .mh-tabs{gap:5px}
+  .mh-map .mh-cell b{font-size:11px}
+  .mh-map .mh-cell small{font-size:10px}
+}

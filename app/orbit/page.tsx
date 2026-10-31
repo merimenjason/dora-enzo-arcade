@@ -147,6 +147,12 @@ export default function OrbitPage() {
     // (and on phones held upright it comes up from the bottom: frame them above it)
     const home = !!hop.current?.done, side = home && window.matchMedia?.('(min-aspect-ratio: 21/20)').matches;
     const card = home && tall ? el.querySelector('.mh-done')?.getBoundingClientRect() : null;
+    // the edge markers keep clear of the hint (as wide as its longest line can be, centred) and the tools
+    const cv = canvas.current?.getBoundingClientRect(), hint = el.querySelector('.mh-hint')?.getBoundingClientRect();
+    const avoid: [number, number, number, number][] = [];
+    if (cv && hint && hint.height > 0) { const w = Math.min(540, cv.width); avoid.push([(cv.width - w) / 2, hint.top - cv.top, w, hint.height]); }
+    if (cv && t && t.height > 0) avoid.push([t.left - cv.left, t.top - cv.top, t.width, t.height]);
+    sc.avoid = avoid;
     sc.inset = { top: 0, left: 0, right: side ? (window.innerHeight > 520 ? Math.min(400, r.width * 0.4) + 30 : Math.min(380, r.width * 0.44) + 18) : 0, bottom: card && card.height > 0 ? card.height + 16 : tall && t && t.height > 0 ? Math.max(0, r.bottom - t.top + 6) : 0 };
   }
   /** What the player is holding right now, as the game's input. */

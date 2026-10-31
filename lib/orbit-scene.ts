@@ -53,6 +53,9 @@ export class OrbitScene {
   readonly cv: HTMLCanvasElement; private c: CanvasRenderingContext2D;
   W = 0; H = 0; private dpr = 1;
   inset = { top: 0, right: 0, bottom: 0, left: 0 };
+  /** Screen boxes (x, y, w, h, in canvas pixels) the edge markers keep clear of: the hint and the tools. */
+  avoid: [number, number, number, number][] = [];
+  private marks: { x: number; y: number; n: number; kind: string }[] = [];
   private st: Stage | null = null; private sky = 1;
   // the camera, in world units: centre and pixels per unit
   cx = 0; cy = 0; s = 1; private intro = 0; private framed = true;
@@ -104,7 +107,7 @@ export class OrbitScene {
   }
   toScreen(x: number, y: number): [number, number] { const v = this.view(); return [v.x + v.w / 2 + (x - this.cx) * this.s, v.y + v.h / 2 + (y - this.cy) * this.s]; }
   toWorld(sx: number, sy: number): [number, number] { const v = this.view(); return [this.cx + (sx - v.x - v.w / 2) / this.s, this.cy + (sy - v.y - v.h / 2) / this.s]; }
-  metrics() { return { pair: this.pairBox, scale: this.s, view: this.view(), W: this.W, H: this.H }; }
+  metrics() { return { pair: this.pairBox, scale: this.s, view: this.view(), W: this.W, H: this.H, marks: this.marks.map((m) => ({ ...m })) }; }
 
   /** What the game just did. */
   feed(evs: Ev[], h: Hop) {
@@ -473,21 +476,52 @@ export class OrbitScene {
     }
     c.restore();
   }
-  /** Little arrows at the edge of the view pointing to fireflies (and the open lantern) that are out of sight. */
+  /** Little badges at the edge of the view pointing to fireflies (and the open lantern) that are out of sight. Ones that
+   *  would land on top of each other are drawn as one badge with a count (the golden firefly and the lantern always
+   *  keep their own), each sits on a dark disc so it reads over a moon, and none goes under the hint or the tools. */
   private drawMarkers(h: Hop) {
-    const c = this.c, v = this.view(), pad = 22;
-    const mark = (wx: number, wy: number, col: string, big: boolean) => {
+    const c = this.c, v = this.view(), pad = 24, R = 11, GAP = 2 * R + 14;
+    type Mark = { x: number; y: number; ax: number; ay: number; n: number; kind: 'fly' | 'gold' | 'home'; edge: 0 | 1 };
+    const marks: Mark[] = [];
+    const cx = v.x + v.w / 2, cy = v.y + v.h / 2;
+    const add = (wx: number, wy: number, kind: Mark['kind']) => {
       const [sx, sy] = this.toScreen(wx, wy);
       if (sx > v.x && sx < v.x + v.w && sy > v.y && sy < v.y + v.h) return;
-      const cx = v.x + v.w / 2, cy = v.y + v.h / 2, dx = sx - cx, dy = sy - cy;
-      const k = Math.min((v.w / 2 - pad) / Math.abs(dx || 1e-6), (v.h / 2 - pad) / Math.abs(dy || 1e-6));
-      const px = cx + dx * k, py = cy + dy * k, a = Math.atan2(dy, dx);
-      c.save(); c.translate(px, py); c.rotate(a);
-      c.fillStyle = col; c.globalAlpha = 0.85; c.beginPath(); c.moveTo(big ? 13 : 10, 0); c.lineTo(-6, big ? -8 : -6); c.lineTo(-6, big ? 8 : 6); c.closePath(); c.fill();
-      c.restore();
+      const dx = sx - cx, dy = sy - cy, kx = (v.w / 2 - pad) / Math.abs(dx || 1e-6), ky = (v.h / 2 - pad) / Math.abs(dy || 1e-6), k = Math.min(kx, ky);
+      const d = Math.hypot(dx, dy) || 1;
+      // edge 0: a left or right edge (badges slide up and down it); 1: the top or bottom
+      const x = cx + dx * k, y = cy + dy * k, edge = kx <= ky ? 0 : 1;
+      const same = marks.find((m) => m.kind === kind && kind === 'fly' && Math.hypot(m.x - x, m.y - y) < GAP);
+      if (same) { same.x = (same.x * same.n + x) / (same.n + 1); same.y = (same.y * same.n + y) / (same.n + 1); same.ax += dx / d; same.ay += dy / d; same.n++; return; }
+      marks.push({ x, y, ax: dx / d, ay: dy / d, n: 1, kind, edge });
     };
-    h.s.flies.forEach((f, i) => { if (!h.got[i]) { const [x, y] = h.flyAt(i); mark(x, y, f.gold ? '#ffd84a' : '#d9ff7a', !!f.gold); } });
-    if (h.open && h.s.home >= 0) mark(h.mx[h.s.home], h.my[h.s.home] - h.s.moons[h.s.home].r, '#ffb35a', true);
+    h.s.flies.forEach((f, i) => { if (!h.got[i]) { const [x, y] = h.flyAt(i); add(x, y, f.gold ? 'gold' : 'fly'); } });
+    if (h.open && h.s.home >= 0) add(h.mx[h.s.home], h.my[h.s.home] - h.s.moons[h.s.home].r, 'home');
+    // keep clear of the hint and the tools: step up above them
+    for (const m of marks) for (const [ax, ay, aw, ah] of this.avoid) {
+      if (m.x + R + 8 > ax && m.x - R - 8 < ax + aw && m.y + R + 8 > ay && m.y - R - 8 < ay + ah) { m.y = ay - R - 10; m.edge = 0; }
+    }
+    // badges that still crowd each other slide apart along their edge
+    marks.sort((a, b) => (a.edge === b.edge ? (a.edge === 0 ? a.y - b.y : a.x - b.x) : a.edge - b.edge));
+    for (let i = 1; i < marks.length; i++) {
+      const a = marks[i - 1], b = marks[i];
+      if (Math.hypot(a.x - b.x, a.y - b.y) >= GAP) continue;
+      if (b.edge === 0) b.y = a.y + GAP; else b.x = a.x + GAP;
+    }
+    for (const m of marks) {
+      m.x = Math.max(v.x + R + 4, Math.min(v.x + v.w - R - 4, m.x)); m.y = Math.max(v.y + R + 4, Math.min(v.y + v.h - R - 4, m.y));
+      const col = m.kind === 'gold' ? '#ffd84a' : m.kind === 'home' ? '#ffb35a' : '#d9ff7a', a = Math.atan2(m.ay, m.ax);
+      c.save(); c.translate(m.x, m.y);
+      // the arrow, poking out of the disc towards what it points at
+      c.save(); c.rotate(a); c.fillStyle = col; c.beginPath(); c.moveTo(R + 8, 0); c.lineTo(R - 2, -6.5); c.lineTo(R - 2, 6.5); c.closePath(); c.fill(); c.restore();
+      c.fillStyle = 'rgba(16,13,48,0.86)'; c.strokeStyle = col; c.lineWidth = 2;
+      c.beginPath(); c.arc(0, 0, R, 0, TAU); c.fill(); c.stroke();
+      if (m.n > 1) { c.fillStyle = col; c.font = '900 12px ui-rounded, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(m.n), 0, 0.5); }
+      else if (m.kind === 'home') { c.fillStyle = col; c.beginPath(); c.ellipse(0, 0.5, 4, 5.5, 0, 0, TAU); c.fill(); }
+      else { const g = c.createRadialGradient(0, 0, 0, 0, 0, 7); g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, col); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, 7, 0, TAU); c.fill(); }
+      c.restore();
+    }
+    this.marks = marks.map((m) => ({ x: m.x, y: m.y, n: m.n, kind: m.kind }));
   }
 }
 

@@ -4,7 +4,8 @@
 // dotted path, a puff by mouse and by keyboard, the lantern string reeling them back from the dark, Look, restarting,
 // the shut lantern); the save across a reload and the sky map; a corrupt save; the Moon Garden and the ending; the
 // framing at 1280×800 and 1920×1080 (Dora and Enzo a clear size, nothing over them); and phones held upright and
-// sideways, played by touch to three stars. Needs `npm run dev` on port 3000 and Playwright.
+// sideways, played by touch to three stars; the sky map fitting a sideways phone without scrolling, and the edge markers
+// on an upright phone sitting apart and clear of the hint, the tools and the pair. Needs `npm run dev` on port 3000 and Playwright.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { chromium } from 'playwright';
@@ -288,6 +289,53 @@ for (const vp of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
   await threeStars(page, `${vp.width}×${vp.height} by touch`);
   assert.ok(await noSideScroll(page));
   console.log(`PASS a phone ${vp.width > vp.height ? 'sideways' : 'upright'} (${vp.width}×${vp.height}): played by touch to three stars, the pair ${Math.round(p.h)} px`);
+  await page.close();
+}
+
+// ---------------------------------------------------------------- the sky map on sideways phones, and edge markers
+{
+  const all = { v: 1, stages: {}, garden: { level: 1, best: 0 }, seen: [], ended: true, settings: { sound: false, music: false } };
+  for (let sky = 1; sky <= 5; sky++) for (let i = 1; i <= 8; i++) all.stages[`${sky}-${i}`] = { s: [true, i % 2 === 0, false], best: 9, time: 60, medal: false };
+  all.seen = Object.keys(all.stages);
+  // held sideways, every stage of the sky is on the map without scrolling
+  for (const vp of [{ width: 844, height: 390 }, { width: 667, height: 375 }]) {
+    const page = await open(vp, true);
+    await page.goto(base + '/orbit'); await ready(page);
+    await page.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, all]);
+    await page.reload(); await ready(page);
+    await page.getByRole('button', { name: /Sky map/ }).tap(); await page.locator('.mh-map').waitFor();
+    for (const name of ['Lantern Clouds', 'The Night Garden']) {
+      await page.getByRole('button', { name: new RegExp(name) }).tap(); await page.waitForTimeout(200);
+      const m = await page.evaluate(() => { const e = document.querySelector('.mh-map'); const cells = [...document.querySelectorAll('.mh-cell')].map((c) => c.getBoundingClientRect()); return { sh: e.scrollHeight, ch: e.clientHeight, n: cells.length, bottom: Math.max(...cells.map((r) => r.bottom)), top: Math.min(...cells.map((r) => r.top)), thumb: document.querySelector('.mh-thumb').getBoundingClientRect().height }; });
+      assert.equal(m.n, 8);
+      assert.ok(m.sh <= m.ch + 1 && m.bottom <= vp.height && m.top >= 0, `${vp.width}×${vp.height}: all eight stages of ${name} on the map without scrolling (${m.sh} of ${m.ch})`);
+      assert.ok(m.thumb >= 36, `${vp.width}×${vp.height}: the stage pictures are still a readable size (${Math.round(m.thumb)} px)`);
+    }
+    assert.ok(await noSideScroll(page));
+    console.log(`PASS the sky map fits a phone held sideways (${vp.width}×${vp.height}) without scrolling`);
+    await page.close();
+  }
+  // held upright, a wide stage's off-screen fireflies get edge markers that sit apart and clear of the hint, the tools
+  // and the pair
+  const page = await open({ width: 390, height: 844 }, true);
+  await page.goto(base + '/orbit'); await ready(page);
+  await page.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, all]);
+  for (const [sky, idx] of [['Mushroom Moons', 6], ['Frost Moons', 7], ['The Night Garden', 8]]) {
+    await page.reload(); await ready(page);
+    await page.getByRole('button', { name: /Sky map/ }).tap(); await page.locator('.mh-map').waitFor();
+    await page.getByRole('button', { name: new RegExp(sky) }).tap();
+    await page.locator('.mh-cell').nth(idx - 1).tap();
+    await page.waitForTimeout(3000);
+    const c = await box(page, 'canvas.mh-canvas'), p = await pairBox(page), marks = (await page.evaluate(() => window.__orbitScene())).marks;
+    assert.ok(marks.length >= 1, `${sky} ${idx}: fireflies out of sight are marked`);
+    const R = 12, mb = (m) => ({ x: c.x + m.x - R, y: c.y + m.y - R, w: 2 * R, h: 2 * R });
+    for (let i = 0; i < marks.length; i++) {
+      for (let j = i + 1; j < marks.length; j++) assert.ok(!overlaps(mb(marks[i]), mb(marks[j])), `${sky} ${idx}: edge markers don't sit on each other`);
+      for (const sel of ['.mh-hint', '.mh-tools', '.mh-bar']) { const b = await box(page, sel); if (b) assert.ok(!overlaps(mb(marks[i]), b), `${sky} ${idx}: an edge marker clear of ${sel}`); }
+      assert.ok(!overlaps(mb(marks[i]), p), `${sky} ${idx}: an edge marker clear of the pair`);
+    }
+    console.log(`PASS ${sky} ${idx} upright: ${marks.length} edge marker${marks.length > 1 ? 's' : ''} for ${marks.reduce((n, m) => n + m.n, 0)} off-screen fireflies, apart and clear of the hint, tools and pair`);
+  }
   await page.close();
 }
 
