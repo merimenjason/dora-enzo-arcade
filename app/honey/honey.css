@@ -50,6 +50,8 @@
 .hh-moves small{font-size:11px;font-weight:900;letter-spacing:.5px}
 .hh-moves.is-low{background:linear-gradient(180deg,#ff9a8a,#e0445a);color:#fff;animation:hh-throb 1s infinite}
 @keyframes hh-throb{50%{transform:scale(1.08)}}
+/* the map scrolls under its bar, which stays put */
+.hh-map>.hh-bar{position:sticky;top:0}
 .hh-tabs{position:relative;display:flex;gap:6px;padding:12px 14px 4px;overflow-x:auto;flex:none}
 .hh-shell button.hh-tab{flex:none;min-height:0;padding:7px 12px;font-size:13.5px}
 .hh-tab b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--gold);color:var(--ink);font-size:12px;margin-right:2px;border:2px solid var(--lead)}
@@ -103,7 +105,7 @@
 .hh-story-art img,.hh-story-art canvas{filter:saturate(1.05)}
 .hh-story-cast{position:absolute;left:0;right:0;top:4%;bottom:30%;display:flex;justify-content:space-between;align-items:flex-end;padding:0 6vw;pointer-events:none}
 .hh-story-pair{display:flex;align-items:flex-end;height:100%}
-.hh-story-cast .hh-cut{height:min(56vh,48vw);width:auto;max-width:30vw;filter:drop-shadow(0 8px 16px #0007);transition:transform .25s}
+.hh-story-cast .hh-cut{height:min(56vh,48vw);width:auto;max-width:30vw;filter:drop-shadow(0 8px 16px #0007);transition:transform .25s;transform-origin:50% 100%}
 .hh-story-cast .hh-story-enzo{margin-left:-4vw}
 .hh-story-cast .hh-story-bee{height:min(44vh,36vw);align-self:center}
 .hh-story-cast .hh-cut.is-on{transform:scale(1.06) translateY(-2%)}
@@ -131,6 +133,14 @@
   .hh-back{padding:5px 7px;font-size:11px}
   .hh-cards{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px}
   .hh-friend{display:none}
+  /* the five areas fit across a phone: each tab is its number, and the open one adds its name */
+  .hh-tabs{overflow:visible;padding:8px 10px 2px;gap:5px}
+  .hh-shell button.hh-tab{display:inline-flex;align-items:center;gap:4px;padding:5px 8px;font-size:12.5px;white-space:nowrap}
+  .hh-tab b{margin:0}
+  .hh-tab:not(.is-on) .hh-tab-name,.hh-tab:not(.is-on) small{display:none}
+  .hh-shell button.hh-tab.is-on{flex:0 1 auto;min-width:0}
+  .hh-tab.is-on .hh-tab-name{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .hh-tab small{margin-left:0}
 }
 @media (orientation:portrait){
   .hh-result{place-items:start center;padding-top:58px;background:linear-gradient(180deg,#1a0c0430,#1a0c0400 55%)}
@@ -148,16 +158,17 @@
   .hh-lede{font-size:13.5px}
   .hh-name{display:none}
   .hh-toggles{display:none}
-  .hh-ending{padding:12px;justify-content:center;align-items:flex-end}
-  .hh-ending-card{width:100%}
-  .hh-ending-art{right:0;bottom:auto;height:56%;border-right:0;border-bottom:5px solid #f0b030}
-  .hh-ending-art img,.hh-ending-art canvas{object-position:50% 30%}
+  /* an upright phone stacks the ending: the whole painting above, the card below it, neither covering the other */
+  .hh-ending{flex-direction:column;align-items:stretch;justify-content:flex-start;gap:12px;padding:0 12px 12px}
+  .hh-ending-art{position:relative;inset:auto;flex:1;min-height:0;margin:0 -12px;border-right:0;border-bottom:5px solid #f0b030}
+  .hh-ending-art img,.hh-ending-art canvas{object-position:50% 40%}
+  .hh-ending-card{width:100%;flex:none}
   /* an upright phone stacks the page: the friend flies above, the pair sit big and whole above the card */
   .hh-story{gap:6px;padding:10px 10px 12px}
   .hh-story-cast{position:relative;inset:auto;flex:1;min-height:0;width:100%;flex-direction:column;justify-content:flex-end;align-items:stretch;padding:0}
   .hh-story-cast .hh-story-bee{order:-1;flex:0 1 auto;min-height:0;height:min(58vw,30vh);width:auto;max-width:none;align-self:flex-end;margin:0 2vw -4vh 0;object-position:100% 50%}
   .hh-story-pair{flex:none;width:100%;height:auto;justify-content:center}
-  .hh-story-cast .hh-story-pair .hh-cut{width:54vw;height:auto;max-width:none;max-height:31vh}
+  .hh-story-cast .hh-story-pair .hh-cut{width:52vw;height:auto;max-width:none;max-height:31vh}
   .hh-story-cast .hh-story-enzo{margin-left:-9vw}
   .hh-bubble p{font-size:15px}
 }
@@ -169,6 +180,9 @@
   .hh-menu-buttons{gap:5px}
   .hh-shell .hh-menu-buttons button{min-height:36px;padding:6px 12px}
   .hh-ending-card p:not(.hh-note){display:none}
+  .hh-ending{padding:10px 12px}
+  .hh-ending-art{right:calc(min(300px,40vw) + 24px)}
+  .hh-ending-card{width:min(300px,40vw);padding:16px 18px;gap:9px}
   .hh-result{padding:48px 12px 8px}
   .hh-shell .hh-result .hh-result-card{width:min(320px,40vw);padding:10px 14px;gap:4px}
   .hh-result-card .hh-eyebrow{font-size:10px;letter-spacing:1.5px}
@@ -176,9 +190,11 @@
   .hh-result-card h2{font-size:19px}
   .hh-result-card .hh-goals li{font-size:12px;padding:3px 8px}
   .hh-shell .hh-result-buttons button{min-height:34px;padding:5px 10px;font-size:13px}
-  .hh-story-cast{bottom:38%}
-  .hh-story-cast .hh-cut{height:52vh}
-  .hh-story-cast .hh-story-bee{height:40vh}
+  /* a sideways phone stacks the page too: the cast fills the height the card leaves them, so the card never covers a foot */
+  .hh-story{gap:6px;padding:6px 12px 10px}
+  .hh-story-cast{position:relative;inset:auto;flex:1;min-height:0;width:100%;padding:0 5vw}
+  .hh-story-cast .hh-cut{height:92%;max-height:none}
+  .hh-story-cast .hh-story-bee{height:78%}
   .hh-bubble{padding:10px 14px;gap:4px}
   .hh-bubble p{font-size:14px}
 }

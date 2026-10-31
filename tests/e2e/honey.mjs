@@ -4,7 +4,8 @@
 // beside the comb, the next chamber, progress kept across a reload, a corrupt save, the chamber map with its locks,
 // the ending; the framing at 1280×800 and 1920×1080 (Dora and Enzo in view, a clear size, clear of the comb, the
 // buttons and each other) and on phones held upright and sideways, turning by touch (a tap, and a drag round the
-// corner). Needs `npm run dev` on port 3000 (or BASE_URL) and Playwright.
+// corner); every story page with the card clear of the cast; the smallest phones (667×375, 360×740) with the
+// map tabs, the story and the ending laid out clear. Needs `npm run dev` on port 3000 (or BASE_URL) and Playwright.
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
@@ -80,6 +81,67 @@ async function framing(page, label, minChin, minCell) {
   assert.ok(await noSideScroll(page), `${label}: no sideways scrolling`);
 }
 
+/** Every story page, opened in turn: the card covers none of the cast (Dora, Enzo and the bee friend or the queen), all in view. */
+async function storyClear(page, label) {
+  const fails = [];
+  for (const key of seen) {
+    for (let i = 0; await page.evaluate(([k, j]) => window.__honeyStory(k, j), [key, i]); i++) {
+      await page.waitForTimeout(320);
+      const r = await page.evaluate(() => {
+        // the painted part of each cut-out: its img box fitted the way object-fit: contain fits it
+        const fit = (el) => {
+          const b = el.getBoundingClientRect(), k = Math.min(b.width / el.naturalWidth, b.height / el.naturalHeight), w = el.naturalWidth * k, h = el.naturalHeight * k;
+          const [px, py] = getComputedStyle(el).objectPosition.split(' ').map((v) => parseFloat(v) / 100);
+          const x0 = b.left + (b.width - w) * px, y0 = b.top + (b.height - h) * py;
+          return { x0, y0, x1: x0 + w, y1: y0 + h };
+        };
+        const cast = ['.hh-story-dora', '.hh-story-enzo', '.hh-story-bee'].map((q) => document.querySelector(q)).map((e) => (e?.tagName === 'IMG' && e.complete && e.naturalWidth ? fit(e) : null));
+        const c = document.querySelector('.hh-bubble').getBoundingClientRect();
+        return { cast, card: { x0: c.left, y0: c.top, x1: c.right, y1: c.bottom }, W: innerWidth, H: innerHeight, who: document.querySelector('.hh-bubble-who').textContent };
+      });
+      const ov = (a, b) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+      ['Dora', 'Enzo', 'the bee'].forEach((n, k) => {
+        const b = r.cast[k];
+        if (!b) { fails.push(`${key}/${i}: ${n} is missing`); return; }
+        if (ov(b, r.card) > 0) fails.push(`${key}/${i} (${r.who}): the card covers ${n}`);
+        if (b.x0 < -1 || b.y0 < -1 || b.x1 > r.W + 1 || b.y1 > r.H + 1) fails.push(`${key}/${i} (${r.who}): ${n} runs off screen`);
+        if (b.y1 - b.y0 < Math.min(r.W, r.H) * 0.4) fails.push(`${key}/${i}: ${n} is too small (${Math.round(b.y1 - b.y0)}px)`);
+      });
+    }
+  }
+  await page.evaluate(() => window.__honeyStory(null));
+  await page.locator('.hh-story').waitFor({ state: 'detached' });
+  assert.deepEqual(fails, [], `${label}: the story card leaves the cast clear`);
+}
+
+/** The smallest phones: the story, the map (all five area tabs across, no sideways scroll), the ending (card clear of the painting). */
+async function smallPhone(size) {
+  const label = `${size.width}×${size.height}`, p = await open(size, true);
+  await p.goto(base + '/honey');
+  await p.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, saveWith(['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13'])]);
+  await p.reload(); await ready(p);
+  assert.ok(await noSideScroll(p), `${label}: the menu doesn't scroll sideways`);
+  await storyClear(p, label);
+  await p.getByRole('button', { name: /The chambers/ }).click();
+  await p.locator('.hh-cards').waitFor();
+  assert.ok(await p.evaluate(() => { const t = document.querySelector('.hh-tabs'); return t.scrollWidth <= t.clientWidth + 1; }), `${label}: all five area tabs fit across`);
+  assert.ok(await noSideScroll(p), `${label}: the map doesn't scroll sideways`);
+  await p.evaluate(() => { const m = document.querySelector('.hh-map'); m.scrollTop = m.scrollHeight; });
+  assert.ok(await p.evaluate(() => document.querySelector('.hh-map .hh-bar').getBoundingClientRect().top >= -1), `${label}: the map's bar stays in view`);
+  await p.evaluate(() => window.__honeyEnding());
+  await p.locator('.hh-ending-card').waitFor();
+  const e = await p.evaluate(() => {
+    const r = (q) => { const b = document.querySelector(q).getBoundingClientRect(); return { x0: b.left, y0: b.top, x1: b.right, y1: b.bottom }; };
+    const card = r('.hh-ending-card'), kids = [...document.querySelectorAll('.hh-ending-card > *, .hh-ending-card .hh-menu-buttons > *')].map((k) => k.getBoundingClientRect()).filter((k) => k.width > 0);
+    return { art: r('.hh-ending-art'), card, inside: kids.every((k) => k.left >= card.x0 - 1 && k.right <= card.x1 + 1 && k.bottom <= card.y1 + 1), W: innerWidth, H: innerHeight };
+  });
+  assert.ok(Math.max(0, Math.min(e.art.x1, e.card.x1) - Math.max(e.art.x0, e.card.x0)) * Math.max(0, Math.min(e.art.y1, e.card.y1) - Math.max(e.art.y0, e.card.y0)) === 0, `${label}: the ending card leaves the painting clear`);
+  assert.ok(e.inside, `${label}: the ending card holds its buttons`);
+  assert.ok(e.card.y1 <= e.H + 1 && e.card.x1 <= e.W + 1, `${label}: the ending card is on screen`);
+  assert.ok(await noSideScroll(p), `${label}: the ending doesn't scroll sideways`);
+  await p.context().close();
+}
+
 try {
   // ---- the menu, the story, the first tip
   const page = await open();
@@ -98,6 +160,7 @@ try {
   let s = await state(page);
   assert.equal(s.chamber, 'c1'); assert.ok(s.moves > 10);
   await framing(page, '1280×800', 180, 30);
+  await storyClear(page, '1280×800');
 
   // ---- the mouse: hover lights a trio, a dud springs back for free, a click turns
   const dud = await page.evaluate(() => window.__honeyDud());
@@ -182,6 +245,7 @@ try {
   await closeOverlays(big);
   assert.ok((await state(big)).goals.some((g) => g.key === 'bees'), 'trapped bees to free');
   await framing(big, '1920×1080', 260, 44);
+  await storyClear(big, '1920×1080');
   await big.context().close();
 
   // ---- a phone held upright: tap a corner, drag round a corner
@@ -192,6 +256,7 @@ try {
   await tall.getByRole('button', { name: /Continue/ }).click();
   await closeOverlays(tall);
   await framing(tall, '390×844', 140, 20);
+  await storyClear(tall, '390×844');
   const tm = await tall.evaluate(() => window.__honeyBest());
   await touchTurn(tall, tm);
   assert.equal((await state(tall)).turns, 1, 'a finger turns a trio');
@@ -209,11 +274,16 @@ try {
   await side.getByRole('button', { name: /Continue/ }).click();
   await closeOverlays(side);
   await framing(side, '844×390', 150, 17);
+  await storyClear(side, '844×390');
   const sm = (await side.evaluate(() => window.__honeyMoves())).find((m) => m.dir === 1);
   const [sx, sy] = await corner(side, sm.t);
   await side.touchscreen.tap(sx, sy); await idle(side);
   assert.equal((await state(side)).turns, 1, 'a tap turns a trio sideways too');
   await side.context().close();
+
+  // ---- the smallest phones, both ways round
+  await smallPhone({ width: 667, height: 375 });
+  await smallPhone({ width: 360, height: 740 });
 
   assert.deepEqual(errors, [], 'no page errors');
   console.log('honey browser suite ok');

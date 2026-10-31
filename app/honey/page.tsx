@@ -192,6 +192,8 @@ export default function HoneyPage() {
     w.__honeyCursor = (t: number) => { if (scene.current) { scene.current.cursor = t; scene.current.hover = -1; } };
     w.__honeyScene = () => scene.current?.boxes() ?? null;
     w.__honeyEnding = () => { game.current = null; screenRef.current = 'ending'; setScreenState('ending'); };
+    /** Opens a story page over whatever is showing, for the browser suite's framing checks. */
+    w.__honeyStory = (key: string | null, i = 0) => { if (key === null) { setStory(null); return true; } if (!STORY[key]?.[i]) return false; setStory({ key, i, then: () => {} }); return true; };
     return () => { dead = true; cancelAnimationFrame(raf); ro.disconnect(); removeEventListener('resize', o); document.removeEventListener('visibilitychange', hide); window.clearTimeout(resultT.current); sound.current?.dispose(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -341,8 +343,8 @@ export default function HoneyPage() {
           </header>
           <nav className="hh-tabs" aria-label="Areas">
             {AREAS.map((a, i) => (
-              <button type="button" key={a.id} className={'hh-tab' + (a.id === area ? ' is-on' : '')} disabled={!areaOpen(S, a.id)} onClick={() => { audio().ui(); setArea(a.id); }}>
-                <b>{i + 1}</b> {a.name} <small>{areaChambers(a.id).reduce((n, c) => n + (S.best[c.id]?.stars ?? 0), 0)}/36</small>
+              <button type="button" key={a.id} className={'hh-tab' + (a.id === area ? ' is-on' : '')} disabled={!areaOpen(S, a.id)} title={a.name} onClick={() => { audio().ui(); setArea(a.id); }}>
+                <b>{i + 1}</b> <span className="hh-tab-name">{a.name}</span> <small>{areaChambers(a.id).reduce((n, c) => n + (S.best[c.id]?.stars ?? 0), 0)}/36</small>
               </button>
             ))}
           </nav>
