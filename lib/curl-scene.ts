@@ -308,9 +308,12 @@ export class CurlScene {
     const c = this.c, s = this.cam.s, sw = this.sweeping, jig = sw ? Math.sin(this.t * 26) : 0;
     const bx = cur.x + 0.55 + jig * 0.06, side = this.layout.tall ? 0.52 : 0.5;
     if (who === 'opp') {
-      const p = this.toScreen(bx, cur.y), q = this.toScreen(bx - 0.6, cur.y + side * 1.6);
-      c.strokeStyle = INK.navy; c.lineWidth = Math.max(3, s * 0.05); c.beginPath(); c.moveTo(q.x, q.y); c.lineTo(p.x, p.y); c.stroke();
-      c.fillStyle = INK.mustard; c.save(); c.translate(p.x, p.y); c.rotate(this.layout.tall ? 0 : Math.PI / 2); c.fillRect(-s * 0.2, -s * 0.07, s * 0.4, s * 0.14); c.strokeRect(-s * 0.2, -s * 0.07, s * 0.4, s * 0.14); c.restore();
+      // the other team's broom, scrubbing back and forth across the stone's path just ahead of it
+      const hx = cur.x + 0.5, hy = cur.y + jig * 0.14;
+      this.world(() => {
+        c.lineCap = 'round'; c.strokeStyle = INK.navy; c.lineWidth = 0.07; c.beginPath(); c.moveTo(hx - 0.55, hy + 1.0); c.lineTo(hx, hy); c.stroke();
+        c.fillStyle = INK.mustard; c.fillRect(hx - 0.07, hy - 0.24, 0.14, 0.48); c.strokeStyle = INK.navy; c.lineWidth = 0.035; c.strokeRect(hx - 0.07, hy - 0.24, 0.14, 0.48);
+      });
       return;
     }
     const h = Math.max(70, Math.min(this.layout.band.h * 0.6, s * 2.1)), p = this.toScreen(cur.x + 0.2, cur.y + side);

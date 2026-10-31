@@ -329,6 +329,8 @@ export class Match {
   static restore(m: MatchSnap, noise: MatchOpts['noise']) {
     const x = new Match({ ends: m.ends, seed: 0, hammer: m.hammer, noise });
     x.end = m.end; x.thrown = m.thrown; x.stones = cloneStones(m.stones).map((s) => ({ ...s, moving: false, vx: 0, vy: 0, w: 0 })); x.results = m.results; x.score = m.score; x.rand.set(m.rand);
+    // saved between the last stone of an end and the next end: clear the sheet
+    if (x.thrown >= 8) x.nextEnd();
     return x;
   }
 }
@@ -385,7 +387,7 @@ const nums = (o: unknown, max: number) => { const r: Record<string, number> = {}
 function goodSnap(o: unknown): o is MatchSnap {
   if (!isObj(o)) return false;
   const okN = (v: unknown, lo: number, hi: number) => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
-  if (!okN(o.ends, 1, 9) || !okN(o.end, 0, 20) || !okN(o.thrown, 0, 7) || !(o.hammer === 0 || o.hammer === 1) || !okN(o.rand, 0, 4294967295)) return false;
+  if (!okN(o.ends, 1, 9) || !okN(o.end, 0, 20) || !okN(o.thrown, 0, 8) || !(o.hammer === 0 || o.hammer === 1) || !okN(o.rand, 0, 4294967295)) return false;
   if (!Array.isArray(o.score) || o.score.length !== 2 || !o.score.every((v) => okN(v, 0, 99))) return false;
   if (!Array.isArray(o.results) || o.results.length !== o.end || !o.results.every((r) => isObj(r) && okN(r.points, 0, 8))) return false;
   if (!Array.isArray(o.stones) || o.stones.length > 8) return false;

@@ -61,12 +61,13 @@ async function framing(page, label, minChar) {
     assert.ok(b.x1 < h.x - hr || b.x0 > h.x + hr || b.y1 < h.y - hr || b.y0 > h.y + hr, `${label}: ${b === r.controls ? 'the controls' : 'the bubble'} leave the house clear`);
     assert.ok(b.x1 < st.x - 8 || b.x0 > st.x + 8 || b.y1 < st.y - 8 || b.y0 > st.y + 8, `${label}: ${b === r.controls ? 'the controls' : 'the bubble'} leave the stone clear`);
   }
-  if (r.bubble) for (const [k, b] of Object.entries(boxes)) assert.ok(r.bubble.x1 <= b.x0 + 10 || r.bubble.x0 >= b.x1 - 10 || r.bubble.y1 <= b.y0 + h * 0 + 30 || r.bubble.y0 >= b.y1, `${label}: the bubble is clear of ${k}'s face`);
+  if (r.bubble) for (const [k, b] of Object.entries(boxes)) assert.ok(r.bubble.x1 <= b.x0 + 10 || r.bubble.x0 >= b.x1 - 10 || r.bubble.y1 <= b.y0 + 30 || r.bubble.y0 >= b.y1, `${label}: the bubble is clear of ${k}'s face`);
   assert.ok(await noSideScroll(page), `${label}: no sideways scroll`);
 }
 
 // ---- desktop: menu, practice by mouse, then by keyboard
-{
+const only = process.env.CURL_ONLY;
+if (!only) {
   const page = await open();
   await page.goto(base + '/curl'); await page.evaluate((k) => localStorage.removeItem(k), KEY); await page.reload(); await ready(page);
   assert.match(await page.locator('.ss-menu-card h1').textContent(), /Sweep/);
@@ -113,7 +114,7 @@ async function framing(page, label, minChar) {
 }
 
 // ---- a Cup match: the first end, the scoreboard and the hammer, then kept across a reload
-{
+if (!only) {
   const page = await open();
   await page.goto(base + '/curl'); await page.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, quietSave()]); await page.reload(); await ready(page);
   await page.getByRole('button', { name: /Play the Cup/ }).click();
@@ -152,7 +153,7 @@ async function framing(page, label, minChar) {
 }
 
 // ---- corrupt saves; the final and the ending
-{
+if (!only) {
   const page = await open();
   await page.goto(base + '/curl');
   for (const bad of ['{nope', '[1,2]', JSON.stringify({ v: 1, beaten: 'x', match: { team: 'stoat', seed: 1, snap: { stones: 'x' } }, drills: { draw: 99 } })]) {
@@ -178,7 +179,7 @@ async function framing(page, label, minChar) {
 }
 
 // ---- 1920×1080
-{
+if (!only) {
   const page = await open({ width: 1920, height: 1080 });
   await page.goto(base + '/curl'); await page.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, quietSave()]); await page.reload(); await ready(page);
   await page.getByRole('button', { name: /Play the Cup/ }).click(); await page.locator('.ss-team').first().click();
@@ -200,8 +201,9 @@ for (const [w, h, label, minChar] of [[390, 844, 'phone upright', 90], [844, 390
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: m0.x, y: m0.y }] });
   for (let i = 1; i <= 10; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: m0.x + (pull.dx * i) / 10, y: m0.y + (pull.dy * i) / 10 }] });
+  await page.waitForTimeout(150);
   const st = await state(page);
-  assert.ok(Math.abs(st.aim.weight - want.weight) < 0.03, `${label}: a touch drag sets the weight`);
+  assert.ok(Math.abs(st.aim.weight - want.weight) < 0.03, `${label}: a touch drag sets the weight (${JSON.stringify(st.aim)} vs ${JSON.stringify(want)}, pull ${JSON.stringify(pull)} from ${JSON.stringify(m0)})`);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await phase(page, 'run');
   const sweep = page.locator('.ss-sweep');

@@ -161,6 +161,15 @@ const roll = (stones, mover, vx, vy = 0, w = 0) => { mover.vx = vx; mover.vy = v
   eq(m.stones.filter((s) => !s.out).map((s) => [s.x, s.y]), r.stones.map((s) => [s.x, s.y]), 'and plays on identically');
 }
 
+{
+  const nz = [{ v: 0, a: 0 }, { v: 0, a: 0 }], m = new C.Match({ ends: 4, seed: 2, noise: nz });
+  for (let k = 0; k < 8; k++) m.play({ angle: 0, weight: 0.05, curl: 1 });
+  const snap = JSON.parse(JSON.stringify(m.snapshot()));
+  ok(C.readSave(JSON.stringify({ ...C.freshSave(), match: { team: 'x', seed: 2, snap } })).match, 'a match saved at the end of an end is kept');
+  const r = C.Match.restore(snap, nz);
+  eq([r.end, r.thrown, r.stones.length], [1, 0, 0], 'and restores to a clear sheet for the next end');
+}
+
 // ---- the drills
 {
   eq(C.DRILLS.map((d) => d.id), ['draw', 'guard', 'come', 'hitroll', 'double'], 'five drills on the Practice Pond');
