@@ -44,86 +44,98 @@ export class Grid {
 
 // ---------------------------------------------------------------- the chinchillas
 export type ChinOpts = { who: Who; view: View; pose: Pose; ski: number; look: Look; frame: number; blink?: boolean; happy?: boolean; hatless?: boolean };
-/** A chinchilla on skis, facing right (or toward the camera), feet at (14, 25) of a 28×31 grid. ski: the skis' screen angle (0 = straight down, +π/2 = right). */
+/** A chinchilla on skis, facing right (or toward the camera), feet at (14, 26) of a 28×32 grid. ski: the skis' screen angle (0 = straight down, +π/2 = right). */
 export function chinchilla(o: ChinOpts): Grid {
-  const g = new Grid(28, 31), P = PAL[o.who], v = o.view, f = o.frame & 1;
+  const g = new Grid(28, 32), P = PAL[o.who], v = o.view, f = o.frame & 1;
   const dy = o.pose === 'tuck' ? 2 : o.pose === 'grab' ? 2 : o.pose === 'sit' ? 3 : o.pose === 'air' ? -1 : 0;
-  // skis first (they sit under everything)
-  const skiC = o.look.skis, tipC = lighten(skiC);
+  const fur = P.fur, shade = P.shade;
+  // skis first (they sit under everything): bright, with pale curled tips
+  const skiC = o.look.skis, tipC = lighten(skiC, 0.6);
   if (o.pose === 'brake') {
-    g.l(8, 21, 12, 28, skiC); g.l(20, 21, 16, 28, skiC); g.p(12, 28, tipC); g.p(16, 28, tipC);
+    g.l(7, 21, 12, 29, skiC); g.l(8, 21, 13, 29, skiC); g.l(21, 21, 16, 29, skiC); g.l(20, 21, 15, 29, skiC); g.r(12, 29, 2, 1, tipC); g.r(15, 29, 2, 1, tipC);
   } else if (o.pose === 'sit') {
-    g.l(2, 27, 12, 29, skiC); g.l(16, 29, 26, 26, skiC); g.p(26, 26, tipC);
+    g.l(1, 28, 12, 30, skiC); g.l(16, 30, 26, 27, skiC); g.p(26, 27, tipC);
   } else {
-    const ux = Math.sin(o.ski), uy = Math.cos(o.ski) * 0.6, nx = -uy, ny = ux, gap = 2.6;
+    const ux = Math.sin(o.ski), uy = Math.cos(o.ski) * 0.62, nx = -uy, ny = ux, gap = 3;
     for (const s of [-1, 1]) {
-      const cx = 14 + nx * gap * s, cy = 25 + dy * 0.3 + ny * gap * s * 0.7;
-      const ax = cx - ux * 6.5, ay = cy - uy * 6.5, bx = cx + ux * 7.5, by = cy + uy * 7.5;
-      g.l(ax, ay, bx, by, skiC); g.p(bx + ux, by + uy - 1, tipC);
+      const cx = 14 + nx * gap * s / Math.max(0.6, Math.hypot(nx, ny)), cy = 25.5 + dy * 0.3 + ny * gap * s * 0.5;
+      const ax = cx - ux * 7, ay = cy - uy * 7, bx = cx + ux * 8, by = cy + uy * 8;
+      g.l(ax, ay, bx, by, skiC); g.l(ax + (Math.abs(ux) > 0.7 ? 0 : 1), ay + (Math.abs(ux) > 0.7 ? 1 : 0), bx + (Math.abs(ux) > 0.7 ? 0 : 1), by + (Math.abs(ux) > 0.7 ? 1 : 0), skiC);
+      g.p(bx, by, tipC); g.p(bx + ux, by + uy, tipC);
     }
   }
-  const fur = P.fur, shade = P.shade;
-  // tail behind (three-quarter and side), and poles behind the body
-  if (v === 'q') g.e(7, 21 + dy * 0.5, 3.6, 3, shade);
-  if (v === 'side') { g.e(5, 19 + dy * 0.5, 3.8, 4.2, shade); g.e(4.5, 18.5 + dy * 0.5, 2.4, 2.8, fur); }
-  // body
-  const by = 19 + dy;
-  if (v === 'side') { g.e(13, by, 6, 4.6, fur); g.e(15, by + 1, 3.2, 2.8, P.belly); }
-  else { g.e(14, by, 5.6, 5, fur); if (v !== 'back') g.e(v === 'q' ? 15.5 : 14, by + 1, 3.2, 3.2, P.belly); }
+  // tail behind (three-quarter and side)
+  if (v === 'q') { g.e(6.5, 21 + dy * 0.5, 3.8, 3.4, shade); g.e(6, 20.5 + dy * 0.5, 2.4, 2, fur); }
+  if (v === 'side') { g.e(5, 19.5 + dy * 0.5, 4, 4.4, shade); g.e(4.5, 19 + dy * 0.5, 2.6, 3, fur); }
+  // a small round body
+  const by = 20 + dy;
+  if (v === 'side') { g.e(13.5, by, 5.4, 4.4, fur); g.e(15.5, by + 1, 3, 2.6, P.belly); }
+  else { g.e(14, by, 5.4, 4.6, fur); if (v !== 'back') g.e(v === 'q' ? 15.5 : 14, by + 1, 3.2, 3, P.belly); }
   if (v === 'back') g.e(14, by + 4, 3.4, 2.6, shade);
-  // feet
-  if (o.pose !== 'sit') { g.r(10, 23 + Math.min(dy, 1), 3, 2, BOOT); g.r(15, 23 + Math.min(dy, 1), 3, 2, BOOT); }
-  else { g.r(9, 25, 3, 2, BOOT); g.r(16, 25, 3, 2, BOOT); }
+  // boots on the skis
+  if (o.pose === 'sit') { g.r(8, 26, 4, 2, BOOT); g.r(16, 26, 4, 2, BOOT); }
+  else if (v === 'side') { g.r(12, 23 + Math.min(dy, 1), 5, 2, BOOT); }
+  else { g.r(9, 23 + Math.min(dy, 1), 4, 2, BOOT); g.r(15, 23 + Math.min(dy, 1), 4, 2, BOOT); }
   // scarf round the neck
-  const sy = 14 + dy, sc = o.look.scarf, sc2 = lighten(sc);
+  const sy = 15 + dy, sc = o.look.scarf, sc2 = lighten(sc);
   g.r(8, sy, 12, 2, sc); g.p(10, sy, sc2); g.p(13, sy, sc2); g.p(16, sy, sc2);
   if (v === 'back') { g.r(13, sy + 2, 2, 3, sc); g.p(13, sy + 4, sc2); }
   else if (o.pose !== 'sit') {
-    // the loose end streams uphill behind (up the screen), fluttering
-    const tx = v === 'side' || v === 'q' ? 6 : 19, d = v === 'side' || v === 'q' ? -1 : 1;
-    g.r(tx, sy - 1 - f, 2, 2, sc); g.r(tx + d * 2, sy - 2 + f, 2, 2, sc2); g.p(tx + d * 4, sy - 2 - f, sc);
+    // the loose end streams behind, fluttering
+    const tx = v === 'side' || v === 'q' ? 6 : 20, d = v === 'side' || v === 'q' ? -1 : 1;
+    g.r(tx, sy + f, 2, 2, sc); g.r(tx + d * 2, sy - 1 + f * 2, 2, 2, sc2); g.p(tx + d * 4, sy - 1 - f, sc);
   }
-  // paws (and poles)
+  // paws
   const paw = (x: number, y: number) => g.r(x, y, 2, 2, fur);
-  if (o.pose === 'cheer') { paw(5, 8 + dy); paw(21, 8 + dy); g.l(4, 9, 2, 3, POLE); g.l(23, 9, 25, 3, POLE); }
-  else if (o.pose === 'air') { paw(5, 15 + dy); paw(21, 15 + dy); g.l(5, 17, 1, 22, POLE); g.l(22, 17, 26, 22, POLE); }
-  else if (o.pose === 'grab') { paw(8, 23); paw(19, 17 + dy); g.e(8, 22, 3, 2.4, shade); }
-  else if (o.pose === 'tuck') { paw(10, 17 + dy); paw(16, 17 + dy); g.l(10, 19, 5, 15, POLE); g.l(18, 19, 23, 15, POLE); }
-  else if (o.pose === 'sit') { paw(7, 21); paw(19, 21); }
-  else if (v === 'side') { paw(18, 18 + dy); g.l(19, 20, 23, 26, POLE); }
-  else { paw(7, 18 + dy); paw(19, 18 + dy); g.l(7, 20, 5, 26, POLE); g.l(20, 20, 22, 26, POLE); }
-  // head: broad, slightly flat, smooth rounded crown; ears out to the sides
+  if (o.pose === 'cheer') { paw(4, 9 + dy); paw(22, 9 + dy); }
+  else if (o.pose === 'air') { paw(5, 16 + dy); paw(21, 16 + dy); }
+  else if (o.pose === 'grab') { paw(8, 24); paw(19, 18 + dy); g.e(8, 23, 3, 2.4, shade); }
+  else if (o.pose === 'tuck') { paw(10, 18 + dy); paw(16, 18 + dy); }
+  else if (o.pose === 'sit') { paw(7, 22); paw(19, 22); }
+  else if (v === 'side') paw(18, 19 + dy);
+  else { paw(7, 19 + dy); paw(19, 19 + dy); }
+  // head: big and round with a broad, slightly flat, smooth crown; round ears out to the sides
   const hy = 10 + dy;
-  const ear = (x: number, y: number, inner: boolean) => { g.e(x, y, 3.1, 3.2, P.earOut); if (inner) g.e(x, y + 0.2, 1.7, 1.9, P.ear); };
-  if (v === 'front') { ear(6.4, hy - 3, true); ear(21.6, hy - 3, true); }
-  else if (v === 'q') { ear(8, hy - 3.2, false); ear(20.6, hy - 3.6, true); }
-  else if (v === 'side') ear(11, hy - 3, true);
-  else { ear(6.4, hy - 3, false); ear(21.6, hy - 3, false); }
+  const ear = (x: number, y: number, inner: boolean) => { g.e(x, y, 3.6, 3.7, P.earOut); if (inner) g.e(x + 0.2, y + 0.3, 2.1, 2.3, P.ear); };
+  if (v === 'front') { ear(5.4, hy - 3.6, true); ear(22.6, hy - 3.6, true); }
+  else if (v === 'q') { ear(8, hy - 4, false); ear(21, hy - 4.2, true); }
+  else if (v === 'side') ear(10.5, hy - 3.6, true);
+  else { ear(5.4, hy - 3.6, false); ear(22.6, hy - 3.6, false); }
   const hx = v === 'q' ? 15 : v === 'side' ? 16 : 14;
-  g.e(hx, hy, v === 'side' ? 6.6 : 7.2, 5.4, fur);
-  g.r(hx - 4, hy - 5, 8, 1, fur); // the flat of the crown
+  g.e(hx, hy, v === 'side' ? 7 : 8, 6.2, fur);
+  g.r(hx - 5, hy - 6, 10, 1, fur); // the broad flat of the crown
+  g.e(hx + (v === 'front' ? 0 : -2), hy + 3.4, v === 'side' ? 5 : 6.5, 2.4, fur);
   if (o.hatless !== true) hat(g, o.look.hat, hx, hy, v);
   if (v !== 'back') {
-    const mx = v === 'front' ? 14 : v === 'q' ? 17.5 : 20.5;
-    g.e(mx, hy + 2.2, v === 'side' ? 2.6 : 3.1, 2, P.belly);
+    const mx = v === 'front' ? 14 : v === 'q' ? 17.5 : 21;
+    g.e(mx, hy + 2.6, v === 'side' ? 2.8 : 3.4, 2.2, P.belly);
   }
   g.outline();
+  // poles (thin, no outline) out to the sides
+  const PL = '#8a92ac', BK = '#4a4f66';
+  const pole = (x0: number, y0: number, x1: number, y1: number) => { g.l(x0, y0, x1, y1, PL); g.p(x1, y1, BK); };
+  if (o.pose === 'cheer') { pole(4, 8 + dy, 2, 2 + dy); pole(23, 8 + dy, 25, 2 + dy); }
+  else if (o.pose === 'air') { pole(5, 17 + dy, 1, 22); pole(22, 17 + dy, 26, 22); }
+  else if (o.pose === 'tuck') { pole(10, 19 + dy, 4, 15 + dy); pole(17, 19 + dy, 23, 15 + dy); }
+  else if (o.pose === 'ride' || o.pose === 'brake') {
+    if (v === 'side') pole(19, 20 + dy, 24, 27); else { pole(7, 20 + dy, 3, 27); pole(20, 20 + dy, 24, 27); }
+  }
   if (v === 'back') return g;
   // the face (drawn after the outline so it stays crisp)
   const eye = (x: number, y: number, w: number) => {
-    if (o.happy || o.pose === 'cheer') { g.p(x, y + 1, INK); g.p(x + w - 1, y + 1, INK); if (w > 1) g.p(x + (w > 1 ? 0.5 : 0), y, INK); return; }
+    if (o.happy || o.pose === 'cheer') { g.p(x, y + 1, INK); g.p(x + w, y + 1, INK); g.r(x, y, w + 1, 1, INK); g.r(x, y + 1, w + 1, 1, fur); g.p(x, y + 1, INK); g.p(x + w, y + 1, INK); return; }
     if (o.blink) { g.r(x, y + 1, w, 1, INK); return; }
-    g.r(x, y, w, 2, P.eye); g.p(x, y, WHITE);
-    if (o.who === 'dora') g.p(x + w - 1, y + 1, '#7a0c22');
+    g.r(x, y, w, 3, P.eye); g.p(x, y, WHITE);
+    if (o.who === 'dora') g.r(x, y + 2, w, 1, '#7a0c22');
   };
-  if (v === 'front') { eye(10, hy - 1, 2); eye(16, hy - 1, 2); g.r(13, hy + 1, 2, 1, NOSE); g.p(9, hy + 2, CHEEK); g.p(18, hy + 2, CHEEK); }
-  else if (v === 'q') { eye(12.5, hy - 1, 1); eye(18, hy - 1, 2); g.r(19, hy + 1, 2, 1, NOSE); g.p(21, hy + 2, CHEEK); }
-  else { eye(18, hy - 1, 2); g.p(22, hy + 1, NOSE); g.p(23, hy + 1, NOSE); g.p(19, hy + 2, CHEEK); }
-  if (o.happy || o.pose === 'cheer') { const mx = v === 'front' ? 13 : v === 'q' ? 18 : 21; g.r(mx, hy + 3, 2, 1, '#c84a6a'); }
+  if (v === 'front') { eye(9, hy - 1, 2); eye(17, hy - 1, 2); g.r(13, hy + 2, 2, 1, NOSE); g.p(8, hy + 3, CHEEK); g.p(19, hy + 3, CHEEK); }
+  else if (v === 'q') { eye(12, hy - 1, 1); eye(18, hy - 1, 2); g.r(19, hy + 2, 2, 1, NOSE); g.p(21, hy + 3, CHEEK); }
+  else { eye(19, hy - 1, 2); g.p(23, hy + 2, NOSE); g.p(24, hy + 2, NOSE); g.p(20, hy + 3, CHEEK); }
+  if (o.happy || o.pose === 'cheer') { const mx = v === 'front' ? 13 : v === 'q' ? 18 : 22; g.r(mx, hy + 4, 2, 1, '#c84a6a'); }
   // whiskers
   const wc = o.who === 'dora' ? '#b9b2a8' : '#e4ebf2';
-  if (v === 'front') { g.p(4, hy + 2, wc); g.p(5, hy + 1, wc); g.p(23, hy + 2, wc); g.p(22, hy + 1, wc); }
-  else { g.p(25, hy + 1, wc); g.p(25, hy + 3, wc); g.p(24, hy + 2, wc); }
+  if (v === 'front') { g.p(3, hy + 3, wc); g.p(4, hy + 2, wc); g.p(24, hy + 3, wc); g.p(23, hy + 2, wc); }
+  else { g.p(26, hy + 2, wc); g.p(26, hy + 4, wc); }
   return g;
 }
 function hat(g: Grid, id: string, hx: number, hy: number, v: View) {
@@ -282,13 +294,14 @@ export function flag(red: boolean): Grid {
   return g.outline('#20202e');
 }
 export function ramp(big: boolean): Grid {
-  const w = big ? 50 : 36, h = big ? 26 : 18, g = new Grid(w, h);
-  for (let y = 2; y < h - 2; y++) g.r(2, y, w - 4, 1, y < h * 0.4 ? SNOW : y < h * 0.75 ? SNOW2 : SNOW3);
-  g.r(2, h - 4, w - 4, 2, big ? '#e8344a' : '#2f6fe0');
-  for (let x = 4; x < w - 4; x += 6) g.r(x, h - 4, 3, 2, '#ffffff');
-  g.r(1, 1, 2, h - 2, '#ff8a2a'); g.r(w - 3, 1, 2, h - 2, '#ff8a2a');
-  if (big) { g.r(4, 4, w - 8, 1, '#ffffff'); g.r(6, 8, w - 12, 1, '#ffffff'); }
-  return g.outline('#5a6a8e');
+  const w = big ? 52 : 38, h = big ? 30 : 22, g = new Grid(w, h), face = big ? 7 : 5;
+  for (let y = 3; y < h - face; y++) { const k = (y - 3) / (h - face - 3), inset = Math.round((1 - k) * 4); g.r(2 + inset, y, w - 4 - inset * 2, 1, k < 0.35 ? SNOW3 : k < 0.7 ? SNOW2 : SNOW); }
+  for (let y = 3; y < h - face; y++) { const k = (y - 3) / (h - face - 3), inset = Math.round((1 - k) * 4); g.p(2 + inset, y, '#9fb2d6'); g.p(w - 3 - inset, y, '#9fb2d6'); }
+  g.r(2, h - face, w - 4, face - 1, big ? '#d8333f' : '#3a6cc8');
+  for (let x = 4; x < w - 4; x += 6) g.r(x, h - face + 1, 3, face - 3, big ? '#ffffff' : '#7ea8f0');
+  g.r(2, h - face - 1, w - 4, 1, WHITE);
+  g.r(1, 0, 1, h - face, '#7a4a2a'); g.r(2, 0, 4, 3, '#ff8a2a'); g.r(w - 2, 0, 1, h - face, '#7a4a2a'); g.r(w - 6, 0, 4, 3, '#ff8a2a');
+  return g.outline('#4a5a80');
 }
 export function mogul(): Grid {
   const g = new Grid(14, 8);

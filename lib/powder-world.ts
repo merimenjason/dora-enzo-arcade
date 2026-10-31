@@ -148,12 +148,12 @@ export function makeChunk(spec: WorldSpec, i: number): Chunk {
     npcs.push({ k, x, y, vx, vy, ph: r.range(0, 6.28), id: i * 10 + npcs.length });
   };
   switch (zone) {
-    case 'start': tree(4); if (spec.mode === 'free' || spec.mode === 'daily') put('rock', 1, { r: 7, h: 8 }); break;
-    case 'groomer': tree(5 + d * 5); put('rock', 2, { r: 7, h: 8 }); put('stump', 1, { r: 5, h: 6 }); put('bank', 1, { r: 14, h: 10 }); if (r.next() < 0.6) npc('skier', 95 + r.int(30)); if (r.next() < 0.3) npc('stoat', 80 + r.int(30)); break;
-    case 'forest': tree(14 + d * 14); put('stump', 2, { r: 5, h: 6 }); if (r.next() < 0.4) npc('hedgehog', 55); break;
-    case 'moguls': area('moguls', 70 + r.int(40), 110 + r.int(60)); tree(4 + d * 4); put('rock', 1, { r: 7, h: 8 }); if (r.next() < 0.5) npc('skier', 90); break;
-    case 'pond': area('ice', 50 + r.int(30), 34 + r.int(20)); if (r.next() < 0.7) area('ice', 36 + r.int(20), 26 + r.int(10)); tree(6 + d * 5); put('rock', 3, { r: 7, h: 8 }); break;
-    case 'park': tree(3 + d * 3); put('bank', 2, { r: 14, h: 10 }); if (r.next() < 0.5) npc('rabbit', 75, 40); break;
+    case 'start': tree(8); if (spec.mode === 'free' || spec.mode === 'daily') put('rock', 1, { r: 7, h: 8 }); break;
+    case 'groomer': tree(9 + d * 6); put('rock', 3, { r: 7, h: 8 }); put('stump', 1, { r: 5, h: 6 }); put('bank', 1, { r: 14, h: 10 }); if (r.next() < 0.6) npc('skier', 95 + r.int(30)); if (r.next() < 0.3) npc('stoat', 80 + r.int(30)); break;
+    case 'forest': tree(18 + d * 14); put('stump', 2, { r: 5, h: 6 }); if (r.next() < 0.4) npc('hedgehog', 55); break;
+    case 'moguls': area('moguls', 70 + r.int(40), 110 + r.int(60)); tree(7 + d * 4); put('rock', 2, { r: 7, h: 8 }); if (r.next() < 0.5) npc('skier', 90); break;
+    case 'pond': area('ice', 50 + r.int(30), 34 + r.int(20)); if (r.next() < 0.7) area('ice', 36 + r.int(20), 26 + r.int(10)); tree(9 + d * 5); put('rock', 3, { r: 7, h: 8 }); break;
+    case 'park': tree(6 + d * 3); put('bank', 2, { r: 14, h: 10 }); if (r.next() < 0.5) npc('rabbit', 75, 40); break;
     case 'village': {
       put('hut', 1 + r.int(2), { r: 20, h: 40 });
       for (const o of obs) if (o.k === 'hut') { o.w = 34; o.d = 26; }
@@ -168,7 +168,7 @@ export function makeChunk(spec: WorldSpec, i: number): Chunk {
       npc('rabbit', 70, r.next() < 0.5 ? -45 : 45); if (r.next() < 0.6) npc('rabbit', 80, 30);
       break;
     }
-    case 'powder': area('powder', 60 + r.int(30), 50 + r.int(30)); if (r.next() < 0.6) area('powder', 40 + r.int(20), 40); put('birch', 6 + d * 6, { r: 4, h: 40 }); put('pineS', 3, { r: 5, h: 24 }); npc('hedgehog', 50); break;
+    case 'powder': area('powder', 60 + r.int(30), 50 + r.int(30)); if (r.next() < 0.6) area('powder', 40 + r.int(20), 40); put('birch', 9 + d * 6, { r: 4, h: 40 }); put('pineS', 4, { r: 5, h: 24 }); npc('hedgehog', 50); break;
     case 'slalom': {
       const c = SLALOM[spec.course];
       for (let g = 0; g < 3; g++) {
@@ -187,7 +187,7 @@ export function makeChunk(spec: WorldSpec, i: number): Chunk {
       if (spec.course === 4) { npc('hedgehog', 50); npc('rabbit', 70, 40); }
       break;
     }
-    case 'air': tree(3); put('bank', 1, { r: 14, h: 10 }); if (i % 2 === 0) areas.push({ k: 'moguls', x: Math.round(L(y0 + 420)), y: y0 + 430, rx: 60, ry: 40 }); break;
+    case 'air': tree(6); put('bank', 1, { r: 14, h: 10 }); if (i % 2 === 0) areas.push({ k: 'moguls', x: Math.round(L(y0 + 420)), y: y0 + 430, rx: 60, ry: 40 }); break;
     case 'finish': tree(2); break;
   }
   // the edge forest: thick pines just off the piste, broken by a cabin's clearing

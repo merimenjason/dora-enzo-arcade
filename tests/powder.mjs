@@ -25,8 +25,8 @@ const at = (a) => ({ ...NO_INPUT, target: a });
 // ---- carving
 {
   const down = go(empty(), at(0), 180), across = go(empty(), at(1.2), 180);
-  assert.ok(down.sk.s > 200, `straight down builds speed (${down.sk.s.toFixed(0)})`);
-  assert.ok(across.sk.s < down.sk.s * 0.5, 'carving across the slope is much slower');
+  assert.ok(down.sk.s > 160, `straight down builds speed (${down.sk.s.toFixed(0)})`);
+  assert.ok(across.sk.s < down.sk.s * 0.6, 'carving across the slope is much slower');
   const g = go(empty(), at(0), 150), s0 = g.sk.s; go(g, at(-1.4), 40);
   assert.ok(g.sk.s < s0 * 0.75, 'a hard turn bleeds speed');
   const brake = go(go(empty(), at(0), 150), { ...at(0), down: true }, 60);

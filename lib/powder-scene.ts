@@ -165,20 +165,33 @@ export class PowderScene {
   private drawGround() {
     const b = this.b, W = this.W, H = this.H;
     b.fillStyle = SNOW; b.fillRect(0, 0, W, H);
-    // speckles and sparkles anchored to the world so the snow scrolls
+    // soft blue drifts and groomed corduroy, anchored to the world so the snow scrolls
+    const cx0 = Math.floor((this.camX - W / 2) / 64), cy0 = Math.floor(this.camY / 64);
+    for (let j = cy0 - 1; j <= cy0 + H / 64 + 1; j++) for (let i = cx0 - 1; i <= cx0 + W / 64 + 1; i++) {
+      const h = hash(i, j, 21);
+      if (h % 3 === 0) { const x = this.sx(i * 64 + (h % 40)), y = this.sy(j * 64 + ((h >> 6) % 40)); pixEllipse(b, x, y, 14 + (h % 18), 4 + ((h >> 3) % 4), SNOW2); pixEllipse(b, x - 2, y - 1, 10 + (h % 12), 2 + ((h >> 3) % 3), '#f8fbff'); }
+    }
+    const lx0 = Math.floor((this.camX - W / 2) / 6), ly0 = Math.floor(this.camY / 24);
+    b.fillStyle = '#e9f0fa';
+    for (let i = lx0; i <= lx0 + W / 6 + 1; i++) {
+      if (Math.abs(i * 6) > HALF - 4) continue;
+      for (let j = ly0 - 1; j <= ly0 + H / 24 + 1; j++) { const h = hash(i, j, 33); if (h % 4) b.fillRect(this.sx(i * 6), this.sy(j * 24 + (h % 6)), 1, 10 + (h % 12)); }
+    }
+    // speckles, little blue stones, twigs and sparkles
     const x0 = Math.floor((this.camX - W / 2) / 16), y0 = Math.floor(this.camY / 16);
     for (let j = y0 - 1; j <= y0 + H / 16 + 1; j++) for (let i = x0 - 1; i <= x0 + W / 16 + 1; i++) {
       const h = hash(i, j, 5);
-      const x = this.sx(i * 16 + (h % 16)), y = this.sy(j * 16 + ((h >> 4) % 16));
-      if ((h >> 8) % 3 === 0) { b.fillStyle = SNOW2; b.fillRect(x, y, 2, 1); }
-      else if ((h >> 8) % 11 === 1) { b.fillStyle = SNOW3; b.fillRect(x, y, 3, 1); b.fillRect(x + 1, y - 1, 1, 1); }
-      if ((h >> 12) % 40 === 0 && Math.floor(this.t * 3 + (h % 7)) % 4 === 0) { b.fillStyle = '#ffffff'; b.fillRect(x, y - 1, 1, 3); b.fillRect(x - 1, y, 3, 1); }
+      const x = this.sx(i * 16 + (h % 16)), y = this.sy(j * 16 + ((h >> 4) % 16)), r = (h >> 8) % 23;
+      if (r < 6) { b.fillStyle = SNOW3; b.fillRect(x, y, 2, 1); }
+      else if (r === 7) { b.fillStyle = '#9fb2d6'; b.fillRect(x, y, 2, 1); b.fillStyle = '#ffffff'; b.fillRect(x, y - 1, 2, 1); }
+      else if (r === 8 && (h >> 13) % 3 === 0) { b.fillStyle = '#8a6a50'; b.fillRect(x, y, 3, 1); b.fillRect(x + 2, y - 1, 1, 1); }
+      if ((h >> 12) % 30 === 0 && Math.floor(this.t * 3 + (h % 7)) % 4 === 0) { b.fillStyle = '#ffffff'; b.fillRect(x, y - 1, 1, 3); b.fillRect(x - 1, y, 3, 1); b.fillStyle = '#bfe4ff'; b.fillRect(x, y, 1, 1); }
     }
-    // the piste edges: slightly bluer snow under the forest
+    // the piste edges: bluer, untouched snow under the forest
     for (const s of [-1, 1]) {
-      const ex = this.sx(s * (HALF + 2)), w = W;
-      b.fillStyle = '#e4ecf8';
-      if (s < 0) b.fillRect(ex - w, 0, w, H); else b.fillRect(ex, 0, w, H);
+      const ex = this.sx(s * (HALF + 2));
+      b.fillStyle = '#e1eaf7';
+      if (s < 0) b.fillRect(ex - W, 0, W, H); else b.fillRect(ex, 0, W, H);
       b.fillStyle = SNOW3; b.fillRect(ex, 0, 1, H);
     }
   }
@@ -343,27 +356,27 @@ export class PowderScene {
 
   // ---------------------------------------------------------------- the storm
   private drawStorm(g: PowderGame) {
-    const b = this.b, W = this.W, H = this.H, edge = this.sy(g.storm.y);
-    const gap = g.sk.y - g.storm.y;
-    if (edge > -30) {
-      b.fillStyle = '#eef3fb'; b.fillRect(0, 0, W, Math.max(0, edge - 20));
-      // a dithered front that boils along its edge
-      for (let y = Math.max(0, edge - 20); y < Math.min(H, edge + 14); y++) for (let x = 0; x < W; x += 1) {
-        const wob = Math.sin(x * 0.07 + this.t * 2) * 5 + Math.sin(x * 0.19 - this.t * 3) * 3;
-        const d = (y - (edge + wob)) / 14;
-        const th = ((x * 7 + y * 13 + Math.floor(this.t * 10)) % 16) / 16;
-        if (d < th - 0.5) { b.fillStyle = (x + y) % 5 ? '#eef3fb' : '#d8e2f2'; b.fillRect(x, y, 1, 1); }
+    const b = this.b, W = this.W, H = this.H, gap = g.sk.y - g.storm.y;
+    const p = Math.max(0, Math.min(1, 1 - gap / 700));
+    // the sky darkens and the wind picks up as it closes in
+    if (p > 0) { b.fillStyle = `rgba(90,104,150,${(p * p * 0.28).toFixed(3)})`; b.fillRect(0, 0, W, H); }
+    // the front: a churning grey-blue cloud along the top, as deep as the storm is close (or where it really is)
+    const depth = Math.max(this.sy(g.storm.y), 4 + p * H * 0.3);
+    const cols = ['#5d6a96', '#7584b0', '#97a5cc', '#bcc7e2', '#e2e9f6'];
+    for (let x = 0; x < W; x += 2) {
+      const edge = depth + Math.sin((x + this.camX) * 0.05 + this.t * 2.2) * 6 + Math.sin((x - this.camX) * 0.13 - this.t * 3.1) * 3;
+      for (let y = 0; y < Math.min(H, edge + 6); y += 2) {
+        const d = (edge - y) / Math.max(12, edge), n = ((x * 13 + y * 7 + Math.floor(this.t * 12)) % 9) / 9;
+        const k = Math.min(4, Math.max(0, Math.floor(4 - d * 6 + n * 1.2)));
+        b.fillStyle = cols[k]; b.fillRect(x, y, 2, 2);
       }
-      b.fillStyle = '#c8d4ea';
-      for (let i = 0; i < 18; i++) { const h = hash(i, 3), y = edge - 10 - (h % 60), x = ((h >> 6) % W + this.t * (160 + (h % 80))) % (W + 40) - 20; b.fillRect(Math.round(x), y, 10 + (h % 14), 1); }
     }
-    // a white-out creeps in from the edges when it's close
-    if (gap < 260) {
-      const k = 1 - gap / 260;
-      for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
-        const e = Math.min(x, W - x, y * 1.5) / (W * 0.35);
-        if (e < k * ((hash(x, y, Math.floor(this.t * 8)) % 100) / 100)) { b.fillStyle = '#f4f7fd'; b.fillRect(x, y, 2, 2); }
-      }
+    // driving snow
+    const streaks = 10 + Math.round(p * 40);
+    for (let i = 0; i < streaks; i++) {
+      const h = hash(i, 3), sp = 220 + (h % 160), y = (h >> 7) % Math.max(8, Math.round(depth + H * p * 0.8));
+      const x = ((h >> 4) % W + this.t * sp) % (W + 40) - 20;
+      b.fillStyle = i % 3 ? '#ffffff' : '#dfe7f6'; b.fillRect(Math.round(x), y, 6 + (h % 10), 1);
     }
   }
   private drawSnowfall(g: PowderGame | null) {
