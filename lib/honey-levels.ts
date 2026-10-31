@@ -100,7 +100,8 @@ const RAW: Record<AreaId, Raw[]> = {
   ],
 };
 
-/** Moves, then the moves left for two and for three stars, from the look-ahead bot. */
+/** Moves, then the moves left for two and for three stars, from the look-ahead bot. r4, l3 and h4 have two turns more
+ *  than the bot asked for (and their star targets moved with them), so they are not a wall for a person. */
 export const TUNE: Record<string, [number, number, number]> = {
   c1: [25, 11, 14],
   c2: [25, 11, 14],
@@ -117,7 +118,7 @@ export const TUNE: Record<string, [number, number, number]> = {
   r1: [24, 8, 13],
   r2: [20, 6, 11],
   r3: [20, 6, 11],
-  r4: [16, 3, 8],
+  r4: [18, 5, 10],
   r5: [27, 7, 13],
   r6: [26, 10, 14],
   r7: [29, 13, 17],
@@ -128,7 +129,7 @@ export const TUNE: Record<string, [number, number, number]> = {
   r12: [22, 5, 8],
   l1: [21, 6, 11],
   l2: [19, 6, 10],
-  l3: [18, 5, 9],
+  l3: [20, 7, 11],
   l4: [18, 6, 10],
   l5: [24, 6, 15],
   l6: [19, 5, 9],
@@ -141,7 +142,7 @@ export const TUNE: Record<string, [number, number, number]> = {
   h1: [21, 7, 12],
   h2: [22, 6, 13],
   h3: [36, 18, 26],
-  h4: [30, 8, 19],
+  h4: [32, 10, 21],
   h5: [22, 5, 10],
   h6: [33, 10, 20],
   h7: [32, 14, 18],
