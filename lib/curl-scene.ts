@@ -111,8 +111,10 @@ export class CurlScene {
   captain: string | null = null; capInk = INK.navy; capBounce = 0;
   measure: Measure | null = null;
   cheerT = 0; flash = 0;
-  layout = { tall: false, band: { x: 0, y: 0, w: 0, h: 0 } as Box, crowd: { x: 0, y: 0, w: 0, h: 0 } as Box, dora: { x: 0, y: 0, h: 0 }, enzo: { x: 0, y: 0, h: 0 }, cap: { x: 0, y: 0, h: 0 } };
+  layout = { tall: false, band: { x: 0, y: 0, w: 0, h: 0 } as Box, crowd: { x: 0, y: 0, w: 0, h: 0 } as Box, bank: { x: 0, y: 0, w: 0, h: 0 } as Box, dora: { x: 0, y: 0, h: 0 }, enzo: { x: 0, y: 0, h: 0 }, cap: { x: 0, y: 0, h: 0 } };
   bottomPad = 0;
+  /** Told the layout after every resize, so the page can fit its panels to the bank. */
+  onLayout: ((l: CurlScene['layout']) => void) | null = null;
   private cam = { cx: (HACK + END) / 2, s: 40 };
   private rot = new Map<number, number>();
   private chips: Chip[] = []; private marks: Mark[] = []; private trail: { x: number; y: number }[] = [];
@@ -126,21 +128,26 @@ export class CurlScene {
     this.cv.width = Math.round(this.W * this.dpr); this.cv.height = Math.round(this.H * this.dpr);
     const W = this.W, H = this.H - this.bottomPad, tall = H > W * 1.05, L = this.layout;
     L.tall = tall;
+    // the far bank's crowd across the top, the ice as big as it will go, and the near bank along the foot, where
+    // Dora and Enzo stand on the left and the other captain on the right, facing them across the controls
     if (!tall) {
-      const crowdH = Math.round(H * 0.16), bandH = Math.round(H * 0.56);
+      const short = H < 500, crowdH = Math.round(H * (short ? 0.085 : 0.115)), bankH = Math.round(Math.max(short ? 80 : 150, H * 0.25));
       L.crowd = { x: 0, y: 0, w: W, h: crowdH };
-      L.band = { x: 0, y: crowdH, w: W, h: bandH };
-      const ch = Math.min(H * 0.36, W * 0.2);
-      L.dora = { x: Math.max(W * 0.07, ch * 0.36), y: H - 6, h: ch * 0.92 }; L.enzo = { x: Math.max(W * 0.07, ch * 0.36) + ch * 0.74, y: H - 4, h: ch };
-      L.cap = { x: W - Math.max(W * 0.09, ch * 0.42), y: H - 6, h: ch * 0.95 };
+      L.band = { x: 0, y: crowdH, w: W, h: H - crowdH - bankH };
+      L.bank = { x: 0, y: H - bankH, w: W, h: bankH };
+      const ch = Math.min(bankH * 1.18, W * 0.2), dx = Math.max(W * 0.05, ch * 0.42);
+      L.dora = { x: dx, y: H - 3, h: ch * 0.94 }; L.enzo = { x: dx + ch * 0.7, y: H - 2, h: ch };
+      L.cap = { x: W - Math.max(W * 0.065, ch * 0.44), y: H - 3, h: ch };
     } else {
-      const crowdH = Math.round(H * 0.07), bandH = Math.round(H * 0.72);
+      const crowdH = Math.round(H * 0.045), bankH = Math.round(Math.max(96, Math.min(150, H * 0.16)));
       L.crowd = { x: 0, y: 0, w: W, h: crowdH };
-      L.band = { x: 0, y: crowdH, w: W, h: bandH };
-      const ch = Math.min(H * 0.2, W * 0.4);
-      L.dora = { x: W * 0.15, y: H - 4, h: ch * 0.92 }; L.enzo = { x: W * 0.15 + ch * 0.6, y: H - 2, h: ch };
-      L.cap = { x: W - ch * 0.42, y: H - 4, h: ch * 0.95 };
+      L.band = { x: 0, y: crowdH, w: W, h: H - crowdH - bankH };
+      L.bank = { x: 0, y: H - bankH, w: W, h: bankH };
+      const ch = Math.min(bankH * 1.1, W * 0.36);
+      L.dora = { x: W * 0.05 + ch * 0.4, y: H - 3, h: ch * 0.94 }; L.enzo = { x: W * 0.05 + ch * 1.02, y: H - 2, h: ch };
+      L.cap = { x: W - ch * 0.44, y: H - 3, h: ch };
     }
+    this.onLayout?.(L);
     // redraw at once: resizing clears the canvas, and a blank frame would flash
     try { this.draw(); } catch { /* drawn next frame */ }
   }
@@ -148,11 +155,13 @@ export class CurlScene {
   private target() {
     const L = this.layout, B = L.band, long = L.tall ? B.h : B.w, cross = L.tall ? B.w : B.h;
     const fit = Math.min(long / (END - HACK + 0.9), cross / (HALF_W * 2 + 0.8));
-    const house = Math.min(long / 8.6, cross / (HALF_W * 2 + 0.5));
+    const house = Math.min(long / (L.tall ? 7 : 8.6), cross / (HOUSE_R * 2 + 0.8));
     if (this.view === 'aim') {
-      // upright screens are too narrow for the whole sheet: show the far end big, with the stone at the hack as an inset
-      if (L.tall) { const s = Math.min(long / 13.6, cross / (HALF_W * 2 + 0.8)); return { cx: END + 0.45 - long / (2 * s), s }; }
-      return { cx: (HACK + END) / 2 - 0.15, s: fit };
+      // the far end as big as the ice allows (the whole width of the sheet), with the stone at the hack in an inset
+      // when the screen is too narrow to show it too
+      const s = Math.min(long / (L.tall ? 7.4 : 9.5), cross / (HALF_W * 2 + 0.5));
+      if (long / s >= END - HACK + 0.9) return { cx: (HACK + END) / 2 - 0.15, s };
+      return { cx: END + 0.45 - long / (2 * s), s };
     }
     if (this.view === 'house') return { cx: Math.min(END + 0.3 - long / (2 * house), TEE - 1.0), s: house };
     const cur = this.current, x = cur ? cur.x : 0;
@@ -223,6 +232,7 @@ export class CurlScene {
     this.drawMeasure();
     this.drawSweeper();
     this.drawCountBadges();
+    this.drawShot();
     c.restore();
     // band edges like a print border
     c.fillStyle = INK.navy; c.fillRect(B.x, B.y - 2, B.w, 3); c.fillRect(B.x, B.y + B.h - 1, B.w, 3);
@@ -261,7 +271,7 @@ export class CurlScene {
     const a = this.aim, c = this.c; if (!a) return;
     const s = this.cam.s, br = broomOf(a.shot);
     // the line of delivery toward the tee line (no curl shown), and the dotted ghost of the first metres
-    const B = this.layout.band, inset = this.layout.tall && this.toScreen(0, 0).y > B.y + B.h - 30;
+    const inset = this.hackOff();
     const p1 = this.toScreen(br.x, br.y), p0 = inset ? this.insetPoint(a.shot) : this.toScreen(0, 0);
     if (inset) this.drawInset(p0);
     else this.world(() => drawStone(c, 0, 0, 0, this.rot.get(-1) ?? 0));
@@ -272,7 +282,7 @@ export class CurlScene {
     // the aim mark where the line meets the tee line
     c.strokeStyle = INK.navy; c.lineWidth = 2; c.beginPath(); c.arc(p1.x, p1.y, Math.max(5, s * 0.1), 0, Math.PI * 2); c.stroke();
     // the curl, as a turning arrow around the stone at the hack
-    const r = inset ? 34 : Math.max(14, s * STONE_R * 2.1), dir = -a.shot.curl;
+    const r = inset ? this.insetR() + 8 : Math.max(14, s * STONE_R * 2.1), dir = -a.shot.curl;
     c.strokeStyle = INK.red; c.lineWidth = 3; c.beginPath(); c.arc(p0.x, p0.y, r, -Math.PI * 0.85, -Math.PI * 0.15); c.stroke();
     const ang = dir > 0 ? -Math.PI * 0.15 : -Math.PI * 0.85, tx = p0.x + Math.cos(ang) * r, ty = p0.y + Math.sin(ang) * r, tdir = ang + (dir > 0 ? Math.PI / 2 : -Math.PI / 2);
     c.fillStyle = INK.red; c.beginPath(); c.moveTo(tx + Math.cos(tdir) * 9, ty + Math.sin(tdir) * 9); c.lineTo(tx + Math.cos(tdir + 2.4) * 8, ty + Math.sin(tdir + 2.4) * 8); c.lineTo(tx + Math.cos(tdir - 2.4) * 8, ty + Math.sin(tdir - 2.4) * 8); c.fill();
@@ -280,15 +290,18 @@ export class CurlScene {
     if (this.broom) this.drawBroom(this.broom.x, this.broom.y);
   }
   /** Where the stone waiting at the hack is drawn (in the inset on an upright screen). */
-  hackPoint() { const B = this.layout.band, p = this.toScreen(0, 0); return this.layout.tall && p.y > B.y + B.h - 30 ? this.insetPoint(this.aim?.shot ?? { angle: 0, weight: 0.5, curl: 1 }) : p; }
-  /** Where the line of delivery enters the bottom of the ice on an upright screen. */
+  hackPoint() { return this.hackOff() ? this.insetPoint(this.aim?.shot ?? { angle: 0, weight: 0.5, curl: 1 }) : this.toScreen(0, 0); }
+  /** Whether the hack is off the near edge of the ice on screen. */
+  private hackOff() { const B = this.layout.band, p = this.toScreen(0, 0); return this.layout.tall ? p.y > B.y + B.h - 30 : p.x < B.x + 30; }
+  private insetR() { return Math.max(24, Math.min(40, this.cam.s * 0.38)); }
+  /** Where the line of delivery enters the near edge of the ice when the hack is off screen. */
   private insetPoint(shot: Shot) {
-    const B = this.layout.band, s = this.cam.s, xb = this.cam.cx - (B.h / 2 - 34) / s;
+    const B = this.layout.band, s = this.cam.s, long = this.layout.tall ? B.h : B.w, xb = this.cam.cx - (long / 2 - this.insetR() - 8) / s;
     return this.toScreen(xb, Math.tan(shot.angle) * xb);
   }
   /** The stone waiting at the hack, drawn in a round frame at the foot of the ice when the hack is off screen. */
   private drawInset(p: { x: number; y: number }) {
-    const c = this.c, r = 26;
+    const c = this.c, r = this.insetR();
     c.save(); c.fillStyle = INK.ice; c.strokeStyle = INK.navy; c.lineWidth = 3; c.beginPath(); c.arc(p.x, p.y, r, 0, Math.PI * 2); c.fill(); c.stroke();
     c.translate(p.x, p.y); c.scale(r / (STONE_R * 1.6), -r / (STONE_R * 1.6)); drawStone(c, 0, 0, 0, Math.PI / 2); c.restore();
   }
@@ -349,6 +362,35 @@ export class CurlScene {
       c.fillStyle = s.team === 0 ? INK.cream : INK.navy; c.font = `700 ${Math.round(r * 1.2)}px "Alfa Slab One", Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(i + 1), p.x + off, p.y - off + 1);
     });
   }
+  /** Marks the stone nearest the button while everything is at rest, so the house reads at a glance. */
+  private drawShot() {
+    const c = this.c; if (this.counting.length || this.measure || this.stones.some((s) => !s.out && s.moving)) return;
+    let best: Stone | null = null, bd = Infinity;
+    for (const s of this.stones) { if (s.out) continue; const d = dist(s); if (d - STONE_R <= HOUSE_R && d < bd) { bd = d; best = s; } }
+    if (!best) return;
+    const p = this.toScreen(best.x, best.y), R = this.cam.s * STONE_R, ring = R * 1.5 + Math.sin(this.t * 3) * 1.2;
+    c.save();
+    c.strokeStyle = INK.navy; c.lineWidth = 2; c.setLineDash([5, 4]); c.lineDashOffset = -this.t * 10;
+    c.beginPath(); c.arc(p.x, p.y, ring, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
+    const fs = Math.round(Math.max(10, Math.min(15, R * 0.62))); c.font = `${fs}px "Alfa Slab One", Georgia, serif`;
+    const t = 'SHOT', w = c.measureText(t).width + 10, h = fs + 6, ty = p.y - ring - h / 2 - 2;
+    c.fillStyle = TEAM_INK[best.team]; c.fillRect(p.x - w / 2, ty - h / 2, w, h); c.strokeStyle = INK.navy; c.lineWidth = 1.5; c.strokeRect(p.x - w / 2, ty - h / 2, w, h);
+    c.fillStyle = best.team === 0 ? INK.cream : INK.navy; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(t, p.x, ty + 1);
+    c.restore();
+  }
+  /** A carved silhouette for the other captain while their painting loads: never a blank blob. */
+  private drawCapStandIn(x: number, y: number, h: number) {
+    const c = this.c;
+    c.save(); c.translate(x, y);
+    c.fillStyle = 'rgba(29,42,68,0.28)'; c.strokeStyle = 'rgba(244,236,216,0.85)'; c.lineWidth = Math.max(2, h * 0.012); c.setLineDash([h * 0.03, h * 0.02]);
+    c.beginPath();
+    c.ellipse(0, -h * 0.3, h * 0.2, h * 0.28, 0, 0, Math.PI * 2);
+    c.moveTo(-h * 0.02 + h * 0.15, -h * 0.7); c.ellipse(-h * 0.02, -h * 0.7, h * 0.15, h * 0.14, 0, 0, Math.PI * 2);
+    c.moveTo(-h * 0.06 + h * 0.06, -h * 0.85); c.ellipse(-h * 0.06, -h * 0.85, h * 0.06, h * 0.05, 0, 0, Math.PI * 2);
+    c.moveTo(h * 0.08 + h * 0.06, -h * 0.84); c.ellipse(h * 0.08, -h * 0.84, h * 0.06, h * 0.05, 0, 0, Math.PI * 2);
+    c.fill(); c.stroke(); c.setLineDash([]);
+    c.restore();
+  }
   private drawBench() {
     const c = this.c, L = this.layout;
     for (const who of ['enzo', 'dora'] as Who[]) {
@@ -362,7 +404,7 @@ export class CurlScene {
       const d = L.cap, im = art('cap-' + this.captain), hop = this.capBounce > 0 ? Math.sin(this.capBounce * 12) * d.h * 0.03 : 0;
       c.fillStyle = 'rgba(29,42,68,0.18)'; c.beginPath(); c.ellipse(d.x, d.y - 4, d.h * 0.3, d.h * 0.04, 0, 0, Math.PI * 2); c.fill();
       if (im) c.drawImage(im, d.x - d.h / 2, d.y - d.h - hop, d.h, d.h);
-      else { c.fillStyle = this.capInk; c.strokeStyle = INK.navy; c.lineWidth = 3; c.beginPath(); c.ellipse(d.x, d.y - d.h * 0.35, d.h * 0.22, d.h * 0.32, 0, 0, Math.PI * 2); c.fill(); c.stroke(); c.beginPath(); c.arc(d.x - d.h * 0.02, d.y - d.h * 0.72, d.h * 0.15, 0, Math.PI * 2); c.fill(); c.stroke(); c.fillStyle = INK.cream; c.beginPath(); c.arc(d.x - d.h * 0.08, d.y - d.h * 0.74, d.h * 0.03, 0, Math.PI * 2); c.fill(); }
+      else this.drawCapStandIn(d.x, d.y, d.h);
     }
   }
   /** Sets the aim ghost for a shot (null hides it). */

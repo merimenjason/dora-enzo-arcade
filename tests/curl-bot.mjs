@@ -49,6 +49,9 @@ if (!only) {
     assert.ok(rates[7] >= 0.1 && rates[7] <= 0.7, `the expert beats the champions only sometimes (${rates[7]})`);
     const firstHalf = (rates[0] + rates[1] + rates[2] + rates[3]) / 4, secondHalf = (rates[4] + rates[5] + rates[6] + rates[7]) / 4;
     assert.ok(firstHalf > secondHalf, 'the ladder gets harder');
+    // each team is at least as hard as the one before, give or take a few matches of luck
+    const tol = 0.04 + 1 / N;
+    for (let i = 1; i < rates.length; i++) assert.ok(rates[i] <= rates[i - 1] + tol, `${TEAMS[i].name} (${rates[i].toFixed(2)}) is no easier than ${TEAMS[i - 1].name} (${rates[i - 1].toFixed(2)})`);
     assert.ok(naive.reduce((a, b) => a + b, 0) / naive.length < 0.35, 'the naive bot loses most matches');
   }
 }

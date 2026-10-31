@@ -63,6 +63,7 @@ After all eight stones (four per team, two each for Dora and Enzo), only stones 
 - **Sweep:** while your stone runs, hold the mouse, Space or Enter; on a touch screen hold or tap fast on the Sweep button (each tap sweeps for 0.38 s).
 - **Shot calls:** before each of your stones the teammate who isn't throwing calls a shot ("Draw behind our guard", "Take out their shot stone", …), holds the broom where to aim, sets the curl, and marks the weight on the bar. Follow it, or don't.
 - **Keys:** on a wide screen **↑ ↓** move the line and **← →** the weight; on an upright screen **← →** move the line and **↑ ↓** the weight. Shift for fine steps. Space or Enter throws. Escape goes back.
+- **The screen:** the woodland crowd runs along the top, the ice fills the middle as big as it will go, and Dora, Enzo and the other team's captain stand on the near bank at the foot, with the controls between them (on an upright phone the controls sit below the bank). While aiming, the far end and the whole house fill the ice, and when the screen is too narrow for the whole sheet the stone at the hack shows in a round inset at the near edge. While the stones rest, the one nearest the button carries a **SHOT** tag in its team's ink.
 - Dora throws your first two stones of an end and Enzo the last two; the other sweeps. The last stone of each end plays in slow motion as it reaches the house.
 
 ## The shot-caller
@@ -76,8 +77,8 @@ After all eight stones (four per team, two each for Dora and Enzo), only stones 
 | 1 | The Hedgehog Twins | Prickle | 4 | 5 %, 0.014 rad | gentle draws |
 | 2 | The Duck Pond Paddlers | Mallory | 4 | 3.8 %, 0.011 rad | wobbly weight, the odd hit |
 | 3 | The Badger Brothers | Brock | 4 | 3.4 %, 0.0095 rad | love hitting |
-| 4 | The Squirrel Scramblers | Hazel | 4 | 2.8 %, 0.008 rad | guards and hits everywhere |
-| 5 | The Beaver Builders | Timber | 4 | 1.6 %, 0.0048 rad | walls of guards |
+| 4 | The Beaver Builders | Timber | 4 | 2.4 %, 0.007 rad | walls of guards |
+| 5 | The Squirrel Scramblers | Hazel | 4 | 2.1 %, 0.0062 rad | guards and hits everywhere |
 | 6 | The Otter Swimmers | Ripple | 4 | 1.9 %, 0.0055 rad | takeouts |
 | 7 | The Owl Tacticians | Professor Hoot | 4 | 0.92 %, 0.0027 rad | think hardest, the odd guard |
 | 8 | The Stoat Champions | Ermine | 6 | 0.95 %, 0.0026 rad | everything; the hammer first |
@@ -93,13 +94,13 @@ Beating a team opens the next. Beating the stoats wins the Pebble Cup and opens 
 | 1 | Hedgehog Twins | 60 / 60 | 4.7 – 1.1 | 25 / 30 |
 | 2 | Duck Pond Paddlers | 56 / 60 | 3.6 – 1.4 | 14 / 30 |
 | 3 | Badger Brothers | 54 / 60 | 3.1 – 1.5 | 11 / 30 |
-| 4 | Squirrel Scramblers | 46 / 60 | 2.9 – 1.8 | 6 / 30 |
-| 5 | Beaver Builders | 49 / 60 | 3.2 – 2.2 | 0 / 30 |
+| 4 | Beaver Builders | 51 / 60 | 3.4 – 1.9 | 7 / 30 |
+| 5 | Squirrel Scramblers | 45 / 60 | 2.8 – 2.1 | 3 / 30 |
 | 6 | Otter Swimmers | 40 / 60 | 2.6 – 2.3 | 1 / 30 |
 | 7 | Owl Tacticians | 37 / 60 | 3.0 – 2.5 | 2 / 30 |
 | 8 | Stoat Champions (6 ends, their hammer) | 17 / 60 | 3.6 – 4.2 | 0 / 30 |
 
-A naive bot that throws the same draw to the button every time without sweeping won 59 of 240 (25 %), almost all of them against the first three teams; after the squirrels it hardly wins at all. `tests/curl-bot.mjs` checks that the expert beats the hedgehogs at least 75 % of the time, the champions between 10 % and 70 %, that the second half of the ladder is harder than the first, and that the naive bot loses most matches.
+A naive bot that throws the same draw to the button every time without sweeping won 63 of 240 (26 %), almost all of them against the first four teams; after the beavers it hardly wins at all. `tests/curl-bot.mjs` checks that the expert beats the hedgehogs at least 75 % of the time, the champions between 10 % and 70 %, that the second half of the ladder is harder than the first, that each team is at least as hard as the one before (allowing 0.04 + 1/N for luck, N matches per team), and that the naive bot loses most matches.
 
 ## The Practice Pond
 
@@ -119,4 +120,4 @@ Saved in `localStorage` under `sweep-slide-v1`: teams beaten, wins and best marg
 
 ## Art
 
-The new linocut / woodblock-print style: bold carved outlines, flat inks (navy, ice blue, cream, warm red, a little mustard) with print grain and slight misregistration. Dora is printed in cream-white with ruby-red eyes, Enzo in cool blue-grey with black eyes, both with clean pink ears and a smooth rounded crown. The cut-outs (`dora-` and `enzo-` `throw`, `sweep`, `cheer`, `groan`) face right, down the ice; the eight captains face left. The scene adds its own print grain over everything and draws the sheet, stones and brooms in the same inks; every painting has a print-style stand-in until it loads.
+The new linocut / woodblock-print style: bold carved outlines, flat inks (navy, ice blue, cream, warm red, a little mustard) with print grain and slight misregistration. Dora is printed in cream-white with ruby-red eyes, Enzo in cool blue-grey with black eyes, both with clean pink ears and a smooth rounded crown. The cut-outs (`dora-` and `enzo-` `throw`, `sweep`, `cheer`, `groan`) face right, down the ice; the eight captains face left. The scene adds its own print grain over everything and draws the sheet, stones and brooms in the same inks; every painting has a print-style stand-in until it loads (a dashed, carved silhouette for a captain). The pages use Alfa Slab One for headings and Zilla Slab for text, from Google Fonts.

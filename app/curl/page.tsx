@@ -59,7 +59,7 @@ export default function CurlPage() {
   const [endInfo, setEndInfo] = useState<{ r: EndResult; close: boolean } | null>(null), [stars, setStars] = useState(0);
   const [bubble, setBubble] = useState<{ who: 'us' | 'them'; text: string } | null>(null), [toast, setToast] = useState('');
   const [ready, setReady] = useState(false), [mounted, setMounted] = useState(false), [error, setError] = useState('');
-  const [touch, setTouch] = useState(false), [orient, setOrient] = useState<'wide' | 'tall'>('wide');
+  const [touch, setTouch] = useState(false), [orient, setOrient] = useState<'wide' | 'tall'>('wide'), [short, setShort] = useState(false);
   const [, setTick] = useState(0);
   const refresh = () => setTick((n) => n + 1);
   const setScreen = (s: Screen) => { screenRef.current = s; setScreenState(s); };
@@ -235,12 +235,17 @@ export default function CurlPage() {
     let raw: string | null = null; try { raw = localStorage.getItem(SAVE_KEY); } catch { /* none */ }
     save.current = readSave(raw, TEAMS.map((t) => t.id));
     setTouch(matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window);
-    const o = () => setOrient(innerHeight > innerWidth * 1.05 ? 'tall' : 'wide'); o(); addEventListener('resize', o);
+    const o = () => { setOrient(innerHeight > innerWidth * 1.05 ? 'tall' : 'wide'); setShort(innerHeight <= 520); }; o(); addEventListener('resize', o);
     setMounted(true);
     let raf = 0, dead = false, last = performance.now();
     sceneModule().then((mod) => {
       if (dead || !canvas.current) return;
-      try { scene.current = new mod.CurlScene(canvas.current); mod.preload(TEAMS.map((t) => t.id)); } catch { setError('This browser cannot draw the ice.'); return; }
+      try {
+        const sc = new mod.CurlScene(canvas.current); scene.current = sc; mod.preload(TEAMS.map((t) => t.id));
+        // the panels sit on the near bank, so they follow its height
+        sc.onLayout = (L) => { const st = stage.current; if (st) { st.style.setProperty('--bank', `${L.bank.h}px`); st.style.setProperty('--crowd', `${L.crowd.h}px`); st.style.setProperty('--left', `${Math.round(L.enzo.x + L.enzo.h * 0.42)}px`); st.style.setProperty('--right', `${Math.round(L.tall ? 0 : sc.W - L.cap.x + L.cap.h * 0.36)}px`); } };
+        sc.resize();
+      } catch { setError('This browser cannot draw the ice.'); return; }
       const loop = (now: number) => {
         const dt = Math.min(0.05, (now - last) / 1000); last = now;
         const sc = scene.current, m = match.current;
@@ -290,7 +295,7 @@ export default function CurlPage() {
     return () => { dead = true; cancelAnimationFrame(raf); ro.disconnect(); removeEventListener('resize', o); document.removeEventListener('visibilitychange', hide); clearTimers(); sound.current?.dispose(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  useEffect(() => { requestAnimationFrame(() => { const sc = scene.current; if (!sc) return; sc.bottomPad = orient === 'tall' ? 92 : 0; sc.resize(); }); }, [screen, orient, touch, phase]);
+  useEffect(() => { requestAnimationFrame(() => { const sc = scene.current; if (!sc) return; sc.bottomPad = orient === 'tall' ? 104 : 0; sc.resize(); }); }, [screen, orient, touch, phase]);
   const throwRef = useRef<() => void>(null);
   const finishRef = useRef<(w: TeamId) => void>(null);
   finishRef.current = (w: TeamId) => {
@@ -371,6 +376,8 @@ export default function CurlPage() {
   const resumeTeam = mounted && S.match ? teamById(S.match.team) : null, nextTeam = TEAMS[Math.min(S.beaten, TEAMS.length - 1)];
   const a = aim.current, wName = weightName(a.weight), sugg = call.current?.shot;
   const drillsDone = DRILLS.reduce((n, d) => n + (S.drills[d.id] ?? 0), 0);
+  // on a roomy wide screen the teammate's call sits on top of the controls, so the two never overlap
+  const inPanel = orient === 'wide' && !short;
   const ourStonesLeft = m ? 4 - m.stones.filter((s) => s.team === 0).length : 0;
   return (
     <main className="ss-shell" data-ready={ready && mounted ? 'true' : undefined} data-screen={screen} data-phase={phase} data-touch={touch ? orient : undefined} data-orient={orient}>
@@ -445,9 +452,9 @@ export default function CurlPage() {
             <button type="button" className="ss-back" onClick={() => { audio().ui(); leave(); }}>← {md?.kind === 'drill' ? 'POND' : 'LADDER'}</button>
             {team && m ? (
               <span className="ss-board" aria-label="Scoreboard">
-                <span className="ss-row us"><b>Dora &amp; Enzo</b>{m.hammer === 0 && <i className="ss-hammer" title="Hammer: the last stone">◆</i>}<em>{m.score[0]}</em></span>
+                <span className="ss-row us"><b className="ss-long">Dora &amp; Enzo</b><b className="ss-short">Us</b>{m.hammer === 0 && <i className="ss-hammer" title="Hammer: the last stone">◆</i>}<em>{m.score[0]}</em></span>
                 <span className="ss-ends">{Array.from({ length: Math.max(m.ends, m.end + (m.over ? 0 : 1)) }, (_, i) => { const r = m.results[i]; return <span key={i} className={'ss-end' + (i === m.end && !m.over ? ' is-now' : '')}><small>{i < m.ends ? i + 1 : 'X'}</small><u className="us">{r && r.scorer === 0 ? r.points : r ? '·' : ''}</u><u className="them">{r && r.scorer === 1 ? r.points : r ? '·' : ''}</u></span>; })}</span>
-                <span className="ss-row them"><b>{team.name.replace('The ', '')}</b>{m.hammer === 1 && <i className="ss-hammer" title="Hammer: the last stone">◆</i>}<em>{m.score[1]}</em></span>
+                <span className="ss-row them"><b className="ss-long">{team.name.replace('The ', '')}</b><b className="ss-short">{team.animal[0].toUpperCase() + team.animal.slice(1)}</b>{m.hammer === 1 && <i className="ss-hammer" title="Hammer: the last stone">◆</i>}<em>{m.score[1]}</em></span>
               </span>
             ) : md?.kind === 'drill' ? <span className="ss-bar-mid">Practice · {md.drill.name} <Stars n={S.drills[md.drill.id] ?? 0} /></span> : <span className="ss-bar-mid" />}
             <Toggles />
@@ -456,10 +463,11 @@ export default function CurlPage() {
         {screen === 'play' && m && team && <p className="ss-stones">End {Math.min(m.end + 1, m.ends)}{m.end >= m.ends ? ' (extra)' : ''} of {m.ends} · stone {Math.min(8, m.thrown + 1)} of 8 · {Math.max(0, ourStonesLeft)} of ours left</p>}
         <canvas ref={canvas} className="ss-canvas" tabIndex={0} aria-label="The curling sheet"
           onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { drag.current = null; hold.current = false; }} onContextMenu={(e) => e.preventDefault()} />
-        {screen === 'play' && bubble && <p className={'ss-bubble ' + bubble.who} role="status">{bubble.text}</p>}
+        {screen === 'play' && bubble && !(inPanel && phase === 'aim' && bubble.who === 'us') && <p className={'ss-bubble ' + bubble.who} role="status">{bubble.text}</p>}
         {screen === 'play' && toast && <p className="ss-toast" role="status">{toast}</p>}
         {screen === 'play' && phase === 'aim' && (
           <div className="ss-controls">
+            {inPanel && bubble?.who === 'us' && <p className="ss-bubble us ss-call" role="status">{bubble.text}</p>}
             <div className="ss-curl" role="group" aria-label="Curl">
               <button type="button" className={a.curl > 0 ? 'is-on' : ''} aria-pressed={a.curl > 0} onClick={() => { if (a.curl < 0) flipCurl(); }}>↺ Curl left</button>
               <button type="button" className={a.curl < 0 ? 'is-on' : ''} aria-pressed={a.curl < 0} onClick={() => { if (a.curl > 0) flipCurl(); }}>Curl right ↻</button>
@@ -475,7 +483,7 @@ export default function CurlPage() {
               <span className="ss-wname"><b>{wName}</b> weight</span>
             </div>
             <button type="button" className="ss-primary ss-throw" onClick={() => throwRef.current?.()}>Throw</button>
-            {!touch && <p className="ss-keys">Pull back on the ice to aim · <kbd>{orient === 'tall' ? '←→' : '↑↓'}</kbd> line · <kbd>{orient === 'tall' ? '↑↓' : '←→'}</kbd> weight · <kbd>C</kbd> curl · <kbd>Space</kbd> throw, then hold to sweep</p>}
+            {!touch && <p className="ss-keys">Pull back to aim · <kbd>{orient === 'tall' ? '←→' : '↑↓'}</kbd> line · <kbd>{orient === 'tall' ? '↑↓' : '←→'}</kbd> weight · <kbd>C</kbd> curl · <kbd>Space</kbd> throw, hold to sweep</p>}
           </div>
         )}
         {screen === 'play' && phase === 'run' && (m?.turn === 0 || md?.kind === 'drill') && touch && (
