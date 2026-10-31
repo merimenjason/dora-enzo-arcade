@@ -107,13 +107,13 @@ export class Hop {
 
   /** Moves the moons to where they are at this step. */
   private place() {
-    const t = this.t;
-    this.s.moons.forEach((m, i) => {
+    const t = this.t, ms = this.s.moons, base = strength(this.s);
+    for (let i = 0; i < this.n; i++) {
+      const m = ms[i];
       if (m.path) { const [x, y, vx, vy] = loop(m.path, t, this.mx, this.my); this.mx[i] = x; this.my[i] = y; this.mvx[i] = vx; this.mvy[i] = vy; }
       else { this.mx[i] = m.x; this.my[i] = m.y; this.mvx[i] = 0; this.mvy[i] = 0; }
-      const base = G0 * Math.sqrt(m.r / 50) * m.r * m.r * (1 + SOFT * SOFT) * (m.comet ? 0.55 : 1) * (m.kind === 'bean' ? -0.85 : 1);
-      this.mu[i] = m.pulse ? base * (1 + m.pulse.amp * Math.sin(TAU * t / m.pulse.period + (m.pulse.phase ?? 0))) : base;
-    });
+      this.mu[i] = m.pulse ? base[i] * (1 + m.pulse.amp * Math.sin(TAU * t / m.pulse.period + (m.pulse.phase ?? 0))) : base[i];
+    }
   }
   /** Where a firefly is now. */
   flyAt(i: number): [number, number] { const f = this.s.flies[i]; if (f.path) { const [x, y] = loop(f.path, this.t, this.mx, this.my); return [x, y]; } return [f.x ?? 0, f.y ?? 0]; }
@@ -278,6 +278,15 @@ export class Hop {
 
   /** Fireflies within reach of the pair's middle. */
   private gather() {
+    // the pair's middle is BODY above their feet, so a firefly further than REACH + BODY from the feet is out of reach
+    // whichever way is up: skip working out "up" (a second pull sum in the air) unless one is that close
+    let near = false;
+    for (let i = 0; i < this.got.length && !near; i++) {
+      if (this.got[i]) continue;
+      const [fx, fy] = this.flyAt(i);
+      near = (fx - this.x) ** 2 + (fy - this.y) ** 2 <= (REACH + BODY + 1) ** 2;
+    }
+    if (!near) return;
     const up = this.mode === 'fly' ? this.flyUp() : [Math.cos(this.at), Math.sin(this.at)];
     const bx = this.x + up[0] * BODY, by = this.y + up[1] * BODY;
     for (let i = 0; i < this.got.length; i++) {
@@ -311,6 +320,13 @@ export class Hop {
   }
 }
 
+/** Each moon's steady pull (before any breathing), worked out once per stage. */
+const STRENGTH = new WeakMap<Stage, number[]>();
+function strength(s: Stage): number[] {
+  let b = STRENGTH.get(s);
+  if (!b) { b = s.moons.map((m) => G0 * Math.sqrt(m.r / 50) * m.r * m.r * (1 + SOFT * SOFT) * (m.comet ? 0.55 : 1) * (m.kind === 'bean' ? -0.85 : 1)); STRENGTH.set(s, b); }
+  return b;
+}
 function smooth(x: number) { const c = Math.max(0, Math.min(1, x)); return c * c * (3 - 2 * c); }
 
 // ---------------------------------------------------------------- the bots' (and the tests') way of playing
