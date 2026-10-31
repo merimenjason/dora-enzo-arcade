@@ -46,6 +46,11 @@ function Skier({ who, look, pose = 'ride', view = 'front', ski = 0, className }:
   useEffect(() => { let dead = false; sceneModule().then((m) => { if (!dead && cv.current) m.paintSkier(cv.current, who, look, pose, view, ski); }).catch(() => {}); return () => { dead = true; }; }, [who, look.scarf, look.hat, look.skis, pose, view, ski]);
   return <canvas ref={cv} className={'pp-skier ' + (className ?? '')} width={112} height={124} aria-hidden="true" />;
 }
+function CourseMap({ i }: { i: number }) {
+  const cv = useRef<HTMLCanvasElement>(null);
+  useEffect(() => { let dead = false; sceneModule().then((m) => { if (!dead && cv.current) m.paintCourse(cv.current, i); }).catch(() => {}); return () => { dead = true; }; }, [i]);
+  return <canvas ref={cv} className="pp-course-map" width={320} height={72} aria-hidden="true" />;
+}
 function Postcard({ k, found }: { k: number; found: boolean }) {
   const cv = useRef<HTMLCanvasElement>(null);
   useEffect(() => { let dead = false; sceneModule().then((m) => { if (!dead && cv.current) m.paintPostcard(cv.current, k, found); }).catch(() => {}); return () => { dead = true; }; }, [k, found]);
@@ -299,6 +304,7 @@ export default function PowderPage() {
                 <span className="pp-course-no">Course {i + 1}</span><b>{c.name}</b><span className="pp-course-blurb">{c.blurb}</span>
                 <span className="pp-course-best">{r.time ? `${fmtTime(r.time)} · ${MEDAL[r.medal] || 'no medal'}` : 'Not raced yet'}</span>
                 <span className="pp-course-goal">Gold {SLALOM_MEDALS[i][0]}s · Silver {SLALOM_MEDALS[i][1]}s · Bronze {SLALOM_MEDALS[i][2]}s</span>
+                <CourseMap i={i} />
               </button>
             ); })}
           </div>
@@ -404,8 +410,9 @@ export default function PowderPage() {
           </div>
         )}
         {paused && screen === 'play' && !result && (
-          <div className="pp-tip" role="dialog" aria-label="Paused">
-            <div className="pp-tip-card"><h2>Paused</h2>
+          <div className="pp-tip pp-pause" role="dialog" aria-label="Paused">
+            <div className="pp-tip-card"><p className="pp-eyebrow">{g ? (g.mode === 'slalom' ? `SLALOM · ${SLALOM[g.spec.course].name.toUpperCase()}` : MODE_NAME[g.mode].toUpperCase()) : ''}</p><h2>Paused</h2>
+              {hud && g && <p className="pp-pause-stats">{g.mode === 'slalom' ? `${fmtTime(hud.time)} · gates ${hud.gatesOk + hud.missed}/${hud.gateTotal}` : g.mode === 'air' ? `${hud.tricks.toLocaleString('en-GB')} points so far` : `${fmtM(hud.dist)} down · ${hud.tricks.toLocaleString('en-GB')} trick points`}</p>}
               <div className="pp-result-buttons">
                 <button type="button" className="pp-primary" autoFocus onClick={() => { audio().ui(); setPaused(false); canvas.current?.focus(); }}>Keep skiing</button>
                 <button type="button" onClick={() => { audio().ui(); if (g) start(g.mode, course.current); }}>Restart</button>

@@ -31,9 +31,10 @@
 /* ---- menu */
 /* wide screens: the menu stands in a column on the left and the painting fills the rest, so the pair are never covered */
 .pp-menu{position:relative;flex:1;min-height:0;background:repeating-linear-gradient(0deg,#cfe6ff 0 6px,#dff0ff 6px 12px)}
-.pp-menu-art{left:min(470px,48%)}
+.pp-menu{--col:min(470px,48%)}
+.pp-menu-art{left:var(--col)}
 .pp-menu-art img,.pp-menu-art canvas{object-position:50% 45%}
-.pp-menu-card{position:absolute;left:clamp(10px,2vw,24px);top:50%;transform:translateY(-50%);width:calc(min(470px,48%) - clamp(20px,4vw,48px));padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.pp-menu-card{position:absolute;left:clamp(10px,2vw,24px);top:50%;transform:translateY(-50%);width:calc(var(--col) - clamp(20px,4vw,48px));padding:16px 18px;display:flex;flex-direction:column;gap:10px}
 .pp-menu-card h1{font-size:clamp(34px,5vw,52px);line-height:.95;color:var(--red);text-shadow:3px 3px 0 var(--ink),-1px -1px 0 #fff}
 .pp-lede{font-size:15px}
 .pp-modes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -59,6 +60,7 @@
 .pp-course-blurb{font-size:16px;font-weight:500}
 .pp-course-best{font-size:16px;margin-top:6px}
 .pp-course-goal{font-size:13px;font-weight:500;opacity:.85}
+.pp-course-map{display:block;width:100%;height:auto;aspect-ratio:40/9;margin-top:8px;border:3px solid var(--ink);image-rendering:pixelated}
 .pp-shell button.pp-course.m1{background:#f6e2cf}.pp-shell button.pp-course.m2{background:#eef0f4}.pp-shell button.pp-course.m3{background:#fff2b0}
 .pp-wardrobe{flex:1;min-height:0;display:flex;gap:20px;padding:16px;overflow:auto;max-width:1100px;width:100%;margin:0 auto}
 .pp-mirror{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:8px;background:#fff;border:4px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:10px;align-self:flex-start}
@@ -114,6 +116,11 @@
 .pp-tip{justify-content:center;align-items:flex-end;padding-bottom:clamp(16px,6vh,60px)}
 .pp-result-card,.pp-tip-card{pointer-events:auto;width:min(380px,100%);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
 .pp-tip-card{width:min(560px,100%)}
+/* the pause panel sits in the middle of the slope, which dims behind it */
+.pp-pause{align-items:center;padding:12px;background:#1d1b2e55}
+.pp-pause .pp-tip-card{width:min(440px,100%);align-items:stretch}
+.pp-pause-stats{font-size:16px;font-weight:600}
+.pp-pause .pp-result-buttons button{flex:1 1 auto;white-space:nowrap}
 .pp-result-card h2,.pp-tip-card h2,.pp-cocoa-card h2,.pp-ending-card h2{font-size:28px;line-height:1}
 .pp-medal{align-self:flex-start;font-weight:700;font-size:16px;padding:2px 10px;border:3px solid var(--ink)}
 .pp-medal.m1{background:#e0a070}.pp-medal.m2{background:#dfe3ea}.pp-medal.m3{background:var(--sun)}
@@ -146,6 +153,77 @@
 .pp-shell[data-orient="tall"] .pp-mode-name,.pp-shell[data-orient="tall"] .pp-hud .pp-toggles{display:none}
 .pp-shell[data-orient="tall"] .pp-storm{width:60px}
 @media (max-width:560px){.pp-speed{display:none}.pp-stat b{font-size:16px}}
+/* big screens (laptops and desktops): the menus grow to fill the screen, with bigger type, cards and pictures */
+@media (min-width:1000px) and (min-height:640px){
+  .pp-menu{--col:clamp(470px,36vw,700px)}
+  .pp-menu-card{padding:clamp(18px,2.2vw,32px) clamp(20px,2.4vw,36px);gap:clamp(10px,1.6vh,18px)}
+  .pp-menu-card h1{font-size:clamp(50px,3.7vw,76px);white-space:nowrap}
+  .pp-eyebrow{font-size:clamp(12px,1vw,17px)}
+  .pp-lede{font-size:clamp(16px,1.25vw,23px)}
+  .pp-modes{gap:clamp(8px,1vw,14px)}
+  .pp-modes button{font-size:clamp(18px,1.4vw,26px);padding:clamp(8px,1.2vh,14px) clamp(12px,1vw,18px);gap:2px}
+  .pp-modes button small{font-size:clamp(13px,.95vw,17px)}
+  .pp-who{gap:clamp(8px,1vw,14px)}
+  .pp-shell button.pp-who-btn{min-width:clamp(90px,7vw,130px)}
+  .pp-who-btn .pp-skier{width:clamp(84px,6.2vw,112px);height:auto;aspect-ratio:112/124}
+  .pp-who-btn span{font-size:clamp(15px,1.1vw,20px)}
+  .pp-who-side{gap:clamp(6px,1vh,12px)}
+  .pp-who-side button{font-size:clamp(16px,1.2vw,22px)}
+  .pp-back,.pp-shell button.pp-back{font-size:clamp(14px,1vw,18px);padding:7px 12px}
+  .pp-shell button.pp-tog{font-size:clamp(13px,.9vw,16px);padding:5px 10px}
+  /* the panels */
+  .pp-bar{padding:12px clamp(14px,1.6vw,28px);gap:16px}
+  .pp-bar-mid{font-size:clamp(18px,1.5vw,28px)}
+  .pp-courses{max-width:1560px;gap:clamp(16px,1.6vw,28px);padding:clamp(20px,3vh,40px) clamp(20px,2.4vw,40px);grid-template-columns:repeat(3,1fr);align-content:center}
+  .pp-shell button.pp-course{padding:clamp(14px,1.4vw,24px) clamp(16px,1.5vw,26px);gap:4px}
+  .pp-course-no{font-size:clamp(13px,.95vw,17px)}
+  .pp-course b{font-size:clamp(26px,2.1vw,40px)}
+  .pp-course-blurb{font-size:clamp(16px,1.15vw,21px)}
+  .pp-course-best{font-size:clamp(17px,1.2vw,23px)}
+  .pp-course-goal{font-size:clamp(14px,.95vw,18px)}
+  .pp-course-goal{margin-bottom:12px}
+  .pp-course-map{margin-top:auto}
+  .pp-wardrobe{max-width:1500px;gap:clamp(20px,2.4vw,44px);padding:clamp(20px,3vh,40px) clamp(20px,2.4vw,40px);align-items:center;justify-content:center}
+  .pp-mirror{align-self:center;padding:clamp(12px,1.4vw,24px);gap:12px 16px;box-shadow:6px 6px 0 var(--ink);display:grid;grid-template-columns:auto auto;justify-items:center;align-items:center}
+  .pp-mirror-front{grid-column:1/-1}
+  .pp-who-mini{flex-direction:column;gap:10px}
+  .pp-mirror-front{width:336px;height:372px}
+  .pp-mirror-side{width:168px;height:186px}
+  .pp-who-mini button{font-size:18px;padding:6px 16px}
+  .pp-gear{gap:clamp(14px,2vh,24px);max-width:900px}
+  .pp-gear-row{background:#fff;border:4px solid var(--ink);box-shadow:inset -4px -4px 0 #c9d8ee,6px 6px 0 #1d1b2e55;padding:clamp(12px,1.4vw,22px) clamp(14px,1.6vw,26px)}
+  .pp-gear-row h2{font-size:clamp(24px,1.9vw,34px);margin-bottom:12px}
+  .pp-swatches{gap:12px}
+  .pp-shell button.pp-swatch{font-size:clamp(16px,1.15vw,21px);padding:9px 14px;gap:10px}
+  .pp-swatch i{width:22px;height:22px;border-width:3px}
+  .pp-album{max-width:1560px;grid-template-columns:repeat(5,1fr);gap:clamp(14px,1.4vw,26px);padding:clamp(20px,3vh,40px) clamp(20px,2.4vw,40px);align-content:center}
+  .pp-shell button.pp-postcard{padding:clamp(8px,.8vw,14px);gap:6px}
+  .pp-postcard b{font-size:clamp(17px,1.25vw,24px)}
+  .pp-postcard small{font-size:clamp(13px,.95vw,17px)}
+  .pp-album-foot{padding:14px}
+  .pp-album-foot button{font-size:20px;padding:10px 22px}
+  /* the play screen */
+  .pp-mode-name{font-size:clamp(14px,1.1vw,20px)}
+  .pp-stat b{font-size:clamp(18px,1.4vw,26px)}
+  .pp-stat small{font-size:clamp(10px,.7vw,13px)}
+  .pp-storm{width:clamp(90px,8vw,150px)}
+  .pp-storm i{height:14px}
+  .pp-tip-card{width:min(680px,100%);padding:20px 24px;gap:12px}
+  .pp-tip-card p{font-size:clamp(16px,1.15vw,20px)}
+  .pp-result-card h2,.pp-tip-card h2{font-size:clamp(30px,2.6vw,46px)}
+  .pp-pause .pp-tip-card{width:min(560px,100%);padding:24px 28px;gap:16px}
+  .pp-pause .pp-tip-card h2{font-size:clamp(40px,3.4vw,60px)}
+  .pp-pause-stats{font-size:clamp(17px,1.25vw,22px)}
+  .pp-pause .pp-result-buttons{gap:12px}
+  .pp-pause .pp-result-buttons button,.pp-result-buttons button,.pp-tip-card .pp-primary{font-size:clamp(17px,1.2vw,22px);padding:9px 18px;min-height:48px}
+  .pp-result-card{width:min(460px,100%);padding:18px 22px}
+  .pp-lines{font-size:clamp(15px,1.05vw,19px)}
+}
+/* very big screens: the wardrobe mirror at four times */
+@media (min-width:1600px) and (min-height:960px){
+  .pp-mirror-front{width:448px;height:496px}
+  .pp-mirror-side{width:224px;height:248px}
+}
 /* short screens (phones held sideways) */
 @media (max-height:520px){
   .pp-menu-card{padding:8px 12px;gap:5px}

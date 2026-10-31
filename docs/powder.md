@@ -37,9 +37,11 @@ In Freeride and the Daily Mountain the storm front starts 420 pixels behind and,
 
 ## The mountain
 
-Each chunk picks a zone (open groomer, forest, mogul field, frozen ponds, jump park, village with huts and a fence, deep powder) weighted toward forest the further you go, and its density rises over the first 45 chunks (about 2 km). A winding clear line (a sum of three slow sines, never steeper than 45 degrees) runs down every mountain, and nothing solid is placed within 24 pixels of it, below a ramp's landing, or on top of anything else; fences leave a gap where the line crosses. So there is always a way through, which `tests/powder.mjs` checks with a path search over 840 chunks of 12 seeds, every slalom course and the park.
+Each chunk picks a zone (open groomer, forest, mogul field, frozen ponds, jump park, village with huts and a fence, deep powder) weighted toward forest the further you go, and its density rises over the first 45 chunks (about 2 km). Trees stand both scattered and in little copses of three to six, forests open into a glade, and groomers can carry a snowman, a small ice patch or a patch of moguls; marmots, stoats, rabbits and hedgehogs turn up in most chunks. A winding clear line (a sum of three slow sines, never steeper than 45 degrees) runs down every mountain, and nothing solid is placed within 24 pixels of it, below a ramp's landing, or on top of anything else; fences leave a gap where the line crosses. So there is always a way through, which `tests/powder.mjs` checks with a path search over 840 chunks of 12 seeds, every slalom course and the park.
 
 Ten hidden cabins stand in clearings off the edge of the piste at 260, 620, 1,020, 1,460, 1,940, 2,460, 3,020, 3,620, 4,260 and 4,940 metres, on a side chosen by the seed, with a wooden sign 25 metres before the gap in the trees. Ski onto a cabin's porch for its postcard. All ten open the lodge party, the ending.
+
+Scenery that never trips you comes from a random stream of its own, so it never moves anything you can hit: piste marker poles down both edges every 6 metres (blue for the first 12 chunks, then red, then black past chunk 32; the slalom courses go blue, red, black by course and the park is blue), a trail sign now and then, tufts of grass, twigs and shrubs poking through, old ski tracks winding down (deeper in powder), lines of paw prints across the slope and bunting over every ramp. The snow itself has soft rolls across the slope, groomed corduroy on the pistes and wind ripples in the forest, powder and mogul zones, all fixed to the mountain so they stream past and the speed reads.
 
 Moving things: marmots and stoats ski down in lazy zigzags, rabbits toboggan across the slope and bounce off its edges, and hedgehogs drift down on tea trays. All are slower than you, and all face the way they move.
 
@@ -47,14 +49,14 @@ Moving things: marmots and stoats ski down in lazy zigzags, rabbits toboggan acr
 
 - **Freeride**: endless, a new mountain each run; score is metres plus trick points. Best distance and best trick points are saved.
 - **Daily Mountain**: the same for everyone on a given day (the seed comes from the date, read after the page mounts); the day's best score is saved for the last 30 days.
-- **Slalom**: six courses (6 to 10 chunks, gates 54 to 70 pixels wide, swinging 60 to 120 pixels). A missed gate adds 5 seconds; more than two misses means no medal.
+- **Slalom**: six courses (6 to 10 chunks, gates 54 to 70 pixels wide, swinging 60 to 120 pixels), each shown in the course list with a little trail map of its gates, trees and ice. A missed gate adds 5 seconds; more than two misses means no medal.
 - **Big Air**: a nine-chunk jump park with kickers and big ramps; score is trick points.
 
 ## Difficulty, from the bots
 
 `tests/powder-bot.mjs` plays with a steering bot that looks a second ahead, simulates each candidate heading with the real turning rate, and acts on what it saw a reaction time ago with a wobble in its aim. In the air it plans a spin, flip or grab for the airtime it guesses and lets go with a timing error. Three players: careless (0.55 s reaction, big wobble, never brakes or tricks), human-like (0.25 s, small wobble) and good (0.12 s, steady, bolder tricks).
 
-Typical results over 24 seeds: careless about 500 metres, human-like about 1,850 metres, good about 4,000 metres. The storm numbers above were set so these land there. Slalom gold is the good bot's median time, silver 1.06 × and bronze 1.35 × the human-like bot's median. Big Air gold is 95% of the good bot's median score, silver 95% and bronze half of the human-like median:
+Typical results over 24 seeds: careless about 400 metres, human-like about 1,400 metres, good about 3,000 metres. The storm numbers above were set so these land there. Slalom gold is the good bot's median time, silver 1.06 × and bronze 1.35 × the human-like bot's median. Big Air gold is 95% of the good bot's median score, silver 95% and bronze half of the human-like median:
 
 | Course | Gold | Silver | Bronze |
 | --- | --- | --- | --- |

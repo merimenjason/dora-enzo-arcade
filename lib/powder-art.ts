@@ -314,3 +314,44 @@ export function mogul(): Grid {
   return g;
 }
 export function lantern(): Grid { const g = new Grid(6, 8); g.r(1, 2, 4, 5, '#ffcf4a'); g.r(2, 0, 2, 2, INK); return g.outline(); }
+// ---------------------------------------------------------------- scenery that is only for looking at
+const TRAIL = ['#2f6fe0', '#e8344a', '#2a2a36'];
+/** A piste marker pole, banded in the trail's colour (blue, red, black). */
+export function marker(lv: number): Grid {
+  const g = new Grid(5, 17), c = TRAIL[lv % 3];
+  g.r(1, 2, 3, 14, c); for (let y = 4; y < 15; y += 4) g.r(1, y, 3, 2, '#ffffff');
+  g.r(1, 1, 3, 1, SNOW); g.p(3, 3, lighten(c));
+  return g.outline('#20202e');
+}
+/** A trail sign on a post: a blue circle, a red square or a black diamond, with an arrow down the hill. */
+export function trailSign(lv: number): Grid {
+  const g = new Grid(18, 24), c = TRAIL[lv % 3];
+  g.r(8, 10, 2, 13, '#7a4a2a'); g.r(9, 10, 1, 13, '#5a3418');
+  g.r(1, 1, 16, 11, '#f4efe2'); g.r(1, 1, 16, 1, SNOW); g.r(1, 11, 16, 1, '#c8bca2');
+  if (lv % 3 === 0) g.e(6, 6.5, 3.2, 3.2, c);
+  else if (lv % 3 === 1) g.r(3, 4, 6, 6, c);
+  else { for (let y = 0; y < 7; y++) { const w = 3 - Math.abs(y - 3); g.r(6 - w, 3 + y, w * 2 + 1, 1, c); } }
+  g.r(13, 3, 1, 6, INK); g.r(12, 7, 3, 1, INK); g.p(13, 8, INK); g.p(11, 6, INK); g.p(15, 6, INK);
+  return g.outline('#2a1a10');
+}
+/** Little things poking through the snow: dry grass, a twig, a snowy shrub, two pebbles. */
+export function tuft(v: number): Grid {
+  const g = new Grid(10, 7);
+  if (v === 0) { g.l(2, 6, 1, 1, '#a08a52'); g.l(4, 6, 4, 0, '#8a7442'); g.l(6, 6, 8, 2, '#b49a5e'); g.l(5, 6, 6, 3, '#6e8a4a'); g.r(1, 6, 8, 1, SNOW3); }
+  else if (v === 1) { g.l(1, 5, 8, 3, '#7a5236'); g.l(5, 4, 6, 1, '#7a5236'); g.p(3, 4, '#7a5236'); g.r(0, 6, 10, 1, SNOW3); }
+  else if (v === 2) { g.e(5, 4, 4, 2.6, '#2f6e50'); g.e(4.5, 3, 3, 1.4, SNOW); g.p(7, 4, '#c8384a'); g.r(1, 6, 8, 1, SNOW3); }
+  else { g.e(3, 4, 2, 1.4, '#8d96a8'); g.e(7, 5, 1.6, 1.1, '#7c8597'); g.p(2, 3, SNOW); g.p(7, 4, SNOW); }
+  return g;
+}
+/** A snowman with a knitted scarf, a carrot nose and twig arms. */
+export function snowman(v: number): Grid {
+  const g = new Grid(20, 24), sc = ['#3cc8a0', '#e8344a', '#ffb21e', '#3a7cf0'][v & 3];
+  g.l(3, 11, 0, 7, '#7a5236'); g.l(16, 11, 19, 8, '#7a5236'); g.p(1, 8, '#7a5236');
+  g.e(10, 17, 6.5, 5.5, '#ffffff'); g.e(9, 16, 4.5, 3.6, SNOW); g.e(13, 19, 3, 2, SNOW2);
+  g.e(10, 8, 4.6, 4.2, '#ffffff'); g.e(9.5, 7.5, 3, 2.6, SNOW);
+  g.r(5, 11, 10, 2, sc); g.r(12, 12, 2, 4, sc);
+  g.r(6, 3, 8, 1, INK); g.r(7, 0, 6, 3, '#3b3550');
+  g.outline('#7d8fb4');
+  g.p(8, 7, INK); g.p(12, 7, INK); g.r(10, 9, 3, 1, '#ff8a2a'); g.p(10, 16, INK); g.p(10, 19, INK);
+  return g;
+}

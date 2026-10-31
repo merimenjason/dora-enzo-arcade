@@ -136,6 +136,7 @@ async function framing(page) {
   await page.getByRole('button', { name: '← MENU' }).click();
   // the ending
   await page.evaluate(() => window.__powderEnding());
+  await page.getByRole('heading', { name: 'The lodge party' }).waitFor({ timeout: 8000 });
   assert.ok(await page.getByRole('heading', { name: 'The lodge party' }).isVisible() && await inView(page, page.locator('.pp-ending-card')));
   // corrupt save
   await page.evaluate((k) => localStorage.setItem(k, '{"v":1,"cards":[99,"x"],"best":{"free":-5},"gear":{"dora":{"scarf":"lava"}}'), KEY);

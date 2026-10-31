@@ -38,7 +38,7 @@ export function hash(...ns: number[]) {
   return h >>> 0;
 }
 
-export type Solid = 'pine' | 'pineS' | 'birch' | 'rock' | 'stump' | 'fence' | 'hut' | 'cabin' | 'pole' | 'sign' | 'bank';
+export type Solid = 'pine' | 'pineS' | 'birch' | 'rock' | 'stump' | 'fence' | 'hut' | 'cabin' | 'pole' | 'sign' | 'bank' | 'snowman';
 export type Ob = { k: Solid; x: number; y: number; r: number; h: number; w?: number; d?: number; v?: number; i?: number };
 export type AreaKind = 'powder' | 'ice' | 'moguls';
 export type Area = { k: AreaKind; x: number; y: number; rx: number; ry: number };
@@ -46,7 +46,10 @@ export type Ramp = { k: 'kick' | 'big'; x: number; y: number; w: number };
 export type Gate = { i: number; x: number; y: number; w: number; red: boolean };
 export type Npc = { k: 'skier' | 'rabbit' | 'hedgehog' | 'stoat'; x: number; y: number; vx: number; vy: number; ph: number; id: number };
 export type Zone = 'start' | 'groomer' | 'forest' | 'moguls' | 'pond' | 'park' | 'village' | 'powder' | 'slalom' | 'air' | 'finish';
-export type Chunk = { i: number; zone: Zone; obs: Ob[]; areas: Area[]; ramps: Ramp[]; gates: Gate[]; npcs: Npc[]; cabin: number };
+/** Things on the snow that are only scenery: piste markers, trail signs, tufts poking through, old ski tracks and paw prints. */
+export type DecoKind = 'marker' | 'trail' | 'tuft' | 'track' | 'prints' | 'bunting';
+export type Deco = { k: DecoKind; x: number; y: number; v: number; len?: number; amp?: number };
+export type Chunk = { i: number; zone: Zone; obs: Ob[]; areas: Area[]; ramps: Ramp[]; gates: Gate[]; npcs: Npc[]; deco: Deco[]; cabin: number };
 
 export type Mode = 'free' | 'slalom' | 'air' | 'daily';
 export type Course = { name: string; blurb: string; len: number; seed: number; gap: number; spread: number; trees: number; ice?: boolean };
@@ -102,7 +105,7 @@ export function rampsOf(spec: WorldSpec, i: number): Ramp[] {
   const at = (y: number, k: Ramp['k']) => out.push({ k, x: Math.round(lineX(spec.seed, y, amp(spec))), y, w: k === 'big' ? 46 : 32 });
   if (z === 'park') { at(y0 + 60 + r.int(60), 'kick'); if (i > 4 && r.next() < 0.6) at(y0 + 330 + r.int(40), 'big'); }
   else if (z === 'air') { at(y0 + 40 + r.int(30), i % 2 ? 'big' : 'kick'); if (i % 3 === 1) at(y0 + 300, 'kick'); }
-  else if ((z === 'groomer' || z === 'powder') && r.next() < 0.35) at(y0 + 80 + r.int(200), 'kick');
+  else if ((z === 'groomer' || z === 'powder') && r.next() < 0.45) at(y0 + 80 + r.int(200), 'kick');
   return out;
 }
 function amp(spec: WorldSpec) { return spec.mode === 'slalom' ? 0.5 : spec.mode === 'air' ? 0.35 : 1; }
@@ -139,6 +142,19 @@ export function makeChunk(spec: WorldSpec, i: number): Chunk {
     }
   };
   const tree = (n: number) => { put('pine', Math.round(n * 0.55), { r: 7, h: 40 }); put('pineS', Math.round(n * 0.25), { r: 5, h: 24 }); put('birch', Math.round(n * 0.2), { r: 4, h: 40 }); };
+  /** A clump of n trees round a centre: a little copse with snow between the trunks. */
+  const clump = (n: number, birchy = 0.2, edge = false) => {
+    const cx = edge ? (r.next() < 0.5 ? -1 : 1) * r.range(HALF - 46, HALF - 14) : r.range(-HALF + 24, HALF - 24), cy = y0 + r.range(30, CH - 30), rad = 16 + n * 4;
+    for (let t = 0, made = 0; t < n * 5 && made < n; t++) {
+      const a = r.range(0, Math.PI * 2), d2 = rad * Math.sqrt(r.next()), x = cx + Math.cos(a) * d2, y = cy + Math.sin(a) * d2 * 0.8;
+      const q = r.next(), k: Solid = q < birchy ? 'birch' : q < birchy + (1 - birchy) * 0.4 ? 'pineS' : 'pine', rr = k === 'pine' ? 7 : k === 'pineS' ? 5 : 4;
+      if (Math.abs(x) > HALF - 6 || !free(x, y, rr)) continue;
+      obs.push({ k, x: Math.round(x), y: Math.round(y), r: rr, h: k === 'pineS' ? 24 : 40, v: r.int(4) }); made++;
+    }
+  };
+  const clumps = (c: number, n: number, birchy?: number) => { for (let j = 0; j < c; j++) clump(Math.round(n), birchy); };
+  /** Copses hugging the edges of the piste, so the woods spill onto the slope. */
+  const edges = (c: number) => { for (let j = 0; j < c; j++) clump(3 + r.int(3), 0.25, true); };
   const area = (k: AreaKind, rx: number, ry: number) => {
     const x = r.range(-HALF + rx * 0.6, HALF - rx * 0.6), y = y0 + r.range(ry, CH - ry);
     areas.push({ k, x: Math.round(x), y: Math.round(y), rx, ry });
@@ -147,13 +163,31 @@ export function makeChunk(spec: WorldSpec, i: number): Chunk {
     const x = r.range(-HALF + 30, HALF - 30), y = y0 + r.range(40, CH - 40);
     npcs.push({ k, x, y, vx, vy, ph: r.range(0, 6.28), id: i * 10 + npcs.length });
   };
+  const maybe = (p: number, f: () => void) => { if (r.next() < p) f(); };
+  const snowman = () => put('snowman', 1, { r: 6, h: 18 });
+  if ((spec.mode === 'free' || spec.mode === 'daily') && zone !== 'park') edges(2 + r.int(2));
   switch (zone) {
-    case 'start': tree(8); if (spec.mode === 'free' || spec.mode === 'daily') put('rock', 1, { r: 7, h: 8 }); break;
-    case 'groomer': tree(9 + d * 6); put('rock', 3, { r: 7, h: 8 }); put('stump', 1, { r: 5, h: 6 }); put('bank', 1, { r: 14, h: 10 }); if (r.next() < 0.6) npc('skier', 95 + r.int(30)); if (r.next() < 0.3) npc('stoat', 80 + r.int(30)); break;
-    case 'forest': tree(18 + d * 14); put('stump', 2, { r: 5, h: 6 }); if (r.next() < 0.4) npc('hedgehog', 55); break;
-    case 'moguls': area('moguls', 70 + r.int(40), 110 + r.int(60)); tree(7 + d * 4); put('rock', 2, { r: 7, h: 8 }); if (r.next() < 0.5) npc('skier', 90); break;
-    case 'pond': area('ice', 50 + r.int(30), 34 + r.int(20)); if (r.next() < 0.7) area('ice', 36 + r.int(20), 26 + r.int(10)); tree(9 + d * 5); put('rock', 3, { r: 7, h: 8 }); break;
-    case 'park': tree(6 + d * 3); put('bank', 2, { r: 14, h: 10 }); if (r.next() < 0.5) npc('rabbit', 75, 40); break;
+    case 'start':
+      if (spec.mode !== 'free' && spec.mode !== 'daily') { tree(8); break; }
+      tree(6); { clumps(2, 4); put('rock', 1, { r: 7, h: 8 }); if (i === 1) { snowman(); npc('skier', 100); } }
+      break;
+    case 'groomer':
+      tree(5 + d * 5); clumps(1 + r.int(2), 4 + d * 2); put('rock', 2, { r: 7, h: 8 }); put('stump', 1, { r: 5, h: 6 }); put('bank', 1, { r: 14, h: 10 });
+      maybe(0.3, snowman); maybe(0.3, () => area('ice', 26 + r.int(16), 16 + r.int(8))); maybe(0.25, () => area('moguls', 40 + r.int(20), 50 + r.int(30)));
+      maybe(0.7, () => npc('skier', 95 + r.int(30))); maybe(0.35, () => npc('stoat', 80 + r.int(30))); maybe(0.25, () => npc('rabbit', 75, r.next() < 0.5 ? -40 : 40));
+      break;
+    case 'forest':
+      // thick woods with an open glade somewhere in them
+      { const gx = r.range(-HALF + 50, HALF - 50), gy = y0 + r.range(90, CH - 90), inGlade = (o: Ob) => ((o.x - gx) / 46) ** 2 + ((o.y - gy) / 60) ** 2 < 1;
+        tree(13 + d * 11); clumps(2, 5); for (let j = obs.length - 1; j >= 0; j--) if (inGlade(obs[j])) obs.splice(j, 1); }
+      put('stump', 2, { r: 5, h: 6 }); maybe(0.5, () => npc('hedgehog', 55)); maybe(0.3, () => npc('skier', 95));
+      break;
+    case 'moguls': area('moguls', 70 + r.int(40), 110 + r.int(60)); tree(5 + d * 3); clumps(1, 4); put('rock', 2, { r: 7, h: 8 }); maybe(0.6, () => npc('skier', 90)); maybe(0.3, () => npc('stoat', 80)); break;
+    case 'pond':
+      area('ice', 50 + r.int(30), 34 + r.int(20)); maybe(0.7, () => area('ice', 36 + r.int(20), 26 + r.int(10)));
+      tree(7 + d * 4); clumps(1, 4); put('rock', 3, { r: 7, h: 8 }); maybe(0.45, () => npc('rabbit', 70, r.next() < 0.5 ? -50 : 50)); maybe(0.3, snowman);
+      break;
+    case 'park': tree(5 + d * 2); clumps(1, 4); put('bank', 2, { r: 14, h: 10 }); maybe(0.6, () => npc('rabbit', 75, 40)); maybe(0.4, () => npc('skier', 100)); break;
     case 'village': {
       put('hut', 1 + r.int(2), { r: 20, h: 40 });
       for (const o of obs) if (o.k === 'hut') { o.w = 34; o.d = 26; }
@@ -164,11 +198,14 @@ export function makeChunk(spec: WorldSpec, i: number): Chunk {
         if (lands.some((q) => cx + 14 > q.x0 && cx - 14 < q.x1 && fy > q.y0 && fy < q.y1)) continue;
         obs.push({ k: 'fence', x: cx, y: fy, r: 14, h: 10, w: 28, d: 5 });
       }
-      put('stump', 2, { r: 5, h: 6 }); tree(4 + d * 4);
+      put('stump', 2, { r: 5, h: 6 }); tree(4 + d * 4); clumps(1, 4); snowman();
       npc('rabbit', 70, r.next() < 0.5 ? -45 : 45); if (r.next() < 0.6) npc('rabbit', 80, 30);
       break;
     }
-    case 'powder': area('powder', 60 + r.int(30), 50 + r.int(30)); if (r.next() < 0.6) area('powder', 40 + r.int(20), 40); put('birch', 9 + d * 6, { r: 4, h: 40 }); put('pineS', 4, { r: 5, h: 24 }); npc('hedgehog', 50); break;
+    case 'powder':
+      area('powder', 60 + r.int(30), 50 + r.int(30)); if (r.next() < 0.6) area('powder', 40 + r.int(20), 40);
+      put('birch', 9 + d * 6, { r: 4, h: 40 }); put('pineS', 4, { r: 5, h: 24 }); clumps(1, 5, 0.6); npc('hedgehog', 50); maybe(0.4, () => npc('skier', 90));
+      break;
     case 'slalom': {
       const c = SLALOM[spec.course];
       for (let g = 0; g < 3; g++) {
@@ -206,9 +243,34 @@ export function makeChunk(spec: WorldSpec, i: number): Chunk {
     for (let y = cab.y - 170; y < cab.y + 190; y += 22) obs.push({ k: 'pine', x: cab.side * (HALF + 168), y, r: 7, h: 40, v: (y >> 3) & 3 });
     obs.push({ k: 'pineS', x: cab.side * (HALF + 40), y: cab.y + 120, r: 5, h: 24, v: 1 });
   }
-  if (zone === 'start' && i === 0 && (spec.mode === 'slalom' || spec.mode === 'air')) { /* the start hut sits above the slope */ }
   obs.sort((a, b) => a.y - b.y);
-  return { i, zone, obs, areas, ramps, gates, npcs, cabin: cab ? cab.k : -1 };
+  return { i, zone, obs, areas, ramps, gates, npcs, deco: decorate(spec, i, zone, ramps, cab), cabin: cab ? cab.k : -1 };
+}
+
+/** Trail difficulty for the piste markers: blue near the top, then red, then black (0, 1, 2). */
+export function level(spec: WorldSpec, i: number) {
+  if (spec.mode === 'slalom') return spec.course < 2 ? 0 : spec.course < 5 ? 1 : 2;
+  if (spec.mode === 'air') return 0;
+  return i < 12 ? 0 : i < 32 ? 1 : 2;
+}
+/** The scenery of chunk i, from a stream of its own so it never moves anything you can hit. */
+function decorate(spec: WorldSpec, i: number, zone: Zone, ramps: Ramp[], cab: ReturnType<typeof cabinAt>): Deco[] {
+  const r = new Rng(hash(spec.seed, i, 13)), y0 = i * CH, out: Deco[] = [], lv = level(spec, i);
+  const clear = (side: number, y: number) => !(cab && cab.side === side && y > cab.y - 270 && y < cab.y + 190);
+  // piste markers down both edges, a pole every 60 pixels, coloured for the trail
+  for (let y = y0 + ((i * 37) % 60); y < y0 + CH; y += 60) for (const side of [-1, 1]) if (clear(side, y)) out.push({ k: 'marker', x: side * (HALF + 5), y, v: lv });
+  // a trail sign now and then
+  if (r.next() < 0.45) { const side = r.next() < 0.5 ? -1 : 1, y = y0 + 30 + r.int(CH - 60); if (clear(side, y)) out.push({ k: 'trail', x: side * (HALF + 8), y: y + 30, v: lv + (side > 0 ? 3 : 0) }); }
+  // tufts of grass and twigs poking through, fewer in deep powder
+  const tufts = zone === 'powder' ? 4 : 9 + r.int(7);
+  for (let j = 0; j < tufts; j++) out.push({ k: 'tuft', x: Math.round(r.range(-HALF + 6, HALF - 6)), y: Math.round(y0 + r.range(0, CH)), v: r.int(4) });
+  // old ski tracks wandering down, and a line of paw prints across the slope
+  const tracks = zone === 'powder' ? 3 : 1 + r.int(2);
+  for (let j = 0; j < tracks; j++) out.push({ k: 'track', x: Math.round(r.range(-HALF + 40, HALF - 40)), y: Math.round(y0 + r.range(0, CH - 100)), v: r.int(1000), len: 220 + r.int(260), amp: 14 + r.int(30) });
+  if (r.next() < 0.45) out.push({ k: 'prints', x: Math.round(r.range(-HALF + 20, HALF - 120)), y: Math.round(y0 + r.range(20, CH - 60)), v: r.int(2), len: 90 + r.int(140), amp: r.int(30) - 15 });
+  // bunting over every ramp
+  for (const p of ramps) out.push({ k: 'bunting', x: p.x, y: p.y - 14, v: p.k === 'big' ? 1 : 0, len: p.w + 18 });
+  return out;
 }
 
 /** The length of a course in pixels (slalom and Big Air end at a finish line). */

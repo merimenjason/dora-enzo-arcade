@@ -269,7 +269,7 @@ export class PowderGame {
       if (dx * dx + dy * dy > (o.r + SKIER_R) ** 2 || k.z >= o.h) continue;
       if (o.k === 'bank') { if (this.bankT <= 0 && k.state === 'ride') { k.s *= 0.5; this.bankT = 0.5; this.events.push({ t: 'puff' }); } continue; }
       if (o.k === 'pole') { const id = o.x * 7 + o.y; if (id !== this.lastPole) { this.lastPole = id; k.s *= 0.85; this.events.push({ t: 'clack' }); } continue; }
-      this.tumble(o.k === 'rock' ? 'a rock' : o.k === 'stump' ? 'a stump' : 'a tree'); return;
+      this.tumble(o.k === 'rock' ? 'a rock' : o.k === 'stump' ? 'a stump' : o.k === 'snowman' ? 'a snowman' : 'a tree'); return;
     }
     for (const n of this.npcs) {
       if (Math.abs(n.y - k.y) > 10 || k.z > 10) continue;

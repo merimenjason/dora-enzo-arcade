@@ -4,9 +4,9 @@
 // skiers stay big. The camera keeps the skier a third of the way down, leading into turns; the storm rolls in from
 // the top as a dithered white-out. The partner skis behind on the same line and cheers tricks.
 import type { PowderGame, Ev, LiveNpc } from './powder-game';
-import { HALF, EDGE, hash, type Ob } from './powder-world';
+import { HALF, EDGE, CH, SLALOM, hash, makeChunk, type Ob, type Deco, type Zone } from './powder-world';
 import {
-  Grid, chinchilla, snowball, animal, pine, birch, rock, stump, bank, fence, hut, cabin, sign, flag, ramp, mogul, lantern,
+  Grid, chinchilla, snowball, animal, pine, birch, rock, stump, bank, fence, hut, cabin, sign, flag, ramp, mogul, lantern, marker, trailSign, tuft, snowman,
   SNOW, SNOW2, SNOW3, SHADOW, INK, type Who, type View, type Pose, type Look,
 } from './powder-art';
 
@@ -148,7 +148,7 @@ export class PowderScene {
     b.setTransform(1, 0, 0, 1, 0, 0);
     const shx = this.shake > 0 ? Math.round(Math.sin(this.t * 80) * 2 * this.shake / 0.35) : 0;
     b.save(); b.translate(shx, 0);
-    this.drawGround();
+    this.drawGround(g);
     if (g) this.drawWorld(g);
     b.restore();
     // speed lines when flying down the fall line
@@ -167,20 +167,47 @@ export class PowderScene {
   }
 
   // ---------------------------------------------------------------- the ground
-  private drawGround() {
+  /** The zone of the chunk at world height y (or null with no game). */
+  private zoneAt(g: PowderGame | null, y: number): Zone | null { return g?.chunks.get(Math.floor(y / CH))?.zone ?? null; }
+  private drawGround(g: PowderGame | null) {
     const b = this.b, W = this.W, H = this.H;
     b.fillStyle = SNOW; b.fillRect(0, 0, W, H);
-    // soft blue drifts and groomed corduroy, anchored to the world so the snow scrolls
+    // the lie of the land: soft rolls across the slope, a shaded band below each crest and a bright line on top,
+    // anchored to the world so they stream past and the speed reads
+    const wob = new Float32Array(W + 1);
+    for (let x = 0; x <= W; x++) { const wx = x + this.camX - W / 2; wob[x] = 14 * Math.sin(wx / 47) + 7 * Math.sin(wx / 19 + 1.3); }
+    for (let y = 0; y < H; y++) {
+      const wy = y + this.camY;
+      const band = Math.floor(wy / 150), h = hash(band, 61), deep = 34 + (h % 40), off = (h >> 8) % 60;
+      for (let x = 0; x < W; x += 2) {
+        const p = ((wy + wob[x] - off) % 150 + 150) % 150;
+        if (p < 2) { b.fillStyle = '#fbfdff'; b.fillRect(x, y, 2, 1); }
+        else if (p > 3 && p < deep) { if (p > deep - 6 && ((x >> 1) + y) & 1) continue; b.fillStyle = p < 12 ? '#e6edf8' : '#ebf1fa'; b.fillRect(x, y, 2, 1); }
+      }
+    }
+    // soft blue drifts, anchored to the world so the snow scrolls
     const cx0 = Math.floor((this.camX - W / 2) / 64), cy0 = Math.floor(this.camY / 64);
     for (let j = cy0 - 1; j <= cy0 + H / 64 + 1; j++) for (let i = cx0 - 1; i <= cx0 + W / 64 + 1; i++) {
       const h = hash(i, j, 21);
       if (h % 3 === 0) { const x = this.sx(i * 64 + (h % 40)), y = this.sy(j * 64 + ((h >> 6) % 40)); pixEllipse(b, x, y, 14 + (h % 18), 4 + ((h >> 3) % 4), SNOW2); pixEllipse(b, x - 2, y - 1, 10 + (h % 12), 2 + ((h >> 3) % 3), '#f8fbff'); }
     }
+    // groomed corduroy on the pistes, wind ripples in the wild snow
     const lx0 = Math.floor((this.camX - W / 2) / 6), ly0 = Math.floor(this.camY / 24);
-    b.fillStyle = '#e9f0fa';
-    for (let i = lx0; i <= lx0 + W / 6 + 1; i++) {
-      if (Math.abs(i * 6) > HALF - 4) continue;
-      for (let j = ly0 - 1; j <= ly0 + H / 24 + 1; j++) { const h = hash(i, j, 33); if (h % 4) b.fillRect(this.sx(i * 6), this.sy(j * 24 + (h % 6)), 1, 10 + (h % 12)); }
+    for (let j = ly0 - 1; j <= ly0 + H / 24 + 1; j++) {
+      const z = this.zoneAt(g, j * 24), groomed = !z || z === 'start' || z === 'groomer' || z === 'park' || z === 'village' || z === 'slalom' || z === 'air' || z === 'finish' || z === 'pond';
+      if (groomed) {
+        for (let i = lx0; i <= lx0 + W / 6 + 1; i++) {
+          if (Math.abs(i * 6) > HALF - 4) continue;
+          const h = hash(i, j, 33); if (h % 4) { b.fillStyle = h % 3 ? '#e8eff9' : '#e3ebf7'; b.fillRect(this.sx(i * 6), this.sy(j * 24 + (h % 6)), 1, 10 + (h % 12)); }
+        }
+      } else {
+        for (let i = Math.floor(lx0 / 4) - 1; i <= (lx0 + W / 6) / 4 + 1; i++) {
+          const h = hash(i, j, 34); if (h % 3) continue;
+          const x = this.sx(i * 24 + (h % 18)), y = this.sy(j * 24 + ((h >> 5) % 18)), n = 5 + (h % 6);
+          b.fillStyle = '#dbe5f4'; for (let t = 0; t < n; t++) b.fillRect(x + t, y + Math.round(Math.sin(t * 0.7) * 1.2), 1, 1);
+          b.fillStyle = '#ffffff'; b.fillRect(x + 1, y - 1, n - 2, 1);
+        }
+      }
     }
     // speckles, little blue stones, twigs and sparkles
     const x0 = Math.floor((this.camX - W / 2) / 16), y0 = Math.floor(this.camY / 16);
@@ -192,12 +219,56 @@ export class PowderScene {
       else if (r === 8 && (h >> 13) % 3 === 0) { b.fillStyle = '#8a6a50'; b.fillRect(x, y, 3, 1); b.fillRect(x + 2, y - 1, 1, 1); }
       if ((h >> 12) % 30 === 0 && Math.floor(this.t * 3 + (h % 7)) % 4 === 0) { b.fillStyle = '#ffffff'; b.fillRect(x, y - 1, 1, 3); b.fillRect(x - 1, y, 3, 1); b.fillStyle = '#bfe4ff'; b.fillRect(x, y, 1, 1); }
     }
-    // the piste edges: bluer, untouched snow under the forest
+    // the piste edges: bluer, untouched snow under the forest, with a soft shadow line of drifted snow
     for (const s of [-1, 1]) {
       const ex = this.sx(s * (HALF + 2));
       b.fillStyle = '#e1eaf7';
       if (s < 0) b.fillRect(ex - W, 0, W, H); else b.fillRect(ex, 0, W, H);
+      b.fillStyle = '#d6e1f2'; b.fillRect(s < 0 ? ex - 3 : ex + 1, 0, 2, H);
       b.fillStyle = SNOW3; b.fillRect(ex, 0, 1, H);
+    }
+  }
+  /** The scenery of every chunk in view. */
+  private decoIn(g: PowderGame, top: number, bot: number) {
+    const out: Deco[] = [];
+    for (let i = Math.max(0, Math.floor((top - 500) / CH)); i <= Math.floor((bot + 40) / CH); i++) for (const d of g.chunks.get(i)?.deco ?? []) out.push(d);
+    return out;
+  }
+  /** Flat scenery under everything: old ski tracks, paw prints, tufts. */
+  private drawFlatDeco(ds: Deco[], g: PowderGame) {
+    const b = this.b, H = this.H;
+    for (const d of ds) {
+      if (d.k === 'track') {
+        const deep = this.zoneAt(g, d.y) === 'powder', per = 50 + (d.v % 40), len = d.len ?? 200, amp = d.amp ?? 20;
+        if (this.sy(d.y + len) < -4 || this.sy(d.y) > H + 4) continue;
+        for (let t = 0; t < len; t += 1) {
+          const wx = d.x + amp * Math.sin(t / per + d.v), y = this.sy(d.y + t); if (y < 0 || y >= H) continue;
+          const dx = (amp / per) * Math.cos(t / per + d.v), off = Math.round(2 + Math.abs(dx));
+          b.fillStyle = deep ? '#c9d8ee' : '#dde6f4'; b.fillRect(this.sx(wx - off), y, 1, 1); b.fillRect(this.sx(wx + off), y, 1, 1);
+          if (deep) { b.fillStyle = '#ffffff'; b.fillRect(this.sx(wx - off) - 1, y, 1, 1); b.fillRect(this.sx(wx + off) + 1, y, 1, 1); }
+        }
+      } else if (d.k === 'prints') {
+        const len = d.len ?? 120, dir = d.v ? 1 : -1, sl = d.amp ?? 0;
+        for (let t = 0; t < len; t += 7) {
+          const x = this.sx(d.x + (dir > 0 ? t : len - t)), y = this.sy(d.y + (sl * t) / len) + ((t / 7) & 1 ? 2 : -1);
+          if (y < -2 || y > H + 2) continue;
+          b.fillStyle = SNOW3; b.fillRect(x, y, 2, 1); b.fillRect(x + 1, y + 1, 1, 1);
+        }
+      } else if (d.k === 'tuft') {
+        const s = sprite('tuft' + d.v, () => tuft(d.v)); b.drawImage(s, this.sx(d.x) - 5, this.sy(d.y) - 6);
+      }
+    }
+  }
+  /** Standing scenery: piste markers, trail signs and bunting over the ramps. */
+  private drawStandDeco(d: Deco) {
+    const b = this.b, x = this.sx(d.x), y = this.sy(d.y);
+    if (d.k === 'marker') { pixEllipse(b, x + 2, y + 1, 3, 1, SHADOW); const s = sprite('marker' + d.v, () => marker(d.v)); b.drawImage(s, x - 2, y - s.height + 1); }
+    else if (d.k === 'trail') { pixEllipse(b, x + 3, y + 1, 6, 2, SHADOW); const s = sprite('trail' + (d.v % 3), () => trailSign(d.v % 3), d.v >= 3); b.drawImage(s, x - s.width / 2, y - s.height + 1); }
+    else if (d.k === 'bunting') {
+      const len = d.len ?? 50, x0 = x - Math.round(len / 2), x1 = x0 + len, top = y - 14;
+      b.fillStyle = '#7a4a2a'; b.fillRect(x0, top, 1, 15); b.fillRect(x1, top, 1, 15);
+      const cols = d.v ? ['#e8344a', '#ffd23a', '#3a7cf0', '#3cc8a0'] : ['#3a7cf0', '#ffffff', '#ff8a2a'];
+      for (let i = 0; i <= len; i++) { const sag = Math.round(3 * Math.sin((i / len) * Math.PI)); b.fillStyle = '#4a4f66'; b.fillRect(x0 + i, top + sag, 1, 1); if (i % 5 === 2 && i < len - 1) { b.fillStyle = cols[(i / 5 | 0) % cols.length]; b.fillRect(x0 + i - 1, top + sag + 1, 3, 1); b.fillRect(x0 + i - 1, top + sag + 2, 2, 1); b.fillRect(x0 + i, top + sag + 3, 1, 1); } }
     }
   }
 
@@ -221,6 +292,8 @@ export class PowderScene {
         }
       }
     }
+    const ds = this.decoIn(g, top, bot);
+    this.drawFlatDeco(ds, g);
     this.drawTracks();
     // finish line or start banner
     if (g.end < Infinity && g.end < bot) { const y = this.sy(g.end); for (let x = -HALF; x < HALF; x += 8) { b.fillStyle = (x / 8) % 2 ? INK : '#ffffff'; b.fillRect(this.sx(x), y, 8, 3); b.fillStyle = (x / 8) % 2 ? '#ffffff' : INK; b.fillRect(this.sx(x), y + 3, 8, 3); } }
@@ -233,6 +306,7 @@ export class PowderScene {
     for (const o of obs) list.push({ y: o.y, draw: () => this.drawOb(o, g) });
     for (const gt of gates) for (const s of [-1, 1]) { const x = gt.x + (s * gt.w) / 2, red = gt.red, passed = gt.i < g.nextGate; list.push({ y: gt.y, draw: () => { const f = sprite('flag' + red, () => flag(red)); b.globalAlpha = passed ? 0.55 : 1; b.drawImage(f, this.sx(x) - 4, this.sy(gt.y) - 20); b.globalAlpha = 1; } }); }
     for (const n of g.npcs) if (n.y > top && n.y < bot) list.push({ y: n.y, draw: () => this.drawNpc(n, g) });
+    for (const d of ds) if ((d.k === 'marker' || d.k === 'trail' || d.k === 'bunting') && d.y > top && d.y < bot + 30) list.push({ y: d.y, draw: () => this.drawStandDeco(d) });
     const k = g.sk;
     const p = this.partnerRec();
     this.partnerAt = p ? { x: this.sx(p.x) * (this.k / this.dpr), y: this.sy(p.y) * (this.k / this.dpr) } : null;
@@ -298,6 +372,7 @@ export class PowderScene {
         if (!done && Math.floor(this.t * 2) % 2) { b.fillStyle = '#ffd23a'; b.fillRect(x + 10, y - 40, 1, 3); b.fillRect(x + 9, y - 39, 3, 1); }
         break;
       }
+      case 'snowman': shadow(8); s = sprite('snowman' + (v & 3), () => snowman(v & 3)); b.drawImage(s, x - s.width / 2, y - s.height + 3); break;
       case 'sign': { s = sprite('sign', sign, (v ?? 1) < 0); b.drawImage(s, x - s.width / 2, y - s.height + 2); break; }
       default: break;
     }
@@ -475,5 +550,23 @@ export function paintPostcard(canvas: HTMLCanvasElement, k: number, found: boole
     mountains(b, 96, 64, skies[k % skies.length]);
     const c = toCanvas(cabin(false)); b.drawImage(c, 16, 2, 64, 60);
     b.drawImage(toCanvas(pine(1, k & 3)), 2 + (k % 3) * 2, 30); b.drawImage(toCanvas(pine(0, (k + 1) & 3)), 76, 36);
+  });
+}
+/** A slalom course as a little trail map, turned on its side: the start on the left, the gates and trees down to the finish. */
+export function paintCourse(canvas: HTMLCanvasElement, course: number) {
+  const c = SLALOM[course], len = c.len * CH, w = 160, h = 36;
+  lowRes(canvas, w, h, (b) => {
+    const mx = (y: number) => Math.round((y / len) * (w - 8)) + 4, my = (x: number) => Math.round(((x + HALF) / (2 * HALF)) * (h - 10)) + 5;
+    b.fillStyle = '#dfe8f5'; b.fillRect(0, 0, w, h); b.fillStyle = SNOW; b.fillRect(0, 4, w, h - 8);
+    for (let x = 0; x < w; x += 3) { b.fillStyle = (x / 3) & 1 ? '#1e6450' : '#22684a'; b.fillRect(x, 0, 2, 3); b.fillRect(x + 1, h - 3, 2, 3); }
+    for (let i = 0; i < c.len; i++) {
+      const ch = makeChunk({ mode: 'slalom', seed: c.seed, course }, i);
+      for (const a of ch.areas) if (a.k === 'ice') pixEllipse(b, mx(a.y), my(a.x), (a.ry / len) * (w - 8), (a.rx / (2 * HALF)) * (h - 10), '#aee3f6');
+      else if (a.k === 'moguls') { b.fillStyle = SNOW3; b.fillRect(mx(a.y) - 2, my(a.x) - 1, 4, 2); }
+      for (const o of ch.obs) if (Math.abs(o.x) < HALF && (o.k === 'pine' || o.k === 'birch' || o.k === 'pineS')) { b.fillStyle = o.k === 'birch' ? '#a08a6a' : '#22684a'; b.fillRect(mx(o.y), my(o.x), 2, 2); }
+      for (const gt of ch.gates) { b.fillStyle = gt.red ? '#e8344a' : '#2f6fe0'; const x = mx(gt.y), y0 = my(gt.x - gt.w / 2), y1 = my(gt.x + gt.w / 2); b.fillRect(x, y0 - 1, 1, 3); b.fillRect(x, y1 - 1, 1, 3); b.fillRect(x + 1, y0 - 1, 1, 1); b.fillRect(x + 1, y1 - 1, 1, 1); }
+    }
+    for (let y = 4; y < h - 4; y += 2) { b.fillStyle = (y / 2) & 1 ? INK : '#ffffff'; b.fillRect(w - 4, y, 2, 2); b.fillStyle = (y / 2) & 1 ? '#ffffff' : INK; b.fillRect(w - 2, y, 2, 2); }
+    b.fillStyle = '#e8344a'; b.fillRect(2, 4, 1, h - 8);
   });
 }
