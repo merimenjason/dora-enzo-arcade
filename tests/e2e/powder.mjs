@@ -55,19 +55,20 @@ async function framing(page) {
   await page.waitForTimeout(1500);
   let s = await state(page);
   assert.ok(s.y > 60 && s.s > 50 && s.state === 'ride', `the skier sets off downhill (${s.y}, ${s.s})`);
-  await hold(page, ['ArrowRight'], 350); s = await state(page); assert.ok(s.a > 0.4, 'right arrow carves right');
-  await hold(page, ['ArrowLeft'], 700); s = await state(page); assert.ok(s.a < -0.3, 'left arrow carves left');
+  // hold a key until the skis answer (the game runs on its own clock, so wait on it rather than the wall)
+  const until = async (key, test, msg) => { await page.keyboard.down(key); const ok = await page.waitForFunction(test, null, { timeout: 8000, polling: 30 }).then(() => true, () => false); await page.keyboard.up(key); assert.ok(ok, msg); };
+  await until('ArrowRight', () => window.__powder().a > 0.4 || window.__powder().state !== 'ride', 'right arrow carves right');
+  await until('ArrowLeft', () => window.__powder().a < -0.3 || window.__powder().state !== 'ride', 'left arrow carves left');
   await hold(page, ['ArrowRight'], 220);
-  await page.keyboard.down('ArrowUp'); await page.waitForTimeout(300);
-  await page.keyboard.up('ArrowUp');
-  const fast = (await state(page)).s; await hold(page, ['ArrowDown'], 700); s = await state(page);
-  assert.ok(s.s < fast * 0.6 || s.state !== 'ride', `the snowplough brakes (${fast.toFixed(0)} -> ${s.s.toFixed(0)})`);
+  await page.waitForFunction(() => window.__powder().s > 80 && window.__powder().state === 'ride', null, { timeout: 10000 });
+  const fast = (await state(page)).s;
+  await until('ArrowDown', (v) => window.__powder().s < 40 || window.__powder().state !== 'ride', `the snowplough brakes (from ${fast.toFixed(0)})`);
   // the mouse: the skier turns toward the pointer
   const f = await framing(page);
-  await page.mouse.move(f.skier.x - 260, f.skier.y + 90); await page.waitForTimeout(500);
-  s = await state(page); assert.ok(s.a < -0.6 || s.state !== 'ride', 'the skier steers toward the pointer on the left');
-  await page.mouse.move(f.skier.x + 200, f.skier.y + 200); await page.waitForTimeout(500);
-  s = await state(page); assert.ok(s.a > 0.3 || s.state !== 'ride', 'and on the right');
+  await page.mouse.move(f.skier.x - 260, f.skier.y + 90);
+  assert.ok(await page.waitForFunction(() => window.__powder().a < -0.6 || window.__powder().state !== 'ride', null, { timeout: 8000, polling: 30 }).then(() => true, () => false), 'the skier steers toward the pointer on the left');
+  await page.mouse.move(f.skier.x + 200, f.skier.y + 200);
+  assert.ok(await page.waitForFunction(() => window.__powder().a > 0.3 || window.__powder().state !== 'ride', null, { timeout: 8000, polling: 30 }).then(() => true, () => false), 'and on the right');
   await page.mouse.move(f.skier.x, f.skier.y + 300);
   // framing at 1280×800
   const fr = await framing(page);
@@ -75,9 +76,11 @@ async function framing(page) {
   assert.ok(fr.skier.y - fr.size > fr.barBottom, 'the bar is clear of the skier');
   assert.ok(fr.skier.y > fr.h * 0.2 && fr.skier.y < fr.h * 0.55, 'the skier sits in the upper middle with the slope ahead in view');
   // a jump with a spin
-  await page.evaluate(() => window.__powderRamp());
-  await page.waitForFunction(() => window.__powder().state === 'air', null, { timeout: 5000 });
-  await hold(page, ['ArrowRight'], 640);
+  // a key hands steering back from the mouse, so the skier runs straight at the ramp
+  await page.keyboard.press('ArrowUp');
+  assert.ok(await page.evaluate(() => window.__powderRamp()), 'there is a ramp ahead');
+  await page.waitForFunction(() => window.__powder().state === 'air' && !window.__powder().hop, null, { timeout: 5000 });
+  await page.keyboard.down('ArrowRight'); await page.waitForFunction(() => window.__powder().spin >= 345 || window.__powder().state !== 'air', null, { timeout: 8000, polling: 16 }); await page.keyboard.up('ArrowRight');
   await page.waitForFunction(() => window.__powder().state !== 'air', null, { timeout: 6000 });
   s = await state(page);
   assert.ok(s.tricks > 0 || s.crashes > 0, 'the jump ends in a scored trick or a tumble');
@@ -108,9 +111,9 @@ async function framing(page) {
   assert.equal(await page.locator('.pp-course').count(), 6, 'six slalom courses');
   await page.locator('.pp-course').first().click();
   await page.getByRole('button', { name: /Let’s ski/ }).click();
-  await page.waitForTimeout(4000);
-  s = await state(page); assert.ok(s.mode === 'slalom' && s.gatesOk + s.missed >= 1, 'gates are counted');
-  assert.ok(await page.locator('.pp-hud').getByText('gates').isVisible());
+  await page.waitForFunction(() => window.__powder().gatesOk + window.__powder().missed >= 1, null, { timeout: 20000 });
+  s = await state(page); assert.equal(s.mode, 'slalom', 'gates are counted');
+  assert.ok(await page.locator('.pp-hud').getByText('gates', { exact: true }).isVisible());
   await page.keyboard.press('Escape'); await page.getByRole('button', { name: 'Quit' }).click();
   assert.ok(await page.locator('.pp-course').first().isVisible(), 'quitting a slalom goes back to the courses');
   await page.getByRole('button', { name: '← MENU' }).click();
@@ -176,13 +179,12 @@ for (const [w, h, name] of [[390, 844, 'upright'], [844, 390, 'sideways']]) {
   // hold a finger to the left and below: the skier turns that way
   const c = page.locator('.pp-canvas');
   await c.dispatchEvent('pointerdown', { pointerType: 'touch', pointerId: 7, isPrimary: true, clientX: f.skier.x - w * 0.35, clientY: f.skier.y + 60, button: 0 });
-  await page.waitForTimeout(500);
-  let s = await state(page); assert.ok(s.a < -0.4 || s.state !== 'ride', `${name}: a held finger steers (${s.a.toFixed(2)})`);
+  assert.ok(await page.waitForFunction(() => window.__powder().a < -0.4 || window.__powder().state !== 'ride', null, { timeout: 8000, polling: 30 }).then(() => true, () => false), `${name}: a held finger steers`);
+  let s;
   await c.dispatchEvent('pointerup', { pointerType: 'touch', pointerId: 7, isPrimary: true, clientX: f.skier.x - w * 0.35, clientY: f.skier.y + 60, button: 0 });
   const v0 = (await state(page)).s;
   await pads.first().dispatchEvent('pointerdown', { pointerType: 'touch', pointerId: 8, isPrimary: true });
-  await page.waitForTimeout(600);
-  s = await state(page); assert.ok(s.s < Math.max(30, v0 * 0.7) || s.state !== 'ride', `${name}: the brake pad brakes`);
+  assert.ok(await page.waitForFunction((v) => window.__powder().s < Math.max(30, v * 0.7) || window.__powder().state !== 'ride', v0, { timeout: 8000, polling: 30 }).then(() => true, () => false), `${name}: the brake pad brakes`);
   await pads.first().dispatchEvent('pointerup', { pointerType: 'touch', pointerId: 8, isPrimary: true });
   await page.evaluate(() => window.__powderStorm(30));
   await page.getByRole('dialog', { name: 'Caught by the storm' }).waitFor({ timeout: 8000 });
