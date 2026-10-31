@@ -33,7 +33,7 @@ export const makeBody = (x: number, y: number, z: number, r = BODY.r, h = BODY.h
   ({ x, y, z, vx: 0, vy: 0, vz: 0, yaw: 0, pitch: 0, r, h, ground: false, water: false, ladder: false, fly: false, walked: 0, hitWall: false });
 
 /** The top of the collision box at a cell (0 = nothing to bump). Doors stop creatures but let chinchillas through. */
-function solidTop(w: World, x: number, y: number, z: number, doors: boolean) {
+export function solidTop(w: World, x: number, y: number, z: number, doors: boolean) {
   if (!inside(x, y, z)) return y < 0 ? 1 : x < 0 || z < 0 || x >= W || z >= D ? 1 : 0;
   const b = w.get(x, y, z), d = BLOCKS[b];
   if (d.solid) return d.height;
@@ -86,7 +86,7 @@ export function moveBody(w: World, b: Body, wx: number, wz: number, up: boolean,
     const k = Math.min(1, dt * (b.ground ? 16 : b.water ? 5 : 3.5));
     const sp = b.water ? 0.62 : 1;
     b.vx += (wx * sp - b.vx) * k; b.vz += (wz * sp - b.vz) * k;
-    if (b.water) { b.vy -= G * 0.22 * dt; if (up) b.vy = Math.min(b.vy + 22 * dt, 3.4); if (down) b.vy -= 8 * dt; b.vy = Math.max(b.vy, -2.4); }
+    if (b.water) { b.vy -= G * 0.22 * dt; if (up) b.vy = Math.max(b.vy, Math.min(b.vy + 22 * dt, 3.4)); if (down) b.vy -= 8 * dt; b.vy = Math.max(b.vy, -2.4); }
     else if (b.ladder) { b.vy = up || (wish > 0.3 && b.hitWall) ? 3.2 : down ? -2.5 : Math.max(b.vy - G * dt, -1.4); }
     else { b.vy = Math.max(b.vy - G * dt, -30); if (up && b.ground) b.vy = JUMP; }
   }
@@ -96,6 +96,14 @@ export function moveBody(w: World, b: Body, wx: number, wz: number, up: boolean,
   const hx = sweep(w, b, 'x', b.vx * dt, doors), hz = sweep(w, b, 'z', b.vz * dt, doors);
   sweep(w, b, 'y', b.vy * dt, doors);
   b.hitWall = hx || hz;
+  if ((hx || hz) && b.water && wish > 0.3 && (up || o.auto)) {
+    // swimming into a bank: scramble up onto it (a ledge up to a block and a half above the water)
+    const ax = b.x + Math.sign(wx) * (b.r + 0.2) * (Math.abs(wx) / wish), az = b.z + Math.sign(wz) * (b.r + 0.2) * (Math.abs(wz) / wish);
+    for (const yy of [Math.floor(b.y), Math.floor(b.y) + 1]) {
+      const t = solidTop(w, Math.floor(ax), yy, Math.floor(az), doors), top = yy + t;
+      if (t && top - b.y <= 1.7 && boxFree(w, b.x - b.r, top, b.z - b.r, b.x + b.r, top + b.h, b.z + b.r, doors)) { b.vy = Math.max(b.vy, JUMP * 1.08); break; }
+    }
+  }
   if (o.auto && (hx || hz) && (wasGround || b.ground) && wish > 0.5 && !b.water) {
     // walking into a one-block step hops up it
     const ax = b.x + Math.sign(wx) * (b.r + 0.2) * (Math.abs(wx) / wish), az = b.z + Math.sign(wz) * (b.r + 0.2) * (Math.abs(wz) / wish);
@@ -118,7 +126,7 @@ export function standable(w: World, x: number, y: number, z: number) {
   const below = w.get(x, y - 1, z), d = BLOCKS[below];
   return (d.solid && d.height >= 0.9) || !!d.climb || below === WATER;
 }
-/** Shortest walk between two cells (one-block hops up, drops of up to three), or null. */
+/** Shortest walk between two cells (one-block hops up, drops of up to five), or null. */
 export function findPath(w: World, from: Spot, to: Spot, maxNodes = 30000, near = 0): Spot[] | null {
   const k = (x: number, y: number, z: number) => idx(x, y, z);
   const s = { x: Math.floor(from.x), y: Math.floor(from.y), z: Math.floor(from.z) };
@@ -129,10 +137,12 @@ export function findPath(w: World, from: Spot, to: Spot, maxNodes = 30000, near 
     if ((c.x === to.x && c.y === to.y && c.z === to.z) || (near && Math.abs(c.x - to.x) + Math.abs(c.z - to.z) <= near && Math.abs(c.y - to.y) <= 1)) { goal = k(c.x, c.y, c.z); break; }
     for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const nx = c.x + dx, nz = c.z + dz;
-      for (const dy of [0, 1, -1, -2, -3]) {
+      const swim = w.get(c.x, c.y, c.z) === WATER || w.get(c.x, c.y - 1, c.z) === WATER;
+      for (const dy of swim ? [0, 1, 2, -1, -2, -3, -4, -5] : [0, 1, -1, -2, -3, -4, -5]) {
         const ny = c.y + dy;
-        if (dy === 1 && solidTop(w, c.x, c.y + 1, c.z, false)) continue;
-        if (!standable(w, nx, ny, nz)) { if (dy <= 0 && solidTop(w, nx, c.y, nz, false)) break; continue; }
+        if (dy >= 1 && solidTop(w, c.x, c.y + 1, c.z, false)) continue;
+        if (dy === 2 && solidTop(w, c.x, c.y + 2, c.z, false)) continue;
+        if (!standable(w, nx, ny, nz)) { if (dy < 0 && solidTop(w, nx, c.y, nz, false)) break; continue; }
         if (dy < 0) { let ok = true; for (let y = c.y; y > ny; y--) if (solidTop(w, nx, y, nz, false)) ok = false; if (!ok) continue; }
         const kk = k(nx, ny, nz); if (prev.has(kk)) break;
         prev.set(kk, k(c.x, c.y, c.z)); q.push({ x: nx, y: ny, z: nz }); break;
@@ -344,7 +354,8 @@ export class CubbyGame {
     if (d.shape === 'cross' || d.shape === 'prop') { const below = BLOCKS[w.get(x, y - 1, z)]; if (!below.solid && !d.facing && b !== LANTERN) return false; }
     if (b === SAPLING && ![TURF, SOIL].includes(w.get(x, y - 1, z))) return false;
     if (d.solid) {
-      for (const p of [...this.players, ...this.npcs.map((n) => n.body), ...this.critters.map((c) => c.body)]) {
+      // the friend following along steps out of the way, so only the player, neighbours and creatures block a block
+      for (const p of [this.me, ...this.npcs.map((n) => n.body), ...this.critters.map((c) => c.body)]) {
         if (p.x + p.r > x && p.x - p.r < x + 1 && p.z + p.r > z && p.z - p.r < z + 1 && p.y + p.h > y && p.y < y + d.height) return false;
       }
     }
@@ -665,7 +676,8 @@ export class CubbyGame {
   follow(dt: number) {
     const lead = this.me, f = this.players[1 - this.who];
     const dx = lead.x - f.x, dz = lead.z - f.z, d = Math.hypot(dx, dz);
-    if (d > 14 || Math.abs(lead.y - f.y) > 6 || (lead.fly && d > 6)) {
+    const buried = !boxFree(this.world, f.x - f.r, f.y + 0.05, f.z - f.r, f.x + f.r, f.y + f.h, f.z + f.r, false);
+    if (d > 14 || Math.abs(lead.y - f.y) > 6 || (lead.fly && d > 6) || buried) {
       const back = { x: lead.x + Math.sin(lead.yaw) * 1.2, z: lead.z + Math.cos(lead.yaw) * 1.2 };
       f.x = back.x; f.z = back.z; f.y = lead.y + 0.2; f.vx = f.vz = f.vy = 0;
       if (!boxFree(this.world, f.x - f.r, f.y, f.z - f.r, f.x + f.r, f.y + f.h, f.z + f.r, false)) { f.x = lead.x; f.z = lead.z; f.y = lead.y; }

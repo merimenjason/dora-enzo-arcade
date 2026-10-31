@@ -260,6 +260,25 @@ function room(g, x0, y0, z0, opts = {}) {
   w.relight(x0 - 16, x0 + 20, z0 - 16, z0 + 20);
   g.me.x = x0 + 2.5; g.me.y = y0 + 1; g.me.z = z0 + 2.5;
 }
+test('a swimmer scrambles up a bank a block above the water', () => {
+  const g = flat(10), w = g.world;
+  for (let z = 44; z <= 52; z++) for (let x = 44; x <= 52; x++) { w.set(x, 10, z, BK.water, 0, false); w.set(x, 9, z, BK.water, 0, false); }
+  w.relight(30, 66, 30, 66);
+  const b = g.me; b.x = 48.5; b.y = 9.6; b.z = 48.5;
+  run(g, 5, { fwd: 1, jump: true, yaw: Math.PI / 2 });
+  assert.ok(b.y >= 11 && b.x < 44, `out on the bank (${b.x.toFixed(1)}, ${b.y.toFixed(2)})`);
+});
+
+test('paths hop up one block (never two) and swim out over a bank', () => {
+  const g = flat(10), w = g.world;
+  for (let z = 0; z < D; z++) w.set(50, 11, z, BK.stone, 0, false);
+  let p = findPath(w, { x: 48, y: 11, z: 48 }, { x: 52, y: 11, z: 48 });
+  assert.ok(p && p.some((s) => s.x === 50 && s.y === 12), 'over the one-block wall');
+  for (let z = 0; z < D; z++) w.set(50, 12, z, BK.stone, 0, false);
+  p = findPath(w, { x: 48, y: 11, z: 48 }, { x: 52, y: 11, z: 48 }, 20000);
+  assert.equal(p, null, 'not over a two-block wall');
+});
+
 test('burrow checks: shut in, a door, a light, a bed and the neighbour’s item; gaps and taken beds fail', () => {
   const g = flat();
   room(g, 40, 10, 40, { door: false });
@@ -281,6 +300,10 @@ test('burrow checks: shut in, a door, a light, a bed and the neighbour’s item;
   assert.ok(g.moveIn()); assert.equal(g.moved.length, 1); assert.equal(g.quest.i, 1);
   g.quest.step = 2; c = g.checkHere(); assert.ok(c.taken, 'a burrow with a claimed bed is taken');
   assert.match(c.reason, /already lives/);
+  // a bookshelf is solid like a wall, but standing in the burrow it still counts as Ottoline's
+  const o = flat(); o.quest = { i: 2, step: 2, count: 0 };
+  room(o, 40, 10, 40, { item: 'bookshelf' });
+  c = o.checkHere(); assert.ok(c.ok, c.reason); assert.ok(c.report.has.includes('bookshelf'));
 });
 
 test('errands: bring, count and burrow steps teach their recipes and hand on to the next neighbour', () => {

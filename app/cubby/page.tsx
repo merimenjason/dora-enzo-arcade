@@ -5,7 +5,7 @@ import {
   CubbyGame, SAVE_KEY, SLOTS, DAY, MAX_HP, readSave, freshSave, phaseOf, NO_INPUT,
   type Save, type Ev, type Input, type Mode,
 } from '@/lib/cubby-game';
-import { BLOCKS } from '@/lib/cubby-world';
+import { BLOCKS, BLOCK_BY_KEY } from '@/lib/cubby-world';
 import { ITEMS, RECIPES, RECIPE, NEIGHBOURS, NEIGHBOUR, CRITTERS, PALETTE, itemName, type NeighbourId } from '@/lib/cubby-content';
 import type { CubbyScene, View } from '@/lib/cubby-scene';
 import { CubbySound, type SongId } from './sound';
@@ -328,7 +328,8 @@ export default function CubbyPage() {
       if (cmd === 'time') { g.time = Math.floor(g.time / DAY) * DAY + num('phase', 0.1) * DAY; g.wasNight = g.night; return true; }
       if (cmd === 'quest') { g.quest = { i: num('i'), step: num('step'), count: num('count') }; g.npcs = g.npcs.filter((n) => n.st !== 'visit'); if (g.neighbour) g.npcs.push(g.visitor(g.neighbour.id)); return true; }
       if (cmd === 'spawn') { const c = g.spawn(a.kind as never, Math.floor(g.me.x + num('dx')), Math.floor(g.me.y + num('dy')), Math.floor(g.me.z + num('dz'))); c.cd = num('cd', 0); return c.id; }
-      if (cmd === 'set') { g.world.set(num('x'), num('y'), num('z'), num('b'), num('f')); return true; }
+      if (cmd === 'set') { const b = typeof a.b === 'string' ? BLOCK_BY_KEY[a.b] : num('b'); if (b === undefined) return false; g.world.set(num('x'), num('y'), num('z'), b, num('f')); return true; }
+      if (cmd === 'get') return BLOCKS[g.world.get(num('x'), num('y'), num('z'))].key;
       if (cmd === 'learn') { for (const r of RECIPES) g.learn(r.id); return true; }
       if (cmd === 'hp') { g.hp = num('hp', MAX_HP); return true; }
       if (cmd === 'clear') { g.critters = []; return true; }

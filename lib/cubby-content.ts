@@ -10,7 +10,7 @@ const extra: ItemDef[] = [
   { key: 'thorns', name: 'Boar thorns', block: null, note: 'Dropped by Bramble Boars' },
   { key: 'shimmer', name: 'Moth shimmer', block: null, note: 'Dropped by Murk Moths' },
   { key: 'pearl', name: 'Gloom pearl', block: null, note: 'Dropped by Gloom Gnashers' },
-  { key: 'trowel', name: 'Digging trowel', block: null, tool: true, note: 'Digs stone and chalk three times faster' },
+  { key: 'trowel', name: 'Digging trowel', block: null, tool: true, note: 'Digs two to three times faster, fastest on stone' },
   { key: 'bonk', name: 'Bonk-stick', block: null, tool: true, note: 'A big soft bonk for night creatures' },
   { key: 'slingshot', name: 'Slingshot', block: null, tool: true, note: 'Flings river pebbles' },
 ];

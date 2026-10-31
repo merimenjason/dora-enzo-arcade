@@ -483,6 +483,8 @@ export function checkBurrow(w: World, x: number, y: number, z: number): BurrowRe
   x = Math.floor(x); y = Math.floor(y); z = Math.floor(z);
   if (!inside(x, y, z) || BLOCKS[w.get(x, y, z)].wall) { r.reason = 'Stand inside the burrow to check it.'; return r; }
   const seen = new Set<number>([idx(x, y, z)]), q = [[x, y, z]];
+  // solid furniture (a bookshelf) is part of the wall but still counts as being in the burrow
+  const touched = new Set<string>();
   let open = false;
   for (let h = 0; h < q.length; h++) {
     const [cx, cy, cz] = q[h];
@@ -490,7 +492,7 @@ export function checkBurrow(w: World, x: number, y: number, z: number): BurrowRe
       const X = cx + dx, Y = cy + dy, Z = cz + dz;
       if (!inside(X, Y, Z) || Y >= H - 1) { open = true; continue; }
       const d = BLOCKS[w.get(X, Y, Z)];
-      if (d.wall) { if (d.id === DOOR && !r.doorAt) { r.door = true; r.doorAt = { x: X, y: Y, z: Z }; } continue; }
+      if (d.wall) { touched.add(d.key); if (d.id === DOOR && !r.doorAt) { r.door = true; r.doorAt = { x: X, y: Y, z: Z }; } continue; }
       if (d.shape === 'liquid') { open = true; continue; }
       const i = idx(X, Y, Z); if (seen.has(i)) continue;
       seen.add(i); q.push([X, Y, Z]);
@@ -500,7 +502,7 @@ export function checkBurrow(w: World, x: number, y: number, z: number): BurrowRe
   }
   if (open) { r.reason = 'It isn’t shut in yet: there is a gap to the outside, or it is too big.'; return r; }
   r.enclosed = true; r.size = seen.size; r.cells = [...seen];
-  const has = new Set<string>();
+  const has = new Set<string>(touched);
   for (const i of seen) {
     const b = w.blocks[i] & 63, d = BLOCKS[b];
     if (b !== AIR) has.add(d.key);
