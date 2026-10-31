@@ -1,0 +1,142 @@
+.pw-shell{--ink:#3b2620;--card:#fbf3e6f4;--line:#dcc4a2;--red:#c4504a;--gold:#f0bf3e;--plum:#6b3f5a;--teal:#3f8f8a;position:relative;width:100%;height:100svh;min-height:320px;overflow:hidden;display:flex;flex-direction:column;background:#2a1d22;color:var(--ink);font-family:"Trebuchet MS",ui-rounded,system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+.pw-shell *{box-sizing:border-box}
+/* the global stylesheet colours every <p>; in here paragraphs take their colour from where they sit */
+:where(.pw-shell) p{color:inherit;font-size:inherit;line-height:1.45;margin:0}
+.pw-shell h1,.pw-shell h2{margin:0;font-family:inherit;color:inherit;letter-spacing:normal}
+.pw-shell header{margin:0}
+.pw-shell button,.pw-shell a{font:inherit}
+.pw-shell button{border:2px dashed #c9a77e;border-radius:14px;background:var(--card);color:var(--ink);font-weight:800;padding:9px 14px;cursor:pointer;min-height:42px;box-shadow:0 3px 0 #5a382033,inset 0 0 0 3px #fbf3e6;transition:transform .15s,border-color .15s,background .15s}
+.pw-shell button:hover:not(:disabled){transform:translateY(-1px);border-color:var(--gold)}
+.pw-shell button:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #5a382033,inset 0 0 0 3px #fbf3e6}
+.pw-shell button:disabled{opacity:.45;cursor:default}
+.pw-shell button:focus-visible,.pw-shell a:focus-visible,.pw-canvas:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+.pw-shell button.pw-primary{background:var(--red);border-color:#f3c3a8;color:#fff8ec;text-shadow:0 1px 0 #0003;box-shadow:0 3px 0 #7a2e2a,inset 0 0 0 3px var(--red)}
+.pw-shell kbd{font:800 11px ui-rounded,system-ui,sans-serif;background:#fff;border:1.5px solid var(--line);border-bottom-width:3px;border-radius:6px;padding:1px 5px;margin:0 1px;color:var(--ink)}
+.pw-eyebrow{font-size:11.5px;font-weight:900;letter-spacing:2.2px;color:#a5543e}
+.pw-note{font-size:13.5px;font-weight:700;color:#7a5a46}
+.pw-back{color:var(--ink);font-size:12px;font-weight:900;letter-spacing:1px;text-decoration:none;background:var(--card);border:2px dashed #c9a77e;border-radius:12px;padding:7px 11px;white-space:nowrap;cursor:pointer}
+.pw-shell button.pw-back{min-height:0;box-shadow:none}
+.pw-toggles{display:inline-flex;gap:6px}
+.pw-shell button.pw-tog{min-height:0;padding:6px 10px;font-size:12px;box-shadow:none;opacity:.7}
+.pw-shell button.pw-tog.is-on{opacity:1;background:#fff1c4;border-color:var(--gold)}
+.pw-error{position:absolute;inset:auto 0 20px;text-align:center;font-weight:800;color:#ffd0c0}
+
+/* ---- menu: the title painting with a stitched card */
+.pw-menu{position:relative;flex:1;display:flex;align-items:center;justify-content:flex-end;padding:3vh 4vw}
+.pw-art{position:absolute;inset:0;display:block;overflow:hidden}
+.pw-art canvas,.pw-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pw-menu-art img,.pw-menu-art canvas{object-position:30% 50%}
+.pw-menu-card,.pw-ending-card{position:relative;width:min(420px,38vw);background:var(--card);border-radius:22px;padding:24px 26px 20px;box-shadow:0 18px 40px #1a0c0866;display:flex;flex-direction:column;gap:12px;outline:2px dashed #c9a77e;outline-offset:-9px}
+.pw-menu-card h1{font-size:clamp(40px,5vw,64px);line-height:.95;font-weight:900;color:var(--red);text-shadow:3px 3px 0 #f0bf3e77;letter-spacing:-1px}
+.pw-lede{font-size:15px;font-weight:600}
+.pw-menu-buttons{display:flex;flex-direction:column;gap:8px}
+.pw-menu-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+
+/* ---- the nights */
+.pw-nights{flex:1;display:flex;flex-direction:column;min-height:0;overflow:auto;background:radial-gradient(ellipse at 50% 0,#5a3a34,#2a1d22 70%)}
+.pw-bar{flex:none;min-height:52px;display:flex;align-items:center;gap:8px;padding:5px 10px;background:linear-gradient(180deg,#7a4a5e,#5d3548);border-bottom:3px dashed #e8b8a0;z-index:3}
+.pw-bar-mid{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:12px;font-size:15px;font-weight:800;color:#fff3e4;white-space:nowrap;overflow:hidden;text-shadow:0 1px 0 #0005}
+.pw-name{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.pw-name small{font-size:11px;letter-spacing:1px;opacity:.8;margin-right:3px}
+.pw-goal{font-variant-numeric:tabular-nums;background:#0000002e;border-radius:999px;padding:3px 10px;flex:none}
+.pw-goal b{font-size:17px;color:#fff2b8}
+.pw-goal small{opacity:.85;font-size:12px}
+.pw-goal.is-met{background:#6fae5c66;box-shadow:inset 0 0 0 2px #b8f08a88}
+.pw-goal.is-over b{color:#ffc4b0}
+.pw-tabs{display:flex;gap:6px;padding:12px 14px 4px;overflow-x:auto;flex:none}
+.pw-shell button.pw-tab{flex:none;min-height:0;padding:7px 12px;font-size:13.5px}
+.pw-tab b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--gold);color:var(--ink);font-size:12px;margin-right:2px}
+.pw-tab small{opacity:.7;margin-left:4px}
+.pw-shell button.pw-tab.is-on{background:#fff;border-color:var(--red);border-style:solid}
+.pw-room-blurb{padding:6px 18px 8px;font-weight:700;font-size:15px;color:#f6e2cc}
+.pw-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;padding:6px 14px 20px}
+.pw-shell button.pw-card{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px 14px;text-align:left;min-height:128px}
+.pw-shell button.pw-card.is-done{background:#fff6dc}
+.pw-card-no{font-size:11px;font-weight:900;letter-spacing:1.5px;color:#a5543e;text-transform:uppercase}
+.pw-card-name{font-size:17px;font-weight:900;line-height:1.1}
+.pw-card-stars i,.pw-stars i{font-style:normal;color:#d8c8b0;font-size:20px;margin-right:2px}
+.pw-card-stars i.on,.pw-stars i.on{color:#f0b52e;text-shadow:0 1px 0 #a5741a}
+.pw-card-goal{font-size:12.5px;font-weight:700;color:#7a5a46}
+.pw-card-haz{font-size:14px}
+.pw-nights-note{padding:0 18px 20px;color:#f6e2cc}
+
+/* ---- the fort */
+.pw-stage{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+.pw-stage.is-hidden{position:absolute;inset:0;visibility:hidden;pointer-events:none}
+.pw-canvas{flex:1;min-height:0;width:100%;display:block;touch-action:none;cursor:crosshair;outline:none}
+.pw-basket{position:absolute;right:12px;top:62px;display:flex;align-items:center;gap:4px;background:#fbf3e6e6;border:2px dashed #c9a77e;border-radius:14px;padding:4px 10px 4px 12px;z-index:2;font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#7a5a46}
+.pw-basket small{font-size:12px;letter-spacing:0}
+.pw-icon{display:block}
+.pw-check{position:absolute;left:50%;top:70px;transform:translateX(-50%);background:#2a1d22d0;color:#fff2d6;border:2px dashed #f0bf3e;border-radius:999px;padding:8px 20px;font-size:18px;font-weight:900;z-index:3;white-space:nowrap}
+.pw-check b{font-size:26px;color:#ffd36b;margin-left:4px}
+.pw-tools{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:8px;z-index:2}
+.pw-shell .pw-tools button{background:#fbf3e6f2;min-width:92px}
+.pw-shell .pw-tools button.pw-drop{background:#fff1c4;border-color:var(--gold)}
+.pw-shell .pw-tools button.pw-bed{background:#e6e0f6;border-color:#9a8ad0}
+.pw-shelf{position:absolute;left:50%;bottom:66px;transform:translateX(-50%);display:flex;gap:4px;flex-wrap:wrap;justify-content:center;max-width:min(720px,96vw);background:#fbf3e6e0;border:2px dashed #c9a77e;border-radius:16px;padding:5px;z-index:2}
+.pw-shell button.pw-shelf-item{min-height:0;padding:3px;border-radius:10px;box-shadow:none;border-width:2px}
+.pw-shell button.pw-shelf-item.is-on{background:#fff1c4;border-color:var(--gold);border-style:solid}
+.pw-toast{position:absolute;left:50%;bottom:72px;transform:translateX(-50%);max-width:min(560px,92vw);background:#fbf3e6f5;border:2px dashed #c9a77e;border-radius:12px;padding:8px 14px;font-weight:700;font-size:14px;text-align:center;z-index:3}
+.pw-result,.pw-tip{position:absolute;inset:0;display:grid;place-items:center;background:#1a0c0838;z-index:4;padding:16px}
+.pw-result-card,.pw-tip-card{width:min(430px,94vw);background:var(--card);border-radius:22px;padding:20px 22px;box-shadow:0 18px 40px #1a0c0866;display:flex;flex-direction:column;align-items:center;gap:8px;outline:2px dashed #c9a77e;outline-offset:-9px;animation:pw-pop .35s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pw-pop{from{transform:scale(.7) rotate(-3deg);opacity:0}}
+.pw-result-card h2,.pw-tip-card h2{font-size:25px;font-weight:900;color:var(--red);text-align:center}
+.pw-result-card.s0 h2{color:var(--plum)}
+.pw-stars i{font-size:36px;display:inline-block;animation:pw-star .5s backwards}
+.pw-stars i:nth-child(2){animation-delay:.15s}.pw-stars i:nth-child(3){animation-delay:.3s}
+@keyframes pw-star{from{transform:scale(2.2) rotate(-30deg);opacity:0}}
+.pw-goals{list-style:none;margin:2px 0;padding:0;display:flex;flex-direction:column;gap:4px;width:100%}
+.pw-goals li{font-size:14px;font-weight:800;color:#9a7a66;background:#00000008;border-radius:10px;padding:5px 10px;display:flex;justify-content:space-between;gap:8px}
+.pw-goals li.ok{color:#3c7a3a;background:#e6f4d8}
+.pw-goals small{font-weight:700;opacity:.85;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pw-result-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+.pw-tip-card{align-items:stretch;text-align:left}
+.pw-tip-card p{font-size:15px;font-weight:600}
+.pw-keys{font-size:12.5px!important;color:#7a5a46}
+
+/* ---- ending */
+.pw-ending{position:relative;flex:1;display:flex;align-items:flex-end;justify-content:flex-end;padding:3vh 3vw}
+.pw-ending-card{width:min(420px,34vw)}
+.pw-ending-card h2{font-size:clamp(26px,3vw,38px);font-weight:900;color:var(--plum)}
+
+/* ---- phones */
+@media (max-width:760px),(max-height:520px){
+  .pw-bar{min-height:44px;padding:4px 6px;gap:5px}
+  .pw-bar-mid{font-size:13px;gap:6px}
+  .pw-goal{padding:2px 7px}
+  .pw-goal b{font-size:14px}
+  .pw-shell button.pw-tog{padding:5px 7px;font-size:11px}
+  .pw-back{padding:6px 8px;font-size:11px}
+  .pw-cards{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px}
+  .pw-shell .pw-tools button{min-width:0;padding:8px 11px}
+  .pw-basket{top:52px;right:6px;padding:2px 6px}
+  .pw-check{top:56px;font-size:15px}
+}
+@media (max-width:760px) and (orientation:portrait){
+  .pw-menu{align-items:flex-end;justify-content:center;padding:14px}
+  .pw-menu-art img,.pw-menu-art canvas{object-position:28% 0;height:56%}
+  .pw-menu-card{width:100%;padding:16px 18px 14px;gap:9px}
+  .pw-menu-card h1{font-size:40px}
+  .pw-lede{font-size:13.5px}
+  .pw-name{display:none}
+  .pw-toggles{display:none}
+  .pw-tools{bottom:10px;gap:6px;width:calc(100% - 16px);justify-content:center}
+  .pw-shell .pw-tools button{flex:1;padding:10px 4px;font-size:14px}
+  .pw-shelf{bottom:64px}
+  .pw-ending{padding:12px;justify-content:center}
+  .pw-ending-card{width:100%}
+  .pw-ending-art img,.pw-ending-art canvas{height:56%;object-position:50% 0}
+}
+@media (max-height:520px) and (orientation:landscape){
+  .pw-menu{padding:10px 16px}
+  .pw-menu-card{width:min(380px,48vw);padding:12px 16px;gap:7px}
+  .pw-menu-card h1{font-size:34px}
+  .pw-lede{display:none}
+  .pw-menu-buttons{gap:5px}
+  .pw-shell .pw-menu-buttons button{min-height:36px;padding:6px 12px}
+  .pw-ending-card p:not(.pw-note){display:none}
+  .pw-tools{bottom:6px;left:auto;right:8px;transform:none;flex-direction:column}
+  .pw-shell .pw-tools button{min-height:34px;padding:5px 10px}
+  .pw-toast{bottom:56px}
+  .pw-shelf{bottom:6px;left:8px;transform:none;max-width:60vw}
+}

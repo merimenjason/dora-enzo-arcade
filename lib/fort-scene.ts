@@ -52,7 +52,7 @@ export class FortScene {
   /** 0..1: the hold-your-breath slow-down, for the vignette. */
   slow = 0;
   /** Extra space the page's bars take at the top and bottom, in CSS px. */
-  pad = { top: 56, bottom: 12 };
+  pad = { top: 34, bottom: 64 };
   layout = { s: 40, ox: 0, oy: 0, tall: false, dora: { x: 0, y: 0, h: 0 }, enzo: { x: 0, y: 0, h: 0 } };
   private t = 0;
   private viewH = 7; private camY = 0;
@@ -92,13 +92,13 @@ export class FortScene {
     const want = this.wantView();
     this.viewH = snap ? want : this.viewH + (want - this.viewH) * 0.06;
     const halfW = tall ? RUG + 0.5 : RUG + 3.4;
-    const top = this.pad.top + 8, bottom = this.pad.bottom + (tall ? Math.min(150, H * 0.2) : Math.max(28, H * 0.06));
+    const top = this.pad.top + 8, bottom = this.pad.bottom + (tall ? Math.min(140, W * 0.36) : Math.max(8, H * 0.02));
     const s = Math.max(8, Math.min(W / (2 * halfW), (H - top - bottom) / this.viewH));
     const ox = W / 2, oy = H - bottom;
     const ch = tall ? Math.min(W * 0.34, 150) : Math.min(s * 2.5, H * 0.36);
     const L = this.layout;
     L.s = s; L.ox = ox; L.oy = oy; L.tall = tall;
-    if (tall) { L.dora = { x: W * 0.18, y: H - 4, h: ch }; L.enzo = { x: W * 0.82, y: H - 4, h: ch * 1.06 }; }
+    if (tall) { L.dora = { x: W * 0.2, y: H - this.pad.bottom + 6, h: ch }; L.enzo = { x: W * 0.8, y: H - this.pad.bottom + 6, h: ch * 1.06 }; }
     else { L.dora = { x: ox - (RUG + 1.55) * s, y: oy + s * 0.12, h: ch }; L.enzo = { x: ox + (RUG + 1.6) * s, y: oy + s * 0.12, h: ch * 1.06 }; }
   }
 

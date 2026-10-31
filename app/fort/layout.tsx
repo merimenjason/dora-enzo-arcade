@@ -1,0 +1,3 @@
+import type { Metadata } from 'next';
+export const metadata: Metadata = { title: 'Pillow Fort · Dora & Enzo’s Arcade', description: 'A physics stacking game in needle-felt. On a stormy night Dora and Enzo build the greatest pillow fort the burrow has ever seen: drop and turn cushions, bolsters, books, stools, teacups, a rubber duck and a draped blanket into a fort that is tall, roomy and cosy, and that stands for five seconds at bedtime. Twenty-four nights in four rooms, with a window draught, a pouncing cat, thunder and a sleepy Enzo, and a free-build sandbox.' };
+export default function FortLayout({ children }: { children: React.ReactNode }) { return children; }
