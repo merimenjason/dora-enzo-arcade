@@ -66,6 +66,8 @@ export function speedToWeight(v: number) {
   const d = (v * v) / (2 * FRICTION);
   return Math.max(0, ((d - D_LO) / (D_HI - D_LO)) * W_DRAW);
 }
+/** The weight that would stop a stone `d` metres down an empty sheet. */
+export const distanceWeight = (d: number) => speedToWeight(speedOf(d));
 /** Where a weight would stop going straight down an empty sheet (for the weight bar's labels). */
 export const weightDistance = (w: number) => { const v = weightToSpeed(w); return (v * v) / (2 * FRICTION); };
 export function weightName(w: number) {

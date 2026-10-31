@@ -5,6 +5,7 @@
 // error, a sweeping judgement, a depth of thought and a taste for some shots. The same caller (thinking hard and
 // with no taste) suggests Dora and Enzo's shot. Deterministic: all chance comes from a seeded generator.
 import {
+  DRILLS, drillStones, drillStars, type Drill,
   TEE, HOG, HOUSE_R, STONE_R, HALF_W, BACK, cloneStones, newStone, launch, settle, scoreEnd, dist, inHouse, inGuardZone, judgeSweep, drawTo, lineThrough, broomOf, rng,
   type Match, type Shot, type Stone, type TeamId, type Curl, type SweepPlan, type Rng,
 } from './curl-game.js';
@@ -161,6 +162,27 @@ function callFor(c: Cand, m: Match, me: TeamId) {
     case 'peel': return 'Peel their guard away';
     case 'through': return 'Throw it through and blank the end';
   }
+}
+
+/**
+ * A three-star throw for a Practice Pond drill (searched on a copy of the ice), for the teammate's broom. Falls back
+ * to the best throw found.
+ */
+export function drillSolution(d: Drill): Shot {
+  const tries: Shot[] = [], curls: Curl[] = [1, -1], set = drillStones(d);
+  const add = (s: Shot | null) => { if (s && Math.abs(s.angle) < 0.2) tries.push(s); };
+  if (d.id === 'draw') for (const c of curls) add(drawTo(TEE, 0, c));
+  if (d.id === 'guard') for (const c of curls) add(drawTo(HOG + 3.4, set[0].y * ((HOG + 3.4) / set[0].x), c));
+  if (d.id === 'come') for (const c of curls) for (const dx of [0.3, 0.1, 0.5, -0.1]) add(drawTo(TEE + dx, set[0].y * ((TEE + dx) / set[0].x), c));
+  if (d.id === 'hitroll' || d.id === 'double')
+    for (const c of curls) for (const w of [0.8, 0.86, 0.92, 0.98]) for (let k = 0; k <= 24; k++) { const off = (k % 2 ? -1 : 1) * Math.ceil(k / 2) * 0.025; add(lineThrough(set[0].x, set[0].y + off, w, c)); }
+  let best: Shot = tries[0], bs = -1;
+  for (const sh of tries) {
+    const st = drillStones(d), s = newStone(0, 0, 'dora', 0, 0); launch(s, sh); st.push(s); settle(st, s);
+    const n = drillStars(d, st, s);
+    if (n > bs) { bs = n; best = sh; if (n === 3) break; }
+  }
+  return best;
 }
 
 /** Where the caller holds the broom for a plan: on the line of the throw, at the tee line. */
