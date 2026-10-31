@@ -1,0 +1,180 @@
+.hh-shell{--ink:#2b1a0c;--card:#fff6e0f2;--lead:#2b1a0c;--gold:#f5b324;--honey:#e8901a;--rose:#c8385c;--leaf:#3c8a34;position:relative;width:100%;height:100svh;min-height:320px;overflow:hidden;display:flex;flex-direction:column;background:#24160a;color:var(--ink);font-family:"Trebuchet MS",ui-rounded,system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+.hh-shell *{box-sizing:border-box}
+/* the global stylesheet colours every <p>; in here paragraphs take their colour from where they sit */
+:where(.hh-shell) p{color:inherit;font-size:inherit;line-height:1.45;margin:0}
+.hh-shell h1,.hh-shell h2{margin:0;font-family:inherit;color:inherit;letter-spacing:normal}
+.hh-shell header{margin:0}
+.hh-shell button,.hh-shell a{font:inherit}
+.hh-shell button{border:3px solid var(--lead);border-radius:12px;background:linear-gradient(180deg,#fffaf0,#f6e4bc);color:var(--ink);font-weight:800;padding:9px 14px;cursor:pointer;min-height:42px;box-shadow:inset 0 0 0 2px #ffe9a8,0 3px 0 #2b1a0c66;transition:transform .12s,filter .12s}
+.hh-shell button:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.05)}
+.hh-shell button:active:not(:disabled){transform:translateY(2px);box-shadow:inset 0 0 0 2px #ffe9a8,0 1px 0 #2b1a0c66}
+.hh-shell button:disabled{opacity:.45;cursor:default}
+.hh-shell button:focus-visible,.hh-shell a:focus-visible,.hh-canvas:focus-visible{outline:3px solid #6ac0ff;outline-offset:2px}
+.hh-shell button.hh-primary{background:linear-gradient(180deg,#ffd45a,#f09a1a);color:#3a1e04;box-shadow:inset 0 0 0 2px #fff0b0,0 3px 0 #7a3e06,0 0 18px #ffc04a66}
+.hh-shell kbd{font:800 11px ui-rounded,system-ui,sans-serif;background:#fff;border:1.5px solid #c8a060;border-bottom-width:3px;border-radius:6px;padding:1px 5px;margin:0 1px;color:var(--ink)}
+.hh-eyebrow{font-size:11.5px;font-weight:900;letter-spacing:2.2px;color:#a0560a}
+.hh-note{font-size:13.5px;font-weight:700;color:#7a5a30}
+.hh-back{color:var(--ink);font-size:12px;font-weight:900;letter-spacing:1px;text-decoration:none;background:#fff6e0;border:3px solid var(--lead);border-radius:10px;padding:6px 10px;white-space:nowrap;cursor:pointer}
+.hh-shell button.hh-back{min-height:0;box-shadow:none}
+.hh-toggles{display:inline-flex;gap:6px}
+.hh-shell button.hh-tog{min-height:0;padding:5px 9px;font-size:12px;box-shadow:none;opacity:.7;border-width:2px}
+.hh-shell button.hh-tog.is-on{opacity:1;background:#ffe9a0}
+.hh-error{position:absolute;inset:auto 0 20px;text-align:center;font-weight:800;color:#ffd0c0}
+/* a leaded-glass card: dark came round the edge, a gold inner line */
+.hh-menu-card,.hh-ending-card,.hh-result-card,.hh-tip-card,.hh-bubble{background:var(--card);border:4px solid var(--lead);border-radius:20px;box-shadow:inset 0 0 0 3px #ffd56a,inset 0 0 0 6px #fff6e0,0 18px 40px #1a0c0466}
+
+/* ---- menu: the title window with a card */
+.hh-menu{position:relative;flex:1;display:flex;align-items:center;justify-content:flex-end;padding:3vh 4vw}
+.hh-art{position:absolute;inset:0;display:block;overflow:hidden}
+.hh-art canvas,.hh-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hh-menu-art img,.hh-menu-art canvas{object-position:20% 50%}
+.hh-menu-card,.hh-ending-card{position:relative;width:min(430px,38vw);padding:24px 26px 20px;display:flex;flex-direction:column;gap:12px}
+.hh-menu-card h1{font-size:clamp(40px,4.6vw,62px);line-height:.95;font-weight:900;color:#d7780a;text-shadow:2px 2px 0 var(--lead),0 0 22px #ffcf5a88;letter-spacing:-1px}
+.hh-lede{font-size:15px;font-weight:600}
+.hh-menu-buttons{display:flex;flex-direction:column;gap:8px}
+.hh-menu-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+
+/* ---- the map */
+.hh-map{position:relative;flex:1;display:flex;flex-direction:column;min-height:0;overflow:auto}
+.hh-map-art{position:fixed}
+.hh-map-art::after{content:"";position:absolute;inset:0;background:#24160a77}
+.hh-bar{position:relative;flex:none;min-height:52px;display:flex;align-items:center;gap:8px;padding:5px 10px;background:linear-gradient(180deg,#5a3410,#3a200a);border-bottom:4px solid #f0b030;z-index:3;box-shadow:0 2px 12px #0006}
+.hh-bar-mid{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:10px;font-size:15px;font-weight:800;color:#fff3d0;white-space:nowrap;overflow:hidden;text-shadow:0 1px 0 #0007}
+.hh-name{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.hh-name small{font-size:11px;letter-spacing:1px;opacity:.8;margin-right:3px}
+.hh-goal{font-variant-numeric:tabular-nums;background:#00000040;border:2px solid #f0b03077;border-radius:999px;padding:2px 10px;flex:none}
+.hh-goal b{font-size:17px;color:#ffe9a0}
+.hh-goal.is-met{background:#3c8a3488;border-color:#b8f08a}
+.hh-moves{display:inline-flex;align-items:baseline;gap:4px;background:linear-gradient(180deg,#ffd45a,#f09a1a);color:#3a1e04;border:3px solid var(--lead);border-radius:12px;padding:0 10px;flex:none;text-shadow:none}
+.hh-moves b{font-size:22px;font-variant-numeric:tabular-nums}
+.hh-moves small{font-size:11px;font-weight:900;letter-spacing:.5px}
+.hh-moves.is-low{background:linear-gradient(180deg,#ff9a8a,#e0445a);color:#fff;animation:hh-throb 1s infinite}
+@keyframes hh-throb{50%{transform:scale(1.08)}}
+.hh-tabs{position:relative;display:flex;gap:6px;padding:12px 14px 4px;overflow-x:auto;flex:none}
+.hh-shell button.hh-tab{flex:none;min-height:0;padding:7px 12px;font-size:13.5px}
+.hh-tab b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--gold);color:var(--ink);font-size:12px;margin-right:2px;border:2px solid var(--lead)}
+.hh-tab small{opacity:.7;margin-left:4px}
+.hh-shell button.hh-tab.is-on{background:linear-gradient(180deg,#fff,#ffe9a8);box-shadow:inset 0 0 0 2px #ffd56a,0 0 14px #ffd56a99}
+.hh-map-body{position:relative;display:flex;gap:16px;padding:8px 14px 20px;align-items:flex-start}
+.hh-friend{flex:none;width:200px;display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff6e0e6;border:4px solid var(--lead);border-radius:18px;padding:10px;box-shadow:inset 0 0 0 3px #ffd56a}
+.hh-friend .hh-cut{width:150px;height:150px}
+.hh-friend p{font-size:14px;font-weight:700;text-align:center}
+.hh-friend b{display:block;font-size:17px;color:#a0560a}
+.hh-cards{flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.hh-shell button.hh-card{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:12px 14px;text-align:left;min-height:118px}
+.hh-shell button.hh-card.is-done{background:linear-gradient(180deg,#fff7d0,#ffd77a)}
+.hh-shell button.hh-card.is-set{box-shadow:inset 0 0 0 2px #ffe9a8,0 0 0 3px #f5b324,0 3px 0 #2b1a0c66}
+.hh-card-no{font-size:11px;font-weight:900;letter-spacing:1.5px;color:#a0560a;text-transform:uppercase}
+.hh-card-name{font-size:16.5px;font-weight:900;line-height:1.1}
+.hh-card-stars i,.hh-stars i{font-style:normal;color:#d8c8a0;font-size:20px;margin-right:2px;-webkit-text-stroke:1px #2b1a0c}
+.hh-card-stars i.on,.hh-stars i.on{color:#ffc21a;text-shadow:0 0 8px #ffd56a}
+.hh-card-goal{font-size:12.5px;font-weight:700;color:#7a5a30}
+.hh-cut{display:block;object-fit:contain}
+.hh-cut.is-missing{display:none}
+
+/* ---- the comb */
+.hh-stage{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+.hh-stage.is-hidden{position:absolute;inset:0;visibility:hidden;pointer-events:none}
+.hh-canvas{flex:1;min-height:0;width:100%;display:block;touch-action:none;cursor:pointer;outline:none}
+.hh-tools{position:absolute;right:12px;bottom:12px;display:flex;gap:8px;z-index:2}
+.hh-shell .hh-tools button{min-height:36px;padding:6px 12px;font-size:13px}
+.hh-toast{position:absolute;left:50%;top:64px;transform:translateX(-50%);max-width:min(560px,92vw);background:var(--card);border:3px solid var(--lead);border-radius:12px;padding:8px 14px;font-weight:700;font-size:14px;text-align:center;z-index:3}
+.hh-result,.hh-tip{position:absolute;inset:0;display:grid;place-items:center;background:#1a0c0430;z-index:4;padding:16px}
+/* the result card stands beside the comb, or above it on an upright screen; the scene makes room for it */
+.hh-result{place-items:center end;padding:16px 22px;background:linear-gradient(90deg,#1a0c0400 40%,#1a0c0430)}
+.hh-shell .hh-result .hh-result-card{width:min(380px,36vw)}
+.hh-result-card,.hh-tip-card{width:min(440px,94vw);padding:20px 22px;display:flex;flex-direction:column;align-items:center;gap:8px;animation:hh-pop .35s cubic-bezier(.2,1.4,.4,1)}
+@keyframes hh-pop{from{transform:scale(.7) rotate(-3deg);opacity:0}}
+.hh-result-card h2,.hh-tip-card h2{font-size:25px;font-weight:900;color:#c06808;text-align:center}
+.hh-result-card.s0 h2{color:#7a3a5a}
+.hh-stars i{font-size:38px;display:inline-block;animation:hh-star .5s backwards}
+.hh-stars i:nth-child(2){animation-delay:.15s}.hh-stars i:nth-child(3){animation-delay:.3s}
+@keyframes hh-star{from{transform:scale(2.2) rotate(-30deg);opacity:0}}
+.hh-goals{list-style:none;margin:2px 0;padding:0;display:flex;flex-direction:column;gap:4px;width:100%}
+.hh-goals li{font-size:14px;font-weight:800;color:#8a6a40;background:#00000008;border-radius:10px;padding:5px 10px;display:flex;justify-content:space-between;gap:8px}
+.hh-goals li.ok{color:#3c6a20;background:#eef6d8}
+.hh-goals small{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hh-result-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+.hh-tip-card{align-items:stretch;text-align:left}
+.hh-tip-card p{font-size:15px;font-weight:600}
+.hh-keys{font-size:12.5px!important;color:#7a5a30}
+
+/* ---- story: a picture-book page */
+.hh-story{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:16px;cursor:pointer;background:#24160a}
+.hh-story-art img,.hh-story-art canvas{filter:saturate(1.05)}
+.hh-story-cast{position:absolute;left:0;right:0;top:4%;bottom:30%;display:flex;justify-content:space-between;align-items:flex-end;padding:0 6vw;pointer-events:none}
+.hh-story-pair{display:flex;align-items:flex-end;height:100%}
+.hh-story-cast .hh-cut{height:min(56vh,48vw);width:auto;max-width:30vw;filter:drop-shadow(0 8px 16px #0007);transition:transform .25s}
+.hh-story-cast .hh-story-enzo{margin-left:-4vw}
+.hh-story-cast .hh-story-bee{height:min(44vh,36vw);align-self:center}
+.hh-story-cast .hh-cut.is-on{transform:scale(1.06) translateY(-2%)}
+.hh-bubble{position:relative;width:min(720px,94vw);padding:16px 20px;display:flex;flex-direction:column;gap:8px;cursor:auto}
+.hh-bubble p{font-size:17px;font-weight:700}
+.hh-bubble-who{font-size:12px!important;font-weight:900!important;letter-spacing:2px;color:#a0560a;text-transform:uppercase}
+.hh-bubble button{align-self:flex-end}
+
+/* ---- ending */
+.hh-ending{position:relative;flex:1;display:flex;align-items:flex-end;justify-content:flex-end;padding:3vh 3vw}
+.hh-ending-card{width:min(420px,34vw)}
+.hh-ending-card h2{font-size:clamp(26px,3vw,38px);font-weight:900;color:#c06808}
+.hh-ending-card .hh-back{text-align:center}
+
+/* ---- phones */
+@media (max-width:760px),(max-height:520px){
+  .hh-bar{min-height:44px;padding:4px 6px;gap:5px}
+  .hh-bar-mid{font-size:13px;gap:5px}
+  .hh-goal{padding:1px 6px}
+  .hh-goal b{font-size:14px}
+  .hh-moves b{font-size:18px}
+  .hh-shell button.hh-tog{padding:4px 6px;font-size:11px}
+  .hh-back{padding:5px 7px;font-size:11px}
+  .hh-cards{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px}
+  .hh-friend{display:none}
+}
+@media (orientation:portrait){
+  .hh-result{place-items:start center;padding-top:58px;background:linear-gradient(180deg,#1a0c0430,#1a0c0400 55%)}
+  .hh-shell .hh-result .hh-result-card{width:min(440px,94vw)}
+}
+@media (max-width:760px) and (orientation:portrait){
+  .hh-result{padding:50px 10px 10px}
+  .hh-shell .hh-result .hh-result-card{padding:12px 14px;gap:5px}
+  .hh-result-card h2{font-size:21px}
+  .hh-stars i{font-size:30px}
+  .hh-menu{align-items:flex-end;justify-content:center;padding:14px}
+  .hh-menu-art img,.hh-menu-art canvas{object-position:24% 0;height:58%}
+  .hh-menu-card{width:100%;padding:16px 18px 14px;gap:9px}
+  .hh-menu-card h1{font-size:38px}
+  .hh-lede{font-size:13.5px}
+  .hh-name{display:none}
+  .hh-toggles{display:none}
+  .hh-tools{right:8px;bottom:8px}
+  .hh-ending{padding:12px;justify-content:center}
+  .hh-ending-card{width:100%}
+  .hh-ending-art img,.hh-ending-art canvas{height:58%;object-position:50% 0}
+  .hh-story-cast{bottom:34%;padding:0 3vw}
+  .hh-story-cast .hh-cut{max-width:44vw;height:auto;max-height:38vh}
+  .hh-story-cast .hh-story-bee{max-height:28vh}
+  .hh-bubble p{font-size:15px}
+}
+@media (max-height:520px) and (orientation:landscape){
+  .hh-menu{padding:10px 16px}
+  .hh-menu-card{width:min(380px,48vw);padding:12px 16px;gap:7px}
+  .hh-menu-card h1{font-size:34px}
+  .hh-lede{display:none}
+  .hh-menu-buttons{gap:5px}
+  .hh-shell .hh-menu-buttons button{min-height:36px;padding:6px 12px}
+  .hh-ending-card p:not(.hh-note){display:none}
+  .hh-tools{bottom:6px;right:8px}
+  .hh-result{padding:48px 12px 8px}
+  .hh-shell .hh-result .hh-result-card{width:min(320px,40vw);padding:10px 14px;gap:4px}
+  .hh-result-card .hh-eyebrow{font-size:10px;letter-spacing:1.5px}
+  .hh-result-card .hh-stars i{font-size:24px}
+  .hh-result-card h2{font-size:19px}
+  .hh-result-card .hh-goals li{font-size:12px;padding:3px 8px}
+  .hh-shell .hh-result-buttons button{min-height:34px;padding:5px 10px;font-size:13px}
+  .hh-story-cast{bottom:38%}
+  .hh-story-cast .hh-cut{height:52vh}
+  .hh-story-cast .hh-story-bee{height:40vh}
+  .hh-bubble{padding:10px 14px;gap:4px}
+  .hh-bubble p{font-size:14px}
+}

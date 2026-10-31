@@ -1,0 +1,3 @@
+import type { Metadata } from 'next';
+export const metadata: Metadata = { title: 'Honeycomb Hollow · Dora & Enzo’s Arcade', description: 'A hex match-3 puzzle adventure in stained glass. The bees of the hollow oak have lost the queen’s honey map: turn trios of nectar drops on their corners, line up three colours along any of the comb’s three directions, and fill sixty chambers with honey. Bees, blossoms and royal jelly; wax, sticky honey, acorns, moss, dew drops, wasps and dark comb; five areas with a bee friend each, and the oak glowing gold at the end.' };
+export default function HoneyLayout({ children }: { children: React.ReactNode }) { return children; }
