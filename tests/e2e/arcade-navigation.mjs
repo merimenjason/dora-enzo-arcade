@@ -12,7 +12,7 @@ try {
   await link.click();
   await page.waitForSelector('.arcade-grid');
   assert.equal(await page.locator('.arcade-card').count(), 66);
-  console.log(`PASS ${route} → main arcade (65 game cards)`);
+  console.log(`PASS ${route} → main arcade (66 game cards)`);
   await page.close();
  }
  {
