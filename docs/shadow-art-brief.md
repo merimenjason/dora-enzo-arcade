@@ -1,0 +1,17 @@
+# Shadowplay · art brief
+
+Paintings for Shadowplay (`/shadow`), a shadow-puppet theatre puzzle. Dora and Enzo run a little travelling paper theatre, and every night they perform a story by casting its scenes in shadow on a glowing paper screen. The game draws the theatre, the screen, every shadow and the jointed shadow puppets of Dora and Enzo itself, and draws its own lantern-lit stand-in for every painting until the file loads, so the paintings can arrive in any order. Written 01-11-2026.
+
+**A new art style for this game: shadow-puppet theatre.** The paintings look lit only by lanterns and the glowing paper screen: warm amber chiaroscuro, deep plum and walnut shadows, rich red velvet, and the craft of Javanese and Chinese shadow puppets everywhere: intricate lace cut-out patterns in thin leather, jointed limbs on slim rods, and coloured translucent gel panels that glow ruby, gold, jade and sky blue where the light passes through. Painted in a rich storybook gouache with fine ink linework. No photo look, no 3D render. No text, letters, numbers or logos.
+
+**Dora and Enzo in the paintings (critical).** In the paintings they are the puppeteers, real chinchillas, not puppets. **Dora** is small, with cream-white fur, ruby-red eyes and clean pink ears. **Enzo** is a little bigger, with cool blue-grey fur (never taupe, beige or brown), a pale grey chest and solid black eyes, with clean pink ears. Their heads have a broad, slightly flat, smooth rounded crown with a soft short-fur edge, and nothing sticks up from the head except the two big round ears (compare `public/art/driftwood/title.webp` and `public/art/roll/title.webp`; never the Hayloft Tycoon portraits). Neither wears clothes.
+
+All files live in `public/art/shadow/` as `.webp` (quality about 86).
+
+| File | Size | Description |
+| --- | --- | --- |
+| `title.webp` | 1536 × 1024 | Dusk in a woodland clearing. A little wooden travelling theatre on a cart, with red velvet curtains and a warm glowing paper screen showing the shadow of a cat on a roof under a crescent moon. Seen from a three-quarter angle so the side door backstage is open: there, in the lantern light, Dora and Enzo stand side by side facing the viewer, smiling, each holding up an ornate lace-cut shadow puppet on rods (a dragon with gold gel scales, a bird with ruby and sky-blue gel wings). Lanterns in the trees, the first stars. The lower third stays calm and dark enough for the title words. |
+| `backdrop.webp` | 1536 × 1024 | Backstage inside the little theatre, with no characters: walnut beams, the back of the glowing paper screen, an oil lantern on a stand, and a row of ornate lace-cut shadow puppets hanging on hooks (a cat, a ship, a whale, an owl, a dragon), their coloured gel panels glowing. Rolls of paper and a velvet curtain at the sides. Calm and warm, with a darker middle so cards can sit over it. |
+| `ending.webp` | 1536 × 1024 | The final performance at night. Seen from just behind a happy woodland audience sitting on logs and cushions (rabbits, hedgehogs, owls, a fox, a badger, field mice, seen from behind and three-quarter), looking at the glowing theatre screen, which shows the shadow of a great dragon curling round a gold moon. In front of the screen on the little stage, Dora and Enzo stand facing the audience and the viewer, bowing happily, each holding a puppet on its rods. Fireflies, paper lanterns, petals in the air. |
+
+Dora and Enzo face the viewer in every painting; in the ending they face the audience, which faces the screen.
