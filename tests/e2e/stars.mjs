@@ -4,7 +4,8 @@
 // back, the Unpick button and Z, starting again with R, a hint with H and the free hint used up), and a twin's leap;
 // the save across a reload, the sky chart and the Night Journal; a corrupt save; the framing at 1280×800 and 1920×1080
 // (Dora and Enzo a clear size, nothing over them or over a star, the done card beside the sky); and phones held either
-// way, stitched by touch. Needs `npm run dev` on port 3000 and Playwright.
+// way, stitched by touch, the done card clear of Dora, Enzo and every star there too (and on a smaller phone and a
+// squarish screen); a twin's leap carried straight on by drag and by keyboard. Needs `npm run dev` on port 3000 and Playwright.
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
@@ -27,28 +28,43 @@ const closeTip = async (page) => { const t = page.getByRole('button', { name: 'G
 const overlaps = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 const box = async (page, sel) => { const r = await page.locator(sel).first().boundingBox().catch(() => null); return r && { x: r.x, y: r.y, w: r.width, h: r.height }; };
 
-/** Stitches the whole solution with one long drag, star to star, with the mouse or a finger; a twin's leap ends the
- *  drag, so the needle is picked up again where it landed. */
+/** Stitches the whole solution with one long drag, star to star, with the mouse or a finger, never letting go: after
+ *  a twin's leap the paw carries straight on from where it is, steering the needle from the twin. */
 async function stitchAll(page, { cdp = null, ms = 260 } = {}) {
   const sol = await game(page, () => window.__starsSolution());
   const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
-  const press = async (i) => { const [x, y] = await pt(page, i); if (cdp) await touch('touchStart', x, y); else { await page.mouse.move(x, y); await page.mouse.down(); } };
-  const lift = async () => { if (cdp) await touch('touchEnd'); else await page.mouse.up(); };
-  await press(sol.start);
+  let [px, py] = await pt(page, sol.start);
+  if (cdp) await touch('touchStart', px, py); else { await page.mouse.move(px, py); await page.mouse.down(); }
   for (const to of sol.path) {
-    let s = await state(page);
-    if (!(await game(page, () => window.__stars().st.dragging))) { await lift(); await press(s.at); s = await state(page); }
-    const [x0, y0] = await pt(page, s.at), [x1, y1] = await pt(page, to), steps = Math.max(4, Math.round(ms / 30));
+    assert.ok(await game(page, () => window.__stars().st.dragging), 'still dragging, twins and all');
+    const s = await state(page), [ax, ay] = await pt(page, s.at), [bx, by] = await pt(page, to), steps = Math.max(4, Math.round(ms / 30));
+    const x0 = px, y0 = py, x1 = px + bx - ax, y1 = py + by - ay;
     for (let k = 1; k <= steps; k++) {
-      const x = x0 + (x1 - x0) * (k / steps), y = y0 + (y1 - y0) * (k / steps);
-      if (cdp) await touch('touchMove', x, y); else await page.mouse.move(x, y);
+      px = x0 + (x1 - x0) * (k / steps); py = y0 + (y1 - y0) * (k / steps);
+      if (cdp) await touch('touchMove', px, py); else await page.mouse.move(px, py);
       await page.waitForTimeout(ms / steps);
     }
     const after = await state(page);
     assert.equal(after.at === to || after.path.at(-1) === to || after.path.at(-2) === to, true, `stitched to star ${to}`);
   }
-  await lift();
+  if (cdp) await touch('touchEnd'); else await page.mouse.up();
   return state(page);
+}
+/** Dora and Enzo's faces on screen (the top three quarters of the pair), and every star. */
+const faces = async (page) => {
+  const m = await game(page, () => window.__starsScene()), cv = await box(page, 'canvas.ss-canvas');
+  return { x: cv.x + m.pair[0], y: cv.y + m.pair[1], w: m.pair[2], h: m.pair[3] * 0.75 };
+};
+const starBoxes = async (page, r) => (await game(page, () => window.__stars().st.p.stars.map((_, i) => window.__starsPoint(i)))).map(([x, y]) => ({ x: x - r, y: y - r, w: r * 2, h: r * 2 }));
+/** The done card, once it has risen and the sky and the pair have made room for it, covers neither. */
+async function cardClear(page, where) {
+  await page.locator('.ss-done').waitFor(); await page.waitForTimeout(1100);
+  const card = await box(page, '.ss-done'), vp = page.viewportSize();
+  assert.ok(card.y >= -1 && card.y + card.h <= vp.height + 1 && card.x >= -1 && card.x + card.w <= vp.width + 1, `the done card fits on screen ${where}`);
+  assert.ok(!overlaps(card, await faces(page)), `the done card is clear of Dora and Enzo ${where}`);
+  for (const b of await starBoxes(page, 8)) assert.ok(!overlaps(card, b), `and of the blazing constellation ${where}`);
+  const f = await faces(page);
+  assert.ok(f.x >= -2 && f.x + f.w <= vp.width + 2 && f.y + f.h / 0.75 <= vp.height + 2, `Dora and Enzo stay on screen ${where}`);
 }
 
 // ---------------------------------------------------------------- the arcade card and the menu
@@ -179,7 +195,23 @@ const seed = (page, id) => page.evaluate(([k, id]) => {
   assert.equal((await state(page)).puzzle, 'n4-3');
   const tw = await stitchAll(page);
   assert.ok(tw.done && tw.clean, 'the Dragonfly, twins and all, stitched in one go');
-  console.log('PASS a twin’s leap, picked up again where the needle landed');
+  console.log('PASS a twin’s leap, and the drag carries straight on from the twin');
+  // with the keyboard: Enter into a twin, and the next star from the twin is chosen already
+  await page.getByRole('button', { name: /Again/ }).click(); await page.waitForTimeout(300);
+  const sol = await game(page, () => window.__starsSolution());
+  let leaps = 0;
+  for (const to of [sol.start, ...sol.path]) {
+    const g = await game(page, () => { const s = window.__stars().st, list = s.started ? s.options() : s.p.stars.map((_, i) => i).filter((i) => !s.startRefusal(i)); return { focus: window.__stars().focus, order: [...list].sort((a, b) => s.p.stars[a].x - s.p.stars[b].x || s.p.stars[a].y - s.p.stars[b].y) }; });
+    const from = g.focus >= 0 ? g.order.indexOf(g.focus) : -1, n = g.order.indexOf(to); assert.ok(n >= 0, `star ${to} can be chosen`);
+    for (let k = from; k < n; k++) await page.keyboard.press('ArrowRight');
+    for (let k = from; k > n; k--) await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('Enter');
+    const s = await state(page);
+    if (s.at !== to && !s.done) { leaps++; assert.ok((await game(page, () => window.__stars().focus)) >= 0, 'after a leap, a star by the twin is chosen already'); }
+  }
+  const kb = await state(page);
+  assert.ok(kb.done && leaps >= 1, `the Dragonfly stitched with the keyboard, leaping ${leaps} times`);
+  console.log('PASS a twin’s leap with the keyboard carries straight on too');
   await page.context().close();
 }
 
@@ -195,28 +227,25 @@ for (const [W, H, minH] of [[1280, 800, 200], [1920, 1080, 280]]) {
   const [x, y, w, h] = m.pair, pair = { x: cv.x + x, y: cv.y + y, w, h };
   assert.ok(h >= minH, `Dora and Enzo are a clear size at ${W}×${H} (${Math.round(h)}px)`);
   assert.ok(pair.x >= -2 && pair.x + w <= W + 2 && pair.y + h <= H + 2, 'and on screen');
-  const faces = { x: pair.x, y: pair.y, w: pair.w, h: pair.h * 0.75 };
+  const face = { x: pair.x, y: pair.y, w: pair.w, h: pair.h * 0.75 };
   const stars = await game(page, () => window.__stars().st.p.stars.map((_, i) => window.__starsPoint(i)));
   for (const sel of ['.ss-side', '.ss-tools', '.ss-toast', '.ss-bar']) {
     const r = await box(page, sel); if (!r) continue;
-    assert.ok(!overlaps(r, faces), `${sel} is clear of Dora and Enzo at ${W}×${H}`);
+    assert.ok(!overlaps(r, face), `${sel} is clear of Dora and Enzo at ${W}×${H}`);
     for (const [sx, sy] of stars) assert.ok(!overlaps(r, { x: sx - 12, y: sy - 12, w: 24, h: 24 }), `${sel} is clear of every star at ${W}×${H}`);
   }
-  for (const [sx, sy] of stars) assert.ok(!overlaps(faces, { x: sx - 8, y: sy - 8, w: 16, h: 16 }), 'no star behind the chinchillas');
+  for (const [sx, sy] of stars) assert.ok(!overlaps(face, { x: sx - 8, y: sy - 8, w: 16, h: 16 }), 'no star behind the chinchillas');
   // stitch it, and the done card sits beside the sky
   const s = await stitchAll(page, { ms: 150 });
   assert.ok(s.done && s.clean, `the Sleeping Fox stitched in one go at ${W}×${H}`);
-  await page.locator('.ss-done').waitFor(); await page.waitForTimeout(500);
-  const card = await box(page, '.ss-done');
-  assert.ok(!overlaps(card, faces), 'the done card is clear of Dora and Enzo');
-  for (const [sx, sy] of stars) assert.ok(!overlaps(card, { x: sx - 8, y: sy - 8, w: 16, h: 16 }), 'and of the blazing constellation');
+  await cardClear(page, `at ${W}×${H}`);
   assert.ok(await noSideScroll(page));
   console.log(`PASS the framing at ${W}×${H} (Dora and Enzo ${Math.round(h)}px tall, the Sleeping Fox in one go)`);
   await page.context().close();
 }
 
 // ---------------------------------------------------------------- phones, held upright and sideways, stitched by touch
-for (const [vp, id] of [[{ width: 390, height: 844 }, 'n3-5'], [{ width: 844, height: 390 }, 'n2-3']]) {
+for (const [vp, id] of [[{ width: 390, height: 844 }, 'n3-5'], [{ width: 844, height: 390 }, 'n2-3'], [{ width: 360, height: 740 }, 'n4-8'], [{ width: 667, height: 375 }, 'n4-6']]) {
   const page = await open(vp, true);
   const cdp = await page.context().newCDPSession(page);
   await page.goto(base + '/stars'); await ready(page);
@@ -236,9 +265,7 @@ for (const [vp, id] of [[{ width: 390, height: 844 }, 'n3-5'], [{ width: 844, he
   }
   const s = await stitchAll(page, { cdp, ms: 150 });
   assert.ok(s.done && s.clean, `stitched by touch in one go at ${vp.width}×${vp.height}`);
-  await page.locator('.ss-done').waitFor(); await page.waitForTimeout(500);
-  const r = await box(page, '.ss-done');
-  assert.ok(r.y >= -1 && r.y + r.h <= vp.height + 1 && r.x >= -1 && r.x + r.w <= vp.width + 1, 'the done card fits on screen');
+  await cardClear(page, `at ${vp.width}×${vp.height}`);
   assert.ok(await noSideScroll(page));
   console.log(`PASS a phone at ${vp.width}×${vp.height}, stitched by touch in one go`);
   await page.context().close();

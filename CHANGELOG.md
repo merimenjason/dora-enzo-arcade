@@ -18,6 +18,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 ### Fixed
 
 - **Kiln & Clay**: Dora and Enzo are now as big at the kiln and the delivery counter as at the wheel, on every screen and on phones held either way, and stand clear of the pot, the dial, the buttons and the words. The picnic ending's words and cast list now sit in a band below the painting (beside it on a sideways phone) instead of over Mrs Prickle and the pair. The delivery card moves up into the corner, clear of the neighbour's face, and the top bar names the pot in the kiln when you fire one from the rack instead of saying "Free throw".
+- **Starstitch**: The Moonlit Lake (night 4) was easier than the nights either side of it, so it has been retuned. The Rowing Boat gains oar blades and the Lily Pad and the Reeds gain loops to leave behind, comets now cross the Lily Pad, the Leaping Trout, the Reeds and the Heron, and two comets turn the Water Wheel's rim one way. The Rowing Boat still teaches the moons on their own. After a twin star's leap the thread now carries straight on from the twin: keep dragging with the mouse or a finger and the needle follows from where it landed, or press **Enter** again with the keyboard, since the next star is chosen already. You no longer have to press on the twin to pick the thread up again. When a sky is finished, the card now makes room for itself and covers neither Dora and Enzo nor the constellation. On a phone held upright it sits between the sky and the pair, and held sideways it sits on the right.
 
 ## 30-10-2026
 

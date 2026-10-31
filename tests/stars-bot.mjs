@@ -1,5 +1,5 @@
 // Starstitch bots. A steady paw stitches every constellation through the same pointer calls the page makes (press on
-// the first star, drag in small steps towards each next star, let go), with and without a wobble, and finishes each
+// the first star, drag in small steps towards each next star, carrying straight on after a twin's leap, let go), with and without a wobble, and finishes each
 // one in one go: so all 43 can be stitched by dragging, and the snapping never stitches a star the paw wasn't heading
 // for. A tapper does the same with one tap per star. Then the difficulty from real play: a careless player (any
 // start, any seam) must get stuck far more often than not, a thoughtful one (starts on an odd star or the moon,
@@ -20,10 +20,10 @@ export function dragSolve(p, sol, { wobble = 0, seed = 1, steps = 9 } = {}) {
   const A0 = p.stars[sol.start];
   st.down(A0.x + j() * 0.3, A0.y + j() * 0.3, R);
   for (const to of sol.path) {
-    // after a twin's leap, pick the needle up again where it landed
-    if (!st.dragging) { st.up(); st.down(p.stars[st.at].x + j() * 0.3, p.stars[st.at].y + j() * 0.3, R); }
-    const A = p.stars[st.at], B = p.stars[to], before = st.moves.length;
-    for (let k = 1; k <= steps && st.moves.length === before; k++) st.move(A.x + (B.x - A.x) * (k / steps) + j(), A.y + (B.y - A.y) * (k / steps) + j(), R);
+    // one drag all the way: after a twin's leap the paw carries straight on, steering the needle from the twin
+    if (!st.dragging) return { st, ok: false, at: to };
+    const [sx, sy] = st.aim(0, 0), A = p.stars[st.at], B = p.stars[to], before = st.moves.length;
+    for (let k = 1; k <= steps && st.moves.length === before; k++) st.move(A.x + (B.x - A.x) * (k / steps) - sx + j(), A.y + (B.y - A.y) * (k / steps) - sy + j(), R);
     if (st.moves.length !== before + 1 || st.moves[before].to !== to) { st.up(); return { st, ok: false, at: to }; }
   }
   st.up();
@@ -81,6 +81,9 @@ function careless(p, r) {
   assert.ok(rows[1].careful > 0.6, 'the first night is mostly kind to a thoughtful player');
   const late = (rows[3].careful + rows[5].careful) / 2;
   assert.ok(late < 0.85, `the frosty night and the meteor shower still catch a thoughtful player out (${(late * 100).toFixed(0)}%)`);
+  // the moonlit lake is no dip: the moons fix the ends, so its skies lean on the earlier rules and on loops to leave
+  // behind (measured: careless 18%, thoughtful 70%, against the meteor shower's 19% and 78%)
+  assert.ok(rows[4].careless < 0.25 && rows[4].careful <= rows[5].careful, `the moonlit lake is no easier than the meteor shower (careless ${(rows[4].careless * 100).toFixed(0)}%, thoughtful ${(rows[4].careful * 100).toFixed(0)}%)`);
   for (const p of STORY) {
     const s = new Stitch(p); let guard = 300;
     while (!s.done && guard--) { const h = hint(s); if (h.k === 'start') s.start(h.at); else if (h.k === 'next') s.stitch(h.to); else break; }

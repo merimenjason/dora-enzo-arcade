@@ -28,7 +28,7 @@ The rules, each taught by a tip the first time it appears:
 | One-way seams | night 3 | A comet flies along the seam; it can only be stitched in the comet's direction. |
 | Clouds | night 3 | Seams under a cloud are hidden. When the pointer or the needle comes within 15 sky units (the sky is 100 wide) of a hidden seam's middle it glimmers through, fading back over about a second once they move away. Stitched seams always show. |
 | Moons | night 4 | The thread must start at the crescent moon and finish at the full moon; no other star may start it. |
-| Twin stars | night 4 | Stitching into a twin lands the needle on its twin, which counts as a touch of both. The drag ends there, and the thread is picked up again from the twin. Unpicking undoes the leap. |
+| Twin stars | night 4 | Stitching into a twin lands the needle on its twin, which counts as a touch of both. A drag carries straight on: from then until the paw lets go, the pointer steers the needle from the twin (the pointer is read shifted by the leap), and dragging back the way the paw came unpicks the leap, unless that way lines up within about 30° with a star the needle could go on to, when going on wins. Unpicking undoes the leap. |
 
 Unpicking takes off the last stitch (and a leap with it). Starting again unpicks everything. Either one, at any point, means the sky is no longer stitched "in one go".
 
@@ -36,7 +36,7 @@ Unpicking takes off the last stitch (and a leap with it). Starting again unpicks
 
 The hit radius is 22 screen pixels for a mouse and 30 for a finger, never more than 48% of the gap to the nearest star, so close stars stay separate. Pressing on a star with no thread starts there; pressing on the needle picks it up; pressing on a star the needle can reach stitches it (a tap).
 
-While dragging, the thread follows the pointer and snaps to a star when the pointer is within the hit radius of it, or when the drag is heading for it: the candidate whose direction from the needle is closest to the drag's, once the pointer is past 60% of the way along its seam and no further off the line than the hit radius or 28% of the seam's length. Up to four snaps happen in one move, so a fast drag doesn't lose stitches. Dragging back along the last stitch unpicks it, but only past 72% of the way back and within 0.8 hit radii of the thread, so brushing past the last star doesn't undo it. The keyboard cycles through the stars the needle can reach (left to right), and **Enter** stitches.
+While dragging, the thread follows the pointer and snaps to a star when the pointer is within the hit radius of it, or when the drag is heading for it: the candidate whose direction from the needle is closest to the drag's, once the pointer is past 60% of the way along its seam and no further off the line than the hit radius or 28% of the seam's length. Up to four snaps happen in one move, so a fast drag doesn't lose stitches. Dragging back along the last stitch unpicks it, but only past 72% of the way back and within 0.8 hit radii of the thread, so brushing past the last star doesn't undo it. The keyboard cycles through the stars the needle can reach (left to right), and **Enter** stitches; after a twin's leap the star from the twin that keeps the stitch's heading is chosen already, so **Enter** carries straight on.
 
 ## Hints
 
@@ -67,10 +67,10 @@ Measured by the bot (`npm run bot:stars`) over 300 tries a sky. A careless playe
 | 1 | 17% | 75% |
 | 2 | 16% | 79% |
 | 3 | 9% | 51% |
-| 4 | 41% | 94% |
+| 4 | 18% | 70% |
 | 5 | 19% | 78% |
 
-Night 4 is the easiest of the later nights: its moons fix where the thread starts and ends, which takes away the commonest mistake.
+The moons fix where the thread starts and ends, which takes away the commonest mistake, so night 4 leans on the earlier rules and on loops to leave behind: the Rowing Boat's oar blades, the Lily Pad's bud and the Reeds' leaves are loops hanging off a single star, two comets turn the Water Wheel's rim the same way, and comets cross the Lily Pad, the Leaping Trout, the Reeds and the Heron. It was retuned on 31-10-2026 from careless 41% and thoughtful 94%, a dip below both its neighbours; the Rowing Boat still teaches the moons on their own. Within the night the skies grow harder (thoughtful finishes 100%, 71%, 100% for the Dragonfly, which teaches twins, then 68%, 68%, 53%, 53% and 45%). By these numbers the frosty night 3 is still the hardest of the five. The bot holds night 4 to under 25% careless finishes and no more thoughtful ones than night 5.
 
 ## Daily Sky and Shooting Star
 
@@ -81,7 +81,7 @@ Both use the generator in `lib/stars-solver.ts`. It scatters stars, joins neighb
 
 ## Feel
 
-Each stitch plays a soft plink one step up a pentatonic scale; unpicking a falling pluck; a twin's leap a shimmer; a refused stitch a soft bump; finishing a chord (a brighter one for the ★). The finished thread blazes gold over 2.2 seconds while the figure painting fades in behind it, and the done card follows after 1.5 seconds: beside the sky on wide screens, at the bottom on a phone held upright, in the middle otherwise. Dora and Enzo lie on the hill in the corner: pointing up while you stitch, gasping when the sky blazes, and sleepy in the small hours.
+Each stitch plays a soft plink one step up a pentatonic scale; unpicking a falling pluck; a twin's leap a shimmer; a refused stitch a soft bump; finishing a chord (a brighter one for the ★). The finished thread blazes gold over 2.2 seconds while the figure painting fades in behind it, and the done card follows after 1.5 seconds and makes room for itself, so it covers neither Dora and Enzo nor a star: on a big wide screen (at least 521 pixels tall) it sits above the pair, beside the sky; on a shorter or squarish wide screen (a phone held sideways) it sits on the right and the sky moves in between; on a phone held upright Dora and Enzo settle on the hill where the tools were, the card sits just above them and the sky above the card. The sky and the pair glide to their new places over 0.6 seconds, and the stitching tools hide while the card is up. Dora and Enzo lie on the hill in the corner: pointing up while you stitch, gasping when the sky blazes, and sleepy in the small hours.
 
 ## Saving
 

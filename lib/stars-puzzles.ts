@@ -216,15 +216,15 @@ add({
 N(4);
 add({
   id: 'n4-1', name: 'The Rowing Boat',
-  s: 'h1 10 46 ), h2 30 66, h3 70 66, h4 90 46 (, m1 34 46, m2 66 46, ms 50 10, o1 20 30, o2 80 30',
-  e: 'h1-h2 h2-h3 h3-h4 h1-m1 m1-m2 m2-h4 m1-ms ms-m2 o1-m1 o2-m2 o1-h1 o2-h4',
+  s: 'h1 10 46 ), h2 30 66, h3 70 66, h4 90 46 (, m1 34 46, m2 66 46, ms 50 10, o1 20 30, o2 80 30, bl1 13 18, bl2 27 18, bl3 73 18, bl4 87 18',
+  e: 'h1-h2 h2-h3 h3-h4 h1-m1 m1-m2 m2-h4 m1-ms ms-m2 o1-m1 o2-m2 o1-h1 o2-h4 o1-bl1 bl1-bl2 bl2-o1 o2-bl3 bl3-bl4 bl4-o2',
   story: ['A little rowing boat drifts across the lake', 'and never once needs its oars.'],
   teach: { title: 'Moons', text: 'When the moons are out, the thread must begin at the crescent moon and finish at the full moon.' },
 });
 add({
   id: 'n4-2', name: 'The Lily Pad',
-  s: 'c 50 40 (, p0 82 40 *1, p1 66 14, p2 34 14, p3 18 40, p4 34 66, p5 66 66, f1 50 2, f2 50 78 #',
-  e: 'p0-p1 p1-p2 p2-p3 p3-p4 p4-p5 p5-p0 c-p1 c-p2 c-p4 c-p5 f1-p1 f1-p2 f2-p4 f2-p5',
+  s: 'c 50 40 (, p0 82 40 *1, p1 66 14, p2 34 14, p3 18 40, p4 34 66, p5 66 66, f1 50 2, f2 50 78 #, n1 6 47, n2 6 33',
+  e: 'p0-p1 p1>p2 p2-p3 p3-p4 p4-p5 p5-p0 c-p1 c-p2 c-p4 c-p5 f1-p1 f1-p2 f2-p4 f2-p5 p3-n1 n1-n2 n2-p3',
   story: ['A frog sat on this lily pad to watch the moon', 'and the lily pad floated up to meet it.'],
 });
 add({
@@ -232,24 +232,24 @@ add({
   s: 'b1 50 6, b2 50 26 ~r1, b3 50 48, b4 50 76, w1 16 34, w2 22 60, r1 70 18 ~b2, r2 92 10, r3 90 34, r4 70 34',
   e: 'b1-b2 b2-b3 b3-b4 b3-w1 w1-w2 w2-b3 r1-r2 r2-r3 r3-r4 r4-r1',
   story: ['The Dragonfly is so quick, Grandmother said,', 'that it’s in two places at once.'],
-  teach: { title: 'Twin stars', text: 'Twin stars share a colour. Stitch into one and the needle leaps to the other: pick it up there and carry on.' },
+  teach: { title: 'Twin stars', text: 'Twin stars share a colour. Stitch into one and the needle leaps to the other: keep dragging and the thread carries on from there.' },
 });
 add({
   id: 'n4-4', name: 'The Leaping Trout', fig: 'trout',
   s: 'n 88 30, b1 72 16, b2 50 12, b3 28 22, t1 10 10, t2 6 38, b4 30 40, b5 54 38, b6 74 42, fin 52 54 ~sp, sp 46 79 ~fin, w1 26 70, w2 66 70',
-  e: 'n-b1 b1-b2 b2-b3 b3-t1 t1-t2 t2-b3 b3-b4 b4-b5 b5-b6 b6-n b2-b5 b5-fin fin-b4 sp-w1 sp-w2 w1-w2',
+  e: 'n-b1 b1-b2 b2-b3 b3-t1 t1-t2 t2-b3 b3-b4 b4-b5 b5-b6 b6-n b2>b5 b5-fin fin-b4 sp-w1 sp-w2 w1-w2',
   story: ['The Trout leapt for a mayfly one summer evening', 'and is still in the air, shining.'],
 });
 add({
   id: 'n4-5', name: 'The Reeds',
-  s: 'g1 8 76 (, g2 30 72, r1 14 40, t1 28 10 ~t3, r2 40 34, m 50 56, g3 70 72, r3 60 34, t3 72 8 ~t1, r4 88 40, g4 92 76 )',
-  e: 'g1-g2 g2-r1 r1-t1 t1-r2 r2-g2 g2-m m-g3 g3-r3 r3-t3 t3-r4 r4-g3 g3-g4',
+  s: 'g1 8 76 (, g2 30 72, r1 14 40, t1 28 10 ~t3, r2 40 34, m 50 56, g3 70 72, r3 60 34, t3 72 8 ~t1, r4 88 40, g4 92 76 ), l1 28 27, l2 28 41, l3 76 33, l4 76 47',
+  e: 'g1-g2 g2-r1 r1-t1 t1-r2 r2-g2 g2-m m>g3 g3-r3 r3-t3 t3-r4 r4>g3 g3-g4 r2-l1 l1-l2 l2-r2 r4-l3 l3-l4 l4-r4',
   story: ['The reeds at the edge of the lake whisper', 'the names of every star, one by one.'],
 });
 add({
   id: 'n4-6', name: 'The Water Wheel',
   s: 'h 50 40, w0 78 40, w1 64 16, w2 36 16, w3 22 40, w4 36 64, w5 64 64, s1 92 66 (, s2 92 14 ), x 8 74 ~y, y 8 6 ~x',
-  e: 'w0-w1 w1-w2 w2-w3 w3-w4 w4-w5 w5-w0 h-w0 h-w2 h-w4 h-w5 s1-w5 w0-s2 w4-x y-w2',
+  e: 'w0-w1 w1-w2 w2>w3 w3-w4 w4-w5 w5>w0 h-w0 h-w2 h-w4 h-w5 s1-w5 w0-s2 w4-x y-w2',
   story: ['The old water wheel turns all night,', 'stirring the stars so they don’t settle.'],
 });
 add({
@@ -261,7 +261,7 @@ add({
 add({
   id: 'n4-8', name: 'The Heron', fig: 'heron',
   s: 'bk 92 22 ), hd 74 18, n1 64 28, n2 60 42, w2 52 34 ~w4, b1 44 50, b2 26 42 *2, b3 22 58, b4 44 64, lg 50 76, ft 36 78, t 8 36 (, w1 32 28, w4 8 74 ~w2, r1 4 56, r2 22 72',
-  e: 't-b2 b1-b2 b2-b3 b3-b4 b4-b1 b2-w1 w1-b1 b1-w2 w2-n2 n2-n1 n1-hd hd-bk b4-lg lg-ft ft-b4 w4-r1 r1-r2 r2-w4',
+  e: 't-b2 b2>b1 b2-b3 b3-b4 b4-b1 b2-w1 w1-b1 b1-w2 w2-n2 n2-n1 n1-hd hd-bk b4-lg ft>lg ft-b4 w4-r1 r1-r2 r2-w4',
   story: ['The Heron stands on one leg in the shallows', 'and waits for the moon to come and be caught.'],
 });
 

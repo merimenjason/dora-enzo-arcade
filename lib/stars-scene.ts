@@ -16,16 +16,19 @@ export type DrawOpts = {
 const TWIN_COL = ['#7fe3d0', '#ff9ec7', '#c6a2ff', '#ffd27a'];
 const GOLD = '#ffd66b', SILVER = '#eef4ff';
 type Spark = { x: number; y: number; vx: number; vy: number; life: number; max: number; col: string; size: number };
+type Placing = { ox: number; oy: number; s: number; pair: [number, number, number, number] };
 
 export class StarsScene {
   readonly cv: HTMLCanvasElement; private c: CanvasRenderingContext2D;
   W = 0; H = 0; private dpr = 1;
-  inset = { top: 0, right: 0, bottom: 0, left: 0 };
+  /** The stage's clear area; `sky`, when set, is the lowest the constellation may come (above the done card). */
+  inset: { top: number; right: number; bottom: number; left: number; sky?: number } = { top: 0, right: 0, bottom: 0, left: 0 };
   tall = false;
   private p: Puzzle | null = null;
   private ox = 0; private oy = 0; private s = 1;
   private bx = 0; private by = 0; private bw = 100; private bh = 80;
   private pair: [number, number, number, number] = [0, 0, 0, 0];
+  private glide: { from: Placing; to: Placing; t: number } | null = null;
   private field: [number, number, number, number] = [0, 0, 0, 0];
   private art = new Map<string, HTMLImageElement>();
   private time = 0; private sparks: Spark[] = []; private shakes = new Map<number, number>();
@@ -57,14 +60,32 @@ export class StarsScene {
     if (p?.figure) this.load('fig-' + p.figure);
     this.layout();
   }
-  /** Where things go: Dora and Enzo in the corner, the constellation in the biggest clear space left. */
-  layout() {
+  /** Where things go: Dora and Enzo in the corner, the constellation in the biggest clear space left. With `glide`,
+   *  the sky and the pair drift over to their new places (when the done card makes room for itself) instead of jumping. */
+  layout(glide = false) {
+    const from = glide && this.p ? { ox: this.ox, oy: this.oy, s: this.s, pair: [...this.pair] as [number, number, number, number] } : null;
+    this.glide = null;
+    this.place();
+    if (from && (Math.abs(from.s - this.s) > 1e-3 || Math.abs(from.ox - this.ox) > 0.5 || Math.abs(from.oy - this.oy) > 0.5 || from.pair.some((v, i) => Math.abs(v - this.pair[i]) > 0.5))) {
+      this.glide = { from, to: { ox: this.ox, oy: this.oy, s: this.s, pair: [...this.pair] as [number, number, number, number] }, t: 0 };
+      this.ox = from.ox; this.oy = from.oy; this.s = from.s; this.pair = from.pair;
+    }
+  }
+  /** Eases the sky and the pair along a glide. */
+  private glideOn(dt: number) {
+    const g = this.glide; if (!g) return;
+    g.t = Math.min(1, g.t + dt / 0.6);
+    const k = g.t * g.t * (3 - 2 * g.t), mix = (a: number, b: number) => a + (b - a) * k;
+    this.ox = mix(g.from.ox, g.to.ox); this.oy = mix(g.from.oy, g.to.oy); this.s = mix(g.from.s, g.to.s);
+    this.pair = g.from.pair.map((v, i) => mix(v, g.to.pair[i])) as [number, number, number, number];
+    if (g.t >= 1) this.glide = null;
+  }
+  private place() {
     const { W, H } = this, I = this.inset;
     this.tall = H > W * 1.05;
     if (this.tall) {
-      const pw = Math.min(W * 0.78, (H - I.top - I.bottom) * 0.26 * 2), ph = pw / 2;
-      this.pair = [(W - pw) / 2, H - I.bottom - ph - 2, pw, ph];
-      this.field = [12, I.top + 8, W - 12, this.pair[1] + ph * 0.12];
+      this.pair = this.tallPair(); const ph = this.pair[3];
+      this.field = [12, I.top + 8, W - 12, Math.min(this.pair[1] + ph * 0.12, I.sky || Infinity)];
     } else {
       const ph = Math.max(80, Math.min(H * 0.32, 380, W * 0.19)), pw = ph * 2;
       this.pair = [6, H - ph - 2, pw, ph];
@@ -81,6 +102,11 @@ export class StarsScene {
     this.s = Math.max(0.5, Math.min((r - l - pad * 2) / this.bw, (b - t - pad * 2) / this.bh, 9));
     this.ox = (l + r) / 2 - (this.bx + this.bw / 2) * this.s;
     this.oy = (t + b) / 2 - (this.by + this.bh / 2) * this.s;
+  }
+  /** Where Dora and Enzo lie on a tall screen for the current inset: centred, just above the bottom. */
+  tallPair(): [number, number, number, number] {
+    const { W, H } = this, I = this.inset, pw = Math.min(W * 0.78, (H - I.top - I.bottom) * 0.26 * 2), ph = pw / 2;
+    return [(W - pw) / 2, H - I.bottom - ph - 2, pw, ph];
   }
   toSky(px: number, py: number): [number, number] { return [(px - this.ox) / this.s, (py - this.oy) / this.s]; }
   toScreen(x: number, y: number): [number, number] { return [this.ox + x * this.s, this.oy + y * this.s]; }
@@ -108,6 +134,7 @@ export class StarsScene {
   draw(o: DrawOpts) {
     const c = this.c, { W, H } = this;
     this.time += o.dt;
+    this.glideOn(o.dt);
     c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.sky(o.night);
     const st = o.st, p = this.p;

@@ -89,6 +89,9 @@ export class Stitch {
   events: Ev[] = [];
   /** The pointer: dragging the needle, and how far the pointer has wandered since it pressed. */
   private drag = false; private moved = false; private downAt: [number, number] = [0, 0];
+  /** How far the needle has leapt during this drag: after a twin's leap the paw keeps steering the needle from where it
+   *  landed, so the pointer is read shifted by this much until it lets go. */
+  private shift: [number, number] = [0, 0];
   private won = false;
   constructor(p: Puzzle) { this.p = p; this.count = p.seams.map(() => 0); this.visits = p.stars.map(() => 0); }
   /** Where the needle is, or -1 before the first star. */
@@ -97,6 +100,8 @@ export class Stitch {
   get stitched() { return this.count.reduce((a, b) => a + b, 0); }
   get total() { return this.p.seams.reduce((a, s) => a + s.need, 0); }
   get dragging() { return this.drag; }
+  /** Where the pointer at (x, y) is steering the needle: the same point, shifted by any twin's leap in this drag. */
+  aim(x: number, y: number): [number, number] { return [x + this.shift[0], y + this.shift[1]]; }
   /** Every seam stitched and every rule kept. */
   get done() { return this.won; }
   /** The thread as the stars it touched in order, twin jumps included. */
@@ -144,24 +149,32 @@ export class Stitch {
     if (!this.started || this.won) return false;
     const r = this.seamTo(to);
     if (typeof r !== 'number') { this.events.push({ k: 'refuse', at: to, why: r }); return false; }
-    const from = this.at, tw = this.p.stars[to].twin;
+    const p = this.p, from = this.at, tw = p.stars[to].twin;
     this.count[r]++; this.visits[to]++;
     const land = tw >= 0 ? tw : to;
     if (land !== to) this.visits[land]++;
     this.moves.push({ from, seam: r, to, land });
     this.events.push({ k: 'stitch', from, to, seam: r, n: this.stitched });
-    // the needle leaps to the twin: the drag ends there, and the thread is picked up again from the twin
-    if (land !== to) { this.events.push({ k: 'jump', from: to, to: land }); this.drag = false; }
+    // the needle leaps to the twin, and a drag carries on from there: the paw now steers the needle from the twin
+    if (land !== to) {
+      this.events.push({ k: 'jump', from: to, to: land });
+      this.shift[0] += p.stars[land].x - p.stars[to].x; this.shift[1] += p.stars[land].y - p.stars[to].y;
+    }
     this.check(); return true;
   }
   /** Unpicks the last stitch (or the first star, when that's all there is). */
   undo(): boolean {
     const m = this.moves.pop();
     if (!m) { if (this.first < 0) return false; this.visits[this.first]--; this.events.push({ k: 'unpick', at: this.first }); this.first = -1; this.unpicks++; return true; }
-    this.count[m.seam]--; this.visits[m.to]--; if (m.land !== m.to) this.visits[m.land]--;
+    this.count[m.seam]--; this.visits[m.to]--;
+    if (m.land !== m.to) {
+      // unpicking a leap takes the leap back off the pointer too, so a drag goes on steering from where the needle is
+      this.visits[m.land]--;
+      const p = this.p; this.shift[0] -= p.stars[m.land].x - p.stars[m.to].x; this.shift[1] -= p.stars[m.land].y - p.stars[m.to].y;
+    }
     this.won = false; this.unpicks++; this.events.push({ k: 'unpick', at: m.from }); return true;
   }
-  restart() { if (this.first >= 0 || this.moves.length) this.restarts++; this.moves = []; this.first = -1; this.count.fill(0); this.visits.fill(0); this.won = false; this.drag = false; }
+  restart() { if (this.first >= 0 || this.moves.length) this.restarts++; this.moves = []; this.first = -1; this.count.fill(0); this.visits.fill(0); this.won = false; this.drag = false; this.shift = [0, 0]; }
   /** Stitched in one go: never unpicked or started again. */
   get clean() { return this.unpicks === 0 && this.restarts === 0; }
   /** Whether the thread can still go on, and if not, why. */
@@ -191,7 +204,7 @@ export class Stitch {
   }
   down(x: number, y: number, r: number) {
     if (this.won) return;
-    this.downAt = [x, y]; this.moved = false;
+    this.downAt = [x, y]; this.moved = false; this.shift = [0, 0];
     const i = this.starAt(x, y, r);
     if (!this.started) { if (i >= 0 && this.start(i)) this.drag = true; return; }
     if (i === this.at) { this.drag = true; return; }
@@ -204,20 +217,30 @@ export class Stitch {
     if (!this.drag || this.won) return;
     if (!this.moved && Math.hypot(x - this.downAt[0], y - this.downAt[1]) > r * 0.5) this.moved = true;
     if (!this.moved) return;
-    for (let n = 0; n < 4 && this.drag && !this.won; n++) if (!this.snap(x, y, r)) break;
+    for (let n = 0; n < 4 && this.drag && !this.won; n++) { const [ax, ay] = this.aim(x, y); if (!this.snap(ax, ay, r)) break; }
   }
-  up() { this.drag = false; }
+  up() { this.drag = false; this.shift = [0, 0]; }
   /** One step of the drag: stitch to the star the pointer is heading for, or unpick back along the thread. */
   private snap(x: number, y: number, r: number): boolean {
     const at = this.at, A = this.p.stars[at], opts = this.options();
     const last = this.moves[this.moves.length - 1];
-    const back = last && !opts.includes(last.from) ? last.from : -1;
+    let back = last && !opts.includes(last.from) ? last.from : -1;
+    // where each candidate lies for the drag; after a leap, the way back is the way the paw came, back along the
+    // stitch into the twin, seen from where the needle landed
+    const pos = (j: number, isBack: boolean): { x: number; y: number } => {
+      const B = this.p.stars[j]; if (!isBack || last.land === last.to) return B;
+      const T = this.p.stars[last.to], L = this.p.stars[last.land]; return { x: B.x + L.x - T.x, y: B.y + L.y - T.y };
+    };
+    const heading = (B: { x: number; y: number }) => Math.atan2(B.y - A.y, B.x - A.x);
+    const apart = (a: number, b: number) => { const d = Math.abs(a - b); return d > Math.PI ? 2 * Math.PI - d : d; };
+    // that way back can line up with a star the needle could go on to; going on wins (↶ still unpicks the leap)
+    if (back >= 0 && last.land !== last.to) { const g = heading(pos(back, true)); if (opts.some((j) => apart(heading(this.p.stars[j]), g) < 0.5)) back = -1; }
     const cands: [number, boolean][] = opts.map((j) => [j, false]);
     if (back >= 0) cands.push([back, true]);
     if (!cands.length) return false;
     let pick = -1, unpick = false, near = r;
     // right on a star: that one
-    for (const [j, isBack] of cands) { const B = this.p.stars[j], d = Math.hypot(B.x - x, B.y - y); if (d <= near) { near = d; pick = j; unpick = isBack; } }
+    for (const [j, isBack] of cands) { const B = pos(j, isBack), d = Math.hypot(B.x - x, B.y - y); if (d <= near) { near = d; pick = j; unpick = isBack; } }
     if (pick < 0) {
       // otherwise the star whose direction the drag is heading in, once it is past 60% of the way along its seam and
       // not far off the line. Unpicking asks for more (further along, closer to the thread), so a drag that only
@@ -225,8 +248,8 @@ export class Stitch {
       const ux = x - A.x, uy = y - A.y; if (Math.hypot(ux, uy) < r * 0.8) return false;
       const ang = Math.atan2(uy, ux);
       let best: [number, boolean] | null = null, bestD = Infinity;
-      for (const c of cands) { const B = this.p.stars[c[0]]; let d = Math.abs(Math.atan2(B.y - A.y, B.x - A.x) - ang); if (d > Math.PI) d = 2 * Math.PI - d; if (d < bestD) { bestD = d; best = c; } }
-      const [j, isBack] = best!, B = this.p.stars[j], vx = B.x - A.x, vy = B.y - A.y, L2 = vx * vx + vy * vy, L = Math.sqrt(L2) || 1;
+      for (const c of cands) { const d = apart(heading(pos(c[0], c[1])), ang); if (d < bestD) { bestD = d; best = c; } }
+      const [j, isBack] = best!, B = pos(j, isBack), vx = B.x - A.x, vy = B.y - A.y, L2 = vx * vx + vy * vy, L = Math.sqrt(L2) || 1;
       const t = (ux * vx + uy * vy) / L2, perp = Math.abs(ux * vy - uy * vx) / L;
       const ok = isBack ? t > 0.72 && t < 1.4 && perp < r * 0.8 : t > 0.6 && t < 1.6 && perp < Math.max(r, L * 0.28);
       if (ok) { pick = j; unpick = isBack; }

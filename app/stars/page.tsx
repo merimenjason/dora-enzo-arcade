@@ -159,7 +159,18 @@ export default function StarsPage() {
     sc.resize();
     const t = tools.current?.getBoundingClientRect(), sd = side.current?.getBoundingClientRect(), tall = r.height > r.width * 1.05;
     sc.inset = { top: tall && sd && sd.height > 0 ? Math.max(0, sd.bottom - r.top) : 0, right: 0, left: 0, bottom: t && t.height > 0 ? Math.max(8, r.bottom - t.top + 4) : 8 };
-    sc.layout();
+    // the done card makes room for itself, so it covers neither Dora and Enzo nor the constellation: on a phone held
+    // upright it sits between them, the pair below on the hill and the sky above; held sideways (or on a squarish screen) it
+    // sits on the right with the sky between it and the pair; on a big wide screen it already sits above the pair
+    // (read from its layout box, not its rising animation)
+    const card = el.querySelector<HTMLElement>('.ss-done');
+    if (card && tall) {
+      // the pair settles on the hill where the tools were, the card sits just above them, the sky above the card
+      sc.inset = { top: 0, right: 0, left: 0, bottom: 6 };
+      card.style.setProperty('--doneb', `${Math.round(el.clientHeight - sc.tallPair()[1] + 2)}px`);
+      sc.inset.sky = card.offsetTop - 4;
+    } else if (card && card.offsetLeft > el.clientWidth / 2) sc.inset = { ...sc.inset, right: Math.max(0, el.clientWidth - card.offsetLeft + 4), bottom: 8 };
+    sc.layout(!!card);
     setPairW(Math.round(sc.metrics().pair[2]));
   }
 
@@ -169,7 +180,7 @@ export default function StarsPage() {
     const coarse = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
     setTouch(coarse); setMounted(true); refresh();
     const w = window as unknown as Record<string, unknown>;
-    w.__stars = () => ({ screen: screenRef.current, mode: mode.current, puzzle: st.current?.p.id ?? null, st: st.current, save: save.current, hint: hintRef.current, freeHint: freeHint.current, blaze: blaze.current });
+    w.__stars = () => ({ screen: screenRef.current, mode: mode.current, puzzle: st.current?.p.id ?? null, st: st.current, save: save.current, hint: hintRef.current, freeHint: freeHint.current, blaze: blaze.current, focus: focus.current });
     w.__starsOpen = (id: string) => { const p = PUZZLE[id]; if (p) openPuzzle(p); };
     w.__starsPoint = (i: number) => { const sc = scene.current, cv = canvas.current, s = st.current; if (!sc || !cv || !s) return null; const b = cv.getBoundingClientRect(), q = s.p.stars[i], [x, y] = sc.toScreen(q.x, q.y); return [b.left + x, b.top + y]; };
     w.__starsSky = (x: number, y: number) => { const sc = scene.current, cv = canvas.current; if (!sc || !cv) return null; const b = cv.getBoundingClientRect(), [sx, sy] = sc.toScreen(x, y); return [b.left + sx, b.top + sy]; };
@@ -191,7 +202,7 @@ export default function StarsPage() {
         if (s?.done) blaze.current = Math.min(1, blaze.current + dt / 2.2);
         if (screenRef.current === 'play' && s) {
           const m = moodRef.current.until > clock.current ? moodRef.current.m : s.done ? 'gasp' : 'point';
-          sc.draw({ dt, st: s, night: s.p.night >= 1 ? s.p.night : s.p.night === 0 ? 1 : 1 + (s.p.id.length % 5), pointer: pointer.current, mood: m, hint: hintRef.current, blaze: blaze.current, focus: focus.current, touch: false });
+          sc.draw({ dt, st: s, night: s.p.night >= 1 ? s.p.night : s.p.night === 0 ? 1 : 1 + (s.p.id.length % 5), pointer: pointer.current && s.dragging ? s.aim(pointer.current[0], pointer.current[1]) : pointer.current, mood: m, hint: hintRef.current, blaze: blaze.current, focus: focus.current, touch: false });
         }
         sound.current?.tick(true);
         raf = requestAnimationFrame(loop);
@@ -214,7 +225,18 @@ export default function StarsPage() {
         focus.current = sorted[(i < 0 ? (back ? sorted.length - 1 : 0) : i + (back ? -1 : 1) + sorted.length) % sorted.length];
         audio().ui(); refresh(); return;
       }
-      if (k === 'enter' || k === ' ') { e.preventDefault(); if (focus.current >= 0 && list.includes(focus.current)) { audio(); if (s.started) s.stitch(focus.current); else s.start(focus.current); focus.current = -1; drain(); } return; }
+      if (k === 'enter' || k === ' ') {
+        e.preventDefault(); if (focus.current < 0 || !list.includes(focus.current)) return;
+        audio(); const to = focus.current, from = s.at; focus.current = -1;
+        if (!s.started) s.start(to);
+        else if (s.stitch(to) && s.at !== to && !s.done) {
+          // a twin's leap: carry straight on from the twin, choosing the star that keeps the stitch's heading
+          const L = s.p.stars[s.at], ang = Math.atan2(s.p.stars[to].y - s.p.stars[from].y, s.p.stars[to].x - s.p.stars[from].x);
+          const turn = (j: number) => { const d = Math.abs(Math.atan2(s.p.stars[j].y - L.y, s.p.stars[j].x - L.x) - ang); return d > Math.PI ? 2 * Math.PI - d : d; };
+          const next = s.options().sort((a, b) => turn(a) - turn(b))[0]; if (next !== undefined) focus.current = next;
+        }
+        drain(); return;
+      }
       if (k === 'backspace' || k === 'z' || k === 'u') { e.preventDefault(); audio(); undo(); return; }
       if (k === 'r') { e.preventDefault(); restart(); return; }
       if (k === 'h') { e.preventDefault(); askHint(); return; }
@@ -273,7 +295,7 @@ export default function StarsPage() {
   const keys = <><kbd>←</kbd><kbd>→</kbd> choose a star · <kbd>Enter</kbd> stitch · <kbd>Z</kbd> unpick · <kbd>R</kbd> start again · <kbd>H</kbd> hint · <kbd>Esc</kbd> sky chart</>;
 
   return (
-    <main className="ss-shell" data-ready={ready && mounted ? 'true' : undefined} data-screen={screen} data-touch={touch ? orient : undefined} style={{ ['--pairw' as string]: `${pairW}px` }}>
+    <main className="ss-shell" data-ready={ready && mounted ? 'true' : undefined} data-screen={screen} data-orient={orient} data-touch={touch ? orient : undefined} style={{ ['--pairw' as string]: `${pairW}px` }}>
       {screen === 'play' && p && (
         <header className="ss-bar">
           <button className="ss-back" onClick={() => (mode.current === 'story' ? toChart() : toMenu())}>← {mode.current === 'story' ? 'SKY CHART' : 'MENU'}</button>
@@ -292,7 +314,7 @@ export default function StarsPage() {
             {p.rules.length > 0 && <ul className="ss-rules">{p.rules.map((r) => <li key={r}>{RULE_TIP[r]}</li>)}</ul>}
           </div>
           {!s.done && <p className="ss-hint" role="status">{!s.started ? (p.stars.some((q) => q.moon === 'start') ? 'Begin at the crescent moon: press it and drag along a seam.' : touch ? 'Touch a star and drag along a seam to start stitching.' : 'Press on a star and drag along a seam to start stitching.') : 'Drag on to the next star. Drag back along the thread to unpick.'}</p>}
-          <div className="ss-tools" ref={tools} role="toolbar" aria-label="Stitching tools">
+          <div className={'ss-tools' + (done ? ' is-gone' : '')} ref={tools} role="toolbar" aria-label="Stitching tools">
             <button className="ss-btn" onClick={() => { audio(); undo(); }} disabled={!s.started || s.done} aria-label="Unpick" title="Unpick the last stitch (Z)">↶<small>Unpick</small></button>
             <button className="ss-btn" onClick={restart} disabled={!s.started || s.done} aria-label="Start again" title="Unpick it all (R)">↺<small>Again</small></button>
             <button className="ss-btn ss-hintbtn" onClick={() => { audio(); askHint(); }} disabled={s.done || hintsLeft <= 0} aria-label="Hint" title="A gentle nudge (H)">✨<small>Hint{freeHint.current ? ' (free)' : ` (${bank})`}</small></button>

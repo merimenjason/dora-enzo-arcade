@@ -171,6 +171,22 @@ const play = (p, sol) => { const st = new Stitch(p); st.start(sol.start); for (c
   st.move(50, 75, r); eq(st.at, 3, 'and on to d');
   st.move(13, 40, r); ok(st.at !== 0, 'no seam from d to a: nothing happens');
 }
+{
+  // a drag carries on through a twin's leap, steering the needle from where it landed, and back again
+  const p = mk('a 10 10, t 40 10 ~u, u 70 60 ~t, v 90 40, w 90 75', 'a-t u-v v-w w-u');
+  const st = new Stitch(p), r = 4;
+  st.down(10, 10, r); st.move(25, 10, r); st.move(40, 10, r);
+  eq(st.at, 2, 'dragged into t, the needle leaps to u'); ok(st.dragging, 'and the drag goes on');
+  eq(st.aim(40, 10), [70, 60], 'the paw on t now steers the needle at u');
+  st.move(50, 0, r); st.move(60, -10, r); eq(st.at, 3, 'on from u to v without letting go'); ok(st.dragging);
+  st.move(40, 10, r); eq(st.at, 2, 'dragging back unpicks v');
+  st.move(25, 10, r); st.move(10, 10, r); eq(st.at, 0, 'and dragging back the way the paw came unpicks the leap'); eq(st.visits[2], 0);
+  eq(st.aim(10, 10), [10, 10], 'the leap is off the pointer too');
+  st.up(); eq(st.aim(5, 5), [5, 5], 'letting go forgets any leap');
+  // a tap into a twin and on: the drag that follows steers from the twin too
+  const s2 = new Stitch(p); s2.down(10, 10, r); s2.up(); s2.down(40, 10, r); eq(s2.at, 2); ok(s2.dragging);
+  s2.move(50, 0, r); s2.move(60, -10, r); eq(s2.at, 3, 'after a tapped leap, a drag carries on from the twin');
+}
 
 // ---- hints
 {

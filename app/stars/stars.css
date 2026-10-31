@@ -61,8 +61,13 @@
 .ss-card,.ss-panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(460px,calc(100% - 24px));max-height:calc(100% - 16px);overflow:auto;background:linear-gradient(180deg,#1d2462f6,#141a4af6);border:2px solid #5b66c0;border-radius:20px;padding:18px 20px;z-index:6;box-shadow:0 18px 50px #000a;display:flex;flex-direction:column;gap:9px;text-align:center}
 .ss-card h3,.ss-panel h2{font-size:22px;color:#fff4d0}
 .ss-card p:not(.ss-eyebrow){font-size:15px;color:#e4e8ff}
+/* the done card never covers Dora and Enzo or the constellation: the page makes room for it (see layout() in page.tsx).
+   On a big wide screen it sits above the pair, beside the sky; on a short wide screen (a phone held sideways) or a
+   squarish one it sits on the right, with the sky between it and the pair; held upright it sits just above the pair */
 .ss-done{animation:ss-rise .5s ease-out both}
-@media (min-aspect-ratio:21/20) and (min-height:521px){.ss-done{left:16px;top:16px;transform:none;width:min(440px,calc(var(--pairw) - 4px));animation-name:ss-rise-side}}
+.ss-shell[data-orient=wide] .ss-done{left:auto;right:12px;top:50%;transform:translateY(-50%);width:min(340px,calc(46% - 12px));animation-name:ss-rise-right}
+@media (min-aspect-ratio:21/20) and (min-height:521px){.ss-shell[data-orient=wide] .ss-done{left:16px;right:auto;top:16px;transform:none;width:min(440px,calc(var(--pairw) - 4px));animation-name:ss-rise-side}}
+@keyframes ss-rise-right{from{opacity:0;transform:translate(14px,-50%)}to{opacity:1;transform:translateY(-50%)}}
 @keyframes ss-rise-side{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes ss-rise{from{opacity:0;transform:translate(-50%,-44%)}to{opacity:1;transform:translate(-50%,-50%)}}
 .ss-done h2{font-size:28px;color:var(--gold);text-shadow:0 0 18px #ffb83a88}
@@ -125,6 +130,17 @@
 @media (max-height:520px){.ss-ending-text{bottom:8px;padding:9px 12px;gap:4px;font-size:13px}.ss-ending-text h2{font-size:18px}}
 .ss-side.is-gone{visibility:hidden}
 @media (max-width:520px){.ss-bar-mid small{display:none}}
-/* on a phone held upright the card waits at the bottom, so the constellation and its painting show above it */
-@media (max-aspect-ratio:20/21){.ss-done{top:auto;bottom:10px;transform:translateX(-50%);animation-name:ss-rise-low}}
+/* on a phone held upright the card waits low down, kept compact: Dora and Enzo on the hill below it (--doneb, set by
+   the page from where they lie) and the constellation above it */
+.ss-shell[data-orient=tall] .ss-done{top:auto;bottom:var(--doneb,10px);transform:translateX(-50%);animation-name:ss-rise-low;max-height:calc(100% - var(--doneb,10px) - 120px)}
+/* compact wherever it shares the screen with the sky: everywhere but a big wide screen */
+@media not all and (min-aspect-ratio:21/20) and (min-height:521px){
+  .ss-shell .ss-done{padding:14px 16px;gap:6px}
+  .ss-shell .ss-done h2{font-size:24px}
+  .ss-shell .ss-done .ss-story{font-size:14px}
+  .ss-shell .ss-done .ss-earn{font-size:12.5px}
+  .ss-shell .ss-done .ss-row{flex-wrap:nowrap;gap:6px}
+  .ss-shell .ss-done .ss-row>button{min-width:0;padding:9px 11px;font-size:14px;white-space:nowrap}
+}
+.ss-tools.is-gone{visibility:hidden}
 @keyframes ss-rise-low{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translateX(-50%)}}
