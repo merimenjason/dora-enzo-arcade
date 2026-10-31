@@ -1,0 +1,125 @@
+.pf-shell{--ink:#3a2618;--paper:#fffaf0;--card:#fffaf0f2;--line:#e6d2b0;--red:#d9483b;--gold:#f0bf3e;--teal:#2fa59a;--navy:#2c3c78;position:relative;width:100%;height:100svh;min-height:320px;overflow:hidden;display:flex;flex-direction:column;background:#f1d9b4;color:var(--ink);font-family:"Trebuchet MS",ui-rounded,system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+.pf-shell *{box-sizing:border-box}
+/* the global stylesheet colours every <p>; in here paragraphs take their colour from where they sit */
+:where(.pf-shell) p{color:inherit;font-size:inherit;line-height:1.45;margin:0}
+.pf-shell h1,.pf-shell h2{margin:0;font-family:inherit;color:inherit;letter-spacing:normal}
+.pf-shell header{margin:0}
+.pf-shell button,.pf-shell a{font:inherit}
+.pf-shell button{border:2px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font-weight:800;padding:9px 14px;cursor:pointer;min-height:42px;box-shadow:2px 3px 0 #6a432222;transition:transform .15s,border-color .15s,background .15s}
+.pf-shell button:hover:not(:disabled){transform:translateY(-1px) rotate(-.4deg);border-color:var(--gold)}
+.pf-shell button:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #6a432222}
+.pf-shell button:disabled{opacity:.45;cursor:default}
+.pf-shell button:focus-visible,.pf-shell a:focus-visible,.pf-canvas:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+.pf-shell button.pf-primary{background:var(--red);border-color:#a3302a;color:#fff8ec;text-shadow:0 1px 0 #0003}
+.pf-shell button.pf-primary:hover:not(:disabled){border-color:#ffd25a}
+.pf-shell kbd{font:800 11px ui-rounded,system-ui,sans-serif;background:#fff;border:1.5px solid var(--line);border-bottom-width:3px;border-radius:6px;padding:1px 5px;margin:0 1px;color:var(--ink)}
+.pf-eyebrow{font-size:11.5px;font-weight:900;letter-spacing:2.2px;color:#b0542e}
+.pf-note{font-size:13.5px;font-weight:700;color:#7a5a40}
+.pf-back{color:var(--ink);font-size:12px;font-weight:900;letter-spacing:1px;text-decoration:none;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:7px 11px;white-space:nowrap;cursor:pointer}
+.pf-shell button.pf-back{min-height:0;box-shadow:none}
+.pf-toggles{display:inline-flex;gap:6px}
+.pf-shell button.pf-tog{min-height:0;padding:6px 10px;font-size:12px;box-shadow:none;opacity:.7}
+.pf-shell button.pf-tog.is-on{opacity:1;background:#fff3c8;border-color:var(--gold)}
+.pf-error{position:absolute;inset:auto 0 20px;text-align:center;font-weight:800;color:#a3302a}
+
+/* ---- menu: the title painting with a paper card */
+.pf-menu{position:relative;flex:1;display:flex;align-items:center;justify-content:flex-end;padding:3vh 4vw}
+.pf-art{position:absolute;inset:0;display:block;overflow:hidden}
+.pf-art canvas,.pf-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pf-menu-art img,.pf-menu-art canvas{object-position:28% 50%}
+.pf-menu-card,.pf-ending-card{position:relative;width:min(420px,40vw);background:var(--card);border-radius:6px;padding:24px 26px 20px;box-shadow:6px 9px 0 #5a382028,0 18px 40px #3a20102e;transform:rotate(.6deg);display:flex;flex-direction:column;gap:12px}
+.pf-menu-card::before,.pf-ending-card::before{content:"";position:absolute;left:50%;top:-12px;width:90px;height:24px;margin-left:-45px;background:#f8ecc4d8;transform:rotate(-3deg);box-shadow:0 1px 2px #0002}
+.pf-menu-card h1{font-size:clamp(40px,5vw,64px);line-height:.95;font-weight:900;color:var(--red);text-shadow:3px 3px 0 #f0bf3e88;letter-spacing:-1px}
+.pf-lede{font-size:15px;font-weight:600}
+.pf-menu-buttons{display:flex;flex-direction:column;gap:8px}
+.pf-menu-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+
+/* ---- the book */
+.pf-book{flex:1;display:flex;flex-direction:column;min-height:0;overflow:auto;background:#f4e2c2}
+.pf-bar{flex:none;min-height:50px;display:flex;align-items:center;gap:8px;padding:5px 10px;background:linear-gradient(180deg,#c0563d,#a5432f);border-bottom:3px solid #7a2e20;z-index:3}
+.pf-bar-mid{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:14px;font-size:15px;font-weight:800;color:#fff6e4;white-space:nowrap;overflow:hidden;text-shadow:0 1px 0 #0004}
+.pf-name{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.pf-name small{font-size:11px;letter-spacing:1px;opacity:.8;margin-right:3px}
+.pf-count{font-variant-numeric:tabular-nums;background:#0000002a;border-radius:999px;padding:3px 11px}
+.pf-count b{font-size:18px;color:#fff2b8}
+.pf-count small{opacity:.85;font-size:12px}
+.pf-count.is-over b{color:#ffd0c0}
+.pf-shell button.pf-small{min-height:0;padding:6px 12px;font-size:13px}
+.pf-tabs{display:flex;gap:6px;padding:12px 14px 4px;overflow-x:auto;flex:none}
+.pf-shell button.pf-tab{flex:none;min-height:0;padding:7px 12px;font-size:13.5px;border-radius:10px 10px 4px 4px}
+.pf-tab b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--gold);color:var(--ink);font-size:12px;margin-right:2px}
+.pf-tab small{opacity:.7;margin-left:4px}
+.pf-shell button.pf-tab.is-on{background:#fff;border-color:var(--red)}
+.pf-chapter-blurb{padding:4px 18px 8px;font-weight:700;font-size:14.5px;color:#6a4a30}
+.pf-pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:6px 14px 20px}
+.pf-shell button.pf-page{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 8px;border-radius:6px;background:#fffaf0;position:relative;min-height:150px}
+.pf-shell button.pf-page:nth-child(odd){transform:rotate(-.6deg)}
+.pf-shell button.pf-page:nth-child(even){transform:rotate(.5deg)}
+.pf-shell button.pf-page.is-done{background:#fff7dd}
+.pf-shell button.pf-page.is-show{border-color:#c9a14a;background:#fff3cf}
+.pf-page-no{position:absolute;top:6px;left:8px;font-size:11px;font-weight:900;color:#b0542e}
+.pf-page-name{font-size:14px;font-weight:800;text-align:center;line-height:1.15}
+.pf-lock{display:grid;place-items:center;width:70px;height:70px;font-size:26px;opacity:.6}
+.pf-seal{font-size:12px;font-weight:800;color:#8a6a4a;font-variant-numeric:tabular-nums}
+.pf-seal.s3{color:#b07a00}.pf-seal.s2{color:#5a7590}.pf-seal.s1{color:#8a5a3a}
+.pf-book-note{padding:0 18px 20px}
+.pf-thumb{display:block}
+
+/* ---- the folding table */
+.pf-stage{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+.pf-stage.is-hidden{position:absolute;inset:0;visibility:hidden;pointer-events:none}
+.pf-canvas{flex:1;min-height:0;width:100%;display:block;touch-action:none;cursor:pointer;outline:none}
+.pf-tools{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:8px;z-index:2}
+.pf-shell .pf-tools button{background:#fffaf0f5;min-width:96px}
+.pf-shell .pf-tools button.pf-hint{background:#fff3c0;border-color:var(--gold);animation:pf-glow 1.6s ease-in-out infinite}
+@keyframes pf-glow{50%{box-shadow:0 0 0 5px #f0bf3e55,2px 3px 0 #6a432222}}
+.pf-toast{position:absolute;left:50%;bottom:72px;transform:translateX(-50%);max-width:min(560px,92vw);background:#fffaf0f5;border:2px solid var(--line);border-radius:10px;padding:8px 14px;font-weight:700;font-size:14px;text-align:center;box-shadow:3px 4px 0 #5a382022;z-index:2;pointer-events:none}
+.pf-result,.pf-tip{position:absolute;inset:0;display:grid;place-items:center;background:#3a20100f;z-index:4;padding:16px}
+.pf-result-card,.pf-tip-card{width:min(420px,94vw);background:var(--card);border-radius:6px;padding:20px 22px;box-shadow:6px 9px 0 #5a382028,0 18px 40px #3a20103a;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;transform:rotate(-.5deg);animation:pf-pop .45s cubic-bezier(.2,1.5,.4,1)}
+@keyframes pf-pop{from{transform:scale(.7) rotate(-4deg);opacity:0}}
+.pf-result-card h2,.pf-tip-card h2{font-size:24px;font-weight:900;color:var(--red)}
+.pf-stamp{display:inline-flex;align-items:center;gap:6px;font-weight:900;font-size:15px;letter-spacing:.5px;text-transform:uppercase;padding:4px 14px;border:3px solid currentColor;border-radius:999px;transform:rotate(-4deg);animation:pf-stamp .5s .35s both cubic-bezier(.3,1.6,.5,1)}
+.pf-stamp span{font-size:20px}
+.pf-stamp.s3{color:#c08e1e;background:#fff3c0}.pf-stamp.s2{color:#6a8098;background:#eef3f8}.pf-stamp.s1{color:#8a5a3a;background:#f6eadc}
+@keyframes pf-stamp{from{transform:scale(2.4) rotate(-14deg);opacity:0}}
+.pf-result-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+.pf-tip-card{align-items:stretch;text-align:left}
+.pf-tip-card p{font-size:15px;font-weight:600}
+.pf-keys{font-size:12.5px!important;color:#7a5a40}
+
+/* ---- ending */
+.pf-ending{position:relative;flex:1;display:flex;align-items:flex-end;justify-content:center;padding:3vh 4vw}
+.pf-ending-card{width:min(560px,92vw);transform:rotate(-.4deg)}
+.pf-ending-card h2{font-size:clamp(28px,3.4vw,42px);font-weight:900;color:var(--navy)}
+
+/* ---- phones */
+@media (max-width:760px),(max-height:520px){
+  .pf-bar{min-height:44px;padding:4px 6px;gap:5px}
+  .pf-bar-mid{font-size:13px;gap:8px}
+  .pf-count b{font-size:15px}
+  .pf-shell button.pf-tog{padding:5px 7px;font-size:11px}
+  .pf-back{padding:6px 8px;font-size:11px}
+  .pf-pages{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:9px}
+  .pf-shell .pf-tools button{min-width:0;padding:8px 12px}
+}
+@media (max-width:760px) and (orientation:portrait){
+  .pf-menu{align-items:flex-end;justify-content:center;padding:14px}
+  .pf-menu-art img,.pf-menu-art canvas{object-position:30% 0;height:58%}
+  .pf-menu-card{width:100%;padding:16px 18px 14px;gap:9px}
+  .pf-menu-card h1{font-size:40px}
+  .pf-lede{font-size:13.5px}
+  .pf-name small{display:none}
+  .pf-ending{padding:12px}
+  .pf-ending-art img,.pf-ending-art canvas{height:55%;object-position:50% 0}
+}
+@media (max-height:520px) and (orientation:landscape){
+  .pf-menu{padding:10px 16px}
+  .pf-menu-card{width:min(380px,48vw);padding:12px 16px;gap:7px}
+  .pf-menu-card h1{font-size:34px}
+  .pf-lede{display:none}
+  .pf-menu-buttons{gap:5px}
+  .pf-shell .pf-menu-buttons button{min-height:36px;padding:6px 12px}
+  .pf-ending-card p:not(.pf-note){display:none}
+  .pf-tools{bottom:6px}
+  .pf-toast{bottom:56px}
+}

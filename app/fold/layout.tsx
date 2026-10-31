@@ -1,0 +1,3 @@
+import type { Metadata } from 'next';
+export const metadata: Metadata = { title: 'Paperfold · Dora & Enzo’s Arcade', description: 'An origami folding puzzle in cut paper. A gust has scattered the pages of the lantern festival book: fold coloured sheets along their creases to match each picture, with holes, tape, mountain creases and ribbons along the way. Forty pages in five chapters, a gold seal for every page folded in par, and a festival that fills with lanterns, boats, cranes and stars until the night lights up.' };
+export default function FoldLayout({ children }: { children: React.ReactNode }) { return children; }
