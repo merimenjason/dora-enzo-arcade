@@ -32,6 +32,16 @@ All numbers below come from `lib/fort-physics.ts`, `lib/fort-levels.ts`, `lib/fo
 - **Hazards:** the window draught pushes every piece sideways, harder the higher it sits; the cat creeps in every few pieces and pounces on the top piece, and comes back at bedtime; thunder shakes the floor a moment after the drop it is due on and again at bedtime; sleepy Enzo yawns after his piece number, flops onto the fort for a few seconds of nap and then gets up.
 - Time slows to 0.4 while the top of a tall fort wobbles, and during the check when anything is moving.
 
+## The view
+
+All in `lib/fort-scene.ts`; the zoom is drawing only and never touches the physics.
+
+- **Zoom:** each night is framed to its star line plus 2.2 units of headroom (at least 5.2 units), enough for a piece hanging over a fort that reaches the star line. Only a fort built past that pulls the camera back.
+- **Wide screens:** the zoom also fits the rug with Dora and Enzo beside it, each 1.9 units tall (up to 2.6 on a tall night, when the height sets the zoom and leaves width spare), their fur on the fort side 0.3 past the rug's edge. The height lines span the rug, with their labels inside its right end. On a sideways phone the buttons stack down the right edge and the scene fits the space to their left.
+- **Upright phones:** the rug fills the width and Dora and Enzo sit below it. The room painting only has to reach the rug, so more of it shows, and the slice is centred on each room's cosy corner (the rainy window, the round attic window, the library lamp and shelves, the treehouse lantern).
+- **Bedtime card:** it stands beside the fort on wide screens and above it on upright ones. On wide screens the camera glides over to frame the fort that was built, with Dora and Enzo close beside it.
+- **Felt:** a seeded 128-pixel felt tile (mottling, grain and curly fibres), drawn once offscreen, overlays every fabric at a fixed on-screen grain size and moves with each piece. Stuffed pieces are lit from above and shaded underneath, and their running stitches cast a faint shadow.
+
 ## The nights
 
 `par` was set from the search bot's play; `den` and lines were set between what the naive bot and the search bot reach.

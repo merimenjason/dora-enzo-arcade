@@ -66,7 +66,7 @@ const roomOf = (id: string) => nightById(id)!.room;
 const nightLabel = (id: string) => { const r = ROOMS.findIndex((x) => x.id === roomOf(id)); return `${r + 1}-${roomNights(roomOf(id)).findIndex((n) => n.id === id) + 1}`; };
 
 export default function FortPage() {
-  const canvas = useRef<HTMLCanvasElement>(null), stage = useRef<HTMLDivElement>(null);
+  const canvas = useRef<HTMLCanvasElement>(null), stage = useRef<HTMLDivElement>(null), resultCard = useRef<HTMLDivElement>(null);
   const scene = useRef<FortScene | null>(null), sound = useRef<FortSound | null>(null);
   const save = useRef<Save>(freshSave()), game = useRef<FortGame | null>(null);
   const screenRef = useRef<Screen>('menu'), acc = useRef(0), scale = useRef(1), moodT = useRef({ worry: 0, cheer: 0 }), resultT = useRef(0);
@@ -181,6 +181,14 @@ export default function FortPage() {
   }, []);
   const tipOpen = useRef(false); tipOpen.current = !!tip;
   useEffect(() => { requestAnimationFrame(() => scene.current?.resize()); }, [screen, orient, touch, result]);
+  // the bedtime card sits beside the fort (wide) or above it (upright): the camera glides over to leave it the room
+  useEffect(() => {
+    const sc = scene.current, card = resultCard.current, cv = canvas.current; if (!sc) return;
+    if (!result || !card || !cv) { sc.reserve = { right: 0, top: 0 }; return; }
+    // offsets, not the bounding box: the card pops in scaled
+    const box = card.offsetParent as HTMLElement | null;
+    sc.reserve = sc.layout.tall ? { right: 0, top: Math.max(0, card.offsetTop + card.offsetHeight - cv.offsetTop + 10) } : { right: Math.max(0, (box?.offsetWidth ?? 0) - card.offsetLeft + 14), top: 0 };
+  }, [result, orient]);
 
   // ---- actions
   const aimAt = (x: number) => { const g = game.current; if (!g?.held) return; const before = g.held.x; g.aim(x); if (g.held.x !== before) sound.current?.aim(); };
@@ -356,7 +364,7 @@ export default function FortPage() {
         {screen === 'play' && toast && !result && <p className="pw-toast" role="status">{toast}</p>}
         {screen === 'play' && result && (
           <div className="pw-result" role="dialog" aria-label="Bedtime">
-            <div className={'pw-result-card s' + result.stars}>
+            <div className={'pw-result-card s' + result.stars} ref={resultCard}>
               <p className="pw-eyebrow">NIGHT {nightNo(result.id)} · {nightById(result.id)!.name.toUpperCase()}</p>
               <p className="pw-stars" aria-label={`${result.stars} stars`}>{[1, 2, 3].map((k) => <i key={k} className={result.stars >= k ? 'on' : ''}>★</i>)}</p>
               <h2>{TITLES[result.stars][(result.used + Math.round(result.height * 10)) % TITLES[result.stars].length]}</h2>

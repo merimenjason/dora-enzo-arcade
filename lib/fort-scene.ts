@@ -19,18 +19,41 @@ export function art(name: string): HTMLImageElement | null {
 export function preload() { for (const who of ['dora', 'enzo']) for (const p of POSES) art(`${who}-${p}`); for (const r of ['living', 'attic', 'library', 'treehouse']) art(`room-${r}`); }
 
 // ---- felt: one seeded noise tile, used as a pattern over every fabric
+// Mid-grey is neutral under 'overlay', so the tile only lightens and darkens: soft mottling (felted wool is never
+// even), fine grain, and short curly fibres. It tiles seamlessly because every layer wraps.
+const TILE = 128;
 let FELT: HTMLCanvasElement | null = null;
 function felt(): HTMLCanvasElement | null {
   if (FELT || typeof document === 'undefined') return FELT;
-  const c = document.createElement('canvas'); c.width = c.height = 96;
+  const c = document.createElement('canvas'); c.width = c.height = TILE;
   const x = c.getContext('2d'); if (!x) return null;
-  const d = x.createImageData(96, 96); let s = 1234567;
+  let s = 1234567;
   const r = () => { s = (s * 1103515245 + 12345) >>> 0; return (s >>> 8) / 16777216; };
-  for (let i = 0; i < 96 * 96; i++) { const v = 128 + (r() - 0.5) * 70; d.data[i * 4] = v; d.data[i * 4 + 1] = v; d.data[i * 4 + 2] = v; d.data[i * 4 + 3] = 255; }
+  // wrapping value noise at two scales for the mottling
+  const grid = (n: number) => { const g: number[] = []; for (let i = 0; i < n * n; i++) g.push(r() - 0.5); return (u: number, v: number) => {
+    const fx = u * n, fy = v * n, x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0, sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
+    const at = (i: number, j: number) => g[((j + n) % n) * n + ((i + n) % n)];
+    const a = at(x0, y0) + (at(x0 + 1, y0) - at(x0, y0)) * sx, b = at(x0, y0 + 1) + (at(x0 + 1, y0 + 1) - at(x0, y0 + 1)) * sx;
+    return a + (b - a) * sy;
+  }; };
+  const big = grid(4), mid = grid(12);
+  const d = x.createImageData(TILE, TILE);
+  for (let j = 0; j < TILE; j++) for (let i = 0; i < TILE; i++) {
+    const u = i / TILE, v = j / TILE, k = (j * TILE + i) * 4;
+    const val = 128 + big(u, v) * 46 + mid(u, v) * 40 + (r() - 0.5) * 34;
+    d.data[k] = d.data[k + 1] = d.data[k + 2] = Math.max(0, Math.min(255, val)); d.data[k + 3] = 255;
+  }
   x.putImageData(d, 0, 0);
-  // little fibres
-  x.lineWidth = 0.6;
-  for (let i = 0; i < 260; i++) { const a = r() * Math.PI * 2, px = r() * 96, py = r() * 96, l = 2 + r() * 5; x.strokeStyle = r() < 0.5 ? '#ffffff30' : '#00000028'; x.beginPath(); x.moveTo(px, py); x.lineTo(px + Math.cos(a) * l, py + Math.sin(a) * l); x.stroke(); }
+  // curly fibres, drawn on all four wraps so the tile stays seamless
+  x.lineCap = 'round';
+  for (let i = 0; i < 420; i++) {
+    const px = r() * TILE, py = r() * TILE, a = r() * Math.PI * 2, l = 3 + r() * 7, bend = (r() - 0.5) * 6, light = r() < 0.55;
+    x.strokeStyle = light ? `rgba(255,255,255,${0.16 + r() * 0.2})` : `rgba(0,0,0,${0.12 + r() * 0.16})`; x.lineWidth = 0.5 + r() * 0.7;
+    for (const ox of [-TILE, 0, TILE]) for (const oy of [-TILE, 0, TILE]) {
+      const x0 = px + ox, y0 = py + oy, x1 = x0 + Math.cos(a) * l, y1 = y0 + Math.sin(a) * l;
+      x.beginPath(); x.moveTo(x0, y0); x.quadraticCurveTo((x0 + x1) / 2 + Math.sin(a) * bend, (y0 + y1) / 2 - Math.cos(a) * bend, x1, y1); x.stroke();
+    }
+  }
   FELT = c; return c;
 }
 
@@ -39,6 +62,14 @@ const BOOKS = ['#a83b3b', '#2f5f8a', '#3e7a4f', '#7b4a8c', '#b5813a', '#2d6b6b',
 const ROOM_TONES: Record<RoomId, [string, string, string]> = {
   living: ['#5a3d2e', '#2d2236', '#e7b56d'], attic: ['#4a3628', '#221b26', '#e5a85f'], library: ['#3e3226', '#1d1a24', '#e9bd70'], treehouse: ['#3d4030', '#1a1f24', '#d8b46a'],
 };
+
+/** Where each room painting's cosy corner is, as a fraction of its width: an upright phone shows a slice of the
+ * painting, so the slice is centred here (the rainy window, the round window, the lamp and shelves, the lantern)
+ * and the fort stands on the calm painted floor below it. */
+const ROOM_FOCUS: Record<RoomId, number> = { living: 0.17, attic: 0.25, library: 0.2, treehouse: 0.3 };
+/** Dora and Enzo beside the rug on wide screens: their height in world units, and where they stand. Their fur on the
+ * fort side stays 0.3 past the rug's edge, so they never cover a piece or a line label. */
+const CHIN = 1.9, CHIN_X = RUG + 0.3 + CHIN * 0.44;
 
 type Puff = { x: number; y: number; vx: number; vy: number; life: number; max: number; r: number; c: string; kind: 'fluff' | 'star' | 'z' };
 type Squish = { v: number; t: number };
@@ -51,8 +82,8 @@ export class FortScene {
   mood: { dora: Mood; enzo: Mood } = { dora: 'watch', enzo: 'watch' };
   /** 0..1: the hold-your-breath slow-down, for the vignette. */
   slow = 0;
-  /** Extra space the page's bars take at the top and bottom, in CSS px. */
-  pad = { top: 34, bottom: 64 };
+  /** Space the page's overlays take on the canvas, in CSS px: the bedtime card on the right (wide) or at the top (tall). */
+  reserve = { right: 0, top: 0 };
   layout = { s: 40, ox: 0, oy: 0, tall: false, dora: { x: 0, y: 0, h: 0 }, enzo: { x: 0, y: 0, h: 0 } };
   private t = 0;
   private viewH = 7; private camY = 0;
@@ -71,35 +102,71 @@ export class FortScene {
   }
 
   resize() {
-    const r = this.cv.getBoundingClientRect(); this.dpr = Math.min(2, window.devicePixelRatio || 1);
-    this.W = Math.max(1, r.width); this.H = Math.max(1, r.height);
+    const r = this.cv.getBoundingClientRect(), W = Math.max(1, r.width), H = Math.max(1, r.height);
+    const same = W === this.W && H === this.H; this.dpr = Math.min(2, window.devicePixelRatio || 1);
+    this.W = W; this.H = H;
     this.cv.width = Math.round(this.W * this.dpr); this.cv.height = Math.round(this.H * this.dpr);
-    this.pattern = null; this.place(true);
+    // a new size snaps the framing; the same size (a card opening) lets it glide
+    this.pattern = null; this.place(!same);
   }
 
-  setGame(g: FortGame | null, room: RoomId) { this.game = g; this.room = room; this.puffs = []; this.squish.clear(); this.catAnim = null; this.flash = 0; this.yawn = 0; this.camY = 0; this.viewH = this.wantView(); this.place(true); }
+  setGame(g: FortGame | null, room: RoomId) { this.game = g; this.room = room; this.puffs = []; this.squish.clear(); this.catAnim = null; this.flash = 0; this.yawn = 0; this.camY = 0; this.reserve = { right: 0, top: 0 }; this.viewH = this.wantView(); this.place(true); }
 
-  /** How much world height the camera wants: the lines, the fort and the piece in paw, with headroom. */
+  /**
+   * How much world height the camera wants. The night's star line plus room for a piece hanging over a fort that
+   * reaches it sets the zoom for the whole night; only a fort built past that pulls the camera back.
+   */
   private wantView() {
-    const g = this.game; if (!g) return 7;
+    const g = this.game; if (!g) return 6;
     const nt = g.night, top = g.top(), held = g.held ? g.hoverY(g.held.kind, g.held.rot) + pieceExtent(g.held.kind, g.held.rot).h : 0;
-    return Math.max(6.2, (nt ? Math.max(nt.line, nt.high) : 0) + 1.2, top + 2.6, held + 0.8);
+    return Math.max(nt ? Math.max(5.2, Math.max(nt.line, nt.high) + 2.2) : 6.2, top + 2.4, held + 0.35);
   }
 
-  /** Fits the rug and the two of them across, and the fort and its lines up the height. */
+  /** Fits the rug and the two of them across, and the night's lines (with headroom) up the height. */
   private place(snap = false) {
-    const W = this.W, H = this.H, tall = H > W * 1.05;
+    const W = this.W, H = this.H, tall = H > W * 1.05, L = this.layout;
+    // a sideways phone: the page stacks its buttons down the right edge and keeps the top clear
+    const short = !tall && typeof window !== 'undefined' && window.innerHeight <= 520;
     const want = this.wantView();
     this.viewH = snap ? want : this.viewH + (want - this.viewH) * 0.06;
-    const halfW = tall ? RUG + 0.5 : RUG + 3.4;
-    const top = this.pad.top + 8, bottom = this.pad.bottom + (tall ? Math.min(140, W * 0.36) : Math.max(8, H * 0.02));
-    const s = Math.max(8, Math.min(W / (2 * halfW), (H - top - bottom) / this.viewH));
-    const ox = W / 2, oy = H - bottom;
-    const ch = tall ? Math.min(W * 0.34, 150) : Math.min(s * 2.5, H * 0.36);
-    const L = this.layout;
-    L.s = s; L.ox = ox; L.oy = oy; L.tall = tall;
-    if (tall) { L.dora = { x: W * 0.2, y: H - this.pad.bottom + 6, h: ch }; L.enzo = { x: W * 0.8, y: H - this.pad.bottom + 6, h: ch * 1.06 }; }
-    else { L.dora = { x: ox - (RUG + 1.55) * s, y: oy + s * 0.12, h: ch }; L.enzo = { x: ox + (RUG + 1.6) * s, y: oy + s * 0.12, h: ch * 1.06 }; }
+    let s: number, ox: number, oy: number;
+    if (tall) {
+      const top = Math.max(50, this.reserve.top), bottom = 64 + Math.min(140, W * 0.36);
+      s = Math.max(8, Math.min(W / (2 * (RUG + 0.5)), (H - top - bottom) / this.viewH));
+      ox = W / 2; oy = H - bottom;
+    } else {
+      const right = Math.max(this.reserve.right, short ? 118 : 0), top = short ? 10 : 16;
+      const bottom = short ? Math.max(18, H * 0.06) : 66 + Math.max(8, H * 0.02);
+      // at bedtime, with the card beside it, the camera frames the fort that was built rather than the whole rug,
+      // and the two of them come in close to admire it
+      const g = this.game, admire = this.reserve.right > 0 && g ? this.fortSpan(g) : null;
+      const mid = admire ? (admire[0] + admire[1]) / 2 : 0, reach = admire ? Math.max(1.4, (admire[1] - admire[0]) / 2) + 0.3 + CHIN * 0.44 : CHIN_X;
+      const vh = admire && g ? Math.max(4, g.top() + 1.3, (g.night?.high ?? 0) + 0.7) : this.viewH;
+      s = Math.max(8, Math.min((W - right) / (2 * (reach + CHIN * 0.42)), (H - top - bottom) / vh));
+      ox = (W - right) / 2 - mid * s; oy = H - bottom;
+      // on a tall night the height sets the zoom and leaves width spare: Dora and Enzo grow into it
+      const spare = (W - right) / 2 / s, kc = admire ? CHIN : Math.max(CHIN, Math.min(2.6, (spare - RUG - 0.3) / 0.86));
+      this.chinAt = { mid, reach: admire ? reach : RUG + 0.3 + 0.44 * kc, k: kc };
+    }
+    if (snap) { L.s = s; L.ox = ox; L.oy = oy; }
+    else { const k = 0.14; L.s += (s - L.s) * k; L.ox += (ox - L.ox) * k; L.oy += (oy - L.oy) * k; }
+    L.tall = tall; s = L.s; ox = L.ox; oy = L.oy;
+    if (tall) {
+      const ch = Math.min(W * 0.34, 150);
+      L.dora = { x: W * 0.2, y: H - 58, h: ch }; L.enzo = { x: W * 0.8, y: H - 58, h: ch * 1.06 };
+    } else {
+      const ch = Math.min(this.chinAt.k * s, H * 0.42);
+      const { mid, reach } = this.chinAt;
+      L.dora = { x: ox + (mid - reach) * s, y: oy + s * 0.12, h: ch }; L.enzo = { x: ox + (mid + reach) * s, y: oy + s * 0.12, h: ch };
+    }
+  }
+
+  private chinAt = { mid: 0, reach: CHIN_X, k: CHIN };
+  /** The world x span of the fort standing on the rug. */
+  private fortSpan(g: FortGame): [number, number] {
+    let a = Infinity, b = -Infinity;
+    for (const p of g.pieces) { if (p.lost || !p.landed) continue; for (const q of p.bodies) { a = Math.min(a, q.minX); b = Math.max(b, q.maxX); } }
+    return a <= b ? [Math.max(-RUG, a), Math.min(RUG, b)] : [-1, 1];
   }
 
   /** World x under a screen x (CSS px), for aiming. */
@@ -162,10 +229,15 @@ export class FortScene {
   private drawRoom() {
     const c = this.c, W = this.W, H = this.H, bg = art(`room-${this.room}`), tone = ROOM_TONES[this.room];
     if (bg) {
-      const k = Math.max(W / bg.naturalWidth, H / bg.naturalHeight);
+      const L = this.layout, iw = bg.naturalWidth, ih = bg.naturalHeight;
+      // upright, the painting only has to reach the rug (the floorboards take over below it), which shows more of
+      // its width; the slice is centred on the room's cosy corner instead of the bare middle of the wall
+      const k = Math.max(W / iw, (L.tall ? L.oy + 6 : H) / ih), dw = iw * k, dh = ih * k;
+      const dx = Math.max(W - dw, Math.min(0, W / 2 - (L.tall ? ROOM_FOCUS[this.room] : 0.5) * dw));
       // the camera rises with the fort; the backdrop drifts a little with it
       const lift = Math.min(0.12, Math.max(0, (this.viewH - 7) / 40)) * H;
-      c.drawImage(bg, (W - bg.naturalWidth * k) / 2, (H - bg.naturalHeight * k) / 2 + lift, bg.naturalWidth * k, bg.naturalHeight * k);
+      const dy = dh <= H ? 0 : Math.max(H - dh, Math.min(0, (H - dh) / 2 + lift));
+      c.drawImage(bg, dx, dy, dw, dh);
       c.fillStyle = 'rgba(30,18,24,0.18)'; c.fillRect(0, 0, W, H);
     } else paintRoom(c, W, H, tone);
     // warm lamp light pooled on the fort
@@ -179,6 +251,8 @@ export class FortScene {
     c.fillStyle = '#5b3a26'; c.fillRect(0, L.oy, W, H - L.oy);
     c.strokeStyle = '#4a2e1e'; c.lineWidth = 1;
     for (let y = L.oy + 10; y < H; y += 14) { c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
+    const fade = c.createLinearGradient(0, L.oy, 0, Math.min(H, L.oy + 60)); fade.addColorStop(0, 'rgba(40,22,14,0.45)'); fade.addColorStop(1, 'rgba(40,22,14,0)');
+    c.fillStyle = fade; c.fillRect(0, L.oy, W, Math.min(60, H - L.oy));
     // the woven rug, slightly in perspective
     const x0 = L.ox - RUG * s, x1 = L.ox + RUG * s, d = Math.max(10, s * 0.32);
     c.fillStyle = '#9c3f3a'; c.beginPath(); c.moveTo(x0 - d * 0.6, L.oy + d); c.lineTo(x1 + d * 0.6, L.oy + d); c.lineTo(x1, L.oy); c.lineTo(x0, L.oy); c.closePath(); c.fill();
@@ -190,17 +264,24 @@ export class FortScene {
     for (const [xa, dir] of [[x0 - d * 0.6, -1], [x1 + d * 0.6, 1]] as const) for (let k = 0; k < 5; k++) { const yy = L.oy + 2 + k * (d - 2) / 4; c.beginPath(); c.moveTo(xa - dir * (k * d * 0.12), yy); c.lineTo(xa + dir * 7 - dir * (k * d * 0.12), yy + 2); c.stroke(); }
     this.texture(0.12, () => { c.beginPath(); c.moveTo(x0 - d * 0.6, L.oy + d); c.lineTo(x1 + d * 0.6, L.oy + d); c.lineTo(x1, L.oy); c.lineTo(x0, L.oy); c.closePath(); });
   }
-  /** Lays the felt texture over the current path, made by `path`. */
-  private texture(alpha: number, path: () => void) {
+  /**
+   * Lays the felt texture over the path `path` makes. The grain is a fixed size on screen (one tile pixel to a CSS
+   * pixel), whatever the zoom; it is pinned to the piece, so it turns and moves with it, and `seed` shifts it so no
+   * two pieces share a patch.
+   */
+  private texture(alpha: number, path: () => void, seed = 0) {
     const c = this.c, f = felt(); if (!f) return;
     this.pattern ??= c.createPattern(f, 'repeat'); if (!this.pattern) return;
+    const m = c.getTransform(), k = Math.hypot(m.a, m.b) / this.dpr || 1;
+    this.pattern.setTransform(new DOMMatrix().scale(1 / k).translate((seed * 37) % TILE, (seed * 53) % TILE));
     c.save(); c.globalAlpha = alpha; c.globalCompositeOperation = 'overlay'; path(); c.fillStyle = this.pattern; c.fill(); c.restore();
   }
 
   // ---- goals: the height lines and the den
   private drawLines(g: FortGame) {
     const nt = g.night; if (!nt) return;
-    const c = this.c, L = this.layout, x0 = L.ox - (RUG + 0.6) * L.s, x1 = L.ox + (RUG + 0.6) * L.s, top = g.top();
+    // the lines span the rug and their labels sit inside its right end, clear of Enzo beside it
+    const c = this.c, L = this.layout, x0 = Math.max(4, L.ox - (RUG + 0.2) * L.s), x1 = Math.min(this.W - this.reserve.right - 6, L.ox + (RUG + 0.2) * L.s), top = g.top();
     const line = (h: number, col: string, label: string, done: boolean) => {
       const y = L.oy - h * L.s;
       c.save(); c.strokeStyle = col; c.lineWidth = done ? 3 : 2; c.setLineDash(done ? [] : [8, 7]); c.globalAlpha = done ? 0.95 : 0.75;
@@ -241,7 +322,7 @@ export class FortScene {
     let fade = 1; if (p.lost) { fade = Math.max(0, 1 - (g.tick - p.goneT) / 40); if (fade <= 0) return; }
     c.save(); c.globalAlpha = fade;
     this.at(b, this.squashOf(b, def.soft));
-    drawKind(c, p.kind, p.n, this.t, (a, path) => this.texture(a, path));
+    drawKind(c, p.kind, p.n, this.t, (a, path) => this.texture(a, path, p.n + 1));
     c.restore();
     c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
   }
@@ -318,7 +399,7 @@ export class FortScene {
     } else {
       const d = this.dpr;
       c.setTransform(d * L.s, 0, 0, -d * L.s, d * (L.ox + h.x * L.s), d * (L.oy - (y + bob) * L.s)); c.rotate(h.rot);
-      drawKind(c, h.kind, g.pieces.length, this.t, (a, path) => this.texture(a, path));
+      drawKind(c, h.kind, g.pieces.length, this.t, (a, path) => this.texture(a, path, g.pieces.length + 1));
     }
     c.restore(); c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
   }
@@ -381,11 +462,29 @@ function star(c: CanvasRenderingContext2D, x: number, y: number, r: number, a: n
  * `tex` lays felt over a path.
  */
 export function drawKind(c: CanvasRenderingContext2D, kind: Kind, n: number, t: number, tex: (alpha: number, path: () => void) => void) {
-  const lw = 0.035, seam = (col: string) => { c.strokeStyle = col; c.lineWidth = lw; c.setLineDash([0.07, 0.06]); c.stroke(); c.setLineDash([]); };
-  const fabric = (path: () => void, fill: string, edge: string, stitch: string | null, inset = 0.07) => {
-    path(); c.fillStyle = fill; c.fill(); c.strokeStyle = edge; c.lineWidth = 0.04; c.stroke();
-    tex(0.35, path);
-    if (stitch) { c.save(); c.translate(0, 0); c.scale(1 - inset, 1 - inset * 1.6); path(); c.restore(); seam(stitch); }
+  // running stitches: a thread with a faint shadow below it, so it sits in the fabric rather than on top
+  const seam = (col: string, path: () => void) => {
+    c.save(); c.lineCap = 'round'; c.setLineDash([0.075, 0.06]); c.lineWidth = 0.04;
+    c.save(); c.translate(0.012, -0.016); path(); c.restore(); c.strokeStyle = 'rgba(45,20,20,0.38)'; c.stroke();
+    path(); c.strokeStyle = col; c.stroke(); c.restore();
+  };
+  // stuffed pieces: lit from above, shadowed where they curve under, darker in at the edges
+  const puff = (path: () => void, h: number) => {
+    c.save(); path(); c.clip();
+    const g = c.createLinearGradient(0, h / 2, 0, -h / 2);
+    g.addColorStop(0, 'rgba(255,247,232,0.32)'); g.addColorStop(0.4, 'rgba(255,247,232,0)'); g.addColorStop(0.62, 'rgba(50,20,24,0)'); g.addColorStop(1, 'rgba(50,20,24,0.34)');
+    c.fillStyle = g; c.fillRect(-3, -h, 6, h * 2);
+    path(); c.strokeStyle = 'rgba(50,20,24,0.2)'; c.lineWidth = 0.16; c.stroke();
+    c.restore();
+  };
+  /** One fabric panel: the colour, its pattern, the stuffing's shading, the felt, a firm edge and a stitched seam. */
+  const fabric = (path: () => void, fill: string, edge: string, stitch: string | null, inset = 0.07, o: { decor?: () => void; h?: number } = {}) => {
+    path(); c.fillStyle = fill; c.fill();
+    if (o.decor) { c.save(); path(); c.clip(); o.decor(); c.restore(); }
+    if (o.h) puff(path, o.h);
+    tex(o.h ? 0.62 : 0.45, path);
+    path(); c.strokeStyle = edge; c.lineWidth = 0.04; c.stroke();
+    if (stitch) seam(stitch, () => { c.save(); c.scale(1 - inset, 1 - inset * 1.6); path(); c.restore(); });
   };
   const rr = (w: number, h: number, r: number, cx = 0, cy = 0) => () => {
     const x = cx - w / 2, y = cy - h / 2, k = Math.min(r, w / 2, h / 2);
@@ -394,22 +493,20 @@ export function drawKind(c: CanvasRenderingContext2D, kind: Kind, n: number, t: 
   const col = PAL[n % PAL.length], dark = shade(col, -0.28), light = shade(col, 0.35);
   if (kind === 'cushion' || kind === 'pillow' || kind === 'floor') {
     const [w, h, r] = kind === 'cushion' ? [1.62, 0.64, 0.3] : kind === 'pillow' ? [0.94, 0.94, 0.32] : [2.52, 0.72, 0.34];
-    fabric(rr(w, h, r), col, dark, light);
-    // pattern: stripes, dots or a plain cushion with piping
+    // pattern: stripes, dots or a plain cushion with piping, felted in with the rest
     const pat = n % 3;
-    c.save(); rr(w * 0.92, h * 0.86, r * 0.9)(); c.clip();
-    if (pat === 0) { c.fillStyle = shade(col, 0.18); for (let x = -w / 2; x < w / 2; x += 0.22) c.fillRect(x, -h / 2, 0.08, h); }
-    else if (pat === 1) { c.fillStyle = light; for (let x = -w / 2 + 0.12; x < w / 2; x += 0.24) for (let y = -h / 2 + 0.12; y < h / 2; y += 0.24) { c.beginPath(); c.arc(x + ((y * 10) % 2 ? 0.12 : 0), y, 0.035, 0, Math.PI * 2); c.fill(); } }
-    c.restore();
+    fabric(rr(w, h, r), col, dark, light, 0.07, { h, decor: () => {
+      if (pat === 0) { c.fillStyle = shade(col, 0.18); for (let x = -w / 2; x < w / 2; x += 0.22) c.fillRect(x, -h / 2, 0.08, h); }
+      else if (pat === 1) { c.fillStyle = light; for (let x = -w / 2 + 0.12; x < w / 2; x += 0.24) for (let y = -h / 2 + 0.12; y < h / 2; y += 0.24) { c.beginPath(); c.arc(x + ((y * 10) % 2 ? 0.12 : 0), y, 0.035, 0, Math.PI * 2); c.fill(); } }
+    } });
     // buttons
     const bs = kind === 'floor' ? [-0.7, 0, 0.7] : [0];
     for (const bx of bs) { c.fillStyle = dark; c.beginPath(); c.arc(bx, 0, 0.065, 0, Math.PI * 2); c.fill(); c.fillStyle = light; c.beginPath(); c.arc(bx - 0.015, 0.015, 0.02, 0, Math.PI * 2); c.fill(); }
     if (kind === 'pillow') for (const [x, y] of [[-0.42, -0.42], [0.42, -0.42], [0.42, 0.42], [-0.42, 0.42]]) { c.fillStyle = '#f2d27a'; c.beginPath(); c.arc(x, y, 0.06, 0, Math.PI * 2); c.fill(); }
   } else if (kind === 'bolster') {
-    fabric(rr(2.3, 0.48, 0.22), col, dark, null);
-    c.fillStyle = shade(col, 0.2); for (let x = -0.9; x <= 0.9; x += 0.3) c.fillRect(x, -0.24, 0.1, 0.48);
+    fabric(rr(2.3, 0.48, 0.22), col, dark, null, 0, { h: 0.48, decor: () => { c.fillStyle = shade(col, 0.2); for (let x = -0.9; x <= 0.9; x += 0.3) c.fillRect(x, -0.24, 0.1, 0.48); } });
     for (const x of [-1.03, 1.03]) { c.fillStyle = dark; c.beginPath(); c.ellipse(x, 0, 0.08, 0.2, 0, 0, Math.PI * 2); c.fill(); c.fillStyle = '#f2d27a'; c.beginPath(); c.arc(x, 0, 0.05, 0, Math.PI * 2); c.fill(); }
-    rr(2.18, 0.38, 0.18)(); seam(light);
+    seam(light, rr(2.18, 0.38, 0.18));
   } else if (kind === 'book' || kind === 'atlas') {
     const [w, h] = kind === 'book' ? [1.25, 0.25] : [1.9, 0.32], bc = BOOKS[n % BOOKS.length];
     fabric(rr(w, h, 0.03), bc, shade(bc, -0.35), null);
