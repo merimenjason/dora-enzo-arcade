@@ -61,7 +61,9 @@ Each try deals a different comb from the chamber's own seed (the chamber id hash
 - Each nectar colour is a glowing stained-glass jewel of its own shape (heart, diamond, star, leaf, drop, round, daisy) cut into panes by lead seams, with a halo of its own colour, drawn once per size and kept; filled cells glow warmly.
 - The pair react: thinking, delighted for cascades of two or more and new specials, wowed by combos, jelly, cascades of four and wins.
 - The result card stands beside the comb on wide screens and above it on upright ones; the scene shrinks the comb to make room so the card covers neither the comb nor the pair.
-- The ending painting (Dora and Enzo with the queen in the glowing heart of the oak) stands on the left with its card beside it on the oak, so the card never covers the pair; an upright phone puts the painting above the card.
+- The story pages stand Dora and Enzo on the left and the area's bee friend (or the queen) on the right above the speech card. On phones, held either way, the page is stacked: the cast fills the height the card leaves them, so the card never covers a foot, and the speaker grows from its feet so it stays on screen.
+- The chamber map's five area tabs fit across a phone as numbered badges, with the open area named; its bar stays put while the chambers scroll.
+- The ending painting (Dora and Enzo with the queen in the glowing heart of the oak) stands on the left with its card beside it on the oak, so the card never covers the pair; an upright phone stacks the whole painting above the card.
 - After eight idle seconds the corner of a working turn glows as a hint.
 
 ## Controls
