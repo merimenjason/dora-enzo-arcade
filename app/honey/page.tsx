@@ -38,6 +38,26 @@ function Art({ src, paint, w, h, className, area }: { src: string; paint: 'title
     </span>
   );
 }
+/** An area window drawn so its ornate border frames the whole box at any shape (the drawn stand-in until it loads). */
+function FramedWindow({ area, className }: { area: AreaId; className?: string }) {
+  const cv = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    let dead = false, mod: typeof import('@/lib/honey-scene') | null = null;
+    const im = new Image(); im.decoding = 'async'; im.src = `/art/honey/area-${area}.webp`;
+    const draw = () => {
+      const c = cv.current; if (dead || !c || !mod) return;
+      const r = c.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1), W = Math.max(1, r.width), H = Math.max(1, r.height);
+      c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+      if (im.complete && im.naturalWidth > 0) { const x = c.getContext('2d'); if (!x) return; x.setTransform(dpr, 0, 0, dpr, 0, 0); mod.paintFramedWindow(x, im, W, H); }
+      else mod.paintBack(c, area);
+    };
+    sceneModule().then((m) => { mod = m; draw(); }).catch(() => {});
+    im.onload = draw;
+    const ro = new ResizeObserver(draw); if (cv.current) ro.observe(cv.current);
+    return () => { dead = true; ro.disconnect(); im.onload = null; };
+  }, [area]);
+  return <span className={'hh-art ' + (className ?? '')}><canvas ref={cv} aria-hidden="true" /></span>;
+}
 /** A cut-out, or nothing if it hasn't been painted. */
 function Cut({ name, className }: { name: string; className?: string }) {
   const [bad, setBad] = useState(false);
@@ -312,7 +332,7 @@ export default function HoneyPage() {
 
       {screen === 'map' && (
         <section className="hh-map">
-          <Art src={`/art/honey/area-${area}.webp`} paint="back" area={area} w={1536} h={1024} className="hh-map-art" />
+          <FramedWindow area={area} className="hh-map-art" />
           <header className="hh-bar">
             <button type="button" className="hh-back" onClick={() => { audio().ui(); setScreen('menu'); }}>← MENU</button>
             <span className="hh-bar-mid">The chambers · {stars}/{total} ★</span>
@@ -395,7 +415,7 @@ export default function HoneyPage() {
 
       {story && page && (
         <section className="hh-story" role="dialog" aria-label="Story" onClick={nextPage}>
-          <Art src={`/art/honey/area-${storyArea}.webp`} paint="back" area={storyArea} w={1536} h={1024} className="hh-story-art" />
+          <FramedWindow area={storyArea} className="hh-story-art" />
           <div className="hh-story-cast">
             <span className={'hh-story-pair' + (page.who === 'dora' || page.who === 'enzo' ? ' is-talking' : '')}>
               <Cut name={page.who === 'dora' ? 'dora-happy' : 'dora-think'} className={'hh-story-dora' + (page.who === 'dora' ? ' is-on' : '')} />

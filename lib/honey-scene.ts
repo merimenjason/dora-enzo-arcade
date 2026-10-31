@@ -18,8 +18,8 @@ export function art(name: string): HTMLImageElement | null {
 /** The seven nectar colours: light, body and deep shade, and a shape each so they read at a glance. */
 export const DROPS = [
   { name: 'rose', a: '#ffb3c4', b: '#e8325f', c: '#6e0f2a', shape: 'heart' },
-  { name: 'marigold', a: '#ffd29a', b: '#f57a10', c: '#7e3300', shape: 'diamond' },
-  { name: 'buttercup', a: '#fff7b8', b: '#f5cc12', c: '#7e5f00', shape: 'star' },
+  { name: 'marigold', a: '#ffc27a', b: '#f06a00', c: '#7e2c00', shape: 'diamond' },
+  { name: 'buttercup', a: '#fff4a0', b: '#f2c200', c: '#8a5a00', shape: 'star' },
   { name: 'leaf', a: '#c8f7a8', b: '#3cae38', c: '#124a18', shape: 'leaf' },
   { name: 'cornflower', a: '#b8dcff', b: '#2c78e0', c: '#0d2c6a', shape: 'drop' },
   { name: 'lavender', a: '#e8d0ff', b: '#9550dc', c: '#3a136c', shape: 'circle' },
@@ -38,7 +38,7 @@ function hexPath(c: CanvasRenderingContext2D, x: number, y: number, r: number) {
 function shapePath(c: CanvasRenderingContext2D, shape: string, r: number) {
   c.beginPath();
   if (shape === 'circle') c.arc(0, 0, r * 0.86, 0, Math.PI * 2);
-  else if (shape === 'diamond') { const k = r * 0.98; c.moveTo(0, -k); c.quadraticCurveTo(k * 0.18, -k * 0.18, k, 0); c.quadraticCurveTo(k * 0.18, k * 0.18, 0, k); c.quadraticCurveTo(-k * 0.18, k * 0.18, -k, 0); c.quadraticCurveTo(-k * 0.18, -k * 0.18, 0, -k); }
+  else if (shape === 'diamond') { const k = r * 0.98; c.moveTo(0, -k); c.quadraticCurveTo(k * 0.36, -k * 0.36, k, 0); c.quadraticCurveTo(k * 0.36, k * 0.36, 0, k); c.quadraticCurveTo(-k * 0.36, k * 0.36, -k, 0); c.quadraticCurveTo(-k * 0.36, -k * 0.36, 0, -k); }
   else if (shape === 'star') { for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + (k * Math.PI) / 5, rr = k % 2 ? r * 0.5 : r * 0.98; c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr + r * 0.06); } c.closePath(); }
   else if (shape === 'leaf') { c.moveTo(-r * 0.62, r * 0.72); c.bezierCurveTo(-r * 1.0, -r * 0.2, -r * 0.1, -r * 0.95, r * 0.72, -r * 0.82); c.bezierCurveTo(r * 0.95, r * 0.0, r * 0.25, r * 0.95, -r * 0.62, r * 0.72); c.closePath(); }
   else if (shape === 'drop') { c.moveTo(0, -r * 0.98); c.bezierCurveTo(r * 0.3, -r * 0.5, r * 0.82, -r * 0.05, r * 0.82, r * 0.3); c.arc(0, r * 0.3, r * 0.82, 0, Math.PI); c.bezierCurveTo(-r * 0.82, -r * 0.05, -r * 0.3, -r * 0.5, 0, -r * 0.98); c.closePath(); }
@@ -46,24 +46,62 @@ function shapePath(c: CanvasRenderingContext2D, shape: string, r: number) {
   else { for (let k = 0; k < 6; k++) { const a = (k * Math.PI) / 3 - Math.PI / 2; c.moveTo(0, 0); c.ellipse(Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5, r * 0.46, r * 0.34, a, 0, Math.PI * 2); } }
 }
 
-/** One glass jewel: lead outline, glowing body, a leaded seam and a bright highlight. */
+/** The lead seams that cut each jewel into panes, from its centre out to the shape's corners (each shape its own). */
+const SEAMS: Record<string, [number, number][]> = {
+  heart: [[0, -0.42], [-0.62, -0.2], [0.62, -0.2], [0, 0.88]],
+  diamond: [[0, -0.98], [0.98, 0], [0, 0.98], [-0.98, 0]],
+  star: [0, 1, 2, 3, 4].map((k) => { const a = -Math.PI / 2 + (k * 2 * Math.PI) / 5; return [Math.cos(a) * 0.98, Math.sin(a) * 0.98 + 0.06] as [number, number]; }),
+  leaf: [[-0.62, 0.72], [0.72, -0.82], [-0.55, -0.35], [0.45, 0.45]],
+  drop: [[0, -0.98], [-0.82, 0.3], [0.82, 0.3]],
+  circle: [[0, -0.86], [0.74, 0.43], [-0.74, 0.43]],
+  flower: [],
+};
+/** Panes alternately catch more and less light, like cut glass. */
+const PANE_TINT = ['rgba(255,255,255,0.16)', 'rgba(0,0,0,0.14)', 'rgba(255,255,255,0.05)', 'rgba(0,0,0,0.22)', 'rgba(255,255,255,0.1)'];
+
+/** One glowing stained-glass jewel: a halo of its own colour, light shining through panes divided by lead, an inner rim
+ *  of light, hammered texture and a bright highlight. Drawn once per colour and size into a cached sprite. */
 function drawDrop(c: CanvasRenderingContext2D, col: number, r: number) {
-  const d = DROPS[col % DROPS.length];
-  c.save();
+  const d = DROPS[col % DROPS.length], seams = SEAMS[d.shape], cx = d.shape === 'leaf' ? 0.05 : 0, cy = d.shape === 'star' ? 0.06 : d.shape === 'drop' ? 0.18 : d.shape === 'heart' ? 0.1 : 0;
+  c.save(); c.lineJoin = 'round'; c.lineCap = 'round';
+  // the halo: the light behind the pane spilling round the lead
+  c.save(); c.shadowColor = d.b; c.shadowBlur = r * 0.7; shapePath(c, d.shape, r); c.lineWidth = r * 0.22; c.strokeStyle = LEAD; c.stroke(); c.stroke(); c.restore();
+  // the glass, lit from the centre: a pale core through the colour to a deep rim
   shapePath(c, d.shape, r);
-  c.lineJoin = 'round'; c.lineWidth = Math.max(2, r * 0.2); c.strokeStyle = LEAD; c.stroke();
-  const g = c.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.05, 0, 0, r * 1.05);
-  g.addColorStop(0, d.a); g.addColorStop(0.55, d.b); g.addColorStop(1, d.c);
+  const g = c.createRadialGradient(-r * 0.1, -r * 0.15, r * 0.02, 0, r * 0.05, r * 1.0);
+  g.addColorStop(0, d.a); g.addColorStop(0.32, d.b); g.addColorStop(0.72, d.b); g.addColorStop(1, d.c);
   c.fillStyle = g; c.fill();
-  if (d.shape === 'flower') { c.beginPath(); c.arc(0, 0, r * 0.3, 0, Math.PI * 2); c.fillStyle = '#ffd23a'; c.fill(); c.lineWidth = Math.max(1.5, r * 0.1); c.stroke(); }
-  // a leaded seam across the pane, and the hammered glass
   c.save(); shapePath(c, d.shape, r); c.clip();
-  c.strokeStyle = LEAD + 'aa'; c.lineWidth = Math.max(1, r * 0.07);
-  c.beginPath(); c.moveTo(-r, r * 0.25); c.quadraticCurveTo(0, -r * 0.05, r, r * 0.4); c.stroke();
-  for (let k = 0; k < 7; k++) { const a = k * 2.4, rr = r * (0.25 + (k % 3) * 0.22); c.fillStyle = k % 2 ? '#ffffff22' : '#00000018'; c.beginPath(); c.arc(Math.cos(a) * rr, Math.sin(a) * rr, r * 0.16, 0, Math.PI * 2); c.fill(); }
+  // panes: wedges between the seams, each tinted a little differently
+  if (seams.length) {
+    const ang = seams.map(([x, y]) => Math.atan2(y - cy, x - cx)).sort((a, b) => a - b);
+    ang.forEach((a0, k) => {
+      const a1 = k + 1 < ang.length ? ang[k + 1] : ang[0] + Math.PI * 2;
+      c.beginPath(); c.moveTo(cx * r, cy * r); c.arc(cx * r, cy * r, r * 2, a0, a1); c.closePath(); c.fillStyle = PANE_TINT[k % PANE_TINT.length]; c.fill();
+    });
+  }
+  // hammered glass
+  for (let k = 0; k < 9; k++) { const a = k * 2.4, rr = r * (0.2 + (k % 3) * 0.24); c.fillStyle = k % 2 ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.08)'; c.beginPath(); c.ellipse(Math.cos(a) * rr, Math.sin(a) * rr, r * 0.15, r * 0.11, a, 0, Math.PI * 2); c.fill(); }
+  // the inner rim of light just inside the lead
+  shapePath(c, d.shape, r); c.lineWidth = r * 0.2; c.strokeStyle = d.a; c.globalAlpha = 0.5; c.shadowColor = d.a; c.shadowBlur = r * 0.15; c.stroke(); c.globalAlpha = 1; c.shadowBlur = 0;
+  // a soft glow of light coming through the middle of the glass
+  const core = c.createRadialGradient(-r * 0.08, -r * 0.1, 0, -r * 0.08, -r * 0.1, r * 0.45); core.addColorStop(0, 'rgba(255,255,240,0.55)'); core.addColorStop(1, 'rgba(255,255,240,0)');
+  c.fillStyle = core; c.fillRect(-r, -r, 2 * r, 2 * r);
+  // the seams
+  c.strokeStyle = LEAD; c.lineWidth = Math.max(1, r * 0.075);
+  c.beginPath(); for (const [x, y] of seams) { c.moveTo(cx * r, cy * r); c.lineTo(x * r * 1.1, y * r * 1.1); } c.stroke();
   c.restore();
-  c.fillStyle = '#ffffffcc'; c.beginPath(); c.ellipse(-r * 0.32, -r * 0.38, r * 0.22, r * 0.11, -0.7, 0, Math.PI * 2); c.fill();
-  c.fillStyle = '#ffffff66'; c.beginPath(); c.arc(r * 0.3, r * 0.32, r * 0.07, 0, Math.PI * 2); c.fill();
+  if (d.shape === 'flower') {
+    c.beginPath(); c.arc(0, 0, r * 0.3, 0, Math.PI * 2); const fg = c.createRadialGradient(-r * 0.08, -r * 0.08, 1, 0, 0, r * 0.3); fg.addColorStop(0, '#fff6b0'); fg.addColorStop(1, '#f0a810');
+    c.fillStyle = fg; c.fill(); c.lineWidth = Math.max(1.5, r * 0.1); c.strokeStyle = LEAD; c.stroke();
+  }
+  // the lead came round the edge, with a thin bright line of solder along it
+  shapePath(c, d.shape, r); c.lineWidth = Math.max(2, r * 0.17); c.strokeStyle = LEAD; c.stroke();
+  c.lineWidth = Math.max(0.8, r * 0.035); c.strokeStyle = 'rgba(255,236,190,0.35)'; c.stroke();
+  // the highlight and a glint
+  c.fillStyle = 'rgba(255,255,255,0.85)'; c.beginPath(); c.ellipse(-r * 0.3, -r * 0.4, r * 0.2, r * 0.09, -0.7, 0, Math.PI * 2); c.fill();
+  c.fillStyle = 'rgba(255,255,255,0.95)'; c.beginPath(); const gx = -r * 0.48, gy = -r * 0.16, z = r * 0.1;
+  c.moveTo(gx, gy - z); c.lineTo(gx + z * 0.25, gy - z * 0.25); c.lineTo(gx + z, gy); c.lineTo(gx + z * 0.25, gy + z * 0.25); c.lineTo(gx, gy + z); c.lineTo(gx - z * 0.25, gy + z * 0.25); c.lineTo(gx - z, gy); c.lineTo(gx - z * 0.25, gy - z * 0.25); c.closePath(); c.fill();
   c.restore();
 }
 
@@ -100,7 +138,7 @@ function standIn(c: CanvasRenderingContext2D, who: 'dora' | 'enzo', h: number) {
 interface Pos { x: number; y: number }
 interface Anim { from: Pos; to: Pos; dur: number; arc?: { cx: number; cy: number; a0: number; a1: number; r: number }; squash?: boolean }
 interface Bit { x: number; y: number; vx: number; vy: number; life: number; max: number; col: string; size: number; spin: number; a: number; kind: 'shard' | 'spark' | 'drip' }
-interface Word { text: string; x: number; y: number; life: number; big: boolean }
+interface Word { text: string; x: number; y: number; life: number; big: boolean; slot?: number }
 interface Flyer { x0: number; y0: number; x1: number; y1: number; t: number; dur: number; kind: 'bee' | 'free' }
 interface Dying { p: Piece; x: number; y: number; t: number; dur: number; kind: 'pop' | 'roll' | 'chomp' | 'crack' }
 
@@ -121,6 +159,7 @@ export class HoneyScene {
   private shake = 0; private time = 0; private spin = new Map<number, number>();
   private sprites = new Map<string, HTMLCanvasElement>();
   private noise: HTMLCanvasElement | null = null;
+  private back: HTMLCanvasElement | null = null; private backKey = '';
   hover = -1; cursor = -1; speed = 1;
   mood: { dora: Mood; enzo: Mood } = { dora: 'think', enzo: 'think' };
   private moodPop = { dora: 0, enzo: 0 }; private lastMood = { dora: 'think', enzo: 'think' };
@@ -287,13 +326,24 @@ export class HoneyScene {
     for (const d of [ax, ax + 3]) { let j = i, k = 0; while (g.comb.nb[j][d] >= 0) { j = g.comb.nb[j][d]; k++; } const p = this.cellXY(j), o = this.cellXY(i); out.push({ x: p.x + (p.x - o.x) / Math.max(1, k) * 2, y: p.y + (p.y - o.y) / Math.max(1, k) * 2 }); }
     return out;
   }
-  /** Big words take the next free line, so a chain, a double turn and a combo never sit on top of each other. */
+  /** Big words take the next free spot off the comb (beside it, over the pair, on a wide screen; between the pair
+   *  below it on an upright one), so a long cascade never hides the drops and two words never sit on each other. */
   private shout(text: string, life = 1.3) {
-    const g = this.game!, big = this.words.filter((w) => w.big && w.life > 0.35);
+    const big = this.words.filter((w) => w.big && w.life > 0.35);
     while (big.length >= 2) { const o = big.shift()!; o.life = Math.min(o.life, 0.3); }
-    const used = new Set(big.map((w) => w.y));
-    const ys = [0.36, 0.52, 0.68].map((k) => g.comb.y0 + g.comb.h * k), y = ys.find((v) => !used.has(v)) ?? ys[0];
-    this.words.push({ text, x: g.comb.x0 + g.comb.w / 2, y, life, big: true });
+    const used = new Set(big.map((w) => w.slot)), slot = [0, 1, 2].find((k) => !used.has(k)) ?? 0;
+    this.words.push({ text, x: 0, y: 0, life, big: true, slot });
+  }
+  /** Where a big word sits, in canvas pixels, and how wide it may be. */
+  private wordSpot(slot: number, fs: number) {
+    const L = this.layout, b = this.boxes().board, W = this.W, H = this.H;
+    if (L.tall) {
+      const top = b.y1 + Math.max(fs * 0.7, (H - b.y1 - L.dora.h * 0.6) * 0.5);
+      return { x: W / 2, y: top + slot * fs * 1.15, w: W * 0.66 };
+    }
+    const left = slot !== 1, x = left ? b.x0 / 2 : (b.x1 + (W - this.reserve.right)) / 2, w = left ? b.x0 - 12 : W - this.reserve.right - b.x1 - 12;
+    const head = H - 4 - (left ? L.dora.h : L.enzo.h), y = Math.max(fs * 0.9, head * 0.55) + (slot === 2 ? fs * 1.2 : 0);
+    return { x, y, w };
   }
   private burst(x: number, y: number, p: Piece, n: number) {
     const col = p.k === 'drop' ? DROPS[p.c % 7] : p.k === 'wax' ? { a: '#fff6dc', b: '#f0dca0' } : p.k === 'dew' ? { a: '#ffffff', b: '#bfe8ff' } : { a: '#ffe080', b: '#3a2a10' };
@@ -321,7 +371,7 @@ export class HoneyScene {
     this.dying = this.dying.filter((d) => d.t < d.dur);
     for (const b of this.bits) { b.life += dt; b.vy += 14 * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.a += b.spin * dt; }
     this.bits = this.bits.filter((b) => b.life < b.max);
-    for (const w of this.words) w.life -= dt * (w.big ? 0.8 : 1.1);
+    for (const w of this.words) w.life -= dt * (w.big ? 1.0 : 1.1);
     this.words = this.words.filter((w) => w.life > 0);
     for (const f of this.flyers) f.t += dt;
     this.flyers = this.flyers.filter((f) => f.t < f.dur);
@@ -413,37 +463,60 @@ export class HoneyScene {
     // words
     c.textAlign = 'center'; c.textBaseline = 'middle';
     for (const w of this.words) {
-      const p = this.px(w.x, w.y - (1 - w.life) * (w.big ? 1.2 : 1.8)), a = Math.min(1, w.life * 2.5), pop = w.big ? 1 + Math.max(0, (w.life - 1) * 1.2) : 1;
-      const fs = (w.big ? Math.max(20, s * 1.25) : Math.max(13, s * 0.62)) * pop;
+      if (w.big) continue;
+      const p = this.px(w.x, w.y - (1 - w.life) * 1.8), a = Math.min(1, w.life * 2.5);
+      const fs = Math.max(13, s * 0.62);
       c.globalAlpha = a; c.font = `900 ${fs}px "Trebuchet MS", ui-rounded, system-ui, sans-serif`;
       c.lineWidth = fs * 0.2; c.strokeStyle = LEAD; c.lineJoin = 'round'; c.strokeText(w.text, p.x, p.y);
-      const gr = c.createLinearGradient(0, p.y - fs / 2, 0, p.y + fs / 2); gr.addColorStop(0, '#fffbe0'); gr.addColorStop(1, w.big ? '#ffb21c' : '#ffd860');
+      const gr = c.createLinearGradient(0, p.y - fs / 2, 0, p.y + fs / 2); gr.addColorStop(0, '#fffbe0'); gr.addColorStop(1, '#ffd860');
       c.fillStyle = gr; c.fillText(w.text, p.x, p.y);
     }
     c.globalAlpha = 1;
     c.restore();
     this.drawPair();
+    // the big words, off the comb and over the pair's side of the window
+    for (const w of this.words) {
+      if (!w.big) continue;
+      const font = (z: number) => `900 ${z}px "Trebuchet MS", ui-rounded, system-ui, sans-serif`;
+      let fs = Math.max(18, Math.min(s * 1.25, this.H * 0.075));
+      const spot0 = this.wordSpot(w.slot ?? 0, fs);
+      c.font = font(100); const per = c.measureText(w.text).width / 100;
+      fs = Math.max(14, Math.min(fs, (spot0.w * 0.94) / per));
+      const spot = this.wordSpot(w.slot ?? 0, fs), pop = 1 + Math.min(0.3, Math.max(0, (w.life - 1) * 1.2)), z = Math.min(fs * pop, (spot.w * 0.99) / per);
+      const y = spot.y - (1 - Math.min(1, w.life)) * fs * 0.6;
+      c.globalAlpha = Math.min(1, w.life * 2.5); c.font = font(z); c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.lineWidth = z * 0.2; c.strokeStyle = LEAD; c.lineJoin = 'round'; c.strokeText(w.text, spot.x, y);
+      const gr = c.createLinearGradient(0, y - z / 2, 0, y + z / 2); gr.addColorStop(0, '#fffbe0'); gr.addColorStop(1, '#ffb21c');
+      c.fillStyle = gr; c.shadowColor = '#ffb21c'; c.shadowBlur = z * 0.3; c.fillText(w.text, spot.x, y); c.shadowBlur = 0;
+    }
+    c.globalAlpha = 1;
     void W; void H;
   }
 
   private drawBack() {
     const c = this.c, W = this.W, H = this.H, L = this.layout, im = art('area-' + this.area), t = AREA_TINT[this.area];
     if (im) {
-      // cover, keeping the middle (an upright screen sees the flowers at the top and bottom of the window)
-      const sc = Math.max(W / im.naturalWidth, H / im.naturalHeight), w = im.naturalWidth * sc, h = im.naturalHeight * sc;
-      c.drawImage(im, (W - w) / 2, (H - h) * (L.tall ? 0.5 : 0.5), w, h);
+      // the window's ornate border framing the whole screen, drawn once per size and kept
+      const key = `${this.area}@${Math.round(W)}x${Math.round(H)}@${this.dpr}`;
+      if (this.backKey !== key || !this.back) {
+        const b = this.back ?? document.createElement('canvas'); b.width = Math.round(W * this.dpr); b.height = Math.round(H * this.dpr);
+        const x = b.getContext('2d')!; x.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); paintFramedWindow(x, im, W, H);
+        this.back = b; this.backKey = key;
+      }
+      c.drawImage(this.back, 0, 0, W, H);
     } else {
       const g = c.createRadialGradient(W / 2, H * 0.45, 10, W / 2, H / 2, Math.max(W, H) * 0.75);
       g.addColorStop(0, t[0]); g.addColorStop(0.6, t[1]); g.addColorStop(1, t[2]); c.fillStyle = g; c.fillRect(0, 0, W, H);
       c.strokeStyle = '#2b1a0c55'; c.lineWidth = 3; const z = Math.max(60, W / 10);
       for (let y = 0; y < H + z; y += z * 0.87) for (let x = (Math.round(y / (z * 0.87)) % 2) * z * 0.75; x < W + z; x += z * 1.5) { c.beginPath(); hexPath(c, x, y, z * 0.5); c.stroke(); }
     }
-    // a soft warm glow behind the comb
+    // the glass dims a little toward the comb, so the comb stands forward and its drops read cleanly
     if (this.game) {
-      const b = this.boxes().board, cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2, r = Math.max(b.x1 - b.x0, b.y1 - b.y0) * 0.75;
-      const g = c.createRadialGradient(cx, cy, r * 0.3, cx, cy, r); g.addColorStop(0, 'rgba(255,214,120,0.35)'); g.addColorStop(1, 'rgba(255,214,120,0)');
+      const b = this.boxes().board, cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2, r = Math.max(b.x1 - b.x0, b.y1 - b.y0) * 0.72;
+      const g = c.createRadialGradient(cx, cy, r * 0.45, cx, cy, r * 1.05); g.addColorStop(0, 'rgba(60,30,4,0.4)'); g.addColorStop(1, 'rgba(60,30,4,0)');
       c.fillStyle = g; c.fillRect(0, 0, W, H);
     }
+    void L;
   }
 
   private drawCell(i: number, cell: Cell, R: number) {
@@ -455,6 +528,11 @@ export class HoneyScene {
       const k = f === undefined ? 1 : f < 0 ? -f : f;
       if (f !== undefined && f >= 0) { c.save(); c.beginPath(); hexPath(c, p.x, p.y, R * 0.9); c.clip(); const top = p.y + R - 2 * R * k; c.beginPath(); c.rect(p.x - R, top - Math.sin(this.time * 9 + i) * R * 0.08, 2 * R, 2 * R); c.clip(); this.blit('cell-honey', p.x, p.y, R, (x, r) => this.paintCell(x, r, 'honey')); c.restore(); }
       else { c.globalAlpha = k; this.blit('cell-honey', p.x, p.y, R, (x, r) => this.paintCell(x, r, 'honey')); c.globalAlpha = 1; }
+      // honey glows: warm light blooming through the pane and over its lead, breathing slowly
+      const k2 = f === undefined ? 1 : f < 0 ? -f : f;
+      c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = k2 * (0.3 + Math.sin(this.time * 1.7 + i * 0.9) * 0.08);
+      this.blit('honey-glow', p.x, p.y, R, (x, r) => { const gg = x.createRadialGradient(0, -r * 0.1, r * 0.05, 0, 0, r * 1.25); gg.addColorStop(0, 'rgba(255,236,150,0.95)'); gg.addColorStop(0.45, 'rgba(255,180,50,0.55)'); gg.addColorStop(1, 'rgba(255,140,20,0)'); x.fillStyle = gg; x.beginPath(); x.arc(0, 0, r * 1.3, 0, Math.PI * 2); x.fill(); });
+      c.restore();
     }
     if (cell.moss) {
       const k = this.grow.get(i) ?? 1;
@@ -464,7 +542,7 @@ export class HoneyScene {
   private paintCell(c: CanvasRenderingContext2D, r: number, kind: 'glass' | 'honey' | 'dark') {
     c.save(); c.beginPath(); hexPath(c, 0, 0, r * 0.9);
     const g = c.createRadialGradient(-r * 0.25, -r * 0.3, r * 0.1, 0, 0, r);
-    if (kind === 'honey') { g.addColorStop(0, '#fff3a6'); g.addColorStop(0.5, '#ffbf2a'); g.addColorStop(1, '#d9780a'); }
+    if (kind === 'honey') { g.addColorStop(0, '#fffbd0'); g.addColorStop(0.35, '#ffd24a'); g.addColorStop(0.75, '#f5a01a'); g.addColorStop(1, '#c86a06'); }
     else if (kind === 'dark') { g.addColorStop(0, '#3e2c22'); g.addColorStop(1, '#140c08'); }
     else { g.addColorStop(0, '#d8c39c'); g.addColorStop(0.6, '#b0946a'); g.addColorStop(1, '#7a5e3c'); }
     c.fillStyle = g; c.fill(); c.clip();
@@ -584,6 +662,52 @@ export class HoneyScene {
       else { c.scale(who === 'enzo' ? -1 : 1, 1); standIn(c, who, o.h * 0.9); }
       c.restore();
     }
+  }
+}
+
+// ---------------------------------------------------------------- the area windows, framed to any screen
+/** The ornate border of every area window: this share of the width and height on each side. */
+const FRAME_X = 0.2, FRAME_Y = 0.2;
+const FLIPS = new WeakMap<HTMLImageElement, HTMLCanvasElement[]>();
+/** The window, mirrored across, down, and both ways (for tiling the middle strips seamlessly). */
+function flips(im: HTMLImageElement) {
+  let f = FLIPS.get(im);
+  if (!f) {
+    f = [];
+    for (const [fx, fy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+      const cv = document.createElement('canvas'); cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+      const x = cv.getContext('2d')!; x.translate(fx < 0 ? cv.width : 0, fy < 0 ? cv.height : 0); x.scale(fx, fy); x.drawImage(im, 0, 0); f.push(cv);
+    }
+    FLIPS.set(im, f);
+  }
+  return f;
+}
+interface Piece9 { s: number; sl: number; d: number; dl: number; flip: boolean }
+/** One axis of the nine-slice: the two ends at their painted size, the middle tiled outward from the centre with every
+ *  other tile mirrored, so nothing is stretched and the seams meet themselves. */
+function axis(src: number, dst: number, edge: number, k: number): Piece9[] {
+  const e = Math.min(edge * k, dst / 2), m = src - 2 * edge, t = m * k, out: Piece9[] = [];
+  out.push({ s: 0, sl: e / k, d: 0, dl: e, flip: false });
+  out.push({ s: src - e / k, sl: e / k, d: dst - e, dl: e, flip: false });
+  const L = e, R = dst - e, mid = (L + R) / 2, n = Math.ceil((R - L) / t / 2) + 1;
+  for (let j = -n; j <= n; j++) {
+    const d0 = mid + (j - 0.5) * t, d1 = d0 + t, a = Math.max(L, d0), b = Math.min(R, d1);
+    if (b - a < 0.5) continue;
+    const flip = Math.abs(j) % 2 === 1;
+    // (in the mirrored copy the middle strip sits at the same place, so the same source range reads it reversed)
+    const s0 = edge + ((a - d0) / t) * m, s1 = edge + ((b - d0) / t) * m;
+    out.push({ s: s0, sl: s1 - s0, d: a, dl: b - a, flip });
+  }
+  return out;
+}
+/** Draws an area window over a W × H box so its ornate border frames the whole box, whatever its shape. */
+export function paintFramedWindow(c: CanvasRenderingContext2D, im: HTMLImageElement, W: number, H: number) {
+  const iw = im.naturalWidth, ih = im.naturalHeight, k = Math.max(0.2, Math.min(W / iw, H / ih));
+  const f = flips(im), xs = axis(iw, W, iw * FRAME_X, k), ys = axis(ih, H, ih * FRAME_Y, k);
+  for (const px of xs) for (const py of ys) {
+    const which = (px.flip ? 1 : 0) + (py.flip ? 2 : 0);
+    // overlap each piece by half a pixel so no hairline seams show
+    c.drawImage(f[which], px.s, py.s, px.sl, py.sl, px.d - 0.25, py.d - 0.25, px.dl + 0.5, py.dl + 0.5);
   }
 }
 

@@ -8,7 +8,7 @@ All numbers below come from `lib/honey-game.ts`, `lib/honey-levels.ts`, `lib/hon
 
 - `lib/honey-game.ts`: the rules. The comb's shape (axial hex coordinates, neighbours, trios), turning, matching on three axes, specials and combos, gravity and the seeded refill, the obstacles, goals, stars, the honey rush, the reshuffle and the save. No DOM, no `Math.random`, no clock.
 - `lib/honey-levels.ts`: the five areas, the sixty chamber maps, the move limits and star targets from the bot (`TUNE`), the tips and the story pages.
-- `lib/honey-scene.ts`: the drawing (Canvas 2D): the area's window behind, the oak frame, leaded glass cells with a hammered-glass texture that fill gold from the bottom up, glass-jewel drops, bees, blossoms, royal jelly, wax, acorns, dew, wasps, moss and sticky glaze, the step playback, shards, sparks, beams, rings, words and the stained-glass cut-outs of Dora and Enzo.
+- `lib/honey-scene.ts`: the drawing (Canvas 2D): the area's window behind, the oak frame, leaded glass cells with a hammered-glass texture that fill gold from the bottom up, glowing glass-jewel drops, bees, blossoms, royal jelly, wax, acorns, dew, wasps, moss and sticky glaze, the step playback, shards, sparks, beams, rings, words and the stained-glass cut-outs of Dora and Enzo.
 - `app/honey/page.tsx`, `honey.css`, `sound.ts`, `layout.tsx`: the page (menu, the chamber map, the comb, story pages, tips, results, the ending), input, saving and the HUD; bell chimes and the glass music box are made with Web Audio.
 - `tests/honey.mjs`, `tests/honey-bot.mjs`, `tests/e2e/honey.mjs`: engine checks, the random, greedy and look-ahead bots, and the browser suite.
 - Paintings in `public/art/honey/`, briefed in [`honey-art-brief.md`](honey-art-brief.md).
@@ -56,9 +56,12 @@ Each try deals a different comb from the chamber's own seed (the chamber id hash
 ## The view
 
 - Wide screens sit Dora left of the comb facing right and Enzo right of it facing left, in the side columns; an upright phone puts the comb at the top and the pair below it. The comb takes the most room it can.
-- The area's window fills the background, cropped to its middle (the window keeps flowers along all four edges, so an upright crop still shows them at the top and bottom), with a warm glow behind the comb.
+- The area's window fills the background of the comb, the story pages and the chamber map, cut nine ways so its flowered border frames the whole screen at any shape: the four corners at their painted size, and the edges and the middle tiled outward from the centre with every other tile mirrored, so nothing is stretched on a tall phone or a wide monitor. The glass dims a little toward the comb so the drops read cleanly.
+- Big words (cascades, double and triple turns, combos, the honey rush) stay off the comb: on a wide screen they sit in the side columns above Dora and Enzo, sized to fit; on an upright one, between the pair below the comb.
+- Each nectar colour is a glowing stained-glass jewel of its own shape (heart, diamond, star, leaf, drop, round, daisy) cut into panes by lead seams, with a halo of its own colour, drawn once per size and kept; filled cells glow warmly.
 - The pair react: thinking, delighted for cascades of two or more and new specials, wowed by combos, jelly, cascades of four and wins.
 - The result card stands beside the comb on wide screens and above it on upright ones; the scene shrinks the comb to make room so the card covers neither the comb nor the pair.
+- The ending painting (Dora and Enzo with the queen in the glowing heart of the oak) stands on the left with its card beside it on the oak, so the card never covers the pair; an upright phone puts the painting above the card.
 - After eight idle seconds the corner of a working turn glows as a hint.
 
 ## Controls

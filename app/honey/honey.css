@@ -113,8 +113,10 @@
 .hh-bubble button{align-self:flex-end}
 
 /* ---- ending */
-.hh-ending{position:relative;flex:1;display:flex;align-items:flex-end;justify-content:flex-end;padding:3vh 3vw}
-.hh-ending-card{width:min(420px,34vw)}
+.hh-ending{position:relative;flex:1;display:flex;align-items:center;justify-content:flex-end;padding:3vh calc((min(400px,31vw) - min(360px,27vw)) / 2);background:radial-gradient(circle at 85% 50%,#7a4a14,#24160a 70%)}
+/* the painted window on the left, its card beside it on the oak, so the card never covers the pair */
+.hh-ending-art{right:min(400px,31vw);border-right:5px solid #f0b030;box-shadow:0 0 40px #ffc04a55}
+.hh-ending-card{width:min(360px,27vw)}
 .hh-ending-card h2{font-size:clamp(26px,3vw,38px);font-weight:900;color:#c06808}
 .hh-ending-card .hh-back{text-align:center}
 
@@ -146,14 +148,17 @@
   .hh-lede{font-size:13.5px}
   .hh-name{display:none}
   .hh-toggles{display:none}
-  .hh-ending{padding:12px;justify-content:center}
+  .hh-ending{padding:12px;justify-content:center;align-items:flex-end}
   .hh-ending-card{width:100%}
-  .hh-ending-art img,.hh-ending-art canvas{height:58%;object-position:26% 0}
-  .hh-story-cast{bottom:34%;padding:0 3vw}
-  .hh-story-cast{flex-wrap:wrap;align-content:flex-end;justify-content:center}
-  .hh-story-pair{height:auto;width:100%;justify-content:center}
-  .hh-story-cast .hh-cut{max-width:42vw;height:auto;max-height:30vh}
-  .hh-story-cast .hh-story-bee{max-width:40vw;max-height:22vh;align-self:auto;order:-1}
+  .hh-ending-art{right:0;bottom:auto;height:56%;border-right:0;border-bottom:5px solid #f0b030}
+  .hh-ending-art img,.hh-ending-art canvas{object-position:50% 30%}
+  /* an upright phone stacks the page: the friend flies above, the pair sit big and whole above the card */
+  .hh-story{gap:6px;padding:10px 10px 12px}
+  .hh-story-cast{position:relative;inset:auto;flex:1;min-height:0;width:100%;flex-direction:column;justify-content:flex-end;align-items:stretch;padding:0}
+  .hh-story-cast .hh-story-bee{order:-1;flex:0 1 auto;min-height:0;height:min(58vw,30vh);width:auto;max-width:none;align-self:flex-end;margin:0 2vw -4vh 0;object-position:100% 50%}
+  .hh-story-pair{flex:none;width:100%;height:auto;justify-content:center}
+  .hh-story-cast .hh-story-pair .hh-cut{width:54vw;height:auto;max-width:none;max-height:31vh}
+  .hh-story-cast .hh-story-enzo{margin-left:-9vw}
   .hh-bubble p{font-size:15px}
 }
 @media (max-height:520px) and (orientation:landscape){

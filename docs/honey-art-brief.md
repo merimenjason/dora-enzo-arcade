@@ -13,7 +13,7 @@ All files live in `public/art/honey/` as `.webp` (quality about 88).
 | File | Description |
 | --- | --- |
 | `title.webp` | Inside the hollow oak: Dora and Enzo, in the left two-thirds, hold up a glowing honeycomb while friendly bees swirl round them. The right third is calm amber glass for the title card. |
-| `ending.webp` | The whole oak glowing gold at dusk, the restored honey map shining above; Dora and Enzo with the queen bee and the bee friends, celebrating. |
+| `ending.webp` | Dora and Enzo sitting together in the glowing heart of the golden oak, looking up happily at the queen bee, honeycomb glowing all round and light streaming down. |
 | `area-clover.webp` | Backdrop, no characters: the Clover Hall, clover flowers and leaves round the edges, a calm glowing amber middle. |
 | `area-rose.webp` | Backdrop, no characters: the Rose Arbour, climbing roses round the edges, a calm middle. |
 | `area-lavender.webp` | Backdrop, no characters: the Lavender Loft, lavender sprigs and a round window, a calm middle. |
