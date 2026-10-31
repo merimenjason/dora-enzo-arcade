@@ -438,7 +438,7 @@ export class Flight {
   done = false; won = false; value = 0; medal = 0;
   dfStart: [number, number] = [0, 0]; dfTime = 0;
   pilot: Pilot | null = null;
-  rivalMode: 'hunt' | 'evade' | 'swoop' | 'clear' = 'swoop';
+  rivalMode: 'hunt' | 'evade' | 'swoop' | 'clear' = 'swoop'; rivalRest = 0;
   partnerPath: [number, number][] = [];
   flyer: Who; design: Design;
   private prevPsi: number[] = [];
@@ -484,7 +484,8 @@ export class Flight {
       const reach = Math.hypot(ex - o.hx, ey - o.hy) < o.lmax - 3 && ex > o.hx + 2 && ey > o.hy + 3;
       const ot = o.tail.length / 2 - 1, threat = Math.hypot(me.x - o.tail[ot], me.y - o.tail[ot + 1]) < 4.5;
       let tx: number, ty: number;
-      if (this.tangle > 0.15 || me.state !== 'fly') { tx = o.hx + 7; ty = o.hy + 16; this.rivalMode = 'clear'; }
+      this.rivalRest = Math.max(0, this.rivalRest - DT);
+      if (this.tangle > 0.15 || me.state !== 'fly' || this.rivalRest > 0) { tx = o.hx + 7; ty = o.hy + 16; this.rivalMode = 'clear'; }
       else {
         // now and then it changes its mind: hunt your streamer, slip away from your kite, or swoop about
         if (this.steps % 45 === 0) this.rivalMode = threat && r() < R.skill ? 'evade' : reach && r() < 0.35 + R.skill * 0.5 ? 'hunt' : 'swoop';
@@ -580,19 +581,18 @@ export class Flight {
       case 'duel': {
         const o = this.other!;
         this.touchCool = Math.max(0, this.touchCool - DT);
-        // the lines: crossing for long tangles them, and a tangle brings both kites down and costs you a point
+        // the lines: crossing for long tangles them, and a tangle brings both kites down to be reeled in and relaunched
         const crossing = me.state === 'fly' && o.state === 'fly' && segCross(me.hx, me.hy, me.x, me.y, o.hx, o.hy, o.x, o.y);
         this.tangle = clamp(this.tangle + (crossing ? DT / 1.6 : -DT / 1.2), 0, 1);
         if (this.tangle >= 1) {
           this.tangle = 0; out.push({ k: 'tangle' });
           for (const k of [me, o]) { k.state = 'down'; k.down = 'grass'; k.downT = -0.6; k.tumbling = false; k.vx = k.vy = 0; k.y = Math.max(k.y - 0.5, surfaceAt(this.P, k.x) + 0.3); }
-          this.touches[1]++; this.touchCool = 2;
-          out.push({ k: 'touch', by: 1, x: me.x, y: me.y, score: [...this.touches] as [number, number] });
+          this.touchCool = 2;
         }
         if (this.touchCool <= 0 && me.state === 'fly' && o.state === 'fly') {
           const hits = (a: Kite, b: Kite) => { for (let i = 2; i < b.tail.length / 2; i++) if (Math.hypot(a.x - b.tail[i * 2], a.y - b.tail[i * 2 + 1]) < 0.85) return true; return false; };
           if (hits(me, o)) { this.touches[0]++; this.touchCool = 1.6; out.push({ k: 'touch', by: 0, x: me.x, y: me.y, score: [...this.touches] as [number, number] }); }
-          else if (hits(o, me)) { this.touches[1]++; this.touchCool = 1.6; out.push({ k: 'touch', by: 1, x: o.x, y: o.y, score: [...this.touches] as [number, number] }); }
+          else if (hits(o, me)) { this.touches[1]++; this.touchCool = 1.6; this.rivalRest = 3; out.push({ k: 'touch', by: 1, x: o.x, y: o.y, score: [...this.touches] as [number, number] }); }
         }
         if (this.touches[0] >= goal.to) this.finish(true, this.touches[1]);
         else if (this.touches[1] >= goal.to || this.t >= goal.limit) this.finish(false, this.touches[1]);

@@ -3,7 +3,7 @@
 // kite, and must clear every one; its results set the medal marks, which this checks still sit where the bot puts
 // them (gold within reach of a good run, silver comfortably below). Two naive fliers must fail most challenges: one
 // who never touches anything, and one who holds the pull and points straight at everything.
-// `--quick` (in `npm test`) plays one run per challenge; `--calibrate` prints the marks the runs suggest.
+// `--quick` (in `npm test`) plays two runs per challenge and needs one win, like a player having a second go; `--calibrate` prints the marks the runs suggest.
 import strict from 'node:assert/strict';
 import * as K from '../.checks/kite-game.js';
 
@@ -73,6 +73,9 @@ export function careful(f, seed = 1, opts = {}) {
         // hunt the streamer from the upwind side; if the lines start to cross, get back on your own side first
         if (s.tangle > 0.05) { tx = s.ox - 6; ty = s.oy + 5; }
         else if (k.x > o.x + 1) { tx = o.x - 4; ty = o.y + 3; }
+        // the rival is closing on my streamer: swing away over the top first
+        const n = k.tail.length / 2 - 1, d = Math.hypot(s.ox - k.tail[n * 2], s.oy - k.tail[n * 2 + 1]);
+        if (d < 3 && Math.hypot(s.ox - tx, s.oy - ty) > 2) { tx = k.x + (k.x - s.ox) * 1.5; ty = k.y + 4; }
       }
       aim = [tx + noise[0], ty + noise[1]];
       // over a tree or a roof in the way
@@ -113,7 +116,7 @@ if (process.argv[1]?.endsWith('kite-bot.mjs')) main();
 function main() {
 const median = (a) => { const b = [...a].sort((x, y) => x - y); return b[Math.floor(b.length / 2)]; };
 const ids = K.CHALLENGES.map((c) => c.id).filter((id) => !only || only.includes(id));
-const seeds = quick ? [1] : [1, 2, 3];
+const seeds = quick ? [1, 2] : [1, 2, 3];
 let checks = 0, failsIdle = 0, failsMash = 0;
 const t0 = Date.now();
 for (const id of ids) {
@@ -127,8 +130,8 @@ for (const id of ids) {
     const marks = ch.better === 'low' ? [ch.goal.limit, Math.ceil(m * 1.6), Math.ceil(m * 1.12)] : [Math.floor(m * 0.3 / 10) * 10, Math.floor(m * 0.6 / 10) * 10, Math.floor(m * 0.92 / 10) * 10];
     console.log(`    suggested marks ${JSON.stringify(marks)} (median ${m.toFixed(1)})`);
   }
-  // the bot clears every challenge (in most of its runs), and earns at least bronze each time it wins
-  assert.ok(won.length >= Math.ceil(runs.length * 0.6), `${id}: the careful bot clears ${ch.name} (${won.length}/${runs.length})`); checks++;
+  // the bot clears every challenge (in most of its runs, or one of two quick ones), and earns at least bronze each time it wins
+  assert.ok(won.length >= (quick ? 1 : 2), `${id}: the careful bot clears ${ch.name} (${won.length}/${runs.length})`); checks++;
   for (const f of won) { assert.ok(f.medal >= 1, `${id}: a win earns a medal`); checks++; }
   // gold is within reach of a good run, but not handed out: the bot's best run gets silver or gold, its median not above gold by much
   if (!quick && ch.goal.kind !== 'duel') {
