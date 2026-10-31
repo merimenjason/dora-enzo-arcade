@@ -106,8 +106,9 @@ export default function KiteDay() {
 
   const insets = () => {
     const portrait = typeof window !== 'undefined' && window.innerHeight > window.innerWidth;
+    // the HUD's height on screen (it is zoomed up on big screens)
     const top = stage.current?.querySelector('.kd-hud')?.getBoundingClientRect().height ?? 60;
-    return { top: top + 8, bottom: touchRef.current ? (portrait ? 132 : 92) : 8, left: 0, right: 0 };
+    return { top: top + 8, bottom: touchRef.current ? (portrait ? 40 : 16) : 8, left: 0, right: 0 };
   };
   const layout = () => {
     const st = stage.current, sc = scene.current; if (!st || !sc) return;
@@ -141,7 +142,7 @@ export default function KiteDay() {
           while (acc >= DT && n < 8) { f.step(inp); acc -= DT; n++; }
           if (n === 8) acc = 0;
           const evs: Ev[] = f.events.slice(from);
-          if (evs.length) { sc.events(evs, f); sound.current?.play(evs); if (evs.some((e) => e.k === 'ring' || e.k === 'pop' || e.k === 'deliver')) setCoach(false); }
+          if (evs.length) { sc.events(evs, f); sound.current?.play(evs); if (f.t > 8 && evs.some((e) => e.k === 'ring' || e.k === 'pop' || e.k === 'deliver')) setCoach(false); }
           if (f.events.length > 600) f.events.splice(0, f.events.length - 200);
           const k = f.me;
           pose.current = k.walking ? 'run' : 'pull';
@@ -427,8 +428,7 @@ export default function KiteDay() {
           )}
           {touch && !result && (
             <div className="kd-pad">
-              <span className="kd-pad-walk"><button {...padBtn('left')} aria-label="Walk back">◀</button><button {...padBtn('right')} aria-label="Walk on">▶</button></span>
-              <span className="kd-pad-line"><button className="is-ease" {...padBtn('ease')}>Ease</button><button className="is-pull" {...padBtn('pull')}>Pull</button></span>
+              <span className="kd-pad-line"><span className="kd-pad-walk"><button {...padBtn('left')} aria-label="Walk back">◀</button><button {...padBtn('right')} aria-label="Walk on">▶</button></span><button className="is-ease" {...padBtn('ease')}>Ease</button><button className="is-pull" {...padBtn('pull')}>Pull</button></span>
             </div>
           )}
           {paused && !result && (

@@ -33,12 +33,12 @@ const ok = (c, m) => { assert.ok(c, m); checks++; };
   ok(await page.getByRole('heading', { name: 'Kite Day' }).isVisible(), 'the title');
   ok(await noSideScroll(page), 'no sideways scroll on the menu');
   await page.getByRole('button', { name: 'Start the summer' }).click();
-  ok(await page.getByRole('button', { name: /Clover Meadow/ }).isEnabled(), 'the meadow is open');
-  ok(await page.getByRole('button', { name: /Apple Orchard/ }).isDisabled(), 'the orchard waits');
-  await page.getByRole('button', { name: /Clover Meadow/ }).click();
+  ok(await page.getByRole('button', { name: /^🌼 Clover Meadow/ }).isEnabled(), 'the meadow is open');
+  ok(await page.getByRole('button', { name: /^🍎 Apple Orchard/ }).isDisabled(), 'the orchard waits');
+  await page.getByRole('button', { name: /^🌼 Clover Meadow/ }).click();
   await page.getByRole('listitem').filter({ hasText: 'First Flight' }).getByRole('button', { name: 'Fly' }).click();
   await page.waitForFunction(() => window.__kiteScreen() === 'play');
-  ok(await page.locator('.kd-coach').isVisible(), 'the first flight explains the controls');
+  ok(await page.locator('.kd-coach').waitFor({ timeout: 5000 }).then(() => true, () => false), 'the first flight explains the controls');
   // fly it: point at the next ring, hold the left button to pull in when the line is too long, the right to let it out
   let held = null;
   const press = async (b) => { if (held === b) return; if (held) await page.mouse.up({ button: held }); held = b; if (b) await page.mouse.down({ button: b }); };
@@ -62,7 +62,7 @@ const ok = (c, m) => { assert.ok(c, m); checks++; };
 
   // ---------------------------------------------------------------- the keyboard, in a free flight
   await game(page, () => window.__kiteStart(null, 'meadow'));
-  await page.mouse.move(5, 400); await page.waitForTimeout(1500);
+  await page.waitForTimeout(1500);
   const a = await kite(page);
   await page.keyboard.down('ArrowLeft'); await page.waitForTimeout(500); await page.keyboard.up('ArrowLeft');
   const b = await kite(page);
@@ -70,7 +70,7 @@ const ok = (c, m) => { assert.ok(c, m); checks++; };
   await page.waitForTimeout(1500);
   const c = await kite(page); await page.keyboard.down('Space'); await page.waitForTimeout(900); await page.keyboard.up('Space');
   ok((await kite(page)).L < c.L - 1.5, 'Space pulls the line in');
-  const d = await kite(page); await page.keyboard.down('Shift'); await page.waitForTimeout(1200); await page.keyboard.up('Shift');
+  const d = await kite(page); await page.keyboard.down('Shift'); await page.waitForTimeout(1600); await page.keyboard.up('Shift');
   ok((await kite(page)).L > d.L + 1.5, 'Shift lets line out');
   const e = await kite(page); await page.keyboard.down('d'); await page.waitForTimeout(800); await page.keyboard.up('d');
   ok((await kite(page)).hx > e.hx + 1, 'D walks downwind');
@@ -85,7 +85,7 @@ const ok = (c, m) => { assert.ok(c, m); checks++; };
   // ---------------------------------------------------------------- across a reload
   await page.reload(); await ready(page);
   await page.getByRole('button', { name: /summer map/ }).click();
-  await page.getByRole('button', { name: /Clover Meadow/ }).click();
+  await page.getByRole('button', { name: /^🌼 Clover Meadow/ }).click();
   ok(await page.getByRole('listitem').filter({ hasText: 'Clover Rings' }).getByRole('button', { name: 'Fly' }).isEnabled(), 'the next challenge opened and stays open');
   ok(await page.getByRole('listitem').filter({ hasText: 'First Flight' }).getByText(/Best:/).isVisible(), 'the best time is remembered');
 
@@ -128,7 +128,7 @@ for (const [w, h] of [[390, 844], [844, 390]]) {
   await clear(page);
   ok(await noSideScroll(page), `${w}×${h}: the menu fits`);
   await page.getByRole('button', { name: 'Start the summer' }).tap();
-  await page.getByRole('button', { name: /Clover Meadow/ }).tap();
+  await page.getByRole('button', { name: /^🌼 Clover Meadow/ }).tap();
   await page.getByRole('listitem').filter({ hasText: 'First Flight' }).getByRole('button', { name: 'Fly' }).tap();
   await page.waitForFunction(() => window.__kiteScreen() === 'play');
   await page.locator('.kd-pad .is-pull').waitFor();

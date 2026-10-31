@@ -125,9 +125,18 @@ function paintTail(c: CanvasRenderingContext2D, pts: Pt[], design: Design, w: nu
   if (pts.length < 2) return;
   const col = COLOURS[design.paint.tail], dragon = design.shape === 'dragon';
   c.lineCap = 'round'; c.lineJoin = 'round';
-  c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
-  c.lineWidth = dragon ? w * 1.8 : w; c.strokeStyle = rgba(col, 0.9); c.stroke();
-  c.lineWidth = Math.max(1, w * 0.35); c.strokeStyle = mix(col, '#fff6dc', 0.5, 0.6); c.stroke();
+  // the ribbon ripples: each point swings across the tail's direction, more toward the free end
+  const n = pts.length;
+  pts = pts.map(([x, y], i) => {
+    if (i === 0) return [x, y] as Pt;
+    const [px, py] = pts[i - 1], d = Math.hypot(x - px, y - py) || 1, a = Math.sin(t * 7 - i * 0.9) * w * 1.6 * (i / n);
+    return [x + (-(y - py) / d) * a, y + ((x - px) / d) * a] as Pt;
+  });
+  // a smooth curve through the points
+  const curve = () => { c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < n - 1; i++) { const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2; c.quadraticCurveTo(pts[i][0], pts[i][1], mx, my); } c.lineTo(pts[n - 1][0], pts[n - 1][1]); };
+  curve(); c.lineWidth = (dragon ? w * 1.8 : w * 1.3) + 2; c.strokeStyle = mix(col, INK, 0.45, 0.45); c.stroke();
+  curve(); c.lineWidth = dragon ? w * 1.8 : w * 1.3; c.strokeStyle = rgba(col, 0.92); c.stroke();
+  c.lineWidth = Math.max(1, w * 0.4); c.strokeStyle = mix(col, '#fff6dc', 0.5, 0.55); c.stroke();
   if (dragon) {
     const alt = COLOURS[design.paint.sail];
     for (let i = 1; i < pts.length; i += 1) { const [x, y] = pts[i]; c.fillStyle = rgba(i % 2 ? alt : COLOURS[design.paint.ink], 0.85); c.beginPath(); c.arc(x, y, w * (1.1 - i / pts.length * 0.5), 0, 7); c.fill(); }
@@ -191,7 +200,7 @@ export class KiteScene {
   sy(y: number) { return this.h - (y - this.cam.y) * this.cam.s; }
   toWorld(px: number, py: number): Pt { return [px / this.cam.s + this.cam.x, (this.h - py) / this.cam.s + this.cam.y]; }
   /** The chinchilla's height on screen: picture-book scale, big enough to read on any screen. */
-  spriteH(ins: DrawOpts['insets']) { const fh = this.h - ins.top - ins.bottom; return clamp(Math.min(fh * 0.27, this.w * 0.2), 84, 300); }
+  spriteH(ins: DrawOpts['insets']) { const fh = this.h - ins.top - ins.bottom; return clamp(Math.min(fh * (this.h < 520 ? 0.4 : 0.27), this.w * (this.w < 600 ? 0.34 : 0.2)), 96, 300); }
   private frame(f: Flight, o: DrawOpts, snap: boolean) {
     const k = f.me, P = f.P, ins = o.insets;
     const fw = Math.max(200, this.w - ins.left - ins.right), fh = Math.max(160, this.h - ins.top - ins.bottom);
@@ -363,6 +372,12 @@ export class KiteScene {
       c.fillStyle = g; c.fill();
       // steep faces are rock (the cliffs)
       c.save(); c.clip();
+      // loose horizontal washes and dabs, like wet brush strokes over the grass
+      for (let i = 0; i < 26; i++) {
+        const u = ((i * 0.618) % 1), wx = this.sx(x0 + (x1 - x0) * u), wy = this.sy(groundAt(P, x0 + (x1 - x0) * u)) + 8 + ((i * 37) % 9) * Math.max(6, s * 0.35);
+        c.fillStyle = i % 3 ? rgba(pt.grassDark, 0.1) : 'rgba(255,250,215,.14)';
+        c.beginPath(); c.ellipse(wx, wy, Math.max(40, s * (2 + (i % 4))), Math.max(4, s * 0.18), 0, 0, 7); c.fill();
+      }
       for (let x = x0; x <= x1; x += step) {
         const dy = (groundAt(P, x + step) - groundAt(P, x)) / step;
         if (Math.abs(dy) > 0.8) {
@@ -385,20 +400,24 @@ export class KiteScene {
       void r;
       return;
     }
-    // the front layer: grass blades that bend with the wind and darken where a gust is running through
-    const bstep = Math.max(0.3, 7 / s);
+    // the front layer: tufts of grass that bend with the wind and darken where a gust is running through
+    const bstep = Math.max(0.6, 24 / s), hsh = (v: number) => ((Math.sin(v * 12.9898 + 4.1) * 43758.5453) % 1 + 1) % 1;
     c.lineCap = 'round';
-    for (let x = Math.floor(x0 / bstep) * bstep; x <= x1; x += bstep) {
-      if (waterAt(P, x) !== null) continue;
+    for (let x0b = Math.floor(x0 / bstep) * bstep; x0b <= x1; x0b += bstep) {
+      const r1 = hsh(x0b), x = x0b + r1 * bstep * 0.8;
+      if (r1 < 0.4 || waterAt(P, x) !== null) continue;
       const g = groundAt(P, x); if (Math.abs((groundAt(P, x + 0.3) - g) / 0.3) > 0.8) continue;
       const w = windAt(P, f.seed, x, g + 0.8, f.t), gu = gustAt(P, f.seed, x, f.t);
-      const bend = clamp(w.u / 11, -0.3, 1.1) + Math.sin(this.time * 3 + x * 1.7) * 0.06 * (1 + gu.gust * 4);
-      const hgt = (0.32 + 0.22 * ((x * 3.7) % 1)) * Math.max(1, 9 / s), bx = this.sx(x), by = this.sy(g) + 1;
-      const tipX = bx + bend * hgt * s * 0.8, tipY = by - hgt * s * (1 - Math.abs(bend) * 0.35);
       const dark = clamp(gu.gust * 3 - gu.lull, -0.4, 0.8);
-      c.strokeStyle = dark > 0 ? mix(P.paint.grassDark, '#1f4a2a', dark, 0.85) : mix(P.paint.grassDark, '#f2f0c0', -dark, 0.8);
-      c.lineWidth = Math.max(1.2, s * 0.045);
-      c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx + bend * hgt * s * 0.2, by - hgt * s * 0.6, tipX, tipY); c.stroke();
+      const col = dark > 0 ? mix(P.paint.grassDark, '#1f4a2a', dark, 0.8) : mix(P.paint.grassDark, '#f2f0c0', -dark, 0.75);
+      const bx = this.sx(x), by = this.sy(g) + 2, n = 3 + Math.floor(hsh(x0b + 1) * 3);
+      for (let j = 0; j < n; j++) {
+        const rj = hsh(x0b * 3 + j), hgt = (0.25 + rj * 0.5) * Math.max(1, 10 / s);
+        const lean = (j - (n - 1) / 2) * 0.22, bend = clamp(w.u / 11, -0.3, 1.1) * (0.6 + rj * 0.6) + lean + Math.sin(this.time * 3 + x * 1.7 + j) * 0.06 * (1 + gu.gust * 4);
+        const tipX = bx + bend * hgt * s * 0.75, tipY = by - hgt * s * (1 - Math.min(0.6, Math.abs(bend) * 0.35));
+        c.strokeStyle = col; c.lineWidth = Math.max(1.3, s * 0.05) * (0.7 + rj * 0.6);
+        c.beginPath(); c.moveTo(bx + (j - n / 2) * 1.5, by); c.quadraticCurveTo(bx + bend * hgt * s * 0.15, by - hgt * s * 0.6, tipX, tipY); c.stroke();
+      }
     }
   }
 
@@ -480,7 +499,7 @@ export class KiteScene {
     const r2 = lcg(seed);
     for (let i = 0; i < 9; i++) {
       const a = r2() * Math.PI * 2, d = r2() * 0.55;
-      wash(c, X + Math.cos(a) * R * d + sway, Y + Math.sin(a) * R * d * 0.8, R * (0.45 + r2() * 0.2), R * (0.4 + r2() * 0.18), greens[i % 3], seed + i, 0.82);
+      wash(c, X + Math.cos(a) * R * d + sway, Y + Math.sin(a) * R * d * 0.8, R * (0.45 + r2() * 0.2), R * (0.4 + r2() * 0.18), greens[i % 3], seed + i, 0.95);
     }
     c.fillStyle = 'rgba(30,60,30,.18)'; blobPath(c, X + sway, Y + R * 0.35, R * 0.95, R * 0.45, seed + 99); c.fill();
     if (t.kind === 'apple') {
@@ -497,8 +516,8 @@ export class KiteScene {
     const walls: Record<string, string> = { cottage: '#f1e2c4', tent: '#fbf3df', barn: '#b8503e', stall: '#fbf3df', hut: '#f6efe0' };
     c.fillStyle = walls[b.kind]; c.fillRect(L, T, R - L, B - T);
     if (b.kind === 'tent' || b.kind === 'stall' || b.kind === 'hut') {
-      const n = b.kind === 'hut' ? 5 : 7, col = b.kind === 'hut' ? '#3a78c8' : b.kind === 'tent' ? '#e8574a' : '#2f9a8c';
-      c.fillStyle = rgba(col, 0.85); for (let i = 0; i < n; i += 2) c.fillRect(L + ((R - L) / n) * i, T, (R - L) / n, B - T);
+      const n = b.kind === 'hut' ? 5 : 7, col = b.kind === 'hut' ? '#5a90c8' : b.kind === 'tent' ? '#e8574a' : '#2f9a8c';
+      c.fillStyle = rgba(col, 0.7); for (let i = 0; i < n; i += 2) c.fillRect(L + ((R - L) / n) * i, T, (R - L) / n, B - T);
     }
     if (b.kind === 'cottage' || b.kind === 'barn') {
       c.fillStyle = b.kind === 'barn' ? '#f1e2c4' : '#7aa0c8'; const wsz = Math.min((R - L) * 0.18, (B - T) * 0.3);
@@ -507,11 +526,14 @@ export class KiteScene {
     }
     c.strokeStyle = 'rgba(60,40,40,.35)'; c.lineWidth = 2; c.strokeRect(L, T, R - L, B - T);
     // roof
-    const roofs: Record<string, string> = { cottage: '#c49a52', tent: '#e8574a', barn: '#7a3a2e', stall: '#2f9a8c', hut: '#3a78c8' };
+    const roofs: Record<string, string> = { cottage: '#c49a52', tent: '#e8574a', barn: '#7a3a2e', stall: '#2f9a8c', hut: '#5a90c8' };
     c.beginPath(); c.moveTo(L - s * 0.3, T); c.lineTo(M, A); c.lineTo(R + s * 0.3, T); c.closePath(); c.fillStyle = roofs[b.kind]; c.fill();
     if (b.kind === 'tent' || b.kind === 'stall') { c.save(); c.clip(); c.fillStyle = 'rgba(255,250,235,.85)'; for (let i = -6; i < 6; i += 2) { c.beginPath(); c.moveTo(M, A); c.lineTo(M + i * (R - L) / 6, T); c.lineTo(M + (i + 1) * (R - L) / 6, T); c.closePath(); c.fill(); } c.restore(); }
     if (b.kind === 'cottage') { c.strokeStyle = 'rgba(120,90,40,.5)'; c.lineWidth = 1.5; for (let i = 1; i < 5; i++) { const y = T + (A - T) * i / 5; c.beginPath(); c.moveTo(L + (M - L) * i / 5, y); c.lineTo(R - (R - M) * i / 5, y); c.stroke(); } c.fillStyle = '#9a5a40'; c.fillRect(L + (R - L) * 0.68, A + (T - A) * 0.2 - s * 0.9, s * 0.6, s * 1.2); }
     c.strokeStyle = 'rgba(60,40,40,.4)'; c.lineWidth = 2; c.beginPath(); c.moveTo(L - s * 0.3, T); c.lineTo(M, A); c.lineTo(R + s * 0.3, T); c.stroke();
+    // a wash of light from the upper left and shadow to the lower right, so it sits in the painting
+    const lg = c.createLinearGradient(L, A, R, B); lg.addColorStop(0, 'rgba(255,248,225,.28)'); lg.addColorStop(1, 'rgba(60,50,90,.22)');
+    c.fillStyle = lg; c.beginPath(); c.moveTo(L - s * 0.3, T); c.lineTo(M, A); c.lineTo(R + s * 0.3, T); c.lineTo(R, T); c.lineTo(R, B); c.lineTo(L, B); c.lineTo(L, T); c.closePath(); c.fill();
     if (b.kind === 'tent') { c.strokeStyle = '#6e4a2e'; c.lineWidth = 2; c.beginPath(); c.moveTo(M, A); c.lineTo(M, A - s * 1.1); c.stroke(); c.fillStyle = '#f6cd3f'; c.beginPath(); c.moveTo(M, A - s * 1.1); c.lineTo(M + s * (0.8 + Math.sin(this.time * 4) * 0.1), A - s * 0.9); c.lineTo(M, A - s * 0.7); c.fill(); }
   }
 
@@ -562,7 +584,7 @@ export class KiteScene {
           const lead = cue.t - f.t, X = this.sx(cue.x), Y = this.sy(cue.y), R = cue.r * s, al = clamp(1 - (lead - 3.6) / 3.4, 0.25, 1);
           ring({ x: cue.x, y: cue.y, r: cue.r, kind: 'gate' }, i, i === f.cueNext ? 'next' : 'later');
           // the beat: a ring closing in on the gate, landing on it exactly on the beat
-          if (lead > -1.4 && lead < 4) { const rr = R * (1 + Math.max(0, lead) * 0.55); c.lineWidth = 3; c.strokeStyle = `rgba(232,87,74,${al * (lead < 0 ? 0.4 : 0.9)})`; c.beginPath(); c.arc(X, Y, rr, 0, 7); c.stroke(); }
+          if (lead > -1.4 && lead < 2.2) { const rr = R * (1 + Math.max(0, lead) * 0.3); c.lineWidth = 2.5; c.strokeStyle = `rgba(232,87,74,${al * (lead < 0 ? 0.4 : 0.9)})`; c.beginPath(); c.arc(X, Y, rr, 0, 7); c.stroke(); }
           if (cue.loop) { c.font = `700 ${Math.max(14, R * 0.36)}px "Patrick Hand", cursive`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = `rgba(106,91,191,${al})`; c.fillText('loop!', X, Y); }
         });
         break;
@@ -580,7 +602,11 @@ export class KiteScene {
     } else if (g.kind === 'balloon') {
       const col = COLOURS[[0, 2, 5, 7, 3][i % 5]];
       c.strokeStyle = 'rgba(80,70,60,.6)'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(X, Y + R); c.quadraticCurveTo(X + Math.sin(this.time * 2 + i) * R * 0.3, Y + R * 1.8, X, Y + R * 2.6); c.stroke();
-      wash(c, X, Y, R * 0.85, R, col, 31 + i, 0.92);
+      c.fillStyle = col; c.beginPath(); c.ellipse(X, Y, R * 0.82, R, 0, 0, 7); c.fill();
+      c.beginPath(); c.moveTo(X - R * 0.12, Y + R * 1.08); c.lineTo(X + R * 0.12, Y + R * 1.08); c.lineTo(X, Y + R * 0.95); c.fill();
+      const bg = c.createRadialGradient(X - R * 0.3, Y - R * 0.35, R * 0.1, X, Y, R); bg.addColorStop(0, 'rgba(255,250,235,.35)'); bg.addColorStop(1, 'rgba(40,30,60,.2)');
+      c.fillStyle = bg; c.beginPath(); c.ellipse(X, Y, R * 0.82, R, 0, 0, 7); c.fill();
+      c.strokeStyle = mix(col, INK, 0.4, 0.5); c.lineWidth = 1.5; c.stroke();
       c.fillStyle = 'rgba(255,255,255,.75)'; c.beginPath(); c.ellipse(X - R * 0.3, Y - R * 0.4, R * 0.14, R * 0.24, -0.4, 0, 7); c.fill();
     } else {
       // a soap bubble: rainbow sheen, a white window

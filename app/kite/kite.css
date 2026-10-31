@@ -35,7 +35,7 @@
 /* ---- the menu: the title painting with a paper card in its open sky */
 .kd-menu,.kd-ending{position:absolute;inset:0}
 .kd-hero{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:60% 50%}
-.kd-menu-card{position:absolute;left:clamp(12px,4vw,64px);top:clamp(12px,5vh,64px);width:min(470px,calc(100% - 24px));padding:22px 24px 18px;display:flex;flex-direction:column;gap:12px;background:radial-gradient(120% 90% at 20% 10%,#fffaeaf2 0,#fbf3dfee 50%,#f4e8c8ea 100%)}
+.kd-menu-card{position:absolute;right:clamp(12px,4vw,64px);bottom:clamp(12px,5vh,64px);width:min(470px,calc(100% - 24px));padding:22px 24px 18px;display:flex;flex-direction:column;gap:12px;background:radial-gradient(120% 90% at 20% 10%,#fffaeaf2 0,#fbf3dfee 50%,#f4e8c8ea 100%)}
 .kd-title{font-size:clamp(58px,8vw,92px);color:var(--poppy);text-shadow:2px 3px 0 #fff,4px 6px 0 #3a355022;transform:rotate(-2deg);margin-top:-4px!important}
 .kd-sub{font-size:15px;color:#5a5068}
 .kd-menu-buttons{display:flex;flex-wrap:wrap;gap:8px}
@@ -87,7 +87,7 @@
 .kd-workshop{background:radial-gradient(90% 70% at 30% 30%,#e6f3fb,#cfe6f2)}
 .kd-ws-body{display:grid;grid-template-columns:minmax(260px,440px) minmax(0,1fr);gap:16px;padding:6px clamp(12px,3vw,40px) 26px;max-width:1200px;width:100%;margin:0 auto;align-items:start}
 .kd-ws-preview{padding:14px 18px 18px;display:flex;flex-direction:column;gap:8px;font-size:14.5px}
-.kd-ws-preview canvas{width:100%;aspect-ratio:1;background:radial-gradient(circle at 50% 40%,#e9f5fc,#bcdcef);border-radius:18px 14px 20px 16px}
+.kd-ws-preview canvas{width:100%;max-height:46vh;object-fit:contain;aspect-ratio:1;background:radial-gradient(circle at 50% 40%,#e9f5fc,#bcdcef);border-radius:18px 14px 20px 16px}
 .kd-ws-preview h3{font-size:32px}
 .kd-bars{list-style:none;padding:0;margin:4px 0 0;display:grid;gap:5px}
 .kd-bars li{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:8px;font-size:13px}
@@ -116,8 +116,10 @@
 .kd-gauges i.is-pull b{background:linear-gradient(90deg,#f6cd3f,#e8574a)}
 .kd-hud-right{display:flex;gap:6px;align-items:center}
 .kd-coach{position:absolute;left:50%;top:84px;transform:translateX(-50%) rotate(-.5deg);width:min(620px,calc(100% - 24px));padding:12px 16px;display:flex;gap:12px;align-items:center;font-size:15px;z-index:2}
-.kd-pad{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;padding:10px 12px calc(10px + env(safe-area-inset-bottom));pointer-events:none;z-index:2}
-.kd-pad>*{pointer-events:auto;display:flex;gap:10px}
+.kd-pad{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:flex-end;align-items:flex-end;padding:10px 12px calc(10px + env(safe-area-inset-bottom));pointer-events:none;z-index:2}
+.kd-pad>*{pointer-events:auto;display:flex;gap:10px;align-items:flex-end}
+.kd-pad-walk{display:flex;gap:8px;align-self:flex-end;margin-right:6px}
+.kd-shell .kd-pad-walk button{width:54px;height:54px;font-size:17px}
 .kd-shell .kd-pad button{width:66px;height:66px;border-radius:50%;font-size:20px;padding:0;background:#fbf3dfe6;touch-action:none}
 .kd-shell .kd-pad .is-pull{width:92px;height:92px;font-size:20px;background:linear-gradient(180deg,#fff1b8,#f6cd3f)}
 .kd-shell .kd-pad .is-ease{background:linear-gradient(180deg,#e6f3fb,#a8d0ec)}
@@ -151,14 +153,14 @@
   .kd-hud-wind{margin-left:auto;padding:4px 8px}
   .kd-map-grid{grid-template-columns:minmax(0,1fr)}
   .kd-place:nth-child(n){transform:none}
-  .kd-menu-card{top:auto;bottom:12px;padding:14px 16px 12px;gap:8px}
+  .kd-menu-card{padding:14px 16px 12px;gap:8px}
   .kd-title{font-size:52px}
   .kd-sub{font-size:13.5px}
   .kd-ending-card{top:auto;bottom:12px}
   .kd-coach{top:120px;font-size:13.5px}
 }
 @media (max-height:500px){
-  .kd-menu-card{top:8px;bottom:auto;max-height:calc(100% - 16px);overflow:auto;padding:12px 16px;gap:8px}
+  .kd-menu-card{max-height:calc(100% - 16px);overflow:auto;padding:12px 16px;gap:8px}
   .kd-title{font-size:46px}
   .kd-sub{display:none}
   .kd-hud{padding:6px 8px}
@@ -167,4 +169,24 @@
   .kd-shell .kd-pad button{width:56px;height:56px}
   .kd-shell .kd-pad .is-pull{width:76px;height:76px}
   .kd-ending-card{top:8px;max-height:calc(100% - 16px);overflow:auto}
+}
+
+/* big screens: everything on paper a size up */
+@media (min-width:1500px) and (min-height:900px){
+  .kd-menu-card,.kd-bar,.kd-map-grid,.kd-place-body,.kd-ws-body,.kd-hud,.kd-panel,.kd-coach,.kd-ending-card,.kd-pad{zoom:1.32}
+  .kd-coach{top:100px}
+}
+/* phones held upright: the painting on top, the paper below it, so the chinchillas stay in view */
+@media (max-width:560px) and (orientation:portrait){
+  .kd-menu,.kd-ending{background:linear-gradient(180deg,#cfe6f2,#f4e8c8)}
+  .kd-menu .kd-hero,.kd-ending .kd-hero{height:46%;object-position:24% 78%;-webkit-mask-image:linear-gradient(180deg,#000 82%,transparent);mask-image:linear-gradient(180deg,#000 82%,transparent)}
+  .kd-menu-card,.kd-ending-card{top:auto;bottom:10px;left:10px;right:10px;width:auto;max-height:57%;overflow:auto}
+  .kd-bar .kd-chips{display:none}
+  .kd-bar h2{font-size:24px}
+}
+/* phones held sideways: the paper on the right, clear of the chinchillas on the left */
+@media (max-height:500px) and (orientation:landscape){
+  .kd-menu-card{right:8px;bottom:auto;top:8px;width:min(380px,48%)}
+  .kd-menu .kd-hero{object-position:30% 70%}
+  .kd-ending-card{width:min(380px,48%)}
 }
