@@ -89,7 +89,7 @@ export const NIGHTS: Night[] = [
   n('a5', 'attic', 'Trunk tower', { line: 4.2, high: 5.4, par: 10, wind: 0.6, queue: [X, S, X, K, C, T, B, K, X, P, D, H, C] }),
   n('a6', 'attic', 'Attic hideout', { line: 3, den: 2.5, high: 4.2, par: 12, wind: 0.5, queue: [F, X, X, B, B, C, C, L, K, K, Z, H, C] }),
 
-  n('b1', 'library', 'Book stacks', { line: 3.8, high: 4.2, par: 11, queue: [A, K, K, K, A, K, T, K, K, C, K, K] }),
+  n('b1', 'library', 'Book stacks', { line: 3.8, high: 4.2, par: 12, queue: [A, K, K, K, A, K, T, K, K, C, K, K] }),
   n('b2', 'library', 'The cat', { line: 3.4, high: 4.4, par: 9, cat: 3, queue: [C, K, A, C, K, P, D, K, A, C, B, C],
     tip: { title: 'Here comes the cat', text: 'Every few pieces the cat creeps up and pounces on the very top of the fort, and she comes back at bedtime. A heavy, flat piece on top shrugs her off; a duck does not.' } }),
   n('b3', 'library', 'Reading nook', { line: 2.2, den: 1.1, high: 2.6, par: 12, cat: 5, queue: [K, K, K, K, A, C, C, L, P, Z, K, C] }),

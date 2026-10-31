@@ -50,7 +50,7 @@ All numbers below come from `lib/fort-physics.ts`, `lib/fort-levels.ts`, `lib/fo
 | 10 `a4` | attic | Under the eaves | 2.4 | 3.5 | 3.4 | 10 | draught 0.4 | 10 pieces |
 | 11 `a5` | attic | Trunk tower | 4.2 | — | 5.4 | 10 | draught 0.6 | 13 pieces |
 | 12 `a6` | attic | Attic hideout | 3 | 2.5 | 4.2 | 12 | draught 0.5 | 13 pieces |
-| 13 `b1` | library | Book stacks | 3.8 | — | 4.2 | 11 | none | 12 pieces |
+| 13 `b1` | library | Book stacks | 3.8 | — | 4.2 | 12 | none | 12 pieces |
 | 14 `b2` | library | The cat | 3.4 | — | 4.4 | 9 | cat every 3 | 12 pieces |
 | 15 `b3` | library | Reading nook | 2.2 | 1.1 | 2.6 | 12 | cat every 5 | 12 pieces |
 | 16 `b4` | library | Encyclopaedias | 4.2 | — | 5.2 | 11 | cat every 4 | 14 pieces |
