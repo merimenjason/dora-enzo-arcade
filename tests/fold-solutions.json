@@ -1,0 +1,344 @@
+{
+ "l1": {
+  "par": 1,
+  "shortest": 1,
+  "solution": [
+   "x1<"
+  ]
+ },
+ "l2": {
+  "par": 2,
+  "shortest": 2,
+  "solution": [
+   "x1<",
+   "y1^"
+  ]
+ },
+ "l3": {
+  "par": 2,
+  "shortest": 1,
+  "solution": [
+   "x1<",
+   "x1>"
+  ]
+ },
+ "l4": {
+  "par": 2,
+  "shortest": 1,
+  "solution": [
+   "x1<",
+   "y1v"
+  ]
+ },
+ "l5": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "y1^",
+   "x3>",
+   "x2<"
+  ]
+ },
+ "l6": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "y1v",
+   "x1<",
+   "x1>"
+  ]
+ },
+ "l7": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "x1<",
+   "x1>",
+   "x1>"
+  ]
+ },
+ "l8": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "x3>",
+   "x2<",
+   "y1^"
+  ]
+ },
+ "b1": {
+  "par": 2,
+  "shortest": 1,
+  "solution": [
+   "x1<",
+   "x1>"
+  ]
+ },
+ "b2": {
+  "par": 2,
+  "shortest": 1,
+  "solution": [
+   "x1>",
+   "y1v"
+  ]
+ },
+ "b3": {
+  "par": 2,
+  "shortest": 1,
+  "solution": [
+   "x2<",
+   "y1v"
+  ]
+ },
+ "b4": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "x1<",
+   "y1v",
+   "x1<"
+  ]
+ },
+ "b5": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "x3<",
+   "x2>",
+   "y1v"
+  ]
+ },
+ "b6": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "x3>",
+   "y2v",
+   "x1<"
+  ]
+ },
+ "b7": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "x3>",
+   "x2>",
+   "y1v"
+  ]
+ },
+ "b8": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "x1<",
+   "x2<",
+   "y2^"
+  ]
+ },
+ "c1": {
+  "par": 1,
+  "shortest": 1,
+  "solution": [
+   "x1>"
+  ]
+ },
+ "c2": {
+  "par": 2,
+  "shortest": 2,
+  "solution": [
+   "x1<",
+   "x2<"
+  ]
+ },
+ "c3": {
+  "par": 2,
+  "shortest": 2,
+  "solution": [
+   "x1>",
+   "y1^"
+  ]
+ },
+ "c4": {
+  "par": 2,
+  "shortest": 1,
+  "solution": [
+   "x1<",
+   "y1v"
+  ]
+ },
+ "c5": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "x1<",
+   "x1<",
+   "y1^"
+  ]
+ },
+ "c6": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "x2>",
+   "x1>",
+   "y2v"
+  ]
+ },
+ "c7": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "x1<",
+   "x1<",
+   "y1v"
+  ]
+ },
+ "c8": {
+  "par": 4,
+  "shortest": 2,
+  "solution": [
+   "x1<",
+   "x2>",
+   "y1^",
+   "x1>"
+  ]
+ },
+ "s1": {
+  "par": 1,
+  "shortest": 1,
+  "solution": [
+   "x2>"
+  ]
+ },
+ "s2": {
+  "par": 1,
+  "shortest": 1,
+  "solution": [
+   "x1<"
+  ]
+ },
+ "s3": {
+  "par": 2,
+  "shortest": 1,
+  "solution": [
+   "x1>",
+   "x1>"
+  ]
+ },
+ "s4": {
+  "par": 2,
+  "shortest": 1,
+  "solution": [
+   "x1<",
+   "x1>"
+  ]
+ },
+ "s5": {
+  "par": 3,
+  "shortest": 2,
+  "solution": [
+   "x1<",
+   "y1v",
+   "x1>"
+  ]
+ },
+ "s6": {
+  "par": 3,
+  "shortest": 3,
+  "solution": [
+   "x3>",
+   "x1<",
+   "y1^"
+  ]
+ },
+ "s7": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "y2v",
+   "x2>",
+   "x1<"
+  ]
+ },
+ "s8": {
+  "par": 4,
+  "shortest": 2,
+  "solution": [
+   "x1<",
+   "y1v",
+   "y1^",
+   "x1<"
+  ]
+ },
+ "n1": {
+  "par": 2,
+  "shortest": 2,
+  "solution": [
+   "x1<",
+   "x1<"
+  ]
+ },
+ "n2": {
+  "par": 2,
+  "shortest": 1,
+  "solution": [
+   "x2>",
+   "y1^"
+  ]
+ },
+ "n3": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "x1<",
+   "x1>",
+   "y2v"
+  ]
+ },
+ "n4": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "y1^",
+   "x1<",
+   "x1>"
+  ]
+ },
+ "n5": {
+  "par": 3,
+  "shortest": 2,
+  "solution": [
+   "x1>",
+   "y1^",
+   "x2>"
+  ]
+ },
+ "n6": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "y1^",
+   "x3>",
+   "x1>"
+  ]
+ },
+ "n7": {
+  "par": 3,
+  "shortest": 1,
+  "solution": [
+   "y2v",
+   "y1v",
+   "x3<"
+  ]
+ },
+ "n8": {
+  "par": 4,
+  "shortest": 1,
+  "solution": [
+   "y1^",
+   "y2^",
+   "x1<",
+   "x1>"
+  ]
+ }
+}
