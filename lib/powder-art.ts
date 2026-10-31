@@ -49,21 +49,25 @@ export function chinchilla(o: ChinOpts): Grid {
   const g = new Grid(28, 32), P = PAL[o.who], v = o.view, f = o.frame & 1;
   const dy = o.pose === 'tuck' ? 2 : o.pose === 'grab' ? 2 : o.pose === 'sit' ? 3 : o.pose === 'air' ? -1 : 0;
   const fur = P.fur, shade = P.shade;
-  // skis first (they sit under everything): bright, with pale curled tips
-  const skiC = o.look.skis, tipC = lighten(skiC, 0.6);
+  // skis on their own layer (outlined in a darker shade of the ski, so they never read as legs), laid under the body
+  const k = new Grid(28, 32), skiC = o.look.skis, tipC = lighten(skiC, 0.65);
   if (o.pose === 'brake') {
-    g.l(7, 21, 12, 29, skiC); g.l(8, 21, 13, 29, skiC); g.l(21, 21, 16, 29, skiC); g.l(20, 21, 15, 29, skiC); g.r(12, 29, 2, 1, tipC); g.r(15, 29, 2, 1, tipC);
+    k.l(6, 21, 11, 30, skiC); k.l(22, 21, 17, 30, skiC); k.r(10, 30, 3, 1, tipC); k.r(16, 30, 3, 1, tipC);
   } else if (o.pose === 'sit') {
-    g.l(1, 28, 12, 30, skiC); g.l(16, 30, 26, 27, skiC); g.p(26, 27, tipC);
+    k.l(1, 28, 12, 30, skiC); k.l(16, 30, 26, 27, skiC); k.p(26, 27, tipC);
   } else {
-    const ux = Math.sin(o.ski), uy = Math.cos(o.ski) * 0.62, nx = -uy, ny = ux, gap = 3;
+    const ux = Math.sin(o.ski), uy = Math.cos(o.ski) * 0.62, flat = Math.abs(ux) > 0.7;
     for (const s of [-1, 1]) {
-      const cx = 14 + nx * gap * s / Math.max(0.6, Math.hypot(nx, ny)), cy = 25.5 + dy * 0.3 + ny * gap * s * 0.5;
-      const ax = cx - ux * 7, ay = cy - uy * 7, bx = cx + ux * 8, by = cy + uy * 8;
-      g.l(ax, ay, bx, by, skiC); g.l(ax + (Math.abs(ux) > 0.7 ? 0 : 1), ay + (Math.abs(ux) > 0.7 ? 1 : 0), bx + (Math.abs(ux) > 0.7 ? 0 : 1), by + (Math.abs(ux) > 0.7 ? 1 : 0), skiC);
-      g.p(bx, by, tipC); g.p(bx + ux, by + uy, tipC);
+      // the two skis sit side by side across the direction of travel
+      const cx = 14 + (flat ? 0 : s * 3.2), cy = 25.5 + dy * 0.3 + (flat ? s * 2 : 0) + (flat ? 0 : s * ux * 1.2);
+      const ax = cx - ux * 7, ay = cy - uy * 6, bx = cx + ux * 8, by = cy + uy * 8;
+      k.l(ax, ay, bx, by, skiC);
+      if (!flat) k.l(ax + s, ay, bx + s, by, skiC);
+      k.p(bx, by, tipC); k.p(bx + (flat ? Math.sign(ux) : s), by, tipC); k.p(bx + ux * 1.4, by + uy * 1.4, tipC);
+      if (uy > 0.45) k.r(Math.min(bx, bx + s) - 0, by + 1, 3, 1, tipC); // the curled tips, seen nose-on
     }
   }
+  k.outline(darken(skiC, 0.55));
   // tail behind (three-quarter and side)
   if (v === 'q') { g.e(6.5, 21 + dy * 0.5, 3.8, 3.4, shade); g.e(6, 20.5 + dy * 0.5, 2.4, 2, fur); }
   if (v === 'side') { g.e(5, 19.5 + dy * 0.5, 4, 4.4, shade); g.e(4.5, 19 + dy * 0.5, 2.6, 3, fur); }
@@ -111,6 +115,7 @@ export function chinchilla(o: ChinOpts): Grid {
     g.e(mx, hy + 2.6, v === 'side' ? 2.8 : 3.4, 2.2, P.belly);
   }
   g.outline();
+  for (let i = 0; i < g.px.length; i++) if (!g.px[i] && k.px[i]) g.px[i] = k.px[i];
   // poles (thin, no outline) out to the sides
   const PL = '#8a92ac', BK = '#4a4f66';
   const pole = (x0: number, y0: number, x1: number, y1: number) => { g.l(x0, y0, x1, y1, PL); g.p(x1, y1, BK); };
