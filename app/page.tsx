@@ -65,14 +65,15 @@ const GAMES=[
  {href:'/fold',title:'Paperfold',tag:'NEW · ORIGAMI PUZZLE',blurb:'A gust has scattered the pages of the lantern festival book. Fold coloured paper along its creases with Dora and Enzo, flip, layer and tuck it to match each picture, and fill the festival with lanterns, boats, cranes and stars.',color:'#d9483b',art:'🏮'},
  {href:'/fort',title:'Pillow Fort',tag:'NEW · PHYSICS STACKING',blurb:'A storm rattles the windows. Drop and turn cushions, bolsters, books and a teapot into a needle-felt fort with Dora and Enzo, drape a blanket for a den, and keep it standing past the draught, the cat and the thunder till bedtime.',color:'#b85a6e',art:'🛏️'},
  {href:'/curl',title:'Sweep & Slide',tag:'NEW · CURLING',blurb:'The millpond has frozen for the Pebble Cup. Pull back to aim, pick the curl and sweep polished river stones into the rings with Dora and Enzo, and beat eight woodland teams, from the hedgehog twins to the stoat champions, in a linocut winter-poster style.',color:'#3d6f9e',art:'🥌'},
+ {href:'/honey',title:'Honeycomb Hollow',tag:'NEW · HEX MATCH-3',blurb:'The bees of the hollow oak have lost the queen’s honey map. Turn trios of glowing nectar drops round their corner with Dora and Enzo, line up their colours and fill sixty stained-glass chambers with honey.',color:'#d98a12',art:'🍯'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">SIXTY-FOUR ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Sixty-four ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, sixty-four cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">SIXTY-FIVE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Sixty-five ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, sixty-five cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <nav className="arcade-grid" aria-label="Choose a game">

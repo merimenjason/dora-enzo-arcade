@@ -83,7 +83,9 @@ async function framing(page, label, minChin, minCell) {
 try {
   // ---- the menu, the story, the first tip
   const page = await open();
-  await page.goto(base + '/honey');
+  await page.goto(base + '/');
+  assert.equal(await page.locator('.arcade-card').count(), 65);
+  await page.locator('a.arcade-card[href="/honey"]').click();
   await ready(page);
   assert.equal(await page.getByRole('heading', { level: 1 }).textContent(), 'Honeycomb Hollow');
   await page.getByRole('button', { name: /Start filling/ }).click();
@@ -158,6 +160,8 @@ try {
   // ---- the ending
   await page.evaluate(() => window.__honeyEnding());
   assert.equal(await page.getByRole('heading', { level: 2 }).textContent(), 'The oak glows gold');
+  await page.getByRole('link', { name: /MAIN ARCADE/ }).click(); await page.locator('.arcade-grid').waitFor();
+  await page.goto(base + '/honey'); await ready(page);
 
   // ---- a corrupt save
   await page.evaluate((k) => localStorage.setItem(k, '{"v":1,"best":{"c1":{"stars":"lots"}},"tips":7,"story":{}}'), KEY);
