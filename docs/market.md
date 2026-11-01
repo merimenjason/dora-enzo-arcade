@@ -1,6 +1,6 @@
 # Night Market
 
-A lantern-lit market stall game with haggling at `/market`, in a new Japanese woodblock-print art style. Over one moon month Dora and Enzo run a little stall at the riverside Night Market: they buy wares at dusk, set out the stall, sell by lantern light, read their customers' tells, haggle on a price dial and save up for a festival lantern boat.
+A lantern-lit market stall game with haggling at `/market`, game 71 of the arcade, in a new Japanese woodblock-print art style. Over one moon month Dora and Enzo run a little stall at the riverside Night Market: they buy wares at dusk, set out the stall, sell by lantern light, read their customers' tells, haggle on a price dial and save up for a festival lantern boat.
 
 All numbers below come from `lib/market-game.ts`, `lib/market-scene.ts` and `app/market/page.tsx`. Written 01-11-2026.
 

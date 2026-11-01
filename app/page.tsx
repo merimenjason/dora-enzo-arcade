@@ -71,14 +71,15 @@ const GAMES=[
  {href:'/kite',title:'Kite Day',tag:'NEW · KITE FLYING',blurb:'Pull, ease and steer through gusts, lulls, thermals and tumbling air in a watercolour summer with Dora and Enzo. Fly rings and figure-eights, dip parcels into treehouses, race dragonflies, duel at the Kite Festival and paint six kites in the workshop.',color:'#3a78c8',art:'🪁'},
  {href:'/shadow',title:'Shadowplay',tag:'NEW · SHADOW-PUPPET PUZZLE',blurb:'Hang lace-cut puppets between the lantern and the paper screen. Turn them, flip them, slide them near and far until their shadows make the picture, and watch the story come alive in gold and blue light.',color:'#c8913a',art:'🏮'},
  {href:'/clatter',title:'Clatterbox',tag:'NEW · CHAIN-REACTION PUZZLE',blurb:'Build a cardboard contraption with a few ramps, dominoes, springs, fans, scissors and candles, press Go and watch it clatter. Ring the bell, wake the hedgehog and get the whole box ready for the neighbours’ Big Show.',color:'#c8732e',art:'📦'},
+ {href:'/market',title:'Night Market',tag:'NEW · LANTERN-LIT HAGGLING',blurb:'Buy wares at dusk, set out the stall and sell by lantern light by the river. Read each customer’s tells, haggle on the price dial and save up for a festival lantern boat.',color:'#c8402a',art:'🏮'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">SEVENTY ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Seventy ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, seventy cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">SEVENTY-ONE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Seventy-one ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, seventy-one cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <nav className="arcade-grid" aria-label="Choose a game">
