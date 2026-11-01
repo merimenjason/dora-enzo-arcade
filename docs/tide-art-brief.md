@@ -16,6 +16,6 @@ All files live in `public/art/tide/` as `.webp` (quality about 86).
 | `dora.webp` | sheet, cut to four | Four poses of Dora as a clay cut-out on flat #00FF00, every pose facing RIGHT toward the pool: crouched peering in; sitting writing in an open journal; standing carrying a small blue bucket of seawater; cheering with both arms up. |
 | `enzo.webp` | sheet, cut to four | The same four poses for Enzo, every pose facing LEFT toward the pool. |
 
-The game keys the green out with Pillow, cuts each sheet into `dora-peer`, `dora-write`, `dora-bucket`, `dora-cheer` (and the same for Enzo), and trims each to its figure.
+The sheets are keyed out with Pillow (soft edge, green despill) and cut into `dora-peer`, `dora-write`, `dora-bucket`, `dora-cheer` and the same four for Enzo, each trimmed to its figure (420 px tall). The sheets themselves are not shipped.
 
 Dora sits at the left edge of the pool facing right; Enzo sits at the right edge facing left, so both look into the pool.
