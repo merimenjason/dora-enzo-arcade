@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of seventy-one original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of seventy-two original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -81,6 +81,7 @@ Listed in arcade-menu order.
 | 69 | Shadowplay | `/shadow` | Shadow-puppet theatre puzzle |
 | 70 | Clatterbox | `/clatter` | Chain-reaction contraption puzzle |
 | 71 | Night Market | `/market` | Lantern-lit market stall haggling game |
+| 72 | Woodland Band | `/band` | Music-making toy and puzzle |
 
 ## Run
 
@@ -1300,6 +1301,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/market.md`](docs/market.md) has the wares and suppliers, the price model, the customer kinds, tells and haggling, reputation, the calendar, the weekly lanterns, the bots, the controls, the layout and the save; [`docs/market-art-brief.md`](docs/market-art-brief.md) briefs the paintings and cut-outs.
 
+### 72 · Woodland Band (`/band`)
+
+**Play:** A music-making toy and puzzle game, drawn in Canvas 2D in a new mid-century cartoon style (flat mustard, teal, coral and cream shapes printed a little off their ink lines, starbursts and boomerangs). Dora and Enzo lead a woodland band: the stage is a grid of 8 or 16 beat columns by musician rows, and each musician plays their row round and round. Eight musicians: the hedgehog (kick, snare and hat), the woodpecker (three wood blocks), the frog (double bass), the mole (tuba), the owl (flute), Enzo (glockenspiel), Dora (ukulele chords) and the bird choir (sung chords), all synthesised in code and kept in time by a look-ahead scheduler. Every note is a step of the clearing's scale, so nothing sounds wrong. Thirty requests in five clearings (Mossy Hollow, Riverbank, Mushroom Ring, Treetop Stage and the Moonlight Festival, each in its own key, tempo and swing): **echo** a part the audience hums, play a **mood** (tempo, how busy, how high, how bouncy, who plays), **fix the band** (a part that should land with the kicks, take turns, copy the choir or climb), or make do with **only three** musicians. Each request has three stars: solve it, use par changes or fewer, and play its flourish. The audience sways, claps and dances as the song gets closer. The jam stage has every musician met so far, four save slots and short song codes to share and load. Solving the last request opens the Moonlight Festival, where the clearing finales you played and your saved songs play for the whole wood.
+
+**Controls:** Tap or click a cell to put a note in (or take it out), drag up or down on it to change the note, and drag along a row to paint notes. Tap a musician to hear them, the ✕ by their name takes them off, and the dashed row or ➕ adds one. **Space** plays or stops, the arrows choose a cell, **Enter** or **X** turns its note on or off, **W** / **S** (or **Shift**+up/down) raise and lower it, **H** hears the tune, **A** adds a musician, **[** and **]** turn the tempo where it may turn, **U** or **Ctrl+Z** undoes, **?** gives a hint and **Esc** pauses. On a phone, tap and drag the same way.
+
+**Tests:** `npm run test:band` runs the engine checks: every pitch in key in every clearing, snapping, chords, editing and counting changes, echo matching, every rule, every request's designed solution earning three stars while no request starts solved, share codes round-tripping (and bad ones refused), unlocking, and saves, corrupt ones included. `npm run bot:band` runs a searching solver on every request from its own starting song: it must reach three stars within par (and par may be at most three more than its best), and 3000 random grids must never solve an echo or mood request. `npm run test:e2e:band` (with `npm run dev` running) plays the first requests with the real mouse and keyboard, adds and removes musicians, checks saves across a reload and a corrupt save, the jam's slots and codes, the festival and the ending, the framing at 1280×800 and 1920×1080, and phones held upright and sideways by touch.
+
+**Docs:** [`docs/band.md`](docs/band.md) has the stage, the musicians and keys, the requests, stars and par, the controls, the jam and codes, the festival, timing and the save; [`docs/band-art-brief.md`](docs/band-art-brief.md) briefs the two paintings.
+
 ## Validation
 
 ```sh
@@ -1319,7 +1330,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Seventy-one ways/` assertion in `tests/e2e/dust-bath.mjs`, the 71-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Seventy-two ways/` assertion in `tests/e2e/dust-bath.mjs`, the 72-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

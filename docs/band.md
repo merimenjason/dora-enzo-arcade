@@ -1,6 +1,6 @@
 # Woodland Band
 
-A music-making toy and puzzle game at `/band`, in a new mid-century cartoon art style. Dora and Enzo lead a woodland band that plays the clearings of the forest. The stage is a grid of beat columns by musician rows; each musician plays their own row round and round, and together they make a song. Paint notes on the rows, and play each clearing's audience what they ask for: hum a tune back, play a mood, fix a muddled part, or make do with only three musicians.
+A music-making toy and puzzle game at `/band`, game 72 of the arcade, in a new mid-century cartoon art style. Dora and Enzo lead a woodland band that plays the clearings of the forest. The stage is a grid of beat columns by musician rows; each musician plays their own row round and round, and together they make a song. Paint notes on the rows, and play each clearing's audience what they ask for: hum a tune back, play a mood, fix a muddled part, or make do with only three musicians.
 
 All numbers below come from `lib/band-game.ts`, `lib/band-levels.ts`, `lib/band-scene.ts`, `app/band/sound.ts` and `app/band/page.tsx`. Written 01-11-2026.
 
