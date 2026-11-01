@@ -20,10 +20,10 @@ const open = async (viewport = { width: 1280, height: 800 }, mobile = false, art
   return page;
 };
 // The dev server serves hundreds of modules, and a busy headless shell now and then drops one with
-// ERR_INSUFFICIENT_RESOURCES and never hydrates, so a page that is not ready in 30 s is loaded again (up to 3 times).
+// ERR_INSUFFICIENT_RESOURCES and never hydrates, so a page that is not ready in 30 s is loaded again (up to 5 times).
 const ready = async (page) => {
   for (let i = 0; ; i++) {
-    try { await page.locator('main[data-ready="true"]').waitFor({ timeout: 30000 }); return; } catch (e) { if (i >= 2) throw e; }
+    try { await page.locator('main[data-ready="true"]').waitFor({ timeout: 30000 }); return; } catch (e) { if (i >= 4) throw e; }
     await page.reload().catch(() => {});
   }
 };
