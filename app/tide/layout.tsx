@@ -1,0 +1,3 @@
+import type { Metadata } from 'next';
+export const metadata: Metadata = { title: 'Tidepool · Dora & Enzo’s Arcade', description: 'A cosy claymation rock-pool ecosystem game. Dora and Enzo look after a rock pool below their summer cottage through the tides and four seasons: anemones, limpets, periwinkles, mussels, shrimp, a hermit crab, a blenny and starfish, with gulls to shoo. Nudge the pool with rocks, shells, seaweed, a driftwood plank and buckets of seawater, sketch every creature in the journal, fill 24 pages and release everyone on the autumn spring tide.' };
+export default function TideLayout({ children }: { children: React.ReactNode }) { return children; }
