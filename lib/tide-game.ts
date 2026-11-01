@@ -125,27 +125,27 @@ export type PageDef = { id: number; season: number; title: string; goal: string;
 export const PAGES: PageDef[] = [
   { id: 1, season: 0, title: 'First look', goal: 'Look closely at 3 different kinds of creature', care: true, shells: [2, 6], reward: { seedling: 1 }, rewardText: 'a seedling' },
   { id: 2, season: 0, title: 'A new neighbour', goal: 'Bring the hermit crab in from your basket', care: true, shells: [2, 6], reward: { shell: 1 }, rewardText: 'a spare shell' },
-  { id: 3, season: 0, title: 'Dinner on the tide', goal: 'See the anemones catch food 6 times at high tide', care: false, shells: [2, 6] },
+  { id: 3, season: 0, title: 'Dinner on the tide', goal: 'See the anemones catch food 6 times at high tide', care: false, shells: [3, 8] },
   { id: 4, season: 0, title: 'Weed garden', goal: 'Plant 2 seaweeds and grow one to full height', care: true, shells: [4, 10], reward: { blenny: 1 }, rewardText: 'a blenny in your basket' },
   { id: 5, season: 0, title: 'Grazers’ rock', goal: 'Place a rock and keep 6 limpets and periwinkles', care: true, shells: [2, 6], reward: { rock: 1 }, rewardText: 'a rock' },
-  { id: 6, season: 0, title: 'Hide and seek', goal: 'See a shrimp escape the blenny into the seaweed', care: true, shells: [7, 16], reward: { shrimp: 1 }, rewardText: 'a shrimp' },
+  { id: 6, season: 0, title: 'Hide and seek', goal: 'See a shrimp escape the blenny into the seaweed', care: true, shells: [8, 18], reward: { shrimp: 1 }, rewardText: 'a shrimp' },
   { id: 7, season: 1, title: 'A bit of shade', goal: 'Shade the warm pool with the plank at low tide', care: true, shells: [2, 6] },
-  { id: 8, season: 1, title: 'Heatwave', goal: 'Keep 6 kinds alive through the heatwave, losing none', care: true, shells: [5, 12] },
-  { id: 9, season: 1, title: 'A bigger shell', goal: 'Help a hermit crab find a bigger shell', care: true, shells: [2, 6], reward: { seedling: 1 }, rewardText: 'a seedling' },
+  { id: 8, season: 1, title: 'Heatwave', goal: 'Keep 7 kinds through the heatwave, with none lost to the heat or short air', care: true, shells: [5, 12] },
+  { id: 9, season: 1, title: 'A bigger shell', goal: 'Help a hermit crab find a bigger shell', care: true, shells: [3, 8], reward: { seedling: 1 }, rewardText: 'a seedling' },
   { id: 10, season: 1, title: 'Seaweed forest', goal: 'Grow 4 tall seaweeds and see a blenny nest in them', care: true, shells: [2, 6] },
   { id: 11, season: 1, title: 'Gull watch', goal: 'Shoo away 3 gulls', care: true, shells: [3, 8], reward: { shell: 1 }, rewardText: 'a shell' },
-  { id: 12, season: 1, title: 'Fresh seawater', goal: 'Bring the air back with a bucket when the pool runs short', care: true, shells: [4, 10] },
-  { id: 13, season: 2, title: 'The bloom', goal: 'Have 6 mussels filtering during the plankton bloom', care: false, shells: [3, 8], reward: { rock: 1 }, rewardText: 'a rock' },
+  { id: 12, season: 1, title: 'Fresh seawater', goal: 'Bring the air back with a bucket when the pool runs short', care: true, shells: [2, 6] },
+  { id: 13, season: 2, title: 'The bloom', goal: 'Have 6 mussels filtering during the plankton bloom', care: false, shells: [2, 6], reward: { rock: 1 }, rewardText: 'a rock' },
   { id: 14, season: 2, title: 'Five arms', goal: 'Bring the starfish in from your basket', care: true, shells: [2, 6] },
   { id: 15, season: 2, title: 'Who eats whom', goal: 'Witness 7 different links in the food web', care: false, shells: [2, 6] },
   { id: 16, season: 2, title: 'Full house', goal: 'Have all 9 kinds living in the pool at once', care: true, shells: [2, 6], reward: { shell: 1 }, rewardText: 'a shell' },
   { id: 17, season: 2, title: 'Anemone garden', goal: 'Grow 6 anemones', care: false, shells: [2, 6] },
   { id: 18, season: 2, title: 'Starfish spawn', goal: 'Witness the starfish spawn on a warm high tide', care: true, shells: [3, 8] },
-  { id: 19, season: 3, title: 'Storm surge', goal: 'Keep 7 kinds through the storm surge, losing none', care: true, shells: [5, 12] },
+  { id: 19, season: 3, title: 'Storm surge', goal: 'Have 8 kinds when the storm surge comes, and keep every one', care: true, shells: [11, 24] },
   { id: 20, season: 3, title: 'Autumn tidy', goal: 'Trim the dying seaweed 3 times', care: true, shells: [2, 6] },
-  { id: 21, season: 3, title: 'New arrivals', goal: 'See 6 young creatures settle on the high tides', care: false, shells: [8, 18] },
+  { id: 21, season: 3, title: 'New arrivals', goal: 'See 6 young creatures born or settle in the pool', care: false, shells: [7, 16] },
   { id: 22, season: 3, title: 'Field guide', goal: 'Finish 8 sketches in the journal', care: true, shells: [2, 6] },
-  { id: 23, season: 3, title: 'A steady pool', goal: '3 tides in a row with 7 kinds and air never below 30', care: true, shells: [4, 10] },
+  { id: 23, season: 3, title: 'A steady pool', goal: '3 tides in a row with 8 kinds and the air never below 30%', care: true, shells: [4, 10] },
   { id: 24, season: 3, title: 'The spring tide', goal: 'Release everyone to the sea on the autumn spring tide', care: true, shells: [99, 99] },
 ];
 /** Pages needed in a season to turn to the next one. */
@@ -224,7 +224,7 @@ export class TideGame {
   /** This season's counts (reset when the season turns). */
   ss: Stats = freshStats();
   /** The heatwave and storm checks: the kinds alive when it began. */
-  trial: { w: Weather; kinds: Kind[] } | null = null;
+  trial: { w: Weather; kinds: Kind[]; lost: number } | null = null;
   steady = 0;
   minO2 = 100;
   release = 0;
@@ -274,7 +274,7 @@ export class TideGame {
   get phase() { return ((this.tick + PHASE0) % TIDE) / TIDE; }
   get seasonTide() { return this.tideNo - this.seasonStart; }
   get light() { return SEASONS[this.season].light * (this.weather === 'storm' ? 0.4 : 1); }
-  get air() { return SEASONS[this.season].air + (this.weather === 'heat' ? 10 : 0); }
+  get air() { return SEASONS[this.season].air + (this.weather === 'heat' ? 12 : 0); }
   get seaFood() { return this.weather === 'bloom' ? 96 : SEASONS[this.season].food; }
   get done24() { return !!this.done[24]; }
   count(sp: Sp) { let n = 0; for (const a of this.agents) if (a.sp === sp) n++; return n; }
@@ -379,7 +379,7 @@ export class TideGame {
     }
     a.e = 0.5; a.px = a.x; a.py = a.y;
     this.stats.births++; this.ss.births++;
-    if (how === 'larva' || how === 'fry' || how === 'spawn') { this.stats.recruits++; this.ss.recruits++; }
+    this.stats.recruits++; this.ss.recruits++;
     this.events.push({ k: 'born', sp, x: a.x, y: a.y, how });
     return a;
   }
@@ -387,6 +387,7 @@ export class TideGame {
     const i = this.agents.indexOf(a); if (i < 0) return;
     this.agents.splice(i, 1);
     this.stats.deaths++; this.ss.deaths++;
+    if (this.trial && (this.trial.w === 'heat' ? cause === 'heat' || cause === 'air' : false)) this.trial.lost++;
     this.events.push({ k: 'die', sp: a.sp, x: a.x, y: a.y, cause });
     if (leave && cause !== 'storm') this.addScrap(a.x, Math.min(floorY(a.x) - 0.5, a.y + 2), 0.5);
     if (a.sp === 'periwinkle' && cause !== 'gull' && cause !== 'storm') this.shells.push({ id: this.nextId++, x: a.x, y: floorY(a.x) - 1, size: 0.55 });
@@ -486,7 +487,7 @@ export class TideGame {
         this.energy -= BUCKET_COST; this.stats.buckets++; this.ss.buckets++;
         if (this.o2 < 60) this.ss.bucketLow++;
         const sea = SEASONS[this.season].sea;
-        this.o2 = Math.min(this.o2Max(), this.o2 + 32); this.temp -= (this.temp - sea) * 0.5; this.food = Math.min(100, this.food + 12);
+        this.temp -= (this.temp - sea) * 0.5; this.o2 = Math.min(this.o2Max(), this.o2 + 32); this.food = Math.min(100, this.food + 12);
         this.events.push({ k: 'act', t: 'bucket', x: 80, y: POOL.low });
         return true;
       }
@@ -586,15 +587,15 @@ export class TideGame {
       if (this.weather !== 'calm') this.events.push({ k: 'weather', w: this.weather, on: true });
     }
     // the trials: what was alive when the heatwave or storm began, and whether it all made it through
-    if ((this.weather === 'heat' || this.weather === 'storm') && prev !== this.weather) this.trial = { w: this.weather, kinds: this.kinds() };
+    if ((this.weather === 'heat' || this.weather === 'storm') && prev !== this.weather) this.trial = { w: this.weather, kinds: this.kinds(), lost: 0 };
     if (this.trial && prev === this.trial.w && this.weather !== prev) {
-      const now = this.kinds(), kept = this.trial.kinds.every((k) => now.includes(k));
-      if (this.trial.w === 'heat' && this.season === 1 && kept && this.trial.kinds.length >= 6) this.finishPage(8);
-      if (this.trial.w === 'storm' && this.season === 3 && kept && this.trial.kinds.length >= 7) this.finishPage(19);
+      const now = this.kinds(), kept = this.trial.kinds.every((k) => now.includes(k)) && this.trial.lost === 0;
+      if (this.trial.w === 'heat' && this.season === 1 && kept && this.trial.kinds.length >= 7) this.finishPage(8);
+      if (this.trial.w === 'storm' && this.season === 3 && kept && this.trial.kinds.length >= 8) this.finishPage(19);
       this.trial = null;
     }
     // a steady pool: every tide with seven kinds and the air never short
-    if (this.season === 3) { this.steady = this.kinds().length >= 7 && this.minO2 >= 30 ? this.steady + 1 : 0; if (this.steady >= 3) this.finishPage(23); }
+    if (this.season === 3) { this.steady = this.kinds().length >= 8 && this.minO2 >= 30 ? this.steady + 1 : 0; if (this.steady >= 3) this.finishPage(23); }
     this.minO2 = this.o2;
     // the starfish spawn on a warm late-summer high tide, when they have eaten well
     if (this.season === 2) {
@@ -805,7 +806,7 @@ export class TideGame {
     if (a.t <= 0) {
       a.t = 50 + Math.floor(this.rand() * 70);
       const s = this.scraps.find((q) => Math.abs(q.x - a.x) < 22 && q.amt > 0.08);
-      if (s && a.e < 0.7 && this.rand() < 0.6) { a.tx = s.x; a.ty = s.y - 1; a.st = 'scrap'; a.prey = s.id; }
+      if (s && a.e < 0.5 && this.rand() < 0.5) { a.tx = s.x; a.ty = s.y - 1; a.st = 'scrap'; a.prey = s.id; }
       else {
         const r = this.rocks.filter((q) => q.a > 0.15).sort((p, q) => Math.abs(p.x - a.x) - Math.abs(q.x - a.x))[0];
         const w = this.weeds.filter((q) => q.size >= 0.35).sort((p, q) => Math.abs(p.x - a.x) - Math.abs(q.x - a.x))[0];
@@ -844,7 +845,7 @@ export class TideGame {
       const p = this.agents.find((b) => b.id === a.prey);
       a.t--;
       if (!p || p.hid || a.t <= 0) { a.st = 'rest'; a.t = 100; a.prey = -1; return; }
-      const d = this.swimTo(a, p.x, p.y, 0.5);
+      const d = this.swimTo(a, p.x, p.y, 0.55);
       if (d < 2.4) {
         this.kill(p, 'eaten', false); this.stats.eaten++;
         a.e = Math.min(1, a.e + 0.45); a.st = 'rest'; a.t = 160; a.prey = -1;
@@ -866,7 +867,7 @@ export class TideGame {
       for (const b of this.agents) if (b.sp === 'shrimp' && !b.hid && !this.inWeed(b.x, b.y)) { const d = Math.hypot(b.x - a.x, b.y - a.y); if (d < bd) { bd = d; best = b; } }
       let sb: Scrap | null = null, sd = 60;
       for (const q of this.scraps) { const d = Math.abs(q.x - a.x); if (q.amt > 0.08 && d < sd) { sd = d; sb = q; } }
-      if (best && (!sb || a.e >= 0.35 || this.rand() < 0.4)) { a.st = 'hunt'; a.prey = best.id; a.t = 110; return; }
+      if (best && (!sb || a.e >= 0.35 || this.rand() < 0.4)) { a.st = 'hunt'; a.prey = best.id; a.t = 200; return; }
       if (sb && a.e < 0.4) { a.st = 'scrap'; a.prey = sb.id; a.t = 400; return; }
     }
     // lurk near the bottom, by a rock or the weed
@@ -942,7 +943,8 @@ export class TideGame {
     if (gx === null) { if (a.t <= 0) { a.t = 120; a.tx = 30 + this.rand() * 100; } a.t--; gx = a.tx; }
     const dx = gx - a.x;
     a.st = 'walk';
-    if (Math.abs(dx) > 0.1) { a.x += Math.sign(dx) * 0.06; a.dir = dx > 0 ? 1 : -1; }
+    if (Math.abs(dx) > 0.1) { a.x += Math.sign(dx) * 0.085; a.dir = dx > 0 ? 1 : -1; }
+    a.e += 0.00022; // sifting the sand for crumbs as it goes
     a.x = clamp(a.x, 28, 132); a.y = ground(a.x);
   }
 
@@ -1049,7 +1051,7 @@ export class TideGame {
       rocks: this.rocks.map((r) => ({ ...r })), weeds: this.weeds.map((w) => ({ ...w })), scraps: this.scraps.map((s) => ({ ...s })), shells: this.shells.map((s) => ({ ...s })),
       agents: this.agents.map((a) => ({ ...a, px: r2(a.x), py: r2(a.y) })), gulls: this.gulls.map((g) => ({ ...g })), jellies: this.jellies.map((j) => ({ ...j })),
       basket: { ...this.basket }, tools: [...this.tools], sketch: { ...this.sketch }, lastLook: { ...this.lastLook }, links: [...this.links], done: { ...this.done },
-      stats: JSON.parse(JSON.stringify(this.stats)) as Stats, ss: JSON.parse(JSON.stringify(this.ss)) as Stats, trial: this.trial ? { w: this.trial.w, kinds: [...this.trial.kinds] } : null,
+      stats: JSON.parse(JSON.stringify(this.stats)) as Stats, ss: JSON.parse(JSON.stringify(this.ss)) as Stats, trial: this.trial ? { w: this.trial.w, kinds: [...this.trial.kinds], lost: this.trial.lost } : null,
       steady: this.steady, minO2: this.minO2, release: this.release, releasedKinds: this.releasedKinds, ended: this.ended, nextId: this.nextId,
     };
   }
@@ -1079,7 +1081,7 @@ export class TideGame {
         agents: o.agents.map((a) => ({ ...a })), gulls: o.gulls.map((q) => ({ ...q })), jellies: o.jellies.map((j) => ({ ...j })),
         basket: { ...g.basket, ...o.basket }, tools: o.tools.filter((t) => ['look', 'rock', 'shell', 'plant', 'trim', 'plank', 'bucket'].includes(t)),
         sketch: { ...o.sketch }, lastLook: { ...o.lastLook }, links: o.links.filter((l) => typeof l === 'string'), done: { ...o.done },
-        stats: { ...freshStats(), ...o.stats }, ss: { ...freshStats(), ...o.ss }, trial: o.trial ?? null,
+        stats: { ...freshStats(), ...o.stats }, ss: { ...freshStats(), ...o.ss }, trial: o.trial && Array.isArray(o.trial.kinds) ? { w: o.trial.w, kinds: [...o.trial.kinds], lost: Number(o.trial.lost) || 0 } : null,
         steady: o.steady, minO2: o.minO2, release: o.release, releasedKinds: o.releasedKinds ?? 0, ended: !!o.ended, nextId: o.nextId,
       });
       return g;
