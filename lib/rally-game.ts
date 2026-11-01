@@ -19,8 +19,8 @@ export const NET_GAP = 0.28; // how close to the net a toy's feet may go
 
 // ---- the shuttlecock: strong quadratic drag, so it flies fast off the racket and then drops steeply
 export const GRAV = 7.2;
-export const DRAG = 0.3; // a = -DRAG |v| v
-export const TERMINAL = Math.sqrt(GRAV / DRAG); // about 4.9 units a second, straight down
+export const DRAG = 0.24; // a = -DRAG |v| v
+export const TERMINAL = Math.sqrt(GRAV / DRAG); // about 5.5 units a second, straight down
 
 // ---- the toys
 export const RUN = 3.3; // top running speed on a full key
@@ -89,19 +89,19 @@ export const TOYS: Toy[] = [
     style: { speed: 0.86, react: 0.31, perc: 0.11, err: 1.42, timing: 0.032, hop: 0.95, net: 0.1, deep: 0.2, smart: 0.25, home: 2.6, windAt: 0.25 } },
   { id: 'duck', name: 'Dabble', title: 'the tin duck', tint: '#e2b33b', best: 1,
     line: 'Quack! I live at the net, sailor. Everything drops short with me.', brag: 'Dabbled it!', lose: 'Well, that’s me sunk.',
-    style: { speed: 0.9, react: 0.27, perc: 0.09, err: 1.28, timing: 0.029, hop: 0.2, net: 0.9, deep: 0.1, smart: 0.4, home: 1.9, windAt: 0.3 } },
+    style: { speed: 0.88, react: 0.3, perc: 0.1, err: 1.45, timing: 0.03, hop: 0.2, net: 0.9, deep: 0.1, smart: 0.4, home: 1.9, windAt: 0.3 } },
   { id: 'top', name: 'Topsy', title: 'the spinning-top acrobat', tint: '#d0533f', best: 1,
     line: 'Round and round and — hup! — never the same shot twice.', brag: 'Wheee!', lose: 'I’m all of a spin…',
     style: { speed: 1.04, react: 0.25, perc: 0.08, err: 1.2, timing: 0.027, hop: 0.45, net: 0.45, deep: 0.45, smart: 0.6, home: 2.4, windAt: 0.3 } },
   { id: 'knight', name: 'Sir Clank', title: 'the tin knight', tint: '#8c96a3', best: 1,
     line: 'Have at thee! My racket is my lance, and my smash is my charge.', brag: 'For the shelf!', lose: 'I yield, noble chinchilla.',
-    style: { speed: 0.88, react: 0.19, perc: 0.05, err: 0.86, timing: 0.02, hop: 0.8, net: 0.25, deep: 0.4, smart: 0.65, home: 2.6, windAt: 0.35, power: 1.12 } },
+    style: { speed: 0.88, react: 0.19, perc: 0.05, err: 0.92, timing: 0.02, hop: 0.8, net: 0.25, deep: 0.4, smart: 0.65, home: 2.6, windAt: 0.35, power: 1.12 } },
   { id: 'penguin', name: 'Waddle', title: 'the tin penguin', tint: '#2d4f6c', best: 1,
     line: 'I don’t smash. I don’t miss. I just send it back. And back. And back.', brag: 'Back it goes.', lose: 'Oh, I ran out of back.',
     style: { speed: 1.1, react: 0.19, perc: 0.05, err: 0.76, timing: 0.021, hop: 0.12, net: 0.2, deep: 0.85, smart: 0.5, home: 2.8, windAt: 0.45 } },
   { id: 'bear', name: 'Old Humbert', title: 'the music-box bear', tint: '#9a6a3a', best: 2,
     line: 'Every rally is a little tune, my dears. Let’s see if you can keep the beat.', brag: 'And… a rest.', lose: 'What a lovely song you played.',
-    style: { speed: 1.0, react: 0.18, perc: 0.045, err: 0.84, timing: 0.019, hop: 0.55, net: 0.45, deep: 0.5, smart: 0.85, home: 2.5, windAt: 0.4 } },
+    style: { speed: 1.0, react: 0.17, perc: 0.04, err: 0.78, timing: 0.019, hop: 0.55, net: 0.45, deep: 0.5, smart: 0.85, home: 2.5, windAt: 0.4 } },
 ];
 export const TOY_IDS = TOYS.map((t) => t.id);
 export const toyById = (id: ToyId) => TOYS.find((t) => t.id === id)!;
@@ -290,7 +290,9 @@ export function launch(side: Side, x: number, y: number, ang: number, target: nu
   let a = ang, v = 0;
   for (let k = 0; k < 14; k++) {
     v = solveSpeed(side, x, y, a, target, max);
-    if (depth(side, x, y, face(side) * Math.cos(a) * v, Math.sin(a) * v) >= 0) break;
+    const d = depth(side, x, y, face(side) * Math.cos(a) * v, Math.sin(a) * v);
+    // done when it lands near the target, or as deep as a full swing can send it
+    if (d >= 0 && (Math.abs(d - target) < 0.2 || (v >= max && d < target))) break;
     a += 4 * DEG;
   }
   return { ang: a, speed: v };
@@ -340,12 +342,12 @@ function strike(m: Match, i: number, tau: number, aim: Aim, serve: boolean) {
       ang = solveAngle(p.side, x, y, speed, target, -60 * DEG, 8 * DEG);
       break;
     }
-    case 'clear': target = pick(3.4, 3.85, 4.1); ({ ang, speed } = launch(p.side, x, y, (sweet ? 50 : 46) * DEG, target, 24 * pw)); break;
+    case 'clear': target = pick(3.3, 3.75, 4.0); ({ ang, speed } = launch(p.side, x, y, (sweet ? 50 : 46) * DEG, target, 24 * pw)); break;
     case 'drop': target = sweet ? 1.0 : 1.25; ({ ang, speed } = launch(p.side, x, y, 4 * DEG, target, 14 * pw)); break;
-    case 'drive': target = pick(2.0, 3.0, 3.9); ({ ang, speed } = launch(p.side, x, y, (y < NET_H + 0.1 ? 13 : 4) * DEG, target, 20 * pw)); break;
+    case 'drive': target = pick(2.0, 2.9, 3.5); ({ ang, speed } = launch(p.side, x, y, (y < NET_H + 0.1 ? 13 : 4) * DEG, target, 20 * pw)); break;
     case 'net': target = 0.75; ({ ang, speed } = launch(p.side, x, y, 62 * DEG, target, 10 * pw)); break;
     case 'tumble': target = 0.42; ({ ang, speed } = launch(p.side, x, y, 70 * DEG, target, 10 * pw)); break;
-    case 'lift': target = pick(3.1, 3.7, 4.0); ({ ang, speed } = launch(p.side, x, y, (sweet ? 55 : 51) * DEG, target, 22 * pw)); break;
+    case 'lift': target = pick(3.0, 3.6, 3.9); ({ ang, speed } = launch(p.side, x, y, (sweet ? 55 : 51) * DEG, target, 22 * pw)); break;
     case 'serve': target = aim > 0 ? 3.95 : 1.75; ({ ang, speed } = launch(p.side, x, y, (aim > 0 ? 54 : 24) * DEG, target, 20)); break;
   }
   // the error: a little off on every shot, more when the timing was off or the toy is run down
