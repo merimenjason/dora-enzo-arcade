@@ -56,11 +56,12 @@ export function layoutFor(w: number, h: number, insetTop: number, insetBottom: n
 }
 export const toScreen = (L: Layout, x: number, y: number) => ({ x: L.ox + x * L.u, y: L.floor - y * L.u });
 
-// ---- textures, made once
+// ---- textures, made once (and again if the browser drops an offscreen canvas's memory)
+const lost = (c: HTMLCanvasElement) => !!(c.getContext('2d') as (CanvasRenderingContext2D & { isContextLost?: () => boolean }) | null)?.isContextLost?.();
 const cache = new Map<string, HTMLCanvasElement>();
 function made(key: string, w: number, h: number, paint: (g: CanvasRenderingContext2D) => void) {
   let c = cache.get(key);
-  if (c) return c;
+  if (c && !lost(c)) return c;
   c = document.createElement('canvas'); c.width = w; c.height = h;
   paint(c.getContext('2d')!);
   cache.set(key, c);
@@ -342,7 +343,7 @@ const shade = new Map<string, HTMLCanvasElement>();
 function shaded(name: string, img: Art | undefined): Art | undefined {
   if (!img || !img.width) return img;
   let c = shade.get(name);
-  if (c) return c;
+  if (c && !lost(c)) return c;
   c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
   const g = c.getContext('2d')!;
   g.drawImage(img, 0, 0);
@@ -448,8 +449,8 @@ let layer: { c: HTMLCanvasElement; key: string } | null = null;
 function staticLayer(L: Layout, v: View, img: Art | undefined) {
   const ready = !!(img && img.width);
   const key = [L.w, L.h, L.dpr, L.u.toFixed(3), L.floor.toFixed(1), v.court, ready].join(':');
-  if (layer && layer.key === key) return layer.c;
-  const c = layer?.c ?? document.createElement('canvas');
+  if (layer && layer.key === key && !lost(layer.c)) return layer.c;
+  const c = layer && !lost(layer.c) ? layer.c : document.createElement('canvas');
   c.width = Math.max(1, Math.round(L.w * L.dpr)); c.height = Math.max(1, Math.round(L.h * L.dpr));
   const g = c.getContext('2d')!;
   g.setTransform(L.dpr, 0, 0, L.dpr, 0, 0);
@@ -462,6 +463,7 @@ function staticLayer(L: Layout, v: View, img: Art | undefined) {
 
 export function drawScene(g: CanvasRenderingContext2D, L: Layout, s: Snap, v: View, sprites: Sprites) {
   L.toys = []; L.faces = [];
+  g.fillStyle = '#1b0f0b'; g.fillRect(0, 0, L.w, L.h);
   g.save();
   if (v.shake > 0) g.translate((hash(v.t * 60) - 0.5) * v.shake * L.u * 0.12, (hash(v.t * 60 + 9) - 0.5) * v.shake * L.u * 0.12);
   // the shelf and the court board are drawn once into a layer and reused while nothing about them changes

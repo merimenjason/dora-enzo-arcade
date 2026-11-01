@@ -248,8 +248,8 @@
 @media (orientation:portrait) and (max-width:700px){
   .wr-shell{--fs:clamp(13px,calc(2.6vw + 3px),18px)}
   .wr-shell h1{font-size:calc(var(--fs)*2.5)}
-  .wr-menu-in{justify-content:flex-start;padding-top:44vh}
-  .wr-hero img{object-position:center top;height:auto;min-height:56%}
+  .wr-menu-in{justify-content:flex-start;padding-top:56px}
+  .wr-frame{height:auto;width:92vw}
   .wr-hud{grid-template-columns:1fr 1fr;padding:6px 52px 0 6px;row-gap:4px}
   .wr-board{grid-column:1 / -1;grid-row:2}
   .wr-plaque b{font-size:calc(var(--fs)*.85)}

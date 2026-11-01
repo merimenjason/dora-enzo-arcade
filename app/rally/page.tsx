@@ -168,7 +168,7 @@ export default function RallyPage() {
         burst(v, e.sweet ? 'sweet' : 'hit', e.x, e.y);
         if (e.shot === 'smash') { burst(v, 'smash', e.x, e.y); snd()?.crowd(false); }
         const w = SHOT_WORD[e.shot];
-        if (w && (e.shot === 'smash' || e.shot === 'tumble' || (e.sweet && e.shot !== 'drive'))) v.fx.push({ kind: 'word', x: e.x + (e.side === 0 ? 0.3 : -0.3), y: Math.max(2.5, Math.min(e.y + 0.9, 3.4)), vx: 0, vy: 0.5, t: 0, life: 0.8, c: e.shot === 'smash' ? '#ffb36b' : '#fff3c4', r: 1, rot: 0, txt: w });
+        if (w && (e.shot === 'smash' || e.shot === 'tumble' || (e.sweet && e.shot !== 'drive'))) v.fx.push({ kind: 'word', x: e.x + (e.side === 0 ? 0.3 : -0.3), y: Math.max(2.5, Math.min(e.y + 0.9, lay.current && lay.current.top > lay.current.floor - 3.6 * lay.current.u ? 2.7 : 3.4)), vx: 0, vy: 0.5, t: 0, life: 0.8, c: e.shot === 'smash' ? '#ffb36b' : '#fff3c4', r: 1, rot: 0, txt: w });
         if (me(e.who) && tutRef.current >= 0) {
           tutCount.current++;
           const t = tutRef.current;
