@@ -37,9 +37,12 @@ async function framing(page, label, { minChin = 90, minCustomer = 150 } = {}) {
   assert.ok(L, `${label}: the scene is drawn`);
   const vw = page.viewportSize().width, vh = page.viewportSize().height;
   const inside = (r) => r.x >= -1 && r.y >= -1 && r.x + r.w <= vw + 1 && r.y + r.h <= vh + 1;
-  for (const k of ['stall', 'dora', 'enzo', 'customer']) assert.ok(inside(L[k]), `${label}: the ${k} is in view (${JSON.stringify(L[k])})`);
+  for (const k of ['dora', 'enzo', 'customer']) assert.ok(inside(L[k]), `${label}: the ${k} is in view (${JSON.stringify(L[k])})`);
+  const seen = Math.min(vw, L.stall.x + L.stall.w) - Math.max(0, L.stall.x);
+  assert.ok(seen >= L.stall.w * 0.85 && L.stall.y >= -1 && L.stall.y + L.stall.h <= vh + 1, `${label}: the stall is in view (${JSON.stringify(L.stall)})`);
   for (const k of ['dora', 'enzo']) assert.ok(L[k].h >= minChin, `${label}: ${k} is a clear size (${L[k].h.toFixed(0)}px above the counter)`);
   assert.ok(L.customer.h >= minCustomer, `${label}: the customer is a clear size (${L.customer.h.toFixed(0)}px)`);
+  for (const k of ['dora', 'enzo']) assert.ok(!overlap(L.face, { ...L[k], h: L[k].h * 0.6 }, 4), `${label}: the customer stands clear of ${k}’s face`);
   for (const q of ['.nm-panel', '.nm-bar', '.nm-tip']) {
     const r = await rect(page, q); if (!r) continue;
     for (const k of ['dora', 'enzo', 'face']) assert.ok(!overlap(r, L[k], 4), `${label}: ${q} does not cover ${k === 'face' ? 'the customer’s face' : k}`);
@@ -115,8 +118,8 @@ let savedAfterNight;
   await page.keyboard.press('ArrowUp'); await page.keyboard.press('ArrowUp'); await page.keyboard.press('ArrowDown');
   assert.equal((await st(page)).price, p0 + 1, 'arrow keys turn the dial');
   const dialBox = await page.locator('.nm-dialsvg').boundingBox();
-  await page.mouse.move(dialBox.x + dialBox.width * 0.85, dialBox.y + dialBox.height * 0.75); await page.mouse.down();
-  await page.mouse.move(dialBox.x + dialBox.width * 0.9, dialBox.y + dialBox.height * 0.8); await page.mouse.up();
+  await page.mouse.move(dialBox.x + dialBox.width * 0.5, dialBox.y + dialBox.height * 0.2); await page.mouse.down();
+  await page.mouse.move(dialBox.x + dialBox.width * 0.63, dialBox.y + dialBox.height * 0.29, { steps: 4 }); await page.mouse.up();
   const dragged = (await st(page)).price;
   assert.ok(dragged > s.customer.value, `dragging to the right raises the price (${dragged})`);
   // ask far too much with Enter: a counter or a walk-out

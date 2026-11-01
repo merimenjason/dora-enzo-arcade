@@ -28,11 +28,12 @@ const INK = '#1d1a24', CREAM = '#f3e6c8', VERMILION = '#c8402a', INDIGO = '#2233
 const hash = (n: number) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 
 export function layout(w: number, h: number): Layout {
-  // narrow screens bring the customer in close to the counter so everyone stays a clear size
-  const span = w / h < 1.15 ? 830 : 1000;
-  const u = Math.max(0.2, Math.min(h / 690, w / span));
+  // narrow screens tuck the stall's left post off the edge and bring the customer in close, so everyone stays a clear size
+  const narrow = w / h < 1.15;
+  const span = 1000;
+  const u = Math.max(0.2, narrow ? Math.min(h / 690, (w - 8) / 760) : Math.min(h / 690, w / span));
   const ground = h - Math.max(10, h * 0.05);
-  const gx = (w - span * u) / 2;
+  const gx = narrow ? 4 - 80 * u : (w - span * u) / 2;
   const stall: Rect = { x: gx + 20 * u, y: ground - 600 * u, w: 600 * u, h: 600 * u };
   const counterTop = ground - 220 * u;
   // Dora and Enzo behind the counter: the drawn squares, and the parts that show above the counter
@@ -40,8 +41,8 @@ export function layout(w: number, h: number): Layout {
   const enzoDraw: Rect = { x: stall.x + 272 * u, y: counterTop + 62 * u - 300 * u, w: 300 * u, h: 300 * u };
   const vis = (r: Rect): Rect => ({ x: r.x + r.w * 0.12, y: r.y + r.h * 0.05, w: r.w * 0.76, h: counterTop - r.y - r.h * 0.05 });
   const dora = vis(doraDraw), enzo = vis(enzoDraw);
-  const C = 370 * u;
-  const customer: Rect = { x: Math.min(w - C - 4, gx + (span - 180) * u - C / 2), y: ground - C, w: C, h: C };
+  const C = (narrow ? 330 : 370) * u;
+  const customer: Rect = { x: narrow ? w - 4 - C : Math.min(w - C - 4, gx + (span - 180) * u - C / 2), y: ground - C, w: C, h: C };
   const face: Rect = { x: customer.x + C * 0.15, y: customer.y, w: C * 0.7, h: C * 0.42 };
   const slots = [0.2, 0.5, 0.8].map((f) => ({ x: stall.x + stall.w * f, y: counterTop }));
   const crates: Rect = { x: stall.x + 40 * u, y: counterTop + 110 * u, w: stall.w - 80 * u, h: 80 * u };
@@ -353,7 +354,7 @@ function drawCustomer(g: CanvasRenderingContext2D, L: Layout, s: SceneState, spr
 }
 /** The long look: a dotted ink eye-line from the customer to the ware, with a bead for each beat of looking. */
 function drawGaze(g: CanvasRenderingContext2D, L: Layout, s: SceneState) {
-  const c = s.customer; if (!c || !s.showTells || s.leaving || s.walk < 1 || s.visitor) return;
+  const c = s.customer; if (!c || !s.showTells || s.leaving || s.walk < 1 || s.visitor || s.looking <= 0) return;
   const i = s.front.indexOf(c.want);
   const to = i >= 0 ? { x: L.slots[i].x, y: L.counterTop - 50 * L.u } : { x: L.crates.x + L.crates.w / 2, y: L.crates.y + 20 * L.u };
   const from = { x: L.customer.x + L.customer.w * 0.3, y: L.customer.y + L.customer.h * 0.24 };
@@ -372,7 +373,9 @@ function drawBubble(g: CanvasRenderingContext2D, L: Layout, s: SceneState) {
   if (!s.bubble || (!s.customer && !s.visitor)) return;
   const u = L.u, fs = Math.max(13, Math.round(21 * u));
   g.save(); g.font = `600 ${fs}px 'Shippori Mincho', serif`;
-  const maxW = Math.min(L.w * 0.5, 420 * u + 60);
+  const minX = L.enzo.x + L.enzo.w + 6;
+  const room = L.w - 6 - minX;
+  const maxW = room >= 150 ? Math.min(L.w * 0.5, 420 * u + 60, room) : Math.min(L.w * 0.5, 420 * u + 60);
   const words = s.bubble.split(' '), lines: string[] = []; let cur = '';
   for (const wd of words) { const tr = cur ? cur + ' ' + wd : wd; if (g.measureText(tr).width > maxW - 28 && cur) { lines.push(cur); cur = wd; } else cur = tr; }
   if (cur) lines.push(cur);
@@ -380,7 +383,7 @@ function drawBubble(g: CanvasRenderingContext2D, L: Layout, s: SceneState) {
   const pop = Math.min(1, s.bubbleT * 6);
   // above the customer's head, nudged left toward the stall, kept on screen and clear of the face
   let bx = L.customer.x + L.customer.w * 0.45 - bw * 0.65, by = L.customer.y - bh - 18 * u;
-  bx = Math.max(6, Math.min(L.w - bw - 6, bx)); by = Math.max(6, by);
+  bx = Math.max(room >= 150 ? minX : 6, Math.min(L.w - bw - 6, bx)); by = Math.max(6, by);
   if (by + bh > L.face.y) by = Math.max(6, L.face.y - bh - 4);
   g.translate(bx + bw / 2, by + bh); g.scale(pop, pop); g.translate(-bw / 2, -bh);
   g.fillStyle = CREAM; g.strokeStyle = INK; g.lineWidth = 2;

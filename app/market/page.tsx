@@ -93,7 +93,7 @@ export default function MarketPage() {
   const startDusk = () => {
     const s = run.current; if (!s) return;
     setScreen('dusk'); syncScene(); pose('count', 'greet'); music('dusk'); persist();
-    if (s.mode === 'moon' && s.night === 1 && !save.current.tutorial) setTip('Buy a few wares from the suppliers, put your best three at the front of the stall, then open the stall. Watch the rumours: they tell you what will sell.');
+    if (s.mode === 'moon' && s.night === 1 && !save.current.tutorial) setTip('Buy a few wares with +, tap your best three to put them at the front, then open the stall. The rumours tell you what will sell.');
   };
   const newRun = (seed: number, mode: G.Mode) => { run.current = G.newGame(seed, mode); setDawn(null); startDusk(); };
 
@@ -146,7 +146,7 @@ export default function MarketPage() {
     if (r.kind === 'none') return;
     say(r.line); snd()?.speak(r.kind === 'sold');
     if (r.kind === 'counter') { setBeat('haggle'); snd()?.counter(); setPrice(Math.max(r.offer + 1, Math.round((priceRef.current + r.offer) / 2))); pose('think'); persist(); bump(); return; }
-    setBeat('react');
+    setBeat('react'); sc.looking = 0;
     if (r.kind === 'sold') {
       pose('joy', 'joy', 1.6); snd()?.sale(); if (r.set) setTimeout(() => snd()?.chime(), 300);
       sc.carry = sc.customer?.want ?? null;
@@ -172,7 +172,7 @@ export default function MarketPage() {
   const doTake = () => { const s = run.current; if (!s || !s.customer || s.customer.offer === null || beatRef.current !== 'haggle') return; unlock(); snd()?.clack(); respond(G.takeOffer(s)); };
   const doLetGo = () => {
     const s = run.current; if (!s || !s.customer || beatRef.current !== 'haggle') return;
-    unlock(); snd()?.clack(); G.letGo(s); say('“Another time, then.”'); setToast('You let them go, no hard feelings.');
+    unlock(); snd()?.clack(); G.letGo(s); scene.current.looking = 0; say('“Another time, then.”'); setToast('You let them go, no hard feelings.');
     setBeat('react'); persist();
     setTimeout(() => { scene.current.leaving = true; setBeat('leave'); }, 600 / speed.current);
   };
@@ -320,6 +320,7 @@ export default function MarketPage() {
   const menu = (
     <section className="nm-menu">
       <div className="nm-hero"><img src={art('title')} alt="" width={1536} height={1024} /></div>
+      <div className="nm-corner"><a className="nm-home" href="/">← Arcade</a><span className="nm-toggles"><button className={'nm-chip' + (settings.sound ? ' on' : '')} onClick={() => toggle('sound')} aria-pressed={settings.sound}>Sound</button><button className={'nm-chip' + (settings.music ? ' on' : '')} onClick={() => toggle('music')} aria-pressed={settings.music}>Music</button></span></div>
       <div className="nm-menu-in">
         <div className="nm-titleblock">
           <span className="nm-eyebrow">Dora &amp; Enzo’s Arcade</span>
@@ -356,10 +357,7 @@ export default function MarketPage() {
             <button className="nm-btn" onClick={() => { unlock(); snd()?.clack(); setScreen('book'); }}>Open the book</button>
           </article>
         </div>
-        <footer className="nm-foot">
-          <a className="nm-home" href="/">← Back to the arcade</a>
-          <span className="nm-toggles"><button className={'nm-chip' + (settings.sound ? ' on' : '')} onClick={() => toggle('sound')} aria-pressed={settings.sound}>Sound</button><button className={'nm-chip' + (settings.music ? ' on' : '')} onClick={() => toggle('music')} aria-pressed={settings.music}>Music</button></span>
-        </footer>
+
       </div>
     </section>
   );
@@ -434,7 +432,7 @@ export default function MarketPage() {
           <aside className="nm-card nm-stallcard">
             <header><h3>Your stall</h3><span className="nm-note">Cart {s.stock.length}/{s.cart}</span></header>
             {tip ? <div className="nm-tip-dusk"><p>{tip}</p><button className="nm-chip" onClick={() => setTip(null)}>Got it</button></div> : null}
-            <p className="nm-note">Tap a ware to put it at the front (three at most). Front wares catch the eye; a matching set at the front sells together.</p>
+            {!tip ? <p className="nm-note">Tap wares to set the front three. A matching set there sells together.</p> : null}
             <div className="nm-stock">
               {[...counts].map(([id, n]) => (
                 <button key={id} className={'nm-stockitem' + (front.includes(id) ? ' front' : '')} aria-pressed={front.includes(id)} onClick={() => { unlock(); if (G.setFront(s, id, !front.includes(id))) { snd()?.clack(); syncScene(); bump(); } }}>
