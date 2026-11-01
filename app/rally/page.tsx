@@ -256,8 +256,8 @@ export default function RallyPage() {
       const k = e.key.toLowerCase();
       if (screenRef.current === 'intro' && (k === 'enter' || k === ' ')) { e.preventDefault(); play(); return; }
       if (screenRef.current !== 'play') return;
-      if (k === 'escape' || k === 'p') { e.preventDefault(); togglePause(); return; }
       if (replay.current && (k === 'enter' || k === ' ' || k === 'escape')) { e.preventDefault(); skipReplay(); return; }
+      if (k === 'escape' || k === 'p') { e.preventDefault(); togglePause(); return; }
       if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', ' ', '/'].includes(k)) e.preventDefault();
       if (e.repeat) { keys.current.add(k); return; }
       keys.current.add(k);
@@ -290,7 +290,7 @@ export default function RallyPage() {
   const padProps = (which: 'left' | 'right' | 'wind' | 'hop' | 'swing') => ({
     onPointerDown: (e: React.PointerEvent) => {
       e.preventDefault(); unlock();
-      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      try { (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); } catch { /* a pointer the browser no longer tracks */ }
       if (which === 'hop') pressed.current.hop0 = true;
       else if (which === 'swing') { if (replay.current) skipReplay(); else pressed.current.swing0 = true; }
       else { pads.current[which] = true; if (tutRef.current === 0 && which !== 'wind') tutCount.current++; }

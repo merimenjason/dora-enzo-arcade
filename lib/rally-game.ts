@@ -416,7 +416,7 @@ export function step(m: Match, inputs: (Input | null)[] = []) {
 function movePlayer(m: Match, i: number, inp: Input) {
   const p = m.players[i], st = p.style;
   const grounded = p.y <= 0;
-  const locked = m.phase === 'serve' && serverIndex(m) === i; // the server stands still to serve
+  const locked = m.phase === 'serve' && serverIndex(m) === i; // the server may pick a spot but keeps both feet down
   const between = m.phase === 'point' || m.phase === 'game' || m.phase === 'over';
   // winding: standing still on the ground and holding the button
   const wantWind = inp.wind && grounded && p.swingT < 0 && m.phase !== 'over';
@@ -425,7 +425,7 @@ function movePlayer(m: Match, i: number, inp: Input) {
   if (between && !p.winding) {
     const home = spot(m, p, i); const d = home - p.x;
     target = Math.abs(d) > 0.08 ? Math.sign(d) * RUN * 0.55 : 0; // stroll back to place, no spring used
-  } else if (!locked && !wantWind) {
+  } else if (!wantWind) {
     target = inp.move * RUN * st.speed * speedFactor(p.spring);
   }
   const acc = (grounded ? ACCEL : ACCEL * 0.35) * DT;

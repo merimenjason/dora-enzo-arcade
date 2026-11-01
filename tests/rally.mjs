@@ -234,7 +234,8 @@ const freeze = (m) => { for (const p of m.players) { p.human = true; } }; // nob
   const m = fresh(); freeze(m);
   const p = m.players[0], x0 = p.x;
   for (let k = 0; k < 30; k++) G.step(m, [{ move: -1, hop: true, swing: false, wind: false }]);
-  assert.equal(p.x, x0, 'the server stands still'); assert.equal(m.phase, 'serve');
+  assert.ok(p.x < x0 - 0.3, 'the server may walk to a spot'); assert.equal(p.y, 0, 'but not hop'); assert.equal(m.phase, 'serve');
+  assert.equal(m.shuttle.held, 0, 'the shuttle stays in hand');
   G.step(m, [{ move: 0, hop: false, swing: true, wind: false }]);
   runUntil(m, (q) => q.phase === 'rally', 60);
   assert.equal(m.shuttle.shot, 'serve'); assert.ok(m.shuttle.vx > 0, 'the serve goes over');
