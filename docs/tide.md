@@ -1,6 +1,6 @@
 # Tidepool
 
-A cosy rock-pool ecosystem at `/tide`, in a new claymation art style. Below their summer cottage Dora and Enzo look after a rock pool through the tides and four seasons. The creatures live by simple rules of their own; you nudge, watch and fill in a field journal, and on the autumn spring tide everyone goes out to sea.
+A cosy rock-pool ecosystem at `/tide`, game 73 of the arcade, in a new claymation art style. Below their summer cottage Dora and Enzo look after a rock pool through the tides and four seasons. The creatures live by simple rules of their own; you nudge, watch and fill in a field journal, and on the autumn spring tide everyone goes out to sea.
 
 All numbers below come from `lib/tide-game.ts`, `lib/tide-scene.ts` and `app/tide/page.tsx`. Written 01-11-2026.
 

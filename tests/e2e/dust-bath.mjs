@@ -268,8 +268,8 @@ try {
     fullPage: true,
   });
   await page.getByRole('link', { name: /MAIN ARCADE/ }).click();
-  assert.equal(await page.locator('.arcade-card').count(),72);
-  assert.match(await page.locator('.arcade-hero').textContent(), /Seventy-two ways/);
+  assert.equal(await page.locator('.arcade-card').count(),73);
+  assert.match(await page.locator('.arcade-hero').textContent(), /Seventy-three ways/);
   await page.locator('a.arcade-card[href="/dust-bath"]').click();
   assert.equal(await page.getByRole('heading', { level: 1 }).count(), 1);
   console.log(

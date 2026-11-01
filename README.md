@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of seventy-two original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of seventy-three original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -82,6 +82,7 @@ Listed in arcade-menu order.
 | 70 | Clatterbox | `/clatter` | Chain-reaction contraption puzzle |
 | 71 | Night Market | `/market` | Lantern-lit market stall haggling game |
 | 72 | Woodland Band | `/band` | Music-making toy and puzzle |
+| 73 | Tidepool | `/tide` | Cosy rock-pool ecosystem |
 
 ## Run
 
@@ -1311,6 +1312,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/band.md`](docs/band.md) has the stage, the musicians and keys, the requests, stars and par, the controls, the jam and codes, the festival, timing and the save; [`docs/band-art-brief.md`](docs/band-art-brief.md) briefs the two paintings.
 
+### 73 · Tidepool (`/tide`)
+
+**Play:** A cosy rock-pool ecosystem drawn in Canvas 2D in a new claymation style: plasticine creatures with fingerprints and an outline that boils like stop-motion. Below their summer cottage Dora and Enzo look after a rock pool, seen side-on, through the tides and four seasons. Every creature lives by simple rules of its own: beadlet anemones catch plankton at high tide and bud, mussels filter the water, limpets and periwinkles graze the algae off the rocks, rock shrimp nibble and dart into the seaweed when the blenny hunts, hermit crabs scavenge, outgrow their shells and swap into bigger ones, the starfish eats mussels and spawns in late summer, and seaweed grows in the light and makes oxygen. A tide lasts a minute: at high tide the sea brings cool water, food and new arrivals; at low tide the pool is on its own, warming in the sun as its oxygen runs down, and gulls come for anything they can see. You nudge rather than control: look closely to sketch creatures, place rocks and shells, plant and trim seaweed, bring creatures in from the basket, shoo gulls, and from summer lay the driftwood plank for shade or pour a bucket of seawater (2 energy; a low tide or a finished page gives 1, up to 6). Each season has its weather (a summer heatwave, a late-summer plankton bloom, an autumn storm surge) and six of the journal's 24 pages, each worth up to 3 shells for finishing it quickly; four pages turn the season. The journal also holds the field guide, whose sketches fill in from pencil to colour, and a food web of the links you have seen. In autumn the spring tide carries everyone out to sea for the painted ending, which opens the **Free pool** in any season. Dora and Enzo are clay figures on the rims who peer in, write, carry the bucket and cheer. The pool, the journal and the settings are saved in `tidepool-v1`.
+
+**Controls:** Click the pool to use the chosen tool. **1**–**7** choose Look, Rock, Shell, Plant, Trim, Plank and Bucket; the basket's creatures are buttons beside the tools. Click a gull eyeing the pool to shoo it. **Space** pauses the tide, **F** runs it faster (or the 1×, 2× and 4× buttons), **J** opens the journal, **B** pours the bucket, **K** lays the plank, and **Esc** or **P** pauses. On a touch screen tap the pool and the buttons; phones work held either way. Sound and Music are toggles on the menu and the pause panel.
+
+**Tests:** `npm run test:tide` runs the engine checks: every creature's rules, the food web, the tide clock, warmth, light and oxygen through a tide, the plank and the bucket, gulls and shooing, population caps and no sudden crashes, sketching and pages, weather and seasons, the spring tide, exact replay from a seed, and saves, corrupt ones included. `npm run bot:tide` plays 16 seeds with a caretaker bot that finishes all 24 pages with 3 shells on pages 1–23 (the shell targets are set just above its slowest tide), checks that a bot that does nothing fails every page that needs care, and keeps cared-for free pools in each season stable for 45 tides (`npm test` runs it with `--quick`). `npm run test:e2e:tide` checks the browser: the menu, sketching creatures, bringing in the hermit crab and planting with the real mouse and keys, the speed buttons, pausing the tide and shooing a gull, the journal, the pool kept across a reload, a corrupt save, turning the season and laying the plank, the spring tide, the ending and the free pool, the framing at 1280×800 and 1920×1080 with Dora and Enzo a clear size and clear of the tray and panel, and phones held either way played by touch, with no page errors.
+
+**Docs:** [`docs/tide.md`](docs/tide.md) has the tide, the creatures, the tools, seasons and weather, the journal and the save; [`docs/tide-art-brief.md`](docs/tide-art-brief.md) briefs the paintings and the clay cut-outs.
+
 ## Validation
 
 ```sh
@@ -1330,7 +1341,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Seventy-two ways/` assertion in `tests/e2e/dust-bath.mjs`, the 72-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Seventy-three ways/` assertion in `tests/e2e/dust-bath.mjs`, the 73-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 
