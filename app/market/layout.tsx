@@ -1,0 +1,3 @@
+import type { Metadata } from 'next';
+export const metadata: Metadata = { title: 'Night Market · Dora & Enzo’s Arcade', description: 'A lantern-lit market stall game with haggling. Buy wares at dusk, set out the stall, and sell by lantern light: read each customer’s tells, name your price on the dial and haggle with thrifty badgers, impulsive tanuki, collector cranes, rabbits in a hurry and regular otters. Twenty-eight nights to save for the festival lantern boat, plus a seeded free market.' };
+export default function MarketLayout({ children }: { children: React.ReactNode }) { return children; }
