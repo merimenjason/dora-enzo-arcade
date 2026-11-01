@@ -231,6 +231,14 @@ export function placeProblem(P: Puzzle, places: Place[], pl: Place, skip = -1): 
   return null;
 }
 export const snap = (v: number) => Math.round(v / SNAP) * SNAP;
+/** Snaps a point to the quarter grid of the build area it is in (or nearest): the grid the bot searches. */
+export function snapTo(P: Puzzle, x: number, y: number): [number, number] {
+  let z = P.zones[0], best = Infinity;
+  for (const q of P.zones) { const d = Math.hypot(Math.max(q[0] - x, 0, x - q[2]), Math.max(q[1] - y, 0, y - q[3])); if (d < best) { best = d; z = q; } }
+  if (!z) return [snap(x), snap(y)];
+  const ox = z[0] + 0.25, oy = z[3] - 0.25;
+  return [+(ox + Math.round((x - ox) / SNAP) * SNAP).toFixed(3), +(oy + Math.round((y - oy) / SNAP) * SNAP).toFixed(3)];
+}
 /** Parts that stand on whatever is below them: placed, they settle down onto it. */
 export const SETTLES: PartId[] = ['domino', 'block', 'car', 'marble', 'acorn', 'bellows', 'candle'];
 /** Lowers a standing part onto the surface below it (inside its build area), or returns null if it can't stand there. */

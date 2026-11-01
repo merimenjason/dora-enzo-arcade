@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import { World, Body, box, circle, overlap, DT, GRAVITY } from '../.checks/clatter-physics.js';
 import {
-  PUZZLES, PUZZLE_IDS, ROOMS, FREE, PARTS, GOAL_PARTS, SAVE_KEY, SETTLES, SANDBOX_MAX, Run, simulate, buildWorld, placeProblem, placeBox, settle, snap, turn,
+  PUZZLES, PUZZLE_IDS, ROOMS, FREE, PARTS, GOAL_PARTS, SAVE_KEY, SETTLES, SANDBOX_MAX, Run, simulate, buildWorld, placeProblem, placeBox, settle, snap, snapTo, turn,
   freshSave, readSave, readPlace, starBits, starCount, totalStars, done, roomOpen, puzzleOpen, roomCount, freeOpen, freeParts, freePuzzle, nextPuzzle, recordRun, trayLeft,
 } from '../.checks/clatter-game.js';
 
@@ -228,6 +228,7 @@ const allEv = (puz, places, secs = 8) => { const r = new Run(puz, places), out =
     ok(!empty.win && !empty.token, `${id}: the starting layout alone does not solve it`);
     eq(puz.sol.length, puz.par, `${id}: its solution uses par parts`);
     puz.sol.forEach((pl, i) => eq(placeProblem(puz, puz.sol.slice(0, i), pl), null, `${id}: solution part ${i + 1} is a legal placement`));
+    puz.sol.forEach((pl, i) => { const [x, y] = snapTo(puz, pl.x, pl.y); ok(x === pl.x && (SETTLES.includes(pl.p) || y === pl.y), `${id}: solution part ${i + 1} sits on the grid a player snaps to`); });
     const left = trayLeft(puz, puz.sol); ok(Object.values(left).every((n) => n >= 0), `${id}: from its tray`);
     const s = simulate(puz, puz.sol);
     ok(s.win, `${id}: its solution solves it`);
