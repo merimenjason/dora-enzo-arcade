@@ -337,9 +337,9 @@ export default function ClatterPage() {
             look = r.hot; dora = 'watch'; enzo = 'watch';
             if (won || t - goalAt.current < 1.6) { dora = 'cheer'; enzo = 'cheer'; }
             else {
-              // a near miss: something fast heading close by a goal not yet met, and Enzo can't look
+              // a near miss: something fast heading close by a goal not yet met: Enzo can't look, Dora winces
               const b = r.B.world.bodies.find((x) => !x.isStatic && Math.hypot(x.vx, x.vy) > 2.5 && r.goals.some((g, i) => !r.goalHit[i] && Math.hypot(g.x - x.x, g.y + 0.4 - x.y) < 1.5));
-              if (b) enzo = 'wince';
+              if (b) { enzo = 'cover'; dora = 'wince'; }
             }
           } else if (md === 'over') { dora = t - failAt.current < 3 ? 'think' : 'idle'; enzo = t - failAt.current < 3 ? 'think' : 'idle'; look = r.hot; }
           else if (drag.current || armed.current || hintPl.current) { dora = 'point'; look = hover.current ? [hover.current.pl.x, hover.current.pl.y] : hintPl.current ? [hintPl.current.pl.x, hintPl.current.pl.y] : null; }

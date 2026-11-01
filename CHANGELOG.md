@@ -17,6 +17,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Clatterbox**: Dora and Enzo beside the box are now painted cardboard cut-out puppets in four poses, watching the moving part, cheering at the payoff, and covering their eyes or wincing at a near miss.
 - **Cubby Valley**: distant blocks now settle into calm, clean colour instead of shimmering with speckles, while blocks up close stay crisp, and hay tufts, grass tops and birch bark no longer show a speckled patch borrowed from the next tile. The close-behind camera is now over the shoulder: the chinchilla you play stands a little left of and below the crosshair, so the block you aim at is always clear, the other one keeps to your side instead of walking in the way, and backing into a wall or a bush lifts the camera over your head instead of squeezing in. A Murk Moth climbing away after a swoop now keeps facing you.
 
 ## 31-10-2026

@@ -6,7 +6,7 @@
 import { build, type Run, type Part, type Puzzle, type Place, type PartId, type Ev } from './clatter-game';
 import { World } from './clatter-physics';
 
-export type Pose = 'idle' | 'watch' | 'wince' | 'cheer' | 'point' | 'think' | 'wave';
+export type Pose = 'idle' | 'watch' | 'wince' | 'cover' | 'cheer' | 'point' | 'think' | 'wave';
 export type Who = 'dora' | 'enzo' | 'hedgehog' | 'rabbit' | 'mouse' | 'owl' | 'badger';
 type Rect = { x: number; y: number; w: number; h: number };
 type Fx = { k: Ev['k']; x: number; y: number; t: number; s: number; seed: number };
@@ -668,6 +668,38 @@ function train(c: CanvasRenderingContext2D, x: number, y: number, k: number, dir
 }
 
 // ---------------------------------------------------------------- the puppets
+// Dora and Enzo are painted cut-outs (public/art/clatter/<who>-<pose>.webp, the body 600px from feet to crown, feet
+// 12px above the bottom, the body centred; Dora faces right, Enzo left). The drawn puppet stands in while they load.
+type Cut = 'watch' | 'cheer' | 'cover' | 'wince';
+const CUT: Record<Pose, Cut> = { idle: 'watch', watch: 'watch', point: 'watch', cheer: 'cheer', wave: 'cheer', cover: 'cover', wince: 'wince', think: 'wince' };
+const cuts: Record<string, HTMLImageElement> = {};
+function cutout(who: 'dora' | 'enzo', pose: Pose): HTMLImageElement | null {
+  if (typeof Image === 'undefined') return null;
+  const ready = (k: string) => { let im = cuts[k]; if (!im) { im = cuts[k] = new Image(); im.decoding = 'async'; im.src = `/art/clatter/${k}.webp`; } return im.complete && im.naturalWidth ? im : null; };
+  // ask for all four at once, so a swap never waits
+  let got: HTMLImageElement | null = null;
+  for (const c of ['watch', 'cheer', 'cover', 'wince'] as Cut[]) { const im = ready(`${who}-${c}`); if (c === CUT[pose]) got = im; }
+  return got;
+}
+/** A painted cut-out at (x, y) (its feet), the body `size` pixels tall: a bob when cheering, a tremble when wincing. */
+function paintedPuppet(c: CanvasRenderingContext2D, im: HTMLImageElement, x: number, y: number, size: number, dir: number, pose: Pose, t: number, look: [number, number] | null) {
+  let k = (size * 0.95) / 600;
+  if (im.naturalWidth * k > size * 0.98) k = (size * 0.98) / im.naturalWidth;
+  const w = im.naturalWidth * k, h = im.naturalHeight * k;
+  const bob = pose === 'cheer' || pose === 'wave' ? Math.abs(Math.sin(t * 7)) * size * 0.05 : Math.sin(t * 1.6) * size * 0.008;
+  let tilt = pose === 'cheer' || pose === 'wave' ? Math.sin(t * 7) * 0.04 : pose === 'wince' ? Math.sin(t * 31) * 0.012 - 0.03 * dir : pose === 'cover' ? -0.04 * dir : 0;
+  if (look && (pose === 'watch' || pose === 'point')) tilt += Math.max(-0.05, Math.min(0.05, (look[1] - (y - size * 0.7)) / (size * 6))) * dir;
+  c.save(); c.translate(x, y - bob);
+  // a little card stand under the feet
+  c.save(); c.shadowColor = 'rgba(30,14,4,0.45)'; c.shadowBlur = size * 0.06; c.shadowOffsetY = size * 0.02;
+  c.fillStyle = CARD_D; c.fillRect(-size * 0.26, -size * 0.03, size * 0.5, size * 0.05);
+  c.restore();
+  c.rotate(tilt);
+  c.save(); c.shadowColor = 'rgba(40,20,6,0.35)'; c.shadowBlur = size * 0.04; c.shadowOffsetX = size * 0.015; c.shadowOffsetY = size * 0.02;
+  c.drawImage(im, -w / 2, -h + 12 * k, w, h);
+  c.restore();
+  c.restore();
+}
 const FUR: Record<Who, { body: string; belly: string; edge: string; ear: string; eye: string; nose: string }> = {
   dora: { body: '#f6eee0', belly: '#fffaf0', edge: '#d8c8a8', ear: '#f2a6b4', eye: '#b0182c', nose: '#e88a9a' },
   enzo: { body: '#8a9aac', belly: '#c4ced8', edge: '#5e6e80', ear: '#f0a0b0', eye: '#141414', nose: '#d88090' },
@@ -689,6 +721,7 @@ function piece(c: CanvasRenderingContext2D, path: () => void, fill: string, edge
  * plump body and a big bushy tail; the arms swing on split pins at the shoulders.
  */
 export function puppet(c: CanvasRenderingContext2D, who: Who, x: number, y: number, size: number, dir: number, pose: Pose, t: number, look: [number, number] | null, back = false) {
+  if ((who === 'dora' || who === 'enzo') && !back) { const im = cutout(who, pose); if (im) { paintedPuppet(c, im, x, y, size, dir, pose, t, look); return; } }
   const F = FUR[who], s = size;
   const bob = pose === 'cheer' ? Math.abs(Math.sin(t * 7)) * s * 0.05 : Math.sin(t * 1.6) * s * 0.008;
   c.save(); c.translate(x, y - bob);
@@ -722,7 +755,7 @@ export function puppet(c: CanvasRenderingContext2D, who: Who, x: number, y: numb
     const hx = x, hy = y - s * 0.7, dx = (look[0] - hx) * dir, dy = look[1] - hy, d = Math.hypot(dx, dy) || 1;
     tilt = Math.max(-0.25, Math.min(0.25, Math.atan2(dy, Math.max(20, dx)) * 0.4)); ex = (dx / d) * s * 0.012; ey = (dy / d) * s * 0.012;
   }
-  if (pose === 'wince') tilt = 0.15;
+  if (pose === 'wince' || pose === 'cover') tilt = 0.15;
   if (pose === 'think') tilt = -0.12;
   c.save(); c.translate(0, -s * 0.62); c.rotate(tilt);
   if (chin) chinHead(c, who, F, s, pose, t, ex, ey, back);
@@ -736,7 +769,7 @@ export function puppet(c: CanvasRenderingContext2D, who: Who, x: number, y: numb
 function armPose(p: Pose, t: number): [number, number] {
   switch (p) {
     case 'cheer': return [-2.6 + Math.sin(t * 7) * 0.25, -2.4 + Math.sin(t * 7 + 1) * 0.25];
-    case 'wince': return [-2.75, -2.9];
+    case 'wince': case 'cover': return [-2.75, -2.9];
     case 'point': return [-1.45, 0.25];
     case 'wave': return [-2.5 + Math.sin(t * 8) * 0.4, 0.3];
     case 'think': return [-2.2, 0.35];
