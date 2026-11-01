@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of sixty-seven original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of sixty-eight original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -77,6 +77,7 @@ Listed in arcade-menu order.
 | 65 | Honeycomb Hollow | `/honey` | Hex match-3 puzzle |
 | 66 | Powder Paws | `/powder` | Pixel-art downhill skiing |
 | 67 | Cubby Valley | `/cubby` | Cosy 3D block-building sandbox |
+| 68 | Kite Day | `/kite` | Side-on kite-flying physics in a watercolour picture book |
 
 ## Run
 
@@ -1256,6 +1257,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 
 **Docs:** [`docs/cubby.md`](docs/cubby.md), art brief [`docs/cubby-art-brief.md`](docs/cubby-art-brief.md).
 
+### 68 · Kite Day (`/kite`)
+
+**Play:** A side-on kite-flying game painted like a loose watercolour and gouache picture book. Dora or Enzo holds the reel and the wind blows left to right: pull to reel in, speed up and climb, ease to let line out and drift, and steer the nose round the line's arc. The kite pulls hardest low in the middle of the wind window and floats overhead at its edge; let the line go slack in slow air and it stalls and tumbles, and if it touches the grass, the pond, a tree's leaves or a roof it comes down and is reeled in to relaunch. The wind is something you can see: gusts and lulls travel downwind, darkening and bending the grass, speeding up the dandelion seeds and cloud streaks, and a wind ribbon shows the next ten seconds reaching the paws; the air tumbles in rotors behind trees and roofs, thermals rise in shimmering columns over the High Downs, and the sea breeze lifts at the cliff edge. A summer map of six places (Clover Meadow, Apple Orchard, Breezy Beach, High Downs, Village Fête and the Festival Cliffs) holds 24 challenges with gold, silver and bronze: rings, loops, figure-eights and swoops chained for combos, popping dandelion puffs, balloons and bubbles, parcels dipped into treehouse and rooftop baskets, races against a dragonfly, holding the kite in a circle through gusts and lulls, two friendly duels (touch the rival's tail streamer three times; crossed lines tangle and bring both kites down) and the Festival Finale, where Dora and Enzo fly a two-kite routine on the beat. Six kites fly differently (diamond, sled, delta, box, swallow and a long-tailed dragon) and are painted in the Kite Workshop with ten colours and nine stencils earned along the way. Winning the finale shows the festival at sunset; free flying is open in every place you have reached. Saved in `kite-day-v1`.
+
+**Controls:** The mouse pointer is where the kite flies; hold the left button to pull and the right button to ease. On the keyboard **Space**, **↑** or **W** pull, **Shift**, **↓** or **S** ease, **←** and **→** turn the nose, **A** and **D** walk, **Esc** or **P** pauses and **R** tries again. On a touch screen, drag a finger in the sky to steer and hold the **Pull** and **Ease** buttons; ◀ ▶ walk. Phones work held either way. Sound and Music are on the menu and in the play bar.
+
+**Tests:** `npm run test:kite` runs the engine checks: the line never stretches and nothing goes wrong in any place with any kite under random inputs, a hands-off kite keeps flying, pulling and easing, the wind window, stalls, tumbles and still air, landing in the pond and being reeled in, the six kites' differences, trick detection, rings in order, parcels, races, tangles and touches, the finale's beats, determinism, gusts, lulls, thermals and shelter, medals, unlocking and saves (corrupt ones included). `npm run bot:kite` flies every challenge with a careful bot that has a human's reaction delay and wobble: it must clear each one and reach silver or gold, and its runs set the medal marks; a bot that does nothing and one that pulls and points straight at everything fail nearly all of them (`npm test` runs it with `--quick`). `npm run test:e2e:kite` checks the browser: the menu and map, First Flight flown to the finish with the real mouse, the keyboard, pausing, the medal kept across a reload, corrupt saves, the framing at 1280×800 and 1920×1080 and phones held either way, flown by touch.
+
+**Docs:** [`docs/kite.md`](docs/kite.md), art brief [`docs/kite-art-brief.md`](docs/kite-art-brief.md).
+
 ## Validation
 
 ```sh
@@ -1275,7 +1286,7 @@ The planned **Whisker Ware** artwork package is ready for its game implementatio
 ## Adding a game
 
 1. Put the page at `app/<route>/page.tsx` and the rules in a deterministic engine at `lib/<name>-game.ts`.
-2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Sixty-seven ways/` assertion in `tests/e2e/dust-bath.mjs`, the 67-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
+2. Add the game's card to `GAMES` in `app/page.tsx`. Update the hardcoded game count in `app/page.tsx` (eyebrow, headline, lede), the metadata description in `app/layout.tsx`, the `/Sixty-eight ways/` assertion in `tests/e2e/dust-bath.mjs`, the 68-card assertions in `tests/e2e/arcade-navigation.mjs`, `tests/e2e/classic-pit.mjs`, `tests/e2e/dust-bath.mjs`, `tests/e2e/mountain-retreat.mjs`, `tests/e2e/mountain-retreat-theme.mjs`, `tests/e2e/paw-buster.mjs`, `tests/e2e/fluff-forge.mjs`, `tests/e2e/chinchilla-clash.mjs`, `tests/e2e/hay-maze.mjs`, `tests/e2e/chinchillas-vs-zombies.mjs`, `tests/e2e/scribble.mjs`, `tests/e2e/burrow-tactics.mjs`, `tests/e2e/burrow-barrage.mjs`, `tests/e2e/summit-shuffle.mjs`, `tests/e2e/poof-panic.mjs`, `tests/e2e/burrow-express.mjs`, `tests/e2e/moonlight.mjs`, `tests/e2e/pinball.mjs`, `tests/e2e/detectives.mjs`, `tests/e2e/frontier.mjs`, `tests/e2e/moonpond.mjs`, `tests/e2e/saga.mjs`, `tests/e2e/acorn-hand.mjs`, and the route list in `tests/e2e/panel-contrast.mjs`. Past forty-nine games, add the next number word to the list in `tests/readme.mjs`.
 3. Add `tests/<name>.mjs` and wire it into `npm test` in `package.json`.
 4. In this README, update the count in the first sentence, add a row to **Games**, and add a `### NN · Title (`/route`)` guide with **Play**, **Controls**, **Tests** and **Docs**. Both the table and the guides follow arcade-menu order. `npm test` fails until they match.
 

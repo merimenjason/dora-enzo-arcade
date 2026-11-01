@@ -22,7 +22,7 @@ try {
   // The arcade lists the new cabinet.
   const menu = await browser.newPage();
   await menu.goto(base);
-  assert.equal(await menu.locator('.arcade-card').count(), 67);
+  assert.equal(await menu.locator('.arcade-card').count(), 68);
   assert.match(await menu.locator('a.arcade-card[href="/paw-buster"]').textContent(), /Paw Buster X/);
   await menu.close();
 

@@ -1,6 +1,6 @@
 # Kite Day
 
-Game 69, at `/kite`. A side-on kite-flying game for one player, painted like a loose watercolour and gouache picture book. Dora or Enzo holds the reel; you pull, ease and steer the kite through a summer of six places, from the first wobbly flight in Clover Meadow to the Kite Festival on the cliffs.
+Game 68, at `/kite`. A side-on kite-flying game for one player, painted like a loose watercolour and gouache picture book. Dora or Enzo holds the reel; you pull, ease and steer the kite through a summer of six places, from the first wobbly flight in Clover Meadow to the Kite Festival on the cliffs.
 
 All numbers below come from `lib/kite-world.ts`, `lib/kite-levels.ts` and `lib/kite-game.ts`. Written 01-11-2026.
 
