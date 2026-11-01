@@ -112,7 +112,8 @@
 .wb-banner small{opacity:.8}
 
 /* ---- the menu and the clearings */
-.wb-menu{position:absolute;inset:0;overflow-y:auto;z-index:4;padding:16px 24px 40px;background:radial-gradient(circle at 50% 0,#2b7360 0,#1f5b4c 45%,#173f37 100%);display:flex;flex-direction:column;align-items:center;gap:18px}
+.wb-menu{position:absolute;inset:0;overflow-y:auto;z-index:4;padding:16px 24px 40px;background:radial-gradient(circle at 50% 0,#2b7360 0,#1f5b4c 45%,#173f37 100%);display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:18px}
+.wb-pick{justify-content:flex-start}
 .wb-menu::before{content:'';position:fixed;inset:0;pointer-events:none;background:repeating-conic-gradient(from 0deg at 50% 18%,#e4a62a14 0 6deg,transparent 6deg 15deg)}
 .wb-head{width:100%;max-width:1240px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative}
 .wb-total{font-family:'Righteous',sans-serif;font-weight:400;font-size:22px;color:var(--mustard-l);margin-left:auto}

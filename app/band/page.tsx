@@ -48,7 +48,7 @@ export default function BandPage() {
   const hits = useRef<Partial<Record<MusicianId, number>>>({}), stepNow = useRef(-1), stepAt = useRef(0), stepLen = useRef(0.1), beatN = useRef(0), loopNow = useRef(0), humNow = useRef(false), humAt = useRef(-9);
   const wonAt = useRef(-1), ghost = useRef<{ m: MusicianId; step: number; p: number } | null>(null), sel = useRef<Cell | null>(null), drag = useRef<Drag | null>(null);
   const fest = useRef<{ list: { name: string; song: Song }[]; i: number; loops: number; startLoop: number }>({ list: [], i: 0, loops: 0, startLoop: 0 });
-  const toastTimer = useRef(0), jamTimer = useRef(0);
+  const toastTimer = useRef(0), jamTimer = useRef(0), edges = useRef('');
   const [screen, setScreenState] = useState<Screen>('menu'), [result, setResult] = useState<Result | null>(null), [toast, setToast] = useState('');
   const [tip, setTip] = useState<{ title: string; text: string } | null>(null), [picker, setPicker] = useState(false), [slots, setSlots] = useState(false), [paused, setPaused] = useState(false), [ending, setEnding] = useState(false);
   const [ready, setReady] = useState(false), [mounted, setMounted] = useState(false), [error, setError] = useState(''), [touch, setTouch] = useState(false);
@@ -259,6 +259,8 @@ export default function BandPage() {
           if (!a.running) humNow.current = false;
         }
         const sc = scene.current!, scr = screenRef.current;
+        // the card and the dock change size as they fill in (a tick, a font, a new line): keep the stage clear of them
+        { const t = (cardEl.current ?? bannerEl.current ?? bar.current)?.getBoundingClientRect().bottom ?? 0, b = (resultEl.current ?? dockEl.current)?.getBoundingClientRect().top ?? 0, k = `${Math.round(t)}:${Math.round(b)}`; if (k !== edges.current) { edges.current = k; layout(); } }
         { const cur = scr === 'fest' ? fest.current.list[fest.current.i]?.song : song.current; if (cur && sc.lay && (sc.lay.rows.join() !== cur.rows.map((r) => r.m).join() || Math.round((sc.lay.grid.w - sc.lay.lw) / sc.lay.cw) !== cur.steps)) layout(); }
         if (scr === 'play' || scr === 'fest') {
           const s = scr === 'fest' ? fest.current.list[fest.current.i]?.song ?? song.current : song.current;
