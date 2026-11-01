@@ -221,6 +221,7 @@ export default function BandPage() {
     w.__bandSolve = () => { const q = req.current; if (!q) return false; snapshot(); song.current = solvedSong(q); edited(); requestAnimationFrame(() => layout()); return true; };
     w.__bandSet = (m: MusicianId, step: number, p: number) => cellSet(m, step, p);
     w.__bandCell = (m: MusicianId, step: number, frac = 0.5) => { const sc = scene.current, cv = canvas.current; const R = sc?.cellRect(m, step); if (!R || !cv) return null; const b = cv.getBoundingClientRect(); return [b.left + R.x + R.w / 2, b.top + R.y + R.h * frac]; };
+    w.__bandX = (m: MusicianId) => { const p = scene.current?.xSpot(m), cv = canvas.current; if (!p || !cv) return null; const b = cv.getBoundingClientRect(); return [b.left + p[0], b.top + p[1]]; };
     w.__bandLayout = () => {
       const sc = scene.current, cv = canvas.current, L = sc?.lay; if (!L || !cv) return null;
       const b = cv.getBoundingClientRect(), s = L.ps;

@@ -348,6 +348,8 @@ export class BandScene {
     return { m: L.rows[r], remove: Math.hypot(x - xr[0], y - xr[1]) < Math.max(16, xr[2] * 1.6) };
   }
   private xBox(L: Lay, ry: number): [number, number, number] { const k = Math.max(8, Math.min(13, L.rh * 0.17)); return [L.grid.x + L.lw - k - 4, L.lw >= 150 ? ry + k + 4 : ry + L.rh - k - 4, k]; }
+  /** Where a row's ✕ is, in canvas pixels. */
+  xSpot(m: MusicianId): [number, number] | null { const L = this.lay; if (!L) return null; const r = L.rows.indexOf(m); if (r < 0) return null; const [x, y] = this.xBox(L, L.grid.y + L.head + r * L.rh); return [x, y]; }
   /** Where a cell is, in canvas pixels. */
   cellRect(m: MusicianId, step: number): R4 | null {
     const L = this.lay; if (!L) return null; const r = L.rows.indexOf(m); if (r < 0) return null;
