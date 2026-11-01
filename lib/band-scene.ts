@@ -156,9 +156,39 @@ export function drawChin(c: CanvasRenderingContext2D, who: 'dora' | 'enzo', x: n
 }
 
 // ---------------------------------------------------------------- the musicians (drawn at their row heads, facing right)
+// Dora and Enzo on stage are painted cut-outs (public/art/band/<who>-<pose>.webp, the body 600px from feet to crown,
+// feet 12px above the bottom, the body centred; Dora faces right, Enzo left). drawChin stands in while they load.
+const cuts: Record<string, HTMLImageElement> = {};
+function cutout(who: 'dora' | 'enzo', pose: 'play' | 'cheer'): HTMLImageElement | null {
+  if (typeof Image === 'undefined') return null;
+  let got: HTMLImageElement | null = null;
+  for (const p of ['play', 'cheer'] as const) {
+    const k = `${who}-${p}`; let im = cuts[k];
+    if (!im) { im = cuts[k] = new Image(); im.decoding = 'async'; im.src = `/art/band/${k}.webp`; }
+    if (p === pose && im.complete && im.naturalWidth) got = im;
+  }
+  return got;
+}
+/** Dora or Enzo at (x, y) (between the feet), `s` tall: painted when the cut-outs are in, squashing on their own beats
+ * and hopping when the audience cheers; otherwise drawn. */
+export function drawLead(c: CanvasRenderingContext2D, who: 'dora' | 'enzo', x: number, y: number, s: number, P: ChinPose & { playing: boolean }, maxW = Infinity) {
+  const im = cutout(who, P.playing && P.cheer < 0.5 ? 'play' : 'cheer');
+  if (!im) { drawChin(c, who, x, y, s, P); return; }
+  let k = (s * 0.93) / 600;
+  if (im.naturalWidth * k > maxW) k = maxW / im.naturalWidth;
+  const w = im.naturalWidth * k, h = im.naturalHeight * k;
+  const sq = P.hit * 0.09 + P.cheer * 0.05 * Math.max(0, Math.sin(P.t * 9));
+  const hop = P.cheer * Math.abs(Math.sin(P.t * 4.5)) * s * 0.08;
+  c.save(); c.translate(x, y);
+  c.save(); c.scale(1, 0.25); c.beginPath(); ell(c, 0, 0, s * 0.34, s * 0.16); c.fillStyle = '#0003'; c.fill(); c.restore();
+  c.translate(0, -hop - P.bob * s * 0.02); c.scale(1 + sq * 0.7, 1 - sq); c.rotate((P.playing ? Math.sin(P.t * Math.PI) * 0.025 * P.bob : 0) + P.hit * 0.03 * P.face);
+  c.drawImage(im, -w / 2, -h + 12 * k, w, h);
+  c.restore();
+}
+
 /** A musician at (x, y) (their feet), `s` tall, squashing on `hit` (0..1) and bobbing to the beat. */
 export function drawMusician(c: CanvasRenderingContext2D, m: MusicianId, x: number, y: number, s: number, hit: number, t: number, bob: number) {
-  if (m === 'dora' || m === 'enzo') { drawChin(c, m, x, y, s * 1.05, { t, hit, bob, face: 1, sing: 0, cheer: 0, blink: false }); return; }
+  if (m === 'dora' || m === 'enzo') { drawLead(c, m, x, y, s * 1.05, { t, hit, bob, face: m === 'dora' ? 1 : -1, sing: 0, cheer: 0, blink: false, playing: true }, s * 0.95); return; }
   const lw = Math.max(1.2, s * 0.022), sq = hit * 0.14;
   c.save(); c.translate(x, y); c.scale(1 + sq * 0.7, 1 - sq); c.translate(0, -bob * s * 0.03);
   c.save(); c.scale(1, 0.22); c.beginPath(); ell(c, 0, 0, s * 0.36, s * 0.16); c.fillStyle = '#0003'; c.fill(); c.restore();
@@ -367,8 +397,9 @@ export class BandScene {
     const t = L0.t, dh = env(t, L0.hits.dora, 7), eh = env(t, L0.hits.enzo, 7), bob = L0.playing ? Math.abs(Math.sin((L0.beat + L0.phase) * Math.PI)) : 0;
     const cheer = L0.won >= 0 ? Math.min(1, (t - L0.won) * 2) : L0.fest ? 1 : 0;
     const blink = (k: number) => (t * 0.31 + k) % 1 < 0.035;
-    drawChin(c, 'dora', L.dora[0], L.dora[1], ps, { t, hit: dh, bob, face: L.wide ? 1 : 1, sing: L0.won >= 0 ? 0.6 : dh * 0.5, cheer, blink: blink(0.1) });
-    drawChin(c, 'enzo', L.enzo[0], L.enzo[1], ps * 1.04, { t, hit: eh, bob, face: -1, sing: L0.won >= 0 ? 0.6 : 0, cheer, blink: blink(0.6) });
+    const maxW = L.wide ? ps * 0.82 : L.W * 0.44;
+    drawLead(c, 'dora', L.dora[0], L.dora[1], ps, { t, hit: dh, bob, face: 1, sing: L0.won >= 0 ? 0.6 : dh * 0.5, cheer, blink: blink(0.1), playing: L0.playing }, maxW);
+    drawLead(c, 'enzo', L.enzo[0], L.enzo[1], ps * 1.04, { t, hit: eh, bob, face: -1, sing: L0.won >= 0 ? 0.6 : 0, cheer, blink: blink(0.6), playing: L0.playing }, maxW);
     this.grid(L0);
     if (L.aud) this.audience(L0, L.aud);
     // floating notes from the musicians

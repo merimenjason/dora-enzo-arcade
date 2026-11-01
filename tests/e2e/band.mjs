@@ -13,9 +13,12 @@ const base = process.env.BASE_URL ?? 'http://localhost:3000';
 const KEY = 'woodland-band-v1';
 const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
 const errors = [];
-const open = async (viewport = { width: 1280, height: 800 }, mobile = false) => {
+// The headless shell can crash decoding paintings again and again as one page reloads, so later pages leave the
+// painted Dora and Enzo out (the drawn stand-ins show instead); the first page loads them.
+const open = async (viewport = { width: 1280, height: 800 }, mobile = false, art = false) => {
   const ctx = await browser.newContext({ viewport, isMobile: mobile, hasTouch: mobile, deviceScaleFactor: 1 });
   const page = await ctx.newPage();
+  if (!art) await page.route(/\/art\/band\/(dora|enzo)-[a-z]+\.webp$/, (r) => r.abort());
   page.on('pageerror', (e) => errors.push(e.message)); page.setDefaultTimeout(30000);
   page.on('dialog', (d) => d.accept(d.type() === 'prompt' ? 'Moss Waltz' : undefined));
   return page;
@@ -60,7 +63,7 @@ async function tapCells(page, m, steps, touch = false) {
 
 // ---- the menu, and the first request with the real mouse
 {
-  const page = await open();
+  const page = await open(undefined, false, true);
   await page.goto(base + '/band'); await ready(page);
   assert.equal(await page.title(), 'Woodland Band · Dora & Enzo’s Arcade');
   await page.locator('h1', { hasText: 'Woodland' }).waitFor();
