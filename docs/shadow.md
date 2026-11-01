@@ -8,7 +8,8 @@ All numbers below come from `lib/shadow-game.ts`, `lib/shadow-levels.ts`, `lib/s
 
 - `lib/shadow-game.ts`: the rules. The projection, the raster and the overlap score, coloured glass, the match, snapping, what each scene allows, a performance in progress (moves, undo, reset, hints), stars, unlocking and the save. Deterministic, no DOM, no randomness, no clock.
 - `lib/shadow-levels.ts`: the 35 puppet outlines (all built from arcs, curves and strokes) and the five stories of six scenes, each with its starting layout and its designed solution.
-- `lib/shadow-scene.ts`: the drawing (Canvas 2D): the theatre, curtains and carved frame, the paper, one light layer per lantern with every puppet's shadow cut out of it (softer the nearer it hangs to the lantern), glass tinting the light, lace holes letting it through, the faint target and its dotted outline, the board seen from above with beams, rods and lanterns, Dora and Enzo as jointed puppets, the coming-alive animations, dust and ambience, the final performance and its woodland audience, and the painted stand-ins.
+- `lib/shadow-scene.ts`: the drawing (Canvas 2D): the theatre, curtains and carved frame, the paper, one light layer per lantern with every puppet's shadow cut out of it (softer the nearer it hangs to the lantern), glass tinting the light, lace holes letting it through, the faint target and its dotted outline, the board seen from above with beams, rods and lanterns, Dora and Enzo as jointed chinchilla puppets, the coming-alive animations and the finished pictures, dust and ambience, the final performance and its woodland audience, and the painted stand-ins.
+- `lib/shadow-pictures.ts`: the finished pictures, drawn over the shadows when a scene comes alive (drawing only).
 - `app/shadow/page.tsx`, `shadow.css`, `sound.ts`, `layout.tsx`: the page (menu, stories, stage, free stage, final performance, ending), input, saving and the HUD; the sounds and gamelan-like music are made with WebAudio.
 - `tests/shadow.mjs`, `tests/shadow-bot.mjs`, `tests/shadow-solutions.json`, `tests/e2e/shadow.mjs`: engine checks, the searching bot and its recorded layouts, and the browser suite.
 - Paintings in `public/art/shadow/`, briefed in [`shadow-art-brief.md`](shadow-art-brief.md).
@@ -46,6 +47,17 @@ All numbers below come from `lib/shadow-game.ts`, `lib/shadow-levels.ts`, `lib/s
 
 Each scene has an opening line, a line when it comes alive, and on teaching scenes a tip card. When a scene is cast every puppet glides to its exact place, the light brightens, Dora and Enzo cheer, and the scene moves: the cat's tail wags, waves sway, stars twinkle, wings flap, with the story's ambience (stars, waves, fireflies, petals, snow or embers).
 
+As a scene comes alive its shadows also sharpen into focus (the blur from hanging near the lantern falls to a fifth), and some pictures are finished by hand over the shadows (`lib/shadow-pictures.ts`), fading in as the puppets settle. Every stroke is tied to one puppet in its own outline units, so it moves with that puppet's animation:
+
+- **the cat** (1-3, 1-4, 1-5, 1-6 and 3-6): the upturned bellflower head is filled in crisply, with glowing almond eyes that blink now and then, pink ears, a nose, a mouth and whiskers;
+- **the peacock** (4-5): a great gold train of eyed feathers, fringed with blue, is painted into the lantern light behind the body (so the body's shadow falls across it, and it swells with the fan), the body and neck turn peacock blue, and the feather's tip gets a head with an eye, a beak and a crest of three plumes, with legs and toes under the pear;
+- **the dragon that wakes** (5-5): fierce gold eyes and little horns on the cat's head, ribs on the chestnut wing and a hot gold heart in the ruby fire;
+- **the dragon and the moon** (5-6): a horned head over the scissors (the blades are its open jaws, with teeth, a nostril and a gold eye), spikes along the wave crust's back with pale belly scales and two clawed legs, a spade on the tail's curl, ribs on the wing and the fire's gold heart.
+
+The puppets, solutions and pars are unchanged.
+
+Dora and Enzo are jointed shadow puppets in the Chinese style, and chinchillas: a plump round body, a big round head with a broad, smooth, gently flat crown and a short blunt muzzle, large round pink ears set at the crown's sides, a big bushy tail, short whiskers, carved ink lines and lace dots, a coloured gel flower on the belly and a riveted arm on a rod. Dora is cream-white with ruby-red eyes (and a ruby flower), Enzo cool blue-grey with black eyes (and a blue one). They stand turned three-quarters towards the play and point, think, talk, cheer and bow.
+
 ## The bot
 
 `tests/shadow-bot.mjs` casts every scene seeing only the target raster. It slides each lantern to its best spot, then for each puppet tries every depth, turn, rotation, flip and (where allowed) on or off over a coarse grid of positions, refines the best dozen (and the best in each of the eight most promising two-unit patches of the screen, so a small spot is not lost behind a bigger one) to the eighth of a unit, and lets go (so the game's snapping applies, as for a player); it keeps the candidate with the most overlap, unless one casts the scene. It tries every puppet order where three or fewer move (otherwise biggest first, smallest first and the authored order), keeps the fewest moves, and must cast every scene within par + 2 and never in fewer than par. Its layouts and move counts are recorded in `tests/shadow-solutions.json`; `--quick` (part of `npm test`) replays them instead of searching, and `--write` records them again. A random puppeteer then throws every movable puppet and lantern anywhere it may go, 300 times a scene: where two or more things must be set it never casts the scene, and where only one puppet or lantern moves (Moonrise, Near and Far, Peekaboo Moon, The Saucepan Stars, Gold and Blue) a throw that lands on the spot may, at most one time in ten (a lantern has only a few dozen spots). The full search takes about half an hour.
@@ -66,7 +78,9 @@ Casting 5-6 ends the show: each story's finale is played in turn on the screen w
 
 ## Fitting the screen
 
-The paper screen is as big as fits at 16 : 9 with the board (a fifth of its height, three tenths on a tall screen) below it, between the bar and the toolbar, inside a carved frame with velvet curtains (dropped on tall screens). Dora and Enzo stand inside the screen's lower corners. On phones the toolbar wraps, the scene's line, toasts and tips move to the top, and the bar slims down on a phone held sideways.
+The paper screen is as big as fits at 16 : 9 with the board (a fifth of its height, half on a tall screen) below it, between the bar and the toolbar, inside a carved frame with velvet curtains (dropped on tall screens). Dora and Enzo stand inside the screen's lower corners; on a tall screen (an upright phone), where the screen is only as wide as the phone, they stand instead in a loft above the frame (nearly as tall as the screen, at most 200 pixels and three tenths of the room), big and on their rods, and the deeper board is easier to drag on. On phones the toolbar wraps, the scene's line, toasts and tips move to the top, and the bar slims down on a phone held sideways.
+
+When a scene's result card comes up, the toolbar steps aside and the theatre glides (in 0.6 s) to the picture alone, with no board, as big as fits beside the card: above it on a computer and an upright phone, to its left on a phone held sideways, where the card stands at the right. The card never covers the living picture. The scene's last line is in the story line above the stage; the card repeats it only on a phone held sideways, where that line is cut short.
 
 ## Saving
 

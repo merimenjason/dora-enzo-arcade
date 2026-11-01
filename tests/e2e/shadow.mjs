@@ -3,7 +3,8 @@
 // turning handle, flipping, undo and reset, the hint, sliding a puppet near and far on the board and the lantern
 // along its rail, taking a decoy down), the progress kept across a reload, a corrupt save, the free stage, the
 // framing at 1280×800 and 1920×1080 (the whole paper screen and board in view, nothing covering them, Dora and Enzo
-// a clear size), and phones held either way, played by touch. No page errors anywhere.
+// a clear size), the result card never covering the living picture, and phones held either way, played by touch.
+// No page errors anywhere.
 // Needs `npm run dev` on port 3000 (or BASE_URL) and Playwright.
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
@@ -34,9 +35,20 @@ async function openScene(page, id, save = SAVE_ALL) {
   await game(page, (x) => window.__shadowOpen(x), id);
   await page.waitForFunction((x) => window.__shadow().scene === x, id);
   await dismissTip(page);
+  // the theatre is fitted on the next frame after a scene opens: wait for it before measuring anything
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
 }
 /** Where puppet i's shadow and its solution are, in page pixels. */
 async function shadowAt(page, i) { return game(page, (n) => window.__shadowShadow(n), i); }
+/** Once the result card shows and the theatre has glided aside, the whole living picture is in view beside it. */
+async function pictureClear(page, label) {
+  await page.waitForTimeout(900);
+  const L = await game(page, () => window.__shadowLayout()), box = await page.locator('.sp-result').boundingBox(), vp = page.viewportSize();
+  const S = L.screen, clear = S.x + S.w <= box.x + 1 || box.x + box.width <= S.x + 1 || S.y + S.h <= box.y + 1 || box.y + box.height <= S.y + 1;
+  assert.ok(clear, `${label}: the result card does not cover the living picture (${JSON.stringify(S)} vs ${JSON.stringify(box)})`);
+  assert.ok(S.x >= -1 && S.y >= -1 && S.x + S.w <= vp.width + 1 && S.y + S.h <= vp.height + 1, `${label}: the living picture is in view`);
+  assert.ok(S.w >= vp.width * 0.4, `${label}: the living picture is a good size (${S.w.toFixed(0)}px wide)`);
+}
 /** Drags a puppet's shadow with the real mouse to a point on the paper (in screen units). */
 async function mouseDrag(page, i, u, v) {
   const [x0, y0] = await shadowAt(page, i), [x1, y1] = await pt(page, u, v);
@@ -86,7 +98,9 @@ async function framing(page, label, { minScale = 30 } = {}) {
   assert.equal(s.moves, 1, 'one puppet picked up: one move');
   assert.deepEqual([s.poses[1].x, s.poses[1].y], [Math.round(10.9 * 8), Math.round(2.5 * 8)], 'it clicked into place');
   await page.locator('.sp-result').waitFor({ timeout: 8000 });
-  assert.match(await page.locator('.sp-result').innerText(), /Up came the moon/);
+  assert.match(await page.locator('.sp-line').innerText(), /Up came the moon/);
+  assert.match(await page.locator('.sp-result').innerText(), /Moonrise/);
+  await pictureClear(page, '1280×800 result');
   assert.equal(await page.locator('.sp-result .sp-stars.is-big i.is-on').count() >= 2, true, 'cast within par: at least two stars');
   assert.deepEqual(await savedScenes(page), ['s1-1'], 'saved');
   // next scene from the card
@@ -255,6 +269,7 @@ for (const vp of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
   assert.ok(await noSideScroll(page), `${vp.width}×${vp.height} result: no sideways scroll`);
   const box = await page.locator('.sp-result').boundingBox();
   assert.ok(box.y >= 0 && box.y + box.height <= vp.height + 1, `${vp.width}×${vp.height}: the result card fits`);
+  await pictureClear(page, `${vp.width}×${vp.height} result`);
   // a busier scene still fits, with its toolbar clear of the theatre
   await openScene(page, 's4-6');
   await framing(page, `${vp.width}×${vp.height} s4-6`, { minScale: 18 });

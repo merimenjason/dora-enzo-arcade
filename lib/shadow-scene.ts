@@ -8,6 +8,7 @@ import {
   SHAPES, KS, LAMP_D, SCREEN_W, SCREEN_H, ROT_STEPS, TURN_STEPS, EDGE, lampHome, lampAt, kOf, depthOf, localPts, toScreen, shadowCentre, polyBox,
   type Stage, type Pose, type ShapeDef, type Poly, type V2, type Gel, type Tone, type SceneDef, type Anim, type Ambience, type LampDef,
 } from './shadow-game';
+import { PICTURES, type Pen, type Kit } from './shadow-pictures';
 
 export const GEL_RGB: Record<Gel, [number, number, number]> = { ruby: [236, 52, 84], gold: [255, 190, 50], jade: [60, 210, 140], sky: [80, 170, 255] };
 const TONE_RGB: Record<Tone, [number, number, number]> = { warm: [255, 228, 178], gold: [255, 176, 62], blue: [96, 150, 255] };
@@ -19,7 +20,7 @@ const ease = (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
 
 export type Gesture = 'idle' | 'point' | 'cheer' | 'think' | 'bow' | 'talk';
 export interface Rect { x: number; y: number; w: number; h: number }
-export interface Layout { screen: Rect; board: Rect; s: number; frame: Rect; tall: boolean }
+export interface Layout { screen: Rect; board: Rect; s: number; frame: Rect; tall: boolean; /** The loft above the frame where Dora and Enzo stand on an upright phone (0 elsewhere). */ head: number }
 export type Grab = { k: 'prop'; i: number } | { k: 'lamp'; i: number } | { k: 'rot'; i: number } | null;
 export interface DrawState {
   dt: number;
@@ -128,7 +129,13 @@ export class ShadowScene {
   private ctx: CanvasRenderingContext2D;
   private W = 0; private H = 0; private dpr = 1;
   inset = { top: 8, right: 8, bottom: 8, left: 8 };
-  lay: Layout = { screen: { x: 0, y: 0, w: 1, h: 1 }, board: { x: 0, y: 0, w: 1, h: 1 }, s: 1, frame: { x: 0, y: 0, w: 1, h: 1 }, tall: false };
+  lay: Layout = { screen: { x: 0, y: 0, w: 1, h: 1 }, board: { x: 0, y: 0, w: 1, h: 1 }, s: 1, frame: { x: 0, y: 0, w: 1, h: 1 }, tall: false, head: 0 };
+  /** While the scene's result card shows: the picture alone, no board, as big as the room left beside the card allows. */
+  picture = false;
+  // a gentle glide between layouts when the picture-only layout comes or goes
+  private layFrom: Layout | null = null; private layTo: Layout | null = null; private layT = 1; private wasPicture = false;
+  /** Dora and Enzo stand in the loft above the frame (an upright phone), except at the curtain call. */
+  private loft() { return this.lay.head > 0 && !(this.showReel && this.reelCall() >= 0); }
   private paper: HTMLCanvasElement | null = null;
   private layers: HTMLCanvasElement[] = [];
   private mask: HTMLCanvasElement | null = null;
@@ -158,19 +165,41 @@ export class ShadowScene {
     }
     this.layout();
   }
-  /** Fits the theatre: the screen as big as it can be (16 by 9) with the board below it. */
+  /** Fits the theatre: the screen as big as it can be (16 by 9) with the board below it (none in the picture-only
+   *  layout), and on an upright phone a loft above the frame for Dora and Enzo, with a deeper board. */
   layout() {
     const { top, right, bottom, left } = this.inset, aw = this.W - left - right, ah = this.H - top - bottom;
-    const tall = aw < ah * 0.9, short = !tall && ah < 420;
+    const tall = aw < ah * 0.9, short = !tall && ah < 420, pic = this.picture;
     // the frame's margin above and below the screen and board, and the curtains at the sides
     const pad = tall ? 4 : short ? 6 : 14, curtain = tall ? 6 : Math.max(short ? 14 : 18, aw * 0.05);
-    const boardRatio = tall ? 0.3 : short ? 0.17 : 0.2, boardMin = short ? 34 : 46, gap = tall ? 8 : short ? 6 : 12;
+    const boardRatio = pic ? 0 : tall ? 0.5 : short ? 0.17 : 0.2, boardMin = pic ? 0 : short ? 34 : 46, gap = pic ? 0 : tall ? 10 : short ? 6 : 12;
+    const loft = (h: number) => (tall ? Math.min(200, h * 0.95, ah * 0.3) : 0);
     let sw = aw - curtain * 2, sh = (sw * 9) / 16;
-    const need = (h: number) => h + Math.max(boardMin, h * boardRatio) + gap + pad * 2;
+    const need = (h: number) => loft(h) + h + Math.max(boardMin, h * boardRatio) + gap + pad * 2;
     if (need(sh) > ah) { let lo = 40, hi = sh; for (let n = 0; n < 30; n++) { const m = (lo + hi) / 2; if (need(m) > ah) hi = m; else lo = m; } sh = lo; sw = (sh * 16) / 9; }
-    const bh = Math.max(boardMin, sh * boardRatio), total = sh + gap + bh;
-    const x = left + (aw - sw) / 2, y = top + Math.max(pad, (ah - total) / 2);
-    this.lay = { screen: { x, y, w: sw, h: sh }, board: { x, y: y + sh + gap, w: sw, h: bh }, s: sw / SCREEN_W, frame: { x: x - curtain, y: y - pad, w: sw + curtain * 2, h: total + pad * 2 }, tall };
+    const head = loft(sh), bh = Math.max(boardMin, sh * boardRatio), total = sh + gap + bh;
+    const x = left + (aw - sw) / 2, y = top + head + Math.max(pad, (ah - total - head) / 2);
+    const next: Layout = { screen: { x, y, w: sw, h: sh }, board: { x, y: y + sh + gap, w: sw, h: bh }, s: sw / SCREEN_W, frame: { x: x - curtain, y: y - pad, w: sw + curtain * 2, h: total + pad * 2 }, tall, head };
+    // the picture-only layout glides in (its buffers wait until the glide ends); everything else snaps
+    if (pic && !this.wasPicture && this.layTo) { this.layFrom = this.lay; this.layT = 0; }
+    else if (!pic) this.layT = 1;
+    this.wasPicture = pic; this.layTo = next;
+    if (this.layT < 1) return;
+    this.lay = next;
+    this.buffers();
+  }
+  /** Steps the glide between layouts. */
+  private glide(dt: number) {
+    if (this.layT >= 1 || !this.layFrom || !this.layTo) return;
+    this.layT = Math.min(1, this.layT + dt / 0.6);
+    const e = ease(this.layT), A = this.layFrom, B = this.layTo, m = (a: number, b: number) => a + (b - a) * e;
+    const r = (a: Rect, b: Rect): Rect => ({ x: m(a.x, b.x), y: m(a.y, b.y), w: m(a.w, b.w), h: m(a.h, b.h) });
+    this.lay = { screen: r(A.screen, B.screen), board: r(A.board, B.board), s: m(A.s, B.s), frame: r(A.frame, B.frame), tall: B.tall, head: m(A.head, B.head) };
+    if (this.layT >= 1) { this.lay = B; this.buffers(); }
+  }
+  /** The paper and the light buffers, made for the screen's size. */
+  private buffers() {
+    const sw = this.lay.screen.w, sh = this.lay.screen.h;
     const pw = Math.max(1, Math.round(sw * this.dpr)), ph = Math.max(1, Math.round(sh * this.dpr));
     if (!this.paper || this.paper.width !== pw || this.paper.height !== ph) {
       this.paper = this.makePaper(pw, ph);
@@ -261,6 +290,7 @@ export class ShadowScene {
   // ---------------------------------------------------------------- drawing
   draw(d: DrawState) {
     this.time += d.dt;
+    this.glide(d.dt);
     const c = this.ctx, { W, H, dpr } = this;
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.drawTheatre(c);
@@ -272,7 +302,8 @@ export class ShadowScene {
     if (st && sc && aliveT >= 0) shown = this.aliveStage(st, sc, aliveT);
     else this.aliveFrom = null;
     this.drawScreen(c, d, shown, sc, aliveT);
-    if (d.board && st && !this.showReel) this.drawBoard(c, d, st, sc);
+    if (d.board && st && !this.showReel && !this.picture) this.drawBoard(c, d, st, sc);
+    if (this.loft()) this.drawNarrators(c, d, aliveT, true);
     this.drawMotes(c, d, aliveT, sc);
     if (this.showReel) this.drawAudience(c, aliveT);
     void W; void H;
@@ -333,12 +364,24 @@ export class ShadowScene {
     const lit = aliveT >= 0 ? 1 + 0.12 * ease(Math.min(1, aliveT / 0.8)) : 1;
     a.setTransform(1, 0, 0, 1, 0, 0); a.globalCompositeOperation = 'source-over'; a.filter = 'none';
     a.fillStyle = AMBIENT; a.fillRect(0, 0, pw, ph);
+    // the coming-alive: the shadows sharpen into focus and the picture is finished by hand
+    const pic = st && sc && aliveT >= 0 ? PICTURES[sc.id] : undefined;
+    this.crisp = aliveT >= 0 ? 1 - 0.8 * ease((aliveT - 0.45) / 0.7) : 1;
+    this.artA = pic ? ease((aliveT - 0.55) / 0.65) : 0;
+    this.underAt = -1;
+    if (pic?.under && st && this.artA > 0) {
+      const art = this.artC && this.artC.width === pw && this.artC.height === ph ? this.artC : (this.artC = this.blank(pw, ph));
+      const ag = art.getContext('2d')!; ag.setTransform(1, 0, 0, 1, 0, 0); ag.clearRect(0, 0, pw, ph);
+      const s = this.lay.s * k;
+      pic.under.draw(this.kit(ag, st, aliveT, (u, v) => [u * s, v * s], s));
+      this.underAt = pic.under.after;
+    }
     const lamps: LampDef[] = st ? st.lamps : [{ x: 8, y: 4.5, tone: 'warm' }];
     lamps.forEach((L, li) => {
       const layer = this.layers[li] ?? (this.layers[li] = this.blank(pw, ph)), g = layer.getContext('2d')!;
       const [lx, ly] = st ? lampAt(L, st.offs[li] ?? 0) : [L.x, L.y];
       this.lightLayer(g, layer, L.tone, lamps.length, lx, ly, k, flick * lit);
-      if (st) this.castShadows(g, st, li, k);
+      if (st) this.castShadows(g, st, li, k, lamps.length);
       a.globalCompositeOperation = 'lighter'; a.drawImage(layer, 0, 0);
     });
     // the paper takes the light
@@ -348,11 +391,12 @@ export class ShadowScene {
     if (d.ghost && st && sc && aliveT < 0) this.drawGhost(c, sc, d.fit);
     c.globalCompositeOperation = 'multiply'; c.drawImage(acc, S.x, S.y, S.w, S.h); c.globalCompositeOperation = 'source-over';
     if (d.ghost && st && sc && aliveT < 0) this.drawGhostEdge(c, sc, d.fit);
+    if (pic?.over && st && this.artA > 0) { c.save(); c.globalAlpha = this.artA; pic.over(this.kit(c, st, aliveT, (u, v) => [this.sx(u), this.sy(v)], this.lay.s)); c.restore(); }
     // a soft vignette at the paper's edges
     const v = c.createRadialGradient(S.x + S.w / 2, S.y + S.h / 2, S.h * 0.45, S.x + S.w / 2, S.y + S.h / 2, S.w * 0.62);
     v.addColorStop(0, 'rgba(60,20,0,0)'); v.addColorStop(1, 'rgba(60,20,0,0.28)'); c.fillStyle = v; c.fillRect(S.x, S.y, S.w, S.h);
     if (st && aliveT < 0 && !this.showReel) this.drawSelection(c, d, st, sc);
-    this.drawNarrators(c, d, aliveT);
+    if (!this.loft()) this.drawNarrators(c, d, aliveT, false);
     if (d.guide && aliveT < 0) this.drawGuide(c, d.guide);
     c.restore();
     // the frame's inner lip
@@ -370,14 +414,15 @@ export class ShadowScene {
     g.fillStyle = gr; g.fillRect(0, 0, w, h);
   }
   /** Takes every puppet's shadow out of one lantern's light (or tints it, for glass). */
-  private castShadows(g: CanvasRenderingContext2D, st: Stage, li: number, k: number) {
+  private castShadows(g: CanvasRenderingContext2D, st: Stage, li: number, k: number, n: number) {
+    const under = this.underAt;
     const m = this.mask!, mg = m.getContext('2d')!, s = this.lay.s * k, home = lampHome(st), lamp = lampAt(st.lamps[li], st.offs[li] ?? 0);
     for (let i = 0; i < st.props.length; i++) {
       const p = st.props[i]; if (!p.pose.on) continue;
       const sh: ShapeDef = (SHAPES as Record<string, ShapeDef>)[p.shape], pc = this.livePieces(p.shape, p.pose, i);
       const kk = this.liveK(p.pose, i), [cx, cy] = this.liveCentre(home, lamp, p.pose, i);
       const tr = (q: Poly) => q.map(([x, y]) => [(cx + x * kk) * s, (cy + y * kk) * s] as V2);
-      const blur = Math.max(0, (kk - 1) * 0.055 * s);
+      const blur = Math.max(0, (kk - 1) * 0.055 * s) * this.crisp;
       mg.setTransform(1, 0, 0, 1, 0, 0); mg.globalCompositeOperation = 'source-over'; mg.filter = 'none'; mg.clearRect(0, 0, m.width, m.height);
       mg.fillStyle = sh.gel ? rgb(GEL_RGB[sh.gel]) : '#000';
       mg.beginPath(); for (const q of pc.polys) path(mg, tr(q)); mg.fill('nonzero');
@@ -398,6 +443,11 @@ export class ShadowScene {
         g.globalCompositeOperation = 'destination-out'; g.drawImage(m, 0, 0);
       } else { g.globalCompositeOperation = 'destination-out'; g.drawImage(m, 0, 0); }
       g.filter = 'none'; g.globalCompositeOperation = 'source-over';
+      if (under === i && this.artC && this.artA > 0) {
+        // the finished picture's painted part, lit by this lantern's share of the light
+        g.save(); g.globalAlpha = this.artA; if (this.filterOk && n > 1) g.filter = `brightness(${(1 / n).toFixed(3)})`;
+        g.drawImage(this.artC, 0, 0); g.restore();
+      }
     }
   }
   // the living stage: its puppets with their animation applied (set by aliveStage)
@@ -405,8 +455,54 @@ export class ShadowScene {
   private livePieces(shape: string, p: Pose, i: number) {
     const L = this.live[i], base = pieces(shape, p);
     if (!L || (L.rot === 0 && L.sx === 1 && L.sy === 1)) return base;
-    const c = Math.cos(L.rot), s = Math.sin(L.rot), f = (q: Poly) => q.map(([x, y]) => { const u = (x - L.px) * L.sx, v = (y - L.py) * L.sy; return [L.px + u * c - v * s, L.py + u * s + v * c] as V2; });
+    const f = (q: Poly) => q.map((v) => this.liveMove(i, v));
     return { polys: base.polys.map(f), holes: base.holes.map(f), lace: base.lace.map(f) };
+  }
+  /** A turned outline point carried by the puppet's living animation (its sway, pulse or flap). */
+  private liveMove(i: number, [x, y]: V2): V2 {
+    const L = this.live[i]; if (!L || (L.rot === 0 && L.sx === 1 && L.sy === 1)) return [x, y];
+    const c = Math.cos(L.rot), s = Math.sin(L.rot), u = (x - L.px) * L.sx, v = (y - L.py) * L.sy;
+    return [L.px + u * c - v * s, L.py + u * s + v * c];
+  }
+  // the finished picture: how much of it shows, where its painted part goes, and the canvas it is painted on
+  private crisp = 1; private artA = 0; private underAt = -1; private artC: HTMLCanvasElement | null = null;
+  /** The hand that finishes a picture: pens tied to each puppet, drawing in its outline units onto a canvas. */
+  private kit(c: CanvasRenderingContext2D, st: Stage, aliveT: number, toPx: (u: number, v: number) => V2, unit: number): Kit {
+    const home = lampHome(st);
+    return {
+      on: (i, draw, opts = {}) => {
+        const prop = st.props[i]; if (!prop || !prop.pose.on) return;
+        const sh: ShapeDef = (SHAPES as Record<string, ShapeDef>)[prop.shape], pose = prop.pose, kk = this.liveK(pose, i);
+        const r0 = opts.r0 ? (-opts.r0 * Math.PI * 2) / ROT_STEPS : 0, c0 = Math.cos(r0), s0 = Math.sin(r0);
+        const centres: V2[] = [];
+        for (const L of opts.each ? st.lamps.map((L, li) => lampAt(L, st.offs[li] ?? 0)) : [home]) {
+          const C = this.liveCentre(home, L, pose, i);
+          if (!centres.some((q) => Math.hypot(q[0] - C[0], q[1] - C[1]) < 0.03)) centres.push(C);
+        }
+        for (const C of centres) {
+          const posed = (q: V2): V2 => { const [x, y] = this.liveMove(i, q); return toPx(C[0] + x * kk, C[1] + y * kk); };
+          const at = ([x, y]: V2): V2 => posed(localPts(sh, pose, [[x * c0 - y * s0, x * s0 + y * c0]])[0]);
+          const trace = (pts: V2[], posedPts = false) => { c.beginPath(); pts.forEach((q, n) => { const [X, Y] = posedPts ? posed(q) : at(q); if (n) c.lineTo(X, Y); else c.moveTo(X, Y); }); };
+          const ring = (x: number, y: number, rx: number, ry: number, rot: number): V2[] => { const o: V2[] = [], cr = Math.cos(rot), sr = Math.sin(rot); for (let n = 0; n < 20; n++) { const a = (n / 20) * Math.PI * 2, u = Math.cos(a) * rx, v = Math.sin(a) * ry; o.push([x + u * cr - v * sr, y + u * sr + v * cr]); } return o; };
+          const pen: Pen = {
+            t: Math.max(0, aliveT - 0.7),
+            fill: (pts, col) => { trace(pts); c.closePath(); c.fillStyle = col; c.fill(); },
+            line: (pts, w, col) => { trace(pts); c.strokeStyle = col; c.lineWidth = Math.max(0.6, w * kk * unit); c.lineCap = 'round'; c.lineJoin = 'round'; c.stroke(); },
+            dot: (x, y, r, col) => { trace(ring(x, y, r, r, 0)); c.closePath(); c.fillStyle = col; c.fill(); },
+            oval: (x, y, rx, ry, rot, col) => { trace(ring(x, y, rx, ry, rot)); c.closePath(); c.fillStyle = col; c.fill(); },
+            self: (col) => { c.beginPath(); for (const q of pieces(prop.shape, pose).polys) { q.forEach((v, n) => { const [X, Y] = posed(v); if (n) c.lineTo(X, Y); else c.moveTo(X, Y); }); c.closePath(); } c.fillStyle = col; c.fill('nonzero'); },
+            glow: (x, y, r, stops) => {
+              const [X, Y] = at([x, y]), R = Math.max(1, r * kk * unit), g = c.createRadialGradient(X, Y, 0, X, Y, R);
+              for (const [o, col] of stops) g.addColorStop(o, col);
+              c.fillStyle = g; c.beginPath(); c.arc(X, Y, R, 0, Math.PI * 2); c.fill();
+            },
+            clip: (pts) => { c.save(); trace(pts); c.closePath(); c.clip(); },
+            unclip: () => c.restore(),
+          };
+          draw(pen);
+        }
+      },
+    };
   }
   private liveK(p: Pose, i: number) { return this.live[i]?.k ?? kOf(p.d); }
   private liveCentre(home: V2, lamp: V2, p: Pose, i: number): V2 {
@@ -552,8 +648,9 @@ export class ShadowScene {
 
   // ---------------------------------------------------------------- Dora and Enzo, jointed shadow puppets
   private narr = { dora: { g: 'idle' as Gesture, t: 0, arm: 0.6, elbow: -0.4, lean: 0, head: 0 }, enzo: { g: 'idle' as Gesture, t: 0, arm: 0.6, elbow: -0.4, lean: 0, head: 0 } };
-  private drawNarrators(c: CanvasRenderingContext2D, d: DrawState, aliveT: number) {
-    const S = this.lay.screen;
+  /** Dora and Enzo: in the paper's corners, or (on an upright phone) standing big on the frame's top, in the loft. */
+  private drawNarrators(c: CanvasRenderingContext2D, d: DrawState, aliveT: number, loft: boolean) {
+    const S = this.lay.screen, F = this.lay.frame;
     const reel = this.showReel, call = reel ? this.reelCall() : -1;
     const want = (who: 'dora' | 'enzo'): Gesture => (call >= 0 ? (call > 1.2 ? 'bow' : 'cheer') : aliveT >= 0 ? 'cheer' : who === 'dora' ? d.dora : d.enzo);
     for (const who of ['dora', 'enzo'] as const) {
@@ -574,85 +671,117 @@ export class ShadowScene {
       const k = Math.min(1, d.dt * 8);
       N.arm += (arm - N.arm) * k; N.elbow += (elbow - N.elbow) * k; N.lean += (lean - N.lean) * k; N.head += (head - N.head) * k;
       const bounce = g === 'cheer' ? Math.abs(Math.sin(t * 8)) * 0.12 : 0;
+      const face = who === 'dora' ? 1 : -1;
+      if (loft) {
+        const scale = this.lay.head / 2.9, feet = F.y - 9;
+        this.drawPuppet(c, who, S.x + S.w * (who === 'dora' ? 0.29 : 0.71), feet - bounce * scale, scale, face, N, F.y + 6);
+        continue;
+      }
       const centre = call >= 0, scale = this.lay.s * (centre ? 1.25 : this.lay.tall ? 0.78 : 0.86);
-      const x = centre ? (who === 'dora' ? 6.6 : 9.4) : who === 'dora' ? 1.2 : 14.8;
-      this.drawPuppet(c, who, this.sx(x), S.y + S.h - 2 - bounce * scale, scale, who === 'dora' ? 1 : -1, N);
+      const x = centre ? (who === 'dora' ? 6.6 : 9.4) : who === 'dora' ? 1.45 : 14.55;
+      this.drawPuppet(c, who, this.sx(x), S.y + S.h - 2 - bounce * scale, scale, face, N, S.y + S.h + 4);
     }
   }
-  /** One jointed puppet in the Chinese style: translucent coloured hide (cream-white for Dora, cool blue-grey for Enzo)
-   *  with carved ink lines and lace dots, pink ears, a broad smooth crown, a fluffy tail, and an arm on a rod. */
-  private drawPuppet(c: CanvasRenderingContext2D, who: 'dora' | 'enzo', x: number, y: number, s: number, face: 1 | -1, N: { arm: number; elbow: number; lean: number; head: number }) {
+  /** One jointed puppet in the Chinese style, and a chinchilla: translucent coloured hide (cream-white with ruby eyes for
+   *  Dora, cool blue-grey with black eyes for Enzo) with carved ink lines, lace dots and a coloured gel flower. A plump
+   *  round body, a big round head with a broad, smooth, gently flat crown and a short blunt muzzle, large round pink ears
+   *  set at the crown's sides, a big bushy tail, short whiskers, and an arm on a rod. It stands turned three-quarters
+   *  towards the play (face 1 looks right), its feet at 0,0, about 2.6 units tall. */
+  private drawPuppet(c: CanvasRenderingContext2D, who: 'dora' | 'enzo', x: number, y: number, s: number, face: 1 | -1, N: { arm: number; elbow: number; lean: number; head: number }, rodTo: number) {
     const P = who === 'dora'
-      ? { fill: '#fdf6ea', shade: '#efdfc6', chest: '#fffaf2', line: '#4a2a1c', eye: '#d0203e' }
-      : { fill: '#a3b3c7', shade: '#8798ae', chest: '#d9e0e8', line: '#232c38', eye: '#0e1014' };
-    const lw = 0.04;
-    const shape = (draw: () => void, fill: string, stroke = true) => { c.beginPath(); draw(); c.fillStyle = fill; c.fill(); if (stroke) { c.strokeStyle = P.line; c.lineWidth = lw; c.stroke(); } };
+      ? { fill: '#fbf4e8', shade: '#eadcc5', chest: '#fffbf5', tail: '#f2e7d4', fur: 'rgba(160,120,80,0.35)', line: '#4a2a1c', eye: '#c8102e', pupil: '#5c0412', gel: 'rgba(236,52,84,0.6)', muzzle: '#fffaf3' }
+      : { fill: '#a8b6c8', shade: '#8a9ab0', chest: '#dbe2eb', tail: '#97a7bc', fur: 'rgba(30,44,66,0.3)', line: '#212a37', eye: '#0b0d11', pupil: '#000000', gel: 'rgba(80,170,255,0.6)', muzzle: '#e4e9f0' };
+    const lw = 0.045, PINK = '#f6b6c2', PINK_IN = '#ea8ea2';
+    const shape = (draw: () => void, fill: string, stroke = true, w = lw) => { c.beginPath(); draw(); c.fillStyle = fill; c.fill(); if (stroke) { c.strokeStyle = P.line; c.lineWidth = w; c.stroke(); } };
     const dots = (pts: V2[], r: number, col: string) => { c.fillStyle = col; for (const [px, py] of pts) { c.beginPath(); c.arc(px, py, r, 0, Math.PI * 2); c.fill(); } };
+    const ink = (w: number, draw: () => void, col = P.line) => { c.strokeStyle = col; c.lineWidth = w; c.beginPath(); draw(); c.stroke(); };
     c.save(); c.translate(x, y); c.scale(face * s, s);
     c.lineJoin = 'round'; c.lineCap = 'round';
-    // the rods first, so the puppet hides them where it is in front: the main rod, and the hand rod hanging straight
-    // down from the paw (worked out from the shoulder, the upper arm and the forearm)
-    c.strokeStyle = 'rgba(40,22,14,0.85)'; c.lineWidth = 0.05; c.beginPath(); c.moveTo(-0.05, -0.3); c.lineTo(-0.12, 0.6); c.stroke();
+    // the rods first, so the puppet hides them where it is in front: the main rod from the body, and the hand rod hanging
+    // straight down from the paw (worked out from the shoulder, the upper arm and the forearm)
+    const SH: V2 = [0.34, -1.12];
+    ink(0.05, () => { c.moveTo(-0.04, -0.7); c.lineTo(-0.12, (rodTo - y) / s); }, 'rgba(40,22,14,0.85)');
     {
-      const ex = 0.3 + 0.4 * Math.cos(N.arm), ey = -1.18 + 0.4 * Math.sin(N.arm), hx = ex + 0.38 * Math.cos(N.arm + N.elbow), hy = ey + 0.38 * Math.sin(N.arm + N.elbow);
+      const ex = SH[0] + 0.36 * Math.cos(N.arm), ey = SH[1] + 0.36 * Math.sin(N.arm), hx = ex + 0.34 * Math.cos(N.arm + N.elbow), hy = ey + 0.34 * Math.sin(N.arm + N.elbow);
       const cl = Math.cos(N.lean), sl = Math.sin(N.lean), px = hx * cl - hy * sl, py = hx * sl + hy * cl;
-      c.lineWidth = 0.03; c.beginPath(); c.moveTo(px, py); c.lineTo(px - 0.1, (this.lay.screen.y + this.lay.screen.h + 4 - y) / s); c.stroke();
+      ink(0.03, () => { c.moveTo(px, py); c.lineTo(px - 0.1, (rodTo - y) / s); }, 'rgba(40,22,14,0.85)');
     }
     c.rotate(N.lean);
-    // the tail: a soft plume curling up behind, its edge a run of little fluffy bumps
-    shape(() => {
-      const pts: V2[] = [];
-      for (let i = 0; i <= 16; i++) { const t = i / 16, a = Math.PI * (0.35 + t * 1.15), r = 0.5 - t * 0.12; pts.push([-0.78 + Math.cos(a) * r * 0.9, -1.05 + Math.sin(a) * r * 1.25]); }
-      c.moveTo(-0.35, -0.42);
-      pts.forEach(([px, py], i) => { if (i === 0) c.lineTo(px, py); else { const [qx, qy] = pts[i - 1]; const mx = (px + qx) / 2, my = (py + qy) / 2, nx = mx - (-0.78), ny = my - (-1.05), l = Math.hypot(nx, ny); c.quadraticCurveTo(mx + (nx / l) * 0.07, my + (ny / l) * 0.07, px, py); } });
-      c.quadraticCurveTo(-0.5, -1.15, -0.32, -0.95); c.closePath();
-    }, P.shade);
-    c.strokeStyle = P.line; c.lineWidth = lw * 0.6; c.beginPath(); c.moveTo(-0.42, -0.6); c.quadraticCurveTo(-0.95, -0.9, -0.85, -1.4); c.stroke();
-    dots([[-0.62, -0.78], [-0.75, -0.98], [-0.8, -1.2], [-0.74, -1.42]], 0.03, P.line);
-    // the back ear, behind the head
-    shape(() => c.ellipse(0.02, -2.02, 0.27, 0.29, -0.2, 0, Math.PI * 2), '#f0a2b2');
-    // haunch and body
-    shape(() => { c.ellipse(-0.12, -0.5, 0.5, 0.44, 0, 0, Math.PI * 2); }, P.fill);
-    shape(() => { c.ellipse(0.05, -0.92, 0.5, 0.66, 0.12, 0, Math.PI * 2); }, P.fill);
-    // the pale chest, and the carved lace: a ring of dots and a little flower on the haunch
-    shape(() => c.ellipse(0.32, -0.95, 0.2, 0.42, 0.18, 0, Math.PI * 2), P.chest, false);
-    c.strokeStyle = P.line; c.lineWidth = lw * 0.55; c.beginPath(); c.ellipse(-0.14, -0.52, 0.32, 0.27, 0, Math.PI * 0.95, Math.PI * 2.05); c.stroke();
-    const flower = (cx: number, cy: number, r: number) => { for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2; c.beginPath(); c.ellipse(cx + Math.cos(a) * r, cy + Math.sin(a) * r, r * 0.75, r * 0.42, a, 0, Math.PI * 2); c.strokeStyle = P.line; c.lineWidth = lw * 0.45; c.stroke(); } dots([[cx, cy]], r * 0.45, P.line); };
-    flower(-0.16, -0.5, 0.09);
-    dots(Array.from({ length: 9 }, (_, i) => { const a = Math.PI * (0.62 + i * 0.1); return [0.05 + Math.cos(a) * 0.4, -0.92 + Math.sin(a) * 0.55] as V2; }), 0.022, P.line);
+    // the big bushy tail, curling up behind: a run of fluffy puffs drawn as one outline
+    const spine: V2[] = [];
+    for (let i = 0; i <= 9; i++) {
+      const t = i / 9, u = 1 - t;
+      spine.push([u * u * u * -0.4 + 3 * u * u * t * -1.3 + 3 * u * t * t * -1.36 + t * t * t * -0.8, u * u * u * -0.4 + 3 * u * u * t * -0.42 + 3 * u * t * t * -1.4 + t * t * t * -1.78]);
+    }
+    const puff = (i: number) => 0.3 + 0.1 * Math.sin((i / 9) * Math.PI) - (i / 9) * 0.06;
+    c.fillStyle = P.line;
+    for (let i = 0; i <= 9; i++) { c.beginPath(); c.arc(spine[i][0], spine[i][1], puff(i) + lw * 0.9, 0, Math.PI * 2); c.fill(); }
+    c.fillStyle = P.tail;
+    for (let i = 0; i <= 9; i++) { c.beginPath(); c.arc(spine[i][0], spine[i][1], puff(i), 0, Math.PI * 2); c.fill(); }
+    // its fur, carved in soft strokes along the plume, and a line of lace down the middle
+    for (const off of [-0.14, 0.02, 0.16]) ink(0.022, () => { spine.slice(1, 9).forEach(([px, py], i) => { const [qx, qy] = spine[i + 2] ?? spine[i + 1], nx = -(qy - py), ny = qx - px, l = Math.hypot(nx, ny) || 1; const X = px + (nx / l) * off, Y = py + (ny / l) * off; if (i) c.lineTo(X, Y); else c.moveTo(X, Y); }); }, P.fur);
+    dots(spine.slice(1, 9).map(([px, py]) => [px, py] as V2), 0.026, P.line);
+    // the ears, behind the head: large and round, pink, set out at the sides of the crown
+    const ear = (cx: number, cy: number, rx: number, ry: number, rot: number) => {
+      shape(() => c.ellipse(cx, cy, rx, ry, rot, 0, Math.PI * 2), PINK);
+      shape(() => c.ellipse(cx + Math.sin(rot) * 0.02, cy + 0.04, rx * 0.66, ry * 0.7, rot, 0, Math.PI * 2), PINK_IN, false);
+      ink(0.016, () => { c.moveTo(cx - Math.sin(rot) * 0.0, cy + ry * 0.45); c.quadraticCurveTo(cx + Math.sin(rot) * 0.1, cy, cx + Math.sin(rot) * 0.16, cy - ry * 0.5); }, 'rgba(160,60,80,0.45)');
+    };
+    // the far ear (on the side the face turns to) a little smaller
+    c.save(); c.translate(0.1, -1.36); c.rotate(N.head); c.translate(-0.1, 1.36);
+    ear(-0.54, -2.18, 0.34, 0.38, -0.42);
+    ear(0.72, -2.16, 0.3, 0.35, 0.44);
+    c.restore();
+    // the body: plump and round, with a pale belly
+    shape(() => c.ellipse(0, -0.8, 0.7, 0.76, 0, 0, Math.PI * 2), P.fill);
+    shape(() => c.ellipse(0.2, -0.72, 0.4, 0.54, 0.08, 0, Math.PI * 2), P.chest, false);
+    // the carved lace: dots along the back, a haunch line and a gel flower on the belly
+    dots(Array.from({ length: 10 }, (_, i) => { const a = Math.PI * (0.62 + i * 0.085); return [Math.cos(a) * 0.56, -0.8 + Math.sin(a) * 0.62] as V2; }), 0.024, P.line);
+    ink(lw * 0.55, () => c.ellipse(-0.2, -0.46, 0.34, 0.28, 0, Math.PI * 0.95, Math.PI * 2.0));
+    {
+      const fx = 0.2, fy = -0.66, r = 0.085;
+      for (let k = 0; k < 5; k++) { const a = (k / 5) * Math.PI * 2 - Math.PI / 2; shape(() => c.ellipse(fx + Math.cos(a) * r, fy + Math.sin(a) * r, r * 0.72, r * 0.48, a, 0, Math.PI * 2), P.gel, true, lw * 0.4); }
+      dots([[fx, fy]], r * 0.42, '#e0b04a');
+    }
     // feet
-    shape(() => { c.ellipse(0.24, -0.07, 0.2, 0.08, 0, 0, Math.PI * 2); }, P.shade);
-    shape(() => { c.ellipse(-0.3, -0.07, 0.2, 0.08, 0, 0, Math.PI * 2); }, P.shade);
-    // the arm: upper arm and forearm on a riveted joint, with a rod from the paw
-    c.save(); c.translate(0.3, -1.18); c.rotate(N.arm);
-    shape(() => c.ellipse(0.2, 0, 0.24, 0.085, 0, 0, Math.PI * 2), P.fill);
+    shape(() => c.ellipse(0.36, -0.06, 0.2, 0.085, 0, 0, Math.PI * 2), P.shade);
+    shape(() => c.ellipse(-0.24, -0.06, 0.2, 0.085, 0, 0, Math.PI * 2), P.shade);
+    // the arm: upper arm and forearm on riveted joints, with the rod at the paw
+    c.save(); c.translate(SH[0], SH[1]); c.rotate(N.arm);
+    shape(() => c.ellipse(0.18, 0, 0.22, 0.095, 0, 0, Math.PI * 2), P.fill);
     dots([[0, 0]], 0.035, '#d8a848');
-    c.translate(0.4, 0); c.rotate(N.elbow);
-    shape(() => { c.ellipse(0.17, 0, 0.2, 0.075, 0, 0, Math.PI * 2); }, P.fill);
-    shape(() => c.arc(0.38, 0, 0.075, 0, Math.PI * 2), P.shade);
+    c.translate(0.36, 0); c.rotate(N.elbow);
+    shape(() => c.ellipse(0.15, 0, 0.19, 0.085, 0, 0, Math.PI * 2), P.fill);
+    shape(() => c.arc(0.34, 0, 0.08, 0, Math.PI * 2), P.shade);
     dots([[0, 0]], 0.03, '#d8a848');
     c.restore();
-    // the head: wide and round with a broad, gently flattened crown (nothing sticks up but the ears)
-    c.save(); c.translate(0.32, -1.6); c.rotate(N.head);
+    // the head: big and round, wider than tall, the crown broad and gently flat, the cheeks full
+    c.save(); c.translate(0.1, -1.36); c.rotate(N.head); c.translate(-0.1, 1.36);
+    const hx = 0.1, hy = -1.78, rx = 0.72, ry = 0.55;
     shape(() => {
-      c.moveTo(-0.5, 0.06);
-      c.bezierCurveTo(-0.56, -0.24, -0.38, -0.4, -0.06, -0.41);
-      c.bezierCurveTo(0.26, -0.42, 0.46, -0.3, 0.55, -0.08);
-      c.quadraticCurveTo(0.64, 0.06, 0.56, 0.17);
-      c.bezierCurveTo(0.42, 0.36, -0.28, 0.4, -0.5, 0.06);
+      for (let n = 0; n <= 48; n++) {
+        const a = (n / 48) * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a), e = sa < 0 ? 2.6 : 2.15;
+        const X = hx + rx * Math.sign(ca) * Math.abs(ca) ** (2 / e), Y = hy + ry * Math.sign(sa) * Math.abs(sa) ** (2 / e);
+        if (n) c.lineTo(X, Y); else c.moveTo(X, Y);
+      }
+      c.closePath();
     }, P.fill);
-    // the front ear: big and round, set back on the head, pink inside
-    shape(() => c.ellipse(-0.12, -0.46, 0.3, 0.32, -0.12, 0, Math.PI * 2), '#f4b0bd');
-    shape(() => c.ellipse(-0.1, -0.46, 0.18, 0.21, -0.12, 0, Math.PI * 2), '#e8899c', false);
-    // cheek, eye, nose and whiskers
-    c.strokeStyle = P.line; c.lineWidth = lw * 0.5; c.beginPath(); c.arc(0.08, 0.05, 0.16, 0.3, Math.PI - 0.5); c.stroke();
-    shape(() => c.arc(0.27, -0.09, 0.085, 0, Math.PI * 2), P.eye);
-    dots([[0.295, -0.115]], 0.025, '#fff8f0');
-    shape(() => c.arc(0.58, 0.02, 0.045, 0, Math.PI * 2), '#e88a9c', false);
-    c.strokeStyle = P.line; c.lineWidth = 0.016; c.beginPath();
-    for (const a of [-0.22, 0, 0.2]) { c.moveTo(0.5, 0.08); c.lineTo(0.92, 0.08 + a * 0.6); }
-    c.stroke();
-    dots([[-0.28, -0.12], [-0.34, 0.0], [-0.3, 0.12]], 0.022, P.line);
+    // the face, turned three-quarters towards the play: blush, a short blunt muzzle, a pink nose, eyes and whiskers
+    shape(() => c.ellipse(-0.24, -1.6, 0.12, 0.065, 0, 0, Math.PI * 2), 'rgba(240,140,160,0.45)', false);
+    shape(() => c.ellipse(0.62, -1.6, 0.1, 0.06, 0, 0, Math.PI * 2), 'rgba(240,140,160,0.45)', false);
+    shape(() => c.ellipse(0.22, -1.6, 0.21, 0.15, 0, 0, Math.PI * 2), P.muzzle, true, lw * 0.45);
+    shape(() => { c.moveTo(0.15, -1.69); c.quadraticCurveTo(0.22, -1.73, 0.29, -1.69); c.quadraticCurveTo(0.26, -1.63, 0.22, -1.62); c.quadraticCurveTo(0.18, -1.63, 0.15, -1.69); c.closePath(); }, '#ea8a9e', true, lw * 0.35);
+    ink(0.018, () => { c.moveTo(0.22, -1.62); c.lineTo(0.22, -1.585); c.moveTo(0.14, -1.565); c.quadraticCurveTo(0.18, -1.54, 0.22, -1.585); c.quadraticCurveTo(0.26, -1.54, 0.3, -1.565); });
+    for (const [ex, er] of [[-0.06, 0.125], [0.47, 0.11]] as V2[]) {
+      shape(() => c.ellipse(ex, -1.84, er * 0.9, er, 0, 0, Math.PI * 2), P.eye, true, lw * 0.5);
+      if (who === 'dora') shape(() => c.ellipse(ex + 0.01, -1.83, er * 0.48, er * 0.56, 0, 0, Math.PI * 2), P.pupil, false);
+      dots([[ex + er * 0.3, -1.84 - er * 0.38]], er * 0.3, '#fffaf0');
+      dots([[ex - er * 0.32, -1.84 + er * 0.35]], er * 0.12, '#fffaf0');
+    }
+    // short whiskers from the muzzle's sides, staying on the cheeks
+    ink(0.013, () => {
+      for (const [a, b] of [[-0.06, -0.1], [0, 0], [0.06, 0.09]]) { c.moveTo(0.04, -1.6 + a * 0.5); c.lineTo(-0.2, -1.6 + b); c.moveTo(0.4, -1.6 + a * 0.5); c.lineTo(0.64, -1.6 + b); }
+    });
     c.restore();
     c.restore();
   }

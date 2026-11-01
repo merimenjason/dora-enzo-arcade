@@ -20,6 +20,8 @@ type Drag =
 const sceneModule = () => import('@/lib/shadow-scene');
 const FREE = 'sandbox';
 const ALIVE_FOR = 2.6;
+/** Phones on their side: the result card stands at the right (as in shadow.css), so the picture moves left of it. */
+const SIDE_CARD = '(max-height:500px) and (min-aspect-ratio:1/1)';
 const CAST: [string, string][] = [['Dora', 'puppeteer, lantern keeper'], ['Enzo', 'puppeteer, maker of very loud thunder'], ['The cat', 'who wanted the moon'], ['The whale', 'who sang'], ['The owl', 'on her branch'], ['The dragon', 'who was only small'], ['The woodland audience', 'who clapped for everything']];
 const STORY_ICON = ['🐈', '⛵', '🏮', '🎨', '🐉'];
 const sceneNo = (id: string) => { const S = SCENES[id]; return `${S.story + 1}-${S.n + 1}`; };
@@ -62,7 +64,7 @@ function freeScene(props: { shape: ShapeId; pose: Pose }[], two: boolean): Scene
 }
 
 export default function ShadowPage() {
-  const canvas = useRef<HTMLCanvasElement>(null), stage = useRef<HTMLDivElement>(null), tools = useRef<HTMLDivElement>(null), bar = useRef<HTMLElement>(null), lineEl = useRef<HTMLDivElement>(null);
+  const canvas = useRef<HTMLCanvasElement>(null), stage = useRef<HTMLDivElement>(null), tools = useRef<HTMLDivElement>(null), bar = useRef<HTMLElement>(null), lineEl = useRef<HTMLDivElement>(null), resultEl = useRef<HTMLDivElement>(null);
   const scene = useRef<ShadowScene | null>(null), sound = useRef<ShadowSound | null>(null);
   const save = useRef<Save>(freshSave());
   const show = useRef<Show | null>(null), sel = useRef(-1), drag = useRef<Drag | null>(null), ptr = useRef<number | null>(null);
@@ -261,6 +263,15 @@ export default function ShadowPage() {
       right: side && t ? Math.max(6, r.right - t.left + 4) : 6,
       bottom: !side && t && t.height > 0 ? Math.max(6, r.bottom - t.top + 6) : 8,
     };
+    // while the result card shows, the living picture alone (no board) fills the room beside the card: above it, or (on
+    // a phone on its side) to its left. Measured from the card's place, not its rising animation.
+    const card = resultEl.current, shell = card?.offsetParent?.getBoundingClientRect();
+    sc.picture = !!card && !!shell;
+    if (card && shell) {
+      const top = shell.top + card.offsetTop, left = shell.left + card.offsetLeft;
+      if (window.matchMedia?.(SIDE_CARD).matches) sc.inset.right = Math.max(6, r.right - left + 6);
+      else sc.inset.bottom = Math.max(6, r.bottom - top + 6);
+    }
     sc.layout();
   }
 
@@ -496,7 +507,7 @@ export default function ShadowPage() {
   const aliveNow = aliveAt.current >= 0;
 
   return (
-    <main className="sp-shell" data-ready={ready && mounted ? 'true' : undefined} data-screen={screen} data-touch={touch ? orient : undefined} data-story={Sc ? Sc.story + 1 : undefined}>
+    <main className="sp-shell" data-ready={ready && mounted ? 'true' : undefined} data-screen={screen} data-touch={touch ? orient : undefined} data-story={Sc ? Sc.story + 1 : undefined} data-result={screen === 'play' && result ? 'true' : undefined}>
       {screen === 'play' && sh && Sc && (
         <header className="sp-bar" ref={bar}>
           <button className="sp-back" onClick={() => toMenu(free ? 'menu' : 'stories')}>← {free ? 'MENU' : 'STORIES'}</button>
@@ -624,7 +635,7 @@ export default function ShadowPage() {
 
       {screen === 'play' && sh && Sc && (<>
         {result && (
-          <div className="sp-panel sp-result" role="dialog" aria-label="The scene comes alive">
+          <div className="sp-panel sp-result" ref={resultEl} role="dialog" aria-label="The scene comes alive">
             <p className="sp-eyebrow">{sceneNo(Sc.id)} · THE SCENE COMES ALIVE</p>
             <h2>{Sc.name}</h2>
             <p className="sp-after">“{Sc.after}”</p>
