@@ -24,7 +24,7 @@ const MODE_NAME = (m: Mode, cosy: boolean) => (m === 'creative' ? 'Creative' : c
 const HELP: [string, string][] = [
   ['W A S D', 'walk'], ['Mouse', 'look (click the valley first)'], ['Space', 'jump · swim up · climb'], ['Left click (hold)', 'dig · bonk'],
   ['Right click', 'place the held block'], ['1–9 · wheel', 'pick from the hotbar'], ['F', 'talk · use the workbench · sleep · relight'], ['E', 'open the bag'],
-  ['B', 'check the burrow you stand in'], ['V', 'first person / close behind'], ['Tab', 'swap Dora and Enzo'], ['Esc', 'pause'],
+  ['B', 'check the burrow you stand in'], ['V', 'first person / over the shoulder'], ['Tab', 'swap Dora and Enzo'], ['Esc', 'pause'],
 ];
 
 /** A painting with a plain stand-in underneath (shows until, or unless, the painting loads). */
@@ -677,7 +677,7 @@ export default function CubbyPage() {
             <div className="cv-row">
               <button className={'cv-tog' + (S.settings.sound ? ' is-on' : '')} onClick={() => { S.settings.sound = !S.settings.sound; sound.current?.setSound(S.settings.sound); persist(); refresh(); }}>Sound</button>
               <button className={'cv-tog' + (S.settings.music ? ' is-on' : '')} onClick={() => { S.settings.music = !S.settings.music; audio().setMusic(S.settings.music); persist(); refresh(); }}>Music</button>
-              <button className="cv-tog is-on" onClick={() => { view.current.mode = vmode === 'first' ? 'third' : 'first'; S.settings.view = view.current.mode; persist(); refresh(); }}>{vmode === 'first' ? 'First person' : 'Close behind'}</button>
+              <button className="cv-tog is-on" onClick={() => { view.current.mode = vmode === 'first' ? 'third' : 'first'; S.settings.view = view.current.mode; persist(); refresh(); }}>{vmode === 'first' ? 'First person' : 'Over the shoulder'}</button>
             </div>
             <label className="cv-sens">Look speed <input type="range" min={0.3} max={3} step={0.1} value={S.settings.sens} onChange={(e) => { S.settings.sens = Number(e.target.value); persist(); refresh(); }} /></label>
             <div className="cv-row">

@@ -198,7 +198,7 @@ async function room(page, x0, y0, z0, item) {
   for (const [kind, dx, dz, cd] of [['boar', 3, 9, 6], ['moth', -3, 6, 0.4], ['grumble', 2, 6, 0.4], ['bunny', -4, 4, 0.4], ['bunny', 3, 3, 0.4]]) await doIt(page, 'spawn', { kind, dx, dz, cd });
   await page.waitForTimeout(1200);
   // every monster that is after the chinchilla (approaching, snorting, charging, swooping, chasing, lunging) faces it
-  const CHASE = { boar: ['roam', 'windup', 'charge', 'rest'], moth: ['swoop'], grumble: ['chase'], gnasher: ['lurk', 'lunge', 'chase'] };
+  const CHASE = { boar: ['roam', 'windup', 'charge', 'rest'], moth: ['swoop', 'climb'], grumble: ['chase'], gnasher: ['lurk', 'lunge', 'chase'] };
   let facing = [];
   for (let k = 0; k < 20; k++) {
     const [boxes, crs] = await page.evaluate(() => [window.__cubbyScene().critters, window.__cubby().game.critters]);

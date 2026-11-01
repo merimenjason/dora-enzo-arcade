@@ -684,8 +684,20 @@ export class CubbyGame {
       if (!boxFree(this.world, f.x - f.r, f.y, f.z - f.r, f.x + f.r, f.y + f.h, f.z + f.r, false)) { f.x = lead.x; f.z = lead.z; f.y = lead.y; }
       this.emit({ t: 'poof', x: f.x, y: f.y, z: f.z }); return;
     }
+    // the friend keeps to the leader's left (or right, by a wall), side by side: never in the line between the
+    // over-the-shoulder camera and where the leader looks, and never right in front of them
+    const fx = -Math.sin(lead.yaw), fz = -Math.cos(lead.yaw);
+    const ahead = d > 1e-3 ? -(dx * fx + dz * fz) / d : 0;
+    const beside = (side: number) => ({ x: lead.x - Math.cos(lead.yaw) * 1.3 * side + fx * 0.1, z: lead.z + Math.sin(lead.yaw) * 1.3 * side + fz * 0.1 });
+    const open = (p: { x: number; z: number }) => boxFree(this.world, p.x - f.r, lead.y + 0.05, p.z - f.r, p.x + f.r, lead.y + f.h, p.z + f.r, false);
+    let spot = beside(1);
+    if (!open(spot) && open(beside(-1))) spot = beside(-1); // a wall on the left: the right side will do
+    const sx = spot.x - f.x, sz = spot.z - f.z, sd = Math.hypot(sx, sz);
     let wx = 0, wz = 0;
-    if (d > 1.9) { const sp = Math.min(WALK * 1.1, (d - 1.5) * 3); wx = (dx / d) * sp; wz = (dz / d) * sp; f.yaw = Math.atan2(-dx, -dz); }
+    if ((d > 2.3 || Math.abs(ahead) > 0.75) && sd > 0.4) {
+      const sp = Math.min(WALK * 1.1, Math.max(1.6, sd * 3));
+      wx = (sx / sd) * sp; wz = (sz / sd) * sp; f.yaw = Math.atan2(-sx, -sz);
+    }
     moveBody(this.world, f, wx, wz, lead.water && f.water, false, dt, { auto: true });
   }
   grow(x: number, y: number, z: number) {
@@ -878,6 +890,7 @@ export class CubbyGame {
           else if (c.t > 2.5 || meLit >= 9) { c.st = 'climb'; c.t = 0; }
         } else if (c.st === 'climb') {
           fly(b.x - dx, ground + 4, b.z - dz, def.speed);
+          face(dx, dz); // backs away still facing the chinchilla it swooped at
           if (c.t > 1.6) { c.st = 'roam'; c.t = 0; c.cd = 2.5; }
         } else if (c.st === 'stun') { b.vy -= 4 * dt; if (c.t > 0.9) { c.st = 'roam'; c.t = 0; } }
         if (knocked) { wx = b.vx; wz = b.vz; }

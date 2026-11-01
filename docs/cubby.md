@@ -22,7 +22,7 @@ Every valley is 96 × 96 blocks and 48 high, grown from its seed: a flowery mead
 
 Blocks are dug by holding: soft things (turf, soil, sand, leaves, plants) go at once, planks take 0.4 seconds, chalk 0.55, birch logs 0.6, glow crystals 0.7, bricks 0.9, fieldstone 1.1 and ironstone 1.4. The digging trowel digs stone, chalk, logs and ironstone two to three times faster. Turf gives soil, leaves give twigs (and three times in ten a sapling), tall grass gives hay, berry bushes 2 red berries, cotton puffs 2 fluff and ironstone an iron nugget. Sand falls, water flows into holes beside it, and a sapling planted on turf or soil grows into a birch after 90 seconds. You reach 5 blocks.
 
-Dora and Enzo walk at 4.3 blocks a second, hop up one-block steps on their own, swim (and scramble out onto a bank a block above the water), climb rope ladders, and pass through round doors, which the creatures cannot. **Tab** swaps which of them you play; the other follows.
+Dora and Enzo walk at 4.3 blocks a second, hop up one-block steps on their own, swim (and scramble out onto a bank a block above the water), climb rope ladders, and pass through round doors, which the creatures cannot. **Tab** swaps which of them you play; the other follows at your side, out of the way of the over-the-shoulder camera.
 
 ## The Burrow Workbench
 
@@ -60,7 +60,7 @@ You have 5 hearts (10 halves) and get half a heart back every 3 seconds once not
 
 ## Controls
 
-**WASD** or the arrows walk, the mouse looks (click the valley; dragging also works), **Space** jumps, swims up and climbs, holding the left button digs or bonks, the right button places the held block, **1**–**9** and the wheel pick from the hotbar, **F** talks, uses the Workbench, sleeps and relights, **E** opens the bag, **B** checks a burrow, **V** swaps first person and close behind, **Tab** swaps Dora and Enzo, **Esc** pauses. On a touch screen, the left pad walks, dragging the valley looks, a tap digs or bonks, a long press places, and there are Dig, Place, Jump, Use and Bag buttons; phones work held either way. Sound, Music, the view and the look speed are on the menu and the pause panel.
+**WASD** or the arrows walk, the mouse looks (click the valley; dragging also works), **Space** jumps, swims up and climbs, holding the left button digs or bonks, the right button places the held block, **1**–**9** and the wheel pick from the hotbar, **F** talks, uses the Workbench, sleeps and relights, **E** opens the bag, **B** checks a burrow, **V** swaps first person and over the shoulder, **Tab** swaps Dora and Enzo, **Esc** pauses. On a touch screen, the left pad walks, dragging the valley looks, a tap digs or bonks, a long press places, and there are Dig, Place, Jump, Use and Bag buttons; phones work held either way. Sound, Music, the view and the look speed are on the menu and the pause panel.
 
 ## Saving
 

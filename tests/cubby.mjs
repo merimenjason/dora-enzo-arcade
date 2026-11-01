@@ -409,6 +409,29 @@ test('the Murk Moth snuffs a lantern in the open, not one under a roof, and swoo
   const m2 = s.spawn('moth', 50, 11, 50); m2.cd = 0;
   run(s, 4);
   assert.ok(s.hp < MAX_HP, 'a swoop hurts');
+  // climbing away after the swoop, it keeps facing the chinchilla
+  const c = flat(); toNight(c);
+  const m3 = c.spawn('moth', 50, 11, 50); m3.cd = 0;
+  let climbs = 0;
+  for (let t = 0; t < 6; t += 1 / 30) {
+    c.step(1 / 30, { ...NO_INPUT, yaw: c.me.yaw, pitch: c.me.pitch });
+    if (m3.st !== 'climb') continue;
+    const to = Math.atan2(-(c.me.x - m3.body.x), -(c.me.z - m3.body.z));
+    assert.ok(Math.abs(Math.atan2(Math.sin(m3.body.yaw - to), Math.cos(m3.body.yaw - to))) < 0.3, 'a climbing moth faces the chinchilla');
+    climbs++;
+  }
+  assert.ok(climbs > 0, 'the moth climbed away');
+});
+
+test('the friend keeps to the side, out of the line ahead of and behind the one you play', () => {
+  const g = flat();
+  for (const yaw of [0, Math.PI / 2, 2.4]) {
+    run(g, 3, { fwd: 1, yaw });
+    run(g, 2, { yaw });
+    const f = g.players[1 - g.who], me = g.me, dx = f.x - me.x, dz = f.z - me.z, d = Math.hypot(dx, dz);
+    const along = (dx * -Math.sin(yaw) + dz * -Math.cos(yaw)) / d;
+    assert.ok(d < 2.6 && Math.abs(along) < 0.75, `the friend stands beside, not behind or ahead (yaw ${yaw}: ${d.toFixed(2)} away, ${along.toFixed(2)} along)`);
+  }
 });
 
 test('the Gloom Gnasher lurks, lunges when close, and backs away from lantern light', () => {

@@ -10,6 +10,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 - **Cubby Valley** (`/cubby`), game 67: a cosy 3D block-building sandbox. Dig, gather and weave at the Burrow Workbench, build snug burrows for six animal neighbours, and keep four night monsters (Bramble Boars, Murk Moths, Gloom Gnashers and Grumblefluffs) at bay with lanterns, walls and a bonk-stick, until the valley holds its summer fair. Story, Cosy nights (no monsters) and Creative valleys, three save slots, keyboard, mouse and touch.
 - **Kite Day** (`/kite`), game 68: a side-on kite-flying game painted like a watercolour picture book. Pull, ease and steer Dora's or Enzo's kite through gusts, lulls, thermals and the tumbling air behind trees, across a summer of six places and 24 challenges: rings and chained tricks, parcels for treehouse baskets, dragonfly races, friendly duels and a two-kite Festival Finale. Six kites that fly differently, a paint-your-own Kite Workshop, free flying, mouse, keyboard and touch.
 
+### Changed
+
+- **Cubby Valley**: distant blocks now settle into calm, clean colour instead of shimmering with speckles, while blocks up close stay crisp, and hay tufts, grass tops and birch bark no longer show a speckled patch borrowed from the next tile. The close-behind camera is now over the shoulder: the chinchilla you play stands a little left of and below the crosshair, so the block you aim at is always clear, the other one keeps to your side instead of walking in the way, and backing into a wall or a bush lifts the camera over your head instead of squeezing in. A Murk Moth climbing away after a swoop now keeps facing you.
+
 ## 31-10-2026
 
 ### Added

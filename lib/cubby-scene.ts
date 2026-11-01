@@ -2,11 +2,11 @@
 // that follows the day, warm lantern light, soft corner shading, fog), chunk meshes rebuilt nearest-first within a time
 // budget, the sky (gradient dome, sun, moon, stars, drifting voxel clouds), Dora, Enzo, the neighbours and the night's
 // creatures as animated voxel toys, the held tool, block highlight, crack and ghost, particles, fireflies and lantern
-// halos, the camera (first person or close behind), the summer fair, and item icons. Drawing only: the page owns the
+// halos, the camera (first person or over the shoulder), the summer fair, and item icons. Drawing only: the page owns the
 // clock, the input and the game.
 import * as T from 'three';
-import { CubbyGame, phaseOf, daylight, BODY, type Body, type Critter, type Ev } from './cubby-game';
-import { BLOCKS, TILES, W, D, H, CH, World, hash3, CROSS_TILE, type Spot } from './cubby-world';
+import { CubbyGame, phaseOf, daylight, BODY, REACH, type Body, type Critter, type Ev } from './cubby-game';
+import { BLOCKS, TILES, W, D, H, CH, World, hash3, CROSS_TILE, type Spot, type Hit } from './cubby-world';
 import { meshChunk, type Quads } from './cubby-mesh';
 import { chinchilla, neighbour, critter, prop, item, meshPart, meshModel, ITEM_MODELS, type Model, type MeshData } from './cubby-models';
 import { ITEMS, type CritterKind, type NeighbourId } from './cubby-content';
@@ -91,6 +91,73 @@ export function paintAtlas() {
   return { canvas: cv, avg };
 }
 
+// The atlas the GPU samples: every 16×16 tile sits in a 32×32 cell, wrapped round by 8 texels of itself on each side,
+// so filtering and the smaller mip levels never borrow colour from the next tile. The mips are made here, five of
+// them (down to 2×2 cells, one texel of tile), each averaged within its own cell. Cut-out tiles (leaves, flowers)
+// keep the share of their texels that pass the cut, so plants don't thin away into nothing in the distance.
+const CELL = 32, PAD = 8, MIPS = 5;
+function mipAtlas(src: HTMLCanvasElement) {
+  const sd = src.getContext('2d')!.getImageData(0, 0, src.width, src.height).data;
+  const W0 = ATLAS_COLS * CELL, H0 = ATLAS_ROWS * CELL;
+  const levels: { data: Uint8Array; width: number; height: number }[] = [];
+  for (let k = 0; k < MIPS; k++) levels.push({ data: new Uint8Array((W0 >> k) * (H0 >> k) * 4), width: W0 >> k, height: H0 >> k });
+  for (let ti = 0; ti < ATLAS_COLS * ATLAS_ROWS; ti++) {
+    const ox = (ti % ATLAS_COLS) * TILE, oy = Math.floor(ti / ATLAS_COLS) * TILE;
+    // the tile, as floats; see-through texels take the tile's average colour so nothing pale fringes the edges
+    const px = new Float32Array(TILE * TILE * 4);
+    let ar = 0, ag = 0, ab = 0, an = 0, cut = true, holes = 0, solid = 0;
+    for (let i = 0; i < TILE * TILE; i++) {
+      const s = ((oy + Math.floor(i / TILE)) * src.width + ox + (i % TILE)) * 4, a = sd[s + 3];
+      for (let c = 0; c < 4; c++) px[i * 4 + c] = sd[s + c] / 255;
+      if (a > 0) { ar += sd[s] * a; ag += sd[s + 1] * a; ab += sd[s + 2] * a; an += a; }
+      if (a !== 0 && a !== 255) cut = false;
+      if (a === 0) holes++;
+      if (a >= 128) solid++;
+    }
+    if (an) for (let i = 0; i < TILE * TILE; i++) if (px[i * 4 + 3] === 0) { px[i * 4] = ar / an / 255; px[i * 4 + 1] = ag / an / 255; px[i * 4 + 2] = ab / an / 255; }
+    cut = cut && holes > 0;
+    const want = solid / (TILE * TILE);
+    let cur = px, size = TILE;
+    for (let k = 0; k < MIPS; k++) {
+      if (k > 0) {
+        // a 2×2 box, colour weighted by how solid each texel is
+        const n = size >> 1, nx = new Float32Array(n * n * 4);
+        for (let y = 0; y < n; y++) for (let xx = 0; xx < n; xx++) {
+          let r = 0, g = 0, b = 0, a = 0, pr = 0, pg = 0, pb = 0;
+          for (let q = 0; q < 4; q++) {
+            const s = ((y * 2 + (q >> 1)) * size + xx * 2 + (q & 1)) * 4, w = cur[s + 3];
+            r += cur[s] * w; g += cur[s + 1] * w; b += cur[s + 2] * w; a += w; pr += cur[s]; pg += cur[s + 1]; pb += cur[s + 2];
+          }
+          const o = (y * n + xx) * 4;
+          if (a > 1e-4) { nx[o] = r / a; nx[o + 1] = g / a; nx[o + 2] = b / a; } else { nx[o] = pr / 4; nx[o + 1] = pg / 4; nx[o + 2] = pb / 4; }
+          nx[o + 3] = a / 4;
+        }
+        cur = nx; size = n;
+      }
+      // cut-outs: scale this level's alpha so the same share of texels clears the 0.5 cut as at full size
+      let scale = 1;
+      if (cut && k > 0) {
+        const pass = (s: number) => { let p = 0; for (let i = 0; i < size * size; i++) if (cur[i * 4 + 3] * s >= 0.5) p++; return p / (size * size); };
+        let lo = 0.25, hi = 8;
+        for (let it = 0; it < 14; it++) { const mid = (lo + hi) / 2; if (pass(mid) < want) lo = mid; else hi = mid; }
+        scale = hi;
+      }
+      const lv = levels[k], cell = CELL >> k, pad = PAD >> k, cx = (ti % ATLAS_COLS) * cell, cy = Math.floor(ti / ATLAS_COLS) * cell;
+      for (let y = 0; y < cell; y++) for (let xx = 0; xx < cell; xx++) {
+        const sx = (((xx - pad) % size) + size) % size, sy = (((y - pad) % size) + size) % size, s = (sy * size + sx) * 4;
+        const o = ((cy + y) * lv.width + cx + xx) * 4;
+        lv.data[o] = Math.round(cur[s] * 255); lv.data[o + 1] = Math.round(cur[s + 1] * 255); lv.data[o + 2] = Math.round(cur[s + 2] * 255);
+        lv.data[o + 3] = Math.round(Math.min(1, cur[s + 3] * scale) * 255);
+      }
+    }
+  }
+  const tex = new T.DataTexture(levels[0].data, W0, H0, T.RGBAFormat, T.UnsignedByteType);
+  tex.mipmaps = levels; tex.generateMipmaps = false; tex.flipY = false;
+  tex.magFilter = T.NearestFilter; tex.minFilter = T.NearestMipmapLinearFilter; tex.colorSpace = T.NoColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
 // ---------------------------------------------------------------- the block shader
 const VERT = `
 attribute float tile; attribute vec2 light;
@@ -111,11 +178,15 @@ varying vec2 vUv; varying float vTile; varying vec3 vCol; varying vec2 vLight; v
 void main() {
   vec4 tex = vec4(1.0);
   if (vTile > -0.5) {
-    float col = mod(vTile, ${ATLAS_COLS}.0), row = floor(vTile / ${ATLAS_COLS}.0);
+    // the tile number arrives interpolated (23.9999 for 24 on some pixels), so round it before splitting it into a
+    // column and row: unrounded, tiles at the start of a row (grass, birch bark, tufts) speckled with the row above
+    float tn = floor(vTile + 0.5), col = mod(tn, ${ATLAS_COLS}.0), row = floor(tn / ${ATLAS_COLS}.0 + 0.001);
     vec2 f = fract(vUv + (uWave > 0.5 ? vec2(uTime * 0.03, uTime * 0.02) : vec2(0.0)));
-    vec2 px = (vec2(0.5) + f * 15.0) / 16.0;
-    vec2 uv = vec2((col + px.x) / ${ATLAS_COLS}.0, 1.0 - (row + 1.0 - px.y) / ${ATLAS_ROWS}.0);
-    tex = texture2D(uAtlas, uv);
+    // the tile sits in the middle of its padded cell (canvas rows run down the cell); the mip level comes from the
+    // unwrapped uv, so the seams where one block's face meets the next don't flash the smallest mip
+    vec2 c = vec2(col, row) + vec2(${PAD}.0 + f.x * ${TILE}.0, ${PAD + TILE}.0 - f.y * ${TILE}.0) / ${CELL}.0;
+    vec2 k = vec2(${TILE / CELL} / ${ATLAS_COLS}.0, -${TILE / CELL} / ${ATLAS_ROWS}.0);
+    tex = textureGrad(uAtlas, c / vec2(${ATLAS_COLS}.0, ${ATLAS_ROWS}.0), dFdx(vUv) * k, dFdy(vUv) * k);
   }
   if (tex.a < uCut) discard;
   float sky = pow(vLight.x, 1.5) * uDay, lamp = pow(vLight.y, 1.7);
@@ -125,7 +196,7 @@ void main() {
   gl_FragColor = vec4(c, uAlpha < 1.0 ? (uCut > 0.0 && uCut < 0.1 ? tex.a : uAlpha) : 1.0);
 }`;
 
-type Rig = { root: T.Group; parts: Record<string, T.Object3D>; mats: T.MeshBasicMaterial[]; model: Model; held?: T.Object3D; extra?: T.Object3D };
+type Rig = { root: T.Group; parts: Record<string, T.Object3D>; mats: T.MeshBasicMaterial[]; model: Model; held?: T.Object3D; extra?: T.Object3D; yaw?: number };
 
 export type CubbyScene = ReturnType<typeof createCubbyScene>;
 
@@ -142,8 +213,8 @@ export function createCubbyScene(canvas: HTMLCanvasElement) {
   const lin = (c: T.Color, r: number, g: number, b: number) => c.setRGB(r, g, b, T.LinearSRGBColorSpace);
 
   const { canvas: atlasCanvas, avg } = paintAtlas();
-  const atlas = new T.CanvasTexture(atlasCanvas);
-  atlas.magFilter = T.NearestFilter; atlas.minFilter = T.NearestFilter; atlas.generateMipmaps = false; atlas.colorSpace = T.NoColorSpace; texs.add(atlas);
+  const atlas = mipAtlas(atlasCanvas);
+  atlas.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); texs.add(atlas);
   const uniforms = {
     uAtlas: { value: atlas }, uDay: { value: 1 }, uSky: { value: new T.Color(1, 1, 1) }, uLamp: { value: new T.Color(1, 0.78, 0.46) },
     uAmb: { value: new T.Color(0.07, 0.07, 0.1) }, uFog: { value: new T.Color(0.8, 0.9, 1) }, uFogNear: { value: 40 }, uFogFar: { value: 80 },
@@ -470,7 +541,9 @@ export function createCubbyScene(canvas: HTMLCanvasElement) {
   // ---------------------------------------------------------------- the frame
   const box3 = new T.Box3(), v3 = new T.Vector3();
   let camLook = new T.Vector3(), camPos = new T.Vector3(), camInit = false;
-  let camDebug = { dist: 0, hit: '', hx: 0, hy: 0, hz: 0 };
+  let camDebug = { dist: 0, hit: '', hx: 0, hy: 0, hz: 0, lift: 0 }, camAim = REACH + 1;
+  /** the third-person camera: how far right of and above the head the shoulder is, how far back, how much higher */
+  const CAM = { side: 1, up: 0.35, dist: 3.1, rise: 0.25 }, CAM_UPRIGHT = { side: 0.15, up: 0, dist: 3.5, rise: 0.08 }, CAM_PHONE = { side: 0.6, up: 0.1, dist: 3.4, rise: 0.1 }, UP = new T.Vector3(0, 1, 0);
   function frame(dt: number, view: View) {
     if (!game || closed) return;
     time += dt;
@@ -510,7 +583,7 @@ export function createCubbyScene(canvas: HTMLCanvasElement) {
       const flash = active && g.hurtT > 0.5 ? (g.hurtT - 0.5) * 1.2 : 0;
       tintAt(r.mats[0], b.x, b.y, b.z, flash);
       // hidden in first person, and when the camera is pressed right up against them (backed into a wall)
-      const close = camInit && !view.orbit && Math.hypot(camPos.x - b.x, camPos.y - b.y - 0.45, camPos.z - b.z) < 0.85;
+      const close = camInit && !view.orbit && Math.hypot(camPos.x - b.x, camPos.y - b.y - 0.45, camPos.z - b.z) < 1.45;
       r.root.visible = !(active && view.mode === 'first' && !view.orbit) && !close;
     });
     // the held tool
@@ -615,13 +688,48 @@ export function createCubbyScene(canvas: HTMLCanvasElement) {
     } else if (view.mode === 'first') {
       want = new T.Vector3(e.x, e.y, e.z); look = want.clone().add(dir);
     } else {
+      // over the right shoulder: the active chinchilla sits left of and below the crosshair, and the camera looks
+      // where the chinchilla aims, so the crosshair lands on the aimed block (grass and flowers never block it)
       const head = new T.Vector3(me.x, me.y + 0.78, me.z);
-      let dist = 2.9;
-      const hit = g.world.raycast(head.x, head.y, head.z, -dir.x, -dir.y + 0.18, -dir.z, dist + 0.3, true); // grass and flowers don't push the camera in
-      if (hit) dist = Math.max(0.6, hit.dist - 0.3);
-      camDebug = { dist, hit: hit ? BLOCKS[hit.b].key : '', hx: hit?.x ?? 0, hy: hit?.y ?? 0, hz: hit?.z ?? 0 };
-      want = head.clone().addScaledVector(dir, -dist).add(new T.Vector3(0, 0.18 * dist / 2.9, 0));
-      look = head.clone().addScaledVector(dir, 4);
+      const right = new T.Vector3(Math.cos(me.yaw), 0, -Math.sin(me.yaw));
+      let last: Hit | null = null;
+      const free = (from: T.Vector3, d: T.Vector3, len: number) => {
+        const h = g.world.raycast(from.x, from.y, from.z, d.x, d.y, d.z, len + 0.3, true);
+        if (h) last = h;
+        return h ? Math.max(0, h.dist - 0.3) : len;
+      };
+      // (on a phone the chinchilla sits higher, clear of the thumb pad and the hotbar, and held upright nearer the middle)
+      const cam = camera.aspect < 1 ? CAM_UPRIGHT : phone ? CAM_PHONE : CAM;
+      const shoulder = head.clone().addScaledVector(right, Math.min(cam.side, free(head, right, cam.side)));
+      shoulder.y += Math.min(cam.up, free(shoulder, UP, cam.up));
+      const back = new T.Vector3(-dir.x, -dir.y + cam.rise, -dir.z).normalize();
+      // backed against a wall or a bush: rather than squeezing in onto the chinchilla, the camera rises over its
+      // head and tips down to keep it in view, never so far back that the wall hides its body
+      const mid = new T.Vector3(me.x, me.y + 0.35, me.z);
+      const sees = (c: T.Vector3) => [head, mid].every((o) => { const v = c.clone().sub(o); return !g.world.raycast(o.x, o.y, o.z, v.x, v.y, v.z, v.length(), true); });
+      let best = { p: shoulder, d: -1 }, lifted = 0;
+      for (const lift of [0, 0.7, 1.4, 2.1]) {
+        if (lift && free(shoulder, UP, lift) < lift) break;
+        const p = shoulder.clone(); p.y += lift;
+        let d = free(p, back, cam.dist);
+        while (d > 0.35 && !sees(p.clone().addScaledVector(back, d))) d -= 0.25;
+        if (lift && d < 1) continue;
+        if (d > best.d + (lift ? 0.5 : 0)) { best = { p, d }; lifted = lift; }
+        if (d >= cam.dist) break;
+      }
+      const dist = Math.max(0.35, best.d), hit = last as Hit | null;
+      camDebug = { dist, hit: hit ? BLOCKS[hit.b].key : '', hx: hit?.x ?? 0, hy: hit?.y ?? 0, hz: hit?.z ?? 0, lift: lifted };
+      want = best.p.clone().addScaledVector(back, dist);
+      const aimed = g.aim();
+      camAim += (Math.max(2.2, Math.min(REACH + 1, aimed ? aimed.dist : REACH + 1)) - camAim) * Math.min(1, dt * 8);
+      look = new T.Vector3(e.x, e.y, e.z).addScaledVector(dir, camAim);
+      if (lifted) {
+        // tip the view down by part of how much the lift steepened the line to the chinchilla, so it stays on screen
+        const below = (c: T.Vector3) => Math.atan2(c.y - mid.y, Math.hypot(c.x - mid.x, c.z - mid.z));
+        const tip = Math.min(0.45, Math.max(0, below(want) - below(shoulder.clone().addScaledVector(back, cam.dist))) * 0.6);
+        const v = look.clone().sub(want), h = Math.hypot(v.x, v.z), pitch = Math.atan2(v.y, h) - tip, l = v.length();
+        look = want.clone().add(new T.Vector3((v.x / h) * Math.cos(pitch) * l, Math.sin(pitch) * l, (v.z / h) * Math.cos(pitch) * l));
+      }
     }
     if (!camInit || view.mode === 'first' || view.orbit) { camPos.copy(want); camLook.copy(look); camInit = true; }
     else { camPos.lerp(want, Math.min(1, dt * 18)); camLook.lerp(look, Math.min(1, dt * 24)); }
@@ -632,7 +740,11 @@ export function createCubbyScene(canvas: HTMLCanvasElement) {
 
   function animateCritter(r: Rig & { kind: CritterKind; seen: number }, c: Critter, dt: number) {
     const b = c.body, p = r.parts, t = time + c.seed % 100;
-    r.root.position.set(b.x, b.y, b.z); r.root.rotation.y = b.yaw;
+    r.root.position.set(b.x, b.y, b.z);
+    // a moth turns through the air rather than snapping round as it changes course
+    if (r.kind === 'moth' && r.yaw !== undefined) { r.yaw += Math.atan2(Math.sin(b.yaw - r.yaw), Math.cos(b.yaw - r.yaw)) * Math.min(1, dt * 7); }
+    else r.yaw = b.yaw;
+    r.root.rotation.y = r.yaw;
     const inner = p.inner;
     const appear = Math.min(1, r.seen * 3);
     inner.scale.setScalar((r.kind === 'boar' ? 1.05 : 1) * appear * (c.hurt > 0 ? 1 + c.hurt * 0.6 : 1));
