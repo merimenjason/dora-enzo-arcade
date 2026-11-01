@@ -110,7 +110,7 @@ export default function BandPage() {
     if (v?.solved) { pendingWin.current = true; if (!playingRef.current) play(true); }
     else pendingWin.current = false;
     if (ghost.current) { const g = ghost.current, r = song.current.rows.find((x) => x.m === g.m); if (r && r.n[g.step] === g.p) ghost.current = null; }
-    if (isJam()) { window.clearTimeout(jamTimer.current); jamTimer.current = window.setTimeout(() => { save.current.jam = encode(song.current); persist(); }, 400); }
+    if (isJam()) { save.current.jam = encode(song.current); persist(); }
     refresh();
   }
   function cellSet(m: MusicianId, step: number, p: number, snap = true) {
