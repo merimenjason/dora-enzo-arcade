@@ -69,14 +69,15 @@ const GAMES=[
  {href:'/powder',title:'Powder Paws',tag:'NEW · PIXEL SKIING',blurb:'Carve down Whiskerpeak, the mountain that never runs out, one jump ahead of a snowstorm. Weave pines and birches, ride ice and deep powder, launch off ramps for twirls, snowball flips and tail grabs, and find ten hidden cabins in crisp pixel art.',color:'#7cc4ff',art:'⛷️'},
  {href:'/cubby',title:'Cubby Valley',tag:'NEW · BLOCK SANDBOX',blurb:'Dig, gather and build a green valley of blocks with Dora and Enzo. Weave at the Burrow Workbench, build snug burrows for six animal neighbours, and keep Bramble Boars, Murk Moths and Grumblefluffs at bay with lanterns and a trusty bonk-stick until the summer fair.',color:'#5f9e4a',art:'🧱'},
  {href:'/kite',title:'Kite Day',tag:'NEW · KITE FLYING',blurb:'Pull, ease and steer through gusts, lulls, thermals and tumbling air in a watercolour summer with Dora and Enzo. Fly rings and figure-eights, dip parcels into treehouses, race dragonflies, duel at the Kite Festival and paint six kites in the workshop.',color:'#3a78c8',art:'🪁'},
+ {href:'/shadow',title:'Shadowplay',tag:'NEW · SHADOW-PUPPET PUZZLE',blurb:'Hang lace-cut puppets between the lantern and the paper screen. Turn them, flip them, slide them near and far until their shadows make the picture, and watch the story come alive in gold and blue light.',color:'#c8913a',art:'🏮'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">SIXTY-EIGHT ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Sixty-eight ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, sixty-eight cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">SIXTY-NINE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Sixty-nine ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, sixty-nine cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <nav className="arcade-grid" aria-label="Choose a game">
