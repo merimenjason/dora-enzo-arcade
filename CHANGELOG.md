@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 02-11-2026
+
+### Added
+
+- **Kumori Pass** (`/pass`), game 75: a night mountain drift racer in a 90s anime cel style. At four in the morning Dora drives the bakery's little hatchback up Mount Kumori with warm buns for the summit inn while Enzo reads the corners from his notebook. Throw the car sideways with the throttle or the handbrake, hold a clean drift to fill the meter for a boost, hook the drain gutters round the hairpins and keep the buns on the seat. Enzo's pace notes get earlier and sharper every time you finish a pass, and in the fog and the unlit tunnel they are all you have. Seven street rivals, from Skitter the stoat to Aurora the silver fox, challenge the bun car to lead-and-chase touge duels with slow-motion comic cut-ins at every overtake, ending in a dawn relay where Enzo drives up and Dora drives down as the sun rises. Delivery runs with medals, Free Duel, Time Attack against your ghost, seven parts in Enzo's garage, keyboard, touch held sideways or upright, and a gamepad.
+
 ## 01-11-2026
 
 ### Added

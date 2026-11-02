@@ -20,7 +20,7 @@ try {
   // The arcade lists the cabinet.
   const menu = await browser.newPage();
   await menu.goto(base);
-  assert.equal(await menu.locator('.arcade-card').count(),74);
+  assert.equal(await menu.locator('.arcade-card').count(),75);
   assert.match(await menu.locator('a.arcade-card[href="/chinchillas-vs-zombies"]').textContent(), /Chinchillas vs Zombies/);
   await menu.close();
 

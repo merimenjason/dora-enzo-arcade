@@ -75,14 +75,15 @@ const GAMES=[
  {href:'/band',title:'Woodland Band',tag:'NEW · MUSIC-MAKING PUZZLE',blurb:'Lead a woodland band with Dora and Enzo: paint notes for a hedgehog drummer, a frog on bass, an owl on flute and more, where every note is in key. Echo hummed tunes, play moods and fix muddled parts for the clearings of the wood.',color:'#2a8a86',art:'🎻'},
  {href:'/tide',title:'Tidepool',tag:'NEW · ROCK-POOL ECOSYSTEM',blurb:'Look after a clay rock pool through the tides and four seasons. Anemones catch the tide, the blenny hunts, a hermit crab keeps outgrowing its shell and gulls come at low tide. Nudge, watch and fill in the journal until the autumn spring tide.',color:'#2f8f9a',art:'🦀'},
  {href:'/rally',title:'Wind-Up Rally',tag:'NEW · TIN-TOY BADMINTON',blurb:'After closing time the toyshop shelf plays badminton. Wind Dora’s or Enzo’s key, hop, swing and smash past seven clockwork rivals, from a tin robot to a music-box bear, for the Clockwork Cup. Doubles, two players on one keyboard, phones held either way.',color:'#c23b2a',art:'🏸'},
+ {href:'/pass',title:'Kumori Pass',tag:'NEW · NIGHT DRIFT RACER',blurb:'Four in the morning on Mount Kumori. Dora drives the bakery’s little hatchback up the mountain while Enzo reads the corners from his notebook: keep the buns on the seat, drift for boost, hook the drain gutters and beat seven street rivals in lead-and-chase duels before dawn.',color:'#ff3d6e',art:'🏁'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
    <p className="arcade-eyebrow">SEVENTY-FOUR ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Seventy-four ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, seventy-four cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <h1>Small paws.<br/><em>Seventy-five ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, seventy-five cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <nav className="arcade-grid" aria-label="Choose a game">
