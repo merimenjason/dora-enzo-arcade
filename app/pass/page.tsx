@@ -93,6 +93,7 @@ export default function KumoriPass() {
   const shake = useRef(0);
   const views = useRef<CarView[]>([carView(), carView()]);
   const ghostView = useRef<CarView>(carView());
+  const soloViews = useRef<CarView[]>([views.current[0]]);
   const frame = useRef<FrameView>({ cars: [], ghost: null, cam: 0, dt: 0, dawn: 0, slowmo: 1, shake: 0, focus: 0 });
   const hud = useRef<Record<string, HTMLElement | null>>({});
   const noteTimer = useRef(0); const msgTimer = useRef(0);
@@ -275,7 +276,7 @@ export default function KumoriPass() {
       const p = race.player, cars = race.racers;
       for (let i = 0; i < cars.length; i++) fillView(views.current[i], cars[i], race, i === 0 ? input.current.brake > 0 : cars[i].car.lastIn.brake > 0);
       const f = frame.current;
-      f.cars = cars.length > 1 ? views.current : views.current.slice(0, 1);
+      f.cars = cars.length > 1 ? views.current : soloViews.current;
       if (race.ghost && run.ghost) { fillView(ghostView.current, race.ghost, race, false); f.ghost = ghostView.current; } else f.ghost = null;
       f.cam = cam.current; f.dt = dt; f.slowmo = sm; shake.current = Math.max(0, shake.current - dt * 3); f.shake = shake.current;
       f.dawn = run.mode === 'relay' ? Math.min(1, 0.3 + (run.duel?.round ?? 0) * 0.35 + (race.player.s / race.track.len) * 0.3) : run.pass === 'summit' && run.mode !== 'duel' ? 0.15 : 0;
@@ -499,6 +500,10 @@ export default function KumoriPass() {
           story: (n: number) => persist({ ...saveRef.current, story: n }),
           showcase: (i: number) => setShowcaseIdx(i),
           say: (t: string) => say(t, 'enzo'),
+          /** let the competent bot drive the player's car (screenshots) */
+          auto: (pace: number) => { const rr = runRef.current?.race; if (rr) rr.opts.autopilot = pace; },
+          /** turn the car sideways by b radians, keeping its course (screenshots of a drift) */
+          slide: (b: number) => { const c = runRef.current?.race.player.car; if (!c) return; const u = c.u, v = c.v, cb = Math.cos(b), sb = Math.sin(b); c.h += b; c.u = u * cb + v * sb; c.v = -u * sb + v * cb; c.r = b * 1.2; },
         },
       };
     };

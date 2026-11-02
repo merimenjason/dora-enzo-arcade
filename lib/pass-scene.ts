@@ -697,7 +697,7 @@ export class PassScene {
     if (this.showcase) { this.renderShowcase(dt); return; }
     const t = this.track; if (!t) return;
     this.applyMood(f.dawn);
-    f.cars.forEach((c, i) => { const rig = this.cars[i]; if (!rig) return; this.pose(rig, c, dt); this.wheelFx(i, c, rig, dt); });
+    for (let i = 0; i < f.cars.length; i++) { const c = f.cars[i], rig = this.cars[i]; if (!rig) continue; this.pose(rig, c, dt); this.wheelFx(i, c, rig, dt); }
     if (this.ghost && f.ghost) this.pose(this.ghost, f.ghost, dt); else if (this.ghost) this.ghost.root.visible = false;
     this.smoke.step(dt * f.slowmo, 0.8, 1.6); this.sparks.step(dt * f.slowmo, -14, 0.5);
     // the chase camera swings out into a drift
@@ -751,7 +751,7 @@ export class PassScene {
   }
   private renderShowcase(dt: number) {
     this.showAngle += dt * 0.5;
-    let k = 0; this.show.children.forEach((o) => { if (o.userData.spin) { o.rotation.y = this.showAngle + k * 0.9; k++; } });
+    let k = 0; const ch = this.show.children; for (let j = 0; j < ch.length; j++) { const o = ch[j]; if (o.userData.spin) { o.rotation.y = this.showAngle + k * 0.9; k++; } }
     const n = Math.max(1, k);
     const r = 6.2 + n * 2.6;
     this.camera.position.set(Math.sin(0.5) * r, 2.6 + n * 0.4, Math.cos(0.5) * r);
