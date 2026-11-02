@@ -31,10 +31,17 @@ const CAR_LOOK = (id: RivalId): CarLook => { const r = G.rival(id); return { sha
 const BISCUIT: CarLook = { shape: 'hatch', body: 0xf3e7c9, trim: 0x6fb3dc, biscuit: true };
 
 /** A painting with a drawn stand-in behind it, so a missing file never leaves a hole. */
+// a missing painting borrows the nearest one that exists
+const FALLBACK: Record<string, string[]> = {
+  title: ['story-carpark', 'story-bakery', 'dora-grin'], 'story-bakery': ['story-carpark', 'enzo-notes'], 'story-carpark': ['story-bakery', 'stoat-portrait'],
+  'story-fog': ['enzo-scared', 'pika-portrait'], 'story-relay': ['fox-portrait', 'ending'], ending: ['story-relay', 'enzo-cheer'],
+};
 function Paint({ name, className, alt, pos }: { name: string; className?: string; alt?: string; pos?: string }) {
-  const [ok, setOk] = useState(true);
+  const chain = [name, ...(FALLBACK[name] ?? [])];
+  const [k, setK] = useState(0);
+  useEffect(() => setK(0), [name]);
   return <span className={`kp-paint ${className ?? ''}`} data-art={name}>
-    {ok && <img src={ART(name)} alt={alt ?? ''} draggable={false} style={pos ? { objectPosition: pos } : undefined} onError={() => setOk(false)} />}
+    {k < chain.length && <img src={ART(chain[k])} alt={alt ?? ''} draggable={false} style={pos ? { objectPosition: pos } : undefined} onError={() => setK((x) => x + 1)} />}
   </span>;
 }
 

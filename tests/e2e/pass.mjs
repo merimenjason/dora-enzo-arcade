@@ -27,6 +27,7 @@ const waitFor = async (page, fn, what, ms = 20000) => {
   const t0 = Date.now();
   for (;;) { const s = await state(page); if (fn(s)) return s; if (Date.now() - t0 > ms) throw new Error(`timed out waiting for ${what}: ${JSON.stringify({ screen: s.screen, race: s.race && { t: s.race.t, s: s.race.s, speed: s.race.speed } })}`); await page.waitForTimeout(150); }
 };
+const mode = (page, name) => page.locator('.kp-mode').filter({ has: page.locator('b', { hasText: new RegExp(`^${name}$`) }) });
 const box = (page, sel) => page.locator(sel).first().boundingBox();
 const overlap = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
@@ -37,12 +38,12 @@ const overlap = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width &
   await page.evaluate((k) => localStorage.removeItem(k), KEY); await page.reload(); await ready(page);
   assert.match(await page.locator('h1').textContent(), /Kumori Pass/);
   assert.equal(await page.locator('a.kp-home[href="/"]').count(), 1, 'a plain link home');
-  for (const m of ['Story', 'Delivery Runs', 'Free Duel', 'Time Attack', 'Garage', 'Settings']) assert.equal(await page.locator('.kp-mode', { hasText: m }).count(), 1, `menu has ${m}`);
-  assert.ok(await page.locator('.kp-mode', { hasText: 'Free Duel' }).isDisabled(), 'Free Duel waits for a beaten rival');
+  for (const m of ['Story', 'Delivery Runs', 'Free Duel', 'Time Attack', 'Garage', 'Settings']) assert.equal(await mode(page, m).count(), 1, `menu has ${m}`);
+  assert.ok(await mode(page, 'Free Duel').isDisabled(), 'Free Duel waits for a beaten rival');
   console.log('PASS menu');
 
   // the course picker: six passes, the first two open, notebook levels shown
-  await page.locator('.kp-mode', { hasText: 'Delivery Runs' }).click();
+  await mode(page, 'Delivery Runs').click();
   assert.equal(await page.locator('.kp-pass').count(), 6);
   assert.ok(await page.locator('.kp-pass[data-pass="cedar"]').isEnabled());
   assert.ok(await page.locator('.kp-pass[data-pass="tunnel"]').isDisabled(), 'later passes open through the story');
@@ -81,7 +82,7 @@ const overlap = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width &
   await page.reload(); await ready(page);
   s = await state(page);
   assert.equal(s.save.runs.cedar, 1); assert.ok(s.save.coins > 0);
-  await page.locator('.kp-mode', { hasText: 'Delivery Runs' }).click();
+  await mode(page, 'Delivery Runs').click();
   assert.match(await page.locator('.kp-pass[data-pass="cedar"]').textContent(), /Rough notes/);
   await page.locator('.kp-back').first().click();
   console.log('PASS save and reload');
@@ -96,7 +97,7 @@ const overlap = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width &
   console.log('PASS corrupt saves');
 
   // the garage: buy a part
-  await page.locator('.kp-mode', { hasText: 'Garage' }).click();
+  await mode(page, 'Garage').click();
   await page.locator('.kp-part[data-part="tray"] button').click();
   s = await state(page); assert.ok(s.save.upgrades.includes('tray')); assert.equal(s.save.coins, 949);
   await page.locator('.kp-back').first().click();
@@ -104,7 +105,7 @@ const overlap = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width &
 
   // the story: the opening scene, skipped, leads to the first delivery's briefing
   await page.evaluate((k) => localStorage.removeItem(k), KEY); await page.reload(); await ready(page);
-  await page.locator('.kp-mode', { hasText: 'Story' }).click();
+  await mode(page, 'Story').click();
   await page.locator('.kp-step button[data-step="0"]').click();
   await page.locator('.kp-dialog').waitFor();
   await page.keyboard.press('Enter');
@@ -118,7 +119,7 @@ const overlap = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width &
 
   // a duel: the VS card, the gap meter, the cut-in panel
   await page.evaluate(() => window.__pass().debug.story(3));
-  await page.locator('.kp-mode', { hasText: 'Story' }).click();
+  await mode(page, 'Story').click();
   await page.locator('.kp-step button[data-step="3"]').click();
   await page.locator('.kp-vs').waitFor();
   assert.match(await page.locator('.kp-vs').textContent(), /Skitter/);
@@ -144,7 +145,7 @@ for (const vp of [{ width: 1280, height: 800 }, { width: 1920, height: 1080 }]) 
   await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ v: 1, coins: 0, story: 3 })), KEY); await page.reload(); await ready(page);
   // the menu fits without scrolling
   for (const sel of ['.kp-titleblock', '.kp-modes']) { const b = await box(page, sel); assert.ok(b && b.y >= 0 && b.y + b.height <= vp.height && b.x + b.width <= vp.width, `${sel} fits at ${vp.width}`); }
-  await page.locator('.kp-mode', { hasText: 'Story' }).click();
+  await mode(page, 'Story').click();
   await page.locator('.kp-step button[data-step="3"]').click();
   await page.locator('.kp-go', { hasText: 'Race!' }).click();
   await waitFor(page, (x) => x.screen === 'race' && x.race.t > 0.5, 'racing');
@@ -167,7 +168,7 @@ for (const vp of [{ width: 844, height: 390 }, { width: 390, height: 844 }]) {
   await page.evaluate((k) => localStorage.removeItem(k), KEY); await page.reload(); await ready(page);
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'no sideways scrolling');
   for (const sel of ['.kp-modes', '.kp-titleblock h1']) { const b = await box(page, sel); assert.ok(b && b.y >= 0 && b.y + b.height <= vp.height + 1 && b.x >= 0 && b.x + b.width <= vp.width + 1, `${sel} fits at ${vp.width}×${vp.height}`); }
-  await page.locator('.kp-mode', { hasText: 'Delivery Runs' }).tap();
+  await mode(page, 'Delivery Runs').tap();
   await page.locator('.kp-pass[data-pass="cedar"]').tap();
   let s = await waitFor(page, (x) => x.screen === 'race' && x.race.t > 0.2, 'the start');
   assert.ok(s.save.settings.assist >= 0.85, 'touch players start with high assist');

@@ -241,11 +241,11 @@ const pointsMat = (kind: 'smoke' | 'spark') => new T.ShaderMaterial({
   transparent: true, depthWrite: false, blending: kind === 'spark' ? T.AdditiveBlending : T.NormalBlending,
   uniforms: { scale: { value: 400 }, tint: { value: new T.Color(kind === 'spark' ? 0xffc24a : 0xdfe3ee) }, shade: { value: new T.Color(kind === 'spark' ? 0xff6a1a : 0x9aa1b8) } },
   vertexShader: `attribute float size; attribute float alpha; varying float vA; uniform float scale;
-    void main(){ vA = alpha; vec4 mv = modelViewMatrix * vec4(position,1.0); gl_PointSize = size * scale / max(0.5, -mv.z); gl_Position = projectionMatrix * mv; }`,
+    void main(){ vA = alpha; vec4 mv = modelViewMatrix * vec4(position,1.0); gl_PointSize = min(size * scale / max(0.5, -mv.z), scale * 0.45); gl_Position = projectionMatrix * mv; }`,
   fragmentShader: kind === 'spark'
     ? `varying float vA; uniform vec3 tint; uniform vec3 shade; void main(){ vec2 p = gl_PointCoord - 0.5; float d = length(p); if (d > 0.5) discard; gl_FragColor = vec4(mix(tint, shade, step(0.22, d)), vA); }`
     : `varying float vA; uniform vec3 tint; uniform vec3 shade; void main(){ vec2 p = gl_PointCoord - 0.5; float d = length(p); if (d > 0.5) discard;
-       float lit = step(0.0, -p.x - p.y + 0.12); vec3 c = mix(shade, tint, lit); float edge = step(0.44, d); c = mix(c, shade * 0.7, edge); gl_FragColor = vec4(c, vA * 0.62); }`,
+       float lit = step(length(p - vec2(-0.09, -0.11)), 0.3); vec3 c = mix(shade, tint, lit); gl_FragColor = vec4(c, vA * 0.42 * smoothstep(0.5, 0.36, d)); }`,
 });
 
 // ---------------------------------------------------------------- the scene
@@ -692,6 +692,7 @@ export class PassScene {
   }
 
   // ---- frame
+  camLift = 0;
   render(f: FrameView) {
     const dt = Math.min(0.05, f.dt); this.t += dt;
     if (this.showcase) { this.renderShowcase(dt); return; }
@@ -706,18 +707,27 @@ export class PassScene {
     const vx = Math.cos(c.h) * c.u - Math.sin(c.h) * c.v, vy = Math.sin(c.h) * c.u + Math.cos(c.h) * c.v;
     let dx = Math.cos(c.h), dy = Math.sin(c.h);
     if (sp > 4) { const k = 0.55; dx = dx * (1 - k) + (vx / sp) * k; dy = dy * (1 - k) + (vy / sp) * k; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l; }
-    const [dist, hgt, ahead] = f.cam === 1 ? [10.5, 4.4, 6] : f.cam === 2 ? [-0.4, 1.25, 30] : [6.4, 2.45, 5];
-    V.set(c.x - dx * dist, c.z + hgt, -(c.y - dy * dist));
+    const wideK = this.camera.aspect > 1.9 ? 0.82 : 1;
+    const [dist, hgt, ahead] = f.cam === 1 ? [10.5 * wideK, 4.4, 6] : f.cam === 2 ? [-0.4, 1.25, 30] : [6.4 * wideK, 2.45, 5];
+    // a rival tailgating between the camera and the player: lift the camera over it
+    let lift = 0;
+    if (f.cam !== 2) for (let i = 0; i < f.cars.length; i++) {
+      const o = f.cars[i]; if (o === c) continue;
+      const ox = o.x - c.x, oy = o.y - c.y, along = -(ox * dx + oy * dy), side = Math.abs(ox * dy - oy * dx);
+      if (along > 0.5 && along < dist + 9 && side < 3.2) lift = Math.max(lift, Math.min(1, (1 - side / 3.2) * 1.6) * Math.min(1, (dist + 9 - along) / 4) * 3.8);
+    }
+    this.camLift += (lift - this.camLift) * Math.min(1, dt * 4);
+    V.set(c.x - dx * (dist + this.camLift * 0.4), c.z + hgt + this.camLift, -(c.y - dy * (dist + this.camLift * 0.4)));
     const ground = Math.max(this.groundAt(V.x, -V.z), c.z) + 1.0;
     if (V.y < ground) V.y = ground;
-    V2.set(c.x + dx * ahead, c.z + (f.cam === 2 ? 0.9 : 1.1), -(c.y + dy * ahead));
+    V2.set(c.x + dx * ahead, c.z + (f.cam === 2 ? 0.9 : 1.1) + this.camLift * 0.25, -(c.y + dy * ahead));
     if (!this.camInit) { this.camPos.copy(V); this.camLook.copy(V2); this.camInit = true; }
     const k = f.cam === 2 ? 1 : 1 - Math.exp(-dt * 7);
     this.camPos.lerp(V, k); this.camLook.lerp(V2, f.cam === 2 ? 1 : 1 - Math.exp(-dt * 10));
     this.camera.position.copy(this.camPos);
     if (f.shake > 0) { this.camera.position.x += (hash(this.t * 50) - 0.5) * f.shake; this.camera.position.y += (hash(this.t * 70) - 0.5) * f.shake; }
     this.camera.lookAt(this.camLook);
-    const fovT = 60 + Math.min(1, Math.max(0, (sp - 14) / 22)) * 14 + c.boost * 7;
+    const fovT = 60 - Math.min(10, Math.max(0, (this.camera.aspect - 1.6) * 14)) + Math.min(1, Math.max(0, (sp - 14) / 22)) * 14 + c.boost * 7;
     this.fov += (fovT - this.fov) * Math.min(1, dt * 3);
     if (Math.abs(this.camera.fov - this.fov) > 0.01) { this.camera.fov = this.fov; this.camera.updateProjectionMatrix(); }
     // the moon's shadow box follows the car
@@ -728,6 +738,7 @@ export class PassScene {
   // ---- the garage turntable
   setShowcase(on: boolean, looks: CarLook[] = []) {
     this.showcase = on;
+    if (!on) this.camera.clearViewOffset();
     this.world.visible = !on; this.sky.visible = !on; this.stars.visible = !on; this.glow.visible = !on; this.moonSprite.visible = !on;
     this.disposeGroup(this.show); this.show.clear();
     if (!on) { (this.scene.fog as T.FogExp2).density = this.fogBase; this.scene.background = null; for (const c of this.cars) c.root.visible = true; return; }
@@ -753,17 +764,21 @@ export class PassScene {
     this.showAngle += dt * 0.5;
     let k = 0; const ch = this.show.children; for (let j = 0; j < ch.length; j++) { const o = ch[j]; if (o.userData.spin) { o.rotation.y = this.showAngle + k * 0.9; k++; } }
     const n = Math.max(1, k);
-    const r = 6.2 + n * 2.6;
-    this.camera.position.set(Math.sin(0.5) * r, 2.6 + n * 0.4, Math.cos(0.5) * r);
-    this.camera.lookAt(0, 0.7, 0);
-    if (this.camera.fov !== 46) { this.camera.fov = 46; this.camera.updateProjectionMatrix(); }
+    const narrow = this.camera.aspect < 1.1, r = (narrow ? 11 : 9.5) + n * (narrow ? 4.2 : 3.4);
+    this.camera.position.set(Math.sin(0.5) * r, 2.8 + n * 0.5, Math.cos(0.5) * r);
+    this.camera.lookAt(0, 0.6, 0);
+    // the car sits in the free part of the garage page: left of the parts on wide screens, above them on upright ones
+    const w = this.canvas.clientWidth || 1, h = this.canvas.clientHeight || 1, ox = narrow || n > 1 ? 0 : w * 0.25, oy = n > 1 ? 0 : narrow ? h * 0.24 : -h * 0.04;
+    const v = this.camera.view;
+    if (!v || !v.enabled || v.offsetX !== ox || v.offsetY !== oy || v.fullWidth !== w || v.fullHeight !== h) this.camera.setViewOffset(w, h, ox, oy, w, h);
+    if (this.camera.fov !== 42) { this.camera.fov = 42; this.camera.updateProjectionMatrix(); }
     this.renderer.render(this.scene, this.camera);
   }
 
   resize() {
     const w = this.canvas.clientWidth || 1, h = this.canvas.clientHeight || 1;
     this.renderer.setSize(w, h, false); this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
-    for (const m of [this.smoke.pts.material, this.sparks.pts.material] as T.ShaderMaterial[]) m.uniforms.scale.value = h * 0.5;
+    for (const m of [this.smoke.pts.material, this.sparks.pts.material] as T.ShaderMaterial[]) m.uniforms.scale.value = h * 0.5 * this.renderer.getPixelRatio();
   }
   disposeGroup(o: T.Object3D) {
     const gs = new Set<T.BufferGeometry>(), ms = new Set<T.Material>();
