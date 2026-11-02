@@ -543,7 +543,7 @@ export default function KumoriPass() {
     : st.kind === 'delivery' ? `Delivery · ${G.passDef(st.pass).name}` : st.kind === 'relay' ? 'The dawn relay vs Aurora' : `Duel vs ${G.rival(st.rival).name} · ${G.passDef(G.rival(st.rival).pass).name}`;
   const unlockedPasses = G.PASSES.filter((p) => G.passUnlocked(s, p.id));
 
-  return <main className={`kp-shell kp-${screen}${touch ? ' kp-touch' : ''}`} data-screen={screen} data-ready={ready ? 'true' : undefined}>
+  return <main className={`kp-shell kp-on-${screen}${touch ? ' kp-touch' : ''}`} data-screen={screen} data-ready={ready ? 'true' : undefined}>
     <canvas ref={canvasRef} className="kp-canvas" data-on={screen === 'race' || screen === 'garage' ? '1' : '0'} />
     <canvas ref={linesRef} className="kp-lines" data-on={screen === 'race' ? '1' : '0'} />
 

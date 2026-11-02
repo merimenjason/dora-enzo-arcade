@@ -92,7 +92,7 @@ function bunTexture() {
   return bunLogo;
 }
 
-export type CarRig = { root: T.Group; body: T.Group; wheels: T.Group[]; spinners: T.Object3D[]; steer: T.Group[]; pops: T.Group[]; tail: T.MeshBasicMaterial; streaks: T.Mesh[]; ink: T.Mesh[]; beam: T.Mesh | null; spot: T.SpotLight | null; shadowed: T.Mesh[] };
+export type CarRig = { root: T.Group; body: T.Group; wheels: T.Group[]; spinners: T.Object3D[]; steer: T.Group[]; pops: T.Group[]; tail: T.MeshBasicMaterial; streaks: T.Mesh[]; ink: T.Mesh[]; beam: T.Mesh | null; headPool?: T.Mesh; spot: T.SpotLight | null; shadowed: T.Mesh[] };
 
 const rimGeo = (() => {
   const parts: T.BufferGeometry[] = [];
@@ -203,6 +203,7 @@ export function buildCar(look: CarLook, withLights: boolean): CarRig {
   return { root, body, wheels, spinners, steer, pops, tail, streaks, ink, beam, spot, shadowed };
 }
 
+const MOOD = { fog: new T.Color(0xf2b591), hemi: new T.Color(0xffd6b0), moon: new T.Color(0xffc48a), ridge: new T.Color(0x7a5a78) };
 // ---------------------------------------------------------------- particles
 class Pool {
   geo = new T.BufferGeometry(); pts: T.Points; n: number; next = 0;
@@ -245,7 +246,7 @@ const pointsMat = (kind: 'smoke' | 'spark') => new T.ShaderMaterial({
   fragmentShader: kind === 'spark'
     ? `varying float vA; uniform vec3 tint; uniform vec3 shade; void main(){ vec2 p = gl_PointCoord - 0.5; float d = length(p); if (d > 0.5) discard; gl_FragColor = vec4(mix(tint, shade, step(0.22, d)), vA); }`
     : `varying float vA; uniform vec3 tint; uniform vec3 shade; void main(){ vec2 p = gl_PointCoord - 0.5; float d = length(p); if (d > 0.5) discard;
-       float lit = step(length(p - vec2(-0.09, -0.11)), 0.3); vec3 c = mix(shade, tint, lit); gl_FragColor = vec4(c, vA * 0.42 * smoothstep(0.5, 0.36, d)); }`,
+       float f = 1.0 - smoothstep(0.0, 0.5, d); vec3 c = mix(shade, tint, smoothstep(0.1, 0.45, f)); gl_FragColor = vec4(c, vA * vA * 0.3 * f * f); }`,
 });
 
 // ---------------------------------------------------------------- the scene
@@ -470,15 +471,14 @@ export class PassScene {
   applyMood(dawn: number) {
     const t = this.track; const dark = this.dark;
     this.skyMat.uniforms.dawn.value = dawn;
-    const fogC = new T.Color(t && t.def.fog > 0.5 ? 0x5d6688 : dark ? 0x07080f : 0x1b2348).lerp(new T.Color(0xf2b591), dawn * 0.8);
-    (this.scene.fog as T.FogExp2).color.copy(fogC);
-    this.hemi.intensity = (dark ? 0.5 : 1.15) + dawn * 1.6;
-    this.hemi.color.set(0x6c7cc0).lerp(new T.Color(0xffd6b0), dawn);
-    this.moon.intensity = (dark ? 0.35 : 1.3) + dawn * 1.2;
-    this.moon.color.set(0xa9b8ff).lerp(new T.Color(0xffc48a), dawn);
+    (this.scene.fog as T.FogExp2).color.set(t && t.def.fog > 0.5 ? 0x5d6688 : dark ? 0x07080f : 0x1b2348).lerp(MOOD.fog, dawn * 0.8);
+    this.hemi.intensity = (dark ? 0.62 : 1.55) + dawn * 1.4;
+    this.hemi.color.set(0x7484c8).lerp(MOOD.hemi, dawn);
+    this.moon.intensity = (dark ? 0.4 : 1.6) + dawn * 1.1;
+    this.moon.color.set(0xa9b8ff).lerp(MOOD.moon, dawn);
     (this.stars.material as T.PointsMaterial).opacity = Math.max(0, 0.9 - dawn * 1.2) * (t && t.def.fog > 0.5 ? 0.3 : 1);
     (this.moonSprite.material as T.SpriteMaterial).opacity = Math.max(0, 1 - dawn * 1.3);
-    if (this.ridgeMat) this.ridgeMat.color.set(0x141a36).lerp(new T.Color(0x7a5a78), dawn);
+    if (this.ridgeMat) this.ridgeMat.color.set(0x141a36).lerp(MOOD.ridge, dawn);
     (this.glow.material as T.SpriteMaterial).opacity = (dark ? 0.45 : 0.9) * (1 - dawn);
   }
 
@@ -626,7 +626,13 @@ export class PassScene {
     for (const c of this.cars) { this.scene.remove(c.root); this.disposeGroup(c.root); }
     if (this.ghost) { this.scene.remove(this.ghost.root); this.disposeGroup(this.ghost.root); }
     this.looks = looks.slice();
-    this.cars = looks.map((l, i) => { const r = buildCar(l, i < 2); this.scene.add(r.root); for (const o of r.ink) o.visible = !this.lite; return r; });
+    this.cars = looks.map((l, i) => {
+      const r = buildCar(l, i < 2); this.scene.add(r.root); for (const o of r.ink) o.visible = !this.lite;
+      // a warm pool of headlight on the road ahead
+      if (i < 2) { this.headTex ??= this.glowTexture('#fff2cf', '#ffd98a', 0.15); const m = new T.Mesh(new T.PlaneGeometry(1, 1), new T.MeshBasicMaterial({ map: this.headTex, transparent: true, opacity: 0.55, depthWrite: false, blending: T.AdditiveBlending, fog: false }));
+        m.rotation.x = -Math.PI / 2; m.scale.set(11, 6.5, 1); m.position.set(7.5, 0.07, 0); m.userData.headPool = true; r.root.add(m); r.headPool = m; }
+      return r;
+    });
     this.ghost = ghost ? buildCar({ ...ghost, ghost: true }, false) : null;
     if (this.ghost) this.scene.add(this.ghost.root);
     this.skid.last = looks.map(() => [NaN, NaN, NaN, NaN]);
@@ -648,6 +654,7 @@ export class PassScene {
     for (const s of rig.streaks) { const len = Math.min(7, Math.max(0, (sp - 12) * 0.25)); s.visible = len > 0.2; s.scale.x = len; s.position.x = -PROFILES_L(rig) / 2 - len / 2 - 0.1; }
     if (rig.spot) rig.spot.intensity = c.lights > 0.5 ? 90 : 0;
     if (rig.beam) (rig.beam.material as T.MeshBasicMaterial).opacity = c.lights > 0.5 ? 0.04 + (this.track ? this.track.def.fog * 0.08 : 0) : 0;
+    if (rig.headPool) rig.headPool.visible = c.lights > 0.5;
   }
 
   /** Emit smoke, skid marks and sparks for a car this frame. */
@@ -692,7 +699,7 @@ export class PassScene {
   }
 
   // ---- frame
-  camLift = 0;
+  camLift = 0; headTex: T.Texture | null = null;
   render(f: FrameView) {
     const dt = Math.min(0.05, f.dt); this.t += dt;
     if (this.showcase) { this.renderShowcase(dt); return; }
@@ -708,7 +715,7 @@ export class PassScene {
     let dx = Math.cos(c.h), dy = Math.sin(c.h);
     if (sp > 4) { const k = 0.55; dx = dx * (1 - k) + (vx / sp) * k; dy = dy * (1 - k) + (vy / sp) * k; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l; }
     const wideK = this.camera.aspect > 1.9 ? 0.82 : 1;
-    const [dist, hgt, ahead] = f.cam === 1 ? [10.5 * wideK, 4.4, 6] : f.cam === 2 ? [-0.4, 1.25, 30] : [6.4 * wideK, 2.45, 5];
+    const [dist, hgt, ahead] = f.cam === 1 ? [10.5 * wideK, 4.4, 6] : f.cam === 2 ? [-0.4, 1.25, 30] : [4.9 * wideK, 2.05, 4.5];
     // a rival tailgating between the camera and the player: lift the camera over it
     let lift = 0;
     if (f.cam !== 2) for (let i = 0; i < f.cars.length; i++) {
