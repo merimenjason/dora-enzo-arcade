@@ -259,6 +259,8 @@ export type RaceOpts = {
   upgrades?: readonly string[]; assist?: number; manual?: boolean;
   noteLevel?: number; seed?: number; buns?: boolean;
   ghost?: number[] | null;
+  /** the car the ghost was recorded with (defaults to the player's) */
+  ghostCar?: { up: readonly string[]; assist: number; manual: boolean } | null;
   /** the competent bot drives the player's car (tests) */
   autopilot?: number;
   countdown?: number;
@@ -319,7 +321,10 @@ export class Race {
         { pace: r.pace * nerves, brake: r.brake * (1 - r.fog * this.fogLevel * 1.5), block: r.block, slipUntil: -1, slipOff: 0, nextCorner: 0 }));
       this.leaderIdx = lead ? 0 : 1;
     }
-    if (opts.ghost) this.ghost = this.makeRacer(spec, START_S, 0, opts.manual ? false : true, opts.assist ?? 0.6, null);
+    if (opts.ghost) {
+      const gc = opts.ghostCar;
+      this.ghost = gc ? this.makeRacer(withUpgrades(BASE, gc.up), START_S, 0, !gc.manual, gc.assist, null) : this.makeRacer(spec, START_S, 0, opts.manual ? false : true, opts.assist ?? 0.6, null);
+    }
     this.notes = paceNotes(this.track, opts.noteLevel ?? 0);
     this.corners = readRoad(this.track).corners;
   }
@@ -805,7 +810,7 @@ export function buyUpgrade(s: Save, id: string): boolean {
   s.coins -= u.cost; s.upgrades.push(id); return true;
 }
 import { UPGRADES as UPGRADE_LIST } from './pass-car.js';
-export { UPGRADES, statCard, withUpgrades, BASE, idleInput } from './pass-car.js';
+export { UPGRADES, statCard, withUpgrades, BASE, idleInput, slipAngle as slipAngleOf } from './pass-car.js';
 export type { Input, Car, CarSpec } from './pass-car.js';
 export { PASSES, passDef, radiusAt, at } from './pass-tracks.js';
 export type { PassId, Track } from './pass-tracks.js';
