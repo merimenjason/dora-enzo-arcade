@@ -197,6 +197,23 @@ for (const vp of [{ width: 844, height: 390 }, { width: 390, height: 844 }]) {
   await page.context().close();
 }
 
+// Enzo's line: the demo drives itself from the course picker and saves nothing
+{
+  const page = await open();
+  await page.goto(`${base}/pass`); await ready(page);
+  await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ v: 1, coins: 3, story: 3 })), KEY); await page.reload(); await ready(page);
+  const before = await page.evaluate((k) => localStorage.getItem(k), KEY);
+  await mode(page, 'Delivery Runs').click();
+  await page.locator('.kp-watch[data-pass="cedar"]').click();
+  let s = await waitFor(page, (x) => x.screen === 'race' && x.race && x.race.t > 3, 'the demo under way', 40000);
+  assert.equal(s.race.mode, 'demo'); assert.ok(s.race.s > 20, `the demo drives itself (${s.race.s.toFixed(0)} m)`);
+  assert.match(await page.locator('.kp-time small').textContent(), /Enzo/);
+  await page.keyboard.press('Escape'); await waitFor(page, (x) => x.paused, 'paused');
+  assert.equal(await page.evaluate((k) => localStorage.getItem(k), KEY), before, 'the demo saves nothing');
+  console.log('PASS demo');
+  await page.context().close();
+}
+
 await browser.close();
 assert.deepEqual(errors, [], `no page errors: ${errors.join(' | ')}`);
 console.log('pass e2e: all good');

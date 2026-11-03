@@ -8,7 +8,7 @@ import { BASE, DT, makeCar, stepCar, tyre, gearSpeed, slipAngle, idleInput, with
 import { buildTrack, locate, radiusAt, at, PASSES, NARROW, WIDE } from '../.checks/pass-tracks.js';
 import { Race, Duel, duelOutcome, RIVALS, rival, paceNotes, readRoad, severity, SEVERITY, NOTE_LEAD, noteLevel, getTrack,
   encodeInput, decodeInput, packGhost, unpackGhost, parseSave, newSave, serialise, buyUpgrade, recordRun, passUnlocked,
-  deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng, GHOST_VERSION, ASSIST } from '../.checks/pass-game.js';
+  deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng, GHOST_VERSION, ASSIST, DEMO } from '../.checks/pass-game.js';
 
 let n = 0;
 const ok = (m) => { n++; console.log('ok', m); };
@@ -379,6 +379,19 @@ for (const p of PASSES) {
   assert.equal(parseSave(JSON.stringify({ v: 1, settings: { assist: 0 } })).settings.assist, ASSIST.off);
   assert.equal(newSave().settings.assist, ASSIST.strong, 'Strong assist and Smooth steering by default');
   ok('saves round-trip, unlock the ladder, old settings and ghosts migrate, and corrupt saves fall back without throwing');
+}
+// ---- Enzo's line: the demo drives every pass cleanly (no rails, no spins, every bun) and inside the gold time
+{
+  const times = {};
+  for (const p of PASSES) {
+    const r = new Race({ pass: p.id, buns: true, autopilot: DEMO.pace[p.id], demo: true, noteLevel: 3, seed: 3 });
+    let steps = 0; while (!r.done && steps < 120 * 300) { r.tick(idleInput()); steps++; }
+    assert.ok(r.done, `${p.id}: the demo finishes`);
+    assert.equal(r.hits, 0, `${p.id}: the demo never touches a rail`); assert.equal(r.player.resets, 0, `${p.id}: no spins`); assert.equal(r.buns, BUNS, `${p.id}: every bun`);
+    assert.ok(r.player.finished < medalTimes(p.id)[0], `${p.id}: the demo beats gold (${r.player.finished.toFixed(2)} vs ${medalTimes(p.id)[0]})`);
+    times[p.id] = +r.player.finished.toFixed(1);
+  }
+  ok(`Enzo's demo line is clean and inside gold on every pass ${JSON.stringify(times)}`);
 }
 console.log(`pass: ${n} checks passed`);
 void DUEL_GAP;

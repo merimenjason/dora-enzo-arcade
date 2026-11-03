@@ -62,6 +62,8 @@ Roads are 3.6 m to each side of the centreline, 5.8 m in the wide places (where 
 
 Delivery medals: gold within 1.03× the bot time with 11 or more buns, silver 1.16× with 7 or more, bronze 1.4× with 4 or more.
 
+**Enzo's line** (the ▶ button under each open pass in Delivery Runs) is a demo: the stock Biscuit drives the racing line by itself with every note called. It is the same follower as the bot with the human parts removed (no reaction lag, no wander, no off nights, no slips), braking at 0.64 of the bot's braking and at a pace per pass (`DEMO` in `lib/pass-game.ts`, 0.92 to 1.02) picked as the fastest that never touches a rail or drops a bun. `tests/pass.mjs` holds it to no rail hits, no spins, all 12 buns and inside gold on every pass. It is a clean reference run, not the fastest possible: it finishes up to 2 s behind the bot on Cedar Switchbacks, Lakeside Esses and Summit Dawn, and ahead of it on Hairpin Stairs, Fog Ridge and the Ghost Tunnel. A demo saves nothing and pays nothing.
+
 ## Drifting
 
 A drift starts above 9 m/s with the car more than 0.14 rad sideways. The meter fills at 0.42 a second (faster at bigger angles, up to 1.6×). When the drift ends cleanly (no wall) with the meter at 0.25 or more, the car gets a boost of 1.6 s × the meter at 1.22× drive. A wall hit breaks the drift and empties the meter.

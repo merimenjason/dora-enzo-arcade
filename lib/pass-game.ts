@@ -265,6 +265,8 @@ export type RaceOpts = {
   sharp?: boolean;
   /** the competent bot drives the player's car (tests) */
   autopilot?: number;
+  /** with autopilot: Enzo's clean demo line, with no reaction lag, wander, off nights or mistakes */
+  demo?: boolean;
   countdown?: number;
   /** override the player's car (calibration) */
   spec?: CarSpec;
@@ -277,6 +279,9 @@ export const LINE_GRIP = 0.9;
 export const WALL = { scrub: 0.085, spin: 8.5, wreck: 11, rub: 7 };
 /** Seconds a wrecked or spun car sits before it is set back on the road. */
 export const RECOVER = 1.4;
+/** Enzo's demo line: the racing line driven cleanly (no lag, wander or mistakes), braking a little early, at the
+ * fastest pace on each pass that never touches a rail or spills a bun. */
+export const DEMO = { brake: 0.64, pace: { cedar: 0.92, lake: 0.94, stairs: 0.98, fog: 1.02, tunnel: 0.98, summit: 0.94 } as Record<PassId, number> };
 /** The autopilot's chance per corner of a small error, so seeded runs differ. */
 export const BOT_SLIP = 0.06;
 /** How much a driver's pace varies night to night (a seeded ±half of this). */
@@ -615,6 +620,7 @@ export class Race {
   // ---- the AI driver: pure pursuit on the racing line, target speeds from the line, a personality on top
   drive(idx: number, out: Input, pace: number) {
     const r = this.racers[idx], c = r.car, t = this.track;
+    if (!r.ai && idx === 0 && this.opts.demo) r.ai = { pace, brake: DEMO.brake, block: 0, slipUntil: -1, slipOff: 0, nextCorner: Infinity };
     if (!r.ai) {
       const n = Math.max(1, Math.round(HUMAN.reaction / DT));
       r.ai = { pace: pace * (1 + (this.rand() - 0.5) * FORM), brake: 0.95, block: 0.4, slipUntil: -1, slipOff: 0, nextCorner: 0,
