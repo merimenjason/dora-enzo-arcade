@@ -148,11 +148,14 @@ const handSlide = (u, assist) => {
   assert.ok(withUpgrades(BASE, ['rack']).lock > BASE.lock, 'the quick rack gives more lock');
   assert.ok(driftRun(withUpgrades(BASE, ['lsd']), 0.6, 0.3, 1).held >= driftRun(BASE, 0.6, 0.3, 1).held - 0.1, 'the diff keeps a drift going');
   assert.ok(withUpgrades(BASE, ['tray']).bunDamp < 1, 'the sprung tray damps the buns');
+  assert.ok(turnIn(withUpgrades(BASE, ['coilovers'])) > turnIn(BASE) && withUpgrades(BASE, ['coilovers']).cgh < BASE.cgh, 'coilovers: lower, and the nose bites sooner');
+  const strip = withUpgrades(BASE, ['strip']);
+  assert.ok(accel(strip) < accel(BASE) && strip.bunDamp > 1 && withUpgrades(BASE, ['strip', 'tray']).bunDamp < 1, 'the stripped car is quicker, rattlier, and the tray still calms it');
   const base = statCard([]), all = statCard(UPGRADES.map((u) => u.id));
   assert.ok(all.power > base.power && all.grip > base.grip && all.buns > base.buns);
   for (const v of Object.values(all)) assert.ok(v >= 0 && v <= 10);
   assert.equal(withUpgrades(BASE, []).mu, BASE.mu, 'no upgrades, stock car');
-  ok('upgrades change the handling: tyres, turbo, flywheel, rear, rack, diff, tray, and the stat card');
+  ok('upgrades change the handling: tyres, turbo, flywheel, rear, rack, diff, tray, coilovers, stripped interior, and the stat card');
 }
 
 // ---------------------------------------------------------------- the roads

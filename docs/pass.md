@@ -42,6 +42,10 @@ Bought in Enzo's garage with bakery coins. Each changes the car's numbers and th
 | Quick Steering Rack | 90 | More lock, faster hands |
 | Sprung Bun Tray | 50 | The buns barely wobble |
 | Big Intake & Turbo | 150 | More power up top, turbo whistle and backfires |
+| Coilovers | 120 | Lower centre of gravity (×0.88) and a sharper front (front stiffness ×1.08) |
+| Stripped Interior | 140 | Mass and yaw inertia down (×0.92, ×0.9), but the tray wobbles 15% more |
+
+On their own, Coilovers take 0.3 to 0.6 s off the bot's delivery times (0.4 s slower on Hairpin Stairs, where the sharper nose costs drift) and Stripped Interior 0.1 to 0.4 s; Sticky Tyres is still the biggest single gain at 1.2 to 2.6 s. Bigger brakes were tried and left out: braking is grip-limited at the front, so stronger brakes only made the car brake later and arrive too fast. The bot ladder in `tests/pass-bot.mjs` still uses the first five parts, so these two make the duels a little easier for whoever buys them.
 
 ## The road
 

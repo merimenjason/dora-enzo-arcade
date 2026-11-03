@@ -802,7 +802,7 @@ export function newSave(): Save {
     settings: { assist: ASSIST.strong, sharp: false, manual: false, lite: false, sound: true, music: true, camera: 0 }, ended: false };
 }
 const num = (v: unknown, lo: number, hi: number, d: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d);
-const UPGRADE_IDS = ['flywheel', 'rear', 'tyres', 'lsd', 'intake', 'rack', 'tray'];
+const UPGRADE_IDS = ['flywheel', 'rear', 'tyres', 'lsd', 'intake', 'rack', 'tray', 'coilovers', 'strip'];
 /** Read a save defensively: anything missing or wrong falls back to the default, and nothing throws. */
 export function parseSave(raw: string | null | undefined): Save {
   const s = newSave();

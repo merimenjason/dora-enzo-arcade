@@ -291,7 +291,7 @@ export function setWorldVel(c: Car, vx: number, vy: number) {
 /** Body slip angle: how sideways the car is travelling (rad, + = sliding left). */
 export const slipAngle = (c: Car) => (Math.hypot(c.u, c.v) > 2 ? Math.atan2(c.v, Math.abs(c.u)) : 0);
 
-export type UpgradeId = 'flywheel' | 'rear' | 'tyres' | 'lsd' | 'intake' | 'rack' | 'tray';
+export type UpgradeId = 'flywheel' | 'rear' | 'tyres' | 'lsd' | 'intake' | 'rack' | 'tray' | 'coilovers' | 'strip';
 export type Upgrade = { id: UpgradeId; name: string; cost: number; effect: string; stats: Partial<Record<Stat, number>> };
 export type Stat = 'power' | 'grip' | 'rotation' | 'stability' | 'buns';
 export const UPGRADES: Upgrade[] = [
@@ -302,6 +302,8 @@ export const UPGRADES: Upgrade[] = [
   { id: 'rack', name: 'Quick Steering Rack', cost: 90, effect: 'More lock and faster hands: catches slides earlier.', stats: { rotation: 1, stability: 1 } },
   { id: 'tray', name: 'Sprung Bun Tray', cost: 50, effect: 'Enzo\'s padded tray: the buns barely wobble.', stats: { buns: 3 } },
   { id: 'intake', name: 'Big Intake & Turbo', cost: 150, effect: 'More power up top, a turbo whistle and backfire pops.', stats: { power: 3, stability: -1 } },
+  { id: 'coilovers', name: 'Coilovers', cost: 120, effect: 'Lower and stiffer: the nose bites sooner and the car stays flat over the crests.', stats: { rotation: 1, stability: 1, grip: 1 } },
+  { id: 'strip', name: 'Stripped Interior', cost: 140, effect: 'No back seat, no carpet: quicker everywhere, but the tray rattles.', stats: { power: 1, rotation: 1, buns: -1 } },
 ];
 
 /** The car with upgrades fitted. */
@@ -315,6 +317,8 @@ export function withUpgrades(base: CarSpec, owned: readonly string[]): CarSpec {
   if (has('rack')) { s.lock *= 1.14; s.steerRate *= 1.3; }
   if (has('tray')) { s.bunDamp = 0.6; }
   if (has('intake')) { s.torque *= 1.16; }
+  if (has('coilovers')) { s.cgh *= 0.88; s.bf *= 1.08; }
+  if (has('strip')) { s.mass *= 0.92; s.inertia *= 0.9; s.bunDamp *= 1.15; }
   return s;
 }
 
