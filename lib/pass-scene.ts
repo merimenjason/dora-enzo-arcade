@@ -355,9 +355,10 @@ export class PassScene {
       let h = base;
       if (ri >= 0) {
         const roadH = t.z[ri], half = Math.max(t.wl[ri], t.wr[ri]) + 0.6;
-        const f = Math.min(1, Math.max(0, (d - half) / 22)); const s = f * f * (3 - 2 * f);
-        h = roadH - 0.25 + (base - roadH + 0.25) * s;
-        if (d < half) h = roadH - 0.35;
+        // flat and a little below the road out past the rails, so no slope pokes up through the road or its edges
+        const f = Math.min(1, Math.max(0, (d - half - 3) / 22)); const s = f * f * (3 - 2 * f);
+        h = roadH - 0.4 + (base - roadH + 0.4) * s;
+        if (d < half + 3) h = roadH - 0.4;
       }
       H[j * nx + i] = h;
       pos.set([x, h, -y], (j * nx + i) * 3);
@@ -384,11 +385,12 @@ export class PassScene {
     const gut = this.ribbon(t, (i) => (t.gutter[i] === -1 ? -t.wr[i] - 0.1 : 99), (i) => (t.gutter[i] === -1 ? -t.wr[i] + 0.95 : 99), () => 0.035, false, (i) => t.gutter[i] === -1);
     const gut2 = this.ribbon(t, (i) => (t.gutter[i] === 1 ? t.wl[i] - 0.95 : 99), (i) => (t.gutter[i] === 1 ? t.wl[i] + 0.1 : 99), () => 0.035, false, (i) => t.gutter[i] === 1);
     const gm = toon(0x7d7f88, { map: this.slatTexture() }); gut.material = gm; gut2.material = gm; this.world.add(gut, gut2);
-    // rails and rock cuts
-    const railMat = toon(0xe9ecf2), postMat = toon(0x8d93a3), rockMat = toon(0x55525e), ditchMat = toon(0x1c2420);
+    this.edges(t);
+    // rails on both sides (outside the tunnels), and a rock cut behind the ditch on the uphill side
+    const railMat = toon(0xe9ecf2), postMat = toon(0x8d93a3), rockMat = toon(0x6e6872, { emissive: 0x141219 }), ditchMat = toon(0x1c2420);
     for (const side of [1, -1] as const) {
-      const isRail = (i: number) => !t.tunnel[i] && (side === 1 ? !uphillLeft[i] : !!uphillLeft[i]);
-      const isCut = (i: number) => !t.tunnel[i] && !isRail(i);
+      const isRail = (i: number) => !t.tunnel[i];
+      const isCut = (i: number) => !t.tunnel[i] && (side === 1 ? !!uphillLeft[i] : !uphillLeft[i]);
       const w = (i: number) => (side === 1 ? t.wl[i] + 0.25 : -t.wr[i] - 0.25);
       for (const [y0r, y1r] of [[0.55, 0.78], [0.3, 0.46]] as const) {
         const rail = this.wall(t, w, y0r, y1r, isRail); rail.material = railMat; this.world.add(rail);
@@ -401,6 +403,10 @@ export class PassScene {
       for (let i = 0; i < t.n; i += 3) if (isRail(i)) { const p = this.at(t, i, w(i) + side * 0.12, 0); M4.compose(p, Q.setFromEuler(E.set(0, t.h[i], 0)), S3.set(1, 1, 1)); posts.push(M4.clone()); }
       const pg = new T.BoxGeometry(0.12, 0.85, 0.12).translate(0, 0.42, 0);
       this.instanced(pg, postMat, posts, true);
+      // a reflector on every other rail post, toward the road
+      const refl: T.Matrix4[] = [];
+      for (let i = 0; i < t.n; i += 6) if (isRail(i)) { const p = this.at(t, i, w(i) - side * 0.04, 0.66); M4.compose(p, Q.setFromEuler(E.set(0, t.h[i], 0)), S3.set(1, 1, 1)); refl.push(M4.clone()); }
+      this.instanced(new T.BoxGeometry(0.16, 0.1, 0.03), side === 1 ? this.edgeMats.amber : this.edgeMats.white, refl, false);
     }
     // tunnels: an arch of dark concrete over the road
     for (let i = 0; i < t.n; i++) if (t.tunnel[i] && !t.tunnel[i - 1]) {
@@ -466,6 +472,41 @@ export class PassScene {
     this.camInit = false;
   }
   private ridgeMat: T.MeshBasicMaterial | null = null;
+
+  // ---- road edges: unlit paint and reflectors (they glow in the headlights and fade into the fog with distance),
+  // a pale shoulder strip, and delineator posts, the same on both sides of the road
+  private edgeMats = {
+    line: new T.MeshBasicMaterial({ color: 0xf4efe0, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
+    centre: new T.MeshBasicMaterial({ color: 0xe8c45a, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
+    white: new T.MeshBasicMaterial({ color: 0xffffff }), amber: new T.MeshBasicMaterial({ color: 0xffa23a }),
+  };
+  private edges(t: Track) {
+    const M = this.edgeMats;
+    for (const side of [1, -1] as const) {
+      const edge = (i: number) => (side === 1 ? t.wl[i] : -t.wr[i]);
+      const plain = (i: number) => t.gutter[i] !== side; // a drain gutter replaces the paint and shoulder on its side
+      // the shoulder: a pale concrete strip from just inside the edge line out to the rail
+      const sh = this.ribbon(t, (i) => (side === 1 ? edge(i) - 0.3 : edge(i) - 0.25), (i) => (side === 1 ? edge(i) + 0.25 : edge(i) + 0.3), () => 0.025, false, plain);
+      sh.material = toon(0x9a958a, { emissive: 0x1c1a17, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }); sh.receiveShadow = true; this.world.add(sh);
+      // a solid white edge line
+      const ln = this.ribbon(t, (i) => Math.min(edge(i) - side * 0.5, edge(i) - side * 0.32), (i) => Math.max(edge(i) - side * 0.5, edge(i) - side * 0.32), () => 0.03, false, plain);
+      ln.material = M.line; this.world.add(ln);
+      // delineator posts every 8 m outside the tunnels (white with an amber reflector on the left, white on the right),
+      // and reflective studs on the edge line all the way, tunnels too
+      const posts: T.Matrix4[] = [], tops: T.Matrix4[] = [], studs: T.Matrix4[] = [];
+      for (let i = side === 1 ? 4 : 0; i < t.n; i += 8) {
+        if (!t.tunnel[i]) { M4.compose(this.at(t, i, edge(i) + side * 0.55, 0), Q.setFromEuler(E.set(0, t.h[i], 0)), S3.set(1, 1, 1)); posts.push(M4.clone());
+          M4.compose(this.at(t, i, edge(i) + side * 0.55 - side * 0.06, 0.92), Q.setFromEuler(E.set(0, t.h[i], 0)), S3.set(1, 1, 1)); tops.push(M4.clone()); }
+        if (plain(i)) { M4.compose(this.at(t, i, edge(i) - side * 0.41, 0.05), Q.setFromEuler(E.set(0, t.h[i], 0)), S3.set(1, 1, 1)); studs.push(M4.clone()); }
+      }
+      this.instanced(new T.BoxGeometry(0.1, 1.05, 0.1).translate(0, 0.52, 0), toon(0xf2f2ee, { emissive: 0x202020 }), posts, true);
+      this.instanced(new T.BoxGeometry(0.06, 0.16, 0.12), side === 1 ? M.amber : M.white, tops, false);
+      this.instanced(new T.BoxGeometry(0.22, 0.05, 0.12), side === 1 ? M.amber : M.white, studs, false);
+    }
+    // the dashed centre line: 2 m of paint, 4 m gap
+    const c = this.ribbon(t, () => -0.07, () => 0.07, () => 0.03, false, (i) => i % 6 < 4 && !t.wide[i]);
+    c.material = M.centre; this.world.add(c);
+  }
 
   /** Night → dawn (0..1): sky, fog, light colours. */
   applyMood(dawn: number) {
@@ -609,8 +650,6 @@ export class PassScene {
     const c = document.createElement('canvas'); c.width = 256; c.height = 256; const g = c.getContext('2d')!;
     g.fillStyle = '#4a4c58'; g.fillRect(0, 0, 256, 256);
     for (let k = 0; k < 900; k++) { const v = 60 + hash(k) * 40; g.fillStyle = `rgb(${v},${v + 2},${v + 12})`; g.fillRect(hash(k + 1) * 256, hash(k + 2) * 256, 2, 2); }
-    g.fillStyle = '#e9e4d2'; g.fillRect(8, 0, 6, 256); g.fillRect(242, 0, 6, 256);
-    g.fillStyle = '#f2c94c'; g.fillRect(124, 0, 8, 150);
     const t = new T.CanvasTexture(c); t.wrapS = T.ClampToEdgeWrapping; t.wrapT = T.RepeatWrapping; t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4; return t;
   }
   private slatTexture() {
