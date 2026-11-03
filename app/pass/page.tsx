@@ -85,6 +85,7 @@ export default function KumoriPass() {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const linesRef = useRef<HTMLCanvasElement | null>(null);
+  const mirrorRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<PassScene | null>(null);
   const soundRef = useRef<PassSound | null>(null);
   const runRef = useRef<Run | null>(null);
@@ -252,6 +253,17 @@ export default function KumoriPass() {
     beginRace(run);
   }, [beginRace, finishRun]);
 
+  // ---------------------------------------------------------------- the rear-view mirror (duels)
+  useEffect(() => {
+    const sc = sceneRef.current, el = mirrorRef.current, cv = canvasRef.current;
+    if (!sc) return;
+    if (!el || !cv || screen !== 'race') { sc.setMirror(null); return; }
+    const place = () => { const a = el.getBoundingClientRect(), b = cv.getBoundingClientRect(), i = 3; sc.setMirror({ x: a.left - b.left + i, y: a.top - b.top + i, w: a.width - i * 2, h: a.height - i * 2 }); };
+    place();
+    const ro = new ResizeObserver(place); ro.observe(el); ro.observe(cv);
+    return () => { ro.disconnect(); sc.setMirror(null); };
+  }, [screen, !!runRef.current?.duel]);
+
   // ---------------------------------------------------------------- the loop
   useEffect(() => {
     let raf = 0, last = performance.now(), acc = 0;
@@ -284,7 +296,7 @@ export default function KumoriPass() {
       f.cars = cars.length > 1 ? views.current : soloViews.current;
       if (race.ghost && run.ghost) { fillView(ghostView.current, race.ghost, race, false); f.ghost = ghostView.current; } else f.ghost = null;
       f.cam = cam.current; f.dt = dt; f.slowmo = sm; shake.current = Math.max(0, shake.current - dt * 3); f.shake = shake.current;
-      f.dawn = run.mode === 'relay' ? Math.min(1, 0.3 + (run.duel?.round ?? 0) * 0.35 + (race.player.s / race.track.len) * 0.3) : run.pass === 'summit' && run.mode !== 'duel' ? 0.15 : 0;
+      f.dawn = run.mode === 'relay' ? Math.min(1, 0.3 + (run.duel?.round ?? 0) * 0.35 + (race.player.s / race.track.len) * 0.3) : run.pass === 'summit' ? 0.32 : 0;
       f.focus = 0;
       sc.render(f);
       drawSpeedLines(Math.hypot(p.car.u, p.car.v), p.car.boost > 0, sm < 1);
@@ -300,7 +312,7 @@ export default function KumoriPass() {
   function fillView(v: CarView, r: Race['racers'][number], race: Race, brake: boolean) {
     const c = r.car, t = race.track;
     v.x = c.x; v.y = c.y; v.z = t.z[r.idx]; v.h = c.h; v.u = c.u; v.v = c.v; v.delta = c.delta; v.ax = c.ax; v.ay = c.ay; v.wheelRot = c.wheelRot;
-    v.spin = r.hold > 0 ? 0 : c.wheelSpin; v.brake = brake; v.boost = c.boost > 0 ? 1 : 0; v.lights = race.t > -2.2 ? 1 : 0; v.pitch = Math.atan(t.grade[r.idx] * Math.cos(c.h - t.h[r.idx])); v.visible = true;
+    v.spin = r.hold > 0 ? 0 : c.wheelSpin; v.brake = brake; v.boost = c.boost > 0 ? 1 : 0; v.lights = race.t > -2.2 ? 1 : 0; v.pitch = Math.atan(t.grade[r.idx] * Math.cos(c.h - t.h[r.idx])); v.visible = true; v.i = r.idx;
   }
 
   function readInput(dt: number) {
@@ -408,10 +420,10 @@ export default function KumoriPass() {
     if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
     const g = c.getContext('2d'); if (!g) return;
     g.clearRect(0, 0, w, h);
-    const k = Math.max(0, Math.min(1, (speed - 22) / 18)) + (boost ? 0.5 : 0) + (cut ? 0.6 : 0);
+    const k = Math.max(0, Math.min(1, (speed - 24) / 18)) * 0.8 + (boost ? 0.4 : 0) + (cut ? 0.6 : 0);
     if (k <= 0.02 || saveRef.current.settings.lite) return;
     const cx = w / 2, cy = h * 0.45, R = Math.hypot(w, h) / 2, t = performance.now() / 1000;
-    g.strokeStyle = cut ? 'rgba(255,255,255,0.55)' : 'rgba(235,240,255,0.32)';
+    g.strokeStyle = cut ? 'rgba(255,255,255,0.55)' : 'rgba(235,240,255,0.2)';
     for (let i = 0; i < 46; i++) {
       const a = (i / 46) * Math.PI * 2 + Math.sin(i * 12.3 + Math.floor(t * 18)) * 0.05;
       const r0 = R * (0.62 + ((i * 37 + Math.floor(t * 24)) % 7) * 0.035), len = R * (0.1 + k * 0.25);
@@ -679,7 +691,7 @@ export default function KumoriPass() {
       </div>
     </section>; })()}
 
-    {screen === 'race' && run && <section className="kp-race" data-mode={run.mode}>
+    {screen === 'race' && run && <section className="kp-race" data-mode={run.mode} data-mirror={run.duel ? '1' : '0'}>
       <div className="kp-hud kp-hud-tl">
         <div className="kp-speedo"><b ref={H('speed')}>0</b><small>km/h</small><span className="kp-gear" ref={H('gear')}>1</span></div>
         <div className="kp-rpm" ref={H('rpm')}><i /></div>
@@ -696,6 +708,7 @@ export default function KumoriPass() {
         {run.mode === 'delivery' && <div className="kp-buns" ref={H('buns')} data-left="12"><small>Buns</small><div className="kp-bunrow">{Array.from({ length: G.BUNS }, (_, i) => <i key={i} style={{ ['--i' as string]: i }} />)}</div><div className="kp-wobble" ref={H('wobble')}><i /></div></div>}
         <div className="kp-progress" ref={H('progress')}><i /></div>
       </div>
+      {run.duel && <div className="kp-mirror" ref={mirrorRef} aria-hidden />}
       <div className="kp-msg" ref={H('msg')} data-on="0" />
       <button className="kp-pausebtn" onClick={() => setPaused(true)} aria-label="Pause">❚❚</button>
       {touch && <div className="kp-touchpad">

@@ -292,7 +292,7 @@ function lowerBody(m: Model, s: Soup, h: Soup) {
     fc.push(m.bands[m.bands.length - 1][1]); // across the top
     for (let k = n - 1; k >= 0; k--) { full.push([-pts[k][0], pts[k][1]]); if (k > 0) fc.push(cols[k - 1]); }
     fc.push(DARK); // underside back to the start
-    return { pts: full, cols: fc, yc: (t + b) / 2 };
+    return { pts: full, cols: fc, side: pts, sideCols: cols, yc: (t + b) / 2 };
   };
   const rings = xs.map((x) => ({ x, ...ring(x) }));
   const P = (x: number, q: [number, number]) => [x, q[1], q[0]];
@@ -305,10 +305,13 @@ function lowerBody(m: Model, s: Soup, h: Soup) {
       s.quad(a, b, c, d, col, mid, sm); h.quad(a, b, c, d, 0, mid);
     }
   }
-  // the nose and tail faces
+  // the nose and tail faces, in bands straight across like the sides
   for (const R of [rings[0], rings[rings.length - 1]]) {
-    const n = R.pts.length, cen = [R.x, R.yc, 0], inside = [R.x - Math.sign(R.x), R.yc, 0];
-    for (let k = 0; k < n; k++) { const a = P(R.x, R.pts[k]), b = P(R.x, R.pts[(k + 1) % n]); const col = R.cols[k] === DARK ? m.bumper : R.cols[k]; s.tri(cen, a, b, col, inside); h.tri(cen, a, b, 0, inside); }
+    const inside = [R.x - Math.sign(R.x), R.yc, 0], sp = R.side;
+    for (let k = 0; k < sp.length - 1; k++) {
+      const a = P(R.x, sp[k]), b = P(R.x, sp[k + 1]), c = P(R.x, [-sp[k + 1][0], sp[k + 1][1]]), d = P(R.x, [-sp[k][0], sp[k][1]]);
+      s.quad(a, b, c, d, R.sideCols[k], inside); h.quad(a, b, c, d, 0, inside);
+    }
   }
 }
 

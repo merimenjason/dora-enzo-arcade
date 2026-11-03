@@ -202,7 +202,12 @@
 .kp-msg[data-tone="good"]{color:var(--amber)}.kp-msg[data-tone="bad"]{color:var(--hot)}
 .kp-msg[data-tone="count"],.kp-msg[data-tone="go"]{font-size:calc(var(--fs)*4.5);top:24%;color:var(--amber)}
 .kp-shell .kp-pausebtn{position:absolute;right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));min-height:40px;padding:.2em .7em;z-index:5;transform:none}
-.kp-touch .kp-pausebtn{top:auto;bottom:auto;right:50%;transform:translateX(50%);top:calc(max(10px,env(safe-area-inset-top)) + 3.6em)}
+.kp-touch .kp-pausebtn{bottom:auto;right:auto;left:max(12px,env(safe-area-inset-left));transform:none;top:calc(max(10px,env(safe-area-inset-top)) + 6.4em)}
+/* the rear-view mirror in duels: the scene draws the view inside this frame, and Enzo's notes drop below it */
+.kp-mirror{--mw:clamp(150px,16vw,300px);position:absolute;left:50%;top:max(8px,env(safe-area-inset-top));transform:translateX(-50%);width:var(--mw);height:calc(var(--mw) / 3);
+  border:3px solid var(--ink);border-radius:15px;box-shadow:3px 3px 0 var(--ink);pointer-events:none;z-index:3}
+.kp-race[data-mirror="1"] .kp-note{top:calc(max(8px,env(safe-area-inset-top)) + clamp(150px,16vw,300px) / 3 + 10px);transition:transform .16s ease-out,opacity .16s}
+.kp-race[data-mirror="1"] .kp-note[data-on="0"]{opacity:0}
 
 /* touch pads, bottom corners, held sideways */
 .kp-touchpad{position:absolute;inset:auto 0 0 0;display:flex;justify-content:space-between;align-items:flex-end;padding:0 max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));z-index:4;pointer-events:none}
@@ -302,7 +307,9 @@
   .kp-gap,.kp-progress{width:8em}
   .kp-cutin{top:22%;height:30%}
   .kp-cut-word{font-size:calc(var(--fs)*2.4)}
-  .kp-touch .kp-pausebtn{top:auto;bottom:calc(max(12px,env(safe-area-inset-bottom)) + 150px);right:12px;transform:none}
+  .kp-touch .kp-pausebtn{top:auto;bottom:calc(max(12px,env(safe-area-inset-bottom)) + 150px);right:12px;left:auto;transform:none}
+  .kp-mirror{--mw:30vw;top:calc(max(10px,env(safe-area-inset-top)) + 5.4em)}
+  .kp-race[data-mirror="1"] .kp-note{top:calc(max(10px,env(safe-area-inset-top)) + 5.4em + 10vw + 10px)}
   .kp-map{width:100px;height:70px}
 }
 

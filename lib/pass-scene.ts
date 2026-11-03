@@ -1,29 +1,26 @@
-// Kumori Pass: drawing only. A night mountain pass in toon-shaded Three.js: cel-ramp materials, inverted-hull ink
-// outlines on cars and props, a heightfield mountainside cut around the road, guardrails, a ditch and rock cuts on the
-// uphill side, instanced cedars and lamp posts with pools of light, glowing vending machines, red shrine gates, tunnels,
-// an airbrushed sky with stars and a distant town glow, fog, and headlights that light the road. Cars are built from
-// extruded side profiles with spoked wheels that steer, pop-up lamps and body roll. Tyre smoke, persistent skid marks
-// and guardrail sparks come from fixed pools: nothing is allocated per frame.
+// Kumori Pass: drawing only. A night mountain pass in toon-shaded Three.js: cel-ramp materials and ink outlines, a
+// heightfield mountainside cut around the road, guardrails, layered rock cuttings on the uphill side, instanced cedars
+// and lamp posts with pools of light, glowing vending machines, red shrine gates, tunnels, an airbrushed sky with stars,
+// a moon, ridges in three hazy layers and a town's lights in the valley, a moonlit lake, fog, and headlights that light
+// the road. The cars are built in pass-models.ts. A chase camera that looks into the next corner, a rear-view mirror in
+// duels, and tyre smoke, skid marks and sparks from fixed pools: nothing is allocated per frame.
 import * as T from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Track } from './pass-tracks';
-import type { CarShape } from './pass-game';
+import { buildCar, hull, INK_PROP, INK_TREE, toon, type CarLook, type CarRig } from './pass-models';
+import { cedar, lake, Props, rockCut, ridges, townLights } from './pass-scenery';
+export type { CarLook } from './pass-models';
 
 // engine (x, y, height z) → three (x, z, -y)
 const V = new T.Vector3(), V2 = new T.Vector3(), V3 = new T.Vector3(), Q = new T.Quaternion(), M4 = new T.Matrix4(), S3 = new T.Vector3(), E = new T.Euler();
 
-export type CarLook = { shape: CarShape; body: number; trim: number; biscuit?: boolean; ghost?: boolean };
 export type CarView = { x: number; y: number; z: number; h: number; u: number; v: number; delta: number; ax: number; ay: number; wheelRot: number;
-  spin: number; brake: boolean; boost: number; lights: number; pitch: number; visible: boolean };
-export const carView = (): CarView => ({ x: 0, y: 0, z: 0, h: 0, u: 0, v: 0, delta: 0, ax: 0, ay: 0, wheelRot: 0, spin: 0, brake: false, boost: 0, lights: 1, pitch: 0, visible: true });
+  spin: number; brake: boolean; boost: number; lights: number; pitch: number; visible: boolean; i: number };
+export const carView = (): CarView => ({ x: 0, y: 0, z: 0, h: 0, u: 0, v: 0, delta: 0, ax: 0, ay: 0, wheelRot: 0, spin: 0, brake: false, boost: 0, lights: 1, pitch: 0, visible: true, i: 0 });
 export type FrameView = { cars: CarView[]; ghost: CarView | null; cam: number; dt: number; dawn: number; slowmo: number; shake: number; focus: number };
+export type MirrorRect = { x: number; y: number; w: number; h: number };
 
-// ---------------------------------------------------------------- shared materials
-const ramp = (() => {
-  const d = new Uint8Array([70, 70, 70, 255, 150, 150, 150, 255, 255, 255, 255, 255]);
-  const t = new T.DataTexture(d, 3, 1, T.RGBAFormat); t.minFilter = T.NearestFilter; t.magFilter = T.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true; return t;
-})();
-const toon = (color: number, o: T.MeshToonMaterialParameters = {}) => new T.MeshToonMaterial({ color, gradientMap: ramp, ...o });
+// legacy ink for the rails and tunnel portals, which are drawn as offset strips
 const INK = new T.MeshBasicMaterial({ color: 0x0d0a14, side: T.BackSide });
 
 function hash(i: number) { let x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
@@ -33,174 +30,6 @@ function vnoise(x: number, y: number) {
   const s = (t: number) => t * t * (3 - 2 * t);
   const a = h(xi, yi), b = h(xi + 1, yi), c = h(xi, yi + 1), d = h(xi + 1, yi + 1);
   return a + (b - a) * s(xf) + (c - a) * s(yf) + (a - b - c + d) * s(xf) * s(yf);
-}
-
-// ---------------------------------------------------------------- cars, from extruded profiles
-type Profile = { L: number; W: number; low: [number, number][]; cab: [number, number][]; popups: boolean; spoiler: 0 | 1 | 2; pod?: boolean; open?: boolean; wb: [number, number]; lamps: 'round' | 'square' };
-const PROFILES: Record<CarShape, Profile> = {
-  hatch: { L: 3.75, W: 1.62, wb: [1.18, -1.2], popups: false, spoiler: 0, lamps: 'round',
-    low: [[-1.86, 0.32], [1.86, 0.32], [1.9, 0.5], [1.86, 0.74], [1.7, 0.86], [0.55, 0.94], [-1.6, 0.98], [-1.88, 0.92], [-1.9, 0.5]],
-    cab: [[0.55, 0.92], [0.05, 1.42], [-1.5, 1.45], [-1.82, 1.08], [-1.82, 0.92]] },
-  wedge: { L: 4.15, W: 1.7, wb: [1.28, -1.25], popups: true, spoiler: 1, lamps: 'square',
-    low: [[-2.05, 0.3], [2.08, 0.3], [2.12, 0.5], [2.0, 0.62], [0.6, 0.86], [-1.9, 0.92], [-2.08, 0.84], [-2.08, 0.46]],
-    cab: [[0.65, 0.84], [-0.1, 1.24], [-1.15, 1.26], [-1.85, 0.92]] },
-  roadster: { L: 3.95, W: 1.66, wb: [1.15, -1.15], popups: true, spoiler: 0, open: true, lamps: 'square',
-    low: [[-1.95, 0.3], [1.98, 0.3], [2.02, 0.48], [1.9, 0.62], [0.35, 0.8], [-1.85, 0.86], [-1.98, 0.78], [-1.98, 0.46]],
-    cab: [[0.4, 0.78], [-0.05, 1.12], [-0.25, 1.12], [-0.2, 0.8]] },
-  saloon: { L: 4.35, W: 1.7, wb: [1.32, -1.32], popups: false, spoiler: 0, pod: true, lamps: 'square',
-    low: [[-2.15, 0.32], [2.15, 0.32], [2.18, 0.55], [2.12, 0.8], [0.95, 0.9], [-1.4, 0.94], [-2.12, 0.92], [-2.18, 0.55]],
-    cab: [[0.95, 0.88], [0.4, 1.4], [-0.95, 1.42], [-1.45, 0.92]] },
-  kei: { L: 3.2, W: 1.45, wb: [1.0, -1.0], popups: false, spoiler: 0, lamps: 'round',
-    low: [[-1.58, 0.3], [1.58, 0.3], [1.62, 0.5], [1.55, 0.8], [1.15, 0.92], [-1.5, 0.98], [-1.62, 0.9], [-1.62, 0.5]],
-    cab: [[1.15, 0.9], [0.65, 1.5], [-1.3, 1.52], [-1.55, 0.95]] },
-  fastback: { L: 4.3, W: 1.74, wb: [1.32, -1.3], popups: true, spoiler: 2, lamps: 'square',
-    low: [[-2.12, 0.3], [2.14, 0.3], [2.18, 0.48], [2.06, 0.64], [0.75, 0.84], [-1.9, 0.94], [-2.14, 0.86], [-2.16, 0.46]],
-    cab: [[0.75, 0.82], [0.0, 1.26], [-0.7, 1.28], [-2.0, 0.92]] },
-  coupe: { L: 4.6, W: 1.72, wb: [1.45, -1.32], popups: false, spoiler: 1, lamps: 'round',
-    low: [[-2.28, 0.32], [2.3, 0.32], [2.34, 0.55], [2.28, 0.76], [0.55, 0.86], [-1.6, 0.9], [-2.28, 0.86], [-2.32, 0.5]],
-    cab: [[0.55, 0.85], [-0.1, 1.28], [-1.05, 1.3], [-1.75, 0.9]] },
-};
-
-function extrude(pts: [number, number][], width: number, bevel = 0.06) {
-  const sh = new T.Shape(); pts.forEach(([x, y], i) => (i ? sh.lineTo(x, y) : sh.moveTo(x, y))); sh.closePath();
-  const g = new T.ExtrudeGeometry(sh, { depth: width - bevel * 2, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 2, curveSegments: 4 });
-  g.translate(0, 0, -(width - bevel * 2) / 2);
-  return g;
-}
-
-let bunLogo: T.CanvasTexture | null = null;
-function bunTexture() {
-  if (bunLogo || typeof document === 'undefined') return bunLogo;
-  const c = document.createElement('canvas'); c.width = 256; c.height = 256; const g = c.getContext('2d')!;
-  g.translate(128, 128);
-  g.fillStyle = '#1d2b4a'; g.beginPath(); g.arc(0, 0, 124, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#fbf3df'; g.beginPath(); g.arc(0, 0, 112, 0, Math.PI * 2); g.fill();
-  // the bun
-  const grad = g.createRadialGradient(-14, -30, 8, 0, 0, 70); grad.addColorStop(0, '#ffd98a'); grad.addColorStop(1, '#c97a2a');
-  g.fillStyle = grad; g.strokeStyle = '#2a1608'; g.lineWidth = 6;
-  g.beginPath(); g.ellipse(0, 6, 64, 46, 0, 0, Math.PI * 2); g.fill(); g.stroke();
-  g.strokeStyle = '#7a3f12'; g.lineWidth = 5; for (const dx of [-24, 0, 24]) { g.beginPath(); g.moveTo(dx - 8, -26); g.quadraticCurveTo(dx + 4, 6, dx - 6, 36); g.stroke(); }
-  g.fillStyle = '#fff6dd'; g.beginPath(); g.ellipse(-24, -14, 12, 6, -0.5, 0, Math.PI * 2); g.fill();
-  // the lettering round the rim
-  g.fillStyle = '#1d2b4a'; g.font = '900 26px "Dela Gothic One", "Arial Black", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  const arc = (text: string, r: number, mid: number, dir: 1 | -1) => {
-    const step = 0.155; let a = mid - (dir * step * (text.length - 1)) / 2;
-    for (const ch of text) { g.save(); g.rotate(a); g.translate(0, -dir * r); g.fillText(ch, 0, 0); g.restore(); a += dir * step; }
-  };
-  arc('HILLSIDE', 92, 0, 1); arc('BUN BAKERY', 92, Math.PI, -1);
-  bunLogo = new T.CanvasTexture(c); bunLogo.colorSpace = T.SRGBColorSpace; bunLogo.anisotropy = 4;
-  return bunLogo;
-}
-
-export type CarRig = { root: T.Group; body: T.Group; wheels: T.Group[]; spinners: T.Object3D[]; steer: T.Group[]; pops: T.Group[]; tail: T.MeshBasicMaterial; streaks: T.Mesh[]; ink: T.Mesh[]; beam: T.Mesh | null; headPool?: T.Mesh; spot: T.SpotLight | null; shadowed: T.Mesh[] };
-
-const rimGeo = (() => {
-  const parts: T.BufferGeometry[] = [];
-  const disc = new T.CylinderGeometry(0.21, 0.21, 0.06, 18); disc.rotateX(Math.PI / 2); disc.translate(0, 0, 0.13); parts.push(disc);
-  for (let k = 0; k < 5; k++) { const sp = new T.BoxGeometry(0.05, 0.2, 0.04); sp.translate(0, 0.1, 0.165); sp.rotateZ((k / 5) * Math.PI * 2); parts.push(sp); }
-  const hub = new T.CylinderGeometry(0.06, 0.06, 0.08, 10); hub.rotateX(Math.PI / 2); hub.translate(0, 0, 0.17); parts.push(hub);
-  return mergeGeometries(parts.map((p) => p.toNonIndexed()))!;
-})();
-const tyreGeo = (() => { const g = new T.CylinderGeometry(0.31, 0.31, 0.24, 20); g.rotateX(Math.PI / 2); return g; })();
-
-export function buildCar(look: CarLook, withLights: boolean): CarRig {
-  const P = PROFILES[look.shape];
-  const root = new T.Group(), body = new T.Group(); root.add(body); root.userData.L = P.L;
-  const ghost = !!look.ghost;
-  const mat = (c: number) => (ghost ? new T.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.32, depthWrite: false }) : toon(c));
-  const ink: T.Mesh[] = [], shadowed: T.Mesh[] = [];
-  const add = (geo: T.BufferGeometry, m: T.Material, outline = true, parent: T.Object3D = body) => {
-    const mesh = new T.Mesh(geo, m); parent.add(mesh); if (!ghost) { mesh.castShadow = true; shadowed.push(mesh); }
-    if (outline && !ghost) { const o = new T.Mesh(geo, INK); o.scale.setScalar(1.035); mesh.add(o); ink.push(o); }
-    return mesh;
-  };
-  const W = P.W;
-  // lower body in the main colour, a two-tone lower half for the Biscuit
-  const lowGeo = extrude(P.low, W);
-  add(lowGeo, mat(look.body));
-  if (look.biscuit) {
-    const skirt = extrude([[-1.92, 0.3], [1.92, 0.3], [1.94, 0.6], [-1.94, 0.6]], W + 0.03, 0.03); add(skirt, mat(0x6fb3dc), false);
-    const stripe = extrude([[-1.9, 0.64], [1.86, 0.64], [1.86, 0.7], [-1.9, 0.7]], W + 0.035, 0.02); add(stripe, mat(0x2f5f8f), false);
-  } else {
-    const stripe = extrude([[-P.L / 2 + 0.05, 0.58], [P.L / 2 - 0.05, 0.58], [P.L / 2 - 0.05, 0.64], [-P.L / 2 + 0.05, 0.64]], W + 0.03, 0.02); add(stripe, mat(look.trim), false);
-  }
-  // the glasshouse: dark glass with body-coloured pillars and roof
-  if (!P.open) {
-    const cabW = W * 0.86;
-    add(extrude(P.cab, cabW, 0.05), ghost ? mat(0x9fc6ff) : new T.MeshToonMaterial({ color: 0x1b2a44, gradientMap: ramp, emissive: 0x0b1424 }));
-    const roofPts = P.cab.slice(1, 3) as [number, number][];
-    const roof = extrude([[roofPts[0][0] - 0.04, roofPts[0][1] - 0.03], [roofPts[1][0] + 0.04, roofPts[1][1] - 0.03], [roofPts[1][0] + 0.04, roofPts[1][1] + 0.04], [roofPts[0][0] - 0.04, roofPts[0][1] + 0.04]], cabW + 0.04, 0.02);
-    add(roof, mat(look.body), false);
-    // B-pillars
-    const bx = (P.cab[1][0] + P.cab[2][0]) / 2;
-    add(new T.BoxGeometry(0.12, 0.5, cabW + 0.03).translate(bx, (P.cab[1][1] + P.low[5][1]) / 2, 0), mat(look.body), false);
-  } else {
-    // open roadster: a windscreen frame and two seat backs
-    add(extrude(P.cab, W * 0.9, 0.03), ghost ? mat(0x9fc6ff) : new T.MeshToonMaterial({ color: 0x24344f, gradientMap: ramp, transparent: true, opacity: 0.75 }), false);
-    for (const z of [-0.38, 0.38]) add(new T.BoxGeometry(0.16, 0.42, 0.46).translate(-0.55, 1.02, z), mat(0x3a2a22), false);
-  }
-  // wheels: tyre, a spoked rim, front ones steer
-  const wheels: T.Group[] = [], spinners: T.Object3D[] = [], steer: T.Group[] = [];
-  for (const [ax, front] of [[P.wb[0], true], [P.wb[1], false]] as const) for (const side of [-1, 1]) {
-    const pivot = new T.Group(); pivot.position.set(ax, 0.31, side * (W / 2 - 0.08)); root.add(pivot);
-    const spin = new T.Group(); pivot.add(spin);
-    const t = new T.Mesh(tyreGeo, ghost ? mat(0x9fc6ff) : toon(0x1c1b20)); spin.add(t);
-    if (!ghost) { const o = new T.Mesh(tyreGeo, INK); o.scale.setScalar(1.05); t.add(o); ink.push(o); }
-    const rim = new T.Mesh(rimGeo, ghost ? mat(0xcfe2ff) : toon(look.biscuit ? 0xf3ead2 : 0xc9ccd4)); rim.scale.z = side; spin.add(rim);
-    wheels.push(pivot); spinners.push(spin); if (front) steer.push(pivot);
-  }
-  // lamps
-  const lampMat = new T.MeshBasicMaterial({ color: 0xfff1c4 });
-  const tail = new T.MeshBasicMaterial({ color: 0xb3121c });
-  const pops: T.Group[] = [];
-  const nose = P.L / 2;
-  if (P.popups) {
-    for (const z of [-W / 2 + 0.38, W / 2 - 0.38]) {
-      const hinge = new T.Group(); hinge.position.set(nose - 0.42, P.low[3][1] - 0.02, z); body.add(hinge);
-      const box = add(new T.BoxGeometry(0.34, 0.06, 0.42).translate(-0.17, 0, 0), mat(look.body), true, hinge);
-      const lens = new T.Mesh(new T.PlaneGeometry(0.36, 0.14), lampMat); lens.position.set(0.02, 0.1, 0); lens.rotation.y = Math.PI / 2; hinge.add(lens);
-      const frame = new T.Mesh(new T.BoxGeometry(0.04, 0.2, 0.42), mat(look.body)); frame.position.set(0, 0.1, 0); hinge.add(frame);
-      void box; pops.push(hinge);
-    }
-  } else {
-    for (const z of [-W / 2 + 0.32, W / 2 - 0.32]) {
-      const g = P.lamps === 'round' ? new T.CircleGeometry(0.13, 16) : new T.PlaneGeometry(0.3, 0.14);
-      const lens = new T.Mesh(g, lampMat); lens.position.set(nose + 0.035, (P.low[2][1] + P.low[3][1]) / 2, z); lens.rotation.y = Math.PI / 2; body.add(lens);
-    }
-  }
-  for (const z of [-W / 2 + 0.28, W / 2 - 0.28]) {
-    const lens = new T.Mesh(new T.PlaneGeometry(0.34, 0.12), tail); lens.position.set(-nose - 0.04, P.low[P.low.length - 2][1] - 0.12, z); lens.rotation.y = -Math.PI / 2; body.add(lens);
-  }
-  // spoilers and pods
-  if (P.spoiler) {
-    const sx = -nose + 0.25, sy = P.low[P.low.length - 3][1];
-    add(new T.BoxGeometry(0.42, 0.05, W - 0.1).translate(sx, sy + (P.spoiler === 2 ? 0.16 : 0.24), 0), mat(look.trim));
-    for (const z of [-W / 2 + 0.2, W / 2 - 0.2]) add(new T.BoxGeometry(0.1, P.spoiler === 2 ? 0.16 : 0.24, 0.05).translate(sx, sy + 0.1, z), mat(look.trim), false);
-  }
-  if (P.pod) for (const z of [-0.45, -0.15, 0.15, 0.45]) { const l = new T.Mesh(new T.CylinderGeometry(0.1, 0.1, 0.08, 12).rotateZ(Math.PI / 2), lampMat); l.position.set(0.25, 1.5, z); body.add(l); }
-  // the Biscuit's bun logo on both doors
-  if (look.biscuit && !ghost) {
-    const tex = bunTexture();
-    if (tex) for (const side of [-1, 1]) {
-      const p = new T.Mesh(new T.CircleGeometry(0.3, 28), new T.MeshBasicMaterial({ map: tex, transparent: true }));
-      p.position.set(-0.15, 0.72, side * (W / 2 + 0.012)); p.rotation.y = side > 0 ? 0 : Math.PI; body.add(p);
-    }
-  }
-  // headlight beam (a faint cone, visible in fog) and taillight streaks
-  let beam: T.Mesh | null = null, spot: T.SpotLight | null = null;
-  const streaks: T.Mesh[] = [];
-  if (withLights && !ghost) {
-    const bg = new T.ConeGeometry(4.2, 26, 20, 1, true); bg.rotateZ(Math.PI / 2); bg.translate(nose + 13, 0.7, 0);
-    beam = new T.Mesh(bg, new T.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.07, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false }));
-    root.add(beam);
-    spot = new T.SpotLight(0xfff0d0, 90, 85, 0.5, 0.55, 1.1);
-    spot.position.set(nose, 0.8, 0); spot.target.position.set(nose + 20, -0.6, 0); root.add(spot); root.add(spot.target);
-    for (const z of [-W / 2 + 0.28, W / 2 - 0.28]) {
-      const s = new T.Mesh(new T.PlaneGeometry(1, 0.1), new T.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: 0.55, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide }));
-      s.position.set(-nose - 0.6, P.low[P.low.length - 2][1] - 0.12, z); s.rotation.x = Math.PI / 2; root.add(s); streaks.push(s);
-    }
-  }
-  return { root, body, wheels, spinners, steer, pops, tail, streaks, ink, beam, spot, shadowed };
 }
 
 const MOOD = { fog: new T.Color(0xf2b591), hemi: new T.Color(0xffd6b0), moon: new T.Color(0xffc48a), ridge: new T.Color(0x7a5a78) };
@@ -261,11 +90,19 @@ export class PassScene {
   heights: { x0: number; y0: number; step: number; nx: number; ny: number; h: Float32Array } | null = null;
   camPos = new T.Vector3(); camLook = new T.Vector3(); camInit = false; fov = 62; t = 0; showcase = false; showAngle = 0;
   private outlines: T.Object3D[] = [];
+  private ridgeLayers: ReturnType<typeof ridges> = []; private town: T.Points | null = null; private lakeMat: T.ShaderMaterial | null = null; private sun: T.Sprite;
+  private glows: T.ShaderMaterial[] = [];
+  // the rear-view mirror: a small render target shown on a rounded quad, flipped like a mirror
+  private mirror = { cam: new T.PerspectiveCamera(46, 3, 0.6, 320), rt: null as T.WebGLRenderTarget | null, rect: null as MirrorRect | null,
+    scene: new T.Scene(), ortho: new T.OrthographicCamera(0, 1, 0, -1, -1, 1), quad: null as T.Mesh | null };
+  private camYaw = 0;
   constructor(public canvas: HTMLCanvasElement) {
     this.renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, 1.5));
     this.renderer.outputColorSpace = T.SRGBColorSpace;
     this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = T.PCFShadowMap;
+    this.renderer.info.autoReset = false; // reset once a frame, so the count covers the mirror too
+    this.camera.layers.enable(1); // layer 1: ink outlines and particles, which the mirror leaves out
     this.scene.fog = new T.FogExp2(0x1b2348, 0.006);
     this.scene.add(this.hemi, this.moon, this.moon.target, this.world, this.show);
     this.moon.castShadow = true; this.moon.shadow.mapSize.set(1024, 1024);
@@ -287,12 +124,14 @@ export class PassScene {
     this.moonSprite.scale.set(160, 160, 1); this.scene.add(this.moonSprite);
     this.glow = new T.Sprite(new T.SpriteMaterial({ map: this.glowTexture('#ffc27a', '#ff7a3a', 0.05), fog: false, depthWrite: false, transparent: true, blending: T.AdditiveBlending, opacity: 0.9 }));
     this.glow.scale.set(1400, 340, 1); this.scene.add(this.glow);
+    this.sun = new T.Sprite(new T.SpriteMaterial({ map: this.glowTexture('#fff6dc', '#ffae6a', 0.16), fog: false, depthWrite: false, transparent: true, blending: T.AdditiveBlending }));
+    this.sun.scale.set(420, 420, 1); this.sun.visible = false; this.scene.add(this.sun);
     // fx pools
     this.smoke = new Pool(260, pointsMat('smoke'), 2.8); this.sparks = new Pool(160, pointsMat('spark'), -0.3);
-    this.scene.add(this.smoke.pts, this.sparks.pts);
+    this.scene.add(this.smoke.pts, this.sparks.pts); this.smoke.pts.layers.set(1); this.sparks.pts.layers.set(1);
     const SK = 900;
     const skPos = new Float32Array(SK * 6 * 3); const skGeo = new T.BufferGeometry(); skGeo.setAttribute('position', new T.BufferAttribute(skPos, 3).setUsage(T.DynamicDrawUsage));
-    const skMesh = new T.Mesh(skGeo, new T.MeshBasicMaterial({ color: 0x08070c, transparent: true, opacity: 0.55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    const skMesh = new T.Mesh(skGeo, new T.MeshBasicMaterial({ color: 0x08070c, transparent: true, opacity: 0.55, depthWrite: false, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
     skMesh.frustumCulled = false; this.scene.add(skMesh);
     this.skid = { geo: skGeo, pos: skPos, next: 0, last: [], mesh: skMesh };
     this.resize();
@@ -308,6 +147,7 @@ export class PassScene {
     this.lite = lite;
     this.renderer.setPixelRatio(lite ? 1 : Math.min(devicePixelRatio || 1, 1.5));
     this.renderer.shadowMap.enabled = !lite; this.moon.castShadow = !lite;
+    if (lite) this.camera.layers.disable(1); else this.camera.layers.enable(1); // outlines and particles
     for (const o of this.outlines) o.visible = !lite;
     for (const c of this.cars) for (const o of c.ink) o.visible = !lite;
     this.smoke.pts.visible = !lite; this.sparks.pts.visible = !lite;
@@ -334,7 +174,7 @@ export class PassScene {
     const det = cxx * cyy - cxy * cxy || 1;
     const ga = (cxz * cyy - cyz * cxy) / det, gb = (cyz * cxx - cxz * cxy) / det;
     const plane = (x: number, y: number) => mz + ga * (x - mx) + gb * (y - my);
-    const M = 140, step = 4;
+    const M = 140, step = 6;
     const x0 = minX - M, y0 = minY - M, nx = Math.ceil((maxX - minX + 2 * M) / step) + 1, ny = Math.ceil((maxY - minY + 2 * M) / step) + 1;
     // spatial hash of road samples
     const CELL = 12, buckets = new Map<number, number[]>();
@@ -345,6 +185,9 @@ export class PassScene {
       for (let a = -3; a <= 3; a++) for (let b = -3; b <= 3; b++) { const bk = buckets.get(key(cx + a, cy + b)); if (!bk) continue; for (const i of bk) { const d = (x - t.x[i]) ** 2 + (y - t.y[i]) ** 2; if (d < bd) { bd = d; best = i; } } }
       return [best, Math.sqrt(bd)] as const;
     };
+    // Lakeside Esses: a basin falls away on the downhill side of the road, down to the lake
+    let lakeLevel = -Infinity; if (t.id === 'lake') { lakeLevel = Infinity; for (let i = 0; i < t.n; i++) lakeLevel = Math.min(lakeLevel, t.z[i]); lakeLevel -= 5; }
+    const lkg = Math.hypot(ga, gb), lkx = lkg > 1e-3 ? -ga / lkg : 0.83, lky = lkg > 1e-3 ? -gb / lkg : -0.55;
     const H = new Float32Array(nx * ny);
     const pos = new Float32Array(nx * ny * 3), col = new Float32Array(nx * ny * 3);
     const grass = new T.Color(t.def.dawn ? 0x4f6e3c : 0x2c4a36), dirt = new T.Color(0x5b4a3c), rock = new T.Color(0x4a4a58), c = new T.Color();
@@ -359,6 +202,10 @@ export class PassScene {
         const f = Math.min(1, Math.max(0, (d - half - 3) / 22)); const s = f * f * (3 - 2 * f);
         h = roadH - 0.4 + (base - roadH + 0.4) * s;
         if (d < half + 3) h = roadH - 0.4;
+        if (lakeLevel > -Infinity) {
+          const fl = Math.min(1, Math.max(0, (d - half - 5) / 14)), down = Math.min(1, Math.max(0, ((x - t.x[ri]) * lkx + (y - t.y[ri]) * lky) / Math.max(1, d) * 3)), k = fl * fl * (3 - 2 * fl) * down;
+          h += (lakeLevel - 7 - h) * k;
+        }
       }
       H[j * nx + i] = h;
       pos.set([x, h, -y], (j * nx + i) * 3);
@@ -371,7 +218,7 @@ export class PassScene {
       col.set([c.r, c.g, c.b], k * 3);
     }
     const idx: number[] = [];
-    for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + 1, cc = a + nx, d = cc + 1; idx.push(a, cc, b, b, cc, d); }
+    for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + 1, cc = a + nx, d = cc + 1; idx.push(a, b, cc, b, d, cc); } // wound to face up
     const tg = new T.BufferGeometry(); tg.setAttribute('position', new T.BufferAttribute(pos, 3)); tg.setAttribute('color', new T.BufferAttribute(col, 3)); tg.setIndex(idx); tg.computeVertexNormals();
     const terrain = new T.Mesh(tg, toon(0xffffff, { vertexColors: true })); terrain.receiveShadow = true; this.world.add(terrain);
     this.heights = { x0, y0, step, nx, ny, h: H };
@@ -387,16 +234,18 @@ export class PassScene {
     const gm = toon(0x7d7f88, { map: this.slatTexture() }); gut.material = gm; gut2.material = gm; this.world.add(gut, gut2);
     this.edges(t);
     // rails on both sides (outside the tunnels), and a rock cut behind the ditch on the uphill side
-    const railMat = toon(0xe9ecf2), postMat = toon(0x8d93a3), rockMat = toon(0x6e6872, { emissive: 0x141219 }), ditchMat = toon(0x1c2420);
+    const railMat = toon(0xe9ecf2, { side: T.DoubleSide }), postMat = toon(0x8d93a3), ditchMat = toon(0x1c2420); // rails face the road on both sides
     for (const side of [1, -1] as const) {
       const isRail = (i: number) => !t.tunnel[i];
       const isCut = (i: number) => !t.tunnel[i] && (side === 1 ? !!uphillLeft[i] : !uphillLeft[i]);
       const w = (i: number) => (side === 1 ? t.wl[i] + 0.25 : -t.wr[i] - 0.25);
       for (const [y0r, y1r] of [[0.55, 0.78], [0.3, 0.46]] as const) {
         const rail = this.wall(t, w, y0r, y1r, isRail); rail.material = railMat; this.world.add(rail);
-        const o = this.wall(t, (i) => w(i) + side * 0.03, y0r - 0.03, y1r + 0.03, isRail); o.material = INK; this.world.add(o); this.outlines.push(o);
+        const o = this.wall(t, (i) => w(i) + side * 0.03, y0r - 0.03, y1r + 0.03, isRail); o.material = INK; o.layers.set(1); this.world.add(o); this.outlines.push(o);
       }
-      const cut = this.wall(t, (i) => w(i) + side * 1.2, -0.2, 3.6, isCut); cut.material = rockMat; this.world.add(cut);
+      const cut = rockCut(t, (i, d, up) => { const p = this.at(t, i, d, up); return [p.x, p.y, p.z]; }, (i) => w(i) + side * 1.2, side, isCut,
+        (i, o) => { const d = w(i) + side * (1.2 + o); return this.groundAt(t.x[i] - Math.sin(t.h[i]) * d, t.y[i] + Math.cos(t.h[i]) * d) - t.z[i]; });
+      if (cut) { this.world.add(cut.mesh, cut.ink); this.outlines.push(cut.ink); }
       const ditch = this.ribbon(t, (i) => (side === 1 ? w(i) : w(i) - 1.2), (i) => (side === 1 ? w(i) + 1.2 : w(i)), () => -0.18, false, isCut); ditch.material = ditchMat; this.world.add(ditch);
       // rail posts
       const posts: T.Matrix4[] = [];
@@ -413,18 +262,26 @@ export class PassScene {
       let j = i; while (j < t.n && t.tunnel[j]) j++;
       this.tunnel(t, Math.max(0, i - 2), Math.min(t.n - 1, j + 2));
     }
-    // cedars on the slopes
-    const trees: T.Matrix4[] = []; const rnd = (k: number) => hash(k * 3.17 + t.len);
-    for (let k = 0; trees.length < 900 && k < 6000; k++) {
-      const i = Math.floor(rnd(k) * t.n), side = rnd(k + 0.5) < 0.5 ? -1 : 1, d = 6 + Math.pow(rnd(k + 0.25), 1.6) * 70;
+    // cedars on the slopes, in two shapes and many sizes, each tinted a little differently
+    // in chunks along the road, so the ones out of view are culled
+    const CH = 6, chunks = Array.from({ length: CH }, () => ({ tall: [] as T.Matrix4[], tallC: [] as T.Color[], young: [] as T.Matrix4[], youngC: [] as T.Color[] }));
+    const rnd = (k: number) => hash(k * 3.17 + t.len);
+    for (let k = 0, count = 0; count < 650 && k < 6000; k++) {
+      const i = Math.floor(rnd(k) * t.n), side = rnd(k + 0.5) < 0.5 ? -1 : 1, d = 6 + Math.pow(rnd(k + 0.25), 1.6) * 58;
       const lx = -Math.sin(t.h[i]), ly = Math.cos(t.h[i]);
       const x = t.x[i] + lx * side * d, y = t.y[i] + ly * side * d;
       const [ri, dd] = nearest(x, y); if (ri >= 0 && dd < Math.max(t.wl[ri], t.wr[ri]) + 3) continue;
-      if (t.tunnel[i]) continue;
-      const s = 0.8 + rnd(k + 0.75) * 0.9;
-      M4.compose(V.set(x, this.groundAt(x, y) - 0.3, -y), Q.setFromEuler(E.set(0, rnd(k + 0.1) * 6.28, 0)), S3.set(s, s * (0.9 + rnd(k + 0.3) * 0.5), s)); trees.push(M4.clone());
+      if (t.tunnel[i] || this.groundAt(x, y) < lakeLevel + 0.8) continue;
+      if (lakeLevel > -Infinity && (x - t.x[i]) * lkx + (y - t.y[i]) * lky > 0 && rnd(k + 0.85) < 0.85) continue; // keep the lake shore open
+      const tall = rnd(k + 0.6) < 0.62, s = (tall ? 0.7 : 0.6) + Math.pow(rnd(k + 0.75), 1.4) * (tall ? 1.1 : 0.8);
+      M4.compose(V.set(x, this.groundAt(x, y) - 0.3, -y), Q.setFromEuler(E.set(0, rnd(k + 0.1) * 6.28, 0)), S3.set(s, s * (0.85 + rnd(k + 0.3) * 0.55), s));
+      const ch = chunks[Math.min(CH - 1, Math.floor((i / t.n) * CH))]; count++;
+      (tall ? ch.tall : ch.young).push(M4.clone());
+      (tall ? ch.tallC : ch.youngC).push(new T.Color().setHSL(0.36 + (rnd(k + 0.9) - 0.5) * 0.08, 0.5, 0.42 + rnd(k + 0.45) * 0.16).multiplyScalar(2.2));
     }
-    this.instanced(this.cedarGeometry(), toon(0xffffff, { vertexColors: true }), trees, true, 1.05);
+    const gT = cedar(true), gY = cedar(false), hT = hull(gT), hY = hull(gY), treeMat = toon(0xffffff, { vertexColors: true });
+    for (const ch of chunks) { this.trees(gT, hT, treeMat, ch.tall, ch.tallC); this.trees(gY, hY, treeMat, ch.young, ch.youngC); }
+    const props = new Props();
     // lamp posts with pools of light (none on the unlit road)
     if (!t.def.dark) {
       const lamps: T.Matrix4[] = [], heads: T.Matrix4[] = [], pools: T.Matrix4[] = [];
@@ -439,39 +296,41 @@ export class PassScene {
       const pole = mergeGeometries([new T.CylinderGeometry(0.09, 0.12, 6.3, 8).translate(0, 3.15, 0).toNonIndexed(), new T.BoxGeometry(0.1, 0.1, 1.4).translate(0, 6.2, -0.65).toNonIndexed()]);
       this.instanced(pole!, toon(0x3a3f4c), lamps, true);
       this.instanced(new T.BoxGeometry(0.6, 0.18, 0.36), new T.MeshBasicMaterial({ color: 0xffe2a0 }), heads, false);
+      for (const m of heads) { V.setFromMatrixPosition(m); props.glow(V.x, V.y - 0.2, V.z, 0xffcf80, 4.5); }
       this.instanced(new T.CircleGeometry(6.5, 24), new T.MeshBasicMaterial({ color: 0xffb760, transparent: true, opacity: 0.2, depthWrite: false, blending: T.AdditiveBlending, map: this.glowTexture('#ffffff', '#ffffff', 0.2) }), pools, false);
     }
     // vending machines at the passing places, and shrine gates
-    const glowTex = this.glowTexture('#e8f6ff', '#4fd2ff', 0.1);
     let vends = 0;
     for (let i = 1; i < t.n; i++) if (t.wide[i] && !t.wide[i - 1] && vends < 4) {
       const k = Math.min(t.n - 1, i + 22), side = uphillLeft[k] ? 1 : -1, w = side === 1 ? t.wl[k] + 1.9 : -t.wr[k] - 1.9;
-      for (let m = 0; m < 2; m++) this.vending(this.at(t, k + m * 2, w, 0), t.h[k] + (side === 1 ? -Math.PI / 2 : Math.PI / 2), glowTex, m);
+      for (let m = 0; m < 2; m++) props.vending(this.at(t, k + m * 2, w, 0), t.h[k] + (side === 1 ? -Math.PI / 2 : Math.PI / 2), m);
       vends++;
     }
     for (const frac of [0.33, 0.71]) {
       const i = Math.floor(t.n * frac); if (t.tunnel[i]) continue;
       const side = uphillLeft[i] ? 1 : -1, w = side === 1 ? t.wl[i] + 7 : -t.wr[i] - 7;
-      this.gate(this.at(t, i, w, 0), t.h[i] + Math.PI / 2);
+      props.gate(this.at(t, i, w, 0), t.h[i] + Math.PI / 2);
     }
     // start and finish: painted lines and a lantern arch at the finish
     this.line(t, 14 + 9 + 2); this.line(t, Math.round(t.len - 35));
-    this.gate(this.at(t, Math.round(t.len - 35), 0, 0), t.h[Math.round(t.len - 35)] + Math.PI / 2, true);
-    // distant ridges in silhouette
-    const ridges: T.BufferGeometry[] = [];
-    for (let k = 0; k < 26; k++) { const a = (k / 26) * Math.PI * 2 + hash(k) * 0.2, r = 1150 + hash(k + 3) * 300, hgt = 160 + hash(k + 7) * 260;
-      const g = new T.ConeGeometry(260 + hash(k + 9) * 200, hgt, 6, 1); g.translate(mx + Math.cos(a) * r, mz - 80 + hgt / 2, -(my + Math.sin(a) * r)); ridges.push(g.toNonIndexed()); }
-    const ridge = new T.Mesh(mergeGeometries(ridges)!, new T.MeshBasicMaterial({ color: 0x141a36, fog: false })); this.world.add(ridge);
-    this.ridgeMat = ridge.material as T.MeshBasicMaterial;
-    // the town glow sits downhill
-    const gl = Math.hypot(ga, gb) || 1;
-    this.glow.position.set(mx - (ga / gl) * 1500, mz - 120, (my - (gb / gl) * 1500) * -1);
+    props.gate(this.at(t, Math.round(t.len - 35), 0, 0), t.h[Math.round(t.len - 35)] + Math.PI / 2, true);
+    this.outlines.push(...props.build(this.world, this.vendAtlas()));
+    this.glows = []; this.world.traverse((o) => { if (o.userData.glow) this.glows.push((o as T.Points).material as T.ShaderMaterial); });
+    // distant ridges in three hazy layers
+    this.ridgeLayers = ridges(mx, mz, -my); for (const l of this.ridgeLayers) this.world.add(l.mesh);
+    // the town sits downhill: its glow on the horizon and its lights in the valley
+    const gl = Math.hypot(ga, gb) || 1, ddx = -ga / gl, ddz = gb / gl;
+    this.glow.position.set(mx + ddx * 1500, mz - 120, -my + ddz * 1500);
+    this.town = t.def.dark ? null : townLights(mx + ddx * 950, mz - 170, -my + ddz * 950, ddx, ddz); if (this.town) this.world.add(this.town);
     this.moonSprite.position.set(mx + 900, mz + 700, -(my + 600));
+    this.sun.position.set(mx - 1100, mz + 90, -(my - 700));
+    // the lake below Lakeside Esses, glinting towards the moon
+    this.lakeMat = null;
+    if (t.id === 'lake') { const lk = lake(lakeLevel, mx, -my, new T.Vector2(900, -600)); this.world.add(lk.mesh); this.lakeMat = lk.mat; }
     this.sky.position.set(mx, mz, -my); this.stars.position.copy(this.sky.position);
     this.applyMood(0);
     this.camInit = false;
   }
-  private ridgeMat: T.MeshBasicMaterial | null = null;
 
   // ---- road edges: unlit paint and reflectors (they glow in the headlights and fade into the fog with distance),
   // a pale shoulder strip, and delineator posts, the same on both sides of the road
@@ -519,7 +378,10 @@ export class PassScene {
     this.moon.color.set(0xa9b8ff).lerp(MOOD.moon, dawn);
     (this.stars.material as T.PointsMaterial).opacity = Math.max(0, 0.9 - dawn * 1.2) * (t && t.def.fog > 0.5 ? 0.3 : 1);
     (this.moonSprite.material as T.SpriteMaterial).opacity = Math.max(0, 1 - dawn * 1.3);
-    if (this.ridgeMat) this.ridgeMat.color.set(0x141a36).lerp(MOOD.ridge, dawn);
+    for (const l of this.ridgeLayers) l.mat.color.copy(l.night).lerp(l.dawn, dawn);
+    if (this.town) (this.town.material as T.PointsMaterial).opacity = 0.95 * (1 - dawn * 0.8) * (t && t.def.fog > 0.5 ? 0.35 : 1);
+    if (this.lakeMat) this.lakeMat.uniforms.bright.value = 1 - dawn * 0.5;
+    this.sun.visible = dawn > 0.12; (this.sun.material as T.SpriteMaterial).opacity = Math.min(1, (dawn - 0.12) * 2.5);
     (this.glow.material as T.SpriteMaterial).opacity = (dark ? 0.45 : 0.9) * (1 - dawn);
   }
 
@@ -545,7 +407,7 @@ export class PassScene {
       const pa = this.at(t, i, a(i), lift(i)), pb = this.at(t, i, b(i), lift(i));
       const k = pos.length / 3; pos.push(pa.x, pa.y, pa.z, pb.x, pb.y, pb.z);
       uvs.push(0, i / 8, 1, i / 8);
-      if (prev >= 0) idx.push(prev, prev + 1, k, prev + 1, k + 1, k);
+      if (prev >= 0) idx.push(prev, k, prev + 1, prev + 1, k, k + 1); // wound to face up
       prev = k;
     }
     const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2)); g.setIndex(idx); g.computeVertexNormals();
@@ -581,58 +443,38 @@ export class PassScene {
       const p = this.at(t, i, 0, 0);
       const portal = new T.Mesh(new T.RingGeometry(Math.max(t.wl[i], t.wr[i]) + 0.8, Math.max(t.wl[i], t.wr[i]) + 2.4, 18, 1, 0, Math.PI), toon(0x6c6a72, { side: T.DoubleSide }));
       portal.position.copy(p); portal.position.y -= 0.2; portal.rotation.y = t.h[i] + Math.PI / 2; this.world.add(portal);
-      const o = new T.Mesh(portal.geometry, INK); o.scale.setScalar(1.02); portal.add(o); this.outlines.push(o);
+      const o = new T.Mesh(portal.geometry, INK); o.scale.setScalar(1.02); o.layers.set(1); portal.add(o); this.outlines.push(o);
     }
   }
-  private instanced(geo: T.BufferGeometry, mat: T.Material, ms: T.Matrix4[], outline: boolean, oscale = 1.06) {
+  /** One chunk of cedars and their ink, bounded so the chunk is culled when out of view. */
+  private trees(geo: T.BufferGeometry, ink: T.BufferGeometry, mat: T.Material, ms: T.Matrix4[], cols: T.Color[]) {
+    if (!ms.length) return;
+    const im = new T.InstancedMesh(geo, mat, ms.length), io = new T.InstancedMesh(ink, INK_TREE, ms.length);
+    ms.forEach((m, i) => { im.setMatrixAt(i, m); io.setMatrixAt(i, m); im.setColorAt(i, cols[i]); });
+    im.receiveShadow = true; im.computeBoundingSphere(); io.computeBoundingSphere(); io.layers.set(1); io.visible = !this.lite;
+    this.world.add(im, io); this.outlines.push(io);
+  }
+  private instanced(geo: T.BufferGeometry, mat: T.Material, ms: T.Matrix4[], outline: boolean, oscale = 1, ink: T.Material = INK_PROP, colors?: T.Color[]) {
     if (!ms.length) return;
     const im = new T.InstancedMesh(geo, mat, ms.length); ms.forEach((m, i) => im.setMatrixAt(i, m)); im.castShadow = false; im.receiveShadow = true; this.world.add(im);
+    if (colors) colors.forEach((c, i) => im.setColorAt(i, c));
     if (outline) {
-      const og = geo.clone(); og.scale(oscale, oscale, oscale);
-      const io = new T.InstancedMesh(og, INK, ms.length); ms.forEach((m, i) => io.setMatrixAt(i, m)); this.world.add(io); this.outlines.push(io); io.visible = !this.lite;
+      const og = hull(geo); if (oscale !== 1) og.scale(oscale, oscale, oscale);
+      const io = new T.InstancedMesh(og, ink, ms.length); ms.forEach((m, i) => io.setMatrixAt(i, m)); io.layers.set(1); this.world.add(io); this.outlines.push(io); io.visible = !this.lite;
     }
   }
-  private cedarGeometry() {
-    const parts: T.BufferGeometry[] = [];
-    const paint = (g: T.BufferGeometry, c: number) => { const n = g.attributes.position.count, col = new Float32Array(n * 3), cc = new T.Color(c); for (let i = 0; i < n; i++) col.set([cc.r, cc.g, cc.b], i * 3); g.setAttribute('color', new T.BufferAttribute(col, 3)); return g; };
-    parts.push(paint(new T.CylinderGeometry(0.25, 0.4, 3.2, 6).translate(0, 1.6, 0).toNonIndexed(), 0x4a3324));
-    const greens = [0x1f4a34, 0x24553a, 0x2b6142];
-    [[2.2, 4.6, 2.6], [1.7, 3.8, 5.2], [1.1, 3.0, 7.5]].forEach(([r, h, y], k) => parts.push(paint(new T.ConeGeometry(r, h, 7).translate(0, y, 0).toNonIndexed(), greens[k])));
-    return mergeGeometries(parts)!;
-  }
-  private vending(p: T.Vector3, rot: number, glowTex: T.Texture, k: number) {
-    const g = new T.Group(); g.position.copy(p); g.rotation.y = rot; this.world.add(g);
-    const cab = new T.Mesh(new T.BoxGeometry(1.0, 1.9, 0.75).translate(0, 0.95, 0), toon(k ? 0xd8452f : 0x2f6fd0)); g.add(cab);
-    const o = new T.Mesh(cab.geometry, INK); o.scale.setScalar(1.04); cab.add(o); this.outlines.push(o);
-    const face = new T.Mesh(new T.PlaneGeometry(0.78, 1.15), new T.MeshBasicMaterial({ map: this.vendTexture(k) })); face.position.set(0, 1.2, 0.381); g.add(face);
-    const gl = new T.Sprite(new T.SpriteMaterial({ map: glowTex, color: k ? 0xffd2b0 : 0xbfe8ff, blending: T.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.85 }));
-    gl.scale.set(6, 6, 1); gl.position.set(0, 1.3, 0.9); g.add(gl);
-    const pool = new T.Mesh(new T.CircleGeometry(3.2, 20), new T.MeshBasicMaterial({ color: k ? 0xff9a6a : 0x7fd8ff, transparent: true, opacity: 0.22, depthWrite: false, blending: T.AdditiveBlending, map: glowTex }));
-    pool.rotation.x = -Math.PI / 2; pool.position.set(0, 0.06, 1.8); g.add(pool);
-  }
-  private vendTex: T.CanvasTexture[] = [];
-  private vendTexture(k: number) {
-    if (this.vendTex[k]) return this.vendTex[k];
-    const c = document.createElement('canvas'); c.width = 128; c.height = 192; const g = c.getContext('2d')!;
-    g.fillStyle = '#e9f8ff'; g.fillRect(0, 0, 128, 192);
-    const cols = ['#e2483d', '#2c8de0', '#f2b631', '#3fbf74', '#9a5ad8', '#f07ab0'];
-    for (let r = 0; r < 3; r++) for (let q = 0; q < 4; q++) { g.fillStyle = cols[(r * 4 + q + k) % cols.length]; g.fillRect(10 + q * 28, 14 + r * 40, 18, 30); g.fillStyle = '#fff'; g.fillRect(12 + q * 28, 18 + r * 40, 4, 22); g.fillStyle = '#d33'; g.fillRect(12 + q * 28, 46 + r * 40, 14, 4); }
-    g.fillStyle = '#1b1b24'; g.fillRect(14, 140, 100, 34); g.fillStyle = '#ffde59'; g.fillRect(84, 148, 22, 6);
-    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; this.vendTex[k] = t; return t;
-  }
-  private gate(p: T.Vector3, rot: number, finish = false) {
-    const g = new T.Group(); g.position.copy(p); g.rotation.y = rot; this.world.add(g);
-    const red = toon(finish ? 0x2b2f3a : 0xc8352a), span = finish ? 9.6 : 3.4, hgt = finish ? 5.4 : 3.6;
-    const parts = [new T.CylinderGeometry(0.16, 0.2, hgt, 10).translate(-span / 2, hgt / 2, 0), new T.CylinderGeometry(0.16, 0.2, hgt, 10).translate(span / 2, hgt / 2, 0),
-      new T.BoxGeometry(span + 1.4, 0.26, 0.34).translate(0, hgt + 0.1, 0), new T.BoxGeometry(span + 0.4, 0.16, 0.22).translate(0, hgt - 0.6, 0)];
-    for (const geo of parts) { const m = new T.Mesh(geo, red); g.add(m); const o = new T.Mesh(geo, INK); o.scale.setScalar(1.05); m.add(o); this.outlines.push(o); }
-    if (finish) {
-      // paper lanterns along the finish arch
-      const lm = new T.MeshBasicMaterial({ color: 0xffb35a });
-      for (let k = -3; k <= 3; k++) { const l = new T.Mesh(new T.SphereGeometry(0.28, 10, 8).scale(1, 1.3, 1), lm); l.position.set(k * 1.3, hgt - 1.0, 0); g.add(l); }
-      const gl = new T.Sprite(new T.SpriteMaterial({ map: this.glowTexture('#ffe2a8', '#ff8a3a', 0.1), blending: T.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0.7 }));
-      gl.scale.set(16, 8, 1); gl.position.set(0, hgt - 1, 0); g.add(gl);
+  private vendTex: T.CanvasTexture | null = null;
+  /** both vending machine faces side by side, rows of bottles and a dark slot */
+  private vendAtlas() {
+    if (this.vendTex) return this.vendTex;
+    const c = document.createElement('canvas'); c.width = 256; c.height = 192; const g = c.getContext('2d')!;
+    for (let k = 0; k < 2; k++) {
+      const o = k * 128; g.fillStyle = '#e9f8ff'; g.fillRect(o, 0, 128, 192);
+      const cols = ['#e2483d', '#2c8de0', '#f2b631', '#3fbf74', '#9a5ad8', '#f07ab0'];
+      for (let r = 0; r < 3; r++) for (let q = 0; q < 4; q++) { g.fillStyle = cols[(r * 4 + q + k) % cols.length]; g.fillRect(o + 10 + q * 28, 14 + r * 40, 18, 30); g.fillStyle = '#fff'; g.fillRect(o + 12 + q * 28, 18 + r * 40, 4, 22); g.fillStyle = '#d33'; g.fillRect(o + 12 + q * 28, 46 + r * 40, 14, 4); }
+      g.fillStyle = '#1b1b24'; g.fillRect(o + 14, 140, 100, 34); g.fillStyle = '#ffde59'; g.fillRect(o + 84, 148, 22, 6);
     }
+    this.vendTex = new T.CanvasTexture(c); this.vendTex.colorSpace = T.SRGBColorSpace; this.vendTex.userData.keep = true; return this.vendTex;
   }
   private line(t: Track, s: number) {
     const i = Math.max(0, Math.min(t.n - 1, Math.round(s)));
@@ -667,9 +509,8 @@ export class PassScene {
     this.looks = looks.slice();
     this.cars = looks.map((l, i) => {
       const r = buildCar(l, i < 2); this.scene.add(r.root); for (const o of r.ink) o.visible = !this.lite;
-      // a warm pool of headlight on the road ahead
-      if (i < 2) { this.headTex ??= this.glowTexture('#fff2cf', '#ffd98a', 0.15); const m = new T.Mesh(new T.PlaneGeometry(1, 1), new T.MeshBasicMaterial({ map: this.headTex, transparent: true, opacity: 0.55, depthWrite: false, blending: T.AdditiveBlending, fog: false }));
-        m.rotation.x = -Math.PI / 2; m.scale.set(11, 6.5, 1); m.position.set(7.5, 0.07, 0); m.userData.headPool = true; r.root.add(m); r.headPool = m; }
+      // a rival can fade when it tailgates between the camera and the player, so its materials start transparent
+      if (i > 0) for (const m of r.fade) m.transparent = true;
       return r;
     });
     this.ghost = ghost ? buildCar({ ...ghost, ghost: true }, false) : null;
@@ -682,18 +523,29 @@ export class PassScene {
     rig.root.position.set(c.x, c.z, -c.y);
     rig.root.rotation.set(0, c.h, 0);
     rig.root.rotateZ(c.pitch);
-    // body roll and pitch from the accelerations
-    rig.body.rotation.x = Math.max(-0.09, Math.min(0.09, c.ay * 0.0085));
-    rig.body.rotation.z = Math.max(-0.05, Math.min(0.05, -c.ax * 0.005));
+    // body roll and pitch: a damped spring towards the lean the car's real accelerations ask for (squat on the
+    // throttle, dive under braking, roll out of the corner)
+    const k = Math.min(dt, 0.033);
+    const rollT = Math.max(-0.085, Math.min(0.085, c.ay * 0.0085)), pitchT = Math.max(-0.05, Math.min(0.05, c.ax * 0.0055));
+    rig.rollV += ((rollT - rig.roll) * 150 - rig.rollV * 13) * k; rig.roll += rig.rollV * k;
+    rig.pitchV += ((pitchT - rig.pitch) * 170 - rig.pitchV * 15) * k; rig.pitch += rig.pitchV * k;
+    rig.body.rotation.x = rig.roll; rig.body.rotation.z = rig.pitch;
     for (const s of rig.steer) s.rotation.y = c.delta;
     for (const s of rig.spinners) s.rotation.z = -c.wheelRot;
-    for (const p of rig.pops) p.rotation.z += ((c.lights > 0.5 ? 1.15 : 0) - p.rotation.z) * Math.min(1, dt * 6);
-    rig.tail.color.setHex(c.brake ? 0xff3b3b : 0xa8101a);
-    const sp = Math.hypot(c.u, c.v);
-    for (const s of rig.streaks) { const len = Math.min(7, Math.max(0, (sp - 12) * 0.25)); s.visible = len > 0.2; s.scale.x = len; s.position.x = -PROFILES_L(rig) / 2 - len / 2 - 0.1; }
+    for (const p of rig.pops) p.rotation.z += ((c.lights > 0.5 ? 0 : -0.46) - p.rotation.z) * Math.min(1, dt * 6);
+    // tail lamps: dim with the lights on, bright under braking
+    rig.tail.color.copy(rig.tailCol[0]).lerp(rig.tailCol[1], c.brake ? 1 : c.lights > 0.5 ? 0.3 : 0);
+    if (rig.tailGlow) rig.tailGlow.opacity += ((c.brake ? 0.95 : c.lights > 0.5 ? 0.32 : 0.08) - rig.tailGlow.opacity) * Math.min(1, dt * 14);
     if (rig.spot) rig.spot.intensity = c.lights > 0.5 ? 90 : 0;
-    if (rig.beam) (rig.beam.material as T.MeshBasicMaterial).opacity = c.lights > 0.5 ? 0.04 + (this.track ? this.track.def.fog * 0.08 : 0) : 0;
+    if (rig.beam) (rig.beam.material as T.MeshBasicMaterial).opacity = c.lights > 0.5 ? 0.035 + (this.track ? this.track.def.fog * 0.07 : 0) : 0;
     if (rig.headPool) rig.headPool.visible = c.lights > 0.5;
+  }
+  /** Fade a car that sits between the camera and the player, instead of lifting the camera over it. */
+  private fadeCar(rig: CarRig, block: number, dt: number) {
+    rig.faded += (block - rig.faded) * Math.min(1, dt * 8);
+    const op = 1 - rig.faded * 0.72;
+    for (const m of rig.fade) { m.opacity = m.userData.op0 === undefined ? (m.userData.op0 = m.opacity, op * m.opacity) : op * (m.userData.op0 as number); m.depthWrite = rig.faded < 0.05; }
+    for (const o of rig.ink) o.visible = !this.lite && rig.faded < 0.4;
   }
 
   /** Emit smoke, skid marks and sparks for a car this frame. */
@@ -711,7 +563,7 @@ export class PassScene {
         const lx = marks[w * 2], ly = marks[w * 2 + 1];
         if (!Number.isNaN(lx)) {
           const dx = wx - lx, dy = wy - ly, d = Math.hypot(dx, dy);
-          if (d > 0.35 && d < 4) { this.skidQuad(lx, ly, wx, wy, c.z + 0.03); marks[w * 2] = wx; marks[w * 2 + 1] = wy; }
+          if (d > 0.35 && d < 4) { this.skidQuad(lx, ly, wx, wy, c.z + 0.13); marks[w * 2] = wx; marks[w * 2 + 1] = wy; }
           else if (d >= 4) { marks[w * 2] = wx; marks[w * 2 + 1] = wy; }
         } else { marks[w * 2] = wx; marks[w * 2 + 1] = wy; }
       } else { marks[w * 2] = NaN; marks[w * 2 + 1] = NaN; }
@@ -738,12 +590,14 @@ export class PassScene {
   }
 
   // ---- frame
-  camLift = 0; headTex: T.Texture | null = null;
+  headTex: T.Texture | null = null;
   render(f: FrameView) {
     const dt = Math.min(0.05, f.dt); this.t += dt;
+    this.renderer.info.reset();
     if (this.showcase) { this.renderShowcase(dt); return; }
     const t = this.track; if (!t) return;
     this.applyMood(f.dawn);
+    if (this.lakeMat) this.lakeMat.uniforms.time.value = this.t;
     for (let i = 0; i < f.cars.length; i++) { const c = f.cars[i], rig = this.cars[i]; if (!rig) continue; this.pose(rig, c, dt); this.wheelFx(i, c, rig, dt); }
     if (this.ghost && f.ghost) this.pose(this.ghost, f.ghost, dt); else if (this.ghost) this.ghost.root.visible = false;
     this.smoke.step(dt * f.slowmo, 0.8, 1.6); this.sparks.step(dt * f.slowmo, -14, 0.5);
@@ -753,39 +607,79 @@ export class PassScene {
     const vx = Math.cos(c.h) * c.u - Math.sin(c.h) * c.v, vy = Math.sin(c.h) * c.u + Math.cos(c.h) * c.v;
     let dx = Math.cos(c.h), dy = Math.sin(c.h);
     if (sp > 4) { const k = 0.55; dx = dx * (1 - k) + (vx / sp) * k; dy = dy * (1 - k) + (vy / sp) * k; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l; }
+    // and looks a little into the next corner, so it is in view before the turn-in
+    const ahead = Math.min(t.n - 1, Math.max(0, Math.round(c.i + 12 + sp * 0.9)));
+    let dh = t.h[ahead] - Math.atan2(dy, dx); dh -= Math.round(dh / (Math.PI * 2)) * Math.PI * 2;
+    this.camYaw += (Math.max(-0.28, Math.min(0.28, dh * 0.3)) - this.camYaw) * Math.min(1, dt * 2.5);
     const wideK = this.camera.aspect > 1.9 ? 0.82 : 1;
-    const [dist, hgt, ahead] = f.cam === 1 ? [10.5 * wideK, 4.4, 6] : f.cam === 2 ? [-0.4, 1.25, 30] : [4.9 * wideK, 2.05, 4.5];
-    // a rival tailgating between the camera and the player: lift the camera over it
-    let lift = 0;
-    if (f.cam !== 2) for (let i = 0; i < f.cars.length; i++) {
-      const o = f.cars[i]; if (o === c) continue;
+    const [dist, hgt, look] = f.cam === 1 ? [10.5 * wideK, 4.4, 6] : f.cam === 2 ? [-0.4, 1.25, 30] : [4.9 * wideK, 1.95, 4.5];
+    // a rival tailgating between the camera and the player fades out; the mirror shows it instead
+    for (let i = 0; i < f.cars.length; i++) {
+      const o = f.cars[i], rig = this.cars[i]; if (o === c || !rig) continue;
       const ox = o.x - c.x, oy = o.y - c.y, along = -(ox * dx + oy * dy), side = Math.abs(ox * dy - oy * dx);
-      if (along > 0.5 && along < dist + 9 && side < 3.2) lift = Math.max(lift, Math.min(1, (1 - side / 3.2) * 1.6) * Math.min(1, (dist + 9 - along) / 4) * 3.8);
+      this.fadeCar(rig, f.cam !== 2 && along > -0.5 && along < dist + 2.6 && side < 2.6 ? 1 : 0, dt);
     }
-    this.camLift += (lift - this.camLift) * Math.min(1, dt * 4);
-    V.set(c.x - dx * (dist + this.camLift * 0.4), c.z + hgt + this.camLift, -(c.y - dy * (dist + this.camLift * 0.4)));
+    V.set(c.x - dx * dist, c.z + hgt, -(c.y - dy * dist));
     const ground = Math.max(this.groundAt(V.x, -V.z), c.z) + 1.0;
     if (V.y < ground) V.y = ground;
-    V2.set(c.x + dx * ahead, c.z + (f.cam === 2 ? 0.9 : 1.1) + this.camLift * 0.25, -(c.y + dy * ahead));
+    const cy = Math.cos(this.camYaw), sy = Math.sin(this.camYaw), lx = dx * cy - dy * sy, ly = dx * sy + dy * cy;
+    V2.set(c.x + lx * look, c.z + (f.cam === 2 ? 0.9 : 1.15), -(c.y + ly * look));
     if (!this.camInit) { this.camPos.copy(V); this.camLook.copy(V2); this.camInit = true; }
     const k = f.cam === 2 ? 1 : 1 - Math.exp(-dt * 7);
     this.camPos.lerp(V, k); this.camLook.lerp(V2, f.cam === 2 ? 1 : 1 - Math.exp(-dt * 10));
     this.camera.position.copy(this.camPos);
-    if (f.shake > 0) { this.camera.position.x += (hash(this.t * 50) - 0.5) * f.shake; this.camera.position.y += (hash(this.t * 70) - 0.5) * f.shake; }
+    // a light, quick shake on guardrail hits
+    if (f.shake > 0) { const a = Math.min(0.6, f.shake) * 0.3; this.camera.position.x += Math.sin(this.t * 53) * a * 0.6; this.camera.position.y += Math.sin(this.t * 41 + 1.3) * a * 0.5; this.camera.position.z += Math.sin(this.t * 47 + 2.1) * a * 0.4; }
     this.camera.lookAt(this.camLook);
-    const fovT = 60 - Math.min(10, Math.max(0, (this.camera.aspect - 1.6) * 14)) + Math.min(1, Math.max(0, (sp - 14) / 22)) * 14 + c.boost * 7;
+    // the field of view widens a little with speed and boost
+    const fovT = 60 - Math.min(10, Math.max(0, (this.camera.aspect - 1.6) * 14)) + Math.min(1, Math.max(0, (sp - 16) / 22)) * 10 + c.boost * 6;
     this.fov += (fovT - this.fov) * Math.min(1, dt * 3);
     if (Math.abs(this.camera.fov - this.fov) > 0.01) { this.camera.fov = this.fov; this.camera.updateProjectionMatrix(); }
     // the moon's shadow box follows the car
     this.moon.position.set(c.x + 30, c.z + 60, -c.y + 20); this.moon.target.position.set(c.x, c.z, -c.y);
     this.renderer.render(this.scene, this.camera);
+    if (f.cars.length > 1 && this.mirror.rect && this.mirror.quad) this.renderMirror(c, this.cars[f.focus] ?? this.cars[0]);
+  }
+
+  // ---- the rear-view mirror (duels)
+  /** Where the mirror sits on the canvas, in CSS pixels, or null to hide it. */
+  setMirror(rect: MirrorRect | null) {
+    const M = this.mirror; M.rect = rect;
+    if (!rect) return;
+    const pr = Math.min(this.renderer.getPixelRatio(), 1.5), w = Math.max(16, Math.round(rect.w * pr)), h = Math.max(8, Math.round(rect.h * pr));
+    if (!M.rt || M.rt.width !== w || M.rt.height !== h) { M.rt?.dispose(); M.rt = new T.WebGLRenderTarget(w, h, { depthBuffer: true }); M.rt.texture.colorSpace = T.SRGBColorSpace; }
+    if (!M.quad) {
+      const mat = new T.ShaderMaterial({ transparent: true, depthTest: false, depthWrite: false,
+        uniforms: { map: { value: null }, size: { value: new T.Vector2(1, 1) } },
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: `uniform sampler2D map; uniform vec2 size; varying vec2 vUv;
+          void main(){ vec2 p = (vUv - 0.5) * size; vec2 q = abs(p) - (size * 0.5 - 12.0); float d = length(max(q, 0.0)) - 12.0; if (d > 0.0) discard;
+            vec4 c = texture2D(map, vec2(1.0 - vUv.x, vUv.y)); gl_FragColor = vec4(c.rgb, 1.0); }` });
+      M.quad = new T.Mesh(new T.PlaneGeometry(1, 1), mat); M.scene.add(M.quad);
+      M.cam.layers.set(0);
+    }
+    const mat = M.quad.material as T.ShaderMaterial; mat.uniforms.map.value = M.rt.texture; mat.uniforms.size.value.set(rect.w, rect.h);
+    M.quad.scale.set(rect.w, rect.h, 1); M.quad.position.set(rect.x + rect.w / 2, -(rect.y + rect.h / 2), 0);
+    M.cam.aspect = rect.w / rect.h; M.cam.updateProjectionMatrix();
+  }
+  private renderMirror(c: CarView, own: CarRig) {
+    const M = this.mirror, r = this.renderer, ch = Math.cos(c.h), sh = Math.sin(c.h);
+    // from the player's roof, looking back down the road
+    M.cam.position.set(c.x - ch * 0.4, c.z + 1.75, -(c.y - sh * 0.4));
+    V3.set(c.x - ch * 30, c.z + 0.6, -(c.y - sh * 30)); M.cam.lookAt(V3);
+    own.root.visible = false; r.shadowMap.autoUpdate = false;
+    r.setRenderTarget(M.rt); r.render(this.scene, M.cam); r.setRenderTarget(null);
+    own.root.visible = true; r.shadowMap.autoUpdate = true;
+    const w = this.canvas.clientWidth || 1, h = this.canvas.clientHeight || 1;
+    if (M.ortho.right !== w || M.ortho.bottom !== -h) { M.ortho.right = w; M.ortho.bottom = -h; M.ortho.updateProjectionMatrix(); }
+    r.autoClear = false; r.render(M.scene, M.ortho); r.autoClear = true;
   }
 
   // ---- the garage turntable
   setShowcase(on: boolean, looks: CarLook[] = []) {
     this.showcase = on;
     if (!on) this.camera.clearViewOffset();
-    this.world.visible = !on; this.sky.visible = !on; this.stars.visible = !on; this.glow.visible = !on; this.moonSprite.visible = !on;
+    this.world.visible = !on; this.sky.visible = !on; this.stars.visible = !on; this.glow.visible = !on; this.moonSprite.visible = !on; this.sun.visible = false;
     this.disposeGroup(this.show); this.show.clear();
     if (!on) { (this.scene.fog as T.FogExp2).density = this.fogBase; this.scene.background = null; for (const c of this.cars) c.root.visible = true; return; }
     for (const c of this.cars) c.root.visible = false;
@@ -799,7 +693,7 @@ export class PassScene {
     for (let k = 0; k < 9; k++) { const a = (k / 9) * Math.PI * 2; const s = new T.Mesh(new T.PlaneGeometry(2.6, 0.5), new T.MeshBasicMaterial({ color: k % 2 ? 0xffd9a0 : 0xfff2d8 })); s.position.set(Math.cos(a) * 17.6, 9, Math.sin(a) * 17.6); s.lookAt(0, 9, 0); this.show.add(s); }
     const n = looks.length;
     looks.forEach((l, i) => {
-      const rig = buildCar(l, false); rig.root.position.set((i - (n - 1) / 2) * 5.2, 0.18, 0); rig.root.userData.spin = true; for (const o of rig.ink) o.visible = !this.lite; for (const p of rig.pops) p.rotation.z = 1.15;
+      const rig = buildCar(l, false); rig.root.position.set((i - (n - 1) / 2) * 5.2, 0.18, 0); rig.root.userData.spin = true; for (const o of rig.ink) o.visible = !this.lite; for (const p of rig.pops) p.rotation.z = 0;
       this.show.add(rig.root);
     });
     this.hemi.intensity = 1.6; this.hemi.color.set(0xffe3c4); this.moon.intensity = 1.8; this.moon.color.set(0xfff0de);
@@ -825,13 +719,13 @@ export class PassScene {
     const w = this.canvas.clientWidth || 1, h = this.canvas.clientHeight || 1;
     this.renderer.setSize(w, h, false); this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
     for (const m of [this.smoke.pts.material, this.sparks.pts.material] as T.ShaderMaterial[]) m.uniforms.scale.value = h * 0.5 * this.renderer.getPixelRatio();
+    for (const m of this.glows) m.uniforms.scale.value = h * 0.5 * this.renderer.getPixelRatio();
+    if (this.mirror.rect) this.setMirror(this.mirror.rect);
   }
   disposeGroup(o: T.Object3D) {
     const gs = new Set<T.BufferGeometry>(), ms = new Set<T.Material>();
-    o.traverse((m) => { const mm = m as T.Mesh; if (mm.geometry) gs.add(mm.geometry); if (mm.material) for (const x of Array.isArray(mm.material) ? mm.material : [mm.material]) if (x !== INK) ms.add(x); });
-    gs.forEach((g) => { if (g !== rimGeo && g !== tyreGeo) g.dispose(); }); ms.forEach((m) => m.dispose());
+    o.traverse((m) => { const mm = m as T.Mesh; if (mm.geometry && !mm.geometry.userData.keep) gs.add(mm.geometry); if (mm.material) for (const x of Array.isArray(mm.material) ? mm.material : [mm.material]) if (x !== INK && !x.userData.keep) ms.add(x); });
+    gs.forEach((g) => g.dispose()); ms.forEach((m) => m.dispose());
   }
-  dispose() { this.disposeGroup(this.scene); this.renderer.dispose(); }
+  dispose() { this.disposeGroup(this.scene); this.mirror.rt?.dispose(); this.renderer.dispose(); }
 }
-function PROFILES_L(rig: CarRig) { return (rig.root.userData.L as number) || 4; }
-export { PROFILES };
