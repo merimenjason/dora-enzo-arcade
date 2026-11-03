@@ -507,6 +507,8 @@ export default function KumoriPass() {
           story: (n: number) => persist({ ...saveRef.current, story: n }),
           showcase: (i: number) => setShowcaseIdx(i),
           say: (t: string) => say(t, 'enzo'),
+          /** the last frame's draw calls and triangles (performance checks) */
+          draws: () => { const i = sceneRef.current?.renderer.info.render; return i ? { calls: i.calls, triangles: i.triangles } : null; },
           /** let the competent bot drive the player's car (screenshots) */
           auto: (pace: number) => { const rr = runRef.current?.race; if (rr) rr.opts.autopilot = pace; },
           /** turn the car sideways by b radians, keeping its course (screenshots of a drift) */
