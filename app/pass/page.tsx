@@ -64,6 +64,13 @@ function TrackMap({ pass, reversed = false }: { pass: PassId; reversed?: boolean
   return <canvas ref={ref} className="kp-map" width={220} height={150} aria-hidden />;
 }
 
+const MINI_ROAD = [[13, '#14101f'], [6, '#f6e9cf']] as const;
+/** A car on the minimap, in world units under the map's transform: an inked arrowhead pointing where it heads. */
+function miniCar(g: CanvasRenderingContext2D, x: number, y: number, h: number, col: string, r: number, ink: number) {
+  g.fillStyle = col; g.strokeStyle = '#14101f'; g.lineWidth = ink;
+  g.beginPath(); g.moveTo(x + Math.cos(h) * r * 1.8, y + Math.sin(h) * r * 1.8); g.lineTo(x + Math.cos(h + 2.4) * r, y + Math.sin(h + 2.4) * r); g.lineTo(x + Math.cos(h - 2.4) * r, y + Math.sin(h - 2.4) * r); g.closePath(); g.stroke(); g.fill();
+}
+
 function Pips({ level }: { level: number }) {
   return <span className="kp-pips" aria-label={`Notebook level ${level} of 3`}>{[0, 1, 2].map((i) => <i key={i} className={i < level ? 'on' : ''} />)}</span>;
 }
@@ -86,6 +93,7 @@ export default function KumoriPass() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const linesRef = useRef<HTMLCanvasElement | null>(null);
   const mirrorRef = useRef<HTMLDivElement | null>(null);
+  const miniRef = useRef<HTMLCanvasElement | null>(null);
   const sceneRef = useRef<PassScene | null>(null);
   const soundRef = useRef<PassSound | null>(null);
   const runRef = useRef<Run | null>(null);
@@ -301,6 +309,7 @@ export default function KumoriPass() {
       sc.render(f);
       drawSpeedLines(Math.hypot(p.car.u, p.car.v), p.car.boost > 0, sm < 1);
       updateHud(run, race, dt);
+      drawMinimap(race);
       const slide = Math.min(1, Math.abs(G.slipAngleOf(p.car)) * 2.2 + p.car.wheelSpin * 0.5 - 0.15);
       snd?.engine(p.car.rpm, race.t < 0 ? input.current.throttle : p.car.lastIn.throttle, race.t < 0 ? 0 : slide, saveRef.current.upgrades.includes('intake'), sm);
       if (race.done && !round && !pausedRef.current) onRaceDone(run);
@@ -430,6 +439,29 @@ export default function KumoriPass() {
       g.lineWidth = 1 + ((i * 13) % 3) * k;
       g.beginPath(); g.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); g.lineTo(cx + Math.cos(a) * (r0 + len), cy + Math.sin(a) * (r0 + len)); g.stroke();
     }
+  }
+
+  /** The minimap: the road around the car, turned so the car points up, with the rivals and the ghost on it. In the
+   * fog and the dark tunnel it shows only the road behind and a few metres ahead, so Enzo's notes still tell you what
+   * is coming. */
+  function drawMinimap(race: Race) {
+    const c = miniRef.current, g = c?.getContext('2d'); if (!c || !g) return;
+    const t = race.track, me = race.player, W = c.width, H = c.height, k = H / 330, reveal = t.def.dark || t.def.fog > 0.5;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
+    // world (x, y north) → the car at 68% down the map, heading up
+    g.setTransform(k, 0, 0, -k, W / 2, H * 0.68); g.rotate(Math.PI / 2 - me.car.h); g.translate(-me.car.x, -me.car.y);
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    const from = Math.max(0, me.idx - 140), to = Math.min(t.n - 1, me.idx + (reveal ? 35 : 280));
+    for (let q = 0; q < MINI_ROAD.length; q++) {
+      g.strokeStyle = MINI_ROAD[q][1]; g.lineWidth = MINI_ROAD[q][0] / k; g.beginPath(); g.moveTo(t.x[from], t.y[from]);
+      for (let i = from + 3; i < to; i += 3) g.lineTo(t.x[i], t.y[i]);
+      g.lineTo(t.x[to], t.y[to]); g.stroke();
+    }
+    if (to === t.n - 1) { g.fillStyle = '#fff'; g.strokeStyle = '#14101f'; g.lineWidth = 3 / k; g.beginPath(); g.arc(t.x[to], t.y[to], 9 / k, 0, Math.PI * 2); g.fill(); g.stroke(); }
+    if (race.ghost) { g.globalAlpha = 0.55; miniCar(g, race.ghost.car.x, race.ghost.car.y, race.ghost.car.h, '#dfe8ff', 9 / k, 3 / k); g.globalAlpha = 1; }
+    const cars = race.racers;
+    for (let i = cars.length - 1; i >= 0; i--) miniCar(g, cars[i].car.x, cars[i].car.y, cars[i].car.h, i === 0 ? '#ffd25a' : '#ff5d73', (i === 0 ? 12 : 11) / k, 3 / k);
+    g.setTransform(1, 0, 0, 1, 0, 0);
   }
 
   function updateHud(run: Run, race: Race, dt: number) {
@@ -707,6 +739,7 @@ export default function KumoriPass() {
           <div className="kp-gap" ref={H('gap')}><i className="kp-gap-mark" /><span className="kp-gap-zone" /></div><b ref={H('gapText')}>side by side</b></div>}
         {run.mode === 'delivery' && <div className="kp-buns" ref={H('buns')} data-left="12"><small>Buns</small><div className="kp-bunrow">{Array.from({ length: G.BUNS }, (_, i) => <i key={i} style={{ ['--i' as string]: i }} />)}</div><div className="kp-wobble" ref={H('wobble')}><i /></div></div>}
         <div className="kp-progress" ref={H('progress')}><i /></div>
+        <canvas className="kp-minimap" ref={miniRef} width={280} height={196} aria-hidden />
       </div>
       {run.duel && <div className="kp-mirror" ref={mirrorRef} aria-hidden />}
       <div className="kp-msg" ref={H('msg')} data-on="0" />

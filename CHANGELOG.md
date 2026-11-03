@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 04-11-2026
+
+### Added
+
+- **Kumori Pass** has a minimap in the corner of every race: the road around you, turned so you always point up, with your rival and your ghost on it. On Fog Ridge and in the Ghost Tunnel it only shows the road you have driven and a few metres ahead, so Enzo's notes are still your guide.
+
 ## 03-11-2026
 
 ### Changed
