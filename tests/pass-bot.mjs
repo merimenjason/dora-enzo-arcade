@@ -1,4 +1,5 @@
-// Kumori Pass bots. A competent driver (the AI's racing-line follower, with small seeded mistakes) finishes every pass
+// Kumori Pass bots. A competent, human-like driver (the AI's racing-line follower reacting 0.2 s late, wandering off the
+// line, through the smoothed steering, with small seeded mistakes) finishes every pass
 // cleanly and beats every rival in a fair share of seeded duels, the dawn champion hardest of all; a full-throttle,
 // no-brake driver crashes or loses past the first rival; and the delivery medal times in the engine come from the
 // competent bot's real runs. `--quick` runs fewer seeds (used by npm test).
@@ -62,7 +63,10 @@ for (const rv of RIVALS) {
   share[rv.id] = wins / SEEDS;
   console.log(`bot vs ${rv.name.padEnd(9)} won ${wins}/${SEEDS}  avg rounds ${(rounds / SEEDS).toFixed(1)}`);
 }
-for (const rv of RIVALS) assert.ok(share[rv.id] >= 0.25 && (rv.id === 'stoat' || share[rv.id] <= 0.9), `a fair share against ${rv.name} (${share[rv.id]})`);
+// the human-like bot's ladder: the first two rivals forgiving, then rising to the dawn champion
+const TARGET = { stoat: 16, otter: 14, badger: 13, pika: 12, bat: 11, goat: 9, fox: 7 };
+for (const rv of RIVALS) assert.ok(Math.abs(share[rv.id] * SEEDS - TARGET[rv.id]) <= 2, `${rv.name}: ${share[rv.id] * SEEDS}/${SEEDS} wins, near the ${TARGET[rv.id]} the ladder wants`);
+assert.ok(share.stoat >= 15 / 16 && share.otter >= 12 / 16, 'the first two rivals are forgiving');
 for (const rv of RIVALS) if (rv.id !== 'fox') assert.ok(share.fox <= share[rv.id], `Aurora is the hardest (${share.fox} vs ${rv.name} ${share[rv.id]})`);
 
 let naiveWins = 0, naiveCrashes = 0;

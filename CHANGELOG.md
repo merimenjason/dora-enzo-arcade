@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 03-11-2026
+
+### Changed
+
+- **Kumori Pass**: calmer steering and easier drifting. The keys now ease the steering in, so a tap is a small correction, and the car has much less lock at speed; a new Steering setting picks Smooth (the default) or Sharp. A handbrake tap, or a lift-off and a hard turn-in, starts a slide, and holding the throttle and steering keeps it at a steady angle until you let go. The assist is now Strong (the default), Light or Off, and on Strong a normal corner can't spin you. The rivals are gentler, Skitter and Ripple most of all, the chase round lets you drop 3 seconds behind instead of 2.6, and the delivery medals are easier to reach (bronze especially). Old ghosts are cleared because they were driven with the old handling.
+
 ## 02-11-2026
 
 ### Added

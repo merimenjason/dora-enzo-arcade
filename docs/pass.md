@@ -16,9 +16,15 @@ All numbers below come from `lib/pass-car.ts`, `lib/pass-tracks.ts`, `lib/pass-g
 
 ## The car
 
-The Biscuit is a front-engined, rear-drive hatchback: 1050 kg, wheelbase 2.4 m (1.12 m to the front axle, 1.28 m to the rear), 235 N·m, a 7600 rpm redline, five gears (3.3, 2.05, 1.45, 1.1, 0.88 with a 4.1 final drive). Each axle has a tyre curve that peaks and then falls away (front stiffness 8, rear 12; a sliding front keeps 85% of its peak, a sliding rear 78%), and the rear tyres share their grip between driving and cornering, so full throttle in a corner steps the tail out. Steering lock (0.6 rad) shrinks with speed so the car stays calm at the top end. The handbrake locks the rear wheels.
+The Biscuit is a front-engined, rear-drive hatchback: 1050 kg, wheelbase 2.4 m (1.12 m to the front axle, 1.28 m to the rear), 235 N·m, a 7600 rpm redline, five gears (3.3, 2.05, 1.45, 1.1, 0.88 with a 4.1 final drive). Each axle has a tyre curve that peaks and then falls away (front stiffness 8, rear 12; a sliding front keeps 85% of its peak, a sliding rear 78%), and the rear tyres share their grip between driving and cornering, so full throttle in a corner steps the tail out. The handbrake locks the rear wheels.
 
-- **Assist** (counter-steer): Off 0, Low 0.35, Medium 0.6 (the default), High 0.85 (the default on a touch screen). It turns the front wheels into a slide by that share of the slip angle; at Off the player has to catch every slide.
+- **Steering**: keys, touch pads and sticks all reach the car raw and go through the car's steering filter. **Smooth** (the default) eases the steering in over 0.3 s and back to the centre in 0.15 s, so a tap is a small correction; **Sharp** takes 0.12 s and 0.08 s. The lock (0.6 rad) falls with speed as 0.6 / (1 + u/14 + u²/400): 0.31 rad at 10 m/s, 0.17 at 20, 0.11 at 30, 0.08 at 40, so a held key asks the tyres for about their limit and no more. Counter-steering into a slide may use up to the full lock.
+- **Lift-off rotation**: off the throttle with the wheel turned more than 70% in above 10 m/s, the rear gives up to 22% of its grip, so a lift and a turn-in starts a slide.
+- **Drift hold** (part of the assist): a slide past 0.13 rad, a handbrake pull with the wheel turned, or a lift-off turn-in starts it. In the slide the steering held into the corner sets the angle the car settles at (up to about 0.5 rad, more with throttle), and letting go of the steering eases it straight in about a second with no snap the other way. It ends below 0.05 rad.
+
+- **Assist**: Strong 1 (the default), Light 0.5, Off 0. Outside a drift it turns the front wheels into any slip past 0.08 rad by that share; it also runs the drift hold and a damper on the slip angle. On Strong no ordinary corner entry spins (264 scripted entries from 12 to 34 m/s, `tests/pass.mjs`); at Off the player has to catch every slide, and a full handbrake at top speed spins.
+
+Measured with keyboard-style inputs (`.checks/handling.mjs`), before and after the 03-11-2026 handling update: a 0.1 s tap at 25 m/s turned the car 0.033 rad and now 0.015 rad (peak yaw 0.26 → 0.15 rad/s); a handbrake slide at 16 m/s with throttle and steering held now holds the whole 2.6 s at about 0.55 rad on Strong and straightens when let go; spins from the 144 open-ground corner entries went from 3 (old default assist) to 0 on Strong and Light.
 - **Gears**: automatic shifts up at 94% of the redline and down at 50%; manual uses Shift and Ctrl, and the engine hits a hard limiter at the redline.
 
 ### Upgrades
@@ -45,14 +51,14 @@ Roads are 3.6 m to each side of the centreline, 5.8 m in the wide places (where 
 
 | Pass | Character | Bot time |
 | --- | --- | --- |
-| Cedar Switchbacks | fast sweepers then four switchbacks | 65.08 s |
-| Lakeside Esses | linked esses | 55.62 s |
-| Hairpin Stairs | seven stacked hairpins with drain gutters | 67.8 s |
-| Fog Ridge | thick fog; the headlights barely reach | 57.09 s |
-| Ghost Tunnel | unlit, through a long tunnel | 54.55 s |
-| Summit Dawn | the whole mountain; the relay climbs it first | 82.18 s |
+| Cedar Switchbacks | fast sweepers then four switchbacks | 69.17 s |
+| Lakeside Esses | linked esses | 57.3 s |
+| Hairpin Stairs | seven stacked hairpins with drain gutters | 70.15 s |
+| Fog Ridge | thick fog; the headlights barely reach | 59.27 s |
+| Ghost Tunnel | unlit, through a long tunnel | 56.93 s |
+| Summit Dawn | the whole mountain; the relay climbs it first | 86.26 s |
 
-Delivery medals: gold within 1.04× the bot time with 11 or more buns, silver 1.13× with 8 or more, bronze 1.28× with 5 or more.
+Delivery medals: gold within 1.03× the bot time with 11 or more buns, silver 1.16× with 7 or more, bronze 1.4× with 4 or more.
 
 ## Drifting
 
@@ -77,7 +83,7 @@ In the relay's uphill leg Dora reads the notes and Enzo drives.
 
 ## Duels
 
-A touge duel is lead and chase. In round 1 the player leads: the round is won by finishing more than 1.0 s ahead or lost by being passed; anything in between is held. In round 2 the player chases: falling 2.6 s behind loses the round, passing and staying ahead wins it. A spin or wreck loses the round. After two rounds the most round wins takes the duel; level means sudden death until a round is won outright, up to six rounds. The relay's first round is the uphill leg.
+A touge duel is lead and chase. In round 1 the player leads: the round is won by finishing more than 1.0 s ahead or lost by being passed; anything in between is held. In round 2 the player chases: falling 3.0 s behind loses the round, passing and staying ahead wins it. A spin or wreck loses the round. After two rounds the most round wins takes the duel; level means sudden death until a round is won outright, up to six rounds. The relay's first round is the uphill leg.
 
 ### Rivals
 
@@ -85,15 +91,15 @@ Each rival drives the racing line (90% of the grip limit) with their own pace, b
 
 | # | Rival | Car | Pass | Pace | Bot wins (16 seeds) |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Skitter, stoat | Kestrel, red wedge | Cedar Switchbacks | 0.9 | 16 |
-| 2 | Ripple, otter | Lagoon, teal roadster | Lakeside Esses | 0.987 | 13 |
-| 3 | Bodger, badger | Coalscuttle, boxy saloon | Hairpin Stairs | 1.0 | 12 |
-| 4 | Pippa, pika | Mochi, pink kei car | Fog Ridge | 1.011 | 13 |
-| 5 | Vesper, bat | Nightjar, black fastback | Ghost Tunnel | 0.9625 | 10 |
-| 6 | Old Crag, mountain goat | Ironhorn, silver coupe | Summit Dawn | 0.9925 | 9 |
-| 7 | Aurora, silver fox | Daybreak, white fastback | Summit Dawn relay | 1.017 | 6 |
+| 1 | Skitter, stoat | Kestrel, red wedge | Cedar Switchbacks | 0.8475 | 16 |
+| 2 | Ripple, otter | Lagoon, teal roadster | Lakeside Esses | 0.878 | 14 |
+| 3 | Bodger, badger | Coalscuttle, boxy saloon | Hairpin Stairs | 0.8475 | 13 |
+| 4 | Pippa, pika | Mochi, pink kei car | Fog Ridge | 0.915 | 12 |
+| 5 | Vesper, bat | Nightjar, black fastback | Ghost Tunnel | 0.878 | 12 |
+| 6 | Old Crag, mountain goat | Ironhorn, silver coupe | Summit Dawn | 0.886 | 9 |
+| 7 | Aurora, silver fox | Daybreak, white fastback | Summit Dawn relay | 0.895 | 7 |
 
-"Bot wins" is the competent bot (pace 0.985 with full notes and the ladder's upgrades) from `npm run bot:pass`; a flat-out, no-brakes driver wins none past the first rival.
+"Bot wins" is the competent bot (pace 0.985 with full notes and the ladder's upgrades) from `npm run bot:pass`. The bot drives like a person: it acts on what it decided 0.2 s earlier (steering for where the car will be by then), wanders up to 0.4 m either side of the racing line, and its steering goes through the Smooth filter. `tests/pass-bot.mjs` holds each rival to within 2 wins of the ladder 16, 14, 13, 12, 11, 9, 7 and the first two at 15 and 12 or more. A flat-out, no-brakes driver wins none past the first rival. The rivals' own AI steers without the filter and doesn't use the drift hold.
 
 ## Coins and progress
 
@@ -101,7 +107,7 @@ Deliveries pay 2 coins a bun plus 10, 20 or 35 for bronze, silver or gold; a won
 
 ## Save
 
-`localStorage` key `kumori-pass-v1`: coins, upgrades, runs per pass, story step, beaten rivals, medals, best times, ghosts and settings (assist, gears, Lite, sound, music, camera). Anything missing or malformed falls back to the default.
+`localStorage` key `kumori-pass-v1`: coins, upgrades, runs per pass, story step, beaten rivals, medals, best times, ghosts and settings (assist, steering, gears, Lite, sound, music, camera). Anything missing or malformed falls back to the default. Saves from before the 03-11-2026 handling update keep working: an assist of Off stays Off, Low becomes Light and the rest become Strong, and their ghosts (recorded with the old handling) are dropped; new ghosts carry `hv: 2`.
 
 ## Rendering
 

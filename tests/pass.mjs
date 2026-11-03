@@ -4,11 +4,11 @@
 // Enzo's pace notes (severity numbers that match the real corner radius, levels that call earlier and say more), the bun
 // tray, medals, ghosts replayed from inputs, the story ladder, and saves including corrupt ones.
 import assert from 'node:assert/strict';
-import { BASE, DT, makeCar, stepCar, tyre, gearSpeed, slipAngle, idleInput, withUpgrades, statCard, UPGRADES, quantise } from '../.checks/pass-car.js';
+import { BASE, DT, makeCar, stepCar, tyre, gearSpeed, slipAngle, idleInput, withUpgrades, statCard, UPGRADES, quantise, filterSteer, steerLock } from '../.checks/pass-car.js';
 import { buildTrack, locate, radiusAt, at, PASSES, NARROW, WIDE } from '../.checks/pass-tracks.js';
 import { Race, Duel, duelOutcome, RIVALS, rival, paceNotes, readRoad, severity, SEVERITY, NOTE_LEAD, noteLevel, getTrack,
   encodeInput, decodeInput, packGhost, unpackGhost, parseSave, newSave, serialise, buyUpgrade, recordRun, passUnlocked,
-  deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng } from '../.checks/pass-game.js';
+  deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng, GHOST_VERSION, ASSIST } from '../.checks/pass-game.js';
 
 let n = 0;
 const ok = (m) => { n++; console.log('ok', m); };
@@ -75,6 +75,65 @@ const driftRun = (spec, assist, hold, thr) => {
   const lift = driftRun(BASE, 0.6, 0.3, 0);
   assert.ok(lift.held < d.held, 'lifting off the throttle lets the tail come back');
   ok(`drift sustained with counter-steer: ${d.held.toFixed(1)} s held at assist 0.6, ${hi.held.toFixed(1)} s at 0.85, spins with none`);
+}
+
+// ---------------------------------------------------------------- keyboard feel: smoothed steering, easy drifts, no beginner spins
+{
+  // the filter: a held key reaches full steering in 0.3 s and lets go in 0.15 s; a stick goes through the same filter
+  const c = makeCar(BASE, 0, 0, 0); let up = 0, down = 0;
+  for (let k = 1; k <= 120 && !up; k++) { filterSteer(c, 1); if (c.steerIn >= 1) up = k * DT; }
+  for (let k = 1; k <= 120 && !down; k++) { filterSteer(c, 0); if (c.steerIn <= 0) down = k * DT; }
+  assert.ok(up > 0.25 && up < 0.35 && down > 0.1 && down < 0.2, `steering ramps in over ${up.toFixed(2)} s and back in ${down.toFixed(2)} s`);
+  const sharp = makeCar(BASE, 0, 0, 0, true, ASSIST.strong, 'sharp'); for (let k = 0; k < 18; k++) filterSteer(sharp, 1);
+  assert.ok(sharp.steerIn === 1, 'Sharp steering is quicker');
+  // much less lock at speed
+  assert.ok(steerLock(BASE, 40) < BASE.lock * 0.15 && steerLock(BASE, 5) > BASE.lock * 0.6, `lock ${steerLock(BASE, 5).toFixed(2)} rad at 5 m/s, ${steerLock(BASE, 40).toFixed(3)} at 40`);
+}
+const cruiseCar = (u, assist = ASSIST.strong) => { const c = makeCar(BASE, 0, 0, 0, true, assist); c.u = u; c.gear = u > 20 ? 3 : 2; c.rpm = 5000; return c; };
+{
+  // one keyboard tap (a tenth of a second of full steer) at 90 km/h is a small correction, not a lurch
+  const c = cruiseCar(25), h0 = c.h; let peakR = 0;
+  for (let k = 0; k < 180; k++) { stepCar(c, I({ steer: k < 12 ? 1 : 0, throttle: Math.max(0, Math.min(1, (25 - c.u) * 0.5 + 0.35)) }), env); peakR = Math.max(peakR, Math.abs(c.r)); }
+  assert.ok(Math.abs(c.h - h0) < 0.025 && peakR < 0.2, `a tap at 25 m/s turns the car ${(c.h - h0).toFixed(3)} rad (peak yaw ${peakR.toFixed(2)} rad/s)`);
+  ok(`a steering tap at speed yaws ${(c.h - h0).toFixed(3)} rad`);
+}
+const handSlide = (u, assist) => {
+  // into a hairpin: wheel in and a handbrake tap, then throttle and steering held, then let go
+  const c = cruiseCar(u, assist); let held = 0, run = 0, maxB = 0, snap = 0, settle = -1;
+  for (let k = 0; k < 120 * 5; k++) {
+    const t = k * DT;
+    stepCar(c, t < 0.35 ? I({ steer: 1, hand: true }) : t < 3 ? I({ steer: 1, throttle: 0.75 }) : I({ throttle: 0.4 }), env);
+    const b = slipAngle(c);
+    if (t < 3) { maxB = Math.max(maxB, Math.abs(b)); if (Math.abs(b) > 0.14 && c.u > 6) { run += DT; held = Math.max(held, run); } else run = 0; }
+    else { snap = Math.max(snap, b); if (settle < 0 && Math.abs(b) < 0.05) settle = t - 3; } // the slide is to the left (b < 0): a snap is b > 0
+  }
+  return { held, maxB, snap, settle };
+};
+{
+  for (const u of [13, 16, 19]) {
+    const d = handSlide(u, ASSIST.strong);
+    assert.ok(d.held >= 1.5, `a handbrake slide at ${u} m/s holds ${d.held.toFixed(2)} s with throttle and steer`);
+    assert.ok(d.maxB < 0.9 && d.snap < 0.1 && d.settle >= 0 && d.settle < 1.2, `it holds a steady angle (max ${d.maxB.toFixed(2)} rad) and straightens in ${d.settle.toFixed(2)} s without a snap (${d.snap.toFixed(2)})`);
+  }
+  // a lift-off and a hard turn-in starts a slide too
+  const c = cruiseCar(17); let maxB = 0;
+  for (let k = 0; k < 240; k++) { stepCar(c, I({ steer: 1, throttle: k < 60 ? 0 : 0.8 }), env); maxB = Math.max(maxB, Math.abs(slipAngle(c))); }
+  assert.ok(maxB > 0.25 && maxB < 0.9, `a lift-off turn-in slides (${maxB.toFixed(2)} rad)`);
+  // with the assist on, no ordinary corner entry spins: 12–34 m/s, short to long turns, any throttle
+  for (const assist of [ASSIST.strong, ASSIST.light]) {
+    let spins = 0, n = 0;
+    for (let u = 12; u <= 34; u += 2) for (const dur of [0.4, 0.8, 1.2, 1.8]) for (const thr of [0, 0.5, 1]) {
+      const e = cruiseCar(u, assist); let spun = false;
+      for (let k = 0; k < 480; k++) { stepCar(e, I({ steer: k * DT < dur ? 1 : 0, throttle: k < 24 ? 0 : thr }), env); if (Math.abs(slipAngle(e)) > 1.0) spun = true; }
+      n++; if (spun) spins++;
+    }
+    assert.equal(spins, 0, `no spins from ${n} corner entries at assist ${assist}`);
+  }
+  // but a clear mistake still spins: full handbrake and lock at top speed with the assist off
+  const m = cruiseCar(40, ASSIST.off); let mb = 0;
+  for (let k = 0; k < 240; k++) { stepCar(m, I({ steer: 1, hand: true }), env); mb = Math.max(mb, Math.abs(slipAngle(m))); }
+  assert.ok(mb > 1.2, 'a full handbrake at top speed with no assist spins');
+  ok(`drifts: a handbrake tap holds ${handSlide(16, ASSIST.strong).held.toFixed(1)} s and straightens without a snap; no spins from 264 corner entries with the assist`);
 }
 
 // ---------------------------------------------------------------- upgrades
@@ -190,7 +249,7 @@ for (const p of PASSES) {
 }
 {
   // a slow leader gets overtaken in a wide place and the chaser takes the round
-  const saved = rival('stoat').pace; rival('stoat').pace = 0.7;
+  const saved = rival('stoat').pace; rival('stoat').pace = 0.6;
   const r = new Race({ pass: 'cedar', rival: 'stoat', role: 'chase', countdown: 0.1, autopilot: 0.97, seed: 3 });
   let over = null, steps = 0;
   while (!r.done && steps < 120 * 120) { r.tick(idleInput()); steps++; for (const e of r.events) if (e.k === 'overtake' && over === null) over = { by: e.by, s: r.player.s }; }
@@ -302,8 +361,8 @@ for (const p of PASSES) {
   assert.equal(noteLevel(s.runs.fog), 2);
   assert.ok(buyUpgrade(s, 'tyres') && s.coins === 440 && !buyUpgrade(s, 'tyres') && !buyUpgrade(s, 'nope'));
   s.story = 4; s.beaten = ['stoat']; s.medals.cedar = 3; s.best.cedar = 61.25;
-  s.ghosts.cedar = packGhost([5, 5, 5, 9]); s.ghostMeta.cedar = { up: ['tyres'], assist: 0.6, manual: false };
-  s.settings.lite = true;
+  s.ghosts.cedar = packGhost([5, 5, 5, 9]); s.ghostMeta.cedar = { up: ['tyres'], assist: 1, manual: false, sharp: false, hv: GHOST_VERSION };
+  s.settings.lite = true; s.settings.sharp = true; s.settings.assist = ASSIST.light;
   const back = parseSave(serialise(s));
   assert.deepEqual(back, s, 'a save round-trips');
   assert.ok(passUnlocked(back, 'lake') && !passUnlocked(back, 'tunnel') && passUnlocked(back, 'cedar'));
@@ -313,7 +372,13 @@ for (const p of PASSES) {
     assert.ok(p.beaten.every((b) => RIVALS.some((r) => r.id === b)) && new Set(p.beaten).size === p.beaten.length);
     assert.ok(p.settings.assist >= 0 && p.settings.assist <= 1 && p.settings.camera <= 2);
   }
-  ok('saves round-trip, unlock the ladder, and corrupt saves fall back without throwing');
+  // saves from before the handling update: the old default assist becomes Strong, Low becomes Light, old ghosts go
+  const old = parseSave(JSON.stringify({ v: 1, settings: { assist: 0.6 }, ghosts: { cedar: packGhost([5, 5]) }, ghostMeta: { cedar: { up: [], assist: 0.6, manual: false } } }));
+  assert.equal(old.settings.assist, ASSIST.strong); assert.equal(old.settings.sharp, false); assert.ok(!old.ghosts.cedar, 'a ghost from the old handling is dropped');
+  assert.equal(parseSave(JSON.stringify({ v: 1, settings: { assist: 0.35 } })).settings.assist, ASSIST.light);
+  assert.equal(parseSave(JSON.stringify({ v: 1, settings: { assist: 0 } })).settings.assist, ASSIST.off);
+  assert.equal(newSave().settings.assist, ASSIST.strong, 'Strong assist and Smooth steering by default');
+  ok('saves round-trip, unlock the ladder, old settings and ghosts migrate, and corrupt saves fall back without throwing');
 }
 console.log(`pass: ${n} checks passed`);
 void DUEL_GAP;

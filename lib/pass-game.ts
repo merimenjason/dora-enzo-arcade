@@ -4,8 +4,8 @@
 // strings Races into the touge rounds (lead, chase, sudden death). The AI drives the same car physics along a racing
 // line with a personality. Saves are parsed defensively. Deterministic: a seeded generator, no Math.random, no clock.
 
-import { BASE, DT, G, idleInput, makeCar, quantise, slipAngle, stepCar, withUpgrades, worldVel, setWorldVel,
-  type Car, type CarSpec, type Input } from './pass-car.js';
+import { ASSIST, BASE, DT, G, idleInput, makeCar, quantise, slipAngle, steerLock, stepCar, withUpgrades, worldVel, setWorldVel,
+  type Car, type CarSpec, type Input, type SteerMode } from './pass-car.js';
 import { at, buildTrack, locate, radiusAt, GUTTER, PASSES, STEP, type PassId, type Track, type Where } from './pass-tracks.js';
 
 export { DT } from './pass-car.js';
@@ -45,31 +45,31 @@ export type CarShape = 'hatch' | 'wedge' | 'roadster' | 'saloon' | 'kei' | 'fast
 
 export const RIVALS: Rival[] = [
   { id: 'stoat', name: 'Skitter', animal: 'stoat', car: 'Kestrel', carBlurb: 'a red wedge coupe with pop-up lights', pass: 'cedar', body: 0xd8352f, trim: 0x1d1d22, shape: 'wedge',
-    pace: 0.9, brake: 0.86, block: 0.85, fog: 0.04, dark: 0.04, slip: 0.08, power: 1,
+    pace: 0.8475, brake: 0.86, block: 0.85, fog: 0.04, dark: 0.04, slip: 0.08, power: 1,
     taunt: 'A bun car? I\'ll be at the summit before your dough rises.', style: 'Blocks the middle of the road. Pass him in the wide places.',
     win: 'Ha! Back to the oven, bun car.', lose: 'No way… a delivery hatch?!' },
   { id: 'otter', name: 'Ripple', animal: 'otter', car: 'Lagoon', carBlurb: 'a teal roadster with pop-up lights', pass: 'lake', body: 0x1f9e9a, trim: 0xf0e6cf, shape: 'roadster',
-    pace: 0.987, brake: 0.88, block: 0.3, fog: 0.03, dark: 0.04, slip: 0.06, power: 1,
+    pace: 0.878, brake: 0.88, block: 0.3, fog: 0.03, dark: 0.04, slip: 0.06, power: 1,
     taunt: 'The esses flow like water. Can you keep up with the current?', style: 'Smooth and quick through linked corners, gentle on the brakes.',
     win: 'Go with the flow next time.', lose: 'You found the rhythm. Nice.' },
   { id: 'badger', name: 'Bodger', animal: 'badger', car: 'Coalscuttle', carBlurb: 'a boxy black and white saloon with a light pod', pass: 'stairs', body: 0x23252b, trim: 0xf4f1e8, shape: 'saloon',
-    pace: 1.0, brake: 0.97, block: 0.5, fog: 0.04, dark: 0.04, slip: 0.07, power: 1,
+    pace: 0.8475, brake: 0.97, block: 0.5, fog: 0.04, dark: 0.04, slip: 0.07, power: 1,
     taunt: 'I brake later than you think, little bun.', style: 'Brakes very late into hairpins. Get him on the exits.',
     win: 'Late on the anchors, that\'s the trick.', lose: 'You hooked the gutters. Old trick. Good trick.' },
   { id: 'pika', name: 'Pippa', animal: 'pika', car: 'Mochi', carBlurb: 'a tiny pastel-pink kei coupe', pass: 'fog', body: 0xf2a7b8, trim: 0xfdf3e1, shape: 'kei',
-    pace: 1.011, brake: 0.9, block: 0.2, fog: 0.06, dark: 0.08, slip: 0.05, power: 1,
+    pace: 0.915, brake: 0.9, block: 0.2, fog: 0.06, dark: 0.08, slip: 0.05, power: 1,
     taunt: 'I-it\'s very foggy… p-please don\'t follow too close!', style: 'Quick in the clear, but she brakes early in the fog.',
     win: 'Oh! I won? I won!', lose: 'Your notes are so good… can Enzo teach me?' },
   { id: 'bat', name: 'Vesper', animal: 'bat', car: 'Nightjar', carBlurb: 'a matte-black fastback with violet lights', pass: 'tunnel', body: 0x2a2633, trim: 0x9b6cff, shape: 'fastback',
-    pace: 0.9625, brake: 0.92, block: 0.45, fog: 0.0, dark: -0.02, slip: 0.04, power: 1,
+    pace: 0.878, brake: 0.92, block: 0.45, fog: 0.0, dark: -0.02, slip: 0.04, power: 1,
     taunt: 'Lights are for those who can\'t hear the road.', style: 'Drives by ear and doesn\'t care how dark it is.',
     win: 'The dark is my road.', lose: 'You listened. I heard it.' },
   { id: 'goat', name: 'Old Crag', animal: 'mountain goat', car: 'Ironhorn', carBlurb: 'a long silver and bronze coupe', pass: 'summit', body: 0xb9bcc2, trim: 0xa86a32, shape: 'coupe',
-    pace: 0.9925, brake: 0.93, block: 0.7, fog: 0.03, dark: 0.03, slip: 0.035, power: 1,
+    pace: 0.886, brake: 0.93, block: 0.7, fog: 0.03, dark: 0.03, slip: 0.035, power: 1,
     taunt: 'Forty winters I\'ve run this mountain. Show me.', style: 'The old king of the pass: a perfect line, and he closes the door.',
     win: 'Come back next winter.', lose: 'The mountain has a new runner.' },
   { id: 'fox', name: 'Aurora', animal: 'silver fox', car: 'Daybreak', carBlurb: 'a white fastback with gold pinstripes', pass: 'summit', reversed: true, body: 0xf3f1ea, trim: 0xd4a640, shape: 'fastback',
-    pace: 1.017, brake: 0.95, block: 0.6, fog: 0.02, dark: 0.02, slip: 0.025, power: 1,
+    pace: 0.895, brake: 0.95, block: 0.6, fog: 0.02, dark: 0.02, slip: 0.025, power: 1,
     taunt: 'I only race when the sun comes up. Don\'t keep me waiting.', style: 'The dawn champion. Fast everywhere, mistakes almost never.',
     win: 'Again tomorrow, at first light.', lose: 'So this is what warm buns taste like at dawn.' },
 ];
@@ -260,7 +260,9 @@ export type RaceOpts = {
   noteLevel?: number; seed?: number; buns?: boolean;
   ghost?: number[] | null;
   /** the car the ghost was recorded with (defaults to the player's) */
-  ghostCar?: { up: readonly string[]; assist: number; manual: boolean } | null;
+  ghostCar?: { up: readonly string[]; assist: number; manual: boolean; sharp?: boolean } | null;
+  /** Sharp steering: a quicker keyboard filter (Smooth is the default) */
+  sharp?: boolean;
   /** the competent bot drives the player's car (tests) */
   autopilot?: number;
   countdown?: number;
@@ -280,17 +282,22 @@ export const BOT_SLIP = 0.06;
 /** How much a driver's pace varies night to night (a seeded ±half of this). */
 export const FORM = 0.04;
 export const DUEL_GAP = 1.0; // seconds: lead by more than this at the line to take a lead round
-export const DROP_GAP = 2.6; // seconds: a chaser this far behind has dropped and the round is over
+export const DROP_GAP = 3.0; // seconds: a chaser this far behind has dropped and the round is over
 export const DRIFT = { minAngle: 0.14, minSpeed: 9, fill: 0.42, boostMin: 0.25, boostSecs: 1.6, boostMul: 1.22 };
 
 type Racer = {
   car: Car; w: Where; idx: number; s: number; finished: number; lane: number;
   marks: Float32Array; stuck: number; resets: number; crashed: boolean;
-  ai: { pace: number; brake: number; block: number; slipUntil: number; slipOff: number; nextCorner: number } | null;
+  ai: { pace: number; brake: number; block: number; slipUntil: number; slipOff: number; nextCorner: number; human?: Human } | null;
   hookCool: number; gripT: number; gripV: number; wallT: number; scrapeT: number; hold: number;
 };
 
 const MARK = 4; // metres between gap marks
+/** The autopilot's human side: what it decided REACTION seconds ago, and a slow wander off the ideal line. */
+type Human = { buf: Float32Array; at: number; ph: [number, number, number] };
+/** The competent bot drives like a person: it acts this many seconds late, wanders this far off the line (m). */
+export const HUMAN = { reaction: 0.2, wander: 0.4 };
+type DriftState = { drift: number; drifting: boolean; driftHold: number; driftScore: number; driftClean: boolean };
 
 export class Race {
   track: Track; opts: RaceOpts; racers: Racer[] = []; ghost: Racer | null = null;
@@ -311,29 +318,29 @@ export class Race {
     const spec = opts.spec ?? withUpgrades(BASE, opts.upgrades ?? []);
     const lead = opts.role !== 'chase';
     const pS = opts.rival ? (lead ? START_S + 9 : START_S) : START_S;
-    this.racers.push(this.makeRacer(spec, pS, 0, opts.manual ? false : true, opts.assist ?? 0.6, null));
+    this.racers.push(this.makeRacer(spec, pS, 0, opts.manual ? false : true, opts.assist ?? ASSIST.strong, null, opts.sharp ? 'sharp' : 'smooth'));
     if (opts.rival) {
       const r = rival(opts.rival);
       // each night a driver's form varies a little (seeded): this is the only thing that changes between seeds
       const form = 1 + (this.rand() - 0.5) * FORM;
       const nerves = (1 - r.fog * this.fogLevel - r.dark * (this.dark ? 1 : 0)) * form;
-      this.racers.push(this.makeRacer(rivalSpec(opts.rival), lead ? START_S : START_S + 9, 0, true, 0.6,
-        { pace: r.pace * nerves, brake: r.brake * (1 - r.fog * this.fogLevel * 1.5), block: r.block, slipUntil: -1, slipOff: 0, nextCorner: 0 }));
+      this.racers.push(this.makeRacer(rivalSpec(opts.rival), lead ? START_S : START_S + 9, 0, true, 0.6, // rivals steer smoothly by themselves and grip-drive
+        { pace: r.pace * nerves, brake: r.brake * (1 - r.fog * this.fogLevel * 1.5), block: r.block, slipUntil: -1, slipOff: 0, nextCorner: 0 }, 'none'));
       this.leaderIdx = lead ? 0 : 1;
     }
     if (opts.ghost) {
       const gc = opts.ghostCar;
-      this.ghost = gc ? this.makeRacer(withUpgrades(BASE, gc.up), START_S, 0, !gc.manual, gc.assist, null) : this.makeRacer(spec, START_S, 0, opts.manual ? false : true, opts.assist ?? 0.6, null);
+      this.ghost = gc ? this.makeRacer(withUpgrades(BASE, gc.up), START_S, 0, !gc.manual, gc.assist, null, gc.sharp ? 'sharp' : 'smooth') : this.makeRacer(spec, START_S, 0, opts.manual ? false : true, opts.assist ?? ASSIST.strong, null, opts.sharp ? 'sharp' : 'smooth');
     }
     this.notes = paceNotes(this.track, opts.noteLevel ?? 0);
     this.corners = readRoad(this.track).corners;
   }
   corners: Corner[];
 
-  private makeRacer(spec: CarSpec, s: number, d: number, auto: boolean, assist: number, ai: Racer['ai']): Racer {
+  private makeRacer(spec: CarSpec, s: number, d: number, auto: boolean, assist: number, ai: Racer['ai'], steer: SteerMode): Racer {
     const t = this.track, i = at(t, s);
     const x = t.x[i] - Math.sin(t.h[i]) * d, y = t.y[i] + Math.cos(t.h[i]) * d;
-    const car = makeCar(spec, x, y, t.h[i], auto, assist);
+    const car = makeCar(spec, x, y, t.h[i], auto, assist, steer);
     return { car, w: { i, s, d, px: 0, py: 0 }, idx: i, s, finished: -1, lane: d, marks: new Float32Array(Math.ceil(t.len / MARK) + 2).fill(-1),
       stuck: 0, resets: 0, crashed: false, ai, hookCool: 0, gripT: 0, gripV: 1, wallT: 0, scrapeT: 0, hold: 0 };
   }
@@ -428,6 +435,7 @@ export class Race {
     if (r.finished < 0 && this.t > 2 && (speed < 1.5 || wrong || Math.abs(slipAngle(c)) > 1.5)) r.stuck += DT; else r.stuck = Math.max(0, r.stuck - DT * 2);
     if (r.stuck > (wrong ? 1.6 : 2.2)) this.reset(r, idx);
     if (isPlayer) this.playerExtras(r);
+    else if (idx === -1) this.meter(this.ghostDrift, r, false);
   }
 
   private walls(r: Racer, idx: number) {
@@ -460,11 +468,13 @@ export class Race {
           r.wallT = 0.25;
           if (idx >= 0) this.events.push({ k: 'wall', car: idx, x: c.x + nx * 1, y: c.y + ny * 1, mag: vn, side });
           if (idx === 0) { this.hits++; this.hitBuns(vn); this.breakDrift(); }
+          if (idx === -1) this.breakGhostDrift();
         }
       }
       // rubbing along the rail drags the car back
       { const sp = Math.hypot(c.u, c.v); if (sp > 1) { const k = Math.max(0, sp - WALL.rub * DT) / sp; c.u *= k; c.v *= k; } }
       if (r.scrapeT === 0 && Math.hypot(c.u, c.v) > 4 && idx >= 0) { r.scrapeT = 0.06; this.events.push({ k: 'scrape', car: idx, x: c.x + nx * 0.9, y: c.y + ny * 0.9 }); if (idx === 0) this.breakDrift(); }
+      if (idx === -1 && r.scrapeT === 0 && Math.hypot(c.u, c.v) > 4) { r.scrapeT = 0.06; this.breakGhostDrift(); }
     }
   }
 
@@ -495,6 +505,7 @@ export class Race {
     r.car.u = 0; r.car.v = 0; r.car.r = 0; r.car.boost = 0;
     if (idx >= 0) this.events.push({ k: 'reset', car: idx });
     if (idx === 0) { this.breakDrift(); this.hitBuns(6); }
+    if (idx === -1) this.breakGhostDrift();
     if (this.racers.length > 1 && idx >= 0 && !r.crashed) { r.crashed = true; this.events.push({ k: 'crash', car: idx }); }
   }
 
@@ -510,25 +521,31 @@ export class Race {
     const lost = Math.min(this.buns, Math.floor(Math.max(0, mag - 3) / 3.2) + (mag > 5.5 ? 1 : 0));
     if (lost > 0) { this.buns -= lost; this.events.push({ k: 'bun', left: this.buns }); }
   }
-  private playerExtras(r: Racer) {
+  /** The drift meter and its boost: the player's lives on the race, the ghost keeps its own so a replay matches. */
+  private meter(st: DriftState, r: Racer, events: boolean) {
     const c = r.car, beta = Math.abs(slipAngle(c)), speed = Math.hypot(c.u, c.v);
-    // drift meter
     const sliding = beta > DRIFT.minAngle && beta < 1.2 && speed > DRIFT.minSpeed && r.finished < 0;
     if (sliding) {
-      if (!this.drifting) { this.drifting = true; this.driftClean = true; this.events.push({ k: 'driftStart' }); }
-      this.driftHold = 0;
-      this.drift = Math.min(1, this.drift + DT * DRIFT.fill * Math.min(1.6, beta / 0.35));
-      this.driftScore += DT * speed * beta * 10;
-    } else if (this.drifting) {
-      this.driftHold += DT;
-      if (this.driftHold > 0.22) {
-        this.drifting = false;
-        const boost = this.drift >= DRIFT.boostMin && this.driftClean;
-        if (boost) c.boost = Math.max(c.boost, DRIFT.boostSecs * this.drift);
-        this.events.push({ k: 'driftEnd', meter: this.drift, boost });
-        this.drift = 0;
+      if (!st.drifting) { st.drifting = true; st.driftClean = true; if (events) this.events.push({ k: 'driftStart' }); }
+      st.driftHold = 0;
+      st.drift = Math.min(1, st.drift + DT * DRIFT.fill * Math.min(1.6, beta / 0.35));
+      st.driftScore += DT * speed * beta * 10;
+    } else if (st.drifting) {
+      st.driftHold += DT;
+      if (st.driftHold > 0.22) {
+        st.drifting = false;
+        const boost = st.drift >= DRIFT.boostMin && st.driftClean;
+        if (boost) c.boost = Math.max(c.boost, DRIFT.boostSecs * st.drift);
+        if (events) this.events.push({ k: 'driftEnd', meter: st.drift, boost });
+        st.drift = 0;
       }
     }
+  }
+  private ghostDrift: DriftState = { drift: 0, drifting: false, driftHold: 0, driftScore: 0, driftClean: true };
+  private breakGhostDrift() { const g = this.ghostDrift; g.drifting = false; g.drift = 0; g.driftClean = false; }
+  private playerExtras(r: Racer) {
+    const c = r.car, speed = Math.hypot(c.u, c.v);
+    this.meter(this, r, true);
     // the bun tray wobbles with hard cornering and braking
     if (this.opts.buns && this.buns > 0) {
       const g = Math.hypot(c.ax, c.ay) / G;
@@ -598,8 +615,12 @@ export class Race {
   // ---- the AI driver: pure pursuit on the racing line, target speeds from the line, a personality on top
   drive(idx: number, out: Input, pace: number) {
     const r = this.racers[idx], c = r.car, t = this.track;
-    if (!r.ai) r.ai = { pace: pace * (1 + (this.rand() - 0.5) * FORM), brake: 0.95, block: 0.4, slipUntil: -1, slipOff: 0, nextCorner: 0 };
-    const ai = r.ai;
+    if (!r.ai) {
+      const n = Math.max(1, Math.round(HUMAN.reaction / DT));
+      r.ai = { pace: pace * (1 + (this.rand() - 0.5) * FORM), brake: 0.95, block: 0.4, slipUntil: -1, slipOff: 0, nextCorner: 0,
+        human: { buf: new Float32Array(n * 3), at: 0, ph: [this.rand() * 6.3, this.rand() * 6.3, this.rand() * 6.3] } };
+    }
+    const ai = r.ai, hu = ai.human;
     const line = racingLine(t, c.spec.mu * LINE_GRIP, ai.brake * c.spec.brake * 0.92);
     const speed = Math.max(0, c.u);
     // personality: an occasional small error going into a corner (seeded)
@@ -608,10 +629,12 @@ export class Race {
       if (this.rand() < chance) { ai.slipUntil = this.corners[ai.nextCorner].end; ai.slipOff = (this.rand() < 0.5 ? -1 : 1) * 0.9; }
       ai.nextCorner++;
     }
-    const look = 4.5 + speed * 0.32;
+    const look = 4.5 + speed * (0.32 + (hu ? HUMAN.reaction : 0)); // a person reads ahead to make up for reacting late
     const j = at(t, r.s + look);
     let off = line.off[j];
     if (r.s < ai.slipUntil) off += ai.slipOff;
+    // a person never quite holds the ideal line: a slow seeded wander either side of it
+    if (hu) off += HUMAN.wander * (Math.sin(r.s / 37 + hu.ph[0]) * 0.6 + Math.sin(r.s / 13 + hu.ph[1]) * 0.4);
     // racecraft against the other car
     if (this.racers.length > 1) {
       const o = this.racers[1 - idx], gapM = o.s - r.s;
@@ -625,15 +648,17 @@ export class Race {
     }
     off = Math.max(-t.wr[j] + 1.0, Math.min(t.wl[j] - 1.0, off));
     const tx = t.x[j] - Math.sin(t.h[j]) * off, ty = t.y[j] + Math.cos(t.h[j]) * off;
-    const dx = tx - c.x, dy = ty - c.y, ch = Math.cos(c.h), sh = Math.sin(c.h);
+    // a person steers for where the car will be when their hands catch up: the pose a reaction time ahead
+    const pt = hu ? HUMAN.reaction : 0, wv = worldVel(c), ph = c.h + c.r * pt;
+    const dx = tx - (c.x + wv.vx * pt), dy = ty - (c.y + wv.vy * pt), ch = Math.cos(ph), sh = Math.sin(ph);
     const lx = dx * ch + dy * sh, ly = -dx * sh + dy * ch, d2 = lx * lx + ly * ly;
     const curv = (2 * ly) / Math.max(4, d2);
     const L = c.spec.a + c.spec.b;
     const want = Math.atan(L * curv);
-    const lock = c.spec.lock / (1 + Math.max(0, c.u) / 14);
+    const lock = steerLock(c.spec, c.u);
     out.steer = Math.max(-1, Math.min(1, want / lock));
     // speed
-    const vi = at(t, r.s + Math.min(6, speed * 0.12));
+    const vi = at(t, r.s + Math.min(6, speed * 0.12) + speed * (hu ? HUMAN.reaction : 0));
     let vt = line.v[vi] * ai.pace;
     if (r.s < ai.slipUntil) vt *= 0.94;
     if (this.racers.length > 1) {
@@ -647,6 +672,14 @@ export class Race {
     else { out.brake = 0; out.throttle = Math.max(0, Math.min(1, (vt - speed) * 0.8 + 0.3)); }
     if (beta > 0.22) out.throttle *= 0.4; // AI drivers grip-drive: catch a slide instead of feeding it
     out.hand = false; out.up = false; out.down = false;
+    if (hu) {
+      // reaction time: what comes out now is what it decided a quarter of a second ago
+      const b = hu.buf, k = hu.at * 3;
+      const st = b[k], th = b[k + 1], br = b[k + 2];
+      b[k] = out.steer; b[k + 1] = out.throttle; b[k + 2] = out.brake;
+      hu.at = (hu.at + 1) % (b.length / 3);
+      out.steer = st; out.throttle = th; out.brake = br;
+    }
   }
 
   /** The time the player has been running (0 before the start). */
@@ -703,9 +736,9 @@ export function duelOutcome(results: RoundResult[]): 0 | 1 | null {
 
 // ---------------------------------------------------------------- medals for deliveries, from the bot's real runs
 /** The competent bot's delivery time on each pass (seconds), measured by tests/pass-bot.mjs. */
-export const BOT_TIMES: Record<PassId, number> = { cedar: 65.08, lake: 55.62, stairs: 67.8, fog: 57.09, tunnel: 54.55, summit: 82.18 };
-export const MEDAL_FACTORS = [1.04, 1.13, 1.28]; // gold, silver, bronze: slower than the bot by this factor
-export const MEDAL_BUNS = [11, 8, 5];
+export const BOT_TIMES: Record<PassId, number> = { cedar: 69.17, lake: 57.3, stairs: 70.15, fog: 59.27, tunnel: 56.93, summit: 86.26 };
+export const MEDAL_FACTORS = [1.03, 1.16, 1.4]; // gold, silver, bronze: slower than the bot by this factor
+export const MEDAL_BUNS = [11, 7, 4];
 export function medalTimes(id: PassId) { return MEDAL_FACTORS.map((f) => Math.round(BOT_TIMES[id] * f * 10) / 10); }
 /** 3 gold, 2 silver, 1 bronze, 0 none. */
 export function deliveryMedal(id: PassId, time: number, buns: number) {
@@ -746,18 +779,21 @@ export const STORY: StoryStep[] = [
 
 // ---------------------------------------------------------------- saves
 export const SAVE_KEY = 'kumori-pass-v1';
-export type Settings = { assist: number; manual: boolean; lite: boolean; sound: boolean; music: boolean; camera: number };
+/** assist is 1 Strong, 0.5 Light or 0 Off (ASSIST); sharp picks the quicker steering filter */
+export type Settings = { assist: number; sharp: boolean; manual: boolean; lite: boolean; sound: boolean; music: boolean; camera: number };
+/** Ghosts are inputs replayed through the car, so a ghost recorded before the handling changed is dropped. */
+export const GHOST_VERSION = 2;
 export type Save = {
   v: 1; coins: number; upgrades: string[]; runs: Record<PassId, number>; story: number; beaten: RivalId[];
   medals: Record<PassId, number>; best: Record<PassId, number>; ghosts: Partial<Record<PassId, string>>;
-  ghostMeta: Partial<Record<PassId, { up: string[]; assist: number; manual: boolean }>>;
+  ghostMeta: Partial<Record<PassId, { up: string[]; assist: number; manual: boolean; sharp?: boolean; hv?: number }>>;
   settings: Settings; ended: boolean;
 };
 const PASS_IDS = PASSES.map((p) => p.id);
 const zeroBy = (v: number) => Object.fromEntries(PASS_IDS.map((id) => [id, v])) as Record<PassId, number>;
 export function newSave(): Save {
   return { v: 1, coins: 0, upgrades: [], runs: zeroBy(0), story: 0, beaten: [], medals: zeroBy(0), best: zeroBy(0), ghosts: {}, ghostMeta: {},
-    settings: { assist: 0.6, manual: false, lite: false, sound: true, music: true, camera: 0 }, ended: false };
+    settings: { assist: ASSIST.strong, sharp: false, manual: false, lite: false, sound: true, music: true, camera: 0 }, ended: false };
 }
 const num = (v: unknown, lo: number, hi: number, d: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d);
 const UPGRADE_IDS = ['flywheel', 'rear', 'tyres', 'lsd', 'intake', 'rack', 'tray'];
@@ -781,16 +817,19 @@ export function parseSave(raw: string | null | undefined): Save {
   if (d.ghosts && typeof d.ghosts === 'object') for (const id of PASS_IDS) {
     const g = (d.ghosts as Record<string, unknown>)[id];
     const meta = d.ghostMeta && typeof d.ghostMeta === 'object' ? (d.ghostMeta as Record<string, unknown>)[id] : null;
-    if (typeof g === 'string' && unpackGhost(g) && meta && typeof meta === 'object') {
+    if (typeof g === 'string' && unpackGhost(g) && meta && typeof meta === 'object' && (meta as Record<string, unknown>).hv === GHOST_VERSION) {
       const m = meta as Record<string, unknown>;
       s.ghosts[id] = g;
-      s.ghostMeta[id] = { up: Array.isArray(m.up) ? m.up.filter((u): u is string => typeof u === 'string' && UPGRADE_IDS.includes(u)) : [], assist: num(m.assist, 0, 1, 0.6), manual: m.manual === true };
+      s.ghostMeta[id] = { up: Array.isArray(m.up) ? m.up.filter((u): u is string => typeof u === 'string' && UPGRADE_IDS.includes(u)) : [], assist: num(m.assist, 0, 1, ASSIST.strong), manual: m.manual === true, sharp: m.sharp === true, hv: GHOST_VERSION };
     }
   }
   const st = d.settings;
   if (st && typeof st === 'object') {
     const x = st as Record<string, unknown>;
-    s.settings = { assist: num(x.assist, 0, 1, 0.6), manual: x.manual === true, lite: x.lite === true, sound: x.sound !== false, music: x.music !== false, camera: Math.floor(num(x.camera, 0, 2, 0)) };
+    // saves from before Strong/Light/Off held 0, 0.35, 0.6 or 0.85: Off stays off, Low becomes Light, the rest Strong
+    const a = num(x.assist, 0, 1, ASSIST.strong), legacy = typeof x.sharp !== 'boolean';
+    const assist = a < 0.01 ? ASSIST.off : legacy ? (a < 0.5 ? ASSIST.light : ASSIST.strong) : a < 0.75 ? ASSIST.light : ASSIST.strong;
+    s.settings = { assist, sharp: x.sharp === true, manual: x.manual === true, lite: x.lite === true, sound: x.sound !== false, music: x.music !== false, camera: Math.floor(num(x.camera, 0, 2, 0)) };
   }
   s.ended = d.ended === true;
   return s;
@@ -810,7 +849,7 @@ export function buyUpgrade(s: Save, id: string): boolean {
   s.coins -= u.cost; s.upgrades.push(id); return true;
 }
 import { UPGRADES as UPGRADE_LIST } from './pass-car.js';
-export { UPGRADES, statCard, withUpgrades, BASE, idleInput, slipAngle as slipAngleOf } from './pass-car.js';
+export { UPGRADES, statCard, withUpgrades, BASE, idleInput, ASSIST, slipAngle as slipAngleOf } from './pass-car.js';
 export type { Input, Car, CarSpec } from './pass-car.js';
 export { PASSES, passDef, radiusAt, at } from './pass-tracks.js';
 export type { PassId, Track } from './pass-tracks.js';

@@ -22,7 +22,7 @@ const RIVAL_IDS = G.RIVALS.map((r) => r.id);
 const SCENE_ART: Record<G.SceneId, string> = { bakery: 'story-bakery', carpark: 'story-carpark', fog: 'story-fog', relay: 'story-relay', ending: 'ending' };
 const WHO: Record<string, string> = { dora: 'Dora', enzo: 'Enzo', narrator: '', ...Object.fromEntries(G.RIVALS.map((r) => [r.id, r.name])) };
 const PORTRAIT: Record<string, string> = { dora: 'dora-grin', enzo: 'enzo-notes', ...Object.fromEntries(G.RIVALS.map((r) => [r.id, `${r.id}-portrait`])) };
-const ASSISTS = [{ v: 0, name: 'Off' }, { v: 0.35, name: 'Low' }, { v: 0.6, name: 'Medium' }, { v: 0.85, name: 'High' }];
+const ASSISTS = [{ v: G.ASSIST.strong, name: 'Strong' }, { v: G.ASSIST.light, name: 'Light' }, { v: G.ASSIST.off, name: 'Off' }];
 const LEVEL_WORD = ['Scribbles', 'Rough notes', 'Numbered notes', 'Full notes'];
 const LEVEL_HINT = ['Late and vague calls.', 'Directions and how tight.', 'Earlier calls with severity numbers and "into".', 'Earliest calls, plus gutters, crests and passing places.'];
 const fmt = (t: number) => { if (!(t > 0)) return '–'; const m = Math.floor(t / 60), s = t - m * 60; return `${m}:${s < 10 ? '0' : ''}${s.toFixed(2)}`; };
@@ -116,8 +116,6 @@ export default function KumoriPass() {
     let s = G.newSave();
     try { s = G.parseSave(localStorage.getItem(G.SAVE_KEY)); } catch { /* blocked storage */ }
     const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-    let fresh = true; try { fresh = !localStorage.getItem(G.SAVE_KEY); } catch { /* ignore */ }
-    if (coarse && fresh) s.settings.assist = 0.85;
     setTouch(coarse || 'ontouchstart' in window);
     setSave(s);
     soundRef.current = new PassSound(s.settings.sound, s.settings.music);
@@ -172,7 +170,7 @@ export default function KumoriPass() {
 
   const raceOpts = useCallback((pass: PassId, extra: Partial<G.RaceOpts>): G.RaceOpts => {
     const s = saveRef.current;
-    return { pass, upgrades: s.upgrades, assist: s.settings.assist, manual: s.settings.manual, noteLevel: G.noteLevel(s.runs[pass]), seed: 1 + s.runs[pass] * 13 + s.coins, ...extra };
+    return { pass, upgrades: s.upgrades, assist: s.settings.assist, sharp: s.settings.sharp, manual: s.settings.manual, noteLevel: G.noteLevel(s.runs[pass]), seed: 1 + s.runs[pass] * 13 + s.coins, ...extra };
   }, []);
 
   const startSolo = useCallback((mode: 'delivery' | 'attack', pass: PassId, story: number | null) => {
@@ -185,7 +183,7 @@ export default function KumoriPass() {
 
   const startDuel = useCallback((rival: RivalId, relay: boolean, story: number | null) => {
     const s = saveRef.current, r = G.rival(rival), pass = relay ? 'summit' : r.pass;
-    const duel = new G.Duel({ rival, relay, upgrades: s.upgrades, assist: s.settings.assist, manual: s.settings.manual, noteLevel: G.noteLevel(s.runs[pass]), seed: 7 + s.runs[pass] * 31 + s.beaten.length * 5 + (s.coins % 97) });
+    const duel = new G.Duel({ rival, relay, upgrades: s.upgrades, assist: s.settings.assist, sharp: s.settings.sharp, manual: s.settings.manual, noteLevel: G.noteLevel(s.runs[pass]), seed: 7 + s.runs[pass] * 31 + s.beaten.length * 5 + (s.coins % 97) });
     beginRace({ mode: relay ? 'relay' : 'duel', pass, rival, story, duel, race: duel.race, ghost: null });
   }, [beginRace]);
 
@@ -236,7 +234,7 @@ export default function KumoriPass() {
       const best = !s.best[run.pass] || time < s.best[run.pass];
       if (best) {
         s.best[run.pass] = Math.round(time * 1000) / 1000;
-        if (run.mode === 'attack' || !s.ghosts[run.pass]) { s.ghosts[run.pass] = G.packGhost(race.inputs); s.ghostMeta[run.pass] = { up: s.upgrades.slice(), assist: s.settings.assist, manual: s.settings.manual }; }
+        if (run.mode === 'attack' || !s.ghosts[run.pass]) { s.ghosts[run.pass] = G.packGhost(race.inputs); s.ghostMeta[run.pass] = { up: s.upgrades.slice(), assist: s.settings.assist, manual: s.settings.manual, sharp: s.settings.sharp, hv: G.GHOST_VERSION }; }
       }
       if (run.story !== null) s.story = Math.max(s.story, run.story + 1);
       res = { mode: run.mode, pass: run.pass, rival: null, win: true, time, buns, medal, coins, best, levelFrom, levelTo, rounds: [], story: run.story, drift: Math.round(race.driftScore), hits: race.hits };
@@ -326,11 +324,8 @@ export default function KumoriPass() {
       if (gp.buttons[14]?.pressed) left = true; if (gp.buttons[15]?.pressed) right = true;
       break;
     }
-    const target = analog !== null ? analog : (left ? 1 : 0) - (right ? 1 : 0);
-    // digital steering eases in and snaps back, so taps make small corrections
-    const s = steer.current;
-    const rate = target === 0 ? 7 : Math.sign(target) !== Math.sign(s) && s !== 0 ? 9 : 4.2;
-    steer.current = analog !== null ? target : s + Math.max(-rate * dt, Math.min(rate * dt, target - s));
+    // keys, touch pads and sticks all go to the car raw: the car's steering filter (Smooth or Sharp) eases them in
+    steer.current = analog !== null ? analog : (left ? 1 : 0) - (right ? 1 : 0); void dt;
     inp.steer = steer.current; inp.throttle = thr; inp.brake = brk; inp.hand = hand; inp.up = up; inp.down = down;
   }
 
@@ -507,6 +502,10 @@ export default function KumoriPass() {
           story: (n: number) => persist({ ...saveRef.current, story: n }),
           showcase: (i: number) => setShowcaseIdx(i),
           say: (t: string) => say(t, 'enzo'),
+          /** put every car at a distance along the road, rolling at u m/s (screenshots) */
+          place: (sAt: number, u = 16) => { const rr = runRef.current?.race; if (!rr) return; for (const rc of rr.racers) { const i = Math.max(0, Math.floor(sAt + (rc === rr.player ? 0 : 9))); rc.car.x = rr.track.x[i]; rc.car.y = rr.track.y[i]; rc.car.h = rr.track.h[i]; rc.idx = i; rc.w.i = i; rc.w.d = 0; rc.s = i; rc.car.u = u; rc.car.v = 0; rc.car.r = 0; for (let k = 0; k * 4 < i; k++) if (rc.marks[k] < 0) rc.marks[k] = Math.max(0, rr.t); } },
+          /** the last frame's draw calls and triangles (performance checks) */
+          draws: () => { const i = sceneRef.current?.renderer.info.render; return i ? { calls: i.calls, triangles: i.triangles } : null; },
           /** let the competent bot drive the player's car (screenshots) */
           auto: (pace: number) => { const rr = runRef.current?.race; if (rr) rr.opts.autopilot = pace; },
           /** turn the car sideways by b radians, keeping its course (screenshots of a drift) */
@@ -649,7 +648,9 @@ export default function KumoriPass() {
     {screen === 'settings' && <section className="kp-page kp-settings">
       <header className="kp-pagehead"><button className="kp-back" onClick={() => go('menu')}>‹ Back</button><h2>Settings</h2><div className="kp-coins">🥐 {s.coins}</div></header>
       <div className="kp-setlist">
-        <div className="kp-set"><b>Counter-steer assist</b><small>Turns the front wheels into a slide for you. Higher is easier to drift; Off is all you.</small>
+        <div className="kp-set"><b>Steering</b><small>Smooth eases the keys in, so a tap is a small correction. Sharp is quicker.</small>
+          <div className="kp-seg"><button className={!s.settings.sharp ? 'on' : ''} onClick={() => setSetting('sharp', false)}>Smooth</button><button className={s.settings.sharp ? 'on' : ''} onClick={() => setSetting('sharp', true)}>Sharp</button></div></div>
+        <div className="kp-set"><b>Assist</b><small>Catches slides and holds a drift at the angle you steer. Strong can&apos;t spin from a normal corner; Off is all you.</small>
           <div className="kp-seg">{ASSISTS.map((a) => <button key={a.name} className={Math.abs(s.settings.assist - a.v) < 0.01 ? 'on' : ''} onClick={() => setSetting('assist', a.v)}>{a.name}</button>)}</div></div>
         <div className="kp-set"><b>Gears</b><small>Manual: Shift up, Ctrl down.</small><div className="kp-seg"><button className={!s.settings.manual ? 'on' : ''} onClick={() => setSetting('manual', false)}>Automatic</button><button className={s.settings.manual ? 'on' : ''} onClick={() => setSetting('manual', true)}>Manual</button></div></div>
         <div className="kp-set"><b>Lite graphics</b><small>No shadows, outlines or particles, for slower machines.</small><div className="kp-seg"><button className={!s.settings.lite ? 'on' : ''} onClick={() => setSetting('lite', false)}>Full</button><button className={s.settings.lite ? 'on' : ''} onClick={() => setSetting('lite', true)}>Lite</button></div></div>

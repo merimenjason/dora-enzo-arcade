@@ -13,6 +13,29 @@ export const SUSTAIN = 0.5;
 export const POWER_SLIDE = 0.32;
 /** Strength of the assist's slide damper. */
 export const DAMP = 5;
+/**
+ * Steering filters, as seconds from centre to full lock and back. Keyboard and touch steering is a 0/±1 step, so the
+ * car eases it in (a tap is a small correction, a hold reaches full lock) and lets it go quicker. Gamepad sticks go
+ * through the same filter. 'none' is for the rivals' AI, which already steers smoothly.
+ */
+export const STEER_FILTER = { smooth: { rise: 0.3, fall: 0.15 }, sharp: { rise: 0.12, fall: 0.08 }, none: { rise: 0, fall: 0 } };
+export type SteerMode = keyof typeof STEER_FILTER;
+/**
+ * Drift hold (part of the assist): once the car is in a slide, the steering held into the corner sets the slip angle
+ * it settles at (more with throttle), and letting go of the steering eases it straight. HOLD.gain is how hard it
+ * pulls toward that angle; the angle is at most HOLD.base + HOLD.steer + HOLD.throttle radians.
+ */
+export const HOLD = { gain: 4, base: 0.12, steer: 0.24, throttle: 0.14, start: 0.13, end: 0.05, max: 0.62, push: 1.2, cs: 0.3, damp: 0.8 };
+/** Lift-off rotation: off the throttle with the wheel turned hard in, the rear gives up this share of its grip. */
+export const LIFT = 0.22;
+/** Assist settings: Strong (the default), Light and Off. */
+export const ASSIST = { strong: 1, light: 0.5, off: 0 };
+
+/**
+ * Steering lock at a forward speed: full lock at parking speed, much less at the top end so a held key asks the
+ * tyres for about their limit instead of far past it. Counter-steer into a slide gets back up to the full lock.
+ */
+export function steerLock(s: CarSpec, u: number) { const v = Math.max(0, u); return s.lock / (1 + v / 14 + (v * v) / 400); }
 
 export type CarSpec = {
   mass: number; inertia: number; a: number; b: number; cgh: number; // a/b: CG to front/rear axle (m), cgh: CG height
@@ -66,13 +89,31 @@ export type Car = {
   hooked: number; // >0 while the inside wheels run in a gutter
   grip: number; // grip multiplier from the road (gutter, crest)
   lastIn: Input;
+  /** the steering after the filter (-1..1) and which filter */
+  steerIn: number; steerMode: SteerMode;
+  /** 1 while the car is in a slide the drift hold is managing */
+  drifting: number;
   betaPrev: number;
   wheelRot: number;
 };
 
-export function makeCar(spec: CarSpec, x: number, y: number, h: number, auto = true, assist = 0.6): Car {
+export function makeCar(spec: CarSpec, x: number, y: number, h: number, auto = true, assist: number = ASSIST.strong, steerMode: SteerMode = 'smooth'): Car {
   return { spec, x, y, h, u: 0, v: 0, r: 0, delta: 0, gear: 1, rpm: spec.idle, auto, shiftCool: 0, ax: 0, ay: 0, slipF: 0, slipR: 0,
-    wheelSpin: 0, assist, boost: 0, hooked: 0, grip: 1, lastIn: idleInput(), wheelRot: 0, betaPrev: 0 };
+    wheelSpin: 0, assist, boost: 0, hooked: 0, grip: 1, lastIn: idleInput(), steerIn: 0, steerMode, drifting: 0, wheelRot: 0, betaPrev: 0 };
+}
+
+/** Ease the raw steering toward the input: in at the filter's rise rate, back toward the centre at its fall rate. */
+export function filterSteer(c: Car, raw: number) {
+  const f = STEER_FILTER[c.steerMode];
+  if (f.rise === 0) { c.steerIn = raw; return raw; }
+  const s = c.steerIn;
+  // moving away from the centre (and on the same side) rises; anything toward or through the centre falls
+  const out = raw * s >= 0 && Math.abs(raw) > Math.abs(s);
+  const rate = (out ? 1 / f.rise : 1 / f.fall) * DT;
+  let n = s + Math.max(-rate, Math.min(rate, raw - s));
+  if (!out && s !== 0 && Math.sign(n) !== Math.sign(s)) n = 0; // a reversal stops at the centre for a step
+  c.steerIn = n;
+  return n;
 }
 
 /** Normalised tyre force for a slip angle: rises, peaks near ~0.12 rad, then falls away to `slide` of the peak. */
@@ -114,14 +155,18 @@ export function stepCar(c: Car, inp: Input, env: StepEnv): number {
   // ---- steering: the lock softens with speed; assist turns the wheels toward the direction of travel
   const speed = Math.hypot(c.u, c.v);
   const beta = speed > 2 ? Math.atan2(c.v, Math.abs(c.u)) : 0; // body slip: + = sliding to the left
-  const lock = s.lock / (1 + Math.max(0, c.u) / 14);
-  let target = inp.steer * lock;
+  const steer = filterSteer(c, inp.steer);
+  let lock = steerLock(s, c.u);
+  // counter-steering into a slide may use more of the rack, up to the full lock
+  if (steer * beta > 0) lock = Math.max(lock, Math.min(s.lock, Math.abs(beta) + 0.1));
+  let target = steer * lock;
   if (c.assist > 0 && speed > 6) {
     // counter-steer: aim the front wheels along the velocity, more as the slide grows
-    const cs = Math.max(-0.7, Math.min(0.7, beta)) * c.assist;
+    // (outside a drift it leaves the small slip of ordinary cornering alone, so it never costs grip)
+    const cs = c.drifting ? Math.max(-0.7, Math.min(0.7, beta)) * HOLD.cs : Math.sign(beta) * Math.min(0.7, Math.max(0, Math.abs(beta) - 0.08)) * c.assist;
     target = Math.max(-s.lock - 0.25, Math.min(s.lock + 0.25, target + cs));
   }
-  const maxD = s.steerRate * dt * (inp.steer === 0 && c.assist === 0 ? 1.4 : 1);
+  const maxD = s.steerRate * dt * (steer === 0 && c.assist === 0 ? 1.4 : 1);
   c.delta += Math.max(-maxD, Math.min(maxD, target - c.delta));
 
   // ---- loads (weight transfer from last step's longitudinal acceleration)
@@ -168,7 +213,9 @@ export function stepCar(c: Car, inp: Input, env: StepEnv): number {
   // once the tail is out, throttle spins the rear wheels and holds it out (power oversteer); a locked diff does it harder
   const sliding = Math.min(1, Math.max(0, (Math.abs(c.slipR) - 0.1) / 0.15));
   const spinLoss = sliding * inp.throttle * POWER_SLIDE * (0.75 + s.lsd * 0.4);
-  let fyR = -sideR * tyre(c.slipR, s.br, s.cr, s.slideR) * (inp.hand ? 0.42 : 1) * (1 - spinLoss);
+  // a lift-off turn-in (or a turn-in on the brakes) lightens the tail so the car rotates into a slide
+  const feint = inp.throttle === 0 && Math.abs(steer) > 0.7 && speed > 10 ? LIFT * Math.min(1, (speed - 10) / 4) : 0;
+  let fyR = -sideR * tyre(c.slipR, s.br, s.cr, s.slideR) * (inp.hand ? 0.42 : 1) * (1 - spinLoss) * (1 - feint);
   // a spinning rear (lots of throttle at low speed or in a slide) shows as smoke
   const spinAmt = Math.min(1, Math.abs(fxR) / capR) * (Math.abs(c.slipR) > 0.12 || (c.u < 12 && inp.throttle > 0.7) ? 1 : 0.2);
   c.wheelSpin += (Math.max(spinAmt, Math.min(1, Math.abs(c.slipR) * 3 - 0.3), inp.hand && speed > 4 ? 0.9 : 0) - c.wheelSpin) * Math.min(1, dt * 10);
@@ -181,10 +228,26 @@ export function stepCar(c: Car, inp: Input, env: StepEnv): number {
   const Fx = fxR + fxF * cd - fyF * sd - dragF + gradeF;
   const Fy = fyR + fyF * cd + fxF * sd;
   let Mz = s.a * (fyF * cd + fxF * sd) - s.b * fyR;
+  // drift hold (part of the assist): in a slide, the steering into the corner sets the angle and throttle adds to it
+  const absBeta = Math.abs(beta);
+  if (c.assist > 0 && c.steerMode !== 'none' && speed > 7) {
+    // a slide starts it, and so does a handbrake pull or a lift-off with the wheel turned hard in (a feint)
+    const lift = inp.throttle === 0 && Math.abs(steer) > 0.7 && absBeta > 0.05 && speed > 10;
+    if (!c.drifting && (absBeta > HOLD.start || lift || (inp.hand && Math.abs(steer) > 0.3 && speed > 9))) c.drifting = 1;
+    else if (c.drifting && (absBeta < HOLD.end && !inp.hand)) c.drifting = 0;
+  } else c.drifting = 0;
+  if (c.drifting && absBeta > 0.02) {
+    const turn = beta < 0 ? 1 : -1; // a slide with the tail out to the right is a left-hand drift
+    const into = Math.max(0, steer * turn);
+    const want = Math.min(HOLD.max, (HOLD.base + HOLD.steer * into) * (into > 0 ? 1 : 0.4) + HOLD.throttle * inp.throttle * into);
+    // past the wanted angle it pulls back hard (no spins), below it pushes gently (the slide doesn't die)
+    const err = absBeta - want, k = err > 0 ? 1 + Math.min(2, err * 6) : HOLD.push;
+    Mz += c.assist * HOLD.gain * k * s.inertia * err * -turn * Math.min(1, speed / 12) * (inp.hand ? 0.3 : 1);
+  }
   // slide damper (part of the assist): resists the slip angle changing quickly, so a slide holds at the angle you set
   // instead of snapping back or spinning on, the way a calm driver would feather the wheel
   const bRate = (beta - c.betaPrev) / dt; c.betaPrev = beta;
-  if (c.assist > 0 && speed > 6 && Math.abs(beta) > 0.06) Mz += c.assist * DAMP * s.inertia * Math.max(-3, Math.min(3, bRate));
+  if (c.assist > 0 && speed > 6 && Math.abs(beta) > 0.06) Mz += c.assist * DAMP * (c.drifting ? HOLD.damp : 1) * s.inertia * Math.max(-3, Math.min(3, bRate));
   const du = Fx / s.mass + c.v * c.r;
   const dv = Fy / s.mass - c.u * c.r;
   const sp0 = speed;
