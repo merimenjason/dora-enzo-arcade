@@ -45,31 +45,31 @@ export type CarShape = 'hatch' | 'wedge' | 'roadster' | 'saloon' | 'kei' | 'fast
 
 export const RIVALS: Rival[] = [
   { id: 'stoat', name: 'Skitter', animal: 'stoat', car: 'Kestrel', carBlurb: 'a red wedge coupe with pop-up lights', pass: 'cedar', body: 0xd8352f, trim: 0x1d1d22, shape: 'wedge',
-    pace: 0.8475, brake: 0.86, block: 0.85, fog: 0.04, dark: 0.04, slip: 0.08, power: 1,
+    pace: 0.915, brake: 0.86, block: 0.85, fog: 0.04, dark: 0.04, slip: 0.08, power: 1,
     taunt: 'A bun car? I\'ll be at the summit before your dough rises.', style: 'Blocks the middle of the road. Pass him in the wide places.',
     win: 'Ha! Back to the oven, bun car.', lose: 'No way… a delivery hatch?!' },
   { id: 'otter', name: 'Ripple', animal: 'otter', car: 'Lagoon', carBlurb: 'a teal roadster with pop-up lights', pass: 'lake', body: 0x1f9e9a, trim: 0xf0e6cf, shape: 'roadster',
-    pace: 0.878, brake: 0.88, block: 0.3, fog: 0.03, dark: 0.04, slip: 0.06, power: 1,
+    pace: 0.9456, brake: 0.88, block: 0.3, fog: 0.03, dark: 0.04, slip: 0.06, power: 1,
     taunt: 'The esses flow like water. Can you keep up with the current?', style: 'Smooth and quick through linked corners, gentle on the brakes.',
     win: 'Go with the flow next time.', lose: 'You found the rhythm. Nice.' },
   { id: 'badger', name: 'Bodger', animal: 'badger', car: 'Coalscuttle', carBlurb: 'a boxy black and white saloon with a light pod', pass: 'stairs', body: 0x23252b, trim: 0xf4f1e8, shape: 'saloon',
-    pace: 0.8475, brake: 0.97, block: 0.5, fog: 0.04, dark: 0.04, slip: 0.07, power: 1,
+    pace: 0.8517, brake: 0.97, block: 0.5, fog: 0.04, dark: 0.04, slip: 0.07, power: 1,
     taunt: 'I brake later than you think, little bun.', style: 'Brakes very late into hairpins. Get him on the exits.',
     win: 'Late on the anchors, that\'s the trick.', lose: 'You hooked the gutters. Old trick. Good trick.' },
   { id: 'pika', name: 'Pippa', animal: 'pika', car: 'Mochi', carBlurb: 'a tiny pastel-pink kei coupe', pass: 'fog', body: 0xf2a7b8, trim: 0xfdf3e1, shape: 'kei',
-    pace: 0.915, brake: 0.9, block: 0.2, fog: 0.06, dark: 0.08, slip: 0.05, power: 1,
+    pace: 0.9923, brake: 0.9, block: 0.2, fog: 0.06, dark: 0.08, slip: 0.05, power: 1,
     taunt: 'I-it\'s very foggy… p-please don\'t follow too close!', style: 'Quick in the clear, but she brakes early in the fog.',
     win: 'Oh! I won? I won!', lose: 'Your notes are so good… can Enzo teach me?' },
   { id: 'bat', name: 'Vesper', animal: 'bat', car: 'Nightjar', carBlurb: 'a matte-black fastback with violet lights', pass: 'tunnel', body: 0x2a2633, trim: 0x9b6cff, shape: 'fastback',
-    pace: 0.878, brake: 0.92, block: 0.45, fog: 0.0, dark: -0.02, slip: 0.04, power: 1,
+    pace: 0.9192, brake: 0.92, block: 0.45, fog: 0.0, dark: -0.02, slip: 0.04, power: 1,
     taunt: 'Lights are for those who can\'t hear the road.', style: 'Drives by ear and doesn\'t care how dark it is.',
     win: 'The dark is my road.', lose: 'You listened. I heard it.' },
   { id: 'goat', name: 'Old Crag', animal: 'mountain goat', car: 'Ironhorn', carBlurb: 'a long silver and bronze coupe', pass: 'summit', body: 0xb9bcc2, trim: 0xa86a32, shape: 'coupe',
-    pace: 0.886, brake: 0.93, block: 0.7, fog: 0.03, dark: 0.03, slip: 0.035, power: 1,
+    pace: 0.9097, brake: 0.93, block: 0.7, fog: 0.03, dark: 0.03, slip: 0.035, power: 1,
     taunt: 'Forty winters I\'ve run this mountain. Show me.', style: 'The old king of the pass: a perfect line, and he closes the door.',
     win: 'Come back next winter.', lose: 'The mountain has a new runner.' },
   { id: 'fox', name: 'Aurora', animal: 'silver fox', car: 'Daybreak', carBlurb: 'a white fastback with gold pinstripes', pass: 'summit', reversed: true, body: 0xf3f1ea, trim: 0xd4a640, shape: 'fastback',
-    pace: 0.895, brake: 0.95, block: 0.6, fog: 0.02, dark: 0.02, slip: 0.025, power: 1,
+    pace: 0.912, brake: 0.95, block: 0.6, fog: 0.02, dark: 0.02, slip: 0.025, power: 1,
     taunt: 'I only race when the sun comes up. Don\'t keep me waiting.', style: 'The dawn champion. Fast everywhere, mistakes almost never.',
     win: 'Again tomorrow, at first light.', lose: 'So this is what warm buns taste like at dawn.' },
 ];
@@ -736,7 +736,7 @@ export function duelOutcome(results: RoundResult[]): 0 | 1 | null {
 
 // ---------------------------------------------------------------- medals for deliveries, from the bot's real runs
 /** The competent bot's delivery time on each pass (seconds), measured by tests/pass-bot.mjs. */
-export const BOT_TIMES: Record<PassId, number> = { cedar: 69.17, lake: 57.3, stairs: 70.15, fog: 59.27, tunnel: 56.93, summit: 86.26 };
+export const BOT_TIMES: Record<PassId, number> = { cedar: 65.57, lake: 55.14, stairs: 67.79, fog: 57.07, tunnel: 54.23, summit: 82.38 };
 export const MEDAL_FACTORS = [1.03, 1.16, 1.4]; // gold, silver, bronze: slower than the bot by this factor
 export const MEDAL_BUNS = [11, 7, 4];
 export function medalTimes(id: PassId) { return MEDAL_FACTORS.map((f) => Math.round(BOT_TIMES[id] * f * 10) / 10); }

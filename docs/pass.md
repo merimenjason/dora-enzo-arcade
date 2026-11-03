@@ -24,7 +24,7 @@ The Biscuit is a front-engined, rear-drive hatchback: 1050 kg, wheelbase 2.4 m (
 
 - **Assist**: Strong 1 (the default), Light 0.5, Off 0. Outside a drift it turns the front wheels into any slip past 0.08 rad by that share; it also runs the drift hold and a damper on the slip angle. On Strong no ordinary corner entry spins (264 scripted entries from 12 to 34 m/s, `tests/pass.mjs`); at Off the player has to catch every slide, and a full handbrake at top speed spins.
 
-Measured with keyboard-style inputs (`.checks/handling.mjs`), before and after the 03-11-2026 handling update: a 0.1 s tap at 25 m/s turned the car 0.033 rad and now 0.015 rad (peak yaw 0.26 → 0.15 rad/s); a handbrake slide at 16 m/s with throttle and steering held now holds the whole 2.6 s at about 0.55 rad on Strong and straightens when let go; spins from the 144 open-ground corner entries went from 3 (old default assist) to 0 on Strong and Light.
+Measured with keyboard-style inputs (a scripted flat-ground run of the bare car), before and after the 03-11-2026 handling update: a 0.1 s tap at 25 m/s turned the car 0.033 rad and now 0.015 rad (peak yaw 0.26 → 0.15 rad/s); a handbrake slide at 16 m/s with throttle and steering held now holds the whole 2.6 s at about 0.55 rad on Strong and straightens when let go; spins from the 144 open-ground corner entries went from 3 (old default assist) to 0 on Strong and Light.
 - **Gears**: automatic shifts up at 94% of the redline and down at 50%; manual uses Shift and Ctrl, and the engine hits a hard limiter at the redline.
 
 ### Upgrades
@@ -43,7 +43,7 @@ Bought in Enzo's garage with bakery coins. Each changes the car's numbers and th
 
 ## The road
 
-Roads are 3.6 m to each side of the centreline, 5.8 m in the wide places (where passing is possible). Guardrails line the downhill side and a rock cutting the uphill side. A hit scrubs 0.085 of the speed per m/s of impact; above 8.5 m/s the car is spun round, and above 11 m/s it is wrecked: it sits for 1.4 s and is set back on the road. Light crests reduce grip for a moment.
+Roads are 3.6 m to each side of the centreline, 5.8 m in the wide places (where passing is possible). Both edges are drawn the same way so they read on every pass and in the dark: a solid white edge line 0.32–0.5 m inside the edge, a pale concrete shoulder strip out to the guardrail, reflective studs on the edge line every 8 m (tunnels too), white delineator posts every 8 m with an amber reflector on the left and a white one on the right, and guardrails on both sides with a reflector on every other post. The paint and reflectors are unlit, so they show in the dark and fade into the fog with distance. The uphill side also has a ditch and a rock cutting behind the rail. A dashed yellow centre line (2 m of paint, 4 m gap) runs everywhere but the passing places; a drain gutter replaces the paint and shoulder on its side. A hit scrubs 0.085 of the speed per m/s of impact; above 8.5 m/s the car is spun round, and above 11 m/s it is wrecked: it sits for 1.4 s and is set back on the road. Light crests reduce grip for a moment.
 
 **Gutters** on the inside of the Hairpin Stairs hairpins (0.9 m wide) can be hooked: drop the inside wheels in under 17.5 m/s and with the car less than 0.38 rad sideways, and the gutter adds 45% grip and carries the car round. Too fast or too sideways, and the wheels trip and the car snaps round.
 
@@ -51,12 +51,12 @@ Roads are 3.6 m to each side of the centreline, 5.8 m in the wide places (where 
 
 | Pass | Character | Bot time |
 | --- | --- | --- |
-| Cedar Switchbacks | fast sweepers then four switchbacks | 69.17 s |
-| Lakeside Esses | linked esses | 57.3 s |
-| Hairpin Stairs | seven stacked hairpins with drain gutters | 70.15 s |
-| Fog Ridge | thick fog; the headlights barely reach | 59.27 s |
-| Ghost Tunnel | unlit, through a long tunnel | 56.93 s |
-| Summit Dawn | the whole mountain; the relay climbs it first | 86.26 s |
+| Cedar Switchbacks | fast sweepers then four switchbacks | 65.57 s |
+| Lakeside Esses | linked esses | 55.14 s |
+| Hairpin Stairs | seven stacked hairpins with drain gutters | 67.79 s |
+| Fog Ridge | thick fog; the headlights barely reach | 57.07 s |
+| Ghost Tunnel | unlit, through a long tunnel | 54.23 s |
+| Summit Dawn | the whole mountain; the relay climbs it first | 82.38 s |
 
 Delivery medals: gold within 1.03× the bot time with 11 or more buns, silver 1.16× with 7 or more, bronze 1.4× with 4 or more.
 
@@ -91,15 +91,15 @@ Each rival drives the racing line (90% of the grip limit) with their own pace, b
 
 | # | Rival | Car | Pass | Pace | Bot wins (16 seeds) |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Skitter, stoat | Kestrel, red wedge | Cedar Switchbacks | 0.8475 | 16 |
-| 2 | Ripple, otter | Lagoon, teal roadster | Lakeside Esses | 0.878 | 14 |
-| 3 | Bodger, badger | Coalscuttle, boxy saloon | Hairpin Stairs | 0.8475 | 13 |
-| 4 | Pippa, pika | Mochi, pink kei car | Fog Ridge | 0.915 | 12 |
-| 5 | Vesper, bat | Nightjar, black fastback | Ghost Tunnel | 0.878 | 12 |
-| 6 | Old Crag, mountain goat | Ironhorn, silver coupe | Summit Dawn | 0.886 | 9 |
-| 7 | Aurora, silver fox | Daybreak, white fastback | Summit Dawn relay | 0.895 | 7 |
+| 1 | Skitter, stoat | Kestrel, red wedge | Cedar Switchbacks | 0.915 | 16 |
+| 2 | Ripple, otter | Lagoon, teal roadster | Lakeside Esses | 0.9456 | 14 |
+| 3 | Bodger, badger | Coalscuttle, boxy saloon | Hairpin Stairs | 0.8517 | 13 |
+| 4 | Pippa, pika | Mochi, pink kei car | Fog Ridge | 0.9923 | 12 |
+| 5 | Vesper, bat | Nightjar, black fastback | Ghost Tunnel | 0.9192 | 10 |
+| 6 | Old Crag, mountain goat | Ironhorn, silver coupe | Summit Dawn | 0.9097 | 10 |
+| 7 | Aurora, silver fox | Daybreak, white fastback | Summit Dawn relay | 0.912 | 7 |
 
-"Bot wins" is the competent bot (pace 0.985 with full notes and the ladder's upgrades) from `npm run bot:pass`. The bot drives like a person: it acts on what it decided 0.2 s earlier (steering for where the car will be by then), wanders up to 0.4 m either side of the racing line, and its steering goes through the Smooth filter. `tests/pass-bot.mjs` holds each rival to within 2 wins of the ladder 16, 14, 13, 12, 11, 9, 7 and the first two at 15 and 12 or more. A flat-out, no-brakes driver wins none past the first rival. The rivals' own AI steers without the filter and doesn't use the drift hold.
+"Bot wins" is the competent bot (pace 0.985 on Strong assist, with full notes and the ladder's upgrades) from `npm run bot:pass`. The bot drives like a person: it acts on what it decided 0.2 s earlier (steering for where the car will be by then), wanders up to 0.4 m either side of the racing line, and its steering goes through the Smooth filter. `tests/pass-bot.mjs` holds each rival to within 2 wins of the ladder 16, 14, 13, 12, 11, 9, 7 and the first two at 15 and 12 or more. Duel results swing a lot with small pace changes (a few thousandths can move a rival by three wins), so retune by bisecting each rival's pace against the bot and confirm with the full `bot:pass`. A flat-out, no-brakes driver wins none past the first rival. The rivals' own AI steers without the filter and doesn't use the drift hold.
 
 ## Coins and progress
 
