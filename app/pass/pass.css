@@ -212,6 +212,7 @@
 .kp-due small,.kp-mood small{font-size:calc(var(--fs)*.7);text-shadow:1px 1px 0 var(--ink)}
 .kp-due b{font-family:'Dela Gothic One',sans-serif;font-weight:400;font-size:calc(var(--fs)*1.1);text-shadow:2px 2px 0 var(--ink)}
 .kp-due b[data-late="1"]{color:var(--amber)}
+.kp-trialbox em{font-style:normal;font-weight:800;font-size:calc(var(--fs)*.8);color:var(--amber);text-shadow:1px 1px 0 var(--ink);min-height:1.2em}
 .kp-mood{display:flex;flex-direction:column;align-items:flex-end;gap:.15em}
 .kp-mood i{display:block;width:6.8em;height:.45em;border:1.5px solid var(--ink);background:linear-gradient(90deg,#ff8a7a calc(var(--v,.5)*100%),rgba(13,18,48,.7) 0)}
 .kp-wobble{width:6.8em;height:.35em;border:1.5px solid var(--ink);background:rgba(13,18,48,.7)}

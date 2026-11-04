@@ -112,6 +112,7 @@ Game 75, `/pass`, the night mountain drift racer. Rules, every number and the re
   - **Cars:** six unlockable cars, one per rival's body shape, each the Biscuit's spec with a few numbers changed (`CARS`, `carSpec`, `carUnlocked`). Free play drives the garage pick; the story always drives the Biscuit. The Sprung Bun Tray now scales each car's own bun wobble instead of setting it.
   - **Race Enzo's line** in Time Attack (`enzoGhost`, `ENZO_CAR`): the demo run replayed as the ghost.
   - **Side Jobs** (`JOBS`, `JOB`, `jobResult` in `pass-game.ts`; `RIDER_LINES` on the page): the wedding cake, the doctor's deadline and Granny Bramble's mood. The numbers and what the bot does on each are in `docs/pass.md`.
+  - **Drift Trials** (`TRIAL`, `TRIAL_GOLD`, `trialMedal`; `trials` in the save): a scored run where clean boost-worthy drifts bank points, chained for a multiplier. Gold is Enzo's demo score, so a change to `DEMO` or the drift meter means re-deriving `TRIAL_GOLD` (`tests/pass.mjs` says the new numbers).
   - **After the story:** two `STORY` steps after `STORY_END` (a bakery scene and a duel with Hush, the snowy owl, on Fog Ridge), a new `brake` car shape in `pass-models.ts`, and the Pavlova. `ended` opens everything except `POSTGAME_RIVAL` and her car.
 - **Saves:** `kumori-pass-v1`, unchanged version. New optional fields: `car` (kept only while unlocked, else the Biscuit), `ghostMeta[pass].car` (missing means the Biscuit) and `jobs` (side jobs done, as `job:pass`).
 - **Balance:** `npm run bot:pass` sets `BOT_TIMES` and the medals from the competent bot driving the stock Biscuit, and holds the rival ladder (which still uses the first five parts only). `tests/pass.mjs` holds the demo clean, drifting and faster than the bot on every pass, and every car within 3% of the Biscuit on each pass (−2%..+1% overall). Any change to the physics, `LINE_GRIP` or the tracks needs both reruns; the demo settings may need a new sweep.
@@ -120,7 +121,6 @@ Game 75, `/pass`, the night mountain drift racer. Rules, every number and the re
 - **Open ends:**
   - The `test:e2e:pass` throttle, steering and touch checks used to be wall-clock (1.6 s of throttle had to cover 16 m) and failed on a loaded machine; since 04-11-2026 they wait on the car (distance, speed, steer) with generous timeouts.
   - Nobody has driven the new cars by hand: the bot does not feel a loose tail, so the Shortbread and Brioche are tuned on numbers only.
-  - The Pumpernickel's portrait is a darker brown than its in-game chestnut (the night lighting turned chocolate nearly black).
   - Performance was measured on an M4 and with CPU throttling, not on a real mid-range laptop or phone.
 
 ## Quality pass · 08-10-2026

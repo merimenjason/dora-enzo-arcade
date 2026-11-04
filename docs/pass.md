@@ -131,6 +131,10 @@ Each rival drives the racing line (90% of the grip limit) with their own pace, b
 
 The ending scene sets `ended`, which opens every pass, every story rival in Free Duel and the six story cars. Two more steps follow it in `STORY` (after `STORY_END`): a scene at the bakery (`story-owl.webp`) and a duel with Hush on Fog Ridge, with every part the ladder gives. She is the hardest rival (`bot:pass` wants about 5 bot wins in 16, and fewer than Aurora). Hush (`POSTGAME_RIVAL`) and her car, the Pavlova, stay locked until she is beaten; the story ladder hides the two steps until the ending, and the ending card's Follow it button plays them.
 
+## Drift Trials
+
+A scored run on any open pass in the garage's car, with no buns (`trial` in `RaceOpts`; `TRIAL`, `TRIAL_GOLD` and `trialMedal` in `lib/pass-game.ts`). While the car is drifting, its drift points (speed × slip angle × 10 a second, the same as the drift meter's) build up as the drift in progress. A drift that ends clean and earns the boost (meter at least 0.25) banks those points × the chain multiplier: 1, then +0.5 for each drift started within 3 s of the last one ending, up to ×4. A drift too small for the boost banks nothing; a rail hit or scrape loses the drift in progress and the chain. Gold is Enzo's demo score on that pass rounded down to 50 (750, 400, 900, 650, 700 and 1200 from Cedar to Summit), silver 60% and bronze 30%; medals pay 15, 30 or 50 coins, plus 3 for finishing. The save keeps the best score per pass (`trials`). `tests/pass.mjs` re-derives gold from the demo, and holds the competent bot (which grip-drives and only slides by accident) below gold and a careful bot (0.9) below silver on every pass. Requiring the boost matters: without it, the bot's chains of small slides outscored Enzo's long drifts.
+
 ## Side jobs
 
 Three jobs on every open pass (`JOBS` and `JOB` in `lib/pass-game.ts`), in the garage's car, each paying coins when it works and `JOB.firstBonus` (40) more the first time on that pass (`jobs` in the save).

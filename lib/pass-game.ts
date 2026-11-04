@@ -289,7 +289,8 @@ export type RaceEvent =
   | { k: 'driftStart' } | { k: 'driftEnd'; meter: number; boost: boolean } | { k: 'driftBroken' }
   | { k: 'bun'; left: number } | { k: 'overtake'; by: number } | { k: 'reset'; car: number }
   | { k: 'finish'; car: number; time: number } | { k: 'go' } | { k: 'crash'; car: number }
-  | { k: 'rider'; why: 'drift' | 'big' | 'hit' | 'slow'; mood: number };
+  | { k: 'rider'; why: 'drift' | 'big' | 'hit' | 'slow'; mood: number }
+  | { k: 'chain'; banked: number; mult: number } | { k: 'chainLost' };
 
 export type RaceOpts = {
   pass: PassId; reversed?: boolean;
@@ -305,6 +306,8 @@ export type RaceOpts = {
   car?: CarId;
   /** a side job: the fragile cake (needs buns on), the doctor's deadline, or Granny Bramble riding along */
   job?: JobId;
+  /** a Drift Trial: drifts bank points into trialScore, chained for a multiplier */
+  trial?: boolean;
   /** Sharp steering: a quicker keyboard filter (Smooth is the default) */
   sharp?: boolean;
   /** the competent bot drives the player's car (tests) */
@@ -362,6 +365,8 @@ export class Race {
   result: RoundResult | null = null; hits = 0;
   /** Granny Bramble's mood, 0..100 (rider job) */
   mood = JOB.rider.start;
+  /** Drift Trial: the banked score, the drift in progress, the chain length and the time since the last drift ended */
+  trialScore = 0; trialCur = 0; chain = 0; chainGap = 0;
   private rand: () => number; private gIn = idleInput(); private qIn = idleInput(); private aiIn = idleInput(); private tmp: Where = { i: 0, s: 0, d: 0, px: 0, py: 0 };
   readonly finishS: number; readonly fogLevel: number; readonly dark: boolean;
 
@@ -577,7 +582,16 @@ export class Race {
     if (this.opts.job !== 'rider' || this.player.finished >= 0) return;
     this.mood = Math.max(0, Math.min(100, this.mood + by)); this.events.push({ k: 'rider', why, mood: this.mood });
   }
-  private breakDrift() { if (this.drifting) { this.drifting = false; this.events.push({ k: 'driftBroken' }); } this.drift = 0; this.driftClean = false; }
+  private breakDrift() {
+    if (this.drifting) { this.drifting = false; this.events.push({ k: 'driftBroken' }); } this.drift = 0; this.driftClean = false;
+    if (this.opts.trial && (this.trialCur > 0 || this.chain > 0)) { this.trialCur = 0; this.chain = 0; this.events.push({ k: 'chainLost' }); }
+  }
+  /** Drift Trial: a clean drift banks its points times the chain multiplier, and lengthens the chain. */
+  private bankDrift() {
+    const mult = trialMult(this.chain), banked = Math.round(this.trialCur * mult);
+    this.trialScore += banked; this.trialCur = 0; this.chain++; this.chainGap = 0;
+    this.events.push({ k: 'chain', banked, mult: trialMult(this.chain) });
+  }
   private hitBuns(mag: number) {
     if (!this.opts.buns || this.buns <= 0) return;
     if (this.opts.job === 'cake') { if (mag > JOB.cake.knock) { this.buns = 0; this.events.push({ k: 'bun', left: 0 }); } return; }
@@ -593,6 +607,7 @@ export class Race {
       st.driftHold = 0;
       st.drift = Math.min(1, st.drift + DT * DRIFT.fill * Math.min(1.6, beta / 0.35));
       st.driftScore += DT * speed * beta * 10;
+      if (events && this.opts.trial) this.trialCur += DT * speed * beta * 10;
     } else if (st.drifting) {
       st.driftHold += DT;
       if (st.driftHold > 0.22) {
@@ -601,6 +616,7 @@ export class Race {
         if (boost) c.boost = Math.max(c.boost, DRIFT.boostSecs * st.drift);
         if (events) this.events.push({ k: 'driftEnd', meter: st.drift, boost });
         if (events && boost) this.riderMood(st.drift > 0.8 ? 'big' : 'drift', JOB.rider.drift * (0.5 + st.drift));
+        if (events && this.opts.trial) { if (boost) this.bankDrift(); else this.trialCur = 0; }
         st.drift = 0;
       }
     }
@@ -618,6 +634,8 @@ export class Race {
       this.wobble = Math.max(0, this.wobble);
       if (this.wobble >= 1) { this.wobble = 0.35; this.buns--; this.events.push({ k: 'bun', left: this.buns }); }
     }
+    // Drift Trial: the chain lapses if the next drift doesn't start soon enough
+    if (this.opts.trial && this.chain > 0 && !this.drifting) { this.chainGap += DT; if (this.chainGap > TRIAL.link) { this.chain = 0; this.events.push({ k: 'chainLost' }); } }
     // Granny Bramble gets bored below a brisk pace
     if (this.opts.job === 'rider' && this.t > 3 && r.finished < 0 && speed < JOB.rider.slowSpeed) {
       const was = this.mood; this.mood = Math.max(0, this.mood - JOB.rider.slow * DT);
@@ -850,6 +868,16 @@ export function deliveryMedal(id: PassId, time: number, buns: number) {
   return 0;
 }
 export function deliveryCoins(medal: number, buns: number) { return buns * 2 + [0, 10, 20, 35][medal]; }
+// ---------------------------------------------------------------- drift trials
+/** A clean drift banks its points × the chain multiplier: 1, then +step for each drift chained within `link` seconds, up to `max`.
+ *  A rail hit or scrape loses the drift in progress and the chain. Medals are fractions of Enzo's own score (TRIAL_GOLD). */
+export const TRIAL = { link: 3.0, step: 0.5, max: 4, silver: 0.6, bronze: 0.3, pay: [0, 15, 30, 50] };
+export const trialMult = (chain: number) => Math.min(TRIAL.max, 1 + chain * TRIAL.step);
+/** Gold on each pass: Enzo's demo line's trial score, rounded down to 50 (tests/pass.mjs checks it). */
+export const TRIAL_GOLD: Record<PassId, number> = { cedar: 750, lake: 400, stairs: 900, fog: 650, tunnel: 700, summit: 1200 };
+export const trialTargets = (pass: PassId) => [TRIAL_GOLD[pass], Math.round(TRIAL_GOLD[pass] * TRIAL.silver / 10) * 10, Math.round(TRIAL_GOLD[pass] * TRIAL.bronze / 10) * 10];
+export function trialMedal(pass: PassId, score: number) { const ts = trialTargets(pass); for (let m = 0; m < 3; m++) if (score >= ts[m]) return 3 - m; return 0; }
+
 // ---------------------------------------------------------------- side jobs
 export type JobId = 'cake' | 'doctor' | 'rider';
 /** Side job tuning. cake: wobble over `over` g at `gain`, settling at `calm`, and a rail knock over `knock` m/s breaks it.
@@ -925,12 +953,14 @@ export type Save = {
   car: CarId;
   /** side jobs done at least once, as jobKey(job, pass) */
   jobs: string[];
+  /** best Drift Trial score per pass */
+  trials: Partial<Record<PassId, number>>;
 };
 const PASS_IDS = PASSES.map((p) => p.id);
 const zeroBy = (v: number) => Object.fromEntries(PASS_IDS.map((id) => [id, v])) as Record<PassId, number>;
 export function newSave(): Save {
   return { v: 1, coins: 0, upgrades: [], runs: zeroBy(0), story: 0, beaten: [], medals: zeroBy(0), best: zeroBy(0), ghosts: {}, ghostMeta: {},
-    settings: { assist: ASSIST.strong, sharp: false, manual: false, lite: false, sound: true, music: true, camera: 0 }, ended: false, car: 'biscuit', jobs: [] };
+    settings: { assist: ASSIST.strong, sharp: false, manual: false, lite: false, sound: true, music: true, camera: 0 }, ended: false, car: 'biscuit', jobs: [], trials: {} };
 }
 const num = (v: unknown, lo: number, hi: number, d: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d);
 const UPGRADE_IDS = ['flywheel', 'rear', 'tyres', 'lsd', 'intake', 'rack', 'tray', 'coilovers', 'strip'];
@@ -974,6 +1004,8 @@ export function parseSave(raw: string | null | undefined): Save {
   if (CAR_IDS.includes(d.car as CarId) && carUnlocked(s, d.car as CarId)) s.car = d.car as CarId;
   const jobKeys = JOB_IDS.flatMap((j) => PASSES.map((p) => jobKey(j, p.id)));
   if (Array.isArray(d.jobs)) s.jobs = [...new Set(d.jobs.filter((k): k is string => jobKeys.includes(k as string)))];
+  const tr = (d.trials && typeof d.trials === 'object' ? d.trials : {}) as Record<string, unknown>;
+  for (const p of PASSES) { const v = num(tr[p.id], 0, 1e6, 0); if (v > 0) s.trials[p.id] = Math.round(v); }
   return s;
 }
 export const serialise = (s: Save) => JSON.stringify(s);

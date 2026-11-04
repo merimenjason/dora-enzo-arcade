@@ -266,6 +266,15 @@ for (const vp of [{ width: 844, height: 390 }, { width: 390, height: 844 }]) {
   assert.equal(s.race.job, 'cake'); assert.equal(s.race.buns, 1, 'one cake on the back seat');
   assert.match(await page.locator('.kp-buns small').textContent(), /Cake/);
   console.log('PASS side jobs');
+  // drift trials: a scored run in the garage car
+  await page.keyboard.press('Escape'); await waitFor(page, (x) => x.paused, 'paused');
+  await page.locator('.kp-pausecard button', { hasText: 'Quit' }).click();
+  await mode(page, 'Drift Trials').click();
+  await page.locator('.kp-pass[data-pass="cedar"]').click();
+  s = await waitFor(page, (x) => x.screen === 'race' && x.race && x.race.t > 0.5, 'a drift trial', 40000);
+  assert.equal(s.race.mode, 'trial'); assert.equal(s.race.trial, 0, 'the score starts at nothing');
+  assert.match(await page.locator('.kp-trialbox small').textContent(), /gold \d+/);
+  console.log('PASS drift trials');
   await page.context().close();
 }
 

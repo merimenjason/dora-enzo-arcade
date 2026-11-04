@@ -8,7 +8,7 @@ import { BASE, DT, makeCar, stepCar, tyre, gearSpeed, slipAngle, idleInput, with
 import { buildTrack, locate, radiusAt, at, PASSES, NARROW, WIDE } from '../.checks/pass-tracks.js';
 import { Race, Duel, duelOutcome, RIVALS, rival, paceNotes, readRoad, severity, SEVERITY, NOTE_LEAD, noteLevel, getTrack,
   encodeInput, decodeInput, packGhost, unpackGhost, parseSave, newSave, serialise, buyUpgrade, recordRun, passUnlocked,
-  deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng, GHOST_VERSION, ASSIST, DEMO, CARS, carSpec, carUnlocked, enzoGhost, ENZO_CAR, JOB, jobDeadline, jobResult, STORY_END, rivalUnlocked } from '../.checks/pass-game.js';
+  deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng, GHOST_VERSION, ASSIST, DEMO, CARS, carSpec, carUnlocked, enzoGhost, ENZO_CAR, JOB, jobDeadline, jobResult, STORY_END, rivalUnlocked, TRIAL_GOLD, trialMedal } from '../.checks/pass-game.js';
 
 let n = 0;
 const ok = (m) => { n++; console.log('ok', m); };
@@ -445,6 +445,29 @@ for (const p of PASSES) {
     assert.ok(Math.abs(g.ghost.finished - e.time) < 1e-9, `${p.id}: Enzo's ghost replays the demo exactly (${g.ghost.finished.toFixed(3)} = ${e.time.toFixed(3)})`);
   }
   ok('Enzo\'s line replays exactly as a Time Attack ghost on every pass');
+}
+
+// ---------------------------------------------------------------- drift trials
+{
+  const run = (o) => { const r = new Race({ noteLevel: 3, seed: 3, trial: true, ...o }); const ev = []; let n = 0; while (!r.done && n < 120 * 300) { r.tick(idleInput()); ev.push(...r.events); n++; } return { r, ev }; };
+  const golds = {};
+  for (const p of PASSES) {
+    const { r: enzo } = run({ pass: p.id, autopilot: DEMO.pass[p.id].pace, demo: true });
+    assert.equal(TRIAL_GOLD[p.id], Math.floor(enzo.trialScore / 50) * 50, `${p.id}: gold is Enzo's score rounded down to 50 (${Math.round(enzo.trialScore)})`);
+    assert.equal(trialMedal(p.id, enzo.trialScore), 3);
+    const { r: bot, ev } = run({ pass: p.id, autopilot: 0.985 });
+    assert.ok(trialMedal(p.id, bot.trialScore) < 3, `${p.id}: grip driving doesn't take gold (${Math.round(bot.trialScore)})`);
+    if (bot.hits) assert.ok(ev.some((e) => e.k === 'chainLost'), `${p.id}: a rail hit loses the chain`);
+    const { r: careful } = run({ pass: p.id, autopilot: 0.9 });
+    assert.ok(trialMedal(p.id, careful.trialScore) < 2, `${p.id}: a careful run is below silver (${Math.round(careful.trialScore)})`);
+    // scoring never changes the driving
+    const plain = new Race({ pass: p.id, autopilot: DEMO.pass[p.id].pace, demo: true, noteLevel: 3, seed: 3 }); let n = 0; while (!plain.done && n < 120 * 300) { plain.tick(idleInput()); n++; }
+    assert.equal(plain.player.finished, enzo.player.finished); assert.equal(plain.trialScore, 0);
+    golds[p.id] = Math.round(enzo.trialScore);
+  }
+  const ts = parseSave(JSON.stringify({ v: 1, trials: { cedar: 812.4, lake: -5, moon: 99, fog: 'x' } }));
+  assert.deepEqual(ts.trials, { cedar: 812 }, 'the save keeps real trial bests only'); assert.deepEqual(newSave().trials, {});
+  ok(`drift trials: Enzo's line sets gold on every pass ${JSON.stringify(golds)}; grip driving can't reach it`);
 }
 
 // ---------------------------------------------------------------- side jobs
