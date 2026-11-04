@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of seventy-seven original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of seventy-eight original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -87,6 +87,7 @@ Listed in arcade-menu order.
 | 75 | Kumori Pass | `/pass` | Night mountain drift racer |
 | 76 | Fluffball Smash! | `/smash` | Anime tennis with special moves |
 | 77 | Deepglow | `/deep` | Sonar submarine exploration |
+| 78 | Pawpark Skate | `/skate` | 3D skateboarding |
 
 ## Run
 
@@ -1366,6 +1367,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:deep` runs the engine checks: the world (every place reachable, every species placed), the sub's thrust, knocks, air, bells and pressure, sonar echoes and the chart, the lamp blocked by rock, catching (gentle, too fast, shy darters), veils and Grimlures, banking, upgrades, the packed chart and corrupt saves. `npm run bot:deep` plays two whole campaigns (hull first, comfort first) and checks the whale is reached in a fair number of dives with no stalls. `node tests/e2e/deep.mjs` (with `npm run dev` running) dives in a browser on desktop and on phones held either way.
 
 **Docs:** [`docs/deep.md`](docs/deep.md) has the cave and its zones, the sub, sonar and lamp, hazards, research and every upgrade, the bot results and the save.
+
+### 78 · Pawpark Skate (`/skate`)
+
+**Play:** A 3D skateboarding game in three parks, played as Dora (big air, fast spins) or Enzo (steady on rails, quick on the flat). Each session lasts two minutes: push and pump for speed, ollie, flip and grab in the air, spin, grind rails, ledges and copings, and manual between landings to string everything into one combo, which pays all its points times the number of tricks (repeats are worth half, and a bail loses the lot). Ride up a quarter-pipe and you fly straight up out of it and drop back in. Clear gaps (over the fountain, down the Hall Handrail, across the street between the rooftops) for bonus points, find five golden acorns in every park, and fill the star meter for your special trick. Every park has six goals from the mentors (Barnaby the badger, Zip the raccoon, Coral the otter and Enzo): two scores, a combo, the acorns, a gap and a trick over a gap. Three goals open Cloverdrop Hill, eight open the Lanternfall Rooftops, and landing the trick goal in all three parks brings the ending. Free skate has no clock.
+
+**Controls:** **←** **→** (or **A** **D**) steer and spin, **↑** (or **W**) pushes on the flat and pumps in a curve, **↓** (or **S**) brakes, **Space** ollies, **J** (or **Z**) flips, **K** (or **X**) grabs (hold it), **L** (or **C**) grinds near a rail in the air and starts a manual after a landing; a direction held picks a different flip, grab or grind, and holding **K** while pressing **J** with a full star meter does the special. **V** switches the camera and **Esc** or **P** pauses. On a touch screen, a stick on the left and **FLIP**, **GRAB**, **GRIND** and **OLLIE** buttons on the right.
+
+**Tests:** `npm run test:skate` runs the engine checks: pushing and ollies, quarter-pipe launches, flips, grabs and spins (and bailing them), grinds and manuals, combos and banking, the holes between the rooftops, a route to every golden acorn and gap, sessions, goals, unlocking, the ending and corrupt saves. `npm run bot:skate` plays whole sessions in every park and checks each park's score, pro and combo goals are within reach of a fair skater and not of one who only pushes. `node tests/e2e/skate.mjs` (with `npm run dev` running) skates in a browser on desktop and on phones held either way.
+
+**Docs:** [`docs/skate.md`](docs/skate.md) has the parks and their pieces, the board's physics, every trick and its points, combos, gaps, goals, the bot results and the save.
 
 ## Validation
 

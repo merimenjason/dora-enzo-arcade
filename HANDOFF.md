@@ -6,7 +6,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 20-10-2026)
 
-**Newest game (05-11-2026): Deepglow** (`/deep`, game 77), a sonar submarine dive; see [Deepglow · 05-11-2026](#deepglow--05-11-2026) below.
+**Newest game (05-11-2026): Pawpark Skate** (`/skate`, game 78), 3D skateboarding; see [Pawpark Skate · 05-11-2026](#pawpark-skate--05-11-2026) below.
 
 **Newest work (03–04-11-2026): Kumori Pass** (`/pass`, game 75) got a new look, a minimap, Enzo's demo line (also as a Time Attack ghost), two garage parts, seven unlockable cars, Side Jobs and a chapter after the ending; see [Kumori Pass · 04-11-2026](#kumori-pass--04-11-2026) below.
 
@@ -98,6 +98,18 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 9. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
 10. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
 11. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
+
+## Pawpark Skate · 05-11-2026
+
+Game 78, `/skate`, 3D skateboarding in three parks. Rules, every number and the bot results: [`docs/skate.md`](docs/skate.md).
+
+- **Code:** engine `lib/skate-game.ts` (deterministic 60 Hz: parks built from boxes, ramps, quarter-pipes and holes with a `groundAt` height query; the board's rolling, pumping, ollies and quarter-pipe airs; flips, grabs, spins, grinds and manuals; combos, gaps, acorns, goals and the save), scene `lib/skate-scene.ts` (Three.js with toon shading and `OutlineEffect`; every piece is meshed from the engine's own data, so what you see is what you ride; each park dressed for its place; the skater is `createHuntChinchilla` with a helmet or beanie on a board posed per trick; chase camera; sparks, dust and stars), page `app/skate/page.tsx`, synthesised sound and an original groove per park in `app/skate/sound.ts`.
+- **Art:** 10 paintings in `public/art/skate/` (title, Dora and Enzo portraits, the three mentors, the three parks, the ending), used on the title, the park picker, the goal lists, the mentors' toasts and the ending. In a session everything is 3D. No text over faces: the title's words sit in the painting's open sky (at the bottom, over the sea, on an upright phone).
+- **Outlines:** `OutlineEffect` reads `outlineParameters` from the material, not the mesh, so `noLine` in the scene marks the materials. (Marking only the mesh drew the sky dome as one giant dark outline.)
+- **Input:** key and touch-button taps are latched until the next engine tick, as in Deepglow.
+- **Balance:** tuned with the bots (`npm run bot:skate`, part of `npm test`), which enforce the score, pro and combo goals per park. The goals live in `PARKS` in the engine. Rerun the bots after changing any physics or points.
+- **Tests:** `npm run test:skate`, `npm run bot:skate`, `node tests/e2e/skate.mjs` (dev server running; uses `window.__skate().debug`).
+- **Ideas not done:** a create-a-park mode, a two-player trick battle (H-O-R-S-E), more parks (the lighthouse bowl from the Hill painting), replays.
 
 ## Deepglow · 05-11-2026
 

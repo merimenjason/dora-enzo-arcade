@@ -78,14 +78,15 @@ const GAMES=[
  {href:'/pass',title:'Kumori Pass',tag:'NEW · NIGHT DRIFT RACER',blurb:'Four in the morning on Mount Kumori. Dora drives the bakery’s little hatchback up the mountain while Enzo reads the corners from his notebook: keep the buns on the seat, drift for boost, hook the drain gutters and beat seven street rivals in lead-and-chase duels before dawn.',color:'#ff3d6e',art:'🏁'},
  {href:'/smash',title:'Fluffball Smash!',tag:'NEW · ANIME TENNIS',blurb:'The Cloudtop Cup, the one tennis tournament on top of the world. Charge your swings, fill your spirit and unleash over-the-top special moves like the Moonleap Meteor, in singles and doubles against six rivals, from a sprinting hare to a fire-and-ice final.',color:'#3fb6ff',art:'🎾'},
  {href:'/deep',title:'Deepglow',tag:'NEW · SONAR DIVE',blurb:'Dora pilots a little yellow sub into an uncharted trench while Enzo reads the sonar from the boat. Ping to see the walls, scoop up twelve glowing species, dodge stinging veils and the Grimlure, and dive deep enough to find what sings at the bottom.',color:'#7ff0ff',art:'🫧'},
+ {href:'/skate',title:'Pawpark Skate',tag:'NEW · 3D SKATEBOARDING',blurb:'Dora and Enzo skate a town square, a concrete park above the sea and the old town’s rooftops after dark. Ollie, flip, grab, spin, grind and manual your tricks into big combos, clear gaps, find the golden acorns and land the goals that open the next park.',color:'#ff6b5a',art:'🛹'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">SEVENTY-FOUR ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Seventy-seven ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, seventy-seven cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">SEVENTY-EIGHT ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Seventy-eight ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, seventy-eight cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <nav className="arcade-grid" aria-label="Choose a game">
