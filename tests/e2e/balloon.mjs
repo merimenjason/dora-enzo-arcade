@@ -56,11 +56,13 @@ try {
   // ---- the first hop: the burner lifts off, the vent sinks, the pedals push
   await page.getByRole('button', { name: 'Fly!' }).click(); await flying(page);
   let s = await st(page); assert.equal(s.flight.lv, 'farm'); assert.ok(s.flight.grounded, 'it starts on the ground');
+  await until(page, () => /Hold Space/.test(document.querySelector('.bl-tip').textContent));
   await page.keyboard.down('Space');
   await until(page, () => window.__balloon().flight.burning && !window.__balloon().flight.grounded && window.__balloon().flight.alt > 8);
   await page.keyboard.up('Space');
   await page.keyboard.down('KeyS'); await until(page, () => window.__balloon().flight.vy < -0.3); await page.keyboard.up('KeyS');
-  ok('Space lights the burner and lifts off, S vents and sinks');
+  await until(page, () => !/Hold Space/.test(document.querySelector('.bl-tip').textContent));
+  ok('Granny’s tip says to hold Space; Space lights the burner and lifts off, S vents and sinks');
   await dbg(page, 'place', 120, 4);
   const x0 = (await st(page)).flight.x;
   await page.keyboard.down('KeyD'); await page.waitForTimeout(1200); await page.keyboard.up('KeyD');
@@ -117,7 +119,8 @@ try {
     await p.getByRole('button', { name: 'Let’s fly' }).tap();
     assert.ok(await noSideScroll(p), `${tag}: the map fits`);
     await p.getByRole('button', { name: 'Fly!' }).tap(); await flying(p);
-    const sels = ['.t-burn', '.t-vent', '.t-drop', '.t-sand', '.t-left', '.t-right', '.bl-gauges', '.bl-top', '.bl-prog'];
+    await until(p, () => /Hold BURN/.test(document.querySelector('.bl-tip').textContent));
+    const sels = ['.t-burn', '.t-vent', '.t-drop', '.t-sand', '.t-left', '.t-right', '.bl-gauges', '.bl-top', '.bl-prog', '.bl-tip'];
     for (const sel of sels) assert.ok(inView(await rect(p, sel), vp.width, vp.height), `${tag}: ${sel} on screen`);
     for (let i = 0; i < sels.length; i++) for (let j = i + 1; j < sels.length; j++) {
       if (sels[i].startsWith('.t-') && sels[j].startsWith('.t-')) continue;
@@ -129,7 +132,7 @@ try {
     await until(p, () => !window.__balloon().flight.grounded && window.__balloon().flight.alt > 3);
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     assert.ok(await noSideScroll(p), `${tag}: nothing off the side`);
-    ok(`phone ${tag}: BURN lifts off, the HUD fits and nothing overlaps`);
+    ok(`phone ${tag}: BURN lifts off, the HUD and Granny’s tip fit and nothing overlaps`);
     await p.close();
   }
   assert.deepEqual(errors, [], 'no page errors');

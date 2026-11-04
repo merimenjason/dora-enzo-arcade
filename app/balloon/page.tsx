@@ -34,6 +34,19 @@ const WHY_LINE: Record<End, string> = {
   crash: 'That landing was a bit quick. Ease off the vent near the ground.',
   stranded: 'The burner’s dry and there’s no village here. Fill up in a village on the way next time.',
 };
+/** Granny's tips on the first hop: what to do next, from where the balloon is (keyboard words, then touch words) */
+function farmTip(f: Flight, touch: boolean): string {
+  const fin = f.lv.pads[f.lv.pads.length - 1], to = fin.x - f.x, ag = f.altitude;
+  const BURN = touch ? 'BURN' : 'Space', VENT = touch ? 'VENT' : 'S';
+  if (f.over) return '';
+  if (f.grounded && f.t < 30 && Math.abs(f.x - f.lv.pads[0].x) < 40) return `Hold ${BURN} to light the burner. The balloon takes a moment to warm up.`;
+  if (Math.abs(to) < fin.w / 2 + 10) return ag > 3 ? `Over the meadow! ${VENT} lets the heat out. Come down gently.` : 'Easy now: a soft touch scores more.';
+  if (to < 0) return `Past the meadow! Sink low, where the air is calm, and pedal back with ${touch ? '◀' : 'A'}.`;
+  if (f.lv.bushes.some((b, i) => !f.picked[i] && b - f.x > 0 && b - f.x < 70)) return 'A cloudberry bush ahead: skim just over it to pick the berries.';
+  if (ag > 60) return `High enough. Let go of ${BURN} and the balloon drifts on the wind: the arrows on the left show it.`;
+  if (to < 160) return `The meadow’s coming up. Ease off and get ready to ${touch ? 'tap VENT' : 'press S'}.`;
+  return 'The wind does the steering. Watch the heat gauge: above its line you climb, below it you sink.';
+}
 const fmt = (n: number) => Math.round(n).toLocaleString('en-GB');
 const stars = (n: number) => '★★★'.slice(0, n) + '☆☆☆'.slice(0, 3 - n);
 
@@ -53,6 +66,7 @@ export default function CloudberryBalloonPage() {
   const [paused, setPausedState] = useState(false);
   const pausedRef = useRef(false);
   const [touch, setTouch] = useState(false);
+  const touchRef = useRef(false);
   const keys = useRef(new Set<string>());
   const taps = useRef(new Set<Btn>());
   const sent = useRef<G.Input>(G.idleInput());
@@ -60,7 +74,7 @@ export default function CloudberryBalloonPage() {
   const reduced = useRef(false);
   const hud = useRef<Record<string, HTMLElement | null>>({});
   const H = (k: string) => (el: HTMLElement | null) => { hud.current[k] = el; };
-  const last = useRef({ heat: -1, fuel: -1, berries: -1, parcels: -1, sand: -1, prog: -1, windT: 0, guideT: 0, guideX: null as number | null, creakT: 0 });
+  const last = useRef({ heat: -1, fuel: -1, berries: -1, parcels: -1, sand: -1, prog: -1, windT: 0, guideT: 0, guideX: null as number | null, creakT: 0, tipT: 0 });
 
   const setScreen = useCallback((s: Screen) => { screenRef.current = s; setScreenState(s); }, []);
   const setPaused = useCallback((p: boolean) => { pausedRef.current = p; setPausedState(p); }, []);
@@ -73,7 +87,7 @@ export default function CloudberryBalloonPage() {
     try { s = G.parseSave(localStorage.getItem(G.SAVE_KEY)); } catch {}
     saveRef.current = s; setSave(s);
     const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-    setTouch(coarse || 'ontouchstart' in window);
+    setTouch(touchRef.current = coarse || 'ontouchstart' in window);
     reduced.current = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     soundRef.current = new BalloonSound(s.settings.sound, s.settings.music);
     const open = [...G.LEVELS].reverse().find((l) => G.unlocked(s, l.id) && !s.best[l.id]) ?? G.LEVELS[0];
@@ -104,7 +118,7 @@ export default function CloudberryBalloonPage() {
     const f = new G.Flight(G.level(id));
     flightRef.current = f; sceneRef.current?.setLevel(f.lv, f.ter);
     setPaused(false); setResult(null); taps.current.clear(); sent.current = G.idleInput();
-    last.current = { heat: -1, fuel: -1, berries: -1, parcels: -1, sand: -1, prog: -1, windT: 0, guideT: 0, guideX: null, creakT: 0 };
+    last.current = { heat: -1, fuel: -1, berries: -1, parcels: -1, sand: -1, prog: -1, windT: 0, guideT: 0, guideX: null, creakT: 0, tipT: 0 };
     setScreen('fly');
   }, [setPaused, setScreen]);
 
@@ -176,6 +190,10 @@ export default function CloudberryBalloonPage() {
       if (wantGuide && (L.guideT -= dt) <= 0) { L.guideT = 0.12; L.guideX = f.predictDrop(); } else if (!wantGuide) L.guideX = null;
       sc.render(f, pausedRef.current ? 0 : dt * SPEED, reduced.current, L.guideX);
       drawHud(f);
+      if (f.lv.id === 'farm' && hud.current.tip && (L.tipT -= dt) <= 0) {
+        L.tipT = 0.25; const t = farmTip(f, touchRef.current);
+        if (hud.current.tip.textContent !== t) { hud.current.tip.textContent = t; hud.current.tip.dataset.on = t ? '1' : '0'; }
+      }
     };
     const drawHud = (f: Flight) => {
       const h = hud.current, L = last.current, lv = f.lv;
@@ -341,6 +359,7 @@ export default function CloudberryBalloonPage() {
         <b ref={H('me')} />
       </div>
       <div className="bl-pop" ref={H('pop')} />
+      {flightRef.current.lv.id === 'farm' && <div className="bl-tip" ref={H('tip')} data-on="0" aria-live="polite" />}
       {!touch && <p className="bl-keys"><b>Space</b> burner · <b>S</b> vent · <b>A D</b> pedal · <b>E</b> drop a jar · <b>Q</b> sandbag · G guide · Esc pause</p>}
       {touch && <div className="bl-touchpad">
         <div className="bl-pedals"><button className="t-left" {...tb('left')} aria-label="Pedal west">◀</button><button className="t-right" {...tb('right')} aria-label="Pedal east">▶</button></div>

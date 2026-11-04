@@ -120,6 +120,8 @@
 .bl-pop[data-kind=berry]{color:#ffc860}.bl-pop[data-kind=good]{color:#c8f0a0}.bl-pop[data-kind=bad]{color:#ffb0b8}
 .bl-pop.on{animation:bl-pop 1.9s ease-out forwards}
 @keyframes bl-pop{0%{opacity:0;transform:translate(-50%,10px) scale(.8)}12%{opacity:1;transform:translate(-50%,0) scale(1.05)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-16px)}}
+.bl-tip{position:absolute;left:50%;top:max(12px,env(safe-area-inset-top));transform:translateX(-50%);width:min(440px,calc(100vw - 660px));min-width:220px;background:rgba(255,250,240,.94);border:2px solid var(--line);border-radius:16px;padding:.4em .9em;font-size:.95em;text-align:center;box-shadow:0 3px 0 rgba(90,62,58,.85);transition:opacity .3s}
+.bl-tip[data-on='0']{opacity:0}
 .bl-keys{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(max(12px,env(safe-area-inset-bottom)) + 22px);font-size:.85em;color:var(--ink);background:rgba(255,250,240,.8);border-radius:999px;padding:.15em 1em;white-space:nowrap}
 
 /* touch: pedals bottom left, the burner and friends bottom right */
@@ -174,6 +176,7 @@
   .bl-gauges{height:min(34vh,220px)}
   .bl-top{max-width:calc(100vw - 150px)}
   .bl-chip{padding:.15em .55em;font-size:.9em}
+  .bl-tip{top:auto;bottom:calc(max(34px,env(safe-area-inset-bottom) + 30px) + 150px);width:calc(100vw - 32px)}
   .bl-talk .bl-face{width:60px;height:60px}
 }
 @media (max-height:480px){
@@ -181,5 +184,6 @@
   .bl-pedals button{width:56px;height:56px}
   .bl-tbtns .t-burn{width:80px;height:80px}.bl-tbtns .t-vent{width:60px;height:60px}
   .bl-pedals,.bl-tbtns{bottom:max(26px,calc(env(safe-area-inset-bottom) + 22px))}
+  .bl-tip{top:64px;width:min(480px,calc(100vw - 320px))}
 }
 @media (prefers-reduced-motion:reduce){.bl-pop.on{animation-duration:2.4s}.bl-fuel[data-low='1'] i{animation:none}}

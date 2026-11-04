@@ -16,6 +16,10 @@ The engine runs at 60 ticks a second; the page runs two ticks per frame, so a fl
 - **Thermals** over sunny clearings lift the balloon, fading out 320 m above the ground; the gorge and the High Meadow have downdrafts.
 - **Walls:** rising ground (the cliffs, the gorge sides) pushes the balloon back with a bump.
 
+## Tips on the first hop
+
+On Granny Bramble's Farm a line at the top of the screen says what to do next, from where the balloon is: light the burner, let go once high enough and read the wind gauge, skim the bush ahead, get ready to vent near the meadow, come down gently, and pedal back in the calm if you overshoot. It uses the touch buttons' names on a touch screen.
+
 ## Touching down
 
 - Faster than 5.5 m/s down onto the ground is a **crash** and ends the hop.
