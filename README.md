@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of seventy-six original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of seventy-seven original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -86,6 +86,7 @@ Listed in arcade-menu order.
 | 74 | Wind-Up Rally | `/rally` | Tin-toy badminton duel |
 | 75 | Kumori Pass | `/pass` | Night mountain drift racer |
 | 76 | Fluffball Smash! | `/smash` | Anime tennis with special moves |
+| 77 | Deepglow | `/deep` | Sonar submarine exploration |
 
 ## Run
 
@@ -1355,6 +1356,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:smash` runs the engine checks: scoring and the deciding point, games and matches, the serve box, faults, double faults and lets, the lines and the doubles court, the net and net cord, surfaces, spin and each special's trick, charge and the auto swing, spirit, specials, holds, counters and being blown away, seeded replays and corrupt saves. `npm run bot:smash` plays every rival from many seeds and checks the ladder gets harder within win-rate bands. `node tests/e2e/smash.mjs` (with `npm run dev` running) plays the story in a browser on desktop and phone.
 
 **Docs:** [`docs/smash.md`](docs/smash.md) has the court and the ball, scoring, swings, spirit and every special, footwork and the AI, the story, the bot results and the save.
+
+### 77 · Deepglow (`/deep`)
+
+**Play:** A sonar dive into an uncharted trench, drawn in 2D. Dora pilots the Thimble, a little yellow research sub, down from Enzo's boat while he reads the sonar on deck and talks to her over the radio. Below the shallows the cave is dark: a sonar ping shows the walls as dots of light and fills in the chart, the headlamp lights a cone in front of the sub, and only the creatures glow. Drift gently into a specimen to scoop it into the tray and bring it to the surface to bank it in Enzo's journal: twelve species across four zones (the Twilight, the Midnight, the Abyss and the Trench), three of them shy of the lamp. Watch the air (top up at the surface or in an air bell) and the hull's depth rating, steer round stinging veils, and go dark when a Grimlure comes hunting. Run out of air or hull and Enzo winches you up, but the tray floats away. Research buys a deeper hull, a bigger tank, a faster propeller, a longer sonar, a brighter lamp and a bigger tray, and with the last hull you can reach the Lantern Whale that sings at the bottom.
+
+**Controls:** **←** **→** **↑** **↓** or **W** **A** **S** **D** steer, **Space** or **J** pings the sonar, **L** or **K** switches the lamp, **M** or **Tab** opens the chart, **Esc** or **P** pauses (and offers to winch you up). On a touch screen, a stick on the left steers and **PING** and **LAMP** buttons sit on the right.
+
+**Tests:** `npm run test:deep` runs the engine checks: the world (every place reachable, every species placed), the sub's thrust, knocks, air, bells and pressure, sonar echoes and the chart, the lamp blocked by rock, catching (gentle, too fast, shy darters), veils and Grimlures, banking, upgrades, the packed chart and corrupt saves. `npm run bot:deep` plays two whole campaigns (hull first, comfort first) and checks the whale is reached in a fair number of dives with no stalls. `node tests/e2e/deep.mjs` (with `npm run dev` running) dives in a browser on desktop and on phones held either way.
+
+**Docs:** [`docs/deep.md`](docs/deep.md) has the cave and its zones, the sub, sonar and lamp, hazards, research and every upgrade, the bot results and the save.
 
 ## Validation
 

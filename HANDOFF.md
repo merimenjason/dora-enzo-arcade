@@ -6,7 +6,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 20-10-2026)
 
-**Newest game (04-11-2026): Fluffball Smash!** (`/smash`, game 76), over-the-top anime tennis; see [Fluffball Smash! · 04-11-2026](#fluffball-smash--04-11-2026) below.
+**Newest game (05-11-2026): Deepglow** (`/deep`, game 77), a sonar submarine dive; see [Deepglow · 05-11-2026](#deepglow--05-11-2026) below.
 
 **Newest work (03–04-11-2026): Kumori Pass** (`/pass`, game 75) got a new look, a minimap, Enzo's demo line (also as a Time Attack ghost), two garage parts, seven unlockable cars, Side Jobs and a chapter after the ending; see [Kumori Pass · 04-11-2026](#kumori-pass--04-11-2026) below.
 
@@ -98,6 +98,17 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 9. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
 10. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
 11. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
+
+## Deepglow · 05-11-2026
+
+Game 77, `/deep`, a 2D sonar dive into one hand-shaped trench. Rules, every number and the bot results: [`docs/deep.md`](docs/deep.md).
+
+- **Code:** engine `lib/deep-game.ts` (deterministic 60 Hz, seeded world with a signed distance field, sonar rays, creature behaviours, banking and the save), scene `lib/deep-scene.ts` (Canvas 2D: rock tiles shaded per pixel from a blurred copy of the distance field and cached, a half-resolution darkness layer with the lamp cone cast against the rock and glows cut out of it, additive echoes and pings, procedural creatures, the sub with Dora drawn by `drawChinchilla` in the porthole, Enzo on the boat), page `app/deep/page.tsx`, synthesised sound and an ambient score that sinks with depth in `app/deep/sound.ts`.
+- **Art:** 17 paintings in `public/art/deep/` (title, Dora and Enzo portraits, the twelve species, the Grimlure, the whale ending), used on the title, the boat, the journal, the tray and the result. In the dive everything is drawn in code. No text over faces: on short screens the title painting is shifted so the name sits under Dora's porthole.
+- **Input:** key and touch-button taps are latched until the next engine tick, so a press quicker than a frame still pings or toggles the lamp.
+- **Balance:** tuned with the bot (`npm run bot:deep`); costs and values are in `UPGRADES` and `POINTS`. Rerun the bot after changing them.
+- **Tests:** `npm run test:deep`, `npm run bot:deep`, `node tests/e2e/deep.mjs` (dev server running; uses `window.__deep().debug`).
+- **Ideas not done:** a second trench, daily dives with a seeded world, photo mode for the journal.
 
 ## Fluffball Smash! · 04-11-2026
 

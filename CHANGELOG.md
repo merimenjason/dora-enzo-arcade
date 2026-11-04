@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Deepglow** is game 77: a sonar dive into an uncharted trench. Dora pilots a little yellow sub into the dark while Enzo reads the sonar from the boat: ping to light up the walls, switch the lamp off to creep up on shy creatures, scoop up twelve glowing species for Enzo's journal, and steer clear of stinging veils and the hunting Grimlure. Bank your finds for upgrades, dive deeper zone by zone, and find what sings at the bottom of the trench. Works with a keyboard or touch.
 - **Fluffball Smash!** has an auto swing: set **Swing** to **Auto** in Settings and your player swings by themself at a good, steady power when the ball arrives, so there's no need to time a press. The buttons still pick slice, drop shot, lob or special, and pressing early still charges a harder hit.
 
 ## 04-11-2026
