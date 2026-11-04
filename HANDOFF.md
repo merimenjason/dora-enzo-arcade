@@ -6,7 +6,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 20-10-2026)
 
-**Newest game (05-11-2026): Pawpark Skate** (`/skate`, game 78), 3D skateboarding; see [Pawpark Skate · 05-11-2026](#pawpark-skate--05-11-2026) below.
+**Newest game (05-11-2026): Cloudberry Balloon** (`/balloon`, game 79), a hot-air balloon flight; see [Cloudberry Balloon · 05-11-2026](#cloudberry-balloon--05-11-2026) below. Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
 
 **Newest work (03–04-11-2026): Kumori Pass** (`/pass`, game 75) got a new look, a minimap, Enzo's demo line (also as a Time Attack ghost), two garage parts, seven unlockable cars, Side Jobs and a chapter after the ending; see [Kumori Pass · 04-11-2026](#kumori-pass--04-11-2026) below.
 
@@ -98,6 +98,18 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 9. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
 10. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
 11. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
+
+## Cloudberry Balloon · 05-11-2026
+
+Game 79, `/balloon`, a side-on hot-air balloon flight over eight hops. Rules, every number and the bot results: [`docs/balloon.md`](docs/balloon.md).
+
+- **Code:** engine `lib/balloon-game.ts` (deterministic 60 Hz: the ground from noise plus hills, lakes, forests, cliffs and the gorge, with flat pads; heat, fuel and neutral heat; wind bands that fade near the ground, gusts, thermals, birds and the thunderhead; berries, parachute jars with a `predictDrop()` for the guide, sandbags, touch-downs, refuelling, results and the save), scene `lib/balloon-scene.ts` (Three.js with toon shading and `OutlineEffect`; the ground is one non-indexed mesh of flat-coloured patchwork quads with a diorama front, the envelope is a lathe with vertex-coloured gores, and Dora and Enzo are the shared hunt rig at 1.7 scale, a little big for the basket so you can see them), page `app/balloon/page.tsx`, sound and waltzes `app/balloon/sound.ts`.
+- **Art:** 6 paintings in `public/art/balloon/` (title, map, ending, Granny Bramble, Dora, Enzo). In flight everything is 3D. No text over faces: the title's words sit in the painting's open sky on the left (at the bottom, over the meadow, on an upright phone).
+- **Speed:** the page runs two engine ticks a frame (`SPEED` in the page), so flights play at double time. The par times and the bots are in engine seconds.
+- **Input:** E and Q taps (and the JAR and SAND buttons) are latched until the next engine tick, as in Skate.
+- **Balance:** tuned with the bots (`npm run bot:balloon`, part of `npm test`). The wind bands are what make a hop possible: each hop needs a band going east, and the careful pilot needs the low air calm enough to pedal. Rerun the bots after changing any wind, fuel or flight constant.
+- **Tests:** `npm run test:balloon`, `npm run bot:balloon`, `node tests/e2e/balloon.mjs` (dev server running; uses `window.__balloon().debug`).
+- **Ideas not done:** a free-flight mode over the whole valley, a race against Granny Bramble's old balloon, a ghost of your best flight, night hops with lanterns to light.
 
 ## Pawpark Skate · 05-11-2026
 

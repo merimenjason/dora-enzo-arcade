@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of seventy-eight original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of seventy-nine original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -88,6 +88,7 @@ Listed in arcade-menu order.
 | 76 | Fluffball Smash! | `/smash` | Anime tennis with special moves |
 | 77 | Deepglow | `/deep` | Sonar submarine exploration |
 | 78 | Pawpark Skate | `/skate` | 3D skateboarding |
+| 79 | Cloudberry Balloon | `/balloon` | Hot-air balloon |
 
 ## Run
 
@@ -1377,6 +1378,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:skate` runs the engine checks: pushing and ollies, quarter-pipe launches, flips, grabs and spins (and bailing them), grinds and manuals, combos and banking, the holes between the rooftops, a route to every golden acorn and gap, sessions, goals, unlocking, the ending and corrupt saves. `npm run bot:skate` plays whole sessions in every park and checks each park's score, pro and combo goals are within reach of a fair skater and not of one who only pushes. `node tests/e2e/skate.mjs` (with `npm run dev` running) skates in a browser on desktop and on phones held either way.
 
 **Docs:** [`docs/skate.md`](docs/skate.md) has the parks and their pieces, the board's physics, every trick and its points, combos, gaps, goals, the bot results and the save.
+
+### 79 · Cloudberry Balloon (`/balloon`)
+
+**Play:** A side-on hot-air balloon game over eight hops of a painted valley, from Granny Bramble's farm to the Lantern Festival on the High Meadow. There is no steering: the burner heats the envelope and takes the balloon up, the vent lets heat out and brings it down, and the wind carries it along, blowing a different way at different heights, so the way to go somewhere is to climb or sink into a wind that is going there. The wind fades near the ground, where Enzo's pedal propeller can creep the balloon along or line it up. Skim the cloudberry bushes to pick their berries (birds, trees, walls and lightning knock them out of the basket), drop jars of jam on parachutes into the village gardens, land in a village to fill up the burner, ride the thermals, stay out of the lake, and touch down gently on the meadow at the end of the hop. Each hop has three stars (landing, a jar in every garden, the berry goal), and landing a hop opens the next.
+
+**Controls:** hold **Space** (or **W** or **↑**) for the burner and **S** (or **↓**) to vent; **A** and **D** (or **←** **→**) pedal; **E** drops a jar, **Q** throws a sandbag, **G** turns the jar guide on and off, **Esc** or **P** pauses. On a touch screen, **◀** **▶** pedals on the left and **JAR**, **SAND**, **VENT** and **BURN** buttons on the right.
+
+**Tests:** `npm run test:balloon` runs the engine checks: the burner, vent and neutral heat, winds and the calm near the ground, the pedals, thermals and the downdraft, berries, jars and sandbags, every kind of touch-down, refuelling, being stranded, the storm and the birds, results, stars and saves. `npm run bot:balloon` flies every hop with a hurried pilot and a careful one and checks every hop can be landed with fuel to spare and the stars are within reach. `node tests/e2e/balloon.mjs` (with `npm run dev` running) flies in a browser on desktop and on phones held either way.
+
+**Docs:** [`docs/balloon.md`](docs/balloon.md) has the balloon's physics, the winds, touch-downs, the berries and jars, every hop's numbers, the points and stars, the bot results and the save.
 
 ## Validation
 
