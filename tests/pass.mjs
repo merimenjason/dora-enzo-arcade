@@ -8,7 +8,7 @@ import { BASE, DT, makeCar, stepCar, tyre, gearSpeed, slipAngle, idleInput, with
 import { buildTrack, locate, radiusAt, at, PASSES, NARROW, WIDE } from '../.checks/pass-tracks.js';
 import { Race, Duel, duelOutcome, RIVALS, rival, paceNotes, readRoad, severity, SEVERITY, NOTE_LEAD, noteLevel, getTrack,
   encodeInput, decodeInput, packGhost, unpackGhost, parseSave, newSave, serialise, buyUpgrade, recordRun, passUnlocked,
-  deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng, GHOST_VERSION, ASSIST, DEMO, CARS, carSpec, carUnlocked } from '../.checks/pass-game.js';
+  deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng, GHOST_VERSION, ASSIST, DEMO, CARS, carSpec, carUnlocked, enzoGhost, ENZO_CAR } from '../.checks/pass-game.js';
 
 let n = 0;
 const ok = (m) => { n++; console.log('ok', m); };
@@ -431,6 +431,14 @@ for (const p of PASSES) {
     times[p.id] = `${r.player.finished.toFixed(1)}s/${Math.round(r.driftScore)}`;
   }
   ok(`Enzo's demo line is clean, drifts and beats the bot on every pass ${JSON.stringify(times)}`);
+  // and as a Time Attack ghost it replays exactly, whatever car the player brings
+  for (const p of PASSES) {
+    const e = enzoGhost(p.id);
+    const g = new Race({ pass: p.id, car: 'brioche', upgrades: ['intake'], countdown: 0.2, ghost: unpackGhost(packGhost(e.inputs)), ghostCar: ENZO_CAR });
+    let steps = 0; while (g.ghost.finished < 0 && steps < 120 * 300) { g.tick(idleInput()); steps++; }
+    assert.ok(Math.abs(g.ghost.finished - e.time) < 1e-9, `${p.id}: Enzo's ghost replays the demo exactly (${g.ghost.finished.toFixed(3)} = ${e.time.toFixed(3)})`);
+  }
+  ok('Enzo\'s line replays exactly as a Time Attack ghost on every pass');
 }
 console.log(`pass: ${n} checks passed`);
 void DUEL_GAP;

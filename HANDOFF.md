@@ -115,7 +115,7 @@ Game 75, `/pass`, the night mountain drift racer. Rules, every number and the re
 - **Art:** car portraits `public/art/pass/car-<id>.webp` (768×512, about 70 KB each) were generated with the Codex CLI's image tool (`codex exec … -i public/art/pass/story-carpark.webp`) and checked for text and badges. The other paintings in `public/art/pass/` are older.
 - **Checks:** `npm run typecheck`, `npm run test:pass`, `npm run bot:pass`, `node tests/readme.mjs`, `npm run build`; with `npm run dev` running, `npm run test:e2e:pass`, `tests/e2e/arcade-navigation.mjs`, `tests/e2e/dust-bath.mjs` and `tests/e2e/panel-contrast.mjs`.
 - **Open ends:**
-  - The first `test:e2e:pass` checks are wall-clock (1.6 s of throttle must cover 16 m) and fail on a loaded machine under software rendering; unchanged `main` fails the same way. Rerun when the machine is quiet before changing code. Making that check wait on distance instead of time would remove the flake, but it gates shipping, so ask first.
+  - The `test:e2e:pass` throttle, steering and touch checks used to be wall-clock (1.6 s of throttle had to cover 16 m) and failed on a loaded machine; since 04-11-2026 they wait on the car (distance, speed, steer) with generous timeouts.
   - Nobody has driven the new cars by hand: the bot does not feel a loose tail, so the Shortbread and Brioche are tuned on numbers only.
   - The Pumpernickel's portrait is a darker brown than its in-game chestnut (the night lighting turned chocolate nearly black).
   - Performance was measured on an M4 and with CPU throttling, not on a real mid-range laptop or phone.

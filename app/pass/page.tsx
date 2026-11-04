@@ -9,11 +9,14 @@ import './pass.css';
 
 type Screen = 'menu' | 'story' | 'scene' | 'picker' | 'duelpick' | 'garage' | 'settings' | 'intro' | 'race' | 'result' | 'ending';
 type Mode = 'delivery' | 'attack' | 'duel' | 'relay' | 'demo';
-type Run = { mode: Mode; pass: PassId; rival: RivalId | null; story: number | null; duel: Duel | null; race: Race; ghost: number[] | null };
+type Run = { mode: Mode; pass: PassId; rival: RivalId | null; story: number | null; duel: Duel | null; race: Race; ghost: number[] | null;
+  /** Time Attack against Enzo's line: his time */
+  enzo?: number };
 type RoundCard = { title: string; line: string; win: boolean | null; score: [number, number]; next: string; last: boolean };
 type Result = {
   mode: Mode; pass: PassId; rival: RivalId | null; win: boolean; time: number; buns: number; medal: number; coins: number; best: boolean;
   levelFrom: number; levelTo: number; rounds: { role: string; text: string; win: boolean | null }[]; story: number | null; drift: number; hits: number;
+  enzo?: number;
 };
 type Line = [string, string];
 
@@ -195,6 +198,13 @@ export default function KumoriPass() {
     beginRace({ mode, pass, rival: null, story, duel: null, race, ghost });
   }, [beginRace, raceOpts]);
 
+  /** Time Attack against Enzo's line: his demo run replayed as the ghost, in whatever car the player picked. */
+  const startEnzo = useCallback((pass: PassId) => {
+    const s = saveRef.current, e = G.enzoGhost(pass);
+    const race = new G.Race(raceOpts(pass, { buns: false, ghost: e.inputs, ghostCar: G.ENZO_CAR, car: s.car }));
+    beginRace({ mode: 'attack', pass, rival: null, story: null, duel: null, race, ghost: e.inputs, enzo: e.time });
+  }, [beginRace, raceOpts]);
+
   /** Enzo's line: the stock Biscuit drives the racing line cleanly by itself, with every note called. Nothing is saved. */
   const startDemo = useCallback((pass: PassId) => {
     const race = new G.Race({ pass, buns: true, autopilot: G.DEMO.pass[pass].pace, demo: true, noteLevel: 3, seed: 3 });
@@ -263,7 +273,7 @@ export default function KumoriPass() {
         if (run.mode === 'attack' || !s.ghosts[run.pass]) { s.ghosts[run.pass] = G.packGhost(race.inputs); s.ghostMeta[run.pass] = { up: s.upgrades.slice(), assist: s.settings.assist, manual: s.settings.manual, sharp: s.settings.sharp, hv: G.GHOST_VERSION, car: race.opts.car ?? 'biscuit' }; }
       }
       if (run.story !== null) s.story = Math.max(s.story, run.story + 1);
-      res = { mode: run.mode, pass: run.pass, rival: null, win: true, time, buns, medal, coins, best, levelFrom, levelTo, rounds: [], story: run.story, drift: Math.round(race.driftScore), hits: race.hits };
+      res = { mode: run.mode, pass: run.pass, rival: null, win: true, time, buns, medal, coins, best, levelFrom, levelTo, rounds: [], story: run.story, drift: Math.round(race.driftScore), hits: race.hits, enzo: run.enzo };
     }
     persist(s);
     sfx()?.quietEngine(); sfx()?.stinger(res.win);
@@ -552,7 +562,7 @@ export default function KumoriPass() {
         screen: screenRef.current, paused: pausedRef.current, save: saveRef.current, touch,
         race: r ? { t: r.t, s: r.player.s, speed: Math.hypot(r.player.car.u, r.player.car.v), gear: r.player.car.gear, steer: r.player.car.delta, drift: r.drift, drifting: r.drifting, buns: r.buns,
           done: r.done, finished: r.player.finished, resets: r.player.resets, len: r.finishS, gap: r.racers.length > 1 ? r.gapOf(0) : 0, note: r.lastNote?.text.join(' ') ?? null, hits: r.hits, driftScore: r.driftScore,
-          beta: G.slipAngleOf(r.player.car), mode: run!.mode, pass: run!.pass, round: run!.duel?.round ?? 0, rival: run!.rival, car: r.opts.car ?? 'biscuit', x: r.player.car.x, y: r.player.car.y } : null,
+          beta: G.slipAngleOf(r.player.car), mode: run!.mode, pass: run!.pass, round: run!.duel?.round ?? 0, rival: run!.rival, car: r.opts.car ?? 'biscuit', enzo: !!run!.enzo, x: r.player.car.x, y: r.player.car.y } : null,
         round: round, result, cutin: !!cutin,
         debug: {
           /** jump the current race to just before the finish (tests) */
@@ -592,6 +602,7 @@ export default function KumoriPass() {
     const run = runRef.current; if (!run) { setScreen('menu'); return; }
     setPaused(false);
     if (run.mode === 'demo') startDemo(run.pass);
+    else if (run.enzo) startEnzo(run.pass);
     else if (run.mode === 'delivery' || run.mode === 'attack') startSolo(run.mode, run.pass, run.story);
     else startDuel(run.rival!, run.mode === 'relay', run.story);
   };
@@ -659,7 +670,7 @@ export default function KumoriPass() {
 
     {screen === 'picker' && <section className="kp-page">
       <header className="kp-pagehead"><button className="kp-back" onClick={() => go('menu')}>‹ Back</button><h2>{pickMode === 'delivery' ? 'Delivery Runs' : 'Time Attack'}</h2><div className="kp-coins">🥐 {s.coins}</div></header>
-      <p className="kp-pagelede">{pickMode === 'delivery' ? 'Twelve warm buns on the back seat. Medals need the time and the buns: hit the rails hard and they fly. Every finished run improves Enzo\'s notebook for that pass.' : 'No buns, no rivals: just you and the ghost of your best run on each pass.'}</p>
+      <p className="kp-pagelede">{pickMode === 'delivery' ? 'Twelve warm buns on the back seat. Medals need the time and the buns: hit the rails hard and they fly. Every finished run improves Enzo\'s notebook for that pass.' : 'No buns, no rivals: just you and the ghost of your best run on each pass, or race Enzo\'s line.'}</p>
       <div className="kp-cards">
         {G.PASSES.map((p) => {
           const open = G.passUnlocked(s, p.id), lvl = G.noteLevel(s.runs[p.id]); const [g, sv, b] = G.medalTimes(p.id);
@@ -674,6 +685,7 @@ export default function KumoriPass() {
             {!open && <span className="kp-lock">🔒 Reach it in the story</span>}
           </button>
             {open && pickMode === 'delivery' && <button className="kp-watch" data-pass={p.id} onClick={() => { sfx()?.unlock(); startDemo(p.id); }}>▶ Watch Enzo&rsquo;s line</button>}
+            {open && pickMode === 'attack' && <button className="kp-watch kp-race-enzo" data-pass={p.id} onClick={() => { sfx()?.unlock(); startEnzo(p.id); }}>👻 Race Enzo&rsquo;s line</button>}
           </div>;
         })}
       </div>
@@ -765,7 +777,7 @@ export default function KumoriPass() {
         <p ref={H('noteText')} />
       </div>
       <div className="kp-hud kp-hud-tr">
-        <div className="kp-time"><small>{run.mode === 'demo' ? 'Enzo\'s line · demo' : run.mode === 'delivery' ? 'Delivery' : run.mode === 'attack' ? 'Time attack' : run.mode === 'relay' ? (run.race.track.reversed ? 'Relay · uphill' : 'Relay · downhill') : `Round ${(run.duel?.round ?? 0) + 1}`}</small><b ref={H('time')}>0:00.00</b>{run.ghost && <em ref={H('delta')} />}</div>
+        <div className="kp-time"><small>{run.mode === 'demo' ? 'Enzo\'s line · demo' : run.mode === 'delivery' ? 'Delivery' : run.mode === 'attack' ? (run.enzo ? 'vs Enzo\'s line' : 'Time attack') : run.mode === 'relay' ? (run.race.track.reversed ? 'Relay · uphill' : 'Relay · downhill') : `Round ${(run.duel?.round ?? 0) + 1}`}</small><b ref={H('time')}>0:00.00</b>{run.ghost && <em ref={H('delta')} />}</div>
         {run.duel && <div className="kp-gapbox"><small>{run.race.opts.role === 'lead' ? 'You lead · stay ahead' : 'You chase · stay close'}</small>
           <div className="kp-gap" ref={H('gap')}><i className="kp-gap-mark" /><span className="kp-gap-zone" /></div><b ref={H('gapText')}>side by side</b></div>}
         {(run.mode === 'delivery' || run.mode === 'demo') && <div className="kp-buns" ref={H('buns')} data-left="12"><small>Buns</small><div className="kp-bunrow">{Array.from({ length: G.BUNS }, (_, i) => <i key={i} style={{ ['--i' as string]: i }} />)}</div><div className="kp-wobble" ref={H('wobble')}><i /></div></div>}
@@ -801,11 +813,12 @@ export default function KumoriPass() {
       <Paint name={r.mode === 'relay' && r.win ? 'ending' : rv ? (r.win ? 'enzo-cheer' : 'enzo-scared') : r.medal >= 2 ? 'enzo-cheer' : 'enzo-notes'} className="kp-bg kp-blur" />
       <div className="kp-resultcard">
         {rv && <Paint name={`${rv.id}-portrait`} className="kp-result-face" pos="50% 25%" />}
-        <span className="kp-eyebrow">{r.mode === 'demo' ? `Enzo's line · ${G.passDef(r.pass).name}` : r.mode === 'delivery' ? `Delivery · ${G.passDef(r.pass).name}` : r.mode === 'attack' ? `Time attack · ${G.passDef(r.pass).name}` : `${r.mode === 'relay' ? 'The dawn relay' : 'Duel'} · ${rv?.name}`}</span>
-        <h2>{rv ? (r.win ? 'You win!' : `${rv.name} wins`) : r.mode === 'demo' ? 'That\'s the line!' : r.mode === 'delivery' ? (r.medal ? `${MEDAL[r.medal]} delivery!` : 'Delivered') : r.best ? 'New best!' : 'Finished'}</h2>
+        <span className="kp-eyebrow">{r.mode === 'demo' ? `Enzo's line · ${G.passDef(r.pass).name}` : r.mode === 'delivery' ? `Delivery · ${G.passDef(r.pass).name}` : r.mode === 'attack' ? `${r.enzo ? 'Enzo\'s line' : 'Time attack'} · ${G.passDef(r.pass).name}` : `${r.mode === 'relay' ? 'The dawn relay' : 'Duel'} · ${rv?.name}`}</span>
+        <h2>{rv ? (r.win ? 'You win!' : `${rv.name} wins`) : r.mode === 'demo' ? 'That\'s the line!' : r.enzo ? (r.time < r.enzo ? 'You beat Enzo\'s line!' : 'Enzo\'s line holds') : r.mode === 'delivery' ? (r.medal ? `${MEDAL[r.medal]} delivery!` : 'Delivered') : r.best ? 'New best!' : 'Finished'}</h2>
         {rv && <p className="kp-quote">“{r.win ? rv.lose : rv.win}”</p>}
         {rv ? <ol className="kp-rounds">{r.rounds.map((x, i) => <li key={i} data-win={x.win === null ? 'even' : x.win ? 'win' : 'lose'}><b>{x.role}</b> {x.text}</li>)}</ol>
           : <div className="kp-figures"><div><small>Time</small><b>{fmt(r.time)}</b></div>{(r.mode === 'delivery' || r.mode === 'demo') && <div><small>Buns</small><b>{r.buns}/{G.BUNS}</b></div>}<div><small>Drift points</small><b>{r.drift}</b></div><div><small>Rail hits</small><b>{r.hits}</b></div></div>}
+        {r.enzo !== undefined && <p className="kp-medalline">Enzo&rsquo;s line {fmt(r.enzo)} · you {r.time < r.enzo ? `${(r.enzo - r.time).toFixed(2)} s quicker` : `${(r.time - r.enzo).toFixed(2)} s behind`}{r.best ? ' · a new best' : ''}</p>}
         {r.mode === 'demo' && <p className="kp-medalline">A clean run on the racing line: brake early, turn in late, no rails. Gold is {fmt(G.medalTimes(r.pass)[0])} with 11+ buns.</p>}
         {r.mode === 'delivery' && <p className="kp-medalline">Gold {fmt(G.medalTimes(r.pass)[0])} with 11+ buns · Silver {fmt(G.medalTimes(r.pass)[1])} with 8+ · Bronze {fmt(G.medalTimes(r.pass)[2])} with 5+</p>}
         {r.mode !== 'demo' && <p className="kp-earned">+🥐 {r.coins} bakery coins · total {s.coins}</p>}

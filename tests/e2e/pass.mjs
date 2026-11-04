@@ -53,12 +53,14 @@ const overlap = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width &
   assert.equal(s.race.mode, 'delivery'); assert.equal(s.race.buns, 12);
   // the countdown, then real keys: throttle, steering, handbrake
   await waitFor(page, (x) => x.race.t > 0.2, 'the start');
-  await page.keyboard.down('ArrowUp'); await page.waitForTimeout(1600);
-  s = await state(page); assert.ok(s.race.speed > 5, `throttle moves the car (${s.race.speed.toFixed(1)} m/s)`); assert.ok(s.race.s > 16, 'along the road');
-  await page.keyboard.down('ArrowLeft'); await page.waitForTimeout(300);
-  s = await state(page); assert.ok(s.race.steer > 0.02, `left steers left (${s.race.steer.toFixed(3)})`);
-  await page.keyboard.up('ArrowLeft'); await page.keyboard.down('KeyD'); await page.waitForTimeout(300);
-  s = await state(page); assert.ok(s.race.steer < 0, 'D steers right'); await page.keyboard.up('KeyD');
+  // waits are on what the car does, not on the wall clock: a slow software-rendered frame rate runs less game time
+  await page.keyboard.down('ArrowUp');
+  s = await waitFor(page, (x) => x.race.s > 16 && x.race.speed > 5, 'throttle to move the car along the road', 20000);
+  assert.ok(s.race.speed > 5 && s.race.s > 16, `throttle moves the car (${s.race.speed.toFixed(1)} m/s, ${s.race.s.toFixed(0)} m)`);
+  await page.keyboard.down('ArrowLeft');
+  s = await waitFor(page, (x) => x.race.steer > 0.02, 'left to steer left', 8000); assert.ok(s.race.steer > 0.02, `left steers left (${s.race.steer.toFixed(3)})`);
+  await page.keyboard.up('ArrowLeft'); await page.keyboard.down('KeyD');
+  s = await waitFor(page, (x) => x.race.steer < 0, 'D to steer right', 8000); assert.ok(s.race.steer < 0, 'D steers right'); await page.keyboard.up('KeyD');
   await page.keyboard.down('Space'); await page.waitForTimeout(250); await page.keyboard.up('Space');
   await page.keyboard.press('KeyC'); await page.keyboard.press('KeyC'); await page.keyboard.press('KeyC');
   await page.keyboard.up('ArrowUp');
@@ -180,12 +182,12 @@ for (const vp of [{ width: 844, height: 390 }, { width: 390, height: 844 }]) {
   const cdp = await page.context().newCDPSession(page);
   const pt = { x: gas.x + gas.width / 2, y: gas.y + gas.height / 2 };
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...pt, id: 1 }] });
-  await page.waitForTimeout(1500);
-  s = await state(page); assert.ok(s.race.speed > 4, `GAS by touch moves the car (${s.race.speed.toFixed(1)} m/s)`);
+  s = await waitFor(page, (x) => x.race.speed > 4, 'GAS by touch to move the car', 20000);
+  assert.ok(s.race.speed > 4, `GAS by touch moves the car (${s.race.speed.toFixed(1)} m/s)`);
   const lp = { x: left.x + left.width / 2, y: left.y + left.height / 2 };
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...pt, id: 1 }, { ...lp, id: 2 }] });
-  await page.waitForTimeout(350);
-  s = await state(page); assert.ok(s.race.steer > 0.02, 'the left pad steers left while GAS is held');
+  s = await waitFor(page, (x) => x.race.steer > 0.02, 'the left pad to steer', 8000);
+  assert.ok(s.race.steer > 0.02, 'the left pad steers left while GAS is held');
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await page.waitForTimeout(150);
   await page.evaluate(() => window.__pass().debug.say('Hairpin right · don\'t cut'));
@@ -235,6 +237,14 @@ for (const vp of [{ width: 844, height: 390 }, { width: 390, height: 844 }]) {
   await page.keyboard.press('Escape'); await waitFor(page, (x) => x.paused, 'paused');
   assert.equal(await page.evaluate((k) => localStorage.getItem(k), KEY), before, 'the demo saves nothing');
   console.log('PASS demo');
+  // race Enzo's line in Time Attack: his demo run is the ghost
+  await page.locator('.kp-pausecard button', { hasText: 'Quit' }).click();
+  await mode(page, 'Time Attack').click();
+  await page.locator('.kp-race-enzo[data-pass="cedar"]').click();
+  s = await waitFor(page, (x) => x.screen === 'race' && x.race && x.race.t > 1, 'the race against Enzo', 40000);
+  assert.equal(s.race.mode, 'attack'); assert.ok(s.race.enzo, 'the run is against Enzo\'s line');
+  assert.match(await page.locator('.kp-time small').textContent(), /Enzo/);
+  console.log('PASS race Enzo\'s line');
   await page.context().close();
 }
 

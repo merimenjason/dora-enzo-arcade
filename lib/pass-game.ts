@@ -748,6 +748,15 @@ export class Race {
   get time() { return Math.max(0, this.t); }
 }
 
+/** Enzo's line on a pass as ghost inputs, and its time: the demo run (stock Biscuit, Strong assist), recorded. */
+export function enzoGhost(pass: PassId): { inputs: number[]; time: number } {
+  const r = new Race({ pass, autopilot: DEMO.pass[pass].pace, demo: true, noteLevel: 3, seed: 3 });
+  for (let n = 0; !r.done && n < 120 * 300; n++) r.tick(idleInput());
+  return { inputs: r.inputs, time: r.player.finished };
+}
+/** The car Enzo's line is driven in, for replaying it as a ghost. */
+export const ENZO_CAR = { up: [] as string[], assist: ASSIST.strong, manual: false, sharp: false, car: 'biscuit' as CarId };
+
 // ---------------------------------------------------------------- duels: lead, chase, sudden death
 export type RoundResult = { winner: 0 | 1 | -1; reason: 'pulled-away' | 'passed' | 'held' | 'crash' | 'dropped' | 'solo'; gap: number; time: number };
 export type DuelOpts = Omit<RaceOpts, 'role' | 'pass' | 'reversed'> & { rival: RivalId; relay?: boolean };
