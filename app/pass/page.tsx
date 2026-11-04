@@ -14,7 +14,9 @@ type Run = { mode: Mode; pass: PassId; rival: RivalId | null; story: number | nu
   enzo?: number;
   job?: G.JobId;
   /** a delivery in rain or snow */
-  weather?: G.WeatherId };
+  weather?: G.WeatherId;
+  /** a rematch after the story */
+  rematch?: boolean };
 type RoundCard = { title: string; line: string; win: boolean | null; score: [number, number]; next: string; last: boolean };
 type Result = {
   mode: Mode; pass: PassId; rival: RivalId | null; win: boolean; time: number; buns: number; medal: number; coins: number; best: boolean;
@@ -25,6 +27,7 @@ type Result = {
   /** a Drift Trial's score */
   score?: number;
   weather?: G.WeatherId;
+  rematch?: boolean;
 };
 type Line = [string, string];
 
@@ -120,7 +123,7 @@ export default function KumoriPass() {
   const [weather, setWeather] = useState<G.WeatherId>('clear');
   const [pickRival, setPickRival] = useState<RivalId>('stoat');
   const [sceneStep, setSceneStep] = useState<{ art: string; lines: Line[]; i: number; then: () => void } | null>(null);
-  const [intro, setIntro] = useState<{ rival: RivalId; relay: boolean; story: number | null; lines: Line[] } | null>(null);
+  const [intro, setIntro] = useState<{ rival: RivalId; relay: boolean; story: number | null; lines: Line[]; rematch?: boolean } | null>(null);
   const [round, setRound] = useState<RoundCard | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [paused, setPaused] = useState(false);
@@ -253,10 +256,10 @@ export default function KumoriPass() {
     beginRace({ mode: 'demo', pass, rival: null, story: null, duel: null, race, ghost: null });
   }, [beginRace]);
 
-  const startDuel = useCallback((rival: RivalId, relay: boolean, story: number | null) => {
-    const s = saveRef.current, r = G.rival(rival), pass = relay ? 'summit' : r.pass;
-    const duel = new G.Duel({ rival, relay, car: story === null ? s.car : 'biscuit', upgrades: s.upgrades, assist: s.settings.assist, sharp: s.settings.sharp, manual: s.settings.manual, noteLevel: G.noteLevel(s.runs[pass]), seed: 7 + s.runs[pass] * 31 + s.beaten.length * 5 + (s.coins % 97) });
-    beginRace({ mode: relay ? 'relay' : 'duel', pass, rival, story, duel, race: duel.race, ghost: null });
+  const startDuel = useCallback((rival: RivalId, relay: boolean, story: number | null, rematch = false) => {
+    const s = saveRef.current, r = G.rival(rival), pass = relay ? 'summit' : rematch ? G.weakestPass(s) : r.pass;
+    const duel = new G.Duel({ rival, relay, ...(rematch ? { rematch, pass } : {}), car: story === null ? s.car : 'biscuit', upgrades: s.upgrades, assist: s.settings.assist, sharp: s.settings.sharp, manual: s.settings.manual, noteLevel: G.noteLevel(s.runs[pass]), seed: 7 + s.runs[pass] * 31 + s.beaten.length * 5 + (s.coins % 97) });
+    beginRace({ mode: relay ? 'relay' : 'duel', pass, rival, story, duel, race: duel.race, ghost: null, rematch });
   }, [beginRace]);
 
   // story steps
@@ -309,11 +312,12 @@ export default function KumoriPass() {
         drift: Math.round(race.driftScore), hits: race.hits, job: run.job, jobOk: jr.ok, first, mood: Math.round(race.mood) };
     } else if (run.mode === 'duel' || run.mode === 'relay') {
       const d = run.duel!; const win = d.winner === 0;
-      const coins = G.duelCoins(run.rival!, win);
+      const coins = Math.round(G.duelCoins(run.rival!, win) * (run.rematch ? G.REMATCH.pay : 1));
       s.coins += coins;
       if (win && !s.beaten.includes(run.rival!)) s.beaten.push(run.rival!);
+      if (win && run.rematch && !s.rematched.includes(run.rival!)) s.rematched.push(run.rival!);
       if (win && run.story !== null) s.story = Math.max(s.story, run.story + 1);
-      res = { mode: run.mode, pass: run.pass, rival: run.rival, win, time: 0, buns: 0, medal: 0, coins, best: false, levelFrom, levelTo, story: run.story, drift: 0, hits: 0,
+      res = { mode: run.mode, pass: run.pass, rival: run.rival, win, time: 0, buns: 0, medal: 0, coins, best: false, levelFrom, levelTo, story: run.story, drift: 0, hits: 0, rematch: run.rematch,
         rounds: d.rounds.map((r, i) => ({ role: i === 0 && run.mode === 'relay' ? 'Uphill · lead' : r.role === 'lead' ? 'Lead' : 'Chase', text: roundText(r.result, r.role), win: r.result.winner === -1 ? null : r.result.winner === 0 })) };
     } else {
       const time = race.player.finished, buns = run.mode === 'delivery' ? race.buns : 0;
@@ -629,7 +633,7 @@ export default function KumoriPass() {
         screen: screenRef.current, paused: pausedRef.current, save: saveRef.current, touch,
         race: r ? { t: r.t, s: r.player.s, speed: Math.hypot(r.player.car.u, r.player.car.v), gear: r.player.car.gear, steer: r.player.car.delta, drift: r.drift, drifting: r.drifting, buns: r.buns,
           done: r.done, finished: r.player.finished, resets: r.player.resets, len: r.finishS, gap: r.racers.length > 1 ? r.gapOf(0) : 0, note: r.lastNote?.text.join(' ') ?? null, hits: r.hits, driftScore: r.driftScore,
-          beta: G.slipAngleOf(r.player.car), mode: run!.mode, pass: run!.pass, round: run!.duel?.round ?? 0, rival: run!.rival, car: r.opts.car ?? 'biscuit', enzo: !!run!.enzo, job: run!.job ?? null, mood: r.mood, trial: r.trialScore, chain: r.chain, weather: r.opts.weather ?? 'clear', x: r.player.car.x, y: r.player.car.y } : null,
+          beta: G.slipAngleOf(r.player.car), mode: run!.mode, pass: run!.pass, round: run!.duel?.round ?? 0, rival: run!.rival, car: r.opts.car ?? 'biscuit', enzo: !!run!.enzo, job: run!.job ?? null, mood: r.mood, trial: r.trialScore, chain: r.chain, weather: r.opts.weather ?? 'clear', rematch: !!run!.rematch, x: r.player.car.x, y: r.player.car.y } : null,
         round: round, result, cutin: !!cutin,
         debug: {
           /** jump the current race to just before the finish (tests) */
@@ -673,7 +677,7 @@ export default function KumoriPass() {
     else if (run.mode === 'job') startJob(run.job!, run.pass);
     else if (run.mode === 'trial') startTrial(run.pass);
     else if (run.mode === 'delivery' || run.mode === 'attack') startSolo(run.mode, run.pass, run.story, run.weather);
-    else startDuel(run.rival!, run.mode === 'relay', run.story);
+    else startDuel(run.rival!, run.mode === 'relay', run.story, run.rematch);
   };
 
   // ---------------------------------------------------------------- render
@@ -779,11 +783,13 @@ export default function KumoriPass() {
       <div className="kp-cards kp-rivals">
         {G.RIVALS.map((r) => { const open = G.rivalUnlocked(s, r.id); return <button key={r.id} className={`kp-card kp-rival ${pickRival === r.id ? 'sel' : ''}`} data-rival={r.id} disabled={!open} onClick={() => { sfx()?.button(); setPickRival(r.id); }}>
           <Paint name={`${r.id}-portrait`} className="kp-rival-art" pos="50% 25%" />
-          <span className="kp-card-body"><b>{r.name}</b><small>{r.animal} · {r.car}, {r.carBlurb}</small><small>{r.id === 'fox' ? 'The dawn relay on Summit Dawn' : G.passDef(r.pass).name}</small></span>
+          <span className="kp-card-body"><b>{r.name}</b><small>{r.animal} · {r.car}, {r.carBlurb}</small><small>{r.id === 'fox' ? 'The dawn relay on Summit Dawn' : G.passDef(r.pass).name}</small>{s.rematched.includes(r.id) && <small className="kp-rematched">Rematch won ✓</small>}</span>
           {!open && <span className="kp-lock">🔒</span>}
         </button>; })}
       </div>
-      <div className="kp-row"><button className="kp-go" disabled={!G.rivalUnlocked(s, pickRival)} onClick={() => { setIntro({ rival: pickRival, relay: pickRival === 'fox', story: null, lines: [] }); go('intro'); }}>Challenge {G.rival(pickRival).name} ›</button></div>
+      <div className="kp-row"><button className="kp-go" disabled={!G.rivalUnlocked(s, pickRival)} onClick={() => { setIntro({ rival: pickRival, relay: pickRival === 'fox', story: null, lines: [] }); go('intro'); }}>Challenge {G.rival(pickRival).name} ›</button>
+        {G.rematchUnlocked(s, pickRival) && <button className="kp-rematch" onClick={() => { setIntro({ rival: pickRival, relay: false, story: null, lines: [], rematch: true }); go('intro'); }}>Rematch · {G.passDef(G.weakestPass(s)).name} ›</button>}</div>
+      {s.ended && <p className="kp-foot">Rematches: after the story, a rival you have beaten comes back with every part fitted and races you on your weakest pass (the lowest delivery medal), for {G.REMATCH.pay}× the coins.</p>}
     </section>}
 
     {screen === 'garage' && <section className="kp-garage">
@@ -829,20 +835,20 @@ export default function KumoriPass() {
       </div>
     </section>}
 
-    {screen === 'intro' && intro && (() => { const r = G.rival(intro.rival); const pass = intro.relay ? 'summit' : r.pass; const lvl = G.noteLevel(s.runs[pass]); return <section className="kp-intro">
+    {screen === 'intro' && intro && (() => { const r = G.rival(intro.rival); const pass = intro.relay ? 'summit' : intro.rematch ? G.weakestPass(s) : r.pass; const lvl = G.noteLevel(s.runs[pass]); return <section className="kp-intro">
       <Paint name={intro.relay ? 'story-relay' : 'story-carpark'} className="kp-bg kp-blur" />
       <div className="kp-vs">
         <div className="kp-vs-side kp-vs-rival"><Paint name={`${r.id}-portrait`} className="kp-vs-face" pos="50% 25%" /><div className="kp-vs-name"><small>{r.animal} · {r.car}</small><b>{r.name}</b></div></div>
         <div className="kp-vs-mid"><span className="kp-vs-word">VS</span>
-          <div className="kp-taunt">“{r.taunt}”</div>
-          <div className="kp-rules"><b>{intro.relay ? 'The dawn relay' : `Touge duel · ${G.passDef(pass).name}`}</b>
+          <div className="kp-taunt">“{intro.rematch ? G.REMATCH_TAUNT[r.id] ?? r.taunt : r.taunt}”</div>
+          <div className="kp-rules"><b>{intro.relay ? 'The dawn relay' : `${intro.rematch ? 'Rematch' : 'Touge duel'} · ${G.passDef(pass).name}`}</b>
             {intro.relay ? <ul><li><b>Leg 1, uphill:</b> Enzo drives, Dora reads the notes. You lead: don&rsquo;t be passed, or finish {G.DUEL_GAP.toFixed(1)} s clear.</li><li><b>Leg 2, downhill:</b> Dora drives. You chase: stay within {G.DUEL_GAP.toFixed(1)} s, or pass where the road opens.</li><li>Level after two: sudden death until someone wins a round outright.</li></ul>
               : <ul><li><b>Round 1, you lead:</b> don&rsquo;t get passed; finish more than {G.DUEL_GAP.toFixed(1)} s ahead to take it.</li><li><b>Round 2, you chase:</b> stay within {G.DUEL_GAP.toFixed(1)} s, or overtake where the road opens.</li><li>Level after two: sudden death until someone wins a round outright. Spin out and you lose the round.</li></ul>}
             <p className="kp-note-level">Enzo&rsquo;s notebook here: <Pips level={lvl} /> {LEVEL_WORD[lvl]}{lvl < 2 && (pass === 'fog' || pass === 'tunnel') ? ' · a delivery run or two would help!' : ''}</p>
-            <p className="kp-style">{r.style}</p>
+            <p className="kp-style">{intro.rematch ? `Every part fitted, and they picked your weakest pass. ${r.style}` : r.style}</p>
           </div>
           {intro.lines.length > 0 && <div className="kp-introline"><b>{WHO[intro.lines[0][0]]}</b> {intro.lines[0][1]}</div>}
-          <div className="kp-row"><button className="kp-back" onClick={() => go(intro.story !== null ? 'story' : 'duelpick')}>‹ Back</button><button className="kp-go" onClick={() => { sfx()?.unlock(); startDuel(intro.rival, intro.relay, intro.story); }}>Race! ›</button></div>
+          <div className="kp-row"><button className="kp-back" onClick={() => go(intro.story !== null ? 'story' : 'duelpick')}>‹ Back</button><button className="kp-go" onClick={() => { sfx()?.unlock(); startDuel(intro.rival, intro.relay, intro.story, !!intro.rematch); }}>Race! ›</button></div>
         </div>
         <div className="kp-vs-side kp-vs-us"><Paint name={intro.relay ? 'enzo-drive' : 'dora-grin'} className="kp-vs-face" pos="50% 30%" /><div className="kp-vs-name"><small>{intro.relay ? 'Enzo & Dora' : 'Dora & Enzo'} · the Biscuit</small><b>{intro.relay ? 'The Bakery Relay' : 'The Bun Car'}</b></div></div>
       </div>
@@ -898,7 +904,7 @@ export default function KumoriPass() {
       <Paint name={r.mode === 'relay' && r.win ? 'ending' : rv ? (r.win ? 'enzo-cheer' : 'enzo-scared') : r.medal >= 2 ? 'enzo-cheer' : 'enzo-notes'} className="kp-bg kp-blur" />
       <div className="kp-resultcard">
         {rv && <Paint name={`${rv.id}-portrait`} className="kp-result-face" pos="50% 25%" />}
-        <span className="kp-eyebrow">{r.mode === 'demo' ? `Enzo's line · ${G.passDef(r.pass).name}` : r.mode === 'delivery' ? `Delivery · ${G.passDef(r.pass).name}${r.weather ? ` · ${G.WEATHER[r.weather].name}` : ''}` : r.mode === 'attack' ? `${r.enzo ? 'Enzo\'s line' : 'Time attack'} · ${G.passDef(r.pass).name}` : r.job ? `${G.jobDef(r.job).name} · ${G.passDef(r.pass).name}` : r.mode === 'trial' ? `Drift Trial · ${G.passDef(r.pass).name}` : `${r.mode === 'relay' ? 'The dawn relay' : 'Duel'} · ${rv?.name}`}</span>
+        <span className="kp-eyebrow">{r.mode === 'demo' ? `Enzo's line · ${G.passDef(r.pass).name}` : r.mode === 'delivery' ? `Delivery · ${G.passDef(r.pass).name}${r.weather ? ` · ${G.WEATHER[r.weather].name}` : ''}` : r.mode === 'attack' ? `${r.enzo ? 'Enzo\'s line' : 'Time attack'} · ${G.passDef(r.pass).name}` : r.job ? `${G.jobDef(r.job).name} · ${G.passDef(r.pass).name}` : r.mode === 'trial' ? `Drift Trial · ${G.passDef(r.pass).name}` : `${r.mode === 'relay' ? 'The dawn relay' : r.rematch ? 'Rematch' : 'Duel'} · ${rv?.name}`}</span>
         <h2>{rv ? (r.win ? 'You win!' : `${rv.name} wins`) : r.mode === 'demo' ? 'That\'s the line!' : r.job ? JOB_TITLE[r.job][r.jobOk ? 1 : 0] : r.mode === 'trial' ? (r.medal ? `${MEDAL[r.medal]} trial!` : 'No medal this time') : r.enzo ? (r.time < r.enzo ? 'You beat Enzo\'s line!' : 'Enzo\'s line holds') : r.mode === 'delivery' ? (r.medal ? `${MEDAL[r.medal]} delivery!` : 'Delivered') : r.best ? 'New best!' : 'Finished'}</h2>
         {rv && <p className="kp-quote">“{r.win ? rv.lose : rv.win}”</p>}
         {rv ? <ol className="kp-rounds">{r.rounds.map((x, i) => <li key={i} data-win={x.win === null ? 'even' : x.win ? 'win' : 'lose'}><b>{x.role}</b> {x.text}</li>)}</ol>

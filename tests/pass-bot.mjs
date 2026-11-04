@@ -4,7 +4,7 @@
 // no-brake driver crashes or loses past the first rival; and the delivery medal times in the engine come from the
 // competent bot's real runs. `--quick` runs fewer seeds (used by npm test).
 import assert from 'node:assert/strict';
-import { Race, Duel, RIVALS, PASSES, BOT_TIMES, BUNS, idleInput, getTrack, at, DT } from '../.checks/pass-game.js';
+import { Race, Duel, RIVALS, PASSES, BOT_TIMES, BUNS, idleInput, getTrack, at, DT, REMATCH_RIVALS } from '../.checks/pass-game.js';
 
 const quick = process.argv.includes('--quick');
 const SEEDS = 16; // the whole run takes seconds, so --quick only trims the naive checks
@@ -69,6 +69,19 @@ for (const rv of RIVALS) assert.ok(Math.abs(share[rv.id] * SEEDS - TARGET[rv.id]
 assert.ok(share.stoat >= 15 / 16 && share.otter >= 12 / 16, 'the first two rivals are forgiving');
 for (const rv of RIVALS) if (rv.id !== 'fox' && rv.id !== 'owl') assert.ok(share.fox <= share[rv.id], `Aurora is the hardest in the story (${share.fox} vs ${rv.name} ${share[rv.id]})`);
 assert.ok(share.owl <= share.fox, `Hush, after the story, is harder still (${share.owl} vs Aurora ${share.fox})`);
+
+// rematches after the story: on each pass, with the ladder's five parts, the bot wins about half of them against the six duel rivals
+{
+  const RS = 8, table = [];
+  for (const p of PASSES) {
+    const row = REMATCH_RIVALS.map((rv) => { let w = 0; for (let s = 1; s <= RS; s++) { const d = new Duel({ rival: rv, pass: p.id, rematch: true, seed: s * 101, upgrades: ladderUpgrades, autopilot: PACE, countdown: 0.1, noteLevel: 3 });
+      while (!d.over) { const r = d.race; let n = 0; while (!r.done && n < 120 * 240) { r.tick(idleInput()); n++; } if (!r.done) break; if (!d.finishRound()) d.startRound(); } if (d.winner === 0) w++; } return w; });
+    const share = row.reduce((a, b) => a + b) / (row.length * RS);
+    table.push(`${p.id} ${row.join('/')}`);
+    assert.ok(share >= 0.3 && share <= 0.7, `rematches on ${p.name}: the bot wins ${(share * 100).toFixed(0)}%, near half`);
+  }
+  console.log(`rematch bot wins of ${RS} (${REMATCH_RIVALS.join('/')}): ${table.join('  ')}`);
+}
 
 let naiveWins = 0, naiveCrashes = 0;
 for (const rv of RIVALS.slice(1)) for (let s = 1; s <= (quick ? 2 : 4); s++) {

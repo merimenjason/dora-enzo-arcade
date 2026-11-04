@@ -284,6 +284,18 @@ for (const vp of [{ width: 844, height: 390 }, { width: 390, height: 844 }]) {
   s = await waitFor(page, (x) => x.screen === 'race' && x.race && x.race.t > 0.5, 'a snowy delivery', 40000);
   assert.equal(s.race.weather, 'snow'); assert.match(await page.locator('.kp-time small').textContent(), /Snow/);
   console.log('PASS weather');
+  // a rematch after the ending, on the weakest pass
+  await page.keyboard.press('Escape'); await waitFor(page, (x) => x.paused, 'paused');
+  await page.locator('.kp-pausecard button', { hasText: 'Quit' }).click();
+  await page.evaluate(() => { const v = JSON.parse(localStorage.getItem('kumori-pass-v1')); v.ended = true; v.story = 18; v.beaten = ['stoat']; localStorage.setItem('kumori-pass-v1', JSON.stringify(v)); });
+  await page.reload(); await page.locator('main[data-ready="true"]').waitFor();
+  await mode(page, 'Free Duel').click(); await page.locator('.kp-rival[data-rival="stoat"]').click();
+  await page.locator('.kp-rematch').click(); await page.locator('.kp-intro').waitFor();
+  assert.match(await page.locator('.kp-rules b').first().textContent(), /^Rematch · /);
+  await page.locator('.kp-intro .kp-go').click();
+  s = await waitFor(page, (x) => x.screen === 'race' && x.race && x.race.t > 0.3, 'a rematch', 40000);
+  assert.equal(s.race.rematch, true);
+  console.log('PASS rematch');
   await page.context().close();
 }
 

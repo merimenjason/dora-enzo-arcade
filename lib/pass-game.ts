@@ -81,13 +81,29 @@ export const RIVALS: Rival[] = [
 export const rival = (id: RivalId) => RIVALS.find((r) => r.id === id)!;
 
 /** Rival cars: the same physics, tuned a touch per car. */
-export function rivalSpec(id: RivalId): CarSpec {
+export function rivalSpec(id: RivalId, rematch = false): CarSpec {
   const r = RIVALS.findIndex((x) => x.id === id);
-  // the later rivals have better cars, roughly matching what the player can buy by then
-  const s = withUpgrades(BASE, (['tyres', 'flywheel', 'lsd', 'rack', 'intake'] as const).slice(0, r));
-  s.torque *= RIVALS[r].power;
+  // the later rivals have better cars, roughly matching what the player can buy by then; a rematch brings every part and more
+  const s = withUpgrades(BASE, (['tyres', 'flywheel', 'lsd', 'rack', 'intake'] as const).slice(0, rematch ? 5 : r));
+  s.torque *= RIVALS[r].power * (rematch ? REMATCH.power : 1);
   return s;
 }
+/** Rematches after the story, on the player's weakest pass: the rival's car gets every part and this much more torque, they
+ *  make this fraction of their mistakes, and they drive at the pass's rematch pace (each rival's own pace was set for their
+ *  home pass, so it doesn't carry over) with their own braking, blocking and nerves. */
+export const REMATCH = { power: 1.06, slip: 0.5, pay: 1.5 };
+export const REMATCH_PACE: Record<PassId, number> = { cedar: 0.898, lake: 0.961, stairs: 0.886, fog: 0.967, tunnel: 0.98, summit: 0.908 };
+/** The story's duel rivals, who come back for rematches (Aurora's relay and Hush stay as they are). */
+export const REMATCH_RIVALS: RivalId[] = ['stoat', 'otter', 'badger', 'pika', 'bat', 'goat'];
+/** What each rival says when they come back. */
+export const REMATCH_TAUNT: Partial<Record<RivalId, string>> = {
+  stoat: 'New engine, new tyres, same bun car. This time I pick the road.',
+  otter: 'I\'ve been practising on every pass, not just the lake. Have you?',
+  badger: 'Rebuilt her over the winter. Late brakes, later than ever.',
+  pika: 'I-I asked Enzo for notes on your hardest road… is that allowed?',
+  bat: 'I listened to you drive. I know which road you don\'t hear.',
+  goat: 'One more winter, one more run. Your road this time, not mine.',
+};
 
 // ---------------------------------------------------------------- the player's cars
 export type CarId = 'biscuit' | 'shortbread' | 'meringue' | 'pumpernickel' | 'crumpet' | 'brioche' | 'stollen' | 'pavlova';
@@ -310,6 +326,8 @@ export type RaceOpts = {
   trial?: boolean;
   /** rain or snow: less grip for every car on the road */
   weather?: WeatherId;
+  /** a rematch after the story: the rival comes back stronger (REMATCH) */
+  rematch?: boolean;
   /** Sharp steering: a quicker keyboard filter (Smooth is the default) */
   sharp?: boolean;
   /** the competent bot drives the player's car (tests) */
@@ -389,8 +407,8 @@ export class Race {
       // each night a driver's form varies a little (seeded): this is the only thing that changes between seeds
       const form = 1 + (this.rand() - 0.5) * FORM;
       const nerves = (1 - r.fog * this.fogLevel - r.dark * (this.dark ? 1 : 0)) * form;
-      this.racers.push(this.makeRacer(rivalSpec(opts.rival), lead ? START_S : START_S + 9, 0, true, 0.6, // rivals steer smoothly by themselves and grip-drive
-        { pace: r.pace * nerves, brake: r.brake * (1 - r.fog * this.fogLevel * 1.5), block: r.block, slipUntil: -1, slipOff: 0, nextCorner: 0 }, 'none'));
+      this.racers.push(this.makeRacer(rivalSpec(opts.rival, opts.rematch), lead ? START_S : START_S + 9, 0, true, 0.6, // rivals steer smoothly by themselves and grip-drive
+        { pace: (opts.rematch ? REMATCH_PACE[opts.pass] : r.pace) * nerves, brake: r.brake * (1 - r.fog * this.fogLevel * 1.5), block: r.block, slipUntil: -1, slipOff: 0, nextCorner: 0 }, 'none'));
       this.leaderIdx = lead ? 0 : 1;
     }
     if (opts.ghost) {
@@ -717,7 +735,7 @@ export class Race {
     const speed = Math.max(0, c.u);
     // personality: an occasional small error going into a corner (seeded)
     if (ai.nextCorner < this.corners.length && r.s > this.corners[ai.nextCorner].start - 30) {
-      const chance = idx === 0 ? BOT_SLIP : rival(this.opts.rival!).slip;
+      const chance = idx === 0 ? BOT_SLIP : rival(this.opts.rival!).slip * (this.opts.rematch ? REMATCH.slip : 1);
       if (this.rand() < chance) { ai.slipUntil = this.corners[ai.nextCorner].end; ai.slipOff = (this.rand() < 0.5 ? -1 : 1) * 0.9; }
       ai.nextCorner++;
     }
@@ -812,14 +830,15 @@ export const ENZO_CAR = { up: [] as string[], assist: ASSIST.strong, manual: fal
 
 // ---------------------------------------------------------------- duels: lead, chase, sudden death
 export type RoundResult = { winner: 0 | 1 | -1; reason: 'pulled-away' | 'passed' | 'held' | 'crash' | 'dropped' | 'solo'; gap: number; time: number };
-export type DuelOpts = Omit<RaceOpts, 'role' | 'pass' | 'reversed'> & { rival: RivalId; relay?: boolean };
+/** pass: where the duel is run, if not the rival's own pass (rematches) */
+export type DuelOpts = Omit<RaceOpts, 'role' | 'pass' | 'reversed'> & { rival: RivalId; relay?: boolean; pass?: PassId };
 export const MAX_ROUNDS = 6;
 
 export class Duel {
   rounds: { role: 'lead' | 'chase'; result: RoundResult }[] = [];
   winner: 0 | 1 | -1 = -1; over = false; race!: Race;
   constructor(public opts: DuelOpts) { this.startRound(); }
-  get pass(): PassId { return this.opts.relay ? 'summit' : rival(this.opts.rival).pass; }
+  get pass(): PassId { return this.opts.relay ? 'summit' : this.opts.pass ?? rival(this.opts.rival).pass; }
   /** The relay's first round is the uphill leg (Enzo drives); every later round runs down. */
   reversedFor(round: number) { return !!this.opts.relay && round === 0; }
   roleFor(round: number): 'lead' | 'chase' { return round % 2 === 0 ? 'lead' : 'chase'; }
@@ -969,12 +988,14 @@ export type Save = {
   trials: Partial<Record<PassId, number>>;
   /** delivery medals in rain and snow (clear nights are in medals) */
   wmedals: Record<'rain' | 'snow', Partial<Record<PassId, number>>>;
+  /** rivals beaten in a rematch */
+  rematched: RivalId[];
 };
 const PASS_IDS = PASSES.map((p) => p.id);
 const zeroBy = (v: number) => Object.fromEntries(PASS_IDS.map((id) => [id, v])) as Record<PassId, number>;
 export function newSave(): Save {
   return { v: 1, coins: 0, upgrades: [], runs: zeroBy(0), story: 0, beaten: [], medals: zeroBy(0), best: zeroBy(0), ghosts: {}, ghostMeta: {},
-    settings: { assist: ASSIST.strong, sharp: false, manual: false, lite: false, sound: true, music: true, camera: 0 }, ended: false, car: 'biscuit', jobs: [], trials: {}, wmedals: { rain: {}, snow: {} } };
+    settings: { assist: ASSIST.strong, sharp: false, manual: false, lite: false, sound: true, music: true, camera: 0 }, ended: false, car: 'biscuit', jobs: [], trials: {}, wmedals: { rain: {}, snow: {} }, rematched: [] };
 }
 const num = (v: unknown, lo: number, hi: number, d: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d);
 const UPGRADE_IDS = ['flywheel', 'rear', 'tyres', 'lsd', 'intake', 'rack', 'tray', 'coilovers', 'strip'];
@@ -1021,6 +1042,7 @@ export function parseSave(raw: string | null | undefined): Save {
   const tr = (d.trials && typeof d.trials === 'object' ? d.trials : {}) as Record<string, unknown>;
   for (const p of PASSES) { const v = num(tr[p.id], 0, 1e6, 0); if (v > 0) s.trials[p.id] = Math.round(v); }
   const wm = (d.wmedals && typeof d.wmedals === 'object' ? d.wmedals : {}) as Record<string, Record<string, unknown> | undefined>;
+  if (Array.isArray(d.rematched)) s.rematched = REMATCH_RIVALS.filter((r) => (d.rematched as unknown[]).includes(r));
   for (const w of ['rain', 'snow'] as const) for (const p of PASSES) { const v = Math.floor(num(wm[w]?.[p.id], 0, 3, 0)); if (v > 0) s.wmedals[w][p.id] = v; }
   return s;
 }
@@ -1035,6 +1057,13 @@ export const passUnlocked = (s: Save, id: PassId) => {
 /** The steps after the ending scene are the postgame: Hush and the Pavlova only open from there. */
 export const STORY_END = STORY.findIndex((st) => st.kind === 'scene' && st.scene === 'ending');
 export const POSTGAME_RIVAL: RivalId = 'owl';
+/** Rematches open after the story, for duel rivals already beaten. */
+export const rematchUnlocked = (s: Save, id: RivalId) => s.ended && REMATCH_RIVALS.includes(id) && s.beaten.includes(id);
+/** The player's weakest open pass: the lowest clear-night delivery medal, then the fewest runs, then the earliest. */
+export function weakestPass(s: Save): PassId {
+  const open = PASSES.filter((p) => passUnlocked(s, p.id));
+  return open.reduce((a, b) => (s.medals[b.id] < s.medals[a.id] || (s.medals[b.id] === s.medals[a.id] && s.runs[b.id] < s.runs[a.id]) ? b : a)).id;
+}
 export const rivalUnlocked = (s: Save, id: RivalId) => s.beaten.includes(id) || (s.ended && id !== POSTGAME_RIVAL);
 export const carUnlocked = (s: Save, id: CarId) => { const r = carDef(id).rival; return id === 'biscuit' || (s.ended && r !== POSTGAME_RIVAL) || (!!r && s.beaten.includes(r)); };
 export function buyUpgrade(s: Save, id: string): boolean {

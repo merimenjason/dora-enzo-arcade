@@ -8,7 +8,7 @@ import { BASE, DT, makeCar, stepCar, tyre, gearSpeed, slipAngle, idleInput, with
 import { buildTrack, locate, radiusAt, at, PASSES, NARROW, WIDE } from '../.checks/pass-tracks.js';
 import { Race, Duel, duelOutcome, RIVALS, rival, paceNotes, readRoad, severity, SEVERITY, NOTE_LEAD, noteLevel, getTrack,
   encodeInput, decodeInput, packGhost, unpackGhost, parseSave, newSave, serialise, buyUpgrade, recordRun, passUnlocked,
-  deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng, GHOST_VERSION, ASSIST, DEMO, CARS, carSpec, carUnlocked, enzoGhost, ENZO_CAR, JOB, jobDeadline, jobResult, STORY_END, rivalUnlocked, TRIAL_GOLD, trialMedal, WEATHER } from '../.checks/pass-game.js';
+  deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng, GHOST_VERSION, ASSIST, DEMO, CARS, carSpec, carUnlocked, enzoGhost, ENZO_CAR, JOB, jobDeadline, jobResult, STORY_END, rivalUnlocked, TRIAL_GOLD, trialMedal, WEATHER, rematchUnlocked, weakestPass, rivalSpec, REMATCH_RIVALS, REMATCH_TAUNT } from '../.checks/pass-game.js';
 
 let n = 0;
 const ok = (m) => { n++; console.log('ok', m); };
@@ -492,6 +492,22 @@ for (const p of PASSES) {
   const sv = parseSave(JSON.stringify({ v: 1, wmedals: { rain: { cedar: 2, lake: 9, moon: 1 }, snow: 'x', hail: { fog: 3 } } }));
   assert.deepEqual(sv.wmedals, { rain: { cedar: 2, lake: 3 }, snow: {} }); assert.deepEqual(newSave().wmedals, { rain: {}, snow: {} });
   ok(`weather: the bot finishes rain and snow clean on every pass, within 2.5% of the medal factors ${JSON.stringify(spread)}`);
+}
+
+// ---------------------------------------------------------------- rematches
+{
+  const sv = newSave();
+  assert.ok(!rematchUnlocked(sv, 'stoat'), 'no rematches during the story');
+  sv.ended = true; sv.beaten = ['stoat', 'otter', 'fox'];
+  assert.ok(rematchUnlocked(sv, 'stoat') && !rematchUnlocked(sv, 'badger') && !rematchUnlocked(sv, 'fox') && !rematchUnlocked(sv, 'owl'), 'rematches open for beaten duel rivals after the ending');
+  for (const p of PASSES) { sv.medals[p.id] = 3; sv.runs[p.id] = 5; sv.story = 99; }
+  sv.medals.stairs = 1; assert.equal(weakestPass(sv), 'stairs');
+  sv.medals.fog = 1; sv.runs.fog = 2; assert.equal(weakestPass(sv), 'fog', 'ties go to the pass with fewer runs');
+  assert.ok(rivalSpec('stoat', true).torque > rivalSpec('goat').torque && rivalSpec('stoat', true).mu > rivalSpec('stoat').mu, 'a rematch car has every part');
+  for (const r of REMATCH_RIVALS) assert.ok(REMATCH_TAUNT[r], `${r} has a rematch line`);
+  const ps = parseSave(JSON.stringify({ v: 1, rematched: ['stoat', 'owl', 'nobody', 3] }));
+  assert.deepEqual(ps.rematched, ['stoat']); assert.deepEqual(newSave().rematched, []);
+  ok('rematches: open after the ending for beaten rivals, on the weakest pass, with every part fitted');
 }
 
 // ---------------------------------------------------------------- side jobs
