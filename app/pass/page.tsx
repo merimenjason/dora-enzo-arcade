@@ -208,6 +208,7 @@ export default function KumoriPass() {
     if (sc) {
       sc.setShowcase(false);
       sc.setTrack(run.race.track); sc.setWeather(run.race.opts.weather ?? 'clear');
+      sc.setLine(saveRef.current.settings.line && run.mode !== 'demo' ? G.playerLine(run.race) : null);
       sc.setCars(lookFor(run.race, run.rival), run.ghost ? { ...carLook(run.race.opts.ghostCar?.car), ghost: true } : null);
     }
     const relayUp = run.mode === 'relay' && run.race.track.reversed;
@@ -394,6 +395,7 @@ export default function KumoriPass() {
       f.cam = cam.current; f.dt = dt; f.slowmo = sm; shake.current = Math.max(0, shake.current - dt * 3); f.shake = shake.current;
       f.dawn = run.mode === 'relay' ? Math.min(1, 0.3 + (run.duel?.round ?? 0) * 0.35 + (race.player.s / race.track.len) * 0.3) : run.pass === 'summit' ? 0.32 : 0;
       f.focus = 0;
+      f.line = race.t >= 0 && p.finished < 0 ? { i: p.idx, u: p.car.u } : null;
       sc.render(f);
       drawSpeedLines(Math.hypot(p.car.u, p.car.v), p.car.boost > 0, sm < 1);
       updateHud(run, race, dt);
@@ -828,6 +830,7 @@ export default function KumoriPass() {
         <div className="kp-set"><b>Assist</b><small>Catches slides and holds a drift at the angle you steer. Strong can&apos;t spin from a normal corner; Off is all you.</small>
           <div className="kp-seg">{ASSISTS.map((a) => <button key={a.name} className={Math.abs(s.settings.assist - a.v) < 0.01 ? 'on' : ''} onClick={() => setSetting('assist', a.v)}>{a.name}</button>)}</div></div>
         <div className="kp-set"><b>Gears</b><small>Manual: Shift up, Ctrl down.</small><div className="kp-seg"><button className={!s.settings.manual ? 'on' : ''} onClick={() => setSetting('manual', false)}>Automatic</button><button className={s.settings.manual ? 'on' : ''} onClick={() => setSetting('manual', true)}>Manual</button></div></div>
+        <div className="kp-set"><b>Racing line</b><small>A line on the road ahead: green, you can go faster; yellow, about right; red, too fast for here, so brake.</small><div className="kp-seg"><button className={!s.settings.line ? 'on' : ''} onClick={() => setSetting('line', false)}>Off</button><button className={s.settings.line ? 'on' : ''} onClick={() => setSetting('line', true)}>On</button></div></div>
         <div className="kp-set"><b>Lite graphics</b><small>No shadows, outlines or particles, for slower machines.</small><div className="kp-seg"><button className={!s.settings.lite ? 'on' : ''} onClick={() => setSetting('lite', false)}>Full</button><button className={s.settings.lite ? 'on' : ''} onClick={() => setSetting('lite', true)}>Lite</button></div></div>
         <div className="kp-set"><b>Sound</b><div className="kp-seg"><button className={s.settings.sound ? 'on' : ''} onClick={() => setSetting('sound', true)}>On</button><button className={!s.settings.sound ? 'on' : ''} onClick={() => setSetting('sound', false)}>Off</button></div></div>
         <div className="kp-set"><b>Music</b><div className="kp-seg"><button className={s.settings.music ? 'on' : ''} onClick={() => setSetting('music', true)}>On</button><button className={!s.settings.music ? 'on' : ''} onClick={() => setSetting('music', false)}>Off</button></div></div>

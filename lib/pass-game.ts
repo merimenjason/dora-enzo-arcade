@@ -342,6 +342,9 @@ export type RaceOpts = {
 export const BUNS = 12;
 /** How close to the tyres' limit the racing line is driven. */
 export const LINE_GRIP = 0.9;
+/** The racing line for the player's car, as the line assist draws it: the line the AI drives, at this car's grip
+ *  (weather included) and Enzo's braking, so its speeds are ones the player can match. */
+export function playerLine(r: Race): Line { const c = r.player.car; return racingLine(r.track, c.spec.mu * LINE_GRIP, DEMO.brake * c.spec.brake * 0.92); }
 /** Guardrails: speed scrubbed per m/s of impact, and the impact that spins the car round. */
 export const WALL = { scrub: 0.085, spin: 8.5, wreck: 11, rub: 7 };
 /** Seconds a wrecked or spun car sits before it is set back on the road. */
@@ -972,7 +975,9 @@ export const STORY: StoryStep[] = [
 // ---------------------------------------------------------------- saves
 export const SAVE_KEY = 'kumori-pass-v1';
 /** assist is 1 Strong, 0.5 Light or 0 Off (ASSIST); sharp picks the quicker steering filter */
-export type Settings = { assist: number; sharp: boolean; manual: boolean; lite: boolean; sound: boolean; music: boolean; camera: number };
+export type Settings = { assist: number; sharp: boolean; manual: boolean; lite: boolean; sound: boolean; music: boolean; camera: number;
+  /** the racing line assist: the line drawn on the road, coloured by whether you are too fast for it */
+  line: boolean };
 /** Ghosts are inputs replayed through the car, so a ghost recorded before the handling changed is dropped. */
 export const GHOST_VERSION = 2;
 export type Save = {
@@ -995,7 +1000,7 @@ const PASS_IDS = PASSES.map((p) => p.id);
 const zeroBy = (v: number) => Object.fromEntries(PASS_IDS.map((id) => [id, v])) as Record<PassId, number>;
 export function newSave(): Save {
   return { v: 1, coins: 0, upgrades: [], runs: zeroBy(0), story: 0, beaten: [], medals: zeroBy(0), best: zeroBy(0), ghosts: {}, ghostMeta: {},
-    settings: { assist: ASSIST.strong, sharp: false, manual: false, lite: false, sound: true, music: true, camera: 0 }, ended: false, car: 'biscuit', jobs: [], trials: {}, wmedals: { rain: {}, snow: {} }, rematched: [] };
+    settings: { assist: ASSIST.strong, sharp: false, manual: false, lite: false, sound: true, music: true, camera: 0, line: false }, ended: false, car: 'biscuit', jobs: [], trials: {}, wmedals: { rain: {}, snow: {} }, rematched: [] };
 }
 const num = (v: unknown, lo: number, hi: number, d: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d);
 const UPGRADE_IDS = ['flywheel', 'rear', 'tyres', 'lsd', 'intake', 'rack', 'tray', 'coilovers', 'strip'];
@@ -1032,7 +1037,7 @@ export function parseSave(raw: string | null | undefined): Save {
     // saves from before Strong/Light/Off held 0, 0.35, 0.6 or 0.85: Off stays off, Low becomes Light, the rest Strong
     const a = num(x.assist, 0, 1, ASSIST.strong), legacy = typeof x.sharp !== 'boolean';
     const assist = a < 0.01 ? ASSIST.off : legacy ? (a < 0.5 ? ASSIST.light : ASSIST.strong) : a < 0.75 ? ASSIST.light : ASSIST.strong;
-    s.settings = { assist, sharp: x.sharp === true, manual: x.manual === true, lite: x.lite === true, sound: x.sound !== false, music: x.music !== false, camera: Math.floor(num(x.camera, 0, 2, 0)) };
+    s.settings = { assist, sharp: x.sharp === true, manual: x.manual === true, lite: x.lite === true, sound: x.sound !== false, music: x.music !== false, camera: Math.floor(num(x.camera, 0, 2, 0)), line: x.line === true };
   }
   s.ended = d.ended === true;
   // a car you have not unlocked (or one that doesn't exist) falls back to the Biscuit

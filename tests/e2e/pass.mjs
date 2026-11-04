@@ -41,6 +41,16 @@ const overlap = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width &
   for (const m of ['Story', 'Delivery Runs', 'Free Duel', 'Time Attack', 'Garage', 'Settings']) assert.equal(await mode(page, m).count(), 1, `menu has ${m}`);
   assert.ok(await mode(page, 'Free Duel').isDisabled(), 'Free Duel waits for a beaten rival');
   console.log('PASS menu');
+  // the racing line assist: off to start, switched on in Settings and saved
+  await mode(page, 'Settings').click();
+  const lineRow = page.locator('.kp-set').filter({ has: page.locator('b', { hasText: /^Racing line$/ }) });
+  assert.equal(await lineRow.locator('button.on').textContent(), 'Off');
+  await lineRow.locator('button', { hasText: /^On$/ }).click();
+  assert.equal((await state(page)).save.settings.line, true);
+  await lineRow.locator('button', { hasText: /^Off$/ }).click();
+  assert.equal((await state(page)).save.settings.line, false);
+  await page.locator('.kp-back').first().click();
+  console.log('PASS racing line setting');
 
   // the course picker: six passes, the first two open, notebook levels shown
   await mode(page, 'Delivery Runs').click();

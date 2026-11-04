@@ -18,8 +18,13 @@ const V = new T.Vector3(), V2 = new T.Vector3(), V3 = new T.Vector3(), Q = new T
 export type CarView = { x: number; y: number; z: number; h: number; u: number; v: number; delta: number; ax: number; ay: number; wheelRot: number;
   spin: number; brake: boolean; boost: number; lights: number; pitch: number; visible: boolean; i: number };
 export const carView = (): CarView => ({ x: 0, y: 0, z: 0, h: 0, u: 0, v: 0, delta: 0, ax: 0, ay: 0, wheelRot: 0, spin: 0, brake: false, boost: 0, lights: 1, pitch: 0, visible: true, i: 0 });
-export type FrameView = { cars: CarView[]; ghost: CarView | null; cam: number; dt: number; dawn: number; slowmo: number; shake: number; focus: number };
+export type FrameView = { cars: CarView[]; ghost: CarView | null; cam: number; dt: number; dawn: number; slowmo: number; shake: number; focus: number;
+  /** the line assist: the player's sample on the track and their speed (m/s) */
+  line?: { i: number; u: number } | null };
 export type MirrorRect = { x: number; y: number; w: number; h: number };
+
+/** points along the line assist, two metres apart */
+const LINE_PTS = 90;
 
 // legacy ink for the rails and tunnel portals, which are drawn as offset strips
 const INK = new T.MeshBasicMaterial({ color: 0x0d0a14, side: T.BackSide });
@@ -142,6 +147,42 @@ export class PassScene {
     const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d')!;
     const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, inner); gr.addColorStop(core, inner); gr.addColorStop(Math.min(1, core + 0.18), outer + 'aa'); gr.addColorStop(1, outer + '00');
     g.fillStyle = gr; g.fillRect(0, 0, 128, 128); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
+  }
+
+  // ---- the line assist: a ribbon along the racing line for the next 180 m, green where you can go faster, yellow
+  // near the line's speed and red where you are too fast for it (so red starts where you should be braking)
+  private raceLine: { off: Float64Array; v: Float64Array } | null = null;
+  private lineMesh: T.Mesh | null = null;
+  setLine(line: { off: Float64Array; v: Float64Array } | null) {
+    this.raceLine = line;
+    if (!this.lineMesh) {
+      const n = LINE_PTS, geo = new T.BufferGeometry(), idx: number[] = [];
+      geo.setAttribute('position', new T.BufferAttribute(new Float32Array(n * 2 * 3), 3).setUsage(T.DynamicDrawUsage));
+      geo.setAttribute('color', new T.BufferAttribute(new Float32Array(n * 2 * 4), 4).setUsage(T.DynamicDrawUsage));
+      for (let i = 0; i < n - 1; i++) { const a = i * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+      geo.setIndex(idx);
+      this.lineMesh = new T.Mesh(geo, new T.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+      this.lineMesh.frustumCulled = false; this.lineMesh.renderOrder = 2; this.scene.add(this.lineMesh);
+    }
+    this.lineMesh.visible = false;
+  }
+  private drawLine(at: { i: number; u: number } | null | undefined) {
+    const m = this.lineMesh, L = this.raceLine, t = this.track;
+    if (!m) return;
+    m.visible = !!(L && t && at && !this.showcase);
+    if (!m.visible || !L || !t || !at) return;
+    const pos = m.geometry.attributes.position as T.BufferAttribute, col = m.geometry.attributes.color as T.BufferAttribute;
+    for (let k = 0; k < LINE_PTS; k++) {
+      const i = Math.min(t.n - 1, Math.max(0, Math.round(at.i) + 2 + k * 2)), h = t.h[i], o = L.off[i];
+      const cx = t.x[i] - Math.sin(h) * o, cy = t.y[i] + Math.cos(h) * o, lx = -Math.sin(h) * 0.5, ly = Math.cos(h) * 0.5, z = t.z[i] + 0.06;
+      pos.setXYZ(k * 2, cx - lx, z, -(cy - ly)); pos.setXYZ(k * 2 + 1, cx + lx, z, -(cy + ly));
+      const over = at.u - L.v[i];
+      const [r, g, b] = over > 2 ? [1, 0.18, 0.2] : over > -2.5 ? [1, 0.82, 0.2] : [0.3, 1, 0.45];
+      // fade in near the car and out towards the end
+      const a = Math.min(1, (LINE_PTS - k) / 20) * 0.92;
+      col.setXYZW(k * 2, r, g, b, a); col.setXYZW(k * 2 + 1, r, g, b, a);
+    }
+    pos.needsUpdate = true; col.needsUpdate = true;
   }
 
   setLite(lite: boolean) {
@@ -645,6 +686,7 @@ export class PassScene {
     if (this.showcase) { this.renderShowcase(dt); return; }
     const t = this.track; if (!t) return;
     this.applyMood(f.dawn);
+    this.drawLine(f.line);
     if (this.lakeMat) this.lakeMat.uniforms.time.value = this.t;
     for (let i = 0; i < f.cars.length; i++) { const c = f.cars[i], rig = this.cars[i]; if (!rig) continue; this.pose(rig, c, dt); this.wheelFx(i, c, rig, dt); }
     if (this.ghost && f.ghost) this.pose(this.ghost, f.ghost, dt); else if (this.ghost) this.ghost.root.visible = false;

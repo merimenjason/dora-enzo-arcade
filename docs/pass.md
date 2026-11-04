@@ -131,6 +131,10 @@ Each rival drives the racing line (90% of the grip limit) with their own pace, b
 
 The ending scene sets `ended`, which opens every pass, every story rival in Free Duel and the six story cars. Two more steps follow it in `STORY` (after `STORY_END`): a scene at the bakery (`story-owl.webp`) and a duel with Hush on Fog Ridge, with every part the ladder gives. She is the hardest rival (`bot:pass` wants about 5 bot wins in 16, and fewer than Aurora). Hush (`POSTGAME_RIVAL`) and her car, the Pavlova, stay locked until she is beaten; the story ladder hides the two steps until the ending, and the ending card's Follow it button plays them.
 
+## Racing line assist
+
+Settings has a **Racing line** switch (off by default; `line` in the save). When it is on, `lib/pass-scene.ts` (`setLine`, `drawLine`) draws a ribbon one metre wide along the racing line for the next 180 m: the same outside-inside-outside line the AI drives (`racingLine`), worked out for your car's grip (weather included) and Enzo's braking (`playerLine` in `lib/pass-game.ts`), so its speeds are ones you can match. Each point is coloured by your speed against the line's speed there: green when you are more than 2.5 m/s under it, yellow within that, red when you are more than 2 m/s over. The line's speeds already allow for braking into the next corner, so red starts where you should be braking. It is drawn in every mode except Enzo's demo.
+
 ## Weather
 
 Delivery Runs can be driven in rain or snow (`WEATHER` and `weather` in `RaceOpts`, `lib/pass-game.ts`). The weather scales every car's peak tyre friction (`mu`) when it is made, so the tyres, the AI's racing line and the bun tray all feel it: rain 0.84, snow 0.70. The competent bot is about 7% slower in rain (1.061 to 1.086 by pass) and 18% slower in snow (1.168 to 1.193), clean and with its buns on every pass, so each weather's medal times are the clear ones × 1.07 or × 1.18 (`medalTimes(pass, weather)`); `tests/pass.mjs` holds each pass within 2.5% of that. Medals are kept apart from clear nights (`wmedals` in the save), coins pay × 1.25 or × 1.5, and best times and ghosts are only kept from clear nights, because a ghost replays its inputs on a dry road. In the scene (`setWeather` in `lib/pass-scene.ts`) rain falls as streaks and snow as soft flakes in a box that follows the camera (on the particle layer, so Lite leaves it out); rain darkens the road, snow pales the road, the ground and the cedars, and both thicken the fog (× 1.5 and × 1.9).
@@ -161,7 +165,7 @@ Deliveries pay 2 coins a bun plus 10, 20 or 35 for bronze, silver or gold; a won
 
 ## Save
 
-`localStorage` key `kumori-pass-v1`: coins, upgrades, runs per pass, story step, beaten rivals, medals, best times, ghosts and settings (assist, steering, gears, Lite, sound, music, camera). Anything missing or malformed falls back to the default. Saves from before the 03-11-2026 handling update keep working: an assist of Off stays Off, Low becomes Light and the rest become Strong, and their ghosts (recorded with the old handling) are dropped; new ghosts carry `hv: 2`.
+`localStorage` key `kumori-pass-v1`: coins, upgrades, runs per pass, story step, beaten rivals, medals, best times, ghosts and settings (assist, steering, gears, racing line, Lite, sound, music, camera). Anything missing or malformed falls back to the default. Saves from before the 03-11-2026 handling update keep working: an assist of Off stays Off, Low becomes Light and the rest become Strong, and their ghosts (recorded with the old handling) are dropped; new ghosts carry `hv: 2`.
 
 ## Rendering
 

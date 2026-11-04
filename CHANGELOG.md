@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Kumori Pass** has a racing line assist: switch on **Racing line** in Settings and the line to take is drawn on the road ahead, green where you can go faster, yellow where you're about right and red where you're too fast and should brake. It knows your car's grip, so it brakes earlier in rain and snow.
 - **Kumori Pass** has rival rematches: after the story, every duel rival you have beaten can be challenged again from Free Duel. They come back with every part fitted, a new line to say, fewer mistakes, and they pick your weakest pass (the one with your lowest delivery medal). A rematch pays ×1.5 coins, and the rivals you have beaten twice are ticked off.
 - **Kumori Pass** has weather nights: pick Rain or Snow above the passes in Delivery Runs. Every car on the road has less grip (rain a little, snow a lot), the rain streaks past on a dark wet road or the snow settles on the mountain, each weather has its own medal times and medals, and the coins pay ×1.25 in rain and ×1.5 in snow. Best times and ghosts stay with clear nights.
 - **Kumori Pass** has Drift Trials: drive a pass for points in whichever car you pick. Every clean drift banks its points, and starting the next one within three seconds chains it for a multiplier up to ×4; touch a rail and you lose the drift and the chain. Gold is Enzo's own score on his line, and medals pay coins.

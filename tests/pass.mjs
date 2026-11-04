@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import { BASE, DT, makeCar, stepCar, tyre, gearSpeed, slipAngle, idleInput, withUpgrades, statCard, UPGRADES, quantise, filterSteer, steerLock } from '../.checks/pass-car.js';
 import { buildTrack, locate, radiusAt, at, PASSES, NARROW, WIDE } from '../.checks/pass-tracks.js';
-import { Race, Duel, duelOutcome, RIVALS, rival, paceNotes, readRoad, severity, SEVERITY, NOTE_LEAD, noteLevel, getTrack,
+import { playerLine, Race, Duel, duelOutcome, RIVALS, rival, paceNotes, readRoad, severity, SEVERITY, NOTE_LEAD, noteLevel, getTrack,
   encodeInput, decodeInput, packGhost, unpackGhost, parseSave, newSave, serialise, buyUpgrade, recordRun, passUnlocked,
   deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng, GHOST_VERSION, ASSIST, DEMO, CARS, carSpec, carUnlocked, enzoGhost, ENZO_CAR, JOB, jobDeadline, jobResult, STORY_END, rivalUnlocked, TRIAL_GOLD, trialMedal, WEATHER, rematchUnlocked, weakestPass, rivalSpec, REMATCH_RIVALS, REMATCH_TAUNT } from '../.checks/pass-game.js';
 
@@ -387,6 +387,14 @@ for (const p of PASSES) {
   assert.equal(parseSave(JSON.stringify({ v: 1, settings: { assist: 0.35 } })).settings.assist, ASSIST.light);
   assert.equal(parseSave(JSON.stringify({ v: 1, settings: { assist: 0 } })).settings.assist, ASSIST.off);
   assert.equal(newSave().settings.assist, ASSIST.strong, 'Strong assist and Smooth steering by default');
+  assert.equal(newSave().settings.line, false, 'the racing line starts off'); assert.equal(parseSave(JSON.stringify({ v: 1, settings: { line: true } })).settings.line, true);
+  assert.equal(parseSave(JSON.stringify({ v: 1, settings: { line: 'yes' } })).settings.line, false);
+  {
+    // the line assist's line: the player's grip and braking, so it is a little slower in snow and its speeds fall into hairpins
+    const dry = playerLine(new Race({ pass: 'stairs', countdown: 0.1 })), snow = playerLine(new Race({ pass: 'stairs', countdown: 0.1, weather: 'snow' }));
+    let slower = 0, lo = Infinity, hi = 0; for (let i = 0; i < dry.v.length; i++) { if (snow.v[i] < dry.v[i] - 1e-9) slower++; lo = Math.min(lo, dry.v[i]); hi = Math.max(hi, dry.v[i]); }
+    assert.ok(slower > dry.v.length * 0.5 && lo < 12 && hi > 25, `line speeds ${lo.toFixed(1)}–${hi.toFixed(1)} m/s, slower in snow`);
+  }
   ok('saves round-trip, unlock the ladder, old settings and ghosts migrate, and corrupt saves fall back without throwing');
 }
 // ---- the player's cars: every one drives every pass, none is broken or runs away with it, ghosts and saves keep the car
