@@ -724,6 +724,23 @@ export class Race {
     return tm < 0 ? 0 : -Math.max(0, this.t - tm);
   }
 
+  /** Enzo takes the wheel (H in the game) or hands it back: from here his clean demo line drives your car, from wherever
+   *  it is. enzoDrove remembers that he drove any of this run, which then sets no best time, ghost or medal. */
+  enzoDrive(on: boolean) {
+    if (on === this.enzoDriving) return;
+    // his demo pace is tuned on a dry road; in rain or snow he eases off a little and keeps it off the rails
+    const wet = (this.opts.weather ?? 'clear') !== 'clear';
+    this.opts = { ...this.opts, autopilot: on ? DEMO.pass[this.opts.pass].pace * (wet ? 0.95 : 1) : undefined, demo: on };
+    this.player.ai = null; this.aiIn = idleInput();
+    // he drives the way his line was tuned (automatic, smooth steering, Strong assist); yours come back with the wheel
+    const c = this.player.car;
+    if (on) { this.yours = { auto: c.auto, assist: c.assist, steerMode: c.steerMode }; c.auto = true; c.assist = ASSIST.strong; c.steerMode = 'smooth'; this.enzoDrove = true; }
+    else if (this.yours) { c.auto = this.yours.auto; c.assist = this.yours.assist; c.steerMode = this.yours.steerMode; this.yours = null; }
+  }
+  private yours: { auto: boolean; assist: number; steerMode: Car['steerMode'] } | null = null;
+  get enzoDriving() { return !!this.opts.demo && !!this.opts.autopilot; }
+  enzoDrove = false;
+
   // ---- the AI driver: pure pursuit on the racing line, target speeds from the line, a personality on top
   drive(idx: number, out: Input, pace: number) {
     const r = this.racers[idx], c = r.car, t = this.track;

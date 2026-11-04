@@ -131,6 +131,12 @@ Each rival drives the racing line (90% of the grip limit) with their own pace, b
 
 The ending scene sets `ended`, which opens every pass, every story rival in Free Duel and the six story cars. Two more steps follow it in `STORY` (after `STORY_END`): a scene at the bakery (`story-owl.webp`) and a duel with Hush on Fog Ridge, with every part the ladder gives. She is the hardest rival (`bot:pass` wants about 5 bot wins in 16, and fewer than Aurora). Hush (`POSTGAME_RIVAL`) and her car, the Pavlova, stay locked until she is beaten; the story ladder hides the two steps until the ending, and the ending card's Follow it button plays them.
 
+## Enzo takes the wheel (H)
+
+In any drive (deliveries, Time Attack, duels, the relay, side jobs and Drift Trials), **H** or the **Let Enzo drive** button hands the car to Enzo, and pressing it again takes it back. `Race.enzoDrive(on)` in `lib/pass-game.ts` puts the demo driver (`DEMO`, his clean line with no lag or mistakes) on the player's car from wherever it is, even sideways against a rail. While he drives the car runs automatic, Smooth steering and Strong assist, the settings his line was tuned with; yours come back with the wheel. In rain or snow he drives at 95% of his dry pace, which keeps him off the rails. He stays at the wheel into the next round of a duel until you take it back.
+
+A run Enzo drove any part of (`enzoDrove`) sets no delivery medal, best time, ghost, trial medal or trial best, and the result says so. Coins, story progress, duels and side jobs count as usual. `tests/pass.mjs` checks that he takes over after a bad start and finishes every pass with at most 3 rail hits, in snow too and on the uphill relay leg, and that your settings come back.
+
 ## Racing line assist
 
 Settings has a **Racing line** switch (off by default; `line` in the save). When it is on, `lib/pass-scene.ts` (`setLine`, `drawLine`) draws a ribbon one metre wide along the racing line for the next 180 m: the same outside-inside-outside line the AI drives (`racingLine`), worked out for your car's grip (weather included) and Enzo's braking (`playerLine` in `lib/pass-game.ts`), so its speeds are ones you can match. Each point is coloured by your speed against the line's speed there: green when you are more than 2.5 m/s under it, yellow within that, red when you are more than 2 m/s over. The line's speeds already allow for braking into the next corner, so red starts where you should be braking. It is drawn in every mode except Enzo's demo.

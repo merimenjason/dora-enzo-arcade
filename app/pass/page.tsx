@@ -16,7 +16,9 @@ type Run = { mode: Mode; pass: PassId; rival: RivalId | null; story: number | nu
   /** a delivery in rain or snow */
   weather?: G.WeatherId;
   /** a rematch after the story */
-  rematch?: boolean };
+  rematch?: boolean;
+  /** H: Enzo has the wheel now, and Enzo drove some of this run (no best time, ghost or medal) */
+  enzoOn?: boolean; helped?: boolean };
 type RoundCard = { title: string; line: string; win: boolean | null; score: [number, number]; next: string; last: boolean };
 type Result = {
   mode: Mode; pass: PassId; rival: RivalId | null; win: boolean; time: number; buns: number; medal: number; coins: number; best: boolean;
@@ -28,6 +30,7 @@ type Result = {
   score?: number;
   weather?: G.WeatherId;
   rematch?: boolean;
+  helped?: boolean;
 };
 type Line = [string, string];
 
@@ -125,6 +128,7 @@ export default function KumoriPass() {
   const [sceneStep, setSceneStep] = useState<{ art: string; lines: Line[]; i: number; then: () => void } | null>(null);
   const [intro, setIntro] = useState<{ rival: RivalId; relay: boolean; story: number | null; lines: Line[]; rematch?: boolean } | null>(null);
   const [round, setRound] = useState<RoundCard | null>(null);
+  const [enzoOn, setEnzoOn] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [paused, setPaused] = useState(false);
   const [cutin, setCutin] = useState<{ by: number; rival: RivalId; driver: string } | null>(null);
@@ -204,6 +208,9 @@ export default function KumoriPass() {
 
   const beginRace = useCallback((run: Run) => {
     runRef.current = run;
+    // Enzo keeps the wheel into the next round of a duel if he had it
+    if (run.enzoOn) run.race.enzoDrive(true);
+    setEnzoOn(!!run.enzoOn);
     const sc = sceneRef.current;
     if (sc) {
       sc.setShowcase(false);
@@ -300,11 +307,11 @@ export default function KumoriPass() {
     const race = run.race;
     let res: Result;
     if (run.mode === 'trial') {
-      const time = race.player.finished, score = Math.round(race.trialScore), medal = G.trialMedal(run.pass, score);
-      const best = score > (s.trials[run.pass] ?? 0), coins = G.TRIAL.pay[medal] + 3;
+      const helped = !!run.helped, time = race.player.finished, score = Math.round(race.trialScore), medal = helped ? 0 : G.trialMedal(run.pass, score);
+      const best = !helped && score > (s.trials[run.pass] ?? 0), coins = G.TRIAL.pay[medal] + 3;
       s.coins += coins; if (best) s.trials[run.pass] = score;
       res = { mode: 'trial', pass: run.pass, rival: null, win: medal > 0, time, buns: 0, medal, coins, best, levelFrom, levelTo, rounds: [], story: null,
-        drift: Math.round(race.driftScore), hits: race.hits, score };
+        drift: Math.round(race.driftScore), hits: race.hits, score, helped };
     } else if (run.mode === 'job') {
       const time = race.player.finished, key = G.jobKey(run.job!, run.pass), jr = G.jobResult(run.job!, run.pass, { time, buns: race.buns, mood: race.mood });
       const first = jr.ok && !s.jobs.includes(key), coins = jr.coins + (first ? G.JOB.firstBonus : 0);
@@ -323,19 +330,20 @@ export default function KumoriPass() {
     } else {
       const time = race.player.finished, buns = run.mode === 'delivery' ? race.buns : 0;
       const w = run.weather ?? 'clear', wet = w !== 'clear';
-      const medal = run.mode === 'delivery' ? G.deliveryMedal(run.pass, time, buns, w) : 0;
+      // a run Enzo drove any of sets no medal, best time or ghost
+      const helped = !!run.helped, medal = run.mode === 'delivery' && !helped ? G.deliveryMedal(run.pass, time, buns, w) : 0;
       const coins = run.mode === 'delivery' ? Math.round(G.deliveryCoins(medal, buns) * G.WEATHER[w].pay) : 5;
       s.coins += coins;
       if (wet) { if (medal > (s.wmedals[w][run.pass] ?? 0)) s.wmedals[w][run.pass] = medal; }
       else if (medal > s.medals[run.pass]) s.medals[run.pass] = medal;
       // best times and ghosts are clear nights only: a ghost replays its inputs on a dry road
-      const best = !wet && (!s.best[run.pass] || time < s.best[run.pass]);
+      const best = !wet && !helped && (!s.best[run.pass] || time < s.best[run.pass]);
       if (best) {
         s.best[run.pass] = Math.round(time * 1000) / 1000;
         if (run.mode === 'attack' || !s.ghosts[run.pass]) { s.ghosts[run.pass] = G.packGhost(race.inputs); s.ghostMeta[run.pass] = { up: s.upgrades.slice(), assist: s.settings.assist, manual: s.settings.manual, sharp: s.settings.sharp, hv: G.GHOST_VERSION, car: race.opts.car ?? 'biscuit' }; }
       }
       if (run.story !== null) s.story = Math.max(s.story, run.story + 1);
-      res = { mode: run.mode, pass: run.pass, rival: null, win: true, time, buns, medal, coins, best, levelFrom, levelTo, rounds: [], story: run.story, drift: Math.round(race.driftScore), hits: race.hits, enzo: run.enzo, weather: run.weather };
+      res = { mode: run.mode, pass: run.pass, rival: null, win: true, time, buns, medal, coins, best, levelFrom, levelTo, rounds: [], story: run.story, drift: Math.round(race.driftScore), hits: race.hits, enzo: run.enzo, weather: run.weather, helped };
     }
     persist(s);
     sfx()?.quietEngine(); sfx()?.stinger(res.win);
@@ -446,6 +454,13 @@ export default function KumoriPass() {
     tx.textContent = text; b.dataset.on = '1'; b.dataset.who = who; b.dataset.urgent = urgent ? '1' : '0';
     if (pic) { const want = ART(who === 'enzo' ? 'enzo-call' : who === 'granny' ? 'granny-bramble' : 'dora-focus'); if (!pic.src.endsWith(want)) { pic.style.visibility = ''; pic.src = want; } }
     noteTimer.current = 2.6; sfx()?.voice(who, text);
+  }
+  /** H (or the HUD button): Enzo takes the wheel from wherever you are, or hands it back */
+  function toggleEnzo() {
+    const run = runRef.current; if (!run || run.mode === 'demo' || screenRef.current !== 'race') return;
+    const race = run.race; if (race.done || race.player.finished >= 0) return;
+    const on = !race.enzoDriving; race.enzoDrive(on); run.enzoOn = on; if (on) run.helped = true;
+    keys.current.clear(); setEnzoOn(on); flash(on ? 'ENZO’S GOT THE WHEEL!' : 'YOUR WHEEL!', on ? 'good' : '');
   }
   function flash(text: string, tone = '') {
     const m = hud.current.msg; if (!m) return;
@@ -601,6 +616,7 @@ export default function KumoriPass() {
         if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(e.code)) e.preventDefault();
         if (e.code === 'Escape' || e.code === 'KeyP') { setPaused((p) => !p); return; }
         if (e.code === 'KeyC') { cam.current = (cam.current + 1) % 3; return; }
+        if (e.code === 'KeyH') { toggleEnzo(); return; }
         if (e.code === 'Enter' && round) { nextRound(); return; }
         keys.current.add(e.code);
       } else if (scr === 'scene' && (e.code === 'Enter' || e.code === 'Space')) { e.preventDefault(); advanceScene(); }
@@ -635,7 +651,7 @@ export default function KumoriPass() {
         screen: screenRef.current, paused: pausedRef.current, save: saveRef.current, touch,
         race: r ? { t: r.t, s: r.player.s, speed: Math.hypot(r.player.car.u, r.player.car.v), gear: r.player.car.gear, steer: r.player.car.delta, drift: r.drift, drifting: r.drifting, buns: r.buns,
           done: r.done, finished: r.player.finished, resets: r.player.resets, len: r.finishS, gap: r.racers.length > 1 ? r.gapOf(0) : 0, note: r.lastNote?.text.join(' ') ?? null, hits: r.hits, driftScore: r.driftScore,
-          beta: G.slipAngleOf(r.player.car), mode: run!.mode, pass: run!.pass, round: run!.duel?.round ?? 0, rival: run!.rival, car: r.opts.car ?? 'biscuit', enzo: !!run!.enzo, job: run!.job ?? null, mood: r.mood, trial: r.trialScore, chain: r.chain, weather: r.opts.weather ?? 'clear', rematch: !!run!.rematch, x: r.player.car.x, y: r.player.car.y } : null,
+          beta: G.slipAngleOf(r.player.car), mode: run!.mode, pass: run!.pass, round: run!.duel?.round ?? 0, rival: run!.rival, car: r.opts.car ?? 'biscuit', enzo: !!run!.enzo, enzoDriving: r.enzoDriving, helped: !!run!.helped, job: run!.job ?? null, mood: r.mood, trial: r.trialScore, chain: r.chain, weather: r.opts.weather ?? 'clear', rematch: !!run!.rematch, x: r.player.car.x, y: r.player.car.y } : null,
         round: round, result, cutin: !!cutin,
         debug: {
           /** jump the current race to just before the finish (tests) */
@@ -881,6 +897,7 @@ export default function KumoriPass() {
       {run.duel && <div className="kp-mirror" ref={mirrorRef} aria-hidden />}
       <div className="kp-msg" ref={H('msg')} data-on="0" />
       <button className="kp-pausebtn" onClick={() => setPaused(true)} aria-label="Pause">❚❚</button>
+      {run.mode !== 'demo' && <button className="kp-enzobtn" data-on={enzoOn ? '1' : '0'} onClick={toggleEnzo} aria-pressed={enzoOn}>{enzoOn ? <>Enzo&rsquo;s driving · <b>{touch ? 'tap to drive' : 'H to drive'}</b></> : <>Let Enzo drive{touch ? '' : <> · <b>H</b></>}</>}</button>}
       {touch && <div className="kp-touchpad">
         <div className="kp-tp-left"><button {...pad('left')} aria-label="Steer left">◀</button><button {...pad('right')} aria-label="Steer right">▶</button></div>
         <div className="kp-tp-right"><button className="kp-tp-hand" {...pad('hand')}>HAND</button><button className="kp-tp-brake" {...pad('brake')}>BRAKE</button><button className="kp-tp-gas" {...pad('gas')}>GAS</button></div>
@@ -898,7 +915,7 @@ export default function KumoriPass() {
         <button className="kp-go" onClick={nextRound}>{round.last ? 'See the result ›' : 'Next round ›'}</button>
       </div>}
       {paused && <div className="kp-pause"><div className="kp-pausecard"><h2>Paused</h2>
-        <p className="kp-keyhelp">Steer ← → · Gas ↑ · Brake ↓ · Handbrake Space · Camera C</p>
+        <p className="kp-keyhelp">Steer ← → · Gas ↑ · Brake ↓ · Handbrake Space · Camera C · Enzo drives H</p>
         <div className="kp-seg">{ASSISTS.map((a) => <button key={a.name} className={Math.abs(s.settings.assist - a.v) < 0.01 ? 'on' : ''} onClick={() => { setSetting('assist', a.v); if (runRef.current) for (const r of runRef.current.race.racers.slice(0, 1)) r.car.assist = a.v; }}>{a.name} assist</button>)}</div>
         <div className="kp-row"><button className="kp-go" onClick={() => setPaused(false)}>Resume</button><button onClick={retry}>Restart</button><button onClick={quitRace}>Quit</button></div></div></div>}
     </section>}
@@ -915,6 +932,7 @@ export default function KumoriPass() {
         {r.enzo !== undefined && <p className="kp-medalline">Enzo&rsquo;s line {fmt(r.enzo)} · you {r.time < r.enzo ? `${(r.enzo - r.time).toFixed(2)} s quicker` : `${(r.time - r.enzo).toFixed(2)} s behind`}{r.best ? ' · a new best' : ''}</p>}
         {r.mode === 'trial' && <p className="kp-medalline">Gold {G.trialTargets(r.pass)[0]} (Enzo&rsquo;s line) · Silver {G.trialTargets(r.pass)[1]} · Bronze {G.trialTargets(r.pass)[2]}{r.best ? ' · a new best' : ''}</p>}
         {r.job && <p className="kp-medalline">{r.job === 'cake' ? (r.jobOk ? 'Not a crumb out of place.' : 'A careful run gets it there: ease off before the hard corners and stay off the rails.') : r.job === 'doctor' ? `Due at ${fmt(G.jobDeadline(r.pass))} · you ${r.time <= G.jobDeadline(r.pass) ? `${(G.jobDeadline(r.pass) - r.time).toFixed(1)} s early` : `${(r.time - G.jobDeadline(r.pass)).toFixed(1)} s late`}` : `She needs ${G.JOB.rider.happy} to be happy: drifts cheer her up, rails and crawling don't.`}{r.first ? ` · first time on this pass: +${G.JOB.firstBonus} bonus` : ''}</p>}
+        {r.helped && <p className="kp-medalline">Enzo drove some of this run, so it sets no medal or best time.</p>}
         {r.mode === 'demo' && <p className="kp-medalline">A clean run on the racing line: brake early, turn in late, no rails. Gold is {fmt(G.medalTimes(r.pass)[0])} with 11+ buns.</p>}
         {r.mode === 'delivery' && <p className="kp-medalline">{r.weather ? `${G.WEATHER[r.weather].name}: ` : ''}Gold {fmt(G.medalTimes(r.pass, r.weather)[0])} with 11+ buns · Silver {fmt(G.medalTimes(r.pass, r.weather)[1])} with 8+ · Bronze {fmt(G.medalTimes(r.pass, r.weather)[2])} with 5+{r.weather ? ` · ×${G.WEATHER[r.weather].pay} coins` : ''}</p>}
         {r.mode !== 'demo' && <p className="kp-earned">+🥐 {r.coins} bakery coins · total {s.coins}</p>}

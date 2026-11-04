@@ -99,6 +99,30 @@ const overlap = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width &
   await page.locator('.kp-back').first().click();
   console.log('PASS save and reload');
 
+  // H: Enzo takes the wheel mid-run and drives with no keys held, H hands it back, and the run sets no best time or medal
+  {
+    const best = (await state(page)).save.best.cedar;
+    await mode(page, 'Delivery Runs').click(); await page.locator('.kp-pass[data-pass="cedar"]').click();
+    let e = await waitFor(page, (x) => x.screen === 'race' && x.race && x.race.t > 0.2, 'the start');
+    assert.equal(await page.locator('.kp-enzobtn').isVisible(), true);
+    await page.keyboard.press('KeyH');
+    e = await waitFor(page, (x) => x.race.enzoDriving, 'H to give Enzo the wheel', 8000);
+    assert.equal(await page.locator('.kp-enzobtn').getAttribute('data-on'), '1');
+    const s0 = e.race.s;
+    e = await waitFor(page, (x) => x.race.s > s0 + 60 && x.race.speed > 8, 'Enzo to drive on with no keys held', 30000);
+    await page.keyboard.press('KeyH');
+    e = await waitFor(page, (x) => !x.race.enzoDriving, 'H to take the wheel back', 8000);
+    assert.ok(e.race.helped); assert.equal(await page.locator('.kp-enzobtn').getAttribute('data-on'), '0');
+    await page.evaluate(() => window.__pass().debug.nearFinish());
+    await page.keyboard.down('ArrowUp');
+    e = await waitFor(page, (x) => x.screen === 'result', 'the result', 30000);
+    await page.keyboard.up('ArrowUp');
+    assert.equal(e.result.helped, true); assert.equal(e.result.medal, 0); assert.equal(e.result.best, false); assert.equal(e.save.best.cedar, best, 'the best time is untouched');
+    assert.match(await page.locator('.kp-result').textContent(), /Enzo drove some of this run/);
+    await page.goto(`${base}/pass`); await ready(page);
+    console.log('PASS H: Enzo drives and hands back; the run sets no best time or medal');
+  }
+
   // a corrupt save falls back to a fresh one
   await page.evaluate((k) => localStorage.setItem(k, '{"v":1,"coins":"lots","runs":[1,2],"upgrades":["rocket"],"settings":7'), KEY);
   await page.reload(); await ready(page);

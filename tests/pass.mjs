@@ -397,6 +397,30 @@ for (const p of PASSES) {
   }
   ok('saves round-trip, unlock the ladder, old settings and ghosts migrate, and corrupt saves fall back without throwing');
 }
+{
+  // H: Enzo takes the wheel from wherever the car is (even after a bad start into the rails), finishes every pass, in snow
+  // and on the uphill relay leg, ignores your keys while he drives, and hands back your gears, assist and steering
+  const bad = { ...idleInput(), throttle: 1, steer: 0.6 };
+  const take = (o, badSecs) => {
+    const r = new Race({ countdown: 0.1, ...o }); while (r.t < badSecs) r.tick(r.t < 0 ? idleInput() : bad);
+    const hits0 = r.hits; r.enzoDrive(true);
+    while (r.player.finished < 0 && r.t < 400) r.tick(bad);
+    return { r, hits: r.hits - hits0 };
+  };
+  const times = [];
+  for (const p of PASSES) for (const [o, b] of [[{ pass: p.id }, 4], [{ pass: p.id, weather: 'snow' }, 2]]) {
+    const { r, hits } = take(o, b);
+    assert.ok(r.player.finished > 0 && !r.player.crashed, `Enzo finishes ${p.id}${o.weather ? ' in snow' : ''}`);
+    assert.ok(hits <= 3 && r.buns >= 10, `${p.id}${o.weather ? ' snow' : ''}: Enzo hits the rails ${hits} times, ${r.buns} buns`);
+    assert.ok(r.enzoDrove && r.enzoDriving); times.push(r.player.finished);
+  }
+  const up = take({ pass: 'summit', reversed: true }, 3); assert.ok(up.r.player.finished > 0 && up.hits <= 3, 'Enzo drives the uphill relay leg');
+  const m = new Race({ pass: 'cedar', countdown: 0.1, manual: true, assist: ASSIST.off, sharp: true }); while (m.t < 1) m.tick(idleInput());
+  m.enzoDrive(true); assert.ok(m.player.car.auto && m.player.car.assist === ASSIST.strong && m.player.car.steerMode === 'smooth', 'Enzo drives automatic, Strong, Smooth');
+  for (let i = 0; i < 600; i++) m.tick(idleInput()); assert.ok(Math.hypot(m.player.car.u, m.player.car.v) > 8, 'he drives with no keys held');
+  m.enzoDrive(false); assert.ok(!m.player.car.auto && m.player.car.assist === ASSIST.off && m.player.car.steerMode === 'sharp' && !m.enzoDriving && m.enzoDrove, 'your settings come back with the wheel');
+  ok(`H: Enzo takes over from anywhere and finishes every pass (${Math.min(...times).toFixed(0)}–${Math.max(...times).toFixed(0)} s), in snow and uphill, and hands back your settings`);
+}
 // ---- the player's cars: every one drives every pass, none is broken or runs away with it, ghosts and saves keep the car
 {
   const spreads = {};
