@@ -279,9 +279,14 @@ export const LINE_GRIP = 0.9;
 export const WALL = { scrub: 0.085, spin: 8.5, wreck: 11, rub: 7 };
 /** Seconds a wrecked or spun car sits before it is set back on the road. */
 export const RECOVER = 1.4;
-/** Enzo's demo line: the racing line driven cleanly (no lag, wander or mistakes), braking a little early, at the
- * fastest pace on each pass that never touches a rail or spills a bun. */
-export const DEMO = { brake: 0.64, pace: { cedar: 0.92, lake: 0.94, stairs: 0.98, fog: 1.02, tunnel: 0.98, summit: 0.94 } as Record<PassId, number> };
+/** Enzo's demo line: the racing line driven cleanly (no lag, wander or mistakes) that drifts the tight corners without a
+ * gutter to hook: a handbrake tap `entry` m before the corner, then throttle through the slide and out on the boost.
+ * Per pass: the pace, the tightest radius it drifts (0: never), and the entry. Each is the fastest clean setting found
+ * (no rails, no spins, every bun) that is also clean one step slower, so a small handling change doesn't tip it over. */
+export const DEMO = { brake: 0.88, hand: 0.3, throttle: 0.6, pass: {
+  cedar: { pace: 0.975, drift: 25, entry: 9 }, lake: { pace: 0.945, drift: 60, entry: 9 }, stairs: { pace: 0.945, drift: 25, entry: 9 },
+  fog: { pace: 1.005, drift: 0, entry: 9 }, tunnel: { pace: 0.96, drift: 45, entry: 9 }, summit: { pace: 0.95, drift: 60, entry: 4 },
+} as Record<PassId, { pace: number; drift: number; entry: number }> };
 /** The autopilot's chance per corner of a small error, so seeded runs differ. */
 export const BOT_SLIP = 0.06;
 /** How much a driver's pace varies night to night (a seeded ±half of this). */
@@ -293,7 +298,7 @@ export const DRIFT = { minAngle: 0.14, minSpeed: 9, fill: 0.42, boostMin: 0.25, 
 type Racer = {
   car: Car; w: Where; idx: number; s: number; finished: number; lane: number;
   marks: Float32Array; stuck: number; resets: number; crashed: boolean;
-  ai: { pace: number; brake: number; block: number; slipUntil: number; slipOff: number; nextCorner: number; human?: Human } | null;
+  ai: { pace: number; brake: number; block: number; slipUntil: number; slipOff: number; nextCorner: number; human?: Human; dc?: number } | null;
   hookCool: number; gripT: number; gripV: number; wallT: number; scrapeT: number; hold: number;
 };
 
@@ -666,6 +671,7 @@ export class Race {
     // speed
     const vi = at(t, r.s + Math.min(6, speed * 0.12) + speed * (hu ? HUMAN.reaction : 0));
     let vt = line.v[vi] * ai.pace;
+    const dc = idx === 0 && this.opts.demo ? this.demoCorner(r) : null;
     if (r.s < ai.slipUntil) vt *= 0.94;
     if (this.racers.length > 1) {
       const o = this.racers[1 - idx], gapM = o.s - r.s;
@@ -676,8 +682,14 @@ export class Race {
     const beta = Math.abs(slipAngle(c));
     if (speed > vt + 0.25) { out.throttle = 0; out.brake = Math.min(1, (speed - vt) * 0.7 + 0.3); }
     else { out.brake = 0; out.throttle = Math.max(0, Math.min(1, (vt - speed) * 0.8 + 0.3)); }
-    if (beta > 0.22) out.throttle *= 0.4; // AI drivers grip-drive: catch a slide instead of feeding it
+    if (beta > 0.22 && !dc) out.throttle *= 0.4; // AI drivers grip-drive: catch a slide instead of feeding it
     out.hand = false; out.up = false; out.down = false;
+    if (dc) {
+      // Enzo's line drifts the tight corners: a handbrake tap at turn-in, then throttle to hold it round and boost out
+      const k = r.s - (dc.start - DEMO.pass[this.opts.pass].entry);
+      if (k >= 0 && k < DEMO.hand * Math.max(speed, 1) && speed > 12) { out.hand = true; out.brake = 0; }
+      else if (beta > 0.1 && out.brake < 0.5) { out.brake = 0; out.throttle = Math.max(out.throttle, DEMO.throttle); }
+    }
     if (hu) {
       // reaction time: what comes out now is what it decided a quarter of a second ago
       const b = hu.buf, k = hu.at * 3;
@@ -686,6 +698,16 @@ export class Race {
       hu.at = (hu.at + 1) % (b.length / 3);
       out.steer = st; out.throttle = th; out.brake = br;
     }
+  }
+
+  /** The tight corner (no gutter to hook) Enzo's demo line is drifting, or about to. */
+  private demoCorner(r: Racer): Corner | null {
+    const ai = r.ai!, cs = this.corners;
+    if (ai.dc === undefined) ai.dc = 0;
+    while (ai.dc < cs.length && cs[ai.dc].end < r.s) ai.dc++;
+    const c = cs[ai.dc];
+    const d = DEMO.pass[this.opts.pass];
+    return c && c.radius < d.drift && !c.gutter && r.s > c.start - d.entry ? c : null;
   }
 
   /** The time the player has been running (0 before the start). */

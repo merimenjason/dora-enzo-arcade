@@ -192,7 +192,7 @@ export default function KumoriPass() {
 
   /** Enzo's line: the stock Biscuit drives the racing line cleanly by itself, with every note called. Nothing is saved. */
   const startDemo = useCallback((pass: PassId) => {
-    const race = new G.Race({ pass, buns: true, autopilot: G.DEMO.pace[pass], demo: true, noteLevel: 3, seed: 3 });
+    const race = new G.Race({ pass, buns: true, autopilot: G.DEMO.pass[pass].pace, demo: true, noteLevel: 3, seed: 3 });
     beginRace({ mode: 'demo', pass, rival: null, story: null, duel: null, race, ghost: null });
   }, [beginRace]);
 

@@ -7,7 +7,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 ### Added
 
 - **Kumori Pass** has two new parts in Enzo's garage: Coilovers (120 coins) sit the Biscuit lower so the nose bites sooner, and a Stripped Interior (140 coins) makes her lighter and quicker everywhere, at the cost of a rattlier bun tray.
-- **Kumori Pass** can show you the line: press ▶ Watch Enzo's line under any open pass in Delivery Runs and the Biscuit drives it by itself, cleanly, with every note called. It never touches a rail, keeps all twelve buns and finishes inside gold. Watching saves nothing, and Drive it yourself starts a delivery on the same pass.
+- **Kumori Pass** can show you the line: press ▶ Watch Enzo's line under any open pass in Delivery Runs and the Biscuit drives it by itself with every note called. Enzo drifts the tight corners (a handbrake tap at turn-in, throttle through the slide, the boost out), hooks the gutters on the hairpins, never touches a rail, keeps all twelve buns and beats the bot on every pass. Watching saves nothing, and Drive it yourself starts a delivery on the same pass.
 - **Kumori Pass** has a minimap in the corner of every race: the road around you, turned so you always point up, with your rival and your ghost on it. On Fog Ridge and in the Ghost Tunnel it only shows the road you have driven and a few metres ahead, so Enzo's notes are still your guide.
 
 ## 03-11-2026

@@ -383,18 +383,19 @@ for (const p of PASSES) {
   assert.equal(newSave().settings.assist, ASSIST.strong, 'Strong assist and Smooth steering by default');
   ok('saves round-trip, unlock the ladder, old settings and ghosts migrate, and corrupt saves fall back without throwing');
 }
-// ---- Enzo's line: the demo drives every pass cleanly (no rails, no spins, every bun) and inside the gold time
+// ---- Enzo's line: the demo drives every pass cleanly (no rails, no spins, every bun), drifts, and beats the bot
 {
   const times = {};
   for (const p of PASSES) {
-    const r = new Race({ pass: p.id, buns: true, autopilot: DEMO.pace[p.id], demo: true, noteLevel: 3, seed: 3 });
+    const r = new Race({ pass: p.id, buns: true, autopilot: DEMO.pass[p.id].pace, demo: true, noteLevel: 3, seed: 3 });
     let steps = 0; while (!r.done && steps < 120 * 300) { r.tick(idleInput()); steps++; }
     assert.ok(r.done, `${p.id}: the demo finishes`);
     assert.equal(r.hits, 0, `${p.id}: the demo never touches a rail`); assert.equal(r.player.resets, 0, `${p.id}: no spins`); assert.equal(r.buns, BUNS, `${p.id}: every bun`);
-    assert.ok(r.player.finished < medalTimes(p.id)[0], `${p.id}: the demo beats gold (${r.player.finished.toFixed(2)} vs ${medalTimes(p.id)[0]})`);
-    times[p.id] = +r.player.finished.toFixed(1);
+    assert.ok(r.player.finished < BOT_TIMES[p.id], `${p.id}: the demo beats the competent bot (${r.player.finished.toFixed(2)} vs ${BOT_TIMES[p.id]})`);
+    assert.ok(r.driftScore >= 100, `${p.id}: the demo drifts (${Math.round(r.driftScore)} points)`);
+    times[p.id] = `${r.player.finished.toFixed(1)}s/${Math.round(r.driftScore)}`;
   }
-  ok(`Enzo's demo line is clean and inside gold on every pass ${JSON.stringify(times)}`);
+  ok(`Enzo's demo line is clean, drifts and beats the bot on every pass ${JSON.stringify(times)}`);
 }
 console.log(`pass: ${n} checks passed`);
 void DUEL_GAP;
