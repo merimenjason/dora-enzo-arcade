@@ -327,10 +327,11 @@ export const RECOVER = 1.4;
  * gutter to hook: a handbrake tap `entry` m before the corner, then throttle through the slide and out on the boost.
  * Per pass: the pace, the tightest radius it drifts (0: never), and the entry. Each is the fastest clean setting found
  * (no rails, no spins, every bun) that is also clean one step slower, so a small handling change doesn't tip it over. */
-export const DEMO = { brake: 0.88, hand: 0.3, throttle: 0.6, pass: {
-  cedar: { pace: 0.975, drift: 25, entry: 9 }, lake: { pace: 0.945, drift: 60, entry: 9 }, stairs: { pace: 0.945, drift: 25, entry: 9 },
-  fog: { pace: 1.005, drift: 0, entry: 9 }, tunnel: { pace: 0.96, drift: 45, entry: 9 }, summit: { pace: 0.95, drift: 60, entry: 4 },
-} as Record<PassId, { pace: number; drift: number; entry: number }> };
+export const DEMO = { brake: 0.88, hand: 0.3, throttle: 0.6, kp: 3, pass: {
+  cedar: { pace: 0.975, drift: 80, entry: 9, hold: 0.25 }, lake: { pace: 0.945, drift: 80, entry: 9, hold: 0.3, hand: 0.5 },
+  stairs: { pace: 0.96, drift: 25, entry: 9, hold: 0.25, hand: 0.5 }, fog: { pace: 1.005, drift: 0, entry: 9 },
+  tunnel: { pace: 0.96, drift: 80, entry: 9, hold: 0.3, kc: 1 }, summit: { pace: 0.95, drift: 60, entry: 4, hold: 0.25, kc: 1, hand: 0.5 },
+} as Record<PassId, { pace: number; drift: number; entry: number; hold?: number; kc?: number; hand?: number }> };
 /** The autopilot's chance per corner of a small error, so seeded runs differ. */
 export const BOT_SLIP = 0.06;
 /** How much a driver's pace varies night to night (a seeded ±half of this). */
@@ -745,8 +746,14 @@ export class Race {
     out.hand = false; out.up = false; out.down = false;
     if (dc) {
       // Enzo's line drifts the tight corners: a handbrake tap at turn-in, then throttle to hold it round and boost out
-      const k = r.s - (dc.start - DEMO.pass[this.opts.pass].entry);
-      if (k >= 0 && k < DEMO.hand * Math.max(speed, 1) && speed > 12) { out.hand = true; out.brake = 0; }
+      const dp = DEMO.pass[this.opts.pass], hold = dp.hold ?? 0, k = r.s - (dc.start - dp.entry);
+      if (k >= 0 && k < (dp.hand ?? DEMO.hand) * Math.max(speed, 1) && speed > 12) { out.hand = true; out.brake = 0; }
+      else if (hold > 0 && beta > 0.1 && out.brake < 0.5) {
+        // hold a steady slide: throttle sets the angle (eased off above the line's speed), countersteer stops it swinging past
+        const sl = slipAngle(c);
+        out.brake = 0; out.throttle = Math.max(0, Math.min(speed > vt + 0.5 ? 0.35 : 1, DEMO.throttle + DEMO.kp * (hold - beta)));
+        if (beta > hold) out.steer = Math.max(-1, Math.min(1, out.steer + (dp.kc ?? 0) * Math.sign(sl) * (beta - hold) / lock));
+      }
       else if (beta > 0.1 && out.brake < 0.5) { out.brake = 0; out.throttle = Math.max(out.throttle, DEMO.throttle); }
     }
     if (hu) {
