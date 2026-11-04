@@ -4,8 +4,8 @@
 // strings Races into the touge rounds (lead, chase, sudden death). The AI drives the same car physics along a racing
 // line with a personality. Saves are parsed defensively. Deterministic: a seeded generator, no Math.random, no clock.
 
-import { ASSIST, BASE, DT, G, idleInput, makeCar, quantise, slipAngle, steerLock, stepCar, withUpgrades, worldVel, setWorldVel,
-  type Car, type CarSpec, type Input, type SteerMode } from './pass-car.js';
+import { ASSIST, BASE, BASE_STATS, DT, G, idleInput, makeCar, quantise, slipAngle, steerLock, stepCar, withUpgrades, worldVel, setWorldVel,
+  type Car, type CarSpec, type Input, type Stat, type SteerMode } from './pass-car.js';
 import { at, buildTrack, locate, radiusAt, GUTTER, PASSES, STEP, type PassId, type Track, type Where } from './pass-tracks.js';
 
 export { DT } from './pass-car.js';
@@ -83,6 +83,38 @@ export function rivalSpec(id: RivalId): CarSpec {
   s.torque *= RIVALS[r].power;
   return s;
 }
+
+// ---------------------------------------------------------------- the player's cars
+export type CarId = 'biscuit' | 'shortbread' | 'meringue' | 'pumpernickel' | 'crumpet' | 'brioche' | 'stollen';
+export type PlayerCar = { id: CarId; name: string; blurb: string; shape: CarShape; body: number; trim: number;
+  /** beating this rival unlocks it (the Biscuit is always yours) */
+  rival: RivalId | null; stats: Record<Stat, number>; tune: Partial<Omit<CarSpec, 'ratios'>> };
+/**
+ * Each car is the Biscuit with a few numbers changed, and every part fits every car. Tuned with the competent bot
+ * against the stock Biscuit (docs/pass.md has the table): the early unlocks trade a strength for a weakness and come
+ * out about level, the last two are 1 to 1.5% quicker overall as the reward for beating the hardest rivals.
+ */
+export const CARS: PlayerCar[] = [
+  { id: 'biscuit', name: 'Biscuit', blurb: 'The bakery hatch. Honest, forgiving, and it smells of warm bread.', shape: 'hatch', body: 0xf3e7c9, trim: 0x6fb3dc,
+    rival: null, stats: BASE_STATS, tune: {} },
+  { id: 'shortbread', name: 'Shortbread', blurb: 'A golden wedge with a loose tail: it wants to drift every corner.', shape: 'wedge', body: 0xd9a35a, trim: 0x5a3a22,
+    rival: 'stoat', stats: { power: 5, grip: 4, rotation: 6, stability: 3, buns: 4 }, tune: { mass: 1080, inertia: 1500, torque: 255, slideR: 0.72, br: 10.5, lsd: 0.55 } },
+  { id: 'meringue', name: 'Meringue', blurb: 'Light, low and sharp: lovely in the esses, short of puff on the long straights.', shape: 'roadster', body: 0xf7eef2, trim: 0xe78fb3,
+    rival: 'otter', stats: { power: 3, grip: 6, rotation: 6, stability: 5, buns: 3 }, tune: { mass: 930, inertia: 1250, cgh: 0.42, torque: 195, mu: 1.15, a: 1.05, b: 1.2, bunDamp: 1.1 } },
+  { id: 'pumpernickel', name: 'Pumpernickel', blurb: 'A heavy brown saloon that rides like a sofa. The buns love it.', shape: 'saloon', body: 0xb8743f, trim: 0xf0e2c4,
+    rival: 'badger', stats: { power: 6, grip: 3, rotation: 2, stability: 7, buns: 7 }, tune: { mass: 1260, inertia: 2050, cgh: 0.56, torque: 295, mu: 1.1, slideR: 0.82, bunDamp: 0.75, a: 1.25, b: 1.4 } },
+  { id: 'crumpet', name: 'Crumpet', blurb: 'Tiny and nimble: king of the hairpins, but it rattles and the straights feel long.', shape: 'kei', body: 0xffb52e, trim: 0x7a4a24,
+    rival: 'pika', stats: { power: 2, grip: 5, rotation: 7, stability: 4, buns: 3 }, tune: { mass: 740, inertia: 1000, a: 0.98, b: 1.08, torque: 190, lock: 0.7, drag: 0.38, bunDamp: 1.15 } },
+  { id: 'brioche', name: 'Brioche', blurb: 'A big-engined fastback. Fast everywhere, if you can keep the tail behind you.', shape: 'fastback', body: 0xe0892f, trim: 0x2b2230,
+    rival: 'bat', stats: { power: 7, grip: 4, rotation: 5, stability: 3, buns: 4 }, tune: { mass: 1170, inertia: 1750, torque: 310, slideR: 0.72, br: 10.8, lsd: 0.6 } },
+  { id: 'stollen', name: 'Stollen', blurb: 'A long cream coupe for the whole mountain: calm, quick, and built for sweepers.', shape: 'coupe', body: 0xf2e8d2, trim: 0x8a2b3a,
+    rival: 'goat', stats: { power: 6, grip: 5, rotation: 3, stability: 7, buns: 5 }, tune: { mass: 1180, inertia: 1850, a: 1.22, b: 1.4, torque: 285, mu: 1.14, bunDamp: 0.9 } },
+];
+export const CAR_IDS = CARS.map((c) => c.id);
+export const carDef = (id: CarId | string | undefined) => CARS.find((c) => c.id === id) ?? CARS[0];
+/** A car with parts fitted. */
+export const carSpec = (id: CarId | undefined, upgrades: readonly string[] = []): CarSpec =>
+  withUpgrades({ ...BASE, ratios: BASE.ratios.slice(), ...carDef(id).tune }, upgrades);
 
 // ---------------------------------------------------------------- pace notes
 export type Corner = { dir: 1 | -1; start: number; end: number; apex: number; radius: number; sev: number; tightens: boolean; opens: boolean; gutter: boolean; into: boolean };
@@ -260,7 +292,9 @@ export type RaceOpts = {
   noteLevel?: number; seed?: number; buns?: boolean;
   ghost?: number[] | null;
   /** the car the ghost was recorded with (defaults to the player's) */
-  ghostCar?: { up: readonly string[]; assist: number; manual: boolean; sharp?: boolean } | null;
+  ghostCar?: { up: readonly string[]; assist: number; manual: boolean; sharp?: boolean; car?: CarId } | null;
+  /** which of the player's cars (the Biscuit by default) */
+  car?: CarId;
   /** Sharp steering: a quicker keyboard filter (Smooth is the default) */
   sharp?: boolean;
   /** the competent bot drives the player's car (tests) */
@@ -325,7 +359,7 @@ export class Race {
     this.finishS = finishS(this.track);
     this.fogLevel = this.track.def.fog; this.dark = this.track.def.dark;
     this.t = -(opts.countdown ?? 3);
-    const spec = opts.spec ?? withUpgrades(BASE, opts.upgrades ?? []);
+    const spec = opts.spec ?? carSpec(opts.car, opts.upgrades ?? []);
     const lead = opts.role !== 'chase';
     const pS = opts.rival ? (lead ? START_S + 9 : START_S) : START_S;
     this.racers.push(this.makeRacer(spec, pS, 0, opts.manual ? false : true, opts.assist ?? ASSIST.strong, null, opts.sharp ? 'sharp' : 'smooth'));
@@ -340,7 +374,7 @@ export class Race {
     }
     if (opts.ghost) {
       const gc = opts.ghostCar;
-      this.ghost = gc ? this.makeRacer(withUpgrades(BASE, gc.up), START_S, 0, !gc.manual, gc.assist, null, gc.sharp ? 'sharp' : 'smooth') : this.makeRacer(spec, START_S, 0, opts.manual ? false : true, opts.assist ?? ASSIST.strong, null, opts.sharp ? 'sharp' : 'smooth');
+      this.ghost = gc ? this.makeRacer(carSpec(gc.car, gc.up), START_S, 0, !gc.manual, gc.assist, null, gc.sharp ? 'sharp' : 'smooth') : this.makeRacer(spec, START_S, 0, opts.manual ? false : true, opts.assist ?? ASSIST.strong, null, opts.sharp ? 'sharp' : 'smooth');
     }
     this.notes = paceNotes(this.track, opts.noteLevel ?? 0);
     this.corners = readRoad(this.track).corners;
@@ -814,14 +848,16 @@ export const GHOST_VERSION = 2;
 export type Save = {
   v: 1; coins: number; upgrades: string[]; runs: Record<PassId, number>; story: number; beaten: RivalId[];
   medals: Record<PassId, number>; best: Record<PassId, number>; ghosts: Partial<Record<PassId, string>>;
-  ghostMeta: Partial<Record<PassId, { up: string[]; assist: number; manual: boolean; sharp?: boolean; hv?: number }>>;
+  ghostMeta: Partial<Record<PassId, { up: string[]; assist: number; manual: boolean; sharp?: boolean; hv?: number; car?: CarId }>>;
   settings: Settings; ended: boolean;
+  /** the car picked in the garage */
+  car: CarId;
 };
 const PASS_IDS = PASSES.map((p) => p.id);
 const zeroBy = (v: number) => Object.fromEntries(PASS_IDS.map((id) => [id, v])) as Record<PassId, number>;
 export function newSave(): Save {
   return { v: 1, coins: 0, upgrades: [], runs: zeroBy(0), story: 0, beaten: [], medals: zeroBy(0), best: zeroBy(0), ghosts: {}, ghostMeta: {},
-    settings: { assist: ASSIST.strong, sharp: false, manual: false, lite: false, sound: true, music: true, camera: 0 }, ended: false };
+    settings: { assist: ASSIST.strong, sharp: false, manual: false, lite: false, sound: true, music: true, camera: 0 }, ended: false, car: 'biscuit' };
 }
 const num = (v: unknown, lo: number, hi: number, d: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d);
 const UPGRADE_IDS = ['flywheel', 'rear', 'tyres', 'lsd', 'intake', 'rack', 'tray', 'coilovers', 'strip'];
@@ -848,7 +884,8 @@ export function parseSave(raw: string | null | undefined): Save {
     if (typeof g === 'string' && unpackGhost(g) && meta && typeof meta === 'object' && (meta as Record<string, unknown>).hv === GHOST_VERSION) {
       const m = meta as Record<string, unknown>;
       s.ghosts[id] = g;
-      s.ghostMeta[id] = { up: Array.isArray(m.up) ? m.up.filter((u): u is string => typeof u === 'string' && UPGRADE_IDS.includes(u)) : [], assist: num(m.assist, 0, 1, ASSIST.strong), manual: m.manual === true, sharp: m.sharp === true, hv: GHOST_VERSION };
+      s.ghostMeta[id] = { up: Array.isArray(m.up) ? m.up.filter((u): u is string => typeof u === 'string' && UPGRADE_IDS.includes(u)) : [], assist: num(m.assist, 0, 1, ASSIST.strong), manual: m.manual === true, sharp: m.sharp === true, hv: GHOST_VERSION,
+        ...(CAR_IDS.includes(m.car as CarId) ? { car: m.car as CarId } : {}) };
     }
   }
   const st = d.settings;
@@ -860,6 +897,8 @@ export function parseSave(raw: string | null | undefined): Save {
     s.settings = { assist, sharp: x.sharp === true, manual: x.manual === true, lite: x.lite === true, sound: x.sound !== false, music: x.music !== false, camera: Math.floor(num(x.camera, 0, 2, 0)) };
   }
   s.ended = d.ended === true;
+  // a car you have not unlocked (or one that doesn't exist) falls back to the Biscuit
+  if (CAR_IDS.includes(d.car as CarId) && carUnlocked(s, d.car as CarId)) s.car = d.car as CarId;
   return s;
 }
 export const serialise = (s: Save) => JSON.stringify(s);
@@ -871,13 +910,14 @@ export const passUnlocked = (s: Save, id: PassId) => {
   return id === 'cedar' || s.ended || (i >= 0 && s.story >= i);
 };
 export const rivalUnlocked = (s: Save, id: RivalId) => s.beaten.includes(id) || s.ended;
+export const carUnlocked = (s: Save, id: CarId) => { const r = carDef(id).rival; return id === 'biscuit' || s.ended || (!!r && s.beaten.includes(r)); };
 export function buyUpgrade(s: Save, id: string): boolean {
   const u = UPGRADE_LIST.find((x) => x.id === id);
   if (!u || s.upgrades.includes(id) || s.coins < u.cost) return false;
   s.coins -= u.cost; s.upgrades.push(id); return true;
 }
 import { UPGRADES as UPGRADE_LIST } from './pass-car.js';
-export { UPGRADES, statCard, withUpgrades, BASE, idleInput, ASSIST, slipAngle as slipAngleOf } from './pass-car.js';
+export { UPGRADES, statCard, withUpgrades, BASE, BASE_STATS, idleInput, ASSIST, slipAngle as slipAngleOf } from './pass-car.js';
 export type { Input, Car, CarSpec } from './pass-car.js';
 export { PASSES, passDef, radiusAt, at } from './pass-tracks.js';
 export type { PassId, Track } from './pass-tracks.js';

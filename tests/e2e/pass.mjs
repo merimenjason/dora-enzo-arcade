@@ -197,6 +197,30 @@ for (const vp of [{ width: 844, height: 390 }, { width: 390, height: 844 }]) {
   await page.context().close();
 }
 
+// the garage's cars: beat a rival, drive their kind of car in free play; the story stays in the Biscuit
+{
+  const page = await open();
+  await page.goto(`${base}/pass`); await ready(page);
+  await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ v: 1, coins: 3, story: 3, beaten: ['stoat'] })), KEY); await page.reload(); await ready(page);
+  await mode(page, 'Garage').click();
+  assert.match(await page.locator('.kp-carcard[data-car="brioche"] button').textContent(), /Beat Vesper/);
+  assert.ok(await page.locator('.kp-carcard[data-car="brioche"] button').isDisabled(), 'a locked car cannot be picked');
+  await page.locator('.kp-carcard[data-car="shortbread"] button').click();
+  let s = await state(page); assert.equal(s.save.car, 'shortbread');
+  await page.locator('.kp-back').first().click();
+  await mode(page, 'Delivery Runs').click(); await page.locator('.kp-pass[data-pass="cedar"]').click();
+  s = await waitFor(page, (x) => x.screen === 'race' && x.race, 'a free delivery');
+  assert.equal(s.race.car, 'shortbread', 'free play drives the picked car');
+  await page.keyboard.press('Escape'); await page.locator('.kp-pausecard button', { hasText: 'Quit' }).click();
+  await mode(page, 'Story').click(); await page.locator('.kp-step button[data-step="1"]').click();
+  await page.locator('.kp-skip').click();
+  s = await waitFor(page, (x) => x.screen === 'race' && x.race, 'a story delivery');
+  assert.equal(s.race.car, 'biscuit', 'the story drives the Biscuit');
+  await page.keyboard.press('Escape'); await page.locator('.kp-pausecard button', { hasText: 'Quit' }).click();
+  console.log('PASS cars');
+  await page.context().close();
+}
+
 // Enzo's line: the demo drives itself from the course picker and saves nothing
 {
   const page = await open();

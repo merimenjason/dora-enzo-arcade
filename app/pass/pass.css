@@ -125,6 +125,18 @@
 .kp-stats{background:rgba(13,18,48,.82);border:3px solid var(--ink);padding:.5em .8em;display:grid;gap:.25em;max-width:24em}
 .kp-stat{display:grid;grid-template-columns:7em 1fr 1.5em;align-items:center;gap:.5em;font-size:calc(var(--fs)*.82)}
 .kp-stat i{height:.6em;background:linear-gradient(90deg,var(--hot) calc(var(--v)*100%),rgba(255,255,255,.12) 0);border:1px solid var(--ink);transform:skewX(-20deg)}
+.kp-garage-side{display:flex;flex-direction:column;gap:.6em;min-width:0}
+.kp-garage-h{font-family:'Dela Gothic One',sans-serif;font-weight:400;font-size:calc(var(--fs)*1.1);color:var(--paper);text-shadow:2px 2px 0 var(--ink);margin:0}
+.kp-garage-h small{font-family:inherit;font-size:.62em;opacity:.8;margin-left:.5em;text-shadow:none}
+.kp-cars{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(170px,190px);gap:.7em;overflow-x:auto;padding:0 6px 8px 0;scroll-snap-type:x proximity}
+.kp-carcard{scroll-snap-align:start;background:var(--tone),var(--paper);color:var(--ink);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:.45em .55em;display:flex;flex-direction:column;gap:.3em;min-width:0}
+.kp-carcard.on{background:var(--tone),#d8f0ff}
+.kp-carcard.locked .kp-carcard-art{filter:grayscale(1) brightness(.55)}
+.kp-carcard-art{display:block;width:100%;aspect-ratio:3/2;border:2px solid var(--ink);object-fit:cover}
+.kp-carcard-swatch{background:linear-gradient(160deg,#1b1838 0 38%,var(--body) 38% 74%,var(--trim) 74% 82%,#2a2438 82%)}
+.kp-carcard b{font-family:'Dela Gothic One',sans-serif;font-weight:400}
+.kp-carcard p{font-size:calc(var(--fs)*.72);font-weight:700;flex:1;margin:0}
+.kp-shell .kp-carcard button{min-height:40px;font-size:calc(var(--fs)*.8);padding:.3em .5em}
 .kp-parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:.7em;align-content:start}
 .kp-part{background:var(--tone),var(--paper);color:var(--ink);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:.5em .7em;display:flex;flex-direction:column;gap:.3em}
 .kp-part b{font-family:'Dela Gothic One',sans-serif;font-weight:400}

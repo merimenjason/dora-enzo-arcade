@@ -47,6 +47,22 @@ Bought in Enzo's garage with bakery coins. Each changes the car's numbers and th
 
 On their own, Coilovers take 0.3 to 0.6 s off the bot's delivery times (0.4 s slower on Hairpin Stairs, where the sharper nose costs drift) and Stripped Interior 0.1 to 0.4 s; Sticky Tyres is still the biggest single gain at 1.2 to 2.6 s. Bigger brakes were tried and left out: braking is grip-limited at the front, so stronger brakes only made the car brake later and arrive too fast. The bot ladder in `tests/pass-bot.mjs` still uses the first five parts, so these two make the duels a little easier for whoever buys them.
 
+### Cars
+
+Beating a rival unlocks a car in their style (`CARS` in `lib/pass-game.ts`); the Biscuit is always yours. Each car is the Biscuit's spec with a few numbers changed, so every part fits every car (the Sprung Bun Tray scales each car's own bun wobble). The garage picks the car for Delivery Runs, Time Attack and Free Duel; the story always drives the Biscuit, because it is the car in every scene. The save keeps the pick only while that car is unlocked, and a ghost remembers the car it was driven in.
+
+| Car | Shape | Unlocked by | Character | Stock bot vs the Biscuit |
+| --- | --- | --- | --- | --- |
+| Biscuit | hatch | always | forgiving all-rounder | 0% |
+| Shortbread | wedge | Skitter | loose tail, a stronger diff (slideR 0.72, LSD 0.55) | −0.3% |
+| Meringue | roadster | Ripple | light and low with more grip, less power (930 kg, 195 N·m) | −0.5% (slower on Hairpin Stairs) |
+| Pumpernickel | saloon | Bodger | heavy, more power, calm buns (1260 kg, 295 N·m, bun wobble ×0.75) | +0.4% |
+| Crumpet | kei | Pippa | 740 kg and more lock: best on Hairpin Stairs and Fog Ridge, worst on Cedar | 0% |
+| Brioche | fastback | Vesper | 310 N·m and a loose tail | −1.4% |
+| Stollen | coupe | Old Crag | long wheelbase, more grip and power | −1.3% |
+
+"Stock bot" is the competent bot's delivery time averaged over the six passes. `tests/pass.mjs` holds every car within 3% of the Biscuit on each pass and between −2% and +1% overall, with no spins and at most one bun lost. The garage cards use painted portraits `public/art/pass/car-<id>.webp` (generated with the Codex CLI's image tool from `story-carpark.webp` as the style reference, then resized).
+
 ## The road
 
 Roads are 3.6 m to each side of the centreline, 5.8 m in the wide places (where passing is possible). Both edges are drawn the same way so they read on every pass and in the dark: a solid white edge line 0.32–0.5 m inside the edge, a pale concrete shoulder strip out to the guardrail, reflective studs on the edge line every 8 m (tunnels too), white delineator posts every 8 m with an amber reflector on the left and a white one on the right, and guardrails on both sides with a reflector on every other post. The paint and reflectors are unlit, so they show in the dark and fade into the fog with distance. The uphill side also has a ditch and a rock cutting behind the rail. A dashed yellow centre line (2 m of paint, 4 m gap) runs everywhere but the passing places; a drain gutter replaces the paint and shoulder on its side. A hit scrubs 0.085 of the speed per m/s of impact; above 8.5 m/s the car is spun round, and above 11 m/s it is wrecked: it sits for 1.4 s and is set back on the road. Light crests reduce grip for a moment.

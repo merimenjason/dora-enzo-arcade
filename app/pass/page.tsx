@@ -18,6 +18,9 @@ type Result = {
 type Line = [string, string];
 
 const ART = (n: string) => `/art/pass/${n}.webp`;
+/** Cars with a painted portrait in public/art/pass (car-<id>.webp); the rest show their paint. */
+const CAR_ART = new Set<string>(['biscuit', 'shortbread', 'meringue', 'pumpernickel', 'crumpet', 'brioche', 'stollen']);
+const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
 const RIVAL_IDS = G.RIVALS.map((r) => r.id);
 const SCENE_ART: Record<G.SceneId, string> = { bakery: 'story-bakery', carpark: 'story-carpark', fog: 'story-fog', relay: 'story-relay', ending: 'ending' };
 const WHO: Record<string, string> = { dora: 'Dora', enzo: 'Enzo', narrator: '', ...Object.fromEntries(G.RIVALS.map((r) => [r.id, r.name])) };
@@ -29,6 +32,8 @@ const fmt = (t: number) => { if (!(t > 0)) return '–'; const m = Math.floor(t 
 const MEDAL = ['', 'Bronze', 'Silver', 'Gold'];
 const CAR_LOOK = (id: RivalId): CarLook => { const r = G.rival(id); return { shape: r.shape, body: r.body, trim: r.trim }; };
 const BISCUIT: CarLook = { shape: 'hatch', body: 0xf3e7c9, trim: 0x6fb3dc, biscuit: true };
+/** The player's car as the scene draws it: the Biscuit keeps its bun decal. */
+const carLook = (id: G.CarId | undefined): CarLook => { const c = G.carDef(id); return c.id === 'biscuit' ? BISCUIT : { shape: c.shape, body: c.body, trim: c.trim }; };
 
 /** A painting with a drawn stand-in behind it, so a missing file never leaves a hole. */
 // a missing painting borrows the nearest one that exists
@@ -154,12 +159,12 @@ export default function KumoriPass() {
   // the garage turntable
   useEffect(() => {
     const sc = sceneRef.current; if (!sc) return;
-    if (screen === 'garage') sc.setShowcase(true, showcaseIdx === 1 ? [BISCUIT, CAR_LOOK('stoat'), CAR_LOOK('fox')] : [BISCUIT]);
+    if (screen === 'garage') sc.setShowcase(true, showcaseIdx === 1 ? [carLook(save.car), CAR_LOOK('stoat'), CAR_LOOK('fox')] : [carLook(save.car)]);
     else if (sc.showcase) sc.setShowcase(false);
-  }, [screen, ready, showcaseIdx]);
+  }, [screen, ready, showcaseIdx, save.car]);
 
   // ---------------------------------------------------------------- starting runs
-  const lookFor = (mode: Mode, rival: RivalId | null): CarLook[] => (rival ? [BISCUIT, CAR_LOOK(rival)] : [BISCUIT]);
+  const lookFor = (race: Race, rival: RivalId | null): CarLook[] => (rival ? [carLook(race.opts.car), CAR_LOOK(rival)] : [carLook(race.opts.car)]);
 
   const beginRace = useCallback((run: Run) => {
     runRef.current = run;
@@ -167,7 +172,7 @@ export default function KumoriPass() {
     if (sc) {
       sc.setShowcase(false);
       sc.setTrack(run.race.track);
-      sc.setCars(lookFor(run.mode, run.rival), run.ghost ? { ...BISCUIT, ghost: true } : null);
+      sc.setCars(lookFor(run.race, run.rival), run.ghost ? { ...carLook(run.race.opts.ghostCar?.car), ghost: true } : null);
     }
     const relayUp = run.mode === 'relay' && run.race.track.reversed;
     drivers.current = relayUp ? { driver: 'enzo', caller: 'dora' } : { driver: 'dora', caller: 'enzo' };
@@ -186,7 +191,7 @@ export default function KumoriPass() {
     const s = saveRef.current;
     let ghost: number[] | null = null, ghostCar: G.RaceOpts['ghostCar'] = null;
     if (mode === 'attack' && s.ghosts[pass]) { ghost = G.unpackGhost(s.ghosts[pass]!); ghostCar = s.ghostMeta[pass] ?? null; }
-    const race = new G.Race(raceOpts(pass, { buns: mode === 'delivery', ghost, ghostCar }));
+    const race = new G.Race(raceOpts(pass, { buns: mode === 'delivery', ghost, ghostCar, car: story === null ? s.car : 'biscuit' }));
     beginRace({ mode, pass, rival: null, story, duel: null, race, ghost });
   }, [beginRace, raceOpts]);
 
@@ -198,7 +203,7 @@ export default function KumoriPass() {
 
   const startDuel = useCallback((rival: RivalId, relay: boolean, story: number | null) => {
     const s = saveRef.current, r = G.rival(rival), pass = relay ? 'summit' : r.pass;
-    const duel = new G.Duel({ rival, relay, upgrades: s.upgrades, assist: s.settings.assist, sharp: s.settings.sharp, manual: s.settings.manual, noteLevel: G.noteLevel(s.runs[pass]), seed: 7 + s.runs[pass] * 31 + s.beaten.length * 5 + (s.coins % 97) });
+    const duel = new G.Duel({ rival, relay, car: story === null ? s.car : 'biscuit', upgrades: s.upgrades, assist: s.settings.assist, sharp: s.settings.sharp, manual: s.settings.manual, noteLevel: G.noteLevel(s.runs[pass]), seed: 7 + s.runs[pass] * 31 + s.beaten.length * 5 + (s.coins % 97) });
     beginRace({ mode: relay ? 'relay' : 'duel', pass, rival, story, duel, race: duel.race, ghost: null });
   }, [beginRace]);
 
@@ -255,7 +260,7 @@ export default function KumoriPass() {
       const best = !s.best[run.pass] || time < s.best[run.pass];
       if (best) {
         s.best[run.pass] = Math.round(time * 1000) / 1000;
-        if (run.mode === 'attack' || !s.ghosts[run.pass]) { s.ghosts[run.pass] = G.packGhost(race.inputs); s.ghostMeta[run.pass] = { up: s.upgrades.slice(), assist: s.settings.assist, manual: s.settings.manual, sharp: s.settings.sharp, hv: G.GHOST_VERSION }; }
+        if (run.mode === 'attack' || !s.ghosts[run.pass]) { s.ghosts[run.pass] = G.packGhost(race.inputs); s.ghostMeta[run.pass] = { up: s.upgrades.slice(), assist: s.settings.assist, manual: s.settings.manual, sharp: s.settings.sharp, hv: G.GHOST_VERSION, car: race.opts.car ?? 'biscuit' }; }
       }
       if (run.story !== null) s.story = Math.max(s.story, run.story + 1);
       res = { mode: run.mode, pass: run.pass, rival: null, win: true, time, buns, medal, coins, best, levelFrom, levelTo, rounds: [], story: run.story, drift: Math.round(race.driftScore), hits: race.hits };
@@ -547,7 +552,7 @@ export default function KumoriPass() {
         screen: screenRef.current, paused: pausedRef.current, save: saveRef.current, touch,
         race: r ? { t: r.t, s: r.player.s, speed: Math.hypot(r.player.car.u, r.player.car.v), gear: r.player.car.gear, steer: r.player.car.delta, drift: r.drift, drifting: r.drifting, buns: r.buns,
           done: r.done, finished: r.player.finished, resets: r.player.resets, len: r.finishS, gap: r.racers.length > 1 ? r.gapOf(0) : 0, note: r.lastNote?.text.join(' ') ?? null, hits: r.hits, driftScore: r.driftScore,
-          beta: G.slipAngleOf(r.player.car), mode: run!.mode, pass: run!.pass, round: run!.duel?.round ?? 0, rival: run!.rival, x: r.player.car.x, y: r.player.car.y } : null,
+          beta: G.slipAngleOf(r.player.car), mode: run!.mode, pass: run!.pass, round: run!.duel?.round ?? 0, rival: run!.rival, car: r.opts.car ?? 'biscuit', x: r.player.car.x, y: r.player.car.y } : null,
         round: round, result, cutin: !!cutin,
         debug: {
           /** jump the current race to just before the finish (tests) */
@@ -691,15 +696,26 @@ export default function KumoriPass() {
       <header className="kp-pagehead"><button className="kp-back" onClick={() => go('menu')}>‹ Back</button><h2>Enzo&rsquo;s Garage</h2><div className="kp-coins">🥐 {s.coins}</div></header>
       <div className="kp-garage-grid">
         <div className="kp-garage-car">
-          <div className="kp-enzo"><Paint name="enzo-notes" className="kp-enzo-face" pos="50% 30%" /><p>{s.upgrades.length ? `${s.upgrades.length} of ${G.UPGRADES.length} fitted. The Biscuit's never been happier.` : 'The Biscuit is all original! Bakery coins buy parts. Each one changes how she drives.'}</p></div>
-          <div className="kp-stats">{(['power', 'grip', 'rotation', 'stability', 'buns'] as const).map((k) => { const v = G.statCard(s.upgrades)[k]; return <div key={k} className="kp-stat"><span>{k === 'buns' ? 'Bun safety' : k[0].toUpperCase() + k.slice(1)}</span><i style={{ ['--v' as string]: v / 10 }} /><b>{v}</b></div>; })}</div>
+          <div className="kp-enzo"><Paint name="enzo-notes" className="kp-enzo-face" pos="50% 30%" /><p>{s.upgrades.length ? `${s.upgrades.length} of ${G.UPGRADES.length} fitted, and every part fits every car. The ${G.carDef(s.car).name}'s never been happier.` : `The ${G.carDef(s.car).name} is all original! Bakery coins buy parts. Each one changes how she drives.`}</p></div>
+          <div className="kp-stats">{(['power', 'grip', 'rotation', 'stability', 'buns'] as const).map((k) => { const v = G.statCard(s.upgrades, G.carDef(s.car).stats)[k]; return <div key={k} className="kp-stat"><span>{k === 'buns' ? 'Bun safety' : k[0].toUpperCase() + k.slice(1)}</span><i style={{ ['--v' as string]: v / 10 }} /><b>{v}</b></div>; })}</div>
         </div>
+        <div className="kp-garage-side">
+        <h3 className="kp-garage-h">Cars <small>Free play only: the story is always the Biscuit</small></h3>
+        <div className="kp-cars">
+          {G.CARS.map((c) => { const open = G.carUnlocked(s, c.id), on = s.car === c.id; return <div key={c.id} className={`kp-carcard${on ? ' on' : ''}${open ? '' : ' locked'}`} data-car={c.id}>
+            {CAR_ART.has(c.id) ? <Paint name={`car-${c.id}`} className="kp-carcard-art" alt={`The ${c.name}`} pos="50% 62%" /> : <span className="kp-carcard-art kp-carcard-swatch" style={{ ['--body' as string]: hex(c.body), ['--trim' as string]: hex(c.trim) }} />}
+            <b>{c.name}</b><p>{c.blurb}</p>
+            <button disabled={!open || on} onClick={() => { const n: Save = { ...saveRef.current, car: c.id }; persist(n); sfx()?.button(); }}>{on ? 'Driving ✓' : open ? 'Drive' : `🔒 Beat ${G.rival(c.rival!).name}`}</button>
+          </div>; })}
+        </div>
+        <h3 className="kp-garage-h">Parts</h3>
         <div className="kp-parts">
           {G.UPGRADES.map((u) => { const own = s.upgrades.includes(u.id); return <div key={u.id} className={`kp-part ${own ? 'own' : ''}`} data-part={u.id}>
             <b>{u.name}</b><p>{u.effect}</p>
             <span className="kp-part-stats">{Object.entries(u.stats).map(([k, v]) => <em key={k} className={(v as number) > 0 ? 'up' : 'down'}>{(v as number) > 0 ? '+' : ''}{v} {k === 'buns' ? 'bun safety' : k}</em>)}</span>
             <button disabled={own || s.coins < u.cost} onClick={() => { const n: Save = JSON.parse(G.serialise(saveRef.current)); if (G.buyUpgrade(n, u.id)) { persist(n); sfx()?.button(); sfx()?.backfire(); } }}>{own ? 'Fitted ✓' : `Fit · 🥐 ${u.cost}`}</button>
           </div>; })}
+        </div>
         </div>
       </div>
     </section>}

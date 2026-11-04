@@ -315,16 +315,18 @@ export function withUpgrades(base: CarSpec, owned: readonly string[]): CarSpec {
   if (has('rear')) { s.br *= 0.86; s.slideR -= 0.06; s.inertia *= 0.94; }
   if (has('lsd')) { s.lsd = 0.95; }
   if (has('rack')) { s.lock *= 1.14; s.steerRate *= 1.3; }
-  if (has('tray')) { s.bunDamp = 0.6; }
+  if (has('tray')) { s.bunDamp *= 0.6; }
   if (has('intake')) { s.torque *= 1.16; }
   if (has('coilovers')) { s.cgh *= 0.88; s.bf *= 1.08; }
   if (has('strip')) { s.mass *= 0.92; s.inertia *= 0.9; s.bunDamp *= 1.15; }
   return s;
 }
 
-/** Bars for the garage stat card (0..10). */
-export function statCard(owned: readonly string[]): Record<Stat, number> {
-  const out: Record<Stat, number> = { power: 4, grip: 4, rotation: 4, stability: 5, buns: 4 };
+/** The stock Biscuit's stat card. */
+export const BASE_STATS: Record<Stat, number> = { power: 4, grip: 4, rotation: 4, stability: 5, buns: 4 };
+/** Bars for the garage stat card (0..10): the car's own, plus what the parts add. */
+export function statCard(owned: readonly string[], base: Record<Stat, number> = BASE_STATS): Record<Stat, number> {
+  const out: Record<Stat, number> = { ...base };
   for (const u of UPGRADES) if (owned.includes(u.id)) for (const [k, v] of Object.entries(u.stats)) out[k as Stat] += v as number;
   for (const k of Object.keys(out) as Stat[]) out[k] = Math.max(0, Math.min(10, out[k]));
   return out;

@@ -8,7 +8,7 @@ import { BASE, DT, makeCar, stepCar, tyre, gearSpeed, slipAngle, idleInput, with
 import { buildTrack, locate, radiusAt, at, PASSES, NARROW, WIDE } from '../.checks/pass-tracks.js';
 import { Race, Duel, duelOutcome, RIVALS, rival, paceNotes, readRoad, severity, SEVERITY, NOTE_LEAD, noteLevel, getTrack,
   encodeInput, decodeInput, packGhost, unpackGhost, parseSave, newSave, serialise, buyUpgrade, recordRun, passUnlocked,
-  deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng, GHOST_VERSION, ASSIST, DEMO } from '../.checks/pass-game.js';
+  deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng, GHOST_VERSION, ASSIST, DEMO, CARS, carSpec, carUnlocked } from '../.checks/pass-game.js';
 
 let n = 0;
 const ok = (m) => { n++; console.log('ok', m); };
@@ -382,6 +382,41 @@ for (const p of PASSES) {
   assert.equal(parseSave(JSON.stringify({ v: 1, settings: { assist: 0 } })).settings.assist, ASSIST.off);
   assert.equal(newSave().settings.assist, ASSIST.strong, 'Strong assist and Smooth steering by default');
   ok('saves round-trip, unlock the ladder, old settings and ghosts migrate, and corrupt saves fall back without throwing');
+}
+// ---- the player's cars: every one drives every pass, none is broken or runs away with it, ghosts and saves keep the car
+{
+  const spreads = {};
+  for (const car of CARS) {
+    let sum = 0;
+    for (const p of PASSES) {
+      const r = new Race({ pass: p.id, car: car.id, autopilot: 0.985, buns: true, countdown: 0.1, seed: 3, noteLevel: 3 });
+      let steps = 0; while (!r.done && steps < 120 * 300) { r.tick(idleInput()); steps++; }
+      assert.ok(r.done && r.player.resets === 0, `${car.id} on ${p.id}: the bot finishes without a spin`);
+      assert.ok(r.buns >= BUNS - 1, `${car.id} on ${p.id}: buns intact (${r.buns})`);
+      const d = (r.player.finished / BOT_TIMES[p.id] - 1) * 100;
+      assert.ok(Math.abs(d) <= 3, `${car.id} on ${p.id}: within 3% of the Biscuit (${d.toFixed(1)}%)`);
+      sum += d;
+    }
+    spreads[car.id] = +(sum / PASSES.length).toFixed(1);
+    assert.ok(spreads[car.id] >= -2 && spreads[car.id] <= 1, `${car.id}: overall within -2%..+1% of the Biscuit (${spreads[car.id]}%)`);
+    if (car.id !== 'biscuit') assert.notDeepEqual(carSpec(car.id), carSpec('biscuit'), `${car.id} handles differently`);
+  }
+  assert.deepEqual(carSpec('biscuit', ['tyres']), withUpgrades(BASE, ['tyres']), 'the Biscuit is the stock car');
+  assert.ok(carSpec('pumpernickel', ['tray']).bunDamp < carSpec('pumpernickel').bunDamp && carSpec('crumpet', ['tray']).bunDamp < 1, 'the tray calms every car');
+  // a ghost recorded in one car replays in that car, whatever the player is driving now
+  const r = new Race({ pass: 'stairs', car: 'crumpet', countdown: 0.2, upgrades: ['rack'], autopilot: 0.95, seed: 4 });
+  let s = 0; while (!r.done && s < 120 * 200) { r.tick(idleInput()); s++; }
+  const g = new Race({ pass: 'stairs', car: 'biscuit', countdown: 0.2, ghost: unpackGhost(packGhost(r.inputs)), ghostCar: { up: ['rack'], assist: ASSIST.strong, manual: false, car: 'crumpet' } });
+  s = 0; while (s < 120 * 200 && g.ghost.finished < 0) { g.tick(idleInput()); s++; }
+  assert.ok(Math.abs(g.ghost.finished - r.player.finished) < 1e-9, `a Crumpet ghost replays exactly behind the Biscuit (${g.ghost.finished.toFixed(3)} = ${r.player.finished.toFixed(3)})`);
+  // the save keeps the car only when it is unlocked
+  const sv = newSave(); assert.equal(sv.car, 'biscuit'); assert.ok(carUnlocked(sv, 'biscuit') && !carUnlocked(sv, 'brioche'));
+  sv.beaten = ['bat']; sv.car = 'brioche';
+  assert.equal(parseSave(serialise(sv)).car, 'brioche', 'an unlocked car is kept');
+  assert.equal(parseSave(JSON.stringify({ v: 1, car: 'brioche' })).car, 'biscuit', 'a locked car falls back to the Biscuit');
+  assert.equal(parseSave(JSON.stringify({ v: 1, car: 'limousine', ended: true })).car, 'biscuit', 'an unknown car falls back too');
+  assert.ok(CARS.filter((c) => c.rival).every((c) => carUnlocked({ ...newSave(), beaten: [c.rival] }, c.id)), 'beating a rival unlocks their car');
+  ok(`seven cars, each within reach of the Biscuit (overall ${JSON.stringify(spreads)}), ghosts keep their car, saves keep only unlocked cars`);
 }
 // ---- Enzo's line: the demo drives every pass cleanly (no rails, no spins, every bun), drifts, and beats the bot
 {
