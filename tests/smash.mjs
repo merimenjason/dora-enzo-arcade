@@ -117,6 +117,26 @@ const pointEv = (evs) => evs.find((e) => e.k === 'point');
   ok('charge hits harder, spirit fills and caps, specials cost a meter and freeze for the cut-in, heavy balls blow you away unless held or countered');
 }
 
+// ---- the auto swing option
+{
+  // with no button pressed: Charge mode lets the ball by, Auto swings at AUTO_CHARGE
+  const meetIdle = (o) => { const m = make(o); const p = m.you; m.phase = 'rally'; m.ball = ball({ x: p.x, y: p.y, z: 1, by: 1, bounces: 1, lastBounceSide: 0 }); p.lastDist = 99; m.events.length = 0; m.tryHit(p, idleInput()); return m.events.find((e) => e.k === 'hit'); };
+  assert.ok(!meetIdle({}), 'in Charge mode, no press, no swing');
+  const autoHit = meetIdle({ autoSwing: true }); assert.ok(autoHit && autoHit.power > 0.7, 'auto swing hits by itself at a good power');
+  // a button still picks the shot, and a charged press is never weaker than the auto power
+  const pick = (kind, early) => { const m = make({ autoSwing: true }); const p = m.you; m.phase = 'rally'; m.ball = ball({ x: p.x, y: p.y, z: 1, by: 1, bounces: 1, lastBounceSide: 0 }); p.ready = { kind, t: m.t - early, special: false }; p.lastDist = 99; m.events.length = 0; m.tryHit(p, idleInput()); return m.events.find((e) => e.k === 'hit'); };
+  assert.equal(pick('lob', 0.05).kind, 'lob'); assert.ok(pick('top', 0.02).power >= autoHit.power - 1e-9 && pick('top', 1).power > autoHit.power + 0.1, 'a full charge still beats the auto power');
+  // auto power holds a heavy special
+  const q = make({ autoSwing: true }); const pl = q.you; q.phase = 'rally'; q.ball = ball({ x: pl.x, y: pl.y, z: 1, by: 1, bounces: 1, lastBounceSide: 0, special: 'phoenix' }); pl.lastDist = 99; q.events.length = 0; q.tryHit(pl, idleInput());
+  assert.ok(q.events.some((e) => e.k === 'held'), 'an auto swing holds a heavy special');
+  // a whole rally with assisted footwork and auto swing, no keys at all: you return the ball
+  const r = make({ assist: true, autoSwing: true, seed: 11 }); let yours = 0;
+  for (let i = 0; i < 60 * 90 && r.winner < 0; i++) { r.tick(idleInput()); for (const e of r.events) if (e.k === 'hit' && e.side === 0 && !e.serve) yours++; }
+  assert.ok(yours >= 10, `hands-off auto swing returns the ball (${yours} returns in 90 s)`);
+  const sv = parseSave(JSON.stringify({ v: 1, settings: { swing: 'auto' } })); assert.equal(sv.settings.swing, 'auto'); assert.equal(newSave().settings.swing, 'charge'); assert.equal(parseSave(JSON.stringify({ v: 1, settings: { swing: 'x' } })).settings.swing, 'charge');
+  ok('auto swing: swings by itself at a steady power, the buttons still pick the shot, it holds heavy specials, and the setting saves');
+}
+
 // ---- whole matches: they finish, from a seed they replay exactly, every point has a reason
 {
   const play = (seed, o = {}) => {

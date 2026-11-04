@@ -131,6 +131,10 @@ try {
   await page.locator('.fs-set', { hasText: 'Footwork' }).locator('button', { hasText: /manual/i }).click();
   assert.equal((await st(page)).save.settings.footwork, 'manual');
   await page.locator('.fs-set', { hasText: 'Footwork' }).locator('button', { hasText: /assist/i }).click();
+  await page.locator('.fs-set', { hasText: 'Swing' }).locator('button', { hasText: /^auto$/i }).click();
+  assert.equal((await st(page)).save.settings.swing, 'auto');
+  await page.locator('.fs-set', { hasText: 'Swing' }).locator('button', { hasText: /^charge$/i }).click();
+  assert.equal((await st(page)).save.settings.swing, 'charge');
   await page.locator('.fs-back').first().click();
   await page.locator('.fs-menu button', { hasText: 'Exhibition' }).click();
   assert.equal(await page.locator('.fs-oppcard').count(), 4, 'four singles rivals');

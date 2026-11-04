@@ -193,10 +193,13 @@ export type MatchOpts = {
   seed?: number;
   /** drive your player with this AI (tests, the demo) */ autopilot?: Ai | null;
   /** footwork assist: run to the ball by yourself unless you steer */ assist?: boolean;
+  /** auto swing: you swing by yourself when the ball arrives, at a steady AUTO_CHARGE, with no need to press early (the buttons still pick the shot) */ autoSwing?: boolean;
   /** 0 easy, 1 normal, 2 hard: scales the rival */ difficulty?: number;
 };
 export type Phase = 'serve' | 'toss' | 'rally' | 'point' | 'over';
 const POINT_PAUSE = 1.7, SERVE_WAIT = 0.9, READY_LIFE = 1.4, CHARGE_FULL = 0.9;
+/** the charge an auto swing always has: enough to hold a heavy special, short of a fully charged swing */
+export const AUTO_CHARGE = 0.6;
 /** how fast you can move while charging a swing, as a fraction of your top speed */
 export const CHARGE_MOVE = 0.45;
 /** a rally speeds up a little with every shot, up to this much */
@@ -419,10 +422,12 @@ export class Match {
     // meet it at the closest point, or once it is well inside the reach
     if (!(dist < reach * 0.5 || dist > p.lastDist)) { p.lastDist = dist; return; }
     p.lastDist = dist;
-    if (!p.ready && !auto && !p.counter) return;
+    const autoSwing = p.human && !!this.opts.autoSwing;
+    if (!p.ready && !auto && !p.counter && !autoSwing) return;
     const ready = p.ready ?? { kind: 'top' as ShotKind, t: this.t - 0.5, special: false };
     if (auto && !p.ready && --this.fortressLeft <= 0) this.fortress = -1;
-    const charge = Math.min(1, (this.t - ready.t) / CHARGE_FULL);
+    let charge = Math.min(1, (this.t - ready.t) / CHARGE_FULL);
+    if (autoSwing) charge = Math.max(charge, AUTO_CHARGE);
     let q = 0.25 + 0.75 * Math.pow(charge, 0.7);
     // a heavy special: hold it with a charged swing or a counter, or be blown away
     if (b.special && SPECIALS[b.special].heavy) {
@@ -688,7 +693,7 @@ export class Match {
       else { const dx = gx - p.x, dy = gy - p.y, d = Math.hypot(dx, dy), v = Math.min(sp, d * 6); ax = d > 0.02 ? (dx / d) * v : 0; ay = d > 0.02 ? (dy / d) * v : 0; }
       if (p.stun > 0) { ax = 0; ay = 0; }
       // a readied swing is a planted stance: you can only shuffle while you charge
-      if (p.ready && !setup) { const v = Math.hypot(ax, ay), cap = sp * CHARGE_MOVE; if (v > cap) { ax *= cap / v; ay *= cap / v; } }
+      if (p.ready && !setup && !(p.human && this.opts.autoSwing)) { const v = Math.hypot(ax, ay), cap = sp * CHARGE_MOVE; if (v > cap) { ax *= cap / v; ay *= cap / v; } }
       const acc = (p.frost > 0 ? 7 : 22) * DT;
       p.vx += clamp(ax - p.vx, -acc, acc); p.vy += clamp(ay - p.vy, -acc, acc);
       p.x += p.vx * DT; p.y += p.vy * DT;
@@ -812,14 +817,16 @@ export const STORY: StoryStep[] = [
 // ---------------------------------------------------------------- saving
 export const SAVE_KEY = 'fluffball-smash-v1';
 export type Footwork = 'assist' | 'manual';
+/** 'charge': press early to charge a harder hit; 'auto': swing by yourself at a steady power */
+export type SwingMode = 'charge' | 'auto';
 export type Save = {
   v: 1;
   /** the next story match (STORY.length when the cup is won) */ story: number;
   beaten: OppId[];
-  settings: { sound: boolean; music: boolean; footwork: Footwork; difficulty: number };
+  settings: { sound: boolean; music: boolean; footwork: Footwork; swing: SwingMode; difficulty: number };
   stats: { wins: number; losses: number; specials: number; counters: number; aces: number; longest: number };
 };
-export const newSave = (): Save => ({ v: 1, story: 0, beaten: [], settings: { sound: true, music: true, footwork: 'assist', difficulty: 1 }, stats: { wins: 0, losses: 0, specials: 0, counters: 0, aces: 0, longest: 0 } });
+export const newSave = (): Save => ({ v: 1, story: 0, beaten: [], settings: { sound: true, music: true, footwork: 'assist', swing: 'charge', difficulty: 1 }, stats: { wins: 0, losses: 0, specials: 0, counters: 0, aces: 0, longest: 0 } });
 const num = (v: unknown, lo: number, hi: number, d: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d);
 export function parseSave(raw: string | null): Save {
   const s = newSave();
@@ -833,6 +840,7 @@ export function parseSave(raw: string | null): Save {
   if (typeof st.sound === 'boolean') s.settings.sound = st.sound;
   if (typeof st.music === 'boolean') s.settings.music = st.music;
   if (st.footwork === 'manual' || st.footwork === 'assist') s.settings.footwork = st.footwork;
+  if (st.swing === 'auto' || st.swing === 'charge') s.settings.swing = st.swing;
   s.settings.difficulty = Math.floor(num(st.difficulty, 0, 2, 1));
   const ss = (d.stats && typeof d.stats === 'object' ? d.stats : {}) as Record<string, unknown>;
   for (const k of Object.keys(s.stats) as (keyof Save['stats'])[]) s.stats[k] = Math.floor(num(ss[k], 0, 1e7, 0));

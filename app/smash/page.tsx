@@ -98,7 +98,7 @@ export default function SmashPage() {
   const readScore = (m: Match) => { const p = m.scoreText(); setScore({ games: [...m.games] as [number, number], points: p, server: m.server, deciding: m.decidingPoint, second: m.secondServe }); };
   const begin = useCallback((st: Setup) => {
     const s = saveRef.current;
-    const m = new G.Match({ home: st.team, away: st.opp.chars, venue: st.venue, games: st.games, ai: st.opp.ai, seed: (Date.now() & 0xffffff) | 1, assist: s.settings.footwork === 'assist', difficulty: s.settings.difficulty });
+    const m = new G.Match({ home: st.team, away: st.opp.chars, venue: st.venue, games: st.games, ai: st.opp.ai, seed: (Date.now() & 0xffffff) | 1, assist: s.settings.footwork === 'assist', autoSwing: s.settings.swing === 'auto', difficulty: s.settings.difficulty });
     const run: Run = { ...st, match: m }; runRef.current = run;
     sceneRef.current?.setMatch(st.venue, m.players.map((p) => ({ id: p.char.id, side: p.side })), m.doubles);
     keys.current.clear(); input.current = G.idleInput(); shake.current = 0; celebrate.current = 0;
@@ -227,7 +227,7 @@ export default function SmashPage() {
       if (h.m0) h.m0.style.transform = `scaleX(${me0})`; if (h.m1) h.m1.style.transform = `scaleX(${me1})`;
       h.spirit0?.classList.toggle('full', me0 >= 1); h.spirit1?.classList.toggle('full', me1 >= 1);
       h.spirit0?.classList.toggle('counter', me0 >= G.COUNTER_COST / G.SPECIAL_COST && !!m.ball.special && m.ball.by === 1 && G.SPECIALS[m.ball.special].heavy);
-      const ch = you.ready ? Math.min(1, (m.t - you.ready.t) / 0.9) : 0;
+      const ch = you.ready ? Math.max(m.opts.autoSwing ? G.AUTO_CHARGE : 0, Math.min(1, (m.t - you.ready.t) / 0.9)) : 0;
       if (h.charge) { h.charge.style.opacity = you.ready ? '1' : '0'; } if (h.chargeFill) h.chargeFill.style.transform = `scaleX(${ch})`;
       h.charge?.classList.toggle('max', ch >= 0.55);
       soundRef.current?.charge(!!you.ready && !m.over && !pausedRef.current, ch);
@@ -296,7 +296,7 @@ export default function SmashPage() {
           <button className="fs-big" onClick={() => go('story')}><b>Story</b><small>{s.story >= G.STORY.length ? 'The Cloudtop Cup is yours' : `The Cloudtop Cup · match ${s.story + 1} of ${G.STORY.length}`}</small></button>
           <button onClick={() => go('exhibition')}><b>Exhibition</b><small>Any rival, singles or doubles</small></button>
           <button onClick={() => go('howto')}><b>How to play</b><small>Swings, spirit and specials</small></button>
-          <button onClick={() => go('settings')}><b>Settings</b><small>Sound, footwork, difficulty</small></button>
+          <button onClick={() => go('settings')}><b>Settings</b><small>Sound, footwork, swing, difficulty</small></button>
           <a className="fs-home" href="/">‹ Arcade</a>
         </nav>
       </div>
@@ -376,7 +376,7 @@ export default function SmashPage() {
       <div className="fs-spirit them" ref={H('spirit1')}><small>{run.opp.name}</small><span><i ref={H('m1')} /></span></div>
       <div className="fs-spirit us" ref={H('spirit0')}><small>Spirit</small><span><i ref={H('m0')} /><u /></span><em className="fs-ready">★ SPECIAL READY</em><em className="fs-counterhint">COUNTER! {touch ? '★' : 'Space'}</em></div>
       <div className="fs-charge" ref={H('charge')}><small>POWER</small><span><i ref={H('chargeFill')} /></span></div>
-      {!touch && <p className="fs-keys">Move ← → ↑ ↓ · <b>J</b> topspin · <b>K</b> slice (↓ for a drop) · <b>L</b> lob · <b>Space</b> special · Esc pause<br />Press early to charge: the earlier, the harder.</p>}
+      {!touch && <p className="fs-keys">Move ← → ↑ ↓ · <b>J</b> topspin · <b>K</b> slice (↓ for a drop) · <b>L</b> lob · <b>Space</b> special · Esc pause<br />{s.settings.swing === 'auto' ? 'Auto swing is on: you swing by yourself, and the buttons pick the shot.' : 'Press early to charge: the earlier, the harder.'}</p>}
       {banner && <div key={banner.key} className={`fs-banner ${banner.tone}`}>{banner.text}</div>}
       {cutin && (() => {
         const def = G.SPECIALS[cutin.id];
@@ -474,6 +474,7 @@ export default function SmashPage() {
           <p><b>Heavy specials</b> knock you back unless you met them with a well-charged swing. With half a meter you can <b>counter</b>: press Space as it comes.</p></div>
         <div className="fs-card"><h3>Footwork</h3>
           <p>With <b>assisted footwork</b> (the default) your player runs to the ball by themself and you can still steer; switch to manual in Settings. The ring on the court shows where the ball will bounce.</p>
+          <p><b>Swing</b>: with <b>Charge</b> (the default) you press a shot button early, and the earlier you press, the harder the hit. With <b>Auto</b> (in Settings) you swing by yourself at a steady, good power when the ball arrives: press a button only to pick slice, drop or lob.</p>
           <p>On a touch screen: drag the left stick to move and aim, and use the buttons on the right.</p></div>
       </div>
     </section>}
@@ -484,6 +485,7 @@ export default function SmashPage() {
         <label className="fs-set"><span>Sound effects</span><button aria-pressed={s.settings.sound} onClick={() => setSetting('sound', !s.settings.sound)}>{s.settings.sound ? 'On' : 'Off'}</button></label>
         <label className="fs-set"><span>Music</span><button aria-pressed={s.settings.music} onClick={() => setSetting('music', !s.settings.music)}>{s.settings.music ? 'On' : 'Off'}</button></label>
         <label className="fs-set"><span>Footwork</span><span className="fs-seg">{(['assist', 'manual'] as const).map((f) => <button key={f} className={s.settings.footwork === f ? 'on' : ''} onClick={() => setSetting('footwork', f)}>{f === 'assist' ? 'Assisted' : 'Manual'}</button>)}</span></label>
+        <label className="fs-set"><span>Swing</span><span className="fs-seg">{(['charge', 'auto'] as const).map((w) => <button key={w} className={s.settings.swing === w ? 'on' : ''} onClick={() => setSetting('swing', w)}>{w === 'charge' ? 'Charge' : 'Auto'}</button>)}</span></label>
         <label className="fs-set"><span>Rivals</span><span className="fs-seg">{['Easy', 'Normal', 'Hard'].map((d, i) => <button key={d} className={s.settings.difficulty === i ? 'on' : ''} onClick={() => setSetting('difficulty', i)}>{d}</button>)}</span></label>
         <p className="fs-statline">{s.stats.wins} wins · {s.stats.losses} losses · {s.stats.specials} specials · {s.stats.counters} counters · {s.stats.aces} aces · longest rally {s.stats.longest}</p>
         {!confirmReset ? <button className="fs-danger" onClick={() => setConfirmReset(true)}>Reset progress…</button>

@@ -2,6 +2,12 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 05-11-2026
+
+### Added
+
+- **Fluffball Smash!** has an auto swing: set **Swing** to **Auto** in Settings and your player swings by themself at a good, steady power when the ball arrives, so there's no need to time a press. The buttons still pick slice, drop shot, lob or special, and pressing early still charges a harder hit.
+
 ## 04-11-2026
 
 ### Added

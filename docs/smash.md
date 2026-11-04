@@ -22,7 +22,9 @@ Points go 0, 15, 30, 40. At 40-40 (deuce) the next point wins the game (no advan
 
 ## Swings, charge and spirit
 
-You press a swing before the ball arrives: **top** (topspin, the all-rounder), **slice** (low and skidding; with ↓ held, a drop shot), **lob** (high and deep). The ball is struck when it reaches you. The earlier you press, the harder the shot: charge is `(contact - press) / 0.9 s`, and power is `0.25 + 0.75 * charge^0.7`. While a swing is readied you move at 45% speed (`CHARGE_MOVE`), so charging early is a trade. A ball above 2.25 m is smashed. The rally speeds up 2% a shot, up to 30%.
+You press a swing before the ball arrives: **top** (topspin, the all-rounder), **slice** (low and skidding; with ↓ held, a drop shot), **lob** (high and deep). The ball is struck when it reaches you. The earlier you press, the harder the shot: charge is `(contact - press) / 0.9 s`, and power is `0.25 + 0.75 * charge^0.7`. While a swing is readied you move at 45% speed (`CHARGE_MOVE`), so charging early is a trade.
+
+**Swing: Auto** (in Settings; the default is **Charge**) is for anyone who finds the timing fiddly: your player swings by themself when the ball reaches them, with a charge of at least `AUTO_CHARGE` (0.6, power about 0.77), and moves at full speed with a swing readied. The buttons still pick the shot (slice, drop, lob, special), and pressing one early still charges harder than the auto power. 0.6 is above the 55% that holds a heavy special. A hands-off player (assisted footwork, auto swing, no keys) rallies but loses every match to the first and the last rival, because aiming and specials are still yours to do. A ball above 2.25 m is smashed. The rally speeds up 2% a shot, up to 30%.
 
 Spirit fills from 0 to 100: 2 for a shot plus up to 3 more for a good one, 2 for a serve, 4 for winning a point, 10 for losing one (the comeback rule), and 8 for holding a heavy special (`SPIRIT`). At 100, **Space** (or ★) readies a special instead of a swing; it costs the whole meter and freezes play for 1.25 s while the cut-in shows.
 
@@ -76,7 +78,7 @@ Winning moves the story on and opens that rival in **Exhibition**, where you pic
 
 ## Save
 
-`localStorage` key `fluffball-smash-v1`: story step, beaten rivals, settings (sound, music, footwork, rival difficulty) and lifetime stats (wins, losses, specials, counters, aces, longest rally). `parseSave` clamps every field and falls back to a new save for anything corrupt.
+`localStorage` key `fluffball-smash-v1`: story step, beaten rivals, settings (sound, music, footwork, swing, rival difficulty) and lifetime stats (wins, losses, specials, counters, aces, longest rally). `parseSave` clamps every field and falls back to a new save for anything corrupt.
 
 ## Browser hook
 
