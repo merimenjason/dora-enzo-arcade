@@ -6,6 +6,8 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 20-10-2026)
 
+**Newest game (04-11-2026): Fluffball Smash!** (`/smash`, game 76), over-the-top anime tennis; see [Fluffball Smash! · 04-11-2026](#fluffball-smash--04-11-2026) below.
+
 **Newest work (03–04-11-2026): Kumori Pass** (`/pass`, game 75) got a new look, a minimap, Enzo's demo line (also as a Time Attack ghost), two garage parts, seven unlockable cars, Side Jobs and a chapter after the ending; see [Kumori Pass · 04-11-2026](#kumori-pass--04-11-2026) below.
 
 **Newest (27-10-2026): Puttering Paws** (`/putt`, game 40), storybook 3D mini golf, is on `main`; see [`docs/puttering-paws.md`](docs/puttering-paws.md). Two nine-hole courses (Clover, then Lantern), a replayed par line and acorn line for all 18 holes, `npm run test:putt` in `npm test`, `npm run bot:putt` for par fairness and `npm run test:e2e:putt` in the browser. The paintings in `public/art/putt/` come from the Codex brief in `docs/puttering-paws-prompts/`; any missing one falls back to Grumble Hunt art. A third brief (`3-art-retry.md`) added the two finale paintings, `trophy.webp` and `lantern.webp`; the tree, flower and lantern-tree cards still time out, so Grumble Hunt's cards stand in.
@@ -96,6 +98,16 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 9. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
 10. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
 11. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
+
+## Fluffball Smash! · 04-11-2026
+
+Game 76, `/smash`, 3D anime tennis seen from behind the player. Rules, every number and the bot results: [`docs/smash.md`](docs/smash.md).
+
+- **Code:** engine `lib/smash-game.ts` (deterministic 120 Hz, seeded), models `lib/smash-models.ts` (Dora and Enzo reuse the Grumble Hunt chinchilla rig from `lib/hunt-chinchilla.ts`, plus a racket; rivals are built from toon primitives), scene `lib/smash-scene.ts` (OutlineEffect toon look, six venues), page `app/smash/page.tsx`, sound `app/smash/sound.ts`, styles `app/smash/smash.css` (all classes `fs-`).
+- **Art:** 19 paintings in `public/art/smash/` (title, portraits, cut-ins, ending). Cut-ins keep faces in the right half so the move's name sits on the left; talk portraits sit above the text box. No text is ever drawn over a face.
+- **Balance:** tuned with the bot (`npm run bot:smash`); the bands in `tests/smash-bot.mjs` hold the ladder's shape (Bramble easy, final hardest). The rival AI numbers are in `OPPS`. Changing any of them means rerunning the bot.
+- **Tests:** `npm run test:smash`, `npm run bot:smash`, `node tests/e2e/smash.mjs` (dev server running; uses `window.__smash().debug.auto/ff` to play matches quickly).
+- **Ideas not done:** local two-player (the user chose vs CPU only), more venues, an online leaderboard.
 
 ## Kumori Pass · 04-11-2026
 

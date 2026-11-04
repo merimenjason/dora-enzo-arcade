@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of seventy-five original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of seventy-six original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -85,6 +85,7 @@ Listed in arcade-menu order.
 | 73 | Tidepool | `/tide` | Cosy rock-pool ecosystem |
 | 74 | Wind-Up Rally | `/rally` | Tin-toy badminton duel |
 | 75 | Kumori Pass | `/pass` | Night mountain drift racer |
+| 76 | Fluffball Smash! | `/smash` | Anime tennis with special moves |
 
 ## Run
 
@@ -1343,6 +1344,17 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:pass` runs the engine checks: the tracks, the car's grip, drift and spin, gears, the limiter and upgrades, walls, gutters, the drift meter and boost, the bun tray, pace notes by level, the racing line, duel rules and rounds, exact replay from a seed, ghosts, medals and corrupt saves. `npm run bot:pass` drives every pass with a competent bot (which sets the medal times), checks the uphill leg, plays 16 seeded duels against each rival (from 16 of 16 against Skitter down to about 7 against Aurora, the hardest in the story, and about 6 against Hush after it) and checks that a flat-out, no-brakes driver wrecks a delivery and never wins past the first rival (`npm test` runs it with `--quick`). `npm run test:e2e:pass` checks the browser: the menu and course picker, real keyboard driving (throttle, steering, handbrake, camera, pause), a delivery finished and kept across a reload, corrupt saves, the garage, the story's first steps, a duel's VS card, gap meter and cut-in, the framing at 1280×800 and 1920×1080 with the HUD off the road ahead, and phones held sideways and upright driven by touch, with no page errors.
 
 **Docs:** [`docs/pass.md`](docs/pass.md) has the car, the road, drifting, the bun tray, Enzo's notes, duels and the rivals, coins and the save, with the tuned numbers and the bot results; [`docs/pass-art-brief.md`](docs/pass-art-brief.md) briefs the paintings.
+
+
+### 76 · Fluffball Smash! (`/smash`)
+
+**Play:** Over-the-top anime tennis in toon-shaded 3D, seen from behind your player. Dora and Enzo enter the Cloudtop Cup, the one tennis tournament played on top of the world, and climb a story ladder of seven matches against six rivals in singles and doubles: Bramble the hare on grass, the ferret twins Sable and Sorrel on clay, Captain Gale the puffin on a windy harbour court, the old tortoises Marlow and Fern, Ember the red panda, Isolde the snow leopard, and a final against Ember and Isolde together. Points run 15-30-40 with a deciding point at deuce, first to two or three games by two. Press your swing early to charge it (you move slower while charging); good shots and lost points fill your spirit, and a full meter fires a special move with a painted cut-in: Dora's Moonleap Meteor, Enzo's Phantom Page, or their Twin Comet in doubles. Heavy specials blow you away unless you meet them with a charged swing or spend half a meter on a counter. Exhibition replays any rival you have beaten; Settings has sound, music, footwork assist and rival difficulty.
+
+**Controls:** **←** **→** **↑** **↓** or **W** **A** **S** **D** move (and aim the shot), **J** or **Z** topspin, **K** or **X** slice (with **↓**, a drop shot), **L** or **C** lob, **Space** special (or a counter during a rival's cut-in), any swing key serves, **Esc** or **P** pauses, and **Enter** or **Space** moves story dialogue on. On a touch screen a stick moves and **TOP**, **SLICE**, **LOB** and **★** swing.
+
+**Tests:** `npm run test:smash` runs the engine checks: scoring and the deciding point, games and matches, the serve box, faults, double faults and lets, the lines and the doubles court, the net and net cord, surfaces, spin and each special's trick, charge, spirit, specials, holds, counters and being blown away, seeded replays and corrupt saves. `npm run bot:smash` plays every rival from many seeds and checks the ladder gets harder within win-rate bands. `node tests/e2e/smash.mjs` (with `npm run dev` running) plays the story in a browser on desktop and phone.
+
+**Docs:** [`docs/smash.md`](docs/smash.md) has the court and the ball, scoring, swings, spirit and every special, footwork and the AI, the story, the bot results and the save.
 
 ## Validation
 

@@ -1,0 +1,227 @@
+@import url('https://fonts.googleapis.com/css2?family=Bangers&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap');
+
+/* Fluffball Smash!: a loud sports-anime look. Paper cards with thick ink, hot pink and sky blue, comic-book titles. */
+.fs-shell{--ink:#16121e;--paper:#fff8ec;--hot:#ff3d6e;--sky:#3fb6ff;--sun:#ffd23f;--leaf:#4fd18b;--dim:#5b5470;
+  position:fixed;inset:0;overflow:hidden;background:#1d1838;color:var(--ink);
+  font-family:'M PLUS Rounded 1c',system-ui,sans-serif;font-weight:700;font-size:clamp(14px,1.6vw,17px);line-height:1.35;user-select:none;-webkit-user-select:none}
+.fs-shell *{box-sizing:border-box}
+/* the arcade's global paragraph colour is for dark pages */
+.fs-shell p{color:inherit;font-size:inherit;line-height:inherit}
+.fs-shell h1,.fs-shell h2,.fs-shell h3{margin:0;font-family:'Bangers',system-ui,sans-serif;font-weight:400;letter-spacing:1px;line-height:1}
+.fs-shell button,.fs-shell a{font:inherit;touch-action:manipulation}
+.fs-shell button{cursor:pointer;color:var(--ink);min-height:44px;padding:.35em 1em;border:3px solid var(--ink);border-radius:6px;background:var(--paper);box-shadow:3px 3px 0 var(--ink);font-weight:800}
+.fs-shell button:hover:not(:disabled){transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+.fs-shell button:active:not(:disabled){transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.fs-shell button:disabled{opacity:.5;cursor:default}
+.fs-shell button:focus-visible,.fs-shell a:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.fs-shell .fs-go{background:var(--hot);color:#fff;font-family:'Bangers',sans-serif;font-weight:400;font-size:1.3em;letter-spacing:1px;text-shadow:2px 2px 0 var(--ink)}
+.fs-shell button.on{background:var(--sky);color:var(--ink)}
+.fs-row{display:flex;flex-wrap:wrap;gap:.6em;align-items:center;margin-top:.8em}
+
+.fs-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;visibility:hidden}
+.fs-on-match .fs-canvas{visibility:visible}
+
+/* paintings */
+.fs-art{display:block;overflow:hidden;background:linear-gradient(135deg,#ff9ab4,#7ad0ff)}
+.fs-art img{width:100%;height:100%;object-fit:cover;display:block}
+.fs-bg{position:absolute;inset:0}
+
+/* ---------------------------------------------------------------- title: the logo in the sky, the menu along the bottom */
+.fs-title{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:16px}
+.fs-title::after{content:'';position:absolute;inset:auto 0 0 0;height:38%;background:linear-gradient(transparent,rgba(22,18,30,.85));pointer-events:none}
+.fs-title-col{position:relative;z-index:1;display:contents}
+.fs-logo{position:relative;z-index:1;align-self:center;text-align:center;font-size:clamp(44px,8vw,96px)!important;color:var(--sun);-webkit-text-stroke:3px var(--ink);text-shadow:5px 5px 0 var(--hot),9px 9px 0 var(--ink);transform:rotate(-4deg)}
+.fs-tag{position:relative;z-index:1;align-self:center;margin:1.1em 0 0;color:#fff;text-shadow:2px 2px 0 var(--ink);font-weight:800}
+.fs-menu{position:relative;z-index:2;margin-top:auto;display:flex;flex-wrap:wrap;justify-content:center;gap:.6em}
+.fs-menu button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;min-width:11em}
+.fs-menu button b{font-family:'Bangers',sans-serif;font-weight:400;font-size:1.35em;letter-spacing:1px}
+.fs-menu button small{font-size:.75em;opacity:.8}
+.fs-menu .fs-big{background:var(--hot);color:#fff}
+.fs-menu .fs-big b{text-shadow:2px 2px 0 var(--ink)}
+.fs-home{align-self:center;color:#fff;text-decoration:none;padding:.6em 1em;font-weight:800;text-shadow:2px 2px 0 var(--ink)}
+
+/* ---------------------------------------------------------------- pages */
+.fs-page{position:absolute;inset:0;overflow-y:auto;padding:16px max(16px,4vw) 40px;background:radial-gradient(circle at 20% 0,#3a2f7a,#1d1838 60%)}
+.fs-head{display:flex;align-items:center;gap:1em;margin-bottom:1em}
+.fs-head h2{color:#fff;font-size:2.2em;text-shadow:3px 3px 0 var(--hot)}
+.fs-card{background:var(--paper);border:3px solid var(--ink);border-radius:10px;box-shadow:5px 5px 0 var(--ink);padding:1em;color:var(--ink)}
+div.fs-card h3{font-size:1.5em;color:var(--hot);margin-bottom:.3em}
+.fs-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:1em}
+
+/* the story ladder */
+.fs-ladder{list-style:none;margin:0;padding:0;display:grid;gap:.7em;max-width:880px}
+.fs-rung{width:100%;display:grid;grid-template-columns:auto 1fr auto;gap:1em;align-items:center;text-align:left;padding:.5em!important}
+.fs-rung-faces{display:flex;gap:4px}
+.fs-rung-faces .fs-art{width:clamp(56px,9vw,84px);aspect-ratio:1;border:2px solid var(--ink);border-radius:6px}
+.fs-rung-body{display:flex;flex-direction:column;min-width:0}
+.fs-rung-body b{font-family:'Bangers',sans-serif;font-weight:400;font-size:1.5em;letter-spacing:1px}
+.fs-rung-body small{font-size:.8em;opacity:.85}
+.fs-rung.done{background:#e6f9ee}
+.fs-tick{color:var(--leaf);font-size:1.6em;text-shadow:1px 1px 0 var(--ink)}
+.fs-play{color:var(--hot);font-size:1.4em}
+.fs-lock{font-size:1.3em}
+
+/* ---------------------------------------------------------------- talk: the portrait above, the words below */
+.fs-talk{position:absolute;inset:0;display:flex;flex-direction:column;cursor:pointer;background:linear-gradient(180deg,#7ad0ff 0%,#ffd6e6 70%,#fff2c8 100%)}
+.fs-talk::before{content:'';position:absolute;inset:0;background:repeating-conic-gradient(from 0deg at 50% 120%,rgba(255,255,255,.25) 0 4deg,transparent 4deg 10deg);pointer-events:none}
+.fs-talk .fs-bg{display:none}
+.fs-talk-stage{position:relative;flex:1;min-height:0;display:flex;align-items:flex-end;padding:16px 6vw 0}
+.fs-talk-face{height:100%;max-height:min(62vh,560px);aspect-ratio:1;border:4px solid var(--ink);border-bottom:none;border-radius:14px 14px 0 0;box-shadow:6px 0 0 var(--ink)}
+.fs-talk-face img{object-fit:cover}
+.fs-talk-face.right{margin-left:auto}
+.fs-talkbox{position:relative;z-index:1;margin:0 16px 16px;background:var(--paper);border:4px solid var(--ink);border-radius:12px;box-shadow:6px 6px 0 var(--ink);padding:1em 1.2em;min-height:7.5em}
+.fs-talkbox p{margin:.2em 0 1.2em;font-size:1.15em}
+.fs-talk-name{font-family:'Bangers',sans-serif;font-weight:400;font-size:1.5em;color:var(--hot);letter-spacing:1px}
+.fs-talkbox.mid p{font-style:italic;color:var(--dim)}
+.fs-talk-next{position:absolute;right:1em;bottom:.6em;font-size:.8em;opacity:.7}
+.fs-skip{position:absolute;top:12px;right:12px;z-index:2}
+
+/* pick who plays */
+.fs-picks{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:1.2em;max-width:760px}
+.fs-pickcard{display:flex!important;flex-direction:column;align-items:stretch;text-align:left;padding:0!important;overflow:hidden}
+.fs-pickcard .fs-art{aspect-ratio:1;border-bottom:3px solid var(--ink)}
+.fs-pickcard span:last-child{display:flex;flex-direction:column;padding:.7em}
+.fs-pickcard b{font-family:'Bangers',sans-serif;font-weight:400;font-size:1.8em;color:var(--hot)}
+.fs-pickcard small{font-size:.85em}
+
+/* ---------------------------------------------------------------- VS */
+.fs-vs{position:absolute;inset:0;display:grid;grid-template-columns:1fr minmax(280px,1.15fr) 1fr;gap:16px;padding:16px;align-items:center;overflow-y:auto;
+  background:linear-gradient(105deg,#ff3d6e 0 49.6%,var(--ink) 49.6% 50.4%,#3fb6ff 50.4%)}
+.fs-vs-side{display:flex;flex-direction:column;gap:8px;align-items:center;min-width:0}
+.fs-vs-side.us{flex-wrap:wrap}
+.fs-vs-face{width:100%;max-width:340px;aspect-ratio:1;border:4px solid var(--ink);border-radius:12px;box-shadow:6px 6px 0 var(--ink)}
+.fs-vs-side:has(.fs-vs-face + .fs-vs-face) .fs-vs-face{max-width:220px}
+.fs-vs-name{text-align:center;color:#fff;text-shadow:2px 2px 0 var(--ink)}
+.fs-vs-name b{display:block;font-family:'Bangers',sans-serif;font-weight:400;font-size:2em;letter-spacing:1px}
+.fs-vs-name small{text-transform:capitalize}
+.fs-vs-mid{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.fs-vs-word{font-family:'Bangers',sans-serif;font-size:clamp(56px,9vw,110px);color:var(--sun);-webkit-text-stroke:3px var(--ink);text-shadow:6px 6px 0 var(--ink);transform:rotate(-6deg)}
+.fs-taunt{margin:0;background:var(--paper);border:3px solid var(--ink);border-radius:20px;padding:.6em 1em;box-shadow:4px 4px 0 var(--ink);font-size:1.05em}
+.fs-rules{background:rgba(22,18,30,.88);color:#fff;border:3px solid var(--ink);border-radius:10px;padding:.8em 1em;text-align:left;width:100%}
+.fs-rules b{color:var(--sun)}
+.fs-rules small{display:block;opacity:.8;margin-bottom:.4em}
+.fs-rules ul{margin:.3em 0 0;padding-left:1.2em}
+.fs-who{color:#fff}
+.fs-who button{min-height:36px;padding:.2em .8em}
+
+/* ---------------------------------------------------------------- the match HUD */
+.fs-hud{position:absolute;inset:0;pointer-events:none}
+.fs-hud button,.fs-hud .fs-touchpad,.fs-hud .fs-pause{pointer-events:auto}
+.fs-score{position:absolute;top:12px;left:12px;background:var(--ink);color:#fff;border:3px solid var(--paper);border-radius:8px;padding:6px 10px;min-width:min(260px,60vw);box-shadow:4px 4px 0 rgba(0,0,0,.35)}
+.fs-score-row{display:grid;grid-template-columns:1em 1fr 2em 3.6em;align-items:center;gap:6px;font-size:.95em}
+.fs-score-row b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fs-score-row em{font-style:normal;text-align:center;background:var(--paper);color:var(--ink);border-radius:4px;font-weight:800}
+.fs-score-row strong{text-align:center;color:var(--sun);font-family:'Bangers',sans-serif;font-weight:400;font-size:1.25em;letter-spacing:1px}
+.fs-serve{color:var(--sun);font-size:.8em}
+.fs-score small{display:block;opacity:.7;font-size:.72em;margin-top:2px}
+.fs-spirit{position:absolute;display:flex;flex-direction:column;gap:3px;color:#fff;text-shadow:2px 2px 0 var(--ink);font-weight:800}
+.fs-spirit small{font-size:.75em;letter-spacing:1px;text-transform:uppercase}
+.fs-spirit span{position:relative;display:block;width:min(260px,40vw);height:16px;background:rgba(22,18,30,.75);border:3px solid var(--ink);border-radius:9px;overflow:hidden}
+.fs-spirit i{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);background:linear-gradient(90deg,var(--sky),var(--hot),var(--sun));transition:transform .15s}
+.fs-spirit u{position:absolute;left:50%;top:0;bottom:0;width:2px;background:rgba(255,255,255,.7)}
+.fs-spirit.them{top:12px;right:12px;align-items:flex-end}
+.fs-spirit.them span{width:min(200px,32vw);height:12px}
+.fs-spirit.us{left:12px;bottom:16px}
+.fs-spirit em{font-style:normal;font-family:'Bangers',sans-serif;font-weight:400;letter-spacing:1px;font-size:1.3em;color:var(--sun);display:none}
+.fs-spirit.us.full .fs-ready{display:block;animation:fs-pulse .5s infinite alternate}
+.fs-spirit.full span{box-shadow:0 0 14px var(--sun)}
+.fs-spirit.us.counter .fs-counterhint{display:block;color:#fff;animation:fs-pulse .25s infinite alternate}
+.fs-spirit.us.counter.full .fs-ready{display:none}
+@keyframes fs-pulse{from{transform:scale(1)}to{transform:scale(1.08)}}
+.fs-charge{position:absolute;left:50%;bottom:22%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;opacity:0;transition:opacity .1s;color:#fff;text-shadow:2px 2px 0 var(--ink)}
+.fs-charge small{font-family:'Bangers',sans-serif;letter-spacing:2px}
+.fs-charge span{position:relative;width:160px;height:12px;background:rgba(22,18,30,.75);border:3px solid var(--ink);border-radius:8px;overflow:hidden}
+.fs-charge i{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);background:var(--sky)}
+.fs-charge.max i{background:var(--sun)}
+.fs-keys{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);margin:0;width:max-content;max-width:min(92vw,720px);text-align:center;font-size:.72em;color:#fff;text-shadow:1px 1px 0 var(--ink);opacity:.85}
+.fs-banner{position:absolute;left:50%;top:15%;transform:translateX(-50%) rotate(-3deg);white-space:nowrap;font-family:'Bangers',sans-serif;font-size:clamp(28px,5.5vw,64px);letter-spacing:2px;color:#fff;
+  -webkit-text-stroke:2px var(--ink);text-shadow:4px 4px 0 var(--ink);animation:fs-pop 1.4s ease-out forwards}
+.fs-banner.good{color:var(--sun)}
+.fs-banner.bad{color:#ff8aa6}
+.fs-banner.venue{font-size:clamp(22px,3.5vw,40px);color:var(--sky)}
+@keyframes fs-pop{0%{transform:translateX(-50%) rotate(-3deg) scale(.3);opacity:0}12%{transform:translateX(-50%) rotate(-3deg) scale(1.15);opacity:1}22%{transform:translateX(-50%) rotate(-3deg) scale(1)}80%{opacity:1}100%{opacity:0}}
+
+/* the cut-in: a band across the screen; the painting sits at its true shape on the right (faces are in its right half),
+   the move's name on the speed lines to the left, never over a face */
+.fs-cutin{position:absolute;left:0;right:0;top:50%;height:min(44vh,380px);transform:translateY(-50%);overflow:hidden;border-block:5px solid var(--ink);
+  background:repeating-linear-gradient(100deg,#ff3d6e 0 14px,#ff6a8c 14px 18px);animation:fs-slide 1.25s cubic-bezier(.2,.9,.2,1) forwards}
+.fs-cutin.s1{background:repeating-linear-gradient(100deg,#3fb6ff 0 14px,#7ad0ff 14px 18px)}
+.fs-cutin.counter{background:repeating-linear-gradient(100deg,#ffd23f 0 14px,#fff0a0 14px 18px);animation-duration:.9s}
+.fs-cutin-art{position:absolute;right:0;top:0;height:100%;aspect-ratio:3/2;max-width:100%}
+.fs-cutin-art img{object-position:80% 40%}
+.fs-cutin-text{position:absolute;left:4%;top:50%;transform:translateY(-50%) skewX(-8deg);display:flex;flex-direction:column;max-width:40%;color:#fff;text-shadow:3px 3px 0 var(--ink)}
+.fs-cutin-text small{font-weight:800;font-size:1.1em}
+.fs-cutin-text b{font-family:'Bangers',sans-serif;font-weight:400;font-size:clamp(30px,5vw,68px);letter-spacing:2px;line-height:.95;-webkit-text-stroke:2px var(--ink)}
+@keyframes fs-slide{0%{transform:translate(100%,-50%)}12%{transform:translate(0,-50%)}85%{transform:translate(0,-50%);opacity:1}100%{transform:translate(-30%,-50%);opacity:0}}
+.fs-pausebtn{position:absolute;right:12px;bottom:16px;width:48px;padding:0!important}
+.fs-pause{position:absolute;inset:0;display:grid;place-items:center;background:rgba(22,18,30,.6)}
+.fs-pausecard{display:flex;flex-direction:column;gap:.7em;min-width:240px}
+.fs-pausecard h2{font-size:2.4em;color:var(--hot);text-align:center}
+
+/* touch controls */
+.fs-touchpad{position:absolute;inset:auto 0 0 0;height:190px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 16px 18px}
+.fs-stick{position:relative;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.18);border:3px solid rgba(255,255,255,.6);touch-action:none}
+.fs-stick i{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:var(--paper);border:3px solid var(--ink)}
+.fs-tbtns{display:grid;grid-template-columns:repeat(2,64px);gap:10px}
+.fs-tbtns button{width:64px;height:64px;padding:0!important;border-radius:50%;font-size:.8em;touch-action:none}
+.fs-tbtns .t-top{background:var(--sky)}
+.fs-tbtns .t-slice{background:var(--leaf)}
+.fs-tbtns .t-lob{background:var(--sun)}
+.fs-tbtns .t-special{background:var(--hot);color:#fff;font-size:1.6em}
+.fs-touch .fs-spirit.us{bottom:auto;top:50%;left:12px}
+.fs-touch .fs-pausebtn{bottom:auto;top:96px}
+
+/* ---------------------------------------------------------------- results and the ending: art beside the words */
+.fs-result{position:absolute;inset:0;display:grid;grid-template-columns:1fr minmax(300px,440px);gap:20px;align-items:center;padding:20px;overflow-y:auto;background:radial-gradient(circle at 30% 30%,#ffd6e6,#3fb6ff)}
+.fs-result.lose{background:radial-gradient(circle at 30% 30%,#7a7aa0,#1d1838)}
+.fs-result .fs-bg{position:relative;inset:auto;width:100%;aspect-ratio:3/2;border:4px solid var(--ink);border-radius:12px;box-shadow:6px 6px 0 var(--ink)}
+.fs-result .fs-blur{filter:none}
+.fs-resultcard h2{font-size:2.6em;color:var(--hot)}
+.fs-final{font-size:1.15em}
+.fs-final b{font-family:'Bangers',sans-serif;font-weight:400;font-size:1.6em;color:var(--hot);margin:0 .2em}
+.fs-stats{list-style:none;padding:0;margin:.6em 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(7.5em,1fr));gap:.4em}
+.fs-stats li{background:#fff;border:2px solid var(--ink);border-radius:6px;padding:.3em .5em;font-size:.85em}
+.fs-stats b{font-family:'Bangers',sans-serif;font-weight:400;font-size:1.5em;color:var(--sky);margin-right:.2em}
+.fs-ending{position:absolute;inset:0;display:flex;flex-direction:column;background:#ffe2c0}
+.fs-ending .fs-bg{position:relative;inset:auto;flex:1;min-height:0}
+.fs-ending .fs-bg img{object-fit:contain;background:#ffd6b0}
+.fs-ending-text{padding:16px 20px 20px;text-align:center;background:var(--paper);border-top:4px solid var(--ink)}
+.fs-ending-text h2{font-size:2.4em;color:var(--hot)}
+.fs-ending-text .fs-row{justify-content:center}
+
+/* exhibition, how to play, settings */
+.fs-exrow{display:flex;flex-wrap:wrap;gap:.5em;align-items:center;margin:0 0 1em;color:#fff}
+.fs-exrow > span{min-width:6.5em;font-weight:800}
+.fs-oppcard{display:flex!important;flex-direction:column;align-items:stretch;text-align:left;padding:0!important;overflow:hidden;position:relative}
+.fs-oppcard.sel{background:var(--sun)}
+.fs-oppfaces{display:flex}
+.fs-oppfaces .fs-art{flex:1;aspect-ratio:1;max-height:180px;border-bottom:3px solid var(--ink)}
+.fs-card-body{display:flex;flex-direction:column;padding:.6em}
+.fs-card-body b{font-family:'Bangers',sans-serif;font-weight:400;font-size:1.5em}
+.fs-card-body small{font-size:.8em}
+.fs-oppcard .fs-lock{position:absolute;right:.5em;bottom:.5em}
+.fs-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:1em}
+.fs-howto ul{padding-left:1.2em}
+.fs-settings{max-width:620px;display:flex;flex-direction:column;gap:.8em}
+.fs-set{display:flex;justify-content:space-between;align-items:center;gap:1em;flex-wrap:wrap}
+.fs-seg{display:flex;gap:.4em;flex-wrap:wrap}
+.fs-statline{font-size:.85em;color:var(--dim)}
+.fs-shell .fs-danger{background:#ffd0da}
+
+/* narrow screens */
+@media (max-width:760px){
+  .fs-vs{grid-template-columns:1fr 1fr;align-content:start}
+  .fs-vs-mid{grid-column:1/-1;grid-row:2}
+  .fs-vs-name b{font-size:1.4em}
+  .fs-result{grid-template-columns:1fr;align-content:start}
+  .fs-talk-stage{padding:12px 12px 0}
+  .fs-menu button{min-width:0;flex:1 1 40%}
+  .fs-score{min-width:0;width:min(230px,58vw);font-size:.85em}
+  .fs-spirit.them small{display:none}
+  .fs-cutin-text{max-width:55%}
+  .fs-keys{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .fs-banner,.fs-cutin{animation:none}
+  .fs-spirit em{animation:none!important}
+}
