@@ -308,6 +308,8 @@ export type RaceOpts = {
   job?: JobId;
   /** a Drift Trial: drifts bank points into trialScore, chained for a multiplier */
   trial?: boolean;
+  /** rain or snow: less grip for every car on the road */
+  weather?: WeatherId;
   /** Sharp steering: a quicker keyboard filter (Smooth is the default) */
   sharp?: boolean;
   /** the competent bot drives the player's car (tests) */
@@ -403,7 +405,8 @@ export class Race {
   private makeRacer(spec: CarSpec, s: number, d: number, auto: boolean, assist: number, ai: Racer['ai'], steer: SteerMode): Racer {
     const t = this.track, i = at(t, s);
     const x = t.x[i] - Math.sin(t.h[i]) * d, y = t.y[i] + Math.cos(t.h[i]) * d;
-    const car = makeCar(spec, x, y, t.h[i], auto, assist, steer);
+    const wet = WEATHER[this.opts.weather ?? 'clear'].grip;
+    const car = makeCar(wet === 1 ? spec : { ...spec, mu: spec.mu * wet }, x, y, t.h[i], auto, assist, steer);
     return { car, w: { i, s, d, px: 0, py: 0 }, idx: i, s, finished: -1, lane: d, marks: new Float32Array(Math.ceil(t.len / MARK) + 2).fill(-1),
       stuck: 0, resets: 0, crashed: false, ai, hookCool: 0, gripT: 0, gripV: 1, wallT: 0, scrapeT: 0, hold: 0 };
   }
@@ -860,14 +863,23 @@ export function duelOutcome(results: RoundResult[]): 0 | 1 | null {
 export const BOT_TIMES: Record<PassId, number> = { cedar: 65.57, lake: 55.14, stairs: 67.79, fog: 57.07, tunnel: 54.23, summit: 82.38 };
 export const MEDAL_FACTORS = [1.03, 1.16, 1.4]; // gold, silver, bronze: slower than the bot by this factor
 export const MEDAL_BUNS = [11, 7, 4];
-export function medalTimes(id: PassId) { return MEDAL_FACTORS.map((f) => Math.round(BOT_TIMES[id] * f * 10) / 10); }
+export function medalTimes(id: PassId, w: WeatherId = 'clear') { return MEDAL_FACTORS.map((f) => Math.round(BOT_TIMES[id] * WEATHER[w].time * f * 10) / 10); }
 /** 3 gold, 2 silver, 1 bronze, 0 none. */
-export function deliveryMedal(id: PassId, time: number, buns: number) {
-  const ts = medalTimes(id);
+export function deliveryMedal(id: PassId, time: number, buns: number, w: WeatherId = 'clear') {
+  const ts = medalTimes(id, w);
   for (let m = 0; m < 3; m++) if (time <= ts[m] && buns >= MEDAL_BUNS[m]) return 3 - m;
   return 0;
 }
 export function deliveryCoins(medal: number, buns: number) { return buns * 2 + [0, 10, 20, 35][medal]; }
+// ---------------------------------------------------------------- weather
+export type WeatherId = 'clear' | 'rain' | 'snow';
+/** grip: the tyres' peak friction multiplier for every car; time: the medal times' multiplier (the bot's measured slowdown). */
+export const WEATHER: Record<WeatherId, { name: string; icon: string; grip: number; time: number; pay: number }> = {
+  clear: { name: 'Clear', icon: '🌙', grip: 1, time: 1, pay: 1 },
+  rain: { name: 'Rain', icon: '🌧', grip: 0.84, time: 1.07, pay: 1.25 },
+  snow: { name: 'Snow', icon: '❄', grip: 0.7, time: 1.18, pay: 1.5 },
+};
+
 // ---------------------------------------------------------------- drift trials
 /** A clean drift banks its points × the chain multiplier: 1, then +step for each drift chained within `link` seconds, up to `max`.
  *  A rail hit or scrape loses the drift in progress and the chain. Medals are fractions of Enzo's own score (TRIAL_GOLD). */
@@ -955,12 +967,14 @@ export type Save = {
   jobs: string[];
   /** best Drift Trial score per pass */
   trials: Partial<Record<PassId, number>>;
+  /** delivery medals in rain and snow (clear nights are in medals) */
+  wmedals: Record<'rain' | 'snow', Partial<Record<PassId, number>>>;
 };
 const PASS_IDS = PASSES.map((p) => p.id);
 const zeroBy = (v: number) => Object.fromEntries(PASS_IDS.map((id) => [id, v])) as Record<PassId, number>;
 export function newSave(): Save {
   return { v: 1, coins: 0, upgrades: [], runs: zeroBy(0), story: 0, beaten: [], medals: zeroBy(0), best: zeroBy(0), ghosts: {}, ghostMeta: {},
-    settings: { assist: ASSIST.strong, sharp: false, manual: false, lite: false, sound: true, music: true, camera: 0 }, ended: false, car: 'biscuit', jobs: [], trials: {} };
+    settings: { assist: ASSIST.strong, sharp: false, manual: false, lite: false, sound: true, music: true, camera: 0 }, ended: false, car: 'biscuit', jobs: [], trials: {}, wmedals: { rain: {}, snow: {} } };
 }
 const num = (v: unknown, lo: number, hi: number, d: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d);
 const UPGRADE_IDS = ['flywheel', 'rear', 'tyres', 'lsd', 'intake', 'rack', 'tray', 'coilovers', 'strip'];
@@ -1006,6 +1020,8 @@ export function parseSave(raw: string | null | undefined): Save {
   if (Array.isArray(d.jobs)) s.jobs = [...new Set(d.jobs.filter((k): k is string => jobKeys.includes(k as string)))];
   const tr = (d.trials && typeof d.trials === 'object' ? d.trials : {}) as Record<string, unknown>;
   for (const p of PASSES) { const v = num(tr[p.id], 0, 1e6, 0); if (v > 0) s.trials[p.id] = Math.round(v); }
+  const wm = (d.wmedals && typeof d.wmedals === 'object' ? d.wmedals : {}) as Record<string, Record<string, unknown> | undefined>;
+  for (const w of ['rain', 'snow'] as const) for (const p of PASSES) { const v = Math.floor(num(wm[w]?.[p.id], 0, 3, 0)); if (v > 0) s.wmedals[w][p.id] = v; }
   return s;
 }
 export const serialise = (s: Save) => JSON.stringify(s);

@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Kumori Pass** has weather nights: pick Rain or Snow above the passes in Delivery Runs. Every car on the road has less grip (rain a little, snow a lot), the rain streaks past on a dark wet road or the snow settles on the mountain, each weather has its own medal times and medals, and the coins pay ×1.25 in rain and ×1.5 in snow. Best times and ghosts stay with clear nights.
 - **Kumori Pass** has Drift Trials: drive a pass for points in whichever car you pick. Every clean drift banks its points, and starting the next one within three seconds chains it for a multiplier up to ×4; touch a rail and you lose the drift and the chain. Gold is Enzo's own score on his line, and medals pay coins.
 - **Kumori Pass** has Side Jobs: three odd jobs on every pass, in whichever car you pick. Carry one tall wedding cake that wobbles at hard corners and breaks on any knock; race Dr Wren's bag to the inn against a deadline shown on the HUD; or give Granny Bramble, a hedgehog who loves it sideways, a ride to the sunrise, where drifts cheer her up and rails and crawling don't. Each job pays coins, with a bonus the first time on each pass.
 - **Kumori Pass** has a chapter after the ending: a pearl-grey car with its lights off waits outside the bakery. Hush, a snowy owl who sees through the fog, races you on Fog Ridge, harder than Aurora, and beating her unlocks the last car, the Pavlova shooting brake.

@@ -7,6 +7,7 @@
 import * as T from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Track } from './pass-tracks';
+import type { WeatherId } from './pass-game';
 import { buildCar, hull, INK_PROP, INK_TREE, toon, type CarLook, type CarRig } from './pass-models';
 import { cedar, lake, Props, rockCut, ridges, townLights } from './pass-scenery';
 export type { CarLook } from './pass-models';
@@ -220,14 +221,14 @@ export class PassScene {
     const idx: number[] = [];
     for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + 1, cc = a + nx, d = cc + 1; idx.push(a, b, cc, b, d, cc); } // wound to face up
     const tg = new T.BufferGeometry(); tg.setAttribute('position', new T.BufferAttribute(pos, 3)); tg.setAttribute('color', new T.BufferAttribute(col, 3)); tg.setIndex(idx); tg.computeVertexNormals();
-    const terrain = new T.Mesh(tg, toon(0xffffff, { vertexColors: true })); terrain.receiveShadow = true; this.world.add(terrain);
+    const terrain = new T.Mesh(tg, this.groundMat = toon(0xffffff, { vertexColors: true })); terrain.receiveShadow = true; this.world.add(terrain);
     this.heights = { x0, y0, step, nx, ny, h: H };
     // which side of the road is the mountain (uphill): it gets a ditch and rock cut; the other side a guardrail
     const uphillLeft = new Int8Array(t.n);
     for (let i = 0; i < t.n; i++) { const lx = -Math.sin(t.h[i]), ly = Math.cos(t.h[i]); uphillLeft[i] = plane(t.x[i] + lx * 10, t.y[i] + ly * 10) > plane(t.x[i] - lx * 10, t.y[i] - ly * 10) ? 1 : 0; }
     // the road surface: asphalt with painted edges and a dashed centre line
     const road = this.ribbon(t, (i) => -t.wr[i] - 0.15, (i) => t.wl[i] + 0.15, () => 0.02, true);
-    const rt = this.roadTexture(); road.material = toon(0xffffff, { map: rt }); road.receiveShadow = true; this.world.add(road);
+    const rt = this.roadTexture(); road.material = this.roadMat = toon(0xffffff, { map: rt }); road.receiveShadow = true; this.world.add(road);
     // gutters: a darker concrete channel with slats on the inside of marked hairpins
     const gut = this.ribbon(t, (i) => (t.gutter[i] === -1 ? -t.wr[i] - 0.1 : 99), (i) => (t.gutter[i] === -1 ? -t.wr[i] + 0.95 : 99), () => 0.035, false, (i) => t.gutter[i] === -1);
     const gut2 = this.ribbon(t, (i) => (t.gutter[i] === 1 ? t.wl[i] - 0.95 : 99), (i) => (t.gutter[i] === 1 ? t.wl[i] + 0.1 : 99), () => 0.035, false, (i) => t.gutter[i] === 1);
@@ -279,7 +280,7 @@ export class PassScene {
       (tall ? ch.tall : ch.young).push(M4.clone());
       (tall ? ch.tallC : ch.youngC).push(new T.Color().setHSL(0.36 + (rnd(k + 0.9) - 0.5) * 0.08, 0.5, 0.42 + rnd(k + 0.45) * 0.16).multiplyScalar(2.2));
     }
-    const gT = cedar(true), gY = cedar(false), hT = hull(gT), hY = hull(gY), treeMat = toon(0xffffff, { vertexColors: true });
+    const gT = cedar(true), gY = cedar(false), hT = hull(gT), hY = hull(gY), treeMat = this.treeMat = toon(0xffffff, { vertexColors: true });
     for (const ch of chunks) { this.trees(gT, hT, treeMat, ch.tall, ch.tallC); this.trees(gY, hY, treeMat, ch.young, ch.youngC); }
     const props = new Props();
     // lamp posts with pools of light (none on the unlit road)
@@ -330,6 +331,53 @@ export class PassScene {
     this.sky.position.set(mx, mz, -my); this.stars.position.copy(this.sky.position);
     this.applyMood(0);
     this.camInit = false;
+    this.setWeather(this.weather);
+  }
+
+  // ---- weather: rain or snow falling in a box that follows the camera (on the particle layer, so Lite leaves it out),
+  // a darker wet road or a pale snowy one, and thicker fog
+  private weather: WeatherId = 'clear'; private flake: T.CanvasTexture | null = null;
+  private roadMat: T.MeshToonMaterial | null = null; private groundMat: T.MeshToonMaterial | null = null; private treeMat: T.MeshToonMaterial | null = null;
+  private fall: { obj: T.Points | T.LineSegments; pos: Float32Array; drops: Float32Array; n: number; snow: boolean; placed: boolean } | null = null;
+  setWeather(w: WeatherId) {
+    this.weather = w;
+    const snow = w === 'snow', rain = w === 'rain';
+    if (this.roadMat) { this.roadMat.color.set(rain ? 0x8a93ab : snow ? 0xd9dde6 : 0xffffff); this.roadMat.emissive.set(snow ? 0x3a4052 : 0x000000); }
+    if (this.groundMat) this.groundMat.emissive.set(snow ? 0x8a93ab : 0x000000);
+    if (this.treeMat) this.treeMat.emissive.set(snow ? 0x485068 : 0x000000);
+    (this.scene.fog as T.FogExp2).density = this.fogBase * (rain ? 1.5 : snow ? 1.9 : 1);
+    if (this.fall) { this.scene.remove(this.fall.obj); this.fall.obj.geometry.dispose(); (this.fall.obj.material as T.Material).dispose(); this.fall = null; }
+    if (w === 'clear') return;
+    // drops live in a 50 × 20 × 50 m box around the camera; rain is drawn as short streaks, snow as soft flakes
+    const n = snow ? 2200 : 1800, drops = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { drops[i * 3] = (Math.random() - 0.5) * 50; drops[i * 3 + 1] = Math.random() * 20 - 4; drops[i * 3 + 2] = (Math.random() - 0.5) * 50; }
+    const pos = new Float32Array(n * (snow ? 3 : 6)), geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.BufferAttribute(pos, 3).setUsage(T.DynamicDrawUsage));
+    const obj = snow ? new T.Points(geo, new T.PointsMaterial({ color: 0xf2f5ff, size: 0.3, map: this.flake ??= this.glowTexture('#ffffff', '#ffffff', 0.3), transparent: true, opacity: 0.9, depthWrite: false }))
+      : new T.LineSegments(geo, new T.LineBasicMaterial({ color: 0xaebbe0, transparent: true, opacity: 0.38, depthWrite: false }));
+    obj.frustumCulled = false; obj.layers.set(1); this.scene.add(obj);
+    this.fall = { obj, pos, drops, n, snow, placed: false };
+  }
+  private stepWeather(dt: number, vx: number, vy: number) {
+    const f = this.fall; if (!f) return;
+    const cx = this.camera.position.x, cy = this.camera.position.y, cz = this.camera.position.z, d = f.drops, p = f.pos;
+    const fallV = f.snow ? 1.6 : 19, wrap = (v: number, c: number) => v - Math.floor((v - c + 25) / 50) * 50;
+    // drops stay put in the world (so the car drives through them) and wrap round to stay in the box; height follows the camera
+    if (!f.placed) { for (let i = 0; i < f.n; i++) { d[i * 3] += cx; d[i * 3 + 2] += cz; } f.placed = true; }
+    for (let i = 0; i < f.n; i++) {
+      let y = d[i * 3 + 1] - fallV * dt;
+      if (y < -4) y += 20;
+      d[i * 3 + 1] = y;
+      if (f.snow) { d[i * 3] += Math.sin(this.t * 0.9 + i) * 0.6 * dt; d[i * 3 + 2] += Math.cos(this.t * 0.7 + i * 1.3) * 0.6 * dt; }
+      const x = (d[i * 3] = wrap(d[i * 3], cx)), z = (d[i * 3 + 2] = wrap(d[i * 3 + 2], cz)), wy = cy + y;
+      if (f.snow) { p[i * 3] = x; p[i * 3 + 1] = wy; p[i * 3 + 2] = z; }
+      else {
+        // a streak along the fall, leaning back against the car's motion
+        p[i * 6] = x; p[i * 6 + 1] = wy; p[i * 6 + 2] = z;
+        p[i * 6 + 3] = x + vx * 0.03; p[i * 6 + 4] = wy + 0.7; p[i * 6 + 5] = z - vy * 0.03;
+      }
+    }
+    (f.obj.geometry.attributes.position as T.BufferAttribute).needsUpdate = true;
   }
 
   // ---- road edges: unlit paint and reflectors (they glow in the headlights and fade into the fog with distance),
@@ -637,6 +685,7 @@ export class PassScene {
     if (Math.abs(this.camera.fov - this.fov) > 0.01) { this.camera.fov = this.fov; this.camera.updateProjectionMatrix(); }
     // the moon's shadow box follows the car
     this.moon.position.set(c.x + 30, c.z + 60, -c.y + 20); this.moon.target.position.set(c.x, c.z, -c.y);
+    this.stepWeather(dt, vx, vy);
     this.renderer.render(this.scene, this.camera);
     if (f.cars.length > 1 && this.mirror.rect && this.mirror.quad) this.renderMirror(c, this.cars[f.focus] ?? this.cars[0]);
   }
@@ -678,6 +727,7 @@ export class PassScene {
   // ---- the garage turntable
   setShowcase(on: boolean, looks: CarLook[] = []) {
     this.showcase = on;
+    if (this.fall) this.fall.obj.visible = !on;
     if (!on) this.camera.clearViewOffset();
     this.world.visible = !on; this.sky.visible = !on; this.stars.visible = !on; this.glow.visible = !on; this.moonSprite.visible = !on; this.sun.visible = false;
     this.disposeGroup(this.show); this.show.clear();

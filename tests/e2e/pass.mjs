@@ -275,6 +275,15 @@ for (const vp of [{ width: 844, height: 390 }, { width: 390, height: 844 }]) {
   assert.equal(s.race.mode, 'trial'); assert.equal(s.race.trial, 0, 'the score starts at nothing');
   assert.match(await page.locator('.kp-trialbox small').textContent(), /gold \d+/);
   console.log('PASS drift trials');
+  // weather: a snowy delivery
+  await page.keyboard.press('Escape'); await waitFor(page, (x) => x.paused, 'paused');
+  await page.locator('.kp-pausecard button', { hasText: 'Quit' }).click();
+  await mode(page, 'Delivery Runs').click(); await page.locator('.kp-weather button[data-weather="snow"]').click();
+  assert.equal(await page.locator('.kp-weather button[data-weather="snow"]').getAttribute('aria-checked'), 'true');
+  await page.locator('.kp-pass[data-pass="cedar"]').click();
+  s = await waitFor(page, (x) => x.screen === 'race' && x.race && x.race.t > 0.5, 'a snowy delivery', 40000);
+  assert.equal(s.race.weather, 'snow'); assert.match(await page.locator('.kp-time small').textContent(), /Snow/);
+  console.log('PASS weather');
   await page.context().close();
 }
 

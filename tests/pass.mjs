@@ -8,7 +8,7 @@ import { BASE, DT, makeCar, stepCar, tyre, gearSpeed, slipAngle, idleInput, with
 import { buildTrack, locate, radiusAt, at, PASSES, NARROW, WIDE } from '../.checks/pass-tracks.js';
 import { Race, Duel, duelOutcome, RIVALS, rival, paceNotes, readRoad, severity, SEVERITY, NOTE_LEAD, noteLevel, getTrack,
   encodeInput, decodeInput, packGhost, unpackGhost, parseSave, newSave, serialise, buyUpgrade, recordRun, passUnlocked,
-  deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng, GHOST_VERSION, ASSIST, DEMO, CARS, carSpec, carUnlocked, enzoGhost, ENZO_CAR, JOB, jobDeadline, jobResult, STORY_END, rivalUnlocked, TRIAL_GOLD, trialMedal } from '../.checks/pass-game.js';
+  deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng, GHOST_VERSION, ASSIST, DEMO, CARS, carSpec, carUnlocked, enzoGhost, ENZO_CAR, JOB, jobDeadline, jobResult, STORY_END, rivalUnlocked, TRIAL_GOLD, trialMedal, WEATHER } from '../.checks/pass-game.js';
 
 let n = 0;
 const ok = (m) => { n++; console.log('ok', m); };
@@ -468,6 +468,30 @@ for (const p of PASSES) {
   const ts = parseSave(JSON.stringify({ v: 1, trials: { cedar: 812.4, lake: -5, moon: 99, fog: 'x' } }));
   assert.deepEqual(ts.trials, { cedar: 812 }, 'the save keeps real trial bests only'); assert.deepEqual(newSave().trials, {});
   ok(`drift trials: Enzo's line sets gold on every pass ${JSON.stringify(golds)}; grip driving can't reach it`);
+}
+
+// ---------------------------------------------------------------- weather
+{
+  const spread = {};
+  for (const w of ['rain', 'snow']) {
+    spread[w] = [];
+    for (const p of PASSES) {
+      const r = new Race({ pass: p.id, autopilot: 0.985, buns: true, countdown: 0.1, seed: 3, noteLevel: 3, weather: w }); let n = 0; while (!r.done && n < 120 * 300) { r.tick(idleInput()); n++; }
+      assert.ok(r.done && r.player.resets === 0, `${p.id}: the bot finishes a ${w} night without spinning`);
+      assert.ok(r.buns >= BUNS - 1, `${p.id}: ${w} keeps the buns (${r.buns})`);
+      const k = r.player.finished / (BOT_TIMES[p.id] * WEATHER[w].time);
+      assert.ok(Math.abs(k - 1) < 0.025, `${p.id}: the ${w} medal times fit the bot (${r.player.finished.toFixed(1)} s, ${k.toFixed(3)})`);
+      spread[w].push(+k.toFixed(3));
+    }
+    assert.ok(medalTimes('cedar', w)[0] > medalTimes('cedar')[0], `${w} gives slower medal times`);
+    assert.equal(deliveryMedal('cedar', medalTimes('cedar', w)[0], 12, w), 3); assert.ok(deliveryMedal('cedar', medalTimes('cedar', w)[0], 12) < 3);
+  }
+  // a clear night is untouched
+  const a = new Race({ pass: 'lake', autopilot: 0.985, countdown: 0.1, seed: 3 }), b = new Race({ pass: 'lake', autopilot: 0.985, countdown: 0.1, seed: 3, weather: 'clear' });
+  for (let n = 0; n < 120 * 20; n++) { a.tick(idleInput()); b.tick(idleInput()); } assert.equal(a.player.car.x, b.player.car.x);
+  const sv = parseSave(JSON.stringify({ v: 1, wmedals: { rain: { cedar: 2, lake: 9, moon: 1 }, snow: 'x', hail: { fog: 3 } } }));
+  assert.deepEqual(sv.wmedals, { rain: { cedar: 2, lake: 3 }, snow: {} }); assert.deepEqual(newSave().wmedals, { rain: {}, snow: {} });
+  ok(`weather: the bot finishes rain and snow clean on every pass, within 2.5% of the medal factors ${JSON.stringify(spread)}`);
 }
 
 // ---------------------------------------------------------------- side jobs
