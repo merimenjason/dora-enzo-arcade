@@ -108,14 +108,22 @@ function buildTerrain(lv: Level, ter: Terrain, look: Look) {
     }
   }
   // the front: earth cut away like a diorama, with a band of turf on top
-  const turf = new T.Color(0x6a9a4c), earth = new T.Color(0x9a6e48), deep = new T.Color(0x5e4232);
+  // (below the turf, bands of rock 14 m deep in level strata, darker the deeper they are, so a cliff reads as a cliff)
+  const turf = new T.Color(0x6a9a4c), strata = [0x9a6e48, 0x86603e, 0xa88058, 0x7a5a40].map((x) => new T.Color(x)), BAND = 14;
   for (let i = 0; i < n - 1; i++) {
     const x0 = i * STEP, x1 = x0 + STEP, z = ROWS[0], a0 = ter.h[i], a1 = ter.h[i + 1];
     const quad = (y0a: number, y0b: number, y1a: number, y1b: number, ca: T.Color, cb: T.Color) => {
       const v = [[x0, y0a, z, ca], [x1, y0b, z, ca], [x0, y1a, z, cb], [x1, y1b, z, cb]] as const;
       for (const k of [0, 2, 1, 1, 2, 3]) { pos.push(v[k][0], v[k][1], v[k][2]); col.push(v[k][3].r, v[k][3].g, v[k][3].b); }
     };
-    quad(a0, a1, a0 - 3, a1 - 3, turf, turf); quad(a0 - 3, a1 - 3, minH, minH, earth, deep);
+    quad(a0, a1, a0 - 3, a1 - 3, turf, turf);
+    const top = Math.max(a0, a1) - 3;
+    for (let b = Math.floor(top / BAND) * BAND; b + BAND > minH; b -= BAND) {
+      const lo = Math.max(b, minH), ta = Math.max(Math.min(a0 - 3, b + BAND), lo), tb = Math.max(Math.min(a1 - 3, b + BAND), lo);
+      if (ta <= lo && tb <= lo) continue;
+      const k = ((Math.round(b / BAND) % 4) + 4) % 4, ca = strata[k].clone().multiplyScalar(1 - Math.min(0.45, (top - b) / 160));
+      quad(ta, tb, lo, lo, ca, ca.clone().multiplyScalar(0.94));
+    }
   }
   const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new T.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
   const land = new T.Mesh(geo, toon(0xffffff, { vertexColors: true })); land.receiveShadow = true; g.add(noLine(land));
@@ -441,6 +449,11 @@ export class BalloonScene {
     const dist = Math.min(260, 52 + ag * 0.75), lookY = g + Math.max(ENVELOPE * 0.6, ag * 0.62 + 8);
     const want = V3(f.x + f.vx * 3, lookY + dist * 0.06, dist);
     this.cam.lerp(want, 1 - Math.exp(-dt * 1.6)); this.look.lerp(V3(f.x + f.vx * 3, lookY, 0), 1 - Math.exp(-dt * 2));
+    // and whatever the framing wants, the whole balloon stays in shot (high up the ground gives way first)
+    const half = this.cam.z * Math.tan((this.camera.fov * Math.PI) / 360) * 0.86;
+    this.look.y = Math.min(Math.max(this.look.y, f.y + ENVELOPE + 2 - half), f.y - 1 + half);
+    const halfX = half * this.camera.aspect - 10, dx = f.x - this.look.x;
+    if (Math.abs(dx) > halfX) { const k = dx - Math.sign(dx) * halfX; this.look.x += k; this.cam.x += k; }
     this.camera.position.copy(this.cam); this.camera.lookAt(this.look);
     this.sun.position.set(f.x - 60, f.y + 120, 80); this.sun.target.position.set(f.x, f.y, 0);
     this.stepWisps(f, dt, dist);
