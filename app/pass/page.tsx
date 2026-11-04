@@ -8,31 +8,55 @@ import { PassSound, type SongId } from './sound';
 import './pass.css';
 
 type Screen = 'menu' | 'story' | 'scene' | 'picker' | 'duelpick' | 'garage' | 'settings' | 'intro' | 'race' | 'result' | 'ending';
-type Mode = 'delivery' | 'attack' | 'duel' | 'relay' | 'demo';
+type Mode = 'delivery' | 'attack' | 'duel' | 'relay' | 'demo' | 'job';
 type Run = { mode: Mode; pass: PassId; rival: RivalId | null; story: number | null; duel: Duel | null; race: Race; ghost: number[] | null;
   /** Time Attack against Enzo's line: his time */
-  enzo?: number };
+  enzo?: number;
+  job?: G.JobId };
 type RoundCard = { title: string; line: string; win: boolean | null; score: [number, number]; next: string; last: boolean };
 type Result = {
   mode: Mode; pass: PassId; rival: RivalId | null; win: boolean; time: number; buns: number; medal: number; coins: number; best: boolean;
   levelFrom: number; levelTo: number; rounds: { role: string; text: string; win: boolean | null }[]; story: number | null; drift: number; hits: number;
   enzo?: number;
+  /** a side job: did it work, was it the first time, and Granny's mood */
+  job?: G.JobId; jobOk?: boolean; first?: boolean; mood?: number;
 };
 type Line = [string, string];
 
 const ART = (n: string) => `/art/pass/${n}.webp`;
 /** Cars with a painted portrait in public/art/pass (car-<id>.webp); the rest show their paint. */
-const CAR_ART = new Set<string>(['biscuit', 'shortbread', 'meringue', 'pumpernickel', 'crumpet', 'brioche', 'stollen']);
+const CAR_ART = new Set<string>(['biscuit', 'shortbread', 'meringue', 'pumpernickel', 'crumpet', 'brioche', 'stollen', 'pavlova']);
 const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
 const RIVAL_IDS = G.RIVALS.map((r) => r.id);
-const SCENE_ART: Record<G.SceneId, string> = { bakery: 'story-bakery', carpark: 'story-carpark', fog: 'story-fog', relay: 'story-relay', ending: 'ending' };
+const SCENE_ART: Record<G.SceneId, string> = { bakery: 'story-bakery', carpark: 'story-carpark', fog: 'story-fog', relay: 'story-relay', ending: 'ending', owl: 'story-owl' };
 const WHO: Record<string, string> = { dora: 'Dora', enzo: 'Enzo', narrator: '', ...Object.fromEntries(G.RIVALS.map((r) => [r.id, r.name])) };
-const PORTRAIT: Record<string, string> = { dora: 'dora-grin', enzo: 'enzo-notes', ...Object.fromEntries(G.RIVALS.map((r) => [r.id, `${r.id}-portrait`])) };
+const PORTRAIT: Record<string, string> = { dora: 'dora-grin', enzo: 'enzo-notes', granny: 'granny-bramble', ...Object.fromEntries(G.RIVALS.map((r) => [r.id, `${r.id}-portrait`])) };
 const ASSISTS = [{ v: G.ASSIST.strong, name: 'Strong' }, { v: G.ASSIST.light, name: 'Light' }, { v: G.ASSIST.off, name: 'Off' }];
 const LEVEL_WORD = ['Scribbles', 'Rough notes', 'Numbered notes', 'Full notes'];
 const LEVEL_HINT = ['Late and vague calls.', 'Directions and how tight.', 'Earlier calls with severity numbers and "into".', 'Earliest calls, plus gutters, crests and passing places.'];
 const fmt = (t: number) => { if (!(t > 0)) return '–'; const m = Math.floor(t / 60), s = t - m * 60; return `${m}:${s < 10 ? '0' : ''}${s.toFixed(2)}`; };
 const MEDAL = ['', 'Bronze', 'Silver', 'Gold'];
+/** Granny Bramble on the back seat: what she says, by her mood (happy at JOB.rider.happy or more) and what just happened. */
+const RIDER_LINES: Record<'happy' | 'cross', Record<'drift' | 'big' | 'hit' | 'slow', string[]>> = {
+  happy: {
+    drift: ['Wheee! Again!', 'Now that\'s a corner, dear.', 'Sideways! Just like my courting days.'],
+    big: ['WHEEEE! Oh, my knitting!', 'Ha! Did you see that, Enzo?', 'Lovely! My teeth nearly came out!'],
+    hit: ['Ooh! Mind the paintwork, dear.', 'That rail came out of nowhere.'],
+    slow: ['Are we stopping for tea?', 'The sun won\'t wait for us, dear.'],
+  },
+  cross: {
+    drift: ['Hm. That was a bit better.', 'Oh! Do that again.', 'Now we\'re getting somewhere.'],
+    big: ['Oh my! Now THAT is driving!', 'Ha! Finally!'],
+    hit: ['Ow! My hip!', 'I felt that in my spines.', 'Is this a bakery car or a bumper car?'],
+    slow: ['My grandson drives faster than this.', 'I\'ll miss the sunrise at this rate.', 'Is the handbrake on, dear?'],
+  },
+};
+const pickLine = (lines: string[]) => lines[Math.floor(Math.random() * lines.length)];
+const JOB_TITLE: Record<G.JobId, [string, string]> = {
+  cake: ['The cake didn\'t make it', 'The cake arrived perfect!'],
+  doctor: ['Too late this time', 'Dr Wren made it!'],
+  rider: ['Granny is not impressed', 'Granny loved it!'],
+};
 const CAR_LOOK = (id: RivalId): CarLook => { const r = G.rival(id); return { shape: r.shape, body: r.body, trim: r.trim }; };
 const BISCUIT: CarLook = { shape: 'hatch', body: 0xf3e7c9, trim: 0x6fb3dc, biscuit: true };
 /** The player's car as the scene draws it: the Biscuit keeps its bun decal. */
@@ -87,7 +111,7 @@ export default function KumoriPass() {
   const [ready, setReady] = useState(false);
   const [screen, setScreen] = useState<Screen>('menu');
   const [save, setSave] = useState<Save>(() => G.newSave());
-  const [pickMode, setPickMode] = useState<'delivery' | 'attack'>('delivery');
+  const [pickMode, setPickMode] = useState<'delivery' | 'attack' | 'job'>('delivery');
   const [pickRival, setPickRival] = useState<RivalId>('stoat');
   const [sceneStep, setSceneStep] = useState<{ art: string; lines: Line[]; i: number; then: () => void } | null>(null);
   const [intro, setIntro] = useState<{ rival: RivalId; relay: boolean; story: number | null; lines: Line[] } | null>(null);
@@ -120,7 +144,7 @@ export default function KumoriPass() {
   const soloViews = useRef<CarView[]>([views.current[0]]);
   const frame = useRef<FrameView>({ cars: [], ghost: null, cam: 0, dt: 0, dawn: 0, slowmo: 1, shake: 0, focus: 0 });
   const hud = useRef<Record<string, HTMLElement | null>>({});
-  const noteTimer = useRef(0); const msgTimer = useRef(0);
+  const noteTimer = useRef(0); const msgTimer = useRef(0); const riderQuiet = useRef(0);
   const lastCount = useRef(99);
   const drivers = useRef<{ driver: 'dora' | 'enzo'; caller: 'dora' | 'enzo' }>({ driver: 'dora', caller: 'enzo' });
 
@@ -198,6 +222,12 @@ export default function KumoriPass() {
     beginRace({ mode, pass, rival: null, story, duel: null, race, ghost });
   }, [beginRace, raceOpts]);
 
+  /** A side job on a pass, in the garage pick. */
+  const startJob = useCallback((job: G.JobId, pass: PassId) => {
+    const race = new G.Race(raceOpts(pass, { buns: job === 'cake', job, car: saveRef.current.car }));
+    beginRace({ mode: 'job', pass, rival: null, story: null, duel: null, race, ghost: null, job });
+  }, [beginRace, raceOpts]);
+
   /** Time Attack against Enzo's line: his demo run replayed as the ghost, in whatever car the player picked. */
   const startEnzo = useCallback((pass: PassId) => {
     const s = saveRef.current, e = G.enzoGhost(pass);
@@ -253,7 +283,13 @@ export default function KumoriPass() {
     const levelTo = G.noteLevel(s.runs[run.pass]);
     const race = run.race;
     let res: Result;
-    if (run.mode === 'duel' || run.mode === 'relay') {
+    if (run.mode === 'job') {
+      const time = race.player.finished, key = G.jobKey(run.job!, run.pass), jr = G.jobResult(run.job!, run.pass, { time, buns: race.buns, mood: race.mood });
+      const first = jr.ok && !s.jobs.includes(key), coins = jr.coins + (first ? G.JOB.firstBonus : 0);
+      s.coins += coins; if (first) s.jobs.push(key);
+      res = { mode: 'job', pass: run.pass, rival: null, win: jr.ok, time, buns: race.buns, medal: 0, coins, best: false, levelFrom, levelTo, rounds: [], story: null,
+        drift: Math.round(race.driftScore), hits: race.hits, job: run.job, jobOk: jr.ok, first, mood: Math.round(race.mood) };
+    } else if (run.mode === 'duel' || run.mode === 'relay') {
       const d = run.duel!; const win = d.winner === 0;
       const coins = G.duelCoins(run.rival!, win);
       s.coins += coins;
@@ -377,11 +413,11 @@ export default function KumoriPass() {
     inp.steer = steer.current; inp.throttle = thr; inp.brake = brk; inp.hand = hand; inp.up = up; inp.down = down;
   }
 
-  function say(text: string, who: 'dora' | 'enzo', urgent = false) {
+  function say(text: string, who: 'dora' | 'enzo' | 'granny', urgent = false) {
     const b = hud.current.note, tx = hud.current.noteText, pic = hud.current.notePic as HTMLImageElement | null;
     if (!b || !tx) return;
     tx.textContent = text; b.dataset.on = '1'; b.dataset.who = who; b.dataset.urgent = urgent ? '1' : '0';
-    if (pic) { const want = ART(who === 'enzo' ? 'enzo-call' : 'dora-focus'); if (!pic.src.endsWith(want)) pic.src = want; }
+    if (pic) { const want = ART(who === 'enzo' ? 'enzo-call' : who === 'granny' ? 'granny-bramble' : 'dora-focus'); if (!pic.src.endsWith(want)) { pic.style.visibility = ''; pic.src = want; } }
     noteTimer.current = 2.6; sfx()?.voice(who, text);
   }
   function flash(text: string, tone = '') {
@@ -403,7 +439,12 @@ export default function KumoriPass() {
         case 'driftStart': snd?.driftStart(); break;
         case 'driftEnd': if (e.boost) { snd?.boost(); flash(e.meter > 0.8 ? 'BIG DRIFT · BOOST!' : 'DRIFT BOOST!', 'good'); } break;
         case 'driftBroken': flash('Drift broken', 'bad'); break;
-        case 'bun': snd?.bun(); flash(e.left > 0 ? `A bun fell! ${e.left} left` : 'No buns left…', 'bad'); if (e.left % 4 === 0 && e.left > 0) say('The buns! Gently!', 'enzo', true); break;
+        case 'bun': if (run.job === 'cake') { snd?.wall(4); flash('The cake! It\'s ruined…', 'bad'); say('Oh no. The cake…', 'enzo', true); break; }
+          snd?.bun(); flash(e.left > 0 ? `A bun fell! ${e.left} left` : 'No buns left…', 'bad'); if (e.left % 4 === 0 && e.left > 0) say('The buns! Gently!', 'enzo', true); break;
+        case 'rider': {
+          const now = performance.now(); if (now < riderQuiet.current && e.why !== 'big' && e.why !== 'hit') break;
+          riderQuiet.current = now + 4000; say(pickLine(RIDER_LINES[e.mood >= G.JOB.rider.happy ? 'happy' : 'cross'][e.why]), 'granny', e.why === 'hit'); break;
+        }
         case 'overtake': {
           if (run.race.racers.length > 1) {
             snd?.whoosh();
@@ -415,7 +456,7 @@ export default function KumoriPass() {
         }
         case 'reset': if (e.car === 0) { flash('Spun out!', 'bad'); sc?.puff(run.race.player.car.x, run.race.player.car.y, run.race.track.z[run.race.player.idx], 12); } break;
         case 'go': snd?.count(true); flash('GO!', 'go'); break;
-        case 'finish': if (e.car === 0) { flash(run.mode === 'delivery' || run.mode === 'demo' ? 'Delivered!' : 'Finish!', 'good'); } break;
+        case 'finish': if (e.car === 0) { flash(run.mode === 'delivery' || run.mode === 'demo' || run.job === 'cake' ? 'Delivered!' : run.job === 'doctor' ? (e.time <= G.jobDeadline(run.pass) ? 'Just in time!' : 'Too late…') : run.job === 'rider' ? 'The summit!' : 'Finish!', run.job === 'doctor' && e.time > G.jobDeadline(run.pass) ? 'bad' : 'good'); } break;
         default: break;
       }
     }
@@ -423,7 +464,7 @@ export default function KumoriPass() {
 
   function onRaceDone(run: Run) {
     const race = run.race;
-    if (run.mode === 'delivery' || run.mode === 'attack' || run.mode === 'demo') { if (!runRef.current || runRef.current.race !== race || (race as unknown as { _shown?: boolean })._shown) return; (race as unknown as { _shown?: boolean })._shown = true; setTimeout(finishRun, 900); return; }
+    if (run.mode === 'delivery' || run.mode === 'attack' || run.mode === 'demo' || run.mode === 'job') { if (!runRef.current || runRef.current.race !== race || (race as unknown as { _shown?: boolean })._shown) return; (race as unknown as { _shown?: boolean })._shown = true; setTimeout(finishRun, 900); return; }
     const d = run.duel!; if ((race as unknown as { _shown?: boolean })._shown) return; (race as unknown as { _shown?: boolean })._shown = true;
     const over = d.finishRound();
     const r = race.result!;
@@ -499,7 +540,9 @@ export default function KumoriPass() {
     if (h.rpm) h.rpm.style.setProperty('--v', String(Math.min(1, c.rpm / c.spec.redline)));
     if (h.time) h.time.textContent = fmt(Math.max(0, race.t));
     if (h.drift) { h.drift.style.setProperty('--v', String(race.drift)); h.drift.dataset.on = race.drifting ? '1' : '0'; h.drift.dataset.boost = c.boost > 0 ? '1' : '0'; }
-    if (h.buns && (run.mode === 'delivery' || run.mode === 'demo')) { h.buns.style.setProperty('--n', String(race.buns)); h.buns.dataset.left = String(race.buns); if (h.wobble) h.wobble.style.setProperty('--v', String(Math.min(1, race.wobble))); }
+    if (h.mood) h.mood.style.setProperty('--v', String(race.mood / 100));
+    if (h.due) { const left = G.jobDeadline(run.pass) - Math.max(0, race.player.finished >= 0 ? race.player.finished : race.t); h.due.textContent = left >= 0 ? `${left.toFixed(1)} s left` : 'Late!'; h.due.dataset.late = left < 10 ? '1' : '0'; }
+    if (h.buns && (run.mode === 'delivery' || run.mode === 'demo' || run.job === 'cake')) { h.buns.style.setProperty('--n', String(race.buns)); h.buns.dataset.left = String(race.buns); if (h.wobble) h.wobble.style.setProperty('--v', String(Math.min(1, race.wobble))); }
     if (run.duel && h.gap) {
       const gp = race.gapOf(0);
       h.gap.style.setProperty('--g', String(Math.max(-2, Math.min(2, -gp))));
@@ -562,7 +605,7 @@ export default function KumoriPass() {
         screen: screenRef.current, paused: pausedRef.current, save: saveRef.current, touch,
         race: r ? { t: r.t, s: r.player.s, speed: Math.hypot(r.player.car.u, r.player.car.v), gear: r.player.car.gear, steer: r.player.car.delta, drift: r.drift, drifting: r.drifting, buns: r.buns,
           done: r.done, finished: r.player.finished, resets: r.player.resets, len: r.finishS, gap: r.racers.length > 1 ? r.gapOf(0) : 0, note: r.lastNote?.text.join(' ') ?? null, hits: r.hits, driftScore: r.driftScore,
-          beta: G.slipAngleOf(r.player.car), mode: run!.mode, pass: run!.pass, round: run!.duel?.round ?? 0, rival: run!.rival, car: r.opts.car ?? 'biscuit', enzo: !!run!.enzo, x: r.player.car.x, y: r.player.car.y } : null,
+          beta: G.slipAngleOf(r.player.car), mode: run!.mode, pass: run!.pass, round: run!.duel?.round ?? 0, rival: run!.rival, car: r.opts.car ?? 'biscuit', enzo: !!run!.enzo, job: run!.job ?? null, mood: r.mood, x: r.player.car.x, y: r.player.car.y } : null,
         round: round, result, cutin: !!cutin,
         debug: {
           /** jump the current race to just before the finish (tests) */
@@ -603,6 +646,7 @@ export default function KumoriPass() {
     setPaused(false);
     if (run.mode === 'demo') startDemo(run.pass);
     else if (run.enzo) startEnzo(run.pass);
+    else if (run.mode === 'job') startJob(run.job!, run.pass);
     else if (run.mode === 'delivery' || run.mode === 'attack') startSolo(run.mode, run.pass, run.story);
     else startDuel(run.rival!, run.mode === 'relay', run.story);
   };
@@ -611,7 +655,7 @@ export default function KumoriPass() {
   const s = save;
   const run = runRef.current;
   const nextStory = G.STORY[s.story];
-  const storyLabel = (st: StoryStep) => st.kind === 'scene' ? ({ bakery: 'The bakery at 4 am', carpark: 'A challenge at the summit', fog: 'Into the fog', relay: 'First light', ending: 'Sunrise at the inn' } as const)[st.scene]
+  const storyLabel = (st: StoryStep) => st.kind === 'scene' ? ({ bakery: 'The bakery at 4 am', carpark: 'A challenge at the summit', fog: 'Into the fog', relay: 'First light', ending: 'Sunrise at the inn', owl: 'A stranger at the bakery' } as const)[st.scene]
     : st.kind === 'delivery' ? `Delivery · ${G.passDef(st.pass).name}` : st.kind === 'relay' ? 'The dawn relay vs Aurora' : `Duel vs ${G.rival(st.rival).name} · ${G.passDef(G.rival(st.rival).pass).name}`;
   const unlockedPasses = G.PASSES.filter((p) => G.passUnlocked(s, p.id));
 
@@ -630,10 +674,11 @@ export default function KumoriPass() {
         <p className="kp-lede">Dora drives, Enzo reads the corners. Deliver warm buns up the mountain before dawn, and beat every street crew that wants to pass the bun car.</p>
       </div>
       <nav className="kp-modes" aria-label="Modes">
-        <button className="kp-mode kp-mode-story" onClick={() => go('story')}><b>Story</b><small>{s.ended ? 'The mountain is yours' : nextStory ? storyLabel(nextStory) : 'Seven rivals, one dawn'}</small></button>
+        <button className="kp-mode kp-mode-story" onClick={() => go('story')}><b>Story</b><small>{nextStory && s.story > 0 ? storyLabel(nextStory) : s.ended ? 'The mountain is yours' : 'Seven rivals, one dawn'}</small></button>
         <button className="kp-mode" onClick={() => { setPickMode('delivery'); go('picker'); }}><b>Delivery Runs</b><small>Buns on the back seat · medals · better notes</small></button>
         <button className="kp-mode" disabled={!s.beaten.length && !s.ended} onClick={() => go('duelpick')}><b>Free Duel</b><small>{s.beaten.length ? 'Any rival you have beaten' : 'Beat a rival in the story first'}</small></button>
         <button className="kp-mode" onClick={() => { setPickMode('attack'); go('picker'); }}><b>Time Attack</b><small>Race the ghost of your best run</small></button>
+        <button className="kp-mode" onClick={() => { setPickMode('job'); go('picker'); }}><b>Side Jobs</b><small>{s.jobs.length ? `${s.jobs.length} of ${G.JOBS.length * G.PASSES.length} done` : 'A cake, a doctor and Granny Bramble'}</small></button>
         <button className="kp-mode" onClick={() => go('garage')}><b>Garage</b><small>Upgrades with Enzo</small></button>
         <button className="kp-mode" onClick={() => go('settings')}><b>Settings</b><small>Assists, gears, Lite, sound</small></button>
       </nav>
@@ -643,6 +688,7 @@ export default function KumoriPass() {
       <header className="kp-pagehead"><button className="kp-back" onClick={() => go('menu')}>‹ Back</button><h2>The Story</h2><div className="kp-coins">🥐 {s.coins}</div></header>
       <ol className="kp-ladder">
         {G.STORY.map((st, i) => {
+          if (i > G.STORY_END && !s.ended) return null;
           const done = i < s.story, cur = i === s.story, locked = i > s.story;
           const art = st.kind === 'duel' || st.kind === 'relay' ? `${st.rival}-portrait` : st.kind === 'scene' ? SCENE_ART[st.scene] : st.pass === 'fog' ? 'story-fog' : 'enzo-notes';
           return <li key={i} className={`kp-step ${done ? 'done' : ''} ${cur ? 'cur' : ''} ${locked ? 'locked' : ''} kp-step-${st.kind}`}>
@@ -669,11 +715,19 @@ export default function KumoriPass() {
     </section>}
 
     {screen === 'picker' && <section className="kp-page">
-      <header className="kp-pagehead"><button className="kp-back" onClick={() => go('menu')}>‹ Back</button><h2>{pickMode === 'delivery' ? 'Delivery Runs' : 'Time Attack'}</h2><div className="kp-coins">🥐 {s.coins}</div></header>
-      <p className="kp-pagelede">{pickMode === 'delivery' ? 'Twelve warm buns on the back seat. Medals need the time and the buns: hit the rails hard and they fly. Every finished run improves Enzo\'s notebook for that pass.' : 'No buns, no rivals: just you and the ghost of your best run on each pass, or race Enzo\'s line.'}</p>
+      <header className="kp-pagehead"><button className="kp-back" onClick={() => go('menu')}>‹ Back</button><h2>{pickMode === 'delivery' ? 'Delivery Runs' : pickMode === 'job' ? 'Side Jobs' : 'Time Attack'}</h2><div className="kp-coins">🥐 {s.coins}</div></header>
+      <p className="kp-pagelede">{pickMode === 'delivery' ? 'Twelve warm buns on the back seat. Medals need the time and the buns: hit the rails hard and they fly. Every finished run improves Enzo\'s notebook for that pass.' : pickMode === 'job' ? 'Odd jobs for the bakery car, in whichever car you pick in the garage. Each pays coins, and the first time on each pass pays a bonus.' : 'No buns, no rivals: just you and the ghost of your best run on each pass, or race Enzo\'s line.'}</p>
       <div className="kp-cards">
         {G.PASSES.map((p) => {
           const open = G.passUnlocked(s, p.id), lvl = G.noteLevel(s.runs[p.id]); const [g, sv, b] = G.medalTimes(p.id);
+          if (pickMode === 'job') return <div key={p.id} className="kp-passwrap"><div className={`kp-card kp-pass kp-pass-${p.id}`} data-pass={p.id} aria-disabled={!open}>
+            <TrackMap pass={p.id} />
+            <span className="kp-card-body"><b>{p.name}</b><small>{p.blurb}</small><span className="kp-medals">Doctor&rsquo;s deadline {fmt(G.jobDeadline(p.id))}</span></span>
+            {!open && <span className="kp-lock">🔒 Reach it in the story</span>}
+          </div>
+            {open && <div className="kp-jobs">{G.JOBS.map((j) => { const done = s.jobs.includes(G.jobKey(j.id, p.id));
+              return <button key={j.id} className={`kp-watch kp-job${done ? ' done' : ''}`} data-job={j.id} data-pass={p.id} title={j.blurb} onClick={() => { sfx()?.unlock(); startJob(j.id, p.id); }}>{j.icon} {j.name}{done ? ' ✓' : ''}</button>; })}</div>}
+          </div>;
           return <div key={p.id} className="kp-passwrap"><button className={`kp-card kp-pass kp-pass-${p.id}`} disabled={!open} data-pass={p.id} onClick={() => { sfx()?.unlock(); startSolo(pickMode, p.id, null); }}>
             <TrackMap pass={p.id} />
             <span className="kp-card-body"><b>{p.name}</b><small>{p.blurb}</small>
@@ -777,10 +831,12 @@ export default function KumoriPass() {
         <p ref={H('noteText')} />
       </div>
       <div className="kp-hud kp-hud-tr">
-        <div className="kp-time"><small>{run.mode === 'demo' ? 'Enzo\'s line · demo' : run.mode === 'delivery' ? 'Delivery' : run.mode === 'attack' ? (run.enzo ? 'vs Enzo\'s line' : 'Time attack') : run.mode === 'relay' ? (run.race.track.reversed ? 'Relay · uphill' : 'Relay · downhill') : `Round ${(run.duel?.round ?? 0) + 1}`}</small><b ref={H('time')}>0:00.00</b>{run.ghost && <em ref={H('delta')} />}</div>
+        <div className="kp-time"><small>{run.mode === 'demo' ? 'Enzo\'s line · demo' : run.mode === 'delivery' ? 'Delivery' : run.mode === 'attack' ? (run.enzo ? 'vs Enzo\'s line' : 'Time attack') : run.job ? `${G.jobDef(run.job).icon} ${G.jobDef(run.job).name}` : run.mode === 'relay' ? (run.race.track.reversed ? 'Relay · uphill' : 'Relay · downhill') : `Round ${(run.duel?.round ?? 0) + 1}`}</small><b ref={H('time')}>0:00.00</b>{run.ghost && <em ref={H('delta')} />}</div>
         {run.duel && <div className="kp-gapbox"><small>{run.race.opts.role === 'lead' ? 'You lead · stay ahead' : 'You chase · stay close'}</small>
           <div className="kp-gap" ref={H('gap')}><i className="kp-gap-mark" /><span className="kp-gap-zone" /></div><b ref={H('gapText')}>side by side</b></div>}
-        {(run.mode === 'delivery' || run.mode === 'demo') && <div className="kp-buns" ref={H('buns')} data-left="12"><small>Buns</small><div className="kp-bunrow">{Array.from({ length: G.BUNS }, (_, i) => <i key={i} style={{ ['--i' as string]: i }} />)}</div><div className="kp-wobble" ref={H('wobble')}><i /></div></div>}
+        {run.job === 'doctor' && <div className="kp-due"><small>Due at the inn {fmt(G.jobDeadline(run.pass))}</small><b ref={H('due')} data-late="0" /></div>}
+        {run.job === 'rider' && <div className="kp-mood" ref={H('mood')}><small>Granny&rsquo;s mood</small><i /></div>}
+        {(run.mode === 'delivery' || run.mode === 'demo' || run.job === 'cake') && <div className="kp-buns" ref={H('buns')} data-left={run.job === 'cake' ? 1 : 12} data-cake={run.job === 'cake' ? '1' : undefined}><small>{run.job === 'cake' ? 'Cake' : 'Buns'}</small><div className="kp-bunrow">{Array.from({ length: run.job === 'cake' ? 1 : G.BUNS }, (_, i) => <i key={i} style={{ ['--i' as string]: i }} />)}</div><div className="kp-wobble" ref={H('wobble')}><i /></div></div>}
         <div className="kp-progress" ref={H('progress')}><i /></div>
         <canvas className="kp-minimap" ref={miniRef} width={280} height={196} aria-hidden />
       </div>
@@ -813,12 +869,13 @@ export default function KumoriPass() {
       <Paint name={r.mode === 'relay' && r.win ? 'ending' : rv ? (r.win ? 'enzo-cheer' : 'enzo-scared') : r.medal >= 2 ? 'enzo-cheer' : 'enzo-notes'} className="kp-bg kp-blur" />
       <div className="kp-resultcard">
         {rv && <Paint name={`${rv.id}-portrait`} className="kp-result-face" pos="50% 25%" />}
-        <span className="kp-eyebrow">{r.mode === 'demo' ? `Enzo's line · ${G.passDef(r.pass).name}` : r.mode === 'delivery' ? `Delivery · ${G.passDef(r.pass).name}` : r.mode === 'attack' ? `${r.enzo ? 'Enzo\'s line' : 'Time attack'} · ${G.passDef(r.pass).name}` : `${r.mode === 'relay' ? 'The dawn relay' : 'Duel'} · ${rv?.name}`}</span>
-        <h2>{rv ? (r.win ? 'You win!' : `${rv.name} wins`) : r.mode === 'demo' ? 'That\'s the line!' : r.enzo ? (r.time < r.enzo ? 'You beat Enzo\'s line!' : 'Enzo\'s line holds') : r.mode === 'delivery' ? (r.medal ? `${MEDAL[r.medal]} delivery!` : 'Delivered') : r.best ? 'New best!' : 'Finished'}</h2>
+        <span className="kp-eyebrow">{r.mode === 'demo' ? `Enzo's line · ${G.passDef(r.pass).name}` : r.mode === 'delivery' ? `Delivery · ${G.passDef(r.pass).name}` : r.mode === 'attack' ? `${r.enzo ? 'Enzo\'s line' : 'Time attack'} · ${G.passDef(r.pass).name}` : r.job ? `${G.jobDef(r.job).name} · ${G.passDef(r.pass).name}` : `${r.mode === 'relay' ? 'The dawn relay' : 'Duel'} · ${rv?.name}`}</span>
+        <h2>{rv ? (r.win ? 'You win!' : `${rv.name} wins`) : r.mode === 'demo' ? 'That\'s the line!' : r.job ? JOB_TITLE[r.job][r.jobOk ? 1 : 0] : r.enzo ? (r.time < r.enzo ? 'You beat Enzo\'s line!' : 'Enzo\'s line holds') : r.mode === 'delivery' ? (r.medal ? `${MEDAL[r.medal]} delivery!` : 'Delivered') : r.best ? 'New best!' : 'Finished'}</h2>
         {rv && <p className="kp-quote">“{r.win ? rv.lose : rv.win}”</p>}
         {rv ? <ol className="kp-rounds">{r.rounds.map((x, i) => <li key={i} data-win={x.win === null ? 'even' : x.win ? 'win' : 'lose'}><b>{x.role}</b> {x.text}</li>)}</ol>
-          : <div className="kp-figures"><div><small>Time</small><b>{fmt(r.time)}</b></div>{(r.mode === 'delivery' || r.mode === 'demo') && <div><small>Buns</small><b>{r.buns}/{G.BUNS}</b></div>}<div><small>Drift points</small><b>{r.drift}</b></div><div><small>Rail hits</small><b>{r.hits}</b></div></div>}
+          : <div className="kp-figures"><div><small>Time</small><b>{fmt(r.time)}</b></div>{(r.mode === 'delivery' || r.mode === 'demo') && <div><small>Buns</small><b>{r.buns}/{G.BUNS}</b></div>}{r.job === 'rider' && <div><small>Granny&rsquo;s mood</small><b>{r.mood}</b></div>}<div><small>Drift points</small><b>{r.drift}</b></div><div><small>Rail hits</small><b>{r.hits}</b></div></div>}
         {r.enzo !== undefined && <p className="kp-medalline">Enzo&rsquo;s line {fmt(r.enzo)} · you {r.time < r.enzo ? `${(r.enzo - r.time).toFixed(2)} s quicker` : `${(r.time - r.enzo).toFixed(2)} s behind`}{r.best ? ' · a new best' : ''}</p>}
+        {r.job && <p className="kp-medalline">{r.job === 'cake' ? (r.jobOk ? 'Not a crumb out of place.' : 'A careful run gets it there: ease off before the hard corners and stay off the rails.') : r.job === 'doctor' ? `Due at ${fmt(G.jobDeadline(r.pass))} · you ${r.time <= G.jobDeadline(r.pass) ? `${(G.jobDeadline(r.pass) - r.time).toFixed(1)} s early` : `${(r.time - G.jobDeadline(r.pass)).toFixed(1)} s late`}` : `She needs ${G.JOB.rider.happy} to be happy: drifts cheer her up, rails and crawling don't.`}{r.first ? ` · first time on this pass: +${G.JOB.firstBonus} bonus` : ''}</p>}
         {r.mode === 'demo' && <p className="kp-medalline">A clean run on the racing line: brake early, turn in late, no rails. Gold is {fmt(G.medalTimes(r.pass)[0])} with 11+ buns.</p>}
         {r.mode === 'delivery' && <p className="kp-medalline">Gold {fmt(G.medalTimes(r.pass)[0])} with 11+ buns · Silver {fmt(G.medalTimes(r.pass)[1])} with 8+ · Bronze {fmt(G.medalTimes(r.pass)[2])} with 5+</p>}
         {r.mode !== 'demo' && <p className="kp-earned">+🥐 {r.coins} bakery coins · total {s.coins}</p>}
@@ -840,7 +897,8 @@ export default function KumoriPass() {
         <h2>Warm buns at dawn</h2>
         <p>Skitter, Ripple, Bodger, Pippa, Vesper, Old Crag and Aurora sit on the inn steps with Dora and Enzo, passing round the last tray. Down in the valley the bakery&rsquo;s chimney is already smoking for tomorrow.</p>
         <p>Every pass, every rival and Free Duel stay open. Enzo says his notebook still has empty pages.</p>
-        <div className="kp-row"><button className="kp-go" onClick={() => go('menu')}>Back to the bakery</button><a className="kp-home2" href="/">Arcade</a></div>
+        <p>On the way home, a pearl-grey car passes the other way with its lights off.</p>
+        <div className="kp-row"><button className="kp-go" onClick={() => playStory(G.STORY_END + 1)}>Follow it ›</button><button onClick={() => go('menu')}>Back to the bakery</button><a className="kp-home2" href="/">Arcade</a></div>
       </div>
     </section>}
   </main>;

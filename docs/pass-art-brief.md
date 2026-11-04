@@ -19,6 +19,8 @@ All files live in `public/art/pass/` as `.webp`. Wide images are 1536 × 1024 (s
 | `story-carpark.webp` | 1536 × 1024 | The first challenge at the summit car park: Skitter the stoat points at Dora and Enzo under the vending-machine glow. |
 | `story-fog.webp` | 1536 × 1024 | The Biscuit's headlights in thick fog on the ridge; Enzo holds up his notebook bravely. |
 | `story-relay.webp` | 1536 × 1024 | The dawn relay start: Enzo at the wheel, Dora with the notebook, Aurora's white fastback alongside. |
+| `story-owl.webp` | 1536 × 1024 | After the story: the bakery before dawn, the Biscuit facing Hush's pearl-grey shooting brake with its lights off. |
+| `granny-bramble.webp` | 1024 × 1024 | Granny Bramble, the hedgehog passenger in the Side Jobs, grinning from the back seat (her speech-bubble face). |
 | `ending.webp` | 1536 × 1024 | Sunrise at the summit inn over a sea of clouds; everyone shares warm buns. |
 | `dora-focus.webp`, `dora-grin.webp`, `dora-shock.webp` | 1536 × 1024 | Dora at the wheel: calm focus, a big grin, wide-eyed shock. Faces LEFT. |
 | `enzo-notes.webp`, `enzo-call.webp`, `enzo-scared.webp`, `enzo-cheer.webp` | 1536 × 1024 | Enzo in the passenger seat: reading the notebook, shouting a call, holding on terrified, cheering. Faces RIGHT. |
@@ -37,3 +39,4 @@ The rivals, all original woodland folk:
 | Vesper | `bat` | A cool fruit bat with violet goggles who drives by ear. | Nightjar: a matte-black fastback with violet lights. |
 | Old Crag | `goat` | A weathered mountain goat with a white beard and a flat cap. | Ironhorn: a long silver and bronze 70s-style coupe. |
 | Aurora | `fox` | An elegant silver fox with golden eyes. The dawn champion. | Daybreak: a white fastback with gold pinstripes and pop-ups. |
+| Hush | `owl` | A calm snowy owl in a pale grey racing jacket who sees through fog; she only appears after the story. | Moonmoth: a pearl-grey shooting brake that runs with its lights off. |

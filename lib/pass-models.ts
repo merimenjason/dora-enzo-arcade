@@ -228,6 +228,12 @@ function model(look: CarLook): Model {
       cab: [[0.42, 0.88], [-0.22, 1.29], [-1.0, 1.31], [-1.72, 0.92]], cabW: [0.9, 0.76], side: [0.25, -1.45, -0.7],
       bands: [[0.5, b], [0.56, tr], [9, b]], roof: tr, bumper: 0xe3e7ee, flare: null,
       lamps: 'twin', lampCol: 0xfff3cc, tailCol: [0x8f101b, 0xff4a48], rim: 'dish', rimCol: tr, glass: 0x24365c, fur: 0xe8e2d4 };
+    case 'brake': return { // Moonmoth: a long, low shooting brake, pearl grey with a thin mauve stripe and slim cool lamps
+      L: 4.45, W: 1.72, R: 0.3, tyreW: 0.22, wb: [1.38, -1.32], ride: 0.25, smooth: true, nose: 0.26, tail: 0.06,
+      top: [[2.22, 0.52], [2.1, 0.64], [0.9, 0.8], [-1.95, 0.9], [-2.22, 0.9]],
+      cab: [[0.9, 0.81], [0.2, 1.22], [-1.92, 1.25], [-2.14, 0.93]], cabW: [0.9, 0.78], side: [0.75, -1.85, -0.4],
+      bands: [[0.44, tr], [0.5, b], [0.53, tr], [9, b]], roof: b, bumper: b, flare: null,
+      lamps: 'slim', lampCol: 0xe4ebff, tailCol: [0x8f101b, 0xff4a48], rim: 'mesh', rimCol: 0xd9dce3, glass: 0x24365c, fur: 0xf4f2ec };
     case 'fastback': default: {
       const dark = (((b >> 16) & 255) + ((b >> 8) & 255) + (b & 255)) / 3 < 110;
       if (dark) return { // Nightjar: a sharp matte-black fastback with violet slit lamps and rear louvres

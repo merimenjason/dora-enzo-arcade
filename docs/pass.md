@@ -60,6 +60,7 @@ Beating a rival unlocks a car in their style (`CARS` in `lib/pass-game.ts`); the
 | Crumpet | kei | Pippa | 740 kg and more lock: best on Hairpin Stairs and Fog Ridge, worst on Cedar | 0% |
 | Brioche | fastback | Vesper | 310 N·m and a loose tail | −1.4% |
 | Stollen | coupe | Old Crag | long wheelbase, more grip and power | −1.3% |
+| Pavlova | brake (shooting brake) | Hush, after the story | light, grippy and strong, calm buns | −1.8% |
 
 "Stock bot" is the competent bot's delivery time averaged over the six passes. `tests/pass.mjs` holds every car within 3% of the Biscuit on each pass and between −2% and +1% overall, with no spins and at most one bun lost. The garage cards use painted portraits `public/art/pass/car-<id>.webp` (generated with the Codex CLI's image tool from `story-carpark.webp` as the style reference, then resized).
 
@@ -122,8 +123,25 @@ Each rival drives the racing line (90% of the grip limit) with their own pace, b
 | 5 | Vesper, bat | Nightjar, black fastback | Ghost Tunnel | 0.9192 | 10 |
 | 6 | Old Crag, mountain goat | Ironhorn, silver coupe | Summit Dawn | 0.9097 | 10 |
 | 7 | Aurora, silver fox | Daybreak, white fastback | Summit Dawn relay | 0.912 | 7 |
+| 8 | Hush, snowy owl (after the story) | Moonmoth, pearl-grey shooting brake | Fog Ridge | 0.945 | 6 |
 
 "Bot wins" is the competent bot (pace 0.985 on Strong assist, with full notes and the ladder's upgrades) from `npm run bot:pass`. The bot drives like a person: it acts on what it decided 0.2 s earlier (steering for where the car will be by then), wanders up to 0.4 m either side of the racing line, and its steering goes through the Smooth filter. `tests/pass-bot.mjs` holds each rival to within 2 wins of the ladder 16, 14, 13, 12, 11, 9, 7 and the first two at 15 and 12 or more. Duel results swing a lot with small pace changes (a few thousandths can move a rival by three wins), so retune by bisecting each rival's pace against the bot and confirm with the full `bot:pass`. A flat-out, no-brakes driver wins none past the first rival. The rivals' own AI steers without the filter and doesn't use the drift hold.
+
+### After the story
+
+The ending scene sets `ended`, which opens every pass, every story rival in Free Duel and the six story cars. Two more steps follow it in `STORY` (after `STORY_END`): a scene at the bakery (`story-owl.webp`) and a duel with Hush on Fog Ridge, with every part the ladder gives. She is the hardest rival (`bot:pass` wants about 5 bot wins in 16, and fewer than Aurora). Hush (`POSTGAME_RIVAL`) and her car, the Pavlova, stay locked until she is beaten; the story ladder hides the two steps until the ending, and the ending card's Follow it button plays them.
+
+## Side jobs
+
+Three jobs on every open pass (`JOBS` and `JOB` in `lib/pass-game.ts`), in the garage's car, each paying coins when it works and `JOB.firstBonus` (40) more the first time on that pass (`jobs` in the save).
+
+| Job | What it is | Works when | Pays | Tuning |
+| --- | --- | --- | --- | --- |
+| 🎂 The wedding cake | one cake instead of twelve buns | the cake arrives (`buns` 1) | 60 | wobble starts at 0.8 g (buns 0.9), gain 1.5 (1.1), settles at 0.2/s; a rail knock over 5.5 m/s breaks it |
+| 🩺 The doctor's run | no cargo, a deadline | time ≤ the bot's time × 1.08 (`jobDeadline`) | 50 + 2 a second early | |
+| 🦔 Granny Bramble | a passenger with a mood (`Race.mood`, 0 to 100, from 50) | mood ≥ 60 at the line | 30 + mood ÷ 2 | a clean drift adds 8 × (0.5 + meter), a rail hit takes 6 + the impact speed, every second under 7 m/s takes 6 |
+
+`tests/pass.mjs` holds the jobs: a careful bot (0.88) delivers the cake on every pass while flat out (0.985) breaks it on Cedar, Hairpin Stairs and Ghost Tunnel; a good run (0.96) makes every deadline and a gentle one (0.85) misses them; Enzo's drifting line keeps Granny happy everywhere, while a tidy run with no drifting bores her on four passes. Her lines are in `RIDER_LINES` on the page, said in the note bubble with her portrait (`granny-bramble.webp`).
 
 ## Coins and progress
 

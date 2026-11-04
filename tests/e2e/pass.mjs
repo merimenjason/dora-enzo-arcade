@@ -220,6 +220,17 @@ for (const vp of [{ width: 844, height: 390 }, { width: 390, height: 844 }]) {
   assert.equal(s.race.car, 'biscuit', 'the story drives the Biscuit');
   await page.keyboard.press('Escape'); await page.locator('.kp-pausecard button', { hasText: 'Quit' }).click();
   console.log('PASS cars');
+  // after the ending: the stranger's chapter opens, Hush and the Pavlova stay locked until she is beaten
+  await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ v: 1, story: 17, ended: true })), KEY); await page.reload(); await ready(page);
+  assert.match(await mode(page, 'Story').locator('small').textContent(), /stranger/i);
+  await mode(page, 'Garage').click();
+  assert.match(await page.locator('.kp-carcard[data-car="pavlova"] button').textContent(), /Beat Hush/);
+  assert.ok(!(await page.locator('.kp-carcard[data-car="stollen"] button').isDisabled()), 'the ending opens the story cars');
+  await page.locator('.kp-back').first().click();
+  await mode(page, 'Story').click(); await page.locator('.kp-step button[data-step="17"]').click();
+  await waitFor(page, (x) => x.screen === 'scene', 'the stranger\'s scene'); await page.locator('.kp-skip').click();
+  s = await waitFor(page, (x) => x.screen === 'intro', 'Hush\'s intro'); assert.equal(s.save.story, 18, 'the scene moves the story on');
+  console.log('PASS postgame');
   await page.context().close();
 }
 
@@ -245,6 +256,16 @@ for (const vp of [{ width: 844, height: 390 }, { width: 390, height: 844 }]) {
   assert.equal(s.race.mode, 'attack'); assert.ok(s.race.enzo, 'the run is against Enzo\'s line');
   assert.match(await page.locator('.kp-time small').textContent(), /Enzo/);
   console.log('PASS race Enzo\'s line');
+  // side jobs: the cake rides alone in a careful delivery
+  await page.keyboard.press('Escape'); await waitFor(page, (x) => x.paused, 'paused');
+  await page.locator('.kp-pausecard button', { hasText: 'Quit' }).click();
+  await mode(page, 'Side Jobs').click();
+  assert.equal(await page.locator('.kp-job[data-pass="cedar"]').count(), 3, 'three jobs on an open pass');
+  await page.locator('.kp-job[data-job="cake"][data-pass="cedar"]').click();
+  s = await waitFor(page, (x) => x.screen === 'race' && x.race && x.race.t > 0.5, 'the cake job', 40000);
+  assert.equal(s.race.job, 'cake'); assert.equal(s.race.buns, 1, 'one cake on the back seat');
+  assert.match(await page.locator('.kp-buns small').textContent(), /Cake/);
+  console.log('PASS side jobs');
   await page.context().close();
 }
 

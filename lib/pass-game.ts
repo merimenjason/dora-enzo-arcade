@@ -29,7 +29,7 @@ export const finishS = (t: Track) => t.len - 35;
 export const START_S = 14;
 
 // ---------------------------------------------------------------- rivals
-export type RivalId = 'stoat' | 'otter' | 'badger' | 'pika' | 'bat' | 'goat' | 'fox';
+export type RivalId = 'stoat' | 'otter' | 'badger' | 'pika' | 'bat' | 'goat' | 'fox' | 'owl';
 export type Rival = {
   id: RivalId; name: string; animal: string; car: string; carBlurb: string; pass: PassId; reversed?: boolean;
   body: number; trim: number; shape: CarShape;
@@ -41,7 +41,7 @@ export type Rival = {
   power: number;
   taunt: string; style: string; win: string; lose: string;
 };
-export type CarShape = 'hatch' | 'wedge' | 'roadster' | 'saloon' | 'kei' | 'fastback' | 'coupe';
+export type CarShape = 'hatch' | 'wedge' | 'roadster' | 'saloon' | 'kei' | 'fastback' | 'coupe' | 'brake';
 
 export const RIVALS: Rival[] = [
   { id: 'stoat', name: 'Skitter', animal: 'stoat', car: 'Kestrel', carBlurb: 'a red wedge coupe with pop-up lights', pass: 'cedar', body: 0xd8352f, trim: 0x1d1d22, shape: 'wedge',
@@ -72,6 +72,11 @@ export const RIVALS: Rival[] = [
     pace: 0.912, brake: 0.95, block: 0.6, fog: 0.02, dark: 0.02, slip: 0.025, power: 1,
     taunt: 'I only race when the sun comes up. Don\'t keep me waiting.', style: 'The dawn champion. Fast everywhere, mistakes almost never.',
     win: 'Again tomorrow, at first light.', lose: 'So this is what warm buns taste like at dawn.' },
+  // after the story: the stranger at the bakery, who only shows up once Aurora is beaten
+  { id: 'owl', name: 'Hush', animal: 'snowy owl', car: 'Moonmoth', carBlurb: 'a pearl-grey shooting brake that runs with its lights off', pass: 'fog', body: 0xc9ccd6, trim: 0x8a6f9e, shape: 'brake',
+    pace: 0.945, brake: 0.96, block: 0.65, fog: 0.0, dark: -0.02, slip: 0.02, power: 1.03,
+    taunt: 'I don\'t need lights. I don\'t need notes. Do you?', style: 'Sees through the fog like it isn\'t there. Nobody has ever passed her.',
+    win: 'Come back when you can hear the fog.', lose: '…The bakery car. I\'ll remember.' },
 ];
 export const rival = (id: RivalId) => RIVALS.find((r) => r.id === id)!;
 
@@ -85,7 +90,7 @@ export function rivalSpec(id: RivalId): CarSpec {
 }
 
 // ---------------------------------------------------------------- the player's cars
-export type CarId = 'biscuit' | 'shortbread' | 'meringue' | 'pumpernickel' | 'crumpet' | 'brioche' | 'stollen';
+export type CarId = 'biscuit' | 'shortbread' | 'meringue' | 'pumpernickel' | 'crumpet' | 'brioche' | 'stollen' | 'pavlova';
 export type PlayerCar = { id: CarId; name: string; blurb: string; shape: CarShape; body: number; trim: number;
   /** beating this rival unlocks it (the Biscuit is always yours) */
   rival: RivalId | null; stats: Record<Stat, number>; tune: Partial<Omit<CarSpec, 'ratios'>> };
@@ -109,6 +114,8 @@ export const CARS: PlayerCar[] = [
     rival: 'bat', stats: { power: 7, grip: 4, rotation: 5, stability: 3, buns: 4 }, tune: { mass: 1170, inertia: 1750, torque: 310, slideR: 0.72, br: 10.8, lsd: 0.6 } },
   { id: 'stollen', name: 'Stollen', blurb: 'A long cream coupe for the whole mountain: calm, quick, and built for sweepers.', shape: 'coupe', body: 0xf2e8d2, trim: 0x8a2b3a,
     rival: 'goat', stats: { power: 6, grip: 5, rotation: 3, stability: 7, buns: 5 }, tune: { mass: 1180, inertia: 1850, a: 1.22, b: 1.4, torque: 285, mu: 1.14, bunDamp: 0.9 } },
+  { id: 'pavlova', name: 'Pavlova', blurb: 'A pearl shooting brake from after the story: light, grippy and strong, with room in the back for a cake.', shape: 'brake', body: 0xeeeae6, trim: 0xa58bbd,
+    rival: 'owl', stats: { power: 6, grip: 6, rotation: 5, stability: 6, buns: 6 }, tune: { mass: 1100, inertia: 1650, a: 1.18, b: 1.36, torque: 285, mu: 1.14, lsd: 0.5, bunDamp: 0.85 } },
 ];
 export const CAR_IDS = CARS.map((c) => c.id);
 export const carDef = (id: CarId | string | undefined) => CARS.find((c) => c.id === id) ?? CARS[0];
@@ -281,7 +288,8 @@ export type RaceEvent =
   | { k: 'hook'; car: number } | { k: 'hookSpin'; car: number }
   | { k: 'driftStart' } | { k: 'driftEnd'; meter: number; boost: boolean } | { k: 'driftBroken' }
   | { k: 'bun'; left: number } | { k: 'overtake'; by: number } | { k: 'reset'; car: number }
-  | { k: 'finish'; car: number; time: number } | { k: 'go' } | { k: 'crash'; car: number };
+  | { k: 'finish'; car: number; time: number } | { k: 'go' } | { k: 'crash'; car: number }
+  | { k: 'rider'; why: 'drift' | 'big' | 'hit' | 'slow'; mood: number };
 
 export type RaceOpts = {
   pass: PassId; reversed?: boolean;
@@ -295,6 +303,8 @@ export type RaceOpts = {
   ghostCar?: { up: readonly string[]; assist: number; manual: boolean; sharp?: boolean; car?: CarId } | null;
   /** which of the player's cars (the Biscuit by default) */
   car?: CarId;
+  /** a side job: the fragile cake (needs buns on), the doctor's deadline, or Granny Bramble riding along */
+  job?: JobId;
   /** Sharp steering: a quicker keyboard filter (Smooth is the default) */
   sharp?: boolean;
   /** the competent bot drives the player's car (tests) */
@@ -349,6 +359,8 @@ export class Race {
   buns = BUNS; wobble = 0; drift = 0; drifting = false; driftHold = 0; driftScore = 0; driftClean = true;
   inputs: number[] = []; rs = 0; leaderIdx = 0; passed = false; overtakes = 0;
   result: RoundResult | null = null; hits = 0;
+  /** Granny Bramble's mood, 0..100 (rider job) */
+  mood = JOB.rider.start;
   private rand: () => number; private gIn = idleInput(); private qIn = idleInput(); private aiIn = idleInput(); private tmp: Where = { i: 0, s: 0, d: 0, px: 0, py: 0 };
   readonly finishS: number; readonly fogLevel: number; readonly dark: boolean;
 
@@ -358,6 +370,7 @@ export class Race {
     this.rand = rng(opts.seed ?? 1);
     this.finishS = finishS(this.track);
     this.fogLevel = this.track.def.fog; this.dark = this.track.def.dark;
+    if (opts.job === 'cake') this.buns = 1;
     this.t = -(opts.countdown ?? 3);
     const spec = opts.spec ?? carSpec(opts.car, opts.upgrades ?? []);
     const lead = opts.role !== 'chase';
@@ -511,7 +524,7 @@ export class Race {
         if (vn > 1.2 && r.wallT === 0) {
           r.wallT = 0.25;
           if (idx >= 0) this.events.push({ k: 'wall', car: idx, x: c.x + nx * 1, y: c.y + ny * 1, mag: vn, side });
-          if (idx === 0) { this.hits++; this.hitBuns(vn); this.breakDrift(); }
+          if (idx === 0) { this.hits++; this.hitBuns(vn); this.breakDrift(); this.riderMood('hit', -(JOB.rider.hit + vn)); }
           if (idx === -1) this.breakGhostDrift();
         }
       }
@@ -559,9 +572,14 @@ export class Race {
   }
 
   // ---- the player's drift meter, boost, buns and Enzo's notes
+  private riderMood(why: 'drift' | 'big' | 'hit', by: number) {
+    if (this.opts.job !== 'rider' || this.player.finished >= 0) return;
+    this.mood = Math.max(0, Math.min(100, this.mood + by)); this.events.push({ k: 'rider', why, mood: this.mood });
+  }
   private breakDrift() { if (this.drifting) { this.drifting = false; this.events.push({ k: 'driftBroken' }); } this.drift = 0; this.driftClean = false; }
   private hitBuns(mag: number) {
     if (!this.opts.buns || this.buns <= 0) return;
+    if (this.opts.job === 'cake') { if (mag > JOB.cake.knock) { this.buns = 0; this.events.push({ k: 'bun', left: 0 }); } return; }
     const lost = Math.min(this.buns, Math.floor(Math.max(0, mag - 3) / 3.2) + (mag > 5.5 ? 1 : 0));
     if (lost > 0) { this.buns -= lost; this.events.push({ k: 'bun', left: this.buns }); }
   }
@@ -581,6 +599,7 @@ export class Race {
         const boost = st.drift >= DRIFT.boostMin && st.driftClean;
         if (boost) c.boost = Math.max(c.boost, DRIFT.boostSecs * st.drift);
         if (events) this.events.push({ k: 'driftEnd', meter: st.drift, boost });
+        if (events && boost) this.riderMood(st.drift > 0.8 ? 'big' : 'drift', JOB.rider.drift * (0.5 + st.drift));
         st.drift = 0;
       }
     }
@@ -592,10 +611,16 @@ export class Race {
     this.meter(this, r, true);
     // the bun tray wobbles with hard cornering and braking
     if (this.opts.buns && this.buns > 0) {
-      const g = Math.hypot(c.ax, c.ay) / G;
-      this.wobble += (Math.max(0, g - 0.9) * 1.1 * c.spec.bunDamp - 0.22) * DT;
+      const g = Math.hypot(c.ax, c.ay) / G, cake = this.opts.job === 'cake';
+      const [over, gain, calm] = cake ? [JOB.cake.over, JOB.cake.gain, JOB.cake.calm] : [0.9, 1.1, 0.22];
+      this.wobble += (Math.max(0, g - over) * gain * c.spec.bunDamp - calm) * DT;
       this.wobble = Math.max(0, this.wobble);
       if (this.wobble >= 1) { this.wobble = 0.35; this.buns--; this.events.push({ k: 'bun', left: this.buns }); }
+    }
+    // Granny Bramble gets bored below a brisk pace
+    if (this.opts.job === 'rider' && this.t > 3 && r.finished < 0 && speed < JOB.rider.slowSpeed) {
+      const was = this.mood; this.mood = Math.max(0, this.mood - JOB.rider.slow * DT);
+      if (Math.floor(was / 10) !== Math.floor(this.mood / 10)) this.events.push({ k: 'rider', why: 'slow', mood: this.mood });
     }
     // pace notes: called a little ahead, further ahead the better the notebook
     const lead = NOTE_LEAD[Math.max(0, Math.min(3, this.opts.noteLevel ?? 0))];
@@ -818,10 +843,37 @@ export function deliveryMedal(id: PassId, time: number, buns: number) {
   return 0;
 }
 export function deliveryCoins(medal: number, buns: number) { return buns * 2 + [0, 10, 20, 35][medal]; }
+// ---------------------------------------------------------------- side jobs
+export type JobId = 'cake' | 'doctor' | 'rider';
+/** Side job tuning. cake: wobble over `over` g at `gain`, settling at `calm`, and a rail knock over `knock` m/s breaks it.
+ *  doctor: the deadline is the bot's time times `deadline`. rider: mood starts at `start`, a clean drift adds up to
+ *  1.5 × `drift`, a rail hit takes `hit` plus the impact speed, and every second under `slowSpeed` m/s takes `slow`. */
+export const JOB = {
+  cake: { over: 0.8, gain: 1.5, calm: 0.2, knock: 5.5, pay: 60 },
+  doctor: { deadline: 1.08, pay: 50 },
+  rider: { start: 50, drift: 8, hit: 6, slow: 6, slowSpeed: 7, happy: 60, pay: 30 },
+  firstBonus: 40,
+};
+export const JOBS: { id: JobId; name: string; icon: string; blurb: string }[] = [
+  { id: 'cake', name: 'The wedding cake', icon: '🎂', blurb: 'One tall cake for the summit inn. It wobbles at a hard corner and breaks on any knock.' },
+  { id: 'doctor', name: 'The doctor\'s run', icon: '🩺', blurb: 'Dr Wren\'s bag is in the boot and a baby is on the way. Beat the clock, buns or no buns.' },
+  { id: 'rider', name: 'Granny Bramble', icon: '🦔', blurb: 'She wants to see the sunrise from the top, and she likes it fast and sideways. Keep her happy.' },
+];
+export const JOB_IDS = JOBS.map((j) => j.id);
+export const jobDef = (id: JobId) => JOBS.find((j) => j.id === id)!;
+export const jobDeadline = (pass: PassId) => Math.round(BOT_TIMES[pass] * JOB.doctor.deadline * 10) / 10;
+/** Did the job succeed, and what does it pay (before the first-time bonus)? */
+export function jobResult(job: JobId, pass: PassId, r: { time: number; buns: number; mood: number }) {
+  if (job === 'cake') return { ok: r.buns > 0, coins: r.buns > 0 ? JOB.cake.pay : 0 };
+  if (job === 'doctor') { const ok = r.time <= jobDeadline(pass); return { ok, coins: ok ? JOB.doctor.pay + Math.round((jobDeadline(pass) - r.time) * 2) : 0 }; }
+  const ok = r.mood >= JOB.rider.happy; return { ok, coins: ok ? JOB.rider.pay + Math.round(r.mood / 2) : 0 };
+}
+export const jobKey = (job: JobId, pass: PassId) => `${job}:${pass}`;
+
 export function duelCoins(rivalId: RivalId, won: boolean) { const i = RIVALS.findIndex((r) => r.id === rivalId); return won ? 45 + i * 15 : 12; }
 
 // ---------------------------------------------------------------- the story ladder
-export type SceneId = 'bakery' | 'carpark' | 'fog' | 'relay' | 'ending';
+export type SceneId = 'bakery' | 'carpark' | 'fog' | 'relay' | 'ending' | 'owl';
 export type StoryStep =
   | { kind: 'scene'; scene: SceneId; lines: [string, string][] }
   | { kind: 'delivery'; pass: PassId; lines: [string, string][] }
@@ -846,6 +898,9 @@ export const STORY: StoryStep[] = [
   { kind: 'scene', scene: 'relay', lines: [['narrator', 'First light. A paper lantern marks the start. A white car is already waiting.'], ['fox', 'A relay. One of you drives up, the other drives down.'], ['dora', 'Enzo. You know this mountain better than anyone now. You take the wheel going up.'], ['enzo', 'M-me?! …Okay. You call the notes.']] },
   { kind: 'relay', rival: 'fox', lines: [['dora', 'Leg one: Enzo drives uphill, I read his notebook. Leg two: I drive down. Let\'s go home.']] },
   { kind: 'scene', scene: 'ending', lines: [['narrator', 'The sun comes up over a sea of cloud. At the summit inn, the buns are still warm.'], ['fox', 'So this is what warm buns taste like at dawn.'], ['enzo', 'Same time tomorrow? I\'ll bring extra.']] },
+  // after the story (needs ended): the stranger at the bakery
+  { kind: 'scene', scene: 'owl', lines: [['narrator', 'The next night. A pearl-grey car waits outside the bakery with its lights off. Nobody heard it arrive.'], ['owl', 'They say there\'s a bun car on this mountain that nobody can pass.'], ['enzo', 'W-we\'re just a bakery…'], ['owl', 'Fog Ridge, tonight. I won\'t be using my lights.']] },
+  { kind: 'duel', rival: 'owl', lines: [['enzo', 'She sees through the fog. I can\'t. But I wrote down every corner, and the notebook doesn\'t need to see!']] },
 ];
 
 // ---------------------------------------------------------------- saves
@@ -861,12 +916,14 @@ export type Save = {
   settings: Settings; ended: boolean;
   /** the car picked in the garage */
   car: CarId;
+  /** side jobs done at least once, as jobKey(job, pass) */
+  jobs: string[];
 };
 const PASS_IDS = PASSES.map((p) => p.id);
 const zeroBy = (v: number) => Object.fromEntries(PASS_IDS.map((id) => [id, v])) as Record<PassId, number>;
 export function newSave(): Save {
   return { v: 1, coins: 0, upgrades: [], runs: zeroBy(0), story: 0, beaten: [], medals: zeroBy(0), best: zeroBy(0), ghosts: {}, ghostMeta: {},
-    settings: { assist: ASSIST.strong, sharp: false, manual: false, lite: false, sound: true, music: true, camera: 0 }, ended: false, car: 'biscuit' };
+    settings: { assist: ASSIST.strong, sharp: false, manual: false, lite: false, sound: true, music: true, camera: 0 }, ended: false, car: 'biscuit', jobs: [] };
 }
 const num = (v: unknown, lo: number, hi: number, d: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d);
 const UPGRADE_IDS = ['flywheel', 'rear', 'tyres', 'lsd', 'intake', 'rack', 'tray', 'coilovers', 'strip'];
@@ -908,6 +965,8 @@ export function parseSave(raw: string | null | undefined): Save {
   s.ended = d.ended === true;
   // a car you have not unlocked (or one that doesn't exist) falls back to the Biscuit
   if (CAR_IDS.includes(d.car as CarId) && carUnlocked(s, d.car as CarId)) s.car = d.car as CarId;
+  const jobKeys = JOB_IDS.flatMap((j) => PASSES.map((p) => jobKey(j, p.id)));
+  if (Array.isArray(d.jobs)) s.jobs = [...new Set(d.jobs.filter((k): k is string => jobKeys.includes(k as string)))];
   return s;
 }
 export const serialise = (s: Save) => JSON.stringify(s);
@@ -918,8 +977,11 @@ export const passUnlocked = (s: Save, id: PassId) => {
   const i = STORY.findIndex((st) => (st.kind === 'delivery' && st.pass === id) || (st.kind === 'duel' && rival(st.rival).pass === id));
   return id === 'cedar' || s.ended || (i >= 0 && s.story >= i);
 };
-export const rivalUnlocked = (s: Save, id: RivalId) => s.beaten.includes(id) || s.ended;
-export const carUnlocked = (s: Save, id: CarId) => { const r = carDef(id).rival; return id === 'biscuit' || s.ended || (!!r && s.beaten.includes(r)); };
+/** The steps after the ending scene are the postgame: Hush and the Pavlova only open from there. */
+export const STORY_END = STORY.findIndex((st) => st.kind === 'scene' && st.scene === 'ending');
+export const POSTGAME_RIVAL: RivalId = 'owl';
+export const rivalUnlocked = (s: Save, id: RivalId) => s.beaten.includes(id) || (s.ended && id !== POSTGAME_RIVAL);
+export const carUnlocked = (s: Save, id: CarId) => { const r = carDef(id).rival; return id === 'biscuit' || (s.ended && r !== POSTGAME_RIVAL) || (!!r && s.beaten.includes(r)); };
 export function buyUpgrade(s: Save, id: string): boolean {
   const u = UPGRADE_LIST.find((x) => x.id === id);
   if (!u || s.upgrades.includes(id) || s.coins < u.cost) return false;

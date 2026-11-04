@@ -8,7 +8,7 @@ import { BASE, DT, makeCar, stepCar, tyre, gearSpeed, slipAngle, idleInput, with
 import { buildTrack, locate, radiusAt, at, PASSES, NARROW, WIDE } from '../.checks/pass-tracks.js';
 import { Race, Duel, duelOutcome, RIVALS, rival, paceNotes, readRoad, severity, SEVERITY, NOTE_LEAD, noteLevel, getTrack,
   encodeInput, decodeInput, packGhost, unpackGhost, parseSave, newSave, serialise, buyUpgrade, recordRun, passUnlocked,
-  deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng, GHOST_VERSION, ASSIST, DEMO, CARS, carSpec, carUnlocked, enzoGhost, ENZO_CAR } from '../.checks/pass-game.js';
+  deliveryMedal, medalTimes, BOT_TIMES, STORY, BUNS, DUEL_GAP, finishS, SAVE_KEY, rng, GHOST_VERSION, ASSIST, DEMO, CARS, carSpec, carUnlocked, enzoGhost, ENZO_CAR, JOB, jobDeadline, jobResult, STORY_END, rivalUnlocked } from '../.checks/pass-game.js';
 
 let n = 0;
 const ok = (m) => { n++; console.log('ok', m); };
@@ -355,8 +355,14 @@ for (const p of PASSES) {
   for (const rv of RIVALS) assert.ok(STORY.some((s) => (s.kind === 'duel' || s.kind === 'relay') && s.rival === rv.id), `${rv.name} is in the story`);
   for (const p of PASSES.filter((p) => p.id !== 'summit')) assert.ok(STORY.some((s) => s.kind === 'delivery' && s.pass === p.id), `${p.name} has a delivery`);
   for (const sc of ['bakery', 'carpark', 'fog', 'relay', 'ending']) assert.ok(STORY.some((s) => s.kind === 'scene' && s.scene === sc));
-  assert.equal(STORY[STORY.length - 1].kind, 'scene');
-  ok(`story: ${STORY.length} steps`);
+  assert.equal(STORY[STORY_END].kind, 'scene'); assert.equal(STORY[STORY_END].scene, 'ending');
+  // the postgame: the stranger's scene, then her duel, both after the ending
+  assert.deepEqual(STORY.slice(STORY_END + 1).map((s) => s.kind), ['scene', 'duel']); assert.equal(STORY[STORY.length - 1].rival, 'owl');
+  const done = newSave(); done.ended = true; done.story = STORY_END + 1;
+  assert.ok(rivalUnlocked(done, 'fox') && !rivalUnlocked(done, 'owl'), 'the ending opens every rival but Hush');
+  assert.ok(carUnlocked(done, 'stollen') && !carUnlocked(done, 'pavlova'), 'and every car but the Pavlova');
+  done.beaten.push('owl'); assert.ok(rivalUnlocked(done, 'owl') && carUnlocked(done, 'pavlova'), 'beating Hush opens both');
+  ok(`story: ${STORY_END + 1} steps to the ending, then ${STORY.length - STORY_END - 1} after it`);
 }
 {
   assert.equal(SAVE_KEY, 'kumori-pass-v1');
@@ -416,7 +422,7 @@ for (const p of PASSES) {
   assert.equal(parseSave(JSON.stringify({ v: 1, car: 'brioche' })).car, 'biscuit', 'a locked car falls back to the Biscuit');
   assert.equal(parseSave(JSON.stringify({ v: 1, car: 'limousine', ended: true })).car, 'biscuit', 'an unknown car falls back too');
   assert.ok(CARS.filter((c) => c.rival).every((c) => carUnlocked({ ...newSave(), beaten: [c.rival] }, c.id)), 'beating a rival unlocks their car');
-  ok(`seven cars, each within reach of the Biscuit (overall ${JSON.stringify(spreads)}), ghosts keep their car, saves keep only unlocked cars`);
+  ok(`${CARS.length} cars, each within reach of the Biscuit (overall ${JSON.stringify(spreads)}), ghosts keep their car, saves keep only unlocked cars`);
 }
 // ---- Enzo's line: the demo drives every pass cleanly (no rails, no spins, every bun), drifts, and beats the bot
 {
@@ -439,6 +445,36 @@ for (const p of PASSES) {
     assert.ok(Math.abs(g.ghost.finished - e.time) < 1e-9, `${p.id}: Enzo's ghost replays the demo exactly (${g.ghost.finished.toFixed(3)} = ${e.time.toFixed(3)})`);
   }
   ok('Enzo\'s line replays exactly as a Time Attack ghost on every pass');
+}
+
+// ---------------------------------------------------------------- side jobs
+{
+  const run = (o) => { const r = new Race({ noteLevel: 3, seed: 7, countdown: 0.2, ...o }); let n = 0; while (!r.done && n < 120 * 300) { r.tick(idleInput()); n++; } return r; };
+  const broke = [], bored = [];
+  for (const p of PASSES) {
+    // the cake: a careful driver gets it there everywhere; flat out breaks it somewhere
+    const careful = run({ pass: p.id, autopilot: 0.88, buns: true, job: 'cake' });
+    assert.equal(careful.buns, 1, `${p.id}: a careful run delivers the cake`);
+    assert.ok(jobResult('cake', p.id, { time: careful.player.finished, buns: careful.buns, mood: 0 }).ok);
+    if (run({ pass: p.id, autopilot: 0.985, buns: true, job: 'cake' }).buns === 0) broke.push(p.id);
+    // the doctor: a good clean run makes the deadline, a gentle one doesn't
+    const quick = run({ pass: p.id, autopilot: 0.96 }), slow = run({ pass: p.id, autopilot: 0.85 });
+    assert.ok(quick.player.finished <= jobDeadline(p.id), `${p.id}: a good run makes the doctor's deadline (${quick.player.finished.toFixed(1)} ≤ ${jobDeadline(p.id)})`);
+    assert.ok(!jobResult('doctor', p.id, { time: slow.player.finished, buns: 0, mood: 0 }).ok, `${p.id}: a gentle run misses it (${slow.player.finished.toFixed(1)})`);
+    // Granny Bramble: Enzo's drifting line delights her
+    const demo = run({ pass: p.id, autopilot: DEMO.pass[p.id].pace, demo: true, job: 'rider' });
+    assert.ok(demo.mood >= JOB.rider.happy, `${p.id}: Enzo's line keeps Granny happy (${demo.mood.toFixed(0)})`);
+    if (run({ pass: p.id, autopilot: 0.93, job: 'rider' }).mood < JOB.rider.happy) bored.push(p.id);
+  }
+  assert.ok(broke.length >= 2, `flat out breaks the cake on some passes (${broke})`);
+  assert.ok(bored.length >= 2, `a tidy run with no drifting bores Granny on some passes (${bored})`);
+  // the jobs leave the plain delivery alone
+  const plain = run({ pass: 'lake', autopilot: 0.985, buns: true }), again = run({ pass: 'lake', autopilot: 0.985, buns: true, job: 'doctor' });
+  assert.equal(plain.player.finished, again.player.finished); assert.equal(plain.buns, again.buns); assert.equal(plain.mood, JOB.rider.start);
+  // the save keeps known jobs once each and drops anything else
+  const sv = parseSave(JSON.stringify({ v: 1, jobs: ['cake:lake', 'cake:lake', 'rider:summit', 'cake:moon', 7] }));
+  assert.deepEqual(sv.jobs, ['cake:lake', 'rider:summit']); assert.deepEqual(newSave().jobs, []);
+  ok(`side jobs: the cake survives care (flat out breaks it on ${broke.join(', ')}), the deadline needs pace, Granny needs drifts (bored on ${bored.join(', ')})`);
 }
 console.log(`pass: ${n} checks passed`);
 void DUEL_GAP;

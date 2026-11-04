@@ -63,11 +63,12 @@ for (const rv of RIVALS) {
   share[rv.id] = wins / SEEDS;
   console.log(`bot vs ${rv.name.padEnd(9)} won ${wins}/${SEEDS}  avg rounds ${(rounds / SEEDS).toFixed(1)}`);
 }
-// the human-like bot's ladder: the first two rivals forgiving, then rising to the dawn champion
-const TARGET = { stoat: 16, otter: 14, badger: 13, pika: 12, bat: 11, goat: 9, fox: 7 };
+// the human-like bot's ladder: the first two rivals forgiving, then rising to the dawn champion, and Hush after the story
+const TARGET = { stoat: 16, otter: 14, badger: 13, pika: 12, bat: 11, goat: 9, fox: 7, owl: 5 };
 for (const rv of RIVALS) assert.ok(Math.abs(share[rv.id] * SEEDS - TARGET[rv.id]) <= 2, `${rv.name}: ${share[rv.id] * SEEDS}/${SEEDS} wins, near the ${TARGET[rv.id]} the ladder wants`);
 assert.ok(share.stoat >= 15 / 16 && share.otter >= 12 / 16, 'the first two rivals are forgiving');
-for (const rv of RIVALS) if (rv.id !== 'fox') assert.ok(share.fox <= share[rv.id], `Aurora is the hardest (${share.fox} vs ${rv.name} ${share[rv.id]})`);
+for (const rv of RIVALS) if (rv.id !== 'fox' && rv.id !== 'owl') assert.ok(share.fox <= share[rv.id], `Aurora is the hardest in the story (${share.fox} vs ${rv.name} ${share[rv.id]})`);
+assert.ok(share.owl <= share.fox, `Hush, after the story, is harder still (${share.owl} vs Aurora ${share.fox})`);
 
 let naiveWins = 0, naiveCrashes = 0;
 for (const rv of RIVALS.slice(1)) for (let s = 1; s <= (quick ? 2 : 4); s++) {

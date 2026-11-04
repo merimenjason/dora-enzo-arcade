@@ -132,7 +132,7 @@ export class PassSound {
   /** Chirpy speech blips for a line of dialogue: Enzo high and quick, Dora a little lower, rivals by species. */
   voice(who: string, text: string) {
     if (!this.ok('voice', 0.15)) return; const c = this.ctx!;
-    const base = who === 'enzo' ? 980 : who === 'dora' ? 720 : who === 'goat' ? 300 : who === 'badger' ? 360 : who === 'bat' ? 1300 : who === 'pika' ? 1150 : 560;
+    const base = who === 'enzo' ? 980 : who === 'dora' ? 720 : who === 'goat' ? 300 : who === 'badger' ? 360 : who === 'bat' ? 1300 : who === 'pika' ? 1150 : who === 'owl' ? 640 : who === 'granny' ? 470 : 560;
     const n = Math.min(9, Math.max(3, Math.round(text.length / 6)));
     for (let i = 0; i < n; i++) {
       const ch = text.charCodeAt((i * 5) % Math.max(1, text.length)) || 70;
