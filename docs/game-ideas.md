@@ -6,7 +6,7 @@ Painted mock-ups (Codex) are in [`ideas/`](ideas/). There is a page with all of 
 
 ## Roguelites (05-11-2026)
 
-The arcade already has nine roguelites: Chin x Pit Classic (ball bouncing), Night Survivors (survivors-like), Hay Maze Defence (tower defence), Summit Shuffle (deck-building climb), Acorn Hand (poker scoring), Hay Bale Brawl (auto-battler), Chinchilla Trek (trek), Dust Bunny Dungeon (classic roguelike) and Lucky Pips (dice placement). Bounce / Burrow already has boon picks between rooms. These ideas use kinds of roguelite the arcade doesn't have yet.
+The arcade already has nine roguelites: Chin x Pit Classic (ball bouncing), Night Survivors (survivors-like), Hay Maze Defence (tower defence), Summit Shuffle (deck-building climb), Acorn Hand (poker scoring), Hay Bale Brawl (auto-battler), Chinchilla Trek (trek), Dust Bunny Dungeon (classic roguelike) and Lucky Pips (dice placement). Bounce / Burrow already has boon picks between rooms. These ideas use kinds of roguelite the arcade doesn't have yet. Gameplay mock-ups: `ideas/satchel-play.webp`, `ideas/burrow-play.webp`, `ideas/loop-play.webp`, `ideas/beat-play.webp`.
 
 ### Satchel Road (recommended)
 
