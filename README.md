@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of eighty-one original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of eighty-two original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -91,6 +91,7 @@ Listed in arcade-menu order.
 | 79 | Cloudberry Balloon | `/balloon` | Hot-air balloon |
 | 80 | Paperwing Post | `/glider` | Paper glider |
 | 81 | The Clocktower Mystery | `/clocktower` | Point-and-click adventure |
+| 82 | Tetherball | `/tether` | Action roguelite |
 
 ## Run
 
@@ -1411,6 +1412,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:clocktower` runs the engine checks: the rooms and the walkthrough through all four chapters, paths shut until the story opens them, Dora's and Enzo's talents, walking apart, each wheel on its own spindle, using things where they don't belong, the notebook and saves. `npm run bot:clocktower` walks every state the story can reach and checks the clock can always still be mended (no dead ends), that every hotspot and thing gets used, the shortest solution's length, and that following the notebook's hints alone reaches the end. `node tests/e2e/clocktower.mjs` (with `npm run dev` running) plays in a browser on desktop and on phones held either way.
 
 **Docs:** [`docs/clocktower.md`](docs/clocktower.md) has the story, every room and puzzle, the solution, the hints, the solver's results and the save.
+
+### 82 · Tetherball (`/tether`)
+
+**Play:** a pixel-art action roguelite with no weapons. Dora throws a hook on a rope at a Grumble: hold the button and it whirls round her, faster and faster, then let go and it flies off along its swing. Whatever it hits takes damage from the speed of the hit (1 at 60 px/s and one more for every 50 above), and so does the enemy she threw, so light enemies are fast but fragile flails and the armoured Shellback is the best of all. Knocked-out enemies tumble on and hit what they meet, so one good throw can bowl through a line. A quick tap yanks an enemy over instead. Heavy enemies whirl slowly and drag Dora about; Enzo stands braced in every arena, and hooking him swings Dora herself round so she slams into whatever she meets. Walls, spikes, pits and crates (some hold a heart) are weapons too, Bomb Beetles explode on a hard hit, a fast-whirling rope blocks acorns and rocks, and the dash goes straight through enemies. Thirteen arenas across the Mossy Courtyard, Clover Meadow, Glimmer Mine and Grumble Keep, with an upgrade from Enzo's satchel after each one (three on offer from eleven, such as a longer rope, a bungee rope, a blast knot, bowling and wall quakes) and the Stone Golem at the end. Best arena, kills, combo and swing speed are saved.
+
+**Controls:** WASD or the arrow keys move. The mouse aims; hold the left button (or J or Z) to hook and whirl, and let go to throw. Space, Shift, K, X or the right mouse button dashes. Without the mouse, the hook finds the enemy Dora is facing. Esc or P pauses, and 1, 2 or 3 picks an upgrade. On a touch screen: a stick, a HOOK button to hold and a DASH button.
+
+**Tests:** `npm run test:tether` runs the engine checks: seeded arenas, the hook (latching, missing, yanking, auto-aim), the rope (it never stretches, light and heavy whirl speeds, a charging boar dragging Dora), throws, impacts and bowling, armour, walls, spikes, pits, crates and hearts, chained bomb beetles, swinging round Enzo, the dash, every enemy, waves, upgrades, losing and winning, seeded replays and the save. `npm run bot:tether` plays thirty runs as a skilled swinger, which must win some and get a fair way in the rest, and thirty as a careless player, who must get much less far. `node tests/e2e/tether.mjs` (with `npm run dev` running) plays in a browser on desktop and on phones held either way.
+
+**Docs:** [`docs/tether.md`](docs/tether.md) has the rules, every number, the enemies, the upgrades, the art and the bot results.
 
 ## Validation
 

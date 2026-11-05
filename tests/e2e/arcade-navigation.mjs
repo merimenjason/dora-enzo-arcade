@@ -11,8 +11,8 @@ try {
   assert.equal(await link.getAttribute('href'), '/');
   await link.click();
   await page.waitForSelector('.arcade-grid');
-  assert.equal(await page.locator('.arcade-card').count(),81);
-  console.log(`PASS ${route} → main arcade (81 game cards)`);
+  assert.equal(await page.locator('.arcade-card').count(),82);
+  console.log(`PASS ${route} → main arcade (82 game cards)`);
   await page.close();
  }
  {

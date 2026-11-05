@@ -56,7 +56,7 @@ try {
   // ---- the arcade card, the menu
   const page = await open();
   await page.goto(base);
-  assert.equal(await page.locator('.arcade-card').count(),81);
+  assert.equal(await page.locator('.arcade-card').count(),82);
   await page.locator('a.arcade-card[href="/fold"]').click();
   await ready(page);
   assert.equal(await page.getByRole('heading', { level: 1 }).textContent(), 'Paperfold');

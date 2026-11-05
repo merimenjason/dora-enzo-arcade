@@ -6,7 +6,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 20-10-2026)
 
-**Newest game (05-11-2026): The Clocktower Mystery** (`/clocktower`, game 81), a painted point-and-click adventure; see [The Clocktower Mystery · 05-11-2026](#the-clocktower-mystery--05-11-2026) below. Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
+**Newest game (05-11-2026): Tetherball** (`/tether`, game 82), a pixel-art action roguelite where the rope is the only weapon; see [Tetherball · 05-11-2026](#tetherball--05-11-2026) below. The Clocktower Mystery (`/clocktower`, game 81), Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
 
 **Newest work (03–04-11-2026): Kumori Pass** (`/pass`, game 75) got a new look, a minimap, Enzo's demo line (also as a Time Attack ghost), two garage parts, seven unlockable cars, Side Jobs and a chapter after the ending; see [Kumori Pass · 04-11-2026](#kumori-pass--04-11-2026) below.
 
@@ -98,6 +98,17 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 9. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
 10. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
 11. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
+
+## Tetherball · 05-11-2026
+
+Game 82, `/tether`, a pixel-art action roguelite: Dora hooks an enemy on a rope, whirls it and lets go, and whatever it hits is hurt by the speed of the hit. Thirteen arenas, upgrades between them and a stone golem at the end. It is the top pick from the action roguelite concepts in [`docs/action-roguelites.md`](docs/action-roguelites.md). Rules, every number and the bot results: [`docs/tether.md`](docs/tether.md).
+
+- **Code:** engine `lib/tether-game.ts` (deterministic 60 Hz: seeded arenas and waves; the hook, an inextensible rope solved by weight with a whirl force, yanks and throws; two-body impacts with damage from speed, knocked-out enemies that tumble on, pair cooldowns and hitstop; walls, spikes, pits, crates; enemy minds; upgrades; the save). Scene `lib/tether-scene.ts` (480 by 320 Canvas 2D, nearest-neighbour). Page `app/tether/page.tsx`.
+- **Art:** Codex paintings in pixel-art style, turned into game-size pixel art by `scripts/tether-art.py` (keyed sprite sheets, floors fitted to the engine's `FLOOR` rectangle). The source paintings are not in the repo; to redo a sprite, paint a new 2×2 sheet on flat magenta and rerun the script on a folder holding all the sources.
+- **Feel:** the HUD keeps to the wall bands at the top and bottom of the arena. A gold rope vanished on the courtyard stone until it got a dark outline; keep the outline if the rope colours change.
+- **Balance:** `npm run bot:tether` (part of `npm test`) needs the skilled bot to win some runs but not most, and the careless bot to get much less far. The golem was softened (24 hearts, slower rocks, longer rests) after the bot never beat it.
+- **Tests:** `npm run test:tether`, `npm run bot:tether`, `node tests/e2e/tether.mjs` (dev server running; uses `window.__tether().debug`).
+- **Ideas not done:** bolas (tie two enemies together), Enzo as a second player holding the other end of the rope, a daily seed, more bosses (one per place), and the Tetherball mock-up's kite enemy that lifts Dora over pits.
 
 ## The Clocktower Mystery · 05-11-2026
 
