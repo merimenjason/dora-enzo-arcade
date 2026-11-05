@@ -19,7 +19,7 @@
 .sk-shell .sk-go:hover:not(:disabled){background:#ff7e6e}
 .sk-shell .sk-danger{background:#ffe1dc;color:var(--coral2)}
 .sk-row{display:flex;flex-wrap:wrap;gap:.7em;align-items:center;margin-top:.9em}
-.sk-small{color:var(--dim);font-size:.9em}
+.sk-shell .sk-small{color:var(--dim);font-size:.9em}
 
 .sk-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;visibility:hidden;touch-action:none}
 .sk-on-skate .sk-canvas{visibility:visible}
@@ -40,7 +40,7 @@
 .sk-title-col{position:absolute;left:0;top:0;padding:max(18px,env(safe-area-inset-top)) clamp(16px,4vw,48px) 20px;max-width:min(560px,46vw)}
 .sk-logo{font-size:clamp(46px,8vw,92px);color:#fff;letter-spacing:.5px;-webkit-text-stroke:3px var(--line);paint-order:stroke fill;text-shadow:0 6px 0 var(--line);transform:rotate(-3deg);transform-origin:left bottom;margin-top:.2em !important}
 .sk-logo span{color:var(--sun)}
-.sk-tag{color:#fff;font-size:1.06em;margin:.5em 0 .9em !important;text-shadow:0 1px 0 var(--line),0 2px 8px rgba(20,60,120,.8)}
+.sk-shell .sk-tag{color:#fff;font-size:1.06em;margin:.5em 0 .9em !important;text-shadow:0 1px 0 var(--line),0 2px 8px rgba(20,60,120,.8)}
 .sk-menu{display:flex;flex-wrap:wrap;gap:.7em}
 .sk-home{display:inline-block;margin-top:1em;color:#fff;text-decoration:none;text-shadow:0 1px 4px rgba(0,0,0,.7)}
 .sk-home:hover{text-decoration:underline}
@@ -127,7 +127,7 @@
 .sk-toast p{margin:0}
 .sk-toast b{display:block;font-family:'Baloo 2',sans-serif}
 @keyframes sk-in{from{opacity:0;transform:translateX(30px)}}
-.sk-keys{position:absolute;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);margin:0 !important;font-size:.85em;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8);white-space:nowrap;background:rgba(43,32,48,.62);border-radius:999px;padding:.2em 1em}
+.sk-shell .sk-keys{position:absolute;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);margin:0 !important;font-size:.85em;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8);white-space:nowrap;background:rgba(43,32,48,.62);border-radius:999px;padding:.2em 1em}
 /* (.sk-shell p would make it ink) */
 .sk-shell .sk-keys{color:#fff}
 .sk-keys b{color:var(--sun)}
@@ -152,7 +152,7 @@
 .sk-result{display:grid;place-items:center}
 .sk-resultcard{position:relative;width:min(640px,100%);text-align:center}
 .sk-resultcard h2{font-size:2.2em}
-.sk-big{font-family:'Baloo 2',sans-serif;font-size:3.2em;line-height:1.05;margin:.1em 0 !important}
+.sk-shell .sk-big{font-family:'Baloo 2',sans-serif;font-size:3.2em;line-height:1.05;margin:.1em 0 !important}
 .sk-big em{font-style:normal;font-size:.4em;color:#fff;background:var(--coral);border:2.5px solid var(--line);border-radius:999px;padding:.1em .7em;vertical-align:middle}
 .sk-resultcard .sk-goals{grid-template-columns:1fr;text-align:left}
 .sk-resultcard .sk-row{justify-content:center}

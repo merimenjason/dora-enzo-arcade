@@ -19,7 +19,7 @@
 .bl-shell .bl-go:hover:not(:disabled){background:#d24a6a}
 .bl-shell .bl-danger{background:#fbe0e4;color:var(--berry2)}
 .bl-row{display:flex;flex-wrap:wrap;gap:.7em;align-items:center;margin-top:.9em}
-.bl-small{color:var(--dim);font-size:.9em}
+.bl-shell .bl-small{color:var(--dim);font-size:.9em}
 
 .bl-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;visibility:hidden;touch-action:none}
 .bl-on-fly .bl-canvas{visibility:visible}
@@ -39,7 +39,7 @@
 .bl-title-col{position:absolute;left:0;top:0;padding:max(22px,env(safe-area-inset-top)) clamp(16px,4vw,52px) 20px;max-width:min(560px,48vw)}
 .bl-logo{font-size:clamp(44px,7.4vw,88px);color:var(--berry);letter-spacing:.3px;text-shadow:0 2px 0 #fff,0 4px 18px rgba(255,255,255,.9);margin-top:.15em !important}
 .bl-logo span{display:block;color:var(--heather);font-size:.78em}
-.bl-tag{font-size:1.08em;margin:.6em 0 1em !important;color:var(--ink);text-shadow:0 1px 8px rgba(255,255,255,.95)}
+.bl-shell .bl-tag{font-size:1.08em;margin:.6em 0 1em !important;color:var(--ink);text-shadow:0 1px 8px rgba(255,255,255,.95)}
 .bl-menu{display:flex;flex-wrap:wrap;gap:.7em}
 .bl-home{display:inline-block;margin-top:1em;color:var(--ink);text-decoration:none;text-shadow:0 1px 6px rgba(255,255,255,.9)}
 .bl-home:hover{text-decoration:underline}
@@ -142,13 +142,13 @@
 .bl-result{display:grid;place-items:center}
 .bl-resultcard{max-width:520px;width:100%;text-align:center}
 .bl-resultcard h2{font-size:clamp(30px,4.4vw,44px);color:var(--berry2)}
-.bl-stars{font-size:2.2em;color:var(--amber);letter-spacing:4px;margin:.1em 0 !important}
+.bl-shell .bl-stars{font-size:2.2em;color:var(--amber);letter-spacing:4px;margin:.1em 0 !important}
 .bl-tally{width:100%;border-collapse:collapse;margin:.6em 0;text-align:left}
 .bl-tally td{padding:.2em .3em;border-bottom:1px dashed #e0cfc0}
 .bl-tally td:last-child{text-align:right}
 .bl-total td{font-weight:900;border-bottom:0;font-size:1.1em}
 .bl-total em{color:var(--berry);font-style:normal;margin-left:.3em}
-.bl-open{font-family:'Fraunces',Georgia,serif;font-weight:900;color:var(--meadow);font-size:1.2em}
+.bl-shell .bl-open{font-family:'Fraunces',Georgia,serif;font-weight:900;color:var(--meadow);font-size:1.2em}
 .bl-resultcard .bl-row{justify-content:center}
 .bl-ending{position:absolute;inset:0}
 .bl-ending .bl-bg img{object-position:center 30%}

@@ -6,7 +6,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 20-10-2026)
 
-**Newest game (05-11-2026): Cloudberry Balloon** (`/balloon`, game 79), a hot-air balloon flight; see [Cloudberry Balloon · 05-11-2026](#cloudberry-balloon--05-11-2026) below. Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
+**Newest game (05-11-2026): Paperwing Post** (`/glider`, game 80), a 3D paper-glider game; see [Paperwing Post · 05-11-2026](#paperwing-post--05-11-2026) below. Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
 
 **Newest work (03–04-11-2026): Kumori Pass** (`/pass`, game 75) got a new look, a minimap, Enzo's demo line (also as a Time Attack ghost), two garage parts, seven unlockable cars, Side Jobs and a chapter after the ending; see [Kumori Pass · 04-11-2026](#kumori-pass--04-11-2026) below.
 
@@ -98,6 +98,17 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 9. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
 10. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
 11. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
+
+## Paperwing Post · 05-11-2026
+
+Game 80, `/glider`, a 3D paper glider over a storybook town: Dora steers, Enzo posts letters through windows (a second player can take his button on Enter). Rules, every number and the bot results: [`docs/glider.md`](docs/glider.md).
+
+- **Code:** engine `lib/glider-game.ts` (deterministic 60 Hz: the seeded town of axis-aligned houses with pitched roofs, the river and the two hills; a coordinated-turn glider with drag, sink and stall; chimney and sunny-square lift; windows placed on a clear wall facing the way you come; posting reach, pages, knocks, landings, results and the save), scene `lib/glider-scene.ts` (Three.js with toon shading and `OutlineEffect`; houses are scaled boxes and prism roofs with the painted plaster and tile textures tinted per house; window panes, frames and bars are three instanced meshes; trees are instanced; chimney smoke and sparkles are `Motes` points; the chase camera stays above the ground and the roofs), page `app/glider/page.tsx`, sound `app/glider/sound.ts` (built on Balloon's synth with new waltzes).
+- **Art:** 16 Codex paintings in `public/art/glider/`: title, map, workshop, ending, portraits of Dora, Enzo and Granny Juniper, the three gliders and the envelope as cut-outs, and five tileable textures (plaster and roof tiles are pale so each house can tint them). No text over faces: the title's words sit in the painting's open sky on the left (at the bottom on an upright phone), and the ending's card sits under the characters.
+- **Input:** the post button is latched until the next engine tick, as in Skate and Balloon. The touch stick appears wherever a thumb goes down on the left 55% of the screen.
+- **Balance:** tuned with the bots (`npm run bot:glider`, part of `npm test`). Lift is what makes a flight possible: the bots need a chimney or sunny square within glide of every leg. Rerun the bots after changing any glider, lift, reach or town constant; the town layout moves windows.
+- **Tests:** `npm run test:glider`, `npm run bot:glider`, `node tests/e2e/glider.mjs` (dev server running; uses `window.__glider().debug`).
+- **Ideas not done:** a free-flight mode with no letters, a race against the post office pigeon, a ghost of your best flight, rain days where the warm air is weaker, a photo mode.
 
 ## Cloudberry Balloon · 05-11-2026
 

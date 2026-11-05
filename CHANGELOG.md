@@ -6,12 +6,17 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Paperwing Post** is game 80: a 3D paper-glider game over a storybook town. Dora flies, Enzo posts: steer, dive for speed, pull up for height, circle in the warm air over the chimneys to climb, and get each letter through its window. Catch loose pages to fold the Broadwing and the Swoop in Enzo's workshop, and fly six flights through the day to Granny Juniper's birthday at sunset. A second player can be Enzo and post with Enter; on phones there's a stick and a POST button.
 - **Cloudberry Balloon** is game 79: a hot-air balloon flight with Dora and Enzo over eight hops of a painted valley to the Lantern Festival. You can't steer: climb and sink with the burner and the vent into winds that blow a different way at every height, pedal along near the ground, pick cloudberries, parachute jars of Granny Bramble's jam into the village gardens, fill up in the villages, slip under a thunderhead and land softly on the meadow for up to three stars a hop. Granny Bramble talks you through the first hop.
 - **Pawpark Skate** is game 78: 3D skateboarding with Dora and Enzo. Skate two-minute sessions in a sunny town square, a concrete park on the hill above the sea and the old town's rooftops after dark: push, pump the quarter-pipes, ollie, flip, grab, spin, grind the rails and manual between landings to string everything into one big combo. Clear gaps over the fountain and across the street, find five golden acorns in every park, fill the star meter for your special trick, and finish the mentors' goals to open the next park. Works with a keyboard or touch.
 - **Deepglow** is game 77: a sonar dive into an uncharted trench. Dora pilots a little yellow sub into the dark while Enzo reads the sonar from the boat: ping to light up the walls, switch the lamp off to creep up on shy creatures, scoop up twelve glowing species for Enzo's journal, and steer clear of stinging veils and the hunting Grimlure. Bank your finds for upgrades, dive deeper zone by zone, and find what sings at the bottom of the trench. Works with a keyboard or touch.
 - **Deepglow** is painted now: Dora's sub, Enzo's boat and all twelve species, the stinging veils and the Grimlure are drawn in the same storybook style as the journal, and they bob, breathe and ripple as they swim.
 - **Cloudberry Balloon** has painted clouds, and **Pawpark Skate** has painted paving, concrete and rooftops in all three parks.
 - **Fluffball Smash!** has an auto swing: set **Swing** to **Auto** in Settings and your player swings by themself at a good, steady power when the ball arrives, so there's no need to time a press. The buttons still pick slice, drop shot, lob or special, and pressing early still charges a harder hit.
+
+### Fixed
+
+- **Cloudberry Balloon**, **Pawpark Skate** and **Deepglow**: some menu text lost its styling, so the stars on the results card were small and plain, Skate's big score was body-sized and a few captions were the wrong colour. They're back to the intended size and colour.
 
 ## 04-11-2026
 

@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of seventy-nine original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of eighty original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -89,6 +89,7 @@ Listed in arcade-menu order.
 | 77 | Deepglow | `/deep` | Sonar submarine exploration |
 | 78 | Pawpark Skate | `/skate` | 3D skateboarding |
 | 79 | Cloudberry Balloon | `/balloon` | Hot-air balloon |
+| 80 | Paperwing Post | `/glider` | Paper glider |
 
 ## Run
 
@@ -1388,6 +1389,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:balloon` runs the engine checks: the burner, vent and neutral heat, winds and the calm near the ground, the pedals, thermals and the downdraft, berries, jars and sandbags, every kind of touch-down, refuelling, being stranded, the storm and the birds, results, stars and saves. `npm run bot:balloon` flies every hop with a hurried pilot and a careful one and checks every hop can be landed with fuel to spare and the stars are within reach. `node tests/e2e/balloon.mjs` (with `npm run dev` running) flies in a browser on desktop and on phones held either way.
 
 **Docs:** [`docs/balloon.md`](docs/balloon.md) has the balloon's physics, the winds, touch-downs, the berries and jars, every hop's numbers, the points and stars, the bot results and the save.
+
+### 80 · Paperwing Post (`/glider`)
+
+**Play:** A 3D paper-glider game over a storybook town, drawn in Three.js with toon shading, painted plaster, roof tiles, cobbles and grass, and painted title, map, workshop and ending scenes. The post office bicycle has a flat tyre, so Dora flies the biggest paper glider in the world out of the attic window while Enzo rides behind her with the satchel. A glider only ever comes down: dive for speed, pull up to trade speed for height (too slow and it stalls), and climb by circling in the warm air over the chimneys, shown by their smoke (the bakery's is the warmest; on some days sunny squares lift too). Follow the arrow to a gold ring at a window and, when it is in reach, Enzo posts the letter (close and level is a perfect post). Fly through loose pages to catch them; they go home to Enzo's workshop to fold new gliders (the quick Dart, the floaty Broadwing for 25 pages, the nimble, sturdy Swoop for 50). Knocks on walls and roofs crumple the glider a little, four or five and it folds up; landing ends the flight, and so does the river. Six flights through the day, from Morning Post to Granny Juniper's birthday at sunset, each with three stars: every letter posted, the page goal, and gliding home through the attic window. Posting every letter opens the next flight.
+
+**Controls:** **←** **→** (or **A** **D**) steer, **↓** (or **S**) dives and **↑** (or **W**) climbs (flip up and down in Settings), **Space** or **E** posts, and **Enter** posts too so a second player can be Enzo. **Esc** or **P** pauses. On a touch screen, drag a stick anywhere on the left of the screen (down climbs, up dives) and tap **POST** on the right.
+
+**Tests:** `npm run test:glider` runs the engine checks: the town and every window and page, gliding, diving, climbing and stalling, banking and the three gliders, warm air over chimneys and sunny squares, the wind, posting in and out of reach, pages, knocks and crumpling, soft and hard landings, the river and home, results, stars and saves. `npm run bot:glider` flies every flight with four pilots (hurried and careful, in the Dart and the Broadwing) and checks every flight can be finished by at least three of them and that a pilot who never steers posts nothing. `node tests/e2e/glider.mjs` (with `npm run dev` running) flies in a browser on desktop and on phones held either way.
+
+**Docs:** [`docs/glider.md`](docs/glider.md) has the flight model, the warm air, posting, pages, knocks, every flight's numbers, the gliders, the points and stars, the bot results and the save.
 
 ## Validation
 
