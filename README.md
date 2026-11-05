@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of eighty-four original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of eighty-five original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -94,6 +94,7 @@ Listed in arcade-menu order.
 | 82 | Tetherball | `/tether` | Action roguelite |
 | 83 | Out of Frame | `/frame` | Puzzle platformer |
 | 84 | Turn Order | `/order` | Puzzle roguelite |
+| 85 | Coin of the Realm | `/coin` | Pixel-art roguelite |
 
 ## Run
 
@@ -1444,6 +1445,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:order` runs the engine checks: every verb, a round in order (Enzo's opening example, mushrooms born mid-round waiting, twists, running out of rounds), the solver, 55 generated gardens (winnable, never by doing nothing, tidy, the right critters, repeatable and quick), the run (one swap, undo, tokens, the lullaby, planting, par, retries, perks, winning, losing) and the save. `npm run bot:order` makes the solver win every run while one-round-ahead, random and do-nothing players get much less far (`--quick` in `npm test`). `node tests/e2e/order.mjs` (dev server running) plays it in a browser and on a phone.
 
 **Docs:** [`docs/order.md`](docs/order.md) has every verb, the round, the run, the perks, how gardens are made and graded, the art and the bot results.
+
+### 85 · Coin of the Realm (`/coin`)
+
+**Play:** a pixel-art roguelite where you are a gold coin with Dora on one face and Enzo on the other. Every hour the townsfolk holding you spends you, and all you choose is whose paw you land in next. Each day the board wants three goods: land with a seller of one (a rabbit baker, a beaver woodcutter, a badger smith, a mouse weaver, an otter fisher, a tortoise potter) and the order becomes a plank for the town's bridge, two if they're cheery and none if they're grumpy. Dora-side up the coin rolls two streets; Enzo-side up only next door, but Enzo overhears the mood of everyone near. The Mayor adds an order, the Pedlar sends you anywhere, the Gossip tells all, the Juggler lands you both ways up and the Miser gives a plank but keeps you two hours. Grumbles creep one street an hour and snatch the coin for the rest of the day. Four generated towns, three days of eight hours each, a perk from Dora's pockets after each bridge, and if the last day ends first, the coin is melted down for nails.
+
+**Controls:** click a glowing townsfolk to spend the coin on them (on a phone, tap to choose, then tap again or press Spend). Hover or tap anyone to see what they do, their mood if Enzo has heard it, and whether a Grumble would get there next (a red ring). Wait an hour keeps the coin where it is; Flip turns it over with the Lucky toss perk. Keyboard: ← and → (or A and D) choose, Enter or Space spends, W waits, F flips, and 1, 2 or 3 picks a perk. While a hand-over plays, Space or Enter skips it.
+
+**Tests:** `npm run test:coin` runs the engine checks: generated towns (joined up, the mayor in the middle, the right folk, Grumble dens, repeatable), the coin's reach by face and around Grumbles, orders with fair, cheery and grumpy sellers, Enzo overhearing, every special, Grumbles creeping and snatching, waiting, the Lucky toss, dusk and dawn, moods following who was paid, bridges, perks, winning, losing and the save. `npm run bot:coin` makes a two-step planner that never peeks at unheard moods win at least 30% of runs while a greedy player and a random one get much less far (`--quick` in `npm test`). `node tests/e2e/coin.mjs` (dev server running) plays it in a browser and on a phone.
+
+**Docs:** [`docs/coin.md`](docs/coin.md) has every townsfolk, the towns, an hour step by step, moods, the perks, how towns are made, the art and the bot results.
 
 ## Validation
 

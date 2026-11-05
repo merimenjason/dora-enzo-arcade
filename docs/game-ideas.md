@@ -45,14 +45,7 @@ Every step Dora takes unwinds Enzo's yarn, and he knits exactly that path into h
 
 ## Top five pixel roguelites, cast (05-11-2026)
 
-The five best-scoring concepts from a fifteen-idea brief for original pixel roguelites. Scores are weighted out of 10: originality 30%, replayability 25%, pixel-art appeal 15%, solo feasibility 15%, marketing 15%. Pixel Smith (8.40) is in the next section. Gameplay mock-ups: `ideas/px-frame-play.webp`, `ideas/px-down-play.webp`, `ideas/px-coin-play.webp`, `ideas/px-hour-play.webp`.
-
-### Out of Frame (8.15): time only runs inside the camera
-
-Dora walks forward on her own; you drag a fixed-size viewfinder, and only what's inside it moves. Everything outside freezes mid-action: arrows hang in the air as stepping stones, a Grumble stops mid-step, a boulder waits mid-roll. Anything crossing the frame's edge freezes there, so the border is a wall. About twenty generated screens a run; lenses persist (wide, fisheye, two frames).
-
-- **Dora:** the adventurer who walks on her own.
-- **Enzo:** the photographer; his viewfinder is the frame you control.
+The five best-scoring concepts from a fifteen-idea brief for original pixel roguelites. Scores are weighted out of 10: originality 30%, replayability 25%, pixel-art appeal 15%, solo feasibility 15%, marketing 15%. Pixel Smith (8.40) is in the next section. Out of Frame (8.15) is now game 83 (`docs/frame.md`) and Coin of the Realm (7.90) game 85 (`docs/coin.md`). Gameplay mock-ups: `ideas/px-frame-play.webp`, `ideas/px-down-play.webp`, `ideas/px-coin-play.webp`, `ideas/px-hour-play.webp`.
 
 ### Downsample (8.05): resolution is health, and collision follows it
 
@@ -60,12 +53,6 @@ Walls and hazards are checked against the image at its current resolution, so at
 
 - **Dora:** moves.
 - **Enzo:** turns the resolution dial.
-
-### Coin of the Realm (7.90): you are the coin
-
-At every hand-over you choose whose paw you land in next; that's the only control. A small town economy runs around you and your path decides who prospers. A run is the coin's life (until lost, melted or kept in a sock), with a goal such as funding the bridge.
-
-- **Dora** and **Enzo** are the coin's two faces. Dora-side up, it travels far; Enzo-side up, it overhears its owner's plans, showing what each choice would lead to.
 
 ### Hourglass Keep (7.85): the sand is the clock and the ground
 

@@ -6,7 +6,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 20-10-2026)
 
-**Newest game (05-11-2026): Turn Order** (`/order`, game 84), a pixel-art puzzle roguelite where the queue order is the only thing you control; see [Turn Order · 05-11-2026](#turn-order--05-11-2026) below. Out of Frame (`/frame`, game 83), Tetherball (`/tether`, game 82), The Clocktower Mystery (`/clocktower`, game 81), Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
+**Newest game (05-11-2026): Coin of the Realm** (`/coin`, game 85), a pixel-art roguelite where you are the coin and choose whose paw you land in next; see [Coin of the Realm · 05-11-2026](#coin-of-the-realm--05-11-2026) below. Turn Order (`/order`, game 84), Out of Frame (`/frame`, game 83), Tetherball (`/tether`, game 82), The Clocktower Mystery (`/clocktower`, game 81), Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
 
 **Newest work (03–04-11-2026): Kumori Pass** (`/pass`, game 75) got a new look, a minimap, Enzo's demo line (also as a Time Attack ghost), two garage parts, seven unlockable cars, Side Jobs and a chapter after the ending; see [Kumori Pass · 04-11-2026](#kumori-pass--04-11-2026) below.
 
@@ -98,6 +98,17 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 9. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
 10. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
 11. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
+
+## Coin of the Realm · 05-11-2026
+
+Game 85, `/coin`, a pixel-art roguelite: you are a gold coin (Dora on one face, Enzo on the other) and each hour choose whose paw you land in next, filling the day's orders to build each town's bridge before the days run out, while Grumbles creep along the streets to snatch you. Four generated towns, perks between them. It was the third of the top five pixel roguelites in [`docs/game-ideas.md`](docs/game-ideas.md), which no longer lists it or Out of Frame. Rules, towns and bot results: [`docs/coin.md`](docs/coin.md).
+
+- **Code:** engine `lib/coin-game.ts` (`makeTown` on a 4 by 3 grid of plots, `dist` for streets, `Run` with `targets`, `pass`, `wait`, `flip`, `danger`, dusk and dawn, perks, the save). Scene `lib/coin-scene.ts` (384 by 216 Canvas 2D; plays a hand-over's events in order and settles on a snapshot of the run). Page `app/coin/page.tsx` (orders, bridge and hours are DOM, not canvas).
+- **Art:** Codex paintings turned into pixel art by `scripts/coin-art.py` (three townsfolk sheets, coin faces, goods, a cottage and a stall, four towns cropped from the bottom so the river stays, title, ending, portraits). The source paintings are not in the repo.
+- **Feel:** a mouse spends on click; a finger taps once to choose (and see the route and any danger) and again, or Spend, to spend. On a phone held upright the town is zoomed so its edges go off the sides.
+- **Balance:** `npm run bot:coin` (part of `npm test` with `--quick`) needs the planner to build at least two bridges on average (and win 30% in the full run), beat the greedy player, and leave random spending winless. Rerun it after changing a town's planks, the hours, the days or the mood odds.
+- **Tests:** `npm run test:coin`, `npm run bot:coin`, `node tests/e2e/coin.mjs` (dev server running; uses `window.__coin().debug`).
+- **Ideas not done:** townsfolk trading off-screen, a coin that wears smooth and a Smith who restrikes it, a daily seed.
 
 ## Turn Order · 05-11-2026
 
