@@ -783,6 +783,27 @@ None of these has a fixed answer, because the food web changes every run.
 
 ---
 
+## Dora and Enzo casting for the top five
+
+Gameplay mock-ups: `ideas/px-order-play.webp`, `ideas/px-taxon-play.webp`, `ideas/px-roots-play.webp`, `ideas/px-dice-play.webp`, `ideas/px-grudge-play.webp`.
+
+- **Turn Order:**
+  - **Enzo** conducts the queue from a podium: one swap a round, and he never touches a piece.
+  - **Dora** waits at the goal with a basket and can only catch.
+- **Taxonomist:**
+  - **Dora** nets specimens in the meadow.
+  - **Enzo** pins them into the cabinet's drawers, which are labelled with pictures instead of words: moon sleeps, foot flees, heart breeds, sun glows, sprout feeds.
+- **Rootmarket:**
+  - **Enzo** listens to the roots underground to hear which tree needs what.
+  - **Dora** plants and tends saplings in the canopy.
+- **Loaded:**
+  - **Enzo** chisels pips between the faces of the dice.
+  - **Dora** works the valley and harvests what the dice give.
+- **Grudges:**
+  - **Dora** shoves and swaps creatures into each other.
+  - **Enzo** works the levers that turn the traps.
+  - Damage is never blamed on the heroes.
+
 ## Top five prototypes
 
 ### Turn Order (8.05)
