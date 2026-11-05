@@ -4,6 +4,31 @@ Ideas for future games that haven't been built yet, newest first. Each comes wit
 
 Painted mock-ups (Codex) are in [`ideas/`](ideas/). There is a page with all of them and their interfaces at https://claude.ai/artifact/4jSWyhexvhzJtC67u7UUzM (private to the owner).
 
+## Pixel-art roguelite mash-ups (05-11-2026)
+
+The next roguelite should be pixel art. Pixel tilesets suit roguelites, because a run's rooms are rebuilt each time and tiles can be put together into any room. Codex draws the art in a 16-bit style; it's then cut down to the true low resolution (384×256) with a fixed palette (32 colours) and scaled up without smoothing, so the pixels are real. The interface uses a pixel font with square boxes. Gameplay mock-ups: `ideas/px-palette-play.webp`, `ideas/px-bomb-play.webp`, `ideas/px-sweep-play.webp`, and pixel versions of three mash-ups below: `ideas/px-castle-play.webp`, `ideas/px-conga-play.webp`, `ideas/px-push-play.webp`. Of the painted mash-ups below, Castle Crumble, Conga Caravan and Push Pals suit pixel art; Monster Stew and Gambit Burrow suit the painted style better.
+
+### Palette Thief (platformer × colour puzzle × roguelite)
+
+Colour is the resource. You can only stand on blocks of your own colour; every other colour is a ghost you fall through. Paint orbs recolour you, and Smudges (red Grumbles with paintbrush tails) steal your colour if they touch you. Each run is a climb through sky-temple rooms built from tiles; relics give each colour a power (double jump while red, float while yellow).
+
+- **Dora:** runs, jumps and dashes.
+- **Enzo:** holds a three-colour palette and can swap which colour Dora is, even mid-jump.
+- **Why:** the palette swap, the oldest pixel-art trick, is the mechanic.
+
+### Acorn Blast (bomb maze × dungeon roguelite)
+
+Twelve floors of grid dungeon: stone pillars, breakable crates and hay, Grumbles roaming the gaps, and a ladder down that opens once they're gone. Drop acorn bombs that blast in a cross. Relics change the blast (longer flames, rolling acorns, blasts through crates, a second acorn at once); crates drop them and a shop sits every third floor. Your own blasts hurt you.
+
+- **Dora** and **Enzo** each drop acorns: two players on one keyboard, or one player while the other follows.
+
+### Sweeper's Burrow (minesweeper × RPG levelling × roguelite)
+
+Every covered tile might hide a monster, and an uncovered tile's number is the total level of the monsters around it. Uncover one weaker than you and you beat it for XP; uncover one stronger and it hurts. Each floor is a puzzle about which monsters to beat first so you grow strong enough for the crowned Grumble, who holds the key down. Hearts, coins and keys lie under some tiles.
+
+- **Dora:** uncovers tiles and fights.
+- **Enzo:** his lantern peeks under nearby tiles a few times a floor, and he keeps the flags.
+
 ## Roguelite mash-ups (05-11-2026)
 
 Roguelites crossed with genres that roguelites rarely use, avoiding the nine the arcade has and the four roguelites below. Gameplay mock-ups: `ideas/stew-play.webp`, `ideas/castle-play.webp`, `ideas/conga-play.webp`, `ideas/gambit-play.webp`, `ideas/push-play.webp`.
