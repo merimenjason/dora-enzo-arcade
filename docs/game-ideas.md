@@ -4,6 +4,37 @@ Ideas for future games that haven't been built yet, newest first. Each comes wit
 
 Painted mock-ups (Codex) are in [`ideas/`](ideas/). There is a page with all of them and their interfaces at https://claude.ai/artifact/4jSWyhexvhzJtC67u7UUzM (private to the owner).
 
+## Top five pixel roguelites, cast (05-11-2026)
+
+The five best-scoring concepts from a fifteen-idea brief for original pixel roguelites. Scores are weighted out of 10: originality 30%, replayability 25%, pixel-art appeal 15%, solo feasibility 15%, marketing 15%. Pixel Smith (8.40) is in the next section. Gameplay mock-ups: `ideas/px-frame-play.webp`, `ideas/px-down-play.webp`, `ideas/px-coin-play.webp`, `ideas/px-hour-play.webp`.
+
+### Out of Frame (8.15): time only runs inside the camera
+
+Dora walks forward on her own; you drag a fixed-size viewfinder, and only what's inside it moves. Everything outside freezes mid-action: arrows hang in the air as stepping stones, a Grumble stops mid-step, a boulder waits mid-roll. Anything crossing the frame's edge freezes there, so the border is a wall. About twenty generated screens a run; lenses persist (wide, fisheye, two frames).
+
+- **Dora:** the adventurer who walks on her own.
+- **Enzo:** the photographer; his viewfinder is the frame you control.
+
+### Downsample (8.05): resolution is health, and collision follows it
+
+Walls and hazards are checked against the image at its current resolution, so at low resolution thin spikes vanish and narrow gaps close. Dial the resolution down to cross a spike field and up to squeeze through a gap; every hit lowers the top resolution you can reach. Relics change the filter (sharpen, blur, crop part of the screen).
+
+- **Dora:** moves.
+- **Enzo:** turns the resolution dial.
+
+### Coin of the Realm (7.90): you are the coin
+
+At every hand-over you choose whose paw you land in next; that's the only control. A small town economy runs around you and your path decides who prospers. A run is the coin's life (until lost, melted or kept in a sock), with a goal such as funding the bridge.
+
+- **Dora** and **Enzo** are the coin's two faces. Dora-side up, it travels far; Enzo-side up, it overhears its owner's plans, showing what each choice would lead to.
+
+### Hourglass Keep (7.85): the sand is the clock and the ground
+
+The keep is inside a giant hourglass; falling sand pours through the neck all the time, burying the lower rooms, and the glass is lost when the top bulb empties. Flipping turns everything over (Dora, sand and Grumbles) and brings the buried rooms back up, at a cost in sand. Sand types are the build: wet sand holds shape, glass sand cuts, magnetic sand follows you.
+
+- **Dora:** runs, digs and collects the gems.
+- **Enzo:** flips the hourglass from outside.
+
 ## Original pixel roguelites (05-11-2026)
 
 Roguelites where something about pixel art itself is the mechanic, rather than a mash-up of existing genres. No released game is known to be built on any of these. Same pixel pipeline as the mash-ups below. Gameplay mock-ups: `ideas/px-smith-play.webp`, `ideas/px-faded-play.webp`, `ideas/px-fold-play.webp`, `ideas/px-double-play.webp`.
