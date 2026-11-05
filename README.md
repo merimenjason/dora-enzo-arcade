@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of eighty original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of eighty-one original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -90,6 +90,7 @@ Listed in arcade-menu order.
 | 78 | Pawpark Skate | `/skate` | 3D skateboarding |
 | 79 | Cloudberry Balloon | `/balloon` | Hot-air balloon |
 | 80 | Paperwing Post | `/glider` | Paper glider |
+| 81 | The Clocktower Mystery | `/clocktower` | Point-and-click adventure |
 
 ## Run
 
@@ -1399,6 +1400,17 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:glider` runs the engine checks: the town and every window and page, gliding, diving, climbing and stalling, banking and the three gliders, warm air over chimneys and sunny squares, the wind, posting in and out of reach, pages, knocks and crumpling, soft and hard landings, the river and home, results, stars and saves. `npm run bot:glider` flies every flight with four pilots (hurried and careful, in the Dart and the Broadwing) and checks every flight can be finished by at least three of them and that a pilot who never steers posts nothing. `node tests/e2e/glider.mjs` (with `npm run dev` running) flies in a browser on desktop and on phones held either way.
 
 **Docs:** [`docs/glider.md`](docs/glider.md) has the flight model, the warm air, posting, pages, knocks, every flight's numbers, the gliders, the points and stars, the bot results and the save.
+
+
+### 81 · The Clocktower Mystery (`/clocktower`)
+
+**Play:** A point-and-click adventure through eight painted rooms of a snowy town: the market square (at dusk, then by night), the clock tower, the clock room, Hollis's bakery, the riverside, Captain Rook's barge, Nell's mill and the Hatters' hat shop. The town clock has stopped the night before the Winter Fair, and four of its wheels are missing. Play as Dora, who climbs to high places and out on ledges, or Enzo, who hears what others miss and remembers any tune, and switch between them at any time; they walk together unless one of them is busy, like Dora hanging on the mill lever while Enzo fishes under the waterwheel. Look at things, talk to Mr Tock, Hollis, Nell, Gubbins the magpie and the Hatter twins, pick things up and use them on each other, find the brass, copper, silver and star wheels over three chapters, and fit each one on its own spindle in the clock works before eight o'clock. Enzo's notebook always has a hint, and the ending counts your moves and hints. The mystery saves as you go.
+
+**Controls:** Click or tap anything in the painting to walk over and look, talk or pick it up; the arrows lead to other places. Click a thing in the satchel (or press **1** to **9**) to pick it up, then click where to use it; click it again to look at it closely. **X** or the Dora and Enzo buttons switch between them, **H** or **Hint** opens Enzo's notebook, holding **Q** (or the 🔍 button) lights up everything you can click, **Enter** or **Space** reads on, and **Esc** puts a thing back or pauses.
+
+**Tests:** `npm run test:clocktower` runs the engine checks: the rooms and the walkthrough through all four chapters, paths shut until the story opens them, Dora's and Enzo's talents, walking apart, each wheel on its own spindle, using things where they don't belong, the notebook and saves. `npm run bot:clocktower` walks every state the story can reach and checks the clock can always still be mended (no dead ends), that every hotspot and thing gets used, the shortest solution's length, and that following the notebook's hints alone reaches the end. `node tests/e2e/clocktower.mjs` (with `npm run dev` running) plays in a browser on desktop and on phones held either way.
+
+**Docs:** [`docs/clocktower.md`](docs/clocktower.md) has the story, every room and puzzle, the solution, the hints, the solver's results and the save.
 
 ## Validation
 

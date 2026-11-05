@@ -81,14 +81,15 @@ const GAMES=[
  {href:'/skate',title:'Pawpark Skate',tag:'NEW · 3D SKATEBOARDING',blurb:'Dora and Enzo skate a town square, a concrete park above the sea and the old town’s rooftops after dark. Ollie, flip, grab, spin, grind and manual your tricks into big combos, clear gaps, find the golden acorns and land the goals that open the next park.',color:'#ff6b5a',art:'🛹'},
  {href:'/balloon',title:'Cloudberry Balloon',tag:'NEW · HOT-AIR BALLOON',blurb:'Dora and Enzo fly Granny Bramble’s patchwork balloon over eight hops of a painted valley to the Lantern Festival. No steering: climb and sink into winds that blow a different way at every height, pick cloudberries, parachute jars of jam into the gardens and land softly.',color:'#c23a5a',art:'🎈'},
  {href:'/glider',title:'Paperwing Post',tag:'NEW · PAPER GLIDER',blurb:'Dora flies a big paper glider over a storybook town while Enzo posts the letters through the windows. Ride the warm air over the chimneys, catch loose pages to fold new gliders, and get Granny Juniper’s birthday cards to her before sunset. A second player can be Enzo.',color:'#d2443a',art:'✉️'},
+ {href:'/clocktower',title:'The Clocktower Mystery',tag:'NEW · POINT-AND-CLICK',blurb:'The town clock has stopped the night before the Winter Fair and four of its wheels are missing. Play as Dora, who climbs, and Enzo, who listens, through eight painted rooms: talk to the townsfolk, gather clues and mend the clock before eight o’clock.',color:'#c98a2a',art:'🕰️'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">EIGHTY ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Eighty ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, eighty cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">EIGHTY-ONE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Eighty-one ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, eighty-one cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <nav className="arcade-grid" aria-label="Choose a game">

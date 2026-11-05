@@ -6,7 +6,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 20-10-2026)
 
-**Newest game (05-11-2026): Paperwing Post** (`/glider`, game 80), a 3D paper-glider game; see [Paperwing Post · 05-11-2026](#paperwing-post--05-11-2026) below. Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
+**Newest game (05-11-2026): The Clocktower Mystery** (`/clocktower`, game 81), a painted point-and-click adventure; see [The Clocktower Mystery · 05-11-2026](#the-clocktower-mystery--05-11-2026) below. Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
 
 **Newest work (03–04-11-2026): Kumori Pass** (`/pass`, game 75) got a new look, a minimap, Enzo's demo line (also as a Time Attack ghost), two garage parts, seven unlockable cars, Side Jobs and a chapter after the ending; see [Kumori Pass · 04-11-2026](#kumori-pass--04-11-2026) below.
 
@@ -98,6 +98,17 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 9. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
 10. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
 11. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
+
+## The Clocktower Mystery · 05-11-2026
+
+Game 81, `/clocktower`, a point-and-click adventure through eight painted rooms: mend the town clock before the Winter Fair. The story, every puzzle, the solution and the solver results: [`docs/clocktower.md`](docs/clocktower.md).
+
+- **Code:** engine `lib/clocktower-game.ts` (pure steps: `act(state, action)` for go, look/talk/take, use a thing, switch heroes and fit a wheel; `hint()`; the save; `WALKTHROUGH`). The page draws each room as its painting with cut-outs on top and clickable boxes from `app/clocktower/rooms.ts` (percent of the painting), so moving a hotspot never touches the rules.
+- **Art:** 30 Codex paintings in `public/art/clocktower/`: ten room paintings (dusk and night squares; the barge with and without its boathook), the works close-up, title, ending, seven character cut-outs and ten item cut-outs. Talk-box faces are crops of the cut-outs. No text over faces.
+- **Layout:** the painting is fitted above the bar (beside it on landscape phones) and never under it; on portrait phones it fills the height and pans to follow the hero.
+- **Puzzles:** any change to the rules needs `npm run bot:clocktower` (part of `npm test`), which walks every reachable state and fails on a dead end, an unused hotspot or thing, or a hint that doesn't lead on. It runs in under a second.
+- **Tests:** `npm run test:clocktower`, `npm run bot:clocktower`, `node tests/e2e/clocktower.mjs` (dev server running; uses `window.__clocktower().debug`, whose `upto(n)` plays the walkthrough to step n).
+- **Ideas not done:** a second mystery in the same town (the fair's lost prize), voice-over, a night version of every room, an inventory combine (two things together), a scrapbook of everyone you've met.
 
 ## Paperwing Post · 05-11-2026
 

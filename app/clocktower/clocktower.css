@@ -1,0 +1,144 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Nunito:wght@600;700;800&display=swap');
+
+/* The Clocktower Mystery: a winter storybook. Night-blue around the paintings, cream paper for the talk box and cards,
+   brass for go, holly red for warnings, a warm old-style serif for names. */
+.ct-shell{--ink:#2e2630;--paper:#fff8ec;--cream:#f4e6cc;--brass:#c98a2a;--brass2:#a86e1a;--holly:#b23a3a;--night:#18203a;--night2:#232c4c;--dim:#7a6a6e;--line:#5a3e2e;
+  position:fixed;inset:0;overflow:hidden;background:var(--night);color:var(--ink);
+  font-family:'Nunito',system-ui,sans-serif;font-weight:700;font-size:clamp(14px,1.5vw,16px);line-height:1.45;user-select:none;-webkit-user-select:none}
+.ct-shell *{box-sizing:border-box}
+/* the arcade's global paragraph colour is for other pages */
+.ct-shell p{color:inherit;font-size:inherit;line-height:inherit;margin:.3em 0}
+.ct-shell h1,.ct-shell h2,.ct-shell h3{margin:0;font-family:'Fraunces',Georgia,serif;font-weight:900;line-height:1.05}
+.ct-shell button,.ct-shell a{font:inherit;touch-action:manipulation}
+.ct-shell button{cursor:pointer;color:var(--ink);min-height:44px;padding:.35em 1.1em;border:2px solid var(--line);border-radius:999px;background:var(--paper);font-weight:800;box-shadow:0 3px 0 var(--line);transition:transform .08s,box-shadow .08s,background .15s}
+.ct-shell button:hover:not(:disabled){background:#fff}
+.ct-shell button:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 var(--line)}
+.ct-shell button:focus-visible,.ct-shell a:focus-visible,.ct-talk:focus-visible{outline:3px solid #f2c45a;outline-offset:3px}
+.ct-shell .ct-go{background:var(--brass);color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.3)}
+.ct-shell .ct-go:hover:not(:disabled){background:#d99a3a}
+.ct-shell .ct-danger{background:#f8e0e0;color:var(--holly);margin-top:1em}
+.ct-row{display:flex;flex-wrap:wrap;gap:.7em;align-items:center;margin-top:.9em}
+.ct-shell .ct-small{color:var(--dim);font-size:.9em}
+.ct-bg{position:absolute;inset:0}
+.ct-bg img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* ---------------------------------------------------------------- title: the name in the starry sky on the left; Dora and Enzo are on the right */
+.ct-title{position:absolute;inset:0}
+.ct-title .ct-bg img{object-position:72% 40%}
+.ct-title .ct-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,rgba(14,20,44,.78) 0%,rgba(14,20,44,.5) 30%,rgba(14,20,44,0) 46%)}
+.ct-title-col{position:absolute;left:0;top:0;bottom:0;display:flex;flex-direction:column;padding:max(22px,env(safe-area-inset-top)) clamp(16px,4vw,52px) 20px;max-width:min(520px,44vw);color:#fff8ec;overflow-y:auto}
+.ct-logo{font-size:clamp(38px,6.2vw,80px);color:#f6d68a;text-shadow:0 2px 0 #3a2410,0 4px 22px rgba(0,0,0,.6)}
+.ct-logo span{display:block;color:#fff8ec}
+.ct-shell .ct-tag{margin-top:.8em;font-size:1.05em;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.ct-menu{display:flex;flex-direction:column;align-items:flex-start;gap:.65em;margin-top:1.2em}
+.ct-title .ct-small{color:#e8dcc8}
+.ct-home{margin-top:auto;padding-top:1em;color:#f6d68a}
+@media (max-width:700px) and (orientation:portrait){
+  .ct-title .ct-bg{bottom:auto;height:58%}
+  .ct-title .ct-bg img{object-position:70% 50%}
+  .ct-title .ct-bg::after{background:linear-gradient(180deg,rgba(24,32,58,0) 70%,var(--night) 100%)}
+  .ct-title-col{top:52%;max-width:none;right:0;padding-top:0}
+  .ct-logo{font-size:clamp(34px,10vw,52px)}
+  .ct-logo span{display:inline}
+}
+
+/* ---------------------------------------------------------------- playing: the painting fitted above the bar, never under it */
+.ct-play{position:absolute;inset:0;display:flex;flex-direction:column}
+.ct-stage{position:relative;flex:1;min-height:0;display:grid;place-items:center;container-type:size;background:radial-gradient(ellipse at 50% 40%,var(--night2),var(--night))}
+.ct-scene{position:relative;width:min(100cqw,150cqh);aspect-ratio:3/2;overflow:hidden;cursor:pointer}
+.ct-room{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+.ct-sprite,.ct-hero{position:absolute;pointer-events:none;filter:drop-shadow(0 6px 6px rgba(0,0,0,.35))}
+.ct-hero{transition-property:left;transition-timing-function:linear;z-index:2}
+.ct-hero.up{bottom:auto !important;top:6%;height:24% !important}
+.ct-spot,.ct-exit{position:absolute;z-index:3;min-height:0 !important;padding:0 !important;border:2px dashed transparent !important;border-radius:14px !important;background:transparent !important;box-shadow:none !important;transform:none !important}
+.ct-shell .ct-spot:hover,.ct-shell .ct-exit:hover,.ct-scene.reveal .ct-spot,.ct-scene.reveal .ct-exit{border-color:rgba(255,236,170,.9) !important;background:rgba(255,236,170,.14) !important}
+.ct-scene.using .ct-spot{cursor:copy}
+.ct-exit i{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-style:normal;font-size:clamp(14px,2.2vw,24px);color:#fff4d0;text-shadow:0 0 6px rgba(0,0,0,.8),0 0 2px #000;opacity:.85}
+.ct-exit-left i{left:22%}.ct-exit-right i{left:78%}.ct-exit-down i{top:78%}
+.ct-shell .ct-apart{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:4;margin:0;padding:.25em .9em;border-radius:999px;background:rgba(20,26,48,.82);color:#fff8ec;font-size:.85em;white-space:nowrap;pointer-events:none}
+
+/* the works close-up: the wheels sit on their spindles */
+.ct-spindle{position:absolute;z-index:3;aspect-ratio:1;transform:translate(-50%,-50%) !important;min-height:0 !important;padding:0 !important;border-radius:50% !important;border:2px dashed rgba(255,236,170,.75) !important;background:rgba(255,236,170,.08) !important;box-shadow:none !important}
+.ct-spindle.full{border-color:transparent !important;background:transparent !important}
+.ct-spindle img{width:100%;height:100%;display:block;filter:drop-shadow(0 4px 4px rgba(0,0,0,.5))}
+.ct-spindle img.cw{animation:ct-cw 9s linear infinite}.ct-spindle img.ccw{animation:ct-cw 7s linear infinite reverse}
+@keyframes ct-cw{to{transform:rotate(360deg)}}
+.ct-shell .ct-back{position:absolute;left:12px;top:12px;z-index:4}
+
+/* the chapter card and pause sit over the painting's sky, with nobody's face behind a centred paper */
+.ct-card{position:absolute;inset:0;z-index:6;display:grid;place-items:center;background:rgba(14,20,44,.62);padding:16px}
+.ct-card>div{background:var(--paper);border:2px solid var(--line);border-radius:22px;padding:18px 26px;max-width:460px;text-align:center;box-shadow:0 5px 0 rgba(90,62,46,.85),0 14px 40px rgba(0,0,0,.4)}
+.ct-card small{display:block;color:var(--brass2);font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.ct-card h2{font-size:clamp(26px,4vw,40px);margin:.15em 0 .3em}
+.ct-pause .ct-row{justify-content:center}
+
+/* the bar: who, the talk box, the satchel, the tools */
+.ct-bar{flex:none;display:flex;gap:10px;align-items:stretch;padding:8px max(10px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));background:linear-gradient(180deg,#2a2236,#1e1828);border-top:3px solid #5a3e2e;min-height:112px}
+.ct-who{display:flex;flex-direction:column;gap:6px;justify-content:center}
+.ct-shell .ct-who button{display:flex;align-items:center;gap:6px;padding:2px 10px 2px 3px;min-height:44px;opacity:.7}
+.ct-shell .ct-who button.on{opacity:1;background:#f6d68a}
+.ct-face{flex:none;display:block;width:38px;height:38px;border-radius:50%;border:2px solid var(--line);background-color:var(--cream);background-repeat:no-repeat}
+.ct-face.big{width:68px;height:68px}
+.ct-talk{flex:1;min-width:0;display:flex;gap:12px;align-items:center;background:var(--paper);border:2px solid var(--line);border-radius:16px;padding:8px 14px}
+.ct-talk.on{cursor:pointer}
+.ct-talk b{font-family:'Fraunces',Georgia,serif;color:var(--brass2)}
+.ct-talk>div{min-width:0;flex:1}
+.ct-shell .ct-talk p{margin:.1em 0}
+.ct-talk small{display:block;text-align:right;color:var(--dim)}
+.ct-shell .ct-status{color:var(--dim);font-style:italic}
+.ct-bag{display:flex;flex-wrap:wrap;align-content:center;gap:6px;max-width:300px}
+.ct-shell .ct-bag button{width:52px;height:52px;padding:4px;border-radius:12px;background:#3a3046;border-color:#7a5a3e;box-shadow:0 3px 0 #120e18}
+.ct-shell .ct-bag button.on{background:#f6d68a;border-color:#fff}
+.ct-bag img{width:100%;height:100%;object-fit:contain;display:block}
+.ct-bag .ct-small{color:#b8a8b8;align-self:center}
+.ct-tools{display:flex;flex-direction:column;gap:6px;justify-content:center}
+.ct-shell .ct-tools button{padding:.2em .8em;white-space:nowrap}
+
+/* phones: the bar stacks on portrait, and sits to the side on landscape so the painting keeps its height */
+@media (max-width:760px) and (orientation:portrait){
+  /* the painting keeps a useful size and pans sideways after whoever you're playing */
+  .ct-stage{overflow-x:auto;overflow-y:hidden;place-items:center start;scrollbar-width:none}
+  .ct-stage::-webkit-scrollbar{display:none}
+  .ct-scene{width:min(150cqh,210cqw)}
+  .ct-bar{flex-wrap:wrap;gap:6px;min-height:0}
+  .ct-who{flex-direction:row;order:1}
+  .ct-tools{flex-direction:row;order:2;margin-left:auto}
+  .ct-talk{order:3;flex-basis:100%;min-height:96px}
+  .ct-bag{order:4;flex-basis:100%;max-width:none;flex-wrap:nowrap;overflow-x:auto}
+  .ct-shell .ct-bag button{flex:none;width:46px;height:46px}
+  .ct-face.big{width:52px;height:52px}
+}
+@media (max-height:520px) and (orientation:landscape){
+  .ct-play{flex-direction:row}
+  .ct-bar{flex-direction:column;width:min(300px,36vw);border-top:0;border-left:3px solid #5a3e2e;overflow-y:auto;min-height:0;padding-top:max(6px,env(safe-area-inset-top))}
+  .ct-who,.ct-tools{flex-direction:row;flex-wrap:wrap}
+  .ct-talk{flex:1 0 auto;min-height:90px;align-items:flex-start}
+  .ct-face.big{width:44px;height:44px}
+  .ct-bag{max-width:none}
+  .ct-shell .ct-bag button{width:44px;height:44px}
+}
+
+/* ---------------------------------------------------------------- the ending: the painting, then the words under it */
+.ct-ending{position:absolute;inset:0;display:flex;flex-direction:column;overflow-y:auto;background:linear-gradient(180deg,#f3cfd8,#e8dcf0)}
+.ct-ending .ct-bg{position:relative;flex:none;inset:auto;width:100%;max-height:60vh;aspect-ratio:3/2;margin:0 auto;max-width:calc(60vh * 1.5)}
+.ct-ending .ct-bg img{object-fit:cover}
+.ct-ending-text{max-width:720px;margin:0 auto;padding:16px max(16px,4vw) 28px;text-align:center}
+.ct-ending-text h2{font-size:clamp(26px,4vw,40px);color:var(--holly)}
+.ct-ending-text .ct-row{justify-content:center}
+
+/* ---------------------------------------------------------------- how to play and settings */
+.ct-page{position:absolute;inset:0;overflow-y:auto;padding:max(16px,env(safe-area-inset-top)) max(16px,4vw) 28px;background:radial-gradient(ellipse at 50% 0%,var(--night2),var(--night))}
+.ct-shell .ct-head{display:flex;align-items:center;justify-content:flex-start;gap:16px;margin:0 0 16px;padding:0;border:0;background:none}
+.ct-shell .ct-head h2{color:#f6d68a;font-size:clamp(26px,4vw,38px);text-align:left;margin:0}
+.ct-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.ct-paper{background:var(--paper);border:2px solid var(--line);border-radius:18px;padding:14px 18px;box-shadow:0 4px 0 rgba(90,62,46,.85)}
+.ct-paper h3{color:var(--brass2);font-size:1.3em;margin-bottom:.3em}
+.ct-shell .ct-paper ul{margin:0;padding-left:1.1em}
+.ct-paper li{margin:.3em 0}
+.ct-settings{max-width:520px}
+.ct-set{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:.5em 0;border-bottom:1px dashed #d8c8a8}
+.ct-seg{display:flex;gap:6px}
+.ct-shell .ct-seg button{padding:.2em .9em}
+.ct-shell .ct-seg button.on{background:var(--brass);color:#fff}
+
+@media (prefers-reduced-motion:reduce){.ct-spindle img{animation:none !important}.ct-hero{transition:none !important}}
