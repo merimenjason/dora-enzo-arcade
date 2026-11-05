@@ -24,13 +24,17 @@ export type FrameView = { dive: Dive; time: number; dt: number; mapped: Uint8Arr
   /** Enzo's way to air when the tank runs low: a dotted line through the water */ guide?: { x: number; y: number }[] | null };
 
 const TILE_M = 32;
+/** painted sprites from public/art/deep/sprite; until one loads, its shape is drawn instead */
+const SPRITES = ['sub', 'boat', 'grimlure', 'veil', 'mothjelly', 'ribboneel', 'krill', 'crownsquid', 'hatchet', 'ghostray', 'teacup', 'starseed', 'siphon', 'isopod', 'ventsnail', 'lanternjaw'];
+/** each creature sprite's width, in multiples of its size */
+const SPRITE_W: Record<string, number> = { mothjelly: 3.6, ribboneel: 4.6, krill: 3.6, crownsquid: 3.8, hatchet: 2.6, ghostray: 3.8, teacup: 2.4, starseed: 3.4, siphon: 4, isopod: 3.2, ventsnail: 2.8, lanternjaw: 3 };
 
 export class DeepScene {
   c: HTMLCanvasElement; ctx: CanvasRenderingContext2D; w = 0; h = 0; dpr = 1; scale = 18;
   private dark: HTMLCanvasElement; private dctx: CanvasRenderingContext2D;
   private world: World | null = null; private smooth: Float32Array | null = null;
   private tiles = new Map<string, HTMLCanvasElement>(); private tileOrder: string[] = [];
-  private glows = new Map<string, HTMLCanvasElement>();
+  private glows = new Map<string, HTMLCanvasElement>(); private sprites = new Map<string, HTMLImageElement>();
   private cam = { x: 0, y: 0 }; private snow: { x: number; y: number; z: number; r: number }[] = [];
   private bubbles: { x: number; y: number; vx: number; vy: number; r: number; life: number }[] = [];
   private stars: { x: number; y: number; r: number }[] = [];
@@ -41,6 +45,7 @@ export class DeepScene {
     let s = 7; const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
     for (let i = 0; i < 140; i++) this.snow.push({ x: r() * 120, y: r() * 80, z: 0.4 + r() * 0.8, r: 0.03 + r() * 0.07 });
     for (let i = 0; i < 70; i++) this.stars.push({ x: r(), y: r(), r: 0.4 + r() * 1.2 });
+    for (const id of SPRITES) { const im = new Image(); im.decoding = 'async'; im.src = `/art/deep/sprite/${id}.webp`; this.sprites.set(id, im); }
     this.resize();
   }
   resize() {
@@ -65,6 +70,15 @@ export class DeepScene {
       [a, b] = [b, a];
     }
     this.smooth = a;
+  }
+  /** a painted sprite once it has loaded, or null */
+  private spr(id: string) { const im = this.sprites.get(id); return im && im.complete && im.naturalWidth ? im : null; }
+  /** draws a sprite w pixels wide, centred on (ox, oy) */
+  private paint(im: HTMLImageElement, w: number, ox = 0, oy = 0) { const h = (w * im.naturalHeight) / im.naturalWidth; this.ctx.drawImage(im, ox - w / 2, oy - h / 2, w, h); }
+  /** draws a long sprite in upright strips, each nudged up or down so the body ripples */
+  private ripple(im: HTMLImageElement, w: number, t: number, amp: number) {
+    const h = (w * im.naturalHeight) / im.naturalWidth, n = 18, sw = im.naturalWidth / n;
+    for (let i = 0; i < n; i++) this.ctx.drawImage(im, i * sw, 0, sw, im.naturalHeight, -w / 2 + (w * i) / n, -h / 2 + Math.sin(t - i * 0.55) * amp * (1 - i / n * 0.4), w / n + 1, h);
   }
   bump(mag: number) { this.shake = Math.min(1, this.shake + 0.25 + mag * 0.1); }
   snapTo(x: number, y: number) { this.cam.x = x; this.cam.y = y; }
@@ -150,7 +164,8 @@ export class DeepScene {
       const col = glowOf(c), pulse = 0.75 + 0.25 * Math.sin(t * (c.kind === 'veil' ? 3 : 1.6) + c.phase);
       const r = (c.kind === 'grimlure' ? 2.2 : c.kind === 'veil' ? 2.6 : spec(c.kind as SpecId).size * 2.6) * S * pulse;
       const lx2 = c.kind === 'grimlure' ? X(c.x + lureOff(c).x) : X(c.x), ly2 = c.kind === 'grimlure' ? Y(c.y + lureOff(c).y) : Y(c.y);
-      ctx.globalAlpha = c.kind === 'veil' ? 0.55 : 0.9; ctx.drawImage(this.glow(col), lx2 - r, ly2 - r, r * 2, r * 2);
+      // a painted creature keeps its own glow, so its halo is softer
+      ctx.globalAlpha = (c.kind === 'veil' ? 0.55 : 0.9) * (c.kind !== 'grimlure' && this.spr(c.kind) ? 0.45 : 1); ctx.drawImage(this.glow(col), lx2 - r, ly2 - r, r * 2, r * 2);
       // sonar shows it for a while as a soft ring
       if (c.seen > d.t && c.kind !== 'veil') { ctx.globalAlpha = clamp((c.seen - d.t) / 4, 0, 1) * 0.5; ctx.strokeStyle = c.kind === 'grimlure' ? '#ff6a7a' : '#7ff6ff'; ctx.lineWidth = 1.5 * this.dpr; ctx.beginPath(); ctx.arc(X(c.x), Y(c.y), 2.2 * S, 0, TAU); ctx.stroke(); }
     }
@@ -191,6 +206,14 @@ export class DeepScene {
     const bx = X(this.world.spine[0].x + 6), by = Y(0) + Math.sin(t * 1.4) * 0.15 * S;
     if (by < -6 * S || by > this.h + 6 * S) return;
     ctx.save(); ctx.translate(bx, by); ctx.rotate(Math.sin(t * 1.1) * 0.03);
+    const im = this.spr('boat');
+    if (im) {
+      // Enzo at the rail, painted in; the hull sits a little into the water
+      const w = 15 * S, h = (w * im.naturalHeight) / im.naturalWidth; ctx.drawImage(im, -w / 2, 0.9 * S - h, w, h);
+      ctx.restore();
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(this.glow('#ffcf6a'), bx - 6.9 * S - 3 * S, by - 3.85 * S - 3 * S, 6 * S, 6 * S); ctx.restore();
+      return;
+    }
     // hull
     ctx.fillStyle = '#7a3b2e'; ctx.beginPath(); ctx.moveTo(-6 * S, -0.8 * S); ctx.lineTo(6 * S, -0.8 * S); ctx.quadraticCurveTo(5 * S, 1.4 * S, 3 * S, 1.5 * S); ctx.lineTo(-4 * S, 1.5 * S); ctx.quadraticCurveTo(-6 * S, 0.8 * S, -6 * S, -0.8 * S); ctx.fill();
     ctx.fillStyle = '#e9d7b0'; ctx.fillRect(-6 * S, -1.1 * S, 12 * S, 0.35 * S);
@@ -345,6 +368,14 @@ export class DeepScene {
     const f = d.face, tilt = clamp(d.vy * 0.06, -0.35, 0.35) * f;
     ctx.save(); ctx.translate(x, y); ctx.rotate(tilt); ctx.scale(f, 1);
     const L = SUB_R * 1.6 * S, Hh = SUB_R * 1.05 * S;
+    const im = this.spr('sub');
+    if (im) {
+      // Dora is painted in at the porthole; she bobs a touch as the motor hums
+      this.paint(im, L * 2.8, -L * 0.08, Math.sin(t * 2.2) * 0.04 * S);
+      ctx.restore();
+      if (d.hull < d.st.hullMax * 0.35) { ctx.strokeStyle = 'rgba(40,20,0,0.7)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x - 0.6 * S, y - 0.3 * S); ctx.lineTo(x - 0.2 * S, y); ctx.lineTo(x - 0.5 * S, y + 0.4 * S); ctx.stroke(); }
+      return;
+    }
     // the propeller
     const spin = Math.sin(t * (6 + d.speed * 8)), px = -L * 1.05;
     ctx.fillStyle = '#5b5348'; ctx.fillRect(px - 0.1 * S, -0.15 * S, 0.5 * S, 0.3 * S);
@@ -379,11 +410,12 @@ export class DeepScene {
   }
   private subLights(ctx: CanvasRenderingContext2D, d: Dive, x: number, y: number, S: number, t: number) {
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    const f = d.face, L = SUB_R * 1.6 * S;
-    // porthole glow and a blinking tail light
-    ctx.globalAlpha = 0.5; ctx.drawImage(this.glow('#ffb84d'), x + f * L * 0.28 - 1.6 * S, y - 1.7 * S, 3.2 * S, 3.2 * S);
+    const f = d.face, L = SUB_R * 1.6 * S, painted = !!this.spr('sub');
+    // porthole glow and a blinking tail light, placed to match the painted sub once it has loaded
+    const port = painted ? 0.06 : 0.28, nose = painted ? 1.04 : 1.02, ny = painted ? -0.33 : 0.25;
+    ctx.globalAlpha = painted ? 0.3 : 0.5; ctx.drawImage(this.glow('#ffb84d'), x + f * L * port - 1.6 * S, y - 1.7 * S, 3.2 * S, 3.2 * S);
     ctx.globalAlpha = Math.sin(t * 4) > 0.6 ? 0.9 : 0.25; ctx.drawImage(this.glow('#ff4d6a'), x - f * L * 0.95 - 0.7 * S, y - 1.4 * S, 1.4 * S, 1.4 * S);
-    if (d.lamp) { ctx.globalAlpha = 0.9; ctx.drawImage(this.glow('#fff1c2'), x + f * L * 1.02 - 1.1 * S, y + 0.25 * S - 1.1 * S, 2.2 * S, 2.2 * S); }
+    if (d.lamp) { ctx.globalAlpha = 0.9; ctx.drawImage(this.glow('#fff1c2'), x + f * L * nose - 1.1 * S, y + ny * S - 1.1 * S, 2.2 * S, 2.2 * S); }
     ctx.restore();
   }
   private bubbleStep(d: Dive, dt: number, lite: boolean) {
@@ -425,17 +457,34 @@ export class DeepScene {
   }
 
   // ---------------------------------------------------------------- creatures
+  /** a painted creature, brought to life with a bob, a breath, a tilt or a ripple */
+  private paintCreature(im: HTMLImageElement, c: Creature, S: number, t: number) {
+    const ctx = this.ctx, k = c.kind, ph = c.phase;
+    if (k === 'grimlure') { ctx.scale(c.vx < 0 ? -1 : 1, 1); ctx.rotate(Math.sin(t * 1.3 + ph) * 0.05); this.paint(im, 6.4 * S, -0.2 * S, 0); return; }
+    if (k === 'veil') { const p = Math.sin(t * 2 + ph) * 0.07; ctx.scale(1 + p, 1 - p); this.paint(im, 2.8 * S, 0, 1.2 * S); return; }
+    const s = spec(k), sz = s.size * S, w = SPRITE_W[k] * sz;
+    ctx.scale(c.vx < -0.05 ? -1 : 1, 1);
+    ctx.translate(0, Math.sin(t * 1.2 + ph) * 0.06 * sz);
+    if (s.move === 'swim' || s.move === 'dart') ctx.rotate(clamp(c.vy * 0.12, -0.4, 0.4) * (c.vx < -0.05 ? -1 : 1));
+    if (k === 'ribboneel' || k === 'siphon') { this.ripple(im, w, t * (k === 'ribboneel' ? 5 : 1.2) + ph, (k === 'ribboneel' ? 0.16 : 0.22) * sz); return; }
+    if (k === 'mothjelly' || k === 'teacup') { const p = Math.sin(t * (k === 'teacup' ? 2.4 : 3) + ph) * 0.07; ctx.scale(1 - p * 0.5, 1 + p); }
+    else if (k === 'krill') ctx.rotate(Math.sin(t * 0.6 + ph) * 0.3);
+    else if (s.move === 'crawl') ctx.scale(1 + Math.sin(t * 1.6 + ph) * 0.03, 1);
+    this.paint(im, w);
+  }
   private creature(ctx: CanvasRenderingContext2D, c: Creature, x: number, y: number, S: number, t: number) {
     const k = c.kind, ph = c.phase, face = c.vx < -0.05 ? -1 : 1;
     ctx.save(); ctx.translate(x, y);
+    const im = this.spr(k);
+    if (im) { this.paintCreature(im, c, S, t); ctx.restore(); return; }
     if (k === 'grimlure') {
       ctx.scale(c.vx < 0 ? -1 : 1, 1);
       ctx.fillStyle = '#0d1418'; ctx.beginPath(); ctx.ellipse(0, 0, 2.6 * S, 2 * S, 0, 0, TAU); ctx.fill();
       ctx.beginPath(); ctx.moveTo(-2.3 * S, 0); ctx.lineTo(-4 * S, -1.2 * S + Math.sin(t * 3) * 0.4 * S); ctx.lineTo(-4 * S, 1.2 * S); ctx.fill();
       ctx.strokeStyle = '#d9e4e0'; ctx.lineWidth = 1; for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.moveTo(1 * S + i * 0.25 * S, 0.5 * S); ctx.lineTo(1.1 * S + i * 0.25 * S, 0.9 * S); ctx.stroke(); }
-      ctx.strokeStyle = '#2a3a3a'; ctx.lineWidth = Math.max(1, 0.12 * S); ctx.beginPath(); ctx.moveTo(0.5 * S, -1.8 * S); ctx.quadraticCurveTo(1.5 * S, -3.6 * S, 2.6 * S, -2.6 * S); ctx.stroke();
+      ctx.strokeStyle = '#2a3a3a'; ctx.lineWidth = Math.max(1, 0.12 * S); ctx.beginPath(); ctx.moveTo(0.5 * S, -1.8 * S); ctx.quadraticCurveTo(1.5 * S, -3.2 * S, 2.6 * S, -1.05 * S); ctx.stroke();
       ctx.fillStyle = c.state === 'hunt' ? '#ffdede' : '#cfe8e0'; ctx.beginPath(); ctx.arc(1.4 * S, -0.6 * S, 0.22 * S, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#7ffff0'; ctx.beginPath(); ctx.arc(2.6 * S, -2.6 * S, 0.3 * S, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#7ffff0'; ctx.beginPath(); ctx.arc(2.6 * S, -1.05 * S, 0.3 * S, 0, TAU); ctx.fill();
     } else if (k === 'veil') {
       ctx.fillStyle = 'rgba(190,120,255,0.35)'; ctx.strokeStyle = 'rgba(230,180,255,0.6)'; ctx.lineWidth = 1;
       const pul = 1 + Math.sin(t * 2 + ph) * 0.08;
@@ -541,7 +590,7 @@ function vnoise(x: number, y: number) {
   return (a + (b - a) * sx) * (1 - sy) + (c + (d - c) * sx) * sy;
 }
 const glowOf = (c: Creature) => (c.kind === 'grimlure' ? '#7ffff0' : c.kind === 'veil' ? '#c88cff' : spec(c.kind as SpecId).glow);
-const lureOff = (c: Creature) => ({ x: (c.vx < 0 ? -1 : 1) * 2.6, y: -2.6 });
+const lureOff = (c: Creature) => ({ x: (c.vx < 0 ? -1 : 1) * 2.6, y: -1.05 });
 
 /** The sonar map for the map screen: charted water by depth, charted rock dark, the rest unknown. One pixel a cell. */
 export function drawMap(c: CanvasRenderingContext2D, w: World, mapped: Uint8Array) {

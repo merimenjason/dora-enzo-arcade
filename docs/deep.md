@@ -2,7 +2,7 @@
 
 A sonar dive into an uncharted trench at `/deep`. Dora pilots the Thimble, a little yellow research sub, down from Enzo's boat. Enzo reads the sonar on deck and talks to her over the radio. The cave is dark below the shallows: a sonar ping shows the walls as dots of light, the headlamp lights a cone in front of the sub, and everything else is black except the creatures that glow. Scoop up specimens for Enzo's journal, bring them up to bank them for research, spend the research on the sub, and dive deep enough to find the Lantern Whale that sings at the bottom.
 
-Rules: `lib/deep-game.ts`. Drawing: `lib/deep-scene.ts` (Canvas 2D). Page, input, HUD and save: `app/deep/page.tsx`. Sound: `app/deep/sound.ts`.
+Rules: `lib/deep-game.ts`. Drawing: `lib/deep-scene.ts` (Canvas 2D). The sub with Dora at the porthole, Enzo's boat and every creature are painted sprites in `public/art/deep/sprite/`; the scene breathes, bobs, tilts and ripples them, and draws simple shapes in their place until they load. Page, input, HUD and save: `app/deep/page.tsx`. Sound: `app/deep/sound.ts`.
 
 ## The cave
 
