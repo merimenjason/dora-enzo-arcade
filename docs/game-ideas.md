@@ -4,6 +4,37 @@ Ideas for future games that haven't been built yet, newest first. Each comes wit
 
 Painted mock-ups (Codex) are in [`ideas/`](ideas/). There is a page with all of them and their interfaces at https://claude.ai/artifact/4jSWyhexvhzJtC67u7UUzM (private to the owner).
 
+## Original pixel roguelites (05-11-2026)
+
+Roguelites where something about pixel art itself is the mechanic, rather than a mash-up of existing genres. No released game is known to be built on any of these. Same pixel pipeline as the mash-ups below. Gameplay mock-ups: `ideas/px-smith-play.webp`, `ideas/px-faded-play.webp`, `ideas/px-fold-play.webp`, `ideas/px-double-play.webp`.
+
+### Pixel Smith (pixels are the loot, the weapon and the health)
+
+Draw your own weapon pixel by pixel on a 12×12 grid. Its shape is exactly its hitbox (a long thin spear reaches, a fat hammer covers) and its colours are its powers (gold cuts, blue freezes, red burns, green heals). Grumbles burst into loose pixels you collect as paint; every hit knocks pixels off Dora's own sprite, so a big weapon means less left to lose.
+
+- **Dora:** fights with whatever was drawn.
+- **Enzo:** draws at the easel between rooms, one pixel at a time, from what you collected.
+
+### The Faded Picture (every pixel of a picture is a level)
+
+The world map is one tiny faded picture, and every pixel is a whole room. The pixel's colour decides the room (blue is water, green forest, yellow sand, brown burrow, grey stone) and neighbouring colours mix in (blue next to green has reeds and frogs). Clearing a room brings its pixel's colour back; colour carries over between runs, so the picture returns run by run. A finished picture reveals a story scene and opens the next picture.
+
+- **Dora:** plays the rooms.
+- **Enzo:** peeks inside a pixel through his lens before you go in.
+
+### Paperfold Burrow (a dungeon you fold)
+
+The dungeon is drawn on a sheet of graph paper and you fold it. Folding lays one part of the map over another: corridors line up into shortcuts, walls stack, and stairs can be folded next to you. Overlapping rooms merge everything, so a room of Grumbles folded onto a spike trap meets the spikes. A few creases per floor; the back of the paper has its own rooms.
+
+- **Dora:** walks the map.
+- **Enzo:** folds it.
+
+### Double Cartridge (one controller, two games)
+
+The screen is split into two different games, and every input goes to both: Enzo in a platformer up top, Dora in a shooter below, where up is jump for him and climb for her. The halves feed each other: coins he grabs fall through as her ammo, Grumbles she shoots down land on his level as stepping stones, and a hit in either hurts both. Each world pairs two genres (platformer and shooter, maze and racer, puzzle and rhythm), and relics change how the two games are wired together.
+
+- **Dora** and **Enzo** each star in one of the two games.
+
 ## Pixel-art roguelite mash-ups (05-11-2026)
 
 The next roguelite should be pixel art. Pixel tilesets suit roguelites, because a run's rooms are rebuilt each time and tiles can be put together into any room. Codex draws the art in a 16-bit style; it's then cut down to the true low resolution (384×256) with a fixed palette (32 colours) and scaled up without smoothing, so the pixels are real. The interface uses a pixel font with square boxes. Gameplay mock-ups: `ideas/px-palette-play.webp`, `ideas/px-bomb-play.webp`, `ideas/px-sweep-play.webp`, and pixel versions of three mash-ups below: `ideas/px-castle-play.webp`, `ideas/px-conga-play.webp`, `ideas/px-push-play.webp`. Of the painted mash-ups below, Castle Crumble, Conga Caravan and Push Pals suit pixel art; Monster Stew and Gambit Burrow suit the painted style better.
