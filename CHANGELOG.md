@@ -20,6 +20,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Fluffball Smash!**: with **Swing: Auto** in Settings there's no charging any more. Pressing a shot button early only picks the shot, every swing hits at the same steady power, and the power bar, charging pose and charging hum no longer appear.
 - **Cloudberry Balloon**, **Pawpark Skate** and **Deepglow**: some menu text lost its styling, so the stars on the results card were small and plain, Skate's big score was body-sized and a few captions were the wrong colour. They're back to the intended size and colour.
 
 ## 04-11-2026

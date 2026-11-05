@@ -123,9 +123,9 @@ const pointEv = (evs) => evs.find((e) => e.k === 'point');
   const meetIdle = (o) => { const m = make(o); const p = m.you; m.phase = 'rally'; m.ball = ball({ x: p.x, y: p.y, z: 1, by: 1, bounces: 1, lastBounceSide: 0 }); p.lastDist = 99; m.events.length = 0; m.tryHit(p, idleInput()); return m.events.find((e) => e.k === 'hit'); };
   assert.ok(!meetIdle({}), 'in Charge mode, no press, no swing');
   const autoHit = meetIdle({ autoSwing: true }); assert.ok(autoHit && autoHit.power > 0.7, 'auto swing hits by itself at a good power');
-  // a button still picks the shot, and a charged press is never weaker than the auto power
+  // a button still picks the shot, but there is no charging: an early press hits at the same auto power
   const pick = (kind, early) => { const m = make({ autoSwing: true }); const p = m.you; m.phase = 'rally'; m.ball = ball({ x: p.x, y: p.y, z: 1, by: 1, bounces: 1, lastBounceSide: 0 }); p.ready = { kind, t: m.t - early, special: false }; p.lastDist = 99; m.events.length = 0; m.tryHit(p, idleInput()); return m.events.find((e) => e.k === 'hit'); };
-  assert.equal(pick('lob', 0.05).kind, 'lob'); assert.ok(pick('top', 0.02).power >= autoHit.power - 1e-9 && pick('top', 1).power > autoHit.power + 0.1, 'a full charge still beats the auto power');
+  assert.equal(pick('lob', 0.05).kind, 'lob'); assert.ok(Math.abs(pick('top', 0.02).power - pick('top', 1).power) < 1e-9 && Math.abs(pick('top', 1).power - autoHit.power) < 1e-9, 'no charging with auto swing');
   // auto power holds a heavy special
   const q = make({ autoSwing: true }); const pl = q.you; q.phase = 'rally'; q.ball = ball({ x: pl.x, y: pl.y, z: 1, by: 1, bounces: 1, lastBounceSide: 0, special: 'phoenix' }); pl.lastDist = 99; q.events.length = 0; q.tryHit(pl, idleInput());
   assert.ok(q.events.some((e) => e.k === 'held'), 'an auto swing holds a heavy special');

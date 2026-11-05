@@ -210,7 +210,7 @@ export default function SmashPage() {
       // the pause before the result runs on the clock, not frames, so a slow device isn't kept waiting
       if (m.over && !pausedRef.current) { overT += raw; if (overT > 1.6) { overT = 0; finish(); return; } } else overT = 0;
       // the view
-      view.dt = dt; view.players = m.players.map((p) => ({ id: p.char.id, side: p.side, x: p.x, y: p.y, vx: p.vx, vy: p.vy, swing: p.swing, kind: p.swingKind, charging: !!p.ready && !p.ready.special ? true : !!p.ready, jump: p.jump, stun: p.stun, frost: p.frost }));
+      view.dt = dt; view.players = m.players.map((p) => ({ id: p.char.id, side: p.side, x: p.x, y: p.y, vx: p.vx, vy: p.vy, swing: p.swing, kind: p.swingKind, charging: !!p.ready && !(p.human && m.opts.autoSwing && !p.ready.special), jump: p.jump, stun: p.stun, frost: p.frost }));
       const b = m.ball;
       view.ball = { x: b.x, y: b.y, z: b.z, visible: true, special: b.special, decoys: b.decoys, age: b.age, flight: b.flight, by: b.by };
       // the landing marker: where the ball will first bounce on your side
@@ -227,10 +227,12 @@ export default function SmashPage() {
       if (h.m0) h.m0.style.transform = `scaleX(${me0})`; if (h.m1) h.m1.style.transform = `scaleX(${me1})`;
       h.spirit0?.classList.toggle('full', me0 >= 1); h.spirit1?.classList.toggle('full', me1 >= 1);
       h.spirit0?.classList.toggle('counter', me0 >= G.COUNTER_COST / G.SPECIAL_COST && !!m.ball.special && m.ball.by === 1 && G.SPECIALS[m.ball.special].heavy);
-      const ch = you.ready ? Math.max(m.opts.autoSwing ? G.AUTO_CHARGE : 0, Math.min(1, (m.t - you.ready.t) / 0.9)) : 0;
-      if (h.charge) { h.charge.style.opacity = you.ready ? '1' : '0'; } if (h.chargeFill) h.chargeFill.style.transform = `scaleX(${ch})`;
+      // with auto swing there is nothing to charge, so no power bar and no charging hum
+      const charging = !!you.ready && !m.opts.autoSwing;
+      const ch = charging ? Math.min(1, (m.t - you.ready!.t) / 0.9) : 0;
+      if (h.charge) { h.charge.style.opacity = charging ? '1' : '0'; } if (h.chargeFill) h.chargeFill.style.transform = `scaleX(${ch})`;
       h.charge?.classList.toggle('max', ch >= 0.55);
-      soundRef.current?.charge(!!you.ready && !m.over && !pausedRef.current, ch);
+      soundRef.current?.charge(charging && !m.over && !pausedRef.current, ch);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);

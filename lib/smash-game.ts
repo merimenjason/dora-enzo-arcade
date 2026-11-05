@@ -427,7 +427,8 @@ export class Match {
     const ready = p.ready ?? { kind: 'top' as ShotKind, t: this.t - 0.5, special: false };
     if (auto && !p.ready && --this.fortressLeft <= 0) this.fortress = -1;
     let charge = Math.min(1, (this.t - ready.t) / CHARGE_FULL);
-    if (autoSwing) charge = Math.max(charge, AUTO_CHARGE);
+    // auto swing has no charging at all: every swing is the same steady power, however early a button was pressed
+    if (autoSwing) charge = AUTO_CHARGE;
     let q = 0.25 + 0.75 * Math.pow(charge, 0.7);
     // a heavy special: hold it with a charged swing or a counter, or be blown away
     if (b.special && SPECIALS[b.special].heavy) {
