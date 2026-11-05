@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of eighty-two original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of eighty-three original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -92,6 +92,7 @@ Listed in arcade-menu order.
 | 80 | Paperwing Post | `/glider` | Paper glider |
 | 81 | The Clocktower Mystery | `/clocktower` | Point-and-click adventure |
 | 82 | Tetherball | `/tether` | Action roguelite |
+| 83 | Out of Frame | `/frame` | Puzzle platformer |
 
 ## Run
 
@@ -1422,6 +1423,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:tether` runs the engine checks: seeded arenas, the hook (latching, missing, yanking, auto-aim), the rope (it never stretches, light and heavy whirl speeds, a charging boar dragging Dora), throws, impacts and bowling, armour, walls, spikes, pits, crates and hearts, chained bomb beetles, swinging round Enzo, the dash, every enemy, waves, upgrades, losing and winning, seeded replays and the save. `npm run bot:tether` plays thirty runs as a skilled swinger, which must win some and get a fair way in the rest, and thirty as a careless player, who must get much less far. `node tests/e2e/tether.mjs` (with `npm run dev` running) plays in a browser on desktop and on phones held either way.
 
 **Docs:** [`docs/tether.md`](docs/tether.md) has the rules, every number, the enemies, the upgrades, the art and the bot results.
+
+### 83 · Out of Frame (`/frame`)
+
+**Play:** a pixel-art puzzle platformer where the camera is the controller. Dora walks right on her own (and hops single steps); only what is inside Enzo's viewfinder moves, and everything outside it, Dora included, is frozen in sepia. Keep her in the picture and leave the danger out of it: a frozen Grumble, boulder or falling rock is a solid block to stand on, a frozen arrow is a plank, and arrows that hit rock stick there and build out into a bridge. Crumbling floor, rafts, lifts, traps and boulder chutes only work while they're in the frame, and frozen Dora is safe from anything that runs into her. Nine screens across the Jungle Ruins, the Crystal Cave and the Sunken Temple; the film runs down all the time (75 seconds to start, 14 more for each screen and 10 for each film can), Dora has four hearts, and after each screen Enzo offers three of eight lenses (a wider or taller frame, a faster tripod, a longer reel, plasters, springy boots, a slow shutter, an acorn cache).
+
+**Controls:** the frame follows the mouse, and a click jumps. WASD or the arrow keys nudge the frame, Space, J or Z jump, C centres the frame on Dora, Esc or P pauses, and 1, 2 or 3 picks a lens. On a touch screen: drag to move the frame by as much as your finger moves, and tap JUMP.
+
+**Tests:** `npm run test:frame` runs the engine checks: the plan and the segments, the live rule, walking, hopping, jumping and falling back to safe rock, Grumbles (frozen steps, bumps, stomps, turning at frozen Dora), traps and arrows (sticking, bridges, frozen planks), boulders resting on spikes, hanging rocks, crumbling floor, rafts and lifts, pickups, the film running out, clearing screens, lenses, winning, seeded replays and the save. `npm run bot:frame` makes a look-ahead bot clear every segment on its own and win some runs while a careless one gets much less far (`--quick` in `npm test`). `node tests/e2e/frame.mjs` (dev server running) plays it in a browser on desktop and on phones held both ways.
+
+**Docs:** [`docs/frame.md`](docs/frame.md) has the rules, every number, the hazards, the lenses, the art and the bot results.
 
 ## Validation
 

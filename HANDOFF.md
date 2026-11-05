@@ -6,7 +6,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 20-10-2026)
 
-**Newest game (05-11-2026): Tetherball** (`/tether`, game 82), a pixel-art action roguelite where the rope is the only weapon; see [Tetherball · 05-11-2026](#tetherball--05-11-2026) below. The Clocktower Mystery (`/clocktower`, game 81), Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
+**Newest game (05-11-2026): Out of Frame** (`/frame`, game 83), a pixel-art puzzle platformer where only what's inside Enzo's viewfinder moves; see [Out of Frame · 05-11-2026](#out-of-frame--05-11-2026) below. Tetherball (`/tether`, game 82), The Clocktower Mystery (`/clocktower`, game 81), Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
 
 **Newest work (03–04-11-2026): Kumori Pass** (`/pass`, game 75) got a new look, a minimap, Enzo's demo line (also as a Time Attack ghost), two garage parts, seven unlockable cars, Side Jobs and a chapter after the ending; see [Kumori Pass · 04-11-2026](#kumori-pass--04-11-2026) below.
 
@@ -98,6 +98,17 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 9. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
 10. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
 11. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
+
+## Out of Frame · 05-11-2026
+
+Game 83, `/frame`, a pixel-art puzzle platformer: Dora walks on her own and only what's inside Enzo's camera frame moves, so the player points the frame to keep her going and freezes hazards into footholds. Nine screens in three places, a film clock and a lens pick after each screen. It was the top pick of the unbuilt game ideas on 05-11-2026. Rules, every number and the bot results: [`docs/frame.md`](docs/frame.md).
+
+- **Code:** engine `lib/frame-game.ts` (deterministic 60 Hz: 25 segments of 15 by 12 tiles, two to a screen, dealt per place from the seed; the live rule; Dora's walk, hop, jump, riding and safe-spot respawn; Grumbles, traps and arrows that stick and stack, boulder chutes, hanging rocks, crumbling floor, rafts and lifts; film, lenses, the save). Scene `lib/frame-scene.ts` (480 by 256 Canvas 2D: the world in a buffer, sepia outside the frame, full colour inside). Page `app/frame/page.tsx`.
+- **Art:** Codex paintings turned into pixel art by `scripts/frame-art.py` (keyed 2×2 sprite and tile sheets, backdrops fitted to 480 by 256 with a little more colour). The source paintings are not in the repo.
+- **Feel:** the backdrops are hazy paintings, so the scene darkens them a little and the art script adds colour, or the full-colour frame barely stands out from the sepia. On an upright phone the HUD goes above the picture and Enzo's lines below it.
+- **Balance:** `npm run bot:frame` (part of `npm test` with `--quick`) needs every segment cleared by the looker on its own, some looker wins (screen 5 on average with `--quick`) and the careless bot two screens behind. Segments were redesigned until the bot could clear each one; when adding a segment, run `bot:frame` first.
+- **Tests:** `npm run test:frame`, `npm run bot:frame`, `node tests/e2e/frame.mjs` (dev server running; uses `window.__frame().debug`).
+- **Ideas not done:** a daily seed, a photo album of the best shot from each screen, two-player (one frames, one jumps) and a boss screen.
 
 ## Tetherball · 05-11-2026
 

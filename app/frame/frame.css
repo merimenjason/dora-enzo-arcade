@@ -1,0 +1,145 @@
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Nunito:wght@700;800&display=swap');
+
+/* Out of Frame: an old film camera. Square sepia-brown panels with a hard two-pixel border and a drop shadow, gold for
+   actions, a red record light, Pixelify Sans for anything the game says, and the picture itself scaled up with
+   nearest-neighbour. The HUD sits along the top of the sky, and Enzo's pointers in the bottom corner. */
+.of-shell{--ink:#fff4dc;--dim:#c8b49a;--night:#1a120c;--panel:#2e2218;--edge:#120c08;--gold:#f2c14e;--goldd:#a8742a;--red:#e8484a;--leaf:#7ad06a;
+  position:fixed;inset:0;overflow:hidden;background:var(--night);color:var(--ink);
+  font-family:'Nunito',system-ui,sans-serif;font-weight:800;font-size:clamp(14px,1.5vw,16px);line-height:1.4;user-select:none;-webkit-user-select:none}
+.of-shell *{box-sizing:border-box}
+/* the arcade's global paragraph colour is for other pages */
+.of-shell p{color:inherit;font-size:inherit;line-height:inherit;margin:.3em 0}
+.of-shell h1,.of-shell h2,.of-shell h3,.of-shell kbd{margin:0;font-family:'Pixelify Sans',monospace;font-weight:700;line-height:1.1}
+.of-shell button,.of-shell a{font:inherit;touch-action:manipulation}
+.of-shell button{cursor:pointer;color:var(--ink);min-height:44px;padding:.35em 1.1em;border:2px solid var(--edge);border-radius:0;background:#5a4430;box-shadow:inset -2px -2px 0 rgba(0,0,0,.35),inset 2px 2px 0 rgba(255,255,255,.12),3px 3px 0 var(--edge);font-family:'Pixelify Sans',monospace;font-weight:700;font-size:1.05em}
+.of-shell button:hover:not(:disabled){background:#6e543a}
+.of-shell button:active:not(:disabled){transform:translate(2px,2px);box-shadow:inset -2px -2px 0 rgba(0,0,0,.35),1px 1px 0 var(--edge)}
+.of-shell button:focus-visible,.of-shell a:focus-visible,.of-introcard:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.of-shell .of-go{background:var(--gold);color:#2a1600}
+.of-shell .of-go:hover:not(:disabled){background:#ffd46a}
+.of-shell .of-danger{background:#6a2a34}
+.of-row{display:flex;flex-wrap:wrap;gap:.7em;align-items:center;margin-top:.9em}
+.of-shell .of-small{color:var(--dim);font-size:.9em}
+.of-card{background:var(--panel);border:2px solid var(--edge);box-shadow:inset 0 0 0 2px #5a4430,4px 4px 0 rgba(0,0,0,.5);padding:14px 16px}
+
+/* ---------------------------------------------------------------- the picture, centred and scaled up in whole pixels where it can be */
+.of-stage{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:960px;height:640px;visibility:hidden}
+.of-on-play .of-stage{visibility:visible}
+.of-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair;touch-action:none}
+.of-touch.of-on-play .of-stage{top:0;transform:translateX(-50%)}
+@media (orientation:landscape){.of-touch.of-on-play .of-stage{top:50%;transform:translate(-50%,-50%)}}
+
+.of-hud{position:absolute;inset:0;pointer-events:none;font-family:'Pixelify Sans',monospace;font-weight:700;font-size:clamp(11px,2.6cqw,18px);container-type:inline-size}
+.of-hud > *{pointer-events:auto}
+.of-stage{container-type:size}
+.of-top{position:absolute;left:1.2%;right:1.2%;top:1.2%;height:10%;display:flex;align-items:center;gap:1.2cqw;pointer-events:none}
+.of-top > *{background:rgba(18,12,8,.82);border:2px solid var(--edge);padding:.15em .6em;height:100%;display:flex;align-items:center;gap:.4em;white-space:nowrap;box-shadow:inset 0 0 0 1px #5a4430}
+.of-hearts{gap:.15em !important}
+.of-hearts i{display:block;width:1.05em;height:.95em;background:#4a3028;clip-path:polygon(0 25%,15% 0,35% 0,50% 18%,65% 0,85% 0,100% 25%,100% 50%,50% 100%,0 50%)}
+.of-hearts i.on{background:var(--red);box-shadow:inset 3px 3px 0 #ff9a9a}
+.of-where{flex:1;min-width:0;overflow:hidden;font-size:.85em}
+.of-where b{color:var(--gold)}
+.of-where span{color:var(--dim)}
+.of-track{display:block;position:relative;width:7cqw;height:.55em;background:#120c08;border:1px solid #5a4430;overflow:hidden}
+.of-track.small{width:3.6cqw}
+.of-track i{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);background:var(--gold)}
+.of-shell .of-pausebtn{pointer-events:auto;min-height:0;height:100%;padding:0 .7em;font-size:.9em}
+.of-banner{position:absolute;left:0;right:0;top:30%;text-align:center;font-size:2.6em;color:#fff4dc;text-shadow:3px 3px 0 #120c08,-1px -1px 0 #120c08;animation:ofBanner 1.6s steps(8) forwards;pointer-events:none}
+@keyframes ofBanner{0%{opacity:0;transform:translateY(8px)}15%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0}}
+/* Enzo's pointers sit in the bottom corner, at the left */
+.of-line{position:absolute;left:1.2%;bottom:1.2%;max-width:62%;display:flex;gap:.5em;align-items:center;background:rgba(18,12,8,.9);border:2px solid var(--edge);box-shadow:inset 0 0 0 1px #5a4430;padding:.25em .6em .25em .25em;animation:ofLine 6s steps(30) forwards;font-family:'Nunito',sans-serif;font-size:.82em;line-height:1.25}
+.of-line img{width:2.6em;height:2.6em;image-rendering:pixelated;border:2px solid var(--gold);flex:none}
+.of-line b{display:block;color:var(--gold);font-family:'Pixelify Sans',monospace}
+.of-line.warn{box-shadow:inset 0 0 0 1px var(--red)}
+.of-line.good b{color:var(--leaf)}
+@keyframes ofLine{0%{opacity:0}4%{opacity:1}88%{opacity:1}100%{opacity:0;visibility:hidden}}
+.of-shell .of-keys{position:absolute;right:1.2%;bottom:1.2%;margin:0;max-width:44%;text-align:right;font-size:.7em;color:var(--dim);background:rgba(18,12,8,.75);padding:.2em .5em;font-family:'Nunito',sans-serif;pointer-events:none}
+.of-keys b{color:var(--ink)}
+.of-overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(18,12,8,.55);padding:3%}
+.of-introcard{display:flex;gap:1em;align-items:center;max-width:min(560px,92%);cursor:pointer;font-family:'Nunito',sans-serif;font-size:clamp(13px,2.4cqw,17px)}
+.of-introcard img{width:5em;height:5em;image-rendering:pixelated;border:2px solid var(--gold);flex:none}
+.of-introcard b{color:var(--gold);font-family:'Pixelify Sans',monospace;font-size:1.1em}
+.of-introcard small{color:var(--dim)}
+.of-pick{text-align:center;max-width:96%;font-size:clamp(12px,2.2cqw,16px)}
+.of-pick h2{font-size:2em;color:var(--gold);text-shadow:3px 3px 0 #120c08}
+.of-pick > p{font-family:'Nunito',sans-serif;text-shadow:2px 2px 0 #120c08}
+.of-offers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1em;margin-top:.6em}
+.of-shell .of-offer{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:.35em;text-align:left;min-height:9em;padding:.8em .9em;background:var(--panel);font-family:'Nunito',sans-serif;font-size:1em;font-weight:700;line-height:1.3}
+.of-shell .of-offer:hover{background:#3e2e20}
+.of-offer b{font-family:'Pixelify Sans',monospace;color:var(--gold);font-size:1.2em}
+.of-offer kbd{position:absolute;right:.5em;top:.4em;color:var(--dim);font-size:.9em}
+.of-pips{display:flex;gap:3px}
+.of-pips i{width:.7em;height:.7em;border:1px solid #7a6248;background:#120c08}
+.of-pips i.on{background:var(--gold)}
+.of-pips i.next{background:#7a6248}
+.of-pausecard{display:flex;flex-direction:column;gap:.7em;align-items:stretch;min-width:min(300px,90%);text-align:center}
+.of-pausecard h2{font-size:1.8em}
+
+/* ---------------------------------------------------------------- touch: drag on the picture, and one big JUMP button */
+.of-touchpad{position:absolute;left:0;right:0;bottom:0;height:150px;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:0 max(18px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));pointer-events:none}
+.of-touchpad > *{pointer-events:auto}
+.of-pad{flex:1;align-self:stretch;display:flex;align-items:center;touch-action:none}
+.of-shell .of-touchpad p{margin:0;color:var(--dim);font-size:.85em;max-width:14em;pointer-events:none}
+.of-shell .of-jump{width:104px;height:104px;padding:0;touch-action:none;background:var(--gold);color:#2a1600;font-size:1.2em}
+@media (orientation:landscape){.of-touchpad{height:100%;align-items:flex-end}.of-pad{display:none}}
+
+/* ---------------------------------------------------------------- title, result and the pages */
+.of-bg{position:absolute;inset:0;background:#1a120c}
+.of-bg img{width:100%;height:100%;object-fit:cover;display:block;image-rendering:pixelated}
+.of-title{position:absolute;inset:0}
+.of-title .of-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(26,18,12,.92) 0%,rgba(26,18,12,.6) 32%,rgba(26,18,12,0) 58%)}
+.of-title-col{position:absolute;left:0;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;padding:20px clamp(16px,4vw,56px) max(20px,env(safe-area-inset-bottom));max-width:min(520px,100%)}
+.of-logo{font-size:clamp(46px,8.5vw,96px);color:var(--gold);text-shadow:4px 4px 0 #120c08,-2px -2px 0 #120c08,0 0 24px rgba(242,193,78,.35);letter-spacing:1px}
+.of-shell .of-tag{font-size:1.1em;margin:.3em 0 1em;text-shadow:2px 2px 0 #120c08}
+.of-menu{display:flex;flex-direction:column;align-items:flex-start;gap:.7em}
+.of-menu button{min-width:12em;text-align:left}
+.of-home{display:inline-block;margin-top:1em;color:var(--dim);text-decoration:none;font-family:'Pixelify Sans',monospace}
+.of-home:hover{color:var(--ink)}
+@media (max-width:640px){.of-title .of-bg::after{background:linear-gradient(0deg,rgba(26,18,12,.95) 0%,rgba(26,18,12,.7) 45%,rgba(26,18,12,0) 75%)}.of-title-col{justify-content:flex-end}}
+.of-page{position:absolute;inset:0;overflow-y:auto;padding:16px clamp(16px,3vw,40px) 40px;background:#1a120c}
+.of-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.of-head h2{font-size:clamp(26px,3.6vw,38px);color:var(--gold)}
+.of-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px;align-items:start}
+.of-cols h3{color:var(--gold);font-size:1.3em;margin-bottom:.4em}
+.of-cols ul{margin:0;padding-left:1.1em;font-weight:700}
+.of-cols li{margin:.35em 0}
+.of-foe{display:flex;gap:.7em;align-items:center;margin:.4em 0}
+.of-foe img{width:40px;height:40px;object-fit:contain;image-rendering:pixelated;flex:none}
+.of-foe p{margin:0;font-weight:700;font-size:.92em}
+.of-foe b{display:block;color:var(--gold)}
+.of-settings{max-width:460px;display:flex;flex-direction:column;gap:.8em}
+.of-set{display:flex;justify-content:space-between;align-items:center}
+.of-seg{display:flex;gap:.4em}
+.of-shell .of-seg button{min-width:4.5em}
+.of-shell .of-seg button.on{background:var(--gold);color:#2a1600}
+.of-result{display:grid;place-items:center}
+.of-result.won{background:none}
+.of-resultcard{position:relative;max-width:min(620px,94%);text-align:center}
+.of-resultcard h2{font-size:clamp(26px,4vw,40px);color:var(--gold)}
+.of-result.won .of-resultcard{align-self:end;margin-bottom:4vh;background:rgba(46,34,24,.92)}
+.of-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:.6em;list-style:none;padding:0;margin:.9em 0}
+.of-stats li{background:#120c08;border:2px solid #5a4430;padding:.3em .8em;display:flex;flex-direction:column;min-width:5.5em}
+.of-stats b{font-family:'Pixelify Sans',monospace;font-size:1.5em;color:var(--gold)}
+.of-stats span{color:var(--dim);font-size:.85em}
+.of-resultcard .of-row{justify-content:center}
+@media (prefers-reduced-motion:reduce){.of-banner,.of-line{animation-duration:.01s;animation-delay:0s}.of-line{animation:none}}
+
+/* the HUD's film reel and acorns */
+.of-reel b{min-width:1.6em;text-align:right;font-size:1.1em}
+.of-can{display:block;width:.9em;height:.9em;border-radius:50%;background:radial-gradient(circle,#120c08 18%,#c8b49a 20% 34%,#120c08 36% 44%,#8a7a6a 46%)}
+.of-reel .of-track i{background:#e8dcc0}
+.of-reel[data-low="1"] .of-track i{background:var(--red)}
+.of-reel[data-low="1"] b{color:#ff8a7a;animation:ofBlink .5s steps(2) infinite}
+@keyframes ofBlink{50%{opacity:.35}}
+.of-acorns img{height:1em;image-rendering:pixelated}
+.of-top{height:9%}
+.of-canvas{cursor:none}
+/* an upright phone shows a short picture with room above and below it: the HUD goes above and Enzo's pointers below,
+   so neither covers the picture */
+@media (orientation:portrait){
+  .of-touch .of-top{top:auto;bottom:calc(100% + 8px);height:auto;min-height:32px;font-size:13px;gap:6px}
+  .of-touch .of-top > *{padding:.3em .5em}
+  .of-touch .of-line{top:calc(100% + 10px);bottom:auto;left:0;max-width:100%;font-size:14px}
+  .of-touch .of-banner{font-size:1.8em}
+  .of-touch .of-where b{display:none}
+}
