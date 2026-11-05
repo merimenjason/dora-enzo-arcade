@@ -585,6 +585,26 @@ Scores are out of 10 and weighted: originality 25%, moment-to-moment fun 25%, re
 
 ---
 
+## Dora and Enzo casting for the top five
+
+Gameplay mock-ups: `ideas/px-tether-play.webp`, `ideas/px-copy-play.webp`, `ideas/px-catch-play.webp`, `ideas/px-pillar-play.webp`, `ideas/px-herd-play.webp`.
+
+- **Tetherball:**
+  - **Dora** hooks and swings the enemies.
+  - **Enzo** is a living anchor: Dora can tether to him and swing herself through the crowd.
+- **Copycat:**
+  - **Dora** tags Grumbles with paint pellets from her slingshot.
+  - Tagged Grumbles copy **Enzo**'s moves, step for step.
+- **Catch & Return:**
+  - **Dora** parries shots into the ring orbiting her, then throws the whole ring back.
+  - **Enzo**'s umbrella bounces stray shots back into her reach.
+- **Pillar Punch:**
+  - **Dora** punches pillars up out of the floor.
+  - **Enzo** shoves them over, and a row of pillars falls like dominoes.
+- **Stampede:**
+  - **Dora**'s shout spooks the herd into a stampede.
+  - **Enzo**'s whistle calls the herd back to rest.
+
 ## Top five deep dives
 
 ### Tetherball
