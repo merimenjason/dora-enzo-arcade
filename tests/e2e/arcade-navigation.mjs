@@ -16,6 +16,29 @@ try {
   await page.close();
  }
  {
+  // The genre buttons filter the cards, the choice goes in the address, and it survives a reload.
+  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  page.setDefaultTimeout(20000);
+  await page.goto('http://localhost:3000/');
+  await page.waitForLoadState('networkidle');
+  const puzzle = page.locator('.arcade-filter button[data-genre="puzzle"]');
+  const want = Number(await puzzle.locator('span').textContent());
+  assert.ok(want > 5 && want < 86);
+  await puzzle.click();
+  assert.equal(await page.locator('.arcade-card').count(), want);
+  assert.equal(await puzzle.getAttribute('aria-pressed'), 'true');
+  assert.ok(page.url().endsWith('/?genre=puzzle'));
+  assert.equal(await page.locator('.arcade-card[href="/fold"] .arcade-number').textContent(), '62', 'cards keep their arcade number');
+  await page.reload(); await page.waitForLoadState('networkidle');
+  await page.waitForFunction(() => document.querySelectorAll('.arcade-card').length < 86);
+  assert.equal(await page.locator('.arcade-card').count(), want);
+  await page.locator('.arcade-filter button', { hasText: 'All' }).click();
+  assert.equal(await page.locator('.arcade-card').count(), 86);
+  assert.ok(!page.url().includes('genre'));
+  console.log(`PASS the genre filter (${want} puzzle games), kept in the address`);
+  await page.close();
+ }
+ {
   // Picking a cabinet puts it at the top of the menu next time.
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   page.setDefaultTimeout(20000);

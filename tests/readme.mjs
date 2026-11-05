@@ -23,4 +23,9 @@ headings.forEach((m,i)=>{
  for(const label of ['**Play:**','**Controls:**','**Tests:**','**Docs:**'])assert(body.includes(label),`${m[2]} section is missing ${label}`);
 });
 
+// every game sits on at least one genre shelf for the menu's filter, and nothing is on a shelf that isn't a game
+const genres=readFileSync(new URL('../app/arcade-genres.ts',import.meta.url),'utf8');
+const shelved=[...genres.matchAll(/^ '(\/[\w-]+)': \[('\w+'(?:, '\w+')*)\],$/gm)].map(m=>m[1]);
+assert.deepEqual([...shelved].sort(),[...routes].sort(),'app/arcade-genres.ts must give every game in GAMES a genre, and only those');
+
 console.log(`README documents all ${routes.length} arcade games in order with Play, Controls, Tests and Docs.`);

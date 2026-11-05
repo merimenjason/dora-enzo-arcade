@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **The arcade menu** has genre buttons along the top (Action, Puzzle, Roguelite, Strategy & building, Sports & racing, Adventure, Cozy & creative and Arcade, each with how many games it holds). They stay in reach while scrolling, a game can be on two shelves, and the address remembers the choice, so a filtered list can be bookmarked or shared.
 - **Pixel Smith** is game 86: a pixel-art action roguelite where Enzo draws Dora's weapon pixel by pixel at his easel and she fights with exactly what he drew. Its shape is what it hits and its colours are its powers (gold cuts, stone shoves, blue freezes, red burns, green heals). Grumbles burst into the paint for the next weapon, but Dora's fur is her health and gets patched with the same paint. Three places, ten rooms, ideas from Enzo's sketchbook, and the Smudge, a giant eraser that rubs pixels off the weapon. Plays with a mouse and keys or on a phone with a thumb stick.
 
 ## 05-11-2026
