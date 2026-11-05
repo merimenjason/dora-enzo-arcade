@@ -46,7 +46,9 @@ function glowTex() {
 }
 const glow = (color: number, size: number, opacity = 1) => { const s = new T.Sprite(new T.SpriteMaterial({ map: glowTex(), color, transparent: true, opacity, blending: T.AdditiveBlending, depthWrite: false })); s.scale.setScalar(size); return noLine(s); };
 
-/** paving, concrete or roof tiles: a tile pattern 8 m across */
+const groundCopies = new WeakMap<T.Texture, T.Texture[]>();
+/** paving, concrete or roof tiles: a tile pattern 8 m across, drawn at once and then swapped for the painted tile
+ *  (public/art/skate/ground-<park>.webp) when it loads; its copies (groundCopies) share the image and update too */
 function groundTex(id: ParkId, a: string, b: string) {
   const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d')!;
   g.fillStyle = a; g.fillRect(0, 0, 256, 256);
@@ -66,7 +68,10 @@ function groundTex(id: ParkId, a: string, b: string) {
     for (let y = 0; y < 16; y++) { g.fillStyle = y % 2 ? a : b; g.fillRect(0, y * 16, 256, 15); }
     g.fillStyle = 'rgba(0,0,0,0.18)'; for (let y = 0; y < 16; y++) for (let x = 0; x < 4; x++) g.fillRect(((x * 64 + (y % 2) * 32) % 256), y * 16, 2, 15);
   }
-  const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4; return t;
+  const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4;
+  const all: T.Texture[] = [t]; groundCopies.set(t, all);
+  const im = new Image(); im.onload = () => { (t as T.Texture).image = im; for (const x of all) x.needsUpdate = true; }; im.src = `/art/skate/ground-${id}.webp`;
+  return t;
 }
 
 // ---------------------------------------------------------------- the pieces
@@ -167,7 +172,7 @@ function buildPark(pk: Park, look: Look): { g: T.Group; water: T.Mesh | null; li
   for (const h of holes.sort((a, b) => a.z0 - b.z0)) { spans.push([z, h.z0]); z = h.z1; }
   spans.push([z, D / 2 + 30]);
   for (const [a, b] of spans) {
-    const pw = W + 60, pd = b - a, t = gt.clone(); t.needsUpdate = true; t.repeat.set(pw / 8, pd / 8);
+    const pw = W + 60, pd = b - a, t = gt.clone(); t.needsUpdate = true; groundCopies.get(gt)?.push(t); t.repeat.set(pw / 8, pd / 8);
     const m = new T.Mesh(new T.PlaneGeometry(pw, pd), toon(0xffffff, { map: t })); m.rotation.x = -Math.PI / 2; m.position.set(0, 0, (a + b) / 2); m.receiveShadow = true; g.add(noLine(m));
   }
   // the park's edge: a low kerb all the way round (outside the skateable area), and beyond it the place

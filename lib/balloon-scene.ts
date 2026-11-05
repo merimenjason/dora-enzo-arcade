@@ -31,6 +31,7 @@ const LOOKS: Record<LevelId, Look> = {
 };
 
 let softT: T.Texture | null = null, cloudT: T.Texture | null = null;
+const paintedClouds: T.Texture[] = [];
 function softTex() {
   if (softT) return softT;
   const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d')!;
@@ -47,6 +48,14 @@ function cloudTex() {
     g.fillStyle = gr; g.beginPath(); g.arc(x, y, s, 0, Math.PI * 2); g.fill();
   }
   return (cloudT = new T.CanvasTexture(c));
+}
+/** one of three painted clouds (public/art/balloon/cloud-<n>.webp), the drawn one until it loads */
+function cloudPick(k: number) {
+  if (!paintedClouds.length) for (let n = 1; n <= 3; n++) {
+    const t = new T.Texture(cloudTex().image); t.colorSpace = T.SRGBColorSpace; t.needsUpdate = true; paintedClouds.push(t);
+    const im = new Image(); im.onload = () => { t.image = im; t.needsUpdate = true; }; im.src = `/art/balloon/cloud-${n}.webp`;
+  }
+  return paintedClouds[k % 3];
 }
 const glow = (color: number, size: number, opacity = 1) => { const s = new T.Sprite(new T.SpriteMaterial({ map: softTex(), color, transparent: true, opacity, blending: T.AdditiveBlending, depthWrite: false })); s.scale.setScalar(size); return noLine(s); };
 
@@ -354,7 +363,7 @@ export class BalloonScene {
     // clouds at many heights and depths, drifting with the wind at theirs
     const r = rng(lv.seed + 9);
     for (let k = 0; k < Math.ceil(lv.w / 45); k++) {
-      const s = new T.Sprite(new T.SpriteMaterial({ map: cloudTex(), color: lv.id === 'storm' ? 0xc8ccd8 : look.dusk ? 0xffe0e8 : 0xffffff, transparent: true, depthWrite: false, fog: true }));
+      const s = new T.Sprite(new T.SpriteMaterial({ map: cloudPick(k), color: lv.id === 'storm' ? 0xc8ccd8 : look.dusk ? 0xffe0e8 : 0xffffff, transparent: true, depthWrite: false, fog: true }));
       const z = -60 - r() * 260, sc = 40 + r() * 60; s.scale.set(sc * 2, sc, 1); s.position.set(r() * lv.w, Math.min(...ter.h) + 120 + r() * 520, z);
       this.clouds.push(noLine(s)); this.world.add(s);
     }
@@ -373,7 +382,7 @@ export class BalloonScene {
     if (lv.storm) {
       const st = lv.storm, sg = new T.Group(), rs = rng(77);
       for (let k = 0; k < 26; k++) {
-        const s = new T.Sprite(new T.SpriteMaterial({ map: cloudTex(), color: k < 10 ? 0x4a5060 : 0x6a7080, transparent: true, depthWrite: false }));
+        const s = new T.Sprite(new T.SpriteMaterial({ map: cloudPick(k < 13 ? 1 : 0), color: k < 10 ? 0x4a5060 : 0x6a7080, transparent: true, depthWrite: false }));
         const sc = 70 + rs() * 50; s.scale.set(sc * 1.6, sc, 1); s.position.set(st.x0 + rs() * (st.x1 - st.x0), st.y0 + 30 + rs() * (st.y1 - st.y0 - 40), -20 + rs() * 30); sg.add(noLine(s));
       }
       const pts: T.Vector3[] = []; let x = (st.x0 + st.x1) / 2, y = st.y0 + 20;
