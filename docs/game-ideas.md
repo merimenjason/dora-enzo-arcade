@@ -4,6 +4,45 @@ Ideas for future games that haven't been built yet, newest first. Each comes wit
 
 Painted mock-ups (Codex) are in [`ideas/`](ideas/). There is a page with all of them and their interfaces at https://claude.ai/artifact/4jSWyhexvhzJtC67u7UUzM (private to the owner).
 
+## Two unrelated systems (05-11-2026)
+
+Pixel roguelites where two systems that don't normally meet drive each other: changing one is how you play the other. Gameplay mock-ups: `ideas/px-forms-play.webp`, `ideas/px-thyme-play.webp`, `ideas/px-words-play.webp`, `ideas/px-sight-play.webp`, `ideas/px-yarn-play.webp`. A separate set of fifteen strategy-first systemic roguelites, with scores and prototype plans, is in [`systemic-roguelites.md`](systemic-roguelites.md).
+
+### Form & Function (bureaucracy × physics)
+
+Nothing is physical until its form is stamped: unstamped crates and boulders float as weightless ghosts, and each stamp (heavy, light, sticky, solid) sets how the object behaves. Departments have their own rules ("two stamps for anything bigger than a cart"); contradictory forms make an object flicker; Grumble clerks slip fake forms into the tray, which become real if stamped.
+
+- **Enzo:** stamps the forms.
+- **Dora:** crosses the rooms built from whatever exists.
+
+### Thyme Kitchen (cooking × time manipulation)
+
+Dora's lantern ages everything in its light (dough rises, seedlings fruit, Grumbles grow old and slow) or, switched to slow light, holds falling things in the air. Recipes need exact ages, so cooking and fighting use the same tool, and ageing a Grumble also ages the food in your satchel. Lamp oil is scarce.
+
+- **Dora:** carries the lantern.
+- **Enzo:** cooks to the recipes and calls the ages.
+
+### Wordwild (language × ecosystem)
+
+Words are a living population in the villagers' speech: words used together breed, unused ones go extinct, and slang ("grr") preys on gentler words. What villagers can say decides what they can do (no word for "share", no trading). Get "peace" thriving in both villages before the Grumble King comes.
+
+- **Enzo:** writes new words, which hatch from his notebook.
+- **Dora:** carries words in jars between villages.
+
+### Sightlines (architecture × social deduction)
+
+One guest at the manor is a thief. Each night you add walls, doors and windows, and the layout decides who could see whom, so your floor plan creates the witness statements. The thief picks routes hidden from view, so every wall changes the crime.
+
+- **Dora:** builds the rooms.
+- **Enzo:** interviews the guests and checks their claims against the walls.
+
+### Yarnwalk (movement × textile design)
+
+Every step Dora takes unwinds Enzo's yarn, and he knits exactly that path into her gear: zigzags make speed, spirals spin, loops knots. The yarn is also in the world (it wraps posts to hold gates, ties up Grumbles, blocks your way back) and it's limited. Coloured yarn adds properties to the stitches.
+
+- **Dora:** walks the route.
+- **Enzo:** knits it.
+
 ## Top five pixel roguelites, cast (05-11-2026)
 
 The five best-scoring concepts from a fifteen-idea brief for original pixel roguelites. Scores are weighted out of 10: originality 30%, replayability 25%, pixel-art appeal 15%, solo feasibility 15%, marketing 15%. Pixel Smith (8.40) is in the next section. Gameplay mock-ups: `ideas/px-frame-play.webp`, `ideas/px-down-play.webp`, `ideas/px-coin-play.webp`, `ideas/px-hour-play.webp`.
