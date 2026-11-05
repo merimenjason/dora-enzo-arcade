@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of eighty-six original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of eighty-eight original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -96,6 +96,8 @@ Listed in arcade-menu order.
 | 84 | Turn Order | `/order` | Puzzle roguelite |
 | 85 | Coin of the Realm | `/coin` | Pixel-art roguelite |
 | 86 | Pixel Smith | `/smith` | Pixel-art roguelite |
+| 87 | Combo Ball | `/combo` | Football roguelite |
+| 88 | Into Space | `/space` | Football roguelite |
 
 ## Run
 
@@ -1466,6 +1468,26 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:smith` runs the engine checks: painting (pixels must join the handle, corners count, repainting and rubbing out refund, hanging pixels fall off), sketches and drawing the last weapon again, patching fur, the weapon's geometry and weight, swings hitting with exactly the painted cells (the tip hardest, each colour's power), Grumbles bursting into pixels, ice blocked at a cost, the Smudge's rub, bumps, rolls and smouldering, ten rooms with the sketchbook, winning, losing and the save. `npm run bot:smith` makes a bot with a sword win at least 30% of runs, a slower one reach four rooms, and a stub or random play do much worse (`--quick` in `npm test`). `node tests/e2e/smith.mjs` (dev server running) plays it in a browser and on a phone.
 
 **Docs:** [`docs/smith.md`](docs/smith.md) has every paint, Grumble and idea, the weapon's numbers, the run, the art and the bot results.
+
+### 87 · Combo Ball (`/combo`)
+
+**Play:** a pixel-art football roguelite where a goal is worth the passing move that made it. Dora, Enzo and Pip play three-a-side against the Grumbles. Every completed pass adds 10 chips to the chain (more for a long ball, a lofted ball or a switch across the pitch) and a one-touch pass adds +1 mult; a goal scores (10 + chips) × mult, +1 mult more for a first-time finish, while a lone dribble and shot is worth 10. A Grumble touching the ball wipes the chain, and the longer it runs, the harder they press (though a long move leaves their keeper chasing shadows). Nine 90-second matches in three leagues: reach each match's points target (100 rising to 1400) before full time, and every goal conceded pushes it up. After every win the transfer shop offers three of fourteen traits that bend the scoring (Metronome, Tiki-Taka, Volley, Hot Streak, Piggy Bank and more), five at a time. Saved in `combo-ball-v1`.
+
+**Controls:** WASD or arrows run. J or Space passes to the team-mate you're pointing at (tap along the ground, hold to loft), or click a spot to pass there. K or Shift shoots (hold for power, up or down picks a corner) and slides in when the Grumbles have the ball. Pressing pass or shoot while the ball is coming plays it first time. L switches player, Esc pauses. On a phone: a thumb stick and PASS, SHOOT/TACKLE and SWITCH buttons.
+
+**Tests:** `npm run test:combo` runs the engine checks (determinism, chips and mult for one-touch, long, switch and straight-back passes, lofts over a Grumble, first-time play, goal values with traits, tackles, slides, conceding, full time, the shop and its five slots, and the save). `npm run bot:combo` makes a passing bot clear four matches on average and beat a hoofer, and random play never win (`--quick` in `npm test`). `node tests/e2e/combo.mjs` (dev server running) plays it in a browser and on a phone.
+
+**Docs:** [`docs/combo.md`](docs/combo.md) has every rule and number, the traits, the leagues, the art and the bot results.
+
+### 88 · Into Space (`/space`)
+
+**Play:** a pixel-art football roguelite about the pass into space. Every pass goes to a spot on the grass, not to a player, and the moment it leaves the boot you take over the runner. A gold ring on the spot shrinks as the ball comes: arrive just as it closes for a perfect arrival, and time slows for a first-time pass or shot that flies faster and beats the keeper more often. Arrive early and you have to stop and settle it while the Grumbles close in; arrive late and it's a loose ball. Dora, Enzo, Pip and Bram (with Tuft in goal) play a seven-round cup of two-minute four-a-side matches on summer grass, rain, the beach or a heatwave, against a high line, a low block or man-markers. Level at full time is golden goal; still level, you go through only with more perfect arrivals than their interceptions. Lose once and you're out. After every win Enzo offers three of twelve perks, with the next team, pitch and shape shown first. Saved in `into-space-v1`.
+
+**Controls:** WASD or arrows run. Hold J and the target walks out ahead of you, then let go to pass; or point with the mouse and click. Shift, L or right-click lofts. K shoots (hold for power, aim with the mouse or up and down) or tackles on defence. Space sprints, Q switches the runner, Esc pauses. On a phone, a thumb stick appears wherever your thumb lands; drag out from PASS the way you want the ball to go (a long drag lofts it), and use SHOOT/TACKLE, SPRINT and SWITCH.
+
+**Tests:** `npm run test:space` runs the engine checks (passes going to the spot and control jumping to the runner, perfect, early and late arrivals with slow motion and the first-time window, the settling touch, streaks, lofts, the pitches, golden goal and the tie-break, a full cup with its picks, the perks, a seed replaying, and the save). `npm run bot:space` makes a bot that leads runners into space win at least three rounds on average, passing to feet do clearly worse, arriving early be perfect far less often, and random play never win the cup (`--quick` in `npm test`). `node tests/e2e/space.mjs` (dev server running) plays it in a browser and on a phone.
+
+**Docs:** [`docs/space.md`](docs/space.md) has every rule and number, the pitches, perks, art and the bot results.
 
 ## Validation
 

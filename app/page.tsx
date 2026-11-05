@@ -88,14 +88,16 @@ const GAMES=[
  {href:'/order',title:'Turn Order',tag:'NEW · PUZZLE ROGUELITE',blurb:'You can’t move a single critter. Every round each one does its one thing (roll, gobble, sprout, go bang) in the order of the queue, and Enzo can only swap two neighbours. Get the golden acorn into Dora’s pot across eleven pixel-art gardens.',color:'#5aa84a',art:'🌰'},
  {href:'/coin',title:'Coin of the Realm',tag:'NEW · PIXEL ROGUELITE',blurb:'You’re a gold coin with Dora on one face and Enzo on the other. Every hour someone spends you, and you choose whose paw you land in next: fill the day’s orders to build each town’s bridge, overhear moods, and dodge the Grumbles across four market towns.',color:'#e0a83a',art:'🪙'},
  {href:'/smith',title:'Pixel Smith',tag:'NEW · PIXEL ROGUELITE',blurb:'Enzo paints Dora’s weapon pixel by pixel: its shape is exactly what it hits, and its colours are its powers. Grumbles burst into the paint for the next one, but Dora’s fur is her health and gets patched with the same paint. Three places, ten rooms and the Smudge.',color:'#5cb8f0',art:'🖌️'},
+ {href:'/combo',title:'Combo Ball',tag:'NEW · FOOTBALL ROGUELITE',blurb:'A goal is worth the passing move that made it: every pass adds chips, every one-touch adds mult, and a Grumble’s touch wipes the lot. One more pass, or shoot now? Nine matches and a transfer shop.',color:'#ffd23f',art:'⚽'},
+ {href:'/space',title:'Into Space',tag:'NEW · FOOTBALL ROGUELITE',blurb:'Never pass to feet: pick a spot on the grass, take over the runner and arrive just as it lands. Get it perfect and time slows for a first-time finish. A seven-round cup against the Grumbles.',color:'#3fae5a',art:'🥅'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">EIGHTY-SIX ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Eighty-six ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, eighty-six cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">EIGHTY-EIGHT ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Eighty-eight ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, eighty-eight cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <ArcadeGrid games={GAMES}/>

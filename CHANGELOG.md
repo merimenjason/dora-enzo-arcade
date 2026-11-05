@@ -6,6 +6,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Into Space** is game 88: a pixel-art football cup about passing into space. Pick a spot on the grass, take over the runner and arrive just as the ball lands, and time slows for a first-time pass or finish. Seven rounds against the Grumbles on grass, rain, sand and a baked-hard pitch, against a high line, a low block or man-markers, with a pick of Enzo's ideas after every win.
+- **Combo Ball** is game 87: a pixel-art football roguelite where a goal is worth the passing move that made it. Every pass adds chips, one-touch passes add mult, and a Grumble's touch wipes the lot, so it's one more pass or shoot now. Nine matches in three leagues with rising points targets, and a transfer shop of fourteen traits that bend the scoring.
 - **The arcade menu** has genre buttons along the top (Action, Puzzle, Roguelite, Strategy & building, Sports & racing, Adventure, Cozy & creative and Arcade, each with how many games it holds). They stay in reach while scrolling, a game can be on two shelves, and the address remembers the choice, so a filtered list can be bookmarked or shared.
 - **Pixel Smith** is game 86: a pixel-art action roguelite where Enzo draws Dora's weapon pixel by pixel at his easel and she fights with exactly what he drew. Its shape is what it hits and its colours are its powers (gold cuts, stone shoves, blue freezes, red burns, green heals). Grumbles burst into the paint for the next weapon, but Dora's fur is her health and gets patched with the same paint. Three places, ten rooms, ideas from Enzo's sketchbook, and the Smudge, a giant eraser that rubs pixels off the weapon. Plays with a mouse and keys or on a phone with a thumb stick.
 
