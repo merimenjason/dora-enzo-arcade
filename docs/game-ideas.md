@@ -45,7 +45,7 @@ Every step Dora takes unwinds Enzo's yarn, and he knits exactly that path into h
 
 ## Top five pixel roguelites, cast (05-11-2026)
 
-The five best-scoring concepts from a fifteen-idea brief for original pixel roguelites. Scores are weighted out of 10: originality 30%, replayability 25%, pixel-art appeal 15%, solo feasibility 15%, marketing 15%. Pixel Smith (8.40) is in the next section. Out of Frame (8.15) is now game 83 (`docs/frame.md`) and Coin of the Realm (7.90) game 85 (`docs/coin.md`). Gameplay mock-ups: `ideas/px-frame-play.webp`, `ideas/px-down-play.webp`, `ideas/px-coin-play.webp`, `ideas/px-hour-play.webp`.
+The five best-scoring concepts from a fifteen-idea brief for original pixel roguelites. Scores are weighted out of 10: originality 30%, replayability 25%, pixel-art appeal 15%, solo feasibility 15%, marketing 15%. Pixel Smith (8.40) is now game 86 (`docs/smith.md`), Out of Frame (8.15) game 83 (`docs/frame.md`) and Coin of the Realm (7.90) game 85 (`docs/coin.md`). Gameplay mock-ups: `ideas/px-frame-play.webp`, `ideas/px-down-play.webp`, `ideas/px-coin-play.webp`, `ideas/px-hour-play.webp`.
 
 ### Downsample (8.05): resolution is health, and collision follows it
 
@@ -63,14 +63,7 @@ The keep is inside a giant hourglass; falling sand pours through the neck all th
 
 ## Original pixel roguelites (05-11-2026)
 
-Roguelites where something about pixel art itself is the mechanic, rather than a mash-up of existing genres. No released game is known to be built on any of these. Same pixel pipeline as the mash-ups below. Gameplay mock-ups: `ideas/px-smith-play.webp`, `ideas/px-faded-play.webp`, `ideas/px-fold-play.webp`, `ideas/px-double-play.webp`.
-
-### Pixel Smith (pixels are the loot, the weapon and the health)
-
-Draw your own weapon pixel by pixel on a 12×12 grid. Its shape is exactly its hitbox (a long thin spear reaches, a fat hammer covers) and its colours are its powers (gold cuts, blue freezes, red burns, green heals). Grumbles burst into loose pixels you collect as paint; every hit knocks pixels off Dora's own sprite, so a big weapon means less left to lose.
-
-- **Dora:** fights with whatever was drawn.
-- **Enzo:** draws at the easel between rooms, one pixel at a time, from what you collected.
+Roguelites where something about pixel art itself is the mechanic, rather than a mash-up of existing genres. No released game is known to be built on any of these. Same pixel pipeline as the mash-ups below. Pixel Smith, the first of these, is now game 86 (`docs/smith.md`). Gameplay mock-ups: `ideas/px-smith-play.webp`, `ideas/px-faded-play.webp`, `ideas/px-fold-play.webp`, `ideas/px-double-play.webp`.
 
 ### The Faded Picture (every pixel of a picture is a level)
 

@@ -86,14 +86,15 @@ const GAMES=[
  {href:'/frame',title:'Out of Frame',tag:'NEW · PUZZLE PLATFORMER',blurb:'Only what’s inside Enzo’s camera moves. Dora walks on by herself: keep her in the picture, and freeze Grumbles into steps, boulders into lids and arrows into bridges. Nine pixel-art screens, and the film is running out.',color:'#b8783a',art:'🎞️'},
  {href:'/order',title:'Turn Order',tag:'NEW · PUZZLE ROGUELITE',blurb:'You can’t move a single critter. Every round each one does its one thing (roll, gobble, sprout, go bang) in the order of the queue, and Enzo can only swap two neighbours. Get the golden acorn into Dora’s pot across eleven pixel-art gardens.',color:'#5aa84a',art:'🌰'},
  {href:'/coin',title:'Coin of the Realm',tag:'NEW · PIXEL ROGUELITE',blurb:'You’re a gold coin with Dora on one face and Enzo on the other. Every hour someone spends you, and you choose whose paw you land in next: fill the day’s orders to build each town’s bridge, overhear moods, and dodge the Grumbles across four market towns.',color:'#e0a83a',art:'🪙'},
+ {href:'/smith',title:'Pixel Smith',tag:'NEW · PIXEL ROGUELITE',blurb:'Enzo paints Dora’s weapon pixel by pixel: its shape is exactly what it hits, and its colours are its powers. Grumbles burst into the paint for the next one, but Dora’s fur is her health and gets patched with the same paint. Three places, ten rooms and the Smudge.',color:'#5cb8f0',art:'🖌️'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">EIGHTY-FIVE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Eighty-five ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, eighty-five cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">EIGHTY-SIX ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Eighty-six ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, eighty-six cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <nav className="arcade-grid" aria-label="Choose a game">

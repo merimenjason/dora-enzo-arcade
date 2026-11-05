@@ -1,0 +1,236 @@
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Nunito:wght@700;800&display=swap');
+
+/* Pixel Smith: a painter's workshop by a forge. Square walnut panels with a hard two-pixel border and a drop shadow,
+   gold for actions, the five paints as flat swatches, Pixelify Sans for anything the game says, and every picture
+   scaled up with nearest-neighbour. The HUD sits along the top of the room, Enzo's pointers in the bottom corner. */
+.ps-shell{--ink:#fff4dc;--dim:#c8b49a;--night:#1a120c;--panel:#2e2218;--edge:#120c08;--gold:#f2c14e;--goldd:#a8742a;--red:#e8484a;--leaf:#7ad06a;
+  position:fixed;inset:0;overflow:hidden;background:var(--night);color:var(--ink);
+  font-family:'Nunito',system-ui,sans-serif;font-weight:800;font-size:clamp(14px,1.5vw,16px);line-height:1.4;user-select:none;-webkit-user-select:none}
+.ps-shell *{box-sizing:border-box}
+/* the arcade's global paragraph colour is for other pages */
+.ps-shell p{color:inherit;font-size:inherit;line-height:inherit;margin:.3em 0}
+.ps-shell h1,.ps-shell h2,.ps-shell h3,.ps-shell kbd{margin:0;font-family:'Pixelify Sans',monospace;font-weight:700;line-height:1.1}
+.ps-shell button,.ps-shell a{font:inherit;touch-action:manipulation}
+.ps-shell button{cursor:pointer;color:var(--ink);min-height:44px;padding:.35em 1.1em;border:2px solid var(--edge);border-radius:0;background:#5a4430;box-shadow:inset -2px -2px 0 rgba(0,0,0,.35),inset 2px 2px 0 rgba(255,255,255,.12),3px 3px 0 var(--edge);font-family:'Pixelify Sans',monospace;font-weight:700;font-size:1.05em}
+.ps-shell button:hover:not(:disabled){background:#6e543a}
+.ps-shell button:active:not(:disabled){transform:translate(2px,2px);box-shadow:inset -2px -2px 0 rgba(0,0,0,.35),1px 1px 0 var(--edge)}
+.ps-shell button:focus-visible,.ps-shell a:focus-visible,.ps-introcard:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.ps-shell .ps-go{background:var(--gold);color:#2a1600}
+.ps-shell .ps-go:hover:not(:disabled){background:#ffd46a}
+.ps-shell .ps-danger{background:#6a2a34}
+.ps-row{display:flex;flex-wrap:wrap;gap:.7em;align-items:center;margin-top:.9em}
+.ps-shell .ps-small{color:var(--dim);font-size:.9em}
+.ps-card{background:var(--panel);border:2px solid var(--edge);box-shadow:inset 0 0 0 2px #5a4430,4px 4px 0 rgba(0,0,0,.5);padding:14px 16px}
+
+/* ---------------------------------------------------------------- the picture, centred and scaled up in whole pixels where it can be */
+.ps-stage{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:960px;height:640px;visibility:hidden}
+.ps-on-play.ps-ph-fight .ps-stage,.ps-on-play.ps-ph-pick .ps-stage{visibility:visible}
+.ps-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair;touch-action:none}
+.ps-touch.ps-on-play .ps-stage{transform:translateX(-50%)}
+@media (orientation:landscape){.ps-touch.ps-on-play .ps-stage{top:50%;transform:translate(-50%,-50%)}}
+
+.ps-hud{position:absolute;inset:0;pointer-events:none;font-family:'Pixelify Sans',monospace;font-weight:700;font-size:clamp(11px,2.6cqw,18px);container-type:inline-size}
+.ps-hud > *{pointer-events:auto}
+.ps-stage{container-type:size}
+.ps-top{position:absolute;left:1.2%;right:1.2%;top:1.2%;height:10%;display:flex;align-items:center;gap:1.2cqw;pointer-events:none}
+.ps-top > *{background:rgba(18,12,8,.82);border:2px solid var(--edge);padding:.15em .6em;height:100%;display:flex;align-items:center;gap:.4em;white-space:nowrap;box-shadow:inset 0 0 0 1px #5a4430}
+.ps-hearts{gap:.15em !important}
+.ps-hearts i{display:block;width:1.05em;height:.95em;background:#4a3028;clip-path:polygon(0 25%,15% 0,35% 0,50% 18%,65% 0,85% 0,100% 25%,100% 50%,50% 100%,0 50%)}
+.ps-hearts i.on{background:var(--red);box-shadow:inset 3px 3px 0 #ff9a9a}
+.ps-where{flex:1;min-width:0;overflow:hidden;font-size:.85em}
+.ps-where b{color:var(--gold)}
+.ps-where span{color:var(--dim)}
+.ps-track{display:block;position:relative;width:7cqw;height:.55em;background:#120c08;border:1px solid #5a4430;overflow:hidden}
+.ps-track.small{width:3.6cqw}
+.ps-track i{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);background:var(--gold)}
+.ps-shell .ps-pausebtn{pointer-events:auto;min-height:0;height:100%;padding:0 .7em;font-size:.9em}
+.ps-banner{position:absolute;left:0;right:0;top:30%;text-align:center;font-size:2.6em;color:#fff4dc;text-shadow:3px 3px 0 #120c08,-1px -1px 0 #120c08;animation:psBanner 1.6s steps(8) forwards;pointer-events:none}
+@keyframes psBanner{0%{opacity:0;transform:translateY(8px)}15%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0}}
+/* Enzo's pointers sit in the bottom corner, at the left */
+.ps-line{position:absolute;left:1.2%;bottom:1.2%;max-width:62%;display:flex;gap:.5em;align-items:center;background:rgba(18,12,8,.9);border:2px solid var(--edge);box-shadow:inset 0 0 0 1px #5a4430;padding:.25em .6em .25em .25em;animation:psLine 6s steps(30) forwards;font-family:'Nunito',sans-serif;font-size:.82em;line-height:1.25}
+.ps-line img{width:2.6em;height:2.6em;image-rendering:pixelated;border:2px solid var(--gold);flex:none}
+.ps-line b{display:block;color:var(--gold);font-family:'Pixelify Sans',monospace}
+.ps-line.warn{box-shadow:inset 0 0 0 1px var(--red)}
+.ps-line.good b{color:var(--leaf)}
+@keyframes psLine{0%{opacity:0}4%{opacity:1}88%{opacity:1}100%{opacity:0;visibility:hidden}}
+.ps-shell .ps-keys{position:absolute;right:1.2%;bottom:1.2%;margin:0;max-width:44%;text-align:right;font-size:.7em;color:var(--dim);background:rgba(18,12,8,.75);padding:.2em .5em;font-family:'Nunito',sans-serif;pointer-events:none}
+.ps-keys b{color:var(--ink)}
+.ps-overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(18,12,8,.55);padding:3%}
+.ps-introcard{display:flex;gap:1em;align-items:center;max-width:min(560px,92%);cursor:pointer;font-family:'Nunito',sans-serif;font-size:clamp(13px,2.4cqw,17px)}
+.ps-introcard img{width:5em;height:5em;image-rendering:pixelated;border:2px solid var(--gold);flex:none}
+.ps-introcard b{color:var(--gold);font-family:'Pixelify Sans',monospace;font-size:1.1em}
+.ps-introcard small{color:var(--dim)}
+.ps-pick{text-align:center;max-width:96%;font-size:clamp(12px,2.2cqw,16px)}
+.ps-pick h2{font-size:2em;color:var(--gold);text-shadow:3px 3px 0 #120c08}
+.ps-pick > p{font-family:'Nunito',sans-serif;text-shadow:2px 2px 0 #120c08}
+.ps-offers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1em;margin-top:.6em}
+.ps-shell .ps-offer{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:.35em;text-align:left;min-height:9em;padding:.8em .9em;background:var(--panel);font-family:'Nunito',sans-serif;font-size:1em;font-weight:700;line-height:1.3}
+.ps-shell .ps-offer:hover{background:#3e2e20}
+.ps-offer b{font-family:'Pixelify Sans',monospace;color:var(--gold);font-size:1.2em}
+.ps-offer kbd{position:absolute;right:.5em;top:.4em;color:var(--dim);font-size:.9em}
+.ps-pips{display:flex;gap:3px}
+.ps-pips i{width:.7em;height:.7em;border:1px solid #7a6248;background:#120c08}
+.ps-pips i.on{background:var(--gold)}
+.ps-pips i.next{background:#7a6248}
+.ps-pausecard{display:flex;flex-direction:column;gap:.7em;align-items:stretch;min-width:min(300px,90%);text-align:center}
+.ps-pausecard h2{font-size:1.8em}
+
+/* ---------------------------------------------------------------- title, result and the pages */
+.ps-bg{position:absolute;inset:0;background:#1a120c}
+.ps-bg img{width:100%;height:100%;object-fit:cover;display:block;image-rendering:pixelated}
+.ps-title{position:absolute;inset:0}
+.ps-title .ps-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(26,18,12,.92) 0%,rgba(26,18,12,.6) 32%,rgba(26,18,12,0) 58%)}
+.ps-title-col{position:absolute;left:0;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;padding:20px clamp(16px,4vw,56px) max(20px,env(safe-area-inset-bottom));max-width:min(520px,100%)}
+.ps-logo{font-size:clamp(46px,8.5vw,96px);color:var(--gold);text-shadow:4px 4px 0 #120c08,-2px -2px 0 #120c08,0 0 24px rgba(242,193,78,.35);letter-spacing:1px}
+.ps-shell .ps-tag{font-size:1.1em;margin:.3em 0 1em;text-shadow:2px 2px 0 #120c08}
+.ps-menu{display:flex;flex-direction:column;align-items:flex-start;gap:.7em}
+.ps-menu button{min-width:12em;text-align:left}
+.ps-home{display:inline-block;margin-top:1em;color:var(--dim);text-decoration:none;font-family:'Pixelify Sans',monospace}
+.ps-home:hover{color:var(--ink)}
+@media (max-width:640px){.ps-title .ps-bg::after{background:linear-gradient(0deg,rgba(26,18,12,.95) 0%,rgba(26,18,12,.7) 45%,rgba(26,18,12,0) 75%)}.ps-title-col{justify-content:flex-end}}
+.ps-page{position:absolute;inset:0;overflow-y:auto;padding:16px clamp(16px,3vw,40px) 40px;background:#1a120c}
+.ps-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.ps-head h2{font-size:clamp(26px,3.6vw,38px);color:var(--gold)}
+.ps-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px;align-items:start}
+.ps-cols h3{color:var(--gold);font-size:1.3em;margin-bottom:.4em}
+.ps-cols ul{margin:0;padding-left:1.1em;font-weight:700}
+.ps-cols li{margin:.35em 0}
+.ps-foe{display:flex;gap:.7em;align-items:center;margin:.4em 0}
+.ps-foe img{width:40px;height:40px;object-fit:contain;image-rendering:pixelated;flex:none}
+.ps-foe p{margin:0;font-weight:700;font-size:.92em}
+.ps-foe b{display:block;color:var(--gold)}
+.ps-settings{max-width:460px;display:flex;flex-direction:column;gap:.8em}
+.ps-set{display:flex;justify-content:space-between;align-items:center}
+.ps-seg{display:flex;gap:.4em}
+.ps-shell .ps-seg button{min-width:4.5em}
+.ps-shell .ps-seg button.on{background:var(--gold);color:#2a1600}
+.ps-result{display:grid;place-items:center}
+.ps-result.won{background:none}
+.ps-resultcard{position:relative;max-width:min(620px,94%);text-align:center}
+.ps-resultcard h2{font-size:clamp(26px,4vw,40px);color:var(--gold)}
+.ps-result.won .ps-resultcard{align-self:end;margin-bottom:4vh;background:rgba(46,34,24,.92)}
+.ps-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:.6em;list-style:none;padding:0;margin:.9em 0}
+.ps-stats li{background:#120c08;border:2px solid #5a4430;padding:.3em .8em;display:flex;flex-direction:column;min-width:5.5em}
+.ps-stats b{font-family:'Pixelify Sans',monospace;font-size:1.5em;color:var(--gold)}
+.ps-stats span{color:var(--dim);font-size:.85em}
+.ps-resultcard .ps-row{justify-content:center}
+@media (prefers-reduced-motion:reduce){.ps-banner,.ps-line{animation-duration:.01s;animation-delay:0s}.ps-line{animation:none}}
+
+
+/* ---------------------------------------------------------------- the fight's HUD: fur, paint, place */
+.ps-fur img{height:1.5em;image-rendering:pixelated;margin-left:-.3em}
+.ps-fur b{min-width:1.4em;text-align:right;font-size:1.1em}
+.ps-unit{color:var(--dim);font-size:.8em}
+.ps-fur .ps-track i{background:#f4e6cc}
+.ps-fur[data-low="1"] .ps-track i{background:var(--red)}
+.ps-fur[data-low="1"] b{color:#ff8a7a;animation:psBlink .5s steps(2) infinite}
+@keyframes psBlink{50%{opacity:.35}}
+.ps-pots{gap:.55em !important}
+.ps-pot{display:flex;align-items:center;gap:.2em}
+.ps-pot i,.ps-swatch,.ps-brush i{display:block;width:.8em;height:.8em;border:2px solid #120c08;box-shadow:inset -2px -2px 0 rgba(0,0,0,.3),inset 2px 2px 0 rgba(255,255,255,.3)}
+[data-paint="grey"] > i,.ps-swatch[data-paint="grey"]{background:#8a8f9c}
+[data-paint="gold"] > i,.ps-swatch[data-paint="gold"]{background:#f2c14e}
+[data-paint="blue"] > i,.ps-swatch[data-paint="blue"]{background:#5cb8f0}
+[data-paint="red"] > i,.ps-swatch[data-paint="red"]{background:#e8503a}
+[data-paint="green"] > i,.ps-swatch[data-paint="green"]{background:#5cc860}
+.ps-boss{position:absolute;left:20%;right:20%;bottom:3%;display:flex;align-items:center;gap:.6em;background:rgba(18,12,8,.85);border:2px solid var(--edge);box-shadow:inset 0 0 0 1px #8a3a5a;padding:.2em .7em;pointer-events:none}
+.ps-boss b{color:#f49ac0;white-space:nowrap}
+.ps-boss .ps-track{flex:1;width:auto;height:.7em}
+.ps-boss .ps-track i{background:#f478aa;transform:scaleX(1)}
+.ps-canvas{cursor:crosshair}
+.ps-card{background:var(--panel);border:2px solid var(--edge);box-shadow:inset 0 0 0 2px #5a4430,4px 4px 0 rgba(0,0,0,.5);padding:14px 16px}
+.ps-swatch{width:1.6em;height:1.6em;flex:none}
+
+/* ---------------------------------------------------------------- touch: a thumb stick wherever the thumb lands, ROLL and SWING */
+.ps-touchpad{position:absolute;left:0;right:0;bottom:0;height:210px;display:flex;justify-content:space-between;align-items:stretch;gap:12px;padding:0 max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));pointer-events:none}
+.ps-touchpad > *{pointer-events:auto}
+.ps-stickzone{position:relative;flex:1;touch-action:none;display:flex;align-items:center;justify-content:center}
+.ps-shell .ps-stickzone p{margin:0;color:var(--dim);font-size:.85em;max-width:12em;text-align:center;pointer-events:none}
+.ps-stick{position:absolute;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;border:3px solid rgba(255,244,220,.35);background:rgba(18,12,8,.35);pointer-events:none}
+.ps-stick i{position:absolute;left:26px;top:26px;width:44px;height:44px;border-radius:50%;background:var(--gold);border:3px solid #120c08}
+.ps-btns{display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-end;gap:12px}
+.ps-shell .ps-swing{width:112px;height:112px;padding:0;touch-action:none;background:var(--gold);color:#2a1600;font-size:1.2em}
+.ps-shell .ps-roll{width:84px;height:60px;padding:0;touch-action:none}
+@media (orientation:landscape){.ps-touchpad{height:100%;align-items:flex-end}.ps-stickzone{align-self:stretch;max-width:45%}.ps-btns{flex-direction:row;align-items:flex-end}}
+@media (orientation:portrait){
+  .ps-touch .ps-top{top:auto;bottom:calc(100% + 6px);height:auto;min-height:32px;font-size:13px;gap:5px;flex-wrap:wrap}
+  .ps-touch .ps-top > *{padding:.3em .45em}
+  .ps-touch .ps-line{top:calc(100% + 10px);bottom:auto;left:0;max-width:100%;font-size:14px}
+  .ps-touch .ps-banner{font-size:1.8em}
+  .ps-touch .ps-where b{display:none}
+  .ps-touch .ps-where{flex:none}
+}
+
+/* ---------------------------------------------------------------- Enzo's easel */
+.ps-easel{position:absolute;inset:0;overflow-y:auto;padding:12px clamp(12px,2.5vw,32px) 24px;display:flex;flex-direction:column;gap:12px}
+.ps-easel > .ps-bg{position:fixed;z-index:-1}
+.ps-easel > .ps-bg::after{content:'';position:absolute;inset:0;background:rgba(26,18,12,.55)}
+.ps-ehead{display:flex;justify-content:space-between;align-items:center;gap:12px;background:rgba(18,12,8,.85);border:2px solid var(--edge);box-shadow:inset 0 0 0 1px #5a4430;padding:8px 12px}
+.ps-ehead h2{font-size:clamp(22px,3vw,32px);color:var(--gold)}
+.ps-ehead span{color:var(--dim);font-size:.9em}
+.ps-shell .ps-fightbtn{font-size:1.3em;min-width:7em}
+.ps-ebody{display:grid;grid-template-columns:minmax(200px,1fr) auto minmax(240px,1fr);gap:14px;align-items:start}
+.ps-col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.ps-enzo{position:relative;display:flex;align-items:flex-end;gap:8px;min-height:150px}
+.ps-enzo img{width:128px;image-rendering:pixelated;flex:none;filter:drop-shadow(3px 3px 0 rgba(0,0,0,.5))}
+.ps-shell .ps-say{margin:0 0 70px;background:#fff4dc;color:#2a1600;border:2px solid var(--edge);padding:.5em .7em;font-size:.95em;line-height:1.3;position:relative;box-shadow:3px 3px 0 rgba(0,0,0,.5);animation:psSay .25s steps(3)}
+.ps-say::before{content:'';position:absolute;left:-10px;bottom:10px;border:6px solid transparent;border-right:8px solid var(--edge)}
+.ps-say.warn{background:#ffe0d4}
+.ps-say.good{background:#e4f8d8}
+@keyframes psSay{0%{opacity:0;transform:translateY(4px)}}
+.ps-dora{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center}
+.ps-dora img{width:56px;height:56px;image-rendering:pixelated;border:2px solid var(--gold)}
+.ps-dora b{display:block;font-family:'Pixelify Sans',monospace;color:var(--gold)}
+.ps-dora span{color:var(--dim);font-size:.9em}
+.ps-dora button{grid-column:1/-1}
+.ps-dora small{color:inherit;opacity:.75;font-size:.8em;margin-left:.3em}
+.ps-track.big{width:100%;height:.8em;display:block;margin:.2em 0}
+.ps-track.big i{background:#f4e6cc}
+.ps-grid{display:grid;grid-template-columns:repeat(12,1fr);width:min(62vh,560px,calc(100vw - 32px));aspect-ratio:1;background:#f4ead4;border:4px solid #5a3a1e;box-shadow:0 0 0 2px var(--edge),6px 6px 0 rgba(0,0,0,.5);touch-action:none;
+  background-image:linear-gradient(#d8c8a8 1px,transparent 1px),linear-gradient(90deg,#d8c8a8 1px,transparent 1px);background-size:calc(100% / 12) calc(100% / 12)}
+.ps-shell .ps-cell{min-height:0;padding:0;border:0;background:transparent;box-shadow:none;cursor:crosshair}
+.ps-shell .ps-cell:hover:not(:disabled){background:rgba(90,58,30,.15)}
+.ps-shell .ps-cell:active:not(:disabled){transform:none;box-shadow:none}
+.ps-shell .ps-cell.ok{box-shadow:inset 0 0 0 2px rgba(90,58,30,.28)}
+.ps-shell .ps-cell[data-paint]{box-shadow:inset -3px -3px 0 rgba(0,0,0,.28),inset 3px 3px 0 rgba(255,255,255,.3)}
+.ps-shell .ps-cell[data-paint="grey"]{background:#8a8f9c}
+.ps-shell .ps-cell[data-paint="gold"]{background:#f2c14e}
+.ps-shell .ps-cell[data-paint="blue"]{background:#5cb8f0}
+.ps-shell .ps-cell[data-paint="red"]{background:#e8503a}
+.ps-shell .ps-cell[data-paint="green"]{background:#5cc860}
+.ps-shell .ps-cell[data-paint="wood"]{background:#9a6a3a;cursor:default}
+.ps-brushes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px}
+.ps-shell .ps-brush{display:flex;flex-direction:column;align-items:center;gap:2px;padding:.3em .2em;min-height:64px;background:#3e2e20;font-size:.95em}
+.ps-shell .ps-brush.on{background:#6e543a;outline:3px solid var(--gold);outline-offset:-1px}
+.ps-brush i{width:1.4em;height:1.4em}
+.ps-brush.rubber i{background:#f49ac0;border-radius:2px}
+.ps-brush b{font-size:1.2em;line-height:1}
+.ps-brush span{font-size:.75em;color:var(--dim);font-family:'Nunito',sans-serif;display:flex;gap:.3em;align-items:center}
+.ps-brush kbd{font-size:.9em;color:var(--dim)}
+.ps-shell .ps-tip{margin:0;color:var(--ink);background:rgba(18,12,8,.75);padding:.3em .6em;font-size:.9em}
+.ps-wstats{display:flex;gap:14px;align-items:center;padding:10px 12px}
+.ps-preview{width:160px;height:160px;image-rendering:pixelated;flex:none;background:rgba(0,0,0,.2);border:2px solid #5a4430}
+.ps-wstats ul{list-style:none;margin:0;padding:0;font-size:.95em;color:var(--dim)}
+.ps-wstats ul b{color:var(--gold);font-family:'Pixelify Sans',monospace;font-size:1.1em;margin-right:.2em}
+.ps-sketches{display:flex;flex-wrap:wrap;gap:8px}
+.ps-shell .ps-sketches button{flex:1 1 30%;padding:.3em .5em;font-size:.95em}
+@media (max-width:980px){
+  .ps-ebody{grid-template-columns:1fr;justify-items:center}
+  .ps-mid{order:-1}
+  .ps-col{width:100%;max-width:560px}
+  .ps-enzo{min-height:0}
+  .ps-enzo img{width:72px}
+  .ps-shell .ps-say{margin:0}
+}
+.ps-easel .ps-overlay{position:fixed}
+/* the boss bar sits under the HUD, clear of Enzo's pointers */
+.ps-boss{top:13%;bottom:auto}
+.ps-touch .ps-boss{top:2%}
+/* on a phone the Fight button stays in reach while scrolling down the easel */
+.ps-ehead{position:sticky;top:0;z-index:2}
+/* an upright phone shows the title painting in the top half, so the words never cross a face */
+@media (orientation:portrait) and (max-width:640px){
+  .ps-title .ps-bg{bottom:46%}
+  .ps-title .ps-bg::after{background:linear-gradient(0deg,rgba(26,18,12,1) 0%,rgba(26,18,12,0) 30%)}
+  .ps-title .ps-bg img{object-position:40% 50%}
+}

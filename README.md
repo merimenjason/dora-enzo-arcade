@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of eighty-five original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of eighty-six original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -95,6 +95,7 @@ Listed in arcade-menu order.
 | 83 | Out of Frame | `/frame` | Puzzle platformer |
 | 84 | Turn Order | `/order` | Puzzle roguelite |
 | 85 | Coin of the Realm | `/coin` | Pixel-art roguelite |
+| 86 | Pixel Smith | `/smith` | Pixel-art roguelite |
 
 ## Run
 
@@ -1455,6 +1456,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:coin` runs the engine checks: generated towns (joined up, the mayor in the middle, the right folk, Grumble dens, repeatable), the coin's reach by face and around Grumbles, orders with fair, cheery and grumpy sellers, Enzo overhearing, every special, Grumbles creeping and snatching, waiting, the Lucky toss, dusk and dawn, moods following who was paid, bridges, perks, winning, losing and the save. `npm run bot:coin` makes a two-step planner that never peeks at unheard moods win at least 30% of runs while a greedy player and a random one get much less far (`--quick` in `npm test`). `node tests/e2e/coin.mjs` (dev server running) plays it in a browser and on a phone.
 
 **Docs:** [`docs/coin.md`](docs/coin.md) has every townsfolk, the towns, an hour step by step, moods, the perks, how towns are made, the art and the bot results.
+
+### 86 · Pixel Smith (`/smith`)
+
+**Play:** a pixel-art action roguelite where Enzo draws Dora's weapon pixel by pixel on a 12 by 12 grid at his easel before every room, and Dora fights with exactly what he drew. The shape is the hitbox (wherever there's a pixel, it hits, and pixels further from her paw hit harder) and the colours are powers: gold cuts, stone shoves, blue chills and freezes, red burns and green grows Dora's fur back. More pixels make a heavier weapon, with slower swings and slower feet. Grumbles burst into loose pixels of their colour, which are the paint for the next weapon, and Dora's health is her own fur, patched at the easel with the same paint. Frost Grumbles throw ice that a weapon can block at the cost of the pixel it hits; Moss Grumbles heal the others. Ten rooms across the Pebble Mine, the Frost Cellar and the Ember Forge, an idea from Enzo's sketchbook after each place, and at the end the Smudge, a giant rubber eraser that rubs pixels off the weapon.
+
+**Controls:** at the easel, pick a paint (or press 1 to 5, E for the rubber) and click squares next to the handle, or drag to paint lots; click a pixel of the same colour to rub it out. Sketches lay out a Sword, Dagger, Hammer or Fan; Last one draws the last weapon again; Patch fur spends a pixel for 2 fur; Fight (or Enter) starts the room. In a fight, WASD or the arrows move, the mouse aims, click (or hold, or J) swings, and Space, Shift or right-click rolls; Esc pauses. On a phone, slide a thumb anywhere on the left to move and hold SWING (Dora aims at the nearest Grumble by herself); ROLL dodges.
+
+**Tests:** `npm run test:smith` runs the engine checks: painting (pixels must join the handle, corners count, repainting and rubbing out refund, hanging pixels fall off), sketches and drawing the last weapon again, patching fur, the weapon's geometry and weight, swings hitting with exactly the painted cells (the tip hardest, each colour's power), Grumbles bursting into pixels, ice blocked at a cost, the Smudge's rub, bumps, rolls and smouldering, ten rooms with the sketchbook, winning, losing and the save. `npm run bot:smith` makes a bot with a sword win at least 30% of runs, a slower one reach four rooms, and a stub or random play do much worse (`--quick` in `npm test`). `node tests/e2e/smith.mjs` (dev server running) plays it in a browser and on a phone.
+
+**Docs:** [`docs/smith.md`](docs/smith.md) has every paint, Grumble and idea, the weapon's numbers, the run, the art and the bot results.
 
 ## Validation
 

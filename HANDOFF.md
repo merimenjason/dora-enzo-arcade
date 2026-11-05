@@ -6,7 +6,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 20-10-2026)
 
-**Newest game (05-11-2026): Coin of the Realm** (`/coin`, game 85), a pixel-art roguelite where you are the coin and choose whose paw you land in next; see [Coin of the Realm · 05-11-2026](#coin-of-the-realm--05-11-2026) below. Turn Order (`/order`, game 84), Out of Frame (`/frame`, game 83), Tetherball (`/tether`, game 82), The Clocktower Mystery (`/clocktower`, game 81), Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
+**Newest game (06-11-2026): Pixel Smith** (`/smith`, game 86), a pixel-art action roguelite where Enzo draws Dora's weapon pixel by pixel; see [Pixel Smith · 06-11-2026](#pixel-smith--06-11-2026) below. Coin of the Realm (`/coin`, game 85), Turn Order (`/order`, game 84), Out of Frame (`/frame`, game 83), Tetherball (`/tether`, game 82), The Clocktower Mystery (`/clocktower`, game 81), Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
 
 **Newest work (03–04-11-2026): Kumori Pass** (`/pass`, game 75) got a new look, a minimap, Enzo's demo line (also as a Time Attack ghost), two garage parts, seven unlockable cars, Side Jobs and a chapter after the ending; see [Kumori Pass · 04-11-2026](#kumori-pass--04-11-2026) below.
 
@@ -98,6 +98,17 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 9. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
 10. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
 11. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
+
+## Pixel Smith · 06-11-2026
+
+Game 86, `/smith`, a pixel-art action roguelite: Enzo draws Dora's weapon on a 12 by 12 grid before every room and she fights with exactly that (shape is hitbox, colours are powers); Grumbles burst into the paint for the next one, and Dora's fur is her health, patched with the same paint. Ten rooms over three places, the sketchbook after each, and the Smudge. It was the top original pixel roguelite in [`docs/game-ideas.md`](docs/game-ideas.md), which no longer lists it. Rules, numbers and bot results: [`docs/smith.md`](docs/smith.md).
+
+- **Code:** engine `lib/smith-game.ts` (`Run` with `paintCell`, `eraseCell`, `sketch`, `patch`, `fight`, `tick`, `cellsNow` for where every weapon pixel is, `pick`; `local` and `tip` for the weapon's geometry; `weaponStats`; the save, with `cellsCode` and `redraw` for the last weapon). Scene `lib/smith-scene.ts` (384 by 216 Canvas 2D; `weaponPicture` and `drawWeapon` are shared with the easel's preview). Page `app/smith/page.tsx` (the easel is DOM, the fight is canvas).
+- **Art:** Codex paintings turned into pixel art by `scripts/smith-art.py` (Dora, Enzo, two Grumble sheets, three rooms, the workshop, title, ending). The weapon is drawn by the game from the grid. The source paintings are not in the repo.
+- **Feel:** a mouse aims; a finger can't aim and move at once, so on touch Dora aims at the nearest Grumble. The weapon is behind Dora when it points up. Dora's sprite loses pixels as she loses fur.
+- **Balance:** `npm run bot:smith` (part of `npm test` with `--quick`) needs the sword bot to get through six rooms on average (30% wins in the full run), a laggy bot to reach four, and a stub and random play to do much worse. Rerun it after changing any number in `FOES`, `BUDGET`, the paint damage, the weight or fur.
+- **Tests:** `npm run test:smith`, `npm run bot:smith`, `node tests/e2e/smith.mjs` (dev server running; uses `window.__smith().debug`).
+- **Ideas not done:** mirror brushes, paints that mix where they touch, a gallery of winning weapons, a daily seed.
 
 ## Coin of the Realm · 05-11-2026
 
