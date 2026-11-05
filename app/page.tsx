@@ -84,14 +84,15 @@ const GAMES=[
  {href:'/clocktower',title:'The Clocktower Mystery',tag:'NEW · POINT-AND-CLICK',blurb:'The town clock has stopped the night before the Winter Fair and four of its wheels are missing. Play as Dora, who climbs, and Enzo, who listens, through eight painted rooms: talk to the townsfolk, gather clues and mend the clock before eight o’clock.',color:'#c98a2a',art:'🕰️'},
  {href:'/tether',title:'Tetherball',tag:'NEW · ACTION ROGUELITE',blurb:'No sword, just a rope. Dora hooks a Grumble, whirls it round and lets go, bowling it through the rest. Heavy boars drag her about, Enzo is a living anchor to swing round, and a stone golem waits after twelve pixel-art arenas.',color:'#e0a83a',art:'🪢'},
  {href:'/frame',title:'Out of Frame',tag:'NEW · PUZZLE PLATFORMER',blurb:'Only what’s inside Enzo’s camera moves. Dora walks on by herself: keep her in the picture, and freeze Grumbles into steps, boulders into lids and arrows into bridges. Nine pixel-art screens, and the film is running out.',color:'#b8783a',art:'🎞️'},
+ {href:'/order',title:'Turn Order',tag:'NEW · PUZZLE ROGUELITE',blurb:'You can’t move a single critter. Every round each one does its one thing (roll, gobble, sprout, go bang) in the order of the queue, and Enzo can only swap two neighbours. Get the golden acorn into Dora’s pot across eleven pixel-art gardens.',color:'#5aa84a',art:'🌰'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">EIGHTY-THREE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Eighty-three ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, eighty-three cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">EIGHTY-FOUR ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Eighty-four ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, eighty-four cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <nav className="arcade-grid" aria-label="Choose a game">

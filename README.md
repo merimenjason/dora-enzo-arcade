@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of eighty-three original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of eighty-four original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -93,6 +93,7 @@ Listed in arcade-menu order.
 | 81 | The Clocktower Mystery | `/clocktower` | Point-and-click adventure |
 | 82 | Tetherball | `/tether` | Action roguelite |
 | 83 | Out of Frame | `/frame` | Puzzle platformer |
+| 84 | Turn Order | `/order` | Puzzle roguelite |
 
 ## Run
 
@@ -1433,6 +1434,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:frame` runs the engine checks: the plan and the segments, the live rule, walking, hopping, jumping and falling back to safe rock, Grumbles (frozen steps, bumps, stomps, turning at frozen Dora), traps and arrows (sticking, bridges, frozen planks), boulders resting on spikes, hanging rocks, crumbling floor, rafts and lifts, pickups, the film running out, clearing screens, lenses, winning, seeded replays and the save. `npm run bot:frame` makes a look-ahead bot clear every segment on its own and win some runs while a careless one gets much less far (`--quick` in `npm test`). `node tests/e2e/frame.mjs` (dev server running) plays it in a browser on desktop and on phones held both ways.
 
 **Docs:** [`docs/frame.md`](docs/frame.md) has the rules, every number, the hazards, the lenses, the art and the bot results.
+
+### 84 · Turn Order (`/order`)
+
+**Play:** a pixel-art puzzle roguelite where you never move a piece. On an 8 by 8 garden, every critter does its one thing each round, in the order of the queue shown above the board: hedgehogs roll forward and push whatever is in front of them (and turn round when blocked), frogs eat a small neighbour, mushrooms sprout copies that join the end of the queue, Bomb Beetles clear their 3 by 3 square, snails turn their neighbours, sleeping moles block the way until bumped, and Grumbles chase the acorn and steal it. All you can do is swap two neighbours in the queue, once a round, to get the golden acorn into Dora's pot before the rounds run out. A ghost on the board shows what the round will do. Tokens send a critter to the front or buy a hint; planting within par earns one. Eleven generated gardens in four places, each checked by a solver to be winnable and not won by doing nothing, three tries a run, a perk from Enzo's satchel after each garden, and twists that reverse or rotate the queue.
+
+**Controls:** click or tap ⇄ between two critters in the queue to swap them (tap it again to undo), then Go!. Click a critter on the board or in the queue to see what it does, send it to the front with a token, or sing it to sleep with the Lullaby perk. Keyboard: ← and → (or A and D) choose a pair, Space (or S) swaps, Enter (or G) plays the round, Z or Backspace undoes, H asks Enzo for a hint, and 1, 2 or 3 picks a perk. While a round plays, Space or Enter skips to the end.
+
+**Tests:** `npm run test:order` runs the engine checks: every verb, a round in order (Enzo's opening example, mushrooms born mid-round waiting, twists, running out of rounds), the solver, 55 generated gardens (winnable, never by doing nothing, tidy, the right critters, repeatable and quick), the run (one swap, undo, tokens, the lullaby, planting, par, retries, perks, winning, losing) and the save. `npm run bot:order` makes the solver win every run while one-round-ahead, random and do-nothing players get much less far (`--quick` in `npm test`). `node tests/e2e/order.mjs` (dev server running) plays it in a browser and on a phone.
+
+**Docs:** [`docs/order.md`](docs/order.md) has every verb, the round, the run, the perks, how gardens are made and graded, the art and the bot results.
 
 ## Validation
 

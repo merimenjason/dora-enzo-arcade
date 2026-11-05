@@ -6,7 +6,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 20-10-2026)
 
-**Newest game (05-11-2026): Out of Frame** (`/frame`, game 83), a pixel-art puzzle platformer where only what's inside Enzo's viewfinder moves; see [Out of Frame · 05-11-2026](#out-of-frame--05-11-2026) below. Tetherball (`/tether`, game 82), The Clocktower Mystery (`/clocktower`, game 81), Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
+**Newest game (05-11-2026): Turn Order** (`/order`, game 84), a pixel-art puzzle roguelite where the queue order is the only thing you control; see [Turn Order · 05-11-2026](#turn-order--05-11-2026) below. Out of Frame (`/frame`, game 83), Tetherball (`/tether`, game 82), The Clocktower Mystery (`/clocktower`, game 81), Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
 
 **Newest work (03–04-11-2026): Kumori Pass** (`/pass`, game 75) got a new look, a minimap, Enzo's demo line (also as a Time Attack ghost), two garage parts, seven unlockable cars, Side Jobs and a chapter after the ending; see [Kumori Pass · 04-11-2026](#kumori-pass--04-11-2026) below.
 
@@ -98,6 +98,17 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 9. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
 10. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
 11. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
+
+## Turn Order · 05-11-2026
+
+Game 84, `/order`, a pixel-art puzzle roguelite: garden critters each do one thing a round in queue order, and the player can only swap two neighbours in the queue to get the golden acorn into Dora's pot. Eleven generated gardens, three tries, tokens, perks and twists. It was the top systemic roguelite concept in [`docs/systemic-roguelites.md`](docs/systemic-roguelites.md). Rules, how the gardens are made and the bot results: [`docs/order.md`](docs/order.md).
+
+- **Code:** engine `lib/order-game.ts` (the seven verbs as `act`, `round`, a breadth-first `solve` over swap choices, `makeBoard` that builds and grades gardens from the seed, the run, perks, the save). Scene `lib/order-scene.ts` (384 by 216 Canvas 2D: garden, board, queue numbers in tile corners, facing arrowheads, the ghost preview, rounds played step by step). Page `app/order/page.tsx` (the queue bar is DOM, not canvas).
+- **Art:** Codex paintings turned into pixel art by `scripts/order-art.py` (keyed 2×2 critter and hero sheets, 24 px tiles, the garden fitted to 384 by 216, queue-bar faces). The source paintings are not in the repo.
+- **Feel:** facing arrows started as two-pixel dots and couldn't be seen; they're white arrowheads outlined in the verb's colour now. On a narrow screen the garden zooms in on the board, so Enzo and Dora go off the edges, and the title painting sits whole at the top.
+- **Balance:** `npm run bot:order` (part of `npm test` with `--quick`) needs the solver to win every run, a one-round-ahead player to do worse and random swapping to be at least six gardens behind. When changing a verb, rerun `test:order` too: the generator's guarantees depend on the solver.
+- **Tests:** `npm run test:order`, `npm run bot:order`, `node tests/e2e/order.mjs` (dev server running; uses `window.__order().debug`).
+- **Ideas not done:** the concept's conductors (a starting queue rule), verbs unlocked between runs, carrying a critter to the next garden, a daily seed.
 
 ## Out of Frame · 05-11-2026
 
