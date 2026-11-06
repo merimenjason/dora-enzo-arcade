@@ -228,8 +228,12 @@ try {
     await page.mouse.click(spot.x, spot.y);
     await page.locator('[data-card="patient"]').waitFor();
     ok((await page.locator('[data-card="patient"] h3').innerText()).includes(pat.name), 'clicking a patient shows their card');
-    const vet = h.state.staff.find((x) => x.role === 'vet');
-    spot = await spotFor(page, { type: 'staff', id: vet.id }, vet.x, vet.y);
+    // (whichever vet isn't hidden behind a patient: the floor is busy; if none, let the clinic move on a little)
+    let vet = null; spot = null;
+    for (let tries = 0; tries < 6 && !spot; tries++) {
+      if (tries) { await dbg(page, 'run', 15); h = await hc(page); }
+      for (const x of h.state.staff.filter((q) => q.role === 'vet')) { spot = await spotFor(page, { type: 'staff', id: x.id }, x.x, x.y); if (spot) { vet = x; break; } }
+    }
     ok(spot, 'a vet to click on');
     await page.mouse.click(spot.x, spot.y);
     await page.locator('[data-card="staff"]').waitFor();
@@ -562,6 +566,41 @@ try {
     await until(page, ([a, b]) => { const f = window.__clinic().debug.ailFx(); return f[a] === 'ears:painted' && f[b] === 'puff:painted'; }, [e, pf]);
     ok(true, 'Upside-Down Ears and Puff-Up patients are drawn in their painted sick poses');
     ok(await noSideways(page), 'no sideways scroll');
+    await ctx.close();
+  }
+  // ------------------------------------------------------------ rush hour: an emergency and 25+ patients, still one patient a tile, doorways clear
+  for (const clinic of ['salt', 'summit']) {
+    const { ctx, page } = await open({ width: 1280, height: 800 });
+    await page.click('[data-act="play"]');
+    await dbg(page, 'open', clinic, true);
+    await until(page, (c) => window.__clinic().clinic === c, clinic);
+    await page.evaluate(() => {
+      const d = window.__clinic().debug;
+      for (const k of ['reception', 'checkup', 'fluff', 'hiccup', 'ears', 'staff']) d.build(k);
+      for (const r of ['recep', 'vet', 'vet', 'cleaner']) d.hire(r);
+      for (const k of ['bench', 'bench', 'heater']) d.place(k);
+      d.coins(9000); d.emergency('static');
+    });
+    if (await page.locator('[data-act="accept"]').count()) await page.click('[data-act="accept"]');
+    let worst = 0, bad = '';
+    for (let w = 0; w < 4 && !bad; w++) {
+      await page.evaluate(() => { const d = window.__clinic().debug; const A = ['static', 'hiccups', 'ears']; for (let i = 0; i < 11; i++) d.patient(A[i % 3]); });
+      for (let i = 0; i < 3 && !bad; i++) {
+        const r = await page.evaluate(() => {
+          const h = window.__clinic(), s = h.state; for (const q of s.patients) q.patience = Math.max(q.patience, 70); h.debug.run(40);
+          const D = { N: [0, -1], S: [0, 1], E: [1, 0], W: [-1, 0] };
+          const doors = new Set(s.rooms.map((r) => `${r.door.x + D[r.door.side][0]},${r.door.y + D[r.door.side][1]}`));
+          const stand = s.patients.filter((q) => q.phase === 'wait' && !q.seat && q.spot && !q.held).map((q) => q.spot.join(','));
+          const inside = s.patients.filter((q) => q.phase !== 'gone' && !q.held).length;
+          return { inside, dup: stand.length - new Set(stand).size, door: stand.filter((k) => doors.has(k)).length };
+        });
+        worst = Math.max(worst, r.inside);
+        if (r.dup) bad = `${r.dup} share a tile`; else if (r.door) bad = `${r.door} on a doorway`;
+      }
+    }
+    ok(worst >= 25, `${clinic}: a rush of ${worst} patients in the clinic`);
+    ok(!bad, `${clinic}: no two standing patients share a tile and nobody waits on a doorway${bad ? ` (${bad})` : ''}`);
+    ok(await page.evaluate(() => window.__clinic().state.patients.some((q) => q.phase === 'wait' && q.spot && q.spot[1] >= window.__clinic().H && !q.held)), `${clinic}: the overflow lines up outside on the path`);
     await ctx.close();
   }
   // ------------------------------------------------------------ an upright phone: the floor gets the screen, the dock folds to a bar

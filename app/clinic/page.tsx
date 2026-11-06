@@ -516,7 +516,7 @@ export default function ClinicPage() {
     if (ptrs.current.has(e.pointerId)) ptrs.current.set(e.pointerId, { x, y });
     const d = drag.current;
     if (carryRef.current != null && sc.held) { sc.held.sx = x; sc.held.sy = y; }
-    if (!d) { sc.hover = e.pointerType === 'mouse' ? sc.screenToTile(x, y) : null; return; }
+    if (!d) { sc.hover = e.pointerType === 'mouse' ? sc.screenToTile(x, y) : null; sc.hoverPick = e.pointerType === 'mouse' ? sc.pick(x, y) : null; return; }
     if (d.mode === 'pinch') {
       if (ptrs.current.size < 2) return;
       const [a, b] = [...ptrs.current.values()];
@@ -628,7 +628,7 @@ export default function ClinicPage() {
         selected: selRef.current, carry: carryRef.current, drag: drag.current?.mode ?? null, news: news?.text ?? '', build: buildRef.current, deco: decoRef.current,
         ghost: why ? { ...gb, ok: why.ok, reason: why.ok ? '' : (why as { reason: string }).reason } : null,
         dockUp,
-        save: saveRef.current, state: g?.s ?? null, clinic: g?.def.id ?? null, advice: g ? g.advice() : [], met,
+        save: saveRef.current, state: g?.s ?? null, clinic: g?.def.id ?? null, H: g?.H ?? 0, advice: g ? g.advice() : [], met,
         scene: sc ? { loaded: sc.loaded, zoom: sc.cam.zoom, w: sc.w, h: sc.h } : null, sound: soundRef.current?.unlocked ?? false,
         debug: {
           open: (id: string, fresh = true) => openClinic(id, fresh),

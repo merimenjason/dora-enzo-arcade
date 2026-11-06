@@ -27,7 +27,15 @@ export const HOUR = DAY / 12;
 export const OPEN_HOUR = 8;
 export const LAST_ARRIVAL = 10 * HOUR; // 18:00
 export const SAVE_KEY = 'burrow-clinic-v1';
-export const PORCH = 3; // walkable porch tiles outside the front door
+export const PORCH = 3; // patients appear on the third tile of the path outside the front door
+/** how many tiles of the path outside the front door are walkable: at rush hour new arrivals wait out there in a line
+ *  (the doorstep stays clear) rather than crowding the hall */
+export const OUTSIDE = 9;
+/** the most patients standing in one room's line in the hall; the rest of a reception line waits outside, and other
+ *  overflow takes the nearest free corridor tiles */
+export const LINE_MAX = 6;
+/** the first tiles of every room's line belong to that line alone, so no-one from another line stands in them */
+const LINE_HEAD = 3;
 
 export type Side = 'N' | 'S' | 'E' | 'W';
 export const SIDE_D: Record<Side, Pt> = { N: [0, -1], S: [0, 1], E: [1, 0], W: [-1, 0] };
@@ -65,6 +73,8 @@ export interface Patient extends Mover {
   qr: number; qi: number; fd: number;
   /** what a cured patient takes home (0 none, 1 a coral balloon, 2 a teal balloon, 3 a lollipop, 4 a pinwheel) */
   gift: number;
+  /** still on the way: the line outside is full, so this patient hasn't come up the path yet (not drawn) */
+  held?: boolean;
 }
 export type StaffState = 'arrive' | 'idle' | 'go' | 'work' | 'to_rest' | 'rest' | 'task' | 'leave' | 'gone';
 export interface Task { type: 'fix' | 'water' | 'sweep'; ref: number; slot: number }
@@ -278,7 +288,7 @@ export class Game {
   // ------------------------------------------------------------------------------------------------ the grid
   /** rebuild walls, walkability and the per-tile lookups from rooms and decorations */
   rebuild() {
-    const { w, h, door } = this.def, GH = h + PORCH;
+    const { w, h, door } = this.def, GH = h + OUTSIDE;
     const g = newGrid(w, GH);
     const roomAt = new Int32Array(w * GH), decoAt = new Int32Array(w * GH);
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) g.walk[y * w + x] = 1;
@@ -342,7 +352,7 @@ export class Game {
 
   /** patience multipliers from decorations: plants, cactus, lamps, rugs and tables cheer, litter and cold sap */
   computeComfort() {
-    const { w } = this.def, GH = this.def.h + PORCH;
+    const { w } = this.def, GH = this.def.h + OUTSIDE;
     const c = new Float32Array(w * GH).fill(1);
     const plantBoost = this.def.twist === 'plants' ? 0.5 : 0.75;
     const near = (cx: number, cy: number, r: number, f: number) => {
@@ -358,7 +368,8 @@ export class Game {
     if (this.def.twist === 'cold') {
       const warm = new Uint8Array(w * GH);
       for (const d of this.s.decos) if (d.kind === 'heater') for (let y = Math.max(0, d.y - 4); y <= Math.min(GH - 1, d.y + 4); y++) for (let x = Math.max(0, d.x - 4); x <= Math.min(w - 1, d.x + 4); x++) if (Math.abs(x - d.x) + Math.abs(y - d.y) <= 4) warm[y * w + x] = 1;
-      for (let i = 0; i < c.length; i++) if (!warm[i]) c[i] *= 1.45;
+      // only the hall counts as cold: the short wait on the path outside doesn't
+      for (let i = 0; i < w * this.def.h; i++) if (!warm[i]) c[i] *= 1.45;
     }
     for (const l of this.s.litter) near(l.x, l.y, 1, 1.15);
     this.comfort = c;
@@ -696,8 +707,11 @@ export class Game {
         let open = 0; for (const [dx, dy] of DIRS) { const nx = xx + dx, ny = yy + dy; if (nx >= 0 && ny >= 0 && nx < this.W && ny < this.H && !ra[ny * this.W + nx]) open++; }
         if (open <= 1) pockets++;
       }
-      const near = kind === 'reception' ? 1.2 : kind === 'checkup' ? 0.5 : kind === 'staff' ? -0.15 : 0.2;
-      const dd = Math.abs(x + w / 2 - ex) + Math.abs(y + h / 2 - ey);
+      // a second reception or check-up goes near the first, so patients find it and the lines share the waiting area
+      const twin = (kind === 'checkup' || kind === 'reception') && this.roomsOf(kind)[0];
+      const near = twin ? 1.5 : kind === 'reception' ? 1.2 : kind === 'checkup' ? 0.5 : kind === 'staff' ? -0.15 : 0.2;
+      let dd = Math.abs(x + w / 2 - ex) + Math.abs(y + h / 2 - ey);
+      if (twin) dd = Math.abs(x + w / 2 - (twin.x + twin.w / 2)) + Math.abs(y + h / 2 - (twin.y + twin.h / 2));
       const score = touch * 2 - pockets * 4 - dd * near - (w * h - def.minW * def.minH) * 0.5;
       found.push({ x, y, w, h, rot: 0, door: c.door, score });
     }
@@ -1006,10 +1020,13 @@ export class Game {
     if (L) return L;
     const W = this.W, Hb = this.def.h, [ax, ay] = this.anchorOf(key);
     const dist = bfs(this.grid, ax, ay), clear = this.keepClear();
+    // lines don't cross: every corridor tile belongs to the door it is nearest (the front door's patch included), and
+    // a line only runs over its own tiles, so each stays one tidy row
+    const owner = this.lineOwners();
     const ok = (x: number, y: number) => {
       if (x < 0 || y < 0 || x >= W || y >= Hb) return false;
       const i = y * W + x;
-      return !this.roomAt[i] && !!this.grid.walk[i] && !this.decoAt[i] && !clear.has(i) && dist[i] > 0 && this.entryDist[i] >= 0;
+      return !this.roomAt[i] && !!this.grid.walk[i] && !this.decoAt[i] && !clear.has(i) && owner[i] === key && dist[i] > 0 && this.entryDist[i] >= 0;
     };
     const walls = (x: number, y: number) => {
       let n = 0;
@@ -1053,51 +1070,112 @@ export class Game {
     this.lines.set(key, L);
     return L;
   }
-  /** place everyone who is waiting in the line for the room they need */
+  /** which line each corridor tile belongs to: the door (or the front door, key 0) it is fewest steps from */
+  private owners: Int32Array | null = null; private ownersVer = -1;
+  private lineOwners(): Int32Array {
+    if (this.owners && this.ownersVer === this.s.layout) return this.owners;
+    const n = this.W * this.H, own = new Int32Array(n).fill(-1), best = new Int32Array(n).fill(1 << 30);
+    for (const key of [...this.s.rooms.map((r) => r.id).sort((a, b) => a - b), 0]) {
+      const [ax, ay] = this.anchorOf(key), d = bfs(this.grid, ax, ay);
+      for (let i = 0; i < n; i++) if (d[i] >= 0 && d[i] < best[i]) { best[i] = d[i]; own[i] = key; }
+    }
+    this.owners = own; this.ownersVer = this.s.layout;
+    return own;
+  }
+  /** the path outside the front door where an overflowing reception line waits, nearest the door first */
+  outsideLine(): Pt[] { const out: Pt[] = []; for (let k = 1; k < OUTSIDE; k++) out.push([this.def.door, this.def.h + k]); return out; }
+  /** tiles nobody may wait on: in front of any door, the front door's own path, and the doorstep outside */
+  noWait(): Set<number> { const c = this.keepClear(); c.add(this.def.h * this.W + this.def.door); return c; }
+  /** place everyone who is waiting in the line for the room they need. Rules: one patient a tile, never on a door's
+   *  tile or another line's head; seats near the door go to the front of the line; at most LINE_MAX stand in each line
+   *  in the hall. A reception line that is full waits outside on the path; other overflow takes the nearest free
+   *  corridor tiles to its door */
   assignQueues() {
     const s = this.s, W = this.W;
     this.qdirty = false;
     const groups = new Map<number, Patient[]>();
     for (const p of s.patients) {
+      p.held = false;
       if (p.phase !== 'wait' && p.phase !== 'arrive') { p.qi = -1; continue; }
-      const r = this.roomsOf(p.need)[0], key = r ? r.id : 0;
+      // with two rooms of a kind, a patient joins the shorter line
+      const rs = this.roomsOf(p.need);
+      let key = 0;
+      if (rs.length === 1) key = rs[0].id;
+      else if (rs.length > 1) {
+        const keep = rs.find((r) => r.id === p.qr);
+        key = keep ? keep.id : rs.map((r) => ({ r, n: (groups.get(r.id)?.length ?? 0) })).sort((x, y) => x.n - y.n || x.r.id - y.r.id)[0].r.id;
+      }
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(p);
     }
-    const before = (a: Patient, b: Patient) => (a.timer === -1) !== (b.timer === -1) ? (a.timer === -1 ? -1 : 1) : a.arrivedAt - b.arrivedAt || a.id - b.id;
-    const taken = new Set<number>();
+    const before = (a: Patient, b: Patient) => (a.timer === -1) !== (b.timer === -1) ? (a.timer === -1 ? -1 : 1) : (b.vip ? 1 : 0) - (a.vip ? 1 : 0) || (b.emerg ? 1 : 0) - (a.emerg ? 1 : 0) || a.arrivedAt - b.arrivedAt || a.id - b.id;
+    const taken = new Set<number>(), clear = this.noWait();
+    // every line's head belongs to it alone
+    // (a tile at the head of two lines goes to the line it is nearer the front of)
+    const head = new Map<number, number>(), headAt = new Map<number, number>();
+    for (const key of [...s.rooms.map((r) => r.id), 0]) {
+      const L = this.lineOf(key);
+      L.line.slice(0, LINE_HEAD).forEach((t, k) => { const i = t[1] * W + t[0]; if (!head.has(i) || k < headAt.get(i)!) { head.set(i, key); headAt.set(i, k); } });
+    }
+    const mine = (i: number, key: number) => (head.get(i) ?? key) === key;
+    const outside: Patient[] = [], spill: { p: Patient; key: number }[] = [];
+    const place = (p: Patient, t: Pt) => {
+      taken.add(t[1] * W + t[0]);
+      const same = p.spot && p.spot[0] === t[0] && p.spot[1] === t[1];
+      p.spot = [t[0], t[1]];
+      if (!same || (!p.path.length && !this.atGoal(p))) this.walkTo(p, t[0], t[1]);
+    };
     const keys = [...groups.keys()].sort((a, b) => (a || 1e9) - (b || 1e9));
     for (const key of keys) {
       const ps = groups.get(key)!.sort(before);
       const L = this.lineOf(key);
-      let li = 0;
+      const rk = key ? this.roomById(key)!.kind : 'reception';
+      let li = 0, standing = 0;
       ps.forEach((p, i) => {
         p.qr = key; p.qi = i;
-        let t: Pt | null = null;
-        if (p.seat && this.seatOf(p)) { const d = this.seatOf(p)!; t = p.spot ?? [d.x, d.y]; p.fd = d.rot; }
-        else {
-          p.seat = 0;
-          // a free bench seat near this door
-          let bench: Deco | null = null, bd = 1e9, bi = -1;
-          for (const d of s.decos) {
-            if (d.kind !== 'bench') continue;
-            const dd = L.dist[d.y * W + d.x];
-            if (dd < 0 || dd > 8) continue;
-            const k = d.seats.indexOf(0);
-            if (k >= 0 && dd < bd) { bd = dd; bench = d; bi = k; }
-          }
-          if (bench) { bench.seats[bi] = p.id; p.seat = bench.id; t = [bench.x, bench.y]; p.fd = bench.rot; }
-          else {
-            while (li < L.line.length && taken.has(L.line[li][1] * W + L.line[li][0])) li++;
-            if (li < L.line.length) { t = L.line[li]; p.fd = L.face[li]; li++; }
-            else t = p.spot ?? this.anchorOf(key);
-          }
+        if (p.seat && this.seatOf(p)) { const d = this.seatOf(p)!; p.fd = d.rot; place(p, p.spot ?? [d.x, d.y]); return; }
+        p.seat = 0;
+        // the nearest free bench seat to this door (within eight steps)
+        let bench: Deco | null = null, bd = 1e9, bi = -1;
+        for (const d of s.decos) {
+          if (d.kind !== 'bench') continue;
+          const dd = L.dist[d.y * W + d.x];
+          if (dd < 0 || dd > 8) continue;
+          const k = d.seats.indexOf(0);
+          if (k >= 0 && dd < bd) { bd = dd; bench = d; bi = k; }
         }
-        taken.add(t[1] * W + t[0]);
-        const same = p.spot && p.spot[0] === t[0] && p.spot[1] === t[1];
-        p.spot = [t[0], t[1]];
-        if (!same || (!p.path.length && !this.atGoal(p))) this.walkTo(p, t[0], t[1]);
+        if (bench) { bench.seats[bi] = p.id; p.seat = bench.id; p.fd = bench.rot; place(p, [bench.x, bench.y]); return; }
+        if (standing < LINE_MAX) {
+          while (li < L.line.length) { const [lx, ly] = L.line[li], j = ly * W + lx; if (!taken.has(j) && mine(j, key)) break; li++; }
+          if (li < L.line.length) { p.fd = L.face[li]; place(p, L.line[li]); li++; standing++; return; }
+        }
+        if (rk === 'reception' && p.need === 'reception') outside.push(p); else spill.push({ p, key });
       });
+    }
+    // a full reception line waits outside on the path, facing the door; past the path, the nearest free corridor
+    const path = this.outsideLine();
+    for (const p of outside) {
+      const t = path.find(([x, y]) => !taken.has(y * W + x));
+      if (t) { p.fd = 3; place(p, t); }
+      // the path is full too: someone who hasn't come in yet waits further down the road, out of sight
+      else if (p.y >= this.def.h - 0.01 && !p.path.length) { p.held = true; p.spot = [Math.round(p.x), Math.round(p.y)]; }
+      else spill.push({ p, key: p.qr });
+    }
+    // overflow in the hall spreads out: the nearest free tile with nobody beside it, else the nearest free tile
+    const near = (i: number) => { const x = i % W, y = (i / W) | 0; return (x > 0 && taken.has(i - 1)) || (x < W - 1 && taken.has(i + 1)) || taken.has(i - W) || taken.has(i + W); };
+    for (const { p, key } of spill) {
+      const L = this.lineOf(key);
+      // (a spaced tile only if it is at most two steps further than the nearest free one: a long walk costs patience)
+      let best = -1, bd = 1e9, sp = -1, sd = 1e9;
+      for (let i = 0; i < W * this.H; i++) {
+        const d = L.dist[i];
+        if (d < 0 || taken.has(i) || clear.has(i) || !mine(i, key) || this.roomAt[i] || this.decoAt[i] || !this.grid.walk[i]) continue;
+        if (d < bd) { bd = d; best = i; }
+        if (d < sd && !near(i)) { sd = d; sp = i; }
+      }
+      if (sp >= 0 && sd <= bd + 2) best = sp;
+      if (best >= 0) { const [ax, ay] = this.anchorOf(key), x = best % W, y = (best / W) | 0; p.fd = Math.abs(ax - x) > Math.abs(ay - y) ? (ax > x ? 0 : 2) : (ay > y ? 1 : 3); place(p, [x, y]); }
+      else place(p, p.spot ?? this.anchorOf(key));
     }
   }
   private seatOf(p: Patient) { return p.seat ? this.s.decos.find((d) => d.id === p.seat) : undefined; }
@@ -1214,6 +1292,9 @@ export class Game {
     const waiting = s.patients.filter((p) => p.phase === 'wait' || p.phase === 'arrive').length;
     const cap = 6 + 2 * s.rooms.filter((q) => q.kind !== 'staff' && q.kind !== 'reception').length;
     if (waiting >= cap) r = 0; else if (waiting >= cap * 0.7) r *= 0.5;
+    // nobody new comes in while the line outside is full
+    const out = s.patients.filter((p) => p.phase === 'wait' && p.spot && p.spot[1] >= d.h).length;
+    if (out >= OUTSIDE - 2) r = 0;
     return r;
   }
   private arrivals() {
@@ -1348,6 +1429,8 @@ export class Game {
     if (p.seat && there) drain *= 0.5;
     if (p.thirst > 70) drain *= 1.4;
     drain *= this.comfort[i] ?? 1;
+    // still on the way (the line outside is full): their wait hasn't started
+    if (p.held) drain = 0;
     drain *= this.cheer(p.x, p.y);
     if (!this.hasRoom(p.need)) drain *= 0.7;
     if (p.vip) drain *= 1.2;
@@ -1688,7 +1771,12 @@ export class Game {
     }
     const queueOf = (k: RoomKind) => s.patients.filter((p) => p.phase === 'wait' && p.need === k).length;
     const cq = queueOf('checkup');
-    if (cq >= 6 && this.roomsOf('checkup').length < 3) out.push({ id: `more-checkup-${this.roomsOf('checkup').length}`, text: `${cq} patients are waiting for a check-up. A second Check-up Room (and a vet for it) would halve the line.`, act: { build: 'checkup' } });
+    // the check-up is the usual rush-hour bottleneck: with vets to spare and its line the longest, suggest a second one
+    // early (at 4 waiting); otherwise at 6
+    const cureQ = Math.max(0, ...this.def.rooms.filter((k) => k !== 'checkup' && k !== 'reception' && k !== 'staff').map((k) => queueOf(k)));
+    const vetRooms = s.rooms.filter((r) => ROOMS[r.kind].staff === 'vet').length;
+    const early = this.roomsOf('checkup').length === 1 && count('vet') > vetRooms / 2 + 1 && cq > cureQ;
+    if (cq >= (early ? 4 : 6) && this.roomsOf('checkup').length < 3) out.push({ id: `more-checkup-${this.roomsOf('checkup').length}`, text: `${cq} patients are waiting for a check-up. A second Check-up Room (and a vet for it) would halve the line.`, act: { build: 'checkup' } });
     for (const k of this.def.rooms) {
       if (k === 'checkup' || k === 'reception' || k === 'staff' || !this.hasRoom(k)) continue;
       const n = queueOf(k), have = this.roomsOf(k).length;
@@ -1697,7 +1785,8 @@ export class Game {
     if (this.def.twist === 'thirst' && !s.decos.some((d) => d.kind === 'cooler' || d.kind === 'vending') && s.open) out.push({ id: 'drinks', text: 'Everyone is thirsty on the salt: a water cooler or a drinks cart would help a lot.', act: { place: 'cooler' } });
     if (this.def.twist === 'cold') {
       const heaters = s.decos.filter((d) => d.kind === 'heater');
-      const cold = s.patients.filter((p) => p.phase === 'wait' && !heaters.some((d) => Math.abs(d.x - p.x) + Math.abs(d.y - p.y) <= 4)).length;
+      // only the hall is cold: patients waiting on the path outside don't count
+      const cold = s.patients.filter((p) => p.phase === 'wait' && p.y < this.H && !heaters.some((d) => Math.abs(d.x - p.x) + Math.abs(d.y - p.y) <= 4)).length;
       if (!heaters.length || cold >= 3) out.push({ id: `heater-${heaters.length}`, text: `Brr! ${cold ? `${cold} patients are` : 'Patients are'} shivering far from a heater and losing patience. Place a heater near the queue.`, act: { place: 'heater' } });
     }
     const waitingStand = s.patients.filter((p) => p.phase === 'wait' && !p.seat).length;

@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import {
   Game, CLINICS, ROOMS, AILMENTS, DECOS, DAY, HOUR, SAVE_KEY, TUT_STEPS, newSave, parseSave, serialise, record, clinicOpen, sandboxOpen,
-  wagesPerDay, roomCost, accuracy, workRate, hourOf, clockText, XP_FOR, TRAIN_COST, UPGRADE_SPEED, canUpgrade, SIDE_D,
+  wagesPerDay, roomCost, accuracy, workRate, hourOf, clockText, XP_FOR, TRAIN_COST, UPGRADE_SPEED, canUpgrade, SIDE_D, OUTSIDE, LINE_MAX,
 } from '../.checks/clinic-game.js';
 import { astar, newGrid, bfs } from '../.checks/clinic-path.js';
 
@@ -230,10 +230,12 @@ const runUntil = (g, fn, max = DAY * 3) => { for (let i = 0; i < max; i++) { if 
   const q = g.spawnPatient('static'); q.need = 'fluff'; q.dx = 'static';
   const spot = g.suggestDeco('bench');
   ok(spot && g.place('bench', spot[0], spot[1]).ok, 'place a bench');
+  // only one seat is free, so the newcomer stands
+  g.s.decos.at(-1).seats[1] = 999999;
   g.requeue(q, false);
   const sitter = g.s.patients.find((x) => x.seat);
   ok(sitter && sitter.arrivedAt <= q.arrivedAt, 'the front of the line takes the bench seats');
-  ok(!q.seat && q.qi === g.s.patients.filter((x) => x.phase === 'wait').length - 1, 'and the newest arrival joins the back of the line');
+  ok(q.qi === g.s.patients.filter((x) => x.phase === 'wait' && x.qr === q.qr).length - 1, 'and the newest arrival joins the back of the line');
   q.sp = sitter.sp; q.thirst = sitter.thirst = 0;
   g.run(60);
   const sitting = sitter.patience, standing = q.patience; g.run(100);
@@ -618,6 +620,47 @@ const runUntil = (g, fn, max = DAY * 3) => { for (let i = 0; i < max; i++) { if 
   const old = JSON.parse(JSON.stringify(g.s)); for (const d of old.decos) delete d.rot;
   const g2 = Game.load(old);
   ok(g2.s.decos.every((d) => d.rot === DECOS[d.kind].front), 'old saves load with the default facing');
+}
+
+// ---------------------------------------------------------------- rush hour: 25+ patients inside, an emergency, and still one patient a tile
+for (const clinic of ['salt', 'summit']) {
+  const g = new Game(clinic, 31);
+  for (const k of ['reception', 'checkup', 'fluff', 'hiccup', 'ears', 'staff']) { const sp = g.suggest(k); if (sp) g.build(k, sp.x, sp.y, sp.w, sp.h, 0); }
+  for (const role of ['recep', 'vet', 'cleaner']) { const c = g.s.cands.find((q) => q.role === role); if (c) g.hire(c.id); }
+  g.s.coins = 5000; g.s.open = true; g.s.tut = TUT_STEPS;
+  for (const k of ['bench', 'bench']) { const sp = g.suggestDeco(k); if (sp) g.place(k, sp[0], sp[1]); }
+  g.trigger('emergency', 'static');
+  const ails = ['static', 'hiccups', 'ears'];
+  for (let i = 0; i < 28; i++) { const p = g.spawnPatient(ails[i % 3]); p.patience = 100; }
+  let worst = 0, shared = 0, onDoor = 0, outside = 0, held = 0;
+  for (let t = 0; t < 600; t++) {
+    g.tick();
+    for (const p of g.s.patients) p.patience = Math.max(p.patience, 60);
+    if (t % 20) continue;
+    const clear = g.noWait();
+    const waiting = g.s.patients.filter((p) => p.phase === 'wait' && !p.seat && p.spot && !p.held);
+    worst = Math.max(worst, g.s.patients.filter((p) => p.phase === 'wait').length);
+    const keys = waiting.map((p) => p.spot[1] * g.W + p.spot[0]);
+    if (new Set(keys).size !== keys.length) shared++;
+    if (keys.some((k) => clear.has(k))) onDoor++;
+    outside = Math.max(outside, waiting.filter((p) => p.spot[1] >= g.H).length);
+    held = Math.max(held, g.s.patients.filter((p) => p.held).length);
+  }
+  ok(worst >= 25, `${clinic}: a real rush (${worst} waiting at once)`);
+  ok(held > 0, `${clinic}: with the path full, newcomers wait down the road out of sight (${held} at most)`);
+  eq(shared, 0, `${clinic}: no two standing patients ever share a tile`);
+  eq(onDoor, 0, `${clinic}: nobody waits on a doorway or the doorstep`);
+  ok(outside > 0 && outside <= OUTSIDE - 1, `${clinic}: the reception overflow waits outside on the path (${outside})`);
+}
+// a second check-up is suggested earlier, and placed near the first
+{
+  const { g } = basic('salt', 41, { vets: 3 });
+  g.s.open = true;
+  for (let i = 0; i < 4; i++) { const p = g.spawnPatient('static'); p.need = 'checkup'; g.requeue(p, false); }
+  ok(g.advice().some((a) => a.act?.build === 'checkup'), 'four waiting for a check-up, with vets to spare: Dora suggests a second Check-up Room');
+  const first = g.roomsOf('checkup')[0], sp = g.suggest('checkup');
+  const d = Math.abs(sp.x + sp.w / 2 - (first.x + first.w / 2)) + Math.abs(sp.y + sp.h / 2 - (first.y + first.h / 2));
+  ok(d <= 8, `and "try here" puts it near the first (${d} tiles apart)`);
 }
 
 console.log(`clinic: ${checks} checks passed`);

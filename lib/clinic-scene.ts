@@ -8,7 +8,7 @@
 // clinic-game.ts, input and the HUD in app/clinic/page.tsx.
 import {
   type Game, type Room, type Patient, type Staff, type Walker, type Deco, type Ev, type Door, type RoomKind, type DecoKind,
-  ROOMS, DECOS, SIDE_D, PORCH, hourOf, DAY, LAST_ARRIVAL, AILMENTS, AILMENT_ORDER,
+  ROOMS, DECOS, SIDE_D, OUTSIDE, hourOf, DAY, LAST_ARRIVAL, AILMENTS, AILMENT_ORDER,
 } from './clinic-game';
 
 const ART = '/art/clinic/';
@@ -50,6 +50,8 @@ export class ClinicScene {
   ghost: Ghost | null = null;
   build = false;
   selected: Pick = null;
+  /** what the mouse is over (patients show their badges on hover) */
+  hoverPick: Pick = null;
   hover: [number, number] | null = null;
   held: { id: number; sx: number; sy: number } | null = null;
   reduced = false;
@@ -187,6 +189,8 @@ export class ClinicScene {
     return null;
   }
   private hidden(p: Patient) {
+    // still on the way up the road: the line outside is full
+    if (p.held && !p.path.length) return true;
     if (p.phase !== 'in_slot') return false;
     const r = this.game!.roomById(p.room); return !!r && (r.kind === 'steam' || r.kind === 'dark');
   }
@@ -316,8 +320,8 @@ export class ClinicScene {
   private ground(g: Game) {
     // the porch path out of the front door, fading into the painted ground
     const c = this.ctx;
-    for (let i = 0; i < PORCH + 4; i++) {
-      c.save(); c.globalAlpha = Math.min(1, 1.6 - i * 0.22);
+    for (let i = 0; i < OUTSIDE + 2; i++) {
+      c.save(); c.globalAlpha = Math.min(1, 1.9 - i * 0.16);
       this.polyTiles(g.def.door, g.H + i, g.def.door, g.H + i);
       this.texFill('cobble', TEX_TILES.cobble, '#bdb3a2');
       c.restore();
@@ -394,7 +398,7 @@ export class ClinicScene {
 
   private things(g: Game, now: number, alpha: number) {
     const c = this.ctx;
-    this.fxSeen.clear();
+    this.fxSeen.clear(); this.fxTiles.clear();
     type D = { d: number; f: () => void };
     const list: D[] = [];
     // ---- walls: every unit edge is its own slab so depth sorting stays right
@@ -624,7 +628,12 @@ export class ClinicScene {
     if (bump && now - bump < 400) { const k = 1 - (now - bump) / 400; sy *= 1 + 0.12 * k; sx *= 1 - 0.08 * k; }
     // the ailment shows, behind the body and in front of it
     const lying = frame === FRAMES.lie;
-    if (sick) this.ailmentFx(p, x, y, now, lying, lift, flip, true);
+    // one patient's effects per tile (someone walking past a line doesn't stack sparks on it), and a patient standing
+    // in line keeps them calm: the busy effects are for patients on the move
+    const tile = `${Math.round(x)},${Math.round(y)}`, fxOk = sick && !this.fxTiles.has(tile);
+    if (fxOk) this.fxTiles.add(tile);
+    const calm = p.phase === 'wait' && !this.moving(p);
+    if (fxOk) this.ailmentFx(p, x, y, now, lying, lift, flip, true, calm);
     // a cured patient skips home with a hop in every step and a balloon, lollipop or pinwheel
     if (p.phase === 'leave' && p.happy && !this.reduced) lift += Math.abs(Math.sin(now / 110 + p.id)) * 4;
     const gift = p.cured && p.gift && (p.phase === 'leave' || p.phase === 'cheer') ? this.img.get('b-gift' + p.gift) : undefined;
@@ -633,7 +642,8 @@ export class ClinicScene {
     const painted = pose && !lying ? this.img.get(`k-${pose}-${p.sp}-${frame === FRAMES.sit ? 'sit' : 'stand'}`) : undefined;
     if (painted) this.still(painted, x, y, flip, { lift, sx, sy });
     else this.char(name, frame, x, y, flip, { lift, sx, sy });
-    if (sick) { this.ailmentFx(p, x, y, now, lying, lift, flip, false); this.fxSeen.set(p.id, `${p.ail}${painted ? ':painted' : ''}`); }
+    if (fxOk) this.ailmentFx(p, x, y, now, lying, lift, flip, false, calm);
+    if (sick) this.fxSeen.set(p.id, `${p.ail}${painted ? ':painted' : ''}`);
     if (gift && p.gift > 2) this.giftDraw(gift, x, y, ghgt, lift, now, p.id, false);
     // a grumpy patient stomps out under a little storm cloud
     if (p.phase === 'leave' && !p.happy) { const st = this.img.get('b-steam'); if (st) { const c = this.ctx, [wx, wy] = this.iso(x, y); c.save(); c.filter = 'brightness(0.45) saturate(0.3)'; c.globalAlpha = 0.85; const s = 0.09, bob = this.reduced ? 0 : Math.sin(now / 140) * 2; c.drawImage(st, wx - st.naturalWidth * s / 2, wy - ghgt - 14 + bob - st.naturalHeight * s / 2, st.naturalWidth * s, st.naturalHeight * s); c.restore(); } }
@@ -651,6 +661,7 @@ export class ClinicScene {
   }
   /** which ailment each patient showed in the last frame (for the browser tests) */
   fxSeen = new Map<number, string>();
+  private fxTiles = new Set<string>();
   private giftDraw(im: HTMLImageElement, x: number, y: number, hgt: number, lift: number, now: number, id: number, balloon: boolean) {
     const c = this.ctx, [wx, wy] = this.iso(x, y), sway = this.reduced ? 0 : Math.sin(now / 380 + id) * 3;
     const s = (balloon ? 34 : 24) / im.naturalHeight * (balloon ? 1.4 : 1);
@@ -661,7 +672,7 @@ export class ClinicScene {
   }
   /** every ailment is visible on the patient until it is cured: `back` draws what sits behind the body (a static halo,
    *  a dust cloud, a whisker glow), the front pass the sparks, bubbles, sneezes, tail knot, spots and Zzz */
-  private ailmentFx(p: Patient, x: number, y: number, now: number, lying: boolean, lift: number, flip: boolean, back: boolean) {
+  private ailmentFx(p: Patient, x: number, y: number, now: number, lying: boolean, lift: number, flip: boolean, back: boolean, calm = false) {
     const c = this.ctx, [wx, wy0] = this.iso(x, y), wy = wy0 + 6 - lift, t = this.reduced ? 0.4 : now / 1000 + p.id * 0.71;
     const hgt = (this.cells.get('sp-' + p.sp)?.h ?? 140) * CHAR * (lying ? 0.55 : 1);
     const face = flip ? 1 : -1; // the painted fronts look to the left; flipped, to the right
@@ -675,8 +686,9 @@ export class ClinicScene {
     switch (p.ail) {
       case 'static':
         // a frizz of crackle around the fur: it flickers rather than glares, so a waiting room of static stays readable
-        if (back) draw('x-halo', 'b-spark', wx, mid - 2, hgt * 0.8, 0.35 + 0.2 * Math.abs(Math.sin(t * 9)), Math.sin(t * 3) * 0.06);
-        else for (let i = 0; i < 3; i++) {
+        // in line: a light flicker, a faint frizz now and then and one spark; on the move, the full crackle
+        if (back) { if (!calm || Math.floor(t * 3) % 3 === 0) draw('x-halo', 'b-spark', wx, mid - 2, hgt * (calm ? 0.7 : 0.8), calm ? 0.28 : 0.35 + 0.2 * Math.abs(Math.sin(t * 9)), Math.sin(t * 3) * 0.06); }
+        else for (let i = 0; i < (calm ? 1 : 3); i++) {
           // sparks crackle on and off around the fur
           if ((Math.floor(t * 9) + i) % 3 === 0) continue;
           const a = i * 2.1 + Math.floor(t * 5) * 1.3;
@@ -775,7 +787,7 @@ export class ClinicScene {
 
   private overlays(g: Game, now: number, alpha: number) {
     for (const p of g.s.patients) {
-      if (p.phase === 'gone' || p.phase === 'leave' || p.phase === 'cheer') continue;
+      if (p.phase === 'gone' || p.phase === 'leave' || p.phase === 'cheer' || this.hidden(p)) continue;
       const x = p.px + (p.x - p.px) * alpha, y = p.py + (p.y - p.py) * alpha;
       const h = (this.cells.get('sp-' + p.sp)?.h ?? 140) * CHAR + 14;
       if (p.phase === 'in_slot') {
@@ -786,22 +798,26 @@ export class ClinicScene {
       if (p.fail > 0) { this.badge('i-meh', x, y, h, now, 1); continue; }
       const icon = p.thirst > 75 ? 'i-thirsty' : p.patience >= 60 ? 'i-happy' : p.patience >= 30 ? 'i-meh' : 'i-grumpy';
       const picked = this.selected?.type === 'patient' && this.selected.id === p.id;
+      const hov = picked || (this.hoverPick?.type === 'patient' && this.hoverPick.id === p.id);
+      // badges at full size only where they matter: hovered or picked, the front two of a line, a diagnosed patient
+      // on the move. The rest of a crowd shows small faded ones, so a busy hall stays readable
+      const full = hov || (p.qi >= 0 && p.qi < 2) || (!!p.dx && this.moving(p));
       // in a line a bubble over every head is noise: only thirst and real grumps show (and whoever is picked)
-      if ((p.phase === 'wait' && !this.moving(p) && (icon === 'i-thirsty' || icon === 'i-grumpy')) || picked) this.badge(icon, x, y, h, now, 1);
+      if ((p.phase === 'wait' && !this.moving(p) && (icon === 'i-grumpy' || (icon === 'i-thirsty' && full))) || hov) this.badge(icon, x, y, h, now, 1);
       if (p.vip) this.badge('i-star', x + 0.3, y - 0.3, h + 6, now, 1, 16);
-      // what they have: "?" until the check-up, then the sign of the room that cures it, so patients match rooms
-      if (!p.cured) this.ailBadge(p, x, y, h - 18);
+      // what they have: "?" until the check-up, then the sign of the room that cures them, so patients match rooms
+      if (!p.cured) this.ailBadge(p, x, y, h - 18, full ? 1 : 0.55, full ? 1 : 0.5);
       // the picked patient's thought bubble says why they feel that way (above the head, never over the face)
       if (picked) { const w = g.whyOf(p); const top = w.find((q) => !q.good) ?? w[0]; if (top) this.thought(top.text, x, y, h + 26, top.good); }
     }
   }
   /** the "?" or cure-room sign beside a patient's head (to the side, never over the face) */
-  private ailBadge(p: Patient, x: number, y: number, up: number) {
-    const c = this.ctx, [wx0, wy] = this.iso(x, y), wx = wx0 + 17, cy = wy - up, r = 9.5;
-    c.save();
+  private ailBadge(p: Patient, x: number, y: number, up: number, k = 1, alpha = 1) {
+    const c = this.ctx, [wx0, wy] = this.iso(x, y), wx = wx0 + 17 * (0.6 + 0.4 * k), cy = wy - up + (1 - k) * 10, r = 9.5 * k;
+    c.save(); c.globalAlpha *= alpha;
     if (!p.dx) {
       c.fillStyle = PAL.cream; c.strokeStyle = PAL.ink; c.lineWidth = 1.3; c.beginPath(); c.arc(wx, cy, r, 0, 7); c.fill(); c.stroke();
-      c.font = '900 14px Nunito, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = PAL.coral; c.fillText('?', wx, cy + 1);
+      c.font = `900 ${Math.round(14 * k)}px Nunito, system-ui, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = PAL.coral; c.fillText('?', wx, cy + 1);
     } else {
       const im = this.img.get('s-' + AILMENTS[p.dx].room);
       if (im) c.drawImage(im, wx - r * 1.25, cy - r * 1.25, r * 2.5, r * 2.5);

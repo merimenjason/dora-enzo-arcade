@@ -36,12 +36,21 @@ that cures them, the same sign that hangs over that room's door. The clinic pane
 clinic's ailments with how each looks and its cure room.
 
 **Waiting:**
-- **Lines:** each room has its own line of corridor tiles running back from its door, one tile apart, hugging the
-  walls and turning back towards the front door when it meets a dead end. Patients for the same room wait in arrival
-  order (VIPs and emergencies first); nobody shares a tile, and the front of the line steps up as patients go in.
+- **Lines:** every corridor tile belongs to the door it is fewest steps from, and each room's line runs back from its
+  door over its own tiles, one tile apart, hugging the walls, so lines never cross. Patients for the same room wait in
+  arrival order (second tries, VIPs and emergencies first); with two rooms of a kind, newcomers join the shorter line.
   A counter by each door shows how many are waiting (coral at six or more).
-- Patients sit on benches when they can (front of the line first, within 8 tiles of the door), and wait twice as
-  patiently sitting down. They sit facing the way the bench faces.
+- **Rush hour:** at most six stand in a room's line in the hall, one patient a tile, and nobody waits on a doorway, in
+  front of a door or on the doorstep. A full reception line continues outside, on the path from the front door (eight
+  tiles, facing the door). When the path is full too, newcomers stay further down the road out of sight (their wait
+  hasn't started) and no new patients set out. Other overflow takes the nearest free corridor tiles, spaced out where
+  that costs no more than two extra steps.
+- **Readable crowds:** full-size badges only where they matter (the mouse over a patient, the picked patient, the front
+  two of each line, a diagnosed patient walking to their room); the rest of a line shows small faded ones. Only one
+  patient's ailment effects are drawn per tile, and a patient standing in line keeps them calm (Static Fluff becomes a
+  light flicker).
+- Patients sit on the nearest free bench seat to their door when they can (front of the line first, within 8 steps of
+  the door), and wait twice as patiently sitting down. They sit facing the way the bench faces.
 - They lose patience faster when thirsty, cold, near litter or far from cheer. Plants, cacti, lamps, rugs and magazine
   tables are cheer; a cheery staff member nearby, Dora and Enzo walking by.
 - A thirsty patient fetches a free drink from a water cooler, or buys one (15 coins) from a drinks cart, and keeps
@@ -244,7 +253,10 @@ Before step 5 the clock does not run and nobody arrives, so nothing in the first
 - **Dora's tips:** the most useful nudge right now, each with a **Show me** button that opens the right card. For
   example: hire for an unstaffed room, a second Check-up Room for a long line, a staff room for tired staff, a cleaner
   for a worn machine, drinks on the salt, heaters on the summit, benches for a standing queue.
-- **"Try here" ghost spots** that never cut a corridor in two.
+- **"Try here" ghost spots** that never cut a corridor in two; a second Reception or Check-up Room is suggested near
+  the first.
+- **An early second Check-up Room:** when the check-up line is the longest and there are vets to spare, Dora suggests
+  a second one at 4 waiting (otherwise at 6).
 - **A suggested candidate** in the hire list.
 - **A gentle warning** before the evening's wages would leave you short.
 - The doors open automatically once a reception, a check-up room and a cure room are all staffed.
@@ -283,17 +295,21 @@ Before step 5 the clock does not run and nobody arrives, so nothing in the first
   - waiting lines (one tile each, front of the line first), mood reasons and complaints;
   - staff growth, raises and training, room upgrades, the Bulletin, gifts and kind wording;
   - decoration facings: rotate while placing and after, the suggested facing, seats facing the bench's front;
+  - rush hour at Salt Flat and the Summit with an emergency: 25+ waiting, never two to a tile or one on a doorway, the
+    reception overflow outside on the path and newcomers held down the road; the early second Check-up tip and its
+    spot near the first;
   - the save round-trip, older saves gaining new fields, and corrupt saves.
 - **`tests/clinic-bot.mjs`:** plays every clinic headless with three managers (`--quick` for 12 seeds, the default 40):
   - **casual:** builds the tutorial's rooms in a sensible but imperfect layout, hires average staff, reacts to Dora's
     tips 20–40 in-game minutes late and takes half the emergencies;
   - **pro:** plans ahead within its budget;
   - **idle:** builds nothing.
-- **`tests/e2e/clinic.mjs`:** every player action in a real browser, on desktop and both phone layouts (214 checks),
+- **`tests/e2e/clinic.mjs`:** every player action in a real browser, on desktop and both phone layouts (220 checks),
   including the camera's minimum zoom and View, lines, mood reasons and Show me, a raise answered both ways, upgrades,
   training, gifts and huffs, the Bulletin and its setting, the certificate, rotating decorations (button, R and the
   card), every ailment of clinic 1 showing on arrival and clearing on cure, the painted sick poses, and the folding
-  dock on an upright phone. The page exposes `debug.ailFx()` (which ailment each patient showed in the last frame).
+  dock on an upright phone, and a rush hour at Salt Flat and the Summit (an emergency and 25+ patients): no two standing
+  patients share a tile, nobody waits on a doorway, and the overflow lines up outside. The page exposes `debug.ailFx()` (which ailment each patient showed in the last frame).
 - The bots also exercise the new systems: they answer raises, dismiss the Bulletin, upgrade the busiest cure room and
   (pro) switch training on.
 
@@ -306,12 +322,12 @@ The latest full run (40 seeds a clinic, 06-11-2026); the idle manager met none:
 
 | Clinic | Casual met | Casual 3★ | Casual day | Pro met | Pro 3★ | Pro day |
 | --- | --- | --- | --- | --- | --- | --- |
-| Burrow Clinic | 100% | 93% | 5.0 of 7 | 100% | 93% | 5.0 |
-| Salt Flat | 100% | 98% | 5.4 of 8 | 100% | 100% | 5.1 |
-| Lakeside | 100% | 100% | 5.7 of 9 | 100% | 100% | 5.4 |
-| Cloud Forest | 100% | 90% | 6.7 of 10 | 100% | 90% | 6.8 |
-| Hot Springs | 98% | 70% | 7.3 of 10 | 100% | 75% | 7.1 |
-| Summit | 93% | 63% | 7.8 of 11 | 98% | 85% | 7.5 |
+| Burrow Clinic | 100% | 93% | 4.8 of 7 | 100% | 88% | 5.0 |
+| Salt Flat | 100% | 100% | 5.5 of 8 | 100% | 100% | 5.2 |
+| Lakeside | 100% | 100% | 5.5 of 9 | 100% | 100% | 5.2 |
+| Cloud Forest | 100% | 98% | 6.3 of 10 | 100% | 83% | 6.6 |
+| Hot Springs | 98% | 95% | 6.5 of 10 | 100% | 68% | 7.1 |
+| Summit | 98% | 83% | 7.2 of 11 | 100% | 85% | 7.2 |
 
 ## Art
 
