@@ -105,7 +105,7 @@ Game 88, `/space`, a pixel-art football roguelite: every pass goes to a spot, co
 
 - **Rules and numbers:** `docs/space.md`; balance lives in `lib/space-game.ts` (the arrival window, the settling touch, the keeper).
 - **Tests:** `npm run test:space`, `npm run bot:space`, `node tests/e2e/space.mjs` (dev server running; uses `window.__space()`).
-- **Ideas not done:** a camera that follows the ball on upright phones; see `docs/space.md`.
+- **Ideas not done:** Assist off is still hard at human speed; see `docs/space.md`. Time stops while aiming, Assist is on by default, and the cup is against the animal league in `public/art/kickabout/` (`scripts/kickabout-art.py`).
 
 ## Combo Ball · 06-11-2026
 

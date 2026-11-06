@@ -1,15 +1,18 @@
-// Into Space in the browser: the title and the way home, Enzo's opening, kicking off, holding J to walk a pass out and
+// Into Space in the browser: the title and the way home, Enzo's opening, kicking off, time standing still while Dora
+// stands on the ball (and while a shot is aimed, with the keeper's reach), holding J to walk a pass out and
 // letting go (control jumping to the runner), a lofted pass with a right click onto a spot and a timed run that
 // arrives perfect (time slows down), winning a match into the changing room with the next opponent and three picks,
-// picking by key, pausing, losing and the result card, the bests saved across a reload, a corrupt save, the how-to
-// page, and a phone held upright (the pitch above the controls, the thumb stick and a PASS drag), all with no page
-// errors and no sideways scrolling. Needs `npm run dev` and Playwright.
+// picking by key (with the next team's captain), pausing, losing and the result card, the bests saved across a reload,
+// a corrupt save, the how-to page with the league, turning Assist off, and a phone held upright (the pitch above the
+// controls and zoomed in closer, the thumb stick and a PASS drag), all with no page errors and no sideways
+// scrolling. Needs `npm run dev` and Playwright.
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const base = process.env.BASE_URL ?? 'http://localhost:3000';
 const KEY = 'into-space-v1';
 const browser = await chromium.launch();
+const fs = await import('node:fs'); fs.mkdirSync('.shots', { recursive: true });
 const errors = [];
 const open = async (viewport = { width: 1280, height: 800 }, mobile = false) => {
   const ctx = await browser.newContext({ viewport, isMobile: mobile, hasTouch: mobile, deviceScaleFactor: 1 });
@@ -32,7 +35,8 @@ const until = async (page, fn, arg, timeout = 30000) => {
 };
 const dbg = (page, fn, ...a) => page.evaluate(([f, args]) => window.__space().debug[f](...args), [fn, a]);
 const noSideScroll = (page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
-const toScreen = async (page, x, y) => { const b = await page.locator('canvas.is-canvas').boundingBox(); return [b.x + (x * b.width) / 384, b.y + (y * b.height) / 216]; };
+/** a point on the pitch to where it is in the window, through the game's camera */
+const toScreen = async (page, x, y) => { const b = await page.locator('canvas.is-canvas').boundingBox(); const p = await dbg(page, 'screen', x, y); return [b.x + (p.x * b.width) / 384, b.y + (p.y * b.height) / 216]; };
 /** Dora on the ball in midfield, Enzo free ahead of her, the Grumbles out of the way */
 const setPiece = async (page) => {
   await dbg(page, 'clear');
@@ -58,12 +62,31 @@ try {
   await until(page, () => window.__space().run?.state === 'play');
   let s = await st(page);
   assert.equal(s.run.round, 0); assert.equal(s.run.pitch, 'dry'); assert.equal(s.run.who, 'dora', 'Dora kicks off');
+  assert.equal(s.run.assist, true, 'Assist is on to start with'); assert.equal(s.run.order.length, 7); assert.equal(s.run.order[6], 'grumble');
   ok('Enzo’s opening: four cards, remembered, then kick-off with Dora on the ball');
 
+  // ---- standing on the ball stops time; aiming a shot shows the keeper's reach
+  await setPiece(page);
+  await until(page, () => window.__space().run.frozen === true);
+  const c0 = (await st(page)).run.clock; await page.waitForTimeout(400);
+  s = await st(page); assert.equal(s.run.clock, c0, 'the clock stands still'); assert.ok(s.run.frozen);
+  await page.keyboard.down('KeyD'); await page.waitForTimeout(250); await page.keyboard.up('KeyD');
+  assert.ok((await st(page)).run.clock < c0, 'running with the ball starts it again');
+  await dbg(page, 'place', 1, 300, 122); await dbg(page, 'give', 1);
+  await page.keyboard.down('KeyK'); await page.waitForTimeout(250);
+  s = await st(page); assert.ok(s.run.frozen && s.run.shotAim, 'holding K aims a shot with time stopped');
+  await page.screenshot({ path: '.shots/space-shot-aim.png' }).catch(() => {});
+  await page.keyboard.up('KeyK');
+  await until(page, () => window.__space().run.ball.owner === -1 || window.__space().run.state === 'goal');
+  ok('time stops while Dora stands on the ball, runs when she runs, and stands still while a shot is aimed');
+
   // ---- holding J walks the pass out; letting go passes and hands us the runner
+  await until(page, () => window.__space().run.state === 'play');
   await setPiece(page);
   await page.keyboard.down('KeyD'); await page.keyboard.down('KeyJ'); await page.waitForTimeout(350);
   s = await st(page); assert.ok(s.run.reticle && s.run.reticle.x > 140, 'the target is out ahead of Dora');
+  assert.ok(s.run.frozen, 'and time stands still while it does');
+  await page.screenshot({ path: '.shots/space-aim.png' }).catch(() => {});
   await page.keyboard.up('KeyJ'); await page.keyboard.up('KeyD');
   await until(page, () => { const r = window.__space().run; return r.pass && r.who !== 'dora'; });
   ok('keyboard: hold J and the target walks out ahead; let go and control jumps to the runner');
@@ -95,7 +118,11 @@ try {
   await until(page, () => window.__space().run?.phase === 'pick');
   await page.locator('.is-offer').first().waitFor();
   assert.equal(await page.locator('.is-offer').count(), 3);
-  assert.match(await page.locator('.is-next').innerText(), /Puddle Athletic/);
+  const nextTeam = await page.evaluate(() => { const r = window.__space().run; return r.order[r.round + 1]; });
+  assert.ok(await page.locator('.is-next').innerText().then((t) => t.length > 10));
+  const cap = page.locator(`.is-next[data-foe="${nextTeam}"] img.is-captain`);
+  await cap.waitFor(); assert.ok(await cap.evaluate((im) => im.complete && im.naturalWidth > 0), 'the next team’s captain is shown');
+  await page.screenshot({ path: '.shots/space-room.png' }).catch(() => {});
   const up = (await st(page)).run.upcoming, first = (await st(page)).run.offer[0];
   await page.keyboard.press('Digit1');
   await until(page, () => window.__space().run?.phase === 'match' && window.__space().run.round === 1);
@@ -118,8 +145,22 @@ try {
   assert.equal((await st(page)).save.stats.runs, 0);
   await page.getByRole('button', { name: 'How to play' }).click();
   assert.match(await page.locator('.is-page').innerText(), /Pass into space/);
+  assert.match(await page.locator('.is-league').innerText(), /Badger Borough/);
   assert.ok(await noSideScroll(page));
-  ok('a corrupt save starts fresh; the how-to page');
+  ok('a corrupt save starts fresh; the how-to page with the league');
+
+  // ---- Assist off in Settings, kept, and used by the next cup
+  await page.getByRole('button', { name: '‹ Title' }).click();
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.locator('button[data-assist="false"]').click();
+  assert.equal((await st(page)).save.settings.assist, false);
+  await page.reload(); await ready(page);
+  assert.equal((await st(page)).save.settings.assist, false, 'kept across a reload');
+  await page.getByRole('button', { name: 'Kick off' }).click();
+  for (let i = 0; i < 4; i++) { await page.keyboard.press('Enter'); await page.waitForTimeout(120); }
+  await until(page, () => window.__space().run?.state === 'play');
+  assert.equal((await st(page)).run.assist, false, 'the cup plays without Assist');
+  ok('Settings: Assist off is saved and the next cup plays without it');
   await page.context().close();
 
   // ---- a phone held upright
@@ -131,6 +172,7 @@ try {
   await until(m, () => window.__space().run?.state === 'play');
   const stage = await m.locator('.is-stage').boundingBox(), pad = await m.locator('.is-touchpad').boundingBox();
   assert.ok(stage.y + stage.height <= pad.y + 1, 'the pitch sits above the controls'); assert.ok(stage.width >= 380);
+  assert.equal((await st(m)).run.zoom, 2, 'and the camera comes in closer');
   assert.ok(await noSideScroll(m));
   const cdp = await m.context().newCDPSession(m);
   const tp = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
@@ -147,6 +189,7 @@ try {
   for (let k = 1; k <= 5; k++) await tp('touchMove', cx + k * 10, cy - k * 4);
   await tp('touchEnd', 0, 0);
   await until(m, () => { const r = window.__space().run; return !!r.pass && r.who !== 'dora'; });
+  await m.screenshot({ path: '.shots/space-phone.png' }).catch(() => {});
   ok('phone: the pitch above the controls, the thumb stick runs, a PASS drag passes and hands over the runner');
   await m.context().close();
 

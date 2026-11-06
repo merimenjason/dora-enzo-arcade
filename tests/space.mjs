@@ -4,16 +4,17 @@
 // everyone's heads until they drop, the four pitches (the beach stops the ball dead, a heatwave bounces it), passes
 // capped in length, golden goal and who goes through when it stays level, the changing room's three picks and the
 // next round rolled in advance (never the same pitch twice running, the final on summer grass), the perks, a seed
-// replaying exactly, and the save.
+// replaying exactly, and the save. Then time standing still while we hold the ball and aim, and Assist: a wider
+// window, slower Grumbles and a runner who steers himself onto the spot. Most checks play with Assist off, the old feel.
 import assert from 'node:assert/strict';
-import { Run, noInput, PITCH, CX, CY, ARRIVE, SLOW_FOR, SETTLE, MAX_PASS, MATCH, GOLDEN, ROUNDS, PITCHES, PERKS, newSave, parseSave, serialise, bank } from '../.checks/space-game.js';
+import { Run, noInput, PITCH, CX, CY, ARRIVE, SLOW_FOR, SETTLE, MAX_PASS, MATCH, GOLDEN, ROUNDS, PITCHES, PERKS, ASSIST, FOES, LEAGUE, newSave, parseSave, serialise, bank } from '../.checks/space-game.js';
 
 let n = 0;
 const ok = (m) => { n++; console.log('ok', m); };
 const DORA = 1, ENZO = 2, PIP = 3, BRAM = 4;
 /** a match in play with only Dora and the runner able to move: everyone else frozen out of the way */
-const field = (seed = 3, runner = ENZO, rx = CX + 20, ry = CY + 40) => {
-  const r = new Run(seed);
+const field = (seed = 3, runner = ENZO, rx = CX + 20, ry = CY + 40, assist = false) => {
+  const r = new Run(seed, assist);
   r.state = 'play'; r.stateT = 0;
   for (const p of r.players) if (p.i !== DORA && p.i !== runner) Object.assign(p, { x: p.side ? PITCH.x1 - 6 : PITCH.x0 + 6, y: PITCH.y0 + 4 + p.i * 2, stun: 1e9 });
   Object.assign(r.players[DORA], { x: CX - 40, y: CY, vx: 0, vy: 0, dx: 1, dy: 0 });
@@ -135,7 +136,7 @@ const runOnto = (r, spot, { loft = false, wait = 'timed', pace = 1, maxT = 4 } =
 // ---- matches: golden goal, going through, the changing room
 {
   const r = field(); r.score = [1, 1]; r.clock = 0.01;
-  const evs = press(r, {});
+  const evs = press(r, { mx: 1 });
   assert.ok(r.golden && Math.abs(r.clock - GOLDEN) < 0.1 && evs.some((e) => e.k === 'whistle' && e.what === 'golden'), 'level at full time is golden goal');
   r.match.perfects = 2; r.match.intercepts = 3; assert.equal(r.through, false, 'level after golden goal: more interceptions than perfects goes out');
   r.match.perfects = 4; assert.equal(r.through, true, 'more perfects goes through');
@@ -146,7 +147,7 @@ const runOnto = (r, spot, { loft = false, wait = 'timed', pace = 1, maxT = 4 } =
   assert.equal(r.round, 0); assert.equal(r.pitch, 'dry'); assert.equal(r.clock, MATCH);
   for (let k = 0; k < ROUNDS; k++) {
     r.state = 'play'; r.score = [2, 0]; r.clock = 0.01;
-    for (let i = 0; i < 200 && r.phase === 'match' && r.round === k; i++) press(r, {});
+    for (let i = 0; i < 200 && r.phase === 'match' && r.round === k; i++) press(r, { mx: 1 });
     if (k === ROUNDS - 1) { assert.equal(r.phase, 'won', 'winning the final wins the cup'); break; }
     assert.equal(r.phase, 'pick'); assert.equal(r.offer.length, 3); assert.ok(r.upcoming, 'the next round is known in the changing room');
     const up = r.upcoming; const id = r.offer[0];
@@ -158,7 +159,7 @@ const runOnto = (r, spot, { loft = false, wait = 'timed', pace = 1, maxT = 4 } =
   assert.equal(pitches[ROUNDS - 1], 'dry', 'the final is on summer grass');
   assert.equal(r.stats.rounds, ROUNDS);
   const l = new Run(4); l.state = 'play'; l.score = [0, 1]; l.clock = 0.01;
-  for (let i = 0; i < 200 && l.phase === 'match'; i++) press(l, {});
+  for (let i = 0; i < 200 && l.phase === 'match'; i++) press(l, { mx: 1 });
   assert.equal(l.phase, 'lost', 'losing a match ends the run');
   ok('the cup: seven rounds, three picks after each win, the next round shown in advance, one defeat and you’re out');
 }
@@ -190,11 +191,119 @@ const runOnto = (r, spot, { loft = false, wait = 'timed', pace = 1, maxT = 4 } =
 }
 {
   assert.deepEqual(parseSave(null), newSave()); assert.deepEqual(parseSave('{broken'), newSave()); assert.deepEqual(parseSave('{"v":2}'), newSave());
+  assert.equal(newSave().settings.assist, true, 'Assist is on by default');
+  assert.equal(parseSave('{"v":1,"settings":{"assist":false}}').settings.assist, false, 'and turning it off is saved');
   const s = newSave(); const r = new Run(5); r.stats.rounds = 3; r.stats.goals = 7; r.stats.perfects = 11; r.stats.best = 5; r.phase = 'lost';
   bank(s, r); const t = parseSave(serialise(s));
   assert.deepEqual([t.stats.runs, t.stats.cups, t.stats.goals, t.stats.perfects, t.best.round, t.best.flow], [1, 0, 7, 11, 3, 5]);
   r.phase = 'won'; r.stats.rounds = 7; bank(t, r); assert.equal(t.stats.cups, 1); assert.equal(t.best.round, 7);
   assert.equal(parseSave('{"v":1,"best":{"round":-4},"settings":{"music":false}}').best.round, 0); assert.equal(parseSave('{"v":1,"settings":{"music":false}}').settings.music, false);
   ok('the save: bad saves start fresh, runs bank their bests and cups');
+}
+// ---- the league: six animal teams drawn in a seeded order, then the Grumbles in the final, each with its own style
+{
+  const orders = [];
+  for (let seed = 1; seed < 40; seed++) {
+    const r = new Run(seed); const o = r.order; orders.push(o.join());
+    assert.equal(o.length, ROUNDS); assert.equal(o[ROUNDS - 1], 'grumble', 'the Grumbles are always the final');
+    assert.equal(new Set(o).size, ROUNDS, 'nobody twice'); assert.ok(o.slice(0, -1).every((id) => LEAGUE.includes(id)));
+    assert.ok(FOES[o[0]].tier <= FOES[o[5]].tier + 1, 'roughly easiest first');
+    assert.deepEqual(new Run(seed).order, o, 'the draw is seeded');
+    assert.equal(r.team, FOES[o[0]].name); assert.equal(r.teamAt(1).name, FOES[o[1]].name);
+  }
+  assert.ok(new Set(orders).size > 20, 'different cups draw differently');
+  assert.equal(LEAGUE.length, 8); for (const id of LEAGUE) assert.ok(FOES[id].name && FOES[id].text && FOES[id].kit);
+  /** a match against a given team, with the plain field */
+  const versus = (foe, assist = false) => { const r = field(3, ENZO, CX + 20, CY + 40, assist); r.order[r.round] = foe; return r; };
+  // rabbits are quick, badgers slow
+  const g = (r) => r.players.find((p) => p.side === 1 && !p.gk);
+  assert.ok(versus('rabbit').speedOf(g(versus('rabbit'))) > versus('fox').speedOf(g(versus('fox'))) && versus('badger').speedOf(g(versus('badger'))) < versus('fox').speedOf(g(versus('fox'))), 'rabbits run faster, badgers slower');
+  // the moles pop up beside the spot
+  let pops = 0;
+  for (let k = 0; k < 40; k++) {
+    const r = versus('mole'); r.rnd(); for (let j = 0; j < k; j++) r.rnd();
+    for (const p of r.players) if (p.side === 1 && !p.gk) p.stun = 0;
+    const evs = press(r, { passNow: true, spot: { x: CX + 60, y: CY + 30 } });
+    const e = evs.find((x) => x.k === 'pop');
+    if (e) { pops++; assert.ok(Math.hypot(e.x - (CX + 60), e.y - (CY + 30)) < 30, 'right beside the spot'); }
+  }
+  assert.ok(pops > 4 && pops < 30, `a mole pops up some of the time (${pops}/40)`);
+  // frogs jump for a lofted ball that sails over anyone else
+  const lob = (foe, k) => {
+    const r = versus(foe); for (let j = 0; j < k; j++) r.rnd(); const f = g(r); Object.assign(f, { stun: 0, x: CX + 10, y: CY, vx: 0, vy: 0 });
+    press(r, { passNow: true, spot: { x: CX + 60, y: CY }, loft: true });
+    // stand under it until it's three-quarters of the way, while it's still above everyone else's head
+    for (let i = 0; i < 60 && r.ball.owner < 0 && r.flight && r.flight.t < r.flight.T * 0.75; i++) { Object.assign(f, { x: r.ball.x, y: r.ball.y, vx: 0, vy: 0 }); press(r, {}); }
+    return r.ball.owner === f.i;
+  };
+  // they get one go at it, so count
+  let frogs = 0, rabbits = 0; for (let k = 0; k < 20; k++) { frogs += lob('frog', k) ? 1 : 0; rabbits += lob('rabbit', k) ? 1 : 0; }
+  assert.ok(frogs >= 4 && rabbits === 0, `frogs jump for lofted passes (${frogs}/20), rabbits can’t`);
+  // badgers win their tackles; our tackles on them mostly don't
+  assert.ok(Math.min(0.95, 0.5 * FOES.badger.style.tackle) >= 0.8 && FOES.badger.style.hard < 0.8 && FOES.rabbit.style.tackle < 1, 'badgers win tackles, rabbits lose them');
+  assert.ok(FOES.hog.style.press === 2 && FOES.magpie.style.chase > 1 && FOES.otter.style.pass > 1 && FOES.fox.style.counter > 1, 'hedgehogs press, magpies read passes, otters pass, foxes counter');
+  ok('the league: a seeded draw of six animal teams then the Grumbles, and each team plays its own way');
+}
+
+// ---- time stands still while we aim
+{
+  const r = field(); const clock = r.clock, gt = r.gt;
+  const g = r.players[6]; Object.assign(g, { stun: 0, x: CX, y: CY - 30 });
+  const gx = g.x;
+  for (let i = 0; i < 90; i++) press(r, {});
+  assert.ok(r.frozen, 'standing still with the ball freezes time');
+  assert.equal(r.clock, clock, 'the clock doesn’t run'); assert.equal(r.gt, gt); assert.equal(g.x, gx, 'and the Grumbles don’t move');
+  // holding J walks the reticle out, still frozen, and steering only turns the aim
+  const dora = r.players[DORA], x0 = dora.x;
+  for (let i = 0; i < 40; i++) press(r, { pass: true, my: -1 });
+  assert.ok(r.frozen && r.clock === clock && dora.x === x0, 'aiming a pass keeps time still, and the stick turns the aim instead of running');
+  assert.ok(r.reticle && r.reticle.y < dora.y - 20, 'the reticle went up the way the stick points');
+  press(r, {});
+  assert.equal(r.ball.owner, -1, 'letting go passes'); assert.ok(!r.frozen);
+  press(r, {}); assert.ok(r.clock < clock, 'and time runs again while the ball is moving');
+  // running with the ball keeps time going
+  const q = field(); const c2 = q.clock; press(q, { mx: 1 }); assert.ok(!q.frozen && q.clock < c2, 'dribbling runs the clock');
+  // a shot: hold K and time stands still while you aim, with the keeper's reach shown
+  const s = field(); Object.assign(s.players[DORA], { x: PITCH.x1 - 70, y: CY }); s.ball.x = PITCH.x1 - 65; const c3 = s.clock;
+  for (let i = 0; i < 30; i++) press(s, { shoot: true, mx: 1 });
+  assert.ok(s.frozen && s.clock === c3 && s.shotCharge > 0, 'holding a shot freezes time while it charges');
+  Object.assign(s.players[5], { x: PITCH.x1 - 7, y: CY });
+  const reach = s.keeperReach(0.5); assert.ok(reach.y1 > reach.y0, 'the keeper covers part of the mouth');
+  assert.ok(s.keeperReach(1).y1 - s.keeperReach(1).y0 < s.keeperReach(0).y1 - s.keeperReach(0).y0, 'a harder shot leaves him less time');
+  press(s, { mx: 1 }); assert.equal(s.ball.owner, -1, 'letting go shoots');
+  // the phone's slingshot holds time still too
+  const t = field(); for (let i = 0; i < 5; i++) press(t, { aim: true, mx: 1 }); assert.ok(t.frozen);
+  ok('frozen aiming: the clock and the Grumbles stop while we stand on the ball or aim a pass or shot');
+}
+
+// ---- Assist
+{
+  const on = field(3, ENZO, CX + 20, CY + 40, true), off = field();
+  assert.ok(Math.abs(on.windowScale - off.windowScale * ASSIST.window) < 1e-9, 'the perfect window is twice as wide');
+  const g = on.players.find((p) => p.side === 1 && !p.gk), k = on.players.find((p) => p.side === 1 && p.gk);
+  assert.ok(Math.abs(on.speedOf(g) - off.speedOf(off.players[g.i]) * ASSIST.foe) < 1e-9, 'the other team is a quarter slower');
+  assert.equal(on.speedOf(k), off.speedOf(off.players[k.i]), 'but not their keeper');
+  // the same slightly early run that's early without Assist is perfect with it
+  const rush = (assist) => {
+    const r = field(3, ENZO, CX + 60 - ARRIVE - 22, CY + 30, assist);
+    press(r, { passNow: true, spot: { x: CX + 60, y: CY + 30 } });
+    for (let i = 0; i < 300 && r.ball.owner < 0; i++) { const e = press(r, { mx: 1 }).find((x) => x.k === 'rate'); if (e) return e.r; }
+  };
+  assert.equal(rush(false), 'early'); assert.equal(rush(true), 'perfect', 'Assist forgives a slightly early run');
+  // holding the stick roughly at the spot puts the runner right on it; Assist off, he runs straight past
+  const steer = (assist) => {
+    const r = field(3, ENZO, CX + 20, CY + 40, assist);
+    const spot = { x: CX + 70, y: CY + 10 };
+    press(r, { passNow: true, spot, loft: true });
+    let near = 1e9;
+    for (let i = 0; i < 200 && r.ball.owner < 0; i++) { press(r, { mx: 1, my: 0 }); const e = r.players[ENZO]; near = Math.min(near, Math.hypot(e.x - spot.x, e.y - spot.y)); }
+    return near;
+  };
+  assert.ok(steer(true) < 3, 'Assist steers the runner onto the spot'); assert.ok(steer(false) > ARRIVE, 'without it he runs straight on');
+  const c = field(3, ENZO, CX + 20, CY + 40, true);
+  const evs = press(c, { passNow: true, spot: { x: CX + 30, y: CY + 30 } });
+  assert.equal(c.ctrl, ENZO, 'control jumps to the runner by itself'); assert.ok(evs.some((e) => e.k === 'switch'));
+  const ct = c.contest(CX + 30, CY + 30, 0.8, DORA); assert.equal(ct.runner, ENZO); assert.ok(typeof ct.safe === 'boolean');
+  ok('Assist: double window, slower Grumbles (not the keeper), a runner who steers onto the spot');
 }
 console.log(`PASS Into Space engine (${n} checks)`);

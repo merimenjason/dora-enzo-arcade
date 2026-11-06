@@ -1,9 +1,9 @@
 'use client';
 // Into Space: the page. The fixed-step loop for the matches (WASD or a thumb stick to run; J held, or the mouse, picks
 // the spot for a pass, with Shift, L or right-click to loft it; K shoots or tackles; Space sprints; Q switches runner;
-// on a phone the PASS button is a slingshot), the HUD, Enzo's pointers, the changing room between rounds with its
-// three picks and the next opponent, results, the ending and the save. Rules in lib/space-game.ts, drawing in
-// lib/space-scene.ts.
+// on a phone the PASS button is a slingshot; standing on the ball or aiming stops time), the HUD, Enzo's pointers,
+// the changing room between rounds with its three picks and the next opponent's captain, results, the ending, the
+// save and the Assist setting. Rules in lib/space-game.ts, drawing in lib/space-scene.ts.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as G from '@/lib/space-game';
 import type { Ev, PerkId, Run, Save } from '@/lib/space-game';
@@ -19,7 +19,7 @@ const art = (n: string) => `/art/space/${n}.png`;
 const kit = (n: string) => `/art/kickabout/${n}.png`;
 const INTRO = [
   'Cup day! I’m Enzo, and here’s the trick that wins it: we never pass to feet. We pass into space.',
-  'Pick a spot on the grass and pass it there. The moment it leaves your boot, you’re the runner going to meet it.',
+  'Pick a spot on the grass and pass it there. While you stand on the ball, time stops: aim as long as you like. The moment it leaves your boot, you’re the runner going to meet it.',
   'See the gold ring? It shrinks as the ball comes down. Arrive just as it closes: too early and you have to stop and settle it, too late and it’s a scramble.',
   'Get it perfect and time slows down. That’s your moment: a first-time pass, or a first-time shot. Ready?',
 ];
@@ -54,7 +54,7 @@ export default function IntoSpacePage() {
   const introRef = useRef(-1);
   const [paused, setPausedState] = useState(false);
   const pausedRef = useRef(false);
-  const [banner, setBanner] = useState<{ text: string; sub: string; key: number } | null>(null);
+  const [banner, setBanner] = useState<{ text: string; sub: string; key: number; foe?: G.FoeId } | null>(null);
   const [touch, setTouch] = useState(false);
   const [, setTick] = useState(0);
   const keys = useRef(new Set<string>());
@@ -70,6 +70,8 @@ export default function IntoSpacePage() {
   const sprintBtn = useRef(false);
   const swapTap = useRef(false);
   const reduced = useRef(false);
+  /** the camera's zoom: closer on an upright phone, where the pitch is narrow */
+  const zoomRef = useRef(1.5);
   /** debug only: the browser tests can have the runner time his run onto the spot */
   const autoRun = useRef(false);
   const said = useRef(new Set<string>());
@@ -119,6 +121,7 @@ export default function IntoSpacePage() {
     const fit = () => {
       const st = stageRef.current; if (!st) return;
       const pad = touch && innerHeight > innerWidth ? 250 : 0;
+      zoomRef.current = pad ? 2 : 1.5;
       const aw = innerWidth, ah = innerHeight - pad;
       let s = Math.min(aw / G.W, ah / G.H); if (s >= 2 && Math.floor(s) / s > 0.85) s = Math.floor(s);
       st.style.width = `${Math.floor(G.W * s)}px`; st.style.height = `${Math.floor(G.H * s)}px`;
@@ -131,14 +134,14 @@ export default function IntoSpacePage() {
 
   // ---------------------------------------------------------------- the run
   const announce = useCallback((r: Run) => {
-    setBanner({ text: G.ROUND_NAMES[r.round], sub: `v ${r.team}`, key: Math.random() });
-    if (r.round === 0) say(touch ? 'Drag out from PASS the way you want the ball to go, and let go. Then run onto it with the stick!' : 'Hold J and the target walks out ahead of you (or point with the mouse and click). Let go, then run onto it!', '', 'controls');
-    else say(`${PITCH_TIP[r.pitch]} ${SHAPE_TIP[r.shape]}`);
+    setBanner({ text: G.ROUND_NAMES[r.round], sub: `v ${r.team}`, key: Math.random(), foe: r.foe });
+    if (r.round === 0) say(touch ? 'Let go of the stick and time stops. Drag out from PASS the way you want the ball to go, let go, then run onto it!' : 'Stand still and time stops. Hold J and the target walks out ahead of you (or point with the mouse and click). Let go, then run onto it!', '', 'controls');
+    else say(`${G.FOES[r.foe].text} ${PITCH_TIP[r.pitch]}`);
   }, [say, touch]);
 
   const startRun = useCallback(() => {
     sfx()?.unlock(); sfx()?.button();
-    const r = new G.Run((Date.now() & 0xffffff) | 1);
+    const r = new G.Run((Date.now() & 0xffffff) | 1, saveRef.current.settings.assist);
     runRef.current = r; said.current.clear();
     setPaused(false); setResult(null); setLine(null); setPhase('match'); setGolden(false);
     setScreen('play');
@@ -184,11 +187,12 @@ export default function IntoSpacePage() {
         case 'save': snd?.save(); break;
         case 'post': snd?.post(); break;
         case 'tackle': snd?.tackle(e.won); break;
-        case 'intercept': snd?.intercept(); say('Cut out! Lead the runner away from the Grumbles, or loft it over them.', 'warn', 'intercept'); break;
+        case 'intercept': snd?.intercept(); say('Cut out! Lead the runner away from them, or loft it over their heads.', 'warn', 'intercept'); break;
         case 'wall': snd?.kick(false); break;
+        case 'pop': snd?.land(1); say('A mole popped up by the spot! Pass somewhere else, or get there first.', 'warn', 'pop'); break;
         case 'goal':
           snd?.goal(e.side === 0);
-          setBanner(e.side === 0 ? { text: r.golden ? 'Golden goal!' : 'GOAL!', sub: G.NAMES[e.who], key: Math.random() } : { text: 'Grumble goal', sub: `${r.score[0]}–${r.score[1]}`, key: Math.random() });
+          setBanner(e.side === 0 ? { text: r.golden ? 'Golden goal!' : 'GOAL!', sub: G.NAMES[e.who], key: Math.random() } : { text: `${r.team} score`, sub: `${r.score[0]}–${r.score[1]}`, key: Math.random() });
           if (e.side === 0) say(r.golden ? 'GOLDEN GOAL! We’re through!' : `GOAL! ${G.NAMES[e.who]}!`, 'good');
           else say('They’ve scored. Heads up, plenty of time!', 'warn');
           break;
@@ -227,6 +231,7 @@ export default function IntoSpacePage() {
       const dx = sl.x - sl.x0, dy = sl.y - sl.y0, l = Math.hypot(dx, dy);
       if (l > 10) { const k2 = G.MAX_PASS / 120; inp.spot = { x: car.x + dx * k2, y: car.y + dy * k2 }; inp.loft = l > 80; }
     }
+    if (sl) inp.aim = true;
     if (slingGo.current) { inp.passNow = true; inp.spot = slingGo.current.spot; inp.loft = slingGo.current.loft; slingGo.current = null; }
     if (autoRun.current && r.pass && r.flight && r.pass.receiver === r.ctrl) {
       const me = r.players[r.ctrl], f = r.flight, d = Math.hypot(f.tx - me.x, f.ty - me.y), left = r.pass.land - r.gt;
@@ -256,7 +261,7 @@ export default function IntoSpacePage() {
         }
       } else acc = 0;
       if (r.phase === 'won' || r.phase === 'lost') { endT += dt; if (endT > 0.4) { endT = 0; finish(); return; } } else endT = 0;
-      sc.render({ run: r, time: now / 1000, dt: going ? dt : 0, reduced: reduced.current });
+      sc.render({ run: r, time: now / 1000, dt: going && !r.frozen ? dt : 0, reduced: reduced.current, zoom: zoomRef.current, mouse: !touch && now - mouse.current.at < 2500 });
       // the HUD, straight to the DOM
       const h = hud.current;
       const set = (k: string, t: string) => { const el = h[k]; if (el && el.textContent !== t) el.textContent = t; };
@@ -299,7 +304,11 @@ export default function IntoSpacePage() {
     return () => { removeEventListener('keydown', down); removeEventListener('keyup', up); removeEventListener('blur', blur); };
   }, [nextIntro, pickPerk, setPaused]);
 
-  const toGame = (e: React.PointerEvent) => { const c = canvasRef.current!.getBoundingClientRect(); return { x: (e.clientX - c.left) * (G.W / c.width), y: (e.clientY - c.top) * (G.H / c.height) }; };
+  // the mouse on the canvas, through the camera, to a point on the pitch
+  const toGame = (e: React.PointerEvent) => {
+    const c = canvasRef.current!.getBoundingClientRect(), sx = (e.clientX - c.left) * (G.W / c.width), sy = (e.clientY - c.top) * (G.H / c.height);
+    return sceneRef.current ? sceneRef.current.toWorld(sx, sy) : { x: sx, y: sy };
+  };
   const onMove = (e: React.PointerEvent) => { if (e.pointerType === 'mouse') { const p = toGame(e); mouse.current = { ...p, at: performance.now() }; } };
   const onDown = (e: React.PointerEvent) => {
     sfx()?.unlock();
@@ -331,7 +340,10 @@ export default function IntoSpacePage() {
     onPointerDown: (e: React.PointerEvent) => { e.preventDefault(); ref.current = true; sfx()?.unlock(); },
     onPointerUp: () => { ref.current = false; }, onPointerCancel: () => { ref.current = false; }, onPointerLeave: () => { ref.current = false; },
   });
-  const setSetting = (k: 'sound' | 'music', v: boolean) => { const s = { ...saveRef.current, settings: { ...saveRef.current.settings, [k]: v } }; persist(s); if (k === 'sound') sfx()?.setSound(v); else sfx()?.setMusic(v); };
+  const setSetting = (k: 'sound' | 'music' | 'assist', v: boolean) => {
+    const s = { ...saveRef.current, settings: { ...saveRef.current.settings, [k]: v } }; persist(s);
+    if (k === 'sound') sfx()?.setSound(v); else if (k === 'music') sfx()?.setMusic(v);
+  };
   const giveUp = () => { const run = runRef.current; if (!run) return; setPaused(false); run.phase = 'lost'; finish(); };
 
   // ---------------------------------------------------------------- test hook
@@ -341,15 +353,17 @@ export default function IntoSpacePage() {
       return {
         screen: screenRef.current, paused: pausedRef.current, intro: introRef.current, save: saveRef.current, result, line,
         run: run && screenRef.current === 'play' ? {
-          round: run.round, phase: run.phase, state: run.state, score: [...run.score], clock: run.clock, golden: run.golden, pitch: run.pitch, shape: run.shape, team: run.team,
+          round: run.round, phase: run.phase, state: run.state, frozen: run.frozen, assist: run.assist, foe: run.foe, order: [...run.order], shotAim: run.shotAim, score: [...run.score], clock: run.clock, golden: run.golden, pitch: run.pitch, shape: run.shape, team: run.team,
           ctrl: run.ctrl, who: run.players[run.ctrl].who, streak: run.streak, slow: run.slow, perks: { ...run.perks }, offer: [...run.offer], upcoming: run.upcoming,
           ball: { x: run.ball.x, y: run.ball.y, z: run.ball.z, owner: run.ball.owner }, reticle: run.reticle, rating: run.lastRating,
           pass: run.pass ? { x: run.pass.x, y: run.pass.y, receiver: run.pass.receiver, land: run.pass.land, flying: !!run.flight } : null,
-          players: run.players.map((p) => ({ i: p.i, who: p.who, side: p.side, x: p.x, y: p.y })), gt: run.gt, stats: { ...run.stats },
+          players: run.players.map((p) => ({ i: p.i, who: p.who, side: p.side, x: p.x, y: p.y })), gt: run.gt, stats: { ...run.stats }, zoom: zoomRef.current,
         } : null,
         debug: {
-          win: () => { if (run && run.phase === 'match') { run.score = [run.score[0] + 1, run.score[1]]; run.clock = 0.02; } },
-          lose: () => { if (run && run.phase === 'match') { run.score = [run.score[0], run.score[0] + 1]; run.clock = 0.02; } },
+          // the final whistle at once (time might be standing still on the ball)
+          win: () => { if (run && run.phase === 'match') { run.score = [run.score[0] + 1, run.score[1]]; run.clock = 0; run.endMatch(); } },
+          lose: () => { if (run && run.phase === 'match') { run.score = [run.score[0], run.score[0] + 1]; run.clock = 0; run.endMatch(); } },
+          screen: (x: number, y: number) => sceneRef.current?.toScreen(x, y) ?? { x, y },
           clock: (t: number) => { if (run) run.clock = t; },
           place: (i: number, x: number, y: number) => { if (run) Object.assign(run.players[i], { x, y, vx: 0, vy: 0 }); },
           give: (i: number) => { if (run) { run.flight = null; run.pass = null; Object.assign(run.ball, { owner: i, z: 0, vx: 0, vy: 0, vz: 0 }); if (run.players[i].side === 0) run.ctrl = i; } },
@@ -366,7 +380,7 @@ export default function IntoSpacePage() {
   const up = r?.upcoming;
   return <main className={`is-shell is-on-${screen} is-ph-${phase}${touch ? ' is-touch' : ''}`} data-ready={ready ? 'true' : undefined} data-screen={screen} data-phase={phase} onContextMenu={(e) => e.preventDefault()}>
     <div className="is-stage" ref={stageRef}>
-      <canvas ref={canvasRef} className="is-canvas" aria-label="Into Space: the pitch, with Dora, Enzo, Pip and Bram against the Grumbles" onPointerMove={onMove} onPointerDown={onDown} />
+      <canvas ref={canvasRef} className="is-canvas" aria-label="Into Space: the pitch, with Dora, Enzo, Pip and Bram against the other team" onPointerMove={onMove} onPointerDown={onDown} />
       {screen === 'play' && r && <div className="is-hud">
         <div className="is-top">
           <div className="is-score"><span className="is-us">Us</span><b ref={H('us')}>0</b><i>–</i><b ref={H('them')}>0</b><span className="is-them">{r.team}</span></div>
@@ -375,14 +389,17 @@ export default function IntoSpacePage() {
           <div className="is-where"><b>{G.ROUND_NAMES[r.round]}</b><span>{G.PITCHES[r.pitch].name} · {G.SHAPES[r.shape].name}</span></div>
           <button className="is-pausebtn" onClick={() => setPaused(true)} aria-label="Pause">❚❚</button>
         </div>
-        {banner && phase === 'match' && <div className="is-banner" key={banner.key}><b>{banner.text}</b><span>{banner.sub}</span></div>}
+        {banner && phase === 'match' && <div className="is-banner" key={banner.key}>{banner.foe && <img src={kit(`${banner.foe}-big`)} alt="" />}<b>{banner.text}</b><span>{banner.sub}</span></div>}
         {line && intro < 0 && phase === 'match' && <div className={`is-line ${line.mood}`} key={line.key}>
           <img src={kit('enzo-big')} alt="" /><p><b>Enzo</b>{line.text}</p>
         </div>}
-        {!touch && phase === 'match' && <p className="is-keys"><b>WASD</b> run · <b>J</b>/<b>mouse</b> pass · <b>Shift</b> loft · <b>K</b> shoot · <b>Space</b> sprint · <b>Q</b> switch</p>}
+        {!touch && phase === 'match' && <p className="is-keys"><b>stand still</b> stop time · <b>WASD</b> run · <b>J</b>/<b>mouse</b> pass · <b>Shift</b> loft · <b>K</b> shoot · <b>Space</b> sprint · <b>Q</b> switch</p>}
         {phase === 'pick' && <div className="is-overlay"><div className="is-room">
           <h2>{r.round + 1 === G.ROUNDS - 1 ? 'Into the Final!' : 'Through!'}</h2>
-          {up && <p className="is-next">{G.ROUND_NAMES[r.round + 1]}: <b>{G.TEAMS[r.round + 1]}</b> · {G.PITCHES[up.pitch].name} · {G.SHAPES[up.shape].name}<small>{G.PITCHES[up.pitch].text} {G.SHAPES[up.shape].text}</small></p>}
+          {up && (() => { const t = r.teamAt(r.round + 1), id = r.order[r.round + 1]; return <div className="is-next" data-foe={id} style={{ ['--kit' as string]: t.colour }}>
+            <img className="is-captain" src={kit(`${id}-big`)} alt={`The ${t.name} captain`} />
+            <p>{G.ROUND_NAMES[r.round + 1]}: <b>{t.name}</b> · {G.PITCHES[up.pitch].name} · {G.SHAPES[up.shape].name}<small>{t.text} {G.PITCHES[up.pitch].text} {G.SHAPES[up.shape].text}</small></p>
+          </div>; })()}
           <p>Enzo’s been thinking in the changing room. Pick one:</p>
           <div className="is-offers">{r.offer.map((id, i) => { const p = G.PERKS.find((x) => x.id === id)!; return <button key={id} className="is-card is-offer" data-perk={id} onClick={() => pickPerk(id)}>
             {!touch && <kbd>{i + 1}</kbd>}<small>{p.kind}</small><b>{p.name}</b><span>{p.text}</span>
@@ -417,7 +434,7 @@ export default function IntoSpacePage() {
       <div className="is-bg"><img src={art('title')} alt="Dora curls a long pass high into a sunset sky as Enzo sprints towards a gold ring on the grass where it will land, two Grumbles a step behind" /></div>
       <div className="is-title-col">
         <h1 className="is-logo">Into Space</h1>
-        <p className="is-tag">Never pass to feet. Pass into space, take over the runner, and arrive just as it lands. A seven-round cup against the Grumbles.</p>
+        <p className="is-tag">Never pass to feet. Pass into space, take over the runner, and arrive just as it lands. A seven-round cup against the league’s animal teams, with the Grumbles waiting in the final.</p>
         <div className="is-menu">
           <button className="is-go" onClick={startRun}>{s.stats.runs ? 'New cup run' : 'Kick off'}</button>
           <button onClick={() => go('howto')}>How to play</button>
@@ -433,7 +450,7 @@ export default function IntoSpacePage() {
       <div className="is-card is-resultcard">
         {!result.won && <img className="is-trophy" src={kit('trophy')} alt="" />}
         <h2>{result.won ? 'Cup winners!' : 'Knocked out'}</h2>
-        <p>{result.won ? 'Seven rounds, and the Grumble Grand XI beaten in the final. Enzo says it was all in the timing.' : `Out in ${result.out}. ${result.rounds ? `${result.rounds} ${result.rounds === 1 ? 'round' : 'rounds'} won${result.best_ ? ', the best run yet!' : '.'}` : 'Next time, wait for the ring!'}`}</p>
+        <p>{result.won ? 'Seven rounds, and the Grumble Galacticos beaten in the final. Enzo says it was all in the timing.' : `Out in ${result.out}. ${result.rounds ? `${result.rounds} ${result.rounds === 1 ? 'round' : 'rounds'} won${result.best_ ? ', the best run yet!' : '.'}` : 'Next time, wait for the ring!'}`}</p>
         <ul className="is-stats">
           <li><b>{result.rounds}</b><span>rounds won</span></li><li><b>{result.goals}–{result.against}</b><span>goals</span></li><li><b>{result.perfects}</b><span>perfect arrivals</span></li><li><b>{result.best}</b><span>in a row</span></li>
         </ul>
@@ -445,25 +462,29 @@ export default function IntoSpacePage() {
       <header className="is-head"><button onClick={() => go('title')}>‹ Title</button><h2>How to play</h2></header>
       <div className="is-cols">
         <div className="is-card"><h3>Pass into space</h3><ul>
-          <li>Every pass goes to a <b>spot on the grass</b>, not to a player. {touch ? <>Drag out from <b>PASS</b> the way you want it to go: further for a longer pass, a long drag lofts it. A tap plays it a little way ahead.</> : <>Hold <b>J</b> and the target walks out ahead of you; let go to pass. Or point with the <b>mouse</b> and click. <b>Shift</b> or <b>right-click</b> lofts it over the Grumbles.</>}</li>
+          <li><b>Time stops</b> while you stand on the ball, or while you aim: take as long as you like. It starts again when the ball leaves your boot, or when you run with it.</li>
+          <li>Every pass goes to a <b>spot on the grass</b>, not to a player. The target turns <b>green</b> where your runner gets there first and <b>red</b> where they would. {touch ? <>Drag out from <b>PASS</b> the way you want it to go: further for a longer pass, a long drag lofts it. A tap plays it a little way ahead.</> : <>Hold <b>J</b> and the target walks out ahead of you; let go to pass. Or point with the <b>mouse</b> and click. <b>Shift</b> or <b>right-click</b> lofts it over their heads.</>}</li>
           <li>The moment it leaves the boot, you <b>take over the runner</b>: the teammate who can get there soonest. {touch ? 'SWITCH' : <><b>Q</b></>} picks another.</li>
           <li>A gold ring on the spot shrinks as the ball comes. <b>Arrive as it closes</b>.</li>
         </ul></div>
         <div className="is-card"><h3>Arriving</h3><ul>
           <li><b>Perfect</b>: time slows down and the next pass or shot is <b>first time</b>: faster, and shots are far more accurate.</li>
-          <li><b>Early</b>: you have to stop the ball and settle it, while the Grumbles close in.</li>
+          <li><b>Early</b>: you have to stop the ball and settle it, while they close in.</li>
           <li><b>Late</b>: the ball runs on without you. Loose ball!</li>
-          <li>{touch ? <>Hold <b>SHOOT</b> for power.</> : <>Hold <b>K</b> for power, and aim with the mouse or up and down.</>} On defence it’s a tackle. {touch ? 'SPRINT' : <><b>Space</b></>} sprints for a moment.</li>
+          <li>{touch ? <>Hold <b>SHOOT</b> for power.</> : <>Hold <b>K</b> for power, and aim with the mouse or up and down.</>} The red stripe on the goal line is as far as the keeper can reach: aim outside it. On defence it’s a tackle. {touch ? 'SPRINT' : <><b>Space</b></>} sprints for a moment.</li>
         </ul></div>
         <div className="is-card"><h3>The cup</h3><ul>
           <li>Seven rounds of four-a-side, two minutes each. Lose once and you’re out. Level at full time? <b>Golden goal</b>: next goal wins, and if nobody scores, it goes your way only if you made more perfect arrivals than they made interceptions.</li>
           <li>Every round is a different pitch: <b>summer grass</b>, <b>rain</b> (the ball skids), <b>the beach</b> (it stops dead) or a <b>heatwave</b> (it bounces).</li>
-          <li>Grumble teams play a <b>high line</b>, a <b>low block</b> or <b>man-to-man</b>.</li>
+          <li>Six of the league’s eight animal teams, each with its own way of playing, then the <b>Grumble Galacticos</b> in the final. They play a <b>high line</b>, a <b>low block</b> or <b>man-to-man</b>.</li>
+          <li><b>Assist</b> (on to start with, in Settings): a wider perfect window, slower opponents, and your runner steers himself onto the spot.</li>
           <li>After each win, Enzo has three ideas in the changing room. Pick one.</li>
         </ul></div>
         <div className="is-card is-squad"><h3>The squad</h3>
           {(['dora', 'enzo', 'pip', 'bram'] as const).map((w) => <div key={w} className="is-who"><img src={kit(`${w}-big`)} alt="" /><p><b>{G.NAMES[w]}</b>{w === 'dora' ? 'Kicks off and runs the middle.' : w === 'enzo' ? 'Quick feet, always in space.' : w === 'pip' ? 'The fastest of them all.' : 'Big and slow, wins the ball back.'}</p></div>)}
-          <div className="is-who"><img src={kit('grumble-big')} alt="" /><p><b>The Grumbles</b>Faster and sharper every round.</p></div>
+        </div>
+        <div className="is-card is-league"><h3>The league</h3>
+          {[...G.LEAGUE, 'grumble' as const].map((id) => <div key={id} className="is-who"><img src={kit(`${id}-big`)} alt="" /><p><b>{G.FOES[id].name}</b>{G.FOES[id].text}</p></div>)}
         </div>
       </div>
     </section>}
@@ -471,6 +492,7 @@ export default function IntoSpacePage() {
     {screen === 'settings' && <section className="is-page">
       <header className="is-head"><button onClick={() => go('title')}>‹ Title</button><h2>Settings</h2></header>
       <div className="is-card is-settings">
+        <div className="is-set"><span>Assist<small>Wider perfect window, slower opponents, and your runner steers onto the spot. Starts next cup.</small></span><span className="is-seg">{[true, false].map((v) => <button key={String(v)} className={s.settings.assist === v ? 'on' : ''} data-assist={String(v)} onClick={() => setSetting('assist', v)}>{v ? 'On' : 'Off'}</button>)}</span></div>
         <div className="is-set"><span>Sound</span><span className="is-seg">{[true, false].map((v) => <button key={String(v)} className={s.settings.sound === v ? 'on' : ''} onClick={() => setSetting('sound', v)}>{v ? 'On' : 'Off'}</button>)}</span></div>
         <div className="is-set"><span>Music</span><span className="is-seg">{[true, false].map((v) => <button key={String(v)} className={s.settings.music === v ? 'on' : ''} onClick={() => setSetting('music', v)}>{v ? 'On' : 'Off'}</button>)}</span></div>
         <p className="is-small">{s.stats.runs} cup runs · {s.stats.cups} won · {s.stats.goals} goals · {s.stats.perfects} perfect arrivals</p>

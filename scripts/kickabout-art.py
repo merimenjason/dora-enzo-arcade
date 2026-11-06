@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Turns the Codex football sprite sheets shared by Combo Ball and Into Space into pixel art in public/art/kickabout/.
+"""Turns the Codex football sprite sheets shared by the football games into pixel art in public/art/kickabout/.
 
-Usage: python3 scripts/kickabout-art.py <folder with the k-*.png paintings>
+Usage: python3 scripts/kickabout-art.py <folder with the k-*.png and t-*.png paintings>
 
 Each sheet is 2 by 2 on flat magenta: each quarter is keyed, cropped to what's painted and shrunk to its in-game size
 with a box filter and a small palette, so it stays crisp pixel art. Players face right (Grumbles are flipped to face
@@ -17,20 +17,23 @@ OUT = Path(__file__).resolve().parent.parent / 'public' / 'art' / 'kickabout'
 OUT.mkdir(parents=True, exist_ok=True)
 
 
-def key(im):
-    """magenta and anything close to it becomes clear"""
+def key(im, tight=False):
+    """magenta and anything close to it becomes clear; tight keys only near-pure magenta, so purple kits survive"""
     im = im.convert('RGBA')
     px = im.load()
     for y in range(im.height):
         for x in range(im.width):
             r, g, b, a = px[x, y]
-            if r > 150 and b > 150 and g < 110 and abs(r - b) < 90:
+            if tight:
+                if (255 - r) ** 2 + g ** 2 + (255 - b) ** 2 < 70 ** 2:
+                    px[x, y] = (0, 0, 0, 0)
+            elif r > 150 and b > 150 and g < 110 and abs(r - b) < 90:
                 px[x, y] = (0, 0, 0, 0)
     return im
 
 
-def quarters(name):
-    im = key(Image.open(SRC / f'{name}.png'))
+def quarters(name, tight=False):
+    im = key(Image.open(SRC / f'{name}.png'), tight)
     w, h = im.width // 2, im.height // 2
     return [im.crop((x * w, y * h, x * w + w, y * h + h)) for y in (0, 1) for x in (0, 1)]
 
@@ -76,6 +79,16 @@ sprite(q[0], 'keeper-stand', SMALL + 1, colours=24)
 sprite(q[1], 'keeper-dive', 14, colours=24)
 sprite(q[2], 'gkeeper-stand', SMALL + 2, colours=24, flip=True)
 sprite(q[3], 'gkeeper-dive', 15, colours=24, flip=True)
+# the rival league: each team's sheet a is stand, run, run, slide; sheet b is keeper ready, keeper diving, a captain
+# portrait and a celebration. All painted facing left, flipped to face right like the Grumbles.
+for team in ('rabbit', 'frog', 'mole', 'otter', 'hog', 'magpie', 'fox', 'badger'):
+    a, b = quarters(f't-{team}-a', team == 'magpie'), quarters(f't-{team}-b', team == 'magpie')
+    for im, frame in zip(a, ('stand', 'run1', 'run2', 'slide')):
+        sprite(im, f'{team}-{frame}', SMALL if frame != 'slide' else 12, colours=24, flip=True)
+    sprite(b[0], f'{team}-keeper-stand', SMALL + 2, colours=24, flip=True)
+    sprite(b[1], f'{team}-keeper-dive', 15, colours=24, flip=True)
+    sprite(b[2], f'{team}-big', BIG, colours=32)
+    sprite(b[3], f'{team}-cheer', SMALL + 2, colours=24, flip=True)
 q = quarters('k-props')
 sprite(q[0], 'goal', 54, colours=12)
 sprite(q[1], 'ball', fit=6, colours=8)

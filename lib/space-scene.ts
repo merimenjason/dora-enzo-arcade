@@ -3,17 +3,27 @@
 // shadow, so a lofted pass climbs away from the shadow and comes back down to meet it. The landing spot is a gold ring
 // that shrinks to nothing at the moment the ball lands, with the arrival circle inside it: get there as the ring closes.
 // The reticle shows where a pass would go and which runner would take it. Perfect arrivals slow everything down inside
-// a white frame. The page scales the canvas up with nearest-neighbour.
+// a white frame. While we stand on the ball and aim, time stands still: the picture cools, the reticle turns green
+// where our runner gets there first and red where they would, the nearest opponent's chase line shows, and when a
+// shot's being charged the keeper's reach is marked on the goal line with the aim beside it. The camera follows the
+// play zoomed in (×1.5, or ×2 on an upright phone) and draws at whole multiples of the game pixel on a canvas twice the
+// game's size, so the sprites stay crisp. The opponents wear their own team's sprites. The page scales the canvas up
+// with nearest-neighbour.
 import * as G from './space-game';
 import type { Ev, Player, Run } from './space-game';
 
+const FOE_FRAMES = ['stand', 'run1', 'run2', 'slide', 'keeper-stand', 'keeper-dive', 'cheer'];
+const FOE_KIT = G.LEAGUE.flatMap((id) => FOE_FRAMES.map((f) => `${id}-${f}`));
+/** the canvas is this many times the game's size, so a zoom of 1.5 still lands on whole pixels */
+const BACK = 2;
 const KIT = ['dora-stand', 'dora-run1', 'dora-run2', 'dora-kick', 'enzo-stand', 'enzo-run1', 'enzo-run2', 'enzo-kick', 'pip-stand', 'pip-run', 'bram-stand', 'bram-run',
   'grumble-stand', 'grumble-run1', 'grumble-run2', 'grumble-slide', 'keeper-stand', 'keeper-dive', 'gkeeper-stand', 'gkeeper-dive', 'ball'];
 const OWN = ['dry', 'wet', 'sand', 'hard', 'goal'];
 type Bit = { x: number; y: number; z: number; vx: number; vy: number; vz: number; t: number; life: number; c: string; s: number };
 type Pop = { x: number; y: number; t: number; text: string; c: string; big: boolean };
 type Ring = { x: number; y: number; t: number; c: string };
-export type SpaceView = { run: Run; time: number; dt: number; reduced: boolean };
+/** zoom: how much the camera magnifies the pitch (1.5 normally, 2 on an upright phone; 1 shows it all) */
+export type SpaceView = { run: Run; time: number; dt: number; reduced: boolean; zoom?: number; mouse?: boolean };
 const DUST: Record<G.PitchId, string[]> = { dry: ['#5a9a3a', '#8ac25a'], wet: ['#cfe6f4', '#8ab4d0'], sand: ['#e8cf96', '#c8a868'], hard: ['#b89a5a', '#8a7040'] };
 const RATE: Record<G.Rating, { text: string; c: string }> = { perfect: { text: 'PERFECT', c: '#ffe066' }, early: { text: 'EARLY', c: '#cfd8e8' }, late: { text: 'LATE', c: '#f0a070' } };
 
@@ -26,16 +36,22 @@ export class SpaceScene {
   private rain: { x: number; y: number }[] = [];
   private trail: { x: number; y: number; t: number }[] = [];
   private shake = 0; private flash = 0; private last = 0; private switchT = 0; private walk: Record<number, number> = {};
+  /** the camera: the top-left of the view in game pixels, and its zoom */
+  private cam = { x: 0, y: 0, z: 1, set: false };
   constructor(private canvas: HTMLCanvasElement) {
-    canvas.width = G.W; canvas.height = G.H;
+    canvas.width = G.W * BACK; canvas.height = G.H * BACK;
     this.ctx = canvas.getContext('2d')!; this.ctx.imageSmoothingEnabled = false;
     for (let i = 0; i < 70; i++) this.rain.push({ x: Math.random() * G.W, y: Math.random() * G.H });
   }
   load() {
     const one = (n: string, src: string) => new Promise<void>((res) => { const im = new Image(); im.onload = () => res(); im.onerror = () => res(); im.src = src; this.img[n] = im; });
-    return Promise.all([...KIT.map((n) => one(n, `/art/kickabout/${n}.png`)), ...OWN.map((n) => one(n, `/art/space/${n}.png`))]);
+    return Promise.all([...KIT.map((n) => one(n, `/art/kickabout/${n}.png`)), ...FOE_KIT.map((n) => one(n, `/art/kickabout/${n}.png`)), ...OWN.map((n) => one(n, `/art/space/${n}.png`))]);
   }
   private ok(n: string) { const im = this.img[n]; return im && im.complete && im.naturalWidth > 0 ? im : null; }
+  /** a point on the canvas, in game pixels of the whole screen, to where it is on the pitch */
+  toWorld(sx: number, sy: number) { return { x: this.cam.x + sx / this.cam.z, y: this.cam.y + sy / this.cam.z }; }
+  /** and back: a point on the pitch to where it is on the canvas */
+  toScreen(x: number, y: number) { return { x: (x - this.cam.x) * this.cam.z, y: (y - this.cam.y) * this.cam.z }; }
   /** a sprite with its bottom middle at (x, y), mirrored if asked */
   private put(c: CanvasRenderingContext2D, im: HTMLImageElement, x: number, y: number, flip = false, alpha = 1) {
     const w = im.naturalWidth, h = im.naturalHeight, dx = Math.round(x - w / 2), dy = Math.round(y - h);
@@ -68,8 +84,9 @@ export class SpaceScene {
         case 'tackle': this.burst(e.x, e.y, e.won ? 8 : 4, DUST[run.pitch][0], 40, 0.4, 40); break;
         case 'intercept': this.pops.push({ x: e.x, y: e.y - 24, t: 0, text: 'CUT OUT', c: '#9ae07a', big: false }); break;
         case 'wall': this.pops.push({ x: e.x, y: e.y - 24, t: 0, text: 'ONE-TWO', c: '#ffe066', big: false }); break;
+        case 'pop': this.burst(e.x, e.y, 14, '#8a5a34', 50, 0.6, 70, '#c89a64'); this.pops.push({ x: e.x, y: e.y - 26, t: 0, text: 'POP!', c: '#e8c090', big: false }); if (!reduced) this.shake = Math.max(this.shake, 1.5); break;
         case 'goal': {
-          const ours = e.side === 0;
+          const ours = e.side === 0; this.lastGoal = e.side;
           this.flash = reduced ? 0.3 : 1; if (!reduced) this.shake = 6;
           for (let i = 0; i < (reduced ? 12 : 60); i++) this.burst(e.x, e.y, 1, ['#ffe066', '#e8484a', '#ffffff', '#6ad0ff'][i % 4], 120, 1.2, 140);
           break;
@@ -88,14 +105,35 @@ export class SpaceScene {
     const moving = Math.hypot(p.vx, p.vy) > 12;
     const step = (this.walk[p.i] ?? 0) % 2 < 1;
     if (p.gk) {
-      const base = p.side === 0 ? 'keeper' : 'gkeeper';
+      const base = p.side === 0 ? 'keeper' : r.foe === 'grumble' ? 'gkeeper' : `${r.foe}-keeper`;
       return p.dive > 0 ? `${base}-dive` : `${base}-stand`;
     }
-    if (p.side === 1) return p.kick > 0 && p.tackleCd > 0.2 ? 'grumble-slide' : moving ? (step ? 'grumble-run1' : 'grumble-run2') : 'grumble-stand';
+    if (p.side === 1) {
+      const f = r.foe;
+      if (r.state === 'goal' && this.lastGoal === 1 && this.ok(`${f}-cheer`)) return `${f}-cheer`;
+      return p.kick > 0 && p.tackleCd > 0.2 ? `${f}-slide` : moving ? (step ? `${f}-run1` : `${f}-run2`) : `${f}-stand`;
+    }
     if (p.kick > 0 && (p.who === 'dora' || p.who === 'enzo')) return `${p.who}-kick`;
     if (p.who === 'pip' || p.who === 'bram') return moving ? (step ? `${p.who}-run` : `${p.who}-stand`) : `${p.who}-stand`;
     void r; void time;
     return moving ? (step ? `${p.who}-run1` : `${p.who}-run2`) : `${p.who}-stand`;
+  }
+
+  /** who scored last: the other team cheers while the ball sits in our net */
+  private lastGoal: 0 | 1 = 0;
+  /** where the camera wants to be: on the ball, leaning towards wherever the play is going (but not towards a target
+   *  the mouse is pointing at, or the pitch would slide away under the pointer) */
+  private aimCamera(r: Run, z: number, rdt: number, snap: boolean, mouse: boolean) {
+    const b = r.ball, vw = G.W / z, vh = G.H / z;
+    let fx = b.x, fy = b.y - b.z * 0.5;
+    if (mouse && (r.reticle || r.shotAim)) { /* hold still while the mouse aims */ }
+    else if (r.reticle) { fx = (b.x + r.reticle.x) / 2; fy = (b.y + r.reticle.y) / 2; }
+    else if (r.pass && r.flight) { fx = (b.x + r.pass.x) / 2; fy = (b.y + r.pass.y) / 2; }
+    else if (r.shotAim) fx = (b.x + G.PITCH.x1) / 2;
+    const tx = Math.max(0, Math.min(G.W - vw, fx - vw / 2)), ty = Math.max(0, Math.min(G.H - vh, fy - vh / 2));
+    if (snap || !this.cam.set || this.cam.z !== z) { this.cam = { x: tx, y: ty, z, set: true }; return; }
+    const k = Math.min(1, rdt * 5);
+    this.cam.x += (tx - this.cam.x) * k; this.cam.y += (ty - this.cam.y) * k;
   }
 
   render(v: SpaceView) {
@@ -103,8 +141,16 @@ export class SpaceScene {
     const rdt = Math.max(0, Math.min(0.1, v.time - this.last)); this.last = v.time;
     const gdt = v.dt * (r.slow > 0 ? G.SLOW : 1);
     this.shake = Math.max(0, this.shake - rdt * 16); this.flash = Math.max(0, this.flash - rdt * 2.4); this.switchT = Math.max(0, this.switchT - rdt);
+    const z = v.zoom ?? 1.5;
+    this.aimCamera(r, z, rdt, r.state === 'kickoff' && r.stateT < 0.05, !!v.mouse);
+    // the camera lands on whole canvas pixels, so the pixel art stays even
+    const s = BACK * z, ox = Math.round(this.cam.x * s), oy = Math.round(this.cam.y * s);
+    c.setTransform(1, 0, 0, 1, 0, 0); c.imageSmoothingEnabled = false;
+    c.fillStyle = '#0c1610'; c.fillRect(0, 0, this.canvas.width, this.canvas.height);
     c.save();
-    if (this.shake > 0) c.translate(Math.round((Math.random() - 0.5) * this.shake), Math.round((Math.random() - 0.5) * this.shake));
+    let sx = 0, sy = 0;
+    if (this.shake > 0) { sx = Math.round((Math.random() - 0.5) * this.shake) * BACK; sy = Math.round((Math.random() - 0.5) * this.shake) * BACK; }
+    c.setTransform(s, 0, 0, s, -ox + sx, -oy + sy);
     const bg = this.ok(r.pitch);
     if (bg) c.drawImage(bg, 0, 0); else { c.fillStyle = '#3a8a3a'; c.fillRect(0, 0, G.W, G.H); }
     this.lines(c);
@@ -137,11 +183,30 @@ export class SpaceScene {
         for (let i = 0; i <= 16; i++) { const t = i / 16, x = b.x + (ret.x - b.x) * t, y = b.y + (ret.y - b.y) * t - Math.min(50, 10 + Math.hypot(ret.x - b.x, ret.y - b.y) * 0.21) * 4 * t * (1 - t); if (i) c.lineTo(x, y); else c.moveTo(x, y); }
       } else { c.moveTo(b.x, b.y); c.lineTo(ret.x, ret.y); }
       c.stroke(); c.setLineDash([]);
-      c.strokeStyle = ret.loft ? '#9ad8ff' : '#ffffff'; c.lineWidth = 1;
+      // while time stands still: who gets there first, ours or theirs, and the line the nearest of them would run
+      const ct = r.frozen ? r.contest(ret.x, ret.y, ret.land, r.ctrl) : null;
+      if (ct && ct.grumble >= 0) {
+        const g = r.players[ct.grumble];
+        c.strokeStyle = 'rgba(255,110,90,0.75)'; c.setLineDash([2, 2]); c.beginPath(); c.moveTo(g.x + 0.5, g.y + 0.5); c.lineTo(ret.x + 0.5, ret.y + 0.5); c.stroke(); c.setLineDash([]);
+        const q = r.players[ct.runner];
+        c.strokeStyle = 'rgba(255,230,120,0.6)'; c.setLineDash([1, 2]); c.beginPath(); c.moveTo(q.x + 0.5, q.y + 0.5); c.lineTo(ret.x + 0.5, ret.y + 0.5); c.stroke(); c.setLineDash([]);
+      }
+      c.strokeStyle = ct ? (ct.safe ? '#8ae06a' : '#ff7a6a') : ret.loft ? '#9ad8ff' : '#ffffff'; c.lineWidth = 1;
+      if (ct) this.ellipse(c, ret.x, ret.y, 6, 4);
       const x = Math.round(ret.x) + 0.5, y = Math.round(ret.y) + 0.5;
       c.beginPath(); c.moveTo(x - 4, y); c.lineTo(x - 1.5, y); c.moveTo(x + 1.5, y); c.lineTo(x + 4, y); c.moveTo(x, y - 3); c.lineTo(x, y - 1); c.moveTo(x, y + 1); c.lineTo(x, y + 3); c.stroke();
       const q = r.players[ret.receiver];
       if (q) { c.fillStyle = 'rgba(255,255,255,0.6)'; c.fillRect(Math.round(q.x) - 1, Math.round(q.y) - 25, 3, 2); }
+    }
+
+    // a shot being charged: the stretch of goal mouth the keeper can get to, and where it's aimed
+    if (r.shotAim) {
+      const reach = r.keeperReach(r.shotAim.power), gx = G.PITCH.x1;
+      c.fillStyle = 'rgba(255,90,70,0.45)'; c.fillRect(gx - 1, Math.round(reach.y0), 3, Math.max(1, Math.round(reach.y1 - reach.y0)));
+      const ay = Math.round(r.shotAim.y), open = r.shotAim.y < reach.y0 || r.shotAim.y > reach.y1;
+      c.fillStyle = open ? '#8ae06a' : '#ffe066';
+      c.fillRect(gx - 4, ay, 3, 1); c.fillRect(gx - 3, ay - 1, 1, 3);
+      c.strokeStyle = open ? 'rgba(138,224,106,0.5)' : 'rgba(255,224,102,0.4)'; c.setLineDash([1, 3]); c.beginPath(); c.moveTo(b.x + 0.5, b.y + 0.5); c.lineTo(gx - 3, ay + 0.5); c.stroke(); c.setLineDash([]);
     }
 
     // everyone, nearest the top first
@@ -179,13 +244,29 @@ export class SpaceScene {
       g.t += rdt; const k = g.t / 0.45; c.globalAlpha = Math.max(0, 1 - k); c.strokeStyle = g.c; this.ellipse(c, g.x, g.y, 6 + k * 18, (6 + k * 18) * 0.6);
     }
     c.globalAlpha = 1; this.rings = this.rings.filter((g) => g.t < 0.45);
+    // the words that pop up go on before the camera lets go
+    this.words(c, rdt);
+    c.restore();
+    // from here on, the whole screen in game pixels
+    c.setTransform(BACK, 0, 0, BACK, 0, 0);
     // rain over everything on the wet pitch
     if (r.pitch === 'wet' && !v.reduced) {
       c.strokeStyle = 'rgba(200,225,255,0.45)'; c.beginPath();
       for (const d of this.rain) { d.y += rdt * 220; d.x -= rdt * 40; if (d.y > G.H) { d.y -= G.H; d.x = Math.random() * G.W; } if (d.x < 0) d.x += G.W; c.moveTo(Math.round(d.x) + 0.5, Math.round(d.y)); c.lineTo(Math.round(d.x) - 0.5, Math.round(d.y) + 4); }
       c.stroke();
     }
-    // the words that pop up
+    // time standing still: everything cools, with a word at the top
+    if (r.frozen) {
+      c.fillStyle = 'rgba(70,120,220,0.16)'; c.fillRect(0, 0, G.W, G.H);
+      c.fillStyle = 'rgba(190,220,255,0.55)'; c.fillRect(0, 0, G.W, 2); c.fillRect(0, G.H - 2, G.W, 2); c.fillRect(0, 0, 2, G.H); c.fillRect(G.W - 2, 0, 2, G.H);
+      c.font = '8px "Pixelify Sans", monospace'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      const t = r.shotAim ? 'TIME STOPPED · AIM AWAY FROM THE KEEPER' : 'TIME STOPPED · AIM, THEN LET GO';
+      c.fillStyle = 'rgba(6,12,8,0.8)'; const w = c.measureText(t).width + 10; c.fillRect(Math.round(G.W / 2 - w / 2), 29, Math.round(w), 11);
+      c.fillStyle = '#cfe4ff'; c.fillText(t, G.W / 2, 35);
+    }
+    this.overlays(c, r);
+  }
+  private words(c: CanvasRenderingContext2D, rdt: number) {
     c.textAlign = 'center'; c.textBaseline = 'middle';
     for (const p of this.pops) {
       p.t += rdt; const life = p.big ? 1.3 : 0.9, k = p.t / life;
@@ -197,7 +278,8 @@ export class SpaceScene {
       c.fillStyle = p.c; c.fillText(p.text, x, y);
     }
     c.globalAlpha = 1; this.pops = this.pops.filter((p) => p.t < (p.big ? 1.3 : 0.9));
-    c.restore();
+  }
+  private overlays(c: CanvasRenderingContext2D, r: Run) {
     // slow motion: a white frame
     if (r.slow > 0) {
       const a = Math.min(1, r.slow / 0.2) * 0.85;
