@@ -128,6 +128,8 @@ The rival coaches:
 | Salt Flat Vicuñas | Coach Wari | likes diggers, pushes, bans the medic |
 | Shadow Cats | Coach Osqollo | the strongest (5.8 against the others' 4.7–5.3); drafts the counter to your picks |
 
+The league schedule runs from the gentlest rivals to the hardest (`EASE` in the engine): the Armadillos, Rheas and Vicuñas first in a shuffled order, then the Flamingos and Condors, then the Alpacas, and the Shadow Cats always last. In a new save's first season the rivals start `ROOKIE` (0.8) below their strength; the stars they sign for later seasons come at full strength.
+
 ## Enzo's notes
 
 In the first week Enzo explains the office, the draft and the match in a slim note that sits in the page's flow (at the top of the corkboard, under the draft header, and in the ticker's place under the pitch), so it never covers a button or a card. **Got it** puts it away; the settings turn the notes back on.
@@ -156,10 +158,13 @@ The office painting drifts behind the paper panels as the mouse moves (the photo
 | Fewer than 10% of matches are decided in 20 s | none |
 | Fewer than 10% of matches end untouched | none |
 | With equal squads, the counter drafter and the Hint drafter each beat a random drafter at least 75% of the time | 80% and 80% |
-| Casual (Hint) manager, season 1: semis ≥60% and the cup ≥25% | semis 95%, cup 53% |
-| Season 2 is tougher | cup 33% |
-| Pro manager wins the season-1 cup ≥65% | 73% |
-| Random and idle managers rarely win | random: semis 10%, cup 0%; idle: semis 3%, cup 0% |
+| Casual (Hint) manager, season 1: semis ≥60% and the cup ≥25% | semis 98%, cup 85% |
+| Season 2 is tougher | cup 53% |
+| Pro manager wins the season-1 cup ≥65% | 80% |
+| Random managers rarely win the cup (≤10%) | random: semis 47%, cup 10%; idle: semis 33%, cup 7% |
+| A human-paced manager (the Hint draft half the time, a shout every 12 s) wins week one ≥55% and reaches the semis ≥65% | week one 71%, semis 89% |
+
+The casual and pro bots shout the perfect order twice a second, which no person does, so the human-paced bot is the one that sets the difficulty. Before the change below it won week one 38% of the time and the cup 10%.
 
 `tests/league.mjs` also checks that four diggers and a medic beat four scouts and a medic at least 65% of the time (88% over 40 matches).
 

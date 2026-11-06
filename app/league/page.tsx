@@ -513,7 +513,8 @@ export default function LeaguePage() {
           <ul className="lg-clips">{s.news.slice(0, 3).map((n, i) => <li key={i}>{n}</li>)}</ul>
         </aside>
         <footer className="lg-desk">
-          <div className="lg-jobs" role="group" aria-label="This week’s job">
+          <p className={`lg-jobs-tag${s.acted ? ' done' : ''}`}>{s.acted ? 'This week’s job is done. You get a new one next week.' : 'Pick ONE job this week'}</p>
+          <div className="lg-jobs" role="group" aria-label="This week’s job: pick one">
             {([['train', 'Train', 'A player +1 to a stat'], ['scout', 'Scout', 'Their plan, and a head start'], ['rest', 'Rest', 'Morale up for everyone'], ['sign', 'Sign', 'Buy a free agent']] as [G.WeekAction, string, string][]).map(([a, name, what]) => (
               <button key={a} className={`lg-job${s.acted === a ? ' done' : ''}${job === a || (a === 'sign' && tab === 'market' && !s.acted) ? ' on' : ''}`} disabled={!!s.acted || (a === 'scout' && !fixture)} onClick={() => doJob(a)}>
                 <img src={`${ART}icon-${a === 'scout' ? 'scout-job' : a}.png`} alt="" /><b>{name}</b><small>{s.acted === a ? 'Done this week ✓' : s.acted ? 'Next week' : what}</small>

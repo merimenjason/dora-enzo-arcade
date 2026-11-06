@@ -6,7 +6,8 @@
 // - coaching matters: a manager who trains, rests sensibly and follows the Hint finishes above a do-nothing manager;
 // - casual and pro seasons: the casual bot (Hint draft and shouts, simple week jobs) reaches the semis in season 1 at
 //   least 60% of the time and wins the cup at least 25%; the pro wins the season-1 cup at least 65%; season 2 is
-//   tougher for the casual bot; a random manager rarely wins anything.
+//   tougher for the casual bot; a random manager rarely wins anything;
+// - a human-paced manager (Hint draft half the time, a shout every 12 s) usually wins week one and reaches the semis.
 // Run after compiling the engine into .checks/: `npx tsc lib/league-game.ts --target es2022 --module es2022
 // --moduleResolution bundler --outDir .checks --skipLibCheck && node tests/league-bot.mjs [--quick]`.
 import assert from 'node:assert/strict';
@@ -93,4 +94,28 @@ assert.ok(rate(casual, 2, cup) <= rate(casual, 1, cup), 'season 2 is tougher');
 assert.ok(rate(pro, 1, cup) >= 0.65, 'the pro wins the season-1 cup at least 65%');
 assert.ok(rate(random, 1, cup) <= 0.1, 'a random manager rarely wins the cup');
 assert.ok(avgPts(casual) > avgPts(idle) + 2, 'coaching matters: the casual coach beats a do-nothing manager across a season');
+
+// ---- a human-paced manager: the casual week jobs, the Hint draft only half the time, one shout every 12 s. The
+// season opens against the gentlest rivals, so week one should usually be a win and the semis within reach.
+{
+  const n = quick ? 30 : 80; let semi = 0, w1 = 0;
+  for (let k = 0; k < n; k++) {
+    const s = L.newSave(3000 + k * 101), r = L.rng(77 + k);
+    for (let g = 0; !s.seasonOver && g < 20; g++) {
+      L.botWeek(s, 'casual', r);
+      const f = L.ourFixture(s); if (!f) { L.endWeek(s); continue; }
+      const T = L.team(L.opponentOf(s, f)), d = L.makeDraft(s, f);
+      L.autoDraft(d, [r() < 0.5 ? 'hint' : 'random', 'habit'], r, [undefined, T.habit]);
+      const us = L.lineupOf(d, 0), them = L.lineupOf(d, 1);
+      const m = new L.Match(L.ourMatchOpts(s, f, us, them, L.suggestTactic(us, them).tactic));
+      while (!m.over) { if (m.t % 360 === 0) { const h = L.shoutHint(m, 0); if (h) m.shout(0, h.kind, h.target); } m.step(); }
+      if (f.kind === 'league' && f.week === 0 && m.winner === 0) w1++;
+      L.record(s, f, m, us.filter((p) => !p.loan)); L.endWeek(s);
+    }
+    if (L.cupResult(s) !== 'none') semi++;
+  }
+  console.log(`human-paced s1: week one won ${(w1 / n * 100).toFixed(0)}%, semis ${(semi / n * 100).toFixed(0)}%`);
+  assert.ok(w1 / n >= 0.55, 'a human-paced manager usually wins week one');
+  assert.ok(semi / n >= 0.65, 'a human-paced manager reaches the semis in season 1 at least 65%');
+}
 console.log(`PASS Snow Day League bot thresholds (${((Date.now() - t0) / 1000).toFixed(0)} s)`);

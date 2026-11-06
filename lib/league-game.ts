@@ -1079,13 +1079,25 @@ export function roundRobin(ids: TeamId[], r: Rand): Fixture[] {
     }
     t.splice(1, 0, t.pop()!);
   }
-  return out;
+  // the rounds are independent, so reorder them: we meet the rivals from the gentlest to the Shadow Cats, the
+  // order inside each tier shuffled with a second draw so the rest of the save's randomness is unchanged
+  const us = t[0], tier = (id: TeamId) => EASE.findIndex((g) => g.includes(id)), key = new Map<TeamId, number>();
+  for (const id of ids) if (id !== us) key.set(id, tier(id) + r());
+  const foe = (w: number) => { const f = out.find((x) => x.week === w && (x.home === us || x.away === us))!; return f.home === us ? f.away : f.home; };
+  const order = [...Array(n - 1).keys()].sort((a, b) => key.get(foe(a))! - key.get(foe(b))!);
+  for (const f of out) f.week = order.indexOf(f.week);
+  return out.sort((a, b) => a.week - b.week);
 }
+/** how much weaker the rivals are in a new save's first season (tuned so a human-paced manager reaches the semis most seasons) */
+export const ROOKIE = 0.8;
+/** the rivals by how hard they are for a person to beat (measured with human-paced bots), easiest first */
+const EASE: TeamId[][] = [['armadillos', 'rheas', 'vicunas'], ['flamingos', 'condors'], ['alpacas'], ['cats']];
 export function newSave(seed = 1): Save {
   const r = rng(hash(seed, 77));
   const rivals: Record<string, Player[]> = {};
   const squad = startingSquad(r), used = new Set(squad.map((p) => p.name));
-  for (const id of RIVAL_IDS) rivals[id] = rivalSquad(r, id, team(id).strength, used);
+  // season one's rivals start a little green (ROOKIE below full strength); the new stars of later seasons come at full strength
+  for (const id of RIVAL_IDS) rivals[id] = rivalSquad(r, id, team(id).strength - ROOKIE, used);
   const s: Save = {
     v: 1, seed, season: 1, week: 0, money: 120, squad, rivals, rivalLevel: 0,
     fixtures: roundRobin(TEAMS.map((t) => t.id), r), table: TEAMS.map((t) => ({ team: t.id, p: 0, w: 0, d: 0, l: 0, ff: 0, fa: 0, pts: 0 })),
