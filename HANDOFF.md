@@ -6,7 +6,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 20-10-2026)
 
-**Newest game (06-11-2026): Snow Day League** (`/league`, game 91), a snowball team manager: draft against rival coaches, then watch the match; see [Snow Day League · 06-11-2026](#snow-day-league--06-11-2026) below. Snowball Siege (`/snowball`, game 90), Rulebook FC (`/rulebook`, game 89), Into Space (`/space`, game 88), Combo Ball (`/combo`, game 87), Pixel Smith (`/smith`, game 86), Coin of the Realm (`/coin`, game 85), Turn Order (`/order`, game 84), Out of Frame (`/frame`, game 83), Tetherball (`/tether`, game 82), The Clocktower Mystery (`/clocktower`, game 81), Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
+**Newest game (06-11-2026): Misprint** (`/misprint`, game 92), a two-ink risograph puzzle: slide an ink plate to print a path; see [Misprint · 06-11-2026](#misprint--06-11-2026) below. Snow Day League (`/league`, game 91), Snowball Siege (`/snowball`, game 90), Rulebook FC (`/rulebook`, game 89), Into Space (`/space`, game 88), Combo Ball (`/combo`, game 87), Pixel Smith (`/smith`, game 86), Coin of the Realm (`/coin`, game 85), Turn Order (`/order`, game 84), Out of Frame (`/frame`, game 83), Tetherball (`/tether`, game 82), The Clocktower Mystery (`/clocktower`, game 81), Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
 
 **Newest work (03–04-11-2026): Kumori Pass** (`/pass`, game 75) got a new look, a minimap, Enzo's demo line (also as a Time Attack ghost), two garage parts, seven unlockable cars, Side Jobs and a chapter after the ending; see [Kumori Pass · 04-11-2026](#kumori-pass--04-11-2026) below.
 
@@ -98,6 +98,14 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 9. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
 10. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
 11. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
+
+## Misprint · 06-11-2026
+
+Game 92, `/misprint`, the arcade's first risograph-print game. A turn-based grid puzzle: two ink plates (pink for Dora, teal for Enzo) slide one cell at a time, purple overlaps hold both, and a BFS solver proves every page.
+
+- **Rules and numbers:** `docs/misprint.md`; rules and the solver in `lib/misprint-game.ts`, the 30 pages in `lib/misprint-levels.ts`, the multiply-blended riso drawing in `lib/misprint-scene.ts`.
+- **Tests:** `npm run test:misprint`, `npm run bot:misprint`, `node tests/e2e/misprint.mjs` (dev server running; uses `window.__misprint()`).
+- **Art:** Codex paintings keyed into ink masks by `scripts/misprint-art.py` into `public/art/misprint/`.
 
 ## Snow Day League · 06-11-2026
 

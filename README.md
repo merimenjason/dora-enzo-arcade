@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of ninety-one original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of ninety-two original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -101,6 +101,7 @@ Listed in arcade-menu order.
 | 89 | Rulebook FC | `/rulebook` | Football roguelite |
 | 90 | Snowball Siege | `/snowball` | Voxel snowball fight |
 | 91 | Snow Day League | `/league` | Snowball team manager |
+| 92 | Misprint | `/misprint` | Two-ink riso print puzzle |
 
 ## Run
 
@@ -1521,6 +1522,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:league` checks that a match replays from its seed, the counter wheel, shouts, the flag and time-up, draft order and legality, the week's jobs, the season's shape, the rollover, unique names, the photo wall and the save. `npm run bot:league` checks that matches last 60–100 s with lead changes and no early blowouts, that a counter-aware or Hint-following drafter beats a random one at least 75% of the time, that a casual manager reaches the semis in season 1 at least 60% of the time and wins the cup at least 25%, that a pro wins the season-1 cup at least 65%, and that random managers rarely win (`--quick` in `npm test`). `node tests/e2e/league.mjs` (dev server running) plays a week in a browser and on phones.
 
 **Docs:** [`docs/league.md`](docs/league.md) has every rule, number, coach and bot result, and the art pipeline.
+
+### 92 · Misprint (`/misprint`)
+
+**Play:** a turn-based puzzle printed in two risograph inks. Everything in fluorescent pink is Dora's and everything in teal is Enzo's: each chinchilla stands on their own ink and on purple, where the two overlap, and walks straight through the other ink as if it were a ghost. Instead of jumping, you slide a whole ink plate one cell at a time, carrying its chinchilla and every block of that colour out of line with the other, until the print lines up into a path. Get both chinchillas onto the page's staple at the same time. Thirty pages in three zines (Burrow Gazette, Night Market Flyer and Summit Poster) bring in, one page each, riding on each other, a yellow key plate that never moves, stamps that reveal ink on the other plate, folds and ladders. Each page has a par and an ink drop, for three stars. A shift that would push ink off the paper, push someone into something solid or drop someone off the page is refused. Undo and Restart are free and unlimited, and Hint shows the next move of the best solution. A zine opens when the one before has 7 pages done, or turn on Peek ahead in Settings. Saved in `misprint-v1`.
+
+**Controls:** ← → or A/D walk, ↑ ↓ or W/S climb ladders, Tab or Q switch chinchilla, Shift + arrows or Shift + WASD shift the active plate, Z undo, R restart, H hint, Enter for the next page and Escape back to the pages. On touch: Walk buttons, the face button to switch (or tap the other chinchilla), the Shift cross in the active plate's colour, and Undo, Restart and Hint.
+
+**Tests:** `npm run test:misprint` checks the rules (own ink and purple are solid, the other ink is a ghost, registration marks, gravity, ledges, every refused shift, riding, stamps, folds and ladders), undo and restart, and runs the solver on every page: each one solvable, the par at or above the optimum and within 30% of it, the ink drop reachable, each page's new idea genuinely needed, and no page finishable by one chinchilla unless it is a tutorial made that way; then stars, unlocking and the save, corrupt saves included. `npm run bot:misprint` has a player who takes the hint 60% of the time and otherwise presses at random finish every page (`--quick` in `npm test` plays the first zine). `node tests/e2e/misprint.mjs` (dev server running) presses every control in a browser and on phones.
+
+**Docs:** [`docs/misprint.md`](docs/misprint.md) has every rule, the page list with optimal moves and pars, the solver, the art pipeline and how to design a page.
 
 ## Validation
 

@@ -105,4 +105,5 @@ export const GENRE_OF: Record<string, GenreId[]> = {
  '/rulebook': ['sports', 'roguelite', 'strategy'],
  '/snowball': ['action', 'sports'],
  '/league': ['sports', 'strategy'],
+ '/misprint': ['puzzle', 'cozy'],
 };
