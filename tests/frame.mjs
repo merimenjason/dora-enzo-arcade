@@ -1,12 +1,15 @@
 // Out of Frame engine checks: the plan (nine screens, the start first, each place's own segments, the same plan from
 // the same seed), the segments (the right size, ground that meets at the joins), the live rule (only what's inside
 // the frame moves, Dora included), Dora (walks on her own, hops single steps, waits at walls, jumps, falls back to her
-// last safe spot), frozen hazards as solid ground, Grumbles (patrol, hurt, stomped, turn at frozen Dora), traps and
+// last safe spot), frozen hazards as solid ground, Grumbles (patrol, hurt, stomped, turn at frozen Dora), hopper frogs
+// (hop only while live, a step when frozen mid-hop, squashed flat and back, never into water, float in a pond), bats (a
+// dive that skims the ground ahead of Dora and flies back to the roost, a platform when frozen mid-swoop, harmless
+// asleep, can't be stomped in flight), traps and
 // arrows (fire while live, stop dead outside, stick in rock and build a bridge, jam), boulders (roll, break, rest on
 // spikes), hanging rocks, crumbling floor that only crumbles in the picture, rafts and lifts, pickups, the film running
 // out, clearing a screen, lenses, healing, winning, replays from a seed, and the save.
 import assert from 'node:assert/strict';
-import { Run, DT, TILE, COLS, ROWS, W, DORA, FILM, HP, SCREENS, PER_BIOME, SEG, SEGMENTS, LENSES, plan, buildScreen, segment, newSave, parseSave, serialise, bank } from '../.checks/frame-game.js';
+import { Run, DT, TILE, COLS, ROWS, W, DORA, FILM, FROG, BAT, HP, SCREENS, PER_BIOME, SEG, SEGMENTS, LENSES, plan, buildScreen, segment, newSave, parseSave, serialise, bank } from '../.checks/frame-game.js';
 
 let n = 0;
 const ok = (m) => { n++; console.log('ok', m); };
@@ -119,6 +122,93 @@ const away = (r) => frameAt(r, W - r.frame.w, 0);
   ticks(r, secs(1.5));
   assert.equal(r.dora.hp, HP, 'frozen Dora is safe');
   ok('a live Grumble that walks into frozen Dora turns round');
+}
+
+// ---- hopper frogs
+{
+  const r = bare(); const f = r.add('frog', 200, 180, 14, 12, { t: 0.5 });
+  away(r); ticks(r, secs(1));
+  assert.equal(f.y, 180, 'a frog outside the frame doesn’t hop');
+  // in the picture (Dora not) it hops at her, and frozen at the top of the hop it stays up there as a block
+  r.frame.w = 144; frameAt(r, 150, 100);
+  let k = 0; while (f.s !== 'hop' && k++ < secs(1)) r.tick(still(r));
+  assert.equal(f.s, 'hop', 'it hops'); assert.ok(f.vx < 0, 'towards Dora');
+  for (let i = 0; f.vy < -5 && i < secs(1); i++) r.tick(still(r));
+  away(r); r.tick(still(r)); const top = f.y; ticks(r, secs(1));
+  assert.equal(f.y, top, 'frozen mid-hop, it hangs in the air'); assert.ok(top < 160, `up off the ground (${top})`);
+  assert.ok(r.solids(f.x, f.y - 1, f.x + f.w, f.y + 2).some((b) => b.id === f.id && !b.one), 'and it’s solid');
+  // Dora lands on it and stands there: the frame's bottom edge between her face and the frog's middle
+  Object.assign(r.dora, { x: f.x + 7, y: f.y - 8, vy: 0, ground: false }); frameAt(r, f.x - 60, f.y - 115);
+  let stood = false; ticks(r, 20, (r) => { stood ||= r.dora.on === f.id && r.dora.ground; return still(r); });
+  assert.ok(stood, 'Dora stands on the frozen frog'); assert.ok(r.stats.frozenSteps >= 1); assert.equal(r.dora.hp, HP);
+  ok('frogs hop at Dora only while live, and a frog frozen mid-hop is a block in the air to stand on');
+}
+{
+  // a live frog hurts; landing on one squashes it flat, and it pops back up a while later
+  const h = bare(); h.add('frog', 90, 180, 14, 12, { t: 5 }); onDora(h);
+  ticks(h, secs(1.5), (r) => { onDora(r); return still(r); });
+  assert.equal(h.dora.hp, HP - 1, 'a live frog hurts');
+  const s = bare(); const sf = s.add('frog', 100, 180, 14, 12, { t: 5 });
+  Object.assign(s.dora, { x: 92, y: 140, ground: false }); frameAt(s, 40, 100);
+  ticks(s, secs(0.5));
+  assert.equal(sf.s, 'flat', 'squashed flat'); assert.ok(!sf.dead); assert.equal(s.stats.stomps, 1); assert.equal(s.dora.hp, HP);
+  ticks(s, secs(FROG.flat + 0.3), (r) => { frameAt(r, 40, 100); return still(r); });
+  assert.notEqual(sf.s, 'flat', 'and pops back up'); assert.equal(sf.h, 12);
+  ok('a live frog hurts, and a stomped one is flat for a moment, then pops back up');
+}
+{
+  // frogs never hop into water or spikes, and in a pond they float and hop straight up
+  const r = bare(); const f = r.add('frog', 200, 180, 14, 12);
+  set(r, 10, 12, '~'); set(r, 10, 13, '~');
+  assert.equal(r.safeHop(f, -1), false, 'not into water'); assert.equal(r.safeHop(f, 1), true, 'onto rock is fine');
+  set(r, 14, 12, '^'); assert.equal(r.safeHop(f, 1), false, 'not onto spikes');
+  const p = bare(); for (let c = 10; c < 15; c++) { set(p, c, 12, '~'); set(p, c, 13, '~'); }
+  const pf = p.add('frog', 193, 176, 14, 12, { t: 0.3 }); frameAt(p, 140, 100); Object.assign(p.dora, { x: 20 });
+  let high = 999;
+  for (let i = 0; i < secs(3); i++) { p.tick(still(p)); high = Math.min(high, pf.y); }
+  assert.ok(!pf.dead, 'it floats'); assert.ok(high < 170, `and hops up out of the water (${high})`); assert.ok(Math.abs(pf.x - 193) < 1, 'straight up');
+  ok('frogs never hop into water or spikes; in a pond they float and hop straight up');
+}
+
+// ---- bats
+{
+  // a roost in the rock: the bat swoops when Dora is near, skims the ground ahead of her, and flies back. Dora is moved
+  // out of the picture once it's set off, so the whole flight can be watched
+  const r = bare(); for (let c = 8; c < 18; c++) set(r, c, 6, '#');
+  const b = r.add('bat', 214, 112, 12, 10, { s: 'hang' });
+  Object.assign(r.dora, { x: 150 }); r.frame.w = 300; frameAt(r, 170, 100);
+  let k = 0; while (b.s === 'hang' && k++ < 30) r.tick(still(r));
+  assert.equal(b.s, 'out', 'it swoops'); assert.equal(r.dora.live, false, 'whether or not Dora is frozen');
+  Object.assign(r.dora, { x: 20 }); frameAt(r, 60, 100);
+  let low = { y: 0, x: 0 };
+  for (let i = 0; b.s === 'out' && i < secs(3); i++) { r.tick(still(r)); if (b.y > low.y) low = { y: b.y, x: b.x + b.w / 2 }; }
+  assert.ok(Math.abs(low.y + b.h - 192) < 0.5, `skimming the ground (${low.y + b.h})`);
+  assert.ok(Math.abs(low.x - (150 + 40)) <= 2, `40 px ahead of where Dora was (${low.x})`);
+  ticks(r, secs(BAT.leg + 0.1));
+  assert.equal(b.s, 'hang', 'back on its roost'); assert.equal(b.x, 214); assert.equal(b.y, 112); assert.equal(r.dora.hp, HP);
+  // asleep on its roost it isn't anything; it only sets off again after a rest, and only with Dora near
+  assert.ok(!r.solids(b.x, b.y, b.x + b.w, b.y + b.h).some((s) => s.id === b.id), 'a sleeping bat isn’t solid');
+  ticks(r, secs(BAT.rest + 0.5)); assert.equal(b.s, 'hang', 'Dora far off: it stays put');
+  Object.assign(r.dora, { x: 150 }); r.tick(still(r));
+  assert.equal(b.s, 'out', 'and swoops again when she comes near');
+  ticks(r, 20);
+  // frozen mid-swoop it's a platform
+  away(r); r.tick(still(r)); const at = { x: b.x, y: b.y }; ticks(r, secs(1));
+  assert.deepEqual({ x: b.x, y: b.y }, at, 'frozen mid-swoop it stays put');
+  assert.ok(r.solids(b.x, b.y - 1, b.x + b.w, b.y + 2).some((s) => s.id === b.id && !s.one), 'as a little platform');
+  ok('bats swoop at the ground ahead of Dora and fly home, and a bat frozen mid-swoop is a platform');
+}
+{
+  // a live swooping bat hurts Dora when it reaches her, and can't be stomped
+  const r = bare(); for (let c = 8; c < 18; c++) set(r, c, 6, '#');
+  const b = r.add('bat', 214, 112, 12, 10, { s: 'hang' }); r.frame.w = 300; frameAt(r, 30, 100);
+  ticks(r, secs(3), (r) => { frameAt(r, 30, 100); return still(r); });
+  assert.equal(r.dora.hp, HP - 1, 'a swooping bat hurts'); assert.ok(!b.dead);
+  const s = bare(); const sb = s.add('bat', 100, 170, 12, 10, { s: 'out', t: 0.5, x0: 100, y0: 120, vx: 0.01, vy: 50 });
+  Object.assign(s.dora, { x: 96, y: 140, ground: false }); frameAt(s, 40, 80);
+  ticks(s, secs(0.4), (r) => { frameAt(r, 40, 80); return still(r); });
+  assert.ok(!sb.dead, 'no stomping a bat in flight'); assert.equal(s.dora.hp, HP - 1, 'it hurts instead'); assert.equal(s.stats.stomps, 0);
+  ok('a bat in flight hurts Dora and can’t be stomped');
 }
 
 // ---- traps and arrows

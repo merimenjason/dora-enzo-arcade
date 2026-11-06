@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Turns the Codex paintings for Out of Frame into the game's pixel art in public/art/frame/.
 
-Usage: python3 scripts/frame-art.py <folder with the f-*.png paintings>
+Usage: python3 scripts/frame-art.py <folder with the f-*.png and fr2-*.png paintings>
 
 Sprite sheets are 2 by 2 on flat magenta: each quarter is keyed, cropped to what's painted and shrunk to its in-game
 size with a box filter and a small palette, so it stays crisp pixel art. Tile sheets are 2 by 2 squares shrunk to 16 by
@@ -91,6 +91,16 @@ sprite(foes[0], 'grumble', height=15)
 sprite(foes[1], 'boulder', height=15)
 sprite(foes[2], 'trap', height=16)
 sprite(foes[3], 'rock', height=16)
+# the hopper frog (sitting, crouched, rising, falling) and the bat (hanging, wings up, wings down, gliding), all facing left
+frog = quarters(Image.open(SRC / 'fr2-frog.png'))
+for im, name in zip(frog, ('frog-sit', 'frog-crouch', 'frog-up', 'frog-down')):
+    sprite(im, name, width=16 if name == 'frog-up' else 15)
+sprite(frog[0], 'frog', width=15)
+bat = quarters(Image.open(SRC / 'fr2-bat.png'))
+sprite(bat[0], 'bat-hang', height=14)
+for im, name in zip(bat[1:], ('bat-up', 'bat-down', 'bat-glide')):
+    sprite(im, name, width=20)
+sprite(bat[3], 'bat', width=20)
 props = quarters(Image.open(SRC / 'f-props.png'))
 sprite(props[0], 'arrow', width=16)
 sprite(props[1], 'lift', width=32)

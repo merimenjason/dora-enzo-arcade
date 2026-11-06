@@ -5,7 +5,7 @@
 import * as G from './frame-game';
 import type { Ev, Run } from './frame-game';
 
-const NAMES = ['dora-walk1', 'dora-walk2', 'dora-stand', 'dora-hurt', 'grumble', 'boulder', 'trap', 'rock', 'arrow', 'lift', 'raft', 'acorn', 'film', 'heart',
+const NAMES = ['dora-walk1', 'dora-walk2', 'dora-stand', 'dora-hurt', 'grumble', 'frog-sit', 'frog-crouch', 'frog-up', 'frog-down', 'bat-hang', 'bat-up', 'bat-down', 'bat-glide', 'boulder', 'trap', 'rock', 'arrow', 'lift', 'raft', 'acorn', 'film', 'heart',
   'water-top', 'water', ...G.BIOMES.flatMap((b) => [`${b.id}-top`, `${b.id}-fill`, `${b.id}-crumble`, `${b.id}-spikes`, `bg-${b.id}`])];
 type Bit = { x: number; y: number; vx: number; vy: number; t: number; life: number; c: string; s: number; g: number };
 export type FrameView = { run: Run; time: number; dt: number; reduced: boolean };
@@ -142,6 +142,25 @@ export class FrameScene {
           break;
         }
         case 'grumble': this.put(c, 'grumble', e.x + e.w / 2, e.y + e.h, e.dir > 0); break;
+        case 'frog': {
+          if (e.s === 'flat') {
+            // squashed: the crouching frog pressed down to half its height
+            const im = this.ok('frog-crouch'); if (!im) break;
+            const w = im.naturalWidth + 2, h = Math.ceil(im.naturalHeight / 2);
+            c.save(); c.translate(Math.round(e.x + e.w / 2 - w / 2) + (e.dir > 0 ? w : 0), Math.round(e.y + e.h - h)); c.scale(e.dir > 0 ? -1 : 1, 1); c.drawImage(im, 0, 0, w, h); c.restore();
+            break;
+          }
+          const pose = e.s === 'hop' ? 'frog-up' : e.s === 'air' ? 'frog-down' : e.t < 0.25 ? 'frog-crouch' : 'frog-sit';
+          this.put(c, pose, e.x + e.w / 2, e.y + e.h + 1, e.dir > 0);
+          break;
+        }
+        case 'bat': {
+          if (e.s === 'hang') { this.put(c, 'bat-hang', e.x + e.w / 2, e.y + 14); break; }
+          // wings flap while it flies, and spread flat at the bottom of the dive
+          const low = Math.sin(Math.PI * e.t) > 0.85, flap = Math.floor(e.t * 14) % 2;
+          this.put(c, low ? 'bat-glide' : flap ? 'bat-up' : 'bat-down', e.x + e.w / 2, e.y + e.h + 3, e.dir > 0);
+          break;
+        }
         case 'boulder': {
           const im = this.ok('boulder'); if (!im) break;
           c.save(); c.translate(Math.round(e.x + 7), Math.round(e.y + 7)); c.rotate(e.s === 'rest' ? 0 : (e.x / 7) % (Math.PI * 2)); c.drawImage(im, -7, -8); c.restore();

@@ -16,7 +16,7 @@ type Result = { won: boolean; screen: number; acorns: number; stomps: number; hi
 const art = (n: string) => `/art/frame/${n}.png`;
 const INTRO = [
   'Dora’s off to find the old temple, and I’m filming the whole thing! Only… my camera’s a bit strange.',
-  'Whatever’s inside my viewfinder moves. Everything outside it stops dead: Grumbles, boulders, arrows, Dora too.',
+  'Whatever’s inside my viewfinder moves. Everything outside it stops dead: Grumbles, frogs, bats, boulders, arrows, Dora too.',
   'So point the frame at Dora to keep her walking, and leave the danger out of the picture. A frozen thing is just a step!',
   'Mind the film, though. It runs down all the time, and if it runs out, that’s the end of the show.',
 ];
@@ -276,6 +276,9 @@ export default function OutOfFramePage() {
           film: (v: number) => { if (r) r.film = v; },
           hp: (v: number) => { if (r) r.dora.hp = v; },
           screen: (n: number) => { if (r) { r.enter(n); aimAtDora(); setPhase('play'); setHudTick((x) => x + 1); } },
+          segments: (ids: string[]) => { if (r) { r.plan[r.screen] = ids; r.enter(r.screen); aimAtDora(); setPhase('play'); setHudTick((x) => x + 1); } },
+          aim: (x: number, y: number) => { aim.current = { x, y }; },
+          thing: (k: string, o: Record<string, number | string>) => { const e = r?.ents.find((e) => e.k === k); if (e) Object.assign(e, o); },
           tp: (x: number, y: number) => { if (r) Object.assign(r.dora, { x, y, vx: 0, vy: 0 }); },
         },
       };
@@ -365,6 +368,7 @@ export default function OutOfFramePage() {
         </ul></div>
         <div className="of-card"><h3>Freezing things</h3><ul>
           <li>A frozen Grumble, boulder or rock is <b>solid</b>: a step to climb or a lid on a pit.</li>
+          <li>Freeze a <b>frog</b> at the top of its hop, or a <b>bat</b> at the bottom of its swoop, and it’s a stepping stone in mid-air.</li>
           <li>A frozen arrow is a <b>plank</b>. Arrows that hit rock stick there for good, and arrows that hit those stick to them: let a trap build a bridge.</li>
           <li>Crumbling floor only crumbles while it’s in the picture. Rafts and lifts only move in it.</li>
           <li>Frozen Dora is safe: things that bump into her turn back or break.</li>

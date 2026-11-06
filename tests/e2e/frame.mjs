@@ -1,5 +1,5 @@
 // Out of Frame in the browser: the title and the way home, Enzo's opening (nothing moves under it), the mouse pointing
-// the frame and a click jumping, the keys nudging the frame and C centring it, the lens picker (by click and by number
+// the frame and a click jumping, the keys nudging the frame and C centring it, the frog pond and the bat roost, the lens picker (by click and by number
 // key), pause, the film running out and the result card, the bests saved across a reload, a corrupt save, the how-to
 // page, and the game on phones held either way (a finger drags the frame, the JUMP button jumps), all with no page
 // errors and no sideways scrolling. Needs `npm run dev` and Playwright.
@@ -83,6 +83,18 @@ try {
   await until(page, () => window.__frame().run.dora.ground === false);
   ok('WASD nudges the frame, C centres it on Dora, and a click jumps');
 
+  // ---- the frog pond and the bat roost: with Dora frozen to one side, the frog hops up out of the water and the bat
+  // swoops off its roost
+  await dbg(page, 'segments', ['start', 'pond']); await page.mouse.move(0, 0);
+  await dbg(page, 'aim', 360, 190);
+  await until(page, () => window.__frame().run.ents.some((e) => e.k === 'frog' && e.y < 185) && !window.__frame().run.dora.live);
+  const hp = (await st(page)).run.hp;
+  await dbg(page, 'segments', ['start', 'roost']); await dbg(page, 'tp', 300, 192); await dbg(page, 'aim', 380, 150);
+  await until(page, () => window.__frame().run.ents.some((e) => e.k === 'bat' && e.s === 'out'));
+  await page.waitForTimeout(800);
+  assert.ok(hp > 0); assert.equal((await st(page)).run.hp, hp, 'frozen Dora is safe from them');
+  ok('the frog pond and the bat roost: the frog hops and the bat swoops while they’re in the picture');
+
   // ---- the lens picker
   await dbg(page, 'clear');
   await until(page, () => window.__frame().run.phase === 'pick');
@@ -107,7 +119,7 @@ try {
 
   // ---- the film runs out: the result card, and the best kept across a reload
   await dbg(page, 'film', 0.2);
-  await until(page, () => window.__frame().screen === 'result');
+  await until(page, () => window.__frame().screen === 'result' && window.__frame().result !== null);
   s = await st(page);
   assert.equal(s.result.won, false); assert.equal(s.result.film, true); assert.equal(s.result.screen, 3);
   assert.match(await page.locator('.of-resultcard h2').innerText(), /film ran out/);
@@ -127,7 +139,8 @@ try {
   // ---- how to play
   await page.getByRole('button', { name: 'How to play' }).click();
   await until(page, () => window.__frame().screen === 'howto');
-  assert.equal(await page.locator('.of-foe').count(), 4);
+  assert.equal(await page.locator('.of-foe').count(), 6, 'Grumble, frog, bat, boulder, arrow and rock');
+  assert.ok(await page.locator('.of-foe img').evaluateAll((ims) => ims.every((i) => i.complete && i.naturalWidth > 0)), 'every creature’s picture loads');
   assert.ok(await noSideScroll(page));
   await page.getByRole('button', { name: '‹ Title' }).click();
   ok('the how-to page: the viewfinder, freezing, film and who’s who');

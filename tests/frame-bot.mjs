@@ -50,7 +50,7 @@ export function crossable(c) {
 function climb(c) {
   const d = c.dora;
   if (!d.live || !d.ground || !c.blocked(d.x + 5, d.y - 15, d.x + 8, d.y - 1)) return false;
-  const fixed = (b) => b.id < 0 || ['arrow', 'boulder', 'grumble', 'rock'].includes(c.ents.find((o) => o.id === b.id)?.k);
+  const fixed = (b) => b.id < 0 || ['arrow', 'boulder', 'grumble', 'frog', 'bat', 'rock'].includes(c.ents.find((o) => o.id === b.id)?.k);
   return c.solids(d.x - 8, d.y - 48, d.x + 20, d.y - 18).some((b) => fixed(b) && b.y >= d.y - 48 && b.y <= d.y - 18 && !c.blocked(d.x - 5, b.y - 15, d.x + 5, b.y - 0.5));
 }
 const HORIZON = 300;
@@ -74,7 +74,7 @@ function watch(r) {
   const f = face(r), fr = r.frame;
   const ahead = (e) => e.x + e.w / 2 > f.x - 8 && e.x - f.x < 300;
   const src = r.ents.filter((e) => ['trap', 'chute', 'lift', 'plat'].includes(e.k) && ahead(e)).sort((a, b) => a.x - b.x)[0]
-    ?? r.ents.filter((e) => (e.k === 'grumble' || e.k === 'boulder') && ahead(e)).sort((a, b) => a.x - b.x)[0];
+    ?? r.ents.filter((e) => (e.k === 'grumble' || e.k === 'frog' || e.k === 'bat' || e.k === 'boulder') && ahead(e)).sort((a, b) => a.x - b.x)[0];
   if (!src) return null;
   // the frame starts just past Dora's face and takes in the machine and the gap between
   return { tx: f.x + 8 + fr.w / 2, ty: (src.y + src.h / 2 + r.dora.y) / 2 };
@@ -139,6 +139,13 @@ for (const g of G.SEGMENTS) {
   if (!ok) stuck.push(g.id);
 }
 assert.deepEqual(stuck, [], 'the looker clears every segment on its own');
+// the frog pond and the bat roost are puzzles about the creature: without it, the looker can't get across
+for (const [id, k] of [['pond', 'frog'], ['roost', 'bat']]) {
+  const r = new G.Run(11); r.plan = [['start', id]]; r.enter(0); r.film = 999; r.ents = r.ents.filter((e) => e.k !== k);
+  const mem = {}; for (let t = 0; t < 60 * 40 && r.phase === 'play'; t++) r.tick(looker(r, mem));
+  assert.notEqual(r.phase, 'pick', `${id} can't be crossed without its ${k}`);
+}
+console.log('the pond needs its frog and the roost its bat');
 
 const N = quick ? 4 : 8;
 const runs = (bot) => Array.from({ length: N }, (_, i) => play(1000 + i * 7, bot));

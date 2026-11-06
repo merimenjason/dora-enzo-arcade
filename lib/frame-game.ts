@@ -1,7 +1,8 @@
 // Out of Frame: a pixel-art platformer roguelite where time only runs inside Enzo's camera viewfinder. Dora walks on
 // her own; the player moves the frame and makes her jump. Anything whose centre is inside the frame moves; everything
-// else is frozen where it is, and anything frozen is solid, so a frozen Grumble is a step, a frozen falling rock is a
-// block and a frozen arrow is a plank. Dora herself only moves while her face is in the frame. Deterministic at 60
+// else is frozen where it is, and anything frozen is solid, so a frozen Grumble is a step, a frog frozen mid-hop is a
+// block in the air, a bat frozen mid-swoop is a little floating platform, a frozen falling rock is a block and a
+// frozen arrow is a plank. Dora herself only moves while her face is in the frame. Deterministic at 60
 // ticks a second from a seed, with no DOM: the page draws it, the tests and bots drive it directly.
 
 export const DT = 1 / 60;
@@ -32,7 +33,8 @@ export type BiomeId = (typeof BIOMES)[number]['id'];
 
 // Segments are 15 tiles wide and 12 tall (rows 4 to 15 of the screen); two make a screen. Both ends of every segment
 // are open ground at row 12, so any two join. # rock, = crumbling floor, - plank (stand on top, pass from below),
-// ^ spikes, ~ water, A/a arrow trap firing left/right (solid), B boulder chute, G Grumble, R hanging rock,
+// ^ spikes, ~ water, A/a arrow trap firing left/right (solid), B boulder chute, G Grumble, F hopper frog, V bat (hangs
+// from the rock above it), R hanging rock,
 // P platform (moves 5 tiles right and back), L lift (sits on rock, moves 5 tiles up and back), o acorn, f film, h heart.
 export type Segment = { id: string; tier: 0 | 1 | 2; rows: string[] };
 const g4 = ['###############', '###############', '###############', '###############'];
@@ -40,21 +42,25 @@ const air = (n: number) => Array(n).fill('...............');
 export const SEGMENTS: Segment[] = [
   { id: 'start', tier: 0, rows: [...air(5), '....o...o...o..', ...air(2), ...g4] },
   { id: 'grumble', tier: 0, rows: [...air(5), '.......o.......', '...............', '.........G.....', ...g4] },
-  { id: 'gap', tier: 0, rows: [...air(6), '......o........', '...............', '#####..########', '#####..########', '#####^^########', '###############'] },
+  { id: 'gap', tier: 0, rows: [...air(6), '......o........', '..........F....', '#####..########', '#####..########', '#####^^########', '###############'] },
   { id: 'trap', tier: 0, rows: [...air(5), '........o......', '.............#.', '.............A.', ...g4] },
   { id: 'crumble', tier: 0, rows: [...air(5), '.....o..o......', '...............', '...............', '###=======#####', '###~~~~~~~#####', '###~~~~~~~#####', '###############'] },
   { id: 'chute', tier: 0, rows: ['...............', '............B..', ...air(3), '......o........', '...............', '...............', ...g4] },
   { id: 'rocks', tier: 0, rows: ['...#########...', '....R....R.....', ...air(4), '.......o.......', '...............', ...g4] },
   { id: 'raft', tier: 0, rows: [...air(5), '.......o.......', '...............', '...............', '###P......#####', '###~~~~~~~#####', '###~~~~~~~#####', '###############'] },
-  { id: 'ledge', tier: 0, rows: [...air(4), '.......o.......', '...............', '......G........', '....#######....', ...g4] },
+  // a pond too wide to jump, with a frog floating in the middle: it hops straight up out of the water, and frozen as it
+  // comes up level with the ground it's a stepping stone
+  { id: 'pond', tier: 0, rows: [...air(6), '.......o.......', '...............', '#####..F..#####', '#####~~~~~#####', '#####~~~~~#####', '###############'] },
 
   { id: 'bridge', tier: 1, rows: [...air(6), '.....o.........', '...............', '###.....A######', '###.....#######', '###^^^^^#######', '###############'] },
   { id: 'lift', tier: 1, rows: [...air(2), '...........o...', '.......####....', '.......####....', '.......####....', '.......####....', '.......####....', '#####L#########', '###############', '###############', '###############'] },
-  { id: 'cellar', tier: 1, rows: ['.##############', '...R....R...R..', ...air(4), '........o......', '...............', '####===###===##', '####...###...##', '####^^^###^^^##', '###############'] },
+  { id: 'cellar', tier: 1, rows: ['.##############', '...R....V...R..', ...air(4), '........o......', '...............', '####===###===##', '####...###...##', '####^^^###^^^##', '###############'] },
   { id: 'rolling', tier: 1, rows: ['...............', '...........B...', ...air(4), '......o........', '...............', '#####..########', '#####..########', '#####^^########', '###############'] },
-  { id: 'valley', tier: 1, rows: [...air(5), '.......o.......', '...............', '...............', '###.........###', '###.G....G..###', '###############', '###############'] },
+  // a spiked pit too wide to jump, under a bat's roost: the bat dives at the ground just ahead of Dora, and frozen at
+  // the bottom of its dive over the pit it's a stepping stone
+  { id: 'roost', tier: 1, rows: [...air(2), '..#########....', '.......V.......', '...............', '.......o.......', '...............', '...............', '#####...#######', '#####...#######', '#####^^^#######', '###############'] },
   { id: 'gallery', tier: 1, rows: ['............#..', '............#..', '............#..', '............#..', '............#..', '............A..', '...o...........', '........A......', ...g4] },
-  { id: 'ferry', tier: 1, rows: ['.....######....', '......R..R.....', ...air(4), '........o......', '...............', '###P.......####', '###........####', '###^^^^^^^^####', '###############'] },
+  { id: 'ferry', tier: 1, rows: ['.....######....', '......R..V.....', ...air(4), '........o......', '...............', '###P.......####', '###........####', '###^^^^^^^^####', '###############'] },
   { id: 'steps', tier: 1, rows: [...air(3), '...........o...', '...............', '.........==....', '......==.......', '...==..........', '###..........##', '###..........##', '###^^^^^^^^^^##', '###############'] },
 
   { id: 'pegs', tier: 2, rows: ['..#............', '..#............', '..#............', '..#.......o....', '..#......####..', '..a......####..', '..a......####..', '.........####..', ...g4] },
@@ -62,14 +68,14 @@ export const SEGMENTS: Segment[] = [
   { id: 'moat', tier: 2, rows: ['....######.....', '.....R..R......', ...air(4), '.....o.........', '...............', '###.....A######', '###.....#######', '###~~~~~#######', '###############'] },
   { id: 'shaft', tier: 2, rows: ['...............', '...........o...', '...........A...', '.......#####...', '.......#####...', '.......#####...', '.......#####...', '.......#####...', '#####L#########', '###############', '###############', '###############'] },
   { id: 'crossing', tier: 2, rows: ['...............', '.........B.....', ...air(4), '.......o.......', '...............', '##=====########', '##~~~~~########', '##~~~~~########', '###############'] },
-  { id: 'patrol', tier: 2, rows: ['...#########...', '....R.....R....', ...air(2), '.......o.......', '...............', '...G......G....', '..###########..', ...g4] },
+  { id: 'patrol', tier: 2, rows: ['...#########...', '....R.....R....', ...air(2), '.......o.......', '...............', '...G......F....', '..###########..', ...g4] },
   { id: 'rafts', tier: 2, rows: [...air(5), '.......o.......', '...............', '......P........', '##P..........##', '##~~~~~~~~~~~##', '##~~~~~~~~~~~##', '###############'] },
   { id: 'ladder', tier: 2, rows: ['...............', '...............', '...............', '...............', '.........o.....', '........==.....', '.....==........', '..==...........', '##...........##', '##...........##', '##^^^^^^^^^^^##', '###############'] },
 ];
 
 export type Tile = '.' | '#' | '=' | '-' | '^' | '~' | 'A' | 'a';
 export const SOLID = new Set(['#', '=', 'A', 'a']);
-export type Kind = 'grumble' | 'boulder' | 'arrow' | 'rock' | 'plat' | 'lift' | 'trap' | 'chute' | 'acorn' | 'film' | 'heart';
+export type Kind = 'grumble' | 'frog' | 'bat' | 'boulder' | 'arrow' | 'rock' | 'plat' | 'lift' | 'trap' | 'chute' | 'acorn' | 'film' | 'heart';
 export type Ent = {
   id: number; k: Kind; x: number; y: number; w: number; h: number; vx: number; vy: number;
   /** a timer whose meaning depends on the kind; it only runs while the thing is live */
@@ -78,11 +84,18 @@ export type Ent = {
 /** hazards that hurt Dora when they touch her while they are live, and hold her weight while frozen */
 export const HAZARD: Partial<Record<Kind, { name: string; line: string }>> = {
   grumble: { name: 'Grumble', line: 'A Grumble! Freeze it and it’s just a step. Or land on its head.' },
+  frog: { name: 'Hopper frog', line: 'Frogs hop at Dora. Freeze one at the top of its hop and it’s a step in the air!' },
+  bat: { name: 'Bat', line: 'Bats swoop when Dora walks under. Freeze one mid-swoop and it’s a little platform.' },
   boulder: { name: 'Boulder', line: 'Boulders roll while they’re in the picture. Jump them, or leave them out.' },
   arrow: { name: 'Arrow', line: 'Arrows stop dead at the edge of the picture. A frozen arrow holds Dora!' },
   rock: { name: 'Hanging rock', line: 'Those rocks drop when Dora walks under. A frozen rock is a block to stand on.' },
 };
-export const isHazard = (k: Kind) => k === 'grumble' || k === 'boulder' || k === 'arrow' || k === 'rock';
+export const isHazard = (k: Kind) => k === 'grumble' || k === 'frog' || k === 'bat' || k === 'boulder' || k === 'arrow' || k === 'rock';
+/** a frog: hops every 1.6 seconds (of being live) at 260 px/s up and 60 across, two tiles each way; squashed, it's
+ * flat for 2.5 seconds and then pops back up. A bat: swoops when Dora comes within 80 px on her feet, diving to skim the ground 40 px ahead of her and
+ * rising the far side over 1.2 seconds, then flies the same curve back to its roost and rests a second. */
+export const FROG = { every: 1.6, up: 260, across: 60, flat: 2.5 };
+export const BAT = { reach: 80, leg: 1.2, rest: 1 };
 
 export const LENSES = [
   { id: 'wide', name: 'Wide lens', max: 2, text: 'The frame is two tiles wider.' },
@@ -127,6 +140,8 @@ export function buildScreen(segs: Segment[]) {
       case 'A': case 'a': tile = ch; ents.push({ ...base, k: 'trap', x, y, w: TILE, h: TILE, dir: ch === 'A' ? -1 : 1, t: 0.6 }); break;
       case 'B': ents.push({ ...base, k: 'chute', x, y, w: TILE, h: TILE, t: 0.4 }); break;
       case 'G': ents.push({ ...base, k: 'grumble', x: x + 1, y: y + 3, w: 14, h: 13 }); break;
+      case 'F': ents.push({ ...base, k: 'frog', x: x + 1, y: y + 4, w: 14, h: 12, t: 1 }); break;
+      case 'V': ents.push({ ...base, k: 'bat', x: x + 2, y, w: 12, h: 10, x0: x + 2, s: 'hang' }); break;
       case 'R': ents.push({ ...base, k: 'rock', x: x + 2, y, w: 12, h: 14, s: 'hang' }); break;
       case 'P': ents.push({ ...base, k: 'plat', x, y, w: 32, h: 6, dir: 1 }); break;
       case 'L': tile = '#'; ents.push({ ...base, k: 'lift', x, y, w: 32, h: 6, dir: -1 }); break;
@@ -348,6 +363,58 @@ export class Run {
         }
         break;
       }
+      case 'frog': {
+        if (e.s === 'flat') { e.t -= dt; if (e.t <= 0) { e.s = ''; e.y -= 6; e.h = 12; e.t = 0.8; } break; }
+        const was = e.s;
+        e.vy = Math.min(FALL_MAX, e.vy + GRAV * dt);
+        if (e.vy < 0 && this.blockedForFoe(e, e.x, e.y + e.vy * dt)) e.vy = 0;
+        if (e.vx) { const nx = e.x + e.vx * dt; if (this.blockedForFoe(e, nx)) e.vx = 0; else e.x = nx; }
+        this.fallBody(e, dt);
+        if (e.y > H + 20) { e.dead = true; return; }
+        // frogs float: in water it sits at the surface and hops from there
+        const fc = Math.floor((e.x + e.w / 2) / TILE);
+        let wr = Math.floor((e.y + e.h - 1) / TILE);
+        if (this.tile(fc, wr) === '~') {
+          while (this.tile(fc, wr - 1) === '~') wr--;
+          if (e.y + e.h > wr * TILE + 3 && e.vy >= 0) { e.y = wr * TILE + 3 - e.h; e.vy = 0; e.s = ''; }
+        }
+        if (e.s === '') {
+          if (was === 'hop' || was === 'air') { e.vx = 0; e.t = FROG.every; this.events.push({ k: 'land', x: e.x + 7, y: e.y + e.h }); }
+          e.dir = d.x < e.x + e.w / 2 ? -1 : 1;
+          e.t -= dt;
+          if (e.t <= 0) {
+            // it hops at Dora, but never off into a pit, spikes or water: then it hops the other way, or on the spot
+            const dir = this.safeHop(e, e.dir) ? e.dir : this.safeHop(e, -e.dir) ? -e.dir : 0;
+            e.vy = -FROG.up; e.vx = dir * FROG.across; e.s = 'hop'; e.t = FROG.every;
+            this.events.push({ k: 'hop', x: e.x + 7, y: e.y + e.h });
+          }
+        }
+        break;
+      }
+      case 'bat': {
+        if (e.s === 'hang') {
+          e.t -= dt;
+          const dx = d.x - (e.x + e.w / 2);
+          if (e.t <= 0 && d.ground && d.y > e.y + e.h && Math.abs(dx) < BAT.reach) {
+            // the dive skims the ground just ahead of where Dora is walking, and rises as far again beyond
+            const ahead = d.x + 40 - (e.x + e.w / 2);
+            e.s = 'out'; e.t = 0; e.vx = 2 * (Math.abs(ahead) < 16 ? Math.sign(ahead || 1) * 16 : ahead); e.vy = clamp(d.y - (e.y0 + e.h), 16, 140); e.dir = Math.sign(e.vx);
+            this.events.push({ k: 'drop', x: e.x + 6, y: e.y });
+          }
+          return;
+        }
+        const step = dt / BAT.leg;
+        let p = e.t + (e.s === 'out' ? step : -step);
+        const at = (q: number) => ({ x: e.x0 + e.vx * q, y: e.y0 + e.vy * Math.sin(Math.PI * clamp(q, 0, 1)) });
+        const n = at(p);
+        // into rock, it turns and flies back the way it came
+        if (e.s === 'out' && this.solidTiles(n.x, n.y, n.x + e.w, n.y + e.h, false).length) { e.s = 'back'; p = e.t; }
+        if (e.s === 'out' && p >= 1) { e.s = 'back'; p = 1; }
+        if (e.s === 'back' && p <= 0) { e.s = 'hang'; e.t = BAT.rest; e.x = e.x0; e.y = e.y0; return; }
+        e.t = p; const m = at(p); e.x = m.x; e.y = m.y;
+        e.dir = e.s === 'out' ? Math.sign(e.vx) : -Math.sign(e.vx);
+        break;
+      }
       case 'boulder': {
         if (e.s === 'rest') return;
         e.vy = Math.min(FALL_MAX, e.vy + GRAV * dt);
@@ -396,6 +463,8 @@ export class Run {
     // a live hazard against frozen Dora: Grumbles turn round, boulders break
     if (!d.live && overlap(e.x, e.y, e.w, e.h, d.x - DORA.w / 2, d.y - DORA.h, DORA.w, DORA.h)) {
       if (e.k === 'grumble') { e.dir = d.x > e.x + e.w / 2 ? -1 : 1; e.x += e.dir * 2; }
+      if (e.k === 'frog' && e.vx) { e.vx = d.x > e.x + e.w / 2 ? -Math.abs(e.vx) : Math.abs(e.vx); e.x += Math.sign(e.vx) * 2; }
+      if (e.k === 'bat' && e.s === 'out') e.s = 'back';
       if (e.k === 'boulder') { e.dead = true; this.events.push({ k: 'break', x: e.x + 7, y: e.y + 7 }); }
     }
   }
@@ -412,6 +481,17 @@ export class Run {
     for (const b of this.solidTiles(e.x + 1, e.y + e.h - 0.5, e.x + e.w - 1, ny + e.h + 0.5, true)) if (b.y >= e.y + e.h - 0.5) top = Math.min(top, b.y);
     for (const o of this.ents) if ((o.k === 'plat' || o.k === 'lift' || o.s === 'rest') && o !== e && overlap(e.x, ny, e.w, e.h + 0.5, o.x, o.y, o.w, o.h) && o.y >= e.y + e.h - 1) top = Math.min(top, o.y);
     if (top < Infinity) { e.y = top - e.h; e.vy = 0; e.s = ''; } else { e.y = ny; if (e.vy > 30) e.s = 'air'; }
+  }
+  /** would a frog hopping this way land on something it can stand on? */
+  safeHop(e: Ent, dir: number) {
+    const c = Math.floor((e.x + e.w / 2 + dir * 32) / TILE), r0 = Math.floor((e.y + e.h - 1) / TILE);
+    if (c < 0 || c >= COLS) return false;
+    for (let r = r0 - 2; r <= r0 + 3; r++) {
+      const t = this.tile(c, r);
+      if (t === '^' || t === '~') return false;
+      if (SOLID.has(t) || t === '-') return r > r0 - 2;
+    }
+    return false;
   }
   wet(e: Ent) { return this.tile(Math.floor((e.x + e.w / 2) / TILE), Math.floor((e.y + e.h - 2) / TILE)) === '~'; }
   /** the top of the spikes under a thing, if it has sunk into them */
@@ -451,9 +531,10 @@ export class Run {
       let top = Infinity, on = -1;
       // level with the ground, a platform or lift wins, so Dora rides it when it moves
       for (const b of this.solids(d.x - hw, d.y - 0.5, d.x + hw, ny + 0.01)) if (b.y >= d.y - 0.5 && (b.y < top || (b.y === top && b.id >= 0))) { top = b.y; on = b.id; }
-      // landing on a live Grumble's head squashes it
-      if (d.vy > 40) for (const e of this.ents) if (e.k === 'grumble' && e.live && !e.dead && overlap(d.x - hw, d.y - 2, DORA.w, ny - d.y + 2, e.x, e.y, e.w, 6)) {
-        e.dead = true; d.vy = -220; this.stats.stomps++; ev.push({ k: 'stomp', x: e.x + 7, y: e.y });
+      // landing on a live Grumble's head squashes it; a frog is squashed flat for a moment, then pops back up
+      if (d.vy > 40) for (const e of this.ents) if ((e.k === 'grumble' || (e.k === 'frog' && e.s !== 'flat')) && e.live && !e.dead && overlap(d.x - hw, d.y - 2, DORA.w, ny - d.y + 2, e.x, e.y, e.w, 6)) {
+        if (e.k === 'frog') { e.s = 'flat'; e.t = FROG.flat; e.y += 6; e.h = 6; e.vx = 0; e.vy = 0; } else e.dead = true;
+        d.vy = -220; this.stats.stomps++; ev.push({ k: 'stomp', x: e.x + 7, y: e.y });
         top = Infinity; break;
       }
       if (top < Infinity) {
@@ -483,7 +564,7 @@ export class Run {
       if (e.k === 'acorn') { e.dead = true; this.stats.acorns++; if (this.lenses.nutty) this.film = Math.min(this.filmMax, this.film + 2); ev.push({ k: 'acorn', x: e.x + 5, y: e.y + 5 }); }
       else if (e.k === 'film') { e.dead = true; this.film = Math.min(this.filmMax, this.film + FILM.can); ev.push({ k: 'film', x: e.x + 5, y: e.y + 5 }); }
       else if (e.k === 'heart') { e.dead = true; d.hp = Math.min(this.hpMax, d.hp + 1); ev.push({ k: 'heart', x: e.x + 5, y: e.y + 5 }); }
-      else if (isHazard(e.k) && e.live && e.s !== 'hang' && e.s !== 'stuck' && e.s !== 'rest' && d.inv <= 0) {
+      else if (isHazard(e.k) && e.live && e.s !== 'hang' && e.s !== 'stuck' && e.s !== 'rest' && e.s !== 'flat' && d.inv <= 0) {
         if (e.k === 'rock' && e.s !== 'fall') continue;
         this.hurt();
         if (e.k === 'arrow' || e.k === 'rock') { e.dead = true; ev.push({ k: 'break', x: e.x + e.w / 2, y: e.y }); }
