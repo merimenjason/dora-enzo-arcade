@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import {
   Game, CLINICS, ROOMS, AILMENTS, DECOS, DAY, HOUR, SAVE_KEY, TUT_STEPS, newSave, parseSave, serialise, record, clinicOpen, sandboxOpen,
-  wagesPerDay, roomCost, accuracy, workRate, hourOf, clockText,
+  wagesPerDay, roomCost, accuracy, workRate, hourOf, clockText, XP_FOR, TRAIN_COST, UPGRADE_SPEED, canUpgrade, SIDE_D,
 } from '../.checks/clinic-game.js';
 import { astar, newGrid, bfs } from '../.checks/clinic-path.js';
 
@@ -231,10 +231,13 @@ const runUntil = (g, fn, max = DAY * 3) => { for (let i = 0; i < max; i++) { if 
   const spot = g.suggestDeco('bench');
   ok(spot && g.place('bench', spot[0], spot[1]).ok, 'place a bench');
   g.requeue(q, false);
-  ok(q.seat > 0, 'a waiting patient takes the bench seat');
+  const sitter = g.s.patients.find((x) => x.seat);
+  ok(sitter && sitter.arrivedAt <= q.arrivedAt, 'the front of the line takes the bench seats');
+  ok(!q.seat && q.qi === g.s.patients.filter((x) => x.phase === 'wait').length - 1, 'and the newest arrival joins the back of the line');
+  q.sp = sitter.sp; q.thirst = sitter.thirst = 0;
   g.run(60);
-  const sitting = q.patience; g.run(100); const sitDrop = sitting - q.patience;
-  const standing = p.patience; g.run(100); const standDrop = standing - p.patience;
+  const sitting = sitter.patience, standing = q.patience; g.run(100);
+  const sitDrop = sitting - sitter.patience, standDrop = standing - q.patience;
   ok(sitDrop < standDrop, `sitting waits more patiently (${sitDrop.toFixed(2)} < ${standDrop.toFixed(2)})`);
   // thirsty patients fetch a drink and keep their place
   p.thirst = 90;
@@ -422,6 +425,199 @@ const runUntil = (g, fn, max = DAY * 3) => { for (let i = 0; i < max; i++) { if 
   ok(CLINICS.every((c) => c.ailments.every(([a]) => c.rooms.includes(AILMENTS[a].room))), 'every clinic can build a room for each of its ailments');
   ok(CLINICS.every((c) => c.events.every(([d]) => d < c.days)), 'every scheduled event happens inside the day limit');
   ok(Object.values(DECOS).every((d) => d.cost > 0), 'decorations have prices');
+}
+
+// ---------------------------------------------------------------- waiting lines
+{
+  const { g, rooms } = basic('salt', 21);
+  g.s.open = true;
+  for (let i = 0; i < 14; i++) { const p = g.spawnPatient('static'); p.need = i % 2 ? 'checkup' : 'fluff'; p.dx = 'static'; g.requeue(p, false); }
+  g.run(250);
+  const waiting = g.s.patients.filter((p) => p.phase === 'wait' && !p.seat);
+  const keys = waiting.map((p) => p.spot.join(','));
+  ok(waiting.length >= 8, `a crowd waits (${waiting.length})`);
+  eq(new Set(keys).size, keys.length, 'nobody stands on top of anybody');
+  const doors = new Set(g.s.rooms.map((r) => { const [dx, dy] = SIDE_D[r.door.side]; return `${r.door.x + dx},${r.door.y + dy}`; }));
+  ok(keys.every((k) => !doors.has(k)), 'and nobody blocks a doorway');
+  for (const kind of ['fluff', 'checkup']) {
+    const line = waiting.filter((p) => p.need === kind).sort((a, b) => a.qi - b.qi);
+    const steps = line.slice(1).map((p, i) => Math.abs(p.spot[0] - line[i].spot[0]) + Math.abs(p.spot[1] - line[i].spot[1]));
+    ok(steps.filter((d) => d === 1).length >= steps.length - 1, `the ${kind} line is tidy: one tile apart (${steps.join(' ')})`);
+    const L = g.lineOf(rooms[kind].id);
+    ok(L.line.slice(0, 2).some((t) => t[0] === line[0].spot[0] && t[1] === line[0].spot[1]), `the ${kind} line starts by its door`);
+  }
+  const front = waiting.filter((p) => p.need === 'fluff').sort((a, b) => a.qi - b.qi)[0];
+  const [ax, ay] = (() => { const r = rooms.fluff; const [dx, dy] = SIDE_D[r.door.side]; return [r.door.x + dx, r.door.y + dy]; })();
+  ok(Math.abs(front.spot[0] - ax) + Math.abs(front.spot[1] - ay) <= 2, 'the front of the line stands next to the door');
+  const atSpot = waiting.filter((p) => Math.abs(p.x - p.spot[0]) < 0.01 && Math.abs(p.y - p.spot[1]) < 0.01);
+  ok(atSpot.length && atSpot.every((p) => p.dir === p.fd), 'everyone in line faces the way the line goes');
+  const before = waiting.filter((p) => p.need === 'fluff').map((p) => [p.id, p.qi]);
+  const moved = () => before.filter(([id, qi]) => { const p = g.s.patients.find((x) => x.id === id); return p && p.phase === 'wait' && p.qi < qi; });
+  ok(runUntil(g, () => moved().length > 0, DAY), 'as the front is served, the line steps forward');
+}
+
+// ---------------------------------------------------------------- mood reasons and complaints
+{
+  const { g } = basic('salt', 22);
+  g.s.open = true;
+  const p = g.spawnPatient('hiccups'); p.need = 'hiccup'; p.dx = 'hiccups'; g.requeue(p, false);
+  g.run(30);
+  p.thirst = 90; p.patience = 25;
+  const why = g.whyOf(p).map((w) => w.id);
+  ok(why.includes('thirst') && why.includes('wait') && why.includes('noroom'), `a thirsty, long-waiting patient says why (${why.join(', ')})`);
+  ok(g.whyOf(p).every((w) => typeof w.text === 'string' && w.text.length > 3), 'in words');
+  const pl = g.suggestDeco('plant'); g.place('plant', Math.round(p.x) + 1, Math.round(p.y)).ok || g.place('plant', pl[0], pl[1]);
+  g.computeComfort();
+  const c = g.complaints();
+  ok(c.length >= 1 && c.length <= 3 && c[0].count >= 1 && Array.isArray(c[0].at), 'the clinic lists its top complaints, with somewhere to look');
+  ok(c.every((x, i) => i === 0 || c[i - 1].count >= x.count), 'most common first');
+}
+
+// ---------------------------------------------------------------- staff growth, raises and training
+{
+  const { g, staff, b } = basic('salt', 23);
+  const vet = staff.vet;
+  g.s.open = true;
+  ok(runUntil(g, () => vet.jobs > 0, DAY), 'staff gain experience from their work');
+  ok(vet.xp > 0 && vet.today > 0, 'experience and jobs today are counted');
+  const sk = vet.skill;
+  vet.skill = Math.min(sk, 4); vet.xp = XP_FOR(vet.skill) - 0.5;
+  const s0 = vet.skill;
+  ok(runUntil(g, () => vet.skill > s0, DAY), 'enough experience earns a new star');
+  ok(g.s.log.some((l) => l.text.includes(vet.name) && l.text.includes('stars')), 'and the news says so');
+  ok(vet.wage < (40 + 22 * vet.skill) * 1, 'the wage stays the same until a raise');
+  // the raise comes at the end of the day
+  ok(runUntil(g, () => g.s.raise, DAY * 2), 'a better-skilled staff member asks for a raise');
+  const r1 = g.s.raise, w0 = g.staffById(r1.staff).wage;
+  ok(g.answerRaise(r1.id, true).ok && g.staffById(r1.staff).wage === w0 + r1.amount, 'yes: the raise is paid');
+  eq(g.answerRaise(r1.id, true).ok, false, 'a raise is only answered once');
+  // no: a little glum, never gone
+  vet.wage -= 30; g.s.raise = { id: 999, staff: vet.id, amount: 30, expires: g.s.t + 500 };
+  const m0 = vet.mood;
+  ok(g.answerRaise(999, false).ok && vet.mood < m0, 'no: mood drops a little');
+  vet.mood = 10; g.run(DAY);
+  ok(g.staffById(vet.id) && vet.state !== 'leave', 'and they never quit over it');
+  ok(workRate(vet) < workRate({ ...vet, mood: 90 }), 'a glum member of staff works a little slower');
+  // training
+  const sr = b('staff');
+  for (const x of g.s.staff) if (x.role === 'vet') x.skill = Math.min(x.skill, 2);
+  eq(g.setTraining(sr.id, true).ok, false, 'training needs a teacher');
+  vet.skill = 3;
+  ok(g.setTraining(sr.id, true).ok && sr.train, 'a 3-star vet can teach in the Staff Room');
+  const rec = staff.recep; rec.skill = 1; rec.xp = 0; rec.energy = 5;
+  ok(runUntil(g, () => rec.state === 'rest', DAY), 'a tired receptionist rests');
+  const x0 = rec.xp; g.run(60);
+  ok(rec.xp > x0 + 2, `and learns while resting (${x0.toFixed(1)} to ${rec.xp.toFixed(1)})`);
+  const c0 = g.s.coins, sp0 = g.s.spent;
+  g.s.t = Math.ceil(g.s.t / DAY) * DAY - 1; g.tick();
+  ok(g.s.spent - sp0 >= TRAIN_COST + wagesPerDay(g.s) - 1, 'training costs a little each day');
+}
+
+// ---------------------------------------------------------------- room upgrades
+{
+  const { g, rooms } = basic('salt', 24);
+  g.s.coins = 5000;
+  eq(g.upgrade(rooms.reception.id).ok, false, 'the desk has no machine to upgrade');
+  ok(!canUpgrade('checkup') && canUpgrade('fluff'), 'cure rooms only');
+  const cost = g.upgradeCost(rooms.fluff);
+  ok(cost > 0 && cost < 650, `level 2 costs ${cost}`);
+  const c0 = g.s.coins;
+  ok(g.upgrade(rooms.fluff.id).ok && rooms.fluff.level === 2 && g.s.coins === c0 - cost, 'buy level 2');
+  ok(g.events.some((e) => e.t === 'upgrade' && e.level === 2), 'with a shiny event for the scene');
+  const c2 = g.upgradeCost(rooms.fluff);
+  ok(c2 > cost && g.upgrade(rooms.fluff.id).ok && rooms.fluff.level === 3, 'and level 3, dearer');
+  eq(g.upgradeCost(rooms.fluff), 0, 'level 3 is the top');
+  eq(g.upgrade(rooms.fluff.id).ok, false, 'no level 4');
+  ok(UPGRADE_SPEED[3] > UPGRADE_SPEED[1], 'upgraded machines cure faster');
+  g.s.coins = 10;
+  const { g: g2, rooms: r2 } = basic('salt', 24); g2.s.coins = 10;
+  ok(!g2.upgrade(r2.fluff.id).ok, 'upgrades need coins');
+  // sell refunds half of everything spent
+  const back = g.s.coins; g.sell(rooms.fluff.id);
+  ok(g.s.coins - back === Math.round((650 + cost + c2) / 2) || g.s.coins - back > 650 / 2, 'selling an upgraded room returns more');
+}
+
+// ---------------------------------------------------------------- the Burrow Bulletin, gifts and kind wording
+{
+  const { g } = basic('salt', 25);
+  g.s.open = true;
+  ok(runUntil(g, () => g.s.cures > 0, DAY), 'a cure');
+  const cured = g.s.patients.find((p) => p.cured);
+  ok(!cured || (cured.gift >= 1 && cured.gift <= 4), 'cured patients take a balloon, a lollipop or a pinwheel home');
+  ok(runUntil(g, () => g.s.bulletin, DAY * 2), 'the Burrow Bulletin arrives at the end of the day');
+  const bl = g.s.bulletin;
+  ok(bl.headline.length > 8 && bl.sub.length > 8, `with a headline: "${bl.headline}"`);
+  ok(bl.cures >= 1 && bl.earned > 0 && typeof bl.rep === 'number', 'the day in numbers');
+  ok(bl.star && bl.star.jobs > 0, `a staff member of the day (${bl.star && bl.star.name})`);
+  ok(bl.quote && bl.quote.text.length > 8, 'a patient quote');
+  ok(bl.tip.length > 8, 'and a tip');
+  g.dismissBulletin(); eq(g.s.bulletin, null, 'tap to put it away');
+  // the emergency wording says what really happened
+  ok(g.trigger('emergency'), 'an emergency call');
+  const o = g.s.offer; g.respond(o.id, false);
+  ok(g.s.log.at(-1).text.includes('village doctor') && g.s.log.at(-1).text.includes(String(o.count)), 'saying no: they go to the village doctor');
+  g.s.offer = { ...o, id: 77, expires: g.s.t }; g.tick();
+  ok(g.s.log.some((l) => l.text.startsWith('Nobody answered in time')), 'no answer: the same, kindly');
+  const words = JSON.stringify(g.s.log) + JSON.stringify(bl);
+  ok(!/\b(he|she|his|her|him|hers)\b/i.test(words), 'gender-neutral wording');
+}
+
+// ---------------------------------------------------------------- an older save gains the new fields
+{
+  const { g } = basic('salt', 26);
+  g.s.open = true; g.run(400);
+  const old = JSON.parse(JSON.stringify(g.s));
+  delete old.today; delete old.bulletin; delete old.raise;
+  for (const r of old.rooms) { delete r.level; delete r.train; }
+  for (const st of old.staff) { delete st.xp; delete st.mood; delete st.jobs; delete st.today; }
+  for (const p of old.patients) { delete p.qi; delete p.qr; delete p.gift; delete p.fd; }
+  const t0 = old.t, g2 = Game.load(old);
+  ok(g2.s.rooms.every((r) => r.level === 1) && g2.s.staff.every((x) => x.mood > 0 && x.xp === 0) && g2.s.today, 'a save from before the update loads with sensible defaults');
+  g2.run(300);
+  ok(g2.s.t > t0, 'and plays on');
+}
+
+// ---------------------------------------------------------------- decoration facings: rotate while placing and after; seats face the bench's front
+{
+  const { g } = basic('salt', 27);
+  g.s.coins = 5000;
+  ok(DECOS.bench.facings === 4 && DECOS.plant.facings === 1, 'benches, coolers, carts and heaters turn; round things do not');
+  // the bench goes in the line by the front door, where patients for a room not built yet wait
+  const sp = g.lineOf(0).line[3];
+  ok(g.place('bench', sp[0], sp[1], 2).ok, 'place a bench facing away (rotated while placing)');
+  const b = g.s.decos.at(-1);
+  eq(b.rot, 2, 'it keeps the facing it was placed with');
+  ok(g.rotateDeco(b.id).ok && b.rot === 3, 'rotate it after placing (free)');
+  const coins = g.s.coins;
+  ok(g.rotateDeco(b.id).ok && b.rot === 0 && g.s.coins === coins, 'all the way round, for nothing');
+  const pl = g.suggestDeco('plant'); g.place('plant', pl[0], pl[1], 3);
+  const plant = g.s.decos.at(-1);
+  eq(plant.rot, DECOS.plant.front, 'a plant ignores a facing');
+  eq(g.rotateDeco(plant.id).ok, false, 'and refuses to rotate, with a reason');
+  // a default facing points the front at open corridor
+  const cs = g.suggestDeco('cooler'); g.place('cooler', cs[0], cs[1]);
+  const cool = g.s.decos.at(-1), [fx, fy] = [[1, 0], [0, 1], [-1, 0], [0, -1]][cool.rot];
+  ok(g.grid.walk[(cool.y + fy) * g.W + cool.x + fx] === 1 && !g.roomAt[(cool.y + fy) * g.W + cool.x + fx], 'a new cooler faces open corridor');
+  // the suggested bench spot gets a facing with its back to a wall and its front to open corridor
+  const bs = g.suggestDeco('bench'), bf = g.facingFor('bench', bs[0], bs[1]), D4 = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+  const openAt = (x, y) => x >= 0 && y >= 0 && x < g.W && y < g.H && !g.roomAt[y * g.W + x] && g.grid.walk[y * g.W + x] === 1;
+  ok(openAt(bs[0] + D4[bf][0], bs[1] + D4[bf][1]), 'a suggested bench faces open floor');
+  const anyBack = [0, 1, 2, 3].some((f) => openAt(bs[0] + D4[f][0], bs[1] + D4[f][1]) && !openAt(bs[0] - D4[f][0], bs[1] - D4[f][1]));
+  ok(!anyBack || !openAt(bs[0] - D4[bf][0], bs[1] - D4[bf][1]), 'with its back to the wall when it can');
+  // patients on a bench face its front, and turn with it
+  g.s.open = true;
+  const p = g.spawnPatient('hiccups'); p.need = 'hiccup'; p.dx = 'hiccups'; g.requeue(p, false);
+  ok(p.seat === b.id, 'a patient sits on the bench');
+  eq(p.fd, b.rot, 'facing the way the bench faces');
+  g.rotateDeco(b.id);
+  eq(p.fd, b.rot, 'and turning with it');
+  ok(runUntil(g, () => Math.abs(p.x - b.x) < 0.01 && Math.abs(p.y - b.y) < 0.01, 400), 'they reach the bench');
+  g.run(2);
+  eq(p.dir, b.rot, 'and sit facing its front');
+  // an old save's decorations get their painting's facing
+  const old = JSON.parse(JSON.stringify(g.s)); for (const d of old.decos) delete d.rot;
+  const g2 = Game.load(old);
+  ok(g2.s.decos.every((d) => d.rot === DECOS[d.kind].front), 'old saves load with the default facing');
 }
 
 console.log(`clinic: ${checks} checks passed`);

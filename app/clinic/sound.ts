@@ -3,7 +3,8 @@
 // evening loop (slower, softer, with a celesta melody) and the campaign map (a bouncy travelling tune with a scooter
 // "beep-beep" now and then). Effects: the door chime, padded footsteps, the reception bell, one sound per machine
 // (a whirr, a hiccup boing, a steam puff, bubbles, a hum, a buzz), the cure "ta-da", the coin ka-ching, a grumpy huff, the
-// build thunk, the sell swish, the emergency slide whistle and a fanfare for goals met. Silent until the first click,
+// build thunk, the sell swish, the emergency slide whistle, a fanfare for goals met, a twinkle for a new star, a
+// knock for a raise request, a ratchet for an upgrade, a paper rustle for the Bulletin and a rubber stamp for the certificate. Silent until the first click,
 // tap or key.
 const hz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 type Track = 'day' | 'evening' | 'map' | 'off';
@@ -129,5 +130,17 @@ export class ClinicSound {
   siren() { const t = this.now; for (let i = 0; i < 2; i++) { this.tone(700, t + i * 0.5, 0.25, 0.07, 'sine', 1400); this.tone(1400, t + i * 0.5 + 0.25, 0.25, 0.07, 'sine', 700); } }
   goal() { const t = this.now; [60, 64, 67, 72, 76, 79, 84].forEach((m, i) => this.tone(hz(m), t + i * 0.09, 0.45, 0.07, 'triangle')); this.tone(hz(72), t + 0.7, 1, 0.05, 'sine'); this.tone(hz(76), t + 0.7, 1, 0.05, 'sine'); this.tone(hz(79), t + 0.7, 1, 0.05, 'sine'); }
   pick() { const t = this.now; this.tone(500, t, 0.12, 0.06, 'sine', 900); }
+  /** a new star: a twinkly rising arpeggio */
+  levelup() { const t = this.now; [79, 83, 86, 91].forEach((m, i) => { this.tone(hz(m), t + i * 0.06, 0.25, 0.06, 'sine'); this.tone(hz(m) * 2, t + i * 0.06, 0.12, 0.015, 'sine'); }); }
+  /** a raise request: a polite little knock-knock */
+  knock() { const t = this.now; for (let i = 0; i < 2; i++) { this.tone(240, t + i * 0.16, 0.07, 0.12, 'sine', 160); this.hiss(t + i * 0.16, 0.04, 0.05, 900, 1, 'lowpass'); } }
+  /** an upgrade: a ratchet, then a bright chime */
+  ratchet() { const t = this.now; for (let i = 0; i < 5; i++) this.hiss(t + i * 0.05, 0.03, 0.08, 3200, 4); this.tone(hz(88), t + 0.28, 0.5, 0.06, 'sine'); this.tone(hz(95), t + 0.36, 0.5, 0.04, 'sine'); }
+  /** the Bulletin: paper rustle and a two-note newsboy whistle */
+  paper() { const t = this.now; this.hiss(t, 0.25, 0.07, 5000, 0.6, 'highpass'); this.hiss(t + 0.12, 0.2, 0.05, 4000, 0.6, 'highpass'); this.tone(hz(84), t + 0.3, 0.12, 0.05, 'sine'); this.tone(hz(79), t + 0.44, 0.22, 0.05, 'sine'); }
+  /** a cured patient's balloon: a squeaky pop of joy */
+  squeak() { const t = this.now; this.tone(900, t, 0.12, 0.04, 'sine', 1500); }
+  /** the certificate: a rubber stamp */
+  stamp() { const t = this.now; this.tone(90, t, 0.2, 0.25, 'sine', 50); this.hiss(t, 0.1, 0.12, 400, 1, 'lowpass'); }
   drop() { const t = this.now; this.tone(800, t, 0.12, 0.06, 'sine', 400); this.tone(150, t + 0.1, 0.08, 0.08, 'sine', 90); }
 }

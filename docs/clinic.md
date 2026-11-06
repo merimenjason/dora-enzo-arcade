@@ -26,11 +26,22 @@ Code:
 4. **Cure room** for the ailment they were told they have. A **wrong guess fails gently.** The machine does nothing,
    the patient looks puzzled, and they go back for a second check-up, which is always right. Nobody pays for a wrong
    cure.
-5. **Cured:** a starburst, a cheer and a fee as they leave. The fee earns 10% more if they were still happy. A VIP condor
-   tips three times the fee.
+5. **Cured:** the ailment's picture pops off them in a puff, then a starburst, a cheer and a fee. The fee earns 10% more
+   if they were still happy. A VIP condor tips three times the fee. Cured patients hop home with a balloon, a lollipop or
+   a pinwheel; a patient who ran out of patience huffs out under a little storm cloud.
+
+**Who has what:** every ailment shows on the patient from arrival until the cure (see the table below). Beside each
+sick patient's head a small badge says what is known: a **?** until the Check-up, then the hanging sign of the room
+that cures them, the same sign that hangs over that room's door. The clinic panel's **Who has what?** legend lists this
+clinic's ailments with how each looks and its cure room.
 
 **Waiting:**
-- Patients sit on benches when they can, and wait twice as patiently sitting down.
+- **Lines:** each room has its own line of corridor tiles running back from its door, one tile apart, hugging the
+  walls and turning back towards the front door when it meets a dead end. Patients for the same room wait in arrival
+  order (VIPs and emergencies first); nobody shares a tile, and the front of the line steps up as patients go in.
+  A counter by each door shows how many are waiting (coral at six or more).
+- Patients sit on benches when they can (front of the line first, within 8 tiles of the door), and wait twice as
+  patiently sitting down. They sit facing the way the bench faces.
 - They lose patience faster when thirsty, cold, near litter or far from cheer. Plants, cacti, lamps, rugs and magazine
   tables are cheer; a cheery staff member nearby, Dora and Enzo walking by.
 - A thirsty patient fetches a free drink from a water cooler, or buys one (15 coins) from a drinks cart, and keeps
@@ -45,15 +56,21 @@ Code:
 
 | Ailment | What you see | Cure room | Who runs it | Fee |
 | --- | --- | --- | --- | --- |
-| Static Fluff | sparks crackle round the fur | Fluff-Dryer | vet | 90 |
-| Echo Hiccups | bubbles float up | Hiccup Jar | vet | 110 |
-| Upside-Down Ears | an ear badge | Ear-Flipper | vet | 120 |
-| Snowball Sneezes | little snowflakes | Steam Booth | vet | 125 |
-| Dust-Bath Fever | dust puffs at their feet | Dust-Bath Ward (beds) | nurse | 150 |
-| Tangle Tail | a knot badge | Comb Station | nurse | 130 |
-| Glow Whiskers | a soft glow | Dark Room | vet | 140 |
-| Puff-Up | drawn a third wider | Deflating Hammock (beds) | nurse | 160 |
-| Sleepy Spots | purple spots | Bright Lamp Room | vet | 145 |
+| Static Fluff | a flickering frizz of blue static and crackling zigzag sparks | Fluff-Dryer | vet | 90 |
+| Echo Hiccups | a hop and a smaller echo hop, each letting out a bubble that floats up and pops | Hiccup Jar | vet | 110 |
+| Upside-Down Ears | painted pose: ears hanging upside down, a puzzled look | Ear-Flipper | vet | 120 |
+| Snowball Sneezes | a snowball at the nose, then a sneeze splat that flings it away | Steam Booth | vet | 125 |
+| Dust-Bath Fever | a swirling dust cloud, pebbles and a wriggle | Dust-Bath Ward (beds) | nurse | 150 |
+| Tangle Tail | a fur knot at the tail end | Comb Station | nurse | 130 |
+| Glow Whiskers | whiskers glowing yellow, with a soft glow (strong in the dusk tint) | Dark Room | vet | 140 |
+| Puff-Up | painted pose: puffed up round as a ball | Deflating Hammock (beds) | nurse | 160 |
+| Sleepy Spots | purple spots, a sleepy nod and drifting Zzz | Bright Lamp Room | vet | 145 |
+
+Lying on a machine, Upside-Down Ears and Puff-Up show their icon instead of the painted pose. With reduced motion the
+effects hold still rather than vanish.
+
+**Room upgrades:** a cure room's card buys level 2 (half the room's price) and level 3 (90%): the machines work 1.25×
+and 1.5× faster and wear 30% and 55% slower. Upgraded machines look shinier, glint, and carry a gold medal.
 
 **Every clinic also has:**
 - a **Reception** (a receptionist at the desk);
@@ -119,11 +136,39 @@ Code:
 - **Doors:**
   - Doors go automatically on the edge nearest the corridor.
   - **Move door** on a room's card steps the door round to the next spot that works.
-- **Selling:** a room or decoration sells back for half its price.
+- **Decorations turn:** benches, water coolers, drinks carts and heaters have a front. The ghost picks a sensible
+  facing (back to a wall, front to open corridor, towards a door when one is in view) with an arrow on the floor; R or
+  the rotate button turns it while placing, and **Rotate** on a placed decoration's card turns it for free. A bench
+  seats patients facing its front; thirsty patients drink at a cooler's or cart's front. Plants, cacti, bins, lamps,
+  rugs and tables look the same from every side, so they offer no rotate.
+- **Selling:** a room or decoration sells back for half its price (both cards have Sell). Neither moves once placed: a
+  room's door can be moved, and anything can be sold and rebuilt.
+- **Camera:** the floor is framed on opening, after each build and by **View**. The camera never zooms out so far that
+  characters drop below about 40 pixels; on an upright phone it zooms until the floor fills the height and you pan
+  sideways. Panning is clamped to the clinic.
+- **Room signs:** each room has a floor tint and a 1950s hanging sign over its door, and a coral **Needs a vet** (or
+  nurse, receptionist) pill pulses while nobody can staff it.
 - **Paths:**
   - Patients and staff path-find with A* over the tile grid. Walls sit on tile edges and a room is entered only
     through its door.
   - Paths are cached and the cache is cleared whenever the layout changes.
+
+## Growth, mood and the day's end
+
+- **Staff growth:** staff earn experience for every job (receptionists at half rate) and level up a star at
+  20 + 15 × stars XP, with a medal pop. A Staff Room with **Training** on (30 coins a day) lets a vet with three stars
+  or more teach everyone resting there.
+- **Raises:** at the end of a day, staff paid below their worth may ask for a raise on a yes/no card. Yes raises the
+  wage by 20 and mood by 20; no lowers mood by 15. Nobody quits over it, and unhappy staff (mood under 35) work 10%
+  slower.
+- **Mood reasons:** a patient's card lists why they feel the way they do (thirsty, a long wait, litter, cold, standing,
+  a missing room, or the good things: plants, decor, a bench, cheer), and the picked patient thinks their top reason
+  in a bubble. The clinic panel lists the top three complaints, each with **Show me**.
+- **The Burrow Bulletin:** at the end of each day a newspaper sums it up: a headline, cures, coins in and out, the
+  reputation change, the staff member of the day, a patient quote and a tip. Tap to fold it away; Settings can switch
+  it off.
+- **The certificate:** meeting the goals shows a painted certificate with the stars, a stamp and Dora and Enzo, then
+  "On to the next clinic", "Keep playing here" or "Back to the map".
 
 ## Events
 
@@ -178,7 +223,9 @@ Before step 5 the clock does not run and nobody arrives, so nothing in the first
 | Zoom | wheel | pinch |
 | Draw or move a room | drag on the floor or the ghost in build mode | the same |
 | Pick up staff | drag them, or Pick up on their card | the same |
-| Rotate the ghost | R or the rotate button | the rotate button |
+| Rotate the ghost (rooms and decorations) | R or the rotate button | the rotate button |
+| Rotate a placed decoration | Rotate on its card | the same |
+| Frame the floor | View | View |
 | Place | Enter or ✓ | ✓ |
 | Cancel | right-click or Escape | ✕ |
 | Pause | Space or the pause button | the pause button |
@@ -188,8 +235,8 @@ Before step 5 the clock does not run and nobody arrives, so nothing in the first
 **Layout:**
 - **Wide screens:** the toolbar is on the left and the dock of cards on the right.
 - **Phones held sideways (the main phone layout):** the same, slimmer.
-- **Phones held upright:** the top bar wraps to two rows, the dock slides up under the floor and the toolbar sits at the
-  bottom.
+- **Phones held upright:** the top bar wraps to two rows and the toolbar sits at the bottom. The dock folds to a slim
+  bar with **More**/**Less**, so the floor gets most of the screen.
 - Panels never sit over the floor.
 
 ## The assist ("Helping hand", on by default)
@@ -208,7 +255,9 @@ Before step 5 the clock does not run and nobody arrives, so nothing in the first
 - **What it holds:**
   - stars and best days per clinic;
   - the clinic in play (its full state);
-  - the settings: sound, music, speed, helping hand, strict, motion and Sandbox.
+  - the settings: sound, music, speed, helping hand, strict, motion, the Bulletin and Sandbox.
+- **Older saves:** fields added later (lines, staff growth, room levels, the Bulletin, gifts, decoration facings) are
+  filled in on load, so `-v1` saves keep working.
 - **When:**
   - at the start of every in-game day;
   - after building, hiring or selling;
@@ -231,13 +280,22 @@ Before step 5 the clock does not run and nobody arrives, so nothing in the first
   - goals, stars and the soft and strict limits;
   - the tutorial and the assist;
   - determinism;
-  - the save round-trip and corrupt saves.
+  - waiting lines (one tile each, front of the line first), mood reasons and complaints;
+  - staff growth, raises and training, room upgrades, the Bulletin, gifts and kind wording;
+  - decoration facings: rotate while placing and after, the suggested facing, seats facing the bench's front;
+  - the save round-trip, older saves gaining new fields, and corrupt saves.
 - **`tests/clinic-bot.mjs`:** plays every clinic headless with three managers (`--quick` for 12 seeds, the default 40):
   - **casual:** builds the tutorial's rooms in a sensible but imperfect layout, hires average staff, reacts to Dora's
     tips 20–40 in-game minutes late and takes half the emergencies;
   - **pro:** plans ahead within its budget;
   - **idle:** builds nothing.
-- **`tests/e2e/clinic.mjs`:** every player action in a real browser, on desktop and both phone layouts.
+- **`tests/e2e/clinic.mjs`:** every player action in a real browser, on desktop and both phone layouts (214 checks),
+  including the camera's minimum zoom and View, lines, mood reasons and Show me, a raise answered both ways, upgrades,
+  training, gifts and huffs, the Bulletin and its setting, the certificate, rotating decorations (button, R and the
+  card), every ailment of clinic 1 showing on arrival and clearing on cure, the painted sick poses, and the folding
+  dock on an upright phone. The page exposes `debug.ailFx()` (which ailment each patient showed in the last frame).
+- The bots also exercise the new systems: they answer raises, dismiss the Bulletin, upgrade the busiest cure room and
+  (pro) switch training on.
 
 **Balance targets:**
 - casual meets clinic 1 in at least 90% of seeds, clinic 2 in at least 80% and each later clinic in at least 60%;
@@ -248,12 +306,12 @@ The latest full run (40 seeds a clinic, 06-11-2026); the idle manager met none:
 
 | Clinic | Casual met | Casual 3★ | Casual day | Pro met | Pro 3★ | Pro day |
 | --- | --- | --- | --- | --- | --- | --- |
-| Burrow Clinic | 100% | 95% | 4.6 of 7 | 100% | 100% | 4.6 |
-| Salt Flat | 100% | 100% | 5.3 of 8 | 100% | 100% | 5.1 |
-| Lakeside | 100% | 100% | 5.4 of 9 | 100% | 100% | 5.1 |
-| Cloud Forest | 100% | 98% | 6.5 of 10 | 100% | 95% | 6.5 |
-| Hot Springs | 95% | 65% | 7.1 of 10 | 100% | 83% | 6.8 |
-| Summit | 95% | 55% | 7.7 of 11 | 100% | 98% | 7.2 |
+| Burrow Clinic | 100% | 93% | 5.0 of 7 | 100% | 93% | 5.0 |
+| Salt Flat | 100% | 98% | 5.4 of 8 | 100% | 100% | 5.1 |
+| Lakeside | 100% | 100% | 5.7 of 9 | 100% | 100% | 5.4 |
+| Cloud Forest | 100% | 90% | 6.7 of 10 | 100% | 90% | 6.8 |
+| Hot Springs | 98% | 70% | 7.3 of 10 | 100% | 75% | 7.1 |
+| Summit | 93% | 63% | 7.8 of 11 | 98% | 85% | 7.5 |
 
 ## Art
 
@@ -264,6 +322,11 @@ The latest full run (40 seeds a clinic, 06-11-2026); the idle manager met none:
   - 8-frame strips for the 7 patient species, the condor VIP, the owl inspector, Dora, Enzo and the 8 staff looks;
   - frames: walk towards and away, then the poses; the scene mirrors them for the other two facings;
   - Dora (cream-white, a white vet coat) and Enzo (grey, teal scrubs) wear no signature accessories here.
-- **Things on the floor:** 16 machines, 10 decorations, 32 icons, litter and effect pieces, and 12 seamless floor and
-  wall textures.
-- **Paintings:** the title, the map, the goals-met vignette and six backdrops.
+- **Things on the floor:** 16 machines, 10 decorations (with back views of the bench, cooler, cart and heater), 32
+  icons, litter and effect pieces, and 12 seamless floor and wall textures.
+- **Ailments:** painted sick poses (`k-ears-*`, `k-puff-*`, standing and sitting, for the seven patient species,
+  sized to the sheet frames they replace) and eight effect pieces (`x-*`: static halo, spark, bubbles, snowball, sneeze
+  splat, dust cloud, tail knot, glow), animated in code.
+- **Signs and bits:** 12 hanging room signs (`s-*`), head-and-shoulders portraits (`face-*`), gifts, a medal, a
+  mortarboard and a spanner.
+- **Paintings:** the title, the map, the goals-met vignette, the certificate and six backdrops.

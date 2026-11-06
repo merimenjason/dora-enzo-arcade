@@ -8,7 +8,10 @@
 // - the patient, staff and room info cards, Look closer, Move door and selling;
 // - meeting the goals (the debug hook fast-forwards), the stars, back to the map, and the next clinic unlocked;
 // - settings and the mute button, the save surviving a reload (and Continue), and a corrupt save;
-// - phone landscape and portrait with no sideways scroll, every button on screen, and no page errors.
+// - tidy waiting lines, the camera's minimum zoom and the View button, mood reasons and the top complaints with Show me,
+//   staff growth and a raise answered both ways, machine upgrades to level 3, training on and off, gifts and huffs, the
+//   Burrow Bulletin (and its setting), the kind emergency wording, and the certificate;
+// - phone landscape and portrait with no sideways scroll, every button on screen, the folding dock, and no page errors.
 // Needs `npm run dev` running and Playwright.
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
@@ -342,6 +345,248 @@ try {
     await until(page, () => window.__clinic().clinic === 'salt');
     eq((await hc(page)).state.rooms.length, 1, 'Continue picks up where you left off');
     ok(await noSideways(page), 'desktop: no sideways scroll');
+    await ctx.close();
+  }
+
+  // ------------------------------------------------------------ the improvement pass: lines, camera, the Bulletin, raises, growth, upgrades,
+  // training, mood reasons and complaints, gifts and huffs, kind wording and the certificate
+  {
+    const { ctx, page } = await open({ width: 1280, height: 800 });
+    await page.click('[data-act="play"]');
+    await dbg(page, 'open', 'salt', true);
+    await until(page, () => window.__clinic().screen === 'clinic' && window.__clinic().clinic === 'salt');
+    await page.evaluate(() => {
+      const d = window.__clinic().debug;
+      for (const k of ['reception', 'checkup', 'fluff', 'hiccup', 'staff']) d.build(k);
+      for (const r of ['recep', 'vet', 'vet', 'cleaner']) d.hire(r);
+      for (const k of ['bench', 'cooler', 'plant']) d.place(k);
+      d.coins(5000);
+    });
+    // the camera never shrinks the characters below its minimum zoom
+    const cam = await dbg(page, 'scenePick');
+    ok(cam.zoom >= cam.min * 0.9 - 1e-6, `the camera keeps characters big enough (zoom ${cam.zoom.toFixed(2)}, min ${cam.min})`);
+    await dbg(page, 'run', 1100);
+    if ((await hc(page)).sheet === 'bulletin') await page.click('[data-act="bulletin-close"]');
+    // tidy lines: nobody standing on anybody
+    const st1 = (await hc(page)).state;
+    const standing = st1.patients.filter((p) => p.phase === 'wait' && !p.seat && p.spot).map((p) => p.spot.join(','));
+    ok(standing.length > 0, `patients are waiting in line (${standing.length})`);
+    eq(new Set(standing).size, standing.length, 'every waiting patient has a spot of their own');
+    // a patient card says why they feel the way they do
+    await page.evaluate(() => { const s = window.__clinic().state; const p = s.patients.find((q) => q.phase === 'wait'); p.thirst = 95; });
+    const pid = (await hc(page)).state.patients.find((q) => q.phase === 'wait').id;
+    await dbg(page, 'select', 'patient', pid);
+    await page.locator('[data-card="patient"] [data-why]').waitFor();
+    ok((await page.locator('[data-card="patient"] [data-why]').getAttribute('data-why')).includes('thirst'), 'the patient card lists "Thirsty" among the reasons');
+    // the clinic panel's top complaints, with Show me
+    await page.click('[data-tool="overview"]');
+    await page.locator('[data-act="show-me"]').first().waitFor();
+    ok(await page.locator('[data-complaint]').count() >= 1 && await page.locator('[data-complaint]').count() <= 3, 'the clinic panel lists up to three complaints');
+    await page.locator('[data-act="show-me"]').first().click();
+    await until(page, () => window.__clinic().selected?.type === 'patient');
+    ok(true, 'Show me picks a patient with that complaint');
+    // the staff card shows growth; a near-star vet earns a star with a level-up
+    const vet = (await hc(page)).state.staff.find((x) => x.role === 'vet');
+    await dbg(page, 'select', 'staff', vet.id);
+    await page.locator('[data-card="staff"] [data-growth]').waitFor();
+    ok(true, 'the staff card shows experience and mood');
+    await dbg(page, 'nearStar', vet.id);
+    const sk = (await hc(page)).state.staff.find((x) => x.id === vet.id).skill;
+    for (let i = 0; i < 20 && (await hc(page)).state.staff.find((x) => x.id === vet.id).skill === sk; i++) await dbg(page, 'run', 100);
+    ok((await hc(page)).state.staff.find((x) => x.id === vet.id).skill === sk + 1, 'experience earns a new star');
+    // a raise: no lowers mood a little (nobody quits); yes raises the wage
+    if ((await hc(page)).sheet === 'bulletin') await page.click('[data-act="bulletin-close"]');
+    await page.evaluate(() => { window.__clinic().state.raise = null; });
+    const m0 = (await hc(page)).state.staff.find((x) => x.id === vet.id).mood;
+    await dbg(page, 'raise', vet.id);
+    await page.locator('[data-card="raise"]').waitFor();
+    await page.click('[data-act="raise-no"]');
+    await until(page, () => !window.__clinic().state.raise);
+    const v1 = (await hc(page)).state.staff.find((x) => x.id === vet.id);
+    ok(v1.mood < m0 && v1.state !== 'leave', `saying no: a little glum (${m0} to ${v1.mood}), still on the team`);
+    await dbg(page, 'raise', vet.id);
+    await page.locator('[data-card="raise"]').waitFor();
+    await page.click('[data-act="raise-yes"]');
+    await until(page, () => !window.__clinic().state.raise);
+    ok((await hc(page)).state.staff.find((x) => x.id === vet.id).wage === v1.wage + 20, 'saying yes: the raise is paid');
+    // upgrade a cure room's machine
+    const fluff = (await hc(page)).state.rooms.find((r) => r.kind === 'fluff');
+    await dbg(page, 'coins', 5000);
+    await dbg(page, 'select', 'room', fluff.id);
+    await page.click('[data-act="upgrade"]');
+    await until(page, (id) => window.__clinic().state.rooms.find((r) => r.id === id).level === 2, fluff.id);
+    ok((await hc(page)).state.coins < 5000, 'the upgrade to level 2 is paid for');
+    eq(await page.locator('.hc-upgrade').getAttribute('data-level'), '2', 'and the card shows level 2');
+    await page.click('[data-act="upgrade"]');
+    await until(page, (id) => window.__clinic().state.rooms.find((r) => r.id === id).level === 3, fluff.id);
+    eq(await page.locator('[data-act="upgrade"]').count(), 0, 'level 3 is the top: no more upgrade button');
+    // training in the Staff Room: a three-star vet teaches
+    await page.evaluate((id) => { window.__clinic().state.staff.find((x) => x.id === id).skill = 3; }, vet.id);
+    const sr = (await hc(page)).state.rooms.find((r) => r.kind === 'staff');
+    await dbg(page, 'select', 'room', sr.id);
+    await page.click('[data-setting="train"]');
+    await until(page, (id) => window.__clinic().state.rooms.find((r) => r.id === id).train, sr.id);
+    ok(true, 'training switches on');
+    await page.click('[data-setting="train"]');
+    await until(page, (id) => !window.__clinic().state.rooms.find((r) => r.id === id).train, sr.id);
+    ok(true, 'and off');
+    // cured patients take a gift home; a grumpy one huffs out
+    let gifts = false;
+    for (let i = 0; i < 20 && !gifts; i++) { await dbg(page, 'run', 60); gifts = (await hc(page)).state.patients.some((p) => p.cured && p.gift > 0); if ((await hc(page)).sheet === 'bulletin') await page.click('[data-act="bulletin-close"]'); }
+    ok(gifts, 'cured patients go home with a balloon, lollipop or pinwheel');
+    await page.evaluate(() => { const p = window.__clinic().state.patients.find((q) => q.phase === 'wait'); if (p) p.patience = 0.01; });
+    await dbg(page, 'run', 3);
+    ok((await hc(page)).state.patients.some((p) => p.phase === 'leave' && !p.happy), 'out of patience: they huff out');
+    // the Burrow Bulletin at the end of the day
+    await dbg(page, 'endDay');
+    await page.locator('[data-sheet="bulletin"]').waitFor();
+    ok((await page.locator('[data-headline]').innerText()).length > 8, 'the Bulletin has a headline');
+    ok(await page.locator('[data-sheet="bulletin"] [data-star]').count() === 1, 'and a staff member of the day');
+    ok((await hc(page)).paused || (await hc(page)).sheet === 'bulletin', 'the day waits while it is read');
+    await page.click('[data-act="bulletin-close"]');
+    await until(page, () => !window.__clinic().sheet && !window.__clinic().state.bulletin);
+    ok(true, 'tap to fold the paper away');
+    // and it can be switched off
+    await page.click('[data-act="settings"]');
+    await page.click('[data-setting="bulletins"]');
+    ok((await hc(page)).save.settings.bulletins === false, 'the Bulletin setting turns off');
+    await page.click('[data-act="close-settings"]');
+    await dbg(page, 'endDay');
+    ok((await hc(page)).sheet === null && (await hc(page)).state.bulletin === null, 'with it off, no paper at the end of the day');
+    // an emergency declined: the news says what really happened
+    await page.evaluate(() => { const s = window.__clinic().state; s.offer = null; s.emergencies.forEach((e) => { e.done = true; }); });
+    ok(await dbg(page, 'emergency', 'static'), 'an emergency call');
+    await page.click('[data-act="decline"]');
+    await until(page, () => /village doctor/.test(window.__clinic().news));
+    ok(true, 'declining: they go to the village doctor');
+    // the fit button and the camera after building
+    await page.mouse.move(600, 400); await page.mouse.wheel(0, -600);
+    const zIn = (await hc(page)).scene.zoom;
+    await page.click('[data-tool="fit"]');
+    await until(page, (z) => Math.abs(window.__clinic().scene.zoom - z) > 0.05, zIn);
+    ok(true, 'the View button frames the floor again');
+    // the certificate, then back to the map
+    await dbg(page, 'meet');
+    await page.locator('[data-sheet="met"] .hc-cert-art').waitFor();
+    ok(await page.locator('[data-sheet="met"] .hc-cert-art').evaluate((im) => im.complete && im.naturalWidth > 0), 'the certificate painting shows');
+    ok((await page.locator('.hc-cert-text h3').innerText()).includes('Salt Flat'), 'with the clinic’s name');
+    await page.click('[data-sheet="met"] [data-act="to-map"]');
+    await until(page, () => window.__clinic().screen === 'map');
+    ok(true, 'Back to the map');
+    ok(await noSideways(page), 'no sideways scroll');
+    await ctx.close();
+  }
+  // ------------------------------------------------------------ decorations turn: while placing (button and R) and after, from the card
+  {
+    const { ctx, page } = await open({ width: 1280, height: 800 });
+    await page.click('[data-act="play"]');
+    await dbg(page, 'open', 'salt', true);
+    await until(page, () => window.__clinic().screen === 'clinic');
+    await page.evaluate(() => { const d = window.__clinic().debug; d.build('reception'); d.coins(3000); });
+    await page.click('[data-tool="decor"]');
+    await page.click('[data-deco="bench"]');
+    await until(page, () => window.__clinic().ghost?.ok);
+    const r0 = (await hc(page)).ghost.rot;
+    await page.click('[data-act="rotate"]');
+    const r1 = (await hc(page)).ghost.rot;
+    eq(r1, (r0 + 1) % 4, 'the rotate button turns the bench while placing');
+    await page.keyboard.press('r');
+    const r2 = (await hc(page)).ghost.rot;
+    eq(r2, (r1 + 1) % 4, 'and so does R');
+    await page.click('[data-act="place"]');
+    await until(page, () => window.__clinic().state.decos.some((d) => d.kind === 'bench'));
+    const bench = (await hc(page)).state.decos.find((d) => d.kind === 'bench');
+    eq(bench.rot, r2, 'it is placed facing the way it was turned');
+    await page.click('[data-act="cancel"]');
+    await dbg(page, 'select', 'deco', bench.id);
+    await page.locator('[data-card="deco"] [data-act="rotate-deco"]').waitFor();
+    const coins = (await hc(page)).state.coins;
+    await page.click('[data-act="rotate-deco"]');
+    const b2 = (await hc(page)).state.decos.find((d) => d.id === bench.id);
+    ok(b2.rot === (r2 + 1) % 4 && (await hc(page)).state.coins === coins, 'the card’s Rotate turns a placed bench, for free');
+    eq(await page.locator('[data-card="deco"] [data-facing]').getAttribute('data-facing'), String(b2.rot), 'and the card shows its new facing');
+    // round things do not offer a rotate
+    await page.click('[data-tool="decor"]');
+    await page.click('[data-deco="plant"]');
+    eq(await page.locator('[data-act="rotate"]').count(), 0, 'a plant has no rotate button (it looks the same every way)');
+    await page.click('[data-act="place"]');
+    await page.click('[data-act="cancel"]');
+    const plant = (await hc(page)).state.decos.find((d) => d.kind === 'plant');
+    await dbg(page, 'select', 'deco', plant.id);
+    await page.locator('[data-card="deco"]').waitFor();
+    eq(await page.locator('[data-act="rotate-deco"]').count(), 0, 'nor does its card; Sell is offered on both');
+    eq(await page.locator('[data-act="sell-deco"]').count(), 1, 'a decoration can be sold like a room');
+    await ctx.close();
+  }
+  // ------------------------------------------------------------ every ailment shows on the patient, and the cure takes it away
+  {
+    const { ctx, page } = await open({ width: 1280, height: 800 });
+    await page.click('[data-act="play"]');
+    await dbg(page, 'open', 'burrow', true);
+    await until(page, () => window.__clinic().screen === 'clinic' && window.__clinic().clinic === 'burrow');
+    await page.evaluate(() => {
+      const d = window.__clinic().debug;
+      for (const k of ['reception', 'checkup', 'fluff', 'hiccup']) d.build(k);
+      for (const r of ['recep', 'vet', 'vet']) d.hire(r);
+      d.coins(3000);
+    });
+    const ails = ['static', 'hiccups'];
+    const ids = {};
+    for (const a of ails) ids[a] = await dbg(page, 'patient', a, 'pudu');
+    for (const a of ails) {
+      await until(page, ([id, ail]) => window.__clinic().debug.ailFx()[id] === ail, [ids[a], a]);
+      ok(true, `a patient with ${a} shows it on arrival`);
+    }
+    // the clinic panel's legend lists clinic 1's ailments with their cure rooms
+    await page.click('[data-tool="overview"]');
+    await page.locator('.hc-legend [data-ail]').first().waitFor();
+    eq(await page.locator('.hc-legend [data-ail]').count(), 2, 'the legend lists the two ailments of the first clinic');
+    // run the clinic until both are cured: the ailment no longer shows
+    for (let i = 0; i < 80; i++) {
+      const st = (await hc(page)).state;
+      if (ails.every((a) => { const q = st.patients.find((p) => p.id === ids[a]); return !q || q.cured; })) break;
+      await page.evaluate(() => { const s = window.__clinic().state; for (const p of s.patients) p.patience = 100; });
+      await dbg(page, 'run', 40);
+      if ((await hc(page)).sheet === 'bulletin') await page.click('[data-act="bulletin-close"]');
+    }
+    const st = (await hc(page)).state;
+    ok(ails.every((a) => { const q = st.patients.find((p) => p.id === ids[a]); return !q || q.cured; }) && st.cures >= 2, `both patients are cured (${st.cures} cures)`);
+    await page.waitForTimeout(150);
+    const seen = await dbg(page, 'ailFx');
+    for (const a of ails) ok(seen[ids[a]] === undefined, `cured of ${a}: it no longer shows`);
+    // the painted poses: Upside-Down Ears and Puff-Up
+    await dbg(page, 'open', 'sandbox', true);
+    await until(page, () => window.__clinic().clinic === 'sandbox');
+    await dbg(page, 'build', 'reception');
+    const e = await dbg(page, 'patient', 'ears', 'fox'), pf = await dbg(page, 'patient', 'puff', 'alpaca');
+    await until(page, ([a, b]) => { const f = window.__clinic().debug.ailFx(); return f[a] === 'ears:painted' && f[b] === 'puff:painted'; }, [e, pf]);
+    ok(true, 'Upside-Down Ears and Puff-Up patients are drawn in their painted sick poses');
+    ok(await noSideways(page), 'no sideways scroll');
+    await ctx.close();
+  }
+  // ------------------------------------------------------------ an upright phone: the floor gets the screen, the dock folds to a bar
+  {
+    const { ctx, page } = await open({ width: 390, height: 844 });
+    await page.click('[data-act="play"]');
+    await dbg(page, 'open', 'salt', true);
+    await until(page, () => window.__clinic().screen === 'clinic');
+    await page.evaluate(() => { const d = window.__clinic().debug; d.build('reception'); d.hire('recep'); });
+    await page.click('[data-tool="overview"]');
+    await page.locator('.hc-slim').waitFor();
+    const cv = await page.locator('.hc-canvas').boundingBox();
+    ok(cv.height >= 844 * 0.55, `the floor takes most of an upright phone (${Math.round(cv.height)} px)`);
+    const d0 = (await page.locator('.hc-dock').boundingBox()).height;
+    ok(d0 <= 80, `the dock folds to a slim bar (${Math.round(d0)} px)`);
+    await page.click('[data-act="dock"]');
+    await until(page, () => window.__clinic().dockUp === true);
+    const d1 = (await page.locator('.hc-dock').boundingBox()).height;
+    ok(d1 > d0 + 80, `More opens the dock (${Math.round(d1)} px)`);
+    await page.click('[data-act="dock"]');
+    await until(page, () => window.__clinic().dockUp === false);
+    ok(true, 'Less folds it again');
+    const cam = await dbg(page, 'scenePick');
+    ok(cam.zoom >= cam.min * 0.9 - 1e-6, `characters stay big on a phone (zoom ${cam.zoom.toFixed(2)})`);
+    ok(await noSideways(page), 'no sideways scroll on an upright phone');
     await ctx.close();
   }
 

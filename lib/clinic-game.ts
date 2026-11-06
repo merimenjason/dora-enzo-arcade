@@ -44,8 +44,15 @@ export interface Room {
   staff: number;
   /** cleanliness of this room's floor is shared with the corridor litter; this counts uses for the info card */
   uses: number;
+  /** machine level 1 to 3 (upgrades: faster treatments, less wear) */
+  level: number;
+  /** staff room only: a 3-star vet resting here teaches the others (costs TRAIN_COST a day) */
+  train: boolean;
 }
-export interface Deco { id: number; kind: DecoKind; x: number; y: number; water: number; seats: number[]; fixer: number; cost: number }
+/** `rot`: the way the decoration's front faces (0 +x, 1 +y, 2 -x, 3 -y, like a mover's dir): a bench seats patients
+ *  facing it, and thirsty patients queue at a cooler's or cart's front */
+export interface Deco { id: number; kind: DecoKind; x: number; y: number; water: number; seats: number[]; fixer: number; cost: number; rot: number }
+export const DIR_D: Pt[] = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 export interface Litter { id: number; x: number; y: number; fixer: number }
 
 export type Phase = 'arrive' | 'wait' | 'to_slot' | 'in_slot' | 'drink' | 'cheer' | 'leave' | 'gone';
@@ -54,6 +61,10 @@ export interface Patient extends Mover {
   id: number; sp: SpeciesId; name: string; ail: AilmentId; dx: AilmentId | null; sure: boolean; wrongs: AilmentId[];
   need: RoomKind; phase: Phase; room: number; slot: number; spot: Pt | null; seat: number; drinkAt: number;
   patience: number; thirst: number; timer: number; vip: boolean; emerg: number; happy: boolean; arrivedAt: number; cured: boolean; fail: number;
+  /** their place in a room's waiting line: the room, and the index along the line (-1: not in a line) */
+  qr: number; qi: number; fd: number;
+  /** what a cured patient takes home (0 none, 1 a coral balloon, 2 a teal balloon, 3 a lollipop, 4 a pinwheel) */
+  gift: number;
 }
 export type StaffState = 'arrive' | 'idle' | 'go' | 'work' | 'to_rest' | 'rest' | 'task' | 'leave' | 'gone';
 export interface Task { type: 'fix' | 'water' | 'sweep'; ref: number; slot: number }
@@ -62,6 +73,8 @@ export interface Staff extends Mover {
   energy: number; state: StaffState; room: number;
   /** the room the player dropped them into (0: they go wherever they are needed) */
   home: number; task: Task | null; timer: number; hired: number; held: boolean;
+  /** experience towards the next star, jobs done today and in all, and how they feel about the job (0 to 100) */
+  xp: number; today: number; jobs: number; mood: number;
 }
 export interface Walker extends Mover { id: number; who: 'dora' | 'enzo' | 'inspector'; timer: number; stops: number[]; seen: number }
 export interface Candidate { id: number; role: Role; name: string; look: string; skill: number; trait: Trait; wage: number }
@@ -70,6 +83,44 @@ export interface Offer { id: number; kind: 'emergency'; ail: AilmentId; sp: Spec
 export interface Emergency { id: number; ail: AilmentId; sp: SpeciesId; count: number; spawned: number; cured: number; bonus: number; deadline: number; done: boolean }
 export interface Met { day: number; rep: number; stars: number; t: number }
 export interface Plan { day: number; hour: number; kind: EventKind; ail: AilmentId | null; done: boolean }
+/** a staff member asking for a raise */
+export interface Raise { id: number; staff: number; amount: number; expires: number }
+/** what happened today, for the Burrow Bulletin */
+export interface Today {
+  cures: number; earned: number; spent: number; rep: number; unhappy: number; wrong: number;
+  emergOk: { sp: SpeciesId; count: number } | null; emergMiss: boolean; vip: string | null; inspector: 'good' | 'bad' | null;
+  broken: RoomKind | null; levelups: string[]; rain: boolean;
+  quote: { name: string; sp: SpeciesId; ail: AilmentId } | null; grump: { name: string; sp: SpeciesId } | null;
+}
+/** the day-end newspaper */
+export interface Bulletin {
+  day: number; headline: string; sub: string; cures: number; earned: number; spent: number; rep: number;
+  star: { name: string; look: string; role: Role; jobs: number } | null;
+  quote: { name: string; sp: SpeciesId; text: string } | null;
+  tip: string;
+}
+/** why a patient feels the way they do */
+export type WhyId = 'thirst' | 'wait' | 'litter' | 'cold' | 'stand' | 'noroom' | 'plants' | 'decor' | 'bench' | 'cheer';
+export interface Why { id: WhyId; good: boolean; text: string }
+export const TRAIN_COST = 30;
+/** machine levels: how much faster a treatment runs, and how much wear it causes */
+export const UPGRADE_SPEED = [1, 1, 1.25, 1.5];
+export const UPGRADE_WEAR = [1, 1, 0.7, 0.45];
+export const canUpgrade = (k: RoomKind) => k !== 'reception' && k !== 'checkup' && k !== 'staff';
+const cap = (t: string) => t.replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+/** what a cured patient says to the Bulletin */
+export const QUOTES: Record<AilmentId, string> = {
+  static: 'My fur stopped crackling! I can hug my friends again.',
+  hiccups: 'Not one echo since lunch. Bliss!',
+  ears: 'My ears are the right way up. I can hear the birds!',
+  sneezes: 'No more snowballs. My nose feels toasty.',
+  dust: 'One proper roll in the sand and I feel brand new.',
+  tangle: 'My tail is smooth as silk. I might show it off.',
+  glow: 'I can finally sleep without my whiskers lighting up the room.',
+  puff: 'I fit through doors again! Thank you, team.',
+  spots: 'Wide awake and spotless. Time for a walk!',
+};
+export const XP_FOR = (skill: number) => 20 + 15 * skill;
 
 export interface State {
   v: 1; clinic: string; seed: number; rng: number; t: number; open: boolean; nextId: number; layout: number;
@@ -82,6 +133,7 @@ export interface State {
   offer: Offer | null; emergencies: Emergency[]; plans: Plan[];
   rain: { from: number; to: number } | null;
   day: number; wagesPaid: number;
+  today: Today; bulletin: Bulletin | null; raise: Raise | null;
   log: { t: number; text: string }[];
   stats: { diagnosed: number; wrong: number; drinks: number; repairs: number; inspections: number };
 }
@@ -97,7 +149,8 @@ export type Ev =
   | { t: 'machine'; kind: RoomKind; x: number; y: number }
   | { t: 'broken'; x: number; y: number; room: number }
   | { t: 'fixed'; x: number; y: number }
-  | { t: 'build'; x: number; y: number }
+  | { t: 'build'; x: number; y: number; id?: number }
+  | { t: 'rotate'; x: number; y: number }
   | { t: 'sell'; x: number; y: number; coins: number }
   | { t: 'offer'; id: number }
   | { t: 'emergency'; ok: boolean; bonus: number }
@@ -110,7 +163,12 @@ export type Ev =
   | { t: 'open' }
   | { t: 'step'; x: number; y: number }
   | { t: 'drink'; x: number; y: number; coins: number }
-  | { t: 'note'; text: string };
+  | { t: 'note'; text: string }
+  | { t: 'levelup'; id: number; skill: number; x: number; y: number }
+  | { t: 'raise'; id: number }
+  | { t: 'upgrade'; id: number; level: number; x: number; y: number }
+  | { t: 'bulletin'; day: number }
+  | { t: 'huff'; x: number; y: number; id: number };
 
 export type Result = { ok: true; id?: number } | { ok: false; reason: string };
 
@@ -134,6 +192,7 @@ export function workRate(st: Staff): number {
   let r = 0.7 + 0.12 * st.skill;
   if (st.trait === 'quick') r *= 1.25;
   if (st.energy < 10) r *= 0.5; else if (st.energy < 30) r *= 0.75;
+  if ((st.mood ?? 100) < 35) r *= 0.9;
   return r;
 }
 export function accuracy(st: Staff): number { return Math.min(0.98, 0.6 + 0.08 * st.skill + (st.trait === 'careful' ? 0.1 : 0)); }
@@ -167,8 +226,9 @@ export class Game {
       strict: !!opts.strict, assist: opts.assist !== false, tut: d.twist === 'tutorial' ? 0 : TUT_STEPS, result: 'playing', met: null,
       rooms: [], decos: [], litter: [], patients: [], staff: [], walkers: [], cands: [],
       offer: null, emergencies: [], plans: d.events.map(([day, hour, kind, ail]) => ({ day, hour, kind, ail, done: false })),
-      rain: null, day: 1, wagesPaid: 0, log: [], stats: { diagnosed: 0, wrong: 0, drinks: 0, repairs: 0, inspections: 0 },
+      rain: null, day: 1, wagesPaid: 0, today: null as unknown as Today, bulletin: null, raise: null, log: [], stats: { diagnosed: 0, wrong: 0, drinks: 0, repairs: 0, inspections: 0 },
     };
+    this.s.today = this.freshToday();
     this.rebuild();
     this.refreshCandidates();
     // Dora and Enzo, the owners, are on the floor from the start
@@ -185,8 +245,18 @@ export class Game {
     const g = new Game(o.clinic, o.seed);
     g.s = o;
     for (const r of o.rooms) if (!ROOMS[r.kind] || !Array.isArray(r.slots)) throw new Error('bad room');
+    // fill in anything a save from before the staff growth, upgrades and bulletins update lacks
+    for (const r of o.rooms) { r.level ??= 1; r.train ??= false; }
+    for (const p of o.patients) { p.qr ??= 0; p.qi ??= -1; p.fd ??= 1; p.gift ??= 0; }
+    for (const st of o.staff) { st.xp ??= 0; st.today ??= 0; st.jobs ??= 0; st.mood ??= 80; }
+    o.today ??= g.freshToday(); o.bulletin ??= null; o.raise ??= null;
+    for (const d of o.decos) d.rot ??= DECOS[d.kind]?.front ?? 1;
     g.rebuild();
     return g;
+  }
+  freshToday(): Today {
+    const s = this.s;
+    return { cures: s.cures, earned: s.earned, spent: s.spent, rep: s.rep, unhappy: s.leftUnhappy, wrong: s.stats.wrong, emergOk: null, emergMiss: false, vip: null, inspector: null, broken: null, levelups: [], rain: false, quote: null, grump: null };
   }
   toJSON(): State { return this.s; }
 
@@ -235,6 +305,7 @@ export class Game {
     this.entryDist = bfs(g, this.entry[0], this.entry[1]);
     this.computeComfort();
     this.gridVersion = this.s.layout;
+    this.qdirty = true;
   }
   /** the layout changed: rebuild, then put anyone stranded somewhere sensible and re-plan everyone's walk */
   relayout() {
@@ -472,12 +543,12 @@ export class Game {
     const r: Room = {
       id: this.id(), kind, x, y, w, h, rot: rot % 4, door: c.door, cost: c.cost, mach: lay.mach,
       slots: lay.slots.map(([sx, sy]) => ({ x: sx, y: sy, patient: 0, progress: 0, wear: 0, broken: false, fixer: 0 })),
-      staffSpot: lay.staffSpot, rest: lay.rest, staff: 0, uses: 0,
+      staffSpot: lay.staffSpot, rest: lay.rest, staff: 0, uses: 0, level: 1, train: false,
     };
     this.s.rooms.push(r);
     this.s.coins -= c.cost; this.s.spent += c.cost;
     this.relayout();
-    this.events.push({ t: 'build', x: x + w / 2, y: y + h / 2 });
+    this.events.push({ t: 'build', x: x + w / 2, y: y + h / 2, id: r.id });
     return { ok: true, id: r.id };
   }
   /** move a room's door to another edge (a tap on the edge) */
@@ -541,15 +612,52 @@ export class Game {
     }
     return { ok: true };
   }
-  place(kind: DecoKind, x: number, y: number): Result {
+  place(kind: DecoKind, x: number, y: number, rot?: number): Result {
     const c = this.canPlace(kind, x, y); if (!c.ok) return c;
     const def = DECOS[kind];
-    const d: Deco = { id: this.id(), kind, x, y, water: 100, seats: def.seats ? new Array(def.seats).fill(0) : [], fixer: 0, cost: def.cost };
+    const face = def.facings === 1 ? def.front : rot === undefined ? this.facingFor(kind, x, y) : ((rot % 4) + 4) % 4;
+    const d: Deco = { id: this.id(), kind, x, y, water: 100, seats: def.seats ? new Array(def.seats).fill(0) : [], fixer: 0, cost: def.cost, rot: face };
     this.s.decos.push(d);
     this.s.coins -= def.cost; this.s.spent += def.cost;
     this.relayout();
     this.events.push({ t: 'build', x, y });
     return { ok: true, id: d.id };
+  }
+  /** a sensible facing for a new decoration: its back to a wall, its front to open corridor, and towards a door
+   *  (a room's or the front door) when one is in view; ties go to the painted front views */
+  facingFor(kind: DecoKind, x: number, y: number): number {
+    const def = DECOS[kind];
+    if (def.facings === 1) return def.front;
+    const W = this.W, H = this.H;
+    const inside = (nx: number, ny: number) => nx >= 0 && ny >= 0 && nx < W && ny < H;
+    const open = (nx: number, ny: number) => inside(nx, ny) && !this.roomAt[ny * W + nx] && this.grid.walk[ny * W + nx] === 1 && !this.decoAt[ny * W + nx];
+    const doors: Pt[] = this.s.rooms.map((r) => { const [dx, dy] = SIDE_D[r.door.side]; return [r.door.x + dx, r.door.y + dy] as Pt; });
+    doors.push(this.entry);
+    let best = def.front, bestScore = -1e9;
+    for (let f = 0; f < 4; f++) {
+      const [dx, dy] = DIR_D[f];
+      if (!open(x + dx, y + dy)) continue;
+      let score = 0;
+      if (!open(x - dx, y - dy)) score += 4; // back to a wall (or a room, or the edge)
+      // how much open floor it looks out on
+      let run = 0; for (let k = 1; k <= 4 && open(x + dx * k, y + dy * k); k++) run++;
+      score += run * 0.5;
+      // a door ahead, within a few steps and roughly in front
+      for (const [qx, qy] of doors) { const ax = (qx - x) * dx + (qy - y) * dy, side = Math.abs((qx - x) * dy - (qy - y) * dx); if (ax >= 1 && ax <= 6 && side <= 2) { score += 2; break; } }
+      if (f === 1 || f === 0) score += 0.3; // the painted fronts read best
+      if (score > bestScore) { bestScore = score; best = f; }
+    }
+    return best;
+  }
+  /** turn a placed decoration to its next facing (free); round things look the same from every side */
+  rotateDeco(id: number, by = 1): Result {
+    const d = this.s.decos.find((q) => q.id === id); if (!d) return { ok: false, reason: 'Nothing there.' };
+    if (DECOS[d.kind].facings === 1) return { ok: false, reason: `A ${DECOS[d.kind].name} looks the same from every side.` };
+    d.rot = (((d.rot + by) % 4) + 4) % 4;
+    // anyone on the bench turns with it
+    for (const p of this.s.patients) if (p.seat === d.id) p.fd = d.rot;
+    this.events.push({ t: 'rotate', x: d.x, y: d.y });
+    return { ok: true, id };
   }
   sellDeco(id: number): Result {
     const d = this.s.decos.find((q) => q.id === id); if (!d) return { ok: false, reason: 'Nothing there.' };
@@ -638,7 +746,7 @@ export class Game {
     this.s.coins -= c.wage; this.s.spent += c.wage;
     const [px, py] = this.porch;
     const st: Staff = { id: this.id(), role: c.role, name: c.name, look: c.look, skill: c.skill, trait: c.trait, wage: c.wage, energy: 100, state: 'arrive', room: 0, home: 0, task: null, timer: 0, hired: this.s.t,
-      x: px, y: py, px, py, path: [], goal: null, dir: 3, step: 0, held: false };
+      x: px, y: py, px, py, path: [], goal: null, dir: 3, step: 0, held: false, xp: 0, today: 0, jobs: 0, mood: 80 };
     this.s.staff.push(st);
     this.walkTo(st, this.entry[0], this.entry[1] - 1);
     this.s.cands = this.s.cands.filter((q) => q !== c);
@@ -690,11 +798,120 @@ export class Game {
   respond(offerId: number, accept: boolean): Result {
     const o = this.s.offer; if (!o || o.id !== offerId) return { ok: false, reason: 'That request has passed.' };
     this.s.offer = null;
-    if (!accept) { this.note(`You said no to the ${SPECIES[o.sp].plural}. Maybe next time.`); return { ok: true }; }
+    if (!accept) { this.note(`You said not today, so the ${o.count} ${SPECIES[o.sp].plural} went to the village doctor instead. They will be looked after there.`); return { ok: true }; }
     this.s.emergencies.push({ id: o.id, ail: o.ail, sp: o.sp, count: o.count, spawned: 0, cured: 0, bonus: o.bonus, deadline: this.s.t + o.hours * HOUR, done: false });
     this.note(`${o.count} ${SPECIES[o.sp].plural} with ${AILMENTS[o.ail].name} are on their way!`);
     return { ok: true, id: o.id };
   }
+  // ---- staff growth: experience from every job, a star when there is enough, and a raise to ask for afterwards
+  private grow(st: Staff | undefined) {
+    if (!st) return;
+    st.today++; st.jobs++;
+    if (st.skill >= 5) return;
+    st.xp += st.role === 'recep' ? 0.5 : 1;
+    this.levelCheck(st);
+  }
+  private levelCheck(st: Staff) {
+    if (st.skill >= 5 || st.xp < XP_FOR(st.skill)) return;
+    st.xp -= XP_FOR(st.skill); st.skill++;
+    this.s.today.levelups.push(st.name);
+    this.events.push({ t: 'levelup', id: st.id, skill: st.skill, x: st.x, y: st.y });
+    this.note(`${st.name} has learned a lot: now ${st.skill} stars!`);
+  }
+  /** who teaches in the Staff Room: the best vet with three stars or more */
+  teacher(): Staff | undefined {
+    let t: Staff | undefined;
+    for (const st of this.s.staff) if (st.role === 'vet' && st.skill >= 3 && st.state !== 'leave' && st.state !== 'gone' && (!t || st.skill > t.skill)) t = st;
+    return t;
+  }
+  /** answer a raise request: yes pays them what their stars are worth; no is fine, but they feel it a little */
+  answerRaise(id: number, yes: boolean): Result {
+    const s = this.s, r = s.raise;
+    if (!r || r.id !== id) return { ok: false, reason: 'That request has passed.' };
+    s.raise = null;
+    const st = this.staffById(r.staff);
+    if (!st) return { ok: false, reason: 'They have left already.' };
+    if (yes) { st.wage += r.amount; st.mood = Math.min(100, st.mood + 20); this.note(`${st.name} is delighted with the raise: ${st.wage} coins a day now.`); }
+    else { st.mood = Math.max(0, st.mood - 15); this.note(st.mood < 35 ? `${st.name} is a bit glum about the raise and will work a little slower for now. They will not leave.` : `${st.name} understands. Maybe next time.`); }
+    return { ok: true };
+  }
+  /** machine upgrades for cure rooms: level 2 and 3 cure faster and wear out more slowly */
+  upgradeCost(r: Room): number { return r.level >= 3 || !canUpgrade(r.kind) ? 0 : Math.round(ROOMS[r.kind].cost * (r.level === 1 ? 0.5 : 0.9) / 10) * 10; }
+  upgrade(roomId: number): Result {
+    const s = this.s, r = this.roomById(roomId);
+    if (!r) return { ok: false, reason: 'No such room.' };
+    if (!canUpgrade(r.kind)) return { ok: false, reason: 'Only cure rooms have machines to upgrade.' };
+    if (r.level >= 3) return { ok: false, reason: 'This machine is as shiny as it gets.' };
+    const cost = this.upgradeCost(r);
+    if (s.coins < cost) return { ok: false, reason: `Not enough coins: the upgrade costs ${cost}.` };
+    s.coins -= cost; s.spent += cost; r.cost += cost; r.level++;
+    for (const q of r.slots) q.wear = Math.max(0, q.wear - 30);
+    const [mx, my] = r.mach[0] ?? [r.x, r.y];
+    this.events.push({ t: 'upgrade', id: r.id, level: r.level, x: mx, y: my });
+    this.note(`The ${ROOMS[r.kind].name} is now level ${r.level}: quicker cures and less wear.`);
+    return { ok: true, id: r.id };
+  }
+  /** switch training on or off in a Staff Room */
+  setTraining(roomId: number, on: boolean): Result {
+    const r = this.roomById(roomId);
+    if (!r || r.kind !== 'staff') return { ok: false, reason: 'Training happens in a Staff Room.' };
+    if (on && !this.teacher()) return { ok: false, reason: 'Training needs a vet with three stars or more to teach.' };
+    r.train = on;
+    return { ok: true };
+  }
+
+  // ---- why patients feel the way they do
+  whyOf(p: Patient): Why[] {
+    const s = this.s, out: Why[] = [];
+    if (p.phase !== 'wait' && p.phase !== 'arrive' && p.phase !== 'drink') return out;
+    const x = Math.round(p.x), y = Math.round(p.y), i = y * this.W + x;
+    if (p.thirst > 60) out.push({ id: 'thirst', good: false, text: 'Thirsty' });
+    if (s.t - p.arrivedAt > HOUR * 2.5 || p.patience < 40) out.push({ id: 'wait', good: false, text: 'Waited a long time' });
+    if (s.litter.some((l) => Math.abs(l.x - x) + Math.abs(l.y - y) <= 1)) out.push({ id: 'litter', good: false, text: 'Litter on the floor' });
+    if (this.def.twist === 'cold' && !s.decos.some((d) => d.kind === 'heater' && Math.abs(d.x - x) + Math.abs(d.y - y) <= 4)) out.push({ id: 'cold', good: false, text: 'Feeling cold' });
+    if (!this.hasRoom(p.need)) out.push({ id: 'noroom', good: false, text: `No ${ROOMS[p.need].name} yet` });
+    if (!p.seat && p.phase === 'wait' && p.patience < 70) out.push({ id: 'stand', good: false, text: 'Tired of standing' });
+    if (s.decos.some((d) => d.kind === 'plant' && d.water > 25 && Math.abs(d.x - x) + Math.abs(d.y - y) <= 3)) out.push({ id: 'plants', good: true, text: 'Loves the plants' });
+    else if ((this.comfort[i] ?? 1) < 0.95) out.push({ id: 'decor', good: true, text: 'Likes the cosy decor' });
+    if (p.seat) out.push({ id: 'bench', good: true, text: 'Comfy on a bench' });
+    if (this.cheer(p.x, p.y) < 1) out.push({ id: 'cheer', good: true, text: 'Cheered up by company' });
+    return out;
+  }
+  /** the three most common complaints right now, with where to look */
+  complaints(): { id: WhyId; text: string; count: number; at: Pt }[] {
+    const m = new Map<WhyId, { id: WhyId; text: string; count: number; at: Pt }>();
+    for (const p of this.s.patients) for (const w of this.whyOf(p)) {
+      if (w.good) continue;
+      const text = w.id === 'noroom' ? 'A room they need is missing' : w.text;
+      const e = m.get(w.id);
+      if (e) e.count++; else m.set(w.id, { id: w.id, text, count: 1, at: [Math.round(p.x), Math.round(p.y)] });
+    }
+    return [...m.values()].sort((a, b) => b.count - a.count).slice(0, 3);
+  }
+
+  // ---- the Burrow Bulletin
+  makeBulletin(): Bulletin {
+    const s = this.s, t = s.today;
+    const cures = s.cures - t.cures, earned = s.earned - t.earned, spent = s.spent - t.spent, rep = Math.round(s.rep - t.rep), unhappy = s.leftUnhappy - t.unhappy;
+    let headline = `Another Cosy Day at ${this.def.name}`, sub = 'Patients came, patients were cured, and nobody lost a whisker.';
+    if (t.emergOk) { headline = `${t.emergOk.count} ${cap(SPECIES[t.emergOk.sp].plural)} Saved in the Nick of Time!`; sub = 'The whole team rushed, and every one went home well.'; }
+    else if (t.vip) { headline = 'A Condor Leaves the Biggest Tip in Town'; sub = `${t.vip} swooped in, was cured, and left a heap of coins.`; }
+    else if (t.inspector === 'good') { headline = 'Inspector Hoots With Delight'; sub = 'A spotless report, and a reward to go with it.'; }
+    else if (t.levelups.length) { headline = `${t.levelups[0]} Earns a New Star`; sub = 'Practice makes purr-fect. Faster cures ahead!'; }
+    else if (t.inspector === 'bad') { headline = 'Inspector Ruffles a Few Feathers'; sub = 'A tidier clinic will do better next time.'; }
+    else if (t.broken) { headline = `${ROOMS[t.broken].name} Takes an Unplanned Nap`; sub = 'A cleaner with a spanner soon had it humming again.'; }
+    else if (t.rain) { headline = 'Rainy Morning, Busy Afternoon'; sub = 'Everyone who stayed dry came at once when the sun came out.'; }
+    else if (unhappy >= 4) { headline = 'Long Lines Leave a Few Grumbles'; sub = 'Some patients gave up waiting. More rooms or staff would help.'; }
+    else if (cures >= 15) { headline = `${cures} Patients Feel Fine Again`; sub = 'A record day of cures and cheerful send-offs.'; }
+    let star: Bulletin['star'] = null;
+    for (const st of s.staff) if (st.state !== 'gone' && st.today > 0 && (!star || st.today > star.jobs)) star = { name: st.name, look: st.look, role: st.role, jobs: st.today };
+    const quote = t.quote ? { name: t.quote.name, sp: t.quote.sp, text: QUOTES[t.quote.ail] } : t.grump ? { name: t.grump.name, sp: t.grump.sp, text: 'The line was ever so long. I might try again tomorrow.' } : null;
+    const adv = this.advice()[0];
+    const tip = adv ? adv.text : unhappy > 0 ? 'Benches and plants near the busiest door keep lines calm.' : t.levelups.length ? 'Staff with new stars may ask for a raise. Saying yes keeps them cheerful.' : this.teacher() && !s.rooms.some((r) => r.train) ? 'A three-star vet can teach in the Staff Room: switch training on there.' : 'Upgrade a busy cure room for quicker cures and less wear.';
+    return { day: s.day, headline, sub, cures, earned, spent, rep, star, quote, tip };
+  }
+  dismissBulletin() { this.s.bulletin = null; }
+
   /** start an event now (the schedule, the random roll and the debug hook all come here) */
   trigger(kind: EventKind, ail: AilmentId | null = null): boolean {
     const s = this.s;
@@ -747,7 +964,7 @@ export class Game {
     const species = sp ?? pick(s, PATIENT_SPECIES);
     const p: Patient = {
       id: this.id(), sp: species, name: pick(s, PATIENT_NAMES), ail, dx: null, sure: false, wrongs: [], need: 'reception', phase: 'arrive', room: 0, slot: -1, spot: null, seat: 0, drinkAt: 0,
-      patience: 100, thirst: rnd(s) * 30, timer: 0, vip: false, emerg: 0, happy: true, arrivedAt: s.t, cured: false, fail: 0,
+      patience: 100, thirst: rnd(s) * 30, timer: 0, vip: false, emerg: 0, happy: true, arrivedAt: s.t, cured: false, fail: 0, qr: 0, qi: -1, fd: 1, gift: 0,
       x: px, y: py, px, py, path: [], goal: null, dir: 3, step: 0,
     };
     s.patients.push(p);
@@ -757,52 +974,137 @@ export class Game {
   }
   /** put a patient (back) in line for whatever they need next, and find them somewhere to wait */
   requeue(p: Patient, front: boolean) {
-    p.phase = 'wait'; p.room = 0; p.slot = -1; p.timer = front ? -1 : 0;
+    this.leaveSeat(p);
+    p.phase = 'wait'; p.room = 0; p.slot = -1; p.timer = front ? -1 : 0; p.spot = null;
     this.findSpot(p);
   }
-  /** a place to wait near the room they need: a free bench seat nearby, else a free corridor tile off the doorways */
-  findSpot(p: Patient) {
-    const s = this.s;
-    if (p.seat) { const d = s.decos.find((q) => q.id === p.seat); if (d) d.seats = d.seats.map((v) => (v === p.id ? 0 : v)); p.seat = 0; }
-    const rooms = this.roomsOf(p.need);
-    let ax: number, ay: number;
-    if (rooms.length) {
-      const r = rooms[0]; const [dx, dy] = SIDE_D[r.door.side]; ax = r.door.x + dx; ay = r.door.y + dy;
-    } else { ax = this.entry[0]; ay = this.entry[1] - 2; }
-    if (!this.tileFree(ax, ay)) { const c = this.nearestCorridor(ax, ay); ax = c[0]; ay = c[1]; }
-    const dist = bfs(this.grid, ax, ay);
-    const busy = new Set<number>();
-    for (const q of s.patients) if (q !== p && q.spot && q.phase !== 'gone' && !q.seat) busy.add(q.spot[1] * this.W + q.spot[0]);
-    const doorways = new Set<number>();
-    for (const r of s.rooms) { const [dx, dy] = SIDE_D[r.door.side]; doorways.add((r.door.y + dy) * this.W + r.door.x + dx); }
-    doorways.add(this.entry[1] * this.W + this.entry[0]); doorways.add((this.entry[1] - 1) * this.W + this.entry[0]);
-    // benches first
-    let best: { d: Deco; i: number } | null = null, bd = 1e9;
-    for (const d of s.decos) {
-      if (d.kind !== 'bench') continue;
-      const dd = dist[d.y * this.W + d.x];
-      if (dd < 0 || dd > 9) continue;
-      const i = d.seats.indexOf(0);
-      if (i >= 0 && dd < bd) { bd = dd; best = { d, i }; }
+  /** find this patient a place in the line for the room they need (everyone in every line is re-placed) */
+  findSpot(_p: Patient) { this.assignQueues(); }
+
+  // ---- waiting lines: each room has a tidy line of corridor tiles running away from its door, one tile apart and
+  // hugging the walls, with bench seats near the door filled first. Lines never share a tile, so nobody stands on
+  // anybody. Recomputed whenever someone joins or leaves a line; the tile chains themselves only change with the layout.
+  private qdirty = true;
+  private lines = new Map<number, { line: Pt[]; face: number[]; dist: Int16Array }>();
+  private linesVer = -1;
+  /** the door-front tile of a room, or a spot just inside the front door for patients whose room isn't built yet */
+  private anchorOf(key: number): Pt {
+    const r = key ? this.roomById(key) : undefined;
+    if (r) { const [dx, dy] = SIDE_D[r.door.side]; return [r.door.x + dx, r.door.y + dy]; }
+    return [this.entry[0], this.entry[1] - 1];
+  }
+  /** no-one may queue on these: in front of any door, and the front door's own path */
+  private keepClear(): Set<number> {
+    const c = new Set<number>();
+    for (const r of this.s.rooms) { const [dx, dy] = SIDE_D[r.door.side]; c.add((r.door.y + dy) * this.W + r.door.x + dx); }
+    c.add(this.entry[1] * this.W + this.entry[0]); c.add((this.entry[1] - 1) * this.W + this.entry[0]);
+    return c;
+  }
+  lineOf(key: number) {
+    if (this.linesVer !== this.s.layout || this.gridVersion !== this.s.layout) { if (this.gridVersion !== this.s.layout) this.rebuild(); this.lines.clear(); this.linesVer = this.s.layout; }
+    let L = this.lines.get(key);
+    if (L) return L;
+    const W = this.W, Hb = this.def.h, [ax, ay] = this.anchorOf(key);
+    const dist = bfs(this.grid, ax, ay), clear = this.keepClear();
+    const ok = (x: number, y: number) => {
+      if (x < 0 || y < 0 || x >= W || y >= Hb) return false;
+      const i = y * W + x;
+      return !this.roomAt[i] && !!this.grid.walk[i] && !this.decoAt[i] && !clear.has(i) && dist[i] > 0 && this.entryDist[i] >= 0;
+    };
+    const walls = (x: number, y: number) => {
+      let n = 0;
+      for (const [dx, dy] of DIRS) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= Hb || this.roomAt[ny * W + nx] || !canStep(this.grid, x, y, dx, dy)) n++; }
+      return n;
+    };
+    const line: Pt[] = [], face: number[] = [], used = new Set<number>();
+    const faceTo = (fx: number, fy: number, tx: number, ty: number) => { const dx = tx - fx, dy = ty - fy; return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0 : 2) : (dy > 0 ? 1 : 3); };
+    let cur: Pt | null = null, pdx = 0, pdy = 0;
+    while (line.length < 48) {
+      let next: Pt | null = null, best = 1e9;
+      if (cur) {
+        const [cx, cy]: Pt = cur, ci = cy * W + cx;
+        for (const [dx, dy] of DIRS) {
+          const nx: number = cx + dx, ny: number = cy + dy, ni = ny * W + nx;
+          if (!ok(nx, ny) || used.has(ni) || !canStep(this.grid, cx, cy, dx, dy)) continue;
+          // along a wall, keeping the same heading, and away from the door
+          // ...and back towards the front door, where newcomers come from, rather than into a dead end
+          const sc = -walls(nx, ny) * 2 - (dx === pdx && dy === pdy ? 1.5 : 0) + (dist[ni] < dist[ci] ? 4 : 0) + dist[ni] * 0.05 + (this.entryDist[ni] - this.entryDist[ci]) * 0.9;
+          if (sc < best) { best = sc; next = [nx, ny]; }
+        }
+      }
+      if (!next) {
+        // the start of the line, or a fresh row of the snake: the free tile closest to the door, by a wall if possible
+        for (let y = 0; y < Hb; y++) for (let x = 0; x < W; x++) {
+          const i = y * W + x;
+          if (!ok(x, y) || used.has(i)) continue;
+          const sc = dist[i] * 1.2 - walls(x, y) * 0.8 + (cur ? (Math.abs(x - cur[0]) + Math.abs(y - cur[1])) * 0.4 : 0) + this.entryDist[i] * 0.15;
+          if (sc < best) { best = sc; next = [x, y]; }
+        }
+        pdx = 0; pdy = 0;
+      } else { pdx = next[0] - cur![0]; pdy = next[1] - cur![1]; }
+      if (!next) break;
+      used.add(next[1] * W + next[0]);
+      // face the one ahead in the line, and the first one faces the door
+      const ahead: Pt = line.length && cur && Math.abs(cur[0] - next[0]) + Math.abs(cur[1] - next[1]) === 1 ? cur : [ax, ay];
+      face.push(faceTo(next[0], next[1], ahead[0], ahead[1]));
+      line.push(next); cur = next;
     }
-    if (best) { best.d.seats[best.i] = p.id; p.seat = best.d.id; p.spot = [best.d.x, best.d.y]; this.walkTo(p, best.d.x, best.d.y); return; }
-    let spot: Pt | null = null, sd = 1e9;
-    for (let y = 0; y < this.H; y++) for (let x = 0; x < this.W; x++) {
-      const i = y * this.W + x, dd = dist[i];
-      if (dd < 0 || this.roomAt[i] || busy.has(i) || doorways.has(i) || this.decoAt[i]) continue;
-      // standing in the middle of a corridor junction is rude: prefer a spot by a wall
-      let walls = 0; for (const [dx, dy] of DIRS) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= this.W || ny >= this.H || this.roomAt[ny * this.W + nx]) walls++; }
-      const score = dd + (dd === 0 ? 3 : 0) - walls * 0.6;
-      if (score < sd) { sd = score; spot = [x, y]; }
+    L = { line, face, dist };
+    this.lines.set(key, L);
+    return L;
+  }
+  /** place everyone who is waiting in the line for the room they need */
+  assignQueues() {
+    const s = this.s, W = this.W;
+    this.qdirty = false;
+    const groups = new Map<number, Patient[]>();
+    for (const p of s.patients) {
+      if (p.phase !== 'wait' && p.phase !== 'arrive') { p.qi = -1; continue; }
+      const r = this.roomsOf(p.need)[0], key = r ? r.id : 0;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(p);
     }
-    p.spot = spot ?? [ax, ay];
-    this.walkTo(p, p.spot[0], p.spot[1]);
+    const before = (a: Patient, b: Patient) => (a.timer === -1) !== (b.timer === -1) ? (a.timer === -1 ? -1 : 1) : a.arrivedAt - b.arrivedAt || a.id - b.id;
+    const taken = new Set<number>();
+    const keys = [...groups.keys()].sort((a, b) => (a || 1e9) - (b || 1e9));
+    for (const key of keys) {
+      const ps = groups.get(key)!.sort(before);
+      const L = this.lineOf(key);
+      let li = 0;
+      ps.forEach((p, i) => {
+        p.qr = key; p.qi = i;
+        let t: Pt | null = null;
+        if (p.seat && this.seatOf(p)) { const d = this.seatOf(p)!; t = p.spot ?? [d.x, d.y]; p.fd = d.rot; }
+        else {
+          p.seat = 0;
+          // a free bench seat near this door
+          let bench: Deco | null = null, bd = 1e9, bi = -1;
+          for (const d of s.decos) {
+            if (d.kind !== 'bench') continue;
+            const dd = L.dist[d.y * W + d.x];
+            if (dd < 0 || dd > 8) continue;
+            const k = d.seats.indexOf(0);
+            if (k >= 0 && dd < bd) { bd = dd; bench = d; bi = k; }
+          }
+          if (bench) { bench.seats[bi] = p.id; p.seat = bench.id; t = [bench.x, bench.y]; p.fd = bench.rot; }
+          else {
+            while (li < L.line.length && taken.has(L.line[li][1] * W + L.line[li][0])) li++;
+            if (li < L.line.length) { t = L.line[li]; p.fd = L.face[li]; li++; }
+            else t = p.spot ?? this.anchorOf(key);
+          }
+        }
+        taken.add(t[1] * W + t[0]);
+        const same = p.spot && p.spot[0] === t[0] && p.spot[1] === t[1];
+        p.spot = [t[0], t[1]];
+        if (!same || (!p.path.length && !this.atGoal(p))) this.walkTo(p, t[0], t[1]);
+      });
+    }
   }
   private seatOf(p: Patient) { return p.seat ? this.s.decos.find((d) => d.id === p.seat) : undefined; }
   private leaveSeat(p: Patient) { const d = this.seatOf(p); if (d) d.seats = d.seats.map((v) => (v === p.id ? 0 : v)); p.seat = 0; }
   private sendHome(p: Patient, happy: boolean) {
     this.leaveSeat(p);
-    p.phase = 'leave'; p.happy = happy; p.room = 0; p.slot = -1;
+    p.phase = 'leave'; p.happy = happy; p.room = 0; p.slot = -1; p.qi = -1; p.spot = null; this.qdirty = true;
     this.walkTo(p, this.porch[0], this.porch[1]);
   }
   /** what the patient believes they need after the check-up */
@@ -835,6 +1137,7 @@ export class Game {
     if (s.open) for (const d of s.decos) if (d.kind === 'plant') { const was = d.water; d.water = Math.max(0, d.water - 0.012 * (this.def.twist === 'plants' ? 3 : 1)); if (was > 25 && d.water <= 25) this.computeComfort(); }
     if (s.t % 10 === 0) this.computeComfort();
     this.dispatch();
+    if (this.qdirty) this.assignQueues();
     for (const p of s.patients) this.updatePatient(p);
     for (const st of s.staff) this.updateStaff(st);
     for (const r of s.rooms) this.updateRoom(r);
@@ -877,6 +1180,17 @@ export class Game {
     const s = this.s;
     const wages = wagesPerDay(s);
     s.coins -= wages; s.spent += wages; s.wagesPaid += wages;
+    const training = s.rooms.some((r) => r.kind === 'staff' && r.train) && this.teacher() ? TRAIN_COST : 0;
+    if (training) { s.coins -= training; s.spent += training; }
+    s.bulletin = this.makeBulletin();
+    this.events.push({ t: 'bulletin', day: s.day });
+    for (const st of s.staff) { st.today = 0; st.mood = Math.min(100, st.mood + 4); }
+    s.today = this.freshToday();
+    // somebody who has grown into a better job may ask for a raise in the morning
+    if (!s.raise) {
+      const due = s.staff.find((st) => st.state !== 'leave' && st.state !== 'gone' && st.wage < wageOf(st.role, st.skill, st.trait));
+      if (due) { s.raise = { id: this.id(), staff: due.id, amount: wageOf(due.role, due.skill, due.trait) - due.wage, expires: s.t + DAY + HOUR * 3 }; this.events.push({ t: 'raise', id: due.id }); }
+    }
     s.day++;
     this.events.push({ t: 'day', day: s.day, wages });
     this.refreshCandidates();
@@ -884,7 +1198,7 @@ export class Game {
     s.rain = null;
     if (this.def.twist === 'rain' && s.day > 1 && rnd(s) < 0.45) {
       const from = s.t + Math.floor(HOUR * (1 + rnd(s) * 2)), to = from + Math.floor(HOUR * (2 + rnd(s) * 2));
-      s.rain = { from, to };
+      s.rain = { from, to }; s.today.rain = true;
     }
     // a random extra event now and then
     if (s.day > 2 && rnd(s) < this.def.eventChance) s.plans.push({ day: s.day, hour: 2 + Math.floor(rnd(s) * 6), kind: pick(s, ['emergency', 'vip', 'inspector'] as EventKind[]), ail: null, done: false });
@@ -930,15 +1244,16 @@ export class Game {
       if (s.day === pl.day && hourOf(s) < OPEN_HOUR + pl.hour) continue;
       if (this.trigger(pl.kind, pl.ail) || s.day > pl.day + 1) pl.done = true;
     }
-    if (s.offer && s.t >= s.offer.expires) { this.note('The emergency went to another clinic.'); s.offer = null; }
+    if (s.offer && s.t >= s.offer.expires) { this.note(`Nobody answered in time, so the ${s.offer.count} ${SPECIES[s.offer.sp].plural} went to the village doctor instead. They will be looked after there.`); s.offer = null; }
+    if (s.raise && s.t >= s.raise.expires) { const st = this.staffById(s.raise.staff); s.raise = null; if (st) this.note(`${st.name} will ask about that raise another day.`); }
     for (const e of s.emergencies) {
       if (e.done) continue;
       if (e.cured >= e.count) {
-        e.done = true; s.coins += e.bonus; s.earned += e.bonus; s.rep = clamp(s.rep + 5, 0, 100);
+        e.done = true; s.coins += e.bonus; s.earned += e.bonus; s.rep = clamp(s.rep + 5, 0, 100); s.today.emergOk = { sp: e.sp, count: e.count };
         this.events.push({ t: 'emergency', ok: true, bonus: e.bonus });
         this.note(`Every ${SPECIES[e.sp].name} cured in time! Bonus: ${e.bonus} coins.`);
       } else if (s.t > e.deadline) {
-        e.done = true; s.rep = clamp(s.rep - 1, 0, 100);
+        e.done = true; s.rep = clamp(s.rep - 1, 0, 100); s.today.emergMiss = true;
         this.events.push({ t: 'emergency', ok: false, bonus: 0 });
         this.note('Not quite in time for the emergency bonus. The rest will still be looked after.');
       }
@@ -961,11 +1276,17 @@ export class Game {
           if (!best || before(p, best)) best = p;
         }
         if (!best) break;
-        this.leaveSeat(best);
+        this.leaveSeat(best); this.qdirty = true; best.qi = -1;
         best.phase = 'to_slot'; best.room = r.id; best.slot = si; best.spot = null; sl.patient = best.id; sl.progress = 0;
         if (!this.walkTo(best, sl.x, sl.y)) { best.phase = 'wait'; best.room = 0; best.slot = -1; sl.patient = 0; this.findSpot(best); }
       }
-      // a room with someone coming needs its staff member
+    }
+    // a room with someone coming needs its staff member: rooms where a patient is already sitting at the machine go
+    // first (longest there first), so one vet shared between a check-up room and a cure room doesn't strand anybody
+    const need = s.rooms.filter((r) => r.kind !== 'staff' && r.slots.some((q) => q.patient));
+    const waitAt = (r: Room) => { let t = 1e9; for (const q of r.slots) { const p = q.patient ? this.patientById(q.patient) : undefined; if (p && p.phase === 'in_slot') t = Math.min(t, p.arrivedAt); } return t; };
+    need.sort((a, b) => waitAt(a) - waitAt(b));
+    for (const r of need) {
       const role = ROOMS[r.kind].staff;
       if (!role || !r.slots.some((q) => q.patient)) continue;
       const cur = r.staff ? this.staffById(r.staff) : undefined;
@@ -988,7 +1309,7 @@ export class Game {
     if (p.phase === 'leave') {
       if (this.move(p, speed) && this.atGoal(p)) {
         p.phase = 'gone';
-        if (!p.happy) { s.leftUnhappy++; s.rep = clamp(s.rep - (p.vip ? 4 : 2), 0, 100); this.events.push({ t: 'leave', x: p.x, y: p.y, id: p.id }); }
+        if (!p.happy) { s.leftUnhappy++; s.rep = clamp(s.rep - (p.vip ? 4 : 2), 0, 100); s.today.grump = { name: p.name, sp: p.sp }; this.events.push({ t: 'leave', x: p.x, y: p.y, id: p.id }); }
       } else if (!p.path.length) this.walkTo(p, this.porch[0], this.porch[1]);
       return;
     }
@@ -1008,7 +1329,7 @@ export class Game {
             if (d && d.kind === 'vending') { s.coins += 15; s.earned += 15; this.events.push({ t: 'drink', x: d.x, y: d.y, coins: 15 }); }
             else if (d) this.events.push({ t: 'drink', x: d.x, y: d.y, coins: 0 });
             p.drinkAt = 0; p.phase = 'wait'; this.findSpot(p);
-          }
+          } else { const d = s.decos.find((q) => q.id === p.drinkAt); if (d) { const dx = d.x - p.x, dy = d.y - p.y; p.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0 : 2) : (dy > 0 ? 1 : 3); } }
         } else if (!p.path.length) { p.drinkAt = 0; p.phase = 'wait'; this.findSpot(p); }
       }
       this.thirsty(p);
@@ -1017,6 +1338,7 @@ export class Game {
     // arrive / wait: walk to the waiting spot, then wait
     const there = this.move(p, speed);
     if (there && p.goal && !this.atGoal(p) && s.t % 20 === p.id % 20) this.findSpot(p);
+    if (there && p.spot && this.atGoal(p)) p.dir = p.fd;
     if (p.fail > 0) p.fail--;
     this.thirsty(p);
     if (p.phase === 'arrive') p.phase = 'wait';
@@ -1047,7 +1369,9 @@ export class Game {
         const adj = DIRS.map(([dx, dy]) => [best!.x + dx, best!.y + dy] as Pt).filter(([x, y]) => this.tileFree(x, y) && this.grid.walk[y * this.W + x] && this.entryDist[y * this.W + x] >= 0);
         if (adj.length) {
           this.leaveSeat(p); p.spot = null;
-          adj.sort((a, b) => Math.abs(a[0] - p.x) + Math.abs(a[1] - p.y) - (Math.abs(b[0] - p.x) + Math.abs(b[1] - p.y)));
+          // the front of a cooler or cart first (that is where the tap is), then the nearest side
+          const [fx, fy] = DIR_D[best.rot ?? 1], front = (q: Pt) => (q[0] === best!.x + fx && q[1] === best!.y + fy ? -100 : 0);
+          adj.sort((a, b) => front(a) - front(b) || Math.abs(a[0] - p.x) + Math.abs(a[1] - p.y) - (Math.abs(b[0] - p.x) + Math.abs(b[1] - p.y)));
           if (this.walkTo(p, adj[0][0], adj[0][1])) { p.phase = 'drink'; p.drinkAt = best.id; p.timer = 14; }
           else this.findSpot(p);
         }
@@ -1055,7 +1379,8 @@ export class Game {
     }
     if (p.patience <= 0) {
       this.events.push({ t: 'grumpy', x: p.x, y: p.y, id: p.id });
-      this.note(`${p.name} the ${SPECIES[p.sp].name} got tired of waiting and went home.`);
+      this.note(`${p.name} the ${SPECIES[p.sp].name} got tired of waiting and went home in a huff.`);
+      this.events.push({ t: 'huff', x: p.x, y: p.y, id: p.id });
       this.sendHome(p, false);
     }
   }
@@ -1086,6 +1411,9 @@ export class Game {
     if (st.state === 'rest') {
       st.px = st.x; st.py = st.y;
       st.energy = Math.min(100, st.energy + 0.4);
+      // a training session: a 3-star vet teaches everybody resting in a Staff Room with training switched on
+      const sr = this.roomById(this.restRoomOf(st));
+      if (sr && sr.train && st.skill < 5) { const t = this.teacher(); if (t && t !== st) { st.xp += 0.06; this.levelCheck(st); } }
       if (st.energy >= 100) { st.state = 'idle'; st.goal = null; }
       return;
     }
@@ -1109,7 +1437,9 @@ export class Game {
       if (!r) { this.setIdle(st); return; }
       // nothing left to do here and nobody waiting: free to go elsewhere (pinned staff stay)
       const queue = s.patients.some((p) => p.need === r.kind && (p.phase === 'wait' || p.phase === 'drink'));
-      if (!st.home && !r.slots.some((q) => q.patient) && !queue) { st.room = 0; r.staff = 0; this.setIdle(st); }
+      // ...or someone is sitting at a machine elsewhere that needs them, and nobody is at this room's machines yet
+      const elsewhere = () => s.rooms.some((o) => o !== r && ROOMS[o.kind].staff === st.role && !(o.staff && this.staffById(o.staff)?.room === o.id) && o.slots.some((q) => q.patient && this.patientById(q.patient)?.phase === 'in_slot'));
+      if (!st.home && !r.slots.some((q) => q.patient && this.patientById(q.patient)?.phase === 'in_slot') && (!queue && !r.slots.some((q) => q.patient) || elsewhere())) { st.room = 0; r.staff = 0; this.setIdle(st); }
       return;
     }
     if (st.state === 'task') { this.doTask(st, speed); return; }
@@ -1182,6 +1512,7 @@ export class Game {
     } else {
       s.litter = s.litter.filter((l) => l.id !== t.ref); this.computeComfort();
     }
+    this.grow(st);
     st.task = null; this.setIdle(st);
   }
 
@@ -1196,21 +1527,22 @@ export class Game {
       if (!p || p.phase === 'gone' || p.room !== r.id) { q.patient = 0; q.progress = 0; continue; }
       if (p.phase !== 'in_slot' || !present || q.broken) continue;
       const def = ROOMS[r.kind];
-      q.progress += workRate(st!);
+      q.progress += workRate(st!) * UPGRADE_SPEED[r.level ?? 1];
       if (s.t % 30 === 0 && def.sound !== 'none') this.events.push({ t: 'machine', kind: r.kind, x: q.x, y: q.y });
       if (q.progress < def.work) continue;
       // done
       q.progress = 0; q.patient = 0; r.uses++;
       this.finishVisit(r, p, st!);
       if (r.kind !== 'reception') {
-        q.wear = Math.min(100, q.wear + (r.kind === 'checkup' ? 4 : 7) * (this.def.twist === 'heat' ? 2 : 1) * (st!.trait === 'careful' ? 0.7 : 1));
-        if (q.wear >= 100 && !q.broken) { q.broken = true; this.events.push({ t: 'broken', x: q.x, y: q.y, room: r.id }); this.note(`The ${def.name} has worn out and stopped. A cleaner can fix it.`); }
+        q.wear = Math.min(100, q.wear + (r.kind === 'checkup' ? 4 : 7) * (this.def.twist === 'heat' ? 2 : 1) * (st!.trait === 'careful' ? 0.7 : 1) * UPGRADE_WEAR[r.level ?? 1]);
+        if (q.wear >= 100 && !q.broken) { q.broken = true; s.today.broken = r.kind; this.events.push({ t: 'broken', x: q.x, y: q.y, room: r.id }); this.note(`The ${def.name} has worn out and stopped. A cleaner can fix it.`); }
       }
     }
   }
   private finishVisit(r: Room, p: Patient, st: Staff) {
     const s = this.s;
     p.room = 0; p.slot = -1;
+    if (r.kind === 'reception' || r.kind === 'checkup') this.grow(st);
     if (r.kind === 'reception') {
       this.events.push({ t: 'checkin', x: r.mach[0][0], y: r.mach[0][1] });
       p.need = p.dx ? AILMENTS[p.dx].room : 'checkup';
@@ -1231,7 +1563,11 @@ export class Game {
       p.cured = true; p.phase = 'cheer'; p.timer = 18;
       const e = s.emergencies.find((q) => q.id === p.emerg); if (e && !e.done) e.cured++;
       this.events.push({ t: 'cure', x: p.x, y: p.y, coins: fee, id: p.id });
-      if (p.vip) this.note(`${p.name} the condor left a big tip: ${fee} coins!`);
+      if (p.vip) { this.note(`${p.name} the condor left a big tip: ${fee} coins!`); s.today.vip = p.name; }
+      // a cheerful send-off: a balloon, a lollipop or a pinwheel to take home
+      p.gift = 1 + (p.id % 4);
+      if (!s.today.quote || p.patience > 50) s.today.quote = { name: p.name, sp: p.sp, ail: p.ail };
+      this.grow(st);
     } else {
       // the cure fails gently: a puzzled look, and back for a second opinion
       s.rep = clamp(s.rep - 0.3, 0, 100);
@@ -1264,8 +1600,8 @@ export class Game {
         s.stats.inspections++;
         const why: string[] = [];
         if (s.litter.length > 3) why.push('litter on the floor'); if (broken) why.push('a broken machine'); if (grumpy > 1) why.push('grumpy patients'); if (dry) why.push('thirsty plants');
-        if (score >= 60) { s.rep = clamp(s.rep + 4, 0, 100); s.coins += 200; s.earned += 200; this.events.push({ t: 'inspector', ok: true, text: 'A glowing report: +200 coins and a better reputation!' }); this.note('The inspector loved the clinic: +200 coins!'); }
-        else { s.rep = clamp(s.rep - 2, 0, 100); this.events.push({ t: 'inspector', ok: false, text: `The inspector frowned at ${why.join(' and ') || 'the queues'}.` }); this.note(`The inspector frowned at ${why.join(' and ') || 'the queues'}.`); }
+        if (score >= 60) { s.rep = clamp(s.rep + 4, 0, 100); s.coins += 200; s.earned += 200; s.today.inspector = 'good'; this.events.push({ t: 'inspector', ok: true, text: 'A glowing report: +200 coins and a better reputation!' }); this.note('The inspector loved the clinic: +200 coins!'); }
+        else { s.rep = clamp(s.rep - 2, 0, 100); s.today.inspector = 'bad'; this.events.push({ t: 'inspector', ok: false, text: `The inspector frowned at ${why.join(' and ') || 'the queues'}.` }); this.note(`The inspector frowned at ${why.join(' and ') || 'the queues'}.`); }
         this.walkTo(w, this.porch[0], this.porch[1]);
         return;
       }
@@ -1384,7 +1720,7 @@ export class Game {
 
 // =====================================================================================================================
 // the save: campaign progress, the clinic in play and the settings
-export interface Settings { sound: boolean; music: boolean; speed: 1 | 2 | 3; assist: boolean; strict: boolean; motion: boolean; sandbox: boolean }
+export interface Settings { sound: boolean; music: boolean; speed: 1 | 2 | 3; assist: boolean; strict: boolean; motion: boolean; sandbox: boolean; bulletins: boolean }
 export interface Save {
   v: 1;
   stars: Record<string, number>;
@@ -1393,7 +1729,7 @@ export interface Save {
   settings: Settings;
   seenIntro: boolean;
 }
-export const newSettings = (): Settings => ({ sound: true, music: true, speed: 1, assist: true, strict: false, motion: true, sandbox: false });
+export const newSettings = (): Settings => ({ sound: true, music: true, speed: 1, assist: true, strict: false, motion: true, sandbox: false, bulletins: true });
 export const newSave = (): Save => ({ v: 1, stars: {}, best: {}, current: null, settings: newSettings(), seenIntro: false });
 export function parseSave(raw: string | null): Save {
   if (!raw) return newSave();
@@ -1403,7 +1739,7 @@ export function parseSave(raw: string | null): Save {
     const out = newSave();
     for (const c of [...CLINICS.map((q) => q.id)]) { const v = o.stars[c]; if (typeof v === 'number' && v >= 0 && v <= 3) out.stars[c] = Math.floor(v); const b = o.best?.[c]; if (typeof b === 'number') out.best[c] = b; }
     const st = o.settings;
-    out.settings = { sound: st.sound !== false, music: st.music !== false, speed: st.speed === 2 || st.speed === 3 ? st.speed : 1, assist: st.assist !== false, strict: st.strict === true, motion: st.motion !== false, sandbox: st.sandbox === true };
+    out.settings = { sound: st.sound !== false, music: st.music !== false, speed: st.speed === 2 || st.speed === 3 ? st.speed : 1, assist: st.assist !== false, strict: st.strict === true, motion: st.motion !== false, sandbox: st.sandbox === true, bulletins: st.bulletins !== false };
     out.seenIntro = o.seenIntro === true;
     if (o.current) { try { Game.load(o.current); out.current = o.current; } catch { out.current = null; } }
     return out;

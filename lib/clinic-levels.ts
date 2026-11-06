@@ -83,18 +83,21 @@ export const TRAITS: Record<Trait, { name: string; blurb: string; wage: number }
 };
 export const FUR: Record<string, string> = { 'vet-a': 'white', 'vet-b': 'black-velvet', 'nurse-a': 'beige', 'nurse-b': 'silver', 'clean-a': 'brown', 'clean-b': 'beige', 'recep-a': 'silver', 'recep-b': 'white' };
 
-export interface DecoDef { id: DecoKind; name: string; blurb: string; cost: number; blocks: boolean; seats?: number }
+/** `facings`: 4 for things with a front and a back (a back view is painted), 1 for round things that look the same from
+ *  every side; `front`: the way the painting's front faces (0 +x, 1 +y, 2 -x, 3 -y, as the movers' dir). Every front
+ *  painting faces +y (down and left on screen); mirrored it faces +x, and the back paintings give -x and -y */
+export interface DecoDef { id: DecoKind; name: string; blurb: string; cost: number; blocks: boolean; seats?: number; facings: 1 | 4; front: number }
 export const DECOS: Record<DecoKind, DecoDef> = {
-  bench: { id: 'bench', name: 'Bench', blurb: 'Two seats. Sitting patients wait twice as patiently.', cost: 60, blocks: false, seats: 2 },
-  plant: { id: 'plant', name: 'Leafy Plant', blurb: 'Cheers up patients nearby while it is watered.', cost: 50, blocks: true },
-  cactus: { id: 'cactus', name: 'Cactus', blurb: 'A little cheer that never needs water.', cost: 40, blocks: true },
-  cooler: { id: 'cooler', name: 'Water Cooler', blurb: 'Thirsty patients drink here for free.', cost: 120, blocks: true },
-  vending: { id: 'vending', name: 'Drinks Cart', blurb: 'Thirsty patients buy a drink here: 15 coins a cup.', cost: 200, blocks: true },
-  bin: { id: 'bin', name: 'Litter Bin', blurb: 'Patients nearby drop far less litter.', cost: 30, blocks: true },
-  lamp: { id: 'lamp', name: 'Floor Lamp', blurb: 'A warm glow that cheers patients a little.', cost: 50, blocks: true },
-  rug: { id: 'rug', name: 'Round Rug', blurb: 'Cosy underfoot: a little cheer, and you can walk on it.', cost: 40, blocks: false },
-  table: { id: 'table', name: 'Magazine Table', blurb: 'Something to read: a little cheer.', cost: 45, blocks: true },
-  heater: { id: 'heater', name: 'Heater', blurb: 'Keeps patients warm nearby. Essential on the Summit.', cost: 150, blocks: true },
+  bench: { id: 'bench', name: 'Bench', blurb: 'Two seats. Sitting patients wait twice as patiently.', cost: 60, blocks: false, seats: 2, facings: 4, front: 1 },
+  plant: { id: 'plant', name: 'Leafy Plant', blurb: 'Cheers up patients nearby while it is watered.', cost: 50, blocks: true, facings: 1, front: 1 },
+  cactus: { id: 'cactus', name: 'Cactus', blurb: 'A little cheer that never needs water.', cost: 40, blocks: true, facings: 1, front: 1 },
+  cooler: { id: 'cooler', name: 'Water Cooler', blurb: 'Thirsty patients drink here for free.', cost: 120, blocks: true, facings: 4, front: 1 },
+  vending: { id: 'vending', name: 'Drinks Cart', blurb: 'Thirsty patients buy a drink here: 15 coins a cup.', cost: 200, blocks: true, facings: 4, front: 1 },
+  bin: { id: 'bin', name: 'Litter Bin', blurb: 'Patients nearby drop far less litter.', cost: 30, blocks: true, facings: 1, front: 1 },
+  lamp: { id: 'lamp', name: 'Floor Lamp', blurb: 'A warm glow that cheers patients a little.', cost: 50, blocks: true, facings: 1, front: 1 },
+  rug: { id: 'rug', name: 'Round Rug', blurb: 'Cosy underfoot: a little cheer, and you can walk on it.', cost: 40, blocks: false, facings: 1, front: 1 },
+  table: { id: 'table', name: 'Magazine Table', blurb: 'Something to read: a little cheer.', cost: 45, blocks: true, facings: 1, front: 1 },
+  heater: { id: 'heater', name: 'Heater', blurb: 'Keeps patients warm nearby. Essential on the Summit.', cost: 150, blocks: true, facings: 4, front: 1 },
 };
 export const DECO_ORDER: DecoKind[] = ['bench', 'plant', 'cactus', 'cooler', 'vending', 'bin', 'lamp', 'rug', 'table', 'heater'];
 

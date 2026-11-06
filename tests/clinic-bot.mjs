@@ -55,6 +55,16 @@ export function play(clinic, seed, kind, hook) {
   };
   const count = (role) => g.s.staff.filter((x) => x.role === role && x.state !== 'leave' && x.state !== 'gone').length;
   const later = (id, fn) => { if (!pending.has(id)) pending.set(id, { at: g.s.t + delay(), fn }); };
+  const stats = { levelups: 0, raisesYes: 0, raisesNo: 0, upgrades: 0, bulletins: 0, trained: 0, upgradeDay: 0 };
+  /** buy the next machine level for the busiest cure room, keeping `spare` coins in hand */
+  const upgradeBusiest = (spare, line) => {
+    // only where the line is long (a faster machine there pays for itself), at most one a day
+    if (stats.upgradeDay === g.s.day) return;
+    const queue = (q) => g.s.patients.filter((p) => p.phase === 'wait' && p.need === q.kind).length / g.roomsOf(q.kind).length;
+    const rooms = g.s.rooms.filter((q) => g.upgradeCost(q) > 0 && queue(q) >= line).sort((a, b) => queue(b) - queue(a));
+    const q = rooms[0];
+    if (q && coins() > g.upgradeCost(q) + spare && g.upgrade(q.id).ok) { stats.upgrades++; stats.upgradeDay = g.s.day; }
+  };
 
   // the opening moves: the tutorial's own order
   const opening = ['reception', 'recep', 'checkup', 'vet', 'cure'];
@@ -85,6 +95,15 @@ export function play(clinic, seed, kind, hook) {
         later('offer' + o.id, () => g.respond(o.id, yes));
       }
     }
+    // raises: a casual player usually says yes when the coins allow; the pro does when comfortably ahead
+    if (g.s.raise) {
+      const q = g.s.raise;
+      if (!pending.has('raise' + q.id)) later('raise' + q.id, () => { const yes = pro ? coins() > 900 : coins() > 500 && r() < 0.7; if (g.answerRaise(q.id, yes).ok) yes ? stats.raisesYes++ : stats.raisesNo++; });
+    }
+    // the Burrow Bulletin is read over breakfast
+    if (g.s.bulletin) { stats.bulletins++; g.dismissBulletin(); }
+    for (const e of g.events) if (e.t === 'levelup') stats.levelups++;
+    g.events.length = 0;
     if (t % 10 === 0) {
       // the assist's notes are what a casual player reacts to
       for (const a of g.advice()) {
@@ -110,6 +129,8 @@ export function play(clinic, seed, kind, hook) {
     // staff room when told; on top of that, now and then, one more vet when the check-up line is long
     const s = g.s;
     if (s.t % (HOUR * 2) === 0 && count('cleaner') === 0 && s.day >= 3) later('cleaner', () => hireRole('cleaner'));
+    // with coins piling up, now and then a shinier machine
+    if (s.t % (HOUR * 3) === 0 && s.day >= 3) later('upgrade' + s.day, () => upgradeBusiest(2500, 4));
   }
   function proThink() {
     const s = g.s;
@@ -125,6 +146,9 @@ export function play(clinic, seed, kind, hook) {
     if (nurseRooms && count('nurse') < Math.min(nurseRooms, 1 + Math.floor(queue / 10)) && rich(500)) later('nurse', () => hireRole('nurse'));
     const machines = s.rooms.reduce((a, q) => a + (q.kind === 'staff' || q.kind === 'reception' ? 0 : q.slots.length), 0);
     if (count('cleaner') < Math.ceil(machines / (clinic.twist === 'heat' ? 4 : 7)) && rich(400)) later('cleaner', () => hireRole('cleaner'));
+    if (s.t % HOUR === 0) later('upgrade', () => upgradeBusiest(Math.max(1800, clinic.goals.coins * 0.6), 4)); // a long line, and the coin goal not put at risk
+    const sr = g.roomsOf('staff')[0];
+    if (sr && !sr.train && g.teacher() && g.setTraining(sr.id, true).ok) stats.trained++;
     if (!rich(1200)) return;
     const benches = s.decos.filter((d) => d.kind === 'bench').length;
     if (benches < Math.min(6, 2 + s.rooms.length / 2)) later('bench' + benches, () => placeDeco('bench'));
@@ -137,12 +161,13 @@ export function play(clinic, seed, kind, hook) {
   }
 
   const met = g.s.met;
-  return { met: !!met && met.day <= clinic.days, stars: met ? met.stars : 0, day: met?.day ?? null, cures: g.s.cures, rep: Math.round(g.s.rep), coins: Math.round(g.s.coins), unhappy: g.s.leftUnhappy, emerg: g.s.emergencies.filter((e) => e.done && e.cured >= e.count).length };
+  return { met: !!met && met.day <= clinic.days, stars: met ? met.stars : 0, day: met?.day ?? null, cures: g.s.cures, rep: Math.round(g.s.rep), coins: Math.round(g.s.coins), unhappy: g.s.leftUnhappy, emerg: g.s.emergencies.filter((e) => e.done && e.cured >= e.count).length, ...stats };
 }
 
 const main = import.meta.url === pathToFileURL(process.argv[1]).href;
 const TARGET = { casual: (i) => (i === 0 ? 0.9 : i === 1 ? 0.8 : 0.6), pro: () => 0.95 };
 const rows = [];
+const totals = { casual: { levelups: 0, raisesYes: 0, raisesNo: 0, upgrades: 0, bulletins: 0, trained: 0 }, pro: { levelups: 0, raisesYes: 0, raisesNo: 0, upgrades: 0, bulletins: 0, trained: 0 } };
 let fails = 0;
 for (const c of main ? CLINICS : []) {
   if (only && c.id !== only) continue;
@@ -154,6 +179,7 @@ for (const c of main ? CLINICS : []) {
     const three = res.filter((x) => x.met && x.stars === 3).length / res.length;
     const avg = (f) => Math.round(res.reduce((a, x) => a + f(x), 0) / res.length);
     const days = res.filter((x) => x.met).map((x) => x.day);
+    if (kind !== 'idle') for (const k of ['levelups', 'raisesYes', 'raisesNo', 'upgrades', 'bulletins', 'trained']) totals[kind][k] += avg((x) => x[k] * 10) / 10 / CLINICS.length;
     rows.push(`${c.name.padEnd(14)} ${kind.padEnd(7)} met ${(met * 100).toFixed(0).padStart(3)}%  3★ ${(three * 100).toFixed(0).padStart(3)}%  day ${days.length ? (days.reduce((a, b) => a + b, 0) / days.length).toFixed(1) : '-'}/${c.days}  cures ${avg((x) => x.cures)}  rep ${avg((x) => x.rep)}  coins ${avg((x) => x.coins)}  unhappy ${avg((x) => x.unhappy)}`);
     if (verbose) for (const x of res) console.log('   ', JSON.stringify(x));
     const want = kind === 'idle' ? null : TARGET[kind](c.index);
@@ -165,5 +191,13 @@ for (const c of main ? CLINICS : []) {
   }
 }
 if (main) console.log(rows.join('\n'));
+if (main && !only) {
+  for (const k of ['casual', 'pro']) console.log(`${k} per clinic: ${Object.entries(totals[k]).map(([a, v]) => `${a} ${v.toFixed(1)}`).join('  ')}`);
+  // every new system is used by the managers: staff grow, raises are asked and answered, machines upgraded, bulletins read
+  try {
+    for (const k of ['casual', 'pro']) { assert.ok(totals[k].levelups > 0, `${k}: staff level up`); assert.ok(totals[k].bulletins >= 3, `${k}: bulletins every evening`); assert.ok(totals[k].raisesYes + totals[k].raisesNo > 0, `${k}: raises are asked for`); assert.ok(totals[k].upgrades > 0, `${k}: machines get upgraded`); }
+    assert.ok(totals.pro.trained > 0, 'the pro switches training on');
+  } catch (e) { fails++; console.error('FAIL', e.message); }
+}
 if (fails) { console.error(`clinic bots: ${fails} target(s) missed`); process.exit(1); }
 if (main) console.log(`clinic bots: every target met (${SEEDS} seeds a clinic)`);

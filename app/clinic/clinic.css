@@ -291,3 +291,91 @@
   .hc-win-art{aspect-ratio:16/9}
 }
 @media (prefers-reduced-motion:reduce){.hc-hl,.hc-burst-badge,.hc-stars-big .hc-star.hc-on{animation:none}}
+
+/* ---- the improvement pass: raises, reasons, upgrades, training, complaints, the slim dock, the Bulletin, the certificate */
+.hc-raise{position:relative;display:flex;gap:10px;align-items:flex-start;background:#fff6dc;animation:hc-in .3s ease-out}
+.hc-raise h3{color:var(--teal)}
+.hc-why ul{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:5px}
+.hc-why li{display:flex;align-items:center;gap:4px;padding:2px 9px 2px 4px;border-radius:99px;border:2px solid var(--ink);font-weight:800;font-size:.86em}
+.hc-why li .hc-ico{width:18px;height:18px}
+.hc-why li.hc-badw{background:#fde3dc}
+.hc-why li.hc-good{background:#dff5e7}
+.hc-gift{display:flex;align-items:center;gap:6px}
+.hc-upgrade{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border:2px dashed #d6c193;border-radius:12px;background:#fffdf3}
+.hc-upgrade .hc-stars{vertical-align:middle}
+.hc-upgrade .hc-btn{flex:none}
+.hc-train{border-top:0;padding:4px 0}
+.hc-complaints{border-top:1.5px dashed #dccaa8;padding-top:6px}
+.hc-complaints h4{margin:0 0 4px;font-size:.95em}
+.hc-complaints ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.hc-complaints li{display:flex;align-items:center;gap:6px}
+.hc-complaints li>span{flex:1;font-weight:700}
+.hc-complaints li .hc-ico{width:22px;height:22px}
+.hc-slim{display:none}
+.hc-cert{position:relative;width:100%;aspect-ratio:3/2;margin:0 auto;container-type:inline-size;border-bottom:2.5px solid var(--ink)}
+.hc-cert-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hc-cert-text{position:absolute;left:41%;right:7%;top:31%;bottom:36%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1.2cqw}
+.hc-cert-text p,.hc-cert-text h3{margin:0}
+.hc-cert-kicker{position:absolute;left:22%;right:22%;top:9.5%;height:7%;margin:0;display:flex;align-items:center;justify-content:center;font-family:'Lilita One',system-ui,sans-serif;color:var(--ink);font-size:2.9cqw;white-space:nowrap;letter-spacing:.04em;text-transform:uppercase}
+.hc-cert-text h3{font-family:'Lilita One',system-ui,sans-serif;font-size:6.4cqw;line-height:1.05;color:var(--ink)}
+.hc-cert-line{font-size:2.7cqw;font-weight:800;color:var(--dim)}
+.hc-cert .hc-stars-big .hc-star{width:6.5cqw;height:6.5cqw}
+.hc-paper{width:min(560px,100%);padding:16px 18px 12px;background:#f6edd6 url('/art/clinic/paper.webp') 0 0/512px;border:3px solid var(--ink);border-radius:6px;box-shadow:6px 8px 0 rgba(59,42,42,.35);transform:rotate(-.6deg);animation:hc-paper .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes hc-paper{from{transform:rotate(-8deg) scale(.6);opacity:0}to{transform:rotate(-.6deg) scale(1);opacity:1}}
+.hc-paper-mast{display:flex;flex-direction:column;align-items:center;border-bottom:4px double var(--ink);padding-bottom:6px;margin:0 0 8px}
+.hc-paper-mast>span:first-child{font-family:'Lilita One',system-ui,sans-serif;font-size:1.9em;letter-spacing:.03em}
+.hc-paper-head{font-family:'Lilita One',system-ui,sans-serif;font-size:1.55em;line-height:1.1;text-align:center;margin:4px 0}
+.hc-paper-sub{text-align:center;font-style:italic;margin:0 0 8px}
+.hc-paper-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);padding:8px 0}
+.hc-paper-nums{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.hc-paper-nums li{display:flex;align-items:center;gap:6px}
+.hc-paper-nums .hc-ico{width:22px;height:22px}
+.hc-paper-star,.hc-paper-quote{display:flex;gap:8px;align-items:center}
+.hc-paper-star p,.hc-paper-quote p{margin:0;display:flex;flex-direction:column}
+.hc-paper-face{width:54px;height:54px;flex:none;border-radius:50%;border:2.5px solid var(--ink);background:var(--cream);object-fit:cover;filter:sepia(.25)}
+.hc-paper-cols .hc-paper-quote{grid-column:1/-1}
+.hc-paper-quote{margin:2px 0 0;padding:6px 8px;border-left:4px solid var(--mustard);background:rgba(255,255,255,.4);font-style:italic}
+.hc-paper-tip{margin:6px 0 10px;padding:6px 8px;border:2px dashed var(--teal);border-radius:10px;background:#eef8f5}
+.hc-paper-end{display:flex;flex-direction:column;align-items:center}
+.hc-paper-end .hc-paper-tip{align-self:stretch}
+.hc-paper-foot{text-align:center;margin:6px 0 0}
+@media (max-height:520px){
+  .hc-cert{width:min(100%,calc(58vh * 1.5))}
+  .hc-paper{padding:10px 14px 8px;font-size:.92em}
+  .hc-paper-mast>span:first-child{font-size:1.4em}
+  .hc-paper-head{font-size:1.25em}
+  .hc-paper-face{width:42px;height:42px}
+  .hc-paper{width:min(760px,100%);transform:none}
+  .hc-paper-sub{margin-bottom:4px}
+  .hc-paper-cols{grid-template-columns:1fr 1fr 1.2fr;padding:4px 0}
+  .hc-paper-cols .hc-paper-quote{margin:0;grid-column:3;border-left-width:3px;padding:2px 6px}
+  .hc-paper-end{flex-direction:row;gap:10px;margin-top:6px}
+  .hc-paper-end .hc-paper-tip{margin:0;flex:1}
+  .hc-paper-foot{display:none}
+}
+@media (max-aspect-ratio:4/5){
+  .hc-slim{display:flex;align-items:center;gap:8px}
+  .hc-slim-txt{flex:1;font-weight:800;font-size:.9em;line-height:1.2;max-height:2.4em;overflow:hidden}
+  .hc-dock-open .hc-slim{display:none}
+  .hc-dock-min .hc-dock{max-height:none;padding:6px 8px}
+  .hc-dock-min .hc-dock>:not(.hc-slim){display:none}
+  .hc-dock-up .hc-dock{max-height:46vh}
+  .hc-paper-cols{grid-template-columns:1fr}
+}
+/* a coin or star pops in the top bar whenever it goes up */
+.hc-pop{display:inline-flex;animation:hc-pop .45s cubic-bezier(.2,1.6,.4,1)}
+@keyframes hc-pop{0%{transform:scale(1)}35%{transform:scale(1.45) rotate(-12deg)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.hc-paper,.hc-pop{animation:none}}
+
+/* ---- the ailment legend in the clinic panel: what each one looks like, and the room that cures it */
+.hc-legend { margin: 8px 0; border-top: 2px dashed rgba(59, 42, 42, 0.18); padding-top: 6px; }
+.hc-legend summary { font-weight: 900; cursor: pointer; padding: 4px 0; }
+.hc-legend ul { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; }
+.hc-legend li { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 8px; padding: 3px 4px; border-radius: 10px; }
+.hc-legend li:nth-child(odd) { background: rgba(255, 246, 225, 0.6); }
+.hc-legend li > span:nth-child(2) { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.hc-legend li.hc-soon { opacity: 0.55; }
+.hc-legend-ail { width: 28px; height: 28px; object-fit: contain; }
+.hc-legend-room { display: flex; align-items: center; gap: 4px; max-width: 120px; text-align: right; line-height: 1.1; }
+.hc-legend-sign { width: 28px; height: 28px; flex: none; }
+.hc-qmark { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--hc-cream, #fff6e1); border: 1.5px solid #3b2a2a; color: #e8664f; font-weight: 900; font-size: 12px; margin-right: 2px; }

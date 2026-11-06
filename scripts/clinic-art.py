@@ -10,10 +10,11 @@ Usage: python3 scripts/clinic-art.py <folder with the hc-*.png paintings> [<fold
   frame's height), placed bottom-centre in equal cells, and mirrored where the painting faced the other way, so in
   every strip the front walk faces screen-left and the back walk faces screen-right.
 - face-<species>.webp: the sitting frame, square, for the patient info card; p-<who>.webp: the twelve portraits.
-- m-<machine>.webp, d-<deco>.webp: the clinic machines and decorations, i-<name>.webp: the UI and status icons.
-- b-<piece>.webp: litter and effect pieces.
+- m-<machine>.webp, d-<deco>.webp: the clinic machines and decorations (d-<deco>-back.webp: back views of those that turn), i-<name>.webp: the UI and status icons.
+- b-<piece>.webp: litter and effect pieces, the take-home gifts (gift1..4), medal, cap, spanner and paper.
+- s-<room>.webp: the round 1950s door signs, one per room kind.
 - t-<floor>.webp: seamless floor and ground textures (mirror-tiled), wall.webp for the room walls.
-- title, map, win, bg1..bg6 (.webp paintings), paper.webp (the printed-paper grain).
+- cert (the clinic-complete certificate), title, map, win, bg1..bg6 (.webp paintings), paper.webp (the printed-paper grain).
 """
 import sys
 from pathlib import Path
@@ -81,7 +82,7 @@ CHARS = {
     'sp-pudu': ('hc-sp-pudu', 118, (False, False)), 'sp-guanaco': ('hc-sp-guanaco', 182, (False, False)),
     'sp-vizcacha': ('hc-sp-vizcacha', 132, (False, False)), 'sp-flamingo': ('hc-sp-flamingo', 182, (False, False)),
     'sp-alpaca': ('hc-sp-alpaca', 168, (False, False)), 'sp-fox': ('hc-sp-fox', 128, (False, False)),
-    'sp-armadillo': ('hc-sp-armadillo', 100, (False, False)), 'sp-condor': ('hc-sp-condor', 160, (False, False)),
+    'sp-armadillo': ('hc-sp-armadillo2', 100, (False, False)), 'sp-condor': ('hc-sp-condor', 160, (False, False)),
     'sp-owl': ('hc-sp-owl', 132, (False, False)),
     'dora': ('hc-dora', 150, (False, False)), 'enzo': ('hc-enzo', 150, (False, False)),
 }
@@ -111,6 +112,15 @@ for name, (src, height, flip) in CHARS.items():
         sq = Image.new('RGBA', (side, side), (0, 0, 0, 0))
         sq.paste(s, ((side - s.width) // 2, (side - s.height) // 2), s)
         save(sq.resize((176, 176), Image.Resampling.LANCZOS), 'face-' + name[3:], 86)
+# head-and-shoulders portraits for the patient card (hc-faces, 3 by 3 on green) replace the sitting frames
+FACES = ['pudu', 'guanaco', 'vizcacha', 'flamingo', 'alpaca', 'fox', 'armadillo', 'condor', 'owl']
+for c, n in zip(cells(key(Image.open(SRC / 'hc-faces.png'), 'green'), 3, 3), FACES):
+    m = round(c.height * 0.02)
+    c = biggest(c.crop((m, m, c.width - m, c.height - m)))
+    side = max(c.width, c.height) + 8
+    sq = Image.new('RGBA', (side, side), (0, 0, 0, 0))
+    sq.paste(c, ((side - c.width) // 2, side - c.height), c)
+    save(sq.resize((176, 176), Image.Resampling.LANCZOS), 'face-' + n, 86)
 (OUT / 'frames.txt').write_text('\n'.join(meta) + '\n')
 
 # ---- portraits (hc-por, 4 by 3)
@@ -131,6 +141,10 @@ for sheet, items, pre in (('hc-mach1', MACH1, 'm-'), ('hc-mach2', MACH2, 'm-'), 
     for c, (n, w) in zip(cells(key(Image.open(SRC / f'{sheet}.png')), 4, 2), items):
         c = biggest(c)
         save(scale(c, w / c.width), pre + n, 88)
+# back views (hc-decoback, 2 by 2) of the things that turn: their fronts point up and to the left (-x)
+for c, (n, w) in zip(cells(key(Image.open(SRC / 'hc-decoback.png')), 2, 2), [('bench', 132), ('cooler', 76), ('vending', 140), ('heater', 112)]):
+    c = biggest(c)
+    save(scale(c, w / c.width), f'd-{n}-back', 88)
 # the heater and drinks cart are decorations too
 for n in ('heater', 'vending'):
     Image.open(OUT / f'm-{n}.webp').save(OUT / f'd-{n}.webp', quality=88, method=6)
@@ -149,6 +163,17 @@ BITS = ['litter0', 'litter1', 'litter2', 'burst', 'steam', 'bubble', 'spark', 's
 for c, n in zip(cells(key(Image.open(SRC / 'hc-bits.png')), 4, 2), BITS):
     c = biggest(c)
     save(scale(c, 220 / max(c.width, c.height)), f'b-{n}', 88)
+
+# ---- door signs (hc-signs, 4 by 3), one per room in ROOM_ORDER, and the new bits (hc-bits2, 4 by 2): take-home
+# gifts, the level-up medal, the training cap, the upgrade spanner and the rolled-up Bulletin
+SIGNS = ['reception', 'checkup', 'staff', 'fluff', 'hiccup', 'ears', 'steam', 'dust', 'comb', 'dark', 'hammock', 'lamp']
+for c, n in zip(cells(key(Image.open(SRC / 'hc-signs.png')), 4, 3), SIGNS):
+    c = biggest(c)
+    save(scale(c, 112 / max(c.width, c.height)), f's-{n}', 90)
+BITS2 = ['gift1', 'gift2', 'gift3', 'gift4', 'medal', 'cap', 'spanner', 'paper']
+for c, n in zip(cells(key(Image.open(SRC / 'hc-bits2.png')), 4, 2), BITS2):
+    c = biggest(c)
+    save(scale(c, 128 / max(c.width, c.height)), f'b-{n}', 90)
 
 # ---- textures: six swatches per sheet (3 by 2) with a thin cream gap; mirror-tiled so they repeat seamlessly
 def swatch(c):
@@ -179,8 +204,31 @@ for sheet, names in (('hc-tex1', T1), ('hc-tex2', T2)):
         else:
             save(mirror(s, 384), 't-' + n, 80)
 
+# ---- ailments on the patients. hc-sick-<ears|puff>-<sit|stand> (4 by 2 on green, the patient species in sheet order)
+# are painted poses for the two ailments an overlay cannot sell; each is sized to match the sheet frame it stands in for
+# (stand: frame 0, sit: frame 4), feet on the same line. hc-ailfx (4 by 2 on magenta) holds the effect pieces.
+SICK = ['pudu', 'guanaco', 'vizcacha', 'flamingo', 'alpaca', 'fox', 'armadillo']
+for ail in ('ears', 'puff'):
+    for pose, fr in (('stand', 0), ('sit', 4)):
+        sheet = key(Image.open(SRC / f'hc-sick-{ail}-{pose}.png'), 'green')
+        for c, n in zip(cells(sheet, 4, 2), SICK):
+            sp = np.asarray(Image.open(OUT / f'sp-{n}.webp').convert('RGBA'))[..., 3] > 60
+            cw = sp.shape[1] // 8
+            ys = np.nonzero(sp[:, fr * cw:(fr + 1) * cw].any(1))[0]
+            h, pad = ys.max() - ys.min() + 1, sp.shape[0] - 1 - ys.max()
+            c = biggest(c)
+            # a puffed-up body is a touch bigger than the patient it replaces
+            c = scale(c, h * (1.08 if ail == 'puff' else 1.0) / c.height)
+            out = Image.new('RGBA', (c.width, c.height + int(pad)), (0, 0, 0, 0))
+            out.paste(c, (0, 0))
+            # the painted poses face the viewer's left like the sheet's front frames do
+            save(out, f'k-{ail}-{n}-{pose}', 88)
+for c, n in zip(cells(key(Image.open(SRC / 'hc-ailfx.png')), 4, 2), ['halo', 'zap', 'bubbles', 'snowball', 'sneeze', 'dust', 'knot', 'glow']):
+    c = biggest(c)
+    save(scale(c, 96 / max(c.size)), f'x-{n}', 88)
+
 # ---- paintings
-for n, w in (('title', 1400), ('map', 1536), ('win', 1280), ('bg1', 1280), ('bg2', 1280), ('bg3', 1280), ('bg4', 1280), ('bg5', 1280), ('bg6', 1280)):
+for n, w in (('cert', 1280), ('title', 1400), ('map', 1536), ('win', 1280), ('bg1', 1280), ('bg2', 1280), ('bg3', 1280), ('bg4', 1280), ('bg5', 1280), ('bg6', 1280)):
     im = Image.open(SRC / f'hc-{n}.png').convert('RGB')
     if im.width != w:
         im = im.resize((w, round(im.height * w / im.width)), Image.Resampling.LANCZOS)

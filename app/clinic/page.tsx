@@ -14,9 +14,10 @@ import { ClinicSound } from './sound';
 import './clinic.css';
 
 type Screen = 'title' | 'map' | 'clinic';
-type Sheet = null | 'settings' | 'met' | 'failed';
+type Sheet = null | 'settings' | 'met' | 'failed' | 'bulletin';
 type Panel = 'none' | 'build' | 'decor' | 'hire';
-type GhostBox = { x: number; y: number; w: number; h: number; rot: number; rank: number; suggested: boolean };
+/** `turned`: the player has rotated a decoration's ghost, so moving it keeps that facing (otherwise it picks a sensible one) */
+type GhostBox = { x: number; y: number; w: number; h: number; rot: number; rank: number; suggested: boolean; turned?: boolean };
 type MetInfo = { stars: number; day: number; rep: number; clinic: string; next: string | null; first: boolean };
 const ART = '/art/clinic/';
 /** where each clinic stands on the map painting (fractions of its width and height) */
@@ -30,6 +31,14 @@ const TUT_TEXT = [
   'The doors are open and our first patient, a pudú, is here! Watch them check in, see the vet and sit under the dryer. Tap anyone to see how they feel.',
 ];
 const STATE_TEXT: Record<G.StaffState, string> = { arrive: 'Arriving for work', idle: 'Waiting for something to do', go: 'On the way to a room', work: 'Working', to_rest: 'Off for a rest', rest: 'Resting with a cuppa', task: 'Busy with a job', leave: 'Heading home', gone: 'Gone home' };
+/** how each ailment looks on a patient, for the clinic panel's legend */
+const LOOK: Record<G.AilmentId, string> = {
+  static: 'Frizzy fur crackling with blue sparks', hiccups: 'Little hops, and bubbles that pop twice', ears: 'Ears hanging upside down',
+  sneezes: 'Sneezes out tiny snowballs', dust: 'A dusty cloud and a wriggle', tangle: 'A knot tied in the tail',
+  glow: 'Whiskers glowing like night lights', puff: 'Puffed up as round as a ball', spots: 'Purple spots and drifting Zzz',
+};
+const WHY_ICON: Record<G.WhyId, string> = { thirst: 'thirsty', wait: 'grumpy', litter: 'meh', cold: 'meh', stand: 'meh', noroom: 'build', plants: 'happy', decor: 'happy', bench: 'happy', cheer: 'heart' };
+const MOOD_TEXT = (m: number) => (m >= 70 ? 'Cheerful' : m >= 35 ? 'Content' : 'A bit glum: works a little slower');
 const PHASE_TEXT: Record<G.Phase, string> = { arrive: 'Just arrived', wait: 'Waiting', to_slot: 'Walking in', in_slot: 'Being seen', drink: 'Getting a drink', cheer: 'Cured!', leave: 'Going home', gone: 'Gone home' };
 const fmt = (n: number) => Math.round(n).toLocaleString('en-GB');
 const unlockAt = (k: G.RoomKind) => G.CLINICS.find((c) => c.rooms.includes(k))?.name ?? 'a later clinic';
@@ -84,6 +93,8 @@ export default function ClinicPage() {
   const [confirm, setConfirm] = useState<string | null>(null);
   const [hireRole, setHireRole] = useState<G.Role | null>(null);
   const [tipHidden, setTipHidden] = useState('');
+  /** on an upright phone the dock folds down to a slim bar so the floor gets the screen */
+  const [dockUp, setDockUp] = useState(false);
 
   const sfx = () => soundRef.current;
   const setScreen = useCallback((s: Screen) => { screenRef.current = s; setScreenState(s); }, []);
@@ -156,7 +167,15 @@ export default function ClinicPage() {
     for (const e of g.events) {
       sc?.event(e, now);
       switch (e.t) {
-        case 'cure': s?.tada(); s?.coin(); break;
+        case 'cure': s?.tada(); s?.coin(); s?.squeak(); break;
+        case 'levelup': s?.levelup(); break;
+        case 'raise': s?.knock(); break;
+        case 'upgrade': s?.ratchet(); break;
+        case 'huff': s?.huff(); break;
+        case 'bulletin':
+          if (saveRef.current.settings.bulletins && g.s.bulletin) { s?.paper(); setSel(null); setSheet('bulletin'); }
+          else g.dismissBulletin();
+          break;
         case 'coins': case 'drink': if (e.coins) s?.coin(); break;
         case 'grumpy': s?.huff(); break;
         case 'checkin': s?.bell(); break;
@@ -177,7 +196,7 @@ export default function ClinicPage() {
           const nxt = G.CLINICS[def.index + 1];
           saveGame();
           setMet({ stars: e.stars, day: g.s.met!.day, rep: g.s.met!.rep, clinic: def.id, next: nxt ? nxt.id : null, first });
-          s?.goal(); setPaused(true); setSheet('met');
+          s?.goal(); setTimeout(() => sfx()?.stamp(), 650); setPaused(true); setSheet('met');
           break;
         }
         case 'failed': s?.no(); setPaused(true); setSheet('failed'); saveGame(); break;
@@ -239,7 +258,8 @@ export default function ClinicPage() {
       sc.build = true;
     } else if (decoRef.current) {
       const c = g.canPlace(decoRef.current, gb.x, gb.y);
-      sc.ghost = { kind: 'deco', deco: decoRef.current, x: gb.x, y: gb.y, ok: c.ok, suggested: gb.suggested };
+      if (!gb.turned) gb.rot = g.facingFor(decoRef.current, gb.x, gb.y);
+      sc.ghost = { kind: 'deco', deco: decoRef.current, x: gb.x, y: gb.y, ok: c.ok, suggested: gb.suggested, rot: gb.rot };
       sc.build = true;
     } else { sc.ghost = null; sc.build = panelRef.current === 'build' || panelRef.current === 'decor'; }
   }, []);
@@ -276,6 +296,18 @@ export default function ClinicPage() {
   const rotate = () => {
     const gb = ghostRef.current;
     if (buildRef.current) { ghostRef.current = { ...gb, w: gb.h, h: gb.w, rot: (gb.rot + 1) % 4, suggested: false }; sfx()?.click(); syncGhost(); refresh(); }
+    else if (decoRef.current) {
+      const d = G.DECOS[decoRef.current];
+      if (d.facings === 1) { say(`A ${d.name} looks the same from every side.`); return; }
+      ghostRef.current = { ...gb, rot: (gb.rot + 1) % 4, turned: true }; sfx()?.click(); syncGhost(); refresh();
+    }
+  };
+  /** turn a placed decoration (free) */
+  const rotateDeco = (d: G.Deco) => {
+    const g = gameRef.current; if (!g) return;
+    const r = g.rotateDeco(d.id);
+    if (!r.ok) { say(r.reason, true); return; }
+    sfx()?.click(); saveGame(); refresh();
   };
   const anotherSpot = () => {
     const gb = ghostRef.current;
@@ -293,10 +325,11 @@ export default function ClinicPage() {
       if (!r.ok) { sfx()?.no(); say(r.reason, true); return; }
       sfx()?.thunk(); say(`Built a ${G.ROOMS[k].name}.`);
       setBuildKind(null); saveGame();
+      sceneRef.current?.fit();
       const need = G.ROOMS[k].staff;
       if (need && g.s.assist && !g.s.staff.some((x) => x.role === need && x.state !== 'leave' && x.state !== 'gone')) setHireRole(need);
     } else if (decoRef.current) {
-      const k = decoRef.current, r = g.place(k, gb.x, gb.y);
+      const k = decoRef.current, r = g.place(k, gb.x, gb.y, gb.rot);
       if (!r.ok) { sfx()?.no(); say(r.reason, true); return; }
       sfx()?.thunk(); say(`Placed a ${G.DECOS[k].name}.`);
       decoAtSuggestion(k, 0); saveGame();
@@ -401,6 +434,38 @@ export default function ClinicPage() {
     if (!r.ok) say(r.reason, true);
     onEvents(g, performance.now());
     setPaused(false); refresh();
+  };
+
+  const answerRaise = (yes: boolean) => {
+    const g = gameRef.current; if (!g || !g.s.raise) return;
+    const r = g.answerRaise(g.s.raise.id, yes);
+    sfx()?.unlock(); if (yes) sfx()?.coin(); else sfx()?.click();
+    if (!r.ok) say(r.reason, true);
+    onEvents(g, performance.now()); saveGame(); refresh();
+  };
+  const upgradeRoom = (r: G.Room) => {
+    const g = gameRef.current; if (!g) return;
+    const res = g.upgrade(r.id);
+    sfx()?.unlock();
+    if (!res.ok) { sfx()?.no(); say(res.reason, true); return; }
+    onEvents(g, performance.now()); saveGame(); refresh();
+  };
+  const setTraining = (r: G.Room, on: boolean) => {
+    const g = gameRef.current; if (!g) return;
+    const res = g.setTraining(r.id, on);
+    sfx()?.unlock();
+    if (!res.ok) { sfx()?.no(); say(res.reason, true); return; }
+    sfx()?.click(); say(on ? `Training is on: ${g.teacher()?.name} teaches everyone who rests here (${G.TRAIN_COST} coins a day).` : 'Training is off.'); refresh();
+  };
+  const closeBulletin = () => { gameRef.current?.dismissBulletin(); setSheet(null); sfx()?.click(); refresh(); };
+  /** glide to where a complaint is, and pick the patient there */
+  const showComplaint = (c: { id: G.WhyId; at: [number, number] }) => {
+    const g = gameRef.current, sc = sceneRef.current; if (!g || !sc) return;
+    const p = g.s.patients.filter((q) => g.whyOf(q).some((w) => w.id === c.id)).sort((a, b) => Math.abs(a.x - c.at[0]) + Math.abs(a.y - c.at[1]) - (Math.abs(b.x - c.at[0]) + Math.abs(b.y - c.at[1])))[0];
+    const [x, y] = p ? [p.x, p.y] : c.at;
+    sc.focus(x, y, Math.max(sc.cam.zoom, sc.fitZoom * 1.6));
+    if (p) setSel({ type: 'patient', id: p.id });
+    sfx()?.click(); refresh();
   };
 
   // ---------------------------------------------------------------- time
@@ -514,6 +579,7 @@ export default function ClinicPage() {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === 'Escape') {
         if (sheetRef.current === 'settings') { setSheet(null); return; }
+        if (sheetRef.current === 'bulletin') { closeBulletin(); return; }
         if (screenRef.current === 'clinic') { if (cancelAll()) { refresh(); e.preventDefault(); } }
         return;
       }
@@ -561,6 +627,7 @@ export default function ClinicPage() {
         screen: screenRef.current, ready, sheet: sheetRef.current, panel: panelRef.current, paused: pausedRef.current, speed: saveRef.current.settings.speed,
         selected: selRef.current, carry: carryRef.current, drag: drag.current?.mode ?? null, news: news?.text ?? '', build: buildRef.current, deco: decoRef.current,
         ghost: why ? { ...gb, ok: why.ok, reason: why.ok ? '' : (why as { reason: string }).reason } : null,
+        dockUp,
         save: saveRef.current, state: g?.s ?? null, clinic: g?.def.id ?? null, advice: g ? g.advice() : [], met,
         scene: sc ? { loaded: sc.loaded, zoom: sc.cam.zoom, w: sc.w, h: sc.h } : null, sound: soundRef.current?.unlocked ?? false,
         debug: {
@@ -578,6 +645,17 @@ export default function ClinicPage() {
           /** what a click at these page coordinates would pick */
           pickAt: (px: number, py: number) => { const c = canvasRef.current; if (!c || !sc) return null; const r = c.getBoundingClientRect(); return sc.pick(px - r.left, py - r.top); },
           select: (type: 'patient' | 'staff' | 'room' | 'deco' | 'walker', id: number) => { setPanel('none'); setSel({ type, id }); refresh(); },
+          /** jump to the last tick of the day: wages, the Bulletin and any raise request follow */
+          endDay: () => { if (!g) return; g.s.open = true; g.s.tut = G.TUT_STEPS; g.s.t = Math.ceil((g.s.t + 1) / G.DAY) * G.DAY - 1; g.tick(); onEvents(g, performance.now()); refresh(); },
+          /** a staff member asks for a raise right now */
+          raise: (id?: number) => { if (!g) return null; const st = id ? g.staffById(id) : g.s.staff[0]; if (!st) return null; g.s.raise = { id: 9000 + g.s.t, staff: st.id, amount: 20, expires: g.s.t + G.DAY }; g.events.push({ t: 'raise', id: st.id }); onEvents(g, performance.now()); refresh(); return st.id; },
+          /** almost enough experience for a new star */
+          nearStar: (id: number) => { if (!g) return; const st = g.staffById(id); if (st) { st.skill = Math.min(st.skill, 4); st.xp = G.XP_FOR(st.skill) - 0.5; } },
+          scenePick: () => sc ? { zoom: sc.cam.zoom, min: sc.minZoom, cam: { ...sc.cam } } : null,
+          /** which ailment each patient visibly showed in the last drawn frame */
+          ailFx: () => sc ? Object.fromEntries(sc.fxSeen) : {},
+          /** a new patient with this ailment walks in (optionally already diagnosed) */
+          patient: (ail: G.AilmentId, sp?: G.SpeciesId, diagnosed = false) => { if (!g) return null; g.s.open = true; const p = g.spawnPatient(ail, sp); if (diagnosed) { p.dx = ail; p.sure = true; } refresh(); return p.id; },
         },
       };
     };
@@ -680,9 +758,9 @@ export default function ClinicPage() {
 
   // ---- clinic: the top bar
   const goalsList = g ? g.goals() : [];
-  const pill = (id: string, ic: string, label: string, have: number, need: number, text: string) => (
+  const pill = (id: string, ic: string, label: string, have: number, need: number, text: string, pop = 0) => (
     <span className={`hc-pill hc-pill-${id}`} title={label} data-pill={id}>
-      {icon(ic)}
+      <span key={pop} className={pop ? 'hc-pop' : ''}>{icon(ic)}</span>
       <span className="hc-pill-body"><span className="hc-pill-text"><b>{text}</b>{!sandbox && need > 0 && <span className="hc-dim">/{fmt(need)}{id === 'rep' ? '%' : ''}</span>}</span>
         {!sandbox && need > 0 && <Bar k={have / need} tone={have >= need ? 'mint' : id === 'rep' ? 'coral' : id === 'coins' ? 'mustard' : 'teal'} />}</span>
     </span>
@@ -691,9 +769,9 @@ export default function ClinicPage() {
     <header className="hc-top">
       <button className="hc-round" aria-label="Back to the map" data-act="map" onClick={toMap}>{icon('home')}</button>
       <div className="hc-pills">
-        {pill('coins', 'coin', 'Coins', s.coins, goalsList[2]?.need ?? 0, fmt(s.coins))}
+        {pill('coins', 'coin', 'Coins', s.coins, goalsList[2]?.need ?? 0, fmt(s.coins), Math.round(s.earned))}
         {pill('rep', 'heart', 'Reputation', s.rep, goalsList[1]?.need ?? 0, `${Math.round(s.rep)}%`)}
-        {pill('cures', 'star', 'Cures', s.cures, goalsList[0]?.need ?? 0, fmt(s.cures))}
+        {pill('cures', 'star', 'Cures', s.cures, goalsList[0]?.need ?? 0, fmt(s.cures), s.cures)}
       </div>
       <div className="hc-time">
         <span className="hc-pill hc-pill-day" data-pill="day">{icon('calendar')}<b>Day {s.day}</b>{!sandbox && <span className="hc-dim">/{def.days}</span>}<span className="hc-clock">{s.open ? G.clockText(s) : 'Closed'}</span></span>
@@ -756,6 +834,22 @@ export default function ClinicPage() {
       </div>
     </div>
   );
+  const raise = s?.raise;
+  const raiseSt = raise && g ? g.staffById(raise.staff) : null;
+  const raiseCard = raise && raiseSt && (
+    <div className="hc-card hc-raise" data-card="raise">
+      <Img n={`p-${raiseSt.look}`} alt="" className="hc-emerg-face" />
+      <div>
+        <h3>{raiseSt.name} would like a raise</h3>
+        <p>{raiseSt.name} has grown to <b>{raiseSt.skill} stars</b> and asks for <b>{raise.amount} more coins a day</b> ({raiseSt.wage} now, {raiseSt.wage + raise.amount} after).</p>
+        <p className="hc-dim hc-small">Saying no is fine: they will feel a little glum for a while, but nobody quits over it.</p>
+        <div className="hc-card-btns">
+          <button className="hc-btn hc-btn-go" data-act="raise-yes" onClick={() => answerRaise(true)}>{icon('ok')}Yes, well earned</button>
+          <button className="hc-btn" data-act="raise-no" onClick={() => answerRaise(false)}>{icon('no')}Not now</button>
+        </div>
+      </div>
+    </div>
+  );
   const newsLine = news && <p key={news.key} className={`hc-news${news.bad ? ' hc-bad' : ''}`} role="status" data-news>{news.text}</p>;
 
   // ---- dock: build cards
@@ -776,7 +870,7 @@ export default function ClinicPage() {
       <p className="hc-dim hc-small">{buildKind ? 'Drag on the floor to draw the room, drag the ghost to move it, or tap to move it there.' : 'Tap or drag on the floor to move it.'}</p>
       <div className="hc-ghost-btns">
         <button className="hc-round hc-big" aria-label="Another spot" title="Another spot" data-act="another" onClick={anotherSpot}>{icon('move')}</button>
-        {buildKind && <button className="hc-round hc-big" aria-label="Rotate (R)" title="Rotate (R)" data-act="rotate" onClick={rotate}>{icon('rotate')}</button>}
+        {(buildKind || (decoKind && G.DECOS[decoKind].facings > 1)) && <button className="hc-round hc-big" aria-label="Rotate (R)" title="Rotate (R)" data-act="rotate" onClick={rotate}>{icon('rotate')}</button>}
         <button className={`hc-round hc-big hc-go${H('place')}`} aria-label="Place it" title="Place it (Enter)" data-act="place" onClick={place}>{icon('ok')}</button>
         <button className="hc-round hc-big hc-stop" aria-label="Cancel" title="Cancel (Esc)" data-act="cancel" onClick={cancelBuild}>{icon('no')}</button>
       </div>
@@ -867,10 +961,20 @@ export default function ClinicPage() {
       const mood = p.patience >= 60 ? 'happy' : p.patience >= 30 ? 'meh' : 'grumpy';
       return (
         <div className="hc-card hc-info" data-card="patient">
-          <div className="hc-card-head"><Img n={`face-${p.sp}`} alt="" className="hc-info-face" /><div><h3>{p.name}{p.vip && <span className="hc-tag">VIP</span>}{p.emerg ? <span className="hc-tag hc-tag-coral">Emergency</span> : null}</h3><p className="hc-dim">a {G.SPECIES[p.sp].name} · {PHASE_TEXT[p.phase]}</p></div><Img n={`i-${mood}`} alt={mood} className="hc-info-mood" /></div>
+          <div className="hc-card-head"><Img n={`face-${p.sp}`} alt="" className="hc-info-face" /><div><h3>{p.name}{p.vip && <span className="hc-tag">VIP</span>}{p.emerg ? <span className="hc-tag hc-tag-coral">Emergency</span> : null}</h3><p className="hc-dim">{/^[aeiou]/.test(G.SPECIES[p.sp].name) ? 'an' : 'a'} {G.SPECIES[p.sp].name} · {PHASE_TEXT[p.phase]}</p></div><Img n={`i-${mood}`} alt={mood} className="hc-info-mood" /></div>
           <p>{p.cured ? 'All better!' : p.dx ? <><b>{G.AILMENTS[p.dx].name}</b>{p.dx === p.ail || !p.wrongs.length ? '' : ''}: {G.AILMENTS[p.dx].blurb}</> : 'Not diagnosed yet: a vet will find out what is wrong at a check-up.'}</p>
           {!p.cured && <p className="hc-dim">Next stop: {G.ROOMS[p.need].name}{!g.hasRoom(p.need) ? ' (not built yet!)' : ''}</p>}
           <div className="hc-meters"><span>Patience</span><Bar k={p.patience / 100} tone={p.patience < 30 ? 'coral' : 'mint'} /><span>Thirst</span><Bar k={p.thirst / 100} tone={p.thirst > 75 ? 'coral' : 'teal'} /></div>
+          {(() => {
+            const why = g.whyOf(p);
+            return why.length > 0 && (
+              <div className="hc-why" data-why={why.map((w) => w.id).join(' ')}>
+                <span className="hc-dim hc-small">Feeling this way because:</span>
+                <ul>{why.map((w) => <li key={w.id} className={w.good ? 'hc-good' : 'hc-badw'}>{icon(WHY_ICON[w.id])}{w.text}</li>)}</ul>
+              </div>
+            );
+          })()}
+          {p.cured && p.gift > 0 && <p className="hc-dim hc-gift">{<Img n={`b-gift${p.gift}`} className="hc-ico" />}Going home with a {p.gift <= 2 ? 'balloon' : p.gift === 3 ? 'lollipop' : 'pinwheel'}.</p>}
         </div>
       );
     }
@@ -883,7 +987,12 @@ export default function ClinicPage() {
           <div className="hc-card-head"><Img n={`p-${x.look}`} alt="" className="hc-info-face" /><div><h3>{x.name}</h3><p className="hc-dim">{G.ROLES[x.role].name} · {STATE_TEXT[x.state]}</p></div><Stars n={x.skill} of={5} /></div>
           <p><span className="hc-trait">{G.TRAITS[x.trait].name}</span> {G.TRAITS[x.trait].blurb} Wage {x.wage} a day.</p>
           <p className="hc-dim">{home ? `Works in the ${G.ROOMS[home.kind].name}.` : x.role === 'cleaner' ? 'Roams the clinic fixing, sweeping and watering.' : 'Goes wherever they are needed.'}</p>
-          <div className="hc-meters"><span>Energy</span><Bar k={x.energy / 100} tone={x.energy < 30 ? 'coral' : 'mint'} /></div>
+          <div className="hc-meters" data-growth={x.id}>
+            <span>Energy</span><Bar k={x.energy / 100} tone={x.energy < 30 ? 'coral' : 'mint'} />
+            <span>{x.skill >= 5 ? 'Top marks' : 'Next star'}</span><Bar k={x.skill >= 5 ? 1 : x.xp / G.XP_FOR(x.skill)} tone="mustard" />
+            <span>Mood</span><Bar k={x.mood / 100} tone={x.mood < 35 ? 'coral' : 'teal'} />
+          </div>
+          <p className="hc-dim hc-small">{x.jobs} jobs done, {x.today} today. {MOOD_TEXT(x.mood)}.{g.teacher() === x ? ' Can teach in the Staff Room.' : ''}</p>
           {x.state !== 'leave' && (
             <div className="hc-card-btns">
               <button className="hc-btn hc-btn-small" data-act="pickup" onClick={() => pickUp(x)}>{icon('move')}Pick up</button>
@@ -921,6 +1030,22 @@ export default function ClinicPage() {
           {d.staff && <p className="hc-dim">{st ? `${st.name} is on duty.` : `No ${G.ROLES[d.staff].name.toLowerCase()} here right now.`} {queue ? `${queue} waiting.` : ''}</p>}
           {d.staff && r.kind !== 'reception' && <div className="hc-meters"><span>Wear</span><Bar k={wear / 100} tone={wear >= 75 ? 'coral' : 'mustard'} /></div>}
           {broken && <p className="hc-bad-text">Broken down: a cleaner will fix it.</p>}
+          {G.canUpgrade(r.kind) && (
+            <div className="hc-upgrade" data-level={r.level}>
+              <span className="hc-small"><b>Machine level {r.level}</b> <Stars n={r.level} of={3} /> {r.level >= 3 ? 'As shiny as it gets.' : `Level ${r.level + 1}: cures ${Math.round((G.UPGRADE_SPEED[r.level + 1] - 1) * 100)}% quicker, wears out ${Math.round((1 - G.UPGRADE_WEAR[r.level + 1]) * 100)}% slower.`}</span>
+              {r.level < 3 && <button className="hc-btn hc-btn-small hc-btn-go" data-act="upgrade" aria-disabled={s.coins < g.upgradeCost(r)} onClick={() => upgradeRoom(r)}><Img n="b-spanner" className="hc-ico" />{fmt(g.upgradeCost(r))}</button>}
+            </div>
+          )}
+          {r.kind === 'staff' && (() => {
+            const t = g.teacher();
+            return (
+              <label className="hc-toggle hc-train" data-setting="train">
+                <input type="checkbox" data-act="train" checked={r.train} onChange={(e) => setTraining(r, e.target.checked)} />
+                <span className="hc-switch" aria-hidden="true" />
+                <span><b>Training</b><span className="hc-dim hc-small">{t ? `${t.name} (${t.skill} stars) teaches everyone who rests here: they slowly earn stars. ${G.TRAIN_COST} coins a day.` : 'Needs a vet with three stars or more to teach.'}</span></span>
+              </label>
+            );
+          })()}
           <div className="hc-card-btns">
             <button className="hc-btn hc-btn-small" data-act="zoom" onClick={() => { const sc = sceneRef.current; if (sc) sc.focus(r.x + r.w / 2 - 0.5, r.y + r.h / 2 - 0.5, sc.fitZoom * 2.4); sfx()?.click(); }}>{icon('move')}Look closer</button>
             <button className="hc-btn hc-btn-small" data-act="door" onClick={() => moveDoor(r)}>{icon('rotate')}Move door</button>
@@ -938,7 +1063,11 @@ export default function ClinicPage() {
         <div className="hc-card hc-info" data-card="deco">
           <div className="hc-card-head"><Img n={`d-${dd.kind}`} alt="" className="hc-info-face" /><div><h3>{d.name}</h3><p className="hc-dim">{d.blurb}</p></div></div>
           {dd.kind === 'plant' && <div className="hc-meters"><span>Water</span><Bar k={dd.water / 100} tone={dd.water <= 25 ? 'coral' : 'teal'} /></div>}
-          <div className="hc-card-btns"><button className="hc-btn hc-btn-small" data-act="sell-deco" onClick={() => sellDeco(dd)}>{icon('sell')}Sell for {Math.round(dd.cost / 2)}</button></div>
+          {d.facings > 1 && <p className="hc-dim hc-small" data-facing={dd.rot}>{d.seats ? 'Patients sit facing the way it faces.' : d.id === 'cooler' || d.id === 'vending' ? 'Thirsty patients drink at its front.' : 'Turn it to face the corridor.'}</p>}
+          <div className="hc-card-btns">
+            {d.facings > 1 && <button className="hc-btn hc-btn-small" data-act="rotate-deco" onClick={() => rotateDeco(dd)}>{icon('rotate')}Rotate</button>}
+            <button className="hc-btn hc-btn-small" data-act="sell-deco" onClick={() => sellDeco(dd)}>{icon('sell')}Sell for {Math.round(dd.cost / 2)}</button>
+          </div>
         </div>
       );
     }
@@ -974,6 +1103,32 @@ export default function ClinicPage() {
           <p className="hc-dim hc-small">Day {s.day} of {def.days}. Meet every goal by day {def.fastDay} for a second star, with {def.starRep}% reputation for the third.{s.day > def.days ? ' The day limit has passed: you can still meet the goals for one star.' : ''}</p>
         </>
       )}
+      {(() => {
+        const cs = g.complaints();
+        return (
+          <div className="hc-complaints" data-complaints={cs.length}>
+            <h4>Mood: top complaints</h4>
+            {cs.length ? <ul>{cs.map((c) => (
+              <li key={c.id} data-complaint={c.id}>{icon(WHY_ICON[c.id])}<span>{c.text} <span className="hc-dim">×{c.count}</span></span>
+                <button className="hc-btn hc-btn-small" data-act="show-me" onClick={() => showComplaint(c)}>Show me</button></li>
+            ))}</ul> : <p className="hc-dim hc-small">No complaints right now. Everyone waiting is content.</p>}
+          </div>
+        );
+      })()}
+      <details className="hc-legend" open data-legend={def.ailments.length}>
+        <summary>Who has what?</summary>
+        <p className="hc-dim hc-small"><span className="hc-qmark" aria-hidden="true">?</span> means not seen yet: a Check-up finds out. Then a sign by their head shows the room that cures them.</p>
+        <ul>{def.ailments.map(([a, day]) => {
+          const ad = G.AILMENTS[a], soon = day > s.day;
+          return (
+            <li key={a} data-ail={a} className={soon ? 'hc-soon' : ''}>
+              <Img n={`i-${a}`} alt="" className="hc-legend-ail" />
+              <span><b>{ad.name}</b><span className="hc-dim hc-small">{LOOK[a]}{soon ? `. From day ${day}.` : '.'}</span></span>
+              <span className="hc-legend-room"><Img n={`s-${ad.room}`} alt="" className="hc-legend-sign" /><span className="hc-small">{G.ROOMS[ad.room].name}</span></span>
+            </li>
+          );
+        })}</ul>
+      </details>
       {emerg.map((e) => <p key={e.id} className="hc-emerg-line">{icon('bell')}Emergency: {e.cured} of {e.count} {G.SPECIES[e.sp].plural} cured, {Math.max(0, Math.ceil((e.deadline - s.t) / G.HOUR))} hours left.</p>)}
       <p className="hc-dim hc-small hc-twist-line">{def.twistText}</p>
       <ul className="hc-log">{s.log.slice(-5).reverse().filter((l) => l.text !== news?.text).slice(0, 4).map((l, i) => <li key={`${l.t}-${i}`}>{l.text}</li>)}</ul>
@@ -985,7 +1140,7 @@ export default function ClinicPage() {
   ) : panel === 'build' ? <>{buildBar}{buildCards}</> : panel === 'decor' ? <>{buildBar}{decoCards}</> : panel === 'hire' ? hirePanel : info ?? overview;
 
   const clinicView = (
-    <section className={`hc-clinic${panel !== 'none' || sel ? ' hc-dock-open' : ''}`}>
+    <section className={`hc-clinic${panel !== 'none' || sel || offer || raise || tut >= 0 || carry != null ? ' hc-dock-open' : dockUp ? ' hc-dock-up' : ' hc-dock-min'}`}>
       {topBar}
       {tools}
       <div className="hc-stage" ref={wrapRef}>
@@ -994,7 +1149,14 @@ export default function ClinicPage() {
         {paused && !sheet && !offer && <button className="hc-paused" data-act="resume" onClick={togglePause}>Paused · tap to carry on</button>}
       </div>
       <aside className="hc-dock" aria-label="Clinic cards">
+        {s && def && (
+          <div className="hc-slim">
+            <span className="hc-slim-txt">{news ? news.text : `${s.patients.filter((p) => p.phase === 'wait').length} waiting · ${s.staff.filter((x) => x.state !== 'gone').length} staff`}</span>
+            <button className="hc-btn hc-btn-small" data-act="dock" aria-expanded={dockUp} onClick={() => { setDockUp(!dockUp); sfx()?.click(); }}>{dockUp ? 'Less' : 'More'}</button>
+          </div>
+        )}
         {offerCard}
+        {raiseCard}
         {enzoNote}
         {!offer && !enzoNote && panel === 'none' && !sel && tipNote}
         {newsLine}
@@ -1014,6 +1176,7 @@ export default function ClinicPage() {
           ['assist', 'Helping hand', 'Dora’s tips, “try here” spots, hiring suggestions and a nudge before money runs low.'],
           ['strict', 'Strict day limit', 'Off: the day limit is soft (keep playing for one star). On: missing it ends the clinic.'],
           ['motion', 'Motion', 'Bounces, bubbles and rain. Turn off for a calmer floor.'],
+          ['bulletins', 'Show the Burrow Bulletin', 'A little newspaper at the end of every day.'],
           ['sandbox', 'Open the Sandbox', 'Unlock the Sandbox now instead of after Salt Flat.'],
         ] as [Exclude<keyof G.Settings, 'speed'>, string, string][]).map(([k, label, blurb]) => (
           <label key={k} className="hc-toggle" data-setting={k}>
@@ -1036,10 +1199,16 @@ export default function ClinicPage() {
   const metSheet = sheet === 'met' && met && metDef && (
     <div className="hc-sheet-wrap">
       <div className="hc-sheet hc-win hc-card" role="dialog" aria-label="Goals met" data-sheet="met">
-        <Img n="win" alt="Dora, Enzo and their patients jumping for joy outside the clinic" className="hc-win-art" />
+        <div className="hc-cert">
+          <Img n="cert" alt="An award certificate with Dora and Enzo cheering beside a red wax seal" className="hc-cert-art" />
+          <p className="hc-cert-kicker">Certificate of Excellent Care</p>
+          <div className="hc-cert-text">
+            <h3>{metDef.name}</h3>
+            <p className="hc-cert-line">Every goal met on day {met.day}, with {met.rep}% reputation.</p>
+            <Stars n={met.stars} big />
+          </div>
+        </div>
         <div className="hc-win-body">
-          <h3>Goals met at {metDef.name}!</h3>
-          <Stars n={met.stars} big />
           <ul className="hc-win-why">
             <li className="hc-on">Every goal met</li>
             <li className={met.day <= metDef.fastDay ? 'hc-on' : ''}>By day {metDef.fastDay} (you: day {met.day})</li>
@@ -1050,9 +1219,43 @@ export default function ClinicPage() {
           <div className="hc-card-btns">
             {nextDef && <button className="hc-btn hc-btn-go" data-act="next" onClick={() => { setMapSel(nextDef.id); openClinic(nextDef.id, true); }}>On to {nextDef.name}</button>}
             <button className="hc-btn" data-act="keep" onClick={() => { setSheet(null); setPaused(false); sfx()?.click(); }}>Keep playing here</button>
-            <button className="hc-btn hc-btn-ghost" data-act="to-map" onClick={() => { if (nextDef) setMapSel(nextDef.id); toMap(); }}>Map</button>
+            <button className="hc-btn hc-btn-ghost" data-act="to-map" onClick={() => { if (nextDef) setMapSel(nextDef.id); toMap(); }}>Back to the map</button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+  const bl = s?.bulletin;
+  const bulletinSheet = sheet === 'bulletin' && bl && def && (
+    <div className="hc-sheet-wrap" onClick={closeBulletin}>
+      <div className="hc-sheet hc-paper" role="dialog" aria-label="The Burrow Bulletin" data-sheet="bulletin">
+        <p className="hc-paper-mast"><span>The Burrow Bulletin</span><span className="hc-dim hc-small">{def.name} · end of day {bl.day}</span></p>
+        <h3 className="hc-paper-head" data-headline>{bl.headline}</h3>
+        <p className="hc-paper-sub">{bl.sub}</p>
+        <div className="hc-paper-cols">
+          <ul className="hc-paper-nums">
+            <li>{icon('star')}<b>{bl.cures}</b> cured</li>
+            <li>{icon('coin')}<span><b>{fmt(bl.earned)}</b> earned · <b>{fmt(bl.spent)}</b> spent</span></li>
+            <li>{icon('heart')}<b>{bl.rep >= 0 ? '+' : ''}{bl.rep}%</b> reputation</li>
+          </ul>
+          {bl.star && (
+            <div className="hc-paper-star" data-star>
+              <Img n={`p-${bl.star.look}`} alt="" className="hc-paper-face" />
+              <p><span className="hc-dim hc-small">Staff member of the day</span><b>{bl.star.name}</b> the {G.ROLES[bl.star.role].name.toLowerCase()}, {bl.star.jobs} jobs</p>
+            </div>
+          )}
+          {bl.quote && (
+            <blockquote className="hc-paper-quote" data-quote>
+              <Img n={`face-${bl.quote.sp}`} alt="" className="hc-paper-face" />
+              <p>“{bl.quote.text}”<span className="hc-dim hc-small">{bl.quote.name} the {G.SPECIES[bl.quote.sp].name}</span></p>
+            </blockquote>
+          )}
+        </div>
+        <div className="hc-paper-end">
+          <p className="hc-paper-tip"><b>Tip:</b> {bl.tip}</p>
+          <button className="hc-btn hc-btn-go" data-act="bulletin-close" onClick={closeBulletin}>On to day {bl.day + 1}</button>
+        </div>
+        <p className="hc-dim hc-small hc-paper-foot">Tap anywhere to fold the paper. Turn the Bulletin off in Settings.</p>
       </div>
     </div>
   );
@@ -1076,6 +1279,7 @@ export default function ClinicPage() {
       <div className="hc-clinic-host" hidden={screen !== 'clinic'}>{clinicView}</div>
       {settingsSheet}
       {metSheet}
+      {bulletinSheet}
       {failSheet}
     </main>
   );

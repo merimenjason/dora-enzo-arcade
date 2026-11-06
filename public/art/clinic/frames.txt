@@ -4,7 +4,7 @@ sp-vizcacha 132 154
 sp-flamingo 165 199
 sp-alpaca 138 181
 sp-fox 141 169
-sp-armadillo 122 130
+sp-armadillo 136 146
 sp-condor 151 178
 sp-owl 137 153
 dora 122 155
