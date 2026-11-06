@@ -14,26 +14,27 @@ type Line = { text: string; key: number; mood: '' | 'warn' | 'good' };
 type Result = { won: boolean; towns: number; planks: number; orders: number; passes: number; secs: number; best: boolean; town: string };
 
 const art = (n: string) => `/art/coin/${n}.png`;
+const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 const INTRO = [
   'We’re a coin! Dora’s on one face and I’m on the other. Every hour, whoever holds us spends us, and we get to choose whose paw we land in next.',
   'The town needs a bridge. Each day the board wants three goods: land with someone who sells one, and that order becomes a plank.',
   'Dora-side up, we can roll two streets. Enzo-side up, only next door, but I overhear how everyone near us is feeling. A cheery seller gives two planks; a grumpy one won’t sell.',
-  'Build the bridge before the last day ends. And watch out for Grumbles: if one reaches the paw we’re in, it’s into its sock till morning!',
+  'Build the bridge before the last day ends. And watch out for thieves, from harbour gulls to Grumbles: if one reaches the paw we’re in, we’re snatched till morning!',
 ];
 const MEET: Partial<Record<Kind, string>> = {
   mayor: 'Every morning starts with the Mayor. Pay her once a day and she pins another order on the board.',
   pedlar: 'The Pedlar goes everywhere! From his paw, we can land anywhere in town.',
   gossip: 'The Gossip knows how everyone’s feeling. Land with her and I’ll hear the whole town.',
-  miser: 'The Miser! He’ll give a plank from his sock of savings, once a day, but he keeps us two extra hours. Mind the Grumbles while we wait.',
+  miser: 'The Miser! He’ll give a plank from his sock of savings, once a day, but he keeps us two extra hours. Mind the thieves while we wait.',
   juggler: 'The Juggler spins us so we land both ways up: Dora’s reach and my ears at once.',
 };
 
-const snap = (r: Run): Snap => ({ holder: r.holder, face: r.face, grumbles: [...r.grumbles], known: [...r.known], moods: [...r.moods], paid: [...r.paid] });
-/** the streets the coin rolls along to get there, avoiding Grumbles */
+const snap = (r: Run): Snap => ({ holder: r.holder, face: r.face, thieves: [...r.thieves], known: [...r.known], moods: [...r.moods], paid: [...r.paid] });
+/** the streets the coin rolls along to get there, avoiding thieves */
 function route(r: Run, to: number): number[] {
   if (r.anywhere) return [];
   const prev = r.town.folk.map(() => -1), seen = new Set([r.holder]), q = [r.holder];
-  for (let i = 0; i < q.length; i++) for (const n of r.town.adj[q[i]]) if (!seen.has(n) && !r.grumbles.includes(n)) { seen.add(n); prev[n] = q[i]; q.push(n); }
+  for (let i = 0; i < q.length; i++) for (const n of r.town.adj[q[i]]) if (!seen.has(n) && !r.thieves.includes(n)) { seen.add(n); prev[n] = q[i]; q.push(n); }
   const out = [to]; while (prev[out[0]] >= 0) out.unshift(prev[out[0]]);
   return out[0] === r.holder ? out : [];
 }
@@ -115,11 +116,11 @@ export default function CoinOfTheRealmPage() {
 
   // ---------------------------------------------------------------- the run
   const meet = useCallback((run: Run) => {
-    // Enzo introduces each special townsfolk the first time they turn up, ever, then the Grumbles
+    // Enzo introduces each special townsfolk the first time they turn up, ever, then each town's thieves
     const fresh = [...new Set(run.town.folk.map((f) => f.kind))].filter((k) => MEET[k] && !saveRef.current.seen.includes(k));
-    const grumble = run.town.dens.length > 0 && !saveRef.current.seen.includes('grumble');
-    if (fresh.length || grumble) persist({ ...saveRef.current, seen: [...saveRef.current.seen, ...fresh, ...(grumble ? ['grumble'] : [])] });
-    if (grumble) { say('Grumbles! They creep one street nearer every hour. If one reaches the paw we’re in, we’re snatched till morning. A red ring means don’t go there.', 'warn'); return; }
+    const thief = run.town.dens.length > 0 && !saveRef.current.seen.includes(run.town.thief) ? run.town.thief : null;
+    if (fresh.length || thief) persist({ ...saveRef.current, seen: [...saveRef.current.seen, ...fresh, ...(thief ? [thief] : [])] });
+    if (thief) { say(G.THIEVES[thief].meet, 'warn'); return; }
     if (fresh.length) { say(MEET[fresh[0]]!); return; }
     if (run.ix === G.TOWNS.length - 1) say('Grumble Hollow. Two Grumbles, and the last bridge home. Let’s be quick, Dora!', 'warn');
     else say(`${run.town.name}! ${run.goal} planks for the bridge, ${run.days} days to do it.`);
@@ -166,7 +167,7 @@ export default function CoinOfTheRealmPage() {
       case 'pedlar': snd?.pedlar(); break;
       case 'juggler': snd?.juggler(); break;
       case 'hear': if (e.ids.length) snd?.hear(); break;
-      case 'grumble': snd?.grumble(); break;
+      case 'thief': snd?.thief(); break;
       case 'snatch': snd?.snatch(); break;
       case 'dusk': snd?.dusk(); break;
       case 'dawn': snd?.dawn(); break;
@@ -179,7 +180,7 @@ export default function CoinOfTheRealmPage() {
     for (const e of evs) {
       if (e.k === 'grumpy') say('Grumpy today: no sale. That order’s still open.', 'warn', 'grumpy');
       if (e.k === 'order' && e.planks > 1) say('A cheery seller: two planks for one order!', 'good', 'cheery');
-      if (e.k === 'snatch') say('Snatched! Into the Grumble’s sock till morning. That’s the rest of the day gone.', 'warn');
+      if (e.k === 'snatch') say(G.THIEVES[run.town.thief].snatch, 'warn');
       if (e.k === 'dawn') say(e.day + 1 === run.days ? `Last day, Dora! ${run.goal - run.planks} more plank${run.goal - run.planks === 1 ? '' : 's'} to go.` : `Morning! Day ${e.day + 1}, and a fresh order board.`, e.day + 1 === run.days ? 'warn' : '');
       if (e.k === 'bridge') { sceneRef.current?.celebrate(); say(run.phase === 'won' ? 'The last bridge! We’re going home, Dora!' : `The ${run.town.name} bridge is built! Over the river we go.`, 'good'); }
       if (e.k === 'lost') say('Out of days, and the bridge isn’t done. Oh no, they’re melting us down for nails!', 'warn');
@@ -284,8 +285,8 @@ export default function CoinOfTheRealmPage() {
       return {
         screen: screenRef.current, intro: introRef.current, save: saveRef.current, result, line, playing: playingRef.current, sel,
         run: run && screenRef.current === 'play' ? {
-          ix: run.ix, phase: run.phase, day: run.day, days: run.days, hour: run.hour, hours: run.hours, holder: run.holder, face: run.face, planks: run.planks, goal: run.goal,
-          orders: run.orders.map((o) => ({ ...o })), targets: run.targets(), grumbles: [...run.grumbles], known: [...run.known], perks: { ...run.perks }, offer: [...run.offer], stats: { ...run.stats },
+          ix: run.ix, thief: run.town.thief, phase: run.phase, day: run.day, days: run.days, hour: run.hour, hours: run.hours, holder: run.holder, face: run.face, planks: run.planks, goal: run.goal,
+          orders: run.orders.map((o) => ({ ...o })), targets: run.targets(), thieves: [...run.thieves], known: [...run.known], perks: { ...run.perks }, offer: [...run.offer], stats: { ...run.stats },
           folk: run.town.folk.map((f) => ({ id: f.id, kind: f.kind, x: f.x, y: f.y })),
         } : null,
         debug: {
@@ -327,7 +328,7 @@ export default function CoinOfTheRealmPage() {
         {playing ? <p className="cr-status">… <button onClick={() => sceneRef.current?.skip()}>Skip ›</button></p>
           : selF ? <div className="cr-info">
             <img src={art(selF.kind)} alt="" />
-            <p><b>{G.FOLK[selF.kind].name}</b> ({G.FOLK[selF.kind].who}) · {G.FOLK[selF.kind].text} {mood(selF.id)}{targets.includes(selF.id) && dangerOf(r, selF.id) && <em className="bad"> A Grumble could snatch the coin there!</em>}{!targets.includes(selF.id) && selF.id !== r.holder && <em> Out of reach this hour.</em>}{selF.id === r.holder && <em> The coin is here.</em>}</p>
+            <p><b>{G.FOLK[selF.kind].name}</b> ({G.FOLK[selF.kind].who}) · {G.FOLK[selF.kind].text} {mood(selF.id)}{targets.includes(selF.id) && dangerOf(r, selF.id) && <em className="bad"> {cap(G.THIEVES[r.town.thief].one)} could snatch the coin there!</em>}{!targets.includes(selF.id) && selF.id !== r.holder && <em> Out of reach this hour.</em>}{selF.id === r.holder && <em> The coin is here.</em>}</p>
             {targets.includes(selF.id) && <button className="cr-go" onClick={() => spend(selF.id)}>Spend here ›</button>}
           </div>
           : <p className="cr-status">{r.phase !== 'play' ? ' ' : targets.length ? <>Choose a <b className="good">glowing</b> townsfolk to spend the coin on. <span className="cr-small">Hour {r.hour + 1} of {r.hours}</span></> : <>Nowhere to go: wait an hour.</>}</p>}
@@ -390,11 +391,11 @@ export default function CoinOfTheRealmPage() {
           <li>The board wants three <b>goods</b> a day. Land with a seller of one and the order becomes a <b>plank</b>. A <b>cheery</b> seller gives two; a <b>grumpy</b> one won’t sell.</li>
           <li>Sellers you visited yesterday are more likely to be cheery; ones you left out, grumpy.</li>
           <li>Build the bridge before the last day ends, or the coin is melted down for nails. Four towns, a pick from Dora’s pockets after each.</li>
-          <li><b>Grumbles</b> creep one street nearer every hour. If one reaches the coin, it’s snatched till morning. A <b>red ring</b> means a Grumble would get there next.</li>
+          <li><b>Thieves</b> (herring gulls at the harbour, magpies on Russet Hill, Grumbles in Grumble Hollow) creep one street nearer every hour. If one reaches the coin, it’s snatched till morning. A <b>red ring</b> means a thief would get there next.</li>
         </ul></div>
         <div className="cr-card cr-foes"><h3>The townsfolk</h3>
           {(['mayor', 'pedlar', 'gossip', 'juggler', 'miser', ...G.TRADES] as Kind[]).map((k) => <div key={k} className="cr-foe"><img src={art(k)} alt="" /><p><b>{G.FOLK[k].name}</b>{G.FOLK[k].text}</p></div>)}
-          <div className="cr-foe"><img src={art('grumble')} alt="" /><p><b>Grumble</b>Creeps towards the coin, one street an hour, and snatches it.</p></div>
+          {(Object.keys(G.THIEVES) as G.Thief[]).map((k) => <div key={k} className="cr-foe"><img src={art(k)} alt="" /><p><b>{G.THIEVES[k].name}</b>{G.THIEVES[k].text}</p></div>)}
         </div>
       </div>
     </section>}

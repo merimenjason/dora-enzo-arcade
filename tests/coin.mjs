@@ -1,7 +1,7 @@
 // Coin of the Realm engine checks: generated towns (everyone joined up, the mayor in the middle, the right folk for the
-// town, Grumble dens in far corners, the same from the same seed), the coin's reach by face (Dora two streets, Enzo next
-// door, the Pedlar anywhere, the Juggler both ways up), never through or onto a Grumble, filling orders (fair, cheery,
-// grumpy), Enzo overhearing, the Gossip, the Mayor's extra order, the Miser's plank and lost hours, Grumbles creeping
+// town, thieves' dens in far corners, the same from the same seed), the coin's reach by face (Dora two streets, Enzo next
+// door, the Pedlar anywhere, the Juggler both ways up), never through or onto a thief, filling orders (fair, cheery,
+// grumpy), Enzo overhearing, the Gossip, the Mayor's extra order, the Miser's plank and lost hours, thieves creeping
 // and snatching, waiting, the Lucky toss, dusk and dawn, building a bridge, perks, losing, and the save.
 import assert from 'node:assert/strict';
 import { makeTown, dist, Run, TOWNS, DAYS, HOURS, ORDERS, SELLS, isTrade, newSave, parseSave, serialise, bank } from '../.checks/coin-game.js';
@@ -9,8 +9,8 @@ import { makeTown, dist, Run, TOWNS, DAYS, HOURS, ORDERS, SELLS, isTrade, newSav
 let n = 0;
 const ok = (m) => { n++; console.log('ok', m); };
 const folkOf = (r, kind) => r.town.folk.find((f) => f.kind === kind);
-/** a run in a given town with no Grumbles about, for testing one rule at a time */
-const quiet = (seed = 3, ix = 0) => { const r = new Run(seed); if (ix) r.enter(ix); r.grumbles = []; return r; };
+/** a run in a given town with no thieves about, for testing one rule at a time */
+const quiet = (seed = 3, ix = 0) => { const r = new Run(seed); if (ix) r.enter(ix); r.thieves = []; return r; };
 
 // ---- towns
 {
@@ -21,12 +21,13 @@ const quiet = (seed = 3, ix = 0) => { const r = new Run(seed); if (ix) r.enter(i
     assert.equal(t.folk[t.mayor].kind, 'mayor'); assert.ok([5, 6].includes(t.folk[t.mayor].slot), 'the mayor lives in the middle');
     for (const k of TOWNS[ix].specials) assert.equal(t.folk.filter((f) => f.kind === k).length, 1, `one ${k}`);
     for (const k of ['baker', 'woodcutter', 'smith', 'weaver', 'fisher', 'potter']) assert.ok(t.folk.some((f) => f.kind === k), `a ${k}`);
-    assert.equal(t.dens.length, TOWNS[ix].grumbles);
-    for (const d of t.dens) assert.ok([0, 3, 8, 11].includes(t.folk[d].slot) && dist(t.adj, t.mayor)[d] >= 2, 'Grumbles live in far corners');
+    assert.equal(t.dens.length, TOWNS[ix].thieves); assert.equal(t.thief, TOWNS[ix].thief);
+    for (const d of t.dens) assert.ok([0, 3, 8, 11].includes(t.folk[d].slot) && dist(t.adj, t.mayor)[d] >= 2, 'thieves live in far corners');
     for (const f of t.folk) assert.ok(f.x > 30 && f.x < 354 && f.y > 20 && f.y < 180, 'everyone on the screen');
     assert.deepEqual(makeTown(seed, ix), t, 'the same town from the same seed');
   }
-  ok('towns: eleven townsfolk all joined up, the mayor in the middle, the right folk, far-off Grumble dens, repeatable');
+  assert.deepEqual(TOWNS.filter((d) => d.thieves).map((d) => d.thief), ['gull', 'magpie', 'grumble'], 'each town has its own thieves; Grumbles only in Grumble Hollow');
+  ok('towns: eleven townsfolk all joined up, the mayor in the middle, the right folk, far-off thief dens, repeatable; gulls, magpies and Grumbles by town');
 }
 
 // ---- reach
@@ -37,12 +38,12 @@ const quiet = (seed = 3, ix = 0) => { const r = new Run(seed); if (ix) r.enter(i
   assert.deepEqual(r.targets().sort((a, b) => a - b), r.town.folk.filter((f) => f.id !== r.holder && d[f.id] <= 2).map((f) => f.id), 'Dora-side up: two streets');
   r.face = 'enzo';
   assert.deepEqual(r.targets().sort((a, b) => a - b), [...r.town.adj[r.holder]], 'Enzo-side up: next door');
-  r.face = 'dora'; const nb = r.town.adj[r.holder][0]; r.grumbles = [nb];
-  assert.ok(!r.targets().includes(nb), 'never onto a Grumble');
+  r.face = 'dora'; const nb = r.town.adj[r.holder][0]; r.thieves = [nb];
+  assert.ok(!r.targets().includes(nb), 'never onto a thief');
   const beyond = r.town.adj[nb].filter((x) => x !== r.holder && dist(r.town.adj, r.holder, [nb])[x] > 2);
   for (const x of beyond) assert.ok(!r.targets().includes(x), 'nor through one');
-  r.grumbles = []; r.anywhere = true; assert.equal(r.targets().length, 10, 'the Pedlar: anywhere');
-  ok('reach: Dora two streets, Enzo next door, the Pedlar anywhere, never onto or through a Grumble');
+  r.thieves = []; r.anywhere = true; assert.equal(r.targets().length, 10, 'the Pedlar: anywhere');
+  ok('reach: Dora two streets, Enzo next door, the Pedlar anywhere, never onto or through a thief');
 }
 
 // ---- spending: orders, moods, hearing, faces
@@ -84,25 +85,25 @@ const quiet = (seed = 3, ix = 0) => { const r = new Run(seed); if (ix) r.enter(i
   ok('specials: the Gossip tells all, the Pedlar goes anywhere, the Juggler lands both ways, the Mayor adds an order, the Miser gives a plank for two hours');
 }
 
-// ---- Grumbles, waiting, flipping, dusk and dawn
+// ---- thieves, waiting, flipping, dusk and dawn
 {
   const r = new Run(4); r.enter(1);
-  const g0 = r.grumbles[0], d0 = dist(r.town.adj, r.holder)[g0];
-  r.wait(); assert.equal(dist(r.town.adj, r.holder)[r.grumbles[0]], d0 - 1, 'a Grumble creeps one street nearer each hour');
+  const g0 = r.thieves[0], d0 = dist(r.town.adj, r.holder)[g0];
+  r.wait(); assert.equal(dist(r.town.adj, r.holder)[r.thieves[0]], d0 - 1, 'a thief creeps one street nearer each hour');
   assert.equal(r.face, 'enzo', 'waiting turns the coin over'); assert.equal(r.hour, 1);
-  // put a Grumble next door: the next hour it snatches the coin and the day is over
-  const s = new Run(4); s.enter(1); s.grumbles = [s.town.adj[s.holder][0]];
+  // put a thief next door: the next hour it snatches the coin and the day is over
+  const s = new Run(4); s.enter(1); s.thieves = [s.town.adj[s.holder][0]];
   assert.ok(s.danger(s.holder)); const ev = s.wait();
   assert.ok(ev.some((e) => e.k === 'snatch')); assert.ok(ev.some((e) => e.k === 'dusk') && ev.some((e) => e.k === 'dawn'));
   assert.equal(s.day, 1); assert.equal(s.hour, 0); assert.equal(s.holder, s.town.mayor); assert.equal(s.stats.snatched, 1);
-  assert.deepEqual(s.grumbles, s.town.dens, 'Grumbles go home at dawn');
+  assert.deepEqual(s.thieves, s.town.dens, 'thieves go home at dawn');
   // a day runs out of hours
   const q = quiet(6); for (let i = 0; i < HOURS; i++) q.wait();
   assert.equal(q.day, 1); assert.equal(q.face, 'dora', 'each morning starts Dora-side up');
   // the lucky toss
   const l = quiet(6); assert.equal(l.flip().length, 0, 'no flipping without the perk');
   l.perks.lucky = 1; assert.equal(l.flip()[0].face, 'enzo'); assert.equal(l.hour, 0, 'a flip costs no time'); assert.equal(l.flip().length, 0, 'once a day');
-  ok('Grumbles creep and snatch (the rest of the day lost), waiting, the lucky toss, and a new morning');
+  ok('thieves creep and snatch (the rest of the day lost), waiting, the lucky toss, and a new morning');
 }
 
 // ---- moods follow who was paid
@@ -130,17 +131,17 @@ const quiet = (seed = 3, ix = 0) => { const r = new Run(seed); if (ix) r.enter(i
   r.phase = 'pick'; r.offer = ['longday']; r.pick('longday'); assert.equal(r.hours, HOURS + 1);
   r.phase = 'pick'; r.offer = ['rainy']; r.pick('rainy'); assert.equal(r.days, DAYS + 1); assert.equal(r.ix, 3);
   r.perks.wander = 1; r.face = 'dora'; assert.equal(r.reachOf(), 3);
-  r.planks = r.goal - 1; r.grumbles = []; const s2 = r.town.folk.find((f) => isTrade(f.kind) && SELLS[f.kind] === r.orders[0].good);
+  r.planks = r.goal - 1; r.thieves = []; const s2 = r.town.folk.find((f) => isTrade(f.kind) && SELLS[f.kind] === r.orders[0].good);
   r.anywhere = true; r.moods[s2.id] = 'fair'; r.pass(s2.id); assert.equal(r.phase, 'won', 'the last bridge wins the run');
   const l = quiet(13); l.day = l.days - 1; for (let i = 0; i < HOURS && l.phase === 'play'; i++) l.wait();
   assert.equal(l.phase, 'lost', 'out of days with no bridge: melted down');
   ok('a bridge built moves on to a perk and the next town; perks; the last bridge wins; running out of days loses');
 }
 {
-  // butter paws: Grumbles move every other hour
-  const r = new Run(4); r.enter(1); r.perks.butter = 1; const g = r.grumbles[0];
-  r.wait(); assert.equal(r.grumbles[0], g, 'slipped on the first hour'); r.wait(); assert.notEqual(r.grumbles[0], g, 'moved on the second');
-  ok('Butter paws: Grumbles only move every other hour');
+  // butter paws: thieves move every other hour
+  const r = new Run(4); r.enter(1); r.perks.butter = 1; const g = r.thieves[0];
+  r.wait(); assert.equal(r.thieves[0], g, 'slipped on the first hour'); r.wait(); assert.notEqual(r.thieves[0], g, 'moved on the second');
+  ok('Butter paws: thieves only move every other hour');
 }
 
 // ---- the save
@@ -148,8 +149,8 @@ const quiet = (seed = 3, ix = 0) => { const r = new Run(seed); if (ix) r.enter(i
   const s = newSave();
   assert.deepEqual(parseSave(serialise(s)), s);
   assert.deepEqual(parseSave('{oops'), newSave()); assert.deepEqual(parseSave(JSON.stringify({ v: 2 })), newSave());
-  const odd = parseSave(JSON.stringify({ v: 1, best: { towns: 99, planks: -3 }, seen: ['mayor', 'grumble', 'dragon'], settings: { fast: true } }));
-  assert.equal(odd.best.towns, TOWNS.length); assert.equal(odd.best.planks, 0); assert.deepEqual(odd.seen, ['mayor', 'grumble']); assert.equal(odd.settings.fast, true);
+  const odd = parseSave(JSON.stringify({ v: 1, best: { towns: 99, planks: -3 }, seen: ['mayor', 'grumble', 'gull', 'magpie', 'dragon'], settings: { fast: true } }));
+  assert.equal(odd.best.towns, TOWNS.length); assert.equal(odd.best.planks, 0); assert.deepEqual(odd.seen, ['mayor', 'grumble', 'gull', 'magpie']); assert.equal(odd.settings.fast, true);
   const r = new Run(3); r.stats.towns = 2; r.stats.planks = 15; r.phase = 'lost';
   bank(s, r); assert.deepEqual(s.best, { towns: 2, planks: 15 }); assert.equal(s.stats.runs, 1); assert.equal(s.stats.planks, 15);
   r.phase = 'won'; r.stats.towns = 4; bank(s, r); assert.equal(s.best.towns, 4); assert.equal(s.stats.wins, 1);

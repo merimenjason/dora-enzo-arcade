@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Turns the Codex paintings for Coin of the Realm into the game's pixel art in public/art/coin/.
 
-Usage: python3 scripts/order-art.py <folder with the c-*.png paintings>
+Usage: python3 scripts/coin-art.py <folder with the c-*.png and cn2-*.png paintings>
 
 Sprite sheets are 2 by 2 on flat magenta: each quarter is keyed, cropped to what's painted and shrunk to its in-game
 size with a box filter and a small palette, so it stays crisp pixel art. The four towns are cropped to the screen's shape
@@ -95,6 +95,10 @@ for im, n in zip(f2, ('fisher', 'potter', 'pedlar', 'gossip')):
 f3 = quarters(Image.open(SRC / 'c-folk3.png'))
 for im, n in zip(f3, ('juggler', 'miser', 'mayor', 'grumble')):
     sprite(im, n, height=24 if n != 'grumble' else 20, colours=28)
+# each town's thieves: herring gulls at the harbour and magpies on the hill (Grumbles keep their hollow)
+th = quarters(Image.open(SRC / 'cn2-thieves.png'))
+sprite(th[0], 'gull', height=20, colours=28)
+sprite(th[1], 'magpie', height=20, colours=28)
 coins = quarters(Image.open(SRC / 'c-coins.png'))
 sprite(coins[0], 'coin-dora', fit=18, colours=16)
 sprite(coins[1], 'coin-enzo', fit=18, colours=16)

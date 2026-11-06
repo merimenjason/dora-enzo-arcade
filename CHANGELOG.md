@@ -13,6 +13,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Changed
 
+- **Coin of the Realm**: each town now has its own thieves. Herring gulls prowl Saltwick Harbour, magpies hop about Russet Hill, and the Grumbles only turn up in Grumble Hollow. Enzo introduces each kind the first time you meet it.
 - **Into Space** is much easier to play. Time now stops while you stand on the ball or aim, so only the run onto the pass is against the clock. A new Assist setting, on by default, doubles the perfect window, slows the other team and steers your runner onto the spot. The camera follows the play close up, and an upright phone gets a closer view. The cup is now against a league of animal teams with their own styles: Rabbit Rangers, Frog Wanderers, Mole Miners, Otter Athletic, Hedgehog Hotspurs, Magpie Rovers, Fox Forest and Badger Borough, with the Grumble Galacticos waiting in the final.
 
 ## 05-11-2026

@@ -86,6 +86,14 @@ try {
   await until(page, () => window.__coin().run.ix === 1 && window.__coin().run.phase === 'play');
   ok('the bridge built: Dora’s pockets open, and on to the next town');
 
+  // ---- each town's thieves: gulls at the harbour, magpies on the hill, Grumbles only in their hollow
+  assert.equal((await st(page)).run.thief, 'gull');
+  for (const [ix, k] of [[2, 'magpie'], [3, 'grumble'], [1, 'gull']]) {
+    await dbg(page, 'town', ix); const s = await st(page);
+    assert.equal(s.run.thief, k); assert.equal(s.run.thieves.length, ix === 3 ? 2 : 1);
+  }
+  ok('each town has its own thieves: herring gulls, magpies, and Grumbles only in Grumble Hollow');
+
   // ---- running out of days
   await dbg(page, 'lastDay');
   for (let i = 0; i < 20 && (await st(page)).run?.phase === 'play'; i++) { await page.keyboard.press('KeyW'); await page.waitForTimeout(40); await settle(page); }
@@ -103,9 +111,10 @@ try {
 
   await page.getByRole('button', { name: 'How to play' }).click();
   await until(page, () => window.__coin().screen === 'howto');
-  assert.equal(await page.locator('.cr-foe').count(), 12);
+  assert.equal(await page.locator('.cr-foe').count(), 14);
+  for (const n of ['Herring Gull', 'Magpie', 'Grumble']) assert.ok(await page.locator('.cr-foe b', { hasText: new RegExp(`^${n}$`) }).count() === 1, n);
   assert.ok(await noSideScroll(page));
-  ok('the how-to page: being a coin, the bridge, and every townsfolk');
+  ok('the how-to page: being a coin, the bridge, every townsfolk and every town\'s thieves');
   await page.context().close();
 
   // ---- a phone held upright

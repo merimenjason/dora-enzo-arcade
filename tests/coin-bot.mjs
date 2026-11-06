@@ -1,5 +1,5 @@
 // Coin of the Realm bots. The planner looks two hand-overs ahead, treating any mood Enzo hasn't heard as fair (it
-// never peeks), and steers clear of Grumbles. The greedy player takes an open order it can reach right now and
+// never peeks), and steers clear of thieves. The greedy player takes an open order it can reach right now and
 // otherwise goes wherever. The random player spends the coin anywhere it can. Towns should be winnable by planning,
 // harder by grabbing, and out of reach at random. Run after `npm test` has compiled the engine into .checks/ (or
 // `npm run bot:coin`).
@@ -20,7 +20,7 @@ const leaf = (r, start) => {
   if (r.phase === 'lost') return -1000;
   let v = (r.planks - start.planks) * 20 - (r.ix === start.ix && r.day > start.day ? 8 * (r.day - start.day) : 0);
   if (r.day !== start.day) v -= (start.hours - start.hour) * 3;
-  const d = dist(r.town.adj, r.holder, r.grumbles), s = sellers(r);
+  const d = dist(r.town.adj, r.holder, r.thieves), s = sellers(r);
   if (s.length) v -= Math.min(...s.map((i) => d[i])) * 2;
   if (!r.mayorUsed) v += 1;
   return v;

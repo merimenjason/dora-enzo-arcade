@@ -1,6 +1,6 @@
 // Coin of the Realm sounds, all synthesised with WebAudio: the clink and whoosh of the coin changing paws, a shop
 // bell when an order is filled, a huff from a grumpy seller, the Mayor's handbell, the Miser's sock, the Gossip's
-// quack, the Pedlar's jingle, the Juggler's spin, a soft chime when Enzo overhears, Grumble footsteps and the snatch, a
+// quack, the Pedlar's jingle, the Juggler's spin, a soft chime when Enzo overhears, a thief's footsteps and the snatch, a
 // night chime at dusk and a cockerel at dawn, a fanfare when the bridge is built, Enzo's chirpy voice, and an
 // original chiptune soundtrack written for this game: a title tune, a market-day bounce, a creepier loop for Grumble
 // Hollow and an ending. Silent until the first click, tap or key.
@@ -66,7 +66,7 @@ export class CoinSound {
   pedlar() { const t = this.now; for (let i = 0; i < 6; i++) this.tone(hz(90 + (i % 3) * 2), t + i * 0.04, 0.08, 0.06, 'square'); }
   juggler() { const t = this.now; for (let i = 0; i < 8; i++) this.tone(hz(72 + i * 2), t + i * 0.035, 0.05, 0.06, 'triangle'); }
   hear() { const t = this.now; this.tone(hz(83), t, 0.3, 0.06, 'sine'); this.tone(hz(90), t + 0.08, 0.35, 0.05, 'sine'); }
-  grumble() { const t = this.now; this.tone(95, t, 0.12, 0.16, 'sawtooth', 70); this.hiss(t, 0.08, 0.1, 400, 1, 'lowpass'); }
+  thief() { const t = this.now; this.tone(95, t, 0.12, 0.16, 'sawtooth', 70); this.hiss(t, 0.08, 0.1, 400, 1, 'lowpass'); }
   snatch() { const t = this.now; this.hiss(t, 0.2, 0.3, 1500, 1.5, 'bandpass', 3500); this.tone(400, t, 0.3, 0.16, 'sawtooth', 120); this.tone(hz(60), t + 0.3, 0.5, 0.12, 'triangle', hz(48)); }
   dusk() { const t = this.now; [79, 76, 72, 67].forEach((n, i) => this.tone(hz(n), t + i * 0.18, 0.5, 0.07, 'sine')); }
   dawn() { const t = this.now; this.tone(hz(79), t, 0.12, 0.08, 'square', hz(86)); this.tone(hz(86), t + 0.14, 0.12, 0.08, 'square'); this.tone(hz(88), t + 0.28, 0.35, 0.08, 'square', hz(84)); }

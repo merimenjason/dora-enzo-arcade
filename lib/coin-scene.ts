@@ -1,16 +1,16 @@
 // Coin of the Realm: the drawing. A 384 by 216 painted market town with eleven townsfolk standing in front of their
 // cottages and stalls, joined by dirt streets. The coin floats over the paw that holds it, showing Dora's face or
-// Enzo's. Whoever it can be spent on next glows gold; a red ring warns that a Grumble would snatch it there. Moods Enzo
+// Enzo's. Whoever it can be spent on next glows gold; a red ring warns that a thief would snatch it there. Moods Enzo
 // has overheard sit in little bubbles above heads (never over faces), and a seller's goods badge sits by their feet.
-// Each hand-over plays out: the coin arcs over the roofs, Grumbles creep along the streets, and planks pop up.
+// Each hand-over plays out: the coin arcs over the roofs, the town's thieves creep along the streets, and planks pop up.
 // Codex-painted pixel art from public/art/coin/, drawn with nearest-neighbour.
 import * as G from './coin-game';
 import type { Ev, Face, Mood, Town } from './coin-game';
 
 export const SW = 384, SH = 216;
 const KINDS = Object.keys(G.FOLK) as G.Kind[];
-const NAMES = ['town1', 'town2', 'town3', 'town4', 'grumble', 'coin-dora', 'coin-enzo', 'cottage', 'stall', 'sock', 'planks', ...KINDS, ...G.GOODS];
-export type Snap = { holder: number; face: Face; grumbles: number[]; known: boolean[]; moods: Mood[]; paid: number[] };
+const NAMES = ['town1', 'town2', 'town3', 'town4', 'grumble', 'gull', 'magpie', 'coin-dora', 'coin-enzo', 'cottage', 'stall', 'sock', 'planks', ...KINDS, ...G.GOODS];
+export type Snap = { holder: number; face: Face; thieves: number[]; known: boolean[]; moods: Mood[]; paid: number[] };
 export type View = { targets: number[]; danger: number[]; hover: number; path: number[]; reduced: boolean };
 type Pop = { x: number; y: number; text: string; c: string; t: number };
 type Bit = { x: number; y: number; vx: number; vy: number; t: number; life: number; c: string };
@@ -46,7 +46,7 @@ export class CoinScene {
   get playing() { return this.queue.length > 0; }
   /** play what a hand-over did, then settle on the run as it now is */
   play(evs: Ev[], end: Snap, done: () => void, onEv?: (e: Ev) => void) {
-    const len: Partial<Record<Ev['k'], number>> = { pass: 0.5, wait: 0.35, grumble: 0.28, snatch: 0.8, dusk: 0.9, dawn: 0.5, order: 0.35, grumpy: 0.3, miser: 0.5, bridge: 0.9, flip: 0.3 };
+    const len: Partial<Record<Ev['k'], number>> = { pass: 0.5, wait: 0.35, thief: 0.28, snatch: 0.8, dusk: 0.9, dawn: 0.5, order: 0.35, grumpy: 0.3, miser: 0.5, bridge: 0.9, flip: 0.3 };
     this.queue = evs.map((ev) => ({ ev, t: 0, len: len[ev.k] ?? 0 }));
     this.end = structuredClone(end); this.done = done; this.onEv = onEv ?? null;
     if (this.queue.length) this.begin(this.queue[0]); else this.finish();
@@ -90,7 +90,7 @@ export class CoinScene {
     const sh = this.shown!;
     if (e.k === 'pass') { sh.holder = e.to; sh.face = e.face; sh.paid[e.to]++; }
     if (e.k === 'wait') sh.face = e.face;
-    if (e.k === 'grumble') sh.grumbles[e.i] = e.to;
+    if (e.k === 'thief') sh.thieves[e.i] = e.to;
     if (e.k === 'dawn' && this.end) { this.shown = structuredClone(this.end); }
   }
   private advance() {
@@ -157,11 +157,11 @@ export class CoinScene {
       // the mood bubble, above the head
       if (G.isTrade(f.kind)) this.bubble(f.x, f.y - 26, sh.known[f.id] ? sh.moods[f.id] : null);
     }
-    // Grumbles
-    for (let i = 0; i < sh.grumbles.length; i++) {
-      let at = this.where(sh.grumbles[i]);
-      if (cur && cur.ev.k === 'grumble' && cur.ev.i === i) { const a = this.where(cur.ev.from), b = this.where(cur.ev.to), k = Math.min(1, cur.t); at = { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k - Math.sin(k * Math.PI) * 4 }; }
-      this.put('grumble', at.x + 14, at.y + 14 + (v.reduced ? 0 : Math.round(Math.sin(time * 6 + i) * 1)));
+    // the town's thieves: gulls, magpies or Grumbles
+    for (let i = 0; i < sh.thieves.length; i++) {
+      let at = this.where(sh.thieves[i]);
+      if (cur && cur.ev.k === 'thief' && cur.ev.i === i) { const a = this.where(cur.ev.from), b = this.where(cur.ev.to), k = Math.min(1, cur.t); at = { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k - Math.sin(k * Math.PI) * 4 }; }
+      this.put(t.thief, at.x + 14, at.y + 14 + (v.reduced ? 0 : Math.round(Math.sin(time * 6 + i) * 1)));
     }
     // the coin
     let cx = this.where(sh.holder).x, cy = this.where(sh.holder).y - 34, face = sh.face, spin = 1;
