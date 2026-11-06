@@ -94,14 +94,15 @@ const GAMES=[
  {href:'/snowball',title:'Snowball Siege',tag:'NEW · VOXEL SNOWBALL FIGHT',blurb:'A voxel snowball fight where every snowball is scooped out of your own fort. Dig, throw, patch the holes, and knock the top off their flag tower, on six snowy slopes against the Andean neighbours, or against a friend.',color:'#5fb4f0',art:'❄️'},
  {href:'/league',title:'Snow Day League',tag:'NEW · TEAM MANAGER',blurb:'Coach the Burrow Snowcats, a snowball team of Andean neighbours. Pick a job each week, draft against the rival coach, then watch your five topple their fort. Seasons, rivalries and a cup final.',color:'#d9483b',art:'🏆'},
  {href:'/misprint',title:'Misprint',tag:'NEW · RISO PUZZLE',blurb:'A puzzle zine printed in two inks. Dora stands on pink, Enzo on teal, and both on purple where they overlap. Slide a whole ink plate out of line to print a way to the staple.',color:'#ff48b0',art:'🖨️'},
+ {href:'/clinic',title:'Burrow Clinic',tag:'NEW · HOSPITAL SIM',blurb:'Dora and Enzo open a clinic for their Andean neighbours. Lay out rooms, hire chinchilla vets and cure Static Fluff, Echo Hiccups and Upside-Down Ears, across six clinics in a 1950s cartoon.',color:'#2fa99a',art:'🏥'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">NINETY-TWO ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Ninety-two ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, ninety-two cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">NINETY-THREE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Ninety-three ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, ninety-three cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <ArcadeGrid games={GAMES}/>

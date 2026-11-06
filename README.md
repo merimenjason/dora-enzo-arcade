@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of ninety-two original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of ninety-three original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -102,6 +102,7 @@ Listed in arcade-menu order.
 | 90 | Snowball Siege | `/snowball` | Voxel snowball fight |
 | 91 | Snow Day League | `/league` | Snowball team manager |
 | 92 | Misprint | `/misprint` | Two-ink riso print puzzle |
+| 93 | Burrow Clinic | `/clinic` | Hospital management sim |
 
 ## Run
 
@@ -1532,6 +1533,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:misprint` checks the rules (own ink and purple are solid, the other ink is a ghost, registration marks, gravity, ledges, every refused shift, riding, stamps, folds and ladders), undo and restart, and runs the solver on every page: each one solvable, the par at or above the optimum and within 30% of it, the ink drop reachable, each page's new idea genuinely needed, and no page finishable by one chinchilla unless it is a tutorial made that way; then stars, unlocking and the save, corrupt saves included. `npm run bot:misprint` has a player who takes the hint 60% of the time and otherwise presses at random finish every page (`--quick` in `npm test` plays the first zine). `node tests/e2e/misprint.mjs` (dev server running) presses every control in a browser and on phones.
 
 **Docs:** [`docs/misprint.md`](docs/misprint.md) has every rule, the page list with optimal moves and pars, the solver, the art pipeline and how to design a page.
+
+### 93 · Burrow Clinic (`/clinic`)
+
+**Play:** a hospital management sim in a 1950s cartoon style. Dora and Enzo open a clinic in the Andes for their animal neighbours (pudús, guanacos, vizcachas, flamingos, alpacas, foxes and more), who arrive with silly, harmless ailments such as Static Fluff, Echo Hiccups and Upside-Down Ears. Lay out rooms on an isometric floor: a reception, check-up rooms where a vet diagnoses each patient, a staff room, and one cure room per ailment, each with its own big funny machine (the Fluff-Dryer, the Hiccup Jar and more). Add benches, plants, water coolers, drinks carts and bins. Hire chinchilla buddies as vets, nurses, cleaners and receptionists, each with a skill, a wage and a trait; staff get tired and need breaks, machines wear and need fixing, and patients who wait too long go home grumpy. Emergencies can be taken on or turned down. Six clinics along the Andes Road (Burrow Clinic, Salt Flat, Lakeside, Cloud Forest, Hot Springs and Summit) each have a twist and three goals (cures, reputation and coins) within a set number of days, with up to three stars; the first teaches everything step by step with Enzo's notes. A Sandbox opens after the second clinic. The day limit is soft unless Strict is turned on in Settings, and a helping hand (on by default) suggests where rooms fit and who to hire. Saved in `burrow-clinic-v1`.
+
+**Controls:** click or tap to select a patient, staff member or room and see their card; drag to pan, and the wheel or a pinch to zoom. In build mode, drag on the floor to draw a room or drag the ghost to move it, R or the rotate button turns it, Enter or ✓ places it, and right-click, Escape or ✕ cancels. Drag staff (or press Pick up on their card) to move them into a room. Space or the pause button pauses, 1, 2 and 3 set the speed, and B opens the build cards. On a phone held upright the toolbar sits at the bottom and panels slide up.
+
+**Tests:** `npm run test:clinic` checks arrivals, queues, diagnosis and cures, money, wages and selling, room fit rules and pathfinding around rooms, staff tiredness and the staff room, machine wear and repair, mood and patience, emergencies, goals and stars, determinism and the save, corrupt saves included. `npm run bot:clinic` runs every clinic headless with a casual manager (sensible but imperfect, and slow to react), a pro and an idle player: the casual one must meet clinic 1's goals in at least 90% of seeds, clinic 2's in 80% and each later clinic's in 60%, the pro every clinic's in 95%, and the idle player never (`--quick` in `npm test`). `node tests/e2e/clinic.mjs` (dev server running) presses every action in a browser and on phones.
+
+**Docs:** [`docs/clinic.md`](docs/clinic.md) has every rule, room, ailment, staff trait, clinic and bot result, the controls and the art pipeline.
 
 ## Validation
 
