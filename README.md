@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of ninety original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of ninety-one original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -100,6 +100,7 @@ Listed in arcade-menu order.
 | 88 | Into Space | `/space` | Football roguelite |
 | 89 | Rulebook FC | `/rulebook` | Football roguelite |
 | 90 | Snowball Siege | `/snowball` | Voxel snowball fight |
+| 91 | Snow Day League | `/league` | Snowball team manager |
 
 ## Run
 
@@ -1510,6 +1511,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:snowball` checks scooping, patching, the throw preview matching the real flight, a seed replaying, hits and the hard cross, falling cubes, the flag, stuns, ice, wind, pines, time-up, every slope, the save and the shared voxel mesher. `npm run bot:snowball` makes a casual bot win the first two slopes almost always and Windy Ridge about half the time, a pro bot win at least 60% of every slope, a bot that never digs its walls lose clearly to the pro, and random play never win past the first slope (`--quick` in `npm test`). `node tests/e2e/snowball.mjs` (dev server running) plays it in a browser and on a phone.
 
 **Docs:** [`docs/snowball.md`](docs/snowball.md) has every rule, slope and number, the art pipeline and the bot results.
+
+### 91 · Snow Day League (`/league`)
+
+**Play:** a team manager. Dora and Enzo coach the Burrow Snowcats, a snowball team of Andean neighbours, through a season against seven rival burrows. Each week in the paper office you do one job: train a player (+1 to a stat), scout the next rival, rest the squad or sign a free agent. Then comes the pick-and-ban draft on the felt table: fourteen moves, with your squad, theirs and four village loans to choose from. Five roles counter each other in a wheel (builders stop throwers, scouts lob over builders, diggers bury scouts, throwers out-range diggers; medics heal). The Hint (on by default) suggests a card and says why, and Auto-draft finishes it for you. Then you watch: five a side for 90 seconds in pixel art, knocking blocks out of each other's snow fort. Knock all 16 out and the flag falls; at time-up the fort with more left wins. You get one shout each half (All attack, Hold the walls, or Protect a player). Each player has a special, a personality and a morale bar, and players age, grow and retire. A season is a seven-week round robin, then semis and a cup final, with grudge matches, a derby with the alpacas and the Shadow Cats as the strongest rivals. Saved in `snow-day-league-v1`.
+
+**Controls:** mouse or touch for everything: tap a card to see it in full, then Ban or Pick. Number keys pick or ban the numbered card at once, Enter confirms, Space cycles the match speed (1×, 2×, 4×) and Escape closes a card or pauses. Skip jumps to the result. On a phone held sideways the match buttons stand beside the pitch; held upright, the pitch is cropped and follows the action.
+
+**Tests:** `npm run test:league` checks that a match replays from its seed, the counter wheel, shouts, the flag and time-up, draft order and legality, the week's jobs, the season's shape, the rollover, unique names, the photo wall and the save. `npm run bot:league` checks that matches last 60–100 s with lead changes and no early blowouts, that a counter-aware or Hint-following drafter beats a random one at least 75% of the time, that a casual manager reaches the semis in season 1 at least 60% of the time and wins the cup at least 25%, that a pro wins the season-1 cup at least 65%, and that random managers rarely win (`--quick` in `npm test`). `node tests/e2e/league.mjs` (dev server running) plays a week in a browser and on phones.
+
+**Docs:** [`docs/league.md`](docs/league.md) has every rule, number, coach and bot result, and the art pipeline.
 
 ## Validation
 

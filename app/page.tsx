@@ -92,14 +92,15 @@ const GAMES=[
  {href:'/space',title:'Into Space',tag:'NEW · FOOTBALL ROGUELITE',blurb:'Never pass to feet: pick a spot on the grass, take over the runner and arrive just as it lands. Get it perfect and time slows for a first-time finish. A seven-round cup against the Grumbles.',color:'#3fae5a',art:'🥅'},
  {href:'/rulebook',title:'Rulebook FC',tag:'NEW · FOOTBALL ROGUELITE',blurb:'Turn-based football where their next move is always showing. Win, and write a new law of football into the rulebook; every team in the animal league brings a law of its own. Ten matches, Grumbles at the end.',color:'#8a5ad8',art:'📜'},
  {href:'/snowball',title:'Snowball Siege',tag:'NEW · VOXEL SNOWBALL FIGHT',blurb:'A voxel snowball fight where every snowball is scooped out of your own fort. Dig, throw, patch the holes, and knock the top off their flag tower, on six snowy slopes against the Andean neighbours, or against a friend.',color:'#5fb4f0',art:'❄️'},
+ {href:'/league',title:'Snow Day League',tag:'NEW · TEAM MANAGER',blurb:'Coach the Burrow Snowcats, a snowball team of Andean neighbours. Pick a job each week, draft against the rival coach, then watch your five topple their fort. Seasons, rivalries and a cup final.',color:'#d9483b',art:'🏆'},
 ];
 export default function Arcade(){
  return <main className="arcade-shell">
   <header className="arcade-header"><span>DORA <em>&amp;</em> ENZO&rsquo;S ARCADE</span></header>
   <section className="arcade-hero">
-   <p className="arcade-eyebrow">NINETY ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
-   <h1>Small paws.<br/><em>Ninety ways to play.</em></h1>
-   <p className="arcade-lede">One roster of chinchillas, ninety cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
+   <p className="arcade-eyebrow">NINETY-ONE ORIGINAL BROWSER GAMES · THE ANDES AND EVERYTHING AFTER</p>
+   <h1>Small paws.<br/><em>Ninety-one ways to play.</em></h1>
+   <p className="arcade-lede">One roster of chinchillas, ninety-one cabinets. Pick a machine and play; every game runs in your browser, no install and no sign-in.</p>
   </section>
   <ContinuePlaying games={GAMES.map(({href,title,color,art})=>({href,title,color,art}))}/>
   <ArcadeGrid games={GAMES}/>
