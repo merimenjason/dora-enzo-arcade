@@ -1,0 +1,467 @@
+#!/usr/bin/env python3
+"""The Sunken Bellspire: turns the Codex paintings into hi-bit pixel art.
+
+Every sheet was painted large on flat magenta. This script keys the magenta out, crops each figure, scales it down to
+its in-game pixel size with a box filter (so detail averages instead of aliasing), snaps it to a small palette with no
+dithering, cleans stray pixels and gives sprites a one-pixel ink outline. Frames are packed into strips under
+public/art/bellspire/, and lib/bellspire-art.ts records each strip's cell size and frame count for the scene.
+
+    python3 scripts/bellspire-art.py <folder with the bs-*.png paintings>
+"""
+import sys
+from pathlib import Path
+import numpy as np
+from PIL import Image
+
+SRC = Path(sys.argv[1] if len(sys.argv) > 1 else '.')
+ROOT = Path(__file__).resolve().parent.parent
+OUT = ROOT / 'public' / 'art' / 'bellspire'
+OUT.mkdir(parents=True, exist_ok=True)
+MANIFEST = {}
+INK = (34, 24, 32)
+
+
+def load(name):
+    return Image.open(SRC / f'{name}.png').convert('RGBA')
+
+
+def key(im):
+    """the flat magenta becomes clear, and its anti-aliased fringe is pulled towards the ink outline"""
+    a = np.asarray(im.convert('RGBA')).astype(np.int16).copy()
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    m = np.minimum(r, b) - g
+    hard = (m > 95) & (r > 150) & (b > 150)
+    soft = (m > 35) & ~hard & (np.abs(r - b) < 110)
+    a[hard] = 0
+    k = np.clip((m - 35) / 60.0, 0, 1)
+    for c, ink in zip(range(3), INK):
+        ch = a[..., c]
+        ch[soft] = (ch[soft] * (1 - k[soft]) + ink * k[soft]).astype(np.int16)
+    a[..., 3][soft] = (255 * (1 - k[soft] * 0.85)).astype(np.int16)
+    return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
+
+
+def _hsv(a):
+    r, g, b = a[..., 0] / 255, a[..., 1] / 255, a[..., 2] / 255
+    mx, mn = np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b)
+    d = mx - mn
+    h = np.zeros_like(mx)
+    m = d > 1e-6
+    rr, gg, bb = (mx == r) & m, (mx == g) & m & (mx != r), (mx == b) & m & (mx != r) & (mx != g)
+    h[rr] = ((g - b)[rr] / d[rr]) % 6
+    h[gg] = (b - r)[gg] / d[gg] + 2
+    h[bb] = (r - g)[bb] / d[bb] + 4
+    return h * 60, np.where(mx > 0, d / np.maximum(mx, 1e-6), 0), mx
+
+
+def _rgb(h, s, v):
+    c = v * s
+    x = c * (1 - np.abs((h / 60) % 2 - 1))
+    m = v - c
+    z = np.zeros_like(h)
+    k = (h // 60).astype(int) % 6
+    r = np.choose(k, [c, x, z, z, x, c]); g = np.choose(k, [x, c, c, x, z, z]); b = np.choose(k, [z, z, x, c, c, x])
+    return np.stack([(r + m) * 255, (g + m) * 255, (b + m) * 255], -1)
+
+
+def _ramp(t, stops):
+    """a colour ramp: t in 0..1 through (t, (r, g, b)) stops"""
+    out = np.zeros(t.shape + (3,))
+    for (t0, c0), (t1, c1) in zip(stops, stops[1:]):
+        m = (t >= t0) & (t <= t1)
+        k = ((t - t0) / max(t1 - t0, 1e-6))[m][:, None]
+        out[m] = np.array(c0) * (1 - k) + np.array(c1) * k
+    return out
+
+
+def hero_colours(im, hero):
+    """Tell the heroes apart at a glance: Dora warm cream-white with a teal coat, Enzo mid-grey with a rust coat. The
+    painted fur is remapped onto a fixed ramp, the coats are pushed to their hue, and the pink inner ears are toned
+    down so they don't dominate a small sprite. The magenta ground is left alone for the keyer."""
+    a = np.asarray(im.convert('RGBA')).astype(np.float32).copy()
+    rgb = a[..., :3]
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    ground = (np.minimum(r, b) - g > 60) & (r > 140) & (b > 140)
+    h, sat, v = _hsv(rgb)
+    lum = (0.3 * r + 0.55 * g + 0.15 * b) / 255
+    pinkish = ((h > 320) | (h < 15)) & (sat > 0.22) & (sat < 0.62) & (v > 0.72) & ~ground
+    if hero == 'enzo':
+        fur = (sat < 0.34) & (np.minimum(r, b) >= g - 6) & (v > 0.18) & ~ground
+        rgb[fur] = _ramp(np.clip(lum[fur] * 1.05, 0, 1), [(0, (34, 36, 42)), (0.35, (88, 92, 102)), (0.6, (138, 143, 153)), (0.8, (169, 173, 181)), (1, (214, 217, 223))])
+        coat = ((h > 330) | (h < 25)) & (sat >= 0.45) & (v < 0.85) & ~ground
+        nh = np.full(h.shape, 16.0)
+        rgb[coat] = _rgb(nh[coat], np.clip(sat[coat] * 0.92, 0, 1), v[coat] * 0.95)
+    else:
+        fur = (sat < 0.3) & (r >= b) & (v > 0.55) & ~ground & ~pinkish
+        rgb[fur] = _ramp(np.clip(lum[fur], 0, 1), [(0.4, (150, 124, 104)), (0.65, (214, 192, 164)), (0.85, (244, 232, 210)), (1, (255, 250, 238))])
+        coat = (h > 150) & (h < 250) & (sat > 0.2) & ~ground
+        nh = np.full(h.shape, 178.0)
+        rgb[coat] = _rgb(nh[coat], np.clip(sat[coat] * 1.25 + 0.1, 0, 0.85), np.clip(v[coat] * 1.12, 0, 1))
+    # tone the inner ears and blush down: halfway to the fur
+    furc = np.array((150, 154, 162) if hero == 'enzo' else (238, 222, 200), np.float32)
+    keep = 0.35 if hero == 'enzo' else 0.5
+    rgb[pinkish] = rgb[pinkish] * keep + furc * (1 - keep)
+    a[..., :3] = rgb
+    return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
+
+
+def grey_fur(im):
+    """Enzo's portrait: the same colours as his sprites"""
+    return hero_colours(im, 'enzo')
+
+
+def cells(im, cols, rows):
+    w, h = im.width // cols, im.height // rows
+    return [im.crop((x * w, y * h, x * w + w, y * h + h)) for y in range(rows) for x in range(cols)]
+
+
+def drop_neighbours(im):
+    """a sheet cell can catch a limb of the figure next door at its side; remove pieces touching the left or right
+    edge that are much smaller than the main figure (labelled on a quarter-size mask, which is plenty)"""
+    a = np.asarray(im).copy()
+    m = a[::4, ::4, 3] > 60
+    h, w = m.shape
+    lab = np.zeros((h, w), np.int32)
+    sizes, edge = [0], [False]
+    for y0 in range(h):
+        for x0 in range(w):
+            if not m[y0, x0] or lab[y0, x0]:
+                continue
+            n = len(sizes)
+            lab[y0, x0] = n
+            stack, cnt, touch = [(y0, x0)], 0, False
+            while stack:
+                y, x = stack.pop()
+                cnt += 1
+                touch |= x == 0 or x == w - 1
+                for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    yy, xx = y + dy, x + dx
+                    if 0 <= yy < h and 0 <= xx < w and m[yy, xx] and not lab[yy, xx]:
+                        lab[yy, xx] = n
+                        stack.append((yy, xx))
+            sizes.append(cnt); edge.append(touch)
+    if len(sizes) <= 2:
+        return im
+    big = max(sizes)
+    drop = np.zeros(len(sizes), bool)
+    for i in range(1, len(sizes)):
+        drop[i] = edge[i] and sizes[i] < big * 0.25
+    gone = np.repeat(np.repeat(drop[lab], 4, 0), 4, 1)[:a.shape[0], :a.shape[1]]
+    a[..., 3][gone] = 0
+    return Image.fromarray(a)
+
+
+def label(m):
+    """connected pieces of a boolean mask: (labels, sizes, boxes as [y0, x0, y1, x1])"""
+    h, w = m.shape
+    lab = np.zeros((h, w), np.int32)
+    sizes, boxes = [0], [None]
+    for y0 in range(h):
+        for x0 in range(w):
+            if not m[y0, x0] or lab[y0, x0]:
+                continue
+            n = len(sizes)
+            lab[y0, x0] = n
+            stack, cnt, box = [(y0, x0)], 0, [y0, x0, y0, x0]
+            while stack:
+                y, x = stack.pop()
+                cnt += 1
+                box = [min(box[0], y), min(box[1], x), max(box[2], y), max(box[3], x)]
+                for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    yy, xx = y + dy, x + dx
+                    if 0 <= yy < h and 0 <= xx < w and m[yy, xx] and not lab[yy, xx]:
+                        lab[yy, xx] = n
+                        stack.append((yy, xx))
+            sizes.append(cnt); boxes.append(box)
+    return lab, sizes, boxes
+
+
+def figures(im, n):
+    """the n biggest figures on a sheet, left to right, whole even where they stray over the grid lines; small loose
+    pieces (a tongue, a drip) join the figure whose box they sit in"""
+    a = np.asarray(im)
+    lab, sizes, boxes = label(a[::4, ::4, 3] > 60)
+    order = sorted(range(1, len(sizes)), key=lambda i: -sizes[i])[:n]
+    order.sort(key=lambda i: boxes[i][1])
+    groups = {i: [i] for i in order}
+    for j in range(1, len(sizes)):
+        if j in groups or sizes[j] < sizes[order[0]] * 0.004:
+            continue
+        cy, cx = (boxes[j][0] + boxes[j][2]) / 2, (boxes[j][1] + boxes[j][3]) / 2
+        for i in order:
+            y0, x0, y1, x1 = boxes[i]
+            py, px = (y1 - y0) * 0.15, (x1 - x0) * 0.15
+            if y0 - py <= cy <= y1 + py and x0 - px <= cx <= x1 + px:
+                groups[i].append(j)
+                break
+    out = []
+    for i in order:
+        keep = np.isin(lab, groups[i])
+        big = np.repeat(np.repeat(keep, 4, 0), 4, 1)[:a.shape[0], :a.shape[1]]
+        b = a.copy()
+        b[..., 3][~big] = 0
+        out.append(bbox(Image.fromarray(b)))
+    return out
+
+
+def bbox(im, keep_small=False):
+    """crop to the figure: drop specks far from the main body"""
+    a = np.asarray(im)[..., 3] > 60
+    if not a.any():
+        return im.crop((0, 0, 1, 1))
+    if not keep_small:
+        # drop rows/columns whose opaque run is tiny and isolated (stray magenta speckle survivors)
+        ys, xs = np.nonzero(a)
+        cy, cx = np.median(ys), np.median(xs)
+        d = np.hypot(ys - cy, xs - cx)
+        lim = np.percentile(d, 99.5) * 1.15
+        a2 = np.zeros_like(a)
+        a2[ys[d <= lim], xs[d <= lim]] = True
+        a = a2
+    ys, xs = np.nonzero(a)
+    return im.crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
+
+
+def pixelate(im, w, h, colors=24, outline=True, clean=True):
+    """box-scale to (w, h), hard alpha, a small palette and an ink outline"""
+    big = im.resize((w * 4, h * 4), Image.LANCZOS)
+    small = big.resize((w, h), Image.BOX)
+    a = np.asarray(small).astype(np.int16).copy()
+    alpha = a[..., 3] > 110
+    # un-premultiply the edge so faded fringe pixels keep their colour
+    rgb = Image.fromarray(a[..., :3].astype(np.uint8))
+    q = rgb.quantize(colors=colors, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert('RGB')
+    out = np.zeros((h, w, 4), np.uint8)
+    out[..., :3] = np.asarray(q)
+    out[..., 3] = np.where(alpha, 255, 0)
+    if clean:
+        al = out[..., 3] > 0
+        n = np.zeros_like(al, dtype=np.int16)
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                if dx or dy:
+                    n += np.roll(np.roll(al, dy, 0), dx, 1)
+        out[..., 3][al & (n <= 1)] = 0
+    if outline:
+        al = out[..., 3] > 0
+        edge = np.zeros_like(al)
+        for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            edge |= np.roll(np.roll(al, dy, 0), dx, 1)
+        edge &= ~al
+        edge[0, :] = edge[-1, :] = False
+        edge[:, 0] = edge[:, -1] = False
+        out[edge] = (*INK, 255)
+    return Image.fromarray(out)
+
+
+def scaled(fig, s, colors=24, outline=True):
+    w, h = max(1, round(fig.width * s)), max(1, round(fig.height * s))
+    px = pixelate(fig, w, h, colors, outline=False)
+    if outline:
+        bigger = Image.new('RGBA', (w + 2, h + 2))
+        bigger.paste(px, (1, 1))
+        a = np.asarray(bigger).copy()
+        al = a[..., 3] > 0
+        edge = np.zeros_like(al)
+        for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            edge |= np.roll(np.roll(al, dy, 0), dx, 1)
+        edge &= ~al
+        a[edge] = (*INK, 255)
+        px = Image.fromarray(a)
+    return px
+
+
+def foot_x(px):
+    """where the figure stands: the middle of the opaque pixels in its bottom third"""
+    a = np.asarray(px)[..., 3] > 0
+    h = a.shape[0]
+    ys, xs = np.nonzero(a[int(h * 0.62):])
+    return float(xs.mean()) if len(xs) else px.width / 2
+
+
+def strip(name, frames, cw, ch, anchor='foot', note=''):
+    """pack frames into one strip of (cw, ch) cells; each frame's foot sits at the cell's bottom middle"""
+    cw = max(cw, *(f.width for f in frames))
+    ch = max(ch, *(f.height for f in frames))
+    out = Image.new('RGBA', (cw * len(frames), ch))
+    for i, f in enumerate(frames):
+        if anchor == 'foot':
+            fx = foot_x(f)
+            x = int(round(cw / 2 - fx))
+            x = max(0, min(cw - f.width, x))
+            y = ch - f.height
+        else:
+            x, y = (cw - f.width) // 2, (ch - f.height) // 2
+        out.alpha_composite(f, (i * cw + x, y))
+    out.save(OUT / f'{name}.webp', lossless=True, method=6)
+    MANIFEST[name] = (cw, ch, len(frames))
+    print(f'{name:14} {len(frames):2} x {cw}x{ch} {note}')
+
+
+def opaque(name, im, w, h, colors=48, kmeans=0):
+    """a painted scene, pixelated to (w, h) with no transparency; `kmeans` refines the palette so small areas of
+    colour (a coat against a big night sky) keep their own hue"""
+    small = im.convert('RGB').resize((w * 4, h * 4), Image.LANCZOS).resize((w, h), Image.BOX)
+    q = small.quantize(colors=colors, method=Image.Quantize.MEDIANCUT, kmeans=kmeans, dither=Image.Dither.NONE).convert('RGB')
+    q.save(OUT / f'{name}.webp', lossless=True, method=6)
+    MANIFEST[name] = (w, h, 1)
+    print(f'{name:14}  1 x {w}x{h}')
+
+
+def cover(im, w, h):
+    """crop to the aspect ratio w:h around the middle"""
+    r = w / h
+    if im.width / im.height > r:
+        nw = int(im.height * r)
+        x = (im.width - nw) // 2
+        return im.crop((x, 0, x + nw, im.height))
+    nh = int(im.width / r)
+    y = (im.height - nh) // 2
+    return im.crop((0, y, im.width, y + nh))
+
+
+# ─── the heroes ────────────────────────────────────────────────────────────
+for hero in ('dora', 'enzo'):
+    src = lambda n: hero_colours(load(n), hero)
+    figs = [bbox(c) for c in cells(key(src(f'bs-{hero}-a')), 4, 2) + cells(key(src(f'bs-{hero}-b')), 4, 2)]
+    s = 38 / figs[0].height  # the idle pose stands 38 pixels tall
+    strip(hero, [scaled(f, s, 20) for f in figs], 56, 44)
+
+# ─── enemies: frame A on top, frame B below ───────────────────────────────
+FOE_H = {'frog': 20, 'moth': 15, 'eel': 18, 'reed': 30, 'condor': 30, 'imp': 19, 'shell': 30, 'vizcacha': 18,
+         'jelly': 19, 'golem': 38}
+order = [('bs-foes-a', ['frog', 'moth', 'eel', 'reed']), ('bs-foes-b', ['condor', 'imp', 'shell', 'vizcacha'])]
+foes = []
+for sheet, names in order:
+    cs = [bbox(c) for c in cells(key(load(sheet)), 4, 2)]
+    for i, n in enumerate(names):
+        s = FOE_H[n] / cs[i].height
+        foes += [scaled(cs[i], s, 18), scaled(cs[i + 4], s, 18)]
+cs = [bbox(c) for c in cells(key(load('bs-foes-c')), 4, 2)]
+for i, n in ((0, 'jelly'), (1, 'golem')):
+    s = FOE_H[n] / cs[i].height
+    foes += [scaled(cs[i], s, 18), scaled(cs[i + 4], s, 18)]
+# projectiles: falling bell, mud ball, salt shard, fire orb
+for i, hgt in ((2, 22), (3, 11), (6, 12), (7, 13)):
+    foes.append(scaled(cs[i], hgt / cs[i].height, 16))
+strip('foes', foes, 64, 48)
+
+# ─── bosses ───────────────────────────────────────────────────────────────
+def boss(name, sheet, height, cw, ch):
+    cs = figures(key(load(sheet)), 3)
+    s = height / cs[0].height
+    strip(name, [scaled(c, s, 32) for c in cs], cw, ch)
+
+
+boss('boss-frog', 'bs-boss-frog', 74, 150, 96)
+boss('boss-puma', 'bs-boss-puma', 60, 170, 92)
+boss('boss-mother', 'bs-boss-mother', 120, 280, 150)
+
+# the hydra: its coiled body stays put, and its three heads move on their own necks
+hy = cells(key(load('bs-boss-hydra')), 3, 1)
+body = bbox(hy[0])
+s = 150 / body.height
+base = body.crop((0, int(body.height * 0.52), body.width, body.height))
+idle_head = bbox(body.crop((0, 0, int(body.width * 0.5), int(body.height * 0.2))))
+tell = bbox(hy[1])
+open_head = bbox(tell.crop((int(tell.width * 0.05), 0, int(tell.width * 0.55), int(tell.height * 0.18))))
+strip('boss-hydra', [scaled(base, s, 32)], 220, 96)
+hs = 30 / idle_head.height
+strip('hydra-head', [scaled(idle_head, hs, 24), scaled(open_head, 30 / open_head.height, 24)], 80, 48)
+
+# the warden: the great bell, and the small bells at the end of its chains
+wd = cells(key(load('bs-boss-warden')), 3, 1)
+f0 = bbox(wd[0])
+f1 = bbox(wd[1])
+
+
+# the great bell alone, without its chains: measured boxes on the 1536×1024 sheet (frame 1 hanging, frame 2 lit)
+wsheet = key(load('bs-boss-warden'))
+bell = bbox(drop_neighbours(wsheet.crop((84, 250, 346, 706))))
+lit = bbox(drop_neighbours(wsheet.crop((546, 244, 836, 706))))
+small = bbox(f0.crop((0, int(f0.height * 0.62), int(f0.width * 0.3), f0.height)))
+s = 118 / bell.height
+strip('boss-warden', [scaled(bell, s, 32), scaled(lit, s, 32)], 150, 130)
+strip('warden-bell', [scaled(small, 26 / small.height, 20)], 40, 32)
+
+# ─── props, people and pickups ────────────────────────────────────────────
+PROPS = [40, 40, 40, 18, 18, 48, 26, 30]  # shrine, shrine lit, water bell, chest, chest open, door, reed wreck, lectern
+cs = [bbox(c) for c in cells(key(load('bs-props')), 4, 2)]
+strip('props', [scaled(c, h / c.height, 24) for c, h in zip(cs, PROPS)], 64, 56)
+cs = [bbox(c) for c in cells(key(load('bs-npcs')), 4, 2)]
+NPCS = [44, 44, 50, 50, 12, 16, 10, 16]  # wayra x2, ukumari x2, wisp, ghost-glass, coins, ability orb
+npc = [scaled(c, h / c.height, 24, outline=(i != 5)) for i, (c, h) in enumerate(zip(cs, NPCS))]
+strip('npcs', npc, 72, 56)
+
+# ─── icons and portraits ──────────────────────────────────────────────────
+icons = []
+for sheet in ('bs-icons-a', 'bs-icons-b'):
+    for c in cells(key(load(sheet)), 4, 4):
+        f = bbox(c)
+        s = 20 / max(f.width, f.height)
+        icons.append(scaled(f, s, 16))
+strip('icons', icons, 24, 24, anchor='middle')
+ports = []
+for i, c in enumerate(cells(load('bs-portraits'), 3, 2)):
+    f = bbox(key(hero_colours(c, 'enzo') if i == 1 else hero_colours(c, 'dora') if i in (0, 5) else c))  # Enzo is second; Dora first and last
+    s = 60 / max(f.width, f.height)
+    ports.append(scaled(f, s, 32))
+strip('portraits', ports, 64, 64, anchor='middle')
+
+# ─── tiles, decor and backdrops for each area ─────────────────────────────
+DECOR = {
+    'halls': [22, 56, 30, 30, 26, 46, 30, 30],
+    'docks': [52, 30, 28, 22, 26, 34, 30, 40],
+    'towers': [56, 34, 30, 60, 30, 56, 22, 46],
+    'crypt': [36, 64, 22, 30, 24, 26, 30, 26],
+    'throne': [60, 30, 40, 52, 22, 28, 34, 18],
+}
+for area, hs in DECOR.items():
+    ts = []
+    for c in cells(key(load(f'bs-tiles-{area}')), 3, 3):
+        sq = cover(c, 1, 1)
+        ts.append(sq.resize((64, 64), Image.LANCZOS).resize((16, 16), Image.BOX))
+    # one palette for the whole tile set, so neighbouring tiles agree; the ledge, ladder and pillar keep clear parts
+    rgba = Image.new('RGBA', (16 * 9, 16))
+    for i, t in enumerate(ts):
+        rgba.paste(t, (i * 16, 0))
+    q = rgba.convert('RGB').quantize(colors=28, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert('RGBA')
+    a = np.asarray(q).copy()
+    a[..., 3] = np.where(np.asarray(rgba)[..., 3] > 110, 255, 0)
+    sheet = Image.fromarray(a)
+    sheet.save(OUT / f'tiles-{area}.webp', lossless=True, method=6)
+    MANIFEST[f'tiles-{area}'] = (16, 16, 9)
+    print(f'tiles-{area:8}  9 x 16x16')
+    cs = [bbox(c) for c in cells(key(load(f'bs-decor-{area}')), 4, 2)]
+    strip(f'decor-{area}', [scaled(c, h / c.height, 20) for c, h in zip(cs, hs)], 72, 68)
+    opaque(f'bg-{area}', cover(load(f'bs-bg-{area}'), 16, 9), 480, 270, 40)
+    mid = key(cover(load(f'bs-mid-{area}'), 16, 9))
+    m = pixelate(mid, 480, 270, 24, outline=False, clean=False)
+    m.save(OUT / f'mid-{area}.webp', lossless=True, method=6)
+    MANIFEST[f'mid-{area}'] = (480, 270, 1)
+    print(f'mid-{area:10}  1 x 480x270')
+
+# ─── full paintings ───────────────────────────────────────────────────────
+# repainted (the "2" versions) so Dora's coat is teal and Enzo grey with a rust coat, as in the game
+# (a refined palette: with a plain median cut, the teal coat on the blue night merged into the blue)
+for n, src in (('title', 'bs-title2'), ('ending', 'bs-ending2'), ('epilogue', 'bs-epilogue2')):
+    opaque(n, cover(load(src), 16, 9), 480, 270, 96, kmeans=4)
+murals = [cover(c, 4, 3) for c in cells(load('bs-murals'), 3, 2)]
+ms = []
+for c in murals:
+    small = c.convert('RGB').resize((640, 480), Image.LANCZOS).resize((160, 120), Image.BOX)
+    ms.append(small.quantize(colors=40, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert('RGBA'))
+strip('murals', ms, 160, 120, anchor='middle')
+p = load('bs-parchment').convert('RGB').resize((256, 256), Image.LANCZOS).resize((128, 128), Image.BOX)
+p.quantize(colors=20, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert('RGB').save(OUT / 'parchment.webp', lossless=True, method=6)
+MANIFEST['parchment'] = (128, 128, 1)
+
+# ─── the manifest ─────────────────────────────────────────────────────────
+lines = ['// Generated by scripts/bellspire-art.py: each art strip\'s cell width, cell height and frame count.',
+         'export const ART: Record<string, [number, number, number]> = {']
+for k, (w, h, n) in MANIFEST.items():
+    lines.append(f"  '{k}': [{w}, {h}, {n}],")
+lines.append('};')
+(ROOT / 'lib' / 'bellspire-art.ts').write_text('\n'.join(lines) + '\n')
+total = sum(f.stat().st_size for f in OUT.glob('*.webp'))
+print(f'total {total / 1e6:.2f} MB in {OUT}')

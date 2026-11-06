@@ -2,6 +2,11 @@
 
 Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` deploys to https://chinchillas.jason.engineering, so there are no version numbers; entries are grouped by commit date instead. The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 07-11-2026
+
+### Added
+
+- **The Sunken Bellspire** is game 94, a castle explorer in hi-bit pixel art with real lighting: candles, torches, moonlight and Enzo's lantern light the scene as you move. A drowned citadel of bells rises from an Andean lake, and Dora (sword and dash) and Enzo (lantern staff and spells) explore its 64 screens together, tagging between them. Ring bells to raise and lower the water, light dark rooms to reveal ghost-glass platforms, gain new abilities, gear and levels, and face five guardians including the Bell Warden. A helping hand is on by default, and falling only drops your coins.
 ## 06-11-2026
 
 ### Added

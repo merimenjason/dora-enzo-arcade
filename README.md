@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of ninety-three original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of ninety-four original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -103,6 +103,7 @@ Listed in arcade-menu order.
 | 91 | Snow Day League | `/league` | Snowball team manager |
 | 92 | Misprint | `/misprint` | Two-ink riso print puzzle |
 | 93 | Burrow Clinic | `/clinic` | Hospital management sim |
+| 94 | The Sunken Bellspire | `/bellspire` | Castle explorer (metroidvania) |
 
 ## Run
 
@@ -1543,6 +1544,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:clinic` checks arrivals, queues, diagnosis and cures, money, wages and selling, room fit rules and pathfinding around rooms, staff tiredness and the staff room, machine wear and repair, mood and patience, emergencies, goals and stars, determinism and the save, corrupt saves included. `npm run bot:clinic` runs every clinic headless with a casual manager (sensible but imperfect, and slow to react), a pro and an idle player: the casual one must meet clinic 1's goals in at least 90% of seeds, clinic 2's in 80% and each later clinic's in 60%, the pro every clinic's in 95%, and the idle player never (`--quick` in `npm test`). `node tests/e2e/clinic.mjs` (dev server running) presses every action in a browser and on phones.
 
 **Docs:** [`docs/clinic.md`](docs/clinic.md) has every rule, room, ailment, staff trait, clinic and bot result, the controls and the art pipeline.
+
+### 94 · The Sunken Bellspire (`/bellspire`)
+
+**Play:** a castle explorer in hi-bit pixel art with real lighting. One night a high Andean lake drains away and a drowned citadel of bell towers rises from it, ringing at midnight. Dora and Enzo go down with one lantern. Tag between them: Dora fights up close with a sword and dashes, and Enzo swings a lantern staff, casts spells and raises the lantern to light dark rooms and show ghost-glass platforms that only exist in its light. Five areas (the Flooded Halls, the Reed Docks, the Crypt Murals, the Bell Towers and the Sunken Throne) spread out from the Lakebed Landing in one map of 64 screens. Abilities such as the Reed Dash, Wind Leap, Wall Kick, Bell Chime, Lantern Glide and the Deep-Dive Coat open old paths, and ringing water bells raises or lowers the water across a whole area. Five guardians, from the Grand Frog Idol to the Bell Warden, have clear wind-ups. Both heroes level up and wear a weapon, coat, ring and relic, and Wayra sells food and gear. Candle shrines save, heal and let you travel between them. A helping hand (on by default) slows guardians, softens hits and sends a wisp to show the way; Strict turns it off. Falling in a fight only drops your coins, which wait where you fell. Saved in `bellspire-v1`.
+
+**Controls:** arrows move, Z jumps, X attacks, C dashes (Dora), V casts, Shift tags, ↑ uses shrines, murals and doors, and Esc or P opens the menu with the map, gear and settings. Down + Z drops through a ledge. As Enzo, tap V for the Lantern Bolt, hold and let go for the Ember Ring, ↓ + V raises or lowers the lantern and ↑ + V rings the Bell Chime; as Dora, V is the Whirl Slash and ↓ + X in the air thrusts down. Every key can be rebound. Gamepads: A jump, X attack, B dash, Y spell, bumpers tag, Start menu. Touch screens get an on-screen pad.
+
+**Tests:** `npm run test:bellspire` checks the map, every ability gate (each one shut without its ability and passable with it), that no spot traps you away from a shrine, physics, water bells, doors, the lantern and ghost-glass, combat, XP, tagging, shrines and travel, gear, the shop, a guardian from door to reward, the wisp, saves (corrupt ones included) and determinism. `npm run bot:bellspire` fights every guardian with human-paced casual and pro bots and plays the whole game from a new save with a route bot (`--quick` in `npm test`). `node tests/e2e/bellspire.mjs` (dev server running) presses every action with the real keys on desktop and phones.
+
+**Docs:** [`docs/bellspire.md`](docs/bellspire.md) has the map format, abilities, water, screen fit, lighting, guardians, assist, saves, bot numbers and the art pipeline.
 
 ## Validation
 

@@ -1,0 +1,181 @@
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Silkscreen&display=swap');
+
+/* The Sunken Bellspire: hi-bit pixel art in the dark. Deep indigo night, lake teal, candle gold and bronze. Panels
+   are dark stone with a bronze pixel border; text is a pixel font. The canvas is scaled up with no smoothing. On a
+   touch screen the on-screen pad sits below the picture (phone upright) or over its lower corners (phone sideways). */
+.bs-shell{--ink:#f3e8d0;--dim:#b8a890;--night:#0d0b16;--stone:#1d1826;--stone2:#2a2234;--bronze:#c08a3e;--bronze2:#7a5226;--gold:#ffd36a;--teal:#3ad0c0;--red:#ff6a6a;--blue:#5aa8ff;
+  --pix:'Pixelify Sans','Silkscreen',ui-monospace,monospace;
+  position:fixed;inset:0;overflow:hidden;background:var(--night);color:var(--ink);font-family:var(--pix);font-size:16px;line-height:1.3;
+  user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.bs-shell *{box-sizing:border-box}
+.bs-shell button{font-family:inherit}
+
+/* ─── buttons ─── */
+.bs-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:6px 16px;border:0;border-radius:0;cursor:pointer;
+  font-size:16px;font-weight:600;color:var(--ink);text-decoration:none;background:var(--stone2);
+  box-shadow:0 0 0 2px #0a0810,inset 0 0 0 2px var(--bronze2),inset 0 -4px 0 rgba(0,0,0,.35)}
+.bs-btn:hover:not(:disabled){background:#3a2e46}
+.bs-btn:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.bs-btn:disabled{opacity:.45;cursor:not-allowed}
+.bs-btn-main{background:#7a4a1a;box-shadow:0 0 0 2px #0a0810,inset 0 0 0 2px var(--gold),inset 0 -4px 0 rgba(0,0,0,.35)}
+.bs-btn-main:hover:not(:disabled){background:#94591f}
+.bs-btn-ghost{background:transparent;box-shadow:inset 0 0 0 2px var(--bronze2)}
+.bs-small{min-height:32px;padding:4px 10px;font-size:14px}
+.bs-close{margin-top:12px;align-self:flex-end}
+
+/* ─── title ─── */
+.bs-title-art,.bs-end-art{position:absolute;inset:0;background:#0d0b16 url('/art/bellspire/title.webp') center/cover no-repeat;image-rendering:pixelated}
+.bs-end-art{background-image:url('/art/bellspire/ending.webp')}
+.bs-end-full{background-image:url('/art/bellspire/epilogue.webp')}
+.bs-title-panel,.bs-end-panel{position:absolute;right:4vw;bottom:5vh;max-width:min(520px,92vw);padding:20px 22px;background:rgba(13,11,22,.86);
+  box-shadow:0 0 0 2px #0a0810,inset 0 0 0 2px var(--bronze2),0 8px 0 rgba(0,0,0,.4)}
+.bs-logo{margin:0 0 6px;font-size:clamp(34px,6vw,58px);line-height:.95;color:var(--gold);text-shadow:3px 3px 0 #5a2a10,0 0 18px rgba(255,190,90,.35);font-weight:700}
+.bs-logo span{display:block;font-size:.5em;color:var(--teal);text-shadow:2px 2px 0 #0a3030}
+.bs-tag{margin:0 0 14px;color:var(--dim)}
+.bs-title-btns{display:flex;flex-wrap:wrap;gap:10px}
+.bs-confirm{margin-top:14px;padding:12px;background:#2a1820;box-shadow:inset 0 0 0 2px var(--red);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bs-confirm p{margin:0 0 4px;width:100%}
+.bs-controls-hint{margin:14px 0 0;font-size:13px;color:var(--dim)}
+.bs-end-panel h2{margin:0 0 8px;color:var(--gold);font-size:30px}
+.bs-end-stats{color:var(--teal)}
+
+/* ─── the game ─── */
+.bs-game{display:flex;flex-direction:column}
+.bs-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.bs-frame{position:relative;flex:none}
+.bs-canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;background:#000}
+.bs-hud{position:absolute;left:0;right:0;top:0;display:flex;align-items:flex-start;gap:.5em;padding:.4em .5em;pointer-events:none;
+  background:linear-gradient(rgba(8,6,14,.7),rgba(8,6,14,0))}
+.bs-hero{display:flex;align-items:center;gap:.35em;padding:.15em .45em .15em .15em;background:rgba(20,16,30,.75);box-shadow:inset 0 0 0 1px #3a2e46;opacity:.75}
+.bs-hero-lead{opacity:1;box-shadow:inset 0 0 0 2px var(--gold)}
+.bs-hero-down{filter:grayscale(1);opacity:.5}
+.bs-hero-bars{display:flex;flex-direction:column;gap:2px;min-width:6.5em}
+.bs-hero-bars b{font-size:.85em;line-height:1;white-space:nowrap}
+.bs-hero-bars small{color:var(--dim);font-weight:400}
+.bs-bar{display:block;height:5px;background:#120e18;box-shadow:0 0 0 1px #000}
+.bs-bar>span{display:block;height:100%;transition:width .2s}
+.bs-bar-hp>span{background:linear-gradient(#ff8a8a,#d23a4a)}
+.bs-bar-mp>span{background:linear-gradient(#8ac8ff,#3a6ad2)}
+.bs-bar-xp>span{background:linear-gradient(#ffe08a,#c08a2e)}
+.bs-bar-boss{height:8px}
+.bs-bar-boss>span{background:linear-gradient(#ffb06a,#c0402a)}
+.bs-coins{margin-left:auto;display:flex;align-items:center;gap:.3em;padding:.2em .5em;background:rgba(20,16,30,.75);color:var(--gold);font-size:.9em}
+.bs-menu-btn{pointer-events:auto;min-width:2.2em;min-height:2.2em;border:0;background:rgba(20,16,30,.85);color:var(--ink);box-shadow:inset 0 0 0 2px var(--bronze2);cursor:pointer;font-size:1em}
+.bs-boss{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);width:min(70%,520px);text-align:center;pointer-events:none;
+  background:rgba(13,11,22,.7);padding:4px 10px 8px;box-shadow:inset 0 0 0 1px var(--bronze2)}
+.bs-boss b{color:var(--gold);margin-right:8px}
+.bs-boss small{color:var(--dim)}
+.bs-toast,.bs-hint{position:absolute;left:50%;top:22%;transform:translateX(-50%);max-width:86%;padding:6px 12px;text-align:center;pointer-events:none;
+  background:rgba(13,11,22,.88);box-shadow:inset 0 0 0 2px var(--bronze2);font-size:15px;animation:bs-in .2s ease-out}
+.bs-hint{top:auto;bottom:14%;color:var(--gold);font-size:14px}
+.bs-area{position:absolute;left:50%;top:38%;transform:translateX(-50%);font-size:28px;color:var(--gold);text-shadow:3px 3px 0 #000;pointer-events:none;white-space:nowrap;
+  animation:bs-area 2.4s ease-out forwards}
+.bs-banner{position:absolute;left:50%;top:30%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;max-width:90%;padding:10px 16px;pointer-events:none;
+  background:rgba(40,24,10,.92);box-shadow:inset 0 0 0 2px var(--gold),0 0 24px rgba(255,200,100,.3);animation:bs-banner 4s ease-out forwards}
+.bs-dialog{position:absolute;left:3%;right:3%;bottom:4%;display:flex;align-items:flex-start;gap:12px;padding:10px 14px;text-align:left;cursor:pointer;border:0;color:var(--ink);
+  background:rgba(13,11,22,.93);box-shadow:inset 0 0 0 2px var(--bronze);font-size:16px}
+.bs-dialog-top{bottom:auto;top:14%}
+.bs-dialog-text{flex:1}
+.bs-dialog-text b{display:block;color:var(--gold)}
+.bs-dialog-next{align-self:flex-end;color:var(--gold);animation:bs-blink 1s steps(2) infinite}
+@keyframes bs-in{from{opacity:0;transform:translate(-50%,6px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes bs-area{0%{opacity:0;letter-spacing:.3em}15%,75%{opacity:1;letter-spacing:.05em}100%{opacity:0}}
+@keyframes bs-banner{0%{opacity:0;transform:translate(-50%,10px)}8%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
+@keyframes bs-blink{50%{opacity:0}}
+
+.bs-icon{display:inline-block;flex:none;background:url('/art/bellspire/icons.webp') 0 0 no-repeat;image-rendering:pixelated;vertical-align:middle}
+.bs-portrait{display:inline-block;flex:none;background:url('/art/bellspire/portraits.webp') 0 0 no-repeat;image-rendering:pixelated;box-shadow:0 0 0 1px #000}
+
+/* ─── modal sheets ─── */
+.bs-modal{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:12px;background:rgba(5,4,10,.6)}
+.bs-sheet{position:relative;display:flex;flex-direction:column;width:min(860px,100%);max-height:100%;overflow:auto;padding:16px 18px;
+  background:var(--stone);box-shadow:0 0 0 2px #0a0810,inset 0 0 0 2px var(--bronze2),0 10px 0 rgba(0,0,0,.4)}
+.bs-sheet h3,.bs-sheet h4{margin:10px 0 6px;color:var(--gold)}
+.bs-sheet h3{margin-top:0;font-size:22px}
+.bs-tabs{display:flex;flex-wrap:wrap;gap:4px;margin:-4px 0 10px;position:sticky;top:-16px;padding-top:4px;background:var(--stone);z-index:1}
+.bs-tabs button{min-height:36px;padding:4px 14px;border:0;background:var(--stone2);color:var(--dim);cursor:pointer;font-size:16px;box-shadow:inset 0 -2px 0 #000}
+.bs-tabs button.on{color:var(--ink);background:#3a2e46;box-shadow:inset 0 -3px 0 var(--gold)}
+.bs-tab-close{margin-left:auto}
+.bs-msg{margin:8px 0 0;padding:6px 10px;background:#2a2234;color:var(--gold)}
+.bs-row{margin-top:12px}
+.bs-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.bs-list li{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:6px 8px;background:var(--stone2)}
+.bs-li-text{flex:1;min-width:160px;display:flex;flex-direction:column}
+.bs-li-text small{color:var(--dim);font-size:14px}
+.bs-why{width:100%;text-align:right;color:var(--dim);font-size:13px}
+.bs-locked{opacity:.6}
+.bs-swatch{width:14px;height:14px;box-shadow:0 0 0 1px #000}
+.bs-small-print{color:var(--dim);font-size:13px}
+.bs-settings{display:flex;flex-direction:column;gap:6px}
+.bs-toggle{display:flex;gap:10px;align-items:flex-start;padding:6px 8px;background:var(--stone2);cursor:pointer}
+.bs-toggle input{width:20px;height:20px;margin-top:2px;accent-color:var(--bronze)}
+.bs-toggle span{display:flex;flex-direction:column}
+.bs-toggle small{color:var(--dim);font-size:14px}
+.bs-select{display:flex;gap:10px;align-items:center;padding:6px 8px;background:var(--stone2)}
+.bs-select select{font-family:inherit;font-size:15px;background:#120e18;color:var(--ink);border:1px solid var(--bronze2);padding:4px}
+.bs-keys{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px}
+.bs-key{display:flex;justify-content:space-between;gap:8px;padding:6px 8px;border:0;background:var(--stone2);color:var(--ink);cursor:pointer;font-size:14px}
+.bs-key span{color:var(--gold)}
+.bs-key.on{box-shadow:inset 0 0 0 2px var(--gold)}
+.bs-map-wrap{display:flex;flex-wrap:wrap;gap:14px}
+.bs-map-box{flex:0 1 656px;min-width:0;max-width:100%;max-height:60vh;overflow:auto}
+.bs-map{display:block;width:656px;max-width:none;height:auto;image-rendering:pixelated;background:#e8d6aa url('/art/bellspire/parchment.webp') 0 0/256px;box-shadow:inset 0 0 0 2px var(--bronze2)}
+.bs-map-side{flex:1;min-width:220px}
+@media (min-width:760px){.bs-map{width:100%;max-width:656px}}
+.bs-pct{margin:0;font-size:24px;color:var(--gold)}
+.bs-travel{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.bs-travel li{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.bs-travel .bs-why{width:auto;text-align:left}
+.bs-gear{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bs-gear-hero header{display:flex;gap:10px;align-items:center}
+.bs-gear-hero header div{flex:1}
+.bs-stats{font-size:14px;color:var(--dim)}
+.bs-slot{display:flex;align-items:center;gap:8px;width:100%;margin-bottom:4px;padding:6px 8px;border:0;background:var(--stone2);color:var(--ink);cursor:pointer;text-align:left;font-size:15px}
+.bs-slot small{width:56px;color:var(--dim)}
+.bs-slot.on{box-shadow:inset 0 0 0 2px var(--gold)}
+.bs-gear-pick{grid-column:1/-1}
+.bs-guide-list{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.bs-guide-list b{color:var(--gold)}
+.bs-shop-head{display:flex;gap:12px;align-items:center;margin-bottom:10px}
+.bs-shop-head p{margin:0}
+.bs-shop-head b{display:block;color:var(--gold)}
+.bs-shop-coins{color:var(--gold);display:flex;align-items:center;gap:6px}
+.bs-buy{min-width:110px}
+.bs-mural{align-items:center;text-align:center;max-width:560px}
+.bs-mural-art{display:block;width:min(480px,100%);aspect-ratio:4/3;background:url('/art/bellspire/murals.webp') 0 0/600% 100% no-repeat;image-rendering:pixelated;box-shadow:0 0 0 2px var(--bronze2)}
+.bs-mural p{font-size:18px}
+
+/* ─── touch pad ─── */
+.bs-pad{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding:8px 12px calc(10px + env(safe-area-inset-bottom));flex:none}
+.bs-pad-dir{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,44px);gap:2px}
+.bs-up{grid-column:2;grid-row:1}.bs-left{grid-column:1;grid-row:2}.bs-right{grid-column:3;grid-row:2}.bs-down{grid-column:2;grid-row:3}
+.bs-pad-act{display:grid;grid-template-columns:repeat(3,62px);grid-template-rows:repeat(2,52px);gap:6px}
+.bs-tagb{grid-column:1;grid-row:1}.bs-castb{grid-column:2;grid-row:1}.bs-dashb{grid-column:3;grid-row:1}.bs-atkb{grid-column:1/3;grid-row:2}.bs-jumpb{grid-column:3;grid-row:2}
+.bs-pad-btn{border:0;background:rgba(42,34,52,.85);color:var(--ink);font-size:15px;box-shadow:inset 0 0 0 2px var(--bronze2);touch-action:none;cursor:pointer}
+.bs-pad-btn:active{background:#5a4436}
+.bs-jumpb{background:rgba(122,74,26,.9)}
+
+@media (max-width:700px){
+  .bs-gear{grid-template-columns:1fr}
+  .bs-sheet{padding:12px}
+  .bs-tabs button{padding:4px 10px;font-size:14px}
+  .bs-dialog{font-size:13px;gap:8px;padding:6px 8px}
+  .bs-dialog .bs-portrait{display:none}
+  .bs-toast,.bs-hint{font-size:12px}
+  .bs-area{font-size:18px}
+}
+/* phone held sideways: the pad floats over the lower corners of the picture */
+@media (orientation:landscape) and (max-height:500px){
+  .bs-touch .bs-pad{position:fixed;left:0;right:0;bottom:0;pointer-events:none;background:none}
+  .bs-touch .bs-pad>*{pointer-events:auto}
+  .bs-touch .bs-pad{padding:0 4px calc(4px + env(safe-area-inset-bottom))}
+  .bs-pad-btn{opacity:.5;background:rgba(30,24,40,.4)}
+  .bs-pad-dir{grid-template-columns:repeat(3,42px);grid-template-rows:repeat(3,32px);gap:1px}
+  .bs-pad-act{grid-template-columns:repeat(3,50px);grid-template-rows:repeat(2,36px);gap:4px}
+  .bs-title-panel{bottom:2vh;padding:12px 14px}
+  .bs-logo{font-size:30px}
+}
+/* phone held upright: the picture sits at the top, the pad at the bottom under the thumbs */
+@media (orientation:portrait) and (max-width:700px){
+  .bs-touch .bs-stage{align-items:flex-start;padding-top:env(safe-area-inset-top)}
+}

@@ -1,0 +1,395 @@
+// The Sunken Bellspire bots. Two kinds:
+//  * boss bots that play like people: they see the boss 12-15 ticks late (a human's reaction time), fumble now and then,
+//    and only use what a player at that point of the game would have (levels, abilities, gear). A "casual" bot plays
+//    with the helping hand on; a "pro" bot plays with it off. Target: casual wins each boss within three tries in at
+//    least 85% of seeds, pro in at least 70%.
+//  * a route bot that plays the whole citadel from a new game with the route planner (lib/bellspire-nav.ts), in the
+//    real engine with enemies, doors, bells and the lantern, to prove the game can be finished.
+// Run after compiling the engine into .checks/. `--quick` runs fewer seeds.
+import assert from 'node:assert/strict';
+import { BellspireGame, freshSave, BOSSES, TILE, HERO_W, HERO_H, ROOMS, INFO, ABILITY_ORDER, roomById, roomRect, groupAt, rawChar } from '../.checks/bellspire-game.js';
+import { Graph, stateKey, nodeRoom } from '../.checks/bellspire-nav.js';
+
+const QUICK = process.argv.includes('--quick');
+const ONLY = process.argv.find((a) => a.startsWith('--boss='))?.slice(7);
+const VERBOSE = process.argv.includes('--verbose');
+
+// ─── what a player has when they reach each boss: the route bot's levels on the shortest way through, so a player who
+// explores more arrives stronger than this ────────────────────────────────
+const PRESET = {
+  frog: { level: 2, abilities: ['dash'], hearts: 0, drops: 0, gear: [], spells: [] },
+  hydra: { level: 4, abilities: ['dash', 'lantern', 'double'], hearts: 1, drops: 0, gear: ['reed-ring'], spells: [] },
+  puma: { level: 6, abilities: ['dash', 'lantern', 'double', 'wallkick'], hearts: 2, drops: 0, gear: ['reed-ring'], spells: ['ember'] },
+  warden: { level: 7, abilities: ['dash', 'lantern', 'double', 'wallkick', 'chime'], hearts: 2, drops: 1, gear: ['reed-ring', 'puma-tooth'], spells: ['ember', 'chime'] },
+  mother: { level: 9, abilities: ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep'], hearts: 3, drops: 1, gear: ['reed-ring', 'reed-cutter', 'puma-tooth'], spells: ['ember', 'chime'] },
+};
+
+export function presetSave(id) {
+  const p = PRESET[id], s = freshSave();
+  s.abilities = [...p.abilities]; s.hearts = p.hearts; s.drops = p.drops;
+  for (const g of p.gear) if (!s.gear.includes(g)) s.gear.push(g);
+  for (const sp of p.spells) if (!s.spells.includes(sp)) s.spells.push(sp);
+  for (const h of ['dora', 'enzo']) s.heroes[h].level = p.level;
+  s.food = { cake: 3, tea: 1 };
+  s.flags.push('script:intro');
+  const g = new BellspireGame(s, {}, 1);
+  for (const id2 of p.gear) {
+    const def = g.save.gear.includes(id2) && (id2 in { 'reed-cutter': 1, moonsteel: 1 }) ? 'dora' : null;
+    if (def) g.equip('dora', 'weapon', id2);
+  }
+  if (p.gear.includes('reed-coat')) g.equip('dora', 'coat', 'reed-coat');
+  if (p.gear.includes('reed-ring')) g.equip('dora', 'ring', 'reed-ring');
+  if (p.gear.includes('puma-tooth')) g.equip('dora', 'relic', 'puma-tooth');
+  for (const h of ['dora', 'enzo']) { const st = g.stats(h); g.save.heroes[h].hp = st.maxHp; g.save.heroes[h].mp = st.maxMp; }
+  return g.snapshot();
+}
+
+const rectDist = (x, y, r) => Math.hypot(Math.max(r.x - x, 0, x - (r.x + r.w)), Math.max(r.y - y, 0, y - (r.y + r.h)));
+const NO = { left: false, right: false, up: false, down: false, jump: false, attack: false, dash: false, cast: false, tag: false };
+
+/** A human-paced boss player. */
+export function bossBot(id, seed, { assist = true, delay = 13, noise = 0.08 } = {}) {
+  const g = new BellspireGame(presetSave(id), { assist, strict: !assist }, seed);
+  g.fightBoss(id);
+  let rs = seed * 9301 + 49297;
+  const rnd = () => { rs = (rs * 1103515245 + 12345) & 0x7fffffff; return rs / 0x7fffffff; };
+  const seen = []; // what the boss looked like, `delay` ticks ago
+  let low = 1;
+  let tries = 1, wiped = false, tick = 0, prev = NO, hold = 0, jumpHold = 0, ate = 0, lastDecision = NO, react = 0;
+  const maxTicks = 60 * 60 * 6;
+  while (!g.flag(`boss:${id}`) && tick < maxTicks && tries <= 3) {
+    tick++;
+    for (const e of g.drainEvents()) if (e.k === 'wipe') { tries++; wiped = true; }
+    if (tries > 3) break;
+    if (g.dialog) { g.step({ ...NO, jump: tick % 2 === 0 }); continue; }
+    const b = g.boss;
+    seen.push(b ? {
+      id: b.id, st: b.st, tell: b.tellT > 0, harm: b.harm.map((r) => ({ ...r })), hurt: b.hurt.map((r) => ({ ...r })), body: { ...b.body }, x: b.x, y: b.y, calm: b.calm,
+      shots: g.shots.filter((s) => !s.friendly).map((s) => ({ x: s.x, y: s.y, vx: s.vx, vy: s.vy, g: s.g, kind: s.kind })),
+      waves: g.waves.map((w) => ({ x: w.x, dir: w.dir, speed: w.speed, h: w.h })), rings: g.rings.filter((r) => !r.friendly).map((r) => ({ ...r })),
+      markers: g.markers.map((m) => ({ ...m })),
+    } : null);
+    if (seen.length > delay + 2) seen.shift();
+    const v = seen[Math.max(0, seen.length - 1 - delay)];
+    // a person keeps doing the same thing for a few ticks
+    let inp = lastDecision;
+    if (--react <= 0) {
+      react = 3 + Math.floor(rnd() * 4);
+      inp = decide(g, v, rnd, noise);
+      lastDecision = inp;
+    }
+    // jumps are held for a while, then released
+    if (inp.jump && !prev.jump) jumpHold = 16;
+    const out = { ...inp };
+    if (jumpHold > 0) { out.jump = true; jumpHold--; } else if (prev.jump && inp.jump) out.jump = false;
+    if (out.attack && prev.attack) out.attack = false;
+    if (out.tag && prev.tag) out.tag = false;
+    // eat a quinoa cake when low, like a careful player would (from the menu)
+    if (g.leadSave.hp < g.stats(g.lead).maxHp * 0.3 && g.save.food.cake > 0 && tick - ate > 300) { g.eat('cake'); ate = tick; }
+    g.step(out);
+    { const f = (g.save.heroes.dora.hp + g.save.heroes.enzo.hp) / (g.stats('dora').maxHp + g.stats('enzo').maxHp); if (f < low) low = f; }
+    if (process.env.BS_TRACE && (tick % 300 === 0 || (process.env.BS_TRACE === '2' && tick > 1150 && tick < 1400 && tick % 5 === 0))) console.log(tick, g.room.id, g.boss?.st, g.boss?.hp, g.lead, g.leadSave.hp, Math.round(g.body.x - g.boss?.x), Math.round(g.body.y - g.boss?.y));
+    prev = out; void hold;
+  }
+  void wiped;
+  return { won: g.flag(`boss:${id}`), tries: Math.min(tries, 4), ticks: tick, low };
+}
+
+function decide(g, v, rnd, noise) {
+  const inp = { ...NO };
+  const b = g.body;
+  const me = { x: b.x, y: b.y - HERO_H / 2 };
+  if (!v) { inp.right = true; return inp; }
+  if (v.st === 'wait' || v.st === 'intro') { const c = v.body.x + v.body.w / 2; if (Math.abs(c - b.x) > 140) { if (c > b.x) inp.right = true; else inp.left = true; } return inp; }
+  if (rnd() < noise) { if (rnd() < 0.5) inp.left = true; else inp.right = true; return inp; }
+  // switch to the healthier hero when low
+  const other = g.lead === 'dora' ? 'enzo' : 'dora';
+  if (g.leadSave.hp < g.stats(g.lead).maxHp * 0.35 && !g.save.heroes[other].down && g.save.heroes[other].hp > g.stats(other).maxHp * 0.5 && g.tagCd === 0) { inp.tag = true; return inp; }
+  const away = (x) => { if (x > b.x) inp.left = true; else inp.right = true; };
+  // floor shockwaves: jump them
+  for (const w of v.waves) {
+    const d = (b.x - w.x) * w.dir;
+    if (d > 0 && d < 34 + w.speed * 4 && b.ground) { inp.jump = true; return inp; }
+  }
+  // falling things: get out from under them
+  for (const s of v.shots) {
+    if (s.vy > -10) {
+      // where will it cross my height?
+      let x = s.x, y = s.y, vy = s.vy;
+      for (let t = 0; t < 90 && y < b.y - 4; t++) { vy += s.g; x += s.vx; y += vy; }
+      if (Math.abs(x - b.x) < 22 && y >= b.y - 20) { away(x); if (Math.abs(x - b.x) < 10 && b.ground && rnd() < 0.3) inp.dash = true; return inp; }
+    }
+  }
+  for (const m of v.markers) if (Math.abs(m.x - b.x) < (m.kind === 'aim' ? 34 : 28)) { away(m.x); if (m.kind === 'aim' && g.has('dash') && g.lead === 'dora' && m.t < 12) inp.dash = true; return inp; }
+  for (const r of v.rings) if (Math.abs(Math.hypot(r.x - b.x, r.y - me.y) - r.r) < 30) { away(r.x); return inp; }
+  // active attacks: keep clear, and jump a low sweep or tongue
+  for (const h of v.harm) {
+    const d = rectDist(b.x, me.y, h);
+    if (d < 40) {
+      if (h.h < 26 && h.y > b.y - 30 && b.ground) { inp.jump = true; return inp; }
+      away(h.x + h.w / 2);
+      if (d < 18 && g.has('dash') && g.lead === 'dora' && b.ground) inp.dash = true;
+      return inp;
+    }
+  }
+  // a warning: back off and wait for it
+  if (v.tell && !v.calm && v.id !== 'hydra') {
+    const c = v.body.x + v.body.w / 2;
+    if (Math.abs(c - b.x) < 110) { away(c); return inp; }
+    return inp;
+  }
+  // otherwise: go and hit the nearest open spot
+  let best = null, bd = 1e9;
+  for (const h of v.hurt) { const d = rectDist(b.x, me.y, h); if (d < bd) { bd = d; best = h; } }
+  if (!best) { const c = v.body.x + v.body.w / 2; if (Math.abs(c - b.x) < 80) away(c); return inp; }
+  const cx = best.x + best.w / 2;
+  const reach = g.lead === 'dora' ? 20 : 30;
+  const dx = cx - b.x;
+  const edge = dx > 0 ? best.x - b.x : b.x - (best.x + best.w);
+  if (edge > reach - 4) { if (dx > 0) inp.right = true; else inp.left = true; }
+  else if (edge < -2 && Math.abs(dx) < best.w / 2 + 6) { /* standing inside: step out */ if (dx > 0) inp.left = true; else inp.right = true; }
+  else if ((dx > 0) !== (b.face > 0)) { if (dx > 0) inp.right = true; else inp.left = true; }
+  // high targets: jump and swing
+  const high = best.y + best.h < b.y - HERO_H - 4;
+  if (edge <= reach) {
+    if (high && b.ground) inp.jump = true;
+    if (!high || !b.ground) inp.attack = true;
+  }
+  // Enzo throws bolts from range when the target is high
+  if (g.lead === 'enzo' && high && Math.abs(dx) < 200 && g.leadSave.mp >= 3 && rnd() < 0.2) inp.cast = true;
+  return inp;
+}
+
+// ─── the route bot ────────────────────────────────────────────────────────
+const thingsOf = (ch) => { const out = []; for (const info of INFO.values()) for (const t of info.things) if (t.ch === ch) out.push({ ...t, room: info.room }); return out; };
+/** The story in order: where to go, and what to do there. */
+function objectives() {
+  const ped = (a) => { const t = thingsOf('A').find((x) => x.room.ability === a); return { name: `get ${a}`, done: (g) => g.has(a), at: t, act: 'touch' }; };
+  const boss = (id) => { const t = thingsOf('O').find((x) => x.room.boss === id); return { name: `calm ${id}`, done: (g) => g.flag(`boss:${id}`), at: t, act: 'boss', boss: id }; };
+  const coat = thingsOf('C').find((t) => t.room.chests?.[t.i] === 'ability:deep');
+  const keeper = thingsOf('U')[0];
+  return [
+    ped('dash'), boss('frog'), ped('double'), boss('hydra'), ped('wallkick'), boss('puma'), ped('chime'), boss('warden'),
+    { name: 'get deep', done: (g) => g.has('deep'), at: coat, act: 'chest' },
+    { name: 'meet Ukumari', done: (g) => g.flag('keeper'), at: keeper, act: 'talk' },
+    boss('mother'),
+  ];
+}
+const navState = (g) => ({ abilities: [...g.save.abilities], water: { ...g.save.water }, keeper: g.flag('keeper') });
+const near = (t, dx = 20) => (n) => n.mode === 'ground' && Math.abs(n.x - (t.c * TILE + 8)) < dx && Math.abs(n.y - (t.r + 1) * TILE) < 18;
+const inRoom = (id) => (n) => nodeRoom(n)?.id === id;
+
+export function routeBot(seed, { maxMinutes = 120, log = false } = {}) {
+  const g = new BellspireGame(null, { assist: true }, seed);
+  const graphs = new Map();
+  const fails = new Map();
+  const graph = () => { const st = navState(g); const k = stateKey(st); if (!graphs.has(k)) graphs.set(k, new Graph(st)); return graphs.get(k); };
+  let prev = NO, ticks = 0;
+  const limit = maxMinutes * 3600;
+  const timeline = [];
+  const step = (inp) => {
+    if (g.dialog) inp = { ...NO, jump: ticks % 2 === 0 };
+    // fight back against anything close by, like a player would
+    const out = { ...inp };
+    if (out.jump && prev.jump && !inp.__hold) out.jump = inp.jump;
+    g.step(out); prev = out; ticks++;
+    for (const e of g.drainEvents()) if (e.k === 'item' && log) console.log(`  [${Math.round(ticks / 60)}s] ${e.text}`);
+  };
+  const idle = (n) => { for (let i = 0; i < n; i++) step({ ...NO }); };
+  const tagTo = (h) => { let n = 0; while (g.lead !== h && n++ < 120) { if (g.tagCd === 0 && !g.save.heroes[h].down) { step({ ...NO, tag: true }); step({ ...NO }); } else step({ ...NO }); } };
+  const lanternUp = () => {
+    if (!g.has('lantern') || g.lanternUp || g.save.heroes.enzo.down) return;
+    const back = g.lead; tagTo('enzo');
+    step({ ...NO, down: true }); step({ ...NO, down: true, cast: true }); step({ ...NO }); idle(16);
+    if (back === 'dora') tagTo('dora');
+  };
+  const chimeNear = () => {
+    if (!g.has('chime')) return;
+    const b = g.body;
+    const shut = INFO.get(g.room.id).doors.some((d) => d.ch === 'c' && !g.doorOpen(d) && Math.hypot((d.c + d.w / 2) * TILE - b.x, (d.r + d.h / 2) * TILE - b.y) < 130);
+    if (!shut) return;
+    const back = g.lead; tagTo('enzo');
+    if (g.leadSave.mp < 4) { g.eat('tea'); }
+    step({ ...NO, up: true }); step({ ...NO, up: true, cast: true }); step({ ...NO }); idle(30);
+    if (back === 'dora') tagTo('dora');
+  };
+  const swat = () => {
+    const b = g.body;
+    for (const e of g.enemies) {
+      if (!e.alive || e.hidden) continue;
+      const dx = e.x - b.x, dy = e.y - b.y;
+      if (Math.abs(dx) < 40 && Math.abs(dy) < 30) {
+        for (let i = 0; i < 24 && e.alive; i++) step({ ...NO, left: dx < 0 && i < 2, right: dx > 0 && i < 2, attack: i % 6 === 2 });
+        return true;
+      }
+    }
+    return false;
+  };
+  const heal = () => {
+    for (const h of ['dora', 'enzo']) {
+      const s = g.save.heroes[h];
+      if (s.down && g.save.food.tea > 0) g.eat('tea');
+    }
+    if (g.leadSave.hp < g.stats(g.lead).maxHp * 0.4 && g.save.food.cake > 0) g.eat('cake');
+  };
+  /** Replay one planned move in the real game. */
+  const run = (e, G) => {
+    const m = e.macro;
+    if (m.hero !== g.lead) tagTo(m.hero);
+    const b = g.body;
+    step({ ...NO });
+    // stand where the planner assumed: the middle of this tile (a few small steps)
+    const n0 = G.nodeAt(b.x, b.y, b.swim && !b.ground, b.climb);
+    if (b.ground && n0.mode === 'ground') for (let i = 0; i < 24 && Math.abs(b.x - n0.x) > 1.2; i++) { step({ ...NO, left: b.x > n0.x && i % 3 === 0, right: b.x < n0.x && i % 3 === 0 }); }
+    for (let i = 0; i < 20 && b.ground && Math.abs(b.vx) > 0.01; i++) step({ ...NO });
+    if (b.climb && n0.mode === 'climb') for (let i = 0; i < 20 && Math.abs(b.y - n0.y) > 0.9; i++) step({ ...NO, up: b.y > n0.y + 0.9, down: b.y < n0.y - 0.9 });
+    const from = { x: b.x, y: b.y };
+    let air = false, landed = false;
+    for (let t = 0; t < m.max + 60; t++) {
+      let bi = t < m.max && !landed ? m.input(t, b, from) : { dir: 0, up: false, down: false, jumpP: false, jumpH: false, dashP: false };
+      const inp = { ...NO, left: bi.dir < 0, right: bi.dir > 0, up: bi.up, down: bi.down, jump: bi.jumpP || bi.jumpH, dash: bi.dashP };
+      step(inp);
+      if (!b.ground) air = true; else if (air && !b.swim) landed = true;
+      const n = G.nodes.get(e.to);
+      if (t > 2 && b.ground && Math.abs(b.vx) < 0.05 && n.mode === 'ground' && Math.abs(b.x - n.x) < 12 && Math.abs(b.y - n.y) < 2) return true;
+      if (t > 2 && n.mode === 'swim' && b.swim && !b.ground && Math.abs(b.x - n.x) < 12 && Math.abs(b.y - n.y) < 12) return true;
+      if (t > 2 && n.mode === 'climb' && b.climb && b.vy === 0 && Math.abs(b.x - n.x) < 4 && Math.abs(b.y - n.y) < 9) return true;
+      if (t > 2 && n.mode === 'wall' && b.wall === n.wall && Math.abs(b.x - n.x) < 6 && Math.abs(b.y - n.y) < 16) return true;
+      if (t > m.max + 10 && b.ground && Math.abs(b.vx) < 0.05) return false;
+      if (g.dialog || g.boss && g.boss.st !== 'wait') return false;
+    }
+    return false;
+  };
+  /** Walk the planner's path to the first node that satisfies `goal`. */
+  const go = (goal, label) => {
+    for (let attempt = 0; attempt < 40 && ticks < limit; attempt++) {
+      heal(); lanternUp(); chimeNear();
+      if (swat()) continue;
+      const G = graph();
+      const start = G.nodeAt(g.body.x, g.body.y, g.body.swim && !g.body.ground, g.body.climb);
+      if (goal(start)) return true;
+      const path = G.path(start, goal, 60000);
+      if (!path) return false;
+      let fromKey = start.key;
+      for (const e of path.slice(0, 6)) {
+        const before = { x: g.body.x, y: g.body.y, room: g.room.id };
+        const ok = run(e, G);
+        if (!ok) {
+          // a move that keeps failing in the real game is struck off, so the planner finds another way
+          const fk = `${stateKey(navState(g))}|${fromKey}|${e.macro.name}`;
+          const n = (fails.get(fk) ?? 0) + 1;
+          fails.set(fk, n);
+          if (n >= 2) { const list = G.edges.get(fromKey); if (list) G.edges.set(fromKey, list.filter((x) => x !== e)); }
+        }
+        fromKey = e.to;
+        if (!ok) {
+          if (log && attempt > (process.env.BS_MISS ? -1 : 30)) { const n = G.nodes.get(e.to); console.log(`    miss: ${e.macro.name} from ${before.room} (${Math.round(before.x)},${Math.round(before.y)}) to ${n.mode} (${Math.round(n.x)},${Math.round(n.y)}), ended at (${Math.round(g.body.x)},${Math.round(g.body.y)}) climb=${g.body.climb} ground=${g.body.ground} swim=${g.body.swim} lead=${g.lead}`); }
+          break;
+        }
+        if (g.boss && g.boss.st !== 'wait') return true;
+      }
+      const now = G.nodeAt(g.body.x, g.body.y, g.body.swim && !g.body.ground, g.body.climb);
+      if (goal(now)) return true;
+    }
+    if (log) console.log(`  gave up walking to ${label}`);
+    return false;
+  };
+  /** If the goal can't be reached with the water as it is, find a bell that fixes it. */
+  const fixWater = (goal) => {
+    const bells = thingsOf('B');
+    const here = navState(g);
+    for (const bell of bells) {
+      const area = bell.room.area;
+      if (!(area in here.water)) continue;
+      const flipped = { ...here, water: { ...here.water, [area]: here.water[area] ? 0 : 1 } };
+      const k = stateKey(flipped);
+      if (!graphs.has(k)) graphs.set(k, new Graph(flipped));
+      const G2 = graphs.get(k), G = graph();
+      // can we reach the bell now, and the goal once it has rung?
+      const start = G.nodeAt(g.body.x, g.body.y);
+      const toBell = G.path(start, near(bell, 28), 60000);
+      if (!toBell) continue;
+      const bx = bell.c * TILE + 8, by = (bell.r + 1) * TILE;
+      if (!G2.path(G2.nodeAt(bx, by), goal, 60000)) continue;
+      if (log) console.log(`  ring the ${bell.room.id} bell (${area})`);
+      if (!go(near(bell, 28), `${bell.room.id} bell`)) continue;
+      const before = g.save.water[area];
+      for (let i = 0; i < 60 && g.save.water[area] === before; i++) step({ ...NO, left: g.body.x > bx + 2 && i % 8 < 2, right: g.body.x < bx - 2 && i % 8 < 2, attack: i % 8 === 4 });
+      idle(30);
+      for (let i = 0; i < 600 && g.waterMoving(); i++) step({ ...NO });
+      return g.save.water[area] !== before;
+    }
+    return false;
+  };
+  for (const o of objectives()) {
+    if (o.done(g)) continue;
+    const goal = o.act === 'boss' ? inRoom(o.at.room.id) : near(o.at, o.act === 'touch' ? 10 : 20);
+    if (log) console.log(`[${Math.round(ticks / 60)}s] ${o.name}`);
+    let reached = false;
+    for (let k = 0; k < 6 && !reached && ticks < limit; k++) {
+      reached = go(goal, o.name);
+      if (!reached) { if (!fixWater(goal)) break; }
+    }
+    if (!reached && o.done(g)) reached = true;
+    if (!reached) return { ok: false, at: o.name, ticks, room: g.room.id, timeline, x: g.body.x, y: g.body.y, swim: g.body.swim, climb: g.body.climb, ground: g.body.ground, water: { ...g.save.water }, ab: [...g.save.abilities], lantern: g.lanternUp };
+    if (o.act === 'boss') {
+      // fight like the boss bot, from here
+      let rs = seed;
+      const rnd = () => { rs = (rs * 1103515245 + 12345) & 0x7fffffff; return rs / 0x7fffffff; };
+      for (let i = 0; i < 6 * 3600 && !g.flag(`boss:${o.boss}`); i++) {
+        const bb = g.boss;
+        const v = bb ? { id: bb.id, st: bb.st, tell: bb.tellT > 0, harm: bb.harm, hurt: bb.hurt, body: bb.body, x: bb.x, y: bb.y, calm: bb.calm, shots: g.shots.filter((s) => !s.friendly), waves: g.waves, rings: g.rings.filter((r) => !r.friendly), markers: g.markers } : null;
+        if (!bb && !g.flag(`boss:${o.boss}`)) { go(inRoom(o.at.room.id), o.name); continue; }
+        const inp = decide(g, v, rnd, 0.05);
+        if (inp.attack && prev.attack) inp.attack = false;
+        if (inp.jump) inp.jump = !(prev.jump && g.body.ground);
+        step(inp);
+      }
+      idle(30);
+      if (!g.flag(`boss:${o.boss}`)) return { ok: false, at: o.name, ticks, room: g.room.id, timeline };
+    } else if (o.act === 'chest' || o.act === 'talk') {
+      for (let i = 0; i < 40 && !o.done(g); i++) step({ ...NO, up: i % 4 === 0 });
+      idle(30);
+    } else idle(20);
+    timeline.push({ what: o.name, at: Math.round(ticks / 60), level: g.save.heroes.dora.level });
+    if (!o.done(g)) return { ok: false, at: o.name, ticks, room: g.room.id, timeline };
+  }
+  return { ok: g.flag('boss:mother'), ticks, timeline, completion: g.completion() };
+}
+
+// ─── run ──────────────────────────────────────────────────────────────────
+function runBosses() {
+const seeds = QUICK ? 8 : 24;
+let checks = 0;
+const report = [];
+for (const id of Object.keys(BOSSES)) {
+  if (ONLY && id !== ONLY) continue;
+  for (const [label, assist, need] of [['casual', true, 0.85], ['pro', false, 0.7]]) {
+    let wins = 0, tries = 0, ticks = 0, first = 0, lows = 0;
+    for (let s = 1; s <= seeds; s++) {
+      const delay = 12 + (s % 4);
+      const r = bossBot(id, s * 7919, { assist, delay, noise: assist ? 0.1 : 0.06 });
+      if (r.won) { wins++; tries += r.tries; ticks += r.ticks; if (r.tries === 1) first++; }
+      lows += r.low;
+      if (VERBOSE) console.log(id, label, s, r);
+    }
+    const rate = wins / seeds;
+    report.push(`${id.padEnd(7)} ${label.padEnd(6)} ${wins}/${seeds} won within 3 tries (${Math.round(rate * 100)}%), ${first} on the first try, ${wins ? Math.round(ticks / wins / 60) : '-'}s a win, lowest HP ${Math.round((lows / seeds) * 100)}% on average`);
+    console.log(report[report.length - 1]);
+    assert.ok(rate >= need, `${id} ${label} bot won ${Math.round(rate * 100)}% (needs ${need * 100}%)`);
+    checks++;
+  }
+}
+void TILE; void HERO_W; void ROOMS; void INFO; void ABILITY_ORDER; void roomById;
+console.log(`bellspire bots: ${checks} boss checks passed`);
+}
+function runRoute() {
+  const seeds = QUICK ? [1] : [1, 2, 3];
+  for (const seed of seeds) {
+    const r = routeBot(seed, { log: VERBOSE });
+    if (!r.ok && VERBOSE) console.log(r);
+    console.log(`route bot seed ${seed}: ${r.ok ? 'finished' : `stuck at "${r.at}" in ${r.room}`} after ${Math.round(r.ticks / 3600)} min (${r.timeline.map((t) => `${t.what} ${Math.round(t.at / 60)}m L${t.level}`).join(', ')})`);
+    assert.ok(r.ok, `the route bot finishes the game (seed ${seed})`);
+  }
+}
+if (process.argv[1]?.endsWith('bellspire-bot.mjs')) { if (!process.argv.includes('--route-only')) runBosses(); if (!ONLY) runRoute(); }
