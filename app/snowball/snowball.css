@@ -1,0 +1,118 @@
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Nunito:wght@700;800;900&display=swap');
+
+/* Snowball Siege: a golden-hour snow day. Icy panels with a hard two-pixel edge, deep-blue ink, warm gold for anything
+   you can press, our red and their blue on the score bar. The score bar sits above the valley and Enzo's tips and the
+   buttons below it, so no words ever cover a face; the title's words sit in the clear sky on the left of the painting. */
+.sb-shell{--ink:#18264a;--dim:#5a6a8e;--snow:#f4f7ff;--ice:#dcebff;--edge:#1c2b55;--sky:#c9dcff;--gold:#ffc83d;--red:#e5484d;--blue:#3d8bff;
+  position:fixed;inset:0;overflow:hidden;background:linear-gradient(#f6d9cf,#dfe3ff 55%,#f4f7ff);color:var(--ink);
+  font-family:'Nunito',system-ui,sans-serif;font-weight:800;font-size:clamp(13px,1.35vw,16px);line-height:1.4;user-select:none;-webkit-user-select:none;touch-action:none}
+.sb-shell *{box-sizing:border-box}
+.sb-shell p{margin:.35em 0;color:inherit}
+.sb-shell h1,.sb-shell h2{margin:0;font-family:'Pixelify Sans',monospace;font-weight:700;line-height:1.05;letter-spacing:.01em}
+.sb-shell button,.sb-home{font:inherit;font-weight:900;color:var(--ink);background:var(--snow);border:2px solid var(--edge);border-radius:6px;padding:.5em 1em;cursor:pointer;
+  box-shadow:0 3px 0 var(--edge);text-decoration:none;display:inline-block;text-align:center;transition:transform .06s}
+.sb-shell button:hover:not(:disabled),.sb-home:hover{background:#fff;transform:translateY(-1px)}
+.sb-shell button:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 var(--edge)}
+.sb-shell button:disabled{opacity:.5;cursor:default}
+.sb-shell button:focus-visible,.sb-home:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.sb-shell .sb-go{background:var(--gold)}
+.sb-shell .sb-go:hover:not(:disabled){background:#ffd767}
+
+/* ---- the match: bar, valley, bar */
+.sb-game{position:absolute;inset:0;display:flex;flex-direction:column;visibility:hidden}
+.sb-on-play .sb-game{visibility:visible}
+.sb-shell .sb-top{margin:0;flex:0 0 auto;height:52px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:0 14px;background:var(--snow);border-bottom:2px solid var(--edge)}
+.sb-team{display:flex;align-items:center;gap:10px;min-width:0}
+.sb-team.sb-side1{justify-content:flex-end}
+.sb-who{font-family:'Nunito',sans-serif;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-side0 .sb-who{color:var(--red)}
+.sb-side1 .sb-who{color:var(--blue)}
+.sb-ammo{display:flex;gap:3px}
+.sb-ammo i{width:14px;height:14px;border:2px solid var(--edge);background:transparent;border-radius:3px}
+.sb-ammo i.on{background:#fff;box-shadow:inset -3px -3px 0 #c5d6f5}
+.sb-flag{position:relative;width:70px;height:12px;border:2px solid var(--edge);border-radius:3px;background:#e9eefb;overflow:hidden}
+.sb-flag b{position:absolute;inset:0 auto 0 0;transition:width .2s}
+.sb-side0 .sb-flag b,.sb-flag.sb-side0 b{background:var(--red)}
+.sb-flag.sb-side1 b{background:var(--blue);inset:0 0 0 auto}
+.sb-clock{display:flex;flex-direction:column;align-items:center;line-height:1}
+.sb-clock b{font-family:'Pixelify Sans',monospace;font-size:1.6em}
+.sb-wind{font-size:.75em;color:var(--dim)}
+.sb-stage{position:relative;flex:1 1 auto;min-height:0}
+.sb-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
+.sb-banner{position:absolute;left:50%;top:10px;transform:translateX(-50%);padding:.35em 1em;background:var(--snow);border:2px solid var(--edge);border-radius:6px;box-shadow:0 3px 0 var(--edge);
+  font-family:'Nunito',sans-serif;font-weight:900;white-space:nowrap;pointer-events:none;animation:sb-pop 2.2s ease forwards}
+@keyframes sb-pop{0%{opacity:0;transform:translate(-50%,-8px)}10%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-6px)}}
+.sb-shell .sb-bottom{margin:0;flex:0 0 auto;min-height:56px;display:flex;align-items:center;gap:12px;padding:6px 14px;background:var(--snow);border-top:2px solid var(--edge)}
+.sb-shell .sb-tip{flex:1 1 auto;margin:0;min-width:0;color:var(--ink)}
+.sb-tip b{color:#3a7a3a}
+.sb-buttons{display:flex;gap:8px;flex:0 0 auto}
+.sb-buttons button{padding:.4em .8em}
+.sb-pause{position:absolute;inset:0;display:grid;place-items:center;background:rgba(24,38,74,.45)}
+
+/* ---- panels */
+.sb-panel{background:var(--snow);border:2px solid var(--edge);border-radius:8px;box-shadow:0 5px 0 var(--edge);padding:20px 24px;max-width:min(560px,calc(100vw - 32px))}
+.sb-panel.sb-wide{max-width:min(720px,calc(100vw - 32px))}
+.sb-shell .sb-panel h2,.sb-shell .sb-head h2{font-family:'Nunito',sans-serif;font-weight:900;letter-spacing:0}
+.sb-panel h2{font-size:1.8em;margin-bottom:.3em}
+.sb-faces{display:flex;gap:6px;margin:-4px 0 6px}
+.sb-faces img{width:72px;height:72px;object-fit:contain;background:linear-gradient(#cfe0ff,#f4f7ff);border:2px solid var(--edge);border-radius:6px}
+.sb-faces .sb-vs{align-self:center;font-weight:900;color:var(--dim);padding:0 4px}
+.sb-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.sb-dim{color:var(--dim)}
+.sb-sheet,.sb-result,.sb-slopes{position:absolute;inset:0;overflow:auto;padding:16px;display:grid;place-items:center;background:linear-gradient(#f6d9cf,#dfe3ff 55%,#f4f7ff)}
+.sb-toggle{display:flex;align-items:center;gap:10px;margin:8px 0;cursor:pointer}
+.sb-toggle input{width:20px;height:20px;accent-color:var(--blue)}
+.sb-stars{list-style:none;padding:0;margin:10px 0;display:flex;flex-wrap:wrap;gap:8px}
+.sb-stars li{padding:.25em .7em;border:2px solid var(--edge);border-radius:6px;color:var(--dim);background:#e9eefb}
+.sb-stars li.on{color:var(--ink);background:var(--gold)}
+
+/* ---- the title: the words sit in the clear sky on the left of the painting */
+.sb-title{position:absolute;inset:0;background:#e6d9f0}
+.sb-title-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:70% 50%}
+.sb-title-menu{position:absolute;left:0;top:0;bottom:0;width:min(40%,460px);padding:clamp(16px,4vh,48px) clamp(16px,3vw,44px);display:flex;flex-direction:column;justify-content:center;gap:10px;
+  background:linear-gradient(90deg,rgba(244,247,255,.92),rgba(244,247,255,.75) 75%,rgba(244,247,255,0))}
+.sb-title-menu h1{font-size:clamp(40px,6.4vw,84px);color:var(--ink);text-shadow:3px 3px 0 #fff,5px 5px 0 var(--sky)}
+.sb-title-menu p{max-width:24em;color:var(--ink)}
+.sb-title-menu button,.sb-title-menu .sb-home{width:min(280px,100%)}
+.sb-home{background:transparent!important;box-shadow:none!important;border-color:transparent!important;text-align:left!important;padding-left:0!important}
+
+/* ---- the slopes */
+.sb-slopes{place-items:start center;align-content:start}
+.sb-head{display:flex;align-items:center;justify-content:space-between;width:min(1000px,100%);margin-bottom:12px}
+.sb-head h2{font-size:2em}
+.sb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;width:min(1000px,100%)}
+.sb-shell .sb-card{display:flex;gap:12px;align-items:center;text-align:left;padding:10px;font-weight:800}
+.sb-pic{flex:0 0 96px;height:96px;border-radius:6px;background:linear-gradient(#cfe0ff,#f4f7ff);border:2px solid var(--edge);display:grid;place-items:center;overflow:hidden}
+.sb-pic img{width:100%;height:100%;object-fit:contain}
+.sb-card-words{display:flex;flex-direction:column;gap:4px;min-width:0}
+.sb-card-words b{font-family:'Nunito',sans-serif;font-weight:900;font-size:1.1em}
+.sb-card-words span{font-size:.88em;color:var(--dim)}
+.sb-stars-mini i{font-style:normal;color:#c9d2e6;font-size:1.2em;margin-right:2px}
+.sb-stars-mini i.on{color:#f0a800}
+.sb-locked .sb-pic img{filter:grayscale(1) brightness(.6)}
+
+/* ---- the result and the ending: the painting on top, the words below it */
+.sb-result.sb-ending{place-items:start center;align-content:start;gap:12px}
+.sb-end-art{width:min(980px,100%);max-height:62vh;object-fit:cover;border:2px solid var(--edge);border-radius:8px;box-shadow:0 5px 0 var(--edge)}
+.sb-ending .sb-panel{max-width:min(980px,100%)}
+
+/* ---- an upright phone: the bars stack, the title painting goes above its words */
+.sb-upright .sb-top{height:auto;grid-template-columns:1fr 1fr;grid-template-areas:"a b" "c c";padding:6px 10px;row-gap:4px}
+.sb-upright .sb-clock{grid-area:c;flex-direction:row;gap:10px;justify-content:center}
+.sb-upright .sb-bottom{flex-wrap:wrap}
+.sb-upright .sb-title-art{height:52%;object-position:72% 50%}
+.sb-upright .sb-title-menu{top:52%;width:100%;justify-content:flex-start;background:var(--snow);border-top:2px solid var(--edge)}
+.sb-upright .sb-title-menu h1{font-size:44px}
+@media (max-height:480px){
+  .sb-top{height:42px}
+  .sb-bottom{min-height:44px;padding:4px 10px}
+  .sb-bottom .sb-tip{font-size:12px}
+  .sb-title-menu{gap:6px}
+  .sb-title-menu p{display:none}
+  .sb-title-menu button{padding:.3em .8em}
+}
+@media (max-width:700px){
+  .sb-flag{width:44px}
+  .sb-ammo i{width:11px;height:11px}
+}
+@media (prefers-reduced-motion:reduce){.sb-banner{animation-duration:3s}}

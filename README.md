@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of eighty-nine original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of ninety original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -99,6 +99,7 @@ Listed in arcade-menu order.
 | 87 | Combo Ball | `/combo` | Football roguelite |
 | 88 | Into Space | `/space` | Football roguelite |
 | 89 | Rulebook FC | `/rulebook` | Football roguelite |
+| 90 | Snowball Siege | `/snowball` | Voxel snowball fight |
 
 ## Run
 
@@ -1499,6 +1500,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:rulebook` runs the shared engine's checks (moves, passes, lofts, shots and keepers, defending, undo and the clock, the hooks and the team styles) and the season's (the league, card offers, strikes, Red Pen, every law as a hook, Fog, the save, a seed replaying). `npm run bot:rulebook` makes a bot that searches its moves average six matches or more, win more than one that takes the first card, win 10 to 35% of seasons, and random play never win one (`--quick` in `npm test`). `node tests/e2e/rulebook.mjs` (dev server running) plays it in a browser and on a phone.
 
 **Docs:** [`docs/rulebook.md`](docs/rulebook.md) has every rule, team and law, the art and the bot results.
+
+### 90 · Snowball Siege (`/snowball`)
+
+**Play:** a voxel snowball fight between two snow forts across six Andean slopes, each with its own light and sky, and your snowballs come out of your own walls. Click a cube of your fort to scoop it (0.35 s, +1 snowball, up to 5 carried; it leaves a hole), or roll one from the floor snow (2.2 s, costs no wall). Drag back like a slingshot to throw: only the first third of the arc shows, and holding the aim for a second packs a hard snowball that costs two and knocks out a cross of five cubes. A normal hit takes the cube it hits (sometimes a neighbour), and any cube left hanging falls. Right-click a gap to pat a snowball back in. Only a chinchilla standing up to throw can be hit, and is stunned for 1.5 s; the other one ducks and rolls snowballs slowly. Clear the top three layers of their flag tower and the flag falls; at two minutes, the tower with more of its top left wins. Six hand-made slopes, each opening the next, against the Vizcacha Twins, the Pudú Pair (ice that cracks and drops you in), the Guanaco Gang (wind), the Culpeo Foxes (pines that dump their snow), the Flamingo Sisters (a lagoon and high lobs) and the Spectacled Bears (big forts, hard snowballs, patching), with three stars a slope; or Versus for two players on one keyboard. Saved in `snowball-siege-v1`.
+
+**Controls:** click your snow to scoop, drag back to throw, right-click to patch, Tab or Q (or a tap on them) to switch chinchilla, Esc to pause. Keys: A/D walk along the fort, W/S angle, hold F to throw, G to scoop; in Versus player 2 uses the arrows, `.` and `,`. On a phone held sideways, tap to scoop, drag to throw and long-press to patch; held upright, the camera moves closer and asks you to turn the phone.
+
+**Tests:** `npm run test:snowball` checks scooping, patching, the throw preview matching the real flight, a seed replaying, hits and the hard cross, falling cubes, the flag, stuns, ice, wind, pines, time-up, every slope, the save and the shared voxel mesher. `npm run bot:snowball` makes a casual bot win the first two slopes almost always and Windy Ridge about half the time, a pro bot win at least 60% of every slope, a bot that never digs its walls lose clearly to the pro, and random play never win past the first slope (`--quick` in `npm test`). `node tests/e2e/snowball.mjs` (dev server running) plays it in a browser and on a phone.
+
+**Docs:** [`docs/snowball.md`](docs/snowball.md) has every rule, slope and number, the art pipeline and the bot results.
 
 ## Validation
 
