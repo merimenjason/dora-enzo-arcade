@@ -118,12 +118,16 @@ try {
   await page.getByRole('button', { name: /Continue/ }).click();
   await until(page, () => window.__league().screen === 'office' && window.__league().save.week === 1);
   ok('week two, and the save survives a reload');
-  // week two's job: Train, by tapping a +stat button on a squad card (they sit inside the card, which must not be disabled)
+  // week two's job: Train, in the training sheet: pick a stat (nothing happens yet), then confirm
   await page.locator('.lg-note').getByRole('button', { name: 'Got it' }).click({ timeout: 1500 }).catch(() => {});
   const before = await page.evaluate(() => { const p = window.__league().save.squad[0]; return { id: p.id, aim: p.aim }; });
   await page.locator('.lg-job', { hasText: 'Train' }).click();
-  await page.locator('.lg-cards .lg-card').first().locator('.lg-train span', { hasText: '+aim' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Training' }); assert.ok(await sheet.isVisible(), 'Train opens the training sheet');
+  await sheet.locator('.lg-gym-list li').first().locator('.lg-gym-stat').first().click();
+  assert.equal((await st(page)).save.acted, null, 'picking a stat waits for the confirm');
+  await sheet.getByRole('button', { name: /^Train .*: aim/ }).click();
   await until(page, () => window.__league().save.acted === 'train');
+  assert.equal(await sheet.count(), 0, 'the sheet closes');
   const trained = await page.evaluate((id) => window.__league().save.squad.find((p) => p.id === id).aim, before.id);
   assert.equal(trained, Math.min(10, before.aim + 1), 'training raises the stat');
   ok('training a player');

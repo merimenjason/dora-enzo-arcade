@@ -38,7 +38,7 @@ Game 91, `/league`. A cosy snowball team manager. Dora and Enzo coach the Burrow
 
 One job a week in the office:
 
-- **Train:** +1 to a stat, +4 morale for that player.
+- **Train:** +1 to a stat, +4 morale for that player. It opens a training sheet with one row per player: tap a stat to see the step it makes (for example 6 → 7), then confirm.
 - **Scout:** the next rival's likely ban, best players and tactic, plus a momentum head start (45 of the 100 for a surge).
 - **Rest:** +14 morale for everyone, +20 for shy players.
 - **Sign:** buy one of three free agents (one is a star); a full squad of 9 has to let someone go. The squad is 6–9.

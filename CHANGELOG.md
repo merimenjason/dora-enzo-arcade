@@ -24,7 +24,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
-- **Snow Day League**: the Train job works. Tapping +aim, +speed or +grit on a squad card did nothing, and so did Let go when signing with a full squad. On a phone held sideways the buttons now sit at the top of each card, where you can see them.
+- **Snow Day League**: the Train job works, and is clearer. Train opens a training sheet with every player in a row and a big button per stat showing the step it makes (aim 6 → 7), says what each stat does, and asks you to confirm. Let go, when signing with a full squad, works too, and on a phone held sideways it sits at the top of each card.
 
 ## 05-11-2026
 

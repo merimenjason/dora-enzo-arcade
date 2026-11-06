@@ -24,6 +24,7 @@ const NOTES = [
   'Now we watch! Throwers out-range diggers, builders’ walls stop throws, scouts lob over walls, diggers bury scouts. Shout once each half from the bench.',
 ];
 const STAT_COLOUR: Record<G.Stat, string> = { aim: '#e0574a', speed: '#4caf50', grit: '#4a7ad8' };
+const STAT_WHAT: Record<G.Stat, string> = { aim: 'Hits more often. At 7 a thrower carries two snowballs.', speed: 'Runs faster and dodges more.', grit: 'More health before a knock-out.' };
 /** a heart is 25 health: about a quarter of a full health bar */
 const hearts = (u: G.Unit) => Math.round(u.stats.heal / 25);
 const STAT_COLS: { key: string; label: string; icon: string; tip: string; val: (u: G.Unit) => number }[] = [
@@ -65,6 +66,7 @@ export default function LeaguePage() {
   const [tab, setTab] = useState<Tab>('squad');
   const [job, setJob] = useState<Job>(null);
   const [releaseId, setReleaseId] = useState<string>('');
+  const [drill, setDrill] = useState<{ id: string; stat: G.Stat } | null>(null);
   const [, force] = useState(0);
   const rerender = () => force((n) => n + 1);
   const [upright, setUpright] = useState(false);
@@ -163,10 +165,10 @@ export default function LeaguePage() {
     if (s.acted) { sfx()?.no(); return; }
     if (a === 'rest') { G.rest(s); sfx()?.pin(); persist(s); }
     else if (a === 'scout') { if (G.scout(s)) { sfx()?.pin(); persist(s); } else sfx()?.no(); }
-    else if (a === 'train') { setJob('train'); setTab('squad'); sfx()?.button(); }
+    else if (a === 'train') { setJob('train'); setDrill(null); sfx()?.button(); }
     else { setJob('sign'); setTab('market'); sfx()?.button(); }
   };
-  const trainOne = (id: string, st: G.Stat) => { const s = saveRef.current; if (G.train(s, id, st)) { sfx()?.pin(); setJob(null); persist(s); } else sfx()?.no(); };
+  const trainOne = (id: string, st: G.Stat) => { const s = saveRef.current; if (G.train(s, id, st)) { sfx()?.pin(); setJob(null); setDrill(null); persist(s); } else sfx()?.no(); };
   const signOne = (id: string) => {
     const s = saveRef.current, full = s.squad.length >= G.SQUAD_MAX;
     if (full && !releaseId) { sfx()?.no(); return; }
@@ -463,10 +465,9 @@ export default function LeaguePage() {
           <nav className="lg-tabs">
             {(['squad', 'fixtures', 'table', 'market', 'photos'] as Tab[]).map((t) => <button key={t} className={tab === t ? 'on' : ''} onClick={() => { setTab(t); sfx()?.pin(); }}>{t === 'squad' ? `Squad (${s.squad.length})` : t === 'fixtures' ? 'Fixtures' : t === 'table' ? 'League table' : t === 'market' ? 'Free agents' : `Photos (${s.photos.length})`}</button>)}
           </nav>
-          {job === 'train' && <p className="lg-ask">Pick a player and a stat to train (+1). <button className="lg-small-btn" onClick={() => setJob(null)}>Cancel</button></p>}
           {job === 'sign' && <p className="lg-ask">Pick a free agent to sign.{s.squad.length >= G.SQUAD_MAX && ' The squad is full: choose who leaves first.'} <button className="lg-small-btn" onClick={() => setJob(null)}>Cancel</button></p>}
           <div className="lg-cork">
-            {tab === 'squad' && <div className="lg-cards">{s.squad.map((p, i) => <Card key={p.id} p={p} colour="#d8352a" num={i + 1} extra={job === 'train' ? <span className="lg-train">{G.STATS.map((k) => <span key={k} role="button" tabIndex={0} className={p[k] >= G.STAT_MAX ? 'off' : ''} onClick={(e) => { e.stopPropagation(); trainOne(p.id, k); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); trainOne(p.id, k); } }}>+{k}</span>)}</span> : job === 'sign' && s.squad.length >= G.SQUAD_MAX ? <span className="lg-train"><span role="button" tabIndex={0} className={releaseId === p.id ? 'on' : ''} onClick={(e) => { e.stopPropagation(); setReleaseId(p.id); setTab('market'); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setReleaseId(p.id); setTab('market'); } }}>Let go</span></span> : null} />)}</div>}
+            {tab === 'squad' && <div className="lg-cards">{s.squad.map((p, i) => <Card key={p.id} p={p} colour="#d8352a" num={i + 1} extra={job === 'sign' && s.squad.length >= G.SQUAD_MAX ? <span className="lg-train"><span role="button" tabIndex={0} className={releaseId === p.id ? 'on' : ''} onClick={(e) => { e.stopPropagation(); setReleaseId(p.id); setTab('market'); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setReleaseId(p.id); setTab('market'); } }}>Let go</span></span> : null} />)}</div>}
             {tab === 'market' && (
               <div className="lg-cards">
                 {s.free.map((p) => <Card key={p.id} p={p} colour="#c8a060" onClick={job === 'sign' ? () => signOne(p.id) : undefined} extra={<span className="lg-price"><img src={`${ART}icon-coins.png`} alt="" /> {G.price(p)}</span>} />)}
@@ -521,6 +522,51 @@ export default function LeaguePage() {
           <button className="lg-go lg-ticket" disabled={!fixture} onClick={toDraft}>{s.acted ? 'To the draft →' : 'Skip the job: to the draft →'}</button>
         </footer>
       </section>
+    );
+  };
+
+  /** the training sheet: pick a player's stat, see the step it makes, then confirm */
+  const gym = () => {
+    const s = saveRef.current;
+    const dp = drill && s.squad.find((p) => p.id === drill.id);
+    const close = () => { setJob(null); setDrill(null); sfx()?.button(); };
+    return (
+      <div className="lg-gym-back" onClick={close}>
+        <div className="lg-gym" role="dialog" aria-label="Training" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === 'Escape') close(); }}>
+          <div className="lg-gym-head">
+            <h2>Training</h2>
+            <p>Choose <b>one player</b> and <b>one stat</b>. It goes up by 1 (the most is {G.STAT_MAX}), and they cheer up a little.</p>
+            <ul className="lg-gym-key">{G.STATS.map((k) => <li key={k}><i style={{ background: STAT_COLOUR[k] }} /><b>{k[0].toUpperCase() + k.slice(1)}</b> {STAT_WHAT[k]}</li>)}</ul>
+          </div>
+          <ul className="lg-gym-list">
+            {s.squad.map((p) => (
+              <li key={p.id} className={drill?.id === p.id ? 'on' : ''}>
+                <img className="lg-gym-pic" src={por(p)} alt="" />
+                <span className="lg-gym-who"><b>{p.name}</b><small><img src={`${ART}icon-${p.role}.png`} alt="" />{G.ROLE_NAME[p.role]}</small></span>
+                <span className="lg-gym-stats">
+                  {G.STATS.map((k) => {
+                    const max = p[k] >= G.STAT_MAX, on = drill?.id === p.id && drill.stat === k;
+                    return (
+                      <button key={k} type="button" className={`lg-gym-stat${on ? ' on' : ''}`} style={{ '--c': STAT_COLOUR[k] } as React.CSSProperties} disabled={max} aria-pressed={on}
+                        aria-label={`${p.name}: ${k} ${p[k]}${max ? ', at the most' : ` to ${p[k] + 1}`}`} onClick={() => { setDrill({ id: p.id, stat: k }); sfx()?.pin(); }}>
+                        <span className="lg-gym-name">{k}</span>
+                        <span className="lg-gym-bar"><i style={{ width: `${p[k] * 10}%` }} />{!max && <i className="lg-gym-plus" style={{ left: `${p[k] * 10}%` }} />}</span>
+                        <span className="lg-gym-num">{max ? `${p[k]} max` : <>{p[k]} → <b>{p[k] + 1}</b></>}</span>
+                      </button>
+                    );
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="lg-gym-foot">
+            <button type="button" onClick={close}>Cancel</button>
+            <button type="button" className="lg-go" disabled={!dp} onClick={() => drill && trainOne(drill.id, drill.stat)}>
+              {dp && drill ? `Train ${dp.name}: ${drill.stat} ${dp[drill.stat]} → ${dp[drill.stat] + 1}` : 'Pick a stat above'}
+            </button>
+          </div>
+        </div>
+      </div>
     );
   };
 
@@ -738,6 +784,7 @@ export default function LeaguePage() {
         </section>
       )}
       {screen === 'office' && office()}
+      {screen === 'office' && job === 'train' && gym()}
       {screen === 'draft' && draft()}
       {screen === 'post' && postView()}
       {screen === 'season' && seasonView()}
