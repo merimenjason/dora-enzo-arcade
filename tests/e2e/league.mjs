@@ -118,6 +118,15 @@ try {
   await page.getByRole('button', { name: /Continue/ }).click();
   await until(page, () => window.__league().screen === 'office' && window.__league().save.week === 1);
   ok('week two, and the save survives a reload');
+  // week two's job: Train, by tapping a +stat button on a squad card (they sit inside the card, which must not be disabled)
+  await page.locator('.lg-note').getByRole('button', { name: 'Got it' }).click({ timeout: 1500 }).catch(() => {});
+  const before = await page.evaluate(() => { const p = window.__league().save.squad[0]; return { id: p.id, aim: p.aim }; });
+  await page.locator('.lg-job', { hasText: 'Train' }).click();
+  await page.locator('.lg-cards .lg-card').first().locator('.lg-train span', { hasText: '+aim' }).click();
+  await until(page, () => window.__league().save.acted === 'train');
+  const trained = await page.evaluate((id) => window.__league().save.squad.find((p) => p.id === id).aim, before.id);
+  assert.equal(trained, Math.min(10, before.aim + 1), 'training raises the stat');
+  ok('training a player');
 
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await until(page, () => window.__league().screen === 'settings');

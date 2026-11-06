@@ -45,6 +45,9 @@
 .lg-shell .lg-card:nth-child(3n){--r:-1.2deg}.lg-shell .lg-card:nth-child(3n+1){--r:.9deg}.lg-shell .lg-card:nth-child(3n+2){--r:-.3deg}
 .lg-shell .lg-card:hover:not(:disabled){transform:rotate(calc(var(--r) * -1)) translateY(-4px) scale(1.03);background:url(/art/league/card.png) center/100% 100% no-repeat;box-shadow:0 12px 18px rgba(0,0,0,.3)}
 .lg-shell .lg-card:disabled{opacity:1;cursor:default}
+.lg-shell .lg-card.lg-static{cursor:default}
+.lg-shell .lg-card.lg-static:hover:not(:disabled){transform:rotate(var(--r,0deg));box-shadow:0 6px 12px rgba(0,0,0,.28)}
+.lg-shell .lg-card.lg-static:active:not(:disabled){transform:rotate(var(--r,0deg));box-shadow:0 6px 12px rgba(0,0,0,.28)}
 @keyframes lg-deal{from{transform:translate(-30px,-40px) rotate(-14deg);opacity:0}to{transform:rotate(var(--r,0deg));opacity:1}}
 .lg-card::before{content:'';position:absolute;left:50%;top:-7px;width:16px;height:16px;margin-left:-8px;background:url(/art/league/pin.png) center/contain no-repeat;z-index:2}
 .lg-pic{display:block;aspect-ratio:1;border-radius:3px;overflow:hidden;border:3px solid var(--team,#d8352a)}
@@ -368,3 +371,6 @@
 }
 @media (prefers-reduced-motion:reduce){.lg-shell *{animation:none!important;transition:none!important}}
 .lg-mvp .lg-card.lg-small{width:clamp(110px,9vw,130px)}
+
+/* short sideways phones: the corkboard only shows the top of each card, so the train / let-go buttons go above the portrait */
+@media (max-height:500px){.lg-shell .lg-card .lg-train{position:static;order:-1;margin:0 0 4px}}
