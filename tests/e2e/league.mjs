@@ -1,4 +1,4 @@
-// Snow Day League in the browser: the title, Enzo's first note, a week's job (Rest) in the office, the draft (a tap
+// Snow Day League in the browser: the title, Enzo's first note, a week's job (Rest) in the office, training and signing, the draft (a tap
 // shows a card in full, Ban strikes it, the rival coach answers on their own, a pick by number key, the Hint's button,
 // Auto-draft), kick-off, a real match (the score bar with both forts and KOs, the clock running, a shout from the
 // bench, speed), the result (the fort graph, explained stat columns), the replay of the deciding moment, back to the
@@ -131,6 +131,25 @@ try {
   const trained = await page.evaluate((id) => window.__league().save.squad.find((p) => p.id === id).aim, before.id);
   assert.equal(trained, Math.min(10, before.aim + 1), 'training raises the stat');
   ok('training a player');
+
+  // Sign: with this week's job used, a free agent's sheet says why and when; next week, the deal goes through
+  await page.locator('.lg-tabs button', { hasText: 'Free agents' }).click();
+  assert.match(await page.locator('.lg-ask').innerText(), /next week/i, 'the market says the job is used');
+  const deal = page.getByRole('dialog', { name: /^Sign / });
+  await page.locator('.lg-cork .lg-card').first().click();
+  assert.match(await deal.innerText(), /next week/i); assert.equal(await deal.getByRole('button', { name: /^Sign / }).count(), 0, 'no sign button with the job used');
+  await deal.getByRole('button', { name: 'Close' }).click(); assert.equal(await deal.count(), 0);
+  await page.evaluate((k) => { const v = JSON.parse(localStorage.getItem(k)); v.acted = null; v.money = 500; localStorage.setItem(k, JSON.stringify(v)); }, KEY);
+  await page.reload(); await ready(page); await page.getByRole('button', { name: /Continue/ }).click();
+  await until(page, () => window.__league().screen === 'office');
+  await page.locator('.lg-note').getByRole('button', { name: 'Got it' }).click({ timeout: 1500 }).catch(() => {});
+  const agent = (await st(page)).save.free[0];
+  await page.locator('.lg-job', { hasText: 'Sign' }).click();
+  await page.locator('.lg-cork .lg-card').first().click();
+  await deal.getByRole('button', { name: /^Sign .* for \d+ coins/ }).click();
+  await until(page, () => window.__league().save.acted === 'sign');
+  assert.ok((await st(page)).save.squad.some((p) => p.id === agent.id), 'the free agent joins'); assert.equal(await deal.count(), 0);
+  ok('signing a free agent, and why not when the week’s job is used');
 
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await until(page, () => window.__league().screen === 'settings');

@@ -41,7 +41,7 @@ One job a week in the office:
 - **Train:** +1 to a stat, +4 morale for that player. It opens a training sheet with one row per player: tap a stat to see the step it makes (for example 6 → 7), then confirm.
 - **Scout:** the next rival's likely ban, best players and tactic, plus a momentum head start (45 of the 100 for a surge).
 - **Rest:** +14 morale for everyone, +20 for shy players.
-- **Sign:** buy one of three free agents (one is a star); a full squad of 9 has to let someone go. The squad is 6–9.
+- **Sign:** buy one of three free agents (one is a star); a full squad of 9 has to let someone go. The squad is 6–9. Tapping a free agent opens a signing sheet: the price, your coins before and after, who already plays that role, and, with a full squad, who leaves. When you can't sign (the week's job is used, too few coins, nobody chosen to leave), the sheet says why.
 
 You can also skip the job. Then comes the draft. Pay is 45 coins for a win, 25 for a draw and 15 for a loss (×1.5 in a semi, ×2 in the final), plus 15 sponsor coins a week.
 

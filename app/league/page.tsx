@@ -67,6 +67,7 @@ export default function LeaguePage() {
   const [job, setJob] = useState<Job>(null);
   const [releaseId, setReleaseId] = useState<string>('');
   const [drill, setDrill] = useState<{ id: string; stat: G.Stat } | null>(null);
+  const [dealId, setDealId] = useState<string>('');
   const [, force] = useState(0);
   const rerender = () => force((n) => n + 1);
   const [upright, setUpright] = useState(false);
@@ -166,13 +167,13 @@ export default function LeaguePage() {
     if (a === 'rest') { G.rest(s); sfx()?.pin(); persist(s); }
     else if (a === 'scout') { if (G.scout(s)) { sfx()?.pin(); persist(s); } else sfx()?.no(); }
     else if (a === 'train') { setJob('train'); setDrill(null); sfx()?.button(); }
-    else { setJob('sign'); setTab('market'); sfx()?.button(); }
+    else { setTab('market'); sfx()?.button(); }
   };
   const trainOne = (id: string, st: G.Stat) => { const s = saveRef.current; if (G.train(s, id, st)) { sfx()?.pin(); setJob(null); setDrill(null); persist(s); } else sfx()?.no(); };
   const signOne = (id: string) => {
     const s = saveRef.current, full = s.squad.length >= G.SQUAD_MAX;
     if (full && !releaseId) { sfx()?.no(); return; }
-    if (G.sign(s, id, full ? releaseId : undefined)) { sfx()?.coin(); setJob(null); setReleaseId(''); setTab('squad'); persist(s); } else sfx()?.no();
+    if (G.sign(s, id, full ? releaseId : undefined)) { sfx()?.coin(); setJob(null); setReleaseId(''); setDealId(''); setTab('squad'); persist(s); } else sfx()?.no();
   };
 
   // ---------------------------------------------------------------- the draft
@@ -465,13 +466,13 @@ export default function LeaguePage() {
           <nav className="lg-tabs">
             {(['squad', 'fixtures', 'table', 'market', 'photos'] as Tab[]).map((t) => <button key={t} className={tab === t ? 'on' : ''} onClick={() => { setTab(t); sfx()?.pin(); }}>{t === 'squad' ? `Squad (${s.squad.length})` : t === 'fixtures' ? 'Fixtures' : t === 'table' ? 'League table' : t === 'market' ? 'Free agents' : `Photos (${s.photos.length})`}</button>)}
           </nav>
-          {job === 'sign' && <p className="lg-ask">Pick a free agent to sign.{s.squad.length >= G.SQUAD_MAX && ' The squad is full: choose who leaves first.'} <button className="lg-small-btn" onClick={() => setJob(null)}>Cancel</button></p>}
+          {tab === 'market' && <p className="lg-ask">{s.acted && s.acted !== 'sign' ? <>This week’s job is done ({s.acted === 'train' ? 'you trained' : s.acted === 'scout' ? 'you scouted' : 'the squad rested'}). Signing is a job too, so you can sign someone <b>next week</b>.</> : s.acted === 'sign' ? 'You signed someone this week. More next week.' : <>Tap a free agent to see the deal. Signing uses <b>this week’s job</b>. You have <b>{s.money} coins</b>.</>}</p>}
           <div className="lg-cork">
-            {tab === 'squad' && <div className="lg-cards">{s.squad.map((p, i) => <Card key={p.id} p={p} colour="#d8352a" num={i + 1} extra={job === 'sign' && s.squad.length >= G.SQUAD_MAX ? <span className="lg-train"><span role="button" tabIndex={0} className={releaseId === p.id ? 'on' : ''} onClick={(e) => { e.stopPropagation(); setReleaseId(p.id); setTab('market'); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setReleaseId(p.id); setTab('market'); } }}>Let go</span></span> : null} />)}</div>}
+            {tab === 'squad' && <div className="lg-cards">{s.squad.map((p, i) => <Card key={p.id} p={p} colour="#d8352a" num={i + 1}  />)}</div>}
             {tab === 'market' && (
               <div className="lg-cards">
-                {s.free.map((p) => <Card key={p.id} p={p} colour="#c8a060" onClick={job === 'sign' ? () => signOne(p.id) : undefined} extra={<span className="lg-price"><img src={`${ART}icon-coins.png`} alt="" /> {G.price(p)}</span>} />)}
-                {s.squad.length >= G.SQUAD_MAX && job === 'sign' && <p className="lg-ask">{releaseId ? `${s.squad.find((p) => p.id === releaseId)?.name} will leave.` : 'Pick “Let go” on a squad card first.'} <button className="lg-small-btn" onClick={() => setTab('squad')}>Choose</button></p>}
+                {s.free.map((p) => <Card key={p.id} p={p} colour="#c8a060" onClick={() => { setDealId(p.id); setReleaseId(''); sfx()?.button(); }} extra={<span className={`lg-price${s.money < G.price(p) ? ' lg-dear' : ''}`}><img src={`${ART}icon-coins.png`} alt="" /> {G.price(p)}</span>} />)}
+                {!s.free.length && <p className="lg-ask">No free agents right now. New ones turn up as the season goes on.</p>}
               </div>
             )}
             {tab === 'fixtures' && (
@@ -514,8 +515,8 @@ export default function LeaguePage() {
         <footer className="lg-desk">
           <div className="lg-jobs" role="group" aria-label="This week’s job">
             {([['train', 'Train', 'A player +1 to a stat'], ['scout', 'Scout', 'Their plan, and a head start'], ['rest', 'Rest', 'Morale up for everyone'], ['sign', 'Sign', 'Buy a free agent']] as [G.WeekAction, string, string][]).map(([a, name, what]) => (
-              <button key={a} className={`lg-job${s.acted === a ? ' done' : ''}${job === a ? ' on' : ''}`} disabled={!!s.acted || (a === 'scout' && !fixture)} onClick={() => doJob(a)}>
-                <img src={`${ART}icon-${a === 'scout' ? 'scout-job' : a}.png`} alt="" /><b>{name}</b><small>{what}</small>
+              <button key={a} className={`lg-job${s.acted === a ? ' done' : ''}${job === a || (a === 'sign' && tab === 'market' && !s.acted) ? ' on' : ''}`} disabled={!!s.acted || (a === 'scout' && !fixture)} onClick={() => doJob(a)}>
+                <img src={`${ART}icon-${a === 'scout' ? 'scout-job' : a}.png`} alt="" /><b>{name}</b><small>{s.acted === a ? 'Done this week ✓' : s.acted ? 'Next week' : what}</small>
               </button>
             ))}
           </div>
@@ -564,6 +565,44 @@ export default function LeaguePage() {
             <button type="button" className="lg-go" disabled={!dp} onClick={() => drill && trainOne(drill.id, drill.stat)}>
               {dp && drill ? `Train ${dp.name}: ${drill.stat} ${dp[drill.stat]} → ${dp[drill.stat] + 1}` : 'Pick a stat above'}
             </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /** the signing sheet: one free agent, the price, who they'd join, and (with a full squad) who leaves */
+  const deal = () => {
+    const s = saveRef.current, p = s.free.find((q) => q.id === dealId); if (!p) return null;
+    const cost = G.price(p), full = s.squad.length >= G.SQUAD_MAX, same = s.squad.filter((q) => q.role === p.role);
+    const leaving = full ? s.squad.find((q) => q.id === releaseId) : undefined;
+    const why = s.seasonOver ? 'The season is over.'
+      : s.acted ? `This week’s job is done (${s.acted === 'train' ? 'you trained' : s.acted === 'scout' ? 'you scouted' : s.acted === 'rest' ? 'the squad rested' : 'you signed someone'}). Come back next week: signing is a job too.`
+      : s.money < cost ? `You have ${s.money} coins, ${cost - s.money} short. Win matches to earn more.`
+      : full && !leaving ? `The squad is full (${G.SQUAD_MAX}). Choose who leaves to make room.` : '';
+    const close = () => { setDealId(''); setReleaseId(''); sfx()?.button(); };
+    return (
+      <div className="lg-gym-back" onClick={close}>
+        <div className="lg-gym lg-deal" role="dialog" aria-label={`Sign ${p.name}`} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === 'Escape') close(); }}>
+          <div className="lg-gym-head"><h2>Sign {p.name}?</h2></div>
+          <div className="lg-deal-body">
+            <Card p={p} colour="#c8a060" />
+            <div className="lg-deal-side">
+              <p>{G.ROLE_WHY[p.role][0].toUpperCase() + G.ROLE_WHY[p.role].slice(1)}.</p>
+              <p className="lg-deal-sum"><span>Price</span><b>{cost} coins</b><span>You have</span><b className={s.money < cost ? 'lg-short' : ''}>{s.money} coins</b>{s.money >= cost && <><span>Left after</span><b>{s.money - cost} coins</b></>}</p>
+              <p className="lg-dim">{same.length ? `Your ${G.ROLE_NAME[p.role].toLowerCase()}s now: ${same.map((q) => `${q.name} (${G.ovr(q)})`).join(', ')}.` : `You have no ${G.ROLE_NAME[p.role].toLowerCase()} yet.`} Signing uses this week’s job.</p>
+              {full && !s.acted && (
+                <div className="lg-deal-out">
+                  <b>The squad is full. Who leaves?</b>
+                  <div role="radiogroup" aria-label="Who leaves">{s.squad.map((q) => <button key={q.id} type="button" role="radio" aria-checked={releaseId === q.id} className={releaseId === q.id ? 'on' : ''} onClick={() => { setReleaseId(q.id); sfx()?.pin(); }}><img src={por(q)} alt="" />{q.name} <small>{G.ROLE_NAME[q.role]} · {G.ovr(q)}</small></button>)}</div>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="lg-gym-foot">
+            {why && <p className="lg-deal-why">{why}</p>}
+            <button type="button" onClick={close}>{why ? 'Close' : 'Cancel'}</button>
+            {!s.acted && !s.seasonOver && <button type="button" className="lg-go" disabled={!!why} onClick={() => signOne(p.id)}>{`Sign ${p.name} for ${cost} coins`}{leaving ? ` (${leaving.name} leaves)` : ''}</button>}
           </div>
         </div>
       </div>
@@ -785,6 +824,7 @@ export default function LeaguePage() {
       )}
       {screen === 'office' && office()}
       {screen === 'office' && job === 'train' && gym()}
+      {screen === 'office' && dealId && deal()}
       {screen === 'draft' && draft()}
       {screen === 'post' && postView()}
       {screen === 'season' && seasonView()}

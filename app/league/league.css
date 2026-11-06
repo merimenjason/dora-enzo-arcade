@@ -420,3 +420,24 @@
 }
 @media (prefers-reduced-motion:reduce){.lg-gym,.lg-gym-stat.on .lg-gym-bar i.lg-gym-plus{animation:none}}
 .lg-gym-head h2{font-size:1.35em}
+
+/* the signing sheet: the free agent's card beside the deal, and who leaves when the squad is full */
+.lg-deal{width:min(640px,100%)}
+.lg-deal-body{display:flex;gap:14px;padding:12px 16px;overflow:auto;min-height:0;flex:1}
+.lg-deal-body>.lg-card{flex:none;animation:none}
+.lg-deal-side{flex:1;min-width:0}
+.lg-deal-side p{margin:0 0 .6em}
+.lg-deal-sum{display:grid!important;grid-template-columns:auto auto;justify-content:start;gap:2px 14px;background:var(--paper2);border-radius:8px;padding:8px 12px}
+.lg-deal-sum span{color:var(--dim)}
+.lg-deal-sum .lg-short{color:var(--red)}
+.lg-deal-out>b{display:block;margin-bottom:4px}
+.lg-deal-out [role=radiogroup]{display:flex;flex-wrap:wrap;gap:6px}
+.lg-shell .lg-deal-out button{display:flex;align-items:center;gap:6px;min-height:40px;padding:.2em .7em .2em .25em;background:#fffaf0;color:var(--ink);box-shadow:0 2px 0 #d8c39a;border:2px solid transparent;font-size:.9em}
+.lg-shell .lg-deal-out button.on{border-color:var(--red);background:#fff}
+.lg-deal-out button img{width:30px;height:30px;border-radius:5px;object-fit:cover}
+.lg-deal-out button small{color:var(--dim);font-weight:700}
+.lg-gym-foot{align-items:center;flex-wrap:wrap}
+.lg-deal-why{flex:1 1 220px;margin:0;font-weight:700;color:var(--red)}
+.lg-price.lg-dear{color:var(--red)}
+@media (max-width:560px){.lg-deal-body{flex-direction:column;align-items:center}}
+@media (max-height:500px){.lg-deal-body{padding:6px 12px}.lg-deal-body>.lg-card{width:110px}}

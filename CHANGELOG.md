@@ -25,6 +25,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 ### Fixed
 
 - **Snow Day League**: the Train job works, and is clearer. Train opens a training sheet with every player in a row and a big button per stat showing the step it makes (aim 6 → 7), says what each stat does, and asks you to confirm. Let go, when signing with a full squad, works too, and on a phone held sideways it sits at the top of each card.
+- **Snow Day League**: signing free agents is clearer. Tap a free agent for a signing sheet with the price, your coins before and after, who already plays that role and, with a full squad, who leaves. If you can't sign yet, it says why: each week has one job, so after training, scouting or resting you sign the next week. The job buttons now show which job is done this week.
 
 ## 05-11-2026
 
