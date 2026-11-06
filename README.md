@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of eighty-eight original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of eighty-nine original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -98,6 +98,7 @@ Listed in arcade-menu order.
 | 86 | Pixel Smith | `/smith` | Pixel-art roguelite |
 | 87 | Combo Ball | `/combo` | Football roguelite |
 | 88 | Into Space | `/space` | Football roguelite |
+| 89 | Rulebook FC | `/rulebook` | Football roguelite |
 
 ## Run
 
@@ -1488,6 +1489,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:space` runs the engine checks (passes going to the spot and control jumping to the runner, perfect, early and late arrivals with slow motion and the first-time window, the settling touch, streaks, lofts, the pitches, golden goal and the tie-break, a full cup with its picks, the perks, the league's seeded draw and team styles, time stopping while aiming, Assist, a seed replaying, and the save). `npm run bot:space` plays with human reaction times: a careless player with Assist on must win at least three rounds on average and a cup now and then, a careful one more, random play never the cup, and with Assist off, passing into space must still beat passing to feet (`--quick` in `npm test`). `node tests/e2e/space.mjs` (dev server running) plays it in a browser and on a phone.
 
 **Docs:** [`docs/space.md`](docs/space.md) has every rule and number, the pitches, perks, art and the bot results.
+
+### 89 · Rulebook FC (`/rulebook`)
+
+**Play:** a turn-based football roguelite where you rewrite the laws of the game. On a 15 by 9 pitch, the other side's next moves are always showing before you move: red arrows for where each will go, red cells where they'll tackle, orange cells their runners screen off, and the ball's route in yellow. Dora, Enzo, Pip and Bram (with Tuft in goal) move up to 2 cells with the ball and 1 without it, and pass, hit long balls, shoot and tackle, every action previewed and undoable until End turn. A season is ten 16-turn matches against the animal league (rabbits, frogs, moles, otters, hedgehogs, magpies, foxes and badgers, each playing its own way), then the Grumble Galacticos and their rematch. Win and Enzo offers three new laws of football to write into the rulebook for the rest of the season (a draw offers two; Red Pen strikes one of theirs out); every team brings a law of its own, and that stays too. Three defeats end the season. Saved in `rulebook-fc-v1`.
+
+**Controls:** tap or click one of ours to see where he can go, then a cell to move there. With the ball, tap a team-mate to pass, an empty cell 3 to 7 away for a long ball, or their goal to shoot, and tap again to play it. With theirs, tap their carrier from beside him to tackle. Enter ends the turn, Z undoes, H shows a hint, R opens the rulebook, 1 to 3 pick a card; hover (or hold, on a phone) anyone to see what they'll do. On a phone held upright the pitch turns so we attack upward.
+
+**Tests:** `npm run test:rulebook` runs the shared engine's checks (moves, passes, lofts, shots and keepers, defending, undo and the clock, the hooks and the team styles) and the season's (the league, card offers, strikes, Red Pen, every law as a hook, Fog, the save, a seed replaying). `npm run bot:rulebook` makes a bot that searches its moves average six matches or more, win more than one that takes the first card, win 10 to 35% of seasons, and random play never win one (`--quick` in `npm test`). `node tests/e2e/rulebook.mjs` (dev server running) plays it in a browser and on a phone.
+
+**Docs:** [`docs/rulebook.md`](docs/rulebook.md) has every rule, team and law, the art and the bot results.
 
 ## Validation
 

@@ -6,7 +6,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 20-10-2026)
 
-**Newest game (06-11-2026): Into Space** (`/space`, game 88), a pixel-art football cup where every pass goes to a spot and you take over the runner to arrive on it; see [Into Space · 06-11-2026](#into-space--06-11-2026) below. Combo Ball (`/combo`, game 87), Pixel Smith (`/smith`, game 86), Coin of the Realm (`/coin`, game 85), Turn Order (`/order`, game 84), Out of Frame (`/frame`, game 83), Tetherball (`/tether`, game 82), The Clocktower Mystery (`/clocktower`, game 81), Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
+**Newest game (06-11-2026): Rulebook FC** (`/rulebook`, game 89), turn-based football where their next moves are always showing and every win writes a new law into the rulebook; see [Rulebook FC · 06-11-2026](#rulebook-fc--06-11-2026) below. Into Space (`/space`, game 88), Combo Ball (`/combo`, game 87), Pixel Smith (`/smith`, game 86), Coin of the Realm (`/coin`, game 85), Turn Order (`/order`, game 84), Out of Frame (`/frame`, game 83), Tetherball (`/tether`, game 82), The Clocktower Mystery (`/clocktower`, game 81), Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
 
 **Newest work (03–04-11-2026): Kumori Pass** (`/pass`, game 75) got a new look, a minimap, Enzo's demo line (also as a Time Attack ghost), two garage parts, seven unlockable cars, Side Jobs and a chapter after the ending; see [Kumori Pass · 04-11-2026](#kumori-pass--04-11-2026) below.
 
@@ -98,6 +98,14 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 9. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
 10. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
 11. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
+
+## Rulebook FC · 06-11-2026
+
+Game 89, `/rulebook`, a turn-based football roguelite: the other side's plan shows before every turn, each win adds one of three gold laws to the rulebook, each opponent adds a purple one, three defeats end the season. Ten matches against the animal league and the Grumbles. Built on the new shared engine `lib/tactics-football.ts` (game-agnostic, API at the top, laws plug in as hooks, team styles as `Level`), with the sprites from `public/art/kickabout/`.
+
+- **Rules and numbers:** `docs/rulebook.md`; team styles in `TEAMS` in `lib/rulebook-game.ts`, the board's numbers at the top of `lib/tactics-football.ts`.
+- **Tests:** `npm run test:rulebook` (both engines), `npm run bot:rulebook`, `node tests/e2e/rulebook.mjs` (dev server running; uses `window.__rulebook()`).
+- **Ideas not done:** a gentler ramp from the otters to the hedgehogs, more attacking gold laws, Combo Ball reusing the teams; see `docs/rulebook.md`.
 
 ## Into Space · 06-11-2026
 

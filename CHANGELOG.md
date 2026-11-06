@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Rulebook FC** is game 89: turn-based football where the other side's next moves are always showing, so every turn is a little puzzle. Win, and write a new law of football into the rulebook for the rest of the season; every team in the new animal league (rabbits, frogs, moles, otters, hedgehogs, magpies, foxes and badgers, then the Grumbles) plays its own way and brings a law of its own.
 - **Into Space** is game 88: a pixel-art football cup about passing into space. Pick a spot on the grass, take over the runner and arrive just as the ball lands, and time slows for a first-time pass or finish. Seven rounds against the Grumbles on grass, rain, sand and a baked-hard pitch, against a high line, a low block or man-markers, with a pick of Enzo's ideas after every win.
 - **Combo Ball** is game 87: a pixel-art football roguelite where a goal is worth the passing move that made it. Every pass adds chips, one-touch passes add mult, and a Grumble's touch wipes the lot, so it's one more pass or shoot now. Nine matches in three leagues with rising points targets, and a transfer shop of fourteen traits that bend the scoring.
 - **The arcade menu** has genre buttons along the top (Action, Puzzle, Roguelite, Strategy & building, Sports & racing, Adventure, Cozy & creative and Arcade, each with how many games it holds). They stay in reach while scrolling, a game can be on two shelves, and the address remembers the choice, so a filtered list can be bookmarked or shared.

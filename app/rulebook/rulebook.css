@@ -1,0 +1,100 @@
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Nunito:wght@700;800&display=swap');
+
+/* Rulebook FC: a night match in the cage. Deep pitch-green bars with a hard two-pixel border, chalk-white words, gold
+   for our laws and anything you can press, purple for theirs, Pixelify Sans for anything the game says, and every
+   picture scaled up with nearest-neighbour. The score and the clock sit in a bar above the pitch and the explainer
+   and the buttons below it, so no words ever cover a player. */
+.rb-shell{--ink:#f6f4e8;--dim:#b8c8a8;--night:#0d1f10;--panel:#1a2b19;--edge:#08100a;--line:#3e5a36;--gold:#ffd23f;--purple:#9a6ae8;--red:#ff5a4a;--leaf:#8ee070;
+  position:fixed;inset:0;overflow:hidden;background:var(--night);color:var(--ink);
+  font-family:'Nunito',system-ui,sans-serif;font-weight:800;font-size:clamp(13px,1.4vw,16px);line-height:1.4;user-select:none;-webkit-user-select:none}
+.rb-shell *{box-sizing:border-box}
+.rb-shell p{color:inherit;font-size:inherit;line-height:inherit;margin:.3em 0}
+.rb-shell h1,.rb-shell h2,.rb-shell h3,.rb-shell kbd{margin:0;font-family:'Pixelify Sans',monospace;font-weight:700;line-height:1.1}
+.rb-shell button,.rb-shell a{font:inherit;touch-action:manipulation}
+.rb-shell button{cursor:pointer;color:var(--ink);min-height:44px;padding:.35em 1.1em;border:2px solid var(--edge);border-radius:0;background:#2e4a2a;box-shadow:inset -2px -2px 0 rgba(0,0,0,.35),inset 2px 2px 0 rgba(255,255,255,.12),3px 3px 0 var(--edge);font-family:'Pixelify Sans',monospace;font-weight:700;font-size:1.05em}
+.rb-shell button:hover:not(:disabled){background:#3c5e36}
+.rb-shell button:active:not(:disabled){transform:translate(2px,2px);box-shadow:inset -2px -2px 0 rgba(0,0,0,.35),1px 1px 0 var(--edge)}
+.rb-shell button:disabled{opacity:.45;cursor:default}
+.rb-shell button:focus-visible,.rb-shell a:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.rb-shell .rb-go{background:var(--gold);color:#241a00}
+.rb-shell .rb-go:hover:not(:disabled){background:#ffe066}
+.rb-row{display:flex;flex-wrap:wrap;gap:.7em;align-items:center;justify-content:center;margin-top:.9em}
+.rb-shell .rb-small{color:var(--dim);font-size:.9em}
+.rb-panel{background:var(--panel);border:2px solid var(--edge);box-shadow:inset 0 0 0 2px var(--line),4px 4px 0 rgba(0,0,0,.5);padding:14px 16px}
+.rb-shell img{image-rendering:pixelated}
+
+/* ---------------------------------------------------------------- the match: a bar, the pitch, a bar */
+.rb-game{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:4px;visibility:hidden}
+.rb-on-play .rb-game{visibility:visible}
+.rb-top,.rb-bottom{width:min(100%,var(--w,100%));display:flex;align-items:center;gap:.6em;font-family:'Pixelify Sans',monospace;font-weight:700}
+.rb-top{position:relative;min-height:44px;background:rgba(8,16,10,.95);border:2px solid var(--edge);box-shadow:inset 0 0 0 1px var(--line);padding:.2em .7em;justify-content:space-between;flex-wrap:wrap}
+.rb-score b{font-size:1.5em;color:var(--gold)}
+.rb-score b,.rb-clock,.rb-match,.rb-pick h2{font-family:'Nunito',system-ui,sans-serif;font-weight:800}
+.rb-score i{font-style:normal;margin:0 .25em;color:var(--dim)}
+.rb-foe{margin-left:.6em;color:var(--dim);font-size:.85em}
+.rb-clock,.rb-match{color:var(--ink);font-size:.95em}
+.rb-banner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#1a2b19;border:2px solid var(--gold);color:var(--gold);font-size:1.15em;text-align:center;padding:0 .5em;animation:rb-banner 2.6s ease forwards;pointer-events:none}
+.rb-banner.rb-bad{border-color:var(--purple);color:#d8c4ff}
+@keyframes rb-banner{0%{opacity:0;transform:scale(.92)}8%{opacity:1;transform:none}85%{opacity:1}100%{opacity:0}}
+.rb-stage{position:relative;flex:none;width:768px;height:432px}
+.rb-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;cursor:pointer;touch-action:none}
+.rb-bottom{justify-content:space-between;min-height:56px}
+.rb-info{flex:1;min-width:0;margin:0!important;font-family:'Nunito',system-ui,sans-serif;font-size:.95em;color:var(--ink);background:rgba(8,16,10,.9);border:2px solid var(--edge);padding:.35em .6em;min-height:3.2em;display:flex;align-items:center}
+.rb-buttons{display:flex;gap:.45em;flex:none}
+.rb-upright .rb-bottom{flex-direction:column;align-items:stretch}
+.rb-upright .rb-buttons > *{flex:1;padding:.35em .4em}
+.rb-upright .rb-top{font-size:.9em}
+
+/* ---------------------------------------------------------------- the overlays: the team sheet, the card table */
+.rb-over{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(5,12,6,.72);padding:12px;overflow:auto}
+.rb-sheet{max-width:620px;width:100%}
+.rb-captain{display:flex;gap:16px;align-items:center;margin:.4em 0}
+.rb-big{height:112px;width:auto;flex:none;filter:drop-shadow(3px 3px 0 rgba(0,0,0,.5))}
+.rb-captain h2{font-size:1.6em}
+.rb-ref{display:flex;gap:14px;align-items:flex-start;margin-top:.6em}
+.rb-refpic{width:96px;height:auto;flex:none}
+.rb-ref > div{flex:1;min-width:0}
+.rb-pick{max-width:860px;width:100%;text-align:center}
+.rb-enzo{display:flex;gap:14px;align-items:center;justify-content:center;margin:.6em 0;text-align:left}
+.rb-enzopic{width:96px;height:auto;flex:none}
+.rb-cards{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:.5em}
+.rb-law{position:relative;width:190px;min-height:180px;padding:10px 10px 8px;border:2px solid var(--edge);box-shadow:3px 3px 0 var(--edge);text-align:left;display:flex;flex-direction:column;gap:.15em;font-family:'Nunito',system-ui,sans-serif;font-size:.88em;line-height:1.3}
+.rb-shell button.rb-law{min-height:180px;font-family:'Nunito',system-ui,sans-serif;font-weight:800;font-size:.88em;padding:10px 10px 8px}
+.rb-gold,.rb-shell button.rb-gold{background:linear-gradient(#3b3214,#2a240e);box-shadow:inset 0 0 0 2px #b8860b,3px 3px 0 var(--edge);color:#fff6d8}
+.rb-purple,.rb-shell button.rb-purple{background:linear-gradient(#33204e,#24173a);box-shadow:inset 0 0 0 2px #7a5ad8,3px 3px 0 var(--edge);color:#efe6ff}
+.rb-shell button.rb-gold:hover{background:#4a3f18}
+.rb-shell button.rb-purple:hover{background:#3e2a5e}
+.rb-law h3{font-size:1.15em;color:var(--gold)}
+.rb-purple h3{color:#cfb4ff}
+.rb-icon{width:48px;height:auto;align-self:center;margin-bottom:.2em}
+.rb-link{font-size:.85em;color:var(--dim)!important}
+.rb-n{position:absolute;top:6px;left:8px;color:var(--dim);font-size:.9em}
+.rb-struck{opacity:.5}
+.rb-struck h3{text-decoration:line-through;text-decoration-color:var(--red);text-decoration-thickness:3px}
+.rb-back{align-items:center;justify-content:center;min-height:120px;width:120px}
+
+/* ---------------------------------------------------------------- the pages */
+.rb-page{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto;background:var(--night)}
+.rb-book{max-width:1100px;width:100%;max-height:100%;overflow:auto;text-align:center}
+.rb-text{max-width:640px;width:100%}
+.rb-text h2,.rb-book h2{font-size:1.6em;margin-bottom:.3em}
+.rb-toggle{display:flex;gap:.6em;align-items:center;min-height:44px;font-size:1.1em}
+.rb-toggle input{width:22px;height:22px;accent-color:var(--gold)}
+.rb-result{flex-direction:column;gap:12px}
+.rb-endpic{width:min(100%,768px);height:auto;border:2px solid var(--edge)}
+
+/* ---------------------------------------------------------------- the title: the logo and the menu in the clear sky on the left */
+.rb-title{position:absolute;inset:0;background:#2a1830}
+.rb-titlepic{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:60% 50%}
+.rb-menu{position:absolute;left:2%;top:0;bottom:0;width:36%;display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:.6em;padding:12px max(12px,2vw)}
+.rb-menu h1{font-size:clamp(34px,6.4vw,88px);color:var(--gold);text-shadow:3px 3px 0 #3a1a10,0 0 18px rgba(0,0,0,.35);display:flex;align-items:baseline;gap:.2em}
+.rb-menu h1 span{color:#fff;font-size:.6em;font-family:'Nunito',sans-serif;font-weight:800;letter-spacing:.04em}
+.rb-tag{color:#fff!important;text-shadow:2px 2px 0 rgba(0,0,0,.6)}
+.rb-menu .rb-small{color:#fff;text-shadow:1px 1px 0 rgba(0,0,0,.7)}
+.rb-home{color:#fff;text-shadow:1px 1px 0 rgba(0,0,0,.7)}
+@media (orientation:portrait){
+  .rb-titlepic{position:absolute;top:0;left:0;height:auto;width:100%;object-fit:contain}
+  .rb-title{background:linear-gradient(#e88a6a,#2a1830 70%)}
+  .rb-menu{left:0;right:0;width:auto;top:auto;bottom:0;justify-content:flex-end;padding:16px}
+  .rb-menu h1{font-size:44px}
+}

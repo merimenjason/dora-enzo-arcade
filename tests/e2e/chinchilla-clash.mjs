@@ -17,7 +17,7 @@ try {
   // The arcade lists the new cabinet.
   const menu = await browser.newPage();
   await menu.goto(base);
-  assert.equal(await menu.locator('.arcade-card').count(),88);
+  assert.equal(await menu.locator('.arcade-card').count(),89);
   assert.match(await menu.locator('a.arcade-card[href="/clash"]').textContent(), /Chinchilla Clash/);
   await menu.close();
 
