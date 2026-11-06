@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Turns the Codex paintings for Pixel Smith into the game's pixel art in public/art/smith/.
 
-Usage: python3 scripts/smith-art.py <folder with the s-*.png paintings>
+Usage: python3 scripts/smith-art.py <folder with the s-*.png and sm2-*.png paintings>
 
 Sprite sheets are 2 by 2 on flat magenta: each quarter is keyed, cropped to what's painted and shrunk to its in-game
 size with a box filter and a small palette, so it stays crisp pixel art. The three rooms and Enzo's workshop are
@@ -93,18 +93,24 @@ sprite(enzo[0], 'enzo-paint', height=64, colours=32)
 sprite(enzo[1], 'enzo-cheer', height=64, colours=32)
 sprite(enzo[2], 'enzo-portrait', fit=48, colours=32)
 sprite(enzo[3], 'dora-portrait', fit=48, colours=32)
-f1 = quarters(Image.open(SRC / 's-foes1.png'))
+# the five critters (pebble beetle, glint magpie, frost newt, ember salamander, moss tortoise) come from the sm2 sheets;
+# the Smudge and the ice ball still come from s-foes2
+f1 = quarters(Image.open(SRC / 'sm2-foes1.png'))
 for im, n in zip(f1, ('pebble', 'glint', 'frost', 'ember')):
+    if n == 'frost':
+        # the newt is pale blue, like the cellar's ice floor: a deeper, darker blue keeps it readable there
+        im = ImageEnhance.Brightness(ImageEnhance.Color(key(im)).enhance(1.6)).enhance(0.72)
     sprite(im, n, height=17, colours=20)
     sprite(im, f'big-{n}', height=40, colours=24)
+moss = quarters(Image.open(SRC / 'sm2-foes2.png'))[0]
+sprite(moss, 'moss', height=18, colours=20)
+sprite(moss, 'big-moss', height=40, colours=24)
 f2 = quarters(Image.open(SRC / 's-foes2.png'))
-sprite(f2[0], 'moss', height=18, colours=20)
-sprite(f2[0], 'big-moss', height=40, colours=24)
 sprite(f2[1], 'smudge', height=40, colours=28)
 sprite(f2[1], 'big-smudge', height=40, colours=28)
 sprite(f2[2], 'ice', fit=8, colours=10)
 for n in ('mine', 'cellar', 'forge', 'shop'):
     picture(f's-{n}.png', n, (384, 216), 48, speckle=n != 'shop')
-picture('s-title.png', 'title', (384, 256))
+picture('sm2-title.png', 'title', (384, 256))
 picture('s-ending.png', 'ending', (384, 256))
 print('wrote', len(list(OUT.glob('*.png'))), 'pictures to', OUT)

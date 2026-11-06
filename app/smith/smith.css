@@ -83,6 +83,8 @@
 .ps-title-col{position:absolute;left:0;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;padding:20px clamp(16px,4vw,56px) max(20px,env(safe-area-inset-bottom));max-width:min(520px,100%)}
 .ps-logo{font-size:clamp(46px,8.5vw,96px);color:var(--gold);text-shadow:4px 4px 0 #120c08,-2px -2px 0 #120c08,0 0 24px rgba(242,193,78,.35);letter-spacing:1px}
 .ps-shell .ps-tag{font-size:1.1em;margin:.3em 0 1em;text-shadow:2px 2px 0 #120c08}
+/* the title painting puts Dora's face about a third of the way across, so the line stops short of it */
+@media (min-width:641px){.ps-shell .ps-tag{max-width:27vw}}
 .ps-menu{display:flex;flex-direction:column;align-items:flex-start;gap:.7em}
 .ps-menu button{min-width:12em;text-align:left}
 .ps-home{display:inline-block;margin-top:1em;color:var(--dim);text-decoration:none;font-family:'Pixelify Sans',monospace}

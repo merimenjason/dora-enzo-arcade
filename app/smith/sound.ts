@@ -1,6 +1,6 @@
 // Pixel Smith sounds, all synthesised with WebAudio: a whoosh for every swing (lower and slower for a heavier weapon),
 // a different hit for each colour (a gold ting, a stone thud, a frosty crackle, an ember sizzle, a mossy chime), the pop
-// of a Grumble bursting, a rising blip for each pixel picked up, Dora's roll and bumps, ice thrown and blocked, a pixel
+// of a critter bursting, a rising blip for each pixel picked up, Dora's roll and bumps, ice thrown and blocked, a pixel
 // chipped off, the Smudge's squeaky rub, Enzo's brush and rubber at the easel, his chirpy voice, and an original
 // chiptune soundtrack written for this game: a title tune, the easel, one loop for each place, the Smudge and an ending.
 // Silent until the first click, tap or key.

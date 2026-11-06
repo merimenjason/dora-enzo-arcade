@@ -1,7 +1,7 @@
 // Pixel Smith engine checks: painting the weapon (pixels must join the handle, corners count, repainting and rubbing
 // out refund the paint, anything left hanging comes off), sketches and the last weapon drawn again, patching fur, the
 // weapon's geometry (the easel picture turned to point where Dora aims, reach, weight), swings hitting with exactly the
-// painted cells (the tip hardest, each colour doing its thing), Grumbles bursting into loose pixels that fill the pots,
+// painted cells (the tip hardest, each colour doing its thing), critters bursting into loose pixels that fill the pots,
 // ice blocked by the weapon at the cost of a pixel, the Smudge's rub, bumps, rolls and smouldering fur, the rooms and
 // waves, the sketchbook, winning, losing, and the save.
 import assert from 'node:assert/strict';
@@ -92,7 +92,7 @@ const line = (r, c, len = 11) => { for (let k = 1; k <= len; k++) if (r.cells[at
   assert.ok(50 - gold.f.hp > 50 - grey.f.hp && 50 - grey.f.hp > 50 - blue.f.hp, 'gold cuts deepest, then stone');
   assert.ok(Math.hypot(grey.f.vx, grey.f.vy) > 20 || grey.f.x > gold.f.x + 3, 'stone shoves');
   assert.ok(blue.f.chill > 0 && red.f.burn > 0, 'blue chills, red burns');
-  // a far-away Grumble is only reached by a long weapon
+  // a far-away critter is only reached by a long weapon
   const miss = hitWith('gold', 3, 30); assert.equal(miss.f.hitBy, -1, 'a stub can’t reach');
   // the same gold line hits harder with its tip than with its middle
   const mid = hitWith('gold', 11, 14), end = hitWith('gold', 11, 30);
@@ -102,7 +102,7 @@ const line = (r, c, len = 11) => { for (let k = 1; k <= len; k++) if (r.cells[at
   assert.ok(g.dora.fur > 10, 'green heals');
   // frozen solid: no moving and no biting
   const b = arena(); const bf = foe(b, 'pebble', 100, 100, { chill: FROZEN + 1 }); const x0 = bf.x; b.dora.x = 100; b.dora.y = 100; b.dora.inv = 0;
-  b.tick(still); assert.equal(bf.x, x0); assert.equal(b.dora.fur, FUR, 'a frozen Grumble can’t bite');
+  b.tick(still); assert.equal(bf.x, x0); assert.equal(b.dora.fur, FUR, 'a frozen critter can’t bite');
   ok('swings: only painted cells hit, gold cuts, stone shoves, blue chills and freezes, red burns, green heals, reach matters');
 }
 
@@ -110,7 +110,7 @@ const line = (r, c, len = 11) => { for (let k = 1; k <= len; k++) if (r.cells[at
 {
   const r = arena((q) => line(q, 'gold', 4));
   const f = foe(r, 'frost', 300, 100, { hp: 0.01 }); r.foes = [f]; f.burn = 1; r.tick(still);
-  assert.equal(r.foes.length, 0); assert.equal(r.loose.length, 3); assert.ok(r.loose.every((p) => p.c === 'blue'), 'a Frost Grumble bursts into blue');
+  assert.equal(r.foes.length, 0); assert.equal(r.loose.length, 3); assert.ok(r.loose.every((p) => p.c === 'blue'), 'a Frost Newt bursts into blue');
   const before = r.paint.blue; for (let k = 0; k < 400 && r.loose.length; k++) r.tick(still);
   assert.equal(r.paint.blue, before + 3, 'the pixels fly to Dora once the room is clear');
   // ice: blocked by the weapon at the cost of the pixel it hits (and anything hanging off it)
@@ -132,7 +132,7 @@ const line = (r, c, len = 11) => { for (let k = 1; k <= len; k++) if (r.cells[at
   assert.ok(h.dora.fur <= FUR - 5, 'smouldering fur keeps going');
   const o = arena(); o.dora.inv = 0; o.tick({ ...still, roll: true, mx: 1 }); foe(o, 'pebble', o.dora.x, o.dora.y); o.tick(still);
   assert.equal(o.dora.fur, FUR, 'rolling goes straight through');
-  ok('Grumbles burst into pixels, ice is blocked by the weapon at a cost, the Smudge rubs, bumps, rolls and smouldering');
+  ok('critters burst into pixels, ice is blocked by the weapon at a cost, the Smudge rubs, bumps, rolls and smouldering');
 }
 
 // ---- rooms, the sketchbook, winning and losing
@@ -141,8 +141,8 @@ const line = (r, c, len = 11) => { for (let k = 1; k <= len; k++) if (r.cells[at
   for (let room = 0; room < ROOMS; room++) {
     assert.equal(r.phase, 'easel'); assert.equal(r.room, room); assert.ok(r.fight());
     assert.ok(r.waves.length >= 2);
-    if (room === 3) assert.ok(r.waves[0].includes('frost'), 'the first cellar room has a Frost Grumble');
-    if (room === 6) assert.ok(r.waves[0].includes('moss'), 'the first forge room has a Moss Grumble');
+    if (room === 3) assert.ok(r.waves[0].includes('frost'), 'the first cellar room has a Frost Newt');
+    if (room === 6) assert.ok(r.waves[0].includes('moss'), 'the first forge room has a Moss Tortoise');
     if (room === ROOMS - 1) assert.deepEqual(r.waves[0], ['smudge']);
     // clear it the quick way
     for (let k = 0; k < 2000 && r.phase === 'fight'; k++) { for (const f of r.foes) if (f.mode !== 'spawn') f.hp = 0.001, f.burn = 1; r.dora.fur = FUR; r.tick(still); }

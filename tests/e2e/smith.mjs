@@ -1,6 +1,6 @@
 // Pixel Smith in the browser: the title and the way home, Enzo's opening, painting the weapon on the easel by
 // clicking and dragging (and a pixel that can't go down), choosing paints by key, a sketch, patching fur, a real fight
-// (walking, aiming and swinging with the mouse until a Grumble bursts and its pixels fill the pots), clearing a room
+// (walking, aiming and swinging with the mouse until a critter bursts and its pixels fill the pots), clearing a room
 // back to the easel, the sketchbook after a place, the Smudge's health bar, running out of fur and the result card,
 // the bests and the last weapon saved across a reload, a corrupt save, the how-to page, and a phone held upright
 // (a sketch, Fight, the thumb stick and SWING), all with no page errors and no sideways scrolling. Needs `npm run dev`
@@ -87,7 +87,7 @@ try {
   await dbg(page, 'fur', 30);
   ok('patching fur spends a pixel of the chosen paint');
 
-  // ---- a real fight: walk up to a Grumble and swing until it bursts
+  // ---- a real fight: walk up to a critter and swing until it bursts
   await page.getByRole('button', { name: 'Fight ›' }).click();
   await until(page, () => window.__smith().run.phase === 'fight' && window.__smith().run.foes.some((f) => f.mode === 'walk'));
   const box = await page.locator('canvas.ps-canvas').boundingBox();
@@ -104,9 +104,9 @@ try {
       await page.keyboard.down(key); await page.waitForTimeout(110); await page.keyboard.up(key);
     } else { await page.mouse.down(); await page.waitForTimeout(80); await page.mouse.up(); await page.waitForTimeout(150); }
   }
-  s = await st(page); assert.ok(s.run.stats.kills > 0, 'a Grumble burst');
+  s = await st(page); assert.ok(s.run.stats.kills > 0, 'a critter burst');
   await until(page, (n) => { const r = window.__smith().run; return r.paint.grey + r.paint.gold > n; }, g0);
-  ok('a real fight: walking, aiming and swinging with the mouse until a Grumble bursts and its pixels fill the pots');
+  ok('a real fight: walking, aiming and swinging with the mouse until a critter bursts and its pixels fill the pots');
 
   // ---- clearing rooms, the sketchbook, the Smudge
   await dbg(page, 'fur', 30); await dbg(page, 'win');
@@ -149,7 +149,7 @@ try {
   await page.locator('.ps-foe img').first().waitFor();
   assert.equal(await page.locator('.ps-foe img').count(), 6);
   assert.ok(await noSideScroll(page));
-  ok('the how-to page shows every Grumble');
+  ok('the how-to page shows every critter');
   await page.context().close();
 
   // ---- a phone held upright

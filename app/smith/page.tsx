@@ -17,17 +17,17 @@ type Brush = Paint | 'rubber';
 
 const art = (n: string) => `/art/smith/${n}.png`;
 const INTRO = [
-  'Dora’s off to clear the Grumbles out of the old mine, and I’m making her weapon! Whatever I paint here, she fights with.',
+  'Dora’s off to clear the critters out of the old mine, and I’m making her weapon! Whatever I paint here, she fights with.',
   'Its shape is exactly what it hits: long reaches far, wide sweeps wide. Pixels far from her paw hit hardest.',
   'Colours do things too. Gold cuts, stone shoves, blue freezes, red burns and green grows Dora’s fur back.',
-  'Grumbles burst into loose pixels: that’s my paint for next time. But Dora’s fur is her health, and I patch it with the same paint. A huge weapon leaves less for fur!',
+  'Critters burst into loose pixels: that’s my paint for next time. But Dora’s fur is her health, and I patch it with the same paint. A huge weapon leaves less for fur!',
 ];
 /** which room of its place a room is, counting from 1 */
 const nth = (room: number) => room - (room >= 6 ? 6 : room >= 3 ? 3 : 0) + 1;
 const PLACE: Record<G.FloorId, string> = {
-  mine: 'The Pebble Mine. Grey Grumbles plod, gold ones dash. Draw something with reach!',
-  cellar: 'The Frost Cellar. Frost Grumbles throw ice: a wide weapon held out front blocks it, but loses the pixel it hits.',
-  forge: 'The Ember Forge. Get the Moss Grumbles first, they heal the others. And somewhere in here is the Smudge…',
+  mine: 'The Pebble Mine. Pebble Beetles plod, Glint Magpies swoop. Draw something with reach!',
+  cellar: 'The Frost Cellar. Frost Newts spit ice: a wide weapon held out front blocks it, but loses the pixel it hits.',
+  forge: 'The Ember Forge. Get the Moss Tortoises first, they heal the others. And somewhere in here is the Smudge…',
 };
 
 export default function PixelSmithPage() {
@@ -166,7 +166,7 @@ export default function PixelSmithPage() {
     const f = r.floor, first = r.room === 0 || r.room === G.PER_FLOOR[0] || r.room === G.PER_FLOOR[0] + G.PER_FLOOR[1];
     setBanner({ text: r.boss ? 'The Smudge!' : `${f.name}${first ? '' : ` · ${nth(r.room)}`}`, key: Math.random() });
     if (r.boss) say('That’s the Smudge! Its rub wipes pixels off the weapon. Stay out of the pink patch!', 'warn');
-    else say(touch ? 'Move with the stick, hold SWING. Dora aims at the nearest Grumble!' : 'WASD to move, the mouse to aim, click (or hold) to swing, Space or right-click to roll!', '', 'controls');
+    else say(touch ? 'Move with the stick, hold SWING. Dora aims at the nearest critter!' : 'WASD to move, the mouse to aim, click (or hold) to swing, Space or right-click to roll!', '', 'controls');
   }, [persist, say, setPhase, touch]);
 
   const onEvents = useCallback((r: Run, evs: Ev[]) => {
@@ -213,7 +213,7 @@ export default function PixelSmithPage() {
     const s = stick.current;
     if (s) { const dx = s.x - s.x0, dy = s.y - s.y0, l = Math.hypot(dx, dy); if (l > 6) { const m = Math.min(1, l / 40); mx = (dx / l) * m; my = (dy / l) * m; } }
     let ax = aim.current.x, ay = aim.current.y;
-    // a finger can't aim and move at once, so Dora aims at the nearest Grumble (or the way she's going)
+    // a finger can't aim and move at once, so Dora aims at the nearest critter (or the way she's going)
     if (touch) {
       const f = nearestFoe(r);
       if (f) { ax = f.x; ay = f.y - f.r * 0.6; } else if (mx || my) { ax = r.dora.x + mx * 40; ay = r.dora.y - 6 + my * 40; } else { ax = r.dora.x + Math.cos(r.aim) * 40; ay = r.dora.y - 6 + Math.sin(r.aim) * 40; }
@@ -249,7 +249,7 @@ export default function PixelSmithPage() {
       const boss = r.foes.find((f) => f.k === 'smudge');
       if (h.boss) { h.boss.style.display = boss ? '' : 'none'; if (boss && h.bossBar) h.bossBar.style.transform = `scaleX(${Math.max(0, boss.hp / boss.max)})`; }
       if (h.waves) { const t = `Wave ${Math.min(r.wave, r.waves.length)} of ${r.waves.length}`; if (h.waves.textContent !== t) h.waves.textContent = t; }
-      // meet each new kind of Grumble once, ever
+      // meet each new kind of critter once, ever
       for (const k of r.seen) if (!saveRef.current.seen.includes(k)) { persist({ ...saveRef.current, seen: [...saveRef.current.seen, k] }); say(`${G.FOES[k].name}! ${G.FOES[k].text}`, k === 'smudge' ? 'warn' : ''); }
     };
     raf = requestAnimationFrame(loop);
@@ -282,7 +282,7 @@ export default function PixelSmithPage() {
     if (run.paintCell(i, brush)) { sfx()?.dab(brush); redraw(); return; }
     if (!start) return;
     sfx()?.no();
-    if (run.paint[brush] <= 0) say(`No ${G.PAINT[brush].name.toLowerCase()} paint left! ${brush === 'gold' ? 'Glint Grumbles burst into gold.' : brush === 'grey' ? 'Pebble Grumbles burst into stone.' : brush === 'blue' ? 'Frost Grumbles burst into blue.' : brush === 'red' ? 'Ember Grumbles burst into red.' : 'Moss Grumbles burst into green.'}`, 'warn');
+    if (run.paint[brush] <= 0) say(`No ${G.PAINT[brush].name.toLowerCase()} paint left! ${brush === 'gold' ? 'Glint Magpies burst into gold.' : brush === 'grey' ? 'Pebble Beetles burst into stone.' : brush === 'blue' ? 'Frost Newts burst into blue.' : brush === 'red' ? 'Ember Salamanders burst into red.' : 'Moss Tortoises burst into green.'}`, 'warn');
     else say('Pixels have to touch the handle, or touch a pixel that does (corners count).', 'warn');
   }, [brush, say]);
   const cellFrom = (e: React.PointerEvent) => {
@@ -479,16 +479,16 @@ export default function PixelSmithPage() {
     </section>}
 
     {screen === 'title' && <section className="ps-title">
-      <div className="ps-bg"><img src={art('title')} alt="Dora swings a big pixel sword and a Grumble bursts into pixels, while Enzo paints the sword at his easel" /></div>
+      <div className="ps-bg"><img src={art('title')} alt="Dora swings a big pixel sword and a stone beetle bursts into pixels, while Enzo paints the sword at his easel" /></div>
       <div className="ps-title-col">
         <h1 className="ps-logo">Pixel Smith</h1>
-        <p className="ps-tag">Enzo draws Dora’s weapon pixel by pixel. Its shape is what it hits, its colours are its powers, and every Grumble bursts into paint for the next one.</p>
+        <p className="ps-tag">Enzo draws Dora’s weapon pixel by pixel. Its shape is what it hits, its colours are its powers, and every critter bursts into paint for the next one.</p>
         <div className="ps-menu">
           <button className="ps-go" onClick={startRun}>{s.stats.runs ? 'New run' : 'Start'}</button>
           <button onClick={() => go('howto')}>How to play</button>
           <button onClick={() => go('settings')}>Settings</button>
         </div>
-        {s.stats.runs > 0 && <p className="ps-small">Best: {Math.min(s.best.rooms, G.ROOMS)} of {G.ROOMS} rooms · {s.best.kills} Grumbles · biggest weapon {s.best.biggest} pixels{s.stats.wins ? ` · ${s.stats.wins} ${s.stats.wins === 1 ? 'win' : 'wins'}` : ''}</p>}
+        {s.stats.runs > 0 && <p className="ps-small">Best: {Math.min(s.best.rooms, G.ROOMS)} of {G.ROOMS} rooms · {s.best.kills} critters · biggest weapon {s.best.biggest} pixels{s.stats.wins ? ` · ${s.stats.wins} ${s.stats.wins === 1 ? 'win' : 'wins'}` : ''}</p>}
         <a className="ps-home" href="/">‹ Arcade</a>
       </div>
     </section>}
@@ -497,9 +497,9 @@ export default function PixelSmithPage() {
       {result.won && <div className="ps-bg"><img src={art('ending')} alt="Dora holds up her pixel sword in Enzo’s workshop while the Smudge sulks in the corner" /></div>}
       <div className="ps-card ps-resultcard">
         <h2>{result.won ? 'The Smudge is rubbed out!' : 'Dora’s out of fur'}</h2>
-        <p>{result.won ? 'The mine, the cellar and the forge are Grumble-free. Enzo hangs the weapon on the workshop wall, and starts sketching the next one.' : `Enzo wraps her in a blanket and gets out a fresh sheet of paper. She cleared ${result.rooms} of ${G.ROOMS} rooms${result.best ? ', her best yet!' : '.'}`}</p>
+        <p>{result.won ? 'The mine, the cellar and the forge are critter-free. Enzo hangs the weapon on the workshop wall, and starts sketching the next one.' : `Enzo wraps her in a blanket and gets out a fresh sheet of paper. She cleared ${result.rooms} of ${G.ROOMS} rooms${result.best ? ', her best yet!' : '.'}`}</p>
         <ul className="ps-stats">
-          <li><b>{result.rooms}</b><span>rooms</span></li><li><b>{result.kills}</b><span>Grumbles</span></li><li><b>{result.pixels}</b><span>pixels picked up</span></li><li><b>{result.biggest}</b><span>biggest weapon</span></li><li><b>{Math.floor(result.secs / 60)}:{String(result.secs % 60).padStart(2, '0')}</b><span>fighting</span></li>
+          <li><b>{result.rooms}</b><span>rooms</span></li><li><b>{result.kills}</b><span>critters</span></li><li><b>{result.pixels}</b><span>pixels picked up</span></li><li><b>{result.biggest}</b><span>biggest weapon</span></li><li><b>{Math.floor(result.secs / 60)}:{String(result.secs % 60).padStart(2, '0')}</b><span>fighting</span></li>
         </ul>
         <div className="ps-row"><button className="ps-go" onClick={startRun}>Again ›</button><button onClick={() => go('title')}>Title</button></div>
       </div>
@@ -519,8 +519,8 @@ export default function PixelSmithPage() {
           {G.PAINTS.map((p) => <div key={p} className="ps-foe"><i className="ps-swatch" data-paint={p} /><p><b>{G.PAINT[p].name}</b>{G.PAINT[p].text}</p></div>)}
         </div>
         <div className="ps-card"><h3>The fights</h3><ul>
-          <li>{touch ? <>Slide the <b>thumb stick</b> to move and hold <b>SWING</b>. Dora aims at the nearest Grumble by herself. <b>ROLL</b> dodges through anything.</> : <><b>WASD</b> or the arrows move, the <b>mouse</b> aims, <b>click</b> (or hold) swings, and <b>Space</b> or <b>right-click</b> rolls through anything.</>}</li>
-          <li>Grumbles burst into <b>loose pixels</b> of their colour. Walk over them, or clear the room and they fly to Dora.</li>
+          <li>{touch ? <>Slide the <b>thumb stick</b> to move and hold <b>SWING</b>. Dora aims at the nearest critter by herself. <b>ROLL</b> dodges through anything.</> : <><b>WASD</b> or the arrows move, the <b>mouse</b> aims, <b>click</b> (or hold) swings, and <b>Space</b> or <b>right-click</b> rolls through anything.</>}</li>
+          <li>Critters burst into <b>loose pixels</b> of their colour. Walk over them, or clear the room and they fly to Dora.</li>
           <li>Ice and the Smudge’s rub knock pixels <b>off the weapon</b>, and anything left hanging falls too. Pick them back up!</li>
           <li>Three places, ten rooms. After each place, Enzo’s <b>sketchbook</b> has a new idea to pick.</li>
         </ul></div>
@@ -535,7 +535,7 @@ export default function PixelSmithPage() {
       <div className="ps-card ps-settings">
         <div className="ps-set"><span>Sound</span><span className="ps-seg">{[true, false].map((v) => <button key={String(v)} className={s.settings.sound === v ? 'on' : ''} onClick={() => setSetting('sound', v)}>{v ? 'On' : 'Off'}</button>)}</span></div>
         <div className="ps-set"><span>Music</span><span className="ps-seg">{[true, false].map((v) => <button key={String(v)} className={s.settings.music === v ? 'on' : ''} onClick={() => setSetting('music', v)}>{v ? 'On' : 'Off'}</button>)}</span></div>
-        <p className="ps-small">{s.stats.runs} runs · {s.stats.wins} wins · {s.stats.kills} Grumbles · {s.stats.pixels} pixels picked up</p>
+        <p className="ps-small">{s.stats.runs} runs · {s.stats.wins} wins · {s.stats.kills} critters · {s.stats.pixels} pixels picked up</p>
         <button className="ps-danger" onClick={() => { if (window.confirm('Forget every best and start again?')) { const n = G.newSave(); n.settings = s.settings; persist(n); } }}>Reset progress</button>
       </div>
     </section>}

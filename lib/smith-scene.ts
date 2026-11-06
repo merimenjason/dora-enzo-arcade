@@ -1,5 +1,5 @@
 // Pixel Smith: the drawing. One of three Codex-painted rooms at 384 by 216, then everything sorted by how far down
-// the floor it stands: loose pixels of paint, Grumbles (flashing white when hit, blue when chilled, flickering when
+// the floor it stands: loose pixels of paint, critters (flashing white when hit, blue when chilled, flickering when
 // burning), the Smudge's rub marked on the floor before it lands, ice, and Dora with the weapon exactly as Enzo drew
 // it, two game pixels to a weapon pixel, swinging round her paw. Dora's fur is her health, so as she loses it pixels go
 // missing from her sprite. The page scales the canvas up with nearest-neighbour.

@@ -1,6 +1,6 @@
 // Pixel Smith bots. The smith patches Dora up to three quarters of her fur, then sketches a sword in the best paint
-// left (gold, then ember, frost, moss and stone), and fights at arm's length: it goes for Moss Grumbles first, keeps
-// the tip of the weapon on the nearest Grumble, swings when it's in reach and rolls away from ice, dashes and the
+// left (gold, then ember, frost, moss and stone), and fights at arm's length: it goes for Moss Tortoises first, keeps
+// the tip of the weapon on the nearest critter, swings when it's in reach and rolls away from ice, dashes and the
 // Smudge's rub. The twig fighter uses the same fighting but spends nearly everything on fur and fights with a stub.
 // The clumsy fighter draws like the smith but reacts a fifth of a second late and misses half its rolls, a stand-in
 // for a person. The random player paints and moves at random. Runs should be winnable with a good weapon, much harder with a stub,
@@ -49,7 +49,7 @@ function fightInput(r) {
   const near = (f) => Math.hypot(f.x - d.x, f.y - d.y);
   const moss = live.find((f) => f.k === 'moss' && near(f) < 140);
   const t = moss ?? live.slice().sort((a, b) => near(a) - near(b))[0];
-  // stand so the bulk of the weapon (weighted towards the tip, which hits hardest) lands on the Grumble
+  // stand so the bulk of the weapon (weighted towards the tip, which hits hardest) lands on the critter
   const dist = near(t), want = sweet(r) + t.r - 2;
   let mx = 0, my = 0;
   const ux = (t.x - d.x) / (dist || 1), uy = (t.y - d.y) / (dist || 1);

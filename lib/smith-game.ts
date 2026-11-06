@@ -1,12 +1,12 @@
 // Pixel Smith: the rules. Enzo draws Dora's weapon pixel by pixel on a 12 by 12 grid at his easel, and Dora fights
 // with exactly what he drew: the weapon's shape is its hitbox and its colours are its powers (gold cuts, grey knocks
-// back, blue freezes, red burns, green heals). Grumbles burst into loose pixels that are the paint for the next
+// back, blue freezes, red burns, green heals). Critters burst into loose pixels that are the paint for the next
 // weapon, and Dora's health is her own fur, so every pixel spent on a bigger weapon is one that can't patch her up.
 // Deterministic at 60 ticks a second from a seed, with no DOM: the page draws it, the tests and bots drive it directly.
 
 export const DT = 1 / 60;
 export const W = 384, H = 216;
-/** the floor Dora and the Grumbles can stand on */
+/** the floor Dora and the critters can stand on */
 export const FLOOR = { x0: 24, y0: 46, x1: 360, y1: 206 };
 export const GRID = 12;
 /** game pixels per weapon pixel */
@@ -33,8 +33,8 @@ export const PAINTS: Paint[] = ['grey', 'gold', 'blue', 'red', 'green'];
 export const PAINT: Record<Paint, { name: string; hex: string; text: string }> = {
   grey: { name: 'Stone', hex: '#8a8f9c', text: 'Cheap and heavy: a little damage and a big shove.' },
   gold: { name: 'Gold', hex: '#f2c14e', text: 'Cuts: the most damage of any colour.' },
-  blue: { name: 'Frost', hex: '#5cb8f0', text: 'Chills: slows a Grumble, and enough of it freezes one solid.' },
-  red: { name: 'Ember', hex: '#e8503a', text: 'Burns: a Grumble keeps losing fluff for a few seconds.' },
+  blue: { name: 'Frost', hex: '#5cb8f0', text: 'Chills: slows a critter, and enough of it freezes one solid.' },
+  red: { name: 'Ember', hex: '#e8503a', text: 'Burns: a critter keeps losing health for a few seconds.' },
   green: { name: 'Moss', hex: '#5cc860', text: 'Heals: every green pixel that lands grows back a little of Dora’s fur.' },
 };
 export type Cells = (Paint | null)[];
@@ -42,7 +42,7 @@ export const noPaint = (): Record<Paint, number> => ({ grey: 0, gold: 0, blue: 0
 const DMG: Record<Paint | 'wood', number> = { wood: 0.5, grey: 0.6, gold: 1, blue: 0.3, red: 0.3, green: 0.3 };
 /** how much harder a pixel hits than one at the paw */
 export const tip = (i: number) => 0.6 + local(i).a / 12;
-/** seconds of chill that freeze a Grumble solid */
+/** seconds of chill that freeze a critter solid */
 export const FROZEN = 2;
 
 /** the 8 neighbours of a cell (corners count, so a diagonal line of pixels holds together) */
@@ -89,15 +89,15 @@ export const SHAPES: Record<string, { name: string; rows: string[] }> = {
   fan: { name: 'Fan', rows: ['............', '............', '............', '#####.......', '#####.......', '#####.......', '####........', '####........', '###.........', '##..........', '#...........', '#...........'] },
 };
 
-// ---------------------------------------------------------------- Grumbles
+// ---------------------------------------------------------------- critters
 export type Kind = 'pebble' | 'glint' | 'frost' | 'ember' | 'moss' | 'smudge';
 export const FOES: Record<Kind, { name: string; hp: number; r: number; speed: number; bite: number; drop: Paint; drops: number; cost: number; text: string }> = {
-  pebble: { name: 'Pebble Grumble', hp: 5, r: 7, speed: 26, bite: 4, drop: 'grey', drops: 3, cost: 1, text: 'Plods straight at Dora. Bursts into grey stone pixels.' },
-  glint: { name: 'Glint Grumble', hp: 3, r: 6, speed: 20, bite: 4, drop: 'gold', drops: 3, cost: 1.3, text: 'Skitters about, then dashes. Watch for its sparkle. Bursts into gold.' },
-  frost: { name: 'Frost Grumble', hp: 6, r: 7, speed: 16, bite: 2, drop: 'blue', drops: 3, cost: 1.6, text: 'Keeps its distance and throws ice. A wall of pixels blocks the ice, but loses the pixel it hits.' },
-  ember: { name: 'Ember Grumble', hp: 7, r: 7, speed: 34, bite: 3, drop: 'red', drops: 3, cost: 1.6, text: 'Fast and hot: a bump sets Dora’s fur smouldering. Bursts into red.' },
-  moss: { name: 'Moss Grumble', hp: 10, r: 8, speed: 15, bite: 3, drop: 'green', drops: 4, cost: 2, text: 'Slow, but heals every Grumble near it. Get it first.' },
-  smudge: { name: 'The Smudge', hp: 260, r: 19, speed: 22, bite: 5, drop: 'gold', drops: 0, cost: 0, text: 'A giant rubber eraser full of Grumble fluff. Its rub wipes pixels clean off the weapon.' },
+  pebble: { name: 'Pebble Beetle', hp: 5, r: 7, speed: 26, bite: 4, drop: 'grey', drops: 3, cost: 1, text: 'Plods straight at Dora. Bursts into grey stone pixels.' },
+  glint: { name: 'Glint Magpie', hp: 3, r: 6, speed: 20, bite: 4, drop: 'gold', drops: 3, cost: 1.3, text: 'Circles about, then swoops. Watch for its sparkle. Bursts into gold.' },
+  frost: { name: 'Frost Newt', hp: 6, r: 7, speed: 16, bite: 2, drop: 'blue', drops: 3, cost: 1.6, text: 'Keeps its distance and spits ice. A wall of pixels blocks the ice, but loses the pixel it hits.' },
+  ember: { name: 'Ember Salamander', hp: 7, r: 7, speed: 34, bite: 3, drop: 'red', drops: 3, cost: 1.6, text: 'Fast and hot: a bump sets Dora’s fur smouldering. Bursts into red.' },
+  moss: { name: 'Moss Tortoise', hp: 10, r: 8, speed: 15, bite: 3, drop: 'green', drops: 4, cost: 2, text: 'Slow, but heals every critter near it. Get it first.' },
+  smudge: { name: 'The Smudge', hp: 260, r: 19, speed: 22, bite: 5, drop: 'gold', drops: 0, cost: 0, text: 'A giant rubber eraser with a grumpy face. Its rub wipes pixels clean off the weapon.' },
 };
 export const FLOORS = [
   { id: 'mine', name: 'Pebble Mine', kinds: ['pebble', 'glint'] as Kind[] },
@@ -110,7 +110,7 @@ const BUDGET = [5, 7.5, 10, 10, 12.5, 15, 14, 17, 20];
 // ---------------------------------------------------------------- perks: Enzo's sketchbook
 export const PERKS = [
   { id: 'thick', name: 'Thick fur', text: 'Dora grows 10 more fur, and it all grows back now.' },
-  { id: 'pots', name: 'Bigger pots', text: 'Every Grumble bursts into one more pixel.' },
+  { id: 'pots', name: 'Bigger pots', text: 'Every critter bursts into one more pixel.' },
   { id: 'polish', name: 'Polish', text: 'Gold pixels cut half as deep again.' },
   { id: 'snap', name: 'Cold snap', text: 'Blue chills twice as fast.' },
   { id: 'coals', name: 'Hot coals', text: 'Red burns twice as long.' },
@@ -129,7 +129,7 @@ export type Phase = 'easel' | 'fight' | 'pick' | 'won' | 'lost';
 export type Input = { mx: number; my: number; ax: number; ay: number; swing: boolean; roll: boolean };
 export type Foe = {
   id: number; k: Kind; x: number; y: number; vx: number; vy: number; hp: number; max: number; r: number;
-  /** a timer for whatever the Grumble does next */ t: number; mode: 'walk' | 'wind' | 'dash' | 'rub' | 'spawn';
+  /** a timer for whatever the critter does next */ t: number; mode: 'walk' | 'wind' | 'dash' | 'rub' | 'spawn';
   dx: number; dy: number; chill: number; burn: number; hitBy: number; flash: number;
 };
 export type Shot = { x: number; y: number; vx: number; vy: number; k: 'ice'; t: number };
@@ -458,7 +458,7 @@ export class Run {
           else if (f.mode === 'rub') { if (f.t <= 0) { f.mode = 'walk'; f.t = 2.4 + this.rnd(); } }
           break;
       }
-      // knocked-back Grumbles slide, then walk again
+      // knocked-back critters slide, then walk again
       f.vx *= Math.pow(0.02, DT); f.vy *= Math.pow(0.02, DT);
       f.x = clamp(f.x + (vx * chill + f.vx) * DT, FLOOR.x0 + f.r, FLOOR.x1 - f.r);
       f.y = clamp(f.y + (vy * chill + f.vy) * DT, FLOOR.y0 + f.r, FLOOR.y1 - f.r);
