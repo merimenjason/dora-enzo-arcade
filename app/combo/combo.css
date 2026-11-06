@@ -1,108 +1,105 @@
 @import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Nunito:wght@700;800&display=swap');
 
-/* Combo Ball: match day on the village green. Deep turf-green panels with a hard two-pixel border and a drop
-   shadow, chalk-white words, gold for the chain and anything you can press, Pixelify Sans for anything the game says,
-   and every picture scaled up with nearest-neighbour. The HUD sits along the top of the pitch: points against the
-   target on the left, the chain (chips × mult) in the middle, the clock on the right. */
-.cb-shell{--ink:#f6f4e8;--dim:#b8c8a8;--night:#0e1a10;--panel:#1c2e1a;--edge:#08100a;--line:#3e5a36;--gold:#ffd23f;--goldd:#b8860b;--red:#ff5a4a;--leaf:#8ee070;
+/* Combo Ball: a village kickabout. Deep pitch-green bars with a hard two-pixel border, chalk-white words, gold for the
+   chain and anything you can press, Pixelify Sans for anything the game says (Nunito for numbers, which stay clear at
+   any size), and every picture scaled up with nearest-neighbour. The points, the chain's chips × mult and the clock sit
+   in a bar above the pitch and the explainer and the buttons below it, so no words ever cover a player. */
+.cb-shell{--ink:#f6f4e8;--dim:#b8c8a8;--night:#0d1f10;--panel:#1a2b19;--edge:#08100a;--line:#3e5a36;--gold:#ffd23f;--purple:#9a6ae8;--red:#ff5a4a;--leaf:#8ee070;
   position:fixed;inset:0;overflow:hidden;background:var(--night);color:var(--ink);
-  font-family:'Nunito',system-ui,sans-serif;font-weight:800;font-size:clamp(14px,1.5vw,16px);line-height:1.4;user-select:none;-webkit-user-select:none}
+  font-family:'Nunito',system-ui,sans-serif;font-weight:800;font-size:clamp(13px,1.4vw,16px);line-height:1.4;user-select:none;-webkit-user-select:none}
 .cb-shell *{box-sizing:border-box}
-/* the arcade's global paragraph colour is for other pages */
 .cb-shell p{color:inherit;font-size:inherit;line-height:inherit;margin:.3em 0}
 .cb-shell h1,.cb-shell h2,.cb-shell h3,.cb-shell kbd{margin:0;font-family:'Pixelify Sans',monospace;font-weight:700;line-height:1.1}
 .cb-shell button,.cb-shell a{font:inherit;touch-action:manipulation}
 .cb-shell button{cursor:pointer;color:var(--ink);min-height:44px;padding:.35em 1.1em;border:2px solid var(--edge);border-radius:0;background:#2e4a2a;box-shadow:inset -2px -2px 0 rgba(0,0,0,.35),inset 2px 2px 0 rgba(255,255,255,.12),3px 3px 0 var(--edge);font-family:'Pixelify Sans',monospace;font-weight:700;font-size:1.05em}
 .cb-shell button:hover:not(:disabled){background:#3c5e36}
 .cb-shell button:active:not(:disabled){transform:translate(2px,2px);box-shadow:inset -2px -2px 0 rgba(0,0,0,.35),1px 1px 0 var(--edge)}
-.cb-shell button:focus-visible,.cb-shell a:focus-visible,.cb-introcard:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.cb-shell button:disabled{opacity:.45;cursor:default}
+.cb-shell button:focus-visible,.cb-shell a:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .cb-shell .cb-go{background:var(--gold);color:#241a00}
 .cb-shell .cb-go:hover:not(:disabled){background:#ffe066}
-.cb-shell .cb-danger{background:#6a2a2a}
 .cb-row{display:flex;flex-wrap:wrap;gap:.7em;align-items:center;justify-content:center;margin-top:.9em}
 .cb-shell .cb-small{color:var(--dim);font-size:.9em}
-.cb-card{background:var(--panel);border:2px solid var(--edge);box-shadow:inset 0 0 0 2px var(--line),4px 4px 0 rgba(0,0,0,.5);padding:14px 16px}
+.cb-panel{background:var(--panel);border:2px solid var(--edge);box-shadow:inset 0 0 0 2px var(--line),4px 4px 0 rgba(0,0,0,.5);padding:14px 16px}
+.cb-shell img{image-rendering:pixelated}
 
-/* ---------------------------------------------------------------- the pitch, centred and scaled up in whole pixels where it can be */
-.cb-stage{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:960px;height:540px;visibility:hidden;container-type:size}
-.cb-on-play .cb-stage{visibility:visible}
-.cb-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;cursor:pointer;touch-action:none}
-.cb-touch.cb-on-play .cb-stage{transform:translateX(-50%)}
-@media (orientation:landscape){.cb-touch.cb-on-play .cb-stage{transform:none}}
-
-.cb-hud{position:absolute;inset:0;pointer-events:none;font-family:'Pixelify Sans',monospace;font-weight:700;font-size:clamp(10px,2.2cqw,17px);container-type:inline-size}
-.cb-hud > *{pointer-events:auto}
-.cb-top{position:absolute;left:1%;right:1%;top:1%;height:12.5%;display:flex;align-items:stretch;gap:1cqw;pointer-events:none}
-.cb-top > *{background:rgba(8,16,10,.95);border:2px solid var(--edge);box-shadow:inset 0 0 0 1px var(--line);padding:.1em .6em;display:flex;align-items:center;gap:.35em;white-space:nowrap}
-.cb-lab{color:var(--dim);font-size:.7em;letter-spacing:.06em;text-transform:uppercase}
-.cb-score b{font-size:1.35em;color:var(--ink)}
-.cb-of{color:var(--dim);font-size:.85em}
-.cb-track{display:block;position:relative;width:8cqw;height:.55em;background:#08100a;border:1px solid var(--line);overflow:hidden}
-.cb-track i{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);background:var(--leaf)}
-.cb-chain{flex:1;min-width:0;justify-content:center;transition:box-shadow .2s}
-.cb-chain b{font-size:1.5em;color:#8a8a7a}
-.cb-chain i{font-style:normal;color:var(--dim)}
-.cb-chain .cb-worth{color:var(--dim);font-size:.85em}
-.cb-chain .cb-passes{color:var(--dim);font-size:.7em;margin-left:.3em}
+/* ---------------------------------------------------------------- the match: a bar, the pitch, a bar */
+.cb-game{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:4px;visibility:hidden}
+.cb-on-play .cb-game{visibility:visible}
+.cb-top,.cb-bottom{width:min(100%,var(--w,100%));display:flex;align-items:center;gap:.6em;font-family:'Pixelify Sans',monospace;font-weight:700}
+.cb-top{position:relative;min-height:44px;background:rgba(8,16,10,.95);border:2px solid var(--edge);box-shadow:inset 0 0 0 1px var(--line);padding:.2em .7em;justify-content:space-between;flex-wrap:wrap}
+.cb-points b,.cb-points span,.cb-chain b,.cb-worth,.cb-clock,.cb-target b,.cb-stats b{font-family:'Nunito',system-ui,sans-serif;font-weight:800}
+.cb-points b{font-size:1.5em;color:var(--gold)}
+.cb-points i,.cb-chain i{font-style:normal;margin:0 .2em;color:var(--dim)}
+.cb-points span{color:var(--ink)}
+.cb-chain{position:relative;display:flex;align-items:baseline;gap:.15em;padding:.05em .6em;border:2px solid transparent;transition:box-shadow .2s}
+.cb-chain b{font-size:1.35em;color:#8a8a7a}
+.cb-worth{color:var(--dim);margin-left:.25em}
+.cb-passes{color:var(--dim);font-size:.8em;margin-left:.5em}
+.cb-chain[data-on="1"]{border-color:#b8860b;box-shadow:0 0 10px rgba(255,210,63,.35)}
 .cb-chain[data-on="1"] b{color:var(--gold)}
 .cb-chain[data-on="1"] .cb-mult{color:#fff2a8}
 .cb-chain[data-on="1"] .cb-worth{color:var(--ink)}
-.cb-chain[data-big="1"][data-on="1"]{box-shadow:inset 0 0 0 2px var(--gold),0 0 12px rgba(255,210,63,.45)}
-.cb-press{display:block;position:relative;width:4cqw;height:.4em;background:#08100a;border:1px solid var(--line);overflow:hidden;margin-left:.3em}
-.cb-press i{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);background:var(--red)}
-.cb-clock b{font-size:1.35em;min-width:2.6em;text-align:right}
-.cb-clock b[data-low="1"]{color:var(--red);animation:cbBlink .5s steps(2) infinite}
-@keyframes cbBlink{50%{opacity:.4}}
-.cb-shell .cb-pausebtn{pointer-events:auto;min-height:0;height:auto;padding:0 .7em;font-size:.9em}
-/* the traits sit in the hedge along the bottom, at the right (the key guide's place once there are traits) */
-.cb-traits{position:absolute;right:1%;bottom:1.5%;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.3em;max-width:38%;pointer-events:none}
-.cb-traits span{background:rgba(8,16,10,.8);border:1px solid var(--goldd);color:var(--gold);font-size:.62em;padding:.05em .4em}
-/* the chain's news (+10, One-touch +1×, Chain wiped!) flashes in the chain panel; the match banner and a goal's
-   count-up take over the whole top band. All of it stays over the fence, never over a player on the pitch. */
-.cb-chain{position:relative}
-.cb-pop{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;background:#0b160d;white-space:nowrap;font-size:1.05em;color:var(--gold);animation:cbPop 1.2s steps(12) forwards;pointer-events:none}
-.cb-pop.mult{color:#fff2a8}
-.cb-pop.wipe{color:#d8d8e0;background:#2a1414}
-.cb-pop.note{color:var(--dim)}
-@keyframes cbPop{0%{opacity:0}8%{opacity:1}80%{opacity:1}100%{opacity:0}}
-.cb-banner,.cb-goal{position:absolute;left:1%;right:1%;top:1%;height:12.5%;display:flex;align-items:center;justify-content:center;gap:.8em;white-space:nowrap;background:#0b160d;border:2px solid var(--edge);pointer-events:none}
-.cb-banner{box-shadow:inset 0 0 0 1px var(--line);animation:cbBanner 2.4s steps(12) forwards}
-.cb-banner b{font-size:1.35em;color:var(--ink)}
-.cb-banner span{font-size:1em;color:var(--gold)}
-@keyframes cbBanner{0%{opacity:0}8%{opacity:1}85%{opacity:1}100%{opacity:0;visibility:hidden}}
-.cb-goal{box-shadow:inset 0 0 0 2px var(--gold),0 0 14px rgba(255,210,63,.4);animation:cbGoal 2.3s steps(16) forwards}
-.cb-goalword{font-size:1.6em;color:var(--gold);letter-spacing:.06em;text-shadow:2px 2px 0 #6a4a00}
-.cb-sum{color:var(--dim);font-size:.85em}
-.cb-goalnum{font-size:1.6em;color:#fff2a8}
-.cb-notes{color:var(--leaf);font-size:.75em}
-@keyframes cbGoal{0%{opacity:0}6%{opacity:1}88%{opacity:1}100%{opacity:0;visibility:hidden}}
-/* Enzo's pointers sit in the bottom corner, at the left */
-.cb-line{position:absolute;left:1%;bottom:1.5%;max-width:60%;display:flex;gap:.5em;align-items:center;background:rgba(8,16,10,.9);border:2px solid var(--edge);box-shadow:inset 0 0 0 1px var(--line);padding:.25em .6em .25em .25em;animation:cbLine 6s steps(30) forwards;font-family:'Nunito',sans-serif;font-size:.78em;line-height:1.25;pointer-events:none}
-.cb-line img{width:2.6em;height:2.6em;object-fit:cover;object-position:50% 10%;image-rendering:pixelated;border:2px solid var(--gold);flex:none;background:#2e4a2a}
-.cb-line b{display:block;color:var(--gold);font-family:'Pixelify Sans',monospace}
-.cb-line.warn{box-shadow:inset 0 0 0 1px var(--red)}
-.cb-line.good b{color:var(--leaf)}
-@keyframes cbLine{0%{opacity:0}4%{opacity:1}88%{opacity:1}100%{opacity:0;visibility:hidden}}
-.cb-shell .cb-keys{position:absolute;right:1%;bottom:1.5%;margin:0;max-width:38%;text-align:right;font-size:.62em;color:var(--dim);background:rgba(8,16,10,.75);padding:.2em .5em;font-family:'Nunito',sans-serif;pointer-events:none}
-.cb-keys b{color:var(--ink)}
-.cb-overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(8,16,10,.6);padding:3%}
-.cb-introcard{display:flex;gap:1em;align-items:center;max-width:min(580px,92%);cursor:pointer;font-family:'Nunito',sans-serif;font-size:clamp(13px,2.3cqw,17px)}
-.cb-introcard img{width:5em;height:5em;object-fit:cover;object-position:50% 10%;image-rendering:pixelated;border:2px solid var(--gold);flex:none;background:#2e4a2a}
-.cb-introcard b{color:var(--gold);font-family:'Pixelify Sans',monospace;font-size:1.1em}
-.cb-introcard small{color:var(--dim)}
-.cb-shop{text-align:center;max-width:96%;font-size:clamp(12px,2.1cqw,16px)}
-.cb-shop h2{font-size:2em;color:var(--gold);text-shadow:3px 3px 0 #08100a}
-.cb-shop > p{font-family:'Nunito',sans-serif;text-shadow:2px 2px 0 #08100a;max-width:46em;margin:.3em auto}
-.cb-offers{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,11em),1fr));gap:.8em;margin-top:.6em}
-.cb-shell .cb-offer{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:.35em;text-align:left;min-height:8em;padding:.8em .9em;background:var(--panel);font-family:'Nunito',sans-serif;font-size:1em;font-weight:700;line-height:1.3}
-.cb-shell .cb-offer:hover{background:#2a4426}
-.cb-shell .cb-offer.drop{min-height:6em;background:#3a2a1e}
-.cb-offer b{font-family:'Pixelify Sans',monospace;color:var(--gold);font-size:1.2em}
-.cb-offer kbd{position:absolute;right:.5em;top:.4em;color:var(--dim);font-size:.9em}
-.cb-pausecard{display:flex;flex-direction:column;gap:.7em;align-items:stretch;min-width:min(300px,90%);text-align:center}
-.cb-pausecard h2{font-size:1.8em}
+.cb-pop{position:absolute;left:50%;top:100%;transform:translateX(-50%);white-space:nowrap;margin-top:4px;background:#2a240e;border:2px solid var(--gold);color:var(--gold);font-family:'Nunito',system-ui,sans-serif;font-weight:800;font-size:.85em;padding:.1em .5em;z-index:2;animation:cb-pop 1.6s ease forwards;pointer-events:none}
+.cb-pop.cb-bad{border-color:var(--red);color:#ffb0a8;background:#3a1410}
+@keyframes cb-pop{0%{opacity:0;transform:translate(-50%,-6px)}10%{opacity:1;transform:translate(-50%,0)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,4px)}}
+.cb-clock{color:var(--ink);font-size:.95em}
+.cb-banner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;background:#1a2b19;border:2px solid var(--gold);color:var(--gold);font-size:1.15em;text-align:center;padding:0 .5em;animation:cb-banner 2.6s ease forwards;pointer-events:none}
+.cb-banner.cb-bad{border-color:var(--purple);color:#d8c4ff}
+@keyframes cb-banner{0%{opacity:0;transform:scale(.92)}8%{opacity:1;transform:none}85%{opacity:1}100%{opacity:0}}
+.cb-stage{position:relative;flex:none;width:768px;height:432px}
+.cb-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;cursor:pointer;touch-action:none}
+.cb-bottom{justify-content:space-between;min-height:56px}
+.cb-info{flex:1;min-width:0;margin:0!important;font-family:'Nunito',system-ui,sans-serif;font-size:.95em;color:var(--ink);background:rgba(8,16,10,.9);border:2px solid var(--edge);padding:.35em .6em;min-height:3.2em;display:flex;align-items:center}
+.cb-buttons{display:flex;gap:.45em;flex:none}
+.cb-upright .cb-bottom{flex-direction:column;align-items:stretch}
+.cb-upright .cb-buttons > *{flex:1;padding:.35em .4em}
+.cb-upright .cb-top{font-size:.9em}
 
-/* ---------------------------------------------------------------- title, result and the pages */
+/* ---------------------------------------------------------------- the overlays: the team sheet, the card table */
+.cb-over{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(5,12,6,.72);padding:12px;overflow:auto}
+.cb-sheet{max-width:620px;width:100%}
+.cb-captain{display:flex;gap:16px;align-items:center;margin:.4em 0}
+.cb-big{height:112px;width:auto;flex:none;filter:drop-shadow(3px 3px 0 rgba(0,0,0,.5))}
+.cb-captain h2{font-size:1.6em}
+.cb-shop{max-width:860px;width:100%;text-align:center}
+.cb-enzo{display:flex;gap:14px;align-items:center;justify-content:center;margin:.6em 0;text-align:left}
+.cb-enzopic{width:96px;height:auto;flex:none}
+
+/* ---------------------------------------------------------------- the pages */
+.cb-page{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto;background:var(--night)}
+.cb-book{max-width:1100px;width:100%;max-height:100%;overflow:auto;text-align:center}
+.cb-text{max-width:640px;width:100%}
+.cb-text h2,.cb-book h2{font-size:1.6em;margin-bottom:.3em}
+.cb-toggle{display:flex;gap:.6em;align-items:center;min-height:44px;font-size:1.1em}
+.cb-toggle input{width:22px;height:22px;accent-color:var(--gold)}
+.cb-result{flex-direction:column;gap:12px}
+.cb-endpic{width:min(100%,768px);height:auto;border:2px solid var(--edge)}
+
+.cb-banner b{font-family:'Nunito',system-ui,sans-serif;font-weight:800}
+.cb-banner small{font-size:.65em;color:var(--ink);font-family:'Nunito',system-ui,sans-serif}
+.cb-target{font-size:1.1em}
+.cb-target b{color:var(--gold);font-size:1.2em}
+.cb-cards{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:.5em}
+.cb-trait{position:relative;width:200px;min-height:130px;padding:12px 10px 8px;text-align:left;display:flex;flex-direction:column;gap:.2em;font-family:'Nunito',system-ui,sans-serif;font-size:.9em;line-height:1.3;background:linear-gradient(#3b3214,#2a240e);border:2px solid var(--edge);box-shadow:inset 0 0 0 2px #b8860b,3px 3px 0 var(--edge);color:#fff6d8}
+.cb-shell button.cb-trait{min-height:130px;font-family:'Nunito',system-ui,sans-serif;font-weight:800;font-size:.9em;padding:12px 10px 8px;background:linear-gradient(#3b3214,#2a240e);box-shadow:inset 0 0 0 2px #b8860b,3px 3px 0 var(--edge);color:#fff6d8}
+.cb-shell button.cb-trait:hover{background:#4a3f18}
+.cb-shell button.cb-drop{background:linear-gradient(#3a1a14,#2a120e);box-shadow:inset 0 0 0 2px #b84a3a,3px 3px 0 var(--edge)}
+.cb-trait h3{font-family:'Nunito',system-ui,sans-serif;font-weight:800;font-size:1.2em;color:var(--gold);padding-right:1.2em}
+.cb-n{position:absolute;top:6px;right:8px;color:var(--dim);font-size:.9em}
+.cb-traits{position:absolute;left:4px;right:4px;bottom:2px;margin:0!important;display:flex;flex-wrap:wrap;justify-content:center;gap:.3em;pointer-events:none}
+.cb-traits span{background:rgba(8,16,10,.85);border:1px solid #b8860b;color:var(--gold);font-family:'Nunito',system-ui,sans-serif;font-size:.72em;padding:0 .4em}
+.cb-game{padding-bottom:22px}
+.cb-stats{list-style:none;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:0;margin:.6em 0}
+.cb-stats li{display:flex;flex-direction:column;align-items:center;min-width:80px;background:rgba(8,16,10,.6);border:2px solid var(--edge);padding:.3em .5em}
+.cb-stats b{font-size:1.5em;color:var(--gold)}
+.cb-stats span{font-size:.8em;color:var(--dim)}
+.cb-result{background:#0e1a10}
+.cb-upright .cb-passes{display:none}
+.cb-upright .cb-chain b{font-size:1.15em}
+.cb-upright .cb-points b{font-size:1.25em}
+
+/* ---------------------------------------------------------------- the title: the logo and the menu on the left, clear of faces */
 .cb-bg{position:absolute;inset:0;background:#0e1a10}
 .cb-bg img{width:100%;height:100%;object-fit:cover;display:block;image-rendering:pixelated}
 .cb-title{position:absolute;inset:0}
@@ -115,64 +112,6 @@
 .cb-home{display:inline-block;margin-top:1em;color:var(--dim);text-decoration:none;font-family:'Pixelify Sans',monospace}
 .cb-home:hover{color:var(--ink)}
 .cb-title .cb-small{text-shadow:1px 1px 0 #08100a}
-.cb-page{position:absolute;inset:0;overflow-y:auto;padding:16px clamp(16px,3vw,40px) 40px;background:#0e1a10}
-.cb-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
-.cb-head h2{font-size:clamp(26px,3.6vw,38px);color:var(--gold)}
-.cb-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px;align-items:start}
-.cb-cols h3{color:var(--gold);font-size:1.3em;margin-bottom:.4em}
-.cb-cols ul{margin:0;padding-left:1.1em;font-weight:700}
-.cb-cols li{margin:.35em 0}
-.cb-cols li b{color:var(--gold)}
-.cb-traitlist p{margin:.35em 0;font-weight:700;font-size:.92em}
-.cb-traitlist p b{display:block;color:var(--gold);font-family:'Pixelify Sans',monospace}
-.cb-settings{max-width:460px;display:flex;flex-direction:column;gap:.8em}
-.cb-set{display:flex;justify-content:space-between;align-items:center}
-.cb-seg{display:flex;gap:.4em}
-.cb-shell .cb-seg button{min-width:4.5em}
-.cb-shell .cb-seg button.on{background:var(--gold);color:#241a00}
-.cb-result{display:grid;place-items:center}
-.cb-resultcard{position:relative;max-width:min(640px,94%);text-align:center}
-.cb-resultcard h2{font-size:clamp(26px,4vw,40px);color:var(--gold)}
-.cb-result.won .cb-resultcard{align-self:end;margin-bottom:3vh;background:rgba(28,46,26,.93)}
-.cb-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:.6em;list-style:none;padding:0;margin:.9em 0}
-.cb-stats li{background:#08100a;border:2px solid var(--line);padding:.3em .8em;display:flex;flex-direction:column;min-width:5.5em}
-.cb-stats b{font-family:'Pixelify Sans',monospace;font-size:1.5em;color:var(--gold)}
-.cb-stats span{color:var(--dim);font-size:.85em}
-@media (prefers-reduced-motion:reduce){.cb-banner,.cb-line,.cb-pop,.cb-goal{animation-timing-function:steps(1)}.cb-clock b[data-low="1"]{animation:none}}
-
-/* ---------------------------------------------------------------- touch: a thumb stick wherever the thumb lands; PASS, SHOOT and SWITCH */
-.cb-touchpad{position:absolute;left:0;right:0;bottom:0;height:230px;display:flex;justify-content:space-between;align-items:stretch;gap:12px;padding:0 max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));pointer-events:none}
-.cb-touchpad > *{pointer-events:auto}
-.cb-stickzone{position:relative;flex:1;touch-action:none;display:flex;align-items:center;justify-content:center}
-.cb-shell .cb-stickzone p{margin:0;color:var(--dim);font-size:.85em;max-width:12em;text-align:center;pointer-events:none}
-.cb-stick{position:absolute;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;border:3px solid rgba(246,244,232,.35);background:rgba(8,16,10,.35);pointer-events:none}
-.cb-stick i{position:absolute;left:26px;top:26px;width:44px;height:44px;border-radius:50%;background:var(--gold);border:3px solid #08100a}
-.cb-btns{display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;gap:10px;align-content:end;justify-items:end;align-items:end}
-.cb-shell .cb-pass{grid-column:2;grid-row:1/3;width:104px;height:104px;padding:0;touch-action:none;background:var(--gold);color:#241a00;font-size:1.15em;border-radius:50%}
-.cb-shell .cb-shoot{grid-column:1;grid-row:2;width:84px;height:84px;padding:0;touch-action:none;background:#c83a2a;font-size:.95em;border-radius:50%}
-.cb-shell .cb-swap{grid-column:1;grid-row:1;width:84px;min-height:40px;padding:0;font-size:.75em}
-/* on its side: the stick anywhere over the left of the pitch (no words there), Enzo and the buttons in the right column */
-@media (orientation:landscape){
-  .cb-touchpad{height:100%;align-items:flex-end}
-  .cb-stickzone{align-self:stretch;max-width:45%}
-  .cb-shell .cb-stickzone p{display:none}
-  .cb-touch .cb-line{left:calc(100% + 10px);right:auto;top:0;bottom:auto;width:188px;max-width:none;font-size:12px;align-items:flex-start}
-  .cb-shell .cb-pass{width:88px;height:88px}
-  .cb-shell .cb-shoot{width:72px;height:72px;font-size:.85em}
-  .cb-shell .cb-swap{width:72px}
-}
-@media (orientation:portrait){
-  .cb-touch .cb-top{top:auto;bottom:calc(100% + 6px);height:auto;min-height:44px;font-size:13px;gap:4px;left:0;right:0}
-  .cb-touch .cb-top > *{padding:.3em .4em}
-  .cb-touch .cb-track{display:none}
-  .cb-touch .cb-chain .cb-passes,.cb-touch .cb-press{display:none}
-  .cb-touch .cb-traits{top:auto;bottom:calc(100% + 56px);max-width:100%;left:0;right:auto;justify-content:flex-start}
-  .cb-touch .cb-line{top:calc(100% + 10px);bottom:auto;left:0;max-width:100%;font-size:14px}
-  .cb-touch .cb-banner,.cb-touch .cb-goal{top:auto;bottom:calc(100% + 6px);height:auto;min-height:44px;left:0;right:0;font-size:12px;gap:.5em}
-  .cb-touch .cb-notes{display:none}
-  .cb-touch .cb-shop,.cb-touch .cb-introcard{font-size:13px}
-  .cb-touch .cb-overlay{position:fixed;z-index:5}
-}
 /* an upright phone shows the title painting in the top half, so the words never cross a face */
 @media (orientation:portrait) and (max-width:640px){
   .cb-title .cb-bg{bottom:48%}
@@ -180,7 +119,7 @@
   .cb-title .cb-bg img{object-position:62% 50%}
   .cb-title-col{justify-content:flex-end}
 }
-/* a phone on its side: the painting slides right of the menu, so the words never cross a Grumble's face */
+/* a phone on its side: the painting slides right of the menu */
 @media (orientation:landscape) and (max-height:560px){
   .cb-title .cb-bg{left:max(300px,38%)}
   .cb-title .cb-bg::after{background:linear-gradient(90deg,rgba(14,26,16,1) 0%,rgba(14,26,16,0) 18%)}

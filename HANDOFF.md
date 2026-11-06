@@ -105,7 +105,7 @@ Game 89, `/rulebook`, a turn-based football roguelite: the other side's plan sho
 
 - **Rules and numbers:** `docs/rulebook.md`; team styles in `TEAMS` in `lib/rulebook-game.ts`, the board's numbers at the top of `lib/tactics-football.ts`.
 - **Tests:** `npm run test:rulebook` (both engines), `npm run bot:rulebook`, `node tests/e2e/rulebook.mjs` (dev server running; uses `window.__rulebook()`).
-- **Ideas not done:** a gentler ramp from the otters to the hedgehogs, more attacking gold laws, Combo Ball reusing the teams; see `docs/rulebook.md`.
+- **Ideas not done:** a gentler ramp from the otters to the hedgehogs, more attacking gold laws; see `docs/rulebook.md`.
 
 ## Into Space · 06-11-2026
 
@@ -117,9 +117,9 @@ Game 88, `/space`, a pixel-art football roguelite: every pass goes to a spot, co
 
 ## Combo Ball · 06-11-2026
 
-Game 87, `/combo`, a pixel-art football roguelite: three-a-side against the Grumbles, where passes add chips and one-touches add mult, a goal scores the chain and a Grumble touch wipes it. Nine 90-second matches with points targets, a transfer shop of fourteen traits. Shares its sprites with Into Space in `public/art/kickabout/` (`scripts/kickabout-art.py`).
+Game 87, `/combo`, turn-based football on the shared engine `lib/tactics-football.ts` (built for Rulebook FC): three-a-side against the animal league (the kickabout sprites), where passes add chips and first-time passes add mult, a goal scores the chain and an opponent's touch wipes it. Nine 16-turn matches with rising targets, a transfer shop of 14 traits, Undo and Hint. Save key `combo-ball-v2` (the real-time version's saves are ignored).
 
-- **Rules and numbers:** `docs/combo.md`; balance lives in `lib/combo-game.ts` (targets, pressure, the keeper's reaction to long chains).
+- **Rules and numbers:** `docs/combo.md`; balance lives in `lib/combo-game.ts` (targets, pressure, the team styles it uses from `lib/tactics-football.ts`).
 - **Tests:** `npm run test:combo`, `npm run bot:combo`, `node tests/e2e/combo.mjs` (dev server running; uses `window.__combo()`).
 - **Ideas not done:** see `docs/combo.md`.
 

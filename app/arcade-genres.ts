@@ -100,7 +100,7 @@ export const GENRE_OF: Record<string, GenreId[]> = {
  '/order': ['puzzle', 'roguelite'],
  '/coin': ['roguelite', 'puzzle'],
  '/smith': ['roguelite', 'action'],
- '/combo': ['sports', 'roguelite'],
+ '/combo': ['sports', 'roguelite', 'strategy'],
  '/space': ['sports', 'roguelite'],
  '/rulebook': ['sports', 'roguelite', 'strategy'],
 };

@@ -22,11 +22,7 @@ def small(im, size, colours):
 
 
 pitch = Image.open(SRC / 'cb-pitch.png').convert('RGB').resize((384, 256), Image.Resampling.BOX)
-# 256 rows down to 216: keep the top 100 (the fence) and the bottom 116 (the hedge), losing plain grass between
-out = Image.new('RGB', (384, 216))
-out.paste(pitch.crop((0, 0, 384, 100)), (0, 0))
-out.paste(pitch.crop((0, 140, 384, 256)), (0, 100))
-out.quantize(40, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert('RGB').save(OUT / 'pitch.png')
+pitch.quantize(40, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert('RGB').save(OUT / 'pitch.png')
 for name in ('title', 'ending'):
     small(Image.open(SRC / f'cb-{name}.png').convert('RGB'), (480, 320), 64).save(OUT / f'{name}.png')
 print('wrote', len(list(OUT.glob('*.png'))), 'pictures to', OUT)

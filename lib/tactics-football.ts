@@ -58,7 +58,7 @@ export type BallIntent =
   | { k: 'loft'; to: number; shoot?: number }
   | { k: 'dribble' }
   | { k: 'hold' };
-export type PassRec = { from: number; to: number; team: Team; lofted: boolean; len: number; back: boolean; banked: boolean; bent: boolean; turn: number; oneTouch: boolean };
+export type PassRec = { from: number; to: number; team: Team; lofted: boolean; len: number; back: boolean; banked: boolean; bent: boolean; turn: number; oneTouch: boolean; /** where the passer and the receiver stood */ a: Cell; b: Cell };
 export type ShotCtx = { by: number; team: Team; c: number; r: number; row: number; dist: number; header: boolean; deflected: boolean; turn: number; chain: PassRec[]; lastTouch: Team };
 export type ShotResult = 'goal' | 'saved' | 'blocked' | 'post' | 'far' | 'deflected';
 export type ShotPreview = { result: ShotResult; cells: Cell[]; covered: number[]; blocker: number; value: number; notes: string[]; corner: boolean };
@@ -96,6 +96,8 @@ export type State = {
   /** the last team to touch the ball */ lastTouch: Team;
   /** the turn straight after a kick-off: nobody can tackle the side kicking off */ fresh: boolean;
   /** the side that kicked off this turn, or -1 */ kicked: Team | -1;
+  /** a game's own numbers, kept with the state so undo puts them back too (Combo Ball's chain bonuses) */
+  data: Record<string, number>;
   rs: number;
 };
 export type Ev =
@@ -137,6 +139,8 @@ export type Hooks = {
   /** the wind for this turn (lofted landings drift) */ wind?: (turn: number, rnd: () => number) => number;
   /** a completed pass, for the game's own scoring */ onPass?: (rec: PassRec) => void;
   /** a new turn has begun (hedges grow here) */ onTurn?: (turn: number) => void;
+  /** a chain of passes is about to be wiped (the ball changed sides, or a kick-off) */ onChainReset?: (s: State, old: PassRec[]) => void;
+  /** level at full time plays golden turns (yes by default) */ golden?: () => boolean;
 };
 export type Options = { seed: number; outfield?: [number, number]; who?: { ours: string[]; theirs: string[]; keepers?: [string, string] }; level: Level; hooks?: Hooks };
 
@@ -185,7 +189,7 @@ export class Match {
     this.s = {
       turn: 0, maxTurns: this.h.turns?.() ?? TURNS, golden: false, over: false, score: [0, 0], goals: [0, 0], units,
       ball: { holder: -1, c: 7, r: 4, flight: null }, intents: [], bi: null, tackle: -1, passes: 0, secondWind: false, wind: 0,
-      chain: [], kickoff: null, lastTouch: 0, fresh: false, kicked: 0, rs: o.seed >>> 0 || 1,
+      chain: [], kickoff: null, lastTouch: 0, fresh: false, kicked: 0, data: {}, rs: o.seed >>> 0 || 1,
     };
     this.kickoffNow(0);
     this.startTurn();
@@ -222,7 +226,7 @@ export class Match {
     for (const team of [0, 1] as Team[]) { const k = this.keeperOf(team), [lo, hi] = this.mouth(team); Object.assign(k, { c: team ? COLS - 1 : 0, r: clamp(4, lo, hi) }); }
     const taker = side === 0 ? ours[0] : theirs[0];
     this.s.ball = { holder: taker.id, c: taker.c, r: taker.r, flight: null };
-    this.s.lastTouch = side; this.s.chain = []; this.s.kickoff = null; this.s.fresh = this.h.grace?.(side) ?? false; this.s.kicked = side;
+    this.s.lastTouch = side; this.h.onChainReset?.(this.s, this.s.chain); this.s.chain = []; this.s.kickoff = null; this.s.fresh = this.h.grace?.(side) ?? false; this.s.kicked = side;
     this.events.push({ k: 'kickoff', team: side });
   }
   freeNear(c: number, r: number, self?: Unit): Cell {
@@ -265,7 +269,7 @@ export class Match {
   give(u: Unit) {
     const b = this.s.ball, before = this.poss;
     b.holder = u.id; b.c = u.c; b.r = u.r; b.flight = null;
-    if (before !== u.team) this.s.chain = [];
+    if (before !== u.team) { this.h.onChainReset?.(this.s, this.s.chain); this.s.chain = []; }
     this.s.lastTouch = u.team;
   }
 
@@ -699,7 +703,7 @@ export class Match {
     return true;
   }
   private completed(u: Unit, q: Unit, lofted: boolean, len: number, pv?: PassPreview) {
-    const rec: PassRec = { from: u.id, to: q.id, team: u.team, lofted, len, back: u.team === 0 ? q.c < u.c : q.c > u.c, banked: !!pv?.banked, bent: !!pv?.bent, turn: this.s.turn, oneTouch: !u.started && u.got !== '' };
+    const rec: PassRec = { from: u.id, to: q.id, team: u.team, lofted, len, back: u.team === 0 ? q.c < u.c : q.c > u.c, banked: !!pv?.banked, bent: !!pv?.bent, turn: this.s.turn, oneTouch: !u.started && u.got !== '', a: { c: u.c, r: u.r }, b: { c: q.c, r: q.r } };
     this.s.chain.push(rec);
     this.give(q);
     q.got = lofted ? 'loft' : 'ground';
@@ -1048,7 +1052,7 @@ export class Match {
     const s = this.s;
     s.turn++;
     if (!s.over && s.turn >= s.maxTurns) {
-      if (!s.golden && s.score[0] === s.score[1]) { s.golden = true; s.maxTurns += 2; this.events.push({ k: 'golden', holder: s.ball.holder }); }
+      if (!s.golden && s.score[0] === s.score[1] && (this.h.golden?.() ?? true)) { s.golden = true; s.maxTurns += 2; this.events.push({ k: 'golden', holder: s.ball.holder }); }
       else { s.over = true; this.events.push({ k: 'full', holder: s.ball.holder }); }
     }
     if (s.over) { s.intents = []; s.bi = null; return true; }
@@ -1088,7 +1092,7 @@ export class Match {
       this.events.push({ k: 'pass', from, to: { c: cut.c, r: cut.r }, lofted: false, team: 1, holder: cut.id, flight: false }, { k: 'intercept', by: cut.id, at: { c: cut.c, r: cut.r }, holder: cut.id });
       return;
     }
-    const rec: PassRec = { from: car.id, to: q.id, team: 1, lofted: false, len: cheb(car, q), back: q.c > car.c, banked: false, bent: false, turn: s.turn, oneTouch: false };
+    const rec: PassRec = { from: car.id, to: q.id, team: 1, lofted: false, len: cheb(car, q), back: q.c > car.c, banked: false, bent: false, turn: s.turn, oneTouch: false, a: { c: car.c, r: car.r }, b: { c: q.c, r: q.r } };
     s.chain.push(rec); this.give(q); this.h.onPass?.(rec);
     this.events.push({ k: 'pass', from, to: { c: q.c, r: q.r }, lofted: false, team: 1, holder: q.id, flight: false });
     if (bi.k === 'pass' && bi.then !== undefined) this.theirBall(q, { k: 'pass', to: bi.then });

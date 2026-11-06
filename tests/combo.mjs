@@ -1,212 +1,216 @@
-// Combo Ball engine checks: kick-off and determinism, passes and what each one adds to the chain, first-time passes
-// pressed early, the chain being wiped, what a goal is worth (with and without traits), conceding, the clock, the
-// transfer shop and the save. Run after `npm test` has compiled the engine into .checks/ (or `npm run test:combo`).
+// Combo Ball engine checks: the league and the run, what each pass adds to the chain (chips, first-time mult, long
+// balls, lofted balls, switches, back to sender) and every trait's twist, a goal worth (10 + chips) × mult on the real
+// pitch, the chain wiped when they win the ball, pressure, Nutmeg, Ricochet and Piggy Bank, undo putting the chain back,
+// the target (reached early, raised by a conceded goal, missed at full time), the Hint, the transfer shop and its five
+// slots, a seed replaying, and the save. Run after `npm test` has compiled the engines into .checks/ (or
+// `npm run test:combo`).
 import assert from 'node:assert/strict';
-import { Run, PITCH, CX, CY, GOAL, MATCH_SECS, TARGETS, SLOTS, TRAITS, DT, passSpeed, rollDist, parseSave, newSave, serialise, bank } from '../.checks/combo-game.js';
+import { Run, TEAMS, TRAITS, TARGETS, MATCHES, SLOTS, TURNS, CREEP, PRESSURE, LEAGUES, OUR_SIDE, team, chainValue, SAVE_KEY, newSave, parseSave, serialise, bank } from '../.checks/combo-game.js';
+import { ROWS } from '../.checks/tactics-football.js';
 
-const idle = { ax: 0, ay: 0, pass: false, shoot: false };
-const ticks = (r, n, inp = idle) => { const evs = []; for (let k = 0; k < n; k++) { r.tick(inp); evs.push(...r.events); } return evs; };
-/** a match with the Grumbles parked out of the way (and the keepers too, unless asked), Dora on the ball at (x, y) */
-function arena(x = CX, y = CY, keepers = false) {
-  const r = new Run(7);
-  ticks(r, 60);
-  for (const p of r.players) if (p.team === 1 && (!p.keeper || !keepers)) Object.assign(p, { x: 40 + p.i * 6, y: PITCH.y1 - 6, stun: 1e9 });
-  if (!keepers) Object.assign(r.players[3], { y: PITCH.y1 - 20, stun: 1e9 });
-  const d = r.players[0];
-  Object.assign(d, { x, y, vx: 0, vy: 0, hold: 0 });
-  Object.assign(r.ball, { owner: 0, x: x + 5, y });
-  r.poss = 0; r.ctl = 0; r.pass = null; r.chain = { chips: 0, mult: 1, passes: 0, lastFrom: -1, lastTo: -1, lofted: false, touches: [], nutmegged: [] };
-  return r;
+/** a pass record as the engine makes them */
+const P = (from, to, o = {}) => ({ from, to, team: 0, lofted: false, len: 2, back: false, banked: false, bent: false, turn: 0, oneTouch: false, a: { c: 5, r: 4 }, b: { c: 7, r: 4 }, ...o });
+const who = (id) => OUR_SIDE[id] ?? 'keeper';
+const cv = (chain, traits = [], bonus = 0) => chainValue(chain, (id) => traits.includes(id), who, bonus);
+/** a match of the run set out by hand: ours at the given cells, theirs along the bottom row unless placed */
+function board(r, ours, theirs = [], holder = 0) {
+  const m = r.game, O = m.units.filter((u) => u.team === 0 && !u.keeper), T = m.units.filter((u) => u.team === 1 && !u.keeper);
+  [...O, ...T].forEach((u, k) => Object.assign(u, { c: 1 + k, r: ROWS - 1 }));
+  ours.forEach(([c, rr], k) => Object.assign(O[k], { c, r: rr }));
+  theirs.forEach(([c, rr], k) => Object.assign(T[k], { c, r: rr }));
+  m.s.chain = []; m.s.data = {};
+  m.give(m.unit(holder)); m.startTurn(); m.events = [];
+  return m;
 }
-/** taps pass (or holds it for a lofted ball) pointing at (ax, ay), then waits for the ball to arrive */
-function pass(r, ax, ay, holdTicks = 1, wait = 90) {
-  ticks(r, holdTicks, { ...idle, ax, ay, pass: true });
-  return ticks(r, wait);
-}
+const fresh = (seed = 5, traits = []) => { const r = new Run(seed); r.traits = traits.slice(); r.startMatch(); r.ready(); return r; };
 
 {
-  // kick-off, and the same seed playing the same way
-  const a = new Run(42), b = new Run(42);
-  assert.equal(a.phase, 'play'); assert.equal(a.ball.owner, 0); assert.equal(a.target, TARGETS[0]); assert.equal(a.clock, MATCH_SECS);
-  const inp = (k) => ({ ax: Math.sin(k / 30), ay: Math.cos(k / 50), pass: k % 45 < 3, shoot: k % 200 > 190 });
-  for (let k = 0; k < 1800; k++) { a.tick(inp(k)); b.tick(inp(k)); }
-  assert.deepEqual([a.ball.x, a.ball.y, a.points, a.chain.passes, a.clock], [b.ball.x, b.ball.y, b.points, b.chain.passes, b.clock]);
-  assert.ok(a.clock < MATCH_SECS - 10, 'the clock runs');
-  // ground passes are struck hard enough to reach and keep a bit of pace
-  for (const d of [30, 80, 160]) { const v = passSpeed(d); assert.ok(v >= 160 && rollDist(v) >= d, `a pass of ${d} reaches`); }
-  console.log('PASS kick-off, the clock and determinism');
-}
-
-{
-  // a one-touch pass to Enzo: 10 chips and +1 mult; Enzo is now the player
-  const r = arena(150, CY);
-  Object.assign(r.players[1], { x: 210, y: CY, vx: 0, vy: 0 });
-  Object.assign(r.players[2], { x: 120, y: CY + 60 });
-  const evs = pass(r, 1, 0);
-  assert.equal(r.ball.owner, 1, 'Enzo has it');
-  assert.equal(r.ctl, 1);
-  const g = evs.find((e) => e.k === 'gain');
-  assert.ok(g, 'a gain'); assert.equal(r.chain.passes, 1); assert.equal(r.chain.chips, 10); assert.equal(r.chain.mult, 2);
-  assert.ok(g.gains.some((x) => x.text === 'One-touch'));
-  // straight back to Dora: no chips, no mult
-  r.players[1].hold = 1;
-  Object.assign(r.players[0], { x: r.players[1].x - 60, y: r.players[1].y, vx: 0, vy: 0 });
-  Object.assign(r.players[2], { x: r.players[1].x - 20, y: CY + 70, vx: 0, vy: 0 });
-  pass(r, -1, 0);
-  assert.equal(r.ball.owner, 0); assert.equal(r.chain.passes, 2); assert.equal(r.chain.chips, 10); assert.equal(r.chain.mult, 2);
-  // a long switch to Pip, held on the ball first (so not one-touch): 10 + 10 long + 10 switch
-  Object.assign(r.players[0], { x: 150, y: CY - 40, vx: 0, vy: 0 }); Object.assign(r.ball, { x: 155, y: CY - 40 }); r.players[0].hold = 1;
-  Object.assign(r.players[1], { x: 120, y: CY - 70, vx: 0, vy: 0 });
-  Object.assign(r.players[2], { x: 260, y: CY + 45, vx: 0, vy: 0 });
-  pass(r, 0.9, 0.6, 1, 120);
-  assert.equal(r.ball.owner, 2, 'Pip has it');
-  assert.equal(r.chain.chips, 40); assert.equal(r.chain.mult, 2);
-  console.log('PASS passes add chips and mult (one-touch, long, switch; nothing straight back)');
-}
-
-{
-  // a lofted pass sails over a Grumble standing in the lane, and adds 5 chips
-  const r = arena(95, CY);
-  Object.assign(r.players[1], { x: 225, y: CY });
-  Object.assign(r.players[4], { x: 165, y: CY, stun: 0 });
-  r.players[0].hold = 1;
-  const evs = pass(r, 1, 0, 16, 120);
-  assert.ok(!evs.some((e) => e.k === 'wipe'), 'not cut out');
-  assert.equal(r.ball.owner, 1);
-  assert.ok(r.chain.chips >= 15, 'lofted adds chips');
-  // the same pass along the ground, firm and slow enough for him: usually cut out
-  let cut = 0;
-  for (let s = 1; s <= 10; s++) {
-    const q = arena(120, CY); q.rs = s * 99;
-    Object.assign(q.players[1], { x: 210, y: CY }); Object.assign(q.players[4], { x: 165, y: CY, stun: 0 });
-    q.chain.passes = 2; q.chain.chips = 30;
-    const e2 = pass(q, 1, 0, 1, 90);
-    if (e2.some((e) => e.k === 'wipe')) cut++;
-  }
-  assert.ok(cut >= 3, `a Grumble in the lane often gets a touch (${cut}/10)`);
-  console.log(`PASS lofted passes clear a Grumble in the lane; along the ground ${cut}/10 are cut out and wipe the chain`);
-}
-
-{
-  // first time: pressing pass while the ball's on its way plays it on the moment it arrives
-  const r = arena(150, CY);
-  Object.assign(r.players[1], { x: 220, y: CY });
-  Object.assign(r.players[2], { x: 260, y: CY + 50 });
-  ticks(r, 1, { ...idle, ax: 1, ay: 0, pass: true });
-  ticks(r, 8);
-  ticks(r, 1, { ...idle, ax: 1, ay: 0.6, pass: true });
-  const evs = ticks(r, 120);
-  assert.equal(r.chain.passes, 2, 'two passes');
-  assert.equal(r.chain.mult, 3, 'both one-touch');
-  assert.equal(r.ball.owner, 2);
-  assert.equal(evs.filter((e) => e.k === 'kick').length, 1, 'Enzo played it on first time');
-  console.log('PASS pass pressed early goes first time when the ball arrives');
-}
-
-{
-  // what a goal is worth: (10 + chips) × mult, plus a first-time finish, and the traits
-  const shoot = (traits = [], set = {}) => {
-    const r = arena(320, CY - 4);
-    r.traits = traits; Object.assign(r, set);
-    r.chain.chips = 50; r.chain.mult = 3; r.chain.passes = 4; r.players[0].hold = 1;
-    if (set.oneTouch) r.players[0].hold = 0.1;
-    if (set.lofted) r.chain.lofted = true;
-    const evs = ticks(r, 1, { ...idle, shoot: true }).concat(ticks(r, 60));
-    return { r, goal: evs.find((e) => e.k === 'goal') };
-  };
-  let { r, goal } = shoot();
-  assert.ok(goal, 'scores into an empty net');
-  assert.equal(goal.pts, 180); assert.equal(r.points, 180); assert.equal(r.goals, 1);
-  ({ goal } = shoot([], { oneTouch: true })); assert.equal(goal.pts, 240, 'first-time finish +1 mult');
-  ({ goal } = shoot(['volley'], { oneTouch: true, lofted: true })); assert.equal(goal.pts, 480, 'volley doubles');
-  ({ goal } = shoot(['lateshow'], { clock: 15 })); assert.equal(goal.pts, 360, 'late show doubles');
-  ({ goal } = shoot(['hotstreak'], { goals: 2 })); assert.equal(goal.pts, 300, 'hot streak +2 mult');
-  // from outside the box with Long Range: +3 mult
-  const q = arena(250, CY); q.traits = ['longrange']; q.chain.chips = 50; q.chain.mult = 3; q.chain.passes = 4; q.players[0].hold = 1;
-  const e3 = ticks(q, 1, { ...idle, shoot: true }).concat(ticks(q, 80)).find((e) => e.k === 'goal');
-  assert.ok(e3, 'the long shot goes in'); assert.equal(e3.pts, 360);
-  // a lone hoof with no chain is worth 10, and the Grumbles kick off next
-  const h = arena(320, CY); h.players[0].hold = 0.1;
-  const e4 = ticks(h, 1, { ...idle, shoot: true }).concat(ticks(h, 60)).find((e) => e.k === 'goal');
-  assert.equal(e4.pts, 10);
-  ticks(h, 120);
-  assert.equal(h.ball.owner, 4, 'the Grumbles kick off');
-  console.log('PASS goals score (10 + chips) × mult, and the traits that change it');
-}
-
-{
-  // Metronome doubles chips on the 5th pass; Tiki-Taka: one-touch +2, other passes no chips
-  const r = arena(150, CY); r.traits = ['metronome'];
-  r.chain.passes = 4; r.chain.chips = 40;
-  Object.assign(r.players[1], { x: 210, y: CY }); r.players[0].hold = 1;
-  pass(r, 1, 0);
-  assert.equal(r.chain.passes, 5); assert.equal(r.chain.chips, 100, '(40 + 10) × 2');
-  const t = arena(150, CY); t.traits = ['tiki'];
-  Object.assign(t.players[1], { x: 210, y: CY }); t.players[0].hold = 1;
-  pass(t, 1, 0);
-  assert.equal(t.chain.chips, 0); assert.equal(t.chain.mult, 1, 'held on the ball: nothing');
-  t.players[1].hold = 0; Object.assign(t.players[2], { x: 270, y: CY + 20 });
-  pass(t, 1, 0.3);
-  assert.equal(t.chain.chips, 10); assert.equal(t.chain.mult, 3, 'one-touch: 10 chips and +2');
-  console.log('PASS Metronome and Tiki-Taka');
-}
-
-{
-  // a Grumble's tackle: he winds up, lunges and takes the ball, wiping the chain
-  const r = arena(150, CY);
-  r.chain.passes = 3; r.chain.chips = 30; r.chain.mult = 2;
-  Object.assign(r.players[4], { x: 168, y: CY, stun: 0, cd: 0 });
-  const evs = ticks(r, 60);
-  assert.ok(evs.some((e) => e.k === 'wind'), 'winds up');
-  assert.ok(evs.some((e) => e.k === 'steal'), 'steals');
-  assert.ok(evs.some((e) => e.k === 'wipe' && e.chips === 30), 'the chain is wiped');
-  assert.equal(r.chain.passes, 0); assert.equal(r.poss, 1);
-  // and our slide takes it back
-  const t = arena(150, CY), g = t.players[4], p = t.players[0];
-  Object.assign(g, { x: 200, y: CY, stun: 0.5, cd: 1 }); Object.assign(t.ball, { owner: 4, x: 196, y: CY }); t.poss = 1;
-  Object.assign(p, { x: g.x - 12, y: g.y, stun: 0, slide: 0 });
-  const e2 = ticks(t, 1, { ...idle, ax: 1, ay: 0, shoot: true }).concat(ticks(t, 20));
-  assert.ok(e2.some((e) => e.k === 'tackle'), 'the slide wins it');
-  console.log('PASS Grumble tackles wipe the chain; a slide wins the ball back');
-}
-
-{
-  // conceding pushes the target up; full time below the target loses; reaching it opens the shop
+  // the league and the run: nine matches in three leagues, animal teams easiest first and the Grumbles in the final
+  assert.equal(TEAMS.length, MATCHES); assert.equal(LEAGUES.length, 3); assert.equal(TARGETS.length, MATCHES);
+  assert.deepEqual(TEAMS.map((t) => t.id), ['rabbit', 'frog', 'mole', 'otter', 'hog', 'magpie', 'fox', 'badger', 'grumble']);
+  for (const [i, t] of TEAMS.entries()) { assert.ok(t.name && t.kit && t.style && t.keeper && t.level); assert.equal(team(i), t); }
+  for (let i = 1; i < MATCHES; i++) assert.ok(TARGETS[i] > TARGETS[i - 1], 'the targets climb');
+  assert.equal(TRAITS.length, 14); assert.equal(SLOTS, 5);
   const r = new Run(3);
-  r.goal(1);
-  assert.equal(r.target, TARGETS[0] + Math.round(TARGETS[0] * 0.15));
-  ticks(r, 200);
-  assert.equal(r.ball.owner, 0, 'we kick off after conceding');
-  r.clock = 0.01; ticks(r, 2);
-  assert.equal(r.phase, 'lost');
-  const w = new Run(3);
-  w.points = w.target; w.goal(0);
-  ticks(w, 200);
-  assert.equal(w.phase, 'shop'); assert.equal(w.offer.length, 3);
-  assert.ok(!w.pick('nope'));
-  assert.ok(w.pick(w.offer[0]));
-  assert.equal(w.match, 1); assert.equal(w.traits.length, 1); assert.equal(w.target, TARGETS[1]); assert.equal(w.phase, 'play');
-  // five slots: a sixth needs one dropped
-  w.traits = TRAITS.slice(0, SLOTS).map((t) => t.id);
-  w.phase = 'shop'; w.makeOffer();
-  assert.ok(!w.pick(w.offer[0]), 'full');
-  assert.ok(w.pick(w.offer[0], w.traits[0]));
-  assert.equal(w.traits.length, SLOTS);
-  // the last match won is the title
-  const f = new Run(5); f.match = 8; f.startMatch(); f.points = f.target; f.goal(0); ticks(f, 200);
-  assert.equal(f.phase, 'won');
-  console.log('PASS conceding, full time, the transfer shop and the title');
+  assert.equal(r.phase, 'sheet'); assert.equal(r.foe.id, 'rabbit'); assert.equal(r.target, TARGETS[0]);
+  assert.equal(r.game.units.filter((u) => u.team === 0 && !u.keeper).length, 3, 'three-a-side');
+  assert.deepEqual(r.game.units.filter((u) => u.team === 0).map((u) => u.who), ['dora', 'enzo', 'pip', 'keeper']);
+  assert.ok(r.game.units.filter((u) => u.team === 1).every((u) => u.who.startsWith('rabbit')), 'the rabbits play the first match');
+  assert.equal(r.move(0, 8, 4), false, 'nothing moves until kick-off');
+  r.ready(); assert.equal(r.phase, 'play'); assert.equal(r.game.s.maxTurns, TURNS);
+  // the same seed plays the same way
+  const a = new Run(11), b = new Run(11); a.ready(); b.ready();
+  for (let k = 0; k < 6; k++) { a.endTurn(); b.endTurn(); }
+  assert.equal(JSON.stringify(a.game.s), JSON.stringify(b.game.s));
 }
 
 {
-  // the save
-  const s = newSave();
-  assert.deepEqual(parseSave(serialise(s)), s);
-  assert.deepEqual(parseSave('nonsense'), newSave());
-  assert.deepEqual(parseSave(JSON.stringify({ v: 1, best: { goal: -5, matches: 'x' } })).best, { matches: 0, goal: 0, chain: 0 });
-  const r = new Run(1); r.stats.won = 3; r.stats.best = 420; r.stats.longest = 9; r.stats.goals = 7; r.phase = 'lost';
-  bank(s, r);
-  assert.deepEqual(s.best, { matches: 3, goal: 420, chain: 9 }); assert.equal(s.stats.runs, 1); assert.equal(s.stats.wins, 0);
-  console.log('PASS the save');
+  // the chain: a pass is 10 chips; long +10, lofted +5, a switch +10; first-time +1 mult; straight back is nothing
+  assert.deepEqual([cv([P(0, 1)]).chips, cv([P(0, 1)]).mult], [10, 1]);
+  assert.equal(cv([P(0, 1, { len: 5 })]).chips, 20);
+  assert.equal(cv([P(0, 1, { lofted: true, len: 4 })]).chips, 15);
+  assert.equal(cv([P(0, 1, { a: { c: 5, r: 0 }, b: { c: 6, r: 4 } })]).chips, 20, 'a switch of play');
+  assert.equal(cv([P(0, 1), P(1, 2, { oneTouch: true })]).mult, 2, 'a first-time pass adds mult');
+  const pong = cv([P(0, 1), P(1, 0, { oneTouch: true })]);
+  assert.deepEqual([pong.chips, pong.mult, pong.passes], [10, 1, 1], 'straight back to sender counts for nothing');
+  assert.match(pong.gains[1].text, /Back to sender/);
+  assert.equal(cv([P(0, 1)], [], 15).chips, 25, 'bonus chips join the chain');
+  // the traits
+  assert.deepEqual([cv([P(0, 1, { len: 6 })], ['routeone']).chips, cv([P(0, 1, { len: 6 })], ['routeone']).mult], [10, 3], 'Route One: mult instead of chips');
+  assert.equal(cv([P(0, 1, { a: { c: 5, r: 0 }, b: { c: 6, r: 5 } })], ['crossfield']).mult, 2, 'Crossfield');
+  assert.equal(cv([P(0, 1, { back: true })], ['backpass']).mult, 2, 'Backpass Bandit');
+  assert.equal(cv([P(0, 1), P(1, 2, { back: true, oneTouch: true })], ['backheel']).mult, 4, 'Backheel: Enzo, first time, backwards');
+  assert.equal(cv([P(0, 2), P(2, 1, { back: true, oneTouch: true })], ['backheel']).mult, 2, 'only Enzo backheels');
+  const tiki = cv([P(0, 1), P(1, 2, { oneTouch: true, len: 5 })], ['tiki']);
+  assert.deepEqual([tiki.chips, tiki.mult], [20, 3], 'Tiki-Taka: first-time passes +2 mult, the others no chips');
+  const five = [P(0, 1), P(1, 2), P(2, 0), P(0, 1), P(1, 2)];
+  assert.equal(cv(five).chips, 50); assert.equal(cv(five, ['metronome']).chips, 100, 'Metronome doubles at the fifth pass');
 }
-void DT; void GOAL;
+
+{
+  // a goal on the real pitch is worth (10 + chips) × mult: Dora to Enzo, Enzo first time to Pip, Pip scores
+  const r = fresh(5);
+  const m = board(r, [[8, 3], [10, 4], [12, 5]]);
+  assert.ok(r.pass(0, 1)); assert.equal(r.chain.chips, 10);
+  assert.ok(r.pass(1, 2)); assert.equal(r.chain.mult, 2, 'Enzo played it first time');
+  const before = r.chain, row = [3, 4, 5].find((rr) => m.shotPreview(2, rr).result === 'goal');
+  assert.ok(row !== undefined, 'Pip has a clear shot');
+  assert.equal(m.shotPreview(2, row).value, (10 + before.chips) * before.mult, 'the preview shows what it’s worth');
+  assert.ok(r.shoot(2, row));
+  assert.equal(r.points, (10 + 20) * 2); assert.equal(r.stats.goals, 1);
+  assert.equal(r.lastGoal.pts, 60); assert.match(r.lastGoal.notes[0], /30 × 2/);
+  // a target reached ends the match there and then, and the shop opens with three traits
+  assert.equal(r.phase, 'shop'); assert.equal(r.last, 'won'); assert.equal(r.offer.length, 3);
+  assert.ok(r.offer.every((id) => TRAITS.some((t) => t.id === id)));
+  assert.ok(r.pick(r.offer[0])); assert.equal(r.traits.length, 1); assert.equal(r.match, 1); assert.equal(r.phase, 'sheet');
+  assert.equal(r.foe.id, 'frog'); assert.equal(r.target, TARGETS[1]);
+}
+
+{
+  // the chain is wiped when they win the ball: a pass cut out, and the bonus goes with it
+  const r = fresh(6);
+  const m = board(r, [[6, 4], [8, 4], [8, 1]], [[1, 0]]);
+  assert.ok(r.pass(0, 1)); assert.equal(r.chain.passes, 1);
+  m.s.data.bonus = 5;
+  // Enzo to Pip goes through a defender planted on the line
+  Object.assign(m.unit(m.units.find((u) => u.team === 1 && !u.keeper).id), { c: 8, r: 2 });
+  assert.equal(m.passPreview(1, 2).ok, false);
+  assert.ok(r.pass(1, 2));
+  assert.equal(m.poss, 1); assert.equal(r.chain.passes, 0); assert.equal(m.s.data.bonus, 0, 'a wiped chain loses its bonus');
+}
+
+{
+  // pressure: every PRESSURE passes in a chain, they press with one more and lunge a cell further (half as fast with
+  // Cool Head), planned at the start of the next turn
+  const r = fresh(7), base = r.foe.level;
+  const four = [P(0, 1), P(1, 2), P(2, 0), P(0, 1)];
+  board(r, [[4, 2], [6, 4], [4, 6]], [[13, 0]]);
+  assert.equal(r.pressure, 0);
+  r.game.s.chain = four.slice();
+  assert.equal(r.chain.passes, PRESSURE); assert.equal(r.pressure, 1);
+  r.game.startTurn();
+  assert.equal(r.game.o.level.press, base.press + 1); assert.equal(r.game.o.level.zone, base.zone + 1);
+  assert.equal(base.press, TEAMS[0].level.press, 'the team itself is left as it was');
+  const c = fresh(7, ['coolhead']);
+  c.game.s.chain = four.slice();
+  assert.equal(c.pressure, 0, 'Cool Head: twice as many passes before they press harder');
+}
+
+{
+  // Nutmeg: the carrier dribbles through a cell between two of them for +5 chips, and undo takes it back
+  const r = fresh(8, ['nutmeg']);
+  const m = board(r, [[6, 4], [3, 1], [3, 7]], [[7, 3], [7, 5]]);
+  // the ones beside the gap stay put this turn (their plan is made; we only check our dribble)
+  assert.ok(r.move(0, 8, 4) || r.move(0, 7, 4));
+  assert.equal(m.s.data.bonus, 5); assert.equal(r.chain.chips, 5);
+  assert.ok(r.undo()); assert.equal(m.s.data.bonus ?? 0, 0, 'undo puts the chain back as it was');
+}
+
+{
+  // Ricochet: their keeper's save bounces to us and the chain lives on with +10 chips; Piggy Bank carries half a
+  // goal's chips into the next goal
+  const r = fresh(9, ['ricochet']);
+  const m = board(r, [[7, 4], [9, 3], [9, 5]]);
+  assert.ok(r.pass(0, 1));
+  const row = [3, 4, 5].find((rr) => m.shotPreview(1, rr).result === 'saved');
+  assert.ok(row !== undefined, 'a shot the keeper has covered');
+  assert.ok(r.shoot(1, row));
+  assert.equal(m.carrier.team, 0, 'the save bounced back to us'); assert.equal(m.s.data.bonus, 10); assert.equal(r.chain.passes, 1);
+  const p = fresh(10, ['piggy']);
+  const g = board(p, [[10, 3], [12, 4], [6, 6]]);
+  assert.ok(p.pass(0, 1));
+  const prow = [3, 4, 5].find((rr) => g.shotPreview(1, rr).result === 'goal');
+  assert.ok(p.shoot(1, prow)); assert.equal(g.s.data.carry, 5, 'half of the chain’s 10 chips');
+  // the next goal includes them
+  const ctx = { by: 1, team: 0, c: 12, r: 4, row: 4, dist: 3, header: false, deflected: false, turn: 1, chain: [], lastTouch: 0 };
+  assert.equal(p.worth(0, ctx).value, 10 + 5);
+}
+
+{
+  // the shot traits, through what a goal is worth
+  const r = fresh(12);
+  const m = r.game, ctx = (o = {}) => ({ by: 0, team: 0, c: 10, r: 4, row: 4, dist: 5, header: false, deflected: false, turn: 2, chain: [P(0, 1)], lastTouch: 0, ...o });
+  assert.equal(r.worth(0, ctx()).value, 20);
+  r.traits = ['volley']; assert.equal(r.worth(0, ctx({ header: true })).value, 40, 'Volley ×2');
+  r.traits = ['longrange']; assert.equal(r.worth(0, ctx({ dist: 7 })).value, 80, 'Long Range +3 mult');
+  r.traits = ['hotstreak']; m.s.goals[0] = 2; assert.equal(r.worth(0, ctx()).value, 60, 'Hot Streak +1 mult a goal');
+  r.traits = ['lateshow']; m.s.goals[0] = 0; m.s.turn = m.s.maxTurns - 2; assert.equal(r.worth(0, ctx()).value, 40, 'Late Show ×2');
+  assert.equal(r.worth(1, ctx()).value, 1, 'their goals are just goals');
+}
+
+{
+  // conceding raises the target; full time short of it ends the run
+  const r = fresh(13);
+  const t0 = r.target;
+  r.game.events = [{ k: 'goal', team: 1, value: 1, notes: [] }];
+  r.game.s.score[1] = 1;
+  r['after'](true);
+  assert.equal(r.target, t0 + Math.round(TARGETS[0] * CREEP));
+  r.game.s.over = true; r.game.events = []; r['after'](true);
+  assert.equal(r.phase, 'lost'); assert.equal(r.last, 'lost');
+}
+
+{
+  // the Hint: never straight back to whoever just passed, and a shot once the chain is worth cashing in
+  const r = fresh(14);
+  const m = board(r, [[6, 4], [8, 4], [8, 1]]);
+  assert.ok(r.pass(0, 1));
+  const h = r.hint();
+  assert.ok(h && !(h.k === 'pass' && h.to === 0), 'no ping-pong');
+  const s = fresh(15);
+  const g = board(s, [[10, 3], [12, 4], [11, 6]]);
+  assert.ok(s.pass(0, 1)); assert.ok(s.pass(1, 2));
+  const h2 = s.hint();
+  if ([3, 4, 5].some((rr) => g.shotPreview(2, rr).result === 'goal')) assert.equal(h2.k, 'shoot');
+}
+
+{
+  // the shop: five slots; a sixth trait needs one dropped, and the next match follows
+  const r = new Run(16);
+  r.ready(); r.traits = TRAITS.slice(0, SLOTS).map((t) => t.id);
+  r.game.s.score[0] = r.target; r.endMatch();
+  assert.equal(r.phase, 'shop');
+  const want = r.offer[0];
+  assert.equal(r.pick(want), false, 'full: drop one first');
+  assert.ok(r.pick(want, r.traits[0])); assert.equal(r.traits.length, SLOTS); assert.ok(r.traits.includes(want));
+  // or take nothing
+  const q = new Run(17); q.ready(); q.game.s.score[0] = q.target; q.endMatch(); assert.ok(q.pick()); assert.equal(q.traits.length, 0);
+  // winning the final wins the run
+  const w = new Run(18); w.match = MATCHES - 1; w.startMatch(); w.ready(); w.game.s.score[0] = w.target; w.endMatch();
+  assert.equal(w.phase, 'won'); assert.equal(w.foe.id, 'grumble');
+}
+
+{
+  // the save: version 2, old real-time saves ignored, broken ones start fresh, a run banked
+  assert.equal(SAVE_KEY, 'combo-ball-v2');
+  const s = newSave(); assert.equal(s.v, 2);
+  assert.deepEqual(parseSave(null), s); assert.deepEqual(parseSave('{"v":1,"intro":true}'), s); assert.deepEqual(parseSave('nonsense'), s);
+  s.intro = true; s.settings.music = false;
+  const r = new Run(19); r.stats.won = 3; r.stats.best = 240; r.stats.longest = 6; r.stats.goals = 4;
+  bank(s, r);
+  const back = parseSave(serialise(s));
+  assert.equal(back.intro, true); assert.equal(back.settings.music, false);
+  assert.deepEqual(back.best, { matches: 3, goal: 240, chain: 6 }); assert.equal(back.stats.runs, 1); assert.equal(back.stats.goals, 4);
+}
+
+console.log('Combo Ball: the league, the chain and every trait, goals worth (10 + chips) × mult, wipes, pressure, the target, the hint, the shop and the save all check out');

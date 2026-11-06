@@ -1,126 +1,232 @@
-// Combo Ball bots. The pro dribbles at goal away from the nearest Grumble, passes to the team-mate with the most room
-// and a clear lane whenever a Grumble closes in (first time when it can), and shoots once it's near the box, with
-// more patience while the chain's still small. The greedy player won't shoot before eight passes; the hoofer shoots
-// the moment it has the ball; the random player mashes. Runs should go deep with good passing, much less far with
-// hoofing, and nowhere at random. Run after `npm test` has compiled the engine into .checks/ (or `npm run bot:combo`).
+// Combo Ball bots. The pro searches each turn with the game's own previews: every pass, long ball and shot its carrier
+// could make (after a dribble or not), and what each receiver could do next, up to three passes deep, playing each
+// through the engine and undoing it. It cashes the chain in when the shot is worth more than the chain is likely to
+// grow to (or reaches the target), and otherwise keeps the chain going with the ball somewhere safe; then it moves
+// everyone else up into open cells away from the tackle zones. Defending, it stands in the way of their pass or shot,
+// or tackles a dribbler. It buys traits that combine. The blind player plays the same football but takes the first
+// trait it's offered; the casual player does whatever Hint says until it has nothing more to say, then ends the turn; the random player
+// moves and kicks at random. Run after `npm test` has compiled the engines into .checks/ (or `npm run bot:combo`).
 import assert from 'node:assert/strict';
-import { Run, PITCH, CY, MATCHES } from '../.checks/combo-game.js';
+import { Run, MATCHES, SLOTS, chainValue } from '../.checks/combo-game.js';
+import { cheb, line } from '../.checks/tactics-football.js';
 
 const quick = process.argv.includes('--quick');
-const RUNS = quick ? 10 : 40;
+const RUNS = quick ? 20 : 60;
 
 function rngOf(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
-const PICKS = ['tiki', 'metronome', 'hotstreak', 'coolhead', 'piggy', 'lateshow', 'crossfield', 'routeone', 'longrange', 'backheel', 'volley', 'ricochet', 'backpass', 'nutmeg'];
-const hyp = Math.hypot;
+const K = (c) => c.c * 32 + c.r;
 
-/** the open team-mate with the clearest lane, favouring ones further up the pitch */
-function bestMate(r, c, forward = 0.15) {
-  let best = null, bs = -1e9;
-  for (const q of r.players) {
-    if (q.team !== 0 || q.keeper || q.i === c.i) continue;
-    const dx = q.x - c.x, dy = q.y - c.y, d = hyp(dx, dy) || 1;
-    let lane = 999;
-    for (const g of r.players) {
-      if (g.team !== 1 || g.keeper) continue;
-      const gx = g.x - c.x, gy = g.y - c.y, along = (gx * dx + gy * dy) / d;
-      if (along > 0 && along < d) lane = Math.min(lane, Math.abs(gx * dy - gy * dx) / d);
+/** how good a position is for us when the ball actions are done and no shot has gone in */
+function judge(r, m) {
+  const car = m.carrier;
+  if (!car) return m.s.ball.flight ? -5 : -500;
+  if (car.team === 1) return -500;
+  const s = m.s, v = chainValue(s.chain, (id) => r.has(id), (id) => s.units[id].who, s.data.bonus ?? 0);
+  const left = s.maxTurns - s.turn;
+  const pot = (10 + v.chips) * v.mult * (left > 3 ? 0.55 : left > 1 ? 0.3 : 0.05);
+  const z = m.zones();
+  let val = pot + car.c * 2;
+  if (z.has(K(car)) && (car.moved || !m.reach(car.id).some((q) => !z.has(K(q))))) val -= pot + 60;
+  return val;
+}
+
+/** every ball action the carrier could make now */
+function actions(r, m, id, depth) {
+  const u = m.unit(id), out = [];
+  if (!m.canAct(u)) return out;
+  const [lo, hi] = m.mouth(1), need = r.target - r.points;
+  for (let row = lo; row <= hi; row++) {
+    const p = m.shotPreview(id, row);
+    if (p.result === 'goal' || p.result === 'deflected') out.push({ score: p.value + (p.value >= need ? 10000 : 0), run: () => r.shoot(id, row), test: () => m.shoot(id, row) });
+  }
+  for (const q of m.units) {
+    if (q.team !== 0 || q.id === id || q.keeper) continue;
+    const p = m.passPreview(id, q.id);
+    if (p.ok) out.push({ to: q.id, run: () => r.pass(id, q.id), test: () => m.pass(id, q.id) });
+    if (cheb(u, q) >= 3 && cheb(u, q) <= 7 && depth === 0) {
+      const lp = m.loftPreview(id, q.c, q.r);
+      if (lp.ok && lp.catcher >= 0) out.push({ to: lp.catcher, run: () => r.loft(id, q.c, q.r), test: () => m.loft(id, q.c, q.r) });
     }
-    const s = Math.min(lane, 30) * 1.2 + Math.min(r.openness(q), 40) + (q.x - c.x) * forward - Math.abs(d - 80) * 0.1;
-    if (s > bs) { bs = s; best = q; best.lane = lane; }
+  }
+  return out;
+}
+
+/** the best sequence of ball actions from here: tries each, follows the receiver, undoes everything */
+function search(r, m, id, depth) {
+  let best = { score: judge(r, m), seq: [] };
+  for (const a of actions(r, m, id, depth)) {
+    if (!a.test()) continue;
+    let sc, seq = [a];
+    if (a.score !== undefined) sc = a.score;
+    else {
+      sc = judge(r, m) - 1;
+      if (depth < 2 && m.carrier?.id === a.to) {
+        const d = search(r, m, a.to, depth + 1);
+        if (d.score > sc) { sc = d.score; seq = [a, ...d.seq]; }
+      }
+    }
+    m.undo();
+    if (sc > best.score) best = { score: sc, seq };
   }
   return best;
 }
 
-function makeBot(kind, rnd) {
-  let shootFor = 0, passTap = false, react = 0, loft = 0, loftAim = null;
-  return (r) => {
-    const inp = { ax: 0, ay: 0, pass: false, shoot: false, swap: false };
-    const p = r.players[r.ctl], b = r.ball;
-    if (kind === 'random') { inp.ax = rnd() * 2 - 1; inp.ay = rnd() * 2 - 1; inp.pass = rnd() < 0.3; inp.shoot = rnd() < 0.2; return inp; }
-    if (shootFor > 0) { shootFor--; inp.shoot = shootFor > 0; return inp; }
-    if (passTap) { passTap = false; return inp; }
-    if (loft > 0) { loft--; if (r.ball.owner !== p.i) { loft = 0; return inp; } inp.ax = loftAim[0]; inp.ay = loftAim[1]; inp.pass = loft > 0; return inp; }
-    const passTo = (m) => {
-      const l = hyp(m.x - p.x, m.y - p.y) || 1, aim = [(m.x - p.x) / l, (m.y - p.y) / l];
-      inp.ax = aim[0]; inp.ay = aim[1]; inp.pass = true;
-      if (kind === 'pro' && m.lane < 14 && l > 40) { loftAim = aim; loft = 14; } else passTap = true;
-      return inp;
-    };
-    const grumbles = r.players.filter((g) => g.team === 1 && !g.keeper);
-    const near = grumbles.slice().sort((a, c) => hyp(a.x - p.x, a.y - p.y) - hyp(c.x - p.x, c.y - p.y))[0];
-    const nd = near ? hyp(near.x - p.x, near.y - p.y) : 999;
-    if (b.owner === p.i) {
-      const toGoal = PITCH.x1 - p.x, wide = Math.abs(p.y - CY);
-      const want = kind === 'greedy' ? r.chain.passes >= 8 : kind === 'hoofer' ? true : (r.chain.passes >= 4 || r.clock < 15 || r.chain.mult >= 4 || (r.chain.passes >= 2 && (r.points + (10 + r.chain.chips) * (r.chain.mult + 1)) >= r.target));
-      if (want && toGoal < (kind === 'hoofer' ? 400 : 82) && wide < 50) { shootFor = toGoal < 50 ? 2 : 14; inp.shoot = true; return inp; }
-      // the pro plays it first time while the chain's still building, unless there's room to run
-      if (kind === 'pro' && p.hold < 0.2 && r.chain.passes < 6 && (nd < 45 || r.chain.passes < 4)) {
-        const m = bestMate(r, p, r.chain.passes >= 3 ? 0.7 : 0.2);
-        if (m) return passTo(m);
-      }
-      const pressed = nd < 22 || (near && near.wind > 0) || p.hold > (kind === 'greedy' ? 0.5 : 0.9);
-      if (pressed && !(kind === 'hoofer')) {
-        const m = bestMate(r, p, r.chain.passes >= 3 ? 0.6 : 0.15);
-        if (m) return passTo(m);
-      }
-      // dribble at goal, edging away from the nearest Grumble
-      let dx = PITCH.x1 - p.x, dy = CY - p.y; const l = hyp(dx, dy) || 1; dx /= l; dy /= l;
-      if (near && nd < 34) { dy += (p.y > near.y ? 1 : -1) * 0.9; }
-      inp.ax = dx; inp.ay = dy;
-      return inp;
+function attack(r, m) {
+  const car = m.carrier;
+  let best = search(r, m, car.id, 0), from = null;
+  if (!car.keeper) {
+    const cells = m.reach(car.id).sort((a, b) => b.c - a.c).slice(0, 8);
+    for (const c of cells) {
+      if (!m.move(car.id, c.c, c.r)) continue;
+      const s = search(r, m, car.id, 0);
+      m.undo();
+      if (s.score > best.score + 2) { best = s; from = c; }
     }
-    if (r.pass && r.pass.to === p.i && b.owner < 0) {
-      // the ball's coming: line up a first-time pass if a Grumble is close, or a first-time shot near goal
-      const d = hyp(b.x - p.x, b.y - p.y);
-      if (kind === 'pro' && d < 30 && !r.queue && react++ % 2 === 0) {
-        if (PITCH.x1 - p.x < 75 && Math.abs(p.y - CY) < 45 && r.chain.passes >= 3) { inp.shoot = true; shootFor = 2; return inp; }
-        if (nd < 30) { const m = bestMate(r, p); if (m) { inp.ax = m.x - p.x; inp.ay = m.y - p.y; inp.pass = true; passTap = true; return inp; } }
+  }
+  if (from) r.move(car.id, from.c, from.r);
+  for (const a of best.seq) if (r.phase === 'play') a.run();
+  if (r.phase !== 'play' || m.s.kickoff !== null) return;
+  const c2 = m.carrier;
+  if (c2 && c2.team === 0 && !c2.moved && !c2.keeper) {
+    const z = m.zones();
+    const safe = m.reach(c2.id).filter((c) => !z.has(K(c))).sort((a, b) => b.c - a.c || Math.abs(a.r - 4) - Math.abs(b.r - 4))[0];
+    if (z.has(K(c2)) && safe) r.move(c2.id, safe.c, safe.r);
+    else if (safe && safe.c > c2.c) r.move(c2.id, safe.c, safe.r);
+  }
+  support(r, m);
+}
+
+/** everyone else: up the pitch into open cells, out of the tackle zones, on different rows */
+function support(r, m) {
+  const z = m.zones(), car = m.carrier, taken = new Set();
+  for (const u of m.units.filter((v) => v.team === 0 && !v.keeper && !v.moved && v.id !== car?.id)) {
+    let best = null, bs = -1e9;
+    for (const c of [{ c: u.c, r: u.r }, ...m.reach(u.id)]) {
+      if (taken.has(c.r)) continue;
+      const near = Math.min(...m.units.filter((g) => g.team === 1 && !g.keeper).map((g) => cheb(g, c)));
+      let v = -Math.abs(c.c - (car && car.team === 0 ? Math.min(12, car.c + 3) : 9)) + Math.min(near, 3) * 1.5 - (z.has(K(c)) ? 4 : 0);
+      if (car && car.team === 0) v -= line(car, c).some((x) => m.at(x.c, x.r)?.team === 1) ? 2 : 0;
+      if (v > bs) { bs = v; best = c; }
+    }
+    if (best && (best.c !== u.c || best.r !== u.r)) r.move(u.id, best.c, best.r);
+    if (best) taken.add(best.r);
+  }
+}
+
+function defend(r, m) {
+  const car = m.carrier, bi = m.s.bi;
+  if (!car || !bi) return;
+  const ours = () => m.units.filter((u) => u.team === 0 && !u.moved);
+  if (bi.k === 'dribble' || bi.k === 'hold') {
+    for (const u of ours().filter((v) => !v.keeper)) {
+      if (m.canTackle(u.id)) { r.tackle(u.id); break; }
+      const c = m.reach(u.id).find((c) => cheb(c, car) === 1 && !(m.o.level.front && c.c < car.c));
+      if (c && r.move(u.id, c.c, c.r)) { if (m.canTackle(u.id)) { r.tackle(u.id); break; } r.undo(); }
+    }
+  } else {
+    for (let n = 0; n < 4 && m.danger() > 0; n++) {
+      let best = null, bd = m.danger();
+      for (const u of ours()) for (const c of m.reach(u.id)) {
+        if (!m.move(u.id, c.c, c.r)) continue;
+        const d = m.danger(); m.undo();
+        if (d < bd) { bd = d; best = [u.id, c]; }
       }
-      return inp;
+      if (!best) break;
+      r.move(best[0], best[1].c, best[1].r);
     }
-    // defending: get to the ball and slide in when close
-    if (r.poss !== 0) {
-      let dx = b.x - p.x, dy = b.y - p.y; const d = hyp(dx, dy) || 1;
-      inp.ax = dx / d; inp.ay = dy / d;
-      if (d < 13 && b.owner >= 0 && r.players[b.owner].team === 1 && p.slide <= 0 && p.stun <= 0 && rnd() < 0.25) inp.shoot = true;
+  }
+}
+
+/** a casual player: press Hint and do what it says, again and again until it has nothing more (four at most) */
+function hints(r, m) {
+  for (let n = 0; n < 4 && r.phase === 'play'; n++) {
+    const h = r.hint();
+    if (!h) return;
+    const ok = h.k === 'shoot' ? r.shoot(h.id, h.row) : h.k === 'pass' ? r.pass(h.id, h.to) : h.k === 'move' ? r.move(h.id, h.c, h.r) : r.tackle(h.id);
+    if (!ok || h.k === 'shoot' || h.k === 'tackle') return;
+  }
+}
+
+function randomTurn(r, m, rnd) {
+  for (const u of m.units.filter((v) => v.team === 0)) {
+    const cs = m.reach(u.id);
+    if (cs.length && rnd() < 0.7) { const c = cs[Math.floor(rnd() * cs.length)]; r.move(u.id, c.c, c.r); }
+    if (m.carrier?.id === u.id && m.canAct(u) && rnd() < 0.5) {
+      if (rnd() < 0.3) r.shoot(u.id, 3 + Math.floor(rnd() * 3));
+      else { const q = m.units.filter((v) => v.team === 0 && v !== u && !v.keeper)[Math.floor(rnd() * 2)]; r.pass(u.id, q.id); }
     }
-    return inp;
-  };
+  }
+}
+
+/** how much a trait is worth to the pro, given what it already has */
+function value(r, id) {
+  const has = (k) => r.has(k);
+  let v = { crossfield: 10, routeone: 9, backpass: 9, metronome: 7, hotstreak: 5, piggy: 5, lateshow: 4, volley: 4, backheel: 3, longrange: 2, nutmeg: 1, ricochet: 1, coolhead: 1, tiki: 0 }[id] ?? 0;
+  if (id === 'backheel' && (has('tiki') || has('backpass'))) v += 4;
+  if (id === 'backpass' && has('backheel')) v += 3;
+  if (id === 'longrange' && has('routeone')) v += 3;
+  if (id === 'routeone' && has('longrange')) v += 3;
+  return v;
+}
+
+function pickFor(kind, r, rnd) {
+  if (!r.offer.length) return r.pick();
+  let id;
+  if (kind === 'blind' || kind === 'casual') id = r.offer[0];
+  else if (kind === 'random') id = r.offer[Math.floor(rnd() * r.offer.length)];
+  else id = r.offer.slice().sort((a, b) => value(r, b) - value(r, a))[0];
+  if (r.traits.length < SLOTS) return r.pick(id);
+  const worst = r.traits.slice().sort((a, b) => value(r, a) - value(r, b))[0];
+  if (kind === 'pro' && value(r, worst) >= value(r, id)) return r.pick();
+  return r.pick(id, kind === 'pro' ? worst : r.traits[0]);
+}
+
+/** one turn for a bot: its moves and ball actions, then End turn */
+export function turn(kind, r, rnd) {
+  const m = r.game;
+  if (kind === 'random') randomTurn(r, m, rnd);
+  else if (kind === 'casual') hints(r, m);
+  else if (m.carrier?.team === 0) attack(r, m);
+  else if (m.carrier?.team === 1) defend(r, m);
+  else support(r, m);
+  if (r.phase === 'play') r.endTurn();
 }
 
 export function play(kind, seed) {
   const r = new Run(seed), rnd = rngOf(seed * 7 + 3);
-  const bot = makeBot(kind, rnd);
   let n = 0;
-  while ((r.phase === 'play' || r.phase === 'shop') && n++ < 60 * 60 * 30) {
-    if (r.phase === 'shop') {
-      const id = PICKS.find((k) => r.offer.includes(k));
-      if (r.traits.length >= 5) r.pick(undefined); else r.pick(kind === 'random' ? undefined : id);
-      continue;
-    }
-    r.tick(bot(r));
+  while (r.phase !== 'won' && r.phase !== 'lost' && n++ < 3000) {
+    if (r.phase === 'sheet') { r.ready(); continue; }
+    if (r.phase === 'shop') { pickFor(kind, r, rnd); continue; }
+    turn(kind, r, rnd);
   }
   return r;
 }
 
 import { pathToFileURL } from 'node:url';
-if (import.meta.url === pathToFileURL(process.argv[1]).href) main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
 
 function main() {
-const out = {};
-for (const kind of ['pro', 'greedy', 'hoofer', 'random']) {
-  let won = 0, matches = 0, goals = 0, best = 0, pts = 0;
-  for (let k = 0; k < RUNS; k++) {
-    const r = play(kind, 1000 + k * 17);
-    if (r.phase === 'won') won++;
-    matches += r.stats.won; goals += r.stats.goals; best = Math.max(best, r.stats.best); pts += r.stats.points;
+  const out = {};
+  for (const kind of ['pro', 'blind', 'casual', 'random']) {
+    let won = 0, wins = 0, goals = 0, best = 0, firstTwo = 0;
+    const per = Array(MATCHES).fill(0);
+    for (let k = 0; k < RUNS; k++) {
+      const r = play(kind, 1000 + k * 17);
+      if (r.phase === 'won') won++;
+      wins += r.stats.won; goals += r.stats.goals; best = Math.max(best, r.stats.best);
+      if (r.stats.won >= 2) firstTwo++;
+      for (let i = 0; i < r.stats.won; i++) per[i]++;
+    }
+    out[kind] = { won, wins: wins / RUNS, firstTwo };
+    console.log(`${kind.padEnd(6)} ${won}/${RUNS} runs won · ${(wins / RUNS).toFixed(1)} matches cleared · first two cleared ${firstTwo}/${RUNS} · ${(goals / RUNS).toFixed(1)} goals a run · best goal ${best}`);
+    console.log('       cleared match: ' + per.map((p, i) => `${i + 1}:${p}`).join(' '));
   }
-  out[kind] = { won, matches: matches / RUNS, goals: goals / RUNS, best };
-  console.log(`${kind.padEnd(7)} ${won}/${RUNS} won · ${(matches / RUNS).toFixed(1)} matches · ${(goals / RUNS).toFixed(1)} goals · ${Math.round(pts / Math.max(1, goals))} a goal · best goal ${best}`);
-}
-assert.ok(out.pro.matches >= 4, 'good passing should get well into the run');
-assert.ok(out.pro.matches > out.hoofer.matches + 1, 'passing should beat hoofing');
-assert.equal(out.random.won, 0, 'mashing should never win');
-assert.ok(out.random.matches < 1, 'mashing should not get past the first match');
-console.log(`Combo Ball bots: pro clears ${out.pro.matches.toFixed(1)} of ${MATCHES} matches on average.`);
+  assert.ok(out.casual.firstTwo > RUNS / 2, 'following the hints should clear the first two matches most of the time');
+  assert.ok(out.pro.wins >= 5, 'good play with traits that combine should clear five matches on average');
+  assert.ok(out.pro.wins > out.blind.wins + 0.5, 'buying traits well should beat taking the first one');
+  assert.equal(out.random.won, 0, 'random play should never win the run');
+  const rate = out.pro.won / RUNS;
+  assert.ok(rate >= 0.1 && rate <= 0.35, `the pro should win a run now and then (${(rate * 100).toFixed(0)}%)`);
+  console.log(`Combo Ball bots: the pro clears ${out.pro.wins.toFixed(1)} of ${MATCHES} matches and wins ${(rate * 100).toFixed(0)}% of runs.`);
 }

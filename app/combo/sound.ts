@@ -1,9 +1,9 @@
-// Combo Ball sounds, all synthesised with WebAudio: the thump of a pass (a softer one along the ground, a scooped one
-// for a lofted ball), a rising chime for every completed pass that climbs a step with each pass in the chain, a deeper
-// one when the mult goes up, the crumple of a chain being wiped, a big strike for shots, the keeper's slap, the post's
-// clang, a Grumble winding up a tackle, slides, the referee's whistle, the crowd's roar and the till-roll of a goal's
-// points counting up, and an original chiptune soundtrack written for this game: a title tune, a match loop, a faster
-// loop for the last twenty seconds, the transfer shop and an ending. Silent until the first click, tap or key.
+// Combo Ball sounds, all synthesised with WebAudio: footsteps, the thump of a pass (a scooped one for a lofted ball),
+// a rising chime for every completed pass that climbs a step with each pass in the chain, a deeper one when the mult
+// goes up, the crumple of a chain being wiped, a big strike for shots, the keeper's slap, the post's clang, tackles,
+// the referee's whistle and the crowd's roar, and an original chiptune soundtrack written for this game: a title tune,
+// a match loop, a faster loop for the last three turns, the transfer shop and an ending. Silent until the first click,
+// tap or key.
 const hz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 export type SongId = 'title' | 'match' | 'late' | 'shop' | 'ending';
 /** per song: seconds a step, root note, chord roots for a four-bar loop, a bass line and a lead (-99 is a rest) */
@@ -66,22 +66,19 @@ export class ComboSound {
     if (mult) { this.tone(hz(88), t + 0.05, 0.25, 0.1, 'triangle'); this.tone(hz(95), t + 0.09, 0.3, 0.07, 'triangle'); }
   }
   wipe() { const t = this.now; this.tone(500, t, 0.3, 0.14, 'sawtooth', 120); this.hiss(t, 0.25, 0.12, 900, 0.6, 'lowpass', 300); }
-  shot(power: number) { const t = this.now; this.tone(110, t, 0.12, 0.35, 'square', 45); this.hiss(t, 0.18 + power * 0.1, 0.22, 2500, 0.9, 'bandpass', 600); }
+  tread() { this.hiss(this.now, 0.04, 0.05, 900, 1, 'lowpass'); }
+  shot(power = 1) { const t = this.now; this.tone(110, t, 0.12, 0.35, 'square', 45); this.hiss(t, 0.18 + power * 0.1, 0.22, 2500, 0.9, 'bandpass', 600); }
   save() { const t = this.now; this.hiss(t, 0.09, 0.3, 1400, 0.7); this.tone(220, t, 0.08, 0.15, 'square', 140); }
   post() { const t = this.now; [1, 2.76, 5.4].forEach((k) => this.tone(520 * k, t, 0.5, 0.08, 'triangle')); }
-  wind() { const t = this.now; this.tone(hz(70), t, 0.08, 0.06, 'square'); this.tone(hz(73), t + 0.06, 0.08, 0.06, 'square'); }
-  slide() { this.hiss(this.now, 0.25, 0.16, 700, 0.8, 'lowpass', 300); }
   tackle() { const t = this.now; this.tone(180, t, 0.1, 0.2, 'square', 90); this.hiss(t, 0.08, 0.15, 1100, 1); }
   steal() { const t = this.now; this.tone(300, t, 0.12, 0.16, 'sawtooth', 150); }
   whistle(long = false) { const t = this.now, n = long ? 3 : 1; for (let i = 0; i < n; i++) { this.tone(2900, t + i * 0.22, long && i === 2 ? 0.5 : 0.16, 0.07, 'sine', 0, this.sfx, 0.01); this.tone(2950, t + i * 0.22, long && i === 2 ? 0.5 : 0.16, 0.04, 'square'); } }
   roar() { const t = this.now; this.hiss(t, 1.4, 0.18, 800, 0.4, 'bandpass', 1400); this.hiss(t + 0.1, 1.1, 0.1, 2400, 0.5); }
   /** one tick of the goal's count-up */
-  till(k: number) { this.tone(hz(84 + (k % 5) * 2), this.now, 0.04, 0.05, 'square'); }
   goal() { const t = this.now; [72, 76, 79, 84, 88, 91].forEach((n, i) => this.tone(hz(n), t + i * 0.06, 0.3, 0.12, 'square')); this.roar(); }
   concede() { const t = this.now; [67, 63, 60].forEach((n, i) => this.tone(hz(n), t + i * 0.12, 0.3, 0.1, 'triangle')); }
   target() { const t = this.now; [84, 88, 91, 96].forEach((n, i) => this.tone(hz(n), t + 0.5 + i * 0.09, 0.4, 0.12, 'square')); }
   pick() { const t = this.now; [79, 84, 91].forEach((n, i) => this.tone(hz(n), t + i * 0.05, 0.2, 0.12, 'triangle')); }
-  enzo(text: string) { const t = this.now, n = Math.min(8, Math.ceil(text.length / 9)); for (let i = 0; i < n; i++) this.tone(520 + ((text.charCodeAt(i * 3) || 70) % 7) * 40, t + i * 0.07, 0.05, 0.05, 'square'); }
   stinger(good: boolean) { const t = this.now; (good ? [72, 76, 79, 84, 88] : [72, 69, 65, 60]).forEach((n, i) => this.tone(hz(n), t + i * 0.13, 0.4, 0.15, 'square')); }
   no() { this.tone(180, this.now, 0.12, 0.1, 'square', 140); }
   button() { this.tone(1100, this.now, 0.04, 0.08, 'square'); }
