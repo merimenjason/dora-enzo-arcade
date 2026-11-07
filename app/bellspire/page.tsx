@@ -6,17 +6,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BellspireGame, parseSave, heroStats, xpToNext, SAVE_KEY, NO_INPUT, ROOMS, AREAS, GEAR, SHOP, FOOD, SPELLS, ABILITIES, ABILITY_ORDER,
-  BOSSES, MURALS, NAMES, INFO, COMPLETION, roomAt, rawChar, VIEW_W, VIEW_H, SHRINE_NAMES,
+  BOSSES, MURALS, NAMES, INFO, COMPLETION, roomAt, rawChar, roomById, MAP_EXITS, VIEW_W, VIEW_H, SHRINE_NAMES,
   type Input, type Save, type HeroId, type Slot, type FoodId, type GameEvent, type Settings as GameSettings,
 } from '@/lib/bellspire-game';
 import { BellspireScene } from '@/lib/bellspire-scene';
+import { GUARDIANS, GUARDIAN_AREA } from '@/lib/bellspire-world';
+import { ART } from '@/lib/bellspire-art';
 import { BellspireSound, type Track } from './sound';
 import './bellspire.css';
 
 type Screen = 'title' | 'game' | 'ending';
 type Tab = 'map' | 'gear' | 'items' | 'guide' | 'settings';
 type Action = keyof Input;
-type Settings = { sound: boolean; music: boolean; assist: boolean; strict: boolean; shake: boolean; calmFlash: boolean; numbers: boolean; minimap: boolean; touch: 'auto' | 'on' | 'off'; keys: Record<Action, string[]> };
+type Settings = { sound: boolean; music: boolean; assist: boolean; wisp: boolean; strict: boolean; shake: boolean; calmFlash: boolean; numbers: boolean; minimap: boolean; touch: 'auto' | 'on' | 'off'; keys: Record<Action, string[]> };
 const SETTINGS_KEY = 'bellspire-v1-settings';
 const ACTIONS: { id: Action; label: string }[] = [
   { id: 'left', label: 'Left' }, { id: 'right', label: 'Right' }, { id: 'up', label: 'Up / use' }, { id: 'down', label: 'Down' },
@@ -26,7 +28,7 @@ const DEFAULT_KEYS: Record<Action, string[]> = {
   left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], up: ['ArrowUp', 'KeyW'], down: ['ArrowDown', 'KeyS'],
   jump: ['KeyZ', 'Space', 'KeyK'], attack: ['KeyX', 'KeyJ'], dash: ['KeyC', 'KeyL'], cast: ['KeyV', 'KeyI'], tag: ['ShiftLeft', 'ShiftRight', 'Tab'],
 };
-const DEFAULTS: Settings = { sound: true, music: true, assist: true, strict: false, shake: true, calmFlash: false, numbers: true, minimap: true, touch: 'auto', keys: DEFAULT_KEYS };
+const DEFAULTS: Settings = { sound: true, music: true, assist: true, wisp: true, strict: false, shake: true, calmFlash: false, numbers: true, minimap: true, touch: 'auto', keys: DEFAULT_KEYS };
 const PORTRAIT: Record<string, number> = { dora: 0, enzo: 1, wayra: 2, ukumari: 3, mother: 4 };
 const SLOTS: Slot[] = ['weapon', 'coat', 'ring', 'relic'];
 const SLOT_NAME: Record<Slot, string> = { weapon: 'Weapon', coat: 'Coat', ring: 'Ring', relic: 'Relic' };
@@ -91,10 +93,24 @@ export default function BellspirePage() {
   const travelRef = useRef<{ id: string; t: number } | null>(null);
   const mapNavRef = useRef<((k: 'left' | 'right' | 'ok') => void) | null>(null);
   const padNav = useRef({ left: false, right: false, ok: false });
+  /** the item highlighted in the gear list (its preview and comparison), and what was equipped while the menu was open */
+  const [gearSel, setGearSel] = useState<string | null>(null);
+  const equipped = useRef(new Map<HeroId, string[]>());
   const lastArea = useRef('');
 
   useEffect(() => { settingsRef.current = settings; }, [settings]);
-  useEffect(() => { if (!menu) setTravelMode(false); }, [menu]);
+  useEffect(() => { if (!menu) { setTravelMode(false); setEquipPick(null); } }, [menu]);
+  // gear changed in the menu: when it closes, a shine on the hero in the game and a word about it
+  useEffect(() => {
+    if (menu || !equipped.current.size) return;
+    const g = gameRef.current, sc = sceneRef.current;
+    const notes: string[] = [];
+    for (const [h, names] of equipped.current) { if (sc) sc.shineT[h] = 45; notes.push(`${heroName(h)} equipped the ${names.join(' and the ')}.`); }
+    equipped.current.clear();
+    if (g) g.note(notes.join(' '), true);
+    soundRef.current?.play('relic');
+  }, [menu]);
+  useEffect(() => { setGearSel(null); }, [equipPick]);
   const paused = screen !== 'game' || menu !== null || shop || mural !== null;
   useEffect(() => { pausedRef.current = paused; }, [paused]);
 
@@ -122,7 +138,7 @@ export default function BellspirePage() {
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch { /* storage may be blocked */ }
     soundRef.current?.setSound(s.sound); soundRef.current?.setMusic(s.music);
     const g = gameRef.current;
-    if (g) { g.settings.assist = s.assist && !s.strict; g.settings.strict = s.strict; }
+    if (g) { g.settings.assist = s.assist && !s.strict; g.settings.strict = s.strict; g.settings.wisp = s.wisp; }
     if (sceneRef.current) { sceneRef.current.shakeOn = s.shake; sceneRef.current.reduceFlash = s.calmFlash; sceneRef.current.numbersOn = s.numbers; }
   };
   /** Go to a lit shrine: with the short journey animation, or straight there when motion is reduced. */
@@ -145,7 +161,7 @@ export default function BellspirePage() {
 
   const startGame = (save: Save | null) => {
     const s = settingsRef.current;
-    const g = new BellspireGame(save, { assist: s.assist && !s.strict, strict: s.strict }, (Date.now() % 100000) + 1);
+    const g = new BellspireGame(save, { assist: s.assist && !s.strict, strict: s.strict, wisp: s.wisp }, (Date.now() % 100000) + 1);
     gameRef.current = g;
     if (sceneRef.current) { sceneRef.current.roomId = ''; sceneRef.current.shakeOn = s.shake; sceneRef.current.reduceFlash = s.calmFlash; sceneRef.current.numbersOn = s.numbers; }
     lastArea.current = '';
@@ -336,6 +352,9 @@ export default function BellspirePage() {
         setHp: (h: HeroId, hp: number) => g?.setHp(h, hp),
         skipDialog: () => { if (g) g.dialog = null; },
         coins: (n: number) => { if (g) g.save.coins = n; },
+        exits: (from?: string) => MAP_EXITS.filter((e) => !from || e.from === from).map((e) => ({ from: e.from, to: e.to, toArea: e.toArea, cross: e.cross, door: e.door?.ch ?? null, dx: e.dx, dy: e.dy })),
+        drawnExits: (which: 'mini' | 'map') => DRAWN[which],
+        exitLayer: (on: boolean) => { EXIT_LAYER = on; },
         shrineIcon: (id: string) => { const t = INFO.get(id)!.things.find((x) => x.ch === 'S')!; return { x: 8 + (t.c / 30) * 26, y: 8 + (t.r / 17) * 16 - 4 }; },
         debug: (on: boolean) => { if (sceneRef.current) sceneRef.current.debug = on; },
       };
@@ -543,15 +562,16 @@ export default function BellspirePage() {
   // ─── panels ──────────────────────────────────────────────────────────────
   function settingsPanel() {
     const s = settings;
-    const toggle = (k: 'sound' | 'music' | 'assist' | 'strict' | 'shake' | 'calmFlash' | 'numbers' | 'minimap', label: string, help: string) => (
-      <label className="bs-toggle"><input type="checkbox" checked={s[k]} onChange={(e) => saveSettings({ ...s, [k]: e.target.checked, ...(k === 'strict' && e.target.checked ? { assist: false } : {}), ...(k === 'assist' && e.target.checked ? { strict: false } : {}) })} /><span><b>{label}</b><small>{help}</small></span></label>
+    const toggle = (k: 'sound' | 'music' | 'assist' | 'wisp' | 'strict' | 'shake' | 'calmFlash' | 'numbers' | 'minimap', label: string, help: string, off?: string) => (
+      <label className={`bs-toggle ${off ? 'bs-off' : ''}`}><input type="checkbox" disabled={!!off} checked={s[k] && !off} onChange={(e) => saveSettings({ ...s, [k]: e.target.checked, ...(k === 'strict' && e.target.checked ? { assist: false } : {}), ...(k === 'assist' && e.target.checked ? { strict: false } : {}) })} /><span><b>{label}</b><small>{off ?? help}</small></span></label>
     );
     return (
       <div className="bs-settings">
         <h3>Settings</h3>
         {toggle('sound', 'Sound effects', 'Swords, bells, splashes.')}
         {toggle('music', 'Music', 'A tune for every part of the citadel.')}
-        {toggle('assist', 'Helping hand', 'On: less damage, slower boss attacks with longer warnings, healing near shrines, and a little wisp that shows the way if you stop for a while.')}
+        {toggle('assist', 'Helping hand', 'On: less damage, slower boss attacks with longer warnings, healing near shrines, and a guiding wisp.')}
+        {toggle('wisp', 'Guiding wisp', 'A little light that always floats ahead along the way to the next goal.', s.assist && !s.strict ? undefined : 'Needs the helping hand on.')}
         {toggle('strict', 'Strict mode', 'For experts: full damage, tighter jumps, and travel only from shrines. Turns the helping hand off.')}
         {toggle('shake', 'Screen shake', 'The screen shakes on big hits.')}
         {toggle('calmFlash', 'Calmer flashes', 'No full-screen flashes.')}
@@ -584,7 +604,16 @@ export default function BellspirePage() {
         <MapCanvas g={g} travelMode={travelMode} onTravel={doTravel} navRef={mapNavRef} />
         <div className="bs-map-side">
           <p className="bs-pct">{c.pct}% explored</p>
-          <p className="bs-small-print">{c.cells}/{COMPLETION.cells} rooms · {c.chests}/{COMPLETION.chests} chests · {c.murals}/{COMPLETION.murals} murals · {c.bosses}/{COMPLETION.bosses} guardians</p>
+          <p className="bs-small-print bs-stats-line">Guardians {c.bosses} of {COMPLETION.bosses} · Rooms {c.cells} of {COMPLETION.cells} · Chests {c.chests} of {COMPLETION.chests} · Murals {c.murals} of {COMPLETION.murals}</p>
+          <p className="bs-small-print bs-seals">Throne seals: {g.sealsOpen()} of 4 open</p>
+          <ul className="bs-legend" aria-label="Map key">
+            <li><i className="lg-stub" />A way into a room not seen yet</li>
+            <li><i className="lg-area" style={{ background: `linear-gradient(90deg, ${AREAS.docks.color} 50%, ${AREAS.crypt.color} 50%)` }} />The way into another area, in its colour</li>
+            <li><i className="lg-lock" style={{ background: ABILITIES.dash.color }} />A shut door, in the colour of what opens it</li>
+            <li><i className="lg-skull" />A guardian still restless</li>
+            <li><i className="lg-seal" />The throne’s four bell seals</li>
+            {g.wispOn() && <li><i className="lg-wisp" />Where the wisp is leading</li>}
+          </ul>
           <h4>Travel between shrines</h4>
           <ul className="bs-travel">
             {ROOMS.filter((r) => INFO.get(r.id)!.things.some((t) => t.ch === 'S')).map((r) => {
@@ -613,7 +642,7 @@ export default function BellspirePage() {
           const st = heroStats(g.save, h), s = g.save.heroes[h];
           return (
             <section key={h} className="bs-gear-hero">
-              <header><Portrait who={PORTRAIT[h]} size={0.9} /><div><b>{heroName(h)}</b> <small>Level {s.level}</small><Bar v={s.xp} max={xpToNext(s.level)} kind="xp" /><small>{s.xp}/{xpToNext(s.level)} XP</small></div></header>
+              <header><Portrait who={PORTRAIT[h]} size={0.9} /><HeroPreview scene={sceneRef.current} hero={h} weapon={g.save.equip[h].weapon ?? ''} coat={g.save.equip[h].coat ?? (h === 'dora' ? 'teal-coat' : 'rust-coat')} /><div><b>{heroName(h)}</b> <small>Level {s.level}</small><Bar v={s.xp} max={xpToNext(s.level)} kind="xp" /><small>{s.xp}/{xpToNext(s.level)} XP</small></div></header>
               <p className="bs-stats">HP {s.hp}/{st.maxHp} · MP {s.mp}/{st.maxMp} · Attack {st.atk} · Defence {st.def} · Magic {st.mag}</p>
               {SLOTS.map((slot) => {
                 const id = g.save.equip[h][slot];
@@ -636,11 +665,16 @@ export default function BellspirePage() {
                 const wrong = it.hero && it.hero !== equipPick.hero;
                 const worn = g.save.equip[equipPick.hero][equipPick.slot] === id;
                 const other = g.save.equip[equipPick.hero === 'dora' ? 'enzo' : 'dora'][equipPick.slot] === id;
+                const cmp = wrong || worn ? [] : compareGear(g.save, equipPick.hero, equipPick.slot, id);
+                const h = equipPick.hero, eq = g.save.equip[h];
+                const looks = !wrong && (equipPick.slot === 'weapon' || equipPick.slot === 'coat');
                 return (
-                  <li key={id}>
-                    <Icon i={it.icon} size={1.5} />
-                    <span className="bs-li-text"><b>{it.name}</b><small>{statLine(it)} {it.text}{other ? ` (${heroName(equipPick.hero === 'dora' ? 'enzo' : 'dora')} is using it.)` : ''}</small></span>
-                    <button type="button" className="bs-btn bs-small" disabled={!!wrong || worn} title={wrong ? `Only ${heroName(it.hero!)} can use it.` : ''} onClick={() => { const r = g.equip(equipPick.hero, equipPick.slot, id); setMsg(r ?? `${heroName(equipPick.hero)} equipped the ${it.name}.`); onEvents(g.drainEvents()); setFrame((f) => f + 1); }}>{worn ? 'Worn' : 'Equip'}</button>
+                  <li key={id} className={gearSel === id ? 'on' : ''} onClick={() => setGearSel(id)} onMouseEnter={() => setGearSel(id)}>
+                    {looks && gearSel === id ? <HeroPreview scene={sceneRef.current} hero={h} weapon={equipPick.slot === 'weapon' ? id : eq.weapon ?? ''} coat={equipPick.slot === 'coat' ? id : eq.coat ?? ''} /> : <Icon i={it.icon} size={1.5} />}
+                    <span className="bs-li-text"><b>{it.name}</b><small>{statLine(it)} {it.text}{other ? ` (${heroName(equipPick.hero === 'dora' ? 'enzo' : 'dora')} is using it.)` : ''}</small>
+                      {cmp.length > 0 && <span className="bs-compare">{cmp.map((c, i) => <em key={i} className={c.up ? 'bs-up' : 'bs-down'}>{c.label === '+' || c.label === '−' ? `${c.label} ${c.text}` : `${c.label} ${c.text}`}</em>)}</span>}
+                    </span>
+                    <button type="button" className="bs-btn bs-small" disabled={!!wrong || worn} title={wrong ? `Only ${heroName(it.hero!)} can use it.` : ''} onClick={() => { const r = g.equip(equipPick.hero, equipPick.slot, id); setMsg(r ?? `${heroName(equipPick.hero)} equipped the ${it.name}.`); if (!r) equipped.current.set(equipPick.hero, [...(equipped.current.get(equipPick.hero) ?? []).filter((n) => n !== it.name), it.name]); onEvents(g.drainEvents()); setFrame((f) => f + 1); }}>{worn ? 'Worn' : 'Equip'}</button>
                     {wrong && <em className="bs-why">Only {heroName(it.hero!)} can use it.</em>}
                   </li>
                 );
@@ -719,6 +753,38 @@ export default function BellspirePage() {
   }
 }
 
+const PERK_TEXT: Record<string, string> = {
+  fast: 'Swings come round faster', reach: 'A longer reach', cheapchime: 'The Bell Chime costs 2 less MP', bright: 'The lantern shines much further',
+  sturdy: 'Hits don’t knock back', swim: 'Swims a third faster', lucky: 'A quarter more coins', regen: 'MP slowly comes back',
+  crit: 'Some hits land twice as hard', quick: 'Runs a little faster', secrets: 'Cracked walls shine', xp: 'A quarter more XP',
+};
+/** What wearing an item would change for a hero: each stat before and after, and perks gained or lost. */
+function compareGear(save: Save, hero: HeroId, slot: Slot, id: string) {
+  const now = heroStats(save, hero);
+  const then = heroStats({ ...save, equip: { ...save.equip, [hero]: { ...save.equip[hero], [slot]: id } } }, hero);
+  const rows: { label: string; text: string; up: boolean }[] = [];
+  for (const [k, label] of [['atk', 'ATK'], ['def', 'DEF'], ['mag', 'MAG'], ['maxHp', 'Max HP'], ['maxMp', 'Max MP']] as const)
+    if (then[k] !== now[k]) rows.push({ label, text: `${now[k]} → ${then[k]}`, up: then[k] > now[k] });
+  for (const pk of then.perks) if (!now.perks.includes(pk)) rows.push({ label: '+', text: PERK_TEXT[pk], up: true });
+  for (const pk of now.perks) if (!then.perks.includes(pk)) rows.push({ label: '−', text: PERK_TEXT[pk], up: false });
+  return rows;
+}
+
+/** A hero standing in the gear they wear (or would wear), drawn from the scene's own dressed sprites. */
+function HeroPreview({ scene, hero, weapon, coat }: { scene: BellspireScene | null; hero: HeroId; weapon: string; coat: string }) {
+  const ref = useRef<HTMLCanvasElement | null>(null);
+  useEffect(() => {
+    const cv = ref.current;
+    if (!cv || !scene) return;
+    const ctx = cv.getContext('2d')!;
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    const name = scene.dressed(hero, weapon, coat), im = scene.img.get(name), [cw, ch] = ART[hero];
+    if (im) ctx.drawImage(im, 0, 0, cw, ch, 0, 0, cw, ch);
+  }, [scene, hero, weapon, coat]);
+  return <canvas ref={ref} className="bs-preview" width={56} height={50} data-weapon={weapon} data-coat={coat} aria-label={`${heroName(hero)} in the ${GEAR[weapon]?.name} and ${GEAR[coat]?.name}`} />;
+}
+
 function statLine(it: { atk?: number; def?: number; mag?: number; hp?: number; mp?: number }) {
   const p: string[] = [];
   if (it.atk) p.push(`Atk +${it.atk}`); if (it.def) p.push(`Def +${it.def}`); if (it.mag) p.push(`Mag +${it.mag}`); if (it.hp) p.push(`HP +${it.hp}`); if (it.mp) p.push(`MP +${it.mp}`);
@@ -728,17 +794,60 @@ function formatTime(s: number) { const m = Math.floor(s / 60); return `${Math.fl
 
 /** The pause map: every room you have seen, coloured by area, with shrines, chests and the heroes. */
 // ─── the map: drawn the same way in the pause menu and the HUD minimap ─────
-/** Cell edges with a way through (some open tile on both sides), as "cx,cy,dx,dy", worked out once. */
-const OPEN_EDGES = (() => {
-  const out = new Set<string>();
-  const open = (c: number, r: number) => !'#^'.includes(rawChar(c, r));
-  for (let cy = 0; cy < 12; cy++) for (let cx = 0; cx < 16; cx++) {
-    if (!roomAt(cx, cy)) continue;
-    for (let r = 0; r < 17; r++) if (open(cx * 30 + 29, cy * 17 + r) && open(cx * 30 + 30, cy * 17 + r) && roomAt(cx + 1, cy)) { out.add(`${cx},${cy},1,0`); out.add(`${cx + 1},${cy},-1,0`); break; }
-    for (let c = 0; c < 30; c++) if (open(cx * 30 + c, cy * 17 + 16) && open(cx * 30 + c, cy * 17 + 17) && roomAt(cx, cy + 1)) { out.add(`${cx},${cy},0,1`); out.add(`${cx},${cy + 1},0,-1`); break; }
+const EXIT_DOORS = new Set(MAP_EXITS.flatMap((e) => (e.door ? [e.door.id] : [])));
+/** The doorways: a plain gap between two explored rooms, a bright stub into a room not seen yet, the next area's colour
+ *  on a way into another area (even unexplored), and a lock in the ability's colour on a door that is still shut. */
+/** What each map last drew at its doorways (for the browser tests). */
+type Drawn = { kind: 'lock' | 'area' | 'stub' | 'gap'; from: string; to: string; toArea: string; x: number; y: number };
+const DRAWN: Record<'mini' | 'map', Drawn[]> = { mini: [], map: [] };
+/** the doorway layer can be hidden from the debug hook, for before-and-after pictures */
+let EXIT_LAYER = true;
+function drawExits(ctx: CanvasRenderingContext2D, g: BellspireGame, seen: Set<string>, CW: number, CH: number, ox: number, oy: number, line: number, small: boolean) {
+  const n = small ? 4 : 7, th = line + 2, drawn: Drawn[] = [];
+  DRAWN[small ? 'mini' : 'map'] = drawn;
+  if (!EXIT_LAYER) return;
+  for (const e of MAP_EXITS) {
+    if (!seen.has(`${e.cx},${e.cy}`)) continue;
+    const px = ox + e.cx * CW, py = oy + e.cy * CH;
+    // the middle of the doorway, on the wall line
+    const mx = e.dx ? px + (e.dx > 0 ? CW - line / 2 : line / 2) : px + e.at * CW;
+    const my = e.dy ? py + (e.dy > 0 ? CH - line / 2 : line / 2) : py + e.at * CH;
+    const rect = (len: number, depth: number, out = 0) => {
+      // a bar along the wall (len) and across it (depth), pushed `out` px past the wall
+      const w = e.dx ? depth : len, h = e.dx ? len : depth;
+      ctx.fillRect(Math.round(mx - w / 2 + e.dx * out), Math.round(my - h / 2 + e.dy * out), w, h);
+    };
+    const shut = e.door && !g.doorOpen(e.door);
+    const known = seen.has(`${e.cx + e.dx},${e.cy + e.dy}`);
+    if (mx > -8 && my > -8 && mx < ctx.canvas.width + 8 && my < ctx.canvas.height + 8)
+      drawn.push({ kind: shut ? 'lock' : e.cross ? 'area' : !known ? 'stub' : 'gap', from: e.from, to: e.to, toArea: e.toArea, x: Math.round(mx), y: Math.round(my) });
+    if (shut) {
+      // a little lock in the door's colour
+      const k = small ? 5 : 8;
+      ctx.fillStyle = '#1a1020'; ctx.fillRect(Math.round(mx - k / 2) - 1, Math.round(my - k / 2) - 1, k + 2, k + 2);
+      ctx.fillStyle = DOOR_COLOR[e.door!.ch] ?? '#b85050'; ctx.fillRect(Math.round(mx - k / 2), Math.round(my - k / 2), k, k);
+      ctx.fillStyle = '#1a1020'; ctx.fillRect(Math.round(mx) - (small ? 0 : 1), Math.round(my) - 1, small ? 1 : 2, small ? 2 : 3);
+    } else if (e.cross) {
+      // into another area: a notch in that area's colour, poking out of the wall
+      ctx.fillStyle = '#1a1020'; rect(n + 2, th + 2, 1);
+      ctx.fillStyle = AREAS[e.toArea].color; rect(n, th, 1);
+      if (!known) { ctx.fillStyle = '#fff6d8'; rect(small ? 2 : 3, small ? 1 : 2, small ? 2 : 3); }
+    } else if (!known) {
+      // into a room not seen yet: a bright stub pointing out
+      ctx.fillStyle = '#fff6d8'; rect(n, th, 1);
+      rect(Math.max(2, n - 2), 2, small ? 2 : 3);
+    } else {
+      // between two rooms already seen: a plain gap in the wall
+      ctx.fillStyle = AREAS[roomById(e.from).area].color; rect(n, th);
+    }
   }
-  return out;
-})();
+}
+/** The throne door's four bell seals: one per guardian in its area's colour, bright once that guardian is calm. */
+function sealPips(ctx: CanvasRenderingContext2D, g: BellspireGame, x: number, y: number, small: boolean) {
+  const k = small ? 2 : 3, gap = k + 1, x0 = Math.round(x - (GUARDIANS.length * gap) / 2);
+  ctx.fillStyle = '#1a1020'; ctx.fillRect(x0 - 1, Math.round(y) - 1, GUARDIANS.length * gap + 1, k + 2);
+  GUARDIANS.forEach((b, i) => { ctx.fillStyle = g.flag(`boss:${b}`) ? AREAS[GUARDIAN_AREA[b]].color : '#3a3040'; ctx.fillRect(x0 + i * gap, Math.round(y), k, k); });
+}
 const SHRINE_ROOMS = ROOMS.filter((r) => INFO.get(r.id)!.things.some((t) => t.ch === 'S'));
 const DOOR_COLOR: Record<string, string> = { d: ABILITIES.dash.color, j: ABILITIES.double.color, k: ABILITIES.wallkick.color, l: ABILITIES.lantern.color, c: ABILITIES.chime.color, u: '#c9a46a', b: '#b85050' };
 
@@ -760,21 +869,16 @@ function drawMap(ctx: CanvasRenderingContext2D, g: BellspireGame, CW: number, CH
       if (x === r.w - 1) ctx.fillRect(px + CW - line, py, line, CH);
       if (y === 0) ctx.fillRect(px, py, CW, line);
       if (y === r.h - 1) ctx.fillRect(px, py + CH - line, CW, line);
-      // a way on into a room not seen yet: a light notch in the wall
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        if (!OPEN_EDGES.has(`${cx},${cy},${dx},${dy}`) || seen.has(`${cx + dx},${cy + dy}`)) continue;
-        ctx.fillStyle = '#fff6d8';
-        const n = small ? 3 : 6;
-        if (dx === 1) ctx.fillRect(px + CW - line, py + CH / 2 - n / 2, line + 1, n);
-        else if (dx === -1) ctx.fillRect(px - 1, py + CH / 2 - n / 2, line + 1, n);
-        else if (dy === 1) ctx.fillRect(px + CW / 2 - n / 2, py + CH - line, n, line + 1);
-        else ctx.fillRect(px + CW / 2 - n / 2, py - 1, n, line + 1);
-      }
     }
+  }
+  drawExits(ctx, g, seen, CW, CH, ox, oy, line, small);
+  for (const r of ROOMS) {
     const info = INFO.get(r.id)!;
     for (const d of info.doors) {
       const cell = `${Math.floor(d.c / 30)},${Math.floor(d.r / 17)}`;
-      if (!seen.has(cell) || g.doorOpen(d)) continue;
+      if (!seen.has(cell)) continue;
+      if (d.ch === 'u') sealPips(ctx, g, ox + ((d.c + d.w / 2) / 30) * CW, oy + (d.r / 17) * CH - (small ? 3 : 5), small);
+      if (g.doorOpen(d) || (EXIT_LAYER && EXIT_DOORS.has(d.id))) continue;
       const px = ox + (d.c / 30) * CW, py = oy + (d.r / 17) * CH, w = Math.max(2, (d.w / 30) * CW), h = Math.max(2, (d.h / 17) * CH);
       ctx.fillStyle = '#1a1020'; ctx.fillRect(px - 1, py - 1, w + 2, h + 2);
       ctx.fillStyle = DOOR_COLOR[d.ch] ?? '#b85050'; ctx.fillRect(px, py, w, h);
@@ -796,6 +900,13 @@ function drawMap(ctx: CanvasRenderingContext2D, g: BellspireGame, CW: number, CH
       else if (th.ch === 'M') { ctx.fillStyle = '#ff9a3c'; ctx.fillRect(px - 1, py - 1, small ? 2 : 3, small ? 2 : 3); }
       else if (th.ch === 'O' && !g.flag(`boss:${r.boss}`)) { ctx.fillStyle = '#1a1020'; ctx.fillRect(px - 3, py - 3, 7, 7); ctx.fillStyle = '#e8484f'; ctx.fillRect(px - 2, py - 2, 5, 5); }
     }
+  }
+  // the wisp's goal: a small glowing mote where it is leading
+  const goal = g.wispOn() ? g.nextGoal() : null;
+  if (goal) {
+    const gx = Math.round(ox + (goal.x / 480) * CW), gy = Math.round(oy + ((goal.y - 8) / 272) * CH), k = small ? 1 : 2, a = 0.35 + 0.25 * Math.sin(t * 0.15);
+    ctx.fillStyle = `rgba(150,240,255,${a.toFixed(2)})`; ctx.fillRect(gx - 2 * k, gy - 2 * k, 4 * k + 1, 4 * k + 1);
+    ctx.fillStyle = '#e8fdff'; ctx.fillRect(gx - k, gy - k, 2 * k + 1, 2 * k + 1);
   }
   // you are here: the current room outlined in pulsing gold, and a chinchilla head where the lead really stands
   const room = g.room, pulse = 0.55 + 0.45 * Math.sin(t * 0.12);

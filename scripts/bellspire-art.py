@@ -19,6 +19,7 @@ OUT = ROOT / 'public' / 'art' / 'bellspire'
 OUT.mkdir(parents=True, exist_ok=True)
 MANIFEST = {}
 BOXES = {}  # name: per-frame painted bounds (x0, y0, x1, y1) from the draw point
+PARTS = []  # the part maps of the frames being scaled (the heroes'), in order
 # the decor frames with open flames (the torch and candle frames the scene uses; the docks light with a lantern post
 # and the throne with a chandelier, so they have none)
 OPEN_FLAMES = {'halls': (6, 0), 'towers': (4, 6), 'crypt': (6, 2)}
@@ -109,6 +110,151 @@ def hero_colours(im, hero):
     rgb[pinkish] = rgb[pinkish] * keep + furc * (1 - keep)
     a[..., :3] = rgb
     return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
+
+
+def _grow(m, r):
+    """a square dilation by r pixels (separable, no wrap-around)"""
+    if r <= 0:
+        return m
+    p = np.pad(m, r)
+    h = np.zeros_like(p)
+    for d in range(-r, r + 1):
+        h |= np.roll(p, d, 1)
+    v = np.zeros_like(p)
+    for d in range(-r, r + 1):
+        v |= np.roll(h, d, 0)
+    return v[r:-r, r:-r]
+
+
+def _shrink(m, r):
+    return ~_grow(~m, r)
+
+
+def _big_parts(m, min_cells, step=4):
+    """keep the connected pieces of a mask that are at least `min_cells` cells big (labelled at 1/step size)"""
+    q = m[::step, ::step]
+    h, w = q.shape
+    lab = np.zeros((h, w), np.int32)
+    keep = np.zeros((h, w), bool)
+    n = 0
+    for y0 in range(h):
+        for x0 in range(w):
+            if not q[y0, x0] or lab[y0, x0]:
+                continue
+            n += 1
+            lab[y0, x0] = n
+            stack, cells = [(y0, x0)], []
+            while stack:
+                y, x = stack.pop()
+                cells.append((y, x))
+                for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    yy, xx = y + dy, x + dx
+                    if 0 <= yy < h and 0 <= xx < w and q[yy, xx] and not lab[yy, xx]:
+                        lab[yy, xx] = n
+                        stack.append((yy, xx))
+            if len(cells) >= min_cells:
+                for y, x in cells:
+                    keep[y, x] = True
+    big = np.repeat(np.repeat(keep, step, 0), step, 1)[:m.shape[0], :m.shape[1]]
+    return m & _grow(big, step)
+
+
+# the parts of a hero that gear recolours: 1 the coat, 2 Dora's blade or Enzo's staff shaft, 3 Enzo's lantern
+PART_COAT, PART_BLADE, PART_LAMP = 1, 2, 3
+
+
+def hero_parts(fig, hero):
+    """Label a (coloured, full-size) hero figure's coat and weapon pixels by colour and shape, so the scene can
+    recolour them for the gear worn. The coat is the big blob of the coat's hue (opened, so a staff of the same hue
+    crossing it isn't swept in, and closed, so the buttons on it are left alone); Dora's blade is the large bluish-grey
+    piece (her fur is warm, so it can't be caught, and the eyes' highlights are too small to count); Enzo's shaft is
+    the rest of the wood-brown, and his lantern the brass and glow off the coat."""
+    a = np.asarray(fig).astype(np.float32)
+    rgb, al = a[..., :3], a[..., 3] > 60
+    h, sat, v = _hsv(rgb)
+    r, b = rgb[..., 0], rgb[..., 2]
+    ink = (v < 0.2)
+    out = np.zeros(al.shape, np.uint8)
+    if hero == 'dora':
+        coatc = al & ~ink & (h > 150) & (h < 250) & (sat > 0.2)
+        blob = _grow(_shrink(coatc, 4), 4)
+        coat = coatc & _grow(blob, 3)
+        blade = al & ~ink & (sat < 0.3) & (b - r > -8) & (v > 0.38) & ~coat
+        blade = _big_parts(blade, 12)
+        out[coat] = PART_COAT
+        out[blade] = PART_BLADE
+    return out
+
+
+def enzo_parts(px):
+    """Enzo's coat and staff share one rust-brown hue, so they are told apart by shape on the finished pixel sprite:
+    the coat is a body of that colour at least three pixels thick (and the pixels hugging it), the staff the one- and
+    two-pixel lines of it left over, and the lantern the brass and glow (with its dark frame beside them)."""
+    a = np.asarray(px).astype(np.float32)
+    rgb, al = a[..., :3], a[..., 3] > 0
+    h, sat, v = _hsv(rgb)
+    ink = np.all(a[..., :3] == INK, axis=-1) | (v < 0.16)
+    rust = al & ~ink & ((h > 340) | (h < 27)) & (sat >= 0.33) & (v < 0.9)
+    body = _grow(_shrink(rust, 1), 1)
+    n = np.zeros(rust.shape, np.int16)
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            if dy or dx:
+                n += np.roll(np.roll(body, dy, 0), dx, 1)
+    # the coat is the big piece of that body; small pieces of it are the lantern hanging off the staff
+    lab = np.zeros(body.shape, np.int32)
+    sizes = [0]
+    H, W = body.shape
+    for y0 in range(H):
+        for x0 in range(W):
+            if body[y0, x0] and not lab[y0, x0]:
+                k = len(sizes); lab[y0, x0] = k; stack = [(y0, x0)]; cnt = 0
+                while stack:
+                    y, x = stack.pop(); cnt += 1
+                    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                        yy, xx = y + dy, x + dx
+                        if 0 <= yy < H and 0 <= xx < W and body[yy, xx] and not lab[yy, xx]:
+                            lab[yy, xx] = k; stack.append((yy, xx))
+                sizes.append(cnt)
+    big = np.isin(lab, [k for k, c in enumerate(sizes) if k and c >= 16])
+    small = body & ~big
+    n = np.zeros(rust.shape, np.int16)
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            if dy or dx:
+                n += np.roll(np.roll(big, dy, 0), dx, 1)
+    coat = big | (rust & (n >= 2))
+    coat |= rust & _grow(coat, 1) & (v < 0.45)  # the coat's dark edge shading, not the staff
+    glow = al & ~ink & (h >= 24) & (h < 62) & (sat > 0.3) & (v > 0.55) & ~coat
+    lamp = (glow | small) & ~coat
+    lamp |= al & ~ink & ~coat & _grow(lamp, 1) & (sat > 0.25) & ((h < 62) | (h > 340))
+    staff = rust & ~coat & ~lamp
+    out = np.zeros(rust.shape, np.uint8)
+    out[coat] = PART_COAT
+    out[staff] = PART_BLADE
+    out[lamp] = PART_LAMP
+    return out
+
+
+def teal_trim(px, pm):
+    """Dora's coat, finished on the pixel sprite: every teal pixel left (collar, cuffs, edges) is coat too"""
+    a = np.asarray(px).astype(np.float32)
+    h, sat, v = _hsv(a[..., :3])
+    teal = (a[..., 3] > 0) & (h > 150) & (h < 250) & (sat > 0.18) & (v > 0.1) & ~np.all(a[..., :3] == INK, axis=-1)
+    out = pm.copy()
+    out[teal & (pm != PART_BLADE)] = PART_COAT
+    return out
+
+
+def parts_scaled(parts, w, h):
+    """a part map shrunk to (w, h) the way the picture is: each pixel takes the part covering most of its box"""
+    fr = []
+    for k in (1, 2, 3):
+        m = Image.fromarray(((parts == k) * 255).astype(np.uint8)).resize((w, h), Image.BOX)
+        fr.append(np.asarray(m).astype(np.float32) / 255)
+    fr = np.stack(fr)
+    best = fr.argmax(0)
+    return np.where(fr.max(0) > 0.42, best + 1, 0).astype(np.uint8)
 
 
 def grey_fur(im):
@@ -260,9 +406,13 @@ def pixelate(im, w, h, colors=24, outline=True, clean=True):
     return Image.fromarray(out)
 
 
-def scaled(fig, s, colors=24, outline=True):
+def scaled(fig, s, colors=24, outline=True, parts=None):
     w, h = max(1, round(fig.width * s)), max(1, round(fig.height * s))
     px = pixelate(fig, w, h, colors, outline=False)
+    if parts is not None:
+        pm = parts_scaled(parts, w, h)
+        pm[np.asarray(px)[..., 3] == 0] = 0
+        PARTS.append(np.pad(pm, 1) if outline else pm)
     if outline:
         bigger = Image.new('RGBA', (w + 2, h + 2))
         bigger.paste(px, (1, 1))
@@ -285,11 +435,13 @@ def foot_x(px):
     return float(xs.mean()) if len(xs) else px.width / 2
 
 
-def strip(name, frames, cw, ch, anchor='foot', note=''):
-    """pack frames into one strip of (cw, ch) cells; each frame's foot sits at the cell's bottom middle"""
+def strip(name, frames, cw, ch, anchor='foot', note='', parts=None):
+    """pack frames into one strip of (cw, ch) cells; each frame's foot sits at the cell's bottom middle. With `parts`
+    (a part map per frame), also write <name>-parts.webp: the part number times 80 in red, opaque where there is one"""
     cw = max(cw, *(f.width for f in frames))
     ch = max(ch, *(f.height for f in frames))
     out = Image.new('RGBA', (cw * len(frames), ch))
+    pout = np.zeros((ch, cw * len(frames), 4), np.uint8) if parts is not None else None
     for i, f in enumerate(frames):
         if anchor == 'foot':
             fx = foot_x(f)
@@ -299,7 +451,15 @@ def strip(name, frames, cw, ch, anchor='foot', note=''):
         else:
             x, y = (cw - f.width) // 2, (ch - f.height) // 2
         out.alpha_composite(f, (i * cw + x, y))
+        if pout is not None:
+            pm = parts[i].copy()
+            pm[np.all(np.asarray(f)[..., :3] == INK, axis=-1)] = 0
+            sl = pout[y:y + f.height, i * cw + x:i * cw + x + f.width]
+            sl[..., 0] = pm * 80
+            sl[..., 3] = np.where(pm > 0, 255, 0)
     out.save(OUT / f'{name}.webp', lossless=True, method=6)
+    if pout is not None:
+        Image.fromarray(pout).save(OUT / f'{name}-parts.webp', lossless=True, method=6)
     MANIFEST[name] = (cw, ch, len(frames))
     # each frame's painted bounds, measured from the point the scene draws it at (the cell's bottom middle), so
     # hitboxes can be taken from the art itself
@@ -344,7 +504,14 @@ for hero in ('dora', 'enzo'):
     # (the new sheets' long staffs and swords can reach into the next cell, so stray pieces at a cell's side go)
     figs = [bbox(drop_neighbours(c) if sh in 'ij' else c) for sh in 'abcdefghij' for c in cells(key(src(f'bs-{hero}-{sh}')), 4, 2)]
     s = 38 / figs[0].height  # the idle pose stands 38 pixels tall; every sheet was painted at the same size
-    strip(hero, [scaled(f, s, 20) for f in figs], 56, 44)
+    PARTS.clear()
+    if hero == 'dora':
+        frames = [scaled(f, s, 20, parts=hero_parts(f, hero)) for f in figs]
+        parts = [teal_trim(f, pm) for f, pm in zip(frames, PARTS)]
+    else:
+        frames = [scaled(f, s, 20) for f in figs]
+        parts = [enzo_parts(f) for f in frames]
+    strip(hero, frames, 56, 44, parts=parts)
 
 # ─── enemies: frame A on top, frame B below ───────────────────────────────
 FOE_H = {'frog': 20, 'moth': 15, 'eel': 18, 'reed': 30, 'condor': 30, 'imp': 19, 'shell': 30, 'vizcacha': 18,

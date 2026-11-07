@@ -45,7 +45,7 @@ const tagTo = async (page, who) => {
     if ((await st(page)).dialog) await dbg(page, 'skipDialog');
     await page.keyboard.press('ShiftLeft'); await page.waitForTimeout(250);
   }
-  assert.equal((await st(page)).lead, who);
+  assert.equal((await st(page)).lead, who, JSON.stringify(await page.evaluate(() => { const g = window.__bellspire().game; return { s: window.__bellspire().state, cd: g.tagCd, menu: window.__bellspire().menu, boss: !!g.boss }; })));
 };
 // read through the boss's opening lines (Z), then calm it at once
 const calmBoss = async (page) => {
@@ -298,6 +298,137 @@ try {
   await page.getByRole('button', { name: 'Reset keys' }).click();
   await page.keyboard.press('Escape');
 
+  // ─── gear you can see ────────────────────────────────────────────────────
+  {
+    // one swing at a frog right in front of Dora: how much it takes
+    const swingAt = async () => {
+      await dbg(page, 'teleport', 'gate', 18, 14); await dbg(page, 'skipDialog'); await page.waitForTimeout(250);
+      await tagTo(page, 'dora');
+      await game(page, '(() => { const f = g.enemies.find((e) => e.kind === "frog"); g.enemies = [f]; f.hp = 999; f.alive = true; f.x = g.body.x + 20; f.y = g.body.y; f.st = "idle"; g.body.face = 1; g.leadRt.inv = 999; return true; })()');
+      await page.keyboard.press('KeyX');
+      await page.waitForTimeout(400);
+      return game(page, '999 - g.enemies[0].hp');
+    };
+    const before = await swingAt();
+    await game(page, '(g.save.gear.push("reed-cutter", "snail-coat"), true)');
+    await page.keyboard.press('Escape');
+    await until(page, () => window.__bellspire().menu === 'map');
+    await page.getByRole('tab', { name: 'Gear' }).click();
+    const doraGear = page.locator('.bs-gear-hero').first();
+    await doraGear.locator('.bs-slot', { hasText: 'Weapon' }).click();
+    const cutter = page.locator('.bs-gear-pick li', { hasText: 'Reed-Cutter' });
+    await cutter.click();
+    assert.match(await cutter.locator('.bs-compare').innerText(), /ATK \d+ → \d+/);
+    assert.match(await cutter.locator('.bs-compare').innerText(), /Swings come round faster/);
+    assert.equal(await cutter.locator('canvas.bs-preview').getAttribute('data-weapon'), 'reed-cutter', 'the preview wears it before it is equipped');
+    await page.screenshot({ path: '.shots/bellspire/29-gear-menu.png' });
+    await cutter.getByRole('button', { name: 'Equip' }).click();
+    await doraGear.locator('.bs-slot', { hasText: 'Coat' }).click();
+    await page.locator('.bs-gear-pick li', { hasText: 'Snail-Shell Coat' }).getByRole('button', { name: 'Equip' }).click();
+    assert.equal(await doraGear.locator('canvas.bs-preview').first().getAttribute('data-coat'), 'snail-coat', 'the hero’s own preview changes');
+    ok('Gear: picking an item shows what it changes and a preview; equipping a blade and a coat');
+    await page.getByRole('button', { name: 'Close menu' }).click();
+    await until(page, () => window.__bellspire().menu === null);
+    assert.match(await toast(page, /Reed-Cutter/), /Dora equipped the Reed-Cutter and the Snail-Shell Coat\./);
+    await until(page, () => { const w = window.__bellspire().scene.worn.dora; return w.weapon === 'reed-cutter' && w.coat === 'snail-coat'; });
+    assert.ok(await page.evaluate(() => window.__bellspire().scene.shineT.dora > 0), 'a shine on Dora');
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: '.shots/bellspire/29-gear-in-game.png', clip: await page.locator('canvas.bs-canvas').boundingBox() });
+    const after = await swingAt();
+    assert.ok(after > before, `the Reed-Cutter hits harder (${before} → ${after})`);
+    ok('closing the menu: a toast and a shine, Dora is drawn in the Reed-Cutter and the Snail-Shell Coat, and hits harder');
+    // back into the starting gear for the rest of the run
+    await game(page, '(g.equip("dora", "weapon", "bronze-sword"), g.equip("dora", "coat", "teal-coat"), true)');
+  }
+
+  // ─── doorways on the maps ───────────────────────────────────────────────
+  {
+    await dbg(page, 'teleport', 'landing', 15, 14); await dbg(page, 'skipDialog'); await page.waitForTimeout(400);
+    const mm = await page.locator('.bs-minimap').boundingBox();
+    const clip = { x: mm.x - 4, y: mm.y - 4, width: mm.width + 8, height: mm.height + 8 };
+    await page.evaluate(() => window.__bellspire().exitLayer(false)); await page.waitForTimeout(150);
+    await page.screenshot({ path: '.shots/bellspire/31-minimap-exits-before-1280x800.png', clip });
+    await page.evaluate(() => window.__bellspire().exitLayer(true)); await page.waitForTimeout(150);
+    await page.screenshot({ path: '.shots/bellspire/31-minimap-exits-after-1280x800.png', clip });
+    const drawn = await page.evaluate(() => window.__bellspire().drawnExits('mini').filter((d) => d.from === 'landing'));
+    const ex = await page.evaluate(() => window.__bellspire().exits('landing'));
+    ok(ex.some((e) => e.cross && e.toArea === 'halls') && ex.some((e) => e.door === 'd' && e.toArea === 'docks'), 'the landing knows its ways into the Flooded Halls and (behind the dash door) the Reed Docks');
+    assert.ok(drawn.some((d) => d.kind === 'area' && d.toArea === 'halls'), `the minimap marks the way into the Flooded Halls (${JSON.stringify(drawn)})`);
+    const lock = drawn.find((d) => d.to === 'dgate');
+    assert.equal(lock?.kind, (await st(page)).abilities.includes('dash') ? 'area' : 'lock', 'the door to the docks is a lock until it opens');
+    await page.keyboard.press('Escape');
+    await until(page, () => window.__bellspire().menu === 'map');
+    await page.waitForTimeout(200);
+    assert.ok(await page.evaluate(() => window.__bellspire().drawnExits('map').some((d) => d.kind === 'area')), 'and the pause map too');
+    assert.match(await page.locator('.bs-legend').innerText(), /another area/);
+    // the stats line says its numbers plainly
+    const c = await page.evaluate(() => window.__bellspire().state.completion);
+    const line = await page.locator('.bs-stats-line').innerText();
+    assert.ok(line.includes(`Guardians ${c.bosses} of 5`) && line.includes(`Rooms ${c.cells} of`) && line.includes(`Murals ${c.murals} of 10`), `the stats line reads clearly (“${line}”)`);
+    await page.screenshot({ path: '.shots/bellspire/31-map-exits.png' });
+    await page.getByRole('button', { name: 'Close menu' }).click();
+    await until(page, () => window.__bellspire().menu === null);
+    // the digits at UI size, for a look at 5/S, 8/B, 0/O, 1/l, 2/Z: a line in the HUD's own font at 16 px and 13 px
+    await page.evaluate(() => {
+      const d = document.createElement('div'); d.id = 'digit-check';
+      d.style.cssText = 'position:fixed;left:20px;top:120px;z-index:99;background:#16121e;padding:8px 10px;font-family:var(--pix);color:#f4e6c8;line-height:1.5';
+      d.innerHTML = '<div style="font-size:16px">0123456789 · 5S 8B 0O 1l 2Z · Guardians 2 of 5 · 57% explored · 2/5</div><div style="font-size:13px">0123456789 · 5S 8B 0O 1l 2Z · Rooms 39 of 64 · 108 coins</div>';
+      document.querySelector('main').appendChild(d);
+    });
+    await page.waitForTimeout(300);
+    await page.locator('#digit-check').screenshot({ path: '.shots/bellspire/32-digits.png' });
+    await page.evaluate(() => document.getElementById('digit-check').remove());
+    ok('the maps draw doorways, area entrances and locks; the stats line and its numbers read plainly');
+  }
+
+  // ─── the throne's four seals ─────────────────────────────────────────────
+  {
+    // every ability, but the Reed Hydra skipped
+    const was = await game(page, 'JSON.stringify({ a: g.save.abilities, f: g.save.flags })');
+    await game(page, '(g.save.abilities = ["dash", "lantern", "double", "wallkick", "chime", "glide", "deep"], g.setFlag("boss:frog"), g.setFlag("boss:puma"), g.setFlag("boss:warden"), true)');
+    // Ukumari's room, right beside the keeper
+    await dbg(page, 'teleport', 'keeper', 16, 14);
+    await dbg(page, 'skipDialog'); await page.waitForTimeout(300);
+    assert.equal(await game(page, 'g.nearby()?.ch'), 'U', 'next to Ukumari');
+    await page.keyboard.press('ArrowUp');
+    await until(page, () => window.__bellspire().state.dialog);
+    const said = [];
+    for (let i = 0; i < 20 && (await st(page)).dialog; i++) { said.push(await page.evaluate(() => { const d = window.__bellspire().game.dialog; return d ? d.lines[d.i].text : ''; })); await page.keyboard.press('KeyZ'); await page.waitForTimeout(250); }
+    const all = said.join(' ');
+    assert.match(all, /the Reed Hydra in the Reed Docks/);
+    assert.doesNotMatch(all, /Puma of the Murals in|Bell Warden in|Frog Idol in/);
+    assert.equal(await game(page, 'g.flag("keeper")'), false, 'Ukumari keeps the door shut');
+    ok('the hydra skipped: Ukumari names the Reed Hydra in the Reed Docks and the throne stays shut');
+    await game(page, `(() => { const w = ${was}; g.save.abilities = w.a; g.save.flags = w.f; return true; })()`);
+  }
+
+  // ─── the guiding wisp ────────────────────────────────────────────────────
+  {
+    await dbg(page, 'teleport', 'landing', 15, 14); await dbg(page, 'skipDialog');
+    await until(page, () => window.__bellspire().game.wisp.on);
+    await page.keyboard.press('Escape');
+    await until(page, () => window.__bellspire().menu === 'map');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    const box = page.getByRole('checkbox', { name: /^Guiding wisp/ });
+    await box.uncheck();
+    await page.getByRole('button', { name: 'Close menu' }).click();
+    await until(page, () => window.__bellspire().menu === null);
+    await until(page, () => !window.__bellspire().game.wisp.on);
+    await page.keyboard.press('Escape');
+    await until(page, () => window.__bellspire().menu === 'map');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('checkbox', { name: /^Helping hand/ }).uncheck();
+    assert.ok(await box.isDisabled(), 'the wisp setting is off while the helping hand is off');
+    assert.match(await page.locator('label.bs-toggle', { hasText: /^Guiding wisp/ }).innerText(), /Needs the helping hand/);
+    await page.getByRole('checkbox', { name: /^Helping hand/ }).check();
+    await box.check();
+    await page.getByRole('button', { name: 'Close menu' }).click();
+    await until(page, () => window.__bellspire().game.wisp.on);
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: '.shots/bellspire/33-wisp.png', clip: await page.locator('canvas.bs-canvas').boundingBox() });
+    ok('the Guiding wisp setting hides and shows the wisp, and needs the helping hand');
+  }
+
   // ─── ladders, ledges, doors, the dash ────────────────────────────────────
   await dbg(page, 'teleport', 'landing', 14, 14);
   await page.waitForTimeout(250);
@@ -395,8 +526,8 @@ try {
   await tagTo(page, 'dora');
   // the frog right in front of Dora
   await game(page, '(() => { const f = g.enemies.find((e) => e.kind === "frog"); f.x = g.body.x + 22; f.y = g.body.y; g.body.face = 1; return true; })()');
-  await page.evaluate(() => { window.__nums = []; const s = window.__bellspire().scene; const id = setInterval(() => { for (const n of s.nums) window.__nums.push(n.kind); if (window.__nums.length > 3) clearInterval(id); }, 10); });
-  for (let i = 0; i < 8 && !(await page.evaluate(() => window.__nums.length)); i++) { await page.keyboard.press('KeyX'); await page.waitForTimeout(120); }
+  await page.evaluate(() => { window.__nums = []; const s = window.__bellspire().scene, seen = new Set(s.nums); const id = setInterval(() => { for (const n of s.nums) if (!seen.has(n)) { seen.add(n); window.__nums.push(n.kind); } if (window.__nums.some((k) => k === 'hit' || k === 'big')) clearInterval(id); }, 10); });
+  for (let i = 0; i < 8 && !(await page.evaluate(() => window.__nums.some((k) => k === 'hit' || k === 'big'))); i++) { await page.keyboard.press('KeyX'); await page.waitForTimeout(120); }
   assert.ok(await page.evaluate(() => window.__nums.some((k) => k === 'hit' || k === 'big')), `a damage number pops (${await page.evaluate(() => window.__nums.join())})`);
   await page.screenshot({ path: '.shots/bellspire/18-damage-numbers.png', clip: await page.locator('canvas.bs-canvas').boundingBox() });
   ok('a hit pops its damage in pixel numbers');
@@ -512,6 +643,13 @@ try {
       const over = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
       for (const el of await p.locator('.bs-hero, .bs-pad-dir button, .bs-pad-act button').all()) assert.ok(!over(mm, await el.boundingBox()), 'the minimap covers no bar or pad button');
       await p.screenshot({ path: `.shots/bellspire/19-minimap-${vp.width}x${vp.height}.png` });
+      // the doorways, before and after
+      const clip = { x: Math.max(0, mm.x - 4), y: Math.max(0, mm.y - 4), width: mm.width + 8, height: mm.height + 8 };
+      await p.evaluate(() => window.__bellspire().exitLayer(false)); await p.waitForTimeout(150);
+      await p.screenshot({ path: `.shots/bellspire/31-minimap-exits-before-${vp.width}x${vp.height}.png`, clip });
+      await p.evaluate(() => window.__bellspire().exitLayer(true)); await p.waitForTimeout(150);
+      await p.screenshot({ path: `.shots/bellspire/31-minimap-exits-after-${vp.width}x${vp.height}.png`, clip });
+      assert.ok(await p.evaluate(() => window.__bellspire().drawnExits('mini').some((d) => d.kind === 'area')), 'an area entrance on the phone minimap');
     }
     await p.getByRole('button', { name: 'Menu' }).tap();
     await until(p, () => window.__bellspire().menu === 'map');

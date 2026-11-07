@@ -2,7 +2,7 @@
 // (`stepBody`) through short input "macros" (walk a tile, a jump with a given hold and steer, a dash, a wall kick, a
 // swim stroke...) and records where each one comes to rest. Those resting places are the graph's nodes, so any edge
 // it finds is a move a player can make, and the bots replay exactly these inputs.
-import { ROOMS, COLS, ROWS, TILE, WATER_AREAS, type Ability, type WaterArea, type Room, type HeroId } from './bellspire-world.js';
+import { ROOMS, COLS, ROWS, TILE, WATER_AREAS, GUARDIANS, type Ability, type WaterArea, type Room, type HeroId } from './bellspire-world.js';
 import { newBody, stepBody, boxClear, support, HERO_W, HERO_H, RUN, type Body, type BodyInput, type Caps, type Env } from './bellspire-physics.js';
 
 const GW = 12 * COLS, GH = 9 * ROWS;
@@ -27,13 +27,15 @@ const HASH = CH('#'), EQ = CH('='), LAD = CH('H'), GLASS = CH('g'), BRK = CH('x'
 const DOORS: Record<number, string> = {};
 for (const ch of 'djlkcub') DOORS[CH(ch)] = ch;
 
-/** What the planner assumes about the world: abilities, the water in each area, and a few story flags. */
-export type NavState = { abilities: Ability[]; water: Record<WaterArea, 0 | 1>; keeper: boolean; broken?: Set<string> };
-export const stateKey = (s: NavState) => `${[...s.abilities].sort().join('+')}|${WATER_AREAS.map((a) => s.water[a]).join('')}|${s.keeper ? 1 : 0}`;
+/** What the planner assumes about the world: abilities, the water in each area, and a few story flags (Ukumari met,
+ *  and which guardians are calm: the throne door needs both, all four seals lit). */
+export type NavState = { abilities: Ability[]; water: Record<WaterArea, 0 | 1>; keeper: boolean; calmed: string[]; broken?: Set<string> };
+export const throneOpen = (s: Pick<NavState, 'keeper' | 'calmed'>) => s.keeper && GUARDIANS.every((b) => s.calmed.includes(b));
+export const stateKey = (s: NavState) => `${[...s.abilities].sort().join('+')}|${WATER_AREAS.map((a) => s.water[a]).join('')}|${throneOpen(s) ? 1 : 0}`;
 
 export function navEnv(s: NavState): Env {
   const has = (a: Ability) => s.abilities.includes(a);
-  const doorOpen = (ch: string) => ch === 'b' || (ch === 'd' && has('dash')) || (ch === 'j' && has('double')) || (ch === 'k' && has('wallkick')) || (ch === 'l' && has('lantern')) || (ch === 'c' && has('chime')) || (ch === 'u' && s.keeper);
+  const doorOpen = (ch: string) => ch === 'b' || (ch === 'd' && has('dash')) || (ch === 'j' && has('double')) || (ch === 'k' && has('wallkick')) || (ch === 'l' && has('lantern')) || (ch === 'c' && has('chime')) || (ch === 'u' && throneOpen(s));
   const solid = (c: number, r: number) => {
     const t = at(c, r);
     if (t === HASH || t === SPIKE) return true;

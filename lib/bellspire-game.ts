@@ -2,7 +2,7 @@
 // comes from a seeded generator, so a seed and the same inputs replay a game exactly.
 import {
   ROOMS, AREAS, COLS, ROWS, TILE, SCREEN_W, SCREEN_H, ABILITIES, ABILITY_ORDER, SPELLS, GEAR, START_EQUIP, FOOD, SHOP, BOSSES, MURALS,
-  SCRIPTS, WATER_AREAS, SHRINE_NAMES,
+  SCRIPTS, WATER_AREAS, SHRINE_NAMES, GUARDIANS, GUARDIAN_AREA,
   type Room, type AreaId, type Ability, type HeroId, type SpellId, type Slot, type FoodId, type BossId, type Line, type WaterArea, type Perk,
 } from './bellspire-world.js';
 import { BOXES, FOE_BODY } from './bellspire-art.js';
@@ -99,6 +99,41 @@ for (const room of ROOMS) {
   }
   LINKS.set(room.id, list);
 }
+
+/** Every doorway on the map: each run of open tiles across a border between two map cells of different rooms (and
+ *  the shafts up and down), with where along the edge it is (0 to 1), the room and area on the other side, and the
+ *  door that holds it, if any. The maps draw these as gaps, stubs into the unknown, area-coloured entrances and locks. */
+export type MapExit = { cx: number; cy: number; dx: number; dy: number; at: number; from: string; to: string; toArea: AreaId; cross: boolean; door: Group | null };
+export const MAP_EXITS: MapExit[] = (() => {
+  const out: MapExit[] = [];
+  const open = (c: number, r: number) => !'#^'.includes(rawChar(c, r));
+  for (const room of ROOMS) for (let y = 0; y < room.h; y++) for (let x = 0; x < room.w; x++) {
+    const cx = room.gx + x, cy = room.gy + y;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      const n = roomAt(cx + dx, cy + dy);
+      if (!n || n.id === room.id) continue;
+      const len = dx ? ROWS : COLS;
+      // the border tiles on this side and the other, along the edge
+      const tile = (i: number): [number, number, number, number] => dx
+        ? [cx * COLS + (dx > 0 ? COLS - 1 : 0), cy * ROWS + i, cx * COLS + (dx > 0 ? COLS : -1), cy * ROWS + i]
+        : [cx * COLS + i, cy * ROWS + (dy > 0 ? ROWS - 1 : 0), cx * COLS + i, cy * ROWS + (dy > 0 ? ROWS : -1)];
+      let i = 0;
+      while (i < len) {
+        const [a, b, c2, d2] = tile(i);
+        if (!(open(a, b) && open(c2, d2))) { i++; continue; }
+        const i0 = i;
+        while (i < len) { const [a2, b2, c3, d3] = tile(i); if (!(open(a2, b2) && open(c3, d3))) break; i++; }
+        const mid = (i0 + i - 1) / 2;
+        // a door on either side, within a couple of tiles of the run
+        const [mc, mr] = tile(Math.round(mid));
+        const doors = [...INFO.get(room.id)!.doors, ...INFO.get(n.id)!.doors];
+        const door = doors.find((d) => mc >= d.c - 2 && mc <= d.c + d.w + 1 && mr >= d.r - 2 && mr <= d.r + d.h + 1 && d.ch !== 'b') ?? null;
+        out.push({ cx, cy, dx, dy, at: (mid + 0.5) / len, from: room.id, to: n.id, toArea: n.area, cross: n.area !== room.area, door });
+      }
+    }
+  }
+  return out;
+})();
 
 /** Everything counted for 100%: map cells, chests, pedestals, murals and bosses. */
 export const COMPLETION = (() => {
@@ -271,10 +306,13 @@ export type GameEvent =
   /** a number to pop off something: damage dealt (hit, big for finishers, spell), damage taken (hurt), heals, XP and coins */
   | { k: 'num'; x: number; y: number; n: number; kind: NumKind }
   /** attack at a lit shrine: the page opens the map for travel; and a journey's arrival */
-  | { k: 'travelOpen'; id: string } | { k: 'travel'; id: string };
+  | { k: 'travelOpen'; id: string } | { k: 'travel'; id: string }
+  /** a Puma Tooth hit landed twice as hard */
+  | { k: 'crit'; x: number; y: number } | { k: 'seal'; id: string; n: number };
 export type NumKind = 'hit' | 'big' | 'spell' | 'hurt' | 'heal' | 'xp' | 'coin';
 
-export type Settings = { assist: boolean; strict: boolean };
+/** `wisp`: the guiding wisp, shown only while the helping hand is on (on unless turned off) */
+export type Settings = { assist: boolean; strict: boolean; wisp?: boolean };
 /** `spell` says which of Enzo's spells a cast is, so the scene can show its own pose */
 type Act = { kind: 'swing' | 'thrust' | 'whirl' | 'cast' | 'tagin'; t: number; n: number; hit: Set<number>; dur: number; spell?: 'bolt' | 'ember' | 'chime' | 'lantern' };
 type HeroRt = { inv: number; hurtT: number; act: Act | null; combo: number; buf: boolean; castHold: number; swingCd: number };
@@ -347,6 +385,9 @@ export class BellspireGame {
     this.seed = seed; this.rngState = seed >>> 0 || 1;
     this.lead = this.save.lead;
     if (this.save.heroes[this.lead].down) this.lead = other(this.lead);
+    // an old save where Ukumari opened the throne before every guardian was calm: the seals hold it shut again
+    // (unless the story is already over)
+    if (this.flag('keeper') && !this.flag('ending') && this.restless().length) this.save.flags = this.save.flags.filter((f) => f !== 'keeper');
     if (this.save.heroes.dora.down && this.save.heroes.enzo.down) { this.save.heroes.dora.down = false; this.save.heroes.dora.hp = 1; this.lead = 'dora'; }
     const start = this.shrineSpot(this.save.shrine) ?? this.startSpot();
     this.room = roomOfPoint(start.x, start.y - 4)!;
@@ -364,6 +405,15 @@ export class BellspireGame {
   rand() { let x = this.rngState; x ^= x << 13; x ^= x >>> 17; x ^= x << 5; this.rngState = x >>> 0; return this.rngState / 4294967296; }
   flag(f: string) { return this.save.flags.includes(f); }
   setFlag(f: string) { if (!this.flag(f)) this.save.flags.push(f); }
+  /** The guardians not yet calmed (each holds one bell seal on the throne door), in story order. */
+  restless(): (typeof GUARDIANS)[number][] { return GUARDIANS.filter((b) => !this.flag(`boss:${b}`)); }
+  /** How many of the throne door's four bell seals are open. */
+  sealsOpen() { return GUARDIANS.length - this.restless().length; }
+  /** The restless guardians named with their areas: "the Reed Hydra in the Reed Docks and the Puma of the Murals in…" */
+  restlessText() {
+    const parts = this.restless().map((b) => `${BOSSES[b].name.replace(/^The /, 'the ')} in the ${AREAS[GUARDIAN_AREA[b]].name}`);
+    return parts.length <= 1 ? parts.join('') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+  }
   has(a: Ability) { return this.save.abilities.includes(a); }
   stats(h: HeroId) { return heroStats(this.save, h); }
   perk(h: HeroId, p: Perk) { return this.stats(h).perks.includes(p); }
@@ -400,7 +450,7 @@ export class BellspireGame {
 
   // ─── the world as the body sees it ───────────────────────────────────────
   doorOpen(g: Group): boolean {
-    if (g.ch === 'u') return this.flag('keeper');
+    if (g.ch === 'u') return this.flag('keeper') && this.restless().length === 0;
     if (g.ch === 'b') return !(this.boss && this.boss.st !== 'wait' && roomOfTile(g.c, g.r) === this.room);
     return this.flag(`door:${g.id}`);
   }
@@ -606,10 +656,14 @@ export class BellspireGame {
       const now = this.floatCache.find((f) => f.x0 === onFloat.x0);
       if (now) b.y = now.y;
     }
-    if (act && (act.kind === 'swing' || act.kind === 'cast') && act.t < act.dur) b.face = faceBefore;
+    // facing holds only while a blow is landing (a swing's active frames, a cast's release): the wind-up and the
+    // recovery turn freely, so holding the other way turns the next cut of a combo round
+    const sw = SWING[this.lead];
+    const lockFace = !!act && ((act.kind === 'swing' && act.t >= sw.wind && act.t < sw.wind + sw.act) || (act.kind === 'cast' && act.t < act.dur));
+    if (lockFace) b.face = faceBefore;
     const climbing = b.climb;
     stepBody(b, bin, this.env, caps);
-    if (act && (act.kind === 'swing' || act.kind === 'cast') && act.t < act.dur) b.face = faceBefore;
+    if (lockFace) b.face = faceBefore;
     if (b.jumped) this.sfx(b.jumped === 'swim' ? 'stroke' : b.jumped === 'wall' ? 'kick' : b.jumped === 'air' ? 'leap' : 'jump');
     if (b.dashed) { this.sfx('dash'); rt.inv = Math.max(rt.inv, 14); }
     if (b.landed && !climbing) this.sfx('land'); // stepping off the top of a ladder is a pull-up, not a landing
@@ -746,18 +800,19 @@ export class BellspireGame {
     const box = this.attackBox();
     if (!box) return;
     const atk = this.stats(this.lead).atk;
+    let crit = false; // the Puma Tooth doubled a hit: the scene flashes it orange
     const dmgOf = (mult: number) => {
       let d = Math.max(1, Math.round(atk * mult));
-      if (this.perk(this.lead, 'crit') && this.rand() < 0.15) d *= 2;
+      if (this.perk(this.lead, 'crit') && this.rand() < 0.15) { d *= 2; crit = true; }
       return d;
     };
     let landed = false;
     for (const e of this.enemies) {
       if (!e.alive || e.hidden || act.hit.has(e.id)) continue;
-      if (overlap(box.r, this.foeRect(e))) { act.hit.add(e.id); this.damageFoe(e, dmgOf(box.mult), b.face, box.finisher); landed = true; }
+      if (overlap(box.r, this.foeRect(e))) { act.hit.add(e.id); crit = false; this.damageFoe(e, dmgOf(box.mult), b.face, box.finisher); landed = true; if (crit) this.emit({ k: 'crit', x: e.x, y: e.y - 10 }); }
     }
     if (this.boss && !this.boss.calm) {
-      for (const h of this.boss.hurt) if (!act.hit.has(-1) && overlap(box.r, h)) { act.hit.add(-1); this.damageBoss(dmgOf(box.mult) * ((h as Rect & { mul?: number }).mul ?? 1), box.r.x + box.r.w / 2, box.r.y + box.r.h / 2); landed = true; }
+      for (const h of this.boss.hurt) if (!act.hit.has(-1) && overlap(box.r, h)) { act.hit.add(-1); crit = false; this.damageBoss(dmgOf(box.mult) * ((h as Rect & { mul?: number }).mul ?? 1), box.r.x + box.r.w / 2, box.r.y + box.r.h / 2); landed = true; if (crit) this.emit({ k: 'crit', x: box.r.x + box.r.w / 2, y: box.r.y + box.r.h / 2 }); }
     }
     // breakable walls, chests and water bells react to a swing too
     if (act.kind !== 'tagin') {
@@ -924,7 +979,15 @@ export class BellspireGame {
       const n = this.room.murals?.[best.i] ?? 0;
       this.setFlag(`mural:${n}`); this.emit({ k: 'mural', n }); this.sfx('mural');
     } else if (best.ch === 'U') {
-      this.say(this.flag('keeper') ? [{ who: 'ukumari', text: 'The throne door is open. Be gentle with her, Dora and Enzo.' }] : SCRIPTS.keeper, () => {
+      const rest = this.restless();
+      if (rest.length) {
+        // not yet: Ukumari names the guardians whose bells still ring, and where they are
+        const n = ['', 'One bell still rings', 'Two bells still ring', 'Three bells still ring', 'All four bells still ring'][rest.length];
+        const why: Line = { who: 'ukumari', text: `${n}: ${this.restlessText()}. Calm ${rest.length === 1 ? 'it' : 'them'}, and the throne will open.` };
+        const first = !this.flag('script:keeperEarly');
+        this.setFlag('script:keeperEarly');
+        this.say(first ? [...SCRIPTS.keeperEarly, why] : [why]);
+      } else this.say(this.flag('keeper') ? [{ who: 'ukumari', text: 'The throne door is open. Be gentle with her, Dora and Enzo.' }] : SCRIPTS.keeper, () => {
         if (!this.flag('keeper')) { this.setFlag('keeper'); this.note('Ukumari opened the throne door.', true); this.sfx('door'); }
       });
     } else if (best.ch === 'C') this.openChest(best);
@@ -1024,7 +1087,9 @@ export class BellspireGame {
     if (a && !this.has(a)) text = `${ABILITIES[a].needs}.`;
     else if (g.ch === 'l') text = 'The hatch is sealed with darkness. Raise Enzo’s lantern next to it (as Enzo: ↓ + V).';
     else if (g.ch === 'c') text = 'A bell-sealed door. Ring it with the Bell Chime (as Enzo: ↑ + V).';
-    else if (g.ch === 'u') text = 'The throne door is tied shut with an old bell rope. Whoever keeps the bells could open it.';
+    else if (g.ch === 'u') text = this.restless().length
+      ? `The throne door is held by four bell seals, ${this.sealsOpen()} of 4 open. Still ringing: ${this.restlessText()}.`
+      : 'The throne door is tied shut with an old bell rope. Whoever keeps the bells could open it.';
     else if (g.ch === 'b') text = 'The way out is sealed until the guardian calms down.';
     if (text) { this.note(text); if (this.lastToastT === this.tick) this.sfx('locked'); }
   }
@@ -1515,6 +1580,13 @@ export class BellspireGame {
   bossDone() {
     const b = this.boss!;
     this.setFlag(`boss:${b.id}`);
+    if ((GUARDIANS as readonly string[]).includes(b.id)) {
+      // one of the throne door's bell seals goes quiet
+      const n = this.sealsOpen();
+      this.note(`The ${AREAS[GUARDIAN_AREA[b.id as (typeof GUARDIANS)[number]]].name} bell is quiet. ${n} of 4 seals open.`, true);
+      this.sfx('chime');
+      this.emit({ k: 'seal', id: b.id, n });
+    }
     this.gainXp(BOSSES[b.id].xp);
     for (const r of BOSSES[b.id].reward) this.grant(r, b.x, b.y - 30);
     for (const h of ALL_HEROES) { const s = this.save.heroes[h], st = this.stats(h); s.down = false; s.hp = st.maxHp; s.mp = st.maxMp; }
@@ -1795,6 +1867,15 @@ export class BellspireGame {
       [() => this.flag('keeper'), (t) => t.ch === 'U'],
       [() => this.flag('boss:mother'), (t, r) => t.ch === 'O' && r.boss === 'mother'],
     ];
+    if (ABILITY_ORDER.every((a) => this.has(a)) && this.restless().length) {
+      // every ability owned but seals still shut: the nearest restless guardian
+      const here = this.room;
+      const dist = (t: Thing) => { const r = roomOfTile(t.c, t.r)!; return Math.hypot(r.gx + r.w / 2 - here.gx - here.w / 2, r.gy + r.h / 2 - here.gy - here.h / 2); };
+      const cands = this.restless().map((id) => find((t, r) => t.ch === 'O' && r.boss === id)).filter((t): t is Thing => !!t);
+      cands.sort((a, b) => dist(a) - dist(b));
+      const t = cands[0];
+      if (t) return { room: t.room, x: t.c * TILE + 8, y: t.r * TILE };
+    }
     for (const [done, pred] of steps) {
       if (done()) continue;
       const t = find(pred);
@@ -1823,30 +1904,42 @@ export class BellspireGame {
     const mx = same.reduce((a, o) => a + o.c, 0) / same.length, my = same.reduce((a, o) => a + o.r, 0) / same.length;
     return { x: mx * TILE + 8, y: my * TILE + 4 };
   }
+  /** Is the guiding wisp shown: the helping hand on (never in Strict), its own setting not off, and a goal left. */
+  wispOn() { return this.settings.assist && !this.settings.strict && this.settings.wisp !== false && !this.flag('ending'); }
+  /** The guiding wisp: while the helping hand is on it is always there, a little ahead of the lead along the way to
+   *  the next goal (over the goal itself once it is in this room). It keeps clear of the heroes' faces, drifts up to
+   *  a corner in a guardian's arena, and never touches the game: it only moves. */
   updateWisp() {
     const w = this.wisp, b = this.body;
-    const want = this.settings.assist && !this.boss && (this.idleT > 6 * 60 || this.lostT > 75 * 60);
-    if (want && this.wispGoal && (!w.on || this.wispPath.length === 0) && this.tick % 30 === 0) {
-      const g = this.wispGoal(this);
-      if (g) {
-        this.wispPath = this.flightPath(b.x, b.y - 20, g.x, g.y);
-        w.on = true; w.x = b.x; w.y = b.y - 30;
+    if (!this.wispOn()) { w.on = false; this.wispPath = []; return; }
+    const head = { x: b.x, y: b.y - 30 };
+    if (!w.on) { w.on = true; w.x = head.x + b.face * 26; w.y = head.y - 10; w.tx = w.x; w.ty = w.y; }
+    let tx: number, ty: number;
+    if (this.boss) {
+      // out of the fight: up in the arena's far corner from the lead
+      const rr = this.bossRoomRect();
+      tx = b.x < rr.x + rr.w / 2 ? rr.x + rr.w - 28 : rr.x + 28; ty = rr.y + 30; this.wispPath = [];
+    } else {
+      if (this.tick % 20 === 0 || !this.wispPath.length) {
+        const goal = this.wispGoal?.(this) ?? null;
+        this.wispPath = goal ? this.flightPath(b.x, b.y - 20, goal.x, goal.y) : [];
       }
+      // the point about 56 px along the way from the lead (or the end, if nearer)
+      let left = 56, px = b.x, py = b.y - 20;
+      for (const p of this.wispPath) {
+        const d = Math.hypot(p.x - px, p.y - py);
+        if (d >= left) { px += ((p.x - px) / d) * left; py += ((p.y - py) / d) * left; left = 0; break; }
+        left -= d; px = p.x; py = p.y;
+      }
+      if (!this.wispPath.length) { px = head.x - b.face * 20; py = head.y - 18; }
+      tx = px; ty = py;
     }
-    if (!want && w.on && this.idleT === 0 && this.lostT < 75 * 60) { w.on = false; this.wispPath = []; }
-    if (w.on) {
-      const next = this.wispPath[0];
-      if (!next) { w.x = b.x; w.y = b.y - 30; return; }
-      w.tx = next.x; w.ty = next.y;
-      const dx = next.x - w.x, dy = next.y - w.y, d = Math.hypot(dx, dy);
-      if (d > 1.6) { w.x += (dx / d) * 1.6; w.y += (dy / d) * 1.6; }
-      else {
-        this.wispPath.shift();
-        // at the end it pauses a moment, then starts again from the heroes
-        if (this.wispPath.length === 0) this.wispRest = 40;
-      }
-    } else this.wispRest = 0;
-    if (this.wispRest > 0 && --this.wispRest === 0) this.wispPath = [];
+    // never over a face: at least 24 px from the lead's head
+    const hx = tx - head.x, hy = ty - head.y, hd = Math.hypot(hx, hy);
+    if (hd < 24) { const k = hd < 0.01 ? 0 : 24 / hd; tx = hd < 0.01 ? head.x : head.x + hx * k; ty = hd < 0.01 ? head.y - 24 : head.y + hy * k; }
+    w.tx = tx; w.ty = ty;
+    const dx = tx - w.x, dy = ty - w.y, d = Math.hypot(dx, dy), v = Math.min(3, 0.8 + d * 0.06);
+    if (d > v) { w.x += (dx / d) * v; w.y += (dy / d) * v; } else { w.x = tx; w.y = ty; }
   }
   /** A flight through open tiles of this room (never through stone or a shut door), as a few waypoints. */
   flightPath(x0: number, y0: number, x1: number, y1: number): { x: number; y: number }[] {

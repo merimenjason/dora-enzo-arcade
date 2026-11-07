@@ -85,6 +85,10 @@ export const BOSSES: Record<BossId, { name: string; title: string; hp: number; a
   mother: { name: 'The Lake Mother', title: 'She Who Sleeps Beneath', hp: 720, atk: 16, xp: 600, reward: [] },
 };
 
+/** The four area guardians: each holds one bell seal on the throne door, and all four must be calmed before it opens. */
+export const GUARDIANS = ['frog', 'hydra', 'puma', 'warden'] as const satisfies readonly BossId[];
+export const GUARDIAN_AREA: Record<(typeof GUARDIANS)[number], AreaId> = { frog: 'halls', hydra: 'docks', puma: 'crypt', warden: 'towers' };
+
 /** Lore murals: the painted panels (`panel` indexes the six paintings). */
 /** Each candle shrine's own name, shown on the map, the shrine card and on arrival. */
 export const SHRINE_NAMES: Record<string, string> = {
@@ -147,6 +151,13 @@ export const SCRIPTS: Record<string, Line[]> = {
     { who: 'ukumari', text: 'But the bells woke the Lake Mother, and she pulled her water away to look. Now she can’t get back to sleep.' },
     { who: 'enzo', text: 'Then we’ll calm her down, and ring her a lullaby with the Bell Chime.' },
     { who: 'ukumari', text: 'Would you? I’ll open the throne door for you. Be gentle with her.' },
+  ],
+  /** meeting Ukumari before every guardian is calm (the restless ones are named after these lines) */
+  keeperEarly: [
+    { who: 'ukumari', text: 'Oh! Visitors! Nobody has visited in a thousand years. I’m Ukumari, keeper of the bells.' },
+    { who: 'dora', text: 'Ukumari, were you the one ringing the bells at midnight?' },
+    { who: 'ukumari', text: 'I was. I only wanted someone to see the citadel again. I rang them just once…' },
+    { who: 'ukumari', text: 'But the bells woke the Lake Mother, and the guardians too. Each one holds a bell seal on the throne door.' },
   ],
   mother: [{ who: 'mother', text: 'WHO RINGS… WHO WAKES ME…' }, { who: 'enzo', text: 'She’s not angry, Dora, just tired. Calm her down, and keep clear of her sweeps.' }],
   motherDone: [

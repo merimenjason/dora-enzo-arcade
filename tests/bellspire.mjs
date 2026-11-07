@@ -7,7 +7,7 @@
 // Run after compiling the engine into .checks/ (npm test does).
 import assert from 'node:assert/strict';
 import {
-  BellspireGame, freshSave, parseSave, heroStats, xpToNext, ROOMS, INFO, COLS, ROWS, TILE, COMPLETION, ABILITY_ORDER, ABILITIES, BOSSES, GEAR, SHOP,
+  BellspireGame, MAP_EXITS, freshSave, parseSave, heroStats, xpToNext, ROOMS, INFO, COLS, ROWS, TILE, COMPLETION, ABILITY_ORDER, ABILITIES, BOSSES, GEAR, SHOP,
   rawChar, roomOfTile, groupAt, roomById, NO_INPUT, HEART_HP, TAG_CD, surfaceRow, roomRect as roomRectOf, FOES, foeBox, foeFrame,
 } from '../.checks/bellspire-game.js';
 import { Graph, nodeRoom, HeroAnimator, ANIMS, animFrames, heroHas } from '../.checks/bellspire-nav.js';
@@ -55,10 +55,10 @@ eq(ROOMS.filter((r) => r.ability).map((r) => r.ability), ['dash', 'double', 'wal
 // ─── the gates, with the route planner ────────────────────────────────────
 const start = new BellspireGame(fresh()).body;
 const WATERS = [{ halls: 1, docks: 0, throne: 1 }, { halls: 0, docks: 0, throne: 1 }, { halls: 1, docks: 1, throne: 1 }, { halls: 0, docks: 1, throne: 0 }];
-function reachable(abilities, keeper = false) {
+function reachable(abilities, keeper = false, calmed = ['frog', 'hydra', 'puma', 'warden']) {
   const rooms = new Set(), spots = [];
   for (const water of WATERS) {
-    const G = new Graph({ abilities, water, keeper });
+    const G = new Graph({ abilities, water, keeper, calmed });
     for (const k of G.reach([G.nodeAt(start.x, start.y)])) { const n = G.nodes.get(k); rooms.add(nodeRoom(n)?.id); spots.push(n); }
   }
   const near = (t) => spots.some((n) => Math.abs(n.x - (t.c * TILE + 8)) < 18 && Math.abs(n.y - (t.r + 1) * TILE) < 20);
@@ -80,9 +80,13 @@ ok(r6.near(thing('C', (t, r) => r.chests?.[t.i] === 'ability:deep')), 'the coat 
 const r7 = reachable(ABILITY_ORDER, false);
 ok(!r7.rooms.has('mother'), 'the Lake Mother waits until Ukumari opens the door');
 eq(reachable(ABILITY_ORDER, true).rooms.size, ROOMS.length, 'with everything, every room can be reached');
+// the throne needs all four guardians calm: without any one of them, the planner can't reach the Lake Mother
+for (const miss of ['frog', 'hydra', 'puma', 'warden']) ok(!reachable(ABILITY_ORDER, true, ['frog', 'hydra', 'puma', 'warden'].filter((b) => b !== miss)).rooms.has('mother'), `without the ${miss} calmed, the Lake Mother is out of reach`);
+// and every guardian can be reached before the throne, with every ability but no seals open
+{ const pre = reachable(ABILITY_ORDER, false, []); for (const b of ['frog', 'hydra', 'puma', 'warden']) ok(pre.rooms.has(ROOMS.find((r) => r.boss === b).id), `the ${b} can be reached before the throne opens`); }
 // nowhere to get stuck: from every reachable spot there is a way back to the landing (or a shrine to travel from)
 for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['dash', 'lantern', 'double', 'wallkick'], WATERS[1]], [ABILITY_ORDER, WATERS[0]]]) {
-  const G = new Graph({ abilities, water, keeper: true });
+  const G = new Graph({ abilities, water, keeper: true, calmed: ['frog', 'hydra', 'puma', 'warden'] });
   const R = G.reach([G.nodeAt(start.x, start.y)]);
   const back = new Map();
   for (const k of R) for (const e of G.edges.get(k) ?? []) { if (!back.has(e.to)) back.set(e.to, []); back.get(e.to).push(k); }
@@ -180,6 +184,52 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
   ok(Math.abs(g5.body.x - safe.x) < 40, 'and put the hero back on the ledge');
 }
 
+// ─── turning while attacking ──────────────────────────────────────────────
+{
+  // facing holds only while a blow lands: the wind-up and recovery turn, so a combo can be swung back the other way
+  for (const hero of ['dora', 'enzo']) {
+    const g = new BellspireGame(fresh(), {}, 41); g.teleport('gate', 20, 14); quiet(g); run(g, 6); quiet(g);
+    if (g.lead !== hero) { g.tryTag(); run(g, 30); quiet(g); }
+    run(g, 4, { right: true }); run(g, 2);
+    ok(g.body.face === 1, `${hero}: facing right to start`);
+    g.step(I({ attack: true }));
+    ok(g.leadRt.act?.kind === 'swing', `${hero}: a swing starts`);
+    g.step(I({ left: true }));
+    ok(g.body.face === -1, `${hero}: ← in the wind-up turns the swing round`);
+    const box = (() => { for (let i = 0; i < 12; i++) { const b = g.attackBox(); if (b) return b; g.step(I({ left: true })); } return null; })();
+    ok(box && box.r.x + box.r.w <= g.body.x + 0.5, `${hero}: and the cut lands on the left`);
+    g.step(I({ right: true }));
+    ok(g.body.face === -1, `${hero}: but not while the blade is landing`);
+    // keep attacking and hold →: the next cut of the combo turns back to the right
+    let turned = false;
+    for (let i = 0; i < 60 && !turned; i++) { g.step(I({ attack: i % 4 === 0, right: true })); if (g.leadRt.act?.kind === 'swing' && g.leadRt.act.n > 0 && g.body.face === 1) turned = true; }
+    ok(turned, `${hero}: holding → while chaining the combo turns the next cut`);
+  }
+}
+
+// ─── turning while attacking ──────────────────────────────────────────────
+{
+  // facing holds only while a blow lands: the wind-up and recovery turn, so a combo can be swung back the other way
+  for (const hero of ['dora', 'enzo']) {
+    const g = new BellspireGame(fresh(), {}, 41); g.teleport('gate', 20, 14); quiet(g); run(g, 6); quiet(g);
+    if (g.lead !== hero) { g.tryTag(); run(g, 30); quiet(g); }
+    run(g, 4, { right: true }); run(g, 2);
+    ok(g.body.face === 1, `${hero}: facing right to start`);
+    g.step(I({ attack: true }));
+    ok(g.leadRt.act?.kind === 'swing', `${hero}: a swing starts`);
+    g.step(I({ left: true }));
+    ok(g.body.face === -1, `${hero}: ← in the wind-up turns the swing round`);
+    const box = (() => { for (let i = 0; i < 12; i++) { const b = g.attackBox(); if (b) return b; g.step(I({ left: true })); } return null; })();
+    ok(box && box.r.x + box.r.w <= g.body.x + 0.5, `${hero}: and the cut lands on the left`);
+    g.step(I({ right: true }));
+    ok(g.body.face === -1, `${hero}: but not while the blade is landing`);
+    // keep attacking and hold →: the next cut of the combo turns back to the right
+    let turned = false;
+    for (let i = 0; i < 60 && !turned; i++) { g.step(I({ attack: i % 4 === 0, right: true })); if (g.leadRt.act?.kind === 'swing' && g.leadRt.act.n > 0 && g.body.face === 1) turned = true; }
+    ok(turned, `${hero}: holding → while chaining the combo turns the next cut`);
+  }
+}
+
 // ─── water bells and floats ───────────────────────────────────────────────
 {
   const g = new BellspireGame(fresh(['dash']), {}, 5);
@@ -256,7 +306,9 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
   const g7 = new BellspireGame(fresh(ABILITY_ORDER), {}, 5);
   ok(!g7.doorOpen(u), 'the throne door is shut');
   g7.setFlag('keeper');
-  ok(g7.doorOpen(u), 'and opens once Ukumari has the bells');
+  ok(!g7.doorOpen(u), 'Ukumari alone can’t open it: the four bell seals hold it');
+  for (const b of ['frog', 'hydra', 'puma', 'warden']) g7.setFlag(`boss:${b}`);
+  ok(g7.doorOpen(u), 'and it opens once Ukumari has the bells and all four guardians are calm');
 }
 
 // ─── combat, XP, coins ────────────────────────────────────────────────────
@@ -401,10 +453,25 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
   const g = new BellspireGame(fresh(), { assist: true }, 31);
   quiet(g);
   eq(g.nextGoal()?.room, 'cistern', 'the first goal is the Reed Dash in the cistern');
-  run(g, 7 * 60);
-  ok(g.wisp.on, 'with the helping hand on, standing still for a while calls the wisp');
-  ok(g.wisp.tx < g.body.x - 40, 'and it heads for the doorway towards the cistern');
-  ok(g.wispPath.length >= 1 && g.flightPath(g.body.x, g.body.y - 20, g.wisp.tx, g.wisp.ty).length >= 2, 'it follows a path of waypoints');
+  // with the helping hand on it is there every tick, with no waiting
+  const w0 = new BellspireGame(fresh(), { assist: true }, 31); let every = true;
+  for (let i = 0; i < 120; i++) { w0.step(I(i % 40 < 20 ? { right: true } : {})); quiet(w0); if (!w0.wisp.on) every = false; }
+  ok(every, 'with the helping hand on, the wisp is there every tick, walking or standing');
+  run(g, 90);
+  ok(g.wisp.on && g.wisp.tx < g.body.x - 20, 'it floats ahead towards the doorway to the cistern');
+  ok(g.wispPath.length >= 1, 'along a path of waypoints');
+  // never over a face
+  let close = 0;
+  for (let i = 0; i < 300; i++) { g.step(I(i % 90 < 45 ? { left: true } : { right: true })); quiet(g); if (Math.hypot(g.wisp.tx - g.body.x, g.wisp.ty - (g.body.y - 30)) < 23.5) close++; }
+  eq(close, 0, 'it keeps its distance from the lead’s face');
+  // nothing it does changes the game
+  const twinA = new BellspireGame(fresh(), { assist: true }, 9), twinB = new BellspireGame(fresh(), { assist: true, wisp: false }, 9);
+  for (let i = 0; i < 600; i++) { const inp = I(i % 120 < 60 ? { right: true, jump: i % 30 === 0 } : { left: true }); twinA.step(inp); twinB.step(inp); }
+  eq([twinA.body.x, twinA.body.y, twinA.save.coins], [twinB.body.x, twinB.body.y, twinB.save.coins], 'the wisp never changes play');
+  const noW = new BellspireGame(fresh(), { assist: true, wisp: false }, 31); quiet(noW); run(noW, 60);
+  ok(!noW.wisp.on, 'with the Guiding wisp setting off, no wisp');
+  const strict = new BellspireGame(fresh(), { assist: true, strict: true }, 31); quiet(strict); run(strict, 60);
+  ok(!strict.wisp.on, 'never in Strict');
   // its flight never passes through stone, in any room, towards any doorway
   let crossings = 0;
   for (const r of ROOMS) {
@@ -422,15 +489,20 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
     }
   }
   eq(crossings, 0, 'the wisp never flies through a wall');
-  g.step(I({ right: true }));
-  ok(!g.wisp.on, 'moving again sends it away');
   const off = new BellspireGame(fresh(), { assist: false }, 31);
-  quiet(off); run(off, 7 * 60);
-  ok(!off.wisp.on, 'with the helping hand off there is no wisp');
+  let ever = false; for (let i = 0; i < 7 * 60; i++) { off.step(I()); quiet(off); if (off.wisp.on) ever = true; }
+  ok(!ever, 'with the helping hand off there is never a wisp');
   const late = new BellspireGame(fresh(ABILITY_ORDER), {}, 31);
   for (const id of Object.keys(BOSSES)) late.setFlag(`boss:${id}`);
   late.setFlag('keeper');
   eq(late.nextGoal(), null, 'once everything is done there is nothing left to point at');
+  // every ability, but the hydra and the puma skipped: the wisp leads to the nearer one
+  const skip = new BellspireGame(fresh(ABILITY_ORDER), {}, 31);
+  for (const id of ['frog', 'warden']) skip.setFlag(`boss:${id}`);
+  skip.teleport('lagoon', 4, 10); quiet(skip);
+  eq(skip.nextGoal()?.room, 'lagoon', 'all abilities but seals missing: the wisp points at the nearest restless guardian');
+  skip.teleport(ROOMS.find((r) => r.boss === 'puma').id, 4, 10); quiet(skip);
+  eq(skip.nextGoal()?.room, 'puma', 'from the crypt, the puma');
 }
 
 // ─── saves ────────────────────────────────────────────────────────────────
@@ -684,6 +756,156 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
   eq(run('dora', [{ swim: true }])[0].state, 'tread', 'treading water');
   ok(!animFrames('swim', 'dora').some((f) => animFrames('tread', 'dora').includes(f)), 'treading water is upright, not the swim stroke');
   eq(run('enzo', [{ ground: false, glide: true, vy: 0.5 }])[0].state, 'glide', 'Enzo glides with the lantern open');
+}
+
+// ─── gear really does what it says ────────────────────────────────────────
+{
+  const ALL = Object.keys(GEAR);
+  const dressed = (equip = {}, seed = 51, abilities = ABILITY_ORDER) => {
+    const g = new BellspireGame(fresh(abilities, { gear: [...ALL] }), {}, seed);
+    for (const [k, id] of Object.entries(equip)) { const [h, slot] = k.split('.'); eq(g.equip(h, slot, id), null, `equip ${id}`); }
+    return g;
+  };
+  // a swing at a frog standing right in front of Dora: how much it takes
+  const hit = (weapon) => {
+    const g = dressed({ 'dora.weapon': weapon });
+    g.teleport('gate', 18, 14); g.dialog = null; run(g, 4); g.dialog = null;
+    const f = g.enemies.find((e) => e.kind === 'frog');
+    g.enemies = [f]; f.hp = 999; f.x = g.body.x + 20; f.y = g.body.y; f.st = 'idle'; g.body.face = 1;
+    g.step(I({ attack: true })); run(g, 14); g.dialog = null;
+    return 999 - f.hp;
+  };
+  const bronze = hit('bronze-sword'), cutter = hit('reed-cutter'), moon = hit('moonsteel');
+  ok(cutter > bronze && moon > cutter, `swings hit harder with better blades (${bronze}, ${cutter}, ${moon})`);
+  // the box a swing hits with: the Moonsteel reaches further; the Reed-Cutter's swing is over sooner
+  const swingBox = (weapon) => {
+    const g = dressed({ 'dora.weapon': weapon }); g.teleport('gate', 4, 14); quiet(g); run(g, 4);
+    g.step(I({ attack: true })); let w = 0;
+    for (let i = 0; i < 30; i++) { const b = g.attackBox(); if (b) w = Math.max(w, b.r.w); g.step(I()); }
+    const g2 = dressed({ 'dora.weapon': weapon }); g2.teleport('gate', 4, 14); quiet(g2); run(g2, 4); g2.step(I({ attack: true }));
+    return { w, dur: g2.leadRt.act.dur };
+  };
+  const sb = swingBox('bronze-sword'), sm = swingBox('moonsteel'), sc = swingBox('reed-cutter');
+  ok(sm.w > sb.w, `the Moonsteel reaches further (${sb.w} → ${sm.w})`);
+  ok(sc.dur < sb.dur, `the Reed-Cutter's swing is over sooner (${sb.dur} → ${sc.dur} ticks)`);
+  // the Frog Ring: ten more HP, which the HUD reads from the same stats
+  const fr = dressed({ 'dora.ring': 'frog-ring' }), plain = dressed();
+  eq(fr.stats('dora').maxHp, plain.stats('dora').maxHp + 10, 'the Frog Ring adds 10 HP');
+  eq(heroStats(fr.save, 'dora').maxHp, fr.stats('dora').maxHp, 'and the HUD’s numbers agree');
+  // the Snail-Shell Coat: hits don't knock the wearer back
+  const knock = (coat) => { const g = dressed({ 'dora.coat': coat }); g.teleport('gate', 10, 14); quiet(g); run(g, 4); g.leadRt.inv = 0; g.hurtLead(5, g.body.x + 10); return g.body.vx; };
+  ok(knock('teal-coat') !== 0, 'a hit knocks Dora back');
+  eq(knock('snail-coat'), 0, 'not in the Snail-Shell Coat');
+  // the Reedweave Coat swims a third faster
+  eq(dressed({ 'dora.coat': 'reed-coat' }).caps().swimMul, 1.3, 'the Reedweave Coat swims faster');
+  eq(dressed().caps().swimMul, 1, 'than the teal coat');
+  // the Moon Ring: MP comes back faster
+  const mpBack = (ring) => { const g = dressed(ring ? { 'enzo.ring': ring } : {}); g.teleport('gate', 10, 14); quiet(g); g.save.heroes.enzo.mp = 0; for (let i = 0; i < 900; i++) { g.step(I()); quiet(g); } return g.save.heroes.enzo.mp; };
+  const m0 = mpBack(null), m1 = mpBack('moon-ring');
+  ok(m1 > m0, `the Moon Ring brings MP back faster (${m0} → ${m1} in 15 s)`);
+  // the Lucky Reed Ring: a quarter more coins
+  const coins = (ring) => { const g = dressed(ring ? { 'dora.ring': ring } : {}); g.drainEvents(); g.dropCoins(0, 0, 8); return g.drainEvents().find((e) => e.k === 'num' && e.kind === 'coin').n; };
+  eq([coins(null), coins('reed-ring')], [8, 10], 'the Lucky Reed Ring adds a quarter more coins');
+  // the Bell Staff: a cheaper Bell Chime
+  const chime = (weapon) => { const g = dressed({ 'enzo.weapon': weapon }); g.save.spells.push('chime'); g.teleport('gate', 10, 14); quiet(g); g.lead = 'enzo'; const mp = (g.save.heroes.enzo.mp = 30); g.castChime(); return mp - g.save.heroes.enzo.mp; };
+  ok(chime('bell-staff') === chime('oak-staff') - 2, 'the Bell Staff makes the Chime cost 2 less MP');
+  // the Star Lamp: a bigger lantern light
+  const lamp = (weapon) => { const g = dressed({ 'enzo.weapon': weapon }); g.teleport('gate', 10, 14); quiet(g); g.lanternUp = true; for (let i = 0; i < 120; i++) { g.step(I()); quiet(g); g.lanternUp = true; } return g.lanternR; };
+  ok(lamp('star-lamp') > lamp('oak-staff') * 1.3, 'the Star Lamp lights a much bigger circle');
+  // the Puma Tooth: some hits land twice as hard, and say so
+  const pt = dressed({ 'dora.relic': 'puma-tooth' }); let crits = 0;
+  pt.teleport('gate', 18, 14); pt.dialog = null; run(pt, 4);
+  for (let k = 0; k < 40; k++) {
+    pt.dialog = null; const f = pt.enemies.find((e) => e.kind === 'frog') ?? pt.enemies[0];
+    if (!f) break;
+    pt.enemies = [f]; f.alive = true; f.hp = 999; f.x = pt.body.x + 20; f.y = pt.body.y; f.st = 'idle'; pt.body.face = 1; pt.leadRt.inv = 99;
+    pt.drainEvents(); pt.step(I({ attack: true })); run(pt, 24);
+    if (pt.drainEvents().some((e) => e.k === 'crit')) crits++;
+  }
+  ok(crits > 0 && crits < 30, `the Puma Tooth lands some hits twice as hard, and flags them (${crits} of 40)`);
+}
+
+// ─── doorways on the map ──────────────────────────────────────────────────
+{
+  // the exit list matches the map's real open edges: for every pair of neighbouring cells in different rooms, an exit
+  // exists exactly when some border tile is open on both sides
+  const open = (c, r) => !'#^'.includes(rawChar(c, r));
+  let bad = 0, checked = 0;
+  for (const room of ROOMS) for (let y = 0; y < room.h; y++) for (let x = 0; x < room.w; x++) {
+    const cx = room.gx + x, cy = room.gy + y;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const n = roomOfTile((cx + dx) * COLS, (cy + dy) * ROWS);
+      if (!n || n.id === room.id) continue;
+      let any = false;
+      for (let i = 0; i < (dx ? ROWS : COLS); i++) {
+        const [a, b, c, d] = dx ? [cx * COLS + (dx > 0 ? COLS - 1 : 0), cy * ROWS + i, cx * COLS + (dx > 0 ? COLS : -1), cy * ROWS + i] : [cx * COLS + i, cy * ROWS + (dy > 0 ? ROWS - 1 : 0), cx * COLS + i, cy * ROWS + (dy > 0 ? ROWS : -1)];
+        if (open(a, b) && open(c, d)) any = true;
+      }
+      const has = MAP_EXITS.some((e) => e.cx === cx && e.cy === cy && e.dx === dx && e.dy === dy);
+      checked++; if (has !== any) bad++;
+    }
+  }
+  eq(bad, 0, `every exit on the map is a real open edge, and every open edge has one (${checked} edges)`);
+  // they come in pairs: a way out of one room is a way into the next
+  ok(MAP_EXITS.every((e) => MAP_EXITS.some((o) => o.cx === e.cx + e.dx && o.cy === e.cy + e.dy && o.dx === -e.dx && o.dy === -e.dy)), 'every doorway is drawn from both sides');
+  // the landing: its ways out, and the ones into other areas carry that area
+  const land = ROOMS.find((r) => r.id === 'landing');
+  const out = MAP_EXITS.filter((e) => e.from === 'landing');
+  ok(out.length >= 2, `the landing has its doorways (${out.map((e) => e.to).join(', ')})`);
+  ok(MAP_EXITS.every((e) => e.cross === (e.toArea !== roomById(e.from).area) && e.toArea === roomById(e.to).area), 'an exit into another area carries that area');
+  const crossings = MAP_EXITS.filter((e) => e.cross);
+  ok(['halls', 'docks', 'towers', 'crypt', 'throne'].every((a) => crossings.some((e) => e.toArea === a && roomById(e.from).area === 'hub' || e.toArea === a)), 'every area has an entrance from somewhere else');
+  void land;
+  // gated exits know their door: the throne door, and the ability doors
+  const u = MAP_EXITS.find((e) => e.door?.ch === 'u');
+  ok(u && u.toArea === 'throne' || u && roomById(u.from).area === 'throne', 'the throne door sits on a doorway into the Sunken Throne');
+  ok(['d', 'j', 'k', 'c'].some((ch) => MAP_EXITS.some((e) => e.door?.ch === ch)), 'ability doors sit on their doorways');
+  ok(MAP_EXITS.some((e) => e.dy !== 0), 'shafts up and down are doorways too');
+}
+
+// ─── the throne's four bell seals ─────────────────────────────────────────
+{
+  const G4 = ['frog', 'hydra', 'puma', 'warden'];
+  const NAMES = { frog: 'the Grand Frog Idol in the Flooded Halls', hydra: 'the Reed Hydra in the Reed Docks', puma: 'the Puma of the Murals in the Crypt Murals', warden: 'the Bell Warden in the Bell Towers' };
+  const u = [...INFO.values()].flatMap((i) => i.doors).find((x) => x.ch === 'u');
+  const keeperRoom = ROOMS.find((r) => INFO.get(r.id).things.some((t) => t.ch === 'U'));
+  const ukT = INFO.get(keeperRoom.id).things.find((t) => t.ch === 'U');
+  const talk = (g) => {
+    g.teleport(keeperRoom.id, ukT.c - keeperRoom.gx * COLS, ukT.r - keeperRoom.gy * ROWS);
+    for (let i = 0; i < 5; i++) { g.dialog = null; g.step(I()); }
+    g.step(I({ up: true })); const lines = [];
+    for (let i = 0; i < 400 && g.dialog; i++) { lines.push(g.dialog.lines[g.dialog.i].text); g.step(I({ jump: i % 2 === 0 })); }
+    return [...new Set(lines)].join(' ');
+  };
+  for (let n = 0; n <= 4; n++) {
+    const calm = G4.slice(0, n), miss = G4.slice(n);
+    const g = new BellspireGame(fresh(ABILITY_ORDER), {}, 70 + n);
+    for (const b of calm) g.setFlag(`boss:${b}`);
+    const said = talk(g);
+    if (n < 4) {
+      ok(!g.flag('keeper') && !g.doorOpen(u), `${n} of 4 guardians calm: Ukumari doesn't open the door`);
+      ok(miss.every((b) => said.includes(NAMES[b])) && calm.every((b) => !said.includes(NAMES[b])), `and names exactly the restless ones (${miss.join(', ')}): “${said.slice(-260)}”`);
+      ok(!/\b(he|she|his|her)\b/i.test(said.replace(/Be gentle with her/, '')), 'without he or she');
+    } else ok(g.flag('keeper') && g.doorOpen(u), 'all four calm: Ukumari opens the throne door');
+  }
+  // the locked-door hint lists the missing guardians
+  const h = new BellspireGame(fresh(ABILITY_ORDER), {}, 80); h.setFlag('boss:frog'); h.setFlag('boss:puma'); h.lockedDoor(u);
+  ok(/1 of 4|2 of 4/.test(h.toast.text) && h.toast.text.includes(NAMES.hydra) && h.toast.text.includes(NAMES.warden) && !h.toast.text.includes(NAMES.frog), `the door's hint names the missing guardians (“${h.toast.text}”)`);
+  // the door is solid until it opens
+  const s = new BellspireGame(fresh(ABILITY_ORDER), {}, 81); s.setFlag('keeper');
+  ok(s.env.solid(u.c, u.r), 'the throne door is solid while seals are shut');
+  for (const b of G4) s.setFlag(`boss:${b}`);
+  ok(!s.env.solid(u.c, u.r), 'and open once all four are calm');
+  // calming a guardian lights a seal, with a word
+  const c = new BellspireGame(fresh(ABILITY_ORDER), {}, 82); c.setFlag('boss:frog'); c.setFlag('boss:warden');
+  c.boss = { id: 'hydra', x: 100, y: 100 }; c.drainEvents(); c.bossDone();
+  eq(c.toast.text, 'The Reed Docks bell is quiet. 3 of 4 seals open.', 'calming the hydra opens its seal');
+  ok(c.drainEvents().some((e) => e.k === 'seal' && e.n === 3), 'and the door hears it');
+  // old saves: Ukumari opened the door before the guardians were calm: the seals lock it again, unless the story is over
+  const old = freshSave(); old.flags.push('keeper', 'boss:frog');
+  ok(!new BellspireGame(old).flag('keeper'), 'an old save with a guardian skipped has the throne locked again');
+  const done = freshSave(); done.flags.push('keeper', 'boss:frog', 'ending');
+  ok(new BellspireGame(done).flag('keeper'), 'but a finished story is left alone');
 }
 
 // ─── shrine travel ────────────────────────────────────────────────────────

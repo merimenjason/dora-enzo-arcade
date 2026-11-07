@@ -6,7 +6,9 @@ import {
   rawChar, groupAt, roomRect, hexRgb, surfaceY, surfaceRow, SWING, foeFrame,
   type Room, type GameEvent, type HeroId, type Boss, type NumKind,
 } from './bellspire-game';
-import { ART, FLAMES } from './bellspire-art';
+import { GUARDIANS, GUARDIAN_AREA } from './bellspire-world';
+import { dressStrip, WEAPON_LOOK, COAT_LOOK, START_LOOK } from './bellspire-gear-art';
+import { ART, FLAMES, BOXES } from './bellspire-art';
 import { HeroAnimator, type AnimInput, type AnimOut } from './bellspire-anim';
 
 type Img = HTMLImageElement | HTMLCanvasElement;
@@ -58,6 +60,14 @@ export class BellspireScene {
   ctx: CanvasRenderingContext2D;
   img = new Map<string, Img>();
   white = new Map<string, HTMLCanvasElement>();
+  /** the gear each hero is drawn in (for the tests), and each dressed strip's coat bounds per frame (the shell) */
+  worn: Record<HeroId, { weapon: string; coat: string }> = { dora: { ...START_LOOK.dora }, enzo: { ...START_LOOK.enzo } };
+  coatBoxes = new Map<string, ({ x0: number; x1: number; y0: number; y1: number } | null)[]>();
+  /** a sparkle round a hero who just changed gear (ticks left) */
+  shineT: Record<HeroId, number> = { dora: 0, enzo: 0 };
+  bellSwingT: Record<HeroId, number> = { dora: 0, enzo: 0 };
+  /** the camera offset the heroes were last drawn with (to turn screen points back into world points) */
+  ox = 0; oy = 0;
   tints = new Map<string, HTMLCanvasElement>();
   rimCanvas = document.createElement('canvas');
   ready = false;
@@ -117,6 +127,8 @@ export class BellspireScene {
   chunks: { x: number; y: number; vx: number; vy: number; t: number; f: boolean }[] = [];
   ripples: { x: number; y: number; t: number; big: boolean }[] = [];
   wispTrail: { x: number; y: number }[] = [];
+  /** how strongly the wisp shows (fades in and out) */
+  wispA = 0;
   /** the water surface as drawn: it eases to a new level, with streams pouring in while it rises */
   shownSurf: number | null = null;
   shownSurfRoom = '';
@@ -153,7 +165,7 @@ export class BellspireScene {
   }
 
   async load(base = '/art/bellspire/') {
-    const names = Object.keys(ART).concat(['parchment']);
+    const names = Object.keys(ART).concat(['parchment', 'dora-parts', 'enzo-parts']);
     await Promise.all([...new Set(names)].map((n) => new Promise<void>((res) => {
       const im = new Image();
       im.onload = () => { this.img.set(n, im); res(); };
@@ -174,10 +186,35 @@ export class BellspireScene {
     this.ready = true;
   }
 
+  /** The strip a hero is drawn from in the gear they wear: the painted strip for the starting gear, else a copy with
+   *  the coat, blade, staff and lantern recoloured (made once per combination). */
+  dressed(hero: HeroId, weapon: string, coat: string): string {
+    const key = `${hero}@${weapon}@${coat}`;
+    if (weapon === START_LOOK[hero].weapon && coat === START_LOOK[hero].coat && !COAT_LOOK[coat]?.shell) return hero;
+    if (this.img.has(key)) return key;
+    const im = this.img.get(hero), pm = this.img.get(`${hero}-parts`);
+    if (!im || !pm || typeof document === 'undefined') return hero;
+    const c = document.createElement('canvas');
+    c.width = im.width; c.height = im.height;
+    const x = c.getContext('2d', { willReadFrequently: true })!;
+    x.drawImage(im, 0, 0);
+    const d = x.getImageData(0, 0, c.width, c.height);
+    const p = document.createElement('canvas');
+    p.width = pm.width; p.height = pm.height;
+    const px = p.getContext('2d', { willReadFrequently: true })!;
+    px.drawImage(pm, 0, 0);
+    const pd = px.getImageData(0, 0, p.width, p.height);
+    this.coatBoxes.set(key, dressStrip(d.data, pd.data, c.width, c.height, ART[hero][0], hero, weapon, coat));
+    x.putImageData(d, 0, 0);
+    this.img.set(key, c);
+    return key;
+  }
+
   /** Draw frame `i` of strip `name` with its bottom-middle at (x, y). */
   spr(name: string, i: number, x: number, y: number, flip = false, alpha = 1, white = false, fx?: SprFx) {
-    const im = white ? this.white.get(name) : this.img.get(name);
-    const a = ART[name];
+    const base = name.split('@')[0];
+    const im = white ? this.white.get(base) : this.img.get(name);
+    const a = ART[base];
     if (!im || !a) return;
     const [cw, ch] = a;
     const ctx = this.ctx;
@@ -235,6 +272,8 @@ export class BellspireScene {
       else if (e.k === 'sfx' && e.id === 'splash' && e.x !== undefined && e.y !== undefined) { this.burst(e.x, e.y - 4, 10, '#bfe6ff', 2, -1.5); this.ripples.push({ x: e.x, y: e.y, t: 0, big: false }); }
       else if (e.k === 'sfx' && e.id === 'poof' && e.x !== undefined && e.y !== undefined) this.poof(e.x, e.y);
       if (e.k === 'num' && this.numbersOn) this.addNum(e.x, e.y, e.n, e.kind);
+      // a Puma Tooth hit: an orange flash
+      if (e.k === 'crit') { this.burst(e.x, e.y, 12, '#ff9a2a', 2.2); this.pulses.push({ x: e.x, y: e.y, r: 70, c: [1, 0.55, 0.15], t: 0 }); }
       if (e.k === 'save') this.animEvents[this.leadNow].push('rest');
       else if (e.k === 'bell') this.animEvents[this.leadNow].push('ring');
       else if (e.k === 'mural') this.animEvents[this.leadNow].push('read');
@@ -510,14 +549,20 @@ export class BellspireScene {
     this.drawRays(g, ox, oy);
 
     // over the light: the wisp, rings, flashes and labels
-    if (g.wisp.on) {
-      const wx = g.wisp.x + ox, wy = g.wisp.y + oy + Math.sin(this.t * 0.1) * 2;
-      // a trail of fading motes behind it
-      if (this.t % 3 === 0) { this.wispTrail.push({ x: g.wisp.x, y: g.wisp.y + Math.sin(this.t * 0.1) * 2 }); if (this.wispTrail.length > 10) this.wispTrail.shift(); }
-      this.wispTrail.forEach((p, i) => { ctx.fillStyle = `rgba(255,236,160,${((i + 1) / this.wispTrail.length * 0.5).toFixed(2)})`; const sz = i > 6 ? 2 : 1; ctx.fillRect(Math.round(p.x + ox), Math.round(p.y + oy), sz, sz); });
-      this.spr('npcs', 4, wx, wy + 6, g.wisp.tx < g.wisp.x);
+    // the guiding wisp: a small soft glow with a short trail; faint while someone talks or a guardian fights
+    const wispWant = g.wisp.on ? (g.dialog ? 0.15 : g.boss ? 0.3 : 1) : 0;
+    this.wispA += (wispWant - this.wispA) * 0.08;
+    if (this.wispA > 0.02) {
+      const bob = Math.sin(this.t * 0.1) * 2, wx = Math.round(g.wisp.x + ox), wy = Math.round(g.wisp.y + oy + bob), a = this.wispA;
+      if (this.t % 3 === 0) { this.wispTrail.push({ x: g.wisp.x, y: g.wisp.y + bob }); if (this.wispTrail.length > 6) this.wispTrail.shift(); }
+      this.wispTrail.forEach((p, i) => { ctx.fillStyle = `rgba(190,245,255,${((i + 1) / this.wispTrail.length * 0.45 * a).toFixed(2)})`; ctx.fillRect(Math.round(p.x + ox), Math.round(p.y + oy), 1, 1); });
+      const glow = ctx.createRadialGradient(wx, wy, 0, wx, wy, 9);
+      glow.addColorStop(0, `rgba(200,250,255,${(0.55 * a).toFixed(2)})`); glow.addColorStop(1, 'rgba(160,230,255,0)');
+      ctx.fillStyle = glow; ctx.fillRect(wx - 9, wy - 9, 18, 18);
+      ctx.fillStyle = `rgba(150,235,255,${(0.8 * a).toFixed(2)})`; ctx.fillRect(wx - 1, wy - 2, 3, 5); ctx.fillRect(wx - 2, wy - 1, 5, 3);
+      ctx.fillStyle = `rgba(255,255,255,${a.toFixed(2)})`; ctx.fillRect(wx, wy - 1, 1, 3); ctx.fillRect(wx - 1, wy, 3, 1);
     } else this.wispTrail = [];
-    for (const r of g.rings) { ctx.strokeStyle = r.friendly ? 'rgba(255,220,130,0.85)' : 'rgba(230,120,255,0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(Math.round(r.x + ox), Math.round(r.y + oy), r.r, 0, Math.PI * 2); ctx.stroke(); }
+    for (const r of g.rings) { ctx.strokeStyle = r.friendly ? (r.kind === 'chime' && WEAPON_LOOK[this.worn.enzo.weapon]?.ring) || 'rgba(255,220,130,0.85)' : 'rgba(230,120,255,0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(Math.round(r.x + ox), Math.round(r.y + oy), r.r, 0, Math.PI * 2); ctx.stroke(); }
     for (const p of this.pulses) {
       p.t++;
       const k = p.t / 24;
@@ -634,7 +679,17 @@ export class BellspireScene {
       const cxr = x + w / 2, cyr = y + h / 2, pulse = 0.65 + 0.35 * Math.sin(this.t * 0.08 + d.c);
       ctx.fillStyle = col; ctx.globalAlpha = pulse;
       if (d.ch === 'b') { for (let i = 3; i < (d.horiz ? w : h); i += 5) d.horiz ? ctx.fillRect(x + i, y + 1, 2, h - 2) : ctx.fillRect(x + 1, y + i, w - 2, 2); }
-      else if (d.ch === 'u') { ctx.fillRect(x + 1, cyr - 1, w - 2, 3); ctx.fillRect(cxr - 1, y + 1, 3, h - 2); }
+      else if (d.ch === 'u') {
+        ctx.fillRect(x + 1, cyr - 1, w - 2, 3); ctx.fillRect(cxr - 1, y + 1, 3, h - 2);
+        // four bell seals, one per guardian in its area's colour: lit once that guardian is calm
+        ctx.globalAlpha = 1;
+        GUARDIANS.forEach((b, i) => {
+          const sx = Math.round(d.horiz ? x + ((i + 0.5) * w) / 4 : cxr) - 3, sy = Math.round(d.horiz ? cyr : y + ((i + 0.5) * h) / 4) - 3, on = g.flag(`boss:${b}`);
+          ctx.fillStyle = '#1a1020'; ctx.fillRect(sx, sy, 7, 7);
+          ctx.fillStyle = on ? AREAS[GUARDIAN_AREA[b]].color : '#4a3a40'; ctx.fillRect(sx + 1, sy + 1, 5, 5);
+          if (on) { ctx.fillStyle = '#fff6d8'; ctx.fillRect(sx + 2, sy + 2, 1, 1); } else { ctx.fillStyle = '#2a2026'; ctx.fillRect(sx + 3, sy + 2, 1, 3); }
+        });
+      }
       else { ctx.fillRect(Math.round(cxr) - 3, Math.round(cyr) - 3, 6, 6); ctx.fillStyle = '#fff'; ctx.fillRect(Math.round(cxr) - 1, Math.round(cyr) - 1, 2, 2); }
       ctx.globalAlpha = 1;
     }
@@ -840,16 +895,76 @@ export class BellspireScene {
     let flip = out.flip;
     // back views don't turn round
     if (out.state === 'climb' || out.state === 'climbOn' || out.state === 'read') flip = false;
-    if (out.sx === 1 && out.sy === 1 && Math.abs(out.lean) < 0.01) { this.spr(hero, out.frame, x, y, flip, alpha, white); return; }
+    const w = this.worn[hero], name = this.dressed(hero, w.weapon, w.coat);
+    if (COAT_LOOK[w.coat]?.shell && !white) this.shellAfter = { name, frame: out.frame, x, y, flip, alpha };
+    if (out.sx === 1 && out.sy === 1 && Math.abs(out.lean) < 0.01) { this.spr(name, out.frame, x, y, flip, alpha, white); this.drawShell(); return; }
     ctx.save();
     ctx.translate(Math.round(x), Math.round(y));
     // x' = sx·x − lean·y: with y up-negative, the top of the sprite leans the way `lean` says
     ctx.transform(out.sx, 0, -out.lean, out.sy, 0, 0);
-    this.spr(hero, out.frame, 0, 0, flip, alpha, white);
+    this.spr(name, out.frame, 0, 0, flip, alpha, white);
     ctx.restore();
+    this.drawShell();
+  }
+
+  shellAfter: { name: string; frame: number; x: number; y: number; flip: boolean; alpha: number } | null = null;
+  /** The Snail-Shell Coat's little spiral shell, on the coat's back (it turns with the hero). */
+  drawShell() {
+    const s = this.shellAfter;
+    this.shellAfter = null;
+    if (!s) return;
+    const bx = this.coatBoxes.get(s.name)?.[s.frame], a = ART[s.name.split('@')[0]];
+    if (!bx || !a) return;
+    const [cw, ch] = a, left = Math.round(s.x - cw / 2), top = Math.round(s.y - ch);
+    const cx0 = bx.x0 - s.frame * cw, cx1 = bx.x1 - s.frame * cw;
+    // the art faces right, so its back is the coat's left edge; mirrored when the hero faces left
+    const bxl = s.flip ? cw - 1 - cx0 - 4 : cx0 - 1, by = Math.round((bx.y0 + bx.y1) / 2) - 3;
+    void cx1;
+    const ctx = this.ctx, X = left + bxl, Y = top + by;
+    ctx.globalAlpha = s.alpha;
+    ctx.fillStyle = '#221820'; ctx.fillRect(X, Y, 6, 6);
+    ctx.fillStyle = '#c99a62'; ctx.fillRect(X + 1, Y + 1, 4, 4);
+    ctx.fillStyle = '#6a4424'; ctx.fillRect(X + 2, Y + 2, 2, 1); ctx.fillRect(X + 3, Y + 2, 1, 2); ctx.fillRect(X + 2, Y + 3, 1, 1);
+    ctx.fillStyle = '#f0d8a8'; ctx.fillRect(X + 1, Y + 1, 1, 1);
+    ctx.globalAlpha = 1;
+  }
+
+  /** Rings and relics, small but there: a glint, a sparkle, a feather, a bell. */
+  trinkets(g: BellspireGame, hero: HeroId, out: AnimOut, x: number, y: number, alpha: number) {
+    const eq = g.save.equip[hero], f = out.flip ? -1 : 1, ctx = this.ctx, t = this.t + (hero === 'enzo' ? 37 : 0);
+    const box = BOXES[hero]?.[out.frame];
+    const top = box ? y + box[1] : y - 36;
+    const hand = { x: x + f * 6, y: y - 15 };
+    ctx.globalAlpha = alpha;
+    if (eq.ring === 'frog-ring' && t % 110 < 8) { ctx.fillStyle = '#ffe680'; ctx.fillRect(Math.round(hand.x), Math.round(hand.y), 1, 1); if (t % 110 < 3) { ctx.fillRect(Math.round(hand.x) - 1, Math.round(hand.y), 3, 1); ctx.fillRect(Math.round(hand.x), Math.round(hand.y) - 1, 1, 3); } }
+    if (eq.ring === 'moon-ring' && t % 150 === 0) this.particles.push({ x: hand.x - this.ox, y: hand.y - this.oy, vx: 0, vy: -0.25, life: 0, max: 40, color: '#a8c8ff', size: 1, g: -0.005, light: true });
+    if (eq.ring === 'reed-ring' && t % 130 < 6) { ctx.fillStyle = '#a6f07a'; ctx.fillRect(Math.round(hand.x), Math.round(hand.y), 1, 1); }
+    if (eq.relic === 'condor-feather' && out.state !== 'climb' && out.state !== 'read' && out.state !== 'ko') {
+      // tucked behind an ear: a long dark feather leaning back
+      const fx = Math.round(x - f * 5), fy = Math.round(top + 4);
+      ctx.fillStyle = '#221820'; for (let k = 0; k < 6; k++) ctx.fillRect(fx - f * Math.floor(k / 2), fy - k, 2, 1);
+      ctx.fillStyle = '#f2f0ea'; ctx.fillRect(fx - f * 2, fy - 5, 1, 1);
+    }
+    if (eq.relic === 'bell-charm') {
+      // a tiny bell at the belt, which swings and jingles when the hero lands
+      if (out.dust === 'land' || out.dust === 'hard') { this.bellSwingT[hero] = 24; this.burst(x - this.ox - f * 4, y - this.oy - 11, 3, '#ffe27a', 0.8, -0.4); }
+      const sw = this.bellSwingT[hero] > 0 ? Math.round(Math.sin(this.bellSwingT[hero]-- * 0.8) * 1.5) : 0;
+      const bxp = Math.round(x - f * 4 + sw), byp = Math.round(y - 12);
+      ctx.fillStyle = '#221820'; ctx.fillRect(bxp - 1, byp - 1, 4, 4);
+      ctx.fillStyle = '#e8b83a'; ctx.fillRect(bxp, byp, 2, 2);
+      ctx.fillStyle = '#fff2a8'; ctx.fillRect(bxp, byp, 1, 1);
+    }
+    if (this.shineT[hero] > 0) {
+      // just changed gear: a ring of glints turning round the hero
+      const k = this.shineT[hero]--;
+      for (let j = 0; j < 4; j++) { const a2 = k * 0.25 + (j * Math.PI) / 2; ctx.fillStyle = j % 2 ? '#fff6c8' : '#ffffff'; ctx.fillRect(Math.round(x + Math.cos(a2) * 13), Math.round(y - 18 + Math.sin(a2) * 15), 2, 2); }
+    }
+    ctx.globalAlpha = 1;
   }
 
   drawHeroes(g: BellspireGame, ox: number, oy: number) {
+    for (const h of ['dora', 'enzo'] as HeroId[]) { const e = g.save.equip[h]; this.worn[h] = { weapon: e.weapon ?? START_LOOK[h].weapon, coat: e.coat ?? START_LOOK[h].coat }; }
+    this.ox = ox; this.oy = oy;
     const lead = g.lead, oth: HeroId = lead === 'dora' ? 'enzo' : 'dora', b = g.body;
     this.leadNow = lead;
     // a tag: the hero who just stepped back hops out of the way
@@ -868,6 +983,7 @@ export class BellspireScene {
       const out = this.anims[oth].step(this.followerInput(g, oth));
       this.heroAnim[oth] = out;
       this.drawHero(oth, out, g.follower.x + ox, g.follower.y + oy + 1, 0.92);
+      this.trinkets(g, oth, out, g.follower.x + ox, g.follower.y + oy + 1, 0.92);
       this.dust(out, g.follower.x, g.follower.y);
     }
     const out = this.anims[lead].step(this.leadInput(g));
@@ -901,6 +1017,7 @@ export class BellspireScene {
     const rt = g.hero[lead];
     const blink = rt.inv > 0 && rt.hurtT === 0 && rt.inv < 60 && this.t % 6 < 3;
     this.drawHero(lead, out, b.x + ox, b.y + oy + 1, blink ? 0.35 : 1);
+    this.trinkets(g, lead, out, b.x + ox, b.y + oy + 1, blink ? 0.35 : 1);
     this.dust(out, b.x, b.y);
     // the swing's arc
     const box = g.attackBox(), act = g.leadRt.act;
@@ -909,7 +1026,7 @@ export class BellspireScene {
       // the arc is drawn from the hit box itself: centred on the hero's side of the box, reaching its far edge, and
       // spanning its height, so what you see cut is what is hit
       const r = box.r.w, cxh = b.x + ox, cyh = box.r.y + box.r.h / 2 + oy, span = Math.asin(Math.min(0.97, box.r.h / 2 / r));
-      ctx.strokeStyle = lead === 'dora' ? 'rgba(220,250,255,0.9)' : 'rgba(255,214,140,0.9)'; ctx.lineWidth = act.n === 2 ? 3 : 2;
+      ctx.strokeStyle = WEAPON_LOOK[this.worn[lead].weapon]?.arc ?? 'rgba(220,250,255,0.9)'; ctx.lineWidth = act.n === 2 ? 3 : 2;
       ctx.beginPath();
       // the first and last cuts come down, the second goes up: the bright end leads
       if (b.face > 0) ctx.arc(cxh, cyh, r, -span, span); else ctx.arc(cxh, cyh, r, Math.PI - span, Math.PI + span);
@@ -918,7 +1035,7 @@ export class BellspireScene {
       if (b.face > 0) ctx.arc(cxh, cyh, r - 4, -span * 0.8, span * 0.8); else ctx.arc(cxh, cyh, r - 4, Math.PI - span * 0.8, Math.PI + span * 0.8);
       ctx.stroke();
     }
-    if (act && act.kind === 'whirl') { const ctx = this.ctx; ctx.strokeStyle = 'rgba(200,250,255,0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(g.body.x + ox, g.body.y - 12 + oy, 26, act.t * 0.5, act.t * 0.5 + 4); ctx.stroke(); }
+    if (act && act.kind === 'whirl') { const ctx = this.ctx; ctx.strokeStyle = WEAPON_LOOK[this.worn.dora.weapon]?.arc ?? 'rgba(200,250,255,0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(g.body.x + ox, g.body.y - 12 + oy, 26, act.t * 0.5, act.t * 0.5 + 4); ctx.stroke(); }
     if (g.embers) {
       const c = g.lead === 'enzo' ? { x: g.body.x, y: g.body.y - 12 } : { x: g.follower.x, y: g.follower.y - 12 };
       for (let i = 0; i < 8; i++) { const a = g.embers.t * 0.12 + (i * Math.PI) / 4; this.spr('foes', 23, c.x + Math.cos(a) * 34 + ox, c.y + Math.sin(a) * 34 + oy + 24); }
@@ -1106,8 +1223,17 @@ export class BellspireScene {
     // the heroes always glow a little, so they can be seen in the dark
     L.push({ x: g.body.x, y: g.body.y - 18, r: 40, c: [0.85, 0.85, 1], i: 0.3 });
     // Enzo's lantern
-    if (g.lanternR > 1) { const e = g.enzoPos(); L.push({ x: e.x, y: e.y - 10, r: g.lanternR, c: [1, 0.8, 0.5], i: (g.lanternUp ? 1.15 : 0.9) * (0.96 + 0.04 * Math.sin(t * 0.3)), soft: g.lanternUp }); }
-    if (g.wisp.on) L.push({ x: g.wisp.x, y: g.wisp.y, r: 44, c: [0.7, 0.95, 1], i: 0.9 });
+    if (g.lanternR > 1) {
+      // the lantern's light follows Enzo's weapon: the Star Lamp burns star-white and brighter
+      const e = g.enzoPos(), look = WEAPON_LOOK[this.worn.enzo.weapon];
+      L.push({ x: e.x, y: e.y - 10, r: g.lanternR, c: look?.light ?? [1, 0.8, 0.5], i: (g.lanternUp ? 1.15 : 0.9) * (look?.lightMul ?? 1) * (0.96 + 0.04 * Math.sin(t * 0.3)), soft: g.lanternUp });
+    }
+    // the Salt Lamp: a soft pink light that follows whoever carries it
+    for (const h of ['dora', 'enzo'] as HeroId[]) if (g.save.equip[h].relic === 'salt-lamp' && !g.save.heroes[h].down) {
+      const p = h === g.lead ? g.body : g.follower;
+      L.push({ x: p.x, y: p.y - 16, r: 54, c: [1, 0.62, 0.72], i: 0.5, soft: true });
+    }
+    if (this.wispA > 0.02) L.push({ x: g.wisp.x, y: g.wisp.y, r: 30, c: [0.7, 0.95, 1], i: 0.55 * this.wispA, soft: true });
     if (g.boss?.id === 'warden' && (g.boss.st === 'rest' || g.boss.st === 'drop')) { const bd = g.boss.body; L.push({ x: bd.x + bd.w / 2, y: bd.y + bd.h - 10, r: 120, c: [1, 0.6, 0.25], i: 1 }); }
     // a key light on a guardian in a fight, so it reads against the dimmed room
     if (g.boss && !g.boss.calm && g.boss.st !== 'wait') { const bd = g.boss.body; L.push({ x: bd.x + bd.w / 2, y: bd.y + bd.h * 0.35, r: Math.max(bd.w, bd.h) * 0.9 + 50, c: [1, 0.95, 0.85], i: 0.42, soft: true }); }

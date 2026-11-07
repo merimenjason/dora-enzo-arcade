@@ -54,7 +54,7 @@ engine tests check that every row has the right width and every open edge leads 
 - Terrain: `#` stone, `=` one-way ledge, `H` ladder, `^` spikes, `g` ghost-glass (solid only in the raised lantern's
   light), `x` a cracked wall that breaks, `f` a float that rides the water.
 - Doors: `d` Reed Dash, `j` Wind Leap, `k` Wall Kick, `l` lantern hatch, `c` bell-sealed (Bell Chime), `u` the throne
-  door (opens once Ukumari has the bells), `b` a guardian's door (open until the fight starts, shut until it ends).
+  door (four bell seals: opens once all four area guardians are calm and Ukumari has the bells), `b` a guardian's door (open until the fight starts, shut until it ends).
 - Things: `@` the start, `S` candle shrine, `M` Wayra's stall, `R` mural, `C` chest, `A` ability pedestal, `B` water
   bell, `O` where the guardian stands, `U` Ukumari, `T` torch, `i` candle, `w` window (god rays), `h` hanging bell.
 - Foes: `F` frog, `m` moth, `e` eel, `r` reed lurker, `K` condor, `I` imp, `a` shell, `z` vizcacha, `J` jelly, `G` golem.
@@ -75,6 +75,16 @@ engine tests check that every row has the right width and every open edge leads 
 
 The Reed Hydra gives the Ember Ring, the Puma of the Murals gives the Puma Tooth and a Moon Drop, and the other
 guardians each give a Bell Heart (+6 max HP for both heroes). Moon Drops add 3 max MP.
+
+The hydra and the puma open no ability door, but the throne still needs them: the throne door (`u`) is held by four bell
+seals, one per area guardian (the frog, the hydra, the puma and the warden), drawn on the door in each area's colour.
+Each seal lights when its guardian is calmed, with a chime and a toast ("The Reed Docks bell is quiet. 3 of 4 seals
+open."). Until all four are lit, Ukumari names the guardians still restless and where they are, the door's hint lists
+them, and the throne stays shut. Once all four are calm, Ukumari opens it as before. The maps show the seals by the door
+and a red mark on each restless guardian. With every ability owned and seals still shut, the wisp leads to the nearest
+restless guardian. The planner gates the throne on all four guardians too, and every guardian can be reached before the
+throne opens. An old save where Ukumari had already opened the door with a guardian skipped is locked again on load,
+unless its ending has been seen.
 
 ## Water
 
@@ -167,16 +177,61 @@ and is centred.
 Hits pop numbers in the pixel font, outlined and stacked so they never sit on a face: white for a hit, gold and bigger
 for a finisher, blue for spells, red for the heroes' hurts, green for heals, and "+XP" and "+coins" drift up when a foe
 is calmed. The HUD minimap, top right by the coins, shows about 5 by 4 rooms round the heroes, coloured by area, with
-the room pulsing, a dot where the lead stands, ways on into unexplored rooms, shrines, guardians and locked doors in
-their ability's colour. It fades when the heroes walk under it and a tap opens the map. Both can be turned off in
-Settings.
+the room pulsing, a dot where the lead stands, shrines, guardians, and the wisp's goal as a small glowing mote. It
+fades when the heroes walk under it and a tap opens the map. Both can be turned off in Settings.
+
+Doorways: every run of open tiles across a border between two rooms (`MAP_EXITS` in the engine, with the shafts up and
+down) is drawn at its real spot on the edge. Between two explored rooms it is a plain gap in the wall. Into a room not
+seen yet, it is a bright stub. Into another area, it is a notch in that area's colour (even when that room is
+unexplored), so "the Reed Docks are through here" shows once the doorway has been seen from inside. A shut door
+(ability doors, bell seals, hatches, the throne) is a small lock in the colour of what opens it, and turns into a gap
+once open. The pause map has a key for these symbols. The numbers on the map read "Guardians 2 of 5 · Rooms 39 of 64 ·
+Chests 10 of 17 · Murals 5 of 10".
+
+Numbers in the UI use Silkscreen's blocky digits (a digits-only font face covering 0 to 9, % and /, ahead of Pixelify
+Sans), because in Pixelify Sans the 5 reads as an S and the 2 as a Z. The canvas damage numbers use their own 3×5
+glyphs, which have no S or B to mix them up with.
 
 ## Assist and Strict
 
 The helping hand is on by default: 40% less damage taken, slower guardians with longer warnings, healing near shrines,
-and a wisp that flies towards the doorway on the way to the next goal if the heroes stand still for six seconds (or
-seem lost for 75 seconds). It follows a path through the room's open tiles, turning at corners, so it never passes
-through stone; the path is through the air, not always one the heroes can walk. Strict turns the helping hand off and only allows shrine travel from a shrine.
+and the guiding wisp. While the helping hand is on, the wisp is always there: a small soft glow with a short trail,
+floating about 56 px ahead of the lead along the way to the next story goal (the next ability, the next guardian, the
+nearest restless guardian once every ability is owned, then Ukumari and the throne). In the goal's room it hovers over
+the goal. It follows a path through the room's open tiles, turning at corners, so it never passes through stone; the
+path is through the air, not always one the heroes can walk. It keeps at least 24 px from the lead's face, fades while
+someone talks, drifts to the far top corner in a guardian's arena, and never touches play (it lights no ghost-glass).
+After the ending it is gone. The Guiding wisp setting, under the helping hand, hides it; it is greyed out with "Needs
+the helping hand on." while the helping hand is off. Strict turns the helping hand off and only allows shrine travel from a shrine.
+
+## Gear you can see
+
+Weapons and coats are painted into every hero frame, so the worn ones are shown by recolouring those pixels.
+`scripts/bellspire-art.py` writes a part map beside each hero strip (`dora-parts.webp`, `enzo-parts.webp`: red 80 the
+coat, 160 Dora's blade or Enzo's staff shaft, 240 Enzo's lantern). Dora's map comes from hue at full size (the teal
+coat, the pale blade), then every teal pixel left on the final sprite. Enzo's is labelled on the final sprite, because
+his staff and coat share a hue: big rust pieces are the coat, small ones and the glow are the lantern, the rest of the
+rust is the shaft. `lib/bellspire-gear-art.ts` repaints each part along a colour ramp by the brightness it was painted
+with, once per hero, weapon and coat, and the starting gear keeps its painted colours.
+
+- Weapons: the Reed-Cutter is a green blade, the Moonsteel a bright silver-blue one with a one-pixel glint, the Bell
+  Staff a bronze shaft with a gold lantern, the Star Lamp a white-gold lamp. The swing arc and the whirl take the
+  weapon's colour, Enzo's lantern light follows the weapon (the Star Lamp burns star-white and brighter), and the Bell
+  Chime's ring is gold with the Bell Staff.
+- Coats: either hero can wear any coat. Teal, rust, Reedweave (golden straw with a darker weave line every third row) and
+  Snail-Shell (earthy brown, with a small spiral shell on the coat's back that turns with the hero).
+- Rings and relics: the Moon Ring lets off a faint moon-blue sparkle now and then, the Frog Ring glints gold on the paw,
+  the Lucky Reed Ring glints green, the Condor Feather is tucked behind an ear, the Salt Lamp casts a soft pink light
+  round its wearer, the Bell Charm hangs at the belt and jingles on landing, and Puma Tooth crits flash orange.
+- The gear menu shows each hero in the gear they wear. Picking an item shows that hero wearing it and what it changes
+  ("ATK 8 → 11", "+ Swings come round faster") in green or red before equipping. Closing the menu after equipping plays
+  a shine round the hero and a toast ("Dora equipped the Reed-Cutter and the Snail-Shell Coat."). The HUD bars use the
+  new maximums at once.
+
+Every item's effect has an engine test: blade damage, the Moonsteel's reach and the Reed-Cutter's quicker swing, the Frog
+Ring's HP (and the HUD's numbers agreeing), the Snail-Shell Coat's lack of knock-back, the Reedweave's swimming, the Moon
+Ring's MP, the Lucky Ring's coins, the Bell Staff's cheaper chime, the Star Lamp's bigger lantern and the Puma Tooth's
+crits.
 
 Knocked out: the partner takes over. When both are down they wake at the last shrine and drop their coins in a bag
 where they fell; walking back picks it up.
@@ -210,12 +265,16 @@ much longer. The test requires casual wins in 85% of seeds and pro in 70%.
 - `tests/bellspire.mjs`: the map, the gates (each pedestal reachable with what comes before it, each area shut without
   its ability), no traps with four ability sets, physics, water, doors, the lantern and ghost-glass, combat, XP,
   tagging, knock-outs, shrines, travel (and when X opens it), the hero animator (every state, the climb), every foe
-  frame's hitbox against its art, damage numbers, gear, the shop, food, a guardian from door to reward, the wisp, saves and
-  determinism.
+  frame's hitbox against its art, damage numbers, every gear item's effect, the shop, food, a guardian from door to reward,
+  the throne's four seals (Ukumari with 0 to 4 guardians calm, the names, the door, the planner without each guardian,
+  old saves), the map's doorways against the real open edges, the always-on wisp (every tick, never near a face, never
+  changing play, off with the setting or in Strict), saves and determinism.
 - `tests/bellspire-bot.mjs`: the guardian bots and the route bot (`--quick` for 8 seeds and one route).
 - `tests/e2e/bellspire.mjs`: the browser suite. Every player action with the real keys, each locked action's message,
   the shrine (↑ rests, X travels, X near a foe swings, a map tap travels), the climb frame, a chest, a door opening,
-  a bell ringing, damage numbers, the minimap at three screen sizes, the shop, a mural, every menu tab, a key rebind, a water bell, a lantern hatch, a guardian, the ending,
+  a bell ringing, damage numbers, the minimap at three screen sizes (with an area entrance drawn), gear equipped through
+  the menu (preview, comparison, toast, worn gear in the scene, a harder hit), the map's doorways and stats line,
+  Ukumari keeping the throne shut with the hydra skipped, the Guiding wisp setting, the shop, a mural, every menu tab, a key rebind, a water bell, a lantern hatch, a guardian, the ending,
   saves, and phones held both ways, with no page errors and no sideways scrolling.
 
 Compile first: `npx tsc lib/bellspire-game.ts lib/bellspire-nav.ts --target es2022 --module es2022

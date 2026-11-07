@@ -175,7 +175,7 @@ function objectives() {
     boss('mother'),
   ];
 }
-const navState = (g) => ({ abilities: [...g.save.abilities], water: { ...g.save.water }, keeper: g.flag('keeper') });
+const navState = (g) => ({ abilities: [...g.save.abilities], water: { ...g.save.water }, keeper: g.flag('keeper'), calmed: g.save.flags.filter((f) => f.startsWith('boss:')).map((f) => f.slice(5)) });
 const near = (t, dx = 20) => (n) => n.mode === 'ground' && Math.abs(n.x - (t.c * TILE + 8)) < dx && Math.abs(n.y - (t.r + 1) * TILE) < 18;
 const inRoom = (id) => (n) => nodeRoom(n)?.id === id;
 

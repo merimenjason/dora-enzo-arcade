@@ -1,10 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Silkscreen&display=swap');
+/* Numbers in a face with blocky, unmistakable digits (Silkscreen): in Pixelify Sans the 5 reads as an S and the 2 as
+   a Z. Only the digits, % and / come from it, so the words stay in Pixelify Sans. */
+@font-face{font-family:'BS Digits';font-style:normal;font-weight:400;font-display:swap;size-adjust:92%;unicode-range:U+0030-0039,U+0025,U+002F;
+  src:url(https://fonts.gstatic.com/s/silkscreen/v6/m8JXjfVPf62XiF7kO-i9YLNla0GA1dM.woff2) format('woff2')}
+@font-face{font-family:'BS Digits';font-style:normal;font-weight:600 700;font-display:swap;size-adjust:92%;unicode-range:U+0030-0039,U+0025,U+002F;
+  src:url(https://fonts.gstatic.com/s/silkscreen/v6/m8JUjfVPf62XiF7kO-i9aAhAfmyi2PmeBvY.woff2) format('woff2')}
 
 /* The Sunken Bellspire: hi-bit pixel art in the dark. Deep indigo night, lake teal, candle gold and bronze. Panels
    are dark stone with a bronze pixel border; text is a pixel font. The canvas is scaled up with no smoothing. On a
    touch screen the on-screen pad sits below the picture (phone upright) or over its lower corners (phone sideways). */
 .bs-shell{--ink:#f3e8d0;--dim:#b8a890;--night:#0d0b16;--stone:#1d1826;--stone2:#2a2234;--bronze:#c08a3e;--bronze2:#7a5226;--gold:#ffd36a;--teal:#3ad0c0;--red:#ff6a6a;--blue:#5aa8ff;
-  --pix:'Pixelify Sans','Silkscreen',ui-monospace,monospace;
+  --pix:'BS Digits','Pixelify Sans','Silkscreen',ui-monospace,monospace;
   position:fixed;inset:0;overflow:hidden;background:var(--night);color:var(--ink);font-family:var(--pix);font-size:16px;line-height:1.3;
   user-select:none;-webkit-user-select:none;touch-action:manipulation}
 .bs-shell *{box-sizing:border-box}
@@ -199,3 +205,21 @@
 .bs-shrine-prompt{position:absolute;transform:translate(-50%,-100%);padding:2px 6px;white-space:nowrap;pointer-events:none;font-size:12px;color:var(--gold);
   background:rgba(14,10,22,.82);box-shadow:0 0 0 1px #0a0810,inset 0 0 0 1px var(--bronze2);text-shadow:1px 1px 0 #000}
 .bs-travel-note{margin:0}
+/* the gear menu: a hero standing in the gear, and what an item would change */
+.bs-preview{width:84px;height:75px;image-rendering:pixelated;flex:none;background:rgba(0,0,0,.25);box-shadow:inset 0 0 0 1px var(--bronze2)}
+.bs-gear-pick li{cursor:pointer}
+.bs-gear-pick li.on{background:rgba(255,211,106,.08)}
+.bs-compare{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:2px}
+.bs-compare em{font-style:normal;font-size:.85em}
+.bs-up{color:#7dff8e}
+.bs-down{color:#ff7a7a}
+/* the map key */
+.bs-legend{list-style:none;margin:6px 0 10px;padding:0;display:grid;gap:3px;font-size:13px;opacity:.9}
+.bs-legend li{display:flex;align-items:center;gap:8px}
+.bs-legend i{display:inline-block;flex:none;width:12px;height:8px;box-shadow:0 0 0 1px #1a1020}
+.bs-legend .lg-stub{background:#fff6d8;height:4px}
+.bs-legend .lg-lock{width:8px;height:8px}
+.bs-legend .lg-skull{width:7px;height:7px;background:#e8484f}
+.bs-legend .lg-seal{width:15px;height:4px;background:repeating-linear-gradient(90deg,#4f86d9 0 3px,#1a1020 3px 4px,#5cae55 4px 7px,#1a1020 7px 8px,#9a5fd0 8px 11px,#1a1020 11px 12px,#d9a93a 12px 15px)}
+.bs-legend .lg-wisp{width:7px;height:7px;background:#e8fdff;box-shadow:0 0 6px 2px rgba(150,240,255,.6)}
+.bs-toggle.bs-off{opacity:.55}
