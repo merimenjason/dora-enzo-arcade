@@ -17,6 +17,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **Snowball Siege**: the hint line under the valley (Enzo's tips, "Scooping…") is dark ink on the snow again instead of pale grey that was hard to read.
 - **The Sunken Bellspire**: the partner following you now climbs ladders in the climbing pose too, instead of sliding up the ladder in a standing pose.
 - **The Sunken Bellspire**: the throne now needs all four area guardians calmed, shown as four bell seals on its door; before, the Reed Hydra and the Puma of the Murals could be skipped. Ukumari names any guardian still restless.
 - **The Sunken Bellspire**: you can turn during an attack's wind-up and recovery, so a combo can be swung back the other way.

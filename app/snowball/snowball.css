@@ -8,6 +8,7 @@
   font-family:'Nunito',system-ui,sans-serif;font-weight:800;font-size:clamp(13px,1.35vw,16px);line-height:1.4;user-select:none;-webkit-user-select:none;touch-action:none}
 .sb-shell *{box-sizing:border-box}
 .sb-shell p{margin:.35em 0;color:inherit}
+.sb-shell footer{color:inherit}
 .sb-shell h1,.sb-shell h2{margin:0;font-family:'Pixelify Sans',monospace;font-weight:700;line-height:1.05;letter-spacing:.01em}
 .sb-shell button,.sb-home{font:inherit;font-weight:900;color:var(--ink);background:var(--snow);border:2px solid var(--edge);border-radius:6px;padding:.5em 1em;cursor:pointer;
   box-shadow:0 3px 0 var(--edge);text-decoration:none;display:inline-block;text-align:center;transition:transform .06s}
