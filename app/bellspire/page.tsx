@@ -621,7 +621,7 @@ export default function BellspirePage() {
       {mural !== null && (
         <div className="bs-modal" onClick={() => setMural(null)}>
           <div className="bs-sheet bs-mural">
-            <span className="bs-mural-art" style={{ backgroundPosition: `${MURALS[mural].panel * 20}% 0` }} />
+            <span className="bs-mural-art" style={{ backgroundSize: `${ART.murals[2] * 100}% 100%`, backgroundPosition: `${(MURALS[mural].panel / (ART.murals[2] - 1)) * 100}% 0` }} />
             <p>{MURALS[mural].text}</p>
             <small>Mural {mural + 1} of {MURALS.length}</small>
             <button type="button" className="bs-btn bs-close" onClick={() => setMural(null)}>Close</button>

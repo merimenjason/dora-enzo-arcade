@@ -19,6 +19,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **The Sunken Bellspire**: murals open in their frames again. Adding the belfry's eight murals had stretched every mural sideways, with a slice of the next one showing.
 - **The Sunken Bellspire**: the guiding wisp stays on after the citadel's ending (it switched off when you continued from the title), and leads on to the belfry.
 - **The Sunken Bellspire**: after the ending, finding everything plays the epilogue the moment you reach 100%, and once it's earned the title screen has a **See the epilogue** button. The ending tells you this, and the pause map shows what's left.
 - **The Sunken Bellspire**: Enzo's staffs now stand out against every coat in every pose. The Oak Staff is ash-white with an amber lantern, the Bell Staff bright brass and the Star Lamp star-silver. Dora's Bronze Sword is polished brighter, so it shows on the Reedweave Coat.

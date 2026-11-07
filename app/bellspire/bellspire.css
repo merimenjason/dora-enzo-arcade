@@ -150,7 +150,7 @@
 .bs-shop-coins{color:var(--gold);display:flex;align-items:center;gap:6px}
 .bs-buy{min-width:110px}
 .bs-mural{align-items:center;text-align:center;max-width:560px}
-.bs-mural-art{display:block;width:min(480px,100%);aspect-ratio:4/3;background:url('/art/bellspire/murals.webp') 0 0/600% 100% no-repeat;image-rendering:pixelated;box-shadow:0 0 0 2px var(--bronze2)}
+.bs-mural-art{display:block;width:min(480px,100%);aspect-ratio:4/3;background:url('/art/bellspire/murals.webp') 0 0/1400% 100% no-repeat;image-rendering:pixelated;box-shadow:0 0 0 2px var(--bronze2)}
 .bs-mural p{font-size:18px}
 
 /* ─── touch pad ─── */
