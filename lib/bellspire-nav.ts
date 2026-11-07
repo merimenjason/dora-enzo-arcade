@@ -338,4 +338,4 @@ const SWIM = swimMacros(), WALL = wallMacros();
 export const nodeRoom = (n: Node) => ROOMS[roomIndexAt(n.x, n.y - 4)] ?? null;
 
 // the heroes' animation state machine is pure, so the engine tests check it too (compiled alongside the planner)
-export { HeroAnimator, ANIMS, animFrames, swingFrame } from './bellspire-anim.js';
+export { HeroAnimator, ANIMS, animFrames, swingFrame, heroHas } from './bellspire-anim.js';

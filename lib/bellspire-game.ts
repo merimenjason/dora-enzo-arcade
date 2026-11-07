@@ -275,7 +275,8 @@ export type GameEvent =
 export type NumKind = 'hit' | 'big' | 'spell' | 'hurt' | 'heal' | 'xp' | 'coin';
 
 export type Settings = { assist: boolean; strict: boolean };
-type Act = { kind: 'swing' | 'thrust' | 'whirl' | 'cast' | 'tagin'; t: number; n: number; hit: Set<number>; dur: number };
+/** `spell` says which of Enzo's spells a cast is, so the scene can show its own pose */
+type Act = { kind: 'swing' | 'thrust' | 'whirl' | 'cast' | 'tagin'; t: number; n: number; hit: Set<number>; dur: number; spell?: 'bolt' | 'ember' | 'chime' | 'lantern' };
 type HeroRt = { inv: number; hurtT: number; act: Act | null; combo: number; buf: boolean; castHold: number; swingCd: number };
 type Follower = { x: number; y: number; face: 1 | -1; air: boolean; moving: boolean; swim: boolean; swipeT: number; swipeCd: number };
 
@@ -606,11 +607,12 @@ export class BellspireGame {
       if (now) b.y = now.y;
     }
     if (act && (act.kind === 'swing' || act.kind === 'cast') && act.t < act.dur) b.face = faceBefore;
+    const climbing = b.climb;
     stepBody(b, bin, this.env, caps);
     if (act && (act.kind === 'swing' || act.kind === 'cast') && act.t < act.dur) b.face = faceBefore;
     if (b.jumped) this.sfx(b.jumped === 'swim' ? 'stroke' : b.jumped === 'wall' ? 'kick' : b.jumped === 'air' ? 'leap' : 'jump');
     if (b.dashed) { this.sfx('dash'); rt.inv = Math.max(rt.inv, 14); }
-    if (b.landed) this.sfx('land');
+    if (b.landed && !climbing) this.sfx('land'); // stepping off the top of a ladder is a pull-up, not a landing
     if (b.swim && !wasSwim) this.sfx('splash', b.x, b.y);
     if (b.bonk) this.bonkHatch();
 
@@ -696,11 +698,11 @@ export class BellspireGame {
   }
 
   // ─── attacks and spells ──────────────────────────────────────────────────
-  startAct(kind: Act['kind'], n: number) {
+  startAct(kind: Act['kind'], n: number, spell?: Act['spell']) {
     const rt = this.leadRt, sw = SWING[this.lead];
     const fast = this.perk(this.lead, 'fast') ? 0.7 : 1;
     const dur = kind === 'swing' ? sw.wind + sw.act + Math.round(sw.rec * fast) : kind === 'thrust' ? 999 : kind === 'whirl' ? 26 : kind === 'cast' ? 16 : 14;
-    rt.act = { kind, t: 0, n, hit: new Set(), dur };
+    rt.act = { kind, t: 0, n, hit: new Set(), dur, spell };
     rt.buf = false;
     if (kind === 'swing') this.sfx(this.lead === 'dora' ? (n === 2 ? 'slash3' : 'slash') : 'staff');
     if (kind === 'thrust') this.sfx('thrust');
@@ -851,13 +853,13 @@ export class BellspireGame {
   castBolt() {
     if (!this.spendMp(SPELLS.bolt.mp, SPELLS.bolt.name)) return;
     const b = this.body;
-    this.startAct('cast', 0);
+    this.startAct('cast', 0, 'bolt');
     this.shots.push({ id: this.nextId++, kind: 'bolt', friendly: true, x: b.x + b.face * 10, y: b.y - 14, vx: b.face * 4, vy: 0, g: 0, life: 70, dmg: Math.round(4 + this.magic() * 1.2), r: 5, hits: [] });
     this.sfx('bolt');
   }
   castEmber() {
     if (!this.spendMp(SPELLS.ember.mp, SPELLS.ember.name)) return;
-    this.startAct('cast', 0);
+    this.startAct('cast', 0, 'ember');
     this.embers = { t: 0, hits: new Map() };
     this.sfx('ember');
   }
@@ -865,7 +867,7 @@ export class BellspireGame {
     if (!this.save.spells.includes('chime')) { this.note('Enzo hasn’t learned the Bell Chime yet. It waits somewhere in the Bell Towers.'); this.sfx('locked'); return; }
     const cost = Math.max(1, SPELLS.chime.mp - (this.perk('enzo', 'cheapchime') ? 2 : 0));
     if (!this.spendMp(cost, SPELLS.chime.name)) return;
-    this.startAct('cast', 0);
+    this.startAct('cast', 0, 'chime');
     const b = this.body;
     this.rings.push({ x: b.x, y: b.y - 14, r: 4, vr: 4.4, max: 150, thick: 8, dmg: Math.round(this.magic() * 0.6), friendly: true, kind: 'chime', hit: [], rung: [] });
     this.sfx('chime');
@@ -874,7 +876,7 @@ export class BellspireGame {
   toggleLantern() {
     if (!this.has('lantern')) { this.note('The lantern needs the Moonwick before Enzo can raise it.'); this.sfx('locked'); return; }
     this.lanternUp = !this.lanternUp;
-    this.startAct('cast', 0);
+    this.startAct('cast', 0, 'lantern');
     this.sfx(this.lanternUp ? 'lanternUp' : 'lanternDown');
     if (this.lanternUp) this.emit({ k: 'pulse', x: this.body.x, y: this.body.y - 20, r: 120, color: [1, 0.8, 0.45] });
     if (this.lanternUp && !this.flag('lit:first')) this.setFlag('lit:first');

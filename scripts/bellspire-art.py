@@ -339,8 +339,10 @@ def cover(im, w, h):
 for hero in ('dora', 'enzo'):
     src = lambda n: hero_colours(load(n), hero)
     # a, b: the first 16 frames; c to h, the animation pass (climb and land, run, idle and interactions, attacks,
-    # body, water), 8 each, in the order of the HERO_FRAMES comment in lib/bellspire-anim.ts
-    figs = [bbox(c) for sh in 'abcdefgh' for c in cells(key(src(f'bs-{hero}-{sh}')), 4, 2)]
+    # body, water); i, j: every state its own poses (run start-up, Whirl Slash, Enzo's combo, bell strikes, wading,
+    # treading). 8 each, in the order of the HERO_FRAMES comment in lib/bellspire-anim.ts
+    # (the new sheets' long staffs and swords can reach into the next cell, so stray pieces at a cell's side go)
+    figs = [bbox(drop_neighbours(c) if sh in 'ij' else c) for sh in 'abcdefghij' for c in cells(key(src(f'bs-{hero}-{sh}')), 4, 2)]
     s = 38 / figs[0].height  # the idle pose stands 38 pixels tall; every sheet was painted at the same size
     strip(hero, [scaled(f, s, 20) for f in figs], 56, 44)
 

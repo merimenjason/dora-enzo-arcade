@@ -323,6 +323,17 @@ try {
   await page.waitForTimeout(400);
   await page.keyboard.up('ArrowUp');
   ok('↑ climbs up');
+  // a ladder inside one room, climbed with ↑ held all the way: the hero ends standing on the top, and stays there
+  await dbg(page, 'teleport', 'boathouse', 6, 14); await dbg(page, 'skipDialog'); await page.waitForTimeout(300);
+  const ladderTop = await game(page, '(g.room.gy * 17 + 9) * 16');
+  await page.keyboard.down('ArrowUp');
+  await until(page, (t) => { const s = window.__bellspire().state; return s.ground && s.y === t; }, ladderTop);
+  await page.waitForTimeout(1200);
+  const onTop = await st(page);
+  await page.keyboard.up('ArrowUp');
+  assert.ok(onTop.ground && onTop.y === ladderTop, `still standing on the ladder top after holding ↑ (y ${onTop.y}, top ${ladderTop})`);
+  await page.screenshot({ path: '.shots/bellspire/25-ladder-top.png', clip: await page.locator('canvas.bs-canvas').boundingBox() });
+  ok('holding ↑ climbs a ladder all the way and stands on its top');
   await dbg(page, 'teleport', 'landing', 32, 8);
   await until(page, () => window.__bellspire().state.ground);
   const ly = (await st(page)).y;

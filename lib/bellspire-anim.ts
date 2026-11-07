@@ -17,6 +17,15 @@
 //   g Dora: 48 wall slide  49 wall kick   Enzo: 48 glide  49 lowering the lantern
 //     both: 50 knocked out  51 getting up  52 jump apex  53 hop back  54 leap in  55 holding a coin
 //   h 56-59 swim strokes  60 dive  61 surface  62-63 wade
+//   i Dora: 64 run start-up  65 Whirl Slash wind-up  66 spin from the front  67 spin from behind  68 pommel raised to
+//           strike a bell  69 pommel strike  70-71 knee-deep, balancing
+//     Enzo: 64 run start-up  65 overhead wind-up  66 overhead strike  67 low wind-up  68 (unused: its lantern was cut)  69 crouched wind-up
+//           70 upward lantern swing  71 staff drawn back to strike a bell
+//   j Dora: 72-74 treading water upright  75-79 spare takes
+//     Enzo: 72 rapping a bell with the lantern end  73-74 knee-deep, balancing  75-77 treading water  78 spare  79 low sweep
+//
+// A state a hero can never be in has no frames for that hero (Enzo can't dash, wall-kick, thrust or whirl; Dora
+// doesn't glide, cast, chime or carry the lantern), and every state a hero can be in has frames of its own.
 
 import type { HeroId } from './bellspire-world.js';
 
@@ -36,9 +45,9 @@ export type AnimInput = {
   wallSlide: boolean;
   dash: boolean; hurt: boolean; down: boolean;
   /** the current attack, if any: its kind, combo step, clock and the swing's wind-up and active ticks */
-  act: { kind: 'swing' | 'thrust' | 'whirl' | 'cast' | 'tagin'; n: number; t: number; wind: number; active: number } | null;
+  act: { kind: 'swing' | 'thrust' | 'whirl' | 'cast' | 'tagin'; n: number; t: number; wind: number; active: number; spell?: string } | null;
   castHold: boolean; lanternUp: boolean;
-  /** one-off things that happened this tick: 'jumped', 'kicked', 'tagOut', 'chime', 'rest', 'chest', 'relic', 'ring', 'read', 'shop', 'revive' */
+  /** one-off things that happened this tick: 'jumped', 'kicked', 'tagOut', 'rest', 'chest', 'relic', 'ring', 'read', 'shop', 'revive' */
   events: string[];
 };
 
@@ -52,14 +61,14 @@ export type AnimOut = {
   dust: '' | 'skid' | 'land' | 'hard' | 'splash' | 'step';
 };
 
-type Def = { frames: number[] | { dora: number[]; enzo: number[] }; rate: number; loop: boolean; len?: number };
+type Def = { frames: number[] | { dora?: number[]; enzo?: number[] }; rate: number; loop: boolean; len?: number };
 
 /** Every state's frames, how many ticks each frame shows, and whether it loops (a one-shot lasts `len` ticks). */
 export const ANIMS: Record<AnimState, Def> = {
   idle: { frames: [0, 32], rate: 40, loop: true },
   blink: { frames: [33], rate: 6, loop: false, len: 6 },
   fidget: { frames: [34, 35, 34, 35, 34], rate: 22, loop: false, len: 110 },
-  runStart: { frames: [26, 27], rate: 3, loop: false, len: 6 },
+  runStart: { frames: [64], rate: 6, loop: false, len: 6 },
   run: { frames: [24, 25, 26, 27, 28, 29], rate: 5, loop: true },
   skid: { frames: [30], rate: 10, loop: false, len: 10 },
   turn: { frames: [31], rate: 5, loop: false, len: 5 },
@@ -67,38 +76,41 @@ export const ANIMS: Record<AnimState, Def> = {
   apex: { frames: [52], rate: 60, loop: true },
   fall: { frames: [5], rate: 60, loop: true },
   land: { frames: [22], rate: 6, loop: false, len: 6 },
+  // a hard landing recovers through the ordinary landing frame: the one deliberate share (see the tests)
   hardLand: { frames: [23, 22], rate: 9, loop: false, len: 18 },
   climb: { frames: [16, 17, 18, 19], rate: 1, loop: true },
   climbOn: { frames: [21], rate: 7, loop: false, len: 7 },
   climbOff: { frames: [20], rate: 9, loop: false, len: 9 },
-  wallSlide: { frames: { dora: [48], enzo: [5] }, rate: 60, loop: true },
-  wallKick: { frames: { dora: [49], enzo: [4] }, rate: 10, loop: false, len: 10 },
-  dash: { frames: [7], rate: 60, loop: true },
-  glide: { frames: { dora: [5], enzo: [47, 48] }, rate: 10, loop: true },
-  // a swing's frames come from its combo step and clock (see swingFrame)
-  swing: { frames: [40], rate: 60, loop: true },
-  thrust: { frames: { dora: [47], enzo: [4] }, rate: 60, loop: true },
-  whirl: { frames: { dora: [46, 41], enzo: [41, 46] }, rate: 3, loop: true },
-  cast: { frames: { dora: [41], enzo: [44] }, rate: 60, loop: true },
-  castWind: { frames: { dora: [40], enzo: [43] }, rate: 60, loop: true },
-  lanternUp: { frames: { dora: [0], enzo: [45] }, rate: 60, loop: true },
-  lanternDown: { frames: { dora: [0], enzo: [49] }, rate: 10, loop: false, len: 10 },
-  chime: { frames: { dora: [41], enzo: [46] }, rate: 22, loop: false, len: 22 },
+  wallSlide: { frames: { dora: [48] }, rate: 60, loop: true },
+  wallKick: { frames: { dora: [49] }, rate: 10, loop: false, len: 10 },
+  dash: { frames: { dora: [7] }, rate: 60, loop: true },
+  glide: { frames: { enzo: [47, 48] }, rate: 10, loop: true },
+  // a swing's frame comes from its combo step and clock (see swingFrame); these are all the frames it can show
+  swing: { frames: { dora: [40, 41, 8, 42, 43, 9, 44, 45, 10], enzo: [65, 66, 67, 79, 69, 70] }, rate: 60, loop: true },
+  thrust: { frames: { dora: [47] }, rate: 60, loop: true },
+  // a crouched wind-up, then the spin from the front and from behind
+  whirl: { frames: { dora: [65, 66, 67] }, rate: 3, loop: true },
+  cast: { frames: { enzo: [44] }, rate: 60, loop: true },
+  castWind: { frames: { enzo: [43] }, rate: 60, loop: true },
+  lanternUp: { frames: { enzo: [45] }, rate: 60, loop: true },
+  lanternDown: { frames: { enzo: [49] }, rate: 10, loop: false, len: 10 },
+  chime: { frames: { enzo: [46] }, rate: 22, loop: false, len: 22 },
   hurt: { frames: [6], rate: 60, loop: true },
   ko: { frames: [50], rate: 60, loop: true },
   revive: { frames: [51], rate: 30, loop: false, len: 30 },
   tagOut: { frames: [53], rate: 14, loop: false, len: 14 },
   tagIn: { frames: [54], rate: 60, loop: true },
   wade: { frames: [62, 63], rate: 10, loop: true },
-  wadeStill: { frames: [0, 32], rate: 40, loop: true },
+  wadeStill: { frames: { dora: [70, 71], enzo: [73, 74] }, rate: 30, loop: true },
   swim: { frames: [56, 57, 58, 59], rate: 8, loop: true },
-  tread: { frames: [56, 57, 58, 59], rate: 15, loop: true },
+  tread: { frames: { dora: [72, 73, 74], enzo: [75, 76, 77] }, rate: 12, loop: true },
   dive: { frames: [60], rate: 60, loop: true },
   surface: { frames: [61], rate: 60, loop: true },
   rest: { frames: [36], rate: 70, loop: false, len: 70 },
   chest: { frames: [39], rate: 30, loop: false, len: 30 },
   relic: { frames: [38], rate: 80, loop: false, len: 80 },
-  ring: { frames: { dora: [41], enzo: [46] }, rate: 18, loop: false, len: 18 },
+  // raise, then strike the bell (Dora with her sword's pommel, Enzo with the lantern end of his staff)
+  ring: { frames: { dora: [68, 69], enzo: [71, 72] }, rate: 6, loop: false, len: 18 },
   read: { frames: [37], rate: 90, loop: false, len: 90 },
   shop: { frames: [55], rate: 40, loop: false, len: 40 },
 };
@@ -108,13 +120,17 @@ const ONE_SHOT: AnimState[] = ['blink', 'fidget', 'runStart', 'skid', 'turn', 'l
   'lanternDown', 'chime', 'revive', 'tagOut', 'rest', 'chest', 'relic', 'ring', 'read', 'shop'];
 /** One-shots that hold even while the body moves a little (the scripted moments). */
 const STICKY: AnimState[] = ['rest', 'chest', 'relic', 'read', 'shop', 'revive', 'chime', 'ring'];
-const EVENT_STATE: Record<string, AnimState> = { chime: 'chime', rest: 'rest', chest: 'chest', relic: 'relic', ring: 'ring', read: 'read', shop: 'shop', revive: 'revive', tagOut: 'tagOut', kicked: 'wallKick' };
+const EVENT_STATE: Record<string, AnimState> = { rest: 'rest', chest: 'chest', relic: 'relic', ring: 'ring', read: 'read', shop: 'shop', revive: 'revive', tagOut: 'tagOut', kicked: 'wallKick' };
 
-const framesOf = (s: AnimState, hero: HeroId) => { const f = ANIMS[s].frames; return Array.isArray(f) ? f : f[hero]; };
+const framesOf = (s: AnimState, hero: HeroId): number[] => { const f = ANIMS[s].frames; return Array.isArray(f) ? f : f[hero] ?? []; };
+/** Whether a hero has this state at all. */
+export const heroHas = (s: AnimState, hero: HeroId) => framesOf(s, hero).length > 0;
 
 /** A swing in three beats, each combo step its own: wind-up (anticipation), the cut, and a follow-through. */
 export function swingFrame(hero: HeroId, n: number, t: number, wind: number, active: number): number {
-  const beats = hero === 'dora' ? [[40, 41, 8], [42, 43, 9], [44, 45, 10]] : [[40, 41, 42], [40, 9, 42], [40, 10, 42]];
+  // Dora: a level cut, a rising cut, an overhead chop. Enzo: an overhead strike, a low sweep, an upward lantern swing
+  // (his strike pose holds through the follow-through)
+  const beats = hero === 'dora' ? [[40, 41, 8], [42, 43, 9], [44, 45, 10]] : [[65, 66, 66], [67, 79, 79], [69, 70, 70]];
   const b = beats[Math.max(0, Math.min(2, n))];
   return t < wind ? b[0] : t < wind + active ? b[1] : b[2];
 }
@@ -133,6 +149,8 @@ export class HeroAnimator {
   lastRun = 0;
   sq = 0; lean = 0; svx = 0;
   prev: AnimInput | null = null;
+  /** the attack clock when a bell was struck, so the strike pose lasts as long as that attack */
+  ringT = 1e9;
   private seed: number;
 
   constructor(readonly hero: HeroId, seed = 0) { this.seed = seed; }
@@ -144,19 +162,27 @@ export class HeroAnimator {
     const p = this.prev, cur = this.state, h = this.hero;
     const oneShotLive = ONE_SHOT.includes(cur) && this.t < (ANIMS[cur].len ?? 0);
     // the hero's own actions come first, always
+    const has = (s: AnimState) => heroHas(s, h);
     if (i.down) return 'ko';
     if (i.hurt) return 'hurt';
+    // a bell struck by an attack (or rung by the Chime) shows the bell strike for as long as that attack lasts
+    if (i.events.includes('ring')) { this.ringT = i.act ? i.act.t : 1e9; return 'ring'; }
+    if (cur === 'ring' && this.t < (ANIMS.ring.len ?? 0) && (!i.act || i.act.t > this.ringT)) { this.ringT = i.act ? i.act.t : 1e9; return 'ring'; }
     if (i.act) {
       if (i.act.kind === 'swing') return 'swing';
-      if (i.act.kind === 'thrust') return 'thrust';
-      if (i.act.kind === 'whirl') return 'whirl';
+      if (i.act.kind === 'thrust' && has('thrust')) return 'thrust';
+      if (i.act.kind === 'whirl' && has('whirl')) return 'whirl';
       if (i.act.kind === 'tagin') return 'tagIn';
-      return 'cast';
+      if (i.act.kind === 'cast' && has('cast')) {
+        if (i.act.spell === 'chime') return 'chime';
+        if (i.act.spell === 'lantern') return i.lanternUp ? 'lanternUp' : 'lanternDown';
+        return 'cast';
+      }
     }
-    if (i.castHold) return 'castWind';
-    for (const e of i.events) { const s = EVENT_STATE[e]; if (s && !(s === 'wallKick' && h !== 'dora')) return s; }
+    if (i.castHold && has('castWind')) return 'castWind';
+    for (const e of i.events) { const s = EVENT_STATE[e]; if (s && has(s)) return s; }
     if (oneShotLive && STICKY.includes(cur)) return cur;
-    if (i.dash) return 'dash';
+    if (i.dash && has('dash')) return 'dash';
     if (i.swim) {
       if (i.vy > 1 && Math.abs(i.vx) < 1.2) return 'dive';
       if (i.vy < -1 && Math.abs(i.vx) < 1.2) return 'surface';
@@ -169,8 +195,8 @@ export class HeroAnimator {
     }
     if (p && p.climb && !i.climb && i.ground && p.vy < 0) return 'climbOff';
     if (!i.ground) {
-      if (i.glide) return 'glide';
-      if (i.wallSlide && h === 'dora') return 'wallSlide';
+      if (i.glide && has('glide')) return 'glide';
+      if (i.wallSlide && has('wallSlide')) return 'wallSlide';
       if (cur === 'wallKick' && oneShotLive) return cur;
       if (i.vy < -1.2) return 'rise';
       if (i.vy > 1.2) return 'fall';
@@ -192,7 +218,7 @@ export class HeroAnimator {
     }
     if ((cur === 'run' || cur === 'runStart' || cur === 'turn') && this.lastRun > 1.2 && !i.wade) return 'skid';
     if (oneShotLive) return cur;
-    if (i.lanternUp && h === 'enzo') return 'lanternUp';
+    if (i.lanternUp && has('lanternUp')) return 'lanternUp';
     if (cur === 'lanternUp' && !i.lanternUp) return 'lanternDown';
     if (i.wade) return 'wadeStill';
     if (this.still > 300) return 'fidget';
@@ -215,6 +241,7 @@ export class HeroAnimator {
     const fr = framesOf(s, this.hero), d = ANIMS[s];
     let frame: number;
     if (s === 'swing' && i.act) frame = swingFrame(this.hero, i.act.n, i.act.t, i.act.wind, i.act.active);
+    else if (s === 'whirl') { const k = Math.floor(this.t / d.rate); frame = k === 0 ? fr[0] : fr[1 + ((k - 1) % 2)]; }
     else if (s === 'climb') frame = fr[Math.floor(this.climbed / 7) % fr.length];
     else if (s === 'run') frame = fr[Math.floor(this.t * Math.min(1.4, Math.max(0.7, Math.abs(i.vx) / 1.8)) / d.rate) % fr.length];
     else { const k = Math.floor(this.t / d.rate); frame = fr[d.loop ? k % fr.length : Math.min(fr.length - 1, k)]; }

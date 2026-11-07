@@ -815,7 +815,7 @@ export class BellspireScene {
     return {
       ground: b.ground, vx: b.vx, vy: b.vy, face: b.face, climb: b.climb, swim: b.swim, wade: b.wade, glide: b.glide,
       wallSlide: b.wall !== 0 && !b.ground && b.vy > 0 && g.has('wallkick'), dash: b.dashT > 0, hurt: rt.hurtT > 0, down: false,
-      act: act ? { kind: act.kind, n: act.n, t: act.t, wind: sw.wind, active: sw.act } : null,
+      act: act ? { kind: act.kind, n: act.n, t: act.t, wind: sw.wind, active: sw.act, spell: act.spell } : null,
       castHold: rt.castHold > 6, lanternUp: lead === 'enzo' && g.lanternUp, events: ev,
     };
   }

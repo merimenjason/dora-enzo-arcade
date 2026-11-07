@@ -66,10 +66,19 @@ function touchesHazard(env: Env, b: Body) {
   return false;
 }
 
-function onLadder(env: Env, b: Body) {
-  const c = Math.floor(b.x / T);
+function onLadder(env: Env, b: Body, c = Math.floor(b.x / T)) {
   return env.ladder(c, Math.floor((b.y - 4) / T)) || env.ladder(c, Math.floor((b.y - HERO_H / 2) / T));
 }
+/** Grabbing is forgiving: a ladder whose column is within about 6 px of the hero's middle counts. */
+const GRAB = 6;
+function ladderNear(env: Env, b: Body, test: (c: number) => boolean): number | null {
+  const c = Math.floor(b.x / T);
+  if (test(c)) return c;
+  for (const cc of [Math.floor((b.x - GRAB) / T), Math.floor((b.x + GRAB) / T)]) if (cc !== c && test(cc)) return cc;
+  return null;
+}
+/** Step into a ladder's column (just inside its edge); the climb then eases the hero to its middle. */
+function intoColumn(b: Body, c: number) { b.x = Math.max(c * T + 1, Math.min(c * T + T - 1, b.x)); }
 
 /** Is there something to stand on right under the feet? */
 export function support(env: Env, b: Body): 'solid' | 'oneway' | 'float' | null {
@@ -100,14 +109,16 @@ export function stepBody(b: Body, inp: BodyInput, env: Env, caps: Caps) {
   if (b.swim) { b.climb = b.climb && onLadder(env, b); b.glide = false; b.airDash = true; if (b.dashT > 0) b.dashT = Math.min(b.dashT, 4); }
 
   // ladders
-  const ladderHere = onLadder(env, b);
-  if (!b.climb && ladderHere && (inp.up || (inp.down && !b.ground)) && b.dashT <= 0) {
-    b.climb = true;
+  let ladderHere = onLadder(env, b);
+  if (!b.climb && (inp.up || (inp.down && !b.ground)) && b.dashT <= 0) {
+    // ↑ (or ↓ in the air) grabs a ladder here or just beside, on the ground or in mid-jump
+    const c = ladderNear(env, b, (cc) => onLadder(env, b, cc));
+    if (c !== null) { intoColumn(b, c); b.climb = true; ladderHere = true; }
   }
   if (!b.climb && b.ground && inp.down && b.onOneway) {
     // standing on a ladder top: climb down into it
-    const c = Math.floor(b.x / T), r = Math.round(b.y / T);
-    if (env.ladder(c, r)) { b.climb = true; b.y += 2; b.ground = false; }
+    const r = Math.round(b.y / T), c = ladderNear(env, b, (cc) => env.ladder(cc, r));
+    if (c !== null) { intoColumn(b, c); b.climb = true; b.y += 2; b.ground = false; ladderHere = true; }
   }
   if (b.climb) {
     if (!ladderHere) b.climb = false;
@@ -125,6 +136,15 @@ export function stepBody(b: Body, inp: BodyInput, env: Env, caps: Caps) {
   if (b.climb) {
     moveY(b, env, true);
     b.ground = false; b.coyote = 0;
+    // climbing up to a ladder's top rung steps out onto it, instead of slipping off the
+    // ladder a few pixels short of the ledge and falling back through it
+    if (inp.up && !inp.down) {
+      const c = Math.floor(b.x / T), r = Math.floor((b.y - 0.001) / T);
+      if (env.ladder(c, r) && env.oneway(c, r) && b.y - r * T <= 6) {
+        b.y = r * T; b.vy = 0; b.climb = false; b.ground = true; b.onOneway = true; b.landed = true;
+        return;
+      }
+    }
     if (support(env, b) === 'solid') { b.climb = false; b.ground = true; }
     if (touchesHazard(env, b)) b.hazard = true;
     return;

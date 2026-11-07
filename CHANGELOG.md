@@ -14,6 +14,8 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **The Sunken Bellspire**: holding ↑ on a ladder now climbs all the way and leaves you standing on the top, instead of slipping off just short of the ledge and falling. Ladders are also easier to grab: ↑ catches one even slightly off-centre or in mid-jump, and ↓ on a ladder top climbs down.
+- **The Sunken Bellspire**: Dora and Enzo no longer borrow poses. Dora's Whirl Slash, bell strike, knee-deep wading and treading water, and Enzo's three staff swings, Bell Chime, lantern raise and wading all have their own animation, and the pull-up at the top of a ladder replaces the landing puff.
 - **The Sunken Bellspire**: enemy hitboxes now match their art. The lantern moth, glow jelly and eel were drawn well below where they could be hit, and ground enemies were bigger than their hitboxes, so swings that looked like hits missed.
 
 ## 06-11-2026

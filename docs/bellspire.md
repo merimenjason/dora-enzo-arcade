@@ -31,6 +31,11 @@ hold V and let go for the Ember Ring, ↓ + V raises or lowers the lantern, ↑ 
 Whirl Slash and ↓ + X in the air is a downward thrust. Gamepads: A jump, X attack, B dash, Y spell, bumpers tag, Start
 menu. On touch screens an on-screen pad appears (Settings can force it on or off).
 
+Ladders: ↑ grabs one you stand at or beside (within about 6 pixels of it), and holding ↑ while jumping into one grabs
+it in mid-air. Hold ↑ to climb all the way up: at the top the hero pulls up and stands on the ladder's top, and stays
+there however long ↑ is held. ↓ on a ladder top climbs back down, Z jumps off part way, and ← or → at the top walks off
+along the ledge. The partner follows the same path up and down.
+
 At a candle shrine, ↑ rests (heals both heroes and saves) and X opens travel: the map opens on this shrine, ← and →
 step through the lit shrines, Z or X travels, and a tap on a lit candle works too; Esc cancels. X only opens travel
 when the lead is on the ground at the shrine with no awake foe within about 80 pixels and no guardian fight, so a fight
@@ -129,7 +134,7 @@ reduced motion they arrive at once.
 
 ## Animation
 
-Every hero state has its own frames, picked by a small state machine in `lib/bellspire-anim.ts` that the scene runs
+Every state a hero can be in has its own painted frames, picked by a small state machine in `lib/bellspire-anim.ts` that the scene runs
 each frame (the engine knows nothing of it, so play stays deterministic, and no animation delays a control):
 breathing, a blink and after about five seconds a fidget; a start-up, a six-frame run, a skid with dust and a turn;
 rise, apex, fall, a landing squash and a crouch after a long fall; a four-frame back-view ladder climb that advances by
@@ -137,7 +142,12 @@ distance climbed (holding still holds the frame), with climb-on and pull-up fram
 dash with afterimages, Enzo's glide; three combo cuts with wind-up and follow-through, the down-thrust and whirl;
 Enzo's cast wind-up and release, lantern raise and lower and the chime; hurt, knocked out and revive; the tag hop-back
 and leap-in; wading, a four-stroke swim, dive and surface; kneeling at shrines, a back view at murals, lifting a lid,
-raising a relic, striking a bell and paying Wayra. Tails, coats and ears sway and bounce in code with squash and stretch.
+raising a relic, striking a bell (Dora raps it with her sword's pommel, Enzo with the lantern end of his staff) and
+paying Wayra. Enzo's three staff swings are an overhead strike, a low sweep and an upward lantern swing; Dora's Whirl
+Slash is a crouched wind-up and a spin seen from the front and from behind; wading on the spot balances knee-deep and
+treading water is upright, apart from the swim stroke. States a hero is never in have no frames for that hero (Enzo
+can't dash, wall-kick, thrust or whirl; Dora doesn't glide, cast Enzo's spells or carry the lantern). The tests check
+that no two states share a frame, save one: a hard landing recovers through the ordinary landing frame. Tails, coats and ears sway and bounce in code with squash and stretch.
 
 Foes have two idle frames, four moving, a wind-up and an attack, a squash when hit and a puff when calmed. Guardians
 have extra tell and attack frames, a stagger and a calm pose. In the world, bells and chains swing when hit or passed,

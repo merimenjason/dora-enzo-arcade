@@ -10,7 +10,7 @@ import {
   BellspireGame, freshSave, parseSave, heroStats, xpToNext, ROOMS, INFO, COLS, ROWS, TILE, COMPLETION, ABILITY_ORDER, ABILITIES, BOSSES, GEAR, SHOP,
   rawChar, roomOfTile, groupAt, roomById, NO_INPUT, HEART_HP, TAG_CD, surfaceRow, roomRect as roomRectOf, FOES, foeBox, foeFrame,
 } from '../.checks/bellspire-game.js';
-import { Graph, nodeRoom, HeroAnimator, ANIMS, animFrames } from '../.checks/bellspire-nav.js';
+import { Graph, nodeRoom, HeroAnimator, ANIMS, animFrames, heroHas } from '../.checks/bellspire-nav.js';
 import { BOXES, FOE_BODY } from '../.checks/bellspire-art.js';
 
 let checks = 0;
@@ -517,6 +517,62 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
   ok(sw && overlap(sw, r), 'a swing at chest height meets a moth drawn there');
 }
 
+// ─── ladders: up, out at the top, and down again ──────────────────────────
+{
+  // the boathouse ladder: column 6, rungs from row 9 (its top, a ledge you can stand on) down to the floor at row 15
+  const room = ROOMS.find((r) => r.id === 'boathouse'), X = (room.gx * COLS + 6) * TILE + TILE / 2;
+  const TOP = (room.gy * ROWS + 9) * TILE, FLOOR = (room.gy * ROWS + 15) * TILE;
+  const bottom = (seed) => { const g = new BellspireGame(fresh(ABILITY_ORDER), {}, seed); g.teleport('boathouse', 6, 14); quiet(g); run(g, 6); quiet(g); g.drainEvents(); return g; };
+  const g = bottom(41);
+  eq([g.body.x, g.body.y, g.body.ground], [X, FLOOR, true], 'standing at the foot of the ladder');
+  let reached = -1, fell = false;
+  for (let i = 0; i < 260; i++) {
+    g.step(I({ up: true })); quiet(g);
+    if (reached < 0 && g.body.ground && g.body.y === TOP) reached = i;
+    else if (reached >= 0 && (g.body.y !== TOP || !g.body.ground)) fell = true;
+  }
+  ok(reached > 0, 'holding ↑ climbs all the way up');
+  ok(!fell, 'and the hero stands on the top, without falling back (held ↑ for another three seconds)');
+  ok(!g.body.climb && g.body.onOneway, 'standing on the ladder top, off the ladder');
+  ok(!g.drainEvents().some((e) => e.k === 'sfx' && e.id === 'land'), 'stepping off the top is no landing thump');
+  // down again
+  let down = false;
+  for (let i = 0; i < 260 && !down; i++) { g.step(I({ down: true })); quiet(g); if (g.body.ground && g.body.y === FLOOR) down = true; }
+  ok(down, 'from the top, ↓ climbs back down to the floor');
+  // off the top sideways onto the ledge
+  const s = bottom(42);
+  for (let i = 0; i < 200; i++) { s.step(I({ up: true })); quiet(s); }
+  const x0 = s.body.x;
+  run(s, 20, { right: true }); quiet(s);
+  ok(s.body.x > x0 + 10 && s.body.y <= TOP, '→ at the top walks off along the ledge');
+  // a jump from halfway up
+  const j = bottom(43);
+  run(j, 30, { up: true });
+  ok(j.body.climb && j.body.y < FLOOR - 20, 'halfway up the ladder');
+  j.step(I({ jump: true, right: true }));
+  ok(!j.body.climb && j.body.vy < 0, 'jumping off mid-ladder works');
+  run(j, 8, { right: true });
+  ok(j.body.x > X + 8, 'and carries the hero away from it');
+  // a forgiving grab: ↑ a little to one side still takes the ladder
+  const o = bottom(44);
+  o.body.x = (room.gx * COLS + 7) * TILE + 4; // 4 px into the next column, 12 px from the ladder's middle
+  o.step(I({ up: true }));
+  ok(o.body.climb, '↑ beside the ladder (within about 6 px of its column) grabs it');
+  run(o, 12, { up: true });
+  ok(Math.abs(o.body.x - X) < 1.5, 'and the climb eases the hero to its middle');
+  const far = bottom(45);
+  far.body.x = (room.gx * COLS + 7) * TILE + 9;
+  far.step(I({ up: true }));
+  ok(!far.body.climb, 'but not from further away');
+  // ↑ held in a jump at the ladder grabs it in mid-air
+  const air = bottom(46);
+  air.body.x = X + 26; run(air, 2);
+  air.step(I({ jump: true, left: true }));
+  let grabbed = false;
+  for (let i = 0; i < 40 && !grabbed; i++) { air.step(I({ jump: true, left: true, up: true })); quiet(air); if (air.body.climb && air.body.y < FLOOR - 4) grabbed = true; }
+  ok(grabbed, 'holding ↑ while jumping into a ladder grabs it in mid-air');
+}
+
 // ─── the heroes' animation ────────────────────────────────────────────────
 {
   const base = { ground: true, vx: 0, vy: 0, face: 1, climb: false, swim: false, wade: false, glide: false, wallSlide: false, dash: false, hurt: false, down: false, act: null, castHold: false, lanternUp: false, events: [] };
@@ -529,7 +585,7 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
     eq(new Set(animFrames('climb', hero)).size, 4, `${hero}: four different climb frames`);
     eq(animFrames('run', hero).length, 6, `${hero}: a six-frame run`);
     eq(animFrames('swim', hero).length, 4, `${hero}: a four-stroke swim`);
-    for (const [s, d] of Object.entries(ANIMS)) for (const f of animFrames(s, hero)) ok(f >= 0 && f < 64, `${hero} ${s}: frame ${f} is on the strip`);
+    for (const [s, d] of Object.entries(ANIMS)) for (const f of animFrames(s, hero)) ok(f >= 0 && f < 80, `${hero} ${s}: frame ${f} is on the strip`);
     // on a ladder: the frame moves only while the hero climbs, and holds when they stop
     const up = run(hero, [{ climb: true, ground: false }, ...Array.from({ length: 40 }, () => ({ climb: true, ground: false, vy: -1.5 }))]);
     eq(up[0].state, 'climbOn', `${hero}: stepping onto a ladder has its own frame`);
@@ -543,6 +599,7 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
     // off the top: the pull-up
     const top = run(hero, [...Array.from({ length: 10 }, () => ({ climb: true, ground: false, vy: -1.5 })), { ground: true }]);
     eq(top[10].state, 'climbOff', `${hero}: climbing off the top pulls up onto the ledge`);
+    eq(top[10].dust, '', `${hero}: with no landing dust`);
     // the run, a skid and a turn
     const r = run(hero, [{}, ...Array.from({ length: 30 }, () => ({ vx: 2.2 })), { vx: 0 }]);
     eq(r[1].state, 'runStart', `${hero}: a start-up before the run`);
@@ -575,7 +632,57 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
     ok(idle.some((o) => o.state === 'blink'), `${hero}: and blinks`);
     ok(idle.slice(300).some((o) => o.state === 'fidget'), `${hero}: and fidgets after about five seconds`);
   }
+  // which states each hero can be in: the ones the game never puts a hero in have no frames for that hero
+  const NEVER = {
+    dora: ['glide', 'cast', 'castWind', 'lanternUp', 'lanternDown', 'chime'], // the lantern and its spells are Enzo's
+    enzo: ['dash', 'wallSlide', 'wallKick', 'thrust', 'whirl'], // the dash, wall kick, down-thrust and Whirl Slash are Dora's
+  };
+  // the one deliberate share: a hard landing recovers through the ordinary landing frame
+  const SHARED = [['hardLand', 'land']];
+  for (const hero of ['dora', 'enzo']) {
+    for (const st of NEVER[hero]) eq(animFrames(st, hero), [], `${hero} never enters ${st}, so it has no frames for it`);
+    const states = Object.keys(ANIMS).filter((st) => !NEVER[hero].includes(st));
+    for (const st of states) ok(animFrames(st, hero).length > 0, `${hero}: ${st} has frames`);
+    for (let i = 0; i < states.length; i++) for (let j = i + 1; j < states.length; j++) {
+      const a = states[i], b = states[j];
+      if (SHARED.some(([x, y]) => (x === a && y === b) || (x === b && y === a))) continue;
+      const both = animFrames(a, hero).filter((f) => animFrames(b, hero).includes(f));
+      eq(both, [], `${hero}: ${a} and ${b} share no frame`);
+    }
+    // whatever happens, the animator only picks states the hero has
+    let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const a = new HeroAnimator(hero), seen = new Set(), bad = [];
+    const kinds = [null, 'swing', 'thrust', 'whirl', 'cast', 'tagin'], spells = ['bolt', 'ember', 'chime', 'lantern'], evs = ['jumped', 'kicked', 'tagOut', 'rest', 'chest', 'relic', 'ring', 'read', 'shop', 'revive'];
+    for (let i = 0; i < 20000; i++) {
+      const k = kinds[Math.floor(rnd() * 6)];
+      const o = a.step({ ground: rnd() < 0.6, vx: (rnd() - 0.5) * 5, vy: (rnd() - 0.5) * 8, face: rnd() < 0.5 ? 1 : -1, climb: rnd() < 0.1, swim: rnd() < 0.1, wade: rnd() < 0.1,
+        glide: rnd() < 0.1, wallSlide: rnd() < 0.1, dash: rnd() < 0.05, hurt: rnd() < 0.02, down: rnd() < 0.01,
+        act: k && rnd() < 0.3 ? { kind: k, n: Math.floor(rnd() * 3), t: Math.floor(rnd() * 20), wind: 3, active: 5, spell: spells[Math.floor(rnd() * 4)] } : null,
+        castHold: rnd() < 0.05, lanternUp: rnd() < 0.3, events: rnd() < 0.05 ? [evs[Math.floor(rnd() * evs.length)]] : [] });
+      seen.add(o.state);
+      if (!heroHas(o.state, hero) || !animFrames(o.state, hero).includes(o.frame)) bad.push(`${o.state}:${o.frame}`);
+    }
+    eq(bad.slice(0, 5), [], `${hero}: 20,000 random ticks only ever show a state the hero has, with that state's own frames`);
+    ok(seen.size >= 25, `${hero}: the fuzz reaches most states (${seen.size})`);
+  }
+  // Enzo's spells each have their pose; a struck bell shows the strike for the rest of that swing
+  const cast = (spell, extra = {}) => run('enzo', [{ act: { kind: 'cast', n: 0, t: 2, wind: 0, active: 0, spell }, ...extra }])[0].state;
+  eq(cast('bolt'), 'cast', 'the Lantern Bolt: the cast pose');
+  eq(cast('chime'), 'chime', 'the Bell Chime: the staff struck down');
+  eq(cast('lantern', { lanternUp: true }), 'lanternUp', 'raising the lantern');
+  eq(cast('lantern', { lanternUp: false }), 'lanternDown', 'lowering the lantern');
+  for (const hero of ['dora', 'enzo']) {
+    const sw = (t, ev = []) => ({ act: { kind: 'swing', n: 0, t, wind: 3, active: 5 }, events: ev });
+    const r = run(hero, [sw(3), sw(4, ['ring']), ...Array.from({ length: 8 }, (_, k) => sw(5 + k)), sw(0)]);
+    ok(r.slice(1, 10).every((o) => o.state === 'ring'), `${hero}: a swing that strikes a bell shows the bell strike`);
+    eq(r[10].state, 'swing', `${hero}: and the next swing shows at once`);
+    ok(r[1].frame !== r[8].frame, `${hero}: the strike has a raise and a hit`);
+  }
   eq(run('dora', [{ ground: false, wallSlide: true, vy: 1 }])[0].state, 'wallSlide', 'Dora slides down walls');
+  eq(run('enzo', [{ ground: false, wallSlide: true, vy: 2 }])[0].state, 'fall', 'Enzo has no wall slide (the Wall Kick is Dora’s)');
+  eq(run('dora', [{ ground: false, glide: true, vy: 0.5 }])[0].state, 'apex', 'Dora has no glide (the lantern is Enzo’s)');
+  eq(run('dora', [{ swim: true }])[0].state, 'tread', 'treading water');
+  ok(!animFrames('swim', 'dora').some((f) => animFrames('tread', 'dora').includes(f)), 'treading water is upright, not the swim stroke');
   eq(run('enzo', [{ ground: false, glide: true, vy: 0.5 }])[0].state, 'glide', 'Enzo glides with the lantern open');
 }
 
