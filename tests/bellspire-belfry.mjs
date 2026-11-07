@@ -265,7 +265,8 @@ export default function belfry() {
 
   // ─── echo notes ───────────────────────────────────────────────────────────
   {
-    const g = new BellspireGame(done(['rope', 'echo']), {}, 3);
+    // (in Strict: the notes' own time; the helping hand's longer notes and guide are in tests/bellspire-echo.mjs)
+    const g = new BellspireGame(done(['rope', 'echo']), STRICT, 3);
     const q = thing('cairns', 'Q'), lq = local(q);
     g.lead = 'enzo'; g.save.heroes.enzo.mp = 60;
     at(g, 'cairns', lq.c + 2, 13); g.drainEvents();
@@ -278,7 +279,7 @@ export default function belfry() {
     const path = roomById('cairns').echoes[0];
     eq(notes().map((f) => [f.x0 / TILE - q.c, f.y / TILE - q.r]), path, 'along the bell’s own path');
     // one after the other
-    const g1 = new BellspireGame(done(['rope', 'echo']), {}, 3); g1.lead = 'enzo'; at(g1, 'cairns', lq.c + 2, 13);
+    const g1 = new BellspireGame(done(['rope', 'echo']), STRICT, 3); g1.lead = 'enzo'; at(g1, 'cairns', lq.c + 2, 13);
     g1.step(I({ up: true, cast: true })); const seen = [];
     for (let i = 0; i < 30; i++) { g1.step(I()); seen.push(g1.floatCache.filter((f) => f.kind === 'note').length); }
     ok(seen.includes(1) && seen.includes(2) && seen.at(-1) === 3, `they appear one after another (${[...new Set(seen)].join(',')})`);
@@ -296,14 +297,14 @@ export default function belfry() {
     eq(g2.notes.length, 0, 'without the Echo Step, no notes');
     ok(/slips away/.test(g2.toast?.text ?? ''), 'and a hint');
     // the Carillon Staff doubles their time
-    const g3 = new BellspireGame(done(['rope', 'echo']), {}, 3); g3.lead = 'enzo'; g3.save.heroes.enzo.mp = 60;
+    const g3 = new BellspireGame(done(['rope', 'echo']), STRICT, 3); g3.lead = 'enzo'; g3.save.heroes.enzo.mp = 60;
     g3.save.gear.push('carillon-staff'); g3.equip('enzo', 'weapon', 'carillon-staff');
     at(g3, 'cairns', lq.c + 2, 13); g3.step(I({ up: true, cast: true })); run(g3, NOTE_LIFE + 40);
     eq(g3.floatCache.filter((f) => f.kind === 'note').length, 3, 'the Carillon Staff keeps them twice as long');
     // the climb for real, inside the notes' time: Enzo rings, Dora tags in and climbs to the shelf
     const G = graph(ALL, BASE_CALM, WINDS[0]);
     const room = roomById('cairns'), chest = thing('cairns', 'C');
-    const g4 = new BellspireGame(done(['rope', 'echo']), {}, 3); g4.lead = 'enzo'; g4.save.heroes.enzo.mp = 60;
+    const g4 = new BellspireGame(done(['rope', 'echo']), STRICT, 3); g4.lead = 'enzo'; g4.save.heroes.enzo.mp = 60;
     at(g4, 'cairns', lq.c + 1, 13);
     g4.step(I({ up: true, cast: true })); run(g4, 2); g4.tagCd = 0; g4.step(I({ tag: true })); run(g4, 6); quiet(g4);
     eq(g4.lead, 'dora', 'Dora tagged in');

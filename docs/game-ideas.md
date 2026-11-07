@@ -4,6 +4,37 @@ Ideas for future games that haven't been built yet, newest first. Each comes wit
 
 Painted mock-ups (Codex) are in [`ideas/`](ideas/). There is a page with all of them and their interfaces at https://claude.ai/artifact/4jSWyhexvhzJtC67u7UUzM (private to the owner).
 
+## Expansions (07-11-2026)
+
+### The Foundry Below (a second Bellspire expansion)
+
+Planned and mocked up, then paused before the build to save usage. It needs about 1–1.5M agent tokens and 35–45 Codex images. A cut-down version (the Casting Halls, the Molten Founder and the Hollow Bell) would cost about half that. Mock-ups: `ideas/bellspire-foundry-halls.webp`, `ideas/bellspire-foundry-glass.webp`, `ideas/bellspire-foundry-boss.webp`, `ideas/bellspire-foundry-outfits.webp`. The Codex prompts that painted them are kept with the mock-up page's sources.
+
+Once the Out-of-Tune Bell is calm, the great bell's note cracks a seal in the citadel's lowest area. It opens onto a bell foundry inside the sleeping volcano under the citadel, where something has started casting hollow, tuneless bells that call the citadel's foes back.
+
+- **Areas** (about 22–26 screens, each with its own tiles, light, backdrop and tune, plus new shrines):
+  - **The Casting Halls:** forges, molten bronze channels, house-sized moulds, cooling vents.
+  - **The Glasswork Caves:** red and purple volcanic glass crystals over a lava lake.
+- **Mechanics:**
+  - Enzo's Frost Fan cools molten channels into platforms, which glow as a warning before they reheat.
+  - Vents puff mist that hardens floor patches briefly.
+  - Standing near forges fills a heat gauge; shade or mist resets it. With the helping hand on, heat never knocks a hero out.
+- **Dora: Bell Hammer.** ↓ + attack in the air slams down: it breaks cracked glass, rings bells from below, and bounces high off metal plates.
+- **Enzo: Resonance.** His chime near humming crystals lines them up into a bridge for a while, or sends a light beam through them to open beam doors.
+- **Guardians:**
+  - **The Molten Founder:** a bronze smith golem with a ladle; it only takes hits where it has been frosted.
+  - **The Glass Choir:** three crystal singers; ring their notes back in order.
+  - **The Hollow Bell:** two forms over a slowly rising lava pit, with a new ending and epilogue panel.
+- **Enemies:** an ingot walker, an ember wisp, a crystal bat and a glass snail.
+- **Tupa the bellfounder** (they/them) sets up shop at the entrance and recasts a gear item to add a perk, which uses up spare coins.
+- **Outfits:** Dora's Forge Apron (rust-red leather apron, gloves, goggles pushed up below the ears) and Enzo's Ashwork Smock (charcoal, brass buckles, hood folded down). Every action is repainted in them.
+- **Extras:**
+  - six murals that finish the bellmakers' story;
+  - Forge Sprint and Glass Echo trials;
+  - New Game+ includes the foundry;
+  - the map and minimap guide grow, and the full map's overflow at 1.29× is fixed.
+- **Standards** (as for the Windward Belfry): planner proofs that everything is reachable with no traps, a route bot to the ending, casual and pro guardian bots, e2e for every new action at three screen sizes, and screenshots of every room type and guardian.
+
 ## Two unrelated systems (05-11-2026)
 
 Pixel roguelites where two systems that don't normally meet drive each other: changing one is how you play the other. Gameplay mock-ups: `ideas/px-forms-play.webp`, `ideas/px-thyme-play.webp`, `ideas/px-words-play.webp`, `ideas/px-sight-play.webp`, `ideas/px-yarn-play.webp`. A separate set of fifteen strategy-first systemic roguelites, with scores and prototype plans, is in [`systemic-roguelites.md`](systemic-roguelites.md).

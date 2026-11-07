@@ -571,6 +571,16 @@ export default function BellspirePage() {
     const trials = lit && !g.trialsLocked() && !g.trial ? ` · ${touchOn ? '☰' : 'Esc'} Trials` : '';
     shrinePrompt = { text: lit ? `${up} Rest · ${hit} Travel${trials}` : `${up} Rest to light`, x: sx * scale, y: Math.max(26, top) * scale };
   }
+  // by an echo bell (the helping hand): how to ring it, over the bell and above both heroes' heads
+  const echoT = g && !dialog && !shrinePrompt && sceneRef.current ? g.echoNear() : null, echoAsk = echoT ? g!.echoHint() : null;
+  if (g && echoT && echoAsk && sceneRef.current) {
+    const sc2 = sceneRef.current;
+    const up = touchOn ? '▲' : `${keyName(settings.keys.up[0] ?? 'ArrowUp')}`.replace(/^Up$/, '↑');
+    const spell = touchOn ? 'Spell' : keyName(settings.keys.cast[0] ?? 'KeyV');
+    const tag = touchOn ? 'Tag' : keyName(settings.keys.tag[0] ?? 'ShiftLeft');
+    const top = Math.min(echoT.r * 16 - 30, g.body.y - 46, g.follower.y - 46) - sc2.cam.y;
+    shrinePrompt = { text: echoAsk === 'ring' ? `${up} + ${spell} ring` : `${tag}: tag to Enzo to ring`, x: (echoT.c * 16 + 8 - sc2.cam.x) * scale, y: Math.max(26, top) * scale };
+  }
   const hint = g && !dialog && !shrinePrompt ? g.nearbyLabel() : null;
   // the minimap fades when the lead walks up under the top-right corner
   const sc = sceneRef.current;

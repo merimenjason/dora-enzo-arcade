@@ -17,6 +17,7 @@ import belfry from './bellspire-belfry.mjs';
 import trials from './bellspire-trials.mjs';
 import strips from './bellspire-strips.mjs';
 import rope from './bellspire-rope.mjs';
+import echo from './bellspire-echo.mjs';
 
 let checks = 0;
 const ok = (c, m) => { assert.ok(c, m); checks++; };
@@ -1073,4 +1074,5 @@ checks += belfry();
 checks += trials();
 checks += strips();
 checks += rope();
+checks += echo();
 console.log(`bellspire: ${checks} checks passed`);

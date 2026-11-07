@@ -897,6 +897,20 @@ export class BellspireScene {
       else if (t.ch === 'Q') {
         // an echo bell glows while its notes hang in the air
         const lit = g.notes.some((n) => n.key.startsWith(`${room.id}:${t.i}:`));
+        // with the helping hand (and the Echo Step), a quiet bell pulses so it can't be missed: a soft glow and
+        // rings of sound rising off it, stronger when it's the way on
+        if (!lit && g.helping() && g.has('echo')) {
+          const ctx = this.ctx, guide = g.echoGuide(), strong = !!guide && guide.x === t.c * TILE + 8 && guide.y === t.r * TILE;
+          const ph = (this.t % 70) / 70, cy = y - 14;
+          const glow = ctx.createRadialGradient(x, cy, 2, x, cy, 30);
+          glow.addColorStop(0, `rgba(120,240,255,${(strong ? 0.45 : 0.28) + 0.15 * Math.sin(this.t * 0.12)})`); glow.addColorStop(1, 'rgba(120,240,255,0)');
+          ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(x, cy, 30, 0, Math.PI * 2); ctx.fill();
+          for (const k of [0, 0.5]) {
+            const u = (ph + k) % 1;
+            ctx.strokeStyle = `rgba(170,250,255,${((1 - u) * (strong ? 0.8 : 0.55)).toFixed(2)})`; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(x + 0.5, cy + 0.5, 10 + u * 22, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+          }
+        }
         this.spr('props2', lit ? 2 : 1, x, y);
       } else if (t.ch === 'W') {
         // a wind bell: its streamers fly the way the wind blows (the art's frame 3 blows east), swinging a while when rung
@@ -1586,7 +1600,7 @@ export class BellspireScene {
       }
       // an echo bell: a faint cyan shimmer, bright while its notes hang in the air; a wind bell catches the light,
       // flaring when it is rung
-      else if (th.ch === 'Q') { const lit = g.notes.some((n) => n.key.startsWith(`${room.id}:${th.i}:`)); L.push({ x, y: y - 6, r: lit ? 96 : 44, c: [0.45, 0.95, 1], i: lit ? 1.1 + 0.15 * Math.sin(t * 0.2) : 0.45 }); }
+      else if (th.ch === 'Q') { const lit = g.notes.some((n) => n.key.startsWith(`${room.id}:${th.i}:`)), help = g.helping() && g.has('echo'); L.push({ x, y: y - 6, r: lit ? 96 : help ? 64 : 44, c: [0.45, 0.95, 1], i: lit ? 1.1 + 0.15 * Math.sin(t * 0.2) : help ? 0.75 + 0.25 * Math.sin(t * 0.12) : 0.45 }); }
       else if (th.ch === 'W') { const sw = this.bellSwing.get(`w${th.c},${th.r}`) ?? 0; L.push({ x, y: y - 10, r: 44 + sw * 1.5, c: [0.85, 0.95, 1], i: 0.4 + sw / 40 }); }
       else if (th.ch === 'i') L.push({ x, y, r: 64, c: [1, 0.7, 0.38], i: 0.95 * flick(th.c + 9) });
       else if (th.ch === 'S') { const lit = g.flag(`shrine:${room.id}`) || g.save.shrine === room.id; L.push({ x, y: y - 8, r: lit ? 110 : 60, c: [1, 0.66, 0.36], i: (lit ? 1.15 : 0.6) * flick(th.c) }); }

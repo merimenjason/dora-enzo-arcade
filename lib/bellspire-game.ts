@@ -453,6 +453,8 @@ export type Note = { key: string; room: string; x0: number; x1: number; y: numbe
 export type Float = { x0: number; x1: number; y: number; key: string; kind: 'reed' | 'note' | 'bell' };
 /** How long an echo bell's notes stay (ticks), and the gap between one note and the next appearing. */
 export const NOTE_LIFE = 240, NOTE_GAP = 12;
+/** With the helping hand, echo notes last three times as long (12 seconds; on top of the Carillon Staff's double time). */
+export const NOTE_ASSIST = 3;
 type HeroRt = { inv: number; hurtT: number; act: Act | null; combo: number; buf: boolean; castHold: number; swingCd: number };
 type Follower = { x: number; y: number; face: 1 | -1; air: boolean; moving: boolean; swim: boolean; climb: boolean; swipeT: number; swipeCd: number };
 
@@ -509,7 +511,7 @@ export class BellspireGame {
   wispPath: { x: number; y: number }[] = [];
   wispRest = 0;
   /** Where the wisp leads; by default the doorway towards the next story goal. */
-  wispGoal: ((g: BellspireGame) => { x: number; y: number } | null) | null = (g) => g.wayToGoal();
+  wispGoal: ((g: BellspireGame) => { x: number; y: number } | null) | null = (g) => g.echoGuide() ?? g.wayToGoal();
   ended = false;
   nextId = 1;
   prev: Input = NO_INPUT;
@@ -1198,14 +1200,14 @@ export class BellspireGame {
     if (!this.has('echo')) { this.note('The echo bell hums, but its note slips away. Something on the mountain could teach Enzo to hold it.'); this.sfx('locked'); return; }
     const path = this.room.echoes?.[t.i];
     if (!path) return;
-    const life = NOTE_LIFE * (this.perk('enzo', 'notes') ? 2 : 1);
+    const life = NOTE_LIFE * (this.perk('enzo', 'notes') ? 2 : 1) * (this.helping() ? NOTE_ASSIST : 1);
     this.notes = this.notes.filter((n) => !n.key.startsWith(`${this.room.id}:${t.i}:`));
     path.forEach(([dc, dr], k) => {
       const c = t.c + dc, r = t.r + dr;
       this.notes.push({ key: `${this.room.id}:${t.i}:${k}`, room: this.room.id, x0: c * TILE, x1: (c + 2) * TILE, y: r * TILE, t: 0, at: k * NOTE_GAP, life: life + k * NOTE_GAP });
     });
     this.sfx('echo', x, y); this.emit({ k: 'notes', x, y }); this.emit({ k: 'pulse', x, y, r: 120, color: [0.4, 0.95, 1] });
-    if (!this.flag('rang:echo')) { this.setFlag('rang:echo'); this.note('Three notes hang in the air for a few seconds. Climb them!', true); }
+    if (!this.flag('rang:echo')) { this.setFlag('rang:echo'); this.note(`Three notes hang in the air for ${this.helping() ? 'about twelve' : 'a few'} seconds. Climb them!`, true); }
   }
   toggleLantern() {
     if (!this.has('lantern')) { this.note('The lantern needs the Moonwick before Enzo can raise it.'); this.sfx('locked'); return; }
@@ -1226,6 +1228,47 @@ export class BellspireGame {
 
   // ─── interacting ─────────────────────────────────────────────────────────
   /** The thing ↑ would use right now, if any. */
+  /** The helping hand is on (and not Strict). */
+  helping() { return this.settings.assist && !this.settings.strict; }
+  /** An echo bell close by, with the helping hand on and the Echo Step learned (for its glow and its prompt). */
+  echoNear(): Thing | null {
+    if (!this.helping() || !this.has('echo')) return null;
+    const b = this.body;
+    let best: Thing | null = null, bd = 1e9;
+    for (const t of INFO.get(this.room.id)!.things) {
+      if (t.ch !== 'Q') continue;
+      const dx = Math.abs(t.c * TILE + 8 - b.x), dy = Math.abs((t.r + 1) * TILE - b.y);
+      if (dx < 56 && dy < 40 && dx < bd) { best = t; bd = dx; }
+    }
+    return best;
+  }
+  /** What the echo bell close by asks for: ring it (Enzo) or tag to Enzo (Dora). Null without one. */
+  echoHint(): 'ring' | 'tag' | null {
+    const t = this.echoNear();
+    if (!t || this.dialog) return null;
+    if (this.notes.some((n) => n.key.startsWith(`${this.room.id}:${t.i}:`) && n.t < n.life - 60)) return null;
+    if (this.lead === 'enzo') return 'ring';
+    return this.save.heroes.enzo.down ? null : 'tag';
+  }
+  /** With the helping hand: the echo bell in this room when its notes are the way on (the way to the goal leads well
+   *  above the heroes and above the bell's first note, and its notes aren't standing), for the wisp and the maps. */
+  echoGuide(): { room: string; x: number; y: number } | null {
+    if (!this.helping() || !this.has('echo')) return null;
+    const bells = INFO.get(this.room.id)!.things.filter((t) => t.ch === 'Q' && this.room.echoes?.[t.i]);
+    if (!bells.length) return null;
+    const way = this.wayToGoal();
+    const b = this.body;
+    if (!way || way.y > b.y - 4 * TILE) return null;
+    let best: Thing | null = null, bd = 1e9;
+    for (const t of bells) {
+      const first = (t.r + this.room.echoes![t.i][0][1]) * TILE;
+      if (way.y > first || b.y <= first) continue;
+      if (this.notes.some((n) => n.key.startsWith(`${this.room.id}:${t.i}:`) && n.t < n.life - 60)) continue;
+      const d = Math.hypot(t.c * TILE + 8 - way.x, t.r * TILE - way.y);
+      if (d < bd) { bd = d; best = t; }
+    }
+    return best ? { room: this.room.id, x: best.c * TILE + 8, y: best.r * TILE } : null;
+  }
   nearby(): Thing | null {
     const b = this.body;
     if (!b.ground || b.climb) return null;
@@ -2711,6 +2754,8 @@ export class BellspireGame {
   /** Where the maps mark the wisp's lead: the next goal, or Wayra's boat on this shore when the goal is across the
    *  water (as the wisp itself leads). */
   mapGoal(): { room: string; x: number; y: number } | null {
+    const echo = this.echoGuide();
+    if (echo) return echo;
     const goal = this.nextGoal();
     if (!goal) return null;
     const here = BELFRY_ROOMS_SET.has(this.room.id);

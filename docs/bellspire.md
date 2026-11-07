@@ -37,7 +37,9 @@ throws it too) and Dora swings a steady arc; a dotted arc shows where Z will tak
 she faces), Z at any moment flies her there, and ↓ takes her back to the ledge she swung from. In Strict (or with the
 helping hand off), X in the air beside a bell hook throws the rope; ← and → pump the swing, Z lets go with a kick
 upward, and ↓ drops off. Shift on the rope says Dora's on the rope instead of tagging. X, a Lantern Bolt, the Bell Chime or the Gale Wave rings a wind bell and turns the wind round. As Enzo with
-the Echo Step, ↑ + V beside an echo bell lays three notes to stand on; a tap of V in the air is the Frost Fan, and V
+the Echo Step, ↑ + V beside an echo bell lays three notes to stand on (with the helping hand on, a quiet echo bell
+pulses and a prompt over it says "↑ + V ring" to Enzo or "Shift: tag to Enzo to ring" to Dora, in the player's own
+keys); a tap of V in the air is the Frost Fan, and V
 held past the Ember Ring (about 1.2 seconds) is the Gale Wave.
 
 Ladders: ↑ grabs one you stand at or beside (within about 6 pixels of it), and holding ↑ while jumping into one grabs
@@ -187,7 +189,16 @@ at the foot of the Cloudstair (and back). Before the Lake Mother, Wayra says the
     was before the helping hand's version, unchanged.
 - **The Echo Step** (Enzo, from the Hail Condor). ↑ + V beside an echo bell sounds it: three translucent cyan notes
   appear along that bell's own shape, a fifth of a second apart, and last 4 seconds (8 with the Carillon Staff). They
-  are one-way ledges. Note-sigil doors need it. Without it, a bell only hums.
+  are one-way ledges. Note-sigil doors need it. Without it, a bell only hums. With the helping hand on (not Strict):
+  - The notes last three times as long (`NOTE_ASSIST`): 12 seconds, or 24 with the Carillon Staff. The first ring's
+    toast says "about twelve seconds".
+  - A quiet echo bell pulses: a soft cyan glow, rings of sound rising off it and a brighter light. It's stronger when
+    the bell is the way on.
+  - Near one (within 3.5 tiles), a prompt floats over it and above both heroes' heads, never over a face. It says
+    "↑ + V ring" to Enzo and "Shift: tag to Enzo to ring" to Dora, in the player's own keys, or Spell and Tag on the
+    touch pad. There's no prompt while its notes hang in the air, or for Dora when Enzo is knocked out.
+  - When the way to the goal leads well above the heroes and above a bell's first note, and that bell's notes aren't
+    up, the wisp and both maps' goal mote point at the bell (`echoGuide`). Once it's rung, they lead on up the notes.
 - **Swinging bells.** Giant bells in the bell shaft swing on long ropes; their headstocks carry a hero along the arc.
   They are shortcuts only: no gate depends on their timing.
 - **Gates.** The rope-knot door `y`, the note-sigil door `n`, and the belfry seal `Z`, which opens once the Hail Condor
@@ -442,6 +453,24 @@ true)`) simulates the guided rope: any move near a hook may be caught, and carri
 going, and there are moves that jump at a hook and tap jump on the rope at a set moment, holding a way. (The planner's
 proofs in the tests stay on the free rope, the harder of the two.)
 
+The echo bells' human-paced bots (`node tests/bellspire-echo.mjs --bots`, and the 95% check in `tests/bellspire.mjs`)
+start as Enzo 2 to 5 tiles from each echo bell. They walk up and react 12 to 15 ticks late, ring it, tag to Dora a
+reaction (and up to 10 more ticks) later, then climb the notes along the route planner's moves. Before each move they
+hesitate as a person does: 10 to 40 ticks, and one move in seven another 30 to 70. Then they shuffle to the spot the
+move starts from. The louvres' climb ends on the Bell Rope. A climb counts only on the first try: dropping back to the
+floor, any hurt, or the notes fading under her is a miss. This measures the notes' time at a human pace; the rope bots
+below model sloppy jumps. Results on 07-11-2026, 24 seeds each:
+
+| Echo bell (to) | Helping hand (12 s notes) | Strict (4 s notes) |
+|---|---|---|
+| Cairns (the shelf's chest) | 24/24, 6.1 s, slowest 7.8 s | 22/24 |
+| Loft's foot (the hatch ledge, the Loft Candle climb) | 24/24, 6.3 s, slowest 8.1 s | 6/24 |
+| Louvres (on by the rope to the chest) | 24/24, 4.9 s, slowest 6.8 s | 0/24 |
+| Cogworks (the chest ledge) | 24/24, 5.4 s, slowest 7.3 s | 18/24 |
+
+The slowest climbs take up to 8.1 seconds from the walk to the bell, which is why the notes last three times as long,
+not twice.
+
 The Bell Rope's human-paced bots (`node tests/bellspire-rope.mjs --bots`, and the 95% check in `tests/bellspire.mjs`)
 see the game 12 to 15 ticks late, jump at a gap a little early or late, hold jump for a sloppy 9 to 17 ticks,
 double-jump when no hook glows bright, and (guided) let go at a random moment 0 to 70 ticks into the swing; in Strict
@@ -539,6 +568,14 @@ longer. The test requires casual wins in 85% of seeds and pro in 70%.
   the boat back from inside the belfry, no arrow with everything done, kept across a save. The browser suite checks the
   same on screen on a desktop and both phone sizes (silhouette cells, both names, both boats, the route, the legend
   entries, the arrow's direction), and sweeps every menu tab, gear slot and gear preview for "undefined" or "NaN".
+- `tests/bellspire-echo.mjs` (run by `tests/bellspire.mjs`): echo bells with the helping hand.
+  - The notes' time: 12 seconds with it, 4 in Strict, and the staff still doubles it.
+  - The prompt: ring for Enzo and tag for Dora. There is none with Enzo knocked out, from across the room, while the
+    notes are up, in Strict, or before the Echo Step.
+  - The guide: the wisp, the maps and `echoGuide` point at the cairns' bell when the shelf is the goal, and lead on
+    once its notes are up. There is none in Strict, and none for a goal on the floor. From the loft's foot, the guide
+    points at its bell for the way up through the hatch.
+  - The human-paced climb bots must climb every echo bell's notes first try in at least 95% of 24 seeds.
 - `tests/bellspire-rope.mjs` (run by `tests/bellspire.mjs`): the Bell Rope in both modes. The catch (by itself with
   the helping hand from 6 tiles but not 7, never from below or standing, X still works, never Enzo; in Strict and with
   the helping hand off, only with X), the glow (bright when the catch is coming, faint when she needs more height, none
@@ -569,7 +606,8 @@ longer. The test requires casual wins in 85% of seeds and pro in 70%.
   real keys: the glow before the catch, the catch with no X, the dotted arc, a flight to the next hook and on to a ledge
   (hold →, tap Z, tap Z), Shift's message on the rope and ↓ flying home over the spikes; then Strict's free throw,
   swing and release, with screenshots of the glow, catch, arc and flight at 1280×800 and on both phones (with the
-  pad), an echo bell's notes, the Frost Fan, the Gale Wave, riding a swinging bell, the two outfits, the
+  pad), the echo bell's prompt for Dora (tag) and for Enzo (ring) with the wisp and maps pointing at it, the notes'
+  12 seconds, and Strict's 4 with no prompt (with screenshots), an echo bell's notes, the Frost Fan, the Gale Wave, riding a swinging bell, the two outfits, the
   three guardians and the belfry's ending), the Echo Trials (locked before the Bell, the scene, the page, a run with
 its clock, bells, card, Try again and Give up, the whole rush and the medals), New Game+ (locked on the title, started,
 both keys, each new attack's wind-up and hit, the title with both saves, the confirm, each Continue), and phones held both ways, with no page errors and no sideways scrolling.

@@ -787,12 +787,39 @@ try {
 
     // the Echo Step: ↑+V by an echo bell lays three notes; Dora climbs them
     await game(page, `(g.save.abilities.push('echo'), g.save.spells.push('frost', 'gale'), g.save.heroes.enzo.mp = 90, true)`);
-    await at('cairns', 11, 13);
+    // with the helping hand, a quiet echo bell pulses and says how to ring it: Dora is told to tag, Enzo to ↑ + V
+    await at('cairns', 13, 13); await game(page, '(g.enemies = [], true)');
+    await tagTo(page, 'dora');
+    // the shelf's chest is where the wisp is going: up the notes, so the wisp and the maps point at the bell
+    await game(page, `(() => { const c = g.room.gx * 30 + 32, r = g.room.gy * 17 + 4; g.nextGoal = () => ({ room: 'cairns', x: c * 16 + 8, y: r * 16 }); return true; })()`);
+    await until(page, () => /tag to Enzo to ring/.test(document.querySelector('.bs-shrine-prompt')?.textContent ?? ''));
+    const bellAt = await game(page, `(() => { const q = g.room.gx * 30 + 10, r = g.room.gy * 17 + 13; return { x: q * 16 + 8, y: r * 16 }; })()`);
+    assert.deepEqual(await game(page, '(() => { const m = g.mapGoal(); return m && { x: m.x, y: m.y }; })()'), bellAt, 'the maps point at the echo bell');
+    await until(page, (b) => { const w = window.__bellspire().game.wisp; return w.on && Math.hypot(w.x - b.x, w.y - b.y) < 70; }, bellAt);
+    await page.screenshot({ path: '.shots/bellspire/74-echo-prompt-dora-1280x800.png', clip: await page.locator('canvas.bs-canvas').boundingBox() });
+    ok('with the helping hand, Dora by a quiet echo bell sees “Shift: tag to Enzo to ring”, and the wisp and the maps point at the bell');
     await tagTo(page, 'enzo');
+    await until(page, () => /↑ \+ V ring/.test(document.querySelector('.bs-shrine-prompt')?.textContent ?? ''));
+    await page.screenshot({ path: '.shots/bellspire/75-echo-prompt-enzo-1280x800.png', clip: await page.locator('canvas.bs-canvas').boundingBox() });
+    ok('and Enzo sees “↑ + V ring” over the pulsing bell');
     await chord(page, 'ArrowUp', 'KeyV');
     await until(page, () => window.__bellspire().game.floatCache.filter((f) => f.kind === 'note').length === 3);
     assert.ok(await posed('enzo:echo'), 'Enzo has a pose for sounding an echo bell');
-    ok('↑+V by an echo bell lays three notes in the air, with its own pose');
+    assert.equal(await game(page, 'g.notes[0].life'), 720, 'the notes last 12 seconds with the helping hand');
+    await until(page, () => !document.querySelector('.bs-shrine-prompt'));
+    await page.screenshot({ path: '.shots/bellspire/76-echo-notes-1280x800.png', clip: await page.locator('canvas.bs-canvas').boundingBox() });
+    ok('↑+V by an echo bell lays three notes in the air for 12 seconds, with its own pose (and the prompt goes)');
+    // Strict: no prompt, no guide, the notes' own 4 seconds
+    await game(page, `(g.settings.assist = false, g.settings.strict = true, g.notes = [], true)`);
+    await page.waitForTimeout(200);
+    assert.equal(await page.locator('.bs-shrine-prompt').count(), 0, 'Strict: no prompt');
+    assert.equal(await game(page, 'g.echoGuide()'), null, 'Strict: no guide to the bell');
+    await game(page, '(g.leadSave.mp = 90, true)');
+    await chord(page, 'ArrowUp', 'KeyV');
+    await until(page, () => window.__bellspire().game.notes.length === 3);
+    assert.equal(await game(page, 'g.notes[0].life'), 240, 'Strict: 4 seconds');
+    await game(page, `(g.settings.assist = true, g.settings.strict = false, delete g.nextGoal, true)`);
+    ok('Strict: no prompt or guide, and the notes last their own 4 seconds');
     // the Frost Fan: V tapped in the air
     await at('cliffoot', 30, 14);
     await page.keyboard.down('KeyZ'); await page.waitForTimeout(120);
@@ -812,7 +839,8 @@ try {
 
     // riding a swinging bell balances on it
     await at('bellshaft', 20, 47);
-    await game(page, `(() => { const f = g.floatCache.find((f) => f.kind === 'bell'); g.body.x = (f.x0 + f.x1) / 2; g.body.y = f.y - 2; g.body.ground = false; g.body.vy = 0; return true; })()`);
+    // (the shaft's foes cleared and its hurt healed, so nothing knocks the hero off the bell)
+    await game(page, `(() => { g.enemies = []; g.hero[g.lead].inv = 120; const f = g.floatCache.find((f) => f.kind === 'bell'); g.body.x = (f.x0 + f.x1) / 2; g.body.y = f.y - 2; g.body.ground = false; g.body.vy = 0; return true; })()`);
     await until(page, () => window.__bellspire().game.riding === 'bell');
     await until(page, () => ['balance', 'noteHop'].includes(window.__bellspire().scene.heroAnim[window.__bellspire().game.lead]?.state));
     ok('a hero riding a swinging bell balances on it');
