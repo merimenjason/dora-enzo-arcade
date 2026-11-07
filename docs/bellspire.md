@@ -84,7 +84,13 @@ them, and the throne stays shut. Once all four are calm, Ukumari opens it as bef
 and a red mark on each restless guardian. With every ability owned and seals still shut, the wisp leads to the nearest
 restless guardian. The planner gates the throne on all four guardians too, and every guardian can be reached before the
 throne opens. An old save where Ukumari had already opened the door with a guardian skipped is locked again on load,
-unless its ending has been seen.
+unless its ending has been seen or the Lake Mother is already calm.
+
+After the Lake Mother, the ending shows the epilogue straight away if everything has been found (100%). Otherwise it
+says the epilogue plays the moment the last thing is found, and Keep exploring goes back in. The moment completion
+reaches 100% (checked every quarter second), Dora and Enzo say a line and the ending plays again with the epilogue,
+saved first and only once (the `epilogue` flag). The title screen then offers See the epilogue. After the Lake Mother
+the wisp rests, the throne stays open, and her arena stays quiet.
 
 ## Water
 
@@ -201,7 +207,9 @@ nearest restless guardian once every ability is owned, then Ukumari and the thro
 the goal. It follows a path through the room's open tiles, turning at corners, so it never passes through stone; the
 path is through the air, not always one the heroes can walk. It keeps at least 24 px from the lead's face, fades while
 someone talks, drifts to the far top corner in a guardian's arena, and never touches play (it lights no ghost-glass).
-After the ending it is gone. The Guiding wisp setting, under the helping hand, hides it; it is greyed out with "Needs
+After the Lake Mother it rests. A door the heroes can already open (an ability door with that ability, a hatch with
+the lantern, a bell seal with the Chime) counts as a way through when it picks the doorway, so it never points
+straight through a wall at a goal beyond a door they could walk through. The Guiding wisp setting, under the helping hand, hides it; it is greyed out with "Needs
 the helping hand on." while the helping hand is off. Strict turns the helping hand off and only allows shrine travel from a shrine.
 
 ## Gear you can see
@@ -209,13 +217,33 @@ the helping hand on." while the helping hand is off. Strict turns the helping ha
 Weapons and coats are painted into every hero frame, so the worn ones are shown by recolouring those pixels.
 `scripts/bellspire-art.py` writes a part map beside each hero strip (`dora-parts.webp`, `enzo-parts.webp`: red 80 the
 coat, 160 Dora's blade or Enzo's staff shaft, 240 Enzo's lantern). Dora's map comes from hue at full size (the teal
-coat, the pale blade), then every teal pixel left on the final sprite. Enzo's is labelled on the final sprite, because
-his staff and coat share a hue: big rust pieces are the coat, small ones and the glow are the lantern, the rest of the
-rust is the shaft. `lib/bellspire-gear-art.ts` repaints each part along a colour ramp by the brightness it was painted
-with, once per hero, weapon and coat, and the starting gear keeps its painted colours.
+coat, the pale blade), then every teal pixel left on the final sprite. Enzo's colour pass pushes his staff's wood,
+his lantern and his coat's rust to one hue, so his map is read off the painting before that pass, frame by frame:
 
-- Weapons: the Reed-Cutter is a green blade, the Moonsteel a bright silver-blue one with a one-pixel glint, the Bell
-  Staff a bronze shaft with a gold lantern, the Star Lamp a white-gold lamp. The swing arc and the whirl take the
+- the lantern is the box round its glass (the most solid bright piece not sitting on the coat; a hook's highlight is a
+  thin curve), grown by its frame and cap, so the dark bands across it are inside; a second light nearly as solid (a
+  raised spell, a coin held up) gets its own box;
+- the staff is the long warm piece that carries the lantern (the coat's orange trim never touches it, and fat warm
+  areas such as lit folds are not staff), plus any long warm run on the line of its shaft past the paw that splits it;
+  where a pose paints the shaft as dark and red as the coat, the shapes' long thin lines that hold the lantern count too;
+- the coat is the final sprite's big rust pieces near the painting's red, plus collar and hem cloth next to them.
+
+The lantern always wins: a coat pixel touching it counts as its rim unless it sits well inside the coat, and a small
+island of "coat" touching it is its own dark band. The painted lantern box also goes into the part map's green, and
+the browser suite checks against it, not against the labels: `lanternCheck` on the debug hook counts, across all 3
+weapons and 4 coats and all 80 frames, the pixels inside the painted lantern that change with the coat (0), and
+`lanternCheckControl` labels frame 8's lantern as coat to show the check catches that leak.
+`lib/bellspire-gear-art.ts` repaints each part along a colour ramp by the brightness it was painted with (a weapon's
+`lift` raises it first, so a shaft painted dark in a pose still comes out light), once per hero, weapon and coat.
+
+- Weapons: the Reed-Cutter is a green blade, the Moonsteel a bright silver-blue one with a one-pixel glint. Enzo's
+  shafts are pale so they stand off every coat (the painted wood was his coat's own rust): the Oak Staff is ash-white
+  with a lit amber lantern, the Bell Staff bright brass with a gold lantern, the Star Lamp star-silver with a
+  white-gold lamp. Dora's Bronze Sword is polished pale bronze. `gearContrast` on the debug hook measures every weapon
+  against every coat each hero can wear (24 pairs), frame by frame: in each frame the mean colours of the weapon's and
+  the coat's pixels must be at least ΔE 30 apart (CIE76) and 15 apart in lightness, and it reports the worst frame, so
+  a pose can't hide behind the idle ones. The lowest pair is Enzo's Oak Staff on the Reedweave Coat at ΔE 41, and the
+  lowest lightness gap the Reed-Cutter on the Reedweave Coat at ΔL 21. The swing arc and the whirl take the
   weapon's colour, Enzo's lantern light follows the weapon (the Star Lamp burns star-white and brighter), and the Bell
   Chime's ring is gold with the Bell Staff.
 - Coats: either hero can wear any coat. Teal, rust, Reedweave (golden straw with a darker weave line every third row) and
@@ -269,7 +297,13 @@ much longer. The test requires casual wins in 85% of seeds and pro in 70%.
   the throne's four seals (Ukumari with 0 to 4 guardians calm, the names, the door, the planner without each guardian,
   old saves), the map's doorways against the real open edges, the always-on wisp (every tick, never near a face, never
   changing play, off with the setting or in Strict), saves and determinism.
-- `tests/bellspire-bot.mjs`: the guardian bots and the route bot (`--quick` for 8 seeds and one route).
+- `tests/bellspire-bot.mjs`: the guardian bots and the route bot (`--quick` for 8 seeds and one route;
+  `--route-seeds=1,2,3` to pick the routes). A referee watches every route. It checks the throne is never open before
+  all four seals, and that the wisp's goal can be reached with what the heroes have (allowing the water bells) and
+  never sits behind a wall, at every goal change and every 20 seconds. It saves and loads after each step of the story
+  and checks the seals and the wisp's goal come back the same. At Ukumari it loads an old save with the hydra skipped
+  and checks the throne locks again and the wisp leads to the hydra. After the ending it finds the rest and checks the
+  epilogue plays once. Both heroes must lead at some point.
 - `tests/e2e/bellspire.mjs`: the browser suite. Every player action with the real keys, each locked action's message,
   the shrine (↑ rests, X travels, X near a foe swings, a map tap travels), the climb frame, a chest, a door opening,
   a bell ringing, damage numbers, the minimap at three screen sizes (with an area entrance drawn), gear equipped through

@@ -7,7 +7,7 @@
 //    real engine with enemies, doors, bells and the lantern, to prove the game can be finished.
 // Run after compiling the engine into .checks/. `--quick` runs fewer seeds.
 import assert from 'node:assert/strict';
-import { BellspireGame, freshSave, BOSSES, TILE, HERO_W, HERO_H, ROOMS, INFO, ABILITY_ORDER, roomById, roomRect, groupAt, rawChar } from '../.checks/bellspire-game.js';
+import { BellspireGame, freshSave, parseSave, BOSSES, TILE, HERO_W, HERO_H, ROOMS, INFO, ABILITY_ORDER, roomById, roomRect, groupAt, rawChar } from '../.checks/bellspire-game.js';
 import { Graph, stateKey, nodeRoom } from '../.checks/bellspire-nav.js';
 
 const QUICK = process.argv.includes('--quick');
@@ -179,8 +179,57 @@ const navState = (g) => ({ abilities: [...g.save.abilities], water: { ...g.save.
 const near = (t, dx = 20) => (n) => n.mode === 'ground' && Math.abs(n.x - (t.c * TILE + 8)) < dx && Math.abs(n.y - (t.r + 1) * TILE) < 18;
 const inRoom = (id) => (n) => nodeRoom(n)?.id === id;
 
+const WATER_SETS = [{ halls: 1, docks: 0, throne: 1 }, { halls: 0, docks: 0, throne: 1 }, { halls: 1, docks: 1, throne: 1 }, { halls: 0, docks: 1, throne: 0 }];
+const U_DOOR = [...INFO.values()].flatMap((i) => i.doors).find((d) => d.ch === 'u');
+
+/** Watches a run like a referee: the throne opens only with all four seals, the wisp's goal can always be reached
+ *  with what the heroes have (allowing the water bells), its doorway never leads through a shut door, and saving and
+ *  loading keeps the seals and the wisp's goal. */
+function referee(g) {
+  const reachCache = new Map();
+  const r = { checks: 0, throne: 0, badGoal: [], badWay: 0, saveLoad: 0, saveLoadBad: [], ledBy: { dora: 0, enzo: 0 }, lastGoal: '' };
+  const canReach = (goal) => {
+    const base = { abilities: [...g.save.abilities], keeper: g.flag('keeper'), calmed: g.save.flags.filter((f) => f.startsWith('boss:')).map((f) => f.slice(5)) };
+    for (const water of [g.save.water, ...WATER_SETS]) {
+      const st = { ...base, water };
+      const k = `${stateKey(st)}|${g.room.id}`;
+      if (!reachCache.has(k)) {
+        const G = new Graph(st);
+        const spots = [...G.reach([G.nodeAt(g.body.x, g.body.y, g.body.swim && !g.body.ground, g.body.climb)])].map((key) => G.nodes.get(key));
+        reachCache.set(k, spots);
+      }
+      if (reachCache.get(k).some((n) => Math.abs(n.x - goal.x) < 40 && Math.abs(n.y - (goal.y + TILE)) < 48)) return true;
+    }
+    return false;
+  };
+  r.tick = (ticks) => {
+    r.ledBy[g.lead]++;
+    if (g.doorOpen(U_DOOR) && g.restless().length) r.throne++;
+    if (g.dialog || g.boss || ticks % 120 !== 0) return;
+    const goal = g.nextGoal();
+    if (!goal) return;
+    const key = `${goal.room}:${goal.x}:${goal.y}`;
+    if (key === r.lastGoal && ticks % 1200 !== 0) return;
+    r.lastGoal = key; r.checks++;
+    if (!canReach(goal)) r.badGoal.push(`${Math.round(ticks / 60)}s ${g.room.id}→${goal.room}`);
+    // the doorway it heads for: never behind a shut door (wayToGoal skips those), and never the goal itself through
+    // a wall when the goal is in another room
+    const way = g.wayToGoal();
+    if (way && goal.room !== g.room.id && way.x === goal.x && way.y === goal.y) { r.badWay++; r.badWays = [...(r.badWays ?? []), `${Math.round(ticks / 60)}s ${g.room.id}→${goal.room} [${g.save.abilities.join(',')}] water ${JSON.stringify(g.save.water)}`]; }
+  };
+  r.saveLoad = () => {
+    const loaded = new BellspireGame(parseSave(JSON.stringify(g.snapshot())), { assist: true }, 1);
+    r.saveLoadN = (r.saveLoadN ?? 0) + 1;
+    const a = [g.sealsOpen(), g.doorOpen(U_DOOR), g.nextGoal()?.room ?? null, g.wispOn()];
+    const b = [loaded.sealsOpen(), loaded.doorOpen(U_DOOR), loaded.nextGoal()?.room ?? null, loaded.wispOn()];
+    if (JSON.stringify(a) !== JSON.stringify(b)) r.saveLoadBad.push(`${JSON.stringify(a)} vs ${JSON.stringify(b)}`);
+  };
+  return r;
+}
+
 export function routeBot(seed, { maxMinutes = 120, log = false } = {}) {
   const g = new BellspireGame(null, { assist: true }, seed);
+  const ref = referee(g);
   const graphs = new Map();
   const fails = new Map();
   const graph = () => { const st = navState(g); const k = stateKey(st); if (!graphs.has(k)) graphs.set(k, new Graph(st)); return graphs.get(k); };
@@ -193,6 +242,7 @@ export function routeBot(seed, { maxMinutes = 120, log = false } = {}) {
     const out = { ...inp };
     if (out.jump && prev.jump && !inp.__hold) out.jump = inp.jump;
     g.step(out); prev = out; ticks++;
+    ref.tick(ticks);
     for (const e of g.drainEvents()) if (e.k === 'item' && log) console.log(`  [${Math.round(ticks / 60)}s] ${e.text}`);
   };
   const idle = (n) => { for (let i = 0; i < n; i++) step({ ...NO }); };
@@ -352,9 +402,29 @@ export function routeBot(seed, { maxMinutes = 120, log = false } = {}) {
       idle(30);
     } else idle(20);
     timeline.push({ what: o.name, at: Math.round(ticks / 60), level: g.save.heroes.dora.level });
+    ref.saveLoad();
+    if (o.name === 'meet Ukumari') {
+      // an old save from before the seals: Ukumari opened the door with the hydra skipped. Loading locks it again,
+      // and the wisp leads to the hydra, which can be reached
+      const old = parseSave(JSON.stringify(g.snapshot()));
+      old.flags = old.flags.filter((f) => f !== 'boss:hydra');
+      const og = new BellspireGame(old, { assist: true }, 2);
+      ref.oldSave = { relocked: !og.flag('keeper') && !og.doorOpen(U_DOOR), wisp: og.nextGoal()?.room ?? null };
+    }
     if (!o.done(g)) return { ok: false, at: o.name, ticks, room: g.room.id, timeline };
   }
-  return { ok: g.flag('boss:mother'), ticks, timeline, completion: g.completion() };
+  // after the ending: Keep exploring, find what's left, and the epilogue plays once
+  const post = parseSave(JSON.stringify(g.snapshot()));
+  post.flags = post.flags.filter((f) => f !== 'ending');
+  const pg = new BellspireGame(post, { assist: true }, 3);
+  const pct0 = pg.completion().pct;
+  let epi = 0, early = 0;
+  for (let i = 0; i < 60; i++) { pg.step({ ...NO }); for (const e of pg.drainEvents()) if (e.k === 'ending') early++; }
+  pg.save.seen = []; for (const rm of ROOMS) for (let y = 0; y < rm.h; y++) for (let x = 0; x < rm.w; x++) pg.save.seen.push(`${rm.gx + x},${rm.gy + y}`);
+  for (const info of INFO.values()) for (const t of info.things) if (t.ch === 'C') pg.setFlag(`chest:${info.room.id}:${t.i}`);
+  for (let i = 0; i < 10; i++) pg.setFlag(`mural:${i}`);
+  for (let i = 0; i < 600; i++) { pg.step({ ...NO, jump: i % 2 === 0 }); for (const e of pg.drainEvents()) if (e.k === 'ending' && e.full) epi++; }
+  return { ok: g.flag('boss:mother'), ticks, timeline, completion: g.completion(), ref, epilogue: { pct0, early: pct0 < 100 ? early : 0, fired: epi } };
 }
 
 // ─── run ──────────────────────────────────────────────────────────────────
@@ -384,12 +454,23 @@ void TILE; void HERO_W; void ROOMS; void INFO; void ABILITY_ORDER; void roomById
 console.log(`bellspire bots: ${checks} boss checks passed`);
 }
 function runRoute() {
-  const seeds = QUICK ? [1] : [1, 2, 3];
+  const arg = process.argv.find((a) => a.startsWith('--route-seeds='))?.slice(14);
+  const seeds = arg ? arg.split(',').map(Number) : QUICK ? [1] : [1, 2, 3];
   for (const seed of seeds) {
     const r = routeBot(seed, { log: VERBOSE });
     if (!r.ok && VERBOSE) console.log(r);
     console.log(`route bot seed ${seed}: ${r.ok ? 'finished' : `stuck at "${r.at}" in ${r.room}`} after ${Math.round(r.ticks / 3600)} min (${r.timeline.map((t) => `${t.what} ${Math.round(t.at / 60)}m L${t.level}`).join(', ')})`);
     assert.ok(r.ok, `the route bot finishes the game (seed ${seed})`);
+    const f = r.ref, led = f.ledBy.dora + f.ledBy.enzo;
+    console.log(`  referee: ${f.checks} wisp goals checked, ${f.badGoal.length} out of reach, ${f.badWay} through a wall; throne open early ${f.throne} ticks; ${f.saveLoadN} save/loads, ${f.saveLoadBad.length} changed; old save relocked ${f.oldSave?.relocked}, wisp to ${f.oldSave?.wisp}; Dora led ${Math.round((f.ledBy.dora / led) * 100)}%, Enzo ${Math.round((f.ledBy.enzo / led) * 100)}%; ending at ${r.completion.pct}%, epilogue fired ${r.epilogue.fired}x after finding the rest (early ${r.epilogue.early})`);
+    assert.deepEqual(f.badGoal, [], 'the wisp only ever points at something the heroes can reach');
+    assert.equal(f.badWay, 0, `the wisp never heads through a wall (${f.badWays})`);
+    assert.equal(f.throne, 0, 'the throne never opens before all four seals');
+    assert.deepEqual(f.saveLoadBad, [], 'saving and loading keeps the seals and the wisp');
+    assert.ok(f.oldSave?.relocked && f.oldSave.wisp === 'lagoon', 'an old save with the hydra skipped locks the throne again and the wisp leads to the hydra');
+    assert.ok(f.ledBy.dora > 0 && f.ledBy.enzo > 0, 'both heroes lead');
+    assert.equal(r.epilogue.fired, 1, 'after the ending, finding the rest plays the epilogue once');
+    assert.equal(r.epilogue.early, 0, 'and not before');
   }
 }
 if (process.argv[1]?.endsWith('bellspire-bot.mjs')) { if (!process.argv.includes('--route-only')) runBosses(); if (!ONLY) runRoute(); }

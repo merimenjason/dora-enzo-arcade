@@ -190,7 +190,7 @@ export class BellspireScene {
    *  the coat, blade, staff and lantern recoloured (made once per combination). */
   dressed(hero: HeroId, weapon: string, coat: string): string {
     const key = `${hero}@${weapon}@${coat}`;
-    if (weapon === START_LOOK[hero].weapon && coat === START_LOOK[hero].coat && !COAT_LOOK[coat]?.shell) return hero;
+    if (weapon === START_LOOK[hero].weapon && coat === START_LOOK[hero].coat && !COAT_LOOK[coat]?.shell && !WEAPON_LOOK[weapon]?.blade) return hero;
     if (this.img.has(key)) return key;
     const im = this.img.get(hero), pm = this.img.get(`${hero}-parts`);
     if (!im || !pm || typeof document === 'undefined') return hero;

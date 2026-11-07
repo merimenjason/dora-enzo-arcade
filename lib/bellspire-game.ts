@@ -387,7 +387,7 @@ export class BellspireGame {
     if (this.save.heroes[this.lead].down) this.lead = other(this.lead);
     // an old save where Ukumari opened the throne before every guardian was calm: the seals hold it shut again
     // (unless the story is already over)
-    if (this.flag('keeper') && !this.flag('ending') && this.restless().length) this.save.flags = this.save.flags.filter((f) => f !== 'keeper');
+    if (this.flag('keeper') && !this.flag('ending') && !this.flag('boss:mother') && this.restless().length) this.save.flags = this.save.flags.filter((f) => f !== 'keeper');
     if (this.save.heroes.dora.down && this.save.heroes.enzo.down) { this.save.heroes.dora.down = false; this.save.heroes.dora.hp = 1; this.lead = 'dora'; }
     const start = this.shrineSpot(this.save.shrine) ?? this.startSpot();
     this.room = roomOfPoint(start.x, start.y - 4)!;
@@ -593,6 +593,7 @@ export class BellspireGame {
     const any = inp.left || inp.right || inp.up || inp.down || inp.jump || inp.attack || inp.dash || inp.cast || inp.tag;
     this.idleT = any ? 0 : this.idleT + 1;
     this.lostT++;
+    if (this.tick % 15 === 0) this.checkEpilogue();
 
     // water and floats
     this.updateWater();
@@ -1594,8 +1595,29 @@ export class BellspireGame {
     const done = SCRIPTS[`${b.id}Done`] ?? [];
     if (b.id === 'mother') {
       this.save.water.throne = 1;
-      this.say(done, () => { this.ended = true; this.setFlag('ending'); this.emit({ k: 'ending', full: this.completion().pct >= 100 }); this.emit({ k: 'save' }); });
+      this.say(done, () => this.finish());
     } else this.say(done, () => this.emit({ k: 'save' }));
+  }
+
+  /** The story's end: the ending screen, with the epilogue when everything has been found (once earned, the
+   *  'epilogue' flag keeps it). Saved first. */
+  finish() {
+    const full = this.completion().pct >= 100;
+    this.ended = true; this.setFlag('ending');
+    if (full) this.setFlag('epilogue');
+    this.emit({ k: 'save' });
+    this.emit({ k: 'ending', full });
+  }
+  /** After the Lake Mother, the moment the last thing is found: a word from the heroes, then the epilogue. Once. */
+  checkEpilogue() {
+    if (this.ended || this.dialog || this.boss || !this.flag('boss:mother') || this.flag('epilogue')) return;
+    if (this.completion().pct < 100) return;
+    this.setFlag('epilogue');
+    this.emit({ k: 'save' });
+    this.say([
+      { who: 'dora', text: 'That’s everything, Enzo. Every chest, every mural, every bell.' },
+      { who: 'enzo', text: 'Then let’s go up to the shore. I think someone’s planned a picnic.' },
+    ], () => this.finish());
   }
 
   bossFrog(b: Boss) {
@@ -1889,7 +1911,10 @@ export class BellspireGame {
     const goal = this.nextGoal();
     if (!goal) return null;
     if (goal.room === this.room.id) return goal;
-    const shut = (l: Link) => [l.from, l.to].some((id) => INFO.get(id)!.doors.some((d) => !this.doorOpen(d) && l.c >= d.c - 2 && l.c <= d.c + d.w + 1 && l.r >= d.r - 1 && l.r <= d.r + d.h));
+    // a door the heroes can open with what they have (walk into a dash door with the dash, raise the lantern at a
+    // hatch, ring a bell seal) is a way through; only doors they can't open yet are shut
+    const canOpen = (d: Group) => this.doorOpen(d) || ({ d: 'dash', j: 'double', k: 'wallkick', l: 'lantern', c: 'chime' } as Record<string, Ability>)[d.ch] !== undefined && this.has(({ d: 'dash', j: 'double', k: 'wallkick', l: 'lantern', c: 'chime' } as Record<string, Ability>)[d.ch]);
+    const shut = (l: Link) => [l.from, l.to].some((id) => INFO.get(id)!.doors.some((d) => !canOpen(d) && l.c >= d.c - 2 && l.c <= d.c + d.w + 1 && l.r >= d.r - 1 && l.r <= d.r + d.h));
     const prev = new Map<string, Link | null>([[this.room.id, null]]);
     const queue = [this.room.id];
     while (queue.length && !prev.has(goal.room)) {
@@ -1905,7 +1930,7 @@ export class BellspireGame {
     return { x: mx * TILE + 8, y: my * TILE + 4 };
   }
   /** Is the guiding wisp shown: the helping hand on (never in Strict), its own setting not off, and a goal left. */
-  wispOn() { return this.settings.assist && !this.settings.strict && this.settings.wisp !== false && !this.flag('ending'); }
+  wispOn() { return this.settings.assist && !this.settings.strict && this.settings.wisp !== false && !this.flag('ending') && !this.flag('boss:mother'); }
   /** The guiding wisp: while the helping hand is on it is always there, a little ahead of the lead along the way to
    *  the next goal (over the goal itself once it is in this room). It keeps clear of the heroes' faces, drifts up to
    *  a corner in a guardian's arena, and never touches the game: it only moves. */

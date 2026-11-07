@@ -337,6 +337,17 @@ try {
     const after = await swingAt();
     assert.ok(after > before, `the Reed-Cutter hits harder (${before} → ${after})`);
     ok('closing the menu: a toast and a shine, Dora is drawn in the Reed-Cutter and the Snail-Shell Coat, and hits harder');
+    // the lantern never takes a coat's colour, and every weapon stands off every coat
+    const leaks = await page.evaluate(() => window.__bellspire().lanternCheck());
+    assert.ok(Object.values(leaks).every((n) => n === 0), `no lantern pixel changes with the coat (${JSON.stringify(leaks)})`);
+    // the check isn't blind: label one frame's lantern as coat (the leak it is there to catch) and it must see it
+    const control = await page.evaluate(() => window.__bellspire().lanternCheckControl(8));
+    assert.ok(control > 10, `the lantern check catches a lantern labelled coat (${control} pixels)`);
+    // contrast in the worst frame of all 80, so a pose can't hide behind the idle frames
+    const cmp = await page.evaluate(() => window.__bellspire().gearContrast());
+    const weak = Object.entries(cmp).filter(([, v]) => v.dE < 30 || v.dL < 15);
+    assert.deepEqual(weak, [], 'every weapon reads against every coat in every frame (ΔE ≥ 30, ΔL ≥ 15)');
+    ok(`Enzo's lantern keeps its colour in every coat in every frame (${Object.keys(leaks).length} pairs; the check sees a planted leak of ${control} pixels); every weapon and coat pair has ΔE ≥ 30 and ΔL ≥ 15 in its worst frame (lowest ΔE ${Math.min(...Object.values(cmp).map((v) => v.dE))}, ΔL ${Math.min(...Object.values(cmp).map((v) => v.dL))})`);
     // back into the starting gear for the rest of the run
     await game(page, '(g.equip("dora", "weapon", "bronze-sword"), g.equip("dora", "coat", "teal-coat"), true)');
   }
@@ -589,6 +600,23 @@ try {
   assert.equal(await scr(page), 'ending');
   assert.ok(await page.getByText('The bells ring again').isVisible());
   ok('calming the Lake Mother shows the ending');
+  // under 100%: the ending says how the epilogue comes; keep exploring, find the rest, and it plays then
+  assert.match(await page.locator('.bs-end-panel').innerText(), /the epilogue plays the moment you do/);
+  await page.getByRole('button', { name: 'Keep exploring' }).click();
+  await until(page, () => window.__bellspire().screen === 'game' && window.__bellspire().state);
+  await dbg(page, 'skipDialog');
+  assert.equal(await page.evaluate(() => window.__bellspire().findAll()), 100);
+  for (let i = 0; i < 80 && (await scr(page)) !== 'ending'; i++) { await page.keyboard.press('KeyZ'); await page.waitForTimeout(120); }
+  assert.equal(await scr(page), 'ending');
+  assert.ok(await page.locator('.bs-end-full').count(), 'the epilogue picture');
+  assert.match(await page.locator('.bs-end-panel').innerText(), /Everything found/);
+  await page.screenshot({ path: '.shots/bellspire/34-epilogue.png' });
+  await page.getByRole('button', { name: 'Title' }).click();
+  await until(page, () => window.__bellspire().screen === 'title');
+  await page.getByRole('button', { name: 'See the epilogue' }).click();
+  await until(page, () => window.__bellspire().screen === 'ending');
+  assert.ok(await page.locator('.bs-end-full').count(), 'the epilogue again from the title');
+  ok('after the ending, finding the rest plays the epilogue; the title can show it again');
   await page.getByRole('button', { name: 'Title' }).click();
   await until(page, () => window.__bellspire().screen === 'title');
   assert.ok(await page.getByRole('button', { name: 'Continue' }).isVisible());

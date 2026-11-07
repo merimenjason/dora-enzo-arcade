@@ -489,6 +489,13 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
     }
   }
   eq(crossings, 0, 'the wisp never flies through a wall');
+  // a door the heroes can already open (the dash door, with the dash) is a way through for the wisp, not a wall
+  const dd = new BellspireGame(fresh(['dash']), {}, 33); dd.teleport('landing', 15, 14); quiet(dd);
+  const dashDoor = INFO.get('landing').doors.concat(INFO.get('dgate').doors).find((d) => d.ch === 'd');
+  ok(dashDoor && !dd.doorOpen(dashDoor), 'the dash door is still shut');
+  dd.nextGoal = () => ({ room: 'dgate', x: roomRectOf(ROOMS.find((r) => r.id === 'dgate')).x + 200, y: roomRectOf(ROOMS.find((r) => r.id === 'dgate')).y + 200 });
+  const way = dd.wayToGoal();
+  ok(way && way.x !== roomRectOf(ROOMS.find((r) => r.id === 'dgate')).x + 200, 'the wisp heads for the dash door the heroes can open, not through the wall');
   const off = new BellspireGame(fresh(), { assist: false }, 31);
   let ever = false; for (let i = 0; i < 7 * 60; i++) { off.step(I()); quiet(off); if (off.wisp.on) ever = true; }
   ok(!ever, 'with the helping hand off there is never a wisp');
@@ -925,6 +932,48 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
   ok(!new BellspireGame(old).flag('keeper'), 'an old save with a guardian skipped has the throne locked again');
   const done = freshSave(); done.flags.push('keeper', 'boss:frog', 'ending');
   ok(new BellspireGame(done).flag('keeper'), 'but a finished story is left alone');
+}
+
+// ─── after the Lake Mother: the epilogue the moment everything is found ────
+{
+  // a save that has seen and found everything except one chest, with the Lake Mother calm and the ending stripped
+  // ("Keep exploring")
+  const allDone = () => {
+    const sv = fresh(ABILITY_ORDER);
+    sv.seen = []; for (const r of ROOMS) for (let y = 0; y < r.h; y++) for (let x = 0; x < r.w; x++) sv.seen.push(`${r.gx + x},${r.gy + y}`);
+    for (const info of INFO.values()) for (const t of info.things) if (t.ch === 'C') sv.flags.push(`chest:${info.room.id}:${t.i}`);
+    for (let i = 0; i < 10; i++) sv.flags.push(`mural:${i}`);
+    for (const b of Object.keys(BOSSES)) sv.flags.push(`boss:${b}`);
+    sv.flags.push('keeper');
+    return sv;
+  };
+  const sv = allDone(); const lastChest = sv.flags.find((f) => f.startsWith('chest:')); sv.flags = sv.flags.filter((f) => f !== lastChest);
+  const g = new BellspireGame(sv, {}, 90); quiet(g);
+  ok(g.completion().pct < 100, `one chest short: ${g.completion().pct}%`);
+  const ends = []; const drain = () => { for (const e of g.drainEvents()) if (e.k === 'ending') ends.push(e); };
+  for (let i = 0; i < 120; i++) { g.step(I()); drain(); }
+  eq(ends.length, 0, 'under 100% after the Lake Mother: no ending yet');
+  ok(!g.wisp.on && !g.wispOn(), 'and after the Lake Mother the wisp rests');
+  g.setFlag(lastChest);
+  for (let i = 0; i < 400; i++) { g.step(I({ jump: i % 2 === 0 })); drain(); }
+  eq(ends.map((e) => e.full), [true], 'the last thing found: the ending with the epilogue, once');
+  ok(g.flag('epilogue') && g.flag('ending'), 'and the epilogue is remembered');
+  // keep exploring again: it never fires twice
+  const again = g.snapshot(); again.flags = again.flags.filter((f) => f !== 'ending');
+  const g2 = new BellspireGame(again, {}, 91); quiet(g2); let twice = 0;
+  for (let i = 0; i < 300; i++) { g2.step(I({ jump: i % 2 === 0 })); for (const e of g2.drainEvents()) if (e.k === 'ending') twice++; }
+  eq(twice, 0, 'the epilogue plays only once');
+  // calming the Lake Mother with everything found: the epilogue straight away
+  const full = allDone(); full.flags = full.flags.filter((f) => f !== 'boss:mother');
+  const g3 = new BellspireGame(full, {}, 92); g3.setFlag('boss:mother'); g3.drainEvents(); g3.finish();
+  ok(g3.drainEvents().some((e) => e.k === 'ending' && e.full) && g3.flag('epilogue'), 'calming the Lake Mother at 100% plays the epilogue');
+  // the seal re-lock leaves a finished story alone even after Keep exploring
+  const post = freshSave(); post.flags.push('keeper', 'boss:mother', 'boss:frog');
+  ok(new BellspireGame(post).flag('keeper'), 'after the Lake Mother (ending stripped by Keep exploring) the throne stays open');
+  // the Lake Mother doesn't come back
+  const room = ROOMS.find((r) => r.boss === 'mother');
+  const g4 = new BellspireGame(allDone(), {}, 93); g4.teleport(room.id, 6, 12); quiet(g4); run(g4, 60);
+  ok(!g4.boss, 'revisiting the throne after the ending: no Lake Mother, the arena is quiet');
 }
 
 // ─── shrine travel ────────────────────────────────────────────────────────

@@ -130,9 +130,27 @@ def _shrink(m, r):
     return ~_grow(~m, r)
 
 
-def _big_parts(m, min_cells, step=4):
-    """keep the connected pieces of a mask that are at least `min_cells` cells big (labelled at 1/step size)"""
+def _flood(m, y0, x0):
+    """the connected piece of mask `m` holding (y0, x0)"""
+    h, w = m.shape
+    out = np.zeros_like(m)
+    out[y0, x0] = True
+    stack = [(y0, x0)]
+    while stack:
+        y, x = stack.pop()
+        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            yy, xx = y + dy, x + dx
+            if 0 <= yy < h and 0 <= xx < w and m[yy, xx] and not out[yy, xx]:
+                out[yy, xx] = True
+                stack.append((yy, xx))
+    return out
+
+
+def _big_parts(m, min_cells, step=4, away=None, share=0.8):
+    """keep the connected pieces of a mask that are at least `min_cells` cells big (labelled at 1/step size); with
+    `away`, also drop the pieces that lie mostly (`share` of their cells) inside it"""
     q = m[::step, ::step]
+    aq = away[::step, ::step] if away is not None else None
     h, w = q.shape
     lab = np.zeros((h, w), np.int32)
     keep = np.zeros((h, w), bool)
@@ -152,7 +170,7 @@ def _big_parts(m, min_cells, step=4):
                     if 0 <= yy < h and 0 <= xx < w and q[yy, xx] and not lab[yy, xx]:
                         lab[yy, xx] = n
                         stack.append((yy, xx))
-            if len(cells) >= min_cells:
+            if len(cells) >= min_cells and (aq is None or sum(aq[y, x] for y, x in cells) < share * len(cells)):
                 for y, x in cells:
                     keep[y, x] = True
     big = np.repeat(np.repeat(keep, step, 0), step, 1)[:m.shape[0], :m.shape[1]]
@@ -230,6 +248,190 @@ def enzo_parts(px):
     lamp |= al & ~ink & ~coat & _grow(lamp, 1) & (sat > 0.25) & ((h < 62) | (h > 340))
     staff = rust & ~coat & ~lamp
     out = np.zeros(rust.shape, np.uint8)
+    out[coat] = PART_COAT
+    out[staff] = PART_BLADE
+    out[lamp] = PART_LAMP
+    return out
+
+
+def enzo_zones(raw):
+    """Where Enzo's lantern and staff are, read from the painting before the colour pass (which pushes the staff's wood
+    and the coat's rust to one hue). The lantern is found by its glow (the brightest warm pixels) and taken as the box
+    round it, grown by a lantern's frame and cap; when it isn't lit, by the biggest piece of brass. The staff is every
+    long piece of wood or brass outside the lantern (some sheets paint the shaft brass; the eyes and the coat's brass
+    buttons are too small to count), and the coat is its painted red grown to take in the trim. Returns 3 for the
+    lantern zone, 2 for the staff zone and 1 for the coat zone, at full size."""
+    a = np.asarray(raw).astype(np.float32)
+    rgb, al = a[..., :3], a[..., 3] > 60
+    h, sat, v = _hsv(rgb)
+    H, W = al.shape
+    k = H / 286  # the painted size of a frame
+    brass = al & (h >= 28) & (h < 70) & (sat > 0.3) & (v > 0.3)
+    glow = al & (h >= 30) & (h < 62) & (sat > 0.35) & (v > 0.82)
+    red = al & ((h >= 330) | (h < 8)) & (sat > 0.45)
+    mx, my, reach = int(7 * k), int(12 * k), int(20 * k)
+
+    def boxes(seed):
+        """the lantern's box: the glass is the most solid bright piece not sitting on the coat (the hook's highlight
+        is a long thin curve, a buckle sits on red); the frame's and the cap's bright pieces close round it join it,
+        and the box is grown by the frame and the cap. Returns a box per light"""
+        lab = np.zeros(seed.shape, np.int32); n = 0; found = []
+        for y0, x0 in zip(*np.nonzero(seed)):
+            if lab[y0, x0]:
+                continue
+            n += 1; lab[y0, x0] = n; stack = [(y0, x0)]; pts = []
+            while stack:
+                y, x = stack.pop(); pts.append((y, x))
+                for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    yy, xx = y + dy, x + dx
+                    if 0 <= yy < H and 0 <= xx < W and seed[yy, xx] and not lab[yy, xx]:
+                        lab[yy, xx] = n; stack.append((yy, xx))
+            ys = np.array([p[0] for p in pts]); xs = np.array([p[1] for p in pts])
+            if len(pts) >= 6:
+                found.append((len(pts), len(pts) / ((np.ptp(ys) + 1) * (np.ptp(xs) + 1)), ys.min(), ys.max() + 1, xs.min(), xs.max() + 1))
+        def on_coat(b):
+            y0, y1, x0, x1 = max(0, b[2] - my), b[3] + my, max(0, b[4] - mx), b[5] + mx
+            return red[y0:y1, x0:x1].sum() > 0.2 * max(1, al[y0:y1, x0:x1].sum())
+        cands = [f for f in found if not on_coat(f)]
+        if not cands:
+            return []
+        cands.sort(key=lambda f: -f[0] * f[1])
+        top = cands[0][0] * cands[0][1]
+        out = []
+        for core in cands:
+            # another solid bright piece nearly as big is a second light (a raised spell, a coin held up beside the
+            # lantern); a long thin one (fill under 0.45) is a hook's highlight
+            if core is not cands[0] and (core[1] < 0.45 or core[0] * core[1] < 0.12 * top):
+                continue
+            if any(b[0] <= core[2] and core[3] <= b[1] and b[2] <= core[4] and core[5] <= b[3] for b in out):
+                continue
+            y0, y1, x0, x1 = core[2], core[3], core[4], core[5]
+            for f in found:
+                if f[2] >= core[2] - reach and f[3] <= core[3] + reach and f[4] >= core[4] - reach and f[5] <= core[5] + reach:
+                    y0, y1, x0, x1 = min(y0, f[2]), max(y1, f[3]), min(x0, f[4]), max(x1, f[5])
+            out.append((max(0, y0 - my), y1 + my, max(0, x0 - mx), x1 + mx))
+        return out
+
+    bs = boxes(_big_parts(glow, 3, step=2)) or boxes(_big_parts(_shrink(_grow(brass, 3), 3), 20))
+    lamp = np.zeros_like(al)
+    for y0, y1, x0, x1 in bs:
+        lamp[y0:y1, x0:x1] = True
+    lamp &= al
+    warm = al & (((h >= 6) & (h < 30) & (sat > 0.3) & (v > 0.12)) | brass) & ~lamp
+    # (a staff is thin, so anything warm that is fat, like a lit coat's folds, is not staff)
+    fat = _grow(_shrink(_shrink(_grow(warm, 3), 3), int(9 * k)), int(11 * k))
+    pieces = _big_parts(warm & ~fat, 24)
+    if lamp.any():
+        # the staff is the piece that carries the lantern (the coat's orange trim never touches it), and, past a
+        # paw that splits it, whatever warm lies on the line of its shaft
+        near = _grow(lamp, int(10 * k))
+        held = np.zeros_like(pieces)
+        for y0, x0 in zip(*np.nonzero(pieces & near)):
+            if held[y0, x0]:
+                continue
+            piece = _flood(pieces, y0, x0)
+            py, px = np.nonzero(piece)
+            # (a staff is long; a cuff's trim by a coin held up is not)
+            if max(np.ptp(py), np.ptp(px)) >= 50 * k:
+                held |= piece
+        ys, xs = np.nonzero(held)
+        if len(ys) >= 40:
+            # the shaft: the half of the piece farthest from the lantern (the other half is the hook)
+            ly, lx = np.nonzero(lamp)
+            far = np.argsort(np.hypot(ys - ly.mean(), xs - lx.mean()))[len(ys) // 2:]
+            ys, xs = ys[far], xs[far]
+        line = np.zeros_like(held)
+        if len(ys) >= 20:
+            cy, cx = ys.mean(), xs.mean()
+            _, _, vt = np.linalg.svd(np.stack([ys - cy, xs - cx], 1), full_matrices=False)
+            dy, dx = vt[0]
+            yy, xx = np.mgrid[0:H, 0:W]
+            line = np.abs((yy - cy) * dx - (xx - cx) * dy) < 6 * k
+        # (on the line, a shaft in shadow can be as red as the coat; the coat's own red is broad, the shaft thin)
+        thin_red = red & ~_grow(_shrink(_shrink(_grow(red, 3), 3), int(9 * k)), int(11 * k))
+        cand = (warm | thin_red) & line & _grow(held, int(120 * k)) & ~held
+        more = np.zeros_like(cand)
+        for y0, x0 in zip(*np.nonzero(cand)):
+            if more[y0, x0]:
+                continue
+            piece = _flood(cand, y0, x0)
+            py, px = np.nonzero(piece)
+            # (a run of shaft is long; an eye or a mouth the line happens to cross is not)
+            if max(np.ptp(py), np.ptp(px)) >= 35 * k:
+                more |= piece
+            cand &= ~piece
+        staff = _grow(held | more, 2) & al & ~lamp
+    else:
+        staff = _grow(pieces, 2) & al & ~lamp & ~fat
+    # the coat: its painted red, grown a little to take in its trim (the only place the coat can be)
+    coat = _grow(red & (v < 0.85), int(4 * k)) & al & ~lamp
+    out = np.zeros(al.shape, np.uint8)
+    out[coat] = PART_COAT
+    out[staff] = PART_BLADE
+    out[lamp] = PART_LAMP
+    return out
+
+
+def enzo_merge(px, shape, zones):
+    """Enzo's final part map: the shape labels (coat, staff, lantern) checked against the painted zones, so the
+    lantern is never coat or staff, and the staff is only ever where the painting had wood (never an ear's edge)."""
+    a = np.asarray(px)
+    lampz = zones == PART_LAMP
+    lamp = (lampz | ((shape == PART_LAMP) & _grow(lampz, 1))) & (a[..., 3] > 0)
+    ink = np.all(a[..., :3] < 45, axis=-1)
+    # the coat only where the painting had the coat's red nearby: a lantern or a staff is never coat
+    coat = (shape == PART_COAT) & ~lamp & _grow((zones == PART_COAT) | (zones == PART_BLADE) & _grow(zones == PART_COAT, 1), 1)
+    # the staff wherever the painting had wood and the shapes found no coat (thin lines of rust next to the wood count)
+    staff = ((zones == PART_BLADE) | ((shape == PART_BLADE) & _grow(zones == PART_BLADE, 1))) & (a[..., 3] > 0) & ~ink & ~lamp & ~coat
+    # where a pose paints the shaft as dark and red as the coat, the painting can't tell them apart, but the shapes
+    # can: a long thin line of the shapes' staff that holds the lantern, or runs on 16 pixels or more (an ear's rim
+    # is shorter), is the staff
+    sb = (shape == PART_BLADE) & ~staff & ~lamp & ~coat & ~ink & (a[..., 3] > 0)
+    seen = np.zeros_like(sb)
+    for y0, x0 in zip(*np.nonzero(sb)):
+        if seen[y0, x0]:
+            continue
+        piece = _flood(sb | staff, y0, x0) & sb
+        seen |= piece
+        py, px = np.nonzero(piece)
+        if (piece & _grow(lamp | staff, 1)).any() or max(np.ptp(py), np.ptp(px)) >= 16:
+            staff |= piece
+    # cloth the shapes missed (a collar, a turned-back lapel): unlabelled pixels next to the coat that the painting had
+    # as the coat's red and that are still a deep rust in the sprite
+    rgb = a[..., :3].astype(np.int16)
+    rust = (rgb[..., 0] > rgb[..., 1] + 40) & (rgb[..., 0] > rgb[..., 2] + 40) & (rgb[..., 0] < 235) & (rgb[..., 1] < 150)
+    # (spreading out from the coat a pixel at a time, so an ear's rim far from it never joins)
+    # (the shapes often call a collar staff, it being long, thin and rust, and a hem far from the lantern lantern)
+    cloth = (zones == PART_COAT) & rust & ~ink & ~lamp & ~staff & ~coat & (a[..., 3] > 0)
+    for _ in range(16):
+        coat |= cloth & _grow(coat, 1)
+    # a coat pixel touching the lantern belongs to the lantern's rim unless it sits well inside the coat
+    n = np.zeros(coat.shape, np.int16)
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            if dy or dx:
+                n += np.roll(np.roll(coat, dy, 0), dx, 1)
+    rim = coat & _grow(lamp, 1) & (n < 5)
+    coat &= ~rim
+    lamp |= rim
+    # a little island of "coat" touching the lantern is the lantern's own dark band, not the coat
+    H, W = coat.shape
+    seen = np.zeros_like(coat)
+    for y0, x0 in zip(*np.nonzero(coat)):
+        if seen[y0, x0]:
+            continue
+        seen[y0, x0] = True; stack = [(y0, x0)]; pts = []
+        while stack:
+            y, x = stack.pop(); pts.append((y, x))
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    yy, xx = y + dy, x + dx
+                    if 0 <= yy < H and 0 <= xx < W and coat[yy, xx] and not seen[yy, xx]:
+                        seen[yy, xx] = True; stack.append((yy, xx))
+        if len(pts) < 16 and any(lamp[max(0, y - 1):y + 2, max(0, x - 1):x + 2].any() for y, x in pts):
+            for y, x in pts:
+                coat[y, x] = False; lamp[y, x] = True
+    out = np.zeros(shape.shape, np.uint8)
     out[coat] = PART_COAT
     out[staff] = PART_BLADE
     out[lamp] = PART_LAMP
@@ -435,9 +637,11 @@ def foot_x(px):
     return float(xs.mean()) if len(xs) else px.width / 2
 
 
-def strip(name, frames, cw, ch, anchor='foot', note='', parts=None):
+def strip(name, frames, cw, ch, anchor='foot', note='', parts=None, lamps=None):
     """pack frames into one strip of (cw, ch) cells; each frame's foot sits at the cell's bottom middle. With `parts`
-    (a part map per frame), also write <name>-parts.webp: the part number times 80 in red, opaque where there is one"""
+    (a part map per frame), also write <name>-parts.webp: the part number times 80 in red, opaque where there is one.
+    With `lamps` (a mask per frame of where the painting had the lantern), that mask goes in its green, for the
+    browser suite's lantern check, which so never leans on the part labels"""
     cw = max(cw, *(f.width for f in frames))
     ch = max(ch, *(f.height for f in frames))
     out = Image.new('RGBA', (cw * len(frames), ch))
@@ -456,7 +660,9 @@ def strip(name, frames, cw, ch, anchor='foot', note='', parts=None):
             pm[np.all(np.asarray(f)[..., :3] == INK, axis=-1)] = 0
             sl = pout[y:y + f.height, i * cw + x:i * cw + x + f.width]
             sl[..., 0] = pm * 80
-            sl[..., 3] = np.where(pm > 0, 255, 0)
+            lm = lamps[i] & (np.asarray(f)[..., 3] > 0) if lamps is not None else np.zeros(pm.shape, bool)
+            sl[..., 1] = np.where(lm, 255, 0)
+            sl[..., 3] = np.where((pm > 0) | lm, 255, 0)
     out.save(OUT / f'{name}.webp', lossless=True, method=6)
     if pout is not None:
         Image.fromarray(pout).save(OUT / f'{name}-parts.webp', lossless=True, method=6)
@@ -503,15 +709,19 @@ for hero in ('dora', 'enzo'):
     # treading). 8 each, in the order of the HERO_FRAMES comment in lib/bellspire-anim.ts
     # (the new sheets' long staffs and swords can reach into the next cell, so stray pieces at a cell's side go)
     figs = [bbox(drop_neighbours(c) if sh in 'ij' else c) for sh in 'abcdefghij' for c in cells(key(src(f'bs-{hero}-{sh}')), 4, 2)]
+    if hero == 'enzo':
+        # the same figures before the colour pass, for where the lantern and the staff are
+        raws = [bbox(drop_neighbours(c) if sh in 'ij' else c) for sh in 'abcdefghij' for c in cells(key(load(f'bs-{hero}-{sh}')), 4, 2)]
+        assert all(r.size == f.size for r, f in zip(raws, figs)), 'raw and coloured figures should crop alike'
     s = 38 / figs[0].height  # the idle pose stands 38 pixels tall; every sheet was painted at the same size
     PARTS.clear()
     if hero == 'dora':
         frames = [scaled(f, s, 20, parts=hero_parts(f, hero)) for f in figs]
         parts = [teal_trim(f, pm) for f, pm in zip(frames, PARTS)]
     else:
-        frames = [scaled(f, s, 20) for f in figs]
-        parts = [enzo_parts(f) for f in frames]
-    strip(hero, frames, 56, 44, parts=parts)
+        frames = [scaled(f, s, 20, parts=enzo_zones(r)) for f, r in zip(figs, raws)]
+        parts = [enzo_merge(f, enzo_parts(f), z) for f, z in zip(frames, PARTS)]
+    strip(hero, frames, 56, 44, parts=parts, lamps=[z == PART_LAMP for z in PARTS] if hero == 'enzo' else None)
 
 # ─── enemies: frame A on top, frame B below ───────────────────────────────
 FOE_H = {'frog': 20, 'moth': 15, 'eel': 18, 'reed': 30, 'condor': 30, 'imp': 19, 'shell': 30, 'vizcacha': 18,

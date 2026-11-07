@@ -17,6 +17,10 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Fixed
 
+- **The Sunken Bellspire**: after the ending, finding everything plays the epilogue the moment you reach 100%, and once it's earned the title screen has a **See the epilogue** button. The ending tells you this, and the pause map shows what's left.
+- **The Sunken Bellspire**: Enzo's staffs now stand out against every coat in every pose. The Oak Staff is ash-white with an amber lantern, the Bell Staff bright brass and the Star Lamp star-silver. Dora's Bronze Sword is polished brighter, so it shows on the Reedweave Coat.
+- **The Sunken Bellspire**: Enzo's lantern keeps its own colour in every coat, with no coat colour bleeding into it.
+- **The Sunken Bellspire**: the guiding wisp no longer points through walls at goals behind doors you can already open.
 - **Snowball Siege**: the hint line under the valley (Enzo's tips, "Scooping…") is dark ink on the snow again instead of pale grey that was hard to read.
 - **The Sunken Bellspire**: the partner following you now climbs ladders in the climbing pose too, instead of sliding up the ladder in a standing pose.
 - **The Sunken Bellspire**: the throne now needs all four area guardians calmed, shown as four bell seals on its door; before, the Reed Hydra and the Puma of the Murals could be skipped. Ukumari names any guardian still restless.

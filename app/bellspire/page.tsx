@@ -12,6 +12,7 @@ import {
 import { BellspireScene } from '@/lib/bellspire-scene';
 import { GUARDIANS, GUARDIAN_AREA } from '@/lib/bellspire-world';
 import { ART } from '@/lib/bellspire-art';
+import { dressStrip, lanternPixels, lanternChanged, weaponCoatContrast } from '@/lib/bellspire-gear-art';
 import { BellspireSound, type Track } from './sound';
 import './bellspire.css';
 
@@ -45,6 +46,11 @@ function loadSettings(): Settings {
   } catch { return DEFAULTS; }
 }
 function readSave(): Save | null { try { return parseSave(localStorage.getItem(SAVE_KEY)); } catch { return null; } }
+/** Has this save earned the epilogue: seen it, or the Lake Mother calm with everything found. */
+function epilogueEarned(s: Save | null) {
+  if (!s) return false;
+  return s.flags.includes('epilogue') || (s.flags.includes('boss:mother') && new BellspireGame(s).completion().pct >= 100);
+}
 
 function Icon({ i, size = 2, title }: { i: number; size?: number; title?: string }) {
   return <span className="bs-icon" title={title} style={{ width: 24 * size, height: 24 * size, backgroundSize: `${32 * 24 * size}px ${24 * size}px`, backgroundPosition: `${-i * 24 * size}px 0` }} />;
@@ -71,6 +77,7 @@ export default function BellspirePage() {
   const [settings, setSettings] = useState<Settings>(DEFAULTS);
   const settingsRef = useRef(settings);
   const [hasSave, setHasSave] = useState(false);
+  const [canEpilogue, setCanEpilogue] = useState(false);
   const [confirmNew, setConfirmNew] = useState(false);
   const [menu, setMenu] = useState<Tab | null>(null);
   const [shop, setShop] = useState(false);
@@ -118,7 +125,7 @@ export default function BellspirePage() {
   useEffect(() => {
     const s = loadSettings();
     setSettings(s);
-    setHasSave(!!readSave());
+    setHasSave(!!readSave()); setCanEpilogue(epilogueEarned(readSave()));
     setCoarse(window.matchMedia('(pointer: coarse)').matches);
     soundRef.current = new BellspireSound(s.sound, s.music);
     const scene = new BellspireScene();
@@ -355,6 +362,41 @@ export default function BellspirePage() {
         exits: (from?: string) => MAP_EXITS.filter((e) => !from || e.from === from).map((e) => ({ from: e.from, to: e.to, toArea: e.toArea, cross: e.cross, door: e.door?.ch ?? null, dx: e.dx, dy: e.dy })),
         drawnExits: (which: 'mini' | 'map') => DRAWN[which],
         exitLayer: (on: boolean) => { EXIT_LAYER = on; },
+        /** mark every room seen and every chest and mural found (for the epilogue test) */
+        findAll: () => { const gg = gameRef.current!; gg.save.seen = []; for (const r of ROOMS) for (let y = 0; y < r.h; y++) for (let x = 0; x < r.w; x++) gg.save.seen.push(`${r.gx + x},${r.gy + y}`); for (const info of INFO.values()) for (const t of info.things) if (t.ch === 'C') gg.setFlag(`chest:${info.room.id}:${t.i}`); MURALS.forEach((_, i) => gg.setFlag(`mural:${i}`)); for (const a of ABILITY_ORDER) if (!gg.save.abilities.includes(a)) gg.save.abilities.push(a); for (const b of Object.keys(BOSSES)) gg.setFlag(`boss:${b}`); return gg.completion().pct; },
+        /** for each hero, every weapon they can hold against every coat: how far apart they look (ΔE, ΔL) in the worst frame */
+        gearContrast: () => {
+          const sc = sceneRef.current!, pixels = (name: string) => { const im = sc.img.get(name)!, c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d')!; x.drawImage(im, 0, 0); return x.getImageData(0, 0, c.width, c.height).data; };
+          const out: Record<string, { dE: number; dL: number; frame: number }> = {};
+          for (const [h, ws] of [['dora', ['bronze-sword', 'reed-cutter', 'moonsteel']], ['enzo', ['oak-staff', 'bell-staff', 'star-lamp']]] as const)
+            for (const w of ws) for (const c of ['teal-coat', 'rust-coat', 'reed-coat', 'snail-coat']) {
+              const r = weaponCoatContrast(pixels(sc.dressed(h, w, c)), pixels(`${h}-parts`), sc.img.get(`${h}-parts`)!.width);
+              out[`${h}:${w}@${c}`] = { dE: Math.round(r.dE), dL: Math.round(r.dL), frame: r.frame };
+            }
+          return out;
+        },
+        /** for every weapon of Enzo's and every coat: pixels a coat swap changed inside the lantern's box in any frame
+         *  (the lantern as painted in each frame, its dark bands and frame too, read from the paintings, not the part labels; should all be 0) */
+        lanternCheck: () => {
+          const sc = sceneRef.current!, pixels = (name: string) => { const im = sc.img.get(name)!, c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d')!; x.drawImage(im, 0, 0); return x.getImageData(0, 0, c.width, c.height); };
+          const out: Record<string, number> = {};
+          for (const w of ['oak-staff', 'bell-staff', 'star-lamp']) {
+            const ref = pixels(sc.dressed('enzo', w, 'rust-coat')), lamp = lanternPixels(pixels('enzo-parts').data);
+            for (const c of ['teal-coat', 'reed-coat', 'snail-coat']) out[`${w}@${c}`] = lanternChanged(ref.data, pixels(sc.dressed('enzo', w, c)).data, lamp);
+          }
+          return out;
+        },
+        /** the lantern check's control: label the lantern coat in one frame (the leak it must catch) and count what a
+         *  coat swap then changes in the lantern (should be well above 0) */
+        lanternCheckControl: (frame = 8) => {
+          const sc = sceneRef.current!, pixels = (name: string) => { const im = sc.img.get(name)!, c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d')!; x.drawImage(im, 0, 0); return x.getImageData(0, 0, c.width, c.height); };
+          const im = pixels('enzo'), pm = pixels('enzo-parts'), lamp = lanternPixels(pm.data), cw = ART.enzo[0];
+          for (let i = 0; i < lamp.length; i++) if (lamp[i] && Math.floor((i % pm.width) / cw) === frame) pm.data[i * 4] = 80;
+          const a = new Uint8ClampedArray(im.data), b = new Uint8ClampedArray(im.data);
+          dressStrip(a, pm.data, im.width, im.height, cw, 'enzo', 'oak-staff', 'rust-coat');
+          dressStrip(b, pm.data, im.width, im.height, cw, 'enzo', 'oak-staff', 'teal-coat');
+          return lanternChanged(a, b, lamp);
+        },
         shrineIcon: (id: string) => { const t = INFO.get(id)!.things.find((x) => x.ch === 'S')!; return { x: 8 + (t.c / 30) * 26, y: 8 + (t.r / 17) * 16 - 4 }; },
         debug: (on: boolean) => { if (sceneRef.current) sceneRef.current.debug = on; },
       };
@@ -385,6 +427,12 @@ export default function BellspirePage() {
           <p className="bs-tag">A citadel of bells sleeps under a high Andean lake. Dora and Enzo row out with one lantern.</p>
           <div className="bs-title-btns">
             {hasSave && <button type="button" className="bs-btn bs-btn-main" onClick={() => startGame(readSave())}>Continue</button>}
+            {hasSave && canEpilogue && <button type="button" className="bs-btn" onClick={() => {
+              // the ending page again, with the epilogue, from the saved game
+              const s = readSave(); if (!s) return;
+              gameRef.current = new BellspireGame(s, { assist: settings.assist && !settings.strict, strict: settings.strict, wisp: settings.wisp });
+              setEnding({ full: true, pct: gameRef.current.completion().pct }); setScreen('ending'); soundRef.current?.setTrack('ending');
+            }}>See the epilogue</button>}
             <button type="button" className={`bs-btn ${hasSave ? '' : 'bs-btn-main'}`} onClick={() => (hasSave ? setConfirmNew(true) : startGame(null))}>New game</button>
             <button type="button" className="bs-btn" onClick={() => { setMenu('settings'); }}>Settings</button>
             <a className="bs-btn bs-btn-ghost" href="/">← Arcade</a>
@@ -412,10 +460,10 @@ export default function BellspirePage() {
           <h2>The bells ring again</h2>
           <p>The Lake Mother is calm, the water settles, and every bell in the Bellspire rings at once. Ukumari can rest at last.</p>
           <p className="bs-end-stats">Explored {c.pct}% · {c.chests}/{COMPLETION.chests} chests · {c.murals}/{COMPLETION.murals} murals · Dora level {g.save.heroes.dora.level} · Enzo level {g.save.heroes.enzo.level} · {formatTime(g.save.time)}</p>
-          {ending.full ? <p className="bs-end-epi">Everything found! Turn the page for the epilogue: a picnic on the shore with Wayra, Ukumari and the Lake Mother.</p> : <p>Find everything (100%) to see the epilogue. Your save is kept, so you can keep exploring.</p>}
+          {ending.full ? <p className="bs-end-epi">Everything found! Turn the page for the epilogue: a picnic on the shore with Wayra, Ukumari and the Lake Mother.</p> : <p>Find everything (100%), and the epilogue plays the moment you do. The pause map shows what’s left. Your save is kept, so you can keep exploring.</p>}
           <div className="bs-title-btns">
             <button type="button" className="bs-btn bs-btn-main" onClick={() => { const s = readSave(); if (s) { s.flags = s.flags.filter((f) => f !== 'ending'); startGame(s); } }}>Keep exploring</button>
-            <button type="button" className="bs-btn" onClick={() => setScreen('title')}>Title</button>
+            <button type="button" className="bs-btn" onClick={() => { setCanEpilogue(epilogueEarned(readSave())); setScreen('title'); }}>Title</button>
           </div>
         </div>
       </main>
