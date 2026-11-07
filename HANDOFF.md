@@ -6,7 +6,7 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 
 ## Start here (fresh session, 20-10-2026)
 
-**Newest game (07-11-2026): The Sunken Bellspire** (`/bellspire`, game 94), a hi-bit pixel castle explorer with dynamic lighting in a drowned Andean citadel of bells; see [The Sunken Bellspire · 07-11-2026](#the-sunken-bellspire--07-11-2026) below. Burrow Clinic (`/clinic`, game 93), Misprint (`/misprint`, game 92), Snow Day League (`/league`, game 91), Snowball Siege (`/snowball`, game 90), Rulebook FC (`/rulebook`, game 89), Into Space (`/space`, game 88), Combo Ball (`/combo`, game 87), Pixel Smith (`/smith`, game 86), Coin of the Realm (`/coin`, game 85), Turn Order (`/order`, game 84), Out of Frame (`/frame`, game 83), Tetherball (`/tether`, game 82), The Clocktower Mystery (`/clocktower`, game 81), Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
+**Newest game (07-11-2026): Overclock** (`/overclock`, game 95), a 16-bit run-and-gun platformer in a neon city with eight rogue robot bosses; see [Overclock · 07-11-2026](#overclock--07-11-2026) below. The Sunken Bellspire (`/bellspire`, game 94), Burrow Clinic (`/clinic`, game 93), Misprint (`/misprint`, game 92), Snow Day League (`/league`, game 91), Snowball Siege (`/snowball`, game 90), Rulebook FC (`/rulebook`, game 89), Into Space (`/space`, game 88), Combo Ball (`/combo`, game 87), Pixel Smith (`/smith`, game 86), Coin of the Realm (`/coin`, game 85), Turn Order (`/order`, game 84), Out of Frame (`/frame`, game 83), Tetherball (`/tether`, game 82), The Clocktower Mystery (`/clocktower`, game 81), Paperwing Post (`/glider`, game 80), Cloudberry Balloon (`/balloon`, game 79), Pawpark Skate (`/skate`, game 78) and Deepglow (`/deep`, game 77) came the same night.
 
 **Newest work (03–04-11-2026): Kumori Pass** (`/pass`, game 75) got a new look, a minimap, Enzo's demo line (also as a Time Attack ghost), two garage parts, seven unlockable cars, Side Jobs and a chapter after the ending; see [Kumori Pass · 04-11-2026](#kumori-pass--04-11-2026) below.
 
@@ -98,6 +98,14 @@ This file replaces the handover of 26-09-2026 (`HANDOVER.md`), whose notes are f
 9. **Whisker Ware, from play:** it shipped on 18-10-2026 untested by hand. The bot clears every stage 96–100% (four lives, bosses retried), so the stages may be too easy; Remix (bot median 31) may be too harsh at level 3 and ×1.75 or faster, where CATCH! and RAISIN RAIN! lose 74–100%. Listen to its blips. Try FIND! and DUST! on a real phone. Then consider a sixth game per host.
 10. **Whisker Ware, small leftovers** (all found in the final self-review and left on purpose): a swipe is lost if the pointer press arrives with no position; tiny back-and-forth jitter can count as a rub; `simulate` has no guard against a game that never ends; `IDLE` is not frozen; the CATCH test solver copies the engine's spawn timing; CLIMB's layout check ignores shelf movement during a hop; DASH! at level 3 leaves about 20 ticks between hazards.
 11. **Next new game:** open. Fluff Drop and Burrow Links were turned down as boring on 17-10-2026; Pebble Putt (mini-golf), Burrow Beat (rhythm) and Pup Rescue (lemmings) were offered with Hay Bale Brawl on 18-10-2026 and are still free.
+
+## Overclock · 07-11-2026
+
+Game 95, `/overclock`, a run-and-gun platformer in Codex-painted 16-bit pixel art.
+
+- **Rules and numbers:** `docs/overclock.md`; stages in `lib/overclock-world.ts`, the engine in `lib/overclock-game.ts`, the animation map in `lib/overclock-anim.ts`, drawing in `lib/overclock-scene.ts`.
+- **Tests:** `npm run test:overclock`, `npm run bot:overclock`, `node tests/e2e/overclock.mjs` (dev server running; uses `window.__overclock()`).
+- **Art:** Codex paintings given a pixel pass by `scripts/overclock-art.py` into `public/art/overclock/`, with the atlas map in `lib/overclock-art.ts` and per-frame hitboxes in `lib/overclock-boxes.ts`. Dora cream-white in a coral jacket, Enzo grey in a charcoal tech-coat.
 
 ## The Sunken Bellspire · 07-11-2026
 

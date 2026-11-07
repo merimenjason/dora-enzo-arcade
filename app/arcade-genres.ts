@@ -108,4 +108,5 @@ export const GENRE_OF: Record<string, GenreId[]> = {
  '/misprint': ['puzzle', 'cozy'],
  '/clinic': ['strategy', 'cozy'],
  '/bellspire': ['adventure', 'action'],
+ '/overclock': ['action'],
 };

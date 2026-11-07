@@ -6,6 +6,7 @@ Notable changes to Dora & Enzo's Arcade, newest first. Every push to `main` depl
 
 ### Added
 
+- **Overclock** is game 95, a 16-bit run-and-gun platformer in a neon city. Dora (rapid blaster, wall-climb) and Enzo (charge cannon, hover, shield) tag-swap through eight districts, reboot eight rogue robot bosses for 16 powers (a different one for each hero from every core), and every reboot changes another district. Find 18 hidden capsules, ride hover-bikes, buy mod chips from Pip, and climb the Sky Tower to calm Lumen. Assist mode is on by default.
 - **The Sunken Bellspire**: Echo Trials. After the Out-of-Tune Bell, start them from any lit candle shrine: a Guardian Rush (all eight guardians in a row, one heal between each) and a timed run in each of the eight areas, with bronze, silver and gold times and your best kept on a Trials page in the pause menu. A trial never changes your save.
 - **The Sunken Bellspire**: New Game+ on the title once the Bell is calm, with its own save so your first game is kept. Dora and Enzo keep their levels, gear and spells but find the abilities again, and every guardian is tougher with a new attack.
 - **The Sunken Bellspire**: once the Lake Mother is calm, the map shows the way to the Windward Belfry: its two areas as a dim outline to explore, Wayra's boat and a dotted route across the lake. On the minimap, an arrow at the edge points to the boat or the next area to explore.

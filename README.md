@@ -1,6 +1,6 @@
 # Dora & Enzo's Arcade
 
-A collection of ninety-four original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
+A collection of ninety-five original browser games starring Dora (a white chinchilla) and Enzo (a grey one). Pick a cabinet from the arcade menu at `/` and play in the browser, with no install and no sign-in. Three.js renders the 3D games and Canvas 2D the flat ones. Every game keeps its rules in a standalone deterministic engine under `lib/`, which the tests drive directly.
 
 **Chin x Pit** is the sub-brand for the two pit-diving games: Classic (`/chin-x-pit`) and Night Survivors (`/survival`).
 
@@ -104,6 +104,7 @@ Listed in arcade-menu order.
 | 92 | Misprint | `/misprint` | Two-ink riso print puzzle |
 | 93 | Burrow Clinic | `/clinic` | Hospital management sim |
 | 94 | The Sunken Bellspire | `/bellspire` | Castle explorer (metroidvania) |
+| 95 | Overclock | `/overclock` | Run-and-gun platformer |
 
 ## Run
 
@@ -1554,6 +1555,16 @@ Seven campaign meadows open in turn, from **Clover Landing** (60 chinchillas and
 **Tests:** `npm run test:bellspire` checks the map, every ability gate (each one shut without its ability and passable with it), that no spot traps you away from a shrine, physics, water bells, doors, the lantern and ghost-glass, combat, XP, tagging, shrines and travel, gear, the shop, a guardian from door to reward, the wisp, the Echo Trials and New Game+, saves (corrupt ones included) and determinism. `npm run bot:bellspire` fights every guardian with human-paced casual and pro bots and plays the whole game from a new save with a route bot, through the citadel and the Windward Belfry to the Out-of-Tune Bell, and the belfry again from a finished citadel save, then runs the Echo Trials bots (the Guardian Rush, every area run against its medal times, and New Game+ guardians beaten by casual within 3 tries) (`--quick` in `npm test`). `node tests/e2e/bellspire.mjs` (dev server running) presses every action with the real keys on desktop and phones, including a trial run, the Guardian Rush and New Game+ with both saves.
 
 **Docs:** [`docs/bellspire.md`](docs/bellspire.md) has the map format, abilities, water, screen fit, lighting, guardians, the Echo Trials and New Game+, assist, saves, bot numbers and the art pipeline.
+
+### 95 · Overclock (`/overclock`)
+
+**Play:** a 16-bit run-and-gun platformer in a neon city. Lumen, the city's power AI, has gone dark and handed eight districts to eight rogue machines. Dora (a rapid Arm Blaster, and she climbs walls) and Enzo (a Charge Cannon, wall-jumps, a hover and a shield) tag-swap through each district, reboot its boss and take its core. Each core gives each hero a different power, 16 in all, and every boss is weak to another boss's power. Rebooting a boss also changes another district: it dries puddles, lights ledges, clears rubble and opens a capsule. Collect 8 heart cells, 4 armour parts (helmet, legs with an air-dash, body, arm) and 6 energy tanks, some reachable only on the hover-bike. Spend bolts at Pip's shop on mod chips; three can be slotted at once. Then climb the Sky Tower: two guardians, a rematch gallery and Lumen in two forms. A short rooftop run teaches the controls with key prompts, and the rooftop hub has stage select, the shop, a capsule map, settings and a training room. Assist mode is on by default: less damage, slower bosses with longer tells, and pits put the hero back on the last ledge. Saved in `overclock-v1`.
+
+**Controls:** arrows move; Z, Space or K jump (hold for higher); X or J shoot (Enzo holds to charge); C or L dash; Shift or Tab tag; V or I shield (Enzo); Q and E switch power; Esc, P or Enter pause. Hold toward a wall to climb (Dora) or slide and jump off it (Enzo). Hold jump in the air to hover (Enzo). Down + jump drops through a ledge. Every key can be rebound in Settings. Gamepads work, and touch screens get an on-screen pad.
+
+**Tests:** `npm run test:overclock` runs 30 engine tests: coyote time and the jump buffer, every move and all 16 powers, weaknesses, gates, assist, capsules, chips, every boss and Lumen's second form, per-frame hitboxes, that every action has its own painted drawing and no stand-in art is left, determinism and the save. `npm run bot:overclock` runs human-paced bots: a route bot finishes every stage; casual and pro bots must beat every boss within 3 attempts, with and without other bosses' cores; and a full-run bot plays to the ending collecting all 18 capsules (`--quick` in `npm test`). `node tests/e2e/overclock.mjs` (dev server running) presses every player action, the hub, two bosses, the ending, the save and the touch pad in a browser at three screen sizes.
+
+**Docs:** [`docs/overclock.md`](docs/overclock.md) covers the code layout, controls, progression and stage changes, assist, the art pipeline, the save format, the tests and the `window.__overclock()` debug hook.
 
 ## Validation
 

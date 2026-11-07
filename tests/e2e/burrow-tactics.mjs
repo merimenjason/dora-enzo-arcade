@@ -16,7 +16,7 @@ try {
   // The arcade lists the cabinet.
   const menu = await browser.newPage();
   await menu.goto(base);
-  assert.equal(await menu.locator('.arcade-card').count(),94);
+  assert.equal(await menu.locator('.arcade-card').count(),95);
   assert.match(await menu.locator('a.arcade-card[href="/tactics"]').textContent(), /Burrow Tactics/);
   await menu.close();
 
