@@ -5,10 +5,10 @@
 export const COLS = 30, ROWS = 17, TILE = 16;
 export const SCREEN_W = COLS * TILE, SCREEN_H = ROWS * TILE;
 
-export type AreaId = 'hub' | 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft';
+export type AreaId = 'hub' | 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft' | 'cast' | 'glass';
 export type WaterArea = 'halls' | 'docks' | 'throne';
 export const WATER_AREAS: WaterArea[] = ['halls', 'docks', 'throne'];
-export const AREAS: Record<AreaId, { name: string; color: string; tiles: 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft'; ambient: [number, number, number]; theme: number }> = {
+export const AREAS: Record<AreaId, { name: string; color: string; tiles: 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft' | 'cast' | 'glass'; ambient: [number, number, number]; theme: number }> = {
   hub: { name: 'Lakebed Landing', color: '#c9a46a', tiles: 'halls', ambient: [0.5, 0.46, 0.52], theme: 0 },
   halls: { name: 'Flooded Halls', color: '#4f86d9', tiles: 'halls', ambient: [0.34, 0.4, 0.58], theme: 1 },
   docks: { name: 'Reed Docks', color: '#5cae55', tiles: 'docks', ambient: [0.38, 0.48, 0.44], theme: 2 },
@@ -18,21 +18,28 @@ export const AREAS: Record<AreaId, { name: string; color: string; tiles: 'halls'
   // the Windward Belfry: a cliff climb in low golden sun, then a tall timber bell tower of cold louvre light
   cloud: { name: 'The Cloudstair', color: '#e8895a', tiles: 'cloud', ambient: [0.84, 0.78, 0.74], theme: 6 },
   loft: { name: 'The Belfry Loft', color: '#7f9fd8', tiles: 'loft', ambient: [0.34, 0.38, 0.5], theme: 7 },
+  // the Foundry Below: a bell foundry in the warm dark under the citadel, then caverns of glowing volcanic glass
+  cast: { name: 'The Casting Halls', color: '#d8652e', tiles: 'cast', ambient: [0.42, 0.28, 0.2], theme: 8 },
+  glass: { name: 'The Glasswork Caves', color: '#b04fc4', tiles: 'glass', ambient: [0.3, 0.18, 0.34], theme: 9 },
 };
+/** The second expansion's two areas: under the Sunken Throne, behind a seal that cracks once the Out-of-Tune Bell is calm. */
+export const FOUNDRY_AREAS: AreaId[] = ['cast', 'glass'];
 /** The expansion's two areas: reached only once the Lake Mother is calm, by Wayra's boat. */
 export const BELFRY_AREAS: AreaId[] = ['cloud', 'loft'];
 /** The areas with wind: each keeps one direction (1 blows east, −1 west), turned round by its wind bells. */
 export type WindArea = 'cloud' | 'loft';
 export const WIND_AREAS: WindArea[] = ['cloud', 'loft'];
 
-export type Ability = 'dash' | 'lantern' | 'double' | 'wallkick' | 'chime' | 'glide' | 'deep' | 'rope' | 'echo';
+export type Ability = 'dash' | 'lantern' | 'double' | 'wallkick' | 'chime' | 'glide' | 'deep' | 'rope' | 'echo' | 'hammer' | 'resonance';
 export type HeroId = 'dora' | 'enzo';
 /** The order the citadel is meant to be opened up in. */
-export const ABILITY_ORDER: Ability[] = ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep', 'rope', 'echo'];
+export const ABILITY_ORDER: Ability[] = ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep', 'rope', 'echo', 'hammer', 'resonance'];
 /** The citadel's own seven, before the Windward Belfry. */
 export const BASE_ABILITIES: Ability[] = ABILITY_ORDER.slice(0, 7);
+/** The citadel's and the Windward Belfry's nine, before the Foundry Below. */
+export const BELFRY_ABILITIES: Ability[] = ABILITY_ORDER.slice(0, 9);
 /** Each ability's icon in the icon strip (the expansion's were painted later, so they sit after the gear). */
-export const abilityIcon = (a: Ability) => (a === 'rope' ? 32 : a === 'echo' ? 33 : 24 + ABILITY_ORDER.indexOf(a));
+export const abilityIcon = (a: Ability) => (a === 'rope' ? 32 : a === 'echo' ? 33 : a === 'hammer' ? 40 : a === 'resonance' ? 41 : 24 + ABILITY_ORDER.indexOf(a));
 export const ABILITIES: Record<Ability, { name: string; hero: HeroId | 'both'; door: string; color: string; how: string; needs: string }> = {
   dash: { name: 'Reed Dash', hero: 'dora', door: 'd', color: '#3f8cff', how: 'Dora dashes with C or L, on the ground or once in the air. A dash slips through attacks.', needs: 'Needs Dora’s Reed Dash' },
   lantern: { name: 'Moonwick', hero: 'enzo', door: 'l', color: '#ff9a3c', how: 'As Enzo, hold ↓ and press V to raise or lower the lantern. Raised, it lights dark rooms and makes ghost-glass solid.', needs: 'Needs the Moonwick: a raised lantern opens this hatch' },
@@ -43,6 +50,8 @@ export const ABILITIES: Record<Ability, { name: string; hero: HeroId | 'both'; d
   deep: { name: 'Deep-Dive Coat', hero: 'both', door: 'q', color: '#2fd3c0', how: 'Both of them can now swim down into the deepest water.', needs: 'Needs the Deep-Dive Coat' },
   rope: { name: 'Bell Rope', hero: 'dora', door: 'y', color: '#d99a52', how: 'In the air near a bell hook, Dora presses attack to throw the rope and swing. Steer to pump the swing; jump to let go.', needs: 'A rope-knot sigil: needs Dora’s Bell Rope' },
   echo: { name: 'Echo Step', hero: 'enzo', door: 'n', color: '#5fe3ff', how: 'As Enzo, ring the Bell Chime (↑ + V) by an echo bell: it leaves three glowing notes to stand on for a few seconds.', needs: 'A note sigil: needs Enzo’s Echo Step' },
+  hammer: { name: 'Bell Hammer', hero: 'dora', door: '8', color: '#e0703a', how: 'In the air, Dora holds ↓ and presses attack to slam down with the Bell Hammer. It breaks cracked glass, rings bells, and bounces her high off bronze plates.', needs: 'Cracked glass: needs Dora’s Bell Hammer' },
+  resonance: { name: 'Resonance', hero: 'enzo', door: '&', color: '#c58cff', how: 'As Enzo, ring the Bell Chime (↑ + V) by a humming crystal: the crystals line up into a bridge for a few seconds. By a prism, the chime sends a beam that opens beam doors.', needs: 'A beam door: needs Enzo’s Resonance by its prism' },
 };
 
 export type SpellId = 'bolt' | 'ember' | 'chime' | 'whirl' | 'frost' | 'gale';
@@ -56,7 +65,7 @@ export const SPELLS: Record<SpellId, { name: string; hero: HeroId; mp: number; h
 };
 
 export type Slot = 'weapon' | 'coat' | 'ring' | 'relic';
-export type Perk = 'fast' | 'reach' | 'cheapchime' | 'bright' | 'sturdy' | 'swim' | 'lucky' | 'regen' | 'crit' | 'quick' | 'secrets' | 'xp' | 'windward' | 'notes';
+export type Perk = 'fast' | 'reach' | 'cheapchime' | 'bright' | 'sturdy' | 'swim' | 'lucky' | 'regen' | 'crit' | 'quick' | 'secrets' | 'xp' | 'windward' | 'notes' | 'cool' | 'tempered' | 'keen' | 'focus';
 export type Gear = { name: string; slot: Slot; hero?: HeroId; atk?: number; def?: number; mag?: number; hp?: number; mp?: number; perk?: Perk; text: string; icon: number };
 export const GEAR: Record<string, Gear> = {
   'bronze-sword': { name: 'Bronze Sword', slot: 'weapon', hero: 'dora', atk: 2, text: 'Short, light and sharp enough.', icon: 0 },
@@ -80,7 +89,18 @@ export const GEAR: Record<string, Gear> = {
   'condor-feather': { name: 'Condor Feather', slot: 'relic', perk: 'quick', text: 'A long black feather. Run a little faster.', icon: 15 },
   'salt-lamp': { name: 'Salt Lamp', slot: 'relic', perk: 'secrets', text: 'Pink salt that glows. Cracked walls shine, and light reaches further.', icon: 16 },
   'bell-charm': { name: 'Bell Charm', slot: 'relic', perk: 'xp', text: 'A small golden bell. A quarter more XP.', icon: 17 },
+  // the Foundry Below
+  'forge-apron': { name: 'Forge Apron', slot: 'coat', hero: 'dora', def: 6, perk: 'cool', text: 'Rust-red leather, a linen shirt, thick gloves and goggles. The forge heat builds half as fast.', icon: 42 },
+  'ash-smock': { name: 'Ashwork Smock', slot: 'coat', hero: 'enzo', def: 5, mp: 6, perk: 'cool', text: 'Charcoal felt with brass buckles and a folded hood. +6 MP, and the forge heat builds half as fast.', icon: 43 },
+  'obsidian-edge': { name: 'Obsidian Edge', slot: 'weapon', hero: 'dora', atk: 16, perk: 'keen', text: 'A blade of black volcanic glass. Very sharp, and keener still.', icon: 46 },
+  'ladle-staff': { name: 'Founder’s Ladle', slot: 'weapon', hero: 'enzo', atk: 11, mag: 13, perk: 'focus', text: 'A staff topped with a little glowing ladle of bronze. Its magic runs hot.', icon: 47 },
+  'cinder-charm': { name: 'Cinder Charm', slot: 'relic', perk: 'tempered', text: 'An ember that never goes out, in a little iron cage. Tempered: +3 defence.', icon: 45 },
 };
+/** What each perk adds to the numbers (the rest change how things work): Tupa's recasts use these too. */
+export const PERK_STATS: Partial<Record<Perk, { atk?: number; def?: number; mag?: number }>> = { tempered: { def: 3 }, keen: { atk: 3 }, focus: { mag: 3 } };
+/** Tupa's recasts: one perk worked into a piece of gear, for coins. */
+export const RECAST_PERKS: Perk[] = ['cool', 'tempered', 'keen', 'focus', 'lucky', 'regen'];
+export const RECAST_PRICE = 120;
 export const START_EQUIP: Record<HeroId, Record<Slot, string | null>> = {
   dora: { weapon: 'bronze-sword', coat: 'teal-coat', ring: null, relic: null },
   enzo: { weapon: 'oak-staff', coat: 'rust-coat', ring: null, relic: null },
@@ -96,7 +116,7 @@ export const SHOP: { id: string; price: number }[] = [
   { id: 'moon-ring', price: 140 }, { id: 'reed-cutter', price: 150 }, { id: 'bell-staff', price: 160 },
 ];
 
-export type BossId = 'frog' | 'hydra' | 'puma' | 'warden' | 'mother' | 'condor' | 'clappers' | 'tune';
+export type BossId = 'frog' | 'hydra' | 'puma' | 'warden' | 'mother' | 'condor' | 'clappers' | 'tune' | 'founder' | 'choir' | 'hollow';
 export const BOSSES: Record<BossId, { name: string; title: string; hp: number; atk: number; xp: number; reward: string[] }> = {
   frog: { name: 'The Grand Frog Idol', title: 'Guardian of the Flooded Halls', hp: 220, atk: 8, xp: 120, reward: ['ability:lantern', 'heart'] },
   hydra: { name: 'The Reed Hydra', title: 'Tangle of the Reed Docks', hp: 420, atk: 12, xp: 220, reward: ['spell:ember', 'heart'] },
@@ -106,11 +126,16 @@ export const BOSSES: Record<BossId, { name: string; title: string; hp: number; a
   condor: { name: 'The Hail Condor', title: 'Storm Above the Cloudstair', hp: 1000, atk: 20, xp: 700, reward: ['ability:echo', 'spell:frost'] },
   clappers: { name: 'The Twin Clappers', title: 'Two Tongues of One Bell', hp: 820, atk: 17, xp: 800, reward: ['spell:gale', 'drop'] },
   tune: { name: 'The Out-of-Tune Bell', title: 'The Belfry’s Sour Heart', hp: 1300, atk: 24, xp: 1000, reward: [] },
+  founder: { name: 'The Molten Founder', title: 'Smith of the Casting Halls', hp: 1250, atk: 27, xp: 1100, reward: ['ability:resonance', 'heart'] },
+  choir: { name: 'The Glass Choir', title: 'Three Voices in the Glass', hp: 1000, atk: 27, xp: 1200, reward: ['gear:ladle-staff', 'drop'] },
+  hollow: { name: 'The Hollow Bell', title: 'The Bell Cast Without a Voice', hp: 1600, atk: 26, xp: 1500, reward: [] },
 };
+/** The Foundry Below's two guardians: both must be calm before the deep seal opens on the Hollow Bell. */
+export const FOUNDRY_GUARDIANS = ['founder', 'choir'] as const satisfies readonly BossId[];
 /** The Windward Belfry's two guardians: both must be calm before the belfry seal opens on the Out-of-Tune Bell. */
 export const BELFRY_GUARDIANS = ['condor', 'clappers'] as const satisfies readonly BossId[];
 /** Every guardian, citadel and belfry, in story order: the Echo Trials' guardian rush meets all eight. */
-export const ALL_BOSSES: BossId[] = ['frog', 'hydra', 'puma', 'warden', 'mother', 'condor', 'clappers', 'tune'];
+export const ALL_BOSSES: BossId[] = ['frog', 'hydra', 'puma', 'warden', 'mother', 'condor', 'clappers', 'tune', 'founder', 'choir', 'hollow'];
 
 /** The four area guardians: each holds one bell seal on the throne door, and all four must be calmed before it opens. */
 export const GUARDIANS = ['frog', 'hydra', 'puma', 'warden'] as const satisfies readonly BossId[];
@@ -122,6 +147,7 @@ export const SHRINE_NAMES: Record<string, string> = {
   landing: 'Landing Candle', chapel: 'Chapel Candle', mill: 'Reed Mill Candle', gears: 'Bell Loft Candle',
   cshrine: 'Mural Crypt Candle', tshrine: 'Pearl Throne Candle',
   cliffoot: 'Cliff Foot Candle', bannerwalk: 'Bannerwalk Candle', loftbase: 'Belfry Candle',
+  fgate: 'Foundry Gate Candle', forgeshrine: 'Furnace Candle', caveshrine: 'Glass Candle',
 };
 
 export const MURALS: { panel: number; text: string }[] = [
@@ -144,13 +170,22 @@ export const MURALS: { panel: number; text: string }[] = [
   { panel: 8, text: 'When the bell went sour, a condor of the high storms came to sit on the bridge, and hail followed it.' },
   { panel: 13, text: 'A panel nobody had finished: the mended bell ringing in tune, and the sun coming up over both belfries.' },
   { panel: 7, text: 'The people of the lake carried every bell up the cliff on their backs, and strung them up on ropes.' },
+  // the Foundry Below's six (panels 14 to 19)
+  { panel: 14, text: 'Every bell of the lake was cast down here, in a foundry inside the sleeping mountain.' },
+  { panel: 15, text: 'One bell came out of the mould hollow, with no voice at all. The founders were ashamed, and turned away from it.' },
+  { panel: 16, text: 'Left alone in the dark, the hollow bell called out to anything that would answer. Embers and glass answered.' },
+  { panel: 17, text: 'In the caves below, the glass learned to sing. Three voices, low, middle and high, always in the same order.' },
+  { panel: 18, text: 'Two small figures: one strikes a bell with a hammer, one rings a staff, and the crystals line up to listen.' },
+  { panel: 19, text: 'The last panel: the hollow bell made whole, golden, ringing with the citadel and the belfry above it.' },
 ];
 /** How many murals the citadel itself holds (the rest are the belfry's). */
 export const BASE_MURALS = 10;
+/** ...and with the Windward Belfry's: the rest are the Foundry Below's. */
+export const BELFRY_MURALS = 18;
 
-export type Who = 'dora' | 'enzo' | 'wayra' | 'ukumari' | 'mother' | 'sign' | 'bell';
+export type Who = 'dora' | 'enzo' | 'wayra' | 'ukumari' | 'mother' | 'sign' | 'bell' | 'tupa' | 'hollow' | 'founder';
 export type Line = { who: Who; text: string };
-export const NAMES: Record<Who, string> = { dora: 'Dora', enzo: 'Enzo', wayra: 'Wayra', ukumari: 'Ukumari', mother: 'The Lake Mother', sign: '', bell: 'The Out-of-Tune Bell' };
+export const NAMES: Record<Who, string> = { dora: 'Dora', enzo: 'Enzo', wayra: 'Wayra', ukumari: 'Ukumari', mother: 'The Lake Mother', sign: '', bell: 'The Out-of-Tune Bell', tupa: 'Tupa', hollow: 'The Hollow Bell', founder: 'The Molten Founder' };
 export const SCRIPTS: Record<string, Line[]> = {
   intro: [
     { who: 'enzo', text: 'The whole lake drained away in one night. And listen, Dora: bells.' },
@@ -251,6 +286,52 @@ export const SCRIPTS: Record<string, Line[]> = {
     { who: 'enzo', text: 'Listen, Dora: the shrine candles hum with the belfry’s note now. Echo Trials. We can race each area again, or meet all eight guardians in a row.' },
     { who: 'dora', text: 'At any lit shrine, then. The Trials page in the menu keeps our best times, and a bell of bronze, silver or gold for each.' },
   ],
+
+  // ─── the Foundry Below ─────────────────────────────────────────────────
+  /** told at the next shrine rest once the Out-of-Tune Bell is calm */
+  foundryCall: [
+    { who: 'ukumari', text: 'Little ones! When the belfry rang in tune, something answered from under the throne. A seal in the floor by the Pearl Throne Candle has cracked.' },
+    { who: 'ukumari', text: 'The founders who cast our bells worked down there, long ago. It will be hot. Mind yourselves.' },
+  ],
+  foundry: [
+    { who: 'enzo', text: 'Feel that heat, Dora. A whole foundry, still glowing after a thousand years.' },
+    { who: 'dora', text: 'Watch the heat gauge by our names. Shade and mist cool us down; a shrine cools us right off.' },
+  ],
+  tupa: [
+    { who: 'tupa', text: 'Oh! Customers, after all this time. I’m Tupa. I cast bells, once. Now I mostly keep the furnaces company.' },
+    { who: 'tupa', text: 'Bring me your gear and some coins, and I’ll recast it in the fire with a little something extra worked in. Press ↑ by my anvil.' },
+    { who: 'tupa', text: 'And take care down there. One of our bells came out hollow, and it has been calling to the dark ever since.' },
+  ],
+  channel: [{ who: 'enzo', text: 'Molten bronze, right across the floor. My Frost Fan should cool it into a crust we can walk on. Jump, then tap V over it.' }],
+  vents: [{ who: 'dora', text: 'Those vents puff out mist, and the mist hardens the slag for a little while. Wait for a puff, then go!' }],
+  glassfloor: [{ who: 'dora', text: 'Cracked glass. With the Bell Hammer I can slam right through it: jump, then hold ↓ and press attack.' }],
+  founder: [
+    { who: 'founder', text: 'MORE BRONZE… THE MOULD IS NOT FULL… IT IS NEVER FULL…' },
+    { who: 'enzo', text: 'It’s far too hot to hurt, Dora. Let me frost it first: wherever my Frost Fan hits, it cools, and your blade can bite there.' },
+  ],
+  founderDone: [
+    { who: 'founder', text: '…Cool. I had forgotten cool. Thank you. Take my listening, little one: the glass below will hear you now.' },
+    { who: 'enzo', text: 'I can hear the crystals humming, Dora. If I ring the chime by one, they should line up for me. And the prisms send a beam.' },
+  ],
+  crystal: [{ who: 'enzo', text: 'A humming crystal. Ring the chime by it (↑ + V) and the crystals should line up into a bridge.' }],
+  choir: [
+    { who: 'enzo', text: 'Three singers, Dora: low, middle and high. Listen to the order they sing in.' },
+    { who: 'dora', text: 'Then ring their notes back in the same order: hit each one when it’s its turn.' },
+  ],
+  choirDone: [
+    { who: 'dora', text: 'They’re bowing. I think that was a thank-you.' },
+    { who: 'enzo', text: 'The deep seal by the Furnace Candle should be open now. The hollow bell is down there.' },
+  ],
+  hollow: [
+    { who: 'hollow', text: '…… …… ……' },
+    { who: 'enzo', text: 'It has no voice at all, Dora. That’s why it calls everything to it. The lava is rising: stay high!' },
+    { who: 'dora', text: 'A good slam on its crown should ring it. Let’s find its note.' },
+  ],
+  hollowDone: [
+    { who: 'hollow', text: '…Bonnng. …Is that me? Is that my voice?' },
+    { who: 'tupa', text: 'It is. A good, warm voice. Welcome home, little bell.' },
+    { who: 'dora', text: 'Three bells now: the citadel, the belfry and the foundry. Let’s go up and listen to them all.' },
+  ],
 };
 
 /**
@@ -287,6 +368,13 @@ export type Room = {
   swings?: { len: number; amp: number; period: number; phase: number }[];
   /** part of the Windward Belfry (counted for 100% only once the expansion's totals are added) */
   exp?: boolean;
+  /** part of the Foundry Below (the second expansion; `exp` is set too) */
+  fd?: boolean;
+  /** the forge heat (room tiles, inclusive): where the heat gauge builds; anywhere else in the room is shade */
+  heat?: [number, number, number, number][];
+  /** for each humming crystal (`*`, in order), the slabs of its bridge: tile offsets from the crystal; each slab is a
+   *  two-tile ledge you can jump up through, lit one after another */
+  crystals?: [number, number][][];
 };
 
 const d = (n: number) => '.'.repeat(n);
@@ -1036,3 +1124,117 @@ patch('landing', (k) => { k.at(50, 15, 'yyy').at(50, 16, '.H.'); });
 // Wayra's boat waits at the landing, by her raft
 patch('landing', (k) => { k.at(26, 14, 'D'); });
 ROOMS.push(...BELFRY_ROOMS);
+
+// ─── the Foundry Below ─────────────────────────────────────────────────────
+// Under the Sunken Throne (gy 9 to 12), through a seal in the floor by the Pearl Throne Candle that cracks once the
+// Out-of-Tune Bell is calm. The Casting Halls run east from the seal and down to the Molten Founder; the Glasswork
+// Caves climb from the Furnace Candle to the Glass Choir, and the deep seal under the Furnace Candle opens on the
+// Hollow Bell once both are calm.
+//
+// Glyphs: `~` molten bronze (hot: a touch burns and puts you back on the last safe ledge; Enzo's Frost Fan cools a
+// whole channel into a crust to walk on for a while), `_` lava (always burns), `:` slag (burns, but hardens while a
+// vent in the room puffs mist), `+` a bronze bounce plate (a Bell Hammer slam onto it bounces Dora high). Doors: `8`
+// cracked glass (a Bell Hammer slam from above breaks it), `&` a beam door (Resonance rung by a prism `!` within a few
+// tiles opens it), `9` the foundry seal (open once the Out-of-Tune Bell is calm), `V` the deep seal (open once the
+// Molten Founder and the Glass Choir are calm). Things: `N` Tupa the bellfounder, `%` a mist vent, `*` a humming
+// crystal, `!` a beam prism. Foes: `1` ingot walker, `2` ember wisp, `3` crystal bat, `4` glass snail.
+const fdroom = (id: string, area: AreaId, gx: number, gy: number, w: number, h: number, draw: (k: Sketch) => void, extra: Partial<Room> = {}): Room =>
+  ({ ...room(id, area, gx, gy, w, h, draw, extra), fd: true });
+
+export const FOUNDRY_ROOMS: Room[] = [
+  // in under the seal: Tupa's anvil, a shrine, and the way on east
+  fdroom('fgate', 'cast', 0, 9, 1, 1, (k) => {
+    k.fill(1, 2, 28, 14, '.').fill(29, 12, 29, 14, '.').shaft(21, 0, 14);
+    k.at(4, 14, 'N').at(9, 14, 'iSi').at(15, 14, 'R').at(2, 9, 'T').at(26, 9, 'T');
+  }, { murals: [18], script: 'foundry' }),
+  // a long low hall with two channels of molten bronze across the floor (too wide to jump: frost them)
+  fdroom('channel', 'cast', 1, 9, 2, 1, (k) => {
+    k.fill(0, 12, 59, 14, '.').fill(1, 6, 7, 14, '.').fill(52, 6, 58, 14, '.');
+    k.fill(8, 15, 23, 15, '~').fill(36, 15, 51, 15, '~');
+    k.at(29, 14, 'C').at(33, 14, '1').at(30, 12, '2').at(4, 8, 'T').at(55, 8, 'T');
+  }, { chests: ['gear:forge-apron'], heat: [[8, 12, 51, 14]], script: 'channel' }),
+  // a shaft down, a cavern, and a low tunnel over lava: its slag hardens while the vents puff
+  fdroom('vents', 'cast', 3, 9, 1, 2, (k) => {
+    k.fill(0, 12, 6, 14, '.').fill(1, 16, 6, 31, '.').down(3, 15, 31, 'H');
+    k.fill(7, 4, 28, 26, '.');
+    k.fill(7, 29, 28, 31, '.').fill(29, 29, 29, 31, '.').fill(0, 29, 0, 31, '.');
+    k.at(7, 32, '___::::__::::___');
+    k.at(11, 29, '%').at(17, 29, '%');
+    k.at(24, 26, 'C').at(18, 10, '2').at(12, 20, '2').at(14, 8, 'T').at(26, 30, 'T');
+  }, { chests: ['gear:ash-smock'], heat: [[7, 4, 28, 26], [7, 29, 28, 31]], script: 'vents' }),
+  // the Bell Hammer's pedestal; a bounce plate under a high ledge, and a chest under cracked glass
+  fdroom('anvilhall', 'cast', 1, 10, 2, 1, (k) => {
+    k.fill(1, 2, 58, 14, '.').fill(59, 12, 59, 14, '.');
+    k.fill(20, 15, 22, 15, '+').at(17, 5, '========').at(20, 4, 'C');
+    k.fill(46, 11, 52, 14, '#').fill(47, 12, 51, 14, '.').at(48, 11, '888').at(49, 14, 'C');
+    k.at(32, 14, 'A').at(8, 14, 'R').at(38, 14, '1').at(12, 4, 'T').at(42, 4, 'T');
+  }, { ability: 'hammer', chests: ['heart', 'gear:cinder-charm'], murals: [19] }),
+  // the great crucible hall: heat, a channel, a vent's mist for shade, and cracked glass down to the Founder; a beam
+  // door east (opened from the Glass Candle's side) is the way back up from the caves
+  fdroom('crucible', 'cast', 4, 10, 2, 1, (k) => {
+    k.fill(0, 12, 0, 14, '.').fill(1, 2, 58, 14, '.').fill(59, 12, 59, 14, '.').down(58, 12, 14, '&');
+    k.fill(14, 15, 25, 15, '~').fill(33, 15, 38, 15, ':').at(35, 14, '%');
+    k.at(49, 15, '888').at(49, 16, '.H.');
+    k.at(8, 14, 'C').at(20, 8, '2').at(44, 7, '2').at(30, 14, '1').at(53, 14, '1').at(6, 6, 'T').at(40, 6, 'T');
+  }, { chests: ['coins:120'], heat: [[1, 2, 58, 14]], script: 'glassfloor' }),
+  // the Molten Founder's casting floor
+  fdroom('founder', 'cast', 4, 11, 2, 1, (k) => {
+    k.fill(1, 2, 58, 14, '.').fill(59, 12, 59, 14, '.').down(58, 12, 14, 'b');
+    k.shaft(50, 0, 14).at(49, 1, 'bbb');
+    k.at(5, 10, '=========').at(36, 10, '=========');
+    k.at(25, 14, 'O');
+  }, { boss: 'founder' }),
+  // the Furnace Candle: a prism by the beam door east, and the deep seal in the floor
+  fdroom('forgeshrine', 'cast', 6, 11, 1, 1, (k) => {
+    k.fill(0, 12, 0, 14, '.').fill(1, 2, 28, 14, '.').fill(29, 12, 29, 14, '.').down(28, 12, 14, '&');
+    k.at(14, 15, 'VVV').at(14, 16, '.H.');
+    k.at(5, 14, 'iSi').at(24, 13, '!').at(20, 14, 'R').at(10, 8, 'T');
+  }, { murals: [20] }),
+
+  // over a lava lake: two humming crystals, one on each shore, each bridging the whole way across
+  fdroom('prism', 'glass', 7, 11, 2, 1, (k) => {
+    k.fill(0, 12, 0, 14, '.').fill(1, 6, 58, 14, '.').fill(59, 12, 59, 14, '.');
+    k.fill(6, 15, 53, 15, '_');
+    k.at(3, 14, '*').at(56, 14, '*').at(20, 6, '3').at(40, 6, '3').at(1, 9, 'T');
+  }, {
+    heat: [[6, 6, 53, 14]], script: 'crystal',
+    crystals: [[4, 10, 16, 22, 28, 34, 40, 46].map((dc) => [dc, -1] as [number, number]), [-7, -13, -19, -25, -31, -37, -43, -49].map((dc) => [dc, -1] as [number, number])],
+  }),
+  // a tall glass stair: ledges up to the snail gallery, then a crystal's stair up to the Glass Choir
+  fdroom('glassstair', 'glass', 9, 9, 1, 3, (k) => {
+    k.fill(1, 2, 28, 48, '.').fill(0, 46, 0, 48, '.').fill(0, 29, 0, 31, '.').fill(0, 12, 0, 14, '.');
+    k.fill(1, 32, 8, 32, '#').fill(1, 15, 8, 15, '#');
+    k.at(18, 46, '=======').at(8, 43, '=======').at(18, 40, '=======').at(8, 37, '=======').at(14, 34, '=======');
+    k.at(24, 22, '====').at(25, 21, 'C');
+    k.fill(4, 49, 6, 49, '+');
+    k.at(5, 31, '*').at(12, 48, 'R').at(20, 48, '4').at(14, 10, '3').at(20, 27, '3').at(26, 44, 'T').at(3, 26, 'T');
+  }, { chests: ['drop'], murals: [22], crystals: [[[5, -3], [10, -6], [15, -9], [10, -12], [5, -15]]] }),
+  // the snail gallery: a closet behind a beam door, and the Glass Candle west
+  fdroom('snails', 'glass', 7, 10, 2, 1, (k) => {
+    k.fill(0, 12, 0, 14, '.').fill(1, 2, 58, 14, '.').fill(59, 12, 59, 14, '.');
+    k.fill(20, 10, 27, 14, '#').fill(21, 11, 26, 14, '.').down(20, 11, 14, '&').at(24, 14, 'C');
+    k.at(14, 13, '!').at(36, 10, '=========');
+    k.at(35, 14, '4').at(48, 14, '4').at(30, 4, '3').at(10, 4, '3').at(52, 14, 'R').at(44, 6, 'T');
+  }, { chests: ['gear:obsidian-edge'], murals: [23] }),
+  // the Glass Candle: its prism opens the beam door back into the crucible hall
+  fdroom('caveshrine', 'glass', 6, 10, 1, 1, (k) => {
+    k.fill(0, 12, 0, 14, '.').fill(1, 2, 28, 14, '.').fill(29, 12, 29, 14, '.');
+    k.at(10, 14, 'iSi').at(3, 13, '!').at(22, 14, 'R').at(16, 6, 'T');
+  }, { murals: [21] }),
+  // the Glass Choir's cave
+  fdroom('choir', 'glass', 7, 9, 2, 1, (k) => {
+    k.fill(1, 2, 58, 14, '.').fill(59, 12, 59, 14, '.').down(58, 12, 14, 'b');
+    k.at(4, 10, '========').at(48, 10, '========');
+    k.at(30, 14, 'O');
+  }, { boss: 'choir' }),
+  // the Hollow Bell, over a lava pit that rises as it fights
+  fdroom('hollow', 'glass', 6, 12, 2, 1, (k) => {
+    k.fill(1, 2, 58, 14, '.').fill(1, 15, 58, 15, '_').shaft(15, 0, 7).at(14, 1, 'bbb');
+    k.fill(3, 12, 12, 12, '#').fill(24, 12, 35, 12, '#').fill(47, 12, 56, 12, '#');
+    k.at(13, 8, '=========').at(38, 8, '=========');
+    k.at(30, 6, 'O');
+  }, { boss: 'hollow' }),
+];
+// the seal in the floor by the Pearl Throne Candle, over the ladder down to the foundry
+patch('tshrine', (k) => { k.at(20, 15, '999').at(20, 16, '.H.'); });
+ROOMS.push(...FOUNDRY_ROOMS);

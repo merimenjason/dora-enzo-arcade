@@ -28,6 +28,11 @@
 //           87 shielding from hail
 //     Enzo: 80 sounding an echo bell  81 Frost Fan wind-up  82 Frost Fan release  83 Gale Wave wind-up  84 Gale Wave release
 //           85 bracing against the wind  86 balancing on a swinging bell  87 hopping along the notes
+//   l (the Foundry Below) Dora: 88 Bell Hammer wind-up  89 slam dive  90 slam impact  91 bounced high off a plate
+//           92 wiping her brow in the heat  93 hand over her sword (Tupa's forge)  94 hopping on a hot floor
+//           95 the hammer raised overhead
+//     Enzo: 88 Resonance wind-up  89 Resonance ring  90 Resonance beam  91 low Frost Fan wind-up  92 low Frost Fan release
+//           93 wiping his brow  94 hand over his staff (Tupa's forge)  95 hopping on a hot floor
 //
 // A state a hero can never be in has no frames for that hero (Enzo can't dash, wall-kick, thrust or whirl; Dora
 // doesn't glide, cast, chime or carry the lantern), and every state a hero can be in has frames of its own.
@@ -41,7 +46,8 @@ export type AnimState =
   | 'hurt' | 'ko' | 'revive' | 'tagOut' | 'tagIn'
   | 'wade' | 'wadeStill' | 'swim' | 'tread' | 'dive' | 'surface'
   | 'rest' | 'chest' | 'relic' | 'ring' | 'read' | 'shop'
-  | 'ropeThrow' | 'ropeSwing' | 'ropeRelease' | 'ropeFly' | 'brace' | 'balance' | 'shield' | 'echo' | 'frostWind' | 'frost' | 'galeWind' | 'gale' | 'noteHop';
+  | 'ropeThrow' | 'ropeSwing' | 'ropeRelease' | 'ropeFly' | 'brace' | 'balance' | 'shield' | 'echo' | 'frostWind' | 'frost' | 'galeWind' | 'gale' | 'noteHop'
+  | 'slamWind' | 'slamDive' | 'slamLand' | 'bounce' | 'resWind' | 'resRing' | 'resBeam' | 'frostLowWind' | 'frostLow' | 'browWipe' | 'forge' | 'hotHop';
 
 /** What the hero is doing this tick: read from the engine by the scene. */
 export type AnimInput = {
@@ -51,13 +57,15 @@ export type AnimInput = {
   wallSlide: boolean;
   dash: boolean; hurt: boolean; down: boolean;
   /** the current attack, if any: its kind, combo step, clock and the swing's wind-up and active ticks */
-  act: { kind: 'swing' | 'thrust' | 'whirl' | 'cast' | 'tagin'; n: number; t: number; wind: number; active: number; spell?: string } | null;
+  act: { kind: 'swing' | 'thrust' | 'whirl' | 'cast' | 'tagin' | 'slam'; n: number; t: number; wind: number; active: number; spell?: string } | null;
   castHold: boolean; lanternUp: boolean;
   /** the Windward Belfry: on the Bell Rope (its angle and swing, both + toward the way the hero faces), the gust
    *  here (signed), what the hero stands on if it moves, hail falling close by, and a cast held past the Ember Ring */
   rope?: { ang: number; av: number } | null;
   /** flying off the rope to its target (the helping hand's guided release) */
   fly?: boolean; gust?: number; ride?: string; hail?: boolean; castLong?: boolean;
+  /** the Foundry Below: the forge heat (0 to 100) and whether the hero is in it; flying up off a bounce plate */
+  heat?: number; hot?: boolean; bounce?: boolean;
   /** one-off things that happened this tick: 'jumped', 'kicked', 'tagOut', 'rest', 'chest', 'relic', 'ring', 'read', 'shop', 'revive' */
   events: string[];
 };
@@ -140,6 +148,19 @@ export const ANIMS: Record<AnimState, Def> = {
   galeWind: { frames: { enzo: [83] }, rate: 60, loop: true },
   gale: { frames: { enzo: [84] }, rate: 60, loop: true },
   noteHop: { frames: { enzo: [87] }, rate: 60, loop: true },
+  // the Foundry Below
+  slamWind: { frames: { dora: [95, 88] }, rate: 4, loop: false },
+  slamDive: { frames: { dora: [89] }, rate: 60, loop: true },
+  slamLand: { frames: { dora: [90] }, rate: 14, loop: false, len: 14 },
+  bounce: { frames: { dora: [91] }, rate: 60, loop: true },
+  resWind: { frames: { enzo: [88] }, rate: 60, loop: true },
+  resRing: { frames: { enzo: [89] }, rate: 60, loop: true },
+  resBeam: { frames: { enzo: [90] }, rate: 26, loop: false, len: 26 },
+  frostLowWind: { frames: { enzo: [91] }, rate: 60, loop: true },
+  frostLow: { frames: { enzo: [92] }, rate: 60, loop: true },
+  browWipe: { frames: { dora: [92], enzo: [93] }, rate: 50, loop: false, len: 50 },
+  forge: { frames: { dora: [93], enzo: [94] }, rate: 70, loop: false, len: 70 },
+  hotHop: { frames: { dora: [94], enzo: [95] }, rate: 60, loop: true },
 };
 
 /** Where along the rope's arc the hero is: drawn back (behind the hook, against the way they face), through the
@@ -148,10 +169,11 @@ export function ropeFrame(ang: number): number { return ang < -0.25 ? 81 : ang >
 
 /** The one-shots the player starts by pressing a button or touching something (they play out unless control moves on). */
 const ONE_SHOT: AnimState[] = ['blink', 'fidget', 'runStart', 'skid', 'turn', 'land', 'hardLand', 'climbOn', 'climbOff', 'wallKick',
-  'lanternDown', 'chime', 'revive', 'tagOut', 'rest', 'chest', 'relic', 'ring', 'read', 'shop', 'ropeThrow', 'ropeRelease', 'echo'];
+  'lanternDown', 'chime', 'revive', 'tagOut', 'rest', 'chest', 'relic', 'ring', 'read', 'shop', 'ropeThrow', 'ropeRelease', 'echo',
+  'slamLand', 'resBeam', 'browWipe', 'forge'];
 /** One-shots that hold even while the body moves a little (the scripted moments). */
-const STICKY: AnimState[] = ['rest', 'chest', 'relic', 'read', 'shop', 'revive', 'chime', 'ring', 'echo'];
-const EVENT_STATE: Record<string, AnimState> = { rest: 'rest', chest: 'chest', relic: 'relic', ring: 'ring', read: 'read', shop: 'shop', revive: 'revive', tagOut: 'tagOut', kicked: 'wallKick' };
+const STICKY: AnimState[] = ['rest', 'chest', 'relic', 'read', 'shop', 'revive', 'chime', 'ring', 'echo', 'slamLand', 'resBeam', 'forge'];
+const EVENT_STATE: Record<string, AnimState> = { rest: 'rest', chest: 'chest', relic: 'relic', ring: 'ring', read: 'read', shop: 'shop', revive: 'revive', tagOut: 'tagOut', kicked: 'wallKick', slammed: 'slamLand', beam: 'resBeam', forge: 'forge' };
 
 const framesOf = (s: AnimState, hero: HeroId): number[] => { const f = ANIMS[s].frames; return Array.isArray(f) ? f : f[hero] ?? []; };
 /** Whether a hero has this state at all. */
@@ -209,11 +231,15 @@ export class HeroAnimator {
       if (i.act.kind === 'swing') return 'swing';
       if (i.act.kind === 'thrust' && has('thrust')) return 'thrust';
       if (i.act.kind === 'whirl' && has('whirl')) return 'whirl';
+      if (i.act.kind === 'slam' && has('slamDive')) return i.act.t < 7 ? 'slamWind' : 'slamDive';
       if (i.act.kind === 'tagin') return 'tagIn';
       if (i.act.kind === 'cast' && has('cast')) {
         if (i.act.spell === 'chime') return 'chime';
         if (i.act.spell === 'echo') return 'echo';
+        if (i.act.spell === 'frost' && i.ground) return i.act.t < 6 ? 'frostLowWind' : 'frostLow';
         if (i.act.spell === 'frost') return i.act.t < 6 ? 'frostWind' : 'frost';
+        // (a prism answering mid-chime: the beam pose takes over at once)
+        if (i.act.spell === 'resonance') return i.events.includes('beam') || (cur === 'resBeam' && oneShotLive) ? 'resBeam' : i.act.t < 6 ? 'resWind' : 'resRing';
         if (i.act.spell === 'gale') return 'gale';
         if (i.act.spell === 'lantern') return i.lanternUp ? 'lanternUp' : 'lanternDown';
         return 'cast';
@@ -237,6 +263,7 @@ export class HeroAnimator {
     if (p && p.climb && !i.climb && i.ground && p.vy < 0) return 'climbOff';
     if (!i.ground) {
       if (i.glide && has('glide')) return 'glide';
+      if (i.bounce && i.vy < 0 && has('bounce')) return 'bounce';
       if (i.wallSlide && has('wallSlide')) return 'wallSlide';
       if (cur === 'wallKick' && oneShotLive) return cur;
       if (i.vy < -1.2) return 'rise';
@@ -264,6 +291,9 @@ export class HeroAnimator {
     if (i.ride === 'note' || i.ride === 'bell') return 'balance';
     if (i.hail && has('shield')) return 'shield';
     if (i.gust) return 'brace';
+    // the forge heat: hopping from foot to foot on a hot floor, wiping a brow now and then once it runs high
+    if (i.hot && (i.heat ?? 0) > 70 && this.still > 40 && (this.t + this.seed * 37) % 240 === 239) return 'browWipe';
+    if (i.hot && (i.heat ?? 0) > 35) return 'hotHop';
     if (i.lanternUp && has('lanternUp')) return 'lanternUp';
     if (cur === 'lanternUp' && !i.lanternUp) return 'lanternDown';
     if (i.wade) return 'wadeStill';

@@ -2,7 +2,7 @@
 // (`stepBody`) through short input "macros" (walk a tile, a jump with a given hold and steer, a dash, a wall kick, a
 // swim stroke...) and records where each one comes to rest. Those resting places are the graph's nodes, so any edge
 // it finds is a move a player can make, and the bots replay exactly these inputs.
-import { ROOMS, COLS, ROWS, TILE, WATER_AREAS, WIND_AREAS, GUARDIANS, BELFRY_GUARDIANS, type Ability, type WaterArea, type WindArea, type Room, type HeroId } from './bellspire-world.js';
+import { ROOMS, COLS, ROWS, TILE, WATER_AREAS, WIND_AREAS, GUARDIANS, BELFRY_GUARDIANS, FOUNDRY_GUARDIANS, type Ability, type WaterArea, type WindArea, type Room, type HeroId } from './bellspire-world.js';
 import { newBody, stepBody, boxClear, support, hookInReach, HERO_W, HERO_H, RUN, type Body, type BodyInput, type Caps, type Env } from './bellspire-physics.js';
 
 // the map grid, wide enough for the Windward Belfry east of the citadel
@@ -15,7 +15,7 @@ for (let i = 0; i < ROOMS.length; i++) {
   for (let y = 0; y < r.rows.length; y++) for (let x = 0; x < r.rows[y].length; x++) {
     const c = r.gx * COLS + x, rr = r.gy * ROWS + y;
     const ch = r.rows[y][x];
-    GRID[rr * GW + c] = ('#=Hgx^f' + 'djlkcubynZ').includes(ch) ? ch.charCodeAt(0) : 46;
+    GRID[rr * GW + c] = ('#=Hgx^f' + 'djlkcubynZ' + '~_:+89&V').includes(ch) ? ch.charCodeAt(0) : 46;
     ROOM_AT[rr * GW + c] = i;
   }
 }
@@ -26,41 +26,67 @@ export const roomIndexAt = (x: number, y: number) => {
 };
 const CH = (s: string) => s.charCodeAt(0);
 const HASH = CH('#'), EQ = CH('='), LAD = CH('H'), GLASS = CH('g'), BRK = CH('x'), SPIKE = CH('^');
+// the foundry's floors: molten bronze (the planner counts it frosted: the route bot cools it first), lava (always
+// burns), slag (counted hardened: the bot waits for a vent's puff) and bronze bounce plates
+const MOLTEN = CH('~'), LAVA = CH('_'), SLAG = CH(':'), PLATE = CH('+');
 const DOORS: Record<number, string> = {};
-for (const ch of 'djlkcubynZ') DOORS[CH(ch)] = ch;
-/** Every bell hook (world points) and every echo bell's notes (as floats), from the rooms. */
+for (const ch of 'djlkcubynZ89&V') DOORS[CH(ch)] = ch;
+/** Every bell hook (world points), every echo bell's notes and every humming crystal's bridge slabs (as floats, with
+ *  the bell or crystal that makes them and what that needs), from the rooms. */
 const HOOKS: { x: number; y: number }[] = [];
-export const NOTES: { x0: number; x1: number; y: number; bx: number; by: number }[] = [];
+export type NavNote = { x0: number; x1: number; y: number; bx: number; by: number; need: 'echo' | 'resonance' };
+export const NOTES: NavNote[] = [];
+/** Bronze bounce plates (tile keys), for the slam macros. */
+const PLATES: { x: number; y: number }[] = [];
 for (const room of ROOMS) {
-  let q = 0;
+  let q = 0, k = 0;
   room.rows.forEach((line, y) => [...line].forEach((ch, x) => {
     const c = room.gx * COLS + x, r = room.gy * ROWS + y;
     if (ch === 'o') HOOKS.push({ x: c * TILE + 8, y: r * TILE + 4 });
-    if (ch === 'Q') { for (const [dc, dr] of room.echoes?.[q] ?? []) NOTES.push({ x0: (c + dc) * TILE, x1: (c + dc + 2) * TILE, y: (r + dr) * TILE, bx: c * TILE + 8, by: r * TILE }); q++; }
+    if (ch === 'Q') { for (const [dc, dr] of room.echoes?.[q] ?? []) NOTES.push({ x0: (c + dc) * TILE, x1: (c + dc + 2) * TILE, y: (r + dr) * TILE, bx: c * TILE + 8, by: r * TILE, need: 'echo' }); q++; }
+    if (ch === '*') { for (const [dc, dr] of room.crystals?.[k] ?? []) NOTES.push({ x0: (c + dc) * TILE, x1: (c + dc + 2) * TILE, y: (r + dr) * TILE, bx: c * TILE + 8, by: r * TILE, need: 'resonance' }); k++; }
+    if (ch === '+') PLATES.push({ x: c * TILE + 8, y: r * TILE });
   }));
 }
+/** Beam doors whose prism is on the far side, in the next room: a shortcut back, opened from there. The planner
+ *  counts them shut (unless the save says they are open), so it never plans through one from the wrong side. */
+const PRISMS: { x: number; y: number; room: number }[] = [];
+const BEAM_TILES: { c: number; r: number; room: number }[] = [];
+ROOMS.forEach((room, i) => room.rows.forEach((line, y) => [...line].forEach((ch, x) => {
+  const c = room.gx * COLS + x, r = room.gy * ROWS + y;
+  if (ch === '!') PRISMS.push({ x: c * TILE + 8, y: r * TILE + 8, room: i });
+  if (ch === '&') BEAM_TILES.push({ c, r, room: i });
+})));
+export const FAR_BEAM = new Set(BEAM_TILES.filter((t) => !PRISMS.some((p) => p.room === t.room && Math.hypot(p.x - (t.c * TILE + 8), p.y - (t.r * TILE + 8)) <= 9 * TILE)).map((t) => `${t.c},${t.r}`));
+/** Is a bounce plate close by (so the slam macros are worth trying from here)? */
+const plateNear = (x: number, y: number) => PLATES.some((p) => Math.abs(p.x - x) < 6 * TILE && Math.abs(p.y - y) < 5 * TILE);
 /** Is there a hook within a few tiles of this spot (so the rope macros are worth trying from it)? */
 const hookNear = (x: number, y: number) => HOOKS.some((h) => Math.abs(h.x - x) < 11 * TILE && h.y < y && y - h.y < 9 * TILE);
 
 /** What the planner assumes about the world: abilities, the water in each area, and a few story flags (Ukumari met,
  *  and which guardians are calm: the throne door needs both, all four seals lit). */
-export type NavState = { abilities: Ability[]; water: Record<WaterArea, 0 | 1>; keeper: boolean; calmed: string[]; broken?: Set<string>; wind?: Record<WindArea, 1 | -1> };
+export type NavState = { abilities: Ability[]; water: Record<WaterArea, 0 | 1>; keeper: boolean; calmed: string[]; broken?: Set<string>; wind?: Record<WindArea, 1 | -1>; beams?: Set<string> };
 export const throneOpen = (s: Pick<NavState, 'keeper' | 'calmed'>) => s.keeper && GUARDIANS.every((b) => s.calmed.includes(b));
 /** The belfry seal: open once the Hail Condor and the Twin Clappers are calm. */
 export const belfryOpen = (s: Pick<NavState, 'calmed'>) => BELFRY_GUARDIANS.every((b) => s.calmed.includes(b));
+/** The foundry seal (once the Out-of-Tune Bell is calm) and the deep seal (once the Founder and the Choir are). */
+export const foundryOpen = (s: Pick<NavState, 'calmed'>) => s.calmed.includes('tune');
+export const deepOpen = (s: Pick<NavState, 'calmed'>) => FOUNDRY_GUARDIANS.every((b) => s.calmed.includes(b));
 export const windOf = (s: NavState, a: WindArea) => s.wind?.[a] ?? 1;
-export const stateKey = (s: NavState) => `${[...s.abilities].sort().join('+')}|${WATER_AREAS.map((a) => s.water[a]).join('')}|${throneOpen(s) ? 1 : 0}|${WIND_AREAS.map((a) => windOf(s, a)).join('')}|${belfryOpen(s) ? 1 : 0}`;
+export const stateKey = (s: NavState) => `${[...s.abilities].sort().join('+')}|${WATER_AREAS.map((a) => s.water[a]).join('')}|${throneOpen(s) ? 1 : 0}|${WIND_AREAS.map((a) => windOf(s, a)).join('')}|${belfryOpen(s) ? 1 : 0}${foundryOpen(s) ? 1 : 0}${deepOpen(s) ? 1 : 0}`;
 
 export function navEnv(s: NavState): Env {
   const has = (a: Ability) => s.abilities.includes(a);
   const doorOpen = (ch: string) => ch === 'b' || (ch === 'd' && has('dash')) || (ch === 'j' && has('double')) || (ch === 'k' && has('wallkick')) || (ch === 'l' && has('lantern')) || (ch === 'c' && has('chime')) || (ch === 'u' && throneOpen(s))
-    || (ch === 'y' && has('rope')) || (ch === 'n' && has('echo')) || (ch === 'Z' && belfryOpen(s));
+    || (ch === 'y' && has('rope')) || (ch === 'n' && has('echo')) || (ch === 'Z' && belfryOpen(s))
+    || (ch === '8' && has('hammer')) || (ch === '&' && has('resonance')) || (ch === '9' && foundryOpen(s)) || (ch === 'V' && deepOpen(s));
   const solid = (c: number, r: number) => {
     const t = at(c, r);
-    if (t === HASH || t === SPIKE) return true;
+    if (t === HASH || t === SPIKE || t === MOLTEN || t === LAVA || t === SLAG || t === PLATE) return true;
     if (t === BRK) return !s.broken?.has(`${c},${r}`);
     if (t === GLASS) return has('lantern');
     const d = DOORS[t];
+    if (d === '&' && FAR_BEAM.has(`${c},${r}`)) return !s.beams?.has(`${c},${r}`);
     if (d) return !doorOpen(d);
     return false;
   };
@@ -86,7 +112,7 @@ export function navEnv(s: NavState): Env {
   });
   // echo notes count as always there once Enzo has the Echo Step (the route bot rings the bell first, and the
   // tests check a real climb inside the notes' few seconds)
-  if (has('echo')) floats.push(...NOTES);
+  floats.push(...NOTES.filter((n) => has(n.need)));
   return {
     solid, ladder,
     wind: (x, y) => {
@@ -99,7 +125,8 @@ export function navEnv(s: NavState): Env {
     },
     hooks: () => HOOKS,
     oneway: (c, r) => at(c, r) === EQ || (ladder(c, r) && !ladder(c, r - 1) && !solid(c, r - 1)),
-    hazard: (c, r) => at(c, r) === SPIKE,
+    hazard: (c, r) => at(c, r) === SPIKE || at(c, r) === LAVA,
+    bouncy: (c, r) => at(c, r) === PLATE,
     surface: (x, y) => { const i = roomIndexAt(x, y); return i < 0 ? null : surf.get(i) ?? null; },
     deep: (x, y) => { const i = roomIndexAt(x, y); const room = ROOMS[i]; return i >= 0 && room.deep !== undefined ? (room.gy * ROWS + room.deep) * TILE : null; },
     floats: () => floats,
@@ -116,7 +143,7 @@ export function capsFor(s: NavState, hero: HeroId, assist = false): Caps {
   return {
     speed: RUN[hero], dash: hero === 'dora' && has('dash'), double: hero === 'dora' && has('double'), wallkick: hero === 'dora' && has('wallkick'),
     glide: hero === 'enzo' && has('glide'), deep: has('deep'), swimMul: 1, coyote: assist ? 9 : 6, buffer: assist ? 9 : 6,
-    rope: hero === 'dora' && has('rope'), ropeAssist: assist && hero === 'dora' && has('rope'),
+    rope: hero === 'dora' && has('rope'), ropeAssist: assist && hero === 'dora' && has('rope'), slam: hero === 'dora' && has('hammer'),
   };
 }
 
@@ -192,6 +219,26 @@ function ropeMacros(): Macro[] {
 }
 const ROPE = ropeMacros();
 
+/** The Bell Hammer by a bounce plate: a jump (steered on to the plate or straight up), a slam from a given tick, the
+ *  bounce, then steer on (and with the Wind Leap, a second jump at the top). */
+function slamMacros(s: NavState): Macro[] {
+  const out: Macro[] = [];
+  const dbl = s.abilities.includes('double');
+  for (const pre of [-1, 0, 1] as const) for (const at of [8, 16]) for (const d of [-1, 0, 1] as const) for (const dj of dbl ? [false, true] : [false]) {
+    let up = -1;
+    out.push({
+      name: `slam${pre}@${at}${d}${dj ? 'j' : ''}`, hero: 'dora', max: 200,
+      input: (t, b) => {
+        if (t === 0) up = -1;
+        if (b.bounced) up = t;
+        if (up < 0) return I(t < at ? pre : 0, { jumpP: t === 0, jumpH: t < at, slamP: t === at });
+        return I(d, { jumpH: true, jumpP: dj && t === up + 26 });
+      },
+    });
+  }
+  return out;
+}
+
 /** The guided rope (the helping hand): jump towards a hook (it catches itself), then a tap of jump a moment later,
  *  holding the way to go: it flies to the next hook (and taps again there) or a ledge. */
 function assistRopeMacros(): Macro[] {
@@ -260,7 +307,8 @@ function wallMacros(): Macro[] {
 export type Node = { key: number; c: number; r: number; mode: Mode; x: number; y: number; wall: -1 | 0 | 1 };
 export type Edge = { to: number; macro: Macro; ticks: number };
 
-const nodeKey = (c: number, r: number, mode: Mode, wall: number) => ((c * 200 + r) * 4 + (mode === 'ground' ? 0 : mode === 'swim' ? 1 : mode === 'wall' ? 2 : 3)) * 3 + (wall + 1);
+// (rows go past 200 under the citadel, in the Foundry Below)
+const nodeKey = (c: number, r: number, mode: Mode, wall: number) => ((c * 400 + r) * 4 + (mode === 'ground' ? 0 : mode === 'swim' ? 1 : mode === 'wall' ? 2 : 3)) * 3 + (wall + 1);
 
 /** Where a moving body has come to rest, as a node; null while still moving. */
 function restNode(b: Body, t: number, m: Macro, s: NavState): Node | null {
@@ -361,7 +409,9 @@ export class Graph {
   private gm: Macro[] | null = null;
   private gr: Macro[] | null = null;
   private ga: Macro[] | null = null;
+  private gs: Macro[] | null = null;
   macrosFor(n: Node): Macro[] {
+    if (n.mode === 'ground' && this.s.abilities.includes('hammer') && plateNear(n.x, n.y)) return (this.gs ??= [...groundMacros(this.s), ...slamMacros(this.s)]);
     const rope = this.s.abilities.includes('rope') && hookNear(n.x, n.y);
     if (this.assist && rope) {
       if (n.mode === 'ground') return (this.ga ??= [...groundMacros(this.s).map(withRopeRelease), ...AROPE]);

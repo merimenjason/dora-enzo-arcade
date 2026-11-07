@@ -22,7 +22,10 @@ BOXES = {}  # name: per-frame painted bounds (x0, y0, x1, y1) from the draw poin
 PARTS = []  # the part maps of the frames being scaled (the heroes'), in order
 # the decor frames with open flames (the torch and candle frames the scene uses; the docks light with a lantern post
 # and the throne with a chandelier, so they have none)
-OPEN_FLAMES = {'halls': (6, 0), 'towers': (4, 6), 'crypt': (6, 2), 'loft': (0,)}
+OPEN_FLAMES = {'halls': (6, 0), 'towers': (4, 6), 'crypt': (6, 2), 'loft': (0,), 'cast': (0,), 'glass': (6,)}
+# the Foundry Below's sheets full of violet and pink glass were painted on flat green, which the magenta key would eat
+GREEN = {'bs-tiles-glass', 'bs-decor-glass', 'bs-mid-glass', 'bs-tiles-fd', 'bs-props-fd', 'bs-foe-cbat', 'bs-foe-gsnail',
+         'bs-foes-e', 'bs-boss-choir', 'bs-boss-choir2', 'bs-boss-choir3', 'bs-icons-d'}
 FLAMES = {}  # decor sheet: per frame, the painted flames' boxes
 FOE_BODY = {}  # foe kind: the frame whose bounds are its body
 INK = (34, 24, 32)
@@ -32,12 +35,17 @@ def load(name):
     return Image.open(SRC / f'{name}.png').convert('RGBA')
 
 
-def key(im):
-    """the flat magenta becomes clear, and its anti-aliased fringe is pulled towards the ink outline"""
+def key(im, green=False):
+    """the flat magenta (or, with `green`, the flat green) becomes clear, and its anti-aliased fringe is pulled towards
+    the ink outline"""
     a = np.asarray(im.convert('RGBA')).astype(np.int16).copy()
     r, g, b = a[..., 0], a[..., 1], a[..., 2]
-    m = np.minimum(r, b) - g
-    hard = (m > 95) & (r > 150) & (b > 150)
+    if green:
+        m = g - np.maximum(r, b)
+        hard = (m > 95) & (g > 150)
+    else:
+        m = np.minimum(r, b) - g
+        hard = (m > 95) & (r > 150) & (b > 150)
     soft = (m > 35) & ~hard & (np.abs(r - b) < 110)
     a[hard] = 0
     k = np.clip((m - 35) / 60.0, 0, 1)
@@ -46,6 +54,17 @@ def key(im):
         ch[soft] = (ch[soft] * (1 - k[soft]) + ink * k[soft]).astype(np.int16)
     a[..., 3][soft] = (255 * (1 - k[soft] * 0.85)).astype(np.int16)
     return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
+
+
+def have(name):
+    """whether a painting is in the source folder (a strip whose paintings are not all painted yet is left out, never
+    filled in with stand-ins)"""
+    return (SRC / f'{name}.png').exists()
+
+
+def kload(name):
+    """a sheet, keyed on the ground it was painted on"""
+    return key(load(name), name in GREEN)
 
 
 def _hsv(a):
@@ -101,6 +120,7 @@ def hero_colours(im, hero, outfit=False):
         fur = (sat < 0.34) & (np.minimum(r, b) >= g - 6) & (v > 0.18) & ~ground
         if outfit:
             fur &= (b - r < 24)
+        if outfit == 'h':
             # the Highland Cloak's felt is painted a deep navy: lift it towards slate so it reads at sprite size
             cloak = (h > 200) & (h < 265) & (sat > 0.18) & ~ground
             rgb[cloak] = _rgb(np.full(h.shape, 222.0)[cloak], np.clip(sat[cloak], 0.4, 0.65), np.clip(v[cloak] * 1.05 + 0.02, 0, 1))
@@ -281,7 +301,7 @@ def enzo_zones(raw, outfit=False):
     brass = al & (h >= 28) & (h < 70) & (sat > 0.3) & (v > 0.3)
     glow = al & (h >= 30) & (h < 62) & (sat > 0.35) & (v > 0.82)
     red = al & ((h >= 330) | (h < 8)) & (sat > 0.45)
-    if outfit:
+    if outfit == 'h':
         # the Highland Cloak's blue felt is the coat: a brass clasp on it is no lantern
         red |= al & (h > 200) & (h < 265) & (sat > 0.18)
     mx, my, reach = int(7 * k), int(12 * k), int(20 * k)
@@ -735,20 +755,23 @@ def cover(im, w, h):
 
 
 # ─── the heroes ────────────────────────────────────────────────────────────
-SHEETS = 'abcdefghijk'
-# the Windward Belfry outfits: every sheet painted again in the Windward Jacket (Dora) and the Highland Cloak (Enzo)
-OUTFIT = {'dora': ('w', 'dora-windward'), 'enzo': ('h', 'enzo-highland')}
+SHEETS = 'abcdefghijkl'
+# the outfits: every sheet painted again in the Windward Belfry's Windward Jacket (Dora) and Highland Cloak (Enzo), and
+# the Foundry Below's Forge Apron (Dora) and Ashwork Smock (Enzo)
+OUTFIT = {'dora': [('w', 'dora-windward'), ('r', 'dora-forge')], 'enzo': [('h', 'enzo-highland'), ('s', 'enzo-ash')]}
 
 
-def hero_frames(hero, prefix, outfit=False):
-    """a hero's 88 frames (from the sheets bs-<prefix>-a to -k), with their part maps and (Enzo) lantern masks"""
+def hero_frames(hero, prefix, outfit=False, SHEETS=SHEETS):
+    """a hero's 96 frames (from the sheets bs-<prefix>-a to -l), with their part maps and (Enzo) lantern masks"""
     src = lambda n: hero_colours(load(n), hero, outfit)
     # a, b: the first 16 frames; c to h, the animation pass (climb and land, run, idle and interactions, attacks,
     # body, water); i, j: every state its own poses (run start-up, Whirl Slash, Enzo's combo, bell strikes, wading,
-    # treading); k: the Windward Belfry's (Bell Rope throw and swing, wind, hail; Enzo's echo, frost and gale casts).
+    # treading); k: the Windward Belfry's (Bell Rope throw and swing, wind, hail; Enzo's echo, frost and gale casts);
+    # l: the Foundry Below's (Dora's Bell Hammer slam, bounce and bell ring; Enzo's Resonance and ground Frost Fan; heat,
+    # handing a weapon over to be recast, hopping off a hot floor).
     # 8 each, in the order of the HERO_FRAMES comment in lib/bellspire-anim.ts
     # (the new sheets' long staffs and swords can reach into the next cell, so stray pieces at a cell's side go)
-    near = lambda sh: outfit or sh in 'ijk'  # (the outfit sheets were all repainted, so any can stray)
+    near = lambda sh: outfit or sh in 'ijkl'  # (the outfit sheets were all repainted, so any can stray)
     figs = [bbox(drop_neighbours(c) if near(sh) else c) for sh in SHEETS for c in cells(key(src(f'bs-{prefix}-{sh}')), 4, 2)]
     if hero == 'enzo':
         # the same figures before the colour pass, for where the lantern and the staff are
@@ -772,19 +795,32 @@ def hero_frames(hero, prefix, outfit=False):
 
 for hero in ('dora', 'enzo'):
     frames, parts, lamps = hero_frames(hero, hero)
-    wear, wname = OUTFIT[hero]
-    oframes, oparts, olamps = hero_frames(hero, f'{hero}-{wear}', outfit=True)
-    # the outfit strip shares the hero strip's cell size and frame order, so the scene can swap one for the other
-    cw = max(56, *(f.width for f in frames + oframes))
-    ch = max(44, *(f.height for f in frames + oframes))
+    # (an outfit whose sheets are not all painted yet keeps the sheets it has, a to k, or is left out)
+    outs = []
+    for wear, wname in OUTFIT[hero]:
+        for shs in (SHEETS, SHEETS[:11]):
+            if all(have(f'bs-{hero}-{wear}-{sh}') for sh in shs):
+                outs.append((wname,) + hero_frames(hero, f'{hero}-{wear}', outfit=wear, SHEETS=shs))
+                break
+        else:
+            print(f'{wname:14} not all painted yet: left out')
+    # the outfit strips share the hero strip's cell size and frame order, so the scene can swap one for another
+    every = frames + [f for o in outs for f in o[1]]
+    cw = max(56, *(f.width for f in every))
+    ch = max(44, *(f.height for f in every))
     strip(hero, frames, cw, ch, parts=parts, lamps=lamps)
-    strip(wname, oframes, cw, ch, parts=oparts, lamps=olamps)
+    for wname, oframes, oparts, olamps in outs:
+        strip(wname, oframes, cw, ch, parts=oparts, lamps=olamps)
 
 # ─── enemies: frame A on top, frame B below ───────────────────────────────
 FOE_H = {'frog': 20, 'moth': 15, 'eel': 18, 'reed': 30, 'condor': 30, 'imp': 19, 'shell': 30, 'vizcacha': 18,
          'jelly': 19, 'golem': 38,
          # the Windward Belfry (frames 104-135): wind spirit, hail-hawk, clapper on its rope, bell-beetle
-         'gust': 22, 'hawk': 22, 'clapper': 28, 'beetle': 18}
+         'gust': 22, 'hawk': 22, 'clapper': 28, 'beetle': 18,
+         # the Foundry Below (frames 144-175, after the Windward Belfry's projectiles): bronze ingot, ember wisp,
+         # crystal bat, glass snail
+         'ingot': 20, 'ember': 16, 'cbat': 18, 'gsnail': 18}
+FOE_FD = ('ingot', 'ember', 'cbat', 'gsnail')
 order = [('bs-foes-a', ['frog', 'moth', 'eel', 'reed']), ('bs-foes-b', ['condor', 'imp', 'shell', 'vizcacha'])]
 foes = []
 for sheet, names in order:
@@ -801,17 +837,29 @@ for i, hgt in ((2, 22), (3, 11), (6, 12), (7, 13)):
     foes.append(scaled(cs[i], hgt / cs[i].height, 16))
 # the animation pass: each foe's own sheet, 8 frames from index 24 (idle x2, move x4, wind-up, attack); the idle
 # frame keeps the height the foe had, and the body frames (idle and move) are what its hitbox is checked against
-for k, n in enumerate(FOE_H):
-    cs = [bbox(c) for c in cells(key(load(f'bs-foe-{n}')), 4, 2)]
+def foe_sheet(n):
+    cs = [bbox(c) for c in cells(kload(f'bs-foe-{n}'), 4, 2)]
     if n == 'clapper':
         cs = [unrope(c) for c in cs]
     s = FOE_H[n] / cs[0].height
     FOE_BODY[n] = [len(foes) + j for j in range(6)]
-    foes += [scaled(c, s, 18) for c in cs]
+    return [scaled(c, s, 18) for c in cs]
+
+
+for n in FOE_H:
+    if n not in FOE_FD:
+        foes += foe_sheet(n)
 # the Windward Belfry's projectiles (136-143): hail streak, icicle, gust puff, plank chunk, clapper shard, falling cog,
 # sour-note ring fragment, big hailstone
 cs = [bbox(c) for c in cells(key(load('bs-foes-d')), 4, 2)]
 for c, hgt in zip(cs, (12, 20, 16, 14, 12, 14, 14, 16)):
+    foes.append(scaled(c, hgt / c.height, 16))
+for n in FOE_FD:
+    foes += foe_sheet(n)
+# the Foundry Below's projectiles (176-183): ember spark, bronze glob, glass shard, crystal note, molten splash chunk,
+# hollow-toll ring fragment, lava drop, falling bell blank
+cs = [bbox(c) for c in cells(kload('bs-foes-e'), 4, 2)]
+for c, hgt in zip(cs, (10, 12, 12, 14, 16, 14, 12, 16)):
     foes.append(scaled(c, hgt / c.height, 16))
 strip('foes', foes, 64, 48)
 
@@ -820,6 +868,9 @@ def boss(name, sheet, height, cw, ch, rope=False, fit=False):
     """frames 0-2: rest, wind-up, attack; 3-5 (the animation pass): a second wind-up, stagger, calmed. With `rope`, the
     painted rope it hangs from is cut off (the scene draws it). With `fit`, the second sheet was painted at another
     size, so its frames are scaled to make its calmed frame (hanging straight, like the rest frame) as wide as the rest"""
+    if not (have(sheet) and have(sheet + '2')):
+        print(f'{name:14} not all painted yet: left out')
+        return
     cs = figures(key(load(sheet)), 3)
     more = figures(key(load(sheet + '2')), 3)
     if rope:
@@ -838,6 +889,23 @@ boss('boss-condor', 'bs-boss-condor', 90, 240, 130)
 boss('boss-clapper-a', 'bs-boss-clapper-a', 64, 110, 110, rope=True)
 boss('boss-clapper-b', 'bs-boss-clapper-b', 64, 110, 110, rope=True)
 boss('boss-bell', 'bs-boss-bell', 120, 200, 160, fit=True)
+# the Foundry Below's guardians: the Molten Founder, the Hollow Bell (its dark shell, then its molten heart set free)
+boss('boss-founder', 'bs-boss-founder', 100, 220, 140)
+boss('boss-hollow', 'bs-boss-hollow', 120, 200, 160)
+boss('boss-hollowb', 'bs-boss-hollowb', 110, 200, 160)
+
+
+def choir(name, sheets, height, cw, ch):
+    """the Glass Choir: three singers (low, middle, high) on each sheet (resting, singing, calmed), all at one scale"""
+    if not all(have(sh) for sh in sheets):
+        print(f'{name:14} not all painted yet: left out')
+        return
+    figs = [f for sh in sheets for f in figures(kload(sh), 3)]
+    s = height / figs[0].height
+    strip(name, [scaled(f, s, 32) for f in figs], cw, ch)
+
+
+choir('boss-choir', ('bs-boss-choir', 'bs-boss-choir2', 'bs-boss-choir3'), 60, 90, 90)
 
 # the hydra: its coiled body stays put, and its three heads move on their own necks
 hy = cells(key(load('bs-boss-hydra')), 3, 1)
@@ -882,17 +950,29 @@ strip('props', [scaled(c, h / c.height, 24) for c, h in zip(cs, PROPS)] + [scale
 PROPS2 = [('h', 18), ('h', 26), ('h', 26), ('h', 34), ('h', 34), ('w', 56), ('w', 70), ('w', 34)]
 cs = [bbox(c) for c in cells(key(load('bs-props-wb')), 4, 2)]
 strip('props2', [scaled(c, n / (c.height if d == 'h' else c.width), 24) for c, (d, n) in zip(cs, PROPS2)], 80, 56)
+# the Foundry Below's props: forge furnace (lit), vent (closed, puffing mist), humming crystal (dim, ringing), beam
+# emitter, Tupa's anvil with a bell blank, the tuneless bell blank; the second frame of a pair keeps the first's scale
+# so the vent and the crystal stay the same size
+PROPS3 = [44, 16, None, 22, None, 26, 28, 36]
+cs = [bbox(c) for c in cells(kload('bs-props-fd'), 4, 2)]
+ss = []
+for c, hgt in zip(cs, PROPS3):
+    ss.append(hgt / c.height if hgt else ss[-1])
+strip('props3', [scaled(c, s, 24) for c, s in zip(cs, ss)], 64, 48)
 strip('flames', [scaled(c, 18 / c.height, 12, outline=False) for c in wd[0:3]] + [scaled(c, 8 / c.height, 8, outline=False) for c in wd[4:7]], 16, 20)
 cs = [bbox(c) for c in cells(key(load('bs-npcs')), 4, 2)]
 NPCS = [44, 44, 50, 50, 12, 16, 10, 16]  # wayra x2, ukumari x2, wisp, ghost-glass, coins, ability orb
 npc = [scaled(c, h / c.height, 24, outline=(i != 5)) for i, (c, h) in enumerate(zip(cs, NPCS))]
 strip('npcs', npc, 72, 56)
+# Tupa the bellfounder: idle, hammering, waving and talking, holding out a recast item
+strip('npcs2', [scaled(c, 44 / c.height, 24) for c in (bbox(c) for c in cells(key(load('bs-npcs-fd')), 2, 2))], 72, 56)
 
 # ─── icons and portraits ──────────────────────────────────────────────────
 icons = []
 # (the Windward Belfry's 32-39 come from a 4 by 2 sheet)
-for sheet, (cols, rows) in (('bs-icons-a', (4, 4)), ('bs-icons-b', (4, 4)), ('bs-icons-c', (4, 2))):
-    for c in cells(key(load(sheet)), cols, rows):
+# (the Foundry Below's 40-47 too)
+for sheet, (cols, rows) in (('bs-icons-a', (4, 4)), ('bs-icons-b', (4, 4)), ('bs-icons-c', (4, 2)), ('bs-icons-d', (4, 2))):
+    for c in cells(kload(sheet), cols, rows):
         f = bbox(c)
         s = 20 / max(f.width, f.height)
         icons.append(scaled(f, s, 16))
@@ -902,6 +982,10 @@ for i, c in enumerate(cells(load('bs-portraits'), 3, 2)):
     f = bbox(key(hero_colours(c, 'enzo') if i == 1 else hero_colours(c, 'dora') if i in (0, 5) else c))  # Enzo is second; Dora first and last
     s = 60 / max(f.width, f.height)
     ports.append(scaled(f, s, 32))
+# the Foundry Below's (6-8): Tupa, the Hollow Bell, the Molten Founder's mask; painted in a row, each its middle square
+for c in cells(load('bs-portraits-fd'), 3, 1):
+    f = bbox(key(cover(c, 1, 1)))
+    ports.append(scaled(f, 60 / max(f.width, f.height), 32))
 strip('portraits', ports, 64, 64, anchor='middle')
 
 # ─── the Cloudstair's stone ─────────────────────────────────────────────────
@@ -1033,10 +1117,16 @@ DECOR = {
     'cloud': [56, 60, 24, 22, 22, 20, 48, 30],
     # lantern (lit), cogwheel, bell on a bracket, beam bracket and chain, pulley, crate, louvred window, bell rope coil
     'loft': [30, 48, 26, 40, 34, 20, 56, 44],
+    # the Foundry Below: furnace mouth (lit), hanging crucible, anvil, clay bell mould, ingot stack, bellows, crane hook,
+    # rack of tongs and ladles
+    'cast': [50, 44, 18, 58, 18, 20, 48, 34],
+    # red crystals, purple crystals, crystal stalactite, glowing lava boulder, obsidian spire, cave fungus, glassblower's
+    # lamp (lit), bottle and pipe rack
+    'glass': [30, 26, 40, 22, 56, 18, 34, 32],
 }
 for area, hs in DECOR.items():
     ts = []
-    for c in cells(key(load(f'bs-tiles-{area}')), 3, 3):
+    for c in cells(kload(f'bs-tiles-{area}'), 3, 3):
         sq = cover(c, 1, 1)
         ts.append(sq.resize((64, 64), Image.LANCZOS).resize((16, 16), Image.BOX))
     # one palette for the whole tile set, so neighbouring tiles agree; the ledge, ladder and pillar keep clear parts
@@ -1051,7 +1141,7 @@ for area, hs in DECOR.items():
     sheet.save(OUT / f'tiles-{area}.webp', lossless=True, method=6)
     MANIFEST[f'tiles-{area}'] = (16, 16, 9)
     print(f'tiles-{area:8}  9 x 16x16')
-    cs = [bbox(c) for c in cells(key(load(f'bs-decor-{area}')), 4, 2)]
+    cs = [bbox(c) for c in cells(kload(f'bs-decor-{area}'), 4, 2)]
     strip(f'decor-{area}', [scaled(c, h / c.height, 20) for c, h in zip(cs, hs)], 72, 68)
     # where the painted flames are in each decor frame (bright warm pixels), so the scene can lay moving flames over
     # them: up to six per frame, as [x0, y0, x1, y1] from the draw point
@@ -1068,7 +1158,7 @@ for area, hs in DECOR.items():
         fl = [boxes[j] for j in sorted(range(1, len(sizes)), key=lambda j: -sizes[j]) if sizes[j] >= 3][:6]
         FLAMES[f'decor-{area}'].append([(x0 - cw // 2, y0 - ch, x1 + 1 - cw // 2, y1 + 1 - ch) for y0, x0, y1, x1 in fl])
     opaque(f'bg-{area}', cover(load(f'bs-bg-{area}'), 16, 9), 480, 270, 40)
-    mid = key(cover(load(f'bs-mid-{area}'), 16, 9))
+    mid = key(cover(load(f'bs-mid-{area}'), 16, 9), f'bs-mid-{area}' in GREEN)
     m = pixelate(mid, 480, 270, 24, outline=False, clean=False)
     if area == 'cloud': m = calm_mid_cloud(m)
     m.save(OUT / f'mid-{area}.webp', lossless=True, method=6)
@@ -1079,16 +1169,31 @@ for area, hs in DECOR.items():
 # repainted (the "2" versions) so Dora's coat is teal and Enzo grey with a rust coat, as in the game
 # (a refined palette: with a plain median cut, the teal coat on the blue night merged into the blue)
 for n, src in (('title', 'bs-title2'), ('ending', 'bs-ending2'), ('epilogue', 'bs-epilogue2'),
-               ('ending2', 'bs-ending-wb'), ('epilogue2', 'bs-epilogue-wb')):
+               ('ending2', 'bs-ending-wb'), ('epilogue2', 'bs-epilogue-wb'), ('ending3', 'bs-ending-fd'),
+               ('epilogue3', 'bs-epilogue-fd')):
     opaque(n, cover(load(src), 16, 9), 480, 270, 96, kmeans=4)
 murals = [cover(c, 4, 3) for c in cells(load('bs-murals'), 3, 2)]
 # the Windward Belfry's eight (6-13), painted four to a sheet so each panel is near 4:3
 murals += [cover(c, 4, 3) for sh in ('bs-murals-wb', 'bs-murals-wb2') for c in cells(load(sh), 2, 2)]
+# the Foundry Below's six (14-19)
+murals += [cover(c, 4, 3) for c in cells(load('bs-murals-fd'), 3, 2)]
 ms = []
 for c in murals:
     small = c.convert('RGB').resize((640, 480), Image.LANCZOS).resize((160, 120), Image.BOX)
     ms.append(small.quantize(colors=40, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert('RGBA'))
 strip('murals', ms, 160, 120, anchor='middle')
+# the Foundry Below's special terrain (12 tiles, one palette): molten bronze surface x2, molten fill, cooled crust,
+# cracking crust, vent grate, mist-hardened stone, bounce plate, cracked glass, crystal bridge, beam door, lava surface
+ts = [cover(c, 1, 1).resize((64, 64), Image.LANCZOS).resize((16, 16), Image.BOX) for c in cells(kload('bs-tiles-fd'), 4, 3)]
+rgba = Image.new('RGBA', (16 * 12, 16))
+for i, t in enumerate(ts):
+    rgba.paste(t, (i * 16, 0))
+q = rgba.convert('RGB').quantize(colors=40, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert('RGBA')
+a = np.asarray(q).copy()
+a[..., 3] = np.where(np.asarray(rgba)[..., 3] > 110, 255, 0)
+Image.fromarray(a).save(OUT / 'tiles-fd.webp', lossless=True, method=6)
+MANIFEST['tiles-fd'] = (16, 16, 12)
+print('tiles-fd       12 x 16x16')
 p = load('bs-parchment').convert('RGB').resize((256, 256), Image.LANCZOS).resize((128, 128), Image.BOX)
 p.quantize(colors=20, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert('RGB').save(OUT / 'parchment.webp', lossless=True, method=6)
 MANIFEST['parchment'] = (128, 128, 1)
@@ -1103,7 +1208,8 @@ lines += ['', '// Painted bounds of every frame, [x0, y0, x1, y1] from the draw 
           '// for sprites whose hitboxes come from the art. The art faces the way it was painted; mirror x when flipped.',
           'export const BOXES: Record<string, [number, number, number, number][]> = {']
 for k in ('foes', 'dora', 'enzo', 'boss-frog', 'boss-puma', 'boss-mother', 'boss-warden', 'hydra-head',
-          'boss-condor', 'boss-clapper-a', 'boss-clapper-b', 'boss-bell', 'dora-windward', 'enzo-highland'):
+          'boss-condor', 'boss-clapper-a', 'boss-clapper-b', 'boss-bell', 'dora-windward', 'enzo-highland',
+          'dora-forge', 'enzo-ash', 'boss-founder', 'boss-hollow', 'boss-hollowb', 'boss-choir'):
     if k in BOXES:
         lines.append(f"  '{k}': [" + ', '.join(f'[{a}, {b}, {c}, {d}]' for a, b, c, d in BOXES[k]) + '],')
 lines.append('};')

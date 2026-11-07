@@ -3,6 +3,7 @@
 import {
   ROOMS, AREAS, COLS, ROWS, TILE, SCREEN_W, SCREEN_H, ABILITIES, ABILITY_ORDER, SPELLS, GEAR, START_EQUIP, FOOD, SHOP, BOSSES, MURALS,
   SCRIPTS, WATER_AREAS, SHRINE_NAMES, GUARDIANS, GUARDIAN_AREA, BELFRY_GUARDIANS, BELFRY_AREAS, WIND_AREAS, ALL_BOSSES, abilityIcon,
+  FOUNDRY_GUARDIANS, FOUNDRY_AREAS, PERK_STATS, RECAST_PERKS, RECAST_PRICE,
   type Room, type AreaId, type Ability, type HeroId, type SpellId, type Slot, type FoodId, type BossId, type Line, type WaterArea, type Perk, type WindArea,
 } from './bellspire-world.js';
 import { BOXES, FOE_BODY } from './bellspire-art.js';
@@ -55,20 +56,21 @@ export function rawChar(c: number, r: number): string {
   if (!room) return '#';
   return room.rows[r - room.gy * ROWS]?.[c - room.gx * COLS] ?? '#';
 }
-export const DOOR_CHARS = 'djlkcubynZ';
+export const DOOR_CHARS = 'djlkcubynZ89&V';
 /** The doors an ability opens by touch (or, for the lantern and the chime, by light and by ringing). */
-export const DOOR_ABILITY: Record<string, Ability> = { d: 'dash', j: 'double', k: 'wallkick', l: 'lantern', c: 'chime', y: 'rope', n: 'echo' };
-export const TERRAIN = '#=Hgx^f';
+export const DOOR_ABILITY: Record<string, Ability> = { d: 'dash', j: 'double', k: 'wallkick', l: 'lantern', c: 'chime', y: 'rope', n: 'echo', '8': 'hammer', '&': 'resonance' };
+export const TERRAIN = '#=Hgx^f~_:+';
 /** The tile under a placed thing is air. */
 export const baseChar = (ch: string) => (TERRAIN.includes(ch) || DOOR_CHARS.includes(ch) ? ch : '.');
 
 export type Thing = { ch: string; c: number; r: number; i: number; room: string };
 export type Group = { id: string; ch: string; tiles: [number, number][]; horiz: boolean; c: number; r: number; w: number; h: number };
 export type RoomInfo = { room: Room; things: Thing[]; doors: Group[]; walls: Group[]; floats: { c0: number; c1: number; r: number }[]; hooks: { x: number; y: number }[] };
-const THING_CHARS = 'SMRCABOU@Titwhv' + 'oQWPD' + 'FmerKIazJG' + 'YXLE';
+const THING_CHARS = 'SMRCABOU@Titwhv' + 'oQWPD' + 'FmerKIazJG' + 'YXLE' + 'N%*!1234';
 export const FOE_CHARS: Record<string, FoeKind> = {
   F: 'frog', m: 'moth', e: 'eel', r: 'reed', K: 'condor', I: 'imp', a: 'shell', z: 'vizcacha', J: 'jelly', G: 'golem',
   Y: 'gust', X: 'hawk', L: 'clapper', E: 'beetle',
+  1: 'ingot', 2: 'ember', 3: 'cbat', 4: 'gsnail',
 };
 /** Where a bell hook's rope catches: just under the hook's eye. */
 export const hookPoint = (c: number, r: number) => ({ x: c * TILE + 8, y: r * TILE + 4 });
@@ -112,6 +114,33 @@ for (const room of ROOMS) {
 }
 export const groupAt = (c: number, r: number) => GROUP_AT.get(`${c},${r}`);
 
+/** The Foundry Below's molten channels: each run of `~` along a floor is one channel (a Frost Fan cools it all). */
+export type Channel = { id: string; room: string; r: number; c0: number; c1: number };
+export const CHANNELS: Channel[] = [];
+const CHANNEL_AT = new Map<string, Channel>();
+for (const room of ROOMS) room.rows.forEach((row, y) => {
+  for (let x = 0; x < row.length; x++) if (row[x] === '~' && (x === 0 || row[x - 1] !== '~')) {
+    let e = x; while (row[e + 1] === '~') e++;
+    const ch: Channel = { id: `${room.id}:~${CHANNELS.filter((q) => q.room === room.id).length}`, room: room.id, r: room.gy * ROWS + y, c0: room.gx * COLS + x, c1: room.gx * COLS + e };
+    CHANNELS.push(ch);
+    for (let c = ch.c0; c <= ch.c1; c++) CHANNEL_AT.set(`${c},${ch.r}`, ch);
+  }
+});
+export const channelAt = (c: number, r: number) => CHANNEL_AT.get(`${c},${r}`);
+/** Every beam door ('&'), in any room: a prism's beam reaches through walls to the doors near it. */
+export const BEAM_DOORS: Group[] = [...INFO.values()].flatMap((i) => i.doors.filter((d) => d.ch === '&'));
+/** How long a frosted channel stays a crust (ticks; longer with the helping hand), and how long it glows first. */
+export const FROST_T = 600, FROST_GLOW = 120, FROST_ASSIST = 1.5;
+/** The mist vents: one cycle (ticks), how long a puff lasts (longer with the helping hand). */
+export const VENT_P = 330, VENT_UP = 150, VENT_UP_ASSIST = 240;
+/** The forge heat: what a tick in the heat adds (of 100), what a tick in the shade takes away, and the hurt each
+ *  second the gauge is full (a share of max HP). */
+export const HEAT_RATE = 0.16, HEAT_COOL = 1.2, HEAT_HURT = 0.06;
+/** A humming crystal's bridge: how long it stands (ticks) and the gap between one slab and the next lighting. */
+export const CRYSTAL_LIFE = 600, CRYSTAL_GAP = 6;
+/** Beam doors: each prism opens the beam doors within this many pixels of it. */
+export const BEAM_REACH = 8 * TILE;
+
 /** Where one room opens into the next: every open edge tile, with the room on the other side. The wisp walks this
  * graph to point the way. */
 type Link = { from: string; to: string; c: number; r: number };
@@ -138,6 +167,9 @@ export type MapExit = { cx: number; cy: number; dx: number; dy: number; at: numb
  *  side of the water). */
 const BELFRY_ROOMS_SET = new Set(ROOMS.filter((r) => r.area === 'cloud' || r.area === 'loft').map((r) => r.id));
 export const isBelfryRoom = (id: string) => BELFRY_ROOMS_SET.has(id);
+/** The Foundry Below's rooms (under the citadel, on foot through the seal). */
+const FOUNDRY_ROOMS_SET = new Set(ROOMS.filter((r) => r.fd).map((r) => r.id));
+export const isFoundryRoom = (id: string) => FOUNDRY_ROOMS_SET.has(id);
 export const MAP_EXITS: MapExit[] = (() => {
   const out: MapExit[] = [];
   const open = (c: number, r: number) => !'#^'.includes(rawChar(c, r));
@@ -171,19 +203,22 @@ export const MAP_EXITS: MapExit[] = (() => {
 
 /** The citadel's own guardians and the Lake Mother: the bosses counted for the first epilogue. */
 export const BASE_BOSSES: BossId[] = ['frog', 'hydra', 'puma', 'warden', 'mother'];
+/** ...and with the Windward Belfry's three: the bosses counted for the second epilogue. */
+export const BELFRY_BOSSES: BossId[] = [...BASE_BOSSES, 'condor', 'clappers', 'tune'];
 /** Everything counted for 100%: map cells, chests, pedestals, murals and bosses; `base` is the citadel alone (what the
  *  first epilogue asks for), the rest adds the Windward Belfry and the rope rooms. */
 export const COMPLETION = (() => {
-  const count = (exp: boolean | null) => {
+  const count = (exp: boolean | null, fd = true) => {
     let cells = 0, chests = 0, pedestals = 0, murals = 0;
     for (const r of ROOMS) {
       if (exp !== null && !!r.exp !== exp) continue;
+      if (!fd && r.fd) continue;
       cells += r.w * r.h; murals += r.murals?.length ?? 0;
       for (const t of INFO.get(r.id)!.things) { if (t.ch === 'C') chests++; if (t.ch === 'A') pedestals++; }
     }
     return { cells, chests, pedestals, murals };
   };
-  return { ...count(null), bosses: ALL_BOSSES.length, base: { ...count(false), bosses: BASE_BOSSES.length } };
+  return { ...count(null), bosses: ALL_BOSSES.length, base: { ...count(false), bosses: BASE_BOSSES.length }, belfry: { ...count(null, false), bosses: BELFRY_BOSSES.length } };
 })();
 
 // ─── the Echo Trials (at any lit shrine once the Out-of-Tune Bell is calm) ──────────
@@ -197,6 +232,8 @@ export type TrialDef = {
 };
 /** The Guardian Rush's order: the story's. */
 export const RUSH: BossId[] = ['frog', 'hydra', 'puma', 'warden', 'mother', 'condor', 'clappers', 'tune'];
+/** The Grand Rush (once the Hollow Bell is calm): every guardian, the Foundry Below's three too. */
+export const GRAND_RUSH: BossId[] = [...RUSH, 'founder', 'choir', 'hollow'];
 /** What one heal between guardians gives back (of max HP and MP; a knocked-out hero wakes with it). */
 export const RUSH_HEAL = 0.5;
 /** Every trial runs with this pantry (the save's own food is set aside and comes back after). */
@@ -210,6 +247,9 @@ export const TRIALS: TrialDef[] = [
   { id: 'run:crypt', name: 'Crypt Murals Run', kind: 'run', area: 'crypt', from: 'cshrine', text: 'Into the vault, then up the stair.', goals: [{ room: 'vault', c: 27, r: 9 }, { room: 'stair', c: 12, r: 14 }], medals: [29, 39, 58] },
   { id: 'run:throne', name: 'Sunken Throne Run', kind: 'run', area: 'throne', from: 'tshrine', text: 'Out to the garden, then back to the throne gate.', goals: [{ room: 'garden', c: 15, r: 14 }, { room: 'tgate', c: 15, r: 6 }], medals: [68, 90, 135] },
   { id: 'run:cloud', name: 'Cloudstair Run', kind: 'run', area: 'cloud', from: 'cliffoot', text: 'Up the Cloudstair with the wind at your back, to the bannerwalk.', goals: [{ room: 'windgate', c: 25, r: 14 }, { room: 'cairns', c: 29, r: 13 }, { room: 'bannerwalk', c: 31, r: 14 }], wind: { cloud: -1, loft: 1 }, medals: [93, 124, 186] },
+  { id: 'rush:grand', name: 'Grand Guardian Rush', kind: 'rush', text: 'All eleven guardians, the foundry’s three as well. One heal between each.', goals: [], medals: [450, 590, 780] },
+  { id: 'run:cast', name: 'Forge Sprint', kind: 'run', area: 'cast', from: 'fgate', text: 'Through the molten channels and down the vents to the crucible hall.', goals: [{ room: 'channel', c: 30, r: 14 }, { room: 'vents', c: 26, r: 31 }, { room: 'crucible', c: 45, r: 14 }], medals: [64, 80, 110] },
+  { id: 'run:glass', name: 'Glass Echo', kind: 'run', area: 'glass', from: 'caveshrine', text: 'Past the glass snails and up the glass stair on the crystals’ bridge.', goals: [{ room: 'snails', c: 50, r: 14 }, { room: 'glassstair', c: 4, r: 31 }, { room: 'glassstair', c: 4, r: 14 }], medals: [20, 26, 36] },
   { id: 'run:loft', name: 'Belfry Loft Run', kind: 'run', area: 'loft', from: 'loftbase', text: 'Up the bell shaft and the cogworks to the top of the belfry.', goals: [{ room: 'bellshaft', c: 15, r: 31 }, { room: 'cogworks', c: 30, r: 6 }, { room: 'belltop', c: 30, r: 14 }], medals: [52, 69, 103] },
 ];
 export const MEDALS = ['gold', 'silver', 'bronze'] as const;
@@ -244,6 +284,7 @@ export function newGamePlusSave(done: Save): Save {
   s.equip = JSON.parse(JSON.stringify(done.equip));
   s.spells = [...new Set([...s.spells, ...done.spells.filter((sp) => sp !== 'chime')])];
   s.medals = { ...done.medals };
+  s.recast = { ...(done.recast ?? {}) };
   s.lead = done.lead;
   return s;
 }
@@ -273,6 +314,8 @@ export type Save = {
   /** the Windward Belfry: each windy area's wind (1 east, −1 west); the Echo Trials' best times (seconds, by trial
    *  id); and which New Game+ round this is (0 for the first time through) */
   wind: Record<WindArea, 1 | -1>; medals: Record<string, number>; ngp: number;
+  /** Tupa's recasts: a perk worked into a piece of gear (by gear id) */
+  recast: Record<string, Perk>;
 };
 
 export function freshSave(): Save {
@@ -282,7 +325,7 @@ export function freshSave(): Save {
     abilities: [], spells: ['whirl', 'bolt'], food: { cake: 2, tea: 1 }, coins: 0,
     gear: ['bronze-sword', 'oak-staff', 'teal-coat', 'rust-coat'], equip: { dora: { ...START_EQUIP.dora }, enzo: { ...START_EQUIP.enzo } },
     flags: [], water: { halls: 1, docks: 0, throne: 1 }, seen: [], hearts: 0, drops: 0, drop: null, time: 0,
-    wind: { cloud: 1, loft: 1 }, medals: {}, ngp: 0,
+    wind: { cloud: 1, loft: 1 }, medals: {}, ngp: 0, recast: {},
   };
 }
 
@@ -314,7 +357,10 @@ export function parseSave(raw: string | null): Save | null {
     const medals: Record<string, number> = {};
     if (s.medals && typeof s.medals === 'object') for (const [k, v] of Object.entries(s.medals)) if (typeof v === 'number' && Number.isFinite(v) && v > 0) medals[k] = v;
     const ngp = typeof s.ngp === 'number' && s.ngp >= 0 ? Math.floor(s.ngp) : 0;
-    return { ...base, ...s, wind, medals, ngp, lead: s.lead === 'enzo' ? 'enzo' : 'dora' };
+    // (saves from before the Foundry Below have no recasts; a recast of gear not owned or of an unknown perk is dropped)
+    const recast: Record<string, Perk> = {};
+    if (s.recast && typeof s.recast === 'object') for (const [k, v] of Object.entries(s.recast)) if (s.gear.includes(k) && (RECAST_PERKS as string[]).includes(v)) recast[k] = v;
+    return { ...base, ...s, wind, medals, ngp, recast, lead: s.lead === 'enzo' ? 'enzo' : 'dora' };
   } catch { return null; }
 }
 
@@ -328,13 +374,17 @@ export function heroStats(save: Save, hero: HeroId) {
     const g = GEAR[id];
     atk += g.atk ?? 0; def += g.def ?? 0; mag += g.mag ?? 0; hp += g.hp ?? 0; mp += g.mp ?? 0;
     if (g.perk) perks.push(g.perk);
+    // Tupa's recast adds a second perk to this piece
+    const rc = save.recast?.[id];
+    if (rc && rc !== g.perk) perks.push(rc);
   }
+  for (const p of perks) { const ps = PERK_STATS[p]; if (ps) { atk += ps.atk ?? 0; def += ps.def ?? 0; mag += ps.mag ?? 0; } }
   return { atk: Math.round(atk), def, mag: Math.round(mag), maxHp: Math.round(hp), maxMp: Math.round(mp), perks };
 }
 
 // ─── enemies ───────────────────────────────────────────────────────────────
 
-export type FoeKind = 'frog' | 'moth' | 'eel' | 'reed' | 'condor' | 'imp' | 'shell' | 'vizcacha' | 'jelly' | 'golem' | 'gust' | 'hawk' | 'clapper' | 'beetle';
+export type FoeKind = 'frog' | 'moth' | 'eel' | 'reed' | 'condor' | 'imp' | 'shell' | 'vizcacha' | 'jelly' | 'golem' | 'gust' | 'hawk' | 'clapper' | 'beetle' | 'ingot' | 'ember' | 'cbat' | 'gsnail';
 export const FOES: Record<FoeKind, { name: string; hp: number; atk: number; xp: number; coins: number; w: number; h: number; fly?: boolean; swim?: boolean; light?: [number, number, number, number] }> = {
   frog: { name: 'Stone Lake-Frog', hp: 16, atk: 5, xp: 6, coins: 3, w: 22, h: 16 },
   moth: { name: 'Lantern Moth', hp: 5, atk: 3, xp: 3, coins: 1, w: 12, h: 10, fly: true, light: [1, 0.62, 0.25, 46] },
@@ -350,6 +400,10 @@ export const FOES: Record<FoeKind, { name: string; hp: number; atk: number; xp: 
   hawk: { name: 'Hail-Hawk', hp: 18, atk: 7, xp: 15, coins: 4, w: 20, h: 16, fly: true },
   clapper: { name: 'Clapper Creature', hp: 24, atk: 7, xp: 16, coins: 5, w: 16, h: 24, fly: true },
   beetle: { name: 'Bell-Beetle', hp: 20, atk: 6, xp: 13, coins: 4, w: 16, h: 14 },
+  ingot: { name: 'Ingot Walker', hp: 30, atk: 9, xp: 22, coins: 6, w: 18, h: 18 },
+  ember: { name: 'Ember Wisp', hp: 14, atk: 7, xp: 18, coins: 4, w: 14, h: 14, fly: true, light: [1, 0.55, 0.2, 50] },
+  cbat: { name: 'Crystal Bat', hp: 16, atk: 8, xp: 20, coins: 5, w: 18, h: 14, fly: true, light: [0.85, 0.45, 1, 34] },
+  gsnail: { name: 'Glass Snail', hp: 36, atk: 8, xp: 26, coins: 7, w: 18, h: 16 },
 };
 /** A foe's body frames (idle and moving): from the art, or a stand-in until a kind's own sheet is painted. */
 export const foeBody = (k: FoeKind): number[] => FOE_BODY[k] ?? FOE_BODY[({ gust: 'moth', hawk: 'condor', clapper: 'imp', beetle: 'vizcacha' } as Record<string, string>)[k] ?? 'moth'];
@@ -358,7 +412,7 @@ export const foeBody = (k: FoeKind): number[] => FOE_BODY[k] ?? FOE_BODY[({ gust
 export function bossArtBox(b: { st: string; calm: boolean }, sheet: string, ax: number, ay: number, flip: boolean, k: number): Rect {
   const atk = /hop|tongue|pounce|dash|leap|swing|drop|sweep|twin|flopUp|flopDown|chorus|spout/.test(b.st) && !b.st.endsWith('Tell');
   const fr = b.calm ? 5 : b.st.endsWith('Tell') ? 1 : atk ? 2 : 0;
-  const [x0, y0, x1, y1] = BOXES[sheet][fr];
+  const [x0, y0, x1, y1] = BOXES[sheet]?.[fr] ?? [-50, -100, 50, 0];
   const l = flip ? -x1 : x0, r = flip ? -x0 : x1, w = (r - l) * k, h = (y1 - y0) * k;
   return { x: ax + (l + r) / 2 - w / 2, y: ay + (y0 + y1) / 2 - h / 2, w, h };
 }
@@ -396,14 +450,15 @@ export type Enemy = {
   tx: number; ty: number; stun: number;
 };
 export type Shot = {
-  id: number; kind: 'bolt' | 'mud' | 'shard' | 'water' | 'seed' | 'bell' | 'paint' | 'bubble' | 'lily' | 'hail' | 'ice' | 'puff' | 'gale' | 'cog' | 'sour' | 'plank';
+  id: number; kind: 'bolt' | 'mud' | 'shard' | 'water' | 'seed' | 'bell' | 'paint' | 'bubble' | 'lily' | 'hail' | 'ice' | 'puff' | 'gale' | 'cog' | 'sour' | 'plank'
+    | 'spark' | 'glob' | 'glass' | 'cnote' | 'splash' | 'toll' | 'drop' | 'blank';
   friendly: boolean; x: number; y: number; vx: number; vy: number; g: number; life: number; dmg: number; r: number; hits: number[];
 };
 export type Wave = { x: number; y: number; dir: 1 | -1; speed: number; life: number; h: number; dmg: number };
-export type Ring = { x: number; y: number; r: number; vr: number; max: number; thick: number; dmg: number; friendly: boolean; kind: 'imp' | 'chime'; hit: number[]; rung: string[] };
+export type Ring = { x: number; y: number; r: number; vr: number; max: number; thick: number; dmg: number; friendly: boolean; kind: 'imp' | 'chime' | 'slam'; hit: number[]; rung: string[] };
 /** floor markers: a falling bell, lily or (the hydra's rain) seed; where a head will strike; where the frog will land
  *  (`shadow`); where the Lake Mother's spout will rise (`swirl`) */
-export type Marker = { x: number; y: number; t: number; kind: 'bell' | 'lily' | 'aim' | 'seed' | 'shadow' | 'swirl' };
+export type Marker = { x: number; y: number; t: number; kind: 'bell' | 'lily' | 'aim' | 'seed' | 'shadow' | 'swirl' | 'drop' | 'blank' | 'flood' };
 export type Pickup = { id: number; kind: 'coin' | 'mp' | 'hp' | 'bag'; x: number; y: number; vy: number; amount: number; t: number };
 export type Rect = { x: number; y: number; w: number; h: number };
 
@@ -417,6 +472,10 @@ export type Boss = {
   tx: number; ty: number;
   /** where the body is drawn (kept while it can't be hit) */
   body: Rect;
+  /** the Foundry Below's guardians: the Founder's frost spots (offsets from its middle, ticks left); a stun; the
+   *  Hollow Bell's form (1 or 2) and its lava's height (world y); the Glass Choir's song (singer order) and how far
+   *  into it the heroes have rung back */
+  spots?: { dx: number; dy: number; t: number }[]; stun?: number; form?: number; lava?: number; song?: number[]; sung?: number;
 };
 
 // ─── the game ──────────────────────────────────────────────────────────────
@@ -426,7 +485,10 @@ export type GameEvent =
   | { k: 'hit'; x: number; y: number; big: boolean; color?: string }
   | { k: 'shake'; n: number }
   | { k: 'flash'; color: string; n: number }
-  | { k: 'save' } | { k: 'shop' } | { k: 'mural'; n: number } | { k: 'ending'; full: boolean; belfry?: boolean }
+  | { k: 'save' } | { k: 'shop' } | { k: 'mural'; n: number } | { k: 'ending'; full: boolean; belfry?: boolean; foundry?: boolean }
+  /** Tupa's forge opened; cracked glass shattered; a prism's beam to a door; a channel frosted; a slam landed */
+  | { k: 'forge' } | { k: 'shatter'; x: number; y: number } | { k: 'beam'; x: number; y: number; tx: number; ty: number } | { k: 'frost'; x: number; y: number; w: number }
+  | { k: 'slam'; x: number; y: number; bounce: boolean }
   /** the wind in an area turned round; an echo bell's notes appeared; Dora's rope caught or let go */
   | { k: 'wind'; area: WindArea; dir: 1 | -1 } | { k: 'notes'; x: number; y: number } | { k: 'rope'; on: boolean; x: number; y: number }
   | { k: 'level'; hero: HeroId; level: number } | { k: 'item'; text: string; icon?: number }
@@ -446,7 +508,7 @@ export type NumKind = 'hit' | 'big' | 'spell' | 'hurt' | 'heal' | 'xp' | 'coin';
 /** `wisp`: the guiding wisp, shown only while the helping hand is on (on unless turned off) */
 export type Settings = { assist: boolean; strict: boolean; wisp?: boolean };
 /** `spell` says which of Enzo's spells a cast is, so the scene can show its own pose */
-type Act = { kind: 'swing' | 'thrust' | 'whirl' | 'cast' | 'tagin'; t: number; n: number; hit: Set<number>; dur: number; spell?: 'bolt' | 'ember' | 'chime' | 'lantern' | 'echo' | 'frost' | 'gale' };
+type Act = { kind: 'swing' | 'thrust' | 'whirl' | 'cast' | 'tagin' | 'slam'; t: number; n: number; hit: Set<number>; dur: number; spell?: 'bolt' | 'ember' | 'chime' | 'lantern' | 'echo' | 'frost' | 'gale' | 'resonance' };
 /** An echo bell's note: a ledge of light (x0 to x1 at height y) that shows from `at` until `life` ticks. */
 export type Note = { key: string; room: string; x0: number; x1: number; y: number; t: number; at: number; life: number };
 /** A float as the body sees it this tick: reed platforms, echo notes and the tops of swinging bells. */
@@ -528,6 +590,13 @@ export class BellspireGame {
   /** the Echo Trial being run: its ticks (a run's clock starts on the first key), the next bell or guardian, the save
    *  as it was (it all comes back after), the shrine it started from, and the pause before the next guardian */
   trial: { def: TrialDef; t: number; i: number; started: boolean; back: Save; from: string; next: number } | null = null;
+  /** the Foundry Below: frosted channels (channel id → ticks of crust left); the forge heat gauge (0 to 100) and its
+   *  hurt clock; the vents' clock offset */
+  frozen = new Map<string, number>();
+  heat = 0;
+  heatT = 0;
+  /** (while a slam's shockwave lands its hits) */
+  slamming = false;
 
   constructor(save?: Save | null, settings: Partial<Settings> = {}, seed = 1) {
     this.save = save ? JSON.parse(JSON.stringify(save)) : freshSave();
@@ -609,6 +678,8 @@ export class BellspireGame {
   doorOpen(g: Group): boolean {
     if (g.ch === 'u') return this.flag('keeper') && this.restless().length === 0;
     if (g.ch === 'Z') return BELFRY_GUARDIANS.every((b) => this.flag(`boss:${b}`));
+    if (g.ch === '9') return this.flag('boss:tune');
+    if (g.ch === 'V') return FOUNDRY_GUARDIANS.every((b) => this.flag(`boss:${b}`));
     if (g.ch === 'b') return !(this.boss && this.boss.st !== 'wait' && roomOfTile(g.c, g.r) === this.room);
     return this.flag(`door:${g.id}`);
   }
@@ -621,7 +692,7 @@ export class BellspireGame {
   }
   solidTile(c: number, r: number): boolean {
     const ch = rawChar(c, r);
-    if (ch === '#' || ch === '^') return true;
+    if (ch === '#' || ch === '^' || ch === '~' || ch === '_' || ch === ':' || ch === '+') return true;
     if (ch === 'x') { const g = groupAt(c, r); return !g || !this.wallBroken(g); }
     if (DOOR_CHARS.includes(ch)) { const g = groupAt(c, r); return !g || !this.doorOpen(g); }
     if (ch === 'g') {
@@ -701,13 +772,80 @@ export class BellspireGame {
     solid: (c, r) => this.solidTile(c, r),
     oneway: (c, r) => (rawChar(c, r) === '=' && !this.plankBroken(c, r)) || (this.ladderTile(c, r) && !this.ladderTile(c, r - 1) && !this.solidTile(c, r - 1)),
     ladder: (c, r) => this.ladderTile(c, r),
-    hazard: (c, r) => rawChar(c, r) === '^',
+    hazard: (c, r) => this.hazardTile(c, r),
+    bouncy: (c, r) => rawChar(c, r) === '+',
     surface: (x, y) => this.surfaceAt(x, y),
     deep: (x, y) => { const room = roomOfPoint(x, y); return room && room.deep !== undefined ? (room.gy * ROWS + room.deep) * TILE : null; },
     floats: () => this.floatCache,
     wind: (x, y) => this.windAt(x, y),
     hooks: () => INFO.get(this.room.id)!.hooks,
   };
+  /** Does this tile burn: salt and brambles, lava, molten bronze not frosted, slag no vent has hardened. */
+  hazardTile(c: number, r: number): boolean {
+    const ch = rawChar(c, r);
+    if (ch === '^' || ch === '_') return true;
+    if (ch === '~') { const q = channelAt(c, r); return !q || !this.frozen.has(q.id); }
+    if (ch === ':') return !this.slagHard(roomOfTile(c, r));
+    return false;
+  }
+  /** A channel's state: hot, a crust, or a crust glowing because it is about to melt. */
+  channelState(q: Channel): 'hot' | 'crust' | 'glow' { const t = this.frozen.get(q.id); return t === undefined ? 'hot' : t <= FROST_GLOW ? 'glow' : 'crust'; }
+  /** Frost a channel: a crust for a while (longer with the helping hand). */
+  chill(q: Channel) {
+    const was = this.frozen.has(q.id);
+    this.frozen.set(q.id, Math.round(FROST_T * (this.helping() ? FROST_ASSIST : 1)));
+    if (!was) { this.sfx('freeze', (q.c0 + q.c1 + 1) * TILE / 2, q.r * TILE); this.emit({ k: 'frost', x: q.c0 * TILE, y: q.r * TILE, w: (q.c1 - q.c0 + 1) * TILE }); }
+    if (!this.flag('frost:first')) { this.setFlag('frost:first'); this.note('The bronze cools to a crust. It glows before it melts again: keep moving!', true); }
+  }
+  /** Frosted channels melt back; with the helping hand a crust never melts under a hero standing on it. */
+  updateFrozen() {
+    const b = this.body;
+    if (this.room.fd && this.ventPhase() === 0 && INFO.get(this.room.id)!.things.some((t) => t.ch === '%')) this.sfx('puff');
+    for (const [id, t] of this.frozen) {
+      if (t <= 1) {
+        const q = CHANNELS.find((x) => x.id === id)!;
+        const under = this.helping() && b.ground && Math.abs(b.y - q.r * TILE) < 1 && b.x + HERO_W / 2 > q.c0 * TILE && b.x - HERO_W / 2 < (q.c1 + 1) * TILE;
+        if (under) continue;
+        this.frozen.delete(id);
+      } else this.frozen.set(id, t - 1);
+    }
+  }
+  /** The mist vents in a room puff on one clock (each room a little out of step); while they puff, its slag is hard.
+   *  With the helping hand the puffs last longer, and slag stays hard under a hero standing on it. */
+  ventPhase(room: Room | undefined = this.room) { const k = room ? ROOMS.indexOf(room) * 97 : 0; return (this.tick + k) % VENT_P; }
+  ventUp(room: Room | undefined = this.room) { return this.ventPhase(room) < (this.helping() ? VENT_UP_ASSIST : VENT_UP); }
+  /** Ticks left in this puff (0 between puffs). */
+  ventLeft(room: Room | undefined = this.room) { return this.ventUp(room) ? (this.helping() ? VENT_UP_ASSIST : VENT_UP) - this.ventPhase(room) : 0; }
+  slagHard(room: Room | undefined) {
+    if (!room) return false;
+    if (this.ventUp(room)) return true;
+    const b = this.body;
+    return this.helping() && room === this.room && b.ground && rawChar(Math.floor(b.x / TILE), Math.round(b.y / TILE)) === ':';
+  }
+  /** The forge heat: it builds while the lead stands in a hot zone, falls in the shade, and a vent's mist or a shrine
+   *  resets it. Full, it burns a little every second; with the helping hand it builds slower and never knocks a hero
+   *  out. The Forge Apron and Ashwork Smock (and a recast) halve it. */
+  updateHeat() {
+    const b = this.body, room = this.room;
+    if (!room.fd || this.boss && this.boss.st !== 'wait') { this.heat = Math.max(0, this.heat - HEAT_COOL); return; }
+    const c = Math.floor(b.x / TILE) - room.gx * COLS, r = Math.floor((b.y - 4) / TILE) - room.gy * ROWS;
+    const hot = !!room.heat?.some((z) => c >= z[0] && c <= z[2] && r >= z[1] && r <= z[3]);
+    // a vent's mist close by: cool at once
+    const mist = this.ventUp() && INFO.get(room.id)!.things.some((t) => t.ch === '%' && Math.abs(t.c * TILE + 8 - b.x) < 3 * TILE && Math.abs(t.r * TILE - b.y) < 5 * TILE);
+    if (mist) { if (this.heat > 20) this.emit({ k: 'pulse', x: b.x, y: b.y - 14, r: 40, color: [0.8, 0.9, 1] }); this.heat = 0; this.heatT = 0; return; }
+    if (!hot) { this.heat = Math.max(0, this.heat - HEAT_COOL); this.heatT = 0; return; }
+    const rate = HEAT_RATE * (this.helping() ? 0.6 : 1) * (this.perk(this.lead, 'cool') ? 0.5 : 1);
+    this.heat = Math.min(100, this.heat + rate);
+    if (this.heat >= 100 && ++this.heatT >= 60) {
+      this.heatT = 0;
+      const s = this.leadSave, st = this.stats(this.lead), dmg = Math.max(1, Math.round(st.maxHp * HEAT_HURT));
+      // the helping hand: the heat can't knock a hero out
+      s.hp -= this.helping() ? Math.min(dmg, s.hp - 1) : dmg;
+      this.emit({ k: 'num', x: b.x, y: b.y - 30, n: dmg, kind: 'hurt' }); this.sfx('sizzle', b.x, b.y);
+      if (!this.flag('heat:first')) { this.setFlag('heat:first'); this.note('Too hot! Find shade, a vent’s mist or a shrine to cool down.', true); }
+      if (s.hp <= 0) this.downLead();
+    }
+  }
   floatCache: Float[] = [];
   /** what the lead stands on this tick, if it moves: a reed raft, a swinging bell or an echo note (for the poses) */
   riding = '';
@@ -716,7 +854,7 @@ export class BellspireGame {
     const quick = this.perk(h, 'quick') ? 1.08 : 1;
     return {
       speed: RUN[h] * quick, dash: h === 'dora' && this.has('dash'), double: h === 'dora' && this.has('double'),
-      wallkick: h === 'dora' && this.has('wallkick'), glide: h === 'enzo' && this.has('glide'), deep: this.has('deep'),
+      wallkick: h === 'dora' && this.has('wallkick'), glide: h === 'enzo' && this.has('glide'), deep: this.has('deep'), slam: h === 'dora' && this.has('hammer'),
       swimMul: this.perk(h, 'swim') ? 1.3 : 1, coyote: this.settings.assist ? 9 : 6, buffer: this.settings.assist ? 9 : 6,
       rope: h === 'dora' && this.has('rope'), windMul: this.perk(h, 'windward') ? 0.5 : 1,
       // the guided rope is the helping hand's; Strict keeps the free swing
@@ -777,6 +915,9 @@ export class BellspireGame {
       b.heads = [20, 40].map((c) => ({ x: rr.x + c * TILE + 8, y: rr.y + 2 * TILE + 132, bx: rr.x + c * TILE + 8, by: rr.y + 2 * TILE, st: 'idle', t: 0, tx: 132, ty: 0, hp: half, max: half, ang: 0, av: 0 }));
       b.hp = b.max = half * 2;
     }
+    if (id === 'choir') { b.heads = [-150, 0, 150].map((dx) => ({ x: ox + dx, y: oy, bx: ox + dx, by: oy, st: 'idle', t: 0, tx: 0, ty: 0 })); b.song = []; b.sung = 0; }
+    if (id === 'hollow') { b.form = 1; b.lava = rr.y + 15 * TILE; b.sx = ox; b.sy = rr.y + 11 * TILE; b.y = b.sy; }
+    if (id === 'founder') b.spots = [];
     if (id === 'tune') { b.x = rr.x + rr.w / 2; b.sy = rr.y + 2 * TILE; b.heads = [{ x: b.x, y: b.sy + 110, bx: b.x, by: b.sy, st: 'idle', t: 0, tx: 110, ty: 0, ang: 0, av: 0 }]; b.y = b.sy + 110; }
     this.boss = b;
   }
@@ -812,6 +953,7 @@ export class BellspireGame {
     this.updateWater();
     for (const n of this.notes) n.t++;
     this.notes = this.notes.filter((n) => n.t < n.life);
+    this.updateFrozen();
     for (const [c, t] of this.planks) { if (t <= 1) this.planks.delete(c); else this.planks.set(c, t - 1); }
 
     const lead = this.lead, rt = this.leadRt, b = this.body;
@@ -821,7 +963,7 @@ export class BellspireGame {
     // tag (not while Dora hangs on the rope or flies off it: Enzo can't hold it)
     if (pressed.tag && (b.rope || b.fly)) { this.note('Dora’s on the rope. Tag once she’s on her feet.'); this.sfx('locked'); }
     else if (pressed.tag) this.tryTag();
-    let ropeP = false;
+    let ropeP = false, slamP = false;
 
     // actions
     const busy = rt.hurtT > 0;
@@ -837,7 +979,9 @@ export class BellspireGame {
       } else if (pressed.attack) {
         if (rt.act && rt.act.kind === 'swing') rt.buf = true;
         else if (!rt.act && rt.swingCd <= 0) {
-          if (lead === 'dora' && !b.ground && inp.down && !b.swim && !b.climb) this.startAct('thrust', 0);
+          // with the Bell Hammer, ↓ + attack in the air is a slam (it still bounces off a foe it lands on)
+          if (lead === 'dora' && !b.ground && inp.down && !b.swim && !b.climb && this.has('hammer')) { this.startAct('slam', 0); slamP = true; }
+          else if (lead === 'dora' && !b.ground && inp.down && !b.swim && !b.climb) this.startAct('thrust', 0);
           else if (!b.climb) this.startAct('swing', 0);
         }
       }
@@ -856,6 +1000,8 @@ export class BellspireGame {
         else if (held >= 24 && this.save.spells.includes('ember')) this.castEmber();
         else if (held >= 24 && !this.save.spells.includes('ember')) { this.note('Enzo hasn’t learned the Ember Ring yet. A tap of V casts the Lantern Bolt.'); this.castBolt(); }
         else if (!b.ground && !b.swim && this.save.spells.includes('frost')) this.castFrost();
+        // on the ground by molten bronze, the Frost Fan sweeps low across the floor
+        else if (b.ground && this.save.spells.includes('frost') && this.hotChannelNear(5 * TILE)) this.castFrost(true);
         else this.castBolt();
       }
     }
@@ -870,7 +1016,7 @@ export class BellspireGame {
     const rooted = (act && act.kind !== 'thrust' && b.ground && act.t < act.dur - 2) || rt.hurtT > 8;
     let dir: -1 | 0 | 1 = inp.left === inp.right ? 0 : inp.left ? -1 : 1;
     if (rooted && act?.kind === 'cast') dir = 0;
-    const bin: BodyInput = { dir, up: inp.up, down: inp.down, jumpP: pressed.jump && !(act?.kind === 'cast'), jumpH: inp.jump, dashP: pressed.dash, ropeP };
+    const bin: BodyInput = { dir, up: inp.up, down: inp.down, jumpP: pressed.jump && !(act?.kind === 'cast'), jumpH: inp.jump, dashP: pressed.dash, ropeP, slamP };
     const wasSwim = b.swim, faceBefore = b.face;
     const caps = this.caps();
     if (rooted && b.ground && act?.kind === 'swing') { caps.speed *= 0.35; }
@@ -899,6 +1045,7 @@ export class BellspireGame {
     if (b.landed && !climbing) this.sfx('land'); // stepping off the top of a ladder is a pull-up, not a landing
     if (b.swim && !wasSwim) this.sfx('splash', b.x, b.y);
     if (b.bonk) this.bonkHatch();
+    if (b.slamHit) this.slamImpact();
     if (b.hooked && b.rope) { this.sfx('rope', b.rope.hx, b.rope.hy); this.emit({ k: 'rope', on: true, x: b.rope.hx, y: b.rope.hy }); }
     if (b.unhooked) { this.sfx(b.jumped === 'rope' ? 'leap' : 'ropeOff', b.x, b.y); this.emit({ k: 'rope', on: false, x: b.x, y: b.y }); }
     this.updateRopeGuide(inp);
@@ -913,6 +1060,7 @@ export class BellspireGame {
     if ((sup === 'solid' || bridge) && !b.swim && !this.nearHazard()) { if (++this.safeT >= 8) { this.safe = { x: b.x, y: b.y }; } } else this.safeT = 0;
     if (b.hazard) this.hitHazard();
     this.regen();
+    this.updateHeat();
 
     // follower
     this.updateFollower();
@@ -990,11 +1138,12 @@ export class BellspireGame {
   startAct(kind: Act['kind'], n: number, spell?: Act['spell']) {
     const rt = this.leadRt, sw = SWING[this.lead];
     const fast = this.perk(this.lead, 'fast') ? 0.7 : 1;
-    const dur = kind === 'swing' ? sw.wind + sw.act + Math.round(sw.rec * fast) : kind === 'thrust' ? 999 : kind === 'whirl' ? 26 : kind === 'cast' ? 16 : 14;
+    const dur = kind === 'swing' ? sw.wind + sw.act + Math.round(sw.rec * fast) : kind === 'thrust' || kind === 'slam' ? 999 : kind === 'whirl' ? 26 : kind === 'cast' ? 16 : 14;
     rt.act = { kind, t: 0, n, hit: new Set(), dur, spell };
     rt.buf = false;
     if (kind === 'swing') this.sfx(this.lead === 'dora' ? (n === 2 ? 'slash3' : 'slash') : 'staff');
     if (kind === 'thrust') this.sfx('thrust');
+    if (kind === 'slam') this.sfx('hammerUp');
   }
 
   /** The hitbox of the lead's current attack, if it is in its active frames. */
@@ -1011,6 +1160,7 @@ export class BellspireGame {
       return { r: { x: b.face > 0 ? b.x : b.x - reach, y, w: reach, h }, mult: sw.mult[act.n], finisher: act.n === 2 };
     }
     if (act.kind === 'thrust') return { r: { x: b.x - 7, y: b.y - 4, w: 14, h: 16 }, mult: 1.2, finisher: false };
+    if (act.kind === 'slam') return b.slam > 7 ? { r: { x: b.x - 9, y: b.y - 6, w: 18, h: 18 }, mult: 1.6, finisher: true } : null;
     if (act.kind === 'whirl') return act.t % 8 < 4 ? { r: { x: b.x - 30, y: b.y - HERO_H - 10, w: 60, h: HERO_H + 16 }, mult: 0.8, finisher: false, ring: 30 } : null;
     if (act.kind === 'tagin') return act.t < 8 ? { r: { x: b.x - 30, y: b.y - HERO_H - 8, w: 60, h: HERO_H + 12 }, mult: 1, finisher: false, ring: 30 } : null;
     return null;
@@ -1022,6 +1172,8 @@ export class BellspireGame {
     act.t++;
     if (act.kind === 'thrust') {
       if (b.ground || b.swim || b.climb) { rt.act = null; return; }
+    } else if (act.kind === 'slam') {
+      if (b.slam === 0 && act.t > 1) { rt.act = null; return; }
     } else if (act.t >= act.dur) {
       const was = act;
       rt.act = null;
@@ -1047,7 +1199,7 @@ export class BellspireGame {
       if (overlap(box.r, this.foeRect(e))) { act.hit.add(e.id); crit = false; this.damageFoe(e, dmgOf(box.mult), b.face, box.finisher); landed = true; if (crit) this.emit({ k: 'crit', x: e.x, y: e.y - 10 }); }
     }
     if (this.boss && !this.boss.calm) {
-      for (const h of this.boss.hurt) if (!act.hit.has(-1) && overlap(box.r, h)) { act.hit.add(-1); crit = false; this.damageBoss(dmgOf(box.mult) * ((h as Rect & { mul?: number }).mul ?? 1), box.r.x + box.r.w / 2, box.r.y + box.r.h / 2, false, h); landed = true; if (crit) this.emit({ k: 'crit', x: box.r.x + box.r.w / 2, y: box.r.y + box.r.h / 2 }); }
+      for (const h of this.boss.hurt) if (!act.hit.has(-1) && overlap(box.r, h)) { act.hit.add(-1); crit = false; this.damageBoss(dmgOf(box.mult) * ((h as Rect & { mul?: number }).mul ?? 1), box.r.x + box.r.w / 2, box.r.y + box.r.h / 2, false, h, act.kind); landed = true; if (crit) this.emit({ k: 'crit', x: box.r.x + box.r.w / 2, y: box.r.y + box.r.h / 2 }); }
     }
     // breakable walls, chests and water bells react to a swing too
     if (act.kind !== 'tagin') {
@@ -1072,7 +1224,7 @@ export class BellspireGame {
     }
     if (landed) {
       this.hitstop = box.finisher ? 4 : 3;
-      if (act.kind === 'thrust') { b.vy = -5.2; b.airJumps = this.caps().double ? 1 : 0; b.airDash = true; this.sfx('bounce'); }
+      if (act.kind === 'thrust' || act.kind === 'slam') { b.vy = -5.2; b.slam = 0; b.airJumps = this.caps().double ? 1 : 0; b.airDash = true; this.sfx('bounce'); if (act.kind === 'slam') rt.act = null; }
     }
   }
   visitKey() { return 'v'; }
@@ -1093,6 +1245,8 @@ export class BellspireGame {
   contactRect(e: Enemy): Rect { return foeBox(e, 0.72, foeFrame(e, this.tick)); }
 
   damageFoe(e: Enemy, dmg: number, dir: number, big: boolean, spell = false) {
+    // the glass snail's shell: half a blow, but a hammer slam shatters it
+    if (e.kind === 'gsnail') { if (this.slamming || this.leadRt.act?.kind === 'slam') { dmg *= 3; big = true; } else dmg = Math.max(1, Math.round(dmg / 2)); }
     e.hp -= dmg; e.flash = 8;
     const f = FOES[e.kind];
     { const r = this.foeRect(e); this.emit({ k: 'num', x: e.x, y: r.y, n: dmg, kind: spell ? 'spell' : big ? 'big' : 'hit' }); }
@@ -1162,16 +1316,33 @@ export class BellspireGame {
     const b = this.body;
     // by an echo bell, the chime is swept out in a ringing arc toward it (its own pose)
     const echo = this.has('echo') && INFO.get(this.room.id)!.things.some((t) => t.ch === 'Q' && Math.hypot(t.c * TILE + 8 - b.x, t.r * TILE - b.y) < 150);
-    this.startAct('cast', 0, echo ? 'echo' : 'chime');
+    // by a humming crystal or a prism (with Resonance), its own pose: the staff raised, listening
+    const res = this.has('resonance') && INFO.get(this.room.id)!.things.some((t) => (t.ch === '*' || t.ch === '!') && Math.hypot(t.c * TILE + 8 - b.x, t.r * TILE - b.y) < 150);
+    this.startAct('cast', 0, res ? 'resonance' : echo ? 'echo' : 'chime');
     this.rings.push({ x: b.x, y: b.y - 14, r: 4, vr: 4.4, max: 150, thick: 8, dmg: Math.round(this.magic() * 0.6), friendly: true, kind: 'chime', hit: [], rung: [] });
     this.sfx('chime');
     this.emit({ k: 'pulse', x: b.x, y: b.y - 14, r: 150, color: [1, 0.85, 0.45] });
   }
-  /** In the air: three hail shards in a fan, forward and down. */
-  castFrost() {
+  /** A molten channel still hot within `d` px of the lead (along the floor ahead or below). */
+  hotChannelNear(d: number): Channel | null {
+    const b = this.body;
+    let best: Channel | null = null, bd = d;
+    for (const q of CHANNELS) {
+      if (q.room !== this.room.id || this.frozen.has(q.id)) continue;
+      const dx = Math.max(q.c0 * TILE - b.x, 0, b.x - (q.c1 + 1) * TILE), dy = q.r * TILE - b.y;
+      if (dy < -2 * TILE || dy > 9 * TILE) continue;
+      if (dx < bd) { bd = dx; best = q; }
+    }
+    return best;
+  }
+  /** In the air: three hail shards in a fan, forward and down. On the ground by molten bronze: a low sweep of frost
+   *  along the floor. Either way the cold washes over molten channels close by and cools them into a crust. */
+  castFrost(low = false) {
     if (!this.spendMp(SPELLS.frost.mp, SPELLS.frost.name)) return;
     this.startAct('cast', 0, 'frost');
     const b = this.body, dmg = Math.round(this.magic() * 0.75);
+    for (let i = 0; i < 4; i++) { const q = this.hotChannelNear(7 * TILE); if (!q) break; this.chill(q); }
+    if (low) { for (const a of [0, 0.15]) this.shots.push({ id: this.nextId++, kind: 'hail', friendly: true, x: b.x + b.face * 8, y: b.y - 6, vx: Math.cos(a) * 3.8 * b.face, vy: 0, g: 0, life: 45, dmg, r: 5, hits: [] }); this.sfx('frost', b.x, b.y); return; }
     for (const a of [0.35, 0.7, 1.05]) this.shots.push({ id: this.nextId++, kind: 'hail', friendly: true, x: b.x + b.face * 8, y: b.y - 14, vx: Math.cos(a) * 4.2 * b.face, vy: Math.sin(a) * 4.2, g: 0.04, life: 60, dmg, r: 5, hits: [] });
     this.sfx('frost', b.x, b.y);
   }
@@ -1209,6 +1380,35 @@ export class BellspireGame {
     this.sfx('echo', x, y); this.emit({ k: 'notes', x, y }); this.emit({ k: 'pulse', x, y, r: 120, color: [0.4, 0.95, 1] });
     if (!this.flag('rang:echo')) { this.setFlag('rang:echo'); this.note(`Three notes hang in the air for ${this.helping() ? 'about twelve' : 'a few'} seconds. Climb them!`, true); }
   }
+  /** A humming crystal rung by the chime (with Resonance): its bridge lights up, slab after slab. */
+  ringCrystal(t: Thing) {
+    const x = t.c * TILE + 8, y = t.r * TILE;
+    if (!this.has('resonance')) { this.note('The crystal hums back, but the sound slips away. Something in the foundry could teach Enzo to hold it.'); this.sfx('locked'); return; }
+    const path = this.room.crystals?.[t.i];
+    if (!path) return;
+    const life = CRYSTAL_LIFE * (this.perk('enzo', 'notes') ? 2 : 1) * (this.helping() ? NOTE_ASSIST : 1);
+    const pre = `${this.room.id}:x${t.i}:`;
+    this.notes = this.notes.filter((n) => !n.key.startsWith(pre));
+    path.forEach(([dc, dr], k) => {
+      const c = t.c + dc, r = t.r + dr;
+      this.notes.push({ key: `${pre}${k}`, room: this.room.id, x0: c * TILE, x1: (c + 2) * TILE, y: r * TILE, t: 0, at: k * CRYSTAL_GAP, life: life + k * CRYSTAL_GAP });
+    });
+    this.sfx('crystal', x, y); this.emit({ k: 'notes', x, y }); this.emit({ k: 'pulse', x, y, r: 120, color: [0.8, 0.55, 1] });
+    if (!this.flag('rang:crystal')) { this.setFlag('rang:crystal'); this.note(`The crystals line up into a bridge for ${this.helping() ? 'about half a minute' : 'about ten seconds'}. Go!`, true); }
+  }
+  /** A prism rung by the chime (with Resonance): a beam to every beam door close by, and they open. */
+  ringPrism(t: Thing) {
+    const x = t.c * TILE + 8, y = t.r * TILE + 8;
+    if (!this.has('resonance')) { this.note('The prism glints, but nothing answers. It wants a note held true.'); this.sfx('locked'); return; }
+    let n = 0;
+    for (const d of BEAM_DOORS) {
+      const dx = (d.c + d.w / 2) * TILE, dy = (d.r + d.h / 2) * TILE;
+      if (Math.hypot(dx - x, dy - y) > BEAM_REACH || this.doorOpen(d)) continue;
+      this.emit({ k: 'beam', x, y, tx: dx, ty: dy }); this.openDoor(d); n++;
+    }
+    this.sfx('beam', x, y); this.emit({ k: 'pulse', x, y, r: 90, color: [0.85, 0.6, 1] });
+    if (!n) this.note('The prism’s beam finds no shut door.', true);
+  }
   toggleLantern() {
     if (!this.has('lantern')) { this.note('The lantern needs the Moonwick before Enzo can raise it.'); this.sfx('locked'); return; }
     this.lanternUp = !this.lanternUp;
@@ -1232,11 +1432,11 @@ export class BellspireGame {
   helping() { return this.settings.assist && !this.settings.strict; }
   /** An echo bell close by, with the helping hand on and the Echo Step learned (for its glow and its prompt). */
   echoNear(): Thing | null {
-    if (!this.helping() || !this.has('echo')) return null;
+    if (!this.helping() || !(this.has('echo') || this.has('resonance'))) return null;
     const b = this.body;
     let best: Thing | null = null, bd = 1e9;
     for (const t of INFO.get(this.room.id)!.things) {
-      if (t.ch !== 'Q') continue;
+      if (!(t.ch === 'Q' && this.has('echo')) && !((t.ch === '*' || (t.ch === '!' && this.prismShut(t))) && this.has('resonance'))) continue;
       const dx = Math.abs(t.c * TILE + 8 - b.x), dy = Math.abs((t.r + 1) * TILE - b.y);
       if (dx < 56 && dy < 40 && dx < bd) { best = t; bd = dx; }
     }
@@ -1246,7 +1446,8 @@ export class BellspireGame {
   echoHint(): 'ring' | 'tag' | null {
     const t = this.echoNear();
     if (!t || this.dialog) return null;
-    if (this.notes.some((n) => n.key.startsWith(`${this.room.id}:${t.i}:`) && n.t < n.life - 60)) return null;
+    const pre = t.ch === '*' ? `${this.room.id}:x${t.i}:` : `${this.room.id}:${t.i}:`;
+    if (t.ch !== '!' && this.notes.some((n) => n.key.startsWith(pre) && n.t < n.life - 60)) return null;
     if (this.lead === 'enzo') return 'ring';
     return this.save.heroes.enzo.down ? null : 'tag';
   }
@@ -1269,16 +1470,21 @@ export class BellspireGame {
     }
     return best ? { room: this.room.id, x: best.c * TILE + 8, y: best.r * TILE } : null;
   }
+  /** A prism with a shut beam door in its reach. */
+  prismShut(t: Thing) {
+    const x = t.c * TILE + 8, y = t.r * TILE + 8;
+    return BEAM_DOORS.some((d) => !this.doorOpen(d) && Math.hypot((d.c + d.w / 2) * TILE - x, (d.r + d.h / 2) * TILE - y) <= BEAM_REACH);
+  }
   nearby(): Thing | null {
     const b = this.body;
     if (!b.ground || b.climb) return null;
     const info = INFO.get(this.room.id)!;
     let best: Thing | null = null, bd = 1e9;
     for (const t of info.things) {
-      if (!'SMRUCD'.includes(t.ch)) continue;
+      if (!'SMRUCDN'.includes(t.ch)) continue;
       if (t.ch === 'C' && this.flag(`chest:${this.room.id}:${t.i}`)) continue;
       const dx = Math.abs(t.c * TILE + 8 - b.x), dy = Math.abs((t.r + 1) * TILE - b.y);
-      const reach = t.ch === 'M' || t.ch === 'S' || t.ch === 'D' ? 30 : 20;
+      const reach = t.ch === 'M' || t.ch === 'S' || t.ch === 'D' || t.ch === 'N' ? 30 : 20;
       if (dx < reach && dy < 26 && dx < bd) { best = t; bd = dx; }
     }
     return best;
@@ -1287,7 +1493,7 @@ export class BellspireGame {
   nearbyLabel(): string | null {
     const t = this.nearby();
     if (!t) return null;
-    return ({ S: 'Rest and save', M: 'Talk to Wayra', R: 'Read the mural', U: 'Talk to Ukumari', C: 'Open the chest', D: 'Take Wayra’s boat' } as Record<string, string>)[t.ch] ?? null;
+    return ({ S: 'Rest and save', M: 'Talk to Wayra', R: 'Read the mural', U: 'Talk to Ukumari', C: 'Open the chest', D: 'Take Wayra’s boat', N: 'Talk to Tupa' } as Record<string, string>)[t.ch] ?? null;
   }
   interact() {
     const best = this.nearby();
@@ -1314,6 +1520,32 @@ export class BellspireGame {
       });
     } else if (best.ch === 'C') this.openChest(best);
     else if (best.ch === 'D') this.takeBoat();
+    else if (best.ch === 'N') {
+      if (!this.flag('script:tupa')) { this.setFlag('script:tupa'); this.say(SCRIPTS.tupa, () => this.emit({ k: 'forge' })); }
+      else this.emit({ k: 'forge' });
+      this.sfx('talk');
+    }
+  }
+  /** Why Tupa can't recast this piece with this perk now, or null if they can. */
+  whyNotRecast(id: string, perk: Perk): string | null {
+    const g = GEAR[id];
+    if (!g || !this.save.gear.includes(id)) return 'You don’t have that.';
+    if (!(RECAST_PERKS as string[]).includes(perk)) return 'Tupa can’t work that in.';
+    if (g.perk === perk) return `The ${g.name} already has that.`;
+    if (this.save.recast[id] === perk) return 'It’s already recast with that.';
+    if (this.save.coins < RECAST_PRICE) return `Needs ${RECAST_PRICE - this.save.coins} more coins.`;
+    return null;
+  }
+  /** Tupa recasts a piece of gear in the forge with a perk worked in (one recast per piece: a new one replaces it). */
+  recast(id: string, perk: Perk): string | null {
+    const why = this.whyNotRecast(id, perk);
+    if (why) return why;
+    this.save.coins -= RECAST_PRICE;
+    this.save.recast[id] = perk;
+    for (const h of ALL_HEROES) this.clampHero(h);
+    this.sfx('anvil'); this.setFlag('recast:first');
+    this.emit({ k: 'save' });
+    return null;
   }
 
   /** Wayra's boat: from the landing to the foot of the Cloudstair and back, once the Lake Mother is calm. */
@@ -1348,6 +1580,9 @@ export class BellspireGame {
     // once the Lake Mother is calm, Wayra tells the heroes about the bell on the mountain (once)
     if (this.flag('boss:mother') && !this.flag('script:belfryCall') && !isBelfryRoom(this.room.id)) { this.setFlag('script:belfryCall'); this.say(SCRIPTS.belfryCall); }
     if (this.flag('boss:tune') && !this.flag('script:trials')) { this.setFlag('script:trials'); this.say(SCRIPTS.trials); }
+    // and then Ukumari hears the seal under the throne crack (once)
+    else if (this.flag('boss:tune') && !this.flag('script:foundryCall') && !isBelfryRoom(this.room.id)) { this.setFlag('script:foundryCall'); this.say(SCRIPTS.foundryCall); }
+    this.heat = 0;
   }
 
   openChest(t: Thing) {
@@ -1432,6 +1667,12 @@ export class BellspireGame {
       ? `The throne door is held by four bell seals, ${this.sealsOpen()} of 4 open. Still ringing: ${this.restlessText()}.`
       : 'The throne door is tied shut with an old bell rope. Whoever keeps the bells could open it.';
     else if (g.ch === 'b') text = 'The way out is sealed until the guardian calms down.';
+    else if (g.ch === '9') text = 'An old bronze seal in the floor. Something far above has to ring true before it cracks.';
+    else if (g.ch === 'V') {
+      const left = FOUNDRY_GUARDIANS.filter((b) => !this.flag(`boss:${b}`)).map((b) => BOSSES[b].name.replace(/^The /, 'the '));
+      text = `The deep seal holds while ${left.join(' and ')} ${left.length === 1 ? 'is' : 'are'} still restless.`;
+    } else if (g.ch === '8' && this.has('hammer')) text = 'Cracked glass. Slam it from above: jump, then ↓ + attack as Dora.';
+    else if (g.ch === '&' && this.has('resonance')) text = 'A beam door. Ring the chime by its prism, as Enzo (↑ + V).';
     else if (g.ch === 'Z') {
       const left = BELFRY_GUARDIANS.filter((b) => !this.flag(`boss:${b}`)).map((b) => BOSSES[b].name.replace(/^The /, 'the '));
       text = `The belfry seal holds while ${left.join(' and ')} ${left.length === 1 ? 'is' : 'are'} still restless.`;
@@ -1444,10 +1685,24 @@ export class BellspireGame {
     this.note('The door opens.', true);
   }
   bonkHatch() { /* hatches open on touch through touchDoors */ }
+  /** Dora's Bell Hammer lands: cracked glass under her shatters, a shockwave rings bells and hurts foes close by. */
+  slamImpact() {
+    const b = this.body, c = Math.floor(b.x / TILE), r = Math.round(b.y / TILE);
+    let broke = false;
+    for (let dc = -1; dc <= 1; dc++) {
+      const g = groupAt(c + dc, r);
+      if (g && g.ch === '8' && !this.doorOpen(g)) { this.openDoor(g); this.emit({ k: 'shatter', x: b.x, y: b.y }); this.sfx('shatter', b.x, b.y); broke = true; }
+    }
+    const dmg = Math.round(this.stats('dora').atk * 1.3);
+    this.rings.push({ x: b.x, y: b.y - 4, r: 4, vr: 4, max: 56, thick: 10, dmg, friendly: true, kind: 'slam', hit: [], rung: [] });
+    this.emit({ k: 'slam', x: b.x, y: b.y, bounce: b.bounced });
+    this.emit({ k: 'shake', n: broke ? 8 : 5 });
+    this.sfx(b.bounced ? 'boing' : 'slam', b.x, b.y);
+  }
 
   nearHazard() {
     const b = this.body, c = Math.floor(b.x / TILE), r = Math.round(b.y / TILE);
-    for (let dc = -1; dc <= 1; dc++) for (let dr = 0; dr <= 1; dr++) if (rawChar(c + dc, r + dr) === '^') return true;
+    for (let dc = -1; dc <= 1; dc++) for (let dr = 0; dr <= 1; dr++) if ('^_~:'.includes(rawChar(c + dc, r + dr))) return true;
     return false;
   }
   hitHazard() {
@@ -1774,6 +2029,66 @@ export class BellspireGame {
           if (this.foeEnv(e, 0) && e.st === 'lunge') { e.st = 'idle'; e.t = 0; e.cd = 90; this.sfx('clang', e.x, e.y); }
           break;
         }
+        // ─── the Foundry Below ───
+        case 'ingot': {
+          // an ingot on legs: plods along, then hops toward a hero and splashes bronze both ways where it lands
+          if (e.st === 'idle') {
+            if (this.ledgeAhead(e, e.face)) e.face = (-e.face) as 1 | -1;
+            e.vx = e.face * 0.4;
+            if (Math.abs(dx) < 110 && Math.abs(dy) < 40 && e.cd <= 0 && e.ground) { e.st = 'tell'; e.t = 0; e.face = toward; e.vx = 0; this.sfx('clank', e.x, e.y); }
+          } else if (e.st === 'tell') { e.vx = 0; if (e.t > 26) { e.st = 'hop'; e.t = 0; e.vy = -4.4; e.vx = e.face * 1.4; this.sfx('hop', e.x, e.y); } }
+          else if (e.st === 'hop') {
+            if (!e.ground) e.vx = e.face * 1.4;
+            else if (e.t > 4) {
+              e.st = 'idle'; e.t = 0; e.cd = 100; e.vx = 0;
+              for (const d of [-1, 1]) this.hostile('glob', e.x + d * 8, e.y - 6, d * 1.5, -2.6, 0.16, Math.round(f.atk * 0.8), 5, 90);
+              this.sfx('splash', e.x, e.y);
+            }
+          }
+          this.foeEnv(e, 0);
+          break;
+        }
+        case 'ember': {
+          // an ember wisp: drifts near its hearth, then spits a spread of sparks (each one that lands warms the heat gauge)
+          const near = dist < 170;
+          e.hx += near ? clamp(dx, -0.25, 0.25) : (e.tx - e.hx) * 0.01;
+          e.hy += near ? clamp(dy - 50, -0.2, 0.2) : 0;
+          e.x = e.hx + Math.sin(e.t * 0.05) * 14; e.y = e.hy + Math.sin(e.t * 0.08) * 6;
+          e.face = toward;
+          if (e.st === 'idle' && near && e.cd <= 0) { e.st = 'tell'; e.t = 0; this.sfx('fire', e.x, e.y); }
+          else if (e.st === 'tell' && e.t > 30) {
+            const a = Math.atan2(dy - 12, dx);
+            for (const da of [-0.3, 0, 0.3]) this.hostile('spark', e.x, e.y - 6, Math.cos(a + da) * 2.2, Math.sin(a + da) * 2.2, 0, f.atk, 4, 120);
+            e.st = 'idle'; e.t = 0; e.cd = 150;
+          }
+          break;
+        }
+        case 'cbat': {
+          // a crystal bat: hangs from the roof until a hero passes under, then swoops down through them and back up
+          if (e.st === 'idle') {
+            e.x = e.hx; e.y = e.hy;
+            if (Math.abs(dx) < 70 && dy > 0 && dy < 150 && e.cd <= 0) { e.st = 'tell'; e.t = 0; e.face = toward; this.sfx('squeak', e.x, e.y); }
+          } else if (e.st === 'tell') { e.y = e.hy + Math.sin(e.t * 0.9) * 1.5; if (e.t > 24) { e.st = 'swoop'; e.t = 0; e.tx = b.x; e.ty = b.y - 8; } }
+          else if (e.st === 'swoop') {
+            // a dip: down to where the hero stood and up the far side
+            const p = clamp(e.t / 60, 0, 1);
+            e.x = e.hx + (e.tx - e.hx) * p * 2;
+            e.y = e.hy + (e.ty - e.hy) * Math.sin(p * Math.PI);
+            if (p >= 1) { e.st = 'back'; e.t = 0; }
+          } else if (e.st === 'back') { e.x += (e.hx - e.x) * 0.05; e.y += (e.hy - e.y) * 0.05; if (e.t > 50) { e.st = 'idle'; e.t = 0; e.cd = 90; } }
+          break;
+        }
+        case 'gsnail': {
+          // a glass snail: slow, its shell shrugs off half a blow (a hammer slam shatters it), and now and then it flicks
+          // a shard of glass along the floor
+          if (e.st === 'idle') {
+            if (this.ledgeAhead(e, e.face) || this.foeEnv({ ...e, vx: e.face * 2, y: e.y - 1 } as Enemy, 0)) e.face = (-e.face) as 1 | -1;
+            e.vx = e.face * 0.25;
+            if (Math.abs(dx) < 140 && Math.abs(dy) < 30 && e.cd <= 0) { e.st = 'tell'; e.t = 0; e.face = toward; e.vx = 0; }
+          } else if (e.st === 'tell') { e.vx = 0; if (e.t > 30) { this.hostile('glass', e.x + e.face * 10, e.y - 6, e.face * 2.2, 0, 0, f.atk, 4, 80); this.sfx('shatter', e.x, e.y); e.st = 'idle'; e.t = 0; e.cd = 140; } }
+          this.foeEnv(e, 0);
+          break;
+        }
         case 'jelly': {
           const near = dist < 110;
           e.hx += near ? clamp(dx, -0.25, 0.25) : 0;
@@ -1807,17 +2122,18 @@ export class BellspireGame {
         s.vx += clamp(b.x - s.x, -1, 1) * 0.02; s.vy += clamp(b.y - 14 - s.y, -1, 1) * 0.02;
         s.vx = clamp(s.vx, -0.8, 0.8); s.vy = clamp(s.vy, -0.8, 0.8);
       }
+      if (s.friendly && s.kind === 'hail') { const q = channelAt(Math.floor(s.x / TILE), Math.floor((s.y + 4) / TILE)); if (q && !this.frozen.has(q.id)) this.chill(q); }
       if (s.kind !== 'bubble' && s.kind !== 'bell' && s.kind !== 'lily' && this.solidTile(Math.floor(s.x / TILE), Math.floor(s.y / TILE))) { s.life = 0; this.emit({ k: 'hit', x: s.x, y: s.y, big: false, color: s.friendly ? '#ffd27a' : '#8a6a4a' }); continue; }
       if ((s.kind === 'bell' || s.kind === 'lily') && this.solidTile(Math.floor(s.x / TILE), Math.floor((s.y + s.r) / TILE))) { s.life = 0; this.emit({ k: 'hit', x: s.x, y: s.y, big: true, color: '#e8c070' }); this.sfx('clang', s.x, s.y); continue; }
       const sr = { x: s.x - s.r, y: s.y - s.r, w: s.r * 2, h: s.r * 2 };
       if (s.friendly && s.kind === 'gale') {
         // the Gale Wave rolls on through everything it hits, once each, and rings the wind bells it passes
         for (const e of this.enemies) if (e.alive && !e.hidden && !s.hits.includes(e.id) && overlap(sr, this.foeRect(e))) { s.hits.push(e.id); this.damageFoe(e, s.dmg, Math.sign(s.vx) || 1, true, true); e.vx += Math.sign(s.vx) * 4; e.stun = 40; }
-        if (this.boss && !this.boss.calm && !s.hits.includes(-1)) for (const h of this.boss.hurt) if (overlap(sr, h)) { s.hits.push(-1); this.damageBoss(s.dmg, s.x, s.y, true, h); break; }
+        if (this.boss && !this.boss.calm && !s.hits.includes(-1)) for (const h of this.boss.hurt) if (overlap(sr, h)) { s.hits.push(-1); this.damageBoss(s.dmg, s.x, s.y, true, h, s.kind); break; }
         for (const t of INFO.get(this.room.id)!.things) if (t.ch === 'W' && !s.hits.includes(-3000 - t.i) && overlap(sr, { x: t.c * TILE, y: t.r * TILE - 8, w: TILE, h: TILE + 8 })) { s.hits.push(-3000 - t.i); this.ringWind(t); }
       } else if (s.friendly) {
         for (const e of this.enemies) if (e.alive && !e.hidden && !s.hits.includes(e.id) && overlap(sr, this.foeRect(e))) { s.hits.push(e.id); this.damageFoe(e, s.dmg, Math.sign(s.vx) || 1, false, s.kind === 'bolt' || s.kind === 'hail'); s.life = 0; break; }
-        if (s.life > 0 && this.boss && !this.boss.calm) for (const h of this.boss.hurt) if (overlap(sr, h)) { this.damageBoss(s.dmg, s.x, s.y, s.kind === 'bolt' || s.kind === 'hail', h); s.life = 0; break; }
+        if (s.life > 0 && this.boss && !this.boss.calm) for (const h of this.boss.hurt) if (overlap(sr, h)) { this.damageBoss(s.dmg, s.x, s.y, s.kind === 'bolt' || s.kind === 'hail', h, s.kind); s.life = 0; break; }
         if (s.life > 0) for (const t of INFO.get(this.room.id)!.things) if ((t.ch === 'B' || t.ch === 'W') && overlap(sr, { x: t.c * TILE, y: t.r * TILE - 8, w: TILE, h: TILE + 8 })) { if (t.ch === 'B') this.ringBell(this.room.area, t.c * TILE + 8, t.r * TILE); else this.ringWind(t); s.life = 0; break; }
       } else {
         if (overlap(sr, this.shrink(me, 2))) { if (s.kind === 'puff') this.body.vx += Math.sign(s.vx) * 3; if (this.hurtLead(s.dmg, s.x)) s.life = 0; }
@@ -1850,24 +2166,29 @@ export class BellspireGame {
     for (const g of this.rings) {
       g.r += g.vr;
       if (g.friendly) {
+        this.slamming = g.kind === 'slam';
         for (const e of this.enemies) {
           if (!e.alive || e.hidden || g.hit.includes(e.id)) continue;
           if (Math.hypot(e.x - g.x, e.y - FOES[e.kind].h / 2 - g.y) < g.r) { g.hit.push(e.id); this.damageFoe(e, g.dmg, e.x > g.x ? 1 : -1, false, true); e.stun = 60; }
         }
+        this.slamming = false;
         if (this.boss && !this.boss.calm && !g.hit.includes(-1)) for (const h of this.boss.hurt) {
           const cx = clamp(g.x, h.x, h.x + h.w), cy = clamp(g.y, h.y, h.y + h.h);
-          if (Math.hypot(cx - g.x, cy - g.y) < g.r) { g.hit.push(-1); this.damageBoss(g.dmg, cx, cy, true, h); break; }
+          if (Math.hypot(cx - g.x, cy - g.y) < g.r) { g.hit.push(-1); this.damageBoss(g.dmg, cx, cy, g.kind !== 'slam', h, g.kind); break; }
         }
         for (const t of INFO.get(this.room.id)!.things) {
-          if (!'BWQ'.includes(t.ch) || g.rung.includes(`${t.ch}${t.i}`)) continue;
+          if (!(g.kind === 'slam' ? 'BWh' : 'BWQ*!').includes(t.ch) || g.rung.includes(`${t.ch}${t.i}`)) continue;
           if (Math.hypot(t.c * TILE + 8 - g.x, t.r * TILE - g.y) >= g.r) continue;
           g.rung.push(`${t.ch}${t.i}`);
           if (t.ch === 'B') this.ringBell(this.room.area, t.c * TILE + 8, t.r * TILE);
           else if (t.ch === 'W') this.ringWind(t);
+          else if (t.ch === 'h') { this.sfx('bell', t.c * TILE + 8, t.r * TILE); this.emit({ k: 'bell', x: t.c * TILE + 8, y: t.r * TILE }); }
+          else if (t.ch === '*') this.ringCrystal(t);
+          else if (t.ch === '!') this.ringPrism(t);
           else this.ringEcho(t);
         }
         for (const d of INFO.get(this.room.id)!.doors) {
-          if (d.ch !== 'c' || this.doorOpen(d) || g.rung.includes(d.id)) continue;
+          if (d.ch !== 'c' || g.kind !== 'chime' || this.doorOpen(d) || g.rung.includes(d.id)) continue;
           const cx = clamp(g.x, d.c * TILE, (d.c + d.w) * TILE), cy = clamp(g.y, d.r * TILE, (d.r + d.h) * TILE);
           if (Math.hypot(cx - g.x, cy - g.y) < g.r) { g.rung.push(d.id); this.openDoor(d); }
         }
@@ -1927,10 +2248,55 @@ export class BellspireGame {
   bossRoomRect() { return roomRect(this.room); }
   floorY() { const rr = this.bossRoomRect(); return rr.y + 15 * TILE; }
 
-  damageBoss(dmg: number, x: number, y: number, spell = false, h?: Rect) {
+  damageBoss(dmg: number, x: number, y: number, spell = false, h?: Rect, src?: string) {
     const b = this.boss!;
     if (b.calm || b.st === 'wait' || b.st === 'intro' || b.vis < 0.5) return;
     const part = (h as (Rect & { part?: number }) | undefined)?.part;
+    if (b.id === 'founder') {
+      // the Molten Founder: Enzo's frost leaves a cold spot where it lands; only there does a blade bite (and hard).
+      // Other spells only singe it. With Enzo knocked out, every hit counts, so the fight can't stall
+      const spots = (b.spots ??= []);
+      const frosty = src === 'hail' || src === 'ice';
+      if (frosty) { spots.push({ dx: x - b.x, dy: y - b.y, t: this.helping() ? 480 : 300 }); if (spots.length > 4) spots.shift(); this.sfx('freeze', x, y); dmg *= 0.5; }
+      else if (!this.save.heroes.enzo.down) {
+        const near = spots.some((p) => Math.hypot(b.x + p.dx - x, b.y + p.dy - y) < (this.helping() ? 30 : 20));
+        if (spell) dmg *= 0.3;
+        else if (near) dmg *= 1.6;
+        else {
+          this.emit({ k: 'hit', x, y, big: false, color: '#ffb070' }); this.sfx('clank', x, y);
+          this.note(spots.length ? 'Hit the frosted patch! Only there does the bronze crack.' : 'Too hot to dent! Enzo’s Frost Fan can cool a patch of it.');
+          return;
+        }
+      }
+    }
+    if (b.id === 'choir') {
+      // the Glass Choir: while it listens, ring its notes back in the order it sang them (strike the singers); the whole
+      // song stuns it. Out of turn, or while it sings, it only rings sour
+      if (b.st === 'stun') dmg *= 1.5;
+      else if (b.st === 'listen' && part !== undefined && b.song) {
+        if (part === b.song[b.sung ?? 0]) {
+          b.sung = (b.sung ?? 0) + 1;
+          this.sfx(`note${part}`, x, y); this.emit({ k: 'notes', x, y });
+          dmg = b.max * 0.04;
+          if (b.sung >= b.song.length) { dmg = b.max * 0.12; this.go('stun', this.helping() ? 300 : 220); this.note('The choir falls silent, dazed. Strike now!', true); this.emit({ k: 'shake', n: 6 }); }
+        } else {
+          this.sfx('sour', x, y); b.sung = 0;
+          this.note(this.helping() ? 'Out of turn! Follow the numbers over the singers: start again.' : 'A sour chord! Start the song again.');
+          if (!this.helping()) this.rings.push({ x: b.heads[part]?.x ?? x, y: (b.heads[part]?.y ?? y) - 30, r: 6, vr: 2.4, max: 70, thick: 8, dmg: BOSSES.choir.atk, friendly: false, kind: 'imp', hit: [], rung: [] });
+          return;
+        }
+      } else { this.emit({ k: 'hit', x, y, big: false, color: '#d8b8ff' }); this.sfx('clank', x, y); return; }
+    }
+    if (b.id === 'hollow') {
+      // the Hollow Bell: its shell shrugs off blows (a slam on its crown rings it hard); once its molten heart is out, a
+      // Resonance chime stuns it, and stunned it takes double
+      if (b.form === 1) {
+        if (src === 'slam' && y < b.body.y + b.body.h * 0.45) { dmg *= 2.2; this.sfx('toll', x, y); this.emit({ k: 'shake', n: 8 }); }
+        else { dmg *= 0.6; if (!this.flag('hollow:tip')) { this.setFlag('hollow:tip'); this.note('The shell is thick. Slam its crown from above: jump high, then ↓ + attack as Dora.', true); } }
+      }
+      if (b.form === 2 && src === 'chime' && this.has('resonance') && b.st !== 'stun') { this.go('stun', this.helping() ? 260 : 180); this.note('The chime holds it still. Now!', true); this.sfx('crystal', x, y); }
+      if (b.st === 'stun') dmg *= 2;
+    }
     if (b.id === 'clappers' && part !== undefined) {
       // each clapper gives only to one hero: the iron to Dora, the glass to Enzo (his staff or his spells)
       const head = b.heads[part];
@@ -1970,7 +2336,7 @@ export class BellspireGame {
       // the fight starts once both heroes are through the door
       const rr = this.bossRoomRect();
       // (the frog's, the clappers' and the bell's doors are on the east: the fight starts a few steps inside)
-      const fromEast = this.room.id === 'idol' || this.room.id === 'clapperloft' || this.room.id === 'belltop';
+      const fromEast = this.room.id === 'idol' || this.room.id === 'clapperloft' || this.room.id === 'belltop' || this.room.id === 'choir';
       // and never while a hero is still climbing up under a boss door that would shut over them (the condor bridge's
       // hatch from the bannerwalk)
       const under = INFO.get(this.room.id)!.doors.some((d) => d.ch === 'b' && this.body.x >= d.c * TILE && this.body.x <= (d.c + d.w) * TILE && this.body.y > d.r * TILE + 2);
@@ -1998,14 +2364,17 @@ export class BellspireGame {
     else if (b.id === 'condor') this.bossCondor(b);
     else if (b.id === 'clappers') this.bossClappers(b);
     else if (b.id === 'tune') this.bossTune(b);
+    else if (b.id === 'founder') this.bossFounder(b);
+    else if (b.id === 'choir') this.bossChoir(b);
+    else if (b.id === 'hollow') this.bossHollow(b);
     else this.bossMother(b);
     for (const h of b.harm) if (overlap(me, this.shrink(h, 2))) { this.hurtLead(BOSSES[b.id].atk, h.x + h.w / 2); break; }
     // falling things marked on the floor
     for (const m of this.markers) m.t -= this.bossSpeed;
     this.markers = this.markers.filter((m) => {
       if (m.t > 0) return true;
-      if (m.kind === 'aim' || m.kind === 'shadow' || m.kind === 'swirl') return false;
-      this.shots.push({ id: this.nextId++, kind: m.kind as 'bell' | 'lily' | 'seed', friendly: false, x: m.x, y: this.bossRoomRect().y + 40, vx: 0, vy: 2, g: 0.18 * this.bossSpeed, life: 200, dmg: BOSSES[b.id].atk, r: 8, hits: [] });
+      if (m.kind === 'aim' || m.kind === 'shadow' || m.kind === 'swirl' || m.kind === 'flood') return false;
+      this.shots.push({ id: this.nextId++, kind: m.kind as 'bell' | 'lily' | 'seed' | 'drop' | 'blank', friendly: false, x: m.x, y: this.bossRoomRect().y + 40, vx: 0, vy: 2, g: 0.18 * this.bossSpeed, life: 200, dmg: BOSSES[b.id].atk, r: 8, hits: [] });
       return false;
     });
   }
@@ -2021,6 +2390,11 @@ export class BellspireGame {
       this.sfx('chime');
       this.emit({ k: 'seal', id: b.id, n });
     }
+    if ((FOUNDRY_GUARDIANS as readonly string[]).includes(b.id)) {
+      const n = FOUNDRY_GUARDIANS.filter((g) => this.flag(`boss:${g}`)).length;
+      this.note(n === 2 ? 'Both foundry bells are quiet: the deep seal is open.' : `${BOSSES[b.id].name} is calm. 1 of 2 deep seals quiet.`, true);
+      this.sfx('chime');
+    }
     if ((BELFRY_GUARDIANS as readonly string[]).includes(b.id)) {
       const n = BELFRY_GUARDIANS.filter((g) => this.flag(`boss:${g}`)).length;
       this.note(n === 2 ? 'Both belfry bells are quiet: the belfry seal is open.' : `${BOSSES[b.id].name} is calm. 1 of 2 belfry seals quiet.`, true);
@@ -2035,6 +2409,7 @@ export class BellspireGame {
       this.save.water.throne = 1;
       this.say(done, () => this.finish());
     } else if (b.id === 'tune') this.say(done, () => this.finishBelfry());
+    else if (b.id === 'hollow') this.say(done, () => this.finishFoundry());
     else this.say(done, () => this.emit({ k: 'save' }));
     this.planks.clear(); this.arenaWind = { dir: 1, str: 1 }; this.notes = this.notes.filter((nn) => !nn.key.startsWith('tune:'));
   }
@@ -2053,7 +2428,17 @@ export class BellspireGame {
     if (this.ended || this.dialog || this.boss || !this.flag('boss:mother')) return;
     // once the belfry is in tune too, the second epilogue when every last thing (citadel and belfry) is found; it
     // stands for the first as well when both are earned at once
-    if (this.flag('boss:tune') && !this.flag('epilogue2') && this.completion().pct >= 100) {
+    // once the Hollow Bell is calm, the third epilogue when every last thing (the Foundry Below too) is found
+    if (this.flag('boss:hollow') && !this.flag('epilogue3') && this.completion().pct >= 100) {
+      this.setFlag('epilogue'); this.setFlag('epilogue2'); this.setFlag('epilogue3');
+      this.emit({ k: 'save' });
+      this.say([
+        { who: 'dora', text: 'Enzo, that’s the lot. Citadel, belfry, foundry. Every chest, every mural, every bell.' },
+        { who: 'enzo', text: 'Then the forge can go quiet. Tupa said there’d be a new bell to hear tonight.' },
+      ], () => this.finishFoundry());
+      return;
+    }
+    if (this.flag('boss:tune') && !this.flag('epilogue2') && this.completion().belfry.pct >= 100) {
       this.setFlag('epilogue'); this.setFlag('epilogue2');
       this.emit({ k: 'save' });
       this.say([
@@ -2075,11 +2460,20 @@ export class BellspireGame {
   /** The Windward Belfry's end: the Out-of-Tune Bell in tune again. The second epilogue follows when everything,
    *  citadel and belfry, has been found ('epilogue2' keeps it). Saved first. */
   finishBelfry() {
-    const full = this.completion().pct >= 100;
+    const full = this.completion().belfry.pct >= 100;
     this.ended = true; this.setFlag('ending'); this.setFlag('belfry:ending');
     if (full) this.setFlag('epilogue2');
     this.emit({ k: 'save' });
     this.emit({ k: 'ending', full, belfry: true });
+  }
+  /** The Foundry Below's end: the Hollow Bell recast, whole and in tune. The third epilogue follows when everything,
+   *  the foundry too, has been found ('epilogue3' keeps it). Saved first. */
+  finishFoundry() {
+    const full = this.completion().pct >= 100;
+    this.ended = true; this.setFlag('ending'); this.setFlag('foundry:ending');
+    if (full) this.setFlag('epilogue3');
+    this.emit({ k: 'save' });
+    this.emit({ k: 'ending', full, foundry: true });
   }
 
   bossFrog(b: Boss) {
@@ -2637,6 +3031,175 @@ export class BellspireGame {
     void rr;
   }
 
+  /** The Molten Founder: a walking furnace with a ladle. Only frosted spots take a blade (see damageBoss). */
+  bossFounder(b: Boss) {
+    const rr = this.bossRoomRect(), floor = this.floorY(), lead = this.body, sp = this.bossSpeed, atk = BOSSES.founder.atk;
+    for (const p of b.spots ?? []) p.t -= sp;
+    b.spots = (b.spots ?? []).filter((p) => p.t > 0);
+    const ngp = this.save.ngp ? ['twin'] : [];
+    const cycle = b.phase === 1 ? ['pour', 'pound', 'pour'] : b.phase === 2 ? ['pour', 'rain', ...ngp, 'pound'] : ['flood', 'pour', 'rain', ...ngp, 'pound'];
+    if (b.st === 'idle' || b.st === 'intro') b.face = lead.x > b.x ? 1 : -1;
+    switch (b.st) {
+      case 'intro': if (b.t > 70) this.go('idle', 60); break;
+      case 'idle': {
+        // it lumbers after the lead, slowly
+        if (Math.abs(lead.x - b.x) > 70) b.x = clamp(b.x + b.face * 0.55 * sp, rr.x + 70, rr.x + rr.w - 90);
+        if (b.t > b.dur) { const nx = cycle[b.step++ % cycle.length]; this.go(`${nx}Tell`, nx === 'pound' ? 44 : 40, true); }
+        break;
+      }
+      case 'pourTell': case 'twinTell': if (b.t > b.dur) {
+        // the ladle tips: three globs of bronze arc toward the lead (twice in New Game+)
+        const n = b.st === 'twinTell' ? 2 : 1;
+        for (let k = 0; k < n; k++) for (const f of [0.75, 1, 1.25]) {
+          const dx = (lead.x - b.x) * f + (k ? b.face * 60 : 0), t = 46;
+          this.hostile('glob', b.x + b.face * 40, b.y - 90, dx / t, -4.2 - k, 0.18, Math.round(atk * 0.8), 7, 160);
+        }
+        this.sfx('pour', b.x, b.y); this.go('pour', 30);
+      } break;
+      case 'pour': if (b.t > b.dur) this.go('idle', b.phase === 3 ? 34 : 48); break;
+      case 'poundTell': if (b.t > b.dur) {
+        for (const d of [-1, 1] as const) this.waves.push({ x: b.x + d * 50, y: floor, dir: d, speed: 2 * sp, life: 150, h: 14, dmg: atk });
+        this.sfx('slam', b.x, b.y); this.emit({ k: 'shake', n: 8 }); this.go('pound', 36);
+      } break;
+      case 'pound': if (b.t > b.dur) this.go('idle', 44); break;
+      case 'rainTell': if (b.t > b.dur) {
+        // drops of molten bronze from the crucibles above: marked on the floor first
+        const xs = [lead.x, ...[0, 1, 2, 3].map(() => rr.x + 40 + this.rand() * (rr.w - 80))];
+        xs.forEach((x, k) => this.markers.push({ x, y: floor, t: (this.helping() ? 70 : 50) + k * 10, kind: 'drop' }));
+        this.go('rain', 70);
+      } break;
+      case 'rain': if (b.t > b.dur) this.go('idle', 40); break;
+      case 'floodTell': if (b.t > b.dur) {
+        // the moulds spill: a tall wave rolls in from each wall (jump it, or ride it out on a ledge)
+        for (const d of [1, -1] as const) this.waves.push({ x: d > 0 ? rr.x + 20 : rr.x + rr.w - 20, y: floor, dir: d, speed: 1.6 * sp, life: 300, h: 20, dmg: atk });
+        this.sfx('pour', b.x, b.y); this.go('flood', 60);
+      } break;
+      case 'flood': if (b.t > b.dur) this.go('idle', 50); break;
+    }
+    b.y = floor;
+    b.body = bossArtBox(b, 'boss-founder', b.x, b.y + 2, b.face > 0, 0.85);
+    b.hurt.push(b.body);
+    // its touch burns (but not the ladle's back swing)
+    b.harm.push(this.shrink(b.body, 14));
+  }
+
+  /** The Glass Choir: three singers. It sings a song (a note from each in turn); then it listens, and the heroes ring
+   *  it back by striking the singers in the same order. Between songs it throws glass. */
+  bossChoir(b: Boss) {
+    const lead = this.body, sp = this.bossSpeed, atk = BOSSES.choir.atk, floor = this.floorY();
+    const len = b.phase === 1 ? 3 : b.phase === 2 ? 4 : 5, gap = this.helping() ? 52 : 38;
+    for (const h of b.heads) { h.y = floor; if (h.st !== 'idle' && (h.t -= sp) <= 0) h.st = 'idle'; }
+    const song = (b.song ??= []);
+    switch (b.st) {
+      case 'intro': if (b.t > 80) this.go('singTell', 30, true); break;
+      case 'singTell': if (b.t > b.dur) {
+        song.length = 0;
+        for (let k = 0; k < len; k++) { let n = Math.floor(this.rand() * 3); if (k && n === song[k - 1]) n = (n + 1 + Math.floor(this.rand() * 2)) % 3; song.push(n); }
+        b.sung = 0; this.go('sing', len * gap + 20);
+      } break;
+      case 'sing': {
+        // each singer lights and sings its note in turn
+        const k = Math.floor(b.t / gap), prev = Math.floor((b.t - sp) / gap);
+        if (k < len && (k !== prev || b.t <= sp)) { const h = b.heads[song[k]]; h.st = 'sing'; h.t = gap - 8; this.sfx(`note${song[k]}`, h.x, h.y - 40); this.emit({ k: 'notes', x: h.x, y: h.y - 60 }); }
+        if (b.t > b.dur) { this.go('listen', this.helping() ? 900 : 480); if (!this.flag('choir:tip')) { this.setFlag('choir:tip'); this.note('Now ring its song back: strike the singers in the order they sang.', true); } }
+        break;
+      }
+      case 'listen': if (b.t > b.dur) { b.sung = 0; this.go('shardsTell', 36, true); } break;
+      case 'stun': if (b.t > b.dur) this.go('shardsTell', 40, true); break;
+      case 'shardsTell': if (b.t > b.dur) {
+        // each singer throws a fan of glass at the lead
+        for (const h of b.heads) for (const da of [-0.25, 0, 0.25]) {
+          const a = Math.atan2(lead.y - 14 - (h.y - 50), lead.x - h.x) + da;
+          this.hostile('glass', h.x, h.y - 50, Math.cos(a) * 2.4, Math.sin(a) * 2.4, 0, Math.round(atk * 0.7), 5, 150);
+        }
+        this.sfx('shatter', b.x, b.y - 40);
+        this.go(b.phase === 3 && this.save.ngp ? 'shards2' : 'rest', 50);
+      } break;
+      case 'shards2': if (b.t > b.dur) { for (const h of b.heads) this.hostile('glass', h.x, h.y - 50, 0, -3, 0.12, Math.round(atk * 0.6), 5, 160); this.go('rest', 40); } break;
+      case 'rest': if (b.t > b.dur) this.go('singTell', 30, true); break;
+    }
+    b.hurt = b.heads.map((h, i) => Object.assign({ x: h.x - 18, y: h.y - 72, w: 36, h: 72 }, { part: i }));
+    b.body = { x: b.heads[0].x - 30, y: floor - 80, w: b.heads[2].x - b.heads[0].x + 60, h: 80 };
+    // only their glass hurts (the singers themselves don't)
+  }
+
+  /** The Hollow Bell: over a lava pit. First its dark shell (it tolls, swings and drops bell blanks; a slam on its
+   *  crown rings it hard); at half, the shell cracks and its molten heart flies at the heroes, ringed by shards (a
+   *  Resonance chime stuns it). The lava rises as it fights: with the helping hand slower, and never over the stone. */
+  bossHollow(b: Boss) {
+    const rr = this.bossRoomRect(), lead = this.body, sp = this.bossSpeed, atk = BOSSES.hollow.atk, help = this.helping();
+    const base = rr.y + 15 * TILE;
+    if (b.form === 1 && b.hp <= b.max / 2 && b.st !== 'crack') { this.go('crack', 90); this.emit({ k: 'flash', color: '#ffb060', n: 12 }); this.sfx('shatter', b.x, b.y); this.note('The shell cracks open: its molten heart is free!', true); }
+    // the lava: it rises in the second form toward the ledges (with the helping hand it stops below the stone)
+    // (in the second form it swells for a while and ebbs again; the ledges up top stay dry)
+    const high = b.form === 2 && this.tick % 1200 < 640;
+    const top = high ? (help ? rr.y + 12 * TILE + 6 : rr.y + 10.6 * TILE) : base - 8;
+    const lava = b.lava ?? base;
+    b.lava = lava > top ? Math.max(top, lava - 0.15 * (help ? 0.5 : 1) * sp) : Math.min(top, lava + 0.2 * sp);
+    if (lead.y > b.lava + 3 && !this.save.heroes[this.lead].down && b.st !== 'intro') {
+      // into the lava: a burn, and back up to the last safe stone (a ledge, if the lava has covered it)
+      this.hurtLead(Math.round(atk * 0.7), lead.x);
+      const ledges = [rr.x + 17 * TILE + 8, rr.x + 42 * TILE + 8];
+      const to = this.safe.y < b.lava - 8 ? this.safe : { x: ledges.reduce((a, x) => (Math.abs(x - lead.x) < Math.abs(a - lead.x) ? x : a)), y: rr.y + 8 * TILE };
+      lead.x = to.x; lead.y = to.y; lead.vx = 0; lead.vy = 0; lead.dashT = 0; lead.ground = false;
+      this.follower.x = lead.x - lead.face * 24; this.follower.y = lead.y; this.trail = [];
+      this.emit({ k: 'hit', x: lead.x, y: b.lava, big: true, color: '#ff8a30' });
+    }
+    const ngp = this.save.ngp ? ['blanks2'] : [];
+    const cycle = b.form === 1 ? ['toll', 'swing', 'blanks', ...ngp] : ['lunge', 'orbit', 'lunge', ...(b.phase === 3 ? ['blanks'] : []), ...ngp];
+    switch (b.st) {
+      case 'intro': if (b.t > 80) this.go('idle', 50); break;
+      case 'idle': {
+        // it drifts above the middle of the pit (its heart hunts the lead)
+        const tx = b.form === 1 ? b.sx : clamp(lead.x, rr.x + 80, rr.x + rr.w - 80), ty = b.form === 1 ? b.sy : rr.y + 6 * TILE;
+        b.x += (tx - b.x) * 0.02 * sp; b.y += (ty + Math.sin(this.tick * 0.05) * 6 - b.y) * 0.04 * sp;
+        b.face = lead.x > b.x ? 1 : -1;
+        if (b.t > b.dur) { const nx = cycle[b.step++ % cycle.length]; this.go(`${nx}Tell`, nx === 'lunge' ? 46 : 40, true); b.tx = lead.x; b.ty = lead.y - 20; }
+        break;
+      }
+      case 'tollTell': if (b.t > b.dur) {
+        this.rings.push({ x: b.x, y: b.y - 40, r: 8, vr: 2.3 * sp, max: 120, thick: 9, dmg: atk, friendly: false, kind: 'imp', hit: [], rung: [] });
+        this.sfx('toll', b.x, b.y); this.emit({ k: 'shake', n: 8 }); this.go('toll', 40);
+      } break;
+      case 'swingTell': if (b.t > b.dur) { this.go('swing', 120); this.sfx('swoosh', b.x, b.y); } break;
+      case 'swing': {
+        // a wide swoop across the pit, low over the stone
+        // (only over the middle of the pit: the outer stones are out of its reach)
+        b.x = b.sx + Math.sin(b.t * 0.052) * 150; b.y = b.sy + 12 * Math.abs(Math.sin(b.t * 0.052));
+        if (b.t > b.dur) this.go('idle', 40);
+        break;
+      }
+      case 'blanksTell': case 'blanks2Tell': if (b.t > b.dur) {
+        const n = b.st === 'blanks2Tell' ? 6 : 4;
+        for (let k = 0; k < n; k++) this.markers.push({ x: k === 0 ? lead.x : rr.x + 60 + this.rand() * (rr.w - 120), y: rr.y + 12 * TILE, t: (help ? 70 : 52) + k * 12, kind: 'blank' });
+        this.sfx('tell', b.x, b.y); this.go('blanks', 70);
+      } break;
+      case 'crack': if (b.t > b.dur) { b.form = 2; b.phase = Math.max(b.phase, 2) as 1 | 2 | 3; this.go('idle', 40); } break;
+      case 'lungeTell': { b.face = b.tx > b.x ? 1 : -1; if (b.t > b.dur) { b.sx = b.x; b.vis = 1; this.go('lunge', 40); this.sfx('swoosh', b.x, b.y); } } break;
+      case 'lunge': {
+        const p = clamp(b.t / 40, 0, 1);
+        b.x = b.sx + (b.tx - b.sx) * p; b.y += (b.ty - b.y) * 0.08 * sp;
+        if (b.t > b.dur) { b.sx = rr.x + rr.w / 2; this.go('idle', 46); }
+        break;
+      }
+      case 'orbitTell': if (b.t > b.dur) this.go('orbit', 200); break;
+      case 'orbit': {
+        // shards wheel round it as it follows the lead slowly
+        b.x += clamp(lead.x - b.x, -0.7, 0.7) * sp;
+        const n = b.phase === 3 ? 4 : 3, R = 54 + 10 * Math.sin(b.t * 0.05);
+        for (let k = 0; k < n; k++) { const a = b.t * 0.05 + (k * Math.PI * 2) / n; b.harm.push({ x: b.x + Math.cos(a) * R - 8, y: b.y - 50 + Math.sin(a) * R - 8, w: 16, h: 16 }); }
+        if (b.t > b.dur) this.go('idle', 40);
+        break;
+      }
+      case 'stun': b.y = Math.min(b.y + 0.4 * sp, rr.y + 10 * TILE); if (b.t > b.dur) this.go('idle', 30); break;
+      default: if (b.t > b.dur) this.go('idle', 40);
+    }
+    const sheet = b.form === 2 ? 'boss-hollowb' : 'boss-hollow';
+    b.body = bossArtBox(b, sheet, b.x, b.y + 2, b.face > 0, 0.85);
+    b.hurt.push(b.body);
+    if (b.st === 'swing' || b.st === 'lunge') b.harm.push(this.shrink(b.body, 10));
+  }
+
   bossMother(b: Boss) {
     const rr = this.bossRoomRect(), floor = this.floorY(), lead = this.body, sp = this.bossSpeed;
     b.face = -1;
@@ -2714,6 +3277,11 @@ export class BellspireGame {
       [() => this.flag('boss:condor'), (t, r) => t.ch === 'O' && r.boss === 'condor'],
       [() => this.flag('boss:clappers'), (t, r) => t.ch === 'O' && r.boss === 'clappers'],
       [() => this.flag('boss:tune'), (t, r) => t.ch === 'O' && r.boss === 'tune'],
+      // the Foundry Below
+      [() => this.has('hammer'), (t, r) => t.ch === 'A' && r.ability === 'hammer'],
+      [() => this.flag('boss:founder'), (t, r) => t.ch === 'O' && r.boss === 'founder'],
+      [() => this.flag('boss:choir'), (t, r) => t.ch === 'O' && r.boss === 'choir'],
+      [() => this.flag('boss:hollow'), (t, r) => t.ch === 'O' && r.boss === 'hollow'],
     ];
     if (ABILITY_ORDER.slice(0, 7).every((a) => this.has(a)) && this.restless().length) {
       // every ability owned but seals still shut: the nearest restless guardian
@@ -2745,6 +3313,9 @@ export class BellspireGame {
   }
   /** Does the map show the Windward Belfry yet: once the Lake Mother is calm (Wayra will row then), or once the heroes
    *  have been there. Before that the maps keep it a secret. */
+  /** Does the map show the Foundry Below yet: once its seal has cracked (the Out-of-Tune Bell calm), or once the heroes
+   *  have been down there. */
+  foundryKnown(): boolean { return this.flag('boss:tune') || FOUNDRY_ROOMS_SET.has(this.room.id) || this.save.seen.some((k) => CELLS.get(k)?.fd); }
   belfryKnown(): boolean { return this.flag('boss:mother') || this.flag('belfry:visited') || BELFRY_ROOMS_SET.has(this.room.id); }
   /** Wayra's boat on one shore, in world pixels. */
   boatAt(room: 'landing' | 'cliffoot'): { room: string; x: number; y: number } {
@@ -2818,7 +3389,7 @@ export class BellspireGame {
   /** Is the guiding wisp shown: the helping hand on (never in Strict), its own setting not off, and a goal left. */
   // (on after the citadel's ending too, even from a save that kept the ending flag: it leads on to the belfry; off
   // once the Out-of-Tune Bell is calm, with nothing left to lead to)
-  wispOn() { return this.settings.assist && !this.settings.strict && this.settings.wisp !== false && !this.flag('boss:tune'); }
+  wispOn() { return this.settings.assist && !this.settings.strict && this.settings.wisp !== false && !this.flag('boss:hollow'); }
   /** The guiding wisp: while the helping hand is on it is always there, a little ahead of the lead along the way to
    *  the next goal (over the goal itself once it is in this room). It keeps clear of the heroes' faces, drifts up to
    *  a corner in a guardian's arena, and never touches the game: it only moves. */
@@ -2988,9 +3559,24 @@ export class BellspireGame {
     const all = tally(null), base = tally(false);
     const bosses = ALL_BOSSES.filter((id) => this.flag(`boss:${id}`)).length;
     const baseBosses = BASE_BOSSES.filter((id) => this.flag(`boss:${id}`)).length;
+    // the citadel and the Windward Belfry, without the Foundry Below (for the second epilogue)
+    const fd = { cells: 0, chests: 0, peds: 0, murals: 0 };
+    for (const info of INFO.values()) {
+      if (!info.room.fd) continue;
+      for (const t of info.things) {
+        if (t.ch === 'C' && this.flag(`chest:${info.room.id}:${t.i}`)) fd.chests++;
+        if (t.ch === 'A' && info.room.ability && this.has(info.room.ability)) fd.peds++;
+      }
+      for (const n of info.room.murals ?? []) if (this.flag(`mural:${n}`)) fd.murals++;
+    }
+    for (const k of this.save.seen) { const r = CELLS.get(k); if (r?.fd) fd.cells++; }
+    const belfBosses = BELFRY_BOSSES.filter((id) => this.flag(`boss:${id}`)).length, F = C.belfry;
+    const fgot = all.cells - fd.cells + all.chests - fd.chests + all.peds - fd.peds + all.murals - fd.murals + belfBosses;
+    const ftotal = F.cells + F.chests + F.pedestals + F.murals + F.bosses;
+    const belfry = { cells: all.cells - fd.cells, chests: all.chests - fd.chests, peds: all.peds - fd.peds, murals: all.murals - fd.murals, bosses: belfBosses, got: fgot, total: ftotal, pct: Math.floor((fgot / ftotal) * 100) };
     const got = all.cells + all.chests + all.peds + all.murals + bosses, total = C.cells + C.chests + C.pedestals + C.murals + C.bosses;
     const bgot = base.cells + base.chests + base.peds + base.murals + baseBosses, B = C.base, btotal = B.cells + B.chests + B.pedestals + B.murals + B.bosses;
-    return { ...all, bosses, got, total, pct: Math.floor((got / total) * 100), base: { ...base, bosses: baseBosses, got: bgot, total: btotal, pct: Math.floor((bgot / btotal) * 100) } };
+    return { ...all, bosses, got, total, pct: Math.floor((got / total) * 100), base: { ...base, bosses: baseBosses, got: bgot, total: btotal, pct: Math.floor((bgot / btotal) * 100) }, belfry };
   }
 
   /** A copy of the save for storing: the hero's place is the last shrine. During an Echo Trial it is the save as it
@@ -3015,6 +3601,8 @@ export class BellspireGame {
     const b = this.body, near = INFO.get(this.room.id)!.things.some((t) => t.ch === 'S' && Math.abs(t.c * TILE + 8 - b.x) < 30 && Math.abs((t.r + 1) * TILE - b.y) < 26);
     if (!near || b.climb || !this.litShrines().includes(this.room.id)) return 'Stand at a lit candle shrine to start a trial.';
     if (def.from && !this.litShrines().includes(def.from)) return `Light the ${SHRINE_NAMES[def.from]} first: this run starts there.`;
+    if (def.id === 'rush:grand' && !this.flag('boss:hollow')) return 'The Grand Rush opens once the Hollow Bell is calm.';
+    if (def.id === 'run:glass' && !this.has('resonance')) return 'The Glass Echo needs Enzo’s Resonance.';
     return null;
   }
   /** Start an Echo Trial from the shrine the heroes stand at. Both heroes start fresh, with the trial pantry, the
@@ -3045,17 +3633,19 @@ export class BellspireGame {
   }
   /** The Guardian Rush: into the next guardian's doorway. */
   rushNext() {
-    const t = this.trial!, id = RUSH[t.i];
+    const t = this.trial!, list = this.rushList(), id = list[t.i];
     this.fightBoss(id);
-    this.note(`${t.i + 1} of ${RUSH.length}: ${BOSSES[id].name}.`, true);
+    this.note(`${t.i + 1} of ${list.length}: ${BOSSES[id].name}.`, true);
   }
+  /** The guardians in this rush, in order (the Grand Rush has the foundry's three too). */
+  rushList(): BossId[] { return this.trial?.def.id === 'rush:grand' ? GRAND_RUSH : RUSH; }
   /** A guardian in the rush is calm: one heal, a breath, and on to the next (or the end). */
   rushCalm(b: Boss) {
     const t = this.trial!;
     this.boss = null; this.bossEntry = null; this.arenaWater = null;
     this.planks.clear(); this.arenaWind = { dir: 1, str: 1 }; this.notes = [];
     t.i++;
-    if (t.i >= RUSH.length) { this.endTrial(true); return; }
+    if (t.i >= this.rushList().length) { this.endTrial(true); return; }
     for (const h of ALL_HEROES) {
       const sv = this.save.heroes[h], st = this.stats(h);
       if (sv.down) { sv.down = false; sv.hp = 0; }
@@ -3064,7 +3654,7 @@ export class BellspireGame {
     }
     this.sfx('shrine'); this.emit({ k: 'pulse', x: this.body.x, y: this.body.y - 20, r: 120, color: [1, 0.8, 0.5] });
     this.emit({ k: 'num', x: this.body.x, y: this.body.y - 30, n: Math.round(this.stats(this.lead).maxHp * RUSH_HEAL), kind: 'heal' });
-    this.note(`${BOSSES[b.id].name} is calm. One heal, then ${BOSSES[RUSH[t.i]].name}.`, true);
+    this.note(`${BOSSES[b.id].name} is calm. One heal, then ${BOSSES[this.rushList()[t.i]].name}.`, true);
     t.next = 100;
   }
   /** Each tick of a trial: the clock, the rush's pause between guardians, and a run's trial bells. */
@@ -3137,7 +3727,8 @@ export class BellspireGame {
   fightBoss(id: BossId) {
     const room = ROOMS.find((r) => r.boss === id)!;
     this.save.flags = this.save.flags.filter((f) => f !== `boss:${id}`);
-    const entryC = id === 'frog' || id === 'clappers' || id === 'tune' ? (id === 'frog' ? 27 : 56) : id === 'condor' ? 3 : 2, entryR = id === 'condor' ? 11 : 14;
+    const entryC = id === 'frog' || id === 'clappers' || id === 'tune' || id === 'choir' ? (id === 'frog' ? 27 : 56) : id === 'condor' ? 3 : id === 'founder' ? 44 : id === 'hollow' ? 17 : 2;
+    const entryR = id === 'condor' ? 11 : id === 'hollow' ? 7 : 14;
     this.teleport(room.id, entryC, entryR);
   }
 }

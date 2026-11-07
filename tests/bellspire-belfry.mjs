@@ -40,9 +40,9 @@ export default function belfry() {
   eq(new Set(belfry.map((r) => r.area)), new Set(['cloud', 'loft']), 'two new areas: the Cloudstair and the Belfry Loft');
   const shrines = belfry.filter((r) => INFO.get(r.id).things.some((t) => t.ch === 'S')).map((r) => r.id);
   ok(shrines.length >= 2, `new shrines: ${shrines.join(', ')}`);
-  eq(ROOMS.filter((r) => r.exp).flatMap((r) => r.murals ?? []).length, 8, 'eight new murals');
-  eq(ROOMS.filter((r) => r.exp).flatMap((r) => r.chests ?? []).filter((c) => c === 'heart').length, 2, 'two Bell Hearts');
-  ok(ROOMS.filter((r) => r.exp).flatMap((r) => r.chests ?? []).length >= 8, 'about eight chests');
+  eq(ROOMS.filter((r) => r.exp && !r.fd).flatMap((r) => r.murals ?? []).length, 8, 'eight new murals');
+  eq(ROOMS.filter((r) => r.exp && !r.fd).flatMap((r) => r.chests ?? []).filter((c) => c === 'heart').length, 2, 'two Bell Hearts');
+  ok(ROOMS.filter((r) => r.exp && !r.fd).flatMap((r) => r.chests ?? []).length >= 8, 'about eight chests');
   for (const r of ROOMS) {
     const q = INFO.get(r.id).things.filter((t) => t.ch === 'Q').length, p = INFO.get(r.id).things.filter((t) => t.ch === 'P').length;
     if (q) eq(r.echoes?.length, q, `${r.id}: every echo bell has its notes`);
@@ -99,7 +99,7 @@ export default function belfry() {
   eq(belfry.filter((r) => !fin.rooms.has(r.id)).map((r) => r.id), [], 'with everything, every belfry room can be reached');
   for (const r of belfry) for (const t of INFO.get(r.id).things.filter((t) => 'CRSAQW'.includes(t.ch))) ok(fin.near(t), `${r.id}: its ${t.ch} can be reached`);
   // every door in the expansion: open once it should be (the spot in front of it is reached) and its ability needed
-  for (const r of ROOMS.filter((r) => r.exp)) for (const d of INFO.get(r.id).doors) {
+  for (const r of ROOMS.filter((r) => r.exp && !r.fd)) for (const d of INFO.get(r.id).doors) {
     const need = { y: 'rope', n: 'echo' }[d.ch];
     if (!need) continue;
     const without = isBelfryRoom(r.id) ? reach(ALL.filter((a) => a !== need), [...BASE_CALM, 'condor', 'clappers']) : null;
@@ -551,7 +551,8 @@ export default function belfry() {
     eq(c.base.pct, 100, 'the citadel alone: 100%');
     ok(c.pct < 100, `the whole map: less (${c.pct}%)`);
     eq(c.total, COMPLETION.cells + COMPLETION.chests + COMPLETION.pedestals + COMPLETION.murals + COMPLETION.bosses, 'the totals include the expansion');
-    eq(COMPLETION.bosses, 8, 'eight bosses to calm');
+    eq(COMPLETION.bosses, 11, 'eleven bosses to calm (the Foundry Below’s three too)');
+    eq(COMPLETION.belfry.bosses, 8, 'eight without the foundry');
     // then everything: the second epilogue (after the Out-of-Tune Bell)
     g.save.abilities = [...BASE_ABILITIES, 'rope', 'echo'];
     g.unlockMap();
@@ -559,7 +560,7 @@ export default function belfry() {
     for (let i = 0; i < MURALS.length; i++) g.setFlag(`mural:${i}`);
     for (const b of ['condor', 'clappers', 'tune']) g.setFlag(`boss:${b}`);
     g.save.flags = g.save.flags.filter((f) => f !== 'ending');
-    eq(g.completion().pct, 100, 'with the belfry found too: 100%');
+    eq(g.completion().belfry.pct, 100, 'with the belfry found too: 100% (of the citadel and belfry)');
     g.setFlag('epilogue'); g.drainEvents();
     g.checkEpilogue();
     ok(g.dialog, 'the heroes say so');
@@ -591,7 +592,9 @@ export default function belfry() {
     const g = new BellspireGame(done([], ['ending', 'epilogue']), { assist: true }, 1);
     ok(g.wispOn(), 'the wisp is on after the citadel’s ending');
     const g2 = new BellspireGame(done(['rope', 'echo'], ['ending', 'boss:condor', 'boss:clappers', 'boss:tune']), { assist: true }, 1);
-    ok(!g2.wispOn(), 'and out once the Out-of-Tune Bell is calm');
+    ok(g2.wispOn(), 'and still on once the Out-of-Tune Bell is calm: it leads down to the Foundry Below');
+    const g3 = new BellspireGame(done(['rope', 'echo', 'hammer', 'resonance'], ['ending', 'boss:condor', 'boss:clappers', 'boss:tune', 'boss:founder', 'boss:choir', 'boss:hollow']), { assist: true }, 1);
+    ok(!g3.wispOn(), 'and out once the Hollow Bell is calm');
   }
   // the condor's door: climbing up the shaft under the bridge's hatch does not start the fight (the hatch would shut
   // over the heroes' heads); stepping out onto the bridge does
@@ -633,7 +636,8 @@ export default function belfry() {
     eq(run('dora', [{ hail: true }, { hail: true }])[1].state, 'shield', 'Dora shields from hail');
     const cast = (spell, t) => ({ act: { kind: 'cast', n: 0, t, wind: 0, active: 0, spell } });
     eq(run('enzo', [cast('echo', 0)])[0].state, 'echo', 'sounding an echo bell has its own pose');
-    eq(run('enzo', [cast('frost', 0), cast('frost', 8)]).map((o) => o.state), ['frostWind', 'frost'], 'the Frost Fan winds up, then fans out');
+    eq(run('enzo', [{ ...cast('frost', 0), ground: false }, { ...cast('frost', 8), ground: false }]).map((o) => o.state), ['frostWind', 'frost'], 'the Frost Fan winds up, then fans out (in the air)');
+    eq(run('enzo', [cast('frost', 0), cast('frost', 8)]).map((o) => o.state), ['frostLowWind', 'frostLow'], 'and on the ground it sweeps low along the floor');
     eq(run('enzo', [{ castHold: true, castLong: true }])[0].state, 'galeWind', 'holding V for the Gale Wave has its own wind-up');
     eq(run('enzo', [{ castHold: true }])[0].state, 'castWind', 'while a shorter hold is the Ember Ring’s');
     eq(run('enzo', [cast('gale', 0)])[0].state, 'gale', 'and the Gale Wave its own release');

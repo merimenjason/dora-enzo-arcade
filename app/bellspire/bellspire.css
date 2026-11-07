@@ -35,6 +35,8 @@
 .bs-end-full{background-image:url('/art/bellspire/epilogue.webp')}
 .bs-end-belfry{background-image:url('/art/bellspire/ending2.webp')}
 .bs-end-full2{background-image:url('/art/bellspire/epilogue2.webp')}
+.bs-end-foundry{background-image:url('/art/bellspire/ending3.webp')}
+.bs-end-full3{background-image:url('/art/bellspire/epilogue3.webp')}
 .bs-title-panel,.bs-end-panel{position:absolute;right:4vw;bottom:5vh;max-width:min(520px,92vw);padding:20px 22px;background:rgba(13,11,22,.86);
   box-shadow:0 0 0 2px #0a0810,inset 0 0 0 2px var(--bronze2),0 8px 0 rgba(0,0,0,.4)}
 .bs-logo{margin:0 0 6px;font-size:clamp(34px,6vw,58px);line-height:.95;color:var(--gold);text-shadow:3px 3px 0 #5a2a10,0 0 18px rgba(255,190,90,.35);font-weight:700}
@@ -68,6 +70,15 @@
 .bs-bar-boss{height:8px}
 .bs-bar-boss>span{background:linear-gradient(#ffb06a,#c0402a)}
 .bs-coins{margin-left:auto;display:flex;align-items:center;gap:.3em;padding:.2em .5em;background:rgba(20,16,30,.75);color:var(--gold);font-size:.9em}
+.bs-heat{display:flex;align-items:center;gap:.35em;padding:.2em .5em;background:rgba(20,16,30,.75);color:#ffc890;font-size:.8em}
+.bs-heat b{display:block;width:4.5em;height:.55em;background:#2a1410;box-shadow:inset 0 0 0 1px #6a3a20}
+.bs-heat i{display:block;height:100%;background:linear-gradient(90deg,#ffb050,#ff5a20)}
+.bs-heat-high i{background:linear-gradient(90deg,#ff7030,#ff2a10)}
+.bs-heat-full{animation:bs-heat-blink .5s steps(2) infinite}
+@keyframes bs-heat-blink{50%{color:#fff}}
+.bs-forge .bs-perks{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;padding:6px 0 2px}
+.bs-forge .bs-perks .bs-btn{font-size:13px;padding:4px 8px}
+.bs-recast{font-style:normal;color:#ffc890;font-weight:normal}
 .bs-menu-btn{pointer-events:auto;min-width:2.2em;min-height:2.2em;border:0;background:rgba(20,16,30,.85);color:var(--ink);box-shadow:inset 0 0 0 2px var(--bronze2);cursor:pointer;font-size:1em}
 .bs-boss{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);width:min(70%,520px);text-align:center;pointer-events:none;
   background:rgba(13,11,22,.7);padding:4px 10px 8px;box-shadow:inset 0 0 0 1px var(--bronze2)}
@@ -129,7 +140,8 @@
 .bs-map-box{flex:0 1 656px;min-width:0;max-width:100%;max-height:60vh;overflow:auto}
 .bs-map{display:block;width:656px;max-width:none;height:auto;image-rendering:pixelated;background:#e8d6aa url('/art/bellspire/parchment.webp') 0 0/256px;box-shadow:inset 0 0 0 2px var(--bronze2)}
 .bs-map-side{flex:1;min-width:220px}
-@media (min-width:760px){.bs-map{width:100%;max-width:656px}}
+/* (the whole map, scaled up to 1.29× at most, always fits its box: never taller than the box, so it never scrolls) */
+@media (min-width:760px){.bs-map{width:min(100%,656px,calc(60vh * var(--map-ar,2.3)));max-width:656px}}
 .bs-pct{margin:0;font-size:24px;color:var(--gold)}
 .bs-travel{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
 .bs-travel li{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
@@ -150,7 +162,7 @@
 .bs-shop-coins{color:var(--gold);display:flex;align-items:center;gap:6px}
 .bs-buy{min-width:110px}
 .bs-mural{align-items:center;text-align:center;max-width:560px}
-.bs-mural-art{display:block;width:min(480px,100%);aspect-ratio:4/3;background:url('/art/bellspire/murals.webp') 0 0/1400% 100% no-repeat;image-rendering:pixelated;box-shadow:0 0 0 2px var(--bronze2)}
+.bs-mural-art{display:block;width:min(480px,100%);aspect-ratio:4/3;background:url('/art/bellspire/murals.webp') 0 0/2000% 100% no-repeat;image-rendering:pixelated;box-shadow:0 0 0 2px var(--bronze2)}
 .bs-mural p{font-size:18px}
 
 /* ─── touch pad ─── */
@@ -263,4 +275,5 @@
 /* the map guide to the Windward Belfry */
 .bs-legend .lg-boat{width:12px;height:6px;background:linear-gradient(#d9a35a 0 3px,#8a5a2a 3px);border-radius:0 0 4px 4px}
 .bs-legend .lg-belfry{width:12px;height:8px;background:repeating-linear-gradient(-45deg,rgba(232,137,90,.55) 0 1px,rgba(232,137,90,.12) 1px 4px);box-shadow:0 0 0 1px #e8895a}
+.bs-legend .lg-foundry{background:repeating-linear-gradient(45deg,rgba(216,101,46,.55) 0 1px,rgba(216,101,46,.12) 1px 4px);box-shadow:0 0 0 1px #d8652e}
 .bs-legend .lg-arrow{width:0;height:0;background:none;box-shadow:none;border-style:solid;border-width:5px 0 5px 8px;border-color:transparent transparent transparent #ffcf6a;margin:0 2px}

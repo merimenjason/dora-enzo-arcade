@@ -151,6 +151,9 @@ the helping hand on, guardians move at 80% speed with 25% longer warnings.
 | The Hail Condor | 1000 | 20 |
 | The Twin Clappers (two of 410) | 820 | 17 |
 | The Out-of-Tune Bell | 1300 | 24 |
+| The Molten Founder | 1250 | 27 |
+| The Glass Choir | 1000 | 27 |
+| The Hollow Bell | 1600 | 26 |
 
 ## The Windward Belfry
 
@@ -221,6 +224,75 @@ at the foot of the Cloudstair (and back). Before the Lake Mother, Wayra says the
   stands for both and the first never plays after it. The pause map shows the citadel's numbers until the heroes cross
   the water, then everything. The wisp stays on after the citadel's ending (a save loaded from the title keeps the
   ending flag) and leads to Wayra's boat and up the mountain; it goes out once the Bell is calm.
+
+## The Foundry Below
+
+The second expansion, under the citadel. Calming the Out-of-Tune Bell cracks the seal (`9`) in the floor of the Pearl
+Throne Candle; at the next shrine rest Ukumari says she heard it (`foundryCall`), and the map grows downward to take
+the foundry in (the full map always fits its box: drawn at up to 1.29× and never taller than 60% of the screen, so it
+never scrolls).
+
+- **Areas.** The Casting Halls (furnaces, moulds, molten channels, mist vents) and the Glasswork Caves (crystal, glass,
+  lava), 13 rooms and 24 screens, each with its own tile set, decor, backdrop, middle layer, light and tune (`cast`,
+  `glass`). Three shrines: the Foundry Gate Candle, the Furnace Candle and the Glass Candle. New tiles: `~` molten bronze in a
+  channel, `_` lava, `:` slag, `+` a bronze bounce plate, `8` cracked glass, `&` a beam door, `9` the foundry seal and
+  `V` the deep seal; things `N` Tupa, `%` a mist vent, `*` a humming crystal and `!` a prism.
+- **Molten channels and the Frost Fan.** A channel burns like spikes (back to the last safe ledge, a little hurt). As
+  Enzo, V tapped on the ground within 5 tiles of a hot channel sweeps the Frost Fan low across the floor (its own
+  poses); in the air, the fan's hail cools a channel it lands on. Either cools up to four channels within 7 tiles to a
+  crust for 10 seconds (`FROST_T`), which glows for its last 2 seconds and melts. With the helping hand the crust lasts
+  half as long again and never melts under a hero standing on it.
+- **Vents and slag.** Mist vents puff on one clock per room (`VENT_P`, 5.5 seconds): while they puff (2.5 seconds, 4
+  with the helping hand) the slag around them is hard to stand on; between puffs it burns. With the helping hand,
+  slag stays hard under a hero standing on it.
+- **Forge heat.** In a room's hot zones a heat gauge builds by the HUD (full in about 10 seconds; with the helping hand
+  0.6 times as fast, and half as fast in the Forge Apron or the Ashwork Smock, the `cool` perk). It falls in the shade,
+  and a vent's mist or a shrine empties it. Full, it burns 6% of the lead's HP a second (it blinks); with the helping
+  hand it never takes the last HP. Near full, the heroes wipe their brows and hop on the hot floor.
+- **The Bell Hammer** (Dora, from a pedestal in the anvil hall). ↓ + attack in the air slams down (wind-up, dive and
+  landing poses). It breaks cracked glass under her (`8` doors), rings bells it lands on, sends a shockwave along the
+  floor, and bounces her off a foe or guardian it hits. Landing on a bounce plate springs her about twice a jump's
+  height (her own bounce pose). Without it, ↓ + attack is the down-thrust as before.
+- **Resonance** (Enzo, from the Molten Founder). ↑ + V by a humming crystal lines up its bridge of crystal slabs for
+  10 seconds (three times as long with the helping hand); the prism hall's two crystals lay the same bridge from
+  either end. ↑ + V by a prism sends a beam that opens the beam doors within 8 tiles (`BEAM_REACH`); one of them, the
+  crucible's, is a shortcut back opened from the Glass Candle's side. Without Resonance a crystal only hums.
+- **Tupa** (they/them), the bellfounder at the Foundry Gate. ↑ talks (the first time, an introduction), then opens
+  the forge: for 120 coins Tupa recasts a piece of gear with one perk (cool, tempered +3 defence, keen +3 attack,
+  focus +3 magic, lucky or regen). One recast to a piece; a new one melts the old. A recast the piece already has, or
+  too few coins, is refused with the reason. Recasts are saved (`recast`, checked on load against owned gear and known
+  perks) and kept in New Game+.
+- **Foes.** The Ingot Walker hops and splashes molten globs; the Ember Wisp throws sparks in a fan; the Crystal Bat
+  hangs from the ceiling, then swoops; the Glass Snail flicks glass shards and its shell takes half a blow, but three
+  times a slam's shockwave.
+- **Guardians.** The Molten Founder (1250 HP) lumbers after the lead, pours ladles of bronze, pounds waves along the
+  floor, rains marked drops and in phase 3 floods the floor from both walls. A blade only bites where Enzo's frost has
+  landed: frost leaves a cold spot for 5 seconds (8 with the helping hand), and a blade on a spot does 1.6 times
+  (other spells 0.3 times); with Enzo knocked out every blow counts. The Glass Choir (1000 HP) is three singers: it
+  sings a song of 3, 4, then 5 notes (with the helping hand slower, and each singer numbered as it sings), then
+  listens for 8 seconds (15 with the helping hand) while the heroes strike the singers in the same order. Each right
+  note takes 4% of its strength and the whole song 12% and stuns it; a wrong note rings a sour chord (harmless with the
+  helping hand) and the song starts again. Between songs it throws fans of glass. The Hollow Bell (1600 HP) hangs over
+  a lava pit with three stones and two ledges: its shell shrugs off blows (0.6 times) unless Dora slams its crown from
+  above (2.2 times, from a ledge: jump, jump again and dash over it). It tolls rings, swoops across the middle of the
+  pit and drops marked blanks on the stones. At half strength its shell cracks and its molten heart lunges at the
+  lead and wheels glass shards round itself; Enzo's Resonance chime holds it still (3 seconds, 4.3 with the helping
+  hand) for double damage, and the lava swells over the stones for 10 seconds in every 20, so the ledges are the safe
+  place (with the helping hand it never covers the stones). Lava sends a hero back to the last safe stone, or a ledge.
+  The deep seal (`V`) by the Furnace Candle opens once the Founder and the Choir are calm.
+- **Rewards.** The Bell Hammer (pedestal), Resonance and a Bell Heart (the Founder), the Founder's Ladle and a Moon
+  Drop (the Choir). Chests hold the Forge Apron and the Ashwork Smock (painted outfits, each its own sprite strip with
+  a part map), the Obsidian Edge (Dora), the Cinder Charm, a Bell Heart, a Moon Drop and coins. Six more murals, for
+  24.
+- **Endings.** Calming the Hollow Bell plays the foundry's ending page. With everything found (now 118 cells, 34
+  chests, 6 pedestals, 24 murals and 11 guardians), the third epilogue plays once (`epilogue3`, with its own painting).
+  The second epilogue now counts the citadel and the belfry only, so it can still be earned without the foundry. The
+  wisp leads on into the foundry after the Out-of-Tune Bell (to the Bell Hammer, then each guardian in turn) and goes
+  out once the Hollow Bell is calm.
+- **Trials and New Game+.** The Forge Sprint (from the Foundry Gate) and the Glass Echo (from the Glass Candle, needs
+  Resonance) join the area runs, and the Grand Guardian Rush (all eleven guardians, after the Hollow Bell) joins the
+  Guardian Rush. In New Game+ the foundry's guardians each gain an attack too: the Founder pours twice, the Hollow
+  Bell drops six blanks.
 
 ## Echo Trials
 
@@ -317,6 +389,13 @@ rope's angle, the release kick and a shield guard (and the guided rope's flight:
 `ropeFly`, spare take 78 from sheet j, a forward reach shown nowhere else, until she lands, always a clean landing); Enzo's echo-bell strike, the Frost Fan's wind-up and release, the
 Gale Wave's wind-up and release and a hop onto a note; and for both a brace into the wind and a balance on a swinging
 bell. The two outfits are whole painted strips of their own (`dora-windward`, `enzo-highland`), not tints.
+
+The Foundry Below adds sheet l (frames 88 to 95): Dora's Bell Hammer slam (a two-frame wind-up overhead, the dive
+and the landing crouch with the shockwave) and the spring off a bounce plate; Enzo's Resonance (the staff raised, the
+ring, and the beam held when a prism answers), and the low Frost Fan's wind-up and sweep across the floor; and for both
+a brow wipe and a hop on the hot floor when the forge heat runs high, and a pose at Tupa's anvil. The Forge Apron and
+the Ashwork Smock are whole painted strips (`dora-forge`, `enzo-ash`). Tupa has an idle, hammering, a wave and a
+pose holding out a recast piece; vents puff, channels crust and glow, crystals brighten when rung.
 
 Foes have two idle frames, four moving, a wind-up and an attack, a squash when hit and a puff when calmed. Guardians
 have extra tell and attack frames, a stagger and a calm pose. In the world, bells and chains swing when hit or passed,
@@ -453,6 +532,29 @@ true)`) simulates the guided rope: any move near a hook may be caught, and carri
 going, and there are moves that jump at a hook and tap jump on the rope at a set moment, holding a way. (The planner's
 proofs in the tests stay on the free rope, the harder of the two.)
 
+The route bot then goes back across the lake and down the seal into the Foundry Below to the Hollow Bell (seeds 1 to 3,
+each in about 5 to 11 minutes of game time after the Bell, reaching the foundry's ending once). There the planner
+counts molten bronze as cooled, slag as hard, cracked glass and near-side beam doors as open and crystal slabs as
+there (a beam door whose prism is in the next room is a shortcut back, so the planner counts it shut), and the bot
+does each for real first: Enzo's low Frost Fan from a channel's edge, a wait at the slag's edge for a fresh puff, a
+slam on the glass, the chime by the prism, and the chime by a crystal before its bridge. In the foundry each move
+settles before the next (its slag strips sit tight against the lava). The guardians' bots: for the Molten Founder,
+Enzo jumps and fans frost onto it, then Dora's blade goes to the cold spots; for the Glass Choir, they stand back
+while it sings and strike the singer whose note comes next; for the Hollow Bell, Dora climbs to the inner end of a
+ledge and plays the crown slam (jump, jump again, dash over it, ↓ + attack) while the shell is whole, Enzo chimes the
+heart still once it cracks, and both keep to the stones, or the ledges while the lava is high. Results on 08-11-2026
+(24 seeds each):
+
+| Guardian | Casual | Pro |
+|---|---|---|
+| The Molten Founder | 24/24, all first try, 45 s, lowest HP 78% | 24/24, all first try, 42 s, lowest HP 55% |
+| The Glass Choir | 24/24, all first try, 24 s, lowest HP 99% | 24/24, 23 first try, 38 s, lowest HP 55% |
+| The Hollow Bell | 23/24, 23 first try, 106 s, lowest HP 68% | 22/24, 13 first try, 148 s, lowest HP 22% |
+
+The Grand Guardian Rush's casual bot finished 13 of 16 seeds (447 to 632 s; gold 450, silver 590, bronze 780; it
+must finish 60%, against the Guardian Rush's 75%, since it ends on the Hollow Bell); the pro bot fell to the Hollow
+Bell every time. In New Game+ the casual bot won every foundry guardian within three tries in 24 of 24 seeds. The Forge Sprint's planner line is 60.7 s (gold 64) and the Glass Echo's 17 s (gold 20).
+
 The echo bells' human-paced bots (`node tests/bellspire-echo.mjs --bots`, and the 95% check in `tests/bellspire.mjs`)
 start as Enzo 2 to 5 tiles from each echo bell. They walk up and react 12 to 15 ticks late, ring it, tag to Dora a
 reaction (and up to 10 more ticks) later, then climb the notes along the route planner's moves. Before each move they
@@ -557,6 +659,22 @@ longer. The test requires casual wins in 85% of seeds and pro in 70%.
   finished save, the wisp to the boat, both new spells, every new foe's wind-up and attack, the three guardians (door,
   introduction, three phases, wind-ups, their signature attacks, each clapper's hero, the reward, the ending), the
   condor's planks, the retune, old saves, the totals and both epilogues, and every new pose.
+- `tests/bellspire-foundry.mjs` (run by `tests/bellspire.mjs`): the Foundry Below. The map (screens, areas, murals,
+  guardians, shrines, foes, the seal, every crystal's bridge). Planner proofs from the Pearl Throne Candle: nothing of
+  the foundry before the Out-of-Tune Bell; with the belfry's abilities the gate to the crucible and the Bell Hammer's
+  pedestal and Tupa, but not the Founder or the glass box's chest; with the hammer the Founder and the Furnace Candle,
+  but nothing behind a beam door; with Resonance (and the Founder calm) the caves and the Choir, but not the Hollow Bell
+  until both guardians are calm; with everything every room and every chest, mural, shrine, pedestal, crystal and
+  prism; and no trap at any of the three stages. The engine: the seal and Ukumari's call; a channel cooled from the
+  ground, its glow and melt, the helping hand's longer crust that never melts under a hero, hail from the air, and
+  walking into hot bronze; slag hard only in a vent's puff; heat filling, knocking out in Strict but never with the
+  helping hand, halved by the cool perk, emptied by mist and a shrine; the slam on glass, a slam on a bounce plate
+  springing far higher than a jump, the down-thrust without the hammer, the glass snail's shell; a crystal's whole
+  bridge and its helping-hand life, a prism opening the crucible's beam door, nothing without Resonance; Tupa's
+  introduction and forge, a recast's price and stats, refusals, saving, bad recasts dropped on load, old saves, and
+  New Game+ keeping them; each guardian's rule (the Founder's cold spots, the Choir's song and sour chord, the Hollow
+  Bell's two forms and its lava with and without the helping hand); totals, the foundry's ending, the third epilogue,
+  the second epilogue without the foundry, the wisp's goals and an old save.
 - `tests/bellspire-trials.mjs` (run by `tests/bellspire.mjs`): Echo Trials and New Game+. Each trial's definition and
   that every bell stands on ground; the locks and their reasons; the trials scene once; a run's clock (starting on the
   first move), bells in order, the result, the save restored with only the best kept, a slow run's medal, wind and
@@ -597,6 +715,12 @@ longer. The test requires casual wins in 85% of seeds and pro in 70%.
   dialog portrait: drawn frames × the box wide, on one whole frame, in the frame's shape.
 - `tests/bellspire-trials-bot.mjs` (run at the end of `tests/bellspire-bot.mjs`; `--quick`, `--only=rush|runs|ngp`):
   the rush, run and New Game+ bots above.
+- `tests/e2e/bellspire-foundry.mjs`: the Foundry Below in the browser at 1280×800, 844×390 and 390×844: the seal, the
+  grown map fitting its box at up to 1.29× with no scrolling, Tupa's forge (every button: Recast, each perk, a refusal
+  with its reason, Close, Goodbye, Esc), the low Frost Fan and the crust, the heat gauge (and never a knock-out with the
+  helping hand), the slam through glass and off a bounce plate, Resonance's bridge and a prism's beam, the four foes,
+  the three guardians, the foundry's ending and the third epilogue, every new hero pose seen on screen, the slam on the
+  touch pad, and no "undefined" or "NaN" in any tab or gear preview.
 - `tests/e2e/bellspire.mjs`: the browser suite. Every player action with the real keys, each locked action's message,
   the shrine (↑ rests, X travels, X near a foe swings, a map tap travels), the climb frame, a chest, a door opening,
   a bell ringing, damage numbers, the minimap at three screen sizes (with an area entrance drawn), gear equipped through

@@ -903,7 +903,7 @@ try {
     // before the Bell: the Trials page says why they're shut
     await tab('Trials');
     await page.locator('.bs-trials-why', { hasText: 'Out-of-Tune Bell' }).waitFor();
-    assert.equal(await page.locator('.bs-trials li').count(), 9, 'the rush and eight runs are listed');
+    assert.equal(await page.locator('.bs-trials li').count(), 12, 'the two rushes and ten runs are listed');
     assert.equal(await page.locator('.bs-trials button', { hasText: 'Start' }).evaluateAll((b) => b.filter((x) => !x.disabled).length), 0, 'none can start');
     await page.screenshot({ path: '.shots/bellspire/50-trials-locked.png' });
     ok('before the Out-of-Tune Bell is calm, the Trials page lists every trial and says why they are shut');
@@ -976,7 +976,7 @@ try {
     // the Guardian Rush: all eight, one heal between each
     await atShrine(); await page.waitForTimeout(150);
     await tab('Trials');
-    await page.locator('.bs-trials li', { hasText: 'Guardian Rush' }).getByRole('button', { name: 'Start' }).click();
+    await page.locator('.bs-trials li', { hasText: 'All eight' }).getByRole('button', { name: 'Start' }).click();
     const RUSH = ['frog', 'hydra', 'puma', 'warden', 'mother', 'condor', 'clappers', 'tune'];
     for (const [k, id] of RUSH.entries()) {
       await until(page, (b) => window.__bellspire().game.boss?.id === b, id, 20000);

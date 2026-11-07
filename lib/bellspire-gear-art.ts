@@ -48,6 +48,15 @@ export const WEAPON_LOOK: Record<string, { blade?: Ramp; lift?: number; lamp?: R
     lamp: ramp([0, '#0a3240'], [0.3, '#1e8aa8'], [0.55, '#62e4ff'], [0.8, '#d8faff']),
     arc: 'rgba(120,236,255,0.95)', light: [0.55, 0.95, 1], lightMul: 1.2, ring: 'rgba(110,230,255,0.95)',
   },
+  // the Foundry Below's weapons: the Obsidian Edge's black glass with a forge-orange edge, the Ladle Staff's bronze
+  // with its molten lamp
+  'obsidian-edge': { lift: 0.12, blade: ramp([0, '#1c1428'], [0.2, '#4e3e66'], [0.42, '#9a84bc'], [0.66, '#ffa060'], [0.88, '#fff0d8']), glint: true, arc: 'rgba(255,150,80,0.95)' },
+  'ladle-staff': {
+    lift: 0.18,
+    blade: ramp([0, '#8a2a18'], [0.15, '#f0664a'], [0.32, '#ff9a7c'], [0.55, '#ffd0c0'], [0.8, '#fff6f2']),
+    lamp: ramp([0, '#5a1004'], [0.3, '#e04a1a'], [0.55, '#ffa040'], [0.8, '#fff0b0']),
+    arc: 'rgba(255,140,60,0.95)', light: [1, 0.6, 0.3], lightMul: 1.15, ring: 'rgba(255,150,70,0.95)',
+  },
   'star-lamp': {
     lift: 0.18,
     blade: ramp([0, '#3a4058'], [0.15, '#98a4c4'], [0.32, '#d8e0f4'], [0.55, '#f4f8ff'], [0.8, '#ffffff']),
@@ -60,6 +69,9 @@ export const WEAPON_LOOK: Record<string, { blade?: Ramp; lift?: number; lamp?: R
 export const OUTFIT: Record<string, { hero: HeroId; strip: string }> = {
   'windward-jacket': { hero: 'dora', strip: 'dora-windward' },
   'highland-cloak': { hero: 'enzo', strip: 'enzo-highland' },
+  // and the Foundry Below's: Dora's Forge Apron, Enzo's Ashwork Smock
+  'forge-apron': { hero: 'dora', strip: 'dora-forge' },
+  'ash-smock': { hero: 'enzo', strip: 'enzo-ash' },
 };
 /** The strip a hero is drawn from in this coat. */
 export const stripFor = (hero: HeroId, coat: string): string => (OUTFIT[coat]?.hero === hero ? OUTFIT[coat].strip : hero);

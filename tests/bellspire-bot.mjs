@@ -6,12 +6,14 @@
 //  * a route bot that plays the whole game from a new game with the route planner (lib/bellspire-nav.ts), in the
 //    real engine with enemies, doors, bells and the lantern, to prove the game can be finished: the citadel to the
 //    Lake Mother, then Keep exploring, Wayra's boat and the Windward Belfry to the Out-of-Tune Bell (the wind bells,
-//    the Bell Rope and the echo notes done for real). It plays the belfry a second time from the finished citadel
-//    save, loaded as the title's Continue loads it.
+//    the Bell Rope and the echo notes done for real), then back across and down the seal into the Foundry Below to
+//    the Hollow Bell (molten bronze cooled, slag waited out, glass slammed, beam doors and crystal bridges rung, all
+//    for real). It plays the belfry a second time from the finished citadel save, loaded as the title's Continue
+//    loads it.
 // Then the Echo Trials' and New Game+'s bots (tests/bellspire-trials-bot.mjs).
 // Run after compiling the engine into .checks/. `--quick` runs fewer seeds.
 import assert from 'node:assert/strict';
-import { BellspireGame, freshSave, parseSave, trialById, BOSSES, TILE, HERO_W, HERO_H, ROOMS, INFO, ABILITY_ORDER, roomById, roomRect, groupAt, rawChar, isBelfryRoom, NOTE_LIFE, WIND_AREAS, SCRIPTS, MURALS } from '../.checks/bellspire-game.js';
+import { BellspireGame, freshSave, parseSave, trialById, BOSSES, TILE, HERO_W, HERO_H, ROOMS, INFO, ABILITY_ORDER, roomById, roomRect, groupAt, rawChar, isBelfryRoom, NOTE_LIFE, WIND_AREAS, SCRIPTS, MURALS, COLS, ROWS, channelAt, isFoundryRoom, CHANNELS, VENT_P } from '../.checks/bellspire-game.js';
 import { Graph, stateKey, nodeRoom, NOTES } from '../.checks/bellspire-nav.js';
 
 const QUICK = process.argv.includes('--quick');
@@ -30,12 +32,17 @@ const PRESET = {
   condor: { level: 10, abilities: ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep', 'rope'], hearts: 4, drops: 1, gear: ['reed-ring', 'moonsteel', 'puma-tooth', 'windward-jacket'], spells: ['ember', 'chime'] },
   clappers: { level: 11, abilities: ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep', 'rope', 'echo'], hearts: 4, drops: 1, gear: ['reed-ring', 'moonsteel', 'puma-tooth', 'windward-jacket', 'star-lamp'], spells: ['ember', 'chime', 'frost'] },
   tune: { level: 12, abilities: ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep', 'rope', 'echo'], hearts: 5, drops: 2, gear: ['reed-ring', 'moonsteel', 'puma-tooth', 'windward-jacket', 'condor-talon', 'star-lamp'], spells: ['ember', 'chime', 'frost', 'gale'], flags: ['boss:condor', 'boss:clappers'] },
+  // the Foundry Below: after the Out-of-Tune Bell, on the shortest way down
+  founder: { level: 13, abilities: ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep', 'rope', 'echo', 'hammer'], hearts: 5, drops: 2, gear: ['reed-ring', 'moonsteel', 'puma-tooth', 'windward-jacket', 'condor-talon', 'star-lamp'], spells: ['ember', 'chime', 'frost', 'gale'], flags: ['boss:condor', 'boss:clappers', 'boss:tune'] },
+  choir: { level: 14, abilities: ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep', 'rope', 'echo', 'hammer', 'resonance'], hearts: 6, drops: 2, gear: ['reed-ring', 'moonsteel', 'puma-tooth', 'windward-jacket', 'condor-talon', 'star-lamp'], spells: ['ember', 'chime', 'frost', 'gale'], flags: ['boss:condor', 'boss:clappers', 'boss:tune', 'boss:founder'] },
+  hollow: { level: 15, abilities: ['dash', 'lantern', 'double', 'wallkick', 'chime', 'glide', 'deep', 'rope', 'echo', 'hammer', 'resonance'], hearts: 6, drops: 3, gear: ['reed-ring', 'moonsteel', 'puma-tooth', 'windward-jacket', 'condor-talon', 'star-lamp', 'ladle-staff'], spells: ['ember', 'chime', 'frost', 'gale'], flags: ['boss:condor', 'boss:clappers', 'boss:tune', 'boss:founder', 'boss:choir'] },
 };
 
 /** New Game+: each guardian with the abilities of that point of the story again, but the levels, gear and spells
  *  (bar the Bell Chime, which comes back with its pedestal) of a finished game, and the tougher guardians. */
 export function ngpPresetSave(id) {
-  const end = PRESET.tune, p = PRESET[id];
+  // (the foundry's guardians: a party that has finished the foundry too)
+  const end = ['founder', 'choir', 'hollow'].includes(id) ? PRESET.hollow : PRESET.tune, p = PRESET[id];
   return presetSave(id, { level: end.level, gear: end.gear, spells: end.spells.filter((sp) => sp !== 'chime' || p.abilities.includes('chime')), ngp: 1 });
 }
 
@@ -73,7 +80,7 @@ export function bossBot(id, seed, { assist = true, delay = 13, noise = 0.08, ngp
   const rnd = () => { rs = (rs * 1103515245 + 12345) & 0x7fffffff; return rs / 0x7fffffff; };
   const seen = []; // what the boss looked like, `delay` ticks ago
   let low = 1;
-  let tries = 1, wiped = false, tick = 0, prev = NO, hold = 0, jumpHold = 0, ate = 0, lastDecision = NO, react = 0;
+  let tries = 1, wiped = false, tick = 0, prev = NO, hold = 0, jumpHold = 0, ate = 0, lastDecision = NO, react = 0, move = null, moveT = 0;
   const maxTicks = 60 * 60 * 6;
   while (!g.flag(`boss:${id}`) && tick < maxTicks && tries <= 3) {
     tick++;
@@ -85,16 +92,22 @@ export function bossBot(id, seed, { assist = true, delay = 13, noise = 0.08, ngp
       id: b.id, st: b.st, tell: b.tellT > 0, harm: b.harm.map((r) => ({ ...r })), hurt: b.hurt.map((r) => ({ ...r })), body: { ...b.body }, x: b.x, y: b.y, calm: b.calm,
       shots: g.shots.filter((s) => !s.friendly).map((s) => ({ x: s.x, y: s.y, vx: s.vx, vy: s.vy, g: s.g, kind: s.kind })),
       waves: g.waves.map((w) => ({ x: w.x, dir: w.dir, speed: w.speed, h: w.h })), rings: g.rings.filter((r) => !r.friendly).map((r) => ({ ...r })),
-      markers: g.markers.map((m) => ({ ...m })), heads: b.heads.map((h) => ({ st: h.st, x: h.x })),
+      markers: g.markers.map((m) => ({ ...m })), heads: b.heads.map((h) => ({ st: h.st, x: h.x })), ...fdView(b),
     } : null);
     if (seen.length > delay + 2) seen.shift();
     const v = seen[Math.max(0, seen.length - 1 - delay)];
     // a person keeps doing the same thing for a few ticks
     let inp = lastDecision;
+    if (move) {
+      const m = move(moveT++, g);
+      if (m) { g.step(m); prev = m; continue; }
+      move = null; react = 0;
+    }
     if (--react <= 0) {
       react = 3 + Math.floor(rnd() * 4);
       inp = decide(g, v, rnd, noise);
       lastDecision = inp;
+      if (inp.run) { move = inp.run; moveT = 0; lastDecision = NO; continue; }
     }
     // jumps are held for a while, then released
     if (inp.jump && !prev.jump) jumpHold = 16;
@@ -112,11 +125,122 @@ export function bossBot(id, seed, { assist = true, delay = 13, noise = 0.08, ngp
   return { won: g.flag(`boss:${id}`), tries: Math.min(tries, 4), ticks: tick, low };
 }
 
+/** What a player sees of the Foundry Below's guardians: the Founder's frost spots, the choir's song (the helping hand
+ *  numbers it; without it a player has heard it), the Hollow Bell's form and its lava. */
+export const fdView = (b) => ({ spots: b.spots?.map((p) => ({ ...p })), song: b.song ? [...b.song] : undefined, sung: b.sung, form: b.form, lava: b.lava });
 export function decide(g, v, rnd, noise) {
+  const fd = v && (v.id === 'founder' || v.id === 'choir' || v.id === 'hollow') ? decideFoundry(g, v, rnd, noise) : null;
+  if (fd) return fd;
   const out = decide0(g, v, rnd, noise);
   // a clapper's swing skims over a standing hero: keep fighting, but don't jump into it
   if (v?.id === 'clappers' && v.heads.some((h) => h.st === 'swing') && !v.waves.length) out.jump = false;
   return out;
+}
+/** The Foundry Below's guardians: the dodging is decide0's; what to hit (and how) is their own. Returns null to leave
+ *  it to decide0 (with `v.hurt` narrowed to what is worth hitting). */
+function decideFoundry(g, v, rnd, noise) {
+  const b = g.body, other = g.lead === 'dora' ? 'enzo' : 'dora';
+  if (v.st === 'wait' || v.st === 'intro' || v.calm) return null;
+  const canTag = !g.save.heroes[other].down && g.tagCd === 0;
+  if (v.id === 'founder') {
+    // Enzo frosts it (a Frost Fan from the air), then a blade where it is frosted; Enzo's staff does fine on the spots
+    const spots = (v.spots ?? []).filter((p) => p.t > 40);
+    if (g.save.heroes.enzo.down) return null;
+    if (!spots.length) {
+      if (g.lead !== 'enzo') { if (canTag) return { ...NO, tag: true }; return null; }
+      const c = v.body.x + v.body.w / 2, d = Math.abs(c - b.x);
+      // from a little way off: jump, and fan the frost forward and down onto it
+      const inp = { ...NO };
+      if (d < 50) { if (c > b.x) inp.left = true; else inp.right = true; return inp; }
+      if (d > 110) { if (c > b.x) inp.right = true; else inp.left = true; return inp; }
+      if ((c > b.x) !== (b.face > 0)) { if (c > b.x) inp.right = true; else inp.left = true; return inp; }
+      if (g.leadSave.mp < 6 && g.save.food.tea > 0) g.eat('tea');
+      if (b.ground) inp.jump = true; else if (b.vy < -1.5) { inp.cast = true; inp.jump = true; }
+      return inp;
+    }
+    v = { ...v, hurt: spots.map((p) => ({ x: v.x + p.dx - 6, y: v.y + p.dy - 6, w: 12, h: 12 })) };
+    if (g.lead === 'enzo' && canTag && g.save.heroes.dora.hp > g.stats('dora').maxHp * 0.5 && rnd() < 0.3) return { ...NO, tag: true };
+    return decide0(g, v, rnd, noise);
+  }
+  if (v.id === 'choir') {
+    // while it sings, stand back; while it listens, strike the singer whose note comes next; stunned, strike anything
+    if (v.st === 'sing' || v.st === 'singTell' || v.st === 'rest' || v.st === 'shardsTell' || v.st === 'shards2') return decide0(g, { ...v, hurt: [], tell: true }, rnd, noise);
+    if (v.st === 'listen' && v.song) {
+      const want = v.song[v.sung ?? 0];
+      const h = v.hurt.find((r) => r.part === want);
+      if (h) return decide0(g, { ...v, hurt: [h], tell: false }, rnd, noise);
+    }
+    return decide0(g, { ...v, tell: false }, rnd, noise);
+  }
+  if (v.id === 'hollow' && v.form === 1 && v.st !== 'crack' && !g.save.heroes.dora.down) {
+    // its shell: Dora slams its crown, from the inner end of a ledge (jump, jump again, dash over it, ↓ + attack).
+    // Out on the ledge's far end, nothing of the first form reaches
+    const rr = roomRect(g.room), ledge = rr.y + 8 * TILE, side = b.x < rr.x + rr.w / 2 ? -1 : 1;
+    const edge = side < 0 ? rr.x + 21 * TILE - 4 : rr.x + 38 * TILE + 4, safe = side < 0 ? rr.x + 16 * TILE : rr.x + 43 * TILE;
+    const onLedge = b.ground && Math.abs(b.y - ledge) < 3;
+    const toward = (x) => ({ ...NO, left: x < b.x - 2, right: x > b.x + 2 });
+    if (!onLedge) return toLedge(g, rr);
+    if (v.st === 'swing' || v.st === 'swingTell') return toward(safe);
+    if (g.lead !== 'dora') return canTag ? { ...NO, tag: true } : toward(safe);
+    if (Math.abs(b.x - edge) > 3) return toward(edge);
+    if (!['idle', 'toll', 'blanks', 'tollTell', 'blanksTell'].includes(v.st) || Math.abs(v.x - (rr.x + rr.w / 2)) > 40) return { ...NO };
+    if (rnd() < noise) return { ...NO };
+    let slammed = false;
+    return { ...NO, run: (t, gg) => {
+      const h = gg.body, B = gg.boss?.body;
+      if (!B || t > 150 || (t > 30 && h.ground)) return null;
+      const inp = { ...NO, right: h.x < B.x + B.w / 2 - 4, left: h.x > B.x + B.w / 2 + 4 };
+      if (t < 14 || (t >= 18 && t < 30)) inp.jump = true;
+      if (t === 22) inp.dash = true;
+      if (!slammed && t > 18 && h.y < B.y + 10 && h.x > B.x + 2 && h.x < B.x + B.w - 2) { inp.down = inp.attack = true; slammed = true; }
+      else if (slammed) { inp.down = true; inp.left = inp.right = false; }
+      return inp;
+    } };
+  }
+  if (v.id === 'hollow') {
+    // keep to the stone (and up on the ledges while the lava is high); its heart: Enzo's chime holds it still
+    const rr = roomRect(g.room), stone = rr.y + 12 * TILE, ledge = rr.y + 8 * TILE;
+    const high = v.lava !== undefined && v.lava < stone - 2;
+    const platforms = high ? [[13, 21, ledge], [38, 46, ledge]] : [[3, 12, stone], [24, 35, stone], [47, 56, stone], [13, 21, ledge], [38, 46, ledge]];
+    const onPlat = (x, y) => platforms.find(([c0, c1, py]) => Math.abs(y - py) < 3 && x >= rr.x + c0 * TILE + 4 && x <= rr.x + (c1 + 1) * TILE - 4);
+    const here = b.ground ? onPlat(b.x, b.y) : null;
+    if (b.ground && !here) {
+      // somewhere unsafe: to the nearest safe stone (up onto a ledge by jumping toward it)
+      let best = null, bd = 1e9;
+      for (const p of platforms) { const x = clamp(b.x, rr.x + p[0] * TILE + 12, rr.x + (p[1] + 1) * TILE - 12), d = Math.abs(x - b.x) + Math.abs(p[2] - b.y); if (d < bd) { bd = d; best = { x, y: p[2] }; } }
+      const inp = { ...NO, left: best.x < b.x, right: best.x > b.x };
+      if (best.y < b.y - 4) inp.jump = true;
+      return inp;
+    }
+    if (v.form === 2 && g.has('resonance') && v.st !== 'stun' && Math.hypot(v.x - b.x, v.y - 50 - b.y) < 140) {
+      if (g.lead !== 'enzo') { if (canTag && g.save.heroes.enzo.hp > g.stats('enzo').maxHp * 0.4) return { ...NO, tag: true }; }
+      else if (g.leadSave.mp >= 6 && rnd() < 0.3) return { ...NO, up: true, cast: true };
+    }
+    const out = decide0(g, v, rnd, noise);
+    // never walk off the stone into the pit: hold at the edge (a jump across is only to another stone)
+    if (b.ground && here && (out.left || out.right)) {
+      const nx = b.x + (out.right ? 10 : -10);
+      if (!onPlat(nx, b.y)) { out.left = out.right = false; }
+    }
+    if (high && out.jump && !here) out.jump = true;
+    return out;
+  }
+  return null;
+}
+const clamp = (v, a, c) => Math.max(a, Math.min(c, v));
+/** In the Hollow Bell's pit: up onto a ledge (from a stone's end nearest one, a jump toward it; off a wall, a kick). */
+function toLedge(g, rr) {
+  const b = g.body, X = (c) => rr.x + c * TILE;
+  const side = b.x < rr.x + rr.w / 2 ? -1 : 1, mid = side < 0 ? X(17.5) : X(42.5);
+  const dirTo = (x) => (x < b.x ? { left: true } : { right: true });
+  if (b.wall) return { ...NO, jump: true, ...dirTo(mid) };
+  // in the air: the second jump at the top of the first, if still below the ledge
+  if (!b.ground) return { ...NO, ...dirTo(mid), jump: b.vy > -0.5 && b.y > rr.y + 8 * TILE - 2 };
+  // which stone: its end toward the ledge
+  const c = (b.x - rr.x) / TILE;
+  const [edge, dir] = c < 13 ? [X(12.4), 1] : c > 46 ? [X(47.6), -1] : side < 0 ? [X(24.6), -1] : [X(35.4), 1];
+  if (Math.abs(b.x - edge) > 4) return { ...NO, ...dirTo(edge) };
+  return { ...NO, jump: true, ...(dir > 0 ? { right: true } : { left: true }) };
 }
 function decide0(g, v, rnd, noise) {
   const inp = { ...NO };
@@ -225,11 +349,22 @@ function objectives() {
       { name: 'row across', done: (g) => isBelfryRoom(g.room.id) || g.flag('boss:tune'), at: boat, act: 'boat' },
       ped('rope'), boss('condor'), boss('clappers'), boss('tune'),
     ],
+    // the Foundry Below: rowed back to the citadel, down through the seal under the Pearl Throne Candle
+    foundry: [
+      { name: 'row back', done: (g) => !isBelfryRoom(g.room.id), at: thingsOf('D').find((t) => t.room.id === 'cliffoot'), act: 'boat' },
+      ped('hammer'), boss('founder'), boss('choir'), boss('hollow'),
+    ],
   };
 }
 const navState = (g) => ({ abilities: [...g.save.abilities], water: { ...g.save.water }, wind: { ...g.save.wind }, keeper: g.flag('keeper'), calmed: g.save.flags.filter((f) => f.startsWith('boss:')).map((f) => f.slice(5)) });
 /** An echo note the planner stands on (it counts them as always there; the bot rings their bell first). */
-const noteAt = (n) => n.mode === 'ground' ? NOTES.find((q) => Math.abs(n.y - q.y) < 1 && n.x >= q.x0 - 2 && n.x <= q.x1 + 2) ?? null : null;
+/** (Where two bells' notes share a spot, as the two ends of a crystal bridge do, the one nearer `from`.) */
+const noteAt = (n, from = null) => {
+  if (n.mode !== 'ground') return null;
+  const qs = NOTES.filter((q) => Math.abs(n.y - q.y) < 1 && n.x >= q.x0 - 2 && n.x <= q.x1 + 2);
+  if (!from || qs.length < 2) return qs[0] ?? null;
+  return qs.reduce((a, q) => (Math.hypot(q.bx - from.x, q.by - from.y) < Math.hypot(a.bx - from.x, a.by - from.y) ? q : a));
+};
 const WIND_SETS = [{ cloud: 1, loft: 1 }, { cloud: -1, loft: 1 }, { cloud: 1, loft: -1 }, { cloud: -1, loft: -1 }];
 const near = (t, dx = 20) => (n) => n.mode === 'ground' && Math.abs(n.x - (t.c * TILE + 8)) < dx && Math.abs(n.y - (t.r + 1) * TILE) < 18;
 const inRoom = (id) => (n) => nodeRoom(n)?.id === id;
@@ -263,7 +398,9 @@ function referee(g) {
         const spots = [...G.reach([G.nodeAt(g.body.x, g.body.y, g.body.swim && !g.body.ground, g.body.climb)])].map((key) => G.nodes.get(key));
         reachCache.set(k, spots);
       }
-      if (reachCache.get(k).some((n) => Math.abs(n.x - goal.x) < 40 && Math.abs(n.y - (goal.y + TILE)) < 48)) return true;
+      // (a guardian's room counts once the heroes can get into it: the Hollow Bell hangs over its pit)
+      const bossRoom = goal === goal0 && roomById(goal.room)?.boss;
+      if (reachCache.get(k).some((n) => bossRoom ? nodeRoom(n)?.id === goal.room : Math.abs(n.x - goal.x) < 40 && Math.abs(n.y - (goal.y + TILE)) < 48)) return true;
     }
     return false;
   };
@@ -294,7 +431,7 @@ function referee(g) {
   return r;
 }
 
-export function routeBot(seed, { maxMinutes = 180, log = false, save = null, trial = null } = {}) {
+export function routeBot(seed, { maxMinutes = 240, log = false, save = null, trial = null, foundry = true } = {}) {
   // a new game, or (with `save`) the finished citadel save loaded from the title's Continue
   let g = new BellspireGame(save ? parseSave(JSON.stringify(save)) : null, { assist: true }, seed);
   const ref = referee(g);
@@ -376,7 +513,7 @@ export function routeBot(seed, { maxMinutes = 180, log = false, save = null, tri
         if (bi.jumpP && !j) { step({ ...NO, left: bi.dir < 0, right: bi.dir > 0 }); held = true; }
         jump = held;
       }
-      const inp = { ...NO, left: bi.dir < 0, right: bi.dir > 0, up: bi.up, down: bi.down, jump, dash: bi.dashP, attack: !!bi.ropeP };
+      const inp = { ...NO, left: bi.dir < 0, right: bi.dir > 0, up: bi.up, down: bi.down || !!bi.slamP, jump, dash: bi.dashP, attack: !!bi.ropeP || !!bi.slamP };
       step(inp);
       if (!b.ground) air = true; else if (air && !b.swim) landed = true;
       const n = G.nodes.get(e.to);
@@ -423,7 +560,7 @@ export function routeBot(seed, { maxMinutes = 180, log = false, save = null, tri
         const j = bi.jumpP ? !held : held && !!bi.jumpH;
         held = bi.jumpP ? !held : j;
         if (bi.jumpP && !j) { step({ ...NO, left: bi.dir < 0, right: bi.dir > 0 }); held = true; }
-        step({ ...NO, left: bi.dir < 0, right: bi.dir > 0, up: bi.up, down: bi.down, jump: held, attack: !!bi.ropeP, dash: bi.dashP });
+        step({ ...NO, left: bi.dir < 0, right: bi.dir > 0, up: bi.up, down: bi.down || !!bi.slamP, jump: held, attack: !!bi.ropeP || !!bi.slamP, dash: bi.dashP });
         if (!g.body.ground) air = true; else if (air && !g.body.swim) landed = true;
       }
     }
@@ -438,10 +575,12 @@ export function routeBot(seed, { maxMinutes = 180, log = false, save = null, tri
       if (goal(start)) return true;
       const path = G.path(start, goal, 60000);
       if (!path) return false;
+      // the foundry: molten bronze to cool, slag to wait for, glass to break and beam doors to open on the way
+      if (isFoundryRoom(g.room.id) && depth < 2 && foundryPrep(path, G, depth)) continue;
       // echo notes ahead: walk to the foot of the climb, ring their bell, and climb straight away
       const k = path.findIndex((e) => { const q = noteAt(G.nodes.get(e.to)); return q && !notesUp(q); });
       if (k === 0 && depth < 2) {
-        const q = noteAt(G.nodes.get(path[0].to));
+        const q = noteAt(G.nodes.get(path[0].to), g.body);
         if (Math.hypot(g.body.x - q.bx, g.body.y - (q.by + TILE)) > 120) {
           // too far from the bell to ring it: first to a spot by it
           go((n) => n.mode === 'ground' && Math.hypot(n.x - q.bx, n.y - (q.by + TILE)) < 100 && !noteAt(n), 'echo bell', depth + 1);
@@ -455,7 +594,7 @@ export function routeBot(seed, { maxMinutes = 180, log = false, save = null, tri
         // up to the last note on the way, and one move off it
         let last = -1; p2.forEach((e, i) => { if (noteAt(G2.nodes.get(e.to))) last = i; });
         drive(p2.slice(0, last + 2), rung + NOTE_LIFE - 10, G2, s2.key);
-        r_notes.climbs++;
+        r_notes.climbs++; if (isFoundryRoom(g.room.id)) r_notes.bridges++;
         continue;
       }
       let fromKey = start.key;
@@ -463,7 +602,8 @@ export function routeBot(seed, { maxMinutes = 180, log = false, save = null, tri
       // in the belfry, the planned moves are replayed back to back exactly as the planner simulated them (a still
       // tick between moves, no settling): its rope swings, wall kicks up shafts and gusty jumps only work as planned
       // (and in an Echo Trial's run everywhere: the clock wants the planner's own line)
-      if ((trial || isBelfryRoom(g.room.id)) && !g.dialog) {
+      // (but in the foundry each move settles first: its slag strips sit tight against the lava)
+      if (((trial && !isFoundryRoom(g.room.id)) || isBelfryRoom(g.room.id)) && !g.dialog) {
         // never stop on a wall mid-shaft: carry on to the next spot to stand or rung
         while (chunk.length < path.length && G.nodes.get(chunk.at(-1).to).mode === 'wall' && !noteAt(G.nodes.get(path[chunk.length].to))) chunk.push(path[chunk.length]);
         const end = G.nodes.get(chunk.at(-1).to);
@@ -502,6 +642,71 @@ export function routeBot(seed, { maxMinutes = 180, log = false, save = null, tri
       if (goal(now)) return true;
     }
     if (log) console.log(`  gave up walking to ${label}`);
+    return false;
+  };
+  /** The Foundry Below's steps the planner takes as done: before the next few moves, cool a molten channel they cross
+   *  (Enzo's Frost Fan from its edge), wait for the vents' puff over slag, slam cracked glass they drop through and
+   *  ring the prism by a beam door they pass. Returns true when it did something (so the caller plans again). */
+  const foundryPrep = (path, G, depth) => {
+    const pts = [{ x: g.body.x, y: g.body.y }, ...path.slice(0, 8).map((e) => G.nodes.get(e.to))];
+    const spans = (x0, x1, y0, y1) => pts.some((n, i) => {
+      const a = pts[Math.max(0, i - 1)];
+      return Math.max(a.x, n.x) > x0 && Math.min(a.x, n.x) < x1 && Math.max(a.y, n.y) > y0 && Math.min(a.y, n.y) < y1;
+    });
+    // molten channels
+    for (const q of CHANNELS) {
+      if (q.room !== g.room.id || g.channelState(q) === 'crust') continue;
+      if (!spans(q.c0 * TILE - 4, (q.c1 + 1) * TILE + 4, q.r * TILE - 40, q.r * TILE + 8)) continue;
+      if (!g.hotChannelNear(5 * TILE)) {
+        const ok = go((n) => n.mode === 'ground' && Math.abs(n.y - q.r * TILE) < 24 && n.x > q.c0 * TILE - 4 * TILE && n.x < (q.c1 + 1) * TILE + 4 * TILE && (n.x < q.c0 * TILE || n.x > (q.c1 + 1) * TILE), 'channel edge', depth + 1);
+        if (!ok) return false;
+      }
+      const back = g.lead; tagTo('enzo');
+      if (g.leadSave.mp < 8 && g.save.food.tea > 0) g.eat('tea');
+      for (let i = 0; i < 20 && !g.body.ground; i++) step({ ...NO });
+      step({ ...NO, cast: true }); step({ ...NO }); idle(12);
+      if (g.channelState(q) !== 'hot') r_notes.frosts++;
+      if (back === 'dora') tagTo('dora');
+      return true;
+    }
+    // slag: to the last spot before it, then wait there for a fresh puff of the vents (and straight across)
+    const info = INFO.get(g.room.id);
+    const onSlag = (n) => n.mode === 'ground' && rawChar(Math.floor(n.x / TILE), Math.round(n.y / TILE)) === ':';
+    const j = path.slice(0, 8).findIndex((e) => onSlag(G.nodes.get(e.to)));
+    if (j > 0) { const key = path[j - 1].to; return go((n) => n.key === key, 'slag edge', depth + 1); }
+    if (j === 0 && !onSlag(G.nodeAt(g.body.x, g.body.y))) {
+      let last = 0; path.slice(0, 8).forEach((e, i) => { if (onSlag(G.nodes.get(e.to))) last = i; });
+      const need = path.slice(0, last + 1).reduce((a, e) => a + e.ticks, 0) + 30;
+      for (let i = 0; i < VENT_P && g.ventUp() && g.ventLeft() < need; i++) step({ ...NO });
+      for (let i = 0; i < VENT_P && !g.ventUp(); i++) step({ ...NO });
+      return false;
+    }
+    // cracked glass under the way down: stand on it, and slam
+    for (const d of info.doors) {
+      if (d.ch !== '8' || g.doorOpen(d) || !spans(d.c * TILE, (d.c + d.w) * TILE, d.r * TILE + 2, (d.r + d.h) * TILE + 40)) continue;
+      const on = (n) => n.mode === 'ground' && Math.abs(n.y - d.r * TILE) < 2 && n.x > d.c * TILE + 2 && n.x < (d.c + d.w) * TILE - 2;
+      if (!on(G.nodeAt(g.body.x, g.body.y)) && !go(on, 'cracked glass', depth + 1)) return false;
+      tagTo('dora');
+      for (let i = 0; i < 12; i++) step({ ...NO, jump: true });
+      step({ ...NO, down: true, attack: true });
+      for (let i = 0; i < 60 && !g.doorOpen(d); i++) step({ ...NO, down: true });
+      idle(10);
+      if (g.doorOpen(d)) r_notes.slams++;
+      return true;
+    }
+    // a beam door in the way: its prism (on this side), and the chime
+    for (const d of info.doors) {
+      if (d.ch !== '&' || g.doorOpen(d) || !spans(d.c * TILE - 2, (d.c + d.w) * TILE + 2, d.r * TILE, (d.r + d.h) * TILE + 2)) continue;
+      const dx = (d.c + d.w / 2) * TILE, dy = (d.r + d.h / 2) * TILE;
+      const pr = thingsOf('!').find((t) => t.room.id === g.room.id && Math.hypot(t.c * TILE + 8 - dx, t.r * TILE + 8 - dy) <= 8 * TILE);
+      if (!pr) return false;
+      if (!go(near(pr, 28), 'prism', depth + 1)) return false;
+      tagTo('enzo');
+      if (g.leadSave.mp < 8 && g.save.food.tea > 0) g.eat('tea');
+      step({ ...NO, up: true }); step({ ...NO, up: true, cast: true }); step({ ...NO }); idle(30);
+      if (g.doorOpen(d)) r_notes.beams++;
+      return true;
+    }
     return false;
   };
   /** In the belfry: if the goal can't be reached in this wind, find a wind bell that turns it round. */
@@ -555,7 +760,7 @@ export function routeBot(seed, { maxMinutes = 180, log = false, save = null, tri
     }
     return false;
   };
-  const r_notes = { climbs: 0, winds: 0 };
+  const r_notes = { climbs: 0, winds: 0, frosts: 0, slams: 0, beams: 0, bridges: 0, heat: 0 };
   const play = (list) => {
   for (const o of list) {
     if (o.done(g)) continue;
@@ -573,13 +778,21 @@ export function routeBot(seed, { maxMinutes = 180, log = false, save = null, tri
       // fight like the boss bot, from here
       let rs = seed;
       const rnd = () => { rs = (rs * 1103515245 + 12345) & 0x7fffffff; return rs / 0x7fffffff; };
-      for (let i = 0; i < 6 * 3600 && !g.flag(`boss:${o.boss}`); i++) {
+      // (eating a cake when low, as the boss bots do; the Hollow Bell's fight is the longest, so up to 12 minutes)
+      let ate = -999, jumpHold = 0;
+      for (let i = 0; i < 12 * 3600 && !g.flag(`boss:${o.boss}`); i++) {
+        if (g.boss && g.leadSave.hp < g.stats(g.lead).maxHp * 0.3 && g.save.food.cake > 0 && i - ate > 300) { g.eat('cake'); ate = i; }
         const bb = g.boss;
-        const v = bb ? { id: bb.id, st: bb.st, tell: bb.tellT > 0, harm: bb.harm, hurt: bb.hurt, body: bb.body, x: bb.x, y: bb.y, calm: bb.calm, shots: g.shots.filter((s) => !s.friendly), waves: g.waves, rings: g.rings.filter((r) => !r.friendly), markers: g.markers, heads: bb.heads.map((h) => ({ st: h.st, x: h.x })) } : null;
+        const v = bb ? { id: bb.id, st: bb.st, tell: bb.tellT > 0, harm: bb.harm, hurt: bb.hurt, body: bb.body, x: bb.x, y: bb.y, calm: bb.calm, shots: g.shots.filter((s) => !s.friendly), waves: g.waves, rings: g.rings.filter((r) => !r.friendly), markers: g.markers, heads: bb.heads.map((h) => ({ st: h.st, x: h.x })), ...fdView(bb) } : null;
         if (!bb && !g.flag(`boss:${o.boss}`)) { go(inRoom(o.at.room.id), o.name); continue; }
         const inp = decide(g, v, rnd, 0.05);
+        if (inp.run) { for (let t = 0; t < 200; t++) { const m = inp.run(t, g); if (!m) break; step(m); i++; } continue; }
         if (inp.attack && prev.attack) inp.attack = false;
-        if (inp.jump) inp.jump = !(prev.jump && g.body.ground);
+        if (isFoundryRoom(o.at.room.id)) {
+          // (the foundry's fights climb to ledges: jumps held for a while, as the boss bots do)
+          if (inp.jump && !prev.jump) jumpHold = 16;
+          if (jumpHold > 0) { inp.jump = true; jumpHold--; } else if (prev.jump && inp.jump) inp.jump = false;
+        } else if (inp.jump) inp.jump = !(prev.jump && g.body.ground);
         step(inp);
       }
       idle(30);
@@ -640,11 +853,26 @@ export function routeBot(seed, { maxMinutes = 180, log = false, save = null, tri
     g = new BellspireGame(s, { assist: true }, seed + 100);
     ref.retarget(g); prev = NO;
   }
-  const fail = play(OBJ.belfry);
-  if (fail) return { ...fail, citadel };
-  idle(60);
-  const belfry = { completion: g.completion(), endings: endings.filter((e) => e.belfry), epilogue: afterBelfry() };
-  return { ok: g.flag('boss:tune') && g.flag('boss:mother'), ticks, timeline, completion: citadel?.completion ?? null, ref, epilogue: citadel?.epilogue ?? null, citadelSave: citadel?.save ?? null, belfry, moves: r_notes, level: g.save.heroes.dora.level };
+  let belfry = null, belfrySave = null;
+  if (!g.flag('boss:tune')) {
+    const fail = play(OBJ.belfry);
+    if (fail) return { ...fail, citadel };
+    idle(60);
+    belfry = { completion: g.completion(), endings: endings.filter((e) => e.belfry), epilogue: afterBelfry() };
+    belfrySave = g.snapshot();
+    // the belfry's ending screen's Keep exploring
+    const s = parseSave(JSON.stringify(belfrySave));
+    s.flags = s.flags.filter((f) => f !== 'ending');
+    g = new BellspireGame(s, { assist: true }, seed + 200);
+    ref.retarget(g); prev = NO;
+  }
+  if (foundry) {
+    const fail = play(OBJ.foundry);
+    if (fail) return { ...fail, citadel, belfry, belfrySave };
+    idle(60);
+  }
+  const fdEnd = endings.filter((e) => e.foundry);
+  return { ok: g.flag('boss:tune') && g.flag('boss:mother') && (!foundry || g.flag('boss:hollow')), ticks, timeline, completion: citadel?.completion ?? null, ref, epilogue: citadel?.epilogue ?? null, citadelSave: citadel?.save ?? null, belfrySave, belfry, foundry: foundry ? { endings: fdEnd, completion: g.completion(), heat: r_notes.heat, frosts: r_notes.frosts, slams: r_notes.slams, beams: r_notes.beams, bridges: r_notes.bridges } : null, moves: r_notes, level: g.save.heroes.dora.level };
 
   /** After the belfry's ending: Keep exploring, find what's left, and the second epilogue plays once (the first
    *  never again). */
@@ -741,8 +969,14 @@ function runRoute() {
     assert.equal(r.epilogue.fired, 1, 'after the ending, finding the rest plays the epilogue once');
     assert.equal(r.epilogue.early, 0, 'and not before');
     belfryChecks(r, 'straight through');
+    // and on down into the Foundry Below, to the Hollow Bell
+    const fd = r.foundry;
+    console.log(`  foundry: ${fd.frosts} channels cooled, ${fd.slams} glass slammed, ${fd.beams} beam doors opened, ${fd.bridges} crystal-bridge crossings; foundry ending ${fd.endings.length}x at ${fd.completion.pct}%; ${tl(r).split(', ').slice(-4).join(', ')}`);
+    assert.ok(fd.frosts > 0 && fd.slams > 0 && fd.beams > 0 && fd.bridges > 0, `the route cooled bronze, broke glass, opened a beam door and crossed a crystal bridge for real (seed ${seed})`);
+    assert.equal(fd.endings.length, 1, `the foundry's ending plays once (seed ${seed})`);
+    assert.deepEqual(f.badGoal, [], `the wisp only points at what can be reached in the foundry too (seed ${seed})`);
     // the same belfry from the finished citadel save, as the title's Continue loads it
-    const c = routeBot(seed, { log: VERBOSE, save: r.citadelSave });
+    const c = routeBot(seed, { log: VERBOSE, save: r.citadelSave, foundry: false });
     if (!c.ok && VERBOSE) console.log(c);
     console.log(`route bot seed ${seed} from a finished citadel save: ${c.ok ? 'finished' : `stuck at "${c.at}" in ${c.room}`} after ${Math.round(c.ticks / 3600)} min (${tl(c)})`);
     assert.ok(c.ok, `the route bot finishes the belfry from a finished citadel save (seed ${seed})`);

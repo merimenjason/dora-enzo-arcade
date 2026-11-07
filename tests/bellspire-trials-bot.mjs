@@ -10,8 +10,8 @@
 //    85% of seeds.
 // Run after compiling the engine into .checks/. `--quick` runs fewer seeds; `--only=rush|runs|ngp` one part.
 import assert from 'node:assert/strict';
-import { BellspireGame, SCRIPTS, ABILITY_ORDER, ALL_BOSSES, ROOMS, INFO, TRIALS, RUSH, trialById, medalFor } from '../.checks/bellspire-game.js';
-import { presetSave, bossBot, decide, routeBot } from './bellspire-bot.mjs';
+import { BellspireGame, SCRIPTS, ABILITY_ORDER, ALL_BOSSES, ROOMS, INFO, TRIALS, trialById, medalFor } from '../.checks/bellspire-game.js';
+import { presetSave, bossBot, decide, routeBot, fdView } from './bellspire-bot.mjs';
 
 const QUICK = process.argv.includes('--quick');
 const ONLY = process.argv.find((a) => a.startsWith('--only='))?.slice(7);
@@ -31,15 +31,15 @@ export function finishedSave(shrine = 'landing') {
 }
 
 /** A human-paced player through the Guardian Rush. */
-export function rushBot(seed, { assist = true, delay = 13, noise = 0.08 } = {}) {
+export function rushBot(seed, { assist = true, delay = 13, noise = 0.08, id = 'rush' } = {}) {
   const g = new BellspireGame(finishedSave(), { assist, strict: !assist }, seed);
   for (let i = 0; i < 5; i++) g.step({ ...NO });
-  const why = g.startTrial('rush');
+  const why = g.startTrial(id);
   if (why) return { won: false, why };
   let rs = seed * 9301 + 49297;
   const rnd = () => { rs = (rs * 1103515245 + 12345) & 0x7fffffff; return rs / 0x7fffffff; };
   const seen = [];
-  let tick = 0, prev = NO, jumpHold = 0, ate = 0, lastDecision = NO, react = 0, result = null, reached = 0, low = 1;
+  let tick = 0, prev = NO, jumpHold = 0, ate = 0, lastDecision = NO, react = 0, result = null, reached = 0, low = 1, move = null, moveT = 0;
   while (g.trial && tick < 60 * 60 * 30) {
     tick++;
     if (g.dialog) { g.step({ ...NO, jump: tick % 2 === 0 }); for (const e of g.drainEvents()) if (e.k === 'trial') result = e; continue; }
@@ -48,12 +48,14 @@ export function rushBot(seed, { assist = true, delay = 13, noise = 0.08 } = {}) 
       id: b.id, st: b.st, tell: b.tellT > 0, harm: b.harm.map((r) => ({ ...r })), hurt: b.hurt.map((r) => ({ ...r })), body: { ...b.body }, x: b.x, y: b.y, calm: b.calm,
       shots: g.shots.filter((s) => !s.friendly).map((s) => ({ x: s.x, y: s.y, vx: s.vx, vy: s.vy, g: s.g, kind: s.kind })),
       waves: g.waves.map((w) => ({ x: w.x, dir: w.dir, speed: w.speed, h: w.h })), rings: g.rings.filter((r) => !r.friendly).map((r) => ({ ...r })),
-      markers: g.markers.map((m) => ({ ...m })), heads: b.heads.map((h) => ({ st: h.st, x: h.x })),
+      markers: g.markers.map((m) => ({ ...m })), heads: b.heads.map((h) => ({ st: h.st, x: h.x })), ...fdView(b),
     } : null);
     if (seen.length > delay + 2) seen.shift();
     const v = seen[Math.max(0, seen.length - 1 - delay)];
     let inp = lastDecision;
-    if (--react <= 0) { react = 3 + Math.floor(rnd() * 4); inp = v ? decide(g, v, rnd, noise) : { ...NO }; lastDecision = inp; }
+    // (a move played out tick by tick, like the Hollow Bell's crown slam)
+    if (move) { const m = move(moveT++, g); if (m) { g.step(m); prev = m; for (const e of g.drainEvents()) if (e.k === 'trial') result = e; continue; } move = null; react = 0; }
+    if (--react <= 0) { react = 3 + Math.floor(rnd() * 4); inp = v ? decide(g, v, rnd, noise) : { ...NO }; lastDecision = inp; if (inp.run) { move = inp.run; moveT = 0; lastDecision = NO; continue; } }
     if (inp.jump && !prev.jump) jumpHold = 16;
     const out = { ...inp };
     if (jumpHold > 0) { out.jump = true; jumpHold--; } else if (prev.jump && inp.jump) out.jump = false;
@@ -67,7 +69,7 @@ export function rushBot(seed, { assist = true, delay = 13, noise = 0.08 } = {}) 
     for (const e of g.drainEvents()) if (e.k === 'trial') result = e;
     prev = out;
   }
-  return { won: !!result?.won, secs: result?.secs ?? null, medal: result?.medal ?? null, reached, low, best: g.save.medals.rush ?? null };
+  return { won: !!result?.won, secs: result?.secs ?? null, medal: result?.medal ?? null, reached, low, best: g.save.medals[id] ?? null };
 }
 
 const pct = (n, d) => `${Math.round((n / d) * 100)}%`;
@@ -75,25 +77,28 @@ let checks = 0;
 
 function runRush() {
   const seeds = QUICK ? 6 : 16;
-  const def = trialById('rush');
-  for (const [label, assist, need] of [['casual', true, 0.75], ['pro', false, 0]]) {
+  for (const id of ['rush', 'rush:grand']) {
+  const def = trialById(id);
+  // (the Grand Rush ends on the Hollow Bell, the hardest of the eleven: casual must finish it in 60% of seeds)
+  for (const [label, assist, need] of [['casual', true, id === 'rush' ? 0.75 : 0.6], ['pro', false, 0]]) {
     const times = [];
     let won = 0, reached = 0;
     for (let s = 1; s <= seeds; s++) {
-      const r = rushBot(s * 7919, { assist, delay: 12 + (s % 4), noise: assist ? 0.1 : 0.06 });
+      const r = rushBot(s * 7919, { assist, delay: 12 + (s % 4), noise: assist ? 0.1 : 0.06, id });
       if (VERBOSE) console.log('rush', label, s, r);
       if (r.won) { won++; times.push(r.secs); } else reached += r.reached;
     }
     times.sort((a, b) => a - b);
     const medals = times.map((t) => medalFor(def, t));
     const count = (m) => medals.filter((x) => x === m).length;
-    console.log(`rush   ${label.padEnd(6)} ${won}/${seeds} finished (${pct(won, seeds)}); times ${times.length ? `${times[0]}-${times.at(-1)}s, median ${times[Math.floor(times.length / 2)]}s` : '-'}; gold ${count('gold')}, silver ${count('silver')}, bronze ${count('bronze')}, none ${count(null)} (medals at ${def.medals.join('/')}s)${won < seeds ? `; the others got to guardian ${(reached / (seeds - won) + 1).toFixed(1)} on average` : ''}`);
+    console.log(`${id.padEnd(10)} ${label.padEnd(6)} ${won}/${seeds} finished (${pct(won, seeds)}); times ${times.length ? `${times[0]}-${times.at(-1)}s, median ${times[Math.floor(times.length / 2)]}s` : '-'}; gold ${count('gold')}, silver ${count('silver')}, bronze ${count('bronze')}, none ${count(null)} (medals at ${def.medals.join('/')}s)${won < seeds ? `; the others got to guardian ${(reached / (seeds - won) + 1).toFixed(1)} on average` : ''}`);
     if (need) { assert.ok(won / seeds >= need, `the casual rush bot finishes the Guardian Rush in ${need * 100}% of seeds (got ${pct(won, seeds)})`); checks++; }
     if (label === 'casual') {
       assert.ok(count('gold') <= Math.ceil(times.length / 3), 'gold is hard: most casual finishes are not gold');
       assert.ok(times.length && times.at(-1) <= def.medals[2], 'every casual finish earns at least bronze');
       checks += 2;
     }
+  }
   }
 }
 
@@ -117,7 +122,7 @@ function runRuns() {
 
 function runNgp() {
   const seeds = QUICK ? 8 : 24;
-  for (const id of RUSH) for (const [label, assist, need] of [['casual', true, 0.85], ['pro', false, 0]]) {
+  for (const id of ALL_BOSSES) for (const [label, assist, need] of [['casual', true, 0.85], ['pro', false, 0]]) {
     let wins = 0, first = 0, ticks = 0, lows = 0;
     for (let s = 1; s <= seeds; s++) {
       const r = bossBot(id, s * 7919, { assist, delay: 12 + (s % 4), noise: assist ? 0.1 : 0.06, ngp: true });

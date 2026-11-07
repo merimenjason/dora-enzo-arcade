@@ -3,7 +3,7 @@
 // with one tune per area plus a boss theme and a quiet title theme. Effects for every action. Silent until the first
 // click, tap or key.
 const hz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
-export type Track = 'title' | 'hub' | 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft' | 'boss' | 'ending' | 'off';
+export type Track = 'title' | 'hub' | 'halls' | 'docks' | 'towers' | 'crypt' | 'throne' | 'cloud' | 'loft' | 'cast' | 'glass' | 'boss' | 'ending' | 'off';
 type Song = { bpm: number; chords: number[][]; bass: number[]; mel: number[]; drum: string; lead: OscillatorType; pad: number };
 // melodies are 32 eighths, -1 rests; chords one per 8 eighths
 const SONGS: Record<Exclude<Track, 'off'>, Song> = {
@@ -26,6 +26,12 @@ const SONGS: Record<Exclude<Track, 'off'>, Song> = {
     mel: [81, -1, 79, 76, 74, -1, 76, -1, 79, -1, 76, 74, 72, -1, 69, -1, 72, -1, 74, -1, 76, 79, 76, 74, 72, -1, 71, -1, 69, -1, -1, -1] },
   loft: { bpm: 66, chords: [[50, 53, 57, 60], [46, 50, 53, 57], [48, 52, 55, 59], [45, 48, 52, 55]], bass: [38, 34, 36, 33], drum: 'x.......x.......', lead: 'sine', pad: 0.036,
     mel: [74, -1, -1, -1, 81, -1, 79, -1, 77, -1, -1, -1, 74, -1, -1, -1, 72, -1, 74, -1, 77, -1, 76, -1, 74, -1, -1, -1, -1, -1, -1, -1] },
+  // the Foundry Below: the Casting Halls a heavy anvil-beat march in a low minor; the Glasswork Caves a slow, glassy
+  // shimmer in a bright mode
+  cast: { bpm: 96, chords: [[45, 48, 52], [43, 46, 50], [41, 45, 48], [40, 44, 47]], bass: [33, 31, 29, 28], drum: 'x...x.x.x...x.x.', lead: 'square', pad: 0.03,
+    mel: [69, -1, 72, -1, 71, 69, 68, -1, 69, -1, -1, -1, 64, -1, -1, -1, 65, -1, 68, -1, 71, -1, 72, 71, 69, -1, -1, -1, -1, -1, -1, -1] },
+  glass: { bpm: 72, chords: [[52, 56, 59, 63], [49, 52, 56, 59], [45, 49, 52, 56], [47, 51, 54, 57]], bass: [40, 37, 33, 35], drum: 'x.......x...x...', lead: 'sine', pad: 0.05,
+    mel: [83, -1, -1, 80, 78, -1, 76, -1, 75, -1, -1, -1, 71, -1, -1, -1, 73, -1, 76, -1, 78, -1, 80, -1, 78, -1, -1, -1, -1, -1, -1, -1] },
   boss: { bpm: 140, chords: [[52, 55, 59], [52, 55, 59], [48, 52, 55], [50, 53, 57]], bass: [40, 40, 36, 38], drum: 'x.x.x.xxx.x.x.xx', lead: 'square', pad: 0.018,
     mel: [76, 76, -1, 79, -1, 76, 74, -1, 76, -1, 71, -1, 72, 74, 76, -1, 72, -1, 71, -1, 69, -1, 71, 72, 74, -1, 71, -1, 68, -1, 71, -1] },
   ending: { bpm: 80, chords: [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]], bass: [48, 45, 41, 43], drum: 'x.......x.......', lead: 'triangle', pad: 0.03,
@@ -193,6 +199,21 @@ export class BellspireSound {
       case 'pop': this.tone(900, t, 0.05, 0.05, 'sine', 400); break;
       case 'swipe': this.hiss(t, 0.08, 0.05, 4000, 1.5); break;
       case 'menu': this.tone(hz(84), t, 0.05, 0.04, 'square'); break;
+      // the Foundry Below
+      case 'hammerUp': this.hiss(t, 0.12, 0.05, 1600, 1.2, 'bandpass', 800); this.tone(hz(55), t, 0.1, 0.05, 'triangle', hz(62)); break;
+      case 'slam': this.tone(70, t, 0.35, 0.18, 'sine', 35); this.hiss(t, 0.25, 0.1, 400, 1, 'lowpass'); this.tone(hz(57) * 2.76, t, 0.5, 0.04, 'sine'); break;
+      case 'boing': this.tone(hz(60), t, 0.25, 0.1, 'triangle', hz(79)); this.tone(hz(72) * 2.76, t, 0.6, 0.04, 'sine'); break;
+      case 'shatter': [0, 0.03, 0.07, 0.12].forEach((d, i) => this.tone(hz(96 - i * 3), t + d, 0.15, 0.03, 'square')); this.hiss(t, 0.3, 0.1, 6000, 1.5, 'highpass'); break;
+      case 'freeze': this.hiss(t, 0.4, 0.07, 7000, 1.5, 'bandpass', 2500); [88, 93, 98].forEach((m, i) => this.tone(hz(m), t + i * 0.05, 0.3, 0.03, 'sine')); break;
+      case 'sizzle': this.hiss(t, 0.35, 0.08, 3500, 1, 'bandpass', 5000); this.tone(220, t, 0.15, 0.04, 'sawtooth', 110); break;
+      case 'crystal': [88, 92, 95, 100].forEach((m, i) => this.tone(hz(m), t + i * 0.06, 1.4, 0.045, 'sine')); break;
+      case 'beam': this.tone(hz(76), t, 0.6, 0.06, 'sine', hz(100)); this.tone(hz(88), t + 0.1, 0.8, 0.04, 'sine'); break;
+      case 'anvil': [0, 0.22, 0.44].forEach((d) => { this.tone(hz(76) * 2.76, t + d, 0.4, 0.06, 'sine'); this.tone(hz(64), t + d, 0.3, 0.06, 'square', hz(60)); }); break;
+      case 'pour': this.hiss(t, 0.7, 0.09, 600, 0.7, 'lowpass', 300); this.tone(90, t, 0.5, 0.05, 'sawtooth', 60); break;
+      case 'fire': this.hiss(t, 0.4, 0.07, 900, 0.8, 'bandpass', 1500); break;
+      case 'squeak': this.tone(1800, t, 0.06, 0.03, 'square', 2600); this.tone(2000, t + 0.08, 0.05, 0.03, 'square', 2600); break;
+      case 'sour': this.tone(hz(66), t, 0.6, 0.06, 'sawtooth'); this.tone(hz(67), t, 0.6, 0.06, 'sawtooth'); break;
+      case 'note0': case 'note1': case 'note2': { const m = [69, 76, 83][+id.slice(4)]; this.tone(hz(m), t, 0.9, 0.07, 'sine'); this.tone(hz(m + 12), t, 0.5, 0.02, 'sine'); break; }
       default: break;
     }
   }

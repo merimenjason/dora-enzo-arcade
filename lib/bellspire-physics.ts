@@ -19,6 +19,9 @@ export const ASSIST_REACH = 96, ASSIST_LEN = 56, ASSIST_AMP = 1.0, AIM_DX = 15 *
 /** Wind: how much a gust of strength 1 adds to the speed a body runs or drifts at (on the ground only while moving,
  *  so a hero can always stand braced), and how fast it carries the Lantern Glide upward. */
 export const WIND_RUN = 0.6, WIND_AIR = 1.4, WIND_LIFT = 1.2;
+/** The Bell Hammer's slam: a short hang in the air (the wind-up), then a straight dive; a landing on a bronze plate
+ *  bounces this fast (about nine tiles up), and the jump button can't cut the bounce short for a moment. */
+export const SLAM_WIND = 7, SLAM_V = 8, BOUNCE_V = 9.4, BOUNCE_T = 40;
 
 /** What the world says about a tile or a spot; the engine and the planner each provide one. */
 export interface Env {
@@ -37,6 +40,8 @@ export interface Env {
   wind?(x: number, y: number): number;
   /** Bell hooks Dora's rope can catch (world points). */
   hooks?(): { x: number; y: number }[];
+  /** A bronze bounce plate here (a slam landing on one bounces). Optional: none without it. */
+  bouncy?(c: number, r: number): boolean;
 }
 
 export type Caps = {
@@ -46,6 +51,8 @@ export type Caps = {
   rope?: boolean; windMul?: number;
   /** the guided Bell Rope (the helping hand): hooks catch themselves, the swing keeps itself, a jump flies to a target */
   ropeAssist?: boolean;
+  /** the Bell Hammer (Dora): ↓ + attack in the air slams down */
+  slam?: boolean;
 };
 
 export type Body = {
@@ -68,18 +75,21 @@ export type Body = {
   hooked: boolean; unhooked: boolean;
   /** the gust felt this tick (signed) */
   gust: number;
+  /** the Bell Hammer: ticks into a slam (0 when not slamming); set by `stepBody` on the tick a slam lands
+   *  (`slamHit`, with whether it bounced off a plate), and the bounce's grace from the jump cut */
+  slam: number; slamHit: boolean; bounced: boolean; bounceT: number;
 };
 
 export type Fly = { x0: number; y0: number; x1: number; y1: number; arc: number; dur: number; t: number; kind: 'hook' | 'ledge'; hx: number; hy: number; dir: 1 | -1; home?: boolean };
 export type RopeAim = { kind: 'hook' | 'ledge'; x: number; y: number; hx: number; hy: number; path: { x: number; y: number }[]; fly: Fly };
-export type BodyInput = { dir: -1 | 0 | 1; up: boolean; down: boolean; jumpP: boolean; jumpH: boolean; dashP: boolean; ropeP?: boolean };
+export type BodyInput = { dir: -1 | 0 | 1; up: boolean; down: boolean; jumpP: boolean; jumpH: boolean; dashP: boolean; ropeP?: boolean; slamP?: boolean };
 
 export function newBody(x: number, y: number): Body {
   return {
     x, y, vx: 0, vy: 0, ground: false, onOneway: false, coyote: 0, jumpBuf: 0, airJumps: 0, airDash: true, dashT: 0, dashCd: 0, dashDir: 1,
     kickT: 0, kickDir: 1, dropT: 0, climb: false, swim: false, wade: false, glide: false, wall: 0, face: 1,
     landed: false, jumped: '', hazard: false, bonk: false, dashed: false, rope: null, hooked: false, unhooked: false, gust: 0,
-    fly: null, homeX: NaN, homeY: NaN, skipX: NaN, skipY: NaN,
+    fly: null, homeX: NaN, homeY: NaN, skipX: NaN, skipY: NaN, slam: 0, slamHit: false, bounced: false, bounceT: 0,
   };
 }
 
@@ -355,6 +365,8 @@ function swing(b: Body, inp: BodyInput, env: Env, caps: Caps) {
 /** Move one tick. Returns nothing; the result flags are on the body. */
 export function stepBody(b: Body, inp: BodyInput, env: Env, caps: Caps) {
   b.landed = false; b.jumped = ''; b.hazard = false; b.bonk = false; b.dashed = false; b.hooked = false; b.unhooked = false; b.gust = 0;
+  b.slamHit = false; b.bounced = false;
+  if (b.bounceT > 0) b.bounceT--;
   if (caps.ropeAssist) {
     // the guided rope: a flight runs on its own; in the air by a hook, the rope catches itself (or with X)
     if (b.fly) { flyStep(b, env); if (b.fly || b.rope || b.ground) { b.coyote = 0; return; } }
@@ -381,6 +393,8 @@ export function stepBody(b: Body, inp: BodyInput, env: Env, caps: Caps) {
     b.ground = false; b.coyote = 0;
     return;
   }
+  // the Bell Hammer: ↓ + attack in the air starts a slam; the slam runs on its own until it lands
+  if (b.slam > 0 || (inp.slamP && caps.slam && !b.ground && !b.climb && !b.swim && !b.fly && b.dashT <= 0)) { slamStep(b, env, caps); return; }
   if (b.dashCd > 0) b.dashCd--;
   if (b.dropT > 0) b.dropT--;
   if (b.kickT > 0) b.kickT--;
@@ -483,7 +497,7 @@ export function stepBody(b: Body, inp: BodyInput, env: Env, caps: Caps) {
   if (b.dashT > 0 && inp.jumpP && b.ground) {
     b.dashT = 0; b.vy = -JUMP_V; b.ground = false; b.coyote = 0; b.jumpBuf = 0; b.jumped = 'ground'; b.vx = b.dashDir * Math.max(caps.speed, 3.2);
   }
-  if (!inp.jumpH && b.vy < -JUMP_CUT && !b.swim && b.jumped !== 'wall' && b.kickT <= 0) b.vy = -JUMP_CUT;
+  if (!inp.jumpH && b.vy < -JUMP_CUT && !b.swim && b.jumped !== 'wall' && b.kickT <= 0 && b.bounceT <= 0) b.vy = -JUMP_CUT;
 
   // gravity
   b.glide = false;
@@ -523,6 +537,29 @@ export function stepBody(b: Body, inp: BodyInput, env: Env, caps: Caps) {
     else if (!boxClear(env, b.x - HERO_W / 2 - 2, b.y - HERO_H + 4, b.x - HERO_W / 2, b.y - 4)) b.wall = -1;
     if (b.wall !== 0) { b.airJumps = caps.double ? 1 : 0; b.airDash = true; }
   }
+  if (touchesHazard(env, b)) b.hazard = true;
+}
+
+/** One tick of a Bell Hammer slam: a short hang (the wind-up), then a straight dive. On landing it hits (`slamHit`);
+ *  on a bronze plate it bounces high. Water or a ladder ends it. */
+function slamStep(b: Body, env: Env, caps: Caps) {
+  b.slam++; b.vx = 0; b.glide = false; b.wall = 0; b.kickT = 0; b.dashT = 0; b.jumpBuf = 0; b.coyote = 0;
+  b.vy = b.slam <= SLAM_WIND ? Math.min(0, b.vy * 0.5) : SLAM_V;
+  moveY(b, env, false);
+  const surf = env.surface(b.x, b.y);
+  if (surf !== null && b.y - HERO_H / 2 > surf) { b.slam = 0; b.swim = true; b.vy = Math.min(b.vy, 2); return; }
+  const sup = b.slam > SLAM_WIND ? support(env, b) : null;
+  if (sup) {
+    b.slam = 0; b.slamHit = true;
+    const [c0, c1] = colsOf(b.x - HERO_W / 2, b.x + HERO_W / 2), r = Math.round(b.y / T);
+    let plate = false;
+    for (let c = c0; c <= c1; c++) if (env.bouncy?.(c, r)) plate = true;
+    if (plate) {
+      b.vy = -BOUNCE_V; b.ground = false; b.bounced = true; b.bounceT = BOUNCE_T; b.jumped = 'ground';
+      b.airJumps = caps.double ? 1 : 0; b.airDash = true;
+    } else { b.vy = 0; b.ground = true; b.landed = true; b.onOneway = sup === 'oneway' || sup === 'float'; b.airJumps = caps.double ? 1 : 0; b.airDash = true; }
+  } else if (b.slam > 160) b.slam = 0;
+  if (b.bonk && b.slam <= SLAM_WIND) b.vy = 0;
   if (touchesHazard(env, b)) b.hazard = true;
 }
 

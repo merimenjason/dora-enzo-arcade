@@ -3,7 +3,7 @@
 // by a whole number with no smoothing.
 import {
   BellspireGame, INFO, ROOMS, AREAS, TILE, COLS, ROWS, VIEW_W, VIEW_H, FOES, ABILITIES, ABILITY_ORDER, HERO_H, DOOR_CHARS,
-  rawChar, groupAt, roomRect, hexRgb, surfaceY, surfaceRow, SWING, foeFrame,
+  rawChar, groupAt, roomRect, hexRgb, surfaceY, surfaceRow, SWING, foeFrame, CHANNELS, VENT_P,
   type Room, type GameEvent, type HeroId, type Boss, type NumKind,
 } from './bellspire-game';
 import { GUARDIANS, GUARDIAN_AREA } from './bellspire-world';
@@ -15,7 +15,7 @@ type Img = HTMLImageElement | HTMLCanvasElement;
 /** Extra treatment for a sprite: `rim` adds a dark outline and a lit upper edge in that colour; `tell` flashes it. */
 type SprFx = { rim?: string; tell?: boolean; /** washed over with one colour (the puma's painted twin) */ wash?: string };
 /** Each guardian's rim light, in the colour of its arena's light. */
-const RIM: Record<string, string> = { frog: '#bfe6ff', hydra: '#eaf5a8', puma: '#ffd49a', warden: '#ffe49a', mother: '#b4fff0', condor: '#ffd0a8', clappers: '#c8d8ff', tune: '#a8f4ff' };
+const RIM: Record<string, string> = { frog: '#bfe6ff', hydra: '#eaf5a8', puma: '#ffd49a', warden: '#ffe49a', mother: '#b4fff0', condor: '#ffd0a8', clappers: '#c8d8ff', tune: '#a8f4ff', founder: '#ffc890', choir: '#f0c8ff', hollow: '#ffb070' };
 /** A point light; `soft` lights fall off linearly (a wide, even pool), the rest fall off with the square (a hot centre). */
 type Light = { x: number; y: number; r: number; c: [number, number, number]; i: number; soft?: boolean };
 /** how a piece of decor moves: swings from its top, ripples from its top (cloth, nets), or bends from its base (reeds) */
@@ -45,6 +45,10 @@ const DECOR: Record<string, { torch: number; candle: number; window: number; bel
   // (the Cloudstair is out under the sky: no back wall, and no pillars standing in the air)
   cloud: { torch: 0, candle: 6, window: -1, bell: 0, floor: [3, 4, 5, 7], wall: [1, 2], ceil: [], back: 0 },
   loft: { torch: 0, candle: 2, window: 6, bell: 2, floor: [5], wall: [1, 3, 4], ceil: [7], back: 0.6 },
+  // the Foundry Below: furnaces for torches; crucibles and crane hooks hang from the roof, anvils, moulds and ingots on
+  // the floors (the Casting Halls); crystal clusters, spires and fungus, stalactites overhead (the Glasswork Caves)
+  cast: { torch: 0, candle: 0, window: -1, bell: -1, floor: [2, 3, 4, 7], wall: [5], ceil: [1, 6], back: 0.62 },
+  glass: { torch: 6, candle: 6, window: -1, bell: -1, floor: [0, 1, 3, 4, 5, 7], wall: [], ceil: [2], back: 0.7 },
 };
 const WATER_TINT: Record<string, [number, number, number]> = { halls: [52, 104, 176], docks: [46, 120, 104], throne: [34, 128, 140], hub: [52, 104, 176], towers: [52, 104, 176], crypt: [60, 70, 120] };
 /** The Cloudstair's 'torches' are bell posts that stand on the ground: the floor under a torch mark (world y), or null
@@ -107,6 +111,8 @@ export class BellspireScene {
   lift = 20;
   flash = { color: '#fff', n: 0 };
   pulses: { x: number; y: number; r: number; c: [number, number, number]; t: number }[] = [];
+  /** prism beams on their way to a beam door */
+  beams: { x: number; y: number; tx: number; ty: number; t: number }[] = [];
   t = 0;
   /** draw every hitbox over the picture */
   debug = false;
@@ -191,7 +197,7 @@ export class BellspireScene {
       im.onerror = () => res();
       im.src = `${base}${n}.webp`;
     })));
-    for (const n of ['dora', 'enzo', 'foes', 'boss-frog', 'boss-puma', 'boss-mother', 'boss-hydra', 'hydra-head', 'boss-warden', 'boss-condor', 'boss-clapper-a', 'boss-clapper-b', 'boss-bell', ...Object.values(OUTFIT).map((o) => o.strip)]) {
+    for (const n of ['dora', 'enzo', 'foes', 'boss-frog', 'boss-puma', 'boss-mother', 'boss-hydra', 'hydra-head', 'boss-warden', 'boss-condor', 'boss-clapper-a', 'boss-clapper-b', 'boss-bell', 'boss-founder', 'boss-hollow', 'boss-hollowb', 'boss-choir', ...Object.values(OUTFIT).map((o) => o.strip)]) {
       const im = this.img.get(n);
       if (!im) continue;
       const c = document.createElement('canvas');
@@ -314,6 +320,11 @@ export class BellspireScene {
       else if (e.k === 'sfx' && e.id === 'chest') this.animEvents[this.leadNow].push('chest');
       else if (e.k === 'sfx' && e.id === 'relic') this.animEvents[this.leadNow].push('relic');
       else if (e.k === 'sfx' && e.id === 'tag') this.pendingTag = true;
+      else if (e.k === 'beam') { this.animEvents[this.leadNow].push('beam'); this.beams.push({ ...e, t: 0 }); }
+      else if (e.k === 'forge') this.animEvents[this.leadNow].push('forge');
+      else if (e.k === 'shatter') this.burst(e.x, e.y - 4, 16, '#e8a0d0', 2.6, -1.4);
+      else if (e.k === 'slam') { this.burst(e.x, e.y, e.bounce ? 8 : 12, e.bounce ? '#ffd070' : '#d8c8b0', 2.2, -0.8); this.pulses.push({ x: e.x, y: e.y - 6, r: 60, c: [1, 0.8, 0.5], t: 0 }); }
+      else if (e.k === 'frost') for (let x = 0; x < e.w; x += 10) this.burst(e.x + x + 5, e.y, 2, '#dff4ff', 1.2, -1);
     }
   }
   /** Queue a number; numbers that would land on top of each other stack upwards instead. */
@@ -484,6 +495,8 @@ export class BellspireScene {
       } else if (ch === '=') T(3, x * 16, y * 16);
       else if (ch === 'H') T(4, x * 16, y * 16);
       else if (ch === '^') this.drawSpikes(ctx, x * 16, y * 16);
+      // the Foundry Below's fixed tiles: bounce plates, and the lava's surface (its glow and bubbles are drawn live)
+      else if (ch === '+' || ch === '_') { const fd = this.img.get('tiles-fd'); if (fd) ctx.drawImage(fd, (ch === '+' ? 7 : 11) * 16, 0, 16, 16, x * 16, y * 16, 16, 16); }
     }
     this.roomCanvas = c;
     this.roomId = room.id;
@@ -713,8 +726,23 @@ export class BellspireScene {
       this.wasOpen.set(d.id, open);
       if (open && was === false) this.opening.set(d.id, 0);
       const x = d.c * TILE + ox, y = d.r * TILE + oy, w = d.w * TILE, h = d.h * TILE;
-      const ab = ({ d: 'dash', j: 'double', k: 'wallkick', l: 'lantern', c: 'chime', y: 'rope', n: 'echo' } as Record<string, keyof typeof ABILITIES>)[d.ch];
-      const col = ab ? ABILITIES[ab].color : d.ch === 'u' ? '#c9a46a' : d.ch === 'Z' ? '#9fc4ff' : '#b85050';
+      const ab = ({ d: 'dash', j: 'double', k: 'wallkick', l: 'lantern', c: 'chime', y: 'rope', n: 'echo', '8': 'hammer', '&': 'resonance' } as Record<string, keyof typeof ABILITIES>)[d.ch];
+      const col = ab ? ABILITIES[ab].color : d.ch === 'u' ? '#c9a46a' : d.ch === 'Z' ? '#9fc4ff' : d.ch === '9' || d.ch === 'V' ? '#e0703a' : '#b85050';
+      // cracked glass and beam doors are painted blocks: glass bursts into shards, a beam door's eye flares and fades
+      const fdArt = (d.ch === '8' || d.ch === '&') && this.img.get('tiles-fd');
+      if (fdArt) {
+        const ot = this.opening.get(d.id);
+        if (open && ot !== undefined && ot < 30) {
+          this.opening.set(d.id, ot + 1);
+          if (ot === 0) for (const [c, r] of d.tiles) this.burst(c * TILE + 8, r * TILE + 8, 6, d.ch === '8' ? '#e090c0' : '#c58cff', 2.2, -0.6);
+          if (d.ch === '&') { ctx.globalAlpha = 1 - ot / 30; for (const [c, r] of d.tiles) ctx.drawImage(fdArt, 10 * 16, 0, 16, 16, c * TILE + ox, r * TILE + oy, 16, 16); ctx.globalAlpha = 1; }
+          continue;
+        }
+        if (open) continue;
+        for (const [c, r] of d.tiles) ctx.drawImage(fdArt, (d.ch === '8' ? 8 : 10) * 16, 0, 16, 16, c * TILE + ox, r * TILE + oy, 16, 16);
+        if (d.ch === '&') { ctx.fillStyle = col; ctx.globalAlpha = 0.25 + 0.2 * Math.sin(this.t * 0.08 + d.c); ctx.fillRect(x, y, w, h); ctx.globalAlpha = 1; }
+        continue;
+      }
       // opening: the rune blazes for a moment, then the door slides away into the wall (a hatch, sideways)
       const ot = this.opening.get(d.id);
       if (open && ot !== undefined && ot < 40) {
@@ -769,6 +797,16 @@ export class BellspireScene {
           ctx.fillStyle = on ? AREAS[b === 'condor' ? 'cloud' : 'loft'].color : '#4a3a40'; ctx.fillRect(sx + 1, sy + 1, 5, 5);
           if (on) { ctx.fillStyle = '#fff6d8'; ctx.fillRect(sx + 2, sy + 2, 1, 1); } else { ctx.fillStyle = '#2a2026'; ctx.fillRect(sx + 3, sy + 2, 1, 3); }
         });
+      } else if (d.ch === '9' || d.ch === 'V') {
+        // the foundry seals: a bronze bell in a ring (the deep seal with its two guardians' lights)
+        const X = Math.round(cxr), Y = Math.round(cyr);
+        ctx.fillRect(X - 3, Y - 3, 6, 5); ctx.fillRect(X - 4, Y + 2, 8, 1); ctx.fillRect(X - 1, Y - 5, 2, 2);
+        ctx.globalAlpha = 1;
+        if (d.ch === 'V') (['founder', 'choir'] as const).forEach((b, i) => {
+          const sx = X + (i ? 10 : -16), on = g.flag(`boss:${b}`);
+          ctx.fillStyle = '#1a1020'; ctx.fillRect(sx, Y - 3, 7, 7);
+          ctx.fillStyle = on ? AREAS[b === 'founder' ? 'cast' : 'glass'].color : '#4a3a40'; ctx.fillRect(sx + 1, Y - 2, 5, 5);
+        });
       } else if (d.ch === 'y') {
         // a rope knot: a loop with a tail
         const X = Math.round(cxr), Y = Math.round(cyr);
@@ -809,6 +847,36 @@ export class BellspireScene {
         for (let i = 0; i < 16; i += 4) { ctx.fillRect(px + i, py, 2, 1); ctx.fillRect(px + i, py + 15, 2, 1); }
         ctx.globalAlpha = 1;
       }
+    }
+    if (room.fd) this.drawFoundryTiles(g, ox, oy);
+  }
+  /** The Foundry Below's live tiles: molten channels (rippling; a frosty crust once cooled, glowing as it is about to
+   *  melt), slag (molten until a vent's mist hardens it), and lava (a shimmer and bubbles). */
+  drawFoundryTiles(g: BellspireGame, ox: number, oy: number) {
+    const ctx = this.ctx, fd = this.img.get('tiles-fd'), room = g.room;
+    if (!fd) return;
+    const T = (i: number, c: number, r: number) => ctx.drawImage(fd, i * 16, 0, 16, 16, c * TILE + ox, r * TILE + oy, 16, 16);
+    for (const q of CHANNELS) {
+      if (q.room !== room.id) continue;
+      const st = g.channelState(q), was = this.wasOpen.get(q.id);
+      this.wasOpen.set(q.id, st !== 'hot');
+      if (was === false && st !== 'hot') for (let c = q.c0; c <= q.c1; c += 2) this.burst(c * TILE + 8, q.r * TILE, 2, '#dff4ff', 1, -0.6);
+      if (was === true && st === 'hot') for (let c = q.c0; c <= q.c1; c += 2) this.burst(c * TILE + 8, q.r * TILE, 2, '#ffb050', 1, -0.8);
+      for (let c = q.c0; c <= q.c1; c++) {
+        if (st === 'hot') T((Math.floor(this.t / 14) + c) % 2, c, q.r);
+        // (glowing: the cracks blink faster as the crust runs out)
+        else T(st === 'glow' && Math.floor(this.t / ((g.frozen.get(q.id) ?? 0) < 50 ? 4 : 8)) % 2 ? 4 : 3, c, q.r);
+      }
+      if (st === 'hot' && this.t % 9 === 0) this.particles.push({ x: (q.c0 + Math.random() * (q.c1 - q.c0 + 1)) * TILE, y: q.r * TILE, vx: 0, vy: -0.5, life: 0, max: 30, color: '#ffc060', size: 1, g: 0, light: true });
+    }
+    const c0 = room.gx * COLS, r0 = room.gy * ROWS, hard = g.slagHard(room), left = g.ventLeft(room);
+    for (let y = 0; y < room.h * ROWS; y++) for (let x = 0; x < room.w * COLS; x++) {
+      const ch = room.rows[y][x];
+      if (ch === ':') {
+        // hardened slag flickers back to molten in its last second
+        T(hard && !(left > 0 && left < 50 && Math.floor(this.t / 5) % 2) ? 6 : 2, c0 + x, r0 + y);
+        if (!hard && this.t % 20 === (x * 7) % 20) this.particles.push({ x: (c0 + x) * TILE + 8, y: (r0 + y) * TILE, vx: 0, vy: -0.4, life: 0, max: 24, color: '#ff9040', size: 1, g: 0, light: true });
+      } else if (ch === '_' && this.t % 40 === (x * 13) % 40) this.particles.push({ x: (c0 + x) * TILE + 4 + Math.random() * 8, y: (r0 + y) * TILE + 2, vx: 0, vy: -0.7, life: 0, max: 20, color: '#ff6a30', size: 2, g: 0.04, light: true });
     }
   }
 
@@ -923,6 +991,27 @@ export class BellspireScene {
         this.spr('props2', sw > 0 && sw % 10 < 5 ? (east ? 4 : 3) : east ? 3 : 4, x + Math.round(Math.sin(sw * 0.5) * (sw / 20)), y);
       } else if (t.ch === 'D') this.spr('props2', 6, x + 12, y + 6);
       else if (t.ch === 'M') this.spr('npcs', Math.floor(this.t / 40) % 2, x, y + 2, g.body.x > x - ox);
+      // the Foundry Below: Tupa at their anvil (hammering, and waving when the heroes come close), vents, crystals and
+      // prisms
+      else if (t.ch === 'N') {
+        const near = Math.abs(g.body.x - (x - ox)) < 70;
+        this.spr('props3', 6, x - 22, y);
+        this.spr('npcs2', near ? (Math.floor(this.t / 30) % 2 ? 2 : 0) : Math.floor(this.t / 18) % 3 === 0 ? 1 : 0, x, y + 2, g.body.x > x - ox);
+        if (!near && Math.floor(this.t / 18) % 3 === 0 && this.t % 18 === 0) this.burst(x - ox - 22, y - oy - 26, 4, '#ffd070', 1.2, -0.8);
+      } else if (t.ch === '%') {
+        const up = g.ventUp(room);
+        this.spr('props3', up ? 2 : 1, x, y);
+        if (up && this.t % 4 === 0) this.particles.push({ x: x - ox + (Math.random() - 0.5) * 8, y: y - oy - 12, vx: (Math.random() - 0.5) * 0.3, vy: -1 - Math.random(), life: 0, max: 40, color: '#e8f2ff', size: 2, g: -0.01 });
+        // (a puff about to start: a hiss of steam)
+        else if (!up && (VENT_P - g.ventPhase(room)) < 40 && this.t % 6 === 0) this.particles.push({ x: x - ox, y: y - oy - 8, vx: 0, vy: -0.6, life: 0, max: 16, color: '#c8d4e4', size: 1, g: 0 });
+      } else if (t.ch === '*') {
+        const lit = g.notes.some((n) => n.key.startsWith(`${room.id}:x${t.i}:`));
+        this.spr('props3', lit || this.t % 90 < 6 ? 4 : 3, x, y - 4 + Math.sin(this.t * 0.05 + t.c) * 2);
+        if (!lit && g.helping() && g.has('resonance')) this.echoCue(x, y - 14, '200,150,255');
+      } else if (t.ch === '!') {
+        this.spr('props3', 5, x, y);
+        if (g.helping() && g.has('resonance') && g.prismShut(t)) this.echoCue(x, y - 16, '220,170,255');
+      }
       else if (t.ch === 'U') this.spr('npcs', 2 + (Math.floor(this.t / 50) % 2), x, y + Math.sin(this.t * 0.04) * 2, g.body.x < x - ox, 0.85);
       else if (t.ch === 'A') {
         const ctx = this.ctx;
@@ -931,6 +1020,16 @@ export class BellspireScene {
         if (room.ability && !g.has(room.ability)) this.spr('npcs', 7, x, y - 16 + Math.sin(this.t * 0.06) * 3);
       }
     }
+    // prism beams: a bright line that runs out to the door, then fades
+    const ctx = this.ctx;
+    for (const bm of this.beams) {
+      bm.t++;
+      const k = Math.min(1, bm.t / 10), a = bm.t < 30 ? 1 : Math.max(0, 1 - (bm.t - 30) / 20);
+      const ex = bm.x + (bm.tx - bm.x) * k, ey = bm.y + (bm.ty - bm.y) * k;
+      ctx.strokeStyle = `rgba(200,150,255,${0.5 * a})`; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(bm.x + ox, bm.y + oy); ctx.lineTo(ex + ox, ey + oy); ctx.stroke();
+      ctx.strokeStyle = `rgba(255,240,255,${a})`; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    this.beams = this.beams.filter((bm) => bm.t < 50);
     // the coin bag after a wipe
     this.chestSeen = true;
   }
@@ -1008,7 +1107,10 @@ export class BellspireScene {
       if (n.room !== room.id || n.t < n.at) continue;
       const left = n.life - n.t, a = Math.min(1, (n.t - n.at) / 8) * (left < 60 ? (Math.floor(left / 5) % 2 ? 0.35 : 0.9) : 0.9);
       const x = (n.x0 + n.x1) / 2 + ox, y = n.y + oy;
-      if (p2 && a2) { ctx.globalAlpha = a; this.spr('props2', 7, x, y + 10); ctx.globalAlpha = 1; }
+      // (a crystal bridge's slab: two glowing tiles)
+      const fd = this.img.get('tiles-fd');
+      if (n.key.includes(':x') && fd) { ctx.globalAlpha = a; ctx.drawImage(fd, 9 * 16, 0, 16, 16, Math.round(n.x0 + ox), Math.round(y), 16, 16); ctx.drawImage(fd, 9 * 16, 0, 16, 16, Math.round(n.x0 + ox) + 16, Math.round(y), 16, 16); ctx.globalAlpha = 1; }
+      else if (p2 && a2) { ctx.globalAlpha = a; this.spr('props2', 7, x, y + 10); ctx.globalAlpha = 1; }
       else { ctx.fillStyle = `rgba(95,227,255,${a})`; ctx.fillRect(Math.round(n.x0 + ox), Math.round(y), n.x1 - n.x0, 4); }
       if (this.t % 12 === 0) this.particles.push({ x: x - ox + (Math.random() - 0.5) * 24, y: y - oy, vx: 0, vy: -0.3, life: 0, max: 24, color: '#9ff4ff', size: 1, g: 0, light: true });
     }
@@ -1062,6 +1164,18 @@ export class BellspireScene {
     }
   }
 
+  /** The helping hand's cue on a crystal or prism the chime can ring: a soft glow and rising arcs of sound. */
+  echoCue(x: number, cy: number, col: string) {
+    const ctx = this.ctx, ph = (this.t % 70) / 70;
+    const glow = ctx.createRadialGradient(x, cy, 2, x, cy, 28);
+    glow.addColorStop(0, `rgba(${col},${0.3 + 0.15 * Math.sin(this.t * 0.12)})`); glow.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(x, cy, 28, 0, Math.PI * 2); ctx.fill();
+    for (const k of [0, 0.5]) {
+      const u = (ph + k) % 1;
+      ctx.strokeStyle = `rgba(${col},${((1 - u) * 0.6).toFixed(2)})`; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(x + 0.5, cy + 0.5, 10 + u * 20, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+    }
+  }
   drawEnemies(g: BellspireGame, ox: number, oy: number) {
     for (const e of g.enemies) {
       if (!e.alive || e.hidden) continue;
@@ -1102,6 +1216,7 @@ export class BellspireScene {
     if (b.jumped === 'wall') ev.push('kicked');
     if (b.hooked) ev.push('hooked');
     if (b.unhooked) ev.push('unhooked');
+    if (b.slamHit) ev.push('slammed');
     return {
       ground: b.ground, vx: b.vx, vy: b.vy, face: b.face, climb: b.climb, swim: b.swim, wade: b.wade, glide: b.glide,
       wallSlide: b.wall !== 0 && !b.ground && b.vy > 0 && g.has('wallkick'), dash: b.dashT > 0, hurt: rt.hurtT > 0, down: false,
@@ -1112,6 +1227,7 @@ export class BellspireScene {
       gust: b.ground && Math.abs(b.vx) < 0.3 ? b.gust : 0, ride: g.riding,
       hail: g.shots.some((s) => !s.friendly && (s.kind === 'hail' || s.kind === 'ice') && Math.abs(s.x - b.x) < 60 && s.y < b.y && b.y - s.y < 120),
       castLong: rt.castHold >= 40 && g.save.spells.includes('gale'),
+      heat: g.heat, hot: g.room.fd && g.heat > 0 && !g.boss, bounce: b.bounceT > 0,
     };
   }
 
@@ -1316,17 +1432,18 @@ export class BellspireScene {
         ctx.strokeStyle = `rgba(255,120,90,${0.5 + 0.4 * (this.t % 10 < 5 ? 1 : 0)})`; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.ellipse(cx, cy - 1, Math.max(12, 14 + 26 * k) + 2, Math.max(3, (14 + 26 * k) * 0.22), 0, 0, Math.PI * 2); ctx.stroke();
         if (this.t % 2 === 0) this.particles.push({ x: m.x + (Math.random() - 0.5) * 20, y: g.bossRoomRect().y + 8, vx: 0, vy: 2.5, life: 0, max: 60, color: '#b8b0a0', size: 1, g: 0.05 });
-      } else if (m.kind === 'bell' || m.kind === 'lily') {
+      } else if (m.kind === 'bell' || m.kind === 'lily' || m.kind === 'drop' || m.kind === 'blank') {
         // where a bell or a lily will land: a pulsing ring on the floor, a faint column of light up to it, and a small
         // picture of what is coming, so the spot reads even under the heroes or the water
-        const bell = m.kind === 'bell', k = this.t % 12 < 6, w = 13 + (k ? 1 : 0);
-        const col = bell ? '255,208,96' : '170,255,210';
+        const bell = m.kind === 'bell' || m.kind === 'blank', k = this.t % 12 < 6, w = 13 + (k ? 1 : 0);
+        const col = m.kind === 'drop' ? '255,130,60' : bell ? '255,208,96' : '170,255,210';
         const top = g.bossRoomRect().y + 40, gr = ctx.createLinearGradient(0, top + oy, 0, cy);
         gr.addColorStop(0, `rgba(${col},0)`); gr.addColorStop(1, `rgba(${col},0.22)`);
         ctx.fillStyle = gr; ctx.fillRect(cx - 9, Math.round(top + oy), 18, Math.round(cy - top - oy));
         ctx.fillStyle = `rgba(${col},0.25)`; ctx.beginPath(); ctx.ellipse(cx, cy - 1, w, 4, 0, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = `rgba(${col},${k ? 1 : 0.7})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(cx, cy - 1, w, 4, 0, 0, Math.PI * 2); ctx.stroke();
         if (bell) { ctx.fillStyle = k ? '#ffd060' : '#c89030'; ctx.fillRect(cx - 3, cy - 14, 6, 6); ctx.fillRect(cx - 4, cy - 9, 8, 2); ctx.fillRect(cx - 1, cy - 16, 2, 2); ctx.fillRect(cx - 1, cy - 7, 2, 2); }
+        else if (m.kind === 'drop') this.spr('foes', 182, cx, cy - 2);
         else { this.lily(cx, cy - 10, 0.5, 0); }
       } else if (m.kind === 'swirl') {
         for (let i = 0; i < 3; i++) { ctx.strokeStyle = i ? 'rgba(120,210,230,0.85)' : '#e0ffff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(cx, cy - 2, 6 + i * 5, 2 + i * 1.2, 0, this.t * 0.2 + i * 2, this.t * 0.2 + i * 2 + 4); ctx.stroke(); }
@@ -1360,7 +1477,52 @@ export class BellspireScene {
     const fr = b.calm ? 5 : st.endsWith('Tell') ? (Math.floor(this.t / 7) % 2 ? 3 : 1) : atk ? 2 : b.flash > 3 ? 4 : 0;
     const body = b.body;
     const fx: SprFx = { rim: b.calm ? undefined : RIM[b.id], tell: tell && !b.calm };
-    if (b.id === 'frog') {
+    if (b.id === 'founder') {
+      // the Molten Founder: ladle up on its tells, poured on a pour, the fist for a pound; its frost spots glitter on it
+      const f = b.calm ? 5 : st === 'pourTell' || st === 'twinTell' ? (Math.floor(this.t / 7) % 2 ? 1 : 3) : st === 'poundTell' || st === 'floodTell' || st === 'rainTell' ? 3 : st === 'pour' || st === 'pound' || st === 'flood' ? 2 : b.flash > 3 ? 4 : 0;
+      this.sprXf('boss-founder', f, b.x + ox, b.y + oy + 2, b.face > 0, calmA, white, fx, 1, st === 'pound' ? 0.94 : 1);
+      if (!b.calm) for (const p of b.spots ?? []) {
+        const x = Math.round(b.x + p.dx + ox), y = Math.round(b.y + p.dy + oy), a = Math.min(1, p.t / 60);
+        const gl = ctx.createRadialGradient(x, y, 1, x, y, 16);
+        gl.addColorStop(0, `rgba(200,240,255,${0.75 * a})`); gl.addColorStop(1, 'rgba(160,220,255,0)');
+        ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(x, y, 16, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fillRect(x - 3, y, 7, 1); ctx.fillRect(x, y - 3, 1, 7);
+      }
+    } else if (b.id === 'choir') {
+      // the Glass Choir: each singer rests, sings (lit, while it sings its note) or bows when calm. With the helping
+      // hand, while it listens, the song's order hangs over the singers as numbers (the next one bright)
+      b.heads.forEach((h, i) => {
+        const singing = h.st === 'sing' || st === 'shardsTell';
+        const f = (b.calm ? 6 : singing ? 3 : 0) + i;
+        const dazed = st === 'stun' ? Math.sin(this.t * 0.3 + i) * 1.5 : 0;
+        this.sprXf('boss-choir', f, h.x + ox + dazed, h.y + oy + 2, false, calmA, white && b.flash > 0, { rim: b.calm ? undefined : RIM.choir, tell: singing && !b.calm }, 1, 1);
+        if (singing && !b.calm) this.pulses.length < 40 && this.t % 10 === 0 && this.pulses.push({ x: h.x, y: h.y - 50, r: 50, c: [0.9, 0.6, 1], t: 0 });
+      });
+      if (st === 'listen' && b.song && g.helping()) b.song.forEach((n, k) => {
+        const h = b.heads[n], done = k < (b.sung ?? 0), next = k === (b.sung ?? 0);
+        const dup = b.song!.slice(0, k).filter((m) => m === n).length;
+        this.text(`${k + 1}`, h.x + ox - 8 + dup * 9, h.y + oy - 86 - (next ? Math.abs(Math.sin(this.t * 0.15)) * 3 : 0), done ? '#6a5a70' : next ? '#fff3a0' : '#d8b8ff');
+      });
+      if (st === 'listen' && !g.helping()) this.text(`${b.sung ?? 0}/${b.song?.length ?? 0}`, b.x + ox, b.y + oy - 96, '#d8b8ff');
+    } else if (b.id === 'hollow') {
+      // the lava pit's surface (it rises with the fight), then the Hollow Bell: its shell, cracking at half, then its
+      // molten heart (dazed and dimmed while a Resonance chime holds it)
+      const rr = g.bossRoomRect(), ly = Math.round((b.lava ?? rr.y + rr.h) + oy);
+      const gr = ctx.createLinearGradient(0, ly - 10, 0, ly + 40);
+      gr.addColorStop(0, 'rgba(255,120,40,0)'); gr.addColorStop(0.25, 'rgba(255,110,30,0.85)'); gr.addColorStop(1, 'rgba(120,20,10,0.95)');
+      ctx.fillStyle = gr; ctx.fillRect(Math.round(rr.x + ox), ly - 10, rr.w, Math.max(0, rr.y + rr.h + oy - ly + 10));
+      ctx.fillStyle = '#ffd080';
+      for (let x = 0; x < rr.w; x += 6) ctx.fillRect(Math.round(rr.x + ox + x), ly + Math.round(Math.sin(this.t * 0.08 + x * 0.1) * 1.5), 4, 1);
+      if (this.t % 6 === 0) this.particles.push({ x: rr.x + Math.random() * rr.w, y: ly - oy, vx: 0, vy: -0.8, life: 0, max: 26, color: '#ff8a40', size: 2, g: 0.03, light: true });
+      const second = b.form === 2;
+      const f = b.calm ? 5 : st === 'crack' ? (second ? 0 : 5) : st.endsWith('Tell') ? (Math.floor(this.t / 7) % 2 ? 1 : 3) : st === 'swing' || st === 'lunge' || st === 'toll' || st === 'orbit' ? 2 : b.flash > 3 || st === 'stun' ? 4 : 0;
+      const shake = st === 'crack' ? Math.sin(this.t * 1.3) * 2 : 0;
+      this.sprXf(second ? 'boss-hollowb' : 'boss-hollow', f, b.x + ox + shake, b.y + oy + 2, b.face > 0, calmA, white, fx, 1, 1, st === 'swing' ? Math.cos(b.t * 0.052) * 0.25 : 0);
+      if (st === 'stun') { ctx.strokeStyle = `rgba(200,150,255,${0.5 + 0.3 * Math.sin(this.t * 0.3)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(b.x + ox, b.y + oy - 50, 46 + Math.sin(this.t * 0.2) * 4, 0, Math.PI * 2); ctx.stroke(); }
+      // its orbiting shards
+      if (st === 'orbit') for (const h of b.harm) this.spr('foes', 181, h.x + h.w / 2 + ox, h.y + h.h + oy, false);
+      if (st === 'crack' && this.t % 3 === 0) this.burst(b.x, b.y - 60, 3, '#ffb050', 2);
+    } else if (b.id === 'frog') {
       // New Game+'s belly flop: a deep squat that throbs, stretched tall in the leap and the fall, flattened on landing
       let sx = 1, sy = 1;
       if (st === 'flopTell') { const k = Math.min(1, b.t / 18); sx = 1 + 0.18 * k; sy = 1 - 0.26 * k + (this.t % 6 < 3 ? 0.03 : 0); }
@@ -1473,7 +1635,7 @@ export class BellspireScene {
       // the frog's shadow grows as it comes down; a whirlpool turns where a spout will rise; a seed sprouts where one
       // will fall
       // (drawn over the heroes and the water instead: drawWarnings)
-      if (m.kind === 'shadow' || m.kind === 'swirl' || m.kind === 'bell' || m.kind === 'lily') continue;
+      if (m.kind === 'shadow' || m.kind === 'swirl' || m.kind === 'bell' || m.kind === 'lily' || m.kind === 'drop' || m.kind === 'blank') continue;
       if (m.kind === 'seed') { ctx.fillStyle = k ? '#c8f070' : '#5a8a2a'; ctx.fillRect(Math.round(m.x - 6 + ox), Math.round(m.y - 2 + oy), 12, 2); ctx.fillRect(Math.round(m.x - 1 + ox), Math.round(m.y - 6 + oy), 2, 4); ctx.fillRect(Math.round(m.x + 1 + ox), Math.round(m.y - 7 + oy), 3, 2); continue; }
       ctx.fillStyle = k ? '#ff6a5a' : '#902a20';
       ctx.fillRect(Math.round(m.x - 10 + ox), Math.round(m.y - 2 + oy), 20, 2);
@@ -1501,6 +1663,12 @@ export class BellspireScene {
       else if (s.kind === 'shard') this.spr('foes', 140, x, y + 6, s.vx < 0);
       else if (s.kind === 'cog') this.spr('foes', 141, x, y + 7);
       else if (s.kind === 'sour') this.spr('foes', 142, x, y + 6);
+      // the Foundry Below's: sparks, bronze globs, glass, crystal notes, splashes, toll fragments, lava drops, bell blanks
+      else if (s.kind === 'spark' || s.kind === 'glob' || s.kind === 'glass' || s.kind === 'cnote' || s.kind === 'splash' || s.kind === 'toll' || s.kind === 'drop' || s.kind === 'blank') {
+        const fr = { spark: 176, glob: 177, glass: 178, cnote: 179, splash: 180, toll: 181, drop: 182, blank: 183 }[s.kind];
+        this.spr('foes', fr, x, y + 8, s.vx < 0);
+        if ((s.kind === 'spark' || s.kind === 'glob') && this.t % 5 === 0) this.particles.push({ x: s.x, y: s.y, vx: 0, vy: 0, life: 0, max: 14, color: '#ffb050', size: 1, g: 0, light: true });
+      }
       else if (s.kind === 'gale') {
         // a rolling arc of wind
         const f = s.vx < 0 ? -1 : 1;
@@ -1591,8 +1759,16 @@ export class BellspireScene {
       if (k <= 0) continue;
       L.push({ x: (n.x0 + n.x1) / 2, y: n.y - 4, r: 58, c: [0.45, 0.95, 1], i: 0.9 * k * (left < 60 && left % 8 < 3 ? 0.6 : 1), soft: true });
     }
+    // the Foundry Below: molten channels and lava glow orange; crystals violet (brighter when rung); vents a cool white
+    if (room.fd) {
+      for (const q of CHANNELS) if (q.room === room.id && g.channelState(q) !== 'crust') L.push({ x: (q.c0 + q.c1 + 1) * TILE / 2, y: q.r * TILE, r: 40 + (q.c1 - q.c0) * 6, c: [1, 0.55, 0.2], i: 0.8 * flick(q.c0), soft: true });
+      for (let y = 0; y < room.h * ROWS; y += 1) { const row = room.rows[y]; for (let x = 0; x < row.length; x += 6) if (row[x] === '_' || row[x] === ':') L.push({ x: (room.gx * COLS + x + 3) * TILE, y: (room.gy * ROWS + y) * TILE, r: 80, c: [1, 0.4, 0.15], i: 0.7 * flick(x), soft: true }); }
+      if (g.boss?.id === 'hollow' && g.boss.lava !== undefined) { const rr = g.bossRoomRect(); for (let x = 60; x < rr.w; x += 160) L.push({ x: rr.x + x, y: g.boss.lava, r: 140, c: [1, 0.45, 0.15], i: 0.9 * flick(x), soft: true }); }
+    }
     for (const th of INFO.get(room.id)!.things) {
       const x = th.c * TILE + 8, y = th.r * TILE + 8;
+      if (th.ch === '*' || th.ch === '!') { const lit = th.ch === '*' && g.notes.some((n) => n.key.startsWith(`${room.id}:x${th.i}:`)); L.push({ x, y: y - 10, r: lit ? 90 : 50, c: [0.8, 0.55, 1], i: lit ? 1.1 : 0.6 * flick(th.c), soft: true }); continue; }
+      if (th.ch === '%' && g.ventUp(room)) { L.push({ x, y: y - 30, r: 60, c: [0.85, 0.92, 1], i: 0.6, soft: true }); continue; }
       if (th.ch === 'T') {
         // (a Cloudstair bell post stands on the floor below its mark: its glow is at the post's lamp)
         const fy = postFloor(room, th.c, th.r);

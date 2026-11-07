@@ -14,6 +14,7 @@ import {
 import { Graph, nodeRoom, HeroAnimator, ANIMS, animFrames, heroHas } from '../.checks/bellspire-nav.js';
 import { BOXES, FOE_BODY, ART } from '../.checks/bellspire-art.js';
 import belfry from './bellspire-belfry.mjs';
+import foundry from './bellspire-foundry.mjs';
 import trials from './bellspire-trials.mjs';
 import strips from './bellspire-strips.mjs';
 import rope from './bellspire-rope.mjs';
@@ -50,14 +51,15 @@ for (const r of ROOMS) {
 }
 ok(open > 100, 'the rooms are joined up');
 eq(new Set(ROOMS.map((r) => r.id)).size, ROOMS.length, 'room ids are unique');
-eq(COMPLETION.murals, 18, 'eighteen murals: ten in the citadel, eight more with the Windward Belfry');
+eq(COMPLETION.murals, 24, 'twenty-four murals: ten in the citadel, eight more with the Windward Belfry, six in the Foundry Below');
+eq(COMPLETION.belfry.murals, 18, 'the citadel and belfry without the foundry hold eighteen');
 eq(COMPLETION.base.murals, 10, 'the citadel alone still holds ten');
 ok(ROOMS.every((r) => (r.murals?.length ?? 0) === INFO.get(r.id).things.filter((t) => t.ch === 'R').length), 'every mural mark has its text');
 const muralIds = ROOMS.flatMap((r) => r.murals ?? []);
 eq([...muralIds].sort((a, b) => a - b), [...Array(MURALS.length).keys()], 'each mural text appears once');
 ok(ROOMS.every((r) => INFO.get(r.id).things.filter((t) => t.ch === 'C').length === (r.chests?.length ?? 0)), 'every chest has its contents');
 ok(ROOMS.filter((r) => r.ability).every((r) => INFO.get(r.id).things.some((t) => t.ch === 'A')), 'every ability room has its pedestal');
-eq(ROOMS.filter((r) => r.ability).map((r) => r.ability), ['dash', 'double', 'wallkick', 'chime', 'rope'], 'five pedestals; the lantern, the glide and the Echo Step come from guardians and the coat from a chest');
+eq(ROOMS.filter((r) => r.ability).map((r) => r.ability), ['dash', 'double', 'wallkick', 'chime', 'rope', 'hammer'], 'six pedestals; the lantern, the glide, the Echo Step and Resonance come from guardians and the coat from a chest');
 
 // ─── the gates, with the route planner ────────────────────────────────────
 const start = new BellspireGame(fresh()).body;
@@ -74,7 +76,7 @@ function reachable(abilities, keeper = false, calmed = ['frog', 'hydra', 'puma',
 const ped = (a) => thing('A', (t, r) => r.ability === a);
 const before = (a) => ABILITY_ORDER.slice(0, ABILITY_ORDER.indexOf(a));
 for (const a of ['dash', 'double', 'wallkick', 'chime']) ok(reachable(before(a)).near(ped(a)), `the ${a} pedestal can be reached with what comes before it`);
-const CITADEL = ROOMS.filter((r) => !isBelfryRoom(r.id)), ROPE_ROOMS = ['ropeloft', 'ropegallery', 'ropecellar'];
+const CITADEL = ROOMS.filter((r) => !isBelfryRoom(r.id) && !r.fd), ROPE_ROOMS = ['ropeloft', 'ropegallery', 'ropecellar'];
 const r0 = reachable([]);
 ok(!r0.rooms.has('idol') && !r0.rooms.has('dgate'), 'without the dash: no frog and no docks');
 const r1 = reachable(['dash']);
@@ -747,10 +749,14 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
   // which states each hero can be in: the ones the game never puts a hero in have no frames for that hero
   const NEVER = {
     // the lantern and its spells are Enzo's (the Echo Step, Frost Fan and Gale Wave too)
-    dora: ['glide', 'cast', 'castWind', 'lanternUp', 'lanternDown', 'chime', 'echo', 'frostWind', 'frost', 'galeWind', 'gale', 'noteHop'],
+    dora: ['glide', 'cast', 'castWind', 'lanternUp', 'lanternDown', 'chime', 'echo', 'frostWind', 'frost', 'galeWind', 'gale', 'noteHop',
+      // (Resonance and the low Frost Fan are Enzo's too)
+      'resWind', 'resRing', 'resBeam', 'frostLowWind', 'frostLow'],
     // the dash, wall kick, down-thrust and Whirl Slash are Dora's, and so is the Bell Rope (and only she lifts a shield
     // arm to hail: Enzo shelters under the lantern's glow)
-    enzo: ['dash', 'wallSlide', 'wallKick', 'thrust', 'whirl', 'ropeThrow', 'ropeSwing', 'ropeRelease', 'ropeFly', 'shield'],
+    enzo: ['dash', 'wallSlide', 'wallKick', 'thrust', 'whirl', 'ropeThrow', 'ropeSwing', 'ropeRelease', 'ropeFly', 'shield',
+      // (the Bell Hammer is Dora's, and so is bouncing high off a plate after a slam)
+      'slamWind', 'slamDive', 'slamLand', 'bounce'],
   };
   // the one deliberate share: a hard landing recovers through the ordinary landing frame
   const SHARED = [['hardLand', 'land']];
@@ -767,12 +773,13 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
     // whatever happens, the animator only picks states the hero has
     let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
     const a = new HeroAnimator(hero), seen = new Set(), bad = [];
-    const kinds = [null, 'swing', 'thrust', 'whirl', 'cast', 'tagin'], spells = ['bolt', 'ember', 'chime', 'lantern'], evs = ['jumped', 'kicked', 'tagOut', 'rest', 'chest', 'relic', 'ring', 'read', 'shop', 'revive'];
+    const kinds = [null, 'swing', 'thrust', 'whirl', 'cast', 'tagin', 'slam'], spells = ['bolt', 'ember', 'chime', 'lantern', 'frost', 'resonance'], evs = ['jumped', 'kicked', 'tagOut', 'rest', 'chest', 'relic', 'ring', 'read', 'shop', 'revive', 'slammed', 'beam', 'forge'];
     for (let i = 0; i < 20000; i++) {
-      const k = kinds[Math.floor(rnd() * 6)];
+      const k = kinds[Math.floor(rnd() * 7)];
       const o = a.step({ ground: rnd() < 0.6, vx: (rnd() - 0.5) * 5, vy: (rnd() - 0.5) * 8, face: rnd() < 0.5 ? 1 : -1, climb: rnd() < 0.1, swim: rnd() < 0.1, wade: rnd() < 0.1,
         glide: rnd() < 0.1, wallSlide: rnd() < 0.1, dash: rnd() < 0.05, hurt: rnd() < 0.02, down: rnd() < 0.01,
-        act: k && rnd() < 0.3 ? { kind: k, n: Math.floor(rnd() * 3), t: Math.floor(rnd() * 20), wind: 3, active: 5, spell: spells[Math.floor(rnd() * 4)] } : null,
+        act: k && rnd() < 0.3 ? { kind: k, n: Math.floor(rnd() * 3), t: Math.floor(rnd() * 20), wind: 3, active: 5, spell: spells[Math.floor(rnd() * 6)] } : null,
+        heat: rnd() * 100, hot: rnd() < 0.2, bounce: rnd() < 0.1,
         castHold: rnd() < 0.05, lanternUp: rnd() < 0.3, events: rnd() < 0.05 ? [evs[Math.floor(rnd() * evs.length)]] : [] });
       seen.add(o.state);
       if (!heroHas(o.state, hero) || !animFrames(o.state, hero).includes(o.frame)) bad.push(`${o.state}:${o.frame}`);
@@ -1071,6 +1078,7 @@ for (const [abilities, water] of [[[], WATERS[0]], [['dash'], WATERS[2]], [['das
 }
 
 checks += belfry();
+checks += foundry();
 checks += trials();
 checks += strips();
 checks += rope();

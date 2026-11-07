@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import {
   BellspireGame, freshSave, parseSave, ROOMS, INFO, COLS, ROWS, TILE, BOSSES, NO_INPUT, AREAS, SHRINE_NAMES, ABILITY_ORDER, ALL_BOSSES, SCRIPTS,
-  SAVE_KEY, NGP_SAVE_KEY, TRIALS, RUSH, RUSH_HEAL, TRIAL_FOOD, MEDALS, NGP_HP, NGP_HIT, medalFor, trialById, trialSecs, ngpReady, newGamePlusSave,
+  SAVE_KEY, NGP_SAVE_KEY, TRIALS, RUSH, GRAND_RUSH, RUSH_HEAL, TRIAL_FOOD, MEDALS, NGP_HP, NGP_HIT, medalFor, trialById, trialSecs, ngpReady, newGamePlusSave,
   roomById,
 } from '../.checks/bellspire-game.js';
 
@@ -38,9 +38,10 @@ export default function trials() {
   const toBell = (g, goal) => { g.teleport(goal.room, goal.c, goal.r); g.enemies = []; };
 
   // ─── the trials themselves ───────────────────────────────────────────────
-  eq(TRIALS.filter((t) => t.kind === 'rush').map((t) => t.id), ['rush'], 'one Guardian Rush');
+  eq(TRIALS.filter((t) => t.kind === 'rush').map((t) => t.id), ['rush', 'rush:grand'], 'the Guardian Rush, and the Grand Rush once the foundry is calm');
   eq(new Set(TRIALS.filter((t) => t.kind === 'run').map((t) => t.area)), new Set(Object.keys(AREAS)), 'and a run in every area');
-  eq(RUSH, ALL_BOSSES, 'the rush meets all eight guardians in story order');
+  eq(RUSH, ALL_BOSSES.slice(0, 8), 'the rush meets the first eight guardians in story order');
+  eq(GRAND_RUSH, ALL_BOSSES, 'the Grand Rush all eleven');
   for (const t of TRIALS) {
     ok(t.medals[0] < t.medals[1] && t.medals[1] < t.medals[2], `${t.name}: gold is quicker than silver, silver than bronze`);
     ok(t.text.length > 10 && !/\b(he|she|his|her)\b/i.test(t.text), `${t.name} says what to do, with no he or she`);
