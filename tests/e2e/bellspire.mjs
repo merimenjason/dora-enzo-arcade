@@ -840,8 +840,12 @@ try {
     // riding a swinging bell balances on it
     await at('bellshaft', 20, 47);
     // (the shaft's foes cleared and its hurt healed, so nothing knocks the hero off the bell)
-    await game(page, `(() => { g.enemies = []; g.hero[g.lead].inv = 120; const f = g.floatCache.find((f) => f.kind === 'bell'); g.body.x = (f.x0 + f.x1) / 2; g.body.y = f.y - 2; g.body.ground = false; g.body.vy = 0; return true; })()`);
-    await until(page, () => window.__bellspire().game.riding === 'bell');
+    // the bell keeps swinging while the page runs, so the drop onto it can miss: try a few times
+    for (let tries = 0; ; tries++) {
+      await game(page, `(() => { g.enemies = []; g.hero[g.lead].inv = 120; const f = g.floatCache.find((f) => f.kind === 'bell'); g.body.x = (f.x0 + f.x1) / 2; g.body.y = f.y - 2; g.body.ground = false; g.body.vy = 0; return true; })()`);
+      if (await page.waitForFunction(() => window.__bellspire().game.riding === 'bell', null, { timeout: 3000 }).then(() => true, () => false)) break;
+      assert.ok(tries < 5, 'the hero lands on the swinging bell within six drops');
+    }
     await until(page, () => ['balance', 'noteHop'].includes(window.__bellspire().scene.heroAnim[window.__bellspire().game.lead]?.state));
     ok('a hero riding a swinging bell balances on it');
 
